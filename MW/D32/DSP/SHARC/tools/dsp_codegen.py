@@ -2842,7 +2842,7 @@ def gen_limiter(node):
             r2 = dm(_lim_on_{node['id']});
             r3 = 0;
             comp(r2, r3);
-            if eq jump (pc, .lim_pass_{node['id']});
+            if eq jump (pc, .lim_bypass_{node['id']});
             f15 = f0;                   /* save dry input */
 
             /* Peak detect */
@@ -2872,6 +2872,9 @@ def gen_limiter(node):
             dm(_buf_{node['id']}) = r0;
             rts;
 
+        .lim_bypass_{node['id']}:
+            dm(_buf_{node['id']}) = r0;
+            rts;
         .lim_pass_{node['id']}:
             /* No limiting needed */
             f0 = f15;

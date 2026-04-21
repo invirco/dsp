@@ -42,7 +42,7 @@ _C2_SUB_LIM_process:
     r2 = dm(_lim_on_C2_SUB_LIM);
     r3 = 0;
     comp(r2, r3);
-    if eq jump (pc, .lim_pass_C2_SUB_LIM);
+    if eq jump (pc, .lim_bypass_C2_SUB_LIM);
     f15 = f0;                   /* save dry input */
 
     /* Peak detect */
@@ -72,6 +72,9 @@ _C2_SUB_LIM_process:
     dm(_buf_C2_SUB_LIM) = r0;
     rts;
 
+.lim_bypass_C2_SUB_LIM:
+    dm(_buf_C2_SUB_LIM) = r0;
+    rts;
 .lim_pass_C2_SUB_LIM:
     /* No limiting needed */
     f0 = f15;

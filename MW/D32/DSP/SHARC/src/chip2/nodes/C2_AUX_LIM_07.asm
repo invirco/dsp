@@ -42,7 +42,7 @@ _C2_AUX_LIM_07_process:
     r2 = dm(_lim_on_C2_AUX_LIM_07);
     r3 = 0;
     comp(r2, r3);
-    if eq jump (pc, .lim_pass_C2_AUX_LIM_07);
+    if eq jump (pc, .lim_bypass_C2_AUX_LIM_07);
     f15 = f0;                   /* save dry input */
 
     /* Peak detect */
@@ -72,6 +72,9 @@ _C2_AUX_LIM_07_process:
     dm(_buf_C2_AUX_LIM_07) = r0;
     rts;
 
+.lim_bypass_C2_AUX_LIM_07:
+    dm(_buf_C2_AUX_LIM_07) = r0;
+    rts;
 .lim_pass_C2_AUX_LIM_07:
     /* No limiting needed */
     f0 = f15;
