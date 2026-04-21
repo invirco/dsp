@@ -239,6 +239,7 @@ jump (pc, .fx_passthru_C2_FX_ENG_02);
         /* Output: buf_out - input */
         f0 = f1 - f0;
     .rv_ap_C2_FX_ENG_02:
+        nop;
 
     /* f0 = reverb output */
     jump (pc, .fx_mix_C2_FX_ENG_02);

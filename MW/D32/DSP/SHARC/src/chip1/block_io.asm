@@ -151,6 +151,7 @@
 
 .extern _rx_active_buf;
 .extern _ic_tx_active_buf;
+.extern _meter_peaks;
 
 .section/pm seg_pmco;
 
@@ -171,22 +172,45 @@ _scatter_chip1:
         i2 = r3;
         dm(i2, 0) = r2;
     .c1_scat_rx:
+        nop;
     rts;
 _scatter_chip1.end:
+
+/* Peak-hold meter scan: run once per block on last-scattered slot values */
+.global _meter_scan_chip1;
+_meter_scan_chip1:
+    i0 = _c1_rx_slot_ptrs;
+    i1 = _meter_peaks;
+    m0 = 0;                   /* no-advance for peak read */
+    m1 = 1;                   /* advance for peak write */
+    r5 = 32;
+    lcntr = r5; do .c1_mscan until lce;
+        r2 = dm(i0, 1);       /* pointer to slot var */
+        i2 = r2;
+        f3 = dm(i2, 0);       /* last-scattered sample */
+        f3 = abs f3;          /* abs(sample) */
+        f4 = dm(i1, m0);      /* current peak (no advance) */
+        comp(f3, f4);         /* compare abs to peak */
+        if gt f4 = f3;        /* conditional reg move: valid SHARC op */
+        dm(i1, m1) = f4;      /* write updated peak and advance */
+    .c1_mscan:
+        nop;
+    rts;
+_meter_scan_chip1.end:
 
 /* Gather 25 inter-chip sends to IC DMA TX buffer */
 .global _gather_chip1;
 _gather_chip1:
     /* r0 = sample index (0..31) */
-    r1 = 128;
-    r1 = r0 * r1;             /* base offset = n × 128 */
+    r1 = 25;
+    r1 = r0 * r1;             /* base offset = n × 25 */
     r6 = dm(_ic_tx_active_buf);
     r6 = r6 + r1;             /* r6 = DMA buf base for this sample */
     i1 = _c1_ic_tx_slots;     /* slot offset table */
     i2 = _c1_ic_tx_ptrs;      /* slot var pointer table */
     r5 = 25;
     lcntr = r5; do .c1_gath_ic until lce;
-        r3 = dm(i1, 1);       /* IC slot offset (0..127) */
+        r3 = dm(i1, 1);       /* IC slot index (0..24) */
         r4 = dm(i2, 1);       /* pointer to _tx_slot_* var */
         i3 = r4;
         r2 = dm(i3, 0);       /* read slot value */
@@ -194,5 +218,6 @@ _gather_chip1:
         i3 = r4;
         dm(i3, 0) = r2;       /* write to DMA buf */
     .c1_gath_ic:
+        nop;
     rts;
 _gather_chip1.end:

@@ -63,7 +63,7 @@
 
 
 /* DMA ping-pong buffers: placed in seg_dma (32-word aligned per LDF) */
-#define IC_CHANNELS  128
+#define IC_CHANNELS  25
 #define IC_BUF_WORDS (BLOCK_SIZE * IC_CHANNELS)
 
 .section/dm seg_dma;
@@ -178,22 +178,35 @@ _sport_init:
     dm(SPORTx_CS0(3)) = r1;
 
 
-    /* ---- SPORT7: Inter-chip transport ---- */
+    /* ---- SPORT7: Inter-chip TDM-32 transport ---- */
     /*
-     * 8 data lines, 16 TDM channels per line = 128 ch total.
-     * Chip 1 = TX, Chip 2 = RX.
-     * NCH = 15 (16 channels per line, 0-indexed)
+     * Single data lane, 32 slots × 32 bits = 1024 bits/frame, 48 kHz.
+     * BCLK = 48000 × 32 × 32 = 49.152 MHz (from CPLD-provided MCLK).
+     * 25 active slots (0-24): MAIN_L/R, SUB, GRP×4, AUX×12, FX×6.
      *
-     * CTL_A: same structure but NCH=15
-     * Bit pattern: 0x000FC3F1
+     * Chip 1 = TX master: generates BCLK and frame sync (ICLK=1, IFS=1).
+     * Chip 2 = RX slave:  accepts external BCLK and frame sync (ICLK=0, IFS=0).
+     *
+     * CTL_A bit fields:
+     *   [0]     SPEN    = 1
+     *   [8:4]   SLEN    = 11111 (31 → 32-bit word)
+     *   [9]     ICLK    = 1 (master) / 0 (slave)
+     *   [10]    IFS     = 1 (master) / 0 (slave)
+     *   [14]    TDMMODE = 1
+     *   [15]    TFSR    = 1
+     *   [20:16] NCH     = 11111 (31 → 32 slots)
      */
-    #define SPORT7_CTL_TDM16  0x000FC3F1
-
-    r1 = SPORT7_CTL_TDM16;
+#if CHIP_ID == 1
+    /* Chip 1 TX master: 0x001FC7F1 */
+    r1 = 0x001FC7F1;
+#elif CHIP_ID == 2
+    /* Chip 2 RX slave:  0x001FC1F1 */
+    r1 = 0x001FC1F1;
+#endif
     dm(SPORTx_CTL_A(7)) = r1;
     r1 = 0x00000001;              /* MCE = 1 */
     dm(SPORTx_MCTL(7)) = r1;
-    r1 = 0x0000FFFF;              /* Slots 0-15 active per line */
+    r1 = 0x01FFFFFF;              /* Slots 0-24 active (25 slots) */
     dm(SPORTx_CS0(7)) = r1;
 
 
@@ -251,8 +264,12 @@ _sport_init:
     r0 = 1; dm(DMAx_MODIFY(3)) = r0;
     r0 = 0x00010003; dm(DMAx_CFG(3)) = r0;
 
-    /* DMA8 — SPORT7 inter-chip (ping buffer) */
+    /* DMA8 — SPORT7 inter-chip (chip1=TX, chip2=RX) */
+#if CHIP_ID == 1
     r0 = _dma_ic_tx_ping;
+#elif CHIP_ID == 2
+    r0 = _dma_ic_rx_ping;
+#endif
     dm(DMAx_ADDRSTART(8)) = r0;
     r0 = IC_BUF_WORDS;
     dm(DMAx_COUNT(8)) = r0;

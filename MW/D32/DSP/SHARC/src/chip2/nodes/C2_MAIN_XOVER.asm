@@ -258,6 +258,7 @@ _xover_start_xfade_C2_MAIN_XOVER:
     lcntr = r4; do .xo_zs_hpB_C2_MAIN_XOVER until lce;
         dm(i1, 1) = r0;
     .xo_zs_hpB_C2_MAIN_XOVER:
+        nop;
     jump .xo_sxf_go_C2_MAIN_XOVER;
 
 .xo_sxf_toA_C2_MAIN_XOVER:

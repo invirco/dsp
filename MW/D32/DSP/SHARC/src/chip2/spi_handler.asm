@@ -32,11 +32,15 @@
 /* ---- ADSP-21564 SPI register addresses (from HRM) ---- */
 #define SPI1_RFIFO   0x08000A00   /* SPI1 receive FIFO */
 #define SPI1_STAT    0x08000A10   /* SPI1 status */
+#define SPI1_RFIFO   0x08000A00   /* SPI1 receive FIFO */
+#define SPI1_TFIFO   0x08000A08   /* SPI1 transmit FIFO */
+#define SPI1_STAT    0x08000A10   /* SPI1 status */
 #define SPI1_CTL     0x08000A04   /* SPI1 control */
 
 /* ---- Address space ---- */
 #define RAMP_PROFILE_SHIFT 8     /* bits 11:8 = ramp profile ID */
 #define RAMP_PROFILE_MASK  0x0F
+#define READ_FLAG          0x00002000  /* bit 13: READ request */
 
 /* ---- Ramp profile IDs ---- */
 #define RAMP_INSTANT   0
@@ -88,6 +92,13 @@ _spi1_rx_isr:
     r2 = lshift r0 by -16;        /* address in r2 */
     r3 = 0xFFFF;
     r2 = r2 AND r3;
+
+    /* Check READ flag (bit 13 of Word 0) — respond before dispatch */
+    r4 = READ_FLAG;
+    r4 = r0 AND r4;
+    r5 = 0;
+    comp(r4, r5);
+    if ne jump (pc, .spi_read);
 
     /* ---- Chip 2: local parameter write ---- */
 
@@ -187,4 +198,25 @@ _spi1_rx_isr:
 .spi_done:
     pop sts;
     rti;
+
+.spi_read:
+    /* READ request: look up DM value at address in r2, write to TFIFO */
+    r4 = 1820;
+    comp(r2, r4);
+    if ge jump (pc, .spi_read_zero);     /* out-of-range → return 0 */
+    i0 = _spi_dispatch_c2;
+    m0 = r2;
+    modify(i0, m0);
+    r4 = dm(i0, 0);                      /* DM address of target variable */
+    r5 = 0;
+    comp(r4, r5);
+    if eq jump (pc, .spi_read_zero);     /* unmapped → return 0 */
+    i1 = r4;
+    r4 = dm(i1, 0);                      /* read value from DM */
+    jump (pc, .spi_read_respond);
+.spi_read_zero:
+    r4 = 0;
+.spi_read_respond:
+    dm(SPI1_TFIFO) = r4;                 /* preload TX FIFO for master readback */
+    jump (pc, .spi_done);
 _spi1_rx_isr.end:

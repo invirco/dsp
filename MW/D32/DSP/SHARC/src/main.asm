@@ -45,6 +45,12 @@
 .extern _block_ready;
 .extern _rx_active_buf, _tx_active_buf;
 .extern _ic_rx_active_buf, _ic_tx_active_buf;
+.extern _meter_decay_block;
+#if CHIP_ID == 1
+.extern _meter_scan_chip1;
+#elif CHIP_ID == 2
+.extern _meter_scan_chip2;
+#endif
 
 #if CHIP_ID == 1
 .extern _chip1_process_all;
@@ -127,6 +133,11 @@ _start:
     comp(r5, r6);
     if lt jump (pc, .c1_sample_loop);
 
+    /* Post-block: scan input slot vars for peak levels, then decay */
+    call _meter_scan_chip1;
+    r0 = 32;
+    call _meter_decay_block;
+
     jump (pc, .main_loop);
 
 #elif CHIP_ID == 2
@@ -154,6 +165,11 @@ _start:
     r5 = r5 + 1;
     comp(r5, r6);
     if lt jump (pc, .c2_sample_loop);
+
+    /* Post-block: scan output slot vars for peak levels, then decay */
+    call _meter_scan_chip2;
+    r0 = 18;
+    call _meter_decay_block;
 
     jump (pc, .main_loop);
 

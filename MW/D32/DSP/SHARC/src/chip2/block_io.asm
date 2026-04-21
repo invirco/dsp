@@ -142,6 +142,7 @@
 
 .extern _ic_rx_active_buf;
 .extern _tx_active_buf;
+.extern _meter_peaks;
 
 .section/pm seg_pmco;
 
@@ -149,7 +150,7 @@
 .global _scatter_chip2;
 _scatter_chip2:
     /* r0 = sample index (0..31) */
-    r1 = 128;
+    r1 = 25;
     r1 = r0 * r1;
     r6 = dm(_ic_rx_active_buf);
     r6 = r6 + r1;             /* r6 = IC buf base for this sample */
@@ -165,6 +166,7 @@ _scatter_chip2:
         i3 = r4;
         dm(i3, 0) = r2;       /* write to recv slot var */
     .c2_scat_ic:
+        nop;
     rts;
 _scatter_chip2.end:
 
@@ -188,5 +190,28 @@ _gather_chip2:
         i3 = r4;
         dm(i3, 0) = r2;
     .c2_gath_tx:
+        nop;
     rts;
 _gather_chip2.end:
+
+/* Peak-hold meter scan: run once per block on last-gathered output values */
+.global _meter_scan_chip2;
+_meter_scan_chip2:
+    i0 = _c2_tx_ptrs;
+    i1 = _meter_peaks;
+    m0 = 0;                   /* no-advance for peak read */
+    m1 = 1;                   /* advance for peak write */
+    r5 = 18;
+    lcntr = r5; do .c2_mscan until lce;
+        r2 = dm(i0, 1);       /* pointer to _tx_out_slot_* var */
+        i2 = r2;
+        f3 = dm(i2, 0);       /* last-gathered output sample */
+        f3 = abs f3;          /* abs(sample) */
+        f4 = dm(i1, m0);      /* current peak (no advance) */
+        comp(f3, f4);         /* compare abs to peak */
+        if gt f4 = f3;        /* conditional reg move: valid SHARC op */
+        dm(i1, m1) = f4;      /* write updated peak and advance */
+    .c2_mscan:
+        nop;
+    rts;
+_meter_scan_chip2.end:

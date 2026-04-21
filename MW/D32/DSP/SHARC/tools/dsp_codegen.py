@@ -1389,6 +1389,7 @@ def gen_routing(node):
                 dm(i0, 1) = f1;
                 modify(i1, 1); modify(i2, 1);
             .aux_next_{node['id']}:
+                nop;                /* ea2019: pad before loop end */
             .aux_ramp_loop_{node['id']}:
 
             /* ===== FX send ramp updates (6 iterations) ===== */
@@ -1412,6 +1413,7 @@ def gen_routing(node):
                 dm(i0, 1) = f1;
                 modify(i1, 1); modify(i2, 1);
             .fx_next_{node['id']}:
+                nop;                /* ea2019: pad before loop end */
             .fx_ramp_loop_{node['id']}:
 
             /* ===== Main L/R accumulate ===== */
@@ -1456,6 +1458,7 @@ def gen_routing(node):
             .rtg_grp_skip_{node['id']}:
                 modify(i3, 1);
             .rtg_grp_next_{node['id']}:
+                nop;                /* ea2019: branch target cannot be at loop end */
             .rtg_grp_loop_{node['id']}:
 
             /* ===== Aux accumulate (12 auxes, pointer array) ===== */
@@ -1500,6 +1503,7 @@ def gen_routing(node):
             .rtg_aux_acc_skip_{node['id']}:
                 modify(i4, 1); modify(i3, 1); modify(i6, 1);
             .rtg_aux_acc_next_{node['id']}:
+                nop;                /* ea2019: branch target cannot be at loop end */
             .rtg_aux_acc_{node['id']}:
 
             /* ===== FX send accumulate (6 FX sends, pointer array) ===== */
@@ -1544,6 +1548,7 @@ def gen_routing(node):
             .rtg_fx_acc_skip_{node['id']}:
                 modify(i4, 1); modify(i3, 1); modify(i6, 1);
             .rtg_fx_acc_next_{node['id']}:
+                nop;                /* ea2019: branch target cannot be at loop end */
             .rtg_fx_acc_{node['id']}:
 
             /* Store routing output (pass-through for metering) */
@@ -2321,6 +2326,7 @@ def gen_fx_engine(node):
                 /* Output: buf_out - input */
                 f0 = f1 - f0;
             .rv_ap_{nid}:
+                nop;
 
             /* f0 = reverb output */
             jump (pc, .fx_mix_{nid});
@@ -2760,6 +2766,7 @@ def gen_crossover(node):
             lcntr = r4; do .xo_zs_hpB_{nid} until lce;
                 dm(i1, 1) = r0;
             .xo_zs_hpB_{nid}:
+                nop;
             jump .xo_sxf_go_{nid};
 
         .xo_sxf_toA_{nid}:
@@ -3600,7 +3607,7 @@ def gen_block_io(chip_label, chip_nodes):
         send_nodes = [n for n in chip_nodes if n['type'] == 'INTERCHIP_SEND']
         send_nodes.sort(key=lambda n: int(n['params'].get('slot', '0')))
         num_ic = len(send_nodes)
-        ic_stride = 128  # IC transport width
+        ic_stride = num_ic  # IC DMA stride = active slots per frame
 
         # --- Data section: pointer tables ---
         lines.append('.section/dm seg_dmda;')
@@ -3629,6 +3636,8 @@ def gen_block_io(chip_label, chip_nodes):
 
         lines.append('.extern _rx_active_buf;')
         lines.append('.extern _ic_tx_active_buf;')
+        lines.append('.extern _meter_peaks;')
+
         lines.append('')
 
         # --- Code section ---
@@ -3641,10 +3650,10 @@ def gen_block_io(chip_label, chip_nodes):
         lines.append('_scatter_chip1:')
         lines.append(f'    /* r0 = sample index (0..31) */')
         lines.append(f'    r1 = {rx_stride};')
-        lines.append(f'    r1 = r0 * r1;             /* r1 = sample_offset = n × {rx_stride} */')
+        lines.append(f'    r1 = r0 * r1;             /* r1 = sample_offset = n \u00d7 {rx_stride} */')
         lines.append(f'    i0 = dm(_rx_active_buf);')
         lines.append(f'    m0 = r1;')
-        lines.append(f'    modify(i0, m0);            /* i0 → DMA buf[n × {rx_stride}] */')
+        lines.append(f'    modify(i0, m0);            /* i0 \u2192 DMA buf[n \u00d7 {rx_stride}] */')
         lines.append(f'    i1 = _c1_rx_slot_ptrs;')
         lines.append(f'    r5 = {num_rx};')
         lines.append(f'    lcntr = r5; do .c1_scat_rx until lce;')
@@ -3653,8 +3662,33 @@ def gen_block_io(chip_label, chip_nodes):
         lines.append(f'        i2 = r3;')
         lines.append(f'        dm(i2, 0) = r2;')
         lines.append(f'    .c1_scat_rx:')
+        lines.append(f'        nop;')
         lines.append(f'    rts;')
         lines.append(f'_scatter_chip1.end:')
+        lines.append('')
+
+        # _meter_scan_chip1: post-block peak scan (call once per block, not per sample)
+        lines.append(f'/* Peak-hold meter scan: run once per block on last-scattered slot values */')
+        lines.append('.global _meter_scan_chip1;')
+        lines.append('_meter_scan_chip1:')
+        lines.append(f'    i0 = _c1_rx_slot_ptrs;')
+        lines.append(f'    i1 = _meter_peaks;')
+        lines.append(f'    m0 = 0;                   /* no-advance for peak read */')
+        lines.append(f'    m1 = 1;                   /* advance for peak write */')
+        lines.append(f'    r5 = {num_rx};')
+        lines.append(f'    lcntr = r5; do .c1_mscan until lce;')
+        lines.append(f'        r2 = dm(i0, 1);       /* pointer to slot var */')
+        lines.append(f'        i2 = r2;')
+        lines.append(f'        f3 = dm(i2, 0);       /* last-scattered sample */')
+        lines.append(f'        f3 = abs f3;          /* abs(sample) */')
+        lines.append(f'        f4 = dm(i1, m0);      /* current peak (no advance) */')
+        lines.append(f'        comp(f3, f4);         /* compare abs to peak */')
+        lines.append(f'        if gt f4 = f3;        /* conditional reg move: valid SHARC op */')
+        lines.append(f'        dm(i1, m1) = f4;      /* write updated peak and advance */')
+        lines.append(f'    .c1_mscan:')
+        lines.append(f'        nop;')
+        lines.append(f'    rts;')
+        lines.append(f'_meter_scan_chip1.end:')
         lines.append('')
 
         # _gather_chip1: per-bus send slot variables → IC DMA TX buffer
@@ -3670,7 +3704,7 @@ def gen_block_io(chip_label, chip_nodes):
         lines.append(f'    i2 = _c1_ic_tx_ptrs;      /* slot var pointer table */')
         lines.append(f'    r5 = {num_ic};')
         lines.append(f'    lcntr = r5; do .c1_gath_ic until lce;')
-        lines.append(f'        r3 = dm(i1, 1);       /* IC slot offset (0..127) */')
+        lines.append(f'        r3 = dm(i1, 1);       /* IC slot index (0..{num_ic-1}) */')
         lines.append(f'        r4 = dm(i2, 1);       /* pointer to _tx_slot_* var */')
         lines.append(f'        i3 = r4;')
         lines.append(f'        r2 = dm(i3, 0);       /* read slot value */')
@@ -3678,6 +3712,7 @@ def gen_block_io(chip_label, chip_nodes):
         lines.append(f'        i3 = r4;')
         lines.append(f'        dm(i3, 0) = r2;       /* write to DMA buf */')
         lines.append(f'    .c1_gath_ic:')
+        lines.append(f'        nop;')
         lines.append(f'    rts;')
         lines.append(f'_gather_chip1.end:')
         lines.append('')
@@ -3687,7 +3722,7 @@ def gen_block_io(chip_label, chip_nodes):
         recv_nodes = [n for n in chip_nodes if n['type'] == 'INTERCHIP_RECV']
         recv_nodes.sort(key=lambda n: int(n['params'].get('slot', '0')))
         num_ic_rx = len(recv_nodes)
-        ic_stride = 128
+        ic_stride = num_ic_rx  # IC DMA stride = active slots per frame
 
         # --- Collect OUTPUT_TDM nodes (Chip 2 TX to DAC) ---
         output_nodes = [n for n in chip_nodes if n['type'] == 'OUTPUT_TDM']
@@ -3735,6 +3770,8 @@ def gen_block_io(chip_label, chip_nodes):
 
         lines.append('.extern _ic_rx_active_buf;')
         lines.append('.extern _tx_active_buf;')
+        lines.append('.extern _meter_peaks;')
+
         lines.append('')
 
         # --- Code section ---
@@ -3762,6 +3799,7 @@ def gen_block_io(chip_label, chip_nodes):
         lines.append(f'        i3 = r4;')
         lines.append(f'        dm(i3, 0) = r2;       /* write to recv slot var */')
         lines.append(f'    .c2_scat_ic:')
+        lines.append(f'        nop;')
         lines.append(f'    rts;')
         lines.append(f'_scatter_chip2.end:')
         lines.append('')
@@ -3787,8 +3825,33 @@ def gen_block_io(chip_label, chip_nodes):
         lines.append(f'        i3 = r4;')
         lines.append(f'        dm(i3, 0) = r2;')
         lines.append(f'    .c2_gath_tx:')
+        lines.append(f'        nop;')
         lines.append(f'    rts;')
         lines.append(f'_gather_chip2.end:')
+        lines.append('')
+
+        # _meter_scan_chip2: post-block peak scan of output bus levels
+        lines.append(f'/* Peak-hold meter scan: run once per block on last-gathered output values */')
+        lines.append('.global _meter_scan_chip2;')
+        lines.append('_meter_scan_chip2:')
+        lines.append(f'    i0 = _c2_tx_ptrs;')
+        lines.append(f'    i1 = _meter_peaks;')
+        lines.append(f'    m0 = 0;                   /* no-advance for peak read */')
+        lines.append(f'    m1 = 1;                   /* advance for peak write */')
+        lines.append(f'    r5 = {num_tx};')
+        lines.append(f'    lcntr = r5; do .c2_mscan until lce;')
+        lines.append(f'        r2 = dm(i0, 1);       /* pointer to _tx_out_slot_* var */')
+        lines.append(f'        i2 = r2;')
+        lines.append(f'        f3 = dm(i2, 0);       /* last-gathered output sample */')
+        lines.append(f'        f3 = abs f3;          /* abs(sample) */')
+        lines.append(f'        f4 = dm(i1, m0);      /* current peak (no advance) */')
+        lines.append(f'        comp(f3, f4);         /* compare abs to peak */')
+        lines.append(f'        if gt f4 = f3;        /* conditional reg move: valid SHARC op */')
+        lines.append(f'        dm(i1, m1) = f4;      /* write updated peak and advance */')
+        lines.append(f'    .c2_mscan:')
+        lines.append(f'        nop;')
+        lines.append(f'    rts;')
+        lines.append(f'_meter_scan_chip2.end:')
         lines.append('')
 
     return '\n'.join(lines)

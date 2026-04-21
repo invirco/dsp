@@ -88,6 +88,7 @@ _C1_RTG_05_process:
         dm(i0, 1) = f1;
         modify(i1, 1); modify(i2, 1);
     .aux_next_C1_RTG_05:
+        nop;                /* ea2019: pad before loop end */
     .aux_ramp_loop_C1_RTG_05:
 
     /* ===== FX send ramp updates (6 iterations) ===== */
@@ -111,6 +112,7 @@ _C1_RTG_05_process:
         dm(i0, 1) = f1;
         modify(i1, 1); modify(i2, 1);
     .fx_next_C1_RTG_05:
+        nop;                /* ea2019: pad before loop end */
     .fx_ramp_loop_C1_RTG_05:
 
     /* ===== Main L/R accumulate ===== */
@@ -155,6 +157,7 @@ _C1_RTG_05_process:
     .rtg_grp_skip_C1_RTG_05:
         modify(i3, 1);
     .rtg_grp_next_C1_RTG_05:
+        nop;                /* ea2019: branch target cannot be at loop end */
     .rtg_grp_loop_C1_RTG_05:
 
     /* ===== Aux accumulate (12 auxes, pointer array) ===== */
@@ -199,6 +202,7 @@ _C1_RTG_05_process:
     .rtg_aux_acc_skip_C1_RTG_05:
         modify(i4, 1); modify(i3, 1); modify(i6, 1);
     .rtg_aux_acc_next_C1_RTG_05:
+        nop;                /* ea2019: branch target cannot be at loop end */
     .rtg_aux_acc_C1_RTG_05:
 
     /* ===== FX send accumulate (6 FX sends, pointer array) ===== */
@@ -243,6 +247,7 @@ _C1_RTG_05_process:
     .rtg_fx_acc_skip_C1_RTG_05:
         modify(i4, 1); modify(i3, 1); modify(i6, 1);
     .rtg_fx_acc_next_C1_RTG_05:
+        nop;                /* ea2019: branch target cannot be at loop end */
     .rtg_fx_acc_C1_RTG_05:
 
     /* Store routing output (pass-through for metering) */
