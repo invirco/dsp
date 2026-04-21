@@ -38,6 +38,11 @@
 .global _C2_MAIN_LIM_process;
 _C2_MAIN_LIM_process:
     r0 = dm(_buf_C2_MAIN_COMP);
+    /* --- Bypass --- */
+    r2 = dm(_lim_on_C2_MAIN_LIM);
+    r3 = 0;
+    comp(r2, r3);
+    if eq jump (pc, .lim_pass_C2_MAIN_LIM);
     f15 = f0;                   /* save dry input */
 
     /* Peak detect */

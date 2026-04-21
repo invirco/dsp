@@ -38,6 +38,11 @@
 .global _C2_AUX_LIM_12_process;
 _C2_AUX_LIM_12_process:
     r0 = dm(_buf_C2_AUX_AFB_12);
+    /* --- Bypass --- */
+    r2 = dm(_lim_on_C2_AUX_LIM_12);
+    r3 = 0;
+    comp(r2, r3);
+    if eq jump (pc, .lim_pass_C2_AUX_LIM_12);
     f15 = f0;                   /* save dry input */
 
     /* Peak detect */

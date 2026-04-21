@@ -777,12 +777,18 @@ def gen_gate(node):
         .var _buf_{node['id']};
 
         .section/pm seg_pmco;
+        .extern _sample_idx;
         .extern _biquad_mono;
         .extern _dyn_envelope_follow;
         .extern _dyn_to_dB;
         .global _{node['id']}_process;
         _{node['id']}_process:
             r0 = dm(_buf_{node['inputs_str']});
+            /* --- Bypass --- */
+            r2 = dm(_gate_on_{node['id']});
+            r3 = 0;
+            comp(r2, r3);
+            if eq jump (pc, .gate_bypass_{node['id']});
             f15 = f0;                   /* save dry input */
 
             /* --- Gate sidechain detection --- */
@@ -854,6 +860,9 @@ def gen_gate(node):
             f0 = f0 * f4;
             dm(_buf_{node['id']}) = r0;
             rts;
+        .gate_bypass_{node['id']}:
+            dm(_buf_{node['id']}) = r0;
+            rts;
         _{node['id']}_process.end:
     """)
 
@@ -896,6 +905,7 @@ def gen_compressor(node):
         .var _buf_{node['id']};
 
         .section/pm seg_pmco;
+        .extern _sample_idx;
         .extern _dyn_envelope_follow;
         .extern _dyn_to_dB;
         .extern _dyn_from_dB;
@@ -903,13 +913,22 @@ def gen_compressor(node):
         .global _{node['id']}_process;
         _{node['id']}_process:
             r0 = dm(_buf_{node['inputs_str']});
+            /* --- Bypass --- */
+            r2 = dm(_comp_on_{node['id']});
+            r3 = 0;
+            comp(r2, r3);
+            if eq jump (pc, .comp_bypass_{node['id']});
             f15 = f0;                   /* save dry input for parallel blend */
 
-            /* --- Ramp makeup gain (DynSafe profile) --- */
+            /* --- Ramp makeup gain: once per block (sample 0 only) --- */
+            r4 = dm(_sample_idx);
+            r1 = 0;
+            comp(r4, r1);
+            if ne jump (pc, .comp_go_{node['id']});
             r4 = dm(_comp_makeup_frames_{node['id']});
-            r15 = 1;
-            r4 = r4 - r15;
+            comp(r4, r1);
             if le jump (pc, .no_mramp_{node['id']});
+            r4 = r4 - 1;
             dm(_comp_makeup_frames_{node['id']}) = r4;
             f1 = dm(_comp_makeup_{node['id']});
             f2 = dm(_comp_makeup_step_{node['id']});
@@ -960,6 +979,9 @@ def gen_compressor(node):
             f0 = f0 * f2;             /* wet * par */
             f0 = f0 + f4;             /* blended output */
 
+            dm(_buf_{node['id']}) = r0;
+            rts;
+        .comp_bypass_{node['id']}:
             dm(_buf_{node['id']}) = r0;
             rts;
         _{node['id']}_process.end:
@@ -2816,6 +2838,11 @@ def gen_limiter(node):
         .global _{node['id']}_process;
         _{node['id']}_process:
             r0 = dm(_buf_{node['inputs_str']});
+            /* --- Bypass --- */
+            r2 = dm(_lim_on_{node['id']});
+            r3 = 0;
+            comp(r2, r3);
+            if eq jump (pc, .lim_pass_{node['id']});
             f15 = f0;                   /* save dry input */
 
             /* Peak detect */

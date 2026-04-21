@@ -67,6 +67,7 @@
 .var _buf_C2_MAIN_OCOMP_02;
 
 .section/pm seg_pmco;
+.extern _sample_idx;
 .extern _dyn_envelope_follow;
 .extern _dyn_to_dB;
 .extern _dyn_from_dB;
@@ -74,13 +75,22 @@
 .global _C2_MAIN_OCOMP_02_process;
 _C2_MAIN_OCOMP_02_process:
     r0 = dm(_buf_C2_MAIN_OEQ_02);
+    /* --- Bypass --- */
+    r2 = dm(_comp_on_C2_MAIN_OCOMP_02);
+    r3 = 0;
+    comp(r2, r3);
+    if eq jump (pc, .comp_bypass_C2_MAIN_OCOMP_02);
     f15 = f0;                   /* save dry input for parallel blend */
 
-    /* --- Ramp makeup gain (DynSafe profile) --- */
+    /* --- Ramp makeup gain: once per block (sample 0 only) --- */
+    r4 = dm(_sample_idx);
+    r1 = 0;
+    comp(r4, r1);
+    if ne jump (pc, .comp_go_C2_MAIN_OCOMP_02);
     r4 = dm(_comp_makeup_frames_C2_MAIN_OCOMP_02);
-    r15 = 1;
-    r4 = r4 - r15;
+    comp(r4, r1);
     if le jump (pc, .no_mramp_C2_MAIN_OCOMP_02);
+    r4 = r4 - 1;
     dm(_comp_makeup_frames_C2_MAIN_OCOMP_02) = r4;
     f1 = dm(_comp_makeup_C2_MAIN_OCOMP_02);
     f2 = dm(_comp_makeup_step_C2_MAIN_OCOMP_02);
@@ -131,6 +141,9 @@ _C2_MAIN_OCOMP_02_process:
     f0 = f0 * f2;             /* wet * par */
     f0 = f0 + f4;             /* blended output */
 
+    dm(_buf_C2_MAIN_OCOMP_02) = r0;
+    rts;
+.comp_bypass_C2_MAIN_OCOMP_02:
     dm(_buf_C2_MAIN_OCOMP_02) = r0;
     rts;
 _C2_MAIN_OCOMP_02_process.end:

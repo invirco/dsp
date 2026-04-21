@@ -58,12 +58,18 @@
 .var _buf_C2_GRP_GATE_02;
 
 .section/pm seg_pmco;
+.extern _sample_idx;
 .extern _biquad_mono;
 .extern _dyn_envelope_follow;
 .extern _dyn_to_dB;
 .global _C2_GRP_GATE_02_process;
 _C2_GRP_GATE_02_process:
     r0 = dm(_buf_C2_GRP_EQ_02);
+    /* --- Bypass --- */
+    r2 = dm(_gate_on_C2_GRP_GATE_02);
+    r3 = 0;
+    comp(r2, r3);
+    if eq jump (pc, .gate_bypass_C2_GRP_GATE_02);
     f15 = f0;                   /* save dry input */
 
     /* --- Gate sidechain detection --- */
@@ -133,6 +139,9 @@ _C2_GRP_GATE_02_process:
     /* Apply gate gain to dry signal */
     f0 = f15;
     f0 = f0 * f4;
+    dm(_buf_C2_GRP_GATE_02) = r0;
+    rts;
+.gate_bypass_C2_GRP_GATE_02:
     dm(_buf_C2_GRP_GATE_02) = r0;
     rts;
 _C2_GRP_GATE_02_process.end:

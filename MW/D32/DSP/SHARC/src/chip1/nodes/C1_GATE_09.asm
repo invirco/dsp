@@ -58,12 +58,18 @@
 .var _buf_C1_GATE_09;
 
 .section/pm seg_pmco;
+.extern _sample_idx;
 .extern _biquad_mono;
 .extern _dyn_envelope_follow;
 .extern _dyn_to_dB;
 .global _C1_GATE_09_process;
 _C1_GATE_09_process:
     r0 = dm(_buf_C1_EQ_09);
+    /* --- Bypass --- */
+    r2 = dm(_gate_on_C1_GATE_09);
+    r3 = 0;
+    comp(r2, r3);
+    if eq jump (pc, .gate_bypass_C1_GATE_09);
     f15 = f0;                   /* save dry input */
 
     /* --- Gate sidechain detection --- */
@@ -133,6 +139,9 @@ _C1_GATE_09_process:
     /* Apply gate gain to dry signal */
     f0 = f15;
     f0 = f0 * f4;
+    dm(_buf_C1_GATE_09) = r0;
+    rts;
+.gate_bypass_C1_GATE_09:
     dm(_buf_C1_GATE_09) = r0;
     rts;
 _C1_GATE_09_process.end:
