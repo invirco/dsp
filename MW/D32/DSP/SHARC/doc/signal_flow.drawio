@@ -120,12 +120,12 @@
       <mxGeometry x="40" y="1430" width="540" height="90" as="geometry"/>
     </mxCell>
 
-    <!-- ---- IC RECV (collective) ---- -->
+    <!-- == IC RECV (collective) == -->
     <mxCell id="c2_recv" value="IC RECV ×25&#xa;SPORT7 slave&#xa;slots 0-24" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;fontStyle=1;" vertex="1" parent="1">
       <mxGeometry x="30" y="878" width="130" height="88" as="geometry"/>
     </mxCell>
 
-    <!-- ---- AUX chain nodes ---- -->
+    <!-- == AUX chain nodes == -->
     <mxCell id="c2_afdr" value="FDR ×12&#xa;level·pan·mute"   style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1"><mxGeometry x="180" y="670" width="90" height="80" as="geometry"/></mxCell>
     <mxCell id="c2_aeq"  value="EQ ×12&#xa;4-band PEQ"        style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=9;" vertex="1" parent="1"><mxGeometry x="285" y="675" width="82" height="70" as="geometry"/></mxCell>
     <mxCell id="c2_ageq" value="GEQ ×12&#xa;28-band"          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=9;" vertex="1" parent="1"><mxGeometry x="382" y="675" width="82" height="70" as="geometry"/></mxCell>
@@ -142,7 +142,7 @@
     <mxCell id="a5" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="c2_alim" target="c2_adly" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
     <mxCell id="a6" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="c2_adly" target="c2_aout" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
 
-    <!-- ---- SUB chain nodes ---- -->
+    <!-- == SUB chain nodes == -->
     <mxCell id="c2_sfdr"  value="Sub FDR&#xa;level·mute"   style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1"><mxGeometry x="180" y="795" width="82" height="65" as="geometry"/></mxCell>
     <mxCell id="c2_seq"   value="Sub EQ&#xa;4-band"        style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=9;" vertex="1" parent="1"><mxGeometry x="277" y="798" width="75" height="60" as="geometry"/></mxCell>
     <mxCell id="c2_scomp" value="Sub COMP"                 style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="1"><mxGeometry x="367" y="798" width="72" height="60" as="geometry"/></mxCell>
@@ -157,7 +157,7 @@
     <mxCell id="s4" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="c2_slim"  target="c2_sdly"  parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
     <mxCell id="s5" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="c2_sdly"  target="c2_sout"  parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
 
-    <!-- ---- MAIN MIX BUS + chain nodes ---- -->
+    <!-- == MAIN MIX BUS + chain nodes == -->
     <mxCell id="c2_mmix" value="MAIN MIX BUS L/R&#xa;← Main IC (via RECV)&#xa;← Grp×4 + FX returns×6&#xa;← USB / BT" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;fontStyle=1;" vertex="1" parent="1">
       <mxGeometry x="185" y="895" width="145" height="100" as="geometry"/>
     </mxCell>
@@ -180,7 +180,7 @@
     <mxCell id="m7" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="c2_mxo"   target="c2_mpeq"  parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
     <mxCell id="m8" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="c2_mpeq"  target="c2_mout"  parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
 
-    <!-- ---- GROUP chain nodes ---- -->
+    <!-- == GROUP chain nodes == -->
     <mxCell id="c2_gfdr"  value="Grp FDR ×4&#xa;level·mute"   style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1"><mxGeometry x="180" y="1060" width="87" height="65" as="geometry"/></mxCell>
     <mxCell id="c2_geq"   value="Grp EQ ×4&#xa;4-band"        style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=9;" vertex="1" parent="1"><mxGeometry x="282" y="1063" width="80" height="60" as="geometry"/></mxCell>
     <mxCell id="c2_ggate" value="Grp GATE ×4&#xa;thr/rel"     style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="1"><mxGeometry x="377" y="1063" width="80" height="60" as="geometry"/></mxCell>
@@ -196,7 +196,7 @@
       <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="514" y="997"/><mxPoint x="294" y="997"/></Array></mxGeometry>
     </mxCell>
 
-    <!-- ---- FX chain nodes ---- -->
+    <!-- == FX chain nodes == -->
     <mxCell id="c2_fxe" value="FX ENGINE ×6&#xa;Reverb · Chorus&#xa;Delay · Phaser" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;" vertex="1" parent="1"><mxGeometry x="180" y="1190" width="125" height="80" as="geometry"/></mxCell>
     <mxCell id="c2_fxr" value="FX RETURN ×6&#xa;level · pan&#xa;→ Main Mix" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;" vertex="1" parent="1"><mxGeometry x="325" y="1200" width="105" height="60" as="geometry"/></mxCell>
 
@@ -208,7 +208,7 @@
       <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="377" y="1150"/><mxPoint x="163" y="1150"/><mxPoint x="163" y="987"/><mxPoint x="258" y="987"/></Array></mxGeometry>
     </mxCell>
 
-    <!-- ---- USB / BT input ---- -->
+    <!-- == USB / BT input == -->
     <mxCell id="c2_usb" value="USB + BT Input&#xa;AUX sources" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=9;" vertex="1" parent="1">
       <mxGeometry x="35" y="1325" width="130" height="60" as="geometry"/>
     </mxCell>
@@ -218,7 +218,7 @@
       <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="100" y="980"/><mxPoint x="228" y="980"/></Array></mxGeometry>
     </mxCell>
 
-    <!-- ---- IC RECV → each bus row (fan-out, shared left-margin trunk) ---- -->
+    <!-- == IC RECV → each bus row (fan-out, shared left-margin trunk) == -->
     <!-- IC BUS → IC RECV (chip 2) -->
     <mxCell id="ic_rx" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;strokeWidth=2;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="ic_bus" target="c2_recv" parent="1">
       <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="95" y="590"/><mxPoint x="95" y="878"/></Array></mxGeometry>
@@ -243,7 +243,7 @@
       <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="95" y="1225"/></Array></mxGeometry>
     </mxCell>
 
-    <!-- ---- MONITOR ---- -->
+    <!-- == MONITOR == -->
     <mxCell id="c2_mon"    value="MONITOR&#xa;source-sel&#xa;L/R level" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=9;" vertex="1" parent="1"><mxGeometry x="50"  y="1442" width="110" height="68" as="geometry"/></mxCell>
     <mxCell id="c2_mondly" value="MON DELAY&#xa;0-250ms"                style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=9;" vertex="1" parent="1"><mxGeometry x="180" y="1451" width="90"  height="50" as="geometry"/></mxCell>
     <mxCell id="c2_monout" value="OUTPUT TDM&#xa;Monitor L/R&#xa;SPORT5 sl0-1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;" vertex="1" parent="1"><mxGeometry x="290" y="1432" width="125" height="72" as="geometry"/></mxCell>
@@ -257,7 +257,7 @@
     <mxCell id="mn1" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="c2_mon"    target="c2_mondly" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
     <mxCell id="mn2" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="c2_mondly" target="c2_monout" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
 
-    <!-- ---- Chip 2 Meter ---- -->
+    <!-- == Chip 2 Meter == -->
     <mxCell id="c2_mtr" value="METER Chip 2&#xa;all bus peaks&#xa;SPI READ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;" vertex="1" parent="1">
       <mxGeometry x="35" y="1560" width="130" height="68" as="geometry"/>
     </mxCell>
