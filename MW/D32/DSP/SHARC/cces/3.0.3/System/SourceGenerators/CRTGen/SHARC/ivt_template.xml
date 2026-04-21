@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<!-- *********************************************************************** -->
+<!-- ******* ivt_template.xml                                                -->
+<!-- ******* Copyright 2011-2023 Analog Devices, Inc.  All rights reserved.  -->
+<!-- NOTES:                                                                  -->
+<!-- 1. update the schema in crttemplate.xml when this file is changed.      -->
+<!-- *********************************************************************** -->
+
+<!DOCTYPE vdsg >
+<vdsg:vdsg schema="212.01" id="ivt_template" xmlns:vdsg="http://www.analog.com/crosscore" >
+   <vdsg:file name="" lang="Assembly" >
+      <header fragment="copyright_and_notice_ivt">
+         <![CDATA[/*
+** &processor; &filename; generated on &date; at &time;
+*/]]>
+      </header>
+      <standard fragment="standard:attrib_common" enabled="true"/>
+      <standard fragment="standard:includes" enabled="true"/>
+      <standard fragment="standard:default_INT_macros" enabled="false" processor="ADSP-21160 ADSP-21161 ADSP-21261 ADSP-21262 ADSP-21266 ADSP-21362 ADSP-21363 ADSP-21364 ADSP-21365 ADSP-21366 ADSP-21367 ADSP-21368 ADSP-21369 ADSP-21371 ADSP-21375 ADSP-21467 ADSP-21469 ADSP-21477 ADSP-21478 ADSP-21479 ADSP-21483 ADSP-21486 ADSP-21487 ADSP-21488 ADSP-21489" />
+      <standard fragment="standard:default_INT_macros_XI" enabled="false"  processor="ADSP-SC582 ADSP-SC583 ADSP-SC584 ADSP-SC587 ADSP-SC589 ADSP-21583 ADSP-21584 ADSP-21587 ADSP-SC570 ADSP-SC571 ADSP-SC572 ADSP-SC573 ADSP-21571 ADSP-21573 ADSP-21560 ADSP-21561 ADSP-21564 ADSP-21568 ADSP-21568 ADSP-21560W ADSP-21561W ADSP-21564W ADSP-21568W ADSP-21568W ADSP-21562 ADSP-21563 ADSP-21565 ADSP-21566 ADSP-21567 ADSP-21569 ADSP-21591 ADSP-21593 ADSP-21594 ADSP-21591W ADSP-21593W ADSP-21594W ADSP-SC591 ADSP-SC592 ADSP-SC594 ADSP-SC595 ADSP-SC596 ADSP-SC598 ADSP-SC591W ADSP-SC592W ADSP-SC593W ADSP-SC594W ADSP-SC595W ADSP-SC596W ADSP-SC598W" />
+      <standard fragment="standard:default_INT_macros_jump_unused_reserved" enabled="true"/>
+
+      <!-- delete the user modifiable section when use_custom_vector is not set to "true" -->
+      <vdsg:user_delete uid="customize-interrupt-vector-table" property="use_custom_vector" value="true"/>
+      <vdsg:user uid="customize-interrupt-vector-table" only_if_found="true"/>
+      <if_user_modifiable_does_not_exist uid="customize-interrupt-vector-table">
+
+      <ivt_table_start uid="customize-interrupt-vector-table"/>
+
+      <if_prop name="detect_stackoverflow" value="true" enabled="false">
+        <!-- Stack-overflow support enabled -->
+        <standard fragment="standard:iv_code_21160_sov" enabled="false" processor="ADSP-21160"/>
+        <standard fragment="standard:iv_code_21161_sov" enabled="false" processor="ADSP-21161"/>
+
+        <standard fragment="standard:iv_code_21261_sov" enabled="false" processor="ADSP-21261"/>
+        <standard fragment="standard:iv_code_2126x_sov" enabled="false" processor="ADSP-21262 ADSP-21266"/>
+
+        <standard fragment="standard:iv_code_EX4_sov" enabled="false" processor="ADSP-21362 ADSP-21363 ADSP-21364 ADSP-21365 ADSP-21366" />
+        
+        <standard fragment="standard:iv_code_LX3_LX4_sov" enabled="false" processor="ADSP-21367 ADSP-21368 ADSP-21369 ADSP-21371 ADSP-21375" />
+
+        <standard fragment="standard:iv_code_LX5_sov" enabled="false" processor="ADSP-21467 ADSP-21469 ADSP-21477 ADSP-21478 ADSP-21479 ADSP-21483 ADSP-21486 ADSP-21487 ADSP-21488 ADSP-21489"/>
+
+        <standard fragment="standard:iv_code_XI_sov" enabled="false" processor="ADSP-SC582 ADSP-SC583 ADSP-SC584 ADSP-SC587 ADSP-SC589 ADSP-21583 ADSP-21584 ADSP-21587 ADSP-SC570 ADSP-SC571 ADSP-SC572 ADSP-SC573 ADSP-21571 ADSP-21573" />
+
+        <standard fragment="standard:iv_code_2156x_sov" enabled="false" processor="ADSP-21560 ADSP-21561 ADSP-21564 ADSP-21568 ADSP-21560W ADSP-21561W ADSP-21564W ADSP-21568W ADSP-21562 ADSP-21563 ADSP-21565 ADSP-21566 ADSP-21567 ADSP-21569" />
+
+        <standard fragment="standard:iv_code_59x_sov" enabled="false" processor="ADSP-21591 ADSP-21593 ADSP-21594 ADSP-21591W ADSP-21593W ADSP-21594W ADSP-SC591 ADSP-SC592 ADSP-SC594 ADSP-SC595 ADSP-SC596 ADSP-SC598 ADSP-SC591W ADSP-SC592W ADSP-SC593W ADSP-SC594W ADSP-SC595W ADSP-SC596W ADSP-SC598W" />
+      </if_prop>
+
+      <if_prop name="detect_stackoverflow" value="false" enabled="false">
+        <!-- Stack-overflow support disabled -->
+        <standard fragment="standard:iv_code_21160" enabled="false" processor="ADSP-21160"/>
+        <standard fragment="standard:iv_code_21161" enabled="false" processor="ADSP-21161"/>
+
+        <standard fragment="standard:iv_code_21261" enabled="false" processor="ADSP-21261"/>
+        <standard fragment="standard:iv_code_2126x" enabled="false" processor="ADSP-21262 ADSP-21266"/>
+
+        <standard fragment="standard:iv_code_EX4" enabled="false" processor="ADSP-21362 ADSP-21363 ADSP-21364 ADSP-21365 ADSP-21366" />
+        
+        <standard fragment="standard:iv_code_LX3_LX4" enabled="false" processor="ADSP-21367 ADSP-21368 ADSP-21369 ADSP-21371 ADSP-21375" />
+
+        <standard fragment="standard:iv_code_LX5" enabled="false" processor="ADSP-21467 ADSP-21469 ADSP-21477 ADSP-21478 ADSP-21479 ADSP-21483 ADSP-21486 ADSP-21487 ADSP-21488 ADSP-21489"/>
+
+        <standard fragment="standard:iv_code_XI" enabled="false" processor="ADSP-SC582 ADSP-SC583 ADSP-SC584 ADSP-SC587 ADSP-SC589 ADSP-21583 ADSP-21584 ADSP-21587 ADSP-SC570 ADSP-SC571 ADSP-SC572 ADSP-SC573 ADSP-21571 ADSP-21573" />
+
+        <standard fragment="standard:iv_code_2156x" enabled="false" processor="ADSP-21560 ADSP-21561 ADSP-21564 ADSP-21568 ADSP-21560W ADSP-21561W ADSP-21564W ADSP-21568W ADSP-21562 ADSP-21563 ADSP-21565 ADSP-21566 ADSP-21567 ADSP-21569" />
+
+        <standard fragment="standard:iv_code_59x" enabled="false" processor="ADSP-21591 ADSP-21593 ADSP-21594 ADSP-21591W ADSP-21593W ADSP-21594W ADSP-SC591 ADSP-SC592 ADSP-SC594 ADSP-SC595 ADSP-SC596 ADSP-SC598 ADSP-SC591W ADSP-SC592W ADSP-SC593W ADSP-SC594W ADSP-SC595W ADSP-SC596W ADSP-SC598W" />
+      </if_prop>
+
+      <ivt_table_end uid="customize-interrupt-vector-table"/>
+      </if_user_modifiable_does_not_exist>
+   </vdsg:file >
+</vdsg:vdsg >

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ************************************************************************************ -->
+<!--   Module       :   L2CTL                                                             -->
+<!--   Description  :   L2 Memory Controller                                              -->
+<!--                                                                                      -->
+<!--   Copyright (c) 2021 Analog Devices, Inc.  All Rights Reserved.                      -->
+<!--   This software is proprietary and confidential to Analog Devices, Inc. and          -->
+<!--   its licensors.                                                                     -->
+<!--                                                                                      -->
+<!-- ************************************************************************************ -->
+<cces-chipfactory-xml schema-version="1" name="l2ctl.xml">
+	<version file-version="2.10.1.0"/>
+	<module acronym="L2 Controller">
+		<module-data>
+			<!-- L2 Memory Blocks 8bit addresses-->
+			<memory-region acronym="L2 RAM">
+				<access mode="R/W"/>
+				<address>    0x20000000</address>
+				<end-address>0x201FFFFF</end-address>
+			</memory-region>
+
+			<memory-region acronym="BOOT ROM0">
+				<access mode="R/NW"/>
+				<address>    0x20200000</address>
+				<end-address>0x2020FFFF</end-address>
+			</memory-region>
+
+			<memory-region acronym="BOOT ROM1">
+				<access mode="R/NW"/>
+				<address>    0x20210000</address>
+				<end-address>0x2021FFFF</end-address>
+			</memory-region>
+
+			<memory-region acronym="BOOT ROM2">
+				<access mode="R/NW"/>
+				<address>    0x20220000</address>
+				<end-address>0x2022FFFF</end-address>
+			</memory-region>
+
+			<!-- MMRs-->
+			<register acronym="CTL">
+				<address>0</address>
+			</register>
+			<!-- ACTL_C0, ACTL_C1 and ACTL_SYS don't exist - SMPU controls access instead. -->
+			<register acronym="ET0">
+				<address>80</address>
+			</register>
+			<register acronym="ET1">
+				<address>88</address>
+			</register>
+		</module-data>
+	</module>
+</cces-chipfactory-xml>

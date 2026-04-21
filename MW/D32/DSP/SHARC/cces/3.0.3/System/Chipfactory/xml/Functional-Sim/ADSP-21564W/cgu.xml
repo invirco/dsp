@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ************************************************************************************ -->
+<!--   Module       :   CGU                                                               -->
+<!--   Description  :   Module Register Offsets                                           -->
+<!--                                                                                      -->
+<!--   Copyright (c) 2014-2015 Analog Devices, Inc.  All Rights Reserved.                 -->
+<!--   This software is proprietary and confidential to Analog Devices, Inc. and          -->
+<!--   its licensors.                                                                     -->
+<!--                                                                                      -->
+<!--   This file was auto-generated. Do not make local changes to this file.              -->
+<!-- ************************************************************************************ -->
+<cces-chipfactory-xml schema-version="1" name="CGU.xml">
+	<version file-version="2.1.0.0"/>
+	<module acronym="CGU">
+		<module-data>
+
+			<register acronym="CTL" >
+				<description>Control Register</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">0</address>
+			</register>
+ 
+			<register acronym="PLLCTL" >
+				<description>PLL Control Register</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">4</address>
+			</register>
+ 
+			<register acronym="STAT" >
+				<description>Status Register</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">8</address>
+			</register>
+ 
+			<register acronym="DIV" >
+				<description>Clocks Divisor Register</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">c</address>
+			</register>
+ 
+			<register acronym="CLKOUTSEL" >
+				<description>CLKOUT Select Register</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">10</address>
+			</register>
+ 
+			<register acronym="OSCWDCTL" >
+				<description>Oscillator Watchdog Register</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">14</address>
+			</register>
+ 
+			<register acronym="TSCTL" >
+				<description>Timestamp Control Register</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">18</address>
+			</register>
+ 
+			<register acronym="TSVALUE0" >
+				<description>Timestamp Counter Initial 32 LSB Value Register</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">1c</address>
+			</register>
+ 
+			<register acronym="TSVALUE1" >
+				<description>Timestamp Counter Initial MSB Value Register</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">20</address>
+			</register>
+ 
+			<register acronym="TSCOUNT0" >
+				<description>Timestamp Counter 32 LSB</description>
+				<access mode="R"/>
+				<width>32</width>
+				<address radix="x" type="relative">24</address>
+			</register>
+ 
+			<register acronym="TSCOUNT1" >
+				<description>Timestamp Counter 32 MSB Register</description>
+				<access mode="R"/>
+				<width>32</width>
+				<address radix="x" type="relative">28</address>
+			</register>
+ 
+			<register acronym="CCBF_DIS" >
+				<description>Core Clock Buffer Disable Register</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">2c</address>
+			</register>
+ 
+			<register acronym="CCBF_STAT" >
+				<description>Core Clock Buffer Status Register</description>
+				<access mode="R"/>
+				<width>32</width>
+				<address radix="x" type="relative">30</address>
+			</register>
+ 
+			<register acronym="SCBF_DIS" >
+				<description>System Clock Buffer Disable Register</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">38</address>
+			</register>
+ 
+			<register acronym="SCBF_STAT" >
+				<description>System Clock Buffer Status Register</description>
+				<access mode="R"/>
+				<width>32</width>
+				<address radix="x" type="relative">3c</address>
+			</register>
+ 
+			<register acronym="REVID" >
+				<description>Revision ID Register</description>
+				<access mode="R"/>
+				<width>32</width>
+				<address radix="x" type="relative">48</address>
+			</register>
+
+		</module-data>
+	</module>
+</cces-chipfactory-xml>

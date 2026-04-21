@@ -1,0 +1,164 @@
+/*======================================================================
+ * ADSP-21564.ldf — Linker Description File for D32 DSP
+ *
+ * ADSP-21564 SHARC+ (2156x family) memory map:
+ *
+ *   L1 SRAM (5 Mbit total, split over 4 blocks):
+ *     Block 0:  1.5 Mbit BW,  starts 0x002403F0 (183 KB usable)
+ *     Block 1:  1.5 Mbit BW,  starts 0x002C0000 (176 KB with 16KB DM cache)
+ *     Block 2:  1.0 Mbit BW,  starts 0x00300000 (128 KB)
+ *     Block 3:  1.0 Mbit BW,  starts 0x00380000 (128 KB)
+ *   L2 SRAM CTL0:  8 Mbit (1 MB),  BW 0x20000000 – 0x200F9FFF (~998 KB)
+ *   L2 SRAM CTL1:  8 Mbit (1 MB),  BW 0x80000000 – 0x800FFFFF (1 MB)
+ *
+ * Instruction encoding note:
+ *   The easm21k assembler defaults to VISA (Variable ISA) mode producing
+ *   mixed-width (16/32/48-bit) instructions.  The linker classifies these
+ *   as SW (Short Word) sections, NOT PM (Normal Word).  Therefore code
+ *   output sections must use the SW qualifier to match, and code memory
+ *   regions must be TYPE(BW RAM) at BW addresses.
+ *
+ *   The IVT (seg_rth) is the exception: it must be assembled with -nwc
+ *   to produce NW instructions for fixed hardware vector-table alignment.
+ *   It uses PM qualifier with TYPE(PM RAM) at the NW IVT address.
+ *
+ * Section layout (each chip 1 / chip 2 DXE):
+ *   seg_rth   (IVT, NW code)  → mem_iv_code   (PM NW address space)
+ *   seg_pmco  (VISA code, SW) → mem_block3_bw + mem_block2_bw overflow
+ *   seg_pmda  (PM data)       → mem_block2_bw
+ *   seg_dmda  (DM data)       → mem_block0_bw + mem_block1_bw overflow
+ *   seg_dma   (DMA buffers)   → mem_block1_bw
+ *   seg_delay (delay lines)   → mem_L2_bw
+ *   stack                     → mem_block0_bw (reserve)
+ *======================================================================*/
+
+ARCHITECTURE(ADSP-21564)
+
+/*----------------------------------------------------------------------
+ * Physical memory regions (byte-wide addresses)
+ *----------------------------------------------------------------------*/
+MEMORY
+{
+    /* Interrupt vector table — PM NW (48-bit, assembled with -nwc) */
+    mem_iv_code   { TYPE(PM RAM)  START(0x00090000) END(0x00090103) WIDTH(48) }
+
+    /* L1 Block 0: priority data, stack */
+    mem_block0_bw { TYPE(BW RAM)  START(0x00240620) END(0x0026FFFF) WIDTH(8) }
+
+    /* L1 Block 1: DM data + DMA buffers (16 KB DM cache reserved) */
+    mem_block1_bw { TYPE(BW RAM)  START(0x002C0000) END(0x002EBFFF) WIDTH(8) }
+
+    /* L1 Block 2: code overflow + PM data (BW view of PM block 2) */
+    mem_block2_bw { TYPE(BW RAM)  START(0x00300000) END(0x0031FFFF) WIDTH(8) }
+
+    /* L1 Block 3: primary code (BW view of PM block 3) */
+    mem_block3_bw { TYPE(BW RAM)  START(0x00380000) END(0x0039FFFF) WIDTH(8) }
+
+    /* L2 CTL0: large delay buffers and FX reverb (~998 KB usable) */
+    mem_L2_bw     { TYPE(BW RAM)  START(0x20000000) END(0x200F9FFF) WIDTH(8) }
+
+    /* L2 CTL1: extra buffer space (1 MB) */
+    mem_L2CTL1_bw { TYPE(BW RAM)  START(0x80000000) END(0x800FFFFF) WIDTH(8) }
+}
+
+PROCESSOR p0
+{
+    OUTPUT($COMMAND_LINE_OUTPUT_FILE)
+
+SECTIONS
+{
+    /*------------------------------------------------------------------
+     * Interrupt / reset vector table (NW PM code, fixed location)
+     * Assembled with -nwc for correct hardware vector entry alignment.
+     *------------------------------------------------------------------*/
+    sec_rth PM
+    {
+        INPUT_SECTION_ALIGN(2)
+        INPUT_SECTIONS( $COMMAND_LINE_OBJECTS(seg_rth) )
+    } > mem_iv_code
+
+    /*------------------------------------------------------------------
+     * Code — VISA (SW) assembly (easm21k default output)
+     * SW qualifier matches mixed-width VISA sections (flags 0x06).
+     * Block 3 first, overflow to Block 2.
+     *------------------------------------------------------------------*/
+    sec_swco SW
+    {
+        INPUT_SECTION_ALIGN(2)
+        INPUT_SECTIONS( $COMMAND_LINE_OBJECTS(seg_swco seg_pmco) )
+    } > mem_block3_bw
+
+    sec_swco_ovf SW
+    {
+        INPUT_SECTION_ALIGN(2)
+        INPUT_SECTIONS( $COMMAND_LINE_OBJECTS(seg_swco seg_pmco) )
+    } > mem_block2_bw
+
+    /* NW fallback — catches any seg_pmco assembled with -nwc */
+    sec_pmco PM
+    {
+        INPUT_SECTION_ALIGN(2)
+        INPUT_SECTIONS( $COMMAND_LINE_OBJECTS(seg_pmco) )
+    } > mem_block3_bw
+
+    /*------------------------------------------------------------------
+     * PM data (lookup tables — if any)
+     *------------------------------------------------------------------*/
+    sec_pmda DM
+    {
+        INPUT_SECTION_ALIGN(4)
+        INPUT_SECTIONS( $COMMAND_LINE_OBJECTS(seg_pmda) )
+    } > mem_block2_bw
+
+    /*------------------------------------------------------------------
+     * DM data — coefficients, parameters, state, audio buffers
+     * Block 0 first, overflow to Block 1
+     *------------------------------------------------------------------*/
+    sec_dmda DM
+    {
+        INPUT_SECTION_ALIGN(4)
+        INPUT_SECTIONS( $COMMAND_LINE_OBJECTS(seg_dmda) )
+    } > mem_block0_bw
+
+    sec_dmda_ovf DM
+    {
+        INPUT_SECTION_ALIGN(4)
+        INPUT_SECTIONS( $COMMAND_LINE_OBJECTS(seg_dmda) )
+    } > mem_block1_bw
+
+    /*------------------------------------------------------------------
+     * DMA ping-pong buffers (ADC/DAC + inter-chip, cache-coherent)
+     *------------------------------------------------------------------*/
+    sec_dma DM
+    {
+        INPUT_SECTION_ALIGN(32)
+        INPUT_SECTIONS( $COMMAND_LINE_OBJECTS(seg_dma) )
+    } > mem_block1_bw
+
+    /*------------------------------------------------------------------
+     * Delay line buffers (large — L2 SRAM CTL0, overflow to CTL1)
+     *------------------------------------------------------------------*/
+    sec_delay DM
+    {
+        INPUT_SECTION_ALIGN(4)
+        INPUT_SECTIONS( $COMMAND_LINE_OBJECTS(seg_delay) )
+    } > mem_L2_bw
+
+    sec_delay_ovf DM
+    {
+        INPUT_SECTION_ALIGN(4)
+        INPUT_SECTIONS( $COMMAND_LINE_OBJECTS(seg_delay) )
+    } > mem_L2CTL1_bw
+
+    /*------------------------------------------------------------------
+     * Stack reserve (top of Block 0)
+     *------------------------------------------------------------------*/
+    sec_stak NO_INIT DM
+    {
+        RESERVE(ldf_stack_space, ldf_stack_length = 0x4000, 8)
+    } > mem_block0_bw
+
+} /* end SECTIONS */
+
+} /* end PROCESSOR p0 */
+

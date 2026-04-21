@@ -1,0 +1,113 @@
+<?xml version="1.0" standalone="yes" ?>
+
+<!-- ********************************************************************** -->
+<!-- ******  ARM-core.xml                                                   -->
+<!-- ********************************************************************** -->
+<!--                                                                        -->
+<!-- Copyright (c) 2014-2019 Analog Devices, Inc.  All Rights Reserved.     -->
+<!-- This software is proprietary and confidential to Analog Devices, Inc.  -->
+<!-- and its licensors.                                                     -->
+<!--                                                                        -->
+<!-- ********************************************************************** -->
+
+<cces-core-xml schema-version="2" >
+
+	<version file-version="2.10.0.0" />
+
+	<register-core-definitions>
+
+		<!-- Registers that are currently supported for DWARF debugging as of CCES 2.10.0.
+             There are additional registers supported within the emulator not supported here, which are used for the Register Browser.
+             Matching entries across this file/the emulator are paired according to the register name string value. 
+			 Notes: SP/LR/PC are aliases for R13/R14/R15.
+		  -->
+		<register name="PC"   type="CORE" bit-size="32" description="Program counter" group="Core Registers" mask="FFFFFFFF" compiler-id="15" />
+		<register name="R0"   type="CORE" bit-size="32" description="ARM core integer register" group="Core Registers" mask="FFFFFFFF" compiler-id="0" />
+		<register name="R1"   type="CORE" bit-size="32" description="ARM core integer register" group="Core Registers" mask="FFFFFFFF" compiler-id="1" />
+		<register name="R2"   type="CORE" bit-size="32" description="ARM core integer register" group="Core Registers" mask="FFFFFFFF" compiler-id="2" />
+		<register name="R3"   type="CORE" bit-size="32" description="ARM core integer register" group="Core Registers" mask="FFFFFFFF" compiler-id="3" />
+		<register name="R4"   type="CORE" bit-size="32" description="ARM core integer register" group="Core Registers" mask="FFFFFFFF" compiler-id="4" />
+		<register name="R5"   type="CORE" bit-size="32" description="ARM core integer register" group="Core Registers" mask="FFFFFFFF" compiler-id="5" />
+		<register name="R6"   type="CORE" bit-size="32" description="ARM core integer register" group="Core Registers" mask="FFFFFFFF" compiler-id="6" />
+		<register name="R7"   type="CORE" bit-size="32" description="ARM core integer register" group="Core Registers" mask="FFFFFFFF" compiler-id="7" />
+		<register name="R8"   type="CORE" bit-size="32" description="ARM core integer register" group="Core Registers" mask="FFFFFFFF" compiler-id="8" />
+		<register name="R9"   type="CORE" bit-size="32" description="ARM core integer register" group="Core Registers" mask="FFFFFFFF" compiler-id="9" />
+		<register name="R10"  type="CORE" bit-size="32" description="ARM core integer register" group="Core Registers" mask="FFFFFFFF" compiler-id="10" />
+		<register name="R11"  type="CORE" bit-size="32" description="ARM core integer register" group="Core Registers" mask="FFFFFFFF" compiler-id="11" />
+		<register name="R12"  type="CORE" bit-size="32" description="ARM core integer register" group="Core Registers" mask="FFFFFFFF" compiler-id="12" />
+
+		<register name="SP"   type="CORE" bit-size="32" description="Stack pointer" group="Core Registers" mask="FFFFFFFF" compiler-id="13"/>
+		<register name="LR"   type="CORE" bit-size="32" description="Link register" group="Core Registers" mask="FFFFFFFF" compiler-id="14"/>
+
+
+		<register name="S0"   type="CORE" bit-size="32" description="VFP register" group="Core Registers" mask="FFFFFFFF" compiler-id="64"/>
+		<register name="S1"   type="CORE" bit-size="32" description="VFP register" group="Core Registers" mask="FFFFFFFF" compiler-id="65"/>
+		<register name="S2"   type="CORE" bit-size="32" description="VFP register" group="Core Registers" mask="FFFFFFFF" compiler-id="66"/>
+		<register name="S3"   type="CORE" bit-size="32" description="VFP register" group="Core Registers" mask="FFFFFFFF" compiler-id="67"/>
+		<register name="S4"   type="CORE" bit-size="32" description="VFP register" group="Core Registers" mask="FFFFFFFF" compiler-id="68"/>
+		<register name="S5"   type="CORE" bit-size="32" description="VFP register" group="Core Registers" mask="FFFFFFFF" compiler-id="69"/>
+		<register name="S6"   type="CORE" bit-size="32" description="VFP register" group="Core Registers" mask="FFFFFFFF" compiler-id="70"/>
+		<register name="S7"   type="CORE" bit-size="32" description="VFP register" group="Core Registers" mask="FFFFFFFF" compiler-id="71"/>
+		<register name="S8"   type="CORE" bit-size="32" description="VFP register" group="Core Registers" mask="FFFFFFFF" compiler-id="72"/>
+		<register name="S9"   type="CORE" bit-size="32" description="VFP register" group="Core Registers" mask="FFFFFFFF" compiler-id="73"/>
+		<register name="S10"  type="CORE" bit-size="32" description="VFP register" group="Core Registers" mask="FFFFFFFF" compiler-id="74"/>
+		<register name="S11"  type="CORE" bit-size="32" description="VFP register" group="Core Registers" mask="FFFFFFFF" compiler-id="75"/>
+		<register name="S12"  type="CORE" bit-size="32" description="VFP register" group="Core Registers" mask="FFFFFFFF" compiler-id="76"/>
+		<register name="S13"  type="CORE" bit-size="32" description="VFP register" group="Core Registers" mask="FFFFFFFF" compiler-id="77"/>
+		<register name="S14"  type="CORE" bit-size="32" description="VFP register" group="Core Registers" mask="FFFFFFFF" compiler-id="78"/>
+		<register name="S15"  type="CORE" bit-size="32" description="VFP register" group="Core Registers" mask="FFFFFFFF" compiler-id="79"/>
+		<register name="S16"  type="CORE" bit-size="32" description="VFP register" group="Core Registers" mask="FFFFFFFF" compiler-id="80"/>
+		<register name="S17"  type="CORE" bit-size="32" description="VFP register" group="Core Registers" mask="FFFFFFFF" compiler-id="81"/>
+		<register name="S18"  type="CORE" bit-size="32" description="VFP register" group="Core Registers" mask="FFFFFFFF" compiler-id="82"/>
+		<register name="S19"  type="CORE" bit-size="32" description="VFP register" group="Core Registers" mask="FFFFFFFF" compiler-id="83"/>
+		<register name="S20"  type="CORE" bit-size="32" description="VFP register" group="Core Registers" mask="FFFFFFFF" compiler-id="84"/>
+		<register name="S21"  type="CORE" bit-size="32" description="VFP register" group="Core Registers" mask="FFFFFFFF" compiler-id="85"/>
+		<register name="S22"  type="CORE" bit-size="32" description="VFP register" group="Core Registers" mask="FFFFFFFF" compiler-id="86"/>
+		<register name="S23"  type="CORE" bit-size="32" description="VFP register" group="Core Registers" mask="FFFFFFFF" compiler-id="87"/>
+		<register name="S24"  type="CORE" bit-size="32" description="VFP register" group="Core Registers" mask="FFFFFFFF" compiler-id="88"/>
+		<register name="S25"  type="CORE" bit-size="32" description="VFP register" group="Core Registers" mask="FFFFFFFF" compiler-id="89"/>
+		<register name="S26"  type="CORE" bit-size="32" description="VFP register" group="Core Registers" mask="FFFFFFFF" compiler-id="90"/>
+		<register name="S27"  type="CORE" bit-size="32" description="VFP register" group="Core Registers" mask="FFFFFFFF" compiler-id="91"/>
+		<register name="S28"  type="CORE" bit-size="32" description="VFP register" group="Core Registers" mask="FFFFFFFF" compiler-id="92"/>
+		<register name="S29"  type="CORE" bit-size="32" description="VFP register" group="Core Registers" mask="FFFFFFFF" compiler-id="93"/>
+		<register name="S30"  type="CORE" bit-size="32" description="VFP register" group="Core Registers" mask="FFFFFFFF" compiler-id="94"/>
+		<register name="S31"  type="CORE" bit-size="32" description="VFP register" group="Core Registers" mask="FFFFFFFF" compiler-id="95"/>
+
+		<register name="D0"   type="CORE" bit-size="64" description="NEON register" group="Core Registers" mask="FFFFFFFFFFFFFFFF" compiler-id="256"/>
+		<register name="D1"   type="CORE" bit-size="64" description="NEON register" group="Core Registers" mask="FFFFFFFFFFFFFFFF" compiler-id="257"/>
+		<register name="D2"   type="CORE" bit-size="64" description="NEON register" group="Core Registers" mask="FFFFFFFFFFFFFFFF" compiler-id="258"/>
+		<register name="D3"   type="CORE" bit-size="64" description="NEON register" group="Core Registers" mask="FFFFFFFFFFFFFFFF" compiler-id="259"/>
+		<register name="D4"   type="CORE" bit-size="64" description="NEON register" group="Core Registers" mask="FFFFFFFFFFFFFFFF" compiler-id="260"/>
+		<register name="D5"   type="CORE" bit-size="64" description="NEON register" group="Core Registers" mask="FFFFFFFFFFFFFFFF" compiler-id="261"/>
+		<register name="D6"   type="CORE" bit-size="64" description="NEON register" group="Core Registers" mask="FFFFFFFFFFFFFFFF" compiler-id="262"/>
+		<register name="D7"   type="CORE" bit-size="64" description="NEON register" group="Core Registers" mask="FFFFFFFFFFFFFFFF" compiler-id="263"/>
+		<register name="D8"   type="CORE" bit-size="64" description="NEON register" group="Core Registers" mask="FFFFFFFFFFFFFFFF" compiler-id="264"/>
+		<register name="D9"   type="CORE" bit-size="64" description="NEON register" group="Core Registers" mask="FFFFFFFFFFFFFFFF" compiler-id="265"/>
+		<register name="D10"  type="CORE" bit-size="64" description="NEON register" group="Core Registers" mask="FFFFFFFFFFFFFFFF" compiler-id="266"/>
+		<register name="D11"  type="CORE" bit-size="64" description="NEON register" group="Core Registers" mask="FFFFFFFFFFFFFFFF" compiler-id="267"/>
+		<register name="D12"  type="CORE" bit-size="64" description="NEON register" group="Core Registers" mask="FFFFFFFFFFFFFFFF" compiler-id="268"/>
+		<register name="D13"  type="CORE" bit-size="64" description="NEON register" group="Core Registers" mask="FFFFFFFFFFFFFFFF" compiler-id="269"/>
+		<register name="D14"  type="CORE" bit-size="64" description="NEON register" group="Core Registers" mask="FFFFFFFFFFFFFFFF" compiler-id="270"/>
+		<register name="D15"  type="CORE" bit-size="64" description="NEON register" group="Core Registers" mask="FFFFFFFFFFFFFFFF" compiler-id="271"/>
+		<register name="D16"  type="CORE" bit-size="64" description="NEON register" group="Core Registers" mask="FFFFFFFFFFFFFFFF" compiler-id="272"/>
+		<register name="D17"  type="CORE" bit-size="64" description="NEON register" group="Core Registers" mask="FFFFFFFFFFFFFFFF" compiler-id="273"/>
+		<register name="D18"  type="CORE" bit-size="64" description="NEON register" group="Core Registers" mask="FFFFFFFFFFFFFFFF" compiler-id="274"/>
+		<register name="D19"  type="CORE" bit-size="64" description="NEON register" group="Core Registers" mask="FFFFFFFFFFFFFFFF" compiler-id="275"/>
+		<register name="D20"  type="CORE" bit-size="64" description="NEON register" group="Core Registers" mask="FFFFFFFFFFFFFFFF" compiler-id="276"/>
+		<register name="D21"  type="CORE" bit-size="64" description="NEON register" group="Core Registers" mask="FFFFFFFFFFFFFFFF" compiler-id="277"/>
+		<register name="D22"  type="CORE" bit-size="64" description="NEON register" group="Core Registers" mask="FFFFFFFFFFFFFFFF" compiler-id="278"/>
+		<register name="D23"  type="CORE" bit-size="64" description="NEON register" group="Core Registers" mask="FFFFFFFFFFFFFFFF" compiler-id="279"/>
+		<register name="D24"  type="CORE" bit-size="64" description="NEON register" group="Core Registers" mask="FFFFFFFFFFFFFFFF" compiler-id="280"/>
+		<register name="D25"  type="CORE" bit-size="64" description="NEON register" group="Core Registers" mask="FFFFFFFFFFFFFFFF" compiler-id="281"/>
+		<register name="D26"  type="CORE" bit-size="64" description="NEON register" group="Core Registers" mask="FFFFFFFFFFFFFFFF" compiler-id="282"/>
+		<register name="D27"  type="CORE" bit-size="64" description="NEON register" group="Core Registers" mask="FFFFFFFFFFFFFFFF" compiler-id="283"/>
+		<register name="D28"  type="CORE" bit-size="64" description="NEON register" group="Core Registers" mask="FFFFFFFFFFFFFFFF" compiler-id="284"/>
+		<register name="D29"  type="CORE" bit-size="64" description="NEON register" group="Core Registers" mask="FFFFFFFFFFFFFFFF" compiler-id="285"/>
+		<register name="D30"  type="CORE" bit-size="64" description="NEON register" group="Core Registers" mask="FFFFFFFFFFFFFFFF" compiler-id="286"/>
+		<register name="D31"  type="CORE" bit-size="64" description="NEON register" group="Core Registers" mask="FFFFFFFFFFFFFFFF" compiler-id="287"/>
+
+		<register name="CPSR" type="CORE" bit-size="32" description="Current Processor Status Register" group="Core Registers" mask="FFFFFFFF"/>
+		<!--register name="SPSR" type="CORE" bit-size="32" description="Saved Processor Status Register" group="Core Registers" mask="FFFFFFFF" compiler-id="128"/-->
+
+	</register-core-definitions>
+</cces-core-xml>

@@ -1,0 +1,259 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1570" height="1050" viewBox="-260 0 1570 1050" font-family="Consolas, monospace" font-size="11">
+<rect x="-260" width="1570" height="1050" fill="white"/>
+<defs>
+  <marker id="dot" viewBox="0 0 6 6" refX="3" refY="3" markerWidth="4" markerHeight="4">
+    <circle cx="3" cy="3" r="3" fill="black"/>
+  </marker>
+</defs>
+<text x="510" y="16" text-anchor="middle" dominant-baseline="middle" fill="black" font-size="14" font-weight="bold">Topology E: 4-Step Series-R Direct-to-ADC Mic Preamp (3.3V, AC-coupled)</text>
+<line x1="260" y1="50" x2="260" y2="35" stroke="black" stroke-width="1.2"/>
+<text x="260" y="28" text-anchor="middle" dominant-baseline="middle" fill="red" font-size="10" font-weight="bold">3.3V</text>
+<line x1="760" y1="50" x2="760" y2="35" stroke="black" stroke-width="1.2"/>
+<text x="760" y="28" text-anchor="middle" dominant-baseline="middle" fill="red" font-size="10" font-weight="bold">3.3V</text>
+<line x1="260" y1="50" x2="260" y2="116" stroke="black" stroke-width="1.2"/>
+<line x1="760" y1="50" x2="760" y2="116" stroke="black" stroke-width="1.2"/>
+<rect x="233" y="116" width="54" height="28" fill="#fff8e8" stroke="#996" stroke-width="1.5" rx="3"/>
+<text x="260" y="124" text-anchor="middle" dominant-baseline="middle" fill="#663" font-size="10" font-weight="bold">R7</text>
+<text x="260" y="137" text-anchor="middle" dominant-baseline="middle" fill="#663" font-size="9">1K1</text>
+<rect x="733" y="116" width="54" height="28" fill="#fff8e8" stroke="#996" stroke-width="1.5" rx="3"/>
+<text x="760" y="124" text-anchor="middle" dominant-baseline="middle" fill="#663" font-size="10" font-weight="bold">R8</text>
+<text x="760" y="137" text-anchor="middle" dominant-baseline="middle" fill="#663" font-size="9">1K1</text>
+<line x1="260" y1="144" x2="260" y2="195" stroke="black" stroke-width="1.2"/>
+<line x1="760" y1="144" x2="760" y2="195" stroke="black" stroke-width="1.2"/>
+<rect x="228" y="195" width="64" height="50" fill="#fce4ec" stroke="#336" stroke-width="1.5" rx="3"/>
+<text x="260" y="214" text-anchor="middle" dominant-baseline="middle" fill="black" font-size="10" font-weight="bold">Q3a</text>
+<text x="260" y="227" text-anchor="middle" dominant-baseline="middle" fill="black" font-size="9">MMDT4403</text>
+<text x="260" y="191" text-anchor="middle" font-size="8" fill="#666">E</text>
+<text x="260" y="255" text-anchor="middle" font-size="8" fill="#666">C</text>
+<rect x="728" y="195" width="64" height="50" fill="#fce4ec" stroke="#336" stroke-width="1.5" rx="3"/>
+<text x="760" y="214" text-anchor="middle" dominant-baseline="middle" fill="black" font-size="10" font-weight="bold">Q3b</text>
+<text x="760" y="227" text-anchor="middle" dominant-baseline="middle" fill="black" font-size="9">MMDT4403</text>
+<text x="760" y="191" text-anchor="middle" font-size="8" fill="#666">E</text>
+<text x="760" y="255" text-anchor="middle" font-size="8" fill="#666">C</text>
+<text x="302" y="220" text-anchor="middle" dominant-baseline="middle" fill="#666" font-size="8" font-weight="normal">B</text>
+<text x="718" y="220" text-anchor="middle" dominant-baseline="middle" fill="#666" font-size="8" font-weight="normal">B</text>
+<line x1="292" y1="220" x2="728" y2="220" stroke="#336" stroke-width="1.2"/>
+<circle cx="292" cy="220" r="3" fill="black"/>
+<line x1="307" y1="220" x2="307" y2="260" stroke="#336" stroke-width="1.2"/>
+<line x1="307" y1="260" x2="260" y2="260" stroke="#336" stroke-width="1.2"/>
+<line x1="260" y1="245" x2="260" y2="260" stroke="#336" stroke-width="1.2"/>
+<circle cx="307" cy="220" r="3" fill="black"/>
+<text x="327" y="253" text-anchor="middle" dominant-baseline="middle" fill="#999" font-size="8" font-weight="normal">diode conn.</text>
+<line x1="260" y1="245" x2="260" y2="320" stroke="black" stroke-width="1.2"/>
+<line x1="760" y1="245" x2="760" y2="320" stroke="black" stroke-width="1.2"/>
+<circle cx="260" cy="320" r="3" fill="black"/>
+<circle cx="760" cy="320" r="3" fill="black"/>
+<line x1="260" y1="320" x2="207" y2="320" stroke="black" stroke-width="1.2"/>
+<circle cx="260" cy="320" r="3" fill="black"/>
+<rect x="153" y="306" width="54" height="28" fill="#e8ffe8" stroke="#696" stroke-width="1.5" rx="3"/>
+<text x="180" y="314" text-anchor="middle" dominant-baseline="middle" fill="#363" font-size="10" font-weight="bold">C7</text>
+<text x="180" y="327" text-anchor="middle" dominant-baseline="middle" fill="#363" font-size="9">10µF</text>
+<line x1="153" y1="320" x2="127" y2="320" stroke="black" stroke-width="1.2"/>
+<rect x="73" y="306" width="54" height="28" fill="#fff8e8" stroke="#996" stroke-width="1.5" rx="3"/>
+<text x="100" y="314" text-anchor="middle" dominant-baseline="middle" fill="#663" font-size="10" font-weight="bold">R15</text>
+<text x="100" y="327" text-anchor="middle" dominant-baseline="middle" fill="#663" font-size="9">100R</text>
+<line x1="73" y1="320" x2="-50" y2="320" stroke="black" stroke-width="1.2"/>
+<circle cx="73" cy="320" r="3" fill="black"/>
+<line x1="73" y1="320" x2="73" y2="346" stroke="black" stroke-width="1.2"/>
+<rect x="46" y="346" width="54" height="28" fill="#e8ffe8" stroke="#696" stroke-width="1.5" rx="3"/>
+<text x="73" y="354" text-anchor="middle" dominant-baseline="middle" fill="#363" font-size="10" font-weight="bold">C3</text>
+<text x="73" y="367" text-anchor="middle" dominant-baseline="middle" fill="#363" font-size="9">2n2 C0G</text>
+<text x="73" y="386" text-anchor="middle" dominant-baseline="middle" fill="blue" font-size="9" font-weight="normal">VCOM</text>
+<text x="-55" y="320" text-anchor="end" dominant-baseline="middle" fill="blue" font-size="9" font-weight="bold">→ AK4619 LRIN1+</text>
+<line x1="760" y1="320" x2="813" y2="320" stroke="black" stroke-width="1.2"/>
+<circle cx="760" cy="320" r="3" fill="black"/>
+<rect x="813" y="306" width="54" height="28" fill="#e8ffe8" stroke="#696" stroke-width="1.5" rx="3"/>
+<text x="840" y="314" text-anchor="middle" dominant-baseline="middle" fill="#363" font-size="10" font-weight="bold">C8</text>
+<text x="840" y="327" text-anchor="middle" dominant-baseline="middle" fill="#363" font-size="9">10µF</text>
+<line x1="867" y1="320" x2="893" y2="320" stroke="black" stroke-width="1.2"/>
+<rect x="893" y="306" width="54" height="28" fill="#fff8e8" stroke="#996" stroke-width="1.5" rx="3"/>
+<text x="920" y="314" text-anchor="middle" dominant-baseline="middle" fill="#663" font-size="10" font-weight="bold">R16</text>
+<text x="920" y="327" text-anchor="middle" dominant-baseline="middle" fill="#663" font-size="9">100R</text>
+<line x1="947" y1="320" x2="1070" y2="320" stroke="black" stroke-width="1.2"/>
+<circle cx="947" cy="320" r="3" fill="black"/>
+<line x1="947" y1="320" x2="947" y2="346" stroke="black" stroke-width="1.2"/>
+<rect x="920" y="346" width="54" height="28" fill="#e8ffe8" stroke="#696" stroke-width="1.5" rx="3"/>
+<text x="947" y="354" text-anchor="middle" dominant-baseline="middle" fill="#363" font-size="10" font-weight="bold">C4</text>
+<text x="947" y="367" text-anchor="middle" dominant-baseline="middle" fill="#363" font-size="9">2n2 C0G</text>
+<text x="947" y="386" text-anchor="middle" dominant-baseline="middle" fill="blue" font-size="9" font-weight="normal">VCOM</text>
+<text x="1075" y="320" text-anchor="start" dominant-baseline="middle" fill="blue" font-size="9" font-weight="bold">AK4619 LRIN1− ←</text>
+<text x="510" y="305" text-anchor="middle" dominant-baseline="middle" fill="gray" font-size="9" font-weight="normal">C6 1nF C0G between LRIN1+ and LRIN1− (differential)</text>
+<text x="510" y="335" text-anchor="middle" dominant-baseline="middle" fill="#933" font-size="9" font-weight="bold">C7/C8: AC coupling (electrolytic) — no VCOM needed on preamp</text>
+<line x1="260" y1="320" x2="260" y2="445" stroke="black" stroke-width="1.2"/>
+<line x1="760" y1="320" x2="760" y2="445" stroke="black" stroke-width="1.2"/>
+<rect x="228" y="445" width="64" height="50" fill="#e8f0ff" stroke="#336" stroke-width="1.5" rx="3"/>
+<text x="260" y="464" text-anchor="middle" dominant-baseline="middle" fill="black" font-size="10" font-weight="bold">Q1a</text>
+<text x="260" y="477" text-anchor="middle" dominant-baseline="middle" fill="black" font-size="9">DMMT3904W</text>
+<text x="260" y="441" text-anchor="middle" font-size="8" fill="#666">C</text>
+<text x="260" y="505" text-anchor="middle" font-size="8" fill="#666">E</text>
+<rect x="728" y="445" width="64" height="50" fill="#e8f0ff" stroke="#336" stroke-width="1.5" rx="3"/>
+<text x="760" y="464" text-anchor="middle" dominant-baseline="middle" fill="black" font-size="10" font-weight="bold">Q1b</text>
+<text x="760" y="477" text-anchor="middle" dominant-baseline="middle" fill="black" font-size="9">DMMT3904W</text>
+<text x="760" y="441" text-anchor="middle" font-size="8" fill="#666">C</text>
+<text x="760" y="505" text-anchor="middle" font-size="8" fill="#666">E</text>
+<text x="218" y="470" text-anchor="middle" dominant-baseline="middle" fill="#666" font-size="8" font-weight="normal">B</text>
+<text x="802" y="470" text-anchor="middle" dominant-baseline="middle" fill="#666" font-size="8" font-weight="normal">B</text>
+<line x1="228" y1="470" x2="92" y2="470" stroke="black" stroke-width="1.2"/>
+<rect x="128" y="406" width="54" height="28" fill="#fff8e8" stroke="#996" stroke-width="1.5" rx="3"/>
+<text x="155" y="414" text-anchor="middle" dominant-baseline="middle" fill="#663" font-size="10" font-weight="bold">R1</text>
+<text x="155" y="427" text-anchor="middle" dominant-baseline="middle" fill="#663" font-size="9">100M</text>
+<line x1="155" y1="470" x2="155" y2="434" stroke="black" stroke-width="1.2"/>
+<circle cx="155" cy="470" r="3" fill="black"/>
+<text x="155" y="396" text-anchor="middle" dominant-baseline="middle" fill="blue" font-size="9" font-weight="normal">VBIAS 1.65V</text>
+<rect x="38" y="456" width="54" height="28" fill="#e8ffe8" stroke="#696" stroke-width="1.5" rx="3"/>
+<text x="65" y="464" text-anchor="middle" dominant-baseline="middle" fill="#363" font-size="10" font-weight="bold">C1</text>
+<text x="65" y="477" text-anchor="middle" dominant-baseline="middle" fill="#363" font-size="9">10µF</text>
+<line x1="65" y1="470" x2="65" y2="434" stroke="black" stroke-width="1.2"/>
+<circle cx="65" cy="470" r="3" fill="black"/>
+<rect x="38" y="406" width="54" height="28" fill="#fff8e8" stroke="#996" stroke-width="1.5" rx="3"/>
+<text x="65" y="414" text-anchor="middle" dominant-baseline="middle" fill="#663" font-size="10" font-weight="bold">R13</text>
+<text x="65" y="427" text-anchor="middle" dominant-baseline="middle" fill="#663" font-size="9">6K8</text>
+<text x="65" y="396" text-anchor="middle" dominant-baseline="middle" fill="red" font-size="10" font-weight="bold">48V</text>
+<line x1="38" y1="470" x2="2" y2="470" stroke="black" stroke-width="1.2"/>
+<rect x="-52" y="456" width="54" height="28" fill="#ffe8ff" stroke="#a3a" stroke-width="1.5" rx="3"/>
+<text x="-25" y="464" text-anchor="middle" dominant-baseline="middle" fill="#636" font-size="10" font-weight="bold">R_S</text>
+<text x="-25" y="477" text-anchor="middle" dominant-baseline="middle" fill="#636" font-size="9">1K5</text>
+<rect x="-52" y="506" width="54" height="28" fill="#ffe8ff" stroke="#a3a" stroke-width="1.5" rx="3"/>
+<text x="-25" y="514" text-anchor="middle" dominant-baseline="middle" fill="#636" font-size="10" font-weight="bold">R_SH</text>
+<text x="-25" y="527" text-anchor="middle" dominant-baseline="middle" fill="#636" font-size="9">150R</text>
+<line x1="-25" y1="470" x2="-25" y2="506" stroke="black" stroke-width="1.2"/>
+<circle cx="-25" cy="470" r="3" fill="black"/>
+<line x1="-25" y1="534" x2="-25" y2="546" stroke="black" stroke-width="1.2"/>
+<line x1="-25" y1="546" x2="-25" y2="554" stroke="black" stroke-width="1.2"/>
+<line x1="-33" y1="554" x2="-17" y2="554" stroke="black" stroke-width="1.2"/>
+<line x1="-30" y1="559" x2="-20" y2="559" stroke="black" stroke-width="1.2"/>
+<line x1="-27" y1="564" x2="-23" y2="564" stroke="black" stroke-width="1.2"/>
+<rect x="-53" y="409" width="56" height="26" fill="#ffe8e8" stroke="#c44" stroke-width="1.5" rx="3"/>
+<text x="-25" y="422" text-anchor="middle" dominant-baseline="middle" fill="#933" font-size="10" font-weight="bold">2N7002×2</text>
+<line x1="2" y1="470" x2="2" y2="435" stroke="black" stroke-width="1.2"/>
+<line x1="-52" y1="435" x2="-52" y2="470" stroke="black" stroke-width="1.2"/>
+<circle cx="2" cy="470" r="3" fill="black"/>
+<circle cx="-52" cy="470" r="3" fill="black"/>
+<text x="-25" y="404" text-anchor="middle" dominant-baseline="middle" fill="#636" font-size="9" font-weight="bold">−20 dB PAD</text>
+<text x="-25" y="390" text-anchor="middle" dominant-baseline="middle" fill="#777" font-size="10" font-weight="normal">Vpk ≈ 1.1V · VG_ON ≥ 2.6V · VG_OFF ≤ 0V</text>
+<line x1="-52" y1="470" x2="-140" y2="470" stroke="black" stroke-width="1.2"/>
+<text x="-145" y="455" text-anchor="end" dominant-baseline="middle" fill="black" font-size="10" font-weight="bold">J1 Pin 2 (Hot +)</text>
+<line x1="792" y1="470" x2="928" y2="470" stroke="black" stroke-width="1.2"/>
+<rect x="838" y="406" width="54" height="28" fill="#fff8e8" stroke="#996" stroke-width="1.5" rx="3"/>
+<text x="865" y="414" text-anchor="middle" dominant-baseline="middle" fill="#663" font-size="10" font-weight="bold">R2</text>
+<text x="865" y="427" text-anchor="middle" dominant-baseline="middle" fill="#663" font-size="9">100M</text>
+<line x1="865" y1="470" x2="865" y2="434" stroke="black" stroke-width="1.2"/>
+<circle cx="865" cy="470" r="3" fill="black"/>
+<text x="865" y="396" text-anchor="middle" dominant-baseline="middle" fill="blue" font-size="9" font-weight="normal">VBIAS 1.65V</text>
+<rect x="928" y="456" width="54" height="28" fill="#e8ffe8" stroke="#696" stroke-width="1.5" rx="3"/>
+<text x="955" y="464" text-anchor="middle" dominant-baseline="middle" fill="#363" font-size="10" font-weight="bold">C2</text>
+<text x="955" y="477" text-anchor="middle" dominant-baseline="middle" fill="#363" font-size="9">10µF</text>
+<line x1="955" y1="470" x2="955" y2="434" stroke="black" stroke-width="1.2"/>
+<circle cx="955" cy="470" r="3" fill="black"/>
+<rect x="928" y="406" width="54" height="28" fill="#fff8e8" stroke="#996" stroke-width="1.5" rx="3"/>
+<text x="955" y="414" text-anchor="middle" dominant-baseline="middle" fill="#663" font-size="10" font-weight="bold">R14</text>
+<text x="955" y="427" text-anchor="middle" dominant-baseline="middle" fill="#663" font-size="9">6K8</text>
+<text x="955" y="396" text-anchor="middle" dominant-baseline="middle" fill="red" font-size="10" font-weight="bold">48V</text>
+<line x1="982" y1="470" x2="1018" y2="470" stroke="black" stroke-width="1.2"/>
+<rect x="1018" y="456" width="54" height="28" fill="#ffe8ff" stroke="#a3a" stroke-width="1.5" rx="3"/>
+<text x="1045" y="464" text-anchor="middle" dominant-baseline="middle" fill="#636" font-size="10" font-weight="bold">R_S</text>
+<text x="1045" y="477" text-anchor="middle" dominant-baseline="middle" fill="#636" font-size="9">1K5</text>
+<rect x="1018" y="506" width="54" height="28" fill="#ffe8ff" stroke="#a3a" stroke-width="1.5" rx="3"/>
+<text x="1045" y="514" text-anchor="middle" dominant-baseline="middle" fill="#636" font-size="10" font-weight="bold">R_SH</text>
+<text x="1045" y="527" text-anchor="middle" dominant-baseline="middle" fill="#636" font-size="9">150R</text>
+<line x1="1045" y1="470" x2="1045" y2="506" stroke="black" stroke-width="1.2"/>
+<circle cx="1045" cy="470" r="3" fill="black"/>
+<line x1="1045" y1="534" x2="1045" y2="546" stroke="black" stroke-width="1.2"/>
+<line x1="1045" y1="546" x2="1045" y2="554" stroke="black" stroke-width="1.2"/>
+<line x1="1037" y1="554" x2="1053" y2="554" stroke="black" stroke-width="1.2"/>
+<line x1="1040" y1="559" x2="1050" y2="559" stroke="black" stroke-width="1.2"/>
+<line x1="1043" y1="564" x2="1047" y2="564" stroke="black" stroke-width="1.2"/>
+<rect x="1017" y="409" width="56" height="26" fill="#ffe8e8" stroke="#c44" stroke-width="1.5" rx="3"/>
+<text x="1045" y="422" text-anchor="middle" dominant-baseline="middle" fill="#933" font-size="10" font-weight="bold">2N7002×2</text>
+<line x1="1018" y1="470" x2="1018" y2="435" stroke="black" stroke-width="1.2"/>
+<line x1="1072" y1="435" x2="1072" y2="470" stroke="black" stroke-width="1.2"/>
+<circle cx="1018" cy="470" r="3" fill="black"/>
+<circle cx="1072" cy="470" r="3" fill="black"/>
+<text x="1045" y="404" text-anchor="middle" dominant-baseline="middle" fill="#636" font-size="9" font-weight="bold">−20 dB PAD</text>
+<text x="1045" y="390" text-anchor="middle" dominant-baseline="middle" fill="#777" font-size="10" font-weight="normal">Vpk ≈ 1.1V · VG_ON ≥ 2.6V · VG_OFF ≤ 0V</text>
+<line x1="1072" y1="470" x2="1150" y2="470" stroke="black" stroke-width="1.2"/>
+<text x="1155" y="455" text-anchor="start" dominant-baseline="middle" fill="black" font-size="10" font-weight="bold">J1 Pin 3 (Cold −)</text>
+<line x1="260" y1="495" x2="260" y2="570" stroke="black" stroke-width="1.2"/>
+<line x1="760" y1="495" x2="760" y2="570" stroke="black" stroke-width="1.2"/>
+<line x1="260" y1="570" x2="358" y2="570" stroke="black" stroke-width="1.2"/>
+<rect x="358" y="556" width="54" height="28" fill="#fff0e0" stroke="darkorange" stroke-width="1.5" rx="3"/>
+<text x="385" y="564" text-anchor="middle" dominant-baseline="middle" fill="#c60" font-size="10" font-weight="bold">R_A</text>
+<text x="385" y="577" text-anchor="middle" dominant-baseline="middle" fill="#c60" font-size="9">150R</text>
+<line x1="412" y1="570" x2="510" y2="570" stroke="black" stroke-width="1.2"/>
+<line x1="358" y1="570" x2="358" y2="543" stroke="black" stroke-width="1.2"/>
+<rect x="357" y="517" width="56" height="26" fill="#ffe8e8" stroke="#c44" stroke-width="1.5" rx="3"/>
+<text x="385" y="530" text-anchor="middle" dominant-baseline="middle" fill="#933" font-size="10" font-weight="bold">2N7002×2</text>
+<line x1="412" y1="543" x2="412" y2="570" stroke="black" stroke-width="1.2"/>
+<circle cx="358" cy="570" r="3" fill="black"/>
+<circle cx="412" cy="570" r="3" fill="black"/>
+<text x="385" y="514" text-anchor="middle" dominant-baseline="middle" fill="#777" font-size="9" font-weight="normal">Vpk ≈ 1.3V · VG_ON ≥ 2.8V · VG_OFF ≤ 0V</text>
+<circle cx="510" cy="570" r="3" fill="black"/>
+<line x1="510" y1="570" x2="608" y2="570" stroke="black" stroke-width="1.2"/>
+<rect x="608" y="556" width="54" height="28" fill="#fff0e0" stroke="darkorange" stroke-width="1.5" rx="3"/>
+<text x="635" y="564" text-anchor="middle" dominant-baseline="middle" fill="#c60" font-size="10" font-weight="bold">R_B</text>
+<text x="635" y="577" text-anchor="middle" dominant-baseline="middle" fill="#c60" font-size="9">470R</text>
+<line x1="662" y1="570" x2="760" y2="570" stroke="black" stroke-width="1.2"/>
+<line x1="608" y1="570" x2="608" y2="543" stroke="black" stroke-width="1.2"/>
+<rect x="607" y="517" width="56" height="26" fill="#ffe8e8" stroke="#c44" stroke-width="1.5" rx="3"/>
+<text x="635" y="530" text-anchor="middle" dominant-baseline="middle" fill="#933" font-size="10" font-weight="bold">2N7002×2</text>
+<line x1="662" y1="543" x2="662" y2="570" stroke="black" stroke-width="1.2"/>
+<circle cx="608" cy="570" r="3" fill="black"/>
+<circle cx="662" cy="570" r="3" fill="black"/>
+<text x="635" y="514" text-anchor="middle" dominant-baseline="middle" fill="#777" font-size="9" font-weight="normal">Vpk ≈ 1.3V · VG_ON ≥ 2.8V · VG_OFF ≤ 0V</text>
+<rect x="338" y="500" width="344" height="90" fill="none" stroke="darkorange" stroke-width="1.5" stroke-dasharray="6,3" rx="8"/>
+<text x="510" y="492" text-anchor="middle" dominant-baseline="middle" fill="darkorange" font-size="10" font-weight="bold">GAIN DEGENERATION (A, B)</text>
+<line x1="510" y1="570" x2="510" y2="665" stroke="black" stroke-width="1.2"/>
+<rect x="478" y="665" width="64" height="50" fill="#e8f0ff" stroke="#336" stroke-width="1.5" rx="3"/>
+<text x="510" y="684" text-anchor="middle" dominant-baseline="middle" fill="black" font-size="10" font-weight="bold">Q2a</text>
+<text x="510" y="697" text-anchor="middle" dominant-baseline="middle" fill="black" font-size="9">DMMT3904W</text>
+<text x="510" y="661" text-anchor="middle" font-size="8" fill="#666">C</text>
+<text x="510" y="725" text-anchor="middle" font-size="8" fill="#666">E</text>
+<text x="468" y="690" text-anchor="middle" dominant-baseline="middle" fill="#666" font-size="8" font-weight="normal">B</text>
+<line x1="478" y1="690" x2="430" y2="690" stroke="black" stroke-width="1.2"/>
+<line x1="430" y1="690" x2="430" y2="711" stroke="black" stroke-width="1.2"/>
+<rect x="403" y="711" width="54" height="28" fill="#fff8e8" stroke="#996" stroke-width="1.5" rx="3"/>
+<text x="430" y="719" text-anchor="middle" dominant-baseline="middle" fill="#663" font-size="10" font-weight="bold">R4</text>
+<text x="430" y="732" text-anchor="middle" dominant-baseline="middle" fill="#663" font-size="9">10K</text>
+<line x1="430" y1="739" x2="430" y2="754" stroke="black" stroke-width="1.2"/>
+<line x1="430" y1="754" x2="430" y2="762" stroke="black" stroke-width="1.2"/>
+<line x1="422" y1="762" x2="438" y2="762" stroke="black" stroke-width="1.2"/>
+<line x1="425" y1="767" x2="435" y2="767" stroke="black" stroke-width="1.2"/>
+<line x1="428" y1="772" x2="432" y2="772" stroke="black" stroke-width="1.2"/>
+<text x="380" y="690" text-anchor="end" dominant-baseline="middle" fill="gray" font-size="9" font-weight="normal">bootstrap C5 10µF</text>
+<line x1="510" y1="715" x2="510" y2="766" stroke="black" stroke-width="1.2"/>
+<rect x="483" y="766" width="54" height="28" fill="#fff8e8" stroke="#996" stroke-width="1.5" rx="3"/>
+<text x="510" y="774" text-anchor="middle" dominant-baseline="middle" fill="#663" font-size="10" font-weight="bold">R5</text>
+<text x="510" y="787" text-anchor="middle" dominant-baseline="middle" fill="#663" font-size="9">330R</text>
+<line x1="510" y1="794" x2="510" y2="850" stroke="black" stroke-width="1.2"/>
+<line x1="510" y1="850" x2="510" y2="858" stroke="black" stroke-width="1.2"/>
+<line x1="502" y1="858" x2="518" y2="858" stroke="black" stroke-width="1.2"/>
+<line x1="505" y1="863" x2="515" y2="863" stroke="black" stroke-width="1.2"/>
+<line x1="508" y1="868" x2="512" y2="868" stroke="black" stroke-width="1.2"/>
+<text x="770" y="670" text-anchor="start" dominant-baseline="middle" fill="#666" font-size="10" font-weight="bold">GAIN TABLE</text>
+<text x="770" y="688" text-anchor="start" dominant-baseline="middle" fill="#444" font-size="9" font-weight="bold">Switch A  Switch B  RE     Gain</text>
+<text x="770" y="704" text-anchor="start" dominant-baseline="middle" fill="#666" font-size="9" font-weight="normal">Closed    Closed    0Ω     ×40 (32 dB)</text>
+<text x="770" y="720" text-anchor="start" dominant-baseline="middle" fill="#666" font-size="9" font-weight="normal">Open      Closed    150R   ×10 (20 dB)</text>
+<text x="770" y="736" text-anchor="start" dominant-baseline="middle" fill="#666" font-size="9" font-weight="normal">Closed    Open      470R   ×4  (12 dB)</text>
+<text x="770" y="752" text-anchor="start" dominant-baseline="middle" fill="#666" font-size="9" font-weight="normal">Open      Open      620R   ×2.5 (8 dB)</text>
+<text x="770" y="784" text-anchor="start" dominant-baseline="middle" fill="#888" font-size="9" font-weight="normal">Total range: −4 to 68 dB</text>
+<text x="770" y="800" text-anchor="start" dominant-baseline="middle" fill="#888" font-size="9" font-weight="normal">(with AK4619 −12 to +36 dB digital vol)</text>
+<text x="30" y="670" text-anchor="start" dominant-baseline="middle" fill="royalblue" font-size="9" font-weight="normal">AK4619 4ch Codec</text>
+<text x="30" y="685" text-anchor="start" dominant-baseline="middle" fill="royalblue" font-size="9" font-weight="normal">24-bit · 106 dB SNR</text>
+<text x="30" y="700" text-anchor="start" dominant-baseline="middle" fill="royalblue" font-size="9" font-weight="normal">Digital Vol: −12 to +36 dB</text>
+<text x="30" y="715" text-anchor="start" dominant-baseline="middle" fill="royalblue" font-size="9" font-weight="normal">(0.5 dB steps) · I²C ctrl</text>
+<text x="30" y="730" text-anchor="start" dominant-baseline="middle" fill="royalblue" font-size="9" font-weight="normal">I²S/TDM → MCU</text>
+<text x="30" y="760" text-anchor="start" dominant-baseline="middle" fill="#888" font-size="8" font-weight="normal">BOM (per ch): ~35 parts · ~$1.20 @1k</text>
+<text x="30" y="774" text-anchor="start" dominant-baseline="middle" fill="#888" font-size="8" font-weight="normal">Q1,Q2: DMMT3904W · Q3: MMDT4403</text>
+<text x="30" y="788" text-anchor="start" dominant-baseline="middle" fill="#888" font-size="8" font-weight="normal">3× 2N7002 back-to-back pairs</text>
+<text x="30" y="802" text-anchor="start" dominant-baseline="middle" fill="#888" font-size="8" font-weight="normal">C7/C8: 10µF elec (AC coupling)</text>
+<text x="30" y="816" text-anchor="start" dominant-baseline="middle" fill="#888" font-size="8" font-weight="normal">R_S/R_SH: −20dB pad</text>
+<text x="30" y="848" text-anchor="start" dominant-baseline="middle" fill="#555" font-size="9" font-weight="bold">INPUT IMPEDANCE (differential)</text>
+<text x="30" y="862" text-anchor="start" dominant-baseline="middle" fill="#666" font-size="9" font-weight="normal">Phantom ON:  ~12 kΩ  (6K8 per leg dominates)</text>
+<text x="30" y="876" text-anchor="start" dominant-baseline="middle" fill="#666" font-size="9" font-weight="normal">Phantom OFF: ~140–260 kΩ  (β-limited, gain dependent)</text>
+<text x="30" y="908" text-anchor="start" dominant-baseline="middle" fill="#555" font-size="9" font-weight="bold">FET SWITCHES (2N7002 back-to-back pairs)</text>
+<text x="30" y="922" text-anchor="start" dominant-baseline="middle" fill="#666" font-size="9" font-weight="normal">Emitter DC ≈ 1.0V · Vpk ≈ 1.1V</text>
+<text x="30" y="936" text-anchor="start" dominant-baseline="middle" fill="#666" font-size="9" font-weight="normal">Pad AC-coupled: Vpk ≈ 1.1V (mic max)</text>
+<text x="30" y="950" text-anchor="start" dominant-baseline="middle" fill="#666" font-size="9" font-weight="normal">VG_ON must exceed Vpk + Vgs(th)_max</text>
+<text x="30" y="964" text-anchor="start" dominant-baseline="middle" fill="#666" font-size="9" font-weight="normal">2N7002 (Vgs(th) 2.5V): VG ≥ 3.6V — needs charge pump</text>
+<text x="30" y="978" text-anchor="start" dominant-baseline="middle" fill="#666" font-size="9" font-weight="normal">BSS138 (Vgs(th) 1.5V): VG ≥ 2.6V — 3.3V OK ✔</text>
+</svg>

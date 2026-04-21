@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ************************************************************************************ -->
+<!--   Module       :   SHBTB                                                             -->
+<!--   Description  :   Module Register Offsets                                           -->
+<!--                                                                                      -->
+<!--   Copyright (c) 2020 Analog Devices, Inc.  All Rights Reserved.                      -->
+<!--   This software is proprietary and confidential to Analog Devices, Inc. and          -->
+<!--   its licensors.                                                                     -->
+<!--                                                                                      -->
+<!-- ************************************************************************************ -->
+<cces-chipfactory-xml schema-version="1" name="SHBTB.xml">
+	<version file-version="2.10.0.0"/>
+	<module acronym="SHBTB">
+		<module-data>
+			<block block_address_increment="4" count="512" acronym="BTB_DATA0">
+				<address radix="x" type="relative">0</address>
+				<blockregister acronym="RAM_WAY0" offset="0"/>
+			</block>
+
+			<!--9-bits per way == 512 words per way = 256 entries x 2 words-per-entry-->
+			<register acronym="RAM_WAY0" inBlock="BTB_DATA0" >
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">0</address>
+			</register>
+
+			<block block_address_increment="4" count="512" acronym="BTB_DATA1">
+				<address radix="x" type="relative">0</address>
+				<blockregister acronym="RAM_WAY1" offset="0"/>
+			</block>
+
+			<!--9-bits per way == 512 words per way = 256 entries x 2 words-per-entry-->
+			<register acronym="RAM_WAY1" inBlock="BTB_DATA1" >
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">200</address>
+			</register>   
+ 
+			<register acronym="CFG" >
+				<description>BTB configuration register</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">400</address>
+			</register>
+
+		</module-data>
+	</module>
+</cces-chipfactory-xml>

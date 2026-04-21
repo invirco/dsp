@@ -1,0 +1,2 @@
+1. DSP schematic as SIGMASTUDIO project
+2. Executable as H files

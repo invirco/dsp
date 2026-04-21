@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ************************************************************************************ -->
+<!--   Module       :   SMC                                                               -->
+<!--   Description  :   Module Register Offsets                                           -->
+<!--                                                                                      -->
+<!--   Copyright (c) 2014-2015 Analog Devices, Inc.  All Rights Reserved.                 -->
+<!--   This software is proprietary and confidential to Analog Devices, Inc. and          -->
+<!--   its licensors.                                                                     -->
+<!--                                                                                      -->
+<!--   This file was auto-generated. Do not make local changes to this file.              -->
+<!-- ************************************************************************************ -->
+<cces-chipfactory-xml schema-version="1" name="SMC.xml">
+	<version file-version="2.1.0.0"/>
+	<module acronym="SMC">
+		<module-data>
+
+			<register acronym="GCTL" >
+				<description>Grant Control Register</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">4</address>
+			</register>
+ 
+			<register acronym="GSTAT" >
+				<description>Grant Status Register</description>
+				<access mode="R"/>
+				<width>32</width>
+				<address radix="x" type="relative">8</address>
+			</register>
+ 
+			<register acronym="B0CTL" >
+				<description>Bank 0 Control Register</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">c</address>
+			</register>
+ 
+			<register acronym="B0TIM" >
+				<description>Bank 0 Timing Register</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">10</address>
+			</register>
+ 
+			<register acronym="B0ETIM" >
+				<description>Bank 0 Extended Timing Register</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">14</address>
+			</register>
+ 
+			<register acronym="B1CTL" >
+				<description>Bank 1 Control Register</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">1c</address>
+			</register>
+ 
+			<register acronym="B1TIM" >
+				<description>Bank 1 Timing Register</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">20</address>
+			</register>
+ 
+			<register acronym="B1ETIM" >
+				<description>Bank 1 Extended Timing Register</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">24</address>
+			</register>
+ 
+			<register acronym="B2CTL" >
+				<description>Bank 2 Control Register</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">2c</address>
+			</register>
+ 
+			<register acronym="B2TIM" >
+				<description>Bank 2 Timing Register</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">30</address>
+			</register>
+ 
+			<register acronym="B2ETIM" >
+				<description>Bank 2 Extended Timing Register</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">34</address>
+			</register>
+ 
+			<register acronym="B3CTL" >
+				<description>Bank 3 Control Register</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">3c</address>
+			</register>
+ 
+			<register acronym="B3TIM" >
+				<description>Bank 3 Timing Register</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">40</address>
+			</register>
+ 
+			<register acronym="B3ETIM" >
+				<description>Bank 3 Extended Timing Register</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">44</address>
+			</register>
+
+		</module-data>
+	</module>
+</cces-chipfactory-xml>

@@ -1,0 +1,13 @@
+# Build outputs
+MW/D24/DSP/DSP_Export/
+MW/D32/DSP/single\ DSP_Export/
+MW/D32/DSP/build/
+**/__pycache__/
+*.o
+*.dxe
+*.ldr
+*.bak
+
+# CCES generated
+*.is
+linker_log.xml

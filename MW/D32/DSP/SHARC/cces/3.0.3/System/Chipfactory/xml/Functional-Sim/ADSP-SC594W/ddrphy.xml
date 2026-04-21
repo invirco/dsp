@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ************************************************************************************ -->
+<!--   Module       :   DDRPHY                                                            -->
+<!--   Description  :   Module Register Offsets                                           -->
+<!--                                                                                      -->
+<!--   Copyright (c) 2020 Analog Devices, Inc.  All Rights Reserved.                      -->
+<!--   This software is proprietary and confidential to Analog Devices, Inc. and          -->
+<!--   its licensors.                                                                     -->
+<!--                                                                                      -->
+<!-- ************************************************************************************ -->
+<cces-chipfactory-xml schema-version="1" name="DDRPHY.xml">
+	<version file-version="2.10.0.0"/>
+	<module acronym="DDRPHY">
+		<module-data>
+
+			<register acronym="DDR_LANE0_CTL0" >
+				<description>Data Lane 0 Control Register 0</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">0</address>
+			</register>
+
+			<register acronym="DDR_LANE0_CTL1" >
+				<description>Data Lane 0 Control Register 1</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">4</address>
+			</register>
+
+			<register acronym="DDR_LANE1_CTL0" >
+				<description>Data Lane 1 Control Register 0</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">C</address>
+			</register>
+
+			<register acronym="DDR_LANE1_CTL1" >
+				<description>Data Lane 1 Control Register 1</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">10</address>
+			</register>
+
+			<register acronym="DDR_ROOT_CTL" >
+				<description>DDR ROOT Module Control Register</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">18</address>
+			</register>
+
+			<register acronym="DDR_ZQ_CTL0" >
+				<description>DDR Calibration Control Register 0</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">34</address>
+			</register>
+
+			<register acronym="DDR_ZQ_CTL1" >
+				<description>DDR Calibration Control Register 1</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">38</address>
+			</register>
+
+			<register acronym="DDR_ZQ_CTL2" >
+				<description>DDR Calibration Control Register 2</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">3C</address>
+			</register>
+
+			<register acronym="DDR_CA_CTL" >
+				<description>DDR CA Lane Control Register</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">68</address>
+			</register>
+
+		</module-data>
+	</module>
+</cces-chipfactory-xml>

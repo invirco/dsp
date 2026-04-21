@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ************************************************************************************ -->
+<!--   Module       :   DPM                                                               -->
+<!--   Description  :   Module Register Offsets                                           -->
+<!--                                                                                      -->
+<!--   Copyright (c) 2021 Analog Devices, Inc.  All Rights Reserved.                      -->
+<!--   This software is proprietary and confidential to Analog Devices, Inc. and          -->
+<!--   its licensors.                                                                     -->
+<!--                                                                                      -->
+<!-- ************************************************************************************ -->
+<cces-chipfactory-xml schema-version="1" name="DPM.xml">
+	<version file-version="2.11.0.0"/>
+	<module acronym="DPM">
+		<module-data>
+
+			<!-- Register Block: RESTORE -->
+			<block acronym="RESTORE" block_address_increment="4" count="16">
+				<address radix="x" type="relative">30</address>
+			</block>
+
+			<register acronym="CTL" >
+				<description>Control Register</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">0</address>
+			</register>
+ 
+			<register acronym="STAT" >
+				<description>Status Register</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">4</address>
+			</register>
+ 
+			<register acronym="WAKE_EN" >
+				<description>Wakeup Enable Register</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">1c</address>
+			</register>
+ 
+			<register acronym="WAKE_POL" >
+				<description>Wakeup Polarity Register</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">20</address>
+			</register>
+ 
+			<register acronym="WAKE_STAT" >
+				<description>Wakeup Status Register</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">24</address>
+			</register>
+ 
+			<register acronym="HIB_DIS" >
+				<description>Hibernate Disable Register</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">28</address>
+			</register>
+ 
+			<register acronym="PGCNTR" >
+				<description>Power Good Counter Register</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">2c</address>
+			</register>
+ 
+			<register acronym="RESTOREn" inBlock="RESTORE">
+				<description>Restore Registers</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">0</address>
+			</register>
+ 
+			<register acronym="PER_DIS0" >
+				<description>Peripherals Disable Register 0</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">70</address>
+			</register>
+ 
+			<register acronym="PER_DIS1" >
+				<description>Peripherals Disable Register 1</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">74</address>
+			</register>
+ 
+			<register acronym="PER_DIS2" >
+				<description>Peripherals Disable Register 2</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">78</address>
+			</register>
+ 
+			<register acronym="PER_DIS3" >
+				<description>Peripherals Disable Register 3</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">7c</address>
+			</register>
+ 
+			<register acronym="REVID" >
+				<description>Revision ID</description>
+				<access mode="R"/>
+				<width>32</width>
+				<address radix="x" type="relative">84</address>
+			</register>
+
+		</module-data>
+	</module>
+</cces-chipfactory-xml>

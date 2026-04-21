@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+
+   <xs:element name="custom-cces-proc-xml">
+   <xs:complexType>
+       <xs:sequence>
+
+           <xs:element name="custom-register-extended-definitions" minOccurs="0" maxOccurs="1">
+              <xs:complexType>
+              <xs:sequence>
+                  <xs:element name="register" minOccurs="0" maxOccurs="unbounded" type="registerType"></xs:element>
+              </xs:sequence>
+              </xs:complexType>
+           </xs:element>
+
+           <xs:element name="custom-register-window-definitions" minOccurs="0" maxOccurs="1">
+              <xs:complexType>
+              <xs:sequence>
+                  <xs:element name="window" minOccurs="0" maxOccurs="unbounded" type="registerWindowType"></xs:element>
+              </xs:sequence>
+              </xs:complexType>
+           </xs:element>
+
+           <xs:element name="custom-register-reset-definitions" minOccurs="0" maxOccurs="1">
+              <xs:complexType>
+              <xs:sequence>
+                  <xs:element name="register" minOccurs="0" maxOccurs="unbounded" type="registerResetType"></xs:element>
+              </xs:sequence>
+              </xs:complexType>
+           </xs:element>
+
+       </xs:sequence>
+       <xs:attribute name="processor-family" type="ADIProcessorFamily" use="required" />
+       <xs:attribute name="file" type="xs:string" use="optional" default="?" />
+   </xs:complexType>
+   </xs:element>
+
+<!-- *******  Types for Custom Board Definitions   ******* -->
+
+       <xs:simpleType name="ADIProcessorFamily">
+           <xs:restriction base="xs:string">
+               <xs:enumeration value="SHARC" />
+               <xs:enumeration value="Sharc" />
+           </xs:restriction>
+       </xs:simpleType>
+
+       <xs:simpleType name="customAction">
+           <xs:restriction base="xs:string">
+               <xs:enumeration value="DELETE" />
+               <xs:enumeration value="Delete" />
+               <xs:enumeration value="delete" />
+          </xs:restriction>
+       </xs:simpleType>
+
+       <xs:simpleType name="hexString">
+           <xs:restriction base="xs:string">
+               <xs:pattern value="0x[0-9a-fA-F]*" />
+           </xs:restriction>
+        </xs:simpleType>
+
+       <xs:simpleType name="maskString">
+           <xs:restriction base="xs:string">
+               <xs:pattern value="[0-9a-fA-F]*" />
+           </xs:restriction>
+        </xs:simpleType>
+
+        <xs:simpleType name="posIntString">
+            <xs:restriction base="xs:string">
+                <xs:pattern value="[0-9][0-9]*" />
+            </xs:restriction>
+        </xs:simpleType>
+
+       <xs:simpleType name="processorRegisterType">
+           <xs:restriction base="xs:string">
+               <xs:enumeration value="IO" />
+               <xs:enumeration value="REG_TYPE_IOP" />
+          </xs:restriction>
+       </xs:simpleType>
+
+        <xs:complexType name="registerType">
+            <xs:attribute name="name" type="xs:string" use="required" />
+            <xs:attribute name="group" type="xs:string" use="optional" />
+            <xs:attribute name="description" type="xs:string" use="optional" />
+            <xs:attribute name="write-address" type="hexString" />
+            <xs:attribute name="read-address" type="hexString" />
+            <xs:attribute name="bit-size" type="posIntString" />
+            <xs:attribute name="mask" type="maskString" />
+            <xs:attribute name="type" type="processorRegisterType" />
+            <xs:attribute name="parent" type="xs:string" />
+            <xs:attribute name="bit-position" type="posIntString" />
+        </xs:complexType>
+
+        <xs:complexType name="registerWindowType">
+	    <xs:sequence>
+	      <xs:element name="register" minOccurs="0" maxOccurs="unbounded" type="registerLayoutType"/>
+	    </xs:sequence>
+            <xs:attribute name="action" type="customAction" use="optional" />
+            <xs:attribute name="menu" form="unqualified" type="xs:string" use="required" />
+            <xs:attribute name="name" form="unqualified" type="xs:string" use="required" />
+            <xs:attribute name="description" form="unqualified" type="xs:string" use="optional" />
+            <xs:attribute name="format" form="unqualified" type="xs:string" use="optional" default="Hexadecimal"/>
+        </xs:complexType>
+
+        <xs:complexType name="registerLayoutType">
+            <xs:attribute name="name" type="xs:string" use="required" />
+            <xs:attribute name="type" use="required" >
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                    <xs:enumeration value="NORMAL" />
+                    <xs:enumeration value="NODATA" />
+                    <xs:enumeration value="NOLABEL" />
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:attribute>
+            <xs:attribute name="x" type="posIntString" use="required"/>
+            <xs:attribute name="y" type="posIntString" use="required"/>
+        </xs:complexType>
+
+        <xs:complexType name="registerResetType">
+            <xs:attribute name="action" type="customAction" use="optional" />
+            <xs:attribute name="name" type="xs:string" use="required" />
+            <xs:attribute name="reset-value" type="hexString" use="required" />
+            <xs:attribute name="core" type="xs:string" use="optional" default="Common"/>
+        </xs:complexType>
+
+</xs:schema>

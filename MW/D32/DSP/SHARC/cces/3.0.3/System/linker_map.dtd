@@ -1,0 +1,126 @@
+<!ELEMENT DOCUMENT (LINKPROJECT | OVERLAYLINKPROJECT)+>
+<!ELEMENT LINKPROJECT (FILE_NAME, MEMORY+, LDF_SYMBOLS?)>
+  <!-- 
+     LINKPROJECT element corresponds to PROCESSOR, SHARED_MEMORY or COMMON_MEMORY entry in the LDF
+       name           - Name of the link project
+       orig_file_name - Link project's executable file name
+       id, guid       - Unique identifiers assigned by the linker
+       architecture   - The processor architecture name
+       shared_memory  - Set for SHARED_MEMORY link projects
+   -->
+  <!ATTLIST LINKPROJECT name           CDATA #REQUIRED
+                        orig_file_name CDATA #REQUIRED
+                        id             CDATA #REQUIRED
+                        architecture   CDATA #REQUIRED
+                        shared_memory  CDATA #IMPLIED
+                        guid           CDATA #IMPLIED>
+<!ELEMENT OVERLAYLINKPROJECT (FILE_NAME, OUTPUT_SECTIONS)>
+  <!-- 
+    OVERLAYLINKPROJECT element corresponds to OVERLAY_INPUT entry in the LDF
+      parent_id    - Unique identifier of parent link project the overlay is mapped within
+      id           - Unique identifier assigned by the linker
+      ovl_id       - Overlay ID
+      run_address  - Overlay run address
+      run_size     - Overlay run size
+      live_address - Overlay live address
+      live_size    - Overlay live size
+   -->
+  <!ATTLIST OVERLAYLINKPROJECT id           CDATA #REQUIRED
+                               parent_id    CDATA #REQUIRED
+                               ovl_id       CDATA #REQUIRED
+                               run_address  CDATA #REQUIRED
+                               run_size     CDATA #REQUIRED
+                               live_address CDATA #REQUIRED
+                               live_size    CDATA #REQUIRED>
+<!ELEMENT MEMORY (OUTPUT_SECTIONS)?>
+  <!-- 
+    MEMORY element corresponds to memory segment definition in the LDF
+      id            - Unique identifier assigned by the linker
+      name          - Memory name as specified in the LDF
+      start_address - Memory start address as specified in the LDF
+      end_address   - Memory end (last) address
+      type          - Memory type as specified in the LDF (e.g. PM)
+      qualifier     - Memory qualifier as specified in the LDF (e.g. RAM)
+      width         - Memory logical width as specified in the LDF
+      words_used    - Memory segment words used/allocated by the linker
+      words_unused  - Memory segment words not in use
+   -->
+  <!ATTLIST MEMORY id            CDATA #REQUIRED
+                   name          CDATA #REQUIRED
+                   start_address CDATA #REQUIRED
+                   end_address   CDATA #REQUIRED
+                   type          CDATA #REQUIRED
+                   qualifier     CDATA #REQUIRED
+                   width         CDATA #REQUIRED
+                   words_used    CDATA #REQUIRED
+                   words_unused  CDATA #REQUIRED>
+<!ELEMENT LDF_SYMBOLS (SYMBOL*)>
+   <!--
+     LDF_SYMBOLS entry is a collection of symbols defined in the LDF 
+     (ldf expression symbols, RESERVE command symbols, etc.)
+    -->
+<!ELEMENT OUTPUT_SECTIONS (OUTPUT_SECTION)*>
+   <!--
+     OUTPUT_SECTIONS element is a collection of OUTPUT_SECTIONS elements
+    -->
+<!ELEMENT OUTPUT_SECTION (INPUT_SECTIONS)?>
+   <!--
+     OUTPUT_SECTION element corresponds to output section definition in the LDF
+       id                 - Unique identifier assigned by the linker
+       memory_id          - Unique identifier of memory segment the output section is mapped to
+       name               - Output section name
+       type               - Output section intialization type
+       start_address      - Output section start address
+       word_size          - Output section size in words (addressable units)
+       word_size_unmapped - Total size of unmapped input sections (in case of "out of memory" errors)
+       word_size_reserved - Total size of space reserved by RESERVE commands
+       in_overlay         - Set if the output section used as overlay run space
+    -->
+  <!ATTLIST OUTPUT_SECTION id                 CDATA #REQUIRED
+                           memory_id          CDATA #IMPLIED
+                           name               CDATA #REQUIRED
+                           type               CDATA #REQUIRED
+                           memory_type        CDATA #IMPLIED
+                           memory_width       CDATA #IMPLIED
+                           start_address      CDATA #REQUIRED
+                           word_size          CDATA #REQUIRED
+			   word_size_unmapped CDATA #REQUIRED
+			   word_size_reserved CDATA #IMPLIED
+                           in_overlay         CDATA #IMPLIED>
+<!ELEMENT INPUT_SECTIONS (INPUT_SECTION)*>
+   <!--
+     INPUT_SECTIONS element is a collection of INPUT_SECTIONS elements
+   -->
+<!ELEMENT INPUT_SECTION (INPUT_FILE, SYMBOL*)>
+   <!--
+     INPUT_SECTION element corresponds to an input section mapped in output section context
+       id             - Unique identifier assigned by the linker
+       name           - Input section name "file.doj(section)"
+       start_address  - Input section start address
+       size           - Input section size
+       element_at     - Starting offset of the fragment in the input section (in case of splitted input section)
+       split          - Set if the input section was split by the linker (because of elimination, absolute placement, etc.)
+       abs_placed     - Set if the input section was absolutely mapped by RESOLVE command
+    -->
+  <!ATTLIST INPUT_SECTION id            CDATA #REQUIRED
+                          name          CDATA #REQUIRED
+                          start_address CDATA #REQUIRED
+                          size          CDATA #REQUIRED
+                          element_at    CDATA #REQUIRED
+                          split         CDATA #IMPLIED
+                          abs_placed    CDATA #IMPLIED>
+<!ELEMENT INPUT_FILE (#PCDATA)>
+<!ELEMENT FILE_NAME (#PCDATA)>
+<!ELEMENT SYMBOL (DEMANGLED_NAME)>
+   <!--
+     SYMBOL element represents a mapped symbol
+       name    - Symbol (mangled) name
+       address - Symbol's mapped address
+       size    - Size of the symbol (0 if the linker is unable to identify symbol size)
+       binding - Symbol's binding (global, local or weak)
+    -->
+  <!ATTLIST SYMBOL name    CDATA #REQUIRED
+                   address CDATA #REQUIRED
+                   size    CDATA #REQUIRED
+                   binding CDATA #REQUIRED>
+<!ELEMENT DEMANGLED_NAME (#PCDATA)>

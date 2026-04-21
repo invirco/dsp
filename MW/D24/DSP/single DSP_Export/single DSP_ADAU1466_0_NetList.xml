@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- * 
+ * This software is distributed in the hope that it will be useful, 
+ * but is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR 
+ * CONDITIONS OF ANY KIND, without even the implied warranty of 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+ * 
+ * Copyright ©2024 Analog Devices, Inc. All rights reserved.
+ * 
+-->
+<!--NetList XML file-->
+<IC name="ADAU1466_0" partnumber="ADAU1466">
+  <Core name="ADAU146xCore_0">
+    <Schematic name="ADAU146xSchematic_0">
+      <Algorithm name="Safeload" friendlyname="Schematic Params" />
+      <Algorithm name="Input0to15_0" friendlyname="Input SDATA0">
+        <Link pin="Ch0_out" dir="out" link="Link_2" id="Link_2" />
+        <Link pin="Ch1_out" dir="out" link="Link_3" id="Link_3" />
+      </Algorithm>
+      <Algorithm name="Output_0" friendlyname="Output">
+        <Link pin="Input" dir="in" link="Link_2" id="Link_2" />
+      </Algorithm>
+      <Algorithm name="Output_1" friendlyname="Output">
+        <Link pin="Input" dir="in" link="Link_3" id="Link_3" />
+      </Algorithm>
+    </Schematic>
+  </Core>
+</IC>

@@ -1,0 +1,42 @@
+<?xml version="1.0" standalone="yes"?>
+
+<?xml-stylesheet type="text/xsl" href="AnomalyFamily.xsl"?>
+
+<cces-family-xml schema-version="1" name="SHARC-FX-ALL-anomaly.xml">
+
+<!-- *********************************************************************** -->
+<!-- ****** SHARC-FX-ALL-anomaly.xml                                         -->
+<!-- *********************************************************************** -->
+<!-- ****** Copyright 2021-2024 Analog Devices, Inc.  All rights reserved.   -->
+<!-- *********************************************************************** -->
+
+<version file-version="3.0.0.4"/>
+
+<anomaly-families family-name="SHARC-FX" verbose-display="YES">
+
+	<family help-title="ADSP-SC83x Processors" xml-file="SHARC-FX-SC83X-anomaly.xml">
+		<sub-family>
+			<processor help-title="ADSP-SC834" xml-file="ADSP-SC834-compiler.xml" />
+			<processor help-title="ADSP-SC834W" xml-file="ADSP-SC834W-compiler.xml" />
+			<processor help-title="ADSP-SC835" xml-file="ADSP-SC835-compiler.xml" />
+			<processor help-title="ADSP-SC835W" xml-file="ADSP-SC835W-compiler.xml" />
+		</sub-family>
+	</family>
+
+	<family help-title="ADSP-2183x Processors" xml-file="SHARC-FX-2183X-anomaly.xml">
+		<sub-family>
+			<processor help-title="ADSP-21834" xml-file="ADSP-21834-compiler.xml" />
+			<processor help-title="ADSP-21834W" xml-file="ADSP-21834W-compiler.xml" />
+			<processor help-title="ADSP-21835" xml-file="ADSP-21835-compiler.xml" />
+			<processor help-title="ADSP-21835W" xml-file="ADSP-21835W-compiler.xml" />
+			<processor help-title="ADSP-21836" xml-file="ADSP-21836-compiler.xml" />
+			<processor help-title="ADSP-21836W" xml-file="ADSP-21836W-compiler.xml" />
+			<processor help-title="ADSP-21837" xml-file="ADSP-21837-compiler.xml" />
+			<processor help-title="ADSP-21837W" xml-file="ADSP-21837W-compiler.xml" />
+		</sub-family>
+	</family>
+
+</anomaly-families>
+
+</cces-family-xml>
+

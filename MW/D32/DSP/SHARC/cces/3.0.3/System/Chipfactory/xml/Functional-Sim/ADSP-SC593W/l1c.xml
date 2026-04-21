@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ************************************************************************************ -->
+<!--   Module       :   L1C                                                               -->
+<!--   Description  :   Module Register Offsets                                           -->
+<!--                                                                                      -->
+<!--   Copyright (c) 2021 Analog Devices, Inc.  All Rights Reserved.                      -->
+<!--   This software is proprietary and confidential to Analog Devices, Inc. and          -->
+<!--   its licensors.                                                                     -->
+<!--                                                                                      -->
+<!-- ************************************************************************************ -->
+<cces-chipfactory-xml schema-version="1" name="L1C.xml">
+	<version file-version="2.10.1.0"/>
+	<module acronym="L1C">
+		<module-data>
+			<register acronym="CFG">
+				<description>Configuration register for L1-Cache</description>
+				<access mode="read-write"/>
+				<width>32</width>
+				<address radix="x" type="relative">0</address>
+			</register>
+			<register acronym="CFG2">
+				<description>Configuration register for L1-Cache</description>
+				<access mode="read-write"/>
+				<width>32</width>
+				<address radix="x" type="relative">2</address>
+			</register>
+			<register acronym="RANGE_START0">
+				<description>Inv/WB/WBI and Locking start range register</description>
+				<access mode="read-write"/>
+				<width>32</width>
+				<address radix="x" type="relative">10</address>
+			</register>
+			<register acronym="RANGE_END0">
+				<description>Inv/WB/WBI and Locking end range register</description>
+				<access mode="read-write"/>
+				<width>32</width>
+				<address radix="x" type="relative">11</address>
+			</register>
+			<register acronym="RANGE_START1">
+				<description>Inv/WB/WBI and Locking start range register</description>
+				<access mode="read-write"/>
+				<width>32</width>
+				<address radix="x" type="relative">12</address>
+			</register>
+			<register acronym="RANGE_END1">
+				<description>Inv/WB/WBI and Locking end range register</description>
+				<access mode="read-write"/>
+				<width>32</width>
+				<address radix="x" type="relative">13</address>
+			</register>
+			<register acronym="RANGE_START2">
+				<description>non cachable  and Locking start range register</description>
+				<access mode="read-write"/>
+				<width>32</width>
+				<address radix="x" type="relative">14</address>
+			</register>
+			<register acronym="RANGE_END2">
+				<description>non cachable  and Locking end range register</description>
+				<access mode="read-write"/>
+				<width>32</width>
+				<address radix="x" type="relative">15</address>
+			</register>
+			<register acronym="RANGE_START3">
+				<description>non cachable  and Locking start range register</description>
+				<access mode="read-write"/>
+				<width>32</width>
+				<address radix="x" type="relative">16</address>
+			</register>
+			<register acronym="RANGE_END3">
+				<description>non cachable  and Locking end range register</description>
+				<access mode="read-write"/>
+				<width>32</width>
+				<address radix="x" type="relative">17</address>
+			</register>
+			<register acronym="RANGE_START4">
+				<description>non cachable  and wr-through start range register</description>
+				<access mode="read-write"/>
+				<width>32</width>
+				<address radix="x" type="relative">18</address>
+			</register>
+			<register acronym="RANGE_END4">
+				<description>non cachable  and wr-through end range register</description>
+				<access mode="read-write"/>
+				<width>32</width>
+				<address radix="x" type="relative">19</address>
+			</register>
+			<register acronym="RANGE_START5">
+				<description>non cachable  and wr-through start range register</description>
+				<access mode="read-write"/>
+				<width>32</width>
+				<address radix="x" type="relative">1a</address>
+			</register>
+			<register acronym="RANGE_END5">
+				<description>non cachable  and wr-through end range register</description>
+				<access mode="read-write"/>
+				<width>32</width>
+				<address radix="x" type="relative">1b</address>
+			</register>
+			<register acronym="RANGE_START6">
+				<description>non cachable  and wr-through start range register</description>
+				<access mode="read-write"/>
+				<width>32</width>
+				<address radix="x" type="relative">1c</address>
+			</register>
+			<register acronym="RANGE_END6">
+				<description>non cachable  and wr-through end range register</description>
+				<access mode="read-write"/>
+				<width>32</width>
+				<address radix="x" type="relative">1d</address>
+			</register>
+			<register acronym="RANGE_START7">
+				<description>non cachable  and wr-through start range register</description>
+				<access mode="read-write"/>
+				<width>32</width>
+				<address radix="x" type="relative">1e</address>
+			</register>
+			<register acronym="RANGE_END7">
+				<description>non cachable  and wr-through end range register</description>
+				<access mode="read-write"/>
+				<width>32</width>
+				<address radix="x" type="relative">1f</address>
+			</register>
+			<register acronym="INV_IXSTART0">
+				<description>Range based WBI/WB/I index value</description>
+				<access mode="read-write"/>
+				<width>32</width>
+				<address radix="x" type="relative">20</address>
+			</register>
+			<register acronym="INV_CNT0">
+				<description>Range based WBI/WB/I count value</description>
+				<access mode="read-write"/>
+				<width>32</width>
+				<address radix="x" type="relative">21</address>
+			</register>
+		</module-data>
+	</module>
+</cces-chipfactory-xml>
