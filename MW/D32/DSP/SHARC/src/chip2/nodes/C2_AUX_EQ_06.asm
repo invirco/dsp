@@ -183,6 +183,7 @@ _eq_start_xfade_C2_AUX_EQ_06:
     lcntr = r4; do .eq_zs_B_C2_AUX_EQ_06 until lce;
         dm(i1, 1) = r0;
     .eq_zs_B_C2_AUX_EQ_06:
+    nop;                                 /* pipeline gap: no branch within 2 insns of loop end */
     jump .eq_sxf_go_C2_AUX_EQ_06;
 
 .eq_sxf_toA_C2_AUX_EQ_06:

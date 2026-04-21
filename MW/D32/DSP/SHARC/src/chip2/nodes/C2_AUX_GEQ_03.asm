@@ -165,6 +165,7 @@ _geq_start_xfade_C2_AUX_GEQ_03:
     lcntr = r4; do .geq_zs_B_C2_AUX_GEQ_03 until lce;
         dm(i1, 1) = r0;
     .geq_zs_B_C2_AUX_GEQ_03:
+    nop;
     jump .geq_sxf_go_C2_AUX_GEQ_03;
 
 .geq_sxf_toA_C2_AUX_GEQ_03:

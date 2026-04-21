@@ -158,51 +158,66 @@ def gen_gain(node):
     return dedent(f"""\
         {rc}
 
-        /* GAIN: Per-channel gain / trim */
+        /* GAIN: Per-channel gain / trim
+         *
+         * Slew ramp: updated once per block (when _sample_idx == 0).
+         * Per-sample: apply current coefficient, polarity, mute.
+         * Mute clears output to 0.0 (r4=0 = 0x00000000 = 0.0f IEEE 754).
+         */
         /* SPI page={node['spi_page']} addr={node['spi_addr']} */
 
         .section/dm seg_dmda;
         .var _gain_coeff_{node['id']} = 1.0;
         .var _gain_target_{node['id']} = 1.0;   /* ramp target */
-        .var _gain_step_{node['id']} = 0.0;      /* per-frame ramp increment */
+        .var _gain_step_{node['id']} = 0.0;      /* per-frame ramp step */
         .var _gain_frames_{node['id']} = 0;       /* remaining ramp frames */
         .var _mute_{node['id']} = {p.get('mute', '0')};
         .var _polarity_{node['id']} = {p.get('polarity', '0')};
-        .var _tap_post_trim_{node['id']};         /* post trim / pre-EQ tap */
+        .var _tap_post_trim_{node['id']};         /* post-trim / pre-EQ tap */
         .var _buf_{node['id']};
 
         .section/pm seg_pmco;
+        .extern _sample_idx;
         .global _{node['id']}_process;
         _{node['id']}_process:
-            /* --- Slew ramp update (per frame) --- */
+            /* --- Slew ramp: advance once per block, at sample 0 only --- */
+            r4 = dm(_sample_idx);
+            r1 = 0;
+            comp(r4, r1);
+            if ne jump (pc, .apply_{node['id']});
+
             r4 = dm(_gain_frames_{node['id']});
-            r15 = 1;
-            r4 = r4 - r15;
-            if le jump (pc, .no_ramp_{node['id']});
+            r1 = 0;
+            comp(r4, r1);
+            if le jump (pc, .snap_{node['id']});
+            /* Ramp in progress: step coefficient, decrement counter */
+            r4 = r4 - 1;
             dm(_gain_frames_{node['id']}) = r4;
             f1 = dm(_gain_coeff_{node['id']});
             f2 = dm(_gain_step_{node['id']});
-            f1 = f1 + f2;                /* linear interpolation step */
+            f1 = f1 + f2;
             dm(_gain_coeff_{node['id']}) = f1;
             jump (pc, .apply_{node['id']});
-        .no_ramp_{node['id']}:
+        .snap_{node['id']}:
+            /* Ramp complete or instant: snap to target */
             f1 = dm(_gain_target_{node['id']});
-            dm(_gain_coeff_{node['id']}) = f1;  /* snap to target */
+            dm(_gain_coeff_{node['id']}) = f1;
+
         .apply_{node['id']}:
-
             r0 = dm(_buf_{node['inputs_str']});
-            f0 = f0 * f1;
+            f1 = dm(_gain_coeff_{node['id']});
+            f0 = f0 * f1;                          /* apply gain */
 
-            /* Polarity */
+            /* Polarity inversion */
             r3 = dm(_polarity_{node['id']});
             r4 = 0;
             comp(r3, r4);
             if ne f0 = -f0;
 
-            /* Mute */
+            /* Mute: force output to 0.0 */
             r2 = dm(_mute_{node['id']});
             comp(r2, r4);
-            if ne r0 = r4;      /* if muted, clear f0 (r4 = 0 = 0.0f IEEE 754) */
+            if ne r0 = r4;    /* r4 = 0 = 0x00000000 = 0.0f */
 
             dm(_tap_post_trim_{node['id']}) = r0;
             dm(_buf_{node['id']}) = r0;
@@ -421,6 +436,7 @@ def gen_hpf_lpf(node):
             lcntr = r4; do .fz1_{nid} until lce;
                 dm(i1, 1) = r0;
             .fz1_{nid}:
+            nop;
             jump .filt_sxf_go_{nid};
 
         .filt_sxf_toA_{nid}:
@@ -682,6 +698,7 @@ def gen_eq_biquad(node):
             lcntr = r4; do .eq_zs_B_{nid} until lce;
                 dm(i1, 1) = r0;
             .eq_zs_B_{nid}:
+            nop;                                 /* pipeline gap: no branch within 2 insns of loop end */
             jump .eq_sxf_go_{nid};
 
         .eq_sxf_toA_{nid}:
@@ -1674,6 +1691,7 @@ def gen_geq(node):
             lcntr = r4; do .geq_zs_B_{nid} until lce;
                 dm(i1, 1) = r0;
             .geq_zs_B_{nid}:
+            nop;
             jump .geq_sxf_go_{nid};
 
         .geq_sxf_toA_{nid}:
@@ -1878,6 +1896,7 @@ def gen_anti_fb(node):
             lcntr = r4; do .afb_zs_B_{nid} until lce;
                 dm(i1, 1) = r0;
             .afb_zs_B_{nid}:
+            nop;
             jump .afb_sxf_go_{nid};
 
         .afb_sxf_toA_{nid}:
@@ -3749,7 +3768,7 @@ def gen_block_io(chip_label, chip_nodes):
 # Main generation
 # ===========================================================================
 
-def generate(csv_path, output_dir):
+def generate(csv_path, output_dir, force=False, node_type_filter=None):
     with open(csv_path, newline='', encoding='utf-8') as f:
         rows = list(csv.DictReader(f))
 
@@ -3780,6 +3799,7 @@ def generate(csv_path, output_dir):
     chip2_nodes = [n for n in nodes if n['chip'] == '2']
 
     files_written = 0
+    files_skipped = 0
 
     for chip_label, chip_nodes in [('chip1', chip1_nodes), ('chip2', chip2_nodes)]:
         nodes_dir = os.path.join(output_dir, chip_label, 'nodes')
@@ -3788,6 +3808,9 @@ def generate(csv_path, output_dir):
         call_sequence = []
 
         for node in chip_nodes:
+            # call_sequence is always populated (process_chain.asm must list every node)
+            call_sequence.append(node['id'])
+
             gen_fn = GENERATORS.get(node['type'], gen_generic)
 
             ramp_line = f'RampProfile: {node["ramp_profile"]}' if node['ramp_profile'] else 'RampProfile: (none)'
@@ -3809,10 +3832,14 @@ def generate(csv_path, output_dir):
             content = header + '\n' + body
 
             asm_path = os.path.join(nodes_dir, f"{node['id']}.asm")
+            # Skip if: not forced AND file exists AND not specifically targeted by type filter
+            is_targeted = node_type_filter and node['type'] in node_type_filter
+            if not (force or is_targeted) and os.path.exists(asm_path):
+                files_skipped += 1
+                continue  # preserve manual edits; use --force to overwrite
             with open(asm_path, 'w', encoding='utf-8') as f:
                 f.write(content)
             files_written += 1
-            call_sequence.append(node['id'])
 
         # Write process chain
         chain_path = os.path.join(output_dir, chip_label, 'process_chain.asm')
@@ -3853,6 +3880,8 @@ def generate(csv_path, output_dir):
     files_written += 1
 
     print(f"Generated {files_written} files in {output_dir}")
+    if files_skipped:
+        print(f"  Skipped {files_skipped} existing node files (use --force to overwrite)")
     print(f"  Chip 1: {len(chip1_nodes)} nodes")
     print(f"  Chip 2: {len(chip2_nodes)} nodes")
     print(f"  + ramp_engine.asm, ramp_tables.asm")
@@ -3870,16 +3899,19 @@ def generate(csv_path, output_dir):
 
 
 if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser(description='Generate SHARC+ ASM skeletons from dsp.csv')
+    parser.add_argument('csv', nargs='?', help='Path to dsp.csv')
+    parser.add_argument('output', nargs='?', help='Output directory (default: ../src)')
+    parser.add_argument('--force', action='store_true',
+                        help='Overwrite existing node .asm files (default: skip existing to preserve manual edits)')
+    parser.add_argument('--node-type', metavar='TYPE', action='append', dest='node_types',
+                        help='Regenerate only nodes of this type (may be specified multiple times, e.g. --node-type GAIN)')
+    args = parser.parse_args()
+
     script_dir = os.path.dirname(os.path.abspath(__file__))
+    csv_path = args.csv or os.path.join(script_dir, '..', 'dsp.csv')
+    out_dir  = args.output or os.path.join(script_dir, '..', 'src')
 
-    if len(sys.argv) > 1:
-        csv_path = sys.argv[1]
-    else:
-        csv_path = os.path.join(script_dir, '..', 'dsp.csv')
-
-    if len(sys.argv) > 2:
-        out_dir = sys.argv[2]
-    else:
-        out_dir = os.path.join(script_dir, '..', 'src')
-
-    sys.exit(generate(csv_path, out_dir))
+    sys.exit(generate(csv_path, out_dir, force=args.force,
+                      node_type_filter=set(args.node_types) if args.node_types else None))

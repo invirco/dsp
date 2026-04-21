@@ -165,6 +165,7 @@ _geq_start_xfade_C2_MAIN_GEQ:
     lcntr = r4; do .geq_zs_B_C2_MAIN_GEQ until lce;
         dm(i1, 1) = r0;
     .geq_zs_B_C2_MAIN_GEQ:
+    nop;
     jump .geq_sxf_go_C2_MAIN_GEQ;
 
 .geq_sxf_toA_C2_MAIN_GEQ:

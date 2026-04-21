@@ -172,6 +172,7 @@ _afb_start_xfade_C2_AUX_AFB_05:
     lcntr = r4; do .afb_zs_B_C2_AUX_AFB_05 until lce;
         dm(i1, 1) = r0;
     .afb_zs_B_C2_AUX_AFB_05:
+    nop;
     jump .afb_sxf_go_C2_AUX_AFB_05;
 
 .afb_sxf_toA_C2_AUX_AFB_05:

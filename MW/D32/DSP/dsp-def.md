@@ -5,7 +5,7 @@ Engine-agnostic: this file is the source of truth for DSP address assignment, co
 formulas, and routing. A build tool (`gen_dsp.py`) expands it and backfills the `DspSpi`,
 `DspAdd`, `DspAddHex`, and `Table` columns of `_matrix.csv`.
 
-> **Status: IN PROGRESS** — LP0 inter-chip link removed (ADSP-21564 has no link ports); dual independent SPI confirmed from D24 DSP4 rev C schematic. Board in fabrication, no revision needed. Code generation pipeline complete; infrastructure ASM reviewed. **H1S1 firmware complete and building** (13% flash, <1% RAM; outside-IDE build via `fw.sh` producing `.shex`). CCES DSP build pending license.
+> **Status: IN PROGRESS** — LP0 inter-chip link removed (ADSP-21564 has no link ports); dual independent SPI confirmed (H1S1 → CS1 → Chip 1 SPI1, H1S1 → CS2 → Chip 2 SPI1). Inter-chip audio: SPORT7 TDM single-lane, 25 slots (0–24), chip1=master/chip2=slave. Board in fabrication, no revision needed. Code generation pipeline complete; infrastructure ASM reviewed; CCES 3.0.3 build verified **0 errors 0 warnings** (630 ASM files → chip1.dxe + chip2.dxe). **H1S1 firmware complete and building** (13% flash, <1% RAM; outside-IDE build via `fw.sh` producing `.shex`). EV-SOMCRR-EZLITE carrier board on order for JTAG debug bring-up.
 
 **Status legend**
 
@@ -25,9 +25,9 @@ formulas, and routing. A build tool (`gen_dsp.py`) expands it and backfills the 
 |------|-------|-------|
 | DSP | ADSP-21564 | Sharc+, 1 GHz, 32/40-bit float |
 | Chip count | **2×** | Chip 1 = Input DSP; Chip 2 = Output DSP |
-| Inter-chip audio | Multi-lane SPORT/TDM | DSPA O0..O7 -> DSPB MIX_1..128 (8 lanes, 16 ch/lane in schematic notes) |
-| Inter-chip control | Link Port LP0 | Coefficient updates forwarded Chip 1 → Chip 2 |
-| SPI bus | SPI1 (H1S1 MCU) | All traffic enters Chip 1; Chip 2 params via LP0 |
+| Inter-chip audio | SPORT7 TDM single-lane | Chip1 TX → Chip2 RX; 32-slot TDM frame, 25 buses in slots 0–24, 49.152 MHz BCLK (1024×fs), chip1=master |
+| Inter-chip control | Dual independent SPI | H1S1 CS1 → Chip1 SPI1; H1S1 CS2 → Chip2 SPI1; no forwarding between chips |
+| SPI bus | SPI1 (H1S1 MCU) | Two chip-selects; H1S1 addresses each chip directly |
 | Number format | Float32 | IEEE 754 throughout |
 | Sample rate | 48 kHz | — |
 | Block size | 32 samples | 667 µs per block |
@@ -213,7 +213,7 @@ With SIMD (2 float32 MACs/cycle) effective throughput is ~1,333,332 scalar ops/b
 | Routing sends (12 aux + 6 FX + 4 grp + 2 main/sub) | 48 | 1,536 | 49,152 |
 
 Raw scalar total: ~163,000–230,000 cycles. With SIMD: ~82,000–115,000 cycles.  
-Plus overhead (TDM DMA, SPI handler, LP0 forward, talkback, noise gen): ~8,000 cycles.
+Plus overhead (TDM DMA, SPI handler, SPORT7 inter-chip TX, talkback, noise gen): ~8,000 cycles.
 
 | | Optimistic | Pessimistic |
 |-|-----------|------------|
@@ -364,7 +364,7 @@ With tiered delays alone (~1,817 KB total), single-chip leaves ~231 KB headroom 
 | SPORT I/O | 8 per chip, each has slack | 8 shared — ADC + DAC + USB ± Dante fits, just |
 | Debug / bring-up | Validate Chip 1 independently first | All-or-nothing |
 | BOM cost | 2× ADSP-21564 (~$40–70) | 1× ADSP-21564 (~$20–35) |
-| Board space | Extra chip + LP0 wiring | Simpler PCB |
+| Board space | Extra chip + SPORT7 inter-chip wiring | Simpler PCB |
 
 **Decision: two chips for rev A.** Single-chip is a viable **cost-reduction rev B** once the feature set is locked and real SRAM usage can be verified against a working implementation. The saving (~$20–35/unit plus PCB area) is meaningful at volume but does not justify the bring-up risk on first hardware.
 
@@ -419,7 +419,7 @@ At 100–250 MHz FPGA clock, 32 channels at 48 kHz gives **~2,000–6,250 clock 
 | Numerical model | Native FP32 and existing coefficient flow | Usually fixed-point (Q28/Q31) for efficiency; FP32 is expensive |
 | Determinism | Strong block-boundary control in ISR model | Strong if fully synchronous; excellent for large concurrent ramps |
 | Engineering effort | Low-medium (firmware + DSP code updates) | High (RTL/HLS design, verification, bring-up) |
-| Integration complexity | Reuses current SPI -> LP0 -> DSP path | Often requires redesign of control/data plane boundaries |
+| Integration complexity | Reuses current dual-CS SPI → DSP path | Often requires redesign of control/data plane boundaries |
 | Cost impact for ramps only | Minimal | Not justified by ramps alone |
 
 Pros of FPGA for slew/ramps:
@@ -626,8 +626,7 @@ $$
 
 - `Instant` forces $N_{frames}=0$ and bypasses ramp state allocation.
 
-LP0 forwarding rule: for Chip 2 targets, Chip 1 forwards target plus resolved ramp metadata so
-Chip 2 executes the same frame-quantized ramp locally.
+Chip 2 has its own direct SPI connection (H1S1 CS2 → Chip2 SPI1). H1S1 addresses each chip independently using the same ramp profile encoding.
 
 Bulk recall rule: scene/preset recall may ramp gain/coefficient classes, but routing/select
 classes remain atomic unless a cell explicitly opts in.
@@ -652,17 +651,15 @@ Initial mapping policy:
 - Coefficient families (EQ/filter banks) default to `EqSafe`.
 - Dynamics parameter classes default to `DynSafe` unless proven safe as `Instant`.
 
-### Chip 2 parameter delivery via LP0
+### Chip 2 parameter delivery via independent SPI
 
-All SPI traffic from H1S1 enters **Chip 1** only. Chip 2 has no direct SPI connection.  
-Chip 2 parameter writes are forwarded by Chip 1 over **Link Port 0 (LP0)** using a lightweight queued message protocol:
+H1S1 has **two chip-select lines**: CS1 → Chip 1 SPI1, CS2 → Chip 2 SPI1. Each chip has its own `spi_handler.asm` instance. There is no forwarding between chips.
 
-1. H1S1 writes a parameter update to Chip 1's SPI receive buffer in the normal way.
-2. Chip 1's interrupt service routine inspects the destination address. If it falls within the Chip 2 address range, the ISR enqueues a LP0 transfer rather than writing to its own parameter RAM.
-3. LP0 transmits the 32-bit address + 32-bit coefficient word to Chip 2 at full link-port speed (~100 MB/s peak), completing within microseconds.
-4. Chip 2's LP0 receive ISR writes the word directly into its local parameter RAM.
+1. H1S1 determines the target chip from the high-level command (Pi → H1S1 protocol encodes chip identity).
+2. H1S1 asserts the appropriate CS line and writes the 32-bit address + 32-bit coefficient word directly.
+3. Each chip's SPI1 RX interrupt handler processes the write locally and calls `_ramp_set_target` or writes direct.
 
-**Implication for `DspSpi`:** For Chip 2 cells, `DspSpi` still refers to the H1S1 SPI chip-select used to reach Chip 1 (the physical entry point). The LP0 hop is transparent to H1S1 firmware — it writes to a single unified address space and Chip 1 routes accordingly. `DspBaseAddr` values for Chip 2 cells are assigned within Chip 2's parameter RAM layout, distinct from Chip 1's range.
+**Implication for `DspSpi`:** `DspSpi` values are `1` (Chip 1, CS1) or `2` (Chip 2, CS2). H1S1 firmware selects the CS line accordingly. `DspBaseAddr` values are independent per chip — Chip 1 and Chip 2 each have their own address space starting at 0x0000.
 
 ---
 
@@ -1071,7 +1068,7 @@ No gate (sub bus is not typically gated).
 
 ## 10. DCA Masters (×8)
 
-> **DSP:** Chip 1 + Chip 2 — Level/Mute scalar mirrored to both chips via LP0; applied to channel faders on Chip 1, bus faders on Chip 2.
+> **DSP:** Chip 1 + Chip 2 — Level/Mute scalar written to both chips independently via H1S1 CS1/CS2; applied to channel faders on Chip 1, bus faders on Chip 2.
 
 DCAs are control-only: they multiply the fader coefficient of all assigned channels/buses.
 No audio passes through the DCA node itself — the gain product is applied at each member's fader.
@@ -1266,7 +1263,7 @@ Start/end addresses are TBD until the ADSP-21564 program is designed and blocks 
 | Sub/Center bus ×1 | TBD | TBD | ~28 | |
 | Main outputs ×4 | TBD | TBD | ~152 | Incl. 28-band GEQ on Main L/R |
 | FX engines ×6 | TBD | TBD | ~372 | Incl. aux return matrix |
-| DCA masters ×8 | TBD | TBD | ~16 | Level + Mute scalars (mirrored from Chip 1 via LP0) |
+| DCA masters ×8 | TBD | TBD | ~16 | Level + Mute scalars (H1S1 writes to both chips independently via CS1/CS2) |
 | Monitor / Phones | TBD | TBD | ~4 | |
 | USB / BT / Rec | TBD | TBD | ~9 | |
 | Meter read-back | TBD | TBD | ~31 | AaAux, AaMain, AaGrp, AaSub, AaFx — DSP writes, host reads |

@@ -219,6 +219,7 @@ _filt_start_xfade_C1_FILT_11:
     lcntr = r4; do .fz1_C1_FILT_11 until lce;
         dm(i1, 1) = r0;
     .fz1_C1_FILT_11:
+    nop;
     jump .filt_sxf_go_C1_FILT_11;
 
 .filt_sxf_toA_C1_FILT_11:
