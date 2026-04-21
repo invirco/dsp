@@ -1,319 +1,196 @@
-<mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+<mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1400" math="0" shadow="0">
   <root>
     <mxCell id="0"/>
     <mxCell id="1" parent="0"/>
 
-    <!-- ═══════════════════════════════════════════════════════════ -->
-    <!-- TITLE                                                        -->
-    <!-- ═══════════════════════════════════════════════════════════ -->
-    <mxCell id="title" value="MX D32 — DSP Signal Flow" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" vertex="1" parent="1">
-      <mxGeometry x="550" y="20" width="440" height="36" as="geometry"/>
+    <!-- TITLE -->
+    <mxCell id="title" value="MX D32 — DSP Signal Flow" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="600" y="14" width="480" height="36" as="geometry"/>
     </mxCell>
 
-    <!-- ═══════════════════════════════════════════════════════════ -->
-    <!-- CHIP 1 BACKGROUND                                            -->
-    <!-- ═══════════════════════════════════════════════════════════ -->
-    <mxCell id="bg_chip1" value="CHIP 1 — Input DSP (ADSP-21564)&#xa;32 × input strips" style="swimlane;startSize=40;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=11;align=left;swimlaneLine=1;" vertex="1" parent="1">
-      <mxGeometry x="40" y="70" width="1570" height="480" as="geometry"/>
+    <!-- CHIP 1 BACKGROUNDS (visual only, no parent/child routing) -->
+    <mxCell id="bg_chip1" value="CHIP 1 — Input DSP (ADSP-21564)" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontStyle=1;fillColor=#dae8fc;strokeColor=#6c8ebf;rounded=0;" vertex="1" parent="1">
+      <mxGeometry x="20" y="56" width="1750" height="350" as="geometry"/>
+    </mxCell>
+    <mxCell id="bg_strip" value="Channel Strip  ×32" style="text;html=1;align=left;verticalAlign=top;fontSize=10;fontStyle=2;fillColor=#fff2cc;strokeColor=#d6b656;rounded=0;" vertex="1" parent="1">
+      <mxGeometry x="40" y="86" width="1710" height="290" as="geometry"/>
     </mxCell>
 
-    <!-- ─── CHANNEL STRIP (×32) ─── -->
-    <mxCell id="bg_strip" value="Channel Strip (×32)" style="swimlane;startSize=30;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=2;fontSize=10;" vertex="1" parent="bg_chip1">
-      <mxGeometry x="20" y="50" width="1530" height="200" as="geometry"/>
-    </mxCell>
+    <!-- STRIP NODES -->
+    <mxCell id="c1_in"   value="INPUT TDM&#xa;SPORT 0–5" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1"><mxGeometry x="60"   y="175" width="90"  height="70" as="geometry"/></mxCell>
+    <mxCell id="c1_gain" value="GAIN&#xa;mute · pol"     style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1"><mxGeometry x="180"  y="180" width="90"  height="60" as="geometry"/></mxCell>
+    <mxCell id="c1_filt" value="HPF / LPF&#xa;biquad"    style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1"><mxGeometry x="300"  y="180" width="90"  height="60" as="geometry"/></mxCell>
+    <mxCell id="c1_eq"   value="4-Band EQ&#xa;biquad"    style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1"><mxGeometry x="420"  y="180" width="90"  height="60" as="geometry"/></mxCell>
+    <mxCell id="c1_gate" value="GATE&#xa;thr/att/hold&#xa;rel/range" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1"><mxGeometry x="540"  y="175" width="90"  height="70" as="geometry"/></mxCell>
+    <mxCell id="c1_comp" value="COMP&#xa;thr/ratio/att&#xa;rel/knee/mkup" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1"><mxGeometry x="660"  y="175" width="100" height="70" as="geometry"/></mxCell>
+    <mxCell id="c1_tube" value="TUBE SAT&#xa;soft clip"  style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1"><mxGeometry x="790"  y="180" width="90"  height="60" as="geometry"/></mxCell>
+    <mxCell id="c1_dly"  value="DELAY&#xa;0–250 ms"      style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1"><mxGeometry x="910"  y="180" width="90"  height="60" as="geometry"/></mxCell>
+    <mxCell id="c1_fdr"  value="FADER / PAN&#xa;mute"    style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1"><mxGeometry x="1030" y="180" width="90"  height="60" as="geometry"/></mxCell>
+    <mxCell id="c1_rtg"  value="ROUTING&#xa;Main/Sub/Grp(4)&#xa;Aux(12)/FX(6)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1"><mxGeometry x="1150" y="175" width="110" height="70" as="geometry"/></mxCell>
+    <mxCell id="c1_dca"  value="DCA  ×8&#xa;VCA group ctrl" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1"><mxGeometry x="1150" y="295" width="110" height="60" as="geometry"/></mxCell>
+    <mxCell id="c1_mtr"  value="METER&#xa;32 ch peaks&#xa;SPI READ"    style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1"><mxGeometry x="60"   y="300" width="110" height="70" as="geometry"/></mxCell>
 
-    <!-- INPUT TDM -->
-    <mxCell id="c1_in" value="INPUT TDM&#xa;SPORT0–5&#xa;slot 0–31" style="shape=mxgraph.electronic.signal_sources.signal_source;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=10;whiteSpace=wrap;" vertex="1" parent="bg_strip">
-      <mxGeometry x="20" y="70" width="80" height="80" as="geometry"/>
-    </mxCell>
+    <!-- STRIP EDGES — all pinned right→left, pure horizontal -->
+    <mxCell id="e1"  style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="c1_in"   target="c1_gain" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="e2"  style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="c1_gain" target="c1_filt" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="e3"  style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="c1_filt" target="c1_eq"   parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="e4"  style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="c1_eq"   target="c1_gate" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="e5"  style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="c1_gate" target="c1_comp" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="e6"  style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="c1_comp" target="c1_tube" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="e7"  style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="c1_tube" target="c1_dly"  parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="e8"  style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="c1_dly"  target="c1_fdr"  parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="e9"  style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="c1_fdr"  target="c1_rtg"  parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
 
-    <!-- GAIN -->
-    <mxCell id="c1_gain" value="GAIN&#xa;+mute+pol" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="bg_strip">
-      <mxGeometry x="140" y="75" width="90" height="60" as="geometry"/>
-    </mxCell>
-
-    <!-- HPF/LPF -->
-    <mxCell id="c1_filt" value="HPF / LPF&#xa;18 dB/oct biquad" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="bg_strip">
-      <mxGeometry x="270" y="75" width="100" height="60" as="geometry"/>
-    </mxCell>
-
-    <!-- EQ -->
-    <mxCell id="c1_eq" value="4-Band EQ&#xa;(biquad)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="bg_strip">
-      <mxGeometry x="410" y="75" width="90" height="60" as="geometry"/>
-    </mxCell>
-
-    <!-- GATE -->
-    <mxCell id="c1_gate" value="GATE&#xa;thr/att/hold&#xa;rel/range" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="bg_strip">
-      <mxGeometry x="540" y="70" width="90" height="70" as="geometry"/>
-    </mxCell>
-
-    <!-- COMP -->
-    <mxCell id="c1_comp" value="COMPRESSOR&#xa;thr/ratio/att&#xa;rel/knee/makeup" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="bg_strip">
-      <mxGeometry x="670" y="70" width="100" height="70" as="geometry"/>
-    </mxCell>
-
-    <!-- TUBE SAT -->
-    <mxCell id="c1_tube" value="TUBE SAT&#xa;(soft clip)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="bg_strip">
-      <mxGeometry x="810" y="75" width="90" height="60" as="geometry"/>
-    </mxCell>
-
-    <!-- DELAY -->
-    <mxCell id="c1_dly" value="DELAY&#xa;0–250 ms" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="bg_strip">
-      <mxGeometry x="940" y="75" width="90" height="60" as="geometry"/>
-    </mxCell>
-
-    <!-- FADER PAN -->
-    <mxCell id="c1_fdr" value="FADER / PAN&#xa;+mute" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="bg_strip">
-      <mxGeometry x="1070" y="75" width="90" height="60" as="geometry"/>
-    </mxCell>
-
-    <!-- ROUTING -->
-    <mxCell id="c1_rtg" value="ROUTING&#xa;Main/Sub/Grp(4)&#xa;Aux(12)/FX(6)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="bg_strip">
-      <mxGeometry x="1200" y="65" width="110" height="80" as="geometry"/>
-    </mxCell>
-
-    <!-- Strip arrows -->
-    <mxCell id="e_in_gain" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="c1_in" target="c1_gain" parent="bg_strip">
-      <mxGeometry relative="1" as="geometry"/>
-    </mxCell>
-    <mxCell id="e_gain_filt" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="c1_gain" target="c1_filt" parent="bg_strip">
-      <mxGeometry relative="1" as="geometry"/>
-    </mxCell>
-    <mxCell id="e_filt_eq" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="c1_filt" target="c1_eq" parent="bg_strip">
-      <mxGeometry relative="1" as="geometry"/>
-    </mxCell>
-    <mxCell id="e_eq_gate" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="c1_eq" target="c1_gate" parent="bg_strip">
-      <mxGeometry relative="1" as="geometry"/>
-    </mxCell>
-    <mxCell id="e_gate_comp" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="c1_gate" target="c1_comp" parent="bg_strip">
-      <mxGeometry relative="1" as="geometry"/>
-    </mxCell>
-    <mxCell id="e_comp_tube" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="c1_comp" target="c1_tube" parent="bg_strip">
-      <mxGeometry relative="1" as="geometry"/>
-    </mxCell>
-    <mxCell id="e_tube_dly" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="c1_tube" target="c1_dly" parent="bg_strip">
-      <mxGeometry relative="1" as="geometry"/>
-    </mxCell>
-    <mxCell id="e_dly_fdr" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="c1_dly" target="c1_fdr" parent="bg_strip">
-      <mxGeometry relative="1" as="geometry"/>
-    </mxCell>
-    <mxCell id="e_fdr_rtg" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="c1_fdr" target="c1_rtg" parent="bg_strip">
-      <mxGeometry relative="1" as="geometry"/>
-    </mxCell>
-
-    <!-- ─── DCA section ─── -->
-    <mxCell id="c1_dca" value="DCA (×8)&#xa;VCA-style level&#xa;group control" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="bg_chip1">
-      <mxGeometry x="1200" y="290" width="120" height="70" as="geometry"/>
-    </mxCell>
-
-    <!-- DCA applies to fader (dashed control line) -->
-    <mxCell id="e_dca_fdr" value="VCA control" style="edgeStyle=orthogonalEdgeStyle;dashed=1;endArrow=open;endFill=0;strokeColor=#82b366;fontSize=9;" edge="1" source="c1_dca" target="c1_fdr" parent="bg_chip1">
+    <!-- DCA → FADER: exit left of DCA, run above fader, enter from top -->
+    <mxCell id="e_dca" value="VCA ctrl" style="edgeStyle=orthogonalEdgeStyle;dashed=1;endArrow=open;endFill=0;strokeColor=#82b366;fontSize=9;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" source="c1_dca" target="c1_fdr" parent="1">
       <mxGeometry relative="1" as="geometry">
         <Array as="points">
-          <mxPoint x="1310" y="325"/>
-          <mxPoint x="1165" y="325"/>
-          <mxPoint x="1165" y="185"/>
+          <mxPoint x="1075" y="325"/>
+          <mxPoint x="1075" y="250"/>
         </Array>
       </mxGeometry>
     </mxCell>
 
-    <!-- ─── BUS labels (chip1 outputs) ─── -->
-    <mxCell id="c1_buses" value="→ MIX BUSES (via IC)&#xa;Main L/R · Sub · Grp 1-4&#xa;Aux 1-12 · FX 1-6" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;fontStyle=1;" vertex="1" parent="bg_chip1">
-      <mxGeometry x="1390" y="260" width="150" height="70" as="geometry"/>
+    <!-- SPORT7 INTER-CHIP LINK -->
+    <mxCell id="ic_bus" value="SPORT7  Inter-Chip Link&#xa;TDM-32 · 49.152 MHz BCLK&#xa;25 active slots · 800 words/block" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="620" y="450" width="290" height="70" as="geometry"/>
     </mxCell>
 
-    <mxCell id="e_rtg_buses" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;" edge="1" source="c1_rtg" target="c1_buses" parent="bg_chip1">
-      <mxGeometry relative="1" as="geometry"/>
-    </mxCell>
-
-    <!-- ─── Meter (chip1) ─── -->
-    <mxCell id="c1_meter" value="METER (post-scatter)&#xa;32 ch peak-hold&#xa;via SPI READ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="bg_chip1">
-      <mxGeometry x="100" y="370" width="130" height="70" as="geometry"/>
-    </mxCell>
-
-    <!-- ═══════════════════════════════════════════════════════════ -->
-    <!-- INTERCHIP LINK                                               -->
-    <!-- ═══════════════════════════════════════════════════════════ -->
-    <mxCell id="ic_bus" value="SPORT7 Inter-Chip&#xa;TDM-32 · 49.152 MHz BCLK&#xa;25 slots · 800 words/block" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;fontStyle=1;" vertex="1" parent="1">
-      <mxGeometry x="780" y="580" width="200" height="70" as="geometry"/>
-    </mxCell>
-
-    <mxCell id="e_c1_ic" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="c1_buses" target="ic_bus" parent="1">
+    <!-- RTG → IC: exit RTG bottom, horizontal run at y=425, enter IC top -->
+    <mxCell id="e_rtg_ic" value="25 buses" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="c1_rtg" target="ic_bus" parent="1">
       <mxGeometry relative="1" as="geometry">
         <Array as="points">
-          <mxPoint x="1620" y="305"/>
-          <mxPoint x="1620" y="615"/>
+          <mxPoint x="1205" y="425"/>
+          <mxPoint x="765"  y="425"/>
         </Array>
       </mxGeometry>
     </mxCell>
 
-    <!-- ═══════════════════════════════════════════════════════════ -->
-    <!-- CHIP 2 BACKGROUND                                            -->
-    <!-- ═══════════════════════════════════════════════════════════ -->
-    <mxCell id="bg_chip2" value="CHIP 2 — Output DSP (ADSP-21564)&#xa;Bus processing · FX · Output routing" style="swimlane;startSize=40;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=11;align=left;" vertex="1" parent="1">
-      <mxGeometry x="40" y="680" width="1570" height="460" as="geometry"/>
+    <!-- CHIP 2 BACKGROUNDS -->
+    <mxCell id="bg_chip2" value="CHIP 2 — Output DSP (ADSP-21564)" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontStyle=1;fillColor=#d5e8d4;strokeColor=#82b366;rounded=0;" vertex="1" parent="1">
+      <mxGeometry x="20" y="550" width="1750" height="600" as="geometry"/>
+    </mxCell>
+    <mxCell id="bg_main" value="Main Bus" style="text;html=1;align=left;verticalAlign=top;fontSize=10;fontStyle=2;fillColor=#fff2cc;strokeColor=#d6b656;rounded=0;" vertex="1" parent="1">
+      <mxGeometry x="460" y="570" width="850" height="110" as="geometry"/>
+    </mxCell>
+    <mxCell id="bg_grp"  value="Group Buses  ×4" style="text;html=1;align=left;verticalAlign=top;fontSize=10;fontStyle=2;fillColor=#fff2cc;strokeColor=#d6b656;rounded=0;" vertex="1" parent="1">
+      <mxGeometry x="460" y="700" width="640" height="110" as="geometry"/>
+    </mxCell>
+    <mxCell id="bg_aux"  value="Aux Buses  ×12" style="text;html=1;align=left;verticalAlign=top;fontSize=10;fontStyle=2;fillColor=#f5f5f5;strokeColor=#666666;rounded=0;" vertex="1" parent="1">
+      <mxGeometry x="460" y="830" width="730" height="110" as="geometry"/>
+    </mxCell>
+    <mxCell id="bg_fx"   value="FX Engines  ×6" style="text;html=1;align=left;verticalAlign=top;fontSize=10;fontStyle=2;fillColor=#e1d5e7;strokeColor=#9673a6;rounded=0;" vertex="1" parent="1">
+      <mxGeometry x="1110" y="590" width="640" height="270" as="geometry"/>
     </mxCell>
 
-    <!-- IC RECV -->
-    <mxCell id="c2_ic_recv" value="INTERCHIP RECV&#xa;25 slots from Chip 1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="bg_chip2">
-      <mxGeometry x="20" y="60" width="120" height="60" as="geometry"/>
-    </mxCell>
+    <!-- CHIP 2 NODES -->
+    <mxCell id="c2_recv"  value="IC RECV&#xa;25 slots"          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1"><mxGeometry x="55"   y="620" width="120" height="60" as="geometry"/></mxCell>
+    <mxCell id="c2_aux"   value="AUX INPUT&#xa;BT · USB"         style="ellipse;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1"><mxGeometry x="65"   y="730" width="100" height="60" as="geometry"/></mxCell>
+    <mxCell id="c2_mix"   value="MIX BUS&#xa;accumulate&#xa;Main·Sub·Grp(4)&#xa;Aux(12)·FX(6)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="235" y="620" width="150" height="100" as="geometry"/></mxCell>
 
-    <mxCell id="e_ic_recv" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;" edge="1" source="ic_bus" target="c2_ic_recv" parent="1">
+    <!-- Main path -->
+    <mxCell id="c2_mgeq"  value="GEQ&#xa;31-band"       style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1"><mxGeometry x="480" y="595" width="80"  height="60" as="geometry"/></mxCell>
+    <mxCell id="c2_mcomp" value="COMP"                  style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1"><mxGeometry x="590" y="595" width="70"  height="60" as="geometry"/></mxCell>
+    <mxCell id="c2_mlim"  value="LIMITER"               style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1"><mxGeometry x="690" y="595" width="80"  height="60" as="geometry"/></mxCell>
+    <mxCell id="c2_mxo"   value="CROSSOVER&#xa;LP / HP" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1"><mxGeometry x="800" y="595" width="90"  height="60" as="geometry"/></mxCell>
+    <mxCell id="c2_mout"  value="OUTPUT TDM&#xa;Main 1-4 · Sub" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1"><mxGeometry x="920" y="588" width="120" height="74" as="geometry"/></mxCell>
+
+    <!-- Group path -->
+    <mxCell id="c2_geq"   value="EQ&#xa;4-band" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1"><mxGeometry x="480" y="725" width="80"  height="60" as="geometry"/></mxCell>
+    <mxCell id="c2_gcomp" value="COMP"          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1"><mxGeometry x="590" y="725" width="70"  height="60" as="geometry"/></mxCell>
+    <mxCell id="c2_gfdr"  value="FADER"         style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1"><mxGeometry x="690" y="725" width="70"  height="60" as="geometry"/></mxCell>
+    <mxCell id="c2_gout"  value="OUTPUT TDM&#xa;Grp 1-4" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1"><mxGeometry x="790" y="721" width="110" height="68" as="geometry"/></mxCell>
+
+    <!-- Aux path -->
+    <mxCell id="c2_aeq"  value="EQ&#xa;4-band" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1"><mxGeometry x="480" y="855" width="80"  height="60" as="geometry"/></mxCell>
+    <mxCell id="c2_afb"  value="ANTI-FB"        style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1"><mxGeometry x="590" y="855" width="80"  height="60" as="geometry"/></mxCell>
+    <mxCell id="c2_adly" value="DELAY"          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1"><mxGeometry x="700" y="855" width="70"  height="60" as="geometry"/></mxCell>
+    <mxCell id="c2_afdr" value="FADER + LIM"    style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1"><mxGeometry x="800" y="855" width="80"  height="60" as="geometry"/></mxCell>
+    <mxCell id="c2_aout" value="OUTPUT TDM&#xa;Aux 1-12" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1"><mxGeometry x="910" y="848" width="110" height="74" as="geometry"/></mxCell>
+
+    <!-- FX path -->
+    <mxCell id="c2_fxe"  value="FX ENGINE&#xa;Reverb / Chorus&#xa;Delay / Phaser" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1"><mxGeometry x="1130" y="645" width="120" height="80" as="geometry"/></mxCell>
+    <mxCell id="c2_fxr"  value="FX RETURN&#xa;level · pan"  style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1"><mxGeometry x="1290" y="655" width="100" height="60" as="geometry"/></mxCell>
+    <mxCell id="c2_fxo"  value="OUTPUT TDM&#xa;FX · Monitor" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1"><mxGeometry x="1430" y="649" width="110" height="72" as="geometry"/></mxCell>
+
+    <!-- MONITOR / METER -->
+    <mxCell id="c2_mon"  value="MONITOR&#xa;stereo mix" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1"><mxGeometry x="1130" y="790" width="110" height="60" as="geometry"/></mxCell>
+    <mxCell id="c2_mtr"  value="METER&#xa;18 out peaks&#xa;SPI READ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1"><mxGeometry x="55" y="855" width="110" height="70" as="geometry"/></mxCell>
+
+    <!-- CHIP 2 EDGES -->
+
+    <!-- IC bus → IC RECV: exits left side of IC box, runs down left margin -->
+    <mxCell id="f1" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="ic_bus" target="c2_recv" parent="1">
       <mxGeometry relative="1" as="geometry">
         <Array as="points">
-          <mxPoint x="880" y="640"/>
-          <mxPoint x="120" y="640"/>
-          <mxPoint x="120" y="720"/>
+          <mxPoint x="115" y="485"/>
+          <mxPoint x="115" y="620"/>
         </Array>
       </mxGeometry>
     </mxCell>
 
-    <!-- MIX BUS -->
-    <mxCell id="c2_mixbus" value="MIX BUS (accumulate)&#xa;Main L/R · Sub&#xa;Grp 1-4 · Aux 1-12 · FX 1-6" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="bg_chip2">
-      <mxGeometry x="190" y="50" width="160" height="80" as="geometry"/>
+    <!-- IC RECV → MIX, AUX INPUT → MIX -->
+    <mxCell id="f2" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;" edge="1" source="c2_recv" target="c2_mix" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f3" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;" edge="1" source="c2_aux"  target="c2_mix" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+    <!-- MIX → Main (jog up at x=425) -->
+    <mxCell id="f4" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="c2_mix" target="c2_mgeq" parent="1">
+      <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="425" y="670"/><mxPoint x="425" y="625"/></Array></mxGeometry>
+    </mxCell>
+    <!-- MIX → Grp (jog down at x=425) -->
+    <mxCell id="f5" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="c2_mix" target="c2_geq" parent="1">
+      <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="425" y="670"/><mxPoint x="425" y="755"/></Array></mxGeometry>
+    </mxCell>
+    <!-- MIX → Aux (jog further down, runs outside grp box below y=810) -->
+    <mxCell id="f6" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="c2_mix" target="c2_aeq" parent="1">
+      <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="425" y="670"/><mxPoint x="425" y="885"/></Array></mxGeometry>
+    </mxCell>
+    <!-- MIX → FX: runs below all buses at y=975, then right, then up -->
+    <mxCell id="f7" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="c2_mix" target="c2_fxe" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="425" y="670"/>
+          <mxPoint x="425" y="975"/>
+          <mxPoint x="1100" y="975"/>
+          <mxPoint x="1100" y="685"/>
+        </Array>
+      </mxGeometry>
     </mxCell>
 
-    <mxCell id="e_recv_mix" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="c2_ic_recv" target="c2_mixbus" parent="bg_chip2">
-      <mxGeometry relative="1" as="geometry"/>
-    </mxCell>
+    <!-- Main path edges -->
+    <mxCell id="f10" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="c2_mgeq"  target="c2_mcomp" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f11" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="c2_mcomp" target="c2_mlim"  parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f12" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="c2_mlim"  target="c2_mxo"   parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f13" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="c2_mxo"   target="c2_mout"  parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
 
-    <!-- AUX INPUT -->
-    <mxCell id="c2_aux_in" value="AUX INPUT&#xa;BT · USB" style="shape=mxgraph.electronic.signal_sources.signal_source;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=10;whiteSpace=wrap;" vertex="1" parent="bg_chip2">
-      <mxGeometry x="200" y="165" width="70" height="70" as="geometry"/>
-    </mxCell>
-    <mxCell id="e_auxin_mix" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="c2_aux_in" target="c2_mixbus" parent="bg_chip2">
-      <mxGeometry relative="1" as="geometry"/>
-    </mxCell>
+    <!-- Group path edges -->
+    <mxCell id="f20" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="c2_geq"   target="c2_gcomp" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f21" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="c2_gcomp" target="c2_gfdr"  parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f22" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="c2_gfdr"  target="c2_gout"  parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
 
-    <!-- ─── MAIN BUS PATH ─── -->
-    <mxCell id="bg_main" value="Main Bus Path" style="swimlane;startSize=24;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;fontStyle=2;" vertex="1" parent="bg_chip2">
-      <mxGeometry x="400" y="40" width="760" height="130" as="geometry"/>
-    </mxCell>
+    <!-- Aux path edges -->
+    <mxCell id="f30" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="c2_aeq"  target="c2_afb"  parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f31" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="c2_afb"  target="c2_adly" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f32" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="c2_adly" target="c2_afdr" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f33" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="c2_afdr" target="c2_aout" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
 
-    <mxCell id="c2_main_geq" value="GEQ&#xa;31-band" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="bg_main">
-      <mxGeometry x="20" y="45" width="80" height="60" as="geometry"/>
-    </mxCell>
-    <mxCell id="c2_main_comp" value="COMP" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="bg_main">
-      <mxGeometry x="130" y="45" width="70" height="60" as="geometry"/>
-    </mxCell>
-    <mxCell id="c2_main_lim" value="LIMITER" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="bg_main">
-      <mxGeometry x="230" y="45" width="70" height="60" as="geometry"/>
-    </mxCell>
-    <mxCell id="c2_main_xover" value="CROSSOVER&#xa;(LP/HP)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="bg_main">
-      <mxGeometry x="330" y="45" width="80" height="60" as="geometry"/>
-    </mxCell>
-    <mxCell id="c2_main_out" value="OUTPUT TDM&#xa;Main Out 1-4&#xa;Sub Out" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="bg_main">
-      <mxGeometry x="440" y="40" width="100" height="70" as="geometry"/>
-    </mxCell>
+    <!-- FX path edges -->
+    <mxCell id="f40" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="c2_fxe" target="c2_fxr" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="f41" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="c2_fxr" target="c2_fxo" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
 
-    <mxCell id="e_mgeq_mcomp" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="c2_main_geq" target="c2_main_comp" parent="bg_main"><mxGeometry relative="1" as="geometry"/></mxCell>
-    <mxCell id="e_mcomp_mlim" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="c2_main_comp" target="c2_main_lim" parent="bg_main"><mxGeometry relative="1" as="geometry"/></mxCell>
-    <mxCell id="e_mlim_mxover" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="c2_main_lim" target="c2_main_xover" parent="bg_main"><mxGeometry relative="1" as="geometry"/></mxCell>
-    <mxCell id="e_mxover_mout" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="c2_main_xover" target="c2_main_out" parent="bg_main"><mxGeometry relative="1" as="geometry"/></mxCell>
-
-    <!-- Main bus feed from mix bus -->
-    <mxCell id="e_mix_main" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="c2_mixbus" target="c2_main_geq" parent="bg_chip2">
-      <mxGeometry relative="1" as="geometry"/>
+    <!-- SPI CONTROL PLANE -->
+    <mxCell id="bg_spi" value="H1S1 Control Plane  (SPI)" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontStyle=1;fillColor=#f0f0f0;strokeColor=#999999;rounded=0;" vertex="1" parent="1">
+      <mxGeometry x="20" y="1185" width="620" height="110" as="geometry"/>
     </mxCell>
-
-    <!-- ─── GROUP BUS PATH ─── -->
-    <mxCell id="bg_grp" value="Group Bus (×4)" style="swimlane;startSize=24;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;fontStyle=2;" vertex="1" parent="bg_chip2">
-      <mxGeometry x="400" y="195" width="460" height="110" as="geometry"/>
+    <mxCell id="c_h1"  value="H1S1 MCU&#xa;SPI Master" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1"><mxGeometry x="40"  y="1220" width="120" height="55" as="geometry"/></mxCell>
+    <mxCell id="c_swr" value="SPI WRITE&#xa;Word 0: addr&lt;&lt;16 | flags&#xa;update dm[addr]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1"><mxGeometry x="200" y="1205" width="160" height="60" as="geometry"/></mxCell>
+    <mxCell id="c_srd" value="SPI READ&#xa;bit 13 = READ_FLAG&#xa;MISO ← dm[addr]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1"><mxGeometry x="410" y="1205" width="160" height="60" as="geometry"/></mxCell>
+    <mxCell id="s1" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.35;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="c_h1" target="c_swr" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="s2" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.65;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="c_h1" target="c_srd" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points"><mxPoint x="175" y="1262"/><mxPoint x="175" y="1275"/><mxPoint x="400" y="1275"/></Array>
+      </mxGeometry>
     </mxCell>
-
-    <mxCell id="c2_grp_eq" value="EQ&#xa;4-band" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="bg_grp">
-      <mxGeometry x="20" y="40" width="80" height="50" as="geometry"/>
-    </mxCell>
-    <mxCell id="c2_grp_comp" value="COMP" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="bg_grp">
-      <mxGeometry x="130" y="40" width="70" height="50" as="geometry"/>
-    </mxCell>
-    <mxCell id="c2_grp_fdr" value="FADER" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="bg_grp">
-      <mxGeometry x="230" y="40" width="70" height="50" as="geometry"/>
-    </mxCell>
-    <mxCell id="c2_grp_out" value="→ Main&#xa;+ Out TDM" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="bg_grp">
-      <mxGeometry x="330" y="35" width="90" height="60" as="geometry"/>
-    </mxCell>
-    <mxCell id="e_geq_gcomp" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="c2_grp_eq" target="c2_grp_comp" parent="bg_grp"><mxGeometry relative="1" as="geometry"/></mxCell>
-    <mxCell id="e_gcomp_gfdr" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="c2_grp_comp" target="c2_grp_fdr" parent="bg_grp"><mxGeometry relative="1" as="geometry"/></mxCell>
-    <mxCell id="e_gfdr_gout" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="c2_grp_fdr" target="c2_grp_out" parent="bg_grp"><mxGeometry relative="1" as="geometry"/></mxCell>
-    <mxCell id="e_mix_grp" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="c2_mixbus" target="c2_grp_eq" parent="bg_chip2"><mxGeometry relative="1" as="geometry"/></mxCell>
-
-    <!-- ─── AUX BUS PATH ─── -->
-    <mxCell id="bg_aux" value="Aux Bus (×12)" style="swimlane;startSize=24;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;fontStyle=2;" vertex="1" parent="bg_chip2">
-      <mxGeometry x="400" y="325" width="560" height="110" as="geometry"/>
-    </mxCell>
-
-    <mxCell id="c2_aux_eq" value="EQ&#xa;4-band" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="bg_aux">
-      <mxGeometry x="20" y="38" width="80" height="50" as="geometry"/>
-    </mxCell>
-    <mxCell id="c2_aux_afb" value="ANTI-FB" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="bg_aux">
-      <mxGeometry x="130" y="38" width="80" height="50" as="geometry"/>
-    </mxCell>
-    <mxCell id="c2_aux_dly" value="DELAY" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="bg_aux">
-      <mxGeometry x="240" y="38" width="70" height="50" as="geometry"/>
-    </mxCell>
-    <mxCell id="c2_aux_fdr" value="FADER&#xa;+LIM" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="bg_aux">
-      <mxGeometry x="340" y="38" width="70" height="50" as="geometry"/>
-    </mxCell>
-    <mxCell id="c2_aux_out" value="OUTPUT TDM&#xa;Aux Out 1-12" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="bg_aux">
-      <mxGeometry x="440" y="33" width="100" height="60" as="geometry"/>
-    </mxCell>
-    <mxCell id="e_aeq_aafb" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="c2_aux_eq" target="c2_aux_afb" parent="bg_aux"><mxGeometry relative="1" as="geometry"/></mxCell>
-    <mxCell id="e_aafb_adly" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="c2_aux_afb" target="c2_aux_dly" parent="bg_aux"><mxGeometry relative="1" as="geometry"/></mxCell>
-    <mxCell id="e_adly_afdr" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="c2_aux_dly" target="c2_aux_fdr" parent="bg_aux"><mxGeometry relative="1" as="geometry"/></mxCell>
-    <mxCell id="e_afdr_aout" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="c2_aux_fdr" target="c2_aux_out" parent="bg_aux"><mxGeometry relative="1" as="geometry"/></mxCell>
-    <mxCell id="e_mix_aux" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="c2_mixbus" target="c2_aux_eq" parent="bg_chip2"><mxGeometry relative="1" as="geometry"/></mxCell>
-
-    <!-- ─── FX ENGINE PATH ─── -->
-    <mxCell id="bg_fx" value="FX Engine (×6)" style="swimlane;startSize=24;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;fontStyle=2;" vertex="1" parent="bg_chip2">
-      <mxGeometry x="1000" y="195" width="540" height="110" as="geometry"/>
-    </mxCell>
-
-    <mxCell id="c2_fx_eng" value="FX ENGINE&#xa;Reverb / Chorus&#xa;Delay / Phaser" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="bg_fx">
-      <mxGeometry x="20" y="35" width="120" height="60" as="geometry"/>
-    </mxCell>
-    <mxCell id="c2_fx_ret" value="FX RETURN&#xa;level + pan" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="bg_fx">
-      <mxGeometry x="180" y="35" width="100" height="60" as="geometry"/>
-    </mxCell>
-    <mxCell id="c2_fx_out" value="→ Main&#xa;→ Aux&#xa;OUTPUT TDM" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="bg_fx">
-      <mxGeometry x="320" y="30" width="100" height="70" as="geometry"/>
-    </mxCell>
-    <mxCell id="e_fx_ret" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="c2_fx_eng" target="c2_fx_ret" parent="bg_fx"><mxGeometry relative="1" as="geometry"/></mxCell>
-    <mxCell id="e_fxret_out" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="c2_fx_ret" target="c2_fx_out" parent="bg_fx"><mxGeometry relative="1" as="geometry"/></mxCell>
-
-    <mxCell id="e_mix_fx" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="c2_mixbus" target="c2_fx_eng" parent="bg_chip2">
-      <mxGeometry relative="1" as="geometry"/>
-    </mxCell>
-
-    <!-- ─── MONITOR ─── -->
-    <mxCell id="c2_mon" value="MONITOR&#xa;(stereo mix)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="bg_chip2">
-      <mxGeometry x="1000" y="340" width="110" height="60" as="geometry"/>
-    </mxCell>
-
-    <!-- ─── Chip 2 Meter ─── -->
-    <mxCell id="c2_meter" value="METER (post-gather)&#xa;18 out peaks&#xa;via SPI READ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="bg_chip2">
-      <mxGeometry x="1000" y="420" width="130" height="60" as="geometry"/>
-    </mxCell>
-
-    <!-- ═══════════════════════════════════════════════════════════ -->
-    <!-- SPI / H1S1 CONTROL PLANE                                     -->
-    <!-- ═══════════════════════════════════════════════════════════ -->
-    <mxCell id="bg_spi" value="H1S1 Control Plane (SPI)" style="swimlane;startSize=30;fillColor=#f0f0f0;strokeColor=#999999;fontStyle=1;fontSize=11;align=left;" vertex="1" parent="1">
-      <mxGeometry x="40" y="1170" width="600" height="100" as="geometry"/>
-    </mxCell>
-
-    <mxCell id="c_h1s1" value="H1S1 MCU&#xa;(SPI Master)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="bg_spi">
-      <mxGeometry x="20" y="35" width="120" height="50" as="geometry"/>
-    </mxCell>
-    <mxCell id="c_spi_write" value="SPI WRITE&#xa;addr + value&#xa;Word 0: addr&lt;&lt;16|flags" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="bg_spi">
-      <mxGeometry x="180" y="30" width="130" height="60" as="geometry"/>
-    </mxCell>
-    <mxCell id="c_spi_read" value="SPI READ&#xa;bit13=READ_FLAG&#xa;MISO=dm[addr]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="bg_spi">
-      <mxGeometry x="350" y="30" width="130" height="60" as="geometry"/>
-    </mxCell>
-    <mxCell id="e_h1_wr" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="c_h1s1" target="c_spi_write" parent="bg_spi"><mxGeometry relative="1" as="geometry"/></mxCell>
-    <mxCell id="e_h1_rd" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="c_h1s1" target="c_spi_read" parent="bg_spi"><mxGeometry relative="1" as="geometry"/></mxCell>
 
   </root>
 </mxGraphModel>
