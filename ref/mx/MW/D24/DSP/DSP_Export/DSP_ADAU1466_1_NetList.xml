@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- * 
+ * This software is distributed in the hope that it will be useful, 
+ * but is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR 
+ * CONDITIONS OF ANY KIND, without even the implied warranty of 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+ * 
+ * Copyright ©2026 Analog Devices, Inc. All rights reserved.
+ * 
+-->
+<!--NetList XML file-->
+<IC name="ADAU1466_1" partnumber="ADAU1466">
+  <Core name="ADAU146xCore_1">
+    <Schematic name="ADAU146xSchematic_1">
+      <Algorithm name="Safeload" friendlyname="Schematic Params" />
+      <Algorithm name="Input0to15_1" friendlyname="Input SDATA0">
+        <Link pin="Ch2_out" dir="out" link="Link_39" id="Link_39" />
+        <Link pin="Ch3_out" dir="out" link="Link_40" id="Link_40" />
+        <Link pin="Ch4_out" dir="out" link="Link_41" id="Link_41" />
+        <Link pin="Ch5_out" dir="out" link="Link_42" id="Link_42" />
+        <Link pin="Ch0_out" dir="out" link="Link_43" id="Link_43" />
+        <Link pin="Ch1_out" dir="out" link="Link_44" id="Link_44" />
+        <Link pin="Ch6_out" dir="out" link="Link_45" id="Link_45" />
+        <Link pin="Ch7_out" dir="out" link="Link_46" id="Link_46" />
+        <Link pin="Ch8_out" dir="out" link="Link_47" id="Link_47" />
+        <Link pin="Ch9_out" dir="out" link="Link_48" id="Link_48" />
+        <Link pin="Ch10_out" dir="out" link="Link_49" id="Link_49" />
+        <Link pin="Ch11_out" dir="out" link="Link_50" id="Link_50" />
+        <Link pin="Ch12_out" dir="out" link="Link_51" id="Link_51" />
+      </Algorithm>
+      <Algorithm name="Output_2" friendlyname="Output">
+        <Link pin="Input" dir="in" link="Link_43" id="Link_43" />
+      </Algorithm>
+      <Algorithm name="Output_3" friendlyname="Output">
+        <Link pin="Input" dir="in" link="Link_44" id="Link_44" />
+      </Algorithm>
+      <Algorithm name="Output_27" friendlyname="Output">
+        <Link pin="Input" dir="in" link="Link_39" id="Link_39" />
+      </Algorithm>
+      <Algorithm name="Output_28" friendlyname="Output">
+        <Link pin="Input" dir="in" link="Link_40" id="Link_40" />
+      </Algorithm>
+      <Algorithm name="Output_29" friendlyname="Output">
+        <Link pin="Input" dir="in" link="Link_41" id="Link_41" />
+      </Algorithm>
+      <Algorithm name="Output_30" friendlyname="Output">
+        <Link pin="Input" dir="in" link="Link_42" id="Link_42" />
+      </Algorithm>
+      <Algorithm name="Output_31" friendlyname="Output">
+        <Link pin="Input" dir="in" link="Link_45" id="Link_45" />
+      </Algorithm>
+      <Algorithm name="Output_32" friendlyname="Output">
+        <Link pin="Input" dir="in" link="Link_46" id="Link_46" />
+      </Algorithm>
+      <Algorithm name="Output_33" friendlyname="Output">
+        <Link pin="Input" dir="in" link="Link_47" id="Link_47" />
+      </Algorithm>
+      <Algorithm name="Output_34" friendlyname="Output">
+        <Link pin="Input" dir="in" link="Link_48" id="Link_48" />
+      </Algorithm>
+      <Algorithm name="Output_35" friendlyname="Output">
+        <Link pin="Input" dir="in" link="Link_49" id="Link_49" />
+      </Algorithm>
+      <Algorithm name="Output_36" friendlyname="Output">
+        <Link pin="Input" dir="in" link="Link_50" id="Link_50" />
+      </Algorithm>
+      <Algorithm name="Output_37" friendlyname="Output">
+        <Link pin="Input" dir="in" link="Link_51" id="Link_51" />
+      </Algorithm>
+    </Schematic>
+  </Core>
+</IC>

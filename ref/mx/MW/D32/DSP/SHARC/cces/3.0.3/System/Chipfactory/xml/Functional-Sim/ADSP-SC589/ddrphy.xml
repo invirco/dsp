@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ************************************************************************************ -->
+<!--   Module       :   DDRPHY                                                            -->
+<!--   Description  :   Module Register Offsets                                           -->
+<!--                                                                                      -->
+<!--   Copyright (c) 2014-2015 Analog Devices, Inc.  All Rights Reserved.                 -->
+<!--   This software is proprietary and confidential to Analog Devices, Inc. and          -->
+<!--   its licensors.                                                                     -->
+<!--                                                                                      -->
+<!--   This file was auto-generated. Do not make local changes to this file.              -->
+<!-- ************************************************************************************ -->
+<cces-chipfactory-xml schema-version="1" name="DDRPHY.xml">
+	<version file-version="2.1.0.0"/>
+	<module acronym="DDRPHY">
+		<module-data>
+
+			<register acronym="PHY_CTL4" >
+				<description>PHY Control 4 Register</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">10</address>
+			</register>
+ 
+			<register acronym="CAL_PADCTL0" >
+				<description>CALIBRATION PAD CTL 0 Register</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">34</address>
+			</register>
+ 
+			<register acronym="CAL_PADCTL2" >
+				<description>CALIBRATION PAD CTL2 Register</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">3c</address>
+			</register>
+
+		</module-data>
+	</module>
+</cces-chipfactory-xml>

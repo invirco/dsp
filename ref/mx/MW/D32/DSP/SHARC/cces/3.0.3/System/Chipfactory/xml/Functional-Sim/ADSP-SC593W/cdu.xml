@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ************************************************************************************ -->
+<!--   Module       :   CDU                                                               -->
+<!--   Description  :   Module Register Offsets                                           -->
+<!--                                                                                      -->
+<!--   Copyright (c) 2021 Analog Devices, Inc.  All Rights Reserved.                      -->
+<!--   This software is proprietary and confidential to Analog Devices, Inc. and          -->
+<!--   its licensors.                                                                     -->
+<!--                                                                                      -->
+<!-- ************************************************************************************ -->
+<cces-chipfactory-xml schema-version="1" name="CDU.xml">
+	<version file-version="2.10.1.0"/>
+	<module acronym="CDU">
+		<module-data>
+
+			<!-- Register Block: CFG -->
+			<block acronym="CFG" block_address_increment="4" count="16">
+				<address radix="x" type="relative">0</address>
+			</block>
+
+			<register acronym="CFGn" inBlock="CFG">
+				<description>CDU Configuration</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">0</address>
+			</register>
+ 
+			<register acronym="STAT" >
+				<description>CDU Status</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">40</address>
+			</register>
+ 
+			<register acronym="CLKINSEL" >
+				<description>CLKIN Select</description>
+				<access mode="R/W"/>
+				<width>32</width>
+				<address radix="x" type="relative">44</address>
+			</register>
+ 
+			<register acronym="REVID" >
+				<description>CDU Revision ID</description>
+				<access mode="R"/>
+				<width>32</width>
+				<address radix="x" type="relative">48</address>
+			</register>
+
+		</module-data>
+	</module>
+</cces-chipfactory-xml>

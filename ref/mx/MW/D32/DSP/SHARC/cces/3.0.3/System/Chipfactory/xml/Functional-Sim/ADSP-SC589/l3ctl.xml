@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ************************************************************************************ -->
+<!--   Module       :   L3CTL                                                             -->
+<!--   Description  :   L3 Memory Controller                                              -->
+<!--   Copyright (c) 2013-2015 Analog Devices, Inc.  All Rights Reserved.                 -->
+<!--   This software is proprietary and confidential to Analog Devices, Inc. and          -->
+<!--   its licensors.                                                                     -->
+<!-- ************************************************************************************ -->
+<cces-chipfactory-xml schema-version="1" name="l3ctl.xml">
+  <version file-version="2.1.0.0" />
+  <module acronym="L3 Controller">
+    <module-data>
+      <!-- L3 Memory Blocks 8bit addresses-->
+      <memory-region acronym="SMC">
+        <access mode="R/W" />
+        <address>0x40000000</address>
+        <end-address>0x4FFFFFFF</end-address>
+      </memory-region>
+      <memory-region acronym="PCI">
+        <access mode="R/W" />
+        <address>0x50000000</address>
+        <end-address>0x5FFFFFFF</end-address>
+      </memory-region>
+      <memory-region acronym="SPI">
+        <access mode="R/W" />
+        <address>0x60000000</address>
+        <end-address>0x7FFFFFFF</end-address>
+      </memory-region>
+      <memory-region acronym="DDR-A">
+        <access mode="R/W" />
+        <address>0x80000000</address>
+        <end-address>0xBFFFFFFF</end-address>
+      </memory-region>
+      <memory-region acronym="DDR-B">
+        <access mode="R/W" />
+        <address>0xC0000000</address>
+        <end-address>0xFFFFFFFF</end-address>
+      </memory-region>
+    </module-data>
+  </module>
+</cces-chipfactory-xml>

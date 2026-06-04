@@ -1,0 +1,177 @@
+<?xml version="1.0" standalone="yes"?>
+
+<?xml-stylesheet type="text/xsl" href="AnomalySiliconRevisions.xsl"?>
+
+<cces-compiler-xml schema-version="1" name="ADSP-21584-compiler.xml">
+
+<!-- *********************************************************************** -->
+<!-- ******* ADSP-21584-compiler.xml                                         -->
+<!-- ******* Copyright 2008-2020 Analog Devices, Inc.  All rights reserved.  -->
+<!-- *********************************************************************** -->
+
+<!-- ***************************************** -->
+<!-- ******* common information                -->
+<!-- ***************************************** -->
+
+<version file-version="2.10.0.1"/>
+
+  <architecture name="ADSP-21584" maps-to="ADSP-SC589" machine-id="133" machine-id-mnemonic="EM_SHARC" default-ldf="SHARC/ldf/ADSP-21584.ldf"/>
+
+  <silicon-revisions command-line-default="1.0">
+     <silicon revision="0.1" lib-path="SHARC/lib/sc589_rev_any">
+        <workaround ix="2" compiler-default="Y" assembler-detect-default="Y"/>
+        <workaround ix="9" compiler-default="Y" assembler-detect-default="Y"/>
+        <workaround ix="16" assembler-detect-default="Y"/>
+        <workaround ix="19" compiler-default="Y"/>
+        <workaround ix="20" compiler-default="Y" assembler-detect-default="Y"/>
+        <workaround ix="22" compiler-default="Y" assembler-detect-default="Y"/>
+        <workaround ix="23" compiler-default="Y"/>
+        <workaround ix="24" compiler-default="Y" assembler-detect-default="Y"/>
+        <workaround ix="30" assembler-detect-default="N" assembler-workaround-default="Y"/>
+        <workaround ix="69" compiler-default="Y"/>
+        <workaround ix="83" compiler-default="Y" assembler-detect-default="Y"/>
+        <workaround ix="96" assembler-detect-default="Y"/>
+     </silicon>
+     <silicon revision="1.0" lib-path="SHARC/lib/sc589_rev_1.0">
+        <workaround ix="2" compiler-default="Y" assembler-detect-default="Y"/>
+        <workaround ix="69" compiler-default="Y"/>
+        <workaround ix="83" compiler-default="Y" assembler-detect-default="Y"/>
+        <workaround ix="96" assembler-detect-default="Y"/>
+     </silicon>
+     <silicon revision="1.2" lib-path="SHARC/lib/sc589_rev_1.0">
+        <workaround ix="2" compiler-default="Y" assembler-detect-default="Y"/>
+        <workaround ix="69" compiler-default="Y"/>
+        <workaround ix="83" compiler-default="Y" assembler-detect-default="Y"/>
+        <workaround ix="96" assembler-detect-default="Y"/>
+     </silicon>
+     <silicon revision="any" lib-path="SHARC/lib/sc589_rev_any">
+        <workaround ix="2" compiler-default="Y" assembler-detect-default="Y"/>
+        <workaround ix="9" compiler-default="Y" assembler-detect-default="Y"/>
+        <workaround ix="16" assembler-detect-default="Y"/>
+        <workaround ix="19" compiler-default="Y"/>
+        <workaround ix="20" compiler-default="Y" assembler-detect-default="Y"/>
+        <workaround ix="22" compiler-default="Y" assembler-detect-default="Y"/>
+        <workaround ix="23" compiler-default="Y"/>
+        <workaround ix="24" compiler-default="Y" assembler-detect-default="Y"/>
+        <workaround ix="30" assembler-detect-default="N" assembler-workaround-default="Y"/>
+        <workaround ix="69" compiler-default="Y"/>
+        <workaround ix="83" compiler-default="Y" assembler-detect-default="Y"/>
+        <workaround ix="96" assembler-detect-default="Y"/>
+     </silicon>
+  </silicon-revisions>
+
+  <!-- ***************************************** -->
+  <!-- ******* Anomaly Dictionary                -->
+  <!-- ***************************************************** -->
+  <!-- ** cross-referenced via the workaround *-ix above  ** -->
+  <!-- ** in the workarounds per silicon revision.        ** -->
+  <!-- ***************************************************** -->
+
+  <cces-anomaly-dictionary name="SHARC-215XX-anomaly.xml" />
+
+	<!-- compiler and assembler predefined macros for SHARC builds -->
+	<feature-macros>
+		<macro name="__ADSP21000__" value="1"/>
+		<macro name="__ADSPSHARC__" value="0x200"/>
+		<macro name="__ADSP21584__" value="1"/>
+		<macro name="__ADSPSC589_FAMILY__" value="1"/>
+		<macro name="__ADSP2158x__" value="1"/>
+		<macro name="__ADSP215xx__" value="1"/>
+		<macro name="__SIMDSHARC__" value="1"/>
+		<macro name="__BA_SHARC__" value="1"/>
+		<macro name="__FLT64_SHARC__" value="1"/>
+		<macro name="__NUM_CORES__" value="2"/>
+		<macro name="__NUM_ARM_CORES__" value="0"/>
+		<macro name="__NUM_SHARC_CORES__" value="2"/>
+  </feature-macros>
+
+  <!-- ***************************************** -->
+  <!-- ******* assembler specific information    -->
+  <!-- ***************************************** -->
+  <!-- ******* the flags-compiler is so the assembler knows how to invoke the  -->
+  <!-- ******* C compiler when C structs in assembly features are present in   -->
+  <!-- ******* an assembly program.                                            -->
+  <!-- ***************************************** -->
+
+  <assembler default-include-path="SHARC/include" flags-compiler="-proc ADSP-21584"/>
+
+
+  <!-- ***************************************** -->
+  <!-- ******* compiler specific information     -->
+  <!-- ***************************************** -->
+
+  <compiler>
+
+  	<!-- *************************************************************** -->
+  	<!-- ** uses <architecture>, <silicon-revisions> and              ** -->
+  	<!-- ** <feature-macros> from above. (shared with assembler)      ** -->
+  	<!-- *************************************************************** -->
+
+  	<compiler-assertions>
+  		<assertion name="system" value="embedded"/>
+  		<assertion name="machine" value="sharcXI"/>
+  		<assertion name="cpu" value="sharcXI"/>
+  		<assertion name="compiler" value="cc21k"/>
+  	</compiler-assertions>
+
+  	<compiler-includes>
+  		<path name="SHARC/include"/>
+  	</compiler-includes>
+
+  	<compiler-reserved-registers>
+  		<register name="b0"/>
+  		<register name="b1"/>
+  		<register name="b8"/>
+  		<register name="b9"/>
+  		<register name="l0"/>
+  		<register name="l1"/>
+  		<register name="l8"/>
+  		<register name="l9"/>
+  		<register name="m0"/>
+  		<register name="m1"/>
+  		<register name="m8"/>
+  		<register name="m9"/>
+  		<register name="i0"/>
+  		<register name="i1"/>
+  		<register name="i8"/>
+  		<register name="i9"/>
+  		<register name="mrb"/>
+  		<register name="ustat1"/>
+  		<register name="ustat2"/>
+  		<register name="ustat3"/>
+  		<register name="ustat4"/>
+      <register name="PEyRegs" compiler-flag="-D__NOSIMD__" linker-flag="-MD__NOSIMD__"/>
+  	</compiler-reserved-registers>
+
+  	<compiler-flags-compiler>
+  		<flags name="--target=XI"/>
+  		<flags name="--mbk=internal"/>
+  		<flags name="--mbk=external/r:5/w:5"/>
+  		<flags name="--has_byte_addressing"/>
+  	</compiler-flags-compiler>
+
+  	<compiler-flags-asm>
+  		<flags name="-proc"/>
+  		<flags name="ADSP-21584"/>
+  	</compiler-flags-asm>
+
+  	<compiler-flags-linker>
+  		<flags name="-DADSP-21584"/>
+  	</compiler-flags-linker>
+
+  	<!-- ************************************************** -->
+  	<!-- ** do not include .exe suffix on tools paths as ** -->
+  	<!-- ** driver will append when building for Windows ** -->
+  	<!-- ************************************************** -->
+
+  	<compiler-location-tools
+  		driver-path="cc21k"
+  		assembler-path="easm21k"
+  		compiler-path="SHARC/etc/compiler"
+  		prelinker-path="SHARC/etc/prelinker"
+  		demangler-path="SHARC/etc/demangler"
+  		ipasolver-path="SHARC/etc/ipa"
+  		pgo-path="SHARC/etc/pgo"/>
+
+  </compiler>
+</cces-compiler-xml>

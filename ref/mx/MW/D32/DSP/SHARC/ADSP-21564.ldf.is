@@ -1,0 +1,145 @@
+#line 1 "ADSP-21564.ldf"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+ARCHITECTURE(ADSP-21564)
+
+
+
+ 
+MEMORY
+{
+     
+    mem_iv_code   { TYPE(PM RAM)  START(0x00090000) END(0x000900A7) WIDTH(48) }
+
+     
+    mem_block0_bw { TYPE(BW RAM)  START(0x002403F0) END(0x0026FFFF) WIDTH(8) }
+
+     
+    mem_block1_bw { TYPE(BW RAM)  START(0x002C0000) END(0x002EBFFF) WIDTH(8) }
+
+     
+    mem_block2_pm { TYPE(PM RAM)  START(0x000C0000) END(0x000C4923) WIDTH(48) }
+
+     
+    mem_block3_pm { TYPE(PM RAM)  START(0x000E0000) END(0x000E4923) WIDTH(48) }
+
+     
+    mem_L2_bw     { TYPE(BW RAM)  START(0x20000000) END(0x200F9FFF) WIDTH(8) }
+
+     
+    mem_L2CTL1_bw { TYPE(BW RAM)  START(0x80000000) END(0x800FFFFF) WIDTH(8) }
+}
+
+PROCESSOR p0
+{
+    OUTPUT($COMMAND_LINE_OUTPUT_FILE)
+
+SECTIONS
+{
+
+
+     
+    sec_rth PM
+    {
+        INPUT_SECTION_ALIGN(2)
+        INPUT_SECTIONS( $COMMAND_LINE_OBJECTS(seg_rth) )
+    } > mem_iv_code
+
+
+
+
+     
+    sec_pmco PM
+    {
+        INPUT_SECTION_ALIGN(2)
+        INPUT_SECTIONS( $COMMAND_LINE_OBJECTS(seg_pmco) )
+    } > mem_block3_pm
+
+    sec_pmco_ovf PM
+    {
+        INPUT_SECTION_ALIGN(2)
+        INPUT_SECTIONS( $COMMAND_LINE_OBJECTS(seg_pmco) )
+    } > mem_block2_pm
+
+
+
+     
+    sec_pmda PM 32
+    {
+        INPUT_SECTION_ALIGN(4)
+        INPUT_SECTIONS( $COMMAND_LINE_OBJECTS(seg_pmda) )
+    } > mem_block2_pm
+
+
+
+
+     
+    sec_dmda DM
+    {
+        INPUT_SECTION_ALIGN(4)
+        INPUT_SECTIONS( $COMMAND_LINE_OBJECTS(seg_dmda) )
+    } > mem_block0_bw
+
+    sec_dmda_ovf DM
+    {
+        INPUT_SECTION_ALIGN(4)
+        INPUT_SECTIONS( $COMMAND_LINE_OBJECTS(seg_dmda) )
+    } > mem_block1_bw
+
+
+
+     
+    sec_dma DM
+    {
+        INPUT_SECTION_ALIGN(32)
+        INPUT_SECTIONS( $COMMAND_LINE_OBJECTS(seg_dma) )
+    } > mem_block1_bw
+
+
+
+     
+    sec_delay DM
+    {
+        INPUT_SECTION_ALIGN(4)
+        INPUT_SECTIONS( $COMMAND_LINE_OBJECTS(seg_delay) )
+    } > mem_L2_bw
+
+    sec_delay_ovf DM
+    {
+        INPUT_SECTION_ALIGN(4)
+        INPUT_SECTIONS( $COMMAND_LINE_OBJECTS(seg_delay) )
+    } > mem_L2CTL1_bw
+
+
+
+     
+    sec_stak NO_INIT DM
+    {
+        RESERVE(ldf_stack_space, ldf_stack_length = 0x4000, 8)
+    } > mem_block0_bw
+
+}  
+
+}  
+

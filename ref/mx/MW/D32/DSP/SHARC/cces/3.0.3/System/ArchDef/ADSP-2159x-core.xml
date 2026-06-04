@@ -1,0 +1,650 @@
+<?xml version="1.0" standalone="yes"?>
+
+<!-- ********************************************************************** -->
+<!-- ******  ADSP-2159x-core.xml                                            -->
+<!-- ********************************************************************** -->
+<!--                                                                        -->
+<!-- Date         :    12-Apr-2021                                          -->
+<!--                                                                        -->
+<!-- Common definition file for core registers for ADSP-2159x processors    -->
+<!-- Uppermost elements:                                                    -->
+<!--        <register-core-definitions>                                     -->
+<!--                                                                        -->
+<!-- Copyright (c) 2019-2021 Analog Devices, Inc.  All Rights Reserved.     -->
+<!-- This software is proprietary and confidential to Analog Devices, Inc.  -->
+<!-- and its licensors.                                                     -->
+<!--                                                                        -->
+<!-- This file was originally generated for previous parts and has been     -->
+<!-- modified since.                                                        -->
+<!-- ********************************************************************** -->
+
+<cces-core-xml schema-version="2">
+
+<version file-version="2.10.0.1"/>
+
+<register-core-definitions>
+
+<!-- ******************** -->
+<!-- ***  SHARC Core  *** -->
+<!-- ******************** -->
+
+
+<!-- *************** -->
+<!-- ***  REGF0  *** -->
+<!-- *************** -->
+
+
+<!-- ****************************** -->
+<!-- ***  Bus Exchange PX regs  *** -->
+<!-- ****************************** -->
+
+<register name="PX"  compiler-id="107"  bit-size="64"  type="CORE" mask="FFFFFFFFFFFFFFFF" group="Bus Exchange PX regs" description="REGF0 Bus Exchange Register" />
+<register name="PX1"  compiler-id="108"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Bus Exchange PX regs" description="REGF0 Bus Exchange Register" />
+<register name="PX2"  compiler-id="109"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Bus Exchange PX regs" description="REGF0 Bus Exchange Register" />
+
+<!-- ************************* -->
+<!-- ***  Cycles Counters  *** -->
+<!-- ************************* -->
+
+<register name="EMUCLK"  compiler-id="105"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Cycles Counters" description="REGF0 Emulation Counter Register" />
+<register name="EMUCLK2"  compiler-id="106"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Cycles Counters" description="REGF0 Emulation Counter Register" />
+
+<!-- ******************** -->
+<!-- ***  Dags Bregs  *** -->
+<!-- ******************** -->
+
+<register name="B0"  compiler-id="64"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Bregs" description="REGF0 Length and Base Register" />
+<register name="B1"  compiler-id="65"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Bregs" description="REGF0 Length and Base Register" />
+<register name="B2"  compiler-id="66"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Bregs" description="REGF0 Length and Base Register" />
+<register name="B3"  compiler-id="67"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Bregs" description="REGF0 Length and Base Register" />
+<register name="B4"  compiler-id="68"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Bregs" description="REGF0 Length and Base Register" />
+<register name="B5"  compiler-id="69"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Bregs" description="REGF0 Length and Base Register" />
+<register name="B6"  compiler-id="70"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Bregs" description="REGF0 Length and Base Register" />
+<register name="B7"  compiler-id="71"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Bregs" description="REGF0 Length and Base Register" />
+<register name="B8"  compiler-id="72"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Bregs" description="REGF0 Length and Base Register" />
+<register name="B9"  compiler-id="73"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Bregs" description="REGF0 Length and Base Register" />
+<register name="B10"  compiler-id="74"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Bregs" description="REGF0 Length and Base Register" />
+<register name="B11"  compiler-id="75"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Bregs" description="REGF0 Length and Base Register" />
+<register name="B12"  compiler-id="76"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Bregs" description="REGF0 Length and Base Register" />
+<register name="B13"  compiler-id="77"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Bregs" description="REGF0 Length and Base Register" />
+<register name="B14"  compiler-id="78"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Bregs" description="REGF0 Length and Base Register" />
+<register name="B15"  compiler-id="79"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Bregs" description="REGF0 Length and Base Register" />
+
+<!-- ***************************** -->
+<!-- ***  Inactive Dags Bregs  *** -->
+<!-- ***************************** -->
+
+<register name="B0'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Bregs" description="REGF0 Length and Base Register" />
+<register name="B1'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Bregs" description="REGF0 Length and Base Register" />
+<register name="B2'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Bregs" description="REGF0 Length and Base Register" />
+<register name="B3'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Bregs" description="REGF0 Length and Base Register" />
+<register name="B4'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Bregs" description="REGF0 Length and Base Register" />
+<register name="B5'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Bregs" description="REGF0 Length and Base Register" />
+<register name="B6'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Bregs" description="REGF0 Length and Base Register" />
+<register name="B7'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Bregs" description="REGF0 Length and Base Register" />
+<register name="B8'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Bregs" description="REGF0 Length and Base Register" />
+<register name="B9'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Bregs" description="REGF0 Length and Base Register" />
+<register name="B10'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Bregs" description="REGF0 Length and Base Register" />
+<register name="B11'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Bregs" description="REGF0 Length and Base Register" />
+<register name="B12'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Bregs" description="REGF0 Length and Base Register" />
+<register name="B13'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Bregs" description="REGF0 Length and Base Register" />
+<register name="B14'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Bregs" description="REGF0 Length and Base Register" />
+<register name="B15'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Bregs" description="REGF0 Length and Base Register" />
+
+<!-- ******************** -->
+<!-- ***  Dags Iregs  *** -->
+<!-- ******************** -->
+
+<register name="I0"  compiler-id="16"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Iregs" description="REGF0 Index Register" />
+<register name="I1"  compiler-id="17"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Iregs" description="REGF0 Index Register" />
+<register name="I2"  compiler-id="18"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Iregs" description="REGF0 Index Register" />
+<register name="I3"  compiler-id="19"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Iregs" description="REGF0 Index Register" />
+<register name="I4"  compiler-id="20"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Iregs" description="REGF0 Index Register" />
+<register name="I5"  compiler-id="21"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Iregs" description="REGF0 Index Register" />
+<register name="I6"  compiler-id="22"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Iregs" description="REGF0 Index Register" />
+<register name="I7"  compiler-id="23"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Iregs" description="REGF0 Index Register" />
+<register name="I8"  compiler-id="24"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Iregs" description="REGF0 Index Register" />
+<register name="I9"  compiler-id="25"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Iregs" description="REGF0 Index Register" />
+<register name="I10"  compiler-id="26"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Iregs" description="REGF0 Index Register" />
+<register name="I11"  compiler-id="27"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Iregs" description="REGF0 Index Register" />
+<register name="I12"  compiler-id="28"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Iregs" description="REGF0 Index Register" />
+<register name="I13"  compiler-id="29"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Iregs" description="REGF0 Index Register" />
+<register name="I14"  compiler-id="30"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Iregs" description="REGF0 Index Register" />
+<register name="I15"  compiler-id="31"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Iregs" description="REGF0 Index Register" />
+
+<!-- ***************************** -->
+<!-- ***  Inactive Dags Iregs  *** -->
+<!-- ***************************** -->
+
+<register name="I0'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Iregs" description="REGF0 Index Register" />
+<register name="I1'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Iregs" description="REGF0 Index Register" />
+<register name="I2'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Iregs" description="REGF0 Index Register" />
+<register name="I3'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Iregs" description="REGF0 Index Register" />
+<register name="I4'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Iregs" description="REGF0 Index Register" />
+<register name="I5'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Iregs" description="REGF0 Index Register" />
+<register name="I6'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Iregs" description="REGF0 Index Register" />
+<register name="I7'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Iregs" description="REGF0 Index Register" />
+<register name="I8'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Iregs" description="REGF0 Index Register" />
+<register name="I9'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Iregs" description="REGF0 Index Register" />
+<register name="I10'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Iregs" description="REGF0 Index Register" />
+<register name="I11'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Iregs" description="REGF0 Index Register" />
+<register name="I12'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Iregs" description="REGF0 Index Register" />
+<register name="I13'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Iregs" description="REGF0 Index Register" />
+<register name="I14'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Iregs" description="REGF0 Index Register" />
+<register name="I15'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Iregs" description="REGF0 Index Register" />
+
+<!-- ******************** -->
+<!-- ***  Dags Lregs  *** -->
+<!-- ******************** -->
+
+<register name="L0"  compiler-id="48"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Lregs" description="REGF0 Length and Base Register" />
+<register name="L1"  compiler-id="49"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Lregs" description="REGF0 Length and Base Register" />
+<register name="L2"  compiler-id="50"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Lregs" description="REGF0 Length and Base Register" />
+<register name="L3"  compiler-id="51"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Lregs" description="REGF0 Length and Base Register" />
+<register name="L4"  compiler-id="52"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Lregs" description="REGF0 Length and Base Register" />
+<register name="L5"  compiler-id="53"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Lregs" description="REGF0 Length and Base Register" />
+<register name="L6"  compiler-id="54"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Lregs" description="REGF0 Length and Base Register" />
+<register name="L7"  compiler-id="55"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Lregs" description="REGF0 Length and Base Register" />
+<register name="L8"  compiler-id="56"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Lregs" description="REGF0 Length and Base Register" />
+<register name="L9"  compiler-id="57"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Lregs" description="REGF0 Length and Base Register" />
+<register name="L10"  compiler-id="58"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Lregs" description="REGF0 Length and Base Register" />
+<register name="L11"  compiler-id="59"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Lregs" description="REGF0 Length and Base Register" />
+<register name="L12"  compiler-id="60"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Lregs" description="REGF0 Length and Base Register" />
+<register name="L13"  compiler-id="61"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Lregs" description="REGF0 Length and Base Register" />
+<register name="L14"  compiler-id="62"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Lregs" description="REGF0 Length and Base Register" />
+<register name="L15"  compiler-id="63"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Lregs" description="REGF0 Length and Base Register" />
+
+<!-- ***************************** -->
+<!-- ***  Inactive Dags Lregs  *** -->
+<!-- ***************************** -->
+
+<register name="L0'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Lregs" description="REGF0 Length and Base Register" />
+<register name="L1'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Lregs" description="REGF0 Length and Base Register" />
+<register name="L2'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Lregs" description="REGF0 Length and Base Register" />
+<register name="L3'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Lregs" description="REGF0 Length and Base Register" />
+<register name="L4'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Lregs" description="REGF0 Length and Base Register" />
+<register name="L5'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Lregs" description="REGF0 Length and Base Register" />
+<register name="L6'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Lregs" description="REGF0 Length and Base Register" />
+<register name="L7'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Lregs" description="REGF0 Length and Base Register" />
+<register name="L8'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Lregs" description="REGF0 Length and Base Register" />
+<register name="L9'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Lregs" description="REGF0 Length and Base Register" />
+<register name="L10'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Lregs" description="REGF0 Length and Base Register" />
+<register name="L11'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Lregs" description="REGF0 Length and Base Register" />
+<register name="L12'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Lregs" description="REGF0 Length and Base Register" />
+<register name="L13'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Lregs" description="REGF0 Length and Base Register" />
+<register name="L14'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Lregs" description="REGF0 Length and Base Register" />
+<register name="L15'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Lregs" description="REGF0 Length and Base Register" />
+
+<!-- ******************** -->
+<!-- ***  Dags Mregs  *** -->
+<!-- ******************** -->
+
+<register name="M0"  compiler-id="32"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Mregs" description="REGF0 Modify Register" />
+<register name="M1"  compiler-id="33"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Mregs" description="REGF0 Modify Register" />
+<register name="M2"  compiler-id="34"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Mregs" description="REGF0 Modify Register" />
+<register name="M3"  compiler-id="35"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Mregs" description="REGF0 Modify Register" />
+<register name="M4"  compiler-id="36"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Mregs" description="REGF0 Modify Register" />
+<register name="M5"  compiler-id="37"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Mregs" description="REGF0 Modify Register" />
+<register name="M6"  compiler-id="38"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Mregs" description="REGF0 Modify Register" />
+<register name="M7"  compiler-id="39"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Mregs" description="REGF0 Modify Register" />
+<register name="M8"  compiler-id="40"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Mregs" description="REGF0 Modify Register" />
+<register name="M9"  compiler-id="41"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Mregs" description="REGF0 Modify Register" />
+<register name="M10"  compiler-id="42"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Mregs" description="REGF0 Modify Register" />
+<register name="M11"  compiler-id="43"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Mregs" description="REGF0 Modify Register" />
+<register name="M12"  compiler-id="44"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Mregs" description="REGF0 Modify Register" />
+<register name="M13"  compiler-id="45"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Mregs" description="REGF0 Modify Register" />
+<register name="M14"  compiler-id="46"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Mregs" description="REGF0 Modify Register" />
+<register name="M15"  compiler-id="47"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Dags Mregs" description="REGF0 Modify Register" />
+
+<!-- ***************************** -->
+<!-- ***  Inactive Dags Mregs  *** -->
+<!-- ***************************** -->
+
+<register name="M0'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Mregs" description="REGF0 Modify Register" />
+<register name="M1'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Mregs" description="REGF0 Modify Register" />
+<register name="M2'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Mregs" description="REGF0 Modify Register" />
+<register name="M3'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Mregs" description="REGF0 Modify Register" />
+<register name="M4'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Mregs" description="REGF0 Modify Register" />
+<register name="M5'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Mregs" description="REGF0 Modify Register" />
+<register name="M6'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Mregs" description="REGF0 Modify Register" />
+<register name="M7'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Mregs" description="REGF0 Modify Register" />
+<register name="M8'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Mregs" description="REGF0 Modify Register" />
+<register name="M9'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Mregs" description="REGF0 Modify Register" />
+<register name="M10'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Mregs" description="REGF0 Modify Register" />
+<register name="M11'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Mregs" description="REGF0 Modify Register" />
+<register name="M12'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Mregs" description="REGF0 Modify Register" />
+<register name="M13'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Mregs" description="REGF0 Modify Register" />
+<register name="M14'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Mregs" description="REGF0 Modify Register" />
+<register name="M15'"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Inactive Dags Mregs" description="REGF0 Modify Register" />
+
+<!-- ***************************** -->
+<!-- ***  Data Registers, PEx  *** -->
+<!-- ***************************** -->
+
+<register name="R0"  compiler-id="0"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Data Registers, PEx" description="REGF0 PEx Data Register" />
+<register name="R1"  compiler-id="1"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Data Registers, PEx" description="REGF0 PEx Data Register" />
+<register name="R2"  compiler-id="2"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Data Registers, PEx" description="REGF0 PEx Data Register" />
+<register name="R3"  compiler-id="3"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Data Registers, PEx" description="REGF0 PEx Data Register" />
+<register name="R4"  compiler-id="4"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Data Registers, PEx" description="REGF0 PEx Data Register" />
+<register name="R5"  compiler-id="5"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Data Registers, PEx" description="REGF0 PEx Data Register" />
+<register name="R6"  compiler-id="6"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Data Registers, PEx" description="REGF0 PEx Data Register" />
+<register name="R7"  compiler-id="7"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Data Registers, PEx" description="REGF0 PEx Data Register" />
+<register name="R8"  compiler-id="8"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Data Registers, PEx" description="REGF0 PEx Data Register" />
+<register name="R9"  compiler-id="9"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Data Registers, PEx" description="REGF0 PEx Data Register" />
+<register name="R10"  compiler-id="10"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Data Registers, PEx" description="REGF0 PEx Data Register" />
+<register name="R11"  compiler-id="11"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Data Registers, PEx" description="REGF0 PEx Data Register" />
+<register name="R12"  compiler-id="12"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Data Registers, PEx" description="REGF0 PEx Data Register" />
+<register name="R13"  compiler-id="13"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Data Registers, PEx" description="REGF0 PEx Data Register" />
+<register name="R14"  compiler-id="14"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Data Registers, PEx" description="REGF0 PEx Data Register" />
+<register name="R15"  compiler-id="15"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Data Registers, PEx" description="REGF0 PEx Data Register" />
+
+<!-- ************************************** -->
+<!-- ***  Inactive Data Registers, PEx  *** -->
+<!-- ************************************** -->
+
+<register name="R0'"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Inactive Data Registers, PEx" description="REGF0 PEx Data Register" />
+<register name="R1'"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Inactive Data Registers, PEx" description="REGF0 PEx Data Register" />
+<register name="R2'"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Inactive Data Registers, PEx" description="REGF0 PEx Data Register" />
+<register name="R3'"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Inactive Data Registers, PEx" description="REGF0 PEx Data Register" />
+<register name="R4'"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Inactive Data Registers, PEx" description="REGF0 PEx Data Register" />
+<register name="R5'"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Inactive Data Registers, PEx" description="REGF0 PEx Data Register" />
+<register name="R6'"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Inactive Data Registers, PEx" description="REGF0 PEx Data Register" />
+<register name="R7'"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Inactive Data Registers, PEx" description="REGF0 PEx Data Register" />
+<register name="R8'"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Inactive Data Registers, PEx" description="REGF0 PEx Data Register" />
+<register name="R9'"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Inactive Data Registers, PEx" description="REGF0 PEx Data Register" />
+<register name="R10'"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Inactive Data Registers, PEx" description="REGF0 PEx Data Register" />
+<register name="R11'"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Inactive Data Registers, PEx" description="REGF0 PEx Data Register" />
+<register name="R12'"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Inactive Data Registers, PEx" description="REGF0 PEx Data Register" />
+<register name="R13'"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Inactive Data Registers, PEx" description="REGF0 PEx Data Register" />
+<register name="R14'"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Inactive Data Registers, PEx" description="REGF0 PEx Data Register" />
+<register name="R15'"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Inactive Data Registers, PEx" description="REGF0 PEx Data Register" />
+
+<!-- ***************************** -->
+<!-- ***  Data Registers, PEy  *** -->
+<!-- ***************************** -->
+
+<register name="S0"  compiler-id="80"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Data Registers, PEy" description="REGF0 PEy Data Register" />
+<register name="S1"  compiler-id="81"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Data Registers, PEy" description="REGF0 PEy Data Register" />
+<register name="S2"  compiler-id="82"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Data Registers, PEy" description="REGF0 PEy Data Register" />
+<register name="S3"  compiler-id="83"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Data Registers, PEy" description="REGF0 PEy Data Register" />
+<register name="S4"  compiler-id="84"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Data Registers, PEy" description="REGF0 PEy Data Register" />
+<register name="S5"  compiler-id="85"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Data Registers, PEy" description="REGF0 PEy Data Register" />
+<register name="S6"  compiler-id="86"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Data Registers, PEy" description="REGF0 PEy Data Register" />
+<register name="S7"  compiler-id="87"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Data Registers, PEy" description="REGF0 PEy Data Register" />
+<register name="S8"  compiler-id="88"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Data Registers, PEy" description="REGF0 PEy Data Register" />
+<register name="S9"  compiler-id="89"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Data Registers, PEy" description="REGF0 PEy Data Register" />
+<register name="S10"  compiler-id="90"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Data Registers, PEy" description="REGF0 PEy Data Register" />
+<register name="S11"  compiler-id="91"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Data Registers, PEy" description="REGF0 PEy Data Register" />
+<register name="S12"  compiler-id="92"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Data Registers, PEy" description="REGF0 PEy Data Register" />
+<register name="S13"  compiler-id="93"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Data Registers, PEy" description="REGF0 PEy Data Register" />
+<register name="S14"  compiler-id="94"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Data Registers, PEy" description="REGF0 PEy Data Register" />
+<register name="S15"  compiler-id="95"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Data Registers, PEy" description="REGF0 PEy Data Register" />
+
+<!-- ************************************** -->
+<!-- ***  Inactive Data Registers, PEy  *** -->
+<!-- ************************************** -->
+
+<register name="S0'"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Inactive Data Registers, PEy" description="REGF0 PEy Data Register" />
+<register name="S1'"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Inactive Data Registers, PEy" description="REGF0 PEy Data Register" />
+<register name="S2'"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Inactive Data Registers, PEy" description="REGF0 PEy Data Register" />
+<register name="S3'"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Inactive Data Registers, PEy" description="REGF0 PEy Data Register" />
+<register name="S4'"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Inactive Data Registers, PEy" description="REGF0 PEy Data Register" />
+<register name="S5'"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Inactive Data Registers, PEy" description="REGF0 PEy Data Register" />
+<register name="S6'"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Inactive Data Registers, PEy" description="REGF0 PEy Data Register" />
+<register name="S7'"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Inactive Data Registers, PEy" description="REGF0 PEy Data Register" />
+<register name="S8'"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Inactive Data Registers, PEy" description="REGF0 PEy Data Register" />
+<register name="S9'"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Inactive Data Registers, PEy" description="REGF0 PEy Data Register" />
+<register name="S10'"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Inactive Data Registers, PEy" description="REGF0 PEy Data Register" />
+<register name="S11'"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Inactive Data Registers, PEy" description="REGF0 PEy Data Register" />
+<register name="S12'"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Inactive Data Registers, PEy" description="REGF0 PEy Data Register" />
+<register name="S13'"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Inactive Data Registers, PEy" description="REGF0 PEy Data Register" />
+<register name="S14'"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Inactive Data Registers, PEy" description="REGF0 PEy Data Register" />
+<register name="S15'"  bit-size="40"  type="CORE" mask="FFFFFFFFFF" group="Inactive Data Registers, PEy" description="REGF0 PEy Data Register" />
+
+<!-- *************************** -->
+<!-- ***  Multiplier Result  *** -->
+<!-- *************************** -->
+
+<register name="MR1B"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Multiplier Result" description="REGF0 PEx Multiplier Results Register" />
+<register name="MSB"  bit-size="80"  type="CORE" mask="FFFFFFFFFFFFFFFFFFFF" group="Multiplier Result" description="REGF0 PEy Multiplier Results Register" />
+<register name="MR0F"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Multiplier Result" description="REGF0 PEx Multiplier Results Register" />
+<register name="MS1B"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Multiplier Result" description="REGF0 PEy Multiplier Results Register" />
+<register name="MSF"  bit-size="80"  type="CORE" mask="FFFFFFFFFFFFFFFFFFFF" group="Multiplier Result" description="REGF0 PEy Multiplier Results Register" />
+<register name="MS2B"  bit-size="16"  type="CORE" mask="FFFF"     group="Multiplier Result" description="REGF0 PEy Multiplier Results Register" />
+<register name="MS0B"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Multiplier Result" description="REGF0 PEy Multiplier Results Register" />
+<register name="MS0F"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Multiplier Result" description="REGF0 PEy Multiplier Results Register" />
+<register name="MR2F"  bit-size="16"  type="CORE" mask="FFFF"     group="Multiplier Result" description="REGF0 PEx Multiplier Results Register" />
+<register name="MR2B"  bit-size="16"  type="CORE" mask="FFFF"     group="Multiplier Result" description="REGF0 PEx Multiplier Results Register" />
+<register name="MS1F"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Multiplier Result" description="REGF0 PEy Multiplier Results Register" />
+<register name="MS2F"  bit-size="16"  type="CORE" mask="FFFF"     group="Multiplier Result" description="REGF0 PEy Multiplier Results Register" />
+<register name="MRF"  bit-size="80"  type="CORE" mask="FFFFFFFFFFFFFFFFFFFF" group="Multiplier Result" description="REGF0 PEx Multiplier Results Register" />
+<register name="MR1F"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Multiplier Result" description="REGF0 PEx Multiplier Results Register" />
+<register name="MR0B"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Multiplier Result" description="REGF0 PEx Multiplier Results Register" />
+<register name="MRB"  bit-size="80"  type="CORE" mask="FFFFFFFFFFFFFFFFFFFF" group="Multiplier Result" description="REGF0 Multiplier result (Fixed), PEx" />
+
+<!-- *************************** -->
+<!-- ***  Program Sequencer  *** -->
+<!-- *************************** -->
+
+<register name="FADDR"  compiler-id="96"  bit-size="24"  type="CORE" mask="FFFFFF"   group="Program Sequencer" description="REGF0 Fetch Address Register" target="SIM" />
+<register name="DADDR"  compiler-id="97"  bit-size="24"  type="CORE" mask="FFFFFF"   group="Program Sequencer" description="REGF0 Decode Address Register" target="SIM" />
+<register name="PC"  compiler-id="99"  bit-size="24"  type="CORE" mask="FFFFFF"   group="Program Sequencer" description="REGF0 Program Counter Register" />
+<register name="PCSTK"  compiler-id="100"  bit-size="26"  type="CORE" mask="FFFFFF"  group="Program Sequencer" description="REGF0 Program Counter Stack Register" />
+   <register name="PCSTK.ISINT"                  parent="PCSTK" bit-position="25" bit-size="1" description="Interrupt or loop end call." />
+   <register name="PCSTK.ISCALL"                 parent="PCSTK" bit-position="24" bit-size="1" description="Pushed by a Call." />
+   <register name="PCSTK.RTNADDR"                parent="PCSTK" bit-position="0" bit-size="24" description="Return Address." />
+<register name="PCSTKP"  compiler-id="101"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Program Sequencer" description="REGF0 Program Counter Stack Pointer Register" />
+<register name="LADDR"  compiler-id="102"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Program Sequencer" description="REGF0 Loop Address Stack Register" />
+<register name="CURLCNTR"  compiler-id="103"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Program Sequencer" description="REGF0 Current Loop Counter Register" />
+<register name="LCNTR"  compiler-id="104"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Program Sequencer" description="REGF0 Loop Counter Register" />
+
+<!-- **************** -->
+<!-- ***  Status  *** -->
+<!-- **************** -->
+
+<register name="USTAT1"  compiler-id="112"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Status" description="REGF0 User-Defined Status Register" />
+<register name="USTAT2"  compiler-id="113"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Status" description="REGF0 User-Defined Status Register" />
+<register name="MODE1"  compiler-id="114"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Status" description="REGF0 Mode Control 1 Register" />
+   <register name="MODE1.SELPE"             parent="MODE1" bit-position="31" bit-size="1" description="Selective PEx or PEy Enable" />
+   <register name="MODE1.SINEST"            parent="MODE1" bit-position="30" bit-size="1" description="SEC Interrupt Nesting" />
+   <register name="MODE1.IPERREN"           parent="MODE1" bit-position="29" bit-size="1" description="Instruction Parity Error Enable" />
+   <register name="MODE1.DPERREN"           parent="MODE1" bit-position="28" bit-size="1" description="Data Parity Error Enable" />
+   <register name="MODE1.SPERREN"           parent="MODE1" bit-position="27" bit-size="1" description="System Transfer Parity Error Enable." />
+   <register name="MODE1.CBUFEN"            parent="MODE1" bit-position="24" bit-size="1" description="Circular Buffer Enable" />
+   <register name="MODE1.BDCST1"            parent="MODE1" bit-position="23" bit-size="1" description="Broadcast Load I1" />
+   <register name="MODE1.BDCST9"            parent="MODE1" bit-position="22" bit-size="1" description="Broadcast Load I9" />
+   <register name="MODE1.PEYEN"             parent="MODE1" bit-position="21" bit-size="1" description="PEy Enable" />
+   <register name="MODE1.RND32"             parent="MODE1" bit-position="16" bit-size="1" description="Floating-Point Boundary Compute" />
+   <register name="MODE1.TRUNCATE"          parent="MODE1" bit-position="15" bit-size="1" description="Truncation Rounding Mode Select" />
+   <register name="MODE1.SSE"               parent="MODE1" bit-position="14" bit-size="1" description="Select Sign Extension" />
+   <register name="MODE1.ALUSAT"            parent="MODE1" bit-position="13" bit-size="1" description="ALU Saturation" />
+   <register name="MODE1.IRPTEN"            parent="MODE1" bit-position="12" bit-size="1" description="Global Interrupt Enable" />
+   <register name="MODE1.NESTM"             parent="MODE1" bit-position="11" bit-size="1" description="Nest Multiple Interrupts Enable" />
+   <register name="MODE1.SRRFL"             parent="MODE1" bit-position="10" bit-size="1" description="Secondary Registers for Register File Low Enable" />
+   <register name="MODE1.SRRFH"             parent="MODE1" bit-position="7" bit-size="1" description="Secondary Registers for Register File High Enable" />
+   <register name="MODE1.SRD2L"             parent="MODE1" bit-position="6" bit-size="1" description="Secondary Registers for DAG2 Low Enable" />
+   <register name="MODE1.SRD2H"             parent="MODE1" bit-position="5" bit-size="1" description="Secondary Registers for DAG2 High Enable" />
+   <register name="MODE1.SRD1L"             parent="MODE1" bit-position="4" bit-size="1" description="Secondary Registers for DAG1 Low Enable" />
+   <register name="MODE1.SRD1H"             parent="MODE1" bit-position="3" bit-size="1" description="Secondary Registers for DAG1 High Enable" />
+   <register name="MODE1.SRCU"              parent="MODE1" bit-position="2" bit-size="1" description="MRx Result Registers Swap Enable" />
+   <register name="MODE1.BR0"               parent="MODE1" bit-position="1" bit-size="1" description="Bit-Reverse Addressing I0" />
+   <register name="MODE1.BR8"               parent="MODE1" bit-position="0" bit-size="1" description="Bit-Reverse Addressing I8" />
+<register name="MMASK"  compiler-id="115"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Status" description="REGF0 Mode Control 1 Register" />
+   <register name="MMASK.SELPE"             parent="MMASK" bit-position="31" bit-size="1" description="Selective PEx or PEy Enable" />
+   <register name="MMASK.SINEST"            parent="MMASK" bit-position="30" bit-size="1" description="SEC Interrupt Nesting" />
+   <register name="MMASK.IPERREN"           parent="MMASK" bit-position="29" bit-size="1" description="Instruction Parity Error Enable" />
+   <register name="MMASK.DPERREN"           parent="MMASK" bit-position="28" bit-size="1" description="Data Parity Error Enable" />
+   <register name="MMASK.SPERREN"           parent="MMASK" bit-position="27" bit-size="1" description="System Transfer Parity Error Enable" />
+   <register name="MMASK.CBUFEN"            parent="MMASK" bit-position="24" bit-size="1" description="Circular Buffer Enable" />
+   <register name="MMASK.BDCST1"            parent="MMASK" bit-position="23" bit-size="1" description="Broadcast Load I1" />
+   <register name="MMASK.BDCST9"            parent="MMASK" bit-position="22" bit-size="1" description="Broadcast Load I9" />
+   <register name="MMASK.PEYEN"             parent="MMASK" bit-position="21" bit-size="1" description="PEy Enable" />
+   <register name="MMASK.RND32"             parent="MMASK" bit-position="16" bit-size="1" description="Round Data to 32-Bits" />
+   <register name="MMASK.TRUNCATE"          parent="MMASK" bit-position="15" bit-size="1" description="Truncation Rounding Mode" />
+   <register name="MMASK.SSE"               parent="MMASK" bit-position="14" bit-size="1" description="Select Sign Extension" />
+   <register name="MMASK.ALUSAT"            parent="MMASK" bit-position="13" bit-size="1" description="ALU Saturation" />
+   <register name="MMASK.IRPTEN"            parent="MMASK" bit-position="12" bit-size="1" description="Global Interrupt Enable" />
+   <register name="MMASK.NESTM"             parent="MMASK" bit-position="11" bit-size="1" description="Nest Multiple Interrupts" />
+   <register name="MMASK.SRRFL"             parent="MMASK" bit-position="10" bit-size="1" description="Secondary Regs Reg File Low" />
+   <register name="MMASK.SRRFH"             parent="MMASK" bit-position="7" bit-size="1" description="Secondary Regs Reg File High" />
+   <register name="MMASK.SRD2L"             parent="MMASK" bit-position="6" bit-size="1" description="Secondary Regs DAG2 Low" />
+   <register name="MMASK.SRD2H"             parent="MMASK" bit-position="5" bit-size="1" description="Secondary Regs DAG2 High" />
+   <register name="MMASK.SRD1L"             parent="MMASK" bit-position="4" bit-size="1" description="Secondary Regs DAG1 Low" />
+   <register name="MMASK.SRD1H"             parent="MMASK" bit-position="3" bit-size="1" description="Secondary Regs DAG1 High" />
+   <register name="MMASK.SRCU"              parent="MMASK" bit-position="2" bit-size="1" description="Secondary Regs Comp Unit (MRx)" />
+   <register name="MMASK.BR0"               parent="MMASK" bit-position="1" bit-size="1" description="Bit-Reverse Addressing I0" />
+   <register name="MMASK.BR8"               parent="MMASK" bit-position="0" bit-size="1" description="Bit-Reverse Addressing I8" />
+<register name="MODE2"  compiler-id="116"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Status" description="REGF0 Mode Control 2 Register" />
+   <register name="MODE2.U64MAE"                 parent="MODE2" bit-position="21" bit-size="1" description="Unaligned 64-Bit Memory Access Enable." />
+   <register name="MODE2.IIRAE"                  parent="MODE2" bit-position="20" bit-size="1" description="Illegal I/O Processor Register Access Enable." />
+   <register name="MODE2.CAFRZ"                  parent="MODE2" bit-position="19" bit-size="1" description="Cache Freeze." />
+   <register name="MODE2.SLOWLOOP"               parent="MODE2" bit-position="7" bit-size="1" description="User mode debug mode enable." />
+   <register name="MODE2.TIMEN"                  parent="MODE2" bit-position="5" bit-size="1" description="Timer Enable." />
+   <register name="MODE2.CADIS"                  parent="MODE2" bit-position="4" bit-size="1" description="Cache Disable." />
+   <register name="MODE2.SNEN"                   parent="MODE2" bit-position="0" bit-size="1" description="Self Nesting enable for SECI." />
+<register name="FLAGS"  compiler-id="117"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Status" description="REGF0 Flag I/O Register" />
+   <register name="FLAGS.FLG15O"            parent="FLAGS" bit-position="31" bit-size="1" description="FLAG15 Output" />
+   <register name="FLAGS.FLG15"             parent="FLAGS" bit-position="30" bit-size="1" description="FLAG15 State" />
+   <register name="FLAGS.FLG14O"            parent="FLAGS" bit-position="29" bit-size="1" description="FLAG14 Output" />
+   <register name="FLAGS.FLG14"             parent="FLAGS" bit-position="28" bit-size="1" description="FLAG14 State" />
+   <register name="FLAGS.FLG13O"            parent="FLAGS" bit-position="27" bit-size="1" description="FLAG13 Output" />
+   <register name="FLAGS.FLG13"             parent="FLAGS" bit-position="26" bit-size="1" description="FLAG13 State" />
+   <register name="FLAGS.FLG12O"            parent="FLAGS" bit-position="25" bit-size="1" description="FLAG12 Output" />
+   <register name="FLAGS.FLG12"             parent="FLAGS" bit-position="24" bit-size="1" description="FLAG12 State" />
+   <register name="FLAGS.FLG11O"            parent="FLAGS" bit-position="23" bit-size="1" description="FLAG11 Output" />
+   <register name="FLAGS.FLG11"             parent="FLAGS" bit-position="22" bit-size="1" description="FLAG11 State" />
+   <register name="FLAGS.FLG10O"            parent="FLAGS" bit-position="21" bit-size="1" description="FLAG10 Output" />
+   <register name="FLAGS.FLG10"             parent="FLAGS" bit-position="20" bit-size="1" description="FLAG10 State" />
+   <register name="FLAGS.FLG9O"             parent="FLAGS" bit-position="19" bit-size="1" description="FLAG9 Output" />
+   <register name="FLAGS.FLG9"              parent="FLAGS" bit-position="18" bit-size="1" description="FLAG9 State" />
+   <register name="FLAGS.FLG8O"             parent="FLAGS" bit-position="17" bit-size="1" description="FLAG8 Output" />
+   <register name="FLAGS.FLG8"              parent="FLAGS" bit-position="16" bit-size="1" description="FLAG8 State" />
+   <register name="FLAGS.FLG7O"             parent="FLAGS" bit-position="15" bit-size="1" description="FLAG7 Output" />
+   <register name="FLAGS.FLG7"              parent="FLAGS" bit-position="14" bit-size="1" description="FLAG7 State" />
+   <register name="FLAGS.FLG6O"             parent="FLAGS" bit-position="13" bit-size="1" description="FLAG6 Output" />
+   <register name="FLAGS.FLG6"              parent="FLAGS" bit-position="12" bit-size="1" description="FLAG6 State" />
+   <register name="FLAGS.FLG5O"             parent="FLAGS" bit-position="11" bit-size="1" description="FLAG5 Output" />
+   <register name="FLAGS.FLG5"              parent="FLAGS" bit-position="10" bit-size="1" description="FLAG5 State" />
+   <register name="FLAGS.FLG4O"             parent="FLAGS" bit-position="9" bit-size="1" description="FLAG4 Output" />
+   <register name="FLAGS.FLG4"              parent="FLAGS" bit-position="8" bit-size="1" description="FLAG4 State" />
+   <register name="FLAGS.FLG3O"             parent="FLAGS" bit-position="7" bit-size="1" description="FLAG3 Output" />
+   <register name="FLAGS.FLG3"              parent="FLAGS" bit-position="6" bit-size="1" description="FLAG3 State" />
+   <register name="FLAGS.FLG2O"             parent="FLAGS" bit-position="5" bit-size="1" description="FLAG2 Output" />
+   <register name="FLAGS.FLG2"              parent="FLAGS" bit-position="4" bit-size="1" description="FLAG2 State" />
+   <register name="FLAGS.FLG1O"             parent="FLAGS" bit-position="3" bit-size="1" description="FLAG1 Output" />
+   <register name="FLAGS.FLG1"              parent="FLAGS" bit-position="2" bit-size="1" description="FLAG1 State" />
+   <register name="FLAGS.FLG0O"             parent="FLAGS" bit-position="1" bit-size="1" description="FLAG0 Output" />
+   <register name="FLAGS.FLG0"              parent="FLAGS" bit-position="0" bit-size="1" description="FLAG0 State" />
+<register name="ASTATX"  compiler-id="118"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Status" description="REGF0 Arithmetic Status Register" />
+   <register name="ASTATX.CACC7"                 parent="ASTATX" bit-position="31" bit-size="1" description="Compare Accumulation Shift Register." />
+   <register name="ASTATX.CACC6"                 parent="ASTATX" bit-position="30" bit-size="1" description="Compare Accumulation Shift Register." />
+   <register name="ASTATX.CACC5"                 parent="ASTATX" bit-position="29" bit-size="1" description="Compare Accumulation Shift Register." />
+   <register name="ASTATX.CACC4"                 parent="ASTATX" bit-position="28" bit-size="1" description="Compare Accumulation Shift Register." />
+   <register name="ASTATX.CACC3"                 parent="ASTATX" bit-position="27" bit-size="1" description="Compare Accumulation Shift Register." />
+   <register name="ASTATX.CACC2"                 parent="ASTATX" bit-position="26" bit-size="1" description="Compare Accumulation Shift Register." />
+   <register name="ASTATX.CACC1"                 parent="ASTATX" bit-position="25" bit-size="1" description="Compare Accumulation Shift Register." />
+   <register name="ASTATX.CACC0"                 parent="ASTATX" bit-position="24" bit-size="1" description="Compare Accumulation Shift Register." />
+   <register name="ASTATX.BTF"                   parent="ASTATX" bit-position="18" bit-size="1" description="Bit Test Flag for System Registers." />
+   <register name="ASTATX.SF"                    parent="ASTATX" bit-position="14" bit-size="1" description="Shifter Bit FIFO." />
+   <register name="ASTATX.SS"                    parent="ASTATX" bit-position="13" bit-size="1" description="Shifter Input Sign." />
+   <register name="ASTATX.SZ"                    parent="ASTATX" bit-position="12" bit-size="1" description="Shifter Zero." />
+   <register name="ASTATX.SV"                    parent="ASTATX" bit-position="11" bit-size="1" description="Shifter Overflow." />
+   <register name="ASTATX.AF"                    parent="ASTATX" bit-position="10" bit-size="1" description="ALU Floating-Point Operation." />
+   <register name="ASTATX.MI"                    parent="ASTATX" bit-position="9" bit-size="1" description="Multiplier Floating-Point Invalid Operation." />
+   <register name="ASTATX.MU"                    parent="ASTATX" bit-position="8" bit-size="1" description="Multiplier Floating-Point Underflow." />
+   <register name="ASTATX.MV"                    parent="ASTATX" bit-position="7" bit-size="1" description="Multiplier Overflow." />
+   <register name="ASTATX.MN"                    parent="ASTATX" bit-position="6" bit-size="1" description="Multiplier Negative." />
+   <register name="ASTATX.AI"                    parent="ASTATX" bit-position="5" bit-size="1" description="ALU Floating-Point Invalid Operation." />
+   <register name="ASTATX.AS"                    parent="ASTATX" bit-position="4" bit-size="1" description="ALU Sign Input (for ABS and MANT)." />
+   <register name="ASTATX.AC"                    parent="ASTATX" bit-position="3" bit-size="1" description="ALU Fixed-Point Carry." />
+   <register name="ASTATX.AN"                    parent="ASTATX" bit-position="2" bit-size="1" description="ALU Negative." />
+   <register name="ASTATX.AV"                    parent="ASTATX" bit-position="1" bit-size="1" description="ALU Overflow." />
+   <register name="ASTATX.AZ"                    parent="ASTATX" bit-position="0" bit-size="1" description="ALU Fixed-Point Zero/Floating-Point Underflow." />
+<register name="ASTATY"  compiler-id="119"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Status" description="REGF0 Arithmetic Status Register" />
+   <register name="ASTATY.CACC7"                 parent="ASTATY" bit-position="31" bit-size="1" description="Compare Accumulation Shift Register." />
+   <register name="ASTATY.CACC6"                 parent="ASTATY" bit-position="30" bit-size="1" description="Compare Accumulation Shift Register." />
+   <register name="ASTATY.CACC5"                 parent="ASTATY" bit-position="29" bit-size="1" description="Compare Accumulation Shift Register." />
+   <register name="ASTATY.CACC4"                 parent="ASTATY" bit-position="28" bit-size="1" description="Compare Accumulation Shift Register." />
+   <register name="ASTATY.CACC3"                 parent="ASTATY" bit-position="27" bit-size="1" description="Compare Accumulation Shift Register." />
+   <register name="ASTATY.CACC2"                 parent="ASTATY" bit-position="26" bit-size="1" description="Compare Accumulation Shift Register." />
+   <register name="ASTATY.CACC1"                 parent="ASTATY" bit-position="25" bit-size="1" description="Compare Accumulation Shift Register." />
+   <register name="ASTATY.CACC0"                 parent="ASTATY" bit-position="24" bit-size="1" description="Compare Accumulation Shift Register." />
+   <register name="ASTATY.BTF"                   parent="ASTATY" bit-position="18" bit-size="1" description="Bit Test Flag for System Registers." />
+   <register name="ASTATY.SF"                    parent="ASTATY" bit-position="14" bit-size="1" description="Shifter Bit FIFO." />
+   <register name="ASTATY.SS"                    parent="ASTATY" bit-position="13" bit-size="1" description="Shifter Input Sign." />
+   <register name="ASTATY.SZ"                    parent="ASTATY" bit-position="12" bit-size="1" description="Shifter Zero." />
+   <register name="ASTATY.SV"                    parent="ASTATY" bit-position="11" bit-size="1" description="Shifter Overflow." />
+   <register name="ASTATY.AF"                    parent="ASTATY" bit-position="10" bit-size="1" description="ALU Floating-Point Operation." />
+   <register name="ASTATY.MI"                    parent="ASTATY" bit-position="9" bit-size="1" description="Multiplier Floating-Point Invalid Operation." />
+   <register name="ASTATY.MU"                    parent="ASTATY" bit-position="8" bit-size="1" description="Multiplier Floating-Point Underflow." />
+   <register name="ASTATY.MV"                    parent="ASTATY" bit-position="7" bit-size="1" description="Multiplier Overflow." />
+   <register name="ASTATY.MN"                    parent="ASTATY" bit-position="6" bit-size="1" description="Multiplier Negative." />
+   <register name="ASTATY.AI"                    parent="ASTATY" bit-position="5" bit-size="1" description="ALU Floating-Point Invalid Operation." />
+   <register name="ASTATY.AS"                    parent="ASTATY" bit-position="4" bit-size="1" description="ALU Sign Input (for ABS and MANT)." />
+   <register name="ASTATY.AC"                    parent="ASTATY" bit-position="3" bit-size="1" description="ALU Fixed-Point Carry." />
+   <register name="ASTATY.AN"                    parent="ASTATY" bit-position="2" bit-size="1" description="ALU Negative." />
+   <register name="ASTATY.AV"                    parent="ASTATY" bit-position="1" bit-size="1" description="ALU Overflow." />
+   <register name="ASTATY.AZ"                    parent="ASTATY" bit-position="0" bit-size="1" description="ALU Fixed-Point Zero/Floating-Point Underflow." />
+<register name="STKYX"  compiler-id="120"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Status" description="REGF0 Sticky Status Register" />
+   <register name="STKYX.LSEM"                   parent="STKYX" bit-position="26" bit-size="1" description="Loop Stack Empty." />
+   <register name="STKYX.LSOV"                   parent="STKYX" bit-position="25" bit-size="1" description="Loop Stack Overflow." />
+   <register name="STKYX.SSEM"                   parent="STKYX" bit-position="24" bit-size="1" description="Status Stack Empty." />
+   <register name="STKYX.SSOV"                   parent="STKYX" bit-position="23" bit-size="1" description="Status Stack Overflow." />
+   <register name="STKYX.PCEM"                   parent="STKYX" bit-position="22" bit-size="1" description="PC Stack Empty." />
+   <register name="STKYX.PCFL"                   parent="STKYX" bit-position="21" bit-size="1" description="PC Stack Full." />
+   <register name="STKYX.U64MA"                  parent="STKYX" bit-position="20" bit-size="1" description="Unaligned 64-Bit Memory Access." />
+   <register name="STKYX.IIRA"                   parent="STKYX" bit-position="19" bit-size="1" description="Illegal IOP Register Access." />
+   <register name="STKYX.CB15S"                  parent="STKYX" bit-position="18" bit-size="1" description="DAG2 Circular Buffer 15 Overflow." />
+   <register name="STKYX.CB7S"                   parent="STKYX" bit-position="17" bit-size="1" description="DAG1 Circular Buffer 7 Overflow." />
+   <register name="STKYX.MIS"                    parent="STKYX" bit-position="9" bit-size="1" description="Multiplier Floating-Point Invalid Operation." />
+   <register name="STKYX.MUS"                    parent="STKYX" bit-position="8" bit-size="1" description="Multiplier Floating-Point Underflow." />
+   <register name="STKYX.MVS"                    parent="STKYX" bit-position="7" bit-size="1" description="Multiplier Floating-Point Overflow." />
+   <register name="STKYX.MOS"                    parent="STKYX" bit-position="6" bit-size="1" description="Multiplier Fixed-Point Overflow." />
+   <register name="STKYX.AIS"                    parent="STKYX" bit-position="5" bit-size="1" description="ALU Floating-Point Invalid Operation." />
+   <register name="STKYX.AOS"                    parent="STKYX" bit-position="2" bit-size="1" description="ALU Fixed-Point Overflow." />
+   <register name="STKYX.AVS"                    parent="STKYX" bit-position="1" bit-size="1" description="ALU Floating-Point Overflow." />
+   <register name="STKYX.AUS"                    parent="STKYX" bit-position="0" bit-size="1" description="ALU Floating-Point Underflow." />
+<register name="STKYY"  compiler-id="121"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Status" description="REGF0 Sticky Status Register" />
+   <register name="STKYY.LSEM"                   parent="STKYY" bit-position="26" bit-size="1" description="Loop Stack Empty." />
+   <register name="STKYY.LSOV"                   parent="STKYY" bit-position="25" bit-size="1" description="Loop Stack Overflow." />
+   <register name="STKYY.SSEM"                   parent="STKYY" bit-position="24" bit-size="1" description="Status Stack Empty." />
+   <register name="STKYY.SSOV"                   parent="STKYY" bit-position="23" bit-size="1" description="Status Stack Overflow." />
+   <register name="STKYY.PCEM"                   parent="STKYY" bit-position="22" bit-size="1" description="PC Stack Empty." />
+   <register name="STKYY.PCFL"                   parent="STKYY" bit-position="21" bit-size="1" description="PC Stack Full." />
+   <register name="STKYY.U64MA"                  parent="STKYY" bit-position="20" bit-size="1" description="Unaligned 64-Bit Memory Access." />
+   <register name="STKYY.IIRA"                   parent="STKYY" bit-position="19" bit-size="1" description="Illegal IOP Register Access." />
+   <register name="STKYY.CB15S"                  parent="STKYY" bit-position="18" bit-size="1" description="DAG2 Circular Buffer 15 Overflow." />
+   <register name="STKYY.CB7S"                   parent="STKYY" bit-position="17" bit-size="1" description="DAG1 Circular Buffer 7 Overflow." />
+   <register name="STKYY.MIS"                    parent="STKYY" bit-position="9" bit-size="1" description="Multiplier Floating-Point Invalid Operation." />
+   <register name="STKYY.MUS"                    parent="STKYY" bit-position="8" bit-size="1" description="Multiplier Floating-Point Underflow." />
+   <register name="STKYY.MVS"                    parent="STKYY" bit-position="7" bit-size="1" description="Multiplier Floating-Point Overflow." />
+   <register name="STKYY.MOS"                    parent="STKYY" bit-position="6" bit-size="1" description="Multiplier Fixed-Point Overflow." />
+   <register name="STKYY.AIS"                    parent="STKYY" bit-position="5" bit-size="1" description="ALU Floating-Point Invalid Operation." />
+   <register name="STKYY.AOS"                    parent="STKYY" bit-position="2" bit-size="1" description="ALU Fixed-Point Overflow." />
+   <register name="STKYY.AVS"                    parent="STKYY" bit-position="1" bit-size="1" description="ALU Floating-Point Overflow." />
+   <register name="STKYY.AUS"                    parent="STKYY" bit-position="0" bit-size="1" description="ALU Floating-Point Underflow." />
+<register name="IRPTL"  compiler-id="122"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Status" description="REGF0 Interrupt Latch Register" />
+   <register name="IRPTL.SFT3I"                  parent="IRPTL" bit-position="31" bit-size="1" description="User Software Interrupt 3." />
+   <register name="IRPTL.SFT2I"                  parent="IRPTL" bit-position="30" bit-size="1" description="User Software Interrupt 2." />
+   <register name="IRPTL.SFT1I"                  parent="IRPTL" bit-position="29" bit-size="1" description="User Software Interrupt 1." />
+   <register name="IRPTL.SFT0I"                  parent="IRPTL" bit-position="28" bit-size="1" description="User Software Interrupt 0." />
+   <register name="IRPTL.EMULI"                  parent="IRPTL" bit-position="27" bit-size="1" description="Emulator Low Priority Interrupt." />
+   <register name="IRPTL.FLTII"                  parent="IRPTL" bit-position="26" bit-size="1" description="Floating-Point Invalid Operation Interrupt." />
+   <register name="IRPTL.FLTUI"                  parent="IRPTL" bit-position="25" bit-size="1" description="Floating-Point Underflow Interrupt." />
+   <register name="IRPTL.FLTOI"                  parent="IRPTL" bit-position="24" bit-size="1" description="Floating-Point Overflow Interrupt." />
+   <register name="IRPTL.FIXI"                   parent="IRPTL" bit-position="23" bit-size="1" description="Fixed-Point Overflow Interrupt." />
+   <register name="IRPTL.TMZLI"                  parent="IRPTL" bit-position="22" bit-size="1" description="Core Timer Expired (Low Priority) Interrupt." />
+   <register name="IRPTL.CB15I"                  parent="IRPTL" bit-position="21" bit-size="1" description="DAG2 Circular Buffer 15 Overflow Interrupt." />
+   <register name="IRPTL.RINSEQI"                parent="IRPTL" bit-position="20" bit-size="1" description="Restricted instruction sequence interrupt." />
+   <register name="IRPTL.IIR1I"                  parent="IRPTL" bit-position="16" bit-size="1" description="IIR1 Channel Completion Interrupt." />
+   <register name="IRPTL.SECI"                   parent="IRPTL" bit-position="15" bit-size="1" description="System event controlled interrupt." />
+   <register name="IRPTL.IIR0I"                  parent="IRPTL" bit-position="14" bit-size="1" description="IIR0 Channel Completion Interrupt" />
+   <register name="IRPTL.FIRI"                   parent="IRPTL" bit-position="13" bit-size="1" description="FIR Channel Completion Interrupt" />
+   <register name="IRPTL.BKPI"                   parent="IRPTL" bit-position="12" bit-size="1" description="Hardware Breakpoint Interrupt." />
+   <register name="IRPTL.TMZHI"                  parent="IRPTL" bit-position="11" bit-size="1" description="Core Timer Expired High Priority." />
+   <register name="IRPTL.IIR3I"                  parent="IRPTL" bit-position="10" bit-size="1" description="IIR3 Channel Completion Interrupt." />
+   <register name="IRPTL.IIR2I"                  parent="IRPTL" bit-position="9" bit-size="1" description="IIR2 Channel Completion Interrupt." />
+   <register name="IRPTL.ILADI"                  parent="IRPTL" bit-position="8" bit-size="1" description="Illegal address space detected." />
+   <register name="IRPTL.SOVFI"                  parent="IRPTL" bit-position="7" bit-size="1" description="Stack Overflow/Full Interrupt." />
+   <register name="IRPTL.IICDI"                  parent="IRPTL" bit-position="6" bit-size="1" description="Illegal Input Condition Detected Interrupt." />
+   <register name="IRPTL.CB7I"                   parent="IRPTL" bit-position="5" bit-size="1" description="DAG1 Circular Buffer 7 Overflow Interrupt." />
+   <register name="IRPTL.ILOPI"                  parent="IRPTL" bit-position="4" bit-size="1" description="Illegal opcode detected Interrupt." />
+   <register name="IRPTL.PARI"                   parent="IRPTL" bit-position="3" bit-size="1" description="L1 Parity Error Interrupt." />
+   <register name="IRPTL.RSTI"                   parent="IRPTL" bit-position="1" bit-size="1" description="Reset Interrupt." />
+   <register name="IRPTL.EMUI"                   parent="IRPTL" bit-position="0" bit-size="1" description="Emulator Interrupt." />
+<register name="IMASK"  compiler-id="123"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Status" description="REGF0 Interrupt Mask Register" />
+   <register name="IMASK.SFT3I"                  parent="IMASK" bit-position="31" bit-size="1" description="User Software Interrupt 3." />
+   <register name="IMASK.SFT2I"                  parent="IMASK" bit-position="30" bit-size="1" description="User Software Interrupt 2." />
+   <register name="IMASK.SFT1I"                  parent="IMASK" bit-position="29" bit-size="1" description="User Software Interrupt 1." />
+   <register name="IMASK.SFT0I"                  parent="IMASK" bit-position="28" bit-size="1" description="User Software Interrupt 0." />
+   <register name="IMASK.EMULI"                  parent="IMASK" bit-position="27" bit-size="1" description="Emulator Low Priority Interrupt." />
+   <register name="IMASK.FLTII"                  parent="IMASK" bit-position="26" bit-size="1" description="Floating-Point Invalid Operation Interrupt." />
+   <register name="IMASK.FLTUI"                  parent="IMASK" bit-position="25" bit-size="1" description="Floating-Point Underflow Interrupt." />
+   <register name="IMASK.FLTOI"                  parent="IMASK" bit-position="24" bit-size="1" description="Floating-Point Overflow Interrupt." />
+   <register name="IMASK.FIXI"                   parent="IMASK" bit-position="23" bit-size="1" description="Fixed-Point Overflow Interrupt." />
+   <register name="IMASK.TMZLI"                  parent="IMASK" bit-position="22" bit-size="1" description="Core Timer Expired (Low Priority) Interrupt." />
+   <register name="IMASK.CB15I"                  parent="IMASK" bit-position="21" bit-size="1" description="DAG2 Circular Buffer 15 Overflow Interrupt." />
+   <register name="IMASK.RINSEQI"                parent="IMASK" bit-position="20" bit-size="1" description="Restricted instruction sequence interrupt." />
+   <register name="IMASK.IIR1I"                  parent="IMASK" bit-position="16" bit-size="1" description="IIR1 Channel Completion Interrupt MASK." />
+   <register name="IMASK.SECI"                   parent="IMASK" bit-position="15" bit-size="1" description="System event controlled interrupt." />
+   <register name="IMASK.IIR0I"                  parent="IMASK" bit-position="14" bit-size="1" description="IIR0 Channel Completion Interrupt Mask" />
+   <register name="IMASK.FIRI"                   parent="IMASK" bit-position="13" bit-size="1" description="FIR Channel Completion Interrupt Mask" />
+   <register name="IMASK.BKPI"                   parent="IMASK" bit-position="12" bit-size="1" description="Hardware Breakpoint Interrupt." />
+   <register name="IMASK.TMZHI"                  parent="IMASK" bit-position="11" bit-size="1" description="Core Timer Expired High Priority." />
+   <register name="IMASK.IIR3I"                  parent="IMASK" bit-position="10" bit-size="1" description="IIR3 Channel Completion Interrupt Mask." />
+   <register name="IMASK.IIR2I"                  parent="IMASK" bit-position="9" bit-size="1" description="IIR2 Channel Completion Interrupt Mask." />
+   <register name="IMASK.ILADI"                  parent="IMASK" bit-position="8" bit-size="1" description="Illegal address space detected." />
+   <register name="IMASK.SOVFI"                  parent="IMASK" bit-position="7" bit-size="1" description="Stack Overflow/Full Interrupt." />
+   <register name="IMASK.IICDI"                  parent="IMASK" bit-position="6" bit-size="1" description="Illegal Input Condition Detected Interrupt." />
+   <register name="IMASK.CB7I"                   parent="IMASK" bit-position="5" bit-size="1" description="DAG1 Circular Buffer 7 Overflow Interrupt." />
+   <register name="IMASK.ILOPI"                  parent="IMASK" bit-position="4" bit-size="1" description="Illegal opcode detected Interrupt." />
+   <register name="IMASK.PARI"                   parent="IMASK" bit-position="3" bit-size="1" description="L1 Parity Error Interrupt." />
+   <register name="IMASK.RSTI"                   parent="IMASK" bit-position="1" bit-size="1" description="Reset Interrupt." />
+   <register name="IMASK.EMUI"                   parent="IMASK" bit-position="0" bit-size="1" description="Emulator Interrupt." />
+<register name="IMASKP"  compiler-id="124"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Status" description="REGF0 Interrupt Mask Pointer Register" />
+   <register name="IMASKP.SFT3I"                 parent="IMASKP" bit-position="31" bit-size="1" description="User Software Interrupt 3." />
+   <register name="IMASKP.SFT2I"                 parent="IMASKP" bit-position="30" bit-size="1" description="User Software Interrupt 2." />
+   <register name="IMASKP.SFT1I"                 parent="IMASKP" bit-position="29" bit-size="1" description="User Software Interrupt 1." />
+   <register name="IMASKP.SFT0I"                 parent="IMASKP" bit-position="28" bit-size="1" description="User Software Interrupt 0." />
+   <register name="IMASKP.EMULI"                 parent="IMASKP" bit-position="27" bit-size="1" description="Emulator Low Priority Interrupt." />
+   <register name="IMASKP.FLTII"                 parent="IMASKP" bit-position="26" bit-size="1" description="Floating-Point Invalid Operation Interrupt." />
+   <register name="IMASKP.FLTUI"                 parent="IMASKP" bit-position="25" bit-size="1" description="Floating-Point Underflow Interrupt." />
+   <register name="IMASKP.FLTOI"                 parent="IMASKP" bit-position="24" bit-size="1" description="Floating-Point Overflow Interrupt." />
+   <register name="IMASKP.FIXI"                  parent="IMASKP" bit-position="23" bit-size="1" description="Fixed-Point Overflow Interrupt." />
+   <register name="IMASKP.TMZLI"                 parent="IMASKP" bit-position="22" bit-size="1" description="Core Timer Expired (Low Priority) Interrupt." />
+   <register name="IMASKP.CB15I"                 parent="IMASKP" bit-position="21" bit-size="1" description="DAG2 Circular Buffer 15 Overflow Interrupt." />
+   <register name="IMASKP.RINSEQI"               parent="IMASKP" bit-position="20" bit-size="1" description="Restricted instruction sequence interrupt." />
+   <register name="IMASKP.IIR1I"                 parent="IMASKP" bit-position="16" bit-size="1" description="IIR1 Channel Completion Interrupt Pointer." />
+   <register name="IMASKP.SECI"                  parent="IMASKP" bit-position="15" bit-size="1" description="System event controlled interrupt." />
+   <register name="IMASKP.IIR0I"                 parent="IMASKP" bit-position="14" bit-size="1" description="IIR0 Channel Completion Interrupt Pointer" />
+   <register name="IMASKP.FIRI"                  parent="IMASKP" bit-position="13" bit-size="1" description="FIR Channel Completion Interrupt Pointer" />
+   <register name="IMASKP.BKPI"                  parent="IMASKP" bit-position="12" bit-size="1" description="Hardware Breakpoint Interrupt." />
+   <register name="IMASKP.TMZHI"                 parent="IMASKP" bit-position="11" bit-size="1" description="Core Timer Expired High Priority." />
+   <register name="IMASKP.IIR3I"                 parent="IMASKP" bit-position="10" bit-size="1" description="IIR3 Channel Completion Interrupt Pointer." />
+   <register name="IMASKP.IIR2I"                 parent="IMASKP" bit-position="9" bit-size="1" description="IIR2 Channel Completion Interrupt Pointer." />
+   <register name="IMASKP.ILADI"                 parent="IMASKP" bit-position="8" bit-size="1" description="Illegal address space detected." />
+   <register name="IMASKP.SOVFI"                 parent="IMASKP" bit-position="7" bit-size="1" description="Stack Overflow/Full Interrupt." />
+   <register name="IMASKP.IICDI"                 parent="IMASKP" bit-position="6" bit-size="1" description="Illegal Input Condition Detected Interrupt." />
+   <register name="IMASKP.CB7I"                  parent="IMASKP" bit-position="5" bit-size="1" description="DAG1 Circular Buffer 7 Overflow Interrupt." />
+   <register name="IMASKP.ILOPI"                 parent="IMASKP" bit-position="4" bit-size="1" description="Illegal opcode detected Interrupt." />
+   <register name="IMASKP.PARI"                  parent="IMASKP" bit-position="3" bit-size="1" description="L1 Parity Error Interrupt." />
+   <register name="IMASKP.RSTI"                  parent="IMASKP" bit-position="1" bit-size="1" description="Reset Interrupt." />
+   <register name="IMASKP.EMUI"                  parent="IMASKP" bit-position="0" bit-size="1" description="Emulator Interrupt." />
+<register name="MODE1STK"  compiler-id="125"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Status" description="REGF0 MODE 1 stack top" />
+   <register name="MODE1STK.SELPE"          parent="MODE1STK" bit-position="31" bit-size="1" description="Selective PEx or PEy Enable" />
+   <register name="MODE1STK.SINEST"         parent="MODE1STK" bit-position="30" bit-size="1" description="SEC Interrupt Nesting" />
+   <register name="MODE1STK.IPERREN"        parent="MODE1STK" bit-position="29" bit-size="1" description="Instruction Parity Error Enable" />
+   <register name="MODE1STK.DPERREN"        parent="MODE1STK" bit-position="28" bit-size="1" description="Data Parity Error Enable" />
+   <register name="MODE1STK.SPERREN"        parent="MODE1STK" bit-position="27" bit-size="1" description="System Transfer Parity Error Enable" />
+   <register name="MODE1STK.CBUFEN"         parent="MODE1STK" bit-position="24" bit-size="1" description="Circular Buffer Enable" />
+   <register name="MODE1STK.BDCST1"         parent="MODE1STK" bit-position="23" bit-size="1" description="Broadcast Load I1" />
+   <register name="MODE1STK.BDCST9"         parent="MODE1STK" bit-position="22" bit-size="1" description="Broadcast Load I9" />
+   <register name="MODE1STK.PEYEN"          parent="MODE1STK" bit-position="21" bit-size="1" description="PEy Enable" />
+   <register name="MODE1STK.RND32"          parent="MODE1STK" bit-position="16" bit-size="1" description="Round Data to 32-Bits" />
+   <register name="MODE1STK.TRUNCATE"       parent="MODE1STK" bit-position="15" bit-size="1" description="Truncation Rounding Mode Select" />
+   <register name="MODE1STK.SSE"            parent="MODE1STK" bit-position="14" bit-size="1" description="Select Sign Extension" />
+   <register name="MODE1STK.ALUSAT"         parent="MODE1STK" bit-position="13" bit-size="1" description="ALU Saturation" />
+   <register name="MODE1STK.IRPTEN"         parent="MODE1STK" bit-position="12" bit-size="1" description="Global Interrupt Enable" />
+   <register name="MODE1STK.NESTM"          parent="MODE1STK" bit-position="11" bit-size="1" description="Nest Multiple Interrupts Enable" />
+   <register name="MODE1STK.SRRFL"          parent="MODE1STK" bit-position="10" bit-size="1" description="Register File Alternative Select for R(7-0)" />
+   <register name="MODE1STK.SRRFH"          parent="MODE1STK" bit-position="7" bit-size="1" description="Register File Alternative Select for R(15-8)" />
+   <register name="MODE1STK.SRD2L"          parent="MODE1STK" bit-position="6" bit-size="1" description="DAG2 Alternative Register Select (11-8)" />
+   <register name="MODE1STK.SRD2H"          parent="MODE1STK" bit-position="5" bit-size="1" description="DAG2 Alternative Register Select (15-12)" />
+   <register name="MODE1STK.SRD1L"          parent="MODE1STK" bit-position="4" bit-size="1" description="DAG1 Alternative Register Select (3-0)" />
+   <register name="MODE1STK.SRD1H"          parent="MODE1STK" bit-position="3" bit-size="1" description="DAG1 Alternative Register Select (7-4)" />
+   <register name="MODE1STK.SRCU"           parent="MODE1STK" bit-position="2" bit-size="1" description="Alternative Register Select for Compute Units" />
+   <register name="MODE1STK.BR0"            parent="MODE1STK" bit-position="1" bit-size="1" description="Bit-Reverse Addressing I0" />
+   <register name="MODE1STK.BR8"            parent="MODE1STK" bit-position="0" bit-size="1" description="Bit-Reverse Addressing I8" />
+<register name="USTAT3"  compiler-id="126"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Status" description="REGF0 User-Defined Status Register" />
+<register name="USTAT4"  compiler-id="127"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Status" description="REGF0 User-Defined Status Register" />
+
+<!-- *************** -->
+<!-- ***  Timer  *** -->
+<!-- *************** -->
+
+<register name="TPERIOD"  compiler-id="110"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Timer" description="REGF0 Timer Period Register" />
+<register name="TCOUNT"  compiler-id="111"  bit-size="32"  type="CORE" mask="FFFFFFFF" group="Timer" description="REGF0 Timer Count Register" />
+
+</register-core-definitions>
+
+</cces-core-xml>

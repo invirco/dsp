@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ************************************************************************************ -->
+<!--   Module       :   SEC                                                               -->
+<!--   Description  :   Module Register Offsets                                           -->
+<!--                                                                                      -->
+<!--   Copyright (c) 2020 Analog Devices, Inc.  All Rights Reserved.                      -->
+<!--   This software is proprietary and confidential to Analog Devices, Inc. and          -->
+<!--   its licensors.                                                                     -->
+<!--                                                                                      -->
+<!-- ************************************************************************************ -->
+<cces-chipfactory-xml schema-version="1" name="SEC.xml">
+	<version file-version="2.10.0.0"/>
+	<module acronym="SEC">
+		<module-data>
+
+			<!-- Register Block: SB -->
+			<block acronym="SB" block_address_increment="8" count="256">
+				<address radix="x" type="relative">800</address>
+			</block>
+			
+			<!-- Register Block: CB -->
+			<block acronym="CB" block_address_increment="64" count="16">
+				<address radix="x" type="relative">400</address> 
+			</block>
+
+			<register acronym="CCTL" inBlock="CB">
+				<description>SCI Control Register n</description>
+				<access mode="read-write"/>
+				<width>32</width>
+				<address radix="x" type="relative">0</address>
+			</register>
+
+			<register acronym="CSTAT" inBlock="CB">
+				<description>SCI Status Register n</description>
+				<access mode="read-write"/>
+				<width>32</width>
+				<address radix="x" type="relative">4</address>
+			</register>
+
+			<register acronym="CPND" inBlock="CB">
+				<description>Core Pending Register n</description>
+				<access mode="read-only"/>
+				<width>32</width>
+				<address radix="x" type="relative">8</address>
+			</register>
+
+			<register acronym="CACT" inBlock="CB">
+				<description>SCI Active Register n</description>
+				<access mode="read-only"/>
+				<width>32</width>
+				<address radix="x" type="relative">c</address>
+			</register>
+
+			<register acronym="CPMSK" inBlock="CB">
+				<description>SCI Priority Mask Register n</description>
+				<access mode="read-write"/>
+				<width>32</width>
+				<address radix="x" type="relative">10</address>
+			</register>
+
+			<register acronym="CGMSK" inBlock="CB">
+				<description>SCI Group Mask Register n</description>
+				<access mode="read-write"/>
+				<width>32</width>
+				<address radix="x" type="relative">14</address>
+			</register>
+
+			<register acronym="CPLVL" inBlock="CB">
+				<description>SCI Priority Level Register n</description>
+				<access mode="read-write"/>
+				<width>32</width>
+				<address radix="x" type="relative">18</address>
+			</register>
+
+			<register acronym="CSID" inBlock="CB">
+				<description>SCI Source ID Register n</description>
+				<access mode="read-write"/>
+				<width>32</width>
+				<address radix="x" type="relative">1c</address>
+			</register>
+
+			<register acronym="SCTL" inBlock="SB">
+				<description>Source Control Register n</description>
+				<access mode="read-write"/>
+				<width>32</width>
+				<address radix="x" type="relative">0</address>
+			</register>
+
+			<register acronym="SSTAT" inBlock="SB">
+				<description>Source Status Register n</description>
+				<access mode="read-write"/>
+				<width>32</width>
+				<address radix="x" type="relative">4</address>
+			</register>
+			<register acronym="GCTL">
+				<description>Global Control Register</description>
+				<access mode="read-write"/>
+				<width>32</width>
+				<address radix="x" type="relative">0</address>
+			</register>
+			<register acronym="GSTAT">
+				<description>Global Status Register</description>
+				<access mode="read-write"/>
+				<width>32</width>
+				<address radix="x" type="relative">4</address>
+			</register>
+			<register acronym="RAISE">
+				<description>Global Raise Register</description>
+				<access mode="read-write"/>
+				<width>32</width>
+				<address radix="x" type="relative">8</address>
+			</register>
+			<register acronym="END">
+				<description>Global End Register</description>
+				<access mode="read-write"/>
+				<width>32</width>
+				<address radix="x" type="relative">c</address>
+			</register>
+			<register acronym="FCTL">
+				<description>Fault Control Register</description>
+				<access mode="read-write"/>
+				<width>32</width>
+				<address radix="x" type="relative">10</address>
+			</register>
+			<register acronym="FSTAT">
+				<description>Fault Status Register</description>
+				<access mode="read-write"/>
+				<width>32</width>
+				<address radix="x" type="relative">14</address>
+			</register>
+			<register acronym="FSID">
+				<description>Fault Source ID Register</description>
+				<access mode="read-only"/>
+				<width>32</width>
+				<address radix="x" type="relative">18</address>
+			</register>
+			<register acronym="FEND">
+				<description>Fault End Register</description>
+				<access mode="read-write"/>
+				<width>32</width>
+				<address radix="x" type="relative">1c</address>
+			</register>
+			<register acronym="FDLY">
+				<description>Fault Delay Register</description>
+				<access mode="read-write"/>
+				<width>32</width>
+				<address radix="x" type="relative">20</address>
+			</register>
+			<register acronym="FDLY_CUR">
+				<description>Fault Delay Current Register</description>
+				<access mode="read-only"/>
+				<width>32</width>
+				<address radix="x" type="relative">24</address>
+			</register>
+			<register acronym="FSRDLY">
+				<description>Fault System Reset Delay Register</description>
+				<access mode="read-write"/>
+				<width>32</width>
+				<address radix="x" type="relative">28</address>
+			</register>
+			<register acronym="FSRDLY_CUR">
+				<description>Fault System Reset Delay Current Register</description>
+				<access mode="read-only"/>
+				<width>32</width>
+				<address radix="x" type="relative">2c</address>
+			</register>
+			<register acronym="FCOPP">
+				<description>Fault COP Period Register</description>
+				<access mode="read-write"/>
+				<width>32</width>
+				<address radix="x" type="relative">30</address>
+			</register>
+			<register acronym="FCOPP_CUR">
+				<description>Fault COP Period Current Register</description>
+				<access mode="read-only"/>
+				<width>32</width>
+				<address radix="x" type="relative">34</address>
+			</register>
+
+		</module-data>
+	</module>
+</cces-chipfactory-xml>

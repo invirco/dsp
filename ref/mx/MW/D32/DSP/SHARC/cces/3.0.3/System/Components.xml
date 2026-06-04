@@ -1,0 +1,28 @@
+<?xml version="1.0" standalone="yes" ?>
+
+<cces-component-xml schema-version="1">
+    
+    <version file-version="1.05"/>
+    
+    <debug-targets>
+        <component name="ChipFactory Simulator"         library="cftarget.dll"   clsid="{010D7F4A-CAB5-47DB-A616-1C197F4151C7}"/> 
+        <component name="Common Emulation Target"       library="emutarget.dll"  clsid="{35079563-6574-4279-84BF-7B3736898163}"/>
+    </debug-targets>
+    
+    <processor-dlls>
+        <component name="SHARC 21x6x Processor Library" library="procsharc.dll"  clsid="{C986CF00-3107-1192-9CE6-00C04FCD16EE}"/>
+        <component name="ARM Processor Library"         library="procarm.dll"    clsid="{078BEA11-7750-4DE7-A009-44E13A90CF12}"/>
+    </processor-dlls>
+    
+    <symbol-managers>
+        <component name="CrossCore Embedded Studio Symbol Manager" library="Symman.dll" clsid="{B462BA54-1596-11D2-B759-00C04FB6F421}"/>
+    </symbol-managers>
+    
+    <emulator-backends>
+        <component name="ICE-100b"      library="WmSonar.dll"       clsid="{A7F0CBC2-D360-49FD-B65D-AA517F449461}"/>
+        <component name="HPUSB-ICE"     library="WmHPUSBIce.dll"    clsid="{F2190F7E-8A54-49DD-B27F-5A7CE5A10860}"/>
+        <component name="USB-ICE"       library="WmUSBIce.dll"      clsid="{CD78A2AA-5CE2-49B5-A8AD-EF0B4FFE9120}"/>
+        <component name="USB EZ-KIT"    library="WmKitSelector.dll" clsid="{1B471825-7BE4-4e33-86F5-7B9E104D7D77}"/>
+    </emulator-backends >
+    
+</cces-component-xml>

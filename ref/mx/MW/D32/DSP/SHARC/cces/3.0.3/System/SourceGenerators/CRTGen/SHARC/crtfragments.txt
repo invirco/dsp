@@ -1,0 +1,1905 @@
+/*
+** Copyright (C) 2000-2019 Analog Devices Inc., All Rights Reserved.
+**
+** Startup code fragments.
+** This file is used to generate customized startup code based on
+** selections made in the Project Options Wizard. It should not be edited.
+**
+*/
+
+/*$VDSG<standard:attrib_common> */
+.FILE_ATTR libGroup="startup";
+.FILE_ATTR libName="libc";
+/*$VDSG<standard:attrib_common> */
+
+/*$VDSG<standard:attrib_crt> */
+.FILE_ATTR libFunc="___lib_prog_term";
+.FILE_ATTR FuncName="___lib_prog_term";
+.FILE_ATTR libFunc="start";
+.FILE_ATTR FuncName="start";
+.FILE_ATTR prefersMem="any";
+.FILE_ATTR prefersMemNum="50";
+/*$VDSG<standard:attrib_crt> */
+
+/*$VDSG<standard:includes> */
+#include <sys/anomaly_macros_rtl.h> // defines silicon anomaly macros
+#include <interrupt.h>              // defines interrupt support
+#include <platform_include.h>       // defines MMR macros
+#include <adi_osal.h>               // OSAL support
+#include <sys/fatal_error_code.h>   // defines fatal error support
+/*$VDSG<standard:includes> */
+
+/*$VDSG<standard:ctor_data> */
+/* End marker for the list of static constructors.
+** seg_ctdml has to be mapped right after seg_ctdm.
+*/
+
+.SECTION/DATA/DOUBLEANY seg_ctdml;
+.RETAIN_NAME __ctor_NULL_marker;
+.GLOBAL __ctor_NULL_marker;
+.VAR __ctor_NULL_marker = 0;
+/*$VDSG<standard:ctor_data> */
+
+/*$VDSG<standard:eh_data> */
+/* The .gdt (global dispatch table) data is used by the C++ exception
+** runtime library support to determine which area of code a particular
+** exception belongs. These .gdt sections must be mapped contiguously
+** into memory by the LDF starting with this one and then lastly .gdtl
+** should be mapped.
+*/
+
+.SECTION/DATA/DOUBLEANY .gdt;
+.VAR ___eh_gdt[1];
+.GLOBAL ___eh_gdt;
+.TYPE ___eh_gdt,STT_OBJECT;
+/*$VDSG<standard:eh_data> */
+
+/*$VDSG<standard:eh_data_byte_addressed> */
+/* The .gdt (global dispatch table) data is used by the C++ exception
+** runtime library support to determine which area of code a particular
+** exception belongs. These .gdt sections must be mapped to contiguous
+** memory by the LDF starting with this one and and ending with .gdtl.
+** The word addressed variants of these sections also need to be included
+** and are called .gdt32 and .gdtl32.
+*/
+
+.SECTION/DOUBLEANY .gdt;
+.ALIGN 4;
+.BYTE __eh_gdt.[4];
+.GLOBAL __eh_gdt.;
+.TYPE __eh_gdt.,STT_OBJECT;
+
+.SECTION/DM/DOUBLEANY .gdt32;
+.VAR ___eh_gdt[1];
+.GLOBAL ___eh_gdt;
+.TYPE ___eh_gdt,STT_OBJECT;
+/*$VDSG<standard:eh_data_byte_addressed> */
+
+/*$VDSG<standard:messages> */
+/* Suppress the assemblers informational message regarding the automatic
+** call sequence change it does when building -swc.
+*/
+.MESSAGE/SUPPRESS 2536;
+/*$VDSG<standard:messages> */
+
+/*$VDSG<standard:messages_09000011> */
+/* Suppress the assemblers informational message regarding trampolines
+** generated for Hardware Anomaly 09000011.
+*/
+.MESSAGE/SUPPRESS 2518,2519;
+/*$VDSG<standard:messages_09000011> */
+
+/*$VDSG<standard:start> */
+
+.GLOBAL start;
+
+.SECTION/CODE/DOUBLEANY seg_pmco;
+
+start:
+/*$VDSG<standard:start> */
+
+/*$VDSG<standard:disable_btb> */
+      /* Disable the BTB. */
+      R0 = DM(REG_SHBTB0_CFG);              /* Get current BTB configuration. */
+      R0 = BSET R0 BY BITP_SHBTB_CFG_DIS;   /* Disable the BTB                */
+      DM(REG_SHBTB0_CFG) = R0;              /* Write back to BTB_CFG MMR.     */
+      /* After a write to the SHBTB_CFG register there must be at least
+      ** 12 48-bit (ISA) instructions, which do not involve any change
+      ** of flow.
+      */
+      .NOCOMPRESS;
+      NOP; NOP; NOP; NOP; NOP; NOP; NOP; NOP; NOP; NOP; NOP; NOP;
+      .COMPRESS;
+/*$VDSG<standard:disable_btb> */
+
+/*$VDSG<standard:disable_caches> */
+      /* Ensure caches are disabled - enables a soft reset to jump to start
+      ** and also avoids problems if a preload enables caches.
+      */
+      /* Cache configuration updates only while executing in L1 memory. */
+      R0 = 0;
+      JUMP (.disable_caches);
+.SECTION/SW/DOUBLEANY seg_int_code;
+.disable_caches:
+      DM(REG_SHL1C0_CFG) = R0;
+      /* 12 uncompressed NOPs after a cache MMR access. */
+      .NOCOMPRESS;
+      NOP; NOP; NOP; NOP; NOP; NOP; NOP; NOP; NOP; NOP; NOP; NOP;
+      .COMPRESS;
+      JUMP (.caches_disabled);
+.PREVIOUS;
+.caches_disabled:
+/*$VDSG<standard:disable_caches> */
+
+/*$VDSG<standard:enable_parity> */
+      /* Enable instruction, data and system transfer parity checking for
+      ** parts and revisions that have all required support. The ADSP-SC58x
+      ** and ADSP-2158x revisions 0.0 and 0.1 system reset does not work and
+      ** this is required so we don't enable parity for these.
+      */
+#if !defined(__IS_FPGA__) && \
+    (!defined(__ADSPSC589_FAMILY__) || \
+     (!defined(__SILICON_REVISION__) || \
+      ((__SILICON_REVISION__ >= 0x0100) && (__SILICON_REVISION__ != 0xFFFF))))
+      BIT SET MODE1 (BITM_REGF_MODE1_IPERREN | BITM_REGF_MODE1_DPERREN |
+                     BITM_REGF_MODE1_SPERREN );
+      /* Wait 11 cycles for the change to take effect. */
+      NOP; NOP; NOP; NOP; NOP; NOP; NOP; NOP; NOP; NOP; NOP;
+      #define ENABLED_PARITY_ERROR_CHECKING
+#else
+      /* Explicitly disable parity error checking when we don't enable it
+      ** for the application. This may be necessary for ADSP-215xx (non-ARM)
+      ** parts as the SHARC+ boot can enable parity error checking.
+      */
+      BIT CLR MODE1 (BITM_REGF_MODE1_IPERREN | BITM_REGF_MODE1_DPERREN |
+                     BITM_REGF_MODE1_SPERREN );
+      /* Wait 11 cycles for the change to take effect. */
+      NOP; NOP; NOP; NOP; NOP; NOP; NOP; NOP; NOP; NOP; NOP;
+#endif
+/*$VDSG<standard:enable_parity> */
+
+/*$VDSG<standard:init_parity_memory> */
+      /* Zero all the BTB memory locations to initialize the parity bits. */
+      I0 = 0x31000;
+      L0 = 0;
+      M0 = 1;
+      R0 = 0;
+      LCNTR = 0x400, DO (PC,.BTB_init_loop) UNTIL LCE;
+.BTB_init_loop:
+         DM(I0, M0) = R0;
+
+      /* Also zero the L1 cache memory locations... **/
+
+      /* ... Icache tag */
+      I0 = 0x3E400;
+      LCNTR = 0x400, DO (PC,.icache_tag_loop) UNTIL LCE;
+.icache_tag_loop:
+         DM(I0, M0) = R0;
+
+      /* ... then dcache (dmcache + pmcache) tag */
+      I0 = 0x3C000;
+      LCNTR = 0x1000, DO (PC,.dcache_tag_loop) UNTIL LCE;
+.dcache_tag_loop:
+        DM(I0, M0) = R0;
+
+      /* ... then dmcache LRU/DIRTY */
+      I0 = 0x3D100;
+      LCNTR = 0x100, DO (PC,.dmcache_dirty_loop) UNTIL LCE;
+.dmcache_dirty_loop:
+        DM(I0, M0) = R0;
+
+      /* ... then pmcache LRU/DIRTY */
+      I0 = 0x3D300;
+      LCNTR = 0x100, DO (PC,.pmcache_dirty_loop) UNTIL LCE;
+.pmcache_dirty_loop:
+        DM(I0, M0) = R0;
+
+      /* ... then icache LRU/DIRTY */
+      I0 = 0x3d500;
+      LCNTR = 0x80, DO (PC,.icache_dirty_loop) UNTIL LCE;
+.icache_dirty_loop:
+        DM(I0, M0) = R0;
+/*$VDSG<standard:init_parity_memory> */
+
+/*$VDSG<standard:init_btb> */
+      R0 = DM(REG_SHBTB0_CFG);              /* Get current BTB configuration. */
+      R0 = BCLR R0 BY BITP_SHBTB_CFG_DIS;   /* Enable the BTB                 */
+      R0 = BSET R0 BY BITP_SHBTB_CFG_INVAL; /* Invalidate the BTB             */
+      /* Turn off software return prediction in the BTB, because we can't
+      ** guarantee i12 has a valid code address, and a speculative access
+      ** to an invalid address can cause a hardware error.
+      */
+      R0 = BSET R0 BY BITP_SHBTB_CFG_SRETDIS; /* Software return disable.     */
+      DM(REG_SHBTB0_CFG) = R0;              /* Write back to BTB_CFG MMR.     */
+      /* After a write to the SHBTB_CFG register there must be at least
+      ** 12 48-bit (ISA) instructions, which do not involve any change of
+      ** flow.
+      */
+      .NOCOMPRESS;
+      NOP; NOP; NOP; NOP; NOP; NOP; NOP; NOP; NOP; NOP; NOP; NOP;
+      .COMPRESS;
+/*$VDSG<standard:init_btb> */
+
+/*$VDSG<standard:clear_pc_status_loop_stacks> */
+     /* There might be entries on the loop, PC and status stacks. Clear them all. 
+     ** First, clear the loop stack.
+     */
+     BIT TST STKY BITM_REGF_STKYX_LSEM;
+.pop_loop_stack:
+     IF TF JUMP (PC, .loop_stack_empty);
+     JUMP (PC, .pop_loop_stack) (DB);
+       POP LOOP;
+       BIT TST STKY BITM_REGF_STKYX_LSEM;
+.loop_stack_empty:
+
+     /* Then, clear the status stack. */
+     BIT TST STKY BITM_REGF_STKYX_SSEM;
+.pop_status_stack:
+     IF TF JUMP (PC, .status_stack_empty);
+     JUMP (PC, .pop_status_stack) (DB);
+       POP STS;
+       BIT TST STKY BITM_REGF_STKYX_SSEM;
+.status_stack_empty:
+
+     /* Then clear the PC stack. PC stack cannot be popped in a delay slot. */
+.pop_pc_stack:
+     BIT TST STKY BITM_REGF_STKYX_PCEM;
+     IF TF JUMP (PC, .pc_stack_empty);
+     POP PCSTK;
+     JUMP (PC, .pop_pc_stack);
+.pc_stack_empty:
+/*$VDSG<standard:clear_pc_status_stacks> */
+
+/*$VDSG<standard:set_vector_core0> */
+      /* Set the vector register to 'start' so that if the processor
+      ** is reset the processor bypasses the boot ROM code.
+      */
+      R0 = start;
+      DM(REG_RCU0_SVECT0) = R0;
+/*$VDSG<standard:set_vector_core0> */
+
+/*$VDSG<standard:set_vector_core1> */
+      /* Set the vector register to 'start' so that if the processor
+      ** is reset (for example, when the ARM calls adi_core_enable for the
+      ** SHARCs), the processor bypasses the boot ROM code.
+      */
+      R0 = start;
+      DM(REG_RCU0_SVECT1) = R0;
+/*$VDSG<standard:set_vector_core1> */
+
+/*$VDSG<standard:set_vector_core2> */
+      /* Set the vector register to 'start' so that if the processor
+      ** is reset (for example, when the ARM calls adi_core_enable for the
+      ** SHARCs), the processor bypasses the boot ROM code.
+      */
+      R0 = start;
+      DM(REG_RCU0_SVECT2) = R0;
+/*$VDSG<standard:set_vector_core2> */
+
+/*$VDSG<standard:release_core1> */
+.WAITLOOP:
+      // Wait for this core to be enabled.
+      R0 = DM(REG_RCU0_MSG);
+      BTST R0 BY BITP_RCU_MSG_C1ACTIVATE;
+      IF SZ JUMP .WAITLOOP;
+/*$VDSG<standard:release_core1> */
+
+/*$VDSG<standard:release_core2> */
+.WAITLOOP:
+      // Wait for this core to be enabled.
+      R0 = DM(REG_RCU0_MSG);
+      BTST R0 BY BITP_RCU_MSG_C2ACTIVATE;
+      IF SZ JUMP .WAITLOOP;
+/*$VDSG<standard:release_core2> */
+
+/*$VDSG<standard:start_runtime> */
+      /*
+      ** Initializes the processor, memory, C runtime and heaps.
+      */
+      .EXTERN ___lib_setup_c;
+      CALL ___lib_setup_c;
+/*$VDSG<standard:start_runtime> */
+
+/*$VDSG<standard:init_icc_mem> */
+      /*
+      ** ICC memory must be initialized before MCAPI initialization. This
+      ** is the responsibility of the SHARC0 core when there is no ARM.
+      */
+      .EXTERN memset.,           // void *memset(void *dst, int c, size_t len)
+              ___MCAPI_common_start, // ldf symbol
+              ___MCAPI_common_end;   // ldf symbol
+      R4 = ___MCAPI_common_start;
+      /* The label ___MCAPI_common_end marks the last byte of ICC memory.
+      ** Total number of bytes to be zeroed = (last addr - start addr + 1)
+      */
+      R12 = (___MCAPI_common_end - ___MCAPI_common_start + 1);
+      CJUMP memset. (DB);
+         R8 = R8 - R8,
+            DM(I7, M7) = R2;
+         DM(I7, M7) = PC;
+/*$VDSG<standard:init_icc_mem> */
+
+/*$VDSG<standard:config_sov> */
+      /*
+      ** Enable the CB7I interrupt to support Stack Overflow detection.
+      ** The interrupt vector code for Stack Overflow detection
+      ** jumps directly to _adi_stack_overflowed.
+      */
+      .EXTERN _adi_rtl_activate_dispatched_handler;
+      R4 = ADI_CID_CB7I;
+      CJUMP _adi_rtl_activate_dispatched_handler (DB);
+         DM(I7, M7) = R2;
+         DM(I7, M7) = PC;
+/*$VDSG<standard:config_sov> */
+
+/*$VDSG<config_byte_addressed_sov> */
+      /*
+      ** Enable the CB7I interrupt to support stack overflow detection.
+      ** The interrupt vector code for Stack Overflow detection
+      ** jumps directly to stub handler _adi_stack_overflowed.
+      */
+      .EXTERN adi_rtl_activate_dispatched_handler.;
+      R4 = ADI_CID_CB7I;
+      CJUMP adi_rtl_activate_dispatched_handler. (DB);
+         DM(I7, M7) = R2;
+         DM(I7, M7) = PC;
+/*$VDSG<config_byte_addressed_sov> */
+
+/*$VDSG<standard:config_ilop> */
+      /*
+      ** Enable the ILOPI interrupt to support illegal opcode detection.
+      ** The interrupt vector code for Illegal Opcode detection
+      ** jumps directly to stub handler _adi_ilop_detected.
+      */
+      .EXTERN adi_rtl_activate_dispatched_handler.;
+      R4 = ADI_CID_ILOPI;
+      CJUMP adi_rtl_activate_dispatched_handler. (DB);
+         DM(I7, M7) = R2;
+         DM(I7, M7) = PC;
+/*$VDSG<standard:config_ilop> */
+
+/*$VDSG<standard:activate_pari> */
+#if defined(ENABLED_PARITY_ERROR_CHECKING)
+      /*
+      ** Enable the PARI interrupt to support L1 parity error detection.
+      ** The interrupt vector code for this interrupt jumps directly
+      ** to stub handler _adi_parity_error_detected.
+      */
+      .EXTERN adi_rtl_activate_dispatched_handler.;
+      R4 = ADI_CID_PARI;
+      CJUMP adi_rtl_activate_dispatched_handler. (DB);
+         DM(I7, M7) = R2;
+         DM(I7, M7) = PC;
+#endif
+/*$VDSG<standard:activate_pari> */
+
+/*$VDSG<standard:call_ctors> */
+      /*
+      ** Call all the C++ static class instance constructors.
+      */
+      .EXTERN  __ctors;
+      I0 = __ctors;              // load pointer to the list of constructors
+                                 // into call preserved I0
+      R5 = I6;                   // hold current I6 in preserved register R5
+      R0 = DM(I0, M6);           // get the address of the first constructor
+      R0 = PASS R0, I13 = R0;    // check if it's the NULL list terminator
+.call_ctors:
+      IF EQ JUMP .call_ctors_exit; // if it is NULL we have completed
+
+      I6 = I7;
+      JUMP (M13, I13) (DB);      // call the constructor
+         DM(I7, M7) = R5;
+         DM(I7, M7) = PC;
+      JUMP (PC, .call_ctors) (DB);
+         R0 = DM(I0, M6);        // get the address of the next constructor
+         R0 = PASS R0, I13 = R0; // check if it's the NULL list terminator
+.call_ctors_exit:
+/*$VDSG<standard:call_ctors> */
+
+/*$VDSG<call_byte_addressed_ctors> */
+      /*
+      ** Call all the byte-addressed then word-addressed C++ static
+      ** class instance constructors.
+      */
+      .EXTERN  __ctors, _ctors.; // defined in the LDF file
+
+      I0 = _ctors.;              // load pointer to the list of constructors
+                                 // for byte addressing into call preserved I0
+
+      R15 = 2;                   // counter held in R15
+      R5 = I6;                   // hold current I6 in preserved register R5
+
+.call_ctors_start:
+      R0 = DM(I0, M6);           // get the address of the first constructor
+      R0 = PASS R0, I13 = R0;    // check if it's the NULL list terminator
+.call_ctors:
+      IF EQ JUMP (PC, .call_ctors_next); // if NULL we found the list end
+
+      I6 = I7;
+      JUMP (M13, I13) (DB);      // call the constructor
+         DM(I7, M7) = R5;
+         DM(I7, M7) = PC;
+      JUMP (PC, .call_ctors) (DB);
+         R0 = DM(I0, M6);        // get the address of the next constructor
+         R0 = PASS R0, I13 = R0; // check if it's the NULL list terminator
+.call_ctors_next:
+      R15 = R15 - 1;             // decrement counter
+      If EQ JUMP (PC, .call_ctors_exit);
+
+      I0 = __ctors;              // word-addressing constructors list
+
+      I7 = B2W(I7);
+      B7 = B2W(B7);
+      JUMP (PC, .call_ctors_start) (DB);
+         I6 = B2W(I6);
+         B6 = B2W(B6);
+.call_ctors_exit:
+
+      /*
+      ** Transform back to byte-addressed frame.
+      */
+      I7 = W2B(I7);
+      B7 = W2B(B7);
+      I6 = W2B(I6);
+      B6 = W2B(B6);
+/*$VDSG<call_byte_addressed_ctors> */
+
+/*$VDSG<standard:call_osal_Init> */
+      /*
+      ** Call the OSAL init function.
+      */
+      .EXTERN _adi_osal_Init;    // ADI_OSAL_STATUS adi_osal_Init(void);
+      CJUMP _adi_osal_Init (DB);
+         DM(I7, M7) = R2;
+         DM(I7, M7) = PC;
+/*$VDSG<standard:call_osal_Init> */
+
+/*$VDSG<standard:set_byte_addressed_frame> */
+      /*
+      ** Transform to byte-addressed frame.
+      */
+      I7 = W2B(I7);
+      B7 = W2B(B7);
+      I6 = W2B(I6);
+      B6 = W2B(B6);
+/*$VDSG<standard:set_byte_addressed_frame> */
+
+/*$VDSG<standard:set_word_addressed_frame> */
+      /*
+      ** Transform to word-addressed frame.
+      */
+      I7 = B2W(I7);
+      B7 = B2W(B7);
+      I6 = B2W(I6);
+      B6 = B2W(B6);
+/*$VDSG<standard:set_word_addressed_frame> */
+
+/*$VDSG<call_byte_addressed_osal_Init> */
+      /*
+      ** Call the OSAL init function.
+      */
+      .EXTERN adi_osal_Init.;    // ADI_OSAL_STATUS adi_osal_Init(void);
+      CJUMP adi_osal_Init. (DB);
+         DM(I7, M7) = R2;
+         DM(I7, M7) = PC;
+/*$VDSG<call_byte_addressed_osal_Init> */
+
+/*$VDSG<standard:check_osal_Init_errors> */
+      R1 = E_ADI_OSAL_SUCCESS;
+      COMPU(R0, R1);
+      IF NE JUMP .osal_Init_failed;
+/*$VDSG<standard:check_osal_Init_errors> */
+
+/*$VDSG<set_noncacheable_arm_sdram_range> */
+      /*
+      ** Set a noncacheable range for the SDRAM memory that is allocated to
+      ** the ARM core.
+      */
+      .EXTERN __lib_set_noncacheable_arm_cache_range.;
+      CJUMP __lib_set_noncacheable_arm_cache_range. (DB);
+         DM(I7, M7) = R2;
+         DM(I7, M7) = PC;
+/*$VDSG<set_noncacheable_arm_sdram_range> */
+
+/*$VDSG<get-args:enabled> */
+      /*
+      ** Initialize argc and argv for the call to main().
+      */
+      .EXTERN __getargv, __Argv;
+      CJUMP __getargv (DB);
+         DM(I7, M7) = R2;
+         DM(I7, M7) = PC;
+      R4 = R0;
+      R8 = __Argv;
+/*$VDSG<get-args:enabled> */
+
+/*$VDSG<get-args:enabled_byte_addressed> */
+      /*
+      ** Initialise argc and argv for the call to main().
+      */
+      .EXTERN _getargv., _Argv.;
+      CJUMP _getargv. (DB);
+         DM(I7, M7) = R2;
+         DM(I7, M7) = PC;
+      R4 = R0;
+      R8 = _Argv.;
+/*$VDSG<get-args:enabled_byte_addressed> */
+
+/*$VDSG<get-args:disabled> */
+      R4 = R4 - R4,              // argc = 0
+         R8 = M5;                // argv = NULL
+/*$VDSG<get-args:disabled> */
+
+/*$VDSG<standard:call_main> */
+      .EXTERN _main;
+      JUMP _main (DB);           // call main()
+         DM(I7, M7) = 0;         // NULL FP to terminate call stack unwinding
+         DM(I7, M7) = ___lib_prog_term-1;
+/*$VDSG<standard:main> */
+
+/*$VDSG<standard:call_byte_addressed_main> */
+      .EXTERN main.;
+      JUMP main. (DB);           // call main()
+         DM(I7, M7) = 0;         // NULL FP to terminate call stack unwinding
+         DM(I7, M7) = ___lib_prog_term-1;
+/*$VDSG<standard:main> */
+
+/*$VDSG<standard:end> */
+.start.end:
+/*$VDSG<standard:end> */
+
+/*$VDSG<standard:main_return> */
+      .GLOBAL ___lib_prog_term;
+___lib_prog_term:                // Automatic breakpoint location.
+      NOP;                       // Placed prior to loop label so that we
+                                 // break only once.
+.lib_prog_term_loop:
+      IDLE;
+      JUMP .lib_prog_term_loop;  // Stay put.
+.___lib_prog_term.end:
+/*$VDSG<standard:main_return> */
+
+/*$VDSG<standard:main_return_wa20000009> */
+      .GLOBAL ___lib_prog_term;
+___lib_prog_term:                // Automatic breakpoint location.
+      NOP;                       // Placed prior to loop label so that we
+                                 // break only once.
+#if WA_20000009
+      /* If there's a memory access in the previous 5 cycles, we might hit
+      ** the 20000009 anomaly. However, it's unlikely, because:
+      ** - we should only jump here once, so the jump won't be predicted
+      ** - the jumps to here from library code don't have delay slots.
+      ** So suppress the anomaly warning.
+      */
+      .MESSAGE/SUPPRESS 2561 FOR 3 LINES;
+#endif
+.lib_prog_term_loop:
+      IDLE;
+      JUMP .lib_prog_term_loop;  // Stay put.
+.___lib_prog_term.end:
+/*$VDSG<standard:main_return_XI> */
+
+/*$VDSG<standard:not_reached> */
+      /* NOT REACHED - code execution should never get to here */
+/*$VDSG<standard:not_reached> */
+
+/*$VDSG<standard:handle_osal_Init_errors> */
+      /*
+      ** The call to _adi_osal_Init returned an error so call _adi_fatal_error.
+      */
+      .EXTERN _adi_fatal_error;
+.osal_Init_failed:
+      R12 = R0;                  // pass adi_osal_Init result value
+      JUMP _adi_fatal_error (DB); // doesn't return
+         R4 = _AFE_G_LibraryError;
+         R8 = _AFE_S_adi_osal_Init_failure;
+.osal_Init_failed.end:
+/*$VDSG<standard:handle_osal_Init_errors> */
+
+/*$VDSG<standard:handle_osal_Init_errors_byte_addressed> */
+      /*
+      ** The call to _adi_osal_Init returned an error so call _adi_fatal_error.
+      */
+      .EXTERN adi_fatal_error.;
+.osal_Init_failed:
+      R12 = R0;                  // pass adi_osal_Init result value
+      JUMP adi_fatal_error. (DB); // doesn't return
+         R4 = _AFE_G_LibraryError;
+         R8 = _AFE_S_adi_osal_Init_failure;
+.osal_Init_failed.end:
+/*$VDSG<standard:handle_osal_Init_errors_byte_addressed> */
+
+/*$VDSG<standard:default_INT_macros> */
+/* INT_IRQ macro - used for the default interrupt vector instructions sequence
+**                 of interrupts where the status stack (STS) is pushed
+**                 automatically by the hardware. STS is automatically pushed
+**                 for IRQ, Timer and VIRPTL interrupts.
+*/
+#define INT_IRQ(irp)                       \
+    .RETAIN_NAME ___int_irq_##irp;         \
+    .EXTERN __dispatcher_##irp;            \
+    ___int_irq_##irp:                      \
+    JUMP __dispatcher_##irp (DB);          \
+       ASTAT = ADI_CID_##irp;              \
+       NOP;                                \
+    NOP;                                   \
+    .___int_irq_##irp##.end:
+
+/* INT macro     - used for the default interrupt vector instructions sequence
+**                 of interrupts where the status stack (STS) is not pushed
+**                 automatically by the hardware. STS is automatically pushed
+**                 for IRQ, Timer and VIRPTL interrupts.
+*/
+#define INT(irp)                           \
+    .RETAIN_NAME ___int_##irp;             \
+    .EXTERN __dispatcher_##irp;            \
+    ___int_##irp:                          \
+    JUMP __dispatcher_##irp (DB);          \
+       PUSH STS;                           \
+       ASTAT = ADI_CID_##irp;              \
+    NOP;                                   \
+    .___int_##irp##.end:
+/*$VDSG<standard:default_INT_macros> */
+
+/*$VDSG<standard:default_INT_macros_XI> */
+/* INT macro     - suitable to be used for the default interrupt vector
+**                 instructions sequence of interrupts other than SECI.
+*/
+#define INT(irp)                           \
+    .RETAIN_NAME ___int_##irp;             \
+    .EXTERN __dispatcher;                  \
+    ___int_##irp:                          \
+    JUMP __dispatcher (DB);                \
+       ASTAT = ADI_CID_##irp;              \
+       NOP;                                \
+    NOP;
+
+/* INT_SEC macro - default SECI interrupt support instructions sequence. */
+#define INT_SEC(irp)                       \
+    .RETAIN_NAME ___int_SEC;               \
+    .EXTERN __dispatcher_SEC;              \
+    ___int_SEC:                            \
+    JUMP __dispatcher_SEC (DB);            \
+       ASTAT = ADI_CID_SECI;               \
+       NOP;                                \
+    NOP;
+/*$VDSG<standard:default_INT_macros_XI> */
+
+
+/*$VDSG<standard:default_INT_macros_jump_unused_reserved> */
+/* INT_JUMP      - instructions to jump to a target label without
+**                 going through an interrupt dispatcher.
+*/
+#define INT_JUMP(irp, jump_tgt)            \
+    .EXTERN jump_tgt;                      \
+    .RETAIN_NAME ___int_jump_##irp;        \
+    ___int_jump_##irp:                     \
+    NOP;                                   \
+    JUMP jump_tgt;                         \
+    NOP;                                   \
+    NOP;
+
+/* UNUSED_INTERRUPT - The instructions jump to fatal_error for the case
+**                    where an interrupt that was not meant to be used
+**                    gets latched.
+*/
+#define UNUSED_INTERRUPT(irp)              \
+    .EXTERN _adi_fatal_error;              \
+    .RETAIN_NAME ___int_unused_##irp;      \
+    ___int_unused_##irp:                   \
+    R12 = ADI_CID_##irp;                   \
+    JUMP (PC, _adi_fatal_error) (DB);      \
+       R4 = _AFE_G_RunTimeError;           \
+       R8 = _AFE_S_UnusedInterruptRaised;
+
+/* RESERVED_INTERRUPT - 4 RTI instructions for reserved interrupts. */
+#define RESERVED_INTERRUPT RTI;RTI;RTI;RTI;
+/*$VDSG<standard:default_INT_macros_jump_unused_reserved> */
+
+/*$VDSG<standard:iv_code_21160_sov> */
+/*
+** ADSP-21160 Interrupt vector code
+** Includes support for stack overflow detection (-rtcheck-stack).
+*/
+.SECTION/DOUBLEANY/CODE iv_code;
+
+___interrupt_table:
+
+.RETAIN_NAME ___int_EMUI;
+___int_EMUI:                         // 0x00 - Emulator Interrupt
+      NOP;
+      NOP;
+      NOP;
+      NOP;
+.___int_EMUI.end:
+
+INT_JUMP(RSTI,start)                 // 0x04 - Reset Interrupt
+INT(IICDI);                          // 0x08 - Illegal Input Condition Detected
+INT(SOVFI);                          // 0x0c - Stack Overflow/Full Interrupt
+INT_IRQ(TMZHI);                      // 0x10 - Timer Expired High Priority
+INT_IRQ(VIRPTI);                     // 0x14 - Multiprocessor Vector Interrupt
+INT_IRQ(IRQ2I);                      // 0x18 - IRQ2 Hardware Interrupt
+INT_IRQ(IRQ1I)                       // 0x1c - IRQ1 Hardware Interrupt
+INT_IRQ(IRQ0I)                       // 0x20 - IRQ0 Hardware Interrupt
+RESERVED_INTERRUPT                   // 0x24
+INT(SPR0I)                           // 0x28 - SPORT Receive 0
+INT(SPR1I)                           // 0x2c - SPORT Receive 1
+INT(SPT0I)                           // 0x30 - SPORT Transmit 0
+INT(SPT1I)                           // 0x34 - SPORT Transmit 1
+INT(LP0I)                            // 0x38 - Link Port Buffer 0 DMA
+INT(LP1I)                            // 0x3c - Link Port Buffer 1 DMA
+INT(LP2I)                            // 0x40 - Link Port Buffer 2 DMA
+INT(LP3I)                            // 0x44 - Link Port Buffer 3 DMA
+INT(LP4I)                            // 0x48 - Link Port Buffer 4 DMA
+INT(LP5I)                            // 0x4c - Link Port Buffer 5 DMA
+INT(EP0I)                            // 0x50 - External Port Buffer 0 DMA
+INT(EP1I)                            // 0x54 - External Port Buffer 1 DMA
+INT(EP2I)                            // 0x58 - External Port Buffer 2 DMA
+INT(EP3I)                            // 0x5c - External Port Buffer 3 DMA
+INT(LSRQI)                           // 0x60 - Link Port Service Request
+INT_JUMP(CB7I,_adi_stack_overflowed) // 0x64 - C stack overflow (detected using circular buffer 7)
+INT(CB15I)                           // 0x68 - DAG2 Circular Buffer 15 Overflow
+INT_IRQ(TMZLI)                       // 0x6c - Timer Expired Low Priority
+INT(FIXI)                            // 0x70 - Fixed-Point Overflow
+INT(FLTOI)                           // 0x74 - Floating-Point Overflow
+INT(FLTUI)                           // 0x78 - Floating-Point Underflow
+INT(FLTII)                           // 0x7c - Floating-Point Invalid Operation
+INT(SFT0I)                           // 0x80 - User Software Interrupt 0
+INT(SFT1I)                           // 0x84 - User Software Interrupt 1
+INT(SFT2I)                           // 0x88 - User Software Interrupt 2
+INT(SFT3I)                           // 0x8c - User Software Interrupt 3
+RESERVED_INTERRUPT                   // 0x90
+.___interrupt_table.end:             // 0x94
+/*$VDSG<standard:iv_code_21160_sov> */
+
+/*$VDSG<standard:iv_code_21161_sov> */
+/*
+** ADSP-21161 Interrupt vector code
+** Includes support for stack overflow detection (-rtcheck-stack).
+*/
+.SECTION/DOUBLEANY/CODE iv_code;
+
+___interrupt_table:
+
+.RETAIN_NAME ___int_EMUI;
+___int_EMUI:                         // 0x00 - Emulator Interrupt
+      NOP;
+      NOP;
+      NOP;
+      NOP;
+.___int_EMU.end:
+
+INT_JUMP(RSTI,start)                 // 0x04 - Reset Interrupt
+INT(IICDI);                          // 0x08 - Illegal Input Condition Detected
+INT(SOVFI);                          // 0x0c - Stack Overflow/Full Interrupt
+INT_IRQ(TMZHI);                      // 0x10 - Timer Expired High Priority
+INT_IRQ(VIRPTI);                     // 0x14 - Multiprocessor Vector Interrupt
+INT_IRQ(IRQ2I);                      // 0x18 - IRQ2 Hardware Interrupt
+INT_IRQ(IRQ1I)                       // 0x1c - IRQ1 Hardware Interrupt
+INT_IRQ(IRQ0I)                       // 0x20 - IRQ0 Hardware Interrupt
+RESERVED_INTERRUPT                   // 0x24
+INT(SP0I)                            // 0x28 - SPORT0 DMA
+INT(SP1I)                            // 0x2c - SPORT1 DMA
+INT(SP2I)                            // 0x30 - SPORT2 DMA
+INT(SP3I)                            // 0x40 - SPORT3 DMA
+INT(LP0I)                            // 0x38 - Link Port Buffer 0 DMA
+INT(LP1I)                            // 0x3c - Link Port Buffer 1 DMA
+INT(SPIRI)                           // 0x40 - SPI Reveive
+INT(SPITI)                           // 0x44 - SPI Transmit
+RESERVED_INTERRUPT                   // 0x48
+RESERVED_INTERRUPT                   // 0x4c
+INT(EP0I)                            // 0x50 - External Port Buffer 0 DMA
+INT(EP1I)                            // 0x54 - External Port Buffer 1 DMA
+INT(EP2I)                            // 0x58 - External Port Buffer 2 DMA
+INT(EP3I)                            // 0x5c - External Port Buffer 3 DMA
+INT(LSRQI)                           // 0x60 - Link Port Service Request
+INT_JUMP(CB7I,_adi_stack_overflowed) // 0x64 - C stack overflow (detected using circular buffer 7)
+INT(CB15I)                           // 0x68 - DAG2 Circular Buffer 15 Overflow
+INT_IRQ(TMZLI)                       // 0x6c - Timer Expired Low Priority
+INT(FIXI)                            // 0x70 - Fixed-Point Overflow
+INT(FLTOI)                           // 0x74 - Floating-Point Overflow
+INT(FLTUI)                           // 0x78 - Floating-Point Underflow
+INT(FLTII)                           // 0x7c - Floating-Point Invalid Operation
+INT(SFT0I)                           // 0x80 - User Software Interrupt 0
+INT(SFT1I)                           // 0x84 - User Software Interrupt 1
+INT(SFT2I)                           // 0x88 - User Software Interrupt 2
+INT(SFT3I)                           // 0x8c - User Software Interrupt 3
+RESERVED_INTERRUPT                   // 0x90
+.___interrupt_table.end:             // 0x94
+/*$VDSG<standard:iv_code_21161_sov> */
+
+/*$VDSG<standard:iv_code_21261_sov> */
+/*
+** ADSP-21261 Interrupt vector code
+** Includes support for stack overflow detection (-rtcheck-stack).
+*/
+
+.SECTION/DOUBLEANY/CODE iv_code;
+
+___interrupt_table:
+
+.RETAIN_NAME ___int_EMUI;
+___int_EMUI:                         // 0x00 - Emulator Interrupt
+      NOP;
+      NOP;
+      NOP;
+      NOP;
+.___int_EMUI.end:
+
+INT_JUMP(RSTI,start)                 // 0x04 - Reset Interrupt
+INT(IICDI)                           // 0x08 - Illegal Input Condition Detected
+INT(SOVFI)                           // 0x0c - Stack Overflow/Full Interrupt
+INT_IRQ(TMZHI)                       // 0x10 - Timer 0 Expired High Priority
+RESERVED_INTERRUPT                   // 0x14
+INT(BKPI)                            // 0x18 - Hardware Breakpoint Interrupt
+RESERVED_INTERRUPT                   // 0x1c
+INT_IRQ(IRQ2I)                       // 0x20 - IRQ2I_ is asserted
+INT_IRQ(IRQ1I)                       // 0x24 - IRQ1I_ is asserted
+INT_IRQ(IRQ0I)                       // 0x28 - IRQ0I_ is asserted
+INT(DAIHI)                           // 0x2c - DAI High Priority Interrupt
+INT(SPIHI)                           // 0x30 - SPI Transmit/Receive (high)
+INT(GPTMR0I)                         // 0x34 - General-purpose IOP Timer 0
+INT(SP1I)                            // 0x38 - SPORT1 Interrupt
+INT(SP3I)                            // 0x3c - SPORT3 Interrupt
+RESERVED_INTERRUPT                   // 0x40
+INT(SP0I)                            // 0x44 - SPORT0 Interrupt
+INT(SP2I)                            // 0x48 - SPORT2 Interrupt
+RESERVED_INTERRUPT                   // 0x4c
+INT(PPI)                             // 0x50 - Parallel Port Interrupt
+INT(GPTMR1I)                         // 0x54 - General-purpose IOP Timer 1
+RESERVED_INTERRUPT                   // 0x58
+INT(DAILI)                           // 0x5c - DAI Low Priority Interrupt
+RESERVED_INTERRUPT                   // 0x60
+RESERVED_INTERRUPT                   // 0x64
+RESERVED_INTERRUPT                   // 0x68
+RESERVED_INTERRUPT                   // 0x6c
+INT(GPTMR2I)                         // 0x70 - General-purpose IOP Timer 2
+INT(SPILI)                           // 0x74 - SPI Transmit or Receive (low)
+INT_JUMP(CB7I,_adi_stack_overflowed) // 0x78 - C stack overflow (detected using circular buffer 7)
+INT(CB15I)                           // 0x7c - Circular Buffer 15 Overflow
+INT_IRQ(TMZLI)                       // 0x80 - Timer=0(Low Priority Option)
+INT(FIXI)                            // 0x84 - Fixed-point Overflow
+INT(FLTOI)                           // 0x88 - Floating-point Overflow
+INT(FLTUI)                           // 0x8c - Floating-point Underflow
+INT(FLTII)                           // 0x90 - Floating-point invalid
+INT(EMULI)                           // 0x94 - Emulator Low Priority Interrupt
+INT(SFT0I)                           // 0x98 - User Software Interrupt 0
+INT(SFT1I)                           // 0x9c - User Software Interrupt 1
+INT(SFT2I)                           // 0xa0 - User Software Interrupt 2
+INT(SFT3I)                           // 0xa4 - User Software Interrupt 3
+.___interrupt_table.end:             // 0xa8
+/*$VDSG<standard:iv_code_21261_sov> */
+
+/*$VDSG<standard:iv_code_2126x_sov> */
+/*
+** ADSP-21262 and ADSP-21266 Interrupt vector code
+** Includes support for stack overflow detection (-rtcheck-stack).
+*/
+
+.SECTION/DOUBLEANY/CODE iv_code;
+
+___interrupt_table:
+
+.RETAIN_NAME ___int_EMUI;
+___int_EMUI:                         // 0x00 - Emulator Interrupt
+      NOP;
+      NOP;
+      NOP;
+      NOP;
+.___int_EMUI.end:
+
+INT_JUMP(RSTI,start)                 // 0x04 - Reset Interrupt
+INT(IICDI)                           // 0x08 - Illegal Input Condition Detected
+INT(SOVFI)                           // 0x0c - Stack Overflow/Full Interrupt
+INT_IRQ(TMZHI)                       // 0x10 - Timer 0 Expired High Priority
+RESERVED_INTERRUPT                   // 0x14
+INT(BKPI)                            // 0x18 - Hardware Breakpoint Interrupt
+RESERVED_INTERRUPT                   // 0x1c
+INT_IRQ(IRQ2I)                       // 0x20 - IRQ2I_ is asserted
+INT_IRQ(IRQ1I)                       // 0x24 - IRQ1I_ is asserted
+INT_IRQ(IRQ0I)                       // 0x28 - IRQ0I_ is asserted
+INT(DAIHI)                           // 0x2c - DAI High Priority Interrupt
+INT(SPIHI)                           // 0x30 - SPI Transmit/Receive (high)
+INT(GPTMR0I)                         // 0x34 - General-purpose IOP Timer 0
+INT(SP1I)                            // 0x38 - SPORT1 Interrupt
+INT(SP3I)                            // 0x3c - SPORT3 Interrupt
+INT(SP5I)                            // 0x40 - SPORT5 Interrupt (not ADSP-21161)
+INT(SP0I)                            // 0x44 - SPORT0 Interrupt
+INT(SP2I)                            // 0x48 - SPORT2 Interrupt
+INT(SP4I)                            // 0x4c - SPORT4 Interrupt (not ADSP-21161)
+INT(PPI)                             // 0x50 - Parallel Port Interrupt
+INT(GPTMR1I)                         // 0x54 - General-purpose IOP Timer 1
+RESERVED_INTERRUPT                   // 0x58
+INT(DAILI)                           // 0x5c - DAI Low Priority Interrupt
+RESERVED_INTERRUPT                   // 0x60
+RESERVED_INTERRUPT                   // 0x64
+RESERVED_INTERRUPT                   // 0x68
+RESERVED_INTERRUPT                   // 0x6c
+INT(GPTMR2I)                         // 0x70 - General-purpose IOP Timer 2
+INT(SPILI)                           // 0x74 - SPI Transmit or Receive (low)
+INT_JUMP(CB7I,_adi_stack_overflowed) // 0x78 - C stack overflow (detected using circular buffer 7)
+INT(CB15I)                           // 0x7c - Circular Buffer 15 Overflow
+INT_IRQ(TMZLI)                       // 0x80 - Timer=0(Low Priority Option)
+INT(FIXI)                            // 0x84 - Fixed-point Overflow
+INT(FLTOI)                           // 0x88 - Floating-point Overflow
+INT(FLTUI)                           // 0x8c - Floating-point Underflow
+INT(FLTII)                           // 0x90 - Floating-point invalid
+INT(EMULI)                           // 0x94 - Emulator Low Priority Interrupt
+INT(SFT0I)                           // 0x98 - User Software Interrupt 0
+INT(SFT1I)                           // 0x9c - User Software Interrupt 1
+INT(SFT2I)                           // 0xa0 - User Software Interrupt 2
+INT(SFT3I)                           // 0xa4 - User Software Interrupt 3
+.___interrupt_table.end:             // 0xa8
+/*$VDSG<standard:iv_code_2126x_sov> */
+
+/*$VDSG<standard:iv_code_EX4_sov> */
+/*
+** ADSP-2136[23456] Interrupt Vector code
+** Includes support for stack overflow detection (-rtcheck-stack).
+*/
+.SECTION/DOUBLEANY/CODE iv_code;
+
+___interrupt_table:
+
+.RETAIN_NAME ___int_EMUI;            // 0x00 - Emulator Interrupt
+___int_EMUI:
+      NOP;
+      NOP;
+      NOP;
+      NOP;
+.___int_EMUI.end:
+
+INT_JUMP(RSTI,start)                 // 0x04 - Reset Interrupt
+INT(IICDI)                           // 0x08 - Illegal Input Condition Detected
+INT(SOVFI)                           // 0x0c - Stack Overflow/Full Interrupt
+INT_IRQ(TMZHI)                       // 0x10 - Timer Expired High Priority
+RESERVED_INTERRUPT                   // 0x14
+INT(BKPI)                            // 0x18 - Hardware Breakpoint Interrupt
+RESERVED_INTERRUPT                   // 0x1c
+INT_IRQ(IRQ2I)                       // 0x20 - IRQ2I_ is asserted
+INT_IRQ(IRQ1I)                       // 0x24 - IRQ1I_ is asserted
+INT_IRQ(IRQ0I)                       // 0x28 - IRQ0I_ is asserted
+INT(P0I)                             // 0x2c - Programmable Interrupt 0
+INT(P1I)                             // 0x30 - Programmable Interrupt 1
+INT(P2I)                             // 0x34 - Programmable Interrupt 2
+INT(P3I)                             // 0x38 - Programmable Interrupt 3
+INT(P4I)                             // 0x3c - Programmable Interrupt 4
+INT(P5I)                             // 0x40 - Programmable Interrupt 5
+INT(P6I)                             // 0x44 - Programmable Interrupt 6
+INT(P7I)                             // 0x48 - Programmable Interrupt 7
+INT(P8I)                             // 0x4c - Programmable Interrupt 8
+INT(P9I)                             // 0x50 - Programmable Interrupt 9
+INT(P10I)                            // 0x54 - Programmable Interrupt 10
+RESERVED_INTERRUPT                   // 0x58
+INT(P12I)                            // 0x5c - Programmable Interrupt 12
+INT(P13I)                            // 0x60 - Programmable Interrupt 13
+RESERVED_INTERRUPT                   // 0x64
+INT(P15I)                            // 0x68 - Programmable Interrupt 15
+RESERVED_INTERRUPT                   // 0x6c
+INT(P17I)                            // 0x70 - Programmable Interrupt 17
+INT(P18I)                            // 0x74 - Programmable Interrupt 18
+INT_JUMP(CB7I,_adi_stack_overflowed) // 0x78 - C stack overflow (detected using circular buffer 7)
+INT(CB15I)                           // 0x7c - Circular Buffer 15 Overflow
+INT_IRQ(TMZLI)                       // 0x80 - Timer=0(Low Priority Option)
+INT(FIXI)                            // 0x84 - Fixed-point Overflow
+INT(FLTOI)                           // 0x88 - Floating-point Overflow
+INT(FLTUI)                           // 0x8c - Floating-point Underflow
+INT(FLTII)                           // 0x90 - Floating-point invalid
+INT(EMULI)                           // 0x94 - Emulator Low Priority Interrupt
+INT(SFT0I)                           // 0x98 - User Software Interrupt 0
+INT(SFT1I)                           // 0x9c - User Software Interrupt 1
+INT(SFT2I)                           // 0xa0 - User Software Interrupt 2
+INT(SFT3I)                           // 0xa4 - User Software Interrupt 3
+.___interrupt_table.end:             // 0xa8
+/*$VDSG<standard:iv_code_EX4_sov> */
+
+/*$VDSG<standard:iv_code_LX3_LX4_sov> */
+/*
+** ADSP-2136[789] and ADSP-2137[15] Interrupt Vector code
+** Includes support for stack overflow detection (-rtcheck-stack).
+*/
+.SECTION/DOUBLEANY/CODE iv_code;
+
+___interrupt_table:
+
+.RETAIN_NAME ___int_EMUI;            // 0x00 - Emulator Interrupt
+___int_EMUI:
+      NOP;
+      NOP;
+      NOP;
+      NOP;
+.___int_EMUI.end:
+
+INT_JUMP(RSTI,start)                 // 0x04 - Reset Interrupt
+INT(IICDI)                           // 0x08 - Illegal Input Condition Detected
+INT(SOVFI)                           // 0x0c - Stack Overflow/Full Interrupt
+INT_IRQ(TMZHI)                       // 0x10 - Timer Expired High Priority
+INT(SPERRI)                          // 0x14 - SPORT Error Interrupt
+INT(BKPI)                            // 0x18 - Hardware Breakpoint Interrupt
+RESERVED_INTERRUPT                   // 0x1c
+INT_IRQ(IRQ2I)                       // 0x20 - IRQ2I_ is asserted
+INT_IRQ(IRQ1I)                       // 0x24 - IRQ1I_ is asserted
+INT_IRQ(IRQ0I)                       // 0x28 - IRQ0I_ is asserted
+INT(P0I)                             // 0x2c - Programmable Interrupt 0
+INT(P1I)                             // 0x30 - Programmable Interrupt 1
+INT(P2I)                             // 0x34 - Programmable Interrupt 2
+INT(P3I)                             // 0x38 - Programmable Interrupt 3
+INT(P4I)                             // 0x3c - Programmable Interrupt 4
+INT(P5I)                             // 0x40 - Programmable Interrupt 5
+INT(P6I)                             // 0x44 - Programmable Interrupt 6
+INT(P7I)                             // 0x48 - Programmable Interrupt 7
+INT(P8I)                             // 0x4c - Programmable Interrupt 8
+INT(P9I)                             // 0x50 - Programmable Interrupt 9
+INT(P10I)                            // 0x54 - Programmable Interrupt 10
+INT(P11I)                            // 0x58 - Programmable Interrupt 11
+INT(P12I)                            // 0x5c - Programmable Interrupt 12
+INT(P13I)                            // 0x60 - Programmable Interrupt 13
+INT(P14I)                            // 0x64 - Programmable Interrupt 14
+INT(P15I)                            // 0x68 - Programmable Interrupt 15
+INT(P16I)                            // 0x6c - Programmable Interrupt 16
+INT(P17I)                            // 0x70 - Programmable Interrupt 17
+INT(P18I)                            // 0x74 - Programmable Interrupt 18
+INT_JUMP(CB7I,_adi_stack_overflowed) // 0x78 - C stack overflow (detected using circular buffer 7)
+INT(CB15I)                           // 0x7c - Circular Buffer 15 Overflow
+INT_IRQ(TMZLI)                       // 0x80 - Timer=0(Low Priority Option)
+INT(FIXI)                            // 0x84 - Fixed-point Overflow
+INT(FLTOI)                           // 0x88 - Floating-point Overflow
+INT(FLTUI)                           // 0x8c - Floating-point Underflow
+INT(FLTII)                           // 0x90 - Floating-point invalid
+INT(EMULI)                           // 0x94 - Emulator Low Priority Interrupt
+INT(SFT0I)                           // 0x98 - User Software Interrupt 0
+INT(SFT1I)                           // 0x9c - User Software Interrupt 1
+INT(SFT2I)                           // 0xa0 - User Software Interrupt 2
+INT(SFT3I)                           // 0xa4 - User Software Interrupt 3
+.___interrupt_table.end:             // 0xa8
+/*$VDSG<standard:iv_code_LX3_LX4_sov> */
+
+/*$VDSG<standard:iv_code_LX5_sov> */
+/*
+** ADSP-214xx Interrupt vector code
+** Includes support for stack overflow detection (-rtcheck-stack).
+*/
+.SECTION/CODE/NW/DOUBLEANY iv_code;
+
+___interrupt_table:
+
+.RETAIN_NAME ___int_EMUI;            // 0x00 - Emulator Interrupt
+___int_EMUI:
+      NOP;
+      NOP;
+      NOP;
+      NOP;
+.___int_EMU.end:
+
+INT_JUMP(RSTI,start)                 // 0x04 - Reset Interrupt
+INT(IICDI)                           // 0x08 - Illegal Input Condition Detected
+INT(SOVFI)                           // 0x0c - Stack Overflow/Full Interrupt
+INT_IRQ(TMZHI)                       // 0x10 - Timer Expired High Priority
+INT(SPERRI)                          // 0x14 - SPORT Error Interrupt
+INT(BKPI)                            // 0x18 - Hardware Breakpoint Interrupt
+RESERVED_INTERRUPT                   // 0x1c
+INT_IRQ(IRQ2I)                       // 0x20 - IRQ2I_ is asserted
+INT_IRQ(IRQ1I)                       // 0x24 - IRQ1I_ is asserted
+INT_IRQ(IRQ0I)                       // 0x28 - IRQ0I_ is asserted
+INT(P0I)                             // 0x2c - Programmable Interrupt 0
+INT(P1I)                             // 0x30 - Programmable Interrupt 1
+INT(P2I)                             // 0x34 - Programmable Interrupt 2
+INT(P3I)                             // 0x38 - Programmable Interrupt 3
+INT(P4I)                             // 0x3c - Programmable Interrupt 4
+INT(P5I)                             // 0x40 - Programmable Interrupt 5
+INT(P6I)                             // 0x44 - Programmable Interrupt 6
+INT(P7I)                             // 0x48 - Programmable Interrupt 7
+INT(P8I)                             // 0x4c - Programmable Interrupt 8
+INT(P9I)                             // 0x50 - Programmable Interrupt 9
+INT(P10I)                            // 0x54 - Programmable Interrupt 10
+INT(P11I)                            // 0x58 - Programmable Interrupt 11
+INT(P12I)                            // 0x5c - Programmable Interrupt 12
+INT(P13I)                            // 0x60 - Programmable Interrupt 13
+INT(P14I)                            // 0x64 - Programmable Interrupt 14
+INT(P15I)                            // 0x68 - Programmable Interrupt 15
+INT(P16I)                            // 0x6c - Programmable Interrupt 16
+INT(P17I)                            // 0x70 - Programmable Interrupt 17
+INT(P18I)                            // 0x74 - Programmable Interrupt 18
+INT_JUMP(CB7I,_adi_stack_overflowed) // 0x78 - C stack overflow (detected using circular buffer 7)
+INT(CB15I)                           // 0x7c - Circular Buffer 15 Overflow
+INT_IRQ(TMZLI)                       // 0x80 - Timer=0(Low Priority Option)
+INT(FIXI)                            // 0x84 - Fixed-point Overflow
+INT(FLTOI)                           // 0x88 - Floating-point Overflow
+INT(FLTUI)                           // 0x8c - Floating-point Underflow
+INT(FLTII)                           // 0x90 - Floating-point invalid
+INT(EMULI)                           // 0x94 - Emulator Low Priority Interrupt
+INT(SFT0I)                           // 0x98 - User Software Interrupt 0
+INT(SFT1I)                           // 0x9c - User Software Interrupt 1
+INT(SFT2I)                           // 0xa0 - User Software Interrupt 2
+INT(SFT3I)                           // 0xa4 - User Software Interrupt 3
+.___interrupt_table.end:             // 0xa8
+/*$VDSG<standard:iv_code_LX5_sov> */
+
+/*$VDSG<standard:iv_code_21160> */
+/*
+** ADSP-21160 Interrupt vector code
+*/
+.SECTION/DOUBLEANY/CODE iv_code;
+
+___interrupt_table:
+
+.RETAIN_NAME ___int_EMUI;
+___int_EMUI:                         // 0x00 - Emulator Interrupt
+      NOP;
+      NOP;
+      NOP;
+      NOP;
+.___int_EMUI.end:
+
+INT_JUMP(RSTI,start)                 // 0x04 - Reset Interrupt
+INT(IICDI);                          // 0x08 - Illegal Input Condition Detected
+INT(SOVFI);                          // 0x0c - Stack Overflow/Full Interrupt
+INT_IRQ(TMZHI);                      // 0x10 - Timer Expired High Priority
+INT_IRQ(VIRPTI);                     // 0x14 - Multiprocessor Vector Interrupt
+INT_IRQ(IRQ2I);                      // 0x18 - IRQ2 Hardware Interrupt
+INT_IRQ(IRQ1I)                       // 0x1c - IRQ1 Hardware Interrupt
+INT_IRQ(IRQ0I)                       // 0x20 - IRQ0 Hardware Interrupt
+RESERVED_INTERRUPT                   // 0x24
+INT(SPR0I)                           // 0x28 - SPORT Receive 0
+INT(SPR1I)                           // 0x2c - SPORT Receive 1
+INT(SPT0I)                           // 0x30 - SPORT Transmit 0
+INT(SPT1I)                           // 0x34 - SPORT Transmit 1
+INT(LP0I)                            // 0x38 - Link Port Buffer 0 DMA
+INT(LP1I)                            // 0x3c - Link Port Buffer 1 DMA
+INT(LP2I)                            // 0x40 - Link Port Buffer 2 DMA
+INT(LP3I)                            // 0x44 - Link Port Buffer 3 DMA
+INT(LP4I)                            // 0x48 - Link Port Buffer 4 DMA
+INT(LP5I)                            // 0x4c - Link Port Buffer 5 DMA
+INT(EP0I)                            // 0x50 - External Port Buffer 0 DMA
+INT(EP1I)                            // 0x54 - External Port Buffer 1 DMA
+INT(EP2I)                            // 0x58 - External Port Buffer 2 DMA
+INT(EP3I)                            // 0x5c - External Port Buffer 3 DMA
+INT(LSRQI)                           // 0x60 - Link Port Service Request
+INT(CB7I)                            // 0x64 - DAG1 Circular Buffer 7 Overflow
+INT(CB15I)                           // 0x68 - DAG2 Circular Buffer 15 Overflow
+INT_IRQ(TMZLI)                       // 0x6c - Timer Expired Low Priority
+INT(FIXI)                            // 0x70 - Fixed-Point Overflow
+INT(FLTOI)                           // 0x74 - Floating-Point Overflow
+INT(FLTUI)                           // 0x78 - Floating-Point Underflow
+INT(FLTII)                           // 0x7c - Floating-Point Invalid Operation
+INT(SFT0I)                           // 0x80 - User Software Interrupt 0
+INT(SFT1I)                           // 0x84 - User Software Interrupt 1
+INT(SFT2I)                           // 0x88 - User Software Interrupt 2
+INT(SFT3I)                           // 0x8c - User Software Interrupt 3
+RESERVED_INTERRUPT                   // 0x90
+.___interrupt_table.end:             // 0x94
+/*$VDSG<standard:iv_code_21160> */
+
+/*$VDSG<standard:iv_code_21161> */
+/*
+** ADSP-21161 Interrupt vector code
+*/
+.SECTION/DOUBLEANY/CODE iv_code;
+
+___interrupt_table:
+
+.RETAIN_NAME ___int_EMUI;
+___int_EMUI:                         // 0x00 - Emulator Interrupt
+      NOP;
+      NOP;
+      NOP;
+      NOP;
+.___int_EMU.end:
+
+INT_JUMP(RSTI,start)                 // 0x04 - Reset Interrupt
+INT(IICDI);                          // 0x08 - Illegal Input Condition Detected
+INT(SOVFI);                          // 0x0c - Stack Overflow/Full Interrupt
+INT_IRQ(TMZHI);                      // 0x10 - Timer Expired High Priority
+INT_IRQ(VIRPTI);                     // 0x14 - Multiprocessor Vector Interrupt
+INT_IRQ(IRQ2I);                      // 0x18 - IRQ2 Hardware Interrupt
+INT_IRQ(IRQ1I)                       // 0x1c - IRQ1 Hardware Interrupt
+INT_IRQ(IRQ0I)                       // 0x20 - IRQ0 Hardware Interrupt
+RESERVED_INTERRUPT                   // 0x24
+INT(SP0I)                            // 0x28 - SPORT0 DMA
+INT(SP1I)                            // 0x2c - SPORT1 DMA
+INT(SP2I)                            // 0x30 - SPORT2 DMA
+INT(SP3I)                            // 0x40 - SPORT3 DMA
+INT(LP0I)                            // 0x38 - Link Port Buffer 0 DMA
+INT(LP1I)                            // 0x3c - Link Port Buffer 1 DMA
+INT(SPIRI)                           // 0x40 - SPI Reveive
+INT(SPITI)                           // 0x44 - SPI Transmit
+RESERVED_INTERRUPT                   // 0x48
+RESERVED_INTERRUPT                   // 0x4c
+INT(EP0I)                            // 0x50 - External Port Buffer 0 DMA
+INT(EP1I)                            // 0x54 - External Port Buffer 1 DMA
+INT(EP2I)                            // 0x58 - External Port Buffer 2 DMA
+INT(EP3I)                            // 0x5c - External Port Buffer 3 DMA
+INT(LSRQI)                           // 0x60 - Link Port Service Request
+INT(CB7I)                            // 0x64 - DAG1 Circular Buffer 7 Overflow
+INT(CB15I)                           // 0x68 - DAG2 Circular Buffer 15 Overflow
+INT_IRQ(TMZLI)                       // 0x6c - Timer Expired Low Priority
+INT(FIXI)                            // 0x70 - Fixed-Point Overflow
+INT(FLTOI)                           // 0x74 - Floating-Point Overflow
+INT(FLTUI)                           // 0x78 - Floating-Point Underflow
+INT(FLTII)                           // 0x7c - Floating-Point Invalid Operation
+INT(SFT0I)                           // 0x80 - User Software Interrupt 0
+INT(SFT1I)                           // 0x84 - User Software Interrupt 1
+INT(SFT2I)                           // 0x88 - User Software Interrupt 2
+INT(SFT3I)                           // 0x8c - User Software Interrupt 3
+RESERVED_INTERRUPT                   // 0x90
+.___interrupt_table.end:             // 0x94
+/*$VDSG<standard:iv_code_21161> */
+
+/*$VDSG<standard:iv_code_21261> */
+/*
+** ADSP-21261 Interrupt vector code
+*/
+
+.SECTION/DOUBLEANY/CODE iv_code;
+
+___interrupt_table:
+
+.RETAIN_NAME ___int_EMUI;
+___int_EMUI:                         // 0x00 - Emulator Interrupt
+      NOP;
+      NOP;
+      NOP;
+      NOP;
+.___int_EMUI.end:
+
+INT_JUMP(RSTI,start)                 // 0x04 - Reset Interrupt
+INT(IICDI)                           // 0x08 - Illegal Input Condition Detected
+INT(SOVFI)                           // 0x0c - Stack Overflow/Full Interrupt
+INT_IRQ(TMZHI)                       // 0x10 - Timer 0 Expired High Priority
+RESERVED_INTERRUPT                   // 0x14
+INT(BKPI)                            // 0x18 - Hardware Breakpoint Interrupt
+RESERVED_INTERRUPT                   // 0x1c
+INT_IRQ(IRQ2I)                       // 0x20 - IRQ2I_ is asserted
+INT_IRQ(IRQ1I)                       // 0x24 - IRQ1I_ is asserted
+INT_IRQ(IRQ0I)                       // 0x28 - IRQ0I_ is asserted
+INT(DAIHI)                           // 0x2c - DAI High Priority Interrupt
+INT(SPIHI)                           // 0x30 - SPI Transmit/Receive (high)
+INT(GPTMR0I)                         // 0x34 - General-purpose IOP Timer 0
+INT(SP1I)                            // 0x38 - SPORT1 Interrupt
+INT(SP3I)                            // 0x3c - SPORT3 Interrupt
+RESERVED_INTERRUPT                   // 0x40
+INT(SP0I)                            // 0x44 - SPORT0 Interrupt
+INT(SP2I)                            // 0x48 - SPORT2 Interrupt
+RESERVED_INTERRUPT                   // 0x4c
+INT(PPI)                             // 0x50 - Parallel Port Interrupt
+INT(GPTMR1I)                         // 0x54 - General-purpose IOP Timer 1
+RESERVED_INTERRUPT                   // 0x58
+INT(DAILI)                           // 0x5c - DAI Low Priority Interrupt
+RESERVED_INTERRUPT                   // 0x60
+RESERVED_INTERRUPT                   // 0x64
+RESERVED_INTERRUPT                   // 0x68
+RESERVED_INTERRUPT                   // 0x6c
+INT(GPTMR2I)                         // 0x70 - General-purpose IOP Timer 2
+INT(SPILI)                           // 0x74 - SPI Transmit or Receive (low)
+INT(CB7I)                            // 0x78 - Circular Buffer 7 Overflow
+INT(CB15I)                           // 0x7c - Circular Buffer 15 Overflow
+INT_IRQ(TMZLI)                       // 0x80 - Timer=0(Low Priority Option)
+INT(FIXI)                            // 0x84 - Fixed-point Overflow
+INT(FLTOI)                           // 0x88 - Floating-point Overflow
+INT(FLTUI)                           // 0x8c - Floating-point Underflow
+INT(FLTII)                           // 0x90 - Floating-point invalid
+INT(EMULI)                           // 0x94 - Emulator Low Priority Interrupt
+INT(SFT0I)                           // 0x98 - User Software Interrupt 0
+INT(SFT1I)                           // 0x9c - User Software Interrupt 1
+INT(SFT2I)                           // 0xa0 - User Software Interrupt 2
+INT(SFT3I)                           // 0xa4 - User Software Interrupt 3
+.___interrupt_table.end:             // 0xa8
+/*$VDSG<standard:iv_code_21261> */
+
+/*$VDSG<standard:iv_code_2126x> */
+/*
+** ADSP-21262 and ADSP-21266 Interrupt vector code
+*/
+
+.SECTION/DOUBLEANY/CODE iv_code;
+
+___interrupt_table:
+
+.RETAIN_NAME ___int_EMUI;
+___int_EMUI:                         // 0x00 - Emulator Interrupt
+      NOP;
+      NOP;
+      NOP;
+      NOP;
+.___int_EMUI.end:
+
+INT_JUMP(RSTI,start)                 // 0x04 - Reset Interrupt
+INT(IICDI)                           // 0x08 - Illegal Input Condition Detected
+INT(SOVFI)                           // 0x0c - Stack Overflow/Full Interrupt
+INT_IRQ(TMZHI)                       // 0x10 - Timer 0 Expired High Priority
+RESERVED_INTERRUPT                   // 0x14
+INT(BKPI)                            // 0x18 - Hardware Breakpoint Interrupt
+RESERVED_INTERRUPT                   // 0x1c
+INT_IRQ(IRQ2I)                       // 0x20 - IRQ2I_ is asserted
+INT_IRQ(IRQ1I)                       // 0x24 - IRQ1I_ is asserted
+INT_IRQ(IRQ0I)                       // 0x28 - IRQ0I_ is asserted
+INT(DAIHI)                           // 0x2c - DAI High Priority Interrupt
+INT(SPIHI)                           // 0x30 - SPI Transmit/Receive (high)
+INT(GPTMR0I)                         // 0x34 - General-purpose IOP Timer 0
+INT(SP1I)                            // 0x38 - SPORT1 Interrupt
+INT(SP3I)                            // 0x3c - SPORT3 Interrupt
+INT(SP5I)                            // 0x40 - SPORT5 Interrupt (not ADSP-21161)
+INT(SP0I)                            // 0x44 - SPORT0 Interrupt
+INT(SP2I)                            // 0x48 - SPORT2 Interrupt
+INT(SP4I)                            // 0x4c - SPORT4 Interrupt (not ADSP-21161)
+INT(PPI)                             // 0x50 - Parallel Port Interrupt
+INT(GPTMR1I)                         // 0x54 - General-purpose IOP Timer 1
+RESERVED_INTERRUPT                   // 0x58
+INT(DAILI)                           // 0x5c - DAI Low Priority Interrupt
+RESERVED_INTERRUPT                   // 0x60
+RESERVED_INTERRUPT                   // 0x64
+RESERVED_INTERRUPT                   // 0x68
+RESERVED_INTERRUPT                   // 0x6c
+INT(GPTMR2I)                         // 0x70 - General-purpose IOP Timer 2
+INT(SPILI)                           // 0x74 - SPI Transmit or Receive (low)
+INT(CB7I)                            // 0x78 - Circular Buffer 7 Overflow
+INT(CB15I)                           // 0x7c - Circular Buffer 15 Overflow
+INT_IRQ(TMZLI)                       // 0x80 - Timer=0(Low Priority Option)
+INT(FIXI)                            // 0x84 - Fixed-point Overflow
+INT(FLTOI)                           // 0x88 - Floating-point Overflow
+INT(FLTUI)                           // 0x8c - Floating-point Underflow
+INT(FLTII)                           // 0x90 - Floating-point invalid
+INT(EMULI)                           // 0x94 - Emulator Low Priority Interrupt
+INT(SFT0I)                           // 0x98 - User Software Interrupt 0
+INT(SFT1I)                           // 0x9c - User Software Interrupt 1
+INT(SFT2I)                           // 0xa0 - User Software Interrupt 2
+INT(SFT3I)                           // 0xa4 - User Software Interrupt 3
+.___interrupt_table.end:             // 0xa8
+/*$VDSG<standard:iv_code_2126x> */
+
+/*$VDSG<standard:iv_code_EX4> */
+/*
+** ADSP-2136[23456] Interrupt Vector code
+*/
+.SECTION/DOUBLEANY/CODE iv_code;
+
+___interrupt_table:
+
+.RETAIN_NAME ___int_EMUI;            // 0x00 - Emulator Interrupt
+___int_EMUI:
+      NOP;
+      NOP;
+      NOP;
+      NOP;
+.___int_EMUI.end:
+
+INT_JUMP(RSTI,start)                 // 0x04 - Reset Interrupt
+INT(IICDI)                           // 0x08 - Illegal Input Condition Detected
+INT(SOVFI)                           // 0x0c - Stack Overflow/Full Interrupt
+INT_IRQ(TMZHI)                       // 0x10 - Timer Expired High Priority
+RESERVED_INTERRUPT                   // 0x14
+INT(BKPI)                            // 0x18 - Hardware Breakpoint Interrupt
+RESERVED_INTERRUPT                   // 0x1c
+INT_IRQ(IRQ2I)                       // 0x20 - IRQ2I_ is asserted
+INT_IRQ(IRQ1I)                       // 0x24 - IRQ1I_ is asserted
+INT_IRQ(IRQ0I)                       // 0x28 - IRQ0I_ is asserted
+INT(P0I)                             // 0x2c - Programmable Interrupt 0
+INT(P1I)                             // 0x30 - Programmable Interrupt 1
+INT(P2I)                             // 0x34 - Programmable Interrupt 2
+INT(P3I)                             // 0x38 - Programmable Interrupt 3
+INT(P4I)                             // 0x3c - Programmable Interrupt 4
+INT(P5I)                             // 0x40 - Programmable Interrupt 5
+INT(P6I)                             // 0x44 - Programmable Interrupt 6
+INT(P7I)                             // 0x48 - Programmable Interrupt 7
+INT(P8I)                             // 0x4c - Programmable Interrupt 8
+INT(P9I)                             // 0x50 - Programmable Interrupt 9
+INT(P10I)                            // 0x54 - Programmable Interrupt 10
+RESERVED_INTERRUPT                   // 0x58
+INT(P12I)                            // 0x5c - Programmable Interrupt 12
+INT(P13I)                            // 0x60 - Programmable Interrupt 13
+RESERVED_INTERRUPT                   // 0x64
+INT(P15I)                            // 0x68 - Programmable Interrupt 15
+RESERVED_INTERRUPT                   // 0x6c
+INT(P17I)                            // 0x70 - Programmable Interrupt 17
+INT(P18I)                            // 0x74 - Programmable Interrupt 18
+INT(CB7I)                            // 0x78 - Circular Buffer 7 Overflow
+INT(CB15I)                           // 0x7c - Circular Buffer 15 Overflow
+INT_IRQ(TMZLI)                       // 0x80 - Timer=0(Low Priority Option)
+INT(FIXI)                            // 0x84 - Fixed-point Overflow
+INT(FLTOI)                           // 0x88 - Floating-point Overflow
+INT(FLTUI)                           // 0x8c - Floating-point Underflow
+INT(FLTII)                           // 0x90 - Floating-point invalid
+INT(EMULI)                           // 0x94 - Emulator Low Priority Interrupt
+INT(SFT0I)                           // 0x98 - User Software Interrupt 0
+INT(SFT1I)                           // 0x9c - User Software Interrupt 1
+INT(SFT2I)                           // 0xa0 - User Software Interrupt 2
+INT(SFT3I)                           // 0xa4 - User Software Interrupt 3
+.___interrupt_table.end:             // 0xa8
+/*$VDSG<standard:iv_code_EX4> */
+
+/*$VDSG<standard:iv_code_LX3_LX4> */
+/*
+** ADSP-2136[789] and ADSP-2137[15] Interrupt Vector code
+*/
+.SECTION/DOUBLEANY/CODE iv_code;
+
+___interrupt_table:
+
+.RETAIN_NAME ___int_EMUI;            // 0x00 - Emulator Interrupt
+___int_EMUI:
+      NOP;
+      NOP;
+      NOP;
+      NOP;
+.___int_EMUI.end:
+
+INT_JUMP(RSTI,start)                 // 0x04 - Reset Interrupt
+INT(IICDI)                           // 0x08 - Illegal Input Condition Detected
+INT(SOVFI)                           // 0x0c - Stack Overflow/Full Interrupt
+INT_IRQ(TMZHI)                       // 0x10 - Timer Expired High Priority
+INT(SPERRI)                          // 0x14 - SPORT Error Interrupt
+INT(BKPI)                            // 0x18 - Hardware Breakpoint Interrupt
+RESERVED_INTERRUPT                   // 0x1c
+INT_IRQ(IRQ2I)                       // 0x20 - IRQ2I_ is asserted
+INT_IRQ(IRQ1I)                       // 0x24 - IRQ1I_ is asserted
+INT_IRQ(IRQ0I)                       // 0x28 - IRQ0I_ is asserted
+INT(P0I)                             // 0x2c - Programmable Interrupt 0
+INT(P1I)                             // 0x30 - Programmable Interrupt 1
+INT(P2I)                             // 0x34 - Programmable Interrupt 2
+INT(P3I)                             // 0x38 - Programmable Interrupt 3
+INT(P4I)                             // 0x3c - Programmable Interrupt 4
+INT(P5I)                             // 0x40 - Programmable Interrupt 5
+INT(P6I)                             // 0x44 - Programmable Interrupt 6
+INT(P7I)                             // 0x48 - Programmable Interrupt 7
+INT(P8I)                             // 0x4c - Programmable Interrupt 8
+INT(P9I)                             // 0x50 - Programmable Interrupt 9
+INT(P10I)                            // 0x54 - Programmable Interrupt 10
+INT(P11I)                            // 0x58 - Programmable Interrupt 11
+INT(P12I)                            // 0x5c - Programmable Interrupt 12
+INT(P13I)                            // 0x60 - Programmable Interrupt 13
+INT(P14I)                            // 0x64 - Programmable Interrupt 14
+INT(P15I)                            // 0x68 - Programmable Interrupt 15
+INT(P16I)                            // 0x6c - Programmable Interrupt 16
+INT(P17I)                            // 0x70 - Programmable Interrupt 17
+INT(P18I)                            // 0x74 - Programmable Interrupt 18
+INT(CB7I)                            // 0x78 - Circular Buffer 7 Overflow
+INT(CB15I)                           // 0x7c - Circular Buffer 15 Overflow
+INT_IRQ(TMZLI)                       // 0x80 - Timer=0(Low Priority Option)
+INT(FIXI)                            // 0x84 - Fixed-point Overflow
+INT(FLTOI)                           // 0x88 - Floating-point Overflow
+INT(FLTUI)                           // 0x8c - Floating-point Underflow
+INT(FLTII)                           // 0x90 - Floating-point invalid
+INT(EMULI)                           // 0x94 - Emulator Low Priority Interrupt
+INT(SFT0I)                           // 0x98 - User Software Interrupt 0
+INT(SFT1I)                           // 0x9c - User Software Interrupt 1
+INT(SFT2I)                           // 0xa0 - User Software Interrupt 2
+INT(SFT3I)                           // 0xa4 - User Software Interrupt 3
+.___interrupt_table.end:             // 0xa8
+/*$VDSG<standard:iv_code_LX3_LX4> */
+
+/*$VDSG<standard:iv_code_LX5> */
+/*
+** ADSP-214xx Interrupt vector code
+*/
+.SECTION/CODE/NW/DOUBLEANY iv_code;
+
+___interrupt_table:
+
+.RETAIN_NAME ___int_EMUI;            // 0x00 - Emulator Interrupt
+___int_EMUI:
+      NOP;
+      NOP;
+      NOP;
+      NOP;
+.___int_EMU.end:
+
+INT_JUMP(RSTI,start)                 // 0x04 - Reset Interrupt
+INT(IICDI)                           // 0x08 - Illegal Input Condition Detected
+INT(SOVFI)                           // 0x0c - Stack Overflow/Full Interrupt
+INT_IRQ(TMZHI)                       // 0x10 - Timer Expired High Priority
+INT(SPERRI)                          // 0x14 - SPORT Error Interrupt
+INT(BKPI)                            // 0x18 - Hardware Breakpoint Interrupt
+RESERVED_INTERRUPT                   // 0x1c
+INT_IRQ(IRQ2I)                       // 0x20 - IRQ2I_ is asserted
+INT_IRQ(IRQ1I)                       // 0x24 - IRQ1I_ is asserted
+INT_IRQ(IRQ0I)                       // 0x28 - IRQ0I_ is asserted
+INT(P0I)                             // 0x2c - Programmable Interrupt 0
+INT(P1I)                             // 0x30 - Programmable Interrupt 1
+INT(P2I)                             // 0x34 - Programmable Interrupt 2
+INT(P3I)                             // 0x38 - Programmable Interrupt 3
+INT(P4I)                             // 0x3c - Programmable Interrupt 4
+INT(P5I)                             // 0x40 - Programmable Interrupt 5
+INT(P6I)                             // 0x44 - Programmable Interrupt 6
+INT(P7I)                             // 0x48 - Programmable Interrupt 7
+INT(P8I)                             // 0x4c - Programmable Interrupt 8
+INT(P9I)                             // 0x50 - Programmable Interrupt 9
+INT(P10I)                            // 0x54 - Programmable Interrupt 10
+INT(P11I)                            // 0x58 - Programmable Interrupt 11
+INT(P12I)                            // 0x5c - Programmable Interrupt 12
+INT(P13I)                            // 0x60 - Programmable Interrupt 13
+INT(P14I)                            // 0x64 - Programmable Interrupt 14
+INT(P15I)                            // 0x68 - Programmable Interrupt 15
+INT(P16I)                            // 0x6c - Programmable Interrupt 16
+INT(P17I)                            // 0x70 - Programmable Interrupt 17
+INT(P18I)                            // 0x74 - Programmable Interrupt 18
+INT(CB7I)                            // 0x78 - Circular Buffer 7 Overflow
+INT(CB15I)                           // 0x7c - Circular Buffer 15 Overflow
+INT_IRQ(TMZLI)                       // 0x80 - Timer=0(Low Priority Option)
+INT(FIXI)                            // 0x84 - Fixed-point Overflow
+INT(FLTOI)                           // 0x88 - Floating-point Overflow
+INT(FLTUI)                           // 0x8c - Floating-point Underflow
+INT(FLTII)                           // 0x90 - Floating-point invalid
+INT(EMULI)                           // 0x94 - Emulator Low Priority Interrupt
+INT(SFT0I)                           // 0x98 - User Software Interrupt 0
+INT(SFT1I)                           // 0x9c - User Software Interrupt 1
+INT(SFT2I)                           // 0xa0 - User Software Interrupt 2
+INT(SFT3I)                           // 0xa4 - User Software Interrupt 3
+.___interrupt_table.end:             // 0xa8
+/*$VDSG<standard:iv_code_LX5> */
+
+/*$VDSG<standard:iv_code_XI> */
+/*
+** ADSP-SC5xx and ADSP-215xx Interrupt vector code
+*/
+.SECTION/CODE/NW/DOUBLEANY iv_code;
+
+___interrupt_table:
+
+.RETAIN_NAME ___int_EMUI;   // 0x00  Emulator Interrupt
+___int_EMUI:
+      NOP;
+      NOP;
+      NOP;
+      // These slots are not used for anything by the emulator. So we
+      // don't expect to run through here.
+      // However we can do, if an error causes us to jump to address 0x0.
+      // Instead of falling through to the reset vector, detect this error
+      // and try to give some diagnostics about how it happened.
+      .EXTERN _adi_bad_reset_detected;
+      JUMP _adi_bad_reset_detected;
+
+INT_JUMP(RSTI,start)        // 0x04  Reset Interrupt
+
+RESERVED_INTERRUPT          // 0x08  reserved
+INT_JUMP(PARI,_adi_parity_error_detected) // 0x0c  L1 parity error
+                            // 0x10  Illegal opcode detected
+INT_JUMP(ILOPI,_adi_ilop_detected)
+INT(CB7I)                   // 0x14  Circular Buffer 7 Overflow
+INT(IICDI)                  // 0x18  Unaligned long word access detected
+INT(SOVFI)                  // 0x1c  Status, loop, or mode stack overflow, or PC stack full
+INT(ILADI)                  // 0x20  Illegal address space detected
+RESERVED_INTERRUPT          // 0x24  reserved
+RESERVED_INTERRUPT          // 0x28  reserved
+INT(TMZHI)                  // 0x2c  Timer=0 (high priority option)
+INT(BKPI)                   // 0x30  Hardware Breakpoint Interrupt
+RESERVED_INTERRUPT          // 0x34  reserved
+RESERVED_INTERRUPT          // 0x38  reserved
+INT_SEC(SECI)               // 0x3c  System event controller interrupt
+RESERVED_INTERRUPT          // 0x40  reserved
+RESERVED_INTERRUPT          // 0x44  reserved
+RESERVED_INTERRUPT          // 0x48  reserved
+RESERVED_INTERRUPT          // 0x4c  reserved
+INT(RINSEQI)                // 0x50  Restricted instruction sequence
+INT(CB15I)                  // 0x54  Circular Buffer 15 overflow
+INT(TMZLI)                  // 0x58  Timer = 0 (low priority option)
+INT(FIXI)                   // 0x5c  Fixed-point overflow
+INT(FLTOI)                  // 0x60  Floating-point overflow exception
+INT(FLTUI)                  // 0x64  Floating-point underflow exception
+INT(FLTII)                  // 0x68  Floating-point invalid exception
+INT(EMULI)                  // 0x6c  Emulator Low Priority Interrupt
+INT(SFT0I)                  // 0x70  User software interrupt 0
+INT(SFT1I)                  // 0x74  User software interrupt 1
+INT(SFT2I)                  // 0x78  User software interrupt 2
+INT(SFT3I)                  // 0x7c  User software interrupt 3
+.___interrupt_table.end:    // 0x80
+/*$VDSG<standard:iv_code_XI> */
+
+/*$VDSG<standard:iv_code_XI_sov> */
+/*
+** ADSP-SC5xx and ADSP-215xx Interrupt vector code
+** Includes support for stack overflow detection (-rtcheck-stack).
+*/
+.SECTION/CODE/NW/DOUBLEANY iv_code;
+
+___interrupt_table:
+
+.RETAIN_NAME ___int_EMUI;            // 0x00  Emulator Interrupt
+___int_EMUI:
+      NOP;
+      NOP;
+      NOP;
+      // These slots are not used for anything by the emulator. So we
+      // don't expect to run through here.
+      // However we can do, if an error causes us to jump to address 0x0.
+      // Instead of falling through to the reset vector, detect this error
+      // and try to give some diagnostics about how it happened.
+      .EXTERN _adi_bad_reset_detected;
+      JUMP _adi_bad_reset_detected;
+
+INT_JUMP(RSTI,start)                 // 0x04  Reset Interrupt
+
+RESERVED_INTERRUPT                   // 0x08  reserved
+INT_JUMP(PARI,_adi_parity_error_detected) // 0x0c  L1 parity error
+INT_JUMP(ILOPI,_adi_ilop_detected)   // 0x10  Illegal opcode detected
+INT_JUMP(CB7I,_adi_stack_overflowed) // 0x14  C stack overflow (detected using circular buffer 7)
+INT(IICDI)                           // 0x18  Unaligned long word access detected
+INT(SOVFI)                           // 0x1c  Status, loop, or mode stack overflow, or PC stack full
+INT(ILADI)                           // 0x20  Illegal address space detected
+RESERVED_INTERRUPT                   // 0x24  reserved
+RESERVED_INTERRUPT                   // 0x28  reserved
+INT(TMZHI)                           // 0x2c  Timer=0 (high priority option)
+INT(BKPI)                            // 0x30  Hardware Breakpoint Interrupt
+RESERVED_INTERRUPT                   // 0x34  reserved
+RESERVED_INTERRUPT                   // 0x38  reserved
+INT_SEC(SECI)                        // 0x3c  System event controller interrupt
+RESERVED_INTERRUPT                   // 0x40  reserved
+RESERVED_INTERRUPT                   // 0x44  reserved
+RESERVED_INTERRUPT                   // 0x48  reserved
+RESERVED_INTERRUPT                   // 0x4c  reserved
+INT(RINSEQI)                         // 0x50  Restricted instruction sequence
+INT(CB15I)                           // 0x54  Circular Buffer 15 overflow
+INT(TMZLI)                           // 0x58  Timer = 0 (low priority option)
+INT(FIXI)                            // 0x5c  Fixed-point overflow
+INT(FLTOI)                           // 0x60  Floating-point overflow exception
+INT(FLTUI)                           // 0x64  Floating-point underflow exception
+INT(FLTII)                           // 0x68  Floating-point invalid exception
+INT(EMULI)                           // 0x6c  Emulator Low Priority Interrupt
+INT(SFT0I)                           // 0x70  User software interrupt 0
+INT(SFT1I)                           // 0x74  User software interrupt 1
+INT(SFT2I)                           // 0x78  User software interrupt 2
+INT(SFT3I)                           // 0x7c  User software interrupt 3
+.___interrupt_table.end:             // 0x80
+/*$VDSG<standard:iv_code_XI_sov> */
+
+/*$VDSG<standard:iv_code_2156x> */
+/*
+** ADSP-2156x Interrupt vector code
+*/
+.SECTION/CODE/NW/DOUBLEANY iv_code;
+
+___interrupt_table:
+
+.RETAIN_NAME ___int_EMUI;   // 0x00  Emulator Interrupt
+___int_EMUI:
+      NOP;
+      NOP;
+      NOP;
+      // These slots are not used for anything by the emulator. So we
+      // don't expect to run through here.
+      // However we can do, if an error causes us to jump to address 0x0.
+      // Instead of falling through to the reset vector, detect this error
+      // and try to give some diagnostics about how it happened.
+      .EXTERN _adi_bad_reset_detected;
+      JUMP _adi_bad_reset_detected;
+
+INT_JUMP(RSTI,start)        // 0x04  Reset Interrupt
+
+RESERVED_INTERRUPT          // 0x08  reserved
+INT_JUMP(PARI,_adi_parity_error_detected) // 0x0c  L1 parity error
+                            // 0x10  Illegal opcode detected
+INT_JUMP(ILOPI,_adi_ilop_detected)
+INT(CB7I)                   // 0x14  Circular Buffer 7 Overflow
+INT(IICDI)                  // 0x18  Unaligned long word access detected
+INT(SOVFI)                  // 0x1c  Status, loop, or mode stack overflow, or PC stack full
+INT(ILADI)                  // 0x20  Illegal address space detected
+RESERVED_INTERRUPT          // 0x24  reserved
+RESERVED_INTERRUPT          // 0x28  reserved
+INT(TMZHI)                  // 0x2c  Timer=0 (high priority option)
+INT(BKPI)                   // 0x30  Hardware Breakpoint Interrupt
+INT(FIRI)                   // 0x34  FIR Channel Completion Interrupt
+INT(IIRI)                   // 0x38  IIR Channel Completion Interrupt
+INT_SEC(SECI)               // 0x3c  System event controller interrupt
+RESERVED_INTERRUPT          // 0x40  reserved
+RESERVED_INTERRUPT          // 0x44  reserved
+RESERVED_INTERRUPT          // 0x48  reserved
+RESERVED_INTERRUPT          // 0x4c  reserved
+INT(RINSEQI)                // 0x50  Restricted instruction sequence
+INT(CB15I)                  // 0x54  Circular Buffer 15 overflow
+INT(TMZLI)                  // 0x58  Timer = 0 (low priority option)
+INT(FIXI)                   // 0x5c  Fixed-point overflow
+INT(FLTOI)                  // 0x60  Floating-point overflow exception
+INT(FLTUI)                  // 0x64  Floating-point underflow exception
+INT(FLTII)                  // 0x68  Floating-point invalid exception
+INT(EMULI)                  // 0x6c  Emulator Low Priority Interrupt
+INT(SFT0I)                  // 0x70  User software interrupt 0
+INT(SFT1I)                  // 0x74  User software interrupt 1
+INT(SFT2I)                  // 0x78  User software interrupt 2
+INT(SFT3I)                  // 0x7c  User software interrupt 3
+.___interrupt_table.end:    // 0x80
+/*$VDSG<standard:iv_code_2156x> */
+
+/*$VDSG<standard:iv_code_2156x_sov> */
+/*
+** ADSP-2156x Interrupt vector code
+** Includes support for stack overflow detection (-rtcheck-stack).
+*/
+.SECTION/CODE/NW/DOUBLEANY iv_code;
+
+___interrupt_table:
+
+.RETAIN_NAME ___int_EMUI;            // 0x00  Emulator Interrupt
+___int_EMUI:
+      NOP;
+      NOP;
+      NOP;
+      // These slots are not used for anything by the emulator. So we
+      // don't expect to run through here.
+      // However we can do, if an error causes us to jump to address 0x0.
+      // Instead of falling through to the reset vector, detect this error
+      // and try to give some diagnostics about how it happened.
+      .EXTERN _adi_bad_reset_detected;
+      JUMP _adi_bad_reset_detected;
+
+INT_JUMP(RSTI,start)                 // 0x04  Reset Interrupt
+
+RESERVED_INTERRUPT                   // 0x08  reserved
+INT_JUMP(PARI,_adi_parity_error_detected) // 0x0c  L1 parity error
+INT_JUMP(ILOPI,_adi_ilop_detected)   // 0x10  Illegal opcode detected
+INT_JUMP(CB7I,_adi_stack_overflowed) // 0x14  C stack overflow (detected using circular buffer 7)
+INT(IICDI)                           // 0x18  Unaligned long word access detected
+INT(SOVFI)                           // 0x1c  Status, loop, or mode stack overflow, or PC stack full
+INT(ILADI)                           // 0x20  Illegal address space detected
+RESERVED_INTERRUPT                   // 0x24  reserved
+RESERVED_INTERRUPT                   // 0x28  reserved
+INT(TMZHI)                           // 0x2c  Timer=0 (high priority option)
+INT(BKPI)                            // 0x30  Hardware Breakpoint Interrupt
+INT(FIRI)                            // 0x34  FIR Channel Completion Interrupt
+INT(IIRI)                            // 0x38  IIR Channel Completion Interrupt
+INT_SEC(SECI)                        // 0x3c  System event controller interrupt
+RESERVED_INTERRUPT                   // 0x40  reserved
+RESERVED_INTERRUPT                   // 0x44  reserved
+RESERVED_INTERRUPT                   // 0x48  reserved
+RESERVED_INTERRUPT                   // 0x4c  reserved
+INT(RINSEQI)                         // 0x50  Restricted instruction sequence
+INT(CB15I)                           // 0x54  Circular Buffer 15 overflow
+INT(TMZLI)                           // 0x58  Timer = 0 (low priority option)
+INT(FIXI)                            // 0x5c  Fixed-point overflow
+INT(FLTOI)                           // 0x60  Floating-point overflow exception
+INT(FLTUI)                           // 0x64  Floating-point underflow exception
+INT(FLTII)                           // 0x68  Floating-point invalid exception
+INT(EMULI)                           // 0x6c  Emulator Low Priority Interrupt
+INT(SFT0I)                           // 0x70  User software interrupt 0
+INT(SFT1I)                           // 0x74  User software interrupt 1
+INT(SFT2I)                           // 0x78  User software interrupt 2
+INT(SFT3I)                           // 0x7c  User software interrupt 3
+.___interrupt_table.end:             // 0x80
+/*$VDSG<standard:iv_code_2156x_sov> */
+
+/*$VDSG<standard:iv_code_59x> */
+/*
+** ADSP-SC59x and ADSP-21593 Interrupt Vector Code.
+*/
+.SECTION/CODE/NW/DOUBLEANY iv_code;
+
+___interrupt_table:
+
+.RETAIN_NAME ___int_EMUI;            // 0x00  Emulator Interrupt
+___int_EMUI:
+      NOP;
+      NOP;
+      NOP;
+      // These slots are not used for anything by the emulator. So we
+      // don't expect to run through here.
+      // However we can do, if an error causes us to jump to address 0x0.
+      // Instead of falling through to the reset vector, detect this error
+      // and try to give some diagnostics about how it happened.
+      .EXTERN _adi_bad_reset_detected;
+      JUMP _adi_bad_reset_detected;
+
+INT_JUMP(RSTI,start)                 // 0x04  Reset Interrupt
+
+RESERVED_INTERRUPT                   // 0x08  reserved
+INT_JUMP(PARI,_adi_parity_error_detected) // 0x0c  L1 parity error
+INT_JUMP(ILOPI,_adi_ilop_detected)   // 0x10  Illegal opcode detected
+INT(CB7I)                            // 0x14  Circular Buffer 7 Overflow
+INT(IICDI)                           // 0x18  Unaligned long word access detected
+INT(SOVFI)                           // 0x1c  Status, loop, or mode stack overflow, or PC stack full
+INT(ILADI)                           // 0x20  Illegal address space detected
+INT(IIR2I)                           // 0x24  IIR2 Channel Completion Interrupt
+INT(IIR3I)                           // 0x28  IIR3 Channel Completion Interrupt
+INT(TMZHI)                           // 0x2c  Timer=0 (high priority option)
+INT(BKPI)                            // 0x30  Hardware Breakpoint Interrupt
+INT(FIRI)                            // 0x34  FIR Channel Completion Interrupt
+INT(IIR0I)                           // 0x38  IIR0 Channel Completion Interrupt
+INT_SEC(SECI)                        // 0x3c  System event controller interrupt
+INT(IIR1I)                           // 0x40  IIR1 Channel Completion Interrupt
+RESERVED_INTERRUPT                   // 0x44  reserved
+RESERVED_INTERRUPT                   // 0x48  reserved
+RESERVED_INTERRUPT                   // 0x4c  reserved
+INT(RINSEQI)                         // 0x50  Restricted instruction sequence
+INT(CB15I)                           // 0x54  Circular Buffer 15 overflow
+INT(TMZLI)                           // 0x58  Timer = 0 (low priority option)
+INT(FIXI)                            // 0x5c  Fixed-point overflow
+INT(FLTOI)                           // 0x60  Floating-point overflow exception
+INT(FLTUI)                           // 0x64  Floating-point underflow exception
+INT(FLTII)                           // 0x68  Floating-point invalid exception
+INT(EMULI)                           // 0x6c  Emulator Low Priority Interrupt
+INT(SFT0I)                           // 0x70  User software interrupt 0
+INT(SFT1I)                           // 0x74  User software interrupt 1
+INT(SFT2I)                           // 0x78  User software interrupt 2
+INT(SFT3I)                           // 0x7c  User software interrupt 3
+.___interrupt_table.end:             // 0x80
+/*$VDSG<standard:iv_code_59x> */
+
+/*$VDSG<standard:iv_code_59x_sov> */
+/*
+** ADSP-SC59x and ADSP-21593 Interrupt Vector Code.
+** Includes support for stack overflow detection (-rtcheck-stack).
+*/
+.SECTION/CODE/NW/DOUBLEANY iv_code;
+
+___interrupt_table:
+
+.RETAIN_NAME ___int_EMUI;            // 0x00  Emulator Interrupt
+___int_EMUI:
+      NOP;
+      NOP;
+      NOP;
+      // These slots are not used for anything by the emulator. So we
+      // don't expect to run through here.
+      // However we can do, if an error causes us to jump to address 0x0.
+      // Instead of falling through to the reset vector, detect this error
+      // and try to give some diagnostics about how it happened.
+      .EXTERN _adi_bad_reset_detected;
+      JUMP _adi_bad_reset_detected;
+
+INT_JUMP(RSTI,start)                 // 0x04  Reset Interrupt
+
+RESERVED_INTERRUPT                   // 0x08  reserved
+INT_JUMP(PARI,_adi_parity_error_detected) // 0x0c  L1 parity error
+INT_JUMP(ILOPI,_adi_ilop_detected)   // 0x10  Illegal opcode detected
+INT_JUMP(CB7I,_adi_stack_overflowed) // 0x14  C stack overflow (detected using circular buffer 7)
+INT(IICDI)                           // 0x18  Unaligned long word access detected
+INT(SOVFI)                           // 0x1c  Status, loop, or mode stack overflow, or PC stack full
+INT(ILADI)                           // 0x20  Illegal address space detected
+INT(IIR2I)                           // 0x24  IIR2 Channel Completion Interrupt
+INT(IIR3I)                           // 0x28  IIR3 Channel Completion Interrupt
+INT(TMZHI)                           // 0x2c  Timer=0 (high priority option)
+INT(BKPI)                            // 0x30  Hardware Breakpoint Interrupt
+INT(FIRI)                            // 0x34  FIR Channel Completion Interrupt
+INT(IIR0I)                           // 0x38  IIR0 Channel Completion Interrupt
+INT_SEC(SECI)                        // 0x3c  System event controller interrupt
+INT(IIR1I)                           // 0x40  IIR1 Channel Completion Interrupt
+RESERVED_INTERRUPT                   // 0x44  reserved
+RESERVED_INTERRUPT                   // 0x48  reserved
+RESERVED_INTERRUPT                   // 0x4c  reserved
+INT(RINSEQI)                         // 0x50  Restricted instruction sequence
+INT(CB15I)                           // 0x54  Circular Buffer 15 overflow
+INT(TMZLI)                           // 0x58  Timer = 0 (low priority option)
+INT(FIXI)                            // 0x5c  Fixed-point overflow
+INT(FLTOI)                           // 0x60  Floating-point overflow exception
+INT(FLTUI)                           // 0x64  Floating-point underflow exception
+INT(FLTII)                           // 0x68  Floating-point invalid exception
+INT(EMULI)                           // 0x6c  Emulator Low Priority Interrupt
+INT(SFT0I)                           // 0x70  User software interrupt 0
+INT(SFT1I)                           // 0x74  User software interrupt 1
+INT(SFT2I)                           // 0x78  User software interrupt 2
+INT(SFT3I)                           // 0x7c  User software interrupt 3
+.___interrupt_table.end:             // 0x80
+/*$VDSG<standard:iv_code_59x> */
+
+/*$VDSG<copyright_and_notice> strFileType strCopyright strProductName strSourceGenVersion */
+/*
+** &strCopyright;
+**
+** This file is generated automatically based upon the options selected
+** in the System Configuration utility. Changes to the &strFileType; configuration
+** should be made by modifying the appropriate options rather than editing
+** this file. To access the System Configuration utility, double-click the
+** system.svc file from a navigation view.
+**
+** Custom additions can be inserted within the user-modifiable sections. These
+** sections are bounded by comments that start with "$VDSG". Only changes
+** placed within these sections are preserved when this file is re-generated.
+**
+** Product      : &strProductName;
+** Tool Version : &strSourceGenVersion;
+*/
+/*$VDSG<copyright_and_notice> */
+
+/*$VDSG<copyright_and_notice_ivt> strFileType strCopyright strProductName strSourceGenVersion */
+/*
+** &strCopyright;
+**
+** This file is generated automatically based upon the options selected
+** in the System Configuration utility. Changes to the &strFileType; configuration
+** should be made by modifying the appropriate options rather than editing
+** this file. To access the System Configuration utility, double-click the
+** system.svc file from a navigation view.
+**
+** If you need to modify this file, select "Permit alteration of Interrupt
+** Table Vector" from "Startup Code/LDF: Advanced Options" in the System
+** Configuration utility. This encloses the whole file within a user
+** modifiable section and any modification made will be preserved.
+*/
+/*$VDSG<copyright_and_notice_ivt>*/

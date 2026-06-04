@@ -1,0 +1,8 @@
+{
+  "explorer.excludeGitIgnore": false,
+  "files.exclude": {
+    "**/ref": false,
+    "**/docs": false,
+    "**/*.pdf": false
+  }
+}

@@ -1,0 +1,4 @@
+# CCES toolchain binaries — tracked in workspace but excluded from git
+# Re-populate from /tmp/cces-recv after a fresh transfer
+*
+!.gitignore

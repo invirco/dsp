@@ -1,0 +1,2349 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ************************************************************************************ -->
+<!-- Copyright (c) 2013-2021 Analog Devices, Inc.  All Rights Reserved.                   -->
+<!-- This software is proprietary and confidential to Analog Devices, Inc. and            -->
+<!-- its licensors.                                                                       -->
+<!-- ************************************************************************************ -->
+<cces-chipfactory-xml schema-version="1" name="chipfactory.xml">
+  <version file-version="2.10.1.0" />
+  <!--
+    Library of all available modules and their interfaces.
+    The library filename is automatically modified depending
+    upon the build environment.
+  -->
+  <catalog libpath="System/Chipfactory/module-libs/">
+    <module name="BTB" lib="sharcxi-iss-shbtb-lib" defs="shbtb.xml">
+      <interface name="MMRInterface" />
+    </module>
+
+    <module name="sharcxi-iss-core" lib="sharcxi-iss-core-lib">
+      <port name="data_and_instruction" />
+      <port name="axi" />
+      <port name="l1_util" />
+      <port name="l2_util" />
+      <port name="l3_util" />
+      <port name="dbgMMR" />
+      <port name="message" />
+      <interface name="clock" />
+      <interface name="reset" />
+      <interface name="commit" />
+      <interface name="mmr" />
+      <interface name="coreevent" />
+      <interface name="sysevent" />
+      <interface name="core2sys" />
+      <interface name="idle_mode" />
+    </module>
+
+    <module name="CGU" lib="soc-fs-cgu-lib" defs="cgu.xml">
+      <port name="cclk0" />
+      <!-- PLL output signal CCLK0 -->
+      <port name="cclk1" />
+      <!-- PLL output signal CCLK1 -->
+      <port name="sysclk" />
+      <!-- PLL output signal SYSCLKO -->
+      <port name="sclk0" />
+      <!-- PLL output signal SCLK0 -->
+      <port name="sclk1" />
+      <!-- PLL output signal SCLK1 -->
+      <port name="dclk" />
+      <!-- PLL output signal DCLK -->
+      <port name="outclk" />
+      <!-- PLL output signal OUTCLK -->
+      <port name="sys_clkout" />
+      <!-- CGU output signal CLKOUT aka SYS_CLKOUT -->
+      <port name="evt" />
+      <port name="err" />
+      <port name="trigger" />
+      <interface name="clock" />
+      <!-- CGU input signal SYS_CLKIN aka SYS_CLKIN0 (SYS_CLKIN1 derives from SYS_CLKIN0) -->
+      <interface name="reset" />
+      <interface name="commit" />
+      <interface name="MMRInterface" />
+      <interface name="global_lock" />
+      <interface name="rcu_cgu_pllresb" />
+      <interface name="select_clkin" />
+    </module>
+
+    <module name="DDR3" lib="soc-fs-ddr3-lib" defs="ddr3.xml">
+      <port name="axi" />
+      <interface name="axi" />
+      <interface name="MMRInterface" />
+    </module>
+
+    <module name="DDRPHY" lib="soc-fs-ddrphy-lib" defs="ddrphy.xml">
+      <port name="axi" />
+      <interface name="axi" />
+      <interface name="MMRInterface" />
+    </module>
+
+    <module name="sharcxi-iss-memory" lib="sharcxi-iss-memory-lib" defs="memory.xml">
+      <port name="message" />
+      <interface name="reset" />
+      <interface name="commit" />
+      <interface name="load_store" />
+      <interface name="axi" />
+      <interface name="util" />
+      <interface name="S1" />
+      <interface name="S2" />
+    </module>
+
+    <module name="dde" lib="soc-fs-dde-lib" defs="dde.xml">
+      <port name="p2p" />
+      <port name="axi" />
+      <port name="message" />
+      <port name="mmr" />
+      <port name="SSI" />
+      <port name="ERR" />
+      <port name="trigger" />
+      <interface name="clock" />
+      <interface name="p2p" />
+      <interface name="priority" />
+      <interface name="trigger" />
+      <interface name="global_lock" />
+      <interface name="MMRInterface" />
+      <interface name="reset" />
+      <interface name="commit" />
+    </module>
+
+    <module name="DPM" lib="soc-fs-dpm-lib" defs="dpm.xml">
+      <port name="evt" />
+      <port name="hwerr" />
+      <port name="idle_mode" />
+      <interface name="clock" />
+      <interface name="reset" />
+      <interface name="commit" />
+      <interface name="MMRInterface" />
+      <interface name="global_lock" />
+      <interface name="clk_bfen" />
+      <interface name="rcu_dpmresb" />
+    </module>
+
+    <module name="l1c" lib="sharcxi-iss-core-l1c-lib" defs="l1c.xml">
+      <interface name="clock" />
+      <interface name="MMRInterface" />
+    </module>
+
+    <module name="sharcxi-iss-l2ctl" lib="sharcxi-iss-l2ctl-lib" defs="l2ctl.xml">
+      <interface name="clock" />
+      <interface name="reset" />
+      <interface name="commit" />
+      <interface name="mmr" />
+      <interface name="axi" />
+      <port name="core2sys" />
+    </module>
+
+    <module name="sharcxi-iss-l3ctl" lib="sharcxi-iss-l3ctl-lib" defs="l3ctl.xml">
+      <interface name="axi" />
+      <port name="core2sys" />
+    </module>
+
+    <module name="dbg" lib="sharcxi-iss-core-dbg-lib" defs="dbg.xml">
+      <interface name="MMRInterface" />
+    </module>
+
+    <module name="RCU" lib="soc-fs-rcu-lib" defs="rcu.xml">
+      <port name="dpmresb" />
+      <port name="pllresb" />
+      <port name="sysresb" />
+      <port name="cres0" />
+      <port name="cres1" />
+      <port name="cres2" />
+      <port name="cres3" />
+      <interface name="clock" />
+      <interface name="reset" />
+      <interface name="syscdresetb" />
+      <interface name="syscd_trig_resetb_0_1" />
+      <interface name="core0_trig_resetb" />
+      <interface name="commit" />
+      <interface name="MMRInterface" />
+      <interface name="global_lock" />
+    </module>
+
+    <module name="CDU" lib="soc-fs-cdu-lib" defs="cdu.xml">
+      <port name="clko_0" />
+      <port name="clko_1" />
+      <port name="clko_2" />
+      <port name="clko_3" />
+      <port name="clko_4" />
+      <port name="clko_5" />
+      <port name="clko_6" />
+      <port name="clko_7" />
+      <port name="clko_8" />
+      <port name="clko_9" />
+      <port name="clko_10" />
+      <port name="clko_11" />
+      <port name="clko_12" />
+      <port name="clko_13" />
+      <port name="clko_14" />
+      <port name="clko_15" />
+      <port name="cgu1_clkinsel" />
+      <port name="cgu2_clkinsel" />
+      <port name="cgu3_clkinsel" />
+      <interface name="clock" />
+      <interface name="reset" />
+      <interface name="commit" />
+      <interface name="MMRInterface" />
+      <interface name="global_lock" />
+      <interface name="rcu_sysresb" />
+      <interface name="dpmlv_pwrgd" />
+      <interface name="in0_clko_0" />
+      <interface name="in0_clko_1" />
+      <interface name="in0_clko_2" />
+      <interface name="in0_clko_3" />
+      <interface name="in0_clko_4" />
+      <interface name="in0_clko_5" />
+      <interface name="in0_clko_6" />
+      <interface name="in0_clko_7" />
+      <interface name="in0_clko_8" />
+      <interface name="in0_clko_9" />
+      <interface name="in0_clko_10" />
+      <interface name="in0_clko_11" />
+      <interface name="in0_clko_12" />
+      <interface name="in0_clko_13" />
+      <interface name="in0_clko_14" />
+      <interface name="in0_clko_15" />
+      <interface name="in1_clko_0" />
+      <interface name="in1_clko_1" />
+      <interface name="in1_clko_2" />
+      <interface name="in1_clko_3" />
+      <interface name="in1_clko_4" />
+      <interface name="in1_clko_5" />
+      <interface name="in1_clko_6" />
+      <interface name="in1_clko_7" />
+      <interface name="in1_clko_8" />
+      <interface name="in1_clko_9" />
+      <interface name="in1_clko_10" />
+      <interface name="in1_clko_11" />
+      <interface name="in1_clko_12" />
+      <interface name="in1_clko_13" />
+      <interface name="in1_clko_14" />
+      <interface name="in1_clko_15" />
+      <interface name="in2_clko_0" />
+      <interface name="in2_clko_1" />
+      <interface name="in2_clko_2" />
+      <interface name="in2_clko_3" />
+      <interface name="in2_clko_4" />
+      <interface name="in2_clko_5" />
+      <interface name="in2_clko_6" />
+      <interface name="in2_clko_7" />
+      <interface name="in2_clko_8" />
+      <interface name="in2_clko_9" />
+      <interface name="in2_clko_10" />
+      <interface name="in2_clko_11" />
+      <interface name="in2_clko_12" />
+      <interface name="in2_clko_13" />
+      <interface name="in2_clko_14" />
+      <interface name="in2_clko_15" />
+      <interface name="in3_clko_0" />
+      <interface name="in3_clko_1" />
+      <interface name="in3_clko_2" />
+      <interface name="in3_clko_3" />
+      <interface name="in3_clko_4" />
+      <interface name="in3_clko_5" />
+      <interface name="in3_clko_6" />
+      <interface name="in3_clko_7" />
+      <interface name="in3_clko_8" />
+      <interface name="in3_clko_9" />
+      <interface name="in3_clko_10" />
+      <interface name="in3_clko_11" />
+      <interface name="in3_clko_12" />
+      <interface name="in3_clko_13" />
+      <interface name="in3_clko_14" />
+      <interface name="in3_clko_15" />
+    </module>
+
+    <module name="sec" lib="soc-fs-sec-lib" defs="sec.xml">
+      <interface name="clock" />
+      <interface name="idle" />
+      <interface name="reset" />
+      <interface name="global_lock" />
+      <interface name="MMRInterface" />
+      <interface name="fault_in" />
+      <interface name="SSI3" />
+      <!-- WDOG0 -->
+      <interface name="SSI4" />
+      <!-- WDOG1 -->
+      <interface name="SSI26" />
+      <interface name="SSI27" />
+      <interface name="SSI28" />
+      <interface name="SSI29" />
+      <interface name="SSI72" />
+      <interface name="SSI73" />
+      <interface name="SSI74" />
+      <interface name="SSI75" />
+      <interface name="SSI76" />
+      <interface name="SSI123" />
+      <interface name="SSI124" />
+      <interface name="SSI125" />
+      <!-- TRU0-->
+      <interface name="TriggerSSI136" />
+      <interface name="TriggerSSI137" />
+      <interface name="TriggerSSI138" />
+      <interface name="TriggerSSI139" />
+      <interface name="TriggerSSI140" />
+      <interface name="TriggerSSI141" />
+      <interface name="TriggerSSI142" />
+      <interface name="TriggerSSI143" />
+      <interface name="SSI165" />
+      <interface name="SSI166" />
+      <interface name="SSI167" />
+      <interface name="SSI168" />
+      <interface name="SSI169" />
+      <interface name="SSI172" />
+      <interface name="SSI173" />
+      <interface name="SSI174" />
+      <interface name="SSI175" />
+      <interface name="SSI217" />
+      <interface name="SSI218" />
+      <interface name="SSI219" />
+      <interface name="SSI220" />
+      <interface name="SSI221" />
+      <interface name="SSI222" />
+      <interface name="SSI223" />
+      <interface name="SSI224" />
+      <interface name="SSI241" />
+      <!-- SPU0 Interrupt -->
+      <interface name="SSI242" />
+      <interface name="SSI246" />
+      <port name="core" />
+      <port name="fault_out" />
+      <port name="trigger" />
+      <port name="reset" />
+    </module>
+
+    <module name="SMC" lib="soc-fs-smc-lib" defs="smc.xml">
+      <port name="axi" />
+      <interface name="axi" />
+      <interface name="MMRInterface" />
+    </module>
+
+    <module name="SMPU" lib="soc-fs-smpu-lib" defs="smpu.xml">
+      <port name="axi" />
+      <port name="secure" />
+      <port name="interrupt" />
+      <interface name="axi" />
+      <interface name="global_lock" />
+      <interface name="MMRInterface" />
+    </module>
+
+    <module name="TRU" lib="soc-fs-tru-lib" defs="tru.xml">
+      <interface name="mti1" />
+      <!-- CGU0 -->
+      <interface name="mti2" />
+      <!-- CGU1 -->
+      <interface name="mti6" />
+      <!-- TIMER0 TMR0 -->
+      <interface name="mti7" />
+      <!-- TIMER0 TMR1 -->
+      <interface name="mti8" />
+      <!-- TIMER0 TMR2 -->
+      <interface name="mti9" />
+      <!-- TIMER0 TMR3 -->
+      <interface name="mti10" />
+      <!-- TIMER0 TMR4 -->
+      <interface name="mti11" />
+      <!-- TIMER0 TMR5 -->
+      <interface name="mti12" />
+      <!-- TIMER0 TMR6 -->
+      <interface name="mti13" />
+      <!-- TIMER0 TMR7 -->
+      <interface name="mti74" />
+      <!-- MDMA0 SRC -->
+      <interface name="mti75" />
+      <!-- MDMA0 DST-->
+      <interface name="mti76" />
+      <!-- MDMA1 SRC -->
+      <interface name="mti77" />
+      <!-- MDMA1 DST -->
+      <interface name="mti78" />
+      <!-- MDMA2 SRC -->
+      <interface name="mti79" />
+      <!-- MDMA2 DST -->
+      <interface name="mti80" />
+      <!-- MDMA3 SRC -->
+      <interface name="mti81" />
+      <!-- MDMA3 DST -->
+      <interface name="mti92" />
+      <!-- SEC0 -->
+      <interface name="mti134" />
+      <!-- RTC0 -->
+      <interface name="global_lock" />
+      <interface name="MMRInterface" />
+      <interface name="reset" />
+      <port name="sto" />
+      <port name="message" />
+    </module>
+
+    <module name="TIMER" lib="soc-fs-timer-lib" defs="timer.xml">
+      <port name="event" />
+      <port name="message" />
+      <port name="IRQ_TMR0" />
+      <port name="IRQ_TMR1" />
+      <port name="IRQ_TMR2" />
+      <port name="IRQ_TMR3" />
+      <port name="IRQ_TMR4" />
+      <port name="IRQ_TMR5" />
+      <port name="IRQ_TMR6" />
+      <port name="IRQ_TMR7" />
+      <port name="IRQ_STAT" />
+      <interface name="clock" />
+      <interface name="reset" />
+      <interface name="commit" />
+      <interface name="inst" />
+      <interface name="MMRInterface" />
+    </module>
+
+    <module name="spu2" lib="soc-fs-spu-lib" defs="spu.xml">
+      <port name="message" />
+      <port name="global_lock" />
+      <port name="interrupt" />
+      <interface name="core0" />
+      <interface name="sys1" />
+      <interface name="MMRInterface" />
+      <interface name="reset" />
+      <interface name="commit" />
+      <interface name="is_secure" />
+    </module>
+
+    <module name="WDT" lib="soc-fs-wdt-lib" defs="wdt.xml">
+      <port name="stat" />
+      <interface name="clock" />
+      <interface name="reset" />
+      <interface name="commit" />
+      <interface name="MMRInterface" />
+    </module>
+
+    <module name="RTC" lib="soc-fs-rtc-lib" defs="rtc.xml">
+      <port name="intrPort" />
+      <interface name="clock" />
+      <interface name="reset" />
+      <interface name="commit" />
+      <interface name="MMRInterface" />
+    </module>
+    <module name="TWI" lib="soc-fs-twi-lib" defs="twi.xml">
+      <port name="IRQ_TWI" />
+      <interface name="clock" />
+      <interface name="reset" />
+      <interface name="commit" />
+      <interface name="MMRInterface" />
+    </module>
+  </catalog>
+
+  <!--
+    Chip definition including module instantiations and their connections.
+  -->
+  <chip name="ADSP-SC589" memdefs="../../../../ArchDef/ADSP-SC589-memory.xml" regdefs="../../../../ArchDef/ADSP-SC589-registers.xml">
+
+    <instance module="BTB" name="btb" coreid="1" address="0x31000" expose="1">
+      <mmr acronym="BTB" interface="MMRInterface" />
+    </instance>
+
+    <instance module="sharcxi-iss-core" name="sharc-xi-core-0" coreid="1" coretype="SHARC" address="0x30000" expose="1">
+      <parameter axi_id="0x0" />
+      <parameter reset="0x00090004" />
+      <parameter sysctl="0x00030024" />
+      <!-- SYSCTL MMR address -->
+      <parameter iivt_bit="0x2" />
+      <!-- IIVT bit position in SYSCTL -->
+      <parameter ivt_base_0="0x00540000" />
+      <!-- Address of Interrupt Service Routines IVT0 (ROM) -->
+      <parameter ivt_base_1="0x00090000" />
+      <!-- Address of Interrupt Service Routines IVT1 (RAM) -->
+      <parameter trace_pc="0" />
+      <parameter trace_register_commits="0" />
+      <parameter trace_quiet="1" />
+      <parameter trace_mem="0" />
+      <parameter trace_file="tracing-ADSP-SC589-core-1.txt" />
+      <mmr acronym="CMMR" interface="mmr" />
+
+      <parameter_group name="memblock">
+        <parameter start="0x80000" />
+        <parameter end="0x9FFFF" />
+        <parameter sysctl_imdw_bit_position="9" />
+      </parameter_group>
+      <parameter_group name="memblock">
+        <parameter start="0xA0000" />
+        <parameter end="0xBFFFF" />
+        <parameter sysctl_imdw_bit_position="10" />
+      </parameter_group>
+      <parameter_group name="memblock">
+        <parameter start="0xC0000" />
+        <parameter end="0xDFFFF" />
+        <parameter sysctl_imdw_bit_position="11" />
+      </parameter_group>
+      <parameter_group name="memblock">
+        <parameter start="0xE0000" />
+        <parameter end="0xFFFFF" />
+        <parameter sysctl_imdw_bit_position="12" />
+      </parameter_group>
+
+      <parameter_group name="membank">
+        <!--L2 BOOT ROM 0-->
+        <parameter readonly ="1" />
+        <parameter switchaddressunitonly ="0" />
+        <parameter_group name="base_addr">
+          <parameter isa  ="0x00580000" />
+          <parameter visa ="0x00B80000" />
+          <parameter data ="0x08000000" />
+          <parameter sys  ="0x20000000" />
+        </parameter_group>
+        <parameter_group name="end_addr">
+          <parameter isa  ="0x00581555" />
+          <parameter visa ="0x00B83FFF" />
+          <parameter data ="0x08001FFF" />
+          <parameter sys  ="0x20007FFF" />
+        </parameter_group>
+      </parameter_group>
+
+      <parameter_group name="membank">
+        <!--L2 RAM-->
+        <parameter readonly ="0" />
+        <parameter switchaddressunitonly ="0" />
+        <parameter_group name="base_addr">
+          <parameter isa  ="0x005A0000" />
+          <parameter visa ="0x00BA0000" />
+          <parameter data ="0x08020000" />
+          <parameter sys  ="0x20080000" />
+        </parameter_group>
+        <parameter_group name="end_addr">
+          <parameter isa  ="0x005AAAAA" />
+          <parameter visa ="0x00BBFFFF" />
+          <parameter data ="0x0802FFFF" />
+          <parameter sys  ="0x200BFFFF" />
+        </parameter_group>
+      </parameter_group>
+
+      <parameter_group name="membank">
+        <!--L2 BOOT ROM 1-->
+        <parameter readonly ="1" />
+        <parameter switchaddressunitonly ="0" />
+        <parameter_group name="base_addr">
+          <parameter isa  ="0x00500000" />
+          <parameter visa ="0x00B00000" />
+          <parameter data ="0x08040000" />
+          <parameter sys  ="0x20100000" />
+        </parameter_group>
+        <parameter_group name="end_addr">
+          <parameter isa  ="0x00501555" />
+          <parameter visa ="0x00B03FFF" />
+          <parameter data ="0x08041FFF" />
+          <parameter sys  ="0x20107FFF" />
+        </parameter_group>
+      </parameter_group>
+
+      <parameter_group name="membank">
+        <!--L2 ROM 1-->
+        <parameter readonly ="1" />
+        <parameter switchaddressunitonly ="0" />
+        <parameter_group name="base_addr">
+          <parameter isa  ="0x00520000" />
+          <parameter visa ="0x00B20000" />
+          <parameter data ="0x08060000" />
+          <parameter sys  ="0x20180000" />
+        </parameter_group>
+        <parameter_group name="end_addr">
+          <parameter isa  ="0x0052AAAA" />
+          <parameter visa ="0x00B3FFFF" />
+          <parameter data ="0x0806FFFF" />
+          <parameter sys  ="0x201BFFFF" />
+        </parameter_group>
+      </parameter_group>
+
+      <parameter_group name="membank">
+        <!--L2 BOOT ROM 2-->
+        <parameter readonly ="1" />
+        <parameter switchaddressunitonly ="0" />
+        <parameter_group name="base_addr">
+          <parameter isa  ="0x00540000" />
+          <parameter visa ="0x00B40000" />
+          <parameter data ="0x08080000" />
+          <parameter sys  ="0x20200000" />
+        </parameter_group>
+        <parameter_group name="end_addr">
+          <parameter isa  ="0x00541555" />
+          <parameter visa ="0x00B43FFF" />
+          <parameter data ="0x08081FFF" />
+          <parameter sys  ="0x20207FFF" />
+        </parameter_group>
+      </parameter_group>
+
+      <parameter_group name="membank">
+        <!--L2 ROM2-->
+        <parameter readonly ="1" />
+        <parameter switchaddressunitonly ="0" />
+        <parameter_group name="base_addr">
+          <parameter isa  ="0x00560000" />
+          <parameter visa ="0x00B60000" />
+          <parameter data ="0x080A0000" />
+          <parameter sys  ="0x20280000" />
+        </parameter_group>
+        <parameter_group name="end_addr">
+          <parameter isa  ="0x0056AAAA" />
+          <parameter visa ="0x00B7FFFF" />
+          <parameter data ="0x080AFFFF" />
+          <parameter sys  ="0x202BFFFF" />
+        </parameter_group>
+      </parameter_group>
+
+      <parameter_group name="membank">
+        <!--L3 SMC0-->
+        <parameter readonly ="0" />
+        <parameter switchaddressunitonly ="0" />
+        <parameter_group name="base_addr">
+          <parameter isa ="0x00700000" />
+          <parameter visa="0x00F00000" />
+          <parameter data="0x01000000" />
+          <parameter sys ="0x40000000" />
+        </parameter_group>
+        <parameter_group name="end_addr">
+          <parameter isa  ="0x0073FFFF" />
+          <parameter visa ="0x00F3FFFF" />
+          <parameter data ="0x01FFFFFF" />
+          <parameter sys  ="0x4FFFFFFF" />
+        </parameter_group>
+      </parameter_group>
+
+      <parameter_group name="membank">
+        <parameter readonly ="0" />
+        <parameter switchaddressunitonly ="0" />
+        <!--L3 PCI-->
+        <parameter_group name="base_addr">
+          <parameter isa  ="0x00740000" />
+          <parameter visa ="0x00F40000" />
+          <parameter data ="0x02000000" />
+          <parameter sys  ="0x50000000" />
+        </parameter_group>
+        <parameter_group name="end_addr">
+          <parameter isa  ="0x0077FFFF" />
+          <parameter visa ="0x00F7FFFF" />
+          <parameter data ="0x03FFFFFF" />
+          <parameter sys  ="0x5FFFFFFF" />
+        </parameter_group>
+      </parameter_group>
+
+      <parameter_group name="membank">
+        <parameter readonly ="0" />
+        <parameter switchaddressunitonly ="0" />
+        <!--L3 SPI-->
+        <parameter_group name="base_addr">
+          <parameter isa ="0x00780000" />
+          <parameter visa="0x00F80000" />
+          <parameter data="0x04000000" />
+          <parameter sys ="0x60000000" />
+        </parameter_group>
+        <parameter_group name="end_addr">
+          <parameter isa  ="0x007FFFFF" />
+          <parameter visa ="0x00FFFFFF" />
+          <parameter data ="0x07FFFFFF" />
+          <parameter sys  ="0x7FFFFFFF" />
+        </parameter_group>
+      </parameter_group>
+
+      <parameter_group name="membank">
+        <parameter readonly ="0"/>
+        <parameter switchaddressunitonly ="0"/>
+        <!--L3 DDR-A: 8000_0000-809F_FFFF(BW), 1000_0000-1027_FFFF(NW), VISA not available, 40_0000-4F_FFFF(ISA code) -->
+        <parameter_group name="base_addr">
+          <parameter isa ="0x00400000"/>
+          <parameter data="0x10000000"/>
+          <parameter sys ="0x80000000"/>
+        </parameter_group>
+        <parameter_group name="end_addr">
+          <parameter isa  ="0x004FFFFF"/>
+          <parameter data ="0x1027FFFF"/>
+          <parameter sys  ="0x809FFFFF"/>
+        </parameter_group>
+      </parameter_group>
+
+      <parameter_group name="membank">
+        <parameter readonly ="0"/>
+        <parameter switchaddressunitonly ="0"/>
+        <!--L3 DDR-A: 80A0_0000-BFFF_FFFF(BW), 1028_0000-17FF_FFFF(NW), 80_0000-AF_FFFF(VISA), ISA not available -->
+        <parameter_group name="base_addr">
+          <parameter visa="0x00800000"/>
+          <parameter data="0x10280000"/>
+          <parameter sys ="0x80A00000"/>
+        </parameter_group>
+        <parameter_group name="end_addr">
+          <parameter visa ="0x00AFFFFF"/>
+          <parameter data ="0x17FFFFFF"/>
+          <parameter sys  ="0xBFFFFFFF"/>
+        </parameter_group>
+      </parameter_group>
+
+      <parameter_group name="membank">
+        <parameter readonly ="0"/>
+        <parameter switchaddressunitonly ="0"/>
+        <!--L3 DDR-B: C000_0000-C09F_FFFF(BW), 1800_0000-1827_FFFF(NW), VISA not available, 60_0000-6F_FFFF(ISA code) -->
+        <parameter_group name="base_addr">
+          <parameter isa ="0x00600000"/>
+          <parameter data="0x18000000"/>
+          <parameter sys ="0xC0000000"/>
+        </parameter_group>
+        <parameter_group name="end_addr">
+          <parameter isa  ="0x006FFFFF"/>
+          <parameter data ="0x1827FFFF"/>
+          <parameter sys  ="0xC09FFFFF"/>
+        </parameter_group>
+      </parameter_group>
+
+      <parameter_group name="membank">
+        <parameter readonly ="0"/>
+        <parameter switchaddressunitonly ="0"/>
+        <!--L3 DDR-B: C0A0_0000-FFFF_FFFF(BW), 1828_0000-1FFF_FFFF(NW), C0_0000-EF_FFFF(VISA), ISA not available -->
+        <parameter_group name="base_addr">
+          <parameter visa="0x00C00000"/>
+          <parameter data="0x18280000"/>
+          <parameter sys ="0xC0A00000"/>
+        </parameter_group>
+        <parameter_group name="end_addr">
+          <parameter visa ="0x00EFFFFF"/>
+
+          <parameter data ="0x1FFFFFFF"/>
+          <parameter sys  ="0xFFFFFFFF"/>
+        </parameter_group>
+      </parameter_group>
+
+      <parameter_group name="membank">
+        <!--Caution use only for switch address unit instructions b2w, w2b-->
+        <parameter readonly ="0" />
+        <parameter switchaddressunitonly ="1" />
+        <parameter_group name="base_addr">
+          <parameter isa  ="0xFFFFFFFF" />
+          <parameter visa ="0xFFFFFFFF" />
+          <parameter data ="0x08000000" />
+          <parameter sys  ="0x20000000" />
+        </parameter_group>
+        <parameter_group name="end_addr">
+          <parameter isa  ="0x0" />
+          <parameter visa ="0x0" />
+          <parameter data ="0x0FFFFFFF" />
+          <parameter sys  ="0x3FFFFFFF" />
+        </parameter_group>
+      </parameter_group>
+    </instance>
+
+    <instance module="sharcxi-iss-core" name="sharc-xi-core-1" coreid="2" coretype="SHARC" address="0x30000" expose="1">
+      <parameter axi_id="0x0" />
+      <parameter reset="0x00090004" />
+      <parameter sysctl="0x00030024" />
+      <!-- SYSCTL MMR address -->
+      <parameter iivt_bit="0x2" />
+      <!-- IIVT bit position in SYSCTL -->
+      <parameter ivt_base_0="0x00540000" />
+      <!-- Address of Interrupt Service Routines IVT0 (ROM) -->
+      <parameter ivt_base_1="0x00090000" />
+      <!-- Address of Interrupt Service Routines IVT1 (RAM) -->
+      <parameter trace_pc="0" />
+      <parameter trace_register_commits="0" />
+      <parameter trace_quiet="1" />
+      <parameter trace_mem="0" />
+      <parameter trace_file="tracing-ADSP-SC589-core-2.txt" />
+      <mmr acronym="CMMR" interface="mmr" />
+
+      <parameter_group name="memblock">
+        <parameter start="0x80000" />
+        <parameter end="0x9FFFF" />
+        <parameter sysctl_imdw_bit_position="9" />
+      </parameter_group>
+      <parameter_group name="memblock">
+        <parameter start="0xA0000" />
+        <parameter end="0xBFFFF" />
+        <parameter sysctl_imdw_bit_position="10" />
+      </parameter_group>
+      <parameter_group name="memblock">
+        <parameter start="0xC0000" />
+        <parameter end="0xDFFFF" />
+        <parameter sysctl_imdw_bit_position="11" />
+      </parameter_group>
+      <parameter_group name="memblock">
+        <parameter start="0xE0000" />
+        <parameter end="0xFFFFF" />
+        <parameter sysctl_imdw_bit_position="12" />
+      </parameter_group>
+
+      <parameter_group name="membank">
+        <!--L2 BOOT ROM 0-->
+        <parameter readonly ="1" />
+        <parameter switchaddressunitonly ="0" />
+        <parameter_group name="base_addr">
+          <parameter isa  ="0x00580000" />
+          <parameter visa ="0x00B80000" />
+          <parameter data ="0x08000000" />
+          <parameter sys  ="0x20000000" />
+        </parameter_group>
+        <parameter_group name="end_addr">
+          <parameter isa  ="0x00581555" />
+          <parameter visa ="0x00B83FFF" />
+          <parameter data ="0x08001FFF" />
+          <parameter sys  ="0x20007FFF" />
+        </parameter_group>
+      </parameter_group>
+
+      <parameter_group name="membank">
+        <!--L2 RAM-->
+        <parameter readonly ="0" />
+        <parameter switchaddressunitonly ="0" />
+        <parameter_group name="base_addr">
+          <parameter isa  ="0x005A0000" />
+          <parameter visa ="0x00BA0000" />
+          <parameter data ="0x08020000" />
+          <parameter sys  ="0x20080000" />
+        </parameter_group>
+        <parameter_group name="end_addr">
+          <parameter isa  ="0x005AAAAA" />
+          <parameter visa ="0x00BBFFFF" />
+          <parameter data ="0x0802FFFF" />
+          <parameter sys  ="0x200BFFFF" />
+        </parameter_group>
+      </parameter_group>
+
+      <parameter_group name="membank">
+        <!--L2 BOOT ROM 1-->
+        <parameter readonly ="1" />
+        <parameter switchaddressunitonly ="0" />
+        <parameter_group name="base_addr">
+          <parameter isa  ="0x00500000" />
+          <parameter visa ="0x00B00000" />
+          <parameter data ="0x08040000" />
+          <parameter sys  ="0x20100000" />
+        </parameter_group>
+        <parameter_group name="end_addr">
+          <parameter isa  ="0x00501555" />
+          <parameter visa ="0x00B03FFF" />
+          <parameter data ="0x08041FFF" />
+          <parameter sys  ="0x20107FFF" />
+        </parameter_group>
+      </parameter_group>
+
+      <parameter_group name="membank">
+        <!--L2 ROM 1-->
+        <parameter readonly ="1" />
+        <parameter switchaddressunitonly ="0" />
+        <parameter_group name="base_addr">
+          <parameter isa  ="0x00520000" />
+          <parameter visa ="0x00B20000" />
+          <parameter data ="0x08060000" />
+          <parameter sys  ="0x20180000" />
+        </parameter_group>
+        <parameter_group name="end_addr">
+          <parameter isa  ="0x0052AAAA" />
+          <parameter visa ="0x00B3FFFF" />
+          <parameter data ="0x0806FFFF" />
+          <parameter sys  ="0x201BFFFF" />
+        </parameter_group>
+      </parameter_group>
+
+      <parameter_group name="membank">
+        <!--L2 BOOT ROM 2-->
+        <parameter readonly ="1" />
+        <parameter switchaddressunitonly ="0" />
+        <parameter_group name="base_addr">
+          <parameter isa  ="0x00540000" />
+          <parameter visa ="0x00B40000" />
+          <parameter data ="0x08080000" />
+          <parameter sys  ="0x20200000" />
+        </parameter_group>
+        <parameter_group name="end_addr">
+          <parameter isa  ="0x00541555" />
+          <parameter visa ="0x00B43FFF" />
+          <parameter data ="0x08081FFF" />
+          <parameter sys  ="0x20207FFF" />
+        </parameter_group>
+      </parameter_group>
+
+      <parameter_group name="membank">
+        <!--L2 ROM2-->
+        <parameter readonly ="1" />
+        <parameter switchaddressunitonly ="0" />
+        <parameter_group name="base_addr">
+          <parameter isa  ="0x00560000" />
+          <parameter visa ="0x00B60000" />
+          <parameter data ="0x080A0000" />
+          <parameter sys  ="0x20280000" />
+        </parameter_group>
+        <parameter_group name="end_addr">
+          <parameter isa  ="0x0056AAAA" />
+          <parameter visa ="0x00B7FFFF" />
+          <parameter data ="0x080AFFFF" />
+          <parameter sys  ="0x202BFFFF" />
+        </parameter_group>
+      </parameter_group>
+
+      <parameter_group name="membank">
+        <!--L3 SMC0-->
+        <parameter readonly ="0" />
+        <parameter switchaddressunitonly ="0" />
+        <parameter_group name="base_addr">
+          <parameter isa ="0x00700000" />
+          <parameter visa="0x00F00000" />
+          <parameter data="0x01000000" />
+          <parameter sys ="0x40000000" />
+        </parameter_group>
+        <parameter_group name="end_addr">
+          <parameter isa  ="0x0073FFFF" />
+          <parameter visa ="0x00F3FFFF" />
+          <parameter data ="0x01FFFFFF" />
+          <parameter sys  ="0x4FFFFFFF" />
+        </parameter_group>
+      </parameter_group>
+
+      <parameter_group name="membank">
+        <parameter readonly ="0" />
+        <parameter switchaddressunitonly ="0" />
+        <!--L3 PCI-->
+        <parameter_group name="base_addr">
+          <parameter isa  ="0x00740000" />
+          <parameter visa ="0x00F40000" />
+          <parameter data ="0x02000000" />
+          <parameter sys  ="0x50000000" />
+        </parameter_group>
+        <parameter_group name="end_addr">
+          <parameter isa  ="0x0077FFFF" />
+          <parameter visa ="0x00F7FFFF" />
+          <parameter data ="0x03FFFFFF" />
+          <parameter sys  ="0x5FFFFFFF" />
+        </parameter_group>
+      </parameter_group>
+
+      <parameter_group name="membank">
+        <parameter readonly ="0" />
+        <parameter switchaddressunitonly ="0" />
+        <!--L3 SPI-->
+        <parameter_group name="base_addr">
+          <parameter isa ="0x00780000" />
+          <parameter visa="0x00F80000" />
+          <parameter data="0x04000000" />
+          <parameter sys ="0x60000000" />
+        </parameter_group>
+        <parameter_group name="end_addr">
+          <parameter isa  ="0x007FFFFF" />
+          <parameter visa ="0x00FFFFFF" />
+          <parameter data ="0x07FFFFFF" />
+          <parameter sys  ="0x7FFFFFFF" />
+        </parameter_group>
+      </parameter_group>
+
+      <parameter_group name="membank">
+        <parameter readonly ="0"/>
+        <parameter switchaddressunitonly ="0"/>
+        <!--L3 DDR-A: 8000_0000-809F_FFFF(BW), 1000_0000-1027_FFFF(NW), VISA not available, 40_0000-4F_FFFF(ISA code) -->
+        <parameter_group name="base_addr">
+          <parameter isa ="0x00400000"/>
+          <parameter data="0x10000000"/>
+          <parameter sys ="0x80000000"/>
+        </parameter_group>
+        <parameter_group name="end_addr">
+          <parameter isa  ="0x004FFFFF"/>
+          <parameter data ="0x1027FFFF"/>
+          <parameter sys  ="0x809FFFFF"/>
+        </parameter_group>
+      </parameter_group>
+
+      <parameter_group name="membank">
+        <parameter readonly ="0"/>
+        <parameter switchaddressunitonly ="0"/>
+        <!--L3 DDR-A: 80A0_0000-BFFF_FFFF(BW), 1028_0000-17FF_FFFF(NW), 80_0000-AF_FFFF(VISA), ISA not available -->
+        <parameter_group name="base_addr">
+          <parameter visa="0x00800000"/>
+          <parameter data="0x10280000"/>
+          <parameter sys ="0x80A00000"/>
+        </parameter_group>
+        <parameter_group name="end_addr">
+          <parameter visa ="0x00AFFFFF"/>
+          <parameter data ="0x17FFFFFF"/>
+          <parameter sys  ="0xBFFFFFFF"/>
+        </parameter_group>
+      </parameter_group>
+
+      <parameter_group name="membank">
+        <parameter readonly ="0"/>
+        <parameter switchaddressunitonly ="0"/>
+        <!--L3 DDR-B: C000_0000-C09F_FFFF(BW), 1800_0000-1827_FFFF(NW), VISA not available, 60_0000-6F_FFFF(ISA code) -->
+        <parameter_group name="base_addr">
+          <parameter isa ="0x00600000"/>
+          <parameter data="0x18000000"/>
+          <parameter sys ="0xC0000000"/>
+        </parameter_group>
+        <parameter_group name="end_addr">
+          <parameter isa  ="0x006FFFFF"/>
+          <parameter data ="0x1827FFFF"/>
+          <parameter sys  ="0xC09FFFFF"/>
+        </parameter_group>
+      </parameter_group>
+
+      <parameter_group name="membank">
+        <parameter readonly ="0"/>
+        <parameter switchaddressunitonly ="0"/>
+        <!--L3 DDR-B: C0A0_0000-FFFF_FFFF(BW), 1828_0000-1FFF_FFFF(NW), C0_0000-EF_FFFF(VISA), ISA not available -->
+        <parameter_group name="base_addr">
+          <parameter visa="0x00C00000"/>
+          <parameter data="0x18280000"/>
+          <parameter sys ="0xC0A00000"/>
+        </parameter_group>
+        <parameter_group name="end_addr">
+          <parameter visa ="0x00EFFFFF"/>
+
+          <parameter data ="0x1FFFFFFF"/>
+          <parameter sys  ="0xFFFFFFFF"/>
+        </parameter_group>
+      </parameter_group>
+
+      <parameter_group name="membank">
+        <!--Caution use only for switch address unit instructions b2w, w2b-->
+        <parameter readonly ="0" />
+        <parameter switchaddressunitonly ="1" />
+        <parameter_group name="base_addr">
+          <parameter isa  ="0xFFFFFFFF" />
+          <parameter visa ="0xFFFFFFFF" />
+          <parameter data ="0x08000000" />
+          <parameter sys  ="0x20000000" />
+        </parameter_group>
+        <parameter_group name="end_addr">
+          <parameter isa  ="0x0" />
+          <parameter visa ="0x0" />
+          <parameter data ="0x0FFFFFFF" />
+          <parameter sys  ="0x3FFFFFFF" />
+        </parameter_group>
+      </parameter_group>
+    </instance>
+
+    <instance module="CGU" name="CGU0" expose="1" address="0x3108D000" periph_id="128">
+      <parameter CCLK0_EN="0x1" />
+      <!-- enable core clock 0 -->
+      <parameter CCLK1_EN="0x1" />
+      <!-- enable core clock 1 -->
+      <parameter CLKOUTSELEN="0x1" />
+      <parameter CLKOUTSEL_BD="0x1" />
+      <parameter CLKOUTSEL_CFG1="0x0" />
+      <parameter CLKOUTSEL_CFG2="0x1" />
+      <parameter CLKOUTSEL_GR="0x1" />
+      <parameter CLKOUTSEL_TS="0x0" />
+      <parameter COMPRESS="0x0" />
+      <parameter CSEL_DEFAULT="0x4" />
+      <parameter DCLK_EN="0x1" />
+      <parameter DEFBYPASS="0x1" />
+      <parameter DSEL_DEFAULT="0x8" />
+      <parameter ENG_FBDELSEL_DEFAULT="0x0" />
+      <parameter MAJOR="0x2" />
+      <parameter MSEL_DEFAULT="0x10" />
+      <parameter OCLK_EN="0x1" />
+      <parameter OSCWD_CFG="0x1" />
+      <parameter OSCWD_EN="0x1" />
+      <parameter OSCWD_DVCFG="0x0" />
+      <parameter OSEL_DEFAULT="0x10" />
+      <parameter PLLBP_DEFAULT="0x0" />
+      <parameter PLOCKERR_EXISTS="0x0" />
+      <parameter REV="0x0" />
+      <parameter S0SEL_DEFAULT="0x2" />
+      <parameter S1SEL_DEFAULT="0x2" />
+      <parameter SCLK0_EN="0x1" />
+      <parameter SCLK1_EN="0x1" />
+      <parameter SYSSEL_DEFAULT="0x8" />
+      <parameter TIMSTMP_EN="0x1" />
+      <parameter USBCLKSELEN="0x1" />
+
+      <mmr acronym="CGU" interface="MMRInterface" />
+    </instance>
+
+    <instance module="CGU" name="CGU1" expose="1" address="0x3108E000" periph_id="129">
+      <parameter CCLK0_EN="0x1" />
+      <!-- enable core clock 0 -->
+      <parameter CCLK1_EN="0x1" />
+      <!-- enable core clock 1 -->
+      <parameter CLKOUTSELEN="0x0" />
+      <parameter CLKOUTSEL_BD="0x0" />
+      <parameter CLKOUTSEL_CFG1="0x0" />
+      <parameter CLKOUTSEL_CFG2="0x0" />
+      <parameter CLKOUTSEL_GR="0x1" />
+      <parameter CLKOUTSEL_TS="0x0" />
+      <parameter COMPRESS="0x0" />
+      <parameter CSEL_DEFAULT="0x4" />
+      <parameter DCLK_EN="0x1" />
+      <parameter DEFBYPASS="0x1" />
+      <parameter DSEL_DEFAULT="0x8" />
+      <parameter ENG_FBDELSEL_DEFAULT="0x0" />
+      <parameter MAJOR="0x2" />
+      <parameter MSEL_DEFAULT="0x10" />
+      <parameter OCLK_EN="0x1" />
+      <parameter OSCWD_CFG="0x1" />
+      <parameter OSCWD_DVCFG="0x0" />
+      <parameter OSCWD_EN="0x1" />
+      <parameter OSEL_DEFAULT="0x10" />
+      <parameter PLLBP_DEFAULT="0x0" />
+      <parameter PLOCKERR_EXISTS="0x1" />
+      <parameter REV="0x0" />
+      <parameter S0SEL_DEFAULT="0x2" />
+      <parameter S1SEL_DEFAULT="0x2" />
+      <parameter SCLK0_EN="0x1" />
+      <parameter SCLK1_EN="0x1" />
+      <parameter SYSSEL_DEFAULT="0x8" />
+      <parameter TIMSTMP_EN="0x0" />
+      <parameter USBCLKSELEN="0x1" />
+      <parameter CCLK0_TO_CCLK1_RATIO="0x2" />
+      <!-- ration defining the SYS_CLKIN1 frequency as 50% the SYS_CLKIN0 frequency -->
+
+      <mmr acronym="CGU" interface="MMRInterface" />
+    </instance>
+
+    <instance module="dde" name="DMA8"  address="0x31028000" expose="1" periph_id="88">
+      <parameter axi_id="0x1000" />
+      <mmr acronym="DDE" interface="MMRInterface" />
+      <parameter BW_EN="1" />
+      <parameter EB_MDMA_RD="0" />
+      <parameter EB_MDMA_WR="0" />
+      <parameter HSDA_ENABLE="0" />
+      <parameter DMA_FROM_MODULE="0" />
+      <parameter AGGREGATE_ERRORS="0" />
+    </instance>
+
+    <instance module="dde" name="DMA9"  address="0x31028080" expose="1" periph_id="89">
+      <parameter axi_id="0x1000" />
+      <mmr acronym="DDE" interface="MMRInterface" />
+      <parameter BW_EN="1" />
+      <parameter EB_MDMA_RD="0" />
+      <parameter EB_MDMA_WR="0" />
+      <parameter HSDA_ENABLE="0" />
+      <parameter DMA_FROM_MODULE="0" />
+      <parameter AGGREGATE_ERRORS="0" />
+    </instance>
+
+    <instance module="dde" name="DMA18"  address="0x31028100" expose="1" periph_id="90">
+      <parameter axi_id="0x1001" />
+      <mmr acronym="DDE" interface="MMRInterface" />
+      <parameter BW_EN="1" />
+      <parameter EB_MDMA_RD="0" />
+      <parameter EB_MDMA_WR="0" />
+      <parameter HSDA_ENABLE="0" />
+      <parameter DMA_FROM_MODULE="0" />
+      <parameter AGGREGATE_ERRORS="0" />
+    </instance>
+
+    <instance module="dde" name="DMA19"  address="0x31028180" expose="1" periph_id="91">
+      <parameter axi_id="0x1001" />
+      <mmr acronym="DDE" interface="MMRInterface" />
+      <parameter BW_EN="1" />
+      <parameter EB_MDMA_RD="0" />
+      <parameter EB_MDMA_WR="0" />
+      <parameter HSDA_ENABLE="0" />
+      <parameter DMA_FROM_MODULE="0" />
+      <parameter AGGREGATE_ERRORS="0" />
+    </instance>
+
+    <instance module="dde" name="DMA39"  address="0x3109A000" expose="1" periph_id="140">
+      <parameter axi_id="0x1002" />
+      <mmr acronym="DDE" interface="MMRInterface" />
+      <parameter BW_EN="1" />
+      <parameter EB_MDMA_RD="1" />
+      <parameter EB_MDMA_WR="0" />
+      <parameter HSDA_ENABLE="0" />
+      <parameter DMA_FROM_MODULE="0" />
+      <parameter AGGREGATE_ERRORS="0" />
+    </instance>
+
+    <instance module="dde" name="DMA40"  address="0x3109A080" expose="1" periph_id="140">
+      <parameter axi_id="0x1002" />
+      <mmr acronym="DDE" interface="MMRInterface" />
+      <parameter BW_EN="1" />
+      <parameter EB_MDMA_RD="0" />
+      <parameter EB_MDMA_WR="1" />
+      <parameter HSDA_ENABLE="0" />
+      <parameter DMA_FROM_MODULE="0" />
+      <parameter AGGREGATE_ERRORS="0" />
+    </instance>
+
+    <instance module="dde" name="DMA43"  address="0x3109B000" expose="1" periph_id="141">
+      <parameter axi_id="0x1003" />
+      <mmr acronym="DDE" interface="MMRInterface" />
+      <parameter BW_EN="1" />
+      <parameter EB_MDMA_RD="1" />
+      <parameter EB_MDMA_WR="0" />
+      <parameter HSDA_ENABLE="0" />
+      <parameter DMA_FROM_MODULE="0" />
+      <parameter AGGREGATE_ERRORS="0" />
+    </instance>
+
+    <instance module="dde" name="DMA44"  address="0x3109B080" expose="1" periph_id="141">
+      <parameter axi_id="0x1003" />
+      <mmr acronym="DDE" interface="MMRInterface" />
+      <parameter BW_EN="1" />
+      <parameter EB_MDMA_RD="0" />
+      <parameter EB_MDMA_WR="1" />
+      <parameter HSDA_ENABLE="0" />
+      <parameter DMA_FROM_MODULE="0" />
+      <parameter AGGREGATE_ERRORS="0" />
+    </instance>
+
+    <instance module="DDR3" name="DMC0" expose="1" address="0x31070000" periph_id="109">
+      <mmr acronym="DDR3" interface="MMRInterface" />
+      <parameter DDR3_EN="1" />
+      <parameter DIRECT_CMD_IF_EXISTS="0" />
+      <parameter PERF_MON_EXISTS="1" />
+      <parameter PHY_CTL_STAT_EXISTS="1" />
+      <parameter PHYREGS_EXISTS="0" />
+      <parameter PHY_STAT_EXISTS="1" />
+      <parameter PRIORITY_ID_WIDTH32="1" />
+      <parameter PRSTAT_ADDRCHG="1" />
+      <parameter PRSTAT_EXISTS="1" />
+      <parameter RDDATA_BUF_EXISTS="1" />
+      <parameter WR_DT_CALIB_EXISTS="1" />
+    </instance>
+    <instance module="DDRPHY" name="DMC0_PHY" expose="1" address="0x31071000" periph_id="110">
+      <mmr acronym="PHY0" interface="MMRInterface" />
+    </instance>
+
+    <instance module="DDR3" name="DMC1" expose="1" address="0x31073000" periph_id="112">
+      <mmr acronym="DDR3" interface="MMRInterface" />
+      <parameter DDR3_EN="1" />
+      <parameter DIRECT_CMD_IF_EXISTS="0" />
+      <parameter PERF_MON_EXISTS="1" />
+      <parameter PHY_CTL_STAT_EXISTS="1" />
+      <parameter PHYREGS_EXISTS="0" />
+      <parameter PHY_STAT_EXISTS="1" />
+      <parameter PRIORITY_ID_WIDTH32="1" />
+      <parameter PRSTAT_ADDRCHG="1" />
+      <parameter PRSTAT_EXISTS="1" />
+      <parameter RDDATA_BUF_EXISTS="1" />
+      <parameter WR_DT_CALIB_EXISTS="1" />
+    </instance>
+    <instance module="DDRPHY" name="DMC1_PHY" expose="1" address="0x31074000" periph_id="113">
+      <mmr acronym="PHY1" interface="MMRInterface" />
+    </instance>
+
+    <instance module="DPM" name="DPM0" expose="1" address="0x31090000" periph_id="131">
+      <parameter DPM_NUM_CCLK="0x2" />
+      <parameter DPM_NUM_SCLK="0x4" />
+      <parameter DPM_REV="0x0" />
+      <parameter DPM_NUM_PERDIS="0x32" />
+      <parameter DPM_NUM_PERDIS_REGS="0x2" />
+      <parameter DPM_NUM_PERDIS_LASTREG="0x13" />
+      <parameter DPM_NUM_WAKE="0x8" />
+      <parameter DPM_NUM_HV="0x4" />
+      <parameter DPM_OSCWD_EN="0x1" />
+      <parameter DPM_DEEPSLEEP_EN="0x0" />
+      <parameter DPM_HIBERNATE_EN="0x0" />
+      <parameter DPM_DEFACTIVE="0x0" />
+      <parameter DPM_COMPRESS="0x0" />
+      <parameter DPM_MAJOR="0x2" />
+
+      <mmr acronym="DPM" interface="MMRInterface" />
+    </instance>
+
+    <instance module="l1c" name="L1C-0"  coreid="1" address="0x3E000" expose="1" periph_id="0">
+      <mmr acronym="L1C" interface="MMRInterface" />
+    </instance>
+
+    <instance module="l1c" name="L1C-1"  coreid="2" address="0x3E000" expose="1" periph_id="0">
+      <mmr acronym="L1C" interface="MMRInterface" />
+    </instance>
+
+    <instance module="sharcxi-iss-memory" name="L1 RAM 0" coreid="1" expose="1">
+      <parameter trace_mem="0" />
+      <memory acronym="ROM0" />
+      <memory acronym="ROM1" />
+      <memory acronym="RAM0" />
+      <memory acronym="RAM1" />
+      <memory acronym="RAM2" />
+      <memory acronym="RAM3" />
+      <parameter_group name="Alias">
+        <parameter_group name="PortS1">
+          <parameter_group name="BW">
+            <parameter_group name="Map">
+              <parameter sys_start = "0x28240000" />
+              <parameter sys_end   = "0x2826FFFF" />
+              <parameter l1_start  = "0x00240000" />
+            </parameter_group>
+            <parameter_group name="Map">
+              <parameter sys_start = "0x282C0000" />
+              <parameter sys_end   = "0x282EFFFF" />
+              <parameter l1_start  = "0x002C0000" />
+            </parameter_group>
+            <parameter_group name="Map">
+              <parameter sys_start = "0x28300000" />
+              <parameter sys_end   = "0x2831FFFF" />
+              <parameter l1_start  = "0x00300000" />
+            </parameter_group>
+            <parameter_group name="Map">
+              <parameter sys_start = "0x28380000" />
+              <parameter sys_end   = "0x2839FFFF" />
+              <parameter l1_start  = "0x00380000" />
+            </parameter_group>
+          </parameter_group>
+          <parameter_group name="NW">
+            <parameter_group name="Map">
+              <parameter sys_start = "0x0A090000" />
+              <parameter sys_end   = "0x0A09BFFF" />
+              <parameter l1_start  = "0x00090000" />
+            </parameter_group>
+            <parameter_group name="Map">
+              <parameter sys_start = "0x0A0B0000" />
+              <parameter sys_end   = "0x0A0BBFFF" />
+              <parameter l1_start  = "0x000B0000" />
+            </parameter_group>
+            <parameter_group name="Map">
+              <parameter sys_start = "0x0A0C0000" />
+              <parameter sys_end   = "0x0A0C7FFF" />
+              <parameter l1_start  = "0x000C0000" />
+            </parameter_group>
+            <parameter_group name="Map">
+              <parameter sys_start = "0x0A0E0000" />
+              <parameter sys_end   = "0x0A0E7FFF" />
+              <parameter l1_start  = "0x000E0000" />
+            </parameter_group>
+          </parameter_group>
+        </parameter_group>
+        <parameter_group name="PortS2">
+          <parameter_group name="BW">
+            <parameter_group name="Map">
+              <parameter sys_start = "0x28640000" />
+              <parameter sys_end   = "0x2866FFFF" />
+              <parameter l1_start  = "0x00240000" />
+            </parameter_group>
+            <parameter_group name="Map">
+              <parameter sys_start = "0x286C0000" />
+              <parameter sys_end   = "0x286EFFFF" />
+              <parameter l1_start  = "0x002C0000" />
+            </parameter_group>
+            <parameter_group name="Map">
+              <parameter sys_start = "0x28700000" />
+              <parameter sys_end   = "0x2871FFFF" />
+              <parameter l1_start  = "0x00300000" />
+            </parameter_group>
+            <parameter_group name="Map">
+              <parameter sys_start = "0x28780000" />
+              <parameter sys_end   = "0x2879FFFF" />
+              <parameter l1_start  = "0x00380000" />
+            </parameter_group>
+          </parameter_group>
+          <parameter_group name="NW">
+            <parameter_group name="Map">
+              <parameter sys_start = "0x0A190000" />
+              <parameter sys_end   = "0x0A19BFFF" />
+              <parameter l1_start  = "0x00090000" />
+            </parameter_group>
+            <parameter_group name="Map">
+              <parameter sys_start = "0x0A1B0000" />
+              <parameter sys_end   = "0x0A1BBFFF" />
+              <parameter l1_start  = "0x000B0000" />
+            </parameter_group>
+            <parameter_group name="Map">
+              <parameter sys_start = "0x0A1C0000" />
+              <parameter sys_end   = "0x0A1C7FFF" />
+              <parameter l1_start  = "0x000C0000" />
+            </parameter_group>
+            <parameter_group name="Map">
+              <parameter sys_start = "0x0A1E0000" />
+              <parameter sys_end   = "0x0A1E7FFF" />
+              <parameter l1_start  = "0x000E0000" />
+            </parameter_group>
+          </parameter_group>
+        </parameter_group>
+      </parameter_group>
+    </instance>
+
+    <instance module="sharcxi-iss-memory" name="L1 RAM 1" coreid="2" expose="1">
+      <parameter trace_mem="0" />
+      <memory acronym="ROM0" />
+      <memory acronym="ROM1" />
+      <memory acronym="RAM0" />
+      <memory acronym="RAM1" />
+      <memory acronym="RAM2" />
+      <parameter_group name="Alias">
+        <parameter_group name="PortS1">
+          <parameter_group name="BW">
+            <parameter_group name="Map">
+              <parameter sys_start = "0x28A40000" />
+              <parameter sys_end   = "0x28A6FFFF" />
+              <parameter l1_start  = "0x00240000" />
+            </parameter_group>
+            <parameter_group name="Map">
+              <parameter sys_start = "0x28AC0000" />
+              <parameter sys_end   = "0x28AEFFFF" />
+              <parameter l1_start  = "0x002C0000" />
+            </parameter_group>
+            <parameter_group name="Map">
+              <parameter sys_start = "0x28B00000" />
+              <parameter sys_end   = "0x28B1FFFF" />
+              <parameter l1_start  = "0x00300000" />
+            </parameter_group>
+            <parameter_group name="Map">
+              <parameter sys_start = "0x28B80000" />
+              <parameter sys_end   = "0x28B9FFFF" />
+              <parameter l1_start  = "0x00380000" />
+            </parameter_group>
+          </parameter_group>
+          <parameter_group name="NW">
+            <parameter_group name="Map">
+              <parameter sys_start = "0x0A290000" />
+              <parameter sys_end   = "0x0A29BFFF" />
+              <parameter l1_start  = "0x00090000" />
+            </parameter_group>
+            <parameter_group name="Map">
+              <parameter sys_start = "0x0A2B0000" />
+              <parameter sys_end   = "0x0A2BBFFF" />
+              <parameter l1_start  = "0x000B0000" />
+            </parameter_group>
+            <parameter_group name="Map">
+              <parameter sys_start = "0x0A2C0000" />
+              <parameter sys_end   = "0x0A2C7FFF" />
+              <parameter l1_start  = "0x000C0000" />
+            </parameter_group>
+            <parameter_group name="Map">
+              <parameter sys_start = "0x0A2E0000" />
+              <parameter sys_end   = "0x0A2E7FFF" />
+              <parameter l1_start  = "0x000E0000" />
+            </parameter_group>
+          </parameter_group>
+        </parameter_group>
+        <parameter_group name="PortS2">
+          <parameter_group name="BW">
+            <parameter_group name="Map">
+              <parameter sys_start = "0x28E40000" />
+              <parameter sys_end   = "0x28E6FFFF" />
+              <parameter l1_start  = "0x00240000" />
+            </parameter_group>
+            <parameter_group name="Map">
+              <parameter sys_start = "0x28EC0000" />
+              <parameter sys_end   = "0x28EEFFFF" />
+              <parameter l1_start  = "0x002C0000" />
+            </parameter_group>
+            <parameter_group name="Map">
+              <parameter sys_start = "0x28F00000" />
+              <parameter sys_end   = "0x28F1FFFF" />
+              <parameter l1_start  = "0x00300000" />
+            </parameter_group>
+            <parameter_group name="Map">
+              <parameter sys_start = "0x28F80000" />
+              <parameter sys_end   = "0x28F9FFFF" />
+              <parameter l1_start  = "0x00380000" />
+            </parameter_group>
+          </parameter_group>
+          <parameter_group name="NW">
+            <parameter_group name="Map">
+              <parameter sys_start = "0x0A390000" />
+              <parameter sys_end   = "0x0A39BFFF" />
+              <parameter l1_start  = "0x00090000" />
+            </parameter_group>
+            <parameter_group name="Map">
+              <parameter sys_start = "0x0A3B0000" />
+              <parameter sys_end   = "0x0A3BBFFF" />
+              <parameter l1_start  = "0x000B0000" />
+            </parameter_group>
+            <parameter_group name="Map">
+              <parameter sys_start = "0x0A3C0000" />
+              <parameter sys_end   = "0x0A3C7FFF" />
+              <parameter l1_start  = "0x000C0000" />
+            </parameter_group>
+            <parameter_group name="Map">
+              <parameter sys_start = "0x0A3E0000" />
+              <parameter sys_end   = "0x0A3E7FFF" />
+              <parameter l1_start  = "0x000E0000" />
+            </parameter_group>
+          </parameter_group>
+        </parameter_group>
+      </parameter_group>
+      <memory acronym="RAM3" />
+    </instance>
+
+    <instance module="sharcxi-iss-l2ctl" name="L2CTL0" address="0x31080000" expose="1" periph_id="115">
+      <mmr acronym="L2 Controller" interface="mmr" />
+      <memory acronym="BOOT ROM0" />
+      <memory acronym="L2 RAM" />
+    </instance>
+
+    <instance module="sharcxi-iss-l2ctl" name="L2CTL1" address="0x31081000" expose="1" periph_id="116">
+      <mmr acronym="L2 Controller" interface="mmr" />
+      <memory acronym="BOOT ROM1" />
+      <memory acronym="L2 ROM1" />
+    </instance>
+
+    <instance module="sharcxi-iss-l2ctl" name="L2CTL2" address="0x31082000" expose="1" periph_id="117">
+      <mmr acronym="L2 Controller" interface="mmr" />
+      <memory acronym="BOOT ROM2" />
+      <memory acronym="L2 ROM2" />
+    </instance>
+
+    <instance module="SMC" name="SMC0" expose="1" address="0x31006000" periph_id="48">
+      <mmr acronym="SMC" interface="MMRInterface" />
+      <parameter BURST_FLASH_EXISTS="0x0" />
+      <parameter NUM_AMS="0x4" />
+      <parameter BUS_GRANT_EXISTS="0x0" />
+
+      <parameter_group name="bank0">
+        <parameter start="0x40000000" />
+        <parameter end="0x43FFFFFF" />
+      </parameter_group>
+      <parameter_group name="bank1">
+        <parameter start="0x44000000" />
+        <parameter end="0x47FFFFFF" />
+      </parameter_group>
+      <parameter_group name="bank2">
+        <parameter start="0x48000000" />
+        <parameter end="0x4BFFFFFF" />
+      </parameter_group>
+      <parameter_group name="bank3">
+        <parameter start="0x4C000000" />
+        <parameter end="0x4FFFFFFF" />
+      </parameter_group>
+    </instance>
+
+    <instance module="sharcxi-iss-l3ctl" name="StaticMemory" expose="1" periph_id="">
+      <parameter readonly="0" />
+      <memory acronym="SMC" />
+    </instance>
+
+    <instance module="sharcxi-iss-l3ctl" name="L3 PCI" expose="1" periph_id="">
+      <parameter readonly="0" />
+      <memory acronym="PCI" />
+    </instance>
+
+    <instance module="sharcxi-iss-l3ctl" name="L3 SPI" expose="1" periph_id="">
+      <parameter readonly="0" />
+      <memory acronym="SPI" />
+    </instance>
+
+    <instance module="sharcxi-iss-l3ctl" name="L3 DDR A" expose="1" periph_id="">
+      <parameter readonly="0" />
+      <memory acronym="DDR-A" />
+    </instance>
+
+    <instance module="sharcxi-iss-l3ctl" name="L3 DDR B" expose="1" periph_id="">
+      <parameter readonly="0" />
+      <memory acronym="DDR-B" />
+    </instance>
+
+    <instance module="dbg" name="DBG0"  coreid="1" address="0x30000" expose="1" periph_id="165">
+      <mmr acronym="DBG" interface="MMRInterface" />
+    </instance>
+
+    <instance module="dbg" name="DBG1"  coreid="2"  address="0x30000" expose="1" periph_id="169">
+      <mmr acronym="DBG" interface="MMRInterface" />
+    </instance>
+
+    <instance module="RCU" name="RCU0" expose="1" address="0x3108B000" periph_id="126">
+      <mmr acronym="RCU" interface="MMRInterface" />
+      <parameter BOOTSEL_INIT="6" />
+      <parameter BOOTSEL_WIDTH="2" />
+      <parameter CCOUNT="3" />
+      <parameter CDISABLEMASK_INIT="0" />
+      <parameter CORERESET_EN="1" />
+      <parameter CORE_RST_SLV_EXISTS="0" />
+      <parameter CRCTL_CR_INIT="0x0" />
+      <parameter CRSTAT_CR_INIT="0x0" />
+      <parameter HIBERNATE_EN="0" />
+      <parameter MAJOR="2" />
+      <parameter MESSAGING_EN="1" />
+      <parameter NUM_CORES="3" />
+      <parameter NUM_SYS_SLVS="2" />
+      <parameter OSCWD_EN="1" />
+      <parameter REV="0" />
+      <parameter SICOUNT="2" />
+      <parameter SIHNDSHK_EN="1" />
+      <parameter SVECT_DEFAULT0="0x00000020" />
+      <parameter SVECT_DEFAULT1 ="0x00090004" />
+      <parameter SVECT_DEFAULT2 ="0x00090004" />
+      <parameter SVECT_DEFAULT3 ="0x0000C830" />
+      <parameter SVECT_DEFAULT4 ="0x0000C840" />
+      <parameter SVECT_DEFAULT5 ="0x0000C850" />
+      <parameter SVECT_DEFAULT6 ="0x0000C860" />
+      <parameter SVECT_DEFAULT7 ="0x0000C870" />
+      <parameter SVECT_DEFAULT8 ="0x0000C880" />
+      <parameter SVECT_DEFAULT9 ="0x0000C890" />
+      <parameter SVECT_DEFAULT10="0x0000C8A0" />
+      <parameter SVECT_DEFAULT11="0x0000C8B0" />
+      <parameter SVECT_DEFAULT12="0x0000C8C0" />
+      <parameter SVECT_DEFAULT13="0x0000C8D0" />
+      <parameter SVECT_DEFAULT14="0x0000C8E0" />
+      <parameter SVECT_DEFAULT15="0x0000C8F0" />
+      <parameter SVECT_INIT="0x0000C800" />
+    </instance>
+
+    <instance module="CDU" name="CDU0"  address="0x3108F000" expose="1" periph_id="130">
+      <mmr acronym="CDU" interface="MMRInterface" />
+      <parameter CLKON="0xA" />
+      <parameter MAJOR="1" />
+      <parameter REV="0" />
+      <parameter DIV_IN1_CLKO_0="2" />
+      <parameter DIV_IN1_CLKO_1="2" />
+      <parameter DIV_IN1_CLKO_2="2" />
+      <parameter DIV_IN0_CLKO_9="2" />
+      <parameter DIV_IN1_CLKO_9="2" />
+    </instance>
+
+    <instance module="sec" name="SEC0"  address="0x31089000" expose="1" periph_id="124">
+      <mmr acronym="SEC" interface="MMRInterface" />
+      <parameter CCOUNT="3" />
+      <parameter SCI_EXISTS="1" />
+      <parameter SCI_START_AT_1="1" />
+      <parameter SCOUNT="256" />
+    </instance>
+
+    <instance module="SMPU" name="SMPU0" address="0x31007000" expose="1" periph_id="49">
+      <parameter REVID_MAJOR ="1" />
+      <parameter REVID_REV   ="0" />
+      <parameter REGNUM      ="8" />
+      <parameter EXACNUM     ="0x4" />
+      <parameter IDWIDTH     ="0xD" />
+      <parameter_group name="init">
+        <!-- Non-secure Reads & Writes initially enabled -->
+        <parameter SECURECTL="0x00000500" />
+      </parameter_group>
+      <mmr acronym="SMPU" interface="MMRInterface" />
+    </instance>
+    <instance module="SMPU" name="SMPU2" address="0x31083000" expose="1" periph_id="118">
+      <parameter REVID_MAJOR ="1" />
+      <parameter REVID_REV   ="0" />
+      <parameter REGNUM      ="8" />
+      <parameter EXACNUM     ="0x4" />
+      <parameter IDWIDTH     ="0xD" />
+      <parameter_group name="init">
+        <!-- Non-secure Reads & Writes initially enabled -->
+        <parameter SECURECTL="0x00000500" />
+      </parameter_group>
+      <mmr acronym="SMPU" interface="MMRInterface" />
+    </instance>
+    <instance module="SMPU" name="SMPU3" address="0x31084000" expose="1" periph_id="119">
+      <parameter REVID_MAJOR ="1" />
+      <parameter REVID_REV   ="0" />
+      <parameter REGNUM      ="8" />
+      <parameter EXACNUM     ="0" />
+      <parameter IDWIDTH     ="0xD" />
+      <parameter_group name="init">
+        <!-- Non-secure Reads & Writes initially enabled -->
+        <parameter SECURECTL="0x00000500" />
+      </parameter_group>
+      <mmr acronym="SMPU" interface="MMRInterface" />
+    </instance>
+    <instance module="SMPU" name="SMPU4" address="0x31085000" expose="1" periph_id="120">
+      <parameter REVID_MAJOR ="1" />
+      <parameter REVID_REV   ="0" />
+      <parameter REGNUM      ="8" />
+      <parameter EXACNUM     ="0" />
+      <parameter IDWIDTH     ="0xD" />
+      <parameter_group name="init">
+        <!-- Non-secure Reads & Writes initially enabled -->
+        <parameter SECURECTL="0x00000500" />
+      </parameter_group>
+      <mmr acronym="SMPU" interface="MMRInterface" />
+    </instance>
+    <instance module="SMPU" name="SMPU5" address="0x31086000" expose="1" periph_id="121">
+      <parameter REVID_MAJOR ="1" />
+      <parameter REVID_REV   ="0" />
+      <parameter REGNUM      ="8" />
+      <parameter EXACNUM     ="0" />
+      <parameter IDWIDTH     ="0xD" />
+      <parameter_group name="init">
+        <!-- Non-secure Reads & Writes initially enabled -->
+        <parameter SECURECTL="0x00000500" />
+      </parameter_group>
+      <mmr acronym="SMPU" interface="MMRInterface" />
+    </instance>
+    <instance module="SMPU" name="SMPU6" address="0x31087000" expose="1" periph_id="122">
+      <parameter REVID_MAJOR ="1" />
+      <parameter REVID_REV   ="0" />
+      <parameter REGNUM      ="8" />
+      <parameter EXACNUM     ="0" />
+      <parameter IDWIDTH     ="0xD" />
+      <parameter_group name="init">
+        <!-- Non-secure Reads & Writes initially enabled -->
+        <parameter SECURECTL="0x00000500" />
+      </parameter_group>
+      <mmr acronym="SMPU" interface="MMRInterface" />
+    </instance>
+    <instance module="SMPU" name="SMPU7" address="0x31088000" expose="1" periph_id="123">
+      <parameter REVID_MAJOR ="1" />
+      <parameter REVID_REV   ="0" />
+      <parameter REGNUM      ="8" />
+      <parameter EXACNUM     ="0" />
+      <parameter IDWIDTH     ="0xD" />
+      <parameter_group name="init">
+        <!-- Non-secure Reads & Writes initially enabled -->
+        <parameter SECURECTL="0x00000500" />
+      </parameter_group>
+      <mmr acronym="SMPU" interface="MMRInterface" />
+    </instance>
+    <instance module="SMPU" name="SMPU8" address="0x31099000" expose="1" periph_id="139">
+      <parameter REVID_MAJOR ="1" />
+      <parameter REVID_REV   ="0" />
+      <parameter REGNUM      ="8" />
+      <parameter EXACNUM     ="0" />
+      <parameter IDWIDTH     ="0xD" />
+      <parameter_group name="init">
+        <!-- Non-secure Reads & Writes initially enabled -->
+        <parameter SECURECTL="0x00000500" />
+      </parameter_group>
+      <mmr acronym="SMPU" interface="MMRInterface" />
+    </instance>
+    <instance module="SMPU" name="SMPU9" address="0x310A0000" expose="1" periph_id="146">
+      <parameter REVID_MAJOR ="1" />
+      <parameter REVID_REV   ="0" />
+      <parameter REGNUM      ="8" />
+      <parameter EXACNUM     ="0x4" />
+      <parameter IDWIDTH     ="0xD" />
+      <parameter_group name="init">
+        <!-- Non-secure Reads & Writes initially enabled -->
+        <parameter SECURECTL="0x00000500" />
+      </parameter_group>
+      <mmr acronym="SMPU" interface="MMRInterface" />
+    </instance>
+    <instance module="SMPU" name="SMPU10" address="0x310A1000" expose="1" periph_id="147">
+      <parameter REVID_MAJOR ="1" />
+      <parameter REVID_REV   ="0" />
+      <parameter REGNUM      ="8" />
+      <parameter EXACNUM     ="0x4" />
+      <parameter IDWIDTH     ="0xD" />
+      <parameter_group name="init">
+        <!-- Non-secure Reads & Writes initially enabled -->
+        <parameter SECURECTL="0x00000500" />
+      </parameter_group>
+      <mmr acronym="SMPU" interface="MMRInterface" />
+    </instance>
+
+    <instance module="TRU" name="TRU0" address="0x3108A000" expose="1" periph_id="125">
+      <parameter SSRCOUNT="0x100" />
+      <parameter REVID_REV="1" />
+      <parameter REVID_MAJOR="0" />
+      <mmr acronym="TRU" interface="MMRInterface" />
+    </instance>
+
+    <instance module="TIMER" name="TIMER0" expose="1" address="0x31001000" periph_id="9">
+      <mmr acronym="TIMER" interface="MMRInterface" />
+      <parameter NUMTIMERS="8" />
+      <parameter REVID_REV="0" />
+      <parameter REVID_MAJOR="3" />
+      <parameter TRIG_TOGGLE_EXISTS="0" />
+      <parameter ORDERED_TRIG_TOGGLE_EXISTS="0" />
+      <parameter MMR_BUS_WIDTH="16" />
+    </instance>
+
+    <instance module="WDT" name="WDOG0" expose="1" address="0x31008000" periph_id="50">
+      <mmr acronym="WDT" interface="MMRInterface" />
+    </instance>
+
+    <instance module="WDT" name="WDOG1" expose="1" address="0x31009000" periph_id="51">
+      <mmr acronym="WDT" interface="MMRInterface" />
+    </instance>
+
+    <instance module="RTC" name="RTC0" expose="1" address="0x310C8000" periph_id="159">
+      <parameter RTC_CLKRATIO="10000" />
+      <mmr acronym="RTC" interface="MMRInterface" />
+    </instance>
+
+    <instance module="spu2" name="SPU0" address="0x3108C000" expose="1" periph_id="5">
+      <mmr acronym="SPU" interface="MMRInterface" />
+
+      <parameter END_POINT_COUNT="0xBD" />
+      <parameter CM_COUNT="0x3" />
+      <parameter SM_COUNT="0x4" />
+      <parameter CORESECNUM="0x3" />
+      <parameter CSECNUM="0x1" />
+      <parameter VERSION="0x2" />
+      <parameter ITYPE="0x0" />
+      <parameter NS="0x0" />
+
+      <parameter_group name="init">
+        <parameter SECUREP="0x2" />
+        <!-- All peripherals are secure masters -->
+      </parameter_group>
+
+      <!-- Bit Position in Core Masters of the WP[periphId].CM register -->
+      <parameter_group name="axi_to_wp_cm_bit">
+        <!--b1010xxxxx0100-->
+        <!-- ARM Core MPort, 5 don't cares for 32 axi IDs -->
+        <parameter AXI_ID_0x1400="0x1" />
+        <!-- Sharc Core0 DPort -->
+        <parameter AXI_ID_0x1402="0x2" />
+        <!-- Sharc Core1 DPort -->
+      </parameter_group>
+
+      <!-- Bit Position in System Masters of the WP[periphId].SM register -->
+      <parameter_group name="axi_to_wp_sm_bit">
+        <!-- There are 2 don't care bits for MDMA0 so map all 4 possibilities -->
+        <parameter AXI_ID_0x1000="0x3" />
+        <!-- Enhanced BW MDMA, 2 don't care bits -->
+        <parameter AXI_ID_0x1001="0x3" />
+        <!-- Enhanced BW MDMA, 2 don't care bits -->
+        <parameter AXI_ID_0x1010="0x3" />
+        <!-- Enhanced BW MDMA, 2 don't care bits -->
+        <parameter AXI_ID_0x1011="0x3" />
+        <!-- Enhanced BW MDMA, 2 don't care bits -->
+      </parameter_group>
+
+      <!-- Index for SecureC register -->
+      <parameter_group name="axi_to_securec_id">
+        <!-- 0 (ARM) is Reserved to maintain consistent core number usage -->
+        <parameter AXI_ID_0x1400="0x1" />
+        <!-- Sharc0 -->
+        <parameter AXI_ID_0x1402="0x2" />
+        <!-- Sharc1 -->
+      </parameter_group>
+
+      <!-- Mapping from axi id to peripheral id to index WP[n] and SecureP[n] -->
+      <parameter_group name="axi_to_slave_id">
+        <parameter AXI_ID_0x1000="0x140" />
+        <!-- Enhanced BW MDMA, 2 don't care bits -->
+        <parameter AXI_ID_0x1001="0x140" />
+        <!-- Enhanced BW MDMA, 2 don't care bits -->
+        <parameter AXI_ID_0x1010="0x140" />
+        <!-- Enhanced BW MDMA, 2 don't care bits -->
+        <parameter AXI_ID_0x1011="0x140" />
+        <!-- Enhanced BW MDMA, 2 don't care bits -->
+      </parameter_group>
+    </instance>
+    <instance module="TWI" name="TWI0" expose="1" address="0x31001400" periph_id="12">
+      <parameter TWI_CLKRATIO="10000" />
+      <mmr acronym="TWI" interface="MMRInterface" />
+      <parameter trace="0" />
+      <parameter trace_file="C:\\tracing-ADSP-SC589-TWI0.txt" />
+      <parameter trace_rt="0" />
+      <parameter trace_rt_file="C:\\tracing-ADSP-SC589-TWI0-RT.txt" />
+    </instance>
+
+    <connections>
+
+      <!-- chip-factory -->
+      <channel from="chip-factory" port="clock" to="CGU0" interface="clock" />
+      <channel from="chip-factory" port="commit" to="CGU0" interface="commit" />
+      <channel from="chip-factory" port="reset" to="CGU0" interface="reset" />
+
+      <channel from="chip-factory" port="clock" to="CGU1" interface="clock" />
+      <channel from="chip-factory" port="commit" to="CGU1" interface="commit" />
+      <channel from="chip-factory" port="reset" to="CGU1" interface="reset" />
+
+      <channel from="chip-factory" port="clock" to="CDU0" interface="clock" />
+      <channel from="chip-factory" port="commit" to="CDU0" interface="commit" />
+      <channel from="chip-factory" port="reset" to="CDU0" interface="reset" />
+
+      <channel from="chip-factory" port="clock" to="DPM0" interface="clock" />
+      <channel from="chip-factory" port="commit" to="DPM0" interface="commit" />
+      <channel from="chip-factory" port="reset" to="DPM0" interface="reset" />
+
+      <channel from="chip-factory" port="clock" to="RCU0" interface="clock" />
+      <channel from="chip-factory" port="commit" to="RCU0" interface="commit" />
+      <channel from="chip-factory" port="reset" to="RCU0" interface="reset" />
+
+      <channel from="chip-factory" port="commit" to="sharc-xi-core-0" interface="commit" />
+      <channel from="chip-factory" port="commit" to="sharc-xi-core-1" interface="commit" />
+      <channel from="chip-factory" port="commit" to="L1 RAM 0" interface="commit" />
+      <channel from="chip-factory" port="commit" to="L1 RAM 1" interface="commit" />
+      <channel from="chip-factory" port="commit" to="DMA8" interface="commit" />
+      <channel from="chip-factory" port="commit" to="DMA9" interface="commit" />
+      <channel from="chip-factory" port="commit" to="DMA18" interface="commit" />
+      <channel from="chip-factory" port="commit" to="DMA19" interface="commit" />
+      <channel from="chip-factory" port="commit" to="DMA39" interface="commit" />
+      <channel from="chip-factory" port="commit" to="DMA40" interface="commit" />
+      <channel from="chip-factory" port="commit" to="DMA43" interface="commit" />
+      <channel from="chip-factory" port="commit" to="DMA44" interface="commit" />
+      <channel from="chip-factory" port="commit" to="TIMER0" interface="commit" />
+      <channel from="chip-factory" port="commit" to="WDOG0" interface="commit" />
+      <channel from="chip-factory" port="commit" to="WDOG1" interface="commit" />
+      <channel from="chip-factory" port="clock" to="RTC0" interface="clock" />
+      <channel from="chip-factory" port="reset" to="RTC0" interface="reset" />
+      <channel from="chip-factory" port="commit" to="RTC0" interface="commit" />
+      <channel from="chip-factory" port="commit" to="TWI0" interface="commit" />
+
+      <!-- Core SharcXI 0 -->
+      <channel from="sharc-xi-core-0" port="message" to="chip-factory" interface="message" />
+
+      <channel from="sharc-xi-core-0" port="data_and_instruction" to="L1 RAM 0" interface="load_store" />
+      <channel from="sharc-xi-core-0" port="l1_util" to="L1 RAM 0" interface="util" />
+
+      <channel from="sharc-xi-core-0" port="axi" to="SMPU2" interface="axi" />
+      <channel from="sharc-xi-core-0" port="axi" to="SMPU4" interface="axi" />
+      <channel from="sharc-xi-core-0" port="axi" to="SMPU6" interface="axi" />
+      <channel from="sharc-xi-core-0" port="axi" to="SMPU0" interface="axi" />
+      <channel from="sharc-xi-core-0" port="axi" to="SMPU8" interface="axi" />
+      <channel from="sharc-xi-core-0" port="axi" to="SMPU9" interface="axi" />
+      <channel from="sharc-xi-core-0" port="axi" to="SMPU10" interface="axi" />
+      <channel from="sharc-xi-core-0" port="axi" to="L3 SPI" interface="axi" />
+
+      <channel from="sharc-xi-core-0" port="axi" to="L1 RAM 0" interface="S1" />
+      <channel from="sharc-xi-core-0" port="axi" to="L1 RAM 0" interface="S2" />
+
+      <!-- Core SharcXI 1 -->
+      <channel from="sharc-xi-core-1" port="message" to="chip-factory" interface="message" />
+
+      <channel from="sharc-xi-core-1" port="data_and_instruction" to="L1 RAM 1" interface="load_store" />
+      <channel from="sharc-xi-core-1" port="l1_util" to="L1 RAM 1" interface="util" />
+
+      <channel from="sharc-xi-core-1" port="axi" to="SMPU2" interface="axi" />
+      <channel from="sharc-xi-core-1" port="axi" to="SMPU4" interface="axi" />
+      <channel from="sharc-xi-core-1" port="axi" to="SMPU6" interface="axi" />
+      <channel from="sharc-xi-core-1" port="axi" to="SMPU0" interface="axi" />
+      <channel from="sharc-xi-core-1" port="axi" to="SMPU8" interface="axi" />
+      <channel from="sharc-xi-core-1" port="axi" to="SMPU9" interface="axi" />
+      <channel from="sharc-xi-core-1" port="axi" to="SMPU10" interface="axi" />
+      <channel from="sharc-xi-core-1" port="axi" to="L3 SPI" interface="axi" />
+
+      <channel from="sharc-xi-core-1" port="axi" to="L1 RAM 1" interface="S1" />
+      <channel from="sharc-xi-core-1" port="axi" to="L1 RAM 1" interface="S2" />
+
+      <!-- DMC -->
+      <channel from="DMC0" port="axi" to="L3 DDR A" interface="axi" />
+      <channel from="DMC0" port="core2sys" to="sharc-xi-core-0" interface="core2sys" />
+      <channel from="DMC1" port="axi" to="L3 DDR B" interface="axi" />
+      <channel from="DMC1" port="core2sys" to="sharc-xi-core-0" interface="core2sys" />
+
+      <!-- SMPU -->
+      <channel from="SMPU0" port="axi" to="SMC0" interface="axi" />
+      <channel from="SMPU0" port="interrupt" to="SEC0" interface="SSI242" />
+      <channel from="SMPU2" port="axi" to="L2CTL0" interface="axi" />
+      <channel from="SMPU2" port="interrupt" to="SEC0" interface="SSI242" />
+      <channel from="SMPU3" port="axi" to="L2CTL0" interface="axi" />
+      <channel from="SMPU3" port="interrupt" to="SEC0" interface="SSI242" />
+      <channel from="SMPU4" port="axi" to="L2CTL1" interface="axi" />
+      <channel from="SMPU4" port="interrupt" to="SEC0" interface="SSI242" />
+      <channel from="SMPU5" port="axi" to="L2CTL1" interface="axi" />
+      <channel from="SMPU5" port="interrupt" to="SEC0" interface="SSI242" />
+      <channel from="SMPU6" port="axi" to="L2CTL2" interface="axi" />
+      <channel from="SMPU6" port="interrupt" to="SEC0" interface="SSI242" />
+      <channel from="SMPU7" port="axi" to="L2CTL2" interface="axi" />
+      <channel from="SMPU7" port="interrupt" to="SEC0" interface="SSI242" />
+      <channel from="SMPU8" port="axi" to="L3 PCI" interface="axi" />
+      <channel from="SMPU8" port="interrupt" to="SEC0" interface="SSI242" />
+      <channel from="SMPU9" port="axi" to="DMC0" interface="axi" />
+      <channel from="SMPU9" port="interrupt" to="SEC0" interface="SSI242" />
+      <channel from="SMPU10" port="axi" to="DMC1" interface="axi" />
+      <channel from="SMPU10" port="interrupt" to="SEC0" interface="SSI242" />
+
+      <channel from="sharc-xi-core-0" port="sec" to="SEC0" interface="idle" />
+      <channel from="sharc-xi-core-0" port="dbgMMR" to="DBG0" interface="MMRInterface" />
+
+      <channel from="sharc-xi-core-1" port="sec" to="SEC0" interface="idle" />
+      <channel from="sharc-xi-core-1" port="dbgMMR" to="DBG1" interface="MMRInterface" />
+
+      <!-- dma -->
+      <channel from="DMA8" port="axi" to="L1 RAM 0" interface="S1" />
+      <channel from="DMA8" port="axi" to="L1 RAM 0" interface="S2" />
+      <channel from="DMA8" port="axi" to="L1 RAM 1" interface="S1" />
+      <channel from="DMA8" port="axi" to="L1 RAM 1" interface="S2" />
+      <channel from="DMA8" port="axi" to="L3 SPI" interface="axi" />
+      <channel from="DMA8" port="axi" to="SMPU3" interface="axi" />
+      <channel from="DMA8" port="axi" to="SMPU5" interface="axi" />
+      <channel from="DMA8" port="axi" to="SMPU7" interface="axi" />
+      <channel from="DMA8" port="axi" to="SMPU0" interface="axi" />
+      <channel from="DMA8" port="axi" to="SMPU8" interface="axi" />
+      <channel from="DMA8" port="axi" to="SMPU9" interface="axi" />
+      <channel from="DMA8" port="axi" to="SMPU10" interface="axi" />
+      <channel from="DMA8" port="SSI" to="SEC0" interface="SSI172" />
+      <channel from="DMA8" port="ERR" to="SEC0" interface="SSI217" />
+      <channel from="DMA8" PORT="trigger" to="TRU0" interface="mti74" />
+
+      <channel from="DMA9" port="axi" to="L1 RAM 0" interface="S1" />
+      <channel from="DMA9" port="axi" to="L1 RAM 0" interface="S2" />
+      <channel from="DMA9" port="axi" to="L1 RAM 1" interface="S1" />
+      <channel from="DMA9" port="axi" to="L1 RAM 1" interface="S2" />
+      <channel from="DMA9" port="axi" to="L3 SPI" interface="axi" />
+      <channel from="DMA9" port="axi" to="SMPU3" interface="axi" />
+      <channel from="DMA9" port="axi" to="SMPU5" interface="axi" />
+      <channel from="DMA9" port="axi" to="SMPU7" interface="axi" />
+      <channel from="DMA9" port="axi" to="SMPU0" interface="axi" />
+      <channel from="DMA9" port="axi" to="SMPU8" interface="axi" />
+      <channel from="DMA9" port="axi" to="SMPU9" interface="axi" />
+      <channel from="DMA9" port="axi" to="SMPU10" interface="axi" />
+      <channel from="DMA9" port="p2p" to="DMA8" interface="p2p" />
+      <channel from="DMA9" port="SSI" to="SEC0" interface="SSI173" />
+      <channel from="DMA9" port="ERR" to="SEC0" interface="SSI218" />
+      <channel from="DMA9" PORT="trigger" to="TRU0" interface="mti75" />
+
+      <channel from="DMA18" port="axi" to="L1 RAM 0" interface="S1" />
+      <channel from="DMA18" port="axi" to="L1 RAM 0" interface="S2" />
+      <channel from="DMA18" port="axi" to="L1 RAM 1" interface="S1" />
+      <channel from="DMA18" port="axi" to="L1 RAM 1" interface="S2" />
+      <channel from="DMA18" port="axi" to="L3 SPI" interface="axi" />
+      <channel from="DMA18" port="axi" to="SMPU3" interface="axi" />
+      <channel from="DMA18" port="axi" to="SMPU5" interface="axi" />
+      <channel from="DMA18" port="axi" to="SMPU7" interface="axi" />
+      <channel from="DMA18" port="axi" to="SMPU0" interface="axi" />
+      <channel from="DMA18" port="axi" to="SMPU8" interface="axi" />
+      <channel from="DMA18" port="axi" to="SMPU9" interface="axi" />
+      <channel from="DMA18" port="axi" to="SMPU10" interface="axi" />
+      <channel from="DMA18" port="SSI" to="SEC0" interface="SSI174" />
+      <channel from="DMA18" port="ERR" to="SEC0" interface="SSI219" />
+      <channel from="DMA18" PORT="trigger" to="TRU0" interface="mti76" />
+
+      <channel from="DMA19" port="axi" to="L1 RAM 0" interface="S1" />
+      <channel from="DMA19" port="axi" to="L1 RAM 0" interface="S2" />
+      <channel from="DMA19" port="axi" to="L1 RAM 1" interface="S1" />
+      <channel from="DMA19" port="axi" to="L1 RAM 1" interface="S2" />
+      <channel from="DMA19" port="axi" to="L3 SPI" interface="axi" />
+      <channel from="DMA19" port="axi" to="SMPU3" interface="axi" />
+      <channel from="DMA19" port="axi" to="SMPU5" interface="axi" />
+      <channel from="DMA19" port="axi" to="SMPU7" interface="axi" />
+      <channel from="DMA19" port="axi" to="SMPU0" interface="axi" />
+      <channel from="DMA19" port="axi" to="SMPU8" interface="axi" />
+      <channel from="DMA19" port="axi" to="SMPU9" interface="axi" />
+      <channel from="DMA19" port="axi" to="SMPU10" interface="axi" />
+      <channel from="DMA19" port="p2p" to="DMA18" interface="p2p" />
+      <channel from="DMA19" port="SSI" to="SEC0" interface="SSI175" />
+      <channel from="DMA19" port="ERR" to="SEC0" interface="SSI220" />
+      <channel from="DMA19" PORT="trigger" to="TRU0" interface="mti77" />
+
+      <channel from="DMA39" port="axi" to="L1 RAM 0" interface="S1" />
+      <channel from="DMA39" port="axi" to="L1 RAM 0" interface="S2" />
+      <channel from="DMA39" port="axi" to="L1 RAM 1" interface="S1" />
+      <channel from="DMA39" port="axi" to="L1 RAM 1" interface="S2" />
+      <channel from="DMA39" port="axi" to="L3 SPI" interface="axi" />
+      <channel from="DMA39" port="axi" to="SMPU3" interface="axi" />
+      <channel from="DMA39" port="axi" to="SMPU5" interface="axi" />
+      <channel from="DMA39" port="axi" to="SMPU7" interface="axi" />
+      <channel from="DMA39" port="axi" to="SMPU0" interface="axi" />
+      <channel from="DMA39" port="axi" to="SMPU8" interface="axi" />
+      <channel from="DMA39" port="axi" to="SMPU9" interface="axi" />
+      <channel from="DMA39" port="axi" to="SMPU10" interface="axi" />
+      <channel from="DMA39" port="SSI" to="SEC0" interface="SSI168" />
+      <channel from="DMA39" port="ERR" to="SEC0" interface="SSI221" />
+      <channel from="DMA39" PORT="trigger" to="TRU0" interface="mti78" />
+
+      <channel from="DMA40" port="axi" to="L1 RAM 0" interface="S1" />
+      <channel from="DMA40" port="axi" to="L1 RAM 0" interface="S2" />
+      <channel from="DMA40" port="axi" to="L1 RAM 1" interface="S1" />
+      <channel from="DMA40" port="axi" to="L1 RAM 1" interface="S2" />
+      <channel from="DMA40" port="axi" to="L3 SPI" interface="axi" />
+      <channel from="DMA40" port="axi" to="SMPU3" interface="axi" />
+      <channel from="DMA40" port="axi" to="SMPU5" interface="axi" />
+      <channel from="DMA40" port="axi" to="SMPU7" interface="axi" />
+      <channel from="DMA40" port="axi" to="SMPU0" interface="axi" />
+      <channel from="DMA40" port="axi" to="SMPU8" interface="axi" />
+      <channel from="DMA40" port="axi" to="SMPU9" interface="axi" />
+      <channel from="DMA40" port="axi" to="SMPU10" interface="axi" />
+      <channel from="DMA40" port="p2p" to="DMA39" interface="p2p" />
+      <channel from="DMA40" port="SSI" to="SEC0" interface="SSI169" />
+      <channel from="DMA40" port="ERR" to="SEC0" interface="SSI222" />
+      <channel from="DMA40" PORT="trigger" to="TRU0" interface="mti79" />
+
+      <channel from="DMA43" port="axi" to="L1 RAM 0" interface="S1" />
+      <channel from="DMA43" port="axi" to="L1 RAM 0" interface="S2" />
+      <channel from="DMA43" port="axi" to="L1 RAM 1" interface="S1" />
+      <channel from="DMA43" port="axi" to="L1 RAM 1" interface="S2" />
+      <channel from="DMA43" port="axi" to="L3 SPI" interface="axi" />
+      <channel from="DMA43" port="axi" to="SMPU3" interface="axi" />
+      <channel from="DMA43" port="axi" to="SMPU5" interface="axi" />
+      <channel from="DMA43" port="axi" to="SMPU7" interface="axi" />
+      <channel from="DMA43" port="axi" to="SMPU0" interface="axi" />
+      <channel from="DMA43" port="axi" to="SMPU8" interface="axi" />
+      <channel from="DMA43" port="axi" to="SMPU9" interface="axi" />
+      <channel from="DMA43" port="axi" to="SMPU10" interface="axi" />
+      <channel from="DMA43" port="SSI" to="SEC0" interface="SSI166" />
+      <channel from="DMA43" port="ERR" to="SEC0" interface="SSI223" />
+      <channel from="DMA43" PORT="trigger" to="TRU0" interface="mti80" />
+
+      <channel from="DMA44" port="axi" to="L1 RAM 0" interface="S1" />
+      <channel from="DMA44" port="axi" to="L1 RAM 0" interface="S2" />
+      <channel from="DMA44" port="axi" to="L1 RAM 1" interface="S1" />
+      <channel from="DMA44" port="axi" to="L1 RAM 1" interface="S2" />
+      <channel from="DMA44" port="axi" to="L3 SPI" interface="axi" />
+      <channel from="DMA44" port="axi" to="SMPU3" interface="axi" />
+      <channel from="DMA44" port="axi" to="SMPU5" interface="axi" />
+      <channel from="DMA44" port="axi" to="SMPU7" interface="axi" />
+      <channel from="DMA44" port="axi" to="SMPU0" interface="axi" />
+      <channel from="DMA44" port="axi" to="SMPU8" interface="axi" />
+      <channel from="DMA44" port="axi" to="SMPU9" interface="axi" />
+      <channel from="DMA44" port="axi" to="SMPU10" interface="axi" />
+      <channel from="DMA44" port="p2p" to="DMA43" interface="p2p" />
+      <channel from="DMA44" port="SSI" to="SEC0" interface="SSI167" />
+      <channel from="DMA44" port="ERR" to="SEC0" interface="SSI224" />
+      <channel from="DMA44" PORT="trigger" to="TRU0" interface="mti81" />
+
+      <!-- DPM0 -->
+      <channel from="DPM0" port="message" to="chip-factory" interface="message" />
+      <channel from="DPM0" port="idle_mode" to="sharc-xi-core-0" interface="idle_mode" />
+      <channel from="DPM0" port="idle_mode" to="sharc-xi-core-1" interface="idle_mode" />
+
+      <!-- L1 -->
+      <channel from="L1 RAM 0" port="message" to="chip-factory" interface="message" />
+      <channel from="L1 RAM 1" port="message" to="chip-factory" interface="message" />
+
+      <!-- L2CTL -->
+      <channel from="L2CTL0" port="core2sys" to="sharc-xi-core-0" interface="core2sys" />
+      <channel from="L2CTL1" port="core2sys" to="sharc-xi-core-0" interface="core2sys" />
+      <channel from="L2CTL2" port="core2sys" to="sharc-xi-core-0" interface="core2sys" />
+      <channel from="L2CTL0" port="core2sys" to="sharc-xi-core-1" interface="core2sys" />
+      <channel from="L2CTL1" port="core2sys" to="sharc-xi-core-1" interface="core2sys" />
+      <channel from="L2CTL2" port="core2sys" to="sharc-xi-core-1" interface="core2sys" />
+
+      <!-- L3CTL -->
+      <channel from="L3 PCI" port="core2sys" to="sharc-xi-core-0" interface="core2sys" />
+      <channel from="L3 DDR A" port="core2sys" to="sharc-xi-core-0" interface="core2sys" />
+      <channel from="L3 DDR B" port="core2sys" to="sharc-xi-core-0" interface="core2sys" />
+      <channel from="L3 PCI" port="core2sys" to="sharc-xi-core-0" interface="core2sys" />
+      <channel from="StaticMemory" port="core2sys" to="sharc-xi-core-0" interface="core2sys" />
+      <channel from="L3 SPI" port="core2sys" to="sharc-xi-core-0" interface="core2sys" />
+      <channel from="L3 PCI" port="core2sys" to="sharc-xi-core-1" interface="core2sys" />
+      <channel from="L3 DDR A" port="core2sys" to="sharc-xi-core-1" interface="core2sys" />
+      <channel from="L3 DDR B" port="core2sys" to="sharc-xi-core-1" interface="core2sys" />
+      <channel from="L3 PCI" port="core2sys" to="sharc-xi-core-1" interface="core2sys" />
+      <channel from="SMC0" port="core2sys" to="sharc-xi-core-1" interface="core2sys" />
+      <channel from="L3 SPI" port="core2sys" to="sharc-xi-core-1" interface="core2sys" />
+
+      <!-- RCU0 -->
+      <channel from="RCU0" port="cres1" to="sharc-xi-core-0" interface="reset" />
+      <channel from="RCU0" port="cres2" to="sharc-xi-core-1" interface="reset" />
+      <channel from="RCU0" port="sysresb" to="L1 RAM 0" interface="reset" />
+      <channel from="RCU0" port="sysresb" to="L1 RAM 1" interface="reset" />
+      <channel from="RCU0" port="sysresb" to="DMA8" interface="reset" />
+      <channel from="RCU0" port="sysresb" to="DMA9" interface="reset" />
+      <channel from="RCU0" port="sysresb" to="DMA18" interface="reset" />
+      <channel from="RCU0" port="sysresb" to="DMA19" interface="reset" />
+      <channel from="RCU0" port="sysresb" to="DMA39" interface="reset" />
+      <channel from="RCU0" port="sysresb" to="DMA40" interface="reset" />
+      <channel from="RCU0" port="sysresb" to="DMA43" interface="reset" />
+      <channel from="RCU0" port="sysresb" to="DMA44" interface="reset" />
+      <channel from="RCU0" port="sysresb" to="SEC0" interface="reset" />
+      <channel from="RCU0" port="sysresb" to="SPU0" interface="reset" />
+      <channel from="RCU0" port="dpmresb" to="DPM0" interface="rcu_dpmresb" />
+      <channel from="RCU0" port="sysresb" to="TWI0" interface="reset" />
+
+      <!-- SEC0 -->
+      <channel from="SEC0" port="core" to="sharc-xi-core-0" interface="sysevent" />
+      <channel from="SEC0" port="core" to="sharc-xi-core-1" interface="sysevent" />
+      <channel from="SEC0" port="reset" to="RCU0" interface="syscdresetb" />
+
+      <!-- SMC0 -->
+      <channel from="SMC0" port="axi" to="StaticMemory" interface="axi" />
+      <channel from="SMC0" port="core2sys" to="sharc-xi-core-0" interface="core2sys" />
+
+      <!-- SPU0 -->
+      <channel from="SPU0" port="message" to="chip-factory" interface="message" />
+      <channel from="SPU0" port="global_lock" to="SEC0" interface="global_lock" />
+      <channel from="SPU0" port="global_lock" to="TRU0" interface="global_lock" />
+      <channel from="SPU0" port="global_lock" to="DMA8" interface="global_lock" />
+      <channel from="SPU0" port="global_lock" to="DMA9" interface="global_lock" />
+      <channel from="SPU0" port="interrupt" to="SEC0" interface="SSI246" />
+      <channel from="SPU0" port="global_lock" to="RCU0" interface="global_lock" />
+      <channel from="SPU0" port="global_lock" to="DPM0" interface="global_lock" />
+
+      <!-- TRU0 -->
+      <channel from="TRU0" port="message" to="chip-factory" interface="message" />
+      <channel from="TRU0" PORT="sto50" to="RCU0" interface="syscd_trig_resetb_0_1" />
+      <channel from="TRU0" PORT="sto51" to="RCU0" interface="syscd_trig_resetb_0_1" />
+      <channel from="TRU0" PORT="sto88" to="SEC0" interface="TriggerSSI136" />
+      <channel from="TRU0" PORT="sto89" to="SEC0" interface="TriggerSSI137" />
+      <channel from="TRU0" PORT="sto90" to="SEC0" interface="TriggerSSI138" />
+      <channel from="TRU0" PORT="sto91" to="SEC0" interface="TriggerSSI139" />
+      <channel from="TRU0" PORT="sto92" to="SEC0" interface="TriggerSSI140" />
+      <channel from="TRU0" PORT="sto93" to="SEC0" interface="TriggerSSI141" />
+      <channel from="TRU0" PORT="sto94" to="SEC0" interface="TriggerSSI142" />
+      <channel from="TRU0" PORT="sto95" to="SEC0" interface="TriggerSSI143" />
+      <channel from="TRU0" PORT="sto102" to="DMA8" interface="trigger" />
+      <channel from="TRU0" PORT="sto103" to="DMA9" interface="trigger" />
+      <channel from="TRU0" PORT="sto104" to="DMA18" interface="trigger" />
+      <channel from="TRU0" PORT="sto105" to="DMA19" interface="trigger" />
+      <channel from="TRU0" PORT="sto106" to="DMA39" interface="trigger" />
+      <channel from="TRU0" PORT="sto107" to="DMA40" interface="trigger" />
+      <channel from="TRU0" PORT="sto108" to="DMA43" interface="trigger" />
+      <channel from="TRU0" PORT="sto109" to="DMA44" interface="trigger" />
+
+      <!-- TIMER0 -->
+      <channel from="TIMER0" port="message" to="chip-factory" interface="message" />
+      <channel from="TIMER0" port="IRQ_TMR0" to="SEC0" interface="SSI26" />
+      <channel from="TIMER0" port="IRQ_TMR1" to="SEC0" interface="SSI27" />
+      <channel from="TIMER0" port="IRQ_TMR2" to="SEC0" interface="SSI28" />
+      <channel from="TIMER0" port="IRQ_TMR3" to="SEC0" interface="SSI29" />
+      <channel from="TIMER0" port="IRQ_TMR4" to="SEC0" interface="SSI72" />
+      <channel from="TIMER0" port="IRQ_TMR5" to="SEC0" interface="SSI73" />
+      <channel from="TIMER0" port="IRQ_TMR6" to="SEC0" interface="SSI74" />
+      <channel from="TIMER0" port="IRQ_TMR7" to="SEC0" interface="SSI75" />
+      <channel from="TIMER0" port="IRQ_STAT" to="SEC0" interface="SSI76" />
+
+      <!-- RTC0 -->
+      <channel from="RTC0" port="message" to="chip-factory" interface="message" />
+      <channel from="RTC0" port="intr" to="SEC0" interface="SSI165" />
+
+      <!-- WDT -->
+      <channel from="WDOG0" port="message" to="chip-factory" interface="message" />
+      <channel from="WDOG0" port="stat" to="SEC0" interface="SSI3" />
+      <channel from="WDOG1" port="message" to="chip-factory" interface="message" />
+      <channel from="WDOG1" port="stat" to="SEC0" interface="SSI4" />
+
+      <!-- CGU0 -->
+      <channel from="CGU0" port="cclk0" to="L1C-0" interface="clock" />
+      <channel from="CGU0" port="cclk0" to="L1C-1" interface="clock" />
+      <channel from="CGU0" port="clk_bfen" to="DPM0" interface="clk_bfen" />
+      <channel from="CGU0" port="sysclk" to="DPM0" interface="clock" />
+
+      <channel from="CGU0" port="sclk0" to="DMA8" interface="clock" />
+      <channel from="CGU0" port="sclk0" to="DMA9" interface="clock" />
+      <channel from="CGU0" port="sclk1" to="DMA18" interface="clock" />
+      <channel from="CGU0" port="sclk1" to="DMA19" interface="clock" />
+      <channel from="CGU0" port="sclk1" to="DMA39" interface="clock" />
+      <channel from="CGU0" port="sclk1" to="DMA40" interface="clock" />
+      <channel from="CGU0" port="sclk0" to="DMA43" interface="clock" />
+      <channel from="CGU0" port="sclk0" to="DMA44" interface="clock" />
+
+      <channel from="CGU0" port="trigger" to="TRU0" interface="mti1" />
+
+      <channel from="CGU0" port="sysclk" to="RCU0" interface="clock" />
+      <channel from="CGU0" port="sysclk" to="SEC0" interface="clock" />
+      <channel from="CGU0" port="sclk0" to="TIMER0" interface="clock" />
+      <channel from="CGU0" port="sclk0" to="WDOG0" interface="clock" />
+      <channel from="CGU0" port="sclk0" to="WDOG1" interface="clock" />
+      <channel from="CGU0" port="sclk0" to="TWI0" interface="clock" />
+
+      <!-- CGU1 -->
+      <channel from="CGU1" port="trigger" to="TRU0" interface="mti2" />
+      <channel from="CGU1" port="clk_bfen" to="DPM0" interface="clk_bfen" />
+      <channel from="CGU1" port="sysclk" to="DPM0" interface="clock" />
+
+      <!-- DPM0 -->
+      <channel from="DPM0" port="message" to="chip-factory" interface="message" />
+
+      <!-- CDU -->
+      <channel from="CDU0" port="message" to="chip-factory" interface="message" />
+
+      <!-- TWI0 -->
+      <channel from="TWI0" port="message" to="chip-factory" interface="message" />
+      <channel from="TWI0" port="IRQ_TWI" to="SEC0" interface="SSI123" />
+      <!-- TWI0_DATA_IRQn -->
+
+      <!--
+      CGU1 is the only CGU that can have its sys_clkin selected between sys_clkin0 and sys_clkin1
+      CGU0 always uses sys_clkin0
+      -->
+      <channel from="CDU0" port="cgu1_clkinsel" to="CGU1" interface="select_clkin" />
+
+      <!--  From ADSP-SC589 Preliminary Data Sheet
+      +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+      CDU                |                               |
+      Output    CGU0     |   CGU0 or CGU1                | Source Targets
+      Clocks  (Default)  |                               |
+      +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+              IN0          IN1         IN2        IN3
+      +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+      CLKO0   CCLK0_0      CCLK0_0/2   NA         NA       CDU    SHARC0
+      CLKO1   CCLK0_0      CCLK0_0/2   NA         NA       CDU    SHARC1
+      CLKO2   CCLK1_0      CCLK1_0/2   NA         NA       CDU    Cortex A-5
+      CLKO3   DCLK_0       DCLK_1      NA         NA       CDU    DDR
+      CLKO4   OCLK_0       OCLK_1      DCLK_1     NA       CDU    CAN
+      CLKO5   OCLK_0       OCLK_1      DCLK_1     DCLK_0   CDU    S/PDIF Rx
+      CLKO6   OCLK_0       CCLK0_1     NA         NA       CDU    PCIe
+      CLKO7   SCLK1_0      SCLK1_1     CCLK0_1    OCLK_0   CDU    GigE/PTP
+      CLKO8   SCLK0_0      SCLK0_1     CCLK1_1    DCLK_1   CDU    LP
+      CLKO9   OCLK_0/2     CCLK1_1/2   CCLK1_1    DCLK_1   CDU    SDIO
+      +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+      -->
+
+      <!-- IN0 -->
+      <channel from="CGU0" port="cclk0" to="CDU0" interface="in0_clko_0" />
+      <channel from="CGU0" port="cclk0" to="CDU0" interface="in0_clko_1" />
+      <channel from="CGU0" port="cclk1" to="CDU0" interface="in0_clko_2" />
+      <channel from="CGU0" port="dclk" to="CDU0" interface="in0_clko_3" />
+      <channel from="CGU0" port="oclk" to="CDU0" interface="in0_clko_4" />
+      <channel from="CGU0" port="oclk" to="CDU0" interface="in0_clko_5" />
+      <channel from="CGU0" port="oclk" to="CDU0" interface="in0_clko_6" />
+      <channel from="CGU0" port="sclk1" to="CDU0" interface="in0_clko_7" />
+      <channel from="CGU0" port="sclk0" to="CDU0" interface="in0_clko_8" />
+      <channel from="CGU0" port="oclk" to="CDU0" interface="in0_clko_9" />
+      <!-- impacted by DIV_IN0_CLKO_9 -->
+      <!-- N/A
+      <channel from="" port="" to="CDU0" interface="in0_clko_10" />
+      <channel from="" port="" to="CDU0" interface="in0_clko_11" />
+      <channel from="" port="" to="CDU0" interface="in0_clko_12" />
+      <channel from="" port="" to="CDU0" interface="in0_clko_13" />
+      <channel from="" port="" to="CDU0" interface="in0_clko_14" />
+      <channel from="" port="" to="CDU0" interface="in0_clko_15" />
+      -->
+
+      <!-- IN1 -->
+      <channel from="CGU0" port="cclk0" to="CDU0" interface="in1_clko_0" />
+      <!-- impacted by DIV_IN1_CLKO_0 -->
+      <channel from="CGU0" port="cclk1" to="CDU0" interface="in1_clko_1" />
+      <!-- impacted by DIV_IN1_CLKO_1 -->
+      <channel from="CGU0" port="cclk1" to="CDU0" interface="in1_clko_2" />
+      <!-- impacted by DIV_IN1_CLKO_2 -->
+      <channel from="CGU1" port="dclk" to="CDU0" interface="in1_clko_3" />
+      <channel from="CGU1" port="oclk" to="CDU0" interface="in1_clko_4" />
+      <channel from="CGU1" port="oclk" to="CDU0" interface="in1_clko_5" />
+      <channel from="CGU1" port="cclk0" to="CDU0" interface="in1_clko_6" />
+      <channel from="CGU1" port="sclk1" to="CDU0" interface="in1_clko_7" />
+      <channel from="CGU1" port="sclk0" to="CDU0" interface="in1_clko_8" />
+      <channel from="CGU1" port="cclk1" to="CDU0" interface="in1_clko_9" />
+      <!-- impacted by DIV_IN1_CLKO_9 -->
+      <!-- N/A
+      <channel from="" port="" to="CDU0" interface="in1_clko_10" />
+      <channel from="" port="" to="CDU0" interface="in1_clko_11" />
+      <channel from="" port="" to="CDU0" interface="in1_clko_12" />
+      <channel from="" port="" to="CDU0" interface="in1_clko_13" />
+      <channel from="" port="" to="CDU0" interface="in1_clko_14" />
+      <channel from="" port="" to="CDU0" interface="in1_clko_15" />
+      -->
+
+      <!-- IN2 -->
+      <!-- N/A
+      <channel from="" port="" to="CDU0" interface="in2_clko_0" />
+      <channel from="" port="" to="CDU0" interface="in2_clko_1" />
+      <channel from="" port="" to="CDU0" interface="in2_clko_2" />
+      <channel from="" port="" to="CDU0" interface="in2_clko_3" />
+      -->
+      <channel from="CGU1" port="dclk" to="CDU0" interface="in2_clko_4" />
+      <channel from="CGU1" port="dclk" to="CDU0" interface="in2_clko_5" />
+      <!-- N/A
+      <channel from="" port="" to="CDU0" interface="in2_clko_6" />
+      -->
+      <channel from="CGU1" port="cclk0" to="CDU0" interface="in2_clko_7" />
+      <channel from="CGU1" port="cclk1" to="CDU0" interface="in2_clko_8" />
+      <channel from="CGU1" port="cclk1" to="CDU0" interface="in2_clko_9" />
+      <!-- N/A
+      <channel from="" port="" to="CDU0" interface="in2_clko_10" />
+      <channel from="" port="" to="CDU0" interface="in2_clko_11" />
+      <channel from="" port="" to="CDU0" interface="in2_clko_12" />
+      <channel from="" port="" to="CDU0" interface="in2_clko_13" />
+      <channel from="" port="" to="CDU0" interface="in2_clko_14" />
+      <channel from="" port="" to="CDU0" interface="in2_clko_15" />
+      -->
+
+      <!-- IN3 -->
+      <!-- N/A
+      <channel from="" port="" to="CDU0" interface="in3_clko_0" />
+      <channel from="" port="" to="CDU0" interface="in3_clko_1" />
+      <channel from="" port="" to="CDU0" interface="in3_clko_2" />
+      <channel from="" port="" to="CDU0" interface="in3_clko_3" />
+      <channel from="" port="" to="CDU0" interface="in3_clko_4" />
+      -->
+      <channel from="CGU0" port="dclk" to="CDU0" interface="in3_clko_5" />
+      <!-- N/A
+      <channel from="" port="" to="CDU0" interface="in3_clko_6" />
+      -->
+      <channel from="CGU0" port="oclk" to="CDU0" interface="in3_clko_7" />
+      <channel from="CGU1" port="dclk" to="CDU0" interface="in3_clko_8" />
+      <channel from="CGU1" port="dclk" to="CDU0" interface="in3_clko_9" />
+      <!-- N/A
+      <channel from="" port="" to="CDU0" interface="in3_clko_10" />
+      <channel from="" port="" to="CDU0" interface="in3_clko_11" />
+      <channel from="" port="" to="CDU0" interface="in3_clko_12" />
+      <channel from="" port="" to="CDU0" interface="in3_clko_13" />
+      <channel from="" port="" to="CDU0" interface="in3_clko_14" />
+      <channel from="" port="" to="CDU0" interface="in3_clko_15" />
+      -->
+
+      <!-- TARGETS -->
+      <channel from="CDU0" port="clko_0" to="sharc-xi-core-0" interface="clock" />
+      <channel from="CDU0" port="clko_1" to="sharc-xi-core-1" interface="clock" />
+      <!-- N/A: ARM Core not supported
+      <channel from="CDU0" port="clko_2" to="" interface="" />
+      -->
+      <!-- N/A
+      <channel from="CDU0" port="clko_3" to="" interface="" />
+      <channel from="CDU0" port="clko_4" to="" interface="" />
+      <channel from="CDU0" port="clko_5" to="" interface="" />
+      <channel from="CDU0" port="clko_6" to="" interface="" />
+      <channel from="CDU0" port="clko_7" to="" interface="" />
+      <channel from="CDU0" port="clko_8" to="" interface="" />
+      <channel from="CDU0" port="clko_9" to="" interface="" />
+      <channel from="CDU0" port="clko_10" to="" interface="" />
+      <channel from="CDU0" port="clko_11" to="" interface="" />
+      <channel from="CDU0" port="clko_12" to="" interface="" />
+      <channel from="CDU0" port="clko_13" to="" interface="" />
+      <channel from="CDU0" port="clko_14" to="" interface="" />
+      <channel from="CDU0" port="clko_15" to="" interface="" />
+      -->
+
+      <!--
+      +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+      CLKO3   DCLK_0    DCLK_1    NA    NA    CDU   DDR
+      +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+      <channel from="CDU0" port="clko_3" to="L3 DDR A" interface="clock" />
+      -->
+    </connections>
+  </chip>
+</cces-chipfactory-xml>

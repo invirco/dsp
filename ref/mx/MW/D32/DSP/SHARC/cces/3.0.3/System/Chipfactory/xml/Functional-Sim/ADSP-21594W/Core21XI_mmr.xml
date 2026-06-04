@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ************************************************************************************ -->
+<!-- Copyright (c) 2020 Analog Devices, Inc.  All Rights Reserved.                        -->
+<!-- This software is proprietary and confidential to Analog Devices, Inc. and            -->
+<!-- its licensors.                                                                       -->
+<!-- ************************************************************************************ -->
+<cces-chipfactory-xml schema-version="1" name="Core21XI_mmr.xml">
+	<version file-version="2.10.0.0"/>
+	<module MAKE="STD" MODULENO="8" acronym="CMMR" TOP="false" MODULETEMPLATE="21XI_REGISTERMAP" TYPE="DESIGN">
+		<module-name>CMMR</module-name>
+		<description>Core MMRs</description>
+		<module-data>
+			<address radix="x" type="absolute">30000</address>
+			<memoryAccessMethod>MMR</memoryAccessMethod>
+			<waitStates>0</waitStates>
+			<target>All</target>
+			<verificationBlock/>
+
+			<register cdef-type="Uint" acronym="SYSCTL" visibility="Public" target="All" legacy-acronym="SYSCTL" pmode="Supervisor">
+				<description>SYSCTL register.</description>
+				<access mode="R/W"/>
+				<width isWidthParameter="false">32</width>
+				<address radix="x" type="relative">24</address>
+				<undefinedBit value="0"/>
+				<documentation>
+The SYSCTL register as it relates to the processor core configures memory use and interrupts. For SYSCTL use as it applies to pin multiplexing. The SYSCTL register has an effect latency of 1 cycle. If a program writes to the SYSCTL or BRKCTL register before it access external memory it must perform at least two non external access before the external access.
+					<note/>
+				</documentation>
+				<field acronym="SRST" visibility="Public" pmode="Supervisor">
+					<description>
+SRST Software Reset. When set, this bit resets the processor and the processor responds to the non-maskable RSTI interrupt and clears (=0) SRST. Unlike the HW reset, the PLL and Power Management (PMCTL register) are not reset. The part does also boot after SW reset. After one core clock cycle, the registers are put in the default settings (effect latency). The RESETOUT pin is asserted for 2 PCLK cycles. 0 = No software reset. 1 = Software reset.
+					</description>
+					<width isWidthParameter="false">1</width>
+					<position>0</position>
+					<mask/>
+					<access readmode="R" writemode="W"/>
+					<enum default="0" isDefaultParameter="false" format="x"/>
+				</field>
+				<field acronym="IIVT" visibility="Public" pmode="Supervisor">
+					<description>
+Internal Interrupt Vector Table. If bit set (=1), IVT starts at internal RAM address, if cleared (=0) at internal ROM address. The default IIVT bit setting is enabled (=1) with any valid boot mode (BOOT_CFGx pins). If the reserved boot mode is selected, IIVT bit is cleared (= 0).
+					</description>
+					<width isWidthParameter="false">1</width>
+					<position>2</position>
+					<mask/>
+					<access readmode="R" writemode="W"/>
+					<enum default="0" isDefaultParameter="false" format="x"/>
+				</field>
+				<field acronym="DCPR" visibility="Public" pmode="Supervisor">
+					<description>
+DMA Channel Priority Rotating. This bit enables or disables priority rotation among DMA channels on the DMA peripheral bus (IOD or IOD0). Permits core writes. 0 = Arbiter uses fixed priority. 1 = Arbiter uses rotating priority.
+					</description>
+					<width isWidthParameter="false">1</width>
+					<position>7</position>
+					<mask/>
+					<access readmode="R" writemode="W"/>
+					<enum default="0" isDefaultParameter="false" format="x"/>
+				</field>
+				<field acronym="IMDW0" visibility="Public" pmode="Supervisor">
+					<description>
+Internal Memory Data Width 0. Selects the data access size for internal memory block0 as 48- or 32-bit data. Permits core writes. 0 = Data bus width is 32 bits. 1 = Data bus width is 48 bits.
+					</description>
+					<width isWidthParameter="false">1</width>
+					<position>9</position>
+					<mask/>
+					<access readmode="R" writemode="W"/>
+					<enum default="0" isDefaultParameter="false" format="x"/>
+				</field>
+				<field acronym="IMDW1" visibility="Public" pmode="Supervisor">
+					<description>
+Internal Memory Data Width 1. Selects the data access size for internal memory block1 as 48- or 32-bit data. Permits core writes. 0 = Data bus width is 32 bits. 1 = Data bus width is 48 bits.
+					</description>
+					<width isWidthParameter="false">1</width>
+					<position>10</position>
+					<mask/>
+					<access readmode="R" writemode="W"/>
+					<enum default="0" isDefaultParameter="false" format="x"/>
+				</field>
+				<field acronym="IMDW2" visibility="Public" pmode="Supervisor">
+					<description>
+Internal Memory Data Width 2. Selects the data access size for internal memory block2 as 48- or 32-bit data. Permits core writes. 0 = Data bus width is 32 bits. 1 = Data bus width is 48 bits.
+					</description>
+					<width isWidthParameter="false">1</width>
+					<position>11</position>
+					<mask/>
+					<access readmode="R" writemode="W"/>
+					<enum default="0" isDefaultParameter="false" format="x"/>
+				</field>
+				<field acronym="IMDW3" visibility="Public" pmode="Supervisor">
+					<description>
+Internal Memory Data Width 3. Selects the data access size for internal memory block3 as 48- or 32-bit data. Permits core writes. 0 = Data bus width is 32 bits. 1 = Data bus width is 48 bits.
+					</description>
+					<width isWidthParameter="false">1</width>
+					<position>12</position>
+					<mask/>
+					<access readmode="R" writemode="W"/>
+					<enum default="0" isDefaultParameter="false" format="x"/>
+				</field>
+			</register>
+
+		</module-data>
+
+	</module>
+</cces-chipfactory-xml>

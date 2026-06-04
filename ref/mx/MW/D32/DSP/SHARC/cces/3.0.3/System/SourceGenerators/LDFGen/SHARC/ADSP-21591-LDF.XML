@@ -1,0 +1,2881 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<!-- *********************************************************************** -->
+<!-- ******* ADSP-21591-LDF.XML                                              -->
+<!-- ******* Copyright 2019-2021 Analog Devices, Inc.  All rights reserved.  -->
+<!-- *********************************************************************** -->
+
+<!DOCTYPE vdsg>
+<vdsg:vdsg schema="210.05" id="ldf_template" xmlns:vdsg="http://www.analog.com/processors/resources/crosscore">
+	<vdsg:file name="" lang="LDF">
+	<header fragment="copyright_and_notice">
+		<![CDATA[/*
+** &processor; core &coreID; linker description file generated on &date; at &time;.
+*/]]>
+	</header>
+
+	<architecture default_silicon_revision="0.0">
+		<property name="reserve_bootcode_mem" value="false" />
+		<property name="use_mcapi" value="true" />
+		<property name="has_single_sharc_core" value="true" processor="ADSP-SC591 ADSP-SC591W ADSP-SC592 ADSP-SC592W" />
+		<property name="has_arm_core" value="true" processor="ADSP-SC591 ADSP-SC591W ADSP-SC592 ADSP-SC594 ADSP-SC592W ADSP-SC594W" />
+		<property name="has_1MB_l2" value="true" processor="ADSP-21591 ADSP-21591W ADSP-SC591 ADSP-SC591W" />
+	</architecture>
+
+	<![CDATA[/*
+** Define a linked library list. Libraries from the command line are included
+** in COMMAND_LINE_OBJECTS.
+*/]]>
+	<libraries name="$LIBRARIES">
+		<vdsg:user uid="insert-user-libraries-at-beginning"/>
+
+		<!-- Compiler support routines -->
+		<library name="libcc.dlb"/>
+
+		<!-- Heap debugging library -->
+		<heap_dbg_libs enabled="false">
+			<if_use_mt value="true" enabled="false">
+				<!-- multi-threaded -->
+				<if_prop name="libraries_use_eh_enabled_libs" value="true" enabled="false">
+					<library name="libheapdbgmtx.dlb"/>
+				</if_prop>
+				<if_prop name="libraries_use_eh_enabled_libs" value="false" enabled="false">
+					<library name="libheapdbgmt.dlb"/>
+				</if_prop>
+			</if_use_mt>
+			<if_use_mt value="false" enabled="true">
+				<!-- single-threaded -->
+				<if_prop name="libraries_use_eh_enabled_libs" value="true" enabled="false">
+					<library name="libheapdbgx.dlb"/>
+				</if_prop>
+				<if_prop name="libraries_use_eh_enabled_libs" value="false" enabled="false">
+					<library name="libheapdbg.dlb"/>
+				</if_prop>
+			</if_use_mt>
+		</heap_dbg_libs>
+
+		<!-- configure libc and libio -->
+		<libc_and_libio>
+			<if_use_mt value="true" enabled="false">
+				<!-- multi-threaded -->
+				<library name="libcmt.dlb"/>
+				<if_use_alt_io_lib value="true" enabled="false">
+					<library name="libio_litemt.dlb"/>
+				</if_use_alt_io_lib>
+				<if_use_alt_io_lib value="false" enabled="true">
+					<if_prop name="libraries_use_fixed_point_io_libs" value="true" enabled="false">
+						<library name="libiofxmt.dlb"/>
+					</if_prop>
+					<if_prop name="libraries_use_fixed_point_io_libs" value="false" enabled="false">
+						<library name="libiomt.dlb"/>
+					</if_prop>
+				</if_use_alt_io_lib>
+			</if_use_mt>
+
+			<if_use_mt value="false" enabled="true">
+				<!-- single-threaded -->
+				<library name="libc.dlb"/>
+				<if_use_alt_io_lib value="true" enabled="false">
+					<library name="libio_lite.dlb"/>
+				</if_use_alt_io_lib>
+				<if_use_alt_io_lib value="false" enabled="true">
+					<if_prop name="libraries_use_fixed_point_io_libs" value="true" enabled="false">
+						<library name="libiofx.dlb"/>
+					</if_prop>
+					<if_prop name="libraries_use_fixed_point_io_libs" value="false" enabled="false">
+						<library name="libio.dlb"/>
+					</if_prop>
+				</if_use_alt_io_lib>
+			</if_use_mt>
+		</libc_and_libio>
+
+		<!-- C++ libraries -->
+		<libcpp enabled="false">
+			<if_use_full_cpplib value="true" enabled="false">
+				<if_use_mt value="true" enabled="false">
+					<!-- multi-threaded -->
+					<library name="libcppfullmt.dlb"/>
+				</if_use_mt>
+				<if_use_mt value="false" enabled="true">
+					<!-- single-threaded -->
+					<library name="libcppfull.dlb"/>
+				</if_use_mt>
+			</if_use_full_cpplib>
+
+			<if_use_full_cpplib value="false" enabled="true">
+				<if_prop name="libraries_use_eh_enabled_libs" value="true" enabled="false">
+					<if_use_mt value="true" enabled="false">
+						<!-- multi-threaded and EH -->
+						<library name="libcppmtx.dlb"/>
+					</if_use_mt>
+					<if_use_mt value="false" enabled="true">
+						<!-- single-threaded and EH -->
+						<library name="libcppx.dlb"/>
+					</if_use_mt>
+				</if_prop>
+
+				<if_prop name="libraries_use_eh_enabled_libs" value="false" enabled="false">
+					<if_use_mt value="true" enabled="false">
+						<!-- multi-threaded and no-EH -->
+						<library name="libcppmt.dlb"/>
+					</if_use_mt>
+					<if_use_mt value="false" enabled="true">
+						<!-- single-threaded and no-EH -->
+						<library name="libcpp.dlb"/>
+					</if_use_mt>
+				</if_prop>
+			</if_use_full_cpplib>
+		</libcpp>
+
+		<!-- libprofile, libosal -->
+		<if_use_mt value="true" enabled="false">
+			<!-- multi-threaded -->
+			<library name="libprofilemt.dlb"/>
+		</if_use_mt>
+		<if_use_mt value="false" enabled="true">
+			<!-- single-threaded -->
+			<library name="libosal_noos.dlb"/>
+			<library name="libprofile.dlb"/>
+		</if_use_mt>
+
+		<library name="libssl.dlb"/>
+		<if_prop name="libraries_no_libdrv" value="true" enabled="true">
+			<library name="libdrv.dlb"/>
+		</if_prop>
+		<library name="libdsp.dlb"/>
+		<library name="libldr.dlb"/>
+
+		<vdsg:user uid="insert-user-libraries-at-end"/>
+	</libraries>
+
+	<![CDATA[/*
+** Define a linked objects list.
+*/]]>
+	<objects name="$OBJECTS">
+		<vdsg:user uid="insert-user-objects-at-beginning"/>
+		<crt_object/>
+		<object name="$COMMAND_LINE_OBJECTS"/>
+		<vdsg:user uid="insert-user-objects-at-end"/>
+	</objects>
+
+	<![CDATA[/*
+** List of all objects and libraries.
+*/]]>
+	<line>$OBJS_LIBS = $OBJECTS, $LIBRARIES;</line>
+
+		<![CDATA[
+/*
+** List of objects and libraries which prefer internal memory as
+** specified by prefersMem attribute.
+*/]]>
+		<libraries name="$OBJS_LIBS_INTERNAL">
+			<vdsg:user uid="insert-libraries-internal"/>
+			<library name="$OBJS_LIBS{prefersMem(&quot;internal&quot;)}"/>
+			<vdsg:user uid="insert-libraries-internal-end"/>
+		</libraries>
+
+		<![CDATA[/*
+** List of objects and libraries which don't have a preference for
+** external memory as specified by prefersMem attribute.
+*/]]>
+		<libraries name="$OBJS_LIBS_NOT_EXTERNAL">
+			<vdsg:user uid="insert-libraries-not-external"/>
+			<library name="$OBJS_LIBS{!prefersMem(&quot;external&quot;)}"/>
+			<vdsg:user uid="insert-libraries-not-external-end"/>
+		</libraries>
+
+	<vdsg:user uid="insert-user-macros"/>
+
+	<memory>
+		<![CDATA[   // &processor; MEMORY MAP.
+   // The ADSP-SC59x and ADSP-2159x SHARC+ cores have 5 Mbit L1 RAM split over
+   // four blocks.
+
+   // This LDF defines memory sections only in byte format. It is no longer
+   // necessary to partition memory for different widths and different
+   // input types.
+
+   // The output sections that populate the memory are defined to use
+   // one of the following qualifiers:
+
+   //    BW     - byte sections
+   //    PM     - PM data/ISA code
+   //    DM     - DM data
+   //    SW     - VISA code
+   //    DATA64 - long word data
+
+   // The linker filters the inputs for each output section to match
+   // these output section qualfiers. Each output section uses the same
+   // byte memory sections which the linker packs correctly for each
+   // qualifier.
+   // Notes:
+   // 1) The interrupt Vector Table (IVT) code is placed in internal memory
+   //    by default and has to use ISA (NW, 48 bit) instructions.
+]]>
+
+		<![CDATA[
+   // ----------------------- L1-Block 0 RAM (1.5 MBit) ------------------------]]>
+		<segment name="mem_iv_code" start="0x00090000" end="0x000900a7" type="PM RAM" width="48" />
+		<if_runtime_meminit value="true" memory="L1" enabled="false">
+			<segment name="seg_init"      start="0x000900a8" end="0x00093fff" type="PM RAM" width="48" />
+			<segment name="mem_block0_bw" start="0x00258000" end="0x0026ffff" type="BW RAM" width="8" />
+		</if_runtime_meminit>
+		<if_runtime_meminit value="false" memory="L1" enabled="false">
+			<segment name="mem_block0_bw" start="0x002403f0" end="0x0026ffff" type="BW RAM" width="8" />
+		</if_runtime_meminit>
+
+		<![CDATA[
+   // ----------------------- L1-Block 1 RAM (1.5 MBit) ------------------------
+   // The data cache attached to block 1 caches all the external memory access
+   // requests for the DM bus. The size of the cache can be adjusted with a
+   // corresponding reduction of the available non-cache L1 space.]]>
+		<if_prop name="dmcache_disabled" value="true" enabled="false">
+			<![CDATA[   // DM cache is disabled so use the full block]]>
+			<segment name="mem_block1_bw" start="0x002c0000" end="0x002effff" type="BW RAM" width="8" />
+		</if_prop>
+		<if_prop name="dmcache_disabled" value="false" enabled="false">
+			<if_prop name="dmcache_size_in_KB" value="16" enabled="false">
+				<![CDATA[   // 16 KB at the end of block 1 is DM cache]]>
+				<segment name="mem_block1_bw" start="0x002c0000" end="0x002ebfff" type="BW RAM" width="8" />
+			</if_prop>
+			<if_prop name="dmcache_size_in_KB" value="32" enabled="false">
+				<![CDATA[   // 32 KB at the end of block 1 is DM cache]]>
+				<segment name="mem_block1_bw" start="0x002c0000" end="0x002e7fff" type="BW RAM" width="8" />
+			</if_prop>
+			<if_prop name="dmcache_size_in_KB" value="64" enabled="false">
+				<![CDATA[   // 64 KB at the end of block 1 is DM cache]]>
+				<segment name="mem_block1_bw" start="0x002c0000" end="0x002dffff" type="BW RAM" width="8" />
+			</if_prop>
+			<if_prop name="dmcache_size_in_KB" value="128" enabled="false">
+				<![CDATA[   // 128 KB at the end of block 1 is DM cache]]>
+				<segment name="mem_block1_bw" start="0x002c0000" end="0x002cffff" type="BW RAM" width="8" />
+			</if_prop>
+		</if_prop>
+
+		<![CDATA[
+   // ----------------------- L1-Block 2 RAM (1 MBit) --------------------------
+   // The data cache attached to block 2 caches all the external memory access
+   // requests for the PM bus. If the size of the cache is 128KB, the whole
+   // of block 2 is cache.]]>
+		<if_prop name="pmcache_disabled" value="true" enabled="false">
+			<![CDATA[   // PM cache is disabled so use the full block]]>
+			<segment name="mem_block2_bw" start="0x00300000" end="0x0031ffff" type="BW RAM" width="8" />
+		</if_prop>
+		<if_prop name="pmcache_disabled" value="false" enabled="false">
+			<if_prop name="pmcache_size_in_KB" value="16" enabled="false">
+				<![CDATA[   // 16 KB at the end of block 2 is PM cache]]>
+				<segment name="mem_block2_bw" start="0x00300000" end="0x0031bfff" type="BW RAM" width="8" />
+			</if_prop>
+			<if_prop name="pmcache_size_in_KB" value="32" enabled="false">
+				<![CDATA[   // 32 KB at the end of block 2 is PM cache]]>
+				<segment name="mem_block2_bw" start="0x00300000" end="0x00317fff" type="BW RAM" width="8" />
+			</if_prop>
+			<if_prop name="pmcache_size_in_KB" value="64" enabled="false">
+				<![CDATA[   // 64 KB at the end of block 2 is PM cache]]>
+				<segment name="mem_block2_bw" start="0x00300000" end="0x0030ffff" type="BW RAM" width="8" />
+			</if_prop>
+			<if_prop name="pmcache_size_in_KB" value="128" enabled="false">
+				<![CDATA[   // The whole of block 2 is PM cache]]>
+			</if_prop>
+		</if_prop>
+
+		<![CDATA[
+   // ----------------------- L1-Block 3 RAM (1 MBit) --------------------------
+   // The instruction cache is attached to block 3.]]>
+		<if_prop name="icache_disabled" value="true" enabled="false">
+			<![CDATA[   // Instruction cache is disabled so use the full block]]>
+			<segment name="mem_block3_bw" start="0x00380000" end="0x0039ffff" type="BW RAM" width="8" />
+		</if_prop>
+		<if_prop name="icache_disabled" value="false" enabled="false">
+			<if_prop name="icache_size_in_KB" value="16" enabled="false">
+				<![CDATA[   // 16 KB at the end of block 3 is instruction cache]]>
+				<segment name="mem_block3_bw" start="0x00380000" end="0x0039bfff" type="BW RAM" width="8" />
+			</if_prop>
+			<if_prop name="icache_size_in_KB" value="32" enabled="false">
+				<![CDATA[   // 32 KB at the end of block 3 is instruction cache]]>
+				<segment name="mem_block3_bw" start="0x00380000" end="0x00397fff" type="BW RAM" width="8" />
+			</if_prop>
+			<if_prop name="icache_size_in_KB" value="64" enabled="false">
+				<![CDATA[   // 64 KB at the end of block 3 is instruction cache]]>
+				<segment name="mem_block3_bw" start="0x00380000" end="0x0038ffff" type="BW RAM" width="8" />
+			</if_prop>
+			<if_prop name="icache_size_in_KB" value="128" enabled="false">
+				<![CDATA[   // The whole of block 3 is instruction cache]]>
+			</if_prop>
+		</if_prop>
+
+		<if_prop name="has_1MB_l2" value="true" enabled="false">
+			<![CDATA[
+   // ----------------------- L2-RAM (8 MBit) ----------------------------------
+   // The 1 MB L2 memory has 4 banks partitioned as follows:]]>
+		</if_prop>
+		<if_prop name="has_1MB_l2" value="false" enabled="false">
+			<![CDATA[
+   // ----------------------- L2-RAM (16 MBit) ----------------------------------
+   // The 2 MB L2 memory has 8 banks partitioned as follows:]]>
+		</if_prop>
+
+		<if_prop name="has_arm_core" value="true" enabled="false">
+			<!-- SC59x -->
+			<if_prop name="has_single_sharc_core" value="false" enabled="false">
+				   <!-- SC594 -->
+					<![CDATA[   //  bank1  2000_0000  2003_FFFF   4KB uncached - ICC          (mem_L2B1P1_bw)
+   //                               16KB uncached - MCAPI ARM    (mem_L2B1P2_bw)
+   //                               64KB uncached - MCAPI SHARC1 (mem_L2B1P3_bw)
+   //                               64KB uncached - MCAPI SHARC0 (mem_L2B1P4_bw)
+   //                              108KB uncached - ARM          (mem_L2B1P5_bw)]]>
+			</if_prop>
+			<if_prop name="has_single_sharc_core" value="true" enabled="false">
+				<if_prop name="has_1MB_l2" value="true" enabled="false">
+				   <!-- SC591 -->
+					<![CDATA[   //  bank1  2010_0000  2013_FFFF   4KB uncached - ICC          (mem_L2B1P1_bw)
+   //                               16KB uncached - MCAPI ARM    (mem_L2B1P2_bw)
+   //                               44KB uncached - MCAPI SHARC0 (mem_L2B1P3_bw)
+   //                               64KB uncached - ARM          (mem_L2B1P4_bw)
+   //                              128KB cached   - ARM        (mem_L2B1toB3_bw)]]>
+				</if_prop>
+				<if_prop name="has_1MB_l2" value="false" enabled="false">
+			   	   <!-- SC592 -->
+					<![CDATA[   //  bank1  2000_0000  2003_FFFF   4KB uncached - ICC          (mem_L2B1P1_bw)
+   //                               16KB uncached - MCAPI ARM    (mem_L2B1P2_bw)
+   //                              108KB uncached - MCAPI SHARC0 (mem_L2B1P3_bw)
+   //                              128KB uncached - ARM          (mem_L2B1P4_bw)]]>
+				</if_prop>
+			</if_prop>
+			<if_prop name="has_1MB_l2" value="true" enabled="false">
+			   <!-- SC591 -->
+				<![CDATA[   //  bank2  2014_0000  2017_FFFF 256KB cached   - ARM        (mem_L2B1toB3_bw)
+   //  bank3  2018_0000  2018_FFFF  64KB cached   - ARM        (mem_L2B1toB3_bw)]]>
+			</if_prop>
+			<if_prop name="has_1MB_l2" value="false" enabled="false">
+			   <!-- SC592 and SC594 -->
+				<![CDATA[   //  bank2  2004_0000  2007_FFFF 256KB cached   - ARM        (mem_L2B2toB4_bw)
+   //  bank3  2008_0000  200B_FFFF 256KB cached   - ARM        (mem_L2B2toB4_bw)
+   //  bank4  200C_0000  200F_FFFF 256KB cached   - ARM        (mem_L2B2toB4_bw)]]>
+			</if_prop>
+			<if_prop name="has_single_sharc_core" value="false" enabled="false">
+			   <!-- SC594 -->
+				<![CDATA[   //  bank5  2010_0000  2013_FFFF 256KB cached   - SHARC1       (mem_L2B5B6_bw)
+   //  bank6  2014_0000  2017_FFFF 256KB cached   - SHARC1       (mem_L2B5B6_bw)
+   //  bank7  2018_0000  201B_FFFF 256KB cached   - SHARC0       (mem_L2B7B8_bw)
+   //  bank8  201C_0000  201F_DFFF 248KB cached   - SHARC0       (mem_L2B7B8_bw)]]>
+			</if_prop>
+			<if_prop name="has_single_sharc_core" value="true" enabled="false">
+				<if_prop name="has_1MB_l2" value="true" enabled="false">
+				   <!-- SC591 -->
+					<![CDATA[   //         2019_0000  201B_FFFF 192KB cached   - SHARC0     (mem_L2B3toB4_bw)
+   //  bank4  201C_0000  201F_DFFF 248KB cached   - SHARC0     (mem_L2B3toB4_bw)]]>
+				</if_prop>
+				<if_prop name="has_1MB_l2" value="false" enabled="false">
+				   <!-- SC592 -->
+					<![CDATA[   //  bank5  2010_0000  2013_FFFF 256KB cached   - SHARC0     (mem_L2B5toB8_bw)
+   //  bank6  2014_0000  2017_FFFF 256KB cached   - SHARC0     (mem_L2B5toB8_bw)
+   //  bank7  2018_0000  201B_FFFF 256KB cached   - SHARC0     (mem_L2B5toB8_bw)
+   //  bank8  201C_0000  201F_DFFF 248KB cached   - SHARC0     (mem_L2B5toB8_bw)]]>
+				</if_prop>
+			</if_prop>
+			<![CDATA[   //         201F_E000  201F_FFFF   8KB cached boot code working area
+   //
+   // Notes:
+   // 1. The boot code claims the last 8KB of L2 SRAM, as working space.
+   //    This memory is not bootable, but can be used by the application once
+   //    booting is complete (NO_INIT in CCES). Note that if the application
+   //    makes use of this space and then calls the Boot Code APIs, the
+   //    space may be corrupted.]]>
+
+			<if_prop name="has_single_sharc_core" value="false" enabled="false">
+			   <!-- SC594 -->
+				<segment name="mem_L2B1P1_bw" start="0x20000000" end="0x20000fff" type="BW RAM" width="8" />
+				<segment name="mem_L2B1P2_bw" start="0x20001000" end="0x20004fff" type="BW RAM" width="8" />
+				<segment name="mem_L2B1P3_bw" start="0x20005000" end="0x20014fff" type="BW RAM" width="8" />
+				<segment name="mem_L2B1P4_bw" start="0x20015000" end="0x20024fff" type="BW RAM" width="8" />
+				<segment name="mem_L2B1P5_bw" start="0x20025000" end="0x2003ffff" type="BW RAM" width="8" />
+				<segment name="mem_L2B2toB4_bw" start="0x20040000" end="0x200fffff" type="BW RAM" width="8" />
+				<segment name="mem_L2B5B6_bw" start="0x20100000" end="0x2017ffff" type="BW RAM" width="8" />
+				<segment name="mem_L2B7B8_bw" start="0x20180000" end="0x201fdfff" type="BW RAM" width="8" />
+			</if_prop>
+			<if_prop name="has_single_sharc_core" value="true" enabled="false">
+				<if_prop name="has_1MB_l2" value="true" enabled="false">
+				   <!-- SC591 -->
+					<segment name="mem_L2B1P1_bw" start="0x20100000" end="0x20100fff" type="BW RAM" width="8" />
+					<segment name="mem_L2B1P2_bw" start="0x20101000" end="0x20104fff" type="BW RAM" width="8" />
+					<segment name="mem_L2B1P3_bw" start="0x20105000" end="0x2010ffff" type="BW RAM" width="8" />
+					<segment name="mem_L2B1P4_bw" start="0x20110000" end="0x2011ffff" type="BW RAM" width="8" />
+					<segment name="mem_L2B1toB3_bw" start="0x20120000" end="0x2018ffff" type="BW RAM" width="8" />
+					<segment name="mem_L2B3toB4_bw" start="0x20190000" end="0x201fdfff" type="BW RAM" width="8" />
+				</if_prop>
+				<if_prop name="has_1MB_l2" value="false" enabled="false">
+				   <!-- SC592 -->
+					<segment name="mem_L2B1P1_bw" start="0x20000000" end="0x20000fff" type="BW RAM" width="8" />
+					<segment name="mem_L2B1P2_bw" start="0x20001000" end="0x20004fff" type="BW RAM" width="8" />
+					<segment name="mem_L2B1P3_bw" start="0x20005000" end="0x2001ffff" type="BW RAM" width="8" />
+					<segment name="mem_L2B1P4_bw" start="0x20020000" end="0x2003ffff" type="BW RAM" width="8" />
+					<segment name="mem_L2B2toB4_bw" start="0x20040000" end="0x200fffff" type="BW RAM" width="8" />
+					<segment name="mem_L2B5toB8_bw" start="0x20100000" end="0x201fdfff" type="BW RAM" width="8" />
+				</if_prop>
+			</if_prop>
+			<segment name="mem_L2BC_bw" start="0x201fe000" end="0x201fffff" type="BW RAM" width="8" />
+
+			<if_prop name="has_single_sharc_core" value="false" enabled="false">
+				<if_prop name="use_multicores_use_core" value="1" enabled="false">
+			      <!-- SC594 CORE1 / SHARC0 -->
+					<![CDATA[
+  #define MY_L2_UNCACHED_MEM mem_L2B1P4_bw
+  #define MY_L2_CACHED_MEM   mem_L2B7B8_bw]]>
+				</if_prop>
+				<if_prop name="use_multicores_use_core" value="2" enabled="false">
+			      <!-- SC594 CORE2 / SHARC1 -->
+					<![CDATA[
+  #define MY_L2_UNCACHED_MEM mem_L2B1P3_bw
+  #define MY_L2_CACHED_MEM   mem_L2B5B6_bw]]>
+				</if_prop>
+			</if_prop>
+			<if_prop name="has_single_sharc_core" value="true" enabled="false">
+				<if_prop name="has_1MB_l2" value="true" enabled="false">
+				      <!-- SC591 CORE1 / SHARC0 -->
+						<![CDATA[
+  #define MY_L2_UNCACHED_MEM mem_L2B1P3_bw
+  #define MY_L2_CACHED_MEM   mem_L2B3toB4_bw]]>
+				</if_prop>
+				<if_prop name="has_1MB_l2" value="false" enabled="false">
+				      <!-- SC592 CORE1 / SHARC0 -->
+						<![CDATA[
+  #define MY_L2_UNCACHED_MEM mem_L2B1P3_bw
+  #define MY_L2_CACHED_MEM   mem_L2B5toB8_bw]]>
+				</if_prop>
+			</if_prop>
+		</if_prop> <!-- has_arm_core true -->
+
+		<if_prop name="has_arm_core" value="false" enabled="false">
+			<!-- 2159x -->
+			<if_prop name="has_1MB_l2" value="true" enabled="false">
+				<!-- 21591 -->
+				<![CDATA[   //  bank1  2010_0000  2013_FFFF   4KB uncached - ICC          (mem_L2B1P1_bw)
+   //                               60KB uncached - MCAPI SHARC1 (mem_L2B1P2_bw)
+   //                               64KB uncached - MCAPI SHARC0 (mem_L2B1P3_bw)
+   //                              128KB cached   - SHARC0     (mem_L2B1toB3_bw)
+   //  bank2  2014_0000  2017_FFFF 256KB cached   - SHARC0     (mem_L2B1toB3_bw)
+   //  bank3  2018_0000  2019_FFFF 128KB cached   - SHARC0     (mem_L2B1toB3_bw)
+   //         201A_0000  201B_FFFF 128KB cached   - SHARC1     (mem_L2B3toB4_bw)
+   //  bank4  201C_0000  201F_DFFF 248KB cached   - SHARC1     (mem_L2B3toB4_bw)
+   //         201F_E000  201F_FFFF   8KB cached boot code working area
+   //
+   // Notes:
+   // 1. The boot code claims the last 8KB of L2 SRAM, as working space.
+   //    This memory is not bootable, but can be used by the application once
+   //    booting is complete (NO_INIT in CCES). Note that if the application
+   //    makes use of this space and then calls the Boot Code APIs, the
+   //    space may be corrupted.]]>
+				<segment name="mem_L2B1P1_bw" start="0x20100000" end="0x20100fff" type="BW RAM" width="8" />
+				<segment name="mem_L2B1P2_bw" start="0x20101000" end="0x2010ffff" type="BW RAM" width="8" />
+				<segment name="mem_L2B1P3_bw" start="0x20110000" end="0x2011ffff" type="BW RAM" width="8" />
+				<segment name="mem_L2B1toB3_bw" start="0x20120000" end="0x2019ffff" type="BW RAM" width="8" />
+				<segment name="mem_L2B3toB4_bw" start="0x201a0000" end="0x201fdfff" type="BW RAM" width="8" />
+				<segment name="mem_L2BC_bw" start="0x201fe000" end="0x201fffff" type="BW RAM" width="8" />
+
+				<if_prop name="use_multicores_use_core" value="1" enabled="false">
+					<![CDATA[
+  #define MY_L2_UNCACHED_MEM mem_L2B1P3_bw
+  #define MY_L2_CACHED_MEM   mem_L2B1toB3_bw]]>
+				</if_prop>
+				<if_prop name="use_multicores_use_core" value="2" enabled="false">
+					<![CDATA[
+  #define MY_L2_UNCACHED_MEM mem_L2B1P2_bw
+  #define MY_L2_CACHED_MEM   mem_L2B3toB4_bw]]>
+				</if_prop>
+			</if_prop>
+			<if_prop name="has_1MB_l2" value="false" enabled="false">
+				<!-- 21593 / 21594 -->
+				<![CDATA[   //  bank1  2000_0000  2003_FFFF   4KB uncached - ICC          (mem_L2B1P1_bw)
+   //                               60KB uncached - MCAPI SHARC1 (mem_L2B1P2_bw)
+   //                               64KB uncached - MCAPI SHARC0 (mem_L2B1P3_bw)
+   //                              128KB cached   - SHARC0     (mem_L2B1toB5_bw)
+   //  bank2  2004_0000  2007_FFFF 256KB cached   - SHARC0     (mem_L2B1toB5_bw)
+   //  bank3  2008_0000  200B_FFFF 256KB cached   - SHARC0     (mem_L2B1toB5_bw)
+   //  bank4  200C_0000  200F_FFFF 256KB cached   - SHARC0     (mem_L2B1toB5_bw)
+   //  bank5  2010_0000  2013_FFFF 256KB cached   - SHARC0     (mem_L2B1toB5_bw)
+   //  bank6  2014_0000  2017_FFFF 256KB cached   - SHARC1     (mem_L2B6toB8_bw)
+   //  bank7  2018_0000  201B_FFFF 256KB cached   - SHARC1     (mem_L2B6toB8_bw)
+   //  bank8  201C_0000  201F_DFFF 248KB cached   - SHARC1     (mem_L2B6toB8_bw)
+   //         201F_E000  201F_FFFF   8KB cached boot code working area
+   //
+   // Notes:
+   // 1. The boot code claims the last 8KB of L2 SRAM, as working space.
+   //    This memory is not bootable, but can be used by the application once
+   //    booting is complete (NO_INIT in CCES). Note that if the application
+   //    makes use of this space and then calls the Boot Code APIs, the
+   //    space may be corrupted.]]>
+				<segment name="mem_L2B1P1_bw" start="0x20000000" end="0x20000fff" type="BW RAM" width="8" />
+				<segment name="mem_L2B1P2_bw" start="0x20001000" end="0x2000ffff" type="BW RAM" width="8" />
+				<segment name="mem_L2B1P3_bw" start="0x20010000" end="0x2001ffff" type="BW RAM" width="8" />
+				<segment name="mem_L2B1toB5_bw" start="0x20020000" end="0x2013ffff" type="BW RAM" width="8" />
+				<segment name="mem_L2B6toB8_bw" start="0x20140000" end="0x201fdfff" type="BW RAM" width="8" />
+				<segment name="mem_L2BC_bw" start="0x201fe000" end="0x201fffff" type="BW RAM" width="8" />
+
+				<if_prop name="use_multicores_use_core" value="1" enabled="false">
+					<![CDATA[
+  #define MY_L2_UNCACHED_MEM mem_L2B1P3_bw
+  #define MY_L2_CACHED_MEM   mem_L2B1toB5_bw]]>
+				</if_prop>
+				<if_prop name="use_multicores_use_core" value="2" enabled="false">
+					<![CDATA[
+  #define MY_L2_UNCACHED_MEM mem_L2B1P2_bw
+  #define MY_L2_CACHED_MEM   mem_L2B6toB8_bw]]>
+				</if_prop>
+			</if_prop>
+		</if_prop> <!-- has_arm_core false -->
+
+		<if_use_sdram value="true" enabled="false">
+			<![CDATA[
+   // ----------------------- L3 ------------------------------------------------
+   // DMC0 DDR SDRAM memory is partitioned between the cores.
+   //
+   // Notes
+   //  1. Code execution addresses are restricted for the SHARC cores so the
+   //     memory allocated cannot be increased or moved.
+   //  2. All L3 will be considered cached.
+   //  3. When there are two data segments MY_SDRAM_DATA1_MEM is defined to be
+   //     the smaller and MY_SDRAM_DATA2_MEM to be the larger one.]]>
+
+			<if_prop name="has_two_SDRAMs" value="true" enabled="false">
+				<![CDATA[#error has_two_SDRAMs should never be true for SC59x parts]]>
+			</if_prop> <!-- has_two_SDRAMs true -->
+
+			<if_prop name="has_arm_core" value="true" enabled="false">
+				<if_prop name="has_single_sharc_core" value="false" enabled="false">
+					<!-- SC594 : 1*arm, 2*sharc, 1*dmc -->
+					<if_prop name="use_sdram_dmc_size_0" value="8" enabled="false">
+						<![CDATA[#error 8MB SDRAM not supported for parts that do not support LPDDR]]>
+					</if_prop> <!-- 8MB DMC0 -->
+
+					<if_prop name="use_sdram_dmc_size_0" value="16" enabled="false">
+						<![CDATA[#error 16MB SDRAM not supported for parts that do not support LPDDR]]>
+					</if_prop> <!-- 16MB DMC0 -->
+
+					<if_prop name="use_sdram_dmc_size_0" value="32" enabled="false">
+						<![CDATA[
+   // ----------------------- 32MB DMC0(DDR-A) ----------------------------------
+   // 32MB DMC0 DDR SDRAM memory is partitioned as follows:
+   //   DDR-A part1 : SHARC0 NW code, 3MB
+   //   DDR-A part2 : SHARC1 NW code, 3MB
+   //   DDR-A part3 : SHARC0 data, 4MB
+   //   DDR-A part4 : SHARC0 VISA code, 3MB
+   //   DDR-A part5 : SHARC1 VISA code, 3MB
+   //   DDR-A part6 : SHARC0 data, 2MB
+   //   DDR-A part7 : SHARC1 data, 6MB
+   //   DDR-A part8 : ARM 8MB]]>
+						<segment name="mem_DMC0_SDRAM_A1" start="0x80000000" end="0x802fffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A2" start="0x80300000" end="0x805fffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A3" start="0x80600000" end="0x809fffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A4" start="0x80a00000" end="0x80cfffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A5" start="0x80d00000" end="0x80ffffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A6" start="0x81000000" end="0x811fffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A7" start="0x81200000" end="0x817fffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A8" start="0x81800000" end="0x81ffffff" type="BW RAM" width="8" />
+					</if_prop> <!-- 32MB DMC0 -->
+
+					<if_prop name="use_sdram_dmc_size_0" value="64" enabled="false">
+						<![CDATA[
+   // ----------------------- 64MB DMC0(DDR-A) ----------------------------------
+   // 64MB DMC0 DDR SDRAM memory is partitioned as follows:
+   //   DDR-A part1 : SHARC0 NW code, 3MB
+   //   DDR-A part2 : SHARC1 NW code, 3MB
+   //   DDR-A part3 : SHARC0 data, 4MB
+   //   DDR-A part4 : SHARC0 VISA code, 3MB
+   //   DDR-A part5 : SHARC1 VISA code, 3MB
+   //   DDR-A part6 : SHARC0 data, 12MB
+   //   DDR-A part7 : SHARC1 data, 16MB
+   //   DDR-A part8 : ARM 20MB]]>
+						<segment name="mem_DMC0_SDRAM_A1" start="0x80000000" end="0x802fffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A2" start="0x80300000" end="0x805fffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A3" start="0x80600000" end="0x809fffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A4" start="0x80a00000" end="0x80cfffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A5" start="0x80d00000" end="0x80ffffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A6" start="0x81000000" end="0x81bfffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A7" start="0x81c00000" end="0x82bfffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A8" start="0x82c00000" end="0x83ffffff" type="BW RAM" width="8" />
+					</if_prop> <!-- 64MB DMC0 -->
+
+					<if_prop name="use_sdram_dmc_size_0" value="128" enabled="false">
+						<![CDATA[
+   // ----------------------- 128MB DMC0(DDR-A) ---------------------------------
+   // 128MB DMC0 DDR SDRAM memory is partitioned as follows:
+   //   DDR-A part1 : SHARC0 NW code, 3MB
+   //   DDR-A part2 : SHARC1 NW code, 3MB
+   //   DDR-A part3 : SHARC0 data, 4MB
+   //   DDR-A part4 : SHARC0 VISA code, 3MB
+   //   DDR-A part5 : SHARC1 VISA code, 3MB
+   //   DDR-A part6 : SHARC0 data, 30MB
+   //   DDR-A part7 : SHARC1 data, 34MB
+   //   DDR-A part8 : ARM 48MB]]>
+						<segment name="mem_DMC0_SDRAM_A1" start="0x80000000" end="0x802fffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A2" start="0x80300000" end="0x805fffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A3" start="0x80600000" end="0x809fffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A4" start="0x80a00000" end="0x80cfffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A5" start="0x80d00000" end="0x80ffffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A6" start="0x81000000" end="0x82dfffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A7" start="0x82e00000" end="0x84ffffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A8" start="0x85000000" end="0x87ffffff" type="BW RAM" width="8" />
+					</if_prop> <!-- 128MB DMC0 -->
+
+					<if_prop name="use_sdram_dmc_size_0" value="256" enabled="false">
+						<![CDATA[
+   // ----------------------- 256MB DMC0(DDR-A) ---------------------------------
+   // 256MB DMC0 DDR SDRAM memory is partitioned as follows:
+   //   DDR-A part1 : SHARC0 NW code, 3MB
+   //   DDR-A part2 : SHARC1 NW code, 3MB
+   //   DDR-A part3 : SHARC0 data, 4MB
+   //   DDR-A part4 : SHARC0 VISA code, 3MB
+   //   DDR-A part5 : SHARC1 VISA code, 3MB
+   //   DDR-A part6 : SHARC0 data, 48MB
+   //   DDR-A part7 : SHARC1 data, 64MB
+   //   DDR-A part8 : ARM 128MB]]>
+						<segment name="mem_DMC0_SDRAM_A1" start="0x80000000" end="0x802fffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A2" start="0x80300000" end="0x805fffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A3" start="0x80600000" end="0x809fffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A4" start="0x80a00000" end="0x80cfffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A5" start="0x80d00000" end="0x80ffffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A6" start="0x81000000" end="0x83ffffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A7" start="0x84000000" end="0x87ffffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A8" start="0x88000000" end="0x8fffffff" type="BW RAM" width="8" />
+					</if_prop> <!-- 256MB DMC0 -->
+
+					<if_prop name="use_sdram_dmc_size_0" value="512" enabled="false">
+						<![CDATA[
+   // ----------------------- 512MB DMC0(DDR-A) ---------------------------------
+   // 512MB DMC0 DDR SDRAM memory is partitioned as follows:
+   //   DDR-A part1 : SHARC0 NW code, 3MB
+   //   DDR-A part2 : SHARC1 NW code, 3MB
+   //   DDR-A part3 : SHARC0 data, 4MB
+   //   DDR-A part4 : SHARC0 VISA code, 3MB
+   //   DDR-A part5 : SHARC1 VISA code, 3MB
+   //   DDR-A part6 : SHARC0 data, 160MB
+   //   DDR-A part7 : SHARC1 data, 164MB
+   //   DDR-A part8 : ARM 172MB]]>
+						<segment name="mem_DMC0_SDRAM_A1" start="0x80000000" end="0x802fffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A2" start="0x80300000" end="0x805fffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A3" start="0x80600000" end="0x809fffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A4" start="0x80a00000" end="0x80cfffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A5" start="0x80d00000" end="0x80ffffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A6" start="0x81000000" end="0x8affffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A7" start="0x8b000000" end="0x953fffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A8" start="0x95400000" end="0x9fffffff" type="BW RAM" width="8" />
+					</if_prop> <!-- 512MB DMC0 -->
+
+					<if_prop name="use_sdram_dmc_size_0" value="1024" enabled="false">
+						<![CDATA[   //  4. There is no SHARC NW alias for the second half of the DDR address
+   //     range. If used from a SHARC core, these addresses cannot be converted
+   //     to an NW alias and therefore data mapped there cannot be accessed
+   //     from word-addressed functions.
+   //     In this LDF, the ARM is given the entire second half of the address
+   //     range. Consequently all SHARC data resides in the first half of DDR
+   //     memory and may be accessed by both byte- and word-addressed code.
+
+   // ----------------------- 1GB DMC0(DDR-A) -----------------------------------
+   // 1GB DMC0 DDR3 SDRAM memory is partitioned as follows:
+   //   DDR-A part1 : SHARC0 NW code, 3MB
+   //   DDR-A part2 : SHARC1 NW code, 3MB
+   //   DDR-A part3 : SHARC0 data, 4MB
+   //   DDR-A part4 : SHARC0 VISA code, 3MB
+   //   DDR-A part5 : SHARC1 VISA code, 3MB
+   //   DDR-A part6 : SHARC0 data, 240MB
+   //   DDR-A part7 : SHARC1 data, 256MB
+   //   DDR-A part8 : ARM 512MB
+   // Note : Addresses 0xa000_0000 -> 0xbfff_ffff can't be used for NW data,
+   //        hence the unequal SHARC/ARM split.]]>
+						<segment name="mem_DMC0_SDRAM_A1" start="0x80000000" end="0x802fffff" type="BW RAM" width="8" />
+   					<segment name="mem_DMC0_SDRAM_A2" start="0x80300000" end="0x805fffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A3" start="0x80600000" end="0x809fffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A4" start="0x80a00000" end="0x80cfffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A5" start="0x80d00000" end="0x80ffffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A6" start="0x81000000" end="0x8fffffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A7" start="0x90000000" end="0x9fffffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A8" start="0xa0000000" end="0xbfffffff" type="BW RAM" width="8" />
+					</if_prop> <!-- 1024MB DMC0 -->
+
+					<if_prop name="use_multicores_use_core" value="1" enabled="false">
+						<!-- CORE1 / SHARC0 -->
+						<![CDATA[
+  #define MY_SDRAM_NWCODE_MEM mem_DMC0_SDRAM_A1]]>
+						<if_prop name="use_sdram_dmc_size_0" value="32" enabled="false">
+							<!-- DMC0 == 32MB -->
+							<![CDATA[  #define MY_SDRAM_DATA1_MEM  mem_DMC0_SDRAM_A6]]>
+							<![CDATA[  #define MY_SDRAM_DATA2_MEM  mem_DMC0_SDRAM_A3]]>
+						</if_prop>
+						<if_prop name="use_sdram_dmc_size_0" value="32" enabled="true">
+							<!-- DMC0 != 32MB -->
+							<![CDATA[  #define MY_SDRAM_DATA1_MEM  mem_DMC0_SDRAM_A3]]>
+							<![CDATA[  #define MY_SDRAM_DATA2_MEM  mem_DMC0_SDRAM_A6]]>
+						</if_prop>
+						<![CDATA[  #define MY_SDRAM_SWCODE_MEM mem_DMC0_SDRAM_A4]]>
+					</if_prop>
+
+					<if_prop name="use_multicores_use_core" value="2" enabled="false">
+						<!-- CORE2 / SHARC1 -->
+						<![CDATA[
+  #define MY_SDRAM_NWCODE_MEM mem_DMC0_SDRAM_A2]]>
+						<![CDATA[  #define MY_SDRAM_DATA1_MEM  mem_DMC0_SDRAM_A7]]>
+						<![CDATA[  #define MY_SDRAM_SWCODE_MEM mem_DMC0_SDRAM_A5]]>
+					</if_prop>
+				</if_prop> <!-- has_single_sharc_core false -->
+
+				<if_prop name="has_single_sharc_core" value="true" enabled="false">
+					<!-- SC592 : 1*arm, 1*sharc, 1*dmc -->
+
+					<if_prop name="use_sdram_dmc_size_0" value="8" enabled="false">
+						<![CDATA[#error 8MB SDRAM not supported for parts that do not support LPDDR]]>
+					</if_prop> <!-- 8MB DMC0 -->
+
+					<if_prop name="use_sdram_dmc_size_0" value="16" enabled="false">
+						<![CDATA[#error 16MB SDRAM not supported for parts that do not support LPDDR]]>
+					</if_prop> <!-- 16MB DMC0 -->
+
+					<if_prop name="use_sdram_dmc_size_0" value="32" enabled="false">
+						<![CDATA[
+   // ----------------------- 32MB DMC0(DDR-A) ----------------------------------
+   // 32MB DMC0 DDR SDRAM memory is partitioned as follows:
+   //   DDR-A part1 : SHARC0 NW code, 2MB
+   //   DDR-A part2 : SHARC0 data, 12MB
+   //   DDR-A part3 : SHARC0 VISA code, 2MB
+   //   DDR-A part4 : ARM, 16MB]]>
+						<segment name="mem_DMC0_SDRAM_A1" start="0x80000000" end="0x801fffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A2" start="0x80200000" end="0x80dfffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A3" start="0x80e00000" end="0x80ffffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A4" start="0x81000000" end="0x81ffffff" type="BW RAM" width="8" />
+					</if_prop> <!-- 32MB DMC0 -->
+
+					<if_prop name="use_sdram_dmc_size_0" value="64" enabled="false">
+						<![CDATA[
+   // ----------------------- 64MB DMC0(DDR-A) ----------------------------------
+   // 64MB DMC0 DDR SDRAM memory is partitioned as follows:
+   //   DDR-A part1 : SHARC0 NW code, 6MB
+   //   DDR-A part2 : SHARC0 data, 4MB
+   //   DDR-A part3 : SHARC0 VISA code, 6MB
+   //   DDR-A part4 : SHARC0 data, 22MB
+   //   DDR-A part5 : ARM, 26MB]]>
+						<segment name="mem_DMC0_SDRAM_A1" start="0x80000000" end="0x805fffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A2" start="0x80600000" end="0x809fffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A3" start="0x80a00000" end="0x80ffffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A4" start="0x81000000" end="0x825fffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A5" start="0x82600000" end="0x83ffffff" type="BW RAM" width="8" />
+					</if_prop> <!-- 64MB DMC0 -->
+
+					<if_prop name="use_sdram_dmc_size_0" value="128" enabled="false">
+						<![CDATA[
+   // ----------------------- 128MB DMC0(DDR-A) ---------------------------------
+   // 128MB DMC0 DDR SDRAM memory is partitioned as follows:
+   //   DDR-A part1 : SHARC0 NW code, 6MB
+   //   DDR-A part2 : SHARC0 data, 4MB
+   //   DDR-A part3 : SHARC0 VISA code, 6MB
+   //   DDR-A part4 : SHARC0 data, 48MB
+   //   DDR-A part5 : ARM 64MB]]>
+						<segment name="mem_DMC0_SDRAM_A1" start="0x80000000" end="0x805fffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A2" start="0x80600000" end="0x809fffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A3" start="0x80a00000" end="0x80ffffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A4" start="0x81000000" end="0x83ffffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A5" start="0x84000000" end="0x87ffffff" type="BW RAM" width="8" />
+					</if_prop> <!-- 128MB DMC0 -->
+
+					<if_prop name="use_sdram_dmc_size_0" value="256" enabled="false">
+						<![CDATA[
+   // ----------------------- 256MB DMC0(DDR-A) ---------------------------------
+   // 256MB DMC0 DDR SDRAM memory is partitioned as follows:
+   //   DDR-A part1 : SHARC0 NW code, 6MB
+   //   DDR-A part2 : SHARC0 data, 4MB
+   //   DDR-A part3 : SHARC0 VISA code, 6MB
+   //   DDR-A part4 : SHARC0 data, 112MB
+   //   DDR-A part5 : ARM, 128MB]]>
+						<segment name="mem_DMC0_SDRAM_A1" start="0x80000000" end="0x805fffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A2" start="0x80600000" end="0x809fffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A3" start="0x80a00000" end="0x80ffffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A4" start="0x81000000" end="0x87ffffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A5" start="0x88000000" end="0x8fffffff" type="BW RAM" width="8" />
+					</if_prop> <!-- 256MB DMC0 -->
+
+					<if_prop name="use_sdram_dmc_size_0" value="512" enabled="false">
+						<![CDATA[
+   // ----------------------- 512MB DMC0(DDR-A) ---------------------------------
+   // 512MB DMC0 DDR SDRAM memory is partitioned as follows:
+   //   DDR-A part1 : SHARC0 NW code, 6MB
+   //   DDR-A part2 : SHARC0 data, 4MB
+   //   DDR-A part3 : SHARC0 VISA code, 6MB
+   //   DDR-A part4 : SHARC0 data, 240MB
+   //   DDR-A part5 : ARM, 256MB]]>
+						<segment name="mem_DMC0_SDRAM_A1" start="0x80000000" end="0x805fffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A2" start="0x80600000" end="0x809fffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A3" start="0x80a00000" end="0x80ffffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A4" start="0x81000000" end="0x8fffffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A5" start="0x90000000" end="0x9fffffff" type="BW RAM" width="8" />
+					</if_prop> <!-- 512MB DMC0 -->
+
+					<if_prop name="use_sdram_dmc_size_0" value="1024" enabled="false">
+						<![CDATA[   //  4. There is no SHARC NW alias for the second half of the DDR address
+   //     range. If used from a SHARC core, these addresses cannot be converted
+   //     to an NW alias and therefore data mapped there cannot be accessed
+   //     from word-addressed functions.
+   //     In this LDF, the ARM is given the entire second half of the address
+   //     range. Consequently all SHARC data resides in the first half of DDR
+   //     memory and may be accessed by both byte- and word-addressed code.
+
+   // ----------------------- 1GB DMC0(DDR-A) -----------------------------------
+   // 1GB DMC0 DDR SDRAM memory is partitioned as follows:
+   //   DDR-A part1 : SHARC0 NW code, 6MB
+   //   DDR-A part2 : SHARC0 data, 4MB
+   //   DDR-A part3 : SHARC0 VISA code, 6MB
+   //   DDR-A part4 : SHARC0 data, 496MB
+   //   DDR-A part5 : ARM 512MB]]>
+						<segment name="mem_DMC0_SDRAM_A1" start="0x80000000" end="0x805fffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A2" start="0x80600000" end="0x809fffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A3" start="0x80a00000" end="0x80ffffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A4" start="0x81000000" end="0x9fffffff" type="BW RAM" width="8" />
+						<segment name="mem_DMC0_SDRAM_A5" start="0xa0000000" end="0xbfffffff" type="BW RAM" width="8" />
+					</if_prop> <!-- 1024MB DMC0 -->
+
+					<![CDATA[
+  #define MY_SDRAM_NWCODE_MEM mem_DMC0_SDRAM_A1]]>
+					<![CDATA[  #define MY_SDRAM_DATA1_MEM  mem_DMC0_SDRAM_A2]]>
+					<![CDATA[  #define MY_SDRAM_SWCODE_MEM mem_DMC0_SDRAM_A3]]>
+					<if_prop name="use_sdram_dmc_size_0" value="32" enabled="true">
+						<!-- DMC0 != 32MB -->
+						<![CDATA[  #define MY_SDRAM_DATA2_MEM  mem_DMC0_SDRAM_A4]]>
+					</if_prop>
+
+				</if_prop> <!-- has_single_sharc_core true -->
+			</if_prop> <!-- has_arm_core true -->
+
+			<if_prop name="has_arm_core" value="false" enabled="false">
+				<!-- 2159x : no arm, 2*sharc, 1*dmc) -->
+
+				<if_prop name="use_sdram_dmc_size_0" value="8" enabled="false">
+					<![CDATA[#error 8MB SDRAM not supported for parts that do not support LPDDR]]>
+				</if_prop> <!-- 8MB DMC0 -->
+
+				<if_prop name="use_sdram_dmc_size_0" value="16" enabled="false">
+					<![CDATA[#error 16MB SDRAM not supported for parts that do not support LPDDR]]>
+				</if_prop> <!-- 16MB DMC0 -->
+
+				<if_prop name="use_sdram_dmc_size_0" value="32" enabled="false">
+					<![CDATA[
+   // ----------------------- 32MB DMC0(DDR-A) ----------------------------------
+   // 32MB DMC0 DDR SDRAM memory is partitioned as follows:
+   //   DDR-A part1 : SHARC0 NW code, 3MB
+   //   DDR-A part2 : SHARC1 NW code, 3MB
+   //   DDR-A part3 : SHARC0 data, 4MB
+   //   DDR-A part4 : SHARC0 VISA code, 3MB
+   //   DDR-A part5 : SHARC1 VISA code, 3MB
+   //   DDR-A part6 : SHARC0 data, 6MB
+   //   DDR-A part7 : SHARC1 data, 10MB]]>
+					<segment name="mem_DMC0_SDRAM_A1" start="0x80000000" end="0x802fffff" type="BW RAM" width="8" />
+					<segment name="mem_DMC0_SDRAM_A2" start="0x80300000" end="0x805fffff" type="BW RAM" width="8" />
+					<segment name="mem_DMC0_SDRAM_A3" start="0x80600000" end="0x809fffff" type="BW RAM" width="8" />
+					<segment name="mem_DMC0_SDRAM_A4" start="0x80a00000" end="0x80cfffff" type="BW RAM" width="8" />
+					<segment name="mem_DMC0_SDRAM_A5" start="0x80d00000" end="0x80ffffff" type="BW RAM" width="8" />
+					<segment name="mem_DMC0_SDRAM_A6" start="0x81000000" end="0x815fffff" type="BW RAM" width="8" />
+					<segment name="mem_DMC0_SDRAM_A7" start="0x81600000" end="0x81ffffff" type="BW RAM" width="8" />
+				</if_prop> <!-- 32MB DMC0 -->
+
+				<if_prop name="use_sdram_dmc_size_0" value="64" enabled="false">
+					<![CDATA[
+   // ----------------------- 64MB DMC0(DDR-A) ----------------------------------
+   // 64MB DMC0 DDR SDRAM memory is partitioned as follows:
+   //   DDR-A part1 : SHARC0 NW code, 3MB
+   //   DDR-A part2 : SHARC1 NW code, 3MB
+   //   DDR-A part3 : SHARC0 data, 4MB
+   //   DDR-A part4 : SHARC0 VISA code, 3MB
+   //   DDR-A part5 : SHARC1 VISA code, 3MB
+   //   DDR-A part6 : SHARC0 data, 22MB
+   //   DDR-A part7 : SHARC1 data, 26MB]]>
+					<segment name="mem_DMC0_SDRAM_A1" start="0x80000000" end="0x802fffff" type="BW RAM" width="8" />
+					<segment name="mem_DMC0_SDRAM_A2" start="0x80300000" end="0x805fffff" type="BW RAM" width="8" />
+					<segment name="mem_DMC0_SDRAM_A3" start="0x80600000" end="0x809fffff" type="BW RAM" width="8" />
+					<segment name="mem_DMC0_SDRAM_A4" start="0x80a00000" end="0x80cfffff" type="BW RAM" width="8" />
+					<segment name="mem_DMC0_SDRAM_A5" start="0x80d00000" end="0x80ffffff" type="BW RAM" width="8" />
+					<segment name="mem_DMC0_SDRAM_A6" start="0x81000000" end="0x825fffff" type="BW RAM" width="8" />
+					<segment name="mem_DMC0_SDRAM_A7" start="0x82600000" end="0x83ffffff" type="BW RAM" width="8" />
+				</if_prop> <!-- 64MB DMC0 -->
+
+				<if_prop name="use_sdram_dmc_size_0" value="128" enabled="false">
+					<![CDATA[
+   // ----------------------- 128MB DMC0(DDR-A) ---------------------------------
+   // 128MB DMC0 DDR SDRAM memory is partitioned as follows:
+   //   DDR-A part1 : SHARC0 NW code, 3MB
+   //   DDR-A part2 : SHARC1 NW code, 3MB
+   //   DDR-A part3 : SHARC0 data, 4MB
+   //   DDR-A part4 : SHARC0 VISA code, 3MB
+   //   DDR-A part5 : SHARC1 VISA code, 3MB
+   //   DDR-A part6 : SHARC0 data, 48MB
+   //   DDR-A part7 : SHARC1 data, 64MB]]>
+					<segment name="mem_DMC0_SDRAM_A1" start="0x80000000" end="0x802fffff" type="BW RAM" width="8" />
+					<segment name="mem_DMC0_SDRAM_A2" start="0x80300000" end="0x805fffff" type="BW RAM" width="8" />
+					<segment name="mem_DMC0_SDRAM_A3" start="0x80600000" end="0x809fffff" type="BW RAM" width="8" />
+					<segment name="mem_DMC0_SDRAM_A4" start="0x80a00000" end="0x80cfffff" type="BW RAM" width="8" />
+					<segment name="mem_DMC0_SDRAM_A5" start="0x80d00000" end="0x80ffffff" type="BW RAM" width="8" />
+					<segment name="mem_DMC0_SDRAM_A6" start="0x81000000" end="0x83ffffff" type="BW RAM" width="8" />
+					<segment name="mem_DMC0_SDRAM_A7" start="0x84000000" end="0x87ffffff" type="BW RAM" width="8" />
+				</if_prop> <!-- 128MB DMC0 -->
+
+				<if_prop name="use_sdram_dmc_size_0" value="256" enabled="false">
+					<![CDATA[
+   // ----------------------- 256MB DMC0(DDR-A) ---------------------------------
+   // 256MB DMC0 DDR SDRAM memory is partitioned as follows:
+   //   DDR-A part1 : SHARC0 NW code, 3MB
+   //   DDR-A part2 : SHARC1 NW code, 3MB
+   //   DDR-A part3 : SHARC0 data, 4MB
+   //   DDR-A part4 : SHARC0 VISA code, 3MB
+   //   DDR-A part5 : SHARC1 VISA code, 3MB
+   //   DDR-A part6 : SHARC0 data, 112MB
+   //   DDR-A part7 : SHARC1 data, 128MB]]>
+					<segment name="mem_DMC0_SDRAM_A1" start="0x80000000" end="0x802fffff" type="BW RAM" width="8" />
+					<segment name="mem_DMC0_SDRAM_A2" start="0x80300000" end="0x805fffff" type="BW RAM" width="8" />
+					<segment name="mem_DMC0_SDRAM_A3" start="0x80600000" end="0x809fffff" type="BW RAM" width="8" />
+					<segment name="mem_DMC0_SDRAM_A4" start="0x80a00000" end="0x80cfffff" type="BW RAM" width="8" />
+					<segment name="mem_DMC0_SDRAM_A5" start="0x80d00000" end="0x80ffffff" type="BW RAM" width="8" />
+					<segment name="mem_DMC0_SDRAM_A6" start="0x81000000" end="0x87ffffff" type="BW RAM" width="8" />
+					<segment name="mem_DMC0_SDRAM_A7" start="0x88000000" end="0x8fffffff" type="BW RAM" width="8" />
+				</if_prop> <!-- 256MB DMC0 -->
+
+				<if_prop name="use_sdram_dmc_size_0" value="512" enabled="false">
+					<![CDATA[
+   // ----------------------- 512MB DMC0(DDR-A) ---------------------------------
+   // 512MB DMC0 DDR SDRAM memory is partitioned as follows:
+   //   DDR-A part1 : SHARC0 NW code, 3MB
+   //   DDR-A part2 : SHARC1 NW code, 3MB
+   //   DDR-A part3 : SHARC0 data, 4MB
+   //   DDR-A part4 : SHARC0 VISA code, 3MB
+   //   DDR-A part5 : SHARC1 VISA code, 3MB
+   //   DDR-A part6 : SHARC0 data, 240MB
+   //   DDR-A part7 : SHARC1 data, 256MB]]>
+					<segment name="mem_DMC0_SDRAM_A1" start="0x80000000" end="0x802fffff" type="BW RAM" width="8" />
+					<segment name="mem_DMC0_SDRAM_A2" start="0x80300000" end="0x805fffff" type="BW RAM" width="8" />
+					<segment name="mem_DMC0_SDRAM_A3" start="0x80600000" end="0x809fffff" type="BW RAM" width="8" />
+					<segment name="mem_DMC0_SDRAM_A4" start="0x80a00000" end="0x80cfffff" type="BW RAM" width="8" />
+					<segment name="mem_DMC0_SDRAM_A5" start="0x80d00000" end="0x80ffffff" type="BW RAM" width="8" />
+					<segment name="mem_DMC0_SDRAM_A6" start="0x81000000" end="0x8fffffff" type="BW RAM" width="8" />
+					<segment name="mem_DMC0_SDRAM_A7" start="0x90000000" end="0x9fffffff" type="BW RAM" width="8" />
+				</if_prop> <!-- 512MB DMC0 -->
+
+				<if_prop name="use_sdram_dmc_size_0" value="1024" enabled="false">
+					<![CDATA[   //  4. There is no SHARC NW alias for the second half of the DDR address
+   //     range. If used from a SHARC core, these addresses cannot be converted
+   //     to an NW alias and therefore data mapped there cannot be accessed
+   //     from word-addressed functions. This LDF therefore only uses the
+   //     second half of DDR memory for byte-addressed data.
+
+   // ----------------------- 1GB DMC0(DDR-A) -----------------------------------
+   // 1GB DMC0 DDR3 SDRAM memory is partitioned as follows:
+   //   DDR-A part1 : SHARC0 NW code, 3MB
+   //   DDR-A part2 : SHARC1 NW code, 3MB
+   //   DDR-A part3 : SHARC0 data, 4MB
+   //   DDR-A part4 : SHARC0 VISA code, 3MB
+   //   DDR-A part5 : SHARC1 VISA code, 3MB
+   //   DDR-A part6 : SHARC0 data, 240MB
+   //   DDR-A part7 : SHARC1 data, 256MB
+   //   DDR-A part8 : SHARC0 data, BW only 256MB
+   //   DDR-A part9 : SHARC1 data, BW only 256MB]]>
+
+					<segment name="mem_DMC0_SDRAM_A1" start="0x80000000" end="0x802fffff" type="BW RAM" width="8" />
+					<segment name="mem_DMC0_SDRAM_A2" start="0x80300000" end="0x805fffff" type="BW RAM" width="8" />
+					<segment name="mem_DMC0_SDRAM_A3" start="0x80600000" end="0x809fffff" type="BW RAM" width="8" />
+					<segment name="mem_DMC0_SDRAM_A4" start="0x80a00000" end="0x80cfffff" type="BW RAM" width="8" />
+					<segment name="mem_DMC0_SDRAM_A5" start="0x80d00000" end="0x80ffffff" type="BW RAM" width="8" />
+					<segment name="mem_DMC0_SDRAM_A6" start="0x81000000" end="0x8fffffff" type="BW RAM" width="8" />
+					<segment name="mem_DMC0_SDRAM_A7" start="0x90000000" end="0x9fffffff" type="BW RAM" width="8" />
+					<segment name="mem_DMC0_SDRAM_A8" start="0xa0000000" end="0xafffffff" type="BW RAM" width="8" />
+					<segment name="mem_DMC0_SDRAM_A9" start="0xb0000000" end="0xbfffffff" type="BW RAM" width="8" />
+
+				</if_prop> <!-- 1024MB DMC0 -->
+
+				<if_prop name="use_multicores_use_core" value="1" enabled="false">
+					<!-- 2159x CORE1 / SHARC0 -->
+					<![CDATA[
+  #define MY_SDRAM_NWCODE_MEM mem_DMC0_SDRAM_A1]]>
+					<![CDATA[  #define MY_SDRAM_SWCODE_MEM mem_DMC0_SDRAM_A4]]>
+					<![CDATA[  #define MY_SDRAM_DATA1_MEM  mem_DMC0_SDRAM_A3]]>
+					<![CDATA[  #define MY_SDRAM_DATA2_MEM  mem_DMC0_SDRAM_A6]]>
+					<if_prop name="use_sdram_dmc_size_0" value="1024" enabled="false">
+						<![CDATA[  #define MY_SDRAM_BWONLY_MEM  mem_DMC0_SDRAM_A8]]>
+					</if_prop> <!-- 1024MB DMC0 -->
+				</if_prop>
+
+				<if_prop name="use_multicores_use_core" value="2" enabled="false">
+					<!-- CORE2 / SHARC1 -->
+					<![CDATA[
+  #define MY_SDRAM_NWCODE_MEM mem_DMC0_SDRAM_A2]]>
+					<![CDATA[  #define MY_SDRAM_SWCODE_MEM mem_DMC0_SDRAM_A5]]>
+					<![CDATA[  #define MY_SDRAM_DATA1_MEM  mem_DMC0_SDRAM_A7]]>
+					<if_prop name="use_sdram_dmc_size_0" value="1024" enabled="false">
+						<![CDATA[  #define MY_SDRAM_BWONLY_MEM  mem_DMC0_SDRAM_A9]]>
+					</if_prop> <!-- 1024MB DMC0 -->
+				</if_prop>
+
+			</if_prop> <!-- has_arm_core false -->
+
+			<!-- Define SDRAM_STACK_HEAP_BLOCK if not already done.  -->
+			<![CDATA[
+  #if !defined(SDRAM_STACK_HEAP_BLOCK)
+   #if defined(MY_SDRAM_DATA2_MEM)
+    #define SDRAM_STACK_HEAP_BLOCK MY_SDRAM_DATA2_MEM
+   #else
+    #define SDRAM_STACK_HEAP_BLOCK MY_SDRAM_DATA1_MEM
+   #endif
+  #endif]]>
+		</if_use_sdram>
+
+		<vdsg:user uid="insert-new-memory-segments" />
+	</memory>
+
+	<processor name="21591_CORE_&amp;coreID;">
+		<line>LINK_AGAINST( $COMMAND_LINE_LINK_AGAINST )</line>
+		<output name="$COMMAND_LINE_OUTPUT_FILE"/>
+		<keep>
+			<cplusplus enabled="false">
+				<keep_symbol name="___ctor_NULL_marker"/>
+				<keep_symbol name="__ctor_NULL_marker."/>
+			</cplusplus>
+		</keep>
+		<line>ENTRY(start)</line>
+
+		<vdsg:user uid="insert-user-ldf-commands"/>
+
+		<sections>
+			<vdsg:user uid="insert-new-sections-at-iv_code" />
+
+			<![CDATA[
+    // ------------------------------------------------------------------
+    // Block 0 is primarily used for the interrupt vectors code, stack,
+    // heap and DM data.
+    // If the entire block3 is cache (128KB size) it also includes
+    // priority code section.]]>
+
+			<vdsg:user uid="insert-new-sections-for-l1_block0" />
+
+			<if_runtime_meminit value="true" memory="L1" enabled="false">
+				<line>// Apply RUNTIME_INIT qualifier to data sections.</line>
+				<line>#define DATA_INIT_QUAL RUNTIME_INIT</line>
+				<line>#define IV_CODE seg_rth</line>
+			</if_runtime_meminit>
+			<if_runtime_meminit value="false" memory="L1" enabled="false">
+				<line>#define DATA_INIT_QUAL // None, as runtime initialization is disabled.</line>
+				<line>#define IV_CODE dxe_iv_code</line>
+			</if_runtime_meminit>
+
+			<section name="IV_CODE" segment="mem_iv_code" qualifier="PM">
+				<vdsg:user uid="insert-new-sections-at-the-start-of-iv_code" />
+				<line>// Interrupt vector code (4 NW instructions per interrupt)</line>
+				<line>INPUT_SECTIONS( $OBJECTS(iv_code) )</line>
+				<vdsg:user uid="insert-new-sections-at-the-end-of-iv_code" />
+			</section>
+
+			<if_runtime_meminit value="true" memory="L1" enabled="false">
+				<vdsg:user uid="insert-new-sections-at-seg_init" />
+				<section name="seg_init" segment="seg_init" qualifier="PM">
+					<line>INPUT_SECTION_ALIGN(2)</line>
+					<vdsg:user uid="insert-new-sections-at-the-start-of-seg_init" />
+					<line>// Contains compressed data created by the memory initialization tool.</line>
+					<line>ldf_seginit_space = . ;</line>
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_init) )</line>
+					<vdsg:user uid="insert-new-sections-at-the-end-of-seg_init" />
+				</section>
+			</if_runtime_meminit>
+
+			<vdsg:user uid="insert-new-sections-at-mem_block0_sw16" is_legacy="true" />
+			<vdsg:user uid="insert-new-sections-at-mem_block0_bw" />
+
+			<![CDATA[      // Stack and heap initial memory reserve.]]>
+			<section name="dxe_block0_stack_and_heap_reserve" segment="mem_block0_bw" qualifier="NO_INIT BW">
+				<reserve_symbols_begin name="heaps_and_system_stack_in_L1"
+				  length_symbol="heaps_and_system_stack_in_L1_length"
+				  for="system_stack,system_heaps,user_heaps"
+				  alignment="8"
+				  value="L1"/>
+			</section>
+
+			<![CDATA[      // Highest priority (prio0) data and code.]]>
+			<section name="dxe_block0_data_prio0_bw" qualifier="DATA_INIT_QUAL BW" segment="mem_block0_bw">
+				<line>// Highest priority byte data for block0.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l1_block0 seg_int_data) )</line>
+			</section>
+
+			<section name="dxe_block0_data_prio0" qualifier="DATA_INIT_QUAL DM" segment="mem_block0_bw">
+				<line>// Highest priority data for block 0.</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l1_block0 seg_int_data ) )</line>
+			</section>
+
+			<section name="dxe_block0_sw_code_prio0" segment="mem_block0_bw" qualifier="SW">
+				<line>// Highest priority SW code for block 0.</line>
+				<line>INPUT_SECTION_ALIGN(2)</line>
+				<vdsg:user uid="insert-new-sections-at-the-start-of-dxe_block0_sw_code_prio0" />
+				<line>FILL(0x1)  // fill gaps in memory with NOPs</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l1_block0) )</line>
+				<if_prop name="icache_disabled" value="false" enabled="false">
+					<if_prop name="icache_size_in_KB" value="16" enabled="true">
+						<!-- icache_size_in_KB != 16KB -->
+						<if_prop name="icache_size_in_KB" value="32" enabled="true">
+							<!-- icache_size_in_KB != 32KB -->
+							<line>// The whole block3 is cache so map priority code section in block 0.</line>
+							<line>INPUT_SECTIONS( $OBJS_LIBS(seg_int_code_sw seg_int_code) )</line>
+							<if_prop name="use_software_modules" value="true" enabled="false">
+								<![CDATA[         #define ADI_MODULES_INPUT_SECTIONS_INSTR
+         #include "modules_sharc.ldf"
+         #undef ADI_MODULES_INPUT_SECTIONS_INSTR]]>
+							</if_prop>
+						</if_prop>
+					</if_prop>
+				</if_prop>
+				<vdsg:user uid="insert-new-sections-at-the-end-of-dxe_block0_sw_code_prio0" />
+			</section>
+
+			<section name="dxe_block0_nw_code_prio0" segment="mem_block0_bw" qualifier="PM">
+				<line>// Highest priority code for block 0.</line>
+				<line>INPUT_SECTION_ALIGN(2)</line>
+				<vdsg:user uid="insert-new-sections-at-the-start-of-dxe_block0_nw_code_prio0" />
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l1_block0) )</line>
+				<if_prop name="icache_disabled" value="false" enabled="false">
+					<if_prop name="icache_size_in_KB" value="16" enabled="true">
+						<!-- icache_size_in_KB != 16KB -->
+						<if_prop name="icache_size_in_KB" value="32" enabled="true">
+							<!-- icache_size_in_KB != 32KB -->
+							<line>// The whole block3 is cache so map priority code section in block 0.</line>
+							<line>INPUT_SECTIONS( $OBJS_LIBS(seg_int_code) )</line>
+							<if_prop name="use_software_modules" value="true" enabled="false">
+							<![CDATA[         #define ADI_MODULES_INPUT_SECTIONS_INSTR
+         #include "modules_sharc.ldf"
+         #undef ADI_MODULES_INPUT_SECTIONS_INSTR]]>
+							</if_prop>
+							<if_runtime_meminit value="false" memory="L1" enabled="false">
+								<line>// The __lib_setup_memory routine requires seg_init to be placed in L1.</line>
+								<line>INPUT_SECTIONS( $OBJS_LIBS(seg_init) )</line>
+							</if_runtime_meminit>
+						</if_prop>
+					</if_prop>
+				</if_prop>
+				<vdsg:user uid="insert-new-sections-at-the-end-of-dxe_block0_nw_code_prio0" />
+			</section>
+
+			<section name="dxe_block0_noinit_prio0" qualifier="NO_INIT DM" segment="mem_block0_bw">
+				<line>// Highest priority uninitialized data.</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l1_block0_noinit_data seg_int_noinit_data) )</line>
+			</section>
+
+			<section name="dxe_block0_noinit_prio0_bw" qualifier="NO_INIT BW" segment="mem_block0_bw">
+				<line>// Highest priority uninitialized data.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l1_block0_noinit_data seg_int_noinit_data) )</line>
+			</section>
+
+			<section name="dxe_block0_bsz_prio0" qualifier="ZERO_INIT DM" segment="mem_block0_bw">
+				<line>// Highest priority zero initialized data.</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l1_block0_bsz_data seg_int_bsz_data) )</line>
+			</section>
+
+			<section name="dxe_block0_bsz_prio0_bw" qualifier="ZERO_INIT BW" segment="mem_block0_bw">
+				<line>// Highest priority zero initialized data.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l1_block0_bsz_data seg_int_bsz_data) )</line>
+			</section>
+
+			<![CDATA[      // High priority (prio1) data, and code if necessary.]]>
+			<if_prop name="icache_disabled" value="false" enabled="false">
+				<if_prop name="icache_size_in_KB" value="16" enabled="true">
+					<!-- icache_size_in_KB != 16KB -->
+					<if_prop name="icache_size_in_KB" value="32" enabled="true">
+						<!-- icache_size_in_KB != 32KB -->
+						<![CDATA[      // The whole block3 is cache so map priority code section in block 0.]]>
+						<section name="dxe_block0_sw_code_prio1" segment="mem_block0_bw" qualifier="SW">
+							<line>INPUT_SECTION_ALIGN(2)</line>
+							<vdsg:user uid="insert-new-sections-at-the-start-of-dxe_block0_sw_code_prio1" />
+							<line>FILL(0x1)  // fill gaps in memory with NOPs</line>
+							<line>INPUT_SECTIONS( $OBJS_LIBS_INTERNAL(seg_swco seg_pmco) )</line>
+							<vdsg:user uid="insert-new-sections-at-the-end-of-dxe_block0_sw_code_prio1" />
+						</section>
+
+						<section name="dxe_block0_nw_code_prio1" segment="mem_block0_bw" qualifier="PM">
+							<line>INPUT_SECTION_ALIGN(2)</line>
+							<vdsg:user uid="insert-new-sections-at-the-start-of-dxe_block0_nw_code_prio1" />
+							<line>INPUT_SECTIONS( $OBJS_LIBS_INTERNAL( seg_pmco ) )</line>
+							<vdsg:user uid="insert-new-sections-at-the-end-of-dxe_block0_nw_code_prio1" />
+						</section>
+					</if_prop>
+				</if_prop>
+			</if_prop>
+
+			<section name="dxe_block0_data_prio1" segment="mem_block0_bw" qualifier="DATA_INIT_QUAL DM" >
+				<line>// High priority data.</line>
+				<if_prop name="using_cplusplus" value="true" enabled="false">
+					<line>INPUT_SECTIONS( $OBJS_LIBS_INTERNAL(seg_dmda_nw seg_dmda seg_vtbl) )</line>
+				</if_prop>
+			<if_prop name="using_cplusplus" value="false" enabled="false">
+					<line>INPUT_SECTIONS( $OBJS_LIBS_INTERNAL(seg_dmda_nw seg_dmda) )</line>
+				</if_prop>
+				<if_prop name="use_software_modules" value="true" enabled="false">
+					<![CDATA[         #define ADI_MODULES_INPUT_SECTIONS_DATAA
+         #include "modules_sharc.ldf"
+         #undef ADI_MODULES_INPUT_SECTIONS_DATAA]]>
+				</if_prop>
+			</section>
+
+			<section name="dxe_block0_data_prio1_bw" segment="mem_block0_bw" qualifier="DATA_INIT_QUAL BW" >
+				<line>// High priority byte data for block0.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<if_prop name="using_cplusplus" value="true" enabled="false">
+					<line>INPUT_SECTIONS( $OBJS_LIBS_INTERNAL(seg_dmda_bw seg_dmda seg_vtbl) )</line>
+				</if_prop>
+				<if_prop name="using_cplusplus" value="false" enabled="false">
+					<line>INPUT_SECTIONS( $OBJS_LIBS_INTERNAL(seg_dmda_bw seg_dmda) )</line>
+				</if_prop>
+				<if_prop name="use_software_modules" value="true" enabled="false">
+					<![CDATA[         #define ADI_MODULES_INPUT_SECTIONS_DATAA
+         #include "modules_sharc.ldf"
+         #undef ADI_MODULES_INPUT_SECTIONS_DATAA]]>
+				</if_prop>
+			</section>
+
+			<section name="dxe_block0_bsz_prio1" segment="mem_block0_bw" qualifier="ZERO_INIT DM">
+				<line>// High priority zero initialized data.</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS_INTERNAL(seg_bsz_data .bss32 .bss bsz) )</line>
+			</section>
+
+			<section name="dxe_block0_bsz_prio1_bw" segment="mem_block0_bw" qualifier="ZERO_INIT BW">
+				<line>// High priority zero initialized data.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS_INTERNAL(seg_bsz_data .bss8 .bss) )</line>
+			</section>
+
+			<section name="dxe_block0_noinit_prio1" segment="mem_block0_bw" qualifier="NO_INIT DM">
+				<line>// High priority uninitialized data.</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS_INTERNAL(seg_noinit_data) )</line>
+			</section>
+
+			<section name="dxe_block0_noinit_prio1_bw" segment="mem_block0_bw" qualifier="NO_INIT BW">
+				<line>// High priority uninitialized data.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS_INTERNAL(seg_noinit_data) )</line>
+			</section>
+
+			<![CDATA[      // Next map data that's not thought to be low priority.]]>
+			<section name="dxe_block0_data_prio2" segment="mem_block0_bw" qualifier="DATA_INIT_QUAL DM" >
+				<line>// Default priority data.</line>
+				<if_prop name="using_cplusplus" value="true" enabled="false">
+					<line>INPUT_SECTIONS( $OBJS_LIBS_NOT_EXTERNAL(seg_dmda_nw seg_dmda seg_vtbl) )</line>
+				</if_prop>
+				<if_prop name="using_cplusplus" value="false" enabled="false">
+					<line>INPUT_SECTIONS( $OBJS_LIBS_NOT_EXTERNAL(seg_dmda_nw seg_dmda) )</line>
+				</if_prop>
+			</section>
+
+			<section name="dxe_block0_data_prio2_bw" segment="mem_block0_bw" qualifier="DATA_INIT_QUAL BW" >
+				<line>// Default priority data.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<if_prop name="using_cplusplus" value="true" enabled="false">
+					<line>INPUT_SECTIONS( $OBJS_LIBS_NOT_EXTERNAL(seg_dmda_bw seg_dmda seg_vtbl) )</line>
+				</if_prop>
+				<if_prop name="using_cplusplus" value="false" enabled="false">
+					<line>INPUT_SECTIONS( $OBJS_LIBS_NOT_EXTERNAL(seg_dmda_bw seg_dmda) )</line>
+				</if_prop>
+			</section>
+
+			<section name="dxe_block0_bsz_prio2" segment="mem_block0_bw" qualifier="ZERO_INIT DM">
+				<line>// Default priority zero initialized data.</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS_NOT_EXTERNAL(seg_bsz_data .bss32 .bss bsz) )</line>
+			</section>
+
+			<section name="dxe_block0_bsz_prio2_bw" segment="mem_block0_bw" qualifier="ZERO_INIT BW">
+				<line>// Default priority zero initialized data.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS_NOT_EXTERNAL(seg_bsz_data .bss8 .bss) )</line>
+			</section>
+
+			<section name="dxe_block0_noinit_prio2" segment="mem_block0_bw" qualifier="NO_INIT DM">
+				<line>// Default priority uninitialized data.</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS_NOT_EXTERNAL(seg_noinit_data) )</line>
+			</section>
+
+			<section name="dxe_block0_noinit_prio2_bw" segment="mem_block0_bw" qualifier="NO_INIT BW">
+				<line>// Default priority uninitialized data.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS_NOT_EXTERNAL(seg_noinit_data) )</line>
+			</section>
+
+			<section name="dxe_block0_data_prio3" segment="mem_block0_bw" qualifier="DATA_INIT_QUAL DM" >
+				<line>// Unspecified and lowest priority data for any unused memory.</line>
+				<if_prop name="using_cplusplus" value="true" enabled="false">
+					<if_prop name="use_eh" value="true" enabled="false">
+						<line>INPUT_SECTIONS( $OBJS_LIBS(seg_dmda_nw seg_dmda seg_vtbl .rtti .cht .edt) )</line>
+					</if_prop>
+					<if_prop name="use_eh" value="false" enabled="false">
+						<line>INPUT_SECTIONS( $OBJS_LIBS(seg_dmda_nw seg_dmda seg_vtbl) )</line>
+					</if_prop>
+				</if_prop>
+				<if_prop name="using_cplusplus" value="false" enabled="false">
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_dmda_nw seg_dmda) )</line>
+				</if_prop>
+			</section>
+
+			<section name="dxe_block0_data_prio3_bw" segment="mem_block0_bw" qualifier="DATA_INIT_QUAL BW" >
+				<line>// Unspecified and lowest priority data for any unused memory.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<if_prop name="using_cplusplus" value="true" enabled="false">
+					<if_prop name="use_eh" value="true" enabled="false">
+						<line>INPUT_SECTIONS( $OBJS_LIBS(seg_dmda_bw seg_dmda seg_vtbl .rtti .cht .edt) )</line>
+					</if_prop>
+					<if_prop name="use_eh" value="false" enabled="false">
+						<line>INPUT_SECTIONS( $OBJS_LIBS(seg_dmda_bw seg_dmda seg_vtbl) )</line>
+					</if_prop>
+				</if_prop>
+				<if_prop name="using_cplusplus" value="false" enabled="false">
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_dmda_bw seg_dmda) )</line>
+				</if_prop>
+			</section>
+
+			<section name="dxe_block0_bsz_prio3" segment="mem_block0_bw" qualifier="ZERO_INIT DM">
+				<line>// Unspecified and lowest priority zero init data for any unused memory.</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_bsz_data .bss32 .bss) )</line>
+			</section>
+
+			<section name="dxe_block0_bsz_prio3_bw" segment="mem_block0_bw" qualifier="ZERO_INIT BW">
+				<line>// Unspecified and lowest priority zero init data for any unused memory.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_bsz_data .bss8 .bss) )</line>
+			</section>
+
+			<section name="dxe_block0_noinit_prio3" segment="mem_block0_bw" qualifier="NO_INIT DM">
+				<line>//  Unspecified and lowest priority no init data for any unused memory.</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_noinit_data) )</line>
+			</section>
+
+			<section name="dxe_block0_noinit_prio3_bw" segment="mem_block0_bw" qualifier="NO_INIT BW">
+				<line>//  Unspecified and lowest priority no init data for any unused memory.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_noinit_data) )</line>
+			</section>
+
+			<![CDATA[
+    // ------------------------------------------------------------------
+    // Block 1 is primarily used for the DM data and DM cache.
+
+    // Define a DM cache size symbol.
+    // The values used match the bits in the L1C0_CFG register size bits or
+    // -1 if cache is off.
+]]>
+			<if_prop name="dmcache_disabled" value="true" enabled="false">
+				<![CDATA[      ___ldf_dmcachesize = 0xffffffff; // DM cache off
+]]>
+			</if_prop>
+			<if_prop name="dmcache_disabled" value="false" enabled="false">
+				<if_prop name="dmcache_size_in_KB" value="16" enabled="false">
+					<![CDATA[      ___ldf_dmcachesize = 0; // 16 KB DM cache]]>
+				</if_prop>
+				<if_prop name="dmcache_size_in_KB" value="32" enabled="false">
+					<![CDATA[      ___ldf_dmcachesize = 1; // 32 KB DM cache]]>
+				</if_prop>
+				<if_prop name="dmcache_size_in_KB" value="64" enabled="false">
+					<![CDATA[      ___ldf_dmcachesize = 2; // 64 KB DM cache]]>
+				</if_prop>
+				<if_prop name="dmcache_size_in_KB" value="128" enabled="false">
+					<![CDATA[      ___ldf_dmcachesize = 3; // 128 KB DM cache]]>
+				</if_prop>
+			</if_prop>
+
+			<if_prop name="dmcache_size_in_KB" value="128" enabled="true">
+			<vdsg:user uid="insert-new-sections-at-mem_block1_dm32" is_legacy="true" />
+			<vdsg:user uid="insert-new-sections-for-l1_block1" />
+
+			<section name="dxe_block1_data_prio0_bw" segment="mem_block1_bw" qualifier="DATA_INIT_QUAL BW" >
+				<line>// Highest priority byte data for block1.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l1_block1 seg_int_data) )</line>
+			</section>
+
+			<section name="dxe_block1_data_prio0" segment="mem_block1_bw" qualifier="DATA_INIT_QUAL DM" >
+				<line>// Highest priority data for block1.</line>
+				<vdsg:user uid="insert-input-sections-at-the-start-of-dxe_block1_dm_data_prio0" />
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l1_block1 seg_int_data) )</line>
+				<vdsg:user uid="insert-input-sections-at-the-end-of-dxe_block1_dm_data_prio0" />
+			</section>
+
+			<section name="dxe_block1_sw_code_prio0" segment="mem_block1_bw" qualifier="SW">
+				<line>// Highest priority SW code for block1.</line>
+				<line>INPUT_SECTION_ALIGN(2)</line>
+				<line>FILL(0x1)  // fill gaps in memory with NOPs</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l1_block1) )</line>
+			</section>
+
+			<section name="dxe_block1_nw_code_prio0" segment="mem_block1_bw" qualifier="PM">
+				<line>// Highest priority code for block1.</line>
+				<line>INPUT_SECTION_ALIGN(2)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l1_block1) )</line>
+			</section>
+
+			<section name="dxe_block1_noinit_prio0" segment="mem_block1_bw" qualifier="NO_INIT DM">
+				<line>// Highest priority uninitialized data.</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l1_block1_noinit_data seg_int_noinit_data) )</line>
+			</section>
+
+			<section name="dxe_block1_noinit_prio0_bw" segment="mem_block1_bw" qualifier="NO_INIT BW">
+				<line>// Highest priority uninitialized data.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l1_block1_noinit_data seg_int_noinit_data) )</line>
+			</section>
+
+			<section name="dxe_block1_bsz_prio0" segment="mem_block1_bw" qualifier="ZERO_INIT DM">
+				<line>// Highest priority zero initialized data.</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l1_block1_bsz_data seg_int_bsz_data) )</line>
+			</section>
+
+			<section name="dxe_block1_bsz_prio0_bw" segment="mem_block1_bw" qualifier="ZERO_INIT BW">
+				<line>// Highest priority zero initialized data.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l1_block1_bsz_data seg_int_bsz_data) )</line>
+			</section>
+
+			<section name="dxe_block1_data_prio1" segment="mem_block1_bw" qualifier="DATA_INIT_QUAL DM" >
+				<line>// High priority data.</line>
+				<vdsg:user uid="insert-input-sections-at-the-start-of-dxe_block1_dm_data_prio1" />
+				<if_prop name="using_cplusplus" value="true" enabled="false">
+					<line>INPUT_SECTIONS( $OBJS_LIBS_INTERNAL(seg_dmda_nw seg_dmda seg_vtbl) )</line>
+				</if_prop>
+				<if_prop name="using_cplusplus" value="false" enabled="false">
+					<line>INPUT_SECTIONS( $OBJS_LIBS_INTERNAL(seg_dmda_nw seg_dmda) )</line>
+				</if_prop>
+				<if_prop name="use_software_modules" value="true" enabled="false">
+					<![CDATA[         #define ADI_MODULES_INPUT_SECTIONS_DATAA
+         #include "modules_sharc.ldf"
+         #undef ADI_MODULES_INPUT_SECTIONS_DATAA]]>
+				</if_prop>
+				<vdsg:user uid="insert-input-sections-at-the-end-of-dxe_block1_dm_data_prio1" />
+			</section>
+
+			<section name="dxe_block1_data_prio1_bw" segment="mem_block1_bw" qualifier="DATA_INIT_QUAL BW" >
+				<line>// High priority byte data for block1.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<if_prop name="using_cplusplus" value="true" enabled="false">
+					<line>INPUT_SECTIONS( $OBJS_LIBS_INTERNAL(seg_dmda_bw seg_dmda seg_vtbl) )</line>
+				</if_prop>
+				<if_prop name="using_cplusplus" value="false" enabled="false">
+					<line>INPUT_SECTIONS( $OBJS_LIBS_INTERNAL(seg_dmda_bw seg_dmda) )</line>
+				</if_prop>
+				<if_prop name="use_software_modules" value="true" enabled="false">
+					<![CDATA[         #define ADI_MODULES_INPUT_SECTIONS_DATAA
+         #include "modules_sharc.ldf"
+         #undef ADI_MODULES_INPUT_SECTIONS_DATAA]]>
+				</if_prop>
+			</section>
+
+			<section name="dxe_block1_bsz_prio1" segment="mem_block1_bw" qualifier="ZERO_INIT DM">
+				<line>// High priority zero initialized data.</line>
+				<vdsg:user uid="insert-input-sections-at-the-start-of-dxe_block1_bsz_prio1" />
+				<line>INPUT_SECTIONS( $OBJS_LIBS_INTERNAL(seg_bsz_data .bss32 .bss bsz) )</line>
+				<vdsg:user uid="insert-input-sections-at-the-end-of-dxe_block1_bsz_prio1" />
+			</section>
+
+			<section name="dxe_block1_bsz_prio1_bw" segment="mem_block1_bw" qualifier="ZERO_INIT BW">
+				<line>// High priority zero initialized data.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS_INTERNAL(seg_bsz_data .bss8 .bss) )</line>
+			</section>
+
+			<section name="dxe_block1_noinit_prio1" segment="mem_block1_bw" qualifier="NO_INIT DM">
+				<line>// High priority uninitialized data.</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS_INTERNAL(seg_noinit_data) )</line>
+			</section>
+
+			<section name="dxe_block1_noinit_prio1_bw" segment="mem_block1_bw" qualifier="NO_INIT BW">
+				<line>// High priority uninitialized data.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS_INTERNAL(seg_noinit_data) )</line>
+			</section>
+
+			<section name="dxe_block1_data_prio2" segment="mem_block1_bw" qualifier="DATA_INIT_QUAL DM" >
+				<line>// Default priority data.</line>
+				<vdsg:user uid="insert-input-sections-at-the-start-of-dxe_block1_dm_data_prio2" />
+				<if_prop name="using_cplusplus" value="true" enabled="false">
+					<line>INPUT_SECTIONS( $OBJS_LIBS_NOT_EXTERNAL(seg_dmda_nw seg_dmda seg_vtbl) )</line>
+				</if_prop>
+				<if_prop name="using_cplusplus" value="false" enabled="false">
+					<line>INPUT_SECTIONS( $OBJS_LIBS_NOT_EXTERNAL(seg_dmda_nw seg_dmda) )</line>
+				</if_prop>
+				<vdsg:user uid="insert-input-sections-at-the-end-of-dxe_block1_dm_data_prio2" />
+			</section>
+
+			<section name="dxe_block1_data_prio2_bw" segment="mem_block1_bw" qualifier="DATA_INIT_QUAL BW" >
+				<line>// Default priority data.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<if_prop name="using_cplusplus" value="true" enabled="false">
+					<line>INPUT_SECTIONS( $OBJS_LIBS_NOT_EXTERNAL(seg_dmda_bw seg_dmda seg_vtbl) )</line>
+				</if_prop>
+				<if_prop name="using_cplusplus" value="false" enabled="false">
+					<line>INPUT_SECTIONS( $OBJS_LIBS_NOT_EXTERNAL(seg_dmda_bw seg_dmda) )</line>
+				</if_prop>
+			</section>
+
+			<section name="dxe_block1_bsz_prio2" segment="mem_block1_bw" qualifier="ZERO_INIT DM">
+				<line>// Default priority zero initialized data.</line>
+				<vdsg:user uid="insert-input-sections-at-the-start-of-dxe_block1_bsz_prio2" />
+				<line>INPUT_SECTIONS( $OBJS_LIBS_NOT_EXTERNAL(seg_bsz_data .bss32 .bss bsz) )</line>
+				<vdsg:user uid="insert-input-sections-at-the-end-of-dxe_block1_bsz_prio2" />
+			</section>
+
+			<section name="dxe_block1_bsz_prio2_bw" segment="mem_block1_bw" qualifier="ZERO_INIT BW">
+				<line>// Default priority zero initialized data.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS_NOT_EXTERNAL(seg_bsz_data .bss8 .bss) )</line>
+			</section>
+
+			<section name="dxe_block1_noinit_prio2" segment="mem_block1_bw" qualifier="NO_INIT DM">
+				<line>// Default priority uninitialized data.</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS_NOT_EXTERNAL(seg_noinit_data) )</line>
+			</section>
+
+			<section name="dxe_block1_noinit_prio2_bw" segment="mem_block1_bw" qualifier="NO_INIT BW">
+				<line>// Default priority uninitialized data.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS_NOT_EXTERNAL(seg_noinit_data) )</line>
+			</section>
+
+			<section name="dxe_block1_data_prio3" segment="mem_block1_bw" qualifier="DATA_INIT_QUAL DM" >
+				<line>// Unspecified and lowest priority data for any unused memory.</line>
+				<vdsg:user uid="insert-input-sections-at-the-start-of-dxe_block1_dm_data_prio3" />
+				<if_prop name="using_cplusplus" value="true" enabled="false">
+					<if_prop name="use_eh" value="true" enabled="false">
+						<line>INPUT_SECTIONS( $OBJS_LIBS(seg_dmda_nw seg_dmda seg_vtbl .rtti .cht .edt) )</line>
+					</if_prop>
+					<if_prop name="use_eh" value="false" enabled="false">
+						<line>INPUT_SECTIONS( $OBJS_LIBS(seg_dmda_nw seg_dmda seg_vtbl) )</line>
+					</if_prop>
+				</if_prop>
+				<if_prop name="using_cplusplus" value="false" enabled="false">
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_dmda_nw seg_dmda) )</line>
+				</if_prop>
+				<vdsg:user uid="insert-input-sections-at-the-end-of-dxe_block1_dm_data_prio3" />
+			</section>
+
+			<section name="dxe_block1_data_prio3_bw" segment="mem_block1_bw" qualifier="DATA_INIT_QUAL BW" >
+				<line>// Unspecified and lowest priority data for any unused memory.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<if_prop name="using_cplusplus" value="true" enabled="false">
+					<if_prop name="use_eh" value="true" enabled="false">
+						<line>INPUT_SECTIONS( $OBJS_LIBS(seg_dmda_bw seg_dmda seg_vtbl .rtti .cht .edt) )</line>
+					</if_prop>
+					<if_prop name="use_eh" value="false" enabled="false">
+						<line>INPUT_SECTIONS( $OBJS_LIBS(seg_dmda_bw seg_dmda seg_vtbl) )</line>
+					</if_prop>
+				</if_prop>
+				<if_prop name="using_cplusplus" value="false" enabled="false">
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_dmda_bw seg_dmda) )</line>
+				</if_prop>
+			</section>
+
+			<section name="dxe_block1_bsz_prio3" segment="mem_block1_bw" qualifier="ZERO_INIT DM">
+				<line>// Unspecified and lowest priority zero init data for any unused memory.</line>
+				<vdsg:user uid="insert-input-sections-at-the-start-of-dxe_block1_bsz_prio3" />
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_bsz_data .bss32 .bss) )</line>
+				<vdsg:user uid="insert-input-sections-at-the-end-of-dxe_block1_bsz_prio3" />
+			</section>
+
+			<section name="dxe_block1_bsz_prio3_bw" segment="mem_block1_bw" qualifier="ZERO_INIT BW">
+				<line>// Unspecified and lowest priority zero init data for any unused memory.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_bsz_data .bss8 .bss) )</line>
+			</section>
+
+			<section name="dxe_block1_noinit_prio3" segment="mem_block1_bw" qualifier="NO_INIT DM">
+				<line>//  Unspecified and lowest priority no init data for any unused memory.</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_noinit_data) )</line>
+			</section>
+
+			<section name="dxe_block1_noinit_prio3_bw" segment="mem_block1_bw" qualifier="NO_INIT BW">
+				<line>//  Unspecified and lowest priority no init data for any unused memory.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_noinit_data) )</line>
+			</section>
+			</if_prop> <!-- dmcache_size_in_KB != 128KB -->
+
+			<![CDATA[
+    // ------------------------------------------------------------------
+    // Block 2 is primarily used for the PM data and PM cache.
+
+    // Define a PM cache size symbol.
+    // The values used match the bits in the L1C0_CFG register size bits or
+    // -1 if cache is off.
+]]>
+			<vdsg:user uid="insert-new-sections-at-mem_block2_pm32" is_legacy="true" />
+			<vdsg:user uid="insert-new-sections-for-l1_block2" />
+
+			<if_prop name="pmcache_disabled" value="true" enabled="false">
+				<![CDATA[      ___ldf_pmcachesize = 0xffffffff; // PM cache off]]>
+			</if_prop>
+			<if_prop name="pmcache_disabled" value="false" enabled="false">
+				<if_prop name="pmcache_size_in_KB" value="16" enabled="false">
+					<![CDATA[      ___ldf_pmcachesize = 0; // 16 KB PM cache]]>
+				</if_prop>
+				<if_prop name="pmcache_size_in_KB" value="32" enabled="false">
+					<![CDATA[      ___ldf_pmcachesize = 1; // 32 KB PM cache]]>
+				</if_prop>
+				<if_prop name="pmcache_size_in_KB" value="64" enabled="false">
+					<![CDATA[      ___ldf_pmcachesize = 2; // 64 KB PM cache]]>
+				</if_prop>
+				<if_prop name="pmcache_size_in_KB" value="128" enabled="false">
+					<![CDATA[      ___ldf_pmcachesize = 3; // 128 KB PM cache]]>
+				</if_prop>
+			</if_prop>
+
+			<if_prop name="pmcache_size_in_KB" value="128" enabled="true">
+
+			<section name="dxe_block2_data_prio0_bw" segment="mem_block2_bw" qualifier="DATA_INIT_QUAL BW" >
+				<line>// Highest priority byte data for block2.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l1_block2) )</line>
+			</section>
+
+			<section name="dxe_block2_data_prio0" segment="mem_block2_bw" qualifier="DATA_INIT_QUAL DM" >
+				<line>// Highest priority data for block2.</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l1_block2) )</line>
+			</section>
+
+			<section name="dxe_block2_sw_code_prio0" segment="mem_block2_bw" qualifier="SW">
+				<line>// Highest priority SW code for block2.</line>
+				<line>INPUT_SECTION_ALIGN(2)</line>
+				<line>FILL(0x1)  // fill gaps in memory with NOPs</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l1_block2) )</line>
+			</section>
+
+			<section name="dxe_block2_nw_code_prio0" segment="mem_block2_bw" qualifier="PM">
+				<line>// Highest priority code for block2.</line>
+				<line>INPUT_SECTION_ALIGN(2)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l1_block2) )</line>
+			</section>
+
+			<section name="dxe_block2_noinit_prio0" segment="mem_block2_bw" qualifier="NO_INIT DM">
+				<line>// Highest priority uninitialized data.</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l1_block2_noinit_data) )</line>
+			</section>
+
+			<section name="dxe_block2_noinit_prio0_bw" segment="mem_block2_bw" qualifier="NO_INIT BW">
+				<line>// Highest priority uninitialized data.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l1_block2_noinit_data) )</line>
+			</section>
+
+			<section name="dxe_block2_bsz_prio0" segment="mem_block2_bw" qualifier="ZERO_INIT DM">
+				<line>// Highest priority zero initialized data.</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l1_block2_bsz_data) )</line>
+			</section>
+
+			<section name="dxe_block2_bsz_prio0_bw" segment="mem_block2_bw" qualifier="ZERO_INIT BW">
+				<line>// Highest priority zero initialized data.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l1_block2_bsz_data) )</line>
+			</section>
+
+			<section name="dxe_block2_pm_data_prio1" segment="mem_block2_bw" qualifier="DATA_INIT_QUAL PM 32" >
+				<line>// High priority pm data.</line>
+				<vdsg:user uid="insert-input-sections-at-the-start-of-dxe_block2_pm_data" />
+				<line>INPUT_SECTIONS( $OBJS_LIBS_INTERNAL(seg_pmda_nw seg_pmda) )</line>
+				<if_prop name="use_software_modules" value="true" enabled="false">
+					<![CDATA[         #define ADI_MODULES_INPUT_SECTIONS_DATAB
+         #include "modules_sharc.ldf"
+         #undef ADI_MODULES_INPUT_SECTIONS_DATAB]]>
+				</if_prop>
+				<vdsg:user uid="insert-input-sections-at-the-end-of-dxe_block2_pm_data" />
+			</section>
+
+			<section name="dxe_block2_pm_data_prio1_bw" segment="mem_block2_bw" qualifier="DATA_INIT_QUAL BW" >
+				<line>// High priority data.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS_INTERNAL(seg_pmda_bw seg_pmda) )</line>
+			</section>
+
+			<section name="dxe_block2_pm_data_prio2" segment="mem_block2_bw" qualifier="DATA_INIT_QUAL PM 32" >
+				<line>// Default priority pm data.</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS_NOT_EXTERNAL(seg_pmda_nw seg_pmda) )</line>
+			</section>
+
+			<section name="dxe_block2_pm_data_prio2_bw" segment="mem_block2_bw" qualifier="DATA_INIT_QUAL BW" >
+				<line>// Default priority pm data.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS_NOT_EXTERNAL(seg_pmda_bw seg_pmda) )</line>
+			</section>
+
+			<section name="dxe_block2_pm_data_prio3" segment="mem_block2_bw" qualifier="DATA_INIT_QUAL PM 32" >
+				<line>// Unspecified and lowest priority pm data for any unused memory.</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_pmda_nw seg_pmda) )</line>
+			</section>
+
+			<section name="dxe_block2_pm_data_prio3_bw" segment="mem_block2_bw" qualifier="DATA_INIT_QUAL BW" >
+				<line>// Unspecified and lowest priority pm data for any unused memory.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_pmda) )</line>
+			</section>
+			</if_prop> <!-- pmcache_size_in_KB != 128KB -->
+
+			<![CDATA[
+    // ------------------------------------------------------------------
+    // Block 3 is primarily used for code and instruction cache.
+
+    // Define an instruction cache size symbol.
+    // The values used match the bits in the L1C0_CFG register size bits or
+    // -1 if cache is off.
+]]>
+
+			<if_prop name="icache_disabled" value="true" enabled="false">
+				<![CDATA[      ___ldf_icachesize = 0xffffffff; // instruction cache off]]>
+			</if_prop>
+			<if_prop name="icache_disabled" value="false" enabled="false">
+				<if_prop name="icache_size_in_KB" value="16" enabled="false">
+					<![CDATA[      ___ldf_icachesize = 0; // 16 KB instruction cache]]>
+				</if_prop>
+				<if_prop name="icache_size_in_KB" value="32" enabled="false">
+					<![CDATA[      ___ldf_icachesize = 1; // 32 KB instruction cache]]>
+				</if_prop>
+				<if_prop name="icache_size_in_KB" value="64" enabled="false">
+					<![CDATA[      ___ldf_icachesize = 2; // 64 KB instruction cache]]>
+				</if_prop>
+				<if_prop name="icache_size_in_KB" value="128" enabled="false">
+					<![CDATA[      ___ldf_icachesize = 3; // 128 KB instruction cache]]>
+				</if_prop>
+			</if_prop>
+
+			<if_prop name="icache_size_in_KB" value="128" enabled="true">
+
+			<vdsg:user uid="insert-new-sections-at-mem_block3_dm32" is_legacy="true" />
+			<vdsg:user uid="insert-new-sections-for-l1_block3" />
+
+			<section name="dxe_block3_data_prio0" segment="mem_block3_bw" qualifier="DATA_INIT_QUAL DM" >
+				<line>// Highest priority data for block3.</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l1_block3) )</line>
+			</section>
+
+			<section name="dxe_block3_data_prio0_bw" segment="mem_block3_bw" qualifier="DATA_INIT_QUAL BW" >
+				<line>// Highest priority byte data for block3.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l1_block3) )</line>
+			</section>
+
+			<section name="dxe_block3_noinit_prio0" segment="mem_block3_bw" qualifier="NO_INIT DM">
+				<line>// Highest priority uninitialized data.</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l1_block3_noinit_data) )</line>
+			</section>
+
+			<section name="dxe_block3_noinit_prio0_bw" segment="mem_block3_bw" qualifier="NO_INIT BW">
+				<line>// Highest priority uninitialized data.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l1_block3_noinit_data) )</line>
+			</section>
+
+			<section name="dxe_block3_bsz_prio0" segment="mem_block3_bw" qualifier="ZERO_INIT DM">
+				<line>// Highest priority zero initialized data.</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l1_block3_bsz_data) )</line>
+			</section>
+
+			<section name="dxe_block3_bsz_prio0_bw" segment="mem_block3_bw" qualifier="ZERO_INIT BW">
+				<line>// Highest priority zero initialized data.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l1_block3_bsz_data) )</line>
+			</section>
+
+			<![CDATA[      // Now use the remaining block 3 memory for code sections.
+      // Starting with inputs sections required to be in internal memory.]]>
+			<section name="dxe_block3_sw_code_prio0" segment="mem_block3_bw" qualifier="SW">
+				<line>// Highest priority SW code for block3.</line>
+				<line>INPUT_SECTION_ALIGN(2)</line>
+				<line>FILL(0x1)  // fill gaps in memory with NOPs</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l1_block3 seg_int_code_sw seg_int_code) )</line>
+				<if_prop name="use_software_modules" value="true" enabled="false">
+					<![CDATA[         #define ADI_MODULES_INPUT_SECTIONS_INSTR
+         #include "modules_sharc.ldf"
+         #undef ADI_MODULES_INPUT_SECTIONS_INSTR]]>
+				</if_prop>
+			</section>
+
+			<section name="dxe_block3_nw_code_prio0" segment="mem_block3_bw" qualifier="PM">
+				<line>// Highest priority code for block3.</line>
+				<line>INPUT_SECTION_ALIGN(2)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l1_block3) )</line>
+				<if_runtime_meminit value="false" memory="L1" enabled="false">
+					<line>// The __lib_setup_memory routine requires seg_init to be placed in L1.</line>
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_init) )</line>
+				</if_runtime_meminit>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_int_code) )</line>
+				<if_prop name="use_software_modules" value="true" enabled="false">
+					<![CDATA[         #define ADI_MODULES_INPUT_SECTIONS_INSTR
+         #include "modules_sharc.ldf"
+         #undef ADI_MODULES_INPUT_SECTIONS_INSTR]]>
+				</if_prop>
+			</section>
+
+			<![CDATA[      // Try and use internal memory for the highest priority code.
+      // Inputs that are not prioritized can use L2 or L3.]]>
+			<section name="dxe_block3_sw_code_prio1" segment="mem_block3_bw" qualifier="SW">
+				<line>FILL(0x1)  // fill gaps in memory with NOPs</line>
+				<line>INPUT_SECTION_ALIGN(2)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS_INTERNAL(seg_swco seg_pmco) )</line>
+			</section>
+
+			<section name="dxe_block3_nw_code_prio1" segment="mem_block3_bw" qualifier="PM">
+				<line>INPUT_SECTION_ALIGN(2)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS_INTERNAL(seg_pmco) )</line>
+			</section>
+
+			<section name="dxe_block3_sw_code_prio2" segment="mem_block3_bw" qualifier="SW">
+				<line>INPUT_SECTION_ALIGN(2)</line>
+				<line>FILL(0x1)  // fill gaps in memory with NOPs</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS_NOT_EXTERNAL(seg_swco seg_pmco) )</line>
+			</section>
+
+			<section name="dxe_block3_nw_code_prio2" segment="mem_block3_bw" qualifier="PM">
+				<line>INPUT_SECTION_ALIGN(2)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS_NOT_EXTERNAL(seg_pmco) )</line>
+			</section>
+
+			<if_runtime_meminit value="true" memory="L1" enabled="false">
+				<line>#define BLOCK3_SW_CODE seg_swco</line>
+			</if_runtime_meminit>
+			<if_runtime_meminit value="false" memory="L1" enabled="false">
+				<line>#define BLOCK3_SW_CODE dxe_block3_sw_code_prio3</line>
+			</if_runtime_meminit>
+
+			<section name="BLOCK3_SW_CODE" segment="mem_block3_bw" qualifier="SW">
+				<line>INPUT_SECTION_ALIGN(2)</line>
+				<line>FILL(0x1)  // fill gaps in memory with NOPs</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_swco seg_pmco) )</line>
+			</section>
+
+			<if_runtime_meminit value="true" memory="L1" enabled="false">
+				<line>#define BLOCK3_NW_CODE seg_pmco</line>
+			</if_runtime_meminit>
+			<if_runtime_meminit value="false" memory="L1" enabled="false">
+				<line>#define BLOCK3_NW_CODE dxe_block3_nw_code_prio3</line>
+			</if_runtime_meminit>
+
+			<section name="BLOCK3_NW_CODE" segment="mem_block3_bw" qualifier="PM">
+				<line>INPUT_SECTION_ALIGN(2)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_pmco) )</line>
+			</section>
+			</if_prop> <!-- icache_size_in_KB != 128KB -->
+
+			<![CDATA[
+    // ------------------------------------------------------------------
+    // Input any unmapped data or code to fill up any unused L1 memory
+    // available in the blocks. However, we can't put code in blocks 1 and
+    // 2 when they are used as data caches.
+]]>
+
+			<vdsg:user uid="insert-new-sections-at-mem_block2_overflow" />
+
+			<![CDATA[      // try code in blocks 0-2]]>
+			<section name="dxe_block0_sw_code" segment="mem_block0_bw" qualifier="SW">
+				<line>// VISA code.</line>
+				<line>INPUT_SECTION_ALIGN(2)</line>
+				<line>FILL(0x1)  // fill gaps in memory with NOPs</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_int_code_sw seg_int_code seg_swco seg_pmco) )</line>
+			</section>
+
+			<section name="dxe_block0_nw_code" segment="mem_block0_bw" qualifier="PM">
+				<line>// ISA code.</line>
+				<line>INPUT_SECTION_ALIGN(2)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_int_code) )</line>
+				<if_runtime_meminit value="false" memory="L1" enabled="false">
+					<line>// The __lib_setup_memory routine requires seg_init to be placed in L1.</line>
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_init) )</line>
+				</if_runtime_meminit>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_pmco) )</line>
+			</section>
+
+			<if_prop name="dmcache_disabled" value="true" enabled="false">
+				<section name="dxe_block1_sw_code" segment="mem_block1_bw" qualifier="SW">
+					<line>// VISA code.</line>
+					<line>INPUT_SECTION_ALIGN(2)</line>
+					<line>FILL(0x1)  // fill gaps in memory with NOPs</line>
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_int_code_sw seg_int_code seg_swco seg_pmco) )</line>
+				</section>
+
+				<section name="dxe_block1_nw_code" segment="mem_block1_bw" qualifier="PM">
+					<line>// ISA code.</line>
+					<line>INPUT_SECTION_ALIGN(2)</line>
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_int_code) )</line>
+					<if_runtime_meminit value="false" memory="L1" enabled="false">
+						<line>// The __lib_setup_memory routine requires seg_init to be placed in L1.</line>
+						<line>INPUT_SECTIONS( $OBJS_LIBS(seg_init) )</line>
+					</if_runtime_meminit>
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_pmco) )</line>
+				</section>
+			</if_prop>
+
+			<if_prop name="pmcache_disabled" value="true" enabled="false">
+				<section name="dxe_block2_sw_code" segment="mem_block2_bw" qualifier="SW">
+					<line>// VISA code.</line>
+					<line>INPUT_SECTION_ALIGN(2)</line>
+					<line>FILL(0x1)  // fill gaps in memory with NOPs</line>
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_int_code_sw seg_int_code seg_swco seg_pmco) )</line>
+				</section>
+
+				<section name="dxe_block2_nw_code" segment="mem_block2_bw" qualifier="PM">
+					<line>// ISA code.</line>
+					<line>INPUT_SECTION_ALIGN(2)</line>
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_int_code) )</line>
+					<if_runtime_meminit value="false" memory="L1" enabled="false">
+						<line>// The __lib_setup_memory routine requires seg_init to be placed in L1.</line>
+						<line>INPUT_SECTIONS( $OBJS_LIBS(seg_init) )</line>
+					</if_runtime_meminit>
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_pmco) )</line>
+				</section>
+			</if_prop>
+
+			<if_prop name="pmcache_size_in_KB" value="128" enabled="true">
+			<![CDATA[
+    // next try non-PM data in block 2
+]]>
+
+			<section name="dxe_block2_data" segment="mem_block2_bw" qualifier="DATA_INIT_QUAL DM" >
+				<line>// general data.</line>
+				<vdsg:user uid="insert-input-sections-at-the-start-of-dxe_block2_overflow_data" />
+				<if_prop name="using_cplusplus" value="true" enabled="false">
+					<if_prop name="use_eh" value="true" enabled="false">
+						<line>INPUT_SECTIONS( $OBJS_LIBS(seg_int_data seg_dmda_nw seg_dmda seg_vtbl .rtti .cht .edt) )</line>
+					</if_prop>
+					<if_prop name="use_eh" value="false" enabled="false">
+						<line>INPUT_SECTIONS( $OBJS_LIBS(seg_int_data seg_dmda_nw seg_dmda seg_vtbl) )</line>
+					</if_prop>
+				</if_prop>
+				<if_prop name="using_cplusplus" value="false" enabled="false">
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_int_data seg_dmda_nw seg_dmda) )</line>
+				</if_prop>
+				<if_prop name="use_software_modules" value="true" enabled="false">
+					<![CDATA[         #define ADI_MODULES_INPUT_SECTIONS_DATA_OVERFLOW
+         #include "modules_sharc.ldf"
+         #undef ADI_MODULES_INPUT_SECTIONS_DATA_OVERFLOW]]>
+				</if_prop>
+				<vdsg:user uid="insert-input-sections-at-the-end-of-dxe_block2_overflow_data" />
+			</section>
+
+			<section name="dxe_block2_data_bw" segment="mem_block2_bw" qualifier="DATA_INIT_QUAL BW" >
+				<line>// General data.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<if_prop name="using_cplusplus" value="true" enabled="false">
+					<if_prop name="use_eh" value="true" enabled="false">
+						<line>INPUT_SECTIONS( $OBJS_LIBS(seg_int_data seg_dmda_bw seg_dmda seg_vtbl .rtti .cht .edt) )</line>
+					</if_prop>
+					<if_prop name="use_eh" value="false" enabled="false">
+						<line>INPUT_SECTIONS( $OBJS_LIBS(seg_int_data seg_dmda_bw seg_dmda seg_vtbl) )</line>
+					</if_prop>
+				</if_prop>
+				<if_prop name="using_cplusplus" value="false" enabled="false">
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_int_data seg_dmda_bw seg_dmda) )</line>
+				</if_prop>
+				<if_prop name="use_software_modules" value="true" enabled="false">
+					<![CDATA[         #define ADI_MODULES_INPUT_SECTIONS_DATA_OVERFLOW
+         #include "modules_sharc.ldf"
+         #undef ADI_MODULES_INPUT_SECTIONS_DATA_OVERFLOW]]>
+				</if_prop>
+			</section>
+
+			<section name="dxe_block2_bsz" segment="mem_block2_bw" qualifier="ZERO_INIT DM" >
+				<line>// Zero init data.</line>
+				<vdsg:user uid="insert-input-sections-at-the-start-of-dxe_block2_bsz" />
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_int_bsz_data seg_bsz_data .bss32 .bss) )</line>
+				<vdsg:user uid="insert-input-sections-at-the-end-of-dxe_block2_bsz" />
+			</section>
+
+			<section name="dxe_block2_bsz_bw" segment="mem_block2_bw" qualifier="ZERO_INIT BW">
+				<line>// Zero init data.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_int_bsz_data seg_bsz_data .bss8 .bss) )</line>
+			</section>
+
+			<section name="dxe_block2_noinit" segment="mem_block2_bw" qualifier="NO_INIT DM">
+				<line>// No-init data.</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_int_noinit_data seg_noinit_data) )</line>
+			</section>
+
+			<section name="dxe_block2_noinit_bw" segment="mem_block2_bw" qualifier="NO_INIT BW">
+				<line>// No-init data.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_int_noinit_data seg_noinit_data) )</line>
+			</section>
+			</if_prop> <!-- pmcache_size_in_KB != 128KB -->
+
+
+			<![CDATA[      // next try PM data in block 0 and block 1]]>
+			<section name="dxe_block0_pm_data" segment="mem_block0_bw" qualifier="DATA_INIT_QUAL PM 32" >
+				<line>// PM data.</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_pmda_nw seg_pmda) )</line>
+			</section>
+
+			<section name="dxe_block0_pm_data_bw" segment="mem_block0_bw" qualifier="DATA_INIT_QUAL BW" >
+				<line>// PM data.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_pmda_bw seg_pmda) )</line>
+			</section>
+
+			<if_prop name="dmcache_size_in_KB" value="128" enabled="true">
+				<section name="dxe_block1_pm_data" segment="mem_block1_bw" qualifier="DATA_INIT_QUAL PM 32" >
+					<line>// PM data.</line>
+					<vdsg:user uid="insert-input-sections-at-the-start-of-dxe_block1_overflow_data" />
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_pmda_nw seg_pmda) )</line>
+					<vdsg:user uid="insert-input-sections-at-the-end-of-dxe_block1_overflow_data" />
+				</section>
+
+				<section name="dxe_block1_pm_data_bw" segment="mem_block1_bw" qualifier="DATA_INIT_QUAL BW" >
+					<line>// PM data.</line>
+					<line>INPUT_SECTION_ALIGN(4)</line>
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_pmda_bw seg_pmda) )</line>
+				</section>
+			</if_prop> <!-- dmcache_size_in_KB != 128KB -->
+
+			<if_prop name="icache_size_in_KB" value="128" enabled="true">
+			<![CDATA[      // lastly try DM and PM data in block 3]]>
+			<section name="dxe_block3_data" segment="mem_block3_bw" qualifier="DATA_INIT_QUAL DM" >
+				<line>// General data.</line>
+				<if_prop name="using_cplusplus" value="true" enabled="false">
+					<if_prop name="use_eh" value="true" enabled="false">
+						<line>INPUT_SECTIONS( $OBJS_LIBS(seg_int_data seg_dmda_nw seg_dmda seg_vtbl .rtti .cht .edt) )</line>
+					</if_prop>
+					<if_prop name="use_eh" value="false" enabled="false">
+						<line>INPUT_SECTIONS( $OBJS_LIBS(seg_int_data seg_dmda_nw seg_dmda seg_vtbl) )</line>
+					</if_prop>
+				</if_prop>
+				<if_prop name="using_cplusplus" value="false" enabled="false">
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_int_data seg_dmda_nw seg_dmda) )</line>
+				</if_prop>
+				<if_prop name="use_software_modules" value="true" enabled="false">
+					<![CDATA[         #define ADI_MODULES_INPUT_SECTIONS_DATA_OVERFLOW
+         #include "modules_sharc.ldf"
+         #undef ADI_MODULES_INPUT_SECTIONS_DATA_OVERFLOW]]>
+				</if_prop>
+			</section>
+
+			<section name="dxe_block3_data_bw" segment="mem_block3_bw" qualifier="DATA_INIT_QUAL BW" >
+				<line>// General data.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<if_prop name="using_cplusplus" value="true" enabled="false">
+					<if_prop name="use_eh" value="true" enabled="false">
+						<line>INPUT_SECTIONS( $OBJS_LIBS(seg_int_data seg_dmda_bw seg_dmda seg_vtbl .rtti .cht .edt) )</line>
+					</if_prop>
+					<if_prop name="use_eh" value="false" enabled="false">
+						<line>INPUT_SECTIONS( $OBJS_LIBS(seg_int_data seg_dmda_bw seg_dmda seg_vtbl) )</line>
+					</if_prop>
+				</if_prop>
+				<if_prop name="using_cplusplus" value="false" enabled="false">
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_int_data seg_dmda_bw seg_dmda) )</line>
+				</if_prop>
+				<if_prop name="use_software_modules" value="true" enabled="false">
+					<![CDATA[         #define ADI_MODULES_INPUT_SECTIONS_DATA_OVERFLOW
+         #include "modules_sharc.ldf"
+         #undef ADI_MODULES_INPUT_SECTIONS_DATA_OVERFLOW]]>
+				</if_prop>
+			</section>
+
+			<section name="dxe_block3_pm_data" segment="mem_block3_bw" qualifier="DATA_INIT_QUAL PM 32" >
+				<line>// PM data.</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_pmda_nw seg_pmda) )</line>
+			</section>
+
+			<section name="dxe_block3_pm_data_bw" segment="mem_block3_bw" qualifier="DATA_INIT_QUAL BW" >
+				<line>// PM data.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_pmda_bw seg_pmda) )</line>
+			</section>
+
+			<section name="dxe_block3_bsz" segment="mem_block3_bw" qualifier="ZERO_INIT DM" >
+				<line>// Zero init data.</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_int_bsz_data seg_bsz_data .bss32 .bss) )</line>
+			</section>
+
+			<section name="dxe_block3_bsz_bw" segment="mem_block3_bw" qualifier="ZERO_INIT BW">
+				<line>// Zero init data.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_int_bsz_data seg_bsz_data .bss8 .bss) )</line>
+			</section>
+
+			<section name="dxe_block3_noinit" segment="mem_block3_bw" qualifier="NO_INIT DM">
+				<line>// No-init data.</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_int_noinit_data seg_noinit_data) )</line>
+			</section>
+
+			<section name="dxe_block3_noinit_bw" segment="mem_block3_bw" qualifier="NO_INIT BW">
+				<line>// No-init data.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_int_noinit_data seg_noinit_data) )</line>
+			</section>
+			</if_prop> <!-- icache_size_in_KB != 128KB -->
+
+
+			<![CDATA[
+    // ------------------------------------------------------------------
+    // L2 - core memory
+]]>
+			<vdsg:user uid="insert-new-sections-for-l2" />
+
+			<if_prop name="use_multicores_use_core" value="1" enabled="false">
+				<if_prop name="reserve_bootcode_mem" value="false" enabled="false">
+					<![CDATA[      // First do inputs for noinit data to the boot code working area memory.]]>
+					<section name="dxe_l2bootcode_noinit" segment="mem_L2BC_bw" qualifier="NO_INIT DM">
+						<line>// L2 no init data.</line>
+						<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l2_noinit_data seg_noinit_data) )</line>
+					</section>
+
+					<section name="dxe_l2bootcode_noinit_bw" segment="mem_L2BC_bw" qualifier="NO_INIT BW">
+						<line>// L2 no init data.</line>
+						<line>INPUT_SECTION_ALIGN(4)</line>
+						<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l2_noinit_data seg_noinit_data) )</line>
+					</section>
+				</if_prop>
+			</if_prop>
+			<line>#if defined(MY_L2_CACHED_MEM)</line>
+
+			<!--  Map the FORCE_CONTIGUITY data first. -->
+
+			<section name="dxe_l2_user_tables_nw" segment="MY_L2_CACHED_MEM" qualifier="DATA_INIT_QUAL DM" >
+				<line>FORCE_CONTIGUITY</line>
+				<vdsg:user uid="insert-input-sections-at-the-start-of-dxe_l2_user_tables_nw" />
+			</section>
+
+			<if_use_sdram value="false" enabled="false">
+				<cplusplus enabled="false">
+
+					<section name="dxe_l2_cpp_ctors_nw" segment="MY_L2_CACHED_MEM" qualifier="DATA_INIT_QUAL DM" >
+						<line>// C++ global constructors list for word-addressed code.</line>
+						<line>FORCE_CONTIGUITY</line>
+						<line>__ctors = .;    // __ctors points to the start of the section</line>
+						<line>INPUT_SECTIONS( $OBJS_LIBS(seg_ctdm) )</line>
+						<line>INPUT_SECTIONS( $OBJS_LIBS(seg_ctdml) )</line>
+					</section>
+
+					<if_prop name="use_eh" value="true" enabled="false">
+						<section name="dxe_l2_cpp_eh_gdt_nw" segment="MY_L2_CACHED_MEM" qualifier="DATA_INIT_QUAL DM" >
+							<line>// C++ exceptions data table.</line>
+							<line>FORCE_CONTIGUITY</line>
+							<line>INPUT_SECTIONS( $OBJS_LIBS(.gdt32 .gdt) )</line>
+							<line>INPUT_SECTIONS( $OBJS_LIBS(.gdtl32 .gdtl) )</line>
+						</section>
+
+						<section name="dxe_l2_cpp_eh_gdt_bw" segment="MY_L2_CACHED_MEM" qualifier="DATA_INIT_QUAL BW" >
+							<line>// C++ exceptions data table.</line>
+							<line>INPUT_SECTION_ALIGN(4)</line>
+							<line>FORCE_CONTIGUITY</line>
+							<line>INPUT_SECTIONS( $OBJS_LIBS(.gdt) )</line>
+							<line>INPUT_SECTIONS( $OBJS_LIBS(.gdtl) )</line>
+						</section>
+					</if_prop>
+
+					<section name="dxe_l2_cpp_ctors_bw" segment="MY_L2_CACHED_MEM" qualifier="DATA_INIT_QUAL BW" >
+						<line>// C++ global constructors list for byte-addressed code.</line>
+						<line>INPUT_SECTION_ALIGN(4)</line>
+						<line>FORCE_CONTIGUITY</line>
+						<line>_ctors. = .;    // _ctors. points to the start of the section</line>
+						<line>INPUT_SECTIONS( $OBJS_LIBS(seg_ctdm) )</line>
+						<line>INPUT_SECTIONS( $OBJS_LIBS(seg_ctdml seg_ctdml_bw) )</line>
+					</section>
+				</cplusplus>
+			</if_use_sdram>
+
+			<section name="dxe_l2_user_tables_bw" segment="MY_L2_CACHED_MEM" qualifier="DATA_INIT_QUAL BW" >
+				<line>FORCE_CONTIGUITY</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<vdsg:user uid="insert-input-sections-at-the-start-of-dxe_l2_user_tables_bw" />
+			</section>
+
+			<if_use_sdram value="false" enabled="false">
+				<if_prop name="add_executable_name" value="true" enabled="false">
+					<section name="dxe_l2_executable_name" segment="MY_L2_CACHED_MEM" qualifier="DATA_INIT_QUAL BW" >
+						<line>INPUT_SECTION_ALIGN(4)</line>
+						<line>EXECUTABLE_NAME(_executable_name.)</line>
+					</section>
+				</if_prop>
+			</if_use_sdram>
+
+			<section name="dxe_l2_stack_and_heap_reserve" segment="MY_L2_CACHED_MEM" qualifier="NO_INIT BW">
+				<reserve_symbols_begin name="heaps_and_system_stack_in_L2"
+				  length_symbol="heaps_and_system_stack_in_L2_length"
+				  for="system_stack,system_heap,user_heaps"
+				  alignment="8"
+				  value="L2"/>
+			</section>
+
+			<section name="dxe_l2_sw_code" segment="MY_L2_CACHED_MEM" qualifier="SW">
+				<line>// VISA code.</line>
+				<line>INPUT_SECTION_ALIGN(2)</line>
+				<line>FILL(0x1)  // fill gaps in memory with NOPs</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l2 seg_l2_swco seg_swco seg_pmco) )</line>
+			</section>
+
+			<section name="dxe_l2_nw_code" segment="MY_L2_CACHED_MEM" qualifier="PM">
+				<line>// ISA code.</line>
+				<line>INPUT_SECTION_ALIGN(2)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l2 seg_l2_pmco seg_pmco) )</line>
+			</section>
+
+			<section name="dxe_l2_data" segment="MY_L2_CACHED_MEM" qualifier="DATA_INIT_QUAL DM" >
+				<line>// L2 data.</line>
+				<if_prop name="using_cplusplus" value="true" enabled="false">
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l2 seg_l2_dmda seg_dmda_nw seg_dmda seg_vtbl .rtti .cht .edt) )</line>
+				</if_prop>
+				<if_prop name="using_cplusplus" value="false" enabled="false">
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l2 seg_l2_dmda seg_dmda_nw seg_dmda) )</line>
+				</if_prop>
+				<if_prop name="use_software_modules" value="true" enabled="false">
+					<![CDATA[         #define ADI_MODULES_INPUT_SECTIONS_DATA_OVERFLOW
+         #include "modules_sharc.ldf"
+         #undef ADI_MODULES_INPUT_SECTIONS_DATA_OVERFLOW]]>
+				</if_prop>
+			</section>
+
+			<section name="dxe_l2_data_bw" segment="MY_L2_CACHED_MEM" qualifier="DATA_INIT_QUAL BW" >
+				<line>// L2 data.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<if_prop name="using_cplusplus" value="true" enabled="false">
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l2 seg_l2_dmda_bw seg_dmda_bw seg_dmda seg_vtbl .rtti .cht .edt) )</line>
+				</if_prop>
+				<if_prop name="using_cplusplus" value="false" enabled="false">
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l2 seg_l2_dmda_bw seg_dmda_bw seg_dmda) )</line>
+				</if_prop>
+				<if_prop name="use_software_modules" value="true" enabled="false">
+					<![CDATA[         #define ADI_MODULES_INPUT_SECTIONS_DATA_OVERFLOW
+         #include "modules_sharc.ldf"
+         #undef ADI_MODULES_INPUT_SECTIONS_DATA_OVERFLOW]]>
+				</if_prop>
+			</section>
+
+			<section name="dxe_l2_bsz" segment="MY_L2_CACHED_MEM" qualifier="ZERO_INIT DM">
+				<line>// L2 zero init data.</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l2_bsz_data seg_bsz_data .bss32 .bss) )</line>
+			</section>
+
+			<section name="dxe_l2_bsz_bw" segment="MY_L2_CACHED_MEM" qualifier="ZERO_INIT BW">
+				<line>// L2 zero init data.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l2_bsz_data seg_bsz_data .bss8 .bss) )</line>
+			</section>
+
+			<section name="dxe_l2_noinit" segment="MY_L2_CACHED_MEM" qualifier="NO_INIT DM">
+				<line>// L2 no init data.</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l2_noinit_data seg_noinit_data) )</line>
+			</section>
+
+			<section name="dxe_l2_noinit_bw" segment="MY_L2_CACHED_MEM" qualifier="NO_INIT BW">
+				<line>// L2 no init data.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l2_noinit_data seg_noinit_data) )</line>
+			</section>
+
+			<section name="dxe_l2_pm_data" segment="MY_L2_CACHED_MEM" qualifier="DATA_INIT_QUAL PM 32" >
+				<line>// L2 pm data.</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_pmda_nw seg_pmda) )</line>
+			</section>
+
+			<section name="dxe_l2_pm_data_bw" segment="MY_L2_CACHED_MEM" qualifier="DATA_INIT_QUAL BW" >
+				<line>// L2 pm data.</line>
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_pmda) )</line>
+			</section>
+
+			<line>#else</line>
+			<line>#warning L2 cached memory unused</line>
+			<line>#endif // MY_L2_CACHED_MEM</line>
+
+			<![CDATA[
+    // ------------------------------------------------------------------
+    // L2 - uncached memory
+]]>
+			<if_prop name="use_mcapi" value="true" enabled="false">
+
+				<![CDATA[      // Memory at the very start of L2 is dedicated for MCAPI/ICC support.
+      // It is used to define a fixed size structure.
+      // The labels defined below are used in runtime support for MCAPI and caches.
+]]>
+
+				<![CDATA[      ___MCAPI_common_start = MEMORY_START(mem_L2B1P1_bw);]]>
+				<![CDATA[      ___MCAPI_common_end   = MEMORY_END  (mem_L2B1P1_bw);]]>
+				<if_prop name="has_arm_core" value="true" enabled="false">
+					<!-- SC59x -->
+					<![CDATA[      ___MCAPI_arm_start    = MEMORY_START(mem_L2B1P2_bw);]]>
+					<![CDATA[      ___MCAPI_arm_end      = MEMORY_END  (mem_L2B1P2_bw);]]>
+					<if_prop name="has_single_sharc_core" value="false" enabled="false">
+						<!-- SC594 -->
+						<![CDATA[      ___MCAPI_sharc0_start = MEMORY_START(mem_L2B1P4_bw);]]>
+						<![CDATA[      ___MCAPI_sharc0_end   = MEMORY_END  (mem_L2B1P4_bw);]]>
+						<![CDATA[      ___MCAPI_sharc1_start = MEMORY_START(mem_L2B1P3_bw);]]>
+						<![CDATA[      ___MCAPI_sharc1_end   = MEMORY_END  (mem_L2B1P3_bw);]]>
+					</if_prop>
+					<if_prop name="has_single_sharc_core" value="true" enabled="false">
+						<!-- SC591 and SC592 -->
+						<![CDATA[      ___MCAPI_sharc0_start = MEMORY_START(mem_L2B1P3_bw);]]>
+						<![CDATA[      ___MCAPI_sharc0_end   = MEMORY_END  (mem_L2B1P3_bw);]]>
+						<![CDATA[      ___MCAPI_sharc1_start = 0;]]>
+						<![CDATA[      ___MCAPI_sharc1_end   = 0;]]>
+					</if_prop>
+				</if_prop>
+				<if_prop name="has_arm_core" value="false" enabled="false">
+					<!-- 2159x -->
+					<![CDATA[      ___MCAPI_arm_start    = 0;]]>
+					<![CDATA[      ___MCAPI_arm_end      = 0;]]>
+					<![CDATA[      ___MCAPI_sharc0_start = MEMORY_START(mem_L2B1P3_bw);]]>
+					<![CDATA[      ___MCAPI_sharc0_end   = MEMORY_END  (mem_L2B1P3_bw);]]>
+					<![CDATA[      ___MCAPI_sharc1_start = MEMORY_START(mem_L2B1P2_bw);]]>
+					<![CDATA[      ___MCAPI_sharc1_end   = MEMORY_END  (mem_L2B1P2_bw);]]>
+				</if_prop>
+				<![CDATA[      ___l2_start           = MEMORY_START(mem_L2B1P1_bw);]]>
+				<![CDATA[      ___l2_end             = MEMORY_END  (mem_L2BC_bw);]]>
+				<![CDATA[      ___l2_uncached_start  = MEMORY_START(mem_L2B1P1_bw);]]>
+				<if_prop name="has_arm_core" value="true" enabled="false">
+					<if_prop name="has_single_sharc_core" value="false" enabled="false">
+						<![CDATA[      ___l2_uncached_end    = MEMORY_END  (mem_L2B1P5_bw);]]>
+					</if_prop>
+					<if_prop name="has_single_sharc_core" value="true" enabled="false">
+						<![CDATA[      ___l2_uncached_end    = MEMORY_END  (mem_L2B1P4_bw);]]>
+					</if_prop>
+					<if_prop name="has_1MB_l2" value="true" enabled="false">
+						<![CDATA[      ___l2_cached_start    = MEMORY_START(mem_L2B1toB3_bw);]]>
+					</if_prop>
+					<if_prop name="has_1MB_l2" value="false" enabled="false">
+						<![CDATA[      ___l2_cached_start    = MEMORY_START(mem_L2B2toB4_bw);]]>
+					</if_prop>
+				</if_prop>
+				<if_prop name="has_arm_core" value="false" enabled="false">
+					<![CDATA[      ___l2_uncached_end    = MEMORY_END  (mem_L2B1P3_bw);]]>
+					<if_prop name="has_1MB_l2" value="true" enabled="false">
+						<!-- 21591 -->
+						<![CDATA[      ___l2_cached_start    = MEMORY_START(mem_L2B1toB3_bw);]]>
+					</if_prop>
+					<if_prop name="has_1MB_l2" value="false" enabled="false">
+						<!-- 21593 / 21594 -->
+						<![CDATA[      ___l2_cached_start    = MEMORY_START(mem_L2B1toB5_bw);]]>
+					</if_prop>
+				</if_prop>
+				<![CDATA[      ___l2_cached_end      = MEMORY_END  (mem_L2BC_bw);
+]]>
+			</if_prop>
+
+			<line>#if defined(MY_L2_UNCACHED_MEM)</line>
+
+			<section name="dxe_l2_uncached_bw" segment="MY_L2_UNCACHED_MEM" qualifier="DATA_INIT_QUAL BW" >
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l2_uncached seg_uncached) )</line>
+			</section>
+
+			<section name="dxe_l2_uncached" segment="MY_L2_UNCACHED_MEM" qualifier="DATA_INIT_QUAL DM" >
+				<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l2_uncached seg_uncached) )</line>
+			</section>
+
+			<if_prop name="use_mcapi" value="false" enabled="false">
+				<![CDATA[
+         // When not using MCAPI we use this uncached memory for application
+         // code and data using the same per core memory partitioning.]]>
+				<section name="dxe_l2uc_sw_code" segment="MY_L2_CACHED_MEM" qualifier="SW">
+					<line>// VISA code.</line>
+					<line>INPUT_SECTION_ALIGN(2)</line>
+					<line>FILL(0x1)  // fill gaps in memory with NOPs</line>
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l2 seg_l2_swco seg_swco seg_pmco) )</line>
+				</section>
+
+				<section name="dxe_l2uc_nw_code" segment="MY_L2_UNCACHED_MEM" qualifier="PM">
+					<line>// ISA code.</line>
+					<line>INPUT_SECTION_ALIGN(2)</line>
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l2 seg_l2_pmco seg_pmco) )</line>
+				</section>
+
+				<section name="dxe_l2uc_data" segment="MY_L2_UNCACHED_MEM" qualifier="DATA_INIT_QUAL DM" >
+					<line>// L2 data.</line>
+					<if_prop name="using_cplusplus" value="true" enabled="false">
+						<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l2 seg_l2_dmda seg_dmda_nw seg_dmda seg_vtbl .rtti .cht .edt) )</line>
+					</if_prop>
+					<if_prop name="using_cplusplus" value="false" enabled="false">
+						<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l2 seg_l2_dmda seg_dmda_nw seg_dmda) )</line>
+					</if_prop>
+					<if_prop name="use_software_modules" value="true" enabled="false">
+					<![CDATA[         #define ADI_MODULES_INPUT_SECTIONS_DATA_OVERFLOW
+         #include "modules_sharc.ldf"
+         #undef ADI_MODULES_INPUT_SECTIONS_DATA_OVERFLOW]]>
+					</if_prop>
+				</section>
+
+				<section name="dxe_l2uc_data_bw" segment="MY_L2_UNCACHED_MEM" qualifier="DATA_INIT_QUAL BW" >
+					<line>// L2 data.</line>
+					<line>INPUT_SECTION_ALIGN(4)</line>
+					<if_prop name="using_cplusplus" value="true" enabled="false">
+						<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l2 seg_l2_dmda_bw seg_dmda_bw seg_dmda seg_vtbl .rtti .cht .edt) )</line>
+					</if_prop>
+					<if_prop name="using_cplusplus" value="false" enabled="false">
+						<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l2 seg_l2_dmda_bw seg_dmda_bw seg_dmda) )</line>
+					</if_prop>
+					<if_prop name="use_software_modules" value="true" enabled="false">
+						<![CDATA[         #define ADI_MODULES_INPUT_SECTIONS_DATA_OVERFLOW
+         #include "modules_sharc.ldf"
+         #undef ADI_MODULES_INPUT_SECTIONS_DATA_OVERFLOW]]>
+					</if_prop>
+				</section>
+
+				<section name="dxe_l2uc_bsz" segment="MY_L2_UNCACHED_MEM" qualifier="ZERO_INIT DM">
+					<line>// L2 zero init data.</line>
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l2_bsz_data seg_bsz_data .bss32 .bss) )</line>
+				</section>
+
+				<section name="dxe_l2uc_bsz_bw" segment="MY_L2_UNCACHED_MEM" qualifier="ZERO_INIT BW">
+					<line>// L2 zero init data.</line>
+					<line>INPUT_SECTION_ALIGN(4)</line>
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l2_bsz_data seg_bsz_data .bss8 .bss) )</line>
+				</section>
+
+				<section name="dxe_l2uc_noinit" segment="MY_L2_UNCACHED_MEM" qualifier="NO_INIT DM">
+					<line>// L2 no init data.</line>
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l2_noinit_data seg_noinit_data) )</line>
+				</section>
+
+				<section name="dxe_l2uc_noinit_bw" segment="MY_L2_UNCACHED_MEM" qualifier="NO_INIT BW">
+					<line>// L2 no init data.</line>
+					<line>INPUT_SECTION_ALIGN(4)</line>
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_l2_noinit_data seg_noinit_data) )</line>
+				</section>
+
+				<section name="dxe_l2uc_pm_data" segment="MY_L2_UNCACHED_MEM" qualifier="DATA_INIT_QUAL PM 32" >
+					<line>// L2 pm data.</line>
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_pmda_nw seg_pmda) )</line>
+				</section>
+
+				<section name="dxe_l2uc_pm_data_bw" segment="MY_L2_UNCACHED_MEM" qualifier="DATA_INIT_QUAL BW" >
+					<line>// L2 pm data.</line>
+					<line>INPUT_SECTION_ALIGN(4)</line>
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_pmda) )</line>
+				</section>
+			</if_prop>
+
+			<line>#else</line>
+			<line>#warning L2 uncached memory unused</line>
+			<line>#endif // MY_L2_UNCACHED_MEM</line>
+
+			<if_use_sdram value="true" enabled="false">
+
+				<![CDATA[
+    // ------------------------------------------------------------------
+    // SDRAM
+]]>
+				<vdsg:user uid="insert-new-sections-for-sdram" />
+
+				<if_prop name="use_mcapi" value="true" enabled="false">
+					<![CDATA[
+      // The symbols defined below are used in runtime support for MCAPI and
+      // caches.]]>
+
+					<![CDATA[      ___sdram_start        = MEMORY_START(mem_DMC0_SDRAM_A1);]]>
+					<if_prop name="has_arm_core" value="true" enabled="false">
+						<if_prop name="has_single_sharc_core" value="false" enabled="false">
+							<!-- SC594 -->
+							<![CDATA[      ___sdram_end          = MEMORY_END  (mem_DMC0_SDRAM_A8);]]>
+							<![CDATA[      ___sdram_arm_start    = MEMORY_START(mem_DMC0_SDRAM_A8);]]>
+							<![CDATA[      ___sdram_arm_end      = MEMORY_END  (mem_DMC0_SDRAM_A8);]]>
+						</if_prop> <!-- has_single_sharc_core false -->
+
+						<if_prop name="has_single_sharc_core" value="true" enabled="false">
+							<!-- SC592 -->
+							<if_prop name="use_sdram_dmc_size_0" value="32" enabled="false">
+								<![CDATA[      ___sdram_end          = MEMORY_END  (mem_DMC0_SDRAM_A4);]]>
+									<![CDATA[      ___sdram_arm_start    = MEMORY_START(mem_DMC0_SDRAM_A4);]]>
+									<![CDATA[      ___sdram_arm_end      = MEMORY_END  (mem_DMC0_SDRAM_A4);]]>
+							</if_prop> <!-- use_sdram_dmc_size_0==32MB -->
+							<if_prop name="use_sdram_dmc_size_0" value="32" enabled="true">
+								<![CDATA[      ___sdram_end          = MEMORY_END  (mem_DMC0_SDRAM_A5);]]>
+								<![CDATA[      ___sdram_arm_start    = MEMORY_START(mem_DMC0_SDRAM_A5);]]>
+								<![CDATA[      ___sdram_arm_end      = MEMORY_END  (mem_DMC0_SDRAM_A5);]]>
+							</if_prop> <!-- use_sdram_dmc_size_0!=32MB -->
+						</if_prop> <!-- has_single_sharc_core true -->
+
+					</if_prop> <!-- has_arm_core true -->
+					<if_prop name="has_arm_core" value="false" enabled="false">
+						<!-- 2159x -->
+						<if_prop name="use_sdram_dmc_size_0" value="1024" enabled="false">
+							<![CDATA[      ___sdram_end          = MEMORY_END  (mem_DMC0_SDRAM_A9);]]>
+						</if_prop> <!-- use_sdram_dmc_size_0==1024MB -->
+						<if_prop name="use_sdram_dmc_size_0" value="1024" enabled="true">
+							<![CDATA[      ___sdram_end          = MEMORY_END  (mem_DMC0_SDRAM_A7);]]>
+						</if_prop> <!-- use_sdram_dmc_size_0!=1024MB -->
+					</if_prop> <!-- has_arm_core false -->
+				</if_prop>
+
+		<!-- Code sections -->
+
+				<vdsg:user uid="insert-new-sections-at-mem_sdram_code" />
+
+				<line>#if defined(MY_SDRAM_SWCODE_MEM)</line>
+				<section name="dxe_sdram_sw_code" segment="MY_SDRAM_SWCODE_MEM" qualifier="SW">
+					<line>// VISA code.</line>
+					<line>INPUT_SECTION_ALIGN(2)</line>
+					<line>FILL(0x1)  // fill gaps in memory with NOPs</line>
+					<vdsg:user uid="insert-input-sections-at-the-start-of-dxe_sdram_sw_code" />
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_sdram seg_ext_code seg_swco seg_pmco) )</line>
+					<vdsg:user uid="insert-input-sections-at-the-end-of-dxe_sdram_sw_code" />
+				</section>
+				<line>#endif // defined(MY_SDRAM_SWCODE_MEM)</line>
+
+				<section name="dxe_sdram_nw_code" segment="MY_SDRAM_NWCODE_MEM" qualifier="PM">
+					<line>// ISA code.</line>
+					<line>INPUT_SECTION_ALIGN(2)</line>
+					<vdsg:user uid="insert-input-sections-at-the-start-of-dxe_sdram_nw_code" />
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_sdram seg_ext_code seg_pmco) )</line>
+					<vdsg:user uid="insert-input-sections-at-the-end-of-dxe_sdram_nw_code" />
+				</section>
+
+				<vdsg:user uid="insert-new-sections-at-mem_sdram_dmda" />
+
+		<!-- C++ sections -->
+
+				<!--  Map the FORCE_CONTIGUITY data first. -->
+
+				<section name="dxe_sdram_user_tables_nw" segment="MY_SDRAM_DATA1_MEM" qualifier="DATA_INIT_QUAL DM" >
+					<line>FORCE_CONTIGUITY</line>
+					<vdsg:user uid="insert-input-sections-at-the-start-of-dxe_sdram_user_tables_nw" />
+					<vdsg:user uid="insert-input-sections-at-the-start-of-dxe_sdram_cpp_ctors" is_legacy="true" />
+					<vdsg:user uid="insert-input-sections-at-the-end-of-dxe_sdram_cpp_ctors" is_legacy="true" />
+					<if_prop name="use_eh" value="true" enabled="false">
+						<vdsg:user uid="insert-input-sections-at-the-start-of-dxe_sdram_cpp_eh_gdt" is_legacy="true" />
+						<vdsg:user uid="insert-input-sections-at-the-end-of-dxe_sdram_cpp_eh_gdt" is_legacy="true" />
+					</if_prop>
+				</section>
+
+				<cplusplus enabled="false">
+
+					<section name="dxe_sdram_cpp_ctors_nw" segment="MY_SDRAM_DATA1_MEM" qualifier="DATA_INIT_QUAL DM" >
+						<line>// C++ global constructors list for word-addressed code.</line>
+						<line>FORCE_CONTIGUITY</line>
+						<line>__ctors = .;    // __ctors points to the start of the section</line>
+						<line>INPUT_SECTIONS( $OBJS_LIBS(seg_ctdm) )</line>
+						<line>INPUT_SECTIONS( $OBJS_LIBS(seg_ctdml) )</line>
+					</section>
+
+					<if_prop name="use_eh" value="true" enabled="false">
+
+						<section name="dxe_sdram_cpp_eh_gdt_nw" segment="MY_SDRAM_DATA1_MEM" qualifier="DATA_INIT_QUAL DM" >
+							<line>// C++ exceptions data table.</line>
+							<line>FORCE_CONTIGUITY</line>
+							<line>INPUT_SECTIONS( $OBJS_LIBS(.gdt32 .gdt) )</line>
+							<line>INPUT_SECTIONS( $OBJS_LIBS(.gdtl32 .gdtl) )</line>
+						</section>
+
+						<section name="dxe_sdram_cpp_eh_gdt_bw" segment="MY_SDRAM_DATA1_MEM" qualifier="DATA_INIT_QUAL BW" >
+							<line>// C++ exceptions data table.</line>
+							<line>INPUT_SECTION_ALIGN(4)</line>
+							<line>FORCE_CONTIGUITY</line>
+							<line>INPUT_SECTIONS( $OBJS_LIBS(.gdt) )</line>
+							<line>INPUT_SECTIONS( $OBJS_LIBS(.gdtl) )</line>
+						</section>
+					</if_prop>
+
+					<section name="dxe_sdram_cpp_ctors_bw" segment="MY_SDRAM_DATA1_MEM" qualifier="DATA_INIT_QUAL BW" >
+						<line>// C++ global constructors list for byte-addressed code.</line>
+						<line>INPUT_SECTION_ALIGN(4)</line>
+						<line>FORCE_CONTIGUITY</line>
+						<line>_ctors. = .;    // _ctors. points to the start of the section</line>
+						<line>INPUT_SECTIONS( $OBJS_LIBS(seg_ctdm) )</line>
+						<line>INPUT_SECTIONS( $OBJS_LIBS(seg_ctdml seg_ctdml_bw) )</line>
+					</section>
+				</cplusplus>
+
+				<section name="dxe_sdram_user_tables_bw" segment="MY_SDRAM_DATA1_MEM" qualifier="DATA_INIT_QUAL BW" >
+					<line>FORCE_CONTIGUITY</line>
+					<line>INPUT_SECTION_ALIGN(4)</line>
+					<vdsg:user uid="insert-input-sections-at-the-start-of-dxe_sdram_user_tables_bw" />
+				</section>
+
+		<!-- Heap section -->
+
+				<section name="dxe_sdram_stack_and_heap_reserve" segment="SDRAM_STACK_HEAP_BLOCK" qualifier="NO_INIT BW">
+					<reserve_symbols_begin name="heaps_and_system_stack_in_L3"
+						  length_symbol="heaps_and_system_stack_in_L3_length"
+					     for="system_stack,system_heap,user_heaps"
+					     alignment="8"
+					     value="L3"/>
+				</section>
+
+		<!-- EXECUTABLE_NAME section -->
+
+				<if_prop name="add_executable_name" value="true" enabled="false">
+					<section name="dxe_sdram_executable_name" segment="MY_SDRAM_DATA1_MEM" qualifier="DATA_INIT_QUAL BW" >
+						<line>INPUT_SECTION_ALIGN(4)</line>
+						<line>EXECUTABLE_NAME(_executable_name.)</line>
+					</section>
+				</if_prop>
+
+		<!-- SDRAM DATA 1 sections -->
+
+				<section name="dxe_sdram_data" segment="MY_SDRAM_DATA1_MEM" qualifier="DATA_INIT_QUAL DM" >
+					<line>// general data.</line>
+					<vdsg:user uid="insert-input-sections-at-the-start-of-dxe_sdram_data" />
+					<if_prop name="using_cplusplus" value="true" enabled="false">
+						<line>INPUT_SECTIONS( $OBJS_LIBS(seg_sdram seg_ext_data seg_dmda_nw seg_dmda seg_vtbl .rtti .cht .edt) )</line>
+					</if_prop>
+					<if_prop name="using_cplusplus" value="false" enabled="false">
+						<line>INPUT_SECTIONS( $OBJS_LIBS(seg_sdram seg_ext_data seg_dmda_nw seg_dmda) )</line>
+					</if_prop>
+					<if_prop name="use_software_modules" value="true" enabled="false">
+						<![CDATA[         #define ADI_MODULES_INPUT_SECTIONS_DATA_OVERFLOW
+         #include "modules_sharc.ldf"
+         #undef ADI_MODULES_INPUT_SECTIONS_DATA_OVERFLOW]]>
+					</if_prop>
+					<vdsg:user uid="insert-input-sections-at-the-end-of-dxe_sdram_data" />
+				</section>
+
+				<section name="dxe_sdram_data_bw" segment="MY_SDRAM_DATA1_MEM" qualifier="DATA_INIT_QUAL BW" >
+					<line>// general data.</line>
+					<line>INPUT_SECTION_ALIGN(4)</line>
+					<if_prop name="using_cplusplus" value="true" enabled="false">
+						<line>INPUT_SECTIONS( $OBJS_LIBS(seg_sdram seg_ext_data seg_dmda_bw seg_dmda seg_vtbl .rtti .cht .edt) )</line>
+					</if_prop>
+					<if_prop name="using_cplusplus" value="false" enabled="false">
+						<line>INPUT_SECTIONS( $OBJS_LIBS(seg_sdram seg_ext_data seg_dmda_bw seg_dmda) )</line>
+					</if_prop>
+					<if_prop name="use_software_modules" value="true" enabled="false">
+						<![CDATA[         #define ADI_MODULES_INPUT_SECTIONS_DATA_OVERFLOW
+         #include "modules_sharc.ldf"
+         #undef ADI_MODULES_INPUT_SECTIONS_DATA_OVERFLOW]]>
+					</if_prop>
+				</section>
+
+				<section name="dxe_sdram_bsz" segment="MY_SDRAM_DATA1_MEM" qualifier="ZERO_INIT DM">
+					<line>// zero init data.</line>
+					<vdsg:user uid="insert-input-sections-at-the-start-of-dxe_sdram_bsz" />
+
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_sdram_bsz_data seg_bsz_data .bss32 .bss) )</line>
+					<vdsg:user uid="insert-input-sections-at-the-end-of-dxe_sdram_bsz" />
+				</section>
+
+				<section name="dxe_sdram_bsz_bw" segment="MY_SDRAM_DATA1_MEM" qualifier="ZERO_INIT BW">
+					<line>// zero init data.</line>
+					<line>INPUT_SECTION_ALIGN(4)</line>
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_sdram_bsz_data seg_bsz_data .bss8 .bss) )</line>
+				</section>
+
+				<section name="dxe_sdram_noinit" segment="MY_SDRAM_DATA1_MEM" qualifier="NO_INIT DM">
+					<line>// no init data.</line>
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_sdram_noinit_data seg_noinit_data) )</line>
+				</section>
+
+				<section name="dxe_sdram_noinit_bw" segment="MY_SDRAM_DATA1_MEM" qualifier="NO_INIT BW">
+					<line>// no init data.</line>
+					<line>INPUT_SECTION_ALIGN(4)</line>
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_sdram_noinit_data seg_noinit_data) )</line>
+				</section>
+
+				<vdsg:user uid="insert-new-sections-at-mem_sdram_pmda" />
+
+				<section name="dxe_sdram_pm_data" segment="MY_SDRAM_DATA1_MEM" qualifier="DATA_INIT_QUAL PM 32" >
+					<line>// pm data.</line>
+					<vdsg:user uid="insert-input-sections-at-the-start-of-dxe_sdram_pm_data" />
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_ext_pmda seg_pmda_nw seg_pmda) )</line>
+					<vdsg:user uid="insert-input-sections-at-the-end-of-dxe_sdram_pm_data" />
+				</section>
+
+				<section name="dxe_sdram_pm_data_bw" segment="MY_SDRAM_DATA1_MEM" qualifier="DATA_INIT_QUAL BW" >
+					<line>// pm data.</line>
+					<line>INPUT_SECTION_ALIGN(4)</line>
+					<line>INPUT_SECTIONS( $OBJS_LIBS(seg_ext_pmda seg_pmda) )</line>
+				</section>
+
+		<!-- SDRAM DATA 2 sections mapped to MY_SDRAM_DATA2_MEM. Note that the sections are duplicated for SC592 and further below for SC594&2159x. -->
+
+				<if_prop name="has_single_sharc_core" value="true" enabled="false">
+					<if_prop name="use_sdram_dmc_size_0" value="32" enabled="true">
+						<!-- SC592 && DMC0!=32MB -->
+						<section name="dxe_sdram_data2" segment="MY_SDRAM_DATA2_MEM" qualifier="DATA_INIT_QUAL DM" >
+							<line>// general data.</line>
+							<if_prop name="using_cplusplus" value="true" enabled="false">
+								<line>INPUT_SECTIONS( $OBJS_LIBS(seg_sdram seg_ext_data seg_dmda_nw seg_dmda seg_vtbl .rtti .cht .edt) )</line>
+							</if_prop>
+							<if_prop name="using_cplusplus" value="false" enabled="false">
+								<line>INPUT_SECTIONS( $OBJS_LIBS(seg_sdram seg_ext_data seg_dmda_nw seg_dmda) )</line>
+							</if_prop>
+							<if_prop name="use_software_modules" value="true" enabled="false">
+								<![CDATA[         #define ADI_MODULES_INPUT_SECTIONS_DATA_OVERFLOW
+		         #include "modules_sharc.ldf"
+		         #undef ADI_MODULES_INPUT_SECTIONS_DATA_OVERFLOW]]>
+							</if_prop>
+						</section>
+
+						<section name="dxe_sdram_data2_bw" segment="MY_SDRAM_DATA2_MEM" qualifier="DATA_INIT_QUAL BW" >
+							<line>// general data.</line>
+							<line>INPUT_SECTION_ALIGN(4)</line>
+							<if_prop name="using_cplusplus" value="true" enabled="false">
+								<line>INPUT_SECTIONS( $OBJS_LIBS(seg_sdram seg_ext_data seg_dmda_bw seg_dmda seg_vtbl .rtti .cht .edt) )</line>
+							</if_prop>
+							<if_prop name="using_cplusplus" value="false" enabled="false">
+								<line>INPUT_SECTIONS( $OBJS_LIBS(seg_sdram seg_ext_data seg_dmda_bw seg_dmda) )</line>
+							</if_prop>
+							<if_prop name="use_software_modules" value="true" enabled="false">
+								<![CDATA[         #define ADI_MODULES_INPUT_SECTIONS_DATA_OVERFLOW
+		         #include "modules_sharc.ldf"
+		         #undef ADI_MODULES_INPUT_SECTIONS_DATA_OVERFLOW]]>
+							</if_prop>
+						</section>
+
+						<section name="dxe_sdram_bsz2" segment="MY_SDRAM_DATA2_MEM" qualifier="ZERO_INIT DM">
+							<line>// zero init data.</line>
+							<line>INPUT_SECTIONS( $OBJS_LIBS(seg_sdram_bsz_data seg_bsz_data .bss32 .bss) )</line>
+						</section>
+
+						<section name="dxe_sdram_bsz2_bw" segment="MY_SDRAM_DATA2_MEM" qualifier="ZERO_INIT BW">
+							<line>// zero init data.</line>
+							<line>INPUT_SECTION_ALIGN(4)</line>
+							<line>INPUT_SECTIONS( $OBJS_LIBS(seg_sdram_bsz_data seg_bsz_data .bss8 .bss) )</line>
+						</section>
+
+						<section name="dxe_sdram_noinit2" segment="MY_SDRAM_DATA2_MEM" qualifier="NO_INIT DM">
+							<line>// no init data.</line>
+							<line>INPUT_SECTIONS( $OBJS_LIBS(seg_sdram_noinit_data seg_noinit_data) )</line>
+						</section>
+
+						<section name="dxe_sdram_noinit2_bw" segment="MY_SDRAM_DATA2_MEM" qualifier="NO_INIT BW">
+							<line>// no init data.</line>
+							<line>INPUT_SECTION_ALIGN(4)</line>
+							<line>INPUT_SECTIONS( $OBJS_LIBS(seg_sdram_noinit_data seg_noinit_data) )</line>
+						</section>
+
+						<section name="dxe_sdram_pm_data2" segment="MY_SDRAM_DATA2_MEM" qualifier="DATA_INIT_QUAL PM 32" >
+							<line>// pm data.</line>
+							<line>INPUT_SECTIONS( $OBJS_LIBS(seg_ext_pmda seg_pmda_nw seg_pmda) )</line>
+						</section>
+
+						<section name="dxe_sdram_pm_data2_bw" segment="MY_SDRAM_DATA2_MEM" qualifier="DATA_INIT_QUAL BW" >
+							<line>// pm data.</line>
+							<line>INPUT_SECTION_ALIGN(4)</line>
+							<line>INPUT_SECTIONS( $OBJS_LIBS(seg_ext_pmda seg_pmda) )</line>
+						</section>
+					</if_prop> <!-- DMC0!=32MB -->
+				</if_prop> <!-- has_single_sharc_core true -->
+
+				<if_prop name="use_multicores_use_core" value="1" enabled="false">
+					<if_prop name="has_single_sharc_core" value="false" enabled="false">
+
+						<!-- SC594/2159x CORE1 / SHARC0 -->
+
+						<section name="dxe_sdram_data2" segment="MY_SDRAM_DATA2_MEM" qualifier="DATA_INIT_QUAL DM" >
+							<line>// general data.</line>
+							<if_prop name="using_cplusplus" value="true" enabled="false">
+								<line>INPUT_SECTIONS( $OBJS_LIBS(seg_sdram seg_ext_data seg_dmda_nw seg_dmda seg_vtbl .rtti .cht .edt) )</line>
+							</if_prop>
+							<if_prop name="using_cplusplus" value="false" enabled="false">
+								<line>INPUT_SECTIONS( $OBJS_LIBS(seg_sdram seg_ext_data seg_dmda_nw seg_dmda) )</line>
+							</if_prop>
+							<if_prop name="use_software_modules" value="true" enabled="false">
+								<![CDATA[         #define ADI_MODULES_INPUT_SECTIONS_DATA_OVERFLOW
+		         #include "modules_sharc.ldf"
+		         #undef ADI_MODULES_INPUT_SECTIONS_DATA_OVERFLOW]]>
+							</if_prop>
+						</section>
+
+						<section name="dxe_sdram_data2_bw" segment="MY_SDRAM_DATA2_MEM" qualifier="DATA_INIT_QUAL BW" >
+							<line>// general data.</line>
+							<line>INPUT_SECTION_ALIGN(4)</line>
+							<if_prop name="using_cplusplus" value="true" enabled="false">
+								<line>INPUT_SECTIONS( $OBJS_LIBS(seg_sdram seg_ext_data seg_dmda_bw seg_dmda seg_vtbl .rtti .cht .edt) )</line>
+							</if_prop>
+							<if_prop name="using_cplusplus" value="false" enabled="false">
+								<line>INPUT_SECTIONS( $OBJS_LIBS(seg_sdram seg_ext_data seg_dmda_bw seg_dmda) )</line>
+							</if_prop>
+							<if_prop name="use_software_modules" value="true" enabled="false">
+								<![CDATA[         #define ADI_MODULES_INPUT_SECTIONS_DATA_OVERFLOW
+		         #include "modules_sharc.ldf"
+		         #undef ADI_MODULES_INPUT_SECTIONS_DATA_OVERFLOW]]>
+							</if_prop>
+						</section>
+
+						<section name="dxe_sdram_bsz2" segment="MY_SDRAM_DATA2_MEM" qualifier="ZERO_INIT DM">
+							<line>// zero init data.</line>
+							<line>INPUT_SECTIONS( $OBJS_LIBS(seg_sdram_bsz_data seg_bsz_data .bss32 .bss) )</line>
+						</section>
+
+						<section name="dxe_sdram_bsz2_bw" segment="MY_SDRAM_DATA2_MEM" qualifier="ZERO_INIT BW">
+							<line>// zero init data.</line>
+							<line>INPUT_SECTION_ALIGN(4)</line>
+							<line>INPUT_SECTIONS( $OBJS_LIBS(seg_sdram_bsz_data seg_bsz_data .bss8 .bss) )</line>
+						</section>
+
+						<section name="dxe_sdram_noinit2" segment="MY_SDRAM_DATA2_MEM" qualifier="NO_INIT DM">
+							<line>// no init data.</line>
+							<line>INPUT_SECTIONS( $OBJS_LIBS(seg_sdram_noinit_data seg_noinit_data) )</line>
+						</section>
+
+						<section name="dxe_sdram_noinit2_bw" segment="MY_SDRAM_DATA2_MEM" qualifier="NO_INIT BW">
+							<line>// no init data.</line>
+							<line>INPUT_SECTION_ALIGN(4)</line>
+							<line>INPUT_SECTIONS( $OBJS_LIBS(seg_sdram_noinit_data seg_noinit_data) )</line>
+						</section>
+
+						<section name="dxe_sdram_pm_data2" segment="MY_SDRAM_DATA2_MEM" qualifier="DATA_INIT_QUAL PM 32" >
+							<line>// pm data.</line>
+							<line>INPUT_SECTIONS( $OBJS_LIBS(seg_ext_pmda seg_pmda_nw seg_pmda) )</line>
+						</section>
+
+						<section name="dxe_sdram_pm_data2_bw" segment="MY_SDRAM_DATA2_MEM" qualifier="DATA_INIT_QUAL BW" >
+							<line>// pm data.</line>
+							<line>INPUT_SECTION_ALIGN(4)</line>
+							<line>INPUT_SECTIONS( $OBJS_LIBS(seg_ext_pmda seg_pmda) )</line>
+						</section>
+					</if_prop> <!-- SHARC0/core1 -->
+				</if_prop> <!-- has_single_sharc_core false -->
+
+				<if_prop name="has_arm_core" value="false" enabled="false">
+					<if_prop name="use_sdram_dmc_size_0" value="1024" enabled="false">
+						<line>   // BW only data mappings for the second half of the DMC0 address range.</line>
+						<section name="dxe_sdram_data3_bw" segment="MY_SDRAM_BWONLY_MEM" qualifier="DATA_INIT_QUAL BW" >
+							<line>// general data.</line>
+							<line>INPUT_SECTION_ALIGN(4)</line>
+							<line>INPUT_SECTIONS( $OBJS_LIBS(seg_sdram_bwonly) )</line>
+						</section>
+						<section name="dxe_sdram_bsz3_bw" segment="MY_SDRAM_BWONLY_MEM" qualifier="ZERO_INIT BW">
+							<line>// zero init data.</line>
+							<line>INPUT_SECTION_ALIGN(4)</line>
+							<line>INPUT_SECTIONS( $OBJS_LIBS(seg_sdram_bsz_data_bwonly) )</line>
+						</section>
+						<section name="dxe_sdram_noinit3_bw" segment="MY_SDRAM_BWONLY_MEM" qualifier="NO_INIT BW">
+							<line>// no init data.</line>
+							<line>INPUT_SECTION_ALIGN(4)</line>
+							<line>INPUT_SECTIONS( $OBJS_LIBS(seg_sdram_noinit_data_bwonly) )</line>
+						</section>
+					</if_prop>
+				</if_prop>
+			</if_use_sdram>
+
+			<![CDATA[
+    // ------------------------------------------------------------------
+    // Complete the stack and heap definitions.
+]]>
+			<vdsg:user uid="before-completing-the-stack-and-heap-definitions" />
+
+			<section name="dxe_block0_stack_and_heap_expand" segment="mem_block0_bw" qualifier="NO_INIT BW">
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<reserve_symbols_end name="heaps_and_system_stack_in_L1"
+				  length_symbol="heaps_and_system_stack_in_L1_length"
+				  for="system_stack,system_heap,user_heaps"
+				  alignment="8"
+				  value="L1"/>
+			</section>
+
+			<section name="dxe_l2_stack_and_heap_expand" segment="MY_L2_CACHED_MEM" qualifier="NO_INIT BW">
+				<line>INPUT_SECTION_ALIGN(4)</line>
+				<vdsg:user uid="insert-input-sections-at-the-start-of-dxe_L2_stack_and_heap" />
+				<reserve_symbols_end name="heaps_and_system_stack_in_L2"
+                              length_symbol="heaps_and_system_stack_in_L2_length"
+                              for="system_stack,system_heap,user_heaps"
+                              alignment="8"
+                              value="L2"/>
+			</section>
+
+			<if_use_sdram value="true" enabled="false">
+				<section name="dxe_sdram_stack_and_heap_expand" segment="SDRAM_STACK_HEAP_BLOCK" qualifier="NO_INIT BW">
+					<vdsg:user uid="insert-input-sections-at-the-start-of-dxe_sdram_stack_and_heap" />
+					<reserve_symbols_end name="heaps_and_system_stack_in_L3"
+	                              length_symbol="heaps_and_system_stack_in_L3_length"
+	                              for="system_stack,system_heap,user_heaps"
+	                              alignment="8"
+	                              value="L3"/>
+				</section>
+			</if_use_sdram>
+
+			<![CDATA[
+    // ------------------------------------------------------------------
+]]>
+			<vdsg:user uid="insert-new-sections-at-the-end" />
+
+			</sections>
+		</processor>
+	</vdsg:file>
+</vdsg:vdsg>

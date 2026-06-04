@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ************************************************************************************ -->
+<!--   Module       :   Memory                                                            -->
+<!--   Description  :   Memory model                                                      -->
+<!--   Copyright (c) 2013-2015 Analog Devices, Inc.  All Rights Reserved.                 -->
+<!--   This software is proprietary and confidential to Analog Devices, Inc. and          -->
+<!--   its licensors.                                                                     -->
+<!-- ************************************************************************************ -->
+<cces-chipfactory-xml schema-version="1" name="memory.xml">
+	<version file-version="2.1.0.1"/>
+	<module acronym="Memory">
+		<module-name>Sharc-XI Memory</module-name>
+		<description>Sharc-XI Memory Map</description>
+		<module-data>
+			<!-- Internal Memory Blocks -->
+			<memory-region acronym="ROM1">
+				<access mode="R/W"/>
+				<address radix="x">0xA0000</address>
+				<width>4</width>
+				<end-address>0xAFFFF</end-address>
+			</memory-region>
+			<memory-region acronym="RAM0">
+				<access mode="R/W"/>
+				<address radix="x">0x90000</address>
+				<width>4</width>
+				<end-address>0x97FFF</end-address>
+			</memory-region>
+			<memory-region acronym="RAM1">
+				<access mode="R/W"/>
+				<address radix="x">0xB0000</address>
+				<width>4</width>
+				<end-address>0xB7FFF</end-address>
+			</memory-region>
+			<memory-region acronym="RAM2">
+				<access mode="R/W"/>
+				<address radix="x">0xC0000</address>
+				<width>4</width>
+				<end-address>0xC3FFF</end-address>
+			</memory-region>
+			<memory-region acronym="RAM3">
+				<access mode="R/W"/>
+				<address radix="x">0xE0000</address>
+				<width>4</width>
+				<end-address>0xE3FFF</end-address>
+			</memory-region>
+		</module-data>
+	</module>
+</cces-chipfactory-xml>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- *********************************************************************** -->
+<!-- ******* SHARC-FX-debug-source-map.xml                                   -->
+<!-- ******* Copyright 2018-2024 Analog Devices, Inc. All rights reserved.   -->
+<!-- *********************************************************************** -->
+<debug-source-map-xml name="SHARC-FX-debug-source-map.xml" schema-version="1.0">
+	<version file-version="3.0.0.0"/>
+
+	<map source="xtensa-elf" destination="Xtensa/XtensaTools/xtensa-elf"/>
+	<map source="Xtensa/Target-libs" destination="Xtensa/XtensaTools/xtensa-elf/src"/>
+
+	<!-- CCES include files -->
+	<map source="Xtensa/SHARC-FX/include" destination="Xtensa/SHARC-FX/include"/>
+
+	<!-- libssl.a files -->
+	<map source="Xtensa/SHARC-FX/lib/src/services/Source" destination="Xtensa/SHARC-FX/lib/src/services/Source"/>
+
+	<!-- libdrv.a files -->
+	<map source="Xtensa/SHARC-FX/lib/src/drivers/Source" destination="Xtensa/SHARC-FX/lib/src/drivers/Source"/>
+
+	<!-- librtadi.a files -->
+	<map source="Xtensa/SHARC-FX/lib/src/runtime/Source" destination="Xtensa/SHARC-FX/lib/src/runtime/Source"/>
+
+	<!-- libosal_noos.a files -->
+	<map source="noos/scripts/temp/osal/Source" destination="Xtensa/SHARC-FX/lib/src/osal_noos/Source"/>
+	<map source="noos/scripts/temp/osal/Ports/SHARC-FX/CCES" destination="Xtensa/SHARC-FX/lib/src/osal_noos/Ports/SHARC-FX/CCES"/>
+
+</debug-source-map-xml>

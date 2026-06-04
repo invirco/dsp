@@ -1,0 +1,98 @@
+<?xml version="1.0" standalone="yes"?>
+<linker-xml schema-version="1">
+
+	<!-- *********************************************************************** -->
+	<!-- ******* ADSP-21562-linker.xml                                           -->
+	<!-- ******* Copyright 2017-2019 Analog Devices, Inc.  All rights reserved.  -->
+	<!-- *********************************************************************** -->
+
+	<version file-version="2.9.2.0"/>
+
+	<processor name="ADSP-21562" family="ADSP-215xx" cores="1">
+
+		<memory logical2physical_translator="215xx">
+
+			<!-- 5Mb L1 -->
+			<memory_segment type="BW PM DM SW DATA64" qualifier="RAM" start="0x00240000" end="0x0026FFFF" width="8 16 32 48 64" desc="Block 0 RAM"      internal=""/>
+			<memory_segment type="BW PM DM SW DATA64"                 start="0x00270000" end="0x002BFFFF" width="8 16 32 48 64" desc="Block 0 reserved" internal="" reserved=""/>
+
+			<memory_segment type="BW PM DM SW DATA64" qualifier="RAM" start="0x002C0000" end="0x002EFFFF" width="8 16 32 48 64" desc="Block 1 RAM"      internal=""/>
+			<memory_segment type="BW PM DM SW DATA64"                 start="0x002F0000" end="0x002FFFFF" width="8 16 32 48 64" desc="Block 1 reserved" internal="" reserved=""/>
+
+			<memory_segment type="BW PM DM SW DATA64" qualifier="RAM" start="0x00300000" end="0x0031FFFF" width="8 16 32 48 64" desc="Block 2 RAM"      internal=""/>
+			<memory_segment type="BW PM DM SW DATA64"                 start="0x00320000" end="0x0037FFFF" width="8 16 32 48 64" desc="Block 2 reserved" internal="" reserved=""/>
+
+			<memory_segment type="BW PM DM SW DATA64" qualifier="RAM" start="0x00380000" end="0x0039FFFF" width="8 16 32 48 64" desc="Block 3 RAM"      internal=""/>
+			<memory_segment type="BW PM DM SW DATA64"                 start="0x003A0000" end="0x003FFFFF" width="8 16 32 48 64" desc="Block 3 reserved" internal="" reserved=""/>
+
+			<!-- 2Mb / 0.25MB L2 (banks 6..7) -->
+			<memory_segment type="BW" qualifier="RAM" start="0x200C0000" end="0x200FFFFF" width="8" desc="L2 RAM" internal=""/>
+
+			<memory_segment type="SW" qualifier="RAM" start="0x00BE0000" end="0x00BFFFFF" width="16" desc="L2 RAM" internal=""/>
+
+			<memory_segment type="DM" qualifier="RAM" start="0x08030000" end="0x0803FFFF" width="32" desc="L2 RAM" internal=""/>
+
+			<memory_segment type="PM" qualifier="RAM" start="0x005E0000" end="0x005EAAAA" width="48" desc="L2 RAM" internal=""/>
+
+			<!-- Boot ROMs -->
+			<memory_segment type="BW" qualifier="ROM" start="0x20100000" end="0x20107FFF" width="8" desc="Boot ROM 0" internal=""/>
+			<memory_segment type="BW" qualifier="ROM" start="0x20108000" end="0x2010FFFF" width="8" desc="Boot ROM 1" internal=""/>
+			<memory_segment type="BW" qualifier="ROM" start="0x20110000" end="0x20117FFF" width="8" desc="Boot ROM 2" internal=""/>
+
+			<memory_segment type="SW" qualifier="ROM" start="0x00B20000" end="0x00B23FFF" width="16" desc="Boot ROM 0" internal=""/>
+			<memory_segment type="SW" qualifier="ROM" start="0x00B00000" end="0x00B03FFF" width="16" desc="Boot ROM 1" internal=""/>
+			<memory_segment type="SW" qualifier="ROM" start="0x00B40000" end="0x00B43FFF" width="16" desc="Boot ROM 2" internal=""/>
+
+			<memory_segment type="DM" qualifier="ROM" start="0x08040000" end="0x08041FFF" width="32" desc="Boot ROM 0" internal=""/>
+			<memory_segment type="DM" qualifier="ROM" start="0x08042000" end="0x08043FFF" width="32" desc="Boot ROM 1" internal=""/>
+			<memory_segment type="DM" qualifier="ROM" start="0x08040000" end="0x08045FFF" width="32" desc="Boot ROM 2" internal=""/>
+
+			<memory_segment type="PM" qualifier="ROM" start="0x00580000" end="0x00581555" width="48" desc="Boot ROM 0" internal=""/>
+			<memory_segment type="PM" qualifier="ROM" start="0x00500000" end="0x00501555" width="48" desc="Boot ROM 1" internal=""/>
+			<memory_segment type="PM" qualifier="ROM" start="0x00540000" end="0x00541555" width="48" desc="Boot ROM 2" internal=""/>
+
+			<!-- no DMC0 (DDR-A) -->
+
+			<!-- SMC -->
+			<memory_segment type="BW" start="0x40000000" end="0x4FFFFFFF" width="8" desc="SMC" external=""/>
+
+			<memory_segment type="SW" start="0x00F00000" end="0x00F3FFFF" width="16" desc="SMC" external=""/>
+
+			<memory_segment type="DM" start="0x01000000" end="0x01FFFFFF" width="32" desc="SMC" external=""/>
+
+			<memory_segment type="PM" start="0x00700000" end="0x0073FFFF" width="48" desc="SMC" external=""/>
+
+			<!-- SPI Flash-->
+			<memory_segment type="BW" start="0x60000000" end="0x7FFFFFFF" width="8" desc="SPI" external=""/>
+
+			<memory_segment type="SW" start="0x00F80000" end="0x00FFFFFF" width="16" desc="SPI" external=""/>
+
+			<memory_segment type="DM" start="0x04000000" end="0x07FFFFFF" width="32" desc="SPI" external=""/>
+
+			<memory_segment type="PM" start="0x00780000" end="0x007FFFFF" width="48" desc="SPI" external=""/>
+
+		</memory>
+
+		<default_ldf value="SHARC/ldf/ADSP-21562.ldf"/>
+
+		<attributes>
+		  <attribute name="si-revision" current_value="0.0" known_values="0.0 0.1 0.2"/>
+		</attributes>
+
+		<feature_macros>
+		  <macro name="__ADSP21000__" value="1"/>
+		  <macro name="__ADSPSHARC__" value="0x220"/>
+		  <macro name="__ADSP21562__" value="1"/>
+		  <macro name="__ADSP21569_FAMILY__" value="1"/>
+		  <macro name="__ADSP2156x__" value="1"/>
+		  <macro name="__ADSP215xx__" value="1"/>
+		  <macro name="__SIMDSHARC__" value="1"/>
+		  <macro name="__BA_SHARC__" value="1"/>
+		  <macro name="__FLT64_SHARC__" value="1"/>
+		  <macro name="__NUM_SHARC_CORES__" value="1"/>
+		  <macro name="__NUM_CORES__" value="1"/>
+		</feature_macros>
+
+	</processor>
+
+</linker-xml>

@@ -1,0 +1,1464 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<!-- *********************************************************************** -->
+<!-- ******* ProcessorInfo.xml                                               -->
+<!-- ******* Copyright 2004-2024 Analog Devices, Inc. All rights reserved.   -->
+<!-- *********************************************************************** -->
+<cces-idde-xml name="ProcessorInfo.xml" schema-version="5">
+	
+	<version file-version="3.0.2.3"/>
+	
+	<core-types>
+
+		<!-- ARM -->
+		<core-type name="Cortex-A5">
+			<properties>
+				<property name="toolchain" value="arm.(linux|bare).toolchain"/>
+				<property name="singlelineassemblerdll" value="sldarm.dll"/>
+				<property name="singlelinedisassemblerdll" value="sldarm.dll"/>
+				<property name="hasGIC" value="true"/>
+				<property name="core-register-xml" value="ARM-core.xml"/>
+				<property name="extended-register-xml" value="CORTEX_A5-mmrs.xml"/>
+				<property name="debug-source-map-xml" value="CORTEX_A5-debug-source-map.xml"/>
+			</properties>
+			<breakpoints>
+				<breakpoint description="Start of program" label="main" public="true"/>
+				<breakpoint description="End of program" label="_exit" public="true"/>
+				<breakpoint description="Program aborted" label="abort" public="true"/>
+				<breakpoint description="Fatal error occurred in RTL" label="__fatal_error" public="true"/>
+			</breakpoints>
+		</core-type>
+		
+		<core-type name="Cortex-M33">
+			<properties>
+				<property name="toolchain" value="arm.gcc.toolchain"/>
+			</properties>
+			<breakpoints>
+				<breakpoint description="Start of program" label="main" public="true"/>
+				<breakpoint description="End of program" label="_exit" public="true"/>
+				<breakpoint description="Program aborted" label="abort" public="true"/>
+				<breakpoint description="Hard Fault handler" label="HardFault_Handler" public="true"/>
+				<breakpoint description="Default handler" label="Default_Handler" public="true"/>
+			</breakpoints>		
+		</core-type>
+
+		<core-type name="Cortex-A55">
+			<properties>
+				<property name="toolchain" value="aarch64.(linux|bare).toolchain"/>
+				<property name="hasGIC" value="true"/>
+				<property name="core-register-xml" value="CORTEX_A55-core.xml"/>
+				<property name="debug-source-map-xml" value="CORTEX_A55-debug-source-map.xml"/>
+			</properties>
+			<breakpoints>
+				<breakpoint description="Start of program" label="main" public="true"/>
+				<breakpoint description="End of program" label="_exit" public="true"/>
+				<breakpoint description="Program aborted" label="abort" public="true"/>
+				<breakpoint description="Fatal error occurred in RTL" label="__fatal_error" public="true"/>
+			</breakpoints>		
+		</core-type>
+
+		<!-- SHARC -->
+		<core-type name="SHARC-215xx">
+			<properties>
+				<property name="visa" value="true"/>
+				<property name="byte_addressing" value="true"/>
+				<property name="toolchain" value="sharc.toolchain"/>
+				<property name="singlelineassemblerdll" value="elfasmhh.dll"/>
+				<property name="singlelinedisassemblerdll" value="sldzplus.dll"/>
+				<property name="pgodll" value="pgosharc.dll"/>
+				<property name="hasSEC" value="true"/>
+				<property name="core-register-xml" value="ADSP-215xx-core.xml"/>
+				<property name="extended-register-xml" value="ADSP-215xx-mmrs.xml"/>
+				<property name="no_kernel" value="false"/>
+			</properties>
+			<breakpoints>
+				<breakpoint description="Start of program" label="main" public="true"/>
+				<breakpoint description="End of program" label="___lib_prog_term" public="true"/>
+				<breakpoint description="Used for stdio" label="__primIO" public="false"/>
+				<breakpoint description="Before overlay is swapped in" label="__ov_start" public="false"/>
+				<breakpoint description="After overlay is swapped in" label="__ov_end" public="false"/>
+				<breakpoint description="Used for assert" label="__dbg_assert" public="false"/>
+				<breakpoint description="Stack overflow detected" label="__stack_overflowed" public="true"/>
+				<breakpoint description="Fatal error occurred in RTL" label="__fatal_error" public="true"/>
+				<breakpoint description="Fatal exception occurred in RTL" label="__fatal_exception" public="true"/>
+			</breakpoints>	
+		</core-type>
+		<core-type name="SHARC-2156x">
+			<properties>
+				<property name="visa" value="true"/>
+				<property name="byte_addressing" value="true"/>
+				<property name="toolchain" value="sharc.toolchain"/>
+				<property name="singlelineassemblerdll" value="elfasmhh.dll"/>
+				<property name="singlelinedisassemblerdll" value="sldzplus.dll"/>
+				<property name="pgodll" value="pgosharc.dll"/>
+				<property name="hasSEC" value="true"/>
+				<property name="core-register-xml" value="ADSP-2156x-core.xml"/>
+				<property name="extended-register-xml" value="ADSP-2156x-mmrs.xml"/>
+				<property name="no_kernel" value="false"/>
+			</properties>
+			<breakpoints>
+				<breakpoint description="Start of program" label="main" public="true"/>
+				<breakpoint description="End of program" label="___lib_prog_term" public="true"/>
+				<breakpoint description="Used for stdio" label="__primIO" public="false"/>
+				<breakpoint description="Before overlay is swapped in" label="__ov_start" public="false"/>
+				<breakpoint description="After overlay is swapped in" label="__ov_end" public="false"/>
+				<breakpoint description="Used for assert" label="__dbg_assert" public="false"/>
+				<breakpoint description="Stack overflow detected" label="__stack_overflowed" public="true"/>
+				<breakpoint description="Fatal error occurred in RTL" label="__fatal_error" public="true"/>
+				<breakpoint description="Fatal exception occurred in RTL" label="__fatal_exception" public="true"/>
+			</breakpoints>
+		</core-type>
+		<core-type name="SHARC-2159x">
+			<properties>
+				<property name="visa" value="true"/>
+				<property name="byte_addressing" value="true"/>
+				<property name="toolchain" value="sharc.toolchain"/>
+				<property name="singlelineassemblerdll" value="elfasmhh.dll"/>
+				<property name="singlelinedisassemblerdll" value="sldzplus.dll"/>
+				<property name="pgodll" value="pgosharc.dll"/>
+				<property name="hasSEC" value="true"/>
+				<property name="core-register-xml" value="ADSP-2159x-core.xml"/>
+				<property name="extended-register-xml" value="ADSP-2159x-mmrs.xml"/>
+				<property name="no_kernel" value="false"/>
+			</properties>
+			<breakpoints>
+				<breakpoint description="Start of program" label="main" public="true"/>
+				<breakpoint description="End of program" label="___lib_prog_term" public="true"/>
+				<breakpoint description="Used for stdio" label="__primIO" public="false"/>
+				<breakpoint description="Before overlay is swapped in" label="__ov_start" public="false"/>
+				<breakpoint description="After overlay is swapped in" label="__ov_end" public="false"/>
+				<breakpoint description="Used for assert" label="__dbg_assert" public="false"/>
+				<breakpoint description="Stack overflow detected" label="__stack_overflowed" public="true"/>
+				<breakpoint description="Fatal error occurred in RTL" label="__fatal_error" public="true"/>
+				<breakpoint description="Fatal exception occurred in RTL" label="__fatal_exception" public="true"/>
+			</breakpoints>
+		</core-type>
+
+		<!-- SHARC-FX -->
+		<core-type name="SHARC-FX">
+			<properties>
+				<property name="toolchain" value="xtensa.sharcfx.toolchain"/>
+				<property name="hasSEC" value="true"/>
+				<property name="debug-source-map-xml" value="SHARC-FX-debug-source-map.xml"/>
+				<property name="core-register-xml" value="SHARC_FX0-registers.xml"/>
+			</properties>
+			<breakpoints>
+				<breakpoint description="Start of program" label="main" public="true"/>
+				<breakpoint description="End of program" label="_exit" public="true"/>
+				<breakpoint description="Fatal error" label="__fatal_error" public="true"/>
+				<breakpoint description="Fatal exception" label="__fatal_exception" public="true"/>
+			</breakpoints>		
+		</core-type>
+	</core-types>
+
+	<processors>
+		
+		<family
+			name="SHARC" 
+			value="2">
+			
+			<properties>
+				<property name="sourcegenpath" value="System\SourceGenerators"/>
+				<property name="debug-source-map-xml" value="SHARC-debug-source-map.xml"/>
+			</properties>
+			
+			<processor name="ADSP-21560">
+				<core id="0" type="SHARC-2156x">
+					<properties>
+						<property name="extended-register-xml" value="ADSP-21560-registers.xml"/>
+						<property name="memory-xml" value="ADSP-21560-memory.xml"/>
+						<property name="boot_code" value="true"/>
+						<property name="file_format_width" value="true"/>
+						<property name="_flow_control" value="true"/>
+						<property name="kernel" value="false"/>
+						<property name="output_width" value="false"/>
+						<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+						<property name="use_cti" value="true"/>
+						<property name="warn_if_system_reset_not_performed" value="true"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-21560W">
+				<core id="0" type="SHARC-2156x">
+					<properties>
+						<property name="extended-register-xml" value="ADSP-21560W-registers.xml"/>
+						<property name="memory-xml" value="ADSP-21560-memory.xml"/>
+						<property name="boot_code" value="true"/>
+						<property name="file_format_width" value="true"/>
+						<property name="_flow_control" value="true"/>
+						<property name="kernel" value="false"/>
+						<property name="output_width" value="false"/>
+						<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+						<property name="use_cti" value="true"/>
+						<property name="warn_if_system_reset_not_performed" value="true"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-21561">
+				<core id="0" type="SHARC-2156x">
+					<properties>
+						<property name="extended-register-xml" value="ADSP-21564-registers.xml"/>
+						<property name="memory-xml" value="ADSP-21561-memory.xml"/>
+						<property name="boot_code" value="true"/>
+						<property name="file_format_width" value="true"/>
+						<property name="_flow_control" value="true"/>
+						<property name="kernel" value="false"/>
+						<property name="output_width" value="false"/>
+						<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+						<property name="use_cti" value="true"/>
+						<property name="warn_if_system_reset_not_performed" value="true"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-21561W">
+				<core id="0" type="SHARC-2156x">
+					<properties>
+						<property name="extended-register-xml" value="ADSP-21564W-registers.xml"/>
+						<property name="memory-xml" value="ADSP-21561-memory.xml"/>
+						<property name="boot_code" value="true"/>
+						<property name="file_format_width" value="true"/>
+						<property name="_flow_control" value="true"/>
+						<property name="kernel" value="false"/>
+						<property name="output_width" value="false"/>
+						<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+						<property name="use_cti" value="true"/>
+						<property name="warn_if_system_reset_not_performed" value="true"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-21562">
+				<core id="0" type="SHARC-2156x">
+					<properties>
+						<property name="extended-register-xml" value="ADSP_2156x_LPC-registers.xml"/>
+						<property name="memory-xml" value="ADSP-21562-memory.xml"/>
+						<property name="boot_code" value="true"/>
+						<property name="file_format_width" value="true"/>
+						<property name="_flow_control" value="true"/>
+						<property name="kernel" value="false"/>
+						<property name="output_width" value="false"/>
+						<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+						<property name="use_cti" value="true"/>
+						<property name="warn_if_system_reset_not_performed" value="true"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-21563">
+				<core id="0" type="SHARC-2156x">
+					<properties>
+						<property name="extended-register-xml" value="ADSP_2156x_LPC-registers.xml"/>
+						<property name="memory-xml" value="ADSP-21563-memory.xml"/>
+						<property name="boot_code" value="true"/>
+						<property name="file_format_width" value="true"/>
+						<property name="_flow_control" value="true"/>
+						<property name="kernel" value="false"/>
+						<property name="output_width" value="false"/>
+						<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+						<property name="use_cti" value="true"/>
+						<property name="warn_if_system_reset_not_performed" value="true"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-21564">
+				<core id="0" type="SHARC-2156x">
+					<properties>
+						<property name="extended-register-xml" value="ADSP-21564-registers.xml"/>
+						<property name="memory-xml" value="ADSP-21564-memory.xml"/>
+						<property name="boot_code" value="true"/>
+						<property name="file_format_width" value="true"/>
+						<property name="_flow_control" value="true"/>
+						<property name="kernel" value="false"/>
+						<property name="output_width" value="false"/>
+						<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+						<property name="use_cti" value="true"/>
+						<property name="warn_if_system_reset_not_performed" value="true"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-21564W">
+				<core id="0" type="SHARC-2156x">
+					<properties>
+						<property name="extended-register-xml" value="ADSP-21564W-registers.xml"/>
+						<property name="memory-xml" value="ADSP-21564-memory.xml"/>
+						<property name="boot_code" value="true"/>
+						<property name="file_format_width" value="true"/>
+						<property name="_flow_control" value="true"/>
+						<property name="kernel" value="false"/>
+						<property name="output_width" value="false"/>
+						<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+						<property name="use_cti" value="true"/>
+						<property name="warn_if_system_reset_not_performed" value="true"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-21565">
+				<core id="0" type="SHARC-2156x">
+					<properties>
+						<property name="extended-register-xml" value="ADSP_2156x_LPC-registers.xml"/>
+						<property name="memory-xml" value="ADSP-21565-memory.xml"/>
+						<property name="boot_code" value="true"/>
+						<property name="file_format_width" value="true"/>
+						<property name="_flow_control" value="true"/>
+						<property name="kernel" value="false"/>
+						<property name="output_width" value="false"/>
+						<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+						<property name="use_cti" value="true"/>
+						<property name="warn_if_system_reset_not_performed" value="true"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-21566">
+				<core id="0" type="SHARC-2156x">
+					<properties>
+						<property name="extended-register-xml" value="ADSP_2156x_HPC-registers.xml"/>
+						<property name="memory-xml" value="ADSP-21566-memory.xml"/>
+						<property name="boot_code" value="true"/>
+						<property name="file_format_width" value="true"/>
+						<property name="_flow_control" value="true"/>
+						<property name="kernel" value="false"/>
+						<property name="output_width" value="false"/>
+						<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+						<property name="use_cti" value="true"/>
+						<property name="warn_if_system_reset_not_performed" value="true"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-21567">
+				<core id="0" type="SHARC-2156x">
+					<properties>
+						<property name="extended-register-xml" value="ADSP_2156x_HPC-registers.xml"/>
+						<property name="memory-xml" value="ADSP-21567-memory.xml"/>
+						<property name="boot_code" value="true"/>
+						<property name="file_format_width" value="true"/>
+						<property name="_flow_control" value="true"/>
+						<property name="kernel" value="false"/>
+						<property name="output_width" value="false"/>
+						<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+						<property name="use_cti" value="true"/>
+						<property name="warn_if_system_reset_not_performed" value="true"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-21568">
+				<core id="0" type="SHARC-2156x">
+					<properties>
+						<property name="extended-register-xml" value="ADSP-21564-registers.xml"/>
+						<property name="memory-xml" value="ADSP-21568-memory.xml"/>
+						<property name="boot_code" value="true"/>
+						<property name="file_format_width" value="true"/>
+						<property name="_flow_control" value="true"/>
+						<property name="kernel" value="false"/>
+						<property name="output_width" value="false"/>
+						<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+						<property name="use_cti" value="true"/>
+						<property name="warn_if_system_reset_not_performed" value="true"/>
+						<property name="LoadPrerequisite.0" value="EMU|KIT|CLEAR_SYMBOLS|RUN_AFTER_LOAD,SHARC\ldr\ezkit21568W_preload.dxe"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-21568W">
+				<core id="0" type="SHARC-2156x">
+					<properties>
+						<property name="extended-register-xml" value="ADSP-21564W-registers.xml"/>
+						<property name="memory-xml" value="ADSP-21568-memory.xml"/>
+						<property name="boot_code" value="true"/>
+						<property name="file_format_width" value="true"/>
+						<property name="_flow_control" value="true"/>
+						<property name="kernel" value="false"/>
+						<property name="output_width" value="false"/>
+						<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+						<property name="use_cti" value="true"/>
+						<property name="warn_if_system_reset_not_performed" value="true"/>
+						<property name="LoadPrerequisite.0" value="EMU|KIT|CLEAR_SYMBOLS|RUN_AFTER_LOAD,SHARC\ldr\ezkit21568W_preload.dxe"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-21569">
+				<core id="0" type="SHARC-2156x">
+					<properties>
+						<property name="extended-register-xml" value="ADSP_2156x_HPC-registers.xml"/>
+						<property name="memory-xml" value="ADSP-21569-memory.xml"/>
+						<property name="boot_code" value="true"/>
+						<property name="file_format_width" value="true"/>
+						<property name="_flow_control" value="true"/>
+						<property name="kernel" value="false"/>
+						<property name="output_width" value="false"/>
+						<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+						<property name="use_cti" value="true"/>
+						<property name="warn_if_system_reset_not_performed" value="true"/>
+						<property name="LoadPrerequisite.0" value="EMU|KIT|CLEAR_SYMBOLS|RUN_AFTER_LOAD,SHARC\ldr\ezkit21569_preload.dxe"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-21571">
+				<properties>
+					<property name="extended-register-xml" value="ADSP-21571-registers.xml"/>
+					<property name="memory-xml" value="ADSP-21571-memory.xml"/>
+					<property name="boot_code" value="true"/>
+					<property name="file_format_width" value="true"/>
+					<property name="_flow_control" value="true"/>
+					<property name="kernel" value="false"/>
+					<property name="output_width" value="false"/>
+					<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+					<property name="use_cti" value="true"/>
+					<property name="warn_if_system_reset_not_performed" value="true"/>
+				</properties> 
+				<core id="1" type="SHARC-215xx">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:2|SIM|CLEAR_SYMBOLS"/>
+						<property name="cores-to-enable" value="ADI_CORE_SHARC1"/>
+					</properties>					
+				</core>
+				<core id="2" type="SHARC-215xx">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:1|SIM|NO_RESET_BEFORE_LOAD|CLEAR_SYMBOLS|RUN_AFTER_LOAD"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-21573">
+				<properties>
+					<property name="extended-register-xml" value="ADSP-21573-registers.xml"/>
+					<property name="memory-xml" value="ADSP-21573-memory.xml"/>
+					<property name="boot_code" value="true"/>
+					<property name="file_format_width" value="true"/>
+					<property name="_flow_control" value="true"/>
+					<property name="kernel" value="false"/>
+					<property name="output_width" value="false"/>
+					<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+					<property name="use_cti" value="true"/>
+					<property name="warn_if_system_reset_not_performed" value="true"/>
+				</properties> 
+				<core id="1" type="SHARC-215xx">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:2|SIM|CLEAR_SYMBOLS"/>
+						<property name="cores-to-enable" value="ADI_CORE_SHARC1"/>
+					</properties>					
+				</core>
+				<core id="2" type="SHARC-215xx">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:1|SIM|NO_RESET_BEFORE_LOAD|CLEAR_SYMBOLS|RUN_AFTER_LOAD"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-21583">
+				<properties>
+					<property name="extended-register-xml" value="ADSP-21584-registers.xml"/>
+					<property name="memory-xml" value="ADSP-21583-memory.xml"/>
+					<property name="boot_code" value="true"/>
+					<property name="file_format_width" value="true"/>
+					<property name="_flow_control" value="true"/>
+					<property name="kernel" value="false"/>
+					<property name="output_width" value="false"/>
+					<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+					<property name="use_cti" value="true"/>
+					<property name="warn_if_system_reset_not_performed" value="true"/>
+				</properties> 
+				<core id="1" type="SHARC-215xx">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:2|SIM|CLEAR_SYMBOLS"/>
+						<property name="cores-to-enable" value="ADI_CORE_SHARC1"/>
+					</properties>					
+				</core>
+				<core id="2" type="SHARC-215xx">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:1|SIM|NO_RESET_BEFORE_LOAD|CLEAR_SYMBOLS|RUN_AFTER_LOAD"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-21584">
+				<properties>
+					<property name="extended-register-xml" value="ADSP-21584-registers.xml"/>
+					<property name="memory-xml" value="ADSP-21584-memory.xml"/>
+					<property name="boot_code" value="true"/>
+					<property name="file_format_width" value="true"/>
+					<property name="_flow_control" value="true"/>
+					<property name="kernel" value="false"/>
+					<property name="output_width" value="false"/>
+					<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+					<property name="use_cti" value="true"/>
+					<property name="warn_if_system_reset_not_performed" value="true"/>
+				</properties> 
+				<core id="1" type="SHARC-215xx">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:2|SIM|CLEAR_SYMBOLS"/>
+						<property name="cores-to-enable" value="ADI_CORE_SHARC1"/>
+					</properties>					
+				</core>
+				<core id="2" type="SHARC-215xx">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:1|SIM|NO_RESET_BEFORE_LOAD|CLEAR_SYMBOLS|RUN_AFTER_LOAD"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-21587">
+				<properties>
+					<property name="extended-register-xml" value="ADSP-21587-registers.xml"/>
+					<property name="memory-xml" value="ADSP-21587-memory.xml"/>
+					<property name="boot_code" value="true"/>
+					<property name="file_format_width" value="true"/>
+					<property name="_flow_control" value="true"/>
+					<property name="kernel" value="false"/>
+					<property name="output_width" value="false"/>
+					<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+					<property name="use_cti" value="true"/>
+					<property name="warn_if_system_reset_not_performed" value="true"/>
+				</properties> 
+				<core id="1" type="SHARC-215xx">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:2|SIM|CLEAR_SYMBOLS"/>
+						<property name="cores-to-enable" value="ADI_CORE_SHARC1"/>
+					</properties>					
+				</core>
+				<core id="2" type="SHARC-215xx">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:1|SIM|NO_RESET_BEFORE_LOAD|CLEAR_SYMBOLS|RUN_AFTER_LOAD"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-21591">
+				<properties>
+					<property name="extended-register-xml" value="ADSP-21593-registers.xml"/>
+					<property name="memory-xml" value="ADSP-21591-memory.xml"/>
+					<property name="boot_code" value="true"/>
+					<property name="file_format_width" value="true"/>
+					<property name="_flow_control" value="true"/>
+					<property name="kernel" value="false"/>
+					<property name="output_width" value="false"/>
+					<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+					<property name="use_cti" value="true"/>
+					<property name="warn_if_system_reset_not_performed" value="true"/>
+				</properties>
+				<core id="1" type="SHARC-2159x">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:2|SIM|CLEAR_SYMBOLS"/>
+						<property name="cores-to-enable" value="ADI_CORE_SHARC1"/>
+					</properties>
+				</core>
+				<core id="2" type="SHARC-2159x">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:1|SIM|NO_RESET_BEFORE_LOAD|CLEAR_SYMBOLS|RUN_AFTER_LOAD"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-21591W">
+				<properties>
+					<property name="extended-register-xml" value="ADSP-21593W-registers.xml"/>
+					<property name="memory-xml" value="ADSP-21591-memory.xml"/>
+					<property name="boot_code" value="true"/>
+					<property name="file_format_width" value="true"/>
+					<property name="_flow_control" value="true"/>
+					<property name="kernel" value="false"/>
+					<property name="output_width" value="false"/>
+					<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+					<property name="use_cti" value="true"/>
+					<property name="warn_if_system_reset_not_performed" value="true"/>
+				</properties>
+				<core id="1" type="SHARC-2159x">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:2|SIM|CLEAR_SYMBOLS"/>
+						<property name="cores-to-enable" value="ADI_CORE_SHARC1"/>
+					</properties>
+				</core>
+				<core id="2" type="SHARC-2159x">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:1|SIM|NO_RESET_BEFORE_LOAD|CLEAR_SYMBOLS|RUN_AFTER_LOAD"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-21593">
+				<properties>
+					<property name="extended-register-xml" value="ADSP-21593-registers.xml"/>
+					<property name="memory-xml" value="ADSP-21593-memory.xml"/>
+					<property name="boot_code" value="true"/>
+					<property name="file_format_width" value="true"/>
+					<property name="_flow_control" value="true"/>
+					<property name="kernel" value="false"/>
+					<property name="output_width" value="false"/>
+					<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+					<property name="use_cti" value="true"/>
+					<property name="warn_if_system_reset_not_performed" value="true"/>
+				</properties>
+				<core id="1" type="SHARC-2159x">
+					<properties>
+						<property name="LoadPrerequisite.0" value="EMU|KIT|CLEAR_SYMBOLS|RUN_AFTER_LOAD,SHARC\ldr\ezkit21593_preload_core1.dxe"/>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:2|SIM|CLEAR_SYMBOLS"/>
+						<property name="cores-to-enable" value="ADI_CORE_SHARC1"/>
+					</properties>
+				</core>
+				<core id="2" type="SHARC-2159x">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:1|SIM|NO_RESET_BEFORE_LOAD|CLEAR_SYMBOLS|RUN_AFTER_LOAD"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-21593W">
+				<properties>
+					<property name="extended-register-xml" value="ADSP-21593W-registers.xml"/>
+					<property name="memory-xml" value="ADSP-21593-memory.xml"/>
+					<property name="boot_code" value="true"/>
+					<property name="file_format_width" value="true"/>
+					<property name="_flow_control" value="true"/>
+					<property name="kernel" value="false"/>
+					<property name="output_width" value="false"/>
+					<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+					<property name="use_cti" value="true"/>
+					<property name="warn_if_system_reset_not_performed" value="true"/>
+				</properties>
+				<core id="1" type="SHARC-2159x">
+					<properties>
+						<property name="LoadPrerequisite.0" value="EMU|KIT|CLEAR_SYMBOLS|RUN_AFTER_LOAD,SHARC\ldr\ezkit21593_preload_core1.dxe"/>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:2|SIM|CLEAR_SYMBOLS"/>
+						<property name="cores-to-enable" value="ADI_CORE_SHARC1"/>
+					</properties>
+				</core>
+				<core id="2" type="SHARC-2159x">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:1|SIM|NO_RESET_BEFORE_LOAD|CLEAR_SYMBOLS|RUN_AFTER_LOAD"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-21594">
+				<properties>
+					<property name="extended-register-xml" value="ADSP-21594-registers.xml"/>
+					<property name="memory-xml" value="ADSP-21594-memory.xml"/>
+					<property name="boot_code" value="true"/>
+					<property name="file_format_width" value="true"/>
+					<property name="_flow_control" value="true"/>
+					<property name="kernel" value="false"/>
+					<property name="output_width" value="false"/>
+					<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+					<property name="use_cti" value="true"/>
+					<property name="warn_if_system_reset_not_performed" value="true"/>
+				</properties>
+				<core id="1" type="SHARC-2159x">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:2|SIM|CLEAR_SYMBOLS"/>
+						<property name="cores-to-enable" value="ADI_CORE_SHARC1"/>
+					</properties>
+				</core>
+				<core id="2" type="SHARC-2159x">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:1|SIM|NO_RESET_BEFORE_LOAD|CLEAR_SYMBOLS|RUN_AFTER_LOAD"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-21594W">
+				<properties>
+					<property name="extended-register-xml" value="ADSP-21594W-registers.xml"/>
+					<property name="memory-xml" value="ADSP-21594-memory.xml"/>
+					<property name="boot_code" value="true"/>
+					<property name="file_format_width" value="true"/>
+					<property name="_flow_control" value="true"/>
+					<property name="kernel" value="false"/>
+					<property name="output_width" value="false"/>
+					<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+					<property name="use_cti" value="true"/>
+					<property name="warn_if_system_reset_not_performed" value="true"/>
+				</properties>
+				<core id="1" type="SHARC-2159x">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:2|SIM|CLEAR_SYMBOLS"/>
+						<property name="cores-to-enable" value="ADI_CORE_SHARC1"/>
+					</properties>
+				</core>
+				<core id="2" type="SHARC-2159x">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:1|SIM|NO_RESET_BEFORE_LOAD|CLEAR_SYMBOLS|RUN_AFTER_LOAD"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-SC570">
+				<properties>
+					<property name="extended-register-xml" value="ADSP-SC571-registers.xml"/>
+					<property name="memory-xml" value="ADSP-SC570-memory.xml"/>
+					<property name="boot_code" value="true"/>
+					<property name="file_format_width" value="true"/>
+					<property name="_flow_control" value="true"/>
+					<property name="kernel" value="false"/>
+					<property name="output_width" value="false"/>
+					<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+					<property name="use_cti" value="true"/>
+					<property name="warn_if_system_reset_not_performed" value="true"/>
+				</properties> 
+				<core id="0" type="Cortex-A5">
+					<properties>
+						<property name="cores-to-enable" value="ADI_CORE_SHARC0"/>
+					</properties>
+				</core>
+				<core id="1" type="SHARC-215xx">
+					<properties/>
+				</core>
+			</processor>
+
+			<processor name="ADSP-SC571">
+				<properties>
+					<property name="extended-register-xml" value="ADSP-SC571-registers.xml"/>
+					<property name="memory-xml" value="ADSP-SC571-memory.xml"/>
+					<property name="boot_code" value="true"/>
+					<property name="file_format_width" value="true"/>
+					<property name="_flow_control" value="true"/>
+					<property name="kernel" value="false"/>
+					<property name="output_width" value="false"/>
+					<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+					<property name="use_cti" value="true"/>
+					<property name="warn_if_system_reset_not_performed" value="true"/>
+				</properties> 
+				<core id="0" type="Cortex-A5">
+					<properties>
+						<property name="cores-to-enable" value="ADI_CORE_SHARC0 ADI_CORE_SHARC1"/>
+					</properties>
+				</core>
+				<core id="1" type="SHARC-215xx">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:2|SIM|CLEAR_SYMBOLS"/>
+					</properties>
+				</core>
+				<core id="2" type="SHARC-215xx">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:1|SIM|NO_RESET_BEFORE_LOAD|CLEAR_SYMBOLS|RUN_AFTER_LOAD"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-SC572">
+				<properties>
+					<property name="extended-register-xml" value="ADSP-SC573-registers.xml"/>
+					<property name="memory-xml" value="ADSP-SC572-memory.xml"/>
+					<property name="boot_code" value="true"/>
+					<property name="file_format_width" value="true"/>
+					<property name="_flow_control" value="true"/>
+					<property name="kernel" value="false"/>
+					<property name="output_width" value="false"/>
+					<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+					<property name="use_cti" value="true"/>
+					<property name="warn_if_system_reset_not_performed" value="true"/>
+				</properties> 
+				<core id="0" type="Cortex-A5">
+					<properties>
+						<property name="cores-to-enable" value="ADI_CORE_SHARC0"/>
+					</properties>
+				</core>
+				<core id="1" type="SHARC-215xx">
+					<properties/>
+				</core>
+			</processor>
+
+			<processor name="ADSP-SC573">
+				<properties>
+					<property name="extended-register-xml" value="ADSP-SC573-registers.xml"/>
+					<property name="memory-xml" value="ADSP-SC573-memory.xml"/>
+					<property name="boot_code" value="true"/>
+					<property name="file_format_width" value="true"/>
+					<property name="_flow_control" value="true"/>
+					<property name="kernel" value="false"/>
+					<property name="output_width" value="false"/>
+					<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+					<property name="use_cti" value="true"/>
+					<property name="warn_if_system_reset_not_performed" value="true"/>
+				</properties> 
+				<core id="0" type="Cortex-A5">
+					<properties>
+						<property name="LoadPrerequisite.0" value="EMU|KIT|CLEAR_SYMBOLS|RUN_AFTER_LOAD,SHARC\ldr\ezkitSC573_preload_core0"/>
+						<property name="cores-to-enable" value="ADI_CORE_SHARC0 ADI_CORE_SHARC1"/>
+					</properties>
+				</core>
+				<core id="1" type="SHARC-215xx">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:2|SIM|CLEAR_SYMBOLS"/>
+					</properties>
+				</core>
+				<core id="2" type="SHARC-215xx">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:1|SIM|NO_RESET_BEFORE_LOAD|CLEAR_SYMBOLS|RUN_AFTER_LOAD"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-SC582">
+				<properties>
+					<property name="extended-register-xml" value="ADSP-SC584-registers.xml"/>
+					<property name="memory-xml" value="ADSP-SC582-memory.xml"/>
+					<property name="boot_code" value="true"/>
+					<property name="file_format_width" value="true"/>
+					<property name="_flow_control" value="true"/>
+					<property name="kernel" value="false"/>
+					<property name="output_width" value="false"/>
+					<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+					<property name="use_cti" value="true"/>
+					<property name="warn_if_system_reset_not_performed" value="true"/>
+				</properties> 
+				<core id="0" type="Cortex-A5">
+					<properties>
+						<property name="cores-to-enable" value="ADI_CORE_SHARC0"/>
+					</properties>
+				</core>
+				<core id="1" type="SHARC-215xx">
+					<properties/>
+				</core>
+			</processor>
+
+			<processor name="ADSP-SC583">
+				<properties>
+					<property name="extended-register-xml" value="ADSP-SC584-registers.xml"/>
+					<property name="memory-xml" value="ADSP-SC583-memory.xml"/>
+					<property name="boot_code" value="true"/>
+					<property name="file_format_width" value="true"/>
+					<property name="_flow_control" value="true"/>
+					<property name="kernel" value="false"/>
+					<property name="output_width" value="false"/>
+					<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+					<property name="use_cti" value="true"/>
+					<property name="warn_if_system_reset_not_performed" value="true"/>
+				</properties> 
+				<core id="0" type="Cortex-A5">
+					<properties>
+						<property name="cores-to-enable" value="ADI_CORE_SHARC0 ADI_CORE_SHARC1"/>
+					</properties>
+				</core>
+				<core id="1" type="SHARC-215xx">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:2|SIM|CLEAR_SYMBOLS"/>
+					</properties>
+				</core>
+				<core id="2" type="SHARC-215xx">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:1|SIM|NO_RESET_BEFORE_LOAD|CLEAR_SYMBOLS|RUN_AFTER_LOAD"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-SC584">
+				<properties>
+					<property name="extended-register-xml" value="ADSP-SC584-registers.xml"/>
+					<property name="memory-xml" value="ADSP-SC584-memory.xml"/>
+					<property name="boot_code" value="true"/>
+					<property name="file_format_width" value="true"/>
+					<property name="_flow_control" value="true"/>
+					<property name="kernel" value="false"/>
+					<property name="output_width" value="false"/>
+					<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+					<property name="use_cti" value="true"/>
+					<property name="warn_if_system_reset_not_performed" value="true"/>
+				</properties> 
+				<core id="0" type="Cortex-A5">
+					<properties>
+						<property name="LoadPrerequisite.0" value="EMU|KIT|CLEAR_SYMBOLS|RUN_AFTER_LOAD,SHARC\ldr\ezkitSC584_preload_core0_v01"/>
+						<property name="cores-to-enable" value="ADI_CORE_SHARC0 ADI_CORE_SHARC1"/>
+					</properties>				
+				</core>
+				<core id="1" type="SHARC-215xx">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:2|SIM|CLEAR_SYMBOLS"/>
+					</properties>
+				</core>
+				<core id="2" type="SHARC-215xx">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:1|SIM|NO_RESET_BEFORE_LOAD|CLEAR_SYMBOLS|RUN_AFTER_LOAD"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-SC587">
+				<properties>
+					<property name="extended-register-xml" value="ADSP-SC587-registers.xml"/>
+					<property name="memory-xml" value="ADSP-SC587-memory.xml"/>
+					<property name="boot_code" value="true"/>
+					<property name="file_format_width" value="true"/>
+					<property name="_flow_control" value="true"/>
+					<property name="kernel" value="false"/>
+					<property name="output_width" value="false"/>
+					<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+					<property name="use_cti" value="true"/>
+					<property name="warn_if_system_reset_not_performed" value="true"/>
+				</properties> 
+				<core id="0" type="Cortex-A5">
+					<properties>
+						<property name="cores-to-enable" value="ADI_CORE_SHARC0 ADI_CORE_SHARC1"/>
+					</properties>
+				</core>
+				<core id="1" type="SHARC-215xx">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:2|SIM|CLEAR_SYMBOLS"/>
+					</properties>
+				</core>
+				<core id="2" type="SHARC-215xx">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:1|SIM|NO_RESET_BEFORE_LOAD|CLEAR_SYMBOLS|RUN_AFTER_LOAD"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-SC589">
+				<properties>
+					<property name="extended-register-xml" value="ADSP-SC589-registers.xml"/>
+					<property name="memory-xml" value="ADSP-SC589-memory.xml"/>
+					<property name="boot_code" value="true"/>
+					<property name="file_format_width" value="true"/>
+					<property name="_flow_control" value="true"/>
+					<property name="kernel" value="false"/>
+					<property name="output_width" value="false"/>
+					<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+					<property name="use_cti" value="true"/>
+					<property name="warn_if_system_reset_not_performed" value="true"/>
+				</properties> 
+				<core id="0" type="Cortex-A5">
+					<properties>
+						<property name="LoadPrerequisite.0" value="EMU|KIT|CLEAR_SYMBOLS|RUN_AFTER_LOAD,SHARC\ldr\ezkitSC589_preload_core0_v01"/>
+						<property name="cores-to-enable" value="ADI_CORE_SHARC0 ADI_CORE_SHARC1"/>
+					</properties>				
+				</core>
+				<core id="1" type="SHARC-215xx">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:2|SIM|CLEAR_SYMBOLS"/>
+					</properties>
+				</core>
+				<core id="2" type="SHARC-215xx">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:1|SIM|NO_RESET_BEFORE_LOAD|CLEAR_SYMBOLS|RUN_AFTER_LOAD"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-SC591">
+				<properties>
+					<property name="extended-register-xml" value="ADSP-SC592-registers.xml"/>
+					<property name="memory-xml" value="ADSP-SC591-memory.xml"/>
+					<property name="boot_code" value="true"/>
+					<property name="file_format_width" value="true"/>
+					<property name="_flow_control" value="true"/>
+					<property name="kernel" value="false"/>
+					<property name="output_width" value="false"/>
+					<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+					<property name="use_cti" value="true"/>
+					<property name="warn_if_system_reset_not_performed" value="true"/>
+				</properties>
+				<core id="0" type="Cortex-A5">
+					<properties>
+						<property name="cores-to-enable" value="ADI_CORE_SHARC0"/>
+					</properties>
+				</core>
+				<core id="1" type="SHARC-2159x">
+					<properties/>
+				</core>
+			</processor>
+
+			<processor name="ADSP-SC591W">
+				<properties>
+					<property name="extended-register-xml" value="ADSP-SC592W-registers.xml"/>
+					<property name="memory-xml" value="ADSP-SC591-memory.xml"/>
+					<property name="boot_code" value="true"/>
+					<property name="file_format_width" value="true"/>
+					<property name="_flow_control" value="true"/>
+					<property name="kernel" value="false"/>
+					<property name="output_width" value="false"/>
+					<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+					<property name="use_cti" value="true"/>
+					<property name="warn_if_system_reset_not_performed" value="true"/>
+				</properties>
+				<core id="0" type="Cortex-A5">
+					<properties>
+						<property name="cores-to-enable" value="ADI_CORE_SHARC0"/>
+					</properties>
+				</core>
+				<core id="1" type="SHARC-2159x">
+					<properties/>
+				</core>
+			</processor>
+
+			<processor name="ADSP-SC592">
+				<properties>
+					<property name="extended-register-xml" value="ADSP-SC592-registers.xml"/>
+					<property name="memory-xml" value="ADSP-SC592-memory.xml"/>
+					<property name="boot_code" value="true"/>
+					<property name="file_format_width" value="true"/>
+					<property name="_flow_control" value="true"/>
+					<property name="kernel" value="false"/>
+					<property name="output_width" value="false"/>
+					<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+					<property name="use_cti" value="true"/>
+					<property name="warn_if_system_reset_not_performed" value="true"/>
+				</properties>
+				<core id="0" type="Cortex-A5">
+					<properties>
+						<property name="cores-to-enable" value="ADI_CORE_SHARC0"/>
+					</properties>
+				</core>
+				<core id="1" type="SHARC-2159x">
+					<properties/>
+				</core>
+			</processor>
+
+			<processor name="ADSP-SC592W">
+				<properties>
+					<property name="extended-register-xml" value="ADSP-SC592W-registers.xml"/>
+					<property name="memory-xml" value="ADSP-SC592-memory.xml"/>
+					<property name="boot_code" value="true"/>
+					<property name="file_format_width" value="true"/>
+					<property name="_flow_control" value="true"/>
+					<property name="kernel" value="false"/>
+					<property name="output_width" value="false"/>
+					<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+					<property name="use_cti" value="true"/>
+					<property name="warn_if_system_reset_not_performed" value="true"/>
+				</properties>
+				<core id="0" type="Cortex-A5">
+					<properties>
+						<property name="cores-to-enable" value="ADI_CORE_SHARC0"/>
+					</properties>
+				</core>
+				<core id="1" type="SHARC-2159x">
+					<properties/>
+				</core>
+			</processor>
+
+			<processor name="ADSP-SC593W">
+				<properties>
+					<property name="extended-register-xml" value="ADSP-SC593W-registers.xml"/>
+					<property name="memory-xml" value="ADSP-SC593-memory.xml"/>
+					<property name="boot_code" value="true"/>
+					<property name="file_format_width" value="true"/>
+					<property name="_flow_control" value="true"/>
+					<property name="kernel" value="false"/>
+					<property name="output_width" value="false"/>
+					<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+					<property name="use_cti" value="true"/>
+					<property name="warn_if_system_reset_not_performed" value="true"/>
+				</properties>
+				<core id="0" type="Cortex-A5">
+					<properties>
+						<property name="cores-to-enable" value="ADI_CORE_SHARC0 ADI_CORE_SHARC1"/>
+					</properties>
+				</core>
+				<core id="1" type="SHARC-2159x">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:2|SIM|CLEAR_SYMBOLS"/>
+					</properties>
+				</core>
+				<core id="2" type="SHARC-2159x">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:1|SIM|NO_RESET_BEFORE_LOAD|CLEAR_SYMBOLS|RUN_AFTER_LOAD"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-SC594">
+				<properties>
+					<property name="extended-register-xml" value="ADSP-SC594-registers.xml"/>
+					<property name="memory-xml" value="ADSP-SC594-memory.xml"/>
+					<property name="boot_code" value="true"/>
+					<property name="file_format_width" value="true"/>
+					<property name="_flow_control" value="true"/>
+					<property name="kernel" value="false"/>
+					<property name="output_width" value="false"/>
+					<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+					<property name="use_cti" value="true"/>
+					<property name="warn_if_system_reset_not_performed" value="true"/>
+				</properties>
+				<core id="0" type="Cortex-A5">
+					<properties>
+						<property name="LoadPrerequisite.0" value="EMU|KIT|CLEAR_SYMBOLS|RUN_AFTER_LOAD,SHARC\ldr\ezkitSC594_preload_core0"/>
+						<property name="cores-to-enable" value="ADI_CORE_SHARC0 ADI_CORE_SHARC1"/>
+					</properties>
+				</core>
+				<core id="1" type="SHARC-2159x">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:2|SIM|CLEAR_SYMBOLS"/>
+					</properties>
+				</core>
+				<core id="2" type="SHARC-2159x">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:1|SIM|NO_RESET_BEFORE_LOAD|CLEAR_SYMBOLS|RUN_AFTER_LOAD"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-SC594W">
+				<properties>
+					<property name="extended-register-xml" value="ADSP-SC594W-registers.xml"/>
+					<property name="memory-xml" value="ADSP-SC594-memory.xml"/>
+					<property name="boot_code" value="true"/>
+					<property name="file_format_width" value="true"/>
+					<property name="_flow_control" value="true"/>
+					<property name="kernel" value="false"/>
+					<property name="output_width" value="false"/>
+					<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+					<property name="use_cti" value="true"/>
+					<property name="warn_if_system_reset_not_performed" value="true"/>
+				</properties>
+				<core id="0" type="Cortex-A5">
+					<properties>
+						<property name="LoadPrerequisite.0" value="EMU|KIT|CLEAR_SYMBOLS|RUN_AFTER_LOAD,SHARC\ldr\ezkitSC594W_preload_core0"/>
+						<property name="cores-to-enable" value="ADI_CORE_SHARC0 ADI_CORE_SHARC1"/>
+					</properties>
+				</core>
+				<core id="1" type="SHARC-2159x">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:2|SIM|CLEAR_SYMBOLS"/>
+					</properties>
+				</core>
+				<core id="2" type="SHARC-2159x">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:1|SIM|NO_RESET_BEFORE_LOAD|CLEAR_SYMBOLS|RUN_AFTER_LOAD"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-SC595">
+				<properties>
+					<property name="extended-register-xml" value="ADSP-SC596-registers.xml"/>
+					<property name="memory-xml" value="ADSP-SC595-memory.xml"/>
+					<property name="boot_code" value="true"/>
+					<property name="file_format_width" value="true"/>
+					<property name="_flow_control" value="true"/>
+					<property name="kernel" value="false"/>
+					<property name="output_width" value="false"/>
+					<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+					<property name="use_cti" value="true"/>
+					<property name="warn_if_system_reset_not_performed" value="true"/>
+					<property name="svd" value="ADSP-SC595.svd"/>
+				</properties>
+				<core id="0" type="Cortex-A55">
+					<properties>
+						<property name="cores-to-enable" value="ADI_CORE_SHARC0"/>
+					</properties>
+				</core>
+				<core id="1" type="SHARC-2159x">
+					<properties/>
+				</core>
+			</processor>
+
+			<processor name="ADSP-SC595W">
+				<properties>
+					<property name="extended-register-xml" value="ADSP-SC596W-registers.xml"/>
+					<property name="memory-xml" value="ADSP-SC595-memory.xml"/>
+					<property name="boot_code" value="true"/>
+					<property name="file_format_width" value="true"/>
+					<property name="_flow_control" value="true"/>
+					<property name="kernel" value="false"/>
+					<property name="output_width" value="false"/>
+					<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+					<property name="use_cti" value="true"/>
+					<property name="warn_if_system_reset_not_performed" value="true"/>
+					<property name="svd" value="ADSP-SC595W.svd"/>
+				</properties>
+				<core id="0" type="Cortex-A55">
+					<properties>
+						<property name="cores-to-enable" value="ADI_CORE_SHARC0"/>
+					</properties>
+				</core>
+				<core id="1" type="SHARC-2159x">
+					<properties/>
+				</core>
+			</processor>
+
+			<processor name="ADSP-SC596">
+				<properties>
+					<property name="extended-register-xml" value="ADSP-SC596-registers.xml"/>
+					<property name="memory-xml" value="ADSP-SC596-memory.xml"/>
+					<property name="boot_code" value="true"/>
+					<property name="file_format_width" value="true"/>
+					<property name="_flow_control" value="true"/>
+					<property name="kernel" value="false"/>
+					<property name="output_width" value="false"/>
+					<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+					<property name="use_cti" value="true"/>
+					<property name="warn_if_system_reset_not_performed" value="true"/>
+					<property name="svd" value="ADSP-SC596.svd"/>
+				</properties>
+				<core id="0" type="Cortex-A55">
+					<properties>
+						<property name="cores-to-enable" value="ADI_CORE_SHARC0"/>
+					</properties>
+				</core>
+				<core id="1" type="SHARC-2159x">
+					<properties/>
+				</core>
+			</processor>
+
+			<processor name="ADSP-SC596W">
+				<properties>
+					<property name="extended-register-xml" value="ADSP-SC596W-registers.xml"/>
+					<property name="memory-xml" value="ADSP-SC596-memory.xml"/>
+					<property name="boot_code" value="true"/>
+					<property name="file_format_width" value="true"/>
+					<property name="_flow_control" value="true"/>
+					<property name="kernel" value="false"/>
+					<property name="output_width" value="false"/>
+					<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+					<property name="use_cti" value="true"/>
+					<property name="warn_if_system_reset_not_performed" value="true"/>
+					<property name="svd" value="ADSP-SC596W.svd"/>
+				</properties>
+				<core id="0" type="Cortex-A55">
+					<properties>
+						<property name="cores-to-enable" value="ADI_CORE_SHARC0"/>
+					</properties>
+				</core>
+				<core id="1" type="SHARC-2159x">
+					<properties/>
+				</core>
+			</processor>
+
+			<processor name="ADSP-SC598">
+				<properties>
+					<property name="extended-register-xml" value="ADSP-SC598-registers.xml"/>
+					<property name="memory-xml" value="ADSP-SC598-memory.xml"/>
+					<property name="boot_code" value="true"/>
+					<property name="file_format_width" value="true"/>
+					<property name="_flow_control" value="true"/>
+					<property name="kernel" value="false"/>
+					<property name="output_width" value="false"/>
+					<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+					<property name="use_cti" value="true"/>
+					<property name="warn_if_system_reset_not_performed" value="true"/>
+					<property name="svd" value="ADSP-SC598.svd"/>
+				</properties>
+				<core id="0" type="Cortex-A55">
+					<properties>
+						<property name="cores-to-enable" value="ADI_CORE_SHARC0 ADI_CORE_SHARC1"/>
+					</properties>
+				</core>
+				<core id="1" type="SHARC-2159x">
+					<properties>
+						<property name="LoadPrerequisite.0" value="EMU|KIT|CLEAR_SYMBOLS|RUN_AFTER_LOAD,SHARC\ldr\ezkitSC598W_preload_core1.dxe"/>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:2|SIM|CLEAR_SYMBOLS"/>
+					</properties>
+				</core>
+				<core id="2" type="SHARC-2159x">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:1|SIM|NO_RESET_BEFORE_LOAD|CLEAR_SYMBOLS|RUN_AFTER_LOAD"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-SC598W">
+				<properties>
+					<property name="extended-register-xml" value="ADSP-SC598W-registers.xml"/>
+					<property name="memory-xml" value="ADSP-SC598-memory.xml"/>
+					<property name="boot_code" value="true"/>
+					<property name="file_format_width" value="true"/>
+					<property name="_flow_control" value="true"/>
+					<property name="kernel" value="false"/>
+					<property name="output_width" value="false"/>
+					<property name="sharc_loader_general_start_addr_timeout" value="false"/>
+					<property name="use_cti" value="true"/>
+					<property name="warn_if_system_reset_not_performed" value="true"/>
+					<property name="svd" value="ADSP-SC598W.svd"/>
+				</properties>
+				<core id="0" type="Cortex-A55">
+					<properties>
+						<property name="cores-to-enable" value="ADI_CORE_SHARC0 ADI_CORE_SHARC1"/>
+					</properties>
+				</core>
+				<core id="1" type="SHARC-2159x">
+					<properties>
+						<property name="LoadPrerequisite.0" value="EMU|KIT|CLEAR_SYMBOLS|RUN_AFTER_LOAD,SHARC\ldr\ezkitSC598W_preload_core1.dxe"/>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:2|SIM|CLEAR_SYMBOLS"/>
+					</properties>
+				</core>
+				<core id="2" type="SHARC-2159x">
+					<properties>
+						<property name="UserProgram" value="APPLY_OPTIONS_IF_USER_PROGRAM_EXISTS_FOR_CORE:1|SIM|NO_RESET_BEFORE_LOAD|CLEAR_SYMBOLS|RUN_AFTER_LOAD"/>
+					</properties>
+				</core>
+			</processor>
+
+		</family>
+
+		<family
+			data_sheet_url="http://www.analog.com/sharc/datasheets"
+			name="SHARC-FX"
+			value="5">
+
+			<processor name="ADSP-21834">
+				<core id="1" type="SHARC-FX">
+					<properties>
+						<property name="debug-source-map-xml" value="SHARC-FX-debug-source-map.xml"/>
+						<property name="boot_code" value="true"/>
+						<property name="_flow_control" value="true"/>
+						<property name="svd" value="ADSP-2183x_LPC.svd"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-21834W">
+				<core id="1" type="SHARC-FX">
+					<properties>
+						<property name="debug-source-map-xml" value="SHARC-FX-debug-source-map.xml"/>
+						<property name="boot_code" value="true"/>
+						<property name="_flow_control" value="true"/>
+						<property name="svd" value="ADSP-2183xW_LPC.svd"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-21835">
+				<core id="1" type="SHARC-FX">
+					<properties>
+						<property name="LoadPrerequisite.0" value="Xtensa\SHARC-FX\ldr\ADSP21835W-EV-SOM_preload.dxe"/>
+						<property name="debug-source-map-xml" value="SHARC-FX-debug-source-map.xml"/>
+						<property name="boot_code" value="true"/>
+						<property name="_flow_control" value="true"/>
+						<property name="svd" value="ADSP-2183x_LPC.svd"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-21835W">
+				<core id="1" type="SHARC-FX">
+					<properties>
+						<property name="LoadPrerequisite.0" value="Xtensa\SHARC-FX\ldr\ADSP21835W-EV-SOM_preload.dxe"/>
+						<property name="debug-source-map-xml" value="SHARC-FX-debug-source-map.xml"/>
+						<property name="boot_code" value="true"/>
+						<property name="_flow_control" value="true"/>
+						<property name="svd" value="ADSP-2183xW_LPC.svd"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-21836">
+				<core id="1" type="SHARC-FX">
+					<properties>
+						<property name="debug-source-map-xml" value="SHARC-FX-debug-source-map.xml"/>
+						<property name="boot_code" value="true"/>
+						<property name="_flow_control" value="true"/>
+						<property name="svd" value="ADSP-2183x_HPC.svd"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-21836W">
+				<core id="1" type="SHARC-FX">
+					<properties>
+						<property name="debug-source-map-xml" value="SHARC-FX-debug-source-map.xml"/>
+						<property name="boot_code" value="true"/>
+						<property name="_flow_control" value="true"/>
+						<property name="svd" value="ADSP-2183xW_HPC.svd"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-21837">
+				<core id="1" type="SHARC-FX">
+					<properties>
+						<property name="debug-source-map-xml" value="SHARC-FX-debug-source-map.xml"/>
+						<property name="boot_code" value="true"/>
+						<property name="_flow_control" value="true"/>
+						<property name="svd" value="ADSP-2183x_HPC.svd"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-21837W">
+				<core id="1" type="SHARC-FX">
+					<properties>
+						<property name="debug-source-map-xml" value="SHARC-FX-debug-source-map.xml"/>
+						<property name="boot_code" value="true"/>
+						<property name="_flow_control" value="true"/>
+						<property name="svd" value="ADSP-2183xW_HPC.svd"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-SC834">
+				<properties>
+					<property name="boot_code" value="true"/>
+					<property name="_flow_control" value="true"/>
+				</properties>
+				<core id="1" type="SHARC-FX">
+					<properties>
+						<property name="debug-source-map-xml" value="SHARC-FX-debug-source-map.xml"/>
+						<property name="svd" value="ADSP-SC83x_HPC.svd"/>
+						<property name="cores-to-enable" value="ADI_CORE_ARM"/>
+					</properties>
+				</core>
+				<core id="2" type="Cortex-M33">
+					<properties/>
+				</core>
+			</processor>
+
+			<processor name="ADSP-SC834W">
+				<properties>
+					<property name="boot_code" value="true"/>
+					<property name="_flow_control" value="true"/>
+				</properties>
+				<core id="1" type="SHARC-FX">
+					<properties>
+						<property name="debug-source-map-xml" value="SHARC-FX-debug-source-map.xml"/>
+						<property name="svd" value="ADSP-SC83xW_HPC.svd"/>
+						<property name="cores-to-enable" value="ADI_CORE_ARM"/>
+					</properties>
+				</core>
+				<core id="2" type="Cortex-M33">
+					<properties/>
+				</core>
+			</processor>
+
+			<processor name="ADSP-SC835">
+				<properties>
+					<property name="boot_code" value="true"/>
+					<property name="_flow_control" value="true"/>
+				</properties>
+				<core id="1" type="SHARC-FX">
+					<properties>
+						<property name="LoadPrerequisite.0" value="Xtensa\SHARC-FX\ldr\ADSPSC835W-EV-SOM_preload_core1.dxe"/>
+						<property name="debug-source-map-xml" value="SHARC-FX-debug-source-map.xml"/>
+						<property name="svd" value="ADSP-SC83x_HPC.svd"/>
+						<property name="cores-to-enable" value="ADI_CORE_ARM"/>
+					</properties>
+				</core>
+				<core id="2" type="Cortex-M33">
+					<properties>
+						<property name="LoadPrerequisite.0" value="Xtensa\SHARC-FX\ldr\ADSPSC835W-EV-SOM_preload_core2"/>
+					</properties>
+				</core>
+			</processor>
+
+			<processor name="ADSP-SC835W">
+				<properties>
+					<property name="boot_code" value="true"/>
+					<property name="_flow_control" value="true"/>
+				</properties>
+				<core id="1" type="SHARC-FX">
+					<properties>
+						<property name="LoadPrerequisite.0" value="Xtensa\SHARC-FX\ldr\ADSPSC835W-EV-SOM_preload_core1.dxe"/>
+						<property name="debug-source-map-xml" value="SHARC-FX-debug-source-map.xml"/>
+						<property name="svd" value="ADSP-SC83xW_HPC.svd"/>
+						<property name="cores-to-enable" value="ADI_CORE_ARM"/>
+					</properties>
+				</core>
+				<core id="2" type="Cortex-M33">
+					<properties>
+						<property name="LoadPrerequisite.0" value="Xtensa\SHARC-FX\ldr\ADSPSC835W-EV-SOM_preload_core2"/>
+					</properties>
+				</core>
+			</processor>
+
+		</family>
+
+	</processors>
+
+</cces-idde-xml>

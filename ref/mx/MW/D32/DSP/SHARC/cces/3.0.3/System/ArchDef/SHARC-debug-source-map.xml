@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- *********************************************************************** -->
+<!-- ******* SHARC-debug-source-map.xml                                      -->
+<!-- ******* Copyright 2015-2022 Analog Devices, Inc. All rights reserved.   -->
+<!-- *********************************************************************** -->
+<debug-source-map-xml name="SHARC-debug-source-map.xml" schema-version="1.0">
+	<version file-version="2.11.0.0"/>
+
+	<!-- DSP and CRT libraries -->
+	<map source="sharc/lib/src" destination="SHARC/lib/src"/>
+
+	<!-- SSL/DD libraries -->
+	<map source="win32/kit/SHARC" destination="SHARC"/>
+	<map source="SHARC/include" destination="SHARC/include"/>
+
+	<!-- OS Abstraction Layer (OSAL) libraries -->
+	<map source="noos/osal/Source" destination="SHARC/lib/src/osal_noos/Source"/>
+	<map source="noos/osal/Ports/SHARC/CCES" destination="SHARC/lib/src/osal_noos/Ports/SHARC/CCES"/>
+	<map source="noos/osal/Projects/SHARC/CCES" destination="SHARC/lib/src/osal_noos/Projects/SHARC/CCES"/>
+
+	<map source="noos/scripts/temp/osal/Source" destination="SHARC/lib/src/osal_noos/Source"/>
+	<map source="noos/scripts/temp/osal/Ports/SHARC/CCES" destination="SHARC/lib/src/osal_noos/Ports/SHARC/CCES"/>
+	<map source="noos/scripts/temp/osal/Projects/SHARC/CCES" destination="SHARC/lib/src/osal_noos/Projects/SHARC/CCES"/>
+
+</debug-source-map-xml>

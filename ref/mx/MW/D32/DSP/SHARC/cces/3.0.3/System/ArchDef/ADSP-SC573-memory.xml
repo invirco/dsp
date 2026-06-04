@@ -1,0 +1,690 @@
+<?xml version="1.0" standalone="yes"?>
+
+<!-- ********************************************************************** -->
+<!-- ******  ADSP-SC573-memory.xml                                          -->
+<!-- ********************************************************************** -->
+<!--                                                                        -->
+<!-- Copyright (c) 2014-2021 Analog Devices, Inc.  All Rights Reserved.     -->
+<!-- This software is proprietary and confidential to Analog Devices, Inc.  -->
+<!-- and its licensors.                                                     -->
+<!--                                                                        -->
+<!-- ********************************************************************** -->
+<cces-memory-xml schema-version="1" name="ADSP-SC573-memory.xml">
+
+<version file-version="2.11.0.1"/>
+
+<!-- ********************************************* -->
+<!-- *******   Memory Format Definitions   ******* -->
+<!-- ********************************************* -->
+
+<!-- SHARC memory formats (manually written section) -->
+
+<memory-format-definitions>
+	<!-- ARM core formats -->
+	<memory-format max-count="4" name="ARM L2CC Registers" type="DATA"/>
+
+	<!-- SHARC L1 can be interpreted in several different ways. -->
+	<!-- These formats all use the byte-addressed space, but allow for a correspondence -->
+	<!-- between the numeric grouping for the word-addressed data or an instruction -->
+	<!-- and the equivalent locations, in byte-addressed space. -->
+	<!-- These formats can be used by either SHARC core, whether for the -->
+	<!-- native byte-addressed L1 space, or the multi-process space for any SHARC core. -->
+	<!-- In each space, there are four blocks. -->
+	<memory-format max-count="4" name="L1 8-bit (BW) Block 0" type="DATA"/>
+	<memory-format max-count="4" name="L1 8-bit (BW) Block 1" type="DATA"/>
+	<memory-format max-count="4" name="L1 8-bit (BW) Block 2" type="DATA"/>
+	<memory-format max-count="4" name="L1 8-bit (BW) Block 3" type="DATA"/>
+	<memory-format max-count="4" name="MP SHARC0 L1 Block 0" type="ALL"/>
+	<memory-format max-count="4" name="MP SHARC0 L1 Block 1" type="ALL"/>
+	<memory-format max-count="4" name="MP SHARC0 L1 Block 2" type="ALL"/>
+	<memory-format max-count="4" name="MP SHARC0 L1 Block 3" type="ALL"/>
+	<memory-format max-count="4" name="MP SHARC1 L1 Block 0" type="ALL"/>
+	<memory-format max-count="4" name="MP SHARC1 L1 Block 1" type="ALL"/>
+	<memory-format max-count="4" name="MP SHARC1 L1 Block 2" type="ALL"/>
+	<memory-format max-count="4" name="MP SHARC1 L1 Block 3" type="ALL"/>
+	<memory-format max-count="4" name="MP SHARC0 L1 8-bit (BW) Block 0" type="DATA"/>
+	<memory-format max-count="4" name="MP SHARC0 L1 8-bit (BW) Block 1" type="DATA"/>
+	<memory-format max-count="4" name="MP SHARC0 L1 8-bit (BW) Block 2" type="DATA"/>
+	<memory-format max-count="4" name="MP SHARC0 L1 8-bit (BW) Block 3" type="DATA"/>
+	<memory-format max-count="4" name="MP SHARC1 L1 8-bit (BW) Block 0" type="DATA"/>
+	<memory-format max-count="4" name="MP SHARC1 L1 8-bit (BW) Block 1" type="DATA"/>
+	<memory-format max-count="4" name="MP SHARC1 L1 8-bit (BW) Block 2" type="DATA"/>
+	<memory-format max-count="4" name="MP SHARC1 L1 8-bit (BW) Block 3" type="DATA"/>
+
+	<!-- SHARC L1 space in word-addressed form, where the format applies to -->
+	<!-- instruction or to data. -->
+	<!-- These formats apply to either SHARC core, and there are four blocks for each. -->
+
+	<memory-format max-count="1" name="L1 48-bit (PM) Block 0" type="ALL"/>
+	<memory-format max-count="1" name="L1 48-bit (PM) Block 1" type="ALL"/>
+	<memory-format max-count="1" name="L1 48-bit (PM) Block 2" type="ALL"/>
+	<memory-format max-count="1" name="L1 48-bit (PM) Block 3" type="ALL"/>
+	<memory-format max-count="3" name="L1 16-bit (SW) Block 0" type="ALL"/>
+	<memory-format max-count="3" name="L1 16-bit (SW) Block 1" type="ALL"/>
+	<memory-format max-count="3" name="L1 16-bit (SW) Block 2" type="ALL"/>
+	<memory-format max-count="3" name="L1 16-bit (SW) Block 3" type="ALL"/>
+	<memory-format max-count="1" name="L1 32-bit (NW) Block 0" type="DATA"/>
+	<memory-format max-count="1" name="L1 32-bit (NW) Block 1" type="DATA"/>
+	<memory-format max-count="1" name="L1 32-bit (NW) Block 2" type="DATA"/>
+	<memory-format max-count="1" name="L1 32-bit (NW) Block 3" type="DATA"/>
+	<memory-format max-count="4" name="MP SHARC0 L1 32-bit (NW) Block 0" type="DATA"/>
+	<memory-format max-count="4" name="MP SHARC0 L1 32-bit (NW) Block 1" type="DATA"/>
+	<memory-format max-count="4" name="MP SHARC0 L1 32-bit (NW) Block 2" type="DATA"/>
+	<memory-format max-count="4" name="MP SHARC0 L1 32-bit (NW) Block 3" type="DATA"/>
+	<memory-format max-count="4" name="MP SHARC1 L1 32-bit (NW) Block 0" type="DATA"/>
+	<memory-format max-count="4" name="MP SHARC1 L1 32-bit (NW) Block 1" type="DATA"/>
+	<memory-format max-count="4" name="MP SHARC1 L1 32-bit (NW) Block 2" type="DATA"/>
+	<memory-format max-count="4" name="MP SHARC1 L1 32-bit (NW) Block 3" type="DATA"/>
+	<memory-format max-count="1" name="L1 40-bit (EP) Block 0" type="DATA"/>
+	<memory-format max-count="1" name="L1 40-bit (EP) Block 1" type="DATA"/>
+	<memory-format max-count="1" name="L1 40-bit (EP) Block 2" type="DATA"/>
+	<memory-format max-count="1" name="L1 40-bit (EP) Block 3" type="DATA"/>
+	<memory-format max-count="1" name="L1 64-bit (LW) Block 0" type="DATA"/>
+	<memory-format max-count="1" name="L1 64-bit (LW) Block 1" type="DATA"/>
+	<memory-format max-count="1" name="L1 64-bit (LW) Block 2" type="DATA"/>
+	<memory-format max-count="1" name="L1 64-bit (LW) Block 3" type="DATA"/>
+
+	<!-- System MMRs. The byte-addressed space is available to all cores, -->
+	<!-- while the NW word-addressed space is only available to SHARCs. -->
+	<memory-format max-count="4" name="System MMRs" type="DATA"/>
+	<memory-format max-count="4" name="System MMRs 8-bit (BW)" type="DATA"/>
+	<memory-format max-count="1" name="System MMRs 32-bit (NW)" type="DATA"/>
+
+	<!-- Core MMRs. These are SHARC-specific. -->
+	<memory-format max-count="1" name="SHARC Core MMRs 32-bit (NW)" type="DATA"/>
+
+	<!-- Static Memory (SMC). The byte-addressed formats are available to -->
+	<!-- all cores, but the word-addressed formats are for the SHARCs only, -->
+	<!-- and only for the first bank. -->
+	<memory-format max-count="4" name="Static Memory (SMC)" type="ALL"/>
+	<memory-format max-count="4" name="Static Memory (SMC) 8-bit (BW)" type="DATA"/>
+	<memory-format max-count="1" name="Static Memory (SMC) 32-bit (NW)" type="DATA"/>
+	<memory-format max-count="3" name="Static Memory (SMC) 16-bit (SW)" type="ALL"/>
+	<memory-format max-count="1" name="Static Memory (SMC) 48-bit (EP/PM)" type="ALL"/>
+
+	<!-- PCIe. The byte-addressed formats are available to -->
+	<!-- all cores, but the word-addressed formats are for the SHARCs only; -->
+	<!-- the word-addressed aliases do not cover all of the available space. -->
+	<memory-format max-count="4" name="PCIe" type="ALL"/>
+	<memory-format max-count="4" name="PCIe 8-bit (BW)" type="DATA"/>
+	<memory-format max-count="1" name="PCIe 32-bit (NW)" type="DATA"/>
+	<memory-format max-count="3" name="PCIe 16-bit (SW)" type="ALL"/>
+	<memory-format max-count="1" name="PCIe 48-bit (EP/PM)" type="ALL"/>
+
+	<!-- SPI Flash. The byte-addressed formats are available to -->
+	<!-- all cores, but the word-addressed formats are for the SHARCs only; -->
+	<!-- the word-addressed aliases do not cover all of the available space. -->
+	<memory-format max-count="4" name="SPI FLASH" type="ALL"/>
+	<memory-format max-count="4" name="SPI FLASH 8-bit (BW)" type="DATA"/>
+	<memory-format max-count="1" name="SPI FLASH 32-bit (NW)" type="DATA"/>
+	<memory-format max-count="3" name="SPI FLASH 16-bit (SW)" type="ALL"/>
+	<memory-format max-count="1" name="SPI FLASH 48-bit (EP/PM)" type="ALL"/>
+
+	<!-- DDR. The byte-addressed formats are available to -->
+	<!-- all cores, but the word-addressed formats are for the SHARCs only; -->
+	<!-- the word-addressed aliases do not cover all of the available space. -->
+	<memory-format max-count="4" name="DDR (DMC 0)" type="ALL"/>
+	<memory-format max-count="4" name="DDR 8-bit (BW) (DMC 0)" type="DATA"/>
+	<memory-format max-count="1" name="DDR 32-bit (NW) (DMC 0)" type="DATA"/>
+	<memory-format max-count="3" name="DDR 16-bit (SW) (DMC 0)" type="ALL"/>
+	<memory-format max-count="1" name="DDR 48-bit (EP/PM) (DMC 0)" type="ALL"/>
+
+	<!-- L2 RAM. The byte-addressed formats are available to -->
+	<!-- all cores, but the word-addressed formats are for the SHARCs only; -->
+	<!-- the word-addressed aliases do not cover all of the available space. -->
+	<memory-format max-count="4" name="L2 RAM" type="ALL"/>
+	<memory-format max-count="4" name="L2 RAM 8-bit (BW)" type="DATA"/>
+	<memory-format max-count="1" name="L2 RAM 32-bit (NW)" type="DATA"/>
+	<memory-format max-count="3" name="L2 RAM 16-bit (SW)" type="ALL"/>
+	<memory-format max-count="1" name="L2 RAM 48-bit (EP/PM)" type="ALL"/>
+
+	<!-- Boot ROM. The byte-addressed formats are available to -->
+	<!-- all cores, but the word-addressed formats are for the SHARCs only; -->
+	<!-- the word-addressed aliases do not cover all of the available space. -->
+	<memory-format max-count="4" name="Boot ROM 0" type="ALL"/>
+	<memory-format max-count="4" name="Boot ROM 1" type="ALL"/>
+	<memory-format max-count="4" name="Boot ROM 2" type="ALL"/>
+	<memory-format max-count="4" name="Boot ROM 0 8-bit (BW)" type="DATA"/>
+	<memory-format max-count="4" name="Boot ROM 1 8-bit (BW)" type="DATA"/>
+	<memory-format max-count="4" name="Boot ROM 2 8-bit (BW)" type="DATA"/>
+	<memory-format max-count="1" name="Boot ROM 0 32-bit (NW)" type="DATA"/>
+	<memory-format max-count="1" name="Boot ROM 1 32-bit (NW)" type="DATA"/>
+	<memory-format max-count="1" name="Boot ROM 2 32-bit (NW)" type="DATA"/>
+	<memory-format max-count="3" name="Boot ROM 0 16-bit (SW)" type="ALL"/>
+	<memory-format max-count="3" name="Boot ROM 1 16-bit (SW)" type="ALL"/>
+	<memory-format max-count="3" name="Boot ROM 2 16-bit (SW)" type="ALL"/>
+	<memory-format max-count="1" name="Boot ROM 0 48-bit (EP/PM)" type="ALL"/>
+	<memory-format max-count="1" name="Boot ROM 1 48-bit (EP/PM)" type="ALL"/>
+	<memory-format max-count="1" name="Boot ROM 2 48-bit (EP/PM)" type="ALL"/>
+
+	<!-- L2 ROM. The byte-addressed formats are available to -->
+	<!-- all cores, but the word-addressed formats are for the SHARCs only; -->
+	<!-- the word-addressed aliases do not cover all of the available space. -->
+
+
+</memory-format-definitions>
+
+<!-- ************************************** -->
+<!-- *******   Memory Definitions   ******* -->
+<!-- ************************************** -->
+
+<memory-definitions>
+	<!-- ============================================================================================== -->
+	<!-- CORE 0 -->
+	<!-- ============================================================================================== -->
+
+	<!-- ============================================================================================== -->
+	<!-- Boot ROM and L2 RAM -->
+	<!-- ============================================================================================== -->
+
+	<memory-segment core="P0" memory-id="0" start="0x00000000" end="0x00007FFF" width="0x08" name="Boot ROM 0" access="0xF" type="DM PM ROM INTERNAL" />
+	<memory-segment core="P0" memory-id="1" start="0x10000000" end="0x10000FFF" width="0x08" name="ARM L2CC Registers" access="0xA" type="DM RAM INTERNAL MMR" />
+
+	<!-- There are eight banks of L2 RAM but they are contiguous, so express them as a single segment. -->
+	<memory-segment core="P0" memory-id="2" start="0x20000000" end="0x200FFFFF" width="0x08" name="L2 RAM" access="0xE" type="DM PM RAM INTERNAL" />
+	<memory-segment core="P0" memory-id="3" start="0x20108000" end="0x2010FFFF" width="0x08" name="Boot ROM 1" access="0xF" type="DM PM ROM INTERNAL" />
+	<memory-segment core="P0" memory-id="4" start="0x20110000" end="0x20117FFF" width="0x08" name="Boot ROM 2" access="0xF" type="DM PM ROM INTERNAL" />
+
+	<!-- ============================================================================================== -->
+	<!-- MP SHARC0 L1 memory, in MP space. -->
+	<!-- ============================================================================================== -->
+
+	<!-- Each SHARC core has four blocks of memory, and each of these blocks can be accessed by that SHARC core using SHARC addressing (via the PM, NW, SW, BW and LW spaces). -->
+	<!-- Alternatively the memory can be accessed by any core via a system alias address. -->
+	<!-- Only the BW space appears in this MP mirror (NW is accessible through another alias, -->
+	<!-- which is only accessible to the SHARC cores). -->
+	<!-- The MP aliases are obtained by adding an offset to the native L1 BW address. -->
+	<!-- The result is that not all of the MP space is populated. -->
+
+	<!-- SHARC0: 28000000 - 283FFFFF -->
+
+	<memory-segment core="P0" memory-id="5" start="0x28240000" end="0x2825FFFF" width="0x08" name="MP SHARC0 L1 Block 0" access="0xE" type="DM PM RAM INTERNAL" />
+	<memory-segment core="P0" memory-id="6" start="0x282C0000" end="0x282DFFFF" width="0x08" name="MP SHARC0 L1 Block 1" access="0xE" type="DM PM RAM INTERNAL" />
+	<memory-segment core="P0" memory-id="7" start="0x28300000" end="0x2830FFFF" width="0x08" name="MP SHARC0 L1 Block 2" access="0xE" type="DM PM RAM INTERNAL" />
+	<memory-segment core="P0" memory-id="8" start="0x28380000" end="0x2838FFFF" width="0x08" name="MP SHARC0 L1 Block 3" access="0xE" type="DM PM RAM INTERNAL" />
+
+	<!-- SHARC1: 28800000 - 28BFFFFF -->
+
+	<memory-segment core="P0" memory-id="9" start="0x28A40000" end="0x28A5FFFF" width="0x08" name="MP SHARC1 L1 Block 0" access="0xE" type="DM PM RAM INTERNAL" />
+	<memory-segment core="P0" memory-id="10" start="0x28AC0000" end="0x28ADFFFF" width="0x08" name="MP SHARC1 L1 Block 1" access="0xE" type="DM PM RAM INTERNAL" />
+	<memory-segment core="P0" memory-id="11" start="0x28B00000" end="0x28B0FFFF" width="0x08" name="MP SHARC1 L1 Block 2" access="0xE" type="DM PM RAM INTERNAL" />
+	<memory-segment core="P0" memory-id="12" start="0x28B80000" end="0x28B8FFFF" width="0x08" name="MP SHARC1 L1 Block 3" access="0xE" type="DM PM RAM INTERNAL" />
+
+	<!-- ============================================================================================== -->
+	<!-- System MMRs. -->
+	<!-- The range end comes from glxp_mmr_memorymap.xlsx, which contains the map for all SC5xx/215xx parts. -->
+	<!-- ============================================================================================== -->
+
+
+	<memory-segment core="P0" memory-id="13" start="0x30000000" end="0x31143FFF" width="0x08" name="System MMRs" access="0xA" type="DM RAM INTERNAL MMR" />
+
+	<!-- ============================================================================================== -->
+	<!-- Mapped IO space: SMC, SPI Flash. -->
+	<!-- ============================================================================================== -->
+
+	<!-- Static memory (SMC). -->
+	<memory-segment core="P0" memory-id="14" start="0x40000000" end="0x4FFFFFFF" width="0x08" name="Static Memory (SMC)" access="0xC" type="DM PM RAM EXTERNAL" />
+
+
+	<!-- SPI Flash. -->
+	<memory-segment core="P0" memory-id="15" start="0x60000000" end="0x7FFFFFFF" width="0x08" name="SPI FLASH" access="0xD" type="DM PM ROM EXTERNAL FLASH" />
+
+	<!-- DDR. -->
+
+	<memory-segment core="P0" memory-id="16" start="0x80000000" end="0xBFFFFFFF" width="0x08" name="DDR (DMC 0)" access="0xC" type="DM PM RAM EXTERNAL"  />
+
+	<!-- ============================================================================================== -->
+	<!-- CORE 1 -->
+	<!-- ============================================================================================== -->
+
+	<memory-segment core="P1" memory-id="0" start="0x00000000" end="0x0003FFFF" width="0x20" name="SHARC Core MMRs 32-bit (NW)" access="0xA" type="DM RAM INTERNAL MMR" />
+
+	<!-- ============================================================================================== -->
+	<!-- L1 Memory -->
+	<!-- ============================================================================================== -->
+
+	<!-- Each SHARC core occupies a space of 0x400000 addresses for L1 memory, which is divided into -->
+	<!-- separate ranges for BW, NW, EP, LW, SW, PM spaces. Each of those spaces is partially populated -->
+	<!-- by four internal blocks of memory, blocks 0..3. -->
+
+	<!-- LW: Long Word memory -->
+	<memory-segment core="P1" memory-id="1" start="0x00048000" end="0x0004BFFF" width="0x40" name="L1 64-bit (LW) Block 0" access="0xA" type="DM RAM INTERNAL"  />
+	<memory-segment core="P1" memory-id="2" start="0x00058000" end="0x0005BFFF" width="0x40" name="L1 64-bit (LW) Block 1" access="0xA" type="DM RAM INTERNAL"  />
+	<memory-segment core="P1" memory-id="3" start="0x00060000" end="0x00061FFF" width="0x40" name="L1 64-bit (LW) Block 2" access="0xA" type="DM RAM INTERNAL"  />
+	<memory-segment core="P1" memory-id="4" start="0x00070000" end="0x00071FFF" width="0x40" name="L1 64-bit (LW) Block 3" access="0xA" type="DM RAM INTERNAL"  />
+
+
+	<!-- NW, PM and EP all cover the same range, and have different-sized gaps, -->
+	<!-- according to the number of bits in the word. So there isn't a single -->
+	<!-- set of RESERVED gaps. -->
+
+	<!-- NW: 32-bit Normal-word Data memory -->
+	<memory-segment core="P1" memory-id="5" start="0x00090000" end="0x00097FFF" width="0x20" name="L1 32-bit (NW) Block 0" access="0xA" type="DM RAM INTERNAL"  />
+	<memory-segment core="P1" memory-id="6" start="0x000B0000" end="0x000B7FFF" width="0x20" name="L1 32-bit (NW) Block 1" access="0xA" type="DM RAM INTERNAL"  />
+	<memory-segment core="P1" memory-id="7" start="0x000C0000" end="0x000C3FFF" width="0x20" name="L1 32-bit (NW) Block 2" access="0xA" type="DM RAM INTERNAL"  />
+	<memory-segment core="P1" memory-id="8" start="0x000E0000" end="0x000E3FFF" width="0x20" name="L1 32-bit (NW) Block 3" access="0xA" type="DM RAM INTERNAL"  />
+
+
+	<!-- PM: 48-bit Program memory -->
+	<memory-segment core="P1" memory-id="9" start="0x00090000" end="0x00095554" width="0x30" name="L1 48-bit (PM) Block 0" access="0x6" type="PM RAM INTERNAL"  />
+	<memory-segment core="P1" memory-id="10" start="0x000B0000" end="0x000B5554" width="0x30" name="L1 48-bit (PM) Block 1" access="0x6" type="PM RAM INTERNAL"  />
+	<memory-segment core="P1" memory-id="11" start="0x000C0000" end="0x000C2AA9" width="0x30" name="L1 48-bit (PM) Block 2" access="0x6" type="PM RAM INTERNAL"  />
+	<memory-segment core="P1" memory-id="12" start="0x000E0000" end="0x000E2AA9" width="0x30" name="L1 48-bit (PM) Block 3" access="0x6" type="PM RAM INTERNAL"  />
+
+
+	<!-- EP: Extended-precision data memory -->
+	<memory-segment core="P1" memory-id="13" start="0x00090000" end="0x00095554" width="0x30" name="L1 40-bit (EP) Block 0" access="0xA" type="DM RAM INTERNAL"  />
+	<memory-segment core="P1" memory-id="14" start="0x000B0000" end="0x000B5554" width="0x30" name="L1 40-bit (EP) Block 1" access="0xA" type="DM RAM INTERNAL"  />
+	<memory-segment core="P1" memory-id="15" start="0x000C0000" end="0x000C2AA9" width="0x30" name="L1 40-bit (EP) Block 2" access="0xA" type="DM RAM INTERNAL"  />
+	<memory-segment core="P1" memory-id="16" start="0x000E0000" end="0x000E2AA9" width="0x30" name="L1 40-bit (EP) Block 3" access="0xA" type="DM RAM INTERNAL"  />
+
+
+	<!-- SW: 16-bit Short Word memory -->
+	<memory-segment core="P1" memory-id="17" start="0x00120000" end="0x0012FFFF" width="0x10" name="L1 16-bit (SW) Block 0" access="0x6" type="PM RAM INTERNAL"  />
+	<memory-segment core="P1" memory-id="18" start="0x00160000" end="0x0016FFFF" width="0x10" name="L1 16-bit (SW) Block 1" access="0x6" type="PM RAM INTERNAL"  />
+	<memory-segment core="P1" memory-id="19" start="0x00180000" end="0x00187FFF" width="0x10" name="L1 16-bit (SW) Block 2" access="0x6" type="PM RAM INTERNAL"  />
+	<memory-segment core="P1" memory-id="20" start="0x001C0000" end="0x001C7FFF" width="0x10" name="L1 16-bit (SW) Block 3" access="0x6" type="PM RAM INTERNAL"  />
+
+
+	<!-- BW: Byte-addressed memory -->
+	<memory-segment core="P1" memory-id="21" start="0x00240000" end="0x0025FFFF" width="0x08" name="L1 8-bit (BW) Block 0" access="0xA" type="DM RAM INTERNAL"  />
+	<memory-segment core="P1" memory-id="22" start="0x002C0000" end="0x002DFFFF" width="0x08" name="L1 8-bit (BW) Block 1" access="0xA" type="DM RAM INTERNAL"  />
+	<memory-segment core="P1" memory-id="23" start="0x00300000" end="0x0030FFFF" width="0x08" name="L1 8-bit (BW) Block 2" access="0xA" type="DM RAM INTERNAL"  />
+	<memory-segment core="P1" memory-id="24" start="0x00380000" end="0x0038FFFF" width="0x08" name="L1 8-bit (BW) Block 3" access="0xA" type="DM RAM INTERNAL"  />
+
+	<!-- ============================================================================================== -->
+	<!-- Non-L1 execution space: L2, Mapped I/O -->
+	<!-- ============================================================================================== -->
+
+	<!-- The SHARC cores have aliases that support execution from non-L1 space, by mapping them into -->
+	<!-- SW and PM word-addressed spaces. -->
+
+	<!-- 48-bit PM execution spaces -->
+
+	<memory-segment core="P1" memory-id="25" start="0x00580000" end="0x00581554" width="0x30" name="Boot ROM 0 48-bit (EP/PM)" access="0x7" type="PM ROM INTERNAL"  />
+	<memory-segment core="P1" memory-id="26" start="0x00500000" end="0x00501554" width="0x30" name="Boot ROM 1 48-bit (EP/PM)" access="0x7" type="PM ROM INTERNAL"  />
+	<memory-segment core="P1" memory-id="27" start="0x00540000" end="0x00541554" width="0x30" name="Boot ROM 2 48-bit (EP/PM)" access="0x7" type="PM ROM INTERNAL"  />
+	<memory-segment core="P1" memory-id="28" start="0x005C0000" end="0x005EAAA9" width="0x30" name="L2 RAM 48-bit (EP/PM)" access="0x6" type="PM RAM INTERNAL"  />
+
+	<memory-segment core="P1" memory-id="29" start="0x00700000" end="0x0073FFFF" width="0x30" name="Static Memory (SMC) 48-bit (EP/PM)" access="0x4" type="PM RAM EXTERNAL"  />
+	<memory-segment core="P1" memory-id="30" start="0x00780000" end="0x007FFFFF" width="0x30" name="SPI FLASH 48-bit (EP/PM)" access="0x5" type="PM ROM EXTERNAL"  />
+
+	<!-- 16-bit SW execution spaces -->
+
+	<memory-segment core="P1" memory-id="31" start="0x00B20000" end="0x00B23FFF" width="0x10" name="Boot ROM 0 16-bit (SW)" access="0x7" type="PM ROM INTERNAL"  />
+	<memory-segment core="P1" memory-id="32" start="0x00B00000" end="0x00B03FFF" width="0x10" name="Boot ROM 1 16-bit (SW)" access="0x7" type="PM ROM INTERNAL"  />
+	<memory-segment core="P1" memory-id="33" start="0x00B40000" end="0x00B43FFF" width="0x10" name="Boot ROM 2 16-bit (SW)" access="0x7" type="PM ROM INTERNAL"  />
+	<memory-segment core="P1" memory-id="34" start="0x00B80000" end="0x00BFFFFF" width="0x10" name="L2 RAM 16-bit (SW)" access="0x6" type="PM RAM INTERNAL"  />
+
+	<memory-segment core="P1" memory-id="35" start="0x00F00000" end="0x00F3FFFF" width="0x10" name="Static Memory (SMC) 16-bit (SW)" access="0x4" type="PM RAM EXTERNAL"  />
+	<memory-segment core="P1" memory-id="36" start="0x00F80000" end="0x00FFFFFF" width="0x10" name="SPI FLASH 16-bit (SW)" access="0x5" type="PM ROM EXTERNAL"  />
+
+	<!-- 32-bit NW data spaces -->
+
+	<memory-segment core="P1" memory-id="37" start="0x01000000" end="0x01FFFFFF" width="0x20" name="Static Memory (SMC) 32-bit (NW)" access="0x8" type="DM RAM EXTERNAL"  />
+	<memory-segment core="P1" memory-id="38" start="0x04000000" end="0x07FFFFFF" width="0x20" name="SPI FLASH 32-bit (NW)" access="0x9" type="DM ROM EXTERNAL"  />
+	<memory-segment core="P1" memory-id="39" start="0x08000000" end="0x0803FFFF" width="0x20" name="L2 RAM 32-bit (NW)" access="0xA" type="DM RAM INTERNAL"  />
+	<memory-segment core="P1" memory-id="40" start="0x08040000" end="0x08041FFF" width="0x20" name="Boot ROM 0 32-bit (NW)" access="0xB" type="DM ROM INTERNAL"  />
+	<memory-segment core="P1" memory-id="41" start="0x08042000" end="0x08043FFF" width="0x20" name="Boot ROM 1 32-bit (NW)" access="0xB" type="DM ROM INTERNAL"  />
+	<memory-segment core="P1" memory-id="42" start="0x08044000" end="0x08045FFF" width="0x20" name="Boot ROM 2 32-bit (NW)" access="0xB" type="DM ROM INTERNAL"  />
+
+	<!-- ============================================================================================== -->
+	<!-- SHARC L2 RAM & ROM 8-bit BW spaces -->
+	<!-- ============================================================================================== -->
+
+	<memory-segment core="P1" memory-id="43" start="0x20000000" end="0x200FFFFF" width="0x08" name="L2 RAM 8-bit (BW)" access="0xA" type="DM RAM INTERNAL"  />
+	<memory-segment core="P1" memory-id="44" start="0x20100000" end="0x20107FFF" width="0x08" name="Boot ROM 0 8-bit (BW)" access="0xB" type="DM ROM INTERNAL"  />
+	<memory-segment core="P1" memory-id="45" start="0x20108000" end="0x2010FFFF" width="0x08" name="Boot ROM 1 8-bit (BW)" access="0xB" type="DM ROM INTERNAL"  />
+	<memory-segment core="P1" memory-id="46" start="0x20110000" end="0x20117FFF" width="0x08" name="Boot ROM 2 8-bit (BW)" access="0xB" type="DM ROM INTERNAL"  />
+
+	<!-- ============================================================================================== -->
+	<!-- SHARC0 L1 NW memory in MP space. -->
+	<!-- ============================================================================================== -->
+
+	<!-- SHARC0: 0A090000 - 0A0E4000 -->
+
+	<memory-segment core="P1" memory-id="47" start="0x0A090000" end="0x0A097FFF" width="0x20" name="MP SHARC0 L1 32-bit (NW) Block 0" access="0x8" type="DM RAM EXTERNAL" />
+	<memory-segment core="P1" memory-id="48" start="0x0A0B0000" end="0x0A0B7FFF" width="0x20" name="MP SHARC0 L1 32-bit (NW) Block 1" access="0x8" type="DM RAM EXTERNAL" />
+	<memory-segment core="P1" memory-id="49" start="0x0A0C0000" end="0x0A0C3FFF" width="0x20" name="MP SHARC0 L1 32-bit (NW) Block 2" access="0x8" type="DM RAM EXTERNAL" />
+	<memory-segment core="P1" memory-id="50" start="0x0A0E0000" end="0x0A0E3FFF" width="0x20" name="MP SHARC0 L1 32-bit (NW) Block 3" access="0x8" type="DM RAM EXTERNAL" />
+
+	<!-- ============================================================================================== -->
+	<!-- SHARC0 L1 BW memory in MP space. -->
+	<!-- ============================================================================================== -->
+
+	<!-- SHARC0: 28240000 - 28390000 -->
+
+	<memory-segment core="P1" memory-id="51" start="0x28240000" end="0x2825FFFF" width="0x08" name="MP SHARC0 L1 8-bit (BW) Block 0" access="0xA" type="DM RAM INTERNAL" />
+	<memory-segment core="P1" memory-id="52" start="0x282C0000" end="0x282DFFFF" width="0x08" name="MP SHARC0 L1 8-bit (BW) Block 1" access="0xA" type="DM RAM INTERNAL" />
+	<memory-segment core="P1" memory-id="53" start="0x28300000" end="0x2830FFFF" width="0x08" name="MP SHARC0 L1 8-bit (BW) Block 2" access="0xA" type="DM RAM INTERNAL" />
+	<memory-segment core="P1" memory-id="54" start="0x28380000" end="0x2838FFFF" width="0x08" name="MP SHARC0 L1 8-bit (BW) Block 3" access="0xA" type="DM RAM INTERNAL" />
+
+	<!-- ============================================================================================== -->
+	<!-- SHARC1 L1 NW memory in MP space. -->
+	<!-- ============================================================================================== -->
+
+	<!-- SHARC1: 0A290000 - 0A2E4000 -->
+
+	<memory-segment core="P1" memory-id="55" start="0x0A290000" end="0x0A297FFF" width="0x20" name="MP SHARC1 L1 32-bit (NW) Block 0" access="0x8" type="DM RAM EXTERNAL" />
+	<memory-segment core="P1" memory-id="56" start="0x0A2B0000" end="0x0A2B7FFF" width="0x20" name="MP SHARC1 L1 32-bit (NW) Block 1" access="0x8" type="DM RAM EXTERNAL" />
+	<memory-segment core="P1" memory-id="57" start="0x0A2C0000" end="0x0A2C3FFF" width="0x20" name="MP SHARC1 L1 32-bit (NW) Block 2" access="0x8" type="DM RAM EXTERNAL" />
+	<memory-segment core="P1" memory-id="58" start="0x0A2E0000" end="0x0A2E3FFF" width="0x20" name="MP SHARC1 L1 32-bit (NW) Block 3" access="0x8" type="DM RAM EXTERNAL" />
+
+	<!-- ============================================================================================== -->
+	<!-- SHARC1 L1 BW memory in MP space. -->
+	<!-- ============================================================================================== -->
+
+	<!-- SHARC1: 28A40000 - 28B90000 -->
+
+	<memory-segment core="P1" memory-id="59" start="0x28A40000" end="0x28A5FFFF" width="0x08" name="MP SHARC1 L1 8-bit (BW) Block 0" access="0xA" type="DM RAM INTERNAL" />
+	<memory-segment core="P1" memory-id="60" start="0x28AC0000" end="0x28ADFFFF" width="0x08" name="MP SHARC1 L1 8-bit (BW) Block 1" access="0xA" type="DM RAM INTERNAL" />
+	<memory-segment core="P1" memory-id="61" start="0x28B00000" end="0x28B0FFFF" width="0x08" name="MP SHARC1 L1 8-bit (BW) Block 2" access="0xA" type="DM RAM INTERNAL" />
+	<memory-segment core="P1" memory-id="62" start="0x28B80000" end="0x28B8FFFF" width="0x08" name="MP SHARC1 L1 8-bit (BW) Block 3" access="0xA" type="DM RAM INTERNAL" />
+
+	<!-- ============================================================================================== -->
+	<!-- SHARC System MMRs Word-addressed space -->
+	<!-- The range end comes from glxp_mmr_memorymap.xlsx, which contains the map for all SC5xx/215xx parts. -->
+	<!-- ============================================================================================== -->
+
+	<memory-segment core="P1" memory-id="63" start="0x0C000000" end="0x0C450FFF" width="0x20" name="System MMRs 32-bit (NW)" access="0xA" type="DM RAM INTERNAL MMR"  />
+
+	<!-- ============================================================================================== -->
+	<!-- SHARC System MMRs Byte-addressed space -->
+	<!-- The range end comes from glxp_mmr_memorymap.xlsx, which contains the map for all SC5xx/215xx parts. -->
+	<!-- ============================================================================================== -->
+
+	<memory-segment core="P1" memory-id="64" start="0x30000000" end="0x31143FFF" width="0x08" name="System MMRs 8-bit (BW)" access="0xA" type="DM RAM INTERNAL MMR" />
+
+	<!-- ============================================================================================== -->
+	<!-- Mapped IO space: SMC, SPI Flash. -->
+	<!-- ============================================================================================== -->
+
+
+	<memory-segment core="P1" memory-id="65" start="0x40000000" end="0x4FFFFFFF" width="0x08" name="Static Memory (SMC) 8-bit (BW)" access="0x8" type="DM RAM EXTERNAL" />
+
+	<memory-segment core="P1" memory-id="66" start="0x60000000" end="0x7FFFFFFF" width="0x08" name="SPI FLASH 8-bit (BW)" access="0x9" type="DM ROM EXTERNAL FLASH" />
+
+	<!-- 48-bit PM execution spaces -->
+	<memory-segment core="P1" memory-id="67" start="0x00400000" end="0x004FFFFF" width="0x30" name="DDR 48-bit (EP/PM) (DMC 0)" access="0x4" type="PM RAM EXTERNAL"  />
+
+	<!-- 16-bit SW execution spaces -->
+	<memory-segment core="P1" memory-id="68" start="0x00800000" end="0x00AFFFFF" width="0x10" name="DDR 16-bit (SW) (DMC 0)" access="0x4" type="PM RAM EXTERNAL"  />
+
+	<!-- SHARC DMC 32-bit data space -->
+	<memory-segment core="P1" memory-id="69" start="0x10000000" end="0x17FFFFFF" width="0x20" name="DDR 32-bit (NW) (DMC 0)" access="0x8" type="DM RAM EXTERNAL"  />
+
+	<!-- SHARC DMC 8-bit data space -->
+	<memory-segment core="P1" memory-id="70" start="0x80000000" end="0xBFFFFFFF" width="0x08" name="DDR 8-bit (BW) (DMC 0)" access="0x8" type="DM RAM EXTERNAL"  />
+
+	<!-- ============================================================================================== -->
+	<!-- CORE 2 (where present) -->
+	<!-- ============================================================================================== -->
+
+	<memory-segment core="P2" memory-id="0" start="0x00000000" end="0x0003FFFF" width="0x20" name="SHARC Core MMRs 32-bit (NW)" access="0xA" type="DM RAM INTERNAL MMR" />
+
+	<!-- ============================================================================================== -->
+	<!-- L1 Memory -->
+	<!-- ============================================================================================== -->
+
+	<!-- Each SHARC core occupies a space of 0x400000 addresses for L1 memory, which is divided into -->
+	<!-- separate ranges for BW, NW, EP, LW, SW, PM spaces. Each of those spaces is partially populated -->
+	<!-- by four internal blocks of memory, blocks 0..3. -->
+
+	<!-- LW: Long Word memory -->
+	<memory-segment core="P2" memory-id="1" start="0x00048000" end="0x0004BFFF" width="0x40" name="L1 64-bit (LW) Block 0" access="0xA" type="DM RAM INTERNAL"  />
+	<memory-segment core="P2" memory-id="2" start="0x00058000" end="0x0005BFFF" width="0x40" name="L1 64-bit (LW) Block 1" access="0xA" type="DM RAM INTERNAL"  />
+	<memory-segment core="P2" memory-id="3" start="0x00060000" end="0x00061FFF" width="0x40" name="L1 64-bit (LW) Block 2" access="0xA" type="DM RAM INTERNAL"  />
+	<memory-segment core="P2" memory-id="4" start="0x00070000" end="0x00071FFF" width="0x40" name="L1 64-bit (LW) Block 3" access="0xA" type="DM RAM INTERNAL"  />
+
+
+	<!-- NW, PM and EP all cover the same range, and have different-sized gaps, -->
+	<!-- according to the number of bits in the word. So there isn't a single -->
+	<!-- set of RESERVED gaps. -->
+
+	<!-- NW: 32-bit Normal-word Data memory -->
+	<memory-segment core="P2" memory-id="5" start="0x00090000" end="0x00097FFF" width="0x20" name="L1 32-bit (NW) Block 0" access="0xA" type="DM RAM INTERNAL"  />
+	<memory-segment core="P2" memory-id="6" start="0x000B0000" end="0x000B7FFF" width="0x20" name="L1 32-bit (NW) Block 1" access="0xA" type="DM RAM INTERNAL"  />
+	<memory-segment core="P2" memory-id="7" start="0x000C0000" end="0x000C3FFF" width="0x20" name="L1 32-bit (NW) Block 2" access="0xA" type="DM RAM INTERNAL"  />
+	<memory-segment core="P2" memory-id="8" start="0x000E0000" end="0x000E3FFF" width="0x20" name="L1 32-bit (NW) Block 3" access="0xA" type="DM RAM INTERNAL"  />
+
+
+	<!-- PM: 48-bit Program memory -->
+	<memory-segment core="P2" memory-id="9" start="0x00090000" end="0x00095554" width="0x30" name="L1 48-bit (PM) Block 0" access="0x6" type="PM RAM INTERNAL"  />
+	<memory-segment core="P2" memory-id="10" start="0x000B0000" end="0x000B5554" width="0x30" name="L1 48-bit (PM) Block 1" access="0x6" type="PM RAM INTERNAL"  />
+	<memory-segment core="P2" memory-id="11" start="0x000C0000" end="0x000C2AA9" width="0x30" name="L1 48-bit (PM) Block 2" access="0x6" type="PM RAM INTERNAL"  />
+	<memory-segment core="P2" memory-id="12" start="0x000E0000" end="0x000E2AA9" width="0x30" name="L1 48-bit (PM) Block 3" access="0x6" type="PM RAM INTERNAL"  />
+
+
+	<!-- EP: Extended-precision data memory -->
+	<memory-segment core="P2" memory-id="13" start="0x00090000" end="0x00095554" width="0x30" name="L1 40-bit (EP) Block 0" access="0xA" type="DM RAM INTERNAL"  />
+	<memory-segment core="P2" memory-id="14" start="0x000B0000" end="0x000B5554" width="0x30" name="L1 40-bit (EP) Block 1" access="0xA" type="DM RAM INTERNAL"  />
+	<memory-segment core="P2" memory-id="15" start="0x000C0000" end="0x000C2AA9" width="0x30" name="L1 40-bit (EP) Block 2" access="0xA" type="DM RAM INTERNAL"  />
+	<memory-segment core="P2" memory-id="16" start="0x000E0000" end="0x000E2AA9" width="0x30" name="L1 40-bit (EP) Block 3" access="0xA" type="DM RAM INTERNAL"  />
+
+
+	<!-- SW: 16-bit Short Word memory -->
+	<memory-segment core="P2" memory-id="17" start="0x00120000" end="0x0012FFFF" width="0x10" name="L1 16-bit (SW) Block 0" access="0x6" type="PM RAM INTERNAL"  />
+	<memory-segment core="P2" memory-id="18" start="0x00160000" end="0x0016FFFF" width="0x10" name="L1 16-bit (SW) Block 1" access="0x6" type="PM RAM INTERNAL"  />
+	<memory-segment core="P2" memory-id="19" start="0x00180000" end="0x00187FFF" width="0x10" name="L1 16-bit (SW) Block 2" access="0x6" type="PM RAM INTERNAL"  />
+	<memory-segment core="P2" memory-id="20" start="0x001C0000" end="0x001C7FFF" width="0x10" name="L1 16-bit (SW) Block 3" access="0x6" type="PM RAM INTERNAL"  />
+
+
+	<!-- BW: Byte-addressed memory -->
+	<memory-segment core="P2" memory-id="21" start="0x00240000" end="0x0025FFFF" width="0x08" name="L1 8-bit (BW) Block 0" access="0xA" type="DM RAM INTERNAL"  />
+	<memory-segment core="P2" memory-id="22" start="0x002C0000" end="0x002DFFFF" width="0x08" name="L1 8-bit (BW) Block 1" access="0xA" type="DM RAM INTERNAL"  />
+	<memory-segment core="P2" memory-id="23" start="0x00300000" end="0x0030FFFF" width="0x08" name="L1 8-bit (BW) Block 2" access="0xA" type="DM RAM INTERNAL"  />
+	<memory-segment core="P2" memory-id="24" start="0x00380000" end="0x0038FFFF" width="0x08" name="L1 8-bit (BW) Block 3" access="0xA" type="DM RAM INTERNAL"  />
+
+	<!-- ============================================================================================== -->
+	<!-- Non-L1 execution space: L2, Mapped I/O -->
+	<!-- ============================================================================================== -->
+
+	<!-- The SHARC cores have aliases that support execution from non-L1 space, by mapping them into -->
+	<!-- SW and PM word-addressed spaces. -->
+
+	<!-- 48-bit PM execution spaces -->
+
+	<memory-segment core="P2" memory-id="25" start="0x00580000" end="0x00581554" width="0x30" name="Boot ROM 0 48-bit (EP/PM)" access="0x7" type="PM ROM INTERNAL"  />
+	<memory-segment core="P2" memory-id="26" start="0x00500000" end="0x00501554" width="0x30" name="Boot ROM 1 48-bit (EP/PM)" access="0x7" type="PM ROM INTERNAL"  />
+	<memory-segment core="P2" memory-id="27" start="0x00540000" end="0x00541554" width="0x30" name="Boot ROM 2 48-bit (EP/PM)" access="0x7" type="PM ROM INTERNAL"  />
+	<memory-segment core="P2" memory-id="28" start="0x005C0000" end="0x005EAAA9" width="0x30" name="L2 RAM 48-bit (EP/PM)" access="0x6" type="PM RAM INTERNAL"  />
+
+	<memory-segment core="P2" memory-id="29" start="0x00700000" end="0x0073FFFF" width="0x30" name="Static Memory (SMC) 48-bit (EP/PM)" access="0x4" type="PM RAM EXTERNAL"  />
+	<memory-segment core="P2" memory-id="30" start="0x00780000" end="0x007FFFFF" width="0x30" name="SPI FLASH 48-bit (EP/PM)" access="0x5" type="PM ROM EXTERNAL"  />
+
+	<!-- 16-bit SW execution spaces -->
+
+	<memory-segment core="P2" memory-id="31" start="0x00B20000" end="0x00B23FFF" width="0x10" name="Boot ROM 0 16-bit (SW)" access="0x7" type="PM ROM INTERNAL"  />
+	<memory-segment core="P2" memory-id="32" start="0x00B00000" end="0x00B03FFF" width="0x10" name="Boot ROM 1 16-bit (SW)" access="0x7" type="PM ROM INTERNAL"  />
+	<memory-segment core="P2" memory-id="33" start="0x00B40000" end="0x00B43FFF" width="0x10" name="Boot ROM 2 16-bit (SW)" access="0x7" type="PM ROM INTERNAL"  />
+	<memory-segment core="P2" memory-id="34" start="0x00B80000" end="0x00BFFFFF" width="0x10" name="L2 RAM 16-bit (SW)" access="0x6" type="PM RAM INTERNAL"  />
+
+	<memory-segment core="P2" memory-id="35" start="0x00F00000" end="0x00F3FFFF" width="0x10" name="Static Memory (SMC) 16-bit (SW)" access="0x4" type="PM RAM EXTERNAL"  />
+	<memory-segment core="P2" memory-id="36" start="0x00F80000" end="0x00FFFFFF" width="0x10" name="SPI FLASH 16-bit (SW)" access="0x5" type="PM ROM EXTERNAL"  />
+
+	<!-- 32-bit NW data spaces -->
+
+	<memory-segment core="P2" memory-id="37" start="0x01000000" end="0x01FFFFFF" width="0x20" name="Static Memory (SMC) 32-bit (NW)" access="0x8" type="DM RAM EXTERNAL"  />
+	<memory-segment core="P2" memory-id="38" start="0x04000000" end="0x07FFFFFF" width="0x20" name="SPI FLASH 32-bit (NW)" access="0x9" type="DM ROM EXTERNAL"  />
+	<memory-segment core="P2" memory-id="39" start="0x08000000" end="0x0803FFFF" width="0x20" name="L2 RAM 32-bit (NW)" access="0xA" type="DM RAM INTERNAL"  />
+	<memory-segment core="P2" memory-id="40" start="0x08040000" end="0x08041FFF" width="0x20" name="Boot ROM 0 32-bit (NW)" access="0xB" type="DM ROM INTERNAL"  />
+	<memory-segment core="P2" memory-id="41" start="0x08042000" end="0x08043FFF" width="0x20" name="Boot ROM 1 32-bit (NW)" access="0xB" type="DM ROM INTERNAL"  />
+	<memory-segment core="P2" memory-id="42" start="0x08044000" end="0x08045FFF" width="0x20" name="Boot ROM 2 32-bit (NW)" access="0xB" type="DM ROM INTERNAL"  />
+
+	<!-- ============================================================================================== -->
+	<!-- SHARC L2 RAM & ROM 8-bit BW spaces -->
+	<!-- ============================================================================================== -->
+
+	<memory-segment core="P2" memory-id="43" start="0x20000000" end="0x200FFFFF" width="0x08" name="L2 RAM 8-bit (BW)" access="0xA" type="DM RAM INTERNAL"  />
+	<memory-segment core="P2" memory-id="44" start="0x20100000" end="0x20107FFF" width="0x08" name="Boot ROM 0 8-bit (BW)" access="0xB" type="DM ROM INTERNAL"  />
+	<memory-segment core="P2" memory-id="45" start="0x20108000" end="0x2010FFFF" width="0x08" name="Boot ROM 1 8-bit (BW)" access="0xB" type="DM ROM INTERNAL"  />
+	<memory-segment core="P2" memory-id="46" start="0x20110000" end="0x20117FFF" width="0x08" name="Boot ROM 2 8-bit (BW)" access="0xB" type="DM ROM INTERNAL"  />
+
+	<!-- ============================================================================================== -->
+	<!-- SHARC0 L1 NW memory in MP space. -->
+	<!-- ============================================================================================== -->
+
+	<!-- SHARC0: 0A090000 - 0A0E4000 -->
+
+	<memory-segment core="P2" memory-id="47" start="0x0A090000" end="0x0A097FFF" width="0x20" name="MP SHARC0 L1 32-bit (NW) Block 0" access="0x8" type="DM RAM EXTERNAL" />
+	<memory-segment core="P2" memory-id="48" start="0x0A0B0000" end="0x0A0B7FFF" width="0x20" name="MP SHARC0 L1 32-bit (NW) Block 1" access="0x8" type="DM RAM EXTERNAL" />
+	<memory-segment core="P2" memory-id="49" start="0x0A0C0000" end="0x0A0C3FFF" width="0x20" name="MP SHARC0 L1 32-bit (NW) Block 2" access="0x8" type="DM RAM EXTERNAL" />
+	<memory-segment core="P2" memory-id="50" start="0x0A0E0000" end="0x0A0E3FFF" width="0x20" name="MP SHARC0 L1 32-bit (NW) Block 3" access="0x8" type="DM RAM EXTERNAL" />
+
+	<!-- ============================================================================================== -->
+	<!-- SHARC0 L1 BW memory in MP space. -->
+	<!-- ============================================================================================== -->
+
+	<!-- SHARC0: 28240000 - 28390000 -->
+
+	<memory-segment core="P2" memory-id="51" start="0x28240000" end="0x2825FFFF" width="0x08" name="MP SHARC0 L1 8-bit (BW) Block 0" access="0xA" type="DM RAM INTERNAL" />
+	<memory-segment core="P2" memory-id="52" start="0x282C0000" end="0x282DFFFF" width="0x08" name="MP SHARC0 L1 8-bit (BW) Block 1" access="0xA" type="DM RAM INTERNAL" />
+	<memory-segment core="P2" memory-id="53" start="0x28300000" end="0x2830FFFF" width="0x08" name="MP SHARC0 L1 8-bit (BW) Block 2" access="0xA" type="DM RAM INTERNAL" />
+	<memory-segment core="P2" memory-id="54" start="0x28380000" end="0x2838FFFF" width="0x08" name="MP SHARC0 L1 8-bit (BW) Block 3" access="0xA" type="DM RAM INTERNAL" />
+
+	<!-- ============================================================================================== -->
+	<!-- SHARC1 L1 NW memory in MP space. -->
+	<!-- ============================================================================================== -->
+
+	<!-- SHARC1: 0A290000 - 0A2E4000 -->
+
+	<memory-segment core="P2" memory-id="55" start="0x0A290000" end="0x0A297FFF" width="0x20" name="MP SHARC1 L1 32-bit (NW) Block 0" access="0x8" type="DM RAM EXTERNAL" />
+	<memory-segment core="P2" memory-id="56" start="0x0A2B0000" end="0x0A2B7FFF" width="0x20" name="MP SHARC1 L1 32-bit (NW) Block 1" access="0x8" type="DM RAM EXTERNAL" />
+	<memory-segment core="P2" memory-id="57" start="0x0A2C0000" end="0x0A2C3FFF" width="0x20" name="MP SHARC1 L1 32-bit (NW) Block 2" access="0x8" type="DM RAM EXTERNAL" />
+	<memory-segment core="P2" memory-id="58" start="0x0A2E0000" end="0x0A2E3FFF" width="0x20" name="MP SHARC1 L1 32-bit (NW) Block 3" access="0x8" type="DM RAM EXTERNAL" />
+
+	<!-- ============================================================================================== -->
+	<!-- SHARC1 L1 BW memory in MP space. -->
+	<!-- ============================================================================================== -->
+
+	<!-- SHARC1: 28A40000 - 28B90000 -->
+
+	<memory-segment core="P2" memory-id="59" start="0x28A40000" end="0x28A5FFFF" width="0x08" name="MP SHARC1 L1 8-bit (BW) Block 0" access="0xA" type="DM RAM INTERNAL" />
+	<memory-segment core="P2" memory-id="60" start="0x28AC0000" end="0x28ADFFFF" width="0x08" name="MP SHARC1 L1 8-bit (BW) Block 1" access="0xA" type="DM RAM INTERNAL" />
+	<memory-segment core="P2" memory-id="61" start="0x28B00000" end="0x28B0FFFF" width="0x08" name="MP SHARC1 L1 8-bit (BW) Block 2" access="0xA" type="DM RAM INTERNAL" />
+	<memory-segment core="P2" memory-id="62" start="0x28B80000" end="0x28B8FFFF" width="0x08" name="MP SHARC1 L1 8-bit (BW) Block 3" access="0xA" type="DM RAM INTERNAL" />
+
+	<!-- ============================================================================================== -->
+	<!-- SHARC System MMRs Word-addressed space -->
+	<!-- The range end comes from glxp_mmr_memorymap.xlsx, which contains the map for all SC5xx/215xx parts. -->
+	<!-- ============================================================================================== -->
+
+	<memory-segment core="P2" memory-id="63" start="0x0C000000" end="0x0C450FFF" width="0x20" name="System MMRs 32-bit (NW)" access="0xA" type="DM RAM INTERNAL MMR"  />
+
+	<!-- ============================================================================================== -->
+	<!-- SHARC System MMRs Byte-addressed space -->
+	<!-- The range end comes from glxp_mmr_memorymap.xlsx, which contains the map for all SC5xx/215xx parts. -->
+	<!-- ============================================================================================== -->
+
+	<memory-segment core="P2" memory-id="64" start="0x30000000" end="0x31143FFF" width="0x08" name="System MMRs 8-bit (BW)" access="0xA" type="DM RAM INTERNAL MMR" />
+
+	<!-- ============================================================================================== -->
+	<!-- Mapped IO space: SMC, SPI Flash. -->
+	<!-- ============================================================================================== -->
+
+
+	<memory-segment core="P2" memory-id="65" start="0x40000000" end="0x4FFFFFFF" width="0x08" name="Static Memory (SMC) 8-bit (BW)" access="0x8" type="DM RAM EXTERNAL" />
+
+	<memory-segment core="P2" memory-id="66" start="0x60000000" end="0x7FFFFFFF" width="0x08" name="SPI FLASH 8-bit (BW)" access="0x9" type="DM ROM EXTERNAL FLASH" />
+
+	<!-- 48-bit PM execution spaces -->
+	<memory-segment core="P2" memory-id="67" start="0x00400000" end="0x004FFFFF" width="0x30" name="DDR 48-bit (EP/PM) (DMC 0)" access="0x4" type="PM RAM EXTERNAL"  />
+
+	<!-- 16-bit SW execution spaces -->
+	<memory-segment core="P2" memory-id="68" start="0x00800000" end="0x00AFFFFF" width="0x10" name="DDR 16-bit (SW) (DMC 0)" access="0x4" type="PM RAM EXTERNAL"  />
+
+	<!-- SHARC DMC 32-bit data space -->
+	<memory-segment core="P2" memory-id="69" start="0x10000000" end="0x17FFFFFF" width="0x20" name="DDR 32-bit (NW) (DMC 0)" access="0x8" type="DM RAM EXTERNAL"  />
+
+	<!-- SHARC DMC 8-bit data space -->
+	<memory-segment core="P2" memory-id="70" start="0x80000000" end="0xBFFFFFFF" width="0x08" name="DDR 8-bit (BW) (DMC 0)" access="0x8" type="DM RAM EXTERNAL"  />
+
+
+
+</memory-definitions>
+
+<memory-translation>
+
+	<alias-set> <!-- SHARC core MMRs -->
+		<range start="0x00000000" end="0x0003FFFF" width="32" cores="1,2" />
+	</alias-set>
+
+	<alias-set> <!-- L1 RAM - all blocks together -->
+		<!-- Internal addresses. Model entire address space, not -->
+		<!-- just the populated memory. -->
+		<range start="0x00200000" end="0x003FFFFF" width="8"  cores="1,2" />
+		<range start="0x00100000" end="0x001FFFFF" width="16" cores="1,2" />
+		<range start="0x00080000" end="0x000FFFFF" width="32" cores="1,2" />
+		<range start="0x00040000" end="0x0007FFFF" width="64" cores="1,2" />
+		<!-- The ISA addresses do have to be split up into banks, since -->
+		<!-- they have to be computed from the base address of the bank not -->
+		<!-- the overall L1 region. -->
+		<range start="0x00090000" end="0x0009FFFF" offset="0x00040000" width="48" cores="1,2" />
+		<range start="0x000B0000" end="0x000B7FFF" offset="0x000C0000" width="48" cores="1,2" />
+		<range start="0x000C0000" end="0x000CFFFF" offset="0x00100000" width="48" cores="1,2" />
+		<range start="0x000E0000" end="0x000EFFFF" offset="0x00180000" width="48" cores="1,2" />
+		<!-- System addresses - byte-addressed -->
+		<range start="0x28200000" end="0x283FFFFF" width="8" core-num="1" port-num="1" />
+		<range start="0x28A00000" end="0x28BFFFFF" width="8" core-num="2" port-num="1" />
+		<!-- System addresses - word-addressed -->
+		<range start="0x0A080000" end="0x0A0FFFFF" width="32" core-num="1" port-num="1" />
+		<range start="0x0A280000" end="0x0A2FFFFF" width="32" core-num="2" port-num="1" />
+	</alias-set>
+
+	<alias-set> <!-- L2 RAM -->
+		<range start="0x20000000" end="0x200FFFFF" width="8"  />
+		<range start="0x00B80000" end="0x00BFFFFF" width="16" />
+		<range start="0x08000000" end="0x0803FFFF" width="32" />
+		<range start="0x005C0000" end="0x005EAAA9" width="48" />
+	</alias-set>
+
+	<alias-set> <!-- L2 Boot ROM0 -->
+		<range start="0x20100000" end="0x20107FFF" width="8"  />
+		<range start="0x00B20000" end="0x00B23FFF" width="16" />
+		<range start="0x08040000" end="0x08041FFF" width="32" />
+		<range start="0x00580000" end="0x00581554" width="48" />
+	</alias-set>
+
+	<alias-set> <!-- L2 Boot ROM1 -->
+		<range start="0x20108000" end="0x2010FFFF" width="8"  />
+		<range start="0x00B00000" end="0x00B03FFF" width="16" />
+		<range start="0x08042000" end="0x08043FFF" width="32" />
+		<range start="0x00500000" end="0x00501554" width="48" />
+	</alias-set>
+
+	<alias-set> <!-- L2 Boot ROM2 -->
+		<range start="0x20110000" end="0x20117FFF" width="8"  />
+		<range start="0x00B40000" end="0x00B43FFF" width="16" />
+		<range start="0x08044000" end="0x08045FFF" width="32" />
+		<range start="0x00540000" end="0x00541554" width="48" />
+	</alias-set>
+
+	<alias-set> <!-- System MMRs -->
+		<range start="0x30000000" end="0x3FFFFFFF" width="8"  />
+		<range start="0x0C000000" end="0x0FFFFFFF" width="32" />
+	</alias-set>
+
+	<alias-set> <!-- SMC - all banks translated together -->
+		<range start="0x40000000" end="0x4FFFFFFF" width="8"  />
+		<range start="0x00F00000" end="0x00F3FFFF" width="16" />
+		<range start="0x01000000" end="0x01FFFFFF" width="32" />
+		<range start="0x00700000" end="0x0073FFFF" width="48" />
+	</alias-set>
+
+	<alias-set> <!-- SPI2 - all banks translated together -->
+		<range start="0x60000000" end="0x7FFFFFFF" width="8"  />
+		<range start="0x00F80000" end="0x00FFFFFF" width="16" />
+		<range start="0x04000000" end="0x07FFFFFF" width="32" />
+		<range start="0x00780000" end="0x007FFFFF" width="48" />
+	</alias-set>
+
+	<alias-set> <!-- DMC0 -->
+		<range start="0x80000000" end="0xBFFFFFFF" width="8"  />
+		<range start="0x00800000" end="0x00AFFFFF" offset="0x00A00000" width="16" />
+		<range start="0x10000000" end="0x17FFFFFF" width="32" />
+		<range start="0x00400000" end="0x004FFFFF" width="48" />
+	</alias-set>
+
+</memory-translation>
+
+</cces-memory-xml>

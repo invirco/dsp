@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding='ISO-8859-1'?>
+
+<!-- ************************************************************************-->
+<!-- ******* FatalError.xml                                                  -->
+<!-- ******* Copyright 2008-2021 Analog Devices, Inc.  All rights reserved.  -->
+<!-- ************************************************************************-->
+
+<fatalerror-xml schema="1" name="FatalError.xml" version="2.11.0.0">
+
+    <SpecificCodes value="0x0"> <!-- No Error -->
+        <SpecificCode value="0x0" name="NoError">No fatal error has been reported.</SpecificCode>
+    </SpecificCodes> <!-- No Error -->
+
+    <SpecificCodes value="0x2"> <!-- Library Errors -->
+        <SpecificCode value="0x2" name="InsufficientHeapForLibrary">An allocation from the default heap, in the system libraries has failed.</SpecificCode>
+        <SpecificCode value="0x3" name="IONotAllowed">I/O has been requested when scheduling has been disabled, or from within an ISR.</SpecificCode>
+        <SpecificCode value="0x4" name="ProfBadExeName">Profiling/heap tracing failed to run because your application has an invalid filename.</SpecificCode>
+        <SpecificCode value="0x5" name="OSALBindingError">An operating system abstraction layer function has failed.</SpecificCode>
+        <SpecificCode value="0x6" name="adi_osal_Init_failure">The call to adi_osal_Init made from the CRT startup code returned an error.</SpecificCode>
+        <SpecificCode value="0x7" name="HeapSetupFailure">Configuring a build-time heap during setup returned an error.</SpecificCode>
+        <SpecificCode value="0x8" name="BadLongjmpBuf">The jumpbuf used by longjmp is corrupt.</SpecificCode>
+        <!-- 0x100 Heap errors -->
+        <SpecificCode value="0x101" name="HeapUnknown">An unknown error has occurred.</SpecificCode>
+        <SpecificCode value="0x102" name="HeapFailed">A heap operation has failed.</SpecificCode>
+        <SpecificCode value="0x103" name="HeapAllocationOfZero">An allocation of zero has been detected.</SpecificCode>
+        <SpecificCode value="0x104" name="HeapNullPointer">A heap operation using a null pointer has been detected.</SpecificCode>
+        <SpecificCode value="0x105" name="HeapInvalidAddress">A heap operation using an invalid address has been detected.</SpecificCode>
+        <SpecificCode value="0x106" name="HeapBlockIsCorrupt">A corrupt block has been detected on the heap.</SpecificCode>
+        <SpecificCode value="0x107" name="HeapReallocOfZero">A call to realloc with no size or pointer has been detected.</SpecificCode>
+        <SpecificCode value="0x108" name="HeapFunctionMismatch">A heap operation which is incompatible with a previous operation has been detected.</SpecificCode>
+        <SpecificCode value="0x109" name="HeapUnfreedBlock">An unfree'd block has been detected.</SpecificCode>
+        <SpecificCode value="0x10a" name="HeapWrongHeap">A heap operation using the wrong heap identified has been detected.</SpecificCode>
+        <SpecificCode value="0x10b" name="HeapAllocationTooLarge">A heap operation with excessive size has been detected.</SpecificCode>
+        <SpecificCode value="0x10c" name="HeapInvalidInput">A heap operation has been given invalid input.</SpecificCode>
+        <SpecificCode value="0x10d" name="HeapInternalError">A heap debugging operation has caused an internal error.</SpecificCode>
+        <SpecificCode value="0x10e" name="HeapInInterrupt">The heap has been used within an interrupt.</SpecificCode>
+        <SpecificCode value="0x10f" name="HeapMissingOutput">There is output missing from heap tracing due to insufficient buffer.</SpecificCode>
+        <SpecificCode value="0x110" name="HeapInsufficientSpace">Heap debugging has failed due to insufficient available heap space.</SpecificCode>
+        <SpecificCode value="0x111" name="HeapCantOpenDump">Heap debugging can't open heap dump file.</SpecificCode>
+        <SpecificCode value="0x112" name="HeapCantOpenTrace">Heap debugging can't open heap tracing file.</SpecificCode>
+        <SpecificCode value="0x113" name="HeapInvalidHeapID">Attempting to register a heap which doesn't exist.</SpecificCode>
+        <SpecificCode value="0x114" name="HeapAddressingMismatch">A block was deleted, freed or reallocated with a different address mode (-char-size-8/32) to where it was allocated.</SpecificCode>
+        <SpecificCode value="0x130" name="HeapIsCorrupt">A heap's internal data structures have become corrupted.</SpecificCode>
+        <!-- 0x200 Instrprof errors -->
+        <SpecificCode value="0x201" name="InstrprofIOFail">Instrumented Profiling cannot open its output file</SpecificCode>
+        <!-- 0x300 PGOHW errors -->
+        <SpecificCode value="0x301" name="PGOHWFailedOutput">The PGO on Hardware runtime support failed to open an output file.</SpecificCode>
+        <SpecificCode value="0x302" name="PGOHWDataCorrupted">A internal error has occurred in the PGO on Hardware runtime support.</SpecificCode>
+        <SpecificCode value="0x303" name="PGOHWInvalidPGO">The existing PGO data file appears to be corrupted.</SpecificCode>
+        <!-- 0x400 Cache config errors -->
+        <SpecificCode value="0x401" name="L1DM_DCTL_DCBS_Changed">The value of L1DM_DCTL.DCBS (Data Cache Bank Select) has changed.</SpecificCode>
+        <SpecificCode value="0x402" name="L1DM_DCTL_CFG_Changed">The value of L1DM_DCTL.CFG (Data Cache Configuration) has changed.</SpecificCode>
+    </SpecificCodes> <!-- Library Errors -->
+
+    <SpecificCodes value="0x3"> <!-- Run-Time Errors -->
+        <!-- Start up error checking -->
+        <SpecificCode value="0x4" name="CPLBAddressIsMisalignedForCPLBSize">CPLB address is misaligned for CPLB size.</SpecificCode>
+        <SpecificCode value="0x5" name="L1CodeCacheEnabledWhenL1UsedForCode">L1 code cache is enabled when L1 is used for code.</SpecificCode>
+        <SpecificCode value="0x6" name="L1DataACacheEnabledWhenUsedForData">L1 data A cache is enabled when it is used for data.</SpecificCode>
+        <SpecificCode value="0x7" name="L1DataBCacheEnabledWhenUsedForData">L1 data B cache is enabled when it is used for data.</SpecificCode>
+        <SpecificCode value="0x8" name="TooManyLockedDataCPLB">Too many data CPLBs have been locked.</SpecificCode>
+        <SpecificCode value="0x9" name="TooManyLockedInstructionCPLB">Too many instruction CPLBs have been locked.</SpecificCode>
+        <SpecificCode value="0xB" name="NoDispatchedHandler" format="&quot;Enabled interrupt with ID (IID) 0x%08x raised when it has no handler registered.&quot;, *(int *)&amp;adi_fatal_error_value">No dispatched handler available for the specified interrupt code.</SpecificCode>
+        <SpecificCode value="0xC" name="UnusedInterruptRaised">An interrupt that was expected not to be used has been raised.</SpecificCode>
+        <SpecificCode value="0xD" name="ArgcTooLarge">argc is greater than the maximum allowed value.</SpecificCode>
+        <!-- 0x100 Source DMA errors:
+             0x10# : Generic errors.
+             0x1#0 : Specific errors, where # is the value of the Error Cause register.
+        -->
+        <SpecificCode value="0x101" name="DMASrcError">DMA has failed due to an error with DMA Source.</SpecificCode>
+        <SpecificCode value="0x100" name="DMASrcConfigErr">DMA has failed due to an error with DMA source configuration.</SpecificCode>
+        <SpecificCode value="0x110" name="DMASrcIllegalWrite">DMA has failed due to an illegal write in source DMA.</SpecificCode>
+        <SpecificCode value="0x120" name="DMASrcAlignment">DMA has failed due to an alignment error in source DMA.</SpecificCode>
+        <SpecificCode value="0x130" name="DMASrcMemErr">DMA has failed due to a memory/fabric error in source DMA.</SpecificCode>
+        <SpecificCode value="0x150" name="DMASrcTriggerOverrun">DMA has failed due to a trigger overrun in source DMA.</SpecificCode>
+        <SpecificCode value="0x160" name="DMASrcBWMon">DMA has failed due to a bandwidth monitor error in source DMA.</SpecificCode>
+        <!-- 0x200 Destination DMA errors:
+             0x20# : Generic errors.
+             0x2#0 : Specific errors, where # is the value of the Error Cause register.
+        -->
+        <SpecificCode value="0x201" name="DMADstError">DMA has failed due to an error with DMA Destination.</SpecificCode>
+        <SpecificCode value="0x202" name="DMAPatternSizeInvalid">DMA pattern length invalid</SpecificCode>
+        <SpecificCode value="0x200" name="DMADstConfigErr">DMA has failed due to an error with DMA destination configuration.</SpecificCode>
+        <SpecificCode value="0x210" name="DMADstIllegalWrite">DMA has failed due to an illegal write in destination DMA.</SpecificCode>
+        <SpecificCode value="0x220" name="DMADstAlignment">DMA has failed due to an alignment error in destination DMA.</SpecificCode>
+        <SpecificCode value="0x230" name="DMADstMemErr">DMA has failed due to a memory/fabric error in destination DMA.</SpecificCode>
+        <SpecificCode value="0x250" name="DMADstTriggerOverrun">DMA has failed due to a trigger overrun in destination DMA.</SpecificCode>
+        <SpecificCode value="0x260" name="DMADstBWMon">DMA has failed due to a bandwidth monitor error in destination DMA.</SpecificCode>
+        <!-- Handled CPLB errors:
+             0x30# : Generic Errors.
+             0x3#* : Data and Instruction CPLB errors.
+                     Corresponding DCPLB and ICPLB errors have bits 8:15 (#) in common, 
+                     and differ purely by the value of bit 0 (*),
+                     where * == 0 indicates data and * == 1 indicates instruction.
+                     This allows us to change DCPLB codes to ICPLB codes by toggling bit 0.
+        -->
+        <SpecificCode value="0x301" name="UnexpectedCPLBMgrReturn">An unexpected value has been returned by the CPLB Manager.</SpecificCode>
+        <SpecificCode value="0x310" name="DCPLBMissAllLocked">A data CPLB miss has occurred where all active CPLBs are locked.</SpecificCode>
+        <SpecificCode value="0x320" name="DCPLBMissWithoutReplacement">A data CPLB miss has occurred without a corresponding CPLB entry.</SpecificCode>
+        <SpecificCode value="0x330" name="DCPLBProtectionViolation">An illegal data memory access has occurred.</SpecificCode>
+        <SpecificCode value="0x340" name="DCPLBDoubleHit">More than one data CPLB covers the accessed location.</SpecificCode>
+        <SpecificCode value="0x311" name="ICPLBMissAllLocked">An instruction CPLB miss has occurred where all active CPLBs are locked.</SpecificCode>
+        <SpecificCode value="0x321" name="ICPLBMissWithoutReplacement">An instruction CPLB miss has occurred without a corresponding CPLB entry.</SpecificCode>
+        <SpecificCode value="0x331" name="ICPLBProtectionViolation">An instruction CPLB protection violation has occurred.</SpecificCode>
+        <SpecificCode value="0x341" name="ICPLBDoubleHit">More than one instruction CPLB covers the accessed location.</SpecificCode>
+
+        <!-- Error Correction Configuration Errors -->
+        <SpecificCode value="0x401" name="L2ECCBitsUninitialized">L2 ECC memory has not been initialized.</SpecificCode>
+
+        <!-- Run-Time Error Detection -->
+        <SpecificCode value="0x501" name="IllOpCodeDetected">An illegal instruction has been detected.</SpecificCode>
+        <SpecificCode value="0x502" name="ParityErrorDetected">A parity error has been detected.</SpecificCode>
+        <SpecificCode value="0x503" name="ExceptAbrtData" format="&quot;If this is a synchronous fault, address 0x%08x held in Data Fault Address Register (DFAR) is the problem address.&quot;, *(int *)&amp;adi_fatal_error_value">Data Fault Exception - caused by attempting to access invalid data memory.</SpecificCode>
+        <SpecificCode value="0x504" name="ExceptUnd">Undefined Instruction Exception - an instruction generated an undefined instruction trap.</SpecificCode>
+        <SpecificCode value="0x505" name="ExceptPrefetch" format="&quot;Address 0x%08x held in Instruction Fault Address Register (IFAR) is the problem address.&quot;, *(int *)&amp;adi_fatal_error_value">Prefetch Exception - caused by attempting to access invalid instruction memory.</SpecificCode>
+        <SpecificCode value="0x506" name="ExceptSvc">Supervisor Call Exception.</SpecificCode>
+        <SpecificCode value="0x507" name="BadResetDetected" format="&quot;If executing a C/C++ call through a function pointer, the return address is 0x%08x.&quot;, *(int *)&amp;adi_fatal_error_value">A bad reset has been detected, possibly due to a jump to a NULL code address.</SpecificCode>
+        <SpecificCode value="0x508" name="ExceptSync">Synchronous Exception.</SpecificCode>
+        <SpecificCode value="0x509" name="ExceptSError">System Error Exception.</SpecificCode>
+
+    </SpecificCodes> <!-- Run-Time Errors -->
+
+    <SpecificCodes value="0x4"> <!-- Unhandled Exceptions -->
+        <SpecificCode value="0x11" name="TraceBufferFull">The trace buffer has overflowed (Exception with EXCAUSE=0x11).</SpecificCode>
+        <SpecificCode value="0x21" name="UndefinedInstruction">An undefined instruction has been encountered (Exception with EXCAUSE=0x21).</SpecificCode>
+        <SpecificCode value="0x22" name="IllegalInstructionCombination">An illegal instruction combination has been encountered (Exception with EXCAUSE=0x22).</SpecificCode>
+        <SpecificCode value="0x23" name="DataAccessProtection">Attempted read or write to Supervisor resource, or illegal data memory access (Exception with EXCAUSE=0x23).</SpecificCode>
+        <SpecificCode value="0x24" name="DataMisalignedAccessViolation">Attempted misaligned data memory or data cache access (Exception with EXCAUSE=0x24).</SpecificCode>
+        <SpecificCode value="0x25" name="UnrecoverableEvent">An unrecoverable event has been encountered, such as an exception generated whilst processing a previous exception (Exception with EXCAUSE=0x25).</SpecificCode>
+        <SpecificCode value="0x26" name="DataCPLBMiss">CPLB miss on data fetch (Exception with EXCAUSE=0x26).</SpecificCode>
+        <SpecificCode value="0x27" name="DataCPLBMultipleHits">More than one CPLB matches data fetch address (Exception with EXCAUSE=0x27).</SpecificCode>
+        <SpecificCode value="0x28" name="EmulationWatchpoint">There is a watchpoint match, and one of the EMUSW bits in the Watchpoint Instruction Address Control register (WPIACTL) is set (Exception with EXCAUSE=0x28).</SpecificCode>
+        <SpecificCode value="0x2A" name="InstructionFetchMisaligned">Attempted misaligned instruction fetch (Exception with EXCAUSE=0x2A).</SpecificCode>
+        <SpecificCode value="0x2B" name="InstructionFetchViolation">Illegal instruction fetch access (memory protection violation) (Exception with EXCAUSE=0x2B).</SpecificCode>
+        <SpecificCode value="0x2C" name="InstructionCPLBMiss">CPLB miss on an instruction fetch (Exception with EXCAUSE=0x2C).</SpecificCode>
+        <SpecificCode value="0x2D" name="InstructionCPLBMultipleHits">More than one CPLB entry matches instruction fetch address (Exception with EXCAUSE=0x2D).</SpecificCode>
+        <SpecificCode value="0x2E" name="SupervisorResource">Attempted to use a Supervisor register or instruction from User mode (Exception with EXCAUSE=0x2E).</SpecificCode>
+    </SpecificCodes> <!-- Unhandled Exceptions -->
+
+    <SpecificCodes value="0x5"> <!-- Parity Check Failures -->
+        <SpecificCode value="0x1" name="NonSpeculativeAccessAborted">A non-speculative access has been aborted due to L1 parity Error.</SpecificCode>
+        <SpecificCode value="0x2" name="InstrReadForL2">Parity error on instruction L1 read for L2 transfer</SpecificCode>
+        <SpecificCode value="0x3" name="DataReadForL2">Parity error on data L1 read for L2 transfer</SpecificCode>
+        <SpecificCode value="0x4" name="ConcurrentParityInterrupt">Concurrent parity error and interrupt or exception.</SpecificCode>
+        <!-- Parity errors in specific regions:
+             0xXYZ where:
+             X Indicates Instruction (1) or Data (2),
+             Y Indicates bank; A (1), B (2) or C (4),
+             Z Indicates memory type; SRAM (1), Cache (2) or Scratchpad (4).
+             Using multiples of 2 so that OR'ing can be done using BITSET.
+        -->
+        <!-- Mock codes, providing the above key -->
+        <SpecificCode value="0x0100" name="ParityKeyInstruction"></SpecificCode>
+        <SpecificCode value="0x0200" name="ParityKeyData"></SpecificCode>
+        <SpecificCode value="0x0010" name="ParityKeyBankA"></SpecificCode>
+        <SpecificCode value="0x0020" name="ParityKeyBankB"></SpecificCode>
+        <SpecificCode value="0x0040" name="ParityKeyBankC"></SpecificCode>
+        <SpecificCode value="0x0001" name="ParityKeySRAM"></SpecificCode>
+        <SpecificCode value="0x0002" name="ParityKeyCache"></SpecificCode>
+        <SpecificCode value="0x0004" name="ParityKeyXPAD"></SpecificCode>
+        <SpecificCode value="0x1000" name="ParityKeyTAG0"></SpecificCode>
+        <SpecificCode value="0x2000" name="ParityKeyTAG1"></SpecificCode>
+        <SpecificCode value="0x4000" name="ParityKeyDirty"></SpecificCode>
+        <!-- The actual error codes BF6xx -->
+        <SpecificCode value="0x0110" name="InstrBankA">Parity error in L1 instruction bank A SRAM</SpecificCode>
+        <SpecificCode value="0x0120" name="InstrBankB">Parity error in L1 instruction bank B SRAM</SpecificCode>
+        <SpecificCode value="0x0141" name="InstrBankCSRAM">Parity error in L1 instruction bank C SRAM</SpecificCode>
+        <SpecificCode value="0x0142" name="InstrBankCCache">Parity error in L1 instruction bank C cache</SpecificCode>
+        <SpecificCode value="0x0211" name="DataBankASRAM">Parity error in L1 data bank A SRAM</SpecificCode>
+        <SpecificCode value="0x0212" name="DataBankACache">Parity error in L1 data bank A cache</SpecificCode>
+        <SpecificCode value="0x0213" name="DataBankAXPAD">Parity error in L1 data bank A scratchpad</SpecificCode>
+        <SpecificCode value="0x0221" name="DataBankBSRAM">Parity error in L1 data bank B SRAM</SpecificCode>
+        <SpecificCode value="0x0222" name="DataBankBCache">Parity error in L1 data bank B cache</SpecificCode>
+        <!-- The actual error codes BF7xx -->
+        <SpecificCode value="0x0100" name="InstrSRAM">Parity error in L1 instruction SRAM</SpecificCode>
+        <SpecificCode value="0x1100" name="InstrTAG0">Parity error in L1 instruction TAG for port 0</SpecificCode>
+        <SpecificCode value="0x2100" name="InstrTAG1">Parity error in L1 instruction TAG for port 1</SpecificCode>
+        <SpecificCode value="0x0200" name="DataSRAM">Parity error in L1 data SRAM</SpecificCode>
+        <SpecificCode value="0x1200" name="DataTAG0">Parity error in L1 data TAG 0</SpecificCode>
+        <SpecificCode value="0x2200" name="DataTAG1">Parity error in L1 data TAG 1</SpecificCode>
+        <SpecificCode value="0x4200" name="DataDirty">Parity error in L1 data cache dirty bits</SpecificCode>
+    </SpecificCodes> <!-- Parity Check Failures -->
+
+    <SpecificCodes value="0x6"> <!-- Errno values -->
+        <SpecificCode value="0x0021" name="EDOM">Domain error</SpecificCode>
+        <SpecificCode value="0x000E" name="EFAULT">Bad address</SpecificCode>
+        <SpecificCode value="0x001B" name="EFBIG">File too large</SpecificCode>
+        <SpecificCode value="0x0098" name="EFPOS">File positioning error</SpecificCode>
+        <SpecificCode value="0x001F" name="EMLINK">Too many links</SpecificCode>
+        <SpecificCode value="0x0017" name="ENFILE">Too many files open in system</SpecificCode>
+        <SpecificCode value="0x0002" name="ENOENT">No such file or directory</SpecificCode>
+        <SpecificCode value="0x001C" name="ENOSPC">No space left on device</SpecificCode>
+        <SpecificCode value="0x0019" name="ENOTTY">Bad I/O control operation</SpecificCode>
+        <SpecificCode value="0x0020" name="EPIPE">Broken pipe</SpecificCode>
+        <SpecificCode value="0x0022" name="ERANGE">Range error</SpecificCode>
+        <SpecificCode value="0x001E" name="EROFS">Read-only file system</SpecificCode>
+        <SpecificCode value="0x001D" name="ESPIPE">Invalid seek</SpecificCode>
+
+        <SpecificCode value="0x004D" name="EBADMSG">Bad message</SpecificCode>
+        <SpecificCode value="0x002F" name="ECANCELED">Operation canceled</SpecificCode>
+        <SpecificCode value="0x002D" name="EDEADLK">Resource deadlock avoided</SpecificCode>
+        <SpecificCode value="0x0058" name="EILSEQ">Multibyte encoding error</SpecificCode>
+        <SpecificCode value="0x0096" name="EINPROGRESS">Operation in progress</SpecificCode>
+        <SpecificCode value="0x0061" name="EMSGSIZE">Bad message buffer length</SpecificCode>
+        <SpecificCode value="0x004E" name="ENAMETOOLONG">Filename too long</SpecificCode>
+        <SpecificCode value="0x002E" name="ENOLCK">No locks available</SpecificCode>
+        <SpecificCode value="0x0059" name="ENOSYS">Function not implemented</SpecificCode>
+        <SpecificCode value="0x005D" name="ENOTEMPTY">Directory not empty</SpecificCode>
+        <SpecificCode value="0x0030" name="ENOTSUP">Not supported</SpecificCode>
+        <SpecificCode value="0x0091" name="ETIMEDOUT">Operation timed out</SpecificCode>
+    </SpecificCodes> <!-- Errno values -->
+
+    <SpecificCodes value="0x10001"> <!-- GNURunTimeError values -->
+        <SpecificCode value="0x0001" name="GNURetFromExit">The application returned from 'exit' unexpectedly.</SpecificCode>
+        <SpecificCode value="0x0002" name="GNUUnhandledException">The application triggered an unhandled exception.</SpecificCode>
+        <SpecificCode value="0x0003" name="GNUMutexCreateFailure">The C runtime library failed to create a Mutex.</SpecificCode>
+        <SpecificCode value="0x0004" name="GNUMutexNotRecursive">The C runtime library attempted use a non-recursive mutex recursively</SpecificCode>
+        <SpecificCode value="0x0005" name="GNUMutexPendFailure">The C runtime library failed to pend on a mutex</SpecificCode>
+        <SpecificCode value="0x0006" name="GNURecursiveMutexPendFailure">The C runtime library failed to pend on a recursive mutex</SpecificCode>
+        <SpecificCode value="0x0007" name="GNUMutexTryLockPendFailure">The C runtime library failed to pend on a mutex in a trylock operation</SpecificCode>
+        <SpecificCode value="0x0008" name="GNUMutexTryLockPostFailure">The C runtime library failed to post a mutex in a trylock operation</SpecificCode>
+        <SpecificCode value="0x0009" name="GNURecursiveMutexPostFailure">The C runtime library failed to post a recursive mutex</SpecificCode>
+        <SpecificCode value="0x000A" name="GNUThreadSlotAcquireFailure">The C runtime library failed to acquire a slot for thread-local storage</SpecificCode>
+        <SpecificCode value="0x000B" name="GNUThreadSlotGetFailure">The C runtime library failed to obtain a thread-local storage value</SpecificCode>
+        <SpecificCode value="0x000C" name="GNUThreadSlotSetFailure">The C runtime library failed to set a thread-local storage value</SpecificCode>
+        <SpecificCode value="0x000D" name="GNUThreadSlotDeleteFailure">The C runtime library failed to delete a thread-local storage slot</SpecificCode>
+        <SpecificCode value="0x000E" name="GNUThreadOnceUnsupported"></SpecificCode>
+        <SpecificCode value="0x000F" name="GNUMutexPostFailure">The C runtime library failed to post a mutex</SpecificCode>
+        <SpecificCode value="0x0010" name="GNUTLSHeapFailure">The C runtime library failed to allocate memory for a TLS reent struct</SpecificCode>
+        <SpecificCode value="0x0011" name="GNUMutexDestroyFailure">The C runtime library failed to destroy a mutex</SpecificCode>
+        <SpecificCode value="0x0012" name="GNUParityError">A parity error was detected</SpecificCode>
+        <SpecificCode value="0x0013" name="GNUadi_mmu_Init_failure" format="&quot;adi_mmu_Init returned %d (0x%x)&quot;, *(int *)&amp;adi_fatal_error_value, *(int *)&amp;adi_fatal_error_value">The call to adi_mmu_Init made from the CRT startup code returned an error.</SpecificCode>
+        <SpecificCode value="0x0014" name="GNUadi_osal_Init_failure"  format="&quot;adi_osal_Init returned %d (0x%d)&quot;, *(int *)&amp;adi_fatal_error_value, *(int *)&amp;adi_fatal_error_value">The call to adi_osal_Init made from the CRT startup code returned an error.</SpecificCode>
+    </SpecificCodes> <!-- GNURunTimeError values -->
+    
+    <SpecificCodes value="0xC"> <!-- CCSFPError values -->
+        <SpecificCode value="0x0" name="NoError">No fatal error has been reported.</SpecificCode>
+        <SpecificCode value="0x1" name="InitComponentsFailed">Components failed to initialize.</SpecificCode>
+        <SpecificCode value="0x2" name="PwrInitFailed">Power services failed to initialize.</SpecificCode>  
+        <SpecificCode value="0x3" name="GpioInitFailed">GPIO services failed to initialize.</SpecificCode>
+        <SpecificCode value="0x4" name="SpiInitFailed">SPI services failed to initialize.</SpecificCode>
+        <SpecificCode value="0x5" name="UartInitFailed">UART services failed to initialize.</SpecificCode>
+        <SpecificCode value="0x6" name="SpuInitFailed">SPU services failed to initialize.</SpecificCode>
+        <SpecificCode value="0x7" name="UartAutobaudFailed">UART autobaudrate detection has failed.</SpecificCode>
+        <SpecificCode value="0x8" name="UartAckFailed">UART acknowledgment packet failed to send.</SpecificCode>
+        <SpecificCode value="0x9" name="UartReadFailed">Failed to receive UART packet.</SpecificCode>
+    </SpecificCodes> <!--  CCSFPError values  -->
+
+    <SpecificCodes value="0xffffffff"> <!-- User Errors -->
+        <SpecificCode value="0x0" name="NoError"></SpecificCode>
+        <SpecificCode value="0x1" name="FirstUserError"></SpecificCode>
+        <SpecificCode value="0x2" name="SecondUserErrorWithValue" format="&quot;Error value is %d (0x%x)&quot;, *(int *)&amp;adi_fatal_error_value, *(int *)&amp;adi_fatal_error_value"></SpecificCode>
+        <SpecificCode value="0x3" name="ThirdUserErrorWithValue" format="&quot;Error value is %d (0x%x)&quot;, *(int *)&amp;adi_fatal_error_value, *(int *)&amp;adi_fatal_error_value"></SpecificCode>
+        <SpecificCode value="0xffffffff" name="LastUserError"></SpecificCode>
+    </SpecificCodes> <!-- User Errors -->
+
+    <GeneralCodes>
+        <GeneralCode value="0x0" name="NoError" specific-list="0x0"></GeneralCode>
+        <GeneralCode value="0x7" name="LibraryError" specific-list="0x2"></GeneralCode>
+        <GeneralCode value="0x8" name="RunTimeError" specific-list="0x3"></GeneralCode>
+        <GeneralCode value="0x9" name="UnhandledException" specific-list="0x4"></GeneralCode>
+        <GeneralCode value="0xA" name="ParityError" specific-list="0x5"></GeneralCode>
+        <GeneralCode value="0xB" name="Errno" specific-list="0x6"></GeneralCode>
+        <GeneralCode value="0xC" name="CCSFPError" specific-list="0xC"></GeneralCode>
+        <GeneralCode value="0x10001" name="GNURunTimeError" specific-list="0x10001"></GeneralCode>
+        <GeneralCode value="0xffffffff" name="UserError" specific-list="0xffffffff"></GeneralCode>
+    </GeneralCodes>
+
+</fatalerror-xml>

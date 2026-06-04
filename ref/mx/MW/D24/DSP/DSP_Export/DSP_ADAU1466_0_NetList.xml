@@ -1,0 +1,492 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- * 
+ * This software is distributed in the hope that it will be useful, 
+ * but is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR 
+ * CONDITIONS OF ANY KIND, without even the implied warranty of 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+ * 
+ * Copyright ©2026 Analog Devices, Inc. All rights reserved.
+ * 
+-->
+<!--NetList XML file-->
+<IC name="ADAU1466_0" partnumber="ADAU1466">
+  <Core name="ADAU146xCore_0">
+    <Schematic name="ADAU146xSchematic_0">
+      <Algorithm name="Safeload" friendlyname="Schematic Params" />
+      <Algorithm name="Input0to15_0" friendlyname="Input SDATA0">
+        <Link pin="Ch0_out" dir="out" link="Link_67" id="Link_67" />
+        <Link pin="Ch2_out" dir="out" link="Link_149" id="Link_149" />
+        <Link pin="Ch3_out" dir="out" link="Link_150" id="Link_150" />
+        <Link pin="Ch4_out" dir="out" link="Link_151" id="Link_151" />
+        <Link pin="Ch5_out" dir="out" link="Link_152" id="Link_152" />
+        <Link pin="Ch6_out" dir="out" link="Link_153" id="Link_153" />
+        <Link pin="Ch7_out" dir="out" link="Link_154" id="Link_154" />
+        <Link pin="Ch8_out" dir="out" link="Link_268" id="Link_268" />
+        <Link pin="Ch9_out" dir="out" link="Link_269" id="Link_269" />
+        <Link pin="Ch10_out" dir="out" link="Link_270" id="Link_270" />
+        <Link pin="Ch11_out" dir="out" link="Link_271" id="Link_271" />
+        <Link pin="Ch12_out" dir="out" link="Link_272" id="Link_272" />
+        <Link pin="Ch13_out" dir="out" link="Link_273" id="Link_273" />
+        <Link pin="Ch14_out" dir="out" link="Link_274" id="Link_274" />
+        <Link pin="Ch15_out" dir="out" link="Link_275" id="Link_275" />
+        <Link pin="Ch1_out" dir="out" link="Link_441" id="Link_441" />
+      </Algorithm>
+      <Algorithm name="Input16to31_0" friendlyname="Input SDATA0" />
+      <Algorithm name="Input32to39_0" friendlyname="Input SDATA0" />
+      <Algorithm name="Input40to47_0" friendlyname="Input SDATA0" />
+      <Algorithm name="SignalInvert_0" friendlyname="Inverts The Input Signal" />
+      <Algorithm name="NthOrderFilter_0" friendlyname="Nth Order Analog Filters" />
+      <Algorithm name="RMSExtInput_0" friendlyname="Computes the RMS level of the input signal and applies the compressor gain to the input signal based on the RMS value. " />
+      <Algorithm name="GenSecondOrder_0" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="RMSExtInput_0_1" friendlyname="Computes the RMS level of the input signal and applies the compressor gain to the input signal based on the RMS value. " />
+      <Algorithm name="Delay_0" friendlyname="Delays the Input Signal by the Maximum number of Samples Selected on the Spin TextBox" />
+      <Algorithm name="RMSTableRange_0" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_1" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_2" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_3" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="DSPReadBack_0" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_1" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_2" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_3" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="Gain_15" friendlyname="Multiplies the Input by desired Value">
+        <Link pin="Output" dir="out" link="Link_768" id="Link_768" />
+        <Link pin="Input" dir="in" link="Link_275" id="Link_769" />
+      </Algorithm>
+      <Algorithm name="GenSecondOrder_31" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc.">
+        <Link pin="Output0" dir="out" link="Link_771" id="Link_771" />
+        <Link pin="Input0" dir="in" link="Link_1699" id="Link_1661" />
+      </Algorithm>
+      <Algorithm name="GenSecondOrder_31_1" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="Output_49" friendlyname="Output">
+        <Link pin="Input" dir="in" link="Link_380" id="Link_380" />
+      </Algorithm>
+      <Algorithm name="SignalInvert_0" friendlyname="Inverts The Input Signal" />
+      <Algorithm name="NthOrderFilter_0" friendlyname="Nth Order Analog Filters" />
+      <Algorithm name="RMSExtInput_0" friendlyname="Computes the RMS level of the input signal and applies the compressor gain to the input signal based on the RMS value. " />
+      <Algorithm name="GenSecondOrder_0" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="RMSExtInput_0_1" friendlyname="Computes the RMS level of the input signal and applies the compressor gain to the input signal based on the RMS value. " />
+      <Algorithm name="Delay_0" friendlyname="Delays the Input Signal by the Maximum number of Samples Selected on the Spin TextBox" />
+      <Algorithm name="RMSTableRange_0" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_1" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_2" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_3" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="DSPReadBack_0" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_1" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_2" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_3" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="Gain_15" friendlyname="Multiplies the Input by desired Value" />
+      <Algorithm name="GenSecondOrder_31" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="GenSecondOrder_31_1" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="SignalInvert_0" friendlyname="Inverts The Input Signal" />
+      <Algorithm name="NthOrderFilter_0" friendlyname="Nth Order Analog Filters" />
+      <Algorithm name="RMSExtInput_0" friendlyname="Computes the RMS level of the input signal and applies the compressor gain to the input signal based on the RMS value. " />
+      <Algorithm name="GenSecondOrder_0" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="RMSExtInput_0_1" friendlyname="Computes the RMS level of the input signal and applies the compressor gain to the input signal based on the RMS value. " />
+      <Algorithm name="Delay_0" friendlyname="Delays the Input Signal by the Maximum number of Samples Selected on the Spin TextBox" />
+      <Algorithm name="RMSTableRange_0" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_1" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_2" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_3" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="DSPReadBack_0" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_1" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_2" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_3" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="Gain_15" friendlyname="Multiplies the Input by desired Value" />
+      <Algorithm name="GenSecondOrder_31" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="GenSecondOrder_31_1" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="SignalInvert_0" friendlyname="Inverts The Input Signal" />
+      <Algorithm name="NthOrderFilter_0" friendlyname="Nth Order Analog Filters" />
+      <Algorithm name="RMSExtInput_0" friendlyname="Computes the RMS level of the input signal and applies the compressor gain to the input signal based on the RMS value. " />
+      <Algorithm name="GenSecondOrder_0" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="RMSExtInput_0_1" friendlyname="Computes the RMS level of the input signal and applies the compressor gain to the input signal based on the RMS value. " />
+      <Algorithm name="Delay_0" friendlyname="Delays the Input Signal by the Maximum number of Samples Selected on the Spin TextBox" />
+      <Algorithm name="RMSTableRange_0" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_1" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_2" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_3" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="DSPReadBack_0" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_1" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_2" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_3" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="Gain_15" friendlyname="Multiplies the Input by desired Value" />
+      <Algorithm name="GenSecondOrder_31" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="GenSecondOrder_31_1" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="SignalInvert_0" friendlyname="Inverts The Input Signal" />
+      <Algorithm name="NthOrderFilter_0" friendlyname="Nth Order Analog Filters" />
+      <Algorithm name="RMSExtInput_0" friendlyname="Computes the RMS level of the input signal and applies the compressor gain to the input signal based on the RMS value. " />
+      <Algorithm name="GenSecondOrder_0" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="RMSExtInput_0_1" friendlyname="Computes the RMS level of the input signal and applies the compressor gain to the input signal based on the RMS value. " />
+      <Algorithm name="Delay_0" friendlyname="Delays the Input Signal by the Maximum number of Samples Selected on the Spin TextBox" />
+      <Algorithm name="RMSTableRange_0" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_1" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_2" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_3" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="DSPReadBack_0" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_1" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_2" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_3" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="Gain_15" friendlyname="Multiplies the Input by desired Value" />
+      <Algorithm name="GenSecondOrder_31" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="GenSecondOrder_31_1" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="SignalInvert_0" friendlyname="Inverts The Input Signal" />
+      <Algorithm name="NthOrderFilter_0" friendlyname="Nth Order Analog Filters" />
+      <Algorithm name="RMSExtInput_0" friendlyname="Computes the RMS level of the input signal and applies the compressor gain to the input signal based on the RMS value. " />
+      <Algorithm name="GenSecondOrder_0" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="RMSExtInput_0_1" friendlyname="Computes the RMS level of the input signal and applies the compressor gain to the input signal based on the RMS value. " />
+      <Algorithm name="Delay_0" friendlyname="Delays the Input Signal by the Maximum number of Samples Selected on the Spin TextBox" />
+      <Algorithm name="RMSTableRange_0" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_1" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_2" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_3" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="DSPReadBack_0" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_1" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_2" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_3" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="Gain_15" friendlyname="Multiplies the Input by desired Value" />
+      <Algorithm name="GenSecondOrder_31" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="GenSecondOrder_31_1" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="SignalInvert_0" friendlyname="Inverts The Input Signal" />
+      <Algorithm name="NthOrderFilter_0" friendlyname="Nth Order Analog Filters" />
+      <Algorithm name="RMSExtInput_0" friendlyname="Computes the RMS level of the input signal and applies the compressor gain to the input signal based on the RMS value. " />
+      <Algorithm name="GenSecondOrder_0" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="RMSExtInput_0_1" friendlyname="Computes the RMS level of the input signal and applies the compressor gain to the input signal based on the RMS value. " />
+      <Algorithm name="Delay_0" friendlyname="Delays the Input Signal by the Maximum number of Samples Selected on the Spin TextBox" />
+      <Algorithm name="RMSTableRange_0" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_1" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_2" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_3" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="DSPReadBack_0" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_1" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_2" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_3" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="Gain_15" friendlyname="Multiplies the Input by desired Value" />
+      <Algorithm name="GenSecondOrder_31" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="GenSecondOrder_31_1" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="SignalInvert_0" friendlyname="Inverts The Input Signal" />
+      <Algorithm name="NthOrderFilter_0" friendlyname="Nth Order Analog Filters" />
+      <Algorithm name="RMSExtInput_0" friendlyname="Computes the RMS level of the input signal and applies the compressor gain to the input signal based on the RMS value. " />
+      <Algorithm name="GenSecondOrder_0" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="RMSExtInput_0_1" friendlyname="Computes the RMS level of the input signal and applies the compressor gain to the input signal based on the RMS value. " />
+      <Algorithm name="Delay_0" friendlyname="Delays the Input Signal by the Maximum number of Samples Selected on the Spin TextBox" />
+      <Algorithm name="RMSTableRange_0" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_1" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_2" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_3" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="DSPReadBack_0" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_1" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_2" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_3" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="Gain_15" friendlyname="Multiplies the Input by desired Value" />
+      <Algorithm name="GenSecondOrder_31" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="GenSecondOrder_31_1" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="NxMMixerLinear_0" friendlyname="Mix 'N' Inputs to 'M' Outputs">
+        <Link pin="Input0" dir="in" link="Link_1172" id="Link_155" />
+        <Link pin="Input2" dir="in" link="Link_1180" id="Link_157" />
+        <Link pin="Input3" dir="in" link="Link_1184" id="Link_158" />
+        <Link pin="Input4" dir="in" link="Link_1188" id="Link_159" />
+        <Link pin="Input5" dir="in" link="Link_1192" id="Link_160" />
+        <Link pin="Input6" dir="in" link="Link_1196" id="Link_161" />
+        <Link pin="Input7" dir="in" link="Link_1200" id="Link_162" />
+        <Link pin="Input8" dir="in" link="Link_1204" id="Link_276" />
+        <Link pin="Input9" dir="in" link="Link_1208" id="Link_277" />
+        <Link pin="Input10" dir="in" link="Link_1212" id="Link_278" />
+        <Link pin="Input11" dir="in" link="Link_1216" id="Link_279" />
+        <Link pin="Input12" dir="in" link="Link_1220" id="Link_280" />
+        <Link pin="Input13" dir="in" link="Link_1224" id="Link_281" />
+        <Link pin="Input14" dir="in" link="Link_1228" id="Link_282" />
+        <Link pin="Input15" dir="in" link="Link_736" id="Link_283" />
+        <Link pin="Output0" dir="out" link="Link_348" id="Link_348" />
+        <Link pin="Output1" dir="out" link="Link_349" id="Link_349" />
+        <Link pin="Output2" dir="out" link="Link_350" id="Link_350" />
+        <Link pin="Output3" dir="out" link="Link_351" id="Link_351" />
+        <Link pin="Output4" dir="out" link="Link_352" id="Link_352" />
+        <Link pin="Output5" dir="out" link="Link_353" id="Link_353" />
+        <Link pin="Output6" dir="out" link="Link_354" id="Link_354" />
+        <Link pin="Output7" dir="out" link="Link_355" id="Link_355" />
+        <Link pin="Output8" dir="out" link="Link_356" id="Link_356" />
+        <Link pin="Output9" dir="out" link="Link_357" id="Link_357" />
+        <Link pin="Output10" dir="out" link="Link_358" id="Link_358" />
+        <Link pin="Output11" dir="out" link="Link_359" id="Link_359" />
+        <Link pin="Output12" dir="out" link="Link_360" id="Link_360" />
+        <Link pin="Output13" dir="out" link="Link_361" id="Link_361" />
+        <Link pin="Output14" dir="out" link="Link_362" id="Link_362" />
+        <Link pin="Output15" dir="out" link="Link_363" id="Link_363" />
+        <Link pin="Input1" dir="in" link="Link_1176" id="Link_442" />
+      </Algorithm>
+      <Algorithm name="Output_49_1" friendlyname="Output" />
+      <Algorithm name="Output_49_2" friendlyname="Output" />
+      <Algorithm name="Output_49_3" friendlyname="Output" />
+      <Algorithm name="Output_49_4" friendlyname="Output" />
+      <Algorithm name="Output_49_5" friendlyname="Output" />
+      <Algorithm name="Output_49_6" friendlyname="Output" />
+      <Algorithm name="Output_49_7" friendlyname="Output" />
+      <Algorithm name="Output_49_8" friendlyname="Output" />
+      <Algorithm name="Output_49_9" friendlyname="Output" />
+      <Algorithm name="Output_49_10" friendlyname="Output" />
+      <Algorithm name="Output_49_11" friendlyname="Output" />
+      <Algorithm name="Output_49_12" friendlyname="Output" />
+      <Algorithm name="Output_49_13" friendlyname="Output" />
+      <Algorithm name="Output_49_14" friendlyname="Output" />
+      <Algorithm name="Output_49_15" friendlyname="Output" />
+      <Algorithm name="SignalInvert_0" friendlyname="Inverts The Input Signal" />
+      <Algorithm name="NthOrderFilter_0" friendlyname="Nth Order Analog Filters" />
+      <Algorithm name="RMSExtInput_0" friendlyname="Computes the RMS level of the input signal and applies the compressor gain to the input signal based on the RMS value. " />
+      <Algorithm name="GenSecondOrder_0" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="RMSExtInput_0_1" friendlyname="Computes the RMS level of the input signal and applies the compressor gain to the input signal based on the RMS value. " />
+      <Algorithm name="Delay_0" friendlyname="Delays the Input Signal by the Maximum number of Samples Selected on the Spin TextBox" />
+      <Algorithm name="RMSTableRange_0" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_1" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_2" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_3" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="DSPReadBack_0" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_1" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_2" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_3" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="Gain_15" friendlyname="Multiplies the Input by desired Value" />
+      <Algorithm name="GenSecondOrder_31" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="GenSecondOrder_31_1" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="SignalInvert_0" friendlyname="Inverts The Input Signal" />
+      <Algorithm name="NthOrderFilter_0" friendlyname="Nth Order Analog Filters" />
+      <Algorithm name="RMSExtInput_0" friendlyname="Computes the RMS level of the input signal and applies the compressor gain to the input signal based on the RMS value. " />
+      <Algorithm name="GenSecondOrder_0" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="RMSExtInput_0_1" friendlyname="Computes the RMS level of the input signal and applies the compressor gain to the input signal based on the RMS value. " />
+      <Algorithm name="Delay_0" friendlyname="Delays the Input Signal by the Maximum number of Samples Selected on the Spin TextBox" />
+      <Algorithm name="RMSTableRange_0" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_1" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_2" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_3" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="DSPReadBack_0" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_1" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_2" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_3" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="Gain_15" friendlyname="Multiplies the Input by desired Value" />
+      <Algorithm name="GenSecondOrder_31" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="GenSecondOrder_31_1" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="SignalInvert_0" friendlyname="Inverts The Input Signal" />
+      <Algorithm name="NthOrderFilter_0" friendlyname="Nth Order Analog Filters" />
+      <Algorithm name="RMSExtInput_0" friendlyname="Computes the RMS level of the input signal and applies the compressor gain to the input signal based on the RMS value. " />
+      <Algorithm name="GenSecondOrder_0" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="RMSExtInput_0_1" friendlyname="Computes the RMS level of the input signal and applies the compressor gain to the input signal based on the RMS value. " />
+      <Algorithm name="Delay_0" friendlyname="Delays the Input Signal by the Maximum number of Samples Selected on the Spin TextBox" />
+      <Algorithm name="RMSTableRange_0" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_1" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_2" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_3" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="DSPReadBack_0" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_1" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_2" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_3" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="Gain_15" friendlyname="Multiplies the Input by desired Value" />
+      <Algorithm name="GenSecondOrder_31" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="GenSecondOrder_31_1" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="SignalInvert_0" friendlyname="Inverts The Input Signal" />
+      <Algorithm name="NthOrderFilter_0" friendlyname="Nth Order Analog Filters" />
+      <Algorithm name="RMSExtInput_0" friendlyname="Computes the RMS level of the input signal and applies the compressor gain to the input signal based on the RMS value. " />
+      <Algorithm name="GenSecondOrder_0" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="RMSExtInput_0_1" friendlyname="Computes the RMS level of the input signal and applies the compressor gain to the input signal based on the RMS value. " />
+      <Algorithm name="Delay_0" friendlyname="Delays the Input Signal by the Maximum number of Samples Selected on the Spin TextBox" />
+      <Algorithm name="RMSTableRange_0" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_1" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_2" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_3" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="DSPReadBack_0" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_1" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_2" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_3" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="Gain_15" friendlyname="Multiplies the Input by desired Value" />
+      <Algorithm name="GenSecondOrder_31" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="GenSecondOrder_31_1" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="SignalInvert_0" friendlyname="Inverts The Input Signal" />
+      <Algorithm name="NthOrderFilter_0" friendlyname="Nth Order Analog Filters" />
+      <Algorithm name="RMSExtInput_0" friendlyname="Computes the RMS level of the input signal and applies the compressor gain to the input signal based on the RMS value. " />
+      <Algorithm name="GenSecondOrder_0" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="RMSExtInput_0_1" friendlyname="Computes the RMS level of the input signal and applies the compressor gain to the input signal based on the RMS value. " />
+      <Algorithm name="Delay_0" friendlyname="Delays the Input Signal by the Maximum number of Samples Selected on the Spin TextBox" />
+      <Algorithm name="RMSTableRange_0" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_1" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_2" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_3" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="DSPReadBack_0" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_1" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_2" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_3" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="Gain_15" friendlyname="Multiplies the Input by desired Value" />
+      <Algorithm name="GenSecondOrder_31" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="GenSecondOrder_31_1" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="SignalInvert_0" friendlyname="Inverts The Input Signal" />
+      <Algorithm name="NthOrderFilter_0" friendlyname="Nth Order Analog Filters" />
+      <Algorithm name="RMSExtInput_0" friendlyname="Computes the RMS level of the input signal and applies the compressor gain to the input signal based on the RMS value. " />
+      <Algorithm name="GenSecondOrder_0" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="RMSExtInput_0_1" friendlyname="Computes the RMS level of the input signal and applies the compressor gain to the input signal based on the RMS value. " />
+      <Algorithm name="Delay_0" friendlyname="Delays the Input Signal by the Maximum number of Samples Selected on the Spin TextBox" />
+      <Algorithm name="RMSTableRange_0" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_1" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_2" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_3" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="DSPReadBack_0" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_1" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_2" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_3" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="Gain_15" friendlyname="Multiplies the Input by desired Value" />
+      <Algorithm name="GenSecondOrder_31" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="GenSecondOrder_31_1" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="SignalInvert_0" friendlyname="Inverts The Input Signal" />
+      <Algorithm name="NthOrderFilter_0" friendlyname="Nth Order Analog Filters" />
+      <Algorithm name="RMSExtInput_0" friendlyname="Computes the RMS level of the input signal and applies the compressor gain to the input signal based on the RMS value. " />
+      <Algorithm name="GenSecondOrder_0" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="RMSExtInput_0_1" friendlyname="Computes the RMS level of the input signal and applies the compressor gain to the input signal based on the RMS value. " />
+      <Algorithm name="Delay_0" friendlyname="Delays the Input Signal by the Maximum number of Samples Selected on the Spin TextBox" />
+      <Algorithm name="RMSTableRange_0" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_1" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_2" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_3" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="DSPReadBack_0" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_1" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_2" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_3" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="Gain_15" friendlyname="Multiplies the Input by desired Value" />
+      <Algorithm name="GenSecondOrder_31" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="GenSecondOrder_31_1" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="SignalInvert_0" friendlyname="Inverts The Input Signal" />
+      <Algorithm name="NthOrderFilter_0" friendlyname="Nth Order Analog Filters" />
+      <Algorithm name="RMSExtInput_0" friendlyname="Computes the RMS level of the input signal and applies the compressor gain to the input signal based on the RMS value. " />
+      <Algorithm name="GenSecondOrder_0" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="RMSExtInput_0_1" friendlyname="Computes the RMS level of the input signal and applies the compressor gain to the input signal based on the RMS value. " />
+      <Algorithm name="Delay_0" friendlyname="Delays the Input Signal by the Maximum number of Samples Selected on the Spin TextBox" />
+      <Algorithm name="RMSTableRange_0" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_1" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_2" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="RMSTableRange_0_3" friendlyname="Takes an input signal and outputs the interpolated mapped value of the signal" />
+      <Algorithm name="DSPReadBack_0" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_1" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_2" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="DSPReadBack_0_3" friendlyname="Reads Values Back from the DSP at any Point in the Schematic design" />
+      <Algorithm name="Gain_15" friendlyname="Multiplies the Input by desired Value" />
+      <Algorithm name="GenSecondOrder_31" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="GenSecondOrder_31_1" friendlyname="Gives access to a variety of Second Order IIR filter algorithms.&#xA; Parametric, Shelving, General LP/HP/BP/BS, Tone Control etc." />
+      <Algorithm name="NxMMixerLinear_0_1" friendlyname="Mix 'N' Inputs to 'M' Outputs" />
+      <Algorithm name="SignalAdd2ch_0" friendlyname="Takes the input signal and adds them together">
+        <Link pin="Input0" dir="in" link="Link_348" id="Link_348" />
+        <Link pin="Input2" dir="in" link="Link_349" id="Link_349" />
+        <Link pin="Input4" dir="in" link="Link_350" id="Link_350" />
+        <Link pin="Input6" dir="in" link="Link_351" id="Link_351" />
+        <Link pin="Input8" dir="in" link="Link_352" id="Link_352" />
+        <Link pin="Input10" dir="in" link="Link_353" id="Link_353" />
+        <Link pin="Input12" dir="in" link="Link_354" id="Link_354" />
+        <Link pin="Input14" dir="in" link="Link_355" id="Link_355" />
+        <Link pin="Input16" dir="in" link="Link_356" id="Link_356" />
+        <Link pin="Input18" dir="in" link="Link_357" id="Link_357" />
+        <Link pin="Input20" dir="in" link="Link_358" id="Link_358" />
+        <Link pin="Input22" dir="in" link="Link_359" id="Link_359" />
+        <Link pin="Input24" dir="in" link="Link_360" id="Link_360" />
+        <Link pin="Input26" dir="in" link="Link_361" id="Link_361" />
+        <Link pin="Input28" dir="in" link="Link_362" id="Link_362" />
+        <Link pin="Input30" dir="in" link="Link_363" id="Link_363" />
+        <Link pin="Input1" dir="in" link="Link_364" id="Link_364" />
+        <Link pin="Input3" dir="in" link="Link_365" id="Link_365" />
+        <Link pin="Input5" dir="in" link="Link_366" id="Link_366" />
+        <Link pin="Input7" dir="in" link="Link_367" id="Link_367" />
+        <Link pin="Input9" dir="in" link="Link_368" id="Link_368" />
+        <Link pin="Input11" dir="in" link="Link_369" id="Link_369" />
+        <Link pin="Input13" dir="in" link="Link_370" id="Link_370" />
+        <Link pin="Input15" dir="in" link="Link_371" id="Link_371" />
+        <Link pin="Input17" dir="in" link="Link_372" id="Link_372" />
+        <Link pin="Input19" dir="in" link="Link_373" id="Link_373" />
+        <Link pin="Input21" dir="in" link="Link_374" id="Link_374" />
+        <Link pin="Input23" dir="in" link="Link_375" id="Link_375" />
+        <Link pin="Input25" dir="in" link="Link_376" id="Link_376" />
+        <Link pin="Input27" dir="in" link="Link_377" id="Link_377" />
+        <Link pin="Input29" dir="in" link="Link_378" id="Link_378" />
+        <Link pin="Input31" dir="in" link="Link_379" id="Link_379" />
+        <Link pin="Output0" dir="out" link="Link_380" id="Link_380" />
+        <Link pin="Output1" dir="out" link="Link_381" id="Link_381" />
+        <Link pin="Output2" dir="out" link="Link_382" id="Link_382" />
+        <Link pin="Output3" dir="out" link="Link_383" id="Link_383" />
+        <Link pin="Output4" dir="out" link="Link_384" id="Link_384" />
+        <Link pin="Output5" dir="out" link="Link_385" id="Link_385" />
+        <Link pin="Output6" dir="out" link="Link_386" id="Link_386" />
+        <Link pin="Output7" dir="out" link="Link_387" id="Link_387" />
+        <Link pin="Output8" dir="out" link="Link_388" id="Link_388" />
+        <Link pin="Output9" dir="out" link="Link_389" id="Link_389" />
+        <Link pin="Output10" dir="out" link="Link_390" id="Link_390" />
+        <Link pin="Output11" dir="out" link="Link_391" id="Link_391" />
+        <Link pin="Output12" dir="out" link="Link_392" id="Link_392" />
+        <Link pin="Output13" dir="out" link="Link_393" id="Link_393" />
+        <Link pin="Output14" dir="out" link="Link_394" id="Link_394" />
+        <Link pin="Output15" dir="out" link="Link_395" id="Link_395" />
+      </Algorithm>
+      <Algorithm name="SimpleRouter_0" friendlyname="Route 'N' Inputs to 'M' Outputs">
+        <Link pin="Input1" dir="in" link="Link_849" id="Link_1230" />
+        <Link pin="Input2" dir="in" link="Link_872" id="Link_1231" />
+        <Link pin="Input3" dir="in" link="Link_895" id="Link_1232" />
+        <Link pin="Input4" dir="in" link="Link_918" id="Link_1233" />
+        <Link pin="Input5" dir="in" link="Link_941" id="Link_1234" />
+        <Link pin="Input6" dir="in" link="Link_964" id="Link_1235" />
+        <Link pin="Input7" dir="in" link="Link_987" id="Link_1236" />
+        <Link pin="Input8" dir="in" link="Link_1010" id="Link_1237" />
+        <Link pin="Input9" dir="in" link="Link_1033" id="Link_1238" />
+        <Link pin="Input10" dir="in" link="Link_1056" id="Link_1239" />
+        <Link pin="Input11" dir="in" link="Link_1079" id="Link_1240" />
+        <Link pin="Input12" dir="in" link="Link_1102" id="Link_1241" />
+        <Link pin="Input13" dir="in" link="Link_1125" id="Link_1242" />
+        <Link pin="Input14" dir="in" link="Link_1148" id="Link_1243" />
+        <Link pin="Input15" dir="in" link="Link_719" id="Link_1244" />
+        <Link pin="Input0" dir="in" link="Link_1534" id="Link_1541" />
+        <Link pin="Output0" dir="out" link="Link_1666" id="Link_1666" />
+        <Link pin="Output1" dir="out" link="Link_1671" id="Link_1671" />
+        <Link pin="Output2" dir="out" link="Link_1672" id="Link_1672" />
+        <Link pin="Output3" dir="out" link="Link_1673" id="Link_1673" />
+        <Link pin="Output4" dir="out" link="Link_1674" id="Link_1674" />
+        <Link pin="Output5" dir="out" link="Link_1675" id="Link_1675" />
+        <Link pin="Output6" dir="out" link="Link_1676" id="Link_1676" />
+        <Link pin="Output7" dir="out" link="Link_1677" id="Link_1677" />
+        <Link pin="Output8" dir="out" link="Link_1678" id="Link_1678" />
+        <Link pin="Output9" dir="out" link="Link_1679" id="Link_1679" />
+        <Link pin="Output10" dir="out" link="Link_1680" id="Link_1680" />
+        <Link pin="Output11" dir="out" link="Link_1681" id="Link_1681" />
+        <Link pin="Output12" dir="out" link="Link_1682" id="Link_1682" />
+        <Link pin="Output13" dir="out" link="Link_1683" id="Link_1683" />
+        <Link pin="Output14" dir="out" link="Link_1684" id="Link_1684" />
+        <Link pin="Output15" dir="out" link="Link_1685" id="Link_1685" />
+      </Algorithm>
+      <Algorithm name="SimpleRouter_0_1" friendlyname="Route 'N' Inputs to 'M' Outputs" />
+      <Algorithm name="SimpleRouter_0_1_1" friendlyname="Route 'N' Inputs to 'M' Outputs" />
+      <Algorithm name="SignalAdd2ch_0_1" friendlyname="Takes the input signal and adds them together" />
+      <Algorithm name="Feedback_94" friendlyname="Generates a delay in the signal path">
+        <Link pin="Input" dir="in" link="Link_1666" id="Link_1666" />
+        <Link pin="Output" dir="out" link="Link_1667" id="Link_1667" />
+      </Algorithm>
+      <Algorithm name="Feedback_94_1" friendlyname="Generates a delay in the signal path" />
+      <Algorithm name="Feedback_94_2" friendlyname="Generates a delay in the signal path" />
+      <Algorithm name="Feedback_94_3" friendlyname="Generates a delay in the signal path" />
+      <Algorithm name="Feedback_94_4" friendlyname="Generates a delay in the signal path" />
+      <Algorithm name="Feedback_94_5" friendlyname="Generates a delay in the signal path" />
+      <Algorithm name="Feedback_94_6" friendlyname="Generates a delay in the signal path" />
+      <Algorithm name="Feedback_94_7" friendlyname="Generates a delay in the signal path" />
+      <Algorithm name="Feedback_94_8" friendlyname="Generates a delay in the signal path" />
+      <Algorithm name="Feedback_94_9" friendlyname="Generates a delay in the signal path" />
+      <Algorithm name="Feedback_94_10" friendlyname="Generates a delay in the signal path" />
+      <Algorithm name="Feedback_94_11" friendlyname="Generates a delay in the signal path" />
+      <Algorithm name="Feedback_94_12" friendlyname="Generates a delay in the signal path" />
+      <Algorithm name="Feedback_94_13" friendlyname="Generates a delay in the signal path" />
+      <Algorithm name="Feedback_94_14" friendlyname="Generates a delay in the signal path" />
+      <Algorithm name="Feedback_94_15" friendlyname="Generates a delay in the signal path" />
+      <Algorithm name="Feedback_94_16" friendlyname="Generates a delay in the signal path" />
+      <Algorithm name="Feedback_94_1_1" friendlyname="Generates a delay in the signal path" />
+      <Algorithm name="Feedback_94_2_1" friendlyname="Generates a delay in the signal path" />
+      <Algorithm name="Feedback_94_3_1" friendlyname="Generates a delay in the signal path" />
+      <Algorithm name="Feedback_94_4_1" friendlyname="Generates a delay in the signal path" />
+      <Algorithm name="Feedback_94_5_1" friendlyname="Generates a delay in the signal path" />
+      <Algorithm name="Feedback_94_6_1" friendlyname="Generates a delay in the signal path" />
+      <Algorithm name="Feedback_94_7_1" friendlyname="Generates a delay in the signal path" />
+      <Algorithm name="Feedback_94_8_1" friendlyname="Generates a delay in the signal path" />
+      <Algorithm name="Feedback_94_9_1" friendlyname="Generates a delay in the signal path" />
+      <Algorithm name="Feedback_94_10_1" friendlyname="Generates a delay in the signal path" />
+      <Algorithm name="Feedback_94_11_1" friendlyname="Generates a delay in the signal path" />
+      <Algorithm name="Feedback_94_12_1" friendlyname="Generates a delay in the signal path" />
+      <Algorithm name="Feedback_94_13_1" friendlyname="Generates a delay in the signal path" />
+      <Algorithm name="Feedback_94_14_1" friendlyname="Generates a delay in the signal path" />
+      <Algorithm name="Feedback_94_15_1" friendlyname="Generates a delay in the signal path" />
+    </Schematic>
+  </Core>
+</IC>

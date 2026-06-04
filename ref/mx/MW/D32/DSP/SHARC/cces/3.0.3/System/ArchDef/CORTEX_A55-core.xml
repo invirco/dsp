@@ -1,0 +1,322 @@
+<?xml version="1.0" standalone="yes"?>
+<!-- *********************************************************************** -->
+<!-- ******  CORTEX_A55-core.xml                                             -->
+<!-- *********************************************************************** -->
+<!--                                                                         -->
+<!-- Copyright (c) 2021-2024 Analog Devices, Inc.  All Rights Reserved.      -->
+<!-- This software is proprietary to Analog Devices, Inc. and its licensors. -->
+<!--                                                                         -->
+<!-- *********************************************************************** -->
+<cces-core-xml schema-version="2">
+	<version file-version="3.0.2.0"/>
+	<register-core-definitions>
+		<register name="x0" type="CORE" bit-size="64" description="x0" group="Core Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="x1" type="CORE" bit-size="64" description="x1" group="Core Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="x2" type="CORE" bit-size="64" description="x2" group="Core Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="x3" type="CORE" bit-size="64" description="x3" group="Core Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="x4" type="CORE" bit-size="64" description="x4" group="Core Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="x5" type="CORE" bit-size="64" description="x5" group="Core Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="x6" type="CORE" bit-size="64" description="x6" group="Core Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="x7" type="CORE" bit-size="64" description="x7" group="Core Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="x8" type="CORE" bit-size="64" description="x8" group="Core Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="x9" type="CORE" bit-size="64" description="x9" group="Core Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="x10" type="CORE" bit-size="64" description="x10" group="Core Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="x11" type="CORE" bit-size="64" description="x11" group="Core Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="x12" type="CORE" bit-size="64" description="x12" group="Core Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="x13" type="CORE" bit-size="64" description="x13" group="Core Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="x14" type="CORE" bit-size="64" description="x14" group="Core Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="x15" type="CORE" bit-size="64" description="x15" group="Core Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="x16" type="CORE" bit-size="64" description="x16" group="Core Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="x17" type="CORE" bit-size="64" description="x17" group="Core Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="x18" type="CORE" bit-size="64" description="x18" group="Core Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="x19" type="CORE" bit-size="64" description="x19" group="Core Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="x20" type="CORE" bit-size="64" description="x20" group="Core Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="x21" type="CORE" bit-size="64" description="x21" group="Core Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="x22" type="CORE" bit-size="64" description="x22" group="Core Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="x23" type="CORE" bit-size="64" description="x23" group="Core Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="x24" type="CORE" bit-size="64" description="x24" group="Core Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="x25" type="CORE" bit-size="64" description="x25" group="Core Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="x26" type="CORE" bit-size="64" description="x26" group="Core Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="x27" type="CORE" bit-size="64" description="x27" group="Core Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="x28" type="CORE" bit-size="64" description="x28" group="Core Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="x29" type="CORE" bit-size="64" description="x29" group="Core Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="x30" type="CORE" bit-size="64" description="x30" group="Core Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="sp" type="CORE" bit-size="64" description="sp" group="Core Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="pc" type="CORE" bit-size="64" description="pc" group="Core Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="cpsr" type="CORE" bit-size="32" description="cpsr" group="Core Registers" mask="FFFFFFFF"/>
+		<register name="v0" type="CORE" bit-size="128" description="v0" group="Simdfp" mask="FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"/>
+		<register name="v1" type="CORE" bit-size="128" description="v1" group="Simdfp" mask="FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"/>
+		<register name="v2" type="CORE" bit-size="128" description="v2" group="Simdfp" mask="FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"/>
+		<register name="v3" type="CORE" bit-size="128" description="v3" group="Simdfp" mask="FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"/>
+		<register name="v4" type="CORE" bit-size="128" description="v4" group="Simdfp" mask="FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"/>
+		<register name="v5" type="CORE" bit-size="128" description="v5" group="Simdfp" mask="FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"/>
+		<register name="v6" type="CORE" bit-size="128" description="v6" group="Simdfp" mask="FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"/>
+		<register name="v7" type="CORE" bit-size="128" description="v7" group="Simdfp" mask="FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"/>
+		<register name="v8" type="CORE" bit-size="128" description="v8" group="Simdfp" mask="FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"/>
+		<register name="v9" type="CORE" bit-size="128" description="v9" group="Simdfp" mask="FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"/>
+		<register name="v10" type="CORE" bit-size="128" description="v10" group="Simdfp" mask="FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"/>
+		<register name="v11" type="CORE" bit-size="128" description="v11" group="Simdfp" mask="FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"/>
+		<register name="v12" type="CORE" bit-size="128" description="v12" group="Simdfp" mask="FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"/>
+		<register name="v13" type="CORE" bit-size="128" description="v13" group="Simdfp" mask="FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"/>
+		<register name="v14" type="CORE" bit-size="128" description="v14" group="Simdfp" mask="FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"/>
+		<register name="v15" type="CORE" bit-size="128" description="v15" group="Simdfp" mask="FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"/>
+		<register name="v16" type="CORE" bit-size="128" description="v16" group="Simdfp" mask="FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"/>
+		<register name="v17" type="CORE" bit-size="128" description="v17" group="Simdfp" mask="FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"/>
+		<register name="v18" type="CORE" bit-size="128" description="v18" group="Simdfp" mask="FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"/>
+		<register name="v19" type="CORE" bit-size="128" description="v19" group="Simdfp" mask="FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"/>
+		<register name="v20" type="CORE" bit-size="128" description="v20" group="Simdfp" mask="FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"/>
+		<register name="v21" type="CORE" bit-size="128" description="v21" group="Simdfp" mask="FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"/>
+		<register name="v22" type="CORE" bit-size="128" description="v22" group="Simdfp" mask="FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"/>
+		<register name="v23" type="CORE" bit-size="128" description="v23" group="Simdfp" mask="FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"/>
+		<register name="v24" type="CORE" bit-size="128" description="v24" group="Simdfp" mask="FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"/>
+		<register name="v25" type="CORE" bit-size="128" description="v25" group="Simdfp" mask="FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"/>
+		<register name="v26" type="CORE" bit-size="128" description="v26" group="Simdfp" mask="FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"/>
+		<register name="v27" type="CORE" bit-size="128" description="v27" group="Simdfp" mask="FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"/>
+		<register name="v28" type="CORE" bit-size="128" description="v28" group="Simdfp" mask="FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"/>
+		<register name="v29" type="CORE" bit-size="128" description="v29" group="Simdfp" mask="FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"/>
+		<register name="v30" type="CORE" bit-size="128" description="v30" group="Simdfp" mask="FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"/>
+		<register name="v31" type="CORE" bit-size="128" description="v31" group="Simdfp" mask="FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"/>
+		<register name="fpsr" type="CORE" bit-size="32" description="fpsr" group="Simdfp" mask="FFFFFFFF"/>
+		<register name="fpcr" type="CORE" bit-size="32" description="fpcr" group="Simdfp" mask="FFFFFFFF"/>
+		<register name="ELR_EL1" type="CORE" bit-size="64" description="ELR_EL1" group="Debug" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ESR_EL1" type="CORE" bit-size="32" description="ESR_EL1" group="System Control And Config" mask="FFFFFFFF"/>
+		<register name="SPSR_EL1" type="CORE" bit-size="32" description="SPSR_EL1" group="Debug" mask="FFFFFFFF"/>
+		<register name="ELR_EL2" type="CORE" bit-size="64" description="ELR_EL2" group="Debug" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ESR_EL2" type="CORE" bit-size="32" description="ESR_EL2" group="System Control And Config" mask="FFFFFFFF"/>
+		<register name="SPSR_EL2" type="CORE" bit-size="32" description="SPSR_EL2" group="Debug" mask="FFFFFFFF"/>
+		<register name="ELR_EL3" type="CORE" bit-size="64" description="ELR_EL3" group="Debug" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ESR_EL3" type="CORE" bit-size="32" description="ESR_EL3" group="System Control And Config" mask="FFFFFFFF"/>
+		<register name="SPSR_EL3" type="CORE" bit-size="32" description="SPSR_EL3" group="Debug" mask="FFFFFFFF"/>
+		<register name="pauth_dmask" type="CORE" bit-size="64" description="pauth_dmask" group="Miscellaneous" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="pauth_cmask" type="CORE" bit-size="64" description="pauth_cmask" group="Miscellaneous" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="DBGAUTHSTATUS_EL1" type="CORE" bit-size="64" description="DBGAUTHSTATUS_EL1" group="Debug" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="DBGCLAIMCLR_EL1" type="CORE" bit-size="64" description="DBGCLAIMCLR_EL1" group="Debug" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="DBGCLAIMSET_EL1" type="CORE" bit-size="64" description="DBGCLAIMSET_EL1" group="Debug" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="DBGDTRRX_EL0" type="CORE" bit-size="64" description="DBGDTRRX_EL0" group="Debug" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="DBGDTRTX_EL0" type="CORE" bit-size="64" description="DBGDTRTX_EL0" group="Debug" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="DBGDTR_EL0" type="CORE" bit-size="64" description="DBGDTR_EL0" group="Debug" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="DBGPRCR_EL1" type="CORE" bit-size="64" description="DBGPRCR_EL1" group="Debug" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="DBGVCR32_EL2" type="CORE" bit-size="64" description="DBGVCR32_EL2" group="Debug" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="DBGWVR0_EL1" type="CORE" bit-size="64" description="DBGWVR0_EL1" group="Debug" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="DBGWVR1_EL1" type="CORE" bit-size="64" description="DBGWVR1_EL1" group="Debug" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="DBGWVR2_EL1" type="CORE" bit-size="64" description="DBGWVR2_EL1" group="Debug" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="DBGWVR3_EL1" type="CORE" bit-size="64" description="DBGWVR3_EL1" group="Debug" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="DBGWCR0_EL1" type="CORE" bit-size="64" description="DBGWCR0_EL1" group="Debug" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="DBGWCR1_EL1" type="CORE" bit-size="64" description="DBGWCR1_EL1" group="Debug" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="DBGWCR2_EL1" type="CORE" bit-size="64" description="DBGWCR2_EL1" group="Debug" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="DBGWCR3_EL1" type="CORE" bit-size="64" description="DBGWCR3_EL1" group="Debug" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="OSDLR_EL1" type="CORE" bit-size="64" description="OSDLR_EL1" group="Debug" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="OSDTRRX_EL1" type="CORE" bit-size="64" description="OSDTRRX_EL1" group="Debug" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="OSDTRTX_EL1" type="CORE" bit-size="64" description="OSDTRTX_EL1" group="Debug" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="OSECCR_EL1" type="CORE" bit-size="64" description="OSECCR_EL1" group="Debug" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="OSLSR_EL1" type="CORE" bit-size="64" description="OSLSR_EL1" group="Debug" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="MDCCINT_EL1" type="CORE" bit-size="64" description="MDCCINT_EL1" group="Debug" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="MDCCSR_EL0" type="CORE" bit-size="64" description="MDCCSR_EL0" group="Debug" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="MDSCR_EL1" type="CORE" bit-size="64" description="MDSCR_EL1" group="Debug" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="TPIDR_EL0" type="CORE" bit-size="64" description="TPIDR_EL0" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="TPIDRRO_EL0" type="CORE" bit-size="64" description="TPIDRRO_EL0" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="FAR_EL1" type="CORE" bit-size="64" description="FAR_EL1" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="VBAR_EL1" type="CORE" bit-size="64" description="VBAR_EL1" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="SCTLR_EL1" type="CORE" bit-size="64" description="SCTLR_EL1" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="CPACR_EL1" type="CORE" bit-size="64" description="CPACR_EL1" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ACTLR_EL1" type="CORE" bit-size="64" description="ACTLR_EL1" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="AFSR0_EL1" type="CORE" bit-size="64" description="AFSR0_EL1" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="AFSR1_EL1" type="CORE" bit-size="64" description="AFSR1_EL1" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="CONTEXTIDR_EL1" type="CORE" bit-size="64" description="CONTEXTIDR_EL1" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="DISR_EL1" type="CORE" bit-size="64" description="DISR_EL1" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ISR_EL1" type="CORE" bit-size="64" description="ISR_EL1" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="TPIDR_EL1" type="CORE" bit-size="64" description="TPIDR_EL1" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="FAR_EL2" type="CORE" bit-size="64" description="FAR_EL2" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="VBAR_EL2" type="CORE" bit-size="64" description="VBAR_EL2" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="SCTLR_EL2" type="CORE" bit-size="64" description="SCTLR_EL2" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ACTLR_EL2" type="CORE" bit-size="64" description="ACTLR_EL2" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="AFSR0_EL2" type="CORE" bit-size="64" description="AFSR0_EL2" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="AFSR1_EL2" type="CORE" bit-size="64" description="AFSR1_EL2" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="CONTEXTIDR_EL2" type="CORE" bit-size="64" description="CONTEXTIDR_EL2" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="CPTR_EL2" type="CORE" bit-size="64" description="CPTR_EL2" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="HCR_EL2" type="CORE" bit-size="64" description="HCR_EL2" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="HPFAR_EL2" type="CORE" bit-size="64" description="HPFAR_EL2" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="IFSR32_EL2" type="CORE" bit-size="64" description="IFSR32_EL2" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="TPIDR_EL2" type="CORE" bit-size="64" description="TPIDR_EL2" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="VDISR_EL2" type="CORE" bit-size="64" description="VDISR_EL2" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="VSESR_EL2" type="CORE" bit-size="64" description="VSESR_EL2" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="FAR_EL3" type="CORE" bit-size="64" description="FAR_EL3" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="VBAR_EL3" type="CORE" bit-size="64" description="VBAR_EL3" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="SCTLR_EL3" type="CORE" bit-size="64" description="SCTLR_EL3" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ACTLR_EL3" type="CORE" bit-size="64" description="ACTLR_EL3" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="AFSR0_EL3" type="CORE" bit-size="64" description="AFSR0_EL3" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="AFSR1_EL3" type="CORE" bit-size="64" description="AFSR1_EL3" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="CPTR_EL3" type="CORE" bit-size="64" description="CPTR_EL3" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="SCR_EL3" type="CORE" bit-size="64" description="SCR_EL3" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="RMR_EL3" type="CORE" bit-size="64" description="RMR_EL3" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="RVBAR_EL3" type="CORE" bit-size="64" description="RVBAR_EL3" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="SDER32_EL3" type="CORE" bit-size="64" description="SDER32_EL3" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="TPIDR_EL3" type="CORE" bit-size="64" description="TPIDR_EL3" group="System Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="AMAIR_EL1" type="CORE" bit-size="64" description="AMAIR_EL1" group="Memory Management" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="TTBR0_EL1" type="CORE" bit-size="64" description="TTBR0_EL1" group="Memory Management" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="TTBR1_EL1" type="CORE" bit-size="64" description="TTBR1_EL1" group="Memory Management" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="MAIR_EL1" type="CORE" bit-size="64" description="MAIR_EL1" group="Memory Management" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="PAR_EL1" type="CORE" bit-size="64" description="PAR_EL1" group="Memory Management" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="TCR_EL1" type="CORE" bit-size="64" description="TCR_EL1" group="Memory Management" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="AMAIR_EL2" type="CORE" bit-size="64" description="AMAIR_EL2" group="Memory Management" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="DACR32_EL2" type="CORE" bit-size="64" description="DACR32_EL2" group="Memory Management" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="HACR_EL2" type="CORE" bit-size="64" description="HACR_EL2" group="Memory Management" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="HSTR_EL2" type="CORE" bit-size="64" description="HSTR_EL2" group="Memory Management" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="TTBR0_EL2" type="CORE" bit-size="64" description="TTBR0_EL2" group="Memory Management" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="TTBR1_EL2" type="CORE" bit-size="64" description="TTBR1_EL2" group="Memory Management" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="MAIR_EL2" type="CORE" bit-size="64" description="MAIR_EL2" group="Memory Management" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="TCR_EL2" type="CORE" bit-size="64" description="TCR_EL2" group="Memory Management" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="VTCR_EL2" type="CORE" bit-size="64" description="VTCR_EL2" group="Memory Management" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="VTTBR_EL2" type="CORE" bit-size="64" description="VTTBR_EL2" group="Memory Management" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="AMAIR_EL3" type="CORE" bit-size="64" description="AMAIR_EL3" group="Memory Management" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="TTBR0_EL3" type="CORE" bit-size="64" description="TTBR0_EL3" group="Memory Management" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="MAIR_EL3" type="CORE" bit-size="64" description="MAIR_EL3" group="Memory Management" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="TCR_EL3" type="CORE" bit-size="64" description="TCR_EL3" group="Memory Management" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICC_AP0R0_EL1" type="CORE" bit-size="64" description="ICC_AP0R0_EL1" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICC_AP1R0_EL1" type="CORE" bit-size="64" description="ICC_AP1R0_EL1" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICC_ASGI1R_EL1" type="CORE" bit-size="64" description="ICC_ASGI1R_EL1" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICC_BPR0_EL1" type="CORE" bit-size="64" description="ICC_BPR0_EL1" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICC_BPR1_EL1" type="CORE" bit-size="64" description="ICC_BPR1_EL1" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICC_CTLR_EL1" type="CORE" bit-size="64" description="ICC_CTLR_EL1" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICC_DIR_EL1" type="CORE" bit-size="64" description="ICC_DIR_EL1" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICC_EOIR0_EL1" type="CORE" bit-size="64" description="ICC_EOIR0_EL1" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICC_EOIR1_EL1" type="CORE" bit-size="64" description="ICC_EOIR1_EL1" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICC_HPPIR0_EL1" type="CORE" bit-size="64" description="ICC_HPPIR0_EL1" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICC_HPPIR1_EL1" type="CORE" bit-size="64" description="ICC_HPPIR1_EL1" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICC_IAR0_EL1" type="CORE" bit-size="64" description="ICC_IAR0_EL1" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICC_IAR1_EL1" type="CORE" bit-size="64" description="ICC_IAR1_EL1" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICC_IGRPEN0_EL1" type="CORE" bit-size="64" description="ICC_IGRPEN0_EL1" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICC_IGRPEN1_EL1" type="CORE" bit-size="64" description="ICC_IGRPEN1_EL1" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICC_PMR_EL1" type="CORE" bit-size="64" description="ICC_PMR_EL1" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICC_RPR_EL1" type="CORE" bit-size="64" description="ICC_RPR_EL1" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICC_SGI0R_EL1" type="CORE" bit-size="64" description="ICC_SGI0R_EL1" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICC_SGI1R_EL1" type="CORE" bit-size="64" description="ICC_SGI1R_EL1" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICC_SRE_EL1" type="CORE" bit-size="64" description="ICC_SRE_EL1" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICV_AP0R0_EL1" type="CORE" bit-size="64" description="ICV_AP0R0_EL1" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICV_AP1R0_EL1" type="CORE" bit-size="64" description="ICV_AP1R0_EL1" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICV_BPR0_EL1" type="CORE" bit-size="64" description="ICV_BPR0_EL1" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICV_BPR1_EL1" type="CORE" bit-size="64" description="ICV_BPR1_EL1" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICV_CTLR_EL1" type="CORE" bit-size="64" description="ICV_CTLR_EL1" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICV_DIR_EL1" type="CORE" bit-size="64" description="ICV_DIR_EL1" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICV_EOIR0_EL1" type="CORE" bit-size="64" description="ICV_EOIR0_EL1" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICV_EOIR1_EL1" type="CORE" bit-size="64" description="ICV_EOIR1_EL1" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICV_HPPIR0_EL1" type="CORE" bit-size="64" description="ICV_HPPIR0_EL1" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICV_HPPIR1_EL1" type="CORE" bit-size="64" description="ICV_HPPIR1_EL1" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICV_IAR0_EL1" type="CORE" bit-size="64" description="ICV_IAR0_EL1" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICV_IAR1_EL1" type="CORE" bit-size="64" description="ICV_IAR1_EL1" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICV_IGRPEN0_EL1" type="CORE" bit-size="64" description="ICV_IGRPEN0_EL1" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICV_IGRPEN1_EL1" type="CORE" bit-size="64" description="ICV_IGRPEN1_EL1" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICV_PMR_EL1" type="CORE" bit-size="64" description="ICV_PMR_EL1" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICV_RPR_EL1" type="CORE" bit-size="64" description="ICV_RPR_EL1" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICH_AP0R0_EL2" type="CORE" bit-size="64" description="ICH_AP0R0_EL2" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICH_AP1R0_EL2" type="CORE" bit-size="64" description="ICH_AP1R0_EL2" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICH_EISR_EL2" type="CORE" bit-size="64" description="ICH_EISR_EL2" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICH_ELRSR_EL2" type="CORE" bit-size="64" description="ICH_ELRSR_EL2" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICH_HCR_EL2" type="CORE" bit-size="64" description="ICH_HCR_EL2" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICH_LR0_EL2" type="CORE" bit-size="64" description="ICH_LR0_EL2" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICH_LR1_EL2" type="CORE" bit-size="64" description="ICH_LR1_EL2" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICH_LR2_EL2" type="CORE" bit-size="64" description="ICH_LR2_EL2" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICH_LR3_EL2" type="CORE" bit-size="64" description="ICH_LR3_EL2" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICH_MISR_EL2" type="CORE" bit-size="64" description="ICH_MISR_EL2" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICH_VMCR_EL2" type="CORE" bit-size="64" description="ICH_VMCR_EL2" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICH_VTR_EL2" type="CORE" bit-size="64" description="ICH_VTR_EL2" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICC_SRE_EL2" type="CORE" bit-size="64" description="ICC_SRE_EL2" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICC_CTLR_EL3" type="CORE" bit-size="64" description="ICC_CTLR_EL3" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICC_IGRPEN1_EL3" type="CORE" bit-size="64" description="ICC_IGRPEN1_EL3" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ICC_SRE_EL3" type="CORE" bit-size="64" description="ICC_SRE_EL3" group="Gic" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="CNTFRQ_EL0" type="CORE" bit-size="64" description="CNTFRQ_EL0" group="System Timer" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="CNTPCT_EL0" type="CORE" bit-size="64" description="CNTPCT_EL0" group="System Timer" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="CNTVCT_EL0" type="CORE" bit-size="64" description="CNTVCT_EL0" group="System Timer" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="CNTP_TVAL_EL0" type="CORE" bit-size="64" description="CNTP_TVAL_EL0" group="System Timer" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="CNTP_CTL_EL0" type="CORE" bit-size="64" description="CNTP_CTL_EL0" group="System Timer" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="CNTP_CVAL_EL0" type="CORE" bit-size="64" description="CNTP_CVAL_EL0" group="System Timer" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="CNTV_TVAL_EL0" type="CORE" bit-size="64" description="CNTV_TVAL_EL0" group="System Timer" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="CNTV_CTL_EL0" type="CORE" bit-size="64" description="CNTV_CTL_EL0" group="System Timer" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="CNTV_CVAL_EL0" type="CORE" bit-size="64" description="CNTV_CVAL_EL0" group="System Timer" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="CNTKCTL_EL1" type="CORE" bit-size="64" description="CNTKCTL_EL1" group="System Timer" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="CNTPS_TVAL_EL1" type="CORE" bit-size="64" description="CNTPS_TVAL_EL1" group="System Timer" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="CNTPS_CTL_EL1" type="CORE" bit-size="64" description="CNTPS_CTL_EL1" group="System Timer" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="CNTPS_CVAL_EL1" type="CORE" bit-size="64" description="CNTPS_CVAL_EL1" group="System Timer" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="CNTVOFF_EL2" type="CORE" bit-size="64" description="CNTVOFF_EL2" group="System Timer" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="CNTHCTL_EL2" type="CORE" bit-size="64" description="CNTHCTL_EL2" group="System Timer" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="CNTHP_TVAL_EL2" type="CORE" bit-size="64" description="CNTHP_TVAL_EL2" group="System Timer" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="CNTHP_CTL_EL2" type="CORE" bit-size="64" description="CNTHP_CTL_EL2" group="System Timer" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="CNTHP_CVAL_EL2" type="CORE" bit-size="64" description="CNTHP_CVAL_EL2" group="System Timer" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="CNTHV_TVAL_EL2" type="CORE" bit-size="64" description="CNTHV_TVAL_EL2" group="System Timer" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="CNTHV_CTL_EL2" type="CORE" bit-size="64" description="CNTHV_CTL_EL2" group="System Timer" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="CNTHV_CVAL_EL2" type="CORE" bit-size="64" description="CNTHV_CVAL_EL2" group="System Timer" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="CTR_EL0" type="CORE" bit-size="64" description="CTR_EL0" group="Cache Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="CCSIDR_EL1" type="CORE" bit-size="64" description="CCSIDR_EL1" group="Cache Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="CLIDR_EL1" type="CORE" bit-size="64" description="CLIDR_EL1" group="Cache Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="CSSELR_EL1" type="CORE" bit-size="64" description="CSSELR_EL1" group="Cache Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="CPUCFR_EL1" type="CORE" bit-size="64" description="CPUCFR_EL1" group="Cache Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="CPUPWRCTLR_EL1" type="CORE" bit-size="64" description="CPUPWRCTLR_EL1" group="Cache Control And Config" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="PMCCFILTR_EL0" type="CORE" bit-size="64" description="PMCCFILTR_EL0" group="Performance Monitor" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="PMCCNTR_EL0" type="CORE" bit-size="64" description="PMCCNTR_EL0" group="Performance Monitor" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="PMCEID0_EL0" type="CORE" bit-size="64" description="PMCEID0_EL0" group="Performance Monitor" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="PMCEID1_EL0" type="CORE" bit-size="64" description="PMCEID1_EL0" group="Performance Monitor" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="PMCNTENCLR_EL0" type="CORE" bit-size="64" description="PMCNTENCLR_EL0" group="Performance Monitor" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="PMCNTENSET_EL0" type="CORE" bit-size="64" description="PMCNTENSET_EL0" group="Performance Monitor" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="PMCR_EL0" type="CORE" bit-size="64" description="PMCR_EL0" group="Performance Monitor" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="PMEVCNTR0_EL0" type="CORE" bit-size="64" description="PMEVCNTR0_EL0" group="Performance Monitor" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="PMEVCNTR1_EL0" type="CORE" bit-size="64" description="PMEVCNTR1_EL0" group="Performance Monitor" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="PMEVCNTR2_EL0" type="CORE" bit-size="64" description="PMEVCNTR2_EL0" group="Performance Monitor" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="PMEVCNTR3_EL0" type="CORE" bit-size="64" description="PMEVCNTR3_EL0" group="Performance Monitor" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="PMEVCNTR4_EL0" type="CORE" bit-size="64" description="PMEVCNTR4_EL0" group="Performance Monitor" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="PMEVCNTR5_EL0" type="CORE" bit-size="64" description="PMEVCNTR5_EL0" group="Performance Monitor" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="PMEVTYPER0_EL0" type="CORE" bit-size="64" description="PMEVTYPER0_EL0" group="Performance Monitor" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="PMEVTYPER1_EL0" type="CORE" bit-size="64" description="PMEVTYPER1_EL0" group="Performance Monitor" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="PMEVTYPER2_EL0" type="CORE" bit-size="64" description="PMEVTYPER2_EL0" group="Performance Monitor" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="PMEVTYPER3_EL0" type="CORE" bit-size="64" description="PMEVTYPER3_EL0" group="Performance Monitor" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="PMEVTYPER4_EL0" type="CORE" bit-size="64" description="PMEVTYPER4_EL0" group="Performance Monitor" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="PMEVTYPER5_EL0" type="CORE" bit-size="64" description="PMEVTYPER5_EL0" group="Performance Monitor" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="PMINTENCLR_EL1" type="CORE" bit-size="64" description="PMINTENCLR_EL1" group="Performance Monitor" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="PMINTENSET_EL1" type="CORE" bit-size="64" description="PMINTENSET_EL1" group="Performance Monitor" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="PMOVSCLR_EL0" type="CORE" bit-size="64" description="PMOVSCLR_EL0" group="Performance Monitor" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="PMOVSSET_EL0" type="CORE" bit-size="64" description="PMOVSSET_EL0" group="Performance Monitor" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="PMSELR_EL0" type="CORE" bit-size="64" description="PMSELR_EL0" group="Performance Monitor" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="PMUSERENR_EL0" type="CORE" bit-size="64" description="PMUSERENR_EL0" group="Performance Monitor" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="PMXEVCNTR_EL0" type="CORE" bit-size="64" description="PMXEVCNTR_EL0" group="Performance Monitor" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="PMXEVTYPER_EL0" type="CORE" bit-size="64" description="PMXEVTYPER_EL0" group="Performance Monitor" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ID_AA64AFR0_EL1" type="CORE" bit-size="64" description="ID_AA64AFR0_EL1" group="ID" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ID_AA64AFR1_EL1" type="CORE" bit-size="64" description="ID_AA64AFR1_EL1" group="ID" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ID_AA64DFR0_EL1" type="CORE" bit-size="64" description="ID_AA64DFR0_EL1" group="ID" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ID_AA64DFR1_EL1" type="CORE" bit-size="64" description="ID_AA64DFR1_EL1" group="ID" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ID_AA64ISAR0_EL1" type="CORE" bit-size="64" description="ID_AA64ISAR0_EL1" group="ID" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ID_AA64ISAR1_EL1" type="CORE" bit-size="64" description="ID_AA64ISAR1_EL1" group="ID" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ID_AA64MMFR0_EL1" type="CORE" bit-size="64" description="ID_AA64MMFR0_EL1" group="ID" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ID_AA64MMFR1_EL1" type="CORE" bit-size="64" description="ID_AA64MMFR1_EL1" group="ID" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ID_AA64MMFR2_EL1" type="CORE" bit-size="64" description="ID_AA64MMFR2_EL1" group="ID" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ID_AA64PFR0_EL1" type="CORE" bit-size="64" description="ID_AA64PFR0_EL1" group="ID" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ID_AA64PFR1_EL1" type="CORE" bit-size="64" description="ID_AA64PFR1_EL1" group="ID" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ID_AFR0_EL1" type="CORE" bit-size="64" description="ID_AFR0_EL1" group="ID" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ID_ISAR0_EL1" type="CORE" bit-size="64" description="ID_ISAR0_EL1" group="ID" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ID_ISAR1_EL1" type="CORE" bit-size="64" description="ID_ISAR1_EL1" group="ID" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ID_ISAR2_EL1" type="CORE" bit-size="64" description="ID_ISAR2_EL1" group="ID" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ID_ISAR3_EL1" type="CORE" bit-size="64" description="ID_ISAR3_EL1" group="ID" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ID_ISAR4_EL1" type="CORE" bit-size="64" description="ID_ISAR4_EL1" group="ID" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ID_ISAR5_EL1" type="CORE" bit-size="64" description="ID_ISAR5_EL1" group="ID" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ID_MMFR0_EL1" type="CORE" bit-size="64" description="ID_MMFR0_EL1" group="ID" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ID_MMFR1_EL1" type="CORE" bit-size="64" description="ID_MMFR1_EL1" group="ID" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ID_MMFR2_EL1" type="CORE" bit-size="64" description="ID_MMFR2_EL1" group="ID" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ID_MMFR3_EL1" type="CORE" bit-size="64" description="ID_MMFR3_EL1" group="ID" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ID_MMFR4_EL1" type="CORE" bit-size="64" description="ID_MMFR4_EL1" group="ID" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ID_PFR0_EL1" type="CORE" bit-size="64" description="ID_PFR0_EL1" group="ID" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ID_PFR1_EL1" type="CORE" bit-size="64" description="ID_PFR1_EL1" group="ID" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="DCZID_EL0" type="CORE" bit-size="64" description="DCZID_EL0" group="ID" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="REVIDR_EL1" type="CORE" bit-size="64" description="REVIDR_EL1" group="ID" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="VMPIDR_EL2" type="CORE" bit-size="64" description="VMPIDR_EL2" group="ID" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="VPIDR_EL2" type="CORE" bit-size="64" description="VPIDR_EL2" group="ID" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="LORID_EL1" type="CORE" bit-size="64" description="LORID_EL1" group="LO Region" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="MDCR_EL2" type="CORE" bit-size="64" description="MDCR_EL2" group="Virtualization Extensions" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="MDCR_EL3" type="CORE" bit-size="64" description="MDCR_EL3" group="Virtualization Extensions" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ERRID_EL1" type="CORE" bit-size="64" description="ERRID_EL1" group="Error System Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ERRSELR_EL1" type="CORE" bit-size="64" description="ERRSELR_EL1" group="Error System Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ERXADDR_EL1" type="CORE" bit-size="64" description="ERXADDR_EL1" group="Error System Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ERXCTLR_EL1" type="CORE" bit-size="64" description="ERXCTLR_EL1" group="Error System Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ERXFR_EL1" type="CORE" bit-size="64" description="ERXFR_EL1" group="Error System Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ERXMISC0_EL1" type="CORE" bit-size="64" description="ERXMISC0_EL1" group="Error System Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ERXMISC1_EL1" type="CORE" bit-size="64" description="ERXMISC1_EL1" group="Error System Registers" mask="FFFFFFFFFFFFFFFF"/>
+		<register name="ERXSTATUS_EL1" type="CORE" bit-size="64" description="ERXSTATUS_EL1" group="Error System Registers" mask="FFFFFFFFFFFFFFFF"/>
+	</register-core-definitions>
+</cces-core-xml>
