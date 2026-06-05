@@ -266,15 +266,18 @@ def render_graphviz(dot_path):
     dot_bin = shutil.which("dot")
     if dot_bin:
         for fmt, output_path in (("svg", SVG_PATH), ("png", PNG_PATH)):
-            subprocess.run(
-                [dot_bin, f"-T{fmt}", str(dot_path), "-o", str(output_path)],
-                check=True,
-            )
+            try:
+                subprocess.run(
+                    [dot_bin, f"-T{fmt}", str(dot_path), "-o", str(output_path)],
+                    check=True,
+                )
+            except subprocess.CalledProcessError as exc:
+                raise RuntimeError(f"Failed to render {fmt.upper()} with Graphviz `dot`.") from exc
             print(f"Wrote {output_path}")
         return True
 
     if SVG_PATH.exists() and cairosvg is not None:
-        print("Graphviz `dot` not found; converting existing SVG to PNG.")
+        print("Graphviz not available; converting existing SVG to PNG.")
         cairosvg.svg2png(url=str(SVG_PATH), write_to=str(PNG_PATH))
         print(f"Wrote {PNG_PATH}")
         return True
