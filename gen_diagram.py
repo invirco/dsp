@@ -23,9 +23,9 @@ from pathlib import Path
 try:
     import cairosvg
     from cairosvg.helpers import PointError
-except ImportError:  # pragma: no cover - optional dependency
-    cairosvg = None
-    PointError = None
+except ImportError:
+    cairosvg = None  # pragma: no cover - optional dependency
+    PointError = ValueError  # pragma: no cover - optional dependency
 
 CSV_PATH = Path(__file__).parent / "mx_master.csv"
 DOT_PATH = Path(__file__).parent / "block_diagram.dot"
