@@ -22,8 +22,10 @@ from pathlib import Path
 
 try:
     import cairosvg
+    from cairosvg.helpers import PointError
 except ImportError:  # pragma: no cover - optional dependency
     cairosvg = None
+    PointError = None
 
 CSV_PATH = Path(__file__).parent / "mx_master.csv"
 DOT_PATH = Path(__file__).parent / "block_diagram.dot"
@@ -287,12 +289,12 @@ def render_graphviz(dot_path):
         print("Graphviz not available; converting existing SVG to PNG.")
         try:
             cairosvg.svg2png(url=str(SVG_PATH), write_to=str(PNG_PATH))
-        except Exception as exc:  # pragma: no cover - optional dependency/runtime path
+        except (OSError, ValueError, PointError) as exc:  # pragma: no cover - optional dependency/runtime path
             raise RuntimeError("Failed to convert existing SVG to PNG with CairoSVG.") from exc
         print(f"Wrote {PNG_PATH}")
         return True
 
-    print("Graphviz `dot` not found; skipping SVG/PNG render.")
+    print("Graphviz `dot` not found and no SVG/CairoSVG fallback is available; skipping SVG/PNG render.")
     return False
 
 
