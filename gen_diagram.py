@@ -20,6 +20,11 @@ import subprocess
 from collections import defaultdict
 from pathlib import Path
 
+try:
+    import cairosvg
+except ImportError:  # pragma: no cover - optional dependency
+    cairosvg = None
+
 CSV_PATH = Path(__file__).parent / "mx_master.csv"
 DOT_PATH = Path(__file__).parent / "block_diagram.dot"
 SVG_PATH = Path(__file__).parent / "block_diagram.svg"
@@ -259,18 +264,23 @@ def build_dot(chains):
 
 def render_graphviz(dot_path):
     dot_bin = shutil.which("dot")
-    if not dot_bin:
-        print("Graphviz `dot` not found; skipping SVG/PNG render.")
-        return False
+    if dot_bin:
+        for fmt, output_path in (("svg", SVG_PATH), ("png", PNG_PATH)):
+            subprocess.run(
+                [dot_bin, f"-T{fmt}", str(dot_path), "-o", str(output_path)],
+                check=True,
+            )
+            print(f"Wrote {output_path}")
+        return True
 
-    for fmt, output_path in (("svg", SVG_PATH), ("png", PNG_PATH)):
-        subprocess.run(
-            [dot_bin, f"-T{fmt}", str(dot_path), "-o", str(output_path)],
-            check=True,
-        )
-        print(f"Wrote {output_path}")
+    if SVG_PATH.exists() and cairosvg is not None:
+        print("Graphviz `dot` not found; converting existing SVG to PNG.")
+        cairosvg.svg2png(url=str(SVG_PATH), write_to=str(PNG_PATH))
+        print(f"Wrote {PNG_PATH}")
+        return True
 
-    return True
+    print("Graphviz `dot` not found; skipping SVG/PNG render.")
+    return False
 
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
