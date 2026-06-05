@@ -4,8 +4,10 @@ gen_diagram.py – derive a partial DSP block diagram from mx_master.csv.
 
 Reads the StripType, StripOrder and Function columns to build per-strip
 processing chains, then emits:
-  block_diagram.dot   – Graphviz DOT (render: dot -Tsvg block_diagram.dot -o block_diagram.svg)
-  block_diagram.md    – Mermaid flowchart (renders natively on GitHub)
+  block_diagram.dot   – Graphviz DOT source
+  block_diagram.svg   – Graphviz-rendered SVG (if `dot` is available)
+  block_diagram.png   – Graphviz-rendered PNG (if `dot` is available)
+  block_diagram.md    – Markdown embedding the generated PNG
 
 Only DSP-relevant rows are used (Save2Mix != false and Function not empty
 and StripType in the signal-path set).  Meter rows (Chan_Mtr, MainMtr, …)
@@ -13,12 +15,15 @@ are shown as side-taps, not in the main flow.
 """
 
 import csv
-import re
+import shutil
+import subprocess
 from collections import defaultdict
 from pathlib import Path
 
 CSV_PATH = Path(__file__).parent / "mx_master.csv"
 DOT_PATH = Path(__file__).parent / "block_diagram.dot"
+SVG_PATH = Path(__file__).parent / "block_diagram.svg"
+PNG_PATH = Path(__file__).parent / "block_diagram.png"
 MD_PATH  = Path(__file__).parent / "block_diagram.md"
 
 # Strip types to include and their display order (left → right / top → bottom)
@@ -252,110 +257,20 @@ def build_dot(chains):
     return "\n".join(lines)
 
 
-# ─── Mermaid flowchart ───────────────────────────────────────────────────────
+def render_graphviz(dot_path):
+    dot_bin = shutil.which("dot")
+    if not dot_bin:
+        print("Graphviz `dot` not found; skipping SVG/PNG render.")
+        return False
 
-def mermaid_id(strip_type, function):
-    return re.sub(r"[^A-Za-z0-9_]", "_", f"{strip_type}_{function}")
+    for fmt, output_path in (("svg", SVG_PATH), ("png", PNG_PATH)):
+        subprocess.run(
+            [dot_bin, f"-T{fmt}", str(dot_path), "-o", str(output_path)],
+            check=True,
+        )
+        print(f"Wrote {output_path}")
 
-
-def build_mermaid(chains):
-    lines = [
-        "```mermaid",
-        "flowchart LR",
-        "",
-        "    %% ── Sources ──────────────────────────────────────────────────",
-        "    MIC([\"Mic / Line\\nInput ×32\"])",
-        "    DIG([\"Digital / USB\\nInput\"])",
-        "",
-    ]
-
-    all_strip_nodes = {}  # strip_type → [mermaid_ids in order]
-
-    for strip_type in STRIP_ORDER:
-        if strip_type not in chains:
-            continue
-        funcs = [(o, f) for (o, f) in chains[strip_type] if f not in METER_FUNCS]
-        if not funcs:
-            continue
-        lines.append(f"    %% ── {strip_type} ─────────────────────────────────────────────")
-        lines.append(f"    subgraph {strip_type}[\"{STRIP_LABEL.get(strip_type, strip_type)}\"]")
-
-        ids = []
-        for order, func in funcs:
-            mid = mermaid_id(strip_type, func)
-            label = FUNC_LABEL.get(func, func).replace("\n", "\\n")
-            lines.append(f"        {mid}[\"{label}\"]")
-            ids.append(mid)
-
-        # Chain within subgraph
-        for i in range(len(ids) - 1):
-            lines.append(f"        {ids[i]} --> {ids[i+1]}")
-
-        lines.append("    end")
-        lines.append("")
-        all_strip_nodes[strip_type] = ids
-
-    # Outputs
-    lines += [
-        "    %% ── Sinks ──────────────────────────────────────────────────",
-        "    MAIN_OUT([\"Main L/R\\nOutput\"])",
-        "    SUB_OUT([\"Sub\\nOutput\"])",
-        "    AUX_OUT([\"Aux Outputs\\n×12\"])",
-        "    MON_OUT([\"Monitor\\nOutput\"])",
-        "    FX_RET([\"FX Return\\n×6\"])",
-        "",
-        "    %% ── Routing ─────────────────────────────────────────────────",
-    ]
-
-    def first_id(st):
-        n = all_strip_nodes.get(st, [])
-        return n[0] if n else None
-
-    def last_id(st):
-        n = all_strip_nodes.get(st, [])
-        return n[-1] if n else None
-
-    # Inputs → Chan
-    fi = first_id("Chan")
-    if fi:
-        lines.append(f"    MIC --> {fi}")
-        lines.append(f"    DIG -.-> {fi}")
-
-    # Chan → buses
-    chan_rtg = mermaid_id("Chan", "Chan_Rtg")
-    if first_id("Grp"):  lines.append(f"    {chan_rtg} -->|Grp send| {first_id('Grp')}")
-    if first_id("Aux"):  lines.append(f"    {chan_rtg} -->|Aux send| {first_id('Aux')}")
-    if first_id("Fx"):   lines.append(f"    {chan_rtg} -->|FX send|  {first_id('Fx')}")
-    lines.append(f"    {chan_rtg} -.->|Main assign| MAIN_OUT")
-
-    # FX return
-    if last_id("Fx"):
-        lines.append(f"    {last_id('Fx')} --> FX_RET")
-        lines.append(f"    FX_RET --> MAIN_OUT")
-
-    # Grp → main/sub
-    if last_id("Grp"):
-        lines.append(f"    {last_id('Grp')} -->|Grp→Main| MAIN_OUT")
-        if first_id("Sub"):
-            lines.append(f"    {last_id('Grp')} -.->|Grp→Sub| {first_id('Sub')}")
-
-    # Aux output
-    if last_id("Aux"):
-        lines.append(f"    {last_id('Aux')} --> AUX_OUT")
-
-    # Main/Sub outputs
-    if last_id("Main"):
-        lines.append(f"    {last_id('Main')} --> MAIN_OUT")
-    if last_id("Sub"):
-        lines.append(f"    {last_id('Sub')} --> SUB_OUT")
-
-    # Mon
-    if first_id("Mon") and last_id("Mon"):
-        lines.append(f"    MAIN_OUT -.->|Mon src| {first_id('Mon')}")
-        lines.append(f"    {last_id('Mon')} --> MON_OUT")
-
-    lines.append("```")
-    return "\n".join(lines)
+    return True
 
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
@@ -373,10 +288,9 @@ def main():
     dot = build_dot(chains)
     DOT_PATH.write_text(dot, encoding="utf-8")
     print(f"\nWrote {DOT_PATH}")
-    print("  Render: dot -Tsvg block_diagram.dot -o block_diagram.svg")
+    render_graphviz(DOT_PATH)
 
-    # Mermaid markdown
-    mermaid = build_mermaid(chains)
+    # Markdown
     md_content = (
         "# DSP Block Diagram (partial)\n\n"
         "> Generated from `mx_master.csv` by `gen_diagram.py`.  \n"
@@ -384,7 +298,8 @@ def main():
         "> Each strip shows the DSP processing stages in signal-flow order\n"
         "> derived from the `StripOrder` column.\n\n"
         "## Channel Strip → Bus Overview\n\n"
-        + mermaid + "\n\n"
+        "![DSP block diagram](block_diagram.png)\n\n"
+        "[PNG](block_diagram.png) · [SVG](block_diagram.svg) · [DOT](block_diagram.dot)\n\n"
         "## Strip Types Decoded\n\n"
         "| StripType | Count | Processing Chain |\n"
         "|-----------|-------|------------------|\n"
