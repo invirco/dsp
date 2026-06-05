@@ -263,6 +263,13 @@ def build_dot(chains):
 
 
 def render_graphviz(dot_path):
+    """Render diagram assets from DOT or fallback SVG.
+
+    Returns True when at least one PNG/SVG render path succeeds:
+    - Graphviz `dot` renders both SVG and PNG from the DOT source.
+    - If Graphviz is unavailable, CairoSVG converts the checked-in SVG to PNG.
+    Returns False when neither renderer is available.
+    """
     dot_bin = shutil.which("dot")
     if dot_bin:
         for fmt, output_path in (("svg", SVG_PATH), ("png", PNG_PATH)):
@@ -278,7 +285,10 @@ def render_graphviz(dot_path):
 
     if SVG_PATH.exists() and cairosvg is not None:
         print("Graphviz not available; converting existing SVG to PNG.")
-        cairosvg.svg2png(url=str(SVG_PATH), write_to=str(PNG_PATH))
+        try:
+            cairosvg.svg2png(url=str(SVG_PATH), write_to=str(PNG_PATH))
+        except Exception as exc:  # pragma: no cover - optional dependency/runtime path
+            raise RuntimeError("Failed to convert existing SVG to PNG with CairoSVG.") from exc
         print(f"Wrote {PNG_PATH}")
         return True
 
