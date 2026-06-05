@@ -20,12 +20,16 @@ import subprocess
 from collections import defaultdict
 from pathlib import Path
 
+class CairoSvgPointError(Exception):
+    """Fallback exception type when CairoSVG is unavailable."""
+
+
 try:
     import cairosvg
     from cairosvg.helpers import PointError
 except ImportError:
     cairosvg = None  # pragma: no cover - optional dependency
-    PointError = ValueError  # pragma: no cover - optional dependency
+    PointError = CairoSvgPointError  # pragma: no cover - optional dependency
 
 CSV_PATH = Path(__file__).parent / "mx_master.csv"
 DOT_PATH = Path(__file__).parent / "block_diagram.dot"
