@@ -1,0 +1,142 @@
+digraph dsp_block_diagram {
+  graph [rankdir=LR fontname="Helvetica" splines=polyline nodesep=0.5];
+  node  [shape=box style="filled,rounded" fontname="Helvetica" fontsize=10];
+  edge  [fontname="Helvetica" fontsize=9];
+
+  // ── Sources & Sinks ──────────────────────────────────────────
+  MIC_LINE [label="Mic / Line\nInput (×32)" shape=parallelogram fillcolor="#eeeeee"];
+  DIGITAL_IN [label="Digital / USB\nInput" shape=parallelogram fillcolor="#eeeeee"];
+  MAIN_OUT [label="Main L/R\nOutput" shape=parallelogram fillcolor="#cccccc"];
+  SUB_OUT  [label="Sub\nOutput"  shape=parallelogram fillcolor="#cccccc"];
+  AUX_OUT  [label="Aux Outputs\n(×12)" shape=parallelogram fillcolor="#cccccc"];
+  MON_OUT  [label="Monitor\nOutput" shape=parallelogram fillcolor="#cccccc"];
+  FX_RETURN [label="FX Return\n(×6)" shape=parallelogram fillcolor="#fff3cd"];
+
+  // ── Chan ──────────────────────────────────────────────
+  subgraph cluster_Chan {
+    label="Channel Strip
+(×32)";
+    style=filled; fillcolor="#d0e8ff"; color="#888888";
+    fontname="Helvetica"; fontsize=11; fontcolor="#333333";
+    Chan_ChanInput [label="Input
+(Gain/HPF/Pol/Insert)" fillcolor="#d0e8ff"];
+    Chan_Chan_Eq [label="EQ
+(HPF + 4-band PEQ)" fillcolor="#d0e8ff"];
+    Chan_ChanInput -> Chan_Chan_Eq;
+    Chan_ChanGate [label="Gate" fillcolor="#d0e8ff"];
+    Chan_Chan_Eq -> Chan_ChanGate;
+    Chan_ChanComp [label="Compressor" fillcolor="#d0e8ff"];
+    Chan_ChanGate -> Chan_ChanComp;
+    Chan_ChanDelay [label="Delay" fillcolor="#d0e8ff"];
+    Chan_ChanComp -> Chan_ChanDelay;
+    Chan_Chan_Rtg [label="Fader / Pan
+& Routing" fillcolor="#d0e8ff"];
+    Chan_ChanDelay -> Chan_Chan_Rtg;
+  }
+
+  // ── Grp ──────────────────────────────────────────────
+  subgraph cluster_Grp {
+    label="Group Bus
+(×4)";
+    style=filled; fillcolor="#d4f5d4"; color="#888888";
+    fontname="Helvetica"; fontsize=11; fontcolor="#333333";
+    Grp_GrpEq [label="EQ
+(HPF + 4-band PEQ)" fillcolor="#d4f5d4"];
+    Grp_GrpGate [label="Gate" fillcolor="#d4f5d4"];
+    Grp_GrpEq -> Grp_GrpGate;
+    Grp_GrpComp [label="Compressor" fillcolor="#d4f5d4"];
+    Grp_GrpGate -> Grp_GrpComp;
+    Grp_GrpRtg [label="Fader" fillcolor="#d4f5d4"];
+    Grp_GrpComp -> Grp_GrpRtg;
+  }
+
+  // ── Fx ──────────────────────────────────────────────
+  subgraph cluster_Fx {
+    label="FX Engine
+(×6)";
+    style=filled; fillcolor="#fff3cd"; color="#888888";
+    fontname="Helvetica"; fontsize=11; fontcolor="#333333";
+    Fx_FxCtrl [label="FX Engine
+(Echo/Reverb/Chorus…)" fillcolor="#fff3cd"];
+  }
+
+  // ── Aux ──────────────────────────────────────────────
+  subgraph cluster_Aux {
+    label="Aux Bus
+(×12)";
+    style=filled; fillcolor="#fde8d8"; color="#888888";
+    fontname="Helvetica"; fontsize=11; fontcolor="#333333";
+    Aux_AuxRtg [label="Level / Pan
+& Routing" fillcolor="#fde8d8"];
+    Aux_AuxEq [label="EQ
+(HPF + GEQ + PEQ)" fillcolor="#fde8d8"];
+    Aux_AuxRtg -> Aux_AuxEq;
+    Aux_AuxLimiter [label="Limiter" fillcolor="#fde8d8"];
+    Aux_AuxEq -> Aux_AuxLimiter;
+    Aux_AuxAntiFb [label="Anti-Feedback
+(6 notch filters)" fillcolor="#fde8d8"];
+    Aux_AuxLimiter -> Aux_AuxAntiFb;
+    Aux_AuxDelay [label="Delay" fillcolor="#fde8d8"];
+    Aux_AuxAntiFb -> Aux_AuxDelay;
+  }
+
+  // ── Main ──────────────────────────────────────────────
+  subgraph cluster_Main {
+    label="Main L/R";
+    style=filled; fillcolor="#e8d4f5"; color="#888888";
+    fontname="Helvetica"; fontsize=11; fontcolor="#333333";
+    Main_MainEq [label="GEQ + 4-band PEQ" fillcolor="#e8d4f5"];
+    Main_MainComp [label="Compressor" fillcolor="#e8d4f5"];
+    Main_MainEq -> Main_MainComp;
+    Main_MainLimiter [label="Limiter" fillcolor="#e8d4f5"];
+    Main_MainComp -> Main_MainLimiter;
+    Main_MainCrossover [label="Crossover" fillcolor="#e8d4f5"];
+    Main_MainLimiter -> Main_MainCrossover;
+    Main_MainPeq [label="Graphic EQ (PEQ)" fillcolor="#e8d4f5"];
+    Main_MainCrossover -> Main_MainPeq;
+    Main_MainRtg [label="Level / Routing" fillcolor="#e8d4f5"];
+    Main_MainPeq -> Main_MainRtg;
+  }
+
+  // ── Sub ──────────────────────────────────────────────
+  subgraph cluster_Sub {
+    label="Sub";
+    style=filled; fillcolor="#f5d4d4"; color="#888888";
+    fontname="Helvetica"; fontsize=11; fontcolor="#333333";
+    Sub_SubEq [label="EQ
+(HPF + 4-band PEQ)" fillcolor="#f5d4d4"];
+    Sub_SubComp [label="Compressor" fillcolor="#f5d4d4"];
+    Sub_SubEq -> Sub_SubComp;
+    Sub_SubLimiter [label="Limiter" fillcolor="#f5d4d4"];
+    Sub_SubComp -> Sub_SubLimiter;
+    Sub_SubRtg [label="Level" fillcolor="#f5d4d4"];
+    Sub_SubLimiter -> Sub_SubRtg;
+  }
+
+  // ── Mon ──────────────────────────────────────────────
+  subgraph cluster_Mon {
+    label="Monitor";
+    style=filled; fillcolor="#d4ecf5"; color="#888888";
+    fontname="Helvetica"; fontsize=11; fontcolor="#333333";
+    Mon_MonCtrl [label="Level / Source
+& Delay" fillcolor="#d4ecf5"];
+  }
+
+  // ── Signal routing ─────────────────────────────────────────────
+  MIC_LINE   -> Chan_ChanInput;
+  DIGITAL_IN -> Chan_ChanInput [style=dashed];
+  Chan_Chan_Rtg -> Grp_GrpEq  [label="Grp send"];
+  Chan_Chan_Rtg -> Aux_AuxRtg  [label="Aux send"];
+  Chan_Chan_Rtg -> Fx_FxCtrl   [label="FX send"];
+  Chan_Chan_Rtg -> MAIN_OUT [label="Main assign" style=dashed];
+  Fx_FxCtrl -> FX_RETURN;
+  FX_RETURN -> MAIN_OUT [label="FX return"];
+  FX_RETURN -> Aux_AuxRtg [style=dashed label="FX→Aux"];
+  Grp_GrpRtg -> MAIN_OUT [label="Grp→Main"];
+  Grp_GrpRtg -> Sub_SubEq [label="Grp→Sub" style=dashed];
+  Aux_AuxDelay -> AUX_OUT;
+  Main_MainRtg -> MAIN_OUT;
+  Sub_SubRtg  -> SUB_OUT;
+  MAIN_OUT -> Mon_MonCtrl [style=dashed label="Mon src"];
+  Mon_MonCtrl -> MON_OUT;
+}
