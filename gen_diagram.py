@@ -20,16 +20,16 @@ import subprocess
 from collections import defaultdict
 from pathlib import Path
 
-class CairoSvgPointError(Exception):
-    """Fallback exception type when CairoSVG is unavailable."""
-
-
 try:
     import cairosvg
-    from cairosvg.helpers import PointError
+    from cairosvg.helpers import PointError as CairoSvgPointError
 except ImportError:
     cairosvg = None  # pragma: no cover - optional dependency
-    PointError = CairoSvgPointError  # pragma: no cover - optional dependency
+    CairoSvgPointError = None  # pragma: no cover - optional dependency
+
+CAIROSVG_EXCEPTIONS = (OSError, ValueError) + (
+    (CairoSvgPointError,) if CairoSvgPointError is not None else ()
+)
 
 CSV_PATH = Path(__file__).parent / "mx_master.csv"
 DOT_PATH = Path(__file__).parent / "block_diagram.dot"
@@ -293,7 +293,7 @@ def render_graphviz(dot_path):
         print("Graphviz not available; converting existing SVG to PNG.")
         try:
             cairosvg.svg2png(url=str(SVG_PATH), write_to=str(PNG_PATH))
-        except (OSError, ValueError, PointError) as exc:  # pragma: no cover - optional dependency/runtime path
+        except CAIROSVG_EXCEPTIONS as exc:  # pragma: no cover - optional dependency/runtime path
             raise RuntimeError("Failed to convert existing SVG to PNG with CairoSVG.") from exc
         print(f"Wrote {PNG_PATH}")
         return True
