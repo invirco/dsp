@@ -19,12 +19,18 @@ CELL_RE = re.compile(r"^([A-Za-z]+)(\d{3})([A-Za-z0-9]+)(\d{3})$")
 
 # alias family, canonical family, rationale
 PAIRS = [
-    ("FxDuckThr", "FxDuckSens", "Legacy threshold alias of DuckSens"),
     ("FxEqHi", "FxEqPresence", "Legacy FX high EQ alias"),
     ("AuxPeq", "AuxGeq", "Compatibility alias for GEQ gains"),
+    ("SubMtr", "AaSubMtr", "Unprefixed sub meter alias"),
+    ("AaChanDynMtr", "AaChanCompMtr", "DynMtr renamed to CompMtr for compressor GR"),
+    ("FxLfoMode", "FxLfoShape", "LfoMode renamed to LfoShape"),
+]
+
+# Families confirmed retired (alias rows absent, prune ran clean 2026-07-16)
+RETIRED = [
+    ("FxDuckThr", "FxDuckSens", "Legacy threshold alias of DuckSens"),
     ("MainPeqGain", "MainGeq", "Compatibility alias for main GEQ gains"),
     ("MainMtr", "AaMainMtr", "Unprefixed main meter alias"),
-    ("SubMtr", "AaSubMtr", "Unprefixed sub meter alias"),
 ]
 
 
@@ -69,7 +75,7 @@ def main() -> int:
         "# alias audit",
         "",
         "Status: active",
-        "Date: 2026-07-15",
+        "Date: 2026-07-16",
         "Scope: compatibility alias usage in MW/D32/MX/_matrix.csv.",
         "",
         "| Alias family | Canonical family | Alias rows | Alias DSP-mapped | Canonical rows | Status | Notes |",
@@ -94,6 +100,15 @@ def main() -> int:
             "- alias rows are 0 in generated matrix,",
             "- canonical family rows are non-zero,",
             "- strict drift and smoke checks pass.",
+            "",
+            "## Retired families",
+            "",
+            "| Alias family | Canonical family | Notes |",
+            "|---|---|---|",
+        ]
+        + [
+            f"| {alias} | {canonical} | {note} |"
+            for alias, canonical, note in RETIRED
         ]
     )
 

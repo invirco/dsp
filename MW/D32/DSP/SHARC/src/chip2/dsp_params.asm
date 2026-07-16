@@ -2267,7 +2267,7 @@
     _fx_damp_C2_FX_ENG_01,    /* 0x0634: C2_FX_ENG_01 Damp */
     _fx_eq_lo_C2_FX_ENG_01,    /* 0x0635: C2_FX_ENG_01 EqLo */
     _fx_eq_mid_C2_FX_ENG_01,    /* 0x0636: C2_FX_ENG_01 EqMid */
-    _fx_eq_hi_C2_FX_ENG_01,    /* 0x0637: C2_FX_ENG_01 EqHi */
+    _fx_eq_hi_C2_FX_ENG_01,    /* 0x0637: C2_FX_ENG_01 EqPresence */
     _fx_hpf_coeffs_C2_FX_ENG_01,    /* 0x0638: C2_FX_ENG_01 FX HPF[0] */
     _fx_hpf_coeffs_C2_FX_ENG_01 + 1,    /* 0x0639: C2_FX_ENG_01 FX HPF[1] */
     _fx_hpf_coeffs_C2_FX_ENG_01 + 2,    /* 0x063A: C2_FX_ENG_01 FX HPF[2] */
@@ -2295,7 +2295,7 @@
     _fx_damp_C2_FX_ENG_02,    /* 0x0650: C2_FX_ENG_02 Damp */
     _fx_eq_lo_C2_FX_ENG_02,    /* 0x0651: C2_FX_ENG_02 EqLo */
     _fx_eq_mid_C2_FX_ENG_02,    /* 0x0652: C2_FX_ENG_02 EqMid */
-    _fx_eq_hi_C2_FX_ENG_02,    /* 0x0653: C2_FX_ENG_02 EqHi */
+    _fx_eq_hi_C2_FX_ENG_02,    /* 0x0653: C2_FX_ENG_02 EqPresence */
     _fx_hpf_coeffs_C2_FX_ENG_02,    /* 0x0654: C2_FX_ENG_02 FX HPF[0] */
     _fx_hpf_coeffs_C2_FX_ENG_02 + 1,    /* 0x0655: C2_FX_ENG_02 FX HPF[1] */
     _fx_hpf_coeffs_C2_FX_ENG_02 + 2,    /* 0x0656: C2_FX_ENG_02 FX HPF[2] */
@@ -2323,7 +2323,7 @@
     _fx_damp_C2_FX_ENG_03,    /* 0x066C: C2_FX_ENG_03 Damp */
     _fx_eq_lo_C2_FX_ENG_03,    /* 0x066D: C2_FX_ENG_03 EqLo */
     _fx_eq_mid_C2_FX_ENG_03,    /* 0x066E: C2_FX_ENG_03 EqMid */
-    _fx_eq_hi_C2_FX_ENG_03,    /* 0x066F: C2_FX_ENG_03 EqHi */
+    _fx_eq_hi_C2_FX_ENG_03,    /* 0x066F: C2_FX_ENG_03 EqPresence */
     _fx_hpf_coeffs_C2_FX_ENG_03,    /* 0x0670: C2_FX_ENG_03 FX HPF[0] */
     _fx_hpf_coeffs_C2_FX_ENG_03 + 1,    /* 0x0671: C2_FX_ENG_03 FX HPF[1] */
     _fx_hpf_coeffs_C2_FX_ENG_03 + 2,    /* 0x0672: C2_FX_ENG_03 FX HPF[2] */
@@ -2351,7 +2351,7 @@
     _fx_damp_C2_FX_ENG_04,    /* 0x0688: C2_FX_ENG_04 Damp */
     _fx_eq_lo_C2_FX_ENG_04,    /* 0x0689: C2_FX_ENG_04 EqLo */
     _fx_eq_mid_C2_FX_ENG_04,    /* 0x068A: C2_FX_ENG_04 EqMid */
-    _fx_eq_hi_C2_FX_ENG_04,    /* 0x068B: C2_FX_ENG_04 EqHi */
+    _fx_eq_hi_C2_FX_ENG_04,    /* 0x068B: C2_FX_ENG_04 EqPresence */
     _fx_hpf_coeffs_C2_FX_ENG_04,    /* 0x068C: C2_FX_ENG_04 FX HPF[0] */
     _fx_hpf_coeffs_C2_FX_ENG_04 + 1,    /* 0x068D: C2_FX_ENG_04 FX HPF[1] */
     _fx_hpf_coeffs_C2_FX_ENG_04 + 2,    /* 0x068E: C2_FX_ENG_04 FX HPF[2] */
@@ -2379,7 +2379,7 @@
     _fx_damp_C2_FX_ENG_05,    /* 0x06A4: C2_FX_ENG_05 Damp */
     _fx_eq_lo_C2_FX_ENG_05,    /* 0x06A5: C2_FX_ENG_05 EqLo */
     _fx_eq_mid_C2_FX_ENG_05,    /* 0x06A6: C2_FX_ENG_05 EqMid */
-    _fx_eq_hi_C2_FX_ENG_05,    /* 0x06A7: C2_FX_ENG_05 EqHi */
+    _fx_eq_hi_C2_FX_ENG_05,    /* 0x06A7: C2_FX_ENG_05 EqPresence */
     _fx_hpf_coeffs_C2_FX_ENG_05,    /* 0x06A8: C2_FX_ENG_05 FX HPF[0] */
     _fx_hpf_coeffs_C2_FX_ENG_05 + 1,    /* 0x06A9: C2_FX_ENG_05 FX HPF[1] */
     _fx_hpf_coeffs_C2_FX_ENG_05 + 2,    /* 0x06AA: C2_FX_ENG_05 FX HPF[2] */
@@ -2407,7 +2407,7 @@
     _fx_damp_C2_FX_ENG_06,    /* 0x06C0: C2_FX_ENG_06 Damp */
     _fx_eq_lo_C2_FX_ENG_06,    /* 0x06C1: C2_FX_ENG_06 EqLo */
     _fx_eq_mid_C2_FX_ENG_06,    /* 0x06C2: C2_FX_ENG_06 EqMid */
-    _fx_eq_hi_C2_FX_ENG_06,    /* 0x06C3: C2_FX_ENG_06 EqHi */
+    _fx_eq_hi_C2_FX_ENG_06,    /* 0x06C3: C2_FX_ENG_06 EqPresence */
     _fx_hpf_coeffs_C2_FX_ENG_06,    /* 0x06C4: C2_FX_ENG_06 FX HPF[0] */
     _fx_hpf_coeffs_C2_FX_ENG_06 + 1,    /* 0x06C5: C2_FX_ENG_06 FX HPF[1] */
     _fx_hpf_coeffs_C2_FX_ENG_06 + 2,    /* 0x06C6: C2_FX_ENG_06 FX HPF[2] */

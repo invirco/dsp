@@ -1,17 +1,16 @@
 # alias audit
 
 Status: active
-Date: 2026-07-15
+Date: 2026-07-16
 Scope: compatibility alias usage in MW/D32/MX/_matrix.csv.
 
 | Alias family | Canonical family | Alias rows | Alias DSP-mapped | Canonical rows | Status | Notes |
 |---|---|---:|---:|---:|---|---|
-| FxDuckThr | FxDuckSens | 0 | 0 | 6 | ready (alias absent) | Legacy threshold alias of DuckSens |
-| FxEqHi | FxEqPresence | 6 | 6 | 6 | in progress (alias still DSP-mapped) | Legacy FX high EQ alias |
-| AuxPeq | AuxGeq | 144 | 144 | 336 | in progress (alias still DSP-mapped) | Compatibility alias for GEQ gains |
-| MainPeqGain | MainGeq | 0 | 0 | 28 | ready (alias absent) | Compatibility alias for main GEQ gains |
-| MainMtr | AaMainMtr | 0 | 0 | 8 | ready (alias absent) | Unprefixed main meter alias |
-| SubMtr | AaSubMtr | 1 | 1 | 1 | in progress (alias still DSP-mapped) | Unprefixed sub meter alias |
+| FxEqHi | FxEqPresence | 6 | 0 | 6 | in progress (alias still present) | Legacy FX high EQ alias |
+| AuxPeq | AuxGeq | 144 | 0 | 336 | in progress (alias still present) | Compatibility alias for GEQ gains |
+| SubMtr | AaSubMtr | 1 | 0 | 1 | in progress (alias still present) | Unprefixed sub meter alias |
+| AaChanDynMtr | AaChanCompMtr | 32 | 0 | 32 | in progress (alias still present) | DynMtr renamed to CompMtr for compressor GR |
+| FxLfoMode | FxLfoShape | 6 | 0 | 6 | in progress (alias still present) | LfoMode renamed to LfoShape |
 
 ## Gate for retirement
 
@@ -19,3 +18,11 @@ A family can be removed when:
 - alias rows are 0 in generated matrix,
 - canonical family rows are non-zero,
 - strict drift and smoke checks pass.
+
+## Retired families
+
+| Alias family | Canonical family | Notes |
+|---|---|---|
+| FxDuckThr | FxDuckSens | Legacy threshold alias of DuckSens |
+| MainPeqGain | MainGeq | Compatibility alias for main GEQ gains |
+| MainMtr | AaMainMtr | Unprefixed main meter alias |

@@ -1,0 +1,29 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"files.watcherExclude": {
+			"**/MW/D32/DSP/SHARC/cces/**": true,
+			"**/MW/D32/DSP/SHARC/build/**": true,
+			"**/MW/D32/DSP/__pycache__/**": true,
+			"**/__pycache__/**": true
+		},
+		"files.exclude": {
+			"**/MW/D32/DSP/SHARC/cces": true,
+			"**/MW/D32/DSP/SHARC/build": true,
+			"**/__pycache__": true,
+			"**/*.dxe": true
+		},
+		"search.exclude": {
+			"**/MW/D32/DSP/SHARC/cces/**": true,
+			"**/MW/D32/DSP/SHARC/build/**": true
+		},
+		"python.analysis.exclude": [
+			"**/MW/D32/DSP/SHARC/cces/**",
+			"**/MW/D32/DSP/SHARC/build/**"
+		]
+	}
+}

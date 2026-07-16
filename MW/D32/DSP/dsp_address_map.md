@@ -3785,131 +3785,131 @@
 | 4608 | 0x1200 | `AaChan001Mtr001` |  |  |
 | 4609 | 0x1201 | `AaChan001Mtr002` |  |  |
 | 4610 | 0x1202 | `AaChan001GateMtr001` |  |  |
-| 4611 | 0x1203 | `AaChan001DynMtr001` |  |  |
+| 4611 | 0x1203 | `AaChan001CompMtr001` |  |  |
 | 4612 | 0x1204 | `AaChan002Mtr001` |  |  |
 | 4613 | 0x1205 | `AaChan002Mtr002` |  |  |
 | 4614 | 0x1206 | `AaChan002GateMtr001` |  |  |
-| 4615 | 0x1207 | `AaChan002DynMtr001` |  |  |
+| 4615 | 0x1207 | `AaChan002CompMtr001` |  |  |
 | 4616 | 0x1208 | `AaChan003Mtr001` |  |  |
 | 4617 | 0x1209 | `AaChan003Mtr002` |  |  |
 | 4618 | 0x120A | `AaChan003GateMtr001` |  |  |
-| 4619 | 0x120B | `AaChan003DynMtr001` |  |  |
+| 4619 | 0x120B | `AaChan003CompMtr001` |  |  |
 | 4620 | 0x120C | `AaChan004Mtr001` |  |  |
 | 4621 | 0x120D | `AaChan004Mtr002` |  |  |
 | 4622 | 0x120E | `AaChan004GateMtr001` |  |  |
-| 4623 | 0x120F | `AaChan004DynMtr001` |  |  |
+| 4623 | 0x120F | `AaChan004CompMtr001` |  |  |
 | 4624 | 0x1210 | `AaChan005Mtr001` |  |  |
 | 4625 | 0x1211 | `AaChan005Mtr002` |  |  |
 | 4626 | 0x1212 | `AaChan005GateMtr001` |  |  |
-| 4627 | 0x1213 | `AaChan005DynMtr001` |  |  |
+| 4627 | 0x1213 | `AaChan005CompMtr001` |  |  |
 | 4628 | 0x1214 | `AaChan006Mtr001` |  |  |
 | 4629 | 0x1215 | `AaChan006Mtr002` |  |  |
 | 4630 | 0x1216 | `AaChan006GateMtr001` |  |  |
-| 4631 | 0x1217 | `AaChan006DynMtr001` |  |  |
+| 4631 | 0x1217 | `AaChan006CompMtr001` |  |  |
 | 4632 | 0x1218 | `AaChan007Mtr001` |  |  |
 | 4633 | 0x1219 | `AaChan007Mtr002` |  |  |
 | 4634 | 0x121A | `AaChan007GateMtr001` |  |  |
-| 4635 | 0x121B | `AaChan007DynMtr001` |  |  |
+| 4635 | 0x121B | `AaChan007CompMtr001` |  |  |
 | 4636 | 0x121C | `AaChan008Mtr001` |  |  |
 | 4637 | 0x121D | `AaChan008Mtr002` |  |  |
 | 4638 | 0x121E | `AaChan008GateMtr001` |  |  |
-| 4639 | 0x121F | `AaChan008DynMtr001` |  |  |
+| 4639 | 0x121F | `AaChan008CompMtr001` |  |  |
 | 4640 | 0x1220 | `AaChan009Mtr001` |  |  |
 | 4641 | 0x1221 | `AaChan009Mtr002` |  |  |
 | 4642 | 0x1222 | `AaChan009GateMtr001` |  |  |
-| 4643 | 0x1223 | `AaChan009DynMtr001` |  |  |
+| 4643 | 0x1223 | `AaChan009CompMtr001` |  |  |
 | 4644 | 0x1224 | `AaChan010Mtr001` |  |  |
 | 4645 | 0x1225 | `AaChan010Mtr002` |  |  |
 | 4646 | 0x1226 | `AaChan010GateMtr001` |  |  |
-| 4647 | 0x1227 | `AaChan010DynMtr001` |  |  |
+| 4647 | 0x1227 | `AaChan010CompMtr001` |  |  |
 | 4648 | 0x1228 | `AaChan011Mtr001` |  |  |
 | 4649 | 0x1229 | `AaChan011Mtr002` |  |  |
 | 4650 | 0x122A | `AaChan011GateMtr001` |  |  |
-| 4651 | 0x122B | `AaChan011DynMtr001` |  |  |
+| 4651 | 0x122B | `AaChan011CompMtr001` |  |  |
 | 4652 | 0x122C | `AaChan012Mtr001` |  |  |
 | 4653 | 0x122D | `AaChan012Mtr002` |  |  |
 | 4654 | 0x122E | `AaChan012GateMtr001` |  |  |
-| 4655 | 0x122F | `AaChan012DynMtr001` |  |  |
+| 4655 | 0x122F | `AaChan012CompMtr001` |  |  |
 | 4656 | 0x1230 | `AaChan013Mtr001` |  |  |
 | 4657 | 0x1231 | `AaChan013Mtr002` |  |  |
 | 4658 | 0x1232 | `AaChan013GateMtr001` |  |  |
-| 4659 | 0x1233 | `AaChan013DynMtr001` |  |  |
+| 4659 | 0x1233 | `AaChan013CompMtr001` |  |  |
 | 4660 | 0x1234 | `AaChan014Mtr001` |  |  |
 | 4661 | 0x1235 | `AaChan014Mtr002` |  |  |
 | 4662 | 0x1236 | `AaChan014GateMtr001` |  |  |
-| 4663 | 0x1237 | `AaChan014DynMtr001` |  |  |
+| 4663 | 0x1237 | `AaChan014CompMtr001` |  |  |
 | 4664 | 0x1238 | `AaChan015Mtr001` |  |  |
 | 4665 | 0x1239 | `AaChan015Mtr002` |  |  |
 | 4666 | 0x123A | `AaChan015GateMtr001` |  |  |
-| 4667 | 0x123B | `AaChan015DynMtr001` |  |  |
+| 4667 | 0x123B | `AaChan015CompMtr001` |  |  |
 | 4668 | 0x123C | `AaChan016Mtr001` |  |  |
 | 4669 | 0x123D | `AaChan016Mtr002` |  |  |
 | 4670 | 0x123E | `AaChan016GateMtr001` |  |  |
-| 4671 | 0x123F | `AaChan016DynMtr001` |  |  |
+| 4671 | 0x123F | `AaChan016CompMtr001` |  |  |
 | 4672 | 0x1240 | `AaChan017Mtr001` |  |  |
 | 4673 | 0x1241 | `AaChan017Mtr002` |  |  |
 | 4674 | 0x1242 | `AaChan017GateMtr001` |  |  |
-| 4675 | 0x1243 | `AaChan017DynMtr001` |  |  |
+| 4675 | 0x1243 | `AaChan017CompMtr001` |  |  |
 | 4676 | 0x1244 | `AaChan018Mtr001` |  |  |
 | 4677 | 0x1245 | `AaChan018Mtr002` |  |  |
 | 4678 | 0x1246 | `AaChan018GateMtr001` |  |  |
-| 4679 | 0x1247 | `AaChan018DynMtr001` |  |  |
+| 4679 | 0x1247 | `AaChan018CompMtr001` |  |  |
 | 4680 | 0x1248 | `AaChan019Mtr001` |  |  |
 | 4681 | 0x1249 | `AaChan019Mtr002` |  |  |
 | 4682 | 0x124A | `AaChan019GateMtr001` |  |  |
-| 4683 | 0x124B | `AaChan019DynMtr001` |  |  |
+| 4683 | 0x124B | `AaChan019CompMtr001` |  |  |
 | 4684 | 0x124C | `AaChan020Mtr001` |  |  |
 | 4685 | 0x124D | `AaChan020Mtr002` |  |  |
 | 4686 | 0x124E | `AaChan020GateMtr001` |  |  |
-| 4687 | 0x124F | `AaChan020DynMtr001` |  |  |
+| 4687 | 0x124F | `AaChan020CompMtr001` |  |  |
 | 4688 | 0x1250 | `AaChan021Mtr001` |  |  |
 | 4689 | 0x1251 | `AaChan021Mtr002` |  |  |
 | 4690 | 0x1252 | `AaChan021GateMtr001` |  |  |
-| 4691 | 0x1253 | `AaChan021DynMtr001` |  |  |
+| 4691 | 0x1253 | `AaChan021CompMtr001` |  |  |
 | 4692 | 0x1254 | `AaChan022Mtr001` |  |  |
 | 4693 | 0x1255 | `AaChan022Mtr002` |  |  |
 | 4694 | 0x1256 | `AaChan022GateMtr001` |  |  |
-| 4695 | 0x1257 | `AaChan022DynMtr001` |  |  |
+| 4695 | 0x1257 | `AaChan022CompMtr001` |  |  |
 | 4696 | 0x1258 | `AaChan023Mtr001` |  |  |
 | 4697 | 0x1259 | `AaChan023Mtr002` |  |  |
 | 4698 | 0x125A | `AaChan023GateMtr001` |  |  |
-| 4699 | 0x125B | `AaChan023DynMtr001` |  |  |
+| 4699 | 0x125B | `AaChan023CompMtr001` |  |  |
 | 4700 | 0x125C | `AaChan024Mtr001` |  |  |
 | 4701 | 0x125D | `AaChan024Mtr002` |  |  |
 | 4702 | 0x125E | `AaChan024GateMtr001` |  |  |
-| 4703 | 0x125F | `AaChan024DynMtr001` |  |  |
+| 4703 | 0x125F | `AaChan024CompMtr001` |  |  |
 | 4704 | 0x1260 | `AaChan025Mtr001` |  |  |
 | 4705 | 0x1261 | `AaChan025Mtr002` |  |  |
 | 4706 | 0x1262 | `AaChan025GateMtr001` |  |  |
-| 4707 | 0x1263 | `AaChan025DynMtr001` |  |  |
+| 4707 | 0x1263 | `AaChan025CompMtr001` |  |  |
 | 4708 | 0x1264 | `AaChan026Mtr001` |  |  |
 | 4709 | 0x1265 | `AaChan026Mtr002` |  |  |
 | 4710 | 0x1266 | `AaChan026GateMtr001` |  |  |
-| 4711 | 0x1267 | `AaChan026DynMtr001` |  |  |
+| 4711 | 0x1267 | `AaChan026CompMtr001` |  |  |
 | 4712 | 0x1268 | `AaChan027Mtr001` |  |  |
 | 4713 | 0x1269 | `AaChan027Mtr002` |  |  |
 | 4714 | 0x126A | `AaChan027GateMtr001` |  |  |
-| 4715 | 0x126B | `AaChan027DynMtr001` |  |  |
+| 4715 | 0x126B | `AaChan027CompMtr001` |  |  |
 | 4716 | 0x126C | `AaChan028Mtr001` |  |  |
 | 4717 | 0x126D | `AaChan028Mtr002` |  |  |
 | 4718 | 0x126E | `AaChan028GateMtr001` |  |  |
-| 4719 | 0x126F | `AaChan028DynMtr001` |  |  |
+| 4719 | 0x126F | `AaChan028CompMtr001` |  |  |
 | 4720 | 0x1270 | `AaChan029Mtr001` |  |  |
 | 4721 | 0x1271 | `AaChan029Mtr002` |  |  |
 | 4722 | 0x1272 | `AaChan029GateMtr001` |  |  |
-| 4723 | 0x1273 | `AaChan029DynMtr001` |  |  |
+| 4723 | 0x1273 | `AaChan029CompMtr001` |  |  |
 | 4724 | 0x1274 | `AaChan030Mtr001` |  |  |
 | 4725 | 0x1275 | `AaChan030Mtr002` |  |  |
 | 4726 | 0x1276 | `AaChan030GateMtr001` |  |  |
-| 4727 | 0x1277 | `AaChan030DynMtr001` |  |  |
+| 4727 | 0x1277 | `AaChan030CompMtr001` |  |  |
 | 4728 | 0x1278 | `AaChan031Mtr001` |  |  |
 | 4729 | 0x1279 | `AaChan031Mtr002` |  |  |
 | 4730 | 0x127A | `AaChan031GateMtr001` |  |  |
-| 4731 | 0x127B | `AaChan031DynMtr001` |  |  |
+| 4731 | 0x127B | `AaChan031CompMtr001` |  |  |
 | 4732 | 0x127C | `AaChan032Mtr001` |  |  |
 | 4733 | 0x127D | `AaChan032Mtr002` |  |  |
 | 4734 | 0x127E | `AaChan032GateMtr001` |  |  |
-| 4735 | 0x127F | `AaChan032DynMtr001` |  |  |
+| 4735 | 0x127F | `AaChan032CompMtr001` |  |  |
 | 4736 | 0x1280 | `Talk001On001` |  | InstantCtl |
 | 4737 | 0x1281 | `Talk001Gain001` | 0=0/127=40/[Lin] | GainFast |
 | 4738 | 0x1282 | `Talk001Hpf001` |  | InstantCtl |
@@ -3948,34 +3948,34 @@
 | 19 | 0x0013 | `Aux001EqQ004` | 0=0.1/14=10/[Log] | EqSafe |
 | 19 | 0x0013 | `Aux001EqShelf002` |  | InstantCtl |
 | 25 | 0x0019 | `Aux001EqOn001` |  | InstantCtl |
-| 28 | 0x001C | `Aux001Peq001` | 0=-12/127=12/[Lin] | EqSafe |
-| 29 | 0x001D | `Aux001Peq002` | 0=-12/127=12/[Lin] | EqSafe |
-| 30 | 0x001E | `Aux001Peq003` | 0=-12/127=12/[Lin] | EqSafe |
-| 31 | 0x001F | `Aux001Peq004` | 0=-12/127=12/[Lin] | EqSafe |
-| 32 | 0x0020 | `Aux001Peq005` | 0=-12/127=12/[Lin] | EqSafe |
-| 33 | 0x0021 | `Aux001Peq006` | 0=-12/127=12/[Lin] | EqSafe |
-| 34 | 0x0022 | `Aux001Peq007` | 0=-12/127=12/[Lin] | EqSafe |
-| 35 | 0x0023 | `Aux001Peq008` | 0=-12/127=12/[Lin] | EqSafe |
-| 36 | 0x0024 | `Aux001Peq009` | 0=-12/127=12/[Lin] | EqSafe |
-| 37 | 0x0025 | `Aux001Peq010` | 0=-12/127=12/[Lin] | EqSafe |
-| 38 | 0x0026 | `Aux001Peq011` | 0=-12/127=12/[Lin] | EqSafe |
-| 39 | 0x0027 | `Aux001Peq012` | 0=-12/127=12/[Lin] | EqSafe |
-| 40 | 0x0028 | `Aux001Peq013` | 0=-12/127=12/[Lin] | EqSafe |
-| 41 | 0x0029 | `Aux001Peq014` | 0=-12/127=12/[Lin] | EqSafe |
-| 42 | 0x002A | `Aux001Peq015` | 0=-12/127=12/[Lin] | EqSafe |
-| 43 | 0x002B | `Aux001Peq016` | 0=-12/127=12/[Lin] | EqSafe |
-| 44 | 0x002C | `Aux001Peq017` | 0=-12/127=12/[Lin] | EqSafe |
-| 45 | 0x002D | `Aux001Peq018` | 0=-12/127=12/[Lin] | EqSafe |
-| 46 | 0x002E | `Aux001Peq019` | 0=-12/127=12/[Lin] | EqSafe |
-| 47 | 0x002F | `Aux001Peq020` | 0=-12/127=12/[Lin] | EqSafe |
-| 48 | 0x0030 | `Aux001Peq021` | 0=-12/127=12/[Lin] | EqSafe |
-| 49 | 0x0031 | `Aux001Peq022` | 0=-12/127=12/[Lin] | EqSafe |
-| 50 | 0x0032 | `Aux001Peq023` | 0=-12/127=12/[Lin] | EqSafe |
-| 51 | 0x0033 | `Aux001Peq024` | 0=-12/127=12/[Lin] | EqSafe |
-| 52 | 0x0034 | `Aux001Peq025` | 0=-12/127=12/[Lin] | EqSafe |
-| 53 | 0x0035 | `Aux001Peq026` | 0=-12/127=12/[Lin] | EqSafe |
-| 54 | 0x0036 | `Aux001Peq027` | 0=-12/127=12/[Lin] | EqSafe |
-| 55 | 0x0037 | `Aux001Peq028` | 0=-12/127=12/[Lin] | EqSafe |
+| 28 | 0x001C | `Aux001Geq001` | 0=-12/127=12/[Lin] | EqSafe |
+| 29 | 0x001D | `Aux001Geq002` | 0=-12/127=12/[Lin] | EqSafe |
+| 30 | 0x001E | `Aux001Geq003` | 0=-12/127=12/[Lin] | EqSafe |
+| 31 | 0x001F | `Aux001Geq004` | 0=-12/127=12/[Lin] | EqSafe |
+| 32 | 0x0020 | `Aux001Geq005` | 0=-12/127=12/[Lin] | EqSafe |
+| 33 | 0x0021 | `Aux001Geq006` | 0=-12/127=12/[Lin] | EqSafe |
+| 34 | 0x0022 | `Aux001Geq007` | 0=-12/127=12/[Lin] | EqSafe |
+| 35 | 0x0023 | `Aux001Geq008` | 0=-12/127=12/[Lin] | EqSafe |
+| 36 | 0x0024 | `Aux001Geq009` | 0=-12/127=12/[Lin] | EqSafe |
+| 37 | 0x0025 | `Aux001Geq010` | 0=-12/127=12/[Lin] | EqSafe |
+| 38 | 0x0026 | `Aux001Geq011` | 0=-12/127=12/[Lin] | EqSafe |
+| 39 | 0x0027 | `Aux001Geq012` | 0=-12/127=12/[Lin] | EqSafe |
+| 40 | 0x0028 | `Aux001Geq013` | 0=-12/127=12/[Lin] | EqSafe |
+| 41 | 0x0029 | `Aux001Geq014` | 0=-12/127=12/[Lin] | EqSafe |
+| 42 | 0x002A | `Aux001Geq015` | 0=-12/127=12/[Lin] | EqSafe |
+| 43 | 0x002B | `Aux001Geq016` | 0=-12/127=12/[Lin] | EqSafe |
+| 44 | 0x002C | `Aux001Geq017` | 0=-12/127=12/[Lin] | EqSafe |
+| 45 | 0x002D | `Aux001Geq018` | 0=-12/127=12/[Lin] | EqSafe |
+| 46 | 0x002E | `Aux001Geq019` | 0=-12/127=12/[Lin] | EqSafe |
+| 47 | 0x002F | `Aux001Geq020` | 0=-12/127=12/[Lin] | EqSafe |
+| 48 | 0x0030 | `Aux001Geq021` | 0=-12/127=12/[Lin] | EqSafe |
+| 49 | 0x0031 | `Aux001Geq022` | 0=-12/127=12/[Lin] | EqSafe |
+| 50 | 0x0032 | `Aux001Geq023` | 0=-12/127=12/[Lin] | EqSafe |
+| 51 | 0x0033 | `Aux001Geq024` | 0=-12/127=12/[Lin] | EqSafe |
+| 52 | 0x0034 | `Aux001Geq025` | 0=-12/127=12/[Lin] | EqSafe |
+| 53 | 0x0035 | `Aux001Geq026` | 0=-12/127=12/[Lin] | EqSafe |
+| 54 | 0x0036 | `Aux001Geq027` | 0=-12/127=12/[Lin] | EqSafe |
+| 55 | 0x0037 | `Aux001Geq028` | 0=-12/127=12/[Lin] | EqSafe |
 | 56 | 0x0038 | `Aux001AntiFbOn001` |  | InstantCtl |
 | 57 | 0x0039 | `Aux001AntiFbCtrlOn001` |  | InstantCtl |
 | 58 | 0x003A | `Aux001AntiFbNotchFreq001` | 0=40/127=12000/[Log] | InstantCtl |
@@ -4021,34 +4021,34 @@
 | 106 | 0x006A | `Aux002EqQ004` | 0=0.1/14=10/[Log] | EqSafe |
 | 106 | 0x006A | `Aux002EqShelf002` |  | InstantCtl |
 | 112 | 0x0070 | `Aux002EqOn001` |  | InstantCtl |
-| 115 | 0x0073 | `Aux002Peq001` | 0=-12/127=12/[Lin] | EqSafe |
-| 116 | 0x0074 | `Aux002Peq002` | 0=-12/127=12/[Lin] | EqSafe |
-| 117 | 0x0075 | `Aux002Peq003` | 0=-12/127=12/[Lin] | EqSafe |
-| 118 | 0x0076 | `Aux002Peq004` | 0=-12/127=12/[Lin] | EqSafe |
-| 119 | 0x0077 | `Aux002Peq005` | 0=-12/127=12/[Lin] | EqSafe |
-| 120 | 0x0078 | `Aux002Peq006` | 0=-12/127=12/[Lin] | EqSafe |
-| 121 | 0x0079 | `Aux002Peq007` | 0=-12/127=12/[Lin] | EqSafe |
-| 122 | 0x007A | `Aux002Peq008` | 0=-12/127=12/[Lin] | EqSafe |
-| 123 | 0x007B | `Aux002Peq009` | 0=-12/127=12/[Lin] | EqSafe |
-| 124 | 0x007C | `Aux002Peq010` | 0=-12/127=12/[Lin] | EqSafe |
-| 125 | 0x007D | `Aux002Peq011` | 0=-12/127=12/[Lin] | EqSafe |
-| 126 | 0x007E | `Aux002Peq012` | 0=-12/127=12/[Lin] | EqSafe |
-| 127 | 0x007F | `Aux002Peq013` | 0=-12/127=12/[Lin] | EqSafe |
-| 128 | 0x0080 | `Aux002Peq014` | 0=-12/127=12/[Lin] | EqSafe |
-| 129 | 0x0081 | `Aux002Peq015` | 0=-12/127=12/[Lin] | EqSafe |
-| 130 | 0x0082 | `Aux002Peq016` | 0=-12/127=12/[Lin] | EqSafe |
-| 131 | 0x0083 | `Aux002Peq017` | 0=-12/127=12/[Lin] | EqSafe |
-| 132 | 0x0084 | `Aux002Peq018` | 0=-12/127=12/[Lin] | EqSafe |
-| 133 | 0x0085 | `Aux002Peq019` | 0=-12/127=12/[Lin] | EqSafe |
-| 134 | 0x0086 | `Aux002Peq020` | 0=-12/127=12/[Lin] | EqSafe |
-| 135 | 0x0087 | `Aux002Peq021` | 0=-12/127=12/[Lin] | EqSafe |
-| 136 | 0x0088 | `Aux002Peq022` | 0=-12/127=12/[Lin] | EqSafe |
-| 137 | 0x0089 | `Aux002Peq023` | 0=-12/127=12/[Lin] | EqSafe |
-| 138 | 0x008A | `Aux002Peq024` | 0=-12/127=12/[Lin] | EqSafe |
-| 139 | 0x008B | `Aux002Peq025` | 0=-12/127=12/[Lin] | EqSafe |
-| 140 | 0x008C | `Aux002Peq026` | 0=-12/127=12/[Lin] | EqSafe |
-| 141 | 0x008D | `Aux002Peq027` | 0=-12/127=12/[Lin] | EqSafe |
-| 142 | 0x008E | `Aux002Peq028` | 0=-12/127=12/[Lin] | EqSafe |
+| 115 | 0x0073 | `Aux002Geq001` | 0=-12/127=12/[Lin] | EqSafe |
+| 116 | 0x0074 | `Aux002Geq002` | 0=-12/127=12/[Lin] | EqSafe |
+| 117 | 0x0075 | `Aux002Geq003` | 0=-12/127=12/[Lin] | EqSafe |
+| 118 | 0x0076 | `Aux002Geq004` | 0=-12/127=12/[Lin] | EqSafe |
+| 119 | 0x0077 | `Aux002Geq005` | 0=-12/127=12/[Lin] | EqSafe |
+| 120 | 0x0078 | `Aux002Geq006` | 0=-12/127=12/[Lin] | EqSafe |
+| 121 | 0x0079 | `Aux002Geq007` | 0=-12/127=12/[Lin] | EqSafe |
+| 122 | 0x007A | `Aux002Geq008` | 0=-12/127=12/[Lin] | EqSafe |
+| 123 | 0x007B | `Aux002Geq009` | 0=-12/127=12/[Lin] | EqSafe |
+| 124 | 0x007C | `Aux002Geq010` | 0=-12/127=12/[Lin] | EqSafe |
+| 125 | 0x007D | `Aux002Geq011` | 0=-12/127=12/[Lin] | EqSafe |
+| 126 | 0x007E | `Aux002Geq012` | 0=-12/127=12/[Lin] | EqSafe |
+| 127 | 0x007F | `Aux002Geq013` | 0=-12/127=12/[Lin] | EqSafe |
+| 128 | 0x0080 | `Aux002Geq014` | 0=-12/127=12/[Lin] | EqSafe |
+| 129 | 0x0081 | `Aux002Geq015` | 0=-12/127=12/[Lin] | EqSafe |
+| 130 | 0x0082 | `Aux002Geq016` | 0=-12/127=12/[Lin] | EqSafe |
+| 131 | 0x0083 | `Aux002Geq017` | 0=-12/127=12/[Lin] | EqSafe |
+| 132 | 0x0084 | `Aux002Geq018` | 0=-12/127=12/[Lin] | EqSafe |
+| 133 | 0x0085 | `Aux002Geq019` | 0=-12/127=12/[Lin] | EqSafe |
+| 134 | 0x0086 | `Aux002Geq020` | 0=-12/127=12/[Lin] | EqSafe |
+| 135 | 0x0087 | `Aux002Geq021` | 0=-12/127=12/[Lin] | EqSafe |
+| 136 | 0x0088 | `Aux002Geq022` | 0=-12/127=12/[Lin] | EqSafe |
+| 137 | 0x0089 | `Aux002Geq023` | 0=-12/127=12/[Lin] | EqSafe |
+| 138 | 0x008A | `Aux002Geq024` | 0=-12/127=12/[Lin] | EqSafe |
+| 139 | 0x008B | `Aux002Geq025` | 0=-12/127=12/[Lin] | EqSafe |
+| 140 | 0x008C | `Aux002Geq026` | 0=-12/127=12/[Lin] | EqSafe |
+| 141 | 0x008D | `Aux002Geq027` | 0=-12/127=12/[Lin] | EqSafe |
+| 142 | 0x008E | `Aux002Geq028` | 0=-12/127=12/[Lin] | EqSafe |
 | 143 | 0x008F | `Aux002AntiFbOn001` |  | InstantCtl |
 | 144 | 0x0090 | `Aux002AntiFbCtrlOn001` |  | InstantCtl |
 | 145 | 0x0091 | `Aux002AntiFbNotchFreq001` | 0=40/127=12000/[Log] | InstantCtl |
@@ -4094,34 +4094,34 @@
 | 193 | 0x00C1 | `Aux003EqQ004` | 0=0.1/14=10/[Log] | EqSafe |
 | 193 | 0x00C1 | `Aux003EqShelf002` |  | InstantCtl |
 | 199 | 0x00C7 | `Aux003EqOn001` |  | InstantCtl |
-| 202 | 0x00CA | `Aux003Peq001` | 0=-12/127=12/[Lin] | EqSafe |
-| 203 | 0x00CB | `Aux003Peq002` | 0=-12/127=12/[Lin] | EqSafe |
-| 204 | 0x00CC | `Aux003Peq003` | 0=-12/127=12/[Lin] | EqSafe |
-| 205 | 0x00CD | `Aux003Peq004` | 0=-12/127=12/[Lin] | EqSafe |
-| 206 | 0x00CE | `Aux003Peq005` | 0=-12/127=12/[Lin] | EqSafe |
-| 207 | 0x00CF | `Aux003Peq006` | 0=-12/127=12/[Lin] | EqSafe |
-| 208 | 0x00D0 | `Aux003Peq007` | 0=-12/127=12/[Lin] | EqSafe |
-| 209 | 0x00D1 | `Aux003Peq008` | 0=-12/127=12/[Lin] | EqSafe |
-| 210 | 0x00D2 | `Aux003Peq009` | 0=-12/127=12/[Lin] | EqSafe |
-| 211 | 0x00D3 | `Aux003Peq010` | 0=-12/127=12/[Lin] | EqSafe |
-| 212 | 0x00D4 | `Aux003Peq011` | 0=-12/127=12/[Lin] | EqSafe |
-| 213 | 0x00D5 | `Aux003Peq012` | 0=-12/127=12/[Lin] | EqSafe |
-| 214 | 0x00D6 | `Aux003Peq013` | 0=-12/127=12/[Lin] | EqSafe |
-| 215 | 0x00D7 | `Aux003Peq014` | 0=-12/127=12/[Lin] | EqSafe |
-| 216 | 0x00D8 | `Aux003Peq015` | 0=-12/127=12/[Lin] | EqSafe |
-| 217 | 0x00D9 | `Aux003Peq016` | 0=-12/127=12/[Lin] | EqSafe |
-| 218 | 0x00DA | `Aux003Peq017` | 0=-12/127=12/[Lin] | EqSafe |
-| 219 | 0x00DB | `Aux003Peq018` | 0=-12/127=12/[Lin] | EqSafe |
-| 220 | 0x00DC | `Aux003Peq019` | 0=-12/127=12/[Lin] | EqSafe |
-| 221 | 0x00DD | `Aux003Peq020` | 0=-12/127=12/[Lin] | EqSafe |
-| 222 | 0x00DE | `Aux003Peq021` | 0=-12/127=12/[Lin] | EqSafe |
-| 223 | 0x00DF | `Aux003Peq022` | 0=-12/127=12/[Lin] | EqSafe |
-| 224 | 0x00E0 | `Aux003Peq023` | 0=-12/127=12/[Lin] | EqSafe |
-| 225 | 0x00E1 | `Aux003Peq024` | 0=-12/127=12/[Lin] | EqSafe |
-| 226 | 0x00E2 | `Aux003Peq025` | 0=-12/127=12/[Lin] | EqSafe |
-| 227 | 0x00E3 | `Aux003Peq026` | 0=-12/127=12/[Lin] | EqSafe |
-| 228 | 0x00E4 | `Aux003Peq027` | 0=-12/127=12/[Lin] | EqSafe |
-| 229 | 0x00E5 | `Aux003Peq028` | 0=-12/127=12/[Lin] | EqSafe |
+| 202 | 0x00CA | `Aux003Geq001` | 0=-12/127=12/[Lin] | EqSafe |
+| 203 | 0x00CB | `Aux003Geq002` | 0=-12/127=12/[Lin] | EqSafe |
+| 204 | 0x00CC | `Aux003Geq003` | 0=-12/127=12/[Lin] | EqSafe |
+| 205 | 0x00CD | `Aux003Geq004` | 0=-12/127=12/[Lin] | EqSafe |
+| 206 | 0x00CE | `Aux003Geq005` | 0=-12/127=12/[Lin] | EqSafe |
+| 207 | 0x00CF | `Aux003Geq006` | 0=-12/127=12/[Lin] | EqSafe |
+| 208 | 0x00D0 | `Aux003Geq007` | 0=-12/127=12/[Lin] | EqSafe |
+| 209 | 0x00D1 | `Aux003Geq008` | 0=-12/127=12/[Lin] | EqSafe |
+| 210 | 0x00D2 | `Aux003Geq009` | 0=-12/127=12/[Lin] | EqSafe |
+| 211 | 0x00D3 | `Aux003Geq010` | 0=-12/127=12/[Lin] | EqSafe |
+| 212 | 0x00D4 | `Aux003Geq011` | 0=-12/127=12/[Lin] | EqSafe |
+| 213 | 0x00D5 | `Aux003Geq012` | 0=-12/127=12/[Lin] | EqSafe |
+| 214 | 0x00D6 | `Aux003Geq013` | 0=-12/127=12/[Lin] | EqSafe |
+| 215 | 0x00D7 | `Aux003Geq014` | 0=-12/127=12/[Lin] | EqSafe |
+| 216 | 0x00D8 | `Aux003Geq015` | 0=-12/127=12/[Lin] | EqSafe |
+| 217 | 0x00D9 | `Aux003Geq016` | 0=-12/127=12/[Lin] | EqSafe |
+| 218 | 0x00DA | `Aux003Geq017` | 0=-12/127=12/[Lin] | EqSafe |
+| 219 | 0x00DB | `Aux003Geq018` | 0=-12/127=12/[Lin] | EqSafe |
+| 220 | 0x00DC | `Aux003Geq019` | 0=-12/127=12/[Lin] | EqSafe |
+| 221 | 0x00DD | `Aux003Geq020` | 0=-12/127=12/[Lin] | EqSafe |
+| 222 | 0x00DE | `Aux003Geq021` | 0=-12/127=12/[Lin] | EqSafe |
+| 223 | 0x00DF | `Aux003Geq022` | 0=-12/127=12/[Lin] | EqSafe |
+| 224 | 0x00E0 | `Aux003Geq023` | 0=-12/127=12/[Lin] | EqSafe |
+| 225 | 0x00E1 | `Aux003Geq024` | 0=-12/127=12/[Lin] | EqSafe |
+| 226 | 0x00E2 | `Aux003Geq025` | 0=-12/127=12/[Lin] | EqSafe |
+| 227 | 0x00E3 | `Aux003Geq026` | 0=-12/127=12/[Lin] | EqSafe |
+| 228 | 0x00E4 | `Aux003Geq027` | 0=-12/127=12/[Lin] | EqSafe |
+| 229 | 0x00E5 | `Aux003Geq028` | 0=-12/127=12/[Lin] | EqSafe |
 | 230 | 0x00E6 | `Aux003AntiFbOn001` |  | InstantCtl |
 | 231 | 0x00E7 | `Aux003AntiFbCtrlOn001` |  | InstantCtl |
 | 232 | 0x00E8 | `Aux003AntiFbNotchFreq001` | 0=40/127=12000/[Log] | InstantCtl |
@@ -4167,34 +4167,34 @@
 | 280 | 0x0118 | `Aux004EqQ004` | 0=0.1/14=10/[Log] | EqSafe |
 | 280 | 0x0118 | `Aux004EqShelf002` |  | InstantCtl |
 | 286 | 0x011E | `Aux004EqOn001` |  | InstantCtl |
-| 289 | 0x0121 | `Aux004Peq001` | 0=-12/127=12/[Lin] | EqSafe |
-| 290 | 0x0122 | `Aux004Peq002` | 0=-12/127=12/[Lin] | EqSafe |
-| 291 | 0x0123 | `Aux004Peq003` | 0=-12/127=12/[Lin] | EqSafe |
-| 292 | 0x0124 | `Aux004Peq004` | 0=-12/127=12/[Lin] | EqSafe |
-| 293 | 0x0125 | `Aux004Peq005` | 0=-12/127=12/[Lin] | EqSafe |
-| 294 | 0x0126 | `Aux004Peq006` | 0=-12/127=12/[Lin] | EqSafe |
-| 295 | 0x0127 | `Aux004Peq007` | 0=-12/127=12/[Lin] | EqSafe |
-| 296 | 0x0128 | `Aux004Peq008` | 0=-12/127=12/[Lin] | EqSafe |
-| 297 | 0x0129 | `Aux004Peq009` | 0=-12/127=12/[Lin] | EqSafe |
-| 298 | 0x012A | `Aux004Peq010` | 0=-12/127=12/[Lin] | EqSafe |
-| 299 | 0x012B | `Aux004Peq011` | 0=-12/127=12/[Lin] | EqSafe |
-| 300 | 0x012C | `Aux004Peq012` | 0=-12/127=12/[Lin] | EqSafe |
-| 301 | 0x012D | `Aux004Peq013` | 0=-12/127=12/[Lin] | EqSafe |
-| 302 | 0x012E | `Aux004Peq014` | 0=-12/127=12/[Lin] | EqSafe |
-| 303 | 0x012F | `Aux004Peq015` | 0=-12/127=12/[Lin] | EqSafe |
-| 304 | 0x0130 | `Aux004Peq016` | 0=-12/127=12/[Lin] | EqSafe |
-| 305 | 0x0131 | `Aux004Peq017` | 0=-12/127=12/[Lin] | EqSafe |
-| 306 | 0x0132 | `Aux004Peq018` | 0=-12/127=12/[Lin] | EqSafe |
-| 307 | 0x0133 | `Aux004Peq019` | 0=-12/127=12/[Lin] | EqSafe |
-| 308 | 0x0134 | `Aux004Peq020` | 0=-12/127=12/[Lin] | EqSafe |
-| 309 | 0x0135 | `Aux004Peq021` | 0=-12/127=12/[Lin] | EqSafe |
-| 310 | 0x0136 | `Aux004Peq022` | 0=-12/127=12/[Lin] | EqSafe |
-| 311 | 0x0137 | `Aux004Peq023` | 0=-12/127=12/[Lin] | EqSafe |
-| 312 | 0x0138 | `Aux004Peq024` | 0=-12/127=12/[Lin] | EqSafe |
-| 313 | 0x0139 | `Aux004Peq025` | 0=-12/127=12/[Lin] | EqSafe |
-| 314 | 0x013A | `Aux004Peq026` | 0=-12/127=12/[Lin] | EqSafe |
-| 315 | 0x013B | `Aux004Peq027` | 0=-12/127=12/[Lin] | EqSafe |
-| 316 | 0x013C | `Aux004Peq028` | 0=-12/127=12/[Lin] | EqSafe |
+| 289 | 0x0121 | `Aux004Geq001` | 0=-12/127=12/[Lin] | EqSafe |
+| 290 | 0x0122 | `Aux004Geq002` | 0=-12/127=12/[Lin] | EqSafe |
+| 291 | 0x0123 | `Aux004Geq003` | 0=-12/127=12/[Lin] | EqSafe |
+| 292 | 0x0124 | `Aux004Geq004` | 0=-12/127=12/[Lin] | EqSafe |
+| 293 | 0x0125 | `Aux004Geq005` | 0=-12/127=12/[Lin] | EqSafe |
+| 294 | 0x0126 | `Aux004Geq006` | 0=-12/127=12/[Lin] | EqSafe |
+| 295 | 0x0127 | `Aux004Geq007` | 0=-12/127=12/[Lin] | EqSafe |
+| 296 | 0x0128 | `Aux004Geq008` | 0=-12/127=12/[Lin] | EqSafe |
+| 297 | 0x0129 | `Aux004Geq009` | 0=-12/127=12/[Lin] | EqSafe |
+| 298 | 0x012A | `Aux004Geq010` | 0=-12/127=12/[Lin] | EqSafe |
+| 299 | 0x012B | `Aux004Geq011` | 0=-12/127=12/[Lin] | EqSafe |
+| 300 | 0x012C | `Aux004Geq012` | 0=-12/127=12/[Lin] | EqSafe |
+| 301 | 0x012D | `Aux004Geq013` | 0=-12/127=12/[Lin] | EqSafe |
+| 302 | 0x012E | `Aux004Geq014` | 0=-12/127=12/[Lin] | EqSafe |
+| 303 | 0x012F | `Aux004Geq015` | 0=-12/127=12/[Lin] | EqSafe |
+| 304 | 0x0130 | `Aux004Geq016` | 0=-12/127=12/[Lin] | EqSafe |
+| 305 | 0x0131 | `Aux004Geq017` | 0=-12/127=12/[Lin] | EqSafe |
+| 306 | 0x0132 | `Aux004Geq018` | 0=-12/127=12/[Lin] | EqSafe |
+| 307 | 0x0133 | `Aux004Geq019` | 0=-12/127=12/[Lin] | EqSafe |
+| 308 | 0x0134 | `Aux004Geq020` | 0=-12/127=12/[Lin] | EqSafe |
+| 309 | 0x0135 | `Aux004Geq021` | 0=-12/127=12/[Lin] | EqSafe |
+| 310 | 0x0136 | `Aux004Geq022` | 0=-12/127=12/[Lin] | EqSafe |
+| 311 | 0x0137 | `Aux004Geq023` | 0=-12/127=12/[Lin] | EqSafe |
+| 312 | 0x0138 | `Aux004Geq024` | 0=-12/127=12/[Lin] | EqSafe |
+| 313 | 0x0139 | `Aux004Geq025` | 0=-12/127=12/[Lin] | EqSafe |
+| 314 | 0x013A | `Aux004Geq026` | 0=-12/127=12/[Lin] | EqSafe |
+| 315 | 0x013B | `Aux004Geq027` | 0=-12/127=12/[Lin] | EqSafe |
+| 316 | 0x013C | `Aux004Geq028` | 0=-12/127=12/[Lin] | EqSafe |
 | 317 | 0x013D | `Aux004AntiFbOn001` |  | InstantCtl |
 | 318 | 0x013E | `Aux004AntiFbCtrlOn001` |  | InstantCtl |
 | 319 | 0x013F | `Aux004AntiFbNotchFreq001` | 0=40/127=12000/[Log] | InstantCtl |
@@ -4240,34 +4240,34 @@
 | 367 | 0x016F | `Aux005EqQ004` | 0=0.1/14=10/[Log] | EqSafe |
 | 367 | 0x016F | `Aux005EqShelf002` |  | InstantCtl |
 | 373 | 0x0175 | `Aux005EqOn001` |  | InstantCtl |
-| 376 | 0x0178 | `Aux005Peq001` | 0=-12/127=12/[Lin] | EqSafe |
-| 377 | 0x0179 | `Aux005Peq002` | 0=-12/127=12/[Lin] | EqSafe |
-| 378 | 0x017A | `Aux005Peq003` | 0=-12/127=12/[Lin] | EqSafe |
-| 379 | 0x017B | `Aux005Peq004` | 0=-12/127=12/[Lin] | EqSafe |
-| 380 | 0x017C | `Aux005Peq005` | 0=-12/127=12/[Lin] | EqSafe |
-| 381 | 0x017D | `Aux005Peq006` | 0=-12/127=12/[Lin] | EqSafe |
-| 382 | 0x017E | `Aux005Peq007` | 0=-12/127=12/[Lin] | EqSafe |
-| 383 | 0x017F | `Aux005Peq008` | 0=-12/127=12/[Lin] | EqSafe |
-| 384 | 0x0180 | `Aux005Peq009` | 0=-12/127=12/[Lin] | EqSafe |
-| 385 | 0x0181 | `Aux005Peq010` | 0=-12/127=12/[Lin] | EqSafe |
-| 386 | 0x0182 | `Aux005Peq011` | 0=-12/127=12/[Lin] | EqSafe |
-| 387 | 0x0183 | `Aux005Peq012` | 0=-12/127=12/[Lin] | EqSafe |
-| 388 | 0x0184 | `Aux005Peq013` | 0=-12/127=12/[Lin] | EqSafe |
-| 389 | 0x0185 | `Aux005Peq014` | 0=-12/127=12/[Lin] | EqSafe |
-| 390 | 0x0186 | `Aux005Peq015` | 0=-12/127=12/[Lin] | EqSafe |
-| 391 | 0x0187 | `Aux005Peq016` | 0=-12/127=12/[Lin] | EqSafe |
-| 392 | 0x0188 | `Aux005Peq017` | 0=-12/127=12/[Lin] | EqSafe |
-| 393 | 0x0189 | `Aux005Peq018` | 0=-12/127=12/[Lin] | EqSafe |
-| 394 | 0x018A | `Aux005Peq019` | 0=-12/127=12/[Lin] | EqSafe |
-| 395 | 0x018B | `Aux005Peq020` | 0=-12/127=12/[Lin] | EqSafe |
-| 396 | 0x018C | `Aux005Peq021` | 0=-12/127=12/[Lin] | EqSafe |
-| 397 | 0x018D | `Aux005Peq022` | 0=-12/127=12/[Lin] | EqSafe |
-| 398 | 0x018E | `Aux005Peq023` | 0=-12/127=12/[Lin] | EqSafe |
-| 399 | 0x018F | `Aux005Peq024` | 0=-12/127=12/[Lin] | EqSafe |
-| 400 | 0x0190 | `Aux005Peq025` | 0=-12/127=12/[Lin] | EqSafe |
-| 401 | 0x0191 | `Aux005Peq026` | 0=-12/127=12/[Lin] | EqSafe |
-| 402 | 0x0192 | `Aux005Peq027` | 0=-12/127=12/[Lin] | EqSafe |
-| 403 | 0x0193 | `Aux005Peq028` | 0=-12/127=12/[Lin] | EqSafe |
+| 376 | 0x0178 | `Aux005Geq001` | 0=-12/127=12/[Lin] | EqSafe |
+| 377 | 0x0179 | `Aux005Geq002` | 0=-12/127=12/[Lin] | EqSafe |
+| 378 | 0x017A | `Aux005Geq003` | 0=-12/127=12/[Lin] | EqSafe |
+| 379 | 0x017B | `Aux005Geq004` | 0=-12/127=12/[Lin] | EqSafe |
+| 380 | 0x017C | `Aux005Geq005` | 0=-12/127=12/[Lin] | EqSafe |
+| 381 | 0x017D | `Aux005Geq006` | 0=-12/127=12/[Lin] | EqSafe |
+| 382 | 0x017E | `Aux005Geq007` | 0=-12/127=12/[Lin] | EqSafe |
+| 383 | 0x017F | `Aux005Geq008` | 0=-12/127=12/[Lin] | EqSafe |
+| 384 | 0x0180 | `Aux005Geq009` | 0=-12/127=12/[Lin] | EqSafe |
+| 385 | 0x0181 | `Aux005Geq010` | 0=-12/127=12/[Lin] | EqSafe |
+| 386 | 0x0182 | `Aux005Geq011` | 0=-12/127=12/[Lin] | EqSafe |
+| 387 | 0x0183 | `Aux005Geq012` | 0=-12/127=12/[Lin] | EqSafe |
+| 388 | 0x0184 | `Aux005Geq013` | 0=-12/127=12/[Lin] | EqSafe |
+| 389 | 0x0185 | `Aux005Geq014` | 0=-12/127=12/[Lin] | EqSafe |
+| 390 | 0x0186 | `Aux005Geq015` | 0=-12/127=12/[Lin] | EqSafe |
+| 391 | 0x0187 | `Aux005Geq016` | 0=-12/127=12/[Lin] | EqSafe |
+| 392 | 0x0188 | `Aux005Geq017` | 0=-12/127=12/[Lin] | EqSafe |
+| 393 | 0x0189 | `Aux005Geq018` | 0=-12/127=12/[Lin] | EqSafe |
+| 394 | 0x018A | `Aux005Geq019` | 0=-12/127=12/[Lin] | EqSafe |
+| 395 | 0x018B | `Aux005Geq020` | 0=-12/127=12/[Lin] | EqSafe |
+| 396 | 0x018C | `Aux005Geq021` | 0=-12/127=12/[Lin] | EqSafe |
+| 397 | 0x018D | `Aux005Geq022` | 0=-12/127=12/[Lin] | EqSafe |
+| 398 | 0x018E | `Aux005Geq023` | 0=-12/127=12/[Lin] | EqSafe |
+| 399 | 0x018F | `Aux005Geq024` | 0=-12/127=12/[Lin] | EqSafe |
+| 400 | 0x0190 | `Aux005Geq025` | 0=-12/127=12/[Lin] | EqSafe |
+| 401 | 0x0191 | `Aux005Geq026` | 0=-12/127=12/[Lin] | EqSafe |
+| 402 | 0x0192 | `Aux005Geq027` | 0=-12/127=12/[Lin] | EqSafe |
+| 403 | 0x0193 | `Aux005Geq028` | 0=-12/127=12/[Lin] | EqSafe |
 | 404 | 0x0194 | `Aux005AntiFbOn001` |  | InstantCtl |
 | 405 | 0x0195 | `Aux005AntiFbCtrlOn001` |  | InstantCtl |
 | 406 | 0x0196 | `Aux005AntiFbNotchFreq001` | 0=40/127=12000/[Log] | InstantCtl |
@@ -4313,34 +4313,34 @@
 | 454 | 0x01C6 | `Aux006EqQ004` | 0=0.1/14=10/[Log] | EqSafe |
 | 454 | 0x01C6 | `Aux006EqShelf002` |  | InstantCtl |
 | 460 | 0x01CC | `Aux006EqOn001` |  | InstantCtl |
-| 463 | 0x01CF | `Aux006Peq001` | 0=-12/127=12/[Lin] | EqSafe |
-| 464 | 0x01D0 | `Aux006Peq002` | 0=-12/127=12/[Lin] | EqSafe |
-| 465 | 0x01D1 | `Aux006Peq003` | 0=-12/127=12/[Lin] | EqSafe |
-| 466 | 0x01D2 | `Aux006Peq004` | 0=-12/127=12/[Lin] | EqSafe |
-| 467 | 0x01D3 | `Aux006Peq005` | 0=-12/127=12/[Lin] | EqSafe |
-| 468 | 0x01D4 | `Aux006Peq006` | 0=-12/127=12/[Lin] | EqSafe |
-| 469 | 0x01D5 | `Aux006Peq007` | 0=-12/127=12/[Lin] | EqSafe |
-| 470 | 0x01D6 | `Aux006Peq008` | 0=-12/127=12/[Lin] | EqSafe |
-| 471 | 0x01D7 | `Aux006Peq009` | 0=-12/127=12/[Lin] | EqSafe |
-| 472 | 0x01D8 | `Aux006Peq010` | 0=-12/127=12/[Lin] | EqSafe |
-| 473 | 0x01D9 | `Aux006Peq011` | 0=-12/127=12/[Lin] | EqSafe |
-| 474 | 0x01DA | `Aux006Peq012` | 0=-12/127=12/[Lin] | EqSafe |
-| 475 | 0x01DB | `Aux006Peq013` | 0=-12/127=12/[Lin] | EqSafe |
-| 476 | 0x01DC | `Aux006Peq014` | 0=-12/127=12/[Lin] | EqSafe |
-| 477 | 0x01DD | `Aux006Peq015` | 0=-12/127=12/[Lin] | EqSafe |
-| 478 | 0x01DE | `Aux006Peq016` | 0=-12/127=12/[Lin] | EqSafe |
-| 479 | 0x01DF | `Aux006Peq017` | 0=-12/127=12/[Lin] | EqSafe |
-| 480 | 0x01E0 | `Aux006Peq018` | 0=-12/127=12/[Lin] | EqSafe |
-| 481 | 0x01E1 | `Aux006Peq019` | 0=-12/127=12/[Lin] | EqSafe |
-| 482 | 0x01E2 | `Aux006Peq020` | 0=-12/127=12/[Lin] | EqSafe |
-| 483 | 0x01E3 | `Aux006Peq021` | 0=-12/127=12/[Lin] | EqSafe |
-| 484 | 0x01E4 | `Aux006Peq022` | 0=-12/127=12/[Lin] | EqSafe |
-| 485 | 0x01E5 | `Aux006Peq023` | 0=-12/127=12/[Lin] | EqSafe |
-| 486 | 0x01E6 | `Aux006Peq024` | 0=-12/127=12/[Lin] | EqSafe |
-| 487 | 0x01E7 | `Aux006Peq025` | 0=-12/127=12/[Lin] | EqSafe |
-| 488 | 0x01E8 | `Aux006Peq026` | 0=-12/127=12/[Lin] | EqSafe |
-| 489 | 0x01E9 | `Aux006Peq027` | 0=-12/127=12/[Lin] | EqSafe |
-| 490 | 0x01EA | `Aux006Peq028` | 0=-12/127=12/[Lin] | EqSafe |
+| 463 | 0x01CF | `Aux006Geq001` | 0=-12/127=12/[Lin] | EqSafe |
+| 464 | 0x01D0 | `Aux006Geq002` | 0=-12/127=12/[Lin] | EqSafe |
+| 465 | 0x01D1 | `Aux006Geq003` | 0=-12/127=12/[Lin] | EqSafe |
+| 466 | 0x01D2 | `Aux006Geq004` | 0=-12/127=12/[Lin] | EqSafe |
+| 467 | 0x01D3 | `Aux006Geq005` | 0=-12/127=12/[Lin] | EqSafe |
+| 468 | 0x01D4 | `Aux006Geq006` | 0=-12/127=12/[Lin] | EqSafe |
+| 469 | 0x01D5 | `Aux006Geq007` | 0=-12/127=12/[Lin] | EqSafe |
+| 470 | 0x01D6 | `Aux006Geq008` | 0=-12/127=12/[Lin] | EqSafe |
+| 471 | 0x01D7 | `Aux006Geq009` | 0=-12/127=12/[Lin] | EqSafe |
+| 472 | 0x01D8 | `Aux006Geq010` | 0=-12/127=12/[Lin] | EqSafe |
+| 473 | 0x01D9 | `Aux006Geq011` | 0=-12/127=12/[Lin] | EqSafe |
+| 474 | 0x01DA | `Aux006Geq012` | 0=-12/127=12/[Lin] | EqSafe |
+| 475 | 0x01DB | `Aux006Geq013` | 0=-12/127=12/[Lin] | EqSafe |
+| 476 | 0x01DC | `Aux006Geq014` | 0=-12/127=12/[Lin] | EqSafe |
+| 477 | 0x01DD | `Aux006Geq015` | 0=-12/127=12/[Lin] | EqSafe |
+| 478 | 0x01DE | `Aux006Geq016` | 0=-12/127=12/[Lin] | EqSafe |
+| 479 | 0x01DF | `Aux006Geq017` | 0=-12/127=12/[Lin] | EqSafe |
+| 480 | 0x01E0 | `Aux006Geq018` | 0=-12/127=12/[Lin] | EqSafe |
+| 481 | 0x01E1 | `Aux006Geq019` | 0=-12/127=12/[Lin] | EqSafe |
+| 482 | 0x01E2 | `Aux006Geq020` | 0=-12/127=12/[Lin] | EqSafe |
+| 483 | 0x01E3 | `Aux006Geq021` | 0=-12/127=12/[Lin] | EqSafe |
+| 484 | 0x01E4 | `Aux006Geq022` | 0=-12/127=12/[Lin] | EqSafe |
+| 485 | 0x01E5 | `Aux006Geq023` | 0=-12/127=12/[Lin] | EqSafe |
+| 486 | 0x01E6 | `Aux006Geq024` | 0=-12/127=12/[Lin] | EqSafe |
+| 487 | 0x01E7 | `Aux006Geq025` | 0=-12/127=12/[Lin] | EqSafe |
+| 488 | 0x01E8 | `Aux006Geq026` | 0=-12/127=12/[Lin] | EqSafe |
+| 489 | 0x01E9 | `Aux006Geq027` | 0=-12/127=12/[Lin] | EqSafe |
+| 490 | 0x01EA | `Aux006Geq028` | 0=-12/127=12/[Lin] | EqSafe |
 | 491 | 0x01EB | `Aux006AntiFbOn001` |  | InstantCtl |
 | 492 | 0x01EC | `Aux006AntiFbCtrlOn001` |  | InstantCtl |
 | 493 | 0x01ED | `Aux006AntiFbNotchFreq001` | 0=40/127=12000/[Log] | InstantCtl |
@@ -4386,34 +4386,34 @@
 | 541 | 0x021D | `Aux007EqQ004` | 0=0.1/14=10/[Log] | EqSafe |
 | 541 | 0x021D | `Aux007EqShelf002` |  | InstantCtl |
 | 547 | 0x0223 | `Aux007EqOn001` |  | InstantCtl |
-| 550 | 0x0226 | `Aux007Peq001` | 0=-12/127=12/[Lin] | EqSafe |
-| 551 | 0x0227 | `Aux007Peq002` | 0=-12/127=12/[Lin] | EqSafe |
-| 552 | 0x0228 | `Aux007Peq003` | 0=-12/127=12/[Lin] | EqSafe |
-| 553 | 0x0229 | `Aux007Peq004` | 0=-12/127=12/[Lin] | EqSafe |
-| 554 | 0x022A | `Aux007Peq005` | 0=-12/127=12/[Lin] | EqSafe |
-| 555 | 0x022B | `Aux007Peq006` | 0=-12/127=12/[Lin] | EqSafe |
-| 556 | 0x022C | `Aux007Peq007` | 0=-12/127=12/[Lin] | EqSafe |
-| 557 | 0x022D | `Aux007Peq008` | 0=-12/127=12/[Lin] | EqSafe |
-| 558 | 0x022E | `Aux007Peq009` | 0=-12/127=12/[Lin] | EqSafe |
-| 559 | 0x022F | `Aux007Peq010` | 0=-12/127=12/[Lin] | EqSafe |
-| 560 | 0x0230 | `Aux007Peq011` | 0=-12/127=12/[Lin] | EqSafe |
-| 561 | 0x0231 | `Aux007Peq012` | 0=-12/127=12/[Lin] | EqSafe |
-| 562 | 0x0232 | `Aux007Peq013` | 0=-12/127=12/[Lin] | EqSafe |
-| 563 | 0x0233 | `Aux007Peq014` | 0=-12/127=12/[Lin] | EqSafe |
-| 564 | 0x0234 | `Aux007Peq015` | 0=-12/127=12/[Lin] | EqSafe |
-| 565 | 0x0235 | `Aux007Peq016` | 0=-12/127=12/[Lin] | EqSafe |
-| 566 | 0x0236 | `Aux007Peq017` | 0=-12/127=12/[Lin] | EqSafe |
-| 567 | 0x0237 | `Aux007Peq018` | 0=-12/127=12/[Lin] | EqSafe |
-| 568 | 0x0238 | `Aux007Peq019` | 0=-12/127=12/[Lin] | EqSafe |
-| 569 | 0x0239 | `Aux007Peq020` | 0=-12/127=12/[Lin] | EqSafe |
-| 570 | 0x023A | `Aux007Peq021` | 0=-12/127=12/[Lin] | EqSafe |
-| 571 | 0x023B | `Aux007Peq022` | 0=-12/127=12/[Lin] | EqSafe |
-| 572 | 0x023C | `Aux007Peq023` | 0=-12/127=12/[Lin] | EqSafe |
-| 573 | 0x023D | `Aux007Peq024` | 0=-12/127=12/[Lin] | EqSafe |
-| 574 | 0x023E | `Aux007Peq025` | 0=-12/127=12/[Lin] | EqSafe |
-| 575 | 0x023F | `Aux007Peq026` | 0=-12/127=12/[Lin] | EqSafe |
-| 576 | 0x0240 | `Aux007Peq027` | 0=-12/127=12/[Lin] | EqSafe |
-| 577 | 0x0241 | `Aux007Peq028` | 0=-12/127=12/[Lin] | EqSafe |
+| 550 | 0x0226 | `Aux007Geq001` | 0=-12/127=12/[Lin] | EqSafe |
+| 551 | 0x0227 | `Aux007Geq002` | 0=-12/127=12/[Lin] | EqSafe |
+| 552 | 0x0228 | `Aux007Geq003` | 0=-12/127=12/[Lin] | EqSafe |
+| 553 | 0x0229 | `Aux007Geq004` | 0=-12/127=12/[Lin] | EqSafe |
+| 554 | 0x022A | `Aux007Geq005` | 0=-12/127=12/[Lin] | EqSafe |
+| 555 | 0x022B | `Aux007Geq006` | 0=-12/127=12/[Lin] | EqSafe |
+| 556 | 0x022C | `Aux007Geq007` | 0=-12/127=12/[Lin] | EqSafe |
+| 557 | 0x022D | `Aux007Geq008` | 0=-12/127=12/[Lin] | EqSafe |
+| 558 | 0x022E | `Aux007Geq009` | 0=-12/127=12/[Lin] | EqSafe |
+| 559 | 0x022F | `Aux007Geq010` | 0=-12/127=12/[Lin] | EqSafe |
+| 560 | 0x0230 | `Aux007Geq011` | 0=-12/127=12/[Lin] | EqSafe |
+| 561 | 0x0231 | `Aux007Geq012` | 0=-12/127=12/[Lin] | EqSafe |
+| 562 | 0x0232 | `Aux007Geq013` | 0=-12/127=12/[Lin] | EqSafe |
+| 563 | 0x0233 | `Aux007Geq014` | 0=-12/127=12/[Lin] | EqSafe |
+| 564 | 0x0234 | `Aux007Geq015` | 0=-12/127=12/[Lin] | EqSafe |
+| 565 | 0x0235 | `Aux007Geq016` | 0=-12/127=12/[Lin] | EqSafe |
+| 566 | 0x0236 | `Aux007Geq017` | 0=-12/127=12/[Lin] | EqSafe |
+| 567 | 0x0237 | `Aux007Geq018` | 0=-12/127=12/[Lin] | EqSafe |
+| 568 | 0x0238 | `Aux007Geq019` | 0=-12/127=12/[Lin] | EqSafe |
+| 569 | 0x0239 | `Aux007Geq020` | 0=-12/127=12/[Lin] | EqSafe |
+| 570 | 0x023A | `Aux007Geq021` | 0=-12/127=12/[Lin] | EqSafe |
+| 571 | 0x023B | `Aux007Geq022` | 0=-12/127=12/[Lin] | EqSafe |
+| 572 | 0x023C | `Aux007Geq023` | 0=-12/127=12/[Lin] | EqSafe |
+| 573 | 0x023D | `Aux007Geq024` | 0=-12/127=12/[Lin] | EqSafe |
+| 574 | 0x023E | `Aux007Geq025` | 0=-12/127=12/[Lin] | EqSafe |
+| 575 | 0x023F | `Aux007Geq026` | 0=-12/127=12/[Lin] | EqSafe |
+| 576 | 0x0240 | `Aux007Geq027` | 0=-12/127=12/[Lin] | EqSafe |
+| 577 | 0x0241 | `Aux007Geq028` | 0=-12/127=12/[Lin] | EqSafe |
 | 578 | 0x0242 | `Aux007AntiFbOn001` |  | InstantCtl |
 | 579 | 0x0243 | `Aux007AntiFbCtrlOn001` |  | InstantCtl |
 | 580 | 0x0244 | `Aux007AntiFbNotchFreq001` | 0=40/127=12000/[Log] | InstantCtl |
@@ -4459,34 +4459,34 @@
 | 628 | 0x0274 | `Aux008EqQ004` | 0=0.1/14=10/[Log] | EqSafe |
 | 628 | 0x0274 | `Aux008EqShelf002` |  | InstantCtl |
 | 634 | 0x027A | `Aux008EqOn001` |  | InstantCtl |
-| 637 | 0x027D | `Aux008Peq001` | 0=-12/127=12/[Lin] | EqSafe |
-| 638 | 0x027E | `Aux008Peq002` | 0=-12/127=12/[Lin] | EqSafe |
-| 639 | 0x027F | `Aux008Peq003` | 0=-12/127=12/[Lin] | EqSafe |
-| 640 | 0x0280 | `Aux008Peq004` | 0=-12/127=12/[Lin] | EqSafe |
-| 641 | 0x0281 | `Aux008Peq005` | 0=-12/127=12/[Lin] | EqSafe |
-| 642 | 0x0282 | `Aux008Peq006` | 0=-12/127=12/[Lin] | EqSafe |
-| 643 | 0x0283 | `Aux008Peq007` | 0=-12/127=12/[Lin] | EqSafe |
-| 644 | 0x0284 | `Aux008Peq008` | 0=-12/127=12/[Lin] | EqSafe |
-| 645 | 0x0285 | `Aux008Peq009` | 0=-12/127=12/[Lin] | EqSafe |
-| 646 | 0x0286 | `Aux008Peq010` | 0=-12/127=12/[Lin] | EqSafe |
-| 647 | 0x0287 | `Aux008Peq011` | 0=-12/127=12/[Lin] | EqSafe |
-| 648 | 0x0288 | `Aux008Peq012` | 0=-12/127=12/[Lin] | EqSafe |
-| 649 | 0x0289 | `Aux008Peq013` | 0=-12/127=12/[Lin] | EqSafe |
-| 650 | 0x028A | `Aux008Peq014` | 0=-12/127=12/[Lin] | EqSafe |
-| 651 | 0x028B | `Aux008Peq015` | 0=-12/127=12/[Lin] | EqSafe |
-| 652 | 0x028C | `Aux008Peq016` | 0=-12/127=12/[Lin] | EqSafe |
-| 653 | 0x028D | `Aux008Peq017` | 0=-12/127=12/[Lin] | EqSafe |
-| 654 | 0x028E | `Aux008Peq018` | 0=-12/127=12/[Lin] | EqSafe |
-| 655 | 0x028F | `Aux008Peq019` | 0=-12/127=12/[Lin] | EqSafe |
-| 656 | 0x0290 | `Aux008Peq020` | 0=-12/127=12/[Lin] | EqSafe |
-| 657 | 0x0291 | `Aux008Peq021` | 0=-12/127=12/[Lin] | EqSafe |
-| 658 | 0x0292 | `Aux008Peq022` | 0=-12/127=12/[Lin] | EqSafe |
-| 659 | 0x0293 | `Aux008Peq023` | 0=-12/127=12/[Lin] | EqSafe |
-| 660 | 0x0294 | `Aux008Peq024` | 0=-12/127=12/[Lin] | EqSafe |
-| 661 | 0x0295 | `Aux008Peq025` | 0=-12/127=12/[Lin] | EqSafe |
-| 662 | 0x0296 | `Aux008Peq026` | 0=-12/127=12/[Lin] | EqSafe |
-| 663 | 0x0297 | `Aux008Peq027` | 0=-12/127=12/[Lin] | EqSafe |
-| 664 | 0x0298 | `Aux008Peq028` | 0=-12/127=12/[Lin] | EqSafe |
+| 637 | 0x027D | `Aux008Geq001` | 0=-12/127=12/[Lin] | EqSafe |
+| 638 | 0x027E | `Aux008Geq002` | 0=-12/127=12/[Lin] | EqSafe |
+| 639 | 0x027F | `Aux008Geq003` | 0=-12/127=12/[Lin] | EqSafe |
+| 640 | 0x0280 | `Aux008Geq004` | 0=-12/127=12/[Lin] | EqSafe |
+| 641 | 0x0281 | `Aux008Geq005` | 0=-12/127=12/[Lin] | EqSafe |
+| 642 | 0x0282 | `Aux008Geq006` | 0=-12/127=12/[Lin] | EqSafe |
+| 643 | 0x0283 | `Aux008Geq007` | 0=-12/127=12/[Lin] | EqSafe |
+| 644 | 0x0284 | `Aux008Geq008` | 0=-12/127=12/[Lin] | EqSafe |
+| 645 | 0x0285 | `Aux008Geq009` | 0=-12/127=12/[Lin] | EqSafe |
+| 646 | 0x0286 | `Aux008Geq010` | 0=-12/127=12/[Lin] | EqSafe |
+| 647 | 0x0287 | `Aux008Geq011` | 0=-12/127=12/[Lin] | EqSafe |
+| 648 | 0x0288 | `Aux008Geq012` | 0=-12/127=12/[Lin] | EqSafe |
+| 649 | 0x0289 | `Aux008Geq013` | 0=-12/127=12/[Lin] | EqSafe |
+| 650 | 0x028A | `Aux008Geq014` | 0=-12/127=12/[Lin] | EqSafe |
+| 651 | 0x028B | `Aux008Geq015` | 0=-12/127=12/[Lin] | EqSafe |
+| 652 | 0x028C | `Aux008Geq016` | 0=-12/127=12/[Lin] | EqSafe |
+| 653 | 0x028D | `Aux008Geq017` | 0=-12/127=12/[Lin] | EqSafe |
+| 654 | 0x028E | `Aux008Geq018` | 0=-12/127=12/[Lin] | EqSafe |
+| 655 | 0x028F | `Aux008Geq019` | 0=-12/127=12/[Lin] | EqSafe |
+| 656 | 0x0290 | `Aux008Geq020` | 0=-12/127=12/[Lin] | EqSafe |
+| 657 | 0x0291 | `Aux008Geq021` | 0=-12/127=12/[Lin] | EqSafe |
+| 658 | 0x0292 | `Aux008Geq022` | 0=-12/127=12/[Lin] | EqSafe |
+| 659 | 0x0293 | `Aux008Geq023` | 0=-12/127=12/[Lin] | EqSafe |
+| 660 | 0x0294 | `Aux008Geq024` | 0=-12/127=12/[Lin] | EqSafe |
+| 661 | 0x0295 | `Aux008Geq025` | 0=-12/127=12/[Lin] | EqSafe |
+| 662 | 0x0296 | `Aux008Geq026` | 0=-12/127=12/[Lin] | EqSafe |
+| 663 | 0x0297 | `Aux008Geq027` | 0=-12/127=12/[Lin] | EqSafe |
+| 664 | 0x0298 | `Aux008Geq028` | 0=-12/127=12/[Lin] | EqSafe |
 | 665 | 0x0299 | `Aux008AntiFbOn001` |  | InstantCtl |
 | 666 | 0x029A | `Aux008AntiFbCtrlOn001` |  | InstantCtl |
 | 667 | 0x029B | `Aux008AntiFbNotchFreq001` | 0=40/127=12000/[Log] | InstantCtl |
@@ -4532,34 +4532,34 @@
 | 715 | 0x02CB | `Aux009EqQ004` | 0=0.1/14=10/[Log] | EqSafe |
 | 715 | 0x02CB | `Aux009EqShelf002` |  | InstantCtl |
 | 721 | 0x02D1 | `Aux009EqOn001` |  | InstantCtl |
-| 724 | 0x02D4 | `Aux009Peq001` | 0=-12/127=12/[Lin] | EqSafe |
-| 725 | 0x02D5 | `Aux009Peq002` | 0=-12/127=12/[Lin] | EqSafe |
-| 726 | 0x02D6 | `Aux009Peq003` | 0=-12/127=12/[Lin] | EqSafe |
-| 727 | 0x02D7 | `Aux009Peq004` | 0=-12/127=12/[Lin] | EqSafe |
-| 728 | 0x02D8 | `Aux009Peq005` | 0=-12/127=12/[Lin] | EqSafe |
-| 729 | 0x02D9 | `Aux009Peq006` | 0=-12/127=12/[Lin] | EqSafe |
-| 730 | 0x02DA | `Aux009Peq007` | 0=-12/127=12/[Lin] | EqSafe |
-| 731 | 0x02DB | `Aux009Peq008` | 0=-12/127=12/[Lin] | EqSafe |
-| 732 | 0x02DC | `Aux009Peq009` | 0=-12/127=12/[Lin] | EqSafe |
-| 733 | 0x02DD | `Aux009Peq010` | 0=-12/127=12/[Lin] | EqSafe |
-| 734 | 0x02DE | `Aux009Peq011` | 0=-12/127=12/[Lin] | EqSafe |
-| 735 | 0x02DF | `Aux009Peq012` | 0=-12/127=12/[Lin] | EqSafe |
-| 736 | 0x02E0 | `Aux009Peq013` | 0=-12/127=12/[Lin] | EqSafe |
-| 737 | 0x02E1 | `Aux009Peq014` | 0=-12/127=12/[Lin] | EqSafe |
-| 738 | 0x02E2 | `Aux009Peq015` | 0=-12/127=12/[Lin] | EqSafe |
-| 739 | 0x02E3 | `Aux009Peq016` | 0=-12/127=12/[Lin] | EqSafe |
-| 740 | 0x02E4 | `Aux009Peq017` | 0=-12/127=12/[Lin] | EqSafe |
-| 741 | 0x02E5 | `Aux009Peq018` | 0=-12/127=12/[Lin] | EqSafe |
-| 742 | 0x02E6 | `Aux009Peq019` | 0=-12/127=12/[Lin] | EqSafe |
-| 743 | 0x02E7 | `Aux009Peq020` | 0=-12/127=12/[Lin] | EqSafe |
-| 744 | 0x02E8 | `Aux009Peq021` | 0=-12/127=12/[Lin] | EqSafe |
-| 745 | 0x02E9 | `Aux009Peq022` | 0=-12/127=12/[Lin] | EqSafe |
-| 746 | 0x02EA | `Aux009Peq023` | 0=-12/127=12/[Lin] | EqSafe |
-| 747 | 0x02EB | `Aux009Peq024` | 0=-12/127=12/[Lin] | EqSafe |
-| 748 | 0x02EC | `Aux009Peq025` | 0=-12/127=12/[Lin] | EqSafe |
-| 749 | 0x02ED | `Aux009Peq026` | 0=-12/127=12/[Lin] | EqSafe |
-| 750 | 0x02EE | `Aux009Peq027` | 0=-12/127=12/[Lin] | EqSafe |
-| 751 | 0x02EF | `Aux009Peq028` | 0=-12/127=12/[Lin] | EqSafe |
+| 724 | 0x02D4 | `Aux009Geq001` | 0=-12/127=12/[Lin] | EqSafe |
+| 725 | 0x02D5 | `Aux009Geq002` | 0=-12/127=12/[Lin] | EqSafe |
+| 726 | 0x02D6 | `Aux009Geq003` | 0=-12/127=12/[Lin] | EqSafe |
+| 727 | 0x02D7 | `Aux009Geq004` | 0=-12/127=12/[Lin] | EqSafe |
+| 728 | 0x02D8 | `Aux009Geq005` | 0=-12/127=12/[Lin] | EqSafe |
+| 729 | 0x02D9 | `Aux009Geq006` | 0=-12/127=12/[Lin] | EqSafe |
+| 730 | 0x02DA | `Aux009Geq007` | 0=-12/127=12/[Lin] | EqSafe |
+| 731 | 0x02DB | `Aux009Geq008` | 0=-12/127=12/[Lin] | EqSafe |
+| 732 | 0x02DC | `Aux009Geq009` | 0=-12/127=12/[Lin] | EqSafe |
+| 733 | 0x02DD | `Aux009Geq010` | 0=-12/127=12/[Lin] | EqSafe |
+| 734 | 0x02DE | `Aux009Geq011` | 0=-12/127=12/[Lin] | EqSafe |
+| 735 | 0x02DF | `Aux009Geq012` | 0=-12/127=12/[Lin] | EqSafe |
+| 736 | 0x02E0 | `Aux009Geq013` | 0=-12/127=12/[Lin] | EqSafe |
+| 737 | 0x02E1 | `Aux009Geq014` | 0=-12/127=12/[Lin] | EqSafe |
+| 738 | 0x02E2 | `Aux009Geq015` | 0=-12/127=12/[Lin] | EqSafe |
+| 739 | 0x02E3 | `Aux009Geq016` | 0=-12/127=12/[Lin] | EqSafe |
+| 740 | 0x02E4 | `Aux009Geq017` | 0=-12/127=12/[Lin] | EqSafe |
+| 741 | 0x02E5 | `Aux009Geq018` | 0=-12/127=12/[Lin] | EqSafe |
+| 742 | 0x02E6 | `Aux009Geq019` | 0=-12/127=12/[Lin] | EqSafe |
+| 743 | 0x02E7 | `Aux009Geq020` | 0=-12/127=12/[Lin] | EqSafe |
+| 744 | 0x02E8 | `Aux009Geq021` | 0=-12/127=12/[Lin] | EqSafe |
+| 745 | 0x02E9 | `Aux009Geq022` | 0=-12/127=12/[Lin] | EqSafe |
+| 746 | 0x02EA | `Aux009Geq023` | 0=-12/127=12/[Lin] | EqSafe |
+| 747 | 0x02EB | `Aux009Geq024` | 0=-12/127=12/[Lin] | EqSafe |
+| 748 | 0x02EC | `Aux009Geq025` | 0=-12/127=12/[Lin] | EqSafe |
+| 749 | 0x02ED | `Aux009Geq026` | 0=-12/127=12/[Lin] | EqSafe |
+| 750 | 0x02EE | `Aux009Geq027` | 0=-12/127=12/[Lin] | EqSafe |
+| 751 | 0x02EF | `Aux009Geq028` | 0=-12/127=12/[Lin] | EqSafe |
 | 752 | 0x02F0 | `Aux009AntiFbOn001` |  | InstantCtl |
 | 753 | 0x02F1 | `Aux009AntiFbCtrlOn001` |  | InstantCtl |
 | 754 | 0x02F2 | `Aux009AntiFbNotchFreq001` | 0=40/127=12000/[Log] | InstantCtl |
@@ -4605,34 +4605,34 @@
 | 802 | 0x0322 | `Aux010EqQ004` | 0=0.1/14=10/[Log] | EqSafe |
 | 802 | 0x0322 | `Aux010EqShelf002` |  | InstantCtl |
 | 808 | 0x0328 | `Aux010EqOn001` |  | InstantCtl |
-| 811 | 0x032B | `Aux010Peq001` | 0=-12/127=12/[Lin] | EqSafe |
-| 812 | 0x032C | `Aux010Peq002` | 0=-12/127=12/[Lin] | EqSafe |
-| 813 | 0x032D | `Aux010Peq003` | 0=-12/127=12/[Lin] | EqSafe |
-| 814 | 0x032E | `Aux010Peq004` | 0=-12/127=12/[Lin] | EqSafe |
-| 815 | 0x032F | `Aux010Peq005` | 0=-12/127=12/[Lin] | EqSafe |
-| 816 | 0x0330 | `Aux010Peq006` | 0=-12/127=12/[Lin] | EqSafe |
-| 817 | 0x0331 | `Aux010Peq007` | 0=-12/127=12/[Lin] | EqSafe |
-| 818 | 0x0332 | `Aux010Peq008` | 0=-12/127=12/[Lin] | EqSafe |
-| 819 | 0x0333 | `Aux010Peq009` | 0=-12/127=12/[Lin] | EqSafe |
-| 820 | 0x0334 | `Aux010Peq010` | 0=-12/127=12/[Lin] | EqSafe |
-| 821 | 0x0335 | `Aux010Peq011` | 0=-12/127=12/[Lin] | EqSafe |
-| 822 | 0x0336 | `Aux010Peq012` | 0=-12/127=12/[Lin] | EqSafe |
-| 823 | 0x0337 | `Aux010Peq013` | 0=-12/127=12/[Lin] | EqSafe |
-| 824 | 0x0338 | `Aux010Peq014` | 0=-12/127=12/[Lin] | EqSafe |
-| 825 | 0x0339 | `Aux010Peq015` | 0=-12/127=12/[Lin] | EqSafe |
-| 826 | 0x033A | `Aux010Peq016` | 0=-12/127=12/[Lin] | EqSafe |
-| 827 | 0x033B | `Aux010Peq017` | 0=-12/127=12/[Lin] | EqSafe |
-| 828 | 0x033C | `Aux010Peq018` | 0=-12/127=12/[Lin] | EqSafe |
-| 829 | 0x033D | `Aux010Peq019` | 0=-12/127=12/[Lin] | EqSafe |
-| 830 | 0x033E | `Aux010Peq020` | 0=-12/127=12/[Lin] | EqSafe |
-| 831 | 0x033F | `Aux010Peq021` | 0=-12/127=12/[Lin] | EqSafe |
-| 832 | 0x0340 | `Aux010Peq022` | 0=-12/127=12/[Lin] | EqSafe |
-| 833 | 0x0341 | `Aux010Peq023` | 0=-12/127=12/[Lin] | EqSafe |
-| 834 | 0x0342 | `Aux010Peq024` | 0=-12/127=12/[Lin] | EqSafe |
-| 835 | 0x0343 | `Aux010Peq025` | 0=-12/127=12/[Lin] | EqSafe |
-| 836 | 0x0344 | `Aux010Peq026` | 0=-12/127=12/[Lin] | EqSafe |
-| 837 | 0x0345 | `Aux010Peq027` | 0=-12/127=12/[Lin] | EqSafe |
-| 838 | 0x0346 | `Aux010Peq028` | 0=-12/127=12/[Lin] | EqSafe |
+| 811 | 0x032B | `Aux010Geq001` | 0=-12/127=12/[Lin] | EqSafe |
+| 812 | 0x032C | `Aux010Geq002` | 0=-12/127=12/[Lin] | EqSafe |
+| 813 | 0x032D | `Aux010Geq003` | 0=-12/127=12/[Lin] | EqSafe |
+| 814 | 0x032E | `Aux010Geq004` | 0=-12/127=12/[Lin] | EqSafe |
+| 815 | 0x032F | `Aux010Geq005` | 0=-12/127=12/[Lin] | EqSafe |
+| 816 | 0x0330 | `Aux010Geq006` | 0=-12/127=12/[Lin] | EqSafe |
+| 817 | 0x0331 | `Aux010Geq007` | 0=-12/127=12/[Lin] | EqSafe |
+| 818 | 0x0332 | `Aux010Geq008` | 0=-12/127=12/[Lin] | EqSafe |
+| 819 | 0x0333 | `Aux010Geq009` | 0=-12/127=12/[Lin] | EqSafe |
+| 820 | 0x0334 | `Aux010Geq010` | 0=-12/127=12/[Lin] | EqSafe |
+| 821 | 0x0335 | `Aux010Geq011` | 0=-12/127=12/[Lin] | EqSafe |
+| 822 | 0x0336 | `Aux010Geq012` | 0=-12/127=12/[Lin] | EqSafe |
+| 823 | 0x0337 | `Aux010Geq013` | 0=-12/127=12/[Lin] | EqSafe |
+| 824 | 0x0338 | `Aux010Geq014` | 0=-12/127=12/[Lin] | EqSafe |
+| 825 | 0x0339 | `Aux010Geq015` | 0=-12/127=12/[Lin] | EqSafe |
+| 826 | 0x033A | `Aux010Geq016` | 0=-12/127=12/[Lin] | EqSafe |
+| 827 | 0x033B | `Aux010Geq017` | 0=-12/127=12/[Lin] | EqSafe |
+| 828 | 0x033C | `Aux010Geq018` | 0=-12/127=12/[Lin] | EqSafe |
+| 829 | 0x033D | `Aux010Geq019` | 0=-12/127=12/[Lin] | EqSafe |
+| 830 | 0x033E | `Aux010Geq020` | 0=-12/127=12/[Lin] | EqSafe |
+| 831 | 0x033F | `Aux010Geq021` | 0=-12/127=12/[Lin] | EqSafe |
+| 832 | 0x0340 | `Aux010Geq022` | 0=-12/127=12/[Lin] | EqSafe |
+| 833 | 0x0341 | `Aux010Geq023` | 0=-12/127=12/[Lin] | EqSafe |
+| 834 | 0x0342 | `Aux010Geq024` | 0=-12/127=12/[Lin] | EqSafe |
+| 835 | 0x0343 | `Aux010Geq025` | 0=-12/127=12/[Lin] | EqSafe |
+| 836 | 0x0344 | `Aux010Geq026` | 0=-12/127=12/[Lin] | EqSafe |
+| 837 | 0x0345 | `Aux010Geq027` | 0=-12/127=12/[Lin] | EqSafe |
+| 838 | 0x0346 | `Aux010Geq028` | 0=-12/127=12/[Lin] | EqSafe |
 | 839 | 0x0347 | `Aux010AntiFbOn001` |  | InstantCtl |
 | 840 | 0x0348 | `Aux010AntiFbCtrlOn001` |  | InstantCtl |
 | 841 | 0x0349 | `Aux010AntiFbNotchFreq001` | 0=40/127=12000/[Log] | InstantCtl |
@@ -4678,34 +4678,34 @@
 | 889 | 0x0379 | `Aux011EqQ004` | 0=0.1/14=10/[Log] | EqSafe |
 | 889 | 0x0379 | `Aux011EqShelf002` |  | InstantCtl |
 | 895 | 0x037F | `Aux011EqOn001` |  | InstantCtl |
-| 898 | 0x0382 | `Aux011Peq001` | 0=-12/127=12/[Lin] | EqSafe |
-| 899 | 0x0383 | `Aux011Peq002` | 0=-12/127=12/[Lin] | EqSafe |
-| 900 | 0x0384 | `Aux011Peq003` | 0=-12/127=12/[Lin] | EqSafe |
-| 901 | 0x0385 | `Aux011Peq004` | 0=-12/127=12/[Lin] | EqSafe |
-| 902 | 0x0386 | `Aux011Peq005` | 0=-12/127=12/[Lin] | EqSafe |
-| 903 | 0x0387 | `Aux011Peq006` | 0=-12/127=12/[Lin] | EqSafe |
-| 904 | 0x0388 | `Aux011Peq007` | 0=-12/127=12/[Lin] | EqSafe |
-| 905 | 0x0389 | `Aux011Peq008` | 0=-12/127=12/[Lin] | EqSafe |
-| 906 | 0x038A | `Aux011Peq009` | 0=-12/127=12/[Lin] | EqSafe |
-| 907 | 0x038B | `Aux011Peq010` | 0=-12/127=12/[Lin] | EqSafe |
-| 908 | 0x038C | `Aux011Peq011` | 0=-12/127=12/[Lin] | EqSafe |
-| 909 | 0x038D | `Aux011Peq012` | 0=-12/127=12/[Lin] | EqSafe |
-| 910 | 0x038E | `Aux011Peq013` | 0=-12/127=12/[Lin] | EqSafe |
-| 911 | 0x038F | `Aux011Peq014` | 0=-12/127=12/[Lin] | EqSafe |
-| 912 | 0x0390 | `Aux011Peq015` | 0=-12/127=12/[Lin] | EqSafe |
-| 913 | 0x0391 | `Aux011Peq016` | 0=-12/127=12/[Lin] | EqSafe |
-| 914 | 0x0392 | `Aux011Peq017` | 0=-12/127=12/[Lin] | EqSafe |
-| 915 | 0x0393 | `Aux011Peq018` | 0=-12/127=12/[Lin] | EqSafe |
-| 916 | 0x0394 | `Aux011Peq019` | 0=-12/127=12/[Lin] | EqSafe |
-| 917 | 0x0395 | `Aux011Peq020` | 0=-12/127=12/[Lin] | EqSafe |
-| 918 | 0x0396 | `Aux011Peq021` | 0=-12/127=12/[Lin] | EqSafe |
-| 919 | 0x0397 | `Aux011Peq022` | 0=-12/127=12/[Lin] | EqSafe |
-| 920 | 0x0398 | `Aux011Peq023` | 0=-12/127=12/[Lin] | EqSafe |
-| 921 | 0x0399 | `Aux011Peq024` | 0=-12/127=12/[Lin] | EqSafe |
-| 922 | 0x039A | `Aux011Peq025` | 0=-12/127=12/[Lin] | EqSafe |
-| 923 | 0x039B | `Aux011Peq026` | 0=-12/127=12/[Lin] | EqSafe |
-| 924 | 0x039C | `Aux011Peq027` | 0=-12/127=12/[Lin] | EqSafe |
-| 925 | 0x039D | `Aux011Peq028` | 0=-12/127=12/[Lin] | EqSafe |
+| 898 | 0x0382 | `Aux011Geq001` | 0=-12/127=12/[Lin] | EqSafe |
+| 899 | 0x0383 | `Aux011Geq002` | 0=-12/127=12/[Lin] | EqSafe |
+| 900 | 0x0384 | `Aux011Geq003` | 0=-12/127=12/[Lin] | EqSafe |
+| 901 | 0x0385 | `Aux011Geq004` | 0=-12/127=12/[Lin] | EqSafe |
+| 902 | 0x0386 | `Aux011Geq005` | 0=-12/127=12/[Lin] | EqSafe |
+| 903 | 0x0387 | `Aux011Geq006` | 0=-12/127=12/[Lin] | EqSafe |
+| 904 | 0x0388 | `Aux011Geq007` | 0=-12/127=12/[Lin] | EqSafe |
+| 905 | 0x0389 | `Aux011Geq008` | 0=-12/127=12/[Lin] | EqSafe |
+| 906 | 0x038A | `Aux011Geq009` | 0=-12/127=12/[Lin] | EqSafe |
+| 907 | 0x038B | `Aux011Geq010` | 0=-12/127=12/[Lin] | EqSafe |
+| 908 | 0x038C | `Aux011Geq011` | 0=-12/127=12/[Lin] | EqSafe |
+| 909 | 0x038D | `Aux011Geq012` | 0=-12/127=12/[Lin] | EqSafe |
+| 910 | 0x038E | `Aux011Geq013` | 0=-12/127=12/[Lin] | EqSafe |
+| 911 | 0x038F | `Aux011Geq014` | 0=-12/127=12/[Lin] | EqSafe |
+| 912 | 0x0390 | `Aux011Geq015` | 0=-12/127=12/[Lin] | EqSafe |
+| 913 | 0x0391 | `Aux011Geq016` | 0=-12/127=12/[Lin] | EqSafe |
+| 914 | 0x0392 | `Aux011Geq017` | 0=-12/127=12/[Lin] | EqSafe |
+| 915 | 0x0393 | `Aux011Geq018` | 0=-12/127=12/[Lin] | EqSafe |
+| 916 | 0x0394 | `Aux011Geq019` | 0=-12/127=12/[Lin] | EqSafe |
+| 917 | 0x0395 | `Aux011Geq020` | 0=-12/127=12/[Lin] | EqSafe |
+| 918 | 0x0396 | `Aux011Geq021` | 0=-12/127=12/[Lin] | EqSafe |
+| 919 | 0x0397 | `Aux011Geq022` | 0=-12/127=12/[Lin] | EqSafe |
+| 920 | 0x0398 | `Aux011Geq023` | 0=-12/127=12/[Lin] | EqSafe |
+| 921 | 0x0399 | `Aux011Geq024` | 0=-12/127=12/[Lin] | EqSafe |
+| 922 | 0x039A | `Aux011Geq025` | 0=-12/127=12/[Lin] | EqSafe |
+| 923 | 0x039B | `Aux011Geq026` | 0=-12/127=12/[Lin] | EqSafe |
+| 924 | 0x039C | `Aux011Geq027` | 0=-12/127=12/[Lin] | EqSafe |
+| 925 | 0x039D | `Aux011Geq028` | 0=-12/127=12/[Lin] | EqSafe |
 | 926 | 0x039E | `Aux011AntiFbOn001` |  | InstantCtl |
 | 927 | 0x039F | `Aux011AntiFbCtrlOn001` |  | InstantCtl |
 | 928 | 0x03A0 | `Aux011AntiFbNotchFreq001` | 0=40/127=12000/[Log] | InstantCtl |
@@ -4751,34 +4751,34 @@
 | 976 | 0x03D0 | `Aux012EqQ004` | 0=0.1/14=10/[Log] | EqSafe |
 | 976 | 0x03D0 | `Aux012EqShelf002` |  | InstantCtl |
 | 982 | 0x03D6 | `Aux012EqOn001` |  | InstantCtl |
-| 985 | 0x03D9 | `Aux012Peq001` | 0=-12/127=12/[Lin] | EqSafe |
-| 986 | 0x03DA | `Aux012Peq002` | 0=-12/127=12/[Lin] | EqSafe |
-| 987 | 0x03DB | `Aux012Peq003` | 0=-12/127=12/[Lin] | EqSafe |
-| 988 | 0x03DC | `Aux012Peq004` | 0=-12/127=12/[Lin] | EqSafe |
-| 989 | 0x03DD | `Aux012Peq005` | 0=-12/127=12/[Lin] | EqSafe |
-| 990 | 0x03DE | `Aux012Peq006` | 0=-12/127=12/[Lin] | EqSafe |
-| 991 | 0x03DF | `Aux012Peq007` | 0=-12/127=12/[Lin] | EqSafe |
-| 992 | 0x03E0 | `Aux012Peq008` | 0=-12/127=12/[Lin] | EqSafe |
-| 993 | 0x03E1 | `Aux012Peq009` | 0=-12/127=12/[Lin] | EqSafe |
-| 994 | 0x03E2 | `Aux012Peq010` | 0=-12/127=12/[Lin] | EqSafe |
-| 995 | 0x03E3 | `Aux012Peq011` | 0=-12/127=12/[Lin] | EqSafe |
-| 996 | 0x03E4 | `Aux012Peq012` | 0=-12/127=12/[Lin] | EqSafe |
-| 997 | 0x03E5 | `Aux012Peq013` | 0=-12/127=12/[Lin] | EqSafe |
-| 998 | 0x03E6 | `Aux012Peq014` | 0=-12/127=12/[Lin] | EqSafe |
-| 999 | 0x03E7 | `Aux012Peq015` | 0=-12/127=12/[Lin] | EqSafe |
-| 1000 | 0x03E8 | `Aux012Peq016` | 0=-12/127=12/[Lin] | EqSafe |
-| 1001 | 0x03E9 | `Aux012Peq017` | 0=-12/127=12/[Lin] | EqSafe |
-| 1002 | 0x03EA | `Aux012Peq018` | 0=-12/127=12/[Lin] | EqSafe |
-| 1003 | 0x03EB | `Aux012Peq019` | 0=-12/127=12/[Lin] | EqSafe |
-| 1004 | 0x03EC | `Aux012Peq020` | 0=-12/127=12/[Lin] | EqSafe |
-| 1005 | 0x03ED | `Aux012Peq021` | 0=-12/127=12/[Lin] | EqSafe |
-| 1006 | 0x03EE | `Aux012Peq022` | 0=-12/127=12/[Lin] | EqSafe |
-| 1007 | 0x03EF | `Aux012Peq023` | 0=-12/127=12/[Lin] | EqSafe |
-| 1008 | 0x03F0 | `Aux012Peq024` | 0=-12/127=12/[Lin] | EqSafe |
-| 1009 | 0x03F1 | `Aux012Peq025` | 0=-12/127=12/[Lin] | EqSafe |
-| 1010 | 0x03F2 | `Aux012Peq026` | 0=-12/127=12/[Lin] | EqSafe |
-| 1011 | 0x03F3 | `Aux012Peq027` | 0=-12/127=12/[Lin] | EqSafe |
-| 1012 | 0x03F4 | `Aux012Peq028` | 0=-12/127=12/[Lin] | EqSafe |
+| 985 | 0x03D9 | `Aux012Geq001` | 0=-12/127=12/[Lin] | EqSafe |
+| 986 | 0x03DA | `Aux012Geq002` | 0=-12/127=12/[Lin] | EqSafe |
+| 987 | 0x03DB | `Aux012Geq003` | 0=-12/127=12/[Lin] | EqSafe |
+| 988 | 0x03DC | `Aux012Geq004` | 0=-12/127=12/[Lin] | EqSafe |
+| 989 | 0x03DD | `Aux012Geq005` | 0=-12/127=12/[Lin] | EqSafe |
+| 990 | 0x03DE | `Aux012Geq006` | 0=-12/127=12/[Lin] | EqSafe |
+| 991 | 0x03DF | `Aux012Geq007` | 0=-12/127=12/[Lin] | EqSafe |
+| 992 | 0x03E0 | `Aux012Geq008` | 0=-12/127=12/[Lin] | EqSafe |
+| 993 | 0x03E1 | `Aux012Geq009` | 0=-12/127=12/[Lin] | EqSafe |
+| 994 | 0x03E2 | `Aux012Geq010` | 0=-12/127=12/[Lin] | EqSafe |
+| 995 | 0x03E3 | `Aux012Geq011` | 0=-12/127=12/[Lin] | EqSafe |
+| 996 | 0x03E4 | `Aux012Geq012` | 0=-12/127=12/[Lin] | EqSafe |
+| 997 | 0x03E5 | `Aux012Geq013` | 0=-12/127=12/[Lin] | EqSafe |
+| 998 | 0x03E6 | `Aux012Geq014` | 0=-12/127=12/[Lin] | EqSafe |
+| 999 | 0x03E7 | `Aux012Geq015` | 0=-12/127=12/[Lin] | EqSafe |
+| 1000 | 0x03E8 | `Aux012Geq016` | 0=-12/127=12/[Lin] | EqSafe |
+| 1001 | 0x03E9 | `Aux012Geq017` | 0=-12/127=12/[Lin] | EqSafe |
+| 1002 | 0x03EA | `Aux012Geq018` | 0=-12/127=12/[Lin] | EqSafe |
+| 1003 | 0x03EB | `Aux012Geq019` | 0=-12/127=12/[Lin] | EqSafe |
+| 1004 | 0x03EC | `Aux012Geq020` | 0=-12/127=12/[Lin] | EqSafe |
+| 1005 | 0x03ED | `Aux012Geq021` | 0=-12/127=12/[Lin] | EqSafe |
+| 1006 | 0x03EE | `Aux012Geq022` | 0=-12/127=12/[Lin] | EqSafe |
+| 1007 | 0x03EF | `Aux012Geq023` | 0=-12/127=12/[Lin] | EqSafe |
+| 1008 | 0x03F0 | `Aux012Geq024` | 0=-12/127=12/[Lin] | EqSafe |
+| 1009 | 0x03F1 | `Aux012Geq025` | 0=-12/127=12/[Lin] | EqSafe |
+| 1010 | 0x03F2 | `Aux012Geq026` | 0=-12/127=12/[Lin] | EqSafe |
+| 1011 | 0x03F3 | `Aux012Geq027` | 0=-12/127=12/[Lin] | EqSafe |
+| 1012 | 0x03F4 | `Aux012Geq028` | 0=-12/127=12/[Lin] | EqSafe |
 | 1013 | 0x03F5 | `Aux012AntiFbOn001` |  | InstantCtl |
 | 1014 | 0x03F6 | `Aux012AntiFbCtrlOn001` |  | InstantCtl |
 | 1015 | 0x03F7 | `Aux012AntiFbNotchFreq001` | 0=40/127=12000/[Log] | InstantCtl |
@@ -5040,34 +5040,34 @@
 | 1343 | 0x053F | `Main001RtgLevel001` | dB:Off:-50@31:-30@63:-10@127:1 | GainFast |
 | 1345 | 0x0541 | `Main001RtgMute001` |  | InstantCtl |
 | 1346 | 0x0542 | `Main001RtgDca001` |  | InstantCtl |
-| 1347 | 0x0543 | `Main001Peq001` | 0=-12/127=12/[Lin] | EqSafe |
-| 1348 | 0x0544 | `Main001Peq002` | 0=-12/127=12/[Lin] | EqSafe |
-| 1349 | 0x0545 | `Main001Peq003` | 0=-12/127=12/[Lin] | EqSafe |
-| 1350 | 0x0546 | `Main001Peq004` | 0=-12/127=12/[Lin] | EqSafe |
-| 1351 | 0x0547 | `Main001Peq005` | 0=-12/127=12/[Lin] | EqSafe |
-| 1352 | 0x0548 | `Main001Peq006` | 0=-12/127=12/[Lin] | EqSafe |
-| 1353 | 0x0549 | `Main001Peq007` | 0=-12/127=12/[Lin] | EqSafe |
-| 1354 | 0x054A | `Main001Peq008` | 0=-12/127=12/[Lin] | EqSafe |
-| 1355 | 0x054B | `Main001Peq009` | 0=-12/127=12/[Lin] | EqSafe |
-| 1356 | 0x054C | `Main001Peq010` | 0=-12/127=12/[Lin] | EqSafe |
-| 1357 | 0x054D | `Main001Peq011` | 0=-12/127=12/[Lin] | EqSafe |
-| 1358 | 0x054E | `Main001Peq012` | 0=-12/127=12/[Lin] | EqSafe |
-| 1359 | 0x054F | `Main001Peq013` | 0=-12/127=12/[Lin] | EqSafe |
-| 1360 | 0x0550 | `Main001Peq014` | 0=-12/127=12/[Lin] | EqSafe |
-| 1361 | 0x0551 | `Main001Peq015` | 0=-12/127=12/[Lin] | EqSafe |
-| 1362 | 0x0552 | `Main001Peq016` | 0=-12/127=12/[Lin] | EqSafe |
-| 1363 | 0x0553 | `Main001Peq017` | 0=-12/127=12/[Lin] | EqSafe |
-| 1364 | 0x0554 | `Main001Peq018` | 0=-12/127=12/[Lin] | EqSafe |
-| 1365 | 0x0555 | `Main001Peq019` | 0=-12/127=12/[Lin] | EqSafe |
-| 1366 | 0x0556 | `Main001Peq020` | 0=-12/127=12/[Lin] | EqSafe |
-| 1367 | 0x0557 | `Main001Peq021` | 0=-12/127=12/[Lin] | EqSafe |
-| 1368 | 0x0558 | `Main001Peq022` | 0=-12/127=12/[Lin] | EqSafe |
-| 1369 | 0x0559 | `Main001Peq023` | 0=-12/127=12/[Lin] | EqSafe |
-| 1370 | 0x055A | `Main001Peq024` | 0=-12/127=12/[Lin] | EqSafe |
-| 1371 | 0x055B | `Main001Peq025` | 0=-12/127=12/[Lin] | EqSafe |
-| 1372 | 0x055C | `Main001Peq026` | 0=-12/127=12/[Lin] | EqSafe |
-| 1373 | 0x055D | `Main001Peq027` | 0=-12/127=12/[Lin] | EqSafe |
-| 1374 | 0x055E | `Main001Peq028` | 0=-12/127=12/[Lin] | EqSafe |
+| 1347 | 0x0543 | `Main001Geq001` | 0=-12/127=12/[Lin] | EqSafe |
+| 1348 | 0x0544 | `Main001Geq002` | 0=-12/127=12/[Lin] | EqSafe |
+| 1349 | 0x0545 | `Main001Geq003` | 0=-12/127=12/[Lin] | EqSafe |
+| 1350 | 0x0546 | `Main001Geq004` | 0=-12/127=12/[Lin] | EqSafe |
+| 1351 | 0x0547 | `Main001Geq005` | 0=-12/127=12/[Lin] | EqSafe |
+| 1352 | 0x0548 | `Main001Geq006` | 0=-12/127=12/[Lin] | EqSafe |
+| 1353 | 0x0549 | `Main001Geq007` | 0=-12/127=12/[Lin] | EqSafe |
+| 1354 | 0x054A | `Main001Geq008` | 0=-12/127=12/[Lin] | EqSafe |
+| 1355 | 0x054B | `Main001Geq009` | 0=-12/127=12/[Lin] | EqSafe |
+| 1356 | 0x054C | `Main001Geq010` | 0=-12/127=12/[Lin] | EqSafe |
+| 1357 | 0x054D | `Main001Geq011` | 0=-12/127=12/[Lin] | EqSafe |
+| 1358 | 0x054E | `Main001Geq012` | 0=-12/127=12/[Lin] | EqSafe |
+| 1359 | 0x054F | `Main001Geq013` | 0=-12/127=12/[Lin] | EqSafe |
+| 1360 | 0x0550 | `Main001Geq014` | 0=-12/127=12/[Lin] | EqSafe |
+| 1361 | 0x0551 | `Main001Geq015` | 0=-12/127=12/[Lin] | EqSafe |
+| 1362 | 0x0552 | `Main001Geq016` | 0=-12/127=12/[Lin] | EqSafe |
+| 1363 | 0x0553 | `Main001Geq017` | 0=-12/127=12/[Lin] | EqSafe |
+| 1364 | 0x0554 | `Main001Geq018` | 0=-12/127=12/[Lin] | EqSafe |
+| 1365 | 0x0555 | `Main001Geq019` | 0=-12/127=12/[Lin] | EqSafe |
+| 1366 | 0x0556 | `Main001Geq020` | 0=-12/127=12/[Lin] | EqSafe |
+| 1367 | 0x0557 | `Main001Geq021` | 0=-12/127=12/[Lin] | EqSafe |
+| 1368 | 0x0558 | `Main001Geq022` | 0=-12/127=12/[Lin] | EqSafe |
+| 1369 | 0x0559 | `Main001Geq023` | 0=-12/127=12/[Lin] | EqSafe |
+| 1370 | 0x055A | `Main001Geq024` | 0=-12/127=12/[Lin] | EqSafe |
+| 1371 | 0x055B | `Main001Geq025` | 0=-12/127=12/[Lin] | EqSafe |
+| 1372 | 0x055C | `Main001Geq026` | 0=-12/127=12/[Lin] | EqSafe |
+| 1373 | 0x055D | `Main001Geq027` | 0=-12/127=12/[Lin] | EqSafe |
+| 1374 | 0x055E | `Main001Geq028` | 0=-12/127=12/[Lin] | EqSafe |
 | 1395 | 0x0573 | `Main001Delay001` | 0=0/127=250.0/[Log] | InstantCtl |
 | 1397 | 0x0575 | `Main001CrossoverFreq001` | 0=50/127=500/[Log] | EqSafe |
 | 1397 | 0x0575 | `Main001CrossoverSlope001` | 0=6/3=24/[Lin] | InstantCtl |
@@ -5241,7 +5241,7 @@
 | 1588 | 0x0634 | `Fx001Damp001` | 0=0/127=100/[Lin] | GainSafe |
 | 1589 | 0x0635 | `Fx001EqLo001` | 0=-6/127=6/[Lin] | EqSafe |
 | 1590 | 0x0636 | `Fx001EqMid001` | 0=-6/127=6/[Lin] | EqSafe |
-| 1591 | 0x0637 | `Fx001EqHi001` | 0=-6/127=6/[Lin] | EqSafe |
+| 1591 | 0x0637 | `Fx001EqPresence001` | 0=-6/127=6/[Lin] | EqSafe |
 | 1592 | 0x0638 | `Fx001EqHpf001` | 0=80/127=300/[Log] | EqSafe |
 | 1597 | 0x063D | `Fx001ModRate001` | 0=0.1/127=10/[Log] | InstantCtl |
 | 1598 | 0x063E | `Fx001ModLevel001` | 0=0/127=100/[Lin] | GainSafe |
@@ -5263,7 +5263,7 @@
 | 1616 | 0x0650 | `Fx002Damp001` | 0=0/127=100/[Lin] | GainSafe |
 | 1617 | 0x0651 | `Fx002EqLo001` | 0=-6/127=6/[Lin] | EqSafe |
 | 1618 | 0x0652 | `Fx002EqMid001` | 0=-6/127=6/[Lin] | EqSafe |
-| 1619 | 0x0653 | `Fx002EqHi001` | 0=-6/127=6/[Lin] | EqSafe |
+| 1619 | 0x0653 | `Fx002EqPresence001` | 0=-6/127=6/[Lin] | EqSafe |
 | 1620 | 0x0654 | `Fx002EqHpf001` | 0=80/127=300/[Log] | EqSafe |
 | 1625 | 0x0659 | `Fx002ModRate001` | 0=0.1/127=10/[Log] | InstantCtl |
 | 1626 | 0x065A | `Fx002ModLevel001` | 0=0/127=100/[Lin] | GainSafe |
@@ -5285,7 +5285,7 @@
 | 1644 | 0x066C | `Fx003Damp001` | 0=0/127=100/[Lin] | GainSafe |
 | 1645 | 0x066D | `Fx003EqLo001` | 0=-6/127=6/[Lin] | EqSafe |
 | 1646 | 0x066E | `Fx003EqMid001` | 0=-6/127=6/[Lin] | EqSafe |
-| 1647 | 0x066F | `Fx003EqHi001` | 0=-6/127=6/[Lin] | EqSafe |
+| 1647 | 0x066F | `Fx003EqPresence001` | 0=-6/127=6/[Lin] | EqSafe |
 | 1648 | 0x0670 | `Fx003EqHpf001` | 0=80/127=300/[Log] | EqSafe |
 | 1653 | 0x0675 | `Fx003ModRate001` | 0=0.1/127=10/[Log] | InstantCtl |
 | 1654 | 0x0676 | `Fx003ModLevel001` | 0=0/127=100/[Lin] | GainSafe |
@@ -5307,7 +5307,7 @@
 | 1672 | 0x0688 | `Fx004Damp001` | 0=0/127=100/[Lin] | GainSafe |
 | 1673 | 0x0689 | `Fx004EqLo001` | 0=-6/127=6/[Lin] | EqSafe |
 | 1674 | 0x068A | `Fx004EqMid001` | 0=-6/127=6/[Lin] | EqSafe |
-| 1675 | 0x068B | `Fx004EqHi001` | 0=-6/127=6/[Lin] | EqSafe |
+| 1675 | 0x068B | `Fx004EqPresence001` | 0=-6/127=6/[Lin] | EqSafe |
 | 1676 | 0x068C | `Fx004EqHpf001` | 0=80/127=300/[Log] | EqSafe |
 | 1681 | 0x0691 | `Fx004ModRate001` | 0=0.1/127=10/[Log] | InstantCtl |
 | 1682 | 0x0692 | `Fx004ModLevel001` | 0=0/127=100/[Lin] | GainSafe |
@@ -5329,7 +5329,7 @@
 | 1700 | 0x06A4 | `Fx005Damp001` | 0=0/127=100/[Lin] | GainSafe |
 | 1701 | 0x06A5 | `Fx005EqLo001` | 0=-6/127=6/[Lin] | EqSafe |
 | 1702 | 0x06A6 | `Fx005EqMid001` | 0=-6/127=6/[Lin] | EqSafe |
-| 1703 | 0x06A7 | `Fx005EqHi001` | 0=-6/127=6/[Lin] | EqSafe |
+| 1703 | 0x06A7 | `Fx005EqPresence001` | 0=-6/127=6/[Lin] | EqSafe |
 | 1704 | 0x06A8 | `Fx005EqHpf001` | 0=80/127=300/[Log] | EqSafe |
 | 1709 | 0x06AD | `Fx005ModRate001` | 0=0.1/127=10/[Log] | InstantCtl |
 | 1710 | 0x06AE | `Fx005ModLevel001` | 0=0/127=100/[Lin] | GainSafe |
@@ -5351,7 +5351,7 @@
 | 1728 | 0x06C0 | `Fx006Damp001` | 0=0/127=100/[Lin] | GainSafe |
 | 1729 | 0x06C1 | `Fx006EqLo001` | 0=-6/127=6/[Lin] | EqSafe |
 | 1730 | 0x06C2 | `Fx006EqMid001` | 0=-6/127=6/[Lin] | EqSafe |
-| 1731 | 0x06C3 | `Fx006EqHi001` | 0=-6/127=6/[Lin] | EqSafe |
+| 1731 | 0x06C3 | `Fx006EqPresence001` | 0=-6/127=6/[Lin] | EqSafe |
 | 1732 | 0x06C4 | `Fx006EqHpf001` | 0=80/127=300/[Log] | EqSafe |
 | 1737 | 0x06C9 | `Fx006ModRate001` | 0=0.1/127=10/[Log] | InstantCtl |
 | 1738 | 0x06CA | `Fx006ModLevel001` | 0=0/127=100/[Lin] | GainSafe |
@@ -5411,7 +5411,7 @@
 | 1799 | 0x0707 | `AaGrp002Mtr001` |  |  |
 | 1800 | 0x0708 | `AaGrp003Mtr001` |  |  |
 | 1801 | 0x0709 | `AaGrp004Mtr001` |  |  |
-| 1802 | 0x070A | `Sub001Mtr001` |  |  |
+| 1802 | 0x070A | `AaSub001Mtr001` |  |  |
 | 1803 | 0x070B | `AaFx001Mtr001` |  |  |
 | 1804 | 0x070C | `AaFx002Mtr001` |  |  |
 | 1805 | 0x070D | `AaFx003Mtr001` |  |  |

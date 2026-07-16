@@ -64,7 +64,7 @@ def read_matrix_csv():
     """Read _matrix.csv and return (header, list of OrderedDict rows)."""
     with open(MATRIX_CSV, newline='', encoding='utf-8') as f:
         reader = csv.DictReader(f)
-        header = reader.fieldnames
+        header = [h for h in reader.fieldnames if h and h.strip()]
         rows = [OrderedDict(r) for r in reader]
     return header, rows
 
@@ -412,7 +412,7 @@ def expand_geq(node, cat, inst):
     chip, pg, base, nid, ramp = _parse_node(node)
     # 28 SPI words: gains[28] staging buffer → crossfade swap
     for b in range(1, 29):
-        add_cell(cn(cat, inst, 'Peq', b), chip, pg, base + (b - 1),
+        add_cell(cn(cat, inst, 'Geq', b), chip, pg, base + (b - 1),
                  '0=-12/127=12/[Lin]', 'EqSafe')
     add_dispatch_block(chip, base, f'_geq_coeffs_next_{nid}', 28, f'{nid} GEQ coeff')
 
@@ -478,7 +478,7 @@ def expand_meter(node, cat, inst):
         add_cell(cn(cat, inst, 'Mtr', 1), chip, pg, base, '', '', notes='Post trim level')
         add_cell(cn(cat, inst, 'Mtr', 2), chip, pg, base + 1, '', '', notes='Post fader level')
         add_cell(cn(cat, inst, 'GateMtr', 1), chip, pg, base + 2, '', '', notes='Gate GR')
-        add_cell(cn(cat, inst, 'DynMtr', 1), chip, pg, base + 3, '', '', notes='Comp GR')
+        add_cell(cn(cat, inst, 'CompMtr', 1), chip, pg, base + 3, '', '', notes='Comp GR')
         add_dispatch(chip, base, f'_mtr_peak_{nid}', f'{nid} post_trim')
         add_dispatch(chip, base + 1, f'_mtr_rms_{nid}', f'{nid} post_fader')
         add_dispatch(chip, base + 2, f'_mtr_gr_{nid}', f'{nid} gate_gr')
@@ -554,7 +554,7 @@ def expand_fx_engine(node, cat, inst):
         ('Damp',        7,  '0=0/127=100/[Lin]',     'GainSafe',  f'_fx_damp_{nid}'),
         ('EqLo',        8,  '0=-6/127=6/[Lin]',     'EqSafe',    f'_fx_eq_lo_{nid}'),
         ('EqMid',       9,  '0=-6/127=6/[Lin]',     'EqSafe',    f'_fx_eq_mid_{nid}'),
-        ('EqHi',       10,  '0=-6/127=6/[Lin]',     'EqSafe',    f'_fx_eq_hi_{nid}'),
+        ('EqPresence', 10,  '0=-6/127=6/[Lin]',     'EqSafe',    f'_fx_eq_hi_{nid}'),
     ]
     for suffix, off, tbl, rp, asm in params:
         add_cell(cn(cat, inst, suffix, 1), chip, pg, base + off, tbl, rp)
@@ -733,7 +733,7 @@ _NODE_PATTERNS = [
     (re.compile(r'^C2_MTR_AUX_(\d+)$'),                lambda m: ('AaAux', int(m.group(1)))),
     (re.compile(r'^C2_MTR_MAIN_(\d+)$'),               lambda m: ('AaMain', int(m.group(1)))),
     (re.compile(r'^C2_MTR_GRP_(\d+)$'),                lambda m: ('AaGrp', int(m.group(1)))),
-    (re.compile(r'^C2_MTR_SUB$'),                      lambda m: ('Sub', 1)),
+    (re.compile(r'^C2_MTR_SUB$'),                      lambda m: ('AaSub', 1)),
     (re.compile(r'^C2_MTR_FX_(\d+)$'),                 lambda m: ('AaFx', int(m.group(1)))),
     # Recv/Send (no cells)
     (re.compile(r'^C2_RECV_'),                         lambda m: None),
@@ -789,9 +789,16 @@ def backfill_matrix(header, rows, *, force=False):
             header.append(col)
 
     matched = 0
+    cleared = 0
     for row in rows:
         cell_name = row.get('_Cell', '')
         if cell_name not in cell_map:
+            # On --force, clear stale DSP columns for rows no longer in cell_map
+            if force and any(row.get(c) for c in ('DspSpi', 'DspPage', 'DspAdd', 'DspAddHex')):
+                for c in ('DspSpi', 'DspPage', 'DspAdd', 'DspAddHex',
+                          'RampProfile', 'RampMode', 'RampUpMs', 'RampDownMs', 'RampCurve', 'RampScope'):
+                    row[c] = ''
+                cleared += 1
             continue
 
         cm = cell_map[cell_name]
@@ -827,7 +834,7 @@ def backfill_matrix(header, rows, *, force=False):
         if force or not row.get('RampScope'):
             row['RampScope'] = rp['scope']
 
-    return matched
+    return matched, cleared
 
 
 # ---------------------------------------------------------------------------
@@ -1183,8 +1190,10 @@ def main():
 
     # 4. Backfill _matrix.csv
     print('Backfilling _matrix.csv...')
-    matched = backfill_matrix(header, matrix_rows, force=args.force)
+    matched, cleared = backfill_matrix(header, matrix_rows, force=args.force)
     print(f'  {matched} cells matched and backfilled')
+    if cleared:
+        print(f'  {cleared} stale DSP column entries cleared')
 
     # 5. Write outputs
     print('Writing outputs...')
