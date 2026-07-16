@@ -1,0 +1,6 @@
+# Alias families to retire in current sync flow.
+# Family format: <Prefix><Func>, derived from _Cell patterns.
+
+FxDuckThr
+MainMtr
+MainPeqGain

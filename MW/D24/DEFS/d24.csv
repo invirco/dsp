@@ -1,0 +1,56 @@
+# MW D24 — shipping product definition (24-channel version of the Matrix platform).
+# Derived from known shipping configuration. Conservative: excludes D32-only additions
+# (bt, card, ssd, rta, lcr, phones) until verified against D24 HW/FW.
+# Conventions as d128.csv: opt-in, counts/caps/enums, slot scopes for fx.
+key,value
+brand,MW
+product,D24
+hw,D24-STD
+ch,24
+ch.eq,4
+ch.comp,1
+ch.gate,1
+ch.key,1
+ch.hpf,1
+ch.delay,1
+ch.pick,2
+ch.insel,1
+ch.lpf,1
+ch.ins,1
+aux,8
+aux.eq,4
+aux.comp,1
+aux.lim,1
+aux.fbs,6
+grp,4
+grp.eq,4
+grp.comp,1
+grp.gate,1
+mtx,2
+dca,8
+mgrp,8
+fgrp,5
+main,LR
+main.geq,31
+main.comp,1
+main.lim,1
+sub,1
+sub.xover,1
+sub.lim,1
+mon,1
+tb,2
+fx,6
+fx.reverb,2
+fx.echo,4
+fx.pingpong,4
+fx.doubler,4
+fx.chorus,4
+fx.flanger,4
+fx.phaser,4
+rec.usb,1
+rec.mtk,24
+gen.noise,1
+io.in,24
+io.out,12
+io.phantom,1
+io.bt,1
