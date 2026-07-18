@@ -5,6 +5,14 @@ Engine-agnostic: this file is the source of truth for DSP address assignment, co
 formulas, and routing. A build tool (`gen_dsp.py`) expands it and backfills the `DspSpi`,
 `DspAdd`, `DspAddHex`, and `Table` columns of `_matrix.csv`.
 
+### Group GEQ transition note (2026-07-18)
+
+- `gen_dsp.py` now includes a guarded compatibility path: `--enable-grp-geq-alias`.
+- Default behavior is unchanged (flag off).
+- When enabled, Group `GEQ` nodes also emit `GrpPeq` alias cells at the same SPI addresses.
+- Purpose: allow staged matrix migration from `GrpPeq` to `GrpGeq` without breaking mapping.
+- Full DSP build verification remains blocked on CCES-gated validation.
+
 > **Status: IN PROGRESS** — LP0 inter-chip link removed (ADSP-21564 has no link ports); dual independent SPI confirmed (H1S1 → CS1 → Chip 1 SPI1, H1S1 → CS2 → Chip 2 SPI1). Inter-chip audio: SPORT7 TDM single-lane, 25 slots (0–24), chip1=master/chip2=slave. Board in fabrication, no revision needed. Code generation pipeline complete; infrastructure ASM reviewed; CCES 3.0.3 build verified **0 errors 0 warnings** (630 ASM files → chip1.dxe + chip2.dxe). **H1S1 firmware complete and building** (13% flash, <1% RAM; outside-IDE build via `fw.sh` producing `.shex`). EV-SOMCRR-EZLITE carrier board on order for JTAG debug bring-up.
 
 **Status legend**

@@ -105,6 +105,7 @@ Status colors:
 - [ ] <span style="color:#6b7280"><b>BLOCKED/DEFERRED</b></span> Implement Group GEQ DSP node
   - Why: matrix has 48 GrpPeq rows (4 groups × 12 bands) but no GEQ nodes in dsp.csv.
   - Action: add group GEQ nodes to dsp.csv (gen_dsp_csv.py source), then rename GrpPeq→GrpGeq.
+  - Progress (2026-07-18): no-build draft patch prepared in MW/D32/DSP/gen_dsp.py with guarded flag --enable-grp-geq-alias for staged mapping.
   - Blocked on: CCES license for build verification.
 
 ## Workflow reference (to resume quickly)
@@ -135,7 +136,7 @@ Status colors:
 
 - Resolved: mx26 master now includes previously missing families that blocked DSP parity.
 - Remaining deferred DSP work:
-  - Group GEQ DSP node implementation for existing GrpPeq matrix families (CCES license/build verification dependency).
+  - Group GEQ DSP node implementation for existing GrpPeq matrix families (guarded alias bridge prepared; CCES build verification dependency remains).
 - Remaining non-mapped matrix controls are currently tracked as expected MCU-only or deferred-path items.
 
 ## Owners and cadence

@@ -1,2 +1,6 @@
 1. DSP schematic as SIGMASTUDIO project
 2. Executable as H files
+3. Group GEQ staged rollout
+	- Drafted guarded alias bridge in gen_dsp.py: --enable-grp-geq-alias
+	- Next: add/verify Group GEQ node path in dsp.csv source flow
+	- Next: once CCES is available, run full build and confirm no regressions
