@@ -1,3 +1,11 @@
 # Alias families to retire in current sync flow.
 # Family format: <Prefix><Func>, derived from _Cell patterns.
 # FxDuckThr, MainMtr, MainPeqGain — retired 2026-07-16 (prune ran clean, audit updated)
+FxDuckThr
+MainMtr
+MainPeqGain
+FxEqHi
+AuxPeq
+SubMtr
+AaChanDynMtr
+FxLfoMode

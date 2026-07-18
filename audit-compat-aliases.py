@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import csv
 import re
+from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -18,19 +19,18 @@ REPORT = ROOT / "alias-audit.md"
 CELL_RE = re.compile(r"^([A-Za-z]+)(\d{3})([A-Za-z0-9]+)(\d{3})$")
 
 # alias family, canonical family, rationale
-PAIRS = [
+PAIRS: list[tuple[str, str, str]] = []
+
+# Families confirmed retired (alias rows absent in current generated matrix)
+RETIRED = [
+    ("FxDuckThr", "FxDuckSens", "Legacy threshold alias of DuckSens"),
+    ("MainPeqGain", "MainGeq", "Compatibility alias for main GEQ gains"),
+    ("MainMtr", "AaMainMtr", "Unprefixed main meter alias"),
     ("FxEqHi", "FxEqPresence", "Legacy FX high EQ alias"),
     ("AuxPeq", "AuxGeq", "Compatibility alias for GEQ gains"),
     ("SubMtr", "AaSubMtr", "Unprefixed sub meter alias"),
     ("AaChanDynMtr", "AaChanCompMtr", "DynMtr renamed to CompMtr for compressor GR"),
     ("FxLfoMode", "FxLfoShape", "LfoMode renamed to LfoShape"),
-]
-
-# Families confirmed retired (alias rows absent, prune ran clean 2026-07-16)
-RETIRED = [
-    ("FxDuckThr", "FxDuckSens", "Legacy threshold alias of DuckSens"),
-    ("MainPeqGain", "MainGeq", "Compatibility alias for main GEQ gains"),
-    ("MainMtr", "AaMainMtr", "Unprefixed main meter alias"),
 ]
 
 
@@ -70,26 +70,30 @@ def status(alias_total: int, canonical_total: int, alias_mapped: int) -> str:
 def main() -> int:
     rows = read_rows(MATRIX)
     total, mapped = counts(rows)
+    today = date.today().isoformat()
 
     lines = [
         "# alias audit",
         "",
         "Status: active",
-        "Date: 2026-07-16",
+        f"Date: {today}",
         "Scope: compatibility alias usage in MW/D32/MX/_matrix.csv.",
         "",
         "| Alias family | Canonical family | Alias rows | Alias DSP-mapped | Canonical rows | Status | Notes |",
         "|---|---|---:|---:|---:|---|---|",
     ]
 
-    for alias, canonical, note in PAIRS:
-        alias_total = total.get(alias, 0)
-        alias_mapped = mapped.get(alias, 0)
-        canonical_total = total.get(canonical, 0)
-        s = status(alias_total, canonical_total, alias_mapped)
-        lines.append(
-            f"| {alias} | {canonical} | {alias_total} | {alias_mapped} | {canonical_total} | {s} | {note} |"
-        )
+    if not PAIRS:
+        lines.append("| (none) | (none) | 0 | 0 | 0 | n/a | No active transitional alias families |")
+    else:
+        for alias, canonical, note in PAIRS:
+            alias_total = total.get(alias, 0)
+            alias_mapped = mapped.get(alias, 0)
+            canonical_total = total.get(canonical, 0)
+            s = status(alias_total, canonical_total, alias_mapped)
+            lines.append(
+                f"| {alias} | {canonical} | {alias_total} | {alias_mapped} | {canonical_total} | {s} | {note} |"
+            )
 
     lines.extend(
         [

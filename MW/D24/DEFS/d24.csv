@@ -49,7 +49,8 @@ fx.flanger,4
 fx.phaser,4
 rec.usb,1
 rec.mtk,24
-gen.noise,1
+gen.pink,1
+gen.tone,1
 io.in,24
 io.out,12
 io.phantom,1

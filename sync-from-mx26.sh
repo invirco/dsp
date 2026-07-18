@@ -196,6 +196,15 @@ if [[ -d "$MX26_REPO_PATH/.git" ]]; then
   SOURCE_COMMIT="$(git -C "$MX26_REPO_PATH" rev-parse HEAD)"
 fi
 
+CONTRACT_VERSION="defs-v$(date +%Y.%m.%d)"
+if [[ -d "$MX26_REPO_PATH/.git" ]]; then
+  if tag_name="$(git -C "$MX26_REPO_PATH" describe --tags --exact-match 2>/dev/null)"; then
+    if [[ "$tag_name" == defs-v* ]]; then
+      CONTRACT_VERSION="$tag_name"
+    fi
+  fi
+fi
+
 if [[ $UPDATE_LOCK -eq 1 ]]; then
   cat > "$LOCK_FILE" <<EOF
 # mx26 definitions lock for mx-dsp
@@ -204,7 +213,7 @@ if [[ $UPDATE_LOCK -eq 1 ]]; then
 SOURCE_REPO=invirco/mx26
 SOURCE_REF=main
 SOURCE_COMMIT=$SOURCE_COMMIT
-CONTRACT_VERSION=defs-v2026.07.15
+CONTRACT_VERSION=$CONTRACT_VERSION
 
 D24_DEF_SHA256=$D24_DEF_SHA
 D24_FW_SHA256=$D24_FW_SHA

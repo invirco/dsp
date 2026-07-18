@@ -11,8 +11,10 @@ ch.comp,1
 ch.gate,1
 ch.key,1
 ch.hpf,1
+ch.lpf,1
 ch.delay,1
 ch.pick,2
+ch.fxpick,1
 ch.insel,1
 ch.ins,1
 ch.lcr,1
@@ -21,12 +23,12 @@ aux,12
 aux.eq,4
 aux.comp,1
 aux.lim,1
-aux.fbs,6
+aux.fbs,12
 grp,4
 grp.eq,4
 grp.comp,1
 grp.gate,1
-mtx,2
+mtx,12
 dca,8
 mgrp,8
 fgrp,5
@@ -50,9 +52,9 @@ fx.chorus,4
 fx.flanger,4
 fx.phaser,4
 rec.usb,1
-rec.ssd,1
 rec.mtk,32
-gen.noise,1
+gen.pink,1
+gen.tone,1
 io.in,32
 io.out,16
 io.phantom,1
