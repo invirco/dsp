@@ -10,6 +10,35 @@ Status colors:
 - <span style="color:#2563eb"><b>NEXT</b></span>
 - <span style="color:#6b7280"><b>BLOCKED/DEFERRED</b></span>
 
+## Resume notes (saved 2026-07-29, evening)
+
+Today: D24 schematics imported (`1d617ac`), hardware map + D1-D4 decisions
+mandated (`128f13b`), tasks reprioritized (`ba9853d`). All committed, tree
+clean.
+
+State assessment — unified DSP4 firmware ~75-80% written (weighted by
+effort, not lines; hardware-verified fraction much lower, nothing has run
+on the rev C card):
+- D32 SHARC tree is the foundation: 613-node dsp.csv, 74.5k lines generated
+  node ASM, 13k infra/libs. Kernels ~95%, node coverage ~90%, infra ~75%.
+- D24 SHARC tree (202-row dsp.csv) is a superseded skeleton — retire into
+  the unified build, do not extend.
+- Remaining 20-25%: fabric remap, product-config layer, superset I/O nodes
+  (MEMS/Pi PCM/codec return), GrpGeq, D24 contract wiring.
+
+Tomorrow's entry point (P1 task 1):
+1. KEY FINDING: D32 dsp.csv models the chip link as ONE logical SPORT
+   (`sport_id=7`, ~26 bus slots). Architecture already matches D4 (mix
+   summing on chip 1), but hardware is 8× TDM16 = 128 mix buses — so the
+   rework is sport/slot plumbing (sport_init.asm, block_io.asm, dsp.csv
+   sport params), not kernels.
+2. Start by defining the slot-map source table (bus → TDM line/slot); it
+   must feed BOTH gen_dsp_csv.py and the future shared/dsp4-logic/ Verilog
+   (decision D2), so shape it for two consumers from day one.
+3. Then rework gen_dsp_csv.py: map D32's ~26 logical buses onto physical
+   MIX lines 0-1, reserve lines 2-7 for future/128-bus growth, add superset
+   I/O nodes behind product config.
+
 ## P1 - DSP4 unified firmware & D24 bring-up (top priority)
 
 Binding decisions: [dsp4-architecture-decisions.md](dsp4-architecture-decisions.md)
