@@ -134,3 +134,206 @@ CPLD
 - All modules are identical
 - Backplane provides clocks, power, and fabric buses
 - Deterministic timing across entire system
+
+## mx_master.csv as cross-domain SOT
+
+- Source: `ideas.txt` on origin/main (GitHub), imported 2026-07-29.
+  Original note + review appends of 2026-06-10, preserved verbatim below.
+
+```text
+mx_master.csv is currently SOT for matrix avalonia app
+it is used as a summary to create detailed matrix.csv files used by products
+current purpose is limited to linking cells to controls in software app
+i want to expand the purpose and utility of mx_master.csv, to also become SOT for matrix DSP
+DSP uses:
+text version of DSP block diagram, used to write all DSP code
+DSP block diagram generated from mx_master.csv will not be traditional style block/flow
+DSP block diagram will be an anbalog mockup of the DSP code
+in other words, mic gain pot at top, with HPF, POL and +48V buttons
+this section could be described as:
+Input[1-8]MicLineGain[1-1]
+Input[1-8]MicLineHpf[1-1]
+Input[1-8]MicLinePol[1-1]
+Input[1-8]MicLinePh[1-1]
+etc
+This section is named Input[1-8]MicLine
+Make sense so far?
+
+---
+Review comments (appended 2026-06-10)
+
+1) Strong direction
+1.1) Using mx_master.csv as a single source of truth for UI control mapping and DSP mapping is a strong architecture decision.
+1.2) Keeping one canonical model can reduce drift between app behavior and DSP behavior.
+
+2) Clarify terms early
+2.1) Define SOT once near the top as "single source of truth".
+2.2) Standardize naming: use either "analog" or "anbalog" (currently misspelled).
+2.3) Clarify "matrix avalonia app" as "Avalonia matrix app".
+
+3) Separate layers in the model
+3.1) Consider explicit columns for:
+3.1.1) UI control identity (screen/group/control)
+3.1.2) DSP function identity (block type, instance, channel range)
+3.1.3) Parameter mapping (control -> DSP parameter address or symbol)
+3.1.4) Constraints/defaults (min/max/step/default/unit)
+3.2) This avoids overloading one free-text field.
+
+4) Proposed naming pattern
+4.1) Current examples like Input[1-8]MicLineGain[1-1] are readable but ambiguous.
+4.2) Consider a normalized pattern:
+4.2.1) Domain.Path.Object[Channel].Parameter
+4.2.2) Example: Input.MicLine[1..8].Gain
+4.2.3) Example: Input.MicLine[1..8].HPF
+4.2.4) Example: Input.MicLine[1..8].Polarity
+4.2.5) Example: Input.MicLine[1..8].Phantom48V
+
+5) Add generation targets
+5.1) If this file will drive code generation, define exact outputs now:
+5.1.1) DSP text block diagram spec
+5.1.2) DSP symbol/parameter map
+5.1.3) UI binding map
+5.1.4) Validation report (missing mappings, duplicates, invalid ranges)
+
+6) Recommended next step
+6.1) Add a small schema section in this file with required columns and 3 concrete rows as examples.
+6.2) Then write a validator script that fails on duplicate keys or malformed ranges.
+
+7) Open questions to resolve
+7.1) Should every UI control map to exactly one DSP parameter, or can one control fan out?
+7.1.a) Confirmed answer: Normally one control maps to one cell/parameter, with possible exceptions later.
+7.2) How are product-specific overrides represented without breaking master consistency?
+7.2.a) Confirmed answer: Use product-specific files.
+7.3) Which field is the stable ID used by codegen over time?
+7.3.a) Confirmed answer: Use currently defined cell names from mx_master.csv as the base stable IDs.
+7.3.b) Confirmed rule: Expand base cell names to concrete per-channel instances, e.g. Chan001Gain001, Chan002Gain001.
+
+---
+Review comments (integration-focused append 2026-06-10)
+
+8) Is this a good idea?
+8.1) Yes. Using mx_master.csv as cross-domain SOT for SW + FW + HW is a strong direction.
+8.2) It will reduce integration churn if it is treated as a contract, not just a convenience table.
+8.3) Success condition: every generated artifact is reproducible from mx_master.csv plus product override files.
+
+9) Required contract fields for SW/FW/HW integration
+9.1) Identity fields
+9.1.1) StableCellId (existing base cell name)
+9.1.2) ExpandedInstanceId (example: Chan001Gain001)
+9.1.3) Domain (SW/FW/HW/DSP/UI)
+9.2) Control semantics
+9.2.1) ValueType (bool/int/float/enum/table)
+9.2.2) Unit (dB/Hz/ms/ratio/etc)
+9.2.3) Min/Max/Step/Default
+9.2.4) RampProfile (InstantCtl/GainFast/EqSafe/DynSafe)
+9.3) Transport and protocol
+9.3.1) DspSpi enabled flag
+9.3.2) DspPage, DspAdd, DspAddHex
+9.3.3) Payload encoding (scalar/coefficient set/bitfield)
+9.4) Runtime ownership
+9.4.1) Owner (SW only, FW only, DSP only, shared)
+9.4.2) Update cadence (realtime, scene recall, boot only)
+9.4.3) Safety class (mute-critical, gain-critical, non-audio metadata)
+9.5) Hardware binding
+9.5.1) Physical endpoint (ADC channel, DAC channel, GPIO, phantom rail, etc)
+9.5.2) Hardware dependency notes (board variant, availability)
+
+10) Integration model recommendations
+10.1) Keep canonical IDs compatible with current Chan/Aux/Fx naming for codegen stability.
+10.2) Allow readable aliases (for UI/docs) as secondary labels, not primary keys.
+10.3) Support shared-address controls explicitly (example: EqFreq/EqGain/EqQ on same base address).
+10.4) Keep product-specific differences in product files; master stays product-agnostic.
+10.5) Add versioning: SchemaVersion and ContractVersion in mx_master.csv.
+
+11) Validation gates before integration
+11.1) Uniqueness: no duplicate StableCellId + instance after expansion.
+11.2) Address policy: no illegal SPI collisions unless marked as shared-address-group.
+11.3) Range policy: defaults must be inside declared min/max.
+11.4) Ownership policy: each control has exactly one owning writer at runtime.
+11.5) Generation parity: SW map, FW ghost table, and DSP map all regenerate with zero diff on rerun.
+
+12) Suggested milestone path
+12.1) Milestone A: lock schema and glossary in this file.
+12.2) Milestone B: generate one golden slice (for example Chan001 full strip) to SW/FW/DSP artifacts.
+12.3) Milestone C: add CI validator for schema, addressing, and generation parity.
+12.4) Milestone D: scale to all channels and all buses.
+
+13) Open integration questions
+13.1) What is the canonical source for enum vocab (example InputSel modes), and who approves changes?
+13.2) How will backward compatibility be handled when a cell is renamed or split?
+13.3) Which controls are FW-mediated only (example phantom power) and must never be sent to DSP?
+13.4) Do we need a per-field atomic update group ID for coefficient bundles and click-free swaps?
+13.5) What is the required boot-time order for applying defaults: HW safe state -> DSP coeffs -> UI sync?
+
+14) Minimal schema draft (required columns)
+14.1) Goal: this is the smallest contract that can generate SW bindings, FW ghost maps, DSP parameter maps, and HW binding notes from one source.
+14.2) Required columns
+14.2.1) StableCellId: canonical base ID (example Chan[1-32]Gain[1-1])
+14.2.2) ExpandedInstanceId: concrete instance key (example Chan001Gain001)
+14.2.3) Domain: UI, DSP, FW, HW, Shared
+14.2.4) ValueType: bool, int, float, enum, bitfield, coeff_set
+14.2.5) Unit: dB, Hz, ms, ratio, none
+14.2.6) Min: minimum allowed value
+14.2.7) Max: maximum allowed value
+14.2.8) Step: UI/edit step size
+14.2.9) Default: boot/default scene value
+14.2.10) EnumValues: pipe-delimited list for enum types, blank otherwise
+14.2.11) DspSpi: true/false
+14.2.12) DspPage: integer page, -1 if not DSP addressed
+14.2.13) DspAdd: integer address, -1 if not DSP addressed
+14.2.14) AddressGroup: shared-address group ID (blank if unique)
+14.2.15) RampProfile: InstantCtl, GainFast, EqSafe, DynSafe
+14.2.16) PayloadEncoding: scalar, coeff_bundle, bitmask, fw_only
+14.2.17) Owner: SW, FW, DSP
+14.2.18) UpdateCadence: realtime, scene_recall, boot_only
+14.2.19) HwEndpoint: physical target (example ADC1_CH01, PHANTOM_CH01)
+14.2.20) ProductScope: All, D24, D32
+14.2.21) Notes: free text, optional
+
+15) Golden example rows (3)
+15.1) These examples intentionally include one DSP scalar, one shared-address EQ control, and one FW-only hardware control.
+
+15.2) CSV-style examples
+StableCellId,ExpandedInstanceId,Domain,ValueType,Unit,Min,Max,Step,Default,EnumValues,DspSpi,DspPage,DspAdd,AddressGroup,RampProfile,PayloadEncoding,Owner,UpdateCadence,HwEndpoint,ProductScope,Notes
+Chan[1-32]Gain[1-1],Chan001Gain001,Shared,float,dB,0,60,1,30,,true,0,0,,GainFast,scalar,DSP,realtime,ADC1_CH01,All,Mic pre gain
+Chan[1-32]EqFreq[1-1],Chan001EqFreq001,Shared,float,Hz,20,200,1,100,,true,0,16,EQ1_BAND1,EqSafe,coeff_bundle,DSP,realtime,ADC1_CH01,All,Shares DSP base address with EqGain001 and EqQ001
+Chan[1-32]Phantom[1-1],Chan001Phantom001,Shared,bool,none,0,1,1,0,Off|On,false,-1,-1,,InstantCtl,fw_only,FW,boot_only,PHANTOM_CH01,All,FW mediated hardware rail, do not send to DSP
+
+16) Immediate validator rules for this schema
+16.1) ExpandedInstanceId must be globally unique.
+16.2) If DspSpi=true then DspPage>=0 and DspAdd>=0.
+16.3) If DspSpi=false then DspPage=-1 and DspAdd=-1.
+16.4) Rows sharing DspPage+DspAdd must have non-empty AddressGroup.
+16.5) Owner=FW with PayloadEncoding=fw_only must never generate DSP writes.
+16.6) Default must be within Min/Max.
+
+17) Column compatibility policy (locked)
+17.1) Existing mx_master.csv columns are immutable.
+17.2) Do not rename, remove, reorder, or change meaning of existing columns.
+17.3) Expansion is additive only: new columns may be appended to the right.
+17.4) Existing tooling must continue to work when new columns are blank.
+17.5) New columns must have explicit defaults and validation rules.
+17.6) Backward compatibility target: old readers ignore unknown columns safely.
+
+18) Suggested additive columns (no breaking change)
+18.1) ContractVersion
+18.2) Domain
+18.3) ValueType
+18.4) Unit
+18.5) Min
+18.6) Max
+18.7) Step
+18.8) Default
+18.9) EnumValues
+18.10) AddressGroup
+18.11) PayloadEncoding
+18.12) Owner
+18.13) UpdateCadence
+18.14) HwEndpoint
+18.15) ProductScope
+
+19) Implementation note
+19.1) Keep current columns as primary source for legacy paths.
+19.2) Use additive columns for new SW/FW/HW integration logic.
+19.3) Promote additive columns from optional to required only after validators and generators are updated.
+```
