@@ -115,6 +115,33 @@ Status colors:
     (path expected by MW/D32/DSP/SHARC/build.sh — directory currently missing).
     Then: build.sh + gen_dsp.py --enable-grp-geq-alias to resume.
 
+## P5 - DSP4 unified firmware & D24 bring-up (added 2026-07-29)
+
+Binding decisions: [dsp4-architecture-decisions.md](dsp4-architecture-decisions.md)
+(D1 Pi masters DSP SPI, D2 CPLD in-repo w/ single-sourced slot map,
+D3 one DSP4 firmware for D24+D32, D4 topology per schematic).
+Hardware ground truth: [MW/D24/HW/hardware-map.md](MW/D24/HW/hardware-map.md)
+(from schematics in MW/D24/HW/schematics/, imported 2026-07-29).
+
+- [x] <span style="color:#16a34a"><b>DONE</b></span> Import D24 schematics and derive hardware map (2026-07-29)
+  - DSP4 card: 2× ADSP-21564, MAX V LOGIC CPLD, 8× TDM16 = 128 mix buses
+    DSPA→DSPB; Pi-mastered SPI control (CS1/CS2, RDY on CS3/CS4).
+
+- [ ] <span style="color:#2563eb"><b>NEXT</b></span> Rework `tools/dsp/gen_dsp_csv.py` to the DSP4 superset topology
+  - Mix summing on chip 1 (128-bus output over 8× TDM16); chip 2 = bus
+    processing + output router (DAC 1-16, DAC MAIN, codec/snake, NET 1-32).
+  - Add superset I/O nodes (codec return, Pi PCM, MEMS, snake, AUX) behind
+    boot-time product config; keep ONE shared DSP address map.
+  - Then regenerate dsp.csv + node ASM; update dsp.plan.md (Link-Port/MCU
+    relay diagram is obsolete per D1).
+
+- [ ] <span style="color:#2563eb"><b>NEXT</b></span> Create `shared/dsp4-logic/` CPLD tree
+  - Slot/bus map source table + generator emitting Verilog constants AND
+    SPORT config for gen_dsp_csv.py; pin bitstream/source hash per change.
+
+- [ ] <span style="color:#6b7280"><b>BLOCKED/DEFERRED</b></span> Build verification of unified firmware
+  - Blocked on CCES license (same blocker as Group GEQ, see P4).
+
 ## Workflow reference (to resume quickly)
 
 | Command | Purpose |

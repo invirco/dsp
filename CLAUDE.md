@@ -17,6 +17,13 @@ has the layout; `tasks.md` has current work state — read both first.
 - **Unknown matrix cell families must fail loudly** (no-fallback policy).
   New families are adopted intentionally via `matrix-families-allowlist.txt`.
 - Never commit `MW/D32/DSP/SHARC/cces/` (toolchain) or license material.
+  Same rule for the CPLD flow: never commit Quartus or its licenses.
+- **DSP4 architecture decisions are binding** — see
+  `dsp4-architecture-decisions.md`: Pi/CM4 masters DSP SPI directly (no MCU
+  relay); LOGIC CPLD HDL lives in `shared/dsp4-logic/` with a single-sourced
+  TDM slot map; ONE DSP4 firmware + product config serves D24 and D32 with a
+  single shared DSP address map. Do not reintroduce per-product forks of
+  firmware, address maps, or slot tables.
 - After any contract or generator change, run `./regenerate-dsp-contract.sh`
   and record contract version per `release-notes-contract-convention.md`.
 - Update `tasks.md` on every contract bump.
@@ -46,4 +53,6 @@ has the layout; `tasks.md` has current work state — read both first.
   file per node instance.
 - Product trees are uniform: `MW/<PRODUCT>/{DEFS,FW,MX,DSPCFG,DSP}`. New
   products replicate this shape and join the same contract flow.
-- D24's SHARC tree lags D32; D32 tooling is the superset/reference.
+- D24's SHARC tree lags D32; D32 tooling is the superset/reference. Both
+  converge on the unified DSP4 firmware (see `dsp4-architecture-decisions.md`);
+  D24 hardware ground truth is `MW/D24/HW/hardware-map.md`.
