@@ -1375,7 +1375,7 @@ Self-test mode loads `self_test.dsp` in place of the normal audio program. The t
 ### Phase 1 — Code Generation Pipeline *(blocking — all subsequent work depends on this)*
 
 1. ✅ **Audit `gen_dsp_csv.py`** — Correctly parses dsp-def.md §4–§18 parameter tables; produces valid `dsp.csv` with sequential address packing per chip.
-   - File: `MW/D32/DSP/SHARC/tools/gen_dsp_csv.py`
+   - File: `tools/dsp/gen_dsp_csv.py`
 
 2. ✅ **Run `gen_dsp_csv.py`** — Output clean: 612 nodes, Chip1=3,902 SPI words, Chip2=1,818 words.
 

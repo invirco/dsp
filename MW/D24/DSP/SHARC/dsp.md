@@ -14,9 +14,9 @@ This document defines the schema for `dsp.csv`, the signal graph definition file
 ```
 dsp.csv
   │
-  ├──► tools/dsp_validate.py    → errors/warnings to stdout
-  ├──► tools/dsp_diagram.py     → dsp_diagram.png (Graphviz)
-  └──► tools/dsp_codegen.py     → src/chip1/nodes/*.asm, src/chip2/nodes/*.asm
+  ├──► tools/dsp/dsp_validate.py    → errors/warnings to stdout
+  ├──► tools/dsp/dsp_diagram.py     → dsp_diagram.png (Graphviz)
+  └──► tools/dsp/dsp_codegen.py     → src/chip1/nodes/*.asm, src/chip2/nodes/*.asm
 ```
 
 ## Columns
@@ -166,7 +166,7 @@ SPORT TDM output — sends audio to external DAC.
 
 ## Validation Rules
 
-Rules enforced by `tools/dsp_validate.py`:
+Rules enforced by `tools/dsp/dsp_validate.py`:
 
 1. **Unique IDs**: Every `id` must be unique across the file
 2. **Valid chip**: `chip` must be `1` or `2`

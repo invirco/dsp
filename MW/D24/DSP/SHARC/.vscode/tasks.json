@@ -43,7 +43,7 @@
             "type": "shell",
             "command": "python3",
             "args": [
-                "${workspaceFolder}/MW/D24/DSP/SHARC/tools/dsp_validate.py",
+                "${workspaceFolder}/tools/dsp/dsp_validate.py",
                 "${workspaceFolder}/MW/D24/DSP/SHARC/dsp.csv"
             ],
             "problemMatcher": [],
@@ -57,7 +57,7 @@
             "type": "shell",
             "command": "python3",
             "args": [
-                "${workspaceFolder}/MW/D24/DSP/SHARC/tools/dsp_diagram.py",
+                "${workspaceFolder}/tools/dsp/dsp_diagram.py",
                 "${workspaceFolder}/MW/D24/DSP/SHARC/dsp.csv",
                 "${workspaceFolder}/MW/D24/DSP/SHARC/dsp_diagram.png"
             ],
@@ -72,7 +72,7 @@
             "type": "shell",
             "command": "python3",
             "args": [
-                "${workspaceFolder}/MW/D24/DSP/SHARC/tools/dsp_codegen.py",
+                "${workspaceFolder}/tools/dsp/dsp_codegen.py",
                 "${workspaceFolder}/MW/D24/DSP/SHARC/dsp.csv",
                 "${workspaceFolder}/MW/D24/DSP/SHARC/src"
             ],

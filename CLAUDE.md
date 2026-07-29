@@ -12,8 +12,8 @@ has the layout; `tasks.md` has current work state — read both first.
 - **Generated files are regenerated, not edited:** `MW/D32/DSP/ghost_cells.h`,
   `MW/D32/DSP/dsp_address_map.md`, `SHARC/src/*/dsp_params.asm`, node ASM
   skeletons under `SHARC/src/chip*/nodes/`, and `_matrix.csv` DSP-backfill
-  columns. Change the generators (`MW/D32/DSP/gen_dsp.py`,
-  `MW/*/DSP/SHARC/tools/*.py`) or the source `dsp.csv` instead.
+  columns. Change the generators (`MW/D32/DSP/gen_dsp.py`, `tools/dsp/*.py`)
+  or the source `dsp.csv` instead.
 - **Unknown matrix cell families must fail loudly** (no-fallback policy).
   New families are adopted intentionally via `matrix-families-allowlist.txt`.
 - Never commit `MW/D32/DSP/SHARC/cces/` (toolchain) or license material.
@@ -26,9 +26,14 @@ has the layout; `tasks.md` has current work state — read both first.
 - Contract intake/validation: root scripts (`sync-from-mx26.sh`,
   `validate-matrix-contract.py`, `check-contract-drift.sh`,
   `regenerate-dsp-contract.sh`).
-- D32 codegen: `MW/D32/DSP/gen_dsp.py` (matrix backfill, ghost cells, SPI
-  dispatch) and `MW/D32/DSP/SHARC/tools/` (`gen_dsp_csv.py` → `dsp.csv` →
-  `dsp_codegen.py` → node ASM; `dsp_validate.py`, `dsp_simulate.py`).
+- Shared DSP codegen: `tools/dsp/` — used by ALL products
+  (`gen_dsp_csv.py` → `dsp.csv` → `dsp_codegen.py` → node ASM;
+  `dsp_validate.py`, `dsp_simulate.py`, `dsp_diagram.py`). Do not create
+  per-product copies of these tools.
+- D32 matrix backfill: `MW/D32/DSP/gen_dsp.py` (ghost cells, SPI dispatch,
+  address map).
+- New products: `./scaffold-product.sh <PRODUCT>` creates the tree and
+  prints the integration checklist.
 - SHARC build: `MW/D32/DSP/SHARC/build.sh` (needs CCES at
   `/opt/analog/cces/3.0.3`; dual-chip build with `-DCHIP_ID=1|2`, IVT
   re-assembled with `-nwc`).

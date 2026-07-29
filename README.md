@@ -10,7 +10,14 @@ from mx26 and turns it into DSP firmware artifacts (the spoke). See
 ```
 defs.lock                     # pins the exact mx26 contract state (authoritative)
 tasks.md                      # active task tracker — update on every contract bump
+scaffold-product.sh           # creates a new MW/<PRODUCT> tree + integration checklist
 shared/mx_master.csv          # matrix cell-library compatibility baseline
+tools/dsp/                    # shared DSP codegen package (all products)
+    dsp_codegen.py            #   dsp.csv -> SHARC ASM (nodes, ramp engine, block_io)
+    gen_dsp_csv.py            #   matrix -> dsp.csv graph source
+    dsp_validate.py           #   dsp.csv graph rules check
+    dsp_simulate.py           #   node-level simulation harness
+    dsp_diagram.py            #   dsp.csv -> Graphviz diagram
 MW/<PRODUCT>/                 # one tree per product (D24, D32, ...)
     DEFS/  dNN.csv            # feature definition        (synced from mx26)
     FW/    fw.csv             # hardware config           (synced from mx26)
@@ -43,6 +50,9 @@ DEFS/FW/MX/DSPCFG/DSP shape, driven by the same contract flow.
 | `./check-contract-drift.sh [--strict]` | Pre-merge drift gate |
 | `python3 validate-matrix-contract.py` | MxAdd continuity + family allowlist check |
 | `python3 audit-compat-aliases.py` | Refresh alias-audit.md |
+| `python3 tools/dsp/dsp_codegen.py MW/<P>/DSP/SHARC/dsp.csv MW/<P>/DSP/SHARC/src` | Regenerate a product's SHARC source |
+| `python3 tools/dsp/dsp_validate.py MW/<P>/DSP/SHARC/dsp.csv` | Validate a product's DSP graph |
+| `./scaffold-product.sh <PRODUCT>` | Create a new product tree + integration checklist |
 | `MW/D32/DSP/SHARC/build.sh` | Assemble + link D32 DXEs (requires CCES at /opt/analog/cces) |
 
 Quickstart and troubleshooting: [workflow-quickstart.md](workflow-quickstart.md).
