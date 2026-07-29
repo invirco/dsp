@@ -1,13 +1,25 @@
 # Build outputs
-MW/D24/DSP/DSP_Export/
-MW/D32/DSP/single\ DSP_Export/
-MW/D32/DSP/build/
+MW/*/DSP/SHARC/build/
+attic/d24-adau1466/DSP_Export/
 **/__pycache__/
 *.o
+*.doj
 *.dxe
 *.ldr
 *.bak
+*.map.xml
 
 # CCES generated
 *.is
 linker_log.xml
+
+# CCES toolchain — local install/copy, never tracked (use /opt/analog/cces per build.sh)
+MW/D32/DSP/SHARC/cces/
+
+# License material — keep local only
+cces-license*.txt
+license.dat
+
+# macOS metadata
+._*
+.DS_Store
