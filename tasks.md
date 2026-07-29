@@ -107,6 +107,13 @@ Status colors:
   - Action: add group GEQ nodes to dsp.csv (gen_dsp_csv.py source), then rename GrpPeq→GrpGeq.
   - Progress (2026-07-18): no-build draft patch prepared in MW/D32/DSP/gen_dsp.py with guarded flag --enable-grp-geq-alias for staged mapping.
   - Blocked on: CCES license for build verification.
+  - License diagnosis (2026-07-29): SHARC eval expired 2026-07-17 (prior eval expired 2026-05-09).
+    Host ID 28cfe91f1e85 matches this machine, so binding is fine — the eval simply lapsed.
+    Permanent ADSP-21568 EZ-KIT entry does not cover 21564 CLI builds (tested).
+    Fix: purchase permanent CCES license (recommended) or request new 90-day eval at
+    my.analog.com for host 28cfe91f1e85; install to ~/.analog/cces/license.dat
+    (path expected by MW/D32/DSP/SHARC/build.sh — directory currently missing).
+    Then: build.sh + gen_dsp.py --enable-grp-geq-alias to resume.
 
 ## Workflow reference (to resume quickly)
 
