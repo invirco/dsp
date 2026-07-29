@@ -5,7 +5,132 @@ Imported from Dropbox `TransferOnly/Ideas/` on 2026-07-29.
 ## Dsp blocks
 
 - Source: Copilot share — <https://copilot.microsoft.com/shares/1E67wrCy6SmmpiVUBXQVM>
-  (from `Dsp blocks.url`, saved 2026-07-29 11:36)
-- Content: *not yet captured* — the share is region-blocked from this machine.
-  Open the link in a browser and paste the text below (or drop a .txt/.md
-  export into `TransferOnly/Ideas/` to re-import).
+  (from `Dsp blocks.url`, saved 2026-07-29 11:36; text pasted via GitHub as
+  `ideas-dsp-blocks.txt` on origin/main, imported here 2026-07-29)
+
+### 128×128 TDM DSP Fabric — System Summary
+
+#### 1. System Overview
+
+A modular DSP system built around ADI ADSP-2156x devices. Each module provides
+32×32 TDM I/O at 96 kHz, and all modules connect to a shared digital backplane
+fabric that delivers a full 128×128 channel matrix.
+
+The shared fabric is implemented using 4× TDM-32 buses, multiplexed by a
+CPLD/FPGA, ensuring deterministic timing and safe multi-module operation.
+
+#### 2. Module Architecture (Per DSP Card)
+
+DSP
+- ADSP-21569 (or other 2156x variant)
+- 1 GHz SHARC+ core
+- 8 SPORTs supporting TDM-32
+- SRU for flexible routing
+- On-chip memory sufficient for typical audio processing
+
+External I/O
+- 32 inputs + 32 outputs via TDM (SPORT TX/RX)
+- Implemented using 2× SPORTs in TDM-16 or 4× SPORTs in TDM-8
+
+Fabric I/O
+- TX: 1× SPORT TX in TDM-32 → 32 channels into CPLD
+- RX: 4× SPORT RX in TDM-32 → 128 channels from CPLD
+- All modules receive the same 128 channels
+
+Clocking
+- One module is master (MCLK, BCLK, FS)
+- All other modules are synchronous slaves
+
+#### 3. Shared Digital Bus (Backplane Fabric)
+
+Physical Signals
+- MCLK, BCLK, FS (shared)
+- 4× TDM-32 RX buses from CPLD → all modules
+- 1× TDM-32 TX bus per module → CPLD
+
+Topology
+- Modules do not share TX lines
+- Each module has a dedicated TX input into the CPLD
+- CPLD drives all RX buses
+- No SHARC tri-stating is used
+
+Why 4× TDM-32?
+- SPORTs natively support TDM-32
+- 128 channels = 4 × 32
+- Lower bit-clock rates
+- Cleaner routing
+- Simpler firmware
+
+#### 4. CPLD/FPGA Role
+
+Core Functions
+- Receives 32ch TX from each module
+- Maintains a slot counter (0–31)
+- Uses a lookup table to map each slot to a module
+- Builds 4× TDM-32 output buses
+- Drives all modules with the unified 128-channel fabric
+
+Normal Operation
+- CPLD behaves like a deterministic buffer + multiplexer
+- Output is always driven, not tri-stated
+- Modules never tri-state SPORT pins
+
+Optional Features
+- Per-module isolation
+- Per-slot mute
+- Diagnostics
+- Hot-swap protection
+- Clock conditioning (if FPGA with PLLs)
+
+#### 5. Recommended CPLD Choices
+
+Best Overall: Lattice MachXO3LF-2100
+- Non-volatile
+- Low power
+- Plenty of I/O
+- Easy toolchain
+- Ideal for 4× TDM-32 fabric
+
+Other viable options
+- Lattice MachXO2-1200HC
+- Intel MAX 10 (10M08)
+- Xilinx Spartan-7 (XC7S6)
+- Microchip IGLOO2 / SmartFusion2
+
+#### 6. Backplane PCB Recommendations
+
+Layer Count — 6-layer ideal:
+- Top signal / Ground / Power / Inner signal / Ground / Bottom signal
+
+Placement
+- Clock master or CPLD placed centrally
+- Equal trace lengths to module slots
+- Short stubs for TDM buses
+- Controlled impedance routing
+
+#### 7. Channel Flow Summary
+
+Per Module
+- TX: 32 channels → CPLD
+- RX: 128 channels ← CPLD (via 4× TDM-32)
+
+CPLD
+- Collects 4× 32ch TX streams
+- Builds 4× 32ch RX buses
+- Drives all modules
+- Ensures deterministic slot alignment
+
+#### 8. System Scaling
+
+- 4 modules × 32ch = 128×128 fabric
+- Add more modules → expand CPLD slot map
+- Same module design works for: 64×64, 128×128, 256×256 (with larger CPLD)
+
+#### 9. Key Design Principles
+
+- No multi-drop TX lines
+- No SHARC tri-state
+- CPLD owns all arbitration
+- All modules are identical
+- Backplane provides clocks, power, and fabric buses
+- Deterministic timing across entire system
