@@ -26,7 +26,10 @@ ASM21K="$CCES_DIR/easm21k"
 LD21K="$CCES_DIR/linker"
 
 # Processor target
-PROC="-proc ADSP-21564"
+# Default target is ADSP-21564. Set PROC_TARGET=ADSP-21568 only when using
+# a 21568-only license for a fit-proxy build.
+PROC_TARGET="${PROC_TARGET:-ADSP-21564}"
+PROC="-proc $PROC_TARGET"
 
 # Assembler flags
 ASMFLAGS="$PROC"
@@ -52,6 +55,33 @@ count() {
     echo "Shared ASM:       $(find "$SRC_DIR" -maxdepth 1 -name '*.asm' 2>/dev/null | wc -l)"
     echo "Library ASM:      $(find "$SRC_DIR/lib" -name '*.asm' 2>/dev/null | wc -l)"
     echo "Total ASM:        $(find "$SRC_DIR" -name '*.asm' 2>/dev/null | wc -l)"
+}
+
+single() {
+    local asm_path="$1"
+    if [ -z "$asm_path" ]; then
+        echo "Usage: $0 single <asm-file>"
+        exit 1
+    fi
+
+    if [[ "$asm_path" != /* ]]; then
+        asm_path="$SCRIPT_DIR/$asm_path"
+    fi
+
+    if [ ! -f "$asm_path" ]; then
+        echo "ERROR: file not found: $asm_path"
+        exit 1
+    fi
+
+    mkdir -p "$BUILD_DIR"
+    local base
+    base=$(basename "$asm_path" .asm)
+    local out_path="$BUILD_DIR/$base.doj"
+
+    echo "=== Single-file assemble ==="
+    echo "ASM: $asm_path"
+    $ASM21K $ASMFLAGS -o "$out_path" "$asm_path"
+    echo "Wrote: $out_path"
 }
 
 assemble_dir() {
@@ -166,5 +196,6 @@ case "${1:-build}" in
     build) build ;;
     all)   clean && build ;;
     count) count ;;
-    *)     echo "Usage: $0 [clean|build|all|count]"; exit 1 ;;
+    single) single "$2" ;;
+    *)     echo "Usage: $0 [clean|build|all|count|single <asm-file>]"; exit 1 ;;
 esac
