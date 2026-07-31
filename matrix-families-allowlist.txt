@@ -174,7 +174,6 @@ GrpGateRel
 GrpGateRng
 GrpGateThr
 GrpGeq
-GrpPeq
 GrpRtgDca
 GrpRtgLevel
 GrpRtgMute

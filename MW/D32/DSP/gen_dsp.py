@@ -12,7 +12,7 @@ Produces:
   4. dsp_address_map.md          — human-readable address map
 
 Usage:
-    python3 gen_dsp.py [--dry-run] [--force] [--enable-grp-geq-alias]
+    python3 gen_dsp.py [--dry-run] [--force]
 """
 
 import argparse
@@ -36,7 +36,6 @@ OUT_ADDR_MAP       = os.path.join(SCRIPT_DIR, 'dsp_address_map.md')
 
 # Guarded compatibility path for future Group GEQ rollout.
 # Default remains off to preserve current behavior.
-ENABLE_GRP_GEQ_ALIAS = False
 
 # ---------------------------------------------------------------------------
 # §3b Ramp profile presets
@@ -418,17 +417,6 @@ def expand_geq(node, cat, inst):
     for b in range(1, 29):
         add_cell(cn(cat, inst, 'Geq', b), chip, pg, base + (b - 1),
                  '0=-12/127=12/[Lin]', 'EqSafe')
-
-    # Optional bridge for staged Group GEQ migration.
-    # When enabled, emit legacy GrpPeq aliases at the same addresses.
-    # The matrix currently has Grp00xPeq001-012 (12 bands); bands 13-28
-    # have no matrix counterpart, so aliasing them would only pollute the
-    # not-in-matrix report.
-    if ENABLE_GRP_GEQ_ALIAS and cat == 'Grp':
-        for b in range(1, 13):
-            add_cell(cn(cat, inst, 'Peq', b), chip, pg, base + (b - 1),
-                     '0=-12/127=12/[Lin]', 'EqSafe',
-                     notes='compat alias to GrpGeq; remove after matrix rename')
 
     add_dispatch_block(chip, base, f'_geq_coeffs_next_{nid}', 28, f'{nid} GEQ coeff')
 
@@ -1197,16 +1185,12 @@ def validate(matrix_rows):
 # Main
 # ---------------------------------------------------------------------------
 def main():
-    global ENABLE_GRP_GEQ_ALIAS
     parser = argparse.ArgumentParser(description='§17 build tool for D32 DSP')
     parser.add_argument('--dry-run', action='store_true',
                         help='Print planned assignments without writing files')
     parser.add_argument('--force', action='store_true',
                         help='Overwrite existing non-empty fields in _matrix.csv')
-    parser.add_argument('--enable-grp-geq-alias', action='store_true',
-                        help='Emit GrpPeq compatibility aliases from Group GEQ nodes')
     args = parser.parse_args()
-    ENABLE_GRP_GEQ_ALIAS = bool(args.enable_grp_geq_alias)
 
     print('gen_dsp.py — §17 D32 DSP build tool')
     print()

@@ -60,3 +60,6 @@ io.out,16
 io.phantom,1
 io.bt,1
 io.card,1
+io.codecaux,1
+io.pipcm,1
+io.snake,1

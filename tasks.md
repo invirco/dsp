@@ -130,8 +130,11 @@ Remaining = hardware bring-up (rev C card + full 21564 licence):
 FLAGS_REG chip-id detect, SPI watermark + SPI_RDY flow, SEC/MMR
 semantics on the wire, BCKI/FSI pair order, CKRE/MFD on the scope,
 D24 within-ADC8 slot order, S4 personality + S-MCU firmware side.
-mx26-side (no hardware needed but Peter's repo): adopt 20 superset
-cells + GrpPeq→GrpGeq rename (drops the alias flag).
+mx26-side: DONE 2026-07-31 (mx26 8714f2f, applied from
+mx26-update-handoff.md incl. the full 28-band GrpGeq choice and the
+Table bug fix). Contract bumped to defs-v2026.07.31; alias flag +
+GrpPeq allowlist entry retired; matched cells 5453→5537; the
+"DSP cells not in matrix" list is now EMPTY.
 
 ### Checked, no action needed
 `cces-tools/license/license.dat` exists on disk but is NOT tracked — the
@@ -419,9 +422,10 @@ entitled. (build.sh gained the PROC_TARGET override 2026-07-30.)
 
 ## State snapshot (2026-07-29)
 
-- Contract version: defs-v2026.07.18
-  (source commit 2f92f8b9ef3465e716ea90bddaa67d91e0da77e8)
-- Rows: D24 4702, D32 6856; D32 cells matched/backfilled: 5405
+- Contract version: defs-v2026.07.31
+  (source commit 8714f2f28d280fe254cbc5a29cb933539b92a54b)
+- Rows: D24 4887, D32 6940; D32 cells matched/backfilled: 5537
+  (EVERY DSP cell now has a matrix home — the not-in-matrix list is empty)
 - Tier-2 DSP config slots: ABSENT in defs.lock
 - Repo direction: unified DSP4 firmware per dsp4-architecture-decisions.md
 
