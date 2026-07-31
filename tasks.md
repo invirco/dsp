@@ -95,15 +95,33 @@ DAC MAIN has no D24 sink BY DESIGN (D24 main outs are Analog-PCBA line
 outs via DA0/DA3 — traced with Peter's pointer). Slot-map hash now
 sha256:efd8d555440094b6.
 
-Next entry points:
-1. CPLD pin constraints: extract the real 144-pin assignment from the
-   LOGIC sheet (D24 DSP.pdf p2/10) into quartus/*.qsf, then build +
-   commit the hash-labelled .pof (D2). Also decide NET-mux control
-   (net_sel is a port stub — strap vs host-written register).
-2. Hardware bring-up checklist (see plumbing P1 bullet): FLAGS_REG
-   chip-id, SPI watermark/SPI_RDY, SEC semantics on the wire.
-3. mx26-side: adopt the 20 superset cells + GrpPeq→GrpGeq rename
-   (drops the alias flag).
+Late session (2026-07-31): pre-hardware wrap-up.
+- CPLD pins REAL: all 144 pins extracted from the LOGIC sheet (300 DPI
+  crops, four banks); qsf rewritten; RTL de-reset (MAX V powers up
+  cleared — the board has no reset to U3); net_sel resolved (fixed per
+  product in RTL; runtime muxing later via the DISCOVERED S-MCU SPI
+  provision on ISPI0/ISPI1/ICS_L pins 60-62); PCM pin roles from the
+  hardware map (0=CLK 1=DOUT 2=DIN 3=FS); codec = PLL8_0/1.
+  PROVISIONAL: S4 personality strap; snake/DAC-MAIN parked PLL5_0-2;
+  BCKI/FSI pair in/out order per DSP (verify at bring-up).
+- Hash-labelled bitstream COMMITTED (D2): bitstream/dsp4_logic.
+  233db2b02906.{pof,svf,manifest} via shared/dsp4-logic/build.sh
+  (STA-gated; Fmax 75.9 MHz with pins). UART pass-through pins are
+  TODO(uart-passthrough) — routing matrix undefined.
+- Firmware hygiene: ramp_tables ea1092 warnings fixed at the generator
+  (dead alias globals removed); _sec_isr now banks the FULL regfile +
+  DAG1 (SRRFH/SRD1H added — the ramp path uses i4/f8/f10/r10; low-half
+  banking alone corrupted interrupted block processing).
+- Pi host tool: tools/pi/dsp4_config.py — boot config writer (product
+  profiles incl. the D24 interleave patch, 51 writes chip1 / 5 writes
+  chip2, COMMIT last, GPIO-CS via gpiod, --dry-run verified).
+
+Remaining = hardware bring-up (rev C card + full 21564 licence):
+FLAGS_REG chip-id detect, SPI watermark + SPI_RDY flow, SEC/MMR
+semantics on the wire, BCKI/FSI pair order, CKRE/MFD on the scope,
+D24 within-ADC8 slot order, S4 personality + S-MCU firmware side.
+mx26-side (no hardware needed but Peter's repo): adopt 20 superset
+cells + GrpPeq→GrpGeq rename (drops the alias flag).
 
 ### Checked, no action needed
 `cces-tools/license/license.dat` exists on disk but is NOT tracked — the

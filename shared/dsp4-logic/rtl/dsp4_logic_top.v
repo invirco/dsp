@@ -3,82 +3,72 @@
 // Architecture per the rev C schematic (LOGIC sheet, page 2/10):
 //  - The inter-chip mix fabric (DSPA O0-7 -> DSPB I0-7) is DIRECT PCB
 //    routing between the DSPs and does NOT pass through this CPLD.
-//  - LOGIC owns: all 8 BCK/FS pairs to the two DSPs, the DSPA input
-//    lines I[0..7], the DSPB output lines O[0..7], the converter lanes
-//    AD0-3 / DA0-3, network lanes NI/NO[0..3], the codec pair
-//    CDC_O/CDC_I (PLL8 group), MEMS, the Pi PCM port and DSP_CLK.
+//  - LOGIC owns: all 8 BCK/FS pairs (BCKI/FSI 0-7), the DSPA input
+//    lines I[0..7], the DSPB output lines O[0..7], converter lanes
+//    AD0-3 / DA0-3, network lanes NI/NO[0..3], the codec pair on
+//    PLL8_0/PLL8_1, MEMS, the Pi PCM port and DSP_CLK.
+//  - There is NO reset input: MAX V registers power up cleared.
 //
 // Slot map (generated/dsp4_slot_map.vh, hash-pinned): DSPA in — I0-I3
 // = AD0-2 / NET (AD3 lane is NET-only on D24), I4 = codec return,
 // I5 = snake (D32), I6 = Pi PCM (re-framed), I7 = MEMS. DSPB out —
-// O0 -> DA0, O1 -> DA3 (DA1 is a spare at Digital J18), O2 -> codec
-// (D24) / snake (D32), O3 -> DAC MAIN (no D24 sink by design; lane
-// reserved), O4-7 -> NO0-3.
+// O0 -> DA0, O1 -> DA3 (DA1/DA2 spare on D24), O2 -> codec (D24) /
+// snake (D32), O3 -> DAC MAIN (no D24 sink by design; parked on an
+// X-logic pin), O4-7 -> NO0-3.
 //
-// Clock roles (BCKI/FSI index -> DSP pin pairs fixed by the PCB; the
-// exact index mapping is confirmed at constraint time):
-//   DSPA: in-pairs TDM8 (CG0/CG2), out-pairs TDM16 (CG1/CG3)
-//   DSPB: in-pairs TDM16, out-pairs TDM8 (mirrored)
+// Input-lane source selection is FIXED per product (D24: lanes 0-2
+// ADC, lane 3 NET; input patching is a DSP-side product-config
+// concern). Runtime lane muxing, if ever needed, arrives via the
+// provisioned S-MCU SPI interface (ISPI0/ISPI1/ICS_L pins) — not
+// implemented. Product personality via the S4 line (S-MCU driven,
+// PROVISIONAL until the S-MCU firmware defines it).
 //
-// Product variant: `strap_d32` selects the D32 personality (snake on
-// I5/O2); D24 keeps the codec on O2. NET return muxing onto I0-I3 is
-// enabled per-lane by `net_sel` (future host/strap control; defaults
-// to converters, AD3 lane always NET on D24).
+// UART pass-through pins (SRX/MRX/MHRX/MHTX/STRX/PTRX) and the H1S2
+// harness are TODO(uart-passthrough) — routing matrix not yet defined.
 
 `default_nettype none
 
 module dsp4_logic_top (
-    input  wire        sysclk,      // 49.152 MHz XO (SYSCLK)
-    input  wire        rst_n,
+    input  wire        sysclk,      // pin 88, 49.152 MHz XO
 
-    // Format/config straps (schematic: IC0=TDM16, IC1=TDM8, IC2=I2S,
-    // IL0=FS, IL1=WC) — sampled but the DSP4 roles are fixed; kept as
-    // inputs for board compatibility / future use.
-    input  wire [2:0]  ic_strap,
-    input  wire [1:0]  il_strap,
-    input  wire        strap_d32,   // product personality
+    // Format/config straps (IC0=TDM16, IC1=TDM8, IC2=I2S; IL0=FS,
+    // IL1=WC). DSP4 roles are fixed; sampled for future use.
+    input  wire [2:0]  ic_strap,    // {IC2, IC1, IC0}
+    input  wire [1:0]  il_strap,    // {IL1, IL0}
+    input  wire        strap_d32,   // S4: product personality (PROV.)
 
-    // DSP clock out (both DSPs' SYS_CLKIN0)
-    output wire        dsp_clk,
+    output wire        dsp_clk,     // pin 140 -> both DSPs' SYS_CLKIN0
 
-    // DSP-side clock pairs (index mapping fixed at constraint time)
+    // DSP-side clock pairs (schematic BCKI/FSI index)
     output wire [7:0]  bcki,
     output wire [7:0]  fsi,
 
-    // DSPA input data lines (LOGIC -> DSPA I0..I7)
-    output wire [7:0]  i_dspa,
+    output wire [7:0]  i_dspa,      // LOGIC -> DSPA I0..I7
+    input  wire [7:0]  o_dspb,      // DSPB O0..O7 -> LOGIC
 
-    // DSPB output data lines (DSPB O0..O7 -> LOGIC)
-    input  wire [7:0]  o_dspb,
-
-    // Converter lanes (FPC via card edge)
     input  wire [3:0]  ad,          // AD0..AD3 (AD3 unused on D24)
     output wire [3:0]  da,          // DA0..DA3 (DA1/DA2 spare on D24)
 
-    // Network lanes (option cards, muxed here)
-    input  wire [3:0]  ni,          // NET in 1-8..25-32
-    output wire [3:0]  no,          // NET out 1-8..25-32
-    input  wire [3:0]  net_sel,     // per-lane: 1 = NET return on I0-3
+    input  wire [3:0]  ni,          // NET in lanes
+    output wire [3:0]  no,          // NET out lanes
 
-    // Codec (AK4916 on the Analog PCBA, PLL8 group)
-    input  wire        cdc_o,       // codec ADC -> DSPA I4
-    output wire        cdc_i,       // DSPB O2 -> codec DAC (D24)
+    input  wire        cdc_o,       // PLL8_0: codec ADC -> DSPA I4
+    output wire        cdc_i,       // PLL8_1: DSPB O2 -> codec (D24)
 
-    // D32 snake (X-logic/option pins)
-    input  wire        snake_in,    // -> DSPA I5 (D32)
-    output wire        snake_out,   // DSPB O2 -> snake (D32)
+    input  wire        snake_in,    // D32 snake return (X-logic, PROV.)
+    output wire        snake_out,   // D32 snake out    (X-logic, PROV.)
+    output wire        dac_main,    // B_O3 lane, parked (X-logic, PROV.)
 
-    // MEMS talkback (ADAU7302 TDM8, slot 5 per strap)
-    input  wire        mems,
+    input  wire        mems,        // ADAU7302 TDM8 (slot 5)
 
-    // DAC MAIN lane (no D24 sink by design; reserved for D32/future)
-    output wire        dac_main,
-
-    // Pi PCM (LOGIC masters)
+    // Pi PCM (LOGIC masters; roles per hardware-map: PCM0=CLK,
+    // PCM1=DOUT (Pi->LOGIC), PCM2=DIN (LOGIC->Pi), PCM3=FS)
     output wire        pcm_clk,
     output wire        pcm_fs,
     input  wire        pcm_dout,
-    output wire        pcm_din
+    output wire        pcm_din,
+
+    output wire        blink_led    // heartbeat
 );
 
     `include "../generated/dsp4_slot_map.vh"
@@ -90,7 +80,6 @@ module dsp4_logic_top (
 
     dsp4_clkgen u_clkgen (
         .sysclk       (sysclk),
-        .rst_n        (rst_n),
         .bck8         (bck8),
         .bck16        (bck16),
         .fs8          (fs8),
@@ -104,17 +93,21 @@ module dsp4_logic_top (
 
     assign dsp_clk = sysclk;   // SYS_CLKIN0 pass-through
 
-    // Clock pair roles (index mapping verified against the PCB nets at
-    // constraint time): 0-3 = DSPA {in8, out16, in8, out16},
-    // 4-7 = DSPB {in16, out8, in16, out8}.
-    assign bcki = {bck8, bck16, bck8, bck16, bck16, bck8, bck16, bck8};
-    assign fsi  = {fs8,  fs16,  fs8,  fs16,  fs16,  fs8,  fs16,  fs8};
+    // Clock pair roles. BCKI/FSI 0-3 serve DSPA, 4-7 serve DSPB; per
+    // DSP the four pairs are {DAI0-in, DAI0-out, DAI1-in, DAI1-out}.
+    // DSPA: in = TDM8 (ADC/superset), out = TDM16 (mix fabric).
+    // DSPB: in = TDM16 (mix fabric), out = TDM8 (DAC/codec/NET).
+    // Index<->DSP-pin pairing is fixed by the PCB; verify the
+    // in/out order of each pair at bring-up (swap here if needed).
+    assign bcki = {bck8, bck16, bck8, bck16,    // 7..4: DSPB
+                   bck16, bck8, bck16, bck8};   // 3..0: DSPA
+    assign fsi  = {fs8, fs16, fs8, fs16,
+                   fs16, fs8, fs16, fs8};
 
     // ---- Pi PCM re-framer -> DSPA I6 ----
     wire pcm_tdm;
     dsp4_pcm_reframe u_pcm (
         .sysclk      (sysclk),
-        .rst_n       (rst_n),
         .frame_pos   (frame_pos),
         .pcm_clk     (pcm_clk),
         .pcm_fs      (pcm_fs),
@@ -124,11 +117,14 @@ module dsp4_logic_top (
         .tdm_out     (pcm_tdm)
     );
 
-    // ---- DSPA input routing (slot map A_I0..A_I7) ----
+    // ---- Input-lane sources (fixed per product) ----
+    // D24: lanes 0-2 = ADC8s, lane 3 = NET (no AD3 converter).
+    // D32: personality TBD with the D32 board work.
+    wire [3:0] net_sel = strap_d32 ? 4'b1000 : 4'b1000;
+
     assign i_dspa[0] = net_sel[0] ? ni[0] : ad[0];
     assign i_dspa[1] = net_sel[1] ? ni[1] : ad[1];
     assign i_dspa[2] = net_sel[2] ? ni[2] : ad[2];
-    // AD3 has no D24 converter: NET return unless a converter exists
     assign i_dspa[3] = net_sel[3] ? ni[3] : ad[3];
     assign i_dspa[4] = cdc_o;
     assign i_dspa[5] = strap_d32 ? snake_in : 1'b0;
@@ -142,11 +138,17 @@ module dsp4_logic_top (
     assign da[3] = o_dspb[1];                       // DAC 9-16 (DA_LANE_B_O1)
     assign cdc_i = strap_d32 ? 1'b0 : o_dspb[2];    // D24 codec DAC
     assign snake_out = strap_d32 ? o_dspb[2] : 1'b0;
-    assign dac_main = o_dspb[3];                    // reserved lane
+    assign dac_main = o_dspb[3];                    // parked lane
     assign no[0] = o_dspb[4];                       // NET 1-8
     assign no[1] = o_dspb[5];
     assign no[2] = o_dspb[6];
     assign no[3] = o_dspb[7];
+
+    // ---- Heartbeat (~1.4 Hz from a 25-bit divider) ----
+    reg [24:0] hb;
+    always @(posedge sysclk)
+        hb <= hb + 25'd1;
+    assign blink_led = hb[24];
 
     // Sanity: generated slot map says B_O1 drives DA lane 3
     initial begin
@@ -154,10 +156,9 @@ module dsp4_logic_top (
             $display("slot-map mismatch: DA_LANE_B_O1");
     end
 
-    // Straps currently unused (roles fixed for DSP4); referenced to
-    // keep the fitter from pruning the pins.
-    wire _unused_straps = ^{ic_strap, il_strap, bck8_sample,
-                            bck16_sample, bck16_launch, fs16, bck16};
+    // Straps/strobes currently unused; keep referenced.
+    wire _unused = ^{ic_strap, il_strap, bck8_sample,
+                     bck16_sample, bck16_launch, fs16, bck16};
 
 endmodule
 

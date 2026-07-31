@@ -16,9 +16,10 @@
 // checks: TDM8 8x32=256 BCK8 = 1024 sysclk; TDM16 16x32=512 BCK16 =
 // 1024 sysclk — one common 1024-cycle frame counter serves both.
 
+// No reset: the board provides none to U3; MAX V registers power up
+// cleared, which is a valid starting state for every counter here.
 module dsp4_clkgen (
     input  wire sysclk,        // 49.152 MHz XO
-    input  wire rst_n,
 
     output reg  bck8,          // 12.288 MHz TDM8 bit clock
     output reg  bck16,         // 24.576 MHz TDM16 bit clock
@@ -35,24 +36,16 @@ module dsp4_clkgen (
 
     // 1024-cycle frame counter (48 kHz)
     reg [9:0] cnt;
-    always @(posedge sysclk or negedge rst_n) begin
-        if (!rst_n)
-            cnt <= 10'd0;
-        else
-            cnt <= cnt + 10'd1;
+    always @(posedge sysclk) begin
+        cnt <= cnt + 10'd1;
     end
     assign frame_pos = cnt;
 
     // BCK16 = sysclk/2 (toggles every cycle), BCK8 = sysclk/4.
     // cnt[0] high half = BCK16 high; cnt[1:0]==2'b1x = BCK8 high.
-    always @(posedge sysclk or negedge rst_n) begin
-        if (!rst_n) begin
-            bck16 <= 1'b0;
-            bck8  <= 1'b0;
-        end else begin
-            bck16 <= ~cnt[0];
-            bck8  <= ~cnt[1];
-        end
+    always @(posedge sysclk) begin
+        bck16 <= ~cnt[0];
+        bck8  <= ~cnt[1];
     end
 
     // Edge strobes (valid the sysclk cycle in which the new BCK value
@@ -67,16 +60,11 @@ module dsp4_clkgen (
     // on the falling edge.
     //   TDM8:  BCK8 periods run cnt[9:2]; last period = 8'hFF.
     //   TDM16: BCK16 periods run cnt[9:1]; last period = 9'h1FF.
-    always @(posedge sysclk or negedge rst_n) begin
-        if (!rst_n) begin
-            fs8  <= 1'b0;
-            fs16 <= 1'b0;
-        end else begin
-            if (bck8_launch)
-                fs8 <= (cnt[9:2] == 8'hFE);   // high through final period
-            if (bck16_launch)
-                fs16 <= (cnt[9:1] == 9'h1FE);
-        end
+    always @(posedge sysclk) begin
+        if (bck8_launch)
+            fs8 <= (cnt[9:2] == 8'hFE);   // high through final period
+        if (bck16_launch)
+            fs16 <= (cnt[9:1] == 9'h1FE);
     end
 
 endmodule

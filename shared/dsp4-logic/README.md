@@ -77,10 +77,20 @@ are line outs on the Analog PCBA (resolved 2026-07-31).
   re-frames stereo into TDM8 slots 0-1 (A_I6).
 - `rtl/dsp4_logic_top.v` — routing per the slot map (sanity-checked
   against `dsp4_slot_map.vh`).
-- `quartus/` — 5M1270ZT144C4 project. Status: map+fit+STA clean,
-  Fmax 118.8 MHz (2.4x margin). **Pin assignments are NOT yet real**
-  (free placement) — extract them from the LOGIC sheet (D24 DSP.pdf
-  page 2/10) before building a committable `.pof`; until then no
-  bitstream is committed. Toolchain: Quartus Prime Lite 21.1.1 at
-  `/opt/intelFPGA_lite/21.1` (never committed); programming via
-  USB-Blaster or Pi GPIO JTAG (SVF + OpenOCD).
+- `quartus/` — 5M1270ZT144C4 project with the REAL pin assignments
+  (all 144 pins extracted 2026-07-31 from the LOGIC sheet, D24 DSP.pdf
+  p2/10 at 300 DPI). map/fit/STA/asm clean; Fmax 75.9 MHz with pins
+  (1.5x margin over 49.152). PROVISIONAL pin choices, marked in the
+  qsf: S4 = product personality; snake/DAC-MAIN parked on PLL5_0-2.
+  Discovered provisions: ISPI0/ISPI1/ICS_L (pins 60-62) are an S-MCU
+  SPI interface to LOGIC — the future home of runtime lane-mux
+  control; UART pass-through pins are TODO(uart-passthrough).
+- `build.sh` — full flow (slot-map regen -> map/fit/sta/asm -> pof/svf)
+  with an STA gate; artifacts land in `bitstream/` labelled with the
+  first 12 hex of sha256(slot-map hash + RTL + qsf/sdc), plus a
+  manifest. `bitstream/` is committed (D2). Toolchain: Quartus Prime
+  Lite 21.1.1 at `/opt/intelFPGA_lite/21.1` (never committed);
+  programming via USB-Blaster or Pi GPIO JTAG (SVF + OpenOCD).
+- Host tool: `tools/pi/dsp4_config.py` (repo root) writes the boot
+  product config over Pi SPI (GPIO-driven CS; SPI_RDY flow control is
+  a bring-up TODO).

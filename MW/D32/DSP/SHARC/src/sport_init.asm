@@ -112,12 +112,16 @@ _set_tx_bufs.end:
  * _sec_isr — core SECI vector (IVT slot 15)
  *
  * Demux via SEC_CSID: block clock (SPORT0_A_DMA = 37) and SPI1 status
- * (= 91). Ack by writing the source id to SEC_END. Uses secondary
- * r0-r7 + DAG1 low so main-loop registers survive.
+ * (= 91). Ack by writing the source id to SEC_END. Banks the FULL
+ * register file + DAG1 (SRRFL/SRRFH/SRD1L/SRD1H): the ramp path uses
+ * i4/f8/f10/r10, so low-half banking alone would corrupt the
+ * interrupted block processing. DAG2/PM registers are not used on the
+ * ISR path (audited 2026-07-31).
  *----------------------------------------------------------------------*/
 .global _sec_isr;
 _sec_isr:
-    bit set mode1 BITM_REGF_MODE1_SRRFL | BITM_REGF_MODE1_SRD1L;
+    bit set mode1 BITM_REGF_MODE1_SRRFL | BITM_REGF_MODE1_SRRFH |
+                  BITM_REGF_MODE1_SRD1L | BITM_REGF_MODE1_SRD1H;
     nop;                          /* effect latency */
     push sts;
 
@@ -132,7 +136,8 @@ _sec_isr:
     dm(REG_SEC0_END) = r0;        /* acknowledge source */
 
     pop sts;
-    bit clr mode1 BITM_REGF_MODE1_SRRFL | BITM_REGF_MODE1_SRD1L;
+    bit clr mode1 BITM_REGF_MODE1_SRRFL | BITM_REGF_MODE1_SRRFH |
+                  BITM_REGF_MODE1_SRD1L | BITM_REGF_MODE1_SRD1H;
     nop;
     rti;
 _sec_isr.end:

@@ -3565,12 +3565,9 @@ def gen_ramp_tables():
         lines.append('')
 
     # Also emit individual labels for direct reference
-    lines.append('/* Individual profile labels (aliases into table above) */')
-    offset = 0
-    for name in RAMP_PROFILES:
-        lines.append(f'.global _ramp_profile_{name};')
-        lines.append(f'/* _ramp_profile_{name} = _ramp_profile_table + {offset} */')
-        offset += 5
+    lines.append('/* Profile offsets: _ramp_profile_table + id*5; ids per')
+    lines.append(' * spi_handler.asm (0=InstantCtl 1=GainFast 2=GainSafe')
+    lines.append(' * 3=EqSafe 4=DynSafe). No per-profile alias symbols. */')
     lines.append('')
 
     return '\n'.join(lines)
