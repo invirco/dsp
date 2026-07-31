@@ -204,13 +204,21 @@ dsp.csv sport params), not kernels.
       MRF-unrolled with gain shadows); generated fixed
       bus_accumulators.asm (64-bit pairs + ptr tables + loop clear;
       float hand file untouched). All assemble clean.
-    - NEXT: ROUTING (send shadows + _acc64_mac contributions),
-      block_io I/O scaling (Q1.31<->Q4.28 at converter lanes only),
-      meters (integer peak scan + decay), DELAY/TUBE_SAT/monitor/
-      aux-input/talkback/noise small kernels, then dynamics (log2/exp2
-      poly tables from fixed_ref as asm data, envelope + gain
-      computer), then FX float-island boundaries. --format fixed
-      becomes buildable only when every family is converted.
+    - DONE 2026-07-31 (cont.): ROUTING fixed — send ramps advance at
+      BLOCK rate (n=min(frames,32) float steps consumed, then Q4.28
+      shadow), pickoff taps read fixed strip values, and every bus
+      contribution is an exact _acc64_mac (improvement over float,
+      which rounded each send product before accumulating). Assembles
+      clean; float output untouched.
+    - NEXT (remaining fixed families): block_io I/O scaling
+      (Q1.31<->Q4.28 at converter lanes only; IC fabric carries raw
+      Q4.28), meters (integer peak scan + decay), DELAY/TUBE_SAT/
+      MONITOR/AUX_INPUT/TALKBACK/NOISE small kernels, dynamics
+      (log2/exp2 poly tables from fixed_ref LOG2_POLY/EXP2_POLY as asm
+      data + envelope + gain computer vs fixed_ref.comp_gain), FX
+      float-island boundaries (Q4.28<->float32 at FX_ENGINE edges).
+      --format fixed becomes buildable only when every family is
+      converted; then swap the default + archive-tag the float src.
 
 Binding decisions: [dsp4-architecture-decisions.md](dsp4-architecture-decisions.md)
 (D1 Pi masters DSP SPI, D2 CPLD in-repo w/ single-sourced slot map,

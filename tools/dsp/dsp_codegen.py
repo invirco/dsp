@@ -5194,6 +5194,234 @@ def gen_bus_accumulators_fixed():
     return '\n'.join(out)
 
 
+
+def _fx_send_ramp_asm(nid, kind, count):
+    """Block-rate float send-ramp advance + Q4.28 shadow refresh for
+    ROUTING send arrays. Consumes up to 32 per-sample steps per block
+    (send ramps are block-granular in fixed mode; within the DynSafe/
+    GainFast tolerance budget)."""
+    return f"""\
+            i4 = _rtg_{kind}_send_{nid};
+            i5 = _rtg_{kind}_send_step_{nid};
+            i6 = _rtg_{kind}_send_frames_{nid};
+            i3 = _rtg_{kind}_send_target_{nid};
+            i2 = _rtg_{kind}_sq_{nid};
+            r5 = {count};
+            lcntr = r5, do .{kind}rmp_{nid} until lce;
+                r4 = dm(i6, 0);
+                r6 = 32;
+                comp(r4, r6);
+                if lt r6 = r4;                /* n = min(frames, 32) */
+                r4 = r4 - r6;
+                dm(i6, 1) = r4;
+                r4 = pass r6;
+                if eq jump (pc, .{kind}snap_{nid});
+                f1 = dm(i4, 0);
+                f2 = dm(i5, 0);
+                f3 = float r6;
+                f2 = f2 * f3;                 /* step * n */
+                f1 = f1 + f2;
+                dm(i4, 0) = f1;
+                jump (pc, .{kind}cvt_{nid});
+            .{kind}snap_{nid}:
+                f1 = dm(i3, 0);               /* snap to target */
+                dm(i4, 0) = f1;
+            .{kind}cvt_{nid}:
+                r4 = 0x4D800000;              /* 2^28 float */
+                f2 = r4;
+                f1 = f1 * f2;
+                r4 = fix f1;
+                dm(i2, 1) = r4;               /* Q4.28 shadow */
+                modify(i4, 1);
+                modify(i5, 1);
+                modify(i3, 1);
+            .{kind}rmp_{nid}:
+                nop;
+"""
+
+
+def gen_routing_fixed(node):
+    """Fixed ROUTING (D5): float send ramps advance at BLOCK rate with
+    Q4.28 shadows; every bus contribution is an exact 64-bit
+    _acc64_mac (better than float, which rounded each send product).
+    Pickoff taps are Q4.28 values produced by the fixed strip nodes."""
+    rc = ramp_comment(node['ramp_profile'])
+    nid = node['id']
+    fdr_id = node['inputs_str']
+    gain_id = fdr_id.replace('_FDR_', '_GAIN_')
+    eq_id = fdr_id.replace('_FDR_', '_EQ_')
+    dly_id = fdr_id.replace('_FDR_', '_DLY_')
+    aux_pick_defaults = ', '.join(['3'] * 12)
+    fx_pick_defaults = ', '.join(['3'] * 6)
+
+    def pick_block(kind):
+        return f"""\
+                r6 = dm(i6, 1);               /* pickoff enum */
+                r6 = pass r6;
+                if eq jump (pc, .r{kind}_pk0_{nid});
+                r7 = 1;
+                comp(r6, r7);
+                if eq jump (pc, .r{kind}_pk1_{nid});
+                r7 = 2;
+                comp(r6, r7);
+                if eq jump (pc, .r{kind}_pk2_{nid});
+                r0 = dm(_tap_post_fader_{fdr_id});
+                jump (pc, .r{kind}_pkd_{nid});
+            .r{kind}_pk0_{nid}:
+                r0 = dm(_tap_post_trim_{gain_id});
+                jump (pc, .r{kind}_pkd_{nid});
+            .r{kind}_pk1_{nid}:
+                r0 = dm(_tap_post_eq_{eq_id});
+                jump (pc, .r{kind}_pkd_{nid});
+            .r{kind}_pk2_{nid}:
+                r0 = dm(_tap_pre_fader_{dly_id});
+            .r{kind}_pkd_{nid}:"""
+
+    return dedent(f"""\
+        {rc}
+
+        /* ROUTING (FIXED Q4.28, D5): fan-out with exact 64-bit accumulation */
+        /* SPI page={node['spi_page']} addr={node['spi_addr']} */
+        /* Send ramps: float control at block rate + Q4.28 shadows. */
+
+        .section/dm seg_dmda;
+        .extern _tap_post_trim_{gain_id};
+        .extern _tap_post_eq_{eq_id};
+        .extern _tap_pre_fader_{dly_id};
+        .extern _tap_post_fader_{fdr_id};
+        .var _rtg_main_on_{nid} = 1;
+        .var _rtg_sub_on_{nid} = 0;
+        .var _rtg_grp_on_{nid}[4] = 0, 0, 0, 0;
+        .var _rtg_aux_on_{nid}[12];
+        .var _rtg_aux_send_{nid}[12];
+        .var _rtg_aux_send_target_{nid}[12];
+        .var _rtg_aux_send_step_{nid}[12];
+        .var _rtg_aux_send_frames_{nid}[12];
+        .var _rtg_aux_pick_{nid}[12] = {aux_pick_defaults};
+        .var _rtg_aux_sq_{nid}[12];               /* Q4.28 shadows */
+        .var _rtg_fx_on_{nid}[6];
+        .var _rtg_fx_send_{nid}[6];
+        .var _rtg_fx_send_target_{nid}[6];
+        .var _rtg_fx_send_step_{nid}[6];
+        .var _rtg_fx_send_frames_{nid}[6];
+        .var _rtg_fx_pick_{nid}[6] = {fx_pick_defaults};
+        .var _rtg_fx_sq_{nid}[6];
+        .var _buf_{nid};
+
+        .section/pm seg_pmco;
+        .extern _sample_idx;
+        .extern _bus_acc_main_l; .extern _bus_acc_main_r;
+        .extern _bus_acc_sub;
+        .extern _bus_acc_grp_ptrs;
+        .extern _bus_acc_aux_ptrs;
+        .extern _bus_acc_fx_ptrs;
+        .extern _acc64_mac;
+        .global _{nid}_process;
+        _{nid}_process:
+
+            /* ===== block-rate: send ramps + shadows ===== */
+            r4 = dm(_sample_idx);
+            r1 = 0;
+            comp(r4, r1);
+            if ne jump (pc, .rtg_acc_{nid});
+{_fx_send_ramp_asm(nid, 'aux', 12)}
+{_fx_send_ramp_asm(nid, 'fx', 6)}
+        .rtg_acc_{nid}:
+
+            /* ===== Main L/R (unity, pan-split bufs) ===== */
+            r2 = dm(_rtg_main_on_{nid});
+            r2 = pass r2;
+            if eq jump (pc, .rtg_nomain_{nid});
+            r1 = 0x10000000;                  /* unity Q4.28 */
+            r0 = dm(_buf_L_{fdr_id});
+            i2 = _bus_acc_main_l;
+            call _acc64_mac;
+            r0 = dm(_buf_R_{fdr_id});
+            i2 = _bus_acc_main_r;
+            call _acc64_mac;
+        .rtg_nomain_{nid}:
+
+            /* ===== Sub (unity, mono) ===== */
+            r2 = dm(_rtg_sub_on_{nid});
+            r2 = pass r2;
+            if eq jump (pc, .rtg_nosub_{nid});
+            r1 = 0x10000000;
+            r0 = dm(_buf_{fdr_id});
+            i2 = _bus_acc_sub;
+            call _acc64_mac;
+        .rtg_nosub_{nid}:
+
+            /* ===== Groups (unity, ptr pairs) ===== */
+            i3 = _bus_acc_grp_ptrs;
+            i5 = _rtg_grp_on_{nid};
+            r5 = 4;
+            lcntr = r5, do .rtg_grp_{nid} until lce;
+                r2 = dm(i5, 1);
+                r3 = dm(i3, 1);               /* pair base */
+                r2 = pass r2;
+                if eq jump (pc, .rtg_gskip_{nid});
+                i2 = r3;
+                r0 = dm(_buf_{fdr_id});
+                r1 = 0x10000000;
+                call _acc64_mac;
+            .rtg_gskip_{nid}:
+                nop;
+            .rtg_grp_{nid}:
+                nop;
+
+            /* ===== Aux sends (pickoff x shadow, exact MAC) ===== */
+            i3 = _bus_acc_aux_ptrs;
+            i4 = _rtg_aux_sq_{nid};
+            i5 = _rtg_aux_on_{nid};
+            i6 = _rtg_aux_pick_{nid};
+            r5 = 12;
+            lcntr = r5, do .rtg_aux_{nid} until lce;
+                r2 = dm(i5, 1);
+                r3 = dm(i3, 1);               /* pair base */
+                r1 = dm(i4, 1);               /* send shadow */
+                r2 = pass r2;
+                if eq jump (pc, .rtg_askip_{nid});
+{pick_block('a')}
+                i2 = r3;
+                call _acc64_mac;
+                jump (pc, .rtg_anext_{nid});
+            .rtg_askip_{nid}:
+                modify(i6, 1);
+            .rtg_anext_{nid}:
+                nop;
+            .rtg_aux_{nid}:
+                nop;
+
+            /* ===== FX sends ===== */
+            i3 = _bus_acc_fx_ptrs;
+            i4 = _rtg_fx_sq_{nid};
+            i5 = _rtg_fx_on_{nid};
+            i6 = _rtg_fx_pick_{nid};
+            r5 = 6;
+            lcntr = r5, do .rtg_fx_{nid} until lce;
+                r2 = dm(i5, 1);
+                r3 = dm(i3, 1);
+                r1 = dm(i4, 1);
+                r2 = pass r2;
+                if eq jump (pc, .rtg_fskip_{nid});
+{pick_block('f')}
+                i2 = r3;
+                call _acc64_mac;
+                jump (pc, .rtg_fnext_{nid});
+            .rtg_fskip_{nid}:
+                modify(i6, 1);
+            .rtg_fnext_{nid}:
+                nop;
+            .rtg_fx_{nid}:
+                nop;
+
+            r0 = dm(_tap_post_fader_{fdr_id});
+            dm(_buf_{nid}) = r0;
+            rts;
+        _{nid}_process.end:
+    """)
+
+
 FIXED_GENERATORS = {
     'EQ_BIQUAD': gen_eq_biquad_fixed,
     'GEQ': gen_geq_fixed,
@@ -5203,6 +5431,7 @@ FIXED_GENERATORS = {
     'GAIN': gen_gain_fixed,
     'FADER_PAN': gen_fader_pan_fixed,
     'MIX_BUS': gen_mix_bus_fixed,
+    'ROUTING': gen_routing_fixed,
 }
 
 
