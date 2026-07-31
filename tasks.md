@@ -66,10 +66,14 @@ Today, session 2 — **P1 fabric remap DONE** (gen_dsp_csv.py rework):
    chip1 block1 28.7% (doubled DMA buffers fit easily), chip2 L2 95.6% /
    L2CTL1 69.6% (unchanged — delay lines). No LDF change needed yet.
 
-NOT verifiable today: `./regenerate-dsp-contract.sh` full flow — no mx26
-checkout on this machine (all candidate paths empty; MX26_REPO unset).
-Ran the downstream steps directly (validate-matrix-contract.py OK,
-gen_dsp.py --force OK). Re-run the full script when mx26 is available.
+mx26 availability RESOLVED (2026-07-31): cloned read-only from
+github.com/invirco/mx26 (gh auth: invirco account, repo scope) to
+`~/mx26` — the first candidate path sync-from-mx26.sh probes, so no
+MX26_REPO env needed. Full `./regenerate-dsp-contract.sh` +
+`./check-contract-drift.sh` then ran clean with a byte-identical tree
+(the earlier direct-step run was equivalent). Upstream head d7b795b is
+one commit past the pinned 2f92f8b (workflow/tasks only; contract files
+unchanged). `git -C ~/mx26 pull` before future syncs.
 
 2026-07-30: build verification (fit proxy PASSED as 21568), Quartus
 verified, rev C schematic review, xSPI PSRAM investigation.
