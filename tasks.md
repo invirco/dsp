@@ -84,11 +84,24 @@ bug fix), plumbing design + slices 1-2 DONE (`657de55`, `497bbca`,
 `259ebc8`). HRM found already fetched in Dropbox (Peter's resilient-
 fetch effort); mx26 cloned to ~/mx26 and full contract flow verified.
 
+Evening session (2026-07-31): plumbing slice 3 DONE (`94447ec` — DDE
+rings, SEC dispatch via SECI vector 15, real SPI MMRs, SPEN). CPLD RTL
+STARTED (`e9b0f7d`): clkgen + Pi PCM reframer + routing top, Quartus
+map/fit/STA clean (169 LEs, Fmax 118.8 MHz). Timing conventions LOCKED
+in the slot-map SOT (sample rising / launch falling / MFD=1; firmware
+CKRE=1). Two architecture facts settled from the schematics: the mix
+fabric is DIRECT DSP-to-DSP PCB routing (not through the CPLD), and
+DAC MAIN has no D24 sink BY DESIGN (D24 main outs are Analog-PCBA line
+outs via DA0/DA3 — traced with Peter's pointer). Slot-map hash now
+sha256:efd8d555440094b6.
+
 Next entry points:
-1. Plumbing slice 3 (see P1 bullet): DDE rings + SEC + ivt + SPEN;
-   then real SPI MMR addresses in spi_handler/main (FLAGS_REG too).
-2. CPLD `rtl/` against `dsp4_slot_map.vh` — resolve the provisional
-   rows (CKRE/MFD, Pi re-framing, DAC MAIN sink) as part of it.
+1. CPLD pin constraints: extract the real 144-pin assignment from the
+   LOGIC sheet (D24 DSP.pdf p2/10) into quartus/*.qsf, then build +
+   commit the hash-labelled .pof (D2). Also decide NET-mux control
+   (net_sel is a port stub — strap vs host-written register).
+2. Hardware bring-up checklist (see plumbing P1 bullet): FLAGS_REG
+   chip-id, SPI watermark/SPI_RDY, SEC semantics on the wire.
 3. mx26-side: adopt the 20 superset cells + GrpPeq→GrpGeq rename
    (drops the alias flag).
 
