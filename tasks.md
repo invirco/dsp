@@ -1,7 +1,7 @@
 # tasks
 
 Status: active
-Date: 2026-07-30
+Date: 2026-07-31
 Purpose: current work state for the mx26 -> mx-dsp workflow and DSP4 firmware.
 
 Status colors:
@@ -10,35 +10,37 @@ Status colors:
 - <span style="color:#2563eb"><b>NEXT</b></span>
 - <span style="color:#6b7280"><b>BLOCKED/DEFERRED</b></span>
 
-## Resume notes (saved 2026-07-30, evening)
+## Resume notes (saved 2026-07-31)
 
-Today (all UNCOMMITTED — see "Uncommitted work" below):
-1. **Build verification DONE** — the big one. CCES licence rehosted to this
-   machine; fit-proxy build as ADSP-21568 assembled all 642 objects with 0
-   errors and linked both chips. Firmware fits, with two nearly-full memory
-   regions (details in P2 section). 21564 targets still need a full
-   AD-CCES-NODE-1 licence ($995).
-2. **Quartus Prime Lite 21.1.1 installed + verified** for the LOGIC CPLD —
-   real 5M1270ZT144C4 compile (map/fit/asm/sta) and .pof→SVF conversion
-   both pass on Debian 13. CPLD work is now tooling-unblocked.
-3. **DSP4 rev C schematic reviewed** against the full D24 set; marked-up PDF
-   + regeneration script in `MW/D24/HW/schematics/`. Analog I/O resolved to
-   DSP4 digital nets; hardware-map.md corrected.
-4. **SPI-RAM (xSPI PSRAM) investigation** — deferred HW task added; the
-   OSPI-vs-Pi-SPI2 pin conflict is the key constraint.
+Today:
+1. **2026-07-30 work committed** in the planned split: schematic review +
+   hardware map (`ae6973d`), build verification + build.sh + tasks
+   (`b675143`).
+2. **D2 slot-map source table CREATED** — `shared/dsp4-logic/` now holds
+   `tdm-lines.csv` (24 physical TDM lines: A_I0-7, MIX_0-7, B_O0-7) +
+   `slot-map.csv` (134 slot assignments) + `gen_slot_map.py`
+   (validate + emit). Generated outputs committed:
+   `generated/sport_map.json` (for gen_dsp_csv.py) and
+   `generated/dsp4_slot_map.vh` (for CPLD HDL), both stamped with the
+   source hash. Key encodings: the 25 legacy buses keep their slot order
+   as global mix slots 0-24 (line n/16, slot n%16 — old sport7 slot
+   numbering maps 1:1); MIX_2-7 reserved for 128-bus growth; B_O1→DA3 fix
+   as `DA_LANE_B_O1=3`; B_O2 scope-split (D24 codec / D32 snake);
+   DSP-facing formats uniform (chip1 in=TDM8/out=TDM16, chip2 mirrored —
+   LOGIC re-frames Pi I2S and MEMS TDM8-slot-5).
 
-Yesterday: D24 schematics imported (`1d617ac`), hardware map + D1-D4
-decisions mandated (`128f13b`), tasks reprioritized (`ba9853d`).
+2026-07-30: build verification (fit proxy PASSED as 21568), Quartus
+verified, rev C schematic review, xSPI PSRAM investigation.
 
-### Uncommitted work (tree is NOT clean)
-
-- `tasks.md`, `MW/D24/HW/hardware-map.md` (analog→digital resolution table,
-  AK4916 location fix, DA3/DAC-MAIN findings)
-- `MW/D32/DSP/SHARC/build.sh` (PROC_TARGET override)
-- new: `MW/D24/HW/schematics/D24 DSP rev C - review markup 2026-07-30.pdf`
-  and `rebuild-review-markup.py`
-- Suggested commit split: (a) schematic review + hardware map, (b) build
-  verification + build.sh override + tasks.
+Tomorrow's entry point — P1 task 1: rework `tools/dsp/gen_dsp_csv.py` to
+consume `shared/dsp4-logic/generated/sport_map.json`. Found during
+today's read-through, fix during that rework: gen_dsp_csv.py still
+writes `../dsp.csv` relative to itself, which after the move to
+`tools/dsp/` resolves to `tools/dsp.csv` — it must take the product
+SHARC dir as an argument (per-product output was the point of sharing
+it). Also: dsp_codegen.py assumes 8 slots/SPORT (`sport_id*8+slot_start`
+linearization in ~4 places) — TDM16 mix lines break that; parameterize
+slots-per-sport from sport_map.json.
 
 ### Checked, no action needed
 `cces-tools/license/license.dat` exists on disk but is NOT tracked — the
@@ -55,24 +57,14 @@ on the rev C card):
 - Remaining 20-25%: fabric remap, product-config layer, superset I/O nodes
   (MEMS/Pi PCM/codec return), GrpGeq, D24 contract wiring.
 
-Tomorrow's entry point — UNCHANGED from yesterday (P1 task 1: the slot-map
-source table). Today cleared the tooling around it rather than the task
-itself. Two new inputs now feed it: (a) the LDF memory rebalance must ride
-along with the fabric remap, since chip1 block3 (97.3%) and chip2 L2
-(95.6%) are the regions the 128-bus rework will grow into, while block2 sits
-at 0% on both chips; (b) the slot map must route DSPB O1 → DA3, not DA1
-(schematic review finding). Original plan:
-1. KEY FINDING: D32 dsp.csv models the chip link as ONE logical SPORT
-   (`sport_id=7`, ~26 bus slots). Architecture already matches D4 (mix
-   summing on chip 1), but hardware is 8× TDM16 = 128 mix buses — so the
-   rework is sport/slot plumbing (sport_init.asm, block_io.asm, dsp.csv
-   sport params), not kernels.
-2. Start by defining the slot-map source table (bus → TDM line/slot); it
-   must feed BOTH gen_dsp_csv.py and the future shared/dsp4-logic/ Verilog
-   (decision D2), so shape it for two consumers from day one.
-3. Then rework gen_dsp_csv.py: map D32's ~26 logical buses onto physical
-   MIX lines 0-1, reserve lines 2-7 for future/128-bus growth, add superset
-   I/O nodes behind product config.
+2026-07-30 plan status: step 2 (slot-map source table shaped for two
+consumers) DONE 2026-07-31 — see `shared/dsp4-logic/`. Step 3
+(gen_dsp_csv.py rework: 25 buses onto MIX lines 0-1, lines 2-7 reserved,
+superset I/O behind product config) is now the P1 NEXT task, with the LDF
+rebalance riding along (chip1 block3 97.3% / chip2 L2 95.6% grow under
+the 128-bus rework; block2 idle at 0%) and the mechanical fixes listed
+there. The rework is sport/slot plumbing (sport_init.asm, block_io.asm,
+dsp.csv sport params), not kernels.
 
 ## P1 - DSP4 unified firmware & D24 bring-up (top priority)
 
@@ -83,16 +75,34 @@ Hardware ground truth: [MW/D24/HW/hardware-map.md](MW/D24/HW/hardware-map.md)
 (schematics in MW/D24/HW/schematics/, imported 2026-07-29).
 
 - [ ] <span style="color:#2563eb"><b>NEXT</b></span> Rework `tools/dsp/gen_dsp_csv.py` to the DSP4 superset topology
+  - Consume `shared/dsp4-logic/generated/sport_map.json` (created
+    2026-07-31) — replace the hardcoded sport_id=7/25-slot interchip model
+    with the 8× TDM16 mix fabric; bus slot numbering is preserved 1:1.
   - Mix summing on chip 1 (128-bus output over 8× TDM16); chip 2 = bus
     processing + output router (DAC 1-16, DAC MAIN, codec/snake, NET 1-32).
   - Add superset I/O nodes (codec return, Pi PCM, MEMS, snake, AUX) behind
     boot-time product config; keep ONE shared DSP address map.
+  - Mechanical fixes found 2026-07-31: gen_dsp_csv.py output path is stale
+    (`../dsp.csv` → `tools/dsp.csv`; take product SHARC dir as arg);
+    dsp_codegen.py hardcodes 8 slots/SPORT in its `sport_id*8+slot_start`
+    linearization (~4 sites) — parameterize per-sport slot counts.
+  - LDF memory rebalance rides along (chip1 block3 97.3% / chip2 L2 95.6%
+    → move into idle block2 / L2CTL1).
   - Then regenerate dsp.csv + node ASM; update dsp.plan.md (Link-Port/MCU
     relay diagram is obsolete per D1).
 
-- [ ] <span style="color:#2563eb"><b>NEXT</b></span> Create `shared/dsp4-logic/` CPLD tree
-  - Slot/bus map source table + generator emitting Verilog constants AND
-    SPORT config for gen_dsp_csv.py; pin bitstream/source hash per change.
+- [ ] <span style="color:#d97706"><b>IN PROGRESS</b></span> Create `shared/dsp4-logic/` CPLD tree
+  - [x] <span style="color:#16a34a"><b>DONE</b></span> (2026-07-31) Slot/bus map source table + generator:
+    `tdm-lines.csv` + `slot-map.csv` → `gen_slot_map.py` → committed
+    `generated/sport_map.json` + `generated/dsp4_slot_map.vh`, stamped
+    with source hash (pin per release-notes convention on every change).
+    See `shared/dsp4-logic/README.md` for conventions (sport_id = DAI port
+    index; global mix slot = 16*line+slot; O1→DA3 encoded).
+  - Remaining: `rtl/` Verilog (clock gen, ADC/NET + NET output muxes,
+    DA-lane routing) consuming dsp4_slot_map.vh; `constraints/` pin map
+    for 5M1270ZT144C4N; built `.pof` labelled with source hash.
+  - Open before HDL freeze: `provisional` rows in tdm-lines.csv (A_I6 Pi
+    re-framing, B_O3 DAC MAIN sink) + clock-pair assignment (CG0-3).
   - Toolchain: Quartus Prime Lite 21.1.1 INSTALLED + verified 2026-07-30
     at `/opt/intelFPGA_lite/21.1` (smoke compile map→fit→asm→sta for
     5M1270ZT144C4 OK on Debian 13; .pof→SVF via quartus_cpf OK; PATH

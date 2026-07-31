@@ -1,0 +1,1355 @@
+{
+  "generated_by": "shared/dsp4-logic/gen_slot_map.py",
+  "source_hash": "794447b280bd1dd265bf5c8ded150532d20d50b33b2fd6d66db37615bfcf7173",
+  "sport_convention": "sport_id = DAI port index; I ports are RX, O ports are TX; chip1=DSPA, chip2=DSPB",
+  "mix_fabric": {
+    "lines": 8,
+    "slots_per_line": 16,
+    "total_slots": 128,
+    "buses": [
+      {
+        "signal": "BUS_MAIN_L",
+        "global_slot": 0,
+        "line": "MIX_0",
+        "slot": 0
+      },
+      {
+        "signal": "BUS_MAIN_R",
+        "global_slot": 1,
+        "line": "MIX_0",
+        "slot": 1
+      },
+      {
+        "signal": "BUS_SUB",
+        "global_slot": 2,
+        "line": "MIX_0",
+        "slot": 2
+      },
+      {
+        "signal": "BUS_GRP_01",
+        "global_slot": 3,
+        "line": "MIX_0",
+        "slot": 3
+      },
+      {
+        "signal": "BUS_GRP_02",
+        "global_slot": 4,
+        "line": "MIX_0",
+        "slot": 4
+      },
+      {
+        "signal": "BUS_GRP_03",
+        "global_slot": 5,
+        "line": "MIX_0",
+        "slot": 5
+      },
+      {
+        "signal": "BUS_GRP_04",
+        "global_slot": 6,
+        "line": "MIX_0",
+        "slot": 6
+      },
+      {
+        "signal": "BUS_AUX_01",
+        "global_slot": 7,
+        "line": "MIX_0",
+        "slot": 7
+      },
+      {
+        "signal": "BUS_AUX_02",
+        "global_slot": 8,
+        "line": "MIX_0",
+        "slot": 8
+      },
+      {
+        "signal": "BUS_AUX_03",
+        "global_slot": 9,
+        "line": "MIX_0",
+        "slot": 9
+      },
+      {
+        "signal": "BUS_AUX_04",
+        "global_slot": 10,
+        "line": "MIX_0",
+        "slot": 10
+      },
+      {
+        "signal": "BUS_AUX_05",
+        "global_slot": 11,
+        "line": "MIX_0",
+        "slot": 11
+      },
+      {
+        "signal": "BUS_AUX_06",
+        "global_slot": 12,
+        "line": "MIX_0",
+        "slot": 12
+      },
+      {
+        "signal": "BUS_AUX_07",
+        "global_slot": 13,
+        "line": "MIX_0",
+        "slot": 13
+      },
+      {
+        "signal": "BUS_AUX_08",
+        "global_slot": 14,
+        "line": "MIX_0",
+        "slot": 14
+      },
+      {
+        "signal": "BUS_AUX_09",
+        "global_slot": 15,
+        "line": "MIX_0",
+        "slot": 15
+      },
+      {
+        "signal": "BUS_AUX_10",
+        "global_slot": 16,
+        "line": "MIX_1",
+        "slot": 0
+      },
+      {
+        "signal": "BUS_AUX_11",
+        "global_slot": 17,
+        "line": "MIX_1",
+        "slot": 1
+      },
+      {
+        "signal": "BUS_AUX_12",
+        "global_slot": 18,
+        "line": "MIX_1",
+        "slot": 2
+      },
+      {
+        "signal": "BUS_FX_01",
+        "global_slot": 19,
+        "line": "MIX_1",
+        "slot": 3
+      },
+      {
+        "signal": "BUS_FX_02",
+        "global_slot": 20,
+        "line": "MIX_1",
+        "slot": 4
+      },
+      {
+        "signal": "BUS_FX_03",
+        "global_slot": 21,
+        "line": "MIX_1",
+        "slot": 5
+      },
+      {
+        "signal": "BUS_FX_04",
+        "global_slot": 22,
+        "line": "MIX_1",
+        "slot": 6
+      },
+      {
+        "signal": "BUS_FX_05",
+        "global_slot": 23,
+        "line": "MIX_1",
+        "slot": 7
+      },
+      {
+        "signal": "BUS_FX_06",
+        "global_slot": 24,
+        "line": "MIX_1",
+        "slot": 8
+      }
+    ]
+  },
+  "chips": {
+    "1": {
+      "rx": [
+        {
+          "line": "A_I0",
+          "port": "I0",
+          "sport_id": 0,
+          "format": "TDM8",
+          "slot_count": 8,
+          "status": "ok",
+          "external_net": "AD0|NET",
+          "clock_pair": "CG0",
+          "slots": [
+            {
+              "slot": 0,
+              "signal": "IN_01",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 1,
+              "signal": "IN_02",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 2,
+              "signal": "IN_03",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 3,
+              "signal": "IN_04",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 4,
+              "signal": "IN_05",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 5,
+              "signal": "IN_06",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 6,
+              "signal": "IN_07",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 7,
+              "signal": "IN_08",
+              "scope": "BOTH"
+            }
+          ]
+        },
+        {
+          "line": "A_I1",
+          "port": "I1",
+          "sport_id": 1,
+          "format": "TDM8",
+          "slot_count": 8,
+          "status": "ok",
+          "external_net": "AD1|NET",
+          "clock_pair": "CG0",
+          "slots": [
+            {
+              "slot": 0,
+              "signal": "IN_09",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 1,
+              "signal": "IN_10",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 2,
+              "signal": "IN_11",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 3,
+              "signal": "IN_12",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 4,
+              "signal": "IN_13",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 5,
+              "signal": "IN_14",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 6,
+              "signal": "IN_15",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 7,
+              "signal": "IN_16",
+              "scope": "BOTH"
+            }
+          ]
+        },
+        {
+          "line": "A_I2",
+          "port": "I2",
+          "sport_id": 2,
+          "format": "TDM8",
+          "slot_count": 8,
+          "status": "ok",
+          "external_net": "AD2|NET",
+          "clock_pair": "CG0",
+          "slots": [
+            {
+              "slot": 0,
+              "signal": "IN_17",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 1,
+              "signal": "IN_18",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 2,
+              "signal": "IN_19",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 3,
+              "signal": "IN_20",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 4,
+              "signal": "IN_21",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 5,
+              "signal": "IN_22",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 6,
+              "signal": "IN_23",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 7,
+              "signal": "IN_24",
+              "scope": "BOTH"
+            }
+          ]
+        },
+        {
+          "line": "A_I3",
+          "port": "I3",
+          "sport_id": 3,
+          "format": "TDM8",
+          "slot_count": 8,
+          "status": "ok",
+          "external_net": "AD3|NET",
+          "clock_pair": "CG0",
+          "slots": [
+            {
+              "slot": 0,
+              "signal": "IN_25",
+              "scope": "BOTH",
+              "note": "D24: NET source only (no ADC on AD3)"
+            },
+            {
+              "slot": 1,
+              "signal": "IN_26",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 2,
+              "signal": "IN_27",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 3,
+              "signal": "IN_28",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 4,
+              "signal": "IN_29",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 5,
+              "signal": "IN_30",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 6,
+              "signal": "IN_31",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 7,
+              "signal": "IN_32",
+              "scope": "BOTH"
+            }
+          ]
+        },
+        {
+          "line": "A_I4",
+          "port": "I4",
+          "sport_id": 4,
+          "format": "TDM8",
+          "slot_count": 8,
+          "status": "ok",
+          "external_net": "CDC_O",
+          "clock_pair": "CG2",
+          "slots": [
+            {
+              "slot": 0,
+              "signal": "CODEC_RET_1",
+              "scope": "BOTH",
+              "note": "AK4916 ADC ch1 (talkback XLR)"
+            },
+            {
+              "slot": 1,
+              "signal": "CODEC_RET_2",
+              "scope": "BOTH",
+              "note": "AK4916 ADC ch2"
+            },
+            {
+              "slot": 2,
+              "signal": "CODEC_RET_3",
+              "scope": "BOTH",
+              "note": "AK4916 ADC ch3 (aux in L)"
+            },
+            {
+              "slot": 3,
+              "signal": "CODEC_RET_4",
+              "scope": "BOTH",
+              "note": "AK4916 ADC ch4 (aux in R)"
+            }
+          ]
+        },
+        {
+          "line": "A_I5",
+          "port": "I5",
+          "sport_id": 5,
+          "format": "TDM8",
+          "slot_count": 8,
+          "status": "ok",
+          "external_net": "SNAKE",
+          "clock_pair": "CG2",
+          "slots": [
+            {
+              "slot": 0,
+              "signal": "SNAKE_RET_01",
+              "scope": "D32"
+            },
+            {
+              "slot": 1,
+              "signal": "SNAKE_RET_02",
+              "scope": "D32"
+            },
+            {
+              "slot": 2,
+              "signal": "SNAKE_RET_03",
+              "scope": "D32"
+            },
+            {
+              "slot": 3,
+              "signal": "SNAKE_RET_04",
+              "scope": "D32"
+            },
+            {
+              "slot": 4,
+              "signal": "SNAKE_RET_05",
+              "scope": "D32"
+            },
+            {
+              "slot": 5,
+              "signal": "SNAKE_RET_06",
+              "scope": "D32"
+            },
+            {
+              "slot": 6,
+              "signal": "SNAKE_RET_07",
+              "scope": "D32"
+            },
+            {
+              "slot": 7,
+              "signal": "SNAKE_RET_08",
+              "scope": "D32"
+            }
+          ]
+        },
+        {
+          "line": "A_I6",
+          "port": "I6",
+          "sport_id": 6,
+          "format": "TDM8",
+          "slot_count": 8,
+          "status": "provisional",
+          "external_net": "PI_PCM",
+          "clock_pair": "CG2",
+          "slots": [
+            {
+              "slot": 0,
+              "signal": "PI_PCM_L",
+              "scope": "BOTH",
+              "note": "Pi playback L (LOGIC re-framed)"
+            },
+            {
+              "slot": 1,
+              "signal": "PI_PCM_R",
+              "scope": "BOTH",
+              "note": "Pi playback R"
+            }
+          ]
+        },
+        {
+          "line": "A_I7",
+          "port": "I7",
+          "sport_id": 7,
+          "format": "TDM8",
+          "slot_count": 8,
+          "status": "ok",
+          "external_net": "MEMS",
+          "clock_pair": "CG2",
+          "slots": [
+            {
+              "slot": 5,
+              "signal": "MEMS_TB",
+              "scope": "BOTH",
+              "note": "ADAU7302 TDM8 slot 5 per 47K strap"
+            }
+          ]
+        }
+      ],
+      "tx": [
+        {
+          "line": "MIX_0",
+          "port": "O0",
+          "sport_id": 0,
+          "format": "TDM16",
+          "slot_count": 16,
+          "status": "ok",
+          "clock_pair": "CG1",
+          "slots": [
+            {
+              "slot": 0,
+              "signal": "BUS_MAIN_L",
+              "scope": "BOTH",
+              "note": "global mix slot 0 (= legacy sport7 slot 0)"
+            },
+            {
+              "slot": 1,
+              "signal": "BUS_MAIN_R",
+              "scope": "BOTH",
+              "note": "global mix slot 1"
+            },
+            {
+              "slot": 2,
+              "signal": "BUS_SUB",
+              "scope": "BOTH",
+              "note": "global mix slot 2"
+            },
+            {
+              "slot": 3,
+              "signal": "BUS_GRP_01",
+              "scope": "BOTH",
+              "note": "global mix slots 3-6"
+            },
+            {
+              "slot": 4,
+              "signal": "BUS_GRP_02",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 5,
+              "signal": "BUS_GRP_03",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 6,
+              "signal": "BUS_GRP_04",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 7,
+              "signal": "BUS_AUX_01",
+              "scope": "BOTH",
+              "note": "global mix slots 7-18"
+            },
+            {
+              "slot": 8,
+              "signal": "BUS_AUX_02",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 9,
+              "signal": "BUS_AUX_03",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 10,
+              "signal": "BUS_AUX_04",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 11,
+              "signal": "BUS_AUX_05",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 12,
+              "signal": "BUS_AUX_06",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 13,
+              "signal": "BUS_AUX_07",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 14,
+              "signal": "BUS_AUX_08",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 15,
+              "signal": "BUS_AUX_09",
+              "scope": "BOTH"
+            }
+          ]
+        },
+        {
+          "line": "MIX_1",
+          "port": "O1",
+          "sport_id": 1,
+          "format": "TDM16",
+          "slot_count": 16,
+          "status": "ok",
+          "clock_pair": "CG1",
+          "slots": [
+            {
+              "slot": 0,
+              "signal": "BUS_AUX_10",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 1,
+              "signal": "BUS_AUX_11",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 2,
+              "signal": "BUS_AUX_12",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 3,
+              "signal": "BUS_FX_01",
+              "scope": "BOTH",
+              "note": "global mix slots 19-24"
+            },
+            {
+              "slot": 4,
+              "signal": "BUS_FX_02",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 5,
+              "signal": "BUS_FX_03",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 6,
+              "signal": "BUS_FX_04",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 7,
+              "signal": "BUS_FX_05",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 8,
+              "signal": "BUS_FX_06",
+              "scope": "BOTH",
+              "note": "global mix slot 24; slots 25-127 reserved"
+            }
+          ]
+        },
+        {
+          "line": "MIX_2",
+          "port": "O2",
+          "sport_id": 2,
+          "format": "TDM16",
+          "slot_count": 16,
+          "status": "reserved",
+          "clock_pair": "CG1",
+          "slots": []
+        },
+        {
+          "line": "MIX_3",
+          "port": "O3",
+          "sport_id": 3,
+          "format": "TDM16",
+          "slot_count": 16,
+          "status": "reserved",
+          "clock_pair": "CG1",
+          "slots": []
+        },
+        {
+          "line": "MIX_4",
+          "port": "O4",
+          "sport_id": 4,
+          "format": "TDM16",
+          "slot_count": 16,
+          "status": "reserved",
+          "clock_pair": "CG3",
+          "slots": []
+        },
+        {
+          "line": "MIX_5",
+          "port": "O5",
+          "sport_id": 5,
+          "format": "TDM16",
+          "slot_count": 16,
+          "status": "reserved",
+          "clock_pair": "CG3",
+          "slots": []
+        },
+        {
+          "line": "MIX_6",
+          "port": "O6",
+          "sport_id": 6,
+          "format": "TDM16",
+          "slot_count": 16,
+          "status": "reserved",
+          "clock_pair": "CG3",
+          "slots": []
+        },
+        {
+          "line": "MIX_7",
+          "port": "O7",
+          "sport_id": 7,
+          "format": "TDM16",
+          "slot_count": 16,
+          "status": "reserved",
+          "clock_pair": "CG3",
+          "slots": []
+        }
+      ]
+    },
+    "2": {
+      "rx": [
+        {
+          "line": "MIX_0",
+          "port": "I0",
+          "sport_id": 0,
+          "format": "TDM16",
+          "slot_count": 16,
+          "status": "ok",
+          "clock_pair": "CG0",
+          "slots": [
+            {
+              "slot": 0,
+              "signal": "BUS_MAIN_L",
+              "scope": "BOTH",
+              "note": "global mix slot 0 (= legacy sport7 slot 0)"
+            },
+            {
+              "slot": 1,
+              "signal": "BUS_MAIN_R",
+              "scope": "BOTH",
+              "note": "global mix slot 1"
+            },
+            {
+              "slot": 2,
+              "signal": "BUS_SUB",
+              "scope": "BOTH",
+              "note": "global mix slot 2"
+            },
+            {
+              "slot": 3,
+              "signal": "BUS_GRP_01",
+              "scope": "BOTH",
+              "note": "global mix slots 3-6"
+            },
+            {
+              "slot": 4,
+              "signal": "BUS_GRP_02",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 5,
+              "signal": "BUS_GRP_03",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 6,
+              "signal": "BUS_GRP_04",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 7,
+              "signal": "BUS_AUX_01",
+              "scope": "BOTH",
+              "note": "global mix slots 7-18"
+            },
+            {
+              "slot": 8,
+              "signal": "BUS_AUX_02",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 9,
+              "signal": "BUS_AUX_03",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 10,
+              "signal": "BUS_AUX_04",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 11,
+              "signal": "BUS_AUX_05",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 12,
+              "signal": "BUS_AUX_06",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 13,
+              "signal": "BUS_AUX_07",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 14,
+              "signal": "BUS_AUX_08",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 15,
+              "signal": "BUS_AUX_09",
+              "scope": "BOTH"
+            }
+          ]
+        },
+        {
+          "line": "MIX_1",
+          "port": "I1",
+          "sport_id": 1,
+          "format": "TDM16",
+          "slot_count": 16,
+          "status": "ok",
+          "clock_pair": "CG0",
+          "slots": [
+            {
+              "slot": 0,
+              "signal": "BUS_AUX_10",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 1,
+              "signal": "BUS_AUX_11",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 2,
+              "signal": "BUS_AUX_12",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 3,
+              "signal": "BUS_FX_01",
+              "scope": "BOTH",
+              "note": "global mix slots 19-24"
+            },
+            {
+              "slot": 4,
+              "signal": "BUS_FX_02",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 5,
+              "signal": "BUS_FX_03",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 6,
+              "signal": "BUS_FX_04",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 7,
+              "signal": "BUS_FX_05",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 8,
+              "signal": "BUS_FX_06",
+              "scope": "BOTH",
+              "note": "global mix slot 24; slots 25-127 reserved"
+            }
+          ]
+        },
+        {
+          "line": "MIX_2",
+          "port": "I2",
+          "sport_id": 2,
+          "format": "TDM16",
+          "slot_count": 16,
+          "status": "reserved",
+          "clock_pair": "CG0",
+          "slots": []
+        },
+        {
+          "line": "MIX_3",
+          "port": "I3",
+          "sport_id": 3,
+          "format": "TDM16",
+          "slot_count": 16,
+          "status": "reserved",
+          "clock_pair": "CG0",
+          "slots": []
+        },
+        {
+          "line": "MIX_4",
+          "port": "I4",
+          "sport_id": 4,
+          "format": "TDM16",
+          "slot_count": 16,
+          "status": "reserved",
+          "clock_pair": "CG2",
+          "slots": []
+        },
+        {
+          "line": "MIX_5",
+          "port": "I5",
+          "sport_id": 5,
+          "format": "TDM16",
+          "slot_count": 16,
+          "status": "reserved",
+          "clock_pair": "CG2",
+          "slots": []
+        },
+        {
+          "line": "MIX_6",
+          "port": "I6",
+          "sport_id": 6,
+          "format": "TDM16",
+          "slot_count": 16,
+          "status": "reserved",
+          "clock_pair": "CG2",
+          "slots": []
+        },
+        {
+          "line": "MIX_7",
+          "port": "I7",
+          "sport_id": 7,
+          "format": "TDM16",
+          "slot_count": 16,
+          "status": "reserved",
+          "clock_pair": "CG2",
+          "slots": []
+        }
+      ],
+      "tx": [
+        {
+          "line": "B_O0",
+          "port": "O0",
+          "sport_id": 0,
+          "format": "TDM8",
+          "slot_count": 8,
+          "status": "ok",
+          "external_net": "DA0",
+          "clock_pair": "CG1",
+          "slots": [
+            {
+              "slot": 0,
+              "signal": "DAC_01",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 1,
+              "signal": "DAC_02",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 2,
+              "signal": "DAC_03",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 3,
+              "signal": "DAC_04",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 4,
+              "signal": "DAC_05",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 5,
+              "signal": "DAC_06",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 6,
+              "signal": "DAC_07",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 7,
+              "signal": "DAC_08",
+              "scope": "BOTH"
+            }
+          ]
+        },
+        {
+          "line": "B_O1",
+          "port": "O1",
+          "sport_id": 1,
+          "format": "TDM8",
+          "slot_count": 8,
+          "status": "ok",
+          "external_net": "DA3",
+          "clock_pair": "CG1",
+          "slots": [
+            {
+              "slot": 0,
+              "signal": "DAC_09",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 1,
+              "signal": "DAC_10",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 2,
+              "signal": "DAC_11",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 3,
+              "signal": "DAC_12",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 4,
+              "signal": "DAC_13",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 5,
+              "signal": "DAC_14",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 6,
+              "signal": "DAC_15",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 7,
+              "signal": "DAC_16",
+              "scope": "BOTH"
+            }
+          ]
+        },
+        {
+          "line": "B_O2",
+          "port": "O2",
+          "sport_id": 2,
+          "format": "TDM8",
+          "slot_count": 8,
+          "status": "ok",
+          "external_net": "CDC_I|SNAKE",
+          "clock_pair": "CG1",
+          "slots": [
+            {
+              "slot": 0,
+              "signal": "CODEC_OUT_1",
+              "scope": "D24",
+              "note": "AK4916 DAC ch1 (talkback SPKR)"
+            },
+            {
+              "slot": 1,
+              "signal": "CODEC_OUT_2",
+              "scope": "D24",
+              "note": "AK4916 DAC ch2"
+            },
+            {
+              "slot": 2,
+              "signal": "CODEC_OUT_3",
+              "scope": "D24",
+              "note": "aux out L"
+            },
+            {
+              "slot": 3,
+              "signal": "CODEC_OUT_4",
+              "scope": "D24",
+              "note": "aux out R"
+            },
+            {
+              "slot": 0,
+              "signal": "SNAKE_OUT_01",
+              "scope": "D32"
+            },
+            {
+              "slot": 1,
+              "signal": "SNAKE_OUT_02",
+              "scope": "D32"
+            },
+            {
+              "slot": 2,
+              "signal": "SNAKE_OUT_03",
+              "scope": "D32"
+            },
+            {
+              "slot": 3,
+              "signal": "SNAKE_OUT_04",
+              "scope": "D32"
+            },
+            {
+              "slot": 4,
+              "signal": "SNAKE_OUT_05",
+              "scope": "D32"
+            },
+            {
+              "slot": 5,
+              "signal": "SNAKE_OUT_06",
+              "scope": "D32"
+            },
+            {
+              "slot": 6,
+              "signal": "SNAKE_OUT_07",
+              "scope": "D32"
+            },
+            {
+              "slot": 7,
+              "signal": "SNAKE_OUT_08",
+              "scope": "D32"
+            }
+          ]
+        },
+        {
+          "line": "B_O3",
+          "port": "O3",
+          "sport_id": 3,
+          "format": "TDM8",
+          "slot_count": 8,
+          "status": "provisional",
+          "external_net": "DAC_MAIN",
+          "clock_pair": "CG1",
+          "slots": [
+            {
+              "slot": 0,
+              "signal": "DAC_MAIN_L",
+              "scope": "BOTH",
+              "note": "provisional - no D24 sink found (rev B)"
+            },
+            {
+              "slot": 1,
+              "signal": "DAC_MAIN_R",
+              "scope": "BOTH",
+              "note": "provisional"
+            }
+          ]
+        },
+        {
+          "line": "B_O4",
+          "port": "O4",
+          "sport_id": 4,
+          "format": "TDM8",
+          "slot_count": 8,
+          "status": "ok",
+          "external_net": "NET",
+          "clock_pair": "CG3",
+          "slots": [
+            {
+              "slot": 0,
+              "signal": "NET_OUT_01",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 1,
+              "signal": "NET_OUT_02",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 2,
+              "signal": "NET_OUT_03",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 3,
+              "signal": "NET_OUT_04",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 4,
+              "signal": "NET_OUT_05",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 5,
+              "signal": "NET_OUT_06",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 6,
+              "signal": "NET_OUT_07",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 7,
+              "signal": "NET_OUT_08",
+              "scope": "BOTH"
+            }
+          ]
+        },
+        {
+          "line": "B_O5",
+          "port": "O5",
+          "sport_id": 5,
+          "format": "TDM8",
+          "slot_count": 8,
+          "status": "ok",
+          "external_net": "NET",
+          "clock_pair": "CG3",
+          "slots": [
+            {
+              "slot": 0,
+              "signal": "NET_OUT_09",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 1,
+              "signal": "NET_OUT_10",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 2,
+              "signal": "NET_OUT_11",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 3,
+              "signal": "NET_OUT_12",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 4,
+              "signal": "NET_OUT_13",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 5,
+              "signal": "NET_OUT_14",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 6,
+              "signal": "NET_OUT_15",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 7,
+              "signal": "NET_OUT_16",
+              "scope": "BOTH"
+            }
+          ]
+        },
+        {
+          "line": "B_O6",
+          "port": "O6",
+          "sport_id": 6,
+          "format": "TDM8",
+          "slot_count": 8,
+          "status": "ok",
+          "external_net": "NET",
+          "clock_pair": "CG3",
+          "slots": [
+            {
+              "slot": 0,
+              "signal": "NET_OUT_17",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 1,
+              "signal": "NET_OUT_18",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 2,
+              "signal": "NET_OUT_19",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 3,
+              "signal": "NET_OUT_20",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 4,
+              "signal": "NET_OUT_21",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 5,
+              "signal": "NET_OUT_22",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 6,
+              "signal": "NET_OUT_23",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 7,
+              "signal": "NET_OUT_24",
+              "scope": "BOTH"
+            }
+          ]
+        },
+        {
+          "line": "B_O7",
+          "port": "O7",
+          "sport_id": 7,
+          "format": "TDM8",
+          "slot_count": 8,
+          "status": "ok",
+          "external_net": "NET",
+          "clock_pair": "CG3",
+          "slots": [
+            {
+              "slot": 0,
+              "signal": "NET_OUT_25",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 1,
+              "signal": "NET_OUT_26",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 2,
+              "signal": "NET_OUT_27",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 3,
+              "signal": "NET_OUT_28",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 4,
+              "signal": "NET_OUT_29",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 5,
+              "signal": "NET_OUT_30",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 6,
+              "signal": "NET_OUT_31",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 7,
+              "signal": "NET_OUT_32",
+              "scope": "BOTH"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,25 @@
+line_id,dspa_port,dspb_port,external_net,format,slot_count,clock_pair_dspa,clock_pair_dspb,scope,status,note
+A_I0,I0,,AD0|NET,TDM8,8,CG0,,BOTH,ok,D24: ADC8 #1 (mic/line ch 1-4 & 13-16); LOGIC muxes ADC vs NET return
+A_I1,I1,,AD1|NET,TDM8,8,CG0,,BOTH,ok,D24: ADC8 #2 (mic/line ch 5-8 & 17-20)
+A_I2,I2,,AD2|NET,TDM8,8,CG0,,BOTH,ok,D24: ADC8 #3 (mic/line ch 9-12 & 21-24)
+A_I3,I3,,AD3|NET,TDM8,8,CG0,,BOTH,ok,No D24 ADC on AD3 (D32_COMPAT J33 / NET mux only) - D24 inputs 25-32 are NET-only
+A_I4,I4,,CDC_O,TDM8,8,CG2,,BOTH,ok,AK4916 CODEC4 ADC return (talkback XLR + aux in; codec on D24 Analog PCBA via PLL8 group)
+A_I5,I5,,SNAKE,TDM8,8,CG2,,D32,ok,D32 snake return; unused on D24
+A_I6,I6,,PI_PCM,TDM8,8,CG2,,BOTH,provisional,Pi CM4 PCM (GPIO18-21); LOGIC re-frames Pi I2S into TDM8 slots 0-1
+A_I7,I7,,MEMS,TDM8,8,CG2,,BOTH,ok,ADAU7302 PDM bridge; strap 47K = TDM8 slot 5 (0R = I2S alt mode not used)
+MIX_0,O0,I0,,TDM16,16,CG1,CG0,BOTH,ok,Inter-chip mix fabric MIX_1_16 (DSPA sums; DSPB consumes)
+MIX_1,O1,I1,,TDM16,16,CG1,CG0,BOTH,ok,Inter-chip mix fabric MIX_17_32
+MIX_2,O2,I2,,TDM16,16,CG1,CG0,BOTH,reserved,Inter-chip mix fabric MIX_33_48 - reserved for 128-bus growth
+MIX_3,O3,I3,,TDM16,16,CG1,CG0,BOTH,reserved,Inter-chip mix fabric MIX_49_64 - reserved
+MIX_4,O4,I4,,TDM16,16,CG3,CG2,BOTH,reserved,Inter-chip mix fabric MIX_65_80 - reserved
+MIX_5,O5,I5,,TDM16,16,CG3,CG2,BOTH,reserved,Inter-chip mix fabric MIX_81_96 - reserved
+MIX_6,O6,I6,,TDM16,16,CG3,CG2,BOTH,reserved,Inter-chip mix fabric MIX_97_112 - reserved
+MIX_7,O7,I7,,TDM16,16,CG3,CG2,BOTH,reserved,Inter-chip mix fabric MIX_113_128 - reserved
+B_O0,,O0,DA0,TDM8,8,,CG1,BOTH,ok,DAC8 OUT_1-8 -> line outs 1-8 (FPC J42/J59)
+B_O1,,O1,DA3,TDM8,8,,CG1,BOTH,ok,DAC8 OUT_9-16 -> line outs 9-16. Routes to DA3 NOT DA1 (DA1 dead-ends at Digital J18; review 2026-07-30)
+B_O2,,O2,CDC_I|SNAKE,TDM8,8,,CG1,BOTH,ok,D24: AK4916 codec DAC (talkback SPKR + aux out) / D32: snake out
+B_O3,,O3,DAC_MAIN,TDM8,8,,CG1,BOTH,provisional,DAC MAIN: no sink found on D24 Analog rev B - verify intent before use
+B_O4,,O4,NET,TDM8,8,,CG3,BOTH,ok,NET 1-8 out - LOGIC muxes onto option-card NO lines
+B_O5,,O5,NET,TDM8,8,,CG3,BOTH,ok,NET 9-16 out
+B_O6,,O6,NET,TDM8,8,,CG3,BOTH,ok,NET 17-24 out
+B_O7,,O7,NET,TDM8,8,,CG3,BOTH,ok,NET 25-32 out
