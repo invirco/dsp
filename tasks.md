@@ -163,12 +163,25 @@ Hardware ground truth: [MW/D24/HW/hardware-map.md](MW/D24/HW/hardware-map.md)
     superseded single-SPORT7 model — removed rather than left to
     mislead; ISR + pointer init retained per chip. Fit-proxy build 695
     objects / 0 errors.
-  - Slice 2 NEXT: SRU routing + half-SPORT CTL/MCTL/CS from the lane
-    tables via <def21564.h>/<sru21564.h> (test def-header include under
-    easm21k early — asm-mode compatibility).
-  - Slice 3: DDE 2-descriptor rings + SEC block-clock ISR + ivt wiring.
-    Then SPI handler real REG_SPI1_* addresses (same invented-address
-    problem).
+  - Slice 2 DONE (2026-07-31): register bring-up is in C (ADI's SRU()
+    macros are C-only; def-header constants work in asm but not the
+    route macros). New `src/sru_config.c` (full DAI0/DAI1 route set incl.
+    the pin-19/20 swap) + `src/sport_config.c` (CTL/MCTL/CS per half
+    from generated tables; SPEN deferred to slice 3). Lane tables now
+    generate as `chipN/lane_config.c` (C-to-C linkage — the BA-SHARC C
+    ABI dot-mangles symbols; asm↔C data sharing avoided; entry fns use
+    `#pragma linkage_name`). main.asm gained C-ABI stack init
+    (ldf_stack link-time expressions, ADI lib_setup_c idiom). build.sh:
+    per-chip C compiles with -DCHIP_ID; CFLAGS -O2→-O (cc21k). LDF:
+    added BW-qualified seg_dmda output sections — cc21k emits
+    byte-addressed data that a DM-only mapping silently drops
+    (li1060), same dual-mapping idiom as the CCES stock LDF.
+  - Slice 3 NEXT: DDE 2-descriptor rings per lane + SEC block-clock
+    (SPORT0_A_DMA source 37) + ivt wiring + set SPEN after DMA armed.
+    C needs the buffer addresses — pass from asm via C-ABI args or
+    generate address-holder C globals. Then SPI handler real
+    REG_SPI1_* addresses (same invented-address problem; FLAGS_REG in
+    main.asm too).
   - CKRE/MFD are PROVISIONAL until dsp4-logic RTL fixes them — encode
     the choice in shared/dsp4-logic conventions when made.
   - Pre-existing warning to clear while in there: ramp_tables.asm

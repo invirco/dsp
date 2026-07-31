@@ -43,6 +43,9 @@
 
 /* External symbols */
 .extern _sport_init;
+.extern _sru_init;
+.extern _sport_cfg_init;
+.extern ldf_stack_space, ldf_stack_length;
 .extern _block_ready;
 .extern _rx_active_buf, _tx_active_buf;
 .extern _ic_rx_active_buf, _ic_tx_active_buf;
@@ -83,7 +86,24 @@ _start:
 .chip_set:
     dm(_chip_id) = r0;
 
-    /* Initialize SPORT, DMA, SPI, interrupts */
+    /* ---- C runtime stack (i6/i7) for the C config functions ----
+     * Uses the LDF's RESERVE(ldf_stack_space, ldf_stack_length) block.
+     * Descending stack; top aligned down to 8 address units (same
+     * idiom as the CCES lib_setup_c). */
+    b7 = ldf_stack_space;
+    i7 = ((ldf_stack_space + ldf_stack_length - 1)
+          - ((ldf_stack_space + ldf_stack_length - 1) % 8));
+    l7 = 0;
+    b6 = ldf_stack_space;
+    i6 = i7;
+    l6 = 0;
+
+    /* DAI/SRU routing + half-SPORT multichannel config (C, per
+     * dsp4-plumbing.md; SPEN deferred to slice 3 with the DMA rings) */
+    call _sru_init;
+    call _sport_cfg_init;
+
+    /* Buffer pointers + block ISR state (asm stub until slice 3) */
     call _sport_init;
 
     /* Wait for product config from the Pi/CM4 host (D1) — the host

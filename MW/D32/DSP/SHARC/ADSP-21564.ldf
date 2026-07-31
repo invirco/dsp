@@ -126,6 +126,21 @@ SECTIONS
         INPUT_SECTIONS( $COMMAND_LINE_OBJECTS(seg_dmda) )
     } > mem_block1_bw
 
+    /* Byte-addressed data from cc21k-compiled C (the C ABI emits
+     * byte-addressed seg_dmda; a BW-qualified output section is needed
+     * to place it — same dual-mapping idiom as the CCES stock LDF). */
+    sec_dmda_c_bw BW
+    {
+        INPUT_SECTION_ALIGN(4)
+        INPUT_SECTIONS( $COMMAND_LINE_OBJECTS(seg_dmda) )
+    } > mem_block0_bw
+
+    sec_dmda_c_bw_ovf BW
+    {
+        INPUT_SECTION_ALIGN(4)
+        INPUT_SECTIONS( $COMMAND_LINE_OBJECTS(seg_dmda) )
+    } > mem_block1_bw
+
     /*------------------------------------------------------------------
      * DMA ping-pong buffers (ADC/DAC + inter-chip, cache-coherent)
      *------------------------------------------------------------------*/

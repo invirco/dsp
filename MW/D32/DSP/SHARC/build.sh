@@ -35,7 +35,7 @@ PROC="-proc $PROC_TARGET"
 ASMFLAGS="$PROC"
 
 # Compiler flags (for any C files)
-CFLAGS="$PROC -O2 -DNDEBUG"
+CFLAGS="$PROC -O -DNDEBUG"
 
 # Linker flags — LDF resolved in build(): the repo LDF hardcodes
 # ARCHITECTURE(ADSP-21564); for a fit-proxy build under a different
@@ -161,14 +161,26 @@ build() {
     echo "--- Chip 2: Nodes ---"
     assemble_dir "$SRC_DIR/chip2/nodes" "$BUILD_DIR/chip2" "chip2-nodes" || total_errors=$((total_errors+$?))
 
-    # ---- Compile any C files ----
-    for csrc in "$SRC_DIR"/chip1/*.c "$SRC_DIR"/chip2/*.c "$SRC_DIR"/*.c; do
+    # ---- Compile C files ----
+    # Shared (root src/) C is compiled TWICE with -DCHIP_ID, like the
+    # shared asm infra; chipN/ C compiles once with its chip define.
+    for csrc in "$SRC_DIR"/*.c; do
         [ -f "$csrc" ] || continue
         base=$(basename "$csrc" .c)
-        dir=$(dirname "$csrc")
-        rel=${dir#$SRC_DIR/}
-        echo "  CC: $rel/$base.c"
-        $CC21K $CFLAGS -c -o "$BUILD_DIR/$rel/$base.doj" "$csrc" || total_errors=$((total_errors+1))
+        for chip in 1 2; do
+            echo "  CC: $base.c (CHIP_ID=$chip)"
+            $CC21K $CFLAGS -DCHIP_ID=$chip -c \
+                -o "$BUILD_DIR/chip$chip/$base.doj" "$csrc" || total_errors=$((total_errors+1))
+        done
+    done
+    for chip in 1 2; do
+        for csrc in "$SRC_DIR"/chip$chip/*.c; do
+            [ -f "$csrc" ] || continue
+            base=$(basename "$csrc" .c)
+            echo "  CC: chip$chip/$base.c"
+            $CC21K $CFLAGS -DCHIP_ID=$chip -c \
+                -o "$BUILD_DIR/chip$chip/$base.doj" "$csrc" || total_errors=$((total_errors+1))
+        done
     done
 
     # ---- Link Chip 1 ----

@@ -450,40 +450,6 @@
     _tx_slot_C1_XS_XFER_SNAKE_07,
     _tx_slot_C1_XS_XFER_SNAKE_08;
 
-/* Lane config consumed by sport_init.asm */
-.global _c1_rx_lanes_count;
-.var _c1_rx_lanes_count = 8;
-.global _c1_rx_lanes_dir;    /* 0 = RX (half A), 1 = TX (half B) */
-.var _c1_rx_lanes_dir = 0;
-.global _c1_rx_lanes_mcpde;
-.var _c1_rx_lanes_mcpde = 1;
-.global _c1_rx_lanes_wsize;
-.var _c1_rx_lanes_wsize = 7;
-.global _c1_rx_lanes;    /* per lane: sport, cs_mask, words/sample, region_off */
-.var _c1_rx_lanes[32] =
-    0, 0x00FF, 8, 0,
-    1, 0x00FF, 8, 256,
-    2, 0x00FF, 8, 512,
-    3, 0x00FF, 8, 768,
-    4, 0x000D, 3, 1024,
-    5, 0x00FF, 8, 1120,
-    6, 0x0003, 2, 1376,
-    7, 0x0020, 1, 1440;
-
-.global _c1_ic_lanes_count;
-.var _c1_ic_lanes_count = 3;
-.global _c1_ic_lanes_dir;    /* 0 = RX (half A), 1 = TX (half B) */
-.var _c1_ic_lanes_dir = 1;
-.global _c1_ic_lanes_mcpde;
-.var _c1_ic_lanes_mcpde = 1;
-.global _c1_ic_lanes_wsize;
-.var _c1_ic_lanes_wsize = 15;
-.global _c1_ic_lanes;    /* per lane: sport, cs_mask, words/sample, region_off */
-.var _c1_ic_lanes[12] =
-    0, 0xFFFF, 16, 0,
-    1, 0xFFFF, 16, 512,
-    2, 0x001F, 5, 1024;
-
 .global _dma_rx_region_words;
 .var _dma_rx_region_words = 1472;
 .global _dma_ic_region_words;
