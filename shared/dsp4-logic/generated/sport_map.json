@@ -1,6 +1,6 @@
 {
   "generated_by": "shared/dsp4-logic/gen_slot_map.py",
-  "source_hash": "794447b280bd1dd265bf5c8ded150532d20d50b33b2fd6d66db37615bfcf7173",
+  "source_hash": "6e89117c4d173ecf1b99ff100138b079a37e7833042d5bb129f9a21725220069",
   "sport_convention": "sport_id = DAI port index; I ports are RX, O ports are TX; chip1=DSPA, chip2=DSPB",
   "mix_fabric": {
     "lines": 8,
@@ -156,6 +156,78 @@
         "global_slot": 24,
         "line": "MIX_1",
         "slot": 8
+      },
+      {
+        "signal": "XFER_CODEC_AUX_L",
+        "global_slot": 25,
+        "line": "MIX_1",
+        "slot": 9
+      },
+      {
+        "signal": "XFER_CODEC_AUX_R",
+        "global_slot": 26,
+        "line": "MIX_1",
+        "slot": 10
+      },
+      {
+        "signal": "XFER_PI_L",
+        "global_slot": 27,
+        "line": "MIX_1",
+        "slot": 11
+      },
+      {
+        "signal": "XFER_PI_R",
+        "global_slot": 28,
+        "line": "MIX_1",
+        "slot": 12
+      },
+      {
+        "signal": "XFER_SNAKE_01",
+        "global_slot": 29,
+        "line": "MIX_1",
+        "slot": 13
+      },
+      {
+        "signal": "XFER_SNAKE_02",
+        "global_slot": 30,
+        "line": "MIX_1",
+        "slot": 14
+      },
+      {
+        "signal": "XFER_SNAKE_03",
+        "global_slot": 31,
+        "line": "MIX_1",
+        "slot": 15
+      },
+      {
+        "signal": "XFER_SNAKE_04",
+        "global_slot": 32,
+        "line": "MIX_2",
+        "slot": 0
+      },
+      {
+        "signal": "XFER_SNAKE_05",
+        "global_slot": 33,
+        "line": "MIX_2",
+        "slot": 1
+      },
+      {
+        "signal": "XFER_SNAKE_06",
+        "global_slot": 34,
+        "line": "MIX_2",
+        "slot": 2
+      },
+      {
+        "signal": "XFER_SNAKE_07",
+        "global_slot": 35,
+        "line": "MIX_2",
+        "slot": 3
+      },
+      {
+        "signal": "XFER_SNAKE_08",
+        "global_slot": 36,
+        "line": "MIX_2",
+        "slot": 4
       }
     ]
   },
@@ -653,7 +725,47 @@
               "slot": 8,
               "signal": "BUS_FX_06",
               "scope": "BOTH",
-              "note": "global mix slot 24; slots 25-127 reserved"
+              "note": "global mix slot 24"
+            },
+            {
+              "slot": 9,
+              "signal": "XFER_CODEC_AUX_L",
+              "scope": "BOTH",
+              "note": "superset input pass-through chip1->chip2 (codec aux in L = CODEC_RET_3)"
+            },
+            {
+              "slot": 10,
+              "signal": "XFER_CODEC_AUX_R",
+              "scope": "BOTH",
+              "note": "codec aux in R = CODEC_RET_4"
+            },
+            {
+              "slot": 11,
+              "signal": "XFER_PI_L",
+              "scope": "BOTH",
+              "note": "Pi playback L pass-through"
+            },
+            {
+              "slot": 12,
+              "signal": "XFER_PI_R",
+              "scope": "BOTH",
+              "note": "Pi playback R pass-through"
+            },
+            {
+              "slot": 13,
+              "signal": "XFER_SNAKE_01",
+              "scope": "D32",
+              "note": "snake return pass-through"
+            },
+            {
+              "slot": 14,
+              "signal": "XFER_SNAKE_02",
+              "scope": "D32"
+            },
+            {
+              "slot": 15,
+              "signal": "XFER_SNAKE_03",
+              "scope": "D32"
             }
           ]
         },
@@ -663,9 +775,36 @@
           "sport_id": 2,
           "format": "TDM16",
           "slot_count": 16,
-          "status": "reserved",
+          "status": "ok",
           "clock_pair": "CG1",
-          "slots": []
+          "slots": [
+            {
+              "slot": 0,
+              "signal": "XFER_SNAKE_04",
+              "scope": "D32"
+            },
+            {
+              "slot": 1,
+              "signal": "XFER_SNAKE_05",
+              "scope": "D32"
+            },
+            {
+              "slot": 2,
+              "signal": "XFER_SNAKE_06",
+              "scope": "D32"
+            },
+            {
+              "slot": 3,
+              "signal": "XFER_SNAKE_07",
+              "scope": "D32"
+            },
+            {
+              "slot": 4,
+              "signal": "XFER_SNAKE_08",
+              "scope": "D32",
+              "note": "global mix slot 36; slots 37-127 reserved"
+            }
+          ]
         },
         {
           "line": "MIX_3",
@@ -871,7 +1010,47 @@
               "slot": 8,
               "signal": "BUS_FX_06",
               "scope": "BOTH",
-              "note": "global mix slot 24; slots 25-127 reserved"
+              "note": "global mix slot 24"
+            },
+            {
+              "slot": 9,
+              "signal": "XFER_CODEC_AUX_L",
+              "scope": "BOTH",
+              "note": "superset input pass-through chip1->chip2 (codec aux in L = CODEC_RET_3)"
+            },
+            {
+              "slot": 10,
+              "signal": "XFER_CODEC_AUX_R",
+              "scope": "BOTH",
+              "note": "codec aux in R = CODEC_RET_4"
+            },
+            {
+              "slot": 11,
+              "signal": "XFER_PI_L",
+              "scope": "BOTH",
+              "note": "Pi playback L pass-through"
+            },
+            {
+              "slot": 12,
+              "signal": "XFER_PI_R",
+              "scope": "BOTH",
+              "note": "Pi playback R pass-through"
+            },
+            {
+              "slot": 13,
+              "signal": "XFER_SNAKE_01",
+              "scope": "D32",
+              "note": "snake return pass-through"
+            },
+            {
+              "slot": 14,
+              "signal": "XFER_SNAKE_02",
+              "scope": "D32"
+            },
+            {
+              "slot": 15,
+              "signal": "XFER_SNAKE_03",
+              "scope": "D32"
             }
           ]
         },
@@ -881,9 +1060,36 @@
           "sport_id": 2,
           "format": "TDM16",
           "slot_count": 16,
-          "status": "reserved",
+          "status": "ok",
           "clock_pair": "CG0",
-          "slots": []
+          "slots": [
+            {
+              "slot": 0,
+              "signal": "XFER_SNAKE_04",
+              "scope": "D32"
+            },
+            {
+              "slot": 1,
+              "signal": "XFER_SNAKE_05",
+              "scope": "D32"
+            },
+            {
+              "slot": 2,
+              "signal": "XFER_SNAKE_06",
+              "scope": "D32"
+            },
+            {
+              "slot": 3,
+              "signal": "XFER_SNAKE_07",
+              "scope": "D32"
+            },
+            {
+              "slot": 4,
+              "signal": "XFER_SNAKE_08",
+              "scope": "D32",
+              "note": "global mix slot 36; slots 37-127 reserved"
+            }
+          ]
         },
         {
           "line": "MIX_3",

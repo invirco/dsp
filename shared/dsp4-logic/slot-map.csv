@@ -70,7 +70,19 @@ MIX_1,4,BUS_FX_02,BOTH,
 MIX_1,5,BUS_FX_03,BOTH,
 MIX_1,6,BUS_FX_04,BOTH,
 MIX_1,7,BUS_FX_05,BOTH,
-MIX_1,8,BUS_FX_06,BOTH,global mix slot 24; slots 25-127 reserved
+MIX_1,8,BUS_FX_06,BOTH,global mix slot 24
+MIX_1,9,XFER_CODEC_AUX_L,BOTH,superset input pass-through chip1->chip2 (codec aux in L = CODEC_RET_3)
+MIX_1,10,XFER_CODEC_AUX_R,BOTH,codec aux in R = CODEC_RET_4
+MIX_1,11,XFER_PI_L,BOTH,Pi playback L pass-through
+MIX_1,12,XFER_PI_R,BOTH,Pi playback R pass-through
+MIX_1,13,XFER_SNAKE_01,D32,snake return pass-through
+MIX_1,14,XFER_SNAKE_02,D32,
+MIX_1,15,XFER_SNAKE_03,D32,
+MIX_2,0,XFER_SNAKE_04,D32,
+MIX_2,1,XFER_SNAKE_05,D32,
+MIX_2,2,XFER_SNAKE_06,D32,
+MIX_2,3,XFER_SNAKE_07,D32,
+MIX_2,4,XFER_SNAKE_08,D32,global mix slot 36; slots 37-127 reserved
 B_O0,0,DAC_01,BOTH,
 B_O0,1,DAC_02,BOTH,
 B_O0,2,DAC_03,BOTH,

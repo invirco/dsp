@@ -9,7 +9,7 @@ A_I6,I6,,PI_PCM,TDM8,8,CG2,,BOTH,provisional,Pi CM4 PCM (GPIO18-21); LOGIC re-fr
 A_I7,I7,,MEMS,TDM8,8,CG2,,BOTH,ok,ADAU7302 PDM bridge; strap 47K = TDM8 slot 5 (0R = I2S alt mode not used)
 MIX_0,O0,I0,,TDM16,16,CG1,CG0,BOTH,ok,Inter-chip mix fabric MIX_1_16 (DSPA sums; DSPB consumes)
 MIX_1,O1,I1,,TDM16,16,CG1,CG0,BOTH,ok,Inter-chip mix fabric MIX_17_32
-MIX_2,O2,I2,,TDM16,16,CG1,CG0,BOTH,reserved,Inter-chip mix fabric MIX_33_48 - reserved for 128-bus growth
+MIX_2,O2,I2,,TDM16,16,CG1,CG0,BOTH,ok,Inter-chip mix fabric MIX_33_48 - slots 0-4 carry superset-input pass-through (snake 4-8); 5-15 reserved
 MIX_3,O3,I3,,TDM16,16,CG1,CG0,BOTH,reserved,Inter-chip mix fabric MIX_49_64 - reserved
 MIX_4,O4,I4,,TDM16,16,CG3,CG2,BOTH,reserved,Inter-chip mix fabric MIX_65_80 - reserved
 MIX_5,O5,I5,,TDM16,16,CG3,CG2,BOTH,reserved,Inter-chip mix fabric MIX_81_96 - reserved
