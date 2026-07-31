@@ -1,0 +1,25 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run ADSP-2156x Fetch Script",
+			"type": "process",
+			"command": "${workspaceFolder}/fetch-adsp2156x-docs-resilient.sh",
+			"args": [
+				"--out",
+				"/home/peter/Stonepower Dropbox/Peter Watts/_mx/_temp/adsp-2156x-docs"
+			],
+			"isBackground": false,
+			"group": "build",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated",
+				"clear": true
+			},
+			"problemMatcher": []
+		}
+	]
+}
