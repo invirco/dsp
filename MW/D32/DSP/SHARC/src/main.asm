@@ -5,7 +5,7 @@
  *   1. Hardware reset → interrupt vector table → _start
  *   2. Detect chip identity from FLAG0 pin
  *   3. Initialize SPORT/DMA/SPI (sport_init.asm)
- *   4. Wait for H1S1 boot config (CHAN_MASK, AUX_MASK)
+ *   4. Wait for Pi product config (PRODUCT_ID, CHAN_MASK, ... + COMMIT)
  *   5. Enter main loop: wait for _block_ready, run 32-sample block
  *
  * Block processing (per DMA completion):
@@ -30,7 +30,8 @@
 .global _chip_id;
 .var _chip_id = 0;                /* 1 = Chip 1 (Input DSP), 2 = Chip 2 (Output DSP) */
 
-/* Boot config received flag */
+/* Boot config received flag (set by product_config.asm CONFIG_COMMIT) */
+.global _boot_config_received;
 .var _boot_config_received = 0;
 
 /* Sample index within current block (0..31) */
@@ -85,8 +86,9 @@ _start:
     /* Initialize SPORT, DMA, SPI, interrupts */
     call _sport_init;
 
-    /* Wait for boot config from H1S1 MCU */
-    /* H1S1 sends CHAN_MASK and AUX_MASK via SPI after power-on handshake */
+    /* Wait for product config from the Pi/CM4 host (D1) — the host
+     * writes the 0xF000+ config registers then CONFIG_COMMIT, which
+     * applies input patch + scope gates and sets the flag below. */
 .wait_boot:
     r0 = dm(_boot_config_received);
     r1 = 0;

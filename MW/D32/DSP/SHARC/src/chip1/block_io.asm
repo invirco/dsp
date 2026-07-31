@@ -98,6 +98,109 @@
     _rx_slot_C1_XIN_PI_R,
     _rx_slot_C1_XIN_MEMS;
 
+.global _c1_rx_slot_count;
+.var _c1_rx_slot_count = 46;
+
+/* Boot-time input patch (product config, SPI regs 0xF010+):
+ * _rx_patch_regs[i] = packed default index whose slot var receives
+ * DMA channel i. Identity by default; the D24 console-channel
+ * interleave is written by the Pi and applied at CONFIG_COMMIT. */
+.global _rx_patch_regs;
+.var _rx_patch_regs[46] =
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45;
+.var _c1_rx_slot_defaults[46] =
+    _rx_slot_C1_IN_01,
+    _rx_slot_C1_IN_02,
+    _rx_slot_C1_IN_03,
+    _rx_slot_C1_IN_04,
+    _rx_slot_C1_IN_05,
+    _rx_slot_C1_IN_06,
+    _rx_slot_C1_IN_07,
+    _rx_slot_C1_IN_08,
+    _rx_slot_C1_IN_09,
+    _rx_slot_C1_IN_10,
+    _rx_slot_C1_IN_11,
+    _rx_slot_C1_IN_12,
+    _rx_slot_C1_IN_13,
+    _rx_slot_C1_IN_14,
+    _rx_slot_C1_IN_15,
+    _rx_slot_C1_IN_16,
+    _rx_slot_C1_IN_17,
+    _rx_slot_C1_IN_18,
+    _rx_slot_C1_IN_19,
+    _rx_slot_C1_IN_20,
+    _rx_slot_C1_IN_21,
+    _rx_slot_C1_IN_22,
+    _rx_slot_C1_IN_23,
+    _rx_slot_C1_IN_24,
+    _rx_slot_C1_IN_25,
+    _rx_slot_C1_IN_26,
+    _rx_slot_C1_IN_27,
+    _rx_slot_C1_IN_28,
+    _rx_slot_C1_IN_29,
+    _rx_slot_C1_IN_30,
+    _rx_slot_C1_IN_31,
+    _rx_slot_C1_IN_32,
+    _rx_slot_C1_XIN_CODEC_01,
+    _rx_slot_C1_XIN_CODEC_03,
+    _rx_slot_C1_XIN_CODEC_04,
+    _rx_slot_C1_XIN_SNK_01,
+    _rx_slot_C1_XIN_SNK_02,
+    _rx_slot_C1_XIN_SNK_03,
+    _rx_slot_C1_XIN_SNK_04,
+    _rx_slot_C1_XIN_SNK_05,
+    _rx_slot_C1_XIN_SNK_06,
+    _rx_slot_C1_XIN_SNK_07,
+    _rx_slot_C1_XIN_SNK_08,
+    _rx_slot_C1_XIN_PI_L,
+    _rx_slot_C1_XIN_PI_R,
+    _rx_slot_C1_XIN_MEMS;
+
 /* IC TX send entries: {slot_offset, var_ptr} pairs (37 sends) */
 .extern _tx_slot_C1_BUS_MAIN_L_SEND;
 .extern _tx_slot_C1_BUS_MAIN_R_SEND;
@@ -285,3 +388,27 @@ _gather_chip1:
         nop;
     rts;
 _gather_chip1.end:
+
+/* Apply boot-time input patch: ptrs[i] = defaults[patch[i]] */
+.global _rx_patch_apply;
+_rx_patch_apply:
+    i0 = _rx_patch_regs;
+    i1 = _c1_rx_slot_ptrs;
+    r5 = 46;
+    r6 = 45;          /* clamp bound */
+    lcntr = r5; do .c1_rxpatch until lce;
+        r2 = dm(i0, 1);       /* patch index */
+        comp(r2, r6);
+        if gt r2 = r6;        /* clamp out-of-range index */
+        r3 = 0;
+        comp(r2, r3);
+        if lt r2 = r3;
+        i2 = _c1_rx_slot_defaults;
+        m1 = r2;
+        modify(i2, m1);
+        r3 = dm(i2, 0);       /* default ptr at patch index */
+        dm(i1, 1) = r3;
+    .c1_rxpatch:
+        nop;
+    rts;
+_rx_patch_apply.end:

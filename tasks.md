@@ -130,14 +130,33 @@ Hardware ground truth: [MW/D24/HW/hardware-map.md](MW/D24/HW/hardware-map.md)
     resume notes above. LDF rebalance NOT needed yet (block2 overflow
     section absorbs code growth; DMA buffers fit block1 at 28.7%).
 
-- [ ] <span style="color:#2563eb"><b>NEXT</b></span> DSP4 firmware remaining (post-remap)
-  - sport_init.asm register plumbing — TODO(dsp4-plumbing) marker: 8-lane
-    fabric SPORT configs (all clock-slave to LOGIC), sparse-RX CS masks,
-    DMA channel map. Needs ADSP-2156x HRM.
-  - Product-config boot block: scope gating (D24/D32 `scope=` params now
-    in dsp.csv), B_O2 codec-vs-snake output mux, D24 input patch
-    (console-channel interleave), D32 snake OUTPUT patch.
-  - GrpGeq (P2 below) now unblocked by license for fit-proxy work.
+- [x] <span style="color:#16a34a"><b>DONE</b></span> (2026-07-31) Product-config boot block
+  - Register block at SPI 0xF000+ (PRODUCT_ID/CHAN_MASK/AUX_MASK/OUT_MUX/
+    CONFIG_COMMIT + chip-1 INPUT_PATCH regs at 0xF010+); spec + D24
+    interleave preset table in
+    [MW/D32/DSP/product-config.md](MW/D32/DSP/product-config.md).
+  - New `src/product_config.asm` (hand infra); generated per-chip
+    `scope_gates.asm` (from dsp.csv `scope=` params; force-off
+    wrong-product enables at commit) and RX patch machinery in chip-1
+    block_io (`_rx_patch_regs`/`_rx_patch_apply`, identity default,
+    clamped). Main loop still gates on `_boot_config_received`, now set
+    by CONFIG_COMMIT.
+  - BUG FIXED en route: both spi_handlers bounds-checked against stale
+    hardcoded sizes (3904/1820) — parameters above those addresses
+    (incl. the new superset/GEQ cells at 1818-1951) were rejected. Now
+    data-driven via generated `_spi_dispatch_cN_size`.
+  - Open: D32 snake output patch + OUT_MUX consumption in the TX gather;
+    verify D24 within-ADC8 slot order before bring-up (note in doc).
+  - Fit-proxy build: 695 objects, 0 errors, both chips link.
+
+- [ ] <span style="color:#2563eb"><b>NEXT</b></span> sport_init.asm register plumbing — TODO(dsp4-plumbing)
+  - 8-lane fabric SPORT configs (all clock-slave to LOGIC), sparse-RX CS
+    masks (codec 0x0F / snake 0xFF / Pi 0x03 / MEMS 0x20), DMA channel
+    map. HRM available: Dropbox `_mx/_temp/adsp-2156x-docs/
+    adsp-2156x_hwr.pdf` (rev 1.0, 2331 pp).
+  - Pre-existing warning to clear while in there: ramp_tables.asm
+    references `_ramp_profile_GainSafe`/`_ramp_profile_InstantCtl`
+    without .extern (ea1092 ×3, benign but sloppy).
 
 - [ ] <span style="color:#d97706"><b>IN PROGRESS</b></span> Create `shared/dsp4-logic/` CPLD tree
   - [x] <span style="color:#16a34a"><b>DONE</b></span> (2026-07-31) Slot/bus map source table + generator:

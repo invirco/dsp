@@ -60,11 +60,14 @@
 
 /* Chip 1 SPI dispatch table (in dsp_params.asm) — maps SPI address → DM target */
 .extern _spi_dispatch_c1;
+.extern _spi_dispatch_c1_size;   /* bounds for dispatch (generated) */
 
 /* SPI stats (debug) */
 .var _spi_rx_count = 0;
 .var _spi_err_count = 0;
 
+
+.extern _product_config_write;
 
 .section/pm seg_pmco;
 
@@ -107,8 +110,13 @@ _spi1_rx_isr:
     r4 = RAMP_PROFILE_MASK;
     r3 = r3 AND r4;
 
-    /* Bounds check address against dispatch table size */
-    r4 = 3904;
+    /* Product-config register block at 0xF000+ (product_config.asm) */
+    r4 = 0xF000;
+    comp(r2, r4);
+    if ge jump (pc, .spi_config);
+
+    /* Bounds check address against dispatch table size (generated) */
+    r4 = dm(_spi_dispatch_c1_size);
     comp(r2, r4);
     if ge jump (pc, .spi_error);
 
@@ -188,6 +196,11 @@ _spi1_rx_isr:
     dm(i1, 0) = r1;              /* write coefficient to target */
     jump (pc, .spi_done);
 
+.spi_config:
+    /* r2 = config address (0xF000+), r1 = value */
+    call _product_config_write;
+    jump (pc, .spi_done);
+
 .spi_error:
     r2 = dm(_spi_err_count);
     r5 = 1;
@@ -201,7 +214,7 @@ _spi1_rx_isr:
 .spi_read:
     /* READ request: look up DM value at address in r2, write to TFIFO */
     /* H1S1 receives this value on MISO during Word 1 of the transaction */
-    r4 = 3904;
+    r4 = dm(_spi_dispatch_c1_size);
     comp(r2, r4);
     if ge jump (pc, .spi_read_zero);     /* out-of-range → return 0 */
     i0 = _spi_dispatch_c1;

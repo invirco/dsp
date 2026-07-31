@@ -908,6 +908,10 @@ def _build_chip_params(chip_num, table_name, out_path):
         lines.append(f'.extern {sym};')
     lines.append('')
 
+    lines.append(f'/* ---- Table size for the SPI handler bounds check ---- */')
+    lines.append(f'.global {table_name}_size;')
+    lines.append(f'.var {table_name}_size = {size};')
+    lines.append('')
     lines.append(f'/* ---- Chip {chip_num} SPI dispatch table ({size} entries) ---- */')
     lines.append(f'.global {table_name};')
     lines.append(f'.var {table_name}[{size}] =')

@@ -697,6 +697,10 @@
 .extern _mtr_rms_C2_MTR_MAIN_04;
 .extern _xover_coeffs_next_C2_MAIN_XOVER;
 
+/* ---- Table size for the SPI handler bounds check ---- */
+.global _spi_dispatch_c2_size;
+.var _spi_dispatch_c2_size = 1952;
+
 /* ---- Chip 2 SPI dispatch table (1952 entries) ---- */
 .global _spi_dispatch_c2;
 .var _spi_dispatch_c2[1952] =

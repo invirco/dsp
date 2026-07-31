@@ -1754,6 +1754,10 @@
 .extern _tube_sat_C1_TUBE_31;
 .extern _tube_sat_C1_TUBE_32;
 
+/* ---- Table size for the SPI handler bounds check ---- */
+.global _spi_dispatch_c1_size;
+.var _spi_dispatch_c1_size = 4800;
+
 /* ---- Chip 1 SPI dispatch table (4800 entries) ---- */
 .global _spi_dispatch_c1;
 .var _spi_dispatch_c1[4800] =
