@@ -186,10 +186,21 @@ dsp.csv sport params), not kernels.
       build still green. Bit-exactness vs fixed_ref is asserted by
       construction and must be verified on simulator/hardware at
       bring-up (correspondence comments in the asm).
-    - NEXT: HPF_LPF, CROSSOVER, ANTI_FB, GEQ fixed variants (same core),
-      then gains/summing/ramps, then dynamics (log2/exp2 polys from
-      fixed_ref LOG2_POLY/EXP2_POLY as asm tables). --format fixed
-      becomes buildable only when every family is converted.
+    - DONE 2026-07-31 (cont.): full biquad family — GEQ + ANTI_FB via a
+      shared fixed-cascade emitter, HPF_LPF (independent hpf/lpf float
+      staging, fixed baseline copy + selective convert) and CROSSOVER
+      (LP/HP paths, both outputs blended). All five node types assemble
+      clean under --format fixed; float output byte-identical. Register
+      contract fixed en route: the fixed core clobbers r5-r12, so
+      crossfade bodies hold input/old-output in r13/r14 (lib preserves
+      r13-r15 — documented in biquad_fx.asm).
+    - NEXT: gains/summing/ramps family (GAIN, FADER_PAN, MIX_BUS,
+      ROUTING, bus accumulators, ramp engine, DCA, scatter/gather I/O
+      scaling Q1.31<->Q4.28), then dynamics (log2/exp2 poly tables from
+      fixed_ref as asm data, envelope + gain computer), then the
+      float<->fixed boundaries for the FX island and the param/ramp
+      write path. --format fixed becomes buildable only when every
+      family is converted.
 
 Binding decisions: [dsp4-architecture-decisions.md](dsp4-architecture-decisions.md)
 (D1 Pi masters DSP SPI, D2 CPLD in-repo w/ single-sourced slot map,

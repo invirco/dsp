@@ -24,7 +24,8 @@
  *       In:  r0 = x (Q4.28), i0 -> coeffs (5/stage), i1 -> state
  *            (6/stage), r4 = stage count
  *       Out: r0 = y (Q4.28); i0/i1 advanced past the used stages
- *       Clobbers: r1-r3, r5-r12, MRF
+ *       Clobbers: r1-r3, r5-r12, m1, MRF; PRESERVES r13-r15
+ *       (node crossfade bodies rely on r13/r14 surviving)
  *   _bq_fx_convert_N — float staged coeffs -> fixed offset coeffs
  *       In:  i0 -> float [b0,b1,b2,a1,a2] per stage (RBJ, from SPI),
  *            i1 -> fixed [b0,n1,n2,c1,c2] per stage, r4 = stage count

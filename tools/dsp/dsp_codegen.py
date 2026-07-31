@@ -4085,13 +4085,13 @@ def gen_eq_biquad_fixed(node):
             /* ===== crossfade: run both, blend fixed ===== */
         .eq_xfade_{nid}:
             r0 = dm(_buf_{inp});
-            r6 = r0;                      /* keep input */
+            r13 = r0;                     /* input (r13-r15 preserved by lib) */
             i0 = _eq_coeffs_A_{nid};
             i1 = _eq_state_A_{nid};
             r4 = {bands};
             call _bq_fx_cascade_N;
-            r7 = r0;                      /* ya */
-            r0 = r6;
+            r14 = r0;                     /* ya */
+            r0 = r13;
             i0 = _eq_coeffs_B_{nid};
             i1 = _eq_state_B_{nid};
             r4 = {bands};
@@ -4101,8 +4101,8 @@ def gen_eq_biquad_fixed(node):
             r4 = dm(_eq_active_{nid});
             r4 = pass r4;
             if eq jump (pc, .eq_bl_{nid});     /* active A -> new is B (r0) */
-            r5 = r7;                       /* new = ya */
-            r7 = r0;                       /* old = yb */
+            r5 = r14;                      /* new = ya */
+            r14 = r0;                      /* old = yb */
             r0 = r5;
         .eq_bl_{nid}:
             /* alpha_q31 = fix(alpha * 2^31); blend in MRF */
@@ -4111,7 +4111,7 @@ def gen_eq_biquad_fixed(node):
             f5 = r5;
             f4 = f4 * f5;
             r4 = fix f4;
-            r5 = r0 - r7;                  /* new - old */
+            r5 = r0 - r14;                 /* new - old */
             mrf = r5 * r4 (ssi);
             r5 = 0x40000000;               /* 2^30 rounding half */
             r12 = 1;
@@ -4121,7 +4121,7 @@ def gen_eq_biquad_fixed(node):
             r5 = lshift r5 by -31;
             r12 = lshift r12 by 1;
             r5 = r5 or r12;
-            r0 = r7 + r5;                  /* blended output */
+            r0 = r14 + r5;                 /* blended output */
             dm(_tap_post_eq_{nid}) = r0;
             dm(_buf_{nid}) = r0;
 
@@ -4177,8 +4177,690 @@ def gen_eq_biquad_fixed(node):
     """)
 
 
+
+def _fx_bypass5(stages):
+    """Q4.28 offset-form identity coefficient list for N stages."""
+    return ', '.join(
+        ['0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000'] * stages)
+
+
+def _fx_blend_asm(pfx, nid):
+    """Fixed blend: r0 = old(r7) + rns((new(r0)-old)*alpha_q31, 31);
+    advances alpha and finishes the crossfade. Emitted inside a node."""
+    return f"""\
+            /* alpha_q31 = fix(alpha * 2^31); blend in MRF */
+            f4 = dm(_{pfx}_xfade_alpha_{nid});
+            r5 = 0x4F000000;               /* 2^31 as float */
+            f5 = r5;
+            f4 = f4 * f5;
+            r4 = fix f4;
+            r5 = r0 - r14;                 /* new - old */
+            mrf = r5 * r4 (ssi);
+            r5 = 0x40000000;               /* 2^30 rounding half */
+            r12 = 1;
+            mrf = mrf + r5 * r12 (ssi);
+            r5 = mr0f;
+            r12 = mr1f;
+            r5 = lshift r5 by -31;
+            r12 = lshift r12 by 1;
+            r5 = r5 or r12;
+            r0 = r14 + r5;                 /* blended output */"""
+
+
+def _fx_cascade_node(node, pfx, stages, extra_dm='', extra_store=''):
+    """Fixed-point single-cascade crossfade node body (EQ/GEQ/AFB idiom).
+
+    Mirrors the float dual-instance contract exactly: float RBJ staging
+    from SPI (wire unchanged), _bq_fx_convert_N at swap time, Q4.28
+    offset coefficients, 6-word/stage state, fixed sample blend with
+    float control-plane alpha.
+    """
+    n5 = stages * 5
+    n6 = stages * 6
+    rc = ramp_comment(node['ramp_profile'])
+    bypass = _fx_bypass5(stages)
+    nid = node['id']
+    inp = node['inputs_str']
+    return dedent(f"""\
+        {rc}
+
+        /* {node['type']} (FIXED Q4.28, D5): {stages}-stage cascade, dual-instance crossfade */
+        /* SPI page={node['spi_page']} addr={node['spi_addr']} */
+        /* Normative model: tools/dsp/fixed_ref.py::biquad (offset form). */
+
+        .section/dm seg_dmda;
+{extra_dm}
+        .var _{pfx}_coeffs_A_{nid}[{n5}] = {bypass};
+        .var _{pfx}_state_A_{nid}[{n6}];
+        .var _{pfx}_coeffs_B_{nid}[{n5}] = {bypass};
+        .var _{pfx}_state_B_{nid}[{n6}];
+
+        /* SPI staging (FLOAT RBJ words — wire format unchanged) */
+        .var _{pfx}_coeffs_next_{nid}[{n5}];
+        .var _{pfx}_swap_pending_{nid} = 0;
+
+        .var _{pfx}_active_{nid} = 0;
+        .var _{pfx}_xfade_alpha_{nid} = 0.0;
+        .var _{pfx}_xfade_step_{nid} = 0.0;
+
+{extra_store and '        .var _tap_post_eq_' + nid + ';'}
+        .var _buf_{nid};
+
+        .section/pm seg_pmco;
+        .extern _bq_fx_cascade_N;
+        .extern _bq_fx_convert_N;
+        .global _{nid}_process;
+        _{nid}_process:
+
+            r4 = dm(_{pfx}_swap_pending_{nid});
+            r4 = pass r4;
+            if ne call _{pfx}_start_xfade_{nid};
+
+            r4 = dm(_{pfx}_xfade_step_{nid});
+            r4 = pass r4;
+            if ne jump (pc, .{pfx}_xfade_{nid});
+
+            /* ===== steady state ===== */
+            r0 = dm(_buf_{inp});
+            r4 = dm(_{pfx}_active_{nid});
+            r4 = pass r4;
+            if ne jump (pc, .{pfx}_ss_b_{nid});
+            i0 = _{pfx}_coeffs_A_{nid};
+            i1 = _{pfx}_state_A_{nid};
+            jump (pc, .{pfx}_ss_go_{nid});
+        .{pfx}_ss_b_{nid}:
+            i0 = _{pfx}_coeffs_B_{nid};
+            i1 = _{pfx}_state_B_{nid};
+        .{pfx}_ss_go_{nid}:
+            r4 = {stages};
+            call _bq_fx_cascade_N;
+{extra_store}
+            dm(_buf_{nid}) = r0;
+            rts;
+
+            /* ===== crossfade: run both, blend fixed ===== */
+        .{pfx}_xfade_{nid}:
+            r0 = dm(_buf_{inp});
+            r13 = r0;                     /* input (r13-r15 preserved by lib) */
+            i0 = _{pfx}_coeffs_A_{nid};
+            i1 = _{pfx}_state_A_{nid};
+            r4 = {stages};
+            call _bq_fx_cascade_N;
+            r14 = r0;                     /* ya */
+            r0 = r13;
+            i0 = _{pfx}_coeffs_B_{nid};
+            i1 = _{pfx}_state_B_{nid};
+            r4 = {stages};
+            call _bq_fx_cascade_N;        /* r0 = yb */
+
+            r4 = dm(_{pfx}_active_{nid});
+            r4 = pass r4;
+            if eq jump (pc, .{pfx}_bl_{nid});
+            r5 = r14;                     /* active B: new is A */
+            r14 = r0;
+            r0 = r5;
+        .{pfx}_bl_{nid}:
+{_fx_blend_asm(pfx, nid)}
+{extra_store}
+            dm(_buf_{nid}) = r0;
+
+            /* advance alpha (float control) */
+            f4 = dm(_{pfx}_xfade_alpha_{nid});
+            f5 = dm(_{pfx}_xfade_step_{nid});
+            f4 = f4 + f5;
+            dm(_{pfx}_xfade_alpha_{nid}) = f4;
+            r5 = 0x3F800000;
+            f5 = r5;
+            comp(f4, f5);
+            if lt rts;
+            r4 = dm(_{pfx}_active_{nid});
+            r5 = 1;
+            r4 = r4 xor r5;
+            dm(_{pfx}_active_{nid}) = r4;
+            r4 = 0;
+            dm(_{pfx}_xfade_step_{nid}) = r4;
+            dm(_{pfx}_xfade_alpha_{nid}) = r4;
+            rts;
+
+            /* ===== stage new coeffs into dormant ===== */
+        _{pfx}_start_xfade_{nid}:
+            r4 = 0;
+            dm(_{pfx}_swap_pending_{nid}) = r4;
+            i0 = _{pfx}_coeffs_next_{nid};
+            r4 = dm(_{pfx}_active_{nid});
+            r4 = pass r4;
+            if ne jump (pc, .{pfx}_st_a_{nid});
+            i1 = _{pfx}_coeffs_B_{nid};
+            i2 = _{pfx}_state_B_{nid};
+            jump (pc, .{pfx}_st_go_{nid});
+        .{pfx}_st_a_{nid}:
+            i1 = _{pfx}_coeffs_A_{nid};
+            i2 = _{pfx}_state_A_{nid};
+        .{pfx}_st_go_{nid}:
+            r4 = {stages};
+            call _bq_fx_convert_N;
+            r4 = 0;
+            r5 = {n6};
+            lcntr = r5, do .{pfx}_zst_{nid} until lce;
+        .{pfx}_zst_{nid}:
+                dm(i2, 1) = r4;
+            f0 = {XFADE_STEP};
+            dm(_{pfx}_xfade_step_{nid}) = f0;
+            r4 = 0;
+            dm(_{pfx}_xfade_alpha_{nid}) = r4;
+            rts;
+        _{nid}_process.end:
+    """)
+
+
+def gen_geq_fixed(node):
+    bands = int(node['params'].get('bands', '28'))
+    nid = node['id']
+    extra = f"        .var _geq_gains_{nid}[{bands}];              /* per-band gain (display) */\n"
+    return _fx_cascade_node(node, 'geq', bands, extra_dm=extra)
+
+
+def gen_anti_fb_fixed(node):
+    notches = int(node['params'].get('notch_count', '6'))
+    nid = node['id']
+    extra = dedent(f"""\
+        .var _afb_on_{nid} = 0;
+        .var _afb_ctrl_on_{nid} = 0;
+        .var _afb_notch_freq_{nid}[{notches}];
+        .var _afb_notch_gain_{nid}[{notches}];
+        .var _afb_notch_q_{nid}[{notches}];
+""")
+    extra = '\n'.join('        ' + l if l and not l.startswith('        ') else l
+                       for l in extra.split('\n'))
+    return _fx_cascade_node(node, 'afb', notches, extra_dm=extra)
+
+
+
+
+def gen_hpf_lpf_fixed(node):
+    """Fixed HPF+LPF (D5): two 1-stage offset-form biquads in series,
+    dual-instance crossfade, independent float HPF/LPF staging (wire
+    unchanged). On swap: copy active FIXED coeffs to dormant as the
+    baseline, overwrite pending filter(s) via _bq_fx_convert_N."""
+    p = node['params']
+    rc = ramp_comment(node['ramp_profile'])
+    nid = node['id']
+    inp = node['inputs_str']
+    byp = '0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000'
+    fbyp = '1.0, 0.0, 0.0, 0.0, 0.0'
+    return dedent(f"""\
+        {rc}
+
+        /* HPF_LPF (FIXED Q4.28, D5) — dual-instance crossfade */
+        /* HPF: {p.get('hpf_freq','80')} Hz slope {p.get('hpf_slope','18')} | LPF: {p.get('lpf_freq','20000')} Hz */
+        /* SPI page={node['spi_page']} addr={node['spi_addr']} */
+
+        .section/dm seg_dmda;
+
+        .var _filt_hpf_A_{nid}[5] = {byp};
+        .var _filt_lpf_A_{nid}[5] = {byp};
+        .var _filt_state_A_{nid}[12];
+        .var _filt_hpf_B_{nid}[5] = {byp};
+        .var _filt_lpf_B_{nid}[5] = {byp};
+        .var _filt_state_B_{nid}[12];
+
+        /* float staging (wire unchanged) */
+        .var _hpf_coeffs_next_{nid}[5] = {fbyp};
+        .var _hpf_swap_pending_{nid} = 0;
+        .var _lpf_coeffs_next_{nid}[5] = {fbyp};
+        .var _lpf_swap_pending_{nid} = 0;
+
+        .var _filt_active_{nid} = 0;
+        .var _filt_xfade_alpha_{nid} = 0.0;
+        .var _filt_xfade_step_{nid} = 0.0;
+
+        .var _buf_{nid};
+
+        .section/pm seg_pmco;
+        .extern _bq_fx_cascade_N;
+        .extern _bq_fx_convert_N;
+        .global _{nid}_process;
+        _{nid}_process:
+
+            r4 = dm(_hpf_swap_pending_{nid});
+            r5 = dm(_lpf_swap_pending_{nid});
+            r4 = r4 or r5;
+            r4 = pass r4;
+            if ne call _filt_start_xfade_{nid};
+
+            r4 = dm(_filt_xfade_step_{nid});
+            r4 = pass r4;
+            if ne jump (pc, .filt_xfade_{nid});
+
+            /* ===== steady state ===== */
+            r0 = dm(_buf_{inp});
+            r4 = dm(_filt_active_{nid});
+            r4 = pass r4;
+            if ne jump (pc, .filt_ss_b_{nid});
+            i0 = _filt_hpf_A_{nid};
+            i1 = _filt_state_A_{nid};
+            r4 = 1;
+            call _bq_fx_cascade_N;
+            i0 = _filt_lpf_A_{nid};
+            r4 = 1;
+            call _bq_fx_cascade_N;      /* i1 continued to LPF state */
+            dm(_buf_{nid}) = r0;
+            rts;
+        .filt_ss_b_{nid}:
+            i0 = _filt_hpf_B_{nid};
+            i1 = _filt_state_B_{nid};
+            r4 = 1;
+            call _bq_fx_cascade_N;
+            i0 = _filt_lpf_B_{nid};
+            r4 = 1;
+            call _bq_fx_cascade_N;
+            dm(_buf_{nid}) = r0;
+            rts;
+
+            /* ===== crossfade ===== */
+        .filt_xfade_{nid}:
+            r0 = dm(_buf_{inp});
+            r13 = r0;
+            i0 = _filt_hpf_A_{nid};
+            i1 = _filt_state_A_{nid};
+            r4 = 1;
+            call _bq_fx_cascade_N;
+            i0 = _filt_lpf_A_{nid};
+            r4 = 1;
+            call _bq_fx_cascade_N;
+            r14 = r0;                     /* ya */
+            r0 = r13;
+            i0 = _filt_hpf_B_{nid};
+            i1 = _filt_state_B_{nid};
+            r4 = 1;
+            call _bq_fx_cascade_N;
+            i0 = _filt_lpf_B_{nid};
+            r4 = 1;
+            call _bq_fx_cascade_N;        /* r0 = yb */
+
+            r4 = dm(_filt_active_{nid});
+            r4 = pass r4;
+            if eq jump (pc, .filt_bl_{nid});
+            r5 = r14;
+            r14 = r0;
+            r0 = r5;
+        .filt_bl_{nid}:
+            f4 = dm(_filt_xfade_alpha_{nid});
+            r5 = 0x4F000000;
+            f5 = r5;
+            f4 = f4 * f5;
+            r4 = fix f4;
+            r5 = r0 - r14;
+            mrf = r5 * r4 (ssi);
+            r5 = 0x40000000;
+            r12 = 1;
+            mrf = mrf + r5 * r12 (ssi);
+            r5 = mr0f;
+            r12 = mr1f;
+            r5 = lshift r5 by -31;
+            r12 = lshift r12 by 1;
+            r5 = r5 or r12;
+            r0 = r14 + r5;
+            dm(_buf_{nid}) = r0;
+
+            f4 = dm(_filt_xfade_alpha_{nid});
+            f5 = dm(_filt_xfade_step_{nid});
+            f4 = f4 + f5;
+            dm(_filt_xfade_alpha_{nid}) = f4;
+            r5 = 0x3F800000;
+            f5 = r5;
+            comp(f4, f5);
+            if lt rts;
+            r4 = dm(_filt_active_{nid});
+            r5 = 1;
+            r4 = r4 xor r5;
+            dm(_filt_active_{nid}) = r4;
+            r4 = 0;
+            dm(_filt_xfade_step_{nid}) = r4;
+            dm(_filt_xfade_alpha_{nid}) = r4;
+            rts;
+
+            /* ===== stage into dormant ===== */
+        _filt_start_xfade_{nid}:
+            /* dormant pointers (i1 = coeff base, i2 = state base) and
+             * active coeff base (i0) */
+            r4 = dm(_filt_active_{nid});
+            r4 = pass r4;
+            if ne jump (pc, .filt_st_a_{nid});
+            i0 = _filt_hpf_A_{nid};       /* active = A (hpf+lpf adjacent) */
+            i1 = _filt_hpf_B_{nid};
+            i2 = _filt_state_B_{nid};
+            jump (pc, .filt_st_go_{nid});
+        .filt_st_a_{nid}:
+            i0 = _filt_hpf_B_{nid};
+            i1 = _filt_hpf_A_{nid};
+            i2 = _filt_state_A_{nid};
+        .filt_st_go_{nid}:
+            /* baseline: copy active fixed hpf[5] to dormant hpf */
+            r5 = 5;
+            lcntr = r5, do .filt_cph_{nid} until lce;
+                r4 = dm(i0, 1);
+        .filt_cph_{nid}:
+                dm(i1, 1) = r4;
+            /* i0/i1 now at the lpf blocks only if hpf/lpf are adjacent —
+             * they are separate vars, so reload explicitly */
+            r4 = dm(_filt_active_{nid});
+            r4 = pass r4;
+            if ne jump (pc, .filt_st2a_{nid});
+            i0 = _filt_lpf_A_{nid};
+            i1 = _filt_lpf_B_{nid};
+            jump (pc, .filt_st2go_{nid});
+        .filt_st2a_{nid}:
+            i0 = _filt_lpf_B_{nid};
+            i1 = _filt_lpf_A_{nid};
+        .filt_st2go_{nid}:
+            r5 = 5;
+            lcntr = r5, do .filt_cpl_{nid} until lce;
+                r4 = dm(i0, 1);
+        .filt_cpl_{nid}:
+                dm(i1, 1) = r4;
+
+            /* overwrite pending filter(s) from float staging */
+            r4 = dm(_hpf_swap_pending_{nid});
+            r4 = pass r4;
+            if eq jump (pc, .filt_nohpf_{nid});
+            r4 = 0;
+            dm(_hpf_swap_pending_{nid}) = r4;
+            i0 = _hpf_coeffs_next_{nid};
+            r4 = dm(_filt_active_{nid});
+            r4 = pass r4;
+            if ne jump (pc, .filt_cvha_{nid});
+            i1 = _filt_hpf_B_{nid};
+            jump (pc, .filt_cvhgo_{nid});
+        .filt_cvha_{nid}:
+            i1 = _filt_hpf_A_{nid};
+        .filt_cvhgo_{nid}:
+            r4 = 1;
+            call _bq_fx_convert_N;
+        .filt_nohpf_{nid}:
+            r4 = dm(_lpf_swap_pending_{nid});
+            r4 = pass r4;
+            if eq jump (pc, .filt_nolpf_{nid});
+            r4 = 0;
+            dm(_lpf_swap_pending_{nid}) = r4;
+            i0 = _lpf_coeffs_next_{nid};
+            r4 = dm(_filt_active_{nid});
+            r4 = pass r4;
+            if ne jump (pc, .filt_cvla_{nid});
+            i1 = _filt_lpf_B_{nid};
+            jump (pc, .filt_cvlgo_{nid});
+        .filt_cvla_{nid}:
+            i1 = _filt_lpf_A_{nid};
+        .filt_cvlgo_{nid}:
+            r4 = 1;
+            call _bq_fx_convert_N;
+        .filt_nolpf_{nid}:
+
+            /* zero dormant state + start ramp */
+            r4 = dm(_filt_active_{nid});
+            r4 = pass r4;
+            if ne jump (pc, .filt_zsa_{nid});
+            i2 = _filt_state_B_{nid};
+            jump (pc, .filt_zsgo_{nid});
+        .filt_zsa_{nid}:
+            i2 = _filt_state_A_{nid};
+        .filt_zsgo_{nid}:
+            r4 = 0;
+            r5 = 12;
+            lcntr = r5, do .filt_zst_{nid} until lce;
+        .filt_zst_{nid}:
+                dm(i2, 1) = r4;
+            f0 = {XFADE_STEP};
+            dm(_filt_xfade_step_{nid}) = f0;
+            r4 = 0;
+            dm(_filt_xfade_alpha_{nid}) = r4;
+            rts;
+        _{nid}_process.end:
+    """)
+
+
+def gen_crossover_fixed(node):
+    """Fixed CROSSOVER (D5): LP/HP 2-stage paths, dual-instance
+    crossfade blending BOTH outputs; staging [LP10+HP10] float."""
+    p = node['params']
+    rc = ramp_comment(node['ramp_profile'])
+    nid = node['id']
+    inp = node['inputs_str']
+    byp10 = ('0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, '
+             '0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000')
+    fbyp20 = ', '.join(['1.0, 0.0, 0.0, 0.0, 0.0'] * 4)
+    return dedent(f"""\
+        {rc}
+
+        /* CROSSOVER (FIXED Q4.28, D5): LP/HP split, dual-instance crossfade */
+        /* SPI page={node['spi_page']} addr={node['spi_addr']} freq={p.get('freq','120')} slope={p.get('slope','24')} */
+
+        .section/dm seg_dmda;
+
+        .var _xover_lp_A_{nid}[10] = {byp10};
+        .var _xover_hp_A_{nid}[10] = {byp10};
+        .var _xover_lp_state_A_{nid}[12];
+        .var _xover_hp_state_A_{nid}[12];
+        .var _xover_lp_B_{nid}[10] = {byp10};
+        .var _xover_hp_B_{nid}[10] = {byp10};
+        .var _xover_lp_state_B_{nid}[12];
+        .var _xover_hp_state_B_{nid}[12];
+
+        /* float staging: [LP 2 stages, HP 2 stages] */
+        .var _xover_coeffs_next_{nid}[20] = {fbyp20};
+        .var _xover_swap_pending_{nid} = 0;
+
+        .var _xover_active_{nid} = 0;
+        .var _xover_xfade_alpha_{nid} = 0.0;
+        .var _xover_xfade_step_{nid} = 0.0;
+
+        .var _buf_lp_{nid};
+        .var _buf_{nid};
+        .var _buf_hp_{nid};
+
+        .section/pm seg_pmco;
+        .extern _bq_fx_cascade_N;
+        .extern _bq_fx_convert_N;
+        .global _{nid}_process;
+        _{nid}_process:
+
+            r4 = dm(_xover_swap_pending_{nid});
+            r4 = pass r4;
+            if ne call _xover_start_xfade_{nid};
+
+            r4 = dm(_xover_xfade_step_{nid});
+            r4 = pass r4;
+            if ne jump (pc, .xo_xfade_{nid});
+
+            /* ===== steady state ===== */
+            r0 = dm(_buf_{inp});
+            r13 = r0;
+            r4 = dm(_xover_active_{nid});
+            r4 = pass r4;
+            if ne jump (pc, .xo_ss_b_{nid});
+            i0 = _xover_lp_A_{nid};
+            i1 = _xover_lp_state_A_{nid};
+            r4 = 2;
+            call _bq_fx_cascade_N;
+            dm(_buf_lp_{nid}) = r0;
+            r0 = r13;
+            i0 = _xover_hp_A_{nid};
+            i1 = _xover_hp_state_A_{nid};
+            r4 = 2;
+            call _bq_fx_cascade_N;
+            dm(_buf_hp_{nid}) = r0;
+            dm(_buf_{nid}) = r0;
+            rts;
+        .xo_ss_b_{nid}:
+            i0 = _xover_lp_B_{nid};
+            i1 = _xover_lp_state_B_{nid};
+            r4 = 2;
+            call _bq_fx_cascade_N;
+            dm(_buf_lp_{nid}) = r0;
+            r0 = r13;
+            i0 = _xover_hp_B_{nid};
+            i1 = _xover_hp_state_B_{nid};
+            r4 = 2;
+            call _bq_fx_cascade_N;
+            dm(_buf_hp_{nid}) = r0;
+            dm(_buf_{nid}) = r0;
+            rts;
+
+            /* ===== crossfade: 4 paths, blend LP then HP ===== */
+        .xo_xfade_{nid}:
+            r0 = dm(_buf_{inp});
+            r13 = r0;
+            /* LP: A then B */
+            i0 = _xover_lp_A_{nid};
+            i1 = _xover_lp_state_A_{nid};
+            r4 = 2;
+            call _bq_fx_cascade_N;
+            r14 = r0;                     /* lp_a */
+            r0 = r13;
+            i0 = _xover_lp_B_{nid};
+            i1 = _xover_lp_state_B_{nid};
+            r4 = 2;
+            call _bq_fx_cascade_N;        /* r0 = lp_b */
+            r4 = dm(_xover_active_{nid});
+            r4 = pass r4;
+            if eq jump (pc, .xo_bl_lp_{nid});
+            r5 = r14;
+            r14 = r0;
+            r0 = r5;
+        .xo_bl_lp_{nid}:
+            f4 = dm(_xover_xfade_alpha_{nid});
+            r5 = 0x4F000000;
+            f5 = r5;
+            f4 = f4 * f5;
+            r4 = fix f4;
+            r5 = r0 - r14;
+            mrf = r5 * r4 (ssi);
+            r5 = 0x40000000;
+            r12 = 1;
+            mrf = mrf + r5 * r12 (ssi);
+            r5 = mr0f;
+            r12 = mr1f;
+            r5 = lshift r5 by -31;
+            r12 = lshift r12 by 1;
+            r5 = r5 or r12;
+            r0 = r14 + r5;
+            dm(_buf_lp_{nid}) = r0;
+
+            /* HP: A then B */
+            r0 = r13;
+            i0 = _xover_hp_A_{nid};
+            i1 = _xover_hp_state_A_{nid};
+            r4 = 2;
+            call _bq_fx_cascade_N;
+            r14 = r0;
+            r0 = r13;
+            i0 = _xover_hp_B_{nid};
+            i1 = _xover_hp_state_B_{nid};
+            r4 = 2;
+            call _bq_fx_cascade_N;
+            r4 = dm(_xover_active_{nid});
+            r4 = pass r4;
+            if eq jump (pc, .xo_bl_hp_{nid});
+            r5 = r14;
+            r14 = r0;
+            r0 = r5;
+        .xo_bl_hp_{nid}:
+            f4 = dm(_xover_xfade_alpha_{nid});
+            r5 = 0x4F000000;
+            f5 = r5;
+            f4 = f4 * f5;
+            r4 = fix f4;
+            r5 = r0 - r14;
+            mrf = r5 * r4 (ssi);
+            r5 = 0x40000000;
+            r12 = 1;
+            mrf = mrf + r5 * r12 (ssi);
+            r5 = mr0f;
+            r12 = mr1f;
+            r5 = lshift r5 by -31;
+            r12 = lshift r12 by 1;
+            r5 = r5 or r12;
+            r0 = r14 + r5;
+            dm(_buf_hp_{nid}) = r0;
+            dm(_buf_{nid}) = r0;
+
+            f4 = dm(_xover_xfade_alpha_{nid});
+            f5 = dm(_xover_xfade_step_{nid});
+            f4 = f4 + f5;
+            dm(_xover_xfade_alpha_{nid}) = f4;
+            r5 = 0x3F800000;
+            f5 = r5;
+            comp(f4, f5);
+            if lt rts;
+            r4 = dm(_xover_active_{nid});
+            r5 = 1;
+            r4 = r4 xor r5;
+            dm(_xover_active_{nid}) = r4;
+            r4 = 0;
+            dm(_xover_xfade_step_{nid}) = r4;
+            dm(_xover_xfade_alpha_{nid}) = r4;
+            rts;
+
+            /* ===== stage into dormant ===== */
+        _xover_start_xfade_{nid}:
+            r4 = 0;
+            dm(_xover_swap_pending_{nid}) = r4;
+            i0 = _xover_coeffs_next_{nid};
+            r4 = dm(_xover_active_{nid});
+            r4 = pass r4;
+            if ne jump (pc, .xo_st_a_{nid});
+            i1 = _xover_lp_B_{nid};
+            jump (pc, .xo_st_go_{nid});
+        .xo_st_a_{nid}:
+            i1 = _xover_lp_A_{nid};
+        .xo_st_go_{nid}:
+            r4 = 2;
+            call _bq_fx_convert_N;        /* LP stages; i0 -> HP staging */
+            r4 = dm(_xover_active_{nid});
+            r4 = pass r4;
+            if ne jump (pc, .xo_st2a_{nid});
+            i1 = _xover_hp_B_{nid};
+            jump (pc, .xo_st2go_{nid});
+        .xo_st2a_{nid}:
+            i1 = _xover_hp_A_{nid};
+        .xo_st2go_{nid}:
+            r4 = 2;
+            call _bq_fx_convert_N;
+            /* zero dormant states (lp 12 + hp 12) */
+            r4 = dm(_xover_active_{nid});
+            r4 = pass r4;
+            if ne jump (pc, .xo_zsa_{nid});
+            i2 = _xover_lp_state_B_{nid};
+            i3 = _xover_hp_state_B_{nid};
+            jump (pc, .xo_zsgo_{nid});
+        .xo_zsa_{nid}:
+            i2 = _xover_lp_state_A_{nid};
+            i3 = _xover_hp_state_A_{nid};
+        .xo_zsgo_{nid}:
+            r4 = 0;
+            r5 = 12;
+            lcntr = r5, do .xo_zst1_{nid} until lce;
+        .xo_zst1_{nid}:
+                dm(i2, 1) = r4;
+            r5 = 12;
+            lcntr = r5, do .xo_zst2_{nid} until lce;
+        .xo_zst2_{nid}:
+                dm(i3, 1) = r4;
+            f0 = {XFADE_STEP};
+            dm(_xover_xfade_step_{nid}) = f0;
+            r4 = 0;
+            dm(_xover_xfade_alpha_{nid}) = r4;
+            rts;
+        _{nid}_process.end:
+    """)
+
+
 FIXED_GENERATORS = {
     'EQ_BIQUAD': gen_eq_biquad_fixed,
+    'GEQ': gen_geq_fixed,
+    'ANTI_FB': gen_anti_fb_fixed,
+    'HPF_LPF': gen_hpf_lpf_fixed,
+    'CROSSOVER': gen_crossover_fixed,
 }
 
 
