@@ -210,15 +210,22 @@ dsp.csv sport params), not kernels.
       contribution is an exact _acc64_mac (improvement over float,
       which rounded each send product before accumulating). Assembles
       clean; float output untouched.
-    - NEXT (remaining fixed families): block_io I/O scaling
-      (Q1.31<->Q4.28 at converter lanes only; IC fabric carries raw
-      Q4.28), meters (integer peak scan + decay), DELAY/TUBE_SAT/
-      MONITOR/AUX_INPUT/TALKBACK/NOISE small kernels, dynamics
+    - DONE 2026-07-31 (cont.): block_io format-aware — converter-lane
+      scaling only (RX Q1.31->Q4.28 >>3; TX <<3 with saturation; IC
+      fabric carries raw Q4.28); meter scan reads fixed samples but
+      PEAKS STAY FLOAT32 (host readback contract + lib decay
+      unchanged). Small kernels fixed: TUBE_SAT (all-MRF waveshaper),
+      AUX_INPUT, MONITOR, TALKBACK (fixed 1-stage HPF, block-rate
+      coeff conversion), NOISE_GEN (documented float island — synthesis
+      has no parity requirement; output converts at the store). All
+      assemble clean; float output byte-identical.
+    - NEXT (final fixed families): DELAY (+pool — Q4.28 lines in
+      seg_delay, fixed crossfade), dynamics GATE/COMPRESSOR/LIMITER
       (log2/exp2 poly tables from fixed_ref LOG2_POLY/EXP2_POLY as asm
-      data + envelope + gain computer vs fixed_ref.comp_gain), FX
-      float-island boundaries (Q4.28<->float32 at FX_ENGINE edges).
-      --format fixed becomes buildable only when every family is
-      converted; then swap the default + archive-tag the float src.
+      data; envelope + gain computer vs fixed_ref.comp_gain — the
+      careful one), FX_ENGINE float-island boundaries (Q4.28<->float32
+      at node edges). Then: --format fixed full build, swap default,
+      retire float src (tag exists).
 
 Binding decisions: [dsp4-architecture-decisions.md](dsp4-architecture-decisions.md)
 (D1 Pi masters DSP SPI, D2 CPLD in-repo w/ single-sourced slot map,

@@ -3652,9 +3652,11 @@ def gen_block_io(chip_label, chip_nodes):
         return sum(ln['count'] for ln in lanes) * BLOCK
 
     def emit_copy_loop(lines, fn, count, base_sym, off_tbl, stride_tbl,
-                       ptr_tbl, to_dma):
+                       ptr_tbl, to_dma, scale=None):
         """addr = dm(base_sym) + off[i] + sample*stride[i]; copy between
-        DMA word and *ptr[i]."""
+        DMA word and *ptr[i]. scale (FORMAT fixed only): 'rx' converts
+        converter Q1.31 -> Q4.28 (>>3); 'tx' converts Q4.28 -> Q1.31
+        (<<3 with saturation). IC fabric lanes copy raw Q4.28."""
         lines.append(f'.global {fn};')
         lines.append(f'{fn}:')
         lines.append(f'    /* r0 = sample index (0..{BLOCK-1}) */')
@@ -3671,14 +3673,28 @@ def gen_block_io(chip_label, chip_nodes):
         lines.append(f'        r3 = r3 + r2;')
         lines.append(f'        r3 = r6 + r3;         /* DMA word address */')
         lines.append(f'        r5 = dm(i3, 1);       /* node slot var ptr */')
+        loop = fn.lstrip('_')
         if to_dma:
             lines.append(f'        i4 = r5;')
             lines.append(f'        r2 = dm(i4, 0);   /* read slot var */')
+            if scale == 'tx' and FORMAT == 'fixed':
+                lines.append(f'        /* Q4.28 -> Q1.31 with saturation */')
+                lines.append(f'        r8 = ashift r2 by 3;')
+                lines.append(f'        r9 = ashift r8 by -3;')
+                lines.append(f'        comp(r9, r2);')
+                lines.append(f'        if eq jump (pc, .{loop}_ok);')
+                lines.append(f'        r8 = 0x7FFFFFFF;')
+                lines.append(f'        r9 = ashift r2 by -31;')
+                lines.append(f'        r8 = r8 xor r9;')
+                lines.append(f'    .{loop}_ok:')
+                lines.append(f'        r2 = r8;')
             lines.append(f'        i4 = r3;')
             lines.append(f'        dm(i4, 0) = r2;   /* write DMA */')
         else:
             lines.append(f'        i4 = r3;')
             lines.append(f'        r2 = dm(i4, 0);   /* read DMA */')
+            if scale == 'rx' and FORMAT == 'fixed':
+                lines.append(f'        r2 = ashift r2 by -3;  /* Q1.31 -> Q4.28 */')
             lines.append(f'        i4 = r5;')
             lines.append(f'        dm(i4, 0) = r2;   /* write slot var */')
         lines.append(f'    .{loop}_lp:')
@@ -3700,8 +3716,14 @@ def gen_block_io(chip_label, chip_nodes):
         lines.append(f'    lcntr = r5; do .{loop}_lp until lce;')
         lines.append(f'        r2 = dm(i0, 1);')
         lines.append(f'        i2 = r2;')
-        lines.append(f'        f3 = dm(i2, 0);')
-        lines.append(f'        f3 = abs f3;')
+        if FORMAT == 'fixed':
+            lines.append(f'        r3 = dm(i2, 0);   /* Q4.28 sample */')
+            lines.append(f'        r3 = abs r3;')
+            lines.append(f'        r4 = -28;')
+            lines.append(f'        f3 = float r3 by r4;  /* peaks stay FLOAT (readback contract) */')
+        else:
+            lines.append(f'        f3 = dm(i2, 0);')
+            lines.append(f'        f3 = abs f3;')
         lines.append(f'        f4 = dm(i1, m0);')
         lines.append(f'        comp(f3, f4);')
         lines.append(f'        if gt f4 = f3;')
@@ -3786,7 +3808,7 @@ def gen_block_io(chip_label, chip_nodes):
         lines.append(f'/* Scatter {num_rx} RX channels (lane-major packed) */')
         emit_copy_loop(lines, '_scatter_chip1', num_rx, '_rx_active_buf',
                        '_c1_rx_off', '_c1_rx_stride', '_c1_rx_slot_ptrs',
-                       to_dma=False)
+                       to_dma=False, scale='rx')
         emit_meter_scan(lines, '_meter_scan_chip1', num_rx,
                         '_c1_rx_slot_ptrs', 'RX inputs')
         lines.append(f'/* Gather {num_ic} inter-chip sends (lane-major packed) */')
@@ -3886,7 +3908,7 @@ def gen_block_io(chip_label, chip_nodes):
         lines.append(f'/* Gather {num_tx} outputs (lane-major full-window) */')
         emit_copy_loop(lines, '_gather_chip2', num_tx, '_tx_active_buf',
                        '_c2_tx_off', '_c2_tx_stride', '_c2_tx_ptrs',
-                       to_dma=True)
+                       to_dma=True, scale='tx')
         emit_meter_scan(lines, '_meter_scan_chip2', num_tx,
                         '_c2_tx_ptrs', 'TX outputs')
 
@@ -5422,6 +5444,291 @@ def gen_routing_fixed(node):
     """)
 
 
+
+def gen_tube_sat_fixed(node):
+    """Fixed TUBE_SAT (D5): y = x*(1 + sat*(1 - x^2)) entirely in
+    Q4.28 MRF math; float sat ramp retained per sample with a FIX."""
+    rc = ramp_comment(node['ramp_profile'])
+    nid = node['id']
+    inp = node['inputs_str']
+    return dedent(f"""\
+        {rc}
+
+        /* TUBE_SAT (FIXED Q4.28, D5) */
+        /* SPI page={node['spi_page']} addr={node['spi_addr']} */
+
+        .section/dm seg_dmda;
+        .var _tube_on_{nid} = 0;
+        .var _tube_sat_{nid} = 0.0;
+        .var _tube_sat_target_{nid} = 0.0;
+        .var _tube_sat_step_{nid} = 0.0;
+        .var _tube_sat_frames_{nid} = 0;
+        .var _buf_{nid};
+
+        .section/pm seg_pmco;
+        .extern _mrf_rns28;
+        .global _{nid}_process;
+        _{nid}_process:
+            r0 = dm(_buf_{inp});
+
+            r4 = dm(_tube_sat_frames_{nid});
+            r15 = 1;
+            r4 = r4 - r15;
+            if le jump (pc, .no_tramp_{nid});
+            dm(_tube_sat_frames_{nid}) = r4;
+            f3 = dm(_tube_sat_{nid});
+            f2 = dm(_tube_sat_step_{nid});
+            f3 = f3 + f2;
+            dm(_tube_sat_{nid}) = f3;
+            jump (pc, .tube_go_{nid});
+        .no_tramp_{nid}:
+            f3 = dm(_tube_sat_target_{nid});
+            dm(_tube_sat_{nid}) = f3;
+        .tube_go_{nid}:
+
+            r2 = dm(_tube_on_{nid});
+            r2 = pass r2;
+            if eq jump (pc, .tube_bypass_{nid});
+
+            r8 = r0;                      /* x */
+            r4 = 0x4D800000;              /* sat -> Q4.28 */
+            f4 = r4;
+            f3 = f3 * f4;
+            r9 = fix f3;                  /* sat_q */
+
+            mrf = r8 * r8 (ssi);
+            call _mrf_rns28;              /* r0 = x^2 */
+            r10 = 0x10000000;             /* 1.0 Q4.28 */
+            r10 = r10 - r0;               /* 1 - x^2 */
+            mrf = r9 * r10 (ssi);
+            call _mrf_rns28;              /* sat*(1-x^2) */
+            r10 = 0x10000000;
+            r10 = r10 + r0;               /* 1 + sat*(1-x^2) */
+            mrf = r8 * r10 (ssi);
+            call _mrf_rns28;              /* y */
+            jump (pc, .tube_out_{nid});
+        .tube_bypass_{nid}:
+            nop;
+        .tube_out_{nid}:
+            dm(_buf_{nid}) = r0;
+            rts;
+        _{nid}_process.end:
+    """)
+
+
+def gen_aux_input_fixed(node):
+    """Fixed AUX_INPUT (D5): float level ramp per sample + FIX shadow,
+    MRF sample path, integer on-gate."""
+    rc = ramp_comment(node['ramp_profile'])
+    nid = node['id']
+    inp = node['inputs_str']
+    return dedent(f"""\
+        {rc}
+
+        /* AUX_INPUT (FIXED Q4.28, D5) */
+        /* SPI page={node['spi_page']} addr={node['spi_addr']} */
+
+        .section/dm seg_dmda;
+        .var _auxin_on_{nid} = 0;
+        .var _auxin_level_{nid} = 1.0;
+        .var _auxin_level_target_{nid} = 1.0;
+        .var _auxin_level_step_{nid} = 0.0;
+        .var _auxin_level_frames_{nid} = 0;
+        .var _buf_{nid};
+
+        .section/pm seg_pmco;
+        .extern _mrf_rns28;
+        .global _{nid}_process;
+        _{nid}_process:
+            r4 = dm(_auxin_level_frames_{nid});
+            r15 = 1;
+            r4 = r4 - r15;
+            if le jump (pc, .no_auxramp_{nid});
+            dm(_auxin_level_frames_{nid}) = r4;
+            f1 = dm(_auxin_level_{nid});
+            f2 = dm(_auxin_level_step_{nid});
+            f1 = f1 + f2;
+            dm(_auxin_level_{nid}) = f1;
+            jump (pc, .auxin_go_{nid});
+        .no_auxramp_{nid}:
+            f1 = dm(_auxin_level_target_{nid});
+            dm(_auxin_level_{nid}) = f1;
+        .auxin_go_{nid}:
+
+            r2 = 0x4D800000;
+            f2 = r2;
+            f1 = f1 * f2;
+            r1 = fix f1;
+            r0 = dm(_buf_{inp});
+            mrf = r0 * r1 (ssi);
+            call _mrf_rns28;
+
+            r2 = dm(_auxin_on_{nid});
+            r3 = 0;
+            comp(r2, r3);
+            if eq r0 = r3;
+            dm(_buf_{nid}) = r0;
+            rts;
+        _{nid}_process.end:
+    """)
+
+
+def gen_monitor_fixed(node):
+    """Fixed MONITOR (D5): float level ramp + FIX shadow, MRF path."""
+    rc = ramp_comment(node['ramp_profile'])
+    nid = node['id']
+    inp = node['inputs_str']
+    return dedent(f"""\
+        {rc}
+
+        /* MONITOR (FIXED Q4.28, D5) */
+        /* SPI page={node['spi_page']} addr={node['spi_addr']} */
+
+        .section/dm seg_dmda;
+        .var _mon_source_{nid} = 0;
+        .var _mon_level_l_{nid} = 1.0;
+        .var _mon_level_r_{nid} = 1.0;
+        .var _mon_level_l_target_{nid} = 1.0;
+        .var _mon_level_r_target_{nid} = 1.0;
+        .var _mon_level_step_{nid} = 0.0;
+        .var _mon_level_frames_{nid} = 0;
+        .var _buf_{nid};
+
+        .section/pm seg_pmco;
+        .extern _mrf_rns28;
+        .global _{nid}_process;
+        _{nid}_process:
+            r4 = dm(_mon_level_frames_{nid});
+            r15 = 1;
+            r4 = r4 - r15;
+            if le jump (pc, .no_monramp_{nid});
+            dm(_mon_level_frames_{nid}) = r4;
+            f1 = dm(_mon_level_l_{nid});
+            f2 = dm(_mon_level_step_{nid});
+            f1 = f1 + f2;
+            dm(_mon_level_l_{nid}) = f1;
+            jump (pc, .mon_go_{nid});
+        .no_monramp_{nid}:
+            f1 = dm(_mon_level_l_target_{nid});
+            dm(_mon_level_l_{nid}) = f1;
+        .mon_go_{nid}:
+            r2 = 0x4D800000;
+            f2 = r2;
+            f1 = f1 * f2;
+            r1 = fix f1;
+            r0 = dm(_buf_{inp});
+            mrf = r0 * r1 (ssi);
+            call _mrf_rns28;
+            dm(_buf_{nid}) = r0;
+            rts;
+        _{nid}_process.end:
+    """)
+
+
+def gen_talkback_fixed(node):
+    """Fixed TALKBACK (D5): integer on-gate, float gain ramp + FIX,
+    MRF gain, fixed 1-stage HPF (coeffs converted at block rate from
+    the host-written float set)."""
+    rc = ramp_comment(node['ramp_profile'])
+    nid = node['id']
+    inp = node['inputs_str']
+    return dedent(f"""\
+        {rc}
+
+        /* TALKBACK (FIXED Q4.28, D5) */
+        /* SPI page={node['spi_page']} addr={node['spi_addr']} */
+
+        .section/dm seg_dmda;
+        .var _talk_on_{nid} = 0;
+        .var _talk_gain_{nid} = 1.0;
+        .var _talk_gain_target_{nid} = 1.0;
+        .var _talk_gain_step_{nid} = 0.0;
+        .var _talk_gain_frames_{nid} = 0;
+        .var _talk_hpf_on_{nid} = 1;
+        .var _talk_hpf_coeffs_{nid}[5] = 1.0, 0.0, 0.0, 0.0, 0.0;
+        .var _talk_hpf_cq_{nid}[5] = 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000;
+        .var _talk_hpf_state_{nid}[6];
+        .var _talk_route_{nid}[3];
+        .var _buf_{nid};
+
+        .section/pm seg_pmco;
+        .extern _sample_idx;
+        .extern _mrf_rns28;
+        .extern _bq_fx_cascade_N;
+        .extern _bq_fx_convert_N;
+        .global _{nid}_process;
+        _{nid}_process:
+            r2 = dm(_talk_on_{nid});
+            r2 = pass r2;
+            if eq rts;
+
+            /* block-rate: refresh fixed HPF coeffs from float set */
+            r4 = dm(_sample_idx);
+            r1 = 0;
+            comp(r4, r1);
+            if ne jump (pc, .tk_ramp_{nid});
+            i0 = _talk_hpf_coeffs_{nid};
+            i1 = _talk_hpf_cq_{nid};
+            r4 = 1;
+            call _bq_fx_convert_N;
+        .tk_ramp_{nid}:
+
+            r4 = dm(_talk_gain_frames_{nid});
+            r15 = 1;
+            r4 = r4 - r15;
+            if le jump (pc, .no_tkramp_{nid});
+            dm(_talk_gain_frames_{nid}) = r4;
+            f1 = dm(_talk_gain_{nid});
+            f2 = dm(_talk_gain_step_{nid});
+            f1 = f1 + f2;
+            dm(_talk_gain_{nid}) = f1;
+            jump (pc, .tk_go_{nid});
+        .no_tkramp_{nid}:
+            f1 = dm(_talk_gain_target_{nid});
+            dm(_talk_gain_{nid}) = f1;
+        .tk_go_{nid}:
+
+            r2 = 0x4D800000;
+            f2 = r2;
+            f1 = f1 * f2;
+            r1 = fix f1;
+            r0 = dm(_buf_{inp});
+            mrf = r0 * r1 (ssi);
+            call _mrf_rns28;
+
+            r2 = dm(_talk_hpf_on_{nid});
+            r2 = pass r2;
+            if eq jump (pc, .tk_nohpf_{nid});
+            i0 = _talk_hpf_cq_{nid};
+            i1 = _talk_hpf_state_{nid};
+            r4 = 1;
+            call _bq_fx_cascade_N;
+        .tk_nohpf_{nid}:
+            dm(_buf_{nid}) = r0;
+            rts;
+        _{nid}_process.end:
+    """)
+
+
+def gen_noise_gen_fixed(node):
+    """Fixed-mode NOISE_GEN (D5): documented FLOAT ISLAND — synthesis
+    has no golden-parity requirement; only the output converts to
+    Q4.28 at the store (same boundary treatment as the FX engines)."""
+    nid = node['id']
+    body = gen_noise_gen(node)
+    old = f"""        .noise_out_{nid}:
+            dm(_buf_{nid}) = r0;"""
+    new = f"""        .noise_out_{nid}:
+            /* float island boundary -> Q4.28 (D5) */
+            r1 = 0x4D800000;
+            f1 = r1;
+            f0 = f0 * f1;
+            r0 = fix f0;
+            dm(_buf_{nid}) = r0;"""
+    assert old in body, 'noise tail pattern moved'
+    return body.replace(old, new)
+
+
 FIXED_GENERATORS = {
     'EQ_BIQUAD': gen_eq_biquad_fixed,
     'GEQ': gen_geq_fixed,
@@ -5432,6 +5739,11 @@ FIXED_GENERATORS = {
     'FADER_PAN': gen_fader_pan_fixed,
     'MIX_BUS': gen_mix_bus_fixed,
     'ROUTING': gen_routing_fixed,
+    'TUBE_SAT': gen_tube_sat_fixed,
+    'AUX_INPUT': gen_aux_input_fixed,
+    'MONITOR': gen_monitor_fixed,
+    'TALKBACK': gen_talkback_fixed,
+    'NOISE_GEN': gen_noise_gen_fixed,
 }
 
 
