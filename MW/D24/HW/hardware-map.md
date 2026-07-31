@@ -91,6 +91,54 @@ LOGIC format-config straps: IC0=TDM16, IC1=TDM8, IC2=I2S; IL0=FS, IL1=WC.
 At 48 kHz / 32-bit slots: TDM8 → 12.288 MHz BCLK, TDM16 → 24.576 MHz BCLK,
 both divided from the 49.152 MHz XO.
 
+### Review-note addendum: analog I/O → DSP4 digital nets
+
+The analog side of the D24 hardware does not terminate on direct DSP4 analog pins.
+The analog connector subassemblies feed the D24 Digital board, which presents
+converter-side TDM streams to the DSP4 card. The DSP4 review markup should call
+out these handoffs as digital nets inside the DSP4 topology:
+
+| Analog/connector side | Physical path | DSP4 digital net / role |
+|---|---|---|
+| ADC inputs | D24 analog input path → ADC FPC J41 → AD0..3 TDM lanes | DSPA input ports I0–I3, carrying ADC/NET 1–32 as TDM8 streams |
+| DAC outputs | DAC FPC J42 → DA0..3 TDM lanes | DSPB output ports O0/O1/O3, carrying DAC 1–8 / DAC 9–16 / DAC MAIN |
+| Codec / phone path | D24 codec/phone interface on the digital/analog boards | DSP4 sees this as the codec return/input path on I4 and the codec output path on O2 (D24 CODEC / D32 SNAKE) |
+
+Practical reading of the review markup: the analog I/O is resolved to DSP4 as
+TDM/DAI traffic on the DSP card, not as a separate analog net inside the DSP4
+schematic. This is the key point to preserve on any rev-D markup update.
+
+#### Verified detail (2026-07-30, cross-checked against D24 Analog rev B + D24 Digital rev C)
+
+Marked-up schematic: `schematics/D24 DSP rev C - review markup 2026-07-30.pdf`.
+The table above holds at DSP-port level; the exact lane/source mapping is:
+
+| DSP port | DSP4 net | Resolves to |
+|---|---|---|
+| DSPA I0 | AD0 | Mic/line ch 1-4 & 13-16 — ADC8 #1 (Analog bd, TDM8 via FPC J41/J58) |
+| DSPA I1 | AD1 | Mic/line ch 5-8 & 17-20 — ADC8 #2 |
+| DSPA I2 | AD2 | Mic/line ch 9-12 & 21-24 — ADC8 #3 |
+| DSPA I3 | AD3 | **No D24 ADC** — driven only via D32_COMPAT J33 / LOGIC NET mux |
+| DSPA I4 | PLL8_0 = CDC_O | AK4916 CODEC4 ADC (talkback XLR + aux in), Analog bd |
+| DSPA I7 | MEMS (PLL7 grp: M_BCK/M_FS/M_I2S) | Surface MEMS mics → LVDS J12/J13 → ADAU7302 (Digital bd) |
+| DSPB O0 | DA0 | DAC8 OUT_1-8 → line outs 1-8 (FPC J42/J59) |
+| DSPB O1 | **DA3, not DA1** | DAC8 OUT_9-16 → line outs 9-16; DA1 dead-ends at Digital J18 (spare) |
+| DSPB O2 | PLL8_1 = CDC_I | AK4916 codec DAC: talkback SPKR (TS482 on Digital → panels) + aux out |
+| DSPB O3 | — | "DAC MAIN": **no sink found** on D24 Analog rev B — verify intent |
+
+Digital-only paths (no analog resolution): I5 snake, I6 Pi PCM, O4-O7 NET
+(option cards), DA2 (D32_COMPAT J33 only). Phones PCBA is analog-only
+(differential feeds from the DAC8 outputs; no DSP4 digital link).
+
+Clocking: converters run on C1 (TDM8 BCK 12.288 MHz) + L0 (FS 48 kHz),
+LOGIC-generated, 33R series on Digital (R111/R112), re-buffered by
+LVC1G17 (U97/U98) on Analog. Open check: Digital labels PLL3-6 clock
+groups toward the FPCs but Analog rev B J58/J59 name only C1/L0 —
+confirm FPC pin alignment (PLL3-6 possibly unused on D24).
+
+Impact on `dsp.csv` regen (D2 slot map): D24 input strips 25-32 have no
+analog source (NET only); the LOGIC slot map must route DSPB O1 → DA3.
+
 ## 3. Control plane
 
 - **SPI (params + boot):** Pi (CM4 on D24 Digital board) is SPI master.
@@ -113,7 +161,10 @@ both divided from the 49.152 MHz XO.
 - **ADC/DAC boards** via FPC J41 (ADC) / J42 (DAC): AD0..3 / DA0..3 TDM
   lines, PLL3-6 clock groups, converter SPI (SPI0 + CS_C converter CS,
   CS_M mic-gain CS, RST_C).
-- **AK4916 codec** on DSP card PLL8 group (CDC_O/CDC_I).
+- **AK4916 codec ("CODEC4")** — on the D24 **Analog** PCBA (AUX_IO block:
+  talkback XLR, aux in, SPKR out), NOT on the DSP card (corrected
+  2026-07-30). Reached via PLL8-group nets CDC_O (→ J41 FPC) / CDC_I
+  (→ J42 FPC).
 - **MEMS talkback mic** (page 6): ADAU7302 PDM→TDM bridge (U13), config
   47K = TDM8 slot 5 / 0R = I2S; LVDS (SN65LVDS) drive to remote mic pods;
   TS482 speaker amp for talkback monitor (SPKR0/1).
