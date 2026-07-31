@@ -116,6 +116,16 @@ Late session (2026-07-31): pre-hardware wrap-up.
   profiles incl. the D24 interleave patch, 51 writes chip1 / 5 writes
   chip2, COMMIT last, GPIO-CS via gpiod, --dry-run verified).
 
+CCES licence: AD-CCES-NODE-1 REQUESTED 2026-07-31 (Peter; ~a day's
+wait). Until it arrives, fit-proxy (PROC_TARGET=ADSP-21568) remains the
+build path; first real 21564 images once entitled. Meanwhile the mx26
+update is prepared: [mx26-update-handoff.md](mx26-update-handoff.md)
+(exact mx_master.csv rows, def_master PREFIX_RULES + product keys,
+GrpPeq→GrpGeq rename incl. a suspected wrong Table on the old row, and
+this repo's post-sync steps). The 7 new families are pre-staged in
+matrix-families-allowlist.txt (validator passes; GrpPeq retained until
+the rename lands).
+
 Remaining = hardware bring-up (rev C card + full 21564 licence):
 FLAGS_REG chip-id detect, SPI watermark + SPI_RDY flow, SEC/MMR
 semantics on the wire, BCKI/FSI pair order, CKRE/MFD on the scope,
