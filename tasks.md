@@ -149,11 +149,28 @@ Hardware ground truth: [MW/D24/HW/hardware-map.md](MW/D24/HW/hardware-map.md)
     verify D24 within-ADC8 slot order before bring-up (note in doc).
   - Fit-proxy build: 695 objects, 0 errors, both chips link.
 
-- [ ] <span style="color:#2563eb"><b>NEXT</b></span> sport_init.asm register plumbing — TODO(dsp4-plumbing)
-  - 8-lane fabric SPORT configs (all clock-slave to LOGIC), sparse-RX CS
-    masks (codec 0x0F / snake 0xFF / Pi 0x03 / MEMS 0x20), DMA channel
-    map. HRM available: Dropbox `_mx/_temp/adsp-2156x-docs/
-    adsp-2156x_hwr.pdf` (rev 1.0, 2331 pp).
+- [ ] <span style="color:#d97706"><b>IN PROGRESS</b></span> sport_init.asm register plumbing — TODO(dsp4-plumbing)
+  - Design DONE (2026-07-31): [MW/D32/DSP/dsp4-plumbing.md](MW/D32/DSP/dsp4-plumbing.md)
+    — HRM/header-verified register model, lane-major DMA layout, SRU
+    route list, DDE ping-pong rings, SEC block clock. HRM at Dropbox
+    `_mx/_temp/adsp-2156x-docs/adsp-2156x_hwr.pdf` (rev 1.0).
+  - Slice 1 DONE (2026-07-31): block_io.asm is now DMA-layout-accurate —
+    lane-major regions, per-node {off, stride} addressing, GENERATED
+    per-lane config tables (sport/CS/words/offset; codec lane CS 0x0D
+    since CODEC_RET_2 has no node) and exact-size DMA buffers moved into
+    generated code. sport_init.asm stripped to an honest stub: the old
+    body wrote INVENTED MMR addresses (0x0800xxxx) implementing the
+    superseded single-SPORT7 model — removed rather than left to
+    mislead; ISR + pointer init retained per chip. Fit-proxy build 695
+    objects / 0 errors.
+  - Slice 2 NEXT: SRU routing + half-SPORT CTL/MCTL/CS from the lane
+    tables via <def21564.h>/<sru21564.h> (test def-header include under
+    easm21k early — asm-mode compatibility).
+  - Slice 3: DDE 2-descriptor rings + SEC block-clock ISR + ivt wiring.
+    Then SPI handler real REG_SPI1_* addresses (same invented-address
+    problem).
+  - CKRE/MFD are PROVISIONAL until dsp4-logic RTL fixes them — encode
+    the choice in shared/dsp4-logic conventions when made.
   - Pre-existing warning to clear while in there: ramp_tables.asm
     references `_ramp_profile_GainSafe`/`_ramp_profile_InstantCtl`
     without .extern (ea1092 ×3, benign but sloppy).

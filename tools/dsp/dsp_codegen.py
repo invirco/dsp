@@ -3581,61 +3581,197 @@ def gen_ramp_tables():
 # ===========================================================================
 
 def gen_block_io(chip_label, chip_nodes):
-    """Generate scatter/gather functions that wire DMA buffers to per-node slot variables.
+    """Generate DMA-layout-accurate scatter/gather + lane tables + buffers.
 
-    Chip 1: scatter RX (ADC→input slots), gather IC TX (bus sends→inter-chip DMA)
-    Chip 2: scatter IC RX (inter-chip DMA→recv slots), gather TX (output slots→DAC)
+    Buffer layout is LANE-MAJOR (see MW/D32/DSP/dsp4-plumbing.md): each
+    active lane (half-SPORT) is its own DMA stream, so a region is the
+    concatenation of per-lane buffers. Packed lanes (MCPDE=1: RX and the
+    inter-chip mix fabric) carry only CS-selected slots; chip-2 TX lanes
+    are full-window (MCPDE=0). Node address within a region:
+        region_base + off + sample*stride
+    where off = lane_base_words + index_in_lane, stride = lane word
+    count per sample. Per-lane config tables (sport, dir, cs, ...) are
+    emitted for sport_init.asm; DMA buffers are allocated HERE with
+    exact sizes.
 
-    Each function takes r0 = sample index (0..31).
+    Chip 1: scatter RX (ADC/superset -> input slots), gather IC TX
+    Chip 2: scatter IC RX (mix fabric -> recv slots), gather TX
+    Each scatter/gather takes r0 = sample index (0..31).
     """
+    BLOCK = 32
+
+    def lane_layout(specs, window=None):
+        """specs: [(node, sport, slot)]. window=None -> packed lanes;
+        window=N -> full-window lanes of N slots.
+        Returns (lanes, per_node): lanes = [{sport, cs, count}] sorted by
+        sport; per_node[node_id] = (off_words, stride)."""
+        by_sport = {}
+        for node, sport, slot in specs:
+            by_sport.setdefault(sport, []).append((slot, node))
+        lanes = []
+        per_node = {}
+        base = 0
+        for sport in sorted(by_sport):
+            slots = sorted(by_sport[sport])
+            cs = 0
+            for slot, _ in slots:
+                cs |= (1 << slot)
+            count = window if window is not None else len(slots)
+            for rank, (slot, node) in enumerate(slots):
+                idx = slot if window is not None else rank
+                per_node[node['id']] = (base + idx, count)
+            lanes.append({'sport': sport, 'cs': cs, 'count': count})
+            base += count * BLOCK
+        return lanes, per_node
+
+    def emit_tables(lines, prefix, nodes_ordered, per_node, extern_fmt, var_fmt):
+        n = len(nodes_ordered)
+        for node in nodes_ordered:
+            lines.append(f'.extern {extern_fmt.format(id=node["id"])};')
+        lines.append(f'.var {prefix}_off[{n}] =')
+        for i, node in enumerate(nodes_ordered):
+            comma = ',' if i < n - 1 else ';'
+            off, stride = per_node[node['id']]
+            lines.append(f'    {off}{comma}')
+        lines.append(f'.var {prefix}_stride[{n}] =')
+        for i, node in enumerate(nodes_ordered):
+            comma = ',' if i < n - 1 else ';'
+            off, stride = per_node[node['id']]
+            lines.append(f'    {stride}{comma}')
+        lines.append(f'.var {var_fmt}[{n}] =')
+        for i, node in enumerate(nodes_ordered):
+            comma = ',' if i < n - 1 else ';'
+            lines.append(f'    {extern_fmt.format(id=node["id"])}{comma}')
+        lines.append('')
+
+    def emit_lane_cfg(lines, name, lanes, dirbit, mcpde, wsize):
+        """Entries of 4 words: {sport, cs_mask, lane_words_per_sample,
+        region_off_words}. dirbit/mcpde/wsize identical per region ->
+        single scalars."""
+        n = len(lanes)
+        lines.append(f'.global {name}_count;')
+        lines.append(f'.var {name}_count = {n};')
+        lines.append(f'.global {name}_dir;    /* 0 = RX (half A), 1 = TX (half B) */')
+        lines.append(f'.var {name}_dir = {dirbit};')
+        lines.append(f'.global {name}_mcpde;')
+        lines.append(f'.var {name}_mcpde = {mcpde};')
+        lines.append(f'.global {name}_wsize;')
+        lines.append(f'.var {name}_wsize = {wsize};')
+        lines.append(f'.global {name};    /* per lane: sport, cs_mask, words/sample, region_off */')
+        lines.append(f'.var {name}[{n * 4}] =')
+        base = 0
+        rows = []
+        for ln in lanes:
+            rows.append((ln['sport'], ln['cs'], ln['count'], base))
+            base += ln['count'] * BLOCK
+        for i, (sport, cs, count, off) in enumerate(rows):
+            comma = ',' if i < n - 1 else ';'
+            lines.append(f'    {sport}, 0x{cs:04X}, {count}, {off}{comma}')
+        lines.append('')
+        return base  # total region words (per ping/pong half)
+
+    def emit_copy_loop(lines, fn, count, base_sym, off_tbl, stride_tbl,
+                       ptr_tbl, to_dma):
+        """addr = dm(base_sym) + off[i] + sample*stride[i]; copy between
+        DMA word and *ptr[i]."""
+        lines.append(f'.global {fn};')
+        lines.append(f'{fn}:')
+        lines.append(f'    /* r0 = sample index (0..{BLOCK-1}) */')
+        lines.append(f'    r6 = dm({base_sym});')
+        lines.append(f'    i1 = {off_tbl};')
+        lines.append(f'    i2 = {stride_tbl};')
+        lines.append(f'    i3 = {ptr_tbl};')
+        lines.append(f'    r7 = {count};')
+        loop = fn.lstrip('_')
+        lines.append(f'    lcntr = r7; do .{loop}_lp until lce;')
+        lines.append(f'        r3 = dm(i1, 1);       /* off */')
+        lines.append(f'        r4 = dm(i2, 1);       /* stride */')
+        lines.append(f'        r2 = r0 * r4 (SSI);   /* sample*stride */')
+        lines.append(f'        r3 = r3 + r2;')
+        lines.append(f'        r3 = r6 + r3;         /* DMA word address */')
+        lines.append(f'        r5 = dm(i3, 1);       /* node slot var ptr */')
+        if to_dma:
+            lines.append(f'        i4 = r5;')
+            lines.append(f'        r2 = dm(i4, 0);   /* read slot var */')
+            lines.append(f'        i4 = r3;')
+            lines.append(f'        dm(i4, 0) = r2;   /* write DMA */')
+        else:
+            lines.append(f'        i4 = r3;')
+            lines.append(f'        r2 = dm(i4, 0);   /* read DMA */')
+            lines.append(f'        i4 = r5;')
+            lines.append(f'        dm(i4, 0) = r2;   /* write slot var */')
+        lines.append(f'    .{loop}_lp:')
+        lines.append(f'        nop;')
+        lines.append(f'    rts;')
+        lines.append(f'{fn}.end:')
+        lines.append('')
+
+    def emit_meter_scan(lines, fn, count, ptr_tbl, what):
+        lines.append(f'/* Peak-hold meter scan over {what} (once per block) */')
+        lines.append(f'.global {fn};')
+        lines.append(f'{fn}:')
+        lines.append(f'    i0 = {ptr_tbl};')
+        lines.append(f'    i1 = _meter_peaks;')
+        lines.append(f'    m0 = 0;')
+        lines.append(f'    m1 = 1;')
+        lines.append(f'    r5 = {count};')
+        loop = fn.lstrip('_')
+        lines.append(f'    lcntr = r5; do .{loop}_lp until lce;')
+        lines.append(f'        r2 = dm(i0, 1);')
+        lines.append(f'        i2 = r2;')
+        lines.append(f'        f3 = dm(i2, 0);')
+        lines.append(f'        f3 = abs f3;')
+        lines.append(f'        f4 = dm(i1, m0);')
+        lines.append(f'        comp(f3, f4);')
+        lines.append(f'        if gt f4 = f3;')
+        lines.append(f'        dm(i1, m1) = f4;')
+        lines.append(f'    .{loop}_lp:')
+        lines.append(f'        nop;')
+        lines.append(f'    rts;')
+        lines.append(f'{fn}.end:')
+        lines.append('')
+
     lines = []
     lines.append(f'/* block_io.asm — DMA↔node scatter/gather for {chip_label.upper()} */')
     lines.append('/* AUTO-GENERATED by tools/dsp/dsp_codegen.py — do not edit directly. */')
+    lines.append('/* Lane-major DMA layout per MW/D32/DSP/dsp4-plumbing.md. */')
     lines.append('')
 
     if chip_label == 'chip1':
-        # --- Collect INPUT_TDM nodes (Chip 1 RX from ADC) ---
+        # --- RX: INPUT_TDM nodes, packed lanes (MCPDE=1) ---
         input_nodes = [n for n in chip_nodes if n['type'] == 'INPUT_TDM']
-        # Packed RX buffer order: (sport_id, slot_start). The DMA/CS config
-        # must deliver exactly these slots, packed, in this order.
         input_nodes.sort(key=lambda n: (int(n['params'].get('sport_id', '0')),
                                         int(n['params'].get('slot_start', '0'))))
         num_rx = len(input_nodes)
-        # Total RX channels across all SPORTs
-        rx_stride = num_rx  # packed channels in contiguous DMA buffer
+        rx_specs = [(n, int(n['params'].get('sport_id', '0')),
+                     int(n['params'].get('slot_start', '0'))) for n in input_nodes]
+        rx_lanes, rx_map = lane_layout(rx_specs)
 
-        # --- Collect INTERCHIP_SEND nodes (Chip 1 TX to Chip 2) ---
-        # Mix-fabric slot index = global_slot (16*line + slot); legacy csvs
-        # carried a single-SPORT 'slot' which is the same linear index.
+        # --- IC TX: INTERCHIP_SEND nodes, packed lanes (MCPDE=1) ---
         send_nodes = [n for n in chip_nodes if n['type'] == 'INTERCHIP_SEND']
         ic_slot_of = lambda n: int(n['params'].get('global_slot',
                                                    n['params'].get('slot', '0')))
         send_nodes.sort(key=ic_slot_of)
         num_ic = len(send_nodes)
-        ic_stride = num_ic  # IC DMA stride = active slots per frame
-        # Packed IC buffer requires contiguous global slots from 0
-        assert [ic_slot_of(n) for n in send_nodes] == list(range(num_ic)), \
-            'INTERCHIP_SEND global slots must be contiguous 0..N-1 (packed IC DMA)'
+        ic_specs = [(n, int(n['params'].get('sport_id', '7')),
+                     int(n['params'].get('slot', '0'))) for n in send_nodes]
+        ic_lanes, ic_map = lane_layout(ic_specs)
 
-        # --- Data section: pointer tables ---
         lines.append('.section/dm seg_dmda;')
         lines.append('')
-        lines.append(f'/* RX input slot pointer table ({num_rx} channels) */')
-        for n in input_nodes:
-            lines.append(f'.extern _rx_slot_{n["id"]};')
-        lines.append(f'.var _c1_rx_slot_ptrs[{num_rx}] =')
-        for i, n in enumerate(input_nodes):
-            comma = ',' if i < num_rx - 1 else ';'
-            lines.append(f'    _rx_slot_{n["id"]}{comma}')
-        lines.append('')
+        lines.append(f'/* RX node tables ({num_rx} packed channels over '
+                     f'{len(rx_lanes)} lanes) */')
+        emit_tables(lines, '_c1_rx', input_nodes, rx_map,
+                    '_rx_slot_{id}', '_c1_rx_slot_ptrs')
 
         lines.append(f'.global _c1_rx_slot_count;')
         lines.append(f'.var _c1_rx_slot_count = {num_rx};')
         lines.append('')
         lines.append('/* Boot-time input patch (product config, SPI regs 0xF010+):')
-        lines.append(' * _rx_patch_regs[i] = packed default index whose slot var receives')
-        lines.append(' * DMA channel i. Identity by default; the D24 console-channel')
-        lines.append(' * interleave is written by the Pi and applied at CONFIG_COMMIT. */')
+        lines.append(' * _rx_patch_regs[i] = table index whose slot var receives')
+        lines.append(' * RX table entry i. Identity by default; the D24 console-')
+        lines.append(' * channel interleave is written by the Pi and applied at')
+        lines.append(' * CONFIG_COMMIT. */')
         lines.append('.global _rx_patch_regs;')
         lines.append(f'.var _rx_patch_regs[{num_rx}] =')
         for i in range(num_rx):
@@ -3647,101 +3783,47 @@ def gen_block_io(chip_label, chip_nodes):
             lines.append(f'    _rx_slot_{n["id"]}{comma}')
         lines.append('')
 
-        lines.append(f'/* IC TX send entries: {{slot_offset, var_ptr}} pairs ({num_ic} sends) */')
-        for n in send_nodes:
-            lines.append(f'.extern _tx_slot_{n["id"]};')
-        lines.append(f'.var _c1_ic_tx_slots[{num_ic}] =')
-        for i, n in enumerate(send_nodes):
-            comma = ',' if i < num_ic - 1 else ';'
-            lines.append(f'    {ic_slot_of(n)}{comma}')
-        lines.append(f'.var _c1_ic_tx_ptrs[{num_ic}] =')
-        for i, n in enumerate(send_nodes):
-            comma = ',' if i < num_ic - 1 else ';'
-            lines.append(f'    _tx_slot_{n["id"]}{comma}')
-        lines.append('')
+        lines.append(f'/* IC TX node tables ({num_ic} packed mix-fabric slots '
+                     f'over {len(ic_lanes)} lanes) */')
+        emit_tables(lines, '_c1_ic_tx', send_nodes, ic_map,
+                    '_tx_slot_{id}', '_c1_ic_tx_ptrs')
 
+        lines.append('/* Lane config consumed by sport_init.asm */')
+        rx_words = emit_lane_cfg(lines, '_c1_rx_lanes', rx_lanes,
+                                 dirbit=0, mcpde=1, wsize=7)
+        ic_words = emit_lane_cfg(lines, '_c1_ic_lanes', ic_lanes,
+                                 dirbit=1, mcpde=1, wsize=15)
+
+        lines.append('.global _dma_rx_region_words;')
+        lines.append(f'.var _dma_rx_region_words = {rx_words};')
+        lines.append('.global _dma_ic_region_words;')
+        lines.append(f'.var _dma_ic_region_words = {ic_words};')
+        lines.append('')
+        lines.append('/* DMA ping-pong buffers (exact lane-major sizes) */')
+        lines.append('.section/dm seg_dma;')
+        lines.append(f'.global _dma_rx_ping;    .var _dma_rx_ping[{rx_words}];')
+        lines.append(f'.global _dma_rx_pong;    .var _dma_rx_pong[{rx_words}];')
+        lines.append(f'.global _dma_ic_tx_ping; .var _dma_ic_tx_ping[{ic_words}];')
+        lines.append(f'.global _dma_ic_tx_pong; .var _dma_ic_tx_pong[{ic_words}];')
+        lines.append('')
+        lines.append('.section/dm seg_dmda;')
         lines.append('.extern _rx_active_buf;')
         lines.append('.extern _ic_tx_active_buf;')
         lines.append('.extern _meter_peaks;')
-
         lines.append('')
 
-        # --- Code section ---
         lines.append('.section/pm seg_pmco;')
         lines.append('')
-
-        # _scatter_chip1: DMA RX buffer → per-channel input slot variables
-        lines.append(f'/* Scatter {num_rx} ADC channels from DMA RX buffer */')
-        lines.append('.global _scatter_chip1;')
-        lines.append('_scatter_chip1:')
-        lines.append(f'    /* r0 = sample index (0..31) */')
-        lines.append(f'    r1 = {rx_stride};')
-        lines.append(f'    r1 = r0 * r1;             /* r1 = sample_offset = n \u00d7 {rx_stride} */')
-        lines.append(f'    i0 = dm(_rx_active_buf);')
-        lines.append(f'    m0 = r1;')
-        lines.append(f'    modify(i0, m0);            /* i0 \u2192 DMA buf[n \u00d7 {rx_stride}] */')
-        lines.append(f'    i1 = _c1_rx_slot_ptrs;')
-        lines.append(f'    r5 = {num_rx};')
-        lines.append(f'    lcntr = r5; do .c1_scat_rx until lce;')
-        lines.append(f'        r2 = dm(i0, 1);       /* read sample from DMA */')
-        lines.append(f'        r3 = dm(i1, 1);       /* pointer to slot var */')
-        lines.append(f'        i2 = r3;')
-        lines.append(f'        dm(i2, 0) = r2;')
-        lines.append(f'    .c1_scat_rx:')
-        lines.append(f'        nop;')
-        lines.append(f'    rts;')
-        lines.append(f'_scatter_chip1.end:')
-        lines.append('')
-
-        # _meter_scan_chip1: post-block peak scan (call once per block, not per sample)
-        lines.append(f'/* Peak-hold meter scan: run once per block on last-scattered slot values */')
-        lines.append('.global _meter_scan_chip1;')
-        lines.append('_meter_scan_chip1:')
-        lines.append(f'    i0 = _c1_rx_slot_ptrs;')
-        lines.append(f'    i1 = _meter_peaks;')
-        lines.append(f'    m0 = 0;                   /* no-advance for peak read */')
-        lines.append(f'    m1 = 1;                   /* advance for peak write */')
-        lines.append(f'    r5 = {num_rx};')
-        lines.append(f'    lcntr = r5; do .c1_mscan until lce;')
-        lines.append(f'        r2 = dm(i0, 1);       /* pointer to slot var */')
-        lines.append(f'        i2 = r2;')
-        lines.append(f'        f3 = dm(i2, 0);       /* last-scattered sample */')
-        lines.append(f'        f3 = abs f3;          /* abs(sample) */')
-        lines.append(f'        f4 = dm(i1, m0);      /* current peak (no advance) */')
-        lines.append(f'        comp(f3, f4);         /* compare abs to peak */')
-        lines.append(f'        if gt f4 = f3;        /* conditional reg move: valid SHARC op */')
-        lines.append(f'        dm(i1, m1) = f4;      /* write updated peak and advance */')
-        lines.append(f'    .c1_mscan:')
-        lines.append(f'        nop;')
-        lines.append(f'    rts;')
-        lines.append(f'_meter_scan_chip1.end:')
-        lines.append('')
-
-        # _gather_chip1: per-bus send slot variables → IC DMA TX buffer
-        lines.append(f'/* Gather {num_ic} inter-chip sends to IC DMA TX buffer */')
-        lines.append('.global _gather_chip1;')
-        lines.append('_gather_chip1:')
-        lines.append(f'    /* r0 = sample index (0..31) */')
-        lines.append(f'    r1 = {ic_stride};')
-        lines.append(f'    r1 = r0 * r1;             /* base offset = n × {ic_stride} */')
-        lines.append(f'    r6 = dm(_ic_tx_active_buf);')
-        lines.append(f'    r6 = r6 + r1;             /* r6 = DMA buf base for this sample */')
-        lines.append(f'    i1 = _c1_ic_tx_slots;     /* slot offset table */')
-        lines.append(f'    i2 = _c1_ic_tx_ptrs;      /* slot var pointer table */')
-        lines.append(f'    r5 = {num_ic};')
-        lines.append(f'    lcntr = r5; do .c1_gath_ic until lce;')
-        lines.append(f'        r3 = dm(i1, 1);       /* IC slot index (0..{num_ic-1}) */')
-        lines.append(f'        r4 = dm(i2, 1);       /* pointer to _tx_slot_* var */')
-        lines.append(f'        i3 = r4;')
-        lines.append(f'        r2 = dm(i3, 0);       /* read slot value */')
-        lines.append(f'        r4 = r6 + r3;         /* DMA buf addr = base + slot */')
-        lines.append(f'        i3 = r4;')
-        lines.append(f'        dm(i3, 0) = r2;       /* write to DMA buf */')
-        lines.append(f'    .c1_gath_ic:')
-        lines.append(f'        nop;')
-        lines.append(f'    rts;')
-        lines.append(f'_gather_chip1.end:')
-        lines.append('')
+        lines.append(f'/* Scatter {num_rx} RX channels (lane-major packed) */')
+        emit_copy_loop(lines, '_scatter_chip1', num_rx, '_rx_active_buf',
+                       '_c1_rx_off', '_c1_rx_stride', '_c1_rx_slot_ptrs',
+                       to_dma=False)
+        emit_meter_scan(lines, '_meter_scan_chip1', num_rx,
+                        '_c1_rx_slot_ptrs', 'RX inputs')
+        lines.append(f'/* Gather {num_ic} inter-chip sends (lane-major packed) */')
+        emit_copy_loop(lines, '_gather_chip1', num_ic, '_ic_tx_active_buf',
+                       '_c1_ic_tx_off', '_c1_ic_tx_stride', '_c1_ic_tx_ptrs',
+                       to_dma=True)
 
         # _rx_patch_apply: rebuild the RX pointer table from the patch regs
         lines.append('/* Apply boot-time input patch: ptrs[i] = defaults[patch[i]] */')
@@ -3770,153 +3852,88 @@ def gen_block_io(chip_label, chip_nodes):
         lines.append('')
 
     elif chip_label == 'chip2':
-        # --- Collect INTERCHIP_RECV nodes (Chip 2 RX from Chip 1) ---
-        # Mix-fabric slot index = global_slot (16*line + slot); legacy csvs
-        # carried a single-SPORT 'slot' which is the same linear index.
+        # --- IC RX: INTERCHIP_RECV nodes, packed lanes (MCPDE=1) ---
         recv_nodes = [n for n in chip_nodes if n['type'] == 'INTERCHIP_RECV']
         ic_slot_of = lambda n: int(n['params'].get('global_slot',
                                                    n['params'].get('slot', '0')))
         recv_nodes.sort(key=ic_slot_of)
         num_ic_rx = len(recv_nodes)
-        ic_stride = num_ic_rx  # IC DMA stride = active slots per frame
-        assert [ic_slot_of(n) for n in recv_nodes] == list(range(num_ic_rx)), \
-            'INTERCHIP_RECV global slots must be contiguous 0..N-1 (packed IC DMA)'
+        ic_specs = [(n, int(n['params'].get('sport_id', '7')),
+                     int(n['params'].get('slot', '0'))) for n in recv_nodes]
+        ic_lanes, ic_map = lane_layout(ic_specs)
 
-        # --- Collect OUTPUT_TDM nodes (Chip 2 TX to DAC/codec/NET) ---
+        # --- TX: OUTPUT_TDM nodes, full-window lanes (MCPDE=0) ---
         output_nodes = [n for n in chip_nodes if n['type'] == 'OUTPUT_TDM']
-        # TX DMA buffer is frame-indexed: sport_id * slots-per-sport +
-        # slot_start. sport_slots comes from the slot map via dsp.csv
-        # (default 8 = TDM8) and must be uniform across TX lines for the
-        # single-stride frame layout to hold.
         tx_sport_slots = {int(n['params'].get('sport_slots', '8'))
                           for n in output_nodes} or {8}
         assert len(tx_sport_slots) == 1, \
-            'OUTPUT_TDM sport_slots must be uniform across all TX lines'
+            'OUTPUT_TDM sport_slots must be uniform across all TX lanes'
         sps = tx_sport_slots.pop()
-        tx_slot_of = lambda n: (int(n['params'].get('sport_id', '0')) * sps
-                                + int(n['params'].get('slot_start', '0')))
-        output_nodes.sort(key=tx_slot_of)
+        output_nodes.sort(key=lambda n: (int(n['params'].get('sport_id', '0')),
+                                         int(n['params'].get('slot_start', '0'))))
         num_tx = len(output_nodes)
-        # TX stride: highest occupied frame slot + 1
-        max_tx_slot = max(tx_slot_of(n) + int(n['params'].get('slot_count', '1'))
-                          - 1 for n in output_nodes) + 1 if output_nodes else 32
-        tx_stride = max_tx_slot
+        tx_specs = [(n, int(n['params'].get('sport_id', '0')),
+                     int(n['params'].get('slot_start', '0'))) for n in output_nodes]
+        tx_lanes, tx_map = lane_layout(tx_specs, window=sps)
+        # widen CS masks for multi-slot nodes (slot_count > 1)
+        for n in output_nodes:
+            cnt = int(n['params'].get('slot_count', '1'))
+            if cnt > 1:
+                sport = int(n['params'].get('sport_id', '0'))
+                start = int(n['params'].get('slot_start', '0'))
+                for ln in tx_lanes:
+                    if ln['sport'] == sport:
+                        for s in range(start, start + cnt):
+                            ln['cs'] |= (1 << s)
 
-        # --- Data section ---
         lines.append('.section/dm seg_dmda;')
         lines.append('')
+        lines.append(f'/* IC RX node tables ({num_ic_rx} packed mix-fabric slots '
+                     f'over {len(ic_lanes)} lanes) */')
+        emit_tables(lines, '_c2_ic_rx', recv_nodes, ic_map,
+                    '_rx_ic_slot_{id}', '_c2_ic_rx_ptrs')
 
-        lines.append(f'/* IC RX scatter entries ({num_ic_rx} recv channels) */')
-        for n in recv_nodes:
-            lines.append(f'.extern _rx_ic_slot_{n["id"]};')
-        lines.append(f'.var _c2_ic_rx_slots[{num_ic_rx}] =')
-        for i, n in enumerate(recv_nodes):
-            comma = ',' if i < num_ic_rx - 1 else ';'
-            lines.append(f'    {ic_slot_of(n)}{comma}')
-        lines.append(f'.var _c2_ic_rx_ptrs[{num_ic_rx}] =')
-        for i, n in enumerate(recv_nodes):
-            comma = ',' if i < num_ic_rx - 1 else ';'
-            lines.append(f'    _rx_ic_slot_{n["id"]}{comma}')
+        lines.append(f'/* TX node tables ({num_tx} outputs over '
+                     f'{len(tx_lanes)} full-window lanes of {sps}) */')
+        emit_tables(lines, '_c2_tx', output_nodes, tx_map,
+                    '_tx_out_slot_{id}', '_c2_tx_ptrs')
+
+        lines.append('/* Lane config consumed by sport_init.asm */')
+        ic_words = emit_lane_cfg(lines, '_c2_ic_lanes', ic_lanes,
+                                 dirbit=0, mcpde=1, wsize=15)
+        tx_words = emit_lane_cfg(lines, '_c2_tx_lanes', tx_lanes,
+                                 dirbit=1, mcpde=0, wsize=sps - 1)
+
+        lines.append('.global _dma_ic_region_words;')
+        lines.append(f'.var _dma_ic_region_words = {ic_words};')
+        lines.append('.global _dma_tx_region_words;')
+        lines.append(f'.var _dma_tx_region_words = {tx_words};')
         lines.append('')
-
-        lines.append(f'/* TX output slot tables ({num_tx} output channels, stride={tx_stride}) */')
-        for n in output_nodes:
-            lines.append(f'.extern _tx_out_slot_{n["id"]};')
-        lines.append(f'.var _c2_tx_slots[{num_tx}] =')
-        for i, n in enumerate(output_nodes):
-            comma = ',' if i < num_tx - 1 else ';'
-            lines.append(f'    {tx_slot_of(n)}{comma}')
-        lines.append(f'.var _c2_tx_ptrs[{num_tx}] =')
-        for i, n in enumerate(output_nodes):
-            comma = ',' if i < num_tx - 1 else ';'
-            lines.append(f'    _tx_out_slot_{n["id"]}{comma}')
+        lines.append('/* DMA ping-pong buffers (exact lane-major sizes) */')
+        lines.append('.section/dm seg_dma;')
+        lines.append(f'.global _dma_ic_rx_ping; .var _dma_ic_rx_ping[{ic_words}];')
+        lines.append(f'.global _dma_ic_rx_pong; .var _dma_ic_rx_pong[{ic_words}];')
+        lines.append(f'.global _dma_tx_ping;    .var _dma_tx_ping[{tx_words}];')
+        lines.append(f'.global _dma_tx_pong;    .var _dma_tx_pong[{tx_words}];')
         lines.append('')
-
+        lines.append('.section/dm seg_dmda;')
         lines.append('.extern _ic_rx_active_buf;')
         lines.append('.extern _tx_active_buf;')
         lines.append('.extern _meter_peaks;')
-
         lines.append('')
 
-        # --- Code section ---
         lines.append('.section/pm seg_pmco;')
         lines.append('')
-
-        # _scatter_chip2: IC DMA RX → per-recv slot variables
-        lines.append(f'/* Scatter {num_ic_rx} inter-chip recv channels from IC DMA RX */')
-        lines.append('.global _scatter_chip2;')
-        lines.append('_scatter_chip2:')
-        lines.append(f'    /* r0 = sample index (0..31) */')
-        lines.append(f'    r1 = {ic_stride};')
-        lines.append(f'    r1 = r0 * r1;')
-        lines.append(f'    r6 = dm(_ic_rx_active_buf);')
-        lines.append(f'    r6 = r6 + r1;             /* r6 = IC buf base for this sample */')
-        lines.append(f'    i1 = _c2_ic_rx_slots;     /* slot offset table */')
-        lines.append(f'    i2 = _c2_ic_rx_ptrs;      /* destination var pointers */')
-        lines.append(f'    r5 = {num_ic_rx};')
-        lines.append(f'    lcntr = r5; do .c2_scat_ic until lce;')
-        lines.append(f'        r3 = dm(i1, 1);       /* IC slot offset */')
-        lines.append(f'        r4 = dm(i2, 1);       /* pointer to _rx_ic_slot_* var */')
-        lines.append(f'        r1 = r6 + r3;         /* DMA buf addr */')
-        lines.append(f'        i3 = r1;')
-        lines.append(f'        r2 = dm(i3, 0);       /* read from IC DMA */')
-        lines.append(f'        i3 = r4;')
-        lines.append(f'        dm(i3, 0) = r2;       /* write to recv slot var */')
-        lines.append(f'    .c2_scat_ic:')
-        lines.append(f'        nop;')
-        lines.append(f'    rts;')
-        lines.append(f'_scatter_chip2.end:')
-        lines.append('')
-
-        # _gather_chip2: output slot variables → DAC DMA TX buffer
-        lines.append(f'/* Gather {num_tx} DAC outputs to DMA TX buffer (stride={tx_stride}) */')
-        lines.append('.global _gather_chip2;')
-        lines.append('_gather_chip2:')
-        lines.append(f'    /* r0 = sample index (0..31) */')
-        lines.append(f'    r1 = {tx_stride};')
-        lines.append(f'    r1 = r0 * r1;')
-        lines.append(f'    r6 = dm(_tx_active_buf);')
-        lines.append(f'    r6 = r6 + r1;             /* r6 = TX buf base for this sample */')
-        lines.append(f'    i1 = _c2_tx_slots;')
-        lines.append(f'    i2 = _c2_tx_ptrs;')
-        lines.append(f'    r5 = {num_tx};')
-        lines.append(f'    lcntr = r5; do .c2_gath_tx until lce;')
-        lines.append(f'        r3 = dm(i1, 1);       /* slot offset */')
-        lines.append(f'        r4 = dm(i2, 1);       /* pointer to _tx_out_slot_* var */')
-        lines.append(f'        i3 = r4;')
-        lines.append(f'        r2 = dm(i3, 0);       /* read slot value */')
-        lines.append(f'        r4 = r6 + r3;         /* DMA buf addr */')
-        lines.append(f'        i3 = r4;')
-        lines.append(f'        dm(i3, 0) = r2;')
-        lines.append(f'    .c2_gath_tx:')
-        lines.append(f'        nop;')
-        lines.append(f'    rts;')
-        lines.append(f'_gather_chip2.end:')
-        lines.append('')
-
-        # _meter_scan_chip2: post-block peak scan of output bus levels
-        lines.append(f'/* Peak-hold meter scan: run once per block on last-gathered output values */')
-        lines.append('.global _meter_scan_chip2;')
-        lines.append('_meter_scan_chip2:')
-        lines.append(f'    i0 = _c2_tx_ptrs;')
-        lines.append(f'    i1 = _meter_peaks;')
-        lines.append(f'    m0 = 0;                   /* no-advance for peak read */')
-        lines.append(f'    m1 = 1;                   /* advance for peak write */')
-        lines.append(f'    r5 = {num_tx};')
-        lines.append(f'    lcntr = r5; do .c2_mscan until lce;')
-        lines.append(f'        r2 = dm(i0, 1);       /* pointer to _tx_out_slot_* var */')
-        lines.append(f'        i2 = r2;')
-        lines.append(f'        f3 = dm(i2, 0);       /* last-gathered output sample */')
-        lines.append(f'        f3 = abs f3;          /* abs(sample) */')
-        lines.append(f'        f4 = dm(i1, m0);      /* current peak (no advance) */')
-        lines.append(f'        comp(f3, f4);         /* compare abs to peak */')
-        lines.append(f'        if gt f4 = f3;        /* conditional reg move: valid SHARC op */')
-        lines.append(f'        dm(i1, m1) = f4;      /* write updated peak and advance */')
-        lines.append(f'    .c2_mscan:')
-        lines.append(f'        nop;')
-        lines.append(f'    rts;')
-        lines.append(f'_meter_scan_chip2.end:')
-        lines.append('')
+        lines.append(f'/* Scatter {num_ic_rx} inter-chip recvs (lane-major packed) */')
+        emit_copy_loop(lines, '_scatter_chip2', num_ic_rx, '_ic_rx_active_buf',
+                       '_c2_ic_rx_off', '_c2_ic_rx_stride', '_c2_ic_rx_ptrs',
+                       to_dma=False)
+        lines.append(f'/* Gather {num_tx} outputs (lane-major full-window) */')
+        emit_copy_loop(lines, '_gather_chip2', num_tx, '_tx_active_buf',
+                       '_c2_tx_off', '_c2_tx_stride', '_c2_tx_ptrs',
+                       to_dma=True)
+        emit_meter_scan(lines, '_meter_scan_chip2', num_tx,
+                        '_c2_tx_ptrs', 'TX outputs')
 
     return '\n'.join(lines)
 
