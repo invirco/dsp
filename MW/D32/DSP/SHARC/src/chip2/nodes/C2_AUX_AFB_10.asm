@@ -12,13 +12,9 @@
 
 /* RampProfile: EqSafe | Mode: LinearFrames | Up: 12ms (18f) Down: 12ms (18f) | Curve: Linear | Scope: CoeffSetAtomic */
 
-/* ANTI_FB: Auto anti-feedback (6 notches) — dual-instance crossfade */
+/* ANTI_FB (FIXED Q4.28, D5): 6-stage cascade, dual-instance crossfade */
 /* SPI page=1 addr=839 */
-/*
- * Dual-instance crossfade (CoeffSetAtomic scope):
- *   Two parallel 6-stage notch biquad cascades (A/B).
- *   Architecture identical to EQ_BIQUAD.
- */
+/* Normative model: tools/dsp/fixed_ref.py::biquad (offset form). */
 
 .section/dm seg_dmda;
 .extern _buf_C2_AUX_GEQ_10;
@@ -33,25 +29,21 @@
 .global _afb_notch_q_C2_AUX_AFB_10;
 .var _afb_notch_q_C2_AUX_AFB_10[6];
 
-/* ---- Instance A ---- */
 .global _afb_coeffs_A_C2_AUX_AFB_10;
-.var _afb_coeffs_A_C2_AUX_AFB_10[30] = 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0;
+.var _afb_coeffs_A_C2_AUX_AFB_10[30] = 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000;
 .global _afb_state_A_C2_AUX_AFB_10;
-.var _afb_state_A_C2_AUX_AFB_10[12];
-
-/* ---- Instance B ---- */
+.var _afb_state_A_C2_AUX_AFB_10[36];
 .global _afb_coeffs_B_C2_AUX_AFB_10;
-.var _afb_coeffs_B_C2_AUX_AFB_10[30] = 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0;
+.var _afb_coeffs_B_C2_AUX_AFB_10[30] = 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000;
 .global _afb_state_B_C2_AUX_AFB_10;
-.var _afb_state_B_C2_AUX_AFB_10[12];
+.var _afb_state_B_C2_AUX_AFB_10[36];
 
-/* ---- SPI staging buffer ---- */
+/* SPI staging (FLOAT RBJ words — wire format unchanged) */
 .global _afb_coeffs_next_C2_AUX_AFB_10;
 .var _afb_coeffs_next_C2_AUX_AFB_10[30];
 .global _afb_swap_pending_C2_AUX_AFB_10;
 .var _afb_swap_pending_C2_AUX_AFB_10 = 0;
 
-/* ---- Crossfade control ---- */
 .global _afb_active_C2_AUX_AFB_10;
 .var _afb_active_C2_AUX_AFB_10 = 0;
 .global _afb_xfade_alpha_C2_AUX_AFB_10;
@@ -59,156 +51,127 @@
 .global _afb_xfade_step_C2_AUX_AFB_10;
 .var _afb_xfade_step_C2_AUX_AFB_10 = 0.0;
 
+
 .global _buf_C2_AUX_AFB_10;
 .var _buf_C2_AUX_AFB_10;
 
 .section/pm seg_pmco;
-.extern _biquad_cascade_N;
+.extern _bq_fx_cascade_N;
+.extern _bq_fx_convert_N;
 .global _C2_AUX_AFB_10_process;
 _C2_AUX_AFB_10_process:
 
-    /* ── Check for new coefficients ── */
     r4 = dm(_afb_swap_pending_C2_AUX_AFB_10);
     r4 = pass r4;
     if ne call _afb_start_xfade_C2_AUX_AFB_10;
 
-    /* ── Crossfade or steady-state? ── */
     r4 = dm(_afb_xfade_step_C2_AUX_AFB_10);
     r4 = pass r4;
-    if ne jump .afb_xfade_C2_AUX_AFB_10;
+    if ne jump (pc, .afb_xfade_C2_AUX_AFB_10);
 
-    /* ═══ STEADY STATE ═══════════════════════════════════════ */
+    /* ===== steady state ===== */
     r0 = dm(_buf_C2_AUX_GEQ_10);
     r4 = dm(_afb_active_C2_AUX_AFB_10);
     r4 = pass r4;
-    if ne jump .afb_ss_B_C2_AUX_AFB_10;
+    if ne jump (pc, .afb_ss_b_C2_AUX_AFB_10);
     i0 = _afb_coeffs_A_C2_AUX_AFB_10;
     i1 = _afb_state_A_C2_AUX_AFB_10;
-    jump .afb_ss_run_C2_AUX_AFB_10;
-.afb_ss_B_C2_AUX_AFB_10:
+    jump (pc, .afb_ss_go_C2_AUX_AFB_10);
+.afb_ss_b_C2_AUX_AFB_10:
     i0 = _afb_coeffs_B_C2_AUX_AFB_10;
     i1 = _afb_state_B_C2_AUX_AFB_10;
-.afb_ss_run_C2_AUX_AFB_10:
+.afb_ss_go_C2_AUX_AFB_10:
     r4 = 6;
-    call _biquad_cascade_N;
+    call _bq_fx_cascade_N;
+
     dm(_buf_C2_AUX_AFB_10) = r0;
     rts;
 
-    /* ═══ CROSSFADE ═════════════════════════════════════════ */
+    /* ===== crossfade: run both, blend fixed ===== */
 .afb_xfade_C2_AUX_AFB_10:
     r0 = dm(_buf_C2_AUX_GEQ_10);
-    f15 = f0;
-
-    /* ── Active (old) instance ── */
-    r4 = dm(_afb_active_C2_AUX_AFB_10);
-    r4 = pass r4;
-    if ne jump .afb_xf_actB_C2_AUX_AFB_10;
+    r13 = r0;                     /* input (r13-r15 preserved by lib) */
     i0 = _afb_coeffs_A_C2_AUX_AFB_10;
     i1 = _afb_state_A_C2_AUX_AFB_10;
-    jump .afb_xf_act_run_C2_AUX_AFB_10;
-.afb_xf_actB_C2_AUX_AFB_10:
+    r4 = 6;
+    call _bq_fx_cascade_N;
+    r14 = r0;                     /* ya */
+    r0 = r13;
     i0 = _afb_coeffs_B_C2_AUX_AFB_10;
     i1 = _afb_state_B_C2_AUX_AFB_10;
-.afb_xf_act_run_C2_AUX_AFB_10:
     r4 = 6;
-    call _biquad_cascade_N;
-    f13 = f0;
-
-    /* ── Inactive (new) instance ── */
-    f0 = f15;
-    r4 = dm(_afb_active_C2_AUX_AFB_10);
-    r4 = pass r4;
-    if eq jump .afb_xf_inB_C2_AUX_AFB_10;
-    i0 = _afb_coeffs_A_C2_AUX_AFB_10;
-    i1 = _afb_state_A_C2_AUX_AFB_10;
-    jump .afb_xf_in_run_C2_AUX_AFB_10;
-.afb_xf_inB_C2_AUX_AFB_10:
-    i0 = _afb_coeffs_B_C2_AUX_AFB_10;
-    i1 = _afb_state_B_C2_AUX_AFB_10;
-.afb_xf_in_run_C2_AUX_AFB_10:
-    r4 = 6;
-    call _biquad_cascade_N;
-
-    /* ── Blend: out = (1 − α) × old + α × new ── */
-    f14 = dm(_afb_xfade_alpha_C2_AUX_AFB_10);
-    r15 = 0x3F800000;  /* 1.0 IEEE 754 */
-    f15 = f15 - f14;
-    f13 = f13 * f15;
-    f0 = f0 * f14;
-    f0 = f0 + f13;
-
-    /* ── Advance α ── */
-    f14 = dm(_afb_xfade_alpha_C2_AUX_AFB_10);
-    f15 = dm(_afb_xfade_step_C2_AUX_AFB_10);
-    f14 = f14 + f15;
-    dm(_afb_xfade_alpha_C2_AUX_AFB_10) = f14;
-    r15 = 0x3F800000;  /* 1.0 IEEE 754 */
-    comp(f14, f15);
-    if ge call _afb_xfade_done_C2_AUX_AFB_10;
-
-    dm(_buf_C2_AUX_AFB_10) = f0;
-    rts;
-
-/* ── Start crossfade: load dormant instance ── */
-_afb_start_xfade_C2_AUX_AFB_10:
-    r4 = 0;
-    dm(_afb_swap_pending_C2_AUX_AFB_10) = r4;
+    call _bq_fx_cascade_N;        /* r0 = yb */
 
     r4 = dm(_afb_active_C2_AUX_AFB_10);
     r4 = pass r4;
-    if ne jump .afb_sxf_toA_C2_AUX_AFB_10;
+    if eq jump (pc, .afb_bl_C2_AUX_AFB_10);
+    r5 = r14;                     /* active B: new is A */
+    r14 = r0;
+    r0 = r5;
+.afb_bl_C2_AUX_AFB_10:
+    /* alpha_q31 = fix(alpha * 2^31); blend in MRF */
+    f4 = dm(_afb_xfade_alpha_C2_AUX_AFB_10);
+    r5 = 0x4F000000;               /* 2^31 as float */
+    f5 = r5;
+    f4 = f4 * f5;
+    r4 = fix f4;
+    r5 = r0 - r14;                 /* new - old */
+    mrf = r5 * r4 (ssi);
+    r5 = 0x40000000;               /* 2^30 rounding half */
+    r12 = 1;
+    mrf = mrf + r5 * r12 (ssi);
+    r5 = mr0f;
+    r12 = mr1f;
+    r5 = lshift r5 by -31;
+    r12 = lshift r12 by 1;
+    r5 = r5 or r12;
+    r0 = r14 + r5;                 /* blended output */
 
-    /* Active=A → dormant=B */
-    i0 = _afb_coeffs_next_C2_AUX_AFB_10;
-    i1 = _afb_coeffs_B_C2_AUX_AFB_10;
-    r4 = 30;
-    lcntr = r4; do .afb_cp_B_C2_AUX_AFB_10 until lce;
-        r0 = dm(i0, 1);
-        dm(i1, 1) = r0;
-    .afb_cp_B_C2_AUX_AFB_10:
-    i1 = _afb_state_B_C2_AUX_AFB_10;
-    r0 = 0;
-    r4 = 12;
-    lcntr = r4; do .afb_zs_B_C2_AUX_AFB_10 until lce;
-        dm(i1, 1) = r0;
-    .afb_zs_B_C2_AUX_AFB_10:
-    nop;
-    jump .afb_sxf_go_C2_AUX_AFB_10;
+    dm(_buf_C2_AUX_AFB_10) = r0;
 
-.afb_sxf_toA_C2_AUX_AFB_10:
-    /* Active=B → dormant=A */
-    i0 = _afb_coeffs_next_C2_AUX_AFB_10;
-    i1 = _afb_coeffs_A_C2_AUX_AFB_10;
-    r4 = 30;
-    lcntr = r4; do .afb_cp_A_C2_AUX_AFB_10 until lce;
-        r0 = dm(i0, 1);
-        dm(i1, 1) = r0;
-    .afb_cp_A_C2_AUX_AFB_10:
-    i1 = _afb_state_A_C2_AUX_AFB_10;
-    r0 = 0;
-    r4 = 12;
-    lcntr = r4; do .afb_zs_A_C2_AUX_AFB_10 until lce;
-        dm(i1, 1) = r0;
-    .afb_zs_A_C2_AUX_AFB_10:
-
-.afb_sxf_go_C2_AUX_AFB_10:
-    r0 = 0;
-    dm(_afb_xfade_alpha_C2_AUX_AFB_10) = r0;
-    f0 = 0.001736111111111111;
-    dm(_afb_xfade_step_C2_AUX_AFB_10) = f0;
-    rts;
-_afb_start_xfade_C2_AUX_AFB_10.end:
-
-/* ── Crossfade complete ── */
-_afb_xfade_done_C2_AUX_AFB_10:
+    /* advance alpha (float control) */
+    f4 = dm(_afb_xfade_alpha_C2_AUX_AFB_10);
+    f5 = dm(_afb_xfade_step_C2_AUX_AFB_10);
+    f4 = f4 + f5;
+    dm(_afb_xfade_alpha_C2_AUX_AFB_10) = f4;
+    r5 = 0x3F800000;
+    f5 = r5;
+    comp(f4, f5);
+    if lt rts;
     r4 = dm(_afb_active_C2_AUX_AFB_10);
     r5 = 1;
     r4 = r4 xor r5;
     dm(_afb_active_C2_AUX_AFB_10) = r4;
     r4 = 0;
-    dm(_afb_xfade_alpha_C2_AUX_AFB_10) = r4;
     dm(_afb_xfade_step_C2_AUX_AFB_10) = r4;
+    dm(_afb_xfade_alpha_C2_AUX_AFB_10) = r4;
     rts;
-_afb_xfade_done_C2_AUX_AFB_10.end:
 
+    /* ===== stage new coeffs into dormant ===== */
+_afb_start_xfade_C2_AUX_AFB_10:
+    r4 = 0;
+    dm(_afb_swap_pending_C2_AUX_AFB_10) = r4;
+    i0 = _afb_coeffs_next_C2_AUX_AFB_10;
+    r4 = dm(_afb_active_C2_AUX_AFB_10);
+    r4 = pass r4;
+    if ne jump (pc, .afb_st_a_C2_AUX_AFB_10);
+    i1 = _afb_coeffs_B_C2_AUX_AFB_10;
+    i2 = _afb_state_B_C2_AUX_AFB_10;
+    jump (pc, .afb_st_go_C2_AUX_AFB_10);
+.afb_st_a_C2_AUX_AFB_10:
+    i1 = _afb_coeffs_A_C2_AUX_AFB_10;
+    i2 = _afb_state_A_C2_AUX_AFB_10;
+.afb_st_go_C2_AUX_AFB_10:
+    r4 = 6;
+    call _bq_fx_convert_N;
+    r4 = 0;
+    r5 = 36;
+    lcntr = r5, do .afb_zst_C2_AUX_AFB_10 until lce;
+.afb_zst_C2_AUX_AFB_10:
+        dm(i2, 1) = r4;
+    f0 = 0.001736111111111111;
+    dm(_afb_xfade_step_C2_AUX_AFB_10) = f0;
+    r4 = 0;
+    dm(_afb_xfade_alpha_C2_AUX_AFB_10) = r4;
+    rts;
 _C2_AUX_AFB_10_process.end:

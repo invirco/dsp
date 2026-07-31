@@ -12,133 +12,163 @@
 
 /* RampProfile: DynSafe | Mode: LinearFrames | Up: 6ms (9f) Down: 20ms (30f) | Curve: Exp | Scope: Scalar */
 
-/* GATE: Noise gate with sidechain key routing */
+/* GATE (FIXED Q4.28, D5) */
 /* SPI page=1 addr=40 */
-/* thr=-40.0dB att=1.0ms */
-/* hold=50.0ms rel=100.0ms */
-/* range=60.0dB key=0 det_src=0 */
 
 .section/dm seg_dmda;
 .extern _buf_C1_EQ_01;
 .global _gate_on_C1_GATE_01;
 .var _gate_on_C1_GATE_01 = 1;
 .global _gate_threshold_C1_GATE_01;
-.var _gate_threshold_C1_GATE_01;
+.var _gate_threshold_C1_GATE_01 = -40.0;
 .global _gate_attack_C1_GATE_01;
-.var _gate_attack_C1_GATE_01;
-.global _gate_hold_C1_GATE_01;
-.var _gate_hold_C1_GATE_01;
+.var _gate_attack_C1_GATE_01 = 0.05;
 .global _gate_release_C1_GATE_01;
-.var _gate_release_C1_GATE_01;
+.var _gate_release_C1_GATE_01 = 0.005;
+.global _gate_hold_C1_GATE_01;
+.var _gate_hold_C1_GATE_01 = 2400;
+.global _gate_hold_count_C1_GATE_01;
+.var _gate_hold_count_C1_GATE_01 = 0;
 .global _gate_range_C1_GATE_01;
-.var _gate_range_C1_GATE_01;         /* linear attenuation floor */
+.var _gate_range_C1_GATE_01 = 0.001;       /* linear floor (float) */
 .global _gate_key_src_C1_GATE_01;
-.var _gate_key_src_C1_GATE_01 = 0;   /* 0=self, 1-32=ext channel */
+.var _gate_key_src_C1_GATE_01 = 0;
 .global _gate_det_src_C1_GATE_01;
-.var _gate_det_src_C1_GATE_01 = 0;   /* 0=pre-EQ, 1=post-EQ */
+.var _gate_det_src_C1_GATE_01 = 0;
 .global _gate_filter_on_C1_GATE_01;
 .var _gate_filter_on_C1_GATE_01 = 0;
 .global _gate_filter_hpf_C1_GATE_01;
-.var _gate_filter_hpf_C1_GATE_01[5] = 1.0, 0.0, 0.0, 0.0, 0.0; /* sidechain HPF */
+.var _gate_filter_hpf_C1_GATE_01[5] = 1.0, 0.0, 0.0, 0.0, 0.0;
 .global _gate_filter_lpf_C1_GATE_01;
-.var _gate_filter_lpf_C1_GATE_01[5] = 1.0, 0.0, 0.0, 0.0, 0.0; /* sidechain LPF */
+.var _gate_filter_lpf_C1_GATE_01[5] = 1.0, 0.0, 0.0, 0.0, 0.0;
+.global _gate_filter_cq_C1_GATE_01;
+.var _gate_filter_cq_C1_GATE_01[10];
 .global _gate_filter_state_C1_GATE_01;
-.var _gate_filter_state_C1_GATE_01[4]; /* HPF+LPF state */
+.var _gate_filter_state_C1_GATE_01[12];
 .global _gate_envelope_C1_GATE_01;
-.var _gate_envelope_C1_GATE_01 = 0.0;
-.global _gate_hold_count_C1_GATE_01;
-.var _gate_hold_count_C1_GATE_01 = 0;
+.var _gate_envelope_C1_GATE_01 = 0;
 .global _gate_gain_C1_GATE_01;
-.var _gate_gain_C1_GATE_01 = 1.0;    /* current gate gain (0..1) */
-.global _gate_gain_target_C1_GATE_01;
-.var _gate_gain_target_C1_GATE_01 = 1.0;
-.global _gate_gain_step_C1_GATE_01;
-.var _gate_gain_step_C1_GATE_01 = 0.0; /* ramp step for gain smoothing */
+.var _gate_gain_C1_GATE_01 = 0x10000000;
+.global _gate_gain_target_q_C1_GATE_01;
+.var _gate_gain_target_q_C1_GATE_01 = 0x10000000;
+.global _gate_attq_C1_GATE_01;
+.var _gate_attq_C1_GATE_01 = 0;
+.global _gate_relq_C1_GATE_01;
+.var _gate_relq_C1_GATE_01 = 0;
+.global _gate_thrq_C1_GATE_01;
+.var _gate_thrq_C1_GATE_01 = 0;
+.global _gate_rngq_C1_GATE_01;
+.var _gate_rngq_C1_GATE_01 = 0;
 .global _buf_C1_GATE_01;
 .var _buf_C1_GATE_01;
 
 .section/pm seg_pmco;
 .extern _sample_idx;
-.extern _biquad_mono;
-.extern _dyn_envelope_follow;
-.extern _dyn_to_dB;
+.extern _envq_fx;
+.extern _log2q_fx;
+.extern _mrf_rns28;
+.extern _bq_fx_cascade_N;
+.extern _bq_fx_convert_N;
 .global _C1_GATE_01_process;
 _C1_GATE_01_process:
     r0 = dm(_buf_C1_EQ_01);
-    /* --- Bypass --- */
     r2 = dm(_gate_on_C1_GATE_01);
     r3 = 0;
     comp(r2, r3);
     if eq jump (pc, .gate_bypass_C1_GATE_01);
-    f15 = f0;                   /* save dry input */
+    r13 = r0;
 
-    /* --- Gate sidechain detection --- */
-    f0 = abs f0;                /* rectify for peak detect */
-
-    /* Sidechain filter (HPF+LPF on key signal) */
+    /* --- block rate: param conversion --- */
+    r4 = dm(_sample_idx);
+    r1 = 0;
+    comp(r4, r1);
+    if ne jump (pc, .gate_go_C1_GATE_01);
+    r2 = 0x4F000000;
+    f2 = r2;
+    f1 = dm(_gate_attack_C1_GATE_01);
+    f1 = f1 * f2;
+    r1 = fix f1;
+    dm(_gate_attq_C1_GATE_01) = r1;
+    f1 = dm(_gate_release_C1_GATE_01);
+    f1 = f1 * f2;
+    r1 = fix f1;
+    dm(_gate_relq_C1_GATE_01) = r1;
+    r2 = 0x4AAA152D;
+    f2 = r2;
+    f1 = dm(_gate_threshold_C1_GATE_01);
+    f1 = f1 * f2;
+    r1 = fix f1;
+    dm(_gate_thrq_C1_GATE_01) = r1;
+    r2 = 0x4D800000;
+    f2 = r2;
+    f1 = dm(_gate_range_C1_GATE_01);
+    f1 = f1 * f2;
+    r1 = fix f1;
+    dm(_gate_rngq_C1_GATE_01) = r1;
     r2 = dm(_gate_filter_on_C1_GATE_01);
     r2 = pass r2;
-    if eq jump (pc, .gate_no_filt_C1_GATE_01);
+    if eq jump (pc, .gate_go_C1_GATE_01);
     i0 = _gate_filter_hpf_C1_GATE_01;
-    i1 = _gate_filter_state_C1_GATE_01;
-    call _biquad_mono;
-    f0 = abs f0;
+    i1 = _gate_filter_cq_C1_GATE_01;
+    r4 = 1;
+    call _bq_fx_convert_N;
     i0 = _gate_filter_lpf_C1_GATE_01;
-    i1 = _gate_filter_state_C1_GATE_01 + 2;
-    call _biquad_mono;
-    f0 = abs f0;
-.gate_no_filt_C1_GATE_01:
+    r4 = 1;
+    call _bq_fx_convert_N;      /* i1 continued */
+.gate_go_C1_GATE_01:
 
-    /* Peak envelope follower */
-    f1 = dm(_gate_attack_C1_GATE_01);
-    f2 = dm(_gate_release_C1_GATE_01);
-    f3 = dm(_gate_envelope_C1_GATE_01);
-    call _dyn_envelope_follow;
-    dm(_gate_envelope_C1_GATE_01) = f0;
+    /* --- sidechain: |x| (+ optional HPF/LPF) --- */
+    r0 = abs r13;
+    r2 = dm(_gate_filter_on_C1_GATE_01);
+    r2 = pass r2;
+    if eq jump (pc, .gate_nofilt_C1_GATE_01);
+    i0 = _gate_filter_cq_C1_GATE_01;
+    i1 = _gate_filter_state_C1_GATE_01;
+    r4 = 2;
+    call _bq_fx_cascade_N;
+    r0 = abs r0;
+.gate_nofilt_C1_GATE_01:
 
-    /* Convert envelope to dB, compare to threshold */
-    call _dyn_to_dB;
-    f14 = f0;                   /* env_dB (safe: f14 not clobbered) */
-    f1 = dm(_gate_threshold_C1_GATE_01);
-    comp(f14, f1);
+    r1 = dm(_gate_envelope_C1_GATE_01);
+    r2 = dm(_gate_attq_C1_GATE_01);
+    r3 = dm(_gate_relq_C1_GATE_01);
+    call _envq_fx;
+    dm(_gate_envelope_C1_GATE_01) = r0;
+
+    /* threshold compare in log2 domain */
+    r1 = pass r0;
+    if le jump (pc, .gate_below_C1_GATE_01);   /* env==0: below */
+    call _log2q_fx;
+    r1 = dm(_gate_thrq_C1_GATE_01);
+    comp(r0, r1);
     if ge jump (pc, .gate_open_C1_GATE_01);
-
-    /* Below threshold → decrement hold counter */
+.gate_below_C1_GATE_01:
     r4 = dm(_gate_hold_count_C1_GATE_01);
     r15 = 1;
     r4 = r4 - r15;
-    dm(_gate_hold_count_C1_GATE_01) = r4;  /* always write (negative = expired) */
+    dm(_gate_hold_count_C1_GATE_01) = r4;
     if gt jump (pc, .gate_ramp_C1_GATE_01);
-    /* Hold expired → close to range floor */
-    f5 = dm(_gate_range_C1_GATE_01);
-    dm(_gate_gain_target_C1_GATE_01) = f5;
+    r5 = dm(_gate_rngq_C1_GATE_01);
+    dm(_gate_gain_target_q_C1_GATE_01) = r5;
     jump (pc, .gate_ramp_C1_GATE_01);
-
 .gate_open_C1_GATE_01:
-    /* Above threshold → open, reset hold counter */
-    r5 = 0x3F800000;  /* 1.0 IEEE 754 */
-    dm(_gate_gain_target_C1_GATE_01) = f5;
+    r5 = 0x10000000;
+    dm(_gate_gain_target_q_C1_GATE_01) = r5;
     r4 = dm(_gate_hold_C1_GATE_01);
     dm(_gate_hold_count_C1_GATE_01) = r4;
-
 .gate_ramp_C1_GATE_01:
-    /* One-pole gain smoother toward target */
-    f4 = dm(_gate_gain_C1_GATE_01);
-    f5 = dm(_gate_gain_target_C1_GATE_01);
-    f6 = f5 - f4;              /* delta */
-    f7 = dm(_gate_attack_C1_GATE_01);
-    f8 = dm(_gate_release_C1_GATE_01);
-    r10 = 0;
-    comp(r6, r10);
-    if ge f9 = f7;             /* opening: attack coeff */
-    if lt f9 = f8;             /* closing: release coeff */
-    f6 = f6 * f9;
-    f4 = f4 + f6;
-    dm(_gate_gain_C1_GATE_01) = f4;
+    /* one-pole gain smoother (fixed): gain += a*(target-gain) */
+    r0 = dm(_gate_gain_target_q_C1_GATE_01);
+    r1 = dm(_gate_gain_C1_GATE_01);
+    r2 = dm(_gate_attq_C1_GATE_01);
+    r3 = dm(_gate_relq_C1_GATE_01);
+    call _envq_fx;                 /* same one-pole form */
+    dm(_gate_gain_C1_GATE_01) = r0;
 
-    /* Apply gate gain to dry signal */
-    f0 = f15;
-    f0 = f0 * f4;
+    r1 = r0;
+    r0 = r13;
+    mrf = r0 * r1 (ssi);
+    call _mrf_rns28;
     dm(_buf_C1_GATE_01) = r0;
     rts;
 .gate_bypass_C1_GATE_01:

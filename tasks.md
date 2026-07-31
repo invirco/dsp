@@ -162,7 +162,32 @@ dsp.csv sport params), not kernels.
 
 ## P1 - DSP4 unified firmware & D24 bring-up (top priority)
 
-- [ ] <span style="color:#d97706"><b>IN PROGRESS</b></span> Fixed-point conversion (decision D5, started 2026-07-31)
+- [x] <span style="color:#16a34a"><b>DONE</b></span> Fixed-point conversion (decision D5) — COMPLETE 2026-07-31
+  - **The mainline firmware is now fixed-point (Q4.28)**: dsp_codegen
+    default flipped to --format fixed; repo src/ regenerated; full
+    fit-proxy build 700 objects / 0 errors, both chips link; gen_dsp.py
+    dispatch/backfill clean (all param symbols preserved by design —
+    the float control plane is byte-compatible).
+  - Float kernels remain regenerable via --format float and archived at
+    tag float-kernels-2026-07-31.
+  - Float islands (documented): FX_ENGINE bodies + NOISE_GEN synthesis,
+    with Q4.28<->float32 conversion at their node edges.
+  - Late additions to the family list: DELAY needed NO conversion
+    (pure storage + integer pointers, format-agnostic; the float
+    interp/comb lib helpers are dead code). Dynamics implemented
+    against fixed_ref (log2-domain gain computer with soft knee —
+    extended in the model + harness first, still 9/9), with generated
+    poly tables guaranteeing the asm constants equal the model's. rns
+    redefined to the hardware-natural (v+half)>>shift form (model
+    updated, harness revalidated) fixing a latent model/asm rounding
+    mismatch.
+  - REMAINING for bring-up: bit-exactness vs fixed_ref on
+    simulator/hardware (asserted by construction, unproven in
+    execution); cycle-budget profiling of the first-cut kernels
+    (~40cyc/biquad-stage — optimize after parity); Peter's [REVIEW]
+    sign-offs in numeric-spec.md (headroom, tolerances).
+
+- [x] <span style="color:#6b7280"><b>ARCHIVE</b></span> (superseded ledger below)
   - Float kernels ARCHIVED at git tag `float-kernels-2026-07-31`; float
     stays the buildable mainline until each family is replaced (no new
     float feature work). FX engines stay float permanently.

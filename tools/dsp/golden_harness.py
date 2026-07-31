@@ -143,19 +143,26 @@ def t_log_exp(verbose):
 
 def t_dynamics(verbose):
     k = 20 * math.log10(2.0)
-    # Static compressor curve vs float64
+    # Static compressor curve vs float64 (hard and soft knee)
     worst = 0.0
-    for thr_db, ratio in [(-20, 4), (-40, 2), (-10, 10), (-30, 1.5)]:
+    for thr_db, ratio, knee in [(-20, 4, 0), (-40, 2, 0), (-10, 10, 0),
+                                (-30, 1.5, 0), (-20, 4, 6), (-30, 8, 12)]:
         thr_q = int(round(thr_db / k * (1 << 25)))
-        slope_q = fr.to_q(1.0 - 1.0 / ratio, fr.QA)
+        slope = 1.0 - 1.0 / ratio
+        slope_q = fr.to_q(slope, fr.QA)
+        hk_q = int(round((knee / 2) / k * (1 << 25))) if knee else 0
+        k2_q = (int(round(slope / (2 * knee / k) * (1 << 25)))
+                if knee else 0)
         for db in np.arange(-59.9, 17.9, 0.2):
             x = 10 ** (db / 20.0)
-            gq = fr.from_q(fr.comp_gain(fr.to_q(x), thr_q, slope_q))
-            gf = fr.comp_gain_f(x, thr_db, ratio)
+            gq = fr.from_q(fr.comp_gain(fr.to_q(x), thr_q, slope_q,
+                                        hk_q, k2_q))
+            gf = fr.comp_gain_f(x, thr_db, ratio, knee)
             d = abs(20 * math.log10(gq / gf + 1e-30))
             worst = max(worst, d)
         if verbose:
-            print(f'  comp thr={thr_db} ratio={ratio}: worst {worst:.5f} dB')
+            print(f'  comp thr={thr_db} r={ratio} knee={knee}: '
+                  f'worst {worst:.5f} dB')
     check('compressor static curve error', worst, 0.05, 'dB')
 
     # Envelope time constant: alpha for 10 ms attack, measure 63.2% time

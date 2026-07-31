@@ -67,11 +67,11 @@ XFADE_MS      = 12.0
 XFADE_SAMPLES = int(XFADE_MS / 1000.0 * 48000)   # 576 samples @ 48 kHz
 XFADE_STEP    = 1.0 / XFADE_SAMPLES               # ≈ 0.001736 per sample
 
-# Audio sample-path format (decision D5): 'float' (FP32, archived
-# mainline) or 'fixed' (Q4.28 per shared/numeric-spec.md). Fixed-mode
-# node generators are added family-by-family; --format fixed is NOT
-# buildable until every family in the graph has a fixed variant.
-FORMAT = 'float'
+# Audio sample-path format (decision D5): 'fixed' (Q4.28 per
+# shared/numeric-spec.md, THE DEFAULT since 2026-07-31) or 'float'
+# (the archived FP32 kernels, kept regenerable; also at git tag
+# float-kernels-2026-07-31).
+FORMAT = 'fixed'
 
 
 def ms_to_frames(ms):
@@ -5716,17 +5716,512 @@ def gen_noise_gen_fixed(node):
     Q4.28 at the store (same boundary treatment as the FX engines)."""
     nid = node['id']
     body = gen_noise_gen(node)
-    old = f"""        .noise_out_{nid}:
-            dm(_buf_{nid}) = r0;"""
-    new = f"""        .noise_out_{nid}:
-            /* float island boundary -> Q4.28 (D5) */
-            r1 = 0x4D800000;
-            f1 = r1;
-            f0 = f0 * f1;
-            r0 = fix f0;
-            dm(_buf_{nid}) = r0;"""
+    old = f""".noise_out_{nid}:
+    dm(_buf_{nid}) = r0;"""
+    new = f""".noise_out_{nid}:
+    /* float island boundary -> Q4.28 (D5) */
+    r1 = 0x4D800000;
+    f1 = r1;
+    f0 = f0 * f1;
+    r0 = fix f0;
+    dm(_buf_{nid}) = r0;"""
     assert old in body, 'noise tail pattern moved'
     return body.replace(old, new)
+
+
+
+# IEEE-754 hex constants for fixed-mode dynamics conversions
+_C_DB2L2Q25 = 0x4AAA152D   # (2^25)/(20*log10(2)): dB -> log2-domain Q6.25
+_C_F_KHALF = 0x4040A8C1    # (20*log10(2))/2, for k2 = slope*K/(2*knee_db)
+
+
+def _fx_recip_asm(dst, src):
+    """Newton-Raphson float reciprocal: dst = 1/src; clobbers f7, f8, r10."""
+    return (f"            f7 = recips {src};\n"
+            f"            f8 = {src} * f7;\n"
+            f"            r10 = 0x40000000;\n"
+            f"            f8 = f10 - f8;\n"
+            f"            f7 = f7 * f8;\n"
+            f"            f8 = {src} * f7;\n"
+            f"            f8 = f10 - f8;\n"
+            f"            {dst} = f7 * f8;")
+
+
+def gen_poly_tables_fixed():
+    """Emit the exact fixed_ref polynomial coefficient integers."""
+    import fixed_ref
+    out = []
+    out.append('/* poly_tables_fx.asm — log2/exp2 Q2.30 poly coefficients (D5) */')
+    out.append('/* AUTO-GENERATED from tools/dsp/fixed_ref.py — do not edit. */')
+    out.append('/* These integers ARE the normative approximants (harness-validated). */')
+    out.append('')
+    out.append('.section/dm seg_dmda;')
+    out.append('.global _log2_poly_fx;')
+    out.append('.var _log2_poly_fx[6] = ' +
+               ', '.join('0x%08X' % (c & 0xFFFFFFFF) for c in fixed_ref.LOG2_POLY) + ';')
+    out.append('.global _exp2_poly_fx;')
+    out.append('.var _exp2_poly_fx[6] = ' +
+               ', '.join('0x%08X' % (c & 0xFFFFFFFF) for c in fixed_ref.EXP2_POLY) + ';')
+    out.append('')
+    return '\n'.join(out)
+
+
+
+def _fx_dyn_block_cvt(nid, pfx, with_knee, with_slope):
+    """Block-rate conversion of dynamics control params to fixed:
+    alphas -> Q0.31, threshold dB -> log2 Q6.25, slope/knee for the
+    _compgain_fx param block. Emitted at sample_idx==0."""
+    lines = []
+    a = lines.append
+    a(f'            r2 = 0x4F000000;              /* 2^31 float */')
+    a(f'            f2 = r2;')
+    a(f'            f1 = dm(_{pfx}_attack_{nid});')
+    a(f'            f1 = f1 * f2;')
+    a(f'            r1 = fix f1;')
+    a(f'            dm(_{pfx}_attq_{nid}) = r1;')
+    a(f'            f1 = dm(_{pfx}_release_{nid});')
+    a(f'            f1 = f1 * f2;')
+    a(f'            r1 = fix f1;')
+    a(f'            dm(_{pfx}_relq_{nid}) = r1;')
+    a(f'            r2 = _C_DB2L2Q25_;            /* dB -> Q6.25 log2 */')
+    a(f'            f2 = r2;')
+    a(f'            f1 = dm(_{pfx}_threshold_{nid});')
+    a(f'            f1 = f1 * f2;')
+    a(f'            r1 = fix f1;')
+    a(f'            dm(_{pfx}_cgp_{nid}) = r1;    /* thr */')
+    if with_slope:
+        a(f'            /* slope = 1 - 1/ratio */')
+        a(f'            f6 = dm(_{pfx}_ratio_{nid});')
+        a(_fx_recip_asm('f6', 'f6'))
+        a(f'            r2 = 0x3F800000;')
+        a(f'            f5 = r2;')
+        a(f'            f5 = f5 - f6;                 /* slope float */')
+        a(f'            r2 = 0x4F000000;')
+        a(f'            f2 = r2;')
+        a(f'            f1 = f5 * f2;')
+        a(f'            r1 = fix f1;')
+        a(f'            dm(_{pfx}_cgp_{nid} + 1) = r1;')
+    else:
+        a(f'            r1 = 0x7FFFFFFF;              /* slope = ~1.0 (brick wall) */')
+        a(f'            dm(_{pfx}_cgp_{nid} + 1) = r1;')
+    if with_knee:
+        a(f'            /* knee: halfk = knee_db/2 in Q6.25 log2; k2 = slope*K/(2*knee) Q6.25 */')
+        a(f'            f4 = dm(_{pfx}_knee_{nid});')
+        a(f'            r2 = 0x3DCCCCCD;              /* 0.1 dB min for soft path */')
+        a(f'            f3 = r2;')
+        a(f'            comp(f4, f3);')
+        a(f'            if gt jump (pc, .{pfx}_soft_{nid});')
+        a(f'            r1 = 0;')
+        a(f'            dm(_{pfx}_cgp_{nid} + 2) = r1;')
+        a(f'            dm(_{pfx}_cgp_{nid} + 3) = r1;')
+        a(f'            jump (pc, .{pfx}_kdone_{nid});')
+        a(f'        .{pfx}_soft_{nid}:')
+        a(f'            r2 = _C_DB2L2Q25_;')
+        a(f'            f2 = r2;')
+        a(f'            f1 = f4 * f2;')
+        a(f'            r2 = 0x3F000000;              /* 0.5 */')
+        a(f'            f3 = r2;')
+        a(f'            f1 = f1 * f3;')
+        a(f'            r1 = fix f1;')
+        a(f'            dm(_{pfx}_cgp_{nid} + 2) = r1;  /* halfk */')
+        a(_fx_recip_asm('f6', 'f4'))
+        a(f'            r2 = _C_F_KHALF_;             /* K/2 */')
+        a(f'            f3 = r2;')
+        a(f'            f6 = f6 * f3;                 /* K/(2*knee_db) */')
+        a(f'            f6 = f6 * f5;                 /* * slope */')
+        a(f'            r2 = 0x4C000000;              /* 2^25 float */')
+        a(f'            f2 = r2;')
+        a(f'            f1 = f6 * f2;')
+        a(f'            r1 = fix f1;')
+        a(f'            dm(_{pfx}_cgp_{nid} + 3) = r1;  /* k2 */')
+        a(f'        .{pfx}_kdone_{nid}:')
+    else:
+        a(f'            r1 = 0;')
+        a(f'            dm(_{pfx}_cgp_{nid} + 2) = r1;')
+        a(f'            dm(_{pfx}_cgp_{nid} + 3) = r1;')
+    body = '\n'.join(lines)
+    return body.replace('_C_DB2L2Q25_', '0x%08X' % _C_DB2L2Q25).replace(
+        '_C_F_KHALF_', '0x%08X' % _C_F_KHALF)
+
+
+def gen_compressor_fixed(node):
+    """Fixed COMPRESSOR (D5): fixed envelope + _compgain_fx (log2
+    domain, soft knee) per fixed_ref; float control converted at block
+    rate; makeup + parallel blend fixed."""
+    rc = ramp_comment(node['ramp_profile'])
+    nid = node['id']
+    inp = node['inputs_str']
+    return dedent(f"""\
+        {rc}
+
+        /* COMPRESSOR (FIXED Q4.28, D5) */
+        /* SPI page={node['spi_page']} addr={node['spi_addr']} */
+
+        .section/dm seg_dmda;
+        .var _comp_on_{nid} = 1;
+        .var _comp_threshold_{nid} = -20.0;
+        .var _comp_ratio_{nid} = 4.0;
+        .var _comp_attack_{nid} = 0.01;
+        .var _comp_release_{nid} = 0.001;
+        .var _comp_makeup_{nid} = 1.0;
+        .var _comp_makeup_target_{nid} = 1.0;
+        .var _comp_makeup_step_{nid} = 0.0;
+        .var _comp_makeup_frames_{nid} = 0;
+        .var _comp_knee_{nid};
+        .var _comp_parallel_{nid} = 0.0;
+        .var _comp_type_{nid} = 0;
+        .var _comp_key_src_{nid} = 0;
+        .var _comp_det_src_{nid} = 0;
+        .var _comp_eq_pos_{nid} = 0;
+        .var _comp_lim_mode_{nid} = 0;
+        .var _comp_filter_on_{nid} = 0;
+        .var _comp_filter_coeffs_{nid}[10];
+        .var _comp_filter_state_{nid}[4];
+        .var _comp_envelope_{nid} = 0;        /* Q4.28 */
+        .var _comp_gain_{nid} = 0x10000000;   /* Q4.28 (display) */
+        .var _comp_attq_{nid} = 0;
+        .var _comp_relq_{nid} = 0;
+        .var _comp_mkq_{nid} = 0x10000000;
+        .var _comp_parq_{nid} = 0;            /* Q0.31 */
+        .var _comp_cgp_{nid}[4];              /* thr, slope, halfk, k2 */
+        .var _buf_{nid};
+
+        .section/pm seg_pmco;
+        .extern _sample_idx;
+        .extern _envq_fx;
+        .extern _compgain_fx;
+        .extern _mrf_rns28;
+        .global _{nid}_process;
+        _{nid}_process:
+            r0 = dm(_buf_{inp});
+            r2 = dm(_comp_on_{nid});
+            r3 = 0;
+            comp(r2, r3);
+            if eq jump (pc, .comp_bypass_{nid});
+            r13 = r0;                     /* dry (r13-r15 lib-safe) */
+
+            /* --- block rate: makeup ramp + param conversion --- */
+            r4 = dm(_sample_idx);
+            r1 = 0;
+            comp(r4, r1);
+            if ne jump (pc, .comp_go_{nid});
+            r4 = dm(_comp_makeup_frames_{nid});
+            comp(r4, r1);
+            if le jump (pc, .no_mramp_{nid});
+            r4 = r4 - 1;
+            dm(_comp_makeup_frames_{nid}) = r4;
+            f1 = dm(_comp_makeup_{nid});
+            f2 = dm(_comp_makeup_step_{nid});
+            f1 = f1 + f2;
+            dm(_comp_makeup_{nid}) = f1;
+            jump (pc, .comp_cvt_{nid});
+        .no_mramp_{nid}:
+            f1 = dm(_comp_makeup_target_{nid});
+            dm(_comp_makeup_{nid}) = f1;
+        .comp_cvt_{nid}:
+            r2 = 0x4D800000;
+            f2 = r2;
+            f1 = f1 * f2;
+            r1 = fix f1;
+            dm(_comp_mkq_{nid}) = r1;
+            f1 = dm(_comp_parallel_{nid});
+            r2 = 0x4F000000;
+            f2 = r2;
+            f1 = f1 * f2;
+            r1 = fix f1;
+            dm(_comp_parq_{nid}) = r1;
+{_fx_dyn_block_cvt(nid, 'comp', with_knee=True, with_slope=True)}
+        .comp_go_{nid}:
+
+            /* --- envelope (fixed) --- */
+            r0 = abs r13;
+            r1 = dm(_comp_envelope_{nid});
+            r2 = dm(_comp_attq_{nid});
+            r3 = dm(_comp_relq_{nid});
+            call _envq_fx;
+            dm(_comp_envelope_{nid}) = r0;
+
+            /* --- gain computer (log2 domain) --- */
+            i0 = _comp_cgp_{nid};
+            call _compgain_fx;            /* r0 = gain Q4.28 */
+            dm(_comp_gain_{nid}) = r0;
+
+            /* wet = dry * gain * makeup */
+            r1 = r0;
+            r0 = r13;
+            mrf = r0 * r1 (ssi);
+            call _mrf_rns28;
+            r1 = dm(_comp_mkq_{nid});
+            mrf = r0 * r1 (ssi);
+            call _mrf_rns28;
+
+            /* parallel: out = dry + par*(wet - dry) — matches the float
+             * node exactly (par==0 -> dry, its default behaviour) */
+            r5 = r0 - r13;
+            r4 = dm(_comp_parq_{nid});
+            mrf = r5 * r4 (ssi);
+            r1 = 0x40000000;
+            r12 = 1;
+            mrf = mrf + r1 * r12 (ssi);
+            r1 = mr0f;
+            r12 = mr1f;
+            r1 = lshift r1 by -31;
+            r12 = lshift r12 by 1;
+            r1 = r1 or r12;
+            r0 = r13 + r1;
+            dm(_buf_{nid}) = r0;
+            rts;
+        .comp_bypass_{nid}:
+            dm(_buf_{nid}) = r0;
+            rts;
+        _{nid}_process.end:
+    """)
+
+
+def gen_limiter_fixed(node):
+    """Fixed LIMITER (D5): brick wall = _compgain_fx with slope ~1,
+    hard knee."""
+    rc = ramp_comment(node['ramp_profile'])
+    nid = node['id']
+    inp = node['inputs_str']
+    return dedent(f"""\
+        {rc}
+
+        /* LIMITER (FIXED Q4.28, D5) */
+        /* SPI page={node['spi_page']} addr={node['spi_addr']} */
+
+        .section/dm seg_dmda;
+        .var _lim_on_{nid} = 1;
+        .var _lim_threshold_{nid} = -0.5;
+        .var _lim_attack_{nid} = 0.5;
+        .var _lim_release_{nid} = 0.001;
+        .var _lim_envelope_{nid} = 0;
+        .var _lim_attq_{nid} = 0;
+        .var _lim_relq_{nid} = 0;
+        .var _lim_cgp_{nid}[4];
+        .var _buf_{nid};
+
+        .section/pm seg_pmco;
+        .extern _sample_idx;
+        .extern _envq_fx;
+        .extern _compgain_fx;
+        .extern _mrf_rns28;
+        .global _{nid}_process;
+        _{nid}_process:
+            r0 = dm(_buf_{inp});
+            r2 = dm(_lim_on_{nid});
+            r3 = 0;
+            comp(r2, r3);
+            if eq jump (pc, .lim_bypass_{nid});
+            r13 = r0;
+
+            r4 = dm(_sample_idx);
+            r1 = 0;
+            comp(r4, r1);
+            if ne jump (pc, .lim_go_{nid});
+{_fx_dyn_block_cvt(nid, 'lim', with_knee=False, with_slope=False)}
+        .lim_go_{nid}:
+
+            r0 = abs r13;
+            r1 = dm(_lim_envelope_{nid});
+            r2 = dm(_lim_attq_{nid});
+            r3 = dm(_lim_relq_{nid});
+            call _envq_fx;
+            dm(_lim_envelope_{nid}) = r0;
+
+            i0 = _lim_cgp_{nid};
+            call _compgain_fx;
+            r1 = r0;
+            r0 = r13;
+            mrf = r0 * r1 (ssi);
+            call _mrf_rns28;
+            dm(_buf_{nid}) = r0;
+            rts;
+        .lim_bypass_{nid}:
+            dm(_buf_{nid}) = r0;
+            rts;
+        _{nid}_process.end:
+    """)
+
+
+def gen_gate_fixed(node):
+    """Fixed GATE (D5): fixed envelope, log2-domain threshold compare,
+    integer hold counter, one-pole fixed gain smoother toward 1.0 or
+    the range floor; sidechain filter via the fixed biquad core with
+    block-rate coefficient conversion."""
+    rc = ramp_comment(node['ramp_profile'])
+    nid = node['id']
+    inp = node['inputs_str']
+    return dedent(f"""\
+        {rc}
+
+        /* GATE (FIXED Q4.28, D5) */
+        /* SPI page={node['spi_page']} addr={node['spi_addr']} */
+
+        .section/dm seg_dmda;
+        .var _gate_on_{nid} = 1;
+        .var _gate_threshold_{nid} = -40.0;
+        .var _gate_attack_{nid} = 0.05;
+        .var _gate_release_{nid} = 0.005;
+        .var _gate_hold_{nid} = 2400;
+        .var _gate_hold_count_{nid} = 0;
+        .var _gate_range_{nid} = 0.001;       /* linear floor (float) */
+        .var _gate_key_src_{nid} = 0;
+        .var _gate_det_src_{nid} = 0;
+        .var _gate_filter_on_{nid} = 0;
+        .var _gate_filter_hpf_{nid}[5] = 1.0, 0.0, 0.0, 0.0, 0.0;
+        .var _gate_filter_lpf_{nid}[5] = 1.0, 0.0, 0.0, 0.0, 0.0;
+        .var _gate_filter_cq_{nid}[10];
+        .var _gate_filter_state_{nid}[12];
+        .var _gate_envelope_{nid} = 0;
+        .var _gate_gain_{nid} = 0x10000000;
+        .var _gate_gain_target_q_{nid} = 0x10000000;
+        .var _gate_attq_{nid} = 0;
+        .var _gate_relq_{nid} = 0;
+        .var _gate_thrq_{nid} = 0;
+        .var _gate_rngq_{nid} = 0;
+        .var _buf_{nid};
+
+        .section/pm seg_pmco;
+        .extern _sample_idx;
+        .extern _envq_fx;
+        .extern _log2q_fx;
+        .extern _mrf_rns28;
+        .extern _bq_fx_cascade_N;
+        .extern _bq_fx_convert_N;
+        .global _{nid}_process;
+        _{nid}_process:
+            r0 = dm(_buf_{inp});
+            r2 = dm(_gate_on_{nid});
+            r3 = 0;
+            comp(r2, r3);
+            if eq jump (pc, .gate_bypass_{nid});
+            r13 = r0;
+
+            /* --- block rate: param conversion --- */
+            r4 = dm(_sample_idx);
+            r1 = 0;
+            comp(r4, r1);
+            if ne jump (pc, .gate_go_{nid});
+            r2 = 0x4F000000;
+            f2 = r2;
+            f1 = dm(_gate_attack_{nid});
+            f1 = f1 * f2;
+            r1 = fix f1;
+            dm(_gate_attq_{nid}) = r1;
+            f1 = dm(_gate_release_{nid});
+            f1 = f1 * f2;
+            r1 = fix f1;
+            dm(_gate_relq_{nid}) = r1;
+            r2 = 0x%08X;
+            f2 = r2;
+            f1 = dm(_gate_threshold_{nid});
+            f1 = f1 * f2;
+            r1 = fix f1;
+            dm(_gate_thrq_{nid}) = r1;
+            r2 = 0x4D800000;
+            f2 = r2;
+            f1 = dm(_gate_range_{nid});
+            f1 = f1 * f2;
+            r1 = fix f1;
+            dm(_gate_rngq_{nid}) = r1;
+            r2 = dm(_gate_filter_on_{nid});
+            r2 = pass r2;
+            if eq jump (pc, .gate_go_{nid});
+            i0 = _gate_filter_hpf_{nid};
+            i1 = _gate_filter_cq_{nid};
+            r4 = 1;
+            call _bq_fx_convert_N;
+            i0 = _gate_filter_lpf_{nid};
+            r4 = 1;
+            call _bq_fx_convert_N;      /* i1 continued */
+        .gate_go_{nid}:
+
+            /* --- sidechain: |x| (+ optional HPF/LPF) --- */
+            r0 = abs r13;
+            r2 = dm(_gate_filter_on_{nid});
+            r2 = pass r2;
+            if eq jump (pc, .gate_nofilt_{nid});
+            i0 = _gate_filter_cq_{nid};
+            i1 = _gate_filter_state_{nid};
+            r4 = 2;
+            call _bq_fx_cascade_N;
+            r0 = abs r0;
+        .gate_nofilt_{nid}:
+
+            r1 = dm(_gate_envelope_{nid});
+            r2 = dm(_gate_attq_{nid});
+            r3 = dm(_gate_relq_{nid});
+            call _envq_fx;
+            dm(_gate_envelope_{nid}) = r0;
+
+            /* threshold compare in log2 domain */
+            r1 = pass r0;
+            if le jump (pc, .gate_below_{nid});   /* env==0: below */
+            call _log2q_fx;
+            r1 = dm(_gate_thrq_{nid});
+            comp(r0, r1);
+            if ge jump (pc, .gate_open_{nid});
+        .gate_below_{nid}:
+            r4 = dm(_gate_hold_count_{nid});
+            r15 = 1;
+            r4 = r4 - r15;
+            dm(_gate_hold_count_{nid}) = r4;
+            if gt jump (pc, .gate_ramp_{nid});
+            r5 = dm(_gate_rngq_{nid});
+            dm(_gate_gain_target_q_{nid}) = r5;
+            jump (pc, .gate_ramp_{nid});
+        .gate_open_{nid}:
+            r5 = 0x10000000;
+            dm(_gate_gain_target_q_{nid}) = r5;
+            r4 = dm(_gate_hold_{nid});
+            dm(_gate_hold_count_{nid}) = r4;
+        .gate_ramp_{nid}:
+            /* one-pole gain smoother (fixed): gain += a*(target-gain) */
+            r0 = dm(_gate_gain_target_q_{nid});
+            r1 = dm(_gate_gain_{nid});
+            r2 = dm(_gate_attq_{nid});
+            r3 = dm(_gate_relq_{nid});
+            call _envq_fx;                 /* same one-pole form */
+            dm(_gate_gain_{nid}) = r0;
+
+            r1 = r0;
+            r0 = r13;
+            mrf = r0 * r1 (ssi);
+            call _mrf_rns28;
+            dm(_buf_{nid}) = r0;
+            rts;
+        .gate_bypass_{nid}:
+            dm(_buf_{nid}) = r0;
+            rts;
+        _{nid}_process.end:
+    """ % _C_DB2L2Q25)
+
+
+
+def gen_fx_engine_fixed(node):
+    """Fixed-mode FX_ENGINE (D5): documented FLOAT ISLAND — the engine
+    body runs float verbatim; Q4.28 <-> float32 conversion at the node
+    edges (one read, one store)."""
+    nid = node['id']
+    inp = node['inputs_str']
+    body = gen_fx_engine(node)
+    old_in = f"    r0 = dm(_buf_{inp});"
+    new_in = (f"    r0 = dm(_buf_{inp});\n"
+              f"    /* float island entry: Q4.28 -> float32 (D5) */\n"
+              f"    r1 = -28;\n"
+              f"    f0 = float r0 by r1;")
+    assert body.count(old_in) == 1, 'fx input pattern moved'
+    body = body.replace(old_in, new_in)
+    old_out = f"    dm(_buf_{nid}) = r0;"
+    new_out = (f"    /* float island exit: float32 -> Q4.28 (D5) */\n"
+               f"    r1 = 0x4D800000;\n"
+               f"    f1 = r1;\n"
+               f"    f0 = f0 * f1;\n"
+               f"    r0 = fix f0;\n"
+               f"    dm(_buf_{nid}) = r0;")
+    assert body.count(old_out) == 1, 'fx output pattern moved'
+    return body.replace(old_out, new_out)
 
 
 FIXED_GENERATORS = {
@@ -5744,6 +6239,10 @@ FIXED_GENERATORS = {
     'MONITOR': gen_monitor_fixed,
     'TALKBACK': gen_talkback_fixed,
     'NOISE_GEN': gen_noise_gen_fixed,
+    'COMPRESSOR': gen_compressor_fixed,
+    'LIMITER': gen_limiter_fixed,
+    'GATE': gen_gate_fixed,
+    'FX_ENGINE': gen_fx_engine_fixed,
 }
 
 
@@ -5872,6 +6371,10 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                   encoding='utf-8') as f:
             f.write(gen_bus_accumulators_fixed())
         files_written += 1
+        with open(os.path.join(output_dir, 'poly_tables_fx.asm'), 'w',
+                  encoding='utf-8') as f:
+            f.write(gen_poly_tables_fixed())
+        files_written += 1
 
     # Write ramp infrastructure
     ramp_path = os.path.join(output_dir, 'ramp_engine.asm')
@@ -5912,8 +6415,8 @@ if __name__ == '__main__':
                         help='Overwrite existing node .asm files (default: skip existing to preserve manual edits)')
     parser.add_argument('--node-type', metavar='TYPE', action='append', dest='node_types',
                         help='Regenerate only nodes of this type (may be specified multiple times, e.g. --node-type GAIN)')
-    parser.add_argument('--format', choices=('float', 'fixed'), default='float',
-                        help='Audio sample-path number format (D5); default float until the fixed conversion completes')
+    parser.add_argument('--format', choices=('float', 'fixed'), default='fixed',
+                        help='Audio sample-path number format (D5). DEFAULT IS FIXED as of 2026-07-31 (conversion complete); --format float rebuilds the archived FP32 kernels (also tagged float-kernels-2026-07-31)')
     args = parser.parse_args()
 
     script_dir = os.path.dirname(os.path.abspath(__file__))

@@ -129,6 +129,9 @@ _C2_FX_ENG_04_process:
 
     /* Load input */
     r0 = dm(_buf_C2_RECV_FX_04);
+    /* float island entry: Q4.28 -> float32 (D5) */
+    r1 = -28;
+    f0 = float r0 by r1;
     f15 = f0;                   /* dry input saved in f15 */
 
     /* Dispatch on algorithm type */
@@ -258,6 +261,11 @@ jump (pc, .fx_passthru_C2_FX_ENG_04);
     f1 = f15 * f8;              /* dry * (1-mix) */
     f0 = f0 + f1;
     dm(_buf_L_C2_FX_ENG_04) = r0;
+    /* float island exit: float32 -> Q4.28 (D5) */
+    r1 = 0x4D800000;
+    f1 = r1;
+    f0 = f0 * f1;
+    r0 = fix f0;
     dm(_buf_C2_FX_ENG_04) = r0;
     rts;
 _C2_FX_ENG_04_process.end:

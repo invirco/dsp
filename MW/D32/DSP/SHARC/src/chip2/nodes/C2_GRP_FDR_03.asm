@@ -12,7 +12,7 @@
 
 /* RampProfile: GainFast | Mode: Slew | Up: 3ms (4f) Down: 8ms (12f) | Curve: Exp | Scope: Scalar */
 
-/* FADER_PAN: Level fader + constant-power pan + mute */
+/* FADER_PAN (FIXED Q4.28, D5) — float control, fixed sample path */
 /* SPI page=1 addr=1164 */
 
 .section/dm seg_dmda;
@@ -26,7 +26,7 @@
 .global _fdr_level_frames_C2_GRP_FDR_03;
 .var _fdr_level_frames_C2_GRP_FDR_03 = 0;
 .global _fdr_pan_C2_GRP_FDR_03;
-.var _fdr_pan_C2_GRP_FDR_03 = 0.5;       /* 0=L, 0.5=C, 1=R */
+.var _fdr_pan_C2_GRP_FDR_03 = 0.5;
 .global _fdr_pan_target_C2_GRP_FDR_03;
 .var _fdr_pan_target_C2_GRP_FDR_03 = 0.5;
 .global _fdr_pan_step_C2_GRP_FDR_03;
@@ -36,63 +36,82 @@
 .global _fdr_mute_C2_GRP_FDR_03;
 .var _fdr_mute_C2_GRP_FDR_03 = 0;
 .global _fdr_dca_gain_C2_GRP_FDR_03;
-.var _fdr_dca_gain_C2_GRP_FDR_03 = 1.0;  /* DCA master multiplier */
+.var _fdr_dca_gain_C2_GRP_FDR_03 = 1.0;
+.global _fdr_gq_C2_GRP_FDR_03;
+.var _fdr_gq_C2_GRP_FDR_03 = 0x10000000;          /* Q4.28 level*dca */
 .global _tap_post_fader_C2_GRP_FDR_03;
-.var _tap_post_fader_C2_GRP_FDR_03;      /* post-fader tap */
+.var _tap_post_fader_C2_GRP_FDR_03;
 .global _buf_C2_GRP_FDR_03;
 .var _buf_C2_GRP_FDR_03;
 
 
 .section/pm seg_pmco;
+.extern _sample_idx;
+.extern _mrf_rns28;
 .global _C2_GRP_FDR_03_process;
 _C2_GRP_FDR_03_process:
-    /* --- Level ramp (GainFast: 3ms up / 8ms down, Exp) --- */
+    /* block-rate: float ramps + shadow conversion */
+    r4 = dm(_sample_idx);
+    r1 = 0;
+    comp(r4, r1);
+    if ne jump (pc, .apply_C2_GRP_FDR_03);
+
+    /* level ramp */
     r4 = dm(_fdr_level_frames_C2_GRP_FDR_03);
-    r15 = 1;
-    r4 = r4 - r15;
-    if le jump (pc, .no_lramp_C2_GRP_FDR_03);
+    r1 = 0;
+    comp(r4, r1);
+    if le jump (pc, .lsnap_C2_GRP_FDR_03);
+    r4 = r4 - 1;
     dm(_fdr_level_frames_C2_GRP_FDR_03) = r4;
     f1 = dm(_fdr_level_C2_GRP_FDR_03);
     f2 = dm(_fdr_level_step_C2_GRP_FDR_03);
     f1 = f1 + f2;
     dm(_fdr_level_C2_GRP_FDR_03) = f1;
-    jump (pc, .do_pan_C2_GRP_FDR_03);
-.no_lramp_C2_GRP_FDR_03:
+    jump (pc, .pramp_C2_GRP_FDR_03);
+.lsnap_C2_GRP_FDR_03:
     f1 = dm(_fdr_level_target_C2_GRP_FDR_03);
     dm(_fdr_level_C2_GRP_FDR_03) = f1;
-.do_pan_C2_GRP_FDR_03:
-
-    /* --- Pan ramp --- */
+.pramp_C2_GRP_FDR_03:
+    /* pan ramp */
     r4 = dm(_fdr_pan_frames_C2_GRP_FDR_03);
-    r15 = 1;
-    r4 = r4 - r15;
-    if le jump (pc, .no_pramp_C2_GRP_FDR_03);
+    r1 = 0;
+    comp(r4, r1);
+    if le jump (pc, .psnap_C2_GRP_FDR_03);
+    r4 = r4 - 1;
     dm(_fdr_pan_frames_C2_GRP_FDR_03) = r4;
-    f5 = dm(_fdr_pan_C2_GRP_FDR_03);
-    f6 = dm(_fdr_pan_step_C2_GRP_FDR_03);
-    f5 = f5 + f6;
-    dm(_fdr_pan_C2_GRP_FDR_03) = f5;
-    jump (pc, .apply_fdr_C2_GRP_FDR_03);
-.no_pramp_C2_GRP_FDR_03:
-    f5 = dm(_fdr_pan_target_C2_GRP_FDR_03);
-    dm(_fdr_pan_C2_GRP_FDR_03) = f5;
-.apply_fdr_C2_GRP_FDR_03:
+    f1 = dm(_fdr_pan_C2_GRP_FDR_03);
+    f2 = dm(_fdr_pan_step_C2_GRP_FDR_03);
+    f1 = f1 + f2;
+    dm(_fdr_pan_C2_GRP_FDR_03) = f1;
+    jump (pc, .cvt_C2_GRP_FDR_03);
+.psnap_C2_GRP_FDR_03:
+    f1 = dm(_fdr_pan_target_C2_GRP_FDR_03);
+    dm(_fdr_pan_C2_GRP_FDR_03) = f1;
+.cvt_C2_GRP_FDR_03:
+    /* composite = level * dca; Q4.28 shadow(s) */
+    f1 = dm(_fdr_level_C2_GRP_FDR_03);
+    f2 = dm(_fdr_dca_gain_C2_GRP_FDR_03);
+    f1 = f1 * f2;
+    r2 = 0x4D800000;
+    f2 = r2;
+    f3 = f1 * f2;
+    r2 = fix f3;
+    dm(_fdr_gq_C2_GRP_FDR_03) = r2;
 
+
+.apply_C2_GRP_FDR_03:
     r0 = dm(_buf_C2_RECV_GRP_03);
+    r1 = dm(_fdr_gq_C2_GRP_FDR_03);
+    mrf = r0 * r1 (ssi);
+    call _mrf_rns28;
 
-    /* Apply level (incl. DCA multiplier) */
-    f3 = dm(_fdr_dca_gain_C2_GRP_FDR_03);
-    f1 = f1 * f3;       /* effective_gain = fader × DCA */
-    f0 = f0 * f1;
-
-    /* Mute */
     r2 = dm(_fdr_mute_C2_GRP_FDR_03);
-    r3 = 0;
-    comp(r2, r3);
-    if ne r0 = r3;      /* if muted, clear f0 (0 = 0.0f IEEE 754) */
+    r4 = 0;
+    comp(r2, r4);
+    if ne r0 = r4;
 
-    /* Bus fader: mono passthrough (no pan split) */
-    dm(_tap_post_fader_C2_GRP_FDR_03) = f0;
-    dm(_buf_C2_GRP_FDR_03) = f0;
+    dm(_tap_post_fader_C2_GRP_FDR_03) = r0;
+    dm(_buf_C2_GRP_FDR_03) = r0;
+
     rts;
 _C2_GRP_FDR_03_process.end:

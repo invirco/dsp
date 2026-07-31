@@ -12,72 +12,87 @@
 
 /* RampProfile: DynSafe | Mode: LinearFrames | Up: 6ms (9f) Down: 20ms (30f) | Curve: Exp | Scope: Scalar */
 
-/* LIMITER: Brick-wall peak limiter */
+/* LIMITER (FIXED Q4.28, D5) */
 /* SPI page=1 addr=1576 */
-/* threshold=-0.5dB */
 
 .section/dm seg_dmda;
 .extern _buf_C2_MAIN_OCOMP_04;
 .global _lim_on_C2_MAIN_OLIM_04;
 .var _lim_on_C2_MAIN_OLIM_04 = 1;
 .global _lim_threshold_C2_MAIN_OLIM_04;
-.var _lim_threshold_C2_MAIN_OLIM_04;
+.var _lim_threshold_C2_MAIN_OLIM_04 = -0.5;
 .global _lim_attack_C2_MAIN_OLIM_04;
-.var _lim_attack_C2_MAIN_OLIM_04;
+.var _lim_attack_C2_MAIN_OLIM_04 = 0.5;
 .global _lim_release_C2_MAIN_OLIM_04;
-.var _lim_release_C2_MAIN_OLIM_04;
+.var _lim_release_C2_MAIN_OLIM_04 = 0.001;
 .global _lim_envelope_C2_MAIN_OLIM_04;
-.var _lim_envelope_C2_MAIN_OLIM_04 = 0.0;
+.var _lim_envelope_C2_MAIN_OLIM_04 = 0;
+.global _lim_attq_C2_MAIN_OLIM_04;
+.var _lim_attq_C2_MAIN_OLIM_04 = 0;
+.global _lim_relq_C2_MAIN_OLIM_04;
+.var _lim_relq_C2_MAIN_OLIM_04 = 0;
+.global _lim_cgp_C2_MAIN_OLIM_04;
+.var _lim_cgp_C2_MAIN_OLIM_04[4];
 .global _buf_C2_MAIN_OLIM_04;
 .var _buf_C2_MAIN_OLIM_04;
 
 .section/pm seg_pmco;
-.extern _dyn_envelope_follow;
-.extern _dyn_to_dB;
-.extern _dyn_from_dB;
+.extern _sample_idx;
+.extern _envq_fx;
+.extern _compgain_fx;
+.extern _mrf_rns28;
 .global _C2_MAIN_OLIM_04_process;
 _C2_MAIN_OLIM_04_process:
     r0 = dm(_buf_C2_MAIN_OCOMP_04);
-    /* --- Bypass --- */
     r2 = dm(_lim_on_C2_MAIN_OLIM_04);
     r3 = 0;
     comp(r2, r3);
     if eq jump (pc, .lim_bypass_C2_MAIN_OLIM_04);
-    f15 = f0;                   /* save dry input */
+    r13 = r0;
 
-    /* Peak detect */
-    f0 = abs f0;
+    r4 = dm(_sample_idx);
+    r1 = 0;
+    comp(r4, r1);
+    if ne jump (pc, .lim_go_C2_MAIN_OLIM_04);
+    r2 = 0x4F000000;              /* 2^31 float */
+    f2 = r2;
     f1 = dm(_lim_attack_C2_MAIN_OLIM_04);
-    f2 = dm(_lim_release_C2_MAIN_OLIM_04);
-    f3 = dm(_lim_envelope_C2_MAIN_OLIM_04);
-    call _dyn_envelope_follow;
-    dm(_lim_envelope_C2_MAIN_OLIM_04) = f0;
-
-    /* Convert to dB */
-    call _dyn_to_dB;
-
-    /* Brick-wall: if env_dB > threshold, reduce by excess */
+    f1 = f1 * f2;
+    r1 = fix f1;
+    dm(_lim_attq_C2_MAIN_OLIM_04) = r1;
+    f1 = dm(_lim_release_C2_MAIN_OLIM_04);
+    f1 = f1 * f2;
+    r1 = fix f1;
+    dm(_lim_relq_C2_MAIN_OLIM_04) = r1;
+    r2 = 0x4AAA152D;            /* dB -> Q6.25 log2 */
+    f2 = r2;
     f1 = dm(_lim_threshold_C2_MAIN_OLIM_04);
-    f4 = f0 - f1;             /* excess dB */
-    r5 = 0x00000000;  /* 0.0 IEEE 754 */
-    comp(f4, f5);
-    if le jump (pc, .lim_pass_C2_MAIN_OLIM_04);
+    f1 = f1 * f2;
+    r1 = fix f1;
+    dm(_lim_cgp_C2_MAIN_OLIM_04) = r1;    /* thr */
+    r1 = 0x7FFFFFFF;              /* slope = ~1.0 (brick wall) */
+    dm(_lim_cgp_C2_MAIN_OLIM_04 + 1) = r1;
+    r1 = 0;
+    dm(_lim_cgp_C2_MAIN_OLIM_04 + 2) = r1;
+    dm(_lim_cgp_C2_MAIN_OLIM_04 + 3) = r1;
+.lim_go_C2_MAIN_OLIM_04:
 
-    /* Gain reduction = -excess dB */
-    f0 = -f4;
-    call _dyn_from_dB;
-    f14 = f0;                 /* gain_linear < 1.0 */
-    f0 = f15;
-    f0 = f0 * f14;
+    r0 = abs r13;
+    r1 = dm(_lim_envelope_C2_MAIN_OLIM_04);
+    r2 = dm(_lim_attq_C2_MAIN_OLIM_04);
+    r3 = dm(_lim_relq_C2_MAIN_OLIM_04);
+    call _envq_fx;
+    dm(_lim_envelope_C2_MAIN_OLIM_04) = r0;
+
+    i0 = _lim_cgp_C2_MAIN_OLIM_04;
+    call _compgain_fx;
+    r1 = r0;
+    r0 = r13;
+    mrf = r0 * r1 (ssi);
+    call _mrf_rns28;
     dm(_buf_C2_MAIN_OLIM_04) = r0;
     rts;
-
 .lim_bypass_C2_MAIN_OLIM_04:
-    dm(_buf_C2_MAIN_OLIM_04) = r0;
-    rts;
-.lim_pass_C2_MAIN_OLIM_04:
-    /* No limiting needed */
-    f0 = f15;
     dm(_buf_C2_MAIN_OLIM_04) = r0;
     rts;
 _C2_MAIN_OLIM_04_process.end:

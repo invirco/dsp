@@ -12,43 +12,27 @@
 
 /* RampProfile: EqSafe | Mode: LinearFrames | Up: 12ms (18f) Down: 12ms (18f) | Curve: Linear | Scope: CoeffSetAtomic */
 
-/* HPF_LPF: High-pass + Low-pass filter — dual-instance crossfade */
-/* HPF: 80.0 Hz, slope 18 dB/oct */
-/* LPF: 20000.0 Hz */
+/* HPF_LPF (FIXED Q4.28, D5) — dual-instance crossfade */
+/* HPF: 80.0 Hz slope 18 | LPF: 20000.0 Hz */
 /* SPI page=1 addr=4 */
-/*
- * Each instance runs HPF→LPF in series (2 biquads total).
- * Crossfade architecture identical to EQ_BIQUAD: dormant instance
- * loaded on swap_pending, 576-sample linear blend.
- *
- * When EITHER hpf_swap_pending or lpf_swap_pending fires:
- *   1. Copy active instance's HPF+LPF coeffs to dormant (baseline)
- *   2. Overwrite the pending filter(s) with _next values
- *   3. Zero dormant state, start crossfade
- * This ensures the dormant instance always has a complete, consistent
- * coefficient set even if only one filter was updated.
- */
 
 .section/dm seg_dmda;
 .extern _buf_C1_GAIN_01;
 
-/* ---- Instance A ---- */
 .global _filt_hpf_A_C1_FILT_01;
-.var _filt_hpf_A_C1_FILT_01[5] = 1.0, 0.0, 0.0, 0.0, 0.0;
+.var _filt_hpf_A_C1_FILT_01[5] = 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000;
 .global _filt_lpf_A_C1_FILT_01;
-.var _filt_lpf_A_C1_FILT_01[5] = 1.0, 0.0, 0.0, 0.0, 0.0;
+.var _filt_lpf_A_C1_FILT_01[5] = 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000;
 .global _filt_state_A_C1_FILT_01;
-.var _filt_state_A_C1_FILT_01[4];             /* HPF w1,w2 + LPF w1,w2 */
-
-/* ---- Instance B ---- */
+.var _filt_state_A_C1_FILT_01[12];
 .global _filt_hpf_B_C1_FILT_01;
-.var _filt_hpf_B_C1_FILT_01[5] = 1.0, 0.0, 0.0, 0.0, 0.0;
+.var _filt_hpf_B_C1_FILT_01[5] = 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000;
 .global _filt_lpf_B_C1_FILT_01;
-.var _filt_lpf_B_C1_FILT_01[5] = 1.0, 0.0, 0.0, 0.0, 0.0;
+.var _filt_lpf_B_C1_FILT_01[5] = 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000;
 .global _filt_state_B_C1_FILT_01;
-.var _filt_state_B_C1_FILT_01[4];
+.var _filt_state_B_C1_FILT_01[12];
 
-/* ---- SPI staging buffers ---- */
+/* float staging (wire unchanged) */
 .global _hpf_coeffs_next_C1_FILT_01;
 .var _hpf_coeffs_next_C1_FILT_01[5] = 1.0, 0.0, 0.0, 0.0, 0.0;
 .global _hpf_swap_pending_C1_FILT_01;
@@ -58,229 +42,213 @@
 .global _lpf_swap_pending_C1_FILT_01;
 .var _lpf_swap_pending_C1_FILT_01 = 0;
 
-/* ---- Crossfade control ---- */
 .global _filt_active_C1_FILT_01;
-.var _filt_active_C1_FILT_01 = 0;             /* 0=A, 1=B */
+.var _filt_active_C1_FILT_01 = 0;
 .global _filt_xfade_alpha_C1_FILT_01;
 .var _filt_xfade_alpha_C1_FILT_01 = 0.0;
 .global _filt_xfade_step_C1_FILT_01;
-.var _filt_xfade_step_C1_FILT_01 = 0.0;       /* 0 = idle */
+.var _filt_xfade_step_C1_FILT_01 = 0.0;
 
 .global _buf_C1_FILT_01;
 .var _buf_C1_FILT_01;
 
 .section/pm seg_pmco;
-.extern _biquad_mono;
+.extern _bq_fx_cascade_N;
+.extern _bq_fx_convert_N;
 .global _C1_FILT_01_process;
 _C1_FILT_01_process:
 
-    /* ── Check swap pending (either filter) ── */
     r4 = dm(_hpf_swap_pending_C1_FILT_01);
+    r5 = dm(_lpf_swap_pending_C1_FILT_01);
+    r4 = r4 or r5;
     r4 = pass r4;
-    if ne jump .filt_do_xfade_C1_FILT_01;
-    r4 = dm(_lpf_swap_pending_C1_FILT_01);
-    r4 = pass r4;
-    if ne jump .filt_do_xfade_C1_FILT_01;
-    jump .filt_mode_check_C1_FILT_01;
-.filt_do_xfade_C1_FILT_01:
-    call _filt_start_xfade_C1_FILT_01;
+    if ne call _filt_start_xfade_C1_FILT_01;
 
-.filt_mode_check_C1_FILT_01:
     r4 = dm(_filt_xfade_step_C1_FILT_01);
     r4 = pass r4;
-    if ne jump .filt_xfade_C1_FILT_01;
+    if ne jump (pc, .filt_xfade_C1_FILT_01);
 
-    /* ═══ STEADY STATE ══════════════════════════════════════ */
+    /* ===== steady state ===== */
     r0 = dm(_buf_C1_GAIN_01);
     r4 = dm(_filt_active_C1_FILT_01);
     r4 = pass r4;
-    if ne jump .filt_ss_B_C1_FILT_01;
-    /* Instance A */
-    i0 = _filt_hpf_A_C1_FILT_01;   i1 = _filt_state_A_C1_FILT_01;
-    call _biquad_mono;                   /* HPF */
-    i0 = _filt_lpf_A_C1_FILT_01;             /* i1 already at LPF state */
-    call _biquad_mono;                   /* LPF */
+    if ne jump (pc, .filt_ss_b_C1_FILT_01);
+    i0 = _filt_hpf_A_C1_FILT_01;
+    i1 = _filt_state_A_C1_FILT_01;
+    r4 = 1;
+    call _bq_fx_cascade_N;
+    i0 = _filt_lpf_A_C1_FILT_01;
+    r4 = 1;
+    call _bq_fx_cascade_N;      /* i1 continued to LPF state */
     dm(_buf_C1_FILT_01) = r0;
     rts;
-.filt_ss_B_C1_FILT_01:
-    i0 = _filt_hpf_B_C1_FILT_01;   i1 = _filt_state_B_C1_FILT_01;
-    call _biquad_mono;
+.filt_ss_b_C1_FILT_01:
+    i0 = _filt_hpf_B_C1_FILT_01;
+    i1 = _filt_state_B_C1_FILT_01;
+    r4 = 1;
+    call _bq_fx_cascade_N;
     i0 = _filt_lpf_B_C1_FILT_01;
-    call _biquad_mono;
+    r4 = 1;
+    call _bq_fx_cascade_N;
     dm(_buf_C1_FILT_01) = r0;
     rts;
 
-    /* ═══ CROSSFADE ═════════════════════════════════════════ */
+    /* ===== crossfade ===== */
 .filt_xfade_C1_FILT_01:
     r0 = dm(_buf_C1_GAIN_01);
-    f15 = f0;                            /* save input */
-
-    /* ── Active (old) instance: HPF → LPF ── */
-    r4 = dm(_filt_active_C1_FILT_01);
-    r4 = pass r4;
-    if ne jump .filt_xf_actB_C1_FILT_01;
-    i0 = _filt_hpf_A_C1_FILT_01;   i1 = _filt_state_A_C1_FILT_01;
-    call _biquad_mono;
-    i0 = _filt_lpf_A_C1_FILT_01;
-    call _biquad_mono;
-    jump .filt_xf_act_done_C1_FILT_01;
-.filt_xf_actB_C1_FILT_01:
-    i0 = _filt_hpf_B_C1_FILT_01;   i1 = _filt_state_B_C1_FILT_01;
-    call _biquad_mono;
-    i0 = _filt_lpf_B_C1_FILT_01;
-    call _biquad_mono;
-.filt_xf_act_done_C1_FILT_01:
-    f13 = f0;                            /* old output */
-
-    /* ── Inactive (new) instance: HPF → LPF ── */
-    f0 = f15;                            /* reload input */
-    r4 = dm(_filt_active_C1_FILT_01);
-    r4 = pass r4;
-    if eq jump .filt_xf_inB_C1_FILT_01;
-    i0 = _filt_hpf_A_C1_FILT_01;   i1 = _filt_state_A_C1_FILT_01;
-    call _biquad_mono;
-    i0 = _filt_lpf_A_C1_FILT_01;
-    call _biquad_mono;
-    jump .filt_xf_in_done_C1_FILT_01;
-.filt_xf_inB_C1_FILT_01:
-    i0 = _filt_hpf_B_C1_FILT_01;   i1 = _filt_state_B_C1_FILT_01;
-    call _biquad_mono;
-    i0 = _filt_lpf_B_C1_FILT_01;
-    call _biquad_mono;
-.filt_xf_in_done_C1_FILT_01:
-    /* f0 = new output */
-
-    /* ── Blend + advance ── */
-    f14 = dm(_filt_xfade_alpha_C1_FILT_01);
-    r15 = 0x3F800000;  /* 1.0 IEEE 754 */
-    f15 = f15 - f14;
-    f13 = f13 * f15;                    /* old × (1−α) */
-    f0 = f0 * f14;                      /* new × α */
-    f0 = f0 + f13;
-
-    f14 = dm(_filt_xfade_alpha_C1_FILT_01);
-    f15 = dm(_filt_xfade_step_C1_FILT_01);
-    f14 = f14 + f15;
-    dm(_filt_xfade_alpha_C1_FILT_01) = f14;
-    r15 = 0x3F800000;  /* 1.0 IEEE 754 */
-    comp(f14, f15);
-    if ge call _filt_xfade_done_C1_FILT_01;
-
-    dm(_buf_C1_FILT_01) = f0;
-    rts;
-
-/* ── Start crossfade ── */
-_filt_start_xfade_C1_FILT_01:
-    /* Determine dormant instance */
-    r4 = dm(_filt_active_C1_FILT_01);
-    r4 = pass r4;
-    if ne jump .filt_sxf_toA_C1_FILT_01;
-
-    /* Active=A → dormant=B:
-     * 1. Copy active HPF/LPF coeffs to B (baseline)
-     * 2. Overwrite with any pending _next values
-     * 3. Zero state B */
-    /* Copy A's HPF → B's HPF */
-    i0 = _filt_hpf_A_C1_FILT_01;  i1 = _filt_hpf_B_C1_FILT_01;
-    r4 = 5;
-    lcntr = r4; do .fc1_C1_FILT_01 until lce;
-        r0 = dm(i0, 1); dm(i1, 1) = r0;
-    .fc1_C1_FILT_01:
-    /* Copy A's LPF → B's LPF */
-    i0 = _filt_lpf_A_C1_FILT_01;  i1 = _filt_lpf_B_C1_FILT_01;
-    r4 = 5;
-    lcntr = r4; do .fc2_C1_FILT_01 until lce;
-        r0 = dm(i0, 1); dm(i1, 1) = r0;
-    .fc2_C1_FILT_01:
-    /* Overwrite pending HPF? */
-    r4 = dm(_hpf_swap_pending_C1_FILT_01);
-    r4 = pass r4;
-    if eq jump .filt_sxf_nohpfB_C1_FILT_01;
-    i0 = _hpf_coeffs_next_C1_FILT_01;  i1 = _filt_hpf_B_C1_FILT_01;
-    r4 = 5;
-    lcntr = r4; do .fc3_C1_FILT_01 until lce;
-        r0 = dm(i0, 1); dm(i1, 1) = r0;
-    .fc3_C1_FILT_01:
-.filt_sxf_nohpfB_C1_FILT_01:
-    /* Overwrite pending LPF? */
-    r4 = dm(_lpf_swap_pending_C1_FILT_01);
-    r4 = pass r4;
-    if eq jump .filt_sxf_nolpfB_C1_FILT_01;
-    i0 = _lpf_coeffs_next_C1_FILT_01;  i1 = _filt_lpf_B_C1_FILT_01;
-    r4 = 5;
-    lcntr = r4; do .fc4_C1_FILT_01 until lce;
-        r0 = dm(i0, 1); dm(i1, 1) = r0;
-    .fc4_C1_FILT_01:
-.filt_sxf_nolpfB_C1_FILT_01:
-    /* Zero state B */
-    i1 = _filt_state_B_C1_FILT_01;
-    r0 = 0;
-    r4 = 4;
-    lcntr = r4; do .fz1_C1_FILT_01 until lce;
-        dm(i1, 1) = r0;
-    .fz1_C1_FILT_01:
-    nop;
-    jump .filt_sxf_go_C1_FILT_01;
-
-.filt_sxf_toA_C1_FILT_01:
-    /* Active=B → dormant=A: same pattern, copy B→A, overlay _next */
-    i0 = _filt_hpf_B_C1_FILT_01;  i1 = _filt_hpf_A_C1_FILT_01;
-    r4 = 5;
-    lcntr = r4; do .fc5_C1_FILT_01 until lce;
-        r0 = dm(i0, 1); dm(i1, 1) = r0;
-    .fc5_C1_FILT_01:
-    i0 = _filt_lpf_B_C1_FILT_01;  i1 = _filt_lpf_A_C1_FILT_01;
-    r4 = 5;
-    lcntr = r4; do .fc6_C1_FILT_01 until lce;
-        r0 = dm(i0, 1); dm(i1, 1) = r0;
-    .fc6_C1_FILT_01:
-    r4 = dm(_hpf_swap_pending_C1_FILT_01);
-    r4 = pass r4;
-    if eq jump .filt_sxf_nohpfA_C1_FILT_01;
-    i0 = _hpf_coeffs_next_C1_FILT_01;  i1 = _filt_hpf_A_C1_FILT_01;
-    r4 = 5;
-    lcntr = r4; do .fc7_C1_FILT_01 until lce;
-        r0 = dm(i0, 1); dm(i1, 1) = r0;
-    .fc7_C1_FILT_01:
-.filt_sxf_nohpfA_C1_FILT_01:
-    r4 = dm(_lpf_swap_pending_C1_FILT_01);
-    r4 = pass r4;
-    if eq jump .filt_sxf_nolpfA_C1_FILT_01;
-    i0 = _lpf_coeffs_next_C1_FILT_01;  i1 = _filt_lpf_A_C1_FILT_01;
-    r4 = 5;
-    lcntr = r4; do .fc8_C1_FILT_01 until lce;
-        r0 = dm(i0, 1); dm(i1, 1) = r0;
-    .fc8_C1_FILT_01:
-.filt_sxf_nolpfA_C1_FILT_01:
+    r13 = r0;
+    i0 = _filt_hpf_A_C1_FILT_01;
     i1 = _filt_state_A_C1_FILT_01;
-    r0 = 0;
-    r4 = 4;
-    lcntr = r4; do .fz2_C1_FILT_01 until lce;
-        dm(i1, 1) = r0;
-    .fz2_C1_FILT_01:
+    r4 = 1;
+    call _bq_fx_cascade_N;
+    i0 = _filt_lpf_A_C1_FILT_01;
+    r4 = 1;
+    call _bq_fx_cascade_N;
+    r14 = r0;                     /* ya */
+    r0 = r13;
+    i0 = _filt_hpf_B_C1_FILT_01;
+    i1 = _filt_state_B_C1_FILT_01;
+    r4 = 1;
+    call _bq_fx_cascade_N;
+    i0 = _filt_lpf_B_C1_FILT_01;
+    r4 = 1;
+    call _bq_fx_cascade_N;        /* r0 = yb */
 
-.filt_sxf_go_C1_FILT_01:
-    /* Clear both pending flags */
-    r0 = 0;
-    dm(_hpf_swap_pending_C1_FILT_01) = r0;
-    dm(_lpf_swap_pending_C1_FILT_01) = r0;
-    /* Start crossfade */
-    dm(_filt_xfade_alpha_C1_FILT_01) = r0;
-    f0 = 0.001736111111111111;
-    dm(_filt_xfade_step_C1_FILT_01) = f0;
-    rts;
-_filt_start_xfade_C1_FILT_01.end:
+    r4 = dm(_filt_active_C1_FILT_01);
+    r4 = pass r4;
+    if eq jump (pc, .filt_bl_C1_FILT_01);
+    r5 = r14;
+    r14 = r0;
+    r0 = r5;
+.filt_bl_C1_FILT_01:
+    f4 = dm(_filt_xfade_alpha_C1_FILT_01);
+    r5 = 0x4F000000;
+    f5 = r5;
+    f4 = f4 * f5;
+    r4 = fix f4;
+    r5 = r0 - r14;
+    mrf = r5 * r4 (ssi);
+    r5 = 0x40000000;
+    r12 = 1;
+    mrf = mrf + r5 * r12 (ssi);
+    r5 = mr0f;
+    r12 = mr1f;
+    r5 = lshift r5 by -31;
+    r12 = lshift r12 by 1;
+    r5 = r5 or r12;
+    r0 = r14 + r5;
+    dm(_buf_C1_FILT_01) = r0;
 
-/* ── Crossfade complete ── */
-_filt_xfade_done_C1_FILT_01:
+    f4 = dm(_filt_xfade_alpha_C1_FILT_01);
+    f5 = dm(_filt_xfade_step_C1_FILT_01);
+    f4 = f4 + f5;
+    dm(_filt_xfade_alpha_C1_FILT_01) = f4;
+    r5 = 0x3F800000;
+    f5 = r5;
+    comp(f4, f5);
+    if lt rts;
     r4 = dm(_filt_active_C1_FILT_01);
     r5 = 1;
     r4 = r4 xor r5;
     dm(_filt_active_C1_FILT_01) = r4;
     r4 = 0;
-    dm(_filt_xfade_alpha_C1_FILT_01) = r4;
     dm(_filt_xfade_step_C1_FILT_01) = r4;
+    dm(_filt_xfade_alpha_C1_FILT_01) = r4;
     rts;
-_filt_xfade_done_C1_FILT_01.end:
 
+    /* ===== stage into dormant ===== */
+_filt_start_xfade_C1_FILT_01:
+    /* dormant pointers (i1 = coeff base, i2 = state base) and
+     * active coeff base (i0) */
+    r4 = dm(_filt_active_C1_FILT_01);
+    r4 = pass r4;
+    if ne jump (pc, .filt_st_a_C1_FILT_01);
+    i0 = _filt_hpf_A_C1_FILT_01;       /* active = A (hpf+lpf adjacent) */
+    i1 = _filt_hpf_B_C1_FILT_01;
+    i2 = _filt_state_B_C1_FILT_01;
+    jump (pc, .filt_st_go_C1_FILT_01);
+.filt_st_a_C1_FILT_01:
+    i0 = _filt_hpf_B_C1_FILT_01;
+    i1 = _filt_hpf_A_C1_FILT_01;
+    i2 = _filt_state_A_C1_FILT_01;
+.filt_st_go_C1_FILT_01:
+    /* baseline: copy active fixed hpf[5] to dormant hpf */
+    r5 = 5;
+    lcntr = r5, do .filt_cph_C1_FILT_01 until lce;
+        r4 = dm(i0, 1);
+.filt_cph_C1_FILT_01:
+        dm(i1, 1) = r4;
+    /* i0/i1 now at the lpf blocks only if hpf/lpf are adjacent —
+     * they are separate vars, so reload explicitly */
+    r4 = dm(_filt_active_C1_FILT_01);
+    r4 = pass r4;
+    if ne jump (pc, .filt_st2a_C1_FILT_01);
+    i0 = _filt_lpf_A_C1_FILT_01;
+    i1 = _filt_lpf_B_C1_FILT_01;
+    jump (pc, .filt_st2go_C1_FILT_01);
+.filt_st2a_C1_FILT_01:
+    i0 = _filt_lpf_B_C1_FILT_01;
+    i1 = _filt_lpf_A_C1_FILT_01;
+.filt_st2go_C1_FILT_01:
+    r5 = 5;
+    lcntr = r5, do .filt_cpl_C1_FILT_01 until lce;
+        r4 = dm(i0, 1);
+.filt_cpl_C1_FILT_01:
+        dm(i1, 1) = r4;
+
+    /* overwrite pending filter(s) from float staging */
+    r4 = dm(_hpf_swap_pending_C1_FILT_01);
+    r4 = pass r4;
+    if eq jump (pc, .filt_nohpf_C1_FILT_01);
+    r4 = 0;
+    dm(_hpf_swap_pending_C1_FILT_01) = r4;
+    i0 = _hpf_coeffs_next_C1_FILT_01;
+    r4 = dm(_filt_active_C1_FILT_01);
+    r4 = pass r4;
+    if ne jump (pc, .filt_cvha_C1_FILT_01);
+    i1 = _filt_hpf_B_C1_FILT_01;
+    jump (pc, .filt_cvhgo_C1_FILT_01);
+.filt_cvha_C1_FILT_01:
+    i1 = _filt_hpf_A_C1_FILT_01;
+.filt_cvhgo_C1_FILT_01:
+    r4 = 1;
+    call _bq_fx_convert_N;
+.filt_nohpf_C1_FILT_01:
+    r4 = dm(_lpf_swap_pending_C1_FILT_01);
+    r4 = pass r4;
+    if eq jump (pc, .filt_nolpf_C1_FILT_01);
+    r4 = 0;
+    dm(_lpf_swap_pending_C1_FILT_01) = r4;
+    i0 = _lpf_coeffs_next_C1_FILT_01;
+    r4 = dm(_filt_active_C1_FILT_01);
+    r4 = pass r4;
+    if ne jump (pc, .filt_cvla_C1_FILT_01);
+    i1 = _filt_lpf_B_C1_FILT_01;
+    jump (pc, .filt_cvlgo_C1_FILT_01);
+.filt_cvla_C1_FILT_01:
+    i1 = _filt_lpf_A_C1_FILT_01;
+.filt_cvlgo_C1_FILT_01:
+    r4 = 1;
+    call _bq_fx_convert_N;
+.filt_nolpf_C1_FILT_01:
+
+    /* zero dormant state + start ramp */
+    r4 = dm(_filt_active_C1_FILT_01);
+    r4 = pass r4;
+    if ne jump (pc, .filt_zsa_C1_FILT_01);
+    i2 = _filt_state_B_C1_FILT_01;
+    jump (pc, .filt_zsgo_C1_FILT_01);
+.filt_zsa_C1_FILT_01:
+    i2 = _filt_state_A_C1_FILT_01;
+.filt_zsgo_C1_FILT_01:
+    r4 = 0;
+    r5 = 12;
+    lcntr = r5, do .filt_zst_C1_FILT_01 until lce;
+.filt_zst_C1_FILT_01:
+        dm(i2, 1) = r4;
+    f0 = 0.001736111111111111;
+    dm(_filt_xfade_step_C1_FILT_01) = f0;
+    r4 = 0;
+    dm(_filt_xfade_alpha_C1_FILT_01) = r4;
+    rts;
 _C1_FILT_01_process.end:

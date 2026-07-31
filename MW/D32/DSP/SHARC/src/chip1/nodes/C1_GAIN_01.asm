@@ -12,30 +12,27 @@
 
 /* RampProfile: GainFast | Mode: Slew | Up: 3ms (4f) Down: 8ms (12f) | Curve: Exp | Scope: Scalar */
 
-/* GAIN: Per-channel gain / trim
- *
- * Slew ramp: updated once per block (when _sample_idx == 0).
- * Per-sample: apply current coefficient, polarity, mute.
- * Mute clears output to 0.0 (r4=0 = 0x00000000 = 0.0f IEEE 754).
- */
+/* GAIN (FIXED Q4.28, D5) — float control, fixed sample path */
 /* SPI page=1 addr=0 */
 
 .section/dm seg_dmda;
 .extern _buf_C1_IN_01;
 .global _gain_coeff_C1_GAIN_01;
-.var _gain_coeff_C1_GAIN_01 = 1.0;
+.var _gain_coeff_C1_GAIN_01 = 1.0;            /* FLOAT (ramped) */
 .global _gain_target_C1_GAIN_01;
-.var _gain_target_C1_GAIN_01 = 1.0;   /* ramp target */
+.var _gain_target_C1_GAIN_01 = 1.0;
 .global _gain_step_C1_GAIN_01;
-.var _gain_step_C1_GAIN_01 = 0.0;      /* per-frame ramp step */
+.var _gain_step_C1_GAIN_01 = 0.0;
 .global _gain_frames_C1_GAIN_01;
-.var _gain_frames_C1_GAIN_01 = 0;       /* remaining ramp frames */
+.var _gain_frames_C1_GAIN_01 = 0;
+.global _gain_q_C1_GAIN_01;
+.var _gain_q_C1_GAIN_01 = 0x10000000;          /* Q4.28 shadow */
 .global _mute_C1_GAIN_01;
 .var _mute_C1_GAIN_01 = 0;
 .global _polarity_C1_GAIN_01;
 .var _polarity_C1_GAIN_01 = 0;
 .global _tap_post_trim_C1_GAIN_01;
-.var _tap_post_trim_C1_GAIN_01;         /* post-trim / pre-EQ tap */
+.var _tap_post_trim_C1_GAIN_01;
 .global _buf_C1_GAIN_01;
 .var _buf_C1_GAIN_01;
 
@@ -43,7 +40,7 @@
 .extern _sample_idx;
 .global _C1_GAIN_01_process;
 _C1_GAIN_01_process:
-    /* --- Slew ramp: advance once per block, at sample 0 only --- */
+    /* block-rate: advance float ramp, refresh Q4.28 shadow */
     r4 = dm(_sample_idx);
     r1 = 0;
     comp(r4, r1);
@@ -53,34 +50,37 @@ _C1_GAIN_01_process:
     r1 = 0;
     comp(r4, r1);
     if le jump (pc, .snap_C1_GAIN_01);
-    /* Ramp in progress: step coefficient, decrement counter */
     r4 = r4 - 1;
     dm(_gain_frames_C1_GAIN_01) = r4;
     f1 = dm(_gain_coeff_C1_GAIN_01);
     f2 = dm(_gain_step_C1_GAIN_01);
     f1 = f1 + f2;
     dm(_gain_coeff_C1_GAIN_01) = f1;
-    jump (pc, .apply_C1_GAIN_01);
+    jump (pc, .cvt_C1_GAIN_01);
 .snap_C1_GAIN_01:
-    /* Ramp complete or instant: snap to target */
     f1 = dm(_gain_target_C1_GAIN_01);
     dm(_gain_coeff_C1_GAIN_01) = f1;
+.cvt_C1_GAIN_01:
+    r2 = 0x4D800000;                      /* 2^28 as float */
+    f2 = r2;
+    f1 = f1 * f2;
+    r1 = fix f1;
+    dm(_gain_q_C1_GAIN_01) = r1;
 
 .apply_C1_GAIN_01:
     r0 = dm(_buf_C1_IN_01);
-    f1 = dm(_gain_coeff_C1_GAIN_01);
-    f0 = f0 * f1;                          /* apply gain */
+    r1 = dm(_gain_q_C1_GAIN_01);
+    mrf = r0 * r1 (ssi);
+    call _mrf_rns28;                      /* r0 = sat(rns(x*g,28)) */
 
-    /* Polarity inversion */
     r3 = dm(_polarity_C1_GAIN_01);
     r4 = 0;
     comp(r3, r4);
-    if ne f0 = -f0;
+    if ne r0 = -r0;
 
-    /* Mute: force output to 0.0 */
     r2 = dm(_mute_C1_GAIN_01);
     comp(r2, r4);
-    if ne r0 = r4;    /* r4 = 0 = 0x00000000 = 0.0f */
+    if ne r0 = r4;
 
     dm(_tap_post_trim_C1_GAIN_01) = r0;
     dm(_buf_C1_GAIN_01) = r0;

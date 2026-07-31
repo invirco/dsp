@@ -12,7 +12,7 @@
 
 /* RampProfile: GainFast | Mode: Slew | Up: 3ms (4f) Down: 8ms (12f) | Curve: Exp | Scope: Scalar */
 
-/* TALKBACK: Talkback mic routing */
+/* TALKBACK (FIXED Q4.28, D5) */
 /* SPI page=1 addr=4736 */
 
 .section/dm seg_dmda;
@@ -30,24 +30,38 @@
 .global _talk_hpf_on_C1_TALK_01;
 .var _talk_hpf_on_C1_TALK_01 = 1;
 .global _talk_hpf_coeffs_C1_TALK_01;
-.var _talk_hpf_coeffs_C1_TALK_01[5];
+.var _talk_hpf_coeffs_C1_TALK_01[5] = 1.0, 0.0, 0.0, 0.0, 0.0;
+.global _talk_hpf_cq_C1_TALK_01;
+.var _talk_hpf_cq_C1_TALK_01[5] = 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000;
 .global _talk_hpf_state_C1_TALK_01;
-.var _talk_hpf_state_C1_TALK_01[2];
+.var _talk_hpf_state_C1_TALK_01[6];
 .global _talk_route_C1_TALK_01;
-.var _talk_route_C1_TALK_01[3];         /* up to 3 route destinations */
+.var _talk_route_C1_TALK_01[3];
 .global _buf_C1_TALK_01;
 .var _buf_C1_TALK_01;
 
 .section/pm seg_pmco;
-.extern _biquad_mono;
+.extern _sample_idx;
+.extern _mrf_rns28;
+.extern _bq_fx_cascade_N;
+.extern _bq_fx_convert_N;
 .global _C1_TALK_01_process;
 _C1_TALK_01_process:
-    /* Check talkback active */
     r2 = dm(_talk_on_C1_TALK_01);
     r2 = pass r2;
     if eq rts;
 
-    /* Ramp gain */
+    /* block-rate: refresh fixed HPF coeffs from float set */
+    r4 = dm(_sample_idx);
+    r1 = 0;
+    comp(r4, r1);
+    if ne jump (pc, .tk_ramp_C1_TALK_01);
+    i0 = _talk_hpf_coeffs_C1_TALK_01;
+    i1 = _talk_hpf_cq_C1_TALK_01;
+    r4 = 1;
+    call _bq_fx_convert_N;
+.tk_ramp_C1_TALK_01:
+
     r4 = dm(_talk_gain_frames_C1_TALK_01);
     r15 = 1;
     r4 = r4 - r15;
@@ -63,23 +77,22 @@ _C1_TALK_01_process:
     dm(_talk_gain_C1_TALK_01) = f1;
 .tk_go_C1_TALK_01:
 
-    /* Read talkback mic input */
+    r2 = 0x4D800000;
+    f2 = r2;
+    f1 = f1 * f2;
+    r1 = fix f1;
     r0 = dm(_buf_C1_XIN_CODEC_01);
-    /* Apply gain */
-    f1 = dm(_talk_gain_C1_TALK_01);
-    f0 = f0 * f1;
+    mrf = r0 * r1 (ssi);
+    call _mrf_rns28;
 
-    /* HPF (remove plosives) */
     r2 = dm(_talk_hpf_on_C1_TALK_01);
     r2 = pass r2;
-    if eq jump (pc, .tk_no_hpf_C1_TALK_01);
-    i0 = _talk_hpf_coeffs_C1_TALK_01;
+    if eq jump (pc, .tk_nohpf_C1_TALK_01);
+    i0 = _talk_hpf_cq_C1_TALK_01;
     i1 = _talk_hpf_state_C1_TALK_01;
-    call _biquad_mono;
-.tk_no_hpf_C1_TALK_01:
-
-    /* Route to destination bus buffers (up to 3) */
-    /* Destinations set by MCU via SPI */
+    r4 = 1;
+    call _bq_fx_cascade_N;
+.tk_nohpf_C1_TALK_01:
     dm(_buf_C1_TALK_01) = r0;
     rts;
 _C1_TALK_01_process.end:

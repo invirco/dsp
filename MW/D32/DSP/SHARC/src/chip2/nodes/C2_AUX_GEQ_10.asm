@@ -12,39 +12,30 @@
 
 /* RampProfile: EqSafe | Mode: LinearFrames | Up: 12ms (18f) Down: 12ms (18f) | Curve: Linear | Scope: CoeffSetAtomic */
 
-/* GEQ: 28-band 1/3-octave graphic EQ — dual-instance crossfade */
+/* GEQ (FIXED Q4.28, D5): 28-stage cascade, dual-instance crossfade */
 /* SPI page=1 addr=811 */
-/*
- * Dual-instance crossfade (CoeffSetAtomic scope):
- *   Two parallel 28-stage biquad cascades (A/B) with independent
- *   coefficients and state.  Architecture identical to EQ_BIQUAD.
- *   See gen_eq_biquad docstring for full description.
- */
+/* Normative model: tools/dsp/fixed_ref.py::biquad (offset form). */
 
 .section/dm seg_dmda;
 .extern _buf_C2_AUX_EQ_10;
 .global _geq_gains_C2_AUX_GEQ_10;
-.var _geq_gains_C2_AUX_GEQ_10[28];              /* per-band gain (linear, display) */
+.var _geq_gains_C2_AUX_GEQ_10[28];              /* per-band gain (display) */
 
-/* ---- Instance A ---- */
 .global _geq_coeffs_A_C2_AUX_GEQ_10;
-.var _geq_coeffs_A_C2_AUX_GEQ_10[140] = 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0;
+.var _geq_coeffs_A_C2_AUX_GEQ_10[140] = 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000;
 .global _geq_state_A_C2_AUX_GEQ_10;
-.var _geq_state_A_C2_AUX_GEQ_10[56];
-
-/* ---- Instance B ---- */
+.var _geq_state_A_C2_AUX_GEQ_10[168];
 .global _geq_coeffs_B_C2_AUX_GEQ_10;
-.var _geq_coeffs_B_C2_AUX_GEQ_10[140] = 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0;
+.var _geq_coeffs_B_C2_AUX_GEQ_10[140] = 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000;
 .global _geq_state_B_C2_AUX_GEQ_10;
-.var _geq_state_B_C2_AUX_GEQ_10[56];
+.var _geq_state_B_C2_AUX_GEQ_10[168];
 
-/* ---- SPI staging buffer ---- */
+/* SPI staging (FLOAT RBJ words — wire format unchanged) */
 .global _geq_coeffs_next_C2_AUX_GEQ_10;
-.var _geq_coeffs_next_C2_AUX_GEQ_10[140] = 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0;
+.var _geq_coeffs_next_C2_AUX_GEQ_10[140];
 .global _geq_swap_pending_C2_AUX_GEQ_10;
 .var _geq_swap_pending_C2_AUX_GEQ_10 = 0;
 
-/* ---- Crossfade control ---- */
 .global _geq_active_C2_AUX_GEQ_10;
 .var _geq_active_C2_AUX_GEQ_10 = 0;
 .global _geq_xfade_alpha_C2_AUX_GEQ_10;
@@ -52,156 +43,127 @@
 .global _geq_xfade_step_C2_AUX_GEQ_10;
 .var _geq_xfade_step_C2_AUX_GEQ_10 = 0.0;
 
+
 .global _buf_C2_AUX_GEQ_10;
 .var _buf_C2_AUX_GEQ_10;
 
 .section/pm seg_pmco;
-.extern _biquad_cascade_N;
+.extern _bq_fx_cascade_N;
+.extern _bq_fx_convert_N;
 .global _C2_AUX_GEQ_10_process;
 _C2_AUX_GEQ_10_process:
 
-    /* ── Check for new coefficients ── */
     r4 = dm(_geq_swap_pending_C2_AUX_GEQ_10);
     r4 = pass r4;
     if ne call _geq_start_xfade_C2_AUX_GEQ_10;
 
-    /* ── Crossfade or steady-state? ── */
     r4 = dm(_geq_xfade_step_C2_AUX_GEQ_10);
     r4 = pass r4;
-    if ne jump .geq_xfade_C2_AUX_GEQ_10;
+    if ne jump (pc, .geq_xfade_C2_AUX_GEQ_10);
 
-    /* ═══ STEADY STATE ═══════════════════════════════════════ */
+    /* ===== steady state ===== */
     r0 = dm(_buf_C2_AUX_EQ_10);
     r4 = dm(_geq_active_C2_AUX_GEQ_10);
     r4 = pass r4;
-    if ne jump .geq_ss_B_C2_AUX_GEQ_10;
+    if ne jump (pc, .geq_ss_b_C2_AUX_GEQ_10);
     i0 = _geq_coeffs_A_C2_AUX_GEQ_10;
     i1 = _geq_state_A_C2_AUX_GEQ_10;
-    jump .geq_ss_run_C2_AUX_GEQ_10;
-.geq_ss_B_C2_AUX_GEQ_10:
+    jump (pc, .geq_ss_go_C2_AUX_GEQ_10);
+.geq_ss_b_C2_AUX_GEQ_10:
     i0 = _geq_coeffs_B_C2_AUX_GEQ_10;
     i1 = _geq_state_B_C2_AUX_GEQ_10;
-.geq_ss_run_C2_AUX_GEQ_10:
+.geq_ss_go_C2_AUX_GEQ_10:
     r4 = 28;
-    call _biquad_cascade_N;
+    call _bq_fx_cascade_N;
+
     dm(_buf_C2_AUX_GEQ_10) = r0;
     rts;
 
-    /* ═══ CROSSFADE ═════════════════════════════════════════ */
+    /* ===== crossfade: run both, blend fixed ===== */
 .geq_xfade_C2_AUX_GEQ_10:
     r0 = dm(_buf_C2_AUX_EQ_10);
-    f15 = f0;                            /* save input */
-
-    /* ── Active (old) instance ── */
-    r4 = dm(_geq_active_C2_AUX_GEQ_10);
-    r4 = pass r4;
-    if ne jump .geq_xf_actB_C2_AUX_GEQ_10;
+    r13 = r0;                     /* input (r13-r15 preserved by lib) */
     i0 = _geq_coeffs_A_C2_AUX_GEQ_10;
     i1 = _geq_state_A_C2_AUX_GEQ_10;
-    jump .geq_xf_act_run_C2_AUX_GEQ_10;
-.geq_xf_actB_C2_AUX_GEQ_10:
+    r4 = 28;
+    call _bq_fx_cascade_N;
+    r14 = r0;                     /* ya */
+    r0 = r13;
     i0 = _geq_coeffs_B_C2_AUX_GEQ_10;
     i1 = _geq_state_B_C2_AUX_GEQ_10;
-.geq_xf_act_run_C2_AUX_GEQ_10:
     r4 = 28;
-    call _biquad_cascade_N;
-    f13 = f0;                            /* old output */
-
-    /* ── Inactive (new) instance ── */
-    f0 = f15;
-    r4 = dm(_geq_active_C2_AUX_GEQ_10);
-    r4 = pass r4;
-    if eq jump .geq_xf_inB_C2_AUX_GEQ_10;
-    i0 = _geq_coeffs_A_C2_AUX_GEQ_10;
-    i1 = _geq_state_A_C2_AUX_GEQ_10;
-    jump .geq_xf_in_run_C2_AUX_GEQ_10;
-.geq_xf_inB_C2_AUX_GEQ_10:
-    i0 = _geq_coeffs_B_C2_AUX_GEQ_10;
-    i1 = _geq_state_B_C2_AUX_GEQ_10;
-.geq_xf_in_run_C2_AUX_GEQ_10:
-    r4 = 28;
-    call _biquad_cascade_N;
-
-    /* ── Blend: out = (1 − α) × old + α × new ── */
-    f14 = dm(_geq_xfade_alpha_C2_AUX_GEQ_10);
-    r15 = 0x3F800000;  /* 1.0 IEEE 754 */
-    f15 = f15 - f14;
-    f13 = f13 * f15;
-    f0 = f0 * f14;
-    f0 = f0 + f13;
-
-    /* ── Advance α ── */
-    f14 = dm(_geq_xfade_alpha_C2_AUX_GEQ_10);
-    f15 = dm(_geq_xfade_step_C2_AUX_GEQ_10);
-    f14 = f14 + f15;
-    dm(_geq_xfade_alpha_C2_AUX_GEQ_10) = f14;
-    r15 = 0x3F800000;  /* 1.0 IEEE 754 */
-    comp(f14, f15);
-    if ge call _geq_xfade_done_C2_AUX_GEQ_10;
-
-    dm(_buf_C2_AUX_GEQ_10) = f0;
-    rts;
-
-/* ── Start crossfade: load dormant instance ── */
-_geq_start_xfade_C2_AUX_GEQ_10:
-    r4 = 0;
-    dm(_geq_swap_pending_C2_AUX_GEQ_10) = r4;
+    call _bq_fx_cascade_N;        /* r0 = yb */
 
     r4 = dm(_geq_active_C2_AUX_GEQ_10);
     r4 = pass r4;
-    if ne jump .geq_sxf_toA_C2_AUX_GEQ_10;
+    if eq jump (pc, .geq_bl_C2_AUX_GEQ_10);
+    r5 = r14;                     /* active B: new is A */
+    r14 = r0;
+    r0 = r5;
+.geq_bl_C2_AUX_GEQ_10:
+    /* alpha_q31 = fix(alpha * 2^31); blend in MRF */
+    f4 = dm(_geq_xfade_alpha_C2_AUX_GEQ_10);
+    r5 = 0x4F000000;               /* 2^31 as float */
+    f5 = r5;
+    f4 = f4 * f5;
+    r4 = fix f4;
+    r5 = r0 - r14;                 /* new - old */
+    mrf = r5 * r4 (ssi);
+    r5 = 0x40000000;               /* 2^30 rounding half */
+    r12 = 1;
+    mrf = mrf + r5 * r12 (ssi);
+    r5 = mr0f;
+    r12 = mr1f;
+    r5 = lshift r5 by -31;
+    r12 = lshift r12 by 1;
+    r5 = r5 or r12;
+    r0 = r14 + r5;                 /* blended output */
 
-    /* Active=A → dormant=B */
-    i0 = _geq_coeffs_next_C2_AUX_GEQ_10;
-    i1 = _geq_coeffs_B_C2_AUX_GEQ_10;
-    r4 = 140;
-    lcntr = r4; do .geq_cp_B_C2_AUX_GEQ_10 until lce;
-        r0 = dm(i0, 1);
-        dm(i1, 1) = r0;
-    .geq_cp_B_C2_AUX_GEQ_10:
-    i1 = _geq_state_B_C2_AUX_GEQ_10;
-    r0 = 0;
-    r4 = 56;
-    lcntr = r4; do .geq_zs_B_C2_AUX_GEQ_10 until lce;
-        dm(i1, 1) = r0;
-    .geq_zs_B_C2_AUX_GEQ_10:
-    nop;
-    jump .geq_sxf_go_C2_AUX_GEQ_10;
+    dm(_buf_C2_AUX_GEQ_10) = r0;
 
-.geq_sxf_toA_C2_AUX_GEQ_10:
-    /* Active=B → dormant=A */
-    i0 = _geq_coeffs_next_C2_AUX_GEQ_10;
-    i1 = _geq_coeffs_A_C2_AUX_GEQ_10;
-    r4 = 140;
-    lcntr = r4; do .geq_cp_A_C2_AUX_GEQ_10 until lce;
-        r0 = dm(i0, 1);
-        dm(i1, 1) = r0;
-    .geq_cp_A_C2_AUX_GEQ_10:
-    i1 = _geq_state_A_C2_AUX_GEQ_10;
-    r0 = 0;
-    r4 = 56;
-    lcntr = r4; do .geq_zs_A_C2_AUX_GEQ_10 until lce;
-        dm(i1, 1) = r0;
-    .geq_zs_A_C2_AUX_GEQ_10:
-
-.geq_sxf_go_C2_AUX_GEQ_10:
-    r0 = 0;
-    dm(_geq_xfade_alpha_C2_AUX_GEQ_10) = r0;
-    f0 = 0.001736111111111111;
-    dm(_geq_xfade_step_C2_AUX_GEQ_10) = f0;
-    rts;
-_geq_start_xfade_C2_AUX_GEQ_10.end:
-
-/* ── Crossfade complete ── */
-_geq_xfade_done_C2_AUX_GEQ_10:
+    /* advance alpha (float control) */
+    f4 = dm(_geq_xfade_alpha_C2_AUX_GEQ_10);
+    f5 = dm(_geq_xfade_step_C2_AUX_GEQ_10);
+    f4 = f4 + f5;
+    dm(_geq_xfade_alpha_C2_AUX_GEQ_10) = f4;
+    r5 = 0x3F800000;
+    f5 = r5;
+    comp(f4, f5);
+    if lt rts;
     r4 = dm(_geq_active_C2_AUX_GEQ_10);
     r5 = 1;
     r4 = r4 xor r5;
     dm(_geq_active_C2_AUX_GEQ_10) = r4;
     r4 = 0;
-    dm(_geq_xfade_alpha_C2_AUX_GEQ_10) = r4;
     dm(_geq_xfade_step_C2_AUX_GEQ_10) = r4;
+    dm(_geq_xfade_alpha_C2_AUX_GEQ_10) = r4;
     rts;
-_geq_xfade_done_C2_AUX_GEQ_10.end:
 
+    /* ===== stage new coeffs into dormant ===== */
+_geq_start_xfade_C2_AUX_GEQ_10:
+    r4 = 0;
+    dm(_geq_swap_pending_C2_AUX_GEQ_10) = r4;
+    i0 = _geq_coeffs_next_C2_AUX_GEQ_10;
+    r4 = dm(_geq_active_C2_AUX_GEQ_10);
+    r4 = pass r4;
+    if ne jump (pc, .geq_st_a_C2_AUX_GEQ_10);
+    i1 = _geq_coeffs_B_C2_AUX_GEQ_10;
+    i2 = _geq_state_B_C2_AUX_GEQ_10;
+    jump (pc, .geq_st_go_C2_AUX_GEQ_10);
+.geq_st_a_C2_AUX_GEQ_10:
+    i1 = _geq_coeffs_A_C2_AUX_GEQ_10;
+    i2 = _geq_state_A_C2_AUX_GEQ_10;
+.geq_st_go_C2_AUX_GEQ_10:
+    r4 = 28;
+    call _bq_fx_convert_N;
+    r4 = 0;
+    r5 = 168;
+    lcntr = r5, do .geq_zst_C2_AUX_GEQ_10 until lce;
+.geq_zst_C2_AUX_GEQ_10:
+        dm(i2, 1) = r4;
+    f0 = 0.001736111111111111;
+    dm(_geq_xfade_step_C2_AUX_GEQ_10) = f0;
+    r4 = 0;
+    dm(_geq_xfade_alpha_C2_AUX_GEQ_10) = r4;
+    rts;
 _C2_AUX_GEQ_10_process.end:

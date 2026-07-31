@@ -12,13 +12,13 @@
 
 /* RampProfile: GainFast | Mode: Slew | Up: 3ms (4f) Down: 8ms (12f) | Curve: Exp | Scope: Scalar */
 
-/* MONITOR: Source select + level control */
+/* MONITOR (FIXED Q4.28, D5) */
 /* SPI page=1 addr=1749 */
 
 .section/dm seg_dmda;
 .extern _buf_C2_MAIN_FDR;
 .global _mon_source_C2_MON;
-.var _mon_source_C2_MON = 0;       /* 0=Main, 1-12=Aux, 13=Cue */
+.var _mon_source_C2_MON = 0;
 .global _mon_level_l_C2_MON;
 .var _mon_level_l_C2_MON = 1.0;
 .global _mon_level_r_C2_MON;
@@ -35,9 +35,9 @@
 .var _buf_C2_MON;
 
 .section/pm seg_pmco;
+.extern _mrf_rns28;
 .global _C2_MON_process;
 _C2_MON_process:
-    /* Ramp level */
     r4 = dm(_mon_level_frames_C2_MON);
     r15 = 1;
     r4 = r4 - r15;
@@ -47,20 +47,18 @@ _C2_MON_process:
     f2 = dm(_mon_level_step_C2_MON);
     f1 = f1 + f2;
     dm(_mon_level_l_C2_MON) = f1;
-    jump (pc, .mon_sel_C2_MON);
+    jump (pc, .mon_go_C2_MON);
 .no_monramp_C2_MON:
     f1 = dm(_mon_level_l_target_C2_MON);
     dm(_mon_level_l_C2_MON) = f1;
-.mon_sel_C2_MON:
-
-    /* Source select: read from appropriate bus buffer */
-    /* _mon_source: 0=Main, 1+n=Aux n */
+.mon_go_C2_MON:
+    r2 = 0x4D800000;
+    f2 = r2;
+    f1 = f1 * f2;
+    r1 = fix f1;
     r0 = dm(_buf_C2_MAIN_FDR);
-
-    /* Apply L/R level */
-    f1 = dm(_mon_level_l_C2_MON);
-    f0 = f0 * f1;
-
+    mrf = r0 * r1 (ssi);
+    call _mrf_rns28;
     dm(_buf_C2_MON) = r0;
     rts;
 _C2_MON_process.end:

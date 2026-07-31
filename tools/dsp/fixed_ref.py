@@ -29,9 +29,12 @@ def sat32(v):
 
 
 def rns(acc, shift):
-    """Round-to-nearest (half away from zero) then shift; exact ints."""
-    half = 1 << (shift - 1)
-    return (acc + half) >> shift if acc >= 0 else -((-acc + half) >> shift)
+    """Round-to-nearest, half toward +inf: (acc + half) >> shift with
+    arithmetic (floor) shift. NORMATIVE (2026-07-31): this is the
+    hardware-natural form — one add and one arithmetic shift on both
+    SHARC and FPGA — and is what the asm kernels implement. Python's
+    >> on negative ints is floor, matching exactly."""
+    return (acc + (1 << (shift - 1))) >> shift
 
 
 def to_q(x, frac=QS):
@@ -184,13 +187,24 @@ def exp2_q(l_q625):
 # extra constant multiplies: thresholds/ratios convert at load time.
 # ---------------------------------------------------------------------------
 
-def comp_gain(x_abs, thr_log2_q625, slope_q31):
-    """slope = (1 - 1/ratio) in Q0.31; returns linear gain Q4.28."""
+def comp_gain(x_abs, thr_log2_q625, slope_q31, half_knee_q625=0,
+              k2_q625=0):
+    """Gain computer with optional soft knee (matches the float lib).
+
+    slope = (1 - 1/ratio) in Q0.31; half_knee = knee/2 in log2-domain
+    Q6.25; k2 = slope/(2*knee) in Q6.25 (block-rate precomputed; both 0
+    => hard knee). Returns linear gain Q4.28.
+    """
     lvl = log2_q(x_abs)
     over = lvl - thr_log2_q625
-    if over <= 0:
+    if over <= -half_knee_q625:
         return 1 << QS
-    gr = rns(over * slope_q31, QA)          # log2-domain reduction, Q6.25
+    if half_knee_q625 and over < half_knee_q625:
+        t = over + half_knee_q625               # Q6.25
+        t2 = rns(t * t, 25)                     # Q6.25
+        gr = rns(t2 * k2_q625, 25)              # Q6.25
+        return exp2_q(-gr)
+    gr = rns(over * slope_q31, QA)              # Q6.25
     return exp2_q(-gr)
 
 
@@ -207,12 +221,16 @@ def biquad_f(x, coeffs, state):
     return y
 
 
-def comp_gain_f(x_abs, thr_db, ratio):
+def comp_gain_f(x_abs, thr_db, ratio, knee_db=0.0):
     if x_abs <= 0:
         return 1.0
     lvl = 20 * math.log10(x_abs)
     over = lvl - thr_db
-    if over <= 0:
+    slope = 1.0 - 1.0 / ratio
+    if over <= -knee_db / 2:
         return 1.0
-    gr = over * (1.0 - 1.0 / ratio)
+    if knee_db > 0 and over < knee_db / 2:
+        gr = slope * (over + knee_db / 2) ** 2 / (2 * knee_db)
+    else:
+        gr = over * slope
     return 10.0 ** (-gr / 20.0)

@@ -478,6 +478,7 @@ _scatter_chip1:
         r5 = dm(i3, 1);       /* node slot var ptr */
         i4 = r3;
         r2 = dm(i4, 0);   /* read DMA */
+        r2 = ashift r2 by -3;  /* Q1.31 -> Q4.28 */
         i4 = r5;
         dm(i4, 0) = r2;   /* write slot var */
     .scatter_chip1_lp:
@@ -496,8 +497,10 @@ _meter_scan_chip1:
     lcntr = r5; do .meter_scan_chip1_lp until lce;
         r2 = dm(i0, 1);
         i2 = r2;
-        f3 = dm(i2, 0);
-        f3 = abs f3;
+        r3 = dm(i2, 0);   /* Q4.28 sample */
+        r3 = abs r3;
+        r4 = -28;
+        f3 = float r3 by r4;  /* peaks stay FLOAT (readback contract) */
         f4 = dm(i1, m0);
         comp(f3, f4);
         if gt f4 = f3;

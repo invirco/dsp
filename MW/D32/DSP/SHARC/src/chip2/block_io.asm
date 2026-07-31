@@ -293,6 +293,16 @@ _gather_chip2:
         r5 = dm(i3, 1);       /* node slot var ptr */
         i4 = r5;
         r2 = dm(i4, 0);   /* read slot var */
+        /* Q4.28 -> Q1.31 with saturation */
+        r8 = ashift r2 by 3;
+        r9 = ashift r8 by -3;
+        comp(r9, r2);
+        if eq jump (pc, .gather_chip2_ok);
+        r8 = 0x7FFFFFFF;
+        r9 = ashift r2 by -31;
+        r8 = r8 xor r9;
+    .gather_chip2_ok:
+        r2 = r8;
         i4 = r3;
         dm(i4, 0) = r2;   /* write DMA */
     .gather_chip2_lp:
@@ -311,8 +321,10 @@ _meter_scan_chip2:
     lcntr = r5; do .meter_scan_chip2_lp until lce;
         r2 = dm(i0, 1);
         i2 = r2;
-        f3 = dm(i2, 0);
-        f3 = abs f3;
+        r3 = dm(i2, 0);   /* Q4.28 sample */
+        r3 = abs r3;
+        r4 = -28;
+        f3 = float r3 by r4;  /* peaks stay FLOAT (readback contract) */
         f4 = dm(i1, m0);
         comp(f3, f4);
         if gt f4 = f3;

@@ -14,8 +14,10 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-SRC_DIR="$SCRIPT_DIR/src"
-BUILD_DIR="$SCRIPT_DIR/build"
+# DSP_SRC_DIR/DSP_BUILD_DIR overrides support out-of-tree builds
+# (e.g. the D5 fixed-point tree during conversion).
+SRC_DIR="${DSP_SRC_DIR:-$SCRIPT_DIR/src}"
+BUILD_DIR="${DSP_BUILD_DIR:-$SCRIPT_DIR/build}"
 LDF="$SCRIPT_DIR/ADSP-21564.ldf"
 
 # Native Linux CCES tool paths

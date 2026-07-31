@@ -12,25 +12,21 @@
 
 /* RampProfile: DynSafe | Mode: LinearFrames | Up: 6ms (9f) Down: 20ms (30f) | Curve: Exp | Scope: Scalar */
 
-/* COMPRESSOR: Dynamics processing with sidechain */
+/* COMPRESSOR (FIXED Q4.28, D5) */
 /* SPI page=1 addr=1312 */
-/* thr=-20.0dB ratio=4.0 */
-/* att=5.0ms rel=100.0ms */
-/* knee=6.0dB makeup=0.0dB */
-/* type=VCA parallel=0% */
 
 .section/dm seg_dmda;
 .extern _buf_C2_SUB_EQ;
 .global _comp_on_C2_SUB_COMP;
 .var _comp_on_C2_SUB_COMP = 1;
 .global _comp_threshold_C2_SUB_COMP;
-.var _comp_threshold_C2_SUB_COMP;
+.var _comp_threshold_C2_SUB_COMP = -20.0;
 .global _comp_ratio_C2_SUB_COMP;
-.var _comp_ratio_C2_SUB_COMP;
+.var _comp_ratio_C2_SUB_COMP = 4.0;
 .global _comp_attack_C2_SUB_COMP;
-.var _comp_attack_C2_SUB_COMP;
+.var _comp_attack_C2_SUB_COMP = 0.01;
 .global _comp_release_C2_SUB_COMP;
-.var _comp_release_C2_SUB_COMP;
+.var _comp_release_C2_SUB_COMP = 0.001;
 .global _comp_makeup_C2_SUB_COMP;
 .var _comp_makeup_C2_SUB_COMP = 1.0;
 .global _comp_makeup_target_C2_SUB_COMP;
@@ -44,45 +40,53 @@
 .global _comp_parallel_C2_SUB_COMP;
 .var _comp_parallel_C2_SUB_COMP = 0.0;
 .global _comp_type_C2_SUB_COMP;
-.var _comp_type_C2_SUB_COMP = 0;       /* 0=VCA, 1=FET, 2=Tube, 3=Optical */
+.var _comp_type_C2_SUB_COMP = 0;
 .global _comp_key_src_C2_SUB_COMP;
 .var _comp_key_src_C2_SUB_COMP = 0;
 .global _comp_det_src_C2_SUB_COMP;
 .var _comp_det_src_C2_SUB_COMP = 0;
 .global _comp_eq_pos_C2_SUB_COMP;
-.var _comp_eq_pos_C2_SUB_COMP = 0;     /* 0=pre-comp, 1=post-comp */
+.var _comp_eq_pos_C2_SUB_COMP = 0;
 .global _comp_lim_mode_C2_SUB_COMP;
-.var _comp_lim_mode_C2_SUB_COMP = 0;   /* 0=comp, 1=limiter */
+.var _comp_lim_mode_C2_SUB_COMP = 0;
 .global _comp_filter_on_C2_SUB_COMP;
 .var _comp_filter_on_C2_SUB_COMP = 0;
 .global _comp_filter_coeffs_C2_SUB_COMP;
-.var _comp_filter_coeffs_C2_SUB_COMP[10]; /* HPF+LPF sidechain */
+.var _comp_filter_coeffs_C2_SUB_COMP[10];
 .global _comp_filter_state_C2_SUB_COMP;
 .var _comp_filter_state_C2_SUB_COMP[4];
 .global _comp_envelope_C2_SUB_COMP;
-.var _comp_envelope_C2_SUB_COMP = 0.0;
+.var _comp_envelope_C2_SUB_COMP = 0;        /* Q4.28 */
 .global _comp_gain_C2_SUB_COMP;
-.var _comp_gain_C2_SUB_COMP = 1.0;
+.var _comp_gain_C2_SUB_COMP = 0x10000000;   /* Q4.28 (display) */
+.global _comp_attq_C2_SUB_COMP;
+.var _comp_attq_C2_SUB_COMP = 0;
+.global _comp_relq_C2_SUB_COMP;
+.var _comp_relq_C2_SUB_COMP = 0;
+.global _comp_mkq_C2_SUB_COMP;
+.var _comp_mkq_C2_SUB_COMP = 0x10000000;
+.global _comp_parq_C2_SUB_COMP;
+.var _comp_parq_C2_SUB_COMP = 0;            /* Q0.31 */
+.global _comp_cgp_C2_SUB_COMP;
+.var _comp_cgp_C2_SUB_COMP[4];              /* thr, slope, halfk, k2 */
 .global _buf_C2_SUB_COMP;
 .var _buf_C2_SUB_COMP;
 
 .section/pm seg_pmco;
 .extern _sample_idx;
-.extern _dyn_envelope_follow;
-.extern _dyn_to_dB;
-.extern _dyn_from_dB;
-.extern _dyn_gain_compute;
+.extern _envq_fx;
+.extern _compgain_fx;
+.extern _mrf_rns28;
 .global _C2_SUB_COMP_process;
 _C2_SUB_COMP_process:
     r0 = dm(_buf_C2_SUB_EQ);
-    /* --- Bypass --- */
     r2 = dm(_comp_on_C2_SUB_COMP);
     r3 = 0;
     comp(r2, r3);
     if eq jump (pc, .comp_bypass_C2_SUB_COMP);
-    f15 = f0;                   /* save dry input for parallel blend */
+    r13 = r0;                     /* dry (r13-r15 lib-safe) */
 
-    /* --- Ramp makeup gain: once per block (sample 0 only) --- */
+    /* --- block rate: makeup ramp + param conversion --- */
     r4 = dm(_sample_idx);
     r1 = 0;
     comp(r4, r1);
@@ -96,51 +100,131 @@ _C2_SUB_COMP_process:
     f2 = dm(_comp_makeup_step_C2_SUB_COMP);
     f1 = f1 + f2;
     dm(_comp_makeup_C2_SUB_COMP) = f1;
-    jump (pc, .comp_go_C2_SUB_COMP);
+    jump (pc, .comp_cvt_C2_SUB_COMP);
 .no_mramp_C2_SUB_COMP:
     f1 = dm(_comp_makeup_target_C2_SUB_COMP);
     dm(_comp_makeup_C2_SUB_COMP) = f1;
+.comp_cvt_C2_SUB_COMP:
+    r2 = 0x4D800000;
+    f2 = r2;
+    f1 = f1 * f2;
+    r1 = fix f1;
+    dm(_comp_mkq_C2_SUB_COMP) = r1;
+    f1 = dm(_comp_parallel_C2_SUB_COMP);
+    r2 = 0x4F000000;
+    f2 = r2;
+    f1 = f1 * f2;
+    r1 = fix f1;
+    dm(_comp_parq_C2_SUB_COMP) = r1;
+    r2 = 0x4F000000;              /* 2^31 float */
+    f2 = r2;
+    f1 = dm(_comp_attack_C2_SUB_COMP);
+    f1 = f1 * f2;
+    r1 = fix f1;
+    dm(_comp_attq_C2_SUB_COMP) = r1;
+    f1 = dm(_comp_release_C2_SUB_COMP);
+    f1 = f1 * f2;
+    r1 = fix f1;
+    dm(_comp_relq_C2_SUB_COMP) = r1;
+    r2 = 0x4AAA152D;            /* dB -> Q6.25 log2 */
+    f2 = r2;
+    f1 = dm(_comp_threshold_C2_SUB_COMP);
+    f1 = f1 * f2;
+    r1 = fix f1;
+    dm(_comp_cgp_C2_SUB_COMP) = r1;    /* thr */
+    /* slope = 1 - 1/ratio */
+    f6 = dm(_comp_ratio_C2_SUB_COMP);
+    f7 = recips f6;
+    f8 = f6 * f7;
+    r10 = 0x40000000;
+    f8 = f10 - f8;
+    f7 = f7 * f8;
+    f8 = f6 * f7;
+    f8 = f10 - f8;
+    f6 = f7 * f8;
+    r2 = 0x3F800000;
+    f5 = r2;
+    f5 = f5 - f6;                 /* slope float */
+    r2 = 0x4F000000;
+    f2 = r2;
+    f1 = f5 * f2;
+    r1 = fix f1;
+    dm(_comp_cgp_C2_SUB_COMP + 1) = r1;
+    /* knee: halfk = knee_db/2 in Q6.25 log2; k2 = slope*K/(2*knee) Q6.25 */
+    f4 = dm(_comp_knee_C2_SUB_COMP);
+    r2 = 0x3DCCCCCD;              /* 0.1 dB min for soft path */
+    f3 = r2;
+    comp(f4, f3);
+    if gt jump (pc, .comp_soft_C2_SUB_COMP);
+    r1 = 0;
+    dm(_comp_cgp_C2_SUB_COMP + 2) = r1;
+    dm(_comp_cgp_C2_SUB_COMP + 3) = r1;
+    jump (pc, .comp_kdone_C2_SUB_COMP);
+.comp_soft_C2_SUB_COMP:
+    r2 = 0x4AAA152D;
+    f2 = r2;
+    f1 = f4 * f2;
+    r2 = 0x3F000000;              /* 0.5 */
+    f3 = r2;
+    f1 = f1 * f3;
+    r1 = fix f1;
+    dm(_comp_cgp_C2_SUB_COMP + 2) = r1;  /* halfk */
+    f7 = recips f4;
+    f8 = f4 * f7;
+    r10 = 0x40000000;
+    f8 = f10 - f8;
+    f7 = f7 * f8;
+    f8 = f4 * f7;
+    f8 = f10 - f8;
+    f6 = f7 * f8;
+    r2 = 0x4040A8C1;             /* K/2 */
+    f3 = r2;
+    f6 = f6 * f3;                 /* K/(2*knee_db) */
+    f6 = f6 * f5;                 /* * slope */
+    r2 = 0x4C000000;              /* 2^25 float */
+    f2 = r2;
+    f1 = f6 * f2;
+    r1 = fix f1;
+    dm(_comp_cgp_C2_SUB_COMP + 3) = r1;  /* k2 */
+.comp_kdone_C2_SUB_COMP:
 .comp_go_C2_SUB_COMP:
 
-    /* --- Sidechain detection --- */
-    f0 = abs f15;              /* rectify input for detection */
+    /* --- envelope (fixed) --- */
+    r0 = abs r13;
+    r1 = dm(_comp_envelope_C2_SUB_COMP);
+    r2 = dm(_comp_attq_C2_SUB_COMP);
+    r3 = dm(_comp_relq_C2_SUB_COMP);
+    call _envq_fx;
+    dm(_comp_envelope_C2_SUB_COMP) = r0;
 
-    /* Peak envelope follower */
-    f1 = dm(_comp_attack_C2_SUB_COMP);
-    f2 = dm(_comp_release_C2_SUB_COMP);
-    f3 = dm(_comp_envelope_C2_SUB_COMP);
-    call _dyn_envelope_follow;
-    dm(_comp_envelope_C2_SUB_COMP) = f0;
+    /* --- gain computer (log2 domain) --- */
+    i0 = _comp_cgp_C2_SUB_COMP;
+    call _compgain_fx;            /* r0 = gain Q4.28 */
+    dm(_comp_gain_C2_SUB_COMP) = r0;
 
-    /* Convert to dB */
-    call _dyn_to_dB;
+    /* wet = dry * gain * makeup */
+    r1 = r0;
+    r0 = r13;
+    mrf = r0 * r1 (ssi);
+    call _mrf_rns28;
+    r1 = dm(_comp_mkq_C2_SUB_COMP);
+    mrf = r0 * r1 (ssi);
+    call _mrf_rns28;
 
-    /* Gain computation (log domain with soft knee) */
-    f1 = dm(_comp_threshold_C2_SUB_COMP);
-    f2 = dm(_comp_ratio_C2_SUB_COMP);
-    f3 = dm(_comp_knee_C2_SUB_COMP);
-    call _dyn_gain_compute;
-    /* f0 = gain reduction in dB (negative or zero) */
-
-    /* Convert gain reduction to linear */
-    call _dyn_from_dB;
-    f14 = f0;                  /* gain_linear (safe register) */
-    dm(_comp_gain_C2_SUB_COMP) = f14;
-
-    /* Apply to signal: wet = dry * gain * makeup */
-    f0 = f15;                  /* dry input */
-    f0 = f0 * f14;            /* apply gain reduction */
-    f1 = dm(_comp_makeup_C2_SUB_COMP);
-    f0 = f0 * f1;             /* apply makeup */
-
-    /* Parallel blend: out = dry * (1-par) + wet * par */
-    f2 = dm(_comp_parallel_C2_SUB_COMP);
-    r3 = 0x3F800000;  /* 1.0 IEEE 754 */
-    f3 = f3 - f2;             /* 1 - parallel */
-    f4 = f15 * f3;            /* dry * (1-par) */
-    f0 = f0 * f2;             /* wet * par */
-    f0 = f0 + f4;             /* blended output */
-
+    /* parallel: out = dry + par*(wet - dry) — matches the float
+     * node exactly (par==0 -> dry, its default behaviour) */
+    r5 = r0 - r13;
+    r4 = dm(_comp_parq_C2_SUB_COMP);
+    mrf = r5 * r4 (ssi);
+    r1 = 0x40000000;
+    r12 = 1;
+    mrf = mrf + r1 * r12 (ssi);
+    r1 = mr0f;
+    r12 = mr1f;
+    r1 = lshift r1 by -31;
+    r12 = lshift r12 by 1;
+    r1 = r1 or r12;
+    r0 = r13 + r1;
     dm(_buf_C2_SUB_COMP) = r0;
     rts;
 .comp_bypass_C2_SUB_COMP:

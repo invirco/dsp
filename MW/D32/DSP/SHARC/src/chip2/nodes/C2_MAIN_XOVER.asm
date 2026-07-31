@@ -12,48 +12,35 @@
 
 /* RampProfile: EqSafe | Mode: LinearFrames | Up: 12ms (18f) Down: 12ms (18f) | Curve: Linear | Scope: CoeffSetAtomic */
 
-/* CROSSOVER: LP/HP split — dual-instance crossfade */
-/* SPI page=1 addr=1397 */
-/* freq=120.0Hz slope=24dB/oct */
-/*
- * Linkwitz-Riley 24dB/oct (2 biquad stages per path).
- * Dual-instance crossfade blends BOTH outputs simultaneously:
- *   buf_lp = (1−α)×lp_old + α×lp_new
- *   buf_hp = (1−α)×hp_old + α×hp_new
- *
- * SPI staging buffer layout: [LP0..LP9, HP0..HP9] = 20 words.
- */
+/* CROSSOVER (FIXED Q4.28, D5): LP/HP split, dual-instance crossfade */
+/* SPI page=1 addr=1397 freq=120.0 slope=24 */
 
 .section/dm seg_dmda;
 .extern _buf_C2_MAIN_DLY;
 
-/* ---- Instance A ---- */
 .global _xover_lp_A_C2_MAIN_XOVER;
-.var _xover_lp_A_C2_MAIN_XOVER[10] = 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0;
+.var _xover_lp_A_C2_MAIN_XOVER[10] = 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000;
 .global _xover_hp_A_C2_MAIN_XOVER;
-.var _xover_hp_A_C2_MAIN_XOVER[10] = 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0;
+.var _xover_hp_A_C2_MAIN_XOVER[10] = 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000;
 .global _xover_lp_state_A_C2_MAIN_XOVER;
-.var _xover_lp_state_A_C2_MAIN_XOVER[4];
+.var _xover_lp_state_A_C2_MAIN_XOVER[12];
 .global _xover_hp_state_A_C2_MAIN_XOVER;
-.var _xover_hp_state_A_C2_MAIN_XOVER[4];
-
-/* ---- Instance B ---- */
+.var _xover_hp_state_A_C2_MAIN_XOVER[12];
 .global _xover_lp_B_C2_MAIN_XOVER;
-.var _xover_lp_B_C2_MAIN_XOVER[10] = 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0;
+.var _xover_lp_B_C2_MAIN_XOVER[10] = 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000;
 .global _xover_hp_B_C2_MAIN_XOVER;
-.var _xover_hp_B_C2_MAIN_XOVER[10] = 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0;
+.var _xover_hp_B_C2_MAIN_XOVER[10] = 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000;
 .global _xover_lp_state_B_C2_MAIN_XOVER;
-.var _xover_lp_state_B_C2_MAIN_XOVER[4];
+.var _xover_lp_state_B_C2_MAIN_XOVER[12];
 .global _xover_hp_state_B_C2_MAIN_XOVER;
-.var _xover_hp_state_B_C2_MAIN_XOVER[4];
+.var _xover_hp_state_B_C2_MAIN_XOVER[12];
 
-/* ---- SPI staging buffer (LP[10] + HP[10]) ---- */
+/* float staging: [LP 2 stages, HP 2 stages] */
 .global _xover_coeffs_next_C2_MAIN_XOVER;
 .var _xover_coeffs_next_C2_MAIN_XOVER[20] = 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0;
 .global _xover_swap_pending_C2_MAIN_XOVER;
 .var _xover_swap_pending_C2_MAIN_XOVER = 0;
 
-/* ---- Crossfade control ---- */
 .global _xover_active_C2_MAIN_XOVER;
 .var _xover_active_C2_MAIN_XOVER = 0;
 .global _xover_xfade_alpha_C2_MAIN_XOVER;
@@ -69,243 +56,196 @@
 .var _buf_hp_C2_MAIN_XOVER;
 
 .section/pm seg_pmco;
-.extern _biquad_cascade_N;
+.extern _bq_fx_cascade_N;
+.extern _bq_fx_convert_N;
 .global _C2_MAIN_XOVER_process;
 _C2_MAIN_XOVER_process:
 
-    /* ── Check for new coefficients ── */
     r4 = dm(_xover_swap_pending_C2_MAIN_XOVER);
     r4 = pass r4;
     if ne call _xover_start_xfade_C2_MAIN_XOVER;
 
-    /* ── Mode check ── */
     r4 = dm(_xover_xfade_step_C2_MAIN_XOVER);
     r4 = pass r4;
-    if ne jump .xo_xfade_C2_MAIN_XOVER;
+    if ne jump (pc, .xo_xfade_C2_MAIN_XOVER);
 
-    /* ═══ STEADY STATE ═══════════════════════════════════════ */
+    /* ===== steady state ===== */
     r0 = dm(_buf_C2_MAIN_DLY);
-    f15 = f0;
+    r13 = r0;
     r4 = dm(_xover_active_C2_MAIN_XOVER);
     r4 = pass r4;
-    if ne jump .xo_ss_B_C2_MAIN_XOVER;
-    /* Instance A */
+    if ne jump (pc, .xo_ss_b_C2_MAIN_XOVER);
     i0 = _xover_lp_A_C2_MAIN_XOVER;
     i1 = _xover_lp_state_A_C2_MAIN_XOVER;
     r4 = 2;
-    call _biquad_cascade_N;
+    call _bq_fx_cascade_N;
     dm(_buf_lp_C2_MAIN_XOVER) = r0;
-    f0 = f15;
+    r0 = r13;
     i0 = _xover_hp_A_C2_MAIN_XOVER;
     i1 = _xover_hp_state_A_C2_MAIN_XOVER;
     r4 = 2;
-    call _biquad_cascade_N;
+    call _bq_fx_cascade_N;
     dm(_buf_hp_C2_MAIN_XOVER) = r0;
     dm(_buf_C2_MAIN_XOVER) = r0;
     rts;
-.xo_ss_B_C2_MAIN_XOVER:
+.xo_ss_b_C2_MAIN_XOVER:
     i0 = _xover_lp_B_C2_MAIN_XOVER;
     i1 = _xover_lp_state_B_C2_MAIN_XOVER;
     r4 = 2;
-    call _biquad_cascade_N;
+    call _bq_fx_cascade_N;
     dm(_buf_lp_C2_MAIN_XOVER) = r0;
-    f0 = f15;
+    r0 = r13;
     i0 = _xover_hp_B_C2_MAIN_XOVER;
     i1 = _xover_hp_state_B_C2_MAIN_XOVER;
     r4 = 2;
-    call _biquad_cascade_N;
+    call _bq_fx_cascade_N;
     dm(_buf_hp_C2_MAIN_XOVER) = r0;
     dm(_buf_C2_MAIN_XOVER) = r0;
     rts;
 
-    /* ═══ CROSSFADE: 4 biquad paths + 2 blends ═════════════ */
-    /*                                                         */
-    /*  Register plan:                                         */
-    /*    f15 = saved input   (preserved by biquad lib)        */
-    /*    f13 = old LP output (preserved by biquad lib)        */
-    /*    f14 = old HP output (preserved by biquad lib)        */
-    /*                                                         */
-    /*  Sequence:                                              */
-    /*    1. Active LP  → f13 = old_lp                         */
-    /*    2. Active HP  → f14 = old_hp                         */
-    /*    3. Inactive LP → blend LP → buf_lp                   */
-    /*    4. Inactive HP → blend HP → buf_hp                   */
+    /* ===== crossfade: 4 paths, blend LP then HP ===== */
 .xo_xfade_C2_MAIN_XOVER:
     r0 = dm(_buf_C2_MAIN_DLY);
-    f15 = f0;                            /* save input */
-
-    /* ── 1. Active LP ── */
-    r4 = dm(_xover_active_C2_MAIN_XOVER);
-    r4 = pass r4;
-    if ne jump .xo_xf_aB_lp_C2_MAIN_XOVER;
+    r13 = r0;
+    /* LP: A then B */
     i0 = _xover_lp_A_C2_MAIN_XOVER;
     i1 = _xover_lp_state_A_C2_MAIN_XOVER;
-    jump .xo_xf_a_lp_C2_MAIN_XOVER;
-.xo_xf_aB_lp_C2_MAIN_XOVER:
+    r4 = 2;
+    call _bq_fx_cascade_N;
+    r14 = r0;                     /* lp_a */
+    r0 = r13;
     i0 = _xover_lp_B_C2_MAIN_XOVER;
     i1 = _xover_lp_state_B_C2_MAIN_XOVER;
-.xo_xf_a_lp_C2_MAIN_XOVER:
     r4 = 2;
-    call _biquad_cascade_N;
-    f13 = f0;                            /* old LP */
-
-    /* ── 2. Active HP ── */
-    f0 = f15;
+    call _bq_fx_cascade_N;        /* r0 = lp_b */
     r4 = dm(_xover_active_C2_MAIN_XOVER);
     r4 = pass r4;
-    if ne jump .xo_xf_aB_hp_C2_MAIN_XOVER;
+    if eq jump (pc, .xo_bl_lp_C2_MAIN_XOVER);
+    r5 = r14;
+    r14 = r0;
+    r0 = r5;
+.xo_bl_lp_C2_MAIN_XOVER:
+    f4 = dm(_xover_xfade_alpha_C2_MAIN_XOVER);
+    r5 = 0x4F000000;
+    f5 = r5;
+    f4 = f4 * f5;
+    r4 = fix f4;
+    r5 = r0 - r14;
+    mrf = r5 * r4 (ssi);
+    r5 = 0x40000000;
+    r12 = 1;
+    mrf = mrf + r5 * r12 (ssi);
+    r5 = mr0f;
+    r12 = mr1f;
+    r5 = lshift r5 by -31;
+    r12 = lshift r12 by 1;
+    r5 = r5 or r12;
+    r0 = r14 + r5;
+    dm(_buf_lp_C2_MAIN_XOVER) = r0;
+
+    /* HP: A then B */
+    r0 = r13;
     i0 = _xover_hp_A_C2_MAIN_XOVER;
     i1 = _xover_hp_state_A_C2_MAIN_XOVER;
-    jump .xo_xf_a_hp_C2_MAIN_XOVER;
-.xo_xf_aB_hp_C2_MAIN_XOVER:
+    r4 = 2;
+    call _bq_fx_cascade_N;
+    r14 = r0;
+    r0 = r13;
     i0 = _xover_hp_B_C2_MAIN_XOVER;
     i1 = _xover_hp_state_B_C2_MAIN_XOVER;
-.xo_xf_a_hp_C2_MAIN_XOVER:
     r4 = 2;
-    call _biquad_cascade_N;
-    f14 = f0;                            /* old HP */
-
-    /* ── 3. Inactive LP + blend ── */
-    f0 = f15;
+    call _bq_fx_cascade_N;
     r4 = dm(_xover_active_C2_MAIN_XOVER);
     r4 = pass r4;
-    if eq jump .xo_xf_iB_lp_C2_MAIN_XOVER;
-    i0 = _xover_lp_A_C2_MAIN_XOVER;
-    i1 = _xover_lp_state_A_C2_MAIN_XOVER;
-    jump .xo_xf_i_lp_C2_MAIN_XOVER;
-.xo_xf_iB_lp_C2_MAIN_XOVER:
-    i0 = _xover_lp_B_C2_MAIN_XOVER;
-    i1 = _xover_lp_state_B_C2_MAIN_XOVER;
-.xo_xf_i_lp_C2_MAIN_XOVER:
-    r4 = 2;
-    call _biquad_cascade_N;
-    /* f0 = new LP; blend with f13 = old LP */
-    f12 = dm(_xover_xfade_alpha_C2_MAIN_XOVER);
-    r11 = 0x3F800000;  /* 1.0 IEEE 754 */
-    f11 = f11 - f12;
-    f13 = f13 * f11;                    /* old_lp × (1−α) */
-    f0 = f0 * f12;                      /* new_lp × α */
-    f0 = f0 + f13;
-    dm(_buf_lp_C2_MAIN_XOVER) = f0;
-
-    /* ── 4. Inactive HP + blend ── */
-    f0 = f15;                            /* reload input */
-    r4 = dm(_xover_active_C2_MAIN_XOVER);
-    r4 = pass r4;
-    if eq jump .xo_xf_iB_hp_C2_MAIN_XOVER;
-    i0 = _xover_hp_A_C2_MAIN_XOVER;
-    i1 = _xover_hp_state_A_C2_MAIN_XOVER;
-    jump .xo_xf_i_hp_C2_MAIN_XOVER;
-.xo_xf_iB_hp_C2_MAIN_XOVER:
-    i0 = _xover_hp_B_C2_MAIN_XOVER;
-    i1 = _xover_hp_state_B_C2_MAIN_XOVER;
-.xo_xf_i_hp_C2_MAIN_XOVER:
-    r4 = 2;
-    call _biquad_cascade_N;
-    /* f0 = new HP; blend with f14 = old HP */
-    f12 = dm(_xover_xfade_alpha_C2_MAIN_XOVER);
-    r11 = 0x3F800000;  /* 1.0 IEEE 754 */
-    f11 = f11 - f12;
-    f14 = f14 * f11;                    /* old_hp × (1−α) */
-    f0 = f0 * f12;                      /* new_hp × α */
-    f0 = f0 + f14;
-    dm(_buf_hp_C2_MAIN_XOVER) = f0;
+    if eq jump (pc, .xo_bl_hp_C2_MAIN_XOVER);
+    r5 = r14;
+    r14 = r0;
+    r0 = r5;
+.xo_bl_hp_C2_MAIN_XOVER:
+    f4 = dm(_xover_xfade_alpha_C2_MAIN_XOVER);
+    r5 = 0x4F000000;
+    f5 = r5;
+    f4 = f4 * f5;
+    r4 = fix f4;
+    r5 = r0 - r14;
+    mrf = r5 * r4 (ssi);
+    r5 = 0x40000000;
+    r12 = 1;
+    mrf = mrf + r5 * r12 (ssi);
+    r5 = mr0f;
+    r12 = mr1f;
+    r5 = lshift r5 by -31;
+    r12 = lshift r12 by 1;
+    r5 = r5 or r12;
+    r0 = r14 + r5;
+    dm(_buf_hp_C2_MAIN_XOVER) = r0;
     dm(_buf_C2_MAIN_XOVER) = r0;
 
-    /* ── Advance α (once per sample, after both blends) ── */
-    f14 = dm(_xover_xfade_alpha_C2_MAIN_XOVER);
-    f15 = dm(_xover_xfade_step_C2_MAIN_XOVER);
-    f14 = f14 + f15;
-    dm(_xover_xfade_alpha_C2_MAIN_XOVER) = f14;
-    r15 = 0x3F800000;  /* 1.0 IEEE 754 */
-    comp(f14, f15);
-    if ge call _xover_xfade_done_C2_MAIN_XOVER;
-
-    rts;
-
-/* ── Start crossfade: copy LP[10]+HP[10] to dormant ── */
-_xover_start_xfade_C2_MAIN_XOVER:
-    r4 = 0;
-    dm(_xover_swap_pending_C2_MAIN_XOVER) = r4;
-
-    r4 = dm(_xover_active_C2_MAIN_XOVER);
-    r4 = pass r4;
-    if ne jump .xo_sxf_toA_C2_MAIN_XOVER;
-
-    /* Active=A → dormant=B: copy coeffs, zero state */
-    i0 = _xover_coeffs_next_C2_MAIN_XOVER;
-    i1 = _xover_lp_B_C2_MAIN_XOVER;
-    r4 = 10;
-    lcntr = r4; do .xo_cp_lpB_C2_MAIN_XOVER until lce;
-        r0 = dm(i0, 1);
-        dm(i1, 1) = r0;
-    .xo_cp_lpB_C2_MAIN_XOVER:
-    /* i0 now at +10 → HP section of coeffs_next */
-    i1 = _xover_hp_B_C2_MAIN_XOVER;
-    r4 = 10;
-    lcntr = r4; do .xo_cp_hpB_C2_MAIN_XOVER until lce;
-        r0 = dm(i0, 1);
-        dm(i1, 1) = r0;
-    .xo_cp_hpB_C2_MAIN_XOVER:
-    i1 = _xover_lp_state_B_C2_MAIN_XOVER;
-    r0 = 0;
-    r4 = 4;
-    lcntr = r4; do .xo_zs_lpB_C2_MAIN_XOVER until lce;
-        dm(i1, 1) = r0;
-    .xo_zs_lpB_C2_MAIN_XOVER:
-    i1 = _xover_hp_state_B_C2_MAIN_XOVER;
-    r4 = 4;
-    lcntr = r4; do .xo_zs_hpB_C2_MAIN_XOVER until lce;
-        dm(i1, 1) = r0;
-    .xo_zs_hpB_C2_MAIN_XOVER:
-        nop;
-    jump .xo_sxf_go_C2_MAIN_XOVER;
-
-.xo_sxf_toA_C2_MAIN_XOVER:
-    /* Active=B → dormant=A */
-    i0 = _xover_coeffs_next_C2_MAIN_XOVER;
-    i1 = _xover_lp_A_C2_MAIN_XOVER;
-    r4 = 10;
-    lcntr = r4; do .xo_cp_lpA_C2_MAIN_XOVER until lce;
-        r0 = dm(i0, 1);
-        dm(i1, 1) = r0;
-    .xo_cp_lpA_C2_MAIN_XOVER:
-    i1 = _xover_hp_A_C2_MAIN_XOVER;
-    r4 = 10;
-    lcntr = r4; do .xo_cp_hpA_C2_MAIN_XOVER until lce;
-        r0 = dm(i0, 1);
-        dm(i1, 1) = r0;
-    .xo_cp_hpA_C2_MAIN_XOVER:
-    i1 = _xover_lp_state_A_C2_MAIN_XOVER;
-    r0 = 0;
-    r4 = 4;
-    lcntr = r4; do .xo_zs_lpA_C2_MAIN_XOVER until lce;
-        dm(i1, 1) = r0;
-    .xo_zs_lpA_C2_MAIN_XOVER:
-    i1 = _xover_hp_state_A_C2_MAIN_XOVER;
-    r4 = 4;
-    lcntr = r4; do .xo_zs_hpA_C2_MAIN_XOVER until lce;
-        dm(i1, 1) = r0;
-    .xo_zs_hpA_C2_MAIN_XOVER:
-
-.xo_sxf_go_C2_MAIN_XOVER:
-    r0 = 0;
-    dm(_xover_xfade_alpha_C2_MAIN_XOVER) = r0;
-    f0 = 0.001736111111111111;
-    dm(_xover_xfade_step_C2_MAIN_XOVER) = f0;
-    rts;
-_xover_start_xfade_C2_MAIN_XOVER.end:
-
-/* ── Crossfade complete ── */
-_xover_xfade_done_C2_MAIN_XOVER:
+    f4 = dm(_xover_xfade_alpha_C2_MAIN_XOVER);
+    f5 = dm(_xover_xfade_step_C2_MAIN_XOVER);
+    f4 = f4 + f5;
+    dm(_xover_xfade_alpha_C2_MAIN_XOVER) = f4;
+    r5 = 0x3F800000;
+    f5 = r5;
+    comp(f4, f5);
+    if lt rts;
     r4 = dm(_xover_active_C2_MAIN_XOVER);
     r5 = 1;
     r4 = r4 xor r5;
     dm(_xover_active_C2_MAIN_XOVER) = r4;
     r4 = 0;
-    dm(_xover_xfade_alpha_C2_MAIN_XOVER) = r4;
     dm(_xover_xfade_step_C2_MAIN_XOVER) = r4;
+    dm(_xover_xfade_alpha_C2_MAIN_XOVER) = r4;
     rts;
-_xover_xfade_done_C2_MAIN_XOVER.end:
 
+    /* ===== stage into dormant ===== */
+_xover_start_xfade_C2_MAIN_XOVER:
+    r4 = 0;
+    dm(_xover_swap_pending_C2_MAIN_XOVER) = r4;
+    i0 = _xover_coeffs_next_C2_MAIN_XOVER;
+    r4 = dm(_xover_active_C2_MAIN_XOVER);
+    r4 = pass r4;
+    if ne jump (pc, .xo_st_a_C2_MAIN_XOVER);
+    i1 = _xover_lp_B_C2_MAIN_XOVER;
+    jump (pc, .xo_st_go_C2_MAIN_XOVER);
+.xo_st_a_C2_MAIN_XOVER:
+    i1 = _xover_lp_A_C2_MAIN_XOVER;
+.xo_st_go_C2_MAIN_XOVER:
+    r4 = 2;
+    call _bq_fx_convert_N;        /* LP stages; i0 -> HP staging */
+    r4 = dm(_xover_active_C2_MAIN_XOVER);
+    r4 = pass r4;
+    if ne jump (pc, .xo_st2a_C2_MAIN_XOVER);
+    i1 = _xover_hp_B_C2_MAIN_XOVER;
+    jump (pc, .xo_st2go_C2_MAIN_XOVER);
+.xo_st2a_C2_MAIN_XOVER:
+    i1 = _xover_hp_A_C2_MAIN_XOVER;
+.xo_st2go_C2_MAIN_XOVER:
+    r4 = 2;
+    call _bq_fx_convert_N;
+    /* zero dormant states (lp 12 + hp 12) */
+    r4 = dm(_xover_active_C2_MAIN_XOVER);
+    r4 = pass r4;
+    if ne jump (pc, .xo_zsa_C2_MAIN_XOVER);
+    i2 = _xover_lp_state_B_C2_MAIN_XOVER;
+    i3 = _xover_hp_state_B_C2_MAIN_XOVER;
+    jump (pc, .xo_zsgo_C2_MAIN_XOVER);
+.xo_zsa_C2_MAIN_XOVER:
+    i2 = _xover_lp_state_A_C2_MAIN_XOVER;
+    i3 = _xover_hp_state_A_C2_MAIN_XOVER;
+.xo_zsgo_C2_MAIN_XOVER:
+    r4 = 0;
+    r5 = 12;
+    lcntr = r5, do .xo_zst1_C2_MAIN_XOVER until lce;
+.xo_zst1_C2_MAIN_XOVER:
+        dm(i2, 1) = r4;
+    r5 = 12;
+    lcntr = r5, do .xo_zst2_C2_MAIN_XOVER until lce;
+.xo_zst2_C2_MAIN_XOVER:
+        dm(i3, 1) = r4;
+    f0 = 0.001736111111111111;
+    dm(_xover_xfade_step_C2_MAIN_XOVER) = f0;
+    r4 = 0;
+    dm(_xover_xfade_alpha_C2_MAIN_XOVER) = r4;
+    rts;
 _C2_MAIN_XOVER_process.end:

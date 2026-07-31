@@ -12,10 +12,9 @@
 
 /* RampProfile: GainFast | Mode: Slew | Up: 3ms (4f) Down: 8ms (12f) | Curve: Exp | Scope: Scalar */
 
-/* ROUTING: Fan-out to bus pre-sums (scatter accumulation) */
+/* ROUTING (FIXED Q4.28, D5): fan-out with exact 64-bit accumulation */
 /* SPI page=1 addr=948 */
-/* Routes channel signal to Main L/R, Sub, Grp×4, Aux×12, FX×6 */
-/* Aux/Fx pickoff: 0=PreEQ, 1=PostEQ, 2=PreFdr, 3=PostFdr(default) */
+/* Send ramps: float control at block rate + Q4.28 shadows. */
 
 .section/dm seg_dmda;
 .extern _buf_C1_FDR_07;
@@ -34,15 +33,17 @@
 .global _rtg_aux_on_C1_RTG_07;
 .var _rtg_aux_on_C1_RTG_07[12];
 .global _rtg_aux_send_C1_RTG_07;
-.var _rtg_aux_send_C1_RTG_07[12];      /* per-aux send level (linear) */
+.var _rtg_aux_send_C1_RTG_07[12];
 .global _rtg_aux_send_target_C1_RTG_07;
-.var _rtg_aux_send_target_C1_RTG_07[12]; /* ramp targets */
+.var _rtg_aux_send_target_C1_RTG_07[12];
 .global _rtg_aux_send_step_C1_RTG_07;
-.var _rtg_aux_send_step_C1_RTG_07[12];   /* ramp steps */
+.var _rtg_aux_send_step_C1_RTG_07[12];
 .global _rtg_aux_send_frames_C1_RTG_07;
-.var _rtg_aux_send_frames_C1_RTG_07[12];  /* ramp frame counters */
+.var _rtg_aux_send_frames_C1_RTG_07[12];
 .global _rtg_aux_pick_C1_RTG_07;
-.var _rtg_aux_pick_C1_RTG_07[12] = 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3; /* 0=PreEQ 1=PostEQ 2=PreFdr 3=PostFdr */
+.var _rtg_aux_pick_C1_RTG_07[12] = 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3;
+.global _rtg_aux_sq_C1_RTG_07;
+.var _rtg_aux_sq_C1_RTG_07[12];               /* Q4.28 shadows */
 .global _rtg_fx_on_C1_RTG_07;
 .var _rtg_fx_on_C1_RTG_07[6];
 .global _rtg_fx_send_C1_RTG_07;
@@ -54,204 +55,230 @@
 .global _rtg_fx_send_frames_C1_RTG_07;
 .var _rtg_fx_send_frames_C1_RTG_07[6];
 .global _rtg_fx_pick_C1_RTG_07;
-.var _rtg_fx_pick_C1_RTG_07[6] = 3, 3, 3, 3, 3, 3; /* 0=PreEQ 1=PostEQ 2=PreFdr 3=PostFdr */
+.var _rtg_fx_pick_C1_RTG_07[6] = 3, 3, 3, 3, 3, 3;
+.global _rtg_fx_sq_C1_RTG_07;
+.var _rtg_fx_sq_C1_RTG_07[6];
 .global _buf_C1_RTG_07;
 .var _buf_C1_RTG_07;
 
 .section/pm seg_pmco;
+.extern _sample_idx;
 .extern _bus_acc_main_l; .extern _bus_acc_main_r;
 .extern _bus_acc_sub;
 .extern _bus_acc_grp_ptrs;
 .extern _bus_acc_aux_ptrs;
 .extern _bus_acc_fx_ptrs;
+.extern _acc64_mac;
 .global _C1_RTG_07_process;
 _C1_RTG_07_process:
 
-    /* ===== Aux send ramp updates (12 iterations) ===== */
-    i0 = _rtg_aux_send_C1_RTG_07;
-    i1 = _rtg_aux_send_step_C1_RTG_07;
-    i2 = _rtg_aux_send_frames_C1_RTG_07;
+    /* ===== block-rate: send ramps + shadows ===== */
+    r4 = dm(_sample_idx);
+    r1 = 0;
+    comp(r4, r1);
+    if ne jump (pc, .rtg_acc_C1_RTG_07);
+    i4 = _rtg_aux_send_C1_RTG_07;
+    i5 = _rtg_aux_send_step_C1_RTG_07;
+    i6 = _rtg_aux_send_frames_C1_RTG_07;
     i3 = _rtg_aux_send_target_C1_RTG_07;
+    i2 = _rtg_aux_sq_C1_RTG_07;
     r5 = 12;
-    lcntr = r5; do .aux_ramp_loop_C1_RTG_07 until lce;
-        r4 = dm(i2, 0);
-        r15 = 1;
-        r4 = r4 - r15;
-        if le jump (pc, .aux_snap_C1_RTG_07);
-        dm(i2, 1) = r4;
-        f1 = dm(i0, 0); f2 = dm(i1, 1);
+    lcntr = r5, do .auxrmp_C1_RTG_07 until lce;
+        r4 = dm(i6, 0);
+        r6 = 32;
+        comp(r4, r6);
+        if lt r6 = r4;                /* n = min(frames, 32) */
+        r4 = r4 - r6;
+        dm(i6, 1) = r4;
+        r4 = pass r6;
+        if eq jump (pc, .auxsnap_C1_RTG_07);
+        f1 = dm(i4, 0);
+        f2 = dm(i5, 0);
+        f3 = float r6;
+        f2 = f2 * f3;                 /* step * n */
         f1 = f1 + f2;
-        dm(i0, 1) = f1;
-        jump (pc, .aux_next_C1_RTG_07);
-    .aux_snap_C1_RTG_07:
-        f1 = dm(i3, 1);
-        dm(i0, 1) = f1;
-        modify(i1, 1); modify(i2, 1);
-    .aux_next_C1_RTG_07:
-        nop;                /* ea2019: pad before loop end */
-    .aux_ramp_loop_C1_RTG_07:
+        dm(i4, 0) = f1;
+        jump (pc, .auxcvt_C1_RTG_07);
+    .auxsnap_C1_RTG_07:
+        f1 = dm(i3, 0);               /* snap to target */
+        dm(i4, 0) = f1;
+    .auxcvt_C1_RTG_07:
+        r4 = 0x4D800000;              /* 2^28 float */
+        f2 = r4;
+        f1 = f1 * f2;
+        r4 = fix f1;
+        dm(i2, 1) = r4;               /* Q4.28 shadow */
+        modify(i4, 1);
+        modify(i5, 1);
+        modify(i3, 1);
+    .auxrmp_C1_RTG_07:
+        nop;
 
-    /* ===== FX send ramp updates (6 iterations) ===== */
-    i0 = _rtg_fx_send_C1_RTG_07;
-    i1 = _rtg_fx_send_step_C1_RTG_07;
-    i2 = _rtg_fx_send_frames_C1_RTG_07;
+    i4 = _rtg_fx_send_C1_RTG_07;
+    i5 = _rtg_fx_send_step_C1_RTG_07;
+    i6 = _rtg_fx_send_frames_C1_RTG_07;
     i3 = _rtg_fx_send_target_C1_RTG_07;
+    i2 = _rtg_fx_sq_C1_RTG_07;
     r5 = 6;
-    lcntr = r5; do .fx_ramp_loop_C1_RTG_07 until lce;
-        r4 = dm(i2, 0);
-        r15 = 1;
-        r4 = r4 - r15;
-        if le jump (pc, .fx_snap_C1_RTG_07);
-        dm(i2, 1) = r4;
-        f1 = dm(i0, 0); f2 = dm(i1, 1);
+    lcntr = r5, do .fxrmp_C1_RTG_07 until lce;
+        r4 = dm(i6, 0);
+        r6 = 32;
+        comp(r4, r6);
+        if lt r6 = r4;                /* n = min(frames, 32) */
+        r4 = r4 - r6;
+        dm(i6, 1) = r4;
+        r4 = pass r6;
+        if eq jump (pc, .fxsnap_C1_RTG_07);
+        f1 = dm(i4, 0);
+        f2 = dm(i5, 0);
+        f3 = float r6;
+        f2 = f2 * f3;                 /* step * n */
         f1 = f1 + f2;
-        dm(i0, 1) = f1;
-        jump (pc, .fx_next_C1_RTG_07);
-    .fx_snap_C1_RTG_07:
-        f1 = dm(i3, 1);
-        dm(i0, 1) = f1;
-        modify(i1, 1); modify(i2, 1);
-    .fx_next_C1_RTG_07:
-        nop;                /* ea2019: pad before loop end */
-    .fx_ramp_loop_C1_RTG_07:
+        dm(i4, 0) = f1;
+        jump (pc, .fxcvt_C1_RTG_07);
+    .fxsnap_C1_RTG_07:
+        f1 = dm(i3, 0);               /* snap to target */
+        dm(i4, 0) = f1;
+    .fxcvt_C1_RTG_07:
+        r4 = 0x4D800000;              /* 2^28 float */
+        f2 = r4;
+        f1 = f1 * f2;
+        r4 = fix f1;
+        dm(i2, 1) = r4;               /* Q4.28 shadow */
+        modify(i4, 1);
+        modify(i5, 1);
+        modify(i3, 1);
+    .fxrmp_C1_RTG_07:
+        nop;
 
-    /* ===== Main L/R accumulate ===== */
+.rtg_acc_C1_RTG_07:
+
+    /* ===== Main L/R (unity, pan-split bufs) ===== */
     r2 = dm(_rtg_main_on_C1_RTG_07);
     r2 = pass r2;
-    if eq jump (pc, .rtg_no_main_C1_RTG_07);
-    f0 = dm(_bus_acc_main_l);
-    f1 = dm(_buf_L_C1_FDR_07);
-    f0 = f0 + f1;
-    dm(_bus_acc_main_l) = f0;
-    f0 = dm(_bus_acc_main_r);
-    f1 = dm(_buf_R_C1_FDR_07);
-    f0 = f0 + f1;
-    dm(_bus_acc_main_r) = f0;
-.rtg_no_main_C1_RTG_07:
+    if eq jump (pc, .rtg_nomain_C1_RTG_07);
+    r1 = 0x10000000;                  /* unity Q4.28 */
+    r0 = dm(_buf_L_C1_FDR_07);
+    i2 = _bus_acc_main_l;
+    call _acc64_mac;
+    r0 = dm(_buf_R_C1_FDR_07);
+    i2 = _bus_acc_main_r;
+    call _acc64_mac;
+.rtg_nomain_C1_RTG_07:
 
-    /* ===== Sub accumulate ===== */
+    /* ===== Sub (unity, mono) ===== */
     r2 = dm(_rtg_sub_on_C1_RTG_07);
     r2 = pass r2;
-    if eq jump (pc, .rtg_no_sub_C1_RTG_07);
-    f0 = dm(_bus_acc_sub);
-    f1 = dm(_buf_C1_FDR_07);           /* mono post-fader */
-    f0 = f0 + f1;
-    dm(_bus_acc_sub) = f0;
-.rtg_no_sub_C1_RTG_07:
+    if eq jump (pc, .rtg_nosub_C1_RTG_07);
+    r1 = 0x10000000;
+    r0 = dm(_buf_C1_FDR_07);
+    i2 = _bus_acc_sub;
+    call _acc64_mac;
+.rtg_nosub_C1_RTG_07:
 
-    /* ===== Group accumulate (4 groups, pointer array) ===== */
+    /* ===== Groups (unity, ptr pairs) ===== */
     i3 = _bus_acc_grp_ptrs;
     i5 = _rtg_grp_on_C1_RTG_07;
-    f1 = dm(_buf_C1_FDR_07);           /* mono post-fader */
     r5 = 4;
-    lcntr = r5; do .rtg_grp_loop_C1_RTG_07 until lce;
-        r2 = dm(i5, 1);               /* grp_on flag */
+    lcntr = r5, do .rtg_grp_C1_RTG_07 until lce;
+        r2 = dm(i5, 1);
+        r3 = dm(i3, 1);               /* pair base */
         r2 = pass r2;
-        if eq jump (pc, .rtg_grp_skip_C1_RTG_07);
-        r3 = dm(i3, 1);               /* pointer to bus acc */
-        i0 = r3;
-        f4 = dm(i0, 0);               /* current acc value */
-        f4 = f4 + f1;                 /* accumulate */
-        dm(i0, 0) = f4;
-        jump (pc, .rtg_grp_next_C1_RTG_07);
-    .rtg_grp_skip_C1_RTG_07:
-        modify(i3, 1);
-    .rtg_grp_next_C1_RTG_07:
-        nop;                /* ea2019: branch target cannot be at loop end */
-    .rtg_grp_loop_C1_RTG_07:
+        if eq jump (pc, .rtg_gskip_C1_RTG_07);
+        i2 = r3;
+        r0 = dm(_buf_C1_FDR_07);
+        r1 = 0x10000000;
+        call _acc64_mac;
+    .rtg_gskip_C1_RTG_07:
+        nop;
+    .rtg_grp_C1_RTG_07:
+        nop;
 
-    /* ===== Aux accumulate (12 auxes, pointer array) ===== */
-    /* Pickoff select: 0=PreEQ, 1=PostEQ, 2=PreFdr, 3=PostFdr */
+    /* ===== Aux sends (pickoff x shadow, exact MAC) ===== */
     i3 = _bus_acc_aux_ptrs;
-    i4 = _rtg_aux_send_C1_RTG_07;
+    i4 = _rtg_aux_sq_C1_RTG_07;
     i5 = _rtg_aux_on_C1_RTG_07;
     i6 = _rtg_aux_pick_C1_RTG_07;
     r5 = 12;
-    lcntr = r5; do .rtg_aux_acc_C1_RTG_07 until lce;
-        r2 = dm(i5, 1);               /* aux_on flag */
+    lcntr = r5, do .rtg_aux_C1_RTG_07 until lce;
+        r2 = dm(i5, 1);
+        r3 = dm(i3, 1);               /* pair base */
+        r1 = dm(i4, 1);               /* send shadow */
         r2 = pass r2;
-        if eq jump (pc, .rtg_aux_acc_skip_C1_RTG_07);
+        if eq jump (pc, .rtg_askip_C1_RTG_07);
         r6 = dm(i6, 1);               /* pickoff enum */
         r6 = pass r6;
-        if eq jump (pc, .rtg_aux_pick_preeq_C1_RTG_07);
+        if eq jump (pc, .ra_pk0_C1_RTG_07);
         r7 = 1;
         comp(r6, r7);
-        if eq jump (pc, .rtg_aux_pick_posteq_C1_RTG_07);
+        if eq jump (pc, .ra_pk1_C1_RTG_07);
         r7 = 2;
         comp(r6, r7);
-        if eq jump (pc, .rtg_aux_pick_prefdr_C1_RTG_07);
-        f1 = dm(_tap_post_fader_C1_FDR_07); /* default: PostFdr */
-        jump (pc, .rtg_aux_pick_done_C1_RTG_07);
-    .rtg_aux_pick_preeq_C1_RTG_07:
-        f1 = dm(_tap_post_trim_C1_GAIN_07);
-        jump (pc, .rtg_aux_pick_done_C1_RTG_07);
-    .rtg_aux_pick_posteq_C1_RTG_07:
-        f1 = dm(_tap_post_eq_C1_EQ_07);
-        jump (pc, .rtg_aux_pick_done_C1_RTG_07);
-    .rtg_aux_pick_prefdr_C1_RTG_07:
-        f1 = dm(_tap_pre_fader_C1_DLY_07);
-    .rtg_aux_pick_done_C1_RTG_07:
-        f2 = dm(i4, 1);               /* ramped send level */
-        f3 = f1 * f2;                 /* signal × send */
-        r3 = dm(i3, 1);               /* pointer to bus acc */
-        i0 = r3;
-        f4 = dm(i0, 0);               /* current acc value */
-        f4 = f4 + f3;
-        dm(i0, 0) = f4;
-        jump (pc, .rtg_aux_acc_next_C1_RTG_07);
-    .rtg_aux_acc_skip_C1_RTG_07:
-        modify(i4, 1); modify(i3, 1); modify(i6, 1);
-    .rtg_aux_acc_next_C1_RTG_07:
-        nop;                /* ea2019: branch target cannot be at loop end */
-    .rtg_aux_acc_C1_RTG_07:
+        if eq jump (pc, .ra_pk2_C1_RTG_07);
+        r0 = dm(_tap_post_fader_C1_FDR_07);
+        jump (pc, .ra_pkd_C1_RTG_07);
+    .ra_pk0_C1_RTG_07:
+        r0 = dm(_tap_post_trim_C1_GAIN_07);
+        jump (pc, .ra_pkd_C1_RTG_07);
+    .ra_pk1_C1_RTG_07:
+        r0 = dm(_tap_post_eq_C1_EQ_07);
+        jump (pc, .ra_pkd_C1_RTG_07);
+    .ra_pk2_C1_RTG_07:
+        r0 = dm(_tap_pre_fader_C1_DLY_07);
+    .ra_pkd_C1_RTG_07:
+        i2 = r3;
+        call _acc64_mac;
+        jump (pc, .rtg_anext_C1_RTG_07);
+    .rtg_askip_C1_RTG_07:
+        modify(i6, 1);
+    .rtg_anext_C1_RTG_07:
+        nop;
+    .rtg_aux_C1_RTG_07:
+        nop;
 
-    /* ===== FX send accumulate (6 FX sends, pointer array) ===== */
-    /* Pickoff select: 0=PreEQ, 1=PostEQ, 2=PreFdr, 3=PostFdr */
+    /* ===== FX sends ===== */
     i3 = _bus_acc_fx_ptrs;
-    i4 = _rtg_fx_send_C1_RTG_07;
+    i4 = _rtg_fx_sq_C1_RTG_07;
     i5 = _rtg_fx_on_C1_RTG_07;
     i6 = _rtg_fx_pick_C1_RTG_07;
     r5 = 6;
-    lcntr = r5; do .rtg_fx_acc_C1_RTG_07 until lce;
-        r2 = dm(i5, 1);               /* fx_on flag */
+    lcntr = r5, do .rtg_fx_C1_RTG_07 until lce;
+        r2 = dm(i5, 1);
+        r3 = dm(i3, 1);
+        r1 = dm(i4, 1);
         r2 = pass r2;
-        if eq jump (pc, .rtg_fx_acc_skip_C1_RTG_07);
+        if eq jump (pc, .rtg_fskip_C1_RTG_07);
         r6 = dm(i6, 1);               /* pickoff enum */
         r6 = pass r6;
-        if eq jump (pc, .rtg_fx_pick_preeq_C1_RTG_07);
+        if eq jump (pc, .rf_pk0_C1_RTG_07);
         r7 = 1;
         comp(r6, r7);
-        if eq jump (pc, .rtg_fx_pick_posteq_C1_RTG_07);
+        if eq jump (pc, .rf_pk1_C1_RTG_07);
         r7 = 2;
         comp(r6, r7);
-        if eq jump (pc, .rtg_fx_pick_prefdr_C1_RTG_07);
-        f1 = dm(_tap_post_fader_C1_FDR_07); /* default: PostFdr */
-        jump (pc, .rtg_fx_pick_done_C1_RTG_07);
-    .rtg_fx_pick_preeq_C1_RTG_07:
-        f1 = dm(_tap_post_trim_C1_GAIN_07);
-        jump (pc, .rtg_fx_pick_done_C1_RTG_07);
-    .rtg_fx_pick_posteq_C1_RTG_07:
-        f1 = dm(_tap_post_eq_C1_EQ_07);
-        jump (pc, .rtg_fx_pick_done_C1_RTG_07);
-    .rtg_fx_pick_prefdr_C1_RTG_07:
-        f1 = dm(_tap_pre_fader_C1_DLY_07);
-    .rtg_fx_pick_done_C1_RTG_07:
-        f2 = dm(i4, 1);               /* ramped send level */
-        f3 = f1 * f2;                 /* signal × send */
-        r3 = dm(i3, 1);               /* pointer to bus acc */
-        i0 = r3;
-        f4 = dm(i0, 0);
-        f4 = f4 + f3;
-        dm(i0, 0) = f4;
-        jump (pc, .rtg_fx_acc_next_C1_RTG_07);
-    .rtg_fx_acc_skip_C1_RTG_07:
-        modify(i4, 1); modify(i3, 1); modify(i6, 1);
-    .rtg_fx_acc_next_C1_RTG_07:
-        nop;                /* ea2019: branch target cannot be at loop end */
-    .rtg_fx_acc_C1_RTG_07:
+        if eq jump (pc, .rf_pk2_C1_RTG_07);
+        r0 = dm(_tap_post_fader_C1_FDR_07);
+        jump (pc, .rf_pkd_C1_RTG_07);
+    .rf_pk0_C1_RTG_07:
+        r0 = dm(_tap_post_trim_C1_GAIN_07);
+        jump (pc, .rf_pkd_C1_RTG_07);
+    .rf_pk1_C1_RTG_07:
+        r0 = dm(_tap_post_eq_C1_EQ_07);
+        jump (pc, .rf_pkd_C1_RTG_07);
+    .rf_pk2_C1_RTG_07:
+        r0 = dm(_tap_pre_fader_C1_DLY_07);
+    .rf_pkd_C1_RTG_07:
+        i2 = r3;
+        call _acc64_mac;
+        jump (pc, .rtg_fnext_C1_RTG_07);
+    .rtg_fskip_C1_RTG_07:
+        modify(i6, 1);
+    .rtg_fnext_C1_RTG_07:
+        nop;
+    .rtg_fx_C1_RTG_07:
+        nop;
 
-    /* Store routing output (pass-through for metering) */
-    f0 = dm(_buf_C1_FDR_07);
-    dm(_buf_C1_RTG_07) = f0;
+    r0 = dm(_tap_post_fader_C1_FDR_07);
+    dm(_buf_C1_RTG_07) = r0;
     rts;
 _C1_RTG_07_process.end:

@@ -12,217 +12,163 @@
 
 /* RampProfile: EqSafe | Mode: LinearFrames | Up: 12ms (18f) Down: 12ms (18f) | Curve: Linear | Scope: CoeffSetAtomic */
 
-/* EQ_BIQUAD: 4-band parametric EQ — dual-instance crossfade */
+/* EQ_BIQUAD (FIXED Q4.28, D5): 4-band, dual-instance crossfade */
 /* SPI page=1 addr=4048 */
-/*
- * Dual-instance crossfade (CoeffSetAtomic scope):
- *   Two parallel 4-stage biquad cascades (A/B) with independent
- *   coefficients and state.  Only the active instance runs in steady
- *   state.  When SPI delivers new coefficients, the dormant instance
- *   is loaded, its state zeroed, and a 576-sample linear
- *   crossfade (12.0 ms) blends old → new.
- *
- *   This eliminates coefficient-interpolation instability for large
- *   EQ frequency sweeps — each instance always holds a self-consistent
- *   coefficient set; no intermediate poles are generated.
- *
- * Register contract (biquad.asm): f13–f15 are preserved across
- * _biquad_cascade_N calls (lib clobbers f1–f12 only).
- */
+/* Normative model: tools/dsp/fixed_ref.py::biquad (offset form). */
 
 .section/dm seg_dmda;
 .extern _buf_C1_FILT_29;
 
-/* ---- Instance A: coefficients + biquad state ---- */
 .global _eq_coeffs_A_C1_EQ_29;
-.var _eq_coeffs_A_C1_EQ_29[20] = 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0;
+.var _eq_coeffs_A_C1_EQ_29[20] = 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000;
 .global _eq_state_A_C1_EQ_29;
-.var _eq_state_A_C1_EQ_29[8];
-
-/* ---- Instance B: coefficients + biquad state ---- */
+.var _eq_state_A_C1_EQ_29[24];
 .global _eq_coeffs_B_C1_EQ_29;
-.var _eq_coeffs_B_C1_EQ_29[20] = 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0;
+.var _eq_coeffs_B_C1_EQ_29[20] = 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000;
 .global _eq_state_B_C1_EQ_29;
-.var _eq_state_B_C1_EQ_29[8];
+.var _eq_state_B_C1_EQ_29[24];
 
-/* ---- SPI staging buffer (ISR writes here word-by-word) ---- */
+/* SPI staging (FLOAT RBJ words — wire format unchanged) */
 .global _eq_coeffs_next_C1_EQ_29;
 .var _eq_coeffs_next_C1_EQ_29[20];
 .global _eq_swap_pending_C1_EQ_29;
 .var _eq_swap_pending_C1_EQ_29 = 0;
 
-/* ---- Crossfade control ---- */
 .global _eq_active_C1_EQ_29;
-.var _eq_active_C1_EQ_29 = 0;            /* 0 = A active, 1 = B active */
+.var _eq_active_C1_EQ_29 = 0;            /* 0 = A active, 1 = B */
 .global _eq_xfade_alpha_C1_EQ_29;
-.var _eq_xfade_alpha_C1_EQ_29 = 0.0;     /* blend: 0.0 = all old, 1.0 = all new */
+.var _eq_xfade_alpha_C1_EQ_29 = 0.0;     /* float control */
 .global _eq_xfade_step_C1_EQ_29;
-.var _eq_xfade_step_C1_EQ_29 = 0.0;      /* per-sample α increment (0 = idle) */
+.var _eq_xfade_step_C1_EQ_29 = 0.0;
 
 .global _tap_post_eq_C1_EQ_29;
-.var _tap_post_eq_C1_EQ_29;              /* post-EQ tap */
+.var _tap_post_eq_C1_EQ_29;              /* Q4.28 post-EQ tap */
 .global _buf_C1_EQ_29;
 .var _buf_C1_EQ_29;
 
 .section/pm seg_pmco;
-.extern _biquad_cascade_N;
+.extern _bq_fx_cascade_N;
+.extern _bq_fx_convert_N;
 .global _C1_EQ_29_process;
 _C1_EQ_29_process:
 
-    /* ── 1. Check for new coefficients from SPI ──────────────── */
+    /* new coefficients staged? */
     r4 = dm(_eq_swap_pending_C1_EQ_29);
     r4 = pass r4;
     if ne call _eq_start_xfade_C1_EQ_29;
 
-    /* ── 2. Crossfade or steady-state? ───────────────────────── */
-    /*    IEEE-754 +0.0 is all-zero bits, so integer pass/zero   */
-    /*    test correctly detects the idle (no-crossfade) state.   */
+    /* crossfading? (float 0.0 is all-zero bits) */
     r4 = dm(_eq_xfade_step_C1_EQ_29);
     r4 = pass r4;
-    if ne jump .eq_xfade_C1_EQ_29;
+    if ne jump (pc, .eq_xfade_C1_EQ_29);
 
-    /* ═══ STEADY STATE: active instance only ═════════════════ */
+    /* ===== steady state: active instance only ===== */
     r0 = dm(_buf_C1_FILT_29);
     r4 = dm(_eq_active_C1_EQ_29);
     r4 = pass r4;
-    if ne jump .eq_ss_B_C1_EQ_29;
+    if ne jump (pc, .eq_ss_b_C1_EQ_29);
     i0 = _eq_coeffs_A_C1_EQ_29;
     i1 = _eq_state_A_C1_EQ_29;
-    jump .eq_ss_run_C1_EQ_29;
-.eq_ss_B_C1_EQ_29:
+    jump (pc, .eq_ss_go_C1_EQ_29);
+.eq_ss_b_C1_EQ_29:
     i0 = _eq_coeffs_B_C1_EQ_29;
     i1 = _eq_state_B_C1_EQ_29;
-.eq_ss_run_C1_EQ_29:
+.eq_ss_go_C1_EQ_29:
     r4 = 4;
-    call _biquad_cascade_N;
+    call _bq_fx_cascade_N;
     dm(_tap_post_eq_C1_EQ_29) = r0;
     dm(_buf_C1_EQ_29) = r0;
     rts;
 
-    /* ═══ CROSSFADE: both instances + linear blend ═══════════ */
+    /* ===== crossfade: run both, blend fixed ===== */
 .eq_xfade_C1_EQ_29:
     r0 = dm(_buf_C1_FILT_29);
-    f15 = f0;                            /* save input (preserved) */
-
-    /* ── Run active (old) instance ── */
-    r4 = dm(_eq_active_C1_EQ_29);
-    r4 = pass r4;
-    if ne jump .eq_xf_actB_C1_EQ_29;
+    r13 = r0;                     /* input (r13-r15 preserved by lib) */
     i0 = _eq_coeffs_A_C1_EQ_29;
     i1 = _eq_state_A_C1_EQ_29;
-    jump .eq_xf_act_run_C1_EQ_29;
-.eq_xf_actB_C1_EQ_29:
+    r4 = 4;
+    call _bq_fx_cascade_N;
+    r14 = r0;                     /* ya */
+    r0 = r13;
     i0 = _eq_coeffs_B_C1_EQ_29;
     i1 = _eq_state_B_C1_EQ_29;
-.eq_xf_act_run_C1_EQ_29:
     r4 = 4;
-    call _biquad_cascade_N;
-    f13 = f0;                            /* f13 = old output (preserved) */
+    call _bq_fx_cascade_N;        /* r0 = yb */
 
-    /* ── Run inactive (new) instance ── */
-    f0 = f15;                            /* reload input */
+    /* orient: out = old + alpha*(new - old); dormant is new */
     r4 = dm(_eq_active_C1_EQ_29);
     r4 = pass r4;
-    if eq jump .eq_xf_inB_C1_EQ_29;        /* active=A → inactive=B */
-    i0 = _eq_coeffs_A_C1_EQ_29;
-    i1 = _eq_state_A_C1_EQ_29;
-    jump .eq_xf_in_run_C1_EQ_29;
-.eq_xf_inB_C1_EQ_29:
-    i0 = _eq_coeffs_B_C1_EQ_29;
-    i1 = _eq_state_B_C1_EQ_29;
-.eq_xf_in_run_C1_EQ_29:
-    r4 = 4;
-    call _biquad_cascade_N;
-    /* f0 = new output */
+    if eq jump (pc, .eq_bl_C1_EQ_29);     /* active A -> new is B (r0) */
+    r5 = r14;                      /* new = ya */
+    r14 = r0;                      /* old = yb */
+    r0 = r5;
+.eq_bl_C1_EQ_29:
+    /* alpha_q31 = fix(alpha * 2^31); blend in MRF */
+    f4 = dm(_eq_xfade_alpha_C1_EQ_29);
+    r5 = 0x4F000000;               /* 2^31 as float */
+    f5 = r5;
+    f4 = f4 * f5;
+    r4 = fix f4;
+    r5 = r0 - r14;                 /* new - old */
+    mrf = r5 * r4 (ssi);
+    r5 = 0x40000000;               /* 2^30 rounding half */
+    r12 = 1;
+    mrf = mrf + r5 * r12 (ssi);
+    r5 = mr0f;
+    r12 = mr1f;
+    r5 = lshift r5 by -31;
+    r12 = lshift r12 by 1;
+    r5 = r5 or r12;
+    r0 = r14 + r5;                 /* blended output */
+    dm(_tap_post_eq_C1_EQ_29) = r0;
+    dm(_buf_C1_EQ_29) = r0;
 
-    /* ── Blend: out = (1 − α) × old + α × new ── */
-    f14 = dm(_eq_xfade_alpha_C1_EQ_29);     /* α */
-    r15 = 0x3F800000;  /* 1.0 IEEE 754 */
-    f15 = f15 - f14;                     /* 1 − α */
-    f13 = f13 * f15;                     /* old × (1 − α) */
-    f0 = f0 * f14;                       /* new × α */
-    f0 = f0 + f13;                       /* blended output */
-
-    /* ── Advance α ── */
-    f14 = dm(_eq_xfade_alpha_C1_EQ_29);
-    f15 = dm(_eq_xfade_step_C1_EQ_29);
-    f14 = f14 + f15;                     /* α += step */
-    dm(_eq_xfade_alpha_C1_EQ_29) = f14;
-
-    /* ── Check completion ── */
-    r15 = 0x3F800000;  /* 1.0 IEEE 754 */
-    comp(f14, f15);
-    if ge call _eq_xfade_done_C1_EQ_29;
-
-    dm(_tap_post_eq_C1_EQ_29) = f0;
-    dm(_buf_C1_EQ_29) = f0;
-    rts;
-
-/* ── Start crossfade: load dormant instance with new coefficients ── */
-_eq_start_xfade_C1_EQ_29:
-    /* Clear pending flag */
-    r4 = 0;
-    dm(_eq_swap_pending_C1_EQ_29) = r4;
-
-    /* Determine dormant instance and copy coeffs_next into it */
-    r4 = dm(_eq_active_C1_EQ_29);
-    r4 = pass r4;
-    if ne jump .eq_sxf_toA_C1_EQ_29;
-
-    /* Active=A → dormant=B: copy coeffs, zero state */
-    i0 = _eq_coeffs_next_C1_EQ_29;
-    i1 = _eq_coeffs_B_C1_EQ_29;
-    r4 = 20;
-    lcntr = r4; do .eq_cp_B_C1_EQ_29 until lce;
-        r0 = dm(i0, 1);
-        dm(i1, 1) = r0;
-    .eq_cp_B_C1_EQ_29:
-    i1 = _eq_state_B_C1_EQ_29;
-    r0 = 0;                              /* 0x00000000 = float 0.0 */
-    r4 = 8;
-    lcntr = r4; do .eq_zs_B_C1_EQ_29 until lce;
-        dm(i1, 1) = r0;
-    .eq_zs_B_C1_EQ_29:
-    nop;                                 /* pipeline gap: no branch within 2 insns of loop end */
-    jump .eq_sxf_go_C1_EQ_29;
-
-.eq_sxf_toA_C1_EQ_29:
-    /* Active=B → dormant=A: copy coeffs, zero state */
-    i0 = _eq_coeffs_next_C1_EQ_29;
-    i1 = _eq_coeffs_A_C1_EQ_29;
-    r4 = 20;
-    lcntr = r4; do .eq_cp_A_C1_EQ_29 until lce;
-        r0 = dm(i0, 1);
-        dm(i1, 1) = r0;
-    .eq_cp_A_C1_EQ_29:
-    i1 = _eq_state_A_C1_EQ_29;
-    r0 = 0;
-    r4 = 8;
-    lcntr = r4; do .eq_zs_A_C1_EQ_29 until lce;
-        dm(i1, 1) = r0;
-    .eq_zs_A_C1_EQ_29:
-
-.eq_sxf_go_C1_EQ_29:
-    /* Initiate crossfade ramp: α = 0, step = 1/576 */
-    r0 = 0;
-    dm(_eq_xfade_alpha_C1_EQ_29) = r0;
-    f0 = 0.001736111111111111;
-    dm(_eq_xfade_step_C1_EQ_29) = f0;
-    rts;
-_eq_start_xfade_C1_EQ_29.end:
-
-/* ── Crossfade complete: flip active instance, go idle ── */
-_eq_xfade_done_C1_EQ_29:
-    /* Toggle active: 0→1 or 1→0 (uses r4/r5 only — f0 preserved) */
+    /* advance alpha (float control) */
+    f4 = dm(_eq_xfade_alpha_C1_EQ_29);
+    f5 = dm(_eq_xfade_step_C1_EQ_29);
+    f4 = f4 + f5;
+    dm(_eq_xfade_alpha_C1_EQ_29) = f4;
+    r5 = 0x3F800000;               /* 1.0f */
+    f5 = r5;
+    comp(f4, f5);
+    if lt rts;
+    /* crossfade done: dormant becomes active */
     r4 = dm(_eq_active_C1_EQ_29);
     r5 = 1;
     r4 = r4 xor r5;
     dm(_eq_active_C1_EQ_29) = r4;
-    /* Reset crossfade to idle */
-    r4 = 0;                              /* 0x00000000 = float 0.0 */
+    r4 = 0;
+    dm(_eq_xfade_step_C1_EQ_29) = r4;
     dm(_eq_xfade_alpha_C1_EQ_29) = r4;
-    dm(_eq_xfade_step_C1_EQ_29) = r4;       /* step=0 → idle */
     rts;
-_eq_xfade_done_C1_EQ_29.end:
 
+    /* ===== stage new coeffs into the dormant instance ===== */
+_eq_start_xfade_C1_EQ_29:
+    r4 = 0;
+    dm(_eq_swap_pending_C1_EQ_29) = r4;
+    i0 = _eq_coeffs_next_C1_EQ_29;    /* float staged */
+    r4 = dm(_eq_active_C1_EQ_29);
+    r4 = pass r4;
+    if ne jump (pc, .eq_st_a_C1_EQ_29);
+    i1 = _eq_coeffs_B_C1_EQ_29;       /* dormant = B */
+    i2 = _eq_state_B_C1_EQ_29;
+    jump (pc, .eq_st_go_C1_EQ_29);
+.eq_st_a_C1_EQ_29:
+    i1 = _eq_coeffs_A_C1_EQ_29;
+    i2 = _eq_state_A_C1_EQ_29;
+.eq_st_go_C1_EQ_29:
+    r4 = 4;
+    call _bq_fx_convert_N;
+    /* zero dormant state (24 words) */
+    r4 = 0;
+    r5 = 24;
+    lcntr = r5, do .eq_zst_C1_EQ_29 until lce;
+.eq_zst_C1_EQ_29:
+        dm(i2, 1) = r4;
+    /* start ramp: step = 1/XFADE_SAMPLES (float control) */
+    f0 = 0.001736111111111111;
+    dm(_eq_xfade_step_C1_EQ_29) = f0;
+    r4 = 0;
+    dm(_eq_xfade_alpha_C1_EQ_29) = r4;
+    rts;
 _C1_EQ_29_process.end:

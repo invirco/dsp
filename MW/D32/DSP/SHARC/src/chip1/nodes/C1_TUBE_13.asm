@@ -12,7 +12,7 @@
 
 /* RampProfile: GainFast | Mode: Slew | Up: 3ms (4f) Down: 8ms (12f) | Curve: Exp | Scope: Scalar */
 
-/* TUBE_SAT: Tube saturation waveshaper */
+/* TUBE_SAT (FIXED Q4.28, D5) */
 /* SPI page=1 addr=1804 */
 
 .section/dm seg_dmda;
@@ -31,11 +31,11 @@
 .var _buf_C1_TUBE_13;
 
 .section/pm seg_pmco;
+.extern _mrf_rns28;
 .global _C1_TUBE_13_process;
 _C1_TUBE_13_process:
     r0 = dm(_buf_C1_COMP_13);
 
-    /* Ramp saturation amount */
     r4 = dm(_tube_sat_frames_C1_TUBE_13);
     r15 = 1;
     r4 = r4 - r15;
@@ -51,19 +51,30 @@ _C1_TUBE_13_process:
     dm(_tube_sat_C1_TUBE_13) = f3;
 .tube_go_C1_TUBE_13:
 
-    /* Waveshaper: y = x * (1 + sat * (1 - x²))
-     * Provides soft clipping with even-harmonic content */
     r2 = dm(_tube_on_C1_TUBE_13);
     r2 = pass r2;
     if eq jump (pc, .tube_bypass_C1_TUBE_13);
-    f1 = f0 * f0;             /* x² */
-    r2 = 0x3F800000;  /* 1.0 IEEE 754 */
-    f1 = f2 - f1;             /* 1 - x² */
-    f1 = f3 * f1;             /* sat * (1 - x²) */
-    f1 = f1 + f2;             /* 1 + sat * (1 - x²) */
-    f0 = f0 * f1;             /* y = x * (...) */
-.tube_bypass_C1_TUBE_13:
 
+    r8 = r0;                      /* x */
+    r4 = 0x4D800000;              /* sat -> Q4.28 */
+    f4 = r4;
+    f3 = f3 * f4;
+    r9 = fix f3;                  /* sat_q */
+
+    mrf = r8 * r8 (ssi);
+    call _mrf_rns28;              /* r0 = x^2 */
+    r10 = 0x10000000;             /* 1.0 Q4.28 */
+    r10 = r10 - r0;               /* 1 - x^2 */
+    mrf = r9 * r10 (ssi);
+    call _mrf_rns28;              /* sat*(1-x^2) */
+    r10 = 0x10000000;
+    r10 = r10 + r0;               /* 1 + sat*(1-x^2) */
+    mrf = r8 * r10 (ssi);
+    call _mrf_rns28;              /* y */
+    jump (pc, .tube_out_C1_TUBE_13);
+.tube_bypass_C1_TUBE_13:
+    nop;
+.tube_out_C1_TUBE_13:
     dm(_buf_C1_TUBE_13) = r0;
     rts;
 _C1_TUBE_13_process.end:

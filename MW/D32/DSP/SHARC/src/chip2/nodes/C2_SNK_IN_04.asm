@@ -12,7 +12,7 @@
 
 /* RampProfile: GainFast | Mode: Slew | Up: 3ms (4f) Down: 8ms (12f) | Curve: Exp | Scope: Scalar */
 
-/* AUX_INPUT: USB/BT/DAW auxiliary stereo input */
+/* AUX_INPUT (FIXED Q4.28, D5) */
 /* SPI page=1 addr=1828 */
 
 .section/dm seg_dmda;
@@ -31,9 +31,9 @@
 .var _buf_C2_SNK_IN_04;
 
 .section/pm seg_pmco;
+.extern _mrf_rns28;
 .global _C2_SNK_IN_04_process;
 _C2_SNK_IN_04_process:
-    /* Ramp level */
     r4 = dm(_auxin_level_frames_C2_SNK_IN_04);
     r15 = 1;
     r4 = r4 - r15;
@@ -49,15 +49,18 @@ _C2_SNK_IN_04_process:
     dm(_auxin_level_C2_SNK_IN_04) = f1;
 .auxin_go_C2_SNK_IN_04:
 
-    /* Read USB/BT input, apply level */
+    r2 = 0x4D800000;
+    f2 = r2;
+    f1 = f1 * f2;
+    r1 = fix f1;
     r0 = dm(_buf_C2_XR_SNAKE_04);
-    f1 = dm(_auxin_level_C2_SNK_IN_04);
-    f0 = f0 * f1;
-    /* Check on/off */
+    mrf = r0 * r1 (ssi);
+    call _mrf_rns28;
+
     r2 = dm(_auxin_on_C2_SNK_IN_04);
     r3 = 0;
     comp(r2, r3);
-    if eq r0 = r3;      /* if off, mute (0 = 0.0f IEEE 754) */
+    if eq r0 = r3;
     dm(_buf_C2_SNK_IN_04) = r0;
     rts;
 _C2_SNK_IN_04_process.end:

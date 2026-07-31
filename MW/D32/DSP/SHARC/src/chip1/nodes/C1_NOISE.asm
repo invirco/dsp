@@ -93,6 +93,11 @@ _C1_NOISE_process:
     r1 = 0x3E2AB368;  /* 0.1667 IEEE 754 */
     f0 = f0 * f1;
 .noise_out_C1_NOISE:
+    /* float island boundary -> Q4.28 (D5) */
+    r1 = 0x4D800000;
+    f1 = r1;
+    f0 = f0 * f1;
+    r0 = fix f0;
     dm(_buf_C1_NOISE) = r0;
     rts;
 _C1_NOISE_process.end:
