@@ -218,10 +218,16 @@ entitled. (build.sh gained the PROC_TARGET override 2026-07-30.)
   - Repro: `PROC_TARGET=ADSP-21568 ./build.sh all` then relink with an LDF
     whose ARCHITECTURE() matches (repo LDF hardcodes ADSP-21564; the
     fit-proxy used a sed'd temp copy — do NOT commit a 21568 LDF).
-- [ ] <span style="color:#6b7280"><b>BLOCKED</b></span> Group GEQ DSP node
-  - Matrix has 48 GrpPeq rows (4 groups × 12 bands), no GEQ nodes in dsp.csv.
-  - Draft ready: guarded flag `--enable-grp-geq-alias` in MW/D32/DSP/gen_dsp.py.
-  - Resume: license → build.sh → gen_dsp.py --enable-grp-geq-alias.
+- [x] <span style="color:#16a34a"><b>DONE</b></span> (2026-07-31) Group GEQ DSP node
+  - C2_GRP_GEQ_01-04 added to the group chains (RECV→FDR→EQ→**GEQ**→GATE→
+    COMP), 28-band, addresses appended at chip-2 1840-1951 (0 changes to
+    existing cells). The 48 GrpPeq matrix cells now backfill via the
+    12-band alias (alias capped at 12 — bands 13-28 have no matrix
+    counterpart); `--enable-grp-geq-alias` is now passed by
+    regenerate-dsp-contract.sh (remove when mx26 renames GrpPeq→GrpGeq).
+  - Matrix matched cells 5405→5453; 112 canonical GrpGeq cells await the
+    mx26 rename (in the not-in-matrix INFO list with the 20 superset
+    cells).
 
 ## P3 - Contract evolution (waiting on mx26 / SOT work)
 

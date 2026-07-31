@@ -562,20 +562,24 @@ C2_AUX_LIM_12,2,LIMITER,Aux 12 Lim,1,C2_AUX_AFB_12,C2_AUX_DLY_12,1,1037,threshol
 C2_AUX_DLY_12,2,DELAY,Aux 12 Delay,1,C2_AUX_LIM_12,C2_AUX_OUT_12,1,1041,delay_ms=0.0;max_ms=250.0,InstantCtl
 C2_AUX_OUT_12,2,OUTPUT_TDM,Aux 12 Out,1,C2_AUX_DLY_12,,1,1043,sport_id=1;slot_start=3;slot_count=1;sport_slots=8;signal=DAC_12,
 C2_GRP_FDR_01,2,FADER_PAN,Grp 1 Fader,1,C2_RECV_GRP_01,C2_GRP_EQ_01,1,1044,level_db=0.0;mute=0,GainFast
-C2_GRP_EQ_01,2,EQ_BIQUAD,Grp 1 EQ,1,C2_GRP_FDR_01,C2_GRP_GATE_01,1,1048,bands=4;coeffs=default,EqSafe
-C2_GRP_GATE_01,2,GATE,Grp 1 Gate,1,C2_GRP_EQ_01,C2_GRP_COMP_01,1,1072,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0,DynSafe
+C2_GRP_EQ_01,2,EQ_BIQUAD,Grp 1 EQ,1,C2_GRP_FDR_01,C2_GRP_GEQ_01,1,1048,bands=4;coeffs=default,EqSafe
+C2_GRP_GEQ_01,2,GEQ,Grp 1 GEQ,1,C2_GRP_EQ_01,C2_GRP_GATE_01,1,1840,bands=28,EqSafe
+C2_GRP_GATE_01,2,GATE,Grp 1 Gate,1,C2_GRP_GEQ_01,C2_GRP_COMP_01,1,1072,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0,DynSafe
 C2_GRP_COMP_01,2,COMPRESSOR,Grp 1 Comp,1,C2_GRP_GATE_01,C2_MIX_MAIN_L;C2_MIX_MAIN_R,1,1088,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;type=VCA,DynSafe
 C2_GRP_FDR_02,2,FADER_PAN,Grp 2 Fader,1,C2_RECV_GRP_02,C2_GRP_EQ_02,1,1104,level_db=0.0;mute=0,GainFast
-C2_GRP_EQ_02,2,EQ_BIQUAD,Grp 2 EQ,1,C2_GRP_FDR_02,C2_GRP_GATE_02,1,1108,bands=4;coeffs=default,EqSafe
-C2_GRP_GATE_02,2,GATE,Grp 2 Gate,1,C2_GRP_EQ_02,C2_GRP_COMP_02,1,1132,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0,DynSafe
+C2_GRP_EQ_02,2,EQ_BIQUAD,Grp 2 EQ,1,C2_GRP_FDR_02,C2_GRP_GEQ_02,1,1108,bands=4;coeffs=default,EqSafe
+C2_GRP_GEQ_02,2,GEQ,Grp 2 GEQ,1,C2_GRP_EQ_02,C2_GRP_GATE_02,1,1868,bands=28,EqSafe
+C2_GRP_GATE_02,2,GATE,Grp 2 Gate,1,C2_GRP_GEQ_02,C2_GRP_COMP_02,1,1132,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0,DynSafe
 C2_GRP_COMP_02,2,COMPRESSOR,Grp 2 Comp,1,C2_GRP_GATE_02,C2_MIX_MAIN_L;C2_MIX_MAIN_R,1,1148,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;type=VCA,DynSafe
 C2_GRP_FDR_03,2,FADER_PAN,Grp 3 Fader,1,C2_RECV_GRP_03,C2_GRP_EQ_03,1,1164,level_db=0.0;mute=0,GainFast
-C2_GRP_EQ_03,2,EQ_BIQUAD,Grp 3 EQ,1,C2_GRP_FDR_03,C2_GRP_GATE_03,1,1168,bands=4;coeffs=default,EqSafe
-C2_GRP_GATE_03,2,GATE,Grp 3 Gate,1,C2_GRP_EQ_03,C2_GRP_COMP_03,1,1192,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0,DynSafe
+C2_GRP_EQ_03,2,EQ_BIQUAD,Grp 3 EQ,1,C2_GRP_FDR_03,C2_GRP_GEQ_03,1,1168,bands=4;coeffs=default,EqSafe
+C2_GRP_GEQ_03,2,GEQ,Grp 3 GEQ,1,C2_GRP_EQ_03,C2_GRP_GATE_03,1,1896,bands=28,EqSafe
+C2_GRP_GATE_03,2,GATE,Grp 3 Gate,1,C2_GRP_GEQ_03,C2_GRP_COMP_03,1,1192,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0,DynSafe
 C2_GRP_COMP_03,2,COMPRESSOR,Grp 3 Comp,1,C2_GRP_GATE_03,C2_MIX_MAIN_L;C2_MIX_MAIN_R,1,1208,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;type=VCA,DynSafe
 C2_GRP_FDR_04,2,FADER_PAN,Grp 4 Fader,1,C2_RECV_GRP_04,C2_GRP_EQ_04,1,1224,level_db=0.0;mute=0,GainFast
-C2_GRP_EQ_04,2,EQ_BIQUAD,Grp 4 EQ,1,C2_GRP_FDR_04,C2_GRP_GATE_04,1,1228,bands=4;coeffs=default,EqSafe
-C2_GRP_GATE_04,2,GATE,Grp 4 Gate,1,C2_GRP_EQ_04,C2_GRP_COMP_04,1,1252,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0,DynSafe
+C2_GRP_EQ_04,2,EQ_BIQUAD,Grp 4 EQ,1,C2_GRP_FDR_04,C2_GRP_GEQ_04,1,1228,bands=4;coeffs=default,EqSafe
+C2_GRP_GEQ_04,2,GEQ,Grp 4 GEQ,1,C2_GRP_EQ_04,C2_GRP_GATE_04,1,1924,bands=28,EqSafe
+C2_GRP_GATE_04,2,GATE,Grp 4 Gate,1,C2_GRP_GEQ_04,C2_GRP_COMP_04,1,1252,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0,DynSafe
 C2_GRP_COMP_04,2,COMPRESSOR,Grp 4 Comp,1,C2_GRP_GATE_04,C2_MIX_MAIN_L;C2_MIX_MAIN_R,1,1268,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;type=VCA,DynSafe
 C2_SUB_FDR,2,FADER_PAN,Sub Fader,1,C2_RECV_SUB,C2_SUB_EQ,1,1284,level_db=0.0;mute=0,GainFast
 C2_SUB_EQ,2,EQ_BIQUAD,Sub EQ,1,C2_SUB_FDR,C2_SUB_COMP,1,1288,bands=4;coeffs=default,EqSafe

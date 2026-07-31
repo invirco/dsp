@@ -8,7 +8,7 @@
  * indexes this table to route parameter writes directly to node
  * coefficient variables.
  *
- * 1840 entries (SPI addresses 0x0000–0x072D)
+ * 1952 entries (SPI addresses 0x0000–0x079F)
  *======================================================================*/
 
 .section/dm seg_dmda;
@@ -584,6 +584,10 @@
 .extern _geq_coeffs_next_C2_AUX_GEQ_10;
 .extern _geq_coeffs_next_C2_AUX_GEQ_11;
 .extern _geq_coeffs_next_C2_AUX_GEQ_12;
+.extern _geq_coeffs_next_C2_GRP_GEQ_01;
+.extern _geq_coeffs_next_C2_GRP_GEQ_02;
+.extern _geq_coeffs_next_C2_GRP_GEQ_03;
+.extern _geq_coeffs_next_C2_GRP_GEQ_04;
 .extern _geq_coeffs_next_C2_MAIN_GEQ;
 .extern _lim_attack_C2_AUX_LIM_01;
 .extern _lim_attack_C2_AUX_LIM_02;
@@ -693,9 +697,9 @@
 .extern _mtr_rms_C2_MTR_MAIN_04;
 .extern _xover_coeffs_next_C2_MAIN_XOVER;
 
-/* ---- Chip 2 SPI dispatch table (1840 entries) ---- */
+/* ---- Chip 2 SPI dispatch table (1952 entries) ---- */
 .global _spi_dispatch_c2;
-.var _spi_dispatch_c2[1840] =
+.var _spi_dispatch_c2[1952] =
     _fdr_level_C2_AUX_FDR_01,    /* 0x0000: C2_AUX_FDR_01 level */
     _fdr_pan_C2_AUX_FDR_01,    /* 0x0001: C2_AUX_FDR_01 pan */
     _fdr_mute_C2_AUX_FDR_01,    /* 0x0002: C2_AUX_FDR_01 mute */
@@ -2535,5 +2539,117 @@
     _auxin_level_C2_SNK_IN_08,    /* 0x072C: C2_SNK_IN_08 level */
     _auxin_on_C2_SNK_IN_08,    /* 0x072D: C2_SNK_IN_08 on */
     0,  /* 0x072E */
-    0;  /* 0x072F */
+    0,  /* 0x072F */
+    _geq_coeffs_next_C2_GRP_GEQ_01,    /* 0x0730: C2_GRP_GEQ_01 GEQ coeff[0] */
+    _geq_coeffs_next_C2_GRP_GEQ_01 + 1,    /* 0x0731: C2_GRP_GEQ_01 GEQ coeff[1] */
+    _geq_coeffs_next_C2_GRP_GEQ_01 + 2,    /* 0x0732: C2_GRP_GEQ_01 GEQ coeff[2] */
+    _geq_coeffs_next_C2_GRP_GEQ_01 + 3,    /* 0x0733: C2_GRP_GEQ_01 GEQ coeff[3] */
+    _geq_coeffs_next_C2_GRP_GEQ_01 + 4,    /* 0x0734: C2_GRP_GEQ_01 GEQ coeff[4] */
+    _geq_coeffs_next_C2_GRP_GEQ_01 + 5,    /* 0x0735: C2_GRP_GEQ_01 GEQ coeff[5] */
+    _geq_coeffs_next_C2_GRP_GEQ_01 + 6,    /* 0x0736: C2_GRP_GEQ_01 GEQ coeff[6] */
+    _geq_coeffs_next_C2_GRP_GEQ_01 + 7,    /* 0x0737: C2_GRP_GEQ_01 GEQ coeff[7] */
+    _geq_coeffs_next_C2_GRP_GEQ_01 + 8,    /* 0x0738: C2_GRP_GEQ_01 GEQ coeff[8] */
+    _geq_coeffs_next_C2_GRP_GEQ_01 + 9,    /* 0x0739: C2_GRP_GEQ_01 GEQ coeff[9] */
+    _geq_coeffs_next_C2_GRP_GEQ_01 + 10,    /* 0x073A: C2_GRP_GEQ_01 GEQ coeff[10] */
+    _geq_coeffs_next_C2_GRP_GEQ_01 + 11,    /* 0x073B: C2_GRP_GEQ_01 GEQ coeff[11] */
+    _geq_coeffs_next_C2_GRP_GEQ_01 + 12,    /* 0x073C: C2_GRP_GEQ_01 GEQ coeff[12] */
+    _geq_coeffs_next_C2_GRP_GEQ_01 + 13,    /* 0x073D: C2_GRP_GEQ_01 GEQ coeff[13] */
+    _geq_coeffs_next_C2_GRP_GEQ_01 + 14,    /* 0x073E: C2_GRP_GEQ_01 GEQ coeff[14] */
+    _geq_coeffs_next_C2_GRP_GEQ_01 + 15,    /* 0x073F: C2_GRP_GEQ_01 GEQ coeff[15] */
+    _geq_coeffs_next_C2_GRP_GEQ_01 + 16,    /* 0x0740: C2_GRP_GEQ_01 GEQ coeff[16] */
+    _geq_coeffs_next_C2_GRP_GEQ_01 + 17,    /* 0x0741: C2_GRP_GEQ_01 GEQ coeff[17] */
+    _geq_coeffs_next_C2_GRP_GEQ_01 + 18,    /* 0x0742: C2_GRP_GEQ_01 GEQ coeff[18] */
+    _geq_coeffs_next_C2_GRP_GEQ_01 + 19,    /* 0x0743: C2_GRP_GEQ_01 GEQ coeff[19] */
+    _geq_coeffs_next_C2_GRP_GEQ_01 + 20,    /* 0x0744: C2_GRP_GEQ_01 GEQ coeff[20] */
+    _geq_coeffs_next_C2_GRP_GEQ_01 + 21,    /* 0x0745: C2_GRP_GEQ_01 GEQ coeff[21] */
+    _geq_coeffs_next_C2_GRP_GEQ_01 + 22,    /* 0x0746: C2_GRP_GEQ_01 GEQ coeff[22] */
+    _geq_coeffs_next_C2_GRP_GEQ_01 + 23,    /* 0x0747: C2_GRP_GEQ_01 GEQ coeff[23] */
+    _geq_coeffs_next_C2_GRP_GEQ_01 + 24,    /* 0x0748: C2_GRP_GEQ_01 GEQ coeff[24] */
+    _geq_coeffs_next_C2_GRP_GEQ_01 + 25,    /* 0x0749: C2_GRP_GEQ_01 GEQ coeff[25] */
+    _geq_coeffs_next_C2_GRP_GEQ_01 + 26,    /* 0x074A: C2_GRP_GEQ_01 GEQ coeff[26] */
+    _geq_coeffs_next_C2_GRP_GEQ_01 + 27,    /* 0x074B: C2_GRP_GEQ_01 GEQ coeff[27] */
+    _geq_coeffs_next_C2_GRP_GEQ_02,    /* 0x074C: C2_GRP_GEQ_02 GEQ coeff[0] */
+    _geq_coeffs_next_C2_GRP_GEQ_02 + 1,    /* 0x074D: C2_GRP_GEQ_02 GEQ coeff[1] */
+    _geq_coeffs_next_C2_GRP_GEQ_02 + 2,    /* 0x074E: C2_GRP_GEQ_02 GEQ coeff[2] */
+    _geq_coeffs_next_C2_GRP_GEQ_02 + 3,    /* 0x074F: C2_GRP_GEQ_02 GEQ coeff[3] */
+    _geq_coeffs_next_C2_GRP_GEQ_02 + 4,    /* 0x0750: C2_GRP_GEQ_02 GEQ coeff[4] */
+    _geq_coeffs_next_C2_GRP_GEQ_02 + 5,    /* 0x0751: C2_GRP_GEQ_02 GEQ coeff[5] */
+    _geq_coeffs_next_C2_GRP_GEQ_02 + 6,    /* 0x0752: C2_GRP_GEQ_02 GEQ coeff[6] */
+    _geq_coeffs_next_C2_GRP_GEQ_02 + 7,    /* 0x0753: C2_GRP_GEQ_02 GEQ coeff[7] */
+    _geq_coeffs_next_C2_GRP_GEQ_02 + 8,    /* 0x0754: C2_GRP_GEQ_02 GEQ coeff[8] */
+    _geq_coeffs_next_C2_GRP_GEQ_02 + 9,    /* 0x0755: C2_GRP_GEQ_02 GEQ coeff[9] */
+    _geq_coeffs_next_C2_GRP_GEQ_02 + 10,    /* 0x0756: C2_GRP_GEQ_02 GEQ coeff[10] */
+    _geq_coeffs_next_C2_GRP_GEQ_02 + 11,    /* 0x0757: C2_GRP_GEQ_02 GEQ coeff[11] */
+    _geq_coeffs_next_C2_GRP_GEQ_02 + 12,    /* 0x0758: C2_GRP_GEQ_02 GEQ coeff[12] */
+    _geq_coeffs_next_C2_GRP_GEQ_02 + 13,    /* 0x0759: C2_GRP_GEQ_02 GEQ coeff[13] */
+    _geq_coeffs_next_C2_GRP_GEQ_02 + 14,    /* 0x075A: C2_GRP_GEQ_02 GEQ coeff[14] */
+    _geq_coeffs_next_C2_GRP_GEQ_02 + 15,    /* 0x075B: C2_GRP_GEQ_02 GEQ coeff[15] */
+    _geq_coeffs_next_C2_GRP_GEQ_02 + 16,    /* 0x075C: C2_GRP_GEQ_02 GEQ coeff[16] */
+    _geq_coeffs_next_C2_GRP_GEQ_02 + 17,    /* 0x075D: C2_GRP_GEQ_02 GEQ coeff[17] */
+    _geq_coeffs_next_C2_GRP_GEQ_02 + 18,    /* 0x075E: C2_GRP_GEQ_02 GEQ coeff[18] */
+    _geq_coeffs_next_C2_GRP_GEQ_02 + 19,    /* 0x075F: C2_GRP_GEQ_02 GEQ coeff[19] */
+    _geq_coeffs_next_C2_GRP_GEQ_02 + 20,    /* 0x0760: C2_GRP_GEQ_02 GEQ coeff[20] */
+    _geq_coeffs_next_C2_GRP_GEQ_02 + 21,    /* 0x0761: C2_GRP_GEQ_02 GEQ coeff[21] */
+    _geq_coeffs_next_C2_GRP_GEQ_02 + 22,    /* 0x0762: C2_GRP_GEQ_02 GEQ coeff[22] */
+    _geq_coeffs_next_C2_GRP_GEQ_02 + 23,    /* 0x0763: C2_GRP_GEQ_02 GEQ coeff[23] */
+    _geq_coeffs_next_C2_GRP_GEQ_02 + 24,    /* 0x0764: C2_GRP_GEQ_02 GEQ coeff[24] */
+    _geq_coeffs_next_C2_GRP_GEQ_02 + 25,    /* 0x0765: C2_GRP_GEQ_02 GEQ coeff[25] */
+    _geq_coeffs_next_C2_GRP_GEQ_02 + 26,    /* 0x0766: C2_GRP_GEQ_02 GEQ coeff[26] */
+    _geq_coeffs_next_C2_GRP_GEQ_02 + 27,    /* 0x0767: C2_GRP_GEQ_02 GEQ coeff[27] */
+    _geq_coeffs_next_C2_GRP_GEQ_03,    /* 0x0768: C2_GRP_GEQ_03 GEQ coeff[0] */
+    _geq_coeffs_next_C2_GRP_GEQ_03 + 1,    /* 0x0769: C2_GRP_GEQ_03 GEQ coeff[1] */
+    _geq_coeffs_next_C2_GRP_GEQ_03 + 2,    /* 0x076A: C2_GRP_GEQ_03 GEQ coeff[2] */
+    _geq_coeffs_next_C2_GRP_GEQ_03 + 3,    /* 0x076B: C2_GRP_GEQ_03 GEQ coeff[3] */
+    _geq_coeffs_next_C2_GRP_GEQ_03 + 4,    /* 0x076C: C2_GRP_GEQ_03 GEQ coeff[4] */
+    _geq_coeffs_next_C2_GRP_GEQ_03 + 5,    /* 0x076D: C2_GRP_GEQ_03 GEQ coeff[5] */
+    _geq_coeffs_next_C2_GRP_GEQ_03 + 6,    /* 0x076E: C2_GRP_GEQ_03 GEQ coeff[6] */
+    _geq_coeffs_next_C2_GRP_GEQ_03 + 7,    /* 0x076F: C2_GRP_GEQ_03 GEQ coeff[7] */
+    _geq_coeffs_next_C2_GRP_GEQ_03 + 8,    /* 0x0770: C2_GRP_GEQ_03 GEQ coeff[8] */
+    _geq_coeffs_next_C2_GRP_GEQ_03 + 9,    /* 0x0771: C2_GRP_GEQ_03 GEQ coeff[9] */
+    _geq_coeffs_next_C2_GRP_GEQ_03 + 10,    /* 0x0772: C2_GRP_GEQ_03 GEQ coeff[10] */
+    _geq_coeffs_next_C2_GRP_GEQ_03 + 11,    /* 0x0773: C2_GRP_GEQ_03 GEQ coeff[11] */
+    _geq_coeffs_next_C2_GRP_GEQ_03 + 12,    /* 0x0774: C2_GRP_GEQ_03 GEQ coeff[12] */
+    _geq_coeffs_next_C2_GRP_GEQ_03 + 13,    /* 0x0775: C2_GRP_GEQ_03 GEQ coeff[13] */
+    _geq_coeffs_next_C2_GRP_GEQ_03 + 14,    /* 0x0776: C2_GRP_GEQ_03 GEQ coeff[14] */
+    _geq_coeffs_next_C2_GRP_GEQ_03 + 15,    /* 0x0777: C2_GRP_GEQ_03 GEQ coeff[15] */
+    _geq_coeffs_next_C2_GRP_GEQ_03 + 16,    /* 0x0778: C2_GRP_GEQ_03 GEQ coeff[16] */
+    _geq_coeffs_next_C2_GRP_GEQ_03 + 17,    /* 0x0779: C2_GRP_GEQ_03 GEQ coeff[17] */
+    _geq_coeffs_next_C2_GRP_GEQ_03 + 18,    /* 0x077A: C2_GRP_GEQ_03 GEQ coeff[18] */
+    _geq_coeffs_next_C2_GRP_GEQ_03 + 19,    /* 0x077B: C2_GRP_GEQ_03 GEQ coeff[19] */
+    _geq_coeffs_next_C2_GRP_GEQ_03 + 20,    /* 0x077C: C2_GRP_GEQ_03 GEQ coeff[20] */
+    _geq_coeffs_next_C2_GRP_GEQ_03 + 21,    /* 0x077D: C2_GRP_GEQ_03 GEQ coeff[21] */
+    _geq_coeffs_next_C2_GRP_GEQ_03 + 22,    /* 0x077E: C2_GRP_GEQ_03 GEQ coeff[22] */
+    _geq_coeffs_next_C2_GRP_GEQ_03 + 23,    /* 0x077F: C2_GRP_GEQ_03 GEQ coeff[23] */
+    _geq_coeffs_next_C2_GRP_GEQ_03 + 24,    /* 0x0780: C2_GRP_GEQ_03 GEQ coeff[24] */
+    _geq_coeffs_next_C2_GRP_GEQ_03 + 25,    /* 0x0781: C2_GRP_GEQ_03 GEQ coeff[25] */
+    _geq_coeffs_next_C2_GRP_GEQ_03 + 26,    /* 0x0782: C2_GRP_GEQ_03 GEQ coeff[26] */
+    _geq_coeffs_next_C2_GRP_GEQ_03 + 27,    /* 0x0783: C2_GRP_GEQ_03 GEQ coeff[27] */
+    _geq_coeffs_next_C2_GRP_GEQ_04,    /* 0x0784: C2_GRP_GEQ_04 GEQ coeff[0] */
+    _geq_coeffs_next_C2_GRP_GEQ_04 + 1,    /* 0x0785: C2_GRP_GEQ_04 GEQ coeff[1] */
+    _geq_coeffs_next_C2_GRP_GEQ_04 + 2,    /* 0x0786: C2_GRP_GEQ_04 GEQ coeff[2] */
+    _geq_coeffs_next_C2_GRP_GEQ_04 + 3,    /* 0x0787: C2_GRP_GEQ_04 GEQ coeff[3] */
+    _geq_coeffs_next_C2_GRP_GEQ_04 + 4,    /* 0x0788: C2_GRP_GEQ_04 GEQ coeff[4] */
+    _geq_coeffs_next_C2_GRP_GEQ_04 + 5,    /* 0x0789: C2_GRP_GEQ_04 GEQ coeff[5] */
+    _geq_coeffs_next_C2_GRP_GEQ_04 + 6,    /* 0x078A: C2_GRP_GEQ_04 GEQ coeff[6] */
+    _geq_coeffs_next_C2_GRP_GEQ_04 + 7,    /* 0x078B: C2_GRP_GEQ_04 GEQ coeff[7] */
+    _geq_coeffs_next_C2_GRP_GEQ_04 + 8,    /* 0x078C: C2_GRP_GEQ_04 GEQ coeff[8] */
+    _geq_coeffs_next_C2_GRP_GEQ_04 + 9,    /* 0x078D: C2_GRP_GEQ_04 GEQ coeff[9] */
+    _geq_coeffs_next_C2_GRP_GEQ_04 + 10,    /* 0x078E: C2_GRP_GEQ_04 GEQ coeff[10] */
+    _geq_coeffs_next_C2_GRP_GEQ_04 + 11,    /* 0x078F: C2_GRP_GEQ_04 GEQ coeff[11] */
+    _geq_coeffs_next_C2_GRP_GEQ_04 + 12,    /* 0x0790: C2_GRP_GEQ_04 GEQ coeff[12] */
+    _geq_coeffs_next_C2_GRP_GEQ_04 + 13,    /* 0x0791: C2_GRP_GEQ_04 GEQ coeff[13] */
+    _geq_coeffs_next_C2_GRP_GEQ_04 + 14,    /* 0x0792: C2_GRP_GEQ_04 GEQ coeff[14] */
+    _geq_coeffs_next_C2_GRP_GEQ_04 + 15,    /* 0x0793: C2_GRP_GEQ_04 GEQ coeff[15] */
+    _geq_coeffs_next_C2_GRP_GEQ_04 + 16,    /* 0x0794: C2_GRP_GEQ_04 GEQ coeff[16] */
+    _geq_coeffs_next_C2_GRP_GEQ_04 + 17,    /* 0x0795: C2_GRP_GEQ_04 GEQ coeff[17] */
+    _geq_coeffs_next_C2_GRP_GEQ_04 + 18,    /* 0x0796: C2_GRP_GEQ_04 GEQ coeff[18] */
+    _geq_coeffs_next_C2_GRP_GEQ_04 + 19,    /* 0x0797: C2_GRP_GEQ_04 GEQ coeff[19] */
+    _geq_coeffs_next_C2_GRP_GEQ_04 + 20,    /* 0x0798: C2_GRP_GEQ_04 GEQ coeff[20] */
+    _geq_coeffs_next_C2_GRP_GEQ_04 + 21,    /* 0x0799: C2_GRP_GEQ_04 GEQ coeff[21] */
+    _geq_coeffs_next_C2_GRP_GEQ_04 + 22,    /* 0x079A: C2_GRP_GEQ_04 GEQ coeff[22] */
+    _geq_coeffs_next_C2_GRP_GEQ_04 + 23,    /* 0x079B: C2_GRP_GEQ_04 GEQ coeff[23] */
+    _geq_coeffs_next_C2_GRP_GEQ_04 + 24,    /* 0x079C: C2_GRP_GEQ_04 GEQ coeff[24] */
+    _geq_coeffs_next_C2_GRP_GEQ_04 + 25,    /* 0x079D: C2_GRP_GEQ_04 GEQ coeff[25] */
+    _geq_coeffs_next_C2_GRP_GEQ_04 + 26,    /* 0x079E: C2_GRP_GEQ_04 GEQ coeff[26] */
+    _geq_coeffs_next_C2_GRP_GEQ_04 + 27;    /* 0x079F: C2_GRP_GEQ_04 GEQ coeff[27] */
 

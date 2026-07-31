@@ -421,8 +421,11 @@ def expand_geq(node, cat, inst):
 
     # Optional bridge for staged Group GEQ migration.
     # When enabled, emit legacy GrpPeq aliases at the same addresses.
+    # The matrix currently has Grp00xPeq001-012 (12 bands); bands 13-28
+    # have no matrix counterpart, so aliasing them would only pollute the
+    # not-in-matrix report.
     if ENABLE_GRP_GEQ_ALIAS and cat == 'Grp':
-        for b in range(1, 29):
+        for b in range(1, 13):
             add_cell(cn(cat, inst, 'Peq', b), chip, pg, base + (b - 1),
                      '0=-12/127=12/[Lin]', 'EqSafe',
                      notes='compat alias to GrpGeq; remove after matrix rename')
@@ -710,7 +713,7 @@ NODE_EXPANDERS = {
 # ---------------------------------------------------------------------------
 _CHAN_TYPES = r'GAIN|FILT|EQ|GATE|COMP|TUBE|DLY|FDR|RTG'
 _AUX_TYPES  = r'FDR|EQ|GEQ|AFB|LIM|DLY'
-_GRP_TYPES  = r'FDR|EQ|GATE|COMP'
+_GRP_TYPES  = r'FDR|EQ|GEQ|GATE|COMP'
 
 _NODE_PATTERNS = [
     # Channel strip (Chip 1)

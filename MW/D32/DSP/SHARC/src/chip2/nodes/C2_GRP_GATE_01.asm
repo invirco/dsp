@@ -19,7 +19,7 @@
 /* range=60.0dB key=0 det_src=0 */
 
 .section/dm seg_dmda;
-.extern _buf_C2_GRP_EQ_01;
+.extern _buf_C2_GRP_GEQ_01;
 .global _gate_on_C2_GRP_GATE_01;
 .var _gate_on_C2_GRP_GATE_01 = 1;
 .global _gate_threshold_C2_GRP_GATE_01;
@@ -64,7 +64,7 @@
 .extern _dyn_to_dB;
 .global _C2_GRP_GATE_01_process;
 _C2_GRP_GATE_01_process:
-    r0 = dm(_buf_C2_GRP_EQ_01);
+    r0 = dm(_buf_C2_GRP_GEQ_01);
     /* --- Bypass --- */
     r2 = dm(_gate_on_C2_GRP_GATE_01);
     r3 = 0;

@@ -815,6 +815,29 @@ del rows[superset_c2_start:superset_c2_end]
 rows[last_bus_recv_idx:last_bus_recv_idx] = superset_rows
 
 # ===========================================================================
+# CHIP 2 — Group GEQ ×4 (added 2026-07-31 for the 48 GrpPeq matrix cells)
+# ===========================================================================
+# Chain becomes RECV → FDR → EQ → GEQ → GATE → COMP. SPI addresses are
+# allocated after all earlier chip-2 nodes (address stability); rows are
+# spliced in after each group's EQ so process order matches the chain.
+for g in range(1, NUM_GRP + 1):
+    gg = f'{g:02d}'
+    n_eq, n_geq, n_gate = f'C2_GRP_EQ_{gg}', f'C2_GRP_GEQ_{gg}', f'C2_GRP_GATE_{gg}'
+    p, a2 = c2_alloc.next(28)
+    add(n_geq, 2, 'GEQ', f'Grp {g} GEQ', 1, n_eq, n_gate,
+        spi_page=p, spi_addr=a2,
+        params='bands=28',
+        ramp_profile='EqSafe')
+    geq_row = rows.pop()
+    for r in rows:
+        if r['id'] == n_eq:
+            r['outputs'] = n_geq
+        elif r['id'] == n_gate:
+            r['inputs'] = n_geq
+    idx = next(i for i, r in enumerate(rows) if r['id'] == n_eq) + 1
+    rows.insert(idx, geq_row)
+
+# ===========================================================================
 # Write CSV
 # ===========================================================================
 csv_path = args.out
