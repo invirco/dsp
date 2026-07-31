@@ -79,6 +79,26 @@ consistency cost — paid forever, not once.
 4. Skip the middle grounds (block floating point, mixed per-node
    formats) — they buy little and cost a third mental model.
 
+## Option C: all-fixed everywhere (the 21564 is dual-format)
+
+Correction worth recording: the SHARC+ core is genuinely dual-format —
+32-bit fixed point runs natively at the same single-cycle throughput as
+float, with 80-bit MAC accumulators (wider than anything we'd build in
+fabric). So if the FPGA lands on fixed point, a third option exists:
+run the SHARC fixed too, sharing ONE numeric design (Q formats,
+saturation policy, wide accumulators) across both targets — the
+tightest consistency of any option, plausibly near-bit-exact, and it
+would improve the SHARC's LF biquad noise as a side effect. Because
+kernels are generated, this is a generator rewrite, not a hand-port.
+
+Sequencing recommendation: NOT now. DSP4 is ~80% written in float,
+fit-proxy verified, and un-run on hardware — reopening the numeric
+foundation before first bring-up is schedule risk for no immediate
+gain. Ship DSP4 float; when the FPGA activates AND lands on fixed,
+weigh option C then, knowing the fixed-point design work (scaling
+analysis, log/exp shaping for dynamics) is shared between targets
+rather than duplicated.
+
 One nuance worth writing down: even in the all-FP32 case, consider
 fixed-point (or FP32-with-wide-accumulator tricks) for the mix summing
 specifically — summing 128 sends in FP32 has order-dependent rounding,
