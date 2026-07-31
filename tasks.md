@@ -10,7 +10,29 @@ Status colors:
 - <span style="color:#2563eb"><b>NEXT</b></span>
 - <span style="color:#6b7280"><b>BLOCKED/DEFERRED</b></span>
 
-## Resume notes (saved 2026-07-31, evening)
+## Resume notes (final save 2026-07-31 — 32 commits today, tree clean)
+
+TOMORROW'S ENTRY POINTS (in priority order):
+1. CCES licence arrival → plain `./build.sh all` = first real 21564
+   images (of the FIXED firmware). Delete the fit-proxy caveat +
+   cces-license-status memory when it succeeds.
+2. Peter [REVIEW] sign-offs in shared/numeric-spec.md: +18 dB headroom
+   (vs Q5.27/+24), tolerance set, knee behaviour.
+3. CPLD pin-constraint verification prep + hardware bring-up checklist
+   (see P1 plumbing bullet: FLAGS_REG, SPI_RDY, SEC on the wire,
+   BCKI/FSI pair order, CKRE/MFD on the scope, D24 ADC slot order).
+4. Optional pre-hardware: cycle profiling of first-cut fixed kernels;
+   CCES simulator investigation for fixed_ref bit-exactness checks.
+
+State: firmware mainline = FIXED-POINT (D5 complete, 700-obj build
+green, float at tag float-kernels-2026-07-31); contract at
+defs-v2026.07.31 fully closed both directions; CPLD RTL + hash-pinned
+bitstream committed (pins from schematic, .pof 233db2b02906); Pi config
+tool ready; FPGA idea folder seeded.
+
+---
+
+## Day log (2026-07-31, sessions 1-4)
 
 Today, session 1: committed 2026-07-30 work (`ae6973d`, `b675143`);
 created the D2 slot-map source table + generator in `shared/dsp4-logic/`
