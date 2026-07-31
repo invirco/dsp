@@ -4855,12 +4855,354 @@ def gen_crossover_fixed(node):
     """)
 
 
+
+def gen_gain_fixed(node):
+    """Fixed GAIN (D5): float control plane unchanged (ramp quad stays
+    float, spec revision 2026-07-31); the coefficient converts to Q4.28
+    once per block; the sample path is MRF MAC + rns + saturate."""
+    p = node['params']
+    rc = ramp_comment(node['ramp_profile'])
+    nid = node['id']
+    inp = node['inputs_str']
+    return dedent(f"""\
+        {rc}
+
+        /* GAIN (FIXED Q4.28, D5) — float control, fixed sample path */
+        /* SPI page={node['spi_page']} addr={node['spi_addr']} */
+
+        .section/dm seg_dmda;
+        .var _gain_coeff_{nid} = 1.0;            /* FLOAT (ramped) */
+        .var _gain_target_{nid} = 1.0;
+        .var _gain_step_{nid} = 0.0;
+        .var _gain_frames_{nid} = 0;
+        .var _gain_q_{nid} = 0x10000000;          /* Q4.28 shadow */
+        .var _mute_{nid} = {p.get('mute', '0')};
+        .var _polarity_{nid} = {p.get('polarity', '0')};
+        .var _tap_post_trim_{nid};
+        .var _buf_{nid};
+
+        .section/pm seg_pmco;
+        .extern _sample_idx;
+        .global _{nid}_process;
+        _{nid}_process:
+            /* block-rate: advance float ramp, refresh Q4.28 shadow */
+            r4 = dm(_sample_idx);
+            r1 = 0;
+            comp(r4, r1);
+            if ne jump (pc, .apply_{nid});
+
+            r4 = dm(_gain_frames_{nid});
+            r1 = 0;
+            comp(r4, r1);
+            if le jump (pc, .snap_{nid});
+            r4 = r4 - 1;
+            dm(_gain_frames_{nid}) = r4;
+            f1 = dm(_gain_coeff_{nid});
+            f2 = dm(_gain_step_{nid});
+            f1 = f1 + f2;
+            dm(_gain_coeff_{nid}) = f1;
+            jump (pc, .cvt_{nid});
+        .snap_{nid}:
+            f1 = dm(_gain_target_{nid});
+            dm(_gain_coeff_{nid}) = f1;
+        .cvt_{nid}:
+            r2 = 0x4D800000;                      /* 2^28 as float */
+            f2 = r2;
+            f1 = f1 * f2;
+            r1 = fix f1;
+            dm(_gain_q_{nid}) = r1;
+
+        .apply_{nid}:
+            r0 = dm(_buf_{inp});
+            r1 = dm(_gain_q_{nid});
+            mrf = r0 * r1 (ssi);
+            call _mrf_rns28;                      /* r0 = sat(rns(x*g,28)) */
+
+            r3 = dm(_polarity_{nid});
+            r4 = 0;
+            comp(r3, r4);
+            if ne r0 = -r0;
+
+            r2 = dm(_mute_{nid});
+            comp(r2, r4);
+            if ne r0 = r4;
+
+            dm(_tap_post_trim_{nid}) = r0;
+            dm(_buf_{nid}) = r0;
+            rts;
+        _{nid}_process.end:
+    """)
+
+
+def gen_fader_pan_fixed(node):
+    """Fixed FADER_PAN (D5): float control (level/pan/dca ramps
+    unchanged); block-rate conversion of the composite gains to Q4.28
+    shadows (mono, L, R); fixed sample path."""
+    rc = ramp_comment(node['ramp_profile'])
+    nid = node['id']
+    inp = node['inputs_str']
+    is_ch_fdr = (node['chip'] == '1')
+    lr_vars = ''
+    if is_ch_fdr:
+        lr_vars = (f'        .var _fdr_lq_{nid} = 0;\n'
+                   f'        .var _fdr_rq_{nid} = 0;\n'
+                   f'        .var _buf_L_{nid};\n'
+                   f'        .var _buf_R_{nid};')
+    cvt_lr = ''
+    apply_lr = ''
+    if is_ch_fdr:
+        cvt_lr = dedent(f"""\
+            /* L/R pan gains (linear pan law, matches float node) */
+            r2 = 0x3F800000;
+            f2 = r2;
+            f5 = dm(_fdr_pan_{nid});
+            f6 = f2 - f5;                     /* 1 - pan */
+            f6 = f6 * f1;                     /* L = comp * (1-pan) */
+            f5 = f5 * f1;                     /* R = comp * pan */
+            r2 = 0x4D800000;
+            f7 = r2;
+            f6 = f6 * f7;
+            r2 = fix f6;
+            dm(_fdr_lq_{nid}) = r2;
+            f5 = f5 * f7;
+            r2 = fix f5;
+            dm(_fdr_rq_{nid}) = r2;""")
+        apply_lr = dedent(f"""\
+            r14 = r0;                         /* mono in (lib preserves) */
+            r1 = dm(_fdr_lq_{nid});
+            mrf = r14 * r1 (ssi);
+            call _mrf_rns28;
+            dm(_buf_L_{nid}) = r0;
+            r1 = dm(_fdr_rq_{nid});
+            mrf = r14 * r1 (ssi);
+            call _mrf_rns28;
+            dm(_buf_R_{nid}) = r0;
+            r0 = r14;""")
+    return dedent(f"""\
+        {rc}
+
+        /* FADER_PAN (FIXED Q4.28, D5) — float control, fixed sample path */
+        /* SPI page={node['spi_page']} addr={node['spi_addr']} */
+
+        .section/dm seg_dmda;
+        .var _fdr_level_{nid} = 1.0;
+        .var _fdr_level_target_{nid} = 1.0;
+        .var _fdr_level_step_{nid} = 0.0;
+        .var _fdr_level_frames_{nid} = 0;
+        .var _fdr_pan_{nid} = 0.5;
+        .var _fdr_pan_target_{nid} = 0.5;
+        .var _fdr_pan_step_{nid} = 0.0;
+        .var _fdr_pan_frames_{nid} = 0;
+        .var _fdr_mute_{nid} = 0;
+        .var _fdr_dca_gain_{nid} = 1.0;
+        .var _fdr_gq_{nid} = 0x10000000;          /* Q4.28 level*dca */
+        .var _tap_post_fader_{nid};
+        .var _buf_{nid};
+{lr_vars}
+
+        .section/pm seg_pmco;
+        .extern _sample_idx;
+        .extern _mrf_rns28;
+        .global _{nid}_process;
+        _{nid}_process:
+            /* block-rate: float ramps + shadow conversion */
+            r4 = dm(_sample_idx);
+            r1 = 0;
+            comp(r4, r1);
+            if ne jump (pc, .apply_{nid});
+
+            /* level ramp */
+            r4 = dm(_fdr_level_frames_{nid});
+            r1 = 0;
+            comp(r4, r1);
+            if le jump (pc, .lsnap_{nid});
+            r4 = r4 - 1;
+            dm(_fdr_level_frames_{nid}) = r4;
+            f1 = dm(_fdr_level_{nid});
+            f2 = dm(_fdr_level_step_{nid});
+            f1 = f1 + f2;
+            dm(_fdr_level_{nid}) = f1;
+            jump (pc, .pramp_{nid});
+        .lsnap_{nid}:
+            f1 = dm(_fdr_level_target_{nid});
+            dm(_fdr_level_{nid}) = f1;
+        .pramp_{nid}:
+            /* pan ramp */
+            r4 = dm(_fdr_pan_frames_{nid});
+            r1 = 0;
+            comp(r4, r1);
+            if le jump (pc, .psnap_{nid});
+            r4 = r4 - 1;
+            dm(_fdr_pan_frames_{nid}) = r4;
+            f1 = dm(_fdr_pan_{nid});
+            f2 = dm(_fdr_pan_step_{nid});
+            f1 = f1 + f2;
+            dm(_fdr_pan_{nid}) = f1;
+            jump (pc, .cvt_{nid});
+        .psnap_{nid}:
+            f1 = dm(_fdr_pan_target_{nid});
+            dm(_fdr_pan_{nid}) = f1;
+        .cvt_{nid}:
+            /* composite = level * dca; Q4.28 shadow(s) */
+            f1 = dm(_fdr_level_{nid});
+            f2 = dm(_fdr_dca_gain_{nid});
+            f1 = f1 * f2;
+            r2 = 0x4D800000;
+            f2 = r2;
+            f3 = f1 * f2;
+            r2 = fix f3;
+            dm(_fdr_gq_{nid}) = r2;
+{cvt_lr}
+
+        .apply_{nid}:
+            r0 = dm(_buf_{inp});
+            r1 = dm(_fdr_gq_{nid});
+            mrf = r0 * r1 (ssi);
+            call _mrf_rns28;
+
+            r2 = dm(_fdr_mute_{nid});
+            r4 = 0;
+            comp(r2, r4);
+            if ne r0 = r4;
+
+            dm(_tap_post_fader_{nid}) = r0;
+            dm(_buf_{nid}) = r0;
+{apply_lr}
+            rts;
+        _{nid}_process.end:
+    """)
+
+
+def gen_mix_bus_fixed(node):
+    """Fixed MIX_BUS (D5). Chip 1: read the 64-bit bus accumulator with
+    ONE rns+saturate (exact summing, fixed_ref.mix_sum). Chip 2:
+    unrolled MRF MAC over source buffers with Q4.28 gain shadows
+    converted at block rate."""
+    p = node['params']
+    nid = node['id']
+    n_src = len(node['inputs'])
+    if node['chip'] == '1':
+        bus_suffix = nid.replace('C1_BUS_', '').lower()
+        acc_sym = f'_bus_acc_{bus_suffix}'
+        return dedent(f"""\
+            /* MIX_BUS (FIXED, D5): bus_id={p.get('bus_id','?')} — exact 64-bit acc readout */
+
+            .section/dm seg_dmda;
+            .var _buf_{nid};
+
+            .section/pm seg_pmco;
+            .extern {acc_sym};
+            .extern _acc64_rns28;
+            .global _{nid}_process;
+            _{nid}_process:
+                i2 = {acc_sym};
+                call _acc64_rns28;
+                dm(_buf_{nid}) = r0;
+                rts;
+            _{nid}_process.end:
+        """)
+    macs = []
+    for k, inp in enumerate(node['inputs']):
+        macs.append(f'r0 = dm(_buf_{inp});')
+        macs.append(f'r1 = dm(_mix_gq_{nid} + {k});')
+        macs.append('mrf = mrf + r0 * r1 (ssi);')
+    mac_block = '\n                '.join(macs) if macs else 'nop;'
+    cvts = []
+    for k in range(max(n_src, 1)):
+        cvts.append(f'f1 = dm(_mix_gains_{nid} + {k});')
+        cvts.append('f1 = f1 * f2;')
+        cvts.append('r1 = fix f1;')
+        cvts.append(f'dm(_mix_gq_{nid} + {k}) = r1;')
+    cvt_block = '\n                '.join(cvts)
+    ones = ', '.join(['1.0'] * max(n_src, 1))
+    return dedent(f"""\
+        /* MIX_BUS (FIXED, D5): bus_id={p.get('bus_id','?')} — {n_src} sources, exact MRF sum */
+
+        .section/dm seg_dmda;
+        .var _mix_gains_{nid}[{max(n_src, 1)}] = {ones};   /* FLOAT (host) */
+        .var _mix_gq_{nid}[{max(n_src, 1)}];               /* Q4.28 shadow */
+        .var _buf_{nid};
+
+        .section/pm seg_pmco;
+        .extern _sample_idx;
+        .extern _mrf_rns28;
+        .global _{nid}_process;
+        _{nid}_process:
+            /* block-rate gain shadow refresh */
+            r4 = dm(_sample_idx);
+            r1 = 0;
+            comp(r4, r1);
+            if ne jump (pc, .mix_go_{nid});
+            r2 = 0x4D800000;
+            f2 = r2;
+                {cvt_block}
+        .mix_go_{nid}:
+            r1 = 0;
+            mr0f = r1;
+            mr1f = r1;
+            mr2f = r1;
+                {mac_block}
+            call _mrf_rns28;
+            dm(_buf_{nid}) = r0;
+            rts;
+        _{nid}_process.end:
+    """)
+
+
+def gen_bus_accumulators_fixed():
+    """Fixed bus_accumulators.asm: 64-bit pairs per bus + clear."""
+    names = (['main_l', 'main_r', 'sub']
+             + [f'grp_{g:02d}' for g in range(1, 5)]
+             + [f'aux_{a:02d}' for a in range(1, 13)]
+             + [f'fx_{x:02d}' for x in range(1, 7)])
+    out = []
+    out.append('/* bus_accumulators.asm — FIXED (D5): 64-bit exact bus accumulators */')
+    out.append('/* AUTO-GENERATED by tools/dsp/dsp_codegen.py (--format fixed) — do not edit. */')
+    out.append('/* Pairs [lo, hi]; contributions via _acc64_mac; readout _acc64_rns28. */')
+    out.append('')
+    out.append('.section/dm seg_dmda;')
+    out.append('')
+    for n in names:
+        out.append(f'.global _bus_acc_{n};   .var _bus_acc_{n}[2];')
+    out.append('')
+    out.append('.global _bus_acc_grp_ptrs;')
+    out.append('.var _bus_acc_grp_ptrs[4] = ' +
+               ', '.join(f'_bus_acc_grp_{g:02d}' for g in range(1, 5)) + ';')
+    out.append('.global _bus_acc_aux_ptrs;')
+    out.append('.var _bus_acc_aux_ptrs[12] = ' +
+               ', '.join(f'_bus_acc_aux_{a:02d}' for a in range(1, 13)) + ';')
+    out.append('.global _bus_acc_fx_ptrs;')
+    out.append('.var _bus_acc_fx_ptrs[6] = ' +
+               ', '.join(f'_bus_acc_fx_{x:02d}' for x in range(1, 7)) + ';')
+    out.append('.var _bus_acc_all_ptrs[25] = ' + ', '.join(f'_bus_acc_{n}' for n in names) + ';')
+    out.append('')
+    out.append('.section/pm seg_pmco;')
+    out.append('.global _bus_clear_all;')
+    out.append('_bus_clear_all:')
+    out.append('    i2 = _bus_acc_all_ptrs;')
+    out.append('    r0 = 0;')
+    out.append('    r1 = 25;')
+    out.append('    lcntr = r1, do .bca_clr until lce;')
+    out.append('        r2 = dm(i2, 1);')
+    out.append('        i3 = r2;')
+    out.append('        dm(i3, 1) = r0;')
+    out.append('    .bca_clr:')
+    out.append('        dm(i3, 0) = r0;')
+    out.append('    rts;')
+    out.append('_bus_clear_all.end:')
+    out.append('')
+    return '\n'.join(out)
+
+
 FIXED_GENERATORS = {
     'EQ_BIQUAD': gen_eq_biquad_fixed,
     'GEQ': gen_geq_fixed,
     'ANTI_FB': gen_anti_fb_fixed,
     'HPF_LPF': gen_hpf_lpf_fixed,
     'CROSSOVER': gen_crossover_fixed,
+    'GAIN': gen_gain_fixed,
+    'FADER_PAN': gen_fader_pan_fixed,
+    'MIX_BUS': gen_mix_bus_fixed,
 }
 
 
@@ -4981,6 +5323,13 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
         gates_path = os.path.join(output_dir, chip_label, 'scope_gates.asm')
         with open(gates_path, 'w', encoding='utf-8') as f:
             f.write(gen_scope_gates(chip_label, chip_nodes))
+        files_written += 1
+
+    # Fixed mode: the bus accumulators become generated (64-bit pairs)
+    if FORMAT == 'fixed':
+        with open(os.path.join(output_dir, 'bus_accumulators.asm'), 'w',
+                  encoding='utf-8') as f:
+            f.write(gen_bus_accumulators_fixed())
         files_written += 1
 
     # Write ramp infrastructure

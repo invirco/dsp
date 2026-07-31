@@ -58,9 +58,16 @@ sign-off; everything else follows from them.
 ## Parameter boundary (contract preservation)
 
 - The SPI wire continues to carry float32 words (spi_handler protocol
-  unchanged; host and mx26 untouched). A single on-target conversion
-  at the parameter-write/ramp boundary produces the fixed-point words
-  above. The ramp engine ramps the CONVERTED fixed values.
+  unchanged; host and mx26 untouched).
+- REVISED 2026-07-31 (during kernel conversion): the ENTIRE parameter
+  plane — dispatch tables, ramp engine, target/step/current scalars —
+  stays FLOAT and byte-identical to the archived float firmware. Each
+  fixed kernel converts its current control value(s) to fixed ONCE PER
+  BLOCK (a FIX at sample_idx==0; block-rate float math is control
+  plane, allowed). This avoids per-cell-kind conversion in the generic
+  ramp path, keeps ramp precision, and matches how the golden harness
+  quantizes control values. Coefficient-set staging (biquads) converts
+  at crossfade-swap time instead, as already implemented.
 
 ## Scope exceptions
 

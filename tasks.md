@@ -194,13 +194,23 @@ dsp.csv sport params), not kernels.
       contract fixed en route: the fixed core clobbers r5-r12, so
       crossfade bodies hold input/old-output in r13/r14 (lib preserves
       r13-r15 — documented in biquad_fx.asm).
-    - NEXT: gains/summing/ramps family (GAIN, FADER_PAN, MIX_BUS,
-      ROUTING, bus accumulators, ramp engine, DCA, scatter/gather I/O
-      scaling Q1.31<->Q4.28), then dynamics (log2/exp2 poly tables from
-      fixed_ref as asm data, envelope + gain computer), then the
-      float<->fixed boundaries for the FX island and the param/ramp
-      write path. --format fixed becomes buildable only when every
-      family is converted.
+    - DONE 2026-07-31 (cont.): SPEC REVISION — the parameter plane
+      (dispatch, ramp engine, target/step scalars) stays FLOAT and
+      byte-identical; fixed kernels convert control values to Q4.28
+      shadows once per block (FIX at sample_idx==0). Gains family:
+      lib/mac64_fx.asm (_acc64_mac exact pair accumulate, _acc64_rns28,
+      shared _mrf_rns28 extractor); fixed GAIN, FADER_PAN (incl. L/R
+      pan shadows), MIX_BUS (chip1 = exact 64-bit acc readout, chip2 =
+      MRF-unrolled with gain shadows); generated fixed
+      bus_accumulators.asm (64-bit pairs + ptr tables + loop clear;
+      float hand file untouched). All assemble clean.
+    - NEXT: ROUTING (send shadows + _acc64_mac contributions),
+      block_io I/O scaling (Q1.31<->Q4.28 at converter lanes only),
+      meters (integer peak scan + decay), DELAY/TUBE_SAT/monitor/
+      aux-input/talkback/noise small kernels, then dynamics (log2/exp2
+      poly tables from fixed_ref as asm data, envelope + gain
+      computer), then FX float-island boundaries. --format fixed
+      becomes buildable only when every family is converted.
 
 Binding decisions: [dsp4-architecture-decisions.md](dsp4-architecture-decisions.md)
 (D1 Pi masters DSP SPI, D2 CPLD in-repo w/ single-sourced slot map,
