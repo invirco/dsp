@@ -78,17 +78,19 @@ unchanged). `git -C ~/mx26 pull` before future syncs.
 2026-07-30: build verification (fit proxy PASSED as 21568), Quartus
 verified, rev C schematic review, xSPI PSRAM investigation.
 
+Afternoon session (2026-07-31, continued): GrpGeq DONE (`4a51e08`),
+product-config boot block DONE (`3376f84`, incl. the stale SPI bounds
+bug fix), plumbing design + slices 1-2 DONE (`657de55`, `497bbca`,
+`259ebc8`). HRM found already fetched in Dropbox (Peter's resilient-
+fetch effort); mx26 cloned to ~/mx26 and full contract flow verified.
+
 Next entry points:
-1. sport/DMA register plumbing in sport_init.asm (TODO(dsp4-plumbing)):
-   8-lane fabric SPORT configs, CS masks for sparse RX slots (codec
-   0x0F, snake 0xFF, Pi 0x03, MEMS 0x20), DMA channel map — needs
-   ADSP-2156x HRM at hand; all SPORTs clock-slave to LOGIC.
-2. Product-config boot block (chan_mask exists; needs scope gating for
-   D24/D32 nodes incl. the B_O2 codec-vs-snake output mux + input patch
-   for D24 console-channel interleave ch 1-4/13-16 etc.).
-3. LDF rebalance if the build shows block3/L2 pressure from the new
-   nodes (block2 overflow section already exists).
-4. CPLD `rtl/` against `dsp4_slot_map.vh`.
+1. Plumbing slice 3 (see P1 bullet): DDE rings + SEC + ivt + SPEN;
+   then real SPI MMR addresses in spi_handler/main (FLAGS_REG too).
+2. CPLD `rtl/` against `dsp4_slot_map.vh` — resolve the provisional
+   rows (CKRE/MFD, Pi re-framing, DAC MAIN sink) as part of it.
+3. mx26-side: adopt the 20 superset cells + GrpPeq→GrpGeq rename
+   (drops the alias flag).
 
 ### Checked, no action needed
 `cces-tools/license/license.dat` exists on disk but is NOT tracked — the
