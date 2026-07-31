@@ -2946,7 +2946,7 @@ def gen_monitor(node):
 def gen_interchip_send(node):
     p = node['params']
     return dedent(f"""\
-        /* INTERCHIP_SEND: Write to inter-chip SPORT{p.get('sport_id','7')} TDM slot {p.get('slot','?')} */
+        /* INTERCHIP_SEND: mix-fabric line {p.get('sport_id','?')} slot {p.get('slot','?')} (global slot {p.get('global_slot', p.get('slot','?'))}, signal {p.get('signal','?')}) */
 
         .section/dm seg_dmda;
         .var _tx_slot_{node['id']};
@@ -2964,7 +2964,7 @@ def gen_interchip_send(node):
 def gen_interchip_recv(node):
     p = node['params']
     return dedent(f"""\
-        /* INTERCHIP_RECV: Read from inter-chip SPORT{p.get('sport_id','7')} slot {p.get('slot','?')} */
+        /* INTERCHIP_RECV: mix-fabric line {p.get('sport_id','?')} slot {p.get('slot','?')} (global slot {p.get('global_slot', p.get('slot','?'))}, signal {p.get('signal','?')}) */
 
         .section/dm seg_dmda;
         .var _rx_ic_slot_{node['id']};
@@ -3596,18 +3596,26 @@ def gen_block_io(chip_label, chip_nodes):
     if chip_label == 'chip1':
         # --- Collect INPUT_TDM nodes (Chip 1 RX from ADC) ---
         input_nodes = [n for n in chip_nodes if n['type'] == 'INPUT_TDM']
-        # Sort by linear slot index: sport_id * 8 + slot_start
-        input_nodes.sort(key=lambda n: int(n['params'].get('sport_id', '0')) * 8
-                                        + int(n['params'].get('slot_start', '0')))
+        # Packed RX buffer order: (sport_id, slot_start). The DMA/CS config
+        # must deliver exactly these slots, packed, in this order.
+        input_nodes.sort(key=lambda n: (int(n['params'].get('sport_id', '0')),
+                                        int(n['params'].get('slot_start', '0'))))
         num_rx = len(input_nodes)
         # Total RX channels across all SPORTs
-        rx_stride = num_rx  # 32 channels in contiguous DMA buffer
+        rx_stride = num_rx  # packed channels in contiguous DMA buffer
 
         # --- Collect INTERCHIP_SEND nodes (Chip 1 TX to Chip 2) ---
+        # Mix-fabric slot index = global_slot (16*line + slot); legacy csvs
+        # carried a single-SPORT 'slot' which is the same linear index.
         send_nodes = [n for n in chip_nodes if n['type'] == 'INTERCHIP_SEND']
-        send_nodes.sort(key=lambda n: int(n['params'].get('slot', '0')))
+        ic_slot_of = lambda n: int(n['params'].get('global_slot',
+                                                   n['params'].get('slot', '0')))
+        send_nodes.sort(key=ic_slot_of)
         num_ic = len(send_nodes)
         ic_stride = num_ic  # IC DMA stride = active slots per frame
+        # Packed IC buffer requires contiguous global slots from 0
+        assert [ic_slot_of(n) for n in send_nodes] == list(range(num_ic)), \
+            'INTERCHIP_SEND global slots must be contiguous 0..N-1 (packed IC DMA)'
 
         # --- Data section: pointer tables ---
         lines.append('.section/dm seg_dmda;')
@@ -3627,7 +3635,7 @@ def gen_block_io(chip_label, chip_nodes):
         lines.append(f'.var _c1_ic_tx_slots[{num_ic}] =')
         for i, n in enumerate(send_nodes):
             comma = ',' if i < num_ic - 1 else ';'
-            lines.append(f'    {n["params"]["slot"]}{comma}')
+            lines.append(f'    {ic_slot_of(n)}{comma}')
         lines.append(f'.var _c1_ic_tx_ptrs[{num_ic}] =')
         for i, n in enumerate(send_nodes):
             comma = ',' if i < num_ic - 1 else ';'
@@ -3719,22 +3727,35 @@ def gen_block_io(chip_label, chip_nodes):
 
     elif chip_label == 'chip2':
         # --- Collect INTERCHIP_RECV nodes (Chip 2 RX from Chip 1) ---
+        # Mix-fabric slot index = global_slot (16*line + slot); legacy csvs
+        # carried a single-SPORT 'slot' which is the same linear index.
         recv_nodes = [n for n in chip_nodes if n['type'] == 'INTERCHIP_RECV']
-        recv_nodes.sort(key=lambda n: int(n['params'].get('slot', '0')))
+        ic_slot_of = lambda n: int(n['params'].get('global_slot',
+                                                   n['params'].get('slot', '0')))
+        recv_nodes.sort(key=ic_slot_of)
         num_ic_rx = len(recv_nodes)
         ic_stride = num_ic_rx  # IC DMA stride = active slots per frame
+        assert [ic_slot_of(n) for n in recv_nodes] == list(range(num_ic_rx)), \
+            'INTERCHIP_RECV global slots must be contiguous 0..N-1 (packed IC DMA)'
 
-        # --- Collect OUTPUT_TDM nodes (Chip 2 TX to DAC) ---
+        # --- Collect OUTPUT_TDM nodes (Chip 2 TX to DAC/codec/NET) ---
         output_nodes = [n for n in chip_nodes if n['type'] == 'OUTPUT_TDM']
-        # Linear index: sport_id * 8 + slot_start
-        output_nodes.sort(key=lambda n: int(n['params'].get('sport_id', '0')) * 8
-                                         + int(n['params'].get('slot_start', '0')))
+        # TX DMA buffer is frame-indexed: sport_id * slots-per-sport +
+        # slot_start. sport_slots comes from the slot map via dsp.csv
+        # (default 8 = TDM8) and must be uniform across TX lines for the
+        # single-stride frame layout to hold.
+        tx_sport_slots = {int(n['params'].get('sport_slots', '8'))
+                          for n in output_nodes} or {8}
+        assert len(tx_sport_slots) == 1, \
+            'OUTPUT_TDM sport_slots must be uniform across all TX lines'
+        sps = tx_sport_slots.pop()
+        tx_slot_of = lambda n: (int(n['params'].get('sport_id', '0')) * sps
+                                + int(n['params'].get('slot_start', '0')))
+        output_nodes.sort(key=tx_slot_of)
         num_tx = len(output_nodes)
-        # Compute TX stride: max (sport_id * 8 + slot_start) + 1, rounded up to cover all SPORTs
-        max_tx_slot = max(int(n['params'].get('sport_id', '0')) * 8
-                          + int(n['params'].get('slot_start', '0'))
-                          + int(n['params'].get('slot_count', '1')) - 1
-                          for n in output_nodes) + 1 if output_nodes else 32
+        # TX stride: highest occupied frame slot + 1
+        max_tx_slot = max(tx_slot_of(n) + int(n['params'].get('slot_count', '1'))
+                          - 1 for n in output_nodes) + 1 if output_nodes else 32
         tx_stride = max_tx_slot
 
         # --- Data section ---
@@ -3747,7 +3768,7 @@ def gen_block_io(chip_label, chip_nodes):
         lines.append(f'.var _c2_ic_rx_slots[{num_ic_rx}] =')
         for i, n in enumerate(recv_nodes):
             comma = ',' if i < num_ic_rx - 1 else ';'
-            lines.append(f'    {n["params"]["slot"]}{comma}')
+            lines.append(f'    {ic_slot_of(n)}{comma}')
         lines.append(f'.var _c2_ic_rx_ptrs[{num_ic_rx}] =')
         for i, n in enumerate(recv_nodes):
             comma = ',' if i < num_ic_rx - 1 else ';'
@@ -3759,9 +3780,8 @@ def gen_block_io(chip_label, chip_nodes):
             lines.append(f'.extern _tx_out_slot_{n["id"]};')
         lines.append(f'.var _c2_tx_slots[{num_tx}] =')
         for i, n in enumerate(output_nodes):
-            slot_idx = int(n['params'].get('sport_id', '0')) * 8 + int(n['params'].get('slot_start', '0'))
             comma = ',' if i < num_tx - 1 else ';'
-            lines.append(f'    {slot_idx}{comma}')
+            lines.append(f'    {tx_slot_of(n)}{comma}')
         lines.append(f'.var _c2_tx_ptrs[{num_tx}] =')
         for i, n in enumerate(output_nodes):
             comma = ',' if i < num_tx - 1 else ';'

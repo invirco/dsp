@@ -1,24 +1,104 @@
 #!/usr/bin/env python3
-"""gen_dsp_csv.py — Generates dsp.csv for D32 from dsp-def.md signal chain spec.
+"""gen_dsp_csv.py — Generates the unified DSP4 dsp.csv from the signal-chain
+spec + the single-sourced TDM slot map (decision D2).
 
-Outputs: ../dsp.csv
+SPORT/slot facts come from shared/dsp4-logic/generated/sport_map.json —
+regenerate that first (shared/dsp4-logic/gen_slot_map.py) if the slot map
+changed. This script asserts its emitted sport/slot params against the map.
 
-Covers:
-  Chip 1: 32× channel strip (IN → GAIN → HPF_LPF → EQ → GATE → COMP → TUBE → DELAY → FADER_PAN → ROUTING)
-          + Talkback ×2 + Noise gen + Meters
-          + Bus pre-sum sends (Main L/R, Sub, 4×Grp, 12×Aux, 6×FX) via inter-chip SPORT
-  Chip 2: Bus receives → Aux ×12, Group ×4, Sub ×1, Main ×4, FX ×6, Monitor, meters, outputs
+Topology (decisions D3/D4, hardware-map ground truth):
+  Chip 1 (DSPA): 32× channel strip + superset inputs (codec return, Pi PCM,
+          MEMS talkback, D32 snake) + matrix mix -> bus pre-sums; sends
+          buses AND superset pass-throughs to chip 2 over the 8× TDM16 mix
+          fabric (global slot = 16*line + slot; buses keep legacy order on
+          global slots 0-24, pass-throughs on 25-36, rest reserved).
+  Chip 2 (DSPB): bus receives -> Aux/Grp/Sub/Main/FX processing -> output
+          patch onto DAC 1-16, DAC MAIN, codec (D24), NET.
+
+Superset I/O nodes are always generated (D3: one firmware); boot-time
+product config enables/routes them (scope=D24/D32 params mark
+product-specific nodes; they default muted/off).
+
+Usage:
+  gen_dsp_csv.py [--out PATH] [--sport-map PATH]
+  --out default: <repo>/MW/D32/DSP/SHARC/dsp.csv (the unified DSP4 tree)
 """
 
+import argparse
 import csv
-import io
+import json
 import os
+import sys
 
 # --- Column schema ---
 # id, chip, type, label, ch_count, inputs, outputs, spi_page, spi_addr, params, ramp_profile
 
 HEADER = ['id', 'chip', 'type', 'label', 'ch_count', 'inputs', 'outputs',
           'spi_page', 'spi_addr', 'params', 'ramp_profile']
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+REPO_ROOT = os.path.dirname(os.path.dirname(SCRIPT_DIR))
+
+parser = argparse.ArgumentParser(description='Generate unified DSP4 dsp.csv')
+parser.add_argument('--out', default=os.path.join(
+    REPO_ROOT, 'MW', 'D32', 'DSP', 'SHARC', 'dsp.csv'))
+parser.add_argument('--sport-map', default=os.path.join(
+    REPO_ROOT, 'shared', 'dsp4-logic', 'generated', 'sport_map.json'))
+args = parser.parse_args()
+
+with open(args.sport_map, encoding='utf-8') as f:
+    SPORT_MAP = json.load(f)
+
+# signal -> {sport_id, slot, sport_slots} per (chip, side)
+SIG = {}
+for _chip in ('1', '2'):
+    for _side in ('rx', 'tx'):
+        for _line in SPORT_MAP['chips'][_chip][_side]:
+            for _s in _line['slots']:
+                SIG[(_chip, _side, _s['signal'])] = {
+                    'sport_id': _line['sport_id'],
+                    'slot': _s['slot'],
+                    'sport_slots': _line['slot_count'],
+                }
+
+# mix-fabric signal -> global slot (0..127)
+MIX_GLOBAL = {b['signal']: b['global_slot']
+              for b in SPORT_MAP['mix_fabric']['buses']}
+
+
+def sig_rx1(signal):
+    return SIG[('1', 'rx', signal)]
+
+
+def sig_tx2(signal):
+    return SIG[('2', 'tx', signal)]
+
+
+def input_params(signal, slot_count=1):
+    e = sig_rx1(signal)
+    return (f'sport_id={e["sport_id"]};slot_start={e["slot"]};'
+            f'slot_count={slot_count};sport_slots={e["sport_slots"]};'
+            f'signal={signal}')
+
+
+def output_params(signal, slot_count=1, scope=None):
+    e = sig_tx2(signal)
+    p = (f'sport_id={e["sport_id"]};slot_start={e["slot"]};'
+         f'slot_count={slot_count};sport_slots={e["sport_slots"]};'
+         f'signal={signal}')
+    if scope:
+        p += f';scope={scope}'
+    return p
+
+
+def fabric_params(signal):
+    """Inter-chip fabric slot: chip1 TX line n == chip2 RX line n."""
+    e = SIG[('1', 'tx', signal)]
+    g = MIX_GLOBAL[signal]
+    assert g == 16 * e['sport_id'] + e['slot'], signal
+    return (f'sport_id={e["sport_id"]};slot={e["slot"]};global_slot={g};'
+            f'sport_slots=16;signal={signal}')
+
 
 rows = []
 
@@ -81,13 +161,14 @@ bus_fx     = [f'C1_BUS_FX_{x:02d}'  for x in range(1, NUM_FX+1)]
 # All bus IDs that a channel routing node feeds
 all_bus_ids = [bus_main_l, bus_main_r, bus_sub] + bus_grp + bus_aux + bus_fx
 
+# Slot-map signal per bus id (C1_BUS_MAIN_L -> BUS_MAIN_L)
+bus_signal = {bid: bid.replace('C1_', '') for bid in all_bus_ids}
+
 # Collect all routing node IDs per bus (filled during channel generation)
 bus_sources = {bid: [] for bid in all_bus_ids}
 
 for ch in range(1, NUM_CH + 1):
     cc = f'{ch:02d}'
-    sport_id = (ch - 1) // 8
-    slot = (ch - 1) % 8
 
     # Node IDs for this channel
     n_in    = f'C1_IN_{cc}'
@@ -102,8 +183,12 @@ for ch in range(1, NUM_CH + 1):
     n_route = f'C1_RTG_{cc}'
 
     # --- INPUT ---
-    add(n_in, 1, 'INPUT_TDM', f'Ch {ch} Input', 1, '', n_gain,
-        params=f'sport_id={sport_id};slot_start={slot};slot_count=1')
+    # Card input index == channel index (IN_01..IN_32 on A_I0..A_I3).
+    # The D24 console-channel interleave (ADC8 #1 = ch 1-4 & 13-16) is a
+    # product-config input patch, not a slot-map concern.
+    ip = input_params(f'IN_{cc}')
+    assert f'sport_id={(ch - 1) // 8};slot_start={(ch - 1) % 8};' in ip
+    add(n_in, 1, 'INPUT_TDM', f'Ch {ch} Input', 1, '', n_gain, params=ip)
 
     # --- GAIN (trim component of hybrid preamp) ---
     p, a = c1_alloc.next(4)  # gain + pol + phantom + input_sel
@@ -190,10 +275,53 @@ for ch in range(1, NUM_CH + 1):
         spi_page=p_mtr, spi_addr=a_mtr + (ch-1)*4,
         params='taps=post_trim;post_fader;gate_gr;comp_gr')
 
+# ===========================================================================
+# CHIP 1 — Superset inputs (D3): codec return, Pi PCM, MEMS, D32 snake
+# ===========================================================================
+# INPUT_TDM reads the LOGIC-framed TDM slot; sources consumed on chip 2
+# (codec aux in, Pi playback, snake returns) are passed through the mix
+# fabric on global slots 25-36 (XFER_* signals in the slot map) — send
+# nodes are emitted after the bus section. MEMS and codec ch1 feed the
+# chip-1 TALKBACK nodes directly and do not cross. Product config gates
+# all of these at boot (default off/muted). No SPI allocations here, so
+# legacy chip-1 addresses are unaffected.
+
+superset_c1 = [
+    ('C1_XIN_CODEC_01', 'CODEC_RET_1', 'Codec ADC 1 (TB XLR)', None),
+    ('C1_XIN_CODEC_03', 'CODEC_RET_3', 'Codec ADC 3 (Aux In L)', None),
+    ('C1_XIN_CODEC_04', 'CODEC_RET_4', 'Codec ADC 4 (Aux In R)', None),
+    ('C1_XIN_PI_L', 'PI_PCM_L', 'Pi PCM L', None),
+    ('C1_XIN_PI_R', 'PI_PCM_R', 'Pi PCM R', None),
+    ('C1_XIN_MEMS', 'MEMS_TB', 'MEMS Talkback Mic', None),
+] + [(f'C1_XIN_SNK_{s:02d}', f'SNAKE_RET_{s:02d}', f'Snake Return {s}', 'D32')
+     for s in range(1, 9)]
+
+# fabric pass-throughs: XFER signal -> source input node
+xfer_map = [
+    ('XFER_CODEC_AUX_L', 'C1_XIN_CODEC_03', None),
+    ('XFER_CODEC_AUX_R', 'C1_XIN_CODEC_04', None),
+    ('XFER_PI_L', 'C1_XIN_PI_L', None),
+    ('XFER_PI_R', 'C1_XIN_PI_R', None),
+] + [(f'XFER_SNAKE_{s:02d}', f'C1_XIN_SNK_{s:02d}', 'D32') for s in range(1, 9)]
+
+xin_consumer = {src: f'C1_XS_{sig}' for sig, src, _ in xfer_map}
+xin_consumer['C1_XIN_CODEC_01'] = 'C1_TALK_01'
+xin_consumer['C1_XIN_MEMS'] = 'C1_TALK_02'
+
+for nid, sig, label, scope in superset_c1:
+    ip = input_params(sig)
+    if scope:
+        ip += f';scope={scope}'
+    add(nid, 1, 'INPUT_TDM', label, 1, '', xin_consumer[nid], params=ip)
+
 # --- TALKBACK ×2 ---
+# Sources wired 2026-07-31 per hardware map: TALK_01 = codec ADC ch1
+# (talkback XLR), TALK_02 = surface MEMS mic.
 p, a = c1_alloc.next(8)
+talk_sources = {1: 'C1_XIN_CODEC_01', 2: 'C1_XIN_MEMS'}
 for t in [1, 2]:
-    add(f'C1_TALK_{t:02d}', 1, 'TALKBACK', f'Talkback {t}', 1, '', '',
+    add(f'C1_TALK_{t:02d}', 1, 'TALKBACK', f'Talkback {t}', 1,
+        talk_sources[t], '',
         spi_page=p, spi_addr=a + (t-1)*4,
         params=f'gain_db=0.0;hpf_on=1;route=aux1',
         ramp_profile='GainFast')
@@ -206,36 +334,42 @@ add('C1_NOISE', 1, 'NOISE_GEN', 'Noise Gen', 1, '', '',
     ramp_profile='InstantCtl')
 
 # --- BUS PRE-SUM NODES (Chip 1 accumulates, then sends to Chip 2) ---
-# Each bus sums all 32 channel routing contributions and sends via inter-chip SPORT
+# Each bus sums all 32 channel routing contributions and sends over the
+# inter-chip mix fabric (8× TDM16). Buses keep the legacy slot order as
+# global mix slots 0-24 (line = slot//16, in-line slot = slot%16).
 
-# Inter-chip slot allocation: 25 buses total
-#   Main L/R = slots 0,1
-#   Sub = slot 2
-#   Grp 1-4 = slots 3-6
-#   Aux 1-12 = slots 7-18
-#   FX 1-6 = slots 19-24
-ic_slot = 0
-
-def make_bus_and_send(bus_id, label, ic_slot_num, alloc):
+def make_bus_and_send(bus_id, label, alloc):
     srcs = ';'.join(bus_sources[bus_id])
+    sig = bus_signal[bus_id]
+    g = MIX_GLOBAL[sig]
     p, a = alloc.next(2)
     add(bus_id, 1, 'MIX_BUS', label, 1, srcs, f'{bus_id}_SEND',
         spi_page=p, spi_addr=a,
-        params=f'bus_id={ic_slot_num};source_count={NUM_CH}',
+        params=f'bus_id={g};source_count={NUM_CH}',
         ramp_profile='')  # bus summing is passive
     add(f'{bus_id}_SEND', 1, 'INTERCHIP_SEND', f'{label} Send', 1, bus_id, '',
-        params=f'sport_id=7;slot={ic_slot_num}')
-    return ic_slot_num + 1
+        params=fabric_params(sig))
 
-ic_slot = make_bus_and_send(bus_main_l, 'Main L Bus', ic_slot, c1_alloc)
-ic_slot = make_bus_and_send(bus_main_r, 'Main R Bus', ic_slot, c1_alloc)
-ic_slot = make_bus_and_send(bus_sub, 'Sub Bus', ic_slot, c1_alloc)
+make_bus_and_send(bus_main_l, 'Main L Bus', c1_alloc)
+make_bus_and_send(bus_main_r, 'Main R Bus', c1_alloc)
+make_bus_and_send(bus_sub, 'Sub Bus', c1_alloc)
 for g in range(NUM_GRP):
-    ic_slot = make_bus_and_send(bus_grp[g], f'Grp {g+1} Bus', ic_slot, c1_alloc)
+    make_bus_and_send(bus_grp[g], f'Grp {g+1} Bus', c1_alloc)
 for a_idx in range(NUM_AUX):
-    ic_slot = make_bus_and_send(bus_aux[a_idx], f'Aux {a_idx+1} Bus', ic_slot, c1_alloc)
+    make_bus_and_send(bus_aux[a_idx], f'Aux {a_idx+1} Bus', c1_alloc)
 for f_idx in range(NUM_FX):
-    ic_slot = make_bus_and_send(bus_fx[f_idx], f'FX {f_idx+1} Bus', ic_slot, c1_alloc)
+    make_bus_and_send(bus_fx[f_idx], f'FX {f_idx+1} Bus', c1_alloc)
+
+# Sanity: legacy bus order must land on global slots 0-24 unchanged
+assert [MIX_GLOBAL[bus_signal[b]] for b in all_bus_ids] == list(range(25))
+
+# --- Superset fabric pass-through sends (sources generated above) ---
+for sig, src, scope in xfer_map:
+    fp = fabric_params(sig)
+    if scope:
+        fp += f';scope={scope}'
+    add(f'C1_XS_{sig}', 1, 'INTERCHIP_SEND', f'{sig} Send', 1, src, '',
+        params=fp)
 
 # ===========================================================================
 # CHIP 2 — Output DSP
@@ -243,37 +377,38 @@ for f_idx in range(NUM_FX):
 
 # --- Inter-chip RECV nodes (one per bus) ---
 recv_ids = {}
-ic_slot = 0
-for bus_label, bus_key in [('Main L', 'main_l'), ('Main R', 'main_r'), ('Sub', 'sub')]:
+recv_sig = {}
+for bus_label, bus_key, sig in [('Main L', 'main_l', 'BUS_MAIN_L'),
+                                ('Main R', 'main_r', 'BUS_MAIN_R'),
+                                ('Sub', 'sub', 'BUS_SUB')]:
     nid = f'C2_RECV_{bus_key.upper()}'
     add(nid, 2, 'INTERCHIP_RECV', f'{bus_label} Recv', 1, '', '',
-        params=f'sport_id=7;slot={ic_slot}')
+        params=fabric_params(sig))
     recv_ids[bus_key] = nid
-    ic_slot += 1
 
 for g in range(1, NUM_GRP + 1):
     nid = f'C2_RECV_GRP_{g:02d}'
     add(nid, 2, 'INTERCHIP_RECV', f'Grp {g} Recv', 1, '', '',
-        params=f'sport_id=7;slot={ic_slot}')
+        params=fabric_params(f'BUS_GRP_{g:02d}'))
     recv_ids[f'grp_{g}'] = nid
-    ic_slot += 1
 
 for a in range(1, NUM_AUX + 1):
     nid = f'C2_RECV_AUX_{a:02d}'
     add(nid, 2, 'INTERCHIP_RECV', f'Aux {a} Recv', 1, '', '',
-        params=f'sport_id=7;slot={ic_slot}')
+        params=fabric_params(f'BUS_AUX_{a:02d}'))
     recv_ids[f'aux_{a}'] = nid
-    ic_slot += 1
 
 for f in range(1, NUM_FX + 1):
     nid = f'C2_RECV_FX_{f:02d}'
     add(nid, 2, 'INTERCHIP_RECV', f'FX {f} Recv', 1, '', '',
-        params=f'sport_id=7;slot={ic_slot}')
+        params=fabric_params(f'BUS_FX_{f:02d}'))
     recv_ids[f'fx_{f}'] = nid
-    ic_slot += 1
+
+last_bus_recv_idx = len(rows)  # splice point for superset recv rows
 
 # --- AUX BUSES ×12 (Chip 2) ---
 # Chain: RECV → FDR → EQ → ANTIFB → LIM → DLY → OUT
+# Output patch: Aux 1-12 → DAC_01..DAC_12 (B_O0 + B_O1 low half)
 for a in range(1, NUM_AUX + 1):
     aa = f'{a:02d}'
     recv = recv_ids[f'aux_{a}']
@@ -329,7 +464,7 @@ for a in range(1, NUM_AUX + 1):
     p, a2 = c2_alloc.next(1)
     add(n_out, 2, 'OUTPUT_TDM', f'Aux {a} Out', 1, n_dly, '',
         spi_page=p, spi_addr=a2,
-        params=f'sport_id={(a-1)//8 + 2};slot_start={(a-1)%8};slot_count=1')
+        params=output_params(f'DAC_{a:02d}'))
 
 # --- GROUP BUSES ×4 (Chip 2) ---
 # Chain: RECV → FDR → EQ → GATE → COMP → (feed to Main)
@@ -370,7 +505,9 @@ for g in range(1, NUM_GRP + 1):
         ramp_profile='DynSafe')
 
 # --- SUB BUS (Chip 2) ---
-# Chain: RECV → EQ → COMP → LIM → DLY → OUT
+# Chain: RECV → FDR → EQ → COMP → LIM → DLY → OUT
+# Output patch: Sub → NET_OUT_01 (no dedicated analog sub DAC on DSP4;
+# provisional pending product-config output patch layer)
 recv_sub = recv_ids['sub']
 for r in rows:
     if r['id'] == recv_sub:
@@ -409,15 +546,20 @@ add('C2_SUB_DLY', 2, 'DELAY', 'Sub Delay', 1, 'C2_SUB_LIM', 'C2_SUB_OUT',
 p, a2 = c2_alloc.next(1)
 add('C2_SUB_OUT', 2, 'OUTPUT_TDM', 'Sub Out', 1, 'C2_SUB_DLY', '',
     spi_page=p, spi_addr=a2,
-    params='sport_id=4;slot_start=0;slot_count=1')
+    params=output_params('NET_OUT_01'))
 
 # --- MAIN L/R BUS (Chip 2) ---
-# Chain: RECV → MIX (with group feeds) → MASTER_FDR → GEQ_28 → COMP → LIM → DLY → XOVER → per-output EQ/COMP/LIM → OUT
+# Chain: RECV → MIX (with group/aux-input feeds) → MASTER_FDR → GEQ_28 →
+#        COMP → LIM → DLY → XOVER → per-output EQ/COMP/LIM → OUT
 
-# Main mix receives direct channel sums + group output feeds
+# Main mix receives direct channel sums + group output feeds + superset
+# aux inputs (USB/BT/codec aux/Pi/snake, all default-off)
+aux_input_ids = ['C2_USB_IN', 'C2_BT_IN', 'C2_CODEC_AUX_IN', 'C2_PI_IN'] + \
+    [f'C2_SNK_IN_{s:02d}' for s in range(1, 9)]
 grp_comp_ids = ';'.join(f'C2_GRP_COMP_{g:02d}' for g in range(1, NUM_GRP + 1))
-main_l_sources = f'{recv_ids["main_l"]};{grp_comp_ids}'
-main_r_sources = f'{recv_ids["main_r"]};{grp_comp_ids}'
+aux_in_str = ';'.join(aux_input_ids)
+main_l_sources = f'{recv_ids["main_l"]};{grp_comp_ids};{aux_in_str}'
+main_r_sources = f'{recv_ids["main_r"]};{grp_comp_ids};{aux_in_str}'
 
 for r in rows:
     if r['id'] == recv_ids['main_l']:
@@ -460,7 +602,8 @@ add('C2_MAIN_LIM', 2, 'LIMITER', 'Main Lim', 2, 'C2_MAIN_COMP', 'C2_MAIN_DLY',
     ramp_profile='DynSafe')
 
 p, a2 = c2_alloc.next(2)
-add('C2_MAIN_DLY', 2, 'DELAY', 'Main Delay', 2, 'C2_MAIN_LIM', 'C2_MAIN_XOVER',
+add('C2_MAIN_DLY', 2, 'DELAY', 'Main Delay', 2, 'C2_MAIN_LIM',
+    'C2_MAIN_XOVER;C2_MAIN_ST_OUT;C2_CODEC_AUX_OUT',
     spi_page=p, spi_addr=a2,
     params='delay_ms=0.0;max_ms=250.0',
     ramp_profile='InstantCtl')
@@ -473,6 +616,7 @@ add('C2_MAIN_XOVER', 2, 'CROSSOVER', 'Main Xover', 2,
     ramp_profile='EqSafe')
 
 # --- Per-output processing (Main ×4) ---
+# Output patch: Main xover outs 1-4 → DAC_13..DAC_16 (B_O1 high half)
 for out_n in range(1, 5):
     oo = f'{out_n:02d}'
     n_eq   = f'C2_MAIN_OEQ_{oo}'
@@ -498,11 +642,10 @@ for out_n in range(1, 5):
         params='threshold_db=-0.5;attack_ms=0.1;release_ms=50.0',
         ramp_profile='DynSafe')
 
-    sport_out = 4  # main outputs on SPORT4
     p, a2 = c2_alloc.next(1)
     add(n_out, 2, 'OUTPUT_TDM', f'Main Out {out_n}', 1, n_lim, '',
         spi_page=p, spi_addr=a2,
-        params=f'sport_id={sport_out};slot_start={out_n-1+1};slot_count=1')
+        params=output_params(f'DAC_{12 + out_n:02d}'))
 
 # --- FX ENGINES ×6 (Chip 2) ---
 # Chain: RECV → FX_ENGINE → FDR → (feeds main/aux)
@@ -529,6 +672,9 @@ for f in range(1, NUM_FX + 1):
         ramp_profile='GainFast')
 
 # --- MONITOR / PHONES (Chip 2) ---
+# Output patch: monitor → codec DAC ch1/2 (D24 talkback SPKR path;
+# B_O2 is D32 SNAKE — D32 monitor/snake output patch TBD with the
+# product-config output layer)
 p, a2 = c2_alloc.next(6)
 add('C2_MON', 2, 'MONITOR', 'Monitor', 2, 'C2_MAIN_FDR', 'C2_MON_DLY',
     spi_page=p, spi_addr=a2,
@@ -544,7 +690,7 @@ add('C2_MON_DLY', 2, 'DELAY', 'Monitor Delay', 2, 'C2_MON', 'C2_MON_OUT',
 p, a2 = c2_alloc.next(1)
 add('C2_MON_OUT', 2, 'OUTPUT_TDM', 'Monitor Out', 2, 'C2_MON_DLY', '',
     spi_page=p, spi_addr=a2,
-    params='sport_id=5;slot_start=0;slot_count=2')
+    params=output_params('CODEC_OUT_1', slot_count=2, scope='D24'))
 
 # --- USB / BT (Chip 2) ---
 p, a2 = c2_alloc.next(2)
@@ -559,7 +705,7 @@ add('C2_BT_IN', 2, 'AUX_INPUT', 'BT Input', 2, '', 'C2_MIX_MAIN_L;C2_MIX_MAIN_R'
     params='level_db=-6.0;on=0',
     ramp_profile='GainFast')
 
-# --- DCA MASTERS ×8 (Chip 2, mirrored via LP0) ---
+# --- DCA MASTERS ×8 (Chip 2, mirrored via param writes to both chips) ---
 p, a2 = c2_alloc.next(16)
 for d in range(1, 9):
     add(f'C2_DCA_{d:02d}', 2, 'DCA', f'DCA {d}', 1, '', '',
@@ -594,10 +740,84 @@ for f in range(1, NUM_FX + 1):
         spi_page=p_mtr, spi_addr=a_mtr + 25 + (f-1))
 
 # ===========================================================================
+# CHIP 2 — Superset receives + aux inputs + extra outputs (D3)
+# ===========================================================================
+# SPI addresses allocate after all legacy chip-2 nodes (address stability);
+# recv/aux-input ROWS are spliced in right after the bus RECV block so they
+# execute before the main mix reads them.
+
+superset_c2_start = len(rows)
+
+xfer_recv = {}
+for sig, src, scope in xfer_map:
+    nid = 'C2_XR_' + sig.replace('XFER_', '')
+    p = fabric_params(sig)
+    if scope:
+        p += f';scope={scope}'
+    add(nid, 2, 'INTERCHIP_RECV', f'{sig} Recv', 1, '', '', params=p)
+    xfer_recv[sig] = nid
+
+def wire_recv(sig, consumer):
+    for r in rows:
+        if r['id'] == xfer_recv[sig]:
+            r['outputs'] = consumer
+
+p, a2 = c2_alloc.next(2)
+add('C2_CODEC_AUX_IN', 2, 'AUX_INPUT', 'Codec Aux Input', 2,
+    f'{xfer_recv["XFER_CODEC_AUX_L"]};{xfer_recv["XFER_CODEC_AUX_R"]}',
+    'C2_MIX_MAIN_L;C2_MIX_MAIN_R',
+    spi_page=p, spi_addr=a2,
+    params='level_db=-6.0;on=0',
+    ramp_profile='GainFast')
+wire_recv('XFER_CODEC_AUX_L', 'C2_CODEC_AUX_IN')
+wire_recv('XFER_CODEC_AUX_R', 'C2_CODEC_AUX_IN')
+
+p, a2 = c2_alloc.next(2)
+add('C2_PI_IN', 2, 'AUX_INPUT', 'Pi Playback Input', 2,
+    f'{xfer_recv["XFER_PI_L"]};{xfer_recv["XFER_PI_R"]}',
+    'C2_MIX_MAIN_L;C2_MIX_MAIN_R',
+    spi_page=p, spi_addr=a2,
+    params='level_db=-6.0;on=0',
+    ramp_profile='GainFast')
+wire_recv('XFER_PI_L', 'C2_PI_IN')
+wire_recv('XFER_PI_R', 'C2_PI_IN')
+
+for s in range(1, 9):
+    sig = f'XFER_SNAKE_{s:02d}'
+    nid = f'C2_SNK_IN_{s:02d}'
+    p, a2 = c2_alloc.next(2)
+    add(nid, 2, 'AUX_INPUT', f'Snake Return {s} Input', 1,
+        xfer_recv[sig], 'C2_MIX_MAIN_L;C2_MIX_MAIN_R',
+        spi_page=p, spi_addr=a2,
+        params='level_db=-6.0;on=0;scope=D32',
+        ramp_profile='GainFast')
+    wire_recv(sig, nid)
+
+superset_c2_end = len(rows)
+
+# --- Extra outputs (allocated + appended last; sources run earlier) ---
+p, a2 = c2_alloc.next(1)
+add('C2_MAIN_ST_OUT', 2, 'OUTPUT_TDM', 'Main Stereo Out (DAC MAIN)', 2,
+    'C2_MAIN_DLY', '',
+    spi_page=p, spi_addr=a2,
+    params=output_params('DAC_MAIN_L', slot_count=2))
+
+p, a2 = c2_alloc.next(1)
+add('C2_CODEC_AUX_OUT', 2, 'OUTPUT_TDM', 'Codec Aux Out', 2,
+    'C2_MAIN_DLY', '',
+    spi_page=p, spi_addr=a2,
+    params=output_params('CODEC_OUT_3', slot_count=2, scope='D24'))
+
+# Splice superset recv/aux-input rows after the bus RECV block so process
+# order is: bus recvs, superset recvs + aux inputs, aux buses, ... main mix.
+superset_rows = rows[superset_c2_start:superset_c2_end]
+del rows[superset_c2_start:superset_c2_end]
+rows[last_bus_recv_idx:last_bus_recv_idx] = superset_rows
+
+# ===========================================================================
 # Write CSV
 # ===========================================================================
-script_dir = os.path.dirname(os.path.abspath(__file__))
-csv_path = os.path.join(script_dir, '..', 'dsp.csv')
+csv_path = args.out
 
 with open(csv_path, 'w', newline='', encoding='utf-8') as f:
     writer = csv.DictWriter(f, fieldnames=HEADER)
@@ -606,9 +826,13 @@ with open(csv_path, 'w', newline='', encoding='utf-8') as f:
 
 c1_count = sum(1 for r in rows if r['chip'] == '1')
 c2_count = sum(1 for r in rows if r['chip'] == '2')
+n_send = sum(1 for r in rows if r['type'] == 'INTERCHIP_SEND')
 print(f"Generated {csv_path}")
+print(f"  sport map: {args.sport_map}")
+print(f"    source_hash sha256:{SPORT_MAP['source_hash'][:16]}…")
 print(f"  Total nodes: {len(rows)}")
 print(f"  Chip 1: {c1_count}")
 print(f"  Chip 2: {c2_count}")
+print(f"  Mix-fabric slots in use: {n_send} of {SPORT_MAP['mix_fabric']['total_slots']}")
 print(f"  Chip 1 SPI words allocated: page {c1_alloc.page}, addr {c1_alloc.addr}")
 print(f"  Chip 2 SPI words allocated: page {c2_alloc.page}, addr {c2_alloc.addr}")

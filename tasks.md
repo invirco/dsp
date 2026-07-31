@@ -10,37 +10,81 @@ Status colors:
 - <span style="color:#2563eb"><b>NEXT</b></span>
 - <span style="color:#6b7280"><b>BLOCKED/DEFERRED</b></span>
 
-## Resume notes (saved 2026-07-31)
+## Resume notes (saved 2026-07-31, evening)
 
-Today:
-1. **2026-07-30 work committed** in the planned split: schematic review +
-   hardware map (`ae6973d`), build verification + build.sh + tasks
-   (`b675143`).
-2. **D2 slot-map source table CREATED** — `shared/dsp4-logic/` now holds
-   `tdm-lines.csv` (24 physical TDM lines: A_I0-7, MIX_0-7, B_O0-7) +
-   `slot-map.csv` (134 slot assignments) + `gen_slot_map.py`
-   (validate + emit). Generated outputs committed:
-   `generated/sport_map.json` (for gen_dsp_csv.py) and
-   `generated/dsp4_slot_map.vh` (for CPLD HDL), both stamped with the
-   source hash. Key encodings: the 25 legacy buses keep their slot order
-   as global mix slots 0-24 (line n/16, slot n%16 — old sport7 slot
-   numbering maps 1:1); MIX_2-7 reserved for 128-bus growth; B_O1→DA3 fix
-   as `DA_LANE_B_O1=3`; B_O2 scope-split (D24 codec / D32 snake);
-   DSP-facing formats uniform (chip1 in=TDM8/out=TDM16, chip2 mirrored —
-   LOGIC re-frames Pi I2S and MEMS TDM8-slot-5).
+Today, session 1: committed 2026-07-30 work (`ae6973d`, `b675143`);
+created the D2 slot-map source table + generator in `shared/dsp4-logic/`
+(`8439b18`).
+
+Today, session 2 — **P1 fabric remap DONE** (gen_dsp_csv.py rework):
+1. **Slot map extended**: fabric pass-through slots XFER_* on global mix
+   slots 25-36 (codec aux L/R, Pi L/R, snake 1-8; MIX_1 slots 9-15 +
+   MIX_2 slots 0-4). 37 of 128 fabric slots now assigned. New
+   source_hash sha256:6e89117c4d173ecf….
+2. **gen_dsp_csv.py rewritten** to consume `sport_map.json`: interchip
+   nodes now carry `sport_id=<line>;slot;global_slot;sport_slots=16;
+   signal=…` (legacy sport7 numbering preserved 1:1 as global slots);
+   INPUT/OUTPUT nodes carry `sport_slots` + `signal`; CLI gained
+   `--out`/`--sport-map` (stale `tools/dsp.csv` output path fixed).
+   Superset I/O per D3: chip1 XIN nodes (codec ret 1/3/4, Pi L/R, MEMS,
+   snake 1-8 [D32]) — codec-1/MEMS wired to TALKBACK 1/2, the rest
+   pass through the fabric to chip2 XR recvs + AUX_INPUT nodes
+   (default-off) feeding the main mix. Output patch onto real hardware:
+   Aux 1-12 → DAC_01-12, Main xover 1-4 → DAC_13-16, Sub → NET_OUT_01,
+   Monitor → CODEC_OUT_1/2 (D24), new C2_MAIN_ST_OUT → DAC MAIN and
+   C2_CODEC_AUX_OUT → CODEC_OUT_3/4 (both fed from post-delay main).
+   D32 snake OUTPUT patch deliberately deferred to the product-config
+   output layer (B_O2 slots are scope-shared with D24 codec; block_io
+   is scope-blind today). Also fixed: USB/BT aux inputs were declared
+   as main-mix outputs but missing from MIX_MAIN inputs (silently
+   dropped contribution).
+   **Address stability verified by diff**: 0 spi addr changes, 0 removals,
+   50 nodes added (662 total; new cells 1818-1837 appended on chip 2).
+3. **dsp_codegen.py linearization parameterized**: IC tables keyed by
+   global_slot with a contiguity assertion (packed DMA); TX frame index
+   uses per-node sport_slots (uniformity asserted); RX sort by
+   (sport, slot). block_io strides now: c1 rx=46, ic=37; c2 tx stride=33.
+4. **sport_init.asm geometry updated** (RX/TX buffers to 64-slot frame
+   capacity = 2048 words, IC_CHANNELS 25→37, honest header: LOGIC is
+   clock master everywhere, register-level SPORT config still implements
+   the superseded single-SPORT7 model — loud TODO(dsp4-plumbing) for
+   hardware bring-up). Old buffer sizing had a latent overflow (tx
+   stride 42 > 32-slot buffer) — never ran on hardware.
+5. **gen_dsp.py (D32 backfill)**: new node-id patterns (CodecAux/Pi/Snk
+   cells 1818-1837 on chip 2); unmatched node ids now FAIL LOUDLY
+   (previously fell through to a silent '000' cell family — no-fallback
+   policy violation, found because it produced 000Level001/000On001).
+   20 new cells await mx26 matrix adoption (INFO list).
+6. **build.sh**: fit-proxy now auto-generates a matching temp LDF when
+   PROC_TARGET≠21564 (never committed).
+7. dsp.plan.md marked SUPERSEDED (Link-Port/MCU-relay diagram obsolete
+   per D1). dsp_validate + dsp_simulate pass on the new graph.
+8. **Fit-proxy build PASSED post-remap** (`PROC_TARGET=ADSP-21568
+   ./build.sh all`): 687 objects, 0 errors, both chips linked
+   (chip1.dxe 1.27 MB, chip2.dxe 2.50 MB). Memory: chip1 block3 97.8%
+   (+0.5 vs 2026-07-30; sec_swco_ovf → idle block2 catches overflow),
+   chip1 block1 28.7% (doubled DMA buffers fit easily), chip2 L2 95.6% /
+   L2CTL1 69.6% (unchanged — delay lines). No LDF change needed yet.
+
+NOT verifiable today: `./regenerate-dsp-contract.sh` full flow — no mx26
+checkout on this machine (all candidate paths empty; MX26_REPO unset).
+Ran the downstream steps directly (validate-matrix-contract.py OK,
+gen_dsp.py --force OK). Re-run the full script when mx26 is available.
 
 2026-07-30: build verification (fit proxy PASSED as 21568), Quartus
 verified, rev C schematic review, xSPI PSRAM investigation.
 
-Tomorrow's entry point — P1 task 1: rework `tools/dsp/gen_dsp_csv.py` to
-consume `shared/dsp4-logic/generated/sport_map.json`. Found during
-today's read-through, fix during that rework: gen_dsp_csv.py still
-writes `../dsp.csv` relative to itself, which after the move to
-`tools/dsp/` resolves to `tools/dsp.csv` — it must take the product
-SHARC dir as an argument (per-product output was the point of sharing
-it). Also: dsp_codegen.py assumes 8 slots/SPORT (`sport_id*8+slot_start`
-linearization in ~4 places) — TDM16 mix lines break that; parameterize
-slots-per-sport from sport_map.json.
+Next entry points:
+1. sport/DMA register plumbing in sport_init.asm (TODO(dsp4-plumbing)):
+   8-lane fabric SPORT configs, CS masks for sparse RX slots (codec
+   0x0F, snake 0xFF, Pi 0x03, MEMS 0x20), DMA channel map — needs
+   ADSP-2156x HRM at hand; all SPORTs clock-slave to LOGIC.
+2. Product-config boot block (chan_mask exists; needs scope gating for
+   D24/D32 nodes incl. the B_O2 codec-vs-snake output mux + input patch
+   for D24 console-channel interleave ch 1-4/13-16 etc.).
+3. LDF rebalance if the build shows block3/L2 pressure from the new
+   nodes (block2 overflow section already exists).
+4. CPLD `rtl/` against `dsp4_slot_map.vh`.
 
 ### Checked, no action needed
 `cces-tools/license/license.dat` exists on disk but is NOT tracked — the
@@ -74,22 +118,22 @@ D3 one DSP4 firmware for D24+D32, D4 topology per schematic).
 Hardware ground truth: [MW/D24/HW/hardware-map.md](MW/D24/HW/hardware-map.md)
 (schematics in MW/D24/HW/schematics/, imported 2026-07-29).
 
-- [ ] <span style="color:#2563eb"><b>NEXT</b></span> Rework `tools/dsp/gen_dsp_csv.py` to the DSP4 superset topology
-  - Consume `shared/dsp4-logic/generated/sport_map.json` (created
-    2026-07-31) — replace the hardcoded sport_id=7/25-slot interchip model
-    with the 8× TDM16 mix fabric; bus slot numbering is preserved 1:1.
-  - Mix summing on chip 1 (128-bus output over 8× TDM16); chip 2 = bus
-    processing + output router (DAC 1-16, DAC MAIN, codec/snake, NET 1-32).
-  - Add superset I/O nodes (codec return, Pi PCM, MEMS, snake, AUX) behind
-    boot-time product config; keep ONE shared DSP address map.
-  - Mechanical fixes found 2026-07-31: gen_dsp_csv.py output path is stale
-    (`../dsp.csv` → `tools/dsp.csv`; take product SHARC dir as arg);
-    dsp_codegen.py hardcodes 8 slots/SPORT in its `sport_id*8+slot_start`
-    linearization (~4 sites) — parameterize per-sport slot counts.
-  - LDF memory rebalance rides along (chip1 block3 97.3% / chip2 L2 95.6%
-    → move into idle block2 / L2CTL1).
-  - Then regenerate dsp.csv + node ASM; update dsp.plan.md (Link-Port/MCU
-    relay diagram is obsolete per D1).
+- [x] <span style="color:#16a34a"><b>DONE</b></span> (2026-07-31) Rework `tools/dsp/gen_dsp_csv.py` to the DSP4 superset topology
+  - Consumes `sport_map.json`; 8× TDM16 mix fabric (37/128 slots), bus
+    numbering preserved 1:1; superset I/O nodes + output patch onto real
+    hardware map; 662 nodes, 0 address changes to legacy cells; validate +
+    simulate + fit-proxy build (687 obj, 0 err) all pass. Details in
+    resume notes above. LDF rebalance NOT needed yet (block2 overflow
+    section absorbs code growth; DMA buffers fit block1 at 28.7%).
+
+- [ ] <span style="color:#2563eb"><b>NEXT</b></span> DSP4 firmware remaining (post-remap)
+  - sport_init.asm register plumbing — TODO(dsp4-plumbing) marker: 8-lane
+    fabric SPORT configs (all clock-slave to LOGIC), sparse-RX CS masks,
+    DMA channel map. Needs ADSP-2156x HRM.
+  - Product-config boot block: scope gating (D24/D32 `scope=` params now
+    in dsp.csv), B_O2 codec-vs-snake output mux, D24 input patch
+    (console-channel interleave), D32 snake OUTPUT patch.
+  - GrpGeq (P2 below) now unblocked by license for fit-proxy work.
 
 - [ ] <span style="color:#d97706"><b>IN PROGRESS</b></span> Create `shared/dsp4-logic/` CPLD tree
   - [x] <span style="color:#16a34a"><b>DONE</b></span> (2026-07-31) Slot/bus map source table + generator:

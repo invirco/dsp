@@ -11,16 +11,28 @@
  *----------------------------------------------------------------------*/
 
 /* MIX_BUS: Summing bus (bus_id=1) */
-/* 5 sources */
+/* 17 sources */
 
 .section/dm seg_dmda;
+.extern _buf_C2_BT_IN;
+.extern _buf_C2_CODEC_AUX_IN;
 .extern _buf_C2_GRP_COMP_01;
 .extern _buf_C2_GRP_COMP_02;
 .extern _buf_C2_GRP_COMP_03;
 .extern _buf_C2_GRP_COMP_04;
+.extern _buf_C2_PI_IN;
 .extern _buf_C2_RECV_MAIN_R;
+.extern _buf_C2_SNK_IN_01;
+.extern _buf_C2_SNK_IN_02;
+.extern _buf_C2_SNK_IN_03;
+.extern _buf_C2_SNK_IN_04;
+.extern _buf_C2_SNK_IN_05;
+.extern _buf_C2_SNK_IN_06;
+.extern _buf_C2_SNK_IN_07;
+.extern _buf_C2_SNK_IN_08;
+.extern _buf_C2_USB_IN;
 .global _mix_gains_C2_MIX_MAIN_R;
-.var _mix_gains_C2_MIX_MAIN_R[5];
+.var _mix_gains_C2_MIX_MAIN_R[17];
 .global _buf_C2_MIX_MAIN_R;
 .var _buf_C2_MIX_MAIN_R;
 
@@ -28,9 +40,9 @@
 .global _C2_MIX_MAIN_R_process;
 _C2_MIX_MAIN_R_process:
     r0 = 0x00000000;  /* 0.0 IEEE 754 */
-    /* Accumulate over 5 source buffers × gain */
+    /* Accumulate over 17 source buffers × gain */
     i0 = _mix_gains_C2_MIX_MAIN_R;
-    r5 = 5;
+    r5 = 17;
     f1 = dm(_buf_C2_RECV_MAIN_R);
 f2 = dm(i0, 1);
 f1 = f1 * f2;
@@ -48,6 +60,54 @@ f2 = dm(i0, 1);
 f1 = f1 * f2;
 f0 = f0 + f1;
 f1 = dm(_buf_C2_GRP_COMP_04);
+f2 = dm(i0, 1);
+f1 = f1 * f2;
+f0 = f0 + f1;
+f1 = dm(_buf_C2_USB_IN);
+f2 = dm(i0, 1);
+f1 = f1 * f2;
+f0 = f0 + f1;
+f1 = dm(_buf_C2_BT_IN);
+f2 = dm(i0, 1);
+f1 = f1 * f2;
+f0 = f0 + f1;
+f1 = dm(_buf_C2_CODEC_AUX_IN);
+f2 = dm(i0, 1);
+f1 = f1 * f2;
+f0 = f0 + f1;
+f1 = dm(_buf_C2_PI_IN);
+f2 = dm(i0, 1);
+f1 = f1 * f2;
+f0 = f0 + f1;
+f1 = dm(_buf_C2_SNK_IN_01);
+f2 = dm(i0, 1);
+f1 = f1 * f2;
+f0 = f0 + f1;
+f1 = dm(_buf_C2_SNK_IN_02);
+f2 = dm(i0, 1);
+f1 = f1 * f2;
+f0 = f0 + f1;
+f1 = dm(_buf_C2_SNK_IN_03);
+f2 = dm(i0, 1);
+f1 = f1 * f2;
+f0 = f0 + f1;
+f1 = dm(_buf_C2_SNK_IN_04);
+f2 = dm(i0, 1);
+f1 = f1 * f2;
+f0 = f0 + f1;
+f1 = dm(_buf_C2_SNK_IN_05);
+f2 = dm(i0, 1);
+f1 = f1 * f2;
+f0 = f0 + f1;
+f1 = dm(_buf_C2_SNK_IN_06);
+f2 = dm(i0, 1);
+f1 = f1 * f2;
+f0 = f0 + f1;
+f1 = dm(_buf_C2_SNK_IN_07);
+f2 = dm(i0, 1);
+f1 = f1 * f2;
+f0 = f0 + f1;
+f1 = dm(_buf_C2_SNK_IN_08);
 f2 = dm(i0, 1);
 f1 = f1 * f2;
 f0 = f0 + f1;

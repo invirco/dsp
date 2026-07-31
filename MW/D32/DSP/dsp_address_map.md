@@ -5418,6 +5418,26 @@
 | 1806 | 0x070E | `AaFx004Mtr001` |  |  |
 | 1807 | 0x070F | `AaFx005Mtr001` |  |  |
 | 1808 | 0x0710 | `AaFx006Mtr001` |  |  |
+| 1818 | 0x071A | `CodecAux001Level001` | 0=-20/127=6/[Lin] | GainFast |
+| 1819 | 0x071B | `CodecAux001On001` |  | InstantCtl |
+| 1820 | 0x071C | `Pi001Level001` | 0=-20/127=6/[Lin] | GainFast |
+| 1821 | 0x071D | `Pi001On001` |  | InstantCtl |
+| 1822 | 0x071E | `Snk001Level001` | 0=-20/127=6/[Lin] | GainFast |
+| 1823 | 0x071F | `Snk001On001` |  | InstantCtl |
+| 1824 | 0x0720 | `Snk002Level001` | 0=-20/127=6/[Lin] | GainFast |
+| 1825 | 0x0721 | `Snk002On001` |  | InstantCtl |
+| 1826 | 0x0722 | `Snk003Level001` | 0=-20/127=6/[Lin] | GainFast |
+| 1827 | 0x0723 | `Snk003On001` |  | InstantCtl |
+| 1828 | 0x0724 | `Snk004Level001` | 0=-20/127=6/[Lin] | GainFast |
+| 1829 | 0x0725 | `Snk004On001` |  | InstantCtl |
+| 1830 | 0x0726 | `Snk005Level001` | 0=-20/127=6/[Lin] | GainFast |
+| 1831 | 0x0727 | `Snk005On001` |  | InstantCtl |
+| 1832 | 0x0728 | `Snk006Level001` | 0=-20/127=6/[Lin] | GainFast |
+| 1833 | 0x0729 | `Snk006On001` |  | InstantCtl |
+| 1834 | 0x072A | `Snk007Level001` | 0=-20/127=6/[Lin] | GainFast |
+| 1835 | 0x072B | `Snk007On001` |  | InstantCtl |
+| 1836 | 0x072C | `Snk008Level001` | 0=-20/127=6/[Lin] | GainFast |
+| 1837 | 0x072D | `Snk008On001` |  | InstantCtl |
 
-**Total Chip 2 cells:** 1490
+**Total Chip 2 cells:** 1510
 

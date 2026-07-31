@@ -3,7 +3,7 @@
 
 .section/dm seg_dmda;
 
-/* IC RX scatter entries (25 recv channels) */
+/* IC RX scatter entries (37 recv channels) */
 .extern _rx_ic_slot_C2_RECV_MAIN_L;
 .extern _rx_ic_slot_C2_RECV_MAIN_R;
 .extern _rx_ic_slot_C2_RECV_SUB;
@@ -29,7 +29,19 @@
 .extern _rx_ic_slot_C2_RECV_FX_04;
 .extern _rx_ic_slot_C2_RECV_FX_05;
 .extern _rx_ic_slot_C2_RECV_FX_06;
-.var _c2_ic_rx_slots[25] =
+.extern _rx_ic_slot_C2_XR_CODEC_AUX_L;
+.extern _rx_ic_slot_C2_XR_CODEC_AUX_R;
+.extern _rx_ic_slot_C2_XR_PI_L;
+.extern _rx_ic_slot_C2_XR_PI_R;
+.extern _rx_ic_slot_C2_XR_SNAKE_01;
+.extern _rx_ic_slot_C2_XR_SNAKE_02;
+.extern _rx_ic_slot_C2_XR_SNAKE_03;
+.extern _rx_ic_slot_C2_XR_SNAKE_04;
+.extern _rx_ic_slot_C2_XR_SNAKE_05;
+.extern _rx_ic_slot_C2_XR_SNAKE_06;
+.extern _rx_ic_slot_C2_XR_SNAKE_07;
+.extern _rx_ic_slot_C2_XR_SNAKE_08;
+.var _c2_ic_rx_slots[37] =
     0,
     1,
     2,
@@ -54,8 +66,20 @@
     21,
     22,
     23,
-    24;
-.var _c2_ic_rx_ptrs[25] =
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36;
+.var _c2_ic_rx_ptrs[37] =
     _rx_ic_slot_C2_RECV_MAIN_L,
     _rx_ic_slot_C2_RECV_MAIN_R,
     _rx_ic_slot_C2_RECV_SUB,
@@ -80,9 +104,21 @@
     _rx_ic_slot_C2_RECV_FX_03,
     _rx_ic_slot_C2_RECV_FX_04,
     _rx_ic_slot_C2_RECV_FX_05,
-    _rx_ic_slot_C2_RECV_FX_06;
+    _rx_ic_slot_C2_RECV_FX_06,
+    _rx_ic_slot_C2_XR_CODEC_AUX_L,
+    _rx_ic_slot_C2_XR_CODEC_AUX_R,
+    _rx_ic_slot_C2_XR_PI_L,
+    _rx_ic_slot_C2_XR_PI_R,
+    _rx_ic_slot_C2_XR_SNAKE_01,
+    _rx_ic_slot_C2_XR_SNAKE_02,
+    _rx_ic_slot_C2_XR_SNAKE_03,
+    _rx_ic_slot_C2_XR_SNAKE_04,
+    _rx_ic_slot_C2_XR_SNAKE_05,
+    _rx_ic_slot_C2_XR_SNAKE_06,
+    _rx_ic_slot_C2_XR_SNAKE_07,
+    _rx_ic_slot_C2_XR_SNAKE_08;
 
-/* TX output slot tables (18 output channels, stride=42) */
+/* TX output slot tables (20 output channels, stride=33) */
 .extern _tx_out_slot_C2_AUX_OUT_01;
 .extern _tx_out_slot_C2_AUX_OUT_02;
 .extern _tx_out_slot_C2_AUX_OUT_03;
@@ -95,32 +131,36 @@
 .extern _tx_out_slot_C2_AUX_OUT_10;
 .extern _tx_out_slot_C2_AUX_OUT_11;
 .extern _tx_out_slot_C2_AUX_OUT_12;
-.extern _tx_out_slot_C2_SUB_OUT;
 .extern _tx_out_slot_C2_MAIN_OUT_01;
 .extern _tx_out_slot_C2_MAIN_OUT_02;
 .extern _tx_out_slot_C2_MAIN_OUT_03;
 .extern _tx_out_slot_C2_MAIN_OUT_04;
 .extern _tx_out_slot_C2_MON_OUT;
-.var _c2_tx_slots[18] =
+.extern _tx_out_slot_C2_CODEC_AUX_OUT;
+.extern _tx_out_slot_C2_MAIN_ST_OUT;
+.extern _tx_out_slot_C2_SUB_OUT;
+.var _c2_tx_slots[20] =
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
     16,
-    17,
     18,
-    19,
-    20,
-    21,
-    22,
-    23,
     24,
-    25,
-    26,
-    27,
-    32,
-    33,
-    34,
-    35,
-    36,
-    40;
-.var _c2_tx_ptrs[18] =
+    32;
+.var _c2_tx_ptrs[20] =
     _tx_out_slot_C2_AUX_OUT_01,
     _tx_out_slot_C2_AUX_OUT_02,
     _tx_out_slot_C2_AUX_OUT_03,
@@ -133,12 +173,14 @@
     _tx_out_slot_C2_AUX_OUT_10,
     _tx_out_slot_C2_AUX_OUT_11,
     _tx_out_slot_C2_AUX_OUT_12,
-    _tx_out_slot_C2_SUB_OUT,
     _tx_out_slot_C2_MAIN_OUT_01,
     _tx_out_slot_C2_MAIN_OUT_02,
     _tx_out_slot_C2_MAIN_OUT_03,
     _tx_out_slot_C2_MAIN_OUT_04,
-    _tx_out_slot_C2_MON_OUT;
+    _tx_out_slot_C2_MON_OUT,
+    _tx_out_slot_C2_CODEC_AUX_OUT,
+    _tx_out_slot_C2_MAIN_ST_OUT,
+    _tx_out_slot_C2_SUB_OUT;
 
 .extern _ic_rx_active_buf;
 .extern _tx_active_buf;
@@ -146,17 +188,17 @@
 
 .section/pm seg_pmco;
 
-/* Scatter 25 inter-chip recv channels from IC DMA RX */
+/* Scatter 37 inter-chip recv channels from IC DMA RX */
 .global _scatter_chip2;
 _scatter_chip2:
     /* r0 = sample index (0..31) */
-    r1 = 25;
+    r1 = 37;
     r1 = r0 * r1;
     r6 = dm(_ic_rx_active_buf);
     r6 = r6 + r1;             /* r6 = IC buf base for this sample */
     i1 = _c2_ic_rx_slots;     /* slot offset table */
     i2 = _c2_ic_rx_ptrs;      /* destination var pointers */
-    r5 = 25;
+    r5 = 37;
     lcntr = r5; do .c2_scat_ic until lce;
         r3 = dm(i1, 1);       /* IC slot offset */
         r4 = dm(i2, 1);       /* pointer to _rx_ic_slot_* var */
@@ -170,17 +212,17 @@ _scatter_chip2:
     rts;
 _scatter_chip2.end:
 
-/* Gather 18 DAC outputs to DMA TX buffer (stride=42) */
+/* Gather 20 DAC outputs to DMA TX buffer (stride=33) */
 .global _gather_chip2;
 _gather_chip2:
     /* r0 = sample index (0..31) */
-    r1 = 42;
+    r1 = 33;
     r1 = r0 * r1;
     r6 = dm(_tx_active_buf);
     r6 = r6 + r1;             /* r6 = TX buf base for this sample */
     i1 = _c2_tx_slots;
     i2 = _c2_tx_ptrs;
-    r5 = 18;
+    r5 = 20;
     lcntr = r5; do .c2_gath_tx until lce;
         r3 = dm(i1, 1);       /* slot offset */
         r4 = dm(i2, 1);       /* pointer to _tx_out_slot_* var */
@@ -201,7 +243,7 @@ _meter_scan_chip2:
     i1 = _meter_peaks;
     m0 = 0;                   /* no-advance for peak read */
     m1 = 1;                   /* advance for peak write */
-    r5 = 18;
+    r5 = 20;
     lcntr = r5; do .c2_mscan until lce;
         r2 = dm(i0, 1);       /* pointer to _tx_out_slot_* var */
         i2 = r2;

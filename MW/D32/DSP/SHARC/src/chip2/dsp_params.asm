@@ -8,7 +8,7 @@
  * indexes this table to route parameter writes directly to node
  * coefficient variables.
  *
- * 1812 entries (SPI addresses 0x0000–0x0710)
+ * 1840 entries (SPI addresses 0x0000–0x072D)
  *======================================================================*/
 
 .section/dm seg_dmda;
@@ -75,8 +75,28 @@
 .extern _afb_on_C2_AUX_AFB_11;
 .extern _afb_on_C2_AUX_AFB_12;
 .extern _auxin_level_C2_BT_IN;
+.extern _auxin_level_C2_CODEC_AUX_IN;
+.extern _auxin_level_C2_PI_IN;
+.extern _auxin_level_C2_SNK_IN_01;
+.extern _auxin_level_C2_SNK_IN_02;
+.extern _auxin_level_C2_SNK_IN_03;
+.extern _auxin_level_C2_SNK_IN_04;
+.extern _auxin_level_C2_SNK_IN_05;
+.extern _auxin_level_C2_SNK_IN_06;
+.extern _auxin_level_C2_SNK_IN_07;
+.extern _auxin_level_C2_SNK_IN_08;
 .extern _auxin_level_C2_USB_IN;
 .extern _auxin_on_C2_BT_IN;
+.extern _auxin_on_C2_CODEC_AUX_IN;
+.extern _auxin_on_C2_PI_IN;
+.extern _auxin_on_C2_SNK_IN_01;
+.extern _auxin_on_C2_SNK_IN_02;
+.extern _auxin_on_C2_SNK_IN_03;
+.extern _auxin_on_C2_SNK_IN_04;
+.extern _auxin_on_C2_SNK_IN_05;
+.extern _auxin_on_C2_SNK_IN_06;
+.extern _auxin_on_C2_SNK_IN_07;
+.extern _auxin_on_C2_SNK_IN_08;
 .extern _auxin_on_C2_USB_IN;
 .extern _comp_attack_C2_GRP_COMP_01;
 .extern _comp_attack_C2_GRP_COMP_02;
@@ -673,9 +693,9 @@
 .extern _mtr_rms_C2_MTR_MAIN_04;
 .extern _xover_coeffs_next_C2_MAIN_XOVER;
 
-/* ---- Chip 2 SPI dispatch table (1812 entries) ---- */
+/* ---- Chip 2 SPI dispatch table (1840 entries) ---- */
 .global _spi_dispatch_c2;
-.var _spi_dispatch_c2[1812] =
+.var _spi_dispatch_c2[1840] =
     _fdr_level_C2_AUX_FDR_01,    /* 0x0000: C2_AUX_FDR_01 level */
     _fdr_pan_C2_AUX_FDR_01,    /* 0x0001: C2_AUX_FDR_01 pan */
     _fdr_mute_C2_AUX_FDR_01,    /* 0x0002: C2_AUX_FDR_01 mute */
@@ -2487,5 +2507,33 @@
     _mtr_peak_C2_MTR_FX_06,    /* 0x0710: C2_MTR_FX_06 */
     0,  /* 0x0711 */
     0,  /* 0x0712 */
-    0;  /* 0x0713 */
+    0,  /* 0x0713 */
+    0,  /* 0x0714 */
+    0,  /* 0x0715 */
+    0,  /* 0x0716 */
+    0,  /* 0x0717 */
+    0,  /* 0x0718 */
+    0,  /* 0x0719 */
+    _auxin_level_C2_CODEC_AUX_IN,    /* 0x071A: C2_CODEC_AUX_IN level */
+    _auxin_on_C2_CODEC_AUX_IN,    /* 0x071B: C2_CODEC_AUX_IN on */
+    _auxin_level_C2_PI_IN,    /* 0x071C: C2_PI_IN level */
+    _auxin_on_C2_PI_IN,    /* 0x071D: C2_PI_IN on */
+    _auxin_level_C2_SNK_IN_01,    /* 0x071E: C2_SNK_IN_01 level */
+    _auxin_on_C2_SNK_IN_01,    /* 0x071F: C2_SNK_IN_01 on */
+    _auxin_level_C2_SNK_IN_02,    /* 0x0720: C2_SNK_IN_02 level */
+    _auxin_on_C2_SNK_IN_02,    /* 0x0721: C2_SNK_IN_02 on */
+    _auxin_level_C2_SNK_IN_03,    /* 0x0722: C2_SNK_IN_03 level */
+    _auxin_on_C2_SNK_IN_03,    /* 0x0723: C2_SNK_IN_03 on */
+    _auxin_level_C2_SNK_IN_04,    /* 0x0724: C2_SNK_IN_04 level */
+    _auxin_on_C2_SNK_IN_04,    /* 0x0725: C2_SNK_IN_04 on */
+    _auxin_level_C2_SNK_IN_05,    /* 0x0726: C2_SNK_IN_05 level */
+    _auxin_on_C2_SNK_IN_05,    /* 0x0727: C2_SNK_IN_05 on */
+    _auxin_level_C2_SNK_IN_06,    /* 0x0728: C2_SNK_IN_06 level */
+    _auxin_on_C2_SNK_IN_06,    /* 0x0729: C2_SNK_IN_06 on */
+    _auxin_level_C2_SNK_IN_07,    /* 0x072A: C2_SNK_IN_07 level */
+    _auxin_on_C2_SNK_IN_07,    /* 0x072B: C2_SNK_IN_07 on */
+    _auxin_level_C2_SNK_IN_08,    /* 0x072C: C2_SNK_IN_08 level */
+    _auxin_on_C2_SNK_IN_08,    /* 0x072D: C2_SNK_IN_08 on */
+    0,  /* 0x072E */
+    0;  /* 0x072F */
 

@@ -1,5 +1,15 @@
 # ADSP-21564 Digital Mixer DSP — Implementation Plan
 
+> **SUPERSEDED (2026-07-31).** This plan predates the D24 schematics and the
+> binding DSP4 architecture decisions. Known-wrong content kept only for
+> history: the Link Port LP0 control path does not exist in hardware (D1:
+> the Pi/CM4 masters each DSP directly over SPI; no MCU relay, no
+> inter-chip control link), and the inter-chip audio transport is 8× TDM16
+> mix-fabric lines (128 slots), not a single SPORT TDM32. Current ground
+> truth: `dsp4-architecture-decisions.md`, `MW/D24/HW/hardware-map.md`,
+> and the slot map in `shared/dsp4-logic/`. The unified firmware lives in
+> `MW/D32/DSP/SHARC/` (D3); this D24 tree is retired from active work.
+
 ## 1. Target Hardware
 
 - **DSP**: 2× ADSP-21564 SHARC+ (up to 1 GHz, 2 MB L2 SRAM, 8× SPORT TDM/I2S, HW FIR/IIR accelerators)

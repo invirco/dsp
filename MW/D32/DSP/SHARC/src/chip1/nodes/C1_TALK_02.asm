@@ -16,6 +16,7 @@
 /* SPI page=1 addr=4740 */
 
 .section/dm seg_dmda;
+.extern _buf_C1_XIN_MEMS;
 .global _talk_on_C1_TALK_02;
 .var _talk_on_C1_TALK_02 = 0;
 .global _talk_gain_C1_TALK_02;
@@ -63,7 +64,7 @@ _C1_TALK_02_process:
 .tk_go_C1_TALK_02:
 
     /* Read talkback mic input */
-    r0 = dm(_buf_C1_TALK_02);
+    r0 = dm(_buf_C1_XIN_MEMS);
     /* Apply gain */
     f1 = dm(_talk_gain_C1_TALK_02);
     f0 = f0 * f1;

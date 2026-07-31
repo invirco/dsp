@@ -37,7 +37,20 @@ ASMFLAGS="$PROC"
 # Compiler flags (for any C files)
 CFLAGS="$PROC -O2 -DNDEBUG"
 
-# Linker flags
+# Linker flags — LDF resolved in build(): the repo LDF hardcodes
+# ARCHITECTURE(ADSP-21564); for a fit-proxy build under a different
+# PROC_TARGET a matching temp LDF is generated in the build dir (same
+# memory map — 21568 = same core/L1/L2). Never commit a non-21564 LDF.
+resolve_ldf() {
+    if [ "$PROC_TARGET" != "ADSP-21564" ]; then
+        mkdir -p "$BUILD_DIR"
+        local proxy_ldf="$BUILD_DIR/${PROC_TARGET}.ldf"
+        sed "s/ARCHITECTURE(ADSP-21564)/ARCHITECTURE($PROC_TARGET)/" "$LDF" > "$proxy_ldf"
+        LDF="$proxy_ldf"
+        echo "  (fit-proxy: using generated $proxy_ldf)"
+    fi
+    LDFLAGS="$PROC -T $LDF"
+}
 LDFLAGS="$PROC -T $LDF"
 
 clean() {
@@ -107,6 +120,7 @@ assemble_dir() {
 
 build() {
     echo "=== Build D32 DSP ==="
+    resolve_ldf
     mkdir -p "$BUILD_DIR/chip1" "$BUILD_DIR/chip2" "$BUILD_DIR/lib"
 
     local total_errors=0

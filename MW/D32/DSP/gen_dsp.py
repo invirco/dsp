@@ -714,6 +714,7 @@ _GRP_TYPES  = r'FDR|EQ|GATE|COMP'
 
 _NODE_PATTERNS = [
     # Channel strip (Chip 1)
+    (re.compile(r'^C1_IN_(\d+)$'),                     lambda m: None),  # TDM input, no cells
     (re.compile(rf'^C1_(?:{_CHAN_TYPES})_(\d+)$'),     lambda m: ('Chan', int(m.group(1)))),
     (re.compile(r'^C1_MTR_(\d+)$'),                    lambda m: ('AaChan', int(m.group(1)))),
     (re.compile(r'^C1_TALK_(\d+)$'),                   lambda m: ('Talk', int(m.group(1)))),
@@ -740,6 +741,16 @@ _NODE_PATTERNS = [
     # USB / BT
     (re.compile(r'^C2_USB_IN$'),                       lambda m: ('Usb', 1)),
     (re.compile(r'^C2_BT_IN$'),                        lambda m: ('Bt', 1)),
+    # Superset aux inputs (codec aux in, Pi playback, D32 snake returns)
+    (re.compile(r'^C2_CODEC_AUX_IN$'),                 lambda m: ('CodecAux', 1)),
+    (re.compile(r'^C2_PI_IN$'),                        lambda m: ('Pi', 1)),
+    (re.compile(r'^C2_SNK_IN_(\d+)$'),                 lambda m: ('Snk', int(m.group(1)))),
+    # Superset I/O plumbing (no cells)
+    (re.compile(r'^C1_XIN_'),                          lambda m: None),
+    (re.compile(r'^C1_XS_'),                           lambda m: None),
+    (re.compile(r'^C2_XR_'),                           lambda m: None),
+    (re.compile(r'^C2_MAIN_ST_OUT$'),                  lambda m: None),
+    (re.compile(r'^C2_CODEC_AUX_OUT$'),                lambda m: None),
     # DCA
     (re.compile(r'^C2_DCA_(\d+)$'),                    lambda m: ('Dca', int(m.group(1)))),
     # Output meters
@@ -759,7 +770,11 @@ def get_node_context(node_id):
         m = pattern.match(node_id)
         if m:
             return extractor(m)
-    return None
+    # No-fallback policy: every node id must be classified explicitly
+    # (a pattern mapping to None means "no cells", which is different
+    # from an id nobody has thought about).
+    sys.exit(f'ERROR: node id {node_id!r} matches no _NODE_PATTERNS entry — '
+             f'add an explicit pattern (or a None mapping) in gen_dsp.py')
 
 
 # ---------------------------------------------------------------------------

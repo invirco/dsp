@@ -3,7 +3,7 @@
 
 .section/dm seg_dmda;
 
-/* RX input slot pointer table (32 channels) */
+/* RX input slot pointer table (46 channels) */
 .extern _rx_slot_C1_IN_01;
 .extern _rx_slot_C1_IN_02;
 .extern _rx_slot_C1_IN_03;
@@ -36,7 +36,21 @@
 .extern _rx_slot_C1_IN_30;
 .extern _rx_slot_C1_IN_31;
 .extern _rx_slot_C1_IN_32;
-.var _c1_rx_slot_ptrs[32] =
+.extern _rx_slot_C1_XIN_CODEC_01;
+.extern _rx_slot_C1_XIN_CODEC_03;
+.extern _rx_slot_C1_XIN_CODEC_04;
+.extern _rx_slot_C1_XIN_SNK_01;
+.extern _rx_slot_C1_XIN_SNK_02;
+.extern _rx_slot_C1_XIN_SNK_03;
+.extern _rx_slot_C1_XIN_SNK_04;
+.extern _rx_slot_C1_XIN_SNK_05;
+.extern _rx_slot_C1_XIN_SNK_06;
+.extern _rx_slot_C1_XIN_SNK_07;
+.extern _rx_slot_C1_XIN_SNK_08;
+.extern _rx_slot_C1_XIN_PI_L;
+.extern _rx_slot_C1_XIN_PI_R;
+.extern _rx_slot_C1_XIN_MEMS;
+.var _c1_rx_slot_ptrs[46] =
     _rx_slot_C1_IN_01,
     _rx_slot_C1_IN_02,
     _rx_slot_C1_IN_03,
@@ -68,9 +82,23 @@
     _rx_slot_C1_IN_29,
     _rx_slot_C1_IN_30,
     _rx_slot_C1_IN_31,
-    _rx_slot_C1_IN_32;
+    _rx_slot_C1_IN_32,
+    _rx_slot_C1_XIN_CODEC_01,
+    _rx_slot_C1_XIN_CODEC_03,
+    _rx_slot_C1_XIN_CODEC_04,
+    _rx_slot_C1_XIN_SNK_01,
+    _rx_slot_C1_XIN_SNK_02,
+    _rx_slot_C1_XIN_SNK_03,
+    _rx_slot_C1_XIN_SNK_04,
+    _rx_slot_C1_XIN_SNK_05,
+    _rx_slot_C1_XIN_SNK_06,
+    _rx_slot_C1_XIN_SNK_07,
+    _rx_slot_C1_XIN_SNK_08,
+    _rx_slot_C1_XIN_PI_L,
+    _rx_slot_C1_XIN_PI_R,
+    _rx_slot_C1_XIN_MEMS;
 
-/* IC TX send entries: {slot_offset, var_ptr} pairs (25 sends) */
+/* IC TX send entries: {slot_offset, var_ptr} pairs (37 sends) */
 .extern _tx_slot_C1_BUS_MAIN_L_SEND;
 .extern _tx_slot_C1_BUS_MAIN_R_SEND;
 .extern _tx_slot_C1_BUS_SUB_SEND;
@@ -96,7 +124,19 @@
 .extern _tx_slot_C1_BUS_FX_04_SEND;
 .extern _tx_slot_C1_BUS_FX_05_SEND;
 .extern _tx_slot_C1_BUS_FX_06_SEND;
-.var _c1_ic_tx_slots[25] =
+.extern _tx_slot_C1_XS_XFER_CODEC_AUX_L;
+.extern _tx_slot_C1_XS_XFER_CODEC_AUX_R;
+.extern _tx_slot_C1_XS_XFER_PI_L;
+.extern _tx_slot_C1_XS_XFER_PI_R;
+.extern _tx_slot_C1_XS_XFER_SNAKE_01;
+.extern _tx_slot_C1_XS_XFER_SNAKE_02;
+.extern _tx_slot_C1_XS_XFER_SNAKE_03;
+.extern _tx_slot_C1_XS_XFER_SNAKE_04;
+.extern _tx_slot_C1_XS_XFER_SNAKE_05;
+.extern _tx_slot_C1_XS_XFER_SNAKE_06;
+.extern _tx_slot_C1_XS_XFER_SNAKE_07;
+.extern _tx_slot_C1_XS_XFER_SNAKE_08;
+.var _c1_ic_tx_slots[37] =
     0,
     1,
     2,
@@ -121,8 +161,20 @@
     21,
     22,
     23,
-    24;
-.var _c1_ic_tx_ptrs[25] =
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36;
+.var _c1_ic_tx_ptrs[37] =
     _tx_slot_C1_BUS_MAIN_L_SEND,
     _tx_slot_C1_BUS_MAIN_R_SEND,
     _tx_slot_C1_BUS_SUB_SEND,
@@ -147,7 +199,19 @@
     _tx_slot_C1_BUS_FX_03_SEND,
     _tx_slot_C1_BUS_FX_04_SEND,
     _tx_slot_C1_BUS_FX_05_SEND,
-    _tx_slot_C1_BUS_FX_06_SEND;
+    _tx_slot_C1_BUS_FX_06_SEND,
+    _tx_slot_C1_XS_XFER_CODEC_AUX_L,
+    _tx_slot_C1_XS_XFER_CODEC_AUX_R,
+    _tx_slot_C1_XS_XFER_PI_L,
+    _tx_slot_C1_XS_XFER_PI_R,
+    _tx_slot_C1_XS_XFER_SNAKE_01,
+    _tx_slot_C1_XS_XFER_SNAKE_02,
+    _tx_slot_C1_XS_XFER_SNAKE_03,
+    _tx_slot_C1_XS_XFER_SNAKE_04,
+    _tx_slot_C1_XS_XFER_SNAKE_05,
+    _tx_slot_C1_XS_XFER_SNAKE_06,
+    _tx_slot_C1_XS_XFER_SNAKE_07,
+    _tx_slot_C1_XS_XFER_SNAKE_08;
 
 .extern _rx_active_buf;
 .extern _ic_tx_active_buf;
@@ -155,17 +219,17 @@
 
 .section/pm seg_pmco;
 
-/* Scatter 32 ADC channels from DMA RX buffer */
+/* Scatter 46 ADC channels from DMA RX buffer */
 .global _scatter_chip1;
 _scatter_chip1:
     /* r0 = sample index (0..31) */
-    r1 = 32;
-    r1 = r0 * r1;             /* r1 = sample_offset = n × 32 */
+    r1 = 46;
+    r1 = r0 * r1;             /* r1 = sample_offset = n × 46 */
     i0 = dm(_rx_active_buf);
     m0 = r1;
-    modify(i0, m0);            /* i0 → DMA buf[n × 32] */
+    modify(i0, m0);            /* i0 → DMA buf[n × 46] */
     i1 = _c1_rx_slot_ptrs;
-    r5 = 32;
+    r5 = 46;
     lcntr = r5; do .c1_scat_rx until lce;
         r2 = dm(i0, 1);       /* read sample from DMA */
         r3 = dm(i1, 1);       /* pointer to slot var */
@@ -183,7 +247,7 @@ _meter_scan_chip1:
     i1 = _meter_peaks;
     m0 = 0;                   /* no-advance for peak read */
     m1 = 1;                   /* advance for peak write */
-    r5 = 32;
+    r5 = 46;
     lcntr = r5; do .c1_mscan until lce;
         r2 = dm(i0, 1);       /* pointer to slot var */
         i2 = r2;
@@ -198,19 +262,19 @@ _meter_scan_chip1:
     rts;
 _meter_scan_chip1.end:
 
-/* Gather 25 inter-chip sends to IC DMA TX buffer */
+/* Gather 37 inter-chip sends to IC DMA TX buffer */
 .global _gather_chip1;
 _gather_chip1:
     /* r0 = sample index (0..31) */
-    r1 = 25;
-    r1 = r0 * r1;             /* base offset = n × 25 */
+    r1 = 37;
+    r1 = r0 * r1;             /* base offset = n × 37 */
     r6 = dm(_ic_tx_active_buf);
     r6 = r6 + r1;             /* r6 = DMA buf base for this sample */
     i1 = _c1_ic_tx_slots;     /* slot offset table */
     i2 = _c1_ic_tx_ptrs;      /* slot var pointer table */
-    r5 = 25;
+    r5 = 37;
     lcntr = r5; do .c1_gath_ic until lce;
-        r3 = dm(i1, 1);       /* IC slot index (0..24) */
+        r3 = dm(i1, 1);       /* IC slot index (0..36) */
         r4 = dm(i2, 1);       /* pointer to _tx_slot_* var */
         i3 = r4;
         r2 = dm(i3, 0);       /* read slot value */
