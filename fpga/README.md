@@ -100,10 +100,12 @@ consuming the same defs.lock-pinned artifacts.
 
 ## What would make or break it (open questions)
 
-1. Fixed-point migration plan per kernel family (accumulator widths,
-   saturation policy) — needs a golden-model comparison harness
-   (extend dsp_simulate.py to emit test vectors; same harness then
-   validates the SHARC too).
+1. Number format — analysed in [number-format.md](number-format.md):
+   prefer hardened-FP32 silicon (Agilex/Cyclone 10 GX/Versal) for a
+   near-1:1 kernel port; if fixed point is forced, contain it inside
+   the engines with float interfaces. Either way dsp_simulate.py
+   (float64) becomes the normative golden model, and mix summing is a
+   candidate for exact wide-accumulator fixed even in an FP32 design.
 2. FX strategy: fabric redesign vs hybrid (DSP/ARM sidecar).
 3. Coefficient computation location: today biquad coeffs are computed
    on-DSP from cell values; on FPGA either a soft/hard CPU does this or
