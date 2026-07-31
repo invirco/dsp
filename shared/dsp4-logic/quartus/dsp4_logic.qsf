@@ -1,0 +1,14 @@
+# dsp4_logic.qsf — Quartus settings for the DSP4 LOGIC CPLD (U3)
+# Pin assignments TODO: extract from D24 DSP.pdf LOGIC sheet (page 2/10)
+# before hardware use; this project currently fits with free placement.
+set_global_assignment -name FAMILY "MAX V"
+set_global_assignment -name DEVICE 5M1270ZT144C4
+set_global_assignment -name TOP_LEVEL_ENTITY dsp4_logic_top
+set_global_assignment -name VERILOG_FILE ../rtl/dsp4_logic_top.v
+set_global_assignment -name VERILOG_FILE ../rtl/dsp4_clkgen.v
+set_global_assignment -name VERILOG_FILE ../rtl/dsp4_pcm_reframe.v
+set_global_assignment -name SEARCH_PATH ../rtl
+set_global_assignment -name SEARCH_PATH ../generated
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
+set_global_assignment -name NUM_PARALLEL_PROCESSORS 4
+set_global_assignment -name SDC_FILE dsp4_logic.sdc

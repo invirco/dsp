@@ -11,11 +11,12 @@
  *         SPTRAN=1 on TX halves. SPEN is NOT set here — slice 3
  *         enables each half after its DMA ring is armed.
  *   MCTL: MCE=1, WOFFSET=0, WSIZE per region, MCPDE per region,
- *         MFD=1 (PROVISIONAL — must match dsp4-logic RTL).
+ *         MFD=1 (LOCKED via slot-map timing conventions).
  *   CS0:  generated channel-select mask.
  *
- * CKRE is left 0 (PROVISIONAL — sample edge must match dsp4-logic RTL;
- * lock both into shared/dsp4-logic conventions at bring-up).
+ * CKRE=1 and MFD=1 are LOCKED via the slot-map timing conventions
+ * (shared/dsp4-logic: sample on rising, launch on falling, FS one BCK
+ * before slot 0) — the LOGIC RTL derives from the same source.
  *
  * Infrastructure (hand-maintained). Compiled per chip with -DCHIP_ID.
  *======================================================================*/
@@ -62,16 +63,20 @@ static void cfg_region(const int *lanes, int count, int dir, int mcpde,
                         + (dir ? HALF_B_OFFSET : 0u);
 
         uint32_t ctl = ((uint32_t)31 << BITP_SPORT_CTL_A_SLEN)
-                       | BITM_SPORT_CTL_A_FSR;
+                       | BITM_SPORT_CTL_A_FSR
+                       | BITM_SPORT_CTL_A_CKRE;
         if (dir) {
             ctl |= BITM_SPORT_CTL_A_SPTRAN;
         }
-        /* ICLK=0, IFS=0 (slave), CKRE=0 (provisional), SPEN deferred */
+        /* ICLK=0, IFS=0 (slave). CKRE=1 LOCKED (slot-map timing
+         * convention: sample on rising, SPORT drives on falling —
+         * matches the LOGIC RTL and the AKM converters). SPEN
+         * deferred until the DMA rings are armed. */
         REG32(base + OFF_CTL) = ctl;
 
         REG32(base + OFF_MCTL) =
             BITM_SPORT_MCTL_A_MCE
-            | ((uint32_t)1 << BITP_SPORT_MCTL_A_MFD)      /* provisional */
+            | ((uint32_t)1 << BITP_SPORT_MCTL_A_MFD)  /* LOCKED (slot map) */
             | ((uint32_t)wsize << BITP_SPORT_MCTL_A_WSIZE)
             | (mcpde ? BITM_SPORT_MCTL_A_MCPDE : 0u);
 

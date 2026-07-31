@@ -1,7 +1,14 @@
 {
   "generated_by": "shared/dsp4-logic/gen_slot_map.py",
-  "source_hash": "6e89117c4d173ecf1b99ff100138b079a37e7833042d5bb129f9a21725220069",
+  "source_hash": "efd8d555440094b627345b5a84894f9e7a6b569056f4eccb417d42d6ce32182e",
   "sport_convention": "sport_id = DAI port index; I ports are RX, O ports are TX; chip1=DSPA, chip2=DSPB",
+  "timing": {
+    "sample_edge": "rising",
+    "launch_edge": "falling",
+    "sport_ckre": 1,
+    "mfd": 1,
+    "note": "LOCKED 2026-07-31: sample-on-rising/launch-on-falling (AKM converter convention); SPORT CKRE=1 samples rising and drives falling per HRM; MFD=1 = FS one BCK before slot 0. LOGIC RTL and firmware both derive from here."
+  },
   "mix_fabric": {
     "lines": 8,
     "slots_per_line": 16,
@@ -537,7 +544,7 @@
           "sport_id": 6,
           "format": "TDM8",
           "slot_count": 8,
-          "status": "provisional",
+          "status": "ok",
           "external_net": "PI_PCM",
           "clock_pair": "CG2",
           "slots": [
@@ -1329,7 +1336,7 @@
           "sport_id": 3,
           "format": "TDM8",
           "slot_count": 8,
-          "status": "provisional",
+          "status": "ok",
           "external_net": "DAC_MAIN",
           "clock_pair": "CG1",
           "slots": [

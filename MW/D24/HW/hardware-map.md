@@ -124,7 +124,7 @@ The table above holds at DSP-port level; the exact lane/source mapping is:
 | DSPB O0 | DA0 | DAC8 OUT_1-8 → line outs 1-8 (FPC J42/J59) |
 | DSPB O1 | **DA3, not DA1** | DAC8 OUT_9-16 → line outs 9-16; DA1 dead-ends at Digital J18 (spare) |
 | DSPB O2 | PLL8_1 = CDC_I | AK4916 codec DAC: talkback SPKR (TS482 on Digital → panels) + aux out |
-| DSPB O3 | — | "DAC MAIN": **no sink found** on D24 Analog rev B — verify intent |
+| DSPB O3 | — | "DAC MAIN": **no D24 sink by design** (resolved 2026-07-31: D24 main outs are line outs on the Analog PCBA — the OUT_1-8/OUT_9-16 DAC8s via DA0/DA3; the Analog ROOT carries no third audio DAC and J58/J59 no spare TDM lane). Lane reserved for D32/future |
 
 Digital-only paths (no analog resolution): I5 snake, I6 Pi PCM, O4-O7 NET
 (option cards), DA2 (D32_COMPAT J33 only). Phones PCBA is analog-only

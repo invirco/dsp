@@ -149,6 +149,16 @@ def emit_json(lines, slots, src_hash):
         'source_hash': src_hash,
         'sport_convention': ('sport_id = DAI port index; I ports are RX, '
                              'O ports are TX; chip1=DSPA, chip2=DSPB'),
+        'timing': {
+            'sample_edge': 'rising',
+            'launch_edge': 'falling',
+            'sport_ckre': 1,
+            'mfd': 1,
+            'note': ('LOCKED 2026-07-31: sample-on-rising/launch-on-falling '
+                     '(AKM converter convention); SPORT CKRE=1 samples rising '
+                     'and drives falling per HRM; MFD=1 = FS one BCK before '
+                     'slot 0. LOGIC RTL and firmware both derive from here.'),
+        },
         'mix_fabric': {
             'lines': len(mix_lines),
             'slots_per_line': 16,
@@ -181,6 +191,12 @@ def emit_vh(lines, slots, src_hash):
     out.append('localparam [1:0] FMT_TDM8  = 2\'d0;')
     out.append('localparam [1:0] FMT_TDM16 = 2\'d1;')
     out.append('localparam [1:0] FMT_I2S   = 2\'d2;')
+    out.append('')
+    out.append('// Timing conventions (LOCKED - firmware SPORT config uses')
+    out.append('// CKRE=1/MFD=1 to match): sample on BCK rising edge, launch')
+    out.append('// on falling; FS asserted one BCK before slot 0.')
+    out.append('localparam TDM_SAMPLE_EDGE_RISING = 1;')
+    out.append('localparam TDM_MFD = 1;')
     out.append('')
     out.append('// Inter-chip mix fabric geometry')
     out.append(f'localparam integer NUM_MIX_LINES     = {len(mix_lines)};')

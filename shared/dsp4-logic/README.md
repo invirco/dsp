@@ -44,19 +44,43 @@ Rules (same as the rest of the repo):
 - **Schematic-review findings baked in (2026-07-30):** DSPB O1 routes to
   **DA3**, not DA1 (DA1 dead-ends at Digital J18) — emitted as
   `DA_LANE_B_O1 = 3`; A_I3 has no D24 ADC (NET-only inputs 25–32); B_O3
-  "DAC MAIN" has no verified D24 sink (status `provisional`).
+  "DAC MAIN" has no D24 sink BY DESIGN (D24 main outs are line outs on
+  the Analog PCBA; lane reserved for D32/future).
 
 `status` values: `ok` (verified against schematic rev C / review markup),
 `provisional` (assignment plausible but unverified — confirm before HDL
 freeze), `reserved` (line defined, no signals yet).
 
-## Still to come in this tree
+## Timing conventions (LOCKED 2026-07-31)
 
-- `rtl/` — CPLD Verilog (clock gen 49.152 MHz → TDM8/TDM16 BCK+FS groups,
-  ADC/NET input mux, NET output mux, DA-lane routing), consuming
-  `generated/dsp4_slot_map.vh`.
-- `constraints/` — pin assignments for 5M1270ZT144C4N.
-- Built `.pof` labelled with source hash (committed; Quartus toolchain and
-  licenses are never committed). Toolchain: Quartus Prime Lite 21.1.1 at
-  `/opt/intelFPGA_lite/21.1`; programming via USB-Blaster or Pi GPIO JTAG
-  (SVF + OpenOCD).
+Encoded in the generated outputs (`timing` in sport_map.json,
+`TDM_SAMPLE_EDGE_RISING`/`TDM_MFD` in dsp4_slot_map.vh) and consumed by
+BOTH sides: receivers sample on the BCK **rising** edge, transmitters
+launch on the **falling** edge (AKM converter convention); FS is a
+one-BCK pulse asserted one BCK before slot 0 (MFD=1). Firmware sets
+SPORT `CKRE=1` (per the 2156x HRM, CKRE picks the sampling edge and the
+SPORT drives on the opposite edge); the RTL clkgen/reframer launch on
+falling-edge strobes.
+
+## RTL (`rtl/` + `quartus/`)
+
+Key architecture fact from the rev C LOGIC sheet: **the inter-chip mix
+fabric is direct DSP-to-DSP PCB routing** — it does not pass through
+this CPLD. LOGIC owns the 8 BCK/FS pairs, the DSPA input lines
+(AD/NET mux, codec, snake, re-framed Pi PCM, MEMS), the DSPB output
+routing (DA0/DA3, codec-vs-snake per `strap_d32`, DAC MAIN, NET), and
+DSP_CLK. DAC MAIN (B_O3) has **no D24 sink by design** — D24 main outs
+are line outs on the Analog PCBA (resolved 2026-07-31).
+
+- `rtl/dsp4_clkgen.v` — 49.152 MHz → TDM8/TDM16 BCK + MFD=1 FS pulses.
+- `rtl/dsp4_pcm_reframe.v` — LOGIC masters the Pi PCM as I2S and
+  re-frames stereo into TDM8 slots 0-1 (A_I6).
+- `rtl/dsp4_logic_top.v` — routing per the slot map (sanity-checked
+  against `dsp4_slot_map.vh`).
+- `quartus/` — 5M1270ZT144C4 project. Status: map+fit+STA clean,
+  Fmax 118.8 MHz (2.4x margin). **Pin assignments are NOT yet real**
+  (free placement) — extract them from the LOGIC sheet (D24 DSP.pdf
+  page 2/10) before building a committable `.pof`; until then no
+  bitstream is committed. Toolchain: Quartus Prime Lite 21.1.1 at
+  `/opt/intelFPGA_lite/21.1` (never committed); programming via
+  USB-Blaster or Pi GPIO JTAG (SVF + OpenOCD).

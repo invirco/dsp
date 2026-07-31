@@ -24,13 +24,12 @@ Facts below are header/HRM-verified unless marked PROVISIONAL.
 ## Multichannel configuration per half-SPORT
 
 CTL (per half): SPENPRI=1 (only lanes in use), SLEN=31, ICLK=0, IFS=0,
-FSR=1, CKRE per LOGIC edge convention (PROVISIONAL — must match
-dsp4-logic RTL), OPMODE=0 (standard/multichannel), SPTRAN=1 for TX
+FSR=1, CKRE=1 (LOCKED 2026-07-31 via the slot-map timing conventions:
+sample rising / launch falling), OPMODE=0 (standard/multichannel), SPTRAN=1 for TX
 halves / 0 for RX halves.
 
-MCTL: MCE=1, WOFFSET=0, MFD=1 (PROVISIONAL — FS-to-slot0 delay must
-match dsp4-logic RTL; whichever is chosen, encode it in
-shared/dsp4-logic so both sides derive from one place), WSIZE =
+MCTL: MCE=1, WOFFSET=0, MFD=1 (LOCKED via the slot-map timing
+conventions in shared/dsp4-logic), WSIZE =
 slots-1 (7 for TDM8 lanes, 15 for TDM16 lanes).
 
 **MCPDE (DMA packing)** — the key layout decision (HRM §23 window
@@ -115,6 +114,6 @@ all clock pins. Use `SRU(...)` macros from `sru21564.h`.
    half-SPORT CTL/MCTL/CS from the generated lane table.
 3. **DDE descriptors + SEC**: ping-pong rings, block-clock ISR, ivt
    wiring.
-4. Bring-up on hardware (needs the rehosted/full license + rev C card):
-   verify CKRE/MFD against dsp4-logic RTL, then lock those into the
-   slot-map conventions.
+4. Bring-up on hardware (needs the rehosted/full license + rev C card).
+   CKRE/MFD are LOCKED in the slot-map conventions (2026-07-31) and
+   both sides derive from them; verify on the wire regardless.
