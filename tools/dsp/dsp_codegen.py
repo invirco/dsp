@@ -67,6 +67,13 @@ XFADE_MS      = 12.0
 XFADE_SAMPLES = int(XFADE_MS / 1000.0 * 48000)   # 576 samples @ 48 kHz
 XFADE_STEP    = 1.0 / XFADE_SAMPLES               # ≈ 0.001736 per sample
 
+# Audio sample-path format (decision D5): 'float' (FP32, archived
+# mainline) or 'fixed' (Q4.28 per shared/numeric-spec.md). Fixed-mode
+# node generators are added family-by-family; --format fixed is NOT
+# buildable until every family in the graph has a fixed variant.
+FORMAT = 'float'
+
+
 def ms_to_frames(ms):
     """Quantize milliseconds to frame count: max(1, round(ms / 0.6667))."""
     if ms <= 0:
@@ -3994,6 +4001,188 @@ def gen_scope_gates(chip_label, chip_nodes):
     return '\n'.join(lines)
 
 
+
+def gen_eq_biquad_fixed(node):
+    """Fixed-point (Q4.28) EQ biquad — offset-form cascade (D5).
+
+    Same SPI/staging/crossfade contract as the float node: the host
+    writes FLOAT RBJ coefficient words into _coeffs_next (wire format
+    unchanged); at swap time _bq_fx_convert_N produces the Q4.28 offset
+    coefficient set for the dormant instance (biquad_fx.asm, normative
+    model fixed_ref.biquad). State is 6 words/stage (x1,x2,y1,y2,efb).
+    Crossfade alpha/step stay float (control plane); the sample blend
+    runs fixed: y = ya + rns((yb-ya)*alpha_q31, 31).
+    """
+    p = node['params']
+    bands = int(p.get('bands', '4'))
+    n5 = bands * 5      # coeff words per instance (fixed offset form)
+    n6 = bands * 6      # state words per instance
+    rc = ramp_comment(node['ramp_profile'])
+    # bypass = identity: b0=1.0 -> 0x10000000; n1=2.0 -> 0x20000000;
+    # n2=-1.0 -> -0x10000000; c1=2.0; c2=1.0 (a1=0,a2=0)
+    bypass = ', '.join(['0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000'] * bands)
+    nid = node['id']
+    inp = node['inputs_str']
+    return dedent(f"""\
+        {rc}
+
+        /* EQ_BIQUAD (FIXED Q4.28, D5): {bands}-band, dual-instance crossfade */
+        /* SPI page={node['spi_page']} addr={node['spi_addr']} */
+        /* Normative model: tools/dsp/fixed_ref.py::biquad (offset form). */
+
+        .section/dm seg_dmda;
+
+        .var _eq_coeffs_A_{nid}[{n5}] = {bypass};
+        .var _eq_state_A_{nid}[{n6}];
+        .var _eq_coeffs_B_{nid}[{n5}] = {bypass};
+        .var _eq_state_B_{nid}[{n6}];
+
+        /* SPI staging (FLOAT RBJ words — wire format unchanged) */
+        .var _eq_coeffs_next_{nid}[{n5}];
+        .var _eq_swap_pending_{nid} = 0;
+
+        .var _eq_active_{nid} = 0;            /* 0 = A active, 1 = B */
+        .var _eq_xfade_alpha_{nid} = 0.0;     /* float control */
+        .var _eq_xfade_step_{nid} = 0.0;
+
+        .var _tap_post_eq_{nid};              /* Q4.28 post-EQ tap */
+        .var _buf_{nid};
+
+        .section/pm seg_pmco;
+        .extern _bq_fx_cascade_N;
+        .extern _bq_fx_convert_N;
+        .global _{nid}_process;
+        _{nid}_process:
+
+            /* new coefficients staged? */
+            r4 = dm(_eq_swap_pending_{nid});
+            r4 = pass r4;
+            if ne call _eq_start_xfade_{nid};
+
+            /* crossfading? (float 0.0 is all-zero bits) */
+            r4 = dm(_eq_xfade_step_{nid});
+            r4 = pass r4;
+            if ne jump (pc, .eq_xfade_{nid});
+
+            /* ===== steady state: active instance only ===== */
+            r0 = dm(_buf_{inp});
+            r4 = dm(_eq_active_{nid});
+            r4 = pass r4;
+            if ne jump (pc, .eq_ss_b_{nid});
+            i0 = _eq_coeffs_A_{nid};
+            i1 = _eq_state_A_{nid};
+            jump (pc, .eq_ss_go_{nid});
+        .eq_ss_b_{nid}:
+            i0 = _eq_coeffs_B_{nid};
+            i1 = _eq_state_B_{nid};
+        .eq_ss_go_{nid}:
+            r4 = {bands};
+            call _bq_fx_cascade_N;
+            dm(_tap_post_eq_{nid}) = r0;
+            dm(_buf_{nid}) = r0;
+            rts;
+
+            /* ===== crossfade: run both, blend fixed ===== */
+        .eq_xfade_{nid}:
+            r0 = dm(_buf_{inp});
+            r6 = r0;                      /* keep input */
+            i0 = _eq_coeffs_A_{nid};
+            i1 = _eq_state_A_{nid};
+            r4 = {bands};
+            call _bq_fx_cascade_N;
+            r7 = r0;                      /* ya */
+            r0 = r6;
+            i0 = _eq_coeffs_B_{nid};
+            i1 = _eq_state_B_{nid};
+            r4 = {bands};
+            call _bq_fx_cascade_N;        /* r0 = yb */
+
+            /* orient: out = old + alpha*(new - old); dormant is new */
+            r4 = dm(_eq_active_{nid});
+            r4 = pass r4;
+            if eq jump (pc, .eq_bl_{nid});     /* active A -> new is B (r0) */
+            r5 = r7;                       /* new = ya */
+            r7 = r0;                       /* old = yb */
+            r0 = r5;
+        .eq_bl_{nid}:
+            /* alpha_q31 = fix(alpha * 2^31); blend in MRF */
+            f4 = dm(_eq_xfade_alpha_{nid});
+            r5 = 0x4F000000;               /* 2^31 as float */
+            f5 = r5;
+            f4 = f4 * f5;
+            r4 = fix f4;
+            r5 = r0 - r7;                  /* new - old */
+            mrf = r5 * r4 (ssi);
+            r5 = 0x40000000;               /* 2^30 rounding half */
+            r12 = 1;
+            mrf = mrf + r5 * r12 (ssi);
+            r5 = mr0f;
+            r12 = mr1f;
+            r5 = lshift r5 by -31;
+            r12 = lshift r12 by 1;
+            r5 = r5 or r12;
+            r0 = r7 + r5;                  /* blended output */
+            dm(_tap_post_eq_{nid}) = r0;
+            dm(_buf_{nid}) = r0;
+
+            /* advance alpha (float control) */
+            f4 = dm(_eq_xfade_alpha_{nid});
+            f5 = dm(_eq_xfade_step_{nid});
+            f4 = f4 + f5;
+            dm(_eq_xfade_alpha_{nid}) = f4;
+            r5 = 0x3F800000;               /* 1.0f */
+            f5 = r5;
+            comp(f4, f5);
+            if lt rts;
+            /* crossfade done: dormant becomes active */
+            r4 = dm(_eq_active_{nid});
+            r5 = 1;
+            r4 = r4 xor r5;
+            dm(_eq_active_{nid}) = r4;
+            r4 = 0;
+            dm(_eq_xfade_step_{nid}) = r4;
+            dm(_eq_xfade_alpha_{nid}) = r4;
+            rts;
+
+            /* ===== stage new coeffs into the dormant instance ===== */
+        _eq_start_xfade_{nid}:
+            r4 = 0;
+            dm(_eq_swap_pending_{nid}) = r4;
+            i0 = _eq_coeffs_next_{nid};    /* float staged */
+            r4 = dm(_eq_active_{nid});
+            r4 = pass r4;
+            if ne jump (pc, .eq_st_a_{nid});
+            i1 = _eq_coeffs_B_{nid};       /* dormant = B */
+            i2 = _eq_state_B_{nid};
+            jump (pc, .eq_st_go_{nid});
+        .eq_st_a_{nid}:
+            i1 = _eq_coeffs_A_{nid};
+            i2 = _eq_state_A_{nid};
+        .eq_st_go_{nid}:
+            r4 = {bands};
+            call _bq_fx_convert_N;
+            /* zero dormant state ({n6} words) */
+            r4 = 0;
+            r5 = {n6};
+            lcntr = r5, do .eq_zst_{nid} until lce;
+        .eq_zst_{nid}:
+                dm(i2, 1) = r4;
+            /* start ramp: step = 1/XFADE_SAMPLES (float control) */
+            f0 = {XFADE_STEP};
+            dm(_eq_xfade_step_{nid}) = f0;
+            r4 = 0;
+            dm(_eq_xfade_alpha_{nid}) = r4;
+            rts;
+        _{nid}_process.end:
+    """)
+
+
+FIXED_GENERATORS = {
+    'EQ_BIQUAD': gen_eq_biquad_fixed,
+}
+
+
+
 # ===========================================================================
 # Main generation
 # ===========================================================================
@@ -4042,6 +4231,8 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
             call_sequence.append(node['id'])
 
             gen_fn = GENERATORS.get(node['type'], gen_generic)
+            if FORMAT == 'fixed':
+                gen_fn = FIXED_GENERATORS.get(node['type'], gen_fn)
 
             ramp_line = f'RampProfile: {node["ramp_profile"]}' if node['ramp_profile'] else 'RampProfile: (none)'
 
@@ -4149,11 +4340,15 @@ if __name__ == '__main__':
                         help='Overwrite existing node .asm files (default: skip existing to preserve manual edits)')
     parser.add_argument('--node-type', metavar='TYPE', action='append', dest='node_types',
                         help='Regenerate only nodes of this type (may be specified multiple times, e.g. --node-type GAIN)')
+    parser.add_argument('--format', choices=('float', 'fixed'), default='float',
+                        help='Audio sample-path number format (D5); default float until the fixed conversion completes')
     args = parser.parse_args()
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
     csv_path = args.csv or os.path.join(script_dir, '..', 'dsp.csv')
     out_dir  = args.output or os.path.join(script_dir, '..', 'src')
 
+    FORMAT = args.format
+    globals()['FORMAT'] = args.format
     sys.exit(generate(csv_path, out_dir, force=args.force,
                       node_type_filter=set(args.node_types) if args.node_types else None))

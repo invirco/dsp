@@ -1,0 +1,184 @@
+/*======================================================================
+ * biquad_fx.asm — fixed-point biquad core (decision D5)
+ *
+ * NORMATIVE REFERENCE: tools/dsp/fixed_ref.py::biquad — this code must
+ * match it BIT-EXACTLY (offset-coefficient direct-form I with
+ * first-order error feedback, shared/numeric-spec.md):
+ *
+ *   acc  = efb + b0*x + b0*x2 - b0*x1 - b0*x1        (x - 2x1 + x2)
+ *        + n1*x1 + n2*x2 - c1*y1 + c2*y2
+ *        + y1*2^29 - y2*2^28                          (2*y1 - y2) << 28
+ *   y    = sat32(rns(acc, 28))
+ *   efb' = acc - (y << 28)
+ *
+ * Formats: samples/coeffs Q4.28; acc exact in the 80-bit MRF; efb kept
+ * as a 64-bit pair. rns() = add 2^27 then arithmetic >>28 (matches
+ * fixed_ref.rns for the value ranges reachable here).
+ *
+ * Coefficient block per stage (5 words, Q4.28):  [b0, n1, n2, c1, c2]
+ *   n1 = b1 + 2*b0,  n2 = b2 - b0,  c1 = 2 + a1,  c2 = 1 - a2
+ * State block per stage (6 words): [x1, x2, y1, y2, efb_lo, efb_hi]
+ *
+ * Entry points:
+ *   _bq_fx_cascade_N — N-stage cascade, one sample
+ *       In:  r0 = x (Q4.28), i0 -> coeffs (5/stage), i1 -> state
+ *            (6/stage), r4 = stage count
+ *       Out: r0 = y (Q4.28); i0/i1 advanced past the used stages
+ *       Clobbers: r1-r3, r5-r12, MRF
+ *   _bq_fx_convert_N — float staged coeffs -> fixed offset coeffs
+ *       In:  i0 -> float [b0,b1,b2,a1,a2] per stage (RBJ, from SPI),
+ *            i1 -> fixed [b0,n1,n2,c1,c2] per stage, r4 = stage count
+ *       Clobbers: f0-f8, r0-r2
+ *
+ * First cut favours correctness over cycles (~40 cycles/stage);
+ * optimize with parallel dual-loads after bring-up parity is proven.
+ *
+ * Infrastructure (hand-maintained).
+ *======================================================================*/
+
+.section/pm seg_pmco;
+
+.global _bq_fx_cascade_N;
+_bq_fx_cascade_N:
+    lcntr = r4, do .bqfx_stage until lce;
+
+        /* ---- load state ---- */
+        r5 = dm(i1, 1);        /* x1                  (i1 -> x2)      */
+        r6 = dm(i1, 1);        /* x2                  (i1 -> y1)      */
+        r7 = dm(i1, 1);        /* y1                  (i1 -> y2)      */
+        r8 = dm(i1, 1);        /* y2                  (i1 -> efb_lo)  */
+        r9 = dm(i1, 1);        /* efb_lo              (i1 -> efb_hi)  */
+        r10 = dm(i1, 0);       /* efb_hi (no advance; rewind later)   */
+
+        /* ---- MRF = efb (sign-extended 64 -> 80) ---- */
+        mr0f = r9;
+        mr1f = r10;
+        r11 = ashift r10 by -31;
+        mr2f = r11;
+
+        /* ---- numerator: b0*(x - 2*x1 + x2) via b0-only MACs ---- */
+        r1 = dm(i0, 1);        /* b0                  (i0 -> n1)      */
+        mrf = mrf + r1 * r0 (ssi);      /* + b0*x  */
+        mrf = mrf + r1 * r6 (ssi);      /* + b0*x2 */
+        mrf = mrf - r1 * r5 (ssi);      /* - b0*x1 */
+        mrf = mrf - r1 * r5 (ssi);      /* - b0*x1 */
+
+        /* ---- offset terms ---- */
+        r1 = dm(i0, 1);        /* n1 */
+        mrf = mrf + r1 * r5 (ssi);      /* + n1*x1 */
+        r1 = dm(i0, 1);        /* n2 */
+        mrf = mrf + r1 * r6 (ssi);      /* + n2*x2 */
+        r1 = dm(i0, 1);        /* c1 */
+        mrf = mrf - r1 * r7 (ssi);      /* - c1*y1 */
+        r1 = dm(i0, 1);        /* c2                  (i0 -> next stage) */
+        mrf = mrf + r1 * r8 (ssi);      /* + c2*y2 */
+
+        /* ---- unity terms: + y1*2^29 - y2*2^28 (exact) ---- */
+        r1 = 0x20000000;
+        mrf = mrf + r1 * r7 (ssi);
+        r1 = 0x10000000;
+        mrf = mrf - r1 * r8 (ssi);
+
+        /* ---- snapshot acc (64-bit) for the remainder ---- */
+        r2 = mr0f;             /* acc_lo */
+        r3 = mr1f;             /* acc_hi */
+
+        /* ---- y = sat32(rns(acc, 28)) ---- */
+        r1 = 0x08000000;       /* 2^27 rounding half */
+        r11 = 1;
+        mrf = mrf + r1 * r11 (ssi);
+        r11 = mr0f;
+        r12 = mr1f;
+        r11 = lshift r11 by -28;        /* logical: low 4 bits of y   */
+        r1 = lshift r12 by 4;           /* high 28 bits of y          */
+        r11 = r11 or r1;                /* candidate y                */
+        /* saturation check: acc>>28 must fit in 32 bits:
+         * ashift(acc_hi, -28) must equal ashift(y, -31) */
+        r1 = ashift r12 by -28;
+        r12 = ashift r11 by -31;
+        comp(r1, r12);
+        if eq jump (pc, .bqfx_nosat);
+        /* saturate by sign of acc (mr2f snapshot not needed: use r3) */
+        r11 = 0x7FFFFFFF;
+        r1 = ashift r3 by -31;          /* -1 if negative              */
+        r11 = r11 xor r1;               /* MAX or MIN pattern          */
+    .bqfx_nosat:
+
+        /* ---- efb' = acc - (y << 28) (64-bit subtract) ---- */
+        r1 = lshift r11 by 28;          /* (y<<28) low word            */
+        r12 = ashift r11 by -4;         /* (y<<28) high word           */
+        r2 = r2 - r1;                   /* low, sets borrow            */
+        r3 = r3 - r12 + ci - 1;         /* high with borrow            */
+
+        /* ---- store state: [x1', x2', y1', y2', efb'] ---- */
+        dm(i1, -1) = r3;       /* efb_hi   (i1 -> efb_lo)  */
+        dm(i1, -1) = r2;       /* efb_lo   (i1 -> y2)      */
+        dm(i1, -1) = r7;       /* y2' = y1 (i1 -> y1)      */
+        dm(i1, -1) = r11;      /* y1' = y  (i1 -> x2)      */
+        dm(i1, -1) = r5;       /* x2' = x1 (i1 -> x1)      */
+        dm(i1, 0) = r0;        /* x1' = x                  */
+        r1 = 6;
+        m1 = r1;
+        modify(i1, m1);        /* advance to next stage's state */
+
+        /* ---- cascade: y feeds the next stage ---- */
+    .bqfx_stage:
+        r0 = r11;
+
+    rts;
+_bq_fx_cascade_N.end:
+
+/*----------------------------------------------------------------------
+ * _bq_fx_convert_N — RBJ float coeffs -> Q4.28 offset coeffs
+ *
+ * Mirrors fixed_ref.biquad_coeffs_q: each output word is
+ * round-to-nearest of (value * 2^28), saturated. Uses the float unit
+ * (dual-format core); FIX rounds per the current RND mode
+ * (round-to-nearest matches the model's Python round()).
+ *----------------------------------------------------------------------*/
+.global _bq_fx_convert_N;
+_bq_fx_convert_N:
+    /* f8 = 2^28 scale constant */
+    r0 = 0x4D800000;           /* 268435456.0f = 2^28 */
+    f8 = r0;
+    r0 = 0x40000000;           /* 2.0f  */
+    f6 = r0;
+    r0 = 0x3F800000;           /* 1.0f  */
+    f7 = r0;
+
+    lcntr = r4, do .bqcvt_stage until lce;
+        f0 = dm(i0, 1);        /* b0 */
+        f1 = dm(i0, 1);        /* b1 */
+        f2 = dm(i0, 1);        /* b2 */
+        f3 = dm(i0, 1);        /* a1 */
+        f4 = dm(i0, 1);        /* a2 */
+
+        /* b0q */
+        f5 = f0 * f8;
+        r1 = fix f5;
+        dm(i1, 1) = r1;
+        /* n1 = b1 + 2*b0 */
+        f5 = f0 * f6;
+        f5 = f1 + f5;
+        f5 = f5 * f8;
+        r1 = fix f5;
+        dm(i1, 1) = r1;
+        /* n2 = b2 - b0 */
+        f5 = f2 - f0;
+        f5 = f5 * f8;
+        r1 = fix f5;
+        dm(i1, 1) = r1;
+        /* c1 = 2 + a1 */
+        f5 = f3 + f6;
+        f5 = f5 * f8;
+        r1 = fix f5;
+        dm(i1, 1) = r1;
+        /* c2 = 1 - a2 */
+        f5 = f7 - f4;
+        f5 = f5 * f8;
+        r1 = fix f5;
+    .bqcvt_stage:
+        dm(i1, 1) = r1;
+
+    rts;
+_bq_fx_convert_N.end:
