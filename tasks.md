@@ -345,6 +345,14 @@ entitled. (build.sh gained the PROC_TARGET override 2026-07-30.)
     ABSENT until mx26 provides dsp.csv files).
   - Resume: when mx26 adds src/pd/d24/dsp.csv or src/pd/d32/dsp.csv, run
     `./regenerate-dsp-contract.sh --update-lock`.
+- [ ] <span style="color:#6b7280"><b>DEFERRED</b></span> FPGA mixer engine for larger products
+  - Idea-gathering started 2026-07-31: [fpga/README.md](fpga/README.md)
+    (feasibility: same algorithms — yes at cell-semantics level via a
+    third codegen backend; same matrix control protocols — yes,
+    wire-identical) + [fpga/node-portability.md](fpga/node-portability.md)
+    (per-kernel map; FX engines are the one redesign item).
+  - Activation gate: becomes a numbered architecture decision first.
+
 - [ ] <span style="color:#6b7280"><b>DEFERRED</b></span> mx_master.csv as cross-domain SOT
   - Design notes + schema draft + milestones: [ideas.md](ideas.md).
   - Milestone A (lock schema/glossary) not started; D2 slot map intends to
