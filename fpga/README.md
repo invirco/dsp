@@ -81,6 +81,18 @@ So a larger FPGA mixer would join the existing contract flow like any
 product tree (`MW/<PRODUCT>/` + scaffold-product.sh), with the FPGA
 consuming the same defs.lock-pinned artifacts.
 
+**Control-plane split (established by the D5 kernel conversion):** the
+firmware keeps the parameter plane FLOAT (wire, dispatch, ramps) and
+converts to Q4.28 "shadows" once per block inside each kernel. On the
+FPGA this becomes the hardware/software boundary: the control CPU
+(SoC ARM / soft core / the Pi) runs the SAME float control logic at
+block rate and writes shadows + offset-coefficient sets into
+double-buffered BRAM; the fabric engines only ever see fixed values.
+Same semantics and quantization points on both targets — they differ
+only in WHERE the float control code executes. (The one configuration
+this strains is a CPU-less pure-fabric part — not on the platform
+shortlist; it would force fixed words onto the wire.)
+
 ## Sketch of the engine (strawman, to be argued with)
 
 - Time-multiplexed pipelines fed by schedule ROM/BRAM generated from
