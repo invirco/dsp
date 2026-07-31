@@ -91,6 +91,18 @@ tightest consistency of any option, plausibly near-bit-exact, and it
 would improve the SHARC's LF biquad noise as a side effect. Because
 kernels are generated, this is a generator rewrite, not a hand-port.
 
+**Single-format verdict**: if the constraint becomes "one format,
+efficient on both platforms", fixed point wins unambiguously — it is
+native-speed on every FPGA family (no hard-FP short-list, no soft-float
+tax) AND cycle-neutral on the dual-format SHARC for MAC-heavy work
+(modest overhead in dynamics; 80-bit accumulators as a quality gain).
+Float is only efficient on both by restricting FPGA silicon to the
+hard-FP families and paying their premium. Sketch of the shared spec:
+32-bit fixed samples (matches SHARC word + TDM slots), one headroom
+convention (e.g. Q4.28 internal = 24 dB mix headroom), wide
+accumulators both sides (80-bit MRF / 48-64-bit fabric), one
+saturation policy, float only in control-rate coefficient derivation.
+
 Sequencing recommendation: NOT now. DSP4 is ~80% written in float,
 fit-proxy verified, and un-run on hardware — reopening the numeric
 foundation before first bring-up is schedule risk for no immediate
