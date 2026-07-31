@@ -4,22 +4,18 @@
  * Placed in seg_rth at 0x000C0000 by the LDF.
  * Each vector entry: 4 PM-word instructions.
  *
- * Offsets used (PM word address from base):
- *   0x00 — Reset
- *   0x60 — SPORT0 DMA completion (_sport_dma_isr)
- *   0x90 — SPI1 RX ready         (_spi1_rx_isr,  both chips)
+ * Vectors used (slot = IRPTL bit, 4 PM words each):
+ *   0  — Reset -> _start
+ *   15 — SECI (SEC interrupt) -> _sec_isr, which demuxes ALL
+ *        peripheral sources (block-clock SPORT DMA, SPI1 param link)
+ *        via SEC_CSID (sys events route through the SEC on 2156x —
+ *        there are no direct per-peripheral core vectors).
  *
- * All other vectors: _ivt_default (rti; nop; nop; nop)
- *
- * !! Validate all offsets against ADSP-21564 HRM §5 before production. !!
- *
- * Both chips use the SPI1 RX vector at 0x090. Each chip's binary links
- * against its own spi_handler.asm (_spi_dispatch_c1 / _spi_dispatch_c2).
+ * All other vectors: rti fillers.
  *======================================================================*/
 
 .extern _start;
-.extern _sport_dma_isr;
-.extern _spi1_rx_isr;
+.extern _sec_isr;
 
 .section/pm seg_rth;
 
@@ -48,7 +44,7 @@ _ivt_default:
 /* Offset 0x030 — Vector 12 */ rti; nop; nop; nop;
 /* Offset 0x034 — Vector 13 */ rti; nop; nop; nop;
 /* Offset 0x038 — Vector 14 */ rti; nop; nop; nop;
-/* Offset 0x03C — Vector 15 */ rti; nop; nop; nop;
+/* Offset 0x03C — Vector 15: SECI */ jump _sec_isr; nop; nop; nop;
 /* Offset 0x040 — Vector 16 */ rti; nop; nop; nop;
 /* Offset 0x044 — Vector 17 */ rti; nop; nop; nop;
 /* Offset 0x048 — Vector 18 */ rti; nop; nop; nop;
@@ -61,7 +57,7 @@ _ivt_default:
 /* ====================================================================
  * Offset 0x060 — Vector 24: SPORT0 DMA completion (both chips)
  * ==================================================================== */
-    jump _sport_dma_isr; nop; nop; nop;
+    rti; nop; nop; nop;          /* retired: SPORT DMA routes via SECI */
 
 /* Offset 0x064 — Vector 25 */ rti; nop; nop; nop;
 /* Offset 0x068 — Vector 26 */ rti; nop; nop; nop;
@@ -78,7 +74,7 @@ _ivt_default:
 /* ====================================================================
  * Offset 0x090 — Vector 36: SPI1 RX (both chips)
  * ==================================================================== */
-    jump _spi1_rx_isr; nop; nop; nop;
+    rti; nop; nop; nop;          /* retired: SPI1 routes via SECI */
 
 /* Offset 0x094 — Vector 37 */ rti; nop; nop; nop;
 /* Offset 0x098 — Vector 38 */ rti; nop; nop; nop;

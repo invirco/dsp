@@ -450,19 +450,10 @@
     _tx_slot_C1_XS_XFER_SNAKE_07,
     _tx_slot_C1_XS_XFER_SNAKE_08;
 
-.global _dma_rx_region_words;
-.var _dma_rx_region_words = 1472;
-.global _dma_ic_region_words;
-.var _dma_ic_region_words = 1184;
-
-/* DMA ping-pong buffers (exact lane-major sizes) */
-.section/dm seg_dma;
-.global _dma_rx_ping;    .var _dma_rx_ping[1472];
-.global _dma_rx_pong;    .var _dma_rx_pong[1472];
-.global _dma_ic_tx_ping; .var _dma_ic_tx_ping[1184];
-.global _dma_ic_tx_pong; .var _dma_ic_tx_pong[1184];
-
-.section/dm seg_dmda;
+/* DMA ping-pong buffers live in generated lane_config.c
+ * (byte-addressed C world — DMA + descriptors take byte
+ * addresses); asm reaches them via the word-converted
+ * active-buf pointers set by _set_rx_bufs/_set_tx_bufs. */
 .extern _rx_active_buf;
 .extern _ic_tx_active_buf;
 .extern _meter_peaks;

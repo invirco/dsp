@@ -30,12 +30,11 @@
  *======================================================================*/
 
 /* ---- ADSP-21564 SPI register addresses (from HRM) ---- */
-#define SPI1_RFIFO   0x08000A00   /* SPI1 receive FIFO */
-#define SPI1_STAT    0x08000A10   /* SPI1 status */
-#define SPI1_RFIFO   0x08000A00   /* SPI1 receive FIFO */
-#define SPI1_TFIFO   0x08000A08   /* SPI1 transmit FIFO */
-#define SPI1_STAT    0x08000A10   /* SPI1 status */
-#define SPI1_CTL     0x08000A04   /* SPI1 control */
+/* Real ADSP-2156x SPI1 MMR addresses (sys/ADSP-21564.h) */
+#define SPI1_RFIFO   0x3102F050   /* SPI1 receive FIFO */
+#define SPI1_TFIFO   0x3102F058   /* SPI1 transmit FIFO */
+#define SPI1_STAT    0x3102F040   /* SPI1 status */
+#define SPI1_CTL     0x3102F004   /* SPI1 control */
 
 /* ---- Address space ---- */
 #define RAMP_PROFILE_SHIFT 8     /* bits 11:8 = ramp profile ID */
@@ -73,15 +72,14 @@
 .section/pm seg_pmco;
 
 /*----------------------------------------------------------------------
- * _spi1_rx_isr — SPI1 receive interrupt service routine
+ * _spi1_rx_work — SPI1 receive handler
  *
- * Called when SPI1 RX FIFO has data (at least 2 words).
- * Must be registered in the interrupt vector table.
+ * Called from _sec_isr (SEC source INTR_SPI1_STAT) with secondary
+ * r0-r7 + DAG1 low active. Reads one {address, value} pair from the
+ * RX FIFO.
  *----------------------------------------------------------------------*/
-.global _spi1_rx_isr;
-_spi1_rx_isr:
-    /* Save context (push registers we use) */
-    push sts;
+.global _spi1_rx_work;
+_spi1_rx_work:
     r0 = dm(SPI1_RFIFO);          /* Word 0: address + flags */
     r1 = dm(SPI1_RFIFO);          /* Word 1: coefficient value */
 
@@ -209,8 +207,7 @@ _spi1_rx_isr:
     dm(_spi_err_count) = r2;
 
 .spi_done:
-    pop sts;
-    rti;
+    rts;
 
 .spi_read:
     /* READ request: look up DM value at address in r2, write to TFIFO */
@@ -232,4 +229,4 @@ _spi1_rx_isr:
 .spi_read_respond:
     dm(SPI1_TFIFO) = r4;                 /* preload TX FIFO for master readback */
     jump (pc, .spi_done);
-_spi1_rx_isr.end:
+_spi1_rx_work.end:

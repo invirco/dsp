@@ -178,12 +178,26 @@ Hardware ground truth: [MW/D24/HW/hardware-map.md](MW/D24/HW/hardware-map.md)
     added BW-qualified seg_dmda output sections — cc21k emits
     byte-addressed data that a DM-only mapping silently drops
     (li1060), same dual-mapping idiom as the CCES stock LDF.
-  - Slice 3 NEXT: DDE 2-descriptor rings per lane + SEC block-clock
-    (SPORT0_A_DMA source 37) + ivt wiring + set SPEN after DMA armed.
-    C needs the buffer addresses — pass from asm via C-ABI args or
-    generate address-holder C globals. Then SPI handler real
-    REG_SPI1_* addresses (same invented-address problem; FLAGS_REG in
-    main.asm too).
+  - Slice 3 DONE (2026-07-31): full interrupt/DMA architecture in
+    place. DMA buffers moved to generated lane_config.c (byte world —
+    descriptors take byte addresses); new `src/dma_config.c` builds
+    2-descriptor DDE list rings per lane ({NXT,ADDRSTART,CFG,XCNT,XMOD},
+    FETCH05, MSIZE/PSIZE 4, WNR on RX, XCNT_INT on the block-clock lane
+    SPORT0_A), inits SEC (GCTL/CCTL0 + sources 37 and 91), SPI1 slave
+    (real REG_SPI1_*; RX watermark PROVISIONAL), hands asm the buffer
+    pointers via _set_rx_bufs/_set_tx_bufs (byte→word >>2, L1 NW=BW/4),
+    then sets SPENPRI. sport_init.asm now owns _sec_isr (core SECI =
+    IVT slot 15 — there are NO per-peripheral core vectors on 2156x;
+    demux via SEC_CSID, ack SEC_END, secondary regs SRRFL+SRD1L) +
+    _sport_dma_work ping/pong toggle. spi_handler ISRs became
+    _spi1_rx_work (rts) with real MMR addresses. main.asm enables
+    IMASK SECI + MODE1 IRPTEN before the config wait (config arrives
+    over SPI).
+  - Remaining for hardware bring-up (all marked in-source):
+    FLAGS_REG chip-id detect is still an invented address; SPI RX
+    watermark + SPI_RDY flow control provisional; CKRE/MFD pending
+    dsp4-logic RTL; verify SEC CSID/END + asm MMR dm() semantics;
+    ISR-clobber conventions in the generated node kernels unaudited.
   - CKRE/MFD are PROVISIONAL until dsp4-logic RTL fixes them — encode
     the choice in shared/dsp4-logic conventions when made.
   - Pre-existing warning to clear while in there: ramp_tables.asm

@@ -1,45 +1,28 @@
 /*======================================================================
- * sport_init.asm — SPORT/TDM and interrupt configuration for ADSP-21564
+ * sport_init.asm — block ISR, SEC dispatch and buffer-pointer state
  *
  * Shared by both Chip 1 and Chip 2 (assembled with -DCHIP_ID=1|2).
  *
- * SPORT layout (slot map SOT: shared/dsp4-logic/, decision D2;
- * sport_id = DAI port index, half A = RX (I ports), half B = TX
- * (O ports); SPORT0-3 on DAI0, SPORT4-7 on DAI1. LOGIC drives all
- * BCK/FS — every SPORT half is a clock slave):
+ * The register-level bring-up lives in C (TODO(dsp4-plumbing) slices
+ * 2-3): sru_config.c (DAI routing), sport_config.c (half-SPORT
+ * CTL/MCTL/CS), dma_config.c (DDE descriptor rings, SEC, SPI1, SPEN).
+ * Geometry and DMA buffers are generated (chipN/block_io.asm +
+ * chipN/lane_config.c). This file owns:
  *
- *   Chip 1 (DSPA / U6):
- *     SPORT0..3 A RX — ADC/NET TDM8 inputs (A_I0..A_I3, 32 ch)
- *     SPORT4 A RX    — codec return  (A_I4: CS 0x0D — slots 0,2,3)
- *     SPORT5 A RX    — D32 snake     (A_I5: CS 0xFF)
- *     SPORT6 A RX    — Pi PCM        (A_I6: CS 0x03)
- *     SPORT7 A RX    — MEMS talkback (A_I7: CS 0x20)
- *     SPORT0..2 B TX — mix fabric MIX_0..MIX_2 (TDM16, packed 37 slots)
+ *  - the active-buffer pointer variables used by the scatter/gather
+ *    paths, plus the C->asm setters (_set_rx_bufs/_set_tx_bufs) that
+ *    convert byte addresses to the core word view (L1 NW = BW/4);
+ *  - _sec_isr: the core SECI vector handler (IVT slot 15) — reads
+ *    SEC_CSID, dispatches the block clock (SPORT0_A_DMA, source 37)
+ *    and the SPI1 param link (source 91), acks via SEC_END;
+ *  - _sport_dma_work: per-block ping/pong toggle + block_ready.
  *
- *   Chip 2 (DSPB / U5):
- *     SPORT0..2 A RX — mix fabric MIX_0..MIX_2 (as above)
- *     SPORT0..4 B TX — DAC 1-16, codec/snake, DAC MAIN, NET 1-8
- *                      (TDM8 full-window lanes)
- *
- * Geometry, CS masks, lane tables and the DMA ping-pong buffers are
- * GENERATED in chipN/block_io.asm (lane-major layout — see
- * MW/D32/DSP/dsp4-plumbing.md). This file owns the control variables,
- * the block ISR, and — once slices 2-3 land — the register-level
- * SPORT/SRU/DDE/SEC bring-up per that design doc.
- *
- * TODO(dsp4-plumbing): _sport_init below is a STUB. The former body
- * wrote invented MMR addresses (0x0800xxxx — not real 2156x register
- * space) implementing the superseded single-SPORT7 model, and has been
- * removed rather than left to mislead. Implement against
- * <def21564.h>/<sru21564.h> + the generated lane tables:
- *   1. SRU routing (DAI pin map in dsp4-plumbing.md)
- *   2. Half-SPORT CTL/MCTL/CS from _cN_*_lanes tables
- *   3. DDE 2-descriptor ping-pong rings per lane; SEC block-clock IRQ
- *   4. SPI slave for the Pi param link (real REG_SPI1_* addresses;
- *      spi_handler.asm has the same invented-address problem)
- *
- * Infrastructure (hand-maintained).
+ * Bring-up notes: ISR uses secondary registers (SRRFL + DAG1 low) so
+ * the main loop's registers survive; verify SEC CSID/END semantics and
+ * MMR dm() access from asm on first hardware run.
  *======================================================================*/
+
+#include <def21564.h>
 
 /* ---- Audio block parameters ---- */
 #define BLOCK_SIZE         32
@@ -49,22 +32,9 @@
 
 .section/dm seg_dmda;
 
-/* Generated DMA buffers (lane-major, exact sizes) — block_io.asm */
-#if CHIP_ID == 1
-.extern _dma_rx_ping;
-.extern _dma_rx_pong;
-.extern _dma_ic_tx_ping;
-.extern _dma_ic_tx_pong;
-#elif CHIP_ID == 2
-.extern _dma_ic_rx_ping;
-.extern _dma_ic_rx_pong;
-.extern _dma_tx_ping;
-.extern _dma_tx_pong;
-#endif
-
-/* Current buffer pointers (toggled by the block ISR). All four are
- * declared on both chips (block_io externs per chip); the ones not
- * used by this chip stay 0. */
+/* Current buffer pointers (word view; toggled by the block ISR). All
+ * four are declared on both chips; the ones not used by this chip
+ * stay 0. */
 .global _rx_active_buf;
 .var _rx_active_buf;
 .global _tx_active_buf;
@@ -73,6 +43,14 @@
 .var _ic_rx_active_buf;
 .global _ic_tx_active_buf;
 .var _ic_tx_active_buf;
+
+/* Ping/pong word addresses (set by _set_rx_bufs/_set_tx_bufs).
+ * "rx" = this chip's inbound region (chip1 RX / chip2 IC RX),
+ * "tx" = outbound region (chip1 IC TX / chip2 TX). */
+.var _rx_ping_w;
+.var _rx_pong_w;
+.var _tx_ping_w;
+.var _tx_pong_w;
 
 /* Boot-time product config from the Pi/CM4 host (D1: Pi masters DSP SPI;
  * the S MCU is not in the parameter path) */
@@ -94,97 +72,121 @@
 
 .section/pm seg_pmco;
 
+.extern _spi1_rx_work;
+
 /*----------------------------------------------------------------------
- * _sport_init — STUB (see TODO(dsp4-plumbing) in the header)
- *
- * Currently only initializes the ping/pong base pointers so the
- * scatter/gather paths and the ISR are exercisable. No MMR access.
+ * _set_rx_bufs / _set_tx_bufs — C-callable (C ABI: args in r4, r8)
+ * Store the inbound/outbound ping+pong buffer addresses, converted
+ * from the C byte view to the core word view (>> 2), and initialize
+ * the active pointers to ping.
  *----------------------------------------------------------------------*/
-.global _sport_init;
-_sport_init:
+.global _set_rx_bufs;
+_set_rx_bufs:
+    r4 = lshift r4 by -2;         /* byte -> word */
+    r8 = lshift r8 by -2;
+    dm(_rx_ping_w) = r4;
+    dm(_rx_pong_w) = r8;
 #if CHIP_ID == 1
-    r0 = _dma_rx_ping;
-    dm(_rx_active_buf) = r0;
-    r0 = _dma_ic_tx_ping;
-    dm(_ic_tx_active_buf) = r0;
+    dm(_rx_active_buf) = r4;
 #elif CHIP_ID == 2
-    r0 = _dma_ic_rx_ping;
-    dm(_ic_rx_active_buf) = r0;
-    r0 = _dma_tx_ping;
-    dm(_tx_active_buf) = r0;
+    dm(_ic_rx_active_buf) = r4;
 #endif
     rts;
-_sport_init.end:
+_set_rx_bufs.end:
+
+.global _set_tx_bufs;
+_set_tx_bufs:
+    r4 = lshift r4 by -2;
+    r8 = lshift r8 by -2;
+    dm(_tx_ping_w) = r4;
+    dm(_tx_pong_w) = r8;
+#if CHIP_ID == 1
+    dm(_ic_tx_active_buf) = r4;
+#elif CHIP_ID == 2
+    dm(_tx_active_buf) = r4;
+#endif
+    rts;
+_set_tx_bufs.end:
 
 /*----------------------------------------------------------------------
- * _sport_dma_isr — block-boundary ISR (block clock: one DMA-done per
- * block toggles this chip's ping/pong base pointers; all lanes share
- * the LOGIC frame sync so one toggle covers every lane).
+ * _sec_isr — core SECI vector (IVT slot 15)
  *
- * TODO(dsp4-plumbing): hook to the SEC block-clock interrupt
- * (SPORT0_A_DMA) and acknowledge via SEC_END when slice 3 lands.
+ * Demux via SEC_CSID: block clock (SPORT0_A_DMA = 37) and SPI1 status
+ * (= 91). Ack by writing the source id to SEC_END. Uses secondary
+ * r0-r7 + DAG1 low so main-loop registers survive.
  *----------------------------------------------------------------------*/
-.global _sport_dma_isr;
-_sport_dma_isr:
+.global _sec_isr;
+_sec_isr:
+    bit set mode1 BITM_REGF_MODE1_SRRFL | BITM_REGF_MODE1_SRD1L;
+    nop;                          /* effect latency */
     push sts;
 
-#if CHIP_ID == 1
-    /* Toggle RX buffer pointer */
-    r0 = dm(_rx_active_buf);
-    r1 = _dma_rx_ping;
+    r0 = dm(REG_SEC0_CSID0);      /* active source id */
+    r1 = INTR_SPORT0_A_DMA;
     comp(r0, r1);
-    if eq jump (pc, .rx_to_pong);
-    dm(_rx_active_buf) = r1;
-    jump (pc, .toggle_ic_tx);
-.rx_to_pong:
-    r0 = _dma_rx_pong;
-    dm(_rx_active_buf) = r0;
-
-.toggle_ic_tx:
-    r0 = dm(_ic_tx_active_buf);
-    r1 = _dma_ic_tx_ping;
+    if eq call _sport_dma_work;
+    r1 = INTR_SPI1_STAT;
     comp(r0, r1);
-    if eq jump (pc, .ic_tx_to_pong);
-    dm(_ic_tx_active_buf) = r1;
-    jump (pc, .dma_isr_done);
-.ic_tx_to_pong:
-    r0 = _dma_ic_tx_pong;
-    dm(_ic_tx_active_buf) = r0;
+    if eq call _spi1_rx_work;
 
-#elif CHIP_ID == 2
-    /* Toggle IC RX buffer pointer */
-    r0 = dm(_ic_rx_active_buf);
-    r1 = _dma_ic_rx_ping;
-    comp(r0, r1);
-    if eq jump (pc, .ic_rx_to_pong);
-    dm(_ic_rx_active_buf) = r1;
-    jump (pc, .toggle_tx);
-.ic_rx_to_pong:
-    r0 = _dma_ic_rx_pong;
-    dm(_ic_rx_active_buf) = r0;
-
-.toggle_tx:
-    r0 = dm(_tx_active_buf);
-    r1 = _dma_tx_ping;
-    comp(r0, r1);
-    if eq jump (pc, .tx_to_pong);
-    dm(_tx_active_buf) = r1;
-    jump (pc, .dma_isr_done);
-.tx_to_pong:
-    r0 = _dma_tx_pong;
-    dm(_tx_active_buf) = r0;
-#endif
-
-.dma_isr_done:
-    /* Signal block ready */
-    r0 = 1;
-    dm(_block_ready) = r0;
-
-    /* Increment frame counter */
-    r0 = dm(_frame_count);
-    r0 = r0 + 1;
-    dm(_frame_count) = r0;
+    dm(REG_SEC0_END) = r0;        /* acknowledge source */
 
     pop sts;
+    bit clr mode1 BITM_REGF_MODE1_SRRFL | BITM_REGF_MODE1_SRD1L;
+    nop;
     rti;
-_sport_dma_isr.end:
+_sec_isr.end:
+
+/*----------------------------------------------------------------------
+ * _sport_dma_work — block boundary (one DMA-done per buffer half on
+ * the block-clock lane; all lanes share the LOGIC frame sync, so one
+ * toggle covers every lane). Called from _sec_isr; clobbers r2/r3
+ * (secondary bank).
+ *----------------------------------------------------------------------*/
+.global _sport_dma_work;
+_sport_dma_work:
+    /* Toggle inbound pointer */
+#if CHIP_ID == 1
+    r2 = dm(_rx_active_buf);
+#elif CHIP_ID == 2
+    r2 = dm(_ic_rx_active_buf);
+#endif
+    r3 = dm(_rx_ping_w);
+    comp(r2, r3);
+    if ne jump (pc, .rx_use_ping); /* active was pong -> back to ping */
+    r3 = dm(_rx_pong_w);          /* active was ping -> pong */
+.rx_use_ping:
+#if CHIP_ID == 1
+    dm(_rx_active_buf) = r3;
+#elif CHIP_ID == 2
+    dm(_ic_rx_active_buf) = r3;
+#endif
+
+    /* Toggle outbound pointer */
+#if CHIP_ID == 1
+    r2 = dm(_ic_tx_active_buf);
+#elif CHIP_ID == 2
+    r2 = dm(_tx_active_buf);
+#endif
+    r3 = dm(_tx_ping_w);
+    comp(r2, r3);
+    if ne jump (pc, .tx_use_ping);
+    r3 = dm(_tx_pong_w);
+.tx_use_ping:
+#if CHIP_ID == 1
+    dm(_ic_tx_active_buf) = r3;
+#elif CHIP_ID == 2
+    dm(_tx_active_buf) = r3;
+#endif
+
+    /* Signal block ready */
+    r2 = 1;
+    dm(_block_ready) = r2;
+
+    /* Increment frame counter */
+    r2 = dm(_frame_count);
+    r2 = r2 + 1;
+    dm(_frame_count) = r2;
+
+    rts;
+_sport_dma_work.end:

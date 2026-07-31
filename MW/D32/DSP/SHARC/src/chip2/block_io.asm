@@ -242,19 +242,8 @@
     _tx_out_slot_C2_MAIN_ST_OUT,
     _tx_out_slot_C2_SUB_OUT;
 
-.global _dma_ic_region_words;
-.var _dma_ic_region_words = 1184;
-.global _dma_tx_region_words;
-.var _dma_tx_region_words = 1280;
-
-/* DMA ping-pong buffers (exact lane-major sizes) */
-.section/dm seg_dma;
-.global _dma_ic_rx_ping; .var _dma_ic_rx_ping[1184];
-.global _dma_ic_rx_pong; .var _dma_ic_rx_pong[1184];
-.global _dma_tx_ping;    .var _dma_tx_ping[1280];
-.global _dma_tx_pong;    .var _dma_tx_pong[1280];
-
-.section/dm seg_dmda;
+/* DMA ping-pong buffers live in generated lane_config.c —
+ * see the chip-1 note. */
 .extern _ic_rx_active_buf;
 .extern _tx_active_buf;
 .extern _meter_peaks;
