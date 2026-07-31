@@ -162,6 +162,24 @@ dsp.csv sport params), not kernels.
 
 ## P1 - DSP4 unified firmware & D24 bring-up (top priority)
 
+- [ ] <span style="color:#d97706"><b>IN PROGRESS</b></span> Fixed-point conversion (decision D5, started 2026-07-31)
+  - Float kernels ARCHIVED at git tag `float-kernels-2026-07-31`; float
+    stays the buildable mainline until each family is replaced (no new
+    float feature work). FX engines stay float permanently.
+  - DONE: `shared/numeric-spec.md` (Q4.28 samples/+18 dB headroom,
+    offset-coefficient biquad topology + error feedback, log2-domain
+    dynamics, Q0.31 alphas, contract-preserving float32 wire);
+    `tools/dsp/fixed_ref.py` (bit-accurate normative model);
+    `tools/dsp/golden_harness.py` — **9/9 PASS**: biquad 0.046 dB worst
+    (FP32 baseline: 0.41 dB — 9× better), noise −132.6 dBFS, summing
+    exact, log2/exp2 ≤ 0.0001 dB, comp curve 0.00008 dB, envelope 0.2%.
+  - [REVIEW] items for Peter in the spec: +18 dB headroom choice,
+    tolerance set, dynamics knee behaviour at the log2 boundary.
+  - NEXT (plan: fpga/fixed-port-plan.md): convert dsp_codegen kernels
+    family-by-family against fixed_ref (biquads → gains/summing/ramps →
+    dynamics), each behind the golden harness + fit-proxy build before
+    replacing its float version.
+
 Binding decisions: [dsp4-architecture-decisions.md](dsp4-architecture-decisions.md)
 (D1 Pi masters DSP SPI, D2 CPLD in-repo w/ single-sourced slot map,
 D3 one DSP4 firmware for D24+D32, D4 topology per schematic).

@@ -57,6 +57,31 @@ Hardware ground truth: [MW/D24/HW/hardware-map.md](MW/D24/HW/hardware-map.md)
 - Revisit trigger: if one product needs DSP features the other's cycle
   budget cannot carry, fork deliberately at that point — do not pre-fork.
 
+## D5 — Fixed-point audio path, one numeric spec across targets
+
+- Decided 2026-07-31 (pre-shipping window, no hardware run yet): the
+  DSP4 audio sample path converts from FP32 to fixed point, governed by
+  ONE numeric specification (`shared/numeric-spec.md`) shared with the
+  future FPGA mixer engine (see `fpga/`). Rationale: fixed is the only
+  format native-fast on both the dual-format SHARC+ and every FPGA
+  family; wide accumulators improve LF biquad noise and make mix
+  summing exact.
+- The float kernel work is ARCHIVED, not lost: git tag
+  `float-kernels-2026-07-31`. Float remains the buildable mainline only
+  until each kernel family is replaced by its verified fixed version;
+  no further float feature work.
+- Exception: FX engines (reverbs) STAY FLOAT indefinitely — the SHARC+
+  is dual-format per instruction and mixed-format is free; converting
+  FX is a separate decision if ever needed.
+- The contract does NOT change: the SPI wire keeps carrying float32
+  words; a single on-target conversion at the parameter-write/ramp
+  boundary feeds the fixed kernels. mx26, cell tables, address map,
+  ghost cells and host tooling are untouched.
+- Acceptance: every converted family must pass the golden-vector
+  harness (float64 reference in tools/dsp/) within the tolerances in
+  the numeric spec, plus a clean fit-proxy build, before it replaces
+  the float version.
+
 ## D4 — D24 node-graph topology follows the schematic, not the old plan
 
 - Mix summing lives on chip 1 (DSPA emits 128 mix buses over 8× TDM16);
