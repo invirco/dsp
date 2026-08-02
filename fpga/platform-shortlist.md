@@ -186,9 +186,28 @@ computer endpoints:**
 
 ## Alternatives (non-Xilinx)
 
+Industry context (2026-08-02): FPGA-core consoles are overwhelmingly
+Xilinx (DiGiCo Quantum, Lawo A__UHD, Calrec ImPulse, A&H XCVI,
+Audinate's own hardware) — IP, reference designs and hiring
+concentrate there. Yamaha runs custom LSI (not available at our
+volume); Behringer/Midas remain SHARC farms (the incumbent we
+costed); Studer Infinity / Q-SYS / Waves LV1 / SSL Tempest are
+CPU-engines (x86/many-core) — the one genuinely different
+architecture, rejected for worst-case latency (~ms class) and because
+an FPGA is needed for TDM/MW-Net I/O anyway. Our ZU5EV plan already
+absorbs the CPU-engine pattern: the A53s doing FX/control ARE that
+idea, embedded in the same chip.
+
+- **PLAN B: Altera Agilex 5 E-series** — the only true Zynq-US+ peer
+  (hard dual A76 + dual A55, up to 656k LE, 38 Mb embedded RAM,
+  shipping with dev kits; Quartus already in-house via CPLD flow).
+  Second because: no Kria-equivalent cheap production SoM or
+  free-tier tooling, thin audio ecosystem, Altera spinoff roadmap
+  uncertainty, pricing unproven vs K26's $325. Named fallback if AMD
+  supply/pricing turns hostile — not a change of course.
 - **Intel Cyclone V SoC (5CSEBA6)** — direct 7020 analog; Quartus
-  already in-house (CPLD flow). Family is old, Agilex 3 still
-  ramping → Xilinx is the safer bet.
+  already in-house (CPLD flow). Family is old → Xilinx is the safer
+  bet; superseded as plan-B by Agilex 5 E above.
 - **Lattice ECP5 / CertusPro-NX** — wrong for the console, RIGHT for
   the I/O modules: link block + TDM + converter glue on a ~$25-50
   part, open-toolchain option. Consequence: write the link block in
@@ -245,6 +264,8 @@ computer endpoints:**
   ($86.89, in stock).
 - KV260 refresh at $249: amd.com blog "kria-kv260-vision-ai-starter-
   kit-refresh" (2025).
+- Agilex 5 E-series: altera.com E-series overview + dev-kit pages;
+  intel.com E-065B specs (dual A76 + dual A55, 656k LE, 38 Mb).
 - KR260 PL Ethernet detail: UG1092 (KR260 user guide); Xilinx
   kria-apps-firmware device trees (DP83867 PHYs, GMII-to-RGMII);
   kria-apps-docs TSN/PTP reference designs.
