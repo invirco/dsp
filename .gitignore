@@ -20,6 +20,9 @@ MW/D32/DSP/SHARC/cces/
 cces-license*.txt
 license.dat
 
+# Vendor documentation PDFs — fetched locally by fetch-*-docs.sh, never tracked
+docs/**/*.pdf
+
 # macOS metadata
 ._*
 .DS_Store
