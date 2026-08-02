@@ -10,6 +10,17 @@ Status colors:
 - <span style="color:#2563eb"><b>NEXT</b></span>
 - <span style="color:#6b7280"><b>BLOCKED/DEFERRED</b></span>
 
+## Addendum 2026-08-02 — D6 platform mandate
+
+D6 recorded in dsp4-architecture-decisions.md: SHARC DSP4 card serves
+up to 32 ch @ 48 kHz (D24/D32 path untouched); single-chip FPGA engine
+(ZU5EV/K26 class) mandated for 32 ch @ 96 kHz and up. Full platform
+dossier: `fpga/platform-shortlist.md` (parts, 1k pricing, cost case vs
+multi-SHARC, DAW/recording strategy, MW-Net link decisions in
+`fpga/README.md`). Pre-code gates: ch.fir tap ceiling (hub-side,
+~$150-200 BOM swing), FX placement, 16-bit address check at d128
+scale (needs d128 mx-master generated in mx26), MW-Net frame spec.
+
 ## Resume notes (final save 2026-07-31 — 32 commits today, tree clean)
 
 TOMORROW'S ENTRY POINTS (in priority order):

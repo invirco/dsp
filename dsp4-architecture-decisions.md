@@ -1,7 +1,8 @@
 # DSP4 architecture decisions
 
-Status: accepted 2026-07-29
-Scope: DSP4 card (dual ADSP-21564 + MAX V LOGIC CPLD) as used by D24 and D32.
+Status: accepted 2026-07-29 (D1-D5); D6 added 2026-08-02
+Scope: DSP4 card (dual ADSP-21564 + MAX V LOGIC CPLD) as used by D24 and
+D32; D6 extends scope to platform selection across the product range.
 These decisions are binding for work in this repo. Change them only by
 editing this file deliberately (record why), not by drifting in code.
 
@@ -89,3 +90,41 @@ Hardware ground truth: [MW/D24/HW/hardware-map.md](MW/D24/HW/hardware-map.md)
   codec/snake, NET 1-32).
 - Change path: `tools/dsp/gen_dsp_csv.py` → `dsp.csv` →
   `tools/dsp/dsp_codegen.py` → node ASM. Generated files are never edited.
+
+## D6 — Platform split: SHARC to 32 ch/48 kHz, FPGA from 32 ch/96 kHz up
+
+- Decided 2026-08-02. Two engine platforms, split by product tier:
+  - **Products up to 32 ch @ 48 kHz** (D24/D32 line): the DSP4 card
+    (dual ADSP-21564 + MAX V CPLD) remains the engine. D1-D5 stand
+    unchanged; nothing in D6 disturbs the shipping path.
+  - **Products at 32 ch @ 96 kHz and above** (64/128-ch tiers, d64/d128
+    definitions): a single-chip FPGA engine — Zynq UltraScale+ class,
+    parts and pricing per `fpga/platform-shortlist.md` (K26/ZU5EV
+    flagship; Agilex 5 E is the named second source). No new multi-DSP
+    designs above 32 ch/48 kHz.
+- Rationale (analysis in `fpga/platform-shortlist.md`): at 96 kHz with
+  d128-grade processing the multi-SHARC route is equal-or-costlier on
+  silicon and carries the multi-chip system tax (backplane, per-chip
+  memory/boot/power, inter-chip TDM scheduling — which needs a
+  CPLD/FPGA anyway); its spec-creep costs discrete chips, the FPGA's
+  costs utilization %. Streaming (MW-Net, full-bandwidth Dante card)
+  is native to the FPGA and required by the product definitions.
+- The FPGA is a **third codegen backend, not a fork** (extends D3's
+  one-firmware principle): same contract flow (defs.lock → dsp.csv),
+  an `fpga_codegen.py` beside `dsp_codegen.py` in `tools/dsp/`, one
+  RTL/codegen platform spanning 32-128 ch with per-product generated
+  tables; `dsp_simulate.py` golden vectors are normative; the D5
+  numeric spec (`shared/numeric-spec.md`) governs both targets.
+- Networking (binding, from `fpga/README.md`): own-brand I/O rides the
+  proprietary MW-Net isochronous P2P link (no PTP/IP; clock-from-link;
+  switchless premise); standards interop lives on a full-mixer-
+  bandwidth Dante option card; no native MW-Net computer endpoints —
+  DAW connectivity is class-compliant USB at the edges.
+- Design gates before FPGA code lands (tracked in `fpga/README.md`):
+  architect-at-128×128/build-small rules; 16-bit address-space check
+  at d128 scale; `ch.fir` tap ceiling into the product definition; FX
+  placement (fabric vs A53 vs hybrid); MW-Net frame-format spec.
+- Revisit triggers: AMD supply/pricing turns hostile → Agilex 5 E
+  plan-B (`fpga/platform-shortlist.md`); a future ≤32 ch product
+  needing 96 kHz forces either the FPGA entry tier (7020-class) or a
+  deliberate DSP4-at-96k exception recorded here.

@@ -1,10 +1,14 @@
-# FPGA mixer engine — idea gathering
+# FPGA mixer engine — design notes
 
-Status: exploration, started 2026-07-31. Nothing here is binding; this
-folder collects feasibility notes for porting the DSP4 processing to an
-FPGA for larger mixers — the product window is **32 channels and up at
-96 kHz+**, where the dual-21564 card runs out of fabric slots, memory,
-or cycles. The competing architecture for that window is multiple DSP
+Status: **platform MANDATED 2026-08-02 by D6** (see
+`../dsp4-architecture-decisions.md`): SHARC DSP4 card serves products
+up to 32 ch @ 48 kHz; the single-chip FPGA engine serves 32 ch @
+96 kHz and above. This folder holds the design notes behind and
+beyond that decision; detailed contents (frame formats, budgets,
+part choices) remain working material until they land in specs or
+further numbered decisions. The product window is **32 channels and
+up at 96 kHz+**, where the dual-21564 card runs out of fabric slots,
+memory, or cycles. The competing architecture for that window is multiple DSP
 modules on a CPLD-muxed TDM backplane (sketched in
 [../ideas.md](../ideas.md), "128×128 TDM DSP Fabric"); a single FPGA
 replaces that backplane-and-modules story with one chip, and natively
@@ -260,6 +264,7 @@ fork D3 exists to prevent.
 - `shared/dsp4-logic/` conventions (slot-map SOT, timing conventions,
   hash-pinned bitstreams) are the template for how FPGA artifacts
   would be managed — same D2-style rules, bigger chip.
-- This folder is idea-gathering only; adopting any of it becomes a
-  numbered architecture decision in dsp4-architecture-decisions.md
-  (or a successor doc) before code lands.
+- The platform split itself is now decision D6 (2026-08-02). Further
+  adoptions from this folder (frame-format spec, FX placement, table
+  formats) still become numbered decisions in
+  dsp4-architecture-decisions.md before code lands.
