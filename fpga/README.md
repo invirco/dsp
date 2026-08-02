@@ -2,8 +2,15 @@
 
 Status: exploration, started 2026-07-31. Nothing here is binding; this
 folder collects feasibility notes for porting the DSP4 processing to an
-FPGA for larger mixers (128+ channels, where the dual-21564 card runs
-out of fabric slots, memory, or cycles).
+FPGA for larger mixers — the product window is **32 channels and up at
+96 kHz+**, where the dual-21564 card runs out of fabric slots, memory,
+or cycles. The competing architecture for that window is multiple DSP
+modules on a CPLD-muxed TDM backplane (sketched in
+[../ideas.md](../ideas.md), "128×128 TDM DSP Fabric"); a single FPGA
+replaces that backplane-and-modules story with one chip, and natively
+carries the own-brand networked-I/O link (a proprietary isochronous
+P2P protocol over standard GbE — see the I/O sketch below); standards
+interop stays on a Dante option card.
 
 ## The two headline questions
 
@@ -36,8 +43,12 @@ target-independent. Concretely:
 - **Summing/routing**: this is where the FPGA *wins outright* — the
   128-bus inter-chip fabric limit and the chip1-block3/chip2-L2 memory
   ceilings simply disappear; a 250 MHz fabric gives ~5200 cycles per
-  48 kHz sample, so ONE time-multiplexed MAC engine serves hundreds of
-  channel×bus sends from BRAM coefficient/state tables.
+  48 kHz sample (~2600 at 96 kHz), so ONE time-multiplexed MAC engine
+  serves hundreds of channel×bus sends from BRAM coefficient/state
+  tables. At 96 kHz a full 64×64 matrix (4096 sends) needs two MAC
+  lanes instead of one — trivial against the hundreds of DSP slices on
+  any candidate part; sample rate halves the multiplexing depth but
+  doesn't change the architecture.
 - **Delays**: FPGA boards bring DDR — the whole xSPI-PSRAM "RAM
   insurance" problem (tasks.md HW section) is native here.
 - **Hardest to port: the FX engines** (reverbs). Feasible in fabric but
@@ -103,12 +114,87 @@ shortlist; it would force fixed words onto the wire.)
 - Parameter plane: SPI (or AXI-lite behind a SoC bridge) → parameter
   RAM → ramp engine → coefficient staging (same crossfade-swap idea as
   the GEQ `coeffs_next` staging).
-- I/O: TDM lanes as today (the slot-map SOT extends), or the natural
-  step up — network audio directly into fabric.
+- I/O: TDM lanes as today (the slot-map SOT extends), plus network
+  audio in a two-tier split (decided direction, 2026-08-02):
+  - **Standards interop (Dante/AES67) lives on an option card**, not in
+    fabric. The card presents itself to the FPGA as TDM/I2S lanes, so
+    to the slot-map SOT it's just another bank of slots and carries
+    none of its protocol complexity (PTP servo, SAP/SDP discovery,
+    IGMP) into the mixer platform.
+  - **Own-brand I/O modules connect over a proprietary isochronous
+    P2P link handled natively by the FPGA** (decided 2026-08-02 over
+    an AES67-subset approach — the AES50/GigaACE/SoundGrid pattern,
+    not the Dante one). Design point: *proprietary payload, standard
+    plumbing* — commodity GbE PHYs and standard Ethernet frames with
+    our own EtherType (cheap parts, cable diagnostics, Wireshark-able),
+    filled with fixed-size, fixed-cadence audio blocks whose channel
+    layout is generated from the same slot-map SOT. Conceptually the
+    link is the TDM backplane over a cable. **No PTP, no IP/RTP**: on
+    a switchless P2P link the continuous frame stream carries the
+    sample clock itself (receiver PLLs to the frame cadence, AES50
+    style), which dissolves the distributed-sync problem and puts
+    latency in the tens-of-µs class instead of AES67's ~1 ms packet
+    time. The residual control plane (link bring-up, module
+    enumeration) is small enough for a soft core or the Pi.
+    Topologies: star (each module home-run to a console port) and
+    daisy chain (each module has two PHYs, does cut-through forwarding
+    and regenerates the clock with a fixed, known per-hop delay).
+    Switchless is a design premise, not an accident: inserting a COTS
+    switch reintroduces jitter and forces timestamps + buffering —
+    i.e. rebuilds AES67. If switched infrastructure is ever required,
+    that traffic belongs on the Dante card.
 - Platform candidates: Zynq UltraScale+ / Versal (ARM cores could
-  absorb FX and even the Pi role) vs mid-range Artix/Cyclone + external
-  Pi keeping today's D1 architecture unchanged. Keeping the Pi keeps
-  the whole host stack identical — attractive for a first prototype.
+  absorb FX, the AES67 protocol stack, and even the Pi role) vs
+  mid-range Artix/Cyclone + external Pi keeping today's D1 architecture
+  unchanged. Keeping the Pi keeps the whole host stack identical —
+  attractive for a first prototype. With standards interop pushed to
+  the option card and the own-brand link being fabric-friendly (see
+  I/O above), full AES67 no longer forces an SoC part — the SoC case
+  now rests on FX and integration, not networking. Concrete part
+  proposals per tier: [platform-shortlist.md](platform-shortlist.md).
+  Toolchain rule extends unchanged: never commit Vivado/Vitis/Quartus
+  or license material.
+
+## Design approach: architect at max, bring up small (2026-08-02)
+
+Design the architecture for the 128×128 ceiling from day one; build
+first hardware at the smallest sellable tier. The split:
+
+**Fixed at 128×128 scale immediately (these fossilize):**
+
+- Address space, node ID scheme, schedule-ROM entry width, BRAM
+  state/coeff record layouts — field widths come from the max config;
+  spare bits are free now, contract breaks later.
+- The scaling mechanism itself: at 96 kHz (~2600 cycles/sample) a
+  128×128 send matrix needs ~7 MAC lanes, so the architecture is
+  "N parallel lanes per engine, N chosen per product" — and the first
+  thing to design is the schedule generator in `fpga_codegen.py` that
+  partitions the dsp.csv graph across lanes. Scaling then lives in the
+  generator; scale-down is regeneration from a smaller matrix (the
+  same move the repo makes everywhere else).
+- The link frame format: channel fields, daisy-chain aggregate
+  capacity, marketed per-lane number — permanent once modules ship.
+- DDR bandwidth + BRAM budgets at 128 ch (paper exercise; decides
+  whether the flagship needs UltraRAM/DDR4 — see
+  [platform-shortlist.md](platform-shortlist.md)).
+
+**Sized to the floor as well as the ceiling:** the 32-ch tier wants
+7020-class silicon, so engine RTL must fit DOWN — parameterized lane
+counts and table depths, BRAM by inference (7-series has no UltraRAM;
+device-specific primitives behind wrappers), no baked-in DDR4/A53
+assumptions. Per-tier resource budgets are part of the design, not an
+afterthought.
+
+**First build:** smallest sellable tier on the flagship architecture —
+engines on a KV260 or 7020 board, a 32-ch product config generated
+from the real contract flow, validated against dsp_simulate.py golden
+vectors. Only generated tables and lane counts differ from the
+128-ch product (D3's one-firmware rule, applied to fabric).
+
+**Anti-pattern to refuse:** a quick 32-ch prototype with hardcoded
+widths "to get audio passing" — that's how schedule formats, address
+fields, or link framing end up unable to stretch, i.e. the per-product
+fork D3 exists to prevent.
 
 ## What would make or break it (open questions)
 
@@ -123,11 +209,34 @@ shortlist; it would force fixed words onto the wire.)
    on-DSP from cell values; on FPGA either a soft/hard CPU does this or
    the Pi precomputes (protocol already carries raw words — either
    works, but pick one and note it in the contract docs).
-4. Scale target: define "larger" (e.g. 128×64) to size DSP blocks,
-   BRAM and DDR bandwidth before choosing silicon.
+4. Scale target — ANSWERED (2026-08-02): the product window is 32
+   channels and up at 96 kHz+. Size silicon for a 64×64 @ 96 kHz
+   headline configuration so 32-channel products are comfortable and
+   128-channel variants are a clock/BRAM stretch, not a redesign.
 5. Latency budget: FPGA can beat the DSP's block-32 latency
    (sample-serial processing) — decide whether that's a product goal
    or whether block processing is kept for simplicity.
+6. Network audio — direction set (2026-08-02): standards interop on a
+   Dante option card (TDM-facing, slot-map-mapped); own-brand I/O
+   modules over the proprietary isochronous P2P link described in the
+   I/O sketch (own EtherType on standard GbE, clock-from-link, no
+   PTP/IP/RTP), star or daisy-chain. An AES67-subset variant was
+   considered and rejected: its benefits (COTS-switch operation,
+   standards endpoints) are either excluded by the switchless-P2P
+   premise or already served by the Dante card. Remaining opens: the
+   frame-format spec itself; channel budget per lane (raw GbE carries
+   ~200+ channels of 32-bit/96 kHz before overhead, so 32-64 per
+   module is comfortable — decide the marketed number); per-hop
+   latency figure and max chain depth; redundancy (dual-cable?);
+   whether module control/management rides in-band or on a sideband;
+   and the option-card electrical/slot-map boundary. The I/O modules'
+   own FPGA/PHY design becomes a sibling project sharing the link
+   block.
+7. EARLY ACTION ITEM — 16-bit address-space check at 128×128: on
+   paper, count nodes × params for a full 128-channel graph against
+   the flat 16-bit parameter map (minus the 0xF000+ config block).
+   This is the one contract-level ceiling that is expensive to change
+   after anything ships; do it before freezing any FPGA table format.
 
 ## Relationship to existing repo rules
 
