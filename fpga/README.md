@@ -121,6 +121,16 @@ shortlist; it would force fixed words onto the wire.)
     to the slot-map SOT it's just another bank of slots and carries
     none of its protocol complexity (PTP servo, SAP/SDP discovery,
     IGMP) into the mixer platform.
+    **Bandwidth requirement (2026-08-02): the Dante card and the prop
+    link are FULL-mixer-bandwidth paths** (d128: 128 in / 64 out @
+    96 kHz); only USB-SSD recording and DAW streams may be
+    channel-limited as product decisions. Consequences: (a) a
+    Brooklyn-II-class module (32×32 @ 96 kHz) is NOT sufficient — the
+    card needs Dante HC / Dante-IP-core class (256×256 @ 96 kHz) or
+    ganged modules; (b) the card boundary at ~192 ch @ 96 kHz is
+    ~12× TDM-16 lanes at 49 MHz bit clock — chunky but routable;
+    alternatively the card could speak the prop link itself (one GbE
+    lane, same framing as I/O modules) — decide with the card design.
   - **Own-brand I/O modules connect over a proprietary isochronous
     P2P link handled natively by the FPGA** (decided 2026-08-02 over
     an AES67-subset approach — the AES50/GigaACE/SoundGrid pattern,
@@ -223,15 +233,21 @@ fork D3 exists to prevent.
    PTP/IP/RTP), star or daisy-chain. An AES67-subset variant was
    considered and rejected: its benefits (COTS-switch operation,
    standards endpoints) are either excluded by the switchless-P2P
-   premise or already served by the Dante card. Remaining opens: the
-   frame-format spec itself; channel budget per lane (raw GbE carries
-   ~200+ channels of 32-bit/96 kHz before overhead, so 32-64 per
-   module is comfortable — decide the marketed number); per-hop
-   latency figure and max chain depth; redundancy (dual-cable?);
-   whether module control/management rides in-band or on a sideband;
-   and the option-card electrical/slot-map boundary. The I/O modules'
-   own FPGA/PHY design becomes a sibling project sharing the link
-   block.
+   premise or already served by the Dante card.
+   Capacity requirement SET (2026-08-02): the link is a full-mixer-
+   bandwidth path — headline capacity covers the whole I/O complement
+   (d128: 128 in / 64 out @ 96 kHz). The math holds on one full-duplex
+   GbE lane: 128 ch ≈ 393 Mb/s + 64 ch ≈ 197 Mb/s payload, i.e.
+   ~40-60% utilization with framing overhead. Consequence for daisy
+   chains: all modules on a chain share one lane's capacity, so
+   chain depth × module channels ≤ lane budget — full-density systems
+   use star or dual-star, chains serve distributed partial I/O.
+   Remaining opens: the frame-format spec itself; per-hop latency
+   figure and max chain depth; redundancy (dual-cable?); whether
+   module control/management rides in-band or on a sideband; and the
+   option-card electrical/slot-map boundary (full-bandwidth TDM vs
+   card-speaks-the-link — see I/O sketch). The I/O modules' own
+   FPGA/PHY design becomes a sibling project sharing the link block.
 7. EARLY ACTION ITEM — 16-bit address-space check at 128×128: on
    paper, count nodes × params for a full 128-channel graph against
    the flat 16-bit parameter map (minus the 0xF000+ config block).

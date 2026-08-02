@@ -73,6 +73,13 @@ All functions land on one chip; per-function budget:
 
 ## 128-track recording to USB SSD
 
+Bandwidth-priority requirement (2026-08-02): USB-SSD recording and
+DAW streaming MAY be channel-limited as product decisions; the Dante
+option card and the prop link may NOT — both are full-mixer-bandwidth
+paths (see README I/O sketch; rules out Brooklyn-II-class Dante
+modules at 96 kHz — needs Dante HC / IP-core class or ganged
+modules).
+
 - Bandwidth: 128 trk × 96 kHz × 32-bit ≈ **49 MB/s** (24-bit packed
   ≈ 37 MB/s). USB 3.0 practical ~350-400 MB/s → ~8× headroom.
   **USB 2.0 (~35-40 MB/s practical) can NOT carry it** — the
