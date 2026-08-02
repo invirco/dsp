@@ -9,8 +9,8 @@ modules on a CPLD-muxed TDM backplane (sketched in
 [../ideas.md](../ideas.md), "128×128 TDM DSP Fabric"); a single FPGA
 replaces that backplane-and-modules story with one chip, and natively
 carries the own-brand networked-I/O link (a proprietary isochronous
-P2P protocol over standard GbE — see the I/O sketch below); standards
-interop stays on a Dante option card.
+P2P protocol over standard GbE, placeholder name **MW-Net** — see the
+I/O sketch below); standards interop stays on a Dante option card.
 
 ## The two headline questions
 
@@ -132,7 +132,8 @@ shortlist; it would force fixed words onto the wire.)
     alternatively the card could speak the prop link itself (one GbE
     lane, same framing as I/O modules) — decide with the card design.
   - **Own-brand I/O modules connect over a proprietary isochronous
-    P2P link handled natively by the FPGA** (decided 2026-08-02 over
+    P2P link handled natively by the FPGA** — placeholder name
+    **MW-Net** — (decided 2026-08-02 over
     an AES67-subset approach — the AES50/GigaACE/SoundGrid pattern,
     not the Dante one). Design point: *proprietary payload, standard
     plumbing* — commodity GbE PHYs and standard Ethernet frames with

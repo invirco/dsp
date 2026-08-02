@@ -93,6 +93,59 @@ modules).
   also do SATA 3.1 and PCIe Gen2 (NVMe) — the answer if a future spec
   wants higher rates or record+playback punch-in guarantees.
 
+## DAW + recording connectivity strategy (2026-08-02)
+
+**DAW play/rec — class-compliant USB at the edges, no native MW-Net
+computer endpoints:**
+
+- Primary: **console-hosted USB gadget port** (rear USB-B/C, Linux
+  UAC2 gadget on the A53s). Class-compliant → zero custom drivers on
+  Windows/macOS/Linux. Market norm is ~32×32 (USB2-era silicon:
+  X32/M32, SQ, CL/QL); our USB3 plausibly does 64 @ 96 kHz —
+  a quiet leapfrog. This is d128.csv's `rec.usb`.
+- Above the USB port's count, computer recording rides the **Dante
+  card + Audinate's computer-side ecosystem** (DVS ≈64×64, less at
+  96 kHz; full 128 @ 96 kHz → customer buys a Dante PCIe-class card).
+  This matches the industry pattern — consoles handle >32-ch computer
+  recording by pointing at Audinate — and it's the same
+  driver-tax-outsourcing decision as the option card itself.
+- **POLICY — ruled out: native MW-Net computer endpoints** (PCIe card
+  or NIC + custom audio driver, the SoundGrid/DVS model). Permanent
+  multi-OS kernel/ASIO/CoreAudio driver treadmill (Audinate and Waves
+  fund standing teams for this), and a commodity NIC fights
+  clock-from-link (forces timestamp+buffer machinery back in). Same
+  spirit as the no-COTS-switch rule.
+- Optional catalog item later: **MW-Net↔USB bridge box** (module link
+  block minus converters + XMOS-class UAC2 USB side) — lets a laptop
+  join the network anywhere (FOH rig, stage). Not needed for launch.
+- The onboard USB-SSD 128-track recorder is the differentiator, not
+  the USB port: full-bandwidth capture + virtual-soundcheck playback
+  with no computer (the X-Live lesson, at 4× the track count).
+
+**Recording media decision tree:**
+
+- **PRIMARY: removable SSD on front-panel USB3, USB-C connector**
+  (~10k mating cycles). Wins on cycle rating, capacity economics
+  (128 trk @ 96 kHz writes ~177 GB/hour — SSD $/GB beats cards
+  decisively), universal readers, zero exotic software. Reliability:
+  DDR4 ring buffer (~10 s stall tolerance) + format-in-console +
+  qualified-drive list. **Dual USB3 ports with mirrored recording**
+  as the redundancy feature (ring buffer grows a second drain
+  thread — nearly free).
+- **CONTINGENCY: internal SATA M.2** via PS-GTR (hard SATA 3.1 in
+  the PS, standard AHCI) for a premium guaranteed-capture SKU.
+  Internal-only: the SATA connector is rated ~50 mating cycles —
+  unusable for pull-every-show removable media. Reserve the PS-GTR
+  lane now, decide later.
+- **REJECTED**: eSATA (dead standard, don't put it on a 2026
+  product); SD cards (needs V60/V90 to survive 49 MB/s sustained,
+  and 177 GB/h kills card economics — right for X-Live's 32 trk,
+  wrong at 128); CFexpress Type B (removable NVMe done right, but
+  media $/GB and PCIe surprise-removal complexity make it a premium
+  slot option at most, not the baseline).
+- **COMPLEMENT**: post-show network offload of internal recordings
+  over GbE/SMB — convenience, not a replacement for removable media.
+
 ## Alternatives (non-Xilinx)
 
 - **Intel Cyclone V SoC (5CSEBA6)** — direct 7020 analog; Quartus
@@ -138,6 +191,9 @@ modules).
 3. Settle FX placement (fabric vs A53 vs hybrid) before freezing
    BRAM/URAM budgets — it alone decides ZU5EV vs ZU7EV.
 4. Check KR260 schematic for which RJ45s land on PL before buying.
+5. Fix the PS-GTR lane allocation early (4 lanes: USB3 + DP +
+   reserved SATA/PCIe spare) — it's board-level and gates the
+   internal-drive contingency.
 
 ## Sources (checked 2026-08-02)
 
