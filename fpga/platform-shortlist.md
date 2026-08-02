@@ -93,6 +93,44 @@ modules).
   also do SATA 3.1 and PCIe Gen2 (NVMe) — the answer if a future spec
   wants higher rates or record+playback punch-in guarantees.
 
+## Cost: multi-2156x vs single FPGA, DSP-only basis (2026-08-02)
+
+Silicon-only @ 1k, **96 kHz** (the platform rate; at 48 kHz the DSP
+column halves and multi-SHARC wins outright — the FPGA cost case is
+specifically a high-sample-rate story). ADSP-21569 (1 GHz) $33.97 @1
+catalog → ~$28-30 @1k. Per 1 GHz SHARC @96k: ~10,400 cycles/sample;
+d128's per-channel FIR (512 taps × 32 ch ≈ 16,400 MACs/sample) alone
+overflows one chip per 32-ch block → 2 chips/block at full spec.
+
+Scenario A — full d128-grade strips (WITH FIR):
+
+| Tier | Multi-DSP | Single FPGA |
+|---|---|---|
+| 64 ch | 4× 21569 + FX chip + mux + PSRAM/flash ≈ **$185-200** | 7020 + DDR3 + flash ≈ **$115-135** |
+| 128 ch | 10 chips + mux + memories ≈ **$370-390** | ZU5EV/K26 ≈ **$300-350** |
+
+Scenario B — light strips (no FIR, ~4-band EQ), 1 chip/32-ch block:
+
+| Tier | Multi-DSP | Single FPGA |
+|---|---|---|
+| 64 ch | ≈ **$100-130** | ≈ **$115-135** |
+| 128 ch | ≈ **$180-220** | ≈ **$300-350** |
+
+**Conclusion:** SHARC only wins under a light processing spec that
+d128.csv already rules out (FIR, 8-band EQ, 4 reverbs, 20 inserts).
+At 96 kHz with the real spec the single FPGA is equal-or-cheaper on
+silicon AND deletes the 10-chip system tax (backplane, connectors,
+per-chip boot/power/PSRAM, inter-chip TDM scheduling — which needs a
+CPLD/FPGA mux anyway). Structural point: SHARC spec-creep costs
+discrete chips/respins; FPGA spec-creep costs utilization % (<20%
+DSP even at full d128 scope). Streaming was excluded here by
+construction — the real product requires MW-Net + Dante, both native
+to the FPGA. What remains for SHARC: the shipping D32/D24 path
+(D3/D5 undisturbed), mature FX kernels as a possible transition
+sidecar, lower near-term NRE. Transition facts, not counterarguments.
+NOTE: `ch.fir` tap count is now worth ~$150-200 of BOM in this
+comparison — the action item has a price tag.
+
 ## DAW + recording connectivity strategy (2026-08-02)
 
 **DAW play/rec — class-compliant USB at the edges, no native MW-Net
