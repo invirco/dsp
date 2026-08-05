@@ -1,7 +1,7 @@
 # tasks
 
 Status: active
-Date: 2026-07-31
+Date: 2026-08-05
 Purpose: current work state for the mx26 -> mx-dsp workflow and DSP4 firmware.
 
 Status colors:
@@ -76,6 +76,43 @@ budget, Lattice 32-ch sizing pass, per-part DDR verification,
 coeff-conversion location (D5 float wire vs Pi-side prep). Toolchain
 now ready: Vivado 2026.1 licensed + verified on this machine
 (use `~/.local/bin/vivado` wrapper).
+
+## Addendum 2026-08-05 — DSP4 rev D scoped (decision D8)
+
+Rev D of the DSP4 card scoped and recorded as **D8** in
+dsp4-architecture-decisions.md (amends D1's S-MCU clause; D7 scope
+amendment committed + pushed as `76c54f6` the same day):
+
+- **CM4 dedicated core** takes ALL SHARC SPI control (D1 refinement:
+  isolated A72, pinned thread, gpiod CS); host-side float control
+  plane / coeff prep lives there too.
+- **Supervisor shrink**: boot-relay fallback DELETED (slave boot over
+  SPI2 permanent; scenes on CM4; no Pi-less requirement). H1S1/U7
+  (STM32U575RIT6) → **STM32U535RET6 drop-in** near term (same
+  LQFP-64/U5 pinout; fw ~266K fits 512K); G0-class or merge into U8
+  at rev D. GATE: SRX/MRX matrix-comms role inventory.
+- **PSRAM activated** (HW section item joins rev D): one xSPI PSRAM
+  per DSP on OSPI0; Pi runtime link → SPI0/SPI1 per DSP, SPI2
+  boot-only. No boot NOR. Open: OSPI voltage domain (1.8 V rail vs
+  3V3 quad APS6404L), 21564 OSPI clock ceiling, XDELAY DMA prototype.
+- **CPLD → 5M570ZT144C4N**: VERIFIED 2026-08-05 on the real qsf
+  (scratch Quartus run, not committed): only ONE illegal pin
+  (PIN_137/mems — one trace moves), C4 closes 51.95 MHz vs 49.152
+  needed, **C5 FAILS (36.9 MHz)**, 148/570 LE / 67 of 114 pins.
+  ~5% margin → STA gate mandatory on RTL changes; 240Z fits at 62%
+  but rejected (no growth room).
+- **Hardwire-chunk pass**: only routing proven static at rev-C
+  bring-up becomes copper (net_sel already product-static); CPLD
+  keeps clkgen + Pi PCM reframer + reset glue.
+- Sequencing: rev C bring-up (still gated on the CCES licence)
+  verifies the provisional TDM facts → then rev D schematic freeze.
+
+NEXT (rev D, priority order): 1) SRX/MRX inventory from the
+schematics — decides U7 consolidation; 2) OSPI voltage-domain answer;
+3) rev-C bring-up checklist unchanged. FPGA-side: the param-plane
+ingest-conversion proposal (float wire, on-fabric conversion, fixed
+ramps) is drafted in discussion but NOT yet recorded — becomes D9
+when settled.
 
 ## Resume notes (final save 2026-07-31 — 32 commits today, tree clean)
 
@@ -537,9 +574,9 @@ entitled. (build.sh gained the PROC_TARGET override 2026-07-30.)
   - Milestone A (lock schema/glossary) not started; D2 slot map intends to
     migrate into this SOT when it lands.
 
-## HW - DSP4 card rev candidates (investigated 2026-07-30, deferred)
+## HW - DSP4 card rev candidates (investigated 2026-07-30; ACTIVATED into rev D 2026-08-05, see D8)
 
-- [ ] <span style="color:#6b7280"><b>DEFERRED</b></span> Add one xSPI PSRAM per ADSP-21564 ("RAM insurance" for long delays)
+- [ ] <span style="color:#2563eb"><b>NEXT</b></span> (rev D per **D8**) Add one xSPI PSRAM per ADSP-21564 ("RAM insurance" for long delays)
   - Why: 21564 has no DDR controller; its OSPI + serial RAM is ADI's intended
     external-memory path (EV-21568-SOM pairs the same no-DDR family with
     256Mb xSPI RAM). Buys bulk delay memory with a minor rev — card stays

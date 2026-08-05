@@ -1,6 +1,7 @@
 # DSP4 architecture decisions
 
-Status: accepted 2026-07-29 (D1-D5); D6 added 2026-08-02
+Status: accepted 2026-07-29 (D1-D5); D6 added 2026-08-02; D7 2026-08-04;
+D8 2026-08-05
 Scope: DSP4 card (dual ADSP-21564 + MAX V LOGIC CPLD) as used by D24 and
 D32; D6 extends scope to platform selection across the product range.
 These decisions are binding for work in this repo. Change them only by
@@ -183,3 +184,59 @@ Hardware ground truth: [MW/D24/HW/hardware-map.md](MW/D24/HW/hardware-map.md)
   wide-DSP silicon (AMD/Altera); a small tier specs disproportionate
   FX → sidecar logic re-enters at that tier; fabric TM-FX proven at
   volume → depopulate the sidecar.
+
+## D8 — DSP4 rev D: CM4-core SPI control, supervisor shrink, CPLD downsize, xSPI PSRAM
+
+- Decided 2026-08-05. Scopes the DSP4 card rev D (driven by the xSPI
+  PSRAM addition; part candidates and the rev-C pin analysis in
+  tasks.md HW section). Amends D1's S-MCU clause; D1's
+  master-and-no-relay rules otherwise stand unchanged.
+- **CM4 dedicated core owns all SHARC SPI control** (refinement of
+  D1, not a new master): one isolated A72 core (isolcpus, pinned
+  thread, gpiod CS) runs param writes, meter polling, scene bursts,
+  and the host-side float control plane (coefficient prep). The GUI
+  never shares that core. Host timing remains non-critical by design
+  (on-chip ramps, per D1).
+- **Supervisor MCU shrinks; boot-relay fallback DELETED.** The only
+  jobs that must stay off the Pi are watchdog/Pi-hang detection with
+  DSP safe-state mute, power sequencing/resets, and PSU/thermal
+  supervision — G0-class work. D1's "boot-image delivery may move to
+  the S MCU" clause is withdrawn: DSP slave boot over Pi SPI2 is the
+  permanent boot path (CM4 boots fast enough; scenes live on CM4
+  storage; no Pi-less operation requirement, so nothing needs ROM).
+  H1S1 (U7, STM32U575RIT6): near-term drop-in STM32U535RET6 (same
+  LQFP-64 / U5-family pinout; firmware ~266 KB fits 512 KB); rev D
+  target is G0-class or merging into U8 — GATED on an inventory of
+  U7's SRX/MRX matrix-comms role (the one job not yet dispositioned).
+- **xSPI PSRAM lands; Pi runtime link moves.** One xSPI PSRAM per
+  ADSP-21564 on OSPI0 (bulk delay memory). The Pi RUNTIME param link
+  moves to SPI0/SPI1 per DSP; SPI2 becomes boot-only — resolving the
+  OSPI0/Port-A pin conflict found in the rev-C schematic review. No
+  boot NOR (see fallback deletion above). Open items: OSPI I/O
+  voltage domain (3V3 VDD_EXT vs 1.8 V octal parts; APS6404L 3V3
+  quad fallback), exact 21564 OSPI clock ceiling, XDELAY DMA-pattern
+  prototype.
+- **LOGIC CPLD → 5M570ZT144C4N** (from 5M1270ZT144C4N, ~13% used).
+  Verified 2026-08-05 against the real schematic-extracted qsf
+  (scratch Quartus run): identical TQFP-144 land pattern; exactly ONE
+  illegal pin (PIN_137 = MEMS input, not user I/O on the 570Z die —
+  one trace moves); C4 grade closes 51.95 MHz vs 49.152 required;
+  **C5 grade FAILS (36.9 MHz) — never substitute it**; 148/570 LE
+  (26%), 67/114 pins. Riders: ~5% timing margin is thin — the STA
+  gate in shared/dsp4-logic/build.sh stays mandatory on every RTL
+  change; pipeline the divider path if margin erodes. 5M240ZT144
+  fits (62%) but leaves no growth room — rejected.
+- **Hardwiring pass** (CPLD muxing → PCB copper): permitted for
+  product-static routing only (net_sel is already fixed per product
+  in RTL), and only for facts PROVEN at rev-C bring-up — BCKI/FSI
+  pair order, CKRE/MFD, and D24 within-ADC8 slot order are still
+  provisional and stay in reprogrammable logic until verified. The
+  irreducible CPLD core remains: clock generation, Pi PCM reframer,
+  reset glue. D24/D32 differences that become copper are
+  0R-strap/BOM-variant choices, recorded in the slot-map SOT.
+- **Sequencing**: rev C bring-up first (verifies the provisional TDM
+  facts and the plumbing register model), then rev D schematic
+  freeze. The U535 drop-in may ride any earlier rev-C BOM update.
+- Revisit triggers: SRX/MRX inventory shows more than G0-class load →
+  keep a U5-class supervisor; rev-C bring-up overturns a provisional
+  fact → the affected routing stays in the CPLD, not copper.
