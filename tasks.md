@@ -25,6 +25,57 @@ Status colors:
   star/daisy-chain link tests. Toolchain ready: Vivado 2026.1
   licensed on this machine (`~/.local/bin/vivado`).
 
+## Resume notes (2026-08-05 session end — tree clean at push)
+
+Today: D7 committed (`76c54f6`); **D8 decided + committed** (`e16e817`,
+rev D scope: CM4-core SPI control, supervisor shrink, CPLD 570Z
+verified by scratch Quartus run, PSRAM + SPI0/1 remap, no boot NOR);
+U7/SRX-MRX pin inventory DONE (`0361e6f`, hardware-map §3a — S MCU is
+the serial hub; rev-D part = STM32G0B1RET6, NOT a drop-in, U535RET6
+is); mod lists moved to Dropbox `TransferOnly/PCB mods/` (cross-repo
+convention + README; D24 Digital rev-C mods pdf/txt rescued from the
+ECAD folder); OSPI voltage gate ANSWERED (3.3 V VDD_EXT only → 1.8 V
+octal excluded; 3.0 V octal-xSPI HyperRAM S27KL-class preferred,
+APS6404L quad fallback). Also: PolarFire assessed (fabric-fit but
+4-5× price — watch item behind Agilex 5; PolarFire 2 = revisit
+trigger); Lattice deep-dive (CPNX-100 is ~$131 catalog NOT $25-50 —
+shortlist correction pending; ECP5-85 vs SU35P is the real 32-ch
+race; Avant-E = first Lattice mid-range, quote it); KR260 heatsink
+concern defused (ZU5EV SoC thermals ≠ fabric-only product; US+ needs
+copper/small sink at most — Vivado power estimates queued).
+
+TOMORROW'S ENTRY POINTS (priority order):
+1. **Order KR260** (SK-KR260-G) — still fully unblocked, see Top
+   action.
+2. **Check CCES licence arrival** (AD-CCES-NODE-1, requested
+   2026-07-31) → plain `./build.sh all` = first real 21564 images →
+   unblocks rev-C bring-up, which gates the rev-D layout freeze.
+3. **Quote round** (one call, now extended): SU35P / SU55P-SU100P /
+   AU25P @1k + Agilex 3 availability + Agilex 5 Quartus licensing +
+   LFCPNX-100 + an Avant-E part + 5M570ZT144C4N + STM32G0B1RET6 /
+   U535RET6 + Infineon 3.0 V octal-xSPI HyperRAM (S27KL-class)
+   availability.
+4. **Rev D remaining OSPI open**: 21564 OSPI clock ceiling +
+   xSPI-profile-2/RWDS RAM support — check EV-21568-SOM reference
+   design in the ADI portal (datasheet mirrors bot-block curl; the
+   rlocman paged mirror worked for pin tables, OSPI timing pages
+   could be fished the same way).
+5. **FPGA D9 decision text** (param plane: float wire, on-fabric
+   ingest conversion + per-address format map, fixed ramps,
+   sample-serial audio / block-rate control) — argued 2026-08-05 in
+   session, ready to record when Peter signs off. Shortlist edits
+   pending from the same discussion: Lattice price correction,
+   Microchip bullet rewrite (fabric-fit/cost/PolarFire-2 trigger).
+6. Desk work queued: per-tier pin-budget table + Vivado XPE power
+   estimates (SU35P/AU25P) — feeds quotes AND the thermal question.
+7. Unchanged hub-side gate: `ch.fir` tap ceiling into d128 (biggest
+   open number, ~$150-200 BOM swing).
+
+Cross-repo state: mod lists live in Dropbox `TransferOnly/PCB mods/`
+(dsp4-revD-modlist.md = single rev-D source incl. gate statuses;
+d24 digital mods.txt/pdf = Digital rev-C Schottky review). Memory
+updated with the convention.
+
 ## Resume notes (2026-08-04 session end)
 
 UNCOMMITTED: CLAUDE.md, dsp4-architecture-decisions.md (new **D7**),
@@ -124,6 +175,15 @@ checklist unchanged.
 (folder renamed DSP4 mods → PCB mods 2026-08-05 when the D24 Digital
 rev-C mod docs — `d24 digital mods.txt`/`.pdf`, ex `_mx/MW/D24/HW/D24
 Digital PCBA rev C/` — joined it)
+
+OSPI voltage gate ANSWERED 2026-08-05 (recorded in the mod list):
+2156x OSPI pins are VDD_EXT-domain = **3.3 V only** (VDD_REF is a
+1.8 V reference input, not a pad supply) → 1.8 V octal PSRAMs
+excluded; part paths = 3.0 V octal-xSPI HyperRAM 2.0 (S27KL-class,
+uses the NC xSPI_RWDS pin 9) or 3.3 V quad APS6404L fallback.
+Remaining OSPI open: clock ceiling + xSPI-profile-2/RWDS RAM support
+confirmation (datasheet mirrors bot-blocked; check EV-21568-SOM
+reference design).
 — single source for all rev-D mods, deletions, doc fixes, and freeze
 gates. The schematic originals live one level up in
 `TransferOnly/D24 schematics/` (verified byte-identical to
