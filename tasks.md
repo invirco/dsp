@@ -10,6 +10,41 @@ Status colors:
 - <span style="color:#2563eb"><b>NEXT</b></span>
 - <span style="color:#6b7280"><b>BLOCKED/DEFERRED</b></span>
 
+## Top action
+
+- [ ] <span style="color:#2563eb"><b>NEXT</b></span> **Buy AMD KR260 dev kit**
+  — part number **SK-KR260-G**, one version only, from an authorized
+  distributor (Mouser/DigiKey/Newark; PSU, cables, SD included; avoid
+  bare-SoM broker listings) (~$349-399) — the single eval system for
+  the whole D7 fabric-only
+  ladder (US+ fabric superset, 2× PL RGMII for MW-Net dev, PL-only
+  discipline per `fpga/platform-shortlist.md` Prototype path note).
+  Pre-order check DONE (2026-08-04, kria-apps docs): J10A (Eth3, HPB)
+  and J10B (Eth2, HPA) are PL RGMII; J10C/J10D are PS; SFP+ is PL GTH
+  — 2× fabric RGMII confirmed. Consider a second unit later for
+  star/daisy-chain link tests. Toolchain ready: Vivado 2026.1
+  licensed on this machine (`~/.local/bin/vivado`).
+
+## Resume notes (2026-08-04 session end)
+
+UNCOMMITTED: CLAUDE.md, dsp4-architecture-decisions.md (new **D7**),
+fpga/README.md, fpga/platform-shortlist.md, tasks.md — the whole D7
+scope amendment (fabric-only baseline, hybrid FX, recording/USB
+deleted). Commit this first (suggest: "D7: fabric-only baseline +
+per-tier hybrid FX; recording/USB deleted from 96k scope").
+
+TOMORROW'S ENTRY POINTS (priority order):
+1. Order KR260 (SK-KR260-G) — fully unblocked, see Top action above.
+2. Quote round: SU35P / SU55P–SU100P / AU25P @1k via Avnet/Arrow;
+   while at it, check **Agilex 3** availability/pricing (Altera's
+   cost-optimized tier — the one event that reopens the small-tier
+   vendor question) and Agilex 5 Quartus Pro licensing terms.
+3. `ch.fir` tap ceiling into the d128 product definition (hub-side,
+   mx26) — gates part choice AND vendor floor; biggest open number.
+4. Toolchain ready: `~/.local/bin/vivado` (2026.1, Basic license to
+   2027-08-04, node-locked to this machine); Quartus Lite 21.1 stays
+   CPLD-only — do not touch for FPGA work.
+
 ## Addendum 2026-08-02 — D6 platform mandate
 
 D6 recorded in dsp4-architecture-decisions.md: SHARC DSP4 card serves
@@ -20,6 +55,27 @@ multi-SHARC, DAW/recording strategy, MW-Net link decisions in
 `fpga/README.md`). Pre-code gates: ch.fir tap ceiling (hub-side,
 ~$150-200 BOM swing), FX placement, 16-bit address check at d128
 scale (needs d128 mx-master generated in mx26), MW-Net frame spec.
+
+## Addendum 2026-08-04 — FPGA scope amendment (fabric-only baseline)
+
+Product scope narrowed (research phase, cost-driven; full text:
+`fpga/platform-shortlist.md` SCOPE AMENDMENT section): onboard
+recording + USB UAC deleted from all 96 kHz products; Dante card =
+customer-paid option inheriting the fitted card's capacity (full-
+bandwidth-Dante rule withdrawn); MW-Net confined to own I/O boxes
+(full-bandwidth, no recording). Consequence: SoC mandate collapses —
+pure-fabric FPGA + CM master is baseline for all tiers ("ZU5EV/K26
+class" in the D6 addendum above is superseded as baseline; D6's
+platform split itself unchanged). CM never touches audio. FX strategy
+decided as **D7 per-tier hybrid**: 32/64 ch fabric-light; flagship
+launches with SHARC 21569 TDM sidecar (depopulatable), fabric TM-FX
+as designed-in cost-down. All of the above now recorded as **D7** in
+dsp4-architecture-decisions.md (CLAUDE.md hard-rules updated to
+match). New gates: per-tier pin
+budget, Lattice 32-ch sizing pass, per-part DDR verification,
+coeff-conversion location (D5 float wire vs Pi-side prep). Toolchain
+now ready: Vivado 2026.1 licensed + verified on this machine
+(use `~/.local/bin/vivado` wrapper).
 
 ## Resume notes (final save 2026-07-31 — 32 commits today, tree clean)
 

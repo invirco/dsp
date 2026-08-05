@@ -25,7 +25,11 @@ has the layout; `tasks.md` has current work state — read both first.
   single shared DSP address map. Do not reintroduce per-product forks of
   firmware, address maps, or slot tables. D6 platform split: SHARC DSP4
   card up to 32 ch @ 48 kHz; single-chip FPGA engine (see `fpga/`) for
-  32 ch @ 96 kHz and above — no new multi-DSP designs above that line.
+  32 ch @ 96 kHz and above — no new multi-DSP MIXING engines above that
+  line. D7: fabric-only FPGA baseline (no SoC; CM is sole control
+  master, never touches audio) with per-tier hybrid FX — flagship may
+  carry ONE SHARC FX sidecar (TDM slot-map banks, depopulatable);
+  no onboard recording or USB UAC audio on 96 kHz products.
 - After any contract or generator change, run `./regenerate-dsp-contract.sh`
   and record contract version per `release-notes-contract-convention.md`.
 - Update `tasks.md` on every contract bump.

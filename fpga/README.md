@@ -58,7 +58,8 @@ target-independent. Concretely:
 - **Hardest to port: the FX engines** (reverbs). Feasible in fabric but
   a redesign, not a port. Pragmatic option used by large consoles:
   hybrid — FPGA does strips/summing/buses, FX stays on a DSP or on the
-  SoC's ARM cores.
+  SoC's ARM cores. ADOPTED as the D7 per-tier hybrid (2026-08-04) —
+  see open question 2.
 
 Bit-exactness with the SHARC (FP32, its own rounding) is not achievable
 and not a goal; the goal is *cell-value parity*: same cell in → same
@@ -104,9 +105,14 @@ FPGA this becomes the hardware/software boundary: the control CPU
 block rate and writes shadows + offset-coefficient sets into
 double-buffered BRAM; the fabric engines only ever see fixed values.
 Same semantics and quantization points on both targets — they differ
-only in WHERE the float control code executes. (The one configuration
-this strains is a CPU-less pure-fabric part — not on the platform
-shortlist; it would force fixed words onto the wire.)
+only in WHERE the float control code executes. (AMENDED 2026-08-04:
+pure fabric is now the BASELINE, with the CM as the control CPU
+running the float control plane. The float→fixed conversion point
+must then be either a small on-fabric float→fixed converter block at
+the param-write/ramp boundary — preserving the D5 float-wire
+contract, the likely default — or Pi-side preparation of fixed words,
+which changes wire semantics and needs a contract note. This is open
+question 3, now decision-forcing.)
 
 ## Sketch of the engine (strawman, to be argued with)
 
@@ -125,16 +131,21 @@ shortlist; it would force fixed words onto the wire.)
     to the slot-map SOT it's just another bank of slots and carries
     none of its protocol complexity (PTP servo, SAP/SDP discovery,
     IGMP) into the mixer platform.
-    **Bandwidth requirement (2026-08-02): the Dante card and the prop
-    link are FULL-mixer-bandwidth paths** (d128: 128 in / 64 out @
-    96 kHz); only USB-SSD recording and DAW streams may be
-    channel-limited as product decisions. Consequences: (a) a
-    Brooklyn-II-class module (32×32 @ 96 kHz) is NOT sufficient — the
-    card needs Dante HC / Dante-IP-core class (256×256 @ 96 kHz) or
-    ganged modules; (b) the card boundary at ~192 ch @ 96 kHz is
-    ~12× TDM-16 lanes at 49 MHz bit clock — chunky but routable;
-    alternatively the card could speak the prop link itself (one GbE
-    lane, same framing as I/O modules) — decide with the card design.
+    **Bandwidth rule (AMENDED 2026-08-04; the 2026-08-02 rule made
+    the Dante card full-bandwidth too): only the prop link is a
+    FULL-mixer-bandwidth path.** The console provides TDM lanes +
+    clock + control to the slot; the fitted card is a customer-paid
+    option and the Dante path inherits THAT card's capacity —
+    Broadway/Brooklyn/HC become market-tiered card SKUs, not console
+    mandates. USB UAC audio and onboard recording are deleted from
+    the 96 kHz product definition entirely (multitrack capture =
+    customer's Dante ecosystem; a standalone MW-Net recorder
+    appliance may return later as a separate catalog product — see
+    platform-shortlist.md scope amendment). Card-boundary sizing note
+    retained: ~192 ch @ 96 kHz ≈ 12× TDM-16 lanes at 49 MHz bit
+    clock — chunky but routable; alternatively the card could speak
+    the prop link itself (one GbE lane, same framing as I/O modules)
+    — decide with the card design.
   - **Own-brand I/O modules connect over a proprietary isochronous
     P2P link handled natively by the FPGA** — placeholder name
     **MW-Net** — (decided 2026-08-02 over
@@ -165,8 +176,14 @@ shortlist; it would force fixed words onto the wire.)
   attractive for a first prototype. With standards interop pushed to
   the option card and the own-brand link being fabric-friendly (see
   I/O above), full AES67 no longer forces an SoC part — the SoC case
-  now rests on FX and integration, not networking. Concrete part
-  proposals per tier: [platform-shortlist.md](platform-shortlist.md).
+  now rests on FX and integration, not networking. **AMENDED
+  2026-08-04: with onboard recording and USB UAC deleted from the
+  product definition, the SoC case collapses entirely — pure fabric +
+  CM master is the BASELINE for all tiers (CM never touches audio);
+  FX = fabric TM engine or SHARC TDM sidecar. No GT transceivers
+  required anywhere; pin budget drives package selection.** Concrete
+  part proposals per tier and the full amendment:
+  [platform-shortlist.md](platform-shortlist.md).
   Toolchain rule extends unchanged: never commit Vivado/Vitis/Quartus
   or license material.
 
@@ -194,11 +211,14 @@ first hardware at the smallest sellable tier. The split:
   [platform-shortlist.md](platform-shortlist.md)).
 
 **Sized to the floor as well as the ceiling:** the 32-ch tier wants
-7020-class silicon, so engine RTL must fit DOWN — parameterized lane
-counts and table depths, BRAM by inference (7-series has no UltraRAM;
-device-specific primitives behind wrappers), no baked-in DDR4/A53
-assumptions. Per-tier resource budgets are part of the design, not an
-afterthought.
+the cheapest GT-less fabric part (Spartan US+/Artix-7, possibly
+Lattice — see the shortlist's 2026-08-04 amendment; was "7020-class"
+pre-amendment), so engine RTL must fit DOWN — parameterized lane
+counts and table depths, BRAM by inference (no UltraRAM dependence;
+device-specific primitives behind wrappers), no baked-in DDR4/CPU
+assumptions. The possible Lattice floor raises the bar: vendor-neutral
+inference for the TM engines, not just the link block. Per-tier
+resource budgets are part of the design, not an afterthought.
 
 **First build:** smallest sellable tier on the flagship architecture —
 engines on a KV260 or 7020 board, a 32-ch product config generated
@@ -219,11 +239,19 @@ fork D3 exists to prevent.
    the engines with float interfaces. Either way dsp_simulate.py
    (float64) becomes the normative golden model, and mix summing is a
    candidate for exact wide-accumulator fixed even in an FP32 design.
-2. FX strategy: fabric redesign vs hybrid (DSP/ARM sidecar).
+2. FX strategy — ANSWERED (2026-08-04, D7): per-tier hybrid.
+   32/64 ch: light FX in fabric. 128-ch flagship: SHARC 21569 TDM
+   sidecar at launch (ordinary slot-map banks, dsp_codegen.py
+   backend, depopulatable board boundary), fabric TM-FX engine as
+   the designed-in cost-down. FX round-trip latency (TDM transit +
+   block size) is in the delay-compensation budget from day one.
 3. Coefficient computation location: today biquad coeffs are computed
    on-DSP from cell values; on FPGA either a soft/hard CPU does this or
    the Pi precomputes (protocol already carries raw words — either
    works, but pick one and note it in the contract docs).
+   DECISION-FORCING as of 2026-08-04 (fabric has no CPU): on-fabric
+   float→fixed converter at the param/ramp boundary (keeps the D5
+   float wire) vs Pi-side fixed-word prep (contract note required).
 4. Scale target — ANSWERED (2026-08-02): the product window is 32
    channels and up at 96 kHz+. Size silicon for a 64×64 @ 96 kHz
    headline configuration so 32-channel products are comfortable and

@@ -128,3 +128,58 @@ Hardware ground truth: [MW/D24/HW/hardware-map.md](MW/D24/HW/hardware-map.md)
   plan-B (`fpga/platform-shortlist.md`); a future ≤32 ch product
   needing 96 kHz forces either the FPGA entry tier (7020-class) or a
   deliberate DSP4-at-96k exception recorded here.
+
+## D7 — Fabric-only FPGA baseline; per-tier hybrid FX (SHARC sidecar)
+
+- Decided 2026-08-04 (scope amendment text in
+  `fpga/platform-shortlist.md`; research-phase costing may still move
+  part choices — not the rules below).
+- **Product scope, 96 kHz range**: no onboard recording, no USB UAC
+  audio. Multitrack capture rides the customer's Dante ecosystem: the
+  Dante slot gets TDM lanes + clock + control and inherits the fitted
+  card's capacity (Broadway/Brooklyn/HC = market-tiered, customer-paid
+  card SKUs) — D6's "full-mixer-bandwidth Dante card" and
+  "DAW connectivity is class-compliant USB" clauses are withdrawn.
+  MW-Net is confined to own-brand I/O boxes and remains the only
+  full-mixer-bandwidth network path (no recording, no computer
+  endpoints). A standalone MW-Net recorder appliance may return later
+  as a separate catalog product.
+- **Engine baseline**: pure-fabric FPGA at every tier — D6's
+  "Zynq US+ class / K26-ZU5EV flagship" part naming is superseded
+  (the D6 platform SPLIT itself stands). The CM4/CM5 is sole control
+  master (D1 pattern) and never touches audio. No GT transceivers
+  anywhere; the per-tier pin budget drives package selection.
+  Baseline parts per the shortlist amendment (Spartan US+ / GT-less
+  Artix-7 / Artix US+; Lattice sizing pass open for the 32-ch tier).
+- **Hybrid FX strategy (the mandate)**: FX placement is a PER-TIER
+  PARTITION of the same dsp.csv graph across existing codegen
+  backends — not a per-product fork:
+  - 32/64-ch tiers: light FX in fabric (TM engine); no sidecar —
+    protects the cost floor and the candidate Lattice part.
+  - 128-ch flagship: launches with a SHARC (21569-class) FX sidecar,
+    TDM-attached as ordinary slot-map banks, SPI param plane
+    unchanged; FX nodes emit via `dsp_codegen.py`, everything else
+    via `fpga_codegen.py`; one golden harness validates both sides.
+  - The sidecar is a TRANSITION component: the fabric TM-FX engine is
+    the designed-in cost-down, and the flagship board places the
+    sidecar on a depopulatable boundary (removal = BOM change, not
+    respin).
+  - FX round-trip latency (TDM transit + SHARC block size) is in the
+    delay-compensation budget from day one.
+  - Rationale: hybrid efficiency scales with tier (FX spec grows,
+    BOM sensitivity falls, unit volume falls) and with lifecycle
+    (sidecar early, fabric late) — D6's buy-vs-build logic applied
+    inside a single product.
+  - Clarification of D6's "no new multi-DSP designs" rule: it bars
+    multi-DSP MIXING engines; a single FX sidecar is not one and is
+    permitted by this decision.
+- Design gates updated (tracked in `fpga/` docs): per-tier pin-budget
+  table; Lattice 32-ch sizing incl. the 18×18 composition factor;
+  per-part DDR verification; coefficient-conversion location
+  (on-fabric float→fixed converter preserving the D5 float wire vs
+  Pi-side prep — decide before table formats freeze); `ch.fir` tap
+  ceiling; 16-bit address check at d128 scale; MW-Net frame spec.
+- Revisit triggers: FIR ceiling lands high → flagship stays on
+  wide-DSP silicon (AMD/Altera); a small tier specs disproportionate
+  FX → sidecar logic re-enters at that tier; fabric TM-FX proven at
+  volume → depopulate the sidecar.

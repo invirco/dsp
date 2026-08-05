@@ -4,6 +4,59 @@ Status: proposal, 2026-08-02. Vendor research points at Xilinx/AMD as
 class leader for this space; this doc sizes the tiers and names parts.
 Nothing binding until a numbered architecture decision.
 
+## SCOPE AMENDMENT (2026-08-04) — fabric-only baseline, recording deleted
+
+Product-definition changes agreed 2026-08-04 (research phase; COST is
+the dominant constraint for the target market segment). Sections below
+marked SUPERSEDED keep the pre-amendment analysis for reference.
+
+- **No onboard recording and no USB UAC audio on any 96 kHz product.**
+  Multitrack capture is served by the customer's Dante ecosystem (card
+  rule below). A standalone MW-Net recorder appliance may return as a
+  future catalog item — off-console, where its Linux/storage stack is
+  harmless (ring-buffered, soft-real-time by construction).
+- **Dante card rule AMENDED**: the console provides TDM lanes + clock +
+  control to the slot; the fitted card is a customer-paid option and
+  the Dante path inherits THAT card's channel capacity —
+  Broadway/Brooklyn/HC become market-tiered card SKUs, not console
+  mandates. The 2026-08-02 "Dante card is full-mixer-bandwidth"
+  requirement is withdrawn.
+- **MW-Net is confined to our own multichannel I/O boxes** and remains
+  the only full-mixer-bandwidth network path. No recording over
+  MW-Net; no computer endpoints (policy unchanged).
+- **Consequence — the SoC mandate collapses.** With recording and USB
+  gone, no console function requires a hard processor system. The
+  pure-fabric route is promoted from "alternative" to BASELINE for
+  ALL tiers: the CM4/CM5 (GUI/control master, per the D1/D4 pattern)
+  does coeffs/config/FPGA setup over SPI and NEVER touches audio
+  (CM real-time audio explicitly distrusted/ruled out, 2026-08-04).
+  FX strategy DECIDED as **D7 per-tier hybrid** (2026-08-04, see
+  dsp4-architecture-decisions.md): 32/64 ch = light FX in fabric;
+  128-ch flagship launches with the SHARC 21569 TDM sidecar
+  (~$30/unit, mature kernels, no Linux/PCIe) on a depopulatable
+  boundary, with the fabric TM-FX engine as the designed-in
+  cost-down. FX round-trip latency joins the delay-compensation
+  budget from day one.
+- **No GT transceivers required anywhere** (MW-Net = RGMII on LVCMOS
+  pins, TDM + Dante slot = pins; no USB3/SATA/PCIe). The cheapest
+  cost-optimized parts come into play, and **per-tier pin budgeting
+  (TDM lanes + Dante slot + 2-4 RGMII + control) replaces PS-GTR lane
+  planning** as the package-selection driver.
+
+Revised baseline ladder (quotes pending — see action items):
+
+| Tier | Baseline part class | Notes |
+|---|---|---|
+| 32 ch | Spartan US+ SU35P (~$60-75 @1k) or GT-less Artix-7; **size a Lattice CertusPro-NX / ECP5 config (~$25-50)** — the "wrong for the console" verdict below predates SoC removal | CM control; light FX in fabric |
+| 64 ch | same silicon; I/O fit-out differentiates (D3 pattern) | |
+| 128 ch | Artix US+ AU25P or larger Spartan US+ (SU55P/SU100P) | BRAM/DDR budget + `ch.fir` ceiling pick the part; SHARC sidecar is the FX escape hatch |
+
+Unchanged and still load-bearing: the `ch.fir` tap-count ceiling
+(biggest DSP+BRAM swing factor — now it sets which CHEAP part clears
+the bar), the 1k-quote action, the KR260 eval strategy (US+ fabric
+superset, PL-only discipline — see Prototype path note), the D6
+platform split, and vendor-neutral Verilog for the link block.
+
 ## Sizing reality (from README budget math)
 
 - **DSP compute does not drive part selection.** 128 ch @ 96 kHz —
@@ -32,6 +85,11 @@ Nothing binding until a numbered architecture decision.
 
 ## Proposed Xilinx parts
 
+> **SUPERSEDED as baseline (2026-08-04)** by the scope-amendment
+> ladder above — retained as the SoC-variant analysis. The SoC rows'
+> rationale (A53s absorb FX/recording, hard USB3, Kria-as-volume-plan)
+> depended on the recorder + USB UAC, both now deleted.
+
 | Tier | Part | Rationale | Price (checked 2026-08-02) |
 |---|---|---|---|
 | 32 ch | Zynq-7000 **XC7Z020**-CLG484 | 220 DSP, 4.9 Mb BRAM, dual A9 (control/coeff plane), hard DDR3; most proven SoC FPGA, huge SoM ecosystem (Trenz, MYIR, iWave) | $145 @1 catalog; ~$90-120 @1k (quote lower) |
@@ -48,6 +106,13 @@ sidecar. For d128's FX-heavy spec + 128-track recording this route
 fights the product; better matched to the 32/64 tiers.
 
 ## Single-chip fit: everything on one ZU5EV (128×128 check)
+
+> **SUPERSEDED as baseline (2026-08-04)**: the ZU5EV is no longer
+> required once recording/USB are deleted — see scope amendment. The
+> per-function budget arithmetic below (DSP slices, TDM pins, RGMII,
+> DDR delay bandwidth) remains valid and carries over to the
+> fabric-only parts; only the PS-dependent rows (recording, USB,
+> A53-hosted FX) fall away.
 
 All functions land on one chip; per-function budget:
 
@@ -72,6 +137,12 @@ All functions land on one chip; per-function budget:
   pulled. Settle FX placement early (README open question 2).
 
 ## 128-track recording to USB SSD
+
+> **SUPERSEDED (2026-08-04)**: onboard recording deleted from the
+> 96 kHz product definition. The ring-buffer/SSD analysis below
+> migrates to a possible future **MW-Net recorder appliance** (its
+> natural home — off-console, soft-real-time by construction, where
+> even a CM5 + USB3 is acceptable).
 
 Bandwidth-priority requirement (2026-08-02): USB-SSD recording and
 DAW streaming MAY be channel-limited as product decisions; the Dante
@@ -132,6 +203,12 @@ NOTE: `ch.fir` tap count is now worth ~$150-200 of BOM in this
 comparison — the action item has a price tag.
 
 ## DAW + recording connectivity strategy (2026-08-02)
+
+> **SUPERSEDED (2026-08-04)**: USB UAC (`rec.usb`) deleted along with
+> onboard recording; DAW play/rec and multitrack capture ride the
+> customer's Dante ecosystem via the option card. Still current from
+> this section: the no-native-MW-Net-computer-endpoints POLICY, and
+> the MW-Net↔USB bridge box as an optional future catalog item.
 
 **DAW play/rec — class-compliant USB at the edges, no native MW-Net
 computer endpoints:**
@@ -221,6 +298,17 @@ idea, embedded in the same chip.
 
 ## Prototype path
 
+> **Note (2026-08-04)**: the KR260 survives the scope amendment as the
+> single eval system — its PL is UltraScale+ fabric (same
+> DSP48E2/BRAM primitives as Artix/Spartan US+), so it remains the
+> superset dev vehicle for a fabric-only ladder under **PL-only
+> discipline** (PS unused, or used only as a CM stand-in during
+> bring-up). Two fidelity gaps to manage: (a) no URAM dependence —
+> confirm URAM per target part before using it; (b) the production
+> delay engine owns its DRAM via a soft controller (MIG), while
+> Kria's DDR4 hangs off the PS — rehearse the PL-DDR path later on
+> target-class hardware.
+
 - Flagship: **KR260 robotics kit** (~$349-399) over the KV260 (~$249)
   — same K26 SoM, but the KR260 has TWO GbE ports routed through the
   PL (RGMII, TI DP83867 PHYs — the same PHY class a product board
@@ -240,17 +328,40 @@ idea, embedded in the same chip.
 
 ## Action items when this activates
 
-1. **Get real Avnet/AMD 1k quotes for XC7Z020 and SM-K26** — the
-   catalog-vs-quote gap is the whole pricing story for AMD parts
-   (see table: ZU5EV catalog is fiction).
+(Revised 2026-08-04 per scope amendment.)
+
+1. **Get real Avnet/AMD 1k quotes for the fabric-only ladder** —
+   SU35P, SU55P/SU100P, AU25P (plus GT-less Artix-7 as reference);
+   the catalog-vs-quote gap is the whole pricing story for AMD parts.
+   K26/XC7Z020 quotes now only matter for the SoC-variant reference.
 2. Get a tap-count ceiling for `ch.fir` into the d128 product
-   definition (biggest DSP+BRAM swing factor).
-3. Settle FX placement (fabric vs A53 vs hybrid) before freezing
-   BRAM/URAM budgets — it alone decides ZU5EV vs ZU7EV.
-4. Check KR260 schematic for which RJ45s land on PL before buying.
-5. Fix the PS-GTR lane allocation early (4 lanes: USB3 + DP +
-   reserved SATA/PCIe spare) — it's board-level and gates the
-   internal-drive contingency.
+   definition (biggest DSP+BRAM swing factor — now it directly picks
+   which cheap part clears the bar per tier).
+3. FX placement DECIDED (**D7 hybrid**, 2026-08-04) — remaining work:
+   sidecar TDM bank allocation in the slot-map SOT + round-trip
+   latency/PDC budget; light-FX sizing for the 32/64-ch fabric
+   configs; flagship BRAM budget assumes FX off-fabric at launch
+   (the TM-FX cost-down re-budgets it later).
+4. DONE (2026-08-04, verified in kria-apps docs): KR260 J10A (Eth3,
+   HPB bank) + J10B (Eth2, HPA bank) are PL RGMII RJ45s; J10C (PS
+   RGMII) + J10D (PS SGMII) are PS; SFP+ rides a PL GTH. Two fabric
+   RGMII ports confirmed — purchase unblocked. (PHY part number per
+   kria-apps device trees: DP83867 — confirm from schematic only when
+   copying the PHY layout reference.)
+5. **Per-tier pin-budget table** (TDM lanes + Dante slot + 2-4 RGMII
+   + SPI control + converters/clocks) — replaces PS-GTR planning as
+   the package-selection driver on GT-less parts.
+6. **Lattice sizing pass for the 32-ch tier**: TM engine DSP-block +
+   BRAM demand vs CertusPro-NX/ECP5 resources; the $25-50 part class
+   is only credible if the 32-ch config fits with margin.
+7. **Verify the DDR story per candidate part** (soft MIG vs any
+   hardened controller; BRAM-only feasibility for the 32-ch delay
+   pool) before freezing the delay-engine interface.
+8. **Coefficient-computation location is now decision-forcing**
+   (fabric has no CPU): small on-fabric float→fixed converter at the
+   param/ramp boundary (preserves the D5 float-wire contract — likely
+   default) vs Pi-side prep of fixed words (needs a contract note).
+   See fpga/README.md open question 3.
 
 ## Sources (checked 2026-08-02)
 
