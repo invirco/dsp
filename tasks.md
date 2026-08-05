@@ -107,9 +107,27 @@ amendment committed + pushed as `76c54f6` the same day):
 - Sequencing: rev C bring-up (still gated on the CCES licence)
   verifies the provisional TDM facts → then rev D schematic freeze.
 
-NEXT (rev D, priority order): 1) SRX/MRX inventory from the
-schematics — decides U7 consolidation; 2) OSPI voltage-domain answer;
-3) rev-C bring-up checklist unchanged. FPGA-side: the param-plane
+NEXT (rev D, priority order): 1) ~~SRX/MRX inventory~~ DONE
+2026-08-05 — see hardware-map.md §3a: "matrix comms" = strobed
+matrix-protocol endpoint (S0-S3/BUSY + SRX/MRX, shared with U8,
+routed through LOGIC = the uart-passthrough TODO) PLUS a 6-UART
+option-card hub (USB/DAW, Dante, USB-SSD cards) + housekeeping SPI
+(!CS_L/!CS_C/!CS_M) + PAD0-11 PSU ADC + resets. Disposition:
+supervisor stays a separate part; rev-D target STM32G0B1RET6
+(6 USART, LQFP-64, ~$3.5-4); do NOT merge into U8; U535RET6 remains
+the drop-in. 2) OSPI voltage-domain answer; 3) rev-C bring-up
+checklist unchanged.
+
+**Consolidated rev-D mod list**: kept OUTSIDE the repo (Peter,
+2026-08-05: mod files live in Dropbox so every repo can reach them) at
+`~/Stonepower Dropbox/Peter Watts/TransferOnly/PCB mods/dsp4-revD-modlist.md`
+(folder renamed DSP4 mods → PCB mods 2026-08-05 when the D24 Digital
+rev-C mod docs — `d24 digital mods.txt`/`.pdf`, ex `_mx/MW/D24/HW/D24
+Digital PCBA rev C/` — joined it)
+— single source for all rev-D mods, deletions, doc fixes, and freeze
+gates. The schematic originals live one level up in
+`TransferOnly/D24 schematics/` (verified byte-identical to
+MW/D24/HW/schematics/ on 2026-08-05). FPGA-side: the param-plane
 ingest-conversion proposal (float wire, on-fabric conversion, fixed
 ramps) is drafted in discussion but NOT yet recorded — becomes D9
 when settled.

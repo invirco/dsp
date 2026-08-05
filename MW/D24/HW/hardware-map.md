@@ -6,6 +6,10 @@ Sources: `D24 DSP.pdf` (DSP4 card, "MW DSP4 rev C", 01/03/2026) and
 Purpose: ground truth for `MW/D24/DSP/SHARC/dsp.csv` regeneration and node
 codegen. Where this conflicts with `dsp.plan.md`, this file wins (schematic
 is newer).
+Hardware MOD LISTS live outside the repo in Dropbox
+`TransferOnly/PCB mods/` (cross-repo convention, 2026-08-05 — see its
+README; schematic originals in `TransferOnly/D24 schematics/`). This
+map and other derived/versioned docs stay in-repo.
 
 ## 1. DSP4 card overview
 
@@ -17,7 +21,7 @@ D32 SNAKE"). Fitted parts:
 | U6 (DSPA) | ADSP-21564 | Input DSP: 32-ch input strips + matrix mix → 128 mix buses |
 | U5 (DSPB) | ADSP-21564 | Output DSP: consumes 128 mix buses → DAC/codec/network outs |
 | U3 (LOGIC) | 5M1270ZT144C4N (Intel MAX V CPLD) | TDM routing/mux between DSPs, converters, network, Pi |
-| U7 (S MCU) | STM32U575RIT6 | DSP/option/converter resets, CS + SPI_RDY monitoring, matrix comms (SRX/MRX) |
+| U7 (S MCU) | STM32U575RIT6 | DSP/option/converter resets, CS + SPI_RDY monitoring, matrix comms (SRX/MRX) — full pin inventory in §3a (added 2026-08-05 for rev D / D8) |
 | U8 (M MCU) | STM32G031C8T6 | Board manager: PSU monitor, ext-MCU S[0..31] lines, H1S2 harness |
 | Y1 | CB3LV 49.152 MHz XO | Master audio clock into LOGIC (SYSCLK) |
 
@@ -153,6 +157,48 @@ analog source (NET only); the LOGIC slot map must route DSPB O1 → DA3.
 - **Resets:** S MCU drives IRST_D (both DSPs), IRST_O (option cards),
   IRST_C (converters).
 - **DSP_CLK:** distributed to both DSPs' SYS_CLKIN0 from LOGIC sheet.
+
+## 3a. S MCU (U7) pin inventory — rev D / D8 supervisor scoping
+
+Read 2026-08-05 from the S MCU sheet (p3/10, 300 DPI). U7's scope is
+much larger than the §1 one-liner; grouped by role:
+
+- **Matrix protocol endpoint** ("matrix comms"): strobed handshake
+  S0 = `Matrix iRSTn`, S1 = `iBOOTp`, S2 = `oDATA_IS_READYp`,
+  S3 = `iSEND_DATAp`, BUSY = `bBUSYn`; serial lines SRX
+  (`Matrix S MCU RX`) and MRX (`Matrix M MCU RX`). S/BUSY/SRX/MRX
+  nets are SHARED with U8 (M MCU) and enter LOGIC (U3) — this is
+  what the CPLD `TODO(uart-passthrough)` routing matrix carries; the
+  harness (J3/J4 "EXT MCUs" section on the M MCU sheet) takes them
+  off-card to the matrix system. U9 (74LVC1G157, M MCU sheet) muxes
+  the SRX source.
+- **Option-card UART hub**: TRX0/TRX1 = TX2/RX-pair option card 1
+  (USB/DAW); TRX2/TRX3 = TX4/RX4 option card 3 (DANTE);
+  TRX4/TRX5 = TX6/RX6 option card 2 (USB SSD recording);
+  STRX0/STRX1 = TX5/RX5 (S MCU's own pair).
+- **Housekeeping SPI master**: !SPI0/1/2 with !CS_L (LOGIC chip
+  select — the "discovered S-MCU SPI provision" for runtime net_sel),
+  !CS_C (CONVERTER chip select), !CS_M (MIC gain chip select).
+- **PSU ADC monitoring**: PAD0-11 — per-8-channel-bank analog PSU
+  reads (IP 25-32 ×2 on PAD6/7; OP 1-8/9-16/17-24/25-32 on
+  PAD8-11; PAD0-5 on the bottom edge).
+- **Resets/supervision**: !RST_D (DSPs), !RST_O (option cards),
+  !RST_C (converters); LEN (LOGIC JTAG enable); OEN1-3 (option card
+  signal-input/JTAG enables); CS1-8 DSP chip-select provision
+  (8-DSP scaling — only CS1/CS2 live on DSP4; CS3/CS4 wired as
+  DSP1/2 SPI_RDY), BLINK LED.
+
+Rev-D disposition (per D8): every role above is G0-class in compute;
+the sizing driver is SERIAL COUNT (matrix + 3 option cards + own
+pair ≈ 5-6 U(S)ARTs) and pin count (~45 signals). STM32G0B1RET6
+(LQFP-64, 512K, 6 USART + 2 LPUART, ~$3.5-4) covers the full role
+set as a rev-D relayout; merging into U8 is NOT recommended (U8
+owns the H1S2 harness + ext-MCU S-lines; combined pin demand
+exceeds one LQFP-64, and the matrix nets are deliberately
+multi-drop across both MCUs). Near-term zero-effort option stays
+the U535RET6 drop-in. The matrix endpoint and option-card control
+plane STAY on the supervisor — they are exactly the always-on,
+Pi-independent functions D8 keeps off the CM4.
 
 ## 4. D24 Digital board (host) — audio-relevant items
 
