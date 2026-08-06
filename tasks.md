@@ -12,6 +12,15 @@ Status colors:
 
 ## Top action
 
+- [ ] <span style="color:#d97706"><b>IN PROGRESS</b></span> **Temporary build fallback: 21568 target using 21564 constraints**
+  — while the full ADI CCES license is still pending, use the 21568 build
+  path with 21564-compatible constraints and memory-map assumptions to keep
+  the firmware bring-up moving. Goal: get the toolchain and codegen pipeline
+  compiling and exercising the same DSP/boot path, then revisit the true
+  21564/21568 split once the license is available. Keep the build output
+  clearly labeled as a temporary compatibility build, not a final production
+  image.
+
 - [ ] <span style="color:#d97706"><b>IN PROGRESS</b></span> **Buy AMD KR260 dev kit**
   — part number **SK-KR260-G**, one version only, from an authorized
   distributor (Mouser/DigiKey/Newark/Avnet/AMD direct if available; PSU,
@@ -26,6 +35,20 @@ and J10B (Eth2, HPA) are PL RGMII; J10C/J10D are PS; SFP+ is PL GTH
   licensed on this machine (`~/.local/bin/vivado`).
   Next concrete action: place the order from an authorized distributor,
   capture the order number and ETA, and record the result here.
+
+## Temporary compatibility build checklist
+
+- [ ] Confirm the temporary target selection: 21568 build path with
+  21564-compatible constraints and memory-map assumptions.
+- [ ] Review the SHARC build scripts, target definitions, and any
+  21564-specific flags that need to be relaxed for the short-term path.
+- [ ] Run the first compatibility build and capture the output.
+- [ ] If the build succeeds, record the produced artifacts and note any
+  remaining incompatibilities for the later full-CCES pass.
+- [ ] If the build fails, document the exact blocker and keep the work
+  focused on the smallest root-cause fix.
+- [ ] Mark the build as temporary compatibility-only in any notes or
+  release artifacts so it is not mistaken for a final production image.
 
 ## Resume notes (2026-08-05 session end — tree clean at push)
 
@@ -47,30 +70,34 @@ concern defused (ZU5EV SoC thermals ≠ fabric-only product; US+ needs
 copper/small sink at most — Vivado power estimates queued).
 
 TOMORROW'S ENTRY POINTS (priority order):
-1. **Order KR260** (SK-KR260-G) — still fully unblocked, see Top
-   action.
+1. **Temporary 21568/21564 compatibility build** — keep the toolchain
+   moving while CCES is pending by building the 21568 path with 21564
+   constraints and matching the same boot/dispatch assumptions. This is
+   the immediate next step until the full license arrives.
 2. **Check CCES licence arrival** (AD-CCES-NODE-1, requested
    2026-07-31) → plain `./build.sh all` = first real 21564 images →
    unblocks rev-C bring-up, which gates the rev-D layout freeze.
-3. **Quote round** (one call, now extended): SU35P / SU55P-SU100P /
+3. **Order KR260** (SK-KR260-G) — still fully unblocked, see Top
+   action.
+4. **Quote round** (one call, now extended): SU35P / SU55P-SU100P /
    AU25P @1k + Agilex 3 availability + Agilex 5 Quartus licensing +
    LFCPNX-100 + an Avant-E part + 5M570ZT144C4N + STM32G0B1RET6 /
    U535RET6 + Infineon 3.0 V octal-xSPI HyperRAM (S27KL-class)
    availability.
-4. **Rev D remaining OSPI open**: 21564 OSPI clock ceiling +
+5. **Rev D remaining OSPI open**: 21564 OSPI clock ceiling +
    xSPI-profile-2/RWDS RAM support — check EV-21568-SOM reference
    design in the ADI portal (datasheet mirrors bot-block curl; the
    rlocman paged mirror worked for pin tables, OSPI timing pages
    could be fished the same way).
-5. **FPGA D9 decision text** (param plane: float wire, on-fabric
+6. **FPGA D9 decision text** (param plane: float wire, on-fabric
    ingest conversion + per-address format map, fixed ramps,
    sample-serial audio / block-rate control) — argued 2026-08-05 in
    session, ready to record when Peter signs off. Shortlist edits
    pending from the same discussion: Lattice price correction,
    Microchip bullet rewrite (fabric-fit/cost/PolarFire-2 trigger).
-6. Desk work queued: per-tier pin-budget table + Vivado XPE power
+7. Desk work queued: per-tier pin-budget table + Vivado XPE power
    estimates (SU35P/AU25P) — feeds quotes AND the thermal question.
-7. Unchanged hub-side gate: `ch.fir` tap ceiling into d128 (biggest
+8. Unchanged hub-side gate: `ch.fir` tap ceiling into d128 (biggest
    open number, ~$150-200 BOM swing).
 
 Cross-repo state: mod lists live in Dropbox `TransferOnly/PCB mods/`
