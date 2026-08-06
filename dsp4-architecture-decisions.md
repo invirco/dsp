@@ -1,7 +1,8 @@
 # DSP4 architecture decisions
 
 Status: accepted 2026-07-29 (D1-D5); D6 added 2026-08-02; D7 2026-08-04;
-D8 2026-08-05
+D8 2026-08-05. **D9 (2026-08-06) is a DRAFT awaiting sign-off — not
+binding; see its banner.**
 Scope: DSP4 card (dual ADSP-21564 + MAX V LOGIC CPLD) as used by D24 and
 D32; D6 extends scope to platform selection across the product range.
 These decisions are binding for work in this repo. Change them only by
@@ -175,7 +176,9 @@ Hardware ground truth: [MW/D24/HW/hardware-map.md](MW/D24/HW/hardware-map.md)
     multi-DSP MIXING engines; a single FX sidecar is not one and is
     permitted by this decision.
 - Design gates updated (tracked in `fpga/` docs): per-tier pin-budget
-  table; Lattice 32-ch sizing incl. the 18×18 composition factor;
+  table; Lattice 32-ch sizing incl. the 18×18 composition factor
+  (**first pass done 2026-08-06 — `fpga/sizing-32ch.md`: DSP is not the
+  constraint on either candidate; delay memory forces external DRAM**);
   per-part DDR verification; coefficient-conversion location
   (on-fabric float→fixed converter preserving the D5 float wire vs
   Pi-side prep — decide before table formats freeze); `ch.fir` tap
@@ -240,3 +243,63 @@ Hardware ground truth: [MW/D24/HW/hardware-map.md](MW/D24/HW/hardware-map.md)
 - Revisit triggers: SRX/MRX inventory shows more than G0-class load →
   keep a U5-class supervisor; rev-C bring-up overturns a provisional
   fact → the affected routing stays in the CPLD, not copper.
+
+## D9 — FPGA parameter plane: float wire, on-fabric ingest conversion [DRAFT]
+
+> **STATUS: DRAFT — awaiting PW sign-off. Not binding until this banner
+> is removed.** Argued in session 2026-08-05; written up 2026-08-06 from
+> that discussion. Everything below is the proposal, not accepted policy.
+
+- Scope: the parameter/control plane of the FPGA mixer engine (`fpga/`),
+  the fabric-side counterpart to D5's SHARC parameter boundary. Closes
+  the **coefficient-conversion location** gate that D7 left open
+  (on-fabric converter vs Pi-side prep) and shortlist action item 8.
+- **The SPI wire stays float32 — unchanged from D1/D5.** Same protocol,
+  same address map, same cell tables, same host tooling. The CM writes
+  float words to an address; mx26, ghost cells, and the D32/D24 control
+  path do not learn that the engine underneath is fabric rather than
+  SHARC. This is the whole point: one control plane across both engines.
+- **Conversion happens ON FABRIC, at ingest** — not on the Pi. A single
+  small float→fixed converter sits at the SPI ingest boundary and feeds
+  the parameter RAM in the destination format.
+  - Rationale: Pi-side prep would push per-address Q-format knowledge
+    into the host, forking host tooling per engine and re-forking it on
+    every table change — exactly the coupling D3/D5 removed. It would
+    also make the float wire a lie (float-shaped words carrying
+    pre-quantized values).
+  - Cost is small and bounded: conversion is control-rate, so ONE
+    time-multiplexed converter serves every address. It is not
+    per-node hardware.
+- **Per-address format map, generated.** Each parameter address carries
+  its target format (Q profile, saturation policy, semantic) in a table
+  generated from `dsp.csv` by `fpga_codegen.py` — same generator-owned
+  discipline as the SHARC dispatch tables. Formats are governed by
+  `shared/numeric-spec.md` (D5); the FPGA does not get a second numeric
+  spec.
+- **Ramps run FIXED in fabric** — this is the deliberate divergence
+  from D5. On SHARC the entire parameter plane stayed float with a
+  per-block FIX inside each kernel (float adds are free on a
+  dual-format core). Fabric has no float adder worth spending, so the
+  ramp engine increments in the destination fixed format directly:
+  exact, cheap, and control-rate. Consequence to verify against the
+  golden harness: ramp trajectories are quantized earlier than on
+  SHARC, so ramp-precision tolerance is a numeric-spec question, not a
+  free choice.
+- **Sample-serial audio, block-rate control.** The audio datapath is
+  sample-serial (channels time-multiplexed through the shared TM
+  engine); the control plane updates at block rate. This is what makes
+  the single shared converter and the single ramp engine sizeable at
+  all — they have a whole block of cycles to service every address that
+  changed. Sizing follows from block length × channel count, and
+  belongs in the per-tier pin/resource budget.
+- **Acceptance**: unchanged in kind from D5 — the float64 model in
+  `tools/dsp/` stays the normative reference, and the fabric engine is
+  validated as tolerance-vs-golden, never target-vs-target.
+- Open items this decision does NOT settle: exact parameter-RAM sizing
+  per tier; ramp-precision tolerance for fixed ramps (numeric-spec
+  amendment); whether meters return over the same path or a separate
+  readback channel.
+- Revisit triggers: a tier lands on hard-FP silicon where float ramps
+  are genuinely free (then the SHARC pattern applies unchanged); or the
+  format map proves too dynamic to generate, which would mean the
+  address space is under-specified upstream in mx26.

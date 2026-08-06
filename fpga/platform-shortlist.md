@@ -47,7 +47,7 @@ Revised baseline ladder (quotes pending — see action items):
 
 | Tier | Baseline part class | Notes |
 |---|---|---|
-| 32 ch | Spartan US+ SU35P (~$60-75 @1k) or GT-less Artix-7; **size a Lattice CertusPro-NX / ECP5 config (~$25-50)** — the "wrong for the console" verdict below predates SoC removal | CM control; light FX in fabric |
+| 32 ch | Spartan US+ SU35P (~$60-75 @1k) or GT-less Artix-7; **size a Lattice CertusPro-NX / ECP5 config** — the "wrong for the console" verdict below predates SoC removal. PRICE CORRECTED 2026-08-05: CPNX-100 is ~$131 catalog, NOT the ~$25-50 previously carried here; ECP5-85 is the part that actually races SU35P at this tier | CM control; light FX in fabric |
 | 64 ch | same silicon; I/O fit-out differentiates (D3 pattern) | |
 | 128 ch | Artix US+ AU25P or larger Spartan US+ (SU55P/SU100P) | BRAM/DDR budget + `ch.fir` ceiling pick the part; SHARC sidecar is the FX escape hatch |
 
@@ -56,6 +56,13 @@ Unchanged and still load-bearing: the `ch.fir` tap-count ceiling
 the bar), the 1k-quote action, the KR260 eval strategy (US+ fabric
 superset, PL-only discipline — see Prototype path note), the D6
 platform split, and vendor-neutral Verilog for the link block.
+
+> **32-ch tier sized 2026-08-06** — see [sizing-32ch.md](sizing-32ch.md).
+> ~3,100 MACs/sample → 2 MAC lanes → ~8 multiplier primitives, which is
+> ~5% of ECP5-85 and ~17% of SU35P. The 18×18 vs 27×18 gap does NOT bite
+> at Q4.28×Q4.28 (both need 4 primitives per 32×32). The delay pool
+> (~2.6 MB at 96 kHz) exceeds both parts' block RAM by >5×, so **external
+> DRAM decides this tier**, not DSP or BRAM.
 
 ## Sizing reality (from README budget math)
 
@@ -286,13 +293,25 @@ idea, embedded in the same chip.
   already in-house (CPLD flow). Family is old → Xilinx is the safer
   bet; superseded as plan-B by Agilex 5 E above.
 - **Lattice ECP5 / CertusPro-NX** — wrong for the console, RIGHT for
-  the I/O modules: link block + TDM + converter glue on a ~$25-50
-  part, open-toolchain option. Consequence: write the link block in
+  the I/O modules: link block + TDM + converter glue on a small part,
+  open-toolchain option. Consequence: write the link block in
   vendor-neutral Verilog so console (Xilinx) and modules (Lattice)
-  share it unchanged.
-- **Microchip PolarFire SoC (MPFS025T)** — RISC-V, very low power
-  (fanless), free toolchain; weaker ecosystem. Consider if thermals
-  dominate.
+  share it unchanged. PRICES CORRECTED 2026-08-05: the ~$25-50 figure
+  applied to small ECP5 module parts, not to CertusPro-NX —
+  **CPNX-100 is ~$131 catalog**, which puts it above SU35P rather than
+  under it. At the 32-ch console tier the real race is **ECP5-85 vs
+  SU35P**; CPNX-100 needs a capability reason, not a price one.
+  **Avant-E** is Lattice's first mid-range family and is worth a quote
+  in its own right (see action items).
+- **Microchip PolarFire / PolarFire SoC (MPFS025T)** — assessed
+  2026-08-05: genuinely **fabric-fit** for this workload (LUT/DSP/BRAM
+  mix suits the TM engine, very low power, fanless, free toolchain) —
+  the fit objection is withdrawn. The blocker is **cost: 4-5× the
+  Xilinx/Lattice candidates at equivalent capacity**, which no thermal
+  or toolchain advantage covers at our volumes. Status: **watch item,
+  ranked behind Agilex 5**. Revisit trigger: **PolarFire 2** silicon
+  landing at a competitive price, or a product tier where fanless
+  operation becomes a hard requirement rather than a preference.
 - **Efinix Titanium** — cheap, ecosystem too young for a console
   platform. Watch only.
 
@@ -357,11 +376,14 @@ idea, embedded in the same chip.
 7. **Verify the DDR story per candidate part** (soft MIG vs any
    hardened controller; BRAM-only feasibility for the 32-ch delay
    pool) before freezing the delay-engine interface.
-8. **Coefficient-computation location is now decision-forcing**
+8. ~~**Coefficient-computation location is now decision-forcing**
    (fabric has no CPU): small on-fabric float→fixed converter at the
    param/ramp boundary (preserves the D5 float-wire contract — likely
    default) vs Pi-side prep of fixed words (needs a contract note).
-   See fpga/README.md open question 3.
+   See fpga/README.md open question 3.~~ ANSWERED by **D9 (draft,
+   2026-08-06)** in `dsp4-architecture-decisions.md`: on-fabric ingest
+   conversion, generated per-address format map, fixed ramps. Awaiting
+   PW sign-off before it is binding.
 
 ## Sources (checked 2026-08-02)
 

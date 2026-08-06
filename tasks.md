@@ -77,6 +77,72 @@ and J10B (Eth2, HPA) are PL RGMII; J10C/J10D are PS; SFP+ is PL GTH
   "do not flash / do not release" validity note). Both are no-ops on a real
   21564 build.
 
+## 2026-08-06 — 32-ch sizing pass: DSP is not the constraint, DRAM is
+
+New: `fpga/sizing-32ch.md`. Closes the first half of the D7 gate "Lattice
+32-ch sizing incl. the 18×18 composition factor" (gate line updated in
+`dsp4-architecture-decisions.md`; summary box added to the shortlist).
+
+- Workload from `MW/D32/DEFS/d32.csv` at 96 kHz: 32 ch × ~31 destinations
+  = 992 sends, plus ~318 biquads (5 MACs each) and ~500 dynamics MACs →
+  **~3,100 MACs/sample**. At 250 MHz that is ~2,600 cycles/sample, so
+  **two time-multiplexed MAC lanes** (one at 400 MHz). `ch.fir` is NOT in
+  d32.csv — the biggest DSP swing factor is a flagship feature and does
+  not load this tier.
+- **The 18×18 worry does not bite.** Q4.28 × Q4.28 is 32×32 on both sides,
+  which costs **4 primitives on either vendor** (Xilinx 27×18: 2×2;
+  Lattice 18×18: 2×2). The narrow-primitive penalty only appears for a
+  27-bit data path with ≤18-bit coefficients, which D5's LF biquad
+  measurements rule out. Two lanes = ~8 primitives = **~5% of ECP5-85's
+  156 × 18×18, ~17% of SU35P's 48 DSP48E2**.
+- **The real constraint is delay memory.** `MW/D32/DSP/dsp-def.md` already
+  budgets the tiered delay pool at ~1.29 MB at 48 kHz → **~2.6 MB (20.6
+  Mb) at 96 kHz**, against 3.7 Mb of block RAM on ECP5-85 and 1.7 Mb on
+  SU35P. Neither is within 5×, so **external DRAM is mandatory at this
+  tier on either vendor** and the part choice turns on the memory
+  interface and pins, not DSP or BRAM.
+- Next on this thread (in order): DRAM support per part (ECP5 DDR3 vs
+  SU35P DDR4/LPDDR4, soft vs hardened controller, LUT cost) → pin budget
+  → Fmax → ECP5-85 quote. Also flagged: the SU35P "48 DSP slices" figure
+  came from search summaries, not a primary DS930 table read, and SU35P
+  has 48 × 36 Kb BRAM blocks too — confirm before quoting. The verdict
+  holds either way.
+
+## 2026-08-06 — D9 drafted (AWAITING SIGN-OFF) + shortlist corrections
+
+Entry point 6 done as far as it can go without you. **D9 — FPGA parameter
+plane** written up in `dsp4-architecture-decisions.md` from the 2026-08-05
+argument, carrying a `[DRAFT] / not binding until the banner is removed`
+header (the decisions doc's status line says the same). Content: float32
+stays on the SPI wire unchanged from D1/D5; conversion happens **on fabric
+at ingest** via one time-multiplexed converter, not Pi-side (Pi-side prep
+would push per-address Q-format knowledge into the host and fork host
+tooling per engine); **per-address format map generated** from `dsp.csv` by
+`fpga_codegen.py`, formats governed by the existing `shared/numeric-spec.md`
+— no second numeric spec; **ramps run fixed** in fabric (the deliberate
+divergence from D5's all-float param plane, since fabric has no free float
+adder); sample-serial audio + block-rate control is what makes one shared
+converter and one ramp engine sizeable.
+
+Left open inside D9 on purpose: parameter-RAM sizing per tier, the
+ramp-precision tolerance for fixed ramps (a numeric-spec amendment, since
+trajectories quantize earlier than on SHARC), and whether meters return on
+the same path. **Read the draft and sign it off or mark it up** — that is
+the only remaining action on entry point 6.
+
+Shortlist corrections applied at the same time (`fpga/platform-shortlist.md`):
+- **Lattice price corrected** — CPNX-100 is ~$131 catalog, NOT the ~$25-50
+  the ladder and vendor bullet both carried; that figure applied to small
+  ECP5 module parts. At 32 ch the real race is **ECP5-85 vs SU35P**;
+  CPNX-100 now needs a capability reason, not a price one. Avant-E flagged
+  for its own quote.
+- **Microchip bullet rewritten** — PolarFire is **fabric-fit** (objection
+  withdrawn) but **4-5× the price** at equivalent capacity; status is watch
+  item ranked behind Agilex 5, revisit trigger = PolarFire 2 pricing or a
+  hard fanless requirement.
+- Action item 8 (coefficient-computation location) struck through and
+  pointed at D9.
+
 ## 2026-08-06 — temporary compatibility build (21568 fit proxy) PASSED
 
 Command: `PROC_TARGET=ADSP-21568 ./build.sh all` in `MW/D32/DSP/SHARC/`.
