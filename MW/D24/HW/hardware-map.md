@@ -6,10 +6,15 @@ Sources: `D24 DSP.pdf` (DSP4 card, "MW DSP4 rev C", 01/03/2026) and
 Purpose: ground truth for `MW/D24/DSP/SHARC/dsp.csv` regeneration and node
 codegen. Where this conflicts with `dsp.plan.md`, this file wins (schematic
 is newer).
-Hardware MOD LISTS live outside the repo in Dropbox
-`TransferOnly/PCB mods/` (cross-repo convention, 2026-08-05 — see its
-README; schematic originals in `TransferOnly/D24 schematics/`). This
-map and other derived/versioned docs stay in-repo.
+Canonical board material (schematic PDF + DipTrace `.pdsprj`, BOM, CADCAM
+gerbers, renders) for all 9 D24 PCBAs now lives in the mx26-owned Dropbox
+store `_Matrix/Products/D24/hw/<board> PCBA/` (2026-08-06 — see
+`matrix-shared-store.md`). The PDFs in `MW/D24/HW/schematics/` are
+byte-identical copies kept in-repo for derivation.
+Hardware MOD LISTS still live in Dropbox `TransferOnly/PCB mods/`
+(cross-repo convention, 2026-08-05 — see its README); `TransferOnly/D24
+schematics/` is the older transfer copy, superseded by the `_Matrix` store.
+This map and other derived/versioned docs stay in-repo.
 
 ## 1. DSP4 card overview
 

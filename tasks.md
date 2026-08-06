@@ -12,18 +12,20 @@ Status colors:
 
 ## Top action
 
-- [ ] <span style="color:#2563eb"><b>NEXT</b></span> **Buy AMD KR260 dev kit**
+- [ ] <span style="color:#d97706"><b>IN PROGRESS</b></span> **Buy AMD KR260 dev kit**
   — part number **SK-KR260-G**, one version only, from an authorized
-  distributor (Mouser/DigiKey/Newark; PSU, cables, SD included; avoid
-  bare-SoM broker listings) (~$349-399) — the single eval system for
-  the whole D7 fabric-only
-  ladder (US+ fabric superset, 2× PL RGMII for MW-Net dev, PL-only
-  discipline per `fpga/platform-shortlist.md` Prototype path note).
+  distributor (Mouser/DigiKey/Newark/Avnet/AMD direct if available; PSU,
+  cables, SD included; avoid bare-SoM broker listings) (~$349-399) — the
+  single eval system for the whole D7 fabric-only ladder (US+ fabric
+  superset, 2× PL RGMII for MW-Net dev, PL-only discipline per
+  `fpga/platform-shortlist.md` Prototype path note).
   Pre-order check DONE (2026-08-04, kria-apps docs): J10A (Eth3, HPB)
-  and J10B (Eth2, HPA) are PL RGMII; J10C/J10D are PS; SFP+ is PL GTH
+and J10B (Eth2, HPA) are PL RGMII; J10C/J10D are PS; SFP+ is PL GTH
   — 2× fabric RGMII confirmed. Consider a second unit later for
   star/daisy-chain link tests. Toolchain ready: Vivado 2026.1
   licensed on this machine (`~/.local/bin/vivado`).
+  Next concrete action: place the order from an authorized distributor,
+  capture the order number and ETA, and record the result here.
 
 ## Resume notes (2026-08-05 session end — tree clean at push)
 
@@ -75,6 +77,29 @@ Cross-repo state: mod lists live in Dropbox `TransferOnly/PCB mods/`
 (dsp4-revD-modlist.md = single rev-D source incl. gate statuses;
 d24 digital mods.txt/pdf = Digital rev-C Schottky review). Memory
 updated with the convention.
+
+## 2026-08-06 — Dropbox `_Matrix` shared store adopted (doc-only)
+
+mx26 commit `fbaf2be` (2026-08-06) declares the Dropbox `_Matrix` folder
+the canonical **cross-repo** shared data store (mx26 `sot.md` concept 16,
+`docs/decision-mx26-mandates.md`, `matrix_direction.md`): mx26 owns the
+layout — `Products/<P>/{dsp,fw,hw,logic,net,pd,sw,sys}` mirroring its
+src/ domains — spokes consume it, D24 is the template product, essential
+and durable content only, no bulk migration, nothing there is a build
+input. Absorbed here as `matrix-shared-store.md`, with pointers added to
+`README.md`, `CLAUDE.md`, and `MW/D24/HW/hardware-map.md`. No tooling
+change: `defs.lock` / `sync-from-mx26.sh` still read the mx26 checkout —
+mx26 names `_Matrix` as the *eventual* home of the pinned Dropbox mirror,
+not today's.
+
+Verified locally: store is fully synced offline (~110 MB, no online-only
+placeholders); `Products/D24/hw/` holds all 9 D24 PCBAs (BOM + renders +
+CADCAM zip + base design + schematic PDF + DipTrace `.pdsprj` each); the
+other D24 domains are empty, and `Products/D32/` does not exist yet. The
+D24 DSP/Digital/Analog PDFs in `MW/D24/HW/schematics/` are byte-identical
+to the store copies, so hardware-map derivations still hold. Open item:
+`TransferOnly/PCB mods/` mod lists are a migrate-later candidate for
+`_Matrix/Products/D24/hw/` — PW/mx26's call, nothing moved.
 
 ## Resume notes (2026-08-04 session end)
 

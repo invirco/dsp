@@ -5,6 +5,12 @@ live in the **mx26** repo (the hub); this repo consumes a versioned CSV contract
 from mx26 and turns it into DSP firmware artifacts (the spoke). See
 [mx26-mx-dsp-integration.md](mx26-mx-dsp-integration.md) for the full model.
 
+For source documents and bulky source assets, use the mx26-owned Dropbox
+`_Matrix` store as the working location. Keep generated DSP artifacts,
+contract files, and repo-local implementation notes here in the repo; the
+contract sync path still comes from the mx26 checkout unless mx26 changes that
+flow.
+
 ## Layout
 
 ```
@@ -63,6 +69,8 @@ Contract-bump checklist: [smoke-checklist.md](smoke-checklist.md) and
 
 - [tasks.md](tasks.md) — prioritized work state (start here)
 - [mx26-mx-dsp-integration.md](mx26-mx-dsp-integration.md) — repo contract model
+- [matrix-shared-store.md](matrix-shared-store.md) — Dropbox `_Matrix` cross-repo
+  data store (mx26-owned; where large binaries live instead of git)
 - [contract-baseline.md](contract-baseline.md) — expected generator output counts
 - [alias-retirement-plan.md](alias-retirement-plan.md) / [alias-audit.md](alias-audit.md) — cell-family alias lifecycle
 - `MW/D32/DSP/dsp-def.md`, `MW/D32/DSP/dsp_address_map.md` — D32 DSP architecture and address map
@@ -73,3 +81,7 @@ Contract-bump checklist: [smoke-checklist.md](smoke-checklist.md) and
   `/opt/analog/cces/3.0.3` (see header of `MW/D32/DSP/SHARC/build.sh`).
   A local toolchain copy may exist at `MW/D32/DSP/SHARC/cces/` (gitignored).
 - License material (serials, `license.dat`) is gitignored — never commit it.
+- Bulky per-product binaries (board fab outputs, CAD projects, vendor SDKs,
+  bitstreams, tuning captures) live in the mx26-owned Dropbox `_Matrix` store,
+  not in git — see [matrix-shared-store.md](matrix-shared-store.md). Nothing
+  there is a build input.

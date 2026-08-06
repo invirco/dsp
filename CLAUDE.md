@@ -30,6 +30,15 @@ has the layout; `tasks.md` has current work state — read both first.
   master, never touches audio) with per-tier hybrid FX — flagship may
   carry ONE SHARC FX sidecar (TDM slot-map banks, depopulatable);
   no onboard recording or USB UAC audio on 96 kHz products.
+- **Dropbox `_Matrix` is the working location for source docs and shared source
+  assets.** The cross-repo shared data store
+  (`~/Stonepower Dropbox/Peter Watts/_Matrix`, `Products/<P>/{dsp,fw,hw,logic,
+  net,pd,sw,sys}`) is defined by mx26; this spoke consumes it and never
+  redefines its layout, adds top-level folders, or bulk-migrates legacy
+  material into it. Use `_Matrix` for product-source docs and bulky reference
+  material; keep generated DSP artifacts and contract files in this repo.
+  Nothing there is a build input, and the contract path still comes from the
+  mx26 checkout. Rules and current contents: `matrix-shared-store.md`.
 - After any contract or generator change, run `./regenerate-dsp-contract.sh`
   and record contract version per `release-notes-contract-convention.md`.
 - Update `tasks.md` on every contract bump.

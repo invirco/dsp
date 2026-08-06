@@ -4,6 +4,15 @@ Status: active
 Date: 2026-07-15
 Audience: day-to-day mx26 -> mx-dsp workflow users.
 
+## Source-doc location
+
+- For source documents, reference material, and bulky source assets, work from
+the mx26-owned Dropbox `_Matrix` store under `Products/<Product>/...`.
+- Keep generated DSP artifacts, contract files, implementation notes, and
+build outputs in this repo.
+- Do not create repo-local copies of the shared source docs; reference the
+store location and keep the repo free of large binaries.
+
 ## Normal daily flow
 
 1. Sync + validate + regenerate:
