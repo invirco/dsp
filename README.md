@@ -58,6 +58,7 @@ DEFS/FW/MX/DSPCFG/DSP shape, driven by the same contract flow.
 | `python3 audit-compat-aliases.py` | Refresh alias-audit.md |
 | `python3 tools/dsp/dsp_codegen.py MW/<P>/DSP/SHARC/dsp.csv MW/<P>/DSP/SHARC/src` | Regenerate a product's SHARC source |
 | `python3 tools/dsp/dsp_validate.py MW/<P>/DSP/SHARC/dsp.csv` | Validate a product's DSP graph |
+| `python3 tools/dsp/dsp_memreport.py MW/<P>/DSP/SHARC/build/chip*.map.xml` | Memory headroom per primary+overflow pool (exit 1 above 90%) |
 | `./scaffold-product.sh <PRODUCT>` | Create a new product tree + integration checklist |
 | `MW/D32/DSP/SHARC/build.sh` | Assemble + link D32 DXEs (requires CCES at /opt/analog/cces) |
 

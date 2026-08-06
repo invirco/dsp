@@ -53,6 +53,35 @@ resolve_ldf() {
     fi
     LDFLAGS="$PROC -T $LDF"
 }
+
+# A non-21564 build is a temporary compatibility (fit-proxy) image only —
+# same core/L1/L2, different part number. Banner it and drop a marker beside
+# the DXEs so the output can never be mistaken for a production card image.
+compat_banner() {
+    [ "$PROC_TARGET" = "ADSP-21564" ] && return 0
+    echo "*********************************************************************"
+    echo "*  TEMPORARY COMPATIBILITY BUILD — target $PROC_TARGET, NOT 21564"
+    echo "*  Fit proxy only (21564 constraints + memory map). Do NOT flash or"
+    echo "*  release as a production D32/DSP4 image."
+    echo "*********************************************************************"
+}
+
+compat_marker() {
+    [ "$PROC_TARGET" = "ADSP-21564" ] && return 0
+    cat > "$BUILD_DIR/COMPAT-BUILD.txt" <<EOF
+TEMPORARY COMPATIBILITY BUILD — NOT A PRODUCTION IMAGE
+
+Target:      $PROC_TARGET (fit proxy for ADSP-21564)
+LDF:         $LDF (generated; ARCHITECTURE rewritten, memory map unchanged)
+Built:       $(date -u '+%Y-%m-%dT%H:%M:%SZ')
+Reason:      full CCES licence (AD-CCES-NODE-1) pending; this host is
+             entitled to ADSP-21568 only, so -proc ADSP-21564 fails.
+Validity:    proves toolchain, codegen, link and memory fit. Says nothing
+             about 21564 part-specific behaviour. Do not flash to hardware
+             or publish as a release artifact.
+EOF
+    echo "  Marker: $BUILD_DIR/COMPAT-BUILD.txt"
+}
 LDFLAGS="$PROC -T $LDF"
 
 clean() {
@@ -122,6 +151,7 @@ assemble_dir() {
 
 build() {
     echo "=== Build D32 DSP ==="
+    compat_banner
     resolve_ldf
     mkdir -p "$BUILD_DIR/chip1" "$BUILD_DIR/chip2" "$BUILD_DIR/lib"
 
@@ -215,6 +245,8 @@ build() {
     echo "=== Build OK ==="
     echo "  Chip 1: $BUILD_DIR/chip1.dxe"
     echo "  Chip 2: $BUILD_DIR/chip2.dxe"
+    compat_marker
+    compat_banner
     echo ""
     count
 }

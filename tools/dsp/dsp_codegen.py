@@ -4905,6 +4905,7 @@ def gen_gain_fixed(node):
 
         .section/pm seg_pmco;
         .extern _sample_idx;
+        .extern _mrf_rns28;
         .global _{nid}_process;
         _{nid}_process:
             /* block-rate: advance float ramp, refresh Q4.28 shadow */

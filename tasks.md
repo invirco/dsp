@@ -12,7 +12,7 @@ Status colors:
 
 ## Top action
 
-- [ ] <span style="color:#d97706"><b>IN PROGRESS</b></span> **Temporary build fallback: 21568 target using 21564 constraints**
+- [x] <span style="color:#16a34a"><b>DONE</b></span> (2026-08-06) **Temporary build fallback: 21568 target using 21564 constraints**
   — while the full ADI CCES license is still pending, use the 21568 build
   path with 21564-compatible constraints and memory-map assumptions to keep
   the firmware bring-up moving. Goal: get the toolchain and codegen pipeline
@@ -20,6 +20,11 @@ Status colors:
   21564/21568 split once the license is available. Keep the build output
   clearly labeled as a temporary compatibility build, not a final production
   image.
+  **Result: PASSED — 692 ASM sources, 0 errors, both chips linked.** Full
+  evidence in "2026-08-06 — temporary compatibility build" below. Standing
+  command: `PROC_TARGET=ADSP-21568 ./build.sh all` from
+  `MW/D32/DSP/SHARC/`. Reopen only when the 21564 licence lands (then the
+  plain `./build.sh all` path replaces this one).
 
 - [ ] <span style="color:#d97706"><b>IN PROGRESS</b></span> **Buy AMD KR260 dev kit**
   — part number **SK-KR260-G**, one version only, from an authorized
@@ -38,17 +43,116 @@ and J10B (Eth2, HPA) are PL RGMII; J10C/J10D are PS; SFP+ is PL GTH
 
 ## Temporary compatibility build checklist
 
-- [ ] Confirm the temporary target selection: 21568 build path with
+- [x] Confirm the temporary target selection: 21568 build path with
   21564-compatible constraints and memory-map assumptions.
-- [ ] Review the SHARC build scripts, target definitions, and any
+  — `PROC_TARGET=ADSP-21568` selects `-proc` for easm21k/cc21k/linker;
+  `resolve_ldf()` generates `build/ADSP-21568.ldf` from the repo
+  `ADSP-21564.ldf` by rewriting only `ARCHITECTURE()`, so every memory
+  region, section, and placement rule is the 21564 map unchanged. Licence
+  probe re-confirmed the need: `-proc ADSP-21564` still fails with
+  `[Error ea1156] The hardware found (ADSP-21564) does not match the
+  licensed hardware (ADSP-21568)`.
+- [x] Review the SHARC build scripts, target definitions, and any
   21564-specific flags that need to be relaxed for the short-term path.
-- [ ] Run the first compatibility build and capture the output.
-- [ ] If the build succeeds, record the produced artifacts and note any
+  — Nothing had to be relaxed. The only 21564-specific inputs are the LDF
+  `ARCHITECTURE()` (handled above) and the `<def21564.h>` / `<sru21564.h>`
+  includes in `main.asm`, `sport_init.asm`, `sport_config.c`,
+  `dma_config.c`, `sru_config.c`; those resolve from the CCES SHARC include
+  path regardless of `-proc` and describe MMRs identical across the 2156x
+  family. No per-target branch was added to `build.sh`.
+- [x] Run the first compatibility build and capture the output.
+  — `PROC_TARGET=ADSP-21568 ./build.sh all` (clean + full). Log kept for
+  this session; summary below.
+- [x] If the build succeeds, record the produced artifacts and note any
   remaining incompatibilities for the later full-CCES pass.
-- [ ] If the build fails, document the exact blocker and keep the work
-  focused on the smallest root-cause fix.
-- [ ] Mark the build as temporary compatibility-only in any notes or
+  — Artifacts, memory fit, and the two watch items are recorded in the
+  results section below.
+- [x] If the build fails, document the exact blocker and keep the work
+  focused on the smallest root-cause fix. — n/a, build passed (0 errors).
+- [x] Mark the build as temporary compatibility-only in any notes or
   release artifacts so it is not mistaken for a final production image.
+  — `build.sh` now prints a `TEMPORARY COMPATIBILITY BUILD` banner before
+  and after any non-21564 build and writes `build/COMPAT-BUILD.txt` beside
+  the DXEs (target, generated LDF, UTC timestamp, reason, and an explicit
+  "do not flash / do not release" validity note). Both are no-ops on a real
+  21564 build.
+
+## 2026-08-06 — temporary compatibility build (21568 fit proxy) PASSED
+
+Command: `PROC_TARGET=ADSP-21568 ./build.sh all` in `MW/D32/DSP/SHARC/`.
+
+- **692 ASM sources** (chip1 431 nodes + 5 infra, chip2 235 nodes + 5 infra,
+  8 shared, 8 lib) + 5 C files compiled per chip. **0 errors**, 34 warnings.
+- Linked: `build/chip1.dxe` **1,270,640 B** (456 objects),
+  `build/chip2.dxe` **2,505,220 B** (260 objects).
+- Grown since the 2026-07-30 proxy run: 642 → 692 ASM, chip1 1.23 → 1.27 MB,
+  chip2 2.46 → 2.51 MB.
+
+Memory fit (words used/capacity, from the linker map XMLs):
+
+| Region | chip1 | chip2 |
+|---|---|---|
+| mem_iv_code | 260/260 (100%) | 260/260 (100%) |
+| mem_block0_bw | 170292/195040 (87.3%) | 178708/195040 (91.6%) |
+| mem_block1_bw | 0/180224 (0%) | 0/180224 (0%) |
+| mem_block2_bw | 19492/131072 (14.9%) | 0/131072 (0%) |
+| mem_block3_bw | **131070/131072 (100.0%)** | 60786/131072 (46.4%) |
+| mem_L2_bw | 506880/1024000 (49.5%) | **978808/1024000 (95.6%)** |
+| mem_L2CTL1_bw | 0/1048576 (0%) | 729408/1048576 (69.6%) |
+| total | 827994/2710244 (30.6%) | 1947970/2710244 (71.9%) |
+
+**Reading these numbers correctly** — this supersedes the "TIGHT" readings in
+P2 (2026-07-30) and the first version of this entry, both of which called a
+full primary region a wall. It is not. The LDF fills a primary region then
+spills the remainder into an overflow region: code `block3` → `block2`, DM
+data `block0` → `block1`, delay `L2` → `L2CTL1`. A primary region at ~100% is
+the design working, and a single region's percentage is NOT headroom. chip1
+`block3` at 131070/131072 looks alarming and is not: `sec_swco_ovf` is live in
+`block2` and only 14.9% used. The number that gates growth is the
+primary+overflow pair:
+
+| Pool (primary + overflow) | chip1 | chip2 |
+|---|---|---|
+| code (block3+block2) | 150562/262144 (57.4%) — 111582 free | 60786/262144 (23.2%) — 201358 free |
+| DM data + stack (block0+block1) | 170292/375264 (45.4%) — 204972 free | 178708/375264 (47.6%) — 196556 free |
+| delay lines (L2+L2CTL1) | 506880/2072576 (24.5%) | **1708216/2072576 (82.4%)** — 364360 free |
+
+Use `python3 tools/dsp/dsp_memreport.py MW/D32/DSP/SHARC/build/chip*.map.xml`
+(added 2026-08-06) instead of eyeballing regions — it prints the pair totals,
+marks a full primary as expected, treats the fixed-size IVT as fixed, and
+warns only when an *overflow* tier climbs, since nothing sits behind it.
+Exit 1 above 90%; currently exit 0 for both chips.
+
+**Real watch item — chip2 delay pool at 82.4%**, the only pool whose overflow
+tier is actually loaded (`L2CTL1` 69.6%). When that tier fills, the link fails
+with no third region behind it; 364360 bytes left. Every other pool still has
+a completely idle overflow tier (chip1 `block1`/`L2CTL1`, chip2
+`block1`/`block2` all at 0%). **No LDF rebalance is needed to keep growing
+right now** — the fabric remap (128 buses) and superset I/O nodes are not
+blocked by memory. Revisit when the chip2 delay pair passes ~90%, or when
+chip1 code starts landing in `block2` in bulk.
+
+Warnings: **34 on the first run, now 2** (both long-standing loop-end
+advisories in `lib/biquad.asm`). The 32 removed were
+`[Warning ea1092] Symbol '_mrf_rns28' is undefined`, one per `C1_GAIN_*`
+node: the GAIN template in `tools/dsp/dsp_codegen.py` omitted the
+`.extern _mrf_rns28;` that the GATE/TUBE/FDR/BUS templates declare. It was
+noise, not a bad call target — `elfdump -n .rela.seg_pmco C1_GAIN_01.doj`
+showed the relocation was emitted anyway and the linker resolved it
+(`_mrf_rns28 = 0x1825C1` in `chip1.dxe`). Fixed at the generator (one line)
+and regenerated with `--force`: exactly 32 files changed, each by exactly
+`+.extern _mrf_rns28;`, and the other 646 regenerated byte-identical — so
+there was no hand-edit drift in the node ASM. Rebuild after the fix: 0
+errors, 2 warnings, identical DXE sizes and identical memory pools.
+
+**Validity of this build:** it proves toolchain, codegen, link, and memory
+fit only. It says nothing about 21564 part-specific behaviour and must not
+be flashed or released — see `build/COMPAT-BUILD.txt`.
+
+CCES licence check (entry point 2, same session): **not arrived.**
+`-proc ADSP-21564` still returns `[Error ea1156] ... does not match the
+licensed hardware (ADSP-21568)`. AD-CCES-NODE-1 requested 2026-07-31; the
+21568 EZ-KIT entry remains the only usable entitlement on this host.
 
 ## Resume notes (2026-08-05 session end — tree clean at push)
 
@@ -670,6 +774,12 @@ entitled. (build.sh gained the PROC_TARGET override 2026-07-30.)
     leave almost no room; the fabric remap (128 buses) and superset I/O
     nodes land on exactly these regions. Rebalance into the idle
     mem_block2_bw (0%) / chip1 L2CTL1 (0%) when reworking the LDF.
+    **CORRECTED 2026-08-06:** these two "almost no room" readings were
+    wrong — they measured primary regions that the LDF deliberately fills
+    before spilling into an overflow region. Counting each
+    primary+overflow pair, chip1 code was and is ~57% used and chip2 delay
+    ~82%. See the 2026-08-06 compatibility-build entry and
+    `tools/dsp/dsp_memreport.py`.
   - Repro: `PROC_TARGET=ADSP-21568 ./build.sh all` then relink with an LDF
     whose ARCHITECTURE() matches (repo LDF hardcodes ADSP-21564; the
     fit-proxy used a sed'd temp copy — do NOT commit a 21568 LDF).

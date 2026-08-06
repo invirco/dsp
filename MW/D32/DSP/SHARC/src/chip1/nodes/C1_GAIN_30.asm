@@ -38,6 +38,7 @@
 
 .section/pm seg_pmco;
 .extern _sample_idx;
+.extern _mrf_rns28;
 .global _C1_GAIN_30_process;
 _C1_GAIN_30_process:
     /* block-rate: advance float ramp, refresh Q4.28 shadow */
