@@ -301,11 +301,14 @@ SigmaStudio reverb blocks compile to proprietary SigmaDSP microcode (opaque `.da
 
 ## 8. Implementation Phases
 
-### Phase 0 — Wine + CCES CLI Scaffold
-1. Install CCES on Windows, copy CLI binaries + licence into Wine prefix (`~/.wine/drive_c/CCES/`)
-2. Write `build.sh` — Wine-wrapped compiler/assembler/linker with ADSP-21564 processor flags
-3. Add `.vscode/tasks.json` with Build / Clean tasks
-4. Verify: `wine asm21k.exe --version` runs without error
+### Phase 0 — CCES CLI Scaffold *(superseded — Wine plan obsolete)*
+
+The original plan wrapped a Windows CCES install in Wine with a licence
+copied into the prefix. That is dead: CCES 3.0.3 runs natively on Linux
+from `/opt/analog/cces/3.0.3` under the node-locked AD-CCES-NODE-1
+licence, and D32's `MW/D32/DSP/SHARC/build.sh` is the reference native
+build (D24 converges on the same unified DSP4 firmware). Do not build a
+Wine prefix or copy licence material around.
 
 ### Phase 1 — Architecture Spec *(current phase)*
 5. Define full feature set in `dsp.plan.md` (this document)

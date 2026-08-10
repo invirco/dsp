@@ -1,7 +1,7 @@
 # mx26 update handoff — superset cells + GrpPeq→GrpGeq rename
 
-Prepared 2026-07-31 for the mx26-side edit (while the CCES licence is
-pending). Everything below is expressed against mx26's actual flow:
+Prepared 2026-07-31 for the mx26-side edit. Everything below is
+expressed against mx26's actual flow:
 `mx_master.csv` (SOT) + product defs (`d24.csv`/`d32.csv`) →
 `tools/def_master.py` → `d2x-mx-master.csv` → (this repo)
 `sync-from-mx26.sh` → `_matrix.csv`. The dsp-repo side is ALREADY

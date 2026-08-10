@@ -1,7 +1,7 @@
 # tasks
 
 Status: active
-Date: 2026-08-07
+Date: 2026-08-10
 Purpose: current work state for the mx26 -> mx-dsp workflow and DSP4 firmware.
 
 Status colors:
@@ -12,13 +12,15 @@ Status colors:
 
 ## Top action
 
-Priority order set 2026-08-07 (Peter). Three lanes, one of them active:
+Priority order set 2026-08-07 (Peter). Three lanes; **as of 2026-08-10 the
+CCES licence has landed, so lanes 1 and 2 are both open** — Peter to say
+which leads:
 
-1. **LOGIC CPLD for D24/D32 — ACTIVE, unblocked.** The only lane that can
-   move today, so it gets the effort until the CCES licence arrives.
-2. **DSP code for D24/D32 (ONE firmware) — licence PURCHASED, awaiting
-   delivery.** Resumes the moment the entitlement lands; nothing else
-   blocks it.
+1. **LOGIC CPLD for D24/D32 — ACTIVE, unblocked.** Was the only movable
+   lane while the licence was pending; still on the rev-C critical path.
+2. **DSP code for D24/D32 (ONE firmware) — UNBLOCKED 2026-08-10.**
+   AD-CCES-NODE-1 activated and the first real 21564 images built;
+   nothing blocks this lane now.
 3. **FPGA — procurement only.** The EVK gets ordered so lead time runs in
    the background; **no FPGA engineering work starts until a stable
    DSP + LOGIC combination is running on the DSP4 rev C card.**
@@ -52,17 +54,35 @@ Priority order set 2026-08-07 (Peter). Three lanes, one of them active:
      guessed: BCKI/FSI in/out pair order per DSP, S4 personality strap,
      snake/DAC-MAIN parked pins.
 
-- [ ] <span style="color:#6b7280"><b>BLOCKED</b></span> **(2) DSP code for D24/D32 — awaiting the purchased CCES licence**
-  — AD-CCES-NODE-1 **PURCHASED** (requested 2026-07-31); waiting on
-  delivery of the entitlement. One firmware serves both products (D3);
-  there is no D24-vs-D32 code split to write.
-  Arrival probe (fast, no full build), from `MW/D32/DSP/SHARC/`:
-  `./build.sh single src/lib/biquad.asm` — fails instantly while
-  unlicensed. When it passes: plain `./build.sh all` produces the **first
-  real 21564 images**, the `PROC_TARGET=ADSP-21568` compatibility path is
-  retired, and rev C bring-up starts (which in turn gates the rev D layout
-  freeze). Until then the 21568 fit proxy stays the only build path — see
-  the DONE entry below.
+- [ ] <span style="color:#2563eb"><b>NEXT</b></span> **(2) DSP code for D24/D32 — licence LANDED, lane open**
+  — AD-CCES-NODE-1 **activated 2026-08-10** (requested 2026-07-31,
+  purchased 2026-08-07). Serial delivered as an xlsx in Dropbox
+  `TransferOnly/`, activated through the CCES *Manage Licenses* wizard
+  (one-step online); the `ADI-CCES-…-SW01` INCREMENT now sits in
+  `~/.analog/cces/license.dat` alongside the old `EZK-CCES-…` EZ-KIT
+  entry, host-locked to this machine (`28cfe91f1e85` / `38f9d30efa11`).
+  **Seat terms — ADI Tools Support, case CS-601771-T5L1J6, 2026-08-07,
+  verbatim:** "Each node locked license is tied to a single user but can
+  be loaded on up to four machines… simultaneously on 4 different
+  machines (Home, Workplace, Lab, etc.) with its MAC ID. Once the
+  activation count reaches the maximum limit, there is no way to archive
+  the license registrations by customer itself. To reset the activation
+  count, customer must contact the ADI Tools Support team via email."
+  Practical reading: **it is an activation counter, not a movable seat.**
+  There is no self-service way to release a machine, so a wipe, re-image,
+  or NIC change spends one of the 4 permanently until ADI resets the
+  count. 1 of 4 is spent on this box; spend the other 3 deliberately.
+  Evidence (both untracked, see below): the policy email and the licence
+  generation email + key.
+  One firmware serves both products (D3); there is no D24-vs-D32 code
+  split to write.
+  **First real 21564 images built the same day** — plain `./build.sh all`
+  from `MW/D32/DSP/SHARC/`: 692 ASM sources, 0 errors, chip1.dxe (456
+  objects) + chip2.dxe (260 objects) linked against the repo
+  `ADSP-21564.ldf`, no compatibility banner and no `build/COMPAT-BUILD.txt`.
+  The `PROC_TARGET=ADSP-21568` fit proxy is **retired** — plain
+  `./build.sh all` is the build path from here.
+  Next: rev C bring-up (which in turn gates the rev D layout freeze).
 
 - [ ] <span style="color:#6b7280"><b>PARKED (procurement only)</b></span> **(3) FPGA — order the EVK, do no work**
   — Buy the **AMD KR260** (`SK-KR260-G`, one version only, authorized
@@ -77,19 +97,14 @@ Priority order set 2026-08-07 (Peter). Three lanes, one of them active:
   gate. None of it is scheduled work while this gate holds.
   Next concrete action: place the order, capture order number + ETA here.
 
-- [x] <span style="color:#16a34a"><b>DONE</b></span> (2026-08-06) **Temporary build fallback: 21568 target using 21564 constraints**
-  — while the full ADI CCES license is still pending, use the 21568 build
-  path with 21564-compatible constraints and memory-map assumptions to keep
-  the firmware bring-up moving. Goal: get the toolchain and codegen pipeline
-  compiling and exercising the same DSP/boot path, then revisit the true
-  21564/21568 split once the license is available. Keep the build output
-  clearly labeled as a temporary compatibility build, not a final production
-  image.
-  **Result: PASSED — 692 ASM sources, 0 errors, both chips linked.** Full
-  evidence in "2026-08-06 — temporary compatibility build" below. Standing
-  command: `PROC_TARGET=ADSP-21568 ./build.sh all` from
-  `MW/D32/DSP/SHARC/`. Reopen only when the 21564 licence lands (then the
-  plain `./build.sh all` path replaces this one).
+- [x] <span style="color:#16a34a"><b>DONE then RETIRED</b></span> (built 2026-08-06, retired 2026-08-10) **21568 fit-proxy build path**
+  — a temporary 21568 target carrying 21564 constraints and memory map,
+  used to keep the toolchain and codegen pipeline exercised before the
+  21564 entitlement existed. It PASSED (692 ASM sources, 0 errors, both
+  chips linked; evidence in "2026-08-06 — temporary compatibility build"
+  below), and is now **retired** — plain `./build.sh all` produces real
+  21564 images. `PROC_TARGET=ADSP-21568` still works as an env var, but
+  anything it produces is a fit proxy and is banner-marked as one.
 
 ### KR260 order detail (folded into action 3 above)
 
@@ -103,6 +118,77 @@ J10B (Eth2, HPA) are PL RGMII; J10C/J10D are PS; SFP+ is PL GTH — 2×
 fabric RGMII confirmed. Consider a second unit later for star/daisy-chain
 link tests. Toolchain ready: Vivado 2026.1 licensed on this machine
 (`~/.local/bin/vivado`) — **installed and idle under the 2026-08-07 gate.**
+
+## 2026-08-10 — CCES licence activated; FIRST REAL 21564 IMAGES
+
+The DSP lane is unblocked. AD-CCES-NODE-1 activated on this host and the
+21568 fit proxy is retired.
+
+**Licence.** Serial arrived as an xlsx in Dropbox `TransferOnly/`
+(`License Keys-…-AD-CCES-NODE-1-….xlsx`, `ADI-CCES-…-SW01` — distinct
+from the old `EZK-CCES-…` EZ-KIT serial). Activated through the CCES
+*Manage Licenses* wizard, one-step online (SOAP to
+`license.analog.com/cces/oneclick/v2`; there is no CLI activation path,
+so don't try to hand-roll it). Headless launch, no need for the full IDE:
+`cd /opt/analog/cces/3.0.3/Eclipse && DISPLAY=:1 ./cces -nosplash
+-application com.analog.crosscore.licensing.manageLicenses`. Result is a
+second `INCREMENT` in `~/.analog/cces/license.dat` (the EZ-KIT entry
+stays), `ISSUED=10-Aug-2026`, node-locked to this box's NICs.
+
+**Seat terms, now evidenced.** ADI Tools Support (case
+CS-601771-T5L1J6, 2026-08-07): a node-locked licence is tied to a single
+user and may be loaded on **up to 4 machines simultaneously** by MAC ID;
+once the activation count hits the limit there is **no customer-side way
+to release a registration** — only ADI Tools Support can reset the count.
+So it is a counter, not a movable seat: a wipe, re-image or NIC change
+burns one of the 4 until ADI resets it. 1 of 4 spent here.
+
+**Source emails — copied into the repo but deliberately UNTRACKED**
+(`cces-tools/.gitignore` is `*`; licence material is never committed per
+CLAUDE.md/README), at `MW/D32/DSP/SHARC/cces-tools/license/`:
+- `adi-2026-08-07-node-lock-policy-CS-601771-T5L1J6.eml` — the 4-machine
+  policy above, in ADI's own words.
+- `adi-2026-08-09-license-generated.eml` — myAnalog generation notice,
+  order #1004067573 / web ref 2016519891, AD-CCES-NODE-1 ×1.
+- `adi-2026-08-09-license-keys-AD-CCES-NODE-1.xlsx` — the key itself
+  (that email's attachment).
+Originals stay in Dropbox `TransferOnly/` under their myAnalog names.
+
+**First real 21564 build.** Plain `./build.sh all` from
+`MW/D32/DSP/SHARC/`: 692 ASM sources, 0 errors, chip1.dxe (456 objects,
+1.27 MB) + chip2.dxe (260 objects, 2.51 MB), linked against the repo
+`ADSP-21564.ldf` — no proxy LDF generated, no compatibility banner, no
+`build/COMPAT-BUILD.txt`. These are production-target images. The only
+warnings are the two pre-existing `ea2019/ea2020` loop-end notes in
+`src/lib/biquad.asm` (unrelated to licensing; still worth a look).
+
+**Docs de-staled** (same session): the P2 licence-diagnosis section, the
+Wine/`mac-build.sh` MAC-swap material in `dsp-def.md`, the D24
+`dsp.plan.md` Phase 0, `dsp4-plumbing.md`, and the licence-pending
+framing across the resume notes are all gone or marked closed.
+
+NOT done: nothing is committed (5 modified docs in the tree), and no
+hardware has run — every DSP fact above is toolchain-level only.
+
+TOMORROW'S ENTRY POINTS (priority order):
+1. **Pick the lead lane.** LOGIC (1) and DSP (2) are both open now — the
+   2026-08-07 priority set assumed only LOGIC could move, so it needs
+   your call. Both converge on rev-C bring-up, which gates the rev-D
+   layout freeze.
+2. **Commit today's work** — 5 modified docs (tasks.md, dsp-def.md,
+   dsp4-plumbing.md, D24 dsp.plan.md, mx26-update-handoff.md). No code
+   or contract changed, so no regenerate/contract bump is due.
+3. **Order KR260** (SK-KR260-G) — still unblocked and still procurement
+   only. Farnell £323.57 (163 in stock) vs ~$431 DigiKey/Mouser, prices
+   from `docs/part-quotes-2026-08-06.csv`.
+4. **Sign off or mark up D9** in `dsp4-architecture-decisions.md` — it
+   carries `[DRAFT] — not binding` until you do.
+5. LOGIC lane, if it leads: the `TODO(uart-passthrough)` routing matrix
+   is next and needs a routing decision from you before RTL.
+6. DSP lane, if it leads: rev-C bring-up checklist — FLAGS_REG chip-id
+   detect, SPI watermark + SPI_RDY flow, SEC/MMR semantics on the wire,
+   BCKI/FSI pair order, CKRE/MFD on the scope, D24 within-ADC8 slot
+   order. Needs the rev C card on the bench.
 
 ## 2026-08-07 — LOGIC lane opened: sim gate added, TWO framing bugs found and fixed
 
@@ -203,12 +289,10 @@ TOMORROW'S ENTRY POINTS (priority order):
    things left open inside it on purpose: parameter-RAM sizing per tier,
    ramp-precision tolerance for fixed ramps (numeric-spec amendment),
    meter readback path.
-3. **Check CCES licence arrival** (AD-CCES-NODE-1, requested
-   2026-07-31). Fast probe, no full build needed:
-   `./build.sh single src/lib/biquad.asm` from `MW/D32/DSP/SHARC/` —
-   fails instantly if still unlicensed. Re-probed 2026-08-06: still
-   21568-only. When it lands, plain `./build.sh all` = first real 21564
-   images → unblocks rev-C bring-up → gates the rev-D layout freeze.
+3. ~~**Check CCES licence arrival**~~ **DONE 2026-08-10** — activated,
+   first real 21564 images built (692 ASM, 0 errors, both chips linked).
+   Rev-C bring-up is now the live follow-on; it gates the rev-D layout
+   freeze. See action (2) in "Top action".
 4. **Finish the 32-ch comparison**: DRAM support per part (ECP5 DDR3 vs
    SU35P DDR4/LPDDR4, soft vs hardened controller, LUT cost) → pin
    budget → Fmax → ECP5-85 quote. Also confirm the SU35P DSP48E2 count
@@ -242,10 +326,7 @@ are a migrate-later candidate for `_Matrix/Products/D24/hw/`.
   — `PROC_TARGET=ADSP-21568` selects `-proc` for easm21k/cc21k/linker;
   `resolve_ldf()` generates `build/ADSP-21568.ldf` from the repo
   `ADSP-21564.ldf` by rewriting only `ARCHITECTURE()`, so every memory
-  region, section, and placement rule is the 21564 map unchanged. Licence
-  probe re-confirmed the need: `-proc ADSP-21564` still fails with
-  `[Error ea1156] The hardware found (ADSP-21564) does not match the
-  licensed hardware (ADSP-21568)`.
+  region, section, and placement rule is the 21564 map unchanged.
 - [x] Review the SHARC build scripts, target definitions, and any
   21564-specific flags that need to be relaxed for the short-term path.
   — Nothing had to be relaxed. The only 21564-specific inputs are the LDF
@@ -409,11 +490,6 @@ errors, 2 warnings, identical DXE sizes and identical memory pools.
 fit only. It says nothing about 21564 part-specific behaviour and must not
 be flashed or released — see `build/COMPAT-BUILD.txt`.
 
-CCES licence check (entry point 2, same session): **not arrived.**
-`-proc ADSP-21564` still returns `[Error ea1156] ... does not match the
-licensed hardware (ADSP-21568)`. AD-CCES-NODE-1 requested 2026-07-31; the
-21568 EZ-KIT entry remains the only usable entitlement on this host.
-
 ## 2026-08-06 — Dropbox `_Matrix` shared store adopted (doc-only)
 
 mx26 commit `fbaf2be` (2026-08-06) declares the Dropbox `_Matrix` folder
@@ -461,13 +537,9 @@ concern defused (ZU5EV SoC thermals ≠ fabric-only product; US+ needs
 copper/small sink at most — Vivado power estimates queued).
 
 TOMORROW'S ENTRY POINTS (priority order):
-1. **Temporary 21568/21564 compatibility build** — keep the toolchain
-   moving while CCES is pending by building the 21568 path with 21564
-   constraints and matching the same boot/dispatch assumptions. This is
-   the immediate next step until the full license arrives.
-2. **Check CCES licence arrival** (AD-CCES-NODE-1, requested
-   2026-07-31) → plain `./build.sh all` = first real 21564 images →
-   unblocks rev-C bring-up, which gates the rev-D layout freeze.
+1-2. ~~21568/21564 compatibility build; check CCES licence arrival~~ —
+   **both closed**; the licence is active and real 21564 images build.
+   See action (2) in "Top action".
 3. **Order KR260** (SK-KR260-G) — still fully unblocked, see Top
    action.
 4. **Quote round** (one call, now extended): SU35P / SU55P-SU100P /
@@ -575,8 +647,8 @@ amendment committed + pushed as `76c54f6` the same day):
 - **Hardwire-chunk pass**: only routing proven static at rev-C
   bring-up becomes copper (net_sel already product-static); CPLD
   keeps clkgen + Pi PCM reframer + reset glue.
-- Sequencing: rev C bring-up (still gated on the CCES licence)
-  verifies the provisional TDM facts → then rev D schematic freeze.
+- Sequencing: rev C bring-up verifies the provisional TDM facts →
+  then rev D schematic freeze.
 
 NEXT (rev D, priority order): 1) ~~SRX/MRX inventory~~ DONE
 2026-08-05 — see hardware-map.md §3a: "matrix comms" = strobed
@@ -615,9 +687,8 @@ when settled.
 ## Resume notes (final save 2026-07-31 — 32 commits today, tree clean)
 
 TOMORROW'S ENTRY POINTS (in priority order):
-1. CCES licence arrival → plain `./build.sh all` = first real 21564
-   images (of the FIXED firmware). Delete the fit-proxy caveat +
-   cces-license-status memory when it succeeds.
+1. ~~CCES licence arrival → first real 21564 images~~ — **DONE
+   2026-08-10**, see action (2) in "Top action".
 2. Peter [REVIEW] sign-offs in shared/numeric-spec.md: +18 dB headroom
    (vs Q5.27/+24), tolerance set, knee behaviour.
 3. CPLD pin-constraint verification prep + hardware bring-up checklist
@@ -740,17 +811,14 @@ Late session (2026-07-31): pre-hardware wrap-up.
   profiles incl. the D24 interleave patch, 51 writes chip1 / 5 writes
   chip2, COMMIT last, GPIO-CS via gpiod, --dry-run verified).
 
-CCES licence: AD-CCES-NODE-1 REQUESTED 2026-07-31 (Peter; ~a day's
-wait). Until it arrives, fit-proxy (PROC_TARGET=ADSP-21568) remains the
-build path; first real 21564 images once entitled. Meanwhile the mx26
-update is prepared: [mx26-update-handoff.md](mx26-update-handoff.md)
+The mx26 update is prepared: [mx26-update-handoff.md](mx26-update-handoff.md)
 (exact mx_master.csv rows, def_master PREFIX_RULES + product keys,
 GrpPeq→GrpGeq rename incl. a suspected wrong Table on the old row, and
 this repo's post-sync steps). The 7 new families are pre-staged in
 matrix-families-allowlist.txt (validator passes; GrpPeq retained until
 the rename lands).
 
-Remaining = hardware bring-up (rev C card + full 21564 licence):
+Remaining = hardware bring-up (rev C card):
 FLAGS_REG chip-id detect, SPI watermark + SPI_RDY flow, SEC/MMR
 semantics on the wire, BCKI/FSI pair order, CKRE/MFD on the scope,
 D24 within-ADC8 slot order, S4 personality + S-MCU firmware side.
@@ -761,9 +829,11 @@ GrpPeq allowlist entry retired; matched cells 5453→5537; the
 "DSP cells not in matrix" list is now EMPTY.
 
 ### Checked, no action needed
-`cces-tools/license/license.dat` exists on disk but is NOT tracked — the
-`cces-tools/.gitignore` (`*`) covers it. Licence material is safely
-untracked; nothing to purge.
+`cces-tools/license/` holds licence material — `license.dat`, and (added
+2026-08-10) the two ADI source emails plus the AD-CCES-NODE-1 key xlsx.
+NONE of it is tracked: the `cces-tools/.gitignore` (`*`) covers the whole
+folder, re-verified with `git check-ignore -v` when the emails were
+copied in. Licence material is safely untracked; nothing to purge.
 
 State assessment — unified DSP4 firmware ~75-80% written (weighted by
 effort, not lines; hardware-verified fraction much lower, nothing has run
@@ -981,52 +1051,18 @@ Hardware ground truth: [MW/D24/HW/hardware-map.md](MW/D24/HW/hardware-map.md)
     repo rules. Programming: bench USB-Blaster or Pi GPIO JTAG (SVF +
     OpenOCD on CM4).
 
-## P2 - Blocked on CCES license
+## P2 - CCES licence — RESOLVED 2026-08-10
 
-License diagnosis (updated 2026-07-30): `~/.analog/cces/license.dat` EXISTS
-(the 2026-07-29 "directory missing" note was stale) with 3 entries:
-- EVAL exp 09-may-2026, host 001c42a3b69b — wrong host, expired.
-- PERMANENT EZK-CCES (ADSP-21568 EZ-KIT), host 001c42a3b69b — activated on
-  a DIFFERENT machine (this machine's NICs: 28cfe91f1e85 / 38f9d30efa11),
-  and does not cover 21564 anyway (tested 2026-07-29). Rehost via ADI
-  support if ever wanted here.
-- EVAL exp 17-jul-2026, host 28cfe91f1e85 (this machine) — lapsed.
-TESTED 2026-07-30 (definitive): builds fail 383/383 at assembly with
-`[Error ea1156] A valid license is required` for BOTH `-proc ADSP-21564`
-AND `-proc ADSP-21568`. Tool message enumerates file contents, not
-validity: "Blackfin, SHARC (via Evaluation License - Expired),
-ADSP-21568 (via EZ-KIT License)". No usable entry exists on this host —
-the EZ-KIT permanent entry is node-locked to 001c42a3b69b (another
-machine), so its part scope is moot here. CCES IDE showing "license
-active" is not sufficient: the CLI tools resolve
-`~/.analog/cces/license.dat` and every entry there fails host or date.
-No other license file exists (searched home, /opt/analog, Dropbox — the
-Dropbox `cces license.txt` files are just the registration email for the
-expired 17-jul eval, serial EVAL-CCES-UHNY-...-NS01, host 28cfe91f1e85).
-WHY THE IDE CONTRADICTS ITSELF (resolved 2026-07-30): CCES startup says
-"no valid license" while Manage Licenses lists a valid 21568 with 200+
-days. Both are true — the Manager LISTS file entries and shows the EZ-KIT
-entry's SUPPORT window (ISSUED 15-Apr-2026 + 1yr = 15-Apr-2027 = 259 days
-from today, i.e. the "200+"), but the entry fails the HOST check so no
-build is entitled. Decisive clue: host 001c42a3b69b has OUI 00:1C:42 =
-Parallels virtual NIC — that license was activated inside a VM (Mac
-Parallels), never on this Debian host. All 5 license.dat copies on this
-system (~/.analog, wine prefix, 2x repo cces-tools, ~/mx) are byte-
-identical; ~/.flexlmrc points at ~/.analog/cces/license.dat. So there is
-nothing to find locally — it must be rehosted.
-ACTION: ask ADI to REHOST the EV-21568-SOM permanent license
-(EZK-CCES-HU6H-ZAJ7-CV2K-GIAI-YPS4-B5AQ-I201) from 001c42a3b69b to
-28cfe91f1e85, or request a fresh 90-day eval for this host. Then:
-`PROC_TARGET=ADSP-21568 ./build.sh all` for an immediate fit proxy
-(same core/L1/L2 as 21564), and plain `./build.sh all` once 21564 is
-entitled. (build.sh gained the PROC_TARGET override 2026-07-30.)
+The 2026-07-29/30 licence diagnosis (expired evals, an EZ-KIT entry
+node-locked to a Parallels VM NIC, the IDE-vs-CLI contradiction) is
+**closed and no longer relevant** — it was resolved first by rehosting
+the EZ-KIT entry to this machine, then permanently by activating
+AD-CCES-NODE-1 on 2026-08-10. Current state, and the only licence facts
+worth carrying forward, live in action (2) under "Top action".
 
 - [x] <span style="color:#16a34a"><b>DONE</b></span> Build verification of unified DSP4 firmware (2026-07-30)
-  - License rehosted to this machine (EZK permanent, host 28cfe91f1e85 +
-    38f9d30efa11). Scope is ADSP-21568 ONLY — `-proc ADSP-21564` now fails
-    with the explicit part-mismatch error, so a full CCES node-locked
-    licence (AD-CCES-NODE-1, $995, covers all SHARC + up to 4 machines) is
-    still needed for real 21564 card images.
+  - Ran against the rehosted EZ-KIT entry, which covered ADSP-21568 only;
+    the 21564 entitlement arrived later (2026-08-10).
   - FIT PROXY BUILD PASSED as ADSP-21568 (identical core/L1/L2 to 21564):
     ALL 642 objects assembled with 0 errors; both chips LINKED.
     chip1.dxe 1.23 MB, chip2.dxe 2.46 MB.

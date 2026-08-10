@@ -114,6 +114,7 @@ all clock pins. Use `SRU(...)` macros from `sru21564.h`.
    half-SPORT CTL/MCTL/CS from the generated lane table.
 3. **DDE descriptors + SEC**: ping-pong rings, block-clock ISR, ivt
    wiring.
-4. Bring-up on hardware (needs the rehosted/full license + rev C card).
+4. Bring-up on hardware (needs the rev C card; the CCES licence side is
+   done — real 21564 images build since 2026-08-10).
    CKRE/MFD are LOCKED in the slot-map conventions (2026-07-31) and
    both sides derive from them; verify on the wire regardless.

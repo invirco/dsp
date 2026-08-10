@@ -1504,9 +1504,9 @@ H1S1 builds outside STM32CubeIDE using `Debug/fw.sh`:
 
 ### Phase 5 — Build & Compile
 
-20. ⚠ **Review `ADSP-21564.ldf`** — Verify linker script: L2 SRAM sections for delay buffers. *BLOCKED — CCES license not acquired.*
-21. ⚠ **Review `build.sh`** — Verify assembler/linker invocation, output paths, CCES toolchain dependencies. *BLOCKED — CCES license not acquired.*
-22. ⚠ **Attempt first build** — Run `build.sh`; collect and triage errors. *BLOCKED — CCES license not acquired.*
+20. ✅ **Review `ADSP-21564.ldf`** — linker script: L2 SRAM sections for delay buffers.
+21. ✅ **Review `build.sh`** — assembler/linker invocation, output paths, CCES toolchain dependencies.
+22. ✅ **First build** — `./build.sh all` builds real 21564 images (692 ASM sources, 0 errors, chip1 + chip2 linked; 2026-08-10, once AD-CCES-NODE-1 was activated).
 
 ### Phase 6 — Validation
 
@@ -1534,7 +1534,7 @@ H1S1 builds outside STM32CubeIDE using `Debug/fw.sh`:
 2. ✅ `dsp_codegen.py` — 618 files generated clean
 3. ✅ Phase 0 LP0 removal — 1 innocuous comment reference remains in `chip2/nodes/C2_MAIN_XOVER.asm` ("SPI staging buffer layout: [LP0..LP9…]"), no executable `lp0` instructions. Clean.
 4. ✅ `ghost_cells.h` Chip 2 entries — 0 chip/spi_page mismatches. All 1,490 chip2 entries have `spi_page=2`.
-5. ⚠ `build.sh` — zero assembler/linker errors *(BLOCKED — CCES license)*
+5. ✅ `build.sh` — zero assembler/linker errors (692 ASM sources, both chips linked)
 6. ✅ Spot-check representative cells — all present with correct table/ramp:
    - `Chan001EqFreq001`: chip=1, addr=16, table=`0=20/254=200/[Log]`, ramp=2 ✓
    - `Aux001RtgLevel001`: chip=2, addr=0, table=`dB:Off:-50@31:-30@63:-10@127:10`, ramp=1 ✓
@@ -1556,53 +1556,27 @@ H1S1 builds outside STM32CubeIDE using `Debug/fw.sh`:
 
 ### Immediate Next Steps (pick up here)
 
-> **Status as of 2026-04-18** — CCES toolchain installed in `~/.wine-cces` (32-bit Wine prefix). The SHARC license file is now present and valid, but it is **node-locked to HOSTID `001c42a3b69b`** (the Windows/Parallels NIC), so native use on this Mac/Linux host is still blocked unless the MAC is temporarily swapped or ADI issues a separate activation for this machine.
+> **Status as of 2026-08-10** — resolved. The 2026-04-18 Wine/MAC-swap era
+> is over: CCES 3.0.3 runs natively on Linux from `/opt/analog/cces/3.0.3`,
+> and the full node-locked licence (AD-CCES-NODE-1) is activated on this
+> host, so `-proc ADSP-21564` is entitled. The old Wine prefix
+> (`~/.wine-cces`), the `mac-build.sh` MAC-swap workaround, and the
+> `001c42a3b69b` Parallels-bound licence entry are all obsolete — do not
+> revive them.
 
-#### A — Use the correct CCES license (current blocker)
+#### A — Build
 
-The SHARC `license.dat` is now installed, and it contains a permanent CCES entitlement, but it is **node-locked**:
-
-- Installed license type: permanent, uncounted
-- Installed license HOSTID: `001c42a3b69b`
-- Verified on this machine: active NIC MACs do **not** match that HOSTID
-- Email validation clip found for HOSTID `28cfe91f1e85`, which **does** match this machine's NIC MAC `28:cf:e9:1f:1e:85`
-
-That means the **currently installed** license is the Windows/Parallels-bound one, not the native extra-machine activation for this host. This matches the FlexNet error seen in `flex32.log`: **Invalid host (-9,57)**.
-
-**What this means:**
-- The email validation clip is **helpful and relevant** — it appears to be the extra-machine approval for this Mac host.
-- A live assembler checkout test was run against `src/main.asm`. With the currently installed Windows-bound license, FlexNet reports **Invalid host (-9,57)** with context `001c42a3b69b`.
-- A manual reconstruction attempt using the email serial/host/validation code changed the error to **Invalid (inconsistent) license key (-8,523)**, which proves the clip is **not** a directly usable raw `license.dat` entry by itself.
-- Therefore we still need the **actual generated license file or activation/export step** for this machine's HOSTID/MAC.
-- The current workaround remains `mac-build.sh`, which temporarily swaps the NIC MAC to the licensed Windows-bound HOSTID so the build can run under Wine.
-
-**Action options:**
-1. Ask ADI to issue/confirm a second CCES activation for this machine's real MAC.
-2. Keep using the existing Windows/Parallels-bound license via the temporary MAC-swap workflow.
-
-Verification was performed with a **real assembler checkout** (not `-help`, which does not prove licensing):
-`wine ~/.wine-cces/drive_c/CCES/easm21k.exe -proc ADSP-21564 -o /tmp/test.doj src/main.asm`
-
-Observed outcomes:
-- Windows-bound installed license → **Invalid host (-9,57)**
-- Hand-built email-code license → **Invalid (inconsistent) license key (-8,523)**
-
-#### B — First build attempt
-
-Once a host-matching license is available, or the MAC-swap workaround is active:
 ```bash
-cd /home/peter/mx/MW/D32/DSP/SHARC
+cd /home/peter/dsp/MW/D32/DSP/SHARC
 ./build.sh all 2>&1 | tee build_out.txt
 ```
-Expected first-pass errors: missing symbol definitions from files not yet generated by `dsp_codegen.py` / `gen_dsp_csv.py`. Triage `build_out.txt` and work through them.
+Produces real 21564 images — `build/chip1.dxe` + `build/chip2.dxe`.
+Licence state and re-activation notes: `tasks.md`, action (2).
 
-#### C — Toolchain state summary (for reference)
+#### B — Toolchain state summary (for reference)
 
 | Item | Location | Status |
 |------|----------|--------|
-| CCES EXEs (`easm21k`, `cc21k`, `linker`) | `SHARC/cces-tools/` + `~/.wine-cces/drive_c/CCES/` | ✓ installed |
-| System DLLs (1,258 files) | `SHARC/cces-tools/System/` + Wine prefix | ✓ installed |
-| `System/System` symlink (path fix) | `~/.wine-cces/drive_c/CCES/System/System → System/` | ✓ in place |
-| Wine prefix | `~/.wine-cces` (32-bit, WINEARCH=win32) | ✓ working |
-| CCES license | `SHARC/cces-tools/license/license.dat` | ⚠ present, but locked to `001c42a3b69b` |
-| `build.sh` | `SHARC/build.sh` | ✓ points to `~/.wine-cces` |
+| CCES 3.0.3 (`easm21k`, `cc21k`, `linker`) | `/opt/analog/cces/3.0.3` | ✓ native Linux, no Wine |
+| CCES licence | `~/.analog/cces/license.dat` | ✓ AD-CCES-NODE-1, covers ADSP-21564 |
+| `build.sh` | `SHARC/build.sh` | ✓ native CLI build, `PROC_TARGET` defaults to ADSP-21564 |
