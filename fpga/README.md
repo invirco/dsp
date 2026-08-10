@@ -1,5 +1,14 @@
 # FPGA mixer engine — design notes
 
+> **WORK GATE (Peter, 2026-08-07): FPGA engineering does not start until a
+> stable DSP + LOGIC combination is running on the DSP4 rev C card.** The
+> KR260 EVK is ordered so lead time overlaps that work, and Vivado 2026.1
+> is licensed and idle. Everything in this folder — the D9 draft, the
+> 32-ch sizing thread, per-part DRAM/pin-budget/Fmax work, the parts quote
+> round, power estimates — stays recorded and unscheduled until the gate
+> clears. Nothing here is retracted; it is parked. See `../tasks.md` Top
+> action.
+
 Status: **platform MANDATED 2026-08-02 by D6** (see
 `../dsp4-architecture-decisions.md`): SHARC DSP4 card serves products
 up to 32 ch @ 48 kHz; the single-chip FPGA engine serves 32 ch @

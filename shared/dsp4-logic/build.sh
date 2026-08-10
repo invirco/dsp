@@ -15,6 +15,18 @@ Q="${QUARTUS_DIR:-/opt/intelFPGA_lite/21.1/quartus}/bin"
 cd "$HERE"
 python3 gen_slot_map.py >/dev/null   # keep generated/ current
 
+# SIM GATE: the RTL must pass the self-checking testbenches before it is
+# allowed to become a hash-labelled bitstream. Skip only with SKIP_SIM=1
+# (and then say so in the manifest).
+if [ "${SKIP_SIM:-0}" = "1" ]; then
+    echo "WARNING: simulation gate SKIPPED (SKIP_SIM=1)" >&2
+elif command -v "${IVERILOG:-iverilog}" >/dev/null 2>&1; then
+    ./sim/run.sh
+else
+    echo "ERROR: iverilog not found — install it or set SKIP_SIM=1" >&2
+    exit 1
+fi
+
 SRC_HASH=$(cat \
     <(grep -o 'sha256:[0-9a-f]*' generated/dsp4_slot_map.vh | head -1) \
     rtl/*.v quartus/dsp4_logic.qsf quartus/dsp4_logic.sdc \
@@ -41,6 +53,7 @@ cp output_files/dsp4_logic.svf "../bitstream/dsp4_logic.$SRC_HASH.svf"
     echo "artifact: dsp4_logic.$SRC_HASH.{pof,svf}"
     echo "built: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
     echo "slot_map: $(grep -o 'sha256:[0-9a-f]*' ../generated/dsp4_slot_map.vh | head -1)"
+    echo "sim_gate: $([ "${SKIP_SIM:-0}" = "1" ] && echo SKIPPED || echo PASS)"
     echo "device: 5M1270ZT144C4"
     echo "fmax: $(grep -A4 '; Fmax' output_files/dsp4_logic.sta.rpt | grep MHz | head -1 | awk -F';' '{print $2}' | xargs)"
 } > "../bitstream/dsp4_logic.$SRC_HASH.manifest"

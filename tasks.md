@@ -1,7 +1,7 @@
 # tasks
 
 Status: active
-Date: 2026-08-05
+Date: 2026-08-07
 Purpose: current work state for the mx26 -> mx-dsp workflow and DSP4 firmware.
 
 Status colors:
@@ -11,6 +11,71 @@ Status colors:
 - <span style="color:#6b7280"><b>BLOCKED/DEFERRED</b></span>
 
 ## Top action
+
+Priority order set 2026-08-07 (Peter). Three lanes, one of them active:
+
+1. **LOGIC CPLD for D24/D32 — ACTIVE, unblocked.** The only lane that can
+   move today, so it gets the effort until the CCES licence arrives.
+2. **DSP code for D24/D32 (ONE firmware) — licence PURCHASED, awaiting
+   delivery.** Resumes the moment the entitlement lands; nothing else
+   blocks it.
+3. **FPGA — procurement only.** The EVK gets ordered so lead time runs in
+   the background; **no FPGA engineering work starts until a stable
+   DSP + LOGIC combination is running on the DSP4 rev C card.**
+
+- [ ] <span style="color:#d97706"><b>IN PROGRESS</b></span> **(1) LOGIC CPLD — D24/D32 shared card logic**
+  — `shared/dsp4-logic/` (MAX V 5M1270ZT144C4N, U3; one CPLD image serves
+  both products per D2/D3 — no per-product fork). It is on the critical
+  path: rev C bring-up needs a correct LOGIC image before the DSP images
+  mean anything. As of 2026-08-07 the RTL is mapped, fitted, STA'd **and
+  simulated** (the sim gate found two real framing bugs on its first run —
+  see below); it has still **never run on hardware**.
+  Work queue, in order:
+  a. ~~**Simulation gate**~~ **DONE 2026-08-07** — `shared/dsp4-logic/sim/`,
+     three self-checking testbenches + two behavioural models, wired into
+     `build.sh` ahead of the STA gate.
+  b. ~~Fix whatever (a) finds, re-fit, re-hash the bitstream.~~ **DONE
+     2026-08-07** — it found two: the TDM output was launched one BCK late
+     against MFD=1, and the I2S capture implemented left-justified framing
+     instead of I2S. Both fixed, rebuilt, re-hashed
+     (`f827e1243536`). Full write-up below.
+  c. **UART pass-through routing matrix** — the standing
+     `TODO(uart-passthrough)`; **now unblocked** by the S-MCU pin inventory
+     (hardware-map §3a, 2026-08-05): S0-S3/BUSY + SRX/MRX are the matrix
+     endpoint shared with U8, LOGIC pins are known (SRX 72, MRX 71,
+     MHTX/MHRX 73/74, STRX1/0 75/76, PTRX1/0 77/84). Needs a routing
+     decision from Peter before RTL.
+  d. Rev-D `5M570ZT144C4N` target committed as a build variant (D8 verified
+     it in a scratch Quartus run that was never committed: one illegal pin
+     PIN_137/mems, C4 closes 51.95 MHz, C5 FAILS).
+  e. Provisional items that can only close at bring-up stay listed, not
+     guessed: BCKI/FSI in/out pair order per DSP, S4 personality strap,
+     snake/DAC-MAIN parked pins.
+
+- [ ] <span style="color:#6b7280"><b>BLOCKED</b></span> **(2) DSP code for D24/D32 — awaiting the purchased CCES licence**
+  — AD-CCES-NODE-1 **PURCHASED** (requested 2026-07-31); waiting on
+  delivery of the entitlement. One firmware serves both products (D3);
+  there is no D24-vs-D32 code split to write.
+  Arrival probe (fast, no full build), from `MW/D32/DSP/SHARC/`:
+  `./build.sh single src/lib/biquad.asm` — fails instantly while
+  unlicensed. When it passes: plain `./build.sh all` produces the **first
+  real 21564 images**, the `PROC_TARGET=ADSP-21568` compatibility path is
+  retired, and rev C bring-up starts (which in turn gates the rev D layout
+  freeze). Until then the 21568 fit proxy stays the only build path — see
+  the DONE entry below.
+
+- [ ] <span style="color:#6b7280"><b>PARKED (procurement only)</b></span> **(3) FPGA — order the EVK, do no work**
+  — Buy the **AMD KR260** (`SK-KR260-G`, one version only, authorized
+  distributor; Farnell £323.57 / 163 in stock vs ~$431 DigiKey/Mouser,
+  prices captured 2026-08-06 in `docs/part-quotes-2026-08-06.csv`).
+  Ordering now is purely so shipping time overlaps the DSP/LOGIC work.
+  **Gate (Peter, 2026-08-07): no FPGA engineering — no HDL, no sizing
+  follow-ups, no quote round — until a stable DSP + LOGIC combination is
+  proven on the DSP4 rev C card.** Everything already researched stays
+  recorded and idle: D9 draft sign-off, the 32-ch DRAM/pin-budget/Fmax
+  thread, the parts quote round, XPE power estimates, the `ch.fir` d128
+  gate. None of it is scheduled work while this gate holds.
+  Next concrete action: place the order, capture order number + ETA here.
 
 - [x] <span style="color:#16a34a"><b>DONE</b></span> (2026-08-06) **Temporary build fallback: 21568 target using 21564 constraints**
   — while the full ADI CCES license is still pending, use the 21568 build
@@ -26,22 +91,151 @@ Status colors:
   `MW/D32/DSP/SHARC/`. Reopen only when the 21564 licence lands (then the
   plain `./build.sh all` path replaces this one).
 
-- [ ] <span style="color:#d97706"><b>IN PROGRESS</b></span> **Buy AMD KR260 dev kit**
-  — part number **SK-KR260-G**, one version only, from an authorized
-  distributor (Mouser/DigiKey/Newark/Avnet/AMD direct if available; PSU,
-  cables, SD included; avoid bare-SoM broker listings) (~$349-399) — the
-  single eval system for the whole D7 fabric-only ladder (US+ fabric
-  superset, 2× PL RGMII for MW-Net dev, PL-only discipline per
-  `fpga/platform-shortlist.md` Prototype path note).
-  Pre-order check DONE (2026-08-04, kria-apps docs): J10A (Eth3, HPB)
-and J10B (Eth2, HPA) are PL RGMII; J10C/J10D are PS; SFP+ is PL GTH
-  — 2× fabric RGMII confirmed. Consider a second unit later for
-  star/daisy-chain link tests. Toolchain ready: Vivado 2026.1
-  licensed on this machine (`~/.local/bin/vivado`).
-  Next concrete action: place the order from an authorized distributor,
-  capture the order number and ETA, and record the result here.
+### KR260 order detail (folded into action 3 above)
 
-## Temporary compatibility build checklist
+Part **SK-KR260-G**, one version only, authorized distributor
+(Mouser/DigiKey/Newark/Avnet/AMD direct; PSU, cables, SD included; avoid
+bare-SoM broker listings) — the single eval system for the whole D7
+fabric-only ladder (US+ fabric superset, 2× PL RGMII for MW-Net dev,
+PL-only discipline per `fpga/platform-shortlist.md` Prototype path note).
+Pre-order check DONE (2026-08-04, kria-apps docs): J10A (Eth3, HPB) and
+J10B (Eth2, HPA) are PL RGMII; J10C/J10D are PS; SFP+ is PL GTH — 2×
+fabric RGMII confirmed. Consider a second unit later for star/daisy-chain
+link tests. Toolchain ready: Vivado 2026.1 licensed on this machine
+(`~/.local/bin/vivado`) — **installed and idle under the 2026-08-07 gate.**
+
+## 2026-08-07 — LOGIC lane opened: sim gate added, TWO framing bugs found and fixed
+
+Priorities reset (see Top action). First LOGIC work item done: the CPLD
+RTL now has a **simulation gate**, and running it for the first time found
+that the never-simulated design would not have worked on the wire.
+
+**New: `shared/dsp4-logic/sim/`** — Icarus, Verilog-2001, self-checking,
+wired into `build.sh` ahead of the STA gate (`SKIP_SIM=1` overrides and is
+recorded in the manifest). Two behavioural models are the arbiters:
+`model_tdm_rx.v` (a SPORT with CKRE=1/MFD=1 as it sees the wire) and
+`model_pi_i2s_tx.v` (the Pi PCM block transmitting I2S as a clock slave).
+Three testbenches: `tb_clkgen`, `tb_pcm_reframe`, `tb_logic_top`.
+`tb_clkgen` and `tb_logic_top` **passed first time** — divide ratios, FS
+width, frame length, launch/sample strobe alignment, clock-pair roles by
+measured format, and every routing wire including B_O1→DA3 and the
+D24/D32 personality split are all as documented.
+
+`tb_pcm_reframe` **failed**, and the failure decomposed into two
+independent one-bit errors that together shifted the Pi audio by two bit
+positions (`12345678` came back as `448d159e`, and slot 1's LSB leaked
+into slot 2):
+
+1. **TDM output launched one BCK period late.** The bit launched on the
+   falling edge of BCK8 period P is sampled by the DSP on the RISING edge
+   of period P+1, and MFD=1 puts slot 0 bit 31 on the edge AFTER the one
+   that reads FS high. The old code launched the bit indexed P at period
+   P, so the DSP's slot 0 bit 31 was actually slot 7's last bit (a zero)
+   and the whole payload arrived one bit rotated. Fixed by launching from
+   `out_period = frame_pos[9:2] + 1`.
+2. **I2S capture latched one BCK early** — the old latch points
+   (period 32 for left, 0 for right) implement the LEFT-JUSTIFIED format,
+   not I2S. Philips I2S delays the MSB one BCK after the LRCLK edge, so
+   the words complete at periods 33 and 1. Fixed and **parameterised**:
+   `PCM_DATA_DELAY` (default 1 = I2S, 0 = left-justified), because the
+   Pi's CH1POS is programmable — if bring-up shows different framing, one
+   constant moves instead of the logic. `tb_pcm_reframe` runs BOTH
+   settings, so the parameter is proven to re-align the capture rather
+   than merely existing.
+
+Also removed the dead `bit_cnt` register (assigned, never read).
+
+Rebuild after the fix: **sim gate PASS, 156 LE / 1270 (12%), 67 pins,
+Fmax 68.24 MHz** (setup slack +5.690 ns), timing met, new artifact
+`bitstream/dsp4_logic.f827e1243536.{pof,svf,manifest}`. The slot-map
+`source_hash` is unchanged (`sha256:efd8d555…`) — this is an RTL fix, not
+a contract bump.
+
+**The superseded `dsp4_logic.233db2b02906.*` bitstream was deleted**, not
+kept alongside: it is a flashable image that is now known to corrupt the
+Pi PCM lane, and D2 makes committed `.pof` files something people
+program. It stays recoverable from git history. Say so if you'd rather
+keep it with a warning file instead.
+
+**Rev-D timing warning (D8).** The 5M570ZT144C4 margin measured
+2026-08-05 (51.95 MHz, ~5%) is stale. Re-measured 2026-08-07 with the
+fixed RTL in a scratch run (device swapped, PIN_137/mems released for the
+fitter, nothing committed): **50.67 MHz, setup slack +0.611 ns, ~3%
+margin** over the required 49.152 MHz, 156 LE = 27% of 570. It still
+closes, but the margin is thin and every RTL addition now costs some of
+it — the UART pass-through work in particular. The mandatory-STA-gate
+rule from D8 is doing real work; keep it.
+
+**Open, needs Peter before RTL:** the `TODO(uart-passthrough)` routing
+matrix. The pin inventory is no longer the blocker (hardware-map §3a):
+LOGIC sees SRX 72, MRX 71, MHTX/MHRX 73/74, STRX1/0 75/76, PTRX1/0 77/84,
+and the matrix nets S0-S3/BUSY are multi-drop across U7 and U8 with U9
+muxing the SRX source. What is undefined is what LOGIC should DO with
+them — straight buffered pass-through, a selectable mux, or a strobed
+arbiter — and that is a system decision, not one to invent in HDL.
+
+## Resume notes (2026-08-06 session end)
+
+> Entry-point list below is SUPERSEDED by the 2026-08-07 priority set in
+> "Top action". Kept for the day's evidence. Where it schedules FPGA work
+> (items 1, 4, 5, 7, 8) that work is now parked behind the rev-C
+> DSP/LOGIC gate; ordering the KR260 is the only FPGA action that stands.
+
+Today: Dropbox `_Matrix` cross-repo store absorbed from mx26 `fbaf2be`
+(`matrix-shared-store.md`, pointers in README/CLAUDE.md/hardware-map);
+**21568 compatibility build PASSED** (692 ASM, 0 errors, banner +
+`build/COMPAT-BUILD.txt` marker so proxy DXEs can't pass as production);
+**memory-headroom correction** — the old "block3 is TIGHT" readings were
+wrong, primary regions fill then spill, so count primary+overflow pairs
+(`tools/dsp/dsp_memreport.py` now does it); GAIN `.extern` generator fix
+(34 → 2 warnings, and the `--force` regen proved no hand-edit drift in
+the node ASM); **D9 drafted, awaiting your sign-off**; **32-ch sizing
+pass** (`fpga/sizing-32ch.md`); shortlist price corrections.
+Commits `7175af3`, `e865f28` — pushed, tree clean.
+
+TOMORROW'S ENTRY POINTS (priority order):
+1. **Order KR260** (SK-KR260-G) — unchanged and unblocked. **Farnell
+   £323.57** (163 in stock) vs ~$431 at DigiKey/Mouser; prices captured
+   2026-08-06 in `docs/part-quotes-2026-08-06.csv`. Only shipping time
+   sits between here and having the eval system, so this goes first.
+2. **Sign off or mark up D9** in `dsp4-architecture-decisions.md` —
+   it carries a `[DRAFT] — not binding` banner until you do. Three
+   things left open inside it on purpose: parameter-RAM sizing per tier,
+   ramp-precision tolerance for fixed ramps (numeric-spec amendment),
+   meter readback path.
+3. **Check CCES licence arrival** (AD-CCES-NODE-1, requested
+   2026-07-31). Fast probe, no full build needed:
+   `./build.sh single src/lib/biquad.asm` from `MW/D32/DSP/SHARC/` —
+   fails instantly if still unlicensed. Re-probed 2026-08-06: still
+   21568-only. When it lands, plain `./build.sh all` = first real 21564
+   images → unblocks rev-C bring-up → gates the rev-D layout freeze.
+4. **Finish the 32-ch comparison**: DRAM support per part (ECP5 DDR3 vs
+   SU35P DDR4/LPDDR4, soft vs hardened controller, LUT cost) → pin
+   budget → Fmax → ECP5-85 quote. Also confirm the SU35P DSP48E2 count
+   against DS930 (the 48 figure is from search summaries and may be
+   conflated with its 48 × 36 Kb BRAM blocks; verdict holds either way).
+5. **Quote round** — best placed after 4 and the pin-budget table, so it
+   is one informed call rather than two. List unchanged: SU35P /
+   SU55P-SU100P / AU25P @1k + Agilex 3 availability + Agilex 5 Quartus
+   licensing + LFCPNX-100 + an Avant-E part + 5M570ZT144C4N +
+   STM32G0B1RET6 / U535RET6 + Infineon 3.0 V octal-xSPI HyperRAM.
+   Exception: if any part has a long lead time, this jumps ahead of 4.
+6. **Rev D remaining OSPI open**: 21564 OSPI clock ceiling +
+   xSPI-profile-2/RWDS RAM support — check the EV-21568-SOM reference
+   design in the ADI portal (datasheet mirrors bot-block curl; the
+   rlocman paged mirror worked for pin tables).
+7. Desk work queued: per-tier pin-budget table + Vivado XPE power
+   estimates (SU35P/AU25P) — feeds both 4 and 5.
+8. Unchanged hub-side gate: `ch.fir` tap ceiling into d128 (biggest open
+   number, ~$150-200 BOM swing). Now known NOT to affect the 32-ch tier
+   — `ch.fir` is absent from d32.csv — so it is purely a flagship gate.
+
+Low-priority tidy-ups, not blocking anything: chip2 delay pool is at
+82.4% of L2+L2CTL1 and is the only pool whose overflow tier is loaded —
+revisit the LDF when it passes ~90%; `TransferOnly/PCB mods/` mod lists
+are a migrate-later candidate for `_Matrix/Products/D24/hw/`.
+
+## Temporary compatibility build checklist — COMPLETE (2026-08-06)
 
 - [x] Confirm the temporary target selection: 21568 build path with
   21564-compatible constraints and memory-map assumptions.
@@ -220,7 +414,34 @@ CCES licence check (entry point 2, same session): **not arrived.**
 licensed hardware (ADSP-21568)`. AD-CCES-NODE-1 requested 2026-07-31; the
 21568 EZ-KIT entry remains the only usable entitlement on this host.
 
+## 2026-08-06 — Dropbox `_Matrix` shared store adopted (doc-only)
+
+mx26 commit `fbaf2be` (2026-08-06) declares the Dropbox `_Matrix` folder
+the canonical **cross-repo** shared data store (mx26 `sot.md` concept 16,
+`docs/decision-mx26-mandates.md`, `matrix_direction.md`): mx26 owns the
+layout — `Products/<P>/{dsp,fw,hw,logic,net,pd,sw,sys}` mirroring its
+src/ domains — spokes consume it, D24 is the template product, essential
+and durable content only, no bulk migration, nothing there is a build
+input. Absorbed here as `matrix-shared-store.md`, with pointers added to
+`README.md`, `CLAUDE.md`, and `MW/D24/HW/hardware-map.md`. No tooling
+change: `defs.lock` / `sync-from-mx26.sh` still read the mx26 checkout —
+mx26 names `_Matrix` as the *eventual* home of the pinned Dropbox mirror,
+not today's.
+
+Verified locally: store is fully synced offline (~110 MB, no online-only
+placeholders); `Products/D24/hw/` holds all 9 D24 PCBAs (BOM + renders +
+CADCAM zip + base design + schematic PDF + DipTrace `.pdsprj` each); the
+other D24 domains are empty, and `Products/D32/` does not exist yet. The
+D24 DSP/Digital/Analog PDFs in `MW/D24/HW/schematics/` are byte-identical
+to the store copies, so hardware-map derivations still hold. Open item:
+`TransferOnly/PCB mods/` mod lists are a migrate-later candidate for
+`_Matrix/Products/D24/hw/` — PW/mx26's call, nothing moved.
+
 ## Resume notes (2026-08-05 session end — tree clean at push)
+
+> SUPERSEDED by the 2026-08-06 resume note above — the entry-point list
+> below is kept for history. Items 1 (compatibility build) and 2 (licence
+> check) are done; the rest carried forward and were re-prioritised.
 
 Today: D7 committed (`76c54f6`); **D8 decided + committed** (`e16e817`,
 rev D scope: CM4-core SPI control, supervisor shrink, CPLD 570Z
@@ -274,29 +495,6 @@ Cross-repo state: mod lists live in Dropbox `TransferOnly/PCB mods/`
 (dsp4-revD-modlist.md = single rev-D source incl. gate statuses;
 d24 digital mods.txt/pdf = Digital rev-C Schottky review). Memory
 updated with the convention.
-
-## 2026-08-06 — Dropbox `_Matrix` shared store adopted (doc-only)
-
-mx26 commit `fbaf2be` (2026-08-06) declares the Dropbox `_Matrix` folder
-the canonical **cross-repo** shared data store (mx26 `sot.md` concept 16,
-`docs/decision-mx26-mandates.md`, `matrix_direction.md`): mx26 owns the
-layout — `Products/<P>/{dsp,fw,hw,logic,net,pd,sw,sys}` mirroring its
-src/ domains — spokes consume it, D24 is the template product, essential
-and durable content only, no bulk migration, nothing there is a build
-input. Absorbed here as `matrix-shared-store.md`, with pointers added to
-`README.md`, `CLAUDE.md`, and `MW/D24/HW/hardware-map.md`. No tooling
-change: `defs.lock` / `sync-from-mx26.sh` still read the mx26 checkout —
-mx26 names `_Matrix` as the *eventual* home of the pinned Dropbox mirror,
-not today's.
-
-Verified locally: store is fully synced offline (~110 MB, no online-only
-placeholders); `Products/D24/hw/` holds all 9 D24 PCBAs (BOM + renders +
-CADCAM zip + base design + schematic PDF + DipTrace `.pdsprj` each); the
-other D24 domains are empty, and `Products/D32/` does not exist yet. The
-D24 DSP/Digital/Analog PDFs in `MW/D24/HW/schematics/` are byte-identical
-to the store copies, so hardware-map derivations still hold. Open item:
-`TransferOnly/PCB mods/` mod lists are a migrate-later candidate for
-`_Matrix/Products/D24/hw/` — PW/mx26's call, nothing moved.
 
 ## Resume notes (2026-08-04 session end)
 

@@ -74,7 +74,11 @@ are line outs on the Analog PCBA (resolved 2026-07-31).
 
 - `rtl/dsp4_clkgen.v` — 49.152 MHz → TDM8/TDM16 BCK + MFD=1 FS pulses.
 - `rtl/dsp4_pcm_reframe.v` — LOGIC masters the Pi PCM as I2S and
-  re-frames stereo into TDM8 slots 0-1 (A_I6).
+  re-frames stereo into TDM8 slots 0-1 (A_I6). Parameter
+  `PCM_DATA_DELAY` (default 1 = Philips I2S, 0 = left-justified) sets
+  where the Pi's MSB is expected relative to the LRCLK edge; the Pi's
+  CH1POS is programmable, so this is the one constant to move if bring-up
+  shows different framing. Both settings are covered by the sim suite.
 - `rtl/dsp4_logic_top.v` — routing per the slot map (sanity-checked
   against `dsp4_slot_map.vh`).
 - `quartus/` — 5M1270ZT144C4 project with the REAL pin assignments
@@ -85,12 +89,43 @@ are line outs on the Analog PCBA (resolved 2026-07-31).
   Discovered provisions: ISPI0/ISPI1/ICS_L (pins 60-62) are an S-MCU
   SPI interface to LOGIC — the future home of runtime lane-mux
   control; UART pass-through pins are TODO(uart-passthrough).
-- `build.sh` — full flow (slot-map regen -> map/fit/sta/asm -> pof/svf)
-  with an STA gate; artifacts land in `bitstream/` labelled with the
-  first 12 hex of sha256(slot-map hash + RTL + qsf/sdc), plus a
-  manifest. `bitstream/` is committed (D2). Toolchain: Quartus Prime
-  Lite 21.1.1 at `/opt/intelFPGA_lite/21.1` (never committed);
-  programming via USB-Blaster or Pi GPIO JTAG (SVF + OpenOCD).
+  Current build: **156 LE / 1270 (12%), 67 pins, Fmax 68.24 MHz**
+  (setup slack +5.690 ns on the 20.345 ns period). On the rev-D
+  5M570ZT144C4 the same RTL fits at 27% but closes at only
+  **50.67 MHz — +0.611 ns slack, ~3% margin** over the required
+  49.152 MHz (measured 2026-08-07 in a scratch run, PIN_137/mems
+  released for the fitter per D8). Treat every RTL addition on that
+  part as timing-relevant.
+- `build.sh` — full flow (slot-map regen -> **sim gate** -> map/fit/sta/asm
+  -> pof/svf) with an STA gate; artifacts land in `bitstream/` labelled
+  with the first 12 hex of sha256(slot-map hash + RTL + qsf/sdc), plus a
+  manifest recording whether the sim gate passed. `bitstream/` is
+  committed (D2). Toolchain: Quartus Prime Lite 21.1.1 at
+  `/opt/intelFPGA_lite/21.1` (never committed); programming via
+  USB-Blaster or Pi GPIO JTAG (SVF + OpenOCD).
+
+## Simulation (`sim/`) — the gate that runs before any bitstream
+
+Icarus Verilog, Verilog-2001, self-checking, no waveform inspection
+required: `./sim/run.sh` (or `VCD=1 ./sim/run.sh` for traces in
+`sim/work/`). `build.sh` runs it and refuses to produce a bitstream if it
+fails; `SKIP_SIM=1` overrides and is recorded in the manifest.
+
+The testbenches assert the **conventions**, not the implementation. Two
+behavioural models are the arbiters, and if RTL and model disagree the
+RTL is wrong (or the convention changes deliberately, in both places):
+
+| File | Role |
+|---|---|
+| `sim/model_tdm_rx.v` | DSP-side TDM receiver as a SPORT with CKRE=1/MFD=1 sees the wire: sample on BCK rising, FS one BCK before slot 0, MSB first |
+| `sim/model_pi_i2s_tx.v` | Pi PCM block transmitting I2S as a clock slave; `DATA_DELAY` matches the RTL's `PCM_DATA_DELAY` |
+| `sim/tb_clkgen.v` | BCK divide ratios, FS pulse width, 256-BCK8 / 512-BCK16 frame length, launch/sample strobes land on the BCK edges they name |
+| `sim/tb_pcm_reframe.v` | Pi pins → TDM8 slots 0/1 bit-exact, slots 2-7 silent; run for both `PCM_DATA_DELAY` settings |
+| `sim/tb_logic_top.v` | Clock-pair roles by measured format (a swapped BCKI/FSI pair is a dead board), input-lane sources, DSPB output routing incl. B_O1→DA3 and the D24/D32 personality split |
+
+The testbenches also model the board fact that **U3 has no reset** — MAX V
+macrocells power up cleared — by initialising DUT state explicitly
+instead of letting it sit at X.
 - Host tool: `tools/pi/dsp4_config.py` (repo root) writes the boot
   product config over Pi SPI (GPIO-driven CS; SPI_RDY flow control is
   a bring-up TODO).
