@@ -1,8 +1,15 @@
 # tasks
 
 Status: active
-Date: 2026-08-10
+Date: 2026-08-11
 Purpose: current work state for the mx26 -> mx-dsp workflow and DSP4 firmware.
+
+> **Repo/workflow change 2026-08-11: the trunk is `main`, not `master`.**
+> `origin/master` is deleted and blocked by a ruleset; the two histories
+> were unified in `b75b43a` (master's working line became main's tree, so
+> nothing was lost — the bring-up commit `1dbcabd` is an ancestor of
+> main). If a checkout is still on `master`, switch: `git fetch origin &&
+> git checkout main`. Mandates now live in `CLAUDE.md` under "Mandates".
 
 Status colors:
 - <span style="color:#16a34a"><b>DONE</b></span>
@@ -12,15 +19,20 @@ Status colors:
 
 ## Top action
 
-Priority order set 2026-08-07 (Peter). Three lanes; **as of 2026-08-10 the
-CCES licence has landed, so lanes 1 and 2 are both open** — Peter to say
-which leads:
+Priority order set 2026-08-07 (Peter). Three lanes; the CCES licence
+landed 2026-08-10, and **on 2026-08-11 lanes 1 and 2 both moved together
+rather than one leading** — the work converged on one goal, so the "which
+lane leads" question is answered in practice: **everything now points at
+getting the rev-C card on the bench.**
 
-1. **LOGIC CPLD for D24/D32 — ACTIVE, unblocked.** Was the only movable
-   lane while the licence was pending; still on the rev-C critical path.
-2. **DSP code for D24/D32 (ONE firmware) — UNBLOCKED 2026-08-10.**
-   AD-CCES-NODE-1 activated and the first real 21564 images built;
-   nothing blocks this lane now.
+1. **LOGIC CPLD for D24/D32 — ACTIVE.** RTL complete, simulated, fitted,
+   STA'd, and as of 2026-08-11 carrying the TEST1-4 bring-up pins.
+   Ready to flash; has still never run on hardware.
+2. **DSP code for D24/D32 (ONE firmware) — ACTIVE.** Real 21564 images
+   since 2026-08-10; since 2026-08-11 the build also emits bootable
+   `.ldr` streams and there is a host-side loader, so the images can
+   actually reach the parts. Two would-be-fatal bugs fixed (IVT SEC
+   vector, wrong SPI port) — see the 2026-08-11 entry.
 3. **FPGA — procurement only.** The EVK gets ordered so lead time runs in
    the background; **no FPGA engineering work starts until a stable
    DSP + LOGIC combination is running on the DSP4 rev C card.**
@@ -235,6 +247,115 @@ unprogrammed CPLD means neither DSP has a clock), confirm LD1 at ~1.5 Hz
 and TEST1-4 on the scope, then `dsp4_boot.py` with the blink images,
 then the real images.
 
+### 2026-08-11 addendum — SHARC debug access: what rev C can and can't do
+
+Peter asked whether wiring the SHARC JTAG pins would add diagnostic
+value, and whether the CPLD's JTAG lines could be muxed to the DSPs.
+Analysis recorded here so it does not have to be redone.
+
+**Confirmed: `JTG_TCK/TMS/TDI/TDO` and `JTG_TRST` are floating on BOTH
+DSPs.** They carry sheet-local net stubs only, and the ROOT DSPA/DSPB
+blocks expose no JTAG ports, so nothing can leave the sheet. There is no
+emulator access to either SHARC on rev C.
+
+**Worth having at rev D — it is more than breakpoints.** The 21564 debug
+block is a CoreSight DAP (HRM ch. 44): run control and memory/MMR
+inspection after a hang; **STM with 32 hardware-event + 32
+software-stimulus channels** (instrumented trace that does NOT stop the
+core — the one that matters for an audio engine you cannot halt without
+destroying what you are inspecting); PTM core trace with ETR routing
+into system memory (no trace-port pin explosion); IDCODE as a
+firmware-free presence check; and No-Boot mode (HRM 40) to halt before
+the boot kernel clobbers an emulator-loaded image.
+
+**The CPLD cannot mux its own JTAG.** On MAX V, TCK/TMS/TDI/TDO are
+DEDICATED pins, invisible to the fabric — the CPLD cannot switch the
+lines it is itself programmed through. Muxing would need a second copy
+of the host JTAG on CPLD user I/O (~9-10 pins plus logic), and it would
+put the debug path behind the part you would most want to debug.
+**A daisy-chain needs no mux and no logic**: Pi TDI → U3 → DSPA → DSPB →
+Pi TDO, TCK/TMS common. Costs: Quartus must be told the chain holds two
+non-Altera devices (needs 21564 BSDL/IR length) when programming the
+CPLD, and an unpowered or depopulated device breaks the chain.
+**Cheaper still: SWD is 2 pins per DSP.** The HRM names the pin
+"TMS/SWDIO" and `PADS_PCFG0.PUTMS` is a pull-up for "TMS/SWDIO (debug
+port)" enabled by default at reset — i.e. an SWJ-DP, so `JTG_TMS` +
+`JTG_TCK` alone give a debug port: 4 pins for both chips.
+**Unverified**: whether ADI tooling gives CCES run control over SW-DP
+(ICE-1000/2000 are JTAG probes) — SWD may only yield DAP/memory access
+from an ARM-style probe. Confirm before betting on it.
+Also: `JTG_TRST` floating — check the datasheet's unused-pin table, a
+floating TRST is the classic cause of a TAP wandering out of reset.
+Precedent already on the card: J3/J4 carry SWDIO (P36) / SWCLK (P76) for
+the MCUs, and the Digital board's `OPT_SWD` block fans one SWD pair to
+several targets via `SWD_EN[0..3]`.
+
+**What rev C can do TODAY with no rewiring** (do this first — rev C is
+fabricated, all of the above is rev D):
+1. **SPI readback as a telemetry channel — biggest win.**
+   `spi_handler.asm` already implements the READ flag (bit 13) and
+   preloads the TX FIFO for master readback. Add read-only diagnostic
+   addresses (last SEC_CSID serviced, block counter, DMA/SPORT error
+   latches, boot stage reached, FIFO overruns) and the CM4 can
+   interrogate a running DSP over the link it already has. That is most
+   of what a debugger would be used for, in firmware already being built.
+2. **SPI_RDY on CS3/CS4 as a hardware liveness bit** — driven by the
+   boot ROM BEFORE application code runs, so polling GPIO8/GPIO12
+   separates dead/held-in-reset from in-boot-kernel from running, with
+   no transaction at all.
+3. **LED fault codes** — blink patterns on PA_12 encoding the bring-up
+   stage reached, on top of the plain heartbeat already built.
+4. **Make TEST1-4 a switchable probe mux in the CPLD** — they are
+   hard-assigned to clocks today, but LOGIC sees every DSPA input lane,
+   every DSPB output lane and both clock domains. A small select
+   (strap, or the provisioned S-MCU SPI on pins 60/61/62) turns four
+   pins into a general-purpose scope tap. Pure RTL.
+5. **Boundary-scan the CPLD over the JTAG that already reaches the Pi** —
+   MAX V supports SAMPLE/EXTEST and sits on every DSP↔CPLD net, so
+   interconnect (and possibly the provisional BCKI/FSI pair order) can be
+   checked with neither SHARC running.
+
+Disposition: do (1) and (2) now — firmware, on the critical path anyway,
+and they largely close the gap that missing JTAG leaves. Put the
+daisy-chain (or the 2-pin SWD pair) on the rev-D mod list. Skip the
+CPLD-as-JTAG-mux entirely.
+
+## TOMORROW'S ENTRY POINTS (set 2026-08-11, for 2026-08-12)
+
+1. **Order KR260** (SK-KR260-G) — still procurement-only, still
+   unblocked, and still the only thing whose lead time runs in the
+   background. Farnell £323.57 vs ~$431 DigiKey/Mouser
+   (`docs/part-quotes-2026-08-06.csv`). Capture order number + ETA here.
+2. **Decide the AI-attribution history question.** Mandate `150620f`
+   forbids AI references in git history; **59 of the 108 commits on main
+   carry a `Co-Authored-By` trailer**, back to `8833abe` (2026-07-29) —
+   every Claude Code session since the repo reorg, not one stray commit.
+   Recommendation: LEAVE IT. Stripping means rewriting 59 commits and
+   force-pushing past the ruleset, which changes every SHA from `8833abe`
+   forward — and this file alone cites ~15 of them (`7175af3`, `e865f28`,
+   `76c54f6`, `e16e817`, `0361e6f`, `94447ec`, `4a51e08`, …), every one
+   of which would silently become a dangling reference. New commits
+   carry no trailer from 2026-08-11 onward.
+3. **Rev-C bench session** — the real goal. Order: CPLD `.pof`
+   (`dsp4_logic.2be52d4ad5b5.pof`) → LD1 at ~1.5 Hz → TEST1-4 on the
+   scope → `dsp4_boot.py` with `blink1/2.ldr` → full images. Record the
+   measured blink rate: it is a free core-clock measurement (see the
+   blink note above).
+4. **Diagnostic readback registers + LED fault codes** (items 1-3 of the
+   debug addendum). Firmware only, no hardware change, and the thing
+   that makes a bench session diagnosable rather than a guessing game.
+   Not yet started.
+5. **Sign off or mark up D9** in `dsp4-architecture-decisions.md` — still
+   carrying `[DRAFT] — not binding`. Untouched since 2026-08-06.
+6. **LOGIC `TODO(uart-passthrough)`** — still needs a routing decision
+   from Peter before any RTL (buffered pass-through vs selectable mux vs
+   strobed arbiter). Pin inventory is done; the system decision is not.
+7. Small/hygiene: `provenance:` header question for `dsp4-plumbing.md`
+   (design doc vs working tracker — `tasks.md` and code are exempt);
+   stale remote branch `copilot/review-tasks-md-firmware-bottleneck`
+   (`ec6ab7e`) is a deletion candidate under the short-lived-branch rule;
+   rev-D `5M570ZT144C4N` needs PIN_8/TEST3 rerouted or TEST3 dropped.
+
 ## 2026-08-10 — CCES licence activated; FIRST REAL 21564 IMAGES
 
 The DSP lane is unblocked. AD-CCES-NODE-1 activated on this host and the
@@ -287,9 +408,9 @@ NOT done: nothing is committed (5 modified docs in the tree), and no
 hardware has run — every DSP fact above is toolchain-level only.
 
 TOMORROW'S ENTRY POINTS (priority order):
-> Partly overtaken by the 2026-08-11 entry above: both lanes moved
-> together (LOGIC test pins + the DSP boot path), so item 1 is answered
-> in practice, and item 2's list is now larger — see that entry.
+> SUPERSEDED by "TOMORROW'S ENTRY POINTS (set 2026-08-11)" above. Kept
+> for the day's evidence. Both lanes moved together on 2026-08-11, so
+> item 1 is answered in practice and item 2 is done (commit `1dbcabd`).
 1. **Pick the lead lane.** LOGIC (1) and DSP (2) are both open now — the
    2026-08-07 priority set assumed only LOGIC could move, so it needs
    your call. Both converge on rev-C bring-up, which gates the rev-D
