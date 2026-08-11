@@ -6,6 +6,9 @@ the product definitions and the repository-level mandates —
 
 ## Mandates (org-wide, from mx26)
 
+- **Single trunk**: all work lands on `main`; feature branches are
+  short-lived and deleted on merge; pull `main` before starting on any
+  machine, push `main` when done.
 - **No AI references in any work product or git history**: never add
   `Co-Authored-By` trailers, "Generated with" footers, or AI mentions to
   commits, PRs, code, docs, or published files. Authorship of invirco work is
