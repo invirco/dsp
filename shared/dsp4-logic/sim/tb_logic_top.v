@@ -11,6 +11,9 @@
 //      (NOT DA1), DA1/DA2 driven low, B_O2 = codec on D24 / snake on D32,
 //      B_O3 (DAC MAIN) parked with no D24 sink.
 //   4. dsp_clk is the raw 49.152 MHz XO passed to both DSPs' SYS_CLKIN0.
+//   5. The TEST1-4 bring-up pins carry the clkgen nets they claim to,
+//      and none of them is stuck — a dead test point is worse than no
+//      test point, because it reads as a dead board at bring-up.
 
 `timescale 1ns/1ps
 `default_nettype none
@@ -36,7 +39,7 @@ module tb_logic_top;
     wire dsp_clk, cdc_i, snake_out, dac_main, blink_led;
     wire pcm_clk, pcm_fs, pcm_din;
     wire [7:0] bcki, fsi, i_dspa;
-    wire [3:0] da, no;
+    wire [3:0] da, no, test;
 
     dsp4_logic_top dut (
         .sysclk(sysclk), .ic_strap(ic_strap), .il_strap(il_strap),
@@ -47,7 +50,7 @@ module tb_logic_top;
         .snake_in(snake_in), .snake_out(snake_out), .dac_main(dac_main),
         .mems(mems),
         .pcm_clk(pcm_clk), .pcm_fs(pcm_fs), .pcm_dout(pcm_dout),
-        .pcm_din(pcm_din), .blink_led(blink_led)
+        .pcm_din(pcm_din), .blink_led(blink_led), .test(test)
     );
 
     initial begin
@@ -120,6 +123,27 @@ module tb_logic_top;
         end
     endgenerate
 
+    // ---- 5. test points ----
+    // Two independent checks: each pin mirrors its clkgen net at every
+    // sample (sampled on the falling sysclk edge, after the registered
+    // clkgen outputs have settled), AND each pin actually toggles — a
+    // pin stuck at the same value as a stuck source passes the first
+    // check alone. Counted, not printed, so a failure is one line.
+    integer test_mismatch [0:3];
+    always @(negedge sysclk) begin
+        if (test[0] !== dut.fs8)          test_mismatch[0] = test_mismatch[0] + 1;
+        if (test[1] !== dut.bck8)         test_mismatch[1] = test_mismatch[1] + 1;
+        if (test[2] !== dut.fs16)         test_mismatch[2] = test_mismatch[2] + 1;
+        if (test[3] !== dut.frame_pos[9]) test_mismatch[3] = test_mismatch[3] + 1;
+    end
+
+    integer test_edges [0:3];
+    generate
+        for (g = 0; g < 4; g = g + 1) begin : test_toggle
+            always @(test[g]) test_edges[g] = test_edges[g] + 1;
+        end
+    endgenerate
+
     // ---- 2/3. static routing ----
     task check_routing;
         begin
@@ -183,6 +207,10 @@ module tb_logic_top;
             fs_rise[k]   = -1;
             seen[k]      = 0;
         end
+        for (k = 0; k < 4; k = k + 1) begin
+            test_edges[k]    = 0;
+            test_mismatch[k] = 0;
+        end
         // TDM8 = sysclk/4, TDM16 = sysclk/2
         exp_div[0] = 4;  exp_div[1] = 2;  exp_div[2] = 4;  exp_div[3] = 2;
         exp_div[4] = 2;  exp_div[5] = 4;  exp_div[6] = 2;  exp_div[7] = 4;
@@ -200,6 +228,18 @@ module tb_logic_top;
                 $display("FAIL: bcki[%0d] barely toggled (%0d edges)", k, seen[k]);
                 errors = errors + 1;
             end
+
+        for (k = 0; k < 4; k = k + 1) begin
+            if (test_mismatch[k] != 0) begin
+                $display("FAIL: TEST%0d does not mirror its clkgen net (%0d samples)",
+                         k + 1, test_mismatch[k]);
+                errors = errors + 1;
+            end
+            if (test_edges[k] < 4) begin
+                $display("FAIL: TEST%0d stuck (%0d edges)", k + 1, test_edges[k]);
+                errors = errors + 1;
+            end
+        end
 
         $display("tb_logic_top: %0d errors", errors);
         if (errors == 0) $display("tb_logic_top: PASS");

@@ -119,6 +119,122 @@ fabric RGMII confirmed. Consider a second unit later for star/daisy-chain
 link tests. Toolchain ready: Vivado 2026.1 licensed on this machine
 (`~/.local/bin/vivado`) — **installed and idle under the 2026-08-07 gate.**
 
+## 2026-08-11 — bring-up work: TEST pins, boot path, and TWO dead-board bugs
+
+Peter asked whether LOGIC and DSP are ready for the rev-C card, whether
+there are "hello world" pin toggles, and whether both chips boot from the
+CM4. Answers went into three worked steps. **Two bugs found that would
+each have produced a board that looks dead**, both verified in the linked
+binary rather than by reading.
+
+**Signs-of-life hardware (was undocumented; now in the map above).**
+The card has THREE green LEDs, one per chip, each private — no
+contention: LD1 off LOGIC pin 59 (`BLINK_LED`, R1 1K), LD3 off DSPA/U6
+`PA_12` (R37), LD2 off DSPB/U5 `PA_12` (R4). `PA_13` is the SHARED
+`!BLINK` net (also LOGIC pin 58 + supervisor) — input, never drive it.
+TEST1-4 are **CPLD-only** (U3 pins 13/12/8/7): they leave on J1/J2
+P17-P20, cross to D24 Digital J17/J18, and land on **J15, a DNP
+DIL254-10** (pin 1/2 = +3V3, odd 3-9 = GND, even 4-10 = TEST1-4 — a
+ground beside every signal). Fit a header there or probe the pads.
+
+**(1) LOGIC — TEST1-4 assigned, bitstream re-cut.** `test[3:0]` added to
+`dsp4_logic_top.v`: TEST1=fs8, TEST2=bck8 (12.288 MHz), TEST3=fs16,
+TEST4=frame_pos[9] (24 kHz). Existing clkgen nets only — **156 LE,
+unchanged**; 67 → 71 pins; Fmax 68.24 → 67.06 MHz, timing met, STA gate
+passed. `tb_logic_top` extended (check 5): each pin must mirror its
+clkgen net at every falling-sysclk sample AND actually toggle — a pin
+stuck at the same value as a stuck source passes the mirror check alone.
+Both checks were negative-tested (swap TEST3/TEST4 → 1023 mismatches;
+tie TEST1 low → stuck). New artifact
+`bitstream/dsp4_logic.2be52d4ad5b5.{pof,svf,manifest}`; slot-map
+`source_hash` unchanged (`sha256:efd8d555…`) so this is an RTL/pin
+change, not a contract bump. **The superseded `f827e1243536.*` was
+deleted** (recoverable from git) — same call as 2026-08-07: two
+committed `.pof`s with no "current" marker is a bring-up hazard. Say so
+if you'd rather keep it with a warning file.
+**Rev-D 570Z re-check** (scratch run, nothing committed): only ONE of
+the four test pins is illegal on the 570Z die — **PIN_8 = TEST3** joins
+PIN_137/mems, so rev D either moves that trace or drops TEST3. With the
+other three assigned it closes at **55.88 MHz, slack +2.448 ns**. Note
+that is *better* than the 50.67 MHz measured 2026-08-07 with fewer pins:
+the number is fitter-placement variance of roughly ±10%, so treat "~3%
+margin" as unstable and keep letting the STA gate arbitrate.
+
+**(2) DSP — boot path built, and the two bugs.**
+- **BUG 1, the SEC vector was one slot late.** `src/ivt.asm` opened with
+  an unnumbered `_ivt_default` filler, which pushed every labelled entry
+  one slot past its comment. Reset survived *by luck* (the filler landed
+  on EMUI so `jump _start` landed on RSTI at 0x004), but `jump _sec_isr`
+  landed at **0x040** — a reserved slot — while SECI at **0x03C** held an
+  `rti`. Since 2156x routes every peripheral through the SEC, that is:
+  no block-clock interrupt, no SPI parameter interrupt, so the DSP boots,
+  reaches `.wait_boot`, and hangs forever waiting for a product config
+  that can never arrive. Confirmed by dumping `sec_rth` out of the linked
+  `chip1.dxe` before (jump at 0x040) and after (jump at 0x03C). Table
+  rewritten against the hardware layout from CCES
+  `crt_src/int_vector_code_SC5XX.asm` under `__ADSP2156x__`, every slot
+  labelled with its true offset and name. IVT is now 128/260 words
+  (was 260/260 — the old size was the off-by-one, not a requirement).
+- **BUG 2, the firmware drove the wrong SPI port.** `dma_config.c` and
+  both `spi_handler.asm` used **SPI1**; the rev-C card wires the host to
+  each DSP's **SPI2** (PA_00/01/04/05, SPI_RDY on PB_05), which is also
+  the `BMODE[2:0]=0b010` slave-boot port. D8's move to SPI0/SPI1 is a
+  *rev-D* change. Now SPI2 throughout (0x31030000, SEC source 71,
+  `_spi2_rx_work`). Also enabled RDY flow control: **FCPL=1 (active-high)
+  is dictated by the board** — SPI2_RDY has a 10K pulldown (R34/R22), and
+  HRM Figure 40-7 pairs pull-down with FCPL=1. That is the safe polarity:
+  a part held in reset reads "not ready".
+- **Chip-ID detect deleted.** `main.asm` read "FLAG0" at invented address
+  0x08004040; the 2156x has no FLAG pins, and the schematic has no
+  per-chip strap at all (the DSPA and DSPB sheets are identical — the
+  parts differ only in which CS reaches them). `-DCHIP_ID` is the single
+  source; `_start` now just publishes it.
+- **Boot streams exist.** `build.sh` gained a `loader()` step:
+  `elfloader -b SPI -bcode 1 -f BINARY -width 8` → `chip1.ldr` (205,760 B)
+  + `chip2.ldr` (106,824 B). It ASSERTS the entry address resolves to
+  0x90004 (IVT base + RSTI), because the ELF carries no entry point and a
+  silently wrong default would boot the board into garbage. The fit-proxy
+  marker text now covers `.ldr` too.
+- **Host side: `tools/pi/dsp4_boot.py`** — HRM Figure 40-7 flow (pulse
+  !RST_D, wait RDY, assert CS, chunk with RDY checks, deassert), pads to
+  the mandatory 1024-byte units, refuses to run if `COMPAT-BUILD.txt` is
+  present. GPIO map read off DSP4 J6: CS1=GPIO6, CS2=GPIO7, RDY on
+  GPIO8/GPIO12, !RST_D=GPIO16 (**one reset line for BOTH DSPs**, so a
+  reset means re-booting both — the tool defaults to both and warns
+  otherwise). Also fixed `dsp4_config.py`, whose usage examples said
+  `--cs-gpio 5`/`6`: **GPIO5 is CS7**, not CS1.
+- Build after all of it: 692 ASM, **0 errors**, 2 pre-existing
+  `biquad.asm` loop-end warnings. Memory pools unchanged, `dsp_memreport`
+  exit 0.
+
+**(3) Blink image — `./build.sh blink`.** `src/blink/{blink.asm,
+blink_ivt.asm}` → `blink1.ldr` / `blink2.ldr`, 180 bytes each. Toggles
+`PA_12` and nothing else: no SRU, SPORT, DMA, SEC or SPI, so it
+separates "the boot stream never landed" from "it landed but the
+plumbing hangs". Chip 1 ~1 Hz, chip 2 ~2 Hz, so one glance says which
+part booted which image. Verified the two images differ in exactly three
+bytes — the delay immediate (0x02625A00 vs 0x01312D00) — and that RSTI
+sits at slot 1. The absolute rate assumes CCLK=400 MHz, which is NOT yet
+measured: if the observed rate is off by N, CCLK is off by N, so
+**write the measured rate down** rather than just retuning the constant.
+
+**Still open before the card can run audio** (unchanged by today):
+SPI_RDY is not honoured on the HOST side yet; `sport_init.asm` /
+`spi_handler.asm` still carry 0x0800xxxx placeholder MMRs; and every
+provisional TDM fact (BCKI/FSI pair order, CKRE/MFD on the scope, D24
+within-ADC8 slot order, S4 strap) still needs the scope. **Also worth
+confirming on the bench: the SHARC `JTG_*` pins appear unconnected on
+both DSP sheets** — the ROOT DSPA/DSPB blocks carry no JTAG ports — which
+would mean no emulator access to either SHARC on rev C, making the LEDs
+and SPI readback the entire debug channel. The JTAG that does reach the
+Pi header (TDO GPIO22, TDI 23, TMS 24, TCK 25) is the CPLD's, so the CM4
+can play the committed `.svf` itself; `LEN` (S-MCU driven) gates it.
+
+Suggested bench order: flash the CPLD first (it sources DSP_CLK — an
+unprogrammed CPLD means neither DSP has a clock), confirm LD1 at ~1.5 Hz
+and TEST1-4 on the scope, then `dsp4_boot.py` with the blink images,
+then the real images.
+
 ## 2026-08-10 — CCES licence activated; FIRST REAL 21564 IMAGES
 
 The DSP lane is unblocked. AD-CCES-NODE-1 activated on this host and the
@@ -171,6 +287,9 @@ NOT done: nothing is committed (5 modified docs in the tree), and no
 hardware has run — every DSP fact above is toolchain-level only.
 
 TOMORROW'S ENTRY POINTS (priority order):
+> Partly overtaken by the 2026-08-11 entry above: both lanes moved
+> together (LOGIC test pins + the DSP boot path), so item 1 is answered
+> in practice, and item 2's list is now larger — see that entry.
 1. **Pick the lead lane.** LOGIC (1) and DSP (2) are both open now — the
    2026-08-07 priority set assumed only LOGIC could move, so it needs
    your call. Both converge on rev-C bring-up, which gates the rev-D

@@ -104,8 +104,14 @@ set_location_assignment PIN_79  -to pcm_fs
 # ---- Status ----
 set_location_assignment PIN_59  -to blink_led
 
+# ---- Bring-up test points (-> J1/J2 P17-P20 -> D24 Digital J15, DNP) ----
+set_location_assignment PIN_13  -to test[0]
+set_location_assignment PIN_12  -to test[1]
+set_location_assignment PIN_8   -to test[2]
+set_location_assignment PIN_7   -to test[3]
+
 # Unassigned board pins intentionally left unconstrained (reserved as
-# tri-stated inputs by the global above): TEST1-4 (13,12,8,7),
+# tri-stated inputs by the global above):
 # !BLINK (58), ISPI0/ISPI1/ICS_L (60,61,62 - provisioned S-MCU SPI),
 # BUSY (66), S5-S7 (69,68,67), UART pass-throughs SRX/MRX (72,71),
 # MHTX/MHRX (73,74), STRX1/STRX0 (75,76), PTRX1/PTRX0 (77,84),

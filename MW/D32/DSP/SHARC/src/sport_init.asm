@@ -72,7 +72,7 @@
 
 .section/pm seg_pmco;
 
-.extern _spi1_rx_work;
+.extern _spi2_rx_work;
 
 /*----------------------------------------------------------------------
  * _set_rx_bufs / _set_tx_bufs — C-callable (C ABI: args in r4, r8)
@@ -129,9 +129,9 @@ _sec_isr:
     r1 = INTR_SPORT0_A_DMA;
     comp(r0, r1);
     if eq call _sport_dma_work;
-    r1 = INTR_SPI1_STAT;
+    r1 = INTR_SPI2_STAT;
     comp(r0, r1);
-    if eq call _spi1_rx_work;
+    if eq call _spi2_rx_work;
 
     dm(REG_SEC0_END) = r0;        /* acknowledge source */
 

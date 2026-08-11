@@ -13,13 +13,16 @@ Config registers live at 0xF000+ and are written with ramp id 0.
 
 Chip select: the D24 Digital board drives CS1..CS8 from Pi GPIOs (not
 the hardware CE lines), so this tool takes --cs-gpio and drives it via
-gpiod around each transfer. SPI_RDY flow control (CS3/CS4 back to the
-Pi) is NOT yet honoured — bring-up TODO.
+gpiod around each transfer. Read off the DSP4 PI header J6 (page 7/10):
+CS1 = GPIO6 -> chip 1, CS2 = GPIO7 -> chip 2. (GPIO5 is CS7, not CS1 —
+the examples here said 5/6 until 2026-08-11.) SPI_RDY flow control
+(CS3 = GPIO8, CS4 = GPIO12, back from the card) is NOT yet honoured on
+the host side — bring-up TODO; the DSP side enables it in dma_config.c.
 
 Usage examples:
-  dsp4_config.py --product d24 --chip 1 --cs-gpio 5      # config chip 1
-  dsp4_config.py --product d24 --chip 2 --cs-gpio 6
-  dsp4_config.py --poke 0xF000 1 --chip 1 --cs-gpio 5    # raw register
+  dsp4_config.py --product d24 --chip 1 --cs-gpio 6      # config chip 1
+  dsp4_config.py --product d24 --chip 2 --cs-gpio 7
+  dsp4_config.py --poke 0xF000 1 --chip 1 --cs-gpio 6    # raw register
   dsp4_config.py --product d24 --dry-run                 # print writes
 
 Requires: python3-spidev, python3-libgpiod on the Pi (only for real

@@ -68,7 +68,13 @@ module dsp4_logic_top (
     input  wire        pcm_dout,
     output wire        pcm_din,
 
-    output wire        blink_led    // heartbeat
+    output wire        blink_led,   // heartbeat -> LD1
+
+    // Bring-up test points, pins 13/12/8/7 -> J1/J2 P17-P20 -> D24
+    // Digital J15 (a DNP DIL254-10: pin 1/2 = +3V3, odd 3-9 = GND, even
+    // 4-10 = TEST1..TEST4, so every signal has a ground beside it).
+    // Nothing else on either board drives these nets.
+    output wire [3:0]  test         // {TEST4, TEST3, TEST2, TEST1}
 );
 
     `include "../generated/dsp4_slot_map.vh"
@@ -143,6 +149,22 @@ module dsp4_logic_top (
     assign no[1] = o_dspb[5];
     assign no[2] = o_dspb[6];
     assign no[3] = o_dspb[7];
+
+    // ---- Bring-up test points ----
+    // Existing clkgen nets only, so LE count is unchanged (156); the
+    // cost is 4 pins plus the extra output loading on these nets, which
+    // moved 1270Z Fmax 68.24 -> 67.06 MHz. Keep it that way: D8's STA
+    // gate is the guard, and on the rev-D 570Z part the margin is both
+    // thinner and noisy (50.67 MHz measured 2026-08-07, 55.88 MHz on
+    // 2026-08-11 with these pins added — that spread is fitter placement
+    // variance, not a real improvement, so trust the gate, not a
+    // remembered percentage).
+    // Together these prove clock generation and frame alignment on a
+    // scope without a DSP image loaded.
+    assign test[0] = fs8;             // TEST1: 48 kHz frame sync, TDM8
+    assign test[1] = bck8;            // TEST2: 12.288 MHz bit clock
+    assign test[2] = fs16;            // TEST3: 48 kHz frame sync, TDM16
+    assign test[3] = frame_pos[9];    // TEST4: 24 kHz square, frame phase
 
     // ---- Heartbeat (~1.4 Hz from a 25-bit divider) ----
     reg [24:0] hb;

@@ -26,6 +26,7 @@ export ANALOGD_LICENSE_FILE="$HOME/.analog/cces/license.dat"
 CC21K="$CCES_DIR/cc21k"
 ASM21K="$CCES_DIR/easm21k"
 LD21K="$CCES_DIR/linker"
+LDR21K="$CCES_DIR/elfloader"
 
 # Processor target
 # Default target is ADSP-21564. Set PROC_TARGET=ADSP-21568 only when using
@@ -78,7 +79,10 @@ Reason:      full CCES licence (AD-CCES-NODE-1) pending; this host is
              entitled to ADSP-21568 only, so -proc ADSP-21564 fails.
 Validity:    proves toolchain, codegen, link and memory fit. Says nothing
              about 21564 part-specific behaviour. Do not flash to hardware
-             or publish as a release artifact.
+             or publish as a release artifact. This applies to the .ldr
+             boot streams beside the DXEs too — they are bootable, and a
+             fit-proxy image booted into a real 21564 is not a test, it
+             is an unknown.
 EOF
     echo "  Marker: $BUILD_DIR/COMPAT-BUILD.txt"
 }
@@ -245,17 +249,97 @@ build() {
     echo "=== Build OK ==="
     echo "  Chip 1: $BUILD_DIR/chip1.dxe"
     echo "  Chip 2: $BUILD_DIR/chip2.dxe"
+    loader || total_errors=$((total_errors+1))
     compat_marker
     compat_banner
     echo ""
     count
 }
 
+# ---- Boot streams (.ldr) ------------------------------------------------
+# A .dxe is not bootable. The card has no boot flash: SYS_BMODE[2:0] is
+# strapped 0b010 = SPI slave boot through the SPI2 peripheral, and the
+# CM4 pushes the stream (CS1 -> chip 1, CS2 -> chip 2). See
+# tools/pi/dsp4_boot.py for the host side.
+#
+#   -b SPI      slave/master share the SPI stream format
+#   -bcode 1    single-bit SPI (HRM Table 40-19, SPIS_BCODE 00xx); this
+#               is also elfloader's default for SPI, pinned so a future
+#               default change cannot silently alter the image
+#   -f BINARY   raw bytes for spidev, not ASCII hex
+#   -width 8    byte-wide stream
+#
+# The entry address is NOT passed on the command line: the ELF header
+# carries no entry point, so elfloader defaults to 0x90004 — which IS the
+# right answer here (IVT base 0x00090000 + RSTI at offset 0x004). The
+# check below asserts that, because if the IVT layout ever moves, a
+# silently wrong entry address produces a board that boots into garbage.
+loader() {
+    local rc=0 f
+    echo "--- Boot streams ---"
+    for f in chip1 chip2; do
+        [ -f "$BUILD_DIR/$f.dxe" ] || continue
+        if ! "$LDR21K" $PROC -b SPI -bcode 1 -f BINARY -width 8 \
+                -o "$BUILD_DIR/$f.ldr" "$BUILD_DIR/$f.dxe" \
+                > "$BUILD_DIR/$f.ldr.log" 2>&1; then
+            echo "  ERROR: elfloader failed for $f (see $BUILD_DIR/$f.ldr.log)"
+            rc=1
+            continue
+        fi
+        if ! grep -q "Defaulting to 0x90004" "$BUILD_DIR/$f.ldr.log"; then
+            echo "  ERROR: $f.ldr entry address is not the RSTI vector 0x90004."
+            echo "         Check seg_rth placement in the LDF and src/ivt.asm."
+            rc=1
+            continue
+        fi
+        echo "  $f.ldr: $(stat -c %s "$BUILD_DIR/$f.ldr") bytes"
+    done
+    return $rc
+}
+
+# ---- Blink image ("is this board alive?") --------------------------------
+# Standalone minimal image: LED toggle only, no SRU/SPORT/DMA/SEC/SPI.
+# Separates "the boot stream never landed" from "it landed but the
+# plumbing hangs" — see src/blink/blink.asm. Links against the same LDF;
+# the unused regions simply stay empty.
+blink() {
+    echo "=== Build blink image ==="
+    compat_banner
+    resolve_ldf
+    mkdir -p "$BUILD_DIR/blink"
+    local rc=0 c
+    for c in 1 2; do
+        $ASM21K $ASMFLAGS -DCHIP_ID=$c \
+            -o "$BUILD_DIR/blink/blink$c.doj" "$SRC_DIR/blink/blink.asm" \
+            || { rc=1; continue; }
+        $ASM21K $ASMFLAGS -DCHIP_ID=$c -nwc \
+            -o "$BUILD_DIR/blink/blink_ivt$c.doj" "$SRC_DIR/blink/blink_ivt.asm" \
+            || { rc=1; continue; }
+        $LD21K $LDFLAGS -Map "$BUILD_DIR/blink$c.map.xml" \
+            -o "$BUILD_DIR/blink$c.dxe" \
+            "$BUILD_DIR/blink/blink_ivt$c.doj" "$BUILD_DIR/blink/blink$c.doj" \
+            || { rc=1; continue; }
+        "$LDR21K" $PROC -b SPI -bcode 1 -f BINARY -width 8 \
+            -o "$BUILD_DIR/blink$c.ldr" "$BUILD_DIR/blink$c.dxe" \
+            > "$BUILD_DIR/blink$c.ldr.log" 2>&1 || { rc=1; continue; }
+        if ! grep -q "Defaulting to 0x90004" "$BUILD_DIR/blink$c.ldr.log"; then
+            echo "  ERROR: blink$c.ldr entry address is not the RSTI vector"
+            rc=1; continue
+        fi
+        echo "  blink$c.ldr: $(stat -c %s "$BUILD_DIR/blink$c.ldr") bytes" \
+             "(chip $c, ~$([ $c = 1 ] && echo 1 || echo 2) Hz on PA_12)"
+    done
+    compat_marker
+    [ $rc -eq 0 ] && echo "=== Blink OK ===" || echo "=== Blink FAILED ==="
+    return $rc
+}
+
 case "${1:-build}" in
     clean) clean ;;
     build) build ;;
     all)   clean && build ;;
+    blink) blink ;;
     count) count ;;
     single) single "$2" ;;
-    *)     echo "Usage: $0 [clean|build|all|count|single <asm-file>]"; exit 1 ;;
+    *)     echo "Usage: $0 [clean|build|all|blink|count|single <asm-file>]"; exit 1 ;;
 esac

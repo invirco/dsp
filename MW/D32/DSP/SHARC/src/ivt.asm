@@ -1,17 +1,38 @@
 /*======================================================================
  * ivt.asm — ADSP-21564 Interrupt Vector Table (static, fixed at boot)
  *
- * Placed in seg_rth at 0x000C0000 by the LDF.
- * Each vector entry: 4 PM-word instructions.
+ * Placed in seg_rth at NW address 0x00090000 by the LDF, assembled with
+ * -nwc so every entry is a 48-bit NW instruction. Each vector entry is
+ * exactly 4 instructions (offset = slot index × 4).
  *
- * Vectors used (slot = IRPTL bit, 4 PM words each):
- *   0  — Reset -> _start
- *   15 — SECI (SEC interrupt) -> _sec_isr, which demuxes ALL
- *        peripheral sources (block-clock SPORT DMA, SPI1 param link)
- *        via SEC_CSID (sys events route through the SEC on 2156x —
- *        there are no direct per-peripheral core vectors).
+ * The slot names and offsets below are the HARDWARE table, taken from
+ * the CCES core support file
+ * SHARC/lib/src/crt_src/int_vector_code_SC5XX.asm under __ADSP2156x__
+ * (cross-checked against the ADI_CID_* codes in SHARC/include/
+ * interrupt.h, whose top byte is the IRPTL/IMASK bit). Do not renumber
+ * them by hand.
  *
- * All other vectors: rti fillers.
+ * Vectors used here:
+ *   0x004  RSTI  -> _start
+ *   0x03C  SECI  -> _sec_isr, which demuxes ALL peripheral sources
+ *                   (block-clock SPORT DMA, SPI2 param link) via
+ *                   SEC_CSID. System events route through the SEC on
+ *                   2156x — there are no direct per-peripheral core
+ *                   vectors, so this is the only live handler.
+ * Everything else is an RTI filler.
+ *
+ * HISTORY — 2026-08-11: this table used to open with an unnumbered
+ * `_ivt_default` filler block, which pushed every labelled entry one
+ * slot later than its comment claimed. Reset survived by luck (the
+ * filler landed on EMUI, so `jump _start` landed on RSTI), but
+ * `jump _sec_isr` landed at 0x040 — a reserved slot — while SECI at
+ * 0x03C held an RTI. On hardware that is a DSP that boots, reaches
+ * .wait_boot, and hangs forever: no block-clock interrupt, no SPI
+ * parameter interrupt, no product config. Verified against the linked
+ * chip1.dxe before and after. Never place unnumbered code in this
+ * section.
+ *
+ * Infrastructure (hand-maintained).
  *======================================================================*/
 
 .extern _start;
@@ -19,91 +40,46 @@
 
 .section/pm seg_rth;
 
-/* --------------------------------------------------------------------
- * Default handler — used for all un-assigned vectors
- * ------------------------------------------------------------------ */
-_ivt_default:
-    rti; nop; nop; nop;
+/* Offset 0x000 — EMUI    Emulator interrupt          */ rti; nop; nop; nop;
+/* Offset 0x004 — RSTI    Reset                       */ jump _start; nop; nop; nop;
+/* Offset 0x008 — (reserved)                          */ rti; nop; nop; nop;
+/* Offset 0x00C — PARI    L1 parity error             */ rti; nop; nop; nop;
+/* Offset 0x010 — ILOPI   Illegal opcode              */ rti; nop; nop; nop;
+/* Offset 0x014 — CB7I    Circular buffer 7 overflow  */ rti; nop; nop; nop;
+/* Offset 0x018 — IICDI   Unaligned long-word access  */ rti; nop; nop; nop;
+/* Offset 0x01C — SOVFI   Status/loop/PC stack        */ rti; nop; nop; nop;
+/* Offset 0x020 — ILADI   Illegal address space       */ rti; nop; nop; nop;
+/* Offset 0x024 — (reserved)                          */ rti; nop; nop; nop;
+/* Offset 0x028 — (reserved)                          */ rti; nop; nop; nop;
+/* Offset 0x02C — TMZHI   Timer=0 (high priority)     */ rti; nop; nop; nop;
+/* Offset 0x030 — BKPI    Hardware breakpoint         */ rti; nop; nop; nop;
+/* Offset 0x034 — FIRI    FIR channel completion      */ rti; nop; nop; nop;
+/* Offset 0x038 — IIRI    IIR channel completion      */ rti; nop; nop; nop;
 
 /* ====================================================================
- * Offset 0x000 — Vector  0: Reset
+ * Offset 0x03C — SECI: system event controller. The ONLY live
+ * peripheral path — SPORT DMA block clock and the SPI2 parameter link
+ * both arrive here and are demuxed by _sec_isr via SEC_CSID.
  * ==================================================================== */
-    jump _start; nop; nop; nop;
+                                                          jump _sec_isr; nop; nop; nop;
 
-/* Offset 0x004 — Vector  1 */ rti; nop; nop; nop;
-/* Offset 0x008 — Vector  2 */ rti; nop; nop; nop;
-/* Offset 0x00C — Vector  3 */ rti; nop; nop; nop;
-/* Offset 0x010 — Vector  4 */ rti; nop; nop; nop;
-/* Offset 0x014 — Vector  5 */ rti; nop; nop; nop;
-/* Offset 0x018 — Vector  6 */ rti; nop; nop; nop;
-/* Offset 0x01C — Vector  7 */ rti; nop; nop; nop;
-/* Offset 0x020 — Vector  8 */ rti; nop; nop; nop;
-/* Offset 0x024 — Vector  9 */ rti; nop; nop; nop;
-/* Offset 0x028 — Vector 10 */ rti; nop; nop; nop;
-/* Offset 0x02C — Vector 11 */ rti; nop; nop; nop;
-/* Offset 0x030 — Vector 12 */ rti; nop; nop; nop;
-/* Offset 0x034 — Vector 13 */ rti; nop; nop; nop;
-/* Offset 0x038 — Vector 14 */ rti; nop; nop; nop;
-/* Offset 0x03C — Vector 15: SECI */ jump _sec_isr; nop; nop; nop;
-/* Offset 0x040 — Vector 16 */ rti; nop; nop; nop;
-/* Offset 0x044 — Vector 17 */ rti; nop; nop; nop;
-/* Offset 0x048 — Vector 18 */ rti; nop; nop; nop;
-/* Offset 0x04C — Vector 19 */ rti; nop; nop; nop;
-/* Offset 0x050 — Vector 20 */ rti; nop; nop; nop;
-/* Offset 0x054 — Vector 21 */ rti; nop; nop; nop;
-/* Offset 0x058 — Vector 22 */ rti; nop; nop; nop;
-/* Offset 0x05C — Vector 23 */ rti; nop; nop; nop;
+/* Offset 0x040 — (reserved)                          */ rti; nop; nop; nop;
+/* Offset 0x044 — (reserved)                          */ rti; nop; nop; nop;
+/* Offset 0x048 — (reserved)                          */ rti; nop; nop; nop;
+/* Offset 0x04C — (reserved)                          */ rti; nop; nop; nop;
+/* Offset 0x050 — RINSEQI Restricted instr. sequence  */ rti; nop; nop; nop;
+/* Offset 0x054 — CB15I   Circular buffer 15 overflow */ rti; nop; nop; nop;
+/* Offset 0x058 — TMZLI   Timer=0 (low priority)      */ rti; nop; nop; nop;
+/* Offset 0x05C — FIXI    Fixed-point overflow        */ rti; nop; nop; nop;
+/* Offset 0x060 — FLTOI   Float overflow              */ rti; nop; nop; nop;
+/* Offset 0x064 — FLTUI   Float underflow             */ rti; nop; nop; nop;
+/* Offset 0x068 — FLTII   Float invalid               */ rti; nop; nop; nop;
+/* Offset 0x06C — EMULI   Emulator low priority       */ rti; nop; nop; nop;
+/* Offset 0x070 — SFT0I   User software interrupt 0   */ rti; nop; nop; nop;
+/* Offset 0x074 — SFT1I   User software interrupt 1   */ rti; nop; nop; nop;
+/* Offset 0x078 — SFT2I   User software interrupt 2   */ rti; nop; nop; nop;
+/* Offset 0x07C — SFT3I   User software interrupt 3   */ rti; nop; nop; nop;
 
-/* ====================================================================
- * Offset 0x060 — Vector 24: SPORT0 DMA completion (both chips)
- * ==================================================================== */
-    rti; nop; nop; nop;          /* retired: SPORT DMA routes via SECI */
-
-/* Offset 0x064 — Vector 25 */ rti; nop; nop; nop;
-/* Offset 0x068 — Vector 26 */ rti; nop; nop; nop;
-/* Offset 0x06C — Vector 27 */ rti; nop; nop; nop;
-/* Offset 0x070 — Vector 28 */ rti; nop; nop; nop;
-/* Offset 0x074 — Vector 29 */ rti; nop; nop; nop;
-/* Offset 0x078 — Vector 30 */ rti; nop; nop; nop;
-/* Offset 0x07C — Vector 31 */ rti; nop; nop; nop;
-/* Offset 0x080 — Vector 32 */ rti; nop; nop; nop;
-/* Offset 0x084 — Vector 33 */ rti; nop; nop; nop;
-/* Offset 0x088 — Vector 34 */ rti; nop; nop; nop;
-/* Offset 0x08C — Vector 35 */ rti; nop; nop; nop;
-
-/* ====================================================================
- * Offset 0x090 — Vector 36: SPI1 RX (both chips)
- * ==================================================================== */
-    rti; nop; nop; nop;          /* retired: SPI1 routes via SECI */
-
-/* Offset 0x094 — Vector 37 */ rti; nop; nop; nop;
-/* Offset 0x098 — Vector 38 */ rti; nop; nop; nop;
-/* Offset 0x09C — Vector 39 */ rti; nop; nop; nop;
-
-/* Offset 0x0A0 — Vector 40 */ rti; nop; nop; nop;
-
-/* Offset 0x0A4..0x0FC — Vectors 41-63: default */
-/* Fill remaining seg_rth space (vectors 41-63 = 23 × 4 instr = 92) */
-/* Offset 0x0A4 — Vector 41 */ rti; nop; nop; nop;
-/* Offset 0x0A8 — Vector 42 */ rti; nop; nop; nop;
-/* Offset 0x0AC — Vector 43 */ rti; nop; nop; nop;
-/* Offset 0x0B0 — Vector 44 */ rti; nop; nop; nop;
-/* Offset 0x0B4 — Vector 45 */ rti; nop; nop; nop;
-/* Offset 0x0B8 — Vector 46 */ rti; nop; nop; nop;
-/* Offset 0x0BC — Vector 47 */ rti; nop; nop; nop;
-/* Offset 0x0C0 — Vector 48 */ rti; nop; nop; nop;
-/* Offset 0x0C4 — Vector 49 */ rti; nop; nop; nop;
-/* Offset 0x0C8 — Vector 50 */ rti; nop; nop; nop;
-/* Offset 0x0CC — Vector 51 */ rti; nop; nop; nop;
-/* Offset 0x0D0 — Vector 52 */ rti; nop; nop; nop;
-/* Offset 0x0D4 — Vector 53 */ rti; nop; nop; nop;
-/* Offset 0x0D8 — Vector 54 */ rti; nop; nop; nop;
-/* Offset 0x0DC — Vector 55 */ rti; nop; nop; nop;
-/* Offset 0x0E0 — Vector 56 */ rti; nop; nop; nop;
-/* Offset 0x0E4 — Vector 57 */ rti; nop; nop; nop;
-/* Offset 0x0E8 — Vector 58 */ rti; nop; nop; nop;
-/* Offset 0x0EC — Vector 59 */ rti; nop; nop; nop;
-/* Offset 0x0F0 — Vector 60 */ rti; nop; nop; nop;
-/* Offset 0x0F4 — Vector 61 */ rti; nop; nop; nop;
-/* Offset 0x0F8 — Vector 62 */ rti; nop; nop; nop;
-/* Offset 0x0FC — Vector 63 */ rti; nop; nop; nop;
+/* End of the hardware table (0x080). The LDF region mem_iv_code runs to
+ * 0x00090103; the remainder is left unwritten rather than padded with
+ * fillers that only pretend to be vectors. */

@@ -17,9 +17,14 @@ Facts below are header/HRM-verified unless marked PROVISIONAL.
   (from ADSP-21564.h).
 - The register addresses currently #defined in sport_init.asm and
   spi_handler.asm (0x0800xxxx) are INVENTED placeholders — replace all
-  register access with `#include <def21564.h>` symbols. (spi_handler's
-  SPI1 addresses have the same problem — same treatment when touched;
-  runtime param link stays on SPI1, SPI2 is boot per BMODE straps.)
+  register access with `#include <def21564.h>` symbols.
+- **The host link is SPI2, not SPI1** (corrected 2026-08-11). The rev-C
+  card wires the Pi to each DSP's SPI2 port (PA_00/01/04/05, SPI_RDY on
+  PB_05 with a 10K pulldown), which is the same port `BMODE[2:0]=0b010`
+  boots from — boot and runtime share it until D8's rev-D SPI0/SPI1
+  remap. `dma_config.c` and both `spi_handler.asm` now use SPI2
+  (0x31030000, SEC source 71) and enable RDY flow control with FCPL=1,
+  which is what the pulldown means per HRM Figure 40-7.
 
 ## Multichannel configuration per half-SPORT
 
@@ -115,6 +120,11 @@ all clock pins. Use `SRU(...)` macros from `sru21564.h`.
 3. **DDE descriptors + SEC**: ping-pong rings, block-clock ISR, ivt
    wiring.
 4. Bring-up on hardware (needs the rev C card; the CCES licence side is
-   done — real 21564 images build since 2026-08-10).
+   done — real 21564 images build since 2026-08-10, and since
+   2026-08-11 the build also emits bootable `.ldr` streams with
+   `tools/pi/dsp4_boot.py` as the host side).
    CKRE/MFD are LOCKED in the slot-map conventions (2026-07-31) and
    both sides derive from them; verify on the wire regardless.
+   Start with `./build.sh blink` (LED only, no plumbing) — if that
+   blinks and the full image does not, the fault is in slices 1-3, not
+   in boot.

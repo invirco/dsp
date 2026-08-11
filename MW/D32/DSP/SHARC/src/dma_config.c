@@ -1,5 +1,5 @@
 /*======================================================================
- * dma_config.c — DDE descriptor rings, SEC, SPI1 slave and SPORT
+ * dma_config.c — DDE descriptor rings, SEC, SPI2 slave and SPORT
  * enable (TODO(dsp4-plumbing) slice 3)
  *
  * Per MW/D32/DSP/dsp4-plumbing.md:
@@ -10,7 +10,7 @@
  *  - The block clock is SPORT0_A_DMA (SEC source 37) on both chips
  *    (chip 1: ADC lane 0; chip 2: mix-fabric lane 0). Its descriptors
  *    carry XCNT_INT so one interrupt fires per buffer half.
- *  - SEC routes source 37 + SPI1 status (source 91) to the core SECI
+ *  - SEC routes source 37 + SPI2 status (source 71) to the core SECI
  *    vector; _sec_isr (sport_init.asm) demuxes via SEC_CSID and acks
  *    via SEC_END.
  *  - After all rings are armed, SPEN(PRI) is set on every configured
@@ -18,9 +18,12 @@
  *    addresses via _set_rx_bufs/_set_tx_bufs (which convert the byte
  *    addresses to the core word view, L1 NW = BW/4).
  *
- * SPI1 runtime param link (D1: Pi masters; CS1->chip1 / CS2->chip2):
- * slave, 32-bit, mode 0; RX watermark interrupt. PROVISIONAL until
- * exercised against the Pi (watermark choice, SPI_RDY flow control).
+ * SPI2 runtime param link (D1: Pi masters; CS1->chip1 / CS2->chip2):
+ * slave, 32-bit, mode 0; RX watermark interrupt + SPI_RDY flow control.
+ * SPI2 (not SPI1) is what the rev-C card wires to the host, and it is
+ * also the BMODE=0b010 slave-boot port — boot and runtime share it
+ * until D8's rev-D SPI0/SPI1 remap. PROVISIONAL until exercised against
+ * the Pi (watermark choice, RDY timing).
  *
  * Infrastructure (hand-maintained). Compiled per chip with -DCHIP_ID.
  *======================================================================*/
@@ -43,7 +46,7 @@
 #define SEC_SCTL_STRIDE 0x8u
 
 #define BLOCK_CLOCK_SRC INTR_SPORT0_A_DMA   /* 37 */
-#define SPI1_STAT_SRC   INTR_SPI1_STAT      /* 91 */
+#define SPI2_STAT_SRC   INTR_SPI2_STAT      /* 71 */
 
 /* Generated lane tables + buffers (chipN/lane_config.c) */
 #if CHIP_ID == 1
@@ -149,17 +152,27 @@ static void sec_init(void)
     REG32(REG_SEC0_GCTL) = BITM_SEC_GCTL_EN;
     REG32(REG_SEC0_CCTL0) = BITM_SEC_CCTL_EN;
     sec_route(BLOCK_CLOCK_SRC);
-    sec_route(SPI1_STAT_SRC);
+    sec_route(SPI2_STAT_SRC);
 }
 
-static void spi1_init(void)
+static void spi2_init(void)
 {
     /* Slave (MSTR=0), 32-bit, mode 0. PROVISIONAL: RX urgent-watermark
-     * interrupt at the lowest threshold; revisit with the Pi link
-     * (flow control via SPI_RDY not yet configured). */
-    REG32(REG_SPI1_RXCTL) = BITM_SPI_RXCTL_REN;
-    REG32(REG_SPI1_IMSK_SET) = BITM_SPI_IMSK_RUWM;
-    REG32(REG_SPI1_CTL) = BITM_SPI_CTL_EN | ENUM_SPI_CTL_SIZE32;
+     * interrupt at the lowest threshold; revisit with the Pi link.
+     *
+     * SPI_RDY flow control on the RX channel (FCEN=1, FCCH=0): the pin
+     * deasserts as the receive FIFO fills, stalling the host. FCPL=1
+     * (active-high) is set by the BOARD, not by taste — SPI2_RDY carries
+     * a 10K pulldown to GND on both DSPs (R34 on DSPA, R22 on DSPB), so
+     * the line reads "not ready" while the part is held in reset. The
+     * HRM's slave-boot figure documents exactly this pairing
+     * (pull-up => FCPL=0, pull-down => FCPL=1). FCWM=1 = deassert at
+     * 75% full, matching what the boot ROM uses. */
+    REG32(REG_SPI2_RXCTL) = BITM_SPI_RXCTL_REN;
+    REG32(REG_SPI2_IMSK_SET) = BITM_SPI_IMSK_RUWM;
+    REG32(REG_SPI2_CTL) = BITM_SPI_CTL_EN | ENUM_SPI_CTL_SIZE32 |
+                          BITM_SPI_CTL_FCEN | BITM_SPI_CTL_FCPL |
+                          ENUM_SPI_CTL_FIFO1;   /* FCWM: RFIFO >= 75% */
 }
 
 #pragma linkage_name _dma_cfg_init
@@ -173,7 +186,7 @@ void dma_cfg_init(void)
                REGION_B_PING, REGION_B_PONG, desc_b);
 
     sec_init();
-    spi1_init();
+    spi2_init();
 
     /* Hand the asm side its buffer views (byte -> word inside) */
     set_rx_bufs(REGION_A_PING, REGION_A_PONG);
