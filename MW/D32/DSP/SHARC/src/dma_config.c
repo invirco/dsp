@@ -157,8 +157,35 @@ static void sec_init(void)
 
 static void spi2_init(void)
 {
-    /* Slave (MSTR=0), 32-bit, mode 0. PROVISIONAL: RX urgent-watermark
-     * interrupt at the lowest threshold; revisit with the Pi link.
+    /* Slave (MSTR=0), 32-bit, mode 0.
+     *
+     * Three fixes here on 2026-08-12, all of which had to be right
+     * before the link could carry a single byte on hardware:
+     *
+     * 1. RUWM was left at 0. SPI_RXCTL.RUWM is the watermark LEVEL, and
+     *    0 does not mean "lowest" — HRM Table 15-30 lists it as
+     *    "Disabled". With it disabled SPI_STAT.RUWM never asserts, so
+     *    the SPI_IMSK_RUWM unmask below could never produce a SEC
+     *    event: no interrupt, no parameter handler, and the DSP waits
+     *    in .wait_boot forever for a config that cannot arrive. At
+     *    32-bit word size SPI_RFIFO is 2 words deep (HRM 15), and one
+     *    protocol transaction is exactly 2 words, so UWM_FULL fires
+     *    once per complete transaction — never mid-transaction, which
+     *    is what a lower threshold would do. RRWM = 0 (empty RFIFO) is
+     *    the deassertion condition: the handler drains both words and
+     *    the request clears itself.
+     *
+     * 2. EMISO was not set. Per HRM Table 15-18 it "enables master-in
+     *    slave-out mode... applicable only when the SPI is a slave" —
+     *    i.e. without it this part never drives MISO at all, and every
+     *    readback returns whatever the bus floats to.
+     *
+     * 3. SPI_TXCTL was never written, so TEN=0 and the transmit side
+     *    was dead even with EMISO set. TTI is deliberately NOT set: the
+     *    HRM restricts it to master mode. A slave with an empty TFIFO
+     *    that is clocked anyway reports SPI_STAT.TUR, which is exactly
+     *    the diagnostic we want, so the underrun is left visible rather
+     *    than papered over.
      *
      * SPI_RDY flow control on the RX channel (FCEN=1, FCCH=0): the pin
      * deasserts as the receive FIFO fills, stalling the host. FCPL=1
@@ -167,10 +194,19 @@ static void spi2_init(void)
      * the line reads "not ready" while the part is held in reset. The
      * HRM's slave-boot figure documents exactly this pairing
      * (pull-up => FCPL=0, pull-down => FCPL=1). FCWM=1 = deassert at
-     * 75% full, matching what the boot ROM uses. */
-    REG32(REG_SPI2_RXCTL) = BITM_SPI_RXCTL_REN;
+     * 75% full, matching what the boot ROM uses; against a 2-deep FIFO
+     * that is "stall once a whole transaction is waiting".
+     *
+     * All five of these registers are readable back over the diagnostic
+     * block (DIAG_SPI_CTL / RXCTL / TXCTL / STAT), so the bench can
+     * confirm the part actually took this configuration instead of
+     * inferring it from source. */
+    REG32(REG_SPI2_RXCTL) = BITM_SPI_RXCTL_REN | ENUM_SPI_RXCTL_UWM_FULL |
+                            ENUM_SPI_RXCTL_RWM_0;
+    REG32(REG_SPI2_TXCTL) = BITM_SPI_TXCTL_TEN;
     REG32(REG_SPI2_IMSK_SET) = BITM_SPI_IMSK_RUWM;
     REG32(REG_SPI2_CTL) = BITM_SPI_CTL_EN | ENUM_SPI_CTL_SIZE32 |
+                          BITM_SPI_CTL_EMISO |
                           BITM_SPI_CTL_FCEN | BITM_SPI_CTL_FCPL |
                           ENUM_SPI_CTL_FIFO1;   /* FCWM: RFIFO >= 75% */
 }

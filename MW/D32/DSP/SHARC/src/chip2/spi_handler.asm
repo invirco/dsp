@@ -32,12 +32,21 @@
  * rev-D change and must not be made here early.
  *======================================================================*/
 
+#include "../diag.h"
+
 /* ---- ADSP-21564 SPI register addresses (from HRM) ---- */
 /* Real ADSP-2156x SPI2 MMR addresses (sys/ADSP-21564.h) */
 #define SPI2_RFIFO   0x31030050   /* SPI2 receive FIFO */
 #define SPI2_TFIFO   0x31030058   /* SPI2 transmit FIFO */
 #define SPI2_STAT    0x31030040   /* SPI2 status */
 #define SPI2_CTL     0x31030004   /* SPI2 control */
+
+/* SPI_STAT.TFS (bits 18:16) == 4 means "Empty TFIFO" (HRM Table 15-32).
+ * At 32-bit word size SPI_TFIFO is only 2 words deep, which is exactly
+ * one read response — so a response may only be queued into an empty
+ * FIFO, or every later answer shifts by one. */
+#define SPI2_TFS_MASK   0x00070000
+#define SPI2_TFS_EMPTY  0x00040000
 
 /* ---- Address space ---- */
 #define RAMP_PROFILE_SHIFT 8     /* bits 11:8 = ramp profile ID */
@@ -65,24 +74,42 @@
 .extern _spi_dispatch_c2;
 .extern _spi_dispatch_c2_size;   /* bounds for dispatch (generated) */
 
-/* SPI stats (debug) */
+/* SPI stats — exposed read-only as DIAG_SPI_RX_COUNT /
+ * DIAG_SPI_ERR_COUNT, and zeroed by a write to DIAG_CLEAR. */
+.global _spi_rx_count;
 .var _spi_rx_count = 0;
+.global _spi_err_count;
 .var _spi_err_count = 0;
+
+.extern _diag_spi_stat_stk;
+.extern _diag_resp_drop;
 
 
 .extern _product_config_write;
+.extern _diag_read;
+.extern _diag_write;
 
 .section/pm seg_pmco;
 
 /*----------------------------------------------------------------------
  * _spi2_rx_work — SPI2 receive handler
  *
- * Called from _sec_isr (SEC source INTR_SPI1_STAT) with secondary
+ * Called from _sec_isr (SEC source INTR_SPI2_STAT) with secondary
  * r0-r7 + DAG1 low active. Reads one {address, value} pair from the
  * RX FIFO.
  *----------------------------------------------------------------------*/
 .global _spi2_rx_work;
 _spi2_rx_work:
+    /* Sample SPI_STAT before draining the FIFO and OR it into the
+     * sticky latch: RUWM and the FIFO-status fields clear as soon as
+     * the reads below empty RFIFO, so a later poll from the host can
+     * never see them. ROR/TUR/MF/TC are the ones that matter — a
+     * receive overrun or a mode fault is otherwise silent. */
+    r2 = dm(SPI2_STAT);
+    r3 = dm(_diag_spi_stat_stk);
+    r3 = r3 OR r2;
+    dm(_diag_spi_stat_stk) = r3;
+
     r0 = dm(SPI2_RFIFO);          /* Word 0: address + flags */
     r1 = dm(SPI2_RFIFO);          /* Word 1: coefficient value */
 
@@ -116,6 +143,14 @@ _spi2_rx_work:
     r4 = 0xF000;
     comp(r2, r4);
     if ge jump (pc, .spi_config);
+
+    /* Diagnostic block at 0xE000+ (diag.asm). Mostly read-only; the
+     * writable few are LED mode, the peek address and the counter
+     * clear. Unknown addresses in range are ignored, NOT counted as
+     * errors — DIAG_NOP depends on that. */
+    r4 = DIAG_BASE;
+    comp(r2, r4);
+    if ge jump (pc, .spi_diag_write);
 
     /* Bounds check address against dispatch table size (generated) */
     r4 = dm(_spi_dispatch_c2_size);
@@ -203,6 +238,11 @@ _spi2_rx_work:
     call _product_config_write;
     jump (pc, .spi_done);
 
+.spi_diag_write:
+    /* r2 = diag address (0xE000+), r1 = value */
+    call _diag_write;
+    jump (pc, .spi_done);
+
 .spi_error:
     r2 = dm(_spi_err_count);
     r5 = 1;
@@ -213,7 +253,14 @@ _spi2_rx_work:
     rts;
 
 .spi_read:
-    /* READ request: look up DM value at address in r2, write to TFIFO */
+    /* READ request: resolve the value, then queue it with an echo of
+     * the request word. The response is collected by the master's
+     * NEXT transaction — the RX watermark only fires once both words
+     * of THIS one are in, by which point MISO has already been
+     * shifted. See the protocol note at the top of diag.asm. */
+    r4 = DIAG_BASE;
+    comp(r2, r4);
+    if ge jump (pc, .spi_read_diag);
     r4 = dm(_spi_dispatch_c2_size);
     comp(r2, r4);
     if ge jump (pc, .spi_read_zero);     /* out-of-range → return 0 */
@@ -227,9 +274,29 @@ _spi2_rx_work:
     i1 = r4;
     r4 = dm(i1, 0);                      /* read value from DM */
     jump (pc, .spi_read_respond);
+.spi_read_diag:
+    call _diag_read;                     /* r4 = value; r0 preserved */
+    jump (pc, .spi_read_respond);
 .spi_read_zero:
     r4 = 0;
 .spi_read_respond:
-    dm(SPI2_TFIFO) = r4;                 /* preload TX FIFO for master readback */
+    /* Only queue into an EMPTY TFIFO (2 words deep at 32-bit). If the
+     * host has not collected the previous answer, drop this one and
+     * count it: a dropped response is recoverable, a FIFO overflow
+     * silently misaligns every answer that follows. */
+    r5 = dm(SPI2_STAT);
+    r6 = SPI2_TFS_MASK;
+    r5 = r5 AND r6;
+    r6 = SPI2_TFS_EMPTY;
+    comp(r5, r6);
+    if ne jump (pc, .spi_read_drop);
+    dm(SPI2_TFIFO) = r0;                 /* echo of the request word 0 */
+    dm(SPI2_TFIFO) = r4;                 /* value */
+    jump (pc, .spi_done);
+.spi_read_drop:
+    r5 = dm(_diag_resp_drop);
+    r6 = 1;
+    r5 = r5 + r6;
+    dm(_diag_resp_drop) = r5;
     jump (pc, .spi_done);
 _spi2_rx_work.end:

@@ -34,8 +34,9 @@ LDR21K="$CCES_DIR/elfloader"
 PROC_TARGET="${PROC_TARGET:-ADSP-21564}"
 PROC="-proc $PROC_TARGET"
 
-# Assembler flags
-ASMFLAGS="$PROC"
+# Assembler flags. -I <src> so shared asm headers (src/diag.h) resolve the
+# same way from src/, src/chipN/ and src/lib/.
+ASMFLAGS="$PROC -I $SRC_DIR"
 
 # Compiler flags (for any C files)
 CFLAGS="$PROC -O -DNDEBUG"

@@ -127,4 +127,7 @@ all clock pins. Use `SRU(...)` macros from `sru21564.h`.
    both sides derive from them; verify on the wire regardless.
    Start with `./build.sh blink` (LED only, no plumbing) — if that
    blinks and the full image does not, the fault is in slices 1-3, not
-   in boot.
+   in boot. Since 2026-08-12 the full image narrows that further by
+   itself: LED fault codes say which bring-up step it stopped at, and
+   `tools/pi/dsp4_diag.py` reads the state out over SPI. Procedure and
+   register map: `diagnostics.md`.

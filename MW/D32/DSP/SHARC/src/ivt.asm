@@ -19,6 +19,13 @@
  *                   SEC_CSID. System events route through the SEC on
  *                   2156x — there are no direct per-peripheral core
  *                   vectors, so this is the only live handler.
+ *   0x058  TMZLI -> _diag_timer_isr, the core-timer tick behind the LED
+ *                   fault codes (diag.asm). Core-internal: it does not
+ *                   pass through the SEC, does not depend on the audio
+ *                   clock, and is armed before any peripheral bring-up
+ *                   runs — so it still flashes when everything the SECI
+ *                   path needs is dead. Lower priority than SECI, so
+ *                   audio always wins.
  * Everything else is an RTI filler.
  *
  * HISTORY — 2026-08-11: this table used to open with an unnumbered
@@ -37,6 +44,7 @@
 
 .extern _start;
 .extern _sec_isr;
+.extern _diag_timer_isr;
 
 .section/pm seg_rth;
 
@@ -69,7 +77,7 @@
 /* Offset 0x04C — (reserved)                          */ rti; nop; nop; nop;
 /* Offset 0x050 — RINSEQI Restricted instr. sequence  */ rti; nop; nop; nop;
 /* Offset 0x054 — CB15I   Circular buffer 15 overflow */ rti; nop; nop; nop;
-/* Offset 0x058 — TMZLI   Timer=0 (low priority)      */ rti; nop; nop; nop;
+/* Offset 0x058 — TMZLI   Timer=0 (low priority)      */ jump _diag_timer_isr; nop; nop; nop;
 /* Offset 0x05C — FIXI    Fixed-point overflow        */ rti; nop; nop; nop;
 /* Offset 0x060 — FLTOI   Float overflow              */ rti; nop; nop; nop;
 /* Offset 0x064 — FLTUI   Float underflow             */ rti; nop; nop; nop;

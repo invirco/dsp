@@ -14,7 +14,8 @@
  *    convert byte addresses to the core word view (L1 NW = BW/4);
  *  - _sec_isr: the core SECI vector handler (IVT slot 15) — reads
  *    SEC_CSID, dispatches the block clock (SPORT0_A_DMA, source 37)
- *    and the SPI1 param link (source 91), acks via SEC_END;
+ *    and the SPI2 param link (INTR_SPI2_STAT, source 71), acks via
+ *    SEC_END;
  *  - _sport_dma_work: per-block ping/pong toggle + block_ready.
  *
  * Bring-up notes: ISR uses secondary registers (SRRFL + DAG1 low) so
@@ -67,6 +68,22 @@
 .global _frame_count;
 .var _frame_count = 0;
 
+/* SEC source id currently being serviced. Held in DM rather than a
+ * register because _spi2_rx_work clobbers r0 (it reads SPI2_RFIFO into
+ * it), so the id read at the top of _sec_isr does NOT survive the
+ * dispatch — writing a stale r0 to SEC_END would acknowledge the wrong
+ * source and leave the real one asserted. Found 2026-08-12; the whole
+ * SPI path would have wedged after its first interrupt. Also exposed
+ * read-only as DIAG_LAST_CSID. */
+.global _sec_active_csid;
+.var _sec_active_csid = 0;
+
+/* Diagnostic counters (diag.asm owns the storage) */
+.extern _diag_sec_count;
+.extern _diag_unk_csid;
+.extern _diag_unk_count;
+.extern _diag_blk_overrun;
+
 /* Chip identity (defined in main.asm) */
 .extern _chip_id;
 
@@ -111,8 +128,10 @@ _set_tx_bufs.end:
 /*----------------------------------------------------------------------
  * _sec_isr — core SECI vector (IVT slot 15)
  *
- * Demux via SEC_CSID: block clock (SPORT0_A_DMA = 37) and SPI1 status
- * (= 91). Ack by writing the source id to SEC_END. Banks the FULL
+ * Demux via SEC_CSID: block clock (SPORT0_A_DMA = 37) and SPI2 status
+ * (INTR_SPI2_STAT = 71). Ack by writing the source id to SEC_END —
+ * reloaded from _sec_active_csid, not from r0, which the handlers
+ * clobber. Banks the FULL
  * register file + DAG1 (SRRFL/SRRFH/SRD1L/SRD1H): the ramp path uses
  * i4/f8/f10/r10, so low-half banking alone would corrupt the
  * interrupted block processing. DAG2/PM registers are not used on the
@@ -126,13 +145,36 @@ _sec_isr:
     push sts;
 
     r0 = dm(REG_SEC0_CSID0);      /* active source id */
+    dm(_sec_active_csid) = r0;    /* survives the handlers; see above */
+
+    r2 = dm(_diag_sec_count);
+    r2 = r2 + 1;
+    dm(_diag_sec_count) = r2;
+
     r1 = INTR_SPORT0_A_DMA;
     comp(r0, r1);
-    if eq call _sport_dma_work;
+    if eq jump (pc, .sec_block);
     r1 = INTR_SPI2_STAT;
     comp(r0, r1);
-    if eq call _spi2_rx_work;
+    if eq jump (pc, .sec_spi);
 
+    /* No handler for this source. Silently acking it would hide a
+     * misrouted SEC configuration, so record what arrived. */
+    dm(_diag_unk_csid) = r0;
+    r2 = dm(_diag_unk_count);
+    r2 = r2 + 1;
+    dm(_diag_unk_count) = r2;
+    jump (pc, .sec_ack);
+
+.sec_block:
+    call _sport_dma_work;
+    jump (pc, .sec_ack);
+
+.sec_spi:
+    call _spi2_rx_work;
+
+.sec_ack:
+    r0 = dm(_sec_active_csid);    /* reload: the handlers clobber r0 */
     dm(REG_SEC0_END) = r0;        /* acknowledge source */
 
     pop sts;
@@ -184,7 +226,19 @@ _sport_dma_work:
     dm(_tx_active_buf) = r3;
 #endif
 
-    /* Signal block ready */
+    /* Signal block ready. If it was ALREADY set, the main loop did not
+     * finish the previous block before this one landed — the buffer
+     * pointers have moved on regardless, so that block's audio is lost.
+     * DIAG_BLK_OVERRUN counting up is the "the DSP cannot keep up"
+     * indicator, and it is invisible from outside without this. */
+    r2 = dm(_block_ready);
+    r3 = 0;
+    comp(r2, r3);
+    if eq jump (pc, .blk_no_overrun);
+    r2 = dm(_diag_blk_overrun);
+    r2 = r2 + 1;
+    dm(_diag_blk_overrun) = r2;
+.blk_no_overrun:
     r2 = 1;
     dm(_block_ready) = r2;
 

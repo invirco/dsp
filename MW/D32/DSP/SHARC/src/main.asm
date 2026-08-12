@@ -24,6 +24,7 @@
  *======================================================================*/
 
 #include <def21564.h>
+#include "diag.h"
 
 /* Chip identity is COMPILE-TIME, not detected. Resolved 2026-08-11
  * against the rev-C schematic: the DSPA (U6) and DSPB (U5) sheets are
@@ -55,6 +56,8 @@
 .extern _sru_init;
 .extern _sport_cfg_init;
 .extern _dma_cfg_init;
+.extern _diag_init;
+.extern _diag_boot_stage;
 .extern ldf_stack_space, ldf_stack_length;
 .extern _block_ready;
 .extern _rx_active_buf, _tx_active_buf;
@@ -98,19 +101,38 @@ _start:
     i6 = i7;
     l6 = 0;
 
+    /* Diagnostics FIRST, before any peripheral touches hardware: it
+     * arms the core timer that drives the LED fault codes, so from here
+     * on a hang anywhere below still flashes the stage it reached
+     * (diag.asm). It enables interrupts globally too — only TMZLI is
+     * unmasked at this point, so nothing else can fire yet. */
+    call _diag_init;
+
     /* Register bring-up (C, per dsp4-plumbing.md): DAI/SRU routing,
      * half-SPORT multichannel config, then DDE descriptor rings + SEC
      * + SPI2 slave + SPEN (dma_config.c also hands the asm side its
-     * buffer pointers). */
+     * buffer pointers). Each stamp means "the call above returned", so
+     * N flashes on the LED reads as "stuck in step N+1". */
     call _sru_init;
+    r0 = DIAG_STAGE_SRU;
+    dm(_diag_boot_stage) = r0;
+
     call _sport_cfg_init;
+    r0 = DIAG_STAGE_SPORT;
+    dm(_diag_boot_stage) = r0;
+
     call _dma_cfg_init;
+    r0 = DIAG_STAGE_DMA;
+    dm(_diag_boot_stage) = r0;
 
     /* Unmask the SEC core interrupt and enable interrupts globally —
      * needed before .wait_boot: the product config arrives over SPI. */
     bit set imask BITM_REGF_IMASK_SECI;
     bit set mode1 BITM_REGF_MODE1_IRPTEN;
     nop;
+
+    r0 = DIAG_STAGE_WAITCFG;
+    dm(_diag_boot_stage) = r0;
 
     /* Wait for product config from the Pi/CM4 host (D1) — the host
      * writes the 0xF000+ config registers then CONFIG_COMMIT, which
@@ -133,6 +155,13 @@ _start:
     /* Clear block-ready flag */
     r0 = 0;
     dm(_block_ready) = r0;
+
+    /* Audio is flowing: the LED switches from fault codes to a steady
+     * 1 Hz square. Restamped every block so a stall that leaves the
+     * main loop alive still reads 7 — DIAG_FRAME_COUNT is the register
+     * that tells you whether blocks are still arriving. */
+    r0 = DIAG_STAGE_RUNNING;
+    dm(_diag_boot_stage) = r0;
 
     /* ---- Block processing: 32 samples per block ---- */
 #if CHIP_ID == 1

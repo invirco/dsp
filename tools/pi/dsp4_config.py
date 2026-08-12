@@ -16,13 +16,17 @@ the hardware CE lines), so this tool takes --cs-gpio and drives it via
 gpiod around each transfer. Read off the DSP4 PI header J6 (page 7/10):
 CS1 = GPIO6 -> chip 1, CS2 = GPIO7 -> chip 2. (GPIO5 is CS7, not CS1 —
 the examples here said 5/6 until 2026-08-11.) SPI_RDY flow control
-(CS3 = GPIO8, CS4 = GPIO12, back from the card) is NOT yet honoured on
-the host side — bring-up TODO; the DSP side enables it in dma_config.c.
+(CS3 = GPIO8 for chip 1, CS4 = GPIO12 for chip 2, back from the card)
+is honoured when --rdy-gpio is given; see SpiLink.
+
+For reading registers back off a running DSP, use dsp4_diag.py — it
+implements the two-transaction read protocol on top of this SpiLink.
 
 Usage examples:
   dsp4_config.py --product d24 --chip 1 --cs-gpio 6      # config chip 1
   dsp4_config.py --product d24 --chip 2 --cs-gpio 7
   dsp4_config.py --poke 0xF000 1 --chip 1 --cs-gpio 6    # raw register
+  dsp4_config.py --product d24 --chip 1 --cs-gpio 6 --rdy-gpio 8
   dsp4_config.py --product d24 --dry-run                 # print writes
 
 Requires: python3-spidev, python3-libgpiod on the Pi (only for real
@@ -87,7 +91,24 @@ def frame(addr, value, ramp_id=0, read=False):
 
 
 class SpiLink:
-    def __init__(self, dev, speed_hz, cs_gpio=None, gpiochip='gpiochip0'):
+    """One host->DSP SPI link, with optional GPIO chip select and SPI_RDY.
+
+    SPI_RDY (--rdy-gpio; CS3 = GPIO8 for chip 1, CS4 = GPIO12 for chip 2)
+    is the DSP's flow-control output. The DSP enables it in dma_config.c
+    with FCPL=1, so the line reads HIGH when the part is ready and LOW
+    when its receive FIFO is backed up — and also low while the part is
+    held in reset, because SPI2_RDY carries a 10K pulldown (R34/R22).
+    Polling it therefore does double duty: it paces the link, and a line
+    that never goes high says the DSP is dead or in reset before a single
+    transaction has been attempted.
+
+    PROVISIONAL: the polarity above is derived from the board (pulldown
+    => FCPL=1, HRM Figure 40-7) and has not been seen on a scope. If
+    bring-up shows it inverted, --rdy-active-low is the one-flag fix.
+    """
+
+    def __init__(self, dev, speed_hz, cs_gpio=None, gpiochip='gpiochip0',
+                 rdy_gpio=None, rdy_active_low=False, rdy_timeout=0.5):
         import spidev
         bus, cs = (int(x) for x in dev.split('.'))
         self.spi = spidev.SpiDev()
@@ -96,22 +117,47 @@ class SpiLink:
         self.spi.mode = 0
         self.spi.no_cs = cs_gpio is not None
         self.line = None
-        if cs_gpio is not None:
+        self.rdy = None
+        self.rdy_ready = 0 if rdy_active_low else 1
+        self.rdy_timeout = rdy_timeout
+        if cs_gpio is not None or rdy_gpio is not None:
             import gpiod
             chip = gpiod.Chip(gpiochip)
-            self.line = chip.get_line(cs_gpio)
-            self.line.request(consumer='dsp4_config',
-                              type=gpiod.LINE_REQ_DIR_OUT, default_val=1)
+            if cs_gpio is not None:
+                self.line = chip.get_line(cs_gpio)
+                self.line.request(consumer='dsp4_config',
+                                  type=gpiod.LINE_REQ_DIR_OUT, default_val=1)
+            if rdy_gpio is not None:
+                self.rdy = chip.get_line(rdy_gpio)
+                self.rdy.request(consumer='dsp4_config',
+                                 type=gpiod.LINE_REQ_DIR_IN)
 
-    def write(self, addr, value):
-        buf = list(frame(addr, value))
+    def wait_ready(self):
+        if self.rdy is None:
+            return
+        import time
+        deadline = time.monotonic() + self.rdy_timeout
+        while self.rdy.get_value() != self.rdy_ready:
+            if time.monotonic() > deadline:
+                raise TimeoutError(
+                    'SPI_RDY never asserted — DSP held in reset, not booted, '
+                    'or the RDY polarity is inverted (try --rdy-active-low)')
+
+    def xfer(self, addr, value, ramp_id=0, read=False):
+        """One two-word transaction. Returns the 8 bytes clocked in on MISO."""
+        self.wait_ready()
+        buf = list(frame(addr, value, ramp_id, read))
         if self.line:
             self.line.set_value(0)
         try:
-            self.spi.xfer2(buf)
+            rx = self.spi.xfer2(buf)
         finally:
             if self.line:
                 self.line.set_value(1)
+        return bytes(rx)
+
+    def write(self, addr, value, ramp_id=0):
+        self.xfer(addr, value, ramp_id)
 
 
 def main():
@@ -123,7 +169,13 @@ def main():
     ap.add_argument('--speed', type=int, default=1_000_000,
                     help='SPI clock Hz (default 1 MHz for bring-up)')
     ap.add_argument('--cs-gpio', type=int,
-                    help='BCM GPIO driving this chip\'s CS line')
+                    help='BCM GPIO driving this chip\'s CS line '
+                         '(chip 1 = 6, chip 2 = 7)')
+    ap.add_argument('--rdy-gpio', type=int,
+                    help='BCM GPIO carrying this chip\'s SPI_RDY '
+                         '(chip 1 = 8, chip 2 = 12)')
+    ap.add_argument('--rdy-active-low', action='store_true',
+                    help='invert SPI_RDY sense (see SpiLink; provisional)')
     ap.add_argument('--poke', nargs=2, metavar=('ADDR', 'VALUE'),
                     help='single register write (hex or dec)')
     ap.add_argument('--dry-run', action='store_true')
@@ -142,7 +194,9 @@ def main():
         print(f'({len(writes)} writes, chip {args.chip})')
         return
 
-    link = SpiLink(args.dev, args.speed, args.cs_gpio)
+    link = SpiLink(args.dev, args.speed, args.cs_gpio,
+                   rdy_gpio=args.rdy_gpio,
+                   rdy_active_low=args.rdy_active_low)
     for addr, value in writes:
         link.write(addr, value)
     print(f'wrote {len(writes)} registers to chip {args.chip}')

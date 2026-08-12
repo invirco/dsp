@@ -29,6 +29,8 @@
  * 1=D24). Infrastructure (hand-maintained).
  *======================================================================*/
 
+#include "diag.h"
+
 #define CFG_BASE        0xF000
 #define CFG_PRODUCT_ID  0xF000
 #define CFG_CHAN_MASK   0xF001
@@ -47,6 +49,7 @@
 .extern _chan_mask;
 .extern _aux_mask;
 .extern _boot_config_received;
+.extern _diag_boot_stage;
 
 #if CHIP_ID == 1
 .extern _rx_patch_regs;
@@ -131,5 +134,10 @@ _product_config_commit:
     call _scope_gates_apply;      /* force-off wrong-product enables */
     r0 = 1;
     dm(_boot_config_received) = r0;
+    /* Config landed. The LED now shows 6 flashes until the first audio
+     * block arrives, which separates "the host never configured me"
+     * from "I am configured and the audio clock is dead". */
+    r0 = DIAG_STAGE_CONFIGED;
+    dm(_diag_boot_stage) = r0;
     rts;
 _product_config_commit.end:

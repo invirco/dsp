@@ -1,7 +1,7 @@
 # tasks
 
 Status: active
-Date: 2026-08-11
+Date: 2026-08-12
 Purpose: current work state for the mx26 -> mx-dsp workflow and DSP4 firmware.
 
 > **Repo/workflow change 2026-08-11: the trunk is `main`, not `master`.**
@@ -31,8 +31,15 @@ getting the rev-C card on the bench.**
 2. **DSP code for D24/D32 (ONE firmware) — ACTIVE.** Real 21564 images
    since 2026-08-10; since 2026-08-11 the build also emits bootable
    `.ldr` streams and there is a host-side loader, so the images can
-   actually reach the parts. Two would-be-fatal bugs fixed (IVT SEC
-   vector, wrong SPI port) — see the 2026-08-11 entry.
+   actually reach the parts; since 2026-08-12 the image reports its own
+   state (LED fault codes + SPI readback), which is the only debug
+   channel rev C has. **SIX would-be-fatal bugs found and fixed so far**
+   — IVT SEC vector and wrong SPI port (2026-08-11 entry), then RUWM
+   disabled, EMISO clear, TXCTL never written and a wrong SEC
+   acknowledge (2026-08-12 entry). Every one of them was found by
+   reading the code against the HRM or the schematic, not by running
+   it; none is a compile error. Assume more of the same until the card
+   is on the bench.
 3. **FPGA — procurement only.** The EVK gets ordered so lead time runs in
    the background; **no FPGA engineering work starts until a stable
    DSP + LOGIC combination is running on the DSP4 rev C card.**
@@ -94,7 +101,16 @@ getting the rev-C card on the bench.**
   `ADSP-21564.ldf`, no compatibility banner and no `build/COMPAT-BUILD.txt`.
   The `PROC_TARGET=ADSP-21568` fit proxy is **retired** — plain
   `./build.sh all` is the build path from here.
+  **2026-08-12: the firmware is now instrumented for a bench it cannot
+  see.** LED fault codes off the core timer plus a readback register
+  block at 0xE000 with a generic MMR peek window, which is what stands
+  in for the emulator rev C does not have. Building it also turned up
+  three more fatal SPI-slave faults (RUWM disabled, EMISO clear, TXCTL
+  never written) and a wrong SEC acknowledge — see the 2026-08-12 entry.
+  Procedure: `MW/D32/DSP/diagnostics.md`.
   Next: rev C bring-up (which in turn gates the rev D layout freeze).
+  Nothing further is worth writing blind — every remaining open item on
+  this lane needs the scope.
 
 - [ ] <span style="color:#6b7280"><b>PARKED (procurement only)</b></span> **(3) FPGA — order the EVK, do no work**
   — Buy the **AMD KR260** (`SK-KR260-G`, one version only, authorized
@@ -130,6 +146,116 @@ J10B (Eth2, HPA) are PL RGMII; J10C/J10D are PS; SFP+ is PL GTH — 2×
 fabric RGMII confirmed. Consider a second unit later for star/daisy-chain
 link tests. Toolchain ready: Vivado 2026.1 licensed on this machine
 (`~/.local/bin/vivado`) — **installed and idle under the 2026-08-07 gate.**
+
+## 2026-08-12 — diagnostics built, and THREE more dead-board bugs
+
+Entry point 4 done: diagnostic readback registers and LED fault codes,
+items 1-3 of the debug addendum. Firmware only, no hardware change.
+Writing it meant reading the SPI slave path against the HRM instead of
+against itself, and that turned up **three more faults that would each
+have produced a board that boots and then does nothing** — the same
+symptom as the IVT bug found on 2026-08-11, and from the same cause: no
+part of this path had ever been checked against the register
+descriptions.
+
+Doc: `MW/D32/DSP/diagnostics.md` (bench order, register map, LED codes).
+
+**The three SPI bugs (dma_config.c).** All in `spi2_init()`, all fatal.
+
+- **`SPI_RXCTL.RUWM` was 0, which is not "lowest" — it is DISABLED**
+  (HRM Table 15-30). `SPI_STAT.RUWM` therefore never asserts, so the
+  `SPI_IMSK_RUWM` unmask on the next line could never produce a SEC
+  event. No interrupt, no parameter handler, and the DSP waits in
+  `.wait_boot` for a config that cannot arrive. Now `UWM_FULL`: at
+  32-bit word size `SPI_RFIFO` is 2 words deep and one protocol
+  transaction is exactly 2 words, so the interrupt fires once per
+  complete transaction and never mid-transaction.
+- **`SPI_CTL.EMISO` was not set.** HRM Table 15-18: it "enables
+  master-in slave-out mode... applicable only when the SPI is a slave".
+  Without it the part never drives MISO at all, so every readback —
+  including the one `spi_handler.asm` already implemented — returns
+  whatever the bus floats to.
+- **`SPI_TXCTL` was never written**, so `TEN=0` and the transmit side
+  was dead regardless. `TTI` is deliberately left clear: the HRM
+  restricts it to master mode, and a clocked slave with an empty TFIFO
+  reports `SPI_STAT.TUR`, which is a diagnostic worth having.
+
+**A fourth, in the SEC ISR (sport_init.asm).** `_sec_isr` read
+`SEC_CSID` into r0, dispatched, then wrote r0 to `SEC_END` — but
+`_spi2_rx_work` loads r0 from `SPI2_RFIFO`. The acknowledge therefore
+carried a parameter address instead of the source id, so the real source
+was never acked. The id now lives in `_sec_active_csid` (DM) and is
+reloaded for the ack. The block-clock path was unaffected
+(`_sport_dma_work` only touches r2/r3), which is exactly why this would
+have looked like "audio works, the control link wedges after one write".
+
+**LED fault codes.** `PA_12`, same pin and polarity as the blink image.
+Driven from the **core timer**, armed in `_diag_init` before any
+peripheral bring-up runs — so it does not depend on the SEC, the SPORTs,
+the DMA or the audio clock, and keeps flashing through a failure in any
+of them. N flashes = "completed stage N, stuck in stage N+1":
+1 stuck in SRU init, 2 in SPORT init, 3 in DMA init, 4 enabling
+interrupts, **5 waiting for host product config**, **6 configured but no
+audio block yet**. Running is a steady 1 Hz square, not a 7-flash burst,
+so healthy can never be miscounted. 5 vs 6 is the pair that matters:
+both look like a powered board doing nothing, and they separate "the
+host never configured me" from "the LOGIC CPLD is not clocking me".
+
+**Readback block at 0xE000** (`src/diag.asm`, map in `src/diag.h`,
+host tool `tools/pi/dsp4_diag.py`). 24 registers: MAGIC + BUILD_ID,
+CHIP_ID (proves CS1 reaches DSPA and CS2 reaches DSPB, since chip
+identity is compile-time), BOOT_STAGE, FRAME_COUNT and TICKS as the two
+free-running rates, SEC counters incl. unhandled-source capture,
+BLK_OVERRUN, the SPI counters, a sticky OR of `SPI2_STAT` sampled inside
+the ISR before the FIFO drains, `SPORT0_ERR_A` / `DMA0_STAT`, and the
+live `SPI_CTL`/`RXCTL`/`TXCTL` — those last three exist because all
+three bugs above were of the form "the source says X, the silicon does
+not do X". Plus a **generic peek window**: write an address, read its
+contents, any MMR on a running DSP. That is the emulator substitute.
+`dsp4_diag.py` prints an ISSUES section, so it says what is wrong rather
+than only what the values are.
+
+**Read protocol, and why it has an echo.** The RX watermark only fires
+once BOTH words of a transaction have landed, by which point the master
+has already shifted MISO — so a read cannot answer in its own
+transaction. The handler queues two words, an echo of the request then
+the value, and the master collects them on its next transaction.
+`SPI_TFIFO` is exactly 2 deep at 32-bit, i.e. exactly one response; a
+response is only queued into an empty FIFO, otherwise it is dropped and
+`RESP_DROP` counts it, because a dropped answer is recoverable and an
+overflow silently misaligns every answer after it. The echo is checked
+host-side on every read, so a chip that is not answering reports an
+error instead of a plausible zero. Verified against a simulator of the
+handler: all 24 registers round-trip, and both "chip not answering" and
+"firmware without the echo word" are detected rather than believed.
+
+**Also done:** `SPI_RDY` is now honoured on the HOST side
+(`dsp4_config.py --rdy-gpio`, chip 1 = GPIO8, chip 2 = GPIO12) — it
+paces the link and doubles as a liveness bit, since the 10K pulldown
+means a part in reset reads "not ready". Polarity (`FCPL=1`, ready =
+high) is still derived from the board rather than a scope;
+`--rdy-active-low` is the one-flag fix. That closes item (2) of the
+debug addendum and one of the three "still open before audio" items.
+
+Build after all of it: **695 ASM sources (was 692), 0 errors**, the same
+2 pre-existing `biquad.asm` loop-end warnings, `dsp_memreport` exit 0
+with pools unchanged. IVT verified in the linked `chip1.dxe`: 0x004 →
+`_start`, 0x03C → `_sec_isr`, 0x058 → `_diag_timer_isr` (new TMZLI
+vector), IVT still 128/260 words. `_diag_table` checked in the image —
+symbol addresses and literal MMR constants both landed correctly.
+
+NOT done: nothing has run on hardware. Every claim above is
+toolchain-level or HRM-level only.
+
+**Committed and pushed to `main`** (15 files; no contract or generator
+change, so no regenerate and no contract bump was due). New:
+`SHARC/src/diag.asm`, `SHARC/src/diag.h`,
+`MW/D32/DSP/diagnostics.md`, `tools/pi/dsp4_diag.py`. Modified:
+`SHARC/build.sh` (adds `-I $SRC_DIR` so `diag.h` resolves from
+`src/`, `src/chipN/` and `src/lib/`), `SHARC/src/{ivt,main,
+product_config,sport_init}.asm`, `SHARC/src/chip{1,2}/spi_handler.asm`,
+`SHARC/src/dma_config.c`, `MW/D32/DSP/dsp4-plumbing.md`,
+`tools/pi/dsp4_config.py`, `tasks.md`.
 
 ## 2026-08-11 — bring-up work: TEST pins, boot path, and TWO dead-board bugs
 
@@ -230,7 +356,13 @@ sits at slot 1. The absolute rate assumes CCLK=400 MHz, which is NOT yet
 measured: if the observed rate is off by N, CCLK is off by N, so
 **write the measured rate down** rather than just retuning the constant.
 
-**Still open before the card can run audio** (unchanged by today):
+**Still open before the card can run audio** (unchanged by today).
+> Two of these three closed on 2026-08-12: SPI_RDY is now honoured on
+> the host side, and `sport_init.asm` / `spi_handler.asm` carry real
+> `def21564.h` MMR addresses (the 0x0800xxxx placeholders are gone —
+> the note below was already stale when written). The TDM facts still
+> need the scope.
+
 SPI_RDY is not honoured on the HOST side yet; `sport_init.asm` /
 `spi_handler.asm` still carry 0x0800xxxx placeholder MMRs; and every
 provisional TDM fact (BCKI/FSI pair order, CKRE/MFD on the scope, D24
@@ -320,7 +452,47 @@ and they largely close the gap that missing JTAG leaves. Put the
 daisy-chain (or the 2-pin SWD pair) on the rev-D mod list. Skip the
 CPLD-as-JTAG-mux entirely.
 
+## TOMORROW'S ENTRY POINTS (set 2026-08-12, for 2026-08-13)
+
+0. ~~**Commit 2026-08-12's work first**~~ **DONE 2026-08-12** — committed
+   and pushed to `main`; tree clean at session end. No contract or
+   generator changed, so no `regenerate-dsp-contract.sh` run and no
+   contract bump was due.
+1. **Rev-C bench session** — now the only thing that moves the project,
+   and everything needed for it is built. Order: CPLD `.pof`
+   (`dsp4_logic.2be52d4ad5b5.pof`) → LD1 at ~1.5 Hz → TEST1-4 on the
+   scope → `dsp4_boot.py` with `blink1/2.ldr` (**record the measured
+   rate** — free CCLK measurement) → `chip1/2.ldr` → expect **5 LED
+   flashes** → `dsp4_diag.py --chip 1` for MAGIC + CHIP_ID → configure →
+   **6 flashes** → audio → steady 1 Hz. Full procedure and what each
+   failure looks like: `MW/D32/DSP/diagnostics.md`.
+2. **Order KR260** (SK-KR260-G) — unchanged, unblocked, still
+   procurement-only, and now three days on the list. Farnell £323.57 vs
+   ~$431 DigiKey/Mouser (`docs/part-quotes-2026-08-06.csv`). Capture
+   order number + ETA here.
+3. **Decide the AI-attribution history question** — carried from
+   2026-08-11 unchanged; see item 2 of the superseded list below. It
+   needs a yes/no from Peter, not work. Recommendation stands: LEAVE IT.
+4. **Sign off or mark up D9** in `dsp4-architecture-decisions.md` —
+   still `[DRAFT] — not binding`, untouched since 2026-08-06.
+5. **LOGIC `TODO(uart-passthrough)`** — still needs a routing decision
+   from Peter before any RTL (buffered pass-through vs selectable mux vs
+   strobed arbiter). Pin inventory done; the system decision is not.
+6. Small/hygiene, carried: `provenance:` header question for
+   `dsp4-plumbing.md`; stale remote branch
+   `copilot/review-tasks-md-firmware-bottleneck` (`ec6ab7e`) is a
+   deletion candidate; rev-D `5M570ZT144C4N` needs PIN_8/TEST3 rerouted
+   or TEST3 dropped.
+7. **Post-bench, not before**: `dsp4-plumbing.md`'s remaining
+   PROVISIONAL facts, and item 4 of the debug addendum (TEST1-4 as a
+   switchable CPLD probe mux) — worth doing only once the fixed pins
+   have proved themselves useful.
+
 ## TOMORROW'S ENTRY POINTS (set 2026-08-11, for 2026-08-12)
+
+> SUPERSEDED by the 2026-08-12 list above. Item 4 (diagnostic readback
+> + LED fault codes) is DONE; items 1, 2, 5, 6 and 7 carried forward
+> unchanged; item 3 (bench session) is now item 1.
 
 1. **Order KR260** (SK-KR260-G) — still procurement-only, still
    unblocked, and still the only thing whose lead time runs in the
