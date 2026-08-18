@@ -371,8 +371,18 @@ confirming on the bench: the SHARC `JTG_*` pins appear unconnected on
 both DSP sheets** — the ROOT DSPA/DSPB blocks carry no JTAG ports — which
 would mean no emulator access to either SHARC on rev C, making the LEDs
 and SPI readback the entire debug channel. The JTAG that does reach the
-Pi header (TDO GPIO22, TDI 23, TMS 24, TCK 25) is the CPLD's, so the CM4
-can play the committed `.svf` itself; `LEN` (S-MCU driven) gates it.
+Pi header (TCK GPIO7, TDO 22, TDI 23, TMS 25 — corrected 2026-08-18
+against the digital schematic/pins CSV; the earlier "TMS 24" note was
+wrong, GPIO24 is CS2/DSPB chip select) is the CPLD's, so the CM4 can
+play the committed `.svf` itself; `LEN` (S-MCU driven) gates it.
+**DONE 2026-08-18: the LOGIC bitstream RAN ON HARDWARE for the first
+time** — DSP4 rev C card fitted to the D24 digital rev C proto, CPLD
+flashed FROM THE CM4 (OpenOCD linuxgpiod JTAG bit-bang, 58 s SVF
+playback of `dsp4_logic.2be52d4ad5b5.svf`), IDCODE 0x020a30dd verified
+before and after; LEN gate proved PERMISSIVE with the S MCU blank.
+Bring-up observations pending: LD1 ~1.5 Hz + TEST1-4 scope check.
+Side effect fixed: the blank CPLD's weak pull-ups had been holding MHRX
+high after Pi halt (60 s shutdown failsafe on the digital side).
 
 Suggested bench order: flash the CPLD first (it sources DSP_CLK — an
 unprogrammed CPLD means neither DSP has a clock), confirm LD1 at ~1.5 Hz
