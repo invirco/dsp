@@ -72,6 +72,15 @@ getting the rev-C card on the bench.**
   e. Provisional items that can only close at bring-up stay listed, not
      guessed: BCKI/FSI in/out pair order per DSP, S4 personality strap,
      snake/DAC-MAIN parked pins.
+  f. **NEW 2026-08-18 (Peter): the J1 P39 "SPARE" net is the digital
+     board's SWD_EN3 — the CPLD is the intended driver of the MH1-SWD
+     channel enable.** Currently in the reserved-tri-state catch-all (no
+     RTL port), so EN3 floats. Add the pin as an output with a control
+     decision (const-high programming-variant bitstream vs strap vs
+     S-MCU-mediated); must respect the digital board's one-EN-at-a-time
+     SWD rule — EN1 carries a 10k default-on pull-up (power-MCU channel)
+     that must be low while EN3 is high. Pin number: read off the LOGIC
+     sheet net "SPARE" → U3. Needs Quartus rebuild on this machine.
 
 - [ ] <span style="color:#2563eb"><b>NEXT</b></span> **(2) DSP code for D24/D32 — licence LANDED, lane open**
   — AD-CCES-NODE-1 **activated 2026-08-10** (requested 2026-07-31,
