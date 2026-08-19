@@ -17,6 +17,75 @@ Status colors:
 - <span style="color:#2563eb"><b>NEXT</b></span>
 - <span style="color:#6b7280"><b>BLOCKED/DEFERRED</b></span>
 
+## ⚡ PRIORITY — 2026-08-19 (from the hub, after the rev-C bench day; do these first)
+
+**Context: the card is LIVE.** DSP + both switch boards run on a fresh rev-C
+digital board; MH1 + panels flashed from the CM4 and verified on every boot;
+power MCU programmed. Full narrative in mx26 tasks.md (2026-08-19 entries).
+The CPLD is currently **BLANK — deliberately erased 2026-08-19** (see P1).
+
+### P1 — CPLD unused-pins fix (URGENT: blocks all DSP/audio work)
+
+The flashed bitstream `f827e1243536` drove its UNUSED pins **as output
+ground** — hardware-proven on the bench: MHRX/MHTX (+SRX/MRX/PTRX/S5-7/BUSY)
+were all ground-driven, killing the MH/panel UARTs (CM4 GPIO14/15 pads read
+low under contention; erasing the CPLD released them instantly). This is also
+the real mechanism behind "flashing the CPLD fixed the MHRX pull-up shutdown
+delay" — ground-drive, not tri-state, cleared that symptom.
+
+The qsf line `RESERVE_ALL_UNUSED_PINS_WEAK_PULLUP "AS INPUT TRI-STATED WITH
+WEAK PULL-UP"` (line ~18) did NOT take effect in that build — either the
+assignment name is not honoured by this Quartus version, or the flashed SVF
+predates the line (it was never committed; the committed `2be52d4ad5b5`
+artifacts are an older build).
+
+Steps:
+1. Rebuild, then **verify in the fitter report** (`output_files/*.fit.rpt`,
+   "Unused Pins" section) that every unused pin is *input tri-stated with
+   weak pull-up* — do not trust the qsf line, read the report. If the
+   setting is ignored, use the name this Quartus accepts
+   (`RESERVE_ALL_UNUSED_PINS "AS INPUT TRI-STATED WITH WEAK PULL-UP"`).
+2. Commit the SVF/POF actually intended for hardware, named with its hash
+   (the f827e124 build only ever existed on this machine — that gap cost a
+   day of debugging).
+3. Reflash from the CM4 (path proven, ~58s): scp the SVF to
+   `app@192.168.1.219:/home/app/_temp/`, then
+   `sudo openocd -f /home/app/cpld-jtag.cfg -c "init" -c "svf <file>" -c "shutdown"`
+   (TCK=GPIO7 TDI=23 TDO=22 TMS=25, IDCODE 0x020a30dd — cfg already on the unit).
+4. **Regression check after flashing:** reboot the unit and confirm the app
+   still verifies H1S3 + H1S4 at boot (panel UARTs share copper with CPLD
+   pins — if verification breaks, the unused-pin state is still wrong).
+
+Note (PW 2026-08-19): rev-C CPLD scope = DSP clocks + routing only; a
+smaller part is a rev-D candidate, as is CPLD-driven SWD_EN3 (item f —
+confirmed NOT wired in rev C, SPARE reaches neither CPLD nor U7).
+
+### P2 — DSP first boot (unblocked once P1 restores clkgen)
+
+With SYSCLK live from the CPLD: first SPI2 slave-boot of DSPA/DSPB from the
+CM4 (BMODE 0b010; CS1/CS3 = DSPA select/ready, CS2/CS4 = DSPB; shared bus,
+33R branches). The 2026-08-12 diagnostics build (LED fault codes + SPI
+readback, `d1bfbc1`) is the image to boot first: LD2/LD3 codes + readback
+give pass/fail without audio. Watch the one-EN-at-a-time rule notes in mx26
+before touching anything SWD-related.
+
+### P3 — DSP-board MCU firmware notes (source in Dropbox `_mx/MW/D24/FW`,
+builds on the CM4 via `Debug/makefile.linux`)
+
+- **H1S1 (U7): DO NOT FLASH until fixed** — its `MX_GPIO_Init` drives CS7
+  (PC15) + CS8 (PH0) as push-pull outputs HIGH; with the CS7/CS8→SWD_EN1/EN3
+  proto wires that forces ch3 permanently selected and breaks the CM4's SWD
+  channel-select. Fix: leave PC15/PH0 as inputs (harmless on rev A — CS5-8
+  unused in D24).
+- MH1: `'?'` loopback responder (added 2026-08-19 for the app's loadfw
+  preflight) is pre-loop only — send `*` (S_RESET) before `app cli loadfw`,
+  or move `'?'`/dispatcher handling so it answers from any state. CheckS's
+  unbounded ready/BUSY spin-waits also want timeouts (rev-D hygiene).
+- The blocking-HAL-read-in-ISR wedge (SysTick starved inside the handler →
+  timeout never expires) was found and patched on MH1 + H1S3 + H1S4 on
+  2026-08-19 — the same pattern exists in other CubeIDE projects here;
+  audit before reusing.
+
 ## Top action
 
 Priority order set 2026-08-07 (Peter). Three lanes; the CCES licence
