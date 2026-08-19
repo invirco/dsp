@@ -1,5 +1,5 @@
-artifact: dsp4_logic.2be52d4ad5b5.{pof,svf}
-built: 2026-08-11T10:11:39Z
+artifact: dsp4_logic.fd6a5ec69198.{pof,svf}
+built: 2026-08-19T16:27:59Z
 slot_map: sha256:efd8d555440094b627345b5a84894f9e7a6b569056f4eccb417d42d6ce32182e
 sim_gate: PASS
 device: 5M1270ZT144C4

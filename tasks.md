@@ -39,15 +39,56 @@ assignment name is not honoured by this Quartus version, or the flashed SVF
 predates the line (it was never committed; the committed `2be52d4ad5b5`
 artifacts are an older build).
 
+> **ROOT CAUSE FOUND AND FIXED 2026-08-19 (steps 1-2 DONE).** It was the
+> assignment name, and the **committed `2be52d4ad5b5` build had the identical
+> defect** — the second guess above (that the flashed SVF predated the line)
+> is wrong. `git log -S` puts the qsf line in `3b48f46`, i.e. *before* both
+> builds, and `2be52d4ad5b5`'s own fitter report carried
+> `Warning (169174): The Reserve All Unused Pins setting has not been
+> specified, and will default to 'As output driving ground'` with the Device
+> Options table reading `Reserve all unused pins ; As output driving ground`.
+> **Every CPLD image this repo has ever produced ground-drove its unused
+> pins.**
+>
+> Why: `RESERVE_ALL_UNUSED_PINS_WEAK_PULLUP` is not the setting. It is a
+> *subordinate* assignment whose Quartus default is already "As input
+> tri-stated with weak pull-up"
+> (`quartus/linux64/assignment_defaults.qdf:494`) — setting it changes
+> nothing and leaves the PRIMARY `RESERVE_ALL_UNUSED_PINS` unspecified, which
+> then defaults to ground-drive. The name is valid, so there is no error and
+> no warning about the line itself; the only signal is warning 169174 saying
+> the *other* assignment is missing. Fixed by setting
+> `RESERVE_ALL_UNUSED_PINS "AS INPUT TRI-STATED WITH WEAK PULL-UP"`; the trap
+> is written up in the qsf beside the line so it cannot be reintroduced.
+>
+> **Verified in the fitter report, not the qsf**: Device Options now reads
+> `Reserve all unused pins ; As input tri-stated with weak pull-up`, warning
+> 169174 is gone, and `dsp4_logic.pin` shows **43 pins
+> `RESERVED_INPUT_WITH_WEAK_PULLUP` and zero driving ground** — including all
+> eight pins named in the bench finding (71 MRX, 72 SRX, 73/74 MHTX/MHRX,
+> 75/76 STRX1/0, 77/84 PTRX1/0).
+>
+> **Logic is untouched**: 156 LE, 71 pins, Fmax 67.06 MHz, setup slack
+> +5.433 ns, sim gate PASS, slot-map `source_hash` unchanged
+> (`sha256:efd8d555…`) — same numbers as `2be52d4ad5b5`, so this is a pin-state
+> change only and not a contract bump.
+>
+> **New artifact: `bitstream/dsp4_logic.fd6a5ec69198.{pof,svf,manifest}` —
+> this is the image to flash.** The superseded `2be52d4ad5b5.*` was
+> **deleted** (recoverable from git), same call as 2026-08-07 and
+> 2026-08-11 and with more reason: it is now hardware-proven to kill the MH
+> and panel UARTs, and D2 makes a committed `.pof` something people program.
+> Say so if you'd rather keep it with a warning file.
+>
+> Steps 3-4 below (reflash + regression) still need the bench and have NOT
+> been done — nothing has run on hardware.
+
 Steps:
-1. Rebuild, then **verify in the fitter report** (`output_files/*.fit.rpt`,
-   "Unused Pins" section) that every unused pin is *input tri-stated with
-   weak pull-up* — do not trust the qsf line, read the report. If the
-   setting is ignored, use the name this Quartus accepts
-   (`RESERVE_ALL_UNUSED_PINS "AS INPUT TRI-STATED WITH WEAK PULL-UP"`).
-2. Commit the SVF/POF actually intended for hardware, named with its hash
-   (the f827e124 build only ever existed on this machine — that gap cost a
-   day of debugging).
+1. ~~Rebuild, then **verify in the fitter report**~~ **DONE 2026-08-19** —
+   see the root-cause box above.
+2. ~~Commit the SVF/POF actually intended for hardware, named with its
+   hash~~ **DONE 2026-08-19** — `dsp4_logic.fd6a5ec69198.{pof,svf,manifest}`
+   committed; the known-bad `2be52d4ad5b5.*` deleted.
 3. Reflash from the CM4 (path proven, ~58s): scp the SVF to
    `app@192.168.1.219:/home/app/_temp/`, then
    `sudo openocd -f /home/app/cpld-jtag.cfg -c "init" -c "svf <file>" -c "shutdown"`
@@ -550,7 +591,9 @@ CPLD-as-JTAG-mux entirely.
    contract bump was due.
 1. **Rev-C bench session** — now the only thing that moves the project,
    and everything needed for it is built. Order: CPLD `.pof`
-   (`dsp4_logic.2be52d4ad5b5.pof`) → LD1 at ~1.5 Hz → TEST1-4 on the
+   (**`dsp4_logic.fd6a5ec69198.pof`** — superseded 2026-08-19; the
+   `2be52d4ad5b5` image named here ground-drives the UART pins, see P1)
+   → LD1 at ~1.5 Hz → TEST1-4 on the
    scope → `dsp4_boot.py` with `blink1/2.ldr` (**record the measured
    rate** — free CCLK measurement) → `chip1/2.ldr` → expect **5 LED
    flashes** → `dsp4_diag.py --chip 1` for MAGIC + CHIP_ID → configure →

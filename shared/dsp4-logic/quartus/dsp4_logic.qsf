@@ -14,8 +14,21 @@ set_global_assignment -name SEARCH_PATH ../rtl
 set_global_assignment -name SEARCH_PATH ../generated
 set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 set_global_assignment -name NUM_PARALLEL_PROCESSORS 4
-# Unused pins: inputs, tri-stated with weak pull-up (safe on shared nets)
-set_global_assignment -name RESERVE_ALL_UNUSED_PINS_WEAK_PULLUP "AS INPUT TRI-STATED WITH WEAK PULL-UP"
+# Unused pins: inputs, tri-stated with weak pull-up (mandatory — this CPLD
+# shares copper with the MH/panel UARTs and the S-MCU matrix nets, so a
+# driven unused pin is a bus fight, not a cosmetic default).
+#
+# TRAP, hardware-proven 2026-08-19: RESERVE_ALL_UNUSED_PINS_WEAK_PULLUP is
+# NOT the setting. It is a subordinate assignment whose Quartus default is
+# already "As input tri-stated with weak pull-up" (see
+# quartus/linux64/assignment_defaults.qdf:494); setting it does nothing on
+# its own and leaves the PRIMARY assignment below unspecified, which then
+# defaults to "As output driving ground". Both the f827e124 and the
+# committed 2be52d4ad5b5 builds shipped that way and ground-drove
+# MHRX/MHTX/SRX/MRX/PTRX/S5-7/BUSY, killing the MH and panel UARTs.
+# ALWAYS confirm in output_files/dsp4_logic.fit.rpt ("Reserve all unused
+# pins" in the Fitter Device Options table) — do not trust this line.
+set_global_assignment -name RESERVE_ALL_UNUSED_PINS "AS INPUT TRI-STATED WITH WEAK PULL-UP"
 
 # ---- Clock / system ----
 set_location_assignment PIN_88  -to sysclk
