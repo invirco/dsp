@@ -61,7 +61,7 @@ RST_GPIO = 16
 
 BOOT_UNIT = 1024        # HRM: slave-boot hosts send multiples of 1024 B
 CHUNK = 4096            # spidev-friendly; a multiple of BOOT_UNIT
-RESET_LOW_S = 0.001     # !RST_D pulse width
+RESET_LOW_S = 0.050     # !RST_D pulse width
 RDY_TIMEOUT_S = 2.0
 
 

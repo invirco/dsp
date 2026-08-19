@@ -182,6 +182,40 @@ the DSP diag LED should sync to the system blink rather than free-run —
 same for LOGIC's LD1 (currently free-running ~1.5 Hz). Diagnostic burst
 codes stay local, but the healthy heartbeat should be family-wide.
 
+### P2.2 — RESUME STATE 2026-08-19 night (dma_cfg_init wedge, mid-bisect)
+
+Where this stands, exactly:
+- REAL FIX APPLIED (keep): dma_config.c arm_region now converts every
+  DDE-visible address (descriptor ring ptrs, buffer ptrs, DSCPTR) from the
+  core L1 byte-view to the SYSTEM view via an inlined l1_to_sys()
+  (+0x28000000 for 0x00240000..0x003FFFFF — ADI libcc math, verified in
+  /opt/analog/cces/3.0.3/SHARC/lib/src/libcc_src/; the runtime lib is not
+  linked in this build, hence inline). The core-view addresses the DDE was
+  fetching from are unmapped on the fabric and wedge the SCB — this WAS a
+  real bug regardless of what else remains.
+- HANG PERSISTS after the fix: SPI2 diag readback still all-zero echoes =
+  stuck before spi2_init completes (sub-step <= 4). LED burst counting was
+  inconclusive at the bench ("continuous blinking").
+- TEMP INSTRUMENTATION in the tree (revert when done): diag_stage_set()
+  bisect stamps in dma_cfg_init (values 1..6) + _diag_stage_set helper in
+  diag.asm (C-callable; C data refs cannot touch the word-addressed .var).
+- BISECT ROUND 1 IS FLASHED ON CHIP 1 RIGHT NOW: stage 7 stamped + a park
+  loop immediately after arm_region(A). Optics are binary: steady 1 Hz
+  square = arm_region(A) survives (move the marker after arm_region(B) and
+  repeat); slow single-blink = still dies inside arm_region(A) even with
+  the address fix (next suspects: the DMA CFG EN write itself — consider
+  writing DSCPTR + CFG with EN clear, then setting EN; descriptor
+  alignment; the lane-4/cs-mask special case). Chip 2 runs the fixed but
+  un-instrumented build.
+- Boot-tool notes: dsp4_boot.py reset pulse now 50 ms; a re-boot from a
+  RUNNING/hung state fails its first attempt (SPI_RDY timeout) and works
+  on the immediate retry — reproducible x3; add an auto-retry to the tool
+  or investigate reset recovery. First boot from power-on: clean.
+- All host-side steps run from the hub over SSH; the flash/boot loop is:
+  build here -> scp .ldr to app@192.168.1.219:/home/app/dspboot/ ->
+  S_RESET on /dev/serial0 (hold slaves; matrix-app stopped) ->
+  dsp4_boot.py --dir /home/app/dspboot -> observe/readback -> app restart.
+
 ### P2-was — original plan (kept for reference)
 
 `tools/pi/dsp4_boot.py` is ready and the hub has unit access; the ONLY
