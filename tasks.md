@@ -97,6 +97,16 @@ Steps:
    still verifies H1S3 + H1S4 at boot (panel UARTs share copper with CPLD
    pins — if verification breaks, the unused-pin state is still wrong).
 
+**BLOCKED 2026-08-19 — no SSH credential for the unit.** Steps 3-4 were
+authorised and attempted; `192.168.1.219` pings and its host key was
+accepted, but `app@` rejects `~/.ssh/id_ed25519_av_pi` and falls back to
+password, which this machine does not have. `~/.ssh/config` has no entry
+for `192.168.1.219` at all — every `MW-D24*` / `MW-D32*` alias is on the
+`192.168.0.x` subnet and uses `id_ed25519_av_pi`, so this unit is either
+on a different network or holds a different authorized_keys. To unblock:
+push this box's public key to the unit, or say which key/password it
+takes. The image to flash is `dsp4_logic.fd6a5ec69198.svf`.
+
 Note (PW 2026-08-19): rev-C CPLD scope = DSP clocks + routing only; a
 smaller part is a rev-D candidate, as is CPLD-driven SWD_EN3 (item f —
 confirmed NOT wired in rev C, SPARE reaches neither CPLD nor U7).
@@ -113,11 +123,34 @@ before touching anything SWD-related.
 ### P3 — DSP-board MCU firmware notes (source in Dropbox `_mx/MW/D24/FW`,
 builds on the CM4 via `Debug/makefile.linux`)
 
-- **H1S1 (U7): DO NOT FLASH until fixed** — its `MX_GPIO_Init` drives CS7
+- ~~**H1S1 (U7): DO NOT FLASH until fixed**~~ — its `MX_GPIO_Init` drove CS7
   (PC15) + CS8 (PH0) as push-pull outputs HIGH; with the CS7/CS8→SWD_EN1/EN3
   proto wires that forces ch3 permanently selected and breaks the CM4's SWD
   channel-select. Fix: leave PC15/PH0 as inputs (harmless on rev A — CS5-8
   unused in D24).
+  **FIXED 2026-08-19. CS7/CS8 are now OWNED BY THE CM4 (PW)** — so input is
+  their permanent state, not a bring-up workaround, and any future firmware
+  that drives them is a bug. Applied in BOTH places so a CubeMX regen cannot
+  undo it: `H1S1.ioc` (PC15/PH0 `Signal=GPIO_Output`+`PinState=GPIO_PIN_SET`
+  → `Signal=GPIO_Input`, `PinState` dropped; `GPIO_Label` kept so the
+  `CS7_Pin`/`CS8_Pin` defines survive) and the generated
+  `Core/Src/main.c`, hand-edited to exactly what CubeMX will now emit —
+  CS7 removed from the GPIOC `HAL_GPIO_WritePin` and from the
+  `OUTPUT_PP` group, CS7 and CS8 each given their own `GPIO_MODE_INPUT`
+  init. The reason is recorded inside `USER CODE BEGIN MX_GPIO_Init_2`,
+  which CubeMX preserves.
+  Checked while there: the only other CS7/CS8 references are
+  `DspTx(GPIOC, CS7_Pin, …)` / `DspTx(GPIOH, CS8_Pin, …)` in
+  `stm32u5xx_it.c` USART1_IRQHandler — **inside a `/* */` block**, so they
+  are dead and must stay that way. No runtime driver of either pin remains.
+  Verified by building: `Debug/makefile.linux` `all`, exit 0, 34080 text /
+  657 data / 1940 bss, `H1S1.elf` + `H1S1.bin` produced, no new warnings
+  (the `matrix.h` macro-redefinition warnings are pre-existing in that
+  generated header). Confirmed in the disassembled `H1S1.list` rather than
+  only in the source: CS7 and CS8 both `GPIO_MODE_INPUT`, CS7 absent from
+  the GPIOC write. Built in a scratch copy, so no build artifacts were
+  written into Dropbox — the source edits are in place, **but H1S1 has NOT
+  been flashed.**
 - MH1: `'?'` loopback responder (added 2026-08-19 for the app's loadfw
   preflight) is pre-loop only — send `*` (S_RESET) before `app cli loadfw`,
   or move `'?'`/dispatcher handling so it answers from any state. CheckS's
