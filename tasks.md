@@ -112,15 +112,14 @@ Steps:
    still verifies H1S3 + H1S4 at boot (panel UARTs share copper with CPLD
    pins — if verification breaks, the unused-pin state is still wrong).
 
-**BLOCKED 2026-08-19 — no SSH credential for the unit.** Steps 3-4 were
-authorised and attempted; `192.168.1.219` pings and its host key was
-accepted, but `app@` rejects `~/.ssh/id_ed25519_av_pi` and falls back to
-password, which this machine does not have. `~/.ssh/config` has no entry
-for `192.168.1.219` at all — every `MW-D24*` / `MW-D32*` alias is on the
-`192.168.0.x` subnet and uses `id_ed25519_av_pi`, so this unit is either
-on a different network or holds a different authorized_keys. To unblock:
-push this box's public key to the unit, or say which key/password it
-takes. The image to flash is `dsp4_logic.fd6a5ec69198.svf`.
+**Steps 3-4 were done by the hub, not here** — see the P1 summary above
+(flashed from the CM4, regression PASSED). Noted for next time: this
+machine has no SSH credential for `192.168.1.219`. It pings and its host
+key is accepted, but `app@` rejects `~/.ssh/id_ed25519_av_pi` and falls
+back to password; `~/.ssh/config` has no entry for that address at all —
+every `MW-D24*` / `MW-D32*` alias is on the `192.168.0.x` subnet. Push
+this box's public key to the unit if bench steps should be runnable from
+here rather than from the hub.
 
 Note (PW 2026-08-19): rev-C CPLD scope = DSP clocks + routing only; a
 smaller part is a rev-D candidate, as is CPLD-driven SWD_EN3 (item f —
