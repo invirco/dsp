@@ -149,6 +149,40 @@ that must not be load-bearing: **H1S1 CS1-6 should become inputs like
 CS7/CS8** (the CM4 owns the boot bus; H1S1 only monitors RDY). Queue with
 the next H1S1 firmware pass.
 
+### P2.1 — FIRST BOOT RESULT: both DSPs stuck at 3 flashes (in _dma_cfg_init)
+
+Bench observation (PW): 3-flash bursts on the DSP LEDs = DIAG_STAGE_SPORT
+stamped, stuck inside `_dma_cfg_init` (per diagnostics.md — NOT stage 4).
+Confirmed from the hub: `dsp4_diag.py` readback gets all-zero echoes —
+expected, the SPI2 param link initialises inside the very call that hangs.
+(dsp4_config.py/dsp4_diag.py are now gpiod-v2-ported on the unit at
+/home/app/dspboot/ — sync those copies back like dsp4_boot.py was.)
+
+Investigation brief for this machine:
+- `dma_cfg_init` (dma_config.c:217) contains NO unbounded loops — only
+  bounded fors — so the hang is almost certainly a CORE BUS STALL on a
+  register access, classically a peripheral register whose clock/unit is
+  gated (SPORT DDE / SEC / SPI2 in the CGU/CDU clock-enable sense), or an
+  unhandled hardware-error exception with IRPTEN still off (interrupts
+  enable only AFTER this call returns — main.asm:126).
+- Order inside the call: arm_region(A), arm_region(B), sec_init,
+  spi2_init, set_*_bufs, enable_region(A/B). Bisecting with extra
+  diag-stage stamps between them is the cheapest next experiment — the
+  LED code will then name the failing sub-step directly.
+- History: d1bfbc1's "four SPI/SEC fixes" were in exactly this area.
+- Bench tools: TEST1-4 CPLD bring-up pins are live for scoping clocks
+  (boot succeeding proves SYS_CLKIN/core clock; SPORT frame syncs from
+  LOGIC are the unproven clocks).
+- JTAG option if it drags: the DSP JTG_* lines exist on the H1S2 harness;
+  TRST floats (errata) — a pull-up on TRST may expose the DSP TAPs on the
+  same CM4 JTAG header used for the CPLD.
+
+DESIGN NOTE (PW, 2026-08-19): on the earlier proto ALL system LEDs blinked
+in sync (the MH1 S_BLINK broadcast heartbeat). Keep that: once RUNNING,
+the DSP diag LED should sync to the system blink rather than free-run —
+same for LOGIC's LD1 (currently free-running ~1.5 Hz). Diagnostic burst
+codes stay local, but the healthy heartbeat should be family-wide.
+
 ### P2-was — original plan (kept for reference)
 
 `tools/pi/dsp4_boot.py` is ready and the hub has unit access; the ONLY
