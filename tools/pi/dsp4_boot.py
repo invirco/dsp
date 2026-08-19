@@ -29,7 +29,7 @@ Default GPIO map, read off the DSP4 PI header J6 (page 7/10) against the
 standard Pi 40-way numbering:
 
   SCK   GPIO11   MOSI  GPIO10   MISO  GPIO9
-  CS1   GPIO6    CS2   GPIO7     (chip selects, active low)
+  CS1   GPIO6    CS2   GPIO24    (chip selects, active low)
   CS3   GPIO8    CS4   GPIO12    (SPI_RDY back from chip 1 / chip 2)
   !RST_D GPIO16  (header pin 36, resets both DSPs, active low)
 
@@ -55,7 +55,7 @@ import sys
 import time
 
 # BCM GPIO numbers, DSP4 J6 (see module docstring).
-CS_GPIO = {1: 6, 2: 7}
+CS_GPIO = {1: 6, 2: 24}
 RDY_GPIO = {1: 8, 2: 12}
 RST_GPIO = 16
 

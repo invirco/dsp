@@ -1,0 +1,5 @@
+artifact: chip1.35c5681c0ef5.ldr + chip2.859f775f9a7b.ldr
+built: 2026-08-19T19:21:31Z
+source: MW/D32/DSP/SHARC @ a703728
+tool: native CCES 3.0.3 build.sh all
+naming: first 12 hex of sha256 of each .ldr
