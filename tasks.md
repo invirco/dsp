@@ -125,6 +125,32 @@ Note (PW 2026-08-19): rev-C CPLD scope = DSP clocks + routing only; a
 smaller part is a rev-D candidate, as is CPLD-driven SWD_EN3 (item f —
 confirmed NOT wired in rev C, SPARE reaches neither CPLD nor U7).
 
+### NEXT SESSION — first thing (set 2026-08-19 at session end)
+
+1. **H1S1 CS1-6 → inputs.** Started, deliberately NOT applied — the tree is
+   in a clean state, not a half-edit. CS7/CS8 are already done and verified
+   (see P3); CS1-6 is the same change for the same reason (`230899f`: the
+   CM4 owns the boot bus). Groundwork done: CS1-6 appear ONLY in
+   `MX_GPIO_Init` and in the commented-out `DspTx` block in
+   `stm32u5xx_it.c`, so nothing drives them at runtime and the change is
+   safe. Pins: CS1 PB12, CS4 PB13, CS3 PB14, CS6 PB15, CS5 PC13, CS2 PC14.
+   Apply exactly as CS7/CS8 were — `H1S1.ioc` (`Signal=GPIO_Output` →
+   `GPIO_Input`, drop `PinState`, keep `GPIO_Label`) plus the generated
+   `Core/Src/main.c`. Knock-ons in main.c: the GPIOC `HAL_GPIO_WritePin`
+   disappears entirely (CS5+CS2 were its only pins), the GPIOB one keeps
+   only `BLINK_Pin`, the GPIOC `OUTPUT_PP` block disappears, and the GPIOB
+   `OUTPUT_PP` group shrinks to `BLINK_Pin|S2_Pin`. Then rebuild
+   (`Debug/makefile.linux all`, in a scratch copy so Dropbox gets no object
+   files) and confirm in `H1S1.list` that all eight CS pins are
+   `GPIO_MODE_INPUT`.
+2. **Then H1S1 is flashable** — it has never been flashed, and the
+   DO-NOT-FLASH bar was exactly this GPIO problem.
+3. **Clear the bisect scaffolding in `dma_config.c`** before any image is
+   treated as shippable: `bca0dde` committed a deliberate `for (;;) { }`
+   park in `dma_cfg_init()` plus the `diag_stage_set()` stamps. The real
+   fix in that commit (`l1_to_sys()` — DDE descriptors must be SYSTEM
+   addresses, not the core L1 byte-view) stays.
+
 ### P2 — ✅ DSP FIRST BOOT SUCCESSFUL 2026-08-19 20:26 (hub-driven)
 
 Both SHARCs booted over SPI2 slave boot from the CM4 — first code ever to
