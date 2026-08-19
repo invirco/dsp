@@ -71,27 +71,42 @@ def pad(stream):
     return stream if short == 0 else stream + b'\x00' * (BOOT_UNIT - short)
 
 
-class Gpio:
-    """Thin gpiod wrapper; outputs default to inactive (high = deasserted
-    for the active-low CS and reset lines)."""
+class _Line:
+    """gpiod v2 per-line wrapper exposing the v1-style get/set surface."""
+    def __init__(self, req, num, Value):
+        self._req, self._num, self._V = req, num, Value
+    def get_value(self):
+        return 1 if self._req.get_value(self._num) == self._V.ACTIVE else 0
+    def set_value(self, v):
+        self._req.set_value(self._num, self._V.ACTIVE if v else self._V.INACTIVE)
 
-    def __init__(self, gpiochip='gpiochip0'):
+
+class Gpio:
+    """Thin gpiod (v2 API) wrapper; outputs default to inactive (high =
+    deasserted for the active-low CS and reset lines)."""
+
+    def __init__(self, gpiochip="/dev/gpiochip0"):
         import gpiod
-        self._gpiod = gpiod
-        self.chip = gpiod.Chip(gpiochip)
+        from gpiod.line import Direction, Value
+        self._gpiod, self._D, self._V = gpiod, Direction, Value
+        self._path = gpiochip
         self.lines = {}
 
     def out(self, num, initial=1):
-        line = self.chip.get_line(num)
-        line.request(consumer='dsp4_boot',
-                     type=self._gpiod.LINE_REQ_DIR_OUT, default_val=initial)
+        s = self._gpiod.LineSettings(
+            direction=self._D.OUTPUT,
+            output_value=self._V.ACTIVE if initial else self._V.INACTIVE)
+        req = self._gpiod.request_lines(self._path, consumer="dsp4_boot",
+                                        config={num: s})
+        line = _Line(req, num, self._V)
         self.lines[num] = line
         return line
 
     def inp(self, num):
-        line = self.chip.get_line(num)
-        line.request(consumer='dsp4_boot',
-                     type=self._gpiod.LINE_REQ_DIR_IN)
+        s = self._gpiod.LineSettings(direction=self._D.INPUT)
+        req = self._gpiod.request_lines(self._path, consumer="dsp4_boot",
+                                        config={num: s})
+        line = _Line(req, num, self._V)
         self.lines[num] = line
         return line
 

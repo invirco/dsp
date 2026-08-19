@@ -126,7 +126,30 @@ Note (PW 2026-08-19): rev-C CPLD scope = DSP clocks + routing only; a
 smaller part is a rev-D candidate, as is CPLD-driven SWD_EN3 (item f —
 confirmed NOT wired in rev C, SPARE reaches neither CPLD nor U7).
 
-### P2 — DSP first boot — NOW THE FRONT ITEM (CPLD is live)
+### P2 — ✅ DSP FIRST BOOT SUCCESSFUL 2026-08-19 20:26 (hub-driven)
+
+Both SHARCs booted over SPI2 slave boot from the CM4 — first code ever to
+run on the D24 DSPs: chip1 207872 B + chip2 108544 B streamed at 1 MHz with
+per-chunk SPI_RDY handshakes (RDY asserting = the fd6a5ec69198 CPLD clkgen
+is FUNCTIONALLY proven, not just IDCODE). Enablers, all committed:
+spi0-0cs overlay added to the unit + cm4-setup-pi.sh (no CE pins — GPIO7/8
+stay JTAG/RDY); dsp4_boot.py ported to the gpiod v2 API (this file, the
+bench-tested copy) after the CS2 GPIO7->24 map fix. LED codes on LD2/LD3 =
+the bench observable (expect stage 5 "waiting for host product config");
+dsp4_config.py is the next tool up.
+
+INCIDENT during the same session, fixed: the CM4 glitches GPIO14 during
+ITS OWN reboot; ST HAL's error path then DISABLED RXNEIE on MH1 USART1 —
+one-way deafness (MH1 TX fine, host RX dead). MH1 USART1 ISR given the
+same non-blocking-drain + explicit-ICR-clear treatment as USART2 and
+reflashed; all three MCUs verify again. LESSON + OPEN ITEM: while MH1 was
+deaf, the pre-boot S_RESET slave-hold silently failed, so the DSP boot ran
+with H1S1 alive driving CS1/CS2 high — the CM4 won the drive fight, but
+that must not be load-bearing: **H1S1 CS1-6 should become inputs like
+CS7/CS8** (the CM4 owns the boot bus; H1S1 only monitors RDY). Queue with
+the next H1S1 firmware pass.
+
+### P2-was — original plan (kept for reference)
 
 `tools/pi/dsp4_boot.py` is ready and the hub has unit access; the ONLY
 missing piece is the `.ldr` boot streams (CCES build, this machine).
