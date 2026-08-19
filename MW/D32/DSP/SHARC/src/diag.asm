@@ -170,6 +170,14 @@
  * banks the low register file and touches no DAG register — it is safe
  * to have running underneath the C config functions.
  *----------------------------------------------------------------------*/
+.global _diag_stage_set;
+
+/* TEMP bisect helper 2026-08-19: C-callable stage stamp
+   (C data refs cannot touch the word-addressed .var directly). */
+_diag_stage_set:
+    dm(_diag_boot_stage) = r4;
+    rts;
+
 .global _diag_init;
 _diag_init:
     /* PA_12 -> GPIO output, driven low. FER bit clear selects GPIO over

@@ -31,6 +31,14 @@
 #include <stdint.h>
 #include <def21564.h>
 
+/* L1 core byte-view -> system view for the DDE (ADI libcc math inlined —
+ * this bare-metal build links no runtime lib). 2156x: single MP port,
+ * L1 byte space 0x00240000+, system alias = +0x28000000. */
+static inline uint32_t l1_to_sys(uint32_t a)
+{
+    return (a >= 0x00240000u && a <= 0x003FFFFFu) ? (a + 0x28000000u) : a;
+}
+
 #define REG32(addr) (*(volatile uint32_t *)(addr))
 
 #define DMA_MMR_BASE    0x31022000u
@@ -118,14 +126,20 @@ static void arm_region(const int *lanes, int count, int dir,
 
         for (h = 0; h < 2; h++) {
             unsigned int *buf = h ? pong : ping;
-            desc[i][h][0] = (uint32_t)&desc[i][1 - h][0]; /* ring */
-            desc[i][h][1] = (uint32_t)(buf + region_off);
+            /* 2026-08-19 hardware fix: every address the DDE dereferences
+             * must be a SYSTEM address, not the core L1 byte-view — the
+             * fabric has no mapping at 0x002xxxxx, and a descriptor fetch
+             * from there wedges the SCB and stalls the core on its next
+             * MMR access (bench: 1-flash hang inside this function). */
+            desc[i][h][0] = l1_to_sys((uint32_t)&desc[i][1 - h][0]); /* ring */
+            desc[i][h][1] = l1_to_sys((uint32_t)(buf + region_off));
             desc[i][h][2] = cfg;
             desc[i][h][3] = lane_words * 32u;             /* words/block */
             desc[i][h][4] = 4u;                           /* byte stride */
         }
 
-        REG32(dma + DMA_OFF_DSCPTR) = (uint32_t)&desc[i][0][0];
+        REG32(dma + DMA_OFF_DSCPTR) =
+            l1_to_sys((uint32_t)&desc[i][0][0]);
         REG32(dma + DMA_OFF_CFG) = cfg;   /* starts descriptor fetch */
     }
 }
@@ -214,15 +228,25 @@ static void spi2_init(void)
 #pragma linkage_name _dma_cfg_init
 void dma_cfg_init(void);
 
+#pragma linkage_name _diag_stage_set
+extern void diag_stage_set(int stage);  /* TEMP bisect stamps 2026-08-19 */
+
 void dma_cfg_init(void)
 {
+    diag_stage_set(1);
     arm_region(REGION_A_LANES, REGION_A_COUNT, 0,
                REGION_A_PING, REGION_A_PONG, desc_a);
+    diag_stage_set(7);  /* BISECT round 1: steady square = arm A survived */
+    for (;;) { }        /* park here — question is arm_region(A) only */
+    diag_stage_set(2);
     arm_region(REGION_B_LANES, REGION_B_COUNT, 1,
                REGION_B_PING, REGION_B_PONG, desc_b);
+    diag_stage_set(3);
 
     sec_init();
+    diag_stage_set(4);
     spi2_init();
+    diag_stage_set(5);
 
     /* Hand the asm side its buffer views (byte -> word inside) */
     set_rx_bufs(REGION_A_PING, REGION_A_PONG);
@@ -230,6 +254,7 @@ void dma_cfg_init(void)
 
     /* All rings armed: enable the serial ports (clock slaves — they
      * start on the next LOGIC frame sync) */
+    diag_stage_set(6);
     enable_region(REGION_A_LANES, REGION_A_COUNT, 0);
     enable_region(REGION_B_LANES, REGION_B_COUNT, 1);
 }
