@@ -24,7 +24,22 @@ digital board; MH1 + panels flashed from the CM4 and verified on every boot;
 power MCU programmed. Full narrative in mx26 tasks.md (2026-08-19 entries).
 The CPLD is currently **BLANK — deliberately erased 2026-08-19** (see P1).
 
-### P1 — CPLD unused-pins fix (URGENT: blocks all DSP/audio work)
+### P1 — ✅ DONE end-to-end 2026-08-19 evening (dsp machine + hub)
+
+Root cause (this machine, `a47e580`): the primary `RESERVE_ALL_UNUSED_PINS`
+was unspecified — the subordinate `_WEAK_PULLUP` line changed nothing — so
+EVERY build ground-drove unused pins, including the committed one. Fixed,
+fitter-verified (43 RESERVED_INPUT_WITH_WEAK_PULLUP, zero ground), committed
+as `dsp4_logic.fd6a5ec69198.{pof,svf}`.
+
+Flash + regression (hub, which has the SSH credential for .219):
+`fd6a5ec69198.svf` programmed from the CM4 — 40779 SVF commands, 0 errors,
+61 s, IDCODE 0x020a30dd. Regression PASSED: MHTX/MHRX idle high, app boot
+verifies H1S3 + H1S4 with the CPLD live. The unit now runs the fixed
+bitstream. (Artifact-name digest isn't sha256 of either file — document the
+naming scheme in the manifest next build.)
+
+### P1-was — original finding (kept for reference)
 
 The flashed bitstream `f827e1243536` drove its UNUSED pins **as output
 ground** — hardware-proven on the bench: MHRX/MHTX (+SRX/MRX/PTRX/S5-7/BUSY)
@@ -111,7 +126,16 @@ Note (PW 2026-08-19): rev-C CPLD scope = DSP clocks + routing only; a
 smaller part is a rev-D candidate, as is CPLD-driven SWD_EN3 (item f —
 confirmed NOT wired in rev C, SPARE reaches neither CPLD nor U7).
 
-### P2 — DSP first boot (unblocked once P1 restores clkgen)
+### P2 — DSP first boot — NOW THE FRONT ITEM (CPLD is live)
+
+`tools/pi/dsp4_boot.py` is ready and the hub has unit access; the ONLY
+missing piece is the `.ldr` boot streams (CCES build, this machine).
+Build the 2026-08-12 diagnostics image (`d1bfbc1` LED codes + SPI readback)
+and COMMIT the .ldr (hash-named like the CPLD artifacts) — the hub can then
+push it to the unit and run the boot the same hour. Note before booting:
+H1S1 firmware now RUNS on the card (flashed 2026-08-19, see P3) — confirm
+who owns !RST_D during slave boot (H1S1 PA13 vs the boot script's
+expectations).
 
 With SYSCLK live from the CPLD: first SPI2 slave-boot of DSPA/DSPB from the
 CM4 (BMODE 0b010; CS1/CS3 = DSPA select/ready, CS2/CS4 = DSPB; shared bus,
