@@ -199,8 +199,18 @@ having listened. That is the honest state of the investigation.
    SYS_CLKIN0 (p5) for DSP_CLK actually arriving, then PA_04/PA_01
    (SPI2 CLK/MOSI) during a boot, then SYS_HWRST (p104). One session with
    a probe answers what a week of desk work cannot.
-2. **The one board assumption still unverified**: that PA_00 is SPI2_MISO
-   and PA_01 SPI2_MOSI on the 21564. The HRM has no pin-function table
+2. ~~The one board assumption still unverified~~ **VERIFIED 2026-08-20
+   (hub): PA_00=SPI2_MISO, PA_01=SPI2_MOSI, PA_04=SPI2_CLK,
+   PA_05=SPI2_SEL1/SS, PB_05=SPI2_RDY — from ADI's own pinmux data:**
+   `ADSP-21564-pinmux.xml` inside CCES
+   `Eclipse/plugins/com.analog.crosscore.addins.pinmux_*.jar`
+   (extracted to /tmp/pinmuxjar on this machine; the jar is the local
+   authoritative pin-function source — datasheet fetch no longer
+   blocks anything). Schematic net names correct on every SPI2 pin;
+   rdyprobe drives the right pin. Suspect list for the scope session
+   accordingly narrows to the physical layer: VDD_INT (+0.9 V core
+   rail) actually present at the card, SYS_CLKIN0 actually clocking,
+   SYS_HWRST behavior, then PA_04/PA_01 during a boot. The HRM has no pin-function table
    (it is in the datasheet, which is not in `_mx/_temp/adsp-2156x-docs` —
    only `adsp-2156x_hwr.pdf`), and analog.com times out on fetch. If the
    two are the other way round the parts have never seen MOSI. **Get
