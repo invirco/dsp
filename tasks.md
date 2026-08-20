@@ -1,3 +1,47 @@
+## HUB DISPATCH 2026-08-20 17:16Z — P2.2 fix flash + readback verification   [status: 🟡 dispatched]
+
+Flash the P2.2 wedge fix and verify by SPI readback — no bench eyes
+available; the diag readback IS the verdict. PW has waived the
+before-datapoint LD2 read; chip1's parked bisect state may be discarded.
+
+Context: root cause fixed in fff7506 (sport_dma_base — SPORT4-7 at
+0x31023000). Chip1 currently runs the round-1 park build, chip2 the
+l1_to_sys-only build (both hung, harmless). Unit app is running with the
+new H1S1 build; H1S1 proven not to drive !RST_D. dsp4_boot.py now has
+the auto-retry. Dropbox via ~/db only.
+
+Sequence:
+1. Pull main. Build BOTH chips with **DSP4_BISECT=0** (production — no
+   park, no stamps; note the current default is 1). `./build.sh all`,
+   commit the .ldr pair hash-named per the artifact convention.
+2. scp the .ldr pair to app@192.168.1.219:/home/app/dspboot/. Stop
+   matrix-app, S_RESET '*' (hold slaves), run dsp4_boot.py for both
+   chips (its auto-retry covers the hung-state first-attempt quirk).
+3. Verify via dsp4_diag.py against EACH chip. Acceptance:
+   - MAGIC correct, CHIP_ID = 1 and 2 on the right chips (proves CS
+     routing), echo protocol passing (no all-zero echoes).
+   - BOOT_STAGE = 5 (waiting for host product config) on both.
+   - TICKS advancing between two reads (core alive), no unexpected
+     ISSUES from the tool.
+4. On PASS: restart matrix-app, confirm the three MCUs still verify,
+   leave the unit whole. Update tasks.md: P2.2 marked VERIFIED ON
+   HARDWARE with the readback evidence; note that item 3 (clear bisect
+   scaffolding) is now unblocked and item 4 (dsp4_config.py, stage 5→6)
+   is the next bench step. Commit + push.
+5. On FAIL (readback still all-zero / stage < 5): do NOT thrash — one
+   boot retry maximum beyond the tool's built-in retry; record exactly
+   what the readback shows, restore matrix-app, mark the block 🔴 with
+   findings; the staged LED bisect (DSP4_BISECT=1/2) resumes at PW's
+   bench.
+
+Constraints: touch ONLY the DSPs and /home/app/dspboot + app
+stop/start — no CPLD flashing, no MCU flashing. Single trunk; update
+this block's status; no AI attribution.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-08-20 15:18Z — H1S1 aligned reflash + P2.2 prep (PW absent)   [status: 🟢 done]
 
 **Outcome 2026-08-20 — both tasks done. TASK A: H1S1 reflashed with the
