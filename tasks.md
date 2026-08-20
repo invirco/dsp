@@ -1,3 +1,41 @@
+## HUB DISPATCH 2026-08-20 11:47Z — H1S1 CS1-6 to inputs (build+verify, no flash)   [status: 🟡 dispatched]
+
+Execute **NEXT SESSION item 1** from this repo's tasks.md ("H1S1 CS1-6 →
+inputs") exactly per its recipe — the groundwork analysis there is current
+and trusted:
+
+- Source tree: Dropbox FW home
+  `~/Stonepower Dropbox/Peter Watts/_mx/MW/D24/FW/H1S1/`.
+- Edit `H1S1.ioc` textually (same regen-proof style as the completed CS7/CS8
+  change): for CS1 PB12, CS4 PB13, CS3 PB14, CS6 PB15, CS5 PC13, CS2 PC14 —
+  `Signal=GPIO_Output` → `GPIO_Input`, drop `PinState`, keep `GPIO_Label`.
+  Do NOT run CubeMX.
+- Apply the matching edits in generated `Core/Src/main.c` with the knock-ons
+  listed in the tasks.md recipe (GPIOC WritePin call disappears, GPIOB one
+  keeps only BLINK_Pin, GPIOC OUTPUT_PP block disappears, GPIOB OUTPUT_PP
+  group shrinks to BLINK_Pin|S2_Pin).
+- Build in a SCRATCH COPY outside Dropbox (e.g. ~/build-h1s1/) with
+  `Debug/makefile.linux all` — no object files may land in Dropbox.
+
+Acceptance criteria:
+1. Build succeeds with 0 errors.
+2. `H1S1.list` shows ALL EIGHT CS pins (CS1-8) configured GPIO_MODE_INPUT —
+   quote the evidencing lines in your outcome note.
+
+Hard constraints:
+- Do NOT flash anything and do NOT SSH to the rev C unit (192.168.1.219).
+  The unit is mid-bisect (chip1 overnight build; LD2 unread). This dispatch
+  is edit + build + verify only; flashing is a separate follow-up dispatch.
+- The .ioc/main.c edits land in the Dropbox FW home (that is the source of
+  truth for this tree); list exactly which files you changed in your
+  outcome note, since Dropbox is outside git.
+- Update tasks.md: mark NEXT SESSION item 1 DONE with the evidence, leave
+  items 2/3 untouched.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 # tasks
 
 Status: active
