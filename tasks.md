@@ -1,4 +1,101 @@
-## HUB DISPATCH 2026-08-20 15:18Z — H1S1 aligned reflash + P2.2 prep (PW absent)   [status: 🟡 dispatched]
+## HUB DISPATCH 2026-08-20 15:18Z — H1S1 aligned reflash + P2.2 prep (PW absent)   [status: 🟢 done]
+
+**Outcome 2026-08-20 — both tasks done. TASK A: H1S1 reflashed with the
+CS1-6-inputs build compiled against the RUNNING app generation
+(`e80ccab5d6d8`); all three MCUs verify on reboot, DSPs untouched.
+TASK B: boot-tool auto-retry + bisect variants B/C landed, and the HRM
+desk-review FOUND THE P2.2 WEDGE — SPORT4-7 use DMA10-DMA17 at
+0x31023000, not DMA8+ at 0x31022400; `2*sport+dir` off one base was
+writing unpopulated MMR space. Fix applied (not flashed).**
+
+### TASK A — H1S1 aligned reflash
+
+- **Generation.** Built against `/home/app/fwbuild/matrix-aligned.h`
+  (generated on-unit 2026-08-19 from `config/_matrix.mxc`, app build
+  260714102659). `matrix_gen_id.py --compare` vs the unit's own
+  decrypted matrix: **ALIGNED, full-id `e80ccab5d6d8`, 5412 cells,
+  Sys001Skin001 = 5412**. Against mx26's baked
+  `MatrixBus.Matrix.g.cs` it reports DRIFT of exactly one cell
+  (`base-id 9b3c3d8f0286`): the g.cs predates `Sys001SwUpd001` (MxAdd
+  6416, added on-device 2026-08-18) and still carries the dev-only
+  `Aaa001Aaa001` placeholder, which shifts the `Zzz001Zzz001` sentinel
+  6417 vs 6415. Hub confirmed the unit generation is the operative one.
+  Immaterial either way for this image: **all four cells H1S1 actually
+  compiles in are identical in both generations** — Sys001Enc001 5232,
+  Sys001Skin001 5412, Sys001Test001 5414, Sys001Test002 5415 —
+  confirmed in the linked ELF, `MATRIX[]` at `.rodata 0x080083b0` =
+  {0, 5232, 5412, 5414, 5415}. The abandoned Dropbox-generation build
+  had {0, 19479, 19727, 19730, 19731}.
+- **Build.** `Debug/makefile.linux all` in the scratch copy
+  `~/build-h1s1` (nothing written into Dropbox): exit 0, 0 errors,
+  34036 text / 657 data / 1940 bss. 29 warnings, all pre-existing
+  (`-Wpointer-sign` in DspTx/SpiTx/HAL_UART_Receive, three unused
+  micGain* variables, CubeIDE `.cyclo` peer-target noise). Disassembly
+  is byte-identical to the 2026-08-20 verified build except debug
+  section sizes — the generation change lives in `.rodata`.
+- **CS pins (acceptance 2).** All eight `GPIO_MODE_INPUT` in
+  `H1S1.list`: CS5|CS2|CS7, CS8, and CS1|CS4|CS3|CS6(+BUSY,S3) groups
+  each set `GPIO_InitStruct.Mode` to 0 in the disassembly.
+- **Flash.** `hex2shex.py H1S1.hex H1S1` -> 2171 records / 34693 B
+  image; previous pack image kept as
+  `/home/app/fwbuild/pack-backup-H1S1.shex`. matrix-app stopped,
+  S_RESET `*` on `/dev/serial0`, `app cli loadfw H1S1` -> MH1 loopback
+  OK, S_SCAN found H1S1, all 2171 records ACKed, `// flash end of
+  firmware record`, `OK: H1S1` (`logs/flash.log` 17:17-17:18Z).
+- **Boot (acceptance 3).** matrix-app restarted and left running:
+  `MCU verified: // H1S1 DSP`, `// H1S3 SW Right`, `// H1S4 SW Left`,
+  then `Boot.Loop() - MCU boot verified: H1S1 / H1S3 / H1S4`. No new
+  warnings — the only ones present are the 25 pre-existing SkinLoader
+  "not in the matrix" notices (those cells are genuinely absent from
+  the unit matrix, a skin<->matrix drift item, nothing to do with
+  H1S1) and the pre-existing `mh1=?` build-stamp MISMATCH line.
+- **DSPs untouched, as instructed.** No `dsp4_boot.py`, no `!RST_D`, no
+  DSP reset. H1S1's own firmware never drives `!RST_D` — the only two
+  writes to it in `main.c` are commented out and the pin is not in the
+  `.ioc` — so the MCU reset during flashing did not reset either SHARC.
+  Chip 1's bisect park should be intact for PW's LD2 read.
+- **Flagged, not changed:** H1S1's blink handler still issues
+  `DspTx(GPIOx, CSn_Pin, 0xF520, ...)` on SPI1 for all eight CS lines
+  on every S_BLINK edge (ADAU-era LED writes, `matrix.cs` MainLoop).
+  With CS1-6 now inputs it selects nothing, so this is strictly less
+  intrusive than the build it replaced, but SPI1 SCK/MOSI still toggle
+  on the housekeeping bus that carries the DSP CS provision. Deleting
+  those dead calls belongs in the next H1S1 pass.
+
+### TASK B — P2.2 prep
+
+1. **`tools/pi/dsp4_boot.py` auto-retry.** `BOOT_ATTEMPTS = 2` with a
+   `--attempts` override; every attempt is logged (`attempt n/m OK` /
+   `attempt n/m FAILED`) so a part that needs the retry every time
+   still says so. The retry restarts that chip's stream from byte 0 and
+   deliberately does NOT re-pulse `!RST_D` (one reset line serves both
+   DSPs). `Gpio` now releases and re-claims a line so the second
+   attempt can re-request CS/RDY. Exercised off-target against a stub
+   GPIO/SPI (fail-then-succeed and `--attempts 1` raise) plus
+   `--dry-run`. Copied to `/home/app/dspboot/` so the next bench run
+   picks it up (md5 matches the repo copy).
+2. **Bisect round 2 ready to build, NOT flashed.** `DSP4_BISECT` in
+   `dma_config.c`: 0 = production (no park, no stamps), 1 = round 1
+   (default, park after `arm_region(A)`), 2 = **variant B** (park after
+   `arm_region(B)`), 3 = **variant C** (write DSCPTR + CFG with
+   `DMA_CFG.EN` clear, then set EN separately; parks after A so LD2
+   answers the same question). `build.sh` passes it through:
+   `DSP4_BISECT=2 ./build.sh`. All four values compile clean for both
+   CHIP_IDs; an out-of-range value is a compile-time `#error`.
+3. **HRM desk-review — root cause found (see the P2.2 note below).**
+4. **`tools/pi/` sync.** `dsp4_config.py` pulled back from
+   `/home/app/dspboot/` (the gpiod-v2 port) and committed verbatim;
+   `dsp4_diag.py` and `dsp4_boot.py` were already byte-identical. Two
+   rough edges in the ported `dsp4_config.py` left as-is so repo and
+   unit stay identical, worth a tidy pass: the `if True:` block claims
+   the RDY line unconditionally (crashes when `rdy_gpio is None` but
+   `cs_gpio` is set), and the CS request is likewise unconditional.
+
+Housekeeping: `~/mx26`'s `origin` was still HTTPS against a dead `gh`
+token, so `git pull` there failed. Switched it to
+`git@github.com:invirco/mx26.git` (same SSH key the dsp remote uses);
+pulls work again and `tools/matrix_gen_id.py` is present.
+
 
 Two tasks, PW absent — everything here is verifiable over SSH, no bench
 eyes available. Unit access: app@192.168.1.219 (this machine's key works).
@@ -81,19 +178,61 @@ sync-from-mx26.sh now refuses an untagged mx26 HEAD).
 
 **Context:** the rev-C card is LIVE on the fresh digital board — CPLD
 `fd6a5ec69198` flashed + regression-passed, MH1/H1S3/H1S4 verify on every
-boot, H1S1 built + verified but never flashed, and both SHARCs slave-boot
-from the CM4 — currently wedged in `dma_cfg_init` (P2.2 bisect build left
-running on chip1 overnight 08-19→08-20). This machine has direct SSH to
-the unit (`app@192.168.1.219`) since 2026-08-20 — the hub-relay era is
-over.
+boot, H1S1 flashed 2026-08-19 (CS7/8 build) and reflashed 2026-08-20
+with the CS1-6-inputs build on the running app's matrix generation, and
+both SHARCs slave-boot from the CM4 — still wedged in `dma_cfg_init` on
+the bench (P2.2 bisect build left running on chip1 overnight
+08-19→08-20), though the cause is now understood and fixed in the tree
+(item 1). This machine has direct SSH to the unit
+(`app@192.168.1.219`) since 2026-08-20 — the hub-relay era is over.
 
-1. **P2.2 — dma_cfg_init wedge: resume the bisect.** [gate: PW reads LD2]
-   - FIRST: bench LD2 on chip1. Steady 1 Hz square = `arm_region(A)`
-     survives → move the park after `arm_region(B)`, repeat. Slow single
-     blink = still dies inside `arm_region(A)` even with the address fix
-     → next suspects: DMA CFG EN write order (write DSCPTR + CFG with EN
-     clear, then set EN), descriptor alignment, the lane-4/cs-mask
-     special case.
+1. **P2.2 — dma_cfg_init wedge: ROOT CAUSE FOUND 2026-08-20 (desk
+   review), fix in the tree, NOT yet flashed.**
+   - **The SPORT DMA channels are not one contiguous block, and the two
+     blocks are not adjacent in the MMR map** (HRM Table 27-2 "ADSP-2156x
+     DMA Channel List", Table 23-6, and `sys/ADSP-21564.h`):
+
+     | half-SPORT | DMA channel | MMR base |
+     |---|---|---|
+     | SPORT0-3 A/B | DMA0-DMA7 | 0x31022000 + (2n+dir)·0x80 |
+     | — | DMA8/DMA9 = MDMA0_SRC/DST | 0x310A7000 (different SCB node) |
+     | SPORT4-7 A/B | DMA10-DMA17 | **0x31023000** + (2(n-4)+dir)·0x80 |
+
+     `arm_region()` used `0x31022000 + (2*sport + dir)*0x80` for every
+     lane, which is right only for SPORT0-3. From SPORT4 up it wrote
+     0x31022400, 0x31022480, … — **unpopulated MMR space just past
+     DMA7**. An SCB access there never completes, and the core stalls on
+     its next MMR access: exactly the observed 1-flash hang. Chip 1's
+     region A carries SPORT0-7, so it dies on lane index 4 (SPORT4)
+     *inside* `arm_region(A)`, which is where the round-1 park says it
+     dies. Chip 2 reaches SPORT4 in its region B (`c2_tx` lane index 4).
+   - **Fix applied** (`dma_config.c`): `sport_dma_base(sport, dir)`
+     picks the right base and half index; verified for all 16 half-SPORTs
+     against the vendor header. Compiles clean for both CHIP_IDs.
+     `dsp4-plumbing.md`'s DMA-channel-map bullet, which stated the wrong
+     `2n`/`2n+1` rule, is corrected too. **Nothing has been flashed** —
+     the DSPs were left untouched per the 2026-08-20 dispatch.
+   - **Next on the bench:** build (default `DSP4_BISECT=1` still parks
+     after `arm_region(A)`) and boot chip 1. If LD2 now shows the steady
+     1 Hz square, the wedge is closed — then `DSP4_BISECT=2` (park after
+     B), then `DSP4_BISECT=0` for a full run. PW's LD2 read on the
+     CURRENT image is still useful as a before/after datapoint but is no
+     longer a gate.
+   - Suspects cleared by the same review, for the record: **descriptor
+     alignment** is fine — the HRM requires only 32-bit alignment for
+     descriptor sets ("Descriptor Set Address Alignment"), `DMA_ADDRSTART`
+     only needs MSIZE alignment (MSIZE04 = 4 bytes, and the buffers are
+     `unsigned int` arrays), and the descriptor element order
+     {DSCPTR_NXT, ADDRSTART, CFG, XCNT, XMOD} matches the MMR order at
+     +0x00/04/08/0C/10 that NDSIZE=5 fetches. **DMA_CFG.EN write order**
+     is already legal — `DMA_OFF_DSCPTR` (0x00) *is* `DMA_DSCPTR_NXT`,
+     which is precisely what "Startup Minimum-Enable Requirements"
+     requires be written before `DMA_CFG` for descriptor-LIST flow. The
+     `DSP4_BISECT=3` variant keeps the EN-last experiment available
+     anyway. **The lane-4/cs-mask special case** was the right instinct
+     pointing at the wrong mechanism: lane index 4 is where it dies, but
+     because that lane is SPORT4, not because `cs_mask = 0x000D` is
+     non-contiguous.
    - Real fix already applied (KEEP): `arm_region` converts every
      DDE-visible address core-L1 → SYSTEM via inlined `l1_to_sys()`
      (+0x28000000 for 0x00240000..0x003FFFFF; ADI libcc math). The hang
@@ -101,38 +240,53 @@ over.
      echoes.
    - Temp instrumentation in the tree (REVERT when done): `diag_stage_set()`
      stamps 1..7 in `dma_cfg_init` + `_diag_stage_set` helper in
-     `diag.asm` + the park loop. Chip 2 runs the fixed un-instrumented
-     build (hung, harmless).
+     `diag.asm` + the park loop — now all behind `DSP4_BISECT` (0 =
+     production, no park and no stamps; see item 3). Chip 2 runs the
+     fixed un-instrumented build (hung, harmless).
    - Flash/boot loop, all runnable from here now: build → scp `.ldr` to
      `app@192.168.1.219:/home/app/dspboot/` → S_RESET `*` on
      `/dev/serial0` (hold slaves; matrix-app stopped) → `dsp4_boot.py
      --dir /home/app/dspboot` → observe/readback → app restart.
-   - Boot-tool quirk: re-boot from a RUNNING/hung state fails its first
-     attempt (SPI_RDY timeout) and works on the immediate retry,
-     reproducible ×3 — add an auto-retry to the tool.
+   - Boot-tool quirk (re-boot from a RUNNING/hung state fails its first
+     attempt on an SPI_RDY timeout and works on the immediate retry,
+     ×3): **auto-retry added 2026-08-20** — `dsp4_boot.py` now takes two
+     attempts per chip by default (`--attempts` to override), logs both,
+     and never re-pulses `!RST_D` on the retry.
    - Before any slave boot with H1S1 flashed: confirm !RST_D ownership
      (H1S1 PA13 = `!RST_D` vs the boot script's GPIO16 pulse).
 
-2. **Flash H1S1 — now CLEAR.** All eight CS pins verified
-   `GPIO_MODE_INPUT` in the disassembled `H1S1.list` (CS7/8 2026-08-19;
-   CS1-6 2026-08-20 hub dispatch — evidence in the archive). Build
-   against the RUNNING app's matrix generation (matrix-aligned.h — same
-   drift rule as panels; check with mx26 `tools/matrix_gen_id.py
-   --compare`), pack, `app cli loadfw H1S1` (send S_RESET `*` first —
-   MH1's `'?'` probe responder is pre-loop only). H1S1 has never been
-   flashed; the DO-NOT-FLASH bar was exactly the CS GPIO problem, now
-   closed.
+2. ~~**Flash H1S1.**~~ **DONE 2026-08-20** — full evidence in the
+   dispatch outcome at the top of this file. Reflashed with the
+   CS1-6-inputs build compiled against the running app's generation
+   (`matrix-aligned.h`, full-id `e80ccab5d6d8`); all eight CS pins
+   `GPIO_MODE_INPUT` in the disassembly; `app cli loadfw H1S1` clean;
+   H1S1 + SW Left + SW Right all verify on reboot.
+   **Correction to the earlier wording here: H1S1 had NOT "never been
+   flashed"** — the hub flashed a matrix-aligned CS7/CS8-only build on
+   2026-08-19 night (`logs/flash.log` ends 18:24Z, and all three MCUs
+   have verified at every boot since). What the 2026-08-20 reflash
+   superseded was that CS7/8-only image.
+   Still open from this pass: H1S1's blink handler issues `DspTx(...)`
+   SPI1 writes for CS1-8 every S_BLINK edge (dead ADAU-era LED writes —
+   they select nothing now that CS1-6 are inputs, but they still clock
+   the housekeeping bus). Delete them at the next H1S1 pass.
 
 3. **Clear the bisect scaffolding in `dma_config.c`** once P2.2
-   concludes — `bca0dde`'s deliberate `for(;;)` park + diag stamps go;
-   the `l1_to_sys()` fix stays. No image is shippable before this.
+   concludes — it is all behind `DSP4_BISECT` now (`DSP4_BISECT=0`
+   already compiles the clean production path), so the deletion is
+   mechanical: drop the `DSP4_BISECT` block, `DIAG_STAGE`, the parks,
+   the `build.sh` passthrough, and `_diag_stage_set` in `diag.asm`.
+   `bca0dde`'s deliberate `for(;;)` park + diag stamps go; the
+   `l1_to_sys()` fix and the `sport_dma_base()` fix STAY. No image is
+   shippable before this.
 
 4. **dsp4_config.py — next tool up** once the wedge clears: expect LED
    stage 5 (waiting for host product config) → configure → stage 6 →
    audio → steady 1 Hz. Procedure + failure signatures:
-   `MW/D32/DSP/diagnostics.md`. Also sync the gpiod-v2-ported
-   `dsp4_config.py` / `dsp4_diag.py` copies back from
-   `/home/app/dspboot/` (dsp4_boot.py already synced).
+   `MW/D32/DSP/diagnostics.md`. (Sync back from `/home/app/dspboot/`
+   is DONE 2026-08-20 — `dsp4_config.py` was the only one that had
+   drifted; see the dispatch outcome for the two rough edges in that
+   gpiod-v2 port that are worth tidying when the tool is next used.)
 
 5. **Bench observations owed (PW):** LD1 ~1.5 Hz with the CPLD live;
    TEST1-4 on the scope (J15 DNP pads); blink-image rate = free CCLK
