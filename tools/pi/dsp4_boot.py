@@ -39,6 +39,15 @@ Protocol, per HRM Figure 40-7 (host-side program flow, single-bit):
   multiple of 1024 bytes because the HRM requires slave-boot hosts to
   send whole 1024-byte units (internal DMA buffer sizing).
 
+Auto-retry: re-booting a part that is already RUNNING (or hung in one of
+the bisect parks) fails its FIRST attempt on a SPI_RDY timeout and
+succeeds on the immediate retry — reproduced three times on rev C,
+2026-08-19/20. Each chip therefore gets BOOT_ATTEMPTS tries and both
+attempts are logged, so the retry never hides a genuinely dead part. The
+retry restarts that chip's stream from byte 0 and does NOT re-pulse
+!RST_D: one reset line serves both DSPs, so a mid-run reset would take
+the other part down with it.
+
 Usage:
   dsp4_boot.py --dir ../../MW/D32/DSP/SHARC/build          # both chips
   dsp4_boot.py --chip 1 --ldr build/chip1.ldr
@@ -63,6 +72,8 @@ BOOT_UNIT = 1024        # HRM: slave-boot hosts send multiples of 1024 B
 CHUNK = 4096            # spidev-friendly; a multiple of BOOT_UNIT
 RESET_LOW_S = 0.050     # !RST_D pulse width
 RDY_TIMEOUT_S = 2.0
+BOOT_ATTEMPTS = 2       # 1 automatic retry — see "Auto-retry" above
+RETRY_SETTLE_S = 0.20   # let the part's boot kernel re-arm SPI_RDY
 
 
 def pad(stream):
@@ -75,6 +86,8 @@ class _Line:
     """gpiod v2 per-line wrapper exposing the v1-style get/set surface."""
     def __init__(self, req, num, Value):
         self._req, self._num, self._V = req, num, Value
+    def release(self):
+        self._req.release()
     def get_value(self):
         return 1 if self._req.get_value(self._num) == self._V.ACTIVE else 0
     def set_value(self, v):
@@ -92,23 +105,26 @@ class Gpio:
         self._path = gpiochip
         self.lines = {}
 
-    def out(self, num, initial=1):
-        s = self._gpiod.LineSettings(
-            direction=self._D.OUTPUT,
-            output_value=self._V.ACTIVE if initial else self._V.INACTIVE)
+    def _claim(self, num, settings):
+        # A retry re-claims CS/RDY, and the kernel refuses a second request
+        # for a line this process still holds — drop the old one first.
+        held = self.lines.pop(num, None)
+        if held is not None:
+            held.release()
         req = self._gpiod.request_lines(self._path, consumer="dsp4_boot",
-                                        config={num: s})
+                                        config={num: settings})
         line = _Line(req, num, self._V)
         self.lines[num] = line
         return line
 
+    def out(self, num, initial=1):
+        return self._claim(num, self._gpiod.LineSettings(
+            direction=self._D.OUTPUT,
+            output_value=self._V.ACTIVE if initial else self._V.INACTIVE))
+
     def inp(self, num):
-        s = self._gpiod.LineSettings(direction=self._D.INPUT)
-        req = self._gpiod.request_lines(self._path, consumer="dsp4_boot",
-                                        config={num: s})
-        line = _Line(req, num, self._V)
-        self.lines[num] = line
-        return line
+        return self._claim(num,
+                           self._gpiod.LineSettings(direction=self._D.INPUT))
 
 
 def wait_ready(line, what, timeout=RDY_TIMEOUT_S):
@@ -126,7 +142,8 @@ def wait_ready(line, what, timeout=RDY_TIMEOUT_S):
     return True
 
 
-def boot_chip(spi, gpio, chip, stream, verbose=True):
+def boot_chip(spi, gpio, chip, stream, verbose=True, attempt=1,
+              attempts=BOOT_ATTEMPTS):
     cs = gpio.out(CS_GPIO[chip], initial=1)
     rdy = gpio.inp(RDY_GPIO[chip])
 
@@ -141,9 +158,32 @@ def boot_chip(spi, gpio, chip, stream, verbose=True):
     finally:
         cs.set_value(1)
     if verbose:
-        print(f'  chip {chip}: {sent} bytes sent on CS{chip} '
-              f'(GPIO{CS_GPIO[chip]}), RDY on GPIO{RDY_GPIO[chip]}')
+        print(f'  chip {chip}: attempt {attempt}/{attempts} OK — {sent} bytes '
+              f'sent on CS{chip} (GPIO{CS_GPIO[chip]}), RDY on '
+              f'GPIO{RDY_GPIO[chip]}')
     return sent
+
+
+def boot_chip_retrying(spi, gpio, chip, stream, verbose=True,
+                       attempts=BOOT_ATTEMPTS):
+    """boot_chip with the documented one-shot retry. Every attempt is
+    logged — a part that needs the retry every time is still telling us
+    something, so the retry must stay visible rather than silent."""
+    last = None
+    for attempt in range(1, attempts + 1):
+        try:
+            return boot_chip(spi, gpio, chip, stream, verbose=verbose,
+                             attempt=attempt, attempts=attempts)
+        except TimeoutError as exc:
+            last = exc
+            print(f'  chip {chip}: attempt {attempt}/{attempts} FAILED — '
+                  f'{exc}', file=sys.stderr)
+            if attempt < attempts:
+                print(f'  chip {chip}: retrying from byte 0 in '
+                      f'{RETRY_SETTLE_S:.2f}s (!RST_D NOT re-pulsed — it '
+                      f'would reset the other DSP too)', file=sys.stderr)
+                time.sleep(RETRY_SETTLE_S)
+    raise last
 
 
 def main():
@@ -159,6 +199,9 @@ def main():
     ap.add_argument('--no-reset', action='store_true',
                     help='skip the !RST_D pulse (only valid if the parts '
                          'are already sitting in the boot kernel)')
+    ap.add_argument('--attempts', type=int, default=BOOT_ATTEMPTS,
+                    help=f'boot attempts per chip (default {BOOT_ATTEMPTS}: '
+                         f'one automatic retry; 1 disables the retry)')
     ap.add_argument('--dry-run', action='store_true')
     args = ap.parse_args()
 
@@ -191,7 +234,8 @@ def main():
                   f'({len(s) // BOOT_UNIT} × {BOOT_UNIT}), '
                   f'CS GPIO{CS_GPIO[chip]}, RDY GPIO{RDY_GPIO[chip]}')
         print(f'reset: {"skipped" if args.no_reset else f"GPIO{RST_GPIO} pulsed low"}')
-        print(f'({len(streams)} chip(s), {args.speed} Hz)')
+        print(f'({len(streams)} chip(s), {args.speed} Hz, '
+              f'{args.attempts} attempt(s) per chip)')
         return
 
     import spidev
@@ -216,7 +260,7 @@ def main():
         print(f'!RST_D pulsed (GPIO{RST_GPIO})')
 
     for chip, path, s, raw_len in streams:
-        boot_chip(spi, gpio, chip, s)
+        boot_chip_retrying(spi, gpio, chip, s, attempts=args.attempts)
     print(f'booted {len(streams)} chip(s) at {args.speed} Hz')
 
 

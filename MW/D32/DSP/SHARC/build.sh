@@ -41,6 +41,16 @@ ASMFLAGS="$PROC -I $SRC_DIR"
 # Compiler flags (for any C files)
 CFLAGS="$PROC -O -DNDEBUG"
 
+# P2.2 bisect variant selector (TEMPORARY — goes with the scaffolding when
+# tasks.md NOW item 3 lands). See the DSP4_BISECT block at the top of
+# src/dma_config.c for what each value parks on:
+#   0 = production, 1 = round 1 (default, = the image on the bench),
+#   2 = variant B (park after arm_region(B)), 3 = variant C (EN last).
+if [ -n "${DSP4_BISECT:-}" ]; then
+    CFLAGS="$CFLAGS -DDSP4_BISECT=$DSP4_BISECT"
+    echo "  (P2.2 bisect variant: DSP4_BISECT=$DSP4_BISECT)"
+fi
+
 # Linker flags — LDF resolved in build(): the repo LDF hardcodes
 # ARCHITECTURE(ADSP-21564); for a fit-proxy build under a different
 # PROC_TARGET a matching temp LDF is generated in the build dir (same

@@ -10,9 +10,16 @@ Facts below are header/HRM-verified unless marked PROVISIONAL.
 - sport_id = DAI port index; **half A = RX (I ports), half B = TX (O
   ports)**; SPORT0-3 sit on DAI0, SPORT4-7 on DAI1 — matching the card's
   DAI pin map exactly.
-- DMA channel map (HRM Table 23-6): SPORTn_A = DMA(2n), SPORTn_B =
-  DMA(2n+1). DDE register base: `REG_DMA0_*` at 0x31022000, stride per
-  channel per def header. SPORT MMRs: `REG_SPORT0_CTL_A` = 0x31002000.
+- DMA channel map (HRM Table 27-2 / Table 23-6) — **not contiguous, and
+  the two blocks are not adjacent in the MMR map**: SPORT0-3 are
+  DMA0-DMA7 (`2n`/`2n+1`) based at 0x31022000, stride 0x80; DMA8/DMA9
+  are MDMA0 SRC/DST on a different SCB node; SPORT4-7 are DMA10-DMA17
+  based at **0x31023000**, stride 0x80. Extending `2n`/`2n+1` past
+  SPORT3 lands on 0x31022400+, which is unpopulated MMR space — the SCB
+  access never completes and the core stalls on its next MMR access
+  (this was the P2.2 `dma_cfg_init` wedge, found 2026-08-20). SPORT MMRs
+  themselves ARE regular: `REG_SPORT0_CTL_A` = 0x31002000, 0x100 per
+  SPORT, +0x80 for half B.
 - SEC interrupt sources: `INTR_SPORTn_A_DMA` = 37 + 4n, `_B_` = 39 + 4n
   (from ADSP-21564.h).
 - The register addresses currently #defined in sport_init.asm and

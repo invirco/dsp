@@ -122,15 +122,25 @@ class SpiLink:
         self.rdy_timeout = rdy_timeout
         if cs_gpio is not None or rdy_gpio is not None:
             import gpiod
-            chip = gpiod.Chip(gpiochip)
-            if cs_gpio is not None:
-                self.line = chip.get_line(cs_gpio)
-                self.line.request(consumer='dsp4_config',
-                                  type=gpiod.LINE_REQ_DIR_OUT, default_val=1)
-            if rdy_gpio is not None:
-                self.rdy = chip.get_line(rdy_gpio)
-                self.rdy.request(consumer='dsp4_config',
-                                 type=gpiod.LINE_REQ_DIR_IN)
+            from gpiod.line import Direction, Value
+            self._V = Value
+            self._req_cs = gpiod.request_lines(
+                gpiochip if gpiochip.startswith('/dev/') else '/dev/' + gpiochip,
+                consumer='dsp4_config',
+                config={cs_gpio: gpiod.LineSettings(
+                    direction=Direction.OUTPUT, output_value=Value.ACTIVE)})
+            self._cs_num = cs_gpio
+            class _L:
+                def __init__(s, req, num, V): s.req, s.num, s.V = req, num, V
+                def set_value(s, v): s.req.set_value(s.num, s.V.ACTIVE if v else s.V.INACTIVE)
+                def get_value(s): return 1 if s.req.get_value(s.num) == s.V.ACTIVE else 0
+            self.line = _L(self._req_cs, cs_gpio, Value)
+            if True:
+                self._req_rdy = gpiod.request_lines(
+                    gpiochip if gpiochip.startswith('/dev/') else '/dev/' + gpiochip,
+                    consumer='dsp4_config_rdy',
+                    config={rdy_gpio: gpiod.LineSettings(direction=Direction.INPUT)})
+                self.rdy = _L(self._req_rdy, rdy_gpio, Value)
 
     def wait_ready(self):
         if self.rdy is None:

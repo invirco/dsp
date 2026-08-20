@@ -3,8 +3,10 @@
  * enable (TODO(dsp4-plumbing) slice 3)
  *
  * Per MW/D32/DSP/dsp4-plumbing.md:
- *  - Each active lane (half-SPORT) is a DMA channel: DMA(2*sport + dir)
- *    (dir 0 = half A, 1 = half B; HRM Table 23-6).
+ *  - Each active lane (half-SPORT) is a DMA channel (dir 0 = half A,
+ *    1 = half B). The channel numbering skips MDMA0 at SPORT4, so the
+ *    base comes from sport_dma_base() below, NOT from 2*sport + dir --
+ *    see the comment there (HRM Table 27-2 / Table 23-6).
  *  - Ping-pong via 2-descriptor list rings (FLOW=DSCL, FETCH05:
  *    {DSCPTR_NXT, ADDRSTART, CFG, XCNT, XMOD}); XMOD = 4 bytes.
  *  - The block clock is SPORT0_A_DMA (SEC source 37) on both chips
@@ -39,12 +41,72 @@ static inline uint32_t l1_to_sys(uint32_t a)
     return (a >= 0x00240000u && a <= 0x003FFFFFu) ? (a + 0x28000000u) : a;
 }
 
+/*----------------------------------------------------------------------
+ * P2.2 bisect scaffolding — TEMPORARY (tasks.md NOW item 3 deletes all of
+ * it, plus diag_stage_set and _diag_stage_set in diag.asm, once the wedge
+ * is understood). Select with `DSP4_BISECT=n ./build.sh`:
+ *
+ *   0  production path — no park, no stage stamps. What ships.
+ *   1  round 1 (2026-08-19, currently running on chip1): park straight
+ *      after arm_region(A). Steady 1 Hz square on LD2 = A survived;
+ *      slow single blink = still dying inside A.
+ *   2  variant B: park moved after arm_region(B) — the round-1 follow-up
+ *      when LD2 reads steady, i.e. A is clean and B is the next suspect.
+ *   3  variant C: EN-write-order experiment. Same park point as round 1
+ *      (after A) so LD2 answers the same question, but arm_region writes
+ *      DSCPTR and CFG with DMA_CFG.EN CLEAR and then sets EN in a second
+ *      write, instead of one CFG write that both configures and starts
+ *      the channel. If C survives where 1 dies, the descriptor fetch is
+ *      being kicked off before the descriptor pointer has landed.
+ *
+ * The default stays 1 (park after A) so a plain rebuild still stops at the
+ * bisect point rather than running on into untested territory. NOTE: the
+ * SPORT4..7 DMA base fix below means a rebuild is NOT bit-identical to the
+ * image running on chip1 as of 2026-08-20 — it is the same scaffolding
+ * around corrected addressing.
+ *--------------------------------------------------------------------*/
+#ifndef DSP4_BISECT
+#define DSP4_BISECT 1
+#endif
+#if DSP4_BISECT < 0 || DSP4_BISECT > 3
+#error "DSP4_BISECT must be 0 (production), 1 (round 1), 2 (variant B) or 3 (variant C)"
+#endif
+
 #define REG32(addr) (*(volatile uint32_t *)(addr))
 
-#define DMA_MMR_BASE    0x31022000u
+/* SPORT half -> DMA channel MMR base. The SPORT DMA channels are NOT one
+ * contiguous block, and the two blocks are not adjacent in the MMR map
+ * (HRM Table 27-2 "ADSP-2156x DMA Channel List" + Table 23-6, confirmed
+ * against sys/ADSP-21564.h):
+ *
+ *   SPORT0..3 -> DMA0 ..DMA7   at 0x31022000 + (2*sport + dir) * 0x80
+ *   DMA8, DMA9  = MDMA0_SRC / MDMA0_DST — a different SCB node (0x310A7000)
+ *   SPORT4..7 -> DMA10..DMA17  at 0x31023000 + (2*(sport-4) + dir) * 0x80
+ *
+ * so ch = 2*sport + dir off one base is right only for SPORT0..3. For
+ * SPORT4 and up it lands on 0x31022400 and upward — unpopulated MMR
+ * space just past DMA7 — and an SCB access there never completes, which
+ * stalls the core on its next MMR access.
+ *
+ * That is the 2026-08-19/20 dma_cfg_init wedge (P2.2). Chip 1's region A
+ * carries SPORT0..7, so it dies on lane index 4 (SPORT4) INSIDE
+ * arm_region(A) — which is exactly where the round-1 bisect park says it
+ * dies. Chip 2 reaches SPORT4 in its region B (c2_tx lane index 4).
+ * DMA_OFF_DSCPTR is DMA_DSCPTR_NXT, which is what descriptor-LIST flow
+ * requires be written before DMA_CFG (HRM "Startup Minimum-Enable
+ * Requirements"); that part was already right. */
+#define DMA_MMR_BASE_LO 0x31022000u     /* DMA0..DMA7   — SPORT0..3 */
+#define DMA_MMR_BASE_HI 0x31023000u     /* DMA10..DMA17 — SPORT4..7 */
 #define DMA_STRIDE      0x80u
-#define DMA_OFF_DSCPTR  0x00u
+#define DMA_OFF_DSCPTR  0x00u           /* DMA_DSCPTR_NXT */
 #define DMA_OFF_CFG     0x08u
+
+static inline uint32_t sport_dma_base(int sport, int dir)
+{
+    uint32_t idx = (uint32_t)(sport < 4 ? sport : sport - 4);
+    uint32_t half = 2u * idx + (uint32_t)dir;
+    return (sport < 4 ? DMA_MMR_BASE_LO : DMA_MMR_BASE_HI) + half * DMA_STRIDE;
+}
 
 #define SPORT_MMR_BASE  0x31002000u
 #define SPORT_STRIDE    0x100u
@@ -113,8 +175,7 @@ static void arm_region(const int *lanes, int count, int dir,
         int sport = lanes[4 * i + 0];
         uint32_t lane_words = (uint32_t)lanes[4 * i + 2];
         uint32_t region_off = (uint32_t)lanes[4 * i + 3];
-        uint32_t ch = 2u * (uint32_t)sport + (uint32_t)dir;
-        uint32_t dma = DMA_MMR_BASE + ch * DMA_STRIDE;
+        uint32_t dma = sport_dma_base(sport, dir);
 
         uint32_t cfg = ENUM_DMA_CFG_DSCLIST | ENUM_DMA_CFG_FETCH05
                        | ENUM_DMA_CFG_MSIZE04 | ENUM_DMA_CFG_PSIZE04
@@ -138,9 +199,20 @@ static void arm_region(const int *lanes, int count, int dir,
             desc[i][h][4] = 4u;                           /* byte stride */
         }
 
+#if DSP4_BISECT == 3
+        /* Variant C: configure with the channel DISABLED, then start it.
+         * The in-descriptor CFG word above keeps EN set — that copy is
+         * what the DDE reloads on each fetch, and clearing it there would
+         * stop the ring after one block instead of testing write order. */
+        REG32(dma + DMA_OFF_CFG) = cfg & ~BITM_DMA_CFG_EN;
+        REG32(dma + DMA_OFF_DSCPTR) =
+            l1_to_sys((uint32_t)&desc[i][0][0]);
+        REG32(dma + DMA_OFF_CFG) = cfg;   /* EN set last: starts the fetch */
+#else
         REG32(dma + DMA_OFF_DSCPTR) =
             l1_to_sys((uint32_t)&desc[i][0][0]);
         REG32(dma + DMA_OFF_CFG) = cfg;   /* starts descriptor fetch */
+#endif
     }
 }
 
@@ -228,25 +300,36 @@ static void spi2_init(void)
 #pragma linkage_name _dma_cfg_init
 void dma_cfg_init(void);
 
+#if DSP4_BISECT
 #pragma linkage_name _diag_stage_set
 extern void diag_stage_set(int stage);  /* TEMP bisect stamps 2026-08-19 */
+#define DIAG_STAGE(n) diag_stage_set(n)
+#else
+#define DIAG_STAGE(n) ((void)0)
+#endif
 
 void dma_cfg_init(void)
 {
-    diag_stage_set(1);
+    DIAG_STAGE(1);
     arm_region(REGION_A_LANES, REGION_A_COUNT, 0,
                REGION_A_PING, REGION_A_PONG, desc_a);
-    diag_stage_set(7);  /* BISECT round 1: steady square = arm A survived */
-    for (;;) { }        /* park here — question is arm_region(A) only */
-    diag_stage_set(2);
+#if DSP4_BISECT == 1 || DSP4_BISECT == 3
+    DIAG_STAGE(7);      /* steady square on LD2 = arm_region(A) survived */
+    for (;;) { }        /* park — the question is arm_region(A) only */
+#endif
+    DIAG_STAGE(2);
     arm_region(REGION_B_LANES, REGION_B_COUNT, 1,
                REGION_B_PING, REGION_B_PONG, desc_b);
-    diag_stage_set(3);
+#if DSP4_BISECT == 2
+    DIAG_STAGE(7);      /* variant B: steady square = arm_region(B) too */
+    for (;;) { }        /* park — A is already known good at this point */
+#endif
+    DIAG_STAGE(3);
 
     sec_init();
-    diag_stage_set(4);
+    DIAG_STAGE(4);
     spi2_init();
-    diag_stage_set(5);
+    DIAG_STAGE(5);
 
     /* Hand the asm side its buffer views (byte -> word inside) */
     set_rx_bufs(REGION_A_PING, REGION_A_PONG);
@@ -254,7 +337,7 @@ void dma_cfg_init(void)
 
     /* All rings armed: enable the serial ports (clock slaves — they
      * start on the next LOGIC frame sync) */
-    diag_stage_set(6);
+    DIAG_STAGE(6);
     enable_region(REGION_A_LANES, REGION_A_COUNT, 0);
     enable_region(REGION_B_LANES, REGION_B_COUNT, 1);
 }
