@@ -1,4 +1,11 @@
-## HUB DISPATCH 2026-08-20 11:47Z — H1S1 CS1-6 to inputs (build+verify, no flash)   [status: 🟡 dispatched]
+## HUB DISPATCH 2026-08-20 11:47Z — H1S1 CS1-6 to inputs (build+verify, no flash)   [status: 🟢 done]
+
+**Outcome 2026-08-20:** CS1-6 are inputs in `H1S1.ioc` + `Core/Src/main.c`
+(the only two Dropbox files changed, in `_mx/MW/D24/FW/H1S1/`); scratch build
+in `~/build-h1s1/` exit 0 / 0 errors / no new warnings, and `H1S1.list` shows
+all eight CS pins `GPIO_MODE_INPUT` with no CS pin in any `WritePin` —
+evidence quoted under NEXT SESSION item 1. Nothing flashed, no SSH to .219,
+no build artifacts written into Dropbox.
 
 Execute **NEXT SESSION item 1** from this repo's tasks.md ("H1S1 CS1-6 →
 inputs") exactly per its recipe — the groundwork analysis there is current
@@ -165,22 +172,69 @@ confirmed NOT wired in rev C, SPARE reaches neither CPLD nor U7).
 
 ### NEXT SESSION — first thing (set 2026-08-19 at session end)
 
-1. **H1S1 CS1-6 → inputs.** Started, deliberately NOT applied — the tree is
-   in a clean state, not a half-edit. CS7/CS8 are already done and verified
-   (see P3); CS1-6 is the same change for the same reason (`230899f`: the
-   CM4 owns the boot bus). Groundwork done: CS1-6 appear ONLY in
-   `MX_GPIO_Init` and in the commented-out `DspTx` block in
-   `stm32u5xx_it.c`, so nothing drives them at runtime and the change is
-   safe. Pins: CS1 PB12, CS4 PB13, CS3 PB14, CS6 PB15, CS5 PC13, CS2 PC14.
-   Apply exactly as CS7/CS8 were — `H1S1.ioc` (`Signal=GPIO_Output` →
-   `GPIO_Input`, drop `PinState`, keep `GPIO_Label`) plus the generated
-   `Core/Src/main.c`. Knock-ons in main.c: the GPIOC `HAL_GPIO_WritePin`
-   disappears entirely (CS5+CS2 were its only pins), the GPIOB one keeps
-   only `BLINK_Pin`, the GPIOC `OUTPUT_PP` block disappears, and the GPIOB
-   `OUTPUT_PP` group shrinks to `BLINK_Pin|S2_Pin`. Then rebuild
-   (`Debug/makefile.linux all`, in a scratch copy so Dropbox gets no object
-   files) and confirm in `H1S1.list` that all eight CS pins are
-   `GPIO_MODE_INPUT`.
+1. ~~**H1S1 CS1-6 → inputs.**~~ **DONE 2026-08-20.** CS7/CS8 were already
+   done and verified (see P3); CS1-6 is the same change for the same reason
+   (`230899f`: the CM4 owns the boot bus). Groundwork confirmed on the way
+   in: CS1-6 appear ONLY in `MX_GPIO_Init` and in the commented-out `DspTx`
+   block in `stm32u5xx_it.c`, so nothing drove them at runtime and the
+   change was safe. Pins: CS1 PB12, CS4 PB13, CS3 PB14, CS6 PB15, CS5 PC13,
+   CS2 PC14. Applied exactly as CS7/CS8 were, in both places so a CubeMX
+   regen cannot undo it — two files in the Dropbox FW home
+   `_mx/MW/D24/FW/H1S1/`:
+   - `H1S1.ioc` — all six `Signal=GPIO_Output` → `GPIO_Input`, `PinState`
+     dropped, `GPIO_Label` kept (so the `CS1_Pin`…`CS6_Pin` defines
+     survive).
+   - `Core/Src/main.c` — hand-edited to exactly what CubeMX will now emit:
+     the GPIOC `HAL_GPIO_WritePin` is gone entirely (CS5+CS2 were its only
+     pins), the GPIOB one keeps only `BLINK_Pin`, the GPIOC `OUTPUT_PP`
+     block is gone, the GPIOB `OUTPUT_PP` group is down to
+     `BLINK_Pin|S2_Pin`, and CS1/CS3/CS4/CS6 join the existing GPIOB
+     `GPIO_MODE_INPUT` group with `BUSY_Pin|S3_Pin`. The
+     all-eight-CS-are-the-CM4's reason is recorded inside
+     `USER CODE BEGIN MX_GPIO_Init_2`, which CubeMX preserves.
+
+   Built in a scratch copy outside Dropbox (`~/build-h1s1/`,
+   `Debug/makefile.linux all`): **exit 0, zero errors**, 34036 text / 657
+   data / 1940 bss, `H1S1.elf`/`.bin`/`.hex`/`.list` produced. No new
+   warnings — only the pre-existing `matrix.h` macro-redefinition set and
+   the pre-existing `main.c:69` `HAL_UART_Receive` signedness warning. **No
+   build artifacts were written into Dropbox** (only the two source files
+   above changed there). Note for future scratch copies: `Core/Inc/matrix.h`
+   is a SYMLINK to `../../../../MX/matrix.h`, so copy with `cp -aL` — a
+   plain `cp -a` leaves it dangling and the build dies on
+   `fatal error: matrix.h: No such file or directory`.
+
+   Verified in the disassembled `H1S1.list`, not just the source — all
+   eight CS pins are `GPIO_MODE_INPUT` (Mode = `movs r3, #0`), and no CS pin
+   appears in any `HAL_GPIO_WritePin`:
+   ```
+   /*Configure GPIO pins : CS5_Pin CS2_Pin CS7_Pin */
+   GPIO_InitStruct.Pin = CS5_Pin|CS2_Pin|CS7_Pin;
+    80018fc:	f44f 4360 	mov.w	r3, #57344	@ 0xe000     <- PC13|PC14|PC15
+   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+    8001902:	2300      	movs	r3, #0
+   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);        @ r0 = 0x42020800 GPIOC
+
+   /*Configure GPIO pin : CS8_Pin */
+   GPIO_InitStruct.Pin = CS8_Pin;
+    8001916:	2301      	movs	r3, #1                          <- PH0
+   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+    800191a:	2300      	movs	r3, #0
+   HAL_GPIO_Init(CS8_GPIO_Port, &GPIO_InitStruct);@ r0 = 0x42021c00 GPIOH
+
+   /*Configure GPIO pins : CS1_Pin CS4_Pin CS3_Pin CS6_Pin
+                            BUSY_Pin S3_Pin */
+   GPIO_InitStruct.Pin = CS1_Pin|CS4_Pin|CS3_Pin|CS6_Pin
+    800196a:	f24f 2380 	movw	r3, #62080	@ 0xf280     <- PB12-15 + PB9/PB7
+   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+    8001970:	2300      	movs	r3, #0
+   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);        @ r0 = 0x42020400 GPIOB
+   ```
+   The only remaining `HAL_GPIO_WritePin` calls in `MX_GPIO_Init` are
+   `BLINK` (0x40 SET), `RST_C` (0x800 RESET), `GPIOA CS_M|CS_C`
+   (0xc000 SET — PA14/PA15, not the CS1-8 family) and `S2` (0x100 RESET);
+   the GPIOB `OUTPUT_PP` group is `0x140` = `BLINK|S2` exactly. **Not
+   flashed** — that is item 2.
 2. **Then H1S1 is flashable** — it has never been flashed, and the
    DO-NOT-FLASH bar was exactly this GPIO problem.
 3. **Clear the bisect scaffolding in `dma_config.c`** before any image is
