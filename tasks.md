@@ -288,11 +288,37 @@ the bench (P2.2 bisect build left running on chip1 overnight
    drifted; see the dispatch outcome for the two rough edges in that
    gpiod-v2 port that are worth tidying when the tool is next used.)
 
-5. **Bench observations owed (PW):** LD1 ~1.5 Hz with the CPLD live;
+5. **SPORT I/O pin check via CPLD feedback loop (PW 2026-08-20).** A
+   loopback build of the LOGIC bitstream (STA-gated, hash-named, clearly
+   NON-SHIPPING) routes SHARC SPORT outputs back to inputs so the DSPs
+   self-verify EVERY SPORT pin/lane end-to-end: firmware counter-pattern
+   generator + checker per lane, verdicts via the 0xE000 diag readback.
+   Also closes the provisional TDM facts without a scope (BCKI/FSI pair
+   order, CKRE/MFD, D24 within-ADC8 slot order) and settles the NI0-3/
+   NO0-3 crossed-direction/reversed-index question against slot-map.csv.
+   Gate: wedge fix verified on the bench + SPORTs configured (stage 6).
+
+6. **Unified D24/D32 SPORT/TDM lane map (PW, decided 2026-08-20 — full
+   detail + resolutions in mx26 tasks.md "decisions queue"):** rev C =
+   converters 4×TDM8/direction as fabbed; rev D = 2×TDM16/direction via
+   AK5558 cascade (TDM512 @48k/24.576 MHz, datasheet-verified; clkgen
+   must pin BICK↓ vs MCLK↑ ±10 ns for cascaded slaves), freeing two
+   lanes/direction; 1×TDM8 AK4619; Pi lane I2S→TDM8 with ADAU7302 MEMS
+   injection at slots 5-6 (chip already strapped TDM8-slot-5, R42=47K);
+   ONE TDM32 pair for the network role — OUT lane broadcast to USB +
+   Dante simultaneously, IN lane single granted driver with enforced
+   tri-state defaults (grant toggle = virtual soundcheck), D32 snake =
+   the AES67 role on the same pair. Lands as tdm-lines.csv/slot-map
+   revision + rev-D modlist entries. Open: 570Z scratch-fit for the
+   freed pins/LEs; AK4458 slot-select check; D32_COMPAT legacy-box
+   yes/no (PW). See also the D8 amendment (CM4 masters mic-pre gain;
+   CS_M via spare CS5/6) in dsp4-architecture-decisions.md.
+
+7. **Bench observations owed (PW):** LD1 ~1.5 Hz with the CPLD live;
    TEST1-4 on the scope (J15 DNP pads); blink-image rate = free CCLK
    measurement — write the measured rate down, don't just retune.
 
-6. **Design note queued (PW 2026-08-19):** once RUNNING, the DSP diag
+8. **Design note queued (PW 2026-08-19):** once RUNNING, the DSP diag
    LED and LOGIC LD1 should sync to the MH1 S_BLINK system heartbeat
    rather than free-run; diagnostic burst codes stay local.
 
