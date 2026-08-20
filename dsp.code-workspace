@@ -5,6 +5,7 @@
 		}
 	],
 	"settings": {
+		"window.title": "dsp",
 		"files.watcherExclude": {
 			"**/MW/D32/DSP/SHARC/cces/**": true,
 			"**/MW/D32/DSP/SHARC/build/**": true,
