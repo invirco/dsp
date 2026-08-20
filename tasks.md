@@ -1,3 +1,67 @@
+## HUB DISPATCH 2026-08-20 15:18Z — H1S1 aligned reflash + P2.2 prep (PW absent)   [status: 🟡 dispatched]
+
+Two tasks, PW absent — everything here is verifiable over SSH, no bench
+eyes available. Unit access: app@192.168.1.219 (this machine's key works).
+Dropbox via the space-free symlink ~/db ONLY. mx26 checkout at ~/mx26
+(git pull it first; it has tools/matrix_gen_id.py and the app's baked
+table src/sw/app/Core/MatrixBus.Matrix.g.cs).
+
+**TASK A — reflash H1S1 with the CS1-6-inputs build (tasks.md NOW item 2).**
+Correction to tasks.md first: it says H1S1 "has never been flashed" — STALE.
+The hub flashed a matrix-aligned CS7/CS8-only build on 2026-08-19 night
+(all three MCUs verify at boot since). What supersedes it is the CS1-6
+build from the 2026-08-20 dispatch. Fix the tasks.md wording as part of
+this task.
+
+CRITICAL — matrix generation: the 2026-08-20 scratch build (~/build-h1s1)
+compiled against the Dropbox MX/matrix.h generation (Sys001Skin001=19727),
+which is NOT the running app's generation (5412). Do NOT flash that binary.
+Rebuild against the running app's generation: the hub's 2026-08-19 flow
+left an aligned header (matrix-aligned.h) on the unit or in its build area
+— find it (check /home/app and the FW-home mechanics used that night), or
+regenerate from the unit's own decrypted matrix as that flow did.
+Verify alignment BEFORE flashing:
+  python3 ~/mx26/tools/matrix_gen_id.py --compare <the matrix.h you built
+  against> ~/mx26/src/sw/app/Core/MatrixBus.Matrix.g.cs
+must print ALIGNED (base-id match).
+
+Then: pack (H1S1.shex into the unit's firmware pack, same as 08-19) →
+send S_RESET '*' on /dev/serial0 first (MH1 '?' responder is pre-loop
+only) → `app cli loadfw H1S1` → confirm on reboot the app verifies
+"// H1S1 DSP" AND both panels still verify.
+
+Acceptance:
+1. matrix_gen_id --compare says ALIGNED for the header actually compiled in.
+2. H1S1.list of the flashed build: all eight CS pins GPIO_MODE_INPUT.
+3. Boot log: H1S1 + SW Left + SW Right all verified, no new warnings.
+4. tasks.md updated (item 2 done + the "never flashed" correction).
+
+Constraints: do NOT touch the DSPs — no dsp4_boot.py, no !RST_D, no DSP
+resets (chip1 carries the overnight bisect state; PW reads LD2 on return —
+if the loadfw path unavoidably disturbs it, note that in the outcome, it
+is re-establishable). Leave the unit with the app running.
+
+**TASK B — P2.2 prep (desk work, no hardware contact with the DSPs).**
+1. dsp4_boot.py: add auto-retry — a re-boot from a RUNNING/hung state
+   fails its first attempt (SPI_RDY timeout) and works on the immediate
+   retry (reproduced ×3). One automatic retry, log both attempts.
+2. Prepare bisect round-2 as ready-to-build variants (guarded #ifdefs or
+   committed patches — NOT flashed): variant B = park moved after
+   arm_region(B); variant C = EN-write-order experiment (write DSCPTR +
+   CFG with EN clear, then set EN separately).
+3. HRM desk-review of the remaining dma_cfg_init suspects (DMA CFG EN
+   write ordering, descriptor alignment, the lane-4/cs-mask special
+   case) — findings appended to the P2.2 notes in tasks.md.
+4. Sync the gpiod-v2-ported dsp4_config.py + dsp4_diag.py copies back
+   from app@192.168.1.219:/home/app/dspboot/ into tools/pi/, commit.
+
+Rules for both: work on main (pull first, push on completion); update this
+dispatch block's status with a per-task outcome; no AI attribution.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 # tasks — dsp spoke
 
 Status: active · reprioritized 2026-08-20 (hub declutter — the full prior
