@@ -196,13 +196,25 @@ if [[ -d "$MX26_REPO_PATH/.git" ]]; then
   SOURCE_COMMIT="$(git -C "$MX26_REPO_PATH" rev-parse HEAD)"
 fi
 
-CONTRACT_VERSION="defs-v$(date +%Y.%m.%d)"
+# CONTRACT_VERSION must be a real mx26 defs-v* tag on the synced commit.
+# No date-stamped fallback: a fabricated version is exactly the silent skew
+# the pin exists to kill (defs-v2026.07.31 in an earlier lock was such a
+# phantom — that tag never existed in mx26).
+CONTRACT_VERSION=""
 if [[ -d "$MX26_REPO_PATH/.git" ]]; then
   if tag_name="$(git -C "$MX26_REPO_PATH" describe --tags --exact-match 2>/dev/null)"; then
     if [[ "$tag_name" == defs-v* ]]; then
       CONTRACT_VERSION="$tag_name"
     fi
   fi
+fi
+if [[ -z "$CONTRACT_VERSION" ]]; then
+  if [[ $UPDATE_LOCK -eq 1 ]]; then
+    echo "ERROR: mx26 HEAD ($SOURCE_COMMIT) carries no defs-v* tag — tag it in mx26" >&2
+    echo "       (git tag defs-vYYYY.MM.DD && git push origin <tag>) before updating the lock." >&2
+    exit 1
+  fi
+  CONTRACT_VERSION="UNTAGGED"
 fi
 
 if [[ $UPDATE_LOCK -eq 1 ]]; then
