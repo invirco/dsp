@@ -273,12 +273,21 @@ build() {
 # CM4 pushes the stream (CS1 -> chip 1, CS2 -> chip 2). See
 # tools/pi/dsp4_boot.py for the host side.
 #
-#   -b SPI      slave/master share the SPI stream format
-#   -bcode 1    single-bit SPI (HRM Table 40-19, SPIS_BCODE 00xx); this
-#               is also elfloader's default for SPI, pinned so a future
-#               default change cannot silently alter the image
+#   -b SPIHOST  "SPI Host boot" = the slave-boot case, where a host
+#               pushes the stream in. -b SPI is the master case (the part
+#               reads a flash itself) and is the wrong intent here.
+#               elfloader 6.4.2.1 emits byte-identical output for both
+#               (checked 2026-08-20), so this is a statement of intent
+#               rather than a change of image — but state the intent, so
+#               a toolchain that starts distinguishing them gets it right.
+#   -bcode 1    single-bit SPI (HRM Table 40-19, SPIS_BCODE 00xx). The
+#               BCODE nibble sits in the low byte of every block header,
+#               and the boot kernel reads the first byte of the stream as
+#               its SPICMD auto-detect (HRM Table 40-18), so this is also
+#               what tells the kernel to stay in single-bit mode.
 #   -f BINARY   raw bytes for spidev, not ASCII hex
 #   -width 8    byte-wide stream
+LDRFLAGS="-b SPIHOST -bcode 1 -f BINARY -width 8"
 #
 # The entry address is NOT passed on the command line: the ELF header
 # carries no entry point, so elfloader defaults to 0x90004 — which IS the
@@ -290,7 +299,7 @@ loader() {
     echo "--- Boot streams ---"
     for f in chip1 chip2; do
         [ -f "$BUILD_DIR/$f.dxe" ] || continue
-        if ! "$LDR21K" $PROC -b SPI -bcode 1 -f BINARY -width 8 \
+        if ! "$LDR21K" $PROC $LDRFLAGS \
                 -o "$BUILD_DIR/$f.ldr" "$BUILD_DIR/$f.dxe" \
                 > "$BUILD_DIR/$f.ldr.log" 2>&1; then
             echo "  ERROR: elfloader failed for $f (see $BUILD_DIR/$f.ldr.log)"
@@ -308,49 +317,64 @@ loader() {
     return $rc
 }
 
-# ---- Blink image ("is this board alive?") --------------------------------
-# Standalone minimal image: LED toggle only, no SRU/SPORT/DMA/SEC/SPI.
-# Separates "the boot stream never landed" from "it landed but the
-# plumbing hangs" — see src/blink/blink.asm. Links against the same LDF;
-# the unused regions simply stay empty.
-blink() {
-    echo "=== Build blink image ==="
+# ---- Bring-up images ("is this board alive?") ----------------------------
+# Standalone minimal images: one pin toggling and nothing else — no SRU,
+# no SPORT, no DMA, no SEC, no SPI. They separate "the boot stream never
+# landed" from "it landed but the plumbing hangs", and they are the only
+# instrument that can tell those apart, so they are permanent tools, not
+# scaffolding. Both link against the same LDF; the unused regions simply
+# stay empty.
+#
+#   blink     — toggles PA_12 (LD3 on DSPA / LD2 on DSPB). Needs eyes at
+#               the bench, but needs nothing else to be working.
+#   rdyprobe  — toggles PB_05 (the SPI2_RDY net, which reaches the Pi as
+#               GPIO8 / GPIO12). Same answer, readable over ssh.
+#
+# $1 = image base name, $2 = source file under src/blink/, $3 = pin note.
+tiny_image() {
+    local img="$1" src="$2" note="$3"
+    echo "=== Build $img image ==="
     compat_banner
     resolve_ldf
     mkdir -p "$BUILD_DIR/blink"
     local rc=0 c
     for c in 1 2; do
         $ASM21K $ASMFLAGS -DCHIP_ID=$c \
-            -o "$BUILD_DIR/blink/blink$c.doj" "$SRC_DIR/blink/blink.asm" \
+            -o "$BUILD_DIR/blink/$img$c.doj" "$SRC_DIR/blink/$src" \
             || { rc=1; continue; }
         $ASM21K $ASMFLAGS -DCHIP_ID=$c -nwc \
-            -o "$BUILD_DIR/blink/blink_ivt$c.doj" "$SRC_DIR/blink/blink_ivt.asm" \
+            -o "$BUILD_DIR/blink/${img}_ivt$c.doj" "$SRC_DIR/blink/blink_ivt.asm" \
             || { rc=1; continue; }
-        $LD21K $LDFLAGS -Map "$BUILD_DIR/blink$c.map.xml" \
-            -o "$BUILD_DIR/blink$c.dxe" \
-            "$BUILD_DIR/blink/blink_ivt$c.doj" "$BUILD_DIR/blink/blink$c.doj" \
+        $LD21K $LDFLAGS -Map "$BUILD_DIR/$img$c.map.xml" \
+            -o "$BUILD_DIR/$img$c.dxe" \
+            "$BUILD_DIR/blink/${img}_ivt$c.doj" "$BUILD_DIR/blink/$img$c.doj" \
             || { rc=1; continue; }
-        "$LDR21K" $PROC -b SPI -bcode 1 -f BINARY -width 8 \
-            -o "$BUILD_DIR/blink$c.ldr" "$BUILD_DIR/blink$c.dxe" \
-            > "$BUILD_DIR/blink$c.ldr.log" 2>&1 || { rc=1; continue; }
-        if ! grep -q "Defaulting to 0x90004" "$BUILD_DIR/blink$c.ldr.log"; then
-            echo "  ERROR: blink$c.ldr entry address is not the RSTI vector"
+        "$LDR21K" $PROC $LDRFLAGS \
+            -o "$BUILD_DIR/$img$c.ldr" "$BUILD_DIR/$img$c.dxe" \
+            > "$BUILD_DIR/$img$c.ldr.log" 2>&1 || { rc=1; continue; }
+        if ! grep -q "Defaulting to 0x90004" "$BUILD_DIR/$img$c.ldr.log"; then
+            echo "  ERROR: $img$c.ldr entry address is not the RSTI vector"
             rc=1; continue
         fi
-        echo "  blink$c.ldr: $(stat -c %s "$BUILD_DIR/blink$c.ldr") bytes" \
-             "(chip $c, ~$([ $c = 1 ] && echo 1 || echo 2) Hz on PA_12)"
+        echo "  $img$c.ldr: $(stat -c %s "$BUILD_DIR/$img$c.ldr") bytes" \
+             "(chip $c, ~$([ $c = 1 ] && echo 1 || echo 2) Hz on $note)"
     done
     compat_marker
-    [ $rc -eq 0 ] && echo "=== Blink OK ===" || echo "=== Blink FAILED ==="
+    [ $rc -eq 0 ] && echo "=== ${img} OK ===" || echo "=== ${img} FAILED ==="
     return $rc
 }
+
+blink()    { tiny_image blink    blink.asm    PA_12; }
+rdyprobe() { tiny_image rdyprobe rdyprobe.asm "PB_05 = Pi GPIO8/GPIO12"; }
 
 case "${1:-build}" in
     clean) clean ;;
     build) build ;;
     all)   clean && build ;;
     blink) blink ;;
+    rdyprobe) rdyprobe ;;
     count) count ;;
     single) single "$2" ;;
-    *)     echo "Usage: $0 [clean|build|all|blink|count|single <asm-file>]"; exit 1 ;;
+    *)     echo "Usage: $0 [clean|build|all|blink|rdyprobe|count|single <asm-file>]"
+           exit 1 ;;
 esac

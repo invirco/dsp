@@ -14,6 +14,14 @@ ADSP-2156x HRM chapter 40 (Boot Modes):
   * The host drives SCK/MOSI/MISO shared to both parts (33R split into
     CK1_[0..2] / CK2_[0..2]); per-chip selection is CS1 -> DSPA/chip1,
     CS2 -> DSPB/chip2.
+  * The clock mode during slave boot is the boot kernel's, not ours:
+    ch.40, "In SPI slave boot mode, the boot kernel sets the
+    SPI_CTL.CPHA bit and clears the SPI_CTL.CPOL bit ... the [MOSI] pin
+    is latched on the falling edge". CPHA=1 + CPOL=0 is SPI MODE 1 (the
+    HRM uses the Motorola numbering -- ch.15: "mode-0 (CPHA=CPOL=0) and
+    mode-3 (CPHA=CPOL=1)"). See SPI_MODE below; the RUNTIME link is a
+    different question and stays mode 0, because dma_config.c's
+    spi2_init() leaves CPOL and CPHA clear.
   * CS3/CS4 come BACK from the card as DSPA/DSPB SPI_RDY. They are
     inputs. During slave boot the polarity is the boot kernel's and the
     HRM fixes it ACTIVE-LOW (ch.40: "The boot code requires the SPIx_RDY
@@ -75,6 +83,20 @@ RST_GPIO = 16
 BOOT_UNIT = 1024        # HRM: slave-boot hosts send multiples of 1024 B
 CHUNK = 4096            # spidev-friendly; a multiple of BOOT_UNIT
 RESET_LOW_S = 0.050     # !RST_D pulse width
+
+# Settle time between releasing !RST_D and the first clocked byte.
+#
+# The HRM's host flow (Fig. 40-7) does not use a timer here: it waits for
+# SPI_RDY to go DEASSERTED and then ASSERTED again, which is the boot
+# kernel saying "SPI2 is enabled, start sending". That handshake does not
+# exist on this card, because the 10K pulls are pull-DOWNS and rest the
+# line asserted (see wait_ready). Without it the host would start clocking
+# microseconds after reset release, while the part is still in pre-boot
+# (CGU config, DMC config, memory init, fault/cache init -- HRM ch.40
+# "Preboot Operations"). Bytes clocked before SPI2 is enabled are simply
+# lost, and the kernel then starts reading mid-stream, so no block header
+# ever lines up and boot never completes.
+POST_RESET_S = 0.500    # --post-reset-delay overrides
 RDY_TIMEOUT_S = 2.0
 BOOT_ATTEMPTS = 2       # 1 automatic retry — see "Auto-retry" above
 RETRY_SETTLE_S = 0.20   # let the part's boot kernel re-arm SPI_RDY
@@ -85,6 +107,18 @@ RETRY_SETTLE_S = 0.20   # let the part's boot kernel re-arm SPI_RDY
 # boot code requires the SPIx_RDY signal function as active-low." So
 # asserted (host may send) = 0. See RDY_ASSERTED below.
 RDY_ACTIVE_LOW = True   # boot kernel's fixed polarity; --rdy-active-high overrides
+
+# The SPI clock mode during slave boot is likewise not ours to choose.
+# HRM ch.40 "SPI Slave Boot Mode": "the boot kernel sets the SPI_CTL.CPHA
+# bit and clears the SPI_CTL.CPOL bit". CPHA=1, CPOL=0 -> SPI mode 1:
+# MOSI is driven on the rising edge of SPI_CLK and latched by the DSP on
+# the falling edge. A host in mode 0 changes MOSI on exactly the edge the
+# boot kernel samples, so the kernel clocks in shifted garbage, no block
+# header ever passes its 0xAD signature / XOR check, the boot never
+# completes and the application never runs -- while the host still sees a
+# stream that was "accepted" from end to end, because the pull-downs rest
+# SPI_RDY in the asserted state (see wait_ready).
+SPI_MODE = 1            # CPOL=0, CPHA=1; --spi-mode overrides
 
 
 def pad(stream):
@@ -246,6 +280,17 @@ def main():
                          'fixes it active-low (HRM ch.40), so this is an '
                          'escape hatch for a board that inverts the line, '
                          'not a normal option.')
+    ap.add_argument('--spi-mode', type=int, choices=(0, 1, 2, 3),
+                    default=SPI_MODE,
+                    help=f'SPI clock mode (default {SPI_MODE} = CPOL 0, '
+                         f'CPHA 1, which is what the boot kernel fixes per '
+                         f'HRM ch.40). An escape hatch for experiments, not '
+                         f'a normal option.')
+    ap.add_argument('--post-reset-delay', type=float, default=POST_RESET_S,
+                    help=f'seconds to wait after releasing !RST_D before '
+                         f'clocking the first byte (default {POST_RESET_S}). '
+                         f'Stands in for the SPI_RDY deassert/assert '
+                         f'handshake the pull-downs make unreadable.')
     ap.add_argument('--dry-run', action='store_true')
     args = ap.parse_args()
 
@@ -277,9 +322,10 @@ def main():
             print(f'  chip {chip}: {path} {raw_len} B -> {len(s)} B padded '
                   f'({len(s) // BOOT_UNIT} × {BOOT_UNIT}), '
                   f'CS GPIO{CS_GPIO[chip]}, RDY GPIO{RDY_GPIO[chip]}')
-        print(f'reset: {"skipped" if args.no_reset else f"GPIO{RST_GPIO} pulsed low"}')
-        print(f'({len(streams)} chip(s), {args.speed} Hz, '
-              f'{args.attempts} attempt(s) per chip)')
+        print(f'reset: {"skipped" if args.no_reset else f"GPIO{RST_GPIO} pulsed low, "
+                        f"{args.post_reset_delay:.3f}s settle"}')
+        print(f'({len(streams)} chip(s), {args.speed} Hz, SPI mode '
+              f'{args.spi_mode}, {args.attempts} attempt(s) per chip)')
         return
 
     import spidev
@@ -287,8 +333,11 @@ def main():
     spi = spidev.SpiDev()
     spi.open(bus, dev)
     spi.max_speed_hz = args.speed
-    spi.mode = 0
+    spi.mode = args.spi_mode      # 1 = CPOL 0 / CPHA 1; see SPI_MODE
     spi.no_cs = True
+    if args.spi_mode != SPI_MODE:
+        print(f'WARNING: SPI mode {args.spi_mode} overrides the boot '
+              f'kernel\'s fixed mode {SPI_MODE} (HRM ch.40)', file=sys.stderr)
 
     gpio = Gpio()
     if not args.no_reset:
@@ -301,12 +350,15 @@ def main():
         rst.set_value(0)
         time.sleep(RESET_LOW_S)
         rst.set_value(1)
-        print(f'!RST_D pulsed (GPIO{RST_GPIO})')
+        time.sleep(args.post_reset_delay)
+        print(f'!RST_D pulsed (GPIO{RST_GPIO}), '
+              f'{args.post_reset_delay:.3f}s settle')
 
     for chip, path, s, raw_len in streams:
         boot_chip_retrying(spi, gpio, chip, s, attempts=args.attempts,
                            active_low=not args.rdy_active_high)
-    print(f'booted {len(streams)} chip(s) at {args.speed} Hz')
+    print(f'booted {len(streams)} chip(s) at {args.speed} Hz, SPI mode '
+          f'{args.spi_mode}')
 
 
 if __name__ == '__main__':

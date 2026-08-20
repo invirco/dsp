@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-08-20 18:43Z — Boot handoff investigation — apps never execute   [status: 🟡 dispatched]
+## HUB DISPATCH 2026-08-20 18:43Z — Boot handoff investigation — apps never execute   [status: 🔴 blocked]
 
 ROOT QUESTION: SHARC boot streams are fully consumed by the ROM (per-chunk
 RDY back-pressure works end-to-end with the fixed active-low tool) but
@@ -62,6 +62,158 @@ trunk; update the dispatch block status; no AI attribution.
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
 no AI attribution in commits or any work product.
+
+**Outcome 2026-08-20 20:20Z — 🔴 NOT FIXED. GPIO8 is still flat low after
+every variant tried, so the handoff still fails. But the suspect list is
+now much shorter: the boot stream and the toolchain flags are CLEARED with
+evidence, two genuine defects in the boot host were found and fixed, and
+the one assumption everything rested on — that the parts were receiving —
+turns out to have no supporting evidence at all. Unit restored, all three
+MCUs verify, app running.**
+
+### The closed loop, run many times — always flat
+
+`rdyprobe1.ldr` booted on chip 1 and GPIO8 sampled, across the full cross
+product of SPI mode {0, 1} × post-reset settle {0.05 s, 0.5 s, 2.0 s}:
+`lo` on every sample of every run. Nothing tried tonight moved it.
+
+### Suspect 1 (boot-stream format) — CLEARED, with the bytes
+
+Every block of `rdyprobe1.ldr`, `blink1.ldr` and the 207 KB production
+`chip1.ldr` was parsed field by field against HRM ch.40 Fig. 40-15 /
+Table 40-27. The streams are textbook:
+
+- Headers are 16 B: BLOCK CODE / TARGET ADDRESS / BYTE COUNT / ARGUMENT.
+  HDRSIGN = 0xAD (core 0) on every block; the HDRCHK XOR checksum was
+  recomputed and matches on every block; `chip1.ldr` parses cleanly
+  through 608 blocks and lands exactly on EOF (0x32814 = file length).
+- First block = `BFLAG_FIRST|BFLAG_IGNORE`, count 0, TARGET_ADDRESS
+  **0x00090004** (the RSTI slot — the entry point the kernel writes to
+  RCU_SVECT0 at termination), ARGUMENT = offset of the final block.
+  Final block = `BFLAG_FINAL`, count 0, same target. Both correct.
+- The IVT **is** in the stream: a 48-byte payload block (8 NW slots × 6
+  bytes) to 0x28240000. That address is right: NW 0x00090000 ↔ BW
+  0x00240000, 6 bytes per 48-bit word, which is exactly why the stock
+  CCES `ADSP-21564.ldf` starts `mem_block0_bw` at 0x002403F0 (0xA8 words
+  × 6). Slot 1 (RSTI, word index 4) decodes as `jump 0x1C0000` — the SW
+  address of `_start` at BW 0x380000. `BFLAG_AUX` is correctly absent:
+  elfloader already emits byte-space addresses, so no PM translation is
+  wanted.
+- `-b SPI` vs `-b SPIHOST`: elfloader 6.4.2.1 emits **byte-identical**
+  output for both (checked on blink1). `build.sh` now says `SPIHOST`
+  anyway, because `-b SPI` documents the master/flash case and this is
+  the host-push case. `-bcode 1` is right — HRM Table 40-19 gives
+  SPIS_BCODE `00xx` = single-bit SPI bus, and 1 is in that range. (The
+  BCODE nibble is also the first byte of the stream, which is what
+  Table 40-18's SPICMD auto-detect reads.)
+
+Nothing in the image explains the failure.
+
+### Suspect 2/3 (entry, board straps, clock) — CLEARED off the schematic
+
+Read at 1200 DPI from `D24 DSP.pdf` p5/10 (DSPA, U6):
+
+- `SYS_BMODE0` = **pin 105 → GND**, `SYS_BMODE1` = **pin 106 → VDD_EXT**,
+  `SYS_BMODE2` = **pin 82 → GND**. BMODE[2:0] = 0b010 = SPI Slave Boot
+  (HRM Table 40-14). The strap is right. (`SYS_RESOUT` p107 is NC, so
+  there is no reset-done signal to watch.)
+- `SYS_CLKIN0` = pin 5, fed from **DSP_CLK through R65 (22R)**.
+- `SPI2_RDY` → **PB_05** through R38 (22R), with R34 10K to GND —
+  confirming what `rdyprobe.asm` drives is the right pin.
+- SPI2 on DSPA: MISO→PA_00, MOSI→PA_01, CLK→PA_04, SS→PA_05.
+- The S MCU (U7, p3/10) housekeeping SPI is on **ISPI0/1/2**, which are
+  DIFFERENT nets from the Pi's SPI0/1/2 — so H1S1 is not a second master
+  on the boot bus. It *is* a second driver on `!RST_D` (U7 pin 47).
+
+**The LOGIC CPLD is alive and clocking.** LOGIC masters the Pi PCM port,
+and `PCM_CLK` (GPIO18) / `PCM_FS` (GPIO19) read as TOGGLING at the Pi.
+`dsp_clk` is a pass-through of the same `sysclk` that feeds the clkgen,
+so the "unprogrammed CPLD = no DSP clock" theory is dead as stated.
+`!RST_D` really does go low when the Pi drives it (verified by reading
+the net back).
+
+### TWO REAL DEFECTS FOUND AND FIXED in `dsp4_boot.py`
+
+1. **SPI clock mode was 0; the boot kernel uses mode 1.** HRM ch.40:
+   "In SPI slave boot mode, the boot kernel sets the SPI_CTL.CPHA bit and
+   clears the SPI_CTL.CPOL bit", and ch.15 fixes the numbering —
+   "mode-0 (CPHA=CPOL=0) and mode-3 (CPHA=CPOL=1)" — so CPHA=1/CPOL=0 is
+   **mode 1**: MOSI is latched on the FALLING edge. A mode-0 host changes
+   MOSI on exactly the edge the kernel samples. Now `SPI_MODE = 1`, with
+   `--spi-mode` as an escape hatch. (The RUNTIME link is a separate
+   question and correctly stays mode 0 — `spi2_init()` leaves CPOL and
+   CPHA clear, matching `dsp4_diag.py`.)
+2. **No settle time after reset release.** HRM Fig. 40-7 does not use a
+   timer: the host waits for SPI_RDY DEASSERTED then ASSERTED, which is
+   the kernel saying "SPI2 is up". That handshake does not exist on this
+   card (pull-downs, see below), so the host was clocking bytes
+   microseconds after `!RST_D` released, while the part was still in
+   pre-boot. Now `POST_RESET_S = 0.500`, `--post-reset-delay` to override.
+
+Both are real bugs by the manual. Neither, alone or together, made GPIO8
+move — so there is at least one more cause.
+
+### The finding that matters most: "the stream was consumed" was never evidence
+
+New tool **`tools/pi/dsp4_netprobe.py`** asks the only question that
+discriminates on a bus like this one: make the Pi pin an input, select the
+internal pull-up, read; select the internal pull-down, read. Follows both
+= nothing else drives it. Result:
+
+| net | Pi | verdict |
+|---|---|---|
+| SCK | GPIO11 | HELD HIGH by something stronger than the Pi pull |
+| MOSI | GPIO10 | HELD HIGH by something stronger than the Pi pull |
+| MISO | GPIO9 | floats |
+| CS1 / CS2 | GPIO6 / GPIO24 | floats (the H1S1 CS1-6 fix holds) |
+| RDY1 / RDY2 | GPIO8 / GPIO12 | HELD LOW (R34 / R22, as designed) |
+| !RST_D | GPIO16 | HELD HIGH (H1S1 U7 p47 also drives it) |
+| PCM_CLK / PCM_FS | GPIO18 / GPIO19 | TOGGLING — the CPLD is running |
+
+And a `!RST_D` pulse with **no SPI traffic at all**, sampling SPI_RDY every
+~15 µs for 1 s: not one HIGH, on either chip, on any run. A 64 KB blast of
+deliberate garbage at 20 MHz with no flow control: also not one sustained
+HIGH — and a kernel that rejects a bad header should stop draining and let
+the RX FIFO fill within ~32 bytes.
+
+Because the card's pulls rest SPI_RDY ASSERTED, "every chunk was accepted"
+is what a *dead* part looks like too. **There is currently no positive
+evidence that either SHARC has ever received a single byte.** Every prior
+"the stream was consumed" reading is compatible with the parts never
+having listened. That is the honest state of the investigation.
+
+### Committed alongside
+
+- `src/blink/rdyprobe.asm` — now a permanent bring-up tool with a proper
+  header, plus a `./build.sh rdyprobe` target. `blink()` and `rdyprobe()`
+  are one parameterised `tiny_image()`; `blink1.ldr` is byte-identical
+  after the refactor, checked.
+- `LDRFLAGS` is now defined once and shared by `loader()` and
+  `tiny_image()`.
+- `tools/pi/dsp4_netprobe.py` (above), deployed to `/home/app/dspboot/`.
+
+### Next — in this order
+
+1. **Prove or disprove that a SHARC is receiving.** Everything else is
+   guesswork until this is settled, and it needs a scope at the part:
+   SYS_CLKIN0 (p5) for DSP_CLK actually arriving, then PA_04/PA_01
+   (SPI2 CLK/MOSI) during a boot, then SYS_HWRST (p104). One session with
+   a probe answers what a week of desk work cannot.
+2. **The one board assumption still unverified**: that PA_00 is SPI2_MISO
+   and PA_01 SPI2_MOSI on the 21564. The HRM has no pin-function table
+   (it is in the datasheet, which is not in `_mx/_temp/adsp-2156x-docs` —
+   only `adsp-2156x_hwr.pdf`), and analog.com times out on fetch. If the
+   two are the other way round the parts have never seen MOSI. **Get
+   `adsp-21560-21561-21564-21568.pdf` into the Dropbox docs folder and
+   check PORTA against p5/10.**
+3. Rev-D hardware items, both from tonight: R34/R22 want to be pull-UPs
+   (already logged 17:16Z; tonight shows exactly what it costs — no
+   liveness signal at all); and `!RST_D` has two masters (Pi GPIO16 and
+   H1S1 U7 p47) with no arbitration.
+4. Left in the working tree, NOT committed, from an earlier session: a
+   `DSP4_BISECT == 4` park in `src/dma_config.c` (its `#error` guard text
+   still says 0-3). It is out of scope for this dispatch — finish or drop
+   it deliberately.
 
 ## HUB DISPATCH 2026-08-20 17:16Z — P2.2 fix flash + readback verification   [status: 🔴 blocked]
 
