@@ -279,7 +279,18 @@ static void spi2_init(void)
      * a 10K pulldown to GND on both DSPs (R34 on DSPA, R22 on DSPB), so
      * the line reads "not ready" while the part is held in reset. The
      * HRM's slave-boot figure documents exactly this pairing
-     * (pull-up => FCPL=0, pull-down => FCPL=1). FCWM=1 = deassert at
+     * (pull-up => FCPL=0, pull-down => FCPL=1).
+     *
+     * NOTE (2026-08-20) — this is the RUNTIME polarity only. During SPI
+     * SLAVE BOOT the polarity is the on-chip boot kernel's and is fixed
+     * ACTIVE-LOW ("The boot code requires the SPIx_RDY signal function
+     * as active-low", HRM ch.40 SPI Slave Boot Mode), which the board's
+     * pulldown fights: the line rests ASSERTED during boot, so the
+     * HRM's in-reset hold-off does not work on this card. Making it
+     * work needs R34/R22 as pull-UPS, which would then also flip this
+     * FCPL to 0. Until then the two phases disagree on polarity by
+     * design and tools/pi/dsp4_boot.py handles boot as active-low while
+     * dsp4_diag.py/dsp4_config.py stay active-high. FCWM=1 = deassert at
      * 75% full, matching what the boot ROM uses; against a 2-deep FIFO
      * that is "stall once a whole transaction is waiting".
      *

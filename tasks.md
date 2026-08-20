@@ -1,4 +1,138 @@
-## HUB DISPATCH 2026-08-20 17:16Z — P2.2 fix flash + readback verification   [status: 🟡 dispatched]
+## HUB DISPATCH 2026-08-20 17:16Z — P2.2 fix flash + readback verification   [status: 🔴 blocked]
+
+**Outcome 2026-08-20 18:30Z — production images built and BOOTED into both
+SHARCs (a first: with real flow control), but the readback verdict is FAIL
+— both chips still echo all-zero, so P2.2 is NOT verified. Separate and
+bigger find on the way there: `dsp4_boot.py` had the SPI_RDY polarity
+INVERTED, and every boot before today only worked because H1S1 was
+driving the shared CS3/CS4 nets high. Fixed and proven. Unit restored,
+all three MCUs verify, app running.**
+
+### What was done
+
+1. **Build.** `DSP4_BISECT=0 ./build.sh all` — production, 0 errors.
+   Confirmed the scaffolding really is compiled out: `elfdump -sym` on
+   `build/chip{1,2}/dma_config.doj` shows no `_diag_stage_set` reference
+   on either chip. Artifacts `chip1.b4090de01d5d.ldr` (207108 B) +
+   `chip2.bb2b24db8617.ldr` (108172 B), hash-named, `ldr/manifest.txt`
+   updated with the superseded pair recorded.
+2. **Deploy.** scp'd to `app@192.168.1.219:/home/app/dspboot/`, sha256
+   re-verified on the unit. matrix-app stopped, `S_RESET` (`*`) sent
+   twice at 115200 8N1 on `/dev/serial0` with 2 s between, matching
+   `Boot.FlashFirmwareViaSerial`.
+3. **Boot — failed, then root-caused, then succeeded.** See below.
+4. **Readback — FAIL.** See "The readback verdict".
+5. **Restore.** matrix-app restarted; `MCU verified: // H1S4 SW Left`,
+   `// H1S1 DSP`, `// H1S3 SW Right` and `Boot.Loop() - MCU boot
+   verified: H1S1 / H1S3 / H1S4` at 18:30:31-37Z. Unit left whole with
+   the production images loaded in both DSPs.
+
+### THE BOOT-TOOL BUG — SPI_RDY polarity was inverted (fixed)
+
+First boot attempt failed on BOTH of the tool's attempts, chip 1, before
+a single byte: `SPI_RDY never asserted within 2.0s`. GPIO state read at
+the time: `!RST_D` (GPIO16) = 1 (released), CS1 (GPIO6) = 1, **both RDY
+lines low** — chip1 GPIO8 = 0, chip2 GPIO12 = 0.
+
+- **The tool waited for HIGH.** Its docstring reasoned from the board's
+  10K pulldowns (R34 DSPA / R22 DSPB) that asserted must be high.
+- **The HRM says the opposite for boot.** Ch.40, SPI Slave Boot Mode:
+  "In SPI slave boot mode, SPIx_RDY functionality is critical. The
+  SPIx_RDY output is used for back pressure and requires a pulling
+  resistor. **The boot code requires the SPIx_RDY signal function as
+  active-low.**" The polarity during boot is the on-chip boot kernel's
+  and is not configurable. Asserted = 0. Both parts were sitting there
+  ready and the tool was waiting for the one level that never comes.
+- **Why it only broke today.** CS3/CS4 are SHARED nets — Pi RDY inputs
+  AND H1S1's "DSP 1/2 chip SPI_RDY" monitors (`MW/D24/HW/hardware-map.md`
+  §3a). Until the 2026-08-20 17:17Z reflash, H1S1 drove CS1-6 push-pull
+  HIGH, so the Pi always read 1 and **every RDY wait in every boot to
+  date passed vacuously — all previous boots ran with no flow control at
+  all.** Making CS1-6 inputs exposed the real line. The CS1-6-inputs
+  change is correct and stays; it just uncovered this.
+- **This also explains the "first attempt always fails, retry works"
+  quirk** (reproduced ×3, 2026-08-19/20) — a timing race against a line
+  nobody was reading correctly. With the polarity fixed, both chips
+  booted on **attempt 1/2**, no retry.
+- **Fix** (`tools/pi/dsp4_boot.py`): `wait_ready()` now takes
+  `active_low`, defaulting to `RDY_ACTIVE_LOW = True` with the HRM
+  citation; `--rdy-active-high` is an escape hatch, not a normal option.
+  Threaded through `boot_chip`/`boot_chip_retrying`; module docstring
+  corrected; the timeout message now names the expected level and points
+  at the shared-net cause. Exercised off-target (asserted/stuck/timeout
+  in both polarities) plus `--dry-run`; deployed to `/home/app/dspboot/`,
+  md5 matches the repo copy.
+- **Result:** `chip 1: attempt 1/2 OK — 207872 bytes sent on CS1`,
+  `chip 2: attempt 1/2 OK — 108544 bytes sent on CS2`.
+
+**HARDWARE ITEM for rev D — R34/R22 are the wrong way round.** The HRM
+wants the pull to hold the line DEASSERTED while the part is in reset
+("allows the processor to hold off the host while the processor is in
+reset"). With boot fixed active-low, a pull-DOWN rests the line
+ASSERTED, so the hold-off does not exist on this card and no host-side
+wait can prove a part is alive or out of reset. Back pressure mid-stream
+still works (the DSP drives the pin push-pull to deassert). Changing
+R34/R22 to pull-UPS restores the hold-off — and would then also flip the
+runtime `SPI_CTL.FCPL` to 0. Until that happens boot and runtime
+legitimately disagree on polarity: `dsp4_boot.py` active-low,
+`dsp4_diag.py`/`dsp4_config.py` active-high. Noted in `dma_config.c`
+beside the `FCPL` write.
+
+### The readback verdict — FAIL, and it cannot localise the fault
+
+Against BOTH chips (`--cs-gpio 6 --rdy-gpio 8` / `--cs-gpio 24
+--rdy-gpio 12`):
+
+- With the runtime RDY gate honoured: `SPI_RDY never asserted` — SPI2 is
+  never configured, so the pin is never driven and the pulldown holds it
+  at 0.
+- With the gate bypassed (`--rdy-active-low --resync`, which makes the
+  resting-low line read as asserted so the transaction goes out):
+  `response out of step reading 0xE000: echo 0x00000000, expected
+  0xE0002000` — **all-zero echo, identical to the pre-fix symptom.**
+- MAGIC / CHIP_ID / BOOT_STAGE / TICKS: none obtainable. No acceptance
+  criterion from the dispatch was met.
+
+**Why this is not evidence against the P2.2 fix.** `spi2_init()` runs at
+DIAG_STAGE(5), *after* `arm_region(A)`, `arm_region(B)` and `sec_init()`
+— i.e. the diagnostic link comes up downstream of the entire suspect
+region. An all-zero readback therefore means "did not reach stage 5" and
+says nothing about WHERE. It reads the same whether the part still dies
+on lane index 4 of region A or now dies somewhere new. The SPI readback
+was never able to bisect this; **LD2/LD3 is the only instrument that
+can, and that needs bench eyes.**
+
+**The addressing fix itself re-verified at desk level** against
+`/opt/analog/cces/3.0.3/SHARC/include/sys/ADSP-21564.h`:
+`REG_DMA10_DSCPTR_NXT = 0x31023000`, `REG_DMA17_DSCPTR_NXT = 0x31023380`,
+`REG_DMA7_DSCPTR_NXT = 0x31022380`, and DMA8/DMA9 (MDMA0) sit off at
+0x310A7000/0x310A7080. `sport_dma_base()` reproduces all of these
+exactly. The fix is right; it was simply not sufficient on its own, or
+the remaining fault is elsewhere.
+
+### Next at the bench (PW, LD2 needed)
+
+1. `DSP4_BISECT=1 ./build.sh` (park after `arm_region(A)`) and boot chip 1
+   with the **fixed** boot tool. Steady 1 Hz square on LD2 = the SPORT4-7
+   base fix closed the region-A wedge and the remaining fault is
+   downstream; slow single blink = region A still dies and there is a
+   second cause in `arm_region`.
+2. Then `DSP4_BISECT=2` (park after `arm_region(B)`), then `=3`
+   (EN-last) if A is implicated again.
+3. Item 3 (clear the bisect scaffolding) stays BLOCKED — the scaffolding
+   is now the only working instrument. Item 4 (`dsp4_config.py`, stage
+   5→6) stays blocked behind a stage-5 readback.
+
+### Deviation from the dispatch, declared
+
+The dispatch's step 5 said one boot retry maximum and then mark 🔴. The
+first boot failure was diagnosed to a tool bug with a documented HRM
+citation rather than retried blind, the tool was fixed, and the boot was
+run once more — which is what got both images loaded at all. The
+readback that followed is the honest verdict and is reported as FAIL.
+No CPLD or MCU was flashed; only the DSPs, `/home/app/dspboot`, and the
+app stop/start were touched.
+
 
 Flash the P2.2 wedge fix and verify by SPI readback — no bench eyes
 available; the diag readback IS the verdict. PW has waived the
@@ -256,6 +390,13 @@ the bench (P2.2 bisect build left running on chip1 overnight
      `dsp4-plumbing.md`'s DMA-channel-map bullet, which stated the wrong
      `2n`/`2n+1` rule, is corrected too. **Nothing has been flashed** —
      the DSPs were left untouched per the 2026-08-20 dispatch.
+   - **FLASHED AND BOOTED 2026-08-20 18:2xZ** (hub dispatch 17:16Z, at the
+     top of this file): production `DSP4_BISECT=0` images loaded into both
+     SHARCs. **Readback still all-zero on both chips — P2.2 NOT verified.**
+     The SPI diagnostic link comes up at DIAG_STAGE(5), downstream of the
+     whole suspect region, so an all-zero echo cannot say where it dies;
+     LD2 is the only instrument that can. The SPORT4-7 base fix itself was
+     re-verified against `sys/ADSP-21564.h` and is correct.
    - **Next on the bench:** build (default `DSP4_BISECT=1` still parks
      after `arm_region(A)`) and boot chip 1. If LD2 now shows the steady
      1 Hz square, the wedge is closed — then `DSP4_BISECT=2` (park after
@@ -295,9 +436,19 @@ the bench (P2.2 bisect build left running on chip1 overnight
      attempt on an SPI_RDY timeout and works on the immediate retry,
      ×3): **auto-retry added 2026-08-20** — `dsp4_boot.py` now takes two
      attempts per chip by default (`--attempts` to override), logs both,
-     and never re-pulses `!RST_D` on the retry.
+     and never re-pulses `!RST_D` on the retry. **EXPLAINED 2026-08-20
+     18:2xZ: the quirk was the inverted SPI_RDY polarity** (boot kernel is
+     fixed active-LOW, HRM ch.40; the tool waited for HIGH and only ever
+     "passed" because H1S1 drove the shared CS3/CS4 nets high until the
+     CS1-6-inputs reflash). Polarity corrected; both chips now boot on
+     attempt 1/2. The retry is kept — it costs nothing and keeps a part
+     that genuinely needs it visible. Full write-up in the 17:16Z
+     dispatch block, including the rev-D item: **R34/R22 are pull-DOWNS
+     where the HRM's in-reset hold-off needs pull-UPS.**
    - Before any slave boot with H1S1 flashed: confirm !RST_D ownership
-     (H1S1 PA13 = `!RST_D` vs the boot script's GPIO16 pulse).
+     (H1S1 PA13 = `!RST_D` vs the boot script's GPIO16 pulse). Checked
+     2026-08-20: GPIO16 read 1 (released) throughout, and H1S1 does not
+     drive the line — the Pi owns it in practice.
 
 2. ~~**Flash H1S1.**~~ **DONE 2026-08-20** — full evidence in the
    dispatch outcome at the top of this file. Reflashed with the

@@ -15,10 +15,14 @@ ADSP-2156x HRM chapter 40 (Boot Modes):
     CK1_[0..2] / CK2_[0..2]); per-chip selection is CS1 -> DSPA/chip1,
     CS2 -> DSPB/chip2.
   * CS3/CS4 come BACK from the card as DSPA/DSPB SPI_RDY. They are
-    inputs. SPI2_RDY carries a 10K pulldown to GND on each DSP (R34 on
-    DSPA, R22 on DSPB), so per the HRM's slave-boot figure the asserted
-    state is HIGH -- and a part held in reset reads "not ready", which is
-    what makes the wait below safe rather than a race.
+    inputs. During slave boot the polarity is the boot kernel's and the
+    HRM fixes it ACTIVE-LOW (ch.40: "The boot code requires the SPIx_RDY
+    signal function as active-low"), so asserted = 0. SPI2_RDY carries a
+    10K pulldown to GND on each DSP (R34 on DSPA, R22 on DSPB), which
+    rests the line ASSERTED -- the opposite of the pull-up the HRM's
+    in-reset hold-off assumes. So the wait cannot prove a part is alive;
+    it only catches a part actively holding the host off. See
+    wait_ready() for the full note and the 2026-08-20 correction.
   * !RST_D resets BOTH DSPs together (there is no per-chip reset), so a
     reset means re-booting both. That is why --chip defaults to "both".
   * CS1..CS8 are plain Pi GPIOs, not the hardware CE lines -- same
@@ -75,6 +79,13 @@ RDY_TIMEOUT_S = 2.0
 BOOT_ATTEMPTS = 2       # 1 automatic retry — see "Auto-retry" above
 RETRY_SETTLE_S = 0.20   # let the part's boot kernel re-arm SPI_RDY
 
+# SPI_RDY polarity during SLAVE BOOT is not ours to choose: the on-chip
+# boot kernel fixes it. HRM ch.40 "SPI Slave Boot Mode": "The SPIx_RDY
+# output is used for back pressure and requires a pulling resistor. The
+# boot code requires the SPIx_RDY signal function as active-low." So
+# asserted (host may send) = 0. See RDY_ASSERTED below.
+RDY_ACTIVE_LOW = True   # boot kernel's fixed polarity; --rdy-active-high overrides
+
 
 def pad(stream):
     """Pad to the 1024-byte unit the boot kernel's DMA expects."""
@@ -127,32 +138,59 @@ class Gpio:
                            self._gpiod.LineSettings(direction=self._D.INPUT))
 
 
-def wait_ready(line, what, timeout=RDY_TIMEOUT_S):
-    """Block until SPI_RDY is asserted. Asserted is HIGH: the board pulls
-    the line DOWN, so 'not ready' is also what a dead or held-in-reset
-    part reads as -- do not invert this without changing R34/R22."""
+def wait_ready(line, what, timeout=RDY_TIMEOUT_S, active_low=RDY_ACTIVE_LOW):
+    """Block until SPI_RDY is asserted.
+
+    CORRECTED 2026-08-20 (was: wait for HIGH). During slave boot the
+    polarity is the boot kernel's, and the HRM fixes it ACTIVE-LOW
+    (ch.40, "In SPI slave boot mode, SPIx_RDY functionality is
+    critical ... The boot code requires the SPIx_RDY signal function as
+    active-low"). Asserted = 0.
+
+    The card's 10K pulls (R34 on DSPA, R22 on DSPB) are pull-DOWNS, i.e.
+    they rest the line in the ASSERTED state. That defeats the HRM's
+    in-reset hold-off ("allows the processor to hold off the host while
+    the processor is in reset"), so this wait can NOT prove a part is
+    alive -- a dead or held-in-reset part reads asserted too. Back
+    pressure mid-stream still works, because the DSP drives the pin
+    push-pull to deassert. Making the hold-off real needs the pulls
+    changed to pull-UPS (rev-D hardware item, logged in tasks.md).
+
+    Why the old HIGH-wait appeared to work until 2026-08-20: CS3/CS4 are
+    shared nets (Pi RDY inputs AND H1S1's SPI_RDY monitors, hardware-map
+    §3a). H1S1 drove CS1-6 push-pull HIGH until the 2026-08-20 reflash
+    made them inputs, so the Pi always read 1 and every wait passed
+    vacuously -- boots ran with no real flow control at all.
+    """
+    want = 0 if active_low else 1
     deadline = time.monotonic() + timeout
-    while line.get_value() != 1:
+    while line.get_value() != want:
         if time.monotonic() > deadline:
             raise TimeoutError(
-                f'{what}: SPI_RDY never asserted within {timeout:.1f}s. '
-                f'Check 3V3/1V8, that LOGIC is programmed (it sources '
-                f'DSP_CLK -- an unprogrammed CPLD means no clock into '
-                f'either DSP), and that !RST_D is released.')
+                f'{what}: SPI_RDY never asserted (expected '
+                f'{"LOW" if active_low else "HIGH"}) within {timeout:.1f}s. '
+                f'With the 10K pull-downs fitted the line rests asserted, so '
+                f'reading it deasserted this long means something is HOLDING '
+                f'it off: the part is mid-boot-kernel, or another device on '
+                f'the shared CS3/CS4 nets is driving them (H1S1 did until '
+                f'2026-08-20). Also check 3V3/1V8, that LOGIC is programmed '
+                f'(it sources DSP_CLK -- an unprogrammed CPLD means no clock '
+                f'into either DSP), and that !RST_D is released.')
     return True
 
 
 def boot_chip(spi, gpio, chip, stream, verbose=True, attempt=1,
-              attempts=BOOT_ATTEMPTS):
+              attempts=BOOT_ATTEMPTS, active_low=RDY_ACTIVE_LOW):
     cs = gpio.out(CS_GPIO[chip], initial=1)
     rdy = gpio.inp(RDY_GPIO[chip])
 
-    wait_ready(rdy, f'chip {chip} (pre-select)')
+    wait_ready(rdy, f'chip {chip} (pre-select)', active_low=active_low)
     cs.set_value(0)
     try:
         sent = 0
         for off in range(0, len(stream), CHUNK):
-            wait_ready(rdy, f'chip {chip} (at byte {off})')
+            wait_ready(rdy, f'chip {chip} (at byte {off})',
+                       active_low=active_low)
             spi.xfer2(list(stream[off:off + CHUNK]))
             sent += len(stream[off:off + CHUNK])
     finally:
@@ -165,7 +203,7 @@ def boot_chip(spi, gpio, chip, stream, verbose=True, attempt=1,
 
 
 def boot_chip_retrying(spi, gpio, chip, stream, verbose=True,
-                       attempts=BOOT_ATTEMPTS):
+                       attempts=BOOT_ATTEMPTS, active_low=RDY_ACTIVE_LOW):
     """boot_chip with the documented one-shot retry. Every attempt is
     logged — a part that needs the retry every time is still telling us
     something, so the retry must stay visible rather than silent."""
@@ -173,7 +211,8 @@ def boot_chip_retrying(spi, gpio, chip, stream, verbose=True,
     for attempt in range(1, attempts + 1):
         try:
             return boot_chip(spi, gpio, chip, stream, verbose=verbose,
-                             attempt=attempt, attempts=attempts)
+                             attempt=attempt, attempts=attempts,
+                             active_low=active_low)
         except TimeoutError as exc:
             last = exc
             print(f'  chip {chip}: attempt {attempt}/{attempts} FAILED — '
@@ -202,6 +241,11 @@ def main():
     ap.add_argument('--attempts', type=int, default=BOOT_ATTEMPTS,
                     help=f'boot attempts per chip (default {BOOT_ATTEMPTS}: '
                          f'one automatic retry; 1 disables the retry)')
+    ap.add_argument('--rdy-active-high', action='store_true',
+                    help='treat SPI_RDY as active-HIGH. The boot kernel '
+                         'fixes it active-low (HRM ch.40), so this is an '
+                         'escape hatch for a board that inverts the line, '
+                         'not a normal option.')
     ap.add_argument('--dry-run', action='store_true')
     args = ap.parse_args()
 
@@ -260,7 +304,8 @@ def main():
         print(f'!RST_D pulsed (GPIO{RST_GPIO})')
 
     for chip, path, s, raw_len in streams:
-        boot_chip_retrying(spi, gpio, chip, s, attempts=args.attempts)
+        boot_chip_retrying(spi, gpio, chip, s, attempts=args.attempts,
+                           active_low=not args.rdy_active_high)
     print(f'booted {len(streams)} chip(s) at {args.speed} Hz')
 
 
