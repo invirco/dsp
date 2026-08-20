@@ -303,3 +303,16 @@ Hardware ground truth: [MW/D24/HW/hardware-map.md](MW/D24/HW/hardware-map.md)
   are genuinely free (then the SHARC pattern applies unchanged); or the
   format map proves too dynamic to generate, which would mean the
   address space is under-specified upstream in mx26.
+
+## D8 amendment (PW, 2026-08-20) — CM4 core also masters analog mic-pre gain
+
+The D8 dedicated CM4 core's SPI scope extends to the analog mic preamp
+gain: one control-plane master for SHARC boot/runtime params, coeff prep,
+AND preamp gain. Rev-C copper terminates the housekeeping SPI selects
+(!CS_L/!CS_C/!CS_M) at H1S1, so direct CM4 mastering is rev-D wiring:
+CS_M rides a spare stack CS line (CS5 or CS6 — CS7/8 are permanently the
+CM4-owned SWD_EN selects, CS1-4 the boot bus; the 2026-08-20 H1S1
+CS1-6→inputs flash makes CS5/6 safe to claim). Three housekeeping selects
+vs two spare lines: if only CS_M moves, CS5 suffices; all three need one
+more route or a select expander. CM4 CS is gpiod-driven — the constraint
+is copper reach, not SPI CE hardware. Feeds the supervisor-shrink scope.
