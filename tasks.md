@@ -1,3 +1,68 @@
+## HUB DISPATCH 2026-08-20 18:43Z — Boot handoff investigation — apps never execute   [status: 🟡 dispatched]
+
+ROOT QUESTION: SHARC boot streams are fully consumed by the ROM (per-chunk
+RDY back-pressure works end-to-end with the fixed active-low tool) but
+APPLICATION CODE NEVER EXECUTES — proven tonight with a closed loop:
+`src/blink/rdyprobe.asm` (blink.asm with PORTA→PORTB, bit 5 = PB_05 =
+SPI2_RDY) booted on chip 1 and the Pi sampled GPIO8 flat low; the PA_12
+blink images also never light LD2/LD3 (PW verified LED wiring anode→R→
+PA_12, cathode→GND: pin-high = lit). All dma_cfg_init work is downstream
+of this and moot until fixed.
+
+Find why the ROM→application handoff fails. Investigate at the desk, then
+verify with the closed loop (no bench eyes needed).
+
+Suspects, in order:
+1. Boot-stream format: elfloader flags are `-b SPI -bcode 1 -f BINARY
+   -width 8`. Check HRM ch.40 (text already extracted to hrm.txt in your
+   scratchpad from the previous session — regenerate if gone) for the
+   BLOCK CODE / BCODE the 2156x ROM expects in SPI SLAVE boot (BMODE
+   0b010), and whether -b SPI + bcode 1 encodes master vs slave. Parse
+   the actual bytes of build/rdyprobe1.ldr (block headers: dBlockCode,
+   dTargetAddress, dByteCount, dArgument; FIRST/FINAL/INIT flags) and
+   check: final block flags, jump target address, and whether the ROM
+   requires anything the stream lacks.
+2. Entry/IVT: the .dxe has NO ELF entry (elfloader "Defaulting to
+   0x90004"). Verify in the built blink/rdyprobe images that address
+   0x90004 (RSTI slot) actually receives a jump to _start (dump the dxe:
+   elfdump, or parse the .ldr payload for the 0x90000-block content).
+   Check blink_ivt.asm places the IVT at 0x90000 and the LDF puts
+   seg_pmco somewhere the ROM actually loads.
+3. Post-boot core state: does the 2156x ROM hand off with the core in a
+   state our code mishandles (e.g. executes from an address alias we
+   didn't link for)? Compare with an ADI example loader stream if any
+   ships in CCES (look under /opt/analog/cces/3.0.3/SHARC/ldr or
+   examples) — diff their header/entry conventions against ours.
+4. If a stream fix is identified: apply to build.sh loader() (and
+   dsp4_boot.py only if the transport itself must change), rebuild
+   rdyprobe1.ldr, and VERIFY with the loop below. Iterate until GPIO8
+   toggles.
+
+CLOSED-LOOP VERIFICATION (run as often as needed):
+  ssh app@192.168.1.219 'cd /home/app/dspboot && python3 dsp4_boot.py \
+    --ldr rdyprobe1.ldr --chip 1' \
+  && ssh app@192.168.1.219 'for i in $(seq 1 12); do pinctrl get 8 | \
+    grep -oE "lo|hi"; sleep 0.25; done'
+Success = alternating lo/hi (~1 Hz). Copy fresh rdyprobe1.ldr to
+/home/app/dspboot/ before each run. rdyprobe.asm is untracked — commit it
+(it is now a permanent bring-up tool) with a header comment.
+
+After GPIO8 toggles: boot blink1/blink2 and note in tasks.md that PW
+should confirm LD3/LD2 blink at next bench visit (1 Hz / 2 Hz — also the
+free CCLK measurement); then the production/park builds become meaningful
+again and P2.2 resumes with working instruments.
+
+Constraints: chips may be freely booted/reset (PW has released the
+bench; the bisect state is void anyway). ALWAYS restart matrix-app
+(sudo systemctl restart matrix-app) and confirm the three MCUs verify in
+/home/app/logs/log before ending the session or between long gaps —
+the unit must not be left on a frozen splash. Dropbox via ~/db. Single
+trunk; update the dispatch block status; no AI attribution.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-08-20 17:16Z — P2.2 fix flash + readback verification   [status: 🔴 blocked]
 
 **Outcome 2026-08-20 18:30Z — production images built and BOOTED into both
