@@ -1,3 +1,42 @@
+## HUB DISPATCH 2026-08-21 13:09Z — P2.2 — close the dma_cfg_init wedge with working boot + LD blink instrument   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+SHARC boot is SOLVED (SPICMD, D14) and BOTH DSP blink LEDs are confirmed
+running at the bench — you now have a working boot AND LD2/LD3 as live
+instruments, which is exactly what the P2.2 bisect was blocked on. Resume
+P2.2 per NOW item 1.
+
+TASK — close the dma_cfg_init wedge.
+1. The SPORT4-7 DMA-base fix (`sport_dma_base()` in dma_config.c) is in the
+   tree, verified against sys/ADSP-21564.h, never confirmed on hardware
+   because nothing booted before. Now it can be. Build `DSP4_BISECT=1`
+   (parks after arm_region(A)); boot chip 1 with the SPICMD fix
+   (dsp4_boot.py default 0x03); read LD3 (DSPA, chip 1): a steady ~1 Hz
+   square = arm_region(A) survived. If it parks (slow single blink), the
+   SPORT4 base was still not it — capture and reassess.
+2. If A is clean: `DSP4_BISECT=2` (park after B), boot, LD3 again. Then
+   `DSP4_BISECT=0` (production, no park/stamps) for a full run on BOTH
+   chips; confirm LD3 (1 Hz) and LD2 (2 Hz) steady, and the SPI2 diag
+   readback is non-zero / sane now that the core runs past dma_cfg_init.
+3. When closed: REVERT the temp instrumentation (diag_stage_set / diag.asm
+   stamps / the park loop behind DSP4_BISECT per item 3), rebuild the
+   clean production images, reflash both chips, verify LEDs + readback,
+   commit the production .ldr hash-named. Update P2.2 to 🟢 with the
+   verdict; note the SPICMD dependency (production boot path must carry
+   --spi-cmd 0x03).
+4. If the wedge does NOT close on the SPORT4 fix: bisect further with the
+   LED (now a real instrument) rather than the all-zero SPI readback, and
+   write up where it dies.
+Do NOT touch the CLKIN mods (blue, done) or the H1S1 ADAU-poll item (that
+is a separate near-term firmware task needing the real H1S1 sources).
+Constraints: matrix-app restarted + 3 MCUs verified before ending; ~/db
+Dropbox; single trunk; no AI attribution.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-08-21 11:26Z — SHARC ③ — scope-driver + boot-bus toggle capture (rails good; CPLD cannot mirror SPI/RST)   [status: 🟢 done — **ROOT CAUSE FOUND AND FIXED. Both SHARCs boot and run application code.** The boot host never sent the SPICMD byte the SPI-target boot kernel reads as its FIRST byte (HRM Table 36-18: 0x03 = keep single-bit mode), so the ROM consumed the first byte of the .ldr as the command and every block header after it was shifted by one. Added `--spi-cmd` (default 0x03) to dsp4_boot.py: GPIO8 now toggles at ~1 Hz on chip 1 and GPIO12 at ~2 Hz on chip 2, and an A/B/A control with `--spi-cmd none` reproduces the old flat-low failure exactly. The parts were never damaged]   [model: opus]
 model: opus
 
