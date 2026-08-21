@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-08-21 11:26Z — SHARC ③ — scope-driver + boot-bus toggle capture (rails good; CPLD cannot mirror SPI/RST)   [status: 🟢 done — tools built, deployed and used to settle it: the boot bus is PROVEN live (16 334 SCK transitions in one burst inside the CS window, both chips) and !RST_D is PROVEN good (PW saw the pin go low under the DC hold; the earlier stuck-high was measured with GPIO16 at its idle high). The hub's "H1S1 PA13 overpowers GPIO16" mechanism is REFUTED — PA13 is unconfigured in H1S1, a reset-default pull-up, not a driver. Clock, rails, reset and data are now ALL verified good at the parts and neither responds: TASK B points at the PARTS, and with decoupling also confirmed fitted (schematic defect only) a fresh card / fresh SHARCs is the only remaining path]   [model: opus]
+## HUB DISPATCH 2026-08-21 11:26Z — SHARC ③ — scope-driver + boot-bus toggle capture (rails good; CPLD cannot mirror SPI/RST)   [status: 🟢 done — **ROOT CAUSE FOUND AND FIXED. Both SHARCs boot and run application code.** The boot host never sent the SPICMD byte the SPI-target boot kernel reads as its FIRST byte (HRM Table 36-18: 0x03 = keep single-bit mode), so the ROM consumed the first byte of the .ldr as the command and every block header after it was shifted by one. Added `--spi-cmd` (default 0x03) to dsp4_boot.py: GPIO8 now toggles at ~1 Hz on chip 1 and GPIO12 at ~2 Hz on chip 2, and an A/B/A control with `--spi-cmd none` reproduces the old flat-low failure exactly. The parts were never damaged]   [model: opus]
 model: opus
 
 Rails are GOOD at the bench (PW): +0.9V, +1V8 VDD_REF, +3V3 all in spec —
@@ -205,6 +205,75 @@ then meter **J6 pin 36** (and p104 on U5/U6 if reachable);
 Unit left with `matrix-app` running, all three MCUs verified (H1S1, H1S3,
 H1S4 at 12:46), GPIO5/13 back to inputs, GPIO9/10/11 back to `a0`, GPIO16
 output high.
+
+
+### Addendum 2026-08-21 14:00Z — 🟢 ROOT CAUSE: the missing SPICMD byte
+
+**Both SHARCs boot and run application code. The parts are fine.**
+
+PW put a scope on **DSP pin 10, SYS_CLKOUT**, and read **24.5 MHz at 3.3 V**
+— the first positive liveness signal this card has ever produced, and the
+thing that turned the investigation around. HRM §"CLKOUT Selections":
+*"BMODE = (non zero) — When a hardware reset is deasserted, SYS_CLKIN is
+selected by default"*, routed DIRECT per Figure 2-2. Our BMODE is 0b010, so
+pin 10 is a straight mux from pin 5. That single reading proves VDD_EXT is
+present at the die, the output driver works, SYS_CLKIN0 is reaching and
+being received correctly *through the part* (better evidence than the pad
+scope), and a hardware reset has been deasserted. It also proves BMODE is
+non-zero, i.e. not the 000 No-Boot strap.
+
+Then, with `!RST_D` held low from the desk, **PW read pin 10 LOW** — CLKOUT
+stops. So the reset reaches the die too, closing the last unverified hop.
+Every precondition was verified good on a part that was demonstrably alive,
+which meant the fault had to be in the boot handshake itself.
+
+**It was.** HRM ch.36, *SPI Target Boot Mode*:
+
+> "The SPI target processor detects the correct boot mode from the host SPI
+> device by reading **the first byte sent, defined as SPICMD**. … These
+> additional bytes **must be sent prior to transmitting the data** to
+> configure the SPI device."
+
+Table 36-18, host starting in single-bit mode: **0x3 = keep single-bit
+mode** (0x7 dual, 0xB quad). `dsp4_boot.py` sent the `.ldr` straight in with
+no command byte, so the boot kernel ate the first byte of the first block
+header as SPICMD and every header after it was misaligned by one byte:
+HDRSIGN never 0xAD, no block ever passed its XOR check, the boot never
+completed — while the host still saw a stream clocked out from end to end.
+That is precisely the signature this card has had since March.
+
+`--spi-cmd` added to `dsp4_boot.py`, default `0x03`, sent with SS asserted
+and before the first stream byte per the host flow in HRM Figure 36-6.
+
+**Result, and the A/B/A control that makes it causation:**
+
+| run | GPIO8 / GPIO12 |
+|---|---|
+| chip 1, rdyprobe1, SPICMD `0x03` | `hi hi hi hi lo lo lo lo hi hi …` — **~1 Hz** |
+| chip 2, rdyprobe2, SPICMD `0x03` | `hi hi lo lo hi hi lo lo …` — **~2 Hz** |
+| chip 1, `--spi-cmd none` | `lo lo lo lo …` — the old failure, exactly |
+| chip 1, SPICMD back on | toggling again |
+| chip 1 rdyprobe + chip 2 blink2, **matrix-app running** | GPIO8 toggling; LD2 should blink |
+
+**What this retires.** The "damaged parts / fresh card / fresh SHARCs"
+verdict recorded earlier today is **withdrawn** — do not order parts on it.
+Both SHARCs survived the SYS_CLKIN0 overdrive. Everything the earlier
+rounds fixed was real and necessary (the ÷2 CPLD clock, the level-shift
+bodge, the active-low RDY correction, the H1S1 CS1-6 reflash, the SPI0
+pinmux restore), but none of it was sufficient, because the host had never
+spoken the first byte of the protocol.
+
+**What stands.** The two-master contention on the boot bus (H1S1's legacy
+ADAU meter poll, ~600 µs every ~260 ms) is still real and still worth
+removing — it is now the most likely cause of any *intermittent* boot
+failure, at ~5.6 % per attempt. The RDY pull-downs (R34/R22) are still
+backwards versus HRM Figure 36-4, which wants a 10 K pull-**up** to
+VDD_EXT; back pressure works anyway because the part drives the pin, but
+the in-reset hold-off does not, and the fixed 500 ms settle is standing in
+for a handshake we cannot see. Both are rev-D items.
+
+Unit left with matrix-app running, all three MCUs verified (13:57), chip 1
+running rdyprobe1 and chip 2 running blink2.
 
 
 ### Addendum 2026-08-21 13:20Z — 🟢 the open item closed at the bench, verdict: the parts

@@ -120,6 +120,22 @@ RDY_ACTIVE_LOW = True   # boot kernel's fixed polarity; --rdy-active-high overri
 # SPI_RDY in the asserted state (see wait_ready).
 SPI_MODE = 1            # CPOL=0, CPHA=1; --spi-mode overrides
 
+# SPICMD — the byte the boot kernel expects BEFORE the boot stream.
+#
+# HRM ch.36 "SPI Target Boot Mode": "The SPI target processor detects the
+# correct boot mode from the host SPI device by reading the FIRST BYTE
+# SENT, defined as SPICMD ... These additional bytes must be sent prior to
+# transmitting the data to configure the SPI device." Table 36-18, host
+# starting in single-bit mode: 0x3 = keep single-bit mode, 0x7 = switch to
+# dual, 0xB = switch to quad.
+#
+# Without it the kernel consumes the first byte of the .ldr as SPICMD and
+# every block header after that is shifted by one byte: HDRSIGN is never
+# 0xAD, no block ever passes its XOR check, the boot never completes — and
+# the host still sees a stream that was clocked out from end to end. That
+# is exactly the failure signature this card has had since March.
+SPICMD_SINGLE_BIT = 0x03
+
 
 def pad(stream):
     """Pad to the 1024-byte unit the boot kernel's DMA expects."""
@@ -214,7 +230,8 @@ def wait_ready(line, what, timeout=RDY_TIMEOUT_S, active_low=RDY_ACTIVE_LOW):
 
 
 def boot_chip(spi, gpio, chip, stream, verbose=True, attempt=1,
-              attempts=BOOT_ATTEMPTS, active_low=RDY_ACTIVE_LOW):
+              attempts=BOOT_ATTEMPTS, active_low=RDY_ACTIVE_LOW,
+              spicmd=SPICMD_SINGLE_BIT):
     cs = gpio.out(CS_GPIO[chip], initial=1)
     rdy = gpio.inp(RDY_GPIO[chip])
 
@@ -222,6 +239,10 @@ def boot_chip(spi, gpio, chip, stream, verbose=True, attempt=1,
     cs.set_value(0)
     try:
         sent = 0
+        if spicmd is not None:
+            # Sent with SS already asserted and before any stream byte,
+            # per the host flow in HRM Figure 36-6.
+            spi.xfer2([spicmd])
         for off in range(0, len(stream), CHUNK):
             wait_ready(rdy, f'chip {chip} (at byte {off})',
                        active_low=active_low)
@@ -237,7 +258,8 @@ def boot_chip(spi, gpio, chip, stream, verbose=True, attempt=1,
 
 
 def boot_chip_retrying(spi, gpio, chip, stream, verbose=True,
-                       attempts=BOOT_ATTEMPTS, active_low=RDY_ACTIVE_LOW):
+                       attempts=BOOT_ATTEMPTS, active_low=RDY_ACTIVE_LOW,
+                       spicmd=SPICMD_SINGLE_BIT):
     """boot_chip with the documented one-shot retry. Every attempt is
     logged — a part that needs the retry every time is still telling us
     something, so the retry must stay visible rather than silent."""
@@ -246,7 +268,7 @@ def boot_chip_retrying(spi, gpio, chip, stream, verbose=True,
         try:
             return boot_chip(spi, gpio, chip, stream, verbose=verbose,
                              attempt=attempt, attempts=attempts,
-                             active_low=active_low)
+                             active_low=active_low, spicmd=spicmd)
         except TimeoutError as exc:
             last = exc
             print(f'  chip {chip}: attempt {attempt}/{attempts} FAILED — '
@@ -291,6 +313,11 @@ def main():
                          f'clocking the first byte (default {POST_RESET_S}). '
                          f'Stands in for the SPI_RDY deassert/assert '
                          f'handshake the pull-downs make unreadable.')
+    ap.add_argument('--spi-cmd', default=hex(SPICMD_SINGLE_BIT),
+                    help=f'SPICMD byte sent after SS asserts and before the '
+                         f'stream (default {hex(SPICMD_SINGLE_BIT)} = keep '
+                         f'single-bit mode, HRM Table 36-18). "none" sends no '
+                         f'command byte — the pre-2026-08-21 behaviour.')
     ap.add_argument('--dry-run', action='store_true')
     args = ap.parse_args()
 
@@ -354,11 +381,20 @@ def main():
         print(f'!RST_D pulsed (GPIO{RST_GPIO}), '
               f'{args.post_reset_delay:.3f}s settle')
 
+    spicmd = (None if str(args.spi_cmd).lower() in ('none', 'off')
+              else int(str(args.spi_cmd), 0))
+    if spicmd is None:
+        print('WARNING: no SPICMD byte — the boot kernel will consume the '
+              'first stream byte as the command (HRM Table 36-18)',
+              file=sys.stderr)
+
     for chip, path, s, raw_len in streams:
         boot_chip_retrying(spi, gpio, chip, s, attempts=args.attempts,
-                           active_low=not args.rdy_active_high)
+                           active_low=not args.rdy_active_high,
+                           spicmd=spicmd)
     print(f'booted {len(streams)} chip(s) at {args.speed} Hz, SPI mode '
-          f'{args.spi_mode}')
+          f'{args.spi_mode}'
+          + ('' if spicmd is None else f', SPICMD {spicmd:#04x}'))
 
 
 if __name__ == '__main__':
