@@ -1351,9 +1351,9 @@ about SHARC behaviour as unproven.
    PDF). Damaged-parts verdict WITHDRAWN. Two follow-ups fall out of it,
    now folded into the queue: (a) H1S1's legacy ADAU meter poll bursts on
    the shared !SPI1 net can corrupt boot DATA — near-term firmware fix
-   (see item just below P2.2); (b) rev-D boot-bus owner. **PW bench when
-   convenient: confirm LD3 ~1 Hz (chip 1) / LD2 ~2 Hz (chip 2) on the
-   blink images — the free CCLK sanity — and that the mods stay BLUE.**
+   (see item just below P2.2); (b) rev-D boot-bus owner. **PW confirmed 2026-08-21: both DSP blink LEDs visible at the
+   expected rates — milestone closed visually (schematic map: LD3=DSPA/
+   chip1 1 Hz, LD2=DSPB/chip2 2 Hz; LD1 is the CPLD LED, not a DSP).**
 
 1. **P2.2 — dma_cfg_init wedge: ROOT CAUSE FOUND 2026-08-20 (desk
    review), fix in the tree, NOT yet flashed.**
