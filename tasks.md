@@ -8,6 +8,19 @@ in your mod doc) and the card is back in the rev C unit, which rebooted
 11:45 local (matrix-app active, H1S1/H1S3/H1S4 verified). CPLD is already on
 the ÷2 bitstream a1f6672af6c3. The unit is yours.
 
+**PW BENCH RESULT 2026-08-21 (feed into this task):** scope at the R33/R65
+pad shows CLKIN LEVEL and FREQ both good now (0.7-0.82 V, 24.576 MHz) — the
+clock suspect is CLEARED electrically, mod restated BLUE on the mods PDF. BUT
+the DSP LEDs (LD2/LD3) show NO activity after boot. So: the clock fix alone
+did not bring the parts up. Your GPIO8 rdyprobe loop is now the discriminator
+— run it FIRST. If GPIO8 also stays flat with a verified-good clock, the
+live suspects narrow to: (1) damaged SHARCs (both overdriven ~80 mA into the
+0.9 V clamp since March — check the datasheet abs-max exposure, and whether
+a fresh card / fresh parts is the only proof), (2) SYS_HWRST behaviour at
+p104 (never met the 11xtCKIN-after-supplies-stable spec before), (3) a
+boot-stream/entry issue that the earlier "stream consumed" evidence never
+actually ruled in. Rank these by cost for PW; do not iterate blind.
+
 TASK — SHARC testing ②: boot retest on the corrected clock.
 1. Baseline first, no bench eyes: netprobe PCM_CLK/PCM_FS toggling (CPLD
    alive), RDY1/RDY2 resting state, +0.9 V sanity if readable. Note that
