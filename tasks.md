@@ -50,6 +50,16 @@ datasheet is NOT in Dropbox or the repo (analog.com blocks fetch) — PW
 asked to drop it into `_mx/_temp/adsp-2156x-docs/`; when it appears,
 confirm the fCLKIN min/max line and close the [verify] tags.
 
+**HUB ADDENDUM 2026-08-21 09:20Z — session restarted (permission mode
+change only).** The previous session was killed by the hub mid-task to
+relaunch under bypassPermissions; nothing of its work is lost: the working
+tree holds the uncommitted ÷2 RTL/SDC/tb edits and the new bitstream
+`dsp4_logic.a1f6672af6c3.*` (old fd6a5ec69198 files deleted), the board
+was reported flashed with the ÷2 image and baseline netprobes taken, and a
+mod document (CLKIN level-shift sizing against the datasheet) was being
+written. Resume from `git status`: review those edits as your own, finish
+the mod document, commit, and continue the 08:45Z addendum plan.
+
 **HUB ADDENDUM 2026-08-21 08:45Z — datasheet now in hand (PW).** Files:
 `~/db/_mx/_temp/adsp-2156x-docs/adsp-21560-21561-21564-21568.pdf` (Rev. A,
 Feb 2026) + the 21564-specific HRM, EE-461 and the anomaly list, same
