@@ -14,6 +14,26 @@ are reachable natively:
   test 3 SYS_HWRST = J6 pin 36 (RST_D/GPIO16), 0.1"; expect a clean low pulse
     >= 11 x tCKIN (~450 ns at 24.576 MHz) at each boot.
 
+**PW REFINEMENT (do this FIRST, priority over the boot loop):** PW wants
+INDEPENDENT steady repeating signals on each of the three pins to scope
+directly — not boot-shaped bursts. Deploy a small script on the Pi
+(app@192.168.1.219, /home/app/dspboot) that drives, as plain GPIO outputs,
+a clean square wave PW can catch and level-check at the DSP-side pad:
+  - SCK  = GPIO11  (scope at J6 pin 23 or R52/R19 DSP pad)
+  - MOSI = GPIO10  (scope at J6 pin 19 or R51/R18 DSP pad)
+  - SYS_HWRST = GPIO16 / RST_D (scope at J6 pin 36; note this RESETS both
+    DSPs each cycle — fine)
+Pick a scope-friendly rate (~1 kHz square, 50% duty) and drive all three
+continuously; give PW a one-liner to start and to stop (and to restore the
+pins after). CRITICAL: GPIO10/11 are normally spidev's — release/stop any
+spidev claim first (the netprobe path already toggles these as GPIO), and
+drive them push-pull so the scope shows whether the Pi can actually swing
+the net or something clamps it (netprobe saw SCK/MOSI 'held high by
+something stronger than the Pi pull' — this square wave at the DSP pad is
+the direct test of that: if the Pi drives 0/1 at J6 but the DSP-side pad
+stays stuck, there is a break/contention between them). Log the Pi-side
+readback while driving. THEN the boot loop below for the realistic view.
+
 TASK A — scope-driver so PW can probe live. Provide a repeating desk-driven
 boot on demand: a small loop that boots rdyprobe1.ldr on chip 1 every ~3 s
 (and a chip-2 variant), so the SPI2 CLK/MOSI and RST_D edges recur on the
