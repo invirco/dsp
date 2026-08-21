@@ -1,4 +1,6 @@
-## HUB DISPATCH 2026-08-21 07:23Z — SHARC testing ① — CPLD dsp_clk ÷2 (CLKIN out of range) + closed-loop retest   [status: 🟡 dispatched]   [model: opus]
+## HUB DISPATCH 2026-08-21 07:23Z — SHARC testing ① — CPLD dsp_clk ÷2 (CLKIN out of range) + closed-loop retest   [status: 🔴 blocked]   [model: opus]
+
+**Outcome 2026-08-21 09:55Z — 🔴 BLOCKED ON PW HANDS. Desk half done: ÷2 built, flashed and verified on the card; the level-shift bodge is specified and waiting to be fitted. No boot retest attempted — by the 08:45Z addendum it would not have produced a verdict.** See the outcome section at the end of this block.
 
 model: opus
 
@@ -92,6 +94,88 @@ attribution.
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
 no AI attribution in commits or any work product.
+
+### Outcome 2026-08-21 — what was done
+
+**TASK A step 1 — done and committed (a4ee3d1).** `dsp_clk` is now a
+dedicated toggle flop off sysclk: 24.576 MHz, exact 50 % duty (datasheet
+asks 45-55 %), glitch-free by construction, `preserve`d so the
+synthesiser cannot merge it into the heartbeat counter's carry chain and
+put the DSPs' only clock on an LE mid-chain. SDC gains a
+`create_generated_clock` (with a comment recording why Quartus warning
+332088 is benign here — nothing inside the CPLD is clocked by dsp_clk).
+`tb_logic_top` now checks period = 2 sysclk and high = 1 sysclk instead
+of pass-through equality. Build: fitter clean, timing met, **157/1270 LE
+(+1 for the flop)**, fmax 70.21 MHz, sim gate PASS, bitstream
+`dsp4_logic.a1f6672af6c3` (source hash recomputed and matched before
+committing).
+
+**TASK A step 2 — done, verified on the card.** Programmed over the CM4
+JTAG bit-bang path: IDCODE `0x020a30dd` before and after, **40779 SVF
+commands, 0 errors, 58 s**. `dsp4_netprobe.py` after the flash: PCM_CLK
+(GPIO18) and PCM_FS (GPIO19) still TOGGLING, every other net reads
+exactly as it did on 08-20 — the rest of the CPLD is unaffected.
+matrix-app restarted; **all three MCUs verify** (H1S1 "// H1S1 DSP",
+H1S3 SW Right, H1S4 SW Left).
+
+**TASK A steps 3-5 — deliberately NOT run.** Per the 08:45Z addendum a
+retest cannot produce a verdict while the second fault stands, and each
+boot attempt is more powered time on an overdriven pin. The scope
+checklist replaces them.
+
+**The second fault, sized and written up (the 08:45Z addendum's (b)).**
+`SYS_CLKIN0` is the one signal pin in the **VDD_INT** domain: Table 7
+(power domains), Table 13 (designer quick reference), Table 19 (abs max
+= −0.3 V to VDD_INT), operating conditions (VIHCLKIN 0.68 V…VDD_INT,
+VILCLKIN ≤ +0.12 V, VDD_INT 0.855/0.900/0.945 V), and the crystal
+section's flat statement that the external clock "must not exceed the
+internal (VDD_INT) voltage level". Rev C drives it at 3.3 V through 22 R
+— R65 → DSPA U6 p5, R33 → DSPB U5 p5, both confirmed off the schematic
+at 400 DPI, along with DSP_CLK on CPLD pin 140 in a **+3V3** bank
+(VCCIO2_1/2_2 both on +3V3, so the swing really is 3.3 V). Through 22 R
+the clamp demand is ~80 mA per part against a 6 mA per-pin absolute
+maximum, injected into the +0.9 V core rail, continuously since March.
+
+**Mod written: `TransferOnly/PCB mods/dsp4-revC-clkin-bodge.md`** (RED,
+awaiting PW). Per DSP: R65/R33 22 R → **1k2**, plus a new **390 R** to
+GND at the DSP-side pad. Ratio 0.245 → ~0.77 V high against a 0.68-0.855 V
+window; ~2 mA per DSP (4 mA total on CPLD pin 140) instead of the ~160 mA
+the two clamps are asking for now; Thevenin 294 R into ~7 pF → ~4.6 ns
+edges on a 40.7 ns period, so tCKINH/L stay far above the 16.67 ns
+minimum. Includes a trim ladder (360/390/430 R), the physical fitting
+notes, and the **bench scope checklist** — ordered, with expected values:
++0.9 V rail first (a high reading means the clamps are pumping it), then
+the clamped ~1.2-1.6 V clock at R65/R33 as direct confirmation of the
+fault, then post-mod acceptance (0.70-0.82 V high, ≤0.10 V low,
+24.576 MHz), then the boot retest with SPI2 CLK/MOSI at R52/R51 and
+HWRST at p104. Failure branch spelled out: clean clock + good rail +
+visible SPI traffic and still no RDY ⇒ the parts themselves, and the
+JTAG-bodge / replace decision is PW's (there is no DSP JTAG on the card).
+
+**TASK B — done.** New binding decision **D10** in
+`dsp4-architecture-decisions.md`: the CPLD is the single DSP clock
+source, 24.576 MHz is the contract, fCKIN must stay inside 20-30 MHz,
+SYS_CLKIN0 must be level-translated to 0.68-0.855 V on any DSP4-derived
+board, and the per-DSP-crystal alternative is explicitly rejected (it
+would give up the programmable single source). `hardware-map.md` §3
+records the R65/R33 topology and both faults. Rev-D list gains **mods
+8-13**: the clock chain (mod 8, RED), RDY pulls → pull-ups, `!RST_D`
+dual master (Pi GPIO16 + U7 p47 = PA13/SWDIO), a DSP JTAG header,
+RESOUT/SYS_FAULT liveness (FAULT is open-drain, external pull-up
+required), and test points. **Mod 7 (JTG_TRST) is downgraded to no
+action**: Table 13 gives JTG_TRST an internal **pull-down** (TDI/TMS/TCK
+have internal pull-ups), so floating TRST holds the TAP safely in reset.
+SYS_BMODE2's internal pull-down is recorded with it. The datasheet gap is
+closed — all `[verify]` tags on fCKIN and the CLKIN levels are now
+answered from `adsp-21560-21561-21564-21568.pdf` Rev. A.
+
+**Blocked on:** PW fitting the four resistors and running the scope
+checklist. Everything after that is desk work over SSH.
+
+**Note for PW:** the card is still being overdriven whenever it is
+powered. The bodge doc says it plainly — keep powered time short until
+the divider is fitted. matrix-app is running now because the dispatch
+constraint requires the unit left verifying, not frozen.
 
 ## HUB DISPATCH 2026-08-20 18:43Z — Boot handoff investigation — apps never execute   [status: 🔴 blocked]
 
@@ -674,17 +758,31 @@ Trunk is `main` (`master` deleted + blocked). Mandates: `CLAUDE.md`.
 Contract pin: **defs-v2026.08.20** (mx26 `345470a`; see `defs.lock` —
 sync-from-mx26.sh now refuses an untagged mx26 HEAD).
 
-## NOW — priority order (set 2026-08-20)
+## NOW — priority order (reordered 2026-08-21: SHARC testing is TOP)
+
+**PW decision 2026-08-21: SHARC testing is the top priority for this
+machine and everything below it waits.** Item 0 is the whole queue until
+a SHARC is proven to execute; items 1-8 are downstream of it and most of
+them cannot even be measured until then.
 
 **Context:** the rev-C card is LIVE on the fresh digital board — CPLD
-`fd6a5ec69198` flashed + regression-passed, MH1/H1S3/H1S4 verify on every
-boot, H1S1 flashed 2026-08-19 (CS7/8 build) and reflashed 2026-08-20
-with the CS1-6-inputs build on the running app's matrix generation, and
-both SHARCs slave-boot from the CM4 — still wedged in `dma_cfg_init` on
-the bench (P2.2 bisect build left running on chip1 overnight
-08-19→08-20), though the cause is now understood and fixed in the tree
-(item 1). This machine has direct SSH to the unit
-(`app@192.168.1.219`) since 2026-08-20 — the hub-relay era is over.
+`a1f6672af6c3` flashed 2026-08-21 (the ÷2 clock fix; supersedes
+`fd6a5ec69198`), MH1/H1S3/H1S4 verify on every boot, H1S1 flashed
+2026-08-19 (CS7/8 build) and reflashed 2026-08-20 with the CS1-6-inputs
+build on the running app's matrix generation. This machine has direct SSH
+to the unit (`app@192.168.1.219`) since 2026-08-20 — the hub-relay era is
+over. **Correction to the previous context, which said "both SHARCs
+slave-boot from the CM4": that was never evidenced** (2026-08-20
+netprobe work) and the 2026-08-21 datasheet reading explains why — the
+clock chain was wrong twice over (D10). Treat every pre-08-21 statement
+about SHARC behaviour as unproven.
+
+0. **SHARC testing ① — blocked on PW hands (CLKIN level-shift bodge).**
+   The ÷2 is fitted and flashed; the 3.3 V-into-a-0.9 V-pin half needs
+   two resistor swaps and two added resistors per card. Values, fitting
+   and the bench scope checklist are in Dropbox
+   `TransferOnly/PCB mods/dsp4-revC-clkin-bodge.md`; the rationale is
+   D10. Once fitted, the boot retest runs from the desk over SSH.
 
 1. **P2.2 — dma_cfg_init wedge: ROOT CAUSE FOUND 2026-08-20 (desk
    review), fix in the tree, NOT yet flashed.**

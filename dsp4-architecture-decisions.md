@@ -1,8 +1,8 @@
 # DSP4 architecture decisions
 
 Status: accepted 2026-07-29 (D1-D5); D6 added 2026-08-02; D7 2026-08-04;
-D8 2026-08-05. **D9 (2026-08-06) is a DRAFT awaiting sign-off — not
-binding; see its banner.**
+D8 2026-08-05; D10 2026-08-21. **D9 (2026-08-06) is a DRAFT awaiting
+sign-off — not binding; see its banner.**
 Scope: DSP4 card (dual ADSP-21564 + MAX V LOGIC CPLD) as used by D24 and
 D32; D6 extends scope to platform selection across the product range.
 These decisions are binding for work in this repo. Change them only by
@@ -316,3 +316,54 @@ CS1-6→inputs flash makes CS5/6 safe to claim). Three housekeeping selects
 vs two spare lines: if only CS_M moves, CS5 suffices; all three need one
 more route or a select expander. CM4 CS is gpiod-driven — the constraint
 is copper reach, not SPI CE hardware. Feeds the supervisor-shrink scope.
+
+## D10 — The CPLD is the DSP clock source; 24.576 MHz into a 0.9 V pin
+
+Accepted 2026-08-21, from the ADSP-2156x datasheet (Rev. A, Feb 2026) and
+the rev-C bring-up. This is a clock-discipline contract, not a preference:
+rev C violated both halves of it and neither SHARC has ever been shown to
+run.
+
+**The contract.**
+
+- The LOGIC CPLD is the **single clock source** for both SHARCs'
+  `SYS_CLKIN0`, derived from the one 49.152 MHz XO (Y1) that also makes
+  every audio clock. One oscillator on the card, one clock domain,
+  everything audio-rational. Programmability is the point: the divider
+  lives in RTL, so the DSP clock can be changed without a board spin.
+- `dsp_clk` = **24.576 MHz** = sysclk / 2 = 512 × 48 kHz, 50 % duty from a
+  dedicated toggle flop. The part specifies **fCKIN = 20–30 MHz** (Table
+  23, crystal and external clock alike) and tCKINH/L ≥ 16.67 ns. The raw
+  XO is out of range: at the CGU reset default (MSEL = 60, DF = 0) it asks
+  the PLL for 2.95 GHz, which cannot lock, so the boot ROM never runs.
+  Any future change to the divider must keep fCKIN inside 20–30 MHz AND
+  keep MSEL × fCKIN inside the CCLK range (400 MHz – 1 GHz).
+- `SYS_CLKIN0` is a **VDD_INT-domain pin** — the only signal pin on the
+  part that is. Table 7 puts it in the VDD_INT domain, Table 19 makes its
+  absolute maximum `−0.3 V to VDD_INT`, and the operating conditions give
+  VIHCLKIN = 0.68 V … VDD_INT with VILCLKIN ≤ +0.12 V. The datasheet is
+  explicit: the external clock "must not exceed the internal (VDD_INT)
+  voltage level". **A 3.3 V CMOS output may not drive this pin.** Any
+  board carrying a DSP4-derived clock chain must level-translate between
+  the CPLD and each SHARC and must state the target level (0.68–0.855 V)
+  in its schematic notes.
+- CLKIN jitter is not in the audio path — the SPORTs are clocked
+  externally by BCKI/FSI from the same CPLD — so translation may be
+  passive. Correct levels beat elegant clocking here.
+
+**Rev-C state and the bodge.** Rev C drives the pin at 3.3 V through 22 R
+(R65 → DSPA U6 pin 5, R33 → DSPB U5 pin 5), so both parts have had their
+clock input clamped ~2.4 V above absolute maximum, continuously, since
+March, with the clamp current injected into the +0.9 V core rail. The ÷2
+half is fixed in the CPLD (`dsp4_logic.a1f6672af6c3`, programmed
+2026-08-21); the level half needs hands. Values, fitting and the bench
+checklist: `TransferOnly/PCB mods/dsp4-revC-clkin-bodge.md` (Dropbox);
+the permanent fix is mod 8 in `dsp4-revD-modlist.md`.
+
+**Why this is recorded as a decision.** The alternative — a crystal per
+DSP across SYS_CLKIN0/SYS_XTAL0, which is what ADI's Figure 5 shows —
+would be correct by construction and is explicitly NOT chosen: it costs
+two crystals and four capacitors, and it gives up the single programmable
+clock source that D2's single-sourced slot map and the CPLD's clkgen are
+built around. The cost of keeping the CPLD as the source is the level
+translation. That trade is now deliberate.

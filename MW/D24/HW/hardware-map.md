@@ -161,7 +161,16 @@ analog source (NET only); the LOGIC slot map must route DSPB O1 → DA3.
   directly over its own SPI CS.
 - **Resets:** S MCU drives IRST_D (both DSPs), IRST_O (option cards),
   IRST_C (converters).
-- **DSP_CLK:** distributed to both DSPs' SYS_CLKIN0 from LOGIC sheet.
+- **DSP_CLK:** distributed to both DSPs' SYS_CLKIN0 (pin 5) from the
+  LOGIC sheet — CPLD U3 pin 140 → **R65 22R → DSPA U6 p5** and
+  **R33 22R → DSPB U5 p5**; SYS_XTAL0 (p6) unconnected on both, correct
+  for an oscillator source. **Two rev-C faults on this net (see D10):**
+  the CPLD passed the raw 49.152 MHz XO to a pin specified at
+  fCKIN = 20-30 MHz (fixed in RTL 2026-08-21, `dsp_clk` = sysclk/2 =
+  24.576 MHz), and `SYS_CLKIN0` is a **VDD_INT-domain** pin (abs max
+  = VDD_INT ≈ 0.9 V, VIHCLKIN 0.68 V…VDD_INT, VILCLKIN ≤ 0.12 V) being
+  driven at 3.3 V — needs the level-shift bodge before any boot retest
+  means anything.
 
 ## 3a. S MCU (U7) pin inventory — rev D / D8 supervisor scoping
 

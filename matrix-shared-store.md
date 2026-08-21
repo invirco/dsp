@@ -113,7 +113,8 @@ Per-domain intent for a product folder (from `Products/D24/readme.md`):
 ## Open items
 
 - PCB mod lists still live in `TransferOnly/PCB mods/` (`dsp4-revD-modlist.md`,
-  `d24 digital mods.*`) under the 2026-08-05 cross-repo convention. `hw/` in
+  `dsp4-revC-clkin-bodge.md`, `d24 digital mods.*`) under the 2026-08-05
+  cross-repo convention. `hw/` in
   the shared store is now the better home; migrating them is mx26's/PW's
   keep-now/migrate-later call, so nothing has been moved. Referenced from
   `MW/D24/HW/hardware-map.md` and `tasks.md`.
