@@ -393,3 +393,34 @@ two crystals and four capacitors, and it gives up the single programmable
 clock source that D2's single-sourced slot map and the CPLD's clkgen are
 built around. The cost of keeping the CPLD as the source is the level
 translation. That trade is now deliberate.
+
+## D14 — SPI target boot requires a SPICMD byte before the stream (2026-08-21)
+
+**Decision/fact, verified on hardware.** A 2156x booting in SPI *target*
+mode (BMODE 0b010) reads **the first byte the host sends** as SPICMD, not as
+boot data. HRM ch.36, Table 36-18, host starting in single-bit mode:
+`0x03` = keep single-bit, `0x07` = switch to dual, `0x0B` = switch to quad.
+The command byte is sent with SS already asserted and before the first
+stream byte (host flow, Figure 36-6).
+
+Omit it and the kernel consumes the first byte of the `.ldr` as SPICMD;
+every block header after that is misaligned by one byte, HDRSIGN is never
+`0xAD`, no block passes its XOR check, and the boot silently never
+completes — while the host sees a stream clocked out from end to end and
+reports success. **This was the root cause of the entire boot-handoff
+failure from March to 2026-08-21**, and it survived a byte-by-byte audit of
+the stream format on 2026-08-20 because the stream was never the problem:
+the framing was correct, the host was simply one byte early.
+
+`dsp4_boot.py --spi-cmd` implements it, default `0x03`; `--spi-cmd none`
+restores the old behaviour and reproduces the failure on demand. Any other
+host that ever boots these parts — a bootloader, a production jig, an MCU
+relay — must send it too.
+
+**Corollary for bring-up practice:** "the stream was accepted end to end" is
+not evidence that a target received it. Insist on a positive liveness
+signal from the part itself. On the 2156x, **SYS_CLKOUT (pin 10) is a free
+one**: with BMODE non-zero it outputs SYS_CLKIN directly as soon as
+hardware reset deasserts, with no code and no JTAG, so it reports power,
+clock and reset state at a single probe point.
+
