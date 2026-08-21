@@ -1,3 +1,43 @@
+## HUB DISPATCH 2026-08-21 10:46Z — SHARC testing ② — boot retest on corrected CLKIN (÷2 + level-shift fitted)   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+PW fitted the CLKIN level-shift bodge (variant: 1k replacing R33/R65 +
+330R from the DSP-side pad to GND, per DSP — same 0.245 ratio as the 1k2/390R
+in your mod doc) and the card is back in the rev C unit, which rebooted
+11:45 local (matrix-app active, H1S1/H1S3/H1S4 verified). CPLD is already on
+the ÷2 bitstream a1f6672af6c3. The unit is yours.
+
+TASK — SHARC testing ②: boot retest on the corrected clock.
+1. Baseline first, no bench eyes: netprobe PCM_CLK/PCM_FS toggling (CPLD
+   alive), RDY1/RDY2 resting state, +0.9 V sanity if readable. Note that
+   PW has NOT scoped the clock level yet — if anything below behaves
+   oddly, the first hands request is "scope R33/R65 pad: 0.70–0.82 V
+   high, ≤0.10 V low, 24.576 MHz; if >0.82 V swap shunt to 300R".
+2. Closed loop exactly as the 08-20 dispatch: rdyprobe1.ldr on chip 1,
+   sample GPIO8 — success = ~1 Hz lo/hi. Then chip 2. Also repeat the
+   "!RST_D pulse, no SPI traffic" RDY observation and compare with the
+   dead-part baseline you recorded.
+3. If the loop passes: blink1/blink2 (tell PW to eyeball LD3/LD2 at 1 Hz /
+   2 Hz), then the production chip1/chip2 images and resume P2.2
+   (dma_cfg_init) with working instruments. Record the verdict:
+   "rev C CLKIN (freq + level) — root cause of the boot-handoff failure;
+   fixed ÷2 in CPLD + level-shift bodge; rev D crystal per DSP".
+4. If still flat: the fault is either the clock level at the pad (PW
+   scope, see 1), damaged parts (both overdriven since March — a second
+   card/fresh SHARCs is then the path), or something downstream; write
+   the PW bench checklist ordered by cost and stop. Do not iterate blind.
+5. Bookkeeping: mark the 07:23Z block 🟢/🔴 with the verdict; the mod
+   goes BLUE on D24 DSP mods.pdf only after PW verifies on the scope —
+   leave that to the hub, just record "fitted 2026-08-21 (1k+330R),
+   scope verification pending" in the decisions doc.
+Constraints: always restart matrix-app and confirm the three MCUs verify
+before ending; Dropbox via ~/db; single trunk; no AI attribution.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-08-21 07:23Z — SHARC testing ① — CPLD dsp_clk ÷2 (CLKIN out of range) + closed-loop retest   [status: 🔴 blocked]   [model: opus]
 
 **Outcome 2026-08-21 09:55Z — 🔴 BLOCKED ON PW HANDS. Desk half done: ÷2 built, flashed and verified on the card; the level-shift bodge is specified and waiting to be fitted. No boot retest attempted — by the 08:45Z addendum it would not have produced a verdict.** See the outcome section at the end of this block.
