@@ -195,18 +195,21 @@ analog source (NET only); the LOGIC slot map must route DSPB O1 → DA3.
   0.70–0.82 V / 24.576 MHz. The boot retest on that verified clock is
   still flat on both chips, so the clock was not the sole cause — see
   `TransferOnly/PCB mods/dsp4-revC-liveness-checklist.md`.
-- **DSP decoupling: none in the schematic.** The DSPA (p5) and DSPB (p4)
-  sheets each instantiate a `CAPS` sub-sheet with VDD_INT/VDD_EXT/VDD_REF
-  ports, and both of those sheets (PDF pages 9/10) are blank — no
-  components, and no C-designators anywhere on either DSP sheet, while
-  every other device on the card is decoupled (CPLD C8-C21, U2 C3/C4/C6/C7,
-  Y1 C2/C5, M MCU C202-C205). Unverified against the layout/BOM; if it is
-  real it is a rev-C fault and a candidate root cause (rev-D mod 14).
+- **DSP decoupling: fitted on the board, missing from the drawing.** The
+  DSPA (p5) and DSPB (p4) sheets each instantiate a `CAPS` sub-sheet with
+  VDD_INT/VDD_EXT/VDD_REF ports, and both of those sheets (PDF pages 9/10)
+  are blank — no components, and no C-designators anywhere on either DSP
+  sheet, while every other device on the card is drawn with its decoupling
+  (CPLD C8-C21, U2 C3/C4/C6/C7, Y1 C2/C5, M MCU C202-C205). **PW confirmed
+  2026-08-21 that the caps ARE fitted on the DSP chips** — so this is a
+  schematic defect, not a hardware one, and not a suspect in the boot
+  failure. The CAPS sub-sheets need drawing (rev-D mod 14, recast as a
+  documentation item).
 - **DSP supplies:** VDD_INT ← **+0.9 V** and VDD_EXT ← **+3V3**, both from
   the motherboard over the J1/J2 DIL100 stack (J1 P1/P3/P5 = +0.9 V,
   P7/P9/P11 = +3V3); VDD_REF (pins 7/79, the PLL and OTP supply) ←
   **+1V8**, generated on-card by U2 (AMS1117-1.8) off +3V3, which also
-  feeds the CPLD core. None of the three has ever been measured.
+  feeds the CPLD core. **All three measured in spec by PW 2026-08-21.**
 - **DSP JTAG: not connected at all.** `JTG_TDI/TMS/TCK/TDO/TRST`
   (pins 99-103) are terminals inside the DSPA/DSPB sheets and are not
   ports on those hierarchy blocks — they reach neither each other, nor

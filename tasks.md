@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-08-21 11:26Z — SHARC ③ — scope-driver + boot-bus toggle capture (rails good; CPLD cannot mirror SPI/RST)   [status: 🟢 done — tools built, deployed and used to settle it: the boot bus is PROVEN live (16 334 SCK transitions in one burst inside the CS window, both chips) and !RST_D is PROVEN good (PW saw the pin go low under the DC hold; the earlier stuck-high was measured with GPIO16 at its idle high). The hub's "H1S1 PA13 overpowers GPIO16" mechanism is REFUTED — PA13 is unconfigured in H1S1, a reset-default pull-up, not a driver. Clock, rails, reset and data are now ALL verified good at the parts and neither responds: TASK B points at the PARTS, and a fresh card / fresh SHARCs is next]   [model: opus]
+## HUB DISPATCH 2026-08-21 11:26Z — SHARC ③ — scope-driver + boot-bus toggle capture (rails good; CPLD cannot mirror SPI/RST)   [status: 🟢 done — tools built, deployed and used to settle it: the boot bus is PROVEN live (16 334 SCK transitions in one burst inside the CS window, both chips) and !RST_D is PROVEN good (PW saw the pin go low under the DC hold; the earlier stuck-high was measured with GPIO16 at its idle high). The hub's "H1S1 PA13 overpowers GPIO16" mechanism is REFUTED — PA13 is unconfigured in H1S1, a reset-default pull-up, not a driver. Clock, rails, reset and data are now ALL verified good at the parts and neither responds: TASK B points at the PARTS, and with decoupling also confirmed fitted (schematic defect only) a fresh card / fresh SHARCs is the only remaining path]   [model: opus]
 model: opus
 
 Rails are GOOD at the bench (PW): +0.9V, +1V8 VDD_REF, +3V3 all in spec —
@@ -245,10 +245,15 @@ chain fitted before first power-up. Both parts were overdriven ~80 mA into
 a 6 mA-max clamp on SYS_CLKIN0 from March until 2026-08-21, which remains
 the only mechanism on the table that fits.
 
-Checklist step 0 (is there any decoupling on the DSP power pins) is still
-unanswered and still costs a minute with the board in hand — worth doing
-before ordering parts, because if it is absent it is also a rev-C fault
-that a fresh card would inherit.
+**Checklist step 0 is closed too, PASS:** PW confirms the decoupling caps
+ARE fitted to both DSP chips — they are simply absent from the printed
+schematic. The blank `CAPS` sub-sheets (PDF pages 9/10) are a documentation
+defect, not a hardware one, so it is not a rev-C fault and not a suspect.
+Rev-D mod 14 is downgraded from RED to a drawing item (draw the two CAPS
+sub-sheets). Reading lesson recorded in the checklist: a blank sub-sheet in
+this project does not mean an empty net.
+
+With that, **every suspect on the list is closed except the parts.**
 
 **One loose end found in the captures, not the cause:** with matrix-app
 stopped and the Pi idle, **MOSI carries a periodic burst of ~80 transitions
