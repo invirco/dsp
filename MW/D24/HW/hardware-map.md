@@ -212,10 +212,27 @@ analog source (NET only); the LOGIC slot map must route DSPB O1 → DA3.
        second master asserting the very select the Pi boots through.
        The 0xF520 register is legacy ADAU-era protocol that the SHARC
        firmware does not implement, so these writes accomplish nothing.
-    Fix: drop the `TestMicPres()` call inside `TimeSplice()` and the
-    CS1–CS8 `DspTx` block in `MainLoop()`, rebuild with `Debug/fw.sh`,
-    reflash. NOT DONE — reflashing the S MCU on the bench unit needs
-    PW's go-ahead.
+  - **DONE 2026-08-21 — the second master is GONE.** Both call sites were
+    removed from `Core/Inc/matrix.cs` (`TestMicPres()` dropped from
+    `TimeSplice()`'s periodic path; it is still called once at init, so
+    mic gain is still applied — and the CS1–CS8 `DspTx` block deleted
+    from `MainLoop()`). Rebuilt with `Debug/fw.sh` (text 34036 -> 33476),
+    verified in the disassembly (ZERO callers of `DspTx`; exactly one
+    caller of `TestMicPres`, the init one; `TimeSplice` contains no `bl`
+    at all), packed with `hex2shex.py` (2171 -> 2136 records) and flashed
+    through MH1 with `app cli loadfw H1S1` — the same path H1S3/H1S4 use.
+    Previous pack image kept as
+    `/home/app/fwbuild/pack-backup-H1S1-2026-08-21-preSPIfix.shex`.
+    All three MCUs verify after the reflash.
+  - **Measured result: the bus is silent.** `gpiomon` on SCK/MOSI/MISO,
+    15 s: **0 events**, against 8530 events / 63 bursts in 11.67 s
+    before. And the boot-time budget has vanished with it — chip 1's
+    full 258 KB firmware, the exact image that scored 0/6 that morning,
+    now boots **6/6 at 10 MHz (350 ms) with no gap-syncing at all, and
+    2/2 at 1 MHz on a 3.45 SECOND stream**. `--sync-poll` and the clock
+    ceiling are no longer needed on this unit; they stay in the tool
+    because the underlying two-master wiring is still a rev-D item and
+    any un-reflashed H1S1 brings the problem straight back.
   - Operational trap: claiming GPIO9/10/11 with gpiod/`gpiomon` takes
     them out of `a0`, and **spidev does not put them back** (the pinmux
     is applied at probe time, not per open). A boot with those pins left

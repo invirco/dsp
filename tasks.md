@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-08-21 14:37Z — P2.2 cont'd — characterise the >8KB boot-stream limit so the full 208KB image runs, then dma_cfg_init   [status: 🔴 blocked — **there is no size limit; the ">8 KB block-size" finding was an artefact and is retired.** TWO independent faults found, both characterised. (1) elfloader's ZERO-FILL blocks: the boot kernel loses stream sync at the first fill block that has anything after it, so no D32 firmware image has ever been loadable. Fixed with `-NoFillBlock` + a build-time guard — **chip 2's full firmware now executes (5/6, DSP4_BISECT=5 park firing), the first time any full image has run a single instruction on this card.** (2) U7/H1S1's legacy ADAU poll on the shared boot bus corrupts any stream longer than ~220 ms; boot success tracks stream ELAPSED TIME, not size (same 3 KB image: 5/6 at 1 MHz, 0/6 at 100 kHz). Mitigated host-side with `--sync-poll` + 10/11 MHz. chip 1 (258 KB, ~320 ms) still cannot fit and is BLOCKED on stopping that poll — an H1S1 reflash, needs PW's go-ahead. item 2 answered on clean builds: **the wedge is in `_sru_init`, not `dma_cfg_init`** — parks after the C stack prologue (6/6) and after `_diag_init` (5/6) fire, the park after `_sru_init` does not (0/6), and splitting that function puts the hang in its DAI0 half, the very first SRU register writes. `sru_init()` has no loop, so it is a fault, not a spin; CCLK measuring ~190 MHz against code that assumes 400 MHz is the standing suspect. `dma_cfg_init` and the `sport_dma_base()` fix are still untested — they sit three calls downstream]   [model: opus]
+## HUB DISPATCH 2026-08-21 14:37Z — P2.2 cont'd — characterise the >8KB boot-stream limit so the full 208KB image runs, then dma_cfg_init   [status: 🟢 done — **BOTH SHARCs now load and execute their full firmware, deterministically.** The ">8 KB block-size limit" never existed and is retired. Two real faults, both fixed: (1) elfloader's ZERO-FILL blocks desynchronise the boot kernel — fixed with `-NoFillBlock` plus a build-time guard; (2) U7/H1S1 was a second master on the boot bus — the two offending call sites were removed from its firmware and it was reflashed through MH1, after which the bus measures ZERO events in 15 s and chip 1's 258 KB image boots 6/6 unsynced at 10 MHz and 2/2 at 1 MHz on a 3.45 s stream. The stream-length budget is gone. **P2.2 itself is NOT closed**: with the image finally running, the firmware hangs in `_sru_init`'s DAI0 half — the very first SRU register writes — so `dma_cfg_init` and the `sport_dma_base()` fix are still untested. That is a new, separate item]   [model: opus]
 
 model: opus
 
@@ -88,9 +88,9 @@ cleanly, **12 MHz and above fail outright**. `dsp4_boot.py --sync-poll`
 (new) starts the stream just after a burst. Budget with it: ~220 ms
 ≈ 240 KB at 11 MHz — a 107 KB probe boots 6/6, 176 KB 5/6, 197 KB 0/6.
 
-**Why chip 1 is still blocked.** 258 KB, ~320 ms on the wire. It does not
-fit between two bursts at any clock this bus supports, so no host-side
-trick reaches it. **CORRECTED 2026-08-21: it is not an "ADAU
+**Chip 1 — FIXED the same day; see the addendum below.** 258 KB, ~320 ms
+on the wire. It did not fit between two bursts at any clock, so no
+host-side trick reached it. **CORRECTED 2026-08-21: it is not an "ADAU
 meter poll" and it is NOT absent from the current sources** — `main.c`
 line 24 `#include "matrix.cs"`, so that file is compiled. The two
 interferers are `TimeSplice()`'s periodic `TestMicPres()` (25 bytes on
@@ -148,8 +148,7 @@ boot verified"), GPIO9/10/11 back to `a0`, spidev bufsiz back to its
 4096 default. Chip 2 holds a production `chip2.ldr` from the last boot
 attempt; chip 1 holds nothing running.
 
-**NEXT, in order.** (1) Ask PW about reflashing H1S1 to kill the ADAU
-poll — it unblocks chip 1 and removes the time budget entirely.
+**NEXT, in order.** (1) H1S1 reflash — DONE, see the addendum.
 (2) Zero `sec_delay`/`sec_delay_ovf` in firmware startup (new NOW item).
 (3) Chase the `_sru_init` fault: read the fault status registers at the
 park, and check DAI0 is clocked/ungated before `sru_init` writes to it —
@@ -158,6 +157,49 @@ is not where this firmware thinks it is.
 (4) Production verification of chip 2 needs eyes on LD2, or a working
 `dsp4_diag.py` — it crashes on start (`TypeError` in the gpiod line
 request), unrelated to any of this.
+
+### Addendum 2026-08-21 20:2xZ — H1S1 reflashed; the boot bus has one master again
+
+PW authorised the change. Both interfering call sites removed from
+`~/build-h1s1/Core/Inc/matrix.cs`:
+
+* `TestMicPres()` dropped from `TimeSplice()`'s periodic path. It pushed
+  25 bytes at CS_M every ~1e6 MainLoop iterations. It is STILL called
+  once at init, so mic gain is still applied — only the pointless
+  re-application every million loops is gone.
+* the CS1–CS8 `DspTx(0xF520)` block deleted from `MainLoop()`. Those
+  asserted the SHARCs' own boot chip selects, for a legacy ADAU-era
+  register the SHARC firmware does not implement.
+
+Built with `Debug/fw.sh` (text 34036 -> 33476 B). **Verified in the
+disassembly, not from the source edit:** zero callers of `DspTx`,
+exactly one caller of `TestMicPres` (the init one), and `TimeSplice`
+contains no `bl` instruction at all. Packed with `hex2shex.py`
+(2171 -> 2136 records, 34693 -> 34133 B) and flashed through MH1 with
+`app cli loadfw H1S1` — the same path H1S3/H1S4 use, per PW. Previous
+pack image kept at
+`/home/app/fwbuild/pack-backup-H1S1-2026-08-21-preSPIfix.shex`.
+All three MCUs verify after the reflash (20:24).
+
+**Result, measured both ways:**
+
+| | before | after |
+|---|---|---|
+| SCK/MOSI/MISO activity, gpiomon | 8530 events, 63 bursts / 11.67 s | **0 events / 15 s** |
+| chip 1 full firmware, 258 KB @ 10 MHz, unsynced | 0/6 | **6/6** (350 ms) |
+| chip 1 @ 1 MHz — a 3.45 SECOND stream | hopeless | **2/2** |
+| chip 2 full firmware @ 10 MHz | needed --sync-poll | **3/3** |
+
+There is no longer a stream-length budget on this unit, at any clock.
+`--sync-poll` and the 11 MHz ceiling stay in `dsp4_boot.py` because the
+two-master WIRING is still a rev-D item — any board whose H1S1 has not
+been reflashed has the limit straight back.
+
+**Incidental observation, not touched:** `/home/app/firmware/H1S3.shex`
+carries the MCU-ID `H1S4` in its type-04 record (and fwbuild holds
+`left-slot3-H1S4content.shex` / `right-slot4-H1S3content.shex`), so the
+slot/content mapping looks deliberately crossed. All three MCUs verify,
+so this is either intended or long-standing. Flagged for PW, not changed.
 
 ## HUB DISPATCH 2026-08-21 13:09Z — P2.2 — close the dma_cfg_init wedge with working boot + LD blink instrument   [status: 🔴 blocked — the wedge is NOT in dma_cfg_init: the full firmware has never executed a single instruction on this card. Root cause found and half-fixed — the SPI target boot kernel cannot take a loader block larger than ~8 KB, so every production image built without `-MaxBlockSize` is a stream the host clocks out in full and the part never runs. `-MaxBlockSize 0x1000` added to build.sh's LDRFLAGS and proved on the bench (0/10 → 4/4 on the same DXE at 8 KB), but the 208 KB firmware still does not run, so a SECOND limit above ~8 KB remains uncharacterised. Bench released to PW mid-bisect for an app/panel reflash]   [model: opus]
 
@@ -1632,12 +1674,17 @@ LDF — otherwise chip 2 becomes a 1.9 MB, ~2.4 s stream that cannot
 possibly boot. **Until firmware clears them at startup, the delay lines
 come up holding whatever was in L2.** Owner: next SHARC dispatch.
 
-**NEW NOW ITEM — reflash H1S1 to stop the legacy ADAU poll (needs PW).**
-It is dead code (the Pi's `a0` clamp shorts its clock; nothing has ever
-answered) and appears already absent from `~/build-h1s1`. It is also the
-ONLY thing keeping chip 1's 258 KB image from booting, and it caps every
-boot on this card at a ~220 ms stream. Not done — reflashing the S MCU on
-PW's bench unit needs his go-ahead.
+**DONE 2026-08-21 — H1S1 reflashed, the boot bus has one master again.**
+Its two SPI1 call sites (periodic `TestMicPres()`, and the CS1–CS8
+`DspTx` LED writes) are removed and it was reflashed through MH1. The bus
+measures 0 events in 15 s and **chip 1's full 258 KB firmware now boots
+6/6 unsynced**. Full detail in the 14:37Z addendum above.
+
+**NEW NOW ITEM — the `_sru_init` fault is the top SHARC item now.** With
+both images loading reliably, the firmware hangs in `_sru_init`'s DAI0
+half (the first SRU register writes). No loop in that function, so it is
+a fault, not a spin. `dma_cfg_init` and the `sport_dma_base()` fix are
+still untested — they are downstream of it.
 
 **Context:** the rev-C card is LIVE on the fresh digital board — CPLD
 `a1f6672af6c3` flashed 2026-08-21 (the ÷2 clock fix; supersedes

@@ -345,9 +345,13 @@ build() {
 # (25 ms) and 0/6 at 100 kHz (246 ms). dsp4_boot.py --sync-poll starts
 # the stream just after a burst and buys most of a gap; 11 MHz is the
 # fastest clock this bus takes (12 MHz and up fail outright).
-# CONSEQUENCE: chip2 (176 KB, ~220 ms) boots. chip1 (258 KB, ~320 ms)
-# does NOT -- it cannot fit in a gap at any clock this bus supports. The
-# fix for chip1 is to stop the H1S1 poll, not to change the image.
+# RESOLVED 2026-08-21, same day: the two interfering call sites were
+# removed from H1S1's firmware and it was reflashed through MH1. The bus
+# now measures ZERO events in 15 s, and chip1's full 258 KB image boots
+# 6/6 at 10 MHz unsynced and 2/2 at 1 MHz on a 3.45 s stream. There is no
+# longer a stream-length budget on this unit. The --sync-poll and clock
+# advice above is kept because the two-master WIRING is still a rev-D
+# item: any board whose H1S1 has not been reflashed has the limit back.
 LDRFLAGS="-b SPIHOST -bcode 1 -f BINARY -width 8 -NoFillBlock"
 #
 # The entry address is NOT passed on the command line: the ELF header
