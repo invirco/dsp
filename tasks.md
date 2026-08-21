@@ -1,3 +1,45 @@
+## HUB DISPATCH 2026-08-21 14:37Z — P2.2 cont'd — characterise the >8KB boot-stream limit so the full 208KB image runs, then dma_cfg_init   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+rev C is FREE again (the app/panel work is deferred — blocked on the matrix
+drift, not the unit). Resume P2.2 from where the 09:xx session left it
+(commit 0ce2b7e, "P2.2 reframed"). Read that commit + the 13:09Z block first.
+
+STATE: the SPICMD fix boots ~1 KB images (blink/rdyprobe/bulkprobe) but the
+full 208 KB firmware has NEVER executed an instruction — a park on the first
+instruction of _start stayed silent. You bisected a boot-stream BLOCK-SIZE
+limit: 180 B boots 10/10, 8364 B fails 0/10, and -MaxBlockSize 0x1000 (now in
+build.sh LDRFLAGS) boots the 8 KB ladder 4/4. But a SECOND limit above ~8 KB
+is still uncharacterised — the 208 KB image still does not run. dma_cfg_init
+is downstream and untestable until the full image boots.
+
+TASK — get the full firmware to execute, then close P2.2.
+1. Characterise the second limit. Extend the bulkprobe size ladder (build.sh
+   bulkprobe) above 8 KB — 16/32/64/128/208 KB — with -MaxBlockSize 0x1000
+   already set; find where it stops booting. Use dsp4_stagewatch.py (no bench
+   eyes). Hypotheses to test: total stream size vs a per-section/DMA-count
+   limit; a boot-kernel scratch/heap ceiling; a second block-count or address
+   window; whether multiple blocks vs one big section behaves differently.
+   HRM ch.36/40 for any documented SPI-target-boot size/scratch limits.
+2. Once the full image boots (park on _start's first instruction fires), move
+   the park forward: does dma_cfg_init now run? Then the sport_dma_base() /
+   l1_to_sys() fixes finally get a real hardware test. Use DSP4_BISECT to
+   walk arm_region(A)/(B) → full run.
+3. When the 208 KB production image runs on both chips: revert temp
+   instrumentation, rebuild clean production .ldr (fix ldr/manifest.txt which
+   currently records the two artifacts as NOT bootable), reflash, verify LD3/
+   LD2 + a sane SPI readback. Update P2.2 → 🟢 with the size-limit root cause.
+4. If the full image cannot be made to boot as one stream: characterise the
+   hard limit and propose the workaround (multi-DXE boot, second-stage loader,
+   or a smaller image), with evidence — do not leave it guessing.
+Constraints: rev C is yours (app work deferred); ALWAYS restart matrix-app +
+verify 3 MCUs before ending; ~/db Dropbox; single trunk; no AI attribution.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-08-21 13:09Z — P2.2 — close the dma_cfg_init wedge with working boot + LD blink instrument   [status: 🔴 blocked — the wedge is NOT in dma_cfg_init: the full firmware has never executed a single instruction on this card. Root cause found and half-fixed — the SPI target boot kernel cannot take a loader block larger than ~8 KB, so every production image built without `-MaxBlockSize` is a stream the host clocks out in full and the part never runs. `-MaxBlockSize 0x1000` added to build.sh's LDRFLAGS and proved on the bench (0/10 → 4/4 on the same DXE at 8 KB), but the 208 KB firmware still does not run, so a SECOND limit above ~8 KB remains uncharacterised. Bench released to PW mid-bisect for an app/panel reflash]   [model: opus]
 
 model: opus
