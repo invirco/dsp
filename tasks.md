@@ -1,3 +1,47 @@
+## HUB DISPATCH 2026-08-21 11:26Z — SHARC ③ — scope-driver + boot-bus toggle capture (rails good; CPLD cannot mirror SPI/RST)   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+Rails are GOOD at the bench (PW): +0.9V, +1V8 VDD_REF, +3V3 all in spec —
+suspect (1) power CLEARED. The liveness checklist now needs a live scope of
+SPI2 CLK/MOSI and SYS_HWRST during a boot. Hub netlist check: neither the
+Pi-mastered boot SPI to the DSPs nor RST_D routes to the CPLD, so a CPLD
+patch cannot bring them out — do NOT build one for that. All three signals
+are reachable natively:
+  test 1 CLKIN  = R65.2/R33.2 pad (PW verified good).
+  test 2 boot SPI = Pi header J6 pin 23 (SCK/GPIO11), pin 19 (MOSI/GPIO10),
+    0.1"; DSP-side confirm R52.2/R51.2 (DSPA), R19.2/R18.2 (DSPB) 0402 pads.
+  test 3 SYS_HWRST = J6 pin 36 (RST_D/GPIO16), 0.1"; expect a clean low pulse
+    >= 11 x tCKIN (~450 ns at 24.576 MHz) at each boot.
+
+TASK A — scope-driver so PW can probe live. Provide a repeating desk-driven
+boot on demand: a small loop that boots rdyprobe1.ldr on chip 1 every ~3 s
+(and a chip-2 variant), so the SPI2 CLK/MOSI and RST_D edges recur on the
+scope. Deploy to /home/app/dspboot as a named script; give PW the exact
+one-liner to start/stop it. While it runs, capture on the Pi side what the
+boot bus is doing (dsp4_netprobe during the loop) and log it.
+
+TASK B — the discriminating capture (no bench eyes): during the boot loop,
+use the Pi to sample, at the DSP boot bus, whether SCK (GPIO11) and MOSI
+(GPIO10) actually TOGGLE during the CS-asserted window, vs the netprobe's
+earlier "held high" static read. If they are static during boot, the Pi is
+not clocking the DSP (host/driver/contention problem) — a different class
+than a dead DSP. If they toggle but RDY never deasserts and GPIO8 stays
+flat, the DSP is receiving clock+data+reset and still not running = the
+parts themselves. State which of these the evidence supports.
+
+TASK C — bookkeeping. Write the scope-point map (the table above, with the
+J6 header pin numbers and the resistor pads) into the liveness checklist
+doc so PW has it at the bench, and record the CPLD-cannot-mirror-2/3
+finding. If TASK B points at the parts, say so plainly and the fresh-card
+build is next; if it points at the Pi-side boot drive, propose the fix.
+Do NOT build a CPLD patch. Constraints: restart matrix-app + verify 3 MCUs
+before ending; ~/db Dropbox; single trunk; no AI attribution.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-08-21 10:46Z — SHARC testing ② — boot retest on corrected CLKIN (÷2 + level-shift fitted)   [status: 🔴 blocked — clock now verified good at the pad and BOTH chips are still flat (GPIO8/GPIO12 never move, no RDY high in a reset-pulse trace); new lead found at the desk: neither SHARC has any decoupling in the rev-C schematic — PW checklist written, ordered by cost]   [model: opus]
 
 model: opus
