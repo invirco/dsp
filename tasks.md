@@ -195,6 +195,14 @@ There is no longer a stream-length budget on this unit, at any clock.
 two-master WIRING is still a rev-D item — any board whose H1S1 has not
 been reflashed has the limit straight back.
 
+**Canonical source updated too.** `~/build-h1s1` is not a git repo, so
+the edit would have lived on one workstation only and the next rebuild
+from the canonical tree would have silently reintroduced the fault. The
+Dropbox copy at `_mx/MW/D24/FW/H1S1/Core/Inc/matrix.cs` was verified
+byte-identical to the pre-edit original first, then updated, with the
+original kept beside it as `matrix.cs.pre-spi-fix-2026-08-21`. Source and
+flashed image now agree.
+
 **Incidental observation, not touched:** `/home/app/firmware/H1S3.shex`
 carries the MCU-ID `H1S4` in its type-04 record (and fwbuild holds
 `left-slot3-H1S4content.shex` / `right-slot4-H1S3content.shex`), so the
