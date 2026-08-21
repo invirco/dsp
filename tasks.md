@@ -1314,12 +1314,22 @@ Trunk is `main` (`master` deleted + blocked). Mandates: `CLAUDE.md`.
 Contract pin: **defs-v2026.08.20** (mx26 `345470a`; see `defs.lock` —
 sync-from-mx26.sh now refuses an untagged mx26 HEAD).
 
-## NOW — priority order (reordered 2026-08-21: SHARC testing is TOP)
+## NOW — priority order (reordered 2026-08-21: SHARC BOOT SOLVED)
 
-**PW decision 2026-08-21: SHARC testing is the top priority for this
-machine and everything below it waits.** Item 0 is the whole queue until
-a SHARC is proven to execute; items 1-8 are downstream of it and most of
-them cannot even be measured until then.
+**MILESTONE 2026-08-21: both SHARCs boot and run application code.** Root
+cause of the five-month boot-handoff failure was the boot host never
+sending the **SPICMD byte** the SPI-target boot kernel reads as its first
+byte (HRM ch.36 Table 36-18: 0x03 = keep single-bit); the ROM ate the
+first `.ldr` byte as the command and every block header was misaligned by
+one — which is why the 08-20 byte-by-byte stream audit found nothing (the
+framing was right, the host was one byte early). `dsp4_boot.py --spi-cmd`
+(default 0x03) fixes it; `--spi-cmd none` reproduces the flat-low failure
+on demand. GPIO8 ~1 Hz on chip 1, GPIO12 ~2 Hz on chip 2, matrix-app up
+(D14). **Parts were never damaged — no fresh card needed.** The clock
+mods (÷2 + level-shift, D10) were real and are kept — an out-of-spec clock
+had to be fixed regardless — but they were necessary, not the blocker.
+Item 0 is DONE; the queue moves to P2.2 with working boot AND working LD2
+blink as an instrument.
 
 **Context:** the rev-C card is LIVE on the fresh digital board — CPLD
 `a1f6672af6c3` flashed 2026-08-21 (the ÷2 clock fix; supersedes
@@ -1333,12 +1343,17 @@ netprobe work) and the 2026-08-21 datasheet reading explains why — the
 clock chain was wrong twice over (D10). Treat every pre-08-21 statement
 about SHARC behaviour as unproven.
 
-0. **SHARC testing ① — blocked on PW hands (CLKIN level-shift bodge).**
-   The ÷2 is fitted and flashed; the 3.3 V-into-a-0.9 V-pin half needs
-   two resistor swaps and two added resistors per card. Values, fitting
-   and the bench scope checklist are in Dropbox
-   `TransferOnly/PCB mods/dsp4-revC-clkin-bodge.md`; the rationale is
-   D10. Once fitted, the boot retest runs from the desk over SSH.
+0. **SHARC testing — ✅ DONE 2026-08-21. Both parts boot and run.**
+   Root cause = missing SPICMD byte (D14); fixed in `dsp4_boot.py
+   --spi-cmd 0x03`. The clock two-part fault (D10) is also fixed and
+   scope-verified on the card: ÷2 in the CPLD (`a1f6672af6c3`) + the
+   level-shift bodge PW fitted (1k + 330R per DSP, mod BLUE on the mods
+   PDF). Damaged-parts verdict WITHDRAWN. Two follow-ups fall out of it,
+   now folded into the queue: (a) H1S1's legacy ADAU meter poll bursts on
+   the shared !SPI1 net can corrupt boot DATA — near-term firmware fix
+   (see item just below P2.2); (b) rev-D boot-bus owner. **PW bench when
+   convenient: confirm LD3 ~1 Hz (chip 1) / LD2 ~2 Hz (chip 2) on the
+   blink images — the free CCLK sanity — and that the mods stay BLUE.**
 
 1. **P2.2 — dma_cfg_init wedge: ROOT CAUSE FOUND 2026-08-20 (desk
    review), fix in the tree, NOT yet flashed.**
