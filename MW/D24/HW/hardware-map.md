@@ -157,6 +157,19 @@ analog source (NET only); the LOGIC slot map must route DSPB O1 → DA3.
   CS3/CS4 are wired to DSPA/DSPB SPI_RDY (flow control, monitored at
   S MCU: "DSP 1/2 chip SPI_RDY"). Pi header carries SPI_CS[1..8] — up to 8
   DSPs addressable in bigger builds (S MCU also has CS5/CS7/CS8 pins).
+- **The DSP boot bus has a SECOND master (confirmed 2026-08-21).** The Pi's
+  `SPI_SCK`/`SPI_MOSI`/`SPI_MISO` are the same nets as `!SPI0`/`!SPI1`/
+  `!SPI2`, which U7 (S MCU) masters for housekeeping — U7 PA5/PA6/PA7 =
+  SCK/MISO/MOSI, and the DSPs' `SPI2_CLK` (PA_04) and `SPI2_MOSI` (PA_01)
+  hang off them through the 22 R network. The flashed H1S1 still runs its
+  legacy **ADAU meter-level poll** on that bus: a ~600 µs burst of ~240 SCK
+  edges every **~260 ms**, idling SCK **high** (CPOL=1) against the Pi's
+  mode 0/1. Whenever the Pi's GPIO11 is in `a0`, the Pi's SPI0 output
+  **clamps SCK low and shorts out H1S1's clock**, so the poll has been
+  failing silently and nothing answers on MISO. Against a 14 ms boot the
+  collision probability is ~5.6 % per attempt. Two masters, two polarities,
+  no arbitration — a rev-D item, and the reason `dsp4_netprobe.py` reports
+  SCK/MOSI as "held high".
 - **No link port / no inter-DSP control path** — each DSP is parameterised
   directly over its own SPI CS.
 - **Resets — `!RST_D` net, traced end to end 2026-08-21 (ROOT sheet p1/10).**

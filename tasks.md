@@ -255,50 +255,62 @@ this project does not mean an empty net.
 
 With that, **every suspect on the list is closed except the parts.**
 
-**One loose end, characterised 2026-08-21 but not identified.** With the Pi
-idle, `SPI_MOSI` (GPIO10, the `!SPI1` net) carries a burst of ~80
-transitions every ~256 ms. What it is not, each with evidence:
+**A second, unarbitrated SPI master on the DSP boot bus — identified and
+confirmed 2026-08-21.** PW named it from the history: H1S1 used to drive
+these pins to **read ADAU meter levels, periodically**, and the flashed
+image still does. The measurement confirms it and shows why it was
+invisible.
 
-- **Not the Pi.** With GPIO10 reconfigured from `a0` to a plain input with
-  the internal pull-down, the bursts persist — 440 transitions in 1.5 s
-  against 472 with SPI0 attached, and the net still reads 99.8 % high. An
-  external device drives it, and holds it high at rest (which is what
-  `dsp4_netprobe.py` has been reporting as "held high by something stronger
-  than the Pi pull" all along).
-- **Not an SPI transaction.** Over the same window `SCK` (`!SPI0`, GPIO11)
-  has **zero** transitions and so does `MISO`. No master is clocking; a
-  device is driving a data line on its own.
-- **Not H1S1**, on the evidence available: `MX_SPI1_Init()` runs, but the
-  only `HAL_SPI_Transmit` in `~/build-h1s1` sits inside a `DspTx()` that is
-  entirely commented out. Not airtight — `MainInit`/`MainLoop` are called
-  from `main()` but are not in that tree, so it is not the whole firmware.
-- **Not our CPLD by design.** `ISPI0`/`ISPI1`/`ICS_L` are not ports of
-  `dsp4_logic_top.v` at all; the RTL only mentions them as "provisioned …
-  not implemented", so whatever Quartus's unused-pin default is applies to
-  them. That would explain a resting level, not a burst.
+With the Pi's `SPI_MOSI` idle, `!SPI1` carries a burst of ~80 transitions
+every ~256 ms, and `SCK` showed **zero** transitions — which made no sense
+for an SPI transfer. It made sense once GPIO9/10/11 were taken out of `a0`
+and made plain inputs:
 
-Shape, for whoever picks this up: bursts of ~8 frames, each frame ~77 µs
-made of a ~21 µs low, a cluster of 1–7 µs pulses spanning ~20 µs, a ~33 µs
-low, then a short high; burst ~0.6 ms; repeat interval measured at
-250.9–256.0 ms. The few ms of jitter says software timer, not a hardware
-divider. (The 20.8 µs element equals one 48 kHz frame, 20.83 µs —-
-suggestive, not proof.)
+| | Pi SPI0 attached (`a0`) | Pi SPI0 released (inputs) |
+|---|---|---|
+| SCK transitions in 1.5 s | **0** | **1630, in 7 bursts** |
+| SCK idle level | held LOW by the Pi's output | **99.9 % high** |
+| burst period | — | **~260 ms** (260.7 / 260.0 / 263.1 / 261.2) |
+| burst length | — | ~600 µs, ~240 edges each |
+| MOSI | 472 transitions | 480 transitions, same bursts |
+| MISO | static low | static low — nothing answers |
 
-**PW's instinct that this is ADAU-era legacy has support in the firmware:**
-H1S1's commented-out `DspTx()` builds `buffer[0]=0; buffer[1]=addr>>8;
-buffer[2]=addr&0xff` followed by payload, over `CS_C`/`CS_M` — that is the
-SigmaDSP/ADAU write format. The housekeeping bus was designed around
-ADAU-era parts, so a legacy device still fitted on that shared net and
-still doing something periodic is a coherent candidate. Identifying it
-needs the D24 Digital schematic's `!SPI0/1/2` fan-out, which is not in this
-repo.
+So **the Pi's SPI0, whenever it is enabled, actively clamps SCK and shorts
+out H1S1's clock.** H1S1 has been polling into a dead bus, its clock
+swallowed by the Pi's push-pull output, and nothing answers on MISO — the
+ADAU those meter reads were written for is not there to reply. The idle-
+high SCK also says H1S1 runs that bus in a CPOL=1 mode, against the Pi's
+mode 0/1: two masters, two clock polarities, no arbitration.
 
-**Not the cause of the boot failure, but a real hazard.** The bursts fell
-at 48.3, 301.2, 557.2 and 808.2 ms in the chip-1 capture and the boot burst
-ran 714.6 → 728.4 ms, so nothing collided. But the DSPs' `SPI2_MOSI`
-(PA_01) is fed from this same net through the 22 R network, and a 14 ms
-boot against a 256 ms period is roughly a 5 % chance of corruption per
-attempt. Rev-D item: give the DSP boot bus an owner, or arbitrate it.
+(The tree at `~/build-h1s1` has its `DspTx()` — `buffer[0]=0`, address hi,
+address lo, payload over `CS_C`/`CS_M`, the SigmaDSP/ADAU write format —
+entirely commented out, and `MainInit`/`MainLoop` are not in it at all. So
+that tree is not the flashed image; the running `firmware/H1S1.shex` still
+carries the poll.)
+
+**Why it matters, and what it is not.** It is **not** the cause of the boot
+failure: the bursts fell at 48.3, 301.2, 557.2 and 808.2 ms in the chip-1
+capture while the boot burst ran 714.6 → 728.4 ms, and nothing collided in
+either run. But the DSPs' `SPI2_CLK` (PA_04) and `SPI2_MOSI` (PA_01) are
+fed from these same nets through the 22 R network, so every ~260 ms H1S1
+injects ~600 µs of foreign clock and data at them. Against a 14 ms boot
+that is **≈5.6 % chance of a corrupted stream per boot attempt** — one in
+eighteen — and it would present as an intermittent boot failure that
+nothing in the host logs could explain.
+
+**Actions:**
+
+1. **Near term: remove the ADAU meter poll from the H1S1 firmware.** The
+   part it polls is gone — this card is the SHARC DSP4 — so the poll is
+   dead legacy whose only effect is contention on the boot bus. The unit
+   already flashes H1S1 from `/home/app/firmware`. Needs the real H1S1
+   sources; the tree at `~/build-h1s1` is not the flashed image.
+2. **Rev D: give the DSP boot bus an owner.** Either separate it from the
+   S-MCU housekeeping bus, or arbitrate it properly. D1 already says the Pi
+   masters DSP SPI directly; the schematic quietly puts a second master on
+   the same three wires.
+3. Note for anyone reading `dsp4_netprobe.py` output: "MOSI/SCK HELD HIGH"
+   is this — an external master idling its bus high — not a fault.
 
 Unit left with matrix-app running and all three MCUs verified (13:17).
 
