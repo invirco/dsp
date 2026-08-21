@@ -166,9 +166,13 @@ analog source (NET only); the LOGIC slot map must route DSPB O1 → DA3.
   edges every **~260 ms**, idling SCK **high** (CPOL=1) against the Pi's
   mode 0/1. Whenever the Pi's GPIO11 is in `a0`, the Pi's SPI0 output
   **clamps SCK low and shorts out H1S1's clock**, so the poll has been
-  failing silently and nothing answers on MISO. Against a 14 ms boot the
-  collision probability is ~5.6 % per attempt. Two masters, two polarities,
-  no arbitration — a rev-D item, and the reason `dsp4_netprobe.py` reports
+  failing silently and nothing answers on MISO. That same clamping protects
+  a boot's clock — a boot always runs with GPIO11 in `a0` — but **not its
+  data**: MOSI carries H1S1's bursts even with `a0` attached, and the DSP is
+  listening whenever the Pi has CS asserted. Collision probability against a
+  14 ms transfer is ~5.6 % per boot attempt, i.e. an intermittent corrupt
+  stream, not a permanent failure. Two masters, two polarities, no
+  arbitration — a rev-D item, and the reason `dsp4_netprobe.py` reports
   SCK/MOSI as "held high".
 - **No link port / no inter-DSP control path** — each DSP is parameterised
   directly over its own SPI CS.

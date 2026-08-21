@@ -288,15 +288,32 @@ entirely commented out, and `MainInit`/`MainLoop` are not in it at all. So
 that tree is not the flashed image; the running `firmware/H1S1.shex` still
 carries the poll.)
 
-**Why it matters, and what it is not.** It is **not** the cause of the boot
-failure: the bursts fell at 48.3, 301.2, 557.2 and 808.2 ms in the chip-1
-capture while the boot burst ran 714.6 → 728.4 ms, and nothing collided in
-either run. But the DSPs' `SPI2_CLK` (PA_04) and `SPI2_MOSI` (PA_01) are
-fed from these same nets through the 22 R network, so every ~260 ms H1S1
-injects ~600 µs of foreign clock and data at them. Against a 14 ms boot
-that is **≈5.6 % chance of a corrupted stream per boot attempt** — one in
-eighteen — and it would present as an intermittent boot failure that
-nothing in the host logs could explain.
+**Could it corrupt a DSP boot? Yes, but only the data, and only ~5 % of
+the time — and it did not corrupt the boots that failed.**
+
+- **Not the clock.** The same clamping that hid the poll protects the boot:
+  with GPIO11 in `a0` the Pi's SPI0 output holds SCK, and the measurement
+  is direct — **zero** foreign SCK transitions with `a0` attached, 1630
+  without. A boot necessarily runs with GPIO11 in `a0`, so the clock the
+  DSP sees during a boot is always the Pi's. (Earlier phrasing "injects
+  foreign clock and data" was wrong on the clock half.)
+- **The data, yes.** MOSI shows H1S1's bursts even with `a0` attached (472
+  transitions vs 480 released), so H1S1 wins, or at least contends
+  successfully, on that line. The DSPs' `SPI2_MOSI` (PA_01) hangs off it
+  through the 22 R network, and during a boot the Pi has CS asserted, so
+  the part *is* listening. A burst landing inside the transfer would put
+  foreign bits into the stream and the block would fail its HDRSIGN/HDRCHK.
+- **Probability:** ~600 µs of burst every ~260 ms against a 14 ms transfer
+  ≈ **5.6 % per boot attempt**, one in eighteen. That is an intermittent
+  failure nothing in the host logs could explain — worth removing — but it
+  cannot produce the 100 % failure seen since March across hundreds of
+  boots.
+- **And it is excluded for the boots that matter.** Both of today's boots
+  were captured end to end: the bursts fell at 48.3, 301.2, 557.2 and
+  808.2 ms while the chip-1 boot ran 714.6 → 728.4 ms, and SCK showed
+  exactly one burst, entirely inside the CS window, 16 334 of 16 384 edges
+  at 50 % duty. Those two streams were clean, and the parts still did not
+  respond.
 
 **Actions:**
 
