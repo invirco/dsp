@@ -1,3 +1,41 @@
+## HUB DISPATCH 2026-08-21 20:34Z — P2.2 cont'd — _sru_init hang + the ~190 vs 400 MHz CCLK suspect (nail the clock, get past SRU, reach dma_cfg_init)   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+BIG progress: the >8KB boot-stream limit is resolved and chip 1's FULL
+firmware now executes (dsp 9100107 — the boot bus has one master again).
+P2.2 is NOT closed: the firmware now hangs in `_sru_init`'s DAI0 half on the
+first SRU register writes; dma_cfg_init + the sport_dma_base() fix remain
+untested downstream. Standing prime suspect: **CCLK is ~190 MHz but the
+firmware assumes 400 MHz** (SRU/DAI timing, waits). Read your own last
+session's notes + the commits first.
+
+TASK (overnight desk work — chase it to ground, hands-off):
+1. NAIL the actual CCLK. Compute it from the fitted clock chain: SYS_CLKIN0
+   = 24.576 MHz (the ÷2 CPLD + level-shift bodge) → CGU reset defaults
+   (MSEL/DF/CSEL from the HRM) → CCLK. If that yields ~190 MHz, the firmware
+   MUST configure the CGU (or its assumptions) for the real clock. Confirm
+   against a measurable (LD3/CCLK cadence via stagewatch, or a known-rate
+   blink) rather than assuming.
+2. If CCLK ≠ 400 MHz: either (a) program the CGU in firmware early-init to
+   reach the intended CCLK from 24.576 MHz CLKIN, or (b) correct the
+   firmware's clock assumptions (SRU/DAI wait counts, any 400 MHz constants).
+   Decide which is right (design note in dsp4-architecture-decisions.md).
+3. Get past `_sru_init`: with the clock correct, does DAI0 SRU init complete?
+   Walk forward (your DSP4_BISECT / stagewatch instruments) to dma_cfg_init;
+   the sport_dma_base()/l1_to_sys() fixes finally get their hardware test.
+4. Iterate to a full chip-1 run, then chip 2. Record the verdict; when
+   closed, revert temp instrumentation + rebuild clean production images.
+5. If it can't be closed tonight, leave a precise state note (where it hangs,
+   the measured CCLK, what you tried) for the morning.
+Constraints: chips freely bootable; ALWAYS restart matrix-app + confirm the
+3 MCUs verify before ending or between long gaps — never leave the unit on a
+frozen splash; ~/db Dropbox; single trunk; no AI attribution.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-08-21 14:37Z — P2.2 cont'd — characterise the >8KB boot-stream limit so the full 208KB image runs, then dma_cfg_init   [status: 🟢 done — **BOTH SHARCs now load and execute their full firmware, deterministically.** The ">8 KB block-size limit" never existed and is retired. Two real faults, both fixed: (1) elfloader's ZERO-FILL blocks desynchronise the boot kernel — fixed with `-NoFillBlock` plus a build-time guard; (2) U7/H1S1 was a second master on the boot bus — the two offending call sites were removed from its firmware and it was reflashed through MH1, after which the bus measures ZERO events in 15 s and chip 1's 258 KB image boots 6/6 unsynced at 10 MHz and 2/2 at 1 MHz on a 3.45 s stream. The stream-length budget is gone. **P2.2 itself is NOT closed**: with the image finally running, the firmware hangs in `_sru_init`'s DAI0 half — the very first SRU register writes — so `dma_cfg_init` and the `sport_dma_base()` fix are still untested. That is a new, separate item]   [model: opus]
 
 model: opus
