@@ -1,5 +1,4 @@
-## HUB DISPATCH 2026-08-21 11:26Z — SHARC ③ — scope-driver + boot-bus toggle capture (rails good; CPLD cannot mirror SPI/RST)   [status: 🔴 blocked — tools built and deployed; boot bus PROVEN live (16 170 SCK transitions inside the CS1 window, MOSI with it), so the Pi is clocking the DSPs and TASK B does NOT point at a host-side drive fault; !RST_D is now the single open item, and the hub's "H1S1 PA13 overpowers GPIO16" mechanism is REFUTED (PA13 is unconfigured in H1S1 — reset-default pull-up, not a driver — and the Pi drives the net to a clean 0 at its own pad). PW's J6.36-stuck-high therefore reads as an OPEN between the CM4 and the card; next action is one DMM measurement, one-liner supplied]   [model: opus]
-
+## HUB DISPATCH 2026-08-21 11:26Z — SHARC ③ — scope-driver + boot-bus toggle capture (rails good; CPLD cannot mirror SPI/RST)   [status: 🟢 done — tools built, deployed and used to settle it: the boot bus is PROVEN live (16 334 SCK transitions in one burst inside the CS window, both chips) and !RST_D is PROVEN good (PW saw the pin go low under the DC hold; the earlier stuck-high was measured with GPIO16 at its idle high). The hub's "H1S1 PA13 overpowers GPIO16" mechanism is REFUTED — PA13 is unconfigured in H1S1, a reset-default pull-up, not a driver. Clock, rails, reset and data are now ALL verified good at the parts and neither responds: TASK B points at the PARTS, and a fresh card / fresh SHARCs is next]   [model: opus]
 model: opus
 
 Rails are GOOD at the bench (PW): +0.9V, +1V8 VDD_REF, +3V3 all in spec —
@@ -206,6 +205,62 @@ then meter **J6 pin 36** (and p104 on U5/U6 if reachable);
 Unit left with `matrix-app` running, all three MCUs verified (H1S1, H1S3,
 H1S4 at 12:46), GPIO5/13 back to inputs, GPIO9/10/11 back to `a0`, GPIO16
 output high.
+
+
+### Addendum 2026-08-21 13:20Z — 🟢 the open item closed at the bench, verdict: the parts
+
+**!RST_D is good.** PW watched the pin go LOW the moment
+`./dsp4_scopedrive.sh hold RST_D=0` was started. The earlier "J6.36 stuck
+high" was measured with GPIO16 at its idle level — the tool parks !RST_D as
+an output HIGH whenever it is not deliberately driving, and so does every
+`stop`, so a high reading in that state is correct and discriminates
+nothing. There is no open and no contention. (The confirmed low was at the
+header end; the last hop to p104 is netlist inference, no series R on the
+net.)
+
+**The closed loop, re-run on both parts with every precondition verified**
+(`dsp4_busmon.py` capturing passively through the whole boot, GPIO9/10/11
+confirmed at `a0` first):
+
+| | chip 1 | chip 2 |
+|---|---|---|
+| `!RST_D` low pulse | 158.6 → 209.1 ms (50.5 ms) | 158.7 → 209.2 ms (50.5 ms) |
+| CS low | 714.5 → 728.5 ms | 712.3 → 726.3 ms |
+| SCK inside the CS window | **16 334 transitions, one burst, 50 % duty** | **16 332, 49 %** |
+| MOSI inside the CS window | 236 transitions | 232 |
+| MISO | static low throughout | static low |
+| SPI_RDY (GPIO8 / GPIO12) | static low, and flat for 6 s after | static low |
+
+16 384 edges are expected for 1024 B; the shortfall is a 0.75 µs sampler
+aliasing a 1 MHz clock. Reset, settle, one clean burst inside the select
+window — and neither part drives MISO or SPI_RDY, ever.
+
+**Verdict.** SYS_CLKIN0 correct and scope-verified at the pin; +0.9 V,
++1V8 VDD_REF and +3V3 all in spec on a meter; !RST_D reaching the net; and
+1 kB of correctly-framed data clocked into each part at the right moment.
+Every precondition for a boot is verified good and neither SHARC has ever
+driven a pin. **Nothing on the host side is left to fix — the next step is
+a fresh card / fresh SHARCs** (checklist step 4), with the corrected clock
+chain fitted before first power-up. Both parts were overdriven ~80 mA into
+a 6 mA-max clamp on SYS_CLKIN0 from March until 2026-08-21, which remains
+the only mechanism on the table that fits.
+
+Checklist step 0 (is there any decoupling on the DSP power pins) is still
+unanswered and still costs a minute with the board in hand — worth doing
+before ordering parts, because if it is absent it is also a rev-C fault
+that a fresh card would inherit.
+
+**One loose end found in the captures, not the cause:** with matrix-app
+stopped and the Pi idle, **MOSI carries a periodic burst of ~80 transitions
+every ~256 ms with no SCK** (48.3, 301.2, 557.2, 808.2, 1064.0, 1319.9,
+1575.9 ms in the chip-1 capture). Something other than the Pi drives that
+net — the Pi's SPI_SCK/MOSI/MISO are the same `!SPI0/1/2` nets U7 masters
+for its housekeeping SPI (hardware-map §3a). It missed every boot burst in
+these runs, but a 14 ms boot against a 256 ms period is roughly a 5 % chance
+of collision per attempt, so it is a real hazard on a shared bus and worth
+closing on rev D.
+
+Unit left with matrix-app running and all three MCUs verified (13:17).
 
 
 ## HUB DISPATCH 2026-08-21 10:46Z — SHARC testing ② — boot retest on corrected CLKIN (÷2 + level-shift fitted)   [status: 🔴 blocked — clock now verified good at the pad and BOTH chips are still flat (GPIO8/GPIO12 never move, no RDY high in a reset-pulse trace); new lead found at the desk: neither SHARC has any decoupling in the rev-C schematic — PW checklist written, ordered by cost]   [model: opus]
