@@ -57,7 +57,7 @@
 .extern _sport_cfg_init;
 .extern _dma_cfg_init;
 .extern _diag_init;
-#if DSP4_BISECT == 5
+#if DSP4_BISECT >= 5
 .extern _bisect_park_asm;
 #endif
 .extern _diag_boot_stage;
@@ -115,12 +115,27 @@ _start:
     i6 = i7;
     l6 = 0;
 
+#if DSP4_BISECT == 6
+    /* TEMP bisect rung (2026-08-21, goes with the rest of the
+     * DSP4_BISECT scaffolding): the C stack is set up and nothing has
+     * touched a peripheral yet. Six pulses = _start ran its prologue. */
+    r4 = 6;
+    call _bisect_park_asm;      /* never returns */
+#endif
+
     /* Diagnostics FIRST, before any peripheral touches hardware: it
      * arms the core timer that drives the LED fault codes, so from here
      * on a hang anywhere below still flashes the stage it reached
      * (diag.asm). It enables interrupts globally too — only TMZLI is
      * unmasked at this point, so nothing else can fire yet. */
     call _diag_init;
+
+#if DSP4_BISECT == 7
+    /* TEMP bisect rung: _diag_init returned — core timer armed, LED
+     * alive. Seven pulses. */
+    r4 = 7;
+    call _bisect_park_asm;
+#endif
 
     /* Register bring-up (C, per dsp4-plumbing.md): DAI/SRU routing,
      * half-SPORT multichannel config, then DDE descriptor rings + SEC
@@ -131,9 +146,25 @@ _start:
     r0 = DIAG_STAGE_SRU;
     dm(_diag_boot_stage) = r0;
 
+#if DSP4_BISECT == 8 || DSP4_BISECT == 10
+    /* TEMP bisect rung: _sru_init returned. Eight pulses for the whole
+     * function; ten when sru_config.c has been cut short at the
+     * DAI0/DAI1 boundary (rung 10 there), which is how the hang inside
+     * it is split between the two halves. */
+    r4 = DSP4_BISECT;
+    call _bisect_park_asm;
+#endif
+
     call _sport_cfg_init;
     r0 = DIAG_STAGE_SPORT;
     dm(_diag_boot_stage) = r0;
+
+#if DSP4_BISECT == 9
+    /* TEMP bisect rung: _sport_cfg_init returned; the next call is
+     * _dma_cfg_init. Nine pulses. */
+    r4 = 9;
+    call _bisect_park_asm;
+#endif
 
     call _dma_cfg_init;
     r0 = DIAG_STAGE_DMA;

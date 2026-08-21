@@ -70,6 +70,17 @@ void sru_init(void)
     SRU(LOW, DAI0_PBEN19_I);
     SRU(LOW, DAI0_PBEN20_I);
 
+#if DSP4_BISECT == 10
+    /* TEMP bisect rung (2026-08-21, goes with the rest of the DSP4_BISECT
+     * scaffolding): return before the DAI1 half, so main.asm's post-
+     * _sru_init park fires with 10 pulses instead of 8. It splits this
+     * function in two — rung 8 silent but rung 10 firing means the hang
+     * is in the DAI1/SPORT4-7 writes below, not the DAI0 ones above.
+     * DAI1 routing is left unconfigured, which is fine because the park
+     * is the next thing that happens. */
+    return;
+#endif
+
     /* ---- DAI1: data pins <-> SPORT4-7 ---- */
     SRU2(DAI1_PB01_O, SPT4_AD0_I);    /* I4 */
     SRU2(SPT4_BD0_O, DAI1_PB02_I);    /* O4 */

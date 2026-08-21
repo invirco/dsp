@@ -66,6 +66,13 @@ static inline uint32_t l1_to_sys(uint32_t a)
  *      _start (main.asm, via _bisect_park_asm in diag.asm). Nothing in
  *      this file participates. 5 pulses = the boot stream landed and the
  *      core is running our code; silence = it is not.
+ *   6..9  parks in main.asm between 5 and 4, added 2026-08-21 once rung 5
+ *      fired on chip 2 and rung 4 did not — so the firmware starts and
+ *      dies somewhere in the init sequence upstream of this file. They
+ *      park after the C stack prologue (6), after _diag_init (7), after
+ *      _sru_init (8) and after _sport_cfg_init (9), and each pulses its
+ *      own number, so one stagewatch sample names the last call that
+ *      returned. Nothing in this file participates in these either.
  *
  * HOW A PARK REPORTS (2026-08-21). Not via the LED state machine: that is
  * driven by _diag_timer_isr, so it answers a question about the interrupt
@@ -90,8 +97,8 @@ static inline uint32_t l1_to_sys(uint32_t a)
 #ifndef DSP4_BISECT
 #define DSP4_BISECT 1
 #endif
-#if DSP4_BISECT < 0 || DSP4_BISECT > 5
-#error "DSP4_BISECT must be 0 (production), 1, 2, 3 (variants), 4 (entry park) or 5 (_start park)"
+#if DSP4_BISECT < 0 || DSP4_BISECT > 10
+#error "DSP4_BISECT must be 0 (production), 1, 2, 3 (variants), 4 (entry park), 5 (_start park) or 6..10 (main.asm pre-init parks; 10 also cuts sru_config.c short at the DAI0/DAI1 boundary)"
 #endif
 
 #define REG32(addr) (*(volatile uint32_t *)(addr))
