@@ -9,3 +9,13 @@ naming: first 12 hex of sha256 of each .ldr
 superseded: chip1.35c5681c0ef5.ldr + chip2.859f775f9a7b.ldr
       (2026-08-19T19:21:31Z, MW/D32/DSP/SHARC @ a703728 — pre-fix,
       wrong SPORT4-7 DMA base)
+
+WITHDRAWN 2026-08-21: neither chip1.b4090de01d5d.ldr nor
+chip2.bb2b24db8617.ldr is bootable. Both were produced without
+elfloader's -MaxBlockSize cap, so every section is one block of 8 KB or
+more, and the SPI target boot kernel does not survive a block that large
+(bisected at the bench 2026-08-21; see build.sh LDRFLAGS and tasks.md
+P2.2). The host accepts the stream end to end and the part never executes
+an instruction. Do not flash these, and do not treat "boot reported OK"
+against them as evidence of anything. No replacement artifact yet — the
+size limit is not fully characterised.

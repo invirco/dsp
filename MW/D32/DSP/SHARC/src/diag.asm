@@ -62,6 +62,46 @@
 /* PA_12 = BLINK_LED */
 #define DIAG_LED_BIT      0x00001000
 
+/*----------------------------------------------------------------------
+ * TEMP bisect mirror (P2.2, 2026-08-21) — goes with the rest of the
+ * DSP4_BISECT scaffolding (tasks.md NOW item 3).
+ *
+ * The LED is the only instrument that can see inside dma_cfg_init, and
+ * LD3/LD2 need a human at the card. PB_05 is the SPI2_RDY net, which
+ * leaves the card as CS3/CS4 and lands on the Pi as GPIO8 (chip 1) /
+ * GPIO12 (chip 2) — the same pin src/blink/rdyprobe.asm uses. Mirroring
+ * every LED transition onto it makes the whole stage/flash code readable
+ * over ssh, so a bisect round costs a `pinctrl get 8` sample instead of
+ * a trip to the bench.
+ *
+ * Only in a DSP4_BISECT build. Production must NOT take this pin: at
+ * runtime SPI2_RDY is the SPI2 flow-control output (dma_config.c
+ * spi2_init, FCEN), and driving it as GPIO would break host flow
+ * control. Every bisect variant parks before spi2_init runs, so the two
+ * never contend. It also means the part cannot be re-booted without a
+ * !RST_D pulse (dsp4_boot.py's default), same caveat as rdyprobe.
+ *--------------------------------------------------------------------*/
+#if DSP4_BISECT
+#define DIAG_RDY_BIT      0x00000020        /* PB_05 = SPI2_RDY */
+/* Busy-loop counts for _bisect_park_asm — ~2 cycles per iteration, and
+ * CCLK measures near 190 MHz on this card (rdyprobe1 runs 2.1x slow
+ * against its assumed 400 MHz), so these land near 150 ms and 1.2 s.
+ * dsp4_stagewatch.py decodes ratios, not absolute times. */
+#define DIAG_PARK_PULSE   15000000
+#define DIAG_PARK_GAP    120000000
+#define DIAG_MIRROR_HI    r0 = DIAG_RDY_BIT; dm(REG_PORTB_DATA_SET) = r0;
+#define DIAG_MIRROR_LO    r0 = DIAG_RDY_BIT; dm(REG_PORTB_DATA_CLR) = r0;
+#define DIAG_MIRROR_INIT  r0 = DIAG_RDY_BIT; \
+                          dm(REG_PORTB_FER_CLR)  = r0; \
+                          dm(REG_PORTB_INEN_CLR) = r0; \
+                          dm(REG_PORTB_DATA_CLR) = r0; \
+                          dm(REG_PORTB_DIR_SET)  = r0;
+#else
+#define DIAG_MIRROR_HI
+#define DIAG_MIRROR_LO
+#define DIAG_MIRROR_INIT
+#endif
+
 /* Core-timer period in CCLK cycles = one diag tick. Nominally 1 ms at
  * CCLK = 400 MHz, which is NOT yet measured on this board (same caveat
  * as blink.asm). The LED intervals below are in ticks, so if the
@@ -178,6 +218,68 @@ _diag_stage_set:
     dm(_diag_boot_stage) = r4;
     rts;
 
+#if DSP4_BISECT
+/* TEMP bisect helper 2026-08-21: shut the core timer and global
+   interrupts off, so a bisect park owns PB_05 outright instead of
+   fighting _diag_timer_isr's mirror for the pin. C cannot reach MODE1 /
+   MODE2, hence the helper. Goes with the rest of the scaffolding. */
+.global _diag_irq_off;
+_diag_irq_off:
+    bit clr mode1 BITM_REGF_MODE1_IRPTEN;
+    bit clr mode2 BITM_REGF_MODE2_TIMEN;
+    nop;
+    nop;
+    rts;
+_diag_irq_off.end:
+
+/*----------------------------------------------------------------------
+ * _bisect_park_asm — TEMP bisect park, callable from the very first
+ * instruction of _start (2026-08-21).
+ *
+ * Same reporting convention as bisect_park() in dma_config.c: r4 pulses
+ * on PB_05 (SPI2_RDY -> Pi GPIO8 / GPIO12), then a long gap, forever.
+ * This one depends on NOTHING — no C stack, no interrupts, no timer, no
+ * peripheral except the GPIO block — so it answers "did this image
+ * execute at all?" rather than "did some subsystem survive?".
+ *
+ * In: r4 = pulses per burst (the stage code). Never returns.
+ *----------------------------------------------------------------------*/
+.global _bisect_park_asm;
+_bisect_park_asm:
+    bit clr mode1 BITM_REGF_MODE1_IRPTEN;
+    nop;
+    r8 = r4;                          /* burst length, preserved */
+
+    r0 = DIAG_RDY_BIT;
+    dm(REG_PORTB_FER_CLR)  = r0;
+    dm(REG_PORTB_INEN_CLR) = r0;
+    dm(REG_PORTB_DATA_CLR) = r0;
+    dm(REG_PORTB_DIR_SET)  = r0;
+
+.park_burst:
+    r9 = r8;                          /* pulses left in this burst */
+.park_pulse:
+    r0 = DIAG_RDY_BIT;
+    dm(REG_PORTB_DATA_SET) = r0;
+    r1 = DIAG_PARK_PULSE;
+    call _park_delay;
+    r0 = DIAG_RDY_BIT;
+    dm(REG_PORTB_DATA_CLR) = r0;
+    r1 = DIAG_PARK_PULSE;
+    call _park_delay;
+    r9 = r9 - 1;
+    if ne jump (pc, .park_pulse);
+    r1 = DIAG_PARK_GAP;
+    call _park_delay;
+    jump (pc, .park_burst);
+
+_park_delay:
+    r1 = r1 - 1;
+    if ne jump (pc, _park_delay);
+    rts;
+_bisect_park_asm.end:
+#endif
+
 .global _diag_init;
 _diag_init:
     /* PA_12 -> GPIO output, driven low. FER bit clear selects GPIO over
@@ -187,6 +289,8 @@ _diag_init:
     dm(REG_PORTA_INEN_CLR) = r0;
     dm(REG_PORTA_DATA_CLR) = r0;
     dm(REG_PORTA_DIR_SET)  = r0;
+
+    DIAG_MIRROR_INIT
 
     /* Core timer: TCOUNT counts CCLK cycles down to 0, raises TMZLI,
      * and reloads from TPERIOD. Independent of the SEC, the SPORTs and
@@ -267,6 +371,7 @@ _diag_timer_isr:
 
     r0 = DIAG_LED_BIT;
     dm(REG_PORTA_DATA_SET) = r0;
+    DIAG_MIRROR_HI
     r0 = 1;
     dm(_diag_led_state) = r0;
     dm(_diag_led_rem) = r5;
@@ -276,6 +381,7 @@ _diag_timer_isr:
     /* ---- was ON -> turn OFF ---- */
     r0 = DIAG_LED_BIT;
     dm(REG_PORTA_DATA_CLR) = r0;
+    DIAG_MIRROR_LO
     r0 = 0;
     dm(_diag_led_state) = r0;
 
@@ -292,6 +398,7 @@ _diag_timer_isr:
 .diag_led_off_now:
     r0 = DIAG_LED_BIT;
     dm(REG_PORTA_DATA_CLR) = r0;
+    DIAG_MIRROR_LO
     r0 = 0;
     dm(_diag_led_state) = r0;
     r0 = 1;
@@ -301,6 +408,7 @@ _diag_timer_isr:
 .diag_led_on_now:
     r0 = DIAG_LED_BIT;
     dm(REG_PORTA_DATA_SET) = r0;
+    DIAG_MIRROR_HI
     r0 = 1;
     dm(_diag_led_state) = r0;
     dm(_diag_led_rem) = r0;

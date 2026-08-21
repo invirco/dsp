@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-08-21 13:09Z — P2.2 — close the dma_cfg_init wedge with working boot + LD blink instrument   [status: 🟡 dispatched]   [model: opus]
+## HUB DISPATCH 2026-08-21 13:09Z — P2.2 — close the dma_cfg_init wedge with working boot + LD blink instrument   [status: 🔴 blocked — the wedge is NOT in dma_cfg_init: the full firmware has never executed a single instruction on this card. Root cause found and half-fixed — the SPI target boot kernel cannot take a loader block larger than ~8 KB, so every production image built without `-MaxBlockSize` is a stream the host clocks out in full and the part never runs. `-MaxBlockSize 0x1000` added to build.sh's LDRFLAGS and proved on the bench (0/10 → 4/4 on the same DXE at 8 KB), but the 208 KB firmware still does not run, so a SECOND limit above ~8 KB remains uncharacterised. Bench released to PW mid-bisect for an app/panel reflash]   [model: opus]
 
 model: opus
 
@@ -36,6 +36,92 @@ Dropbox; single trunk; no AI attribution.
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
 no AI attribution in commits or any work product.
+
+### Outcome 2026-08-21 15:0xZ — 🔴 stopped mid-bisect (bench released to PW); P2.2's premise is refuted
+
+**The dma_cfg_init wedge does not exist as described.** Every park placed
+inside `dma_cfg_init` stayed silent, and so did a park on the FIRST
+INSTRUCTION of `_start`. The full firmware has never run on this card —
+not once, at any point in this investigation. Only the ~1 KB standalone
+`blink` / `rdyprobe` images ever have, which is why "the DSPs boot" read
+as settled after the SPICMD fix (D14): that conclusion was drawn entirely
+from 1 KB images and does not generalise.
+
+**ROOT CAUSE (partial): the boot kernel cannot take a large loader
+block.** Bisected with a new instrument, `src/blink/bulkprobe.asm` —
+rdyprobe plus a slab of never-executed code, so boot-stream size is the
+only variable — chip 1, ten boots per rung, verdict read over ssh:
+
+| image | stream | biggest block | boots |
+|---|---|---|---|
+| bulkprobe0 | 180 B | 68 B | **10/10** |
+| bulkprobe2 | 8 364 B | 8 252 B | **0/10** |
+| bulkprobe2, same DXE, `-MaxBlockSize 0x400` | 8 492 B | 1 KB | **4/4** |
+| bulkprobe2, same DXE, `-MaxBlockSize 0x1000` | 8 396 B | 4 KB | **4/4** |
+
+Nothing else moves the result. Not the SPI clock (100 kHz behaves exactly
+as 1 MHz — so it is not a timing race). Not the host transfer size
+(`--chunk 1024 / 2048 / 4096` all identical — so it is not a spidev or
+CS-window artefact; `--chunk` was added to `dsp4_boot.py` for this). Not
+the zero-fill blocks (deleting the 506 KB L2 fill via a temporary
+`NO_INIT` on `sec_delay` changed nothing). It is the byte count in a
+single block header.
+
+`-MaxBlockSize 0x1000` is now in `build.sh`'s `LDRFLAGS`, with the
+evidence written into the comment beside it.
+
+**It is necessary and NOT sufficient.** The full 208 KB chip-1 image
+built with the cap still does not execute (`DSP4_BISECT=5` park silent).
+So there is a SECOND limit somewhere above ~8 KB — total image size,
+block count, or the fill blocks. **That is exactly where this stopped.**
+
+**NEXT STEP, and it is one command's worth of work:** the bulkprobe
+ladder rebuilt with the cap in place, run up the sizes —
+
+```
+cd MW/D32/DSP/SHARC && BULK_LEVELS="2 3 4" ./build.sh bulkprobe
+# bulkprobe2 8 KB (known good with the cap), 3 = 33 KB, 4 = 66 KB
+scp build/bulkprobe{2,3,4}.ldr app@192.168.1.219:/home/app/dspboot/
+# per image: dsp4_boot.py --ldr bulkprobeN.ldr --chip 1
+#            dsp4_stagewatch.py --chip 1 --seconds 6
+```
+
+If 3 and 4 boot, the second limit is not raw size and the next variable
+is the fill blocks (`-MaxFillBlockSize`) or the block count. If they do
+not, bisect between 8 KB and 33 KB the same way. Either way the answer is
+a loader flag, not firmware.
+
+**What this retires.** The SPORT4-7 `sport_dma_base()` fix is still
+correct against `sys/ADSP-21564.h` and stays, but it is UNTESTED on
+hardware and was never the thing that hung: nothing in `dma_config.c` has
+ever been reached. The "1-flash hang inside `arm_region`" reading from
+2026-08-19 was an LED code from an image that had not loaded, not a hang.
+`ldr/manifest.txt` now carries a WITHDRAWN note: the two production
+`.ldr`s on record are not bootable images.
+
+**New instruments, all committed and deployed to `/home/app/dspboot`
+(md5-checked both ends):**
+
+| tool | what it does |
+|---|---|
+| `tools/pi/dsp4_stagewatch.py` | samples GPIO8/GPIO12 at 1 kHz and decodes the DSP status-LED pattern into a verdict — steady square = running, N flashes = stuck after stage N, flat = not running. Removes the need for eyes on LD3/LD2 for every bisect round. |
+| `src/blink/bulkprobe.asm` + `./build.sh bulkprobe` | the boot-size ladder above. `BULK_LEVELS="..."` selects rungs. |
+| `dsp4_boot.py --chunk N` | host transfer size, to separate a kernel limit from a transfer-boundary artefact. |
+| `DSP4_BISECT=4` / `=5` | park on entry to `dma_cfg_init` / on the first instruction of `_start`. Parks now pulse PB_05 (Pi GPIO8/12) with interrupts OFF instead of relying on the timer-ISR LED, so a park answers "was this point reached?" without also asking about the interrupt path. |
+
+All of the above is still TEMPORARY scaffolding and still goes with NOW
+item 3 — except `-MaxBlockSize`, `dsp4_stagewatch.py`, `bulkprobe.asm`
+and `--chunk`, which stay.
+
+**Bench state at hand-off (PW took rev C for an app/panel reflash):**
+`matrix-app` restarted and active, all three MCUs verified at 14:58
+(H1S1, H1S3, H1S4 — "MCU verified" and "MCU boot verified" both), GPIO
+9/10/11 back to `a0`, GPIO8/12 inputs, GPIO16 output high. Chip 1 holds a
+non-running `DSP4_BISECT=5` image and chip 2 was last reset without one;
+neither runs code, which is the same state as before this session and
+harmless. Nothing further was booted or flashed after the hand-off
+request.
+
 
 ## HUB DISPATCH 2026-08-21 11:26Z — SHARC ③ — scope-driver + boot-bus toggle capture (rails good; CPLD cannot mirror SPI/RST)   [status: 🟢 done — **ROOT CAUSE FOUND AND FIXED. Both SHARCs boot and run application code.** The boot host never sent the SPICMD byte the SPI-target boot kernel reads as its FIRST byte (HRM Table 36-18: 0x03 = keep single-bit mode), so the ROM consumed the first byte of the .ldr as the command and every block header after it was shifted by one. Added `--spi-cmd` (default 0x03) to dsp4_boot.py: GPIO8 now toggles at ~1 Hz on chip 1 and GPIO12 at ~2 Hz on chip 2, and an A/B/A control with `--spi-cmd none` reproduces the old flat-low failure exactly. The parts were never damaged]   [model: opus]
 model: opus
@@ -1396,8 +1482,24 @@ about SHARC behaviour as unproven.
    NOTE: on the rev C board these are SILKSCREENED D2/D1 = schematic
    LD2/LD3 respectively — refdes offset, don't re-confuse them.**
 
-1. **P2.2 — dma_cfg_init wedge: ROOT CAUSE FOUND 2026-08-20 (desk
-   review), fix in the tree, NOT yet flashed.**
+1. **P2.2 — REFRAMED 2026-08-21: there is no dma_cfg_init wedge. The
+   full firmware has never executed an instruction on this card.**
+   Parks inside `dma_cfg_init` AND a park on the first instruction of
+   `_start` were all silent; only the ~1 KB blink/rdyprobe images have
+   ever run. Root cause found and half-fixed: **the SPI target boot
+   kernel cannot take a loader block larger than ~8 KB**, and every
+   image so far was built with elfloader's default (one block per
+   section). `-MaxBlockSize 0x1000` is now in `build.sh` LDRFLAGS —
+   necessary, proven (0/10 → 4/4 on the same 8 KB DXE), NOT sufficient:
+   the 208 KB image still does not run, so a second limit above ~8 KB
+   is still uncharacterised. **Next step and full evidence: the
+   2026-08-21 15:0xZ outcome at the top of this file.** Everything
+   below this line is the 2026-08-20 desk review, kept because the
+   `sport_dma_base()` fix in it is still correct — but it is UNTESTED
+   on hardware and was never what hung, because nothing in
+   `dma_config.c` has ever been reached.
+
+   **(superseded framing, 2026-08-20 desk review)**
    - **The SPORT DMA channels are not one contiguous block, and the two
      blocks are not adjacent in the MMR map** (HRM Table 27-2 "ADSP-2156x
      DMA Channel List", Table 23-6, and `sys/ADSP-21564.h`):

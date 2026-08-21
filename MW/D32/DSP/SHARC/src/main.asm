@@ -57,6 +57,9 @@
 .extern _sport_cfg_init;
 .extern _dma_cfg_init;
 .extern _diag_init;
+#if DSP4_BISECT == 5
+.extern _bisect_park_asm;
+#endif
 .extern _diag_boot_stage;
 .extern ldf_stack_space, ldf_stack_length;
 .extern _block_ready;
@@ -84,6 +87,17 @@
  *----------------------------------------------------------------------*/
 .global _start;
 _start:
+#if DSP4_BISECT == 5
+    /* TEMP bisect rung 0 (2026-08-21, tasks.md NOW item 3 deletes it):
+     * park on the FIRST instruction the boot stream hands control to,
+     * before anything else exists — no stack, no diag timer, no C. Five
+     * pulses on PB_05 (Pi GPIO8/GPIO12) therefore means exactly one
+     * thing: the .ldr landed and the part is executing our code. Silence
+     * means it is not, and nothing downstream of it can be read. */
+    r4 = 5;
+    call _bisect_park_asm;      /* never returns */
+#endif
+
     /* Chip identity: compile-time (see the note at the top of this
      * file). Kept in _chip_id so the runtime paths are unchanged. */
     r0 = CHIP_ID;

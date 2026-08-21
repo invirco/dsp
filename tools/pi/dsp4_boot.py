@@ -231,7 +231,7 @@ def wait_ready(line, what, timeout=RDY_TIMEOUT_S, active_low=RDY_ACTIVE_LOW):
 
 def boot_chip(spi, gpio, chip, stream, verbose=True, attempt=1,
               attempts=BOOT_ATTEMPTS, active_low=RDY_ACTIVE_LOW,
-              spicmd=SPICMD_SINGLE_BIT):
+              spicmd=SPICMD_SINGLE_BIT, chunk=CHUNK):
     cs = gpio.out(CS_GPIO[chip], initial=1)
     rdy = gpio.inp(RDY_GPIO[chip])
 
@@ -243,11 +243,11 @@ def boot_chip(spi, gpio, chip, stream, verbose=True, attempt=1,
             # Sent with SS already asserted and before any stream byte,
             # per the host flow in HRM Figure 36-6.
             spi.xfer2([spicmd])
-        for off in range(0, len(stream), CHUNK):
+        for off in range(0, len(stream), chunk):
             wait_ready(rdy, f'chip {chip} (at byte {off})',
                        active_low=active_low)
-            spi.xfer2(list(stream[off:off + CHUNK]))
-            sent += len(stream[off:off + CHUNK])
+            spi.xfer2(list(stream[off:off + chunk]))
+            sent += len(stream[off:off + chunk])
     finally:
         cs.set_value(1)
     if verbose:
@@ -259,7 +259,7 @@ def boot_chip(spi, gpio, chip, stream, verbose=True, attempt=1,
 
 def boot_chip_retrying(spi, gpio, chip, stream, verbose=True,
                        attempts=BOOT_ATTEMPTS, active_low=RDY_ACTIVE_LOW,
-                       spicmd=SPICMD_SINGLE_BIT):
+                       spicmd=SPICMD_SINGLE_BIT, chunk=CHUNK):
     """boot_chip with the documented one-shot retry. Every attempt is
     logged — a part that needs the retry every time is still telling us
     something, so the retry must stay visible rather than silent."""
@@ -268,7 +268,8 @@ def boot_chip_retrying(spi, gpio, chip, stream, verbose=True,
         try:
             return boot_chip(spi, gpio, chip, stream, verbose=verbose,
                              attempt=attempt, attempts=attempts,
-                             active_low=active_low, spicmd=spicmd)
+                             active_low=active_low, spicmd=spicmd,
+                             chunk=chunk)
         except TimeoutError as exc:
             last = exc
             print(f'  chip {chip}: attempt {attempt}/{attempts} FAILED — '
@@ -294,6 +295,13 @@ def main():
     ap.add_argument('--no-reset', action='store_true',
                     help='skip the !RST_D pulse (only valid if the parts '
                          'are already sitting in the boot kernel)')
+    ap.add_argument('--chunk', type=int, default=CHUNK,
+                    help=f'bytes per spidev transfer (default {CHUNK}). Must '
+                         f'be a multiple of {BOOT_UNIT} and no larger than '
+                         f'the spidev bufsiz (4096 on this Pi). Exposed for '
+                         f'the 2026-08-21 boot-size investigation: it '
+                         f'separates "the kernel choked on the Nth byte" '
+                         f'from "it choked at a transfer boundary".')
     ap.add_argument('--attempts', type=int, default=BOOT_ATTEMPTS,
                     help=f'boot attempts per chip (default {BOOT_ATTEMPTS}: '
                          f'one automatic retry; 1 disables the retry)')
@@ -390,6 +398,7 @@ def main():
 
     for chip, path, s, raw_len in streams:
         boot_chip_retrying(spi, gpio, chip, s, attempts=args.attempts,
+                           chunk=args.chunk,
                            active_low=not args.rdy_active_high,
                            spicmd=spicmd)
     print(f'booted {len(streams)} chip(s) at {args.speed} Hz, SPI mode '

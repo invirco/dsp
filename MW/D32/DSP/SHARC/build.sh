@@ -44,12 +44,20 @@ CFLAGS="$PROC -O -DNDEBUG"
 # P2.2 bisect variant selector (TEMPORARY — goes with the scaffolding when
 # tasks.md NOW item 3 lands). See the DSP4_BISECT block at the top of
 # src/dma_config.c for what each value parks on:
-#   0 = production, 1 = round 1 (default, = the image on the bench),
-#   2 = variant B (park after arm_region(B)), 3 = variant C (EN last).
-if [ -n "${DSP4_BISECT:-}" ]; then
-    CFLAGS="$CFLAGS -DDSP4_BISECT=$DSP4_BISECT"
-    echo "  (P2.2 bisect variant: DSP4_BISECT=$DSP4_BISECT)"
-fi
+#   0 = production, 1 = round 1 (default, park after arm_region(A)),
+#   2 = variant B (park after arm_region(B)), 3 = variant C (EN last),
+#   4 = park on entry to dma_cfg_init, 5 = park on the first instruction
+#   of _start (does the image execute at all?).
+# The define goes to the ASSEMBLER too: with a bisect variant selected,
+# diag.asm mirrors the status LED onto PB_05 (SPI2_RDY -> Pi GPIO8/GPIO12)
+# so the bisect can be read over ssh instead of needing eyes on LD3/LD2.
+# Always passed explicitly (defaulting to the same 1 that dma_config.c
+# falls back to) so the C and asm halves can never disagree about which
+# variant is being built.
+DSP4_BISECT="${DSP4_BISECT:-1}"
+CFLAGS="$CFLAGS -DDSP4_BISECT=$DSP4_BISECT"
+ASMFLAGS="$ASMFLAGS -DDSP4_BISECT=$DSP4_BISECT"
+echo "  (P2.2 bisect variant: DSP4_BISECT=$DSP4_BISECT)"
 
 # Linker flags — LDF resolved in build(): the repo LDF hardcodes
 # ARCHITECTURE(ADSP-21564); for a fit-proxy build under a different
@@ -287,7 +295,35 @@ build() {
 #               what tells the kernel to stay in single-bit mode.
 #   -f BINARY   raw bytes for spidev, not ASCII hex
 #   -width 8    byte-wide stream
-LDRFLAGS="-b SPIHOST -bcode 1 -f BINARY -width 8"
+#   -MaxBlockSize 0x1000
+#               HARD REQUIREMENT on this part in SPI target boot, found
+#               2026-08-21. The default is 0x7FFFFFF0, i.e. one block per
+#               contiguous section, and the boot kernel does not survive a
+#               large one: bisected with src/blink/bulkprobe.asm (rdyprobe
+#               plus a slab of dead code, so size is the only variable),
+#               chip 1, ten boots per rung —
+#                   180 B stream, 68 B block     10/10 boot
+#                 8364 B stream, 8252 B block     0/10 boot
+#               and then the SAME 8364-byte DXE re-run through elfloader
+#               with -MaxBlockSize 0x400 or 0x1000 boots 4/4. Nothing else
+#               changed: not the clock (100 kHz behaves the same as 1 MHz),
+#               not the host transfer size (--chunk 1024 / 2048 / 4096 all
+#               behave the same), not the zero-fill blocks (removing the
+#               506 KB L2 fill changed nothing). It is the byte count in a
+#               single block header that the kernel cannot take.
+#               This is why the full firmware — one 8 KB+ block per
+#               section — was accepted by the host end to end and then
+#               never executed a single instruction, while the 1 KB
+#               blink/rdyprobe images always ran. 0x1000 is used rather
+#               than 0x400 because both boot and the larger block costs
+#               fewer headers.
+#               NECESSARY BUT NOT YET SUFFICIENT: with this in place the
+#               full 208 KB chip1 image still does not run (DSP4_BISECT=5
+#               park stayed silent, 2026-08-21 15:0xZ), so there is a
+#               SECOND limit above ~8 KB — total image size, block count,
+#               or the fill blocks. The bulkprobe ladder rebuilt with this
+#               flag is the instrument for that; see tasks.md P2.2.
+LDRFLAGS="-b SPIHOST -bcode 1 -f BINARY -width 8 -MaxBlockSize 0x1000"
 #
 # The entry address is NOT passed on the command line: the ELF header
 # carries no entry point, so elfloader defaults to 0x90004 — which IS the
@@ -367,14 +403,44 @@ tiny_image() {
 blink()    { tiny_image blink    blink.asm    PA_12; }
 rdyprobe() { tiny_image rdyprobe rdyprobe.asm "PB_05 = Pi GPIO8/GPIO12"; }
 
+# ---- Boot-size probe (see src/blink/bulkprobe.asm) -----------------------
+# rdyprobe plus a slab of never-executed code, at five sizes, chip 1 only.
+# Built as a ladder because the question is where slave boot stops
+# working, not whether one particular size does.
+bulkprobe() {
+    echo "=== Build bulkprobe ladder (chip 1) ==="
+    resolve_ldf
+    mkdir -p "$BUILD_DIR/blink"
+    local rc=0 b
+    for b in ${BULK_LEVELS:-0 1 2 3 4}; do
+        $ASM21K $ASMFLAGS -DCHIP_ID=1 -DBULK=$b \
+            -o "$BUILD_DIR/blink/bulkprobe$b.doj" "$SRC_DIR/blink/bulkprobe.asm" \
+            || { rc=1; continue; }
+        $ASM21K $ASMFLAGS -DCHIP_ID=1 -nwc \
+            -o "$BUILD_DIR/blink/bulkprobe_ivt.doj" "$SRC_DIR/blink/blink_ivt.asm" \
+            || { rc=1; continue; }
+        $LD21K $LDFLAGS -Map "$BUILD_DIR/bulkprobe$b.map.xml" \
+            -o "$BUILD_DIR/bulkprobe$b.dxe" \
+            "$BUILD_DIR/blink/bulkprobe_ivt.doj" "$BUILD_DIR/blink/bulkprobe$b.doj" \
+            || { rc=1; continue; }
+        "$LDR21K" $PROC $LDRFLAGS \
+            -o "$BUILD_DIR/bulkprobe$b.ldr" "$BUILD_DIR/bulkprobe$b.dxe" \
+            > "$BUILD_DIR/bulkprobe$b.ldr.log" 2>&1 || { rc=1; continue; }
+        echo "  bulkprobe$b.ldr: $(stat -c %s "$BUILD_DIR/bulkprobe$b.ldr") bytes"
+    done
+    [ $rc -eq 0 ] && echo "=== bulkprobe OK ===" || echo "=== bulkprobe FAILED ==="
+    return $rc
+}
+
 case "${1:-build}" in
     clean) clean ;;
     build) build ;;
     all)   clean && build ;;
     blink) blink ;;
     rdyprobe) rdyprobe ;;
+    bulkprobe) bulkprobe ;;
     count) count ;;
     single) single "$2" ;;
-    *)     echo "Usage: $0 [clean|build|all|blink|rdyprobe|count|single <asm-file>]"
+    *)     echo "Usage: $0 [clean|build|all|blink|rdyprobe|bulkprobe|count|single <asm-file>]"
            exit 1 ;;
 esac

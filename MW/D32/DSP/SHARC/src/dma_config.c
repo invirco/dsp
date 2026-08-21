@@ -47,17 +47,39 @@ static inline uint32_t l1_to_sys(uint32_t a)
  * is understood). Select with `DSP4_BISECT=n ./build.sh`:
  *
  *   0  production path — no park, no stage stamps. What ships.
- *   1  round 1 (2026-08-19, currently running on chip1): park straight
- *      after arm_region(A). Steady 1 Hz square on LD2 = A survived;
- *      slow single blink = still dying inside A.
+ *   1  round 1 (2026-08-19): park straight after arm_region(A).
  *   2  variant B: park moved after arm_region(B) — the round-1 follow-up
- *      when LD2 reads steady, i.e. A is clean and B is the next suspect.
+ *      when 1 survives, i.e. A is clean and B is the next suspect.
  *   3  variant C: EN-write-order experiment. Same park point as round 1
- *      (after A) so LD2 answers the same question, but arm_region writes
- *      DSCPTR and CFG with DMA_CFG.EN CLEAR and then sets EN in a second
- *      write, instead of one CFG write that both configures and starts
- *      the channel. If C survives where 1 dies, the descriptor fetch is
- *      being kicked off before the descriptor pointer has landed.
+ *      (after A), but arm_region writes DSCPTR and CFG with DMA_CFG.EN
+ *      CLEAR and then sets EN in a second write, instead of one CFG write
+ *      that both configures and starts the channel. If C survives where 1
+ *      dies, the descriptor fetch is being kicked off before the
+ *      descriptor pointer has landed.
+ *   4  reached-at-all check: park on ENTRY to dma_cfg_init, before
+ *      anything in this file touches a register. Added 2026-08-21 —
+ *      the rung below round 1, because the full firmware had never been
+ *      observed running at all on this card (only the standalone blink /
+ *      rdyprobe images had), so "1 dies" and "the image never ran" were
+ *      not yet distinguishable.
+ *   5  the rung below that again: park on the FIRST instruction of
+ *      _start (main.asm, via _bisect_park_asm in diag.asm). Nothing in
+ *      this file participates. 5 pulses = the boot stream landed and the
+ *      core is running our code; silence = it is not.
+ *
+ * HOW A PARK REPORTS (2026-08-21). Not via the LED state machine: that is
+ * driven by _diag_timer_isr, so it answers a question about the interrupt
+ * path as much as about this file, and it needs eyes on LD3/LD2. Instead
+ * bisect_park() turns interrupts off and drives PB_05 (SPI2_RDY -> Pi
+ * GPIO8 on chip 1 / GPIO12 on chip 2) from a plain busy loop: N pulses,
+ * long gap, repeat, where N is the last completed stage stamp. So one
+ * `dsp4_stagewatch.py --chip 1` sample says which park was reached, with
+ * no interrupt, no SEC, no SPI and nobody at the bench:
+ *
+ *   1 pulse  = entered dma_cfg_init (variant 4)
+ *   2 pulses = arm_region(A) returned (variants 1 and 3)
+ *   3 pulses = arm_region(B) returned (variant 2)
+ *   nothing  = the park was not reached
  *
  * The default stays 1 (park after A) so a plain rebuild still stops at the
  * bisect point rather than running on into untested territory. NOTE: the
@@ -68,8 +90,8 @@ static inline uint32_t l1_to_sys(uint32_t a)
 #ifndef DSP4_BISECT
 #define DSP4_BISECT 1
 #endif
-#if DSP4_BISECT < 0 || DSP4_BISECT > 3
-#error "DSP4_BISECT must be 0 (production), 1 (round 1), 2 (variant B) or 3 (variant C)"
+#if DSP4_BISECT < 0 || DSP4_BISECT > 5
+#error "DSP4_BISECT must be 0 (production), 1, 2, 3 (variants), 4 (entry park) or 5 (_start park)"
 #endif
 
 #define REG32(addr) (*(volatile uint32_t *)(addr))
@@ -315,6 +337,59 @@ void dma_cfg_init(void);
 #pragma linkage_name _diag_stage_set
 extern void diag_stage_set(int stage);  /* TEMP bisect stamps 2026-08-19 */
 #define DIAG_STAGE(n) diag_stage_set(n)
+
+#pragma linkage_name _diag_irq_off
+extern void diag_irq_off(void);         /* TEMP bisect helper 2026-08-21 */
+
+/* PB_05 = SPI2_RDY -> card edge CS3/CS4 -> Pi GPIO8 / GPIO12. Same pin,
+ * same push-pull-over-the-10K-pulldown reasoning as src/blink/rdyprobe.asm.
+ * Safe here because every park is upstream of spi2_init(), so the SPI2
+ * flow-control function of the pin is never configured in a park build. */
+#define PORTB_FER_CLR   0x31004088u
+#define PORTB_INEN_CLR  0x310040ACu
+#define PORTB_DATA_SET  0x31004090u
+#define PORTB_DATA_CLR  0x31004094u
+#define PORTB_DIR_SET   0x3100409Cu
+#define RDY_PIN_BIT     (1u << 5)
+
+/* Busy-loop delays. CCLK on this card is NOT 400 MHz: rdyprobe1 measures
+ * 1058 ms where it intends 500, so the real number is near 190 MHz
+ * (2026-08-21). These counts are picked to land in the 100 ms / 1 s
+ * region at either figure — the decoder in tools/pi/dsp4_stagewatch.py
+ * works on ratios, not absolute times, so being a factor of two out
+ * costs nothing. */
+#define PARK_PULSE_ITERS   1500000u
+#define PARK_GAP_ITERS    12000000u
+
+static void park_delay(unsigned int iters)
+{
+    volatile unsigned int i;
+    for (i = 0; i < iters; i++) { }
+}
+
+static void bisect_park(int code)
+{
+    int n;
+
+    /* Own the pin outright: with interrupts left on, _diag_timer_isr's
+     * LED mirror drives PB_05 too and the two patterns interleave. */
+    diag_irq_off();
+
+    REG32(PORTB_FER_CLR)  = RDY_PIN_BIT;    /* GPIO, not SPI2 */
+    REG32(PORTB_INEN_CLR) = RDY_PIN_BIT;
+    REG32(PORTB_DATA_CLR) = RDY_PIN_BIT;    /* low before driving */
+    REG32(PORTB_DIR_SET)  = RDY_PIN_BIT;
+
+    for (;;) {
+        for (n = 0; n < code; n++) {
+            REG32(PORTB_DATA_SET) = RDY_PIN_BIT;
+            park_delay(PARK_PULSE_ITERS);
+            REG32(PORTB_DATA_CLR) = RDY_PIN_BIT;
+            park_delay(PARK_PULSE_ITERS);
+        }
+        park_delay(PARK_GAP_ITERS);
+    }
+}
 #else
 #define DIAG_STAGE(n) ((void)0)
 #endif
@@ -322,20 +397,21 @@ extern void diag_stage_set(int stage);  /* TEMP bisect stamps 2026-08-19 */
 void dma_cfg_init(void)
 {
     DIAG_STAGE(1);
+#if DSP4_BISECT == 4
+    bisect_park(1);     /* 1 pulse = the image runs and got this far */
+#endif
     arm_region(REGION_A_LANES, REGION_A_COUNT, 0,
                REGION_A_PING, REGION_A_PONG, desc_a);
-#if DSP4_BISECT == 1 || DSP4_BISECT == 3
-    DIAG_STAGE(7);      /* steady square on LD2 = arm_region(A) survived */
-    for (;;) { }        /* park — the question is arm_region(A) only */
-#endif
     DIAG_STAGE(2);
+#if DSP4_BISECT == 1 || DSP4_BISECT == 3
+    bisect_park(2);     /* 2 pulses = arm_region(A) returned */
+#endif
     arm_region(REGION_B_LANES, REGION_B_COUNT, 1,
                REGION_B_PING, REGION_B_PONG, desc_b);
-#if DSP4_BISECT == 2
-    DIAG_STAGE(7);      /* variant B: steady square = arm_region(B) too */
-    for (;;) { }        /* park — A is already known good at this point */
-#endif
     DIAG_STAGE(3);
+#if DSP4_BISECT == 2
+    bisect_park(3);     /* 3 pulses = arm_region(B) returned too */
+#endif
 
     sec_init();
     DIAG_STAGE(4);
