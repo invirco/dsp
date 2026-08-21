@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-08-21 11:26Z — SHARC ③ — scope-driver + boot-bus toggle capture (rails good; CPLD cannot mirror SPI/RST)   [status: 🟡 dispatched]   [model: opus]
+## HUB DISPATCH 2026-08-21 11:26Z — SHARC ③ — scope-driver + boot-bus toggle capture (rails good; CPLD cannot mirror SPI/RST)   [status: 🔴 blocked — tools built and deployed; boot bus PROVEN live (16 170 SCK transitions inside the CS1 window, MOSI with it), so the Pi is clocking the DSPs and TASK B does NOT point at a host-side drive fault; !RST_D is now the single open item, and the hub's "H1S1 PA13 overpowers GPIO16" mechanism is REFUTED (PA13 is unconfigured in H1S1 — reset-default pull-up, not a driver — and the Pi drives the net to a clean 0 at its own pad). PW's J6.36-stuck-high therefore reads as an OPEN between the CM4 and the card; next action is one DMM measurement, one-liner supplied]   [model: opus]
 
 model: opus
 
@@ -94,6 +94,119 @@ before ending; ~/db Dropbox; single trunk; no AI attribution.
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
 no AI attribution in commits or any work product.
+
+### Outcome 2026-08-21 13:05Z — 🔴 BLOCKED on one DMM measurement at the bench
+
+**TASK A — done, deployed, exercised.** Three new tools in `tools/pi/`,
+copied to `/home/app/dspboot` (md5-checked both ends):
+
+| tool | what it does |
+|---|---|
+| `dsp4_scopedrive.py` + `.sh` | PW's refinement, built first. Drives SCK/MOSI/!RST_D as **plain push-pull GPIO square waves**, one frequency per pin so the scope identifies the pin without moving the probe: SCK 1 kHz, MOSI 500 Hz, !RST_D 250 Hz. Also `hold RST_D=0` for a DC level a meter can read. Releases and **restores spidev's ALT0 pinmux** on stop. |
+| `dsp4_bootloop.sh` | repeats a real `dsp4_boot.py` boot every ~3 s (chip 1 or 2) so the boot-shaped edges recur. |
+| `dsp4_busmon.py` | **passive** GPLEV0 capture through `/dev/gpiomem` at ~1.3 MSa/s. Claims no line and changes no pull, so it runs *during* a boot — which `dsp4_netprobe.py` structurally cannot do, because its bias-and-read method takes SCK/MOSI away from SPI0 and would break the transfer it is meant to watch. That is why netprobe only ever reported the bus at rest. |
+
+One-liners for the bench (all in the checklist doc):
+`cd /home/app/dspboot && ./dsp4_scopedrive.sh start | stop | hold RST_D=0`,
+`./dsp4_bootloop.sh start [chip] [period] | stop`. Both stop `matrix-app`
+on start and restart it on stop.
+
+**A live-fire hazard found and fixed while building this:** `pinctrl get
+9,10,11` read **`ip` (plain inputs)**, not `a0`. Releasing a gpiod line
+leaves the pin an input and nothing restores the SPI0 pinmux — not a
+`matrix-app` restart. `dsp4_netprobe.py` had left them that way at the end
+of the 08-20 session, so any boot run afterwards would have clocked
+nothing while still reporting OK. Both new wrappers now set `a0`
+explicitly, and `dsp4_scopedrive --restore` puts it back.
+
+**TASK B — the discriminating capture: the Pi IS clocking the DSPs.**
+`dsp4_busmon.py` around a real `rdyprobe1.ldr` boot, 3 267 584 samples in
+2.5 s:
+
+| net | whole capture | inside the CS1-low window |
+|---|---|---|
+| SCK (GPIO11) | ACTIVE, 16 170 transitions | **16 170 — all of them** |
+| MOSI (GPIO10) | ACTIVE, 1066 transitions | 498 |
+| !RST_D (GPIO16) | low for **51.7 ms** (the tool's 50 ms pulse) | — |
+| MISO, RDY1, RDY2 | STATIC low throughout | STATIC low |
+
+1024 bytes × 8 = 8192 SPI clocks = 16 384 edges; 16 170 observed, the
+deficit being a 0.77 µs sampler aliasing a 1 MHz clock, not lost cycles.
+PW's scope agrees at the header (J6.23 and J6.19 both toggling). **So the
+netprobe's "MOSI/SCK held high" was a statement about an idle bus, not a
+dead one, and TASK B's host-side-drive branch is closed.**
+
+**The hub's PA13 mechanism is refuted — but the conclusion survives.**
+
+- H1S1 firmware (`~/build-h1s1`): **PA13 is not configured at all.** It is
+  absent from the `.ioc` pin list, `RST_D_Pin`/`RST_D_GPIO_Port` are not
+  defined in `main.h`, and the only two references in `main.c` are
+  commented out. PA13 sits in the STM32U5 reset default — SWDIO alternate
+  function, ~40 kΩ internal pull-up. That is what beats the Pi's ~50 kΩ
+  internal pull-down in netprobe; it cannot fight a push-pull output.
+- Pi GPIO16 at the CM4 pad, 2000 samples per state: input+pull-down →
+  **high** (the PA13 pull-up), input+pull-up → high, **driven low
+  push-pull → low, 2000/2000**, driven high → high, square wave → follows
+  0/1. The Pi owns the net at its own end.
+- So there is nothing to release: holding H1S1 in reset or lifting PA13
+  would change nothing, and dispatch options 2(a)/(b)/(c) are all moot.
+
+**Net topology, settled from the schematic (ROOT sheet p1/10).** The DSPA
+and DSPB hierarchy blocks each take `!RST_D` into a port named `RST`, and
+on the DSPA sheet (p5) that sheet-local `RST` lands on **U6 p104,
+SYS_HWRST** — same for DSPB/U5. One net: **CM4 GPIO16 · U7 PA13 · J6.36 ·
+DIL100 P13 · U5 p104 · U6 p104**, no series resistor. Recorded in
+`hardware-map.md` §3. (A wrong turn on the way, corrected by PW at the
+desk: the DSP sheets are sub-sheets and their labels are sheet-local, so
+the `RST` on the M MCU sheet is U8's own NRST — a different net. It was
+briefly tested as a way to reset the DSPs: an AIRCR SYSRESETREQ on U8 does
+pull its NRST low, proven by RCC_CSR going 0x00000000 → **0x14000000**
+(SFTRSTF **and PINRSTF**) across a pure software reset, but that net does
+not reach the parts, and booting after it left GPIO8 flat as expected.)
+
+**Which leaves one physical reading of PW's bench result.** The Pi's end
+of `!RST_D` is at 0 V while J6.36 on the card is at 3.3 V, on one net. That
+is an **open between the CM4 and the DSP4 card** — a DIL100 P13 contact, a
+broken track/via, or an unstuffed link — with PA13's pull-up holding the
+isolated card-side segment high. If so, neither SHARC has ever been reset
+by the host: both came out of reset once at power-on, ran the boot ROM with
+nothing sending, and have never re-entered the boot window since. That is
+"boot reports OK, GPIO8 flat", every time, since March.
+
+**TASK C — bookkeeping done.**
+
+- `~/db/TransferOnly/PCB mods/dsp4-revC-liveness-checklist.md`: new §1a
+  probe-point map (J6 pin numbers + the DSP-side 0402 pads + the bench
+  one-liners), the CPLD-cannot-mirror-2/3 finding recorded, step 1 marked
+  PASS (rails), step 2 marked pass-at-the-header, and **step 3 rewritten as
+  the open item** with all the evidence above and a four-step procedure.
+- `MW/D24/HW/hardware-map.md` §3: the `!RST_D` net traced end to end, the
+  sub-sheet naming trap, and the PA13-unconfigured finding.
+
+**Blocked on — one measurement, no scope needed:**
+
+```
+ssh app@192.168.1.219 'cd /home/app/dspboot && ./dsp4_scopedrive.sh hold RST_D=0'
+```
+
+then meter **J6 pin 36** (and p104 on U5/U6 if reachable);
+`./dsp4_scopedrive.sh stop` after.
+
+- Both ~0 V → the net is sound, the earlier scope reading was a pin out,
+  and the investigation goes to the parts (checklist step 4: fresh card /
+  fresh SHARCs).
+- J6.36 at 3.3 V → **open confirmed**; find the segment with a continuity
+  check power-off, bodge it, re-run `./dsp4_bootloop.sh start` and watch
+  GPIO8. Red mod on rev C, item on rev D.
+- If the break is unreachable, the card-side fallback is real: U7 PA13 is
+  on that net, doing nothing. Configure it as a push-pull output with a
+  "pulse !RST_D" command in H1S1 and the supervisor can reset the DSPs —
+  which the schematic annotation always claimed it could.
+
+Unit left with `matrix-app` running, all three MCUs verified (H1S1, H1S3,
+H1S4 at 12:46), GPIO5/13 back to inputs, GPIO9/10/11 back to `a0`, GPIO16
+output high.
+
 
 ## HUB DISPATCH 2026-08-21 10:46Z — SHARC testing ② — boot retest on corrected CLKIN (÷2 + level-shift fitted)   [status: 🔴 blocked — clock now verified good at the pad and BOTH chips are still flat (GPIO8/GPIO12 never move, no RDY high in a reset-pulse trace); new lead found at the desk: neither SHARC has any decoupling in the rev-C schematic — PW checklist written, ordered by cost]   [model: opus]
 

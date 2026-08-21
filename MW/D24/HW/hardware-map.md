@@ -159,8 +159,28 @@ analog source (NET only); the LOGIC slot map must route DSPB O1 → DA3.
   DSPs addressable in bigger builds (S MCU also has CS5/CS7/CS8 pins).
 - **No link port / no inter-DSP control path** — each DSP is parameterised
   directly over its own SPI CS.
-- **Resets:** S MCU drives IRST_D (both DSPs), IRST_O (option cards),
-  IRST_C (converters).
+- **Resets — `!RST_D` net, traced end to end 2026-08-21 (ROOT sheet p1/10).**
+  The DSPA and DSPB hierarchy blocks each take `!RST_D` into a port named
+  `RST`, and on the DSPA sheet (p5) that sheet-local `RST` lands on **U6
+  pin 104, SYS_HWRST** — likewise DSPB/U5. One net, six places:
+  **CM4 GPIO16 · U7 PA13 (p47) · J6 pin 36 · DIL100 P13 · U5 p104 ·
+  U6 p104.** No series resistor anywhere on it, and `SYS_RESOUT` (p107) is
+  N/C on both parts. Two masters, no arbitration.
+  - Careful with the sub-sheet names: `RST` on the M MCU sheet (p6) is a
+    *different* net — U8's own NRST, shared with the J5 SWD header, C204
+    and DIL100 P84. It has nothing to do with the DSPs.
+  - **U7 PA13 does not drive it.** In the current H1S1 firmware
+    (`~/build-h1s1`) PA13 is not configured at all: absent from the `.ioc`
+    pin list, `RST_D_Pin`/`RST_D_GPIO_Port` undefined in `main.h`, and the
+    only two references in `main.c` commented out. It sits in the STM32U5
+    reset default — SWDIO alternate function with the ~40 kOhm internal
+    pull-up. That pull-up is what `dsp4_netprobe.py` reads as "held high by
+    something stronger than the Pi pull" (the Pi's internal pull is
+    ~50 kOhm); it cannot fight a push-pull output, and the Pi's GPIO16
+    drives the net to a clean 0 at its own pad. So the schematic
+    annotation "!RST_D (Reset DSPs)" on U7 p47 describes an intent the
+    firmware has never implemented.
+  - S MCU also drives IRST_O (option cards) and IRST_C (converters).
 - **DSP_CLK:** distributed to both DSPs' SYS_CLKIN0 (pin 5) from the
   LOGIC sheet — CPLD U3 pin 140 → **R65 22R → DSPA U6 p5** and
   **R33 22R → DSPB U5 p5**; SYS_XTAL0 (p6) unconnected on both, correct
