@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-08-21 14:37Z — P2.2 cont'd — characterise the >8KB boot-stream limit so the full 208KB image runs, then dma_cfg_init   [status: 🔴 blocked — **there is no size limit; the ">8 KB block-size" finding was an artefact and is retired.** TWO independent faults found, both characterised. (1) elfloader's ZERO-FILL blocks: the boot kernel loses stream sync at the first fill block that has anything after it, so no D32 firmware image has ever been loadable. Fixed with `-NoFillBlock` + a build-time guard — **chip 2's full firmware now executes (5/6, DSP4_BISECT=5 park firing), the first time any full image has run a single instruction on this card.** (2) U7/H1S1's legacy ADAU poll on the shared boot bus corrupts any stream longer than ~220 ms; boot success tracks stream ELAPSED TIME, not size (same 3 KB image: 5/6 at 1 MHz, 0/6 at 100 kHz). Mitigated host-side with `--sync-poll` + 10/11 MHz. chip 1 (258 KB, ~320 ms) still cannot fit and is BLOCKED on stopping that poll — an H1S1 reflash, needs PW's go-ahead. dma_cfg_init walk started on chip 2: the park on `_start` fires, the park on `dma_cfg_init` entry does not, so the firmware dies before `_diag_init` completes — but that read is confounded by the fill-stripped diagnostic image and needs redoing on a `-NoFillBlock` build]   [model: opus]
+## HUB DISPATCH 2026-08-21 14:37Z — P2.2 cont'd — characterise the >8KB boot-stream limit so the full 208KB image runs, then dma_cfg_init   [status: 🔴 blocked — **there is no size limit; the ">8 KB block-size" finding was an artefact and is retired.** TWO independent faults found, both characterised. (1) elfloader's ZERO-FILL blocks: the boot kernel loses stream sync at the first fill block that has anything after it, so no D32 firmware image has ever been loadable. Fixed with `-NoFillBlock` + a build-time guard — **chip 2's full firmware now executes (5/6, DSP4_BISECT=5 park firing), the first time any full image has run a single instruction on this card.** (2) U7/H1S1's legacy ADAU poll on the shared boot bus corrupts any stream longer than ~220 ms; boot success tracks stream ELAPSED TIME, not size (same 3 KB image: 5/6 at 1 MHz, 0/6 at 100 kHz). Mitigated host-side with `--sync-poll` + 10/11 MHz. chip 1 (258 KB, ~320 ms) still cannot fit and is BLOCKED on stopping that poll — an H1S1 reflash, needs PW's go-ahead. item 2 answered on clean builds: **the wedge is in `_sru_init`, not `dma_cfg_init`** — parks after the C stack prologue (6/6) and after `_diag_init` (5/6) fire, the park after `_sru_init` does not (0/6), and splitting that function puts the hang in its DAI0 half, the very first SRU register writes. `sru_init()` has no loop, so it is a fault, not a spin; CCLK measuring ~190 MHz against code that assumes 400 MHz is the standing suspect. `dma_cfg_init` and the `sport_dma_base()` fix are still untested — they sit three calls downstream]   [model: opus]
 
 model: opus
 
@@ -96,16 +96,37 @@ current H1S1 sources in `~/build-h1s1`. **Reflashing H1S1 is very likely
 the whole fix — NOT DONE, it needs PW's go-ahead** (and the 13:09Z
 dispatch fenced the ADAU-poll item off).
 
-**dma_cfg_init (item 2), started on chip 2.** Park on `_start`'s first
-instruction: FIRES. Park on entry to `dma_cfg_init`: SILENT 0/6. Since a
-bisect build mirrors the diag LED onto PB_05 as soon as `_diag_init`
-runs, total silence means it dies before `_diag_init` completes — i.e.
-in the C stack setup or inside `_diag_init`, upstream of `_sru_init`,
-`_sport_cfg_init` and `dma_cfg_init`. **Treat this as provisional**: that
-run used a fill-STRIPPED diagnostic image, so BSS was uninitialised and
-the hang may be an artefact of the instrument. Redo it on a
-`-NoFillBlock` build before trusting it. The `sport_dma_base()` fix
-remains untested on hardware.
+**item 2 — the wedge is in `_sru_init`, NOT `dma_cfg_init`.** Redone on
+clean `-NoFillBlock` chip-2 builds (the first pass used a fill-STRIPPED
+diagnostic image with uninitialised BSS and reported `_diag_init`; that
+reading is WITHDRAWN). Park rungs added to `main.asm` at each step of
+`_start`'s init sequence, 6 boots each, read over ssh on PB_05:
+
+| rung | park point | result |
+|---|---|---|
+| 6 | after the C stack prologue | **6/6 fires** |
+| 7 | after `_diag_init` returns | **5/6 fires** |
+| 8 | after `_sru_init` returns | **0/6 silent** |
+| 9 | after `_sport_cfg_init` returns | 0/6 silent |
+| 4 | entry to `dma_cfg_init` | 0/6 silent |
+
+`_sru_init` never returns. Split further with rung 10 (an early `return`
+in `sru_config.c` at the DAI0/DAI1 boundary): also **0/6**, so the hang
+is in the **DAI0 half — the very first SRU register writes**, not the
+DAI1/SPORT4-7 ones.
+
+`sru_init()` is straight-line `SRU()` macro register writes with no loop
+in it, so "never returns" is a FAULT, not a spin — the core vectors
+somewhere and stays there. The obvious suspect is the DAI/SRU register
+space not being reachable yet (clock/power gating, or a CGU that is not
+where the code assumes). Note the independent evidence: **CCLK on this
+card measures ~190 MHz, not the 400 MHz every delay constant assumes**
+(diag.h), and the standalone blink images run ~2x slow — PW confirmed
+both LEDs blinking at the slow rate 2026-08-21. Next session: read the
+fault status registers at the park, and confirm DAI0 is clocked before
+`sru_init` touches it. **`dma_cfg_init` and the `sport_dma_base()` fix
+remain untested on hardware — they are three calls downstream of a
+function that never returns.**
 
 **Also worth knowing (cost me an hour).** Claiming GPIO9/10/11 with
 gpiod/`gpiomon` takes them out of `a0` and **spidev does not put them
@@ -123,7 +144,10 @@ attempt; chip 1 holds nothing running.
 **NEXT, in order.** (1) Ask PW about reflashing H1S1 to kill the ADAU
 poll — it unblocks chip 1 and removes the time budget entirely.
 (2) Zero `sec_delay`/`sec_delay_ovf` in firmware startup (new NOW item).
-(3) Redo the `dma_cfg_init` bisect on a `-NoFillBlock` chip-2 build.
+(3) Chase the `_sru_init` fault: read the fault status registers at the
+park, and check DAI0 is clocked/ungated before `sru_init` writes to it —
+CCLK measuring ~190 MHz against code assuming 400 MHz says the clock tree
+is not where this firmware thinks it is.
 (4) Production verification of chip 2 needs eyes on LD2, or a working
 `dsp4_diag.py` — it crashes on start (`TypeError` in the gpiod line
 request), unrelated to any of this.
