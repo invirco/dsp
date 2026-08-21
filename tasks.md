@@ -1,3 +1,65 @@
+## HUB DISPATCH 2026-08-21 07:23Z — SHARC testing ① — CPLD dsp_clk ÷2 (CLKIN out of range) + closed-loop retest   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+PW decision 2026-08-21: SHARC testing is the TOP priority for this machine;
+reorder the NOW queue behind it (edit the NOW header to say so).
+
+HUB HARDWARE REVIEW RESULT (mx26 docs/backlog-d24-schematic-errata.md
+"DSP4 rev C", commit 5e1d419 — read it first): **SYS_CLKIN0 is driven at
+49.152 MHz, outside the ADSP-2156x CLKIN range (20–30 MHz).** The CPLD
+passes the XO straight through (`shared/dsp4-logic/rtl/dsp4_logic_top.v`
+line ~100: `assign dsp_clk = sysclk;`). HRM CGU: reset-default MSEL = 60,
+DF = 0 → PLLCLK ≈ 2.95 GHz at reset; the boot ROM can never have run.
+This fits your 08-20 conclusion that there is no evidence either SHARC
+ever received a byte. It is the prime suspect — test it first.
+
+**TASK A — CPLD dsp_clk ÷2 (24.576 MHz).**
+1. Replace the pass-through with a divide-by-2 flop on sysclk (50 % duty,
+   glitch-free), keep pin 140; no other RTL changes. Add an SDC
+   `create_generated_clock` for it. Update tb_logic_top to check dsp_clk
+   = sysclk/2. Quartus build: fitter clean, STA met, LE delta noted.
+   Commit the bitstream hash-named per the existing convention.
+2. Flash it via the proven path (hub did it 08-19: SVF over the CM4 at
+   app@192.168.1.219 — see mx26 tasks.md "dsp4_logic.fd6a5ec69198" and
+   the IDCODE 0x020a30dd before/after check). Verify PCM_CLK/PCM_FS
+   still toggle (netprobe) so the rest of the CPLD is unaffected.
+3. Rerun the closed loop exactly as the 08-20 dispatch defines it
+   (rdyprobe1.ldr on chip 1, sample GPIO8). Also repeat the
+   "!RST_D pulse with no SPI traffic" RDY observation: with a live
+   part the kernel should now show behaviour that differs from the
+   dead-part baseline you recorded.
+4. If GPIO8 toggles: boot blink1/blink2 (LD3/LD2 for PW at the bench),
+   then the production chip1/chip2 images, and resume P2.2
+   (dma_cfg_init) with working instruments. Record the verdict in
+   findings/tasks as "CLKIN out of range — fixed in CPLD; rev D errata".
+5. If still flat after a correct ÷2 (verified by build + a GPIO-side
+   sanity where possible): STOP and write the scope checklist for PW's
+   bench session — probe points are the 22R pads only: R65/R33 (CLKIN,
+   expect 24.576 MHz, 3V3 swing), R51/R52 (SPI2 MOSI/CLK during a
+   boot), p104 (HWRST), +0.9 V at J1 P1-6. Then the JTAG-bodge decision
+   goes to PW (no DSP JTAG exists on the board).
+
+**TASK B — bookkeeping.** Restate the clock finding in
+dsp4-architecture-decisions.md (CPLD is the DSP clock source; 24.576 MHz
+is the contract; programmable is a feature). Add the rev-D items from the
+errata list to your "Blocked on PW" or rev-D section if not already there
+(no JTAG, TRST floating, RDY pull-down, !RST_D dual master + PA13=SWDIO,
+RESOUT/FAULT N/C, no test points). Datasheet gap: the 21560/61/64/68
+datasheet is NOT in Dropbox or the repo (analog.com blocks fetch) — PW
+asked to drop it into `_mx/_temp/adsp-2156x-docs/`; when it appears,
+confirm the fCLKIN min/max line and close the [verify] tags.
+
+Constraints: chips may be freely booted/reset; ALWAYS restart matrix-app
+and confirm the three MCUs verify before ending the session or between
+long gaps; Dropbox via ~/db. The rev C unit is yours (no other machine
+dispatched to it). Single trunk; update the dispatch block status; no AI
+attribution.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-08-20 18:43Z — Boot handoff investigation — apps never execute   [status: 🔴 blocked]
 
 ROOT QUESTION: SHARC boot streams are fully consumed by the ROM (per-chunk
