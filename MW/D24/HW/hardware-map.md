@@ -169,11 +169,43 @@ analog source (NET only); the LOGIC slot map must route DSPB O1 → DA3.
   failing silently and nothing answers on MISO. That same clamping protects
   a boot's clock — a boot always runs with GPIO11 in `a0` — but **not its
   data**: MOSI carries H1S1's bursts even with `a0` attached, and the DSP is
-  listening whenever the Pi has CS asserted. Collision probability against a
-  14 ms transfer is ~5.6 % per boot attempt, i.e. an intermittent corrupt
-  stream, not a permanent failure. Two masters, two polarities, no
+  listening whenever the Pi has CS asserted. Two masters, two polarities, no
   arbitration — a rev-D item, and the reason `dsp4_netprobe.py` reports
   SCK/MOSI as "held high".
+  - **Quantified 2026-08-21, and it sets the boot-stream time budget.**
+    Captured on the Pi with GPIO11 taken off `a0` (which unclamps H1S1's
+    clock and makes the poll visible): **63 bursts in 11.67 s**, each
+    ~0.5 ms, modal period **254 ms**, mean interval **185 ms** — the
+    distribution has a second cluster around 40–60 ms, so the gaps are
+    not clean.
+  - Boot failure probability tracks stream ELAPSED TIME, not stream size
+    and not block size. The cleanest proof is one unchanged image at
+    three clocks (chip 1, ~3 KB): **5/6 at 1 MHz (25 ms), 5/6 at 4 MHz
+    (6 ms), 0/6 at 100 kHz (246 ms)**. Same bytes, same blocks — only
+    time on the bus changed.
+  - Faster is therefore SAFER. **10 and 11 MHz boot cleanly; 12 MHz and
+    above fail outright** (0/4 at 12/16/25/32 MHz on a 180-byte image),
+    so ~11 MHz is the ceiling this bus supports.
+  - `dsp4_boot.py --sync-poll` starts the stream just after a burst and
+    buys most of a gap. With it, at 11 MHz: a 107 KB probe (144 ms)
+    boots **6/6**, a 176 KB image (~220 ms) boots **5/6**, and a 197 KB
+    probe (264 ms) boots **0/6**. Practical budget: **~220 ms**, i.e.
+    ~240 KB at 11 MHz.
+  - CONSEQUENCE: chip2's firmware fits; **chip1's (258 KB, ~320 ms) does
+    not, at any clock this bus supports.** Unblocking chip1 means
+    stopping the poll, not reshaping the image. The poll is already dead
+    code — the Pi's `a0` clamp shorts its clock, so nothing has ever
+    answered it — and it is absent from the current H1S1 sources in
+    `~/build-h1s1` (`main.c`'s `DspTx` is commented out; the only
+    `HAL_SPI_Transmit` calls left are in `Core/Inc/matrix.cs`, which is
+    not compiled). A reflash of H1S1 with current firmware is very
+    likely all that is needed. NOT DONE — reflashing the S MCU on the
+    bench unit needs PW's go-ahead.
+  - Operational trap: claiming GPIO9/10/11 with gpiod/`gpiomon` takes
+    them out of `a0`, and **spidev does not put them back** (the pinmux
+    is applied at probe time, not per open). A boot with those pins left
+    as plain inputs fails 100% of the time and looks exactly like a dead
+    part. Restore with `pinctrl set 9,10,11 a0`.
 - **No link port / no inter-DSP control path** — each DSP is parameterised
   directly over its own SPI CS.
 - **Resets — `!RST_D` net, traced end to end 2026-08-21 (ROOT sheet p1/10).**

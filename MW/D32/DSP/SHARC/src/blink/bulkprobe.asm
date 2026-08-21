@@ -16,7 +16,9 @@
  *
  * BULK selects the slab, in nops: 0 none, 1 1 K, 2 4 K, 3 16 K, 4 32 K,
  * then the refinement rungs 5 = 6 K, 6 = 8 K, 7 = 10 K, 8 = 12 K, and
- * 9 = 4.25 K, 10 = 4.5 K, 11 = 5 K, 12 = 5.5 K.
+ * 9 = 4.25 K, 10 = 4.5 K, 11 = 5 K, 12 = 5.5 K, and the firmware-sized
+ * rungs 13 = 64 K (~131 KB stream), 14 = 52 K (~107 KB, chip2-sized),
+ * 15 = 96 K (~197 KB, chip1-sized).
  * The slab sits after an unconditional jump and is never executed; if a
  * given size boots, PB_05 (Pi GPIO8 / GPIO12) toggles at ~1 Hz exactly
  * as rdyprobe does.
@@ -78,8 +80,28 @@
 #define BULK_BODY R4096(nop;) R1024(nop;)
 #elif BULK == 12
 #define BULK_BODY R4096(nop;) R1024(nop;) R512(nop;)
+/* Firmware-sized rungs, added 2026-08-21 once the limit turned out to be
+ * boot-stream DURATION rather than size (tasks.md P2.2). 14 and 15 are
+ * cut to match the real chip2 (108 KB) and chip1 (208 KB) streams, so a
+ * production image and a probe of the same length can be compared
+ * directly — that is what separates "the stream is too long" from
+ * "something in the firmware image itself is wrong". */
+#elif BULK == 13
+#define BULK_BODY R4(R16384(nop;))
+#elif BULK == 14
+#define BULK_BODY R2(R16384(nop;)) R16384(nop;) R4096(nop;)
+#elif BULK == 15
+/* One input section cannot straddle two L1 code blocks — the linker
+ * places a section whole, and block2/block3 are 128 KB each — so the
+ * chip1-sized rung is cut as two 96 KB sections. */
+#define BULK_BODY  R2(R16384(nop;)) R16384(nop;)
+#define BULK_BODY2 R2(R16384(nop;)) R16384(nop;)
 #else
-#error "BULK must be 0..12"
+#error "BULK must be 0..15"
+#endif
+
+#ifndef BULK_BODY2
+#define BULK_BODY2
 #endif
 
 .section/pm seg_pmco;
@@ -106,3 +128,10 @@ _start:
 /* Dead weight — never reached, only ever loaded. */
     BULK_BODY
 _start.end:
+
+/* Second slab, in its own section so the linker can place it in the
+ * other L1 code block (see BULK 15). Empty for every other rung. */
+.section/pm seg_swco;
+_bulk2:
+    BULK_BODY2
+_bulk2.end:

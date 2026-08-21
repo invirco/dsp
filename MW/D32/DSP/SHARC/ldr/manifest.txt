@@ -11,11 +11,32 @@ superseded: chip1.35c5681c0ef5.ldr + chip2.859f775f9a7b.ldr
       wrong SPORT4-7 DMA base)
 
 WITHDRAWN 2026-08-21: neither chip1.b4090de01d5d.ldr nor
-chip2.bb2b24db8617.ldr is bootable. Both were produced without
-elfloader's -MaxBlockSize cap, so every section is one block of 8 KB or
-more, and the SPI target boot kernel does not survive a block that large
-(bisected at the bench 2026-08-21; see build.sh LDRFLAGS and tasks.md
-P2.2). The host accepts the stream end to end and the part never executes
-an instruction. Do not flash these, and do not treat "boot reported OK"
-against them as evidence of anything. No replacement artifact yet — the
-size limit is not fully characterised.
+chip2.bb2b24db8617.ldr is bootable, and the reason first recorded here
+(a block-size ceiling) was WRONG. Both are unbootable because elfloader
+compressed their zero runs into ZERO-FILL blocks, and the SPI target boot
+kernel loses stream sync at the first fill block that has anything after
+it — so the host clocks the whole stream out, reports success, and the
+part never executes an instruction. Do not flash these, and do not treat
+"boot reported OK" against them as evidence of anything.
+
+The earlier `-MaxBlockSize` theory is retired: an A/B of the same DXE,
+capped vs uncapped, 8 boots each, scored 7/8 and 6/8 — indistinguishable.
+That reading came from a ~50% per-attempt failure rate caused by the boot
+bus's second master, not by block size.
+
+FIX, in the tree since 2026-08-21: `-NoFillBlock` in build.sh's LDRFLAGS,
+guarded by `tools/dsp/ldr_stream.py check` on every image the build
+produces. Proved at the bench, chip 2, gap-synced 11 MHz: the firmware as
+elfloader emitted it booted 0/6; the same firmware with -NoFillBlock
+booted 5/6, with the DSP4_BISECT=5 park firing — the first time any full
+D32 firmware image has executed an instruction on this card.
+
+NO REPLACEMENT ARTIFACT RECORDED YET, deliberately:
+  * chip2 — the stream SHAPE is proved bootable (5/6 above), but that was
+    a DSP4_BISECT=5 park build, which is readable over ssh. A production
+    (DSP4_BISECT=0) image drives only LD2, so confirming one needs eyes
+    at the bench. Not yet done.
+  * chip1 — 258 KB, ~320 ms on the wire, which does not fit between two
+    of U7/H1S1's ADAU-poll bursts at any clock this bus supports. It
+    cannot be made to boot until that poll is stopped
+    (MW/D24/HW/hardware-map.md 3). Nothing to record.

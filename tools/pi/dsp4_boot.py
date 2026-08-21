@@ -79,9 +79,10 @@ import time
 CS_GPIO = {1: 6, 2: 24}
 RDY_GPIO = {1: 8, 2: 12}
 RST_GPIO = 16
+SCK_GPIO = 11           # Pi SPI0 SCLK; also H1S1's SCK — see sync_to_gap()
 
 BOOT_UNIT = 1024        # HRM: slave-boot hosts send multiples of 1024 B
-CHUNK = 4096            # spidev-friendly; a multiple of BOOT_UNIT
+CHUNK = 0               # 0 = one writebytes2 for the whole stream (see --chunk)
 RESET_LOW_S = 0.050     # !RST_D pulse width
 
 # Settle time between releasing !RST_D and the first clocked byte.
@@ -98,6 +99,11 @@ RESET_LOW_S = 0.050     # !RST_D pulse width
 # ever lines up and boot never completes.
 POST_RESET_S = 0.500    # --post-reset-delay overrides
 RDY_TIMEOUT_S = 2.0
+
+# Pause after each transfer, giving the boot kernel time to drain and
+# process the unit it just received. See --unit-delay; 0 = the
+# pre-2026-08-21 behaviour (RDY level check only).
+UNIT_DELAY_S = 0.0
 BOOT_ATTEMPTS = 2       # 1 automatic retry — see "Auto-retry" above
 RETRY_SETTLE_S = 0.20   # let the part's boot kernel re-arm SPI_RDY
 
@@ -229,11 +235,81 @@ def wait_ready(line, what, timeout=RDY_TIMEOUT_S, active_low=RDY_ACTIVE_LOW):
     return True
 
 
+def sync_to_gap(timeout=3.0, quiet_s=0.003, verbose=True):
+    """Return just after an H1S1 poll burst ends, so the stream that
+    follows gets a whole inter-burst gap to itself.
+
+    The DSP boot bus has a second master: U7 (S MCU) runs a legacy ADAU
+    meter poll on the same SCK/MOSI nets — a ~0.6 ms burst roughly every
+    260 ms (hardware-map.md §3). The Pi's SPI0 output clamps SCK while
+    GPIO11 is in `a0`, but NOT MOSI, so a burst landing mid-stream
+    corrupts the boot data and the part never runs. Measured 2026-08-21:
+    boot failure probability tracks elapsed/gap almost exactly, which is
+    why a 25 ms stream boots ~85% of the time and a 190 ms one almost
+    never does by chance.
+
+    Taking GPIO11 off `a0` unclamps H1S1's clock and makes the burst
+    visible as edges. Wait for one, wait for it to go quiet, hand the pin
+    back and return — the caller then has the rest of the gap.
+
+    Returns True if a burst was seen and the gap is fresh, False if the
+    bus stayed quiet for `timeout` (in which case the caller has learnt
+    nothing and should just send).
+
+    NOTE: claiming GPIO9/10/11 as GPIO takes them out of `a0` and
+    spidev does NOT put them back — the pinmux is applied at probe time,
+    not per open. Anything in this repo that claims them must restore
+    them, which is what the `pinctrl` call below is for. A boot with
+    those pins left as plain inputs fails 100% of the time and looks
+    exactly like a dead part.
+    """
+    import datetime
+    import subprocess
+
+    import gpiod
+    from gpiod.line import Direction, Edge
+
+    def restore():
+        subprocess.run(['pinctrl', 'set', '9,10,11', 'a0'],
+                       check=False, capture_output=True)
+
+    req = gpiod.request_lines(
+        '/dev/gpiochip0', consumer='dsp4_boot_sync',
+        config={SCK_GPIO: gpiod.LineSettings(direction=Direction.INPUT,
+                                             edge_detection=Edge.BOTH)})
+    try:
+        deadline = time.monotonic() + timeout
+        seen = False
+        while time.monotonic() < deadline:
+            if req.wait_edge_events(datetime.timedelta(seconds=0.25)):
+                req.read_edge_events()
+                seen = True
+                break
+        if not seen:
+            if verbose:
+                print('  sync: no poll burst seen — sending unsynchronised',
+                      file=sys.stderr)
+            return False
+        # Burst under way: drain until the bus has been quiet for quiet_s.
+        while req.wait_edge_events(datetime.timedelta(seconds=quiet_s)):
+            req.read_edge_events()
+        return True
+    finally:
+        req.release()
+        restore()
+
+
 def boot_chip(spi, gpio, chip, stream, verbose=True, attempt=1,
               attempts=BOOT_ATTEMPTS, active_low=RDY_ACTIVE_LOW,
-              spicmd=SPICMD_SINGLE_BIT, chunk=CHUNK):
+              spicmd=SPICMD_SINGLE_BIT, chunk=CHUNK,
+              unit_delay=UNIT_DELAY_S, sync=False):
+    if sync:
+        synced = sync_to_gap(verbose=verbose)
+    else:
+        synced = False
     cs = gpio.out(CS_GPIO[chip], initial=1)
     rdy = gpio.inp(RDY_GPIO[chip])
+    t0 = time.monotonic()
 
     wait_ready(rdy, f'chip {chip} (pre-select)', active_low=active_low)
     cs.set_value(0)
@@ -243,23 +319,49 @@ def boot_chip(spi, gpio, chip, stream, verbose=True, attempt=1,
             # Sent with SS already asserted and before any stream byte,
             # per the host flow in HRM Figure 36-6.
             spi.xfer2([spicmd])
-        for off in range(0, len(stream), chunk):
-            wait_ready(rdy, f'chip {chip} (at byte {off})',
-                       active_low=active_low)
-            spi.xfer2(list(stream[off:off + chunk]))
-            sent += len(stream[off:off + chunk])
+        if chunk == 0:
+            # One writebytes2 call for the whole stream. spidev splits it
+            # at bufsiz in C, so the per-chunk cost is an ioctl rather
+            # than a Python list of ints -- on this Pi that is the
+            # difference between 384 ms and 215 ms for the 208 KB image,
+            # and elapsed time is what decides a boot here (see the
+            # collision note below). The RDY level check is skipped: with
+            # the pull-downs fitted it reads asserted whatever the part
+            # is doing, so it was never buying anything to give up.
+            spi.writebytes2(stream)
+            sent = len(stream)
+        else:
+            for off in range(0, len(stream), chunk):
+                wait_ready(rdy, f'chip {chip} (at byte {off})',
+                           active_low=active_low)
+                spi.xfer2(list(stream[off:off + chunk]))
+                sent += len(stream[off:off + chunk])
+                if unit_delay:
+                    time.sleep(unit_delay)
     finally:
         cs.set_value(1)
+    dt = time.monotonic() - t0
     if verbose:
+        # The elapsed time is the number that matters on this card:
+        # the DSP boot bus has a second master (U7/H1S1's legacy ADAU
+        # meter poll, ~600 us every ~260 ms — hardware-map.md §3),
+        # and any stream in flight when a burst lands is corrupted.
+        # Collision odds are elapsed/260 ms, so this print is the
+        # boot's predicted reliability.
         print(f'  chip {chip}: attempt {attempt}/{attempts} OK — {sent} bytes '
               f'sent on CS{chip} (GPIO{CS_GPIO[chip]}), RDY on '
-              f'GPIO{RDY_GPIO[chip]}')
+              f'GPIO{RDY_GPIO[chip]}, {dt * 1e3:.1f} ms '
+              f'({min(dt / 0.260, 1.0) * 100:.0f}% unsynced collision '
+              f'risk'
+              + (', gap-synced — real odds much better)' if synced
+                 else ')'))
     return sent
 
 
 def boot_chip_retrying(spi, gpio, chip, stream, verbose=True,
                        attempts=BOOT_ATTEMPTS, active_low=RDY_ACTIVE_LOW,
-                       spicmd=SPICMD_SINGLE_BIT, chunk=CHUNK):
+                       spicmd=SPICMD_SINGLE_BIT, chunk=CHUNK,
+                       unit_delay=UNIT_DELAY_S, sync=False):
     """boot_chip with the documented one-shot retry. Every attempt is
     logged — a part that needs the retry every time is still telling us
     something, so the retry must stay visible rather than silent."""
@@ -269,7 +371,8 @@ def boot_chip_retrying(spi, gpio, chip, stream, verbose=True,
             return boot_chip(spi, gpio, chip, stream, verbose=verbose,
                              attempt=attempt, attempts=attempts,
                              active_low=active_low, spicmd=spicmd,
-                             chunk=chunk)
+                             chunk=chunk, unit_delay=unit_delay,
+                             sync=sync)
         except TimeoutError as exc:
             last = exc
             print(f'  chip {chip}: attempt {attempt}/{attempts} FAILED — '
@@ -290,18 +393,40 @@ def main():
                     help='boot one chip only (default: both)')
     ap.add_argument('--dev', default='0.0',
                     help='spidev bus.device (default 0.0)')
-    ap.add_argument('--speed', type=int, default=1_000_000,
-                    help='SPI clock Hz (default 1 MHz for bring-up)')
+    ap.add_argument('--speed', type=int, default=10_000_000,
+                    help='SPI clock Hz (default 10 MHz). Faster is SAFER '
+                         'here, not riskier: the boot bus has a second '
+                         'master and the only defence is to be off the bus '
+                         'quickly (see sync_to_gap). Characterised '
+                         '2026-08-21 on rev C: 10 and 11 MHz boot cleanly, '
+                         '12 MHz and above fail outright, and 100 kHz never '
+                         'boots anything but the smallest image.')
     ap.add_argument('--no-reset', action='store_true',
                     help='skip the !RST_D pulse (only valid if the parts '
                          'are already sitting in the boot kernel)')
     ap.add_argument('--chunk', type=int, default=CHUNK,
-                    help=f'bytes per spidev transfer (default {CHUNK}). Must '
-                         f'be a multiple of {BOOT_UNIT} and no larger than '
-                         f'the spidev bufsiz (4096 on this Pi). Exposed for '
-                         f'the 2026-08-21 boot-size investigation: it '
-                         f'separates "the kernel choked on the Nth byte" '
-                         f'from "it choked at a transfer boundary".')
+                    help=f'bytes per spidev transfer (default {CHUNK} = one '
+                         f'writebytes2 call for the whole stream, the '
+                         f'fastest and therefore most reliable path on this '
+                         f'card). A non-zero value must be a multiple of '
+                         f'{BOOT_UNIT} and no larger than the spidev bufsiz '
+                         f'(4096 on this Pi), and re-enables the per-chunk '
+                         f'SPI_RDY check. Exposed for the 2026-08-21 '
+                         f'boot-size investigation, which established that '
+                         f'neither the chunk size nor the stream size is '
+                         f'what decides a boot -- elapsed time is.')
+    ap.add_argument('--unit-delay', type=float, default=UNIT_DELAY_S,
+                    help=f'seconds to pause after each transfer (default '
+                         f'{UNIT_DELAY_S}). Back pressure the SPI_RDY level '
+                         f'check cannot give: with the pull-downs fitted the '
+                         f'line rests asserted, so the check can pass before '
+                         f'the kernel has drained the previous unit.')
+    ap.add_argument('--sync-poll', action='store_true',
+                    help='wait for U7/H1S1\'s ADAU meter-poll burst to '
+                         'finish before streaming, so the boot gets a whole '
+                         'inter-burst gap (~260 ms) to itself. See '
+                         'sync_to_gap(). Costs a few ms and needs the '
+                         'pinctrl binary.')
     ap.add_argument('--attempts', type=int, default=BOOT_ATTEMPTS,
                     help=f'boot attempts per chip (default {BOOT_ATTEMPTS}: '
                          f'one automatic retry; 1 disables the retry)')
@@ -399,10 +524,14 @@ def main():
     for chip, path, s, raw_len in streams:
         boot_chip_retrying(spi, gpio, chip, s, attempts=args.attempts,
                            chunk=args.chunk,
+                           unit_delay=args.unit_delay,
+                           sync=args.sync_poll,
                            active_low=not args.rdy_active_high,
                            spicmd=spicmd)
     print(f'booted {len(streams)} chip(s) at {args.speed} Hz, SPI mode '
-          f'{args.spi_mode}'
+          f'{args.spi_mode}, {args.chunk} B/transfer'
+          + (f', {args.unit_delay * 1e3:.1f} ms unit delay'
+             if args.unit_delay else '')
           + ('' if spicmd is None else f', SPICMD {spicmd:#04x}'))
 
 

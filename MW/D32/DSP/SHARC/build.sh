@@ -295,35 +295,60 @@ build() {
 #               what tells the kernel to stay in single-bit mode.
 #   -f BINARY   raw bytes for spidev, not ASCII hex
 #   -width 8    byte-wide stream
-#   -MaxBlockSize 0x1000
+#   -NoFillBlock
 #               HARD REQUIREMENT on this part in SPI target boot, found
-#               2026-08-21. The default is 0x7FFFFFF0, i.e. one block per
-#               contiguous section, and the boot kernel does not survive a
-#               large one: bisected with src/blink/bulkprobe.asm (rdyprobe
-#               plus a slab of dead code, so size is the only variable),
-#               chip 1, ten boots per rung —
-#                   180 B stream, 68 B block     10/10 boot
-#                 8364 B stream, 8252 B block     0/10 boot
-#               and then the SAME 8364-byte DXE re-run through elfloader
-#               with -MaxBlockSize 0x400 or 0x1000 boots 4/4. Nothing else
-#               changed: not the clock (100 kHz behaves the same as 1 MHz),
-#               not the host transfer size (--chunk 1024 / 2048 / 4096 all
-#               behave the same), not the zero-fill blocks (removing the
-#               506 KB L2 fill changed nothing). It is the byte count in a
-#               single block header that the kernel cannot take.
-#               This is why the full firmware — one 8 KB+ block per
-#               section — was accepted by the host end to end and then
-#               never executed a single instruction, while the 1 KB
-#               blink/rdyprobe images always ran. 0x1000 is used rather
-#               than 0x400 because both boot and the larger block costs
-#               fewer headers.
-#               NECESSARY BUT NOT YET SUFFICIENT: with this in place the
-#               full 208 KB chip1 image still does not run (DSP4_BISECT=5
-#               park stayed silent, 2026-08-21 15:0xZ), so there is a
-#               SECOND limit above ~8 KB — total image size, block count,
-#               or the fill blocks. The bulkprobe ladder rebuilt with this
-#               flag is the instrument for that; see tasks.md P2.2.
-LDRFLAGS="-b SPIHOST -bcode 1 -f BINARY -width 8 -MaxBlockSize 0x1000"
+#               2026-08-21. By default elfloader compresses runs of zeros
+#               into ZERO-FILL blocks: a header with a byte count and no
+#               payload. The boot kernel does not survive one. A fill
+#               block that is followed by any further block loses the
+#               kernel its place in the stream, every header after it is
+#               garbage, and the part never executes an instruction --
+#               while the host still clocks the whole stream out and
+#               reports success.
+#
+#               Measured at the bench, chip 2, gap-synced 11 MHz:
+#                 one 640 B fill inserted at the FRONT of an image that
+#                   otherwise boots            3/3  ->  0/3
+#                 the identical block APPENDED instead
+#                                              3/3  ->  3/3
+#                 chip2 firmware as elfloader emits it (324 blocks,
+#                   152 of them fills)               0/6
+#                 same firmware, -NoFillBlock (6 blocks, no fills)
+#                                                    5/6
+#               A fill block that happens to be LAST is harmless, which
+#               is why nothing downstream of it ever noticed.
+#
+#               This is what kept the D32 firmware from ever running.
+#               The earlier `-MaxBlockSize 0x1000` theory (a block-size
+#               ceiling around 8 KB) was WRONG and has been removed: an
+#               A/B of the same DXE capped vs uncapped, 8 runs each,
+#               scored 7/8 and 6/8 -- indistinguishable. That reading
+#               came from a ~50% per-attempt failure rate whose real
+#               cause was the boot bus's second master (see below), not
+#               the block size.
+#
+#               COST: the zeros now travel in the stream. Delay-line
+#               buffers are marked NO_INIT in the LDF for exactly this
+#               reason -- see the note beside sec_delay there -- without
+#               which chip2 would be a 1.9 MB stream.
+#
+#               tools/dsp/ldr_stream.py check enforces this, and loader()
+#               below runs it on every image built.
+#
+# BOOT-STREAM TIME BUDGET (the other half of the 2026-08-21 finding).
+# The DSP boot bus has a SECOND MASTER: U7/H1S1 runs a legacy ADAU meter
+# poll on the same SCK/MOSI nets, a ~0.6 ms burst roughly every 260 ms
+# (MW/D24/HW/hardware-map.md 3). The Pi clamps SCK but not MOSI, so a
+# burst landing mid-stream corrupts the boot data. Boot failure
+# probability tracks stream ELAPSED TIME almost exactly -- proved by
+# running one unchanged image at three clocks: 3 KB booted 5/6 at 1 MHz
+# (25 ms) and 0/6 at 100 kHz (246 ms). dsp4_boot.py --sync-poll starts
+# the stream just after a burst and buys most of a gap; 11 MHz is the
+# fastest clock this bus takes (12 MHz and up fail outright).
+# CONSEQUENCE: chip2 (176 KB, ~220 ms) boots. chip1 (258 KB, ~320 ms)
+# does NOT -- it cannot fit in a gap at any clock this bus supports. The
+# fix for chip1 is to stop the H1S1 poll, not to change the image.
+LDRFLAGS="-b SPIHOST -bcode 1 -f BINARY -width 8 -NoFillBlock"
 #
 # The entry address is NOT passed on the command line: the ELF header
 # carries no entry point, so elfloader defaults to 0x90004 — which IS the
@@ -349,6 +374,12 @@ loader() {
             continue
         fi
         echo "  $f.ldr: $(stat -c %s "$BUILD_DIR/$f.ldr") bytes"
+        # An image with a mid-stream zero-fill block is not bootable (see
+        # -NoFillBlock above). Catch it here rather than at the bench.
+        if ! python3 "$SCRIPT_DIR/../../../../tools/dsp/ldr_stream.py" \
+                check "$BUILD_DIR/$f.ldr"; then
+            rc=1
+        fi
     done
     return $rc
 }

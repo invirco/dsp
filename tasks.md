@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-08-21 14:37Z — P2.2 cont'd — characterise the >8KB boot-stream limit so the full 208KB image runs, then dma_cfg_init   [status: 🟡 dispatched]   [model: opus]
+## HUB DISPATCH 2026-08-21 14:37Z — P2.2 cont'd — characterise the >8KB boot-stream limit so the full 208KB image runs, then dma_cfg_init   [status: 🔴 blocked — **there is no size limit; the ">8 KB block-size" finding was an artefact and is retired.** TWO independent faults found, both characterised. (1) elfloader's ZERO-FILL blocks: the boot kernel loses stream sync at the first fill block that has anything after it, so no D32 firmware image has ever been loadable. Fixed with `-NoFillBlock` + a build-time guard — **chip 2's full firmware now executes (5/6, DSP4_BISECT=5 park firing), the first time any full image has run a single instruction on this card.** (2) U7/H1S1's legacy ADAU poll on the shared boot bus corrupts any stream longer than ~220 ms; boot success tracks stream ELAPSED TIME, not size (same 3 KB image: 5/6 at 1 MHz, 0/6 at 100 kHz). Mitigated host-side with `--sync-poll` + 10/11 MHz. chip 1 (258 KB, ~320 ms) still cannot fit and is BLOCKED on stopping that poll — an H1S1 reflash, needs PW's go-ahead. dma_cfg_init walk started on chip 2: the park on `_start` fires, the park on `dma_cfg_init` entry does not, so the firmware dies before `_diag_init` completes — but that read is confounded by the fill-stripped diagnostic image and needs redoing on a `-NoFillBlock` build]   [model: opus]
 
 model: opus
 
@@ -39,6 +39,94 @@ verify 3 MCUs before ending; ~/db Dropbox; single trunk; no AI attribution.
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
 no AI attribution in commits or any work product.
+
+### Outcome 2026-08-21 17:2xZ — the boot-stream limit is characterised; it was never a size limit
+
+**Headline: chip 2's full firmware executes.** A `DSP4_BISECT=5` build —
+the park on the FIRST INSTRUCTION of `_start` — fired 5/6 at the bench.
+Every previous session's premise ("the full image never runs") is now
+resolved for chip 2, and the reason it never ran is understood.
+
+**What the previous session's finding actually was.** `-MaxBlockSize
+0x1000` does nothing. A/B of the identical DXE, capped vs uncapped, 8
+boots each at 4 MHz: **7/8 vs 6/8**. The earlier "0/10 then 4/4" was a
+~50% coin flip read as a signal. The flag is REMOVED from build.sh and
+the claim retracted in `ldr/manifest.txt`.
+
+**FAULT 1 — zero-fill blocks (this is what kept the firmware from ever
+running).** elfloader compresses zero runs into ZERO-FILL blocks: a
+header with a byte count and no payload. The SPI target boot kernel does
+not survive one. A fill block followed by ANY further block loses the
+kernel its place in the stream; a fill that happens to be last is
+harmless, which is why nothing ever noticed.
+
+| test (chip 2, gap-synced 11 MHz) | result |
+|---|---|
+| image that boots, one 640 B fill inserted at the FRONT | 3/3 → **0/3** |
+| identical block APPENDED instead | 3/3 → **3/3** |
+| chip2 firmware as elfloader emits it (324 blocks, 152 fills) | **0/6** |
+| same firmware, `-NoFillBlock` (6 blocks, no fills) | **5/6** |
+
+Found by grafting the firmware's first N blocks in front of a tiny probe
+that toggles PB_05, so a boot proves the kernel consumed them: N=0 boots
+3/3, N=1 (a single leading fill) **0/3**.
+
+FIX IN TREE: `-NoFillBlock` in `build.sh` LDRFLAGS, and
+`tools/dsp/ldr_stream.py check` runs on every image the build produces,
+so the shape cannot come back silently. Because the zeros now travel for
+real, `sec_delay`/`sec_delay_ovf` are marked `NO_INIT` in the LDF —
+without that chip 2 would be a 1.9 MB stream. **Those delay buffers must
+now be cleared by firmware at startup; that is a new NOW item below.**
+
+**FAULT 2 — the boot bus's second master sets a TIME budget.** U7/H1S1's
+legacy ADAU meter poll bursts ~0.5 ms on the shared SCK/MOSI every
+~185–254 ms (63 bursts in 11.67 s, measured). Boot success tracks stream
+ELAPSED TIME, not size and not block size — the cleanest proof is one
+unchanged 3 KB image at three clocks: **5/6 at 1 MHz (25 ms), 5/6 at
+4 MHz, 0/6 at 100 kHz (246 ms)**. Faster is safer; 10 and 11 MHz boot
+cleanly, **12 MHz and above fail outright**. `dsp4_boot.py --sync-poll`
+(new) starts the stream just after a burst. Budget with it: ~220 ms
+≈ 240 KB at 11 MHz — a 107 KB probe boots 6/6, 176 KB 5/6, 197 KB 0/6.
+
+**Why chip 1 is still blocked.** 258 KB, ~320 ms on the wire. It does not
+fit between two bursts at any clock this bus supports, so no host-side
+trick reaches it. The poll is already DEAD CODE (the Pi's `a0` clamp
+shorts its clock, nothing has ever answered) and appears absent from the
+current H1S1 sources in `~/build-h1s1`. **Reflashing H1S1 is very likely
+the whole fix — NOT DONE, it needs PW's go-ahead** (and the 13:09Z
+dispatch fenced the ADAU-poll item off).
+
+**dma_cfg_init (item 2), started on chip 2.** Park on `_start`'s first
+instruction: FIRES. Park on entry to `dma_cfg_init`: SILENT 0/6. Since a
+bisect build mirrors the diag LED onto PB_05 as soon as `_diag_init`
+runs, total silence means it dies before `_diag_init` completes — i.e.
+in the C stack setup or inside `_diag_init`, upstream of `_sru_init`,
+`_sport_cfg_init` and `dma_cfg_init`. **Treat this as provisional**: that
+run used a fill-STRIPPED diagnostic image, so BSS was uninitialised and
+the hang may be an artefact of the instrument. Redo it on a
+`-NoFillBlock` build before trusting it. The `sport_dma_base()` fix
+remains untested on hardware.
+
+**Also worth knowing (cost me an hour).** Claiming GPIO9/10/11 with
+gpiod/`gpiomon` takes them out of `a0` and **spidev does not put them
+back** — every boot then fails and looks exactly like a dead part.
+`pinctrl set 9,10,11 a0` restores it; `--sync-poll` does it automatically.
+Separately, stopping `matrix-app` makes DSP boot fail outright (0/6 where
+it was 5/6) — not chased, but do not debug boot with the app stopped.
+
+**Bench state at hand-off:** `matrix-app` restarted and active, all three
+MCUs verified 17:16–17:17 (H1S1, H1S3, H1S4 — "MCU verified" and "MCU
+boot verified"), GPIO9/10/11 back to `a0`, spidev bufsiz back to its
+4096 default. Chip 2 holds a production `chip2.ldr` from the last boot
+attempt; chip 1 holds nothing running.
+
+**NEXT, in order.** (1) Ask PW about reflashing H1S1 to kill the ADAU
+poll — it unblocks chip 1 and removes the time budget entirely.
+(2) Zero `sec_delay`/`sec_delay_ovf` in firmware startup (new NOW item).
+(3) Redo the `dma_cfg_init` bisect on a `-NoFillBlock` chip-2 build.
+(4) Production verification of chip 2 needs eyes on LD2, or a working
+`dsp4_diag.py` — it crashes on start (`TypeError` in the gpiod line
+request), unrelated to any of this.
 
 ## HUB DISPATCH 2026-08-21 13:09Z — P2.2 — close the dma_cfg_init wedge with working boot + LD blink instrument   [status: 🔴 blocked — the wedge is NOT in dma_cfg_init: the full firmware has never executed a single instruction on this card. Root cause found and half-fixed — the SPI target boot kernel cannot take a loader block larger than ~8 KB, so every production image built without `-MaxBlockSize` is a stream the host clocks out in full and the part never runs. `-MaxBlockSize 0x1000` added to build.sh's LDRFLAGS and proved on the bench (0/10 → 4/4 on the same DXE at 8 KB), but the 208 KB firmware still does not run, so a SECOND limit above ~8 KB remains uncharacterised. Bench released to PW mid-bisect for an app/panel reflash]   [model: opus]
 
@@ -1497,6 +1585,28 @@ mods (÷2 + level-shift, D10) were real and are kept — an out-of-spec clock
 had to be fixed regardless — but they were necessary, not the blocker.
 Item 0 is DONE; the queue moves to P2.2 with working boot AND working LD2
 blink as an instrument.
+
+**MILESTONE 2026-08-21 (17:2xZ): chip 2's FULL FIRMWARE EXECUTES** — a
+`DSP4_BISECT=5` park on `_start`'s first instruction fires 5/6. Two
+independent faults were in the way and both are characterised in the
+14:37Z dispatch outcome above: elfloader's ZERO-FILL blocks (fixed with
+`-NoFillBlock` + a build-time guard) and U7/H1S1's ADAU poll on the
+shared boot bus (mitigated with `dsp4_boot.py --sync-poll` at 10–11 MHz).
+The ">8 KB block-size limit" is retired — it never existed.
+
+**NEW NOW ITEM — zero the delay buffers in firmware startup.** With
+`-NoFillBlock` every zero-initialised byte is clocked into the part for
+real, so `sec_delay`/`sec_delay_ovf` (~1.7 MB) are now `NO_INIT` in the
+LDF — otherwise chip 2 becomes a 1.9 MB, ~2.4 s stream that cannot
+possibly boot. **Until firmware clears them at startup, the delay lines
+come up holding whatever was in L2.** Owner: next SHARC dispatch.
+
+**NEW NOW ITEM — reflash H1S1 to stop the legacy ADAU poll (needs PW).**
+It is dead code (the Pi's `a0` clamp shorts its clock; nothing has ever
+answered) and appears already absent from `~/build-h1s1`. It is also the
+ONLY thing keeping chip 1's 258 KB image from booting, and it caps every
+boot on this card at a ~220 ms stream. Not done — reflashing the S MCU on
+PW's bench unit needs his go-ahead.
 
 **Context:** the rev-C card is LIVE on the fresh digital board — CPLD
 `a1f6672af6c3` flashed 2026-08-21 (the ÷2 clock fix; supersedes

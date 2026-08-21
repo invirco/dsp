@@ -152,14 +152,28 @@ SECTIONS
 
     /*------------------------------------------------------------------
      * Delay line buffers (large — L2 SRAM CTL0, overflow to CTL1)
+     *
+     * NO_INIT since 2026-08-21, and it is not an optimisation. The boot
+     * stream must carry -NoFillBlock (build.sh LDRFLAGS: the boot kernel
+     * cannot take a zero-fill block mid-stream), which means every
+     * zero-initialised byte is clocked into the part for real. These two
+     * sections are ~1.7 MB of zeros between them; initialising them
+     * through the boot stream makes chip2 a 1.9 MB stream, about 2.4 s
+     * at the fastest clock this bus takes, and the DSP boot bus's second
+     * master corrupts anything longer than ~220 ms. So they are left
+     * uninitialised here and must be cleared by firmware at startup —
+     * that work is TRACKED IN tasks.md, and until it lands the delay
+     * lines come up holding whatever was in L2.
      *------------------------------------------------------------------*/
-    sec_delay DM
+    sec_delay NO_INIT DM
     {
         INPUT_SECTION_ALIGN(4)
         INPUT_SECTIONS( $COMMAND_LINE_OBJECTS(seg_delay) )
     } > mem_L2_bw
 
-    sec_delay_ovf DM
+    /* Same reasoning as sec_delay above — cleared by firmware, not by
+     * the boot stream. */
+    sec_delay_ovf NO_INIT DM
     {
         INPUT_SECTION_ALIGN(4)
         INPUT_SECTIONS( $COMMAND_LINE_OBJECTS(seg_delay) )
