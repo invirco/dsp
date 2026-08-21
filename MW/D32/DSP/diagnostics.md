@@ -150,10 +150,16 @@ error instead of a plausible-looking zero.
 
 ## Still unproven
 
-Everything here. No line of it has run on silicon. In particular:
+Most of it. As of 2026-08-21 the firmware runs its whole init sequence
+on both chips — SRU, SPORT, DMA rings, SEC and SPI2 — and sits in the
+`.wait_boot` host handshake (bisect rung 21 fires on chip 1 and chip 2).
+What has NOT been shown is anything downstream of that: the SPI
+parameter link still answers all-zero to `dsp4_diag.py`, so no register
+in this document has been read off a running part yet. In particular:
 
-- `DIAG_TPERIOD` assumes CCLK = 400 MHz. If the LED rate is off by N,
-  CCLK is off by N — record the number rather than retuning the constant.
+- `DIAG_TPERIOD` is now 491520 — one tick is 1.000 ms at the MEASURED
+  CCLK of 491.52 MHz (2026-08-21, `src/blink/clkprobe.asm`), so the LED
+  intervals mean what they say. The old 400 MHz assumption is gone.
 - The `SPI_RDY` polarity in `dsp4_config.py` (`FCPL=1`, ready = high) is
   derived from the board's 10K pulldown and HRM Figure 40-7, not from a
   scope. `--rdy-active-low` is the one-flag fix if it is inverted.

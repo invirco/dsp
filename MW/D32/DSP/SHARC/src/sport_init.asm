@@ -24,6 +24,7 @@
  *======================================================================*/
 
 #include <def21564.h>
+#include "c_abi.h"
 
 /* ---- Audio block parameters ---- */
 #define BLOCK_SIZE         32
@@ -108,7 +109,7 @@ _set_rx_bufs:
 #elif CHIP_ID == 2
     dm(_ic_rx_active_buf) = r4;
 #endif
-    rts;
+    C_RETURN
 _set_rx_bufs.end:
 
 .global _set_tx_bufs;
@@ -122,7 +123,7 @@ _set_tx_bufs:
 #elif CHIP_ID == 2
     dm(_tx_active_buf) = r4;
 #endif
-    rts;
+    C_RETURN
 _set_tx_bufs.end:
 
 /*----------------------------------------------------------------------

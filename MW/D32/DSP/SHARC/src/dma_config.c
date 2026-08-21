@@ -47,7 +47,8 @@ static inline uint32_t l1_to_sys(uint32_t a)
  * is understood). Select with `DSP4_BISECT=n ./build.sh`:
  *
  *   0  production path — no park, no stage stamps. What ships.
- *   1  round 1 (2026-08-19): park straight after arm_region(A).
+ *   1  round 1 (2026-08-19): park straight after arm_region(A). FIRES
+ *      since 2026-08-21 (it needed the IMASK clear in _start, rung 17).
  *   2  variant B: park moved after arm_region(B) — the round-1 follow-up
  *      when 1 survives, i.e. A is clean and B is the next suspect.
  *   3  variant C: EN-write-order experiment. Same park point as round 1
@@ -73,6 +74,33 @@ static inline uint32_t l1_to_sys(uint32_t a)
  *      _sru_init (8) and after _sport_cfg_init (9), and each pulses its
  *      own number, so one stagewatch sample names the last call that
  *      returned. Nothing in this file participates in these either.
+ *   11 no park anywhere — the whole firmware runs, but diag.asm still
+ *      mirrors the status LED onto PB_05. Added 2026-08-21 when the
+ *      parks started firing: it is how the LIVE stage code is read over
+ *      ssh, since a production (0) build drives LD3/LD2 only and needs
+ *      eyes at the card. The mirror takes SPI2_RDY, so a build with it
+ *      cannot also do host flow control — 11 is an instrument, not a
+ *      shipping configuration.
+ *   13..15 the first lane of arm_region(), split into its three steps:
+ *      park before the DSCPTR write (13, 5 pulses), between DSCPTR and
+ *      CFG (14, 6 pulses), and after CFG has started the descriptor
+ *      fetch (15, 7 pulses). Added 2026-08-21 once the C-ABI fix let
+ *      the firmware reach this file at all and rung 1 became the first
+ *      park that does NOT fire.
+ *   16 not a park: pulses the lane number after each lane of every
+ *      arm_region() call and carries on. The last burst in the
+ *      transcript is the last lane that armed, so one build names the
+ *      lane instead of one build per lane.
+ *   17 rung 1 with interrupts turned off BEFORE the first channel is
+ *      armed rather than after the last. The control for rung 16's
+ *      result.
+ *   18..20 the tail of dma_cfg_init: after sec_init (18, 4 pulses),
+ *      after spi2_init (19, 5) and after enable_region (20, 6 = the
+ *      whole function ran). 19 and 20 take PB_05 back off SPI2 flow
+ *      control, so they are diagnostics only.
+ *   21 in main.asm, not this file: park at .wait_boot, so everything
+ *      up to the host handshake has run. Three LONG pulses (the asm
+ *      park's, not this file's short ones).
  *
  * HOW A PARK REPORTS (2026-08-21). Not via the LED state machine: that is
  * driven by _diag_timer_isr, so it answers a question about the interrupt
@@ -88,17 +116,19 @@ static inline uint32_t l1_to_sys(uint32_t a)
  *   3 pulses = arm_region(B) returned (variant 2)
  *   nothing  = the park was not reached
  *
- * The default stays 1 (park after A) so a plain rebuild still stops at the
- * bisect point rather than running on into untested territory. NOTE: the
- * SPORT4..7 DMA base fix below means a rebuild is NOT bit-identical to the
- * image running on chip1 as of 2026-08-20 — it is the same scaffolding
- * around corrected addressing.
+ * The default is still 1, but READ WHAT THAT MEANS NOW. As of 2026-08-21
+ * every rung fires on both chips: the whole init sequence runs and rung 21
+ * parks at the host handshake. So a plain `./build.sh` produces an image
+ * that PARKS after arm_region(A) — deliberately, because the SPI parameter
+ * link downstream of dma_cfg_init has still never answered, and a build
+ * that runs on into it cannot be read on this bench. Build with
+ * DSP4_BISECT=0 for a production image, or 21 to prove the init sequence.
  *--------------------------------------------------------------------*/
 #ifndef DSP4_BISECT
 #define DSP4_BISECT 1
 #endif
-#if DSP4_BISECT < 0 || DSP4_BISECT > 10
-#error "DSP4_BISECT must be 0 (production), 1, 2, 3 (variants), 4 (entry park), 5 (_start park) or 6..10 (main.asm pre-init parks; 10 also cuts sru_config.c short at the DAI0/DAI1 boundary)"
+#if DSP4_BISECT < 0 || DSP4_BISECT > 21
+#error "DSP4_BISECT must be 0 (production), 1, 2, 3 (variants), 4 (entry park), 5 (_start park), 6..10 (main.asm pre-init parks; 10 also cuts sru_config.c short at the DAI0/DAI1 boundary) 11 (no park at all, LED mirror on PB_05 only) 13..15 (inside arm_region, first lane) 16 (a mark per lane, does not stop) 17 (rung 1 with interrupts off before arming) 18..20 (after sec_init, after spi2_init, after enable_region) or 21 (main.asm, at the host handshake)"
 #endif
 
 #define REG32(addr) (*(volatile uint32_t *)(addr))
@@ -195,6 +225,12 @@ static uint32_t desc_a[8][2][5];
 #pragma align 32
 static uint32_t desc_b[8][2][5];
 
+#if DSP4_BISECT
+static void bisect_park(int code);   /* defined below; rungs 13-15 park
+                                      * from inside arm_region */
+static void bisect_mark(int code);   /* same, but RETURNS — rung 16 */
+#endif
+
 static void arm_region(const int *lanes, int count, int dir,
                        unsigned int *ping, unsigned int *pong,
                        uint32_t desc[][2][5])
@@ -238,9 +274,37 @@ static void arm_region(const int *lanes, int count, int dir,
             l1_to_sys((uint32_t)&desc[i][0][0]);
         REG32(dma + DMA_OFF_CFG) = cfg;   /* EN set last: starts the fetch */
 #else
+#if DSP4_BISECT == 13
+        /* Rungs 13-15 split the first lane's arming into its three
+         * steps, because rung 1 (park after the whole of arm_region(A))
+         * is where the firmware now stops — see tasks.md 2026-08-21.
+         * 5 pulses = the descriptors are built in memory and no DMA
+         * register has been touched. */
+        if (i == 0) { bisect_park(5); }
+#endif
         REG32(dma + DMA_OFF_DSCPTR) =
             l1_to_sys((uint32_t)&desc[i][0][0]);
+#if DSP4_BISECT == 14
+        /* 6 pulses = the DSCPTR write returned, so sport_dma_base()'s
+         * address is a real MMR. Silence at 14 with 13 firing means it
+         * is not. */
+        if (i == 0) { bisect_park(6); }
+#endif
         REG32(dma + DMA_OFF_CFG) = cfg;   /* starts descriptor fetch */
+#if DSP4_BISECT == 15
+        /* 7 pulses = the first channel was started and the core
+         * survived the descriptor fetch it kicks off. */
+        if (i == 0) { bisect_park(7); }
+#endif
+#if DSP4_BISECT == 16
+        /* Rung 16 does not stop: it pulses the lane number after each
+         * lane is armed and carries on, so the LAST burst in the
+         * transcript names the last lane that completed. One build
+         * instead of one per lane. Region A on chip 1 is 8 lanes and
+         * sport_dma_base() switches to the second DMA MMR bank at
+         * sport 4, which is the reason this granularity matters. */
+        bisect_mark(i + 1);
+#endif
 #endif
     }
 }
@@ -359,12 +423,15 @@ extern void diag_irq_off(void);         /* TEMP bisect helper 2026-08-21 */
 #define PORTB_DIR_SET   0x3100409Cu
 #define RDY_PIN_BIT     (1u << 5)
 
-/* Busy-loop delays. CCLK on this card is NOT 400 MHz: rdyprobe1 measures
- * 1058 ms where it intends 500, so the real number is near 190 MHz
- * (2026-08-21). These counts are picked to land in the 100 ms / 1 s
- * region at either figure — the decoder in tools/pi/dsp4_stagewatch.py
- * works on ratios, not absolute times, so being a factor of two out
- * costs nothing. */
+/* Busy-loop delays. CCLK on this card is 491.52 MHz, MEASURED off the
+ * core timer 2026-08-21 (src/blink/clkprobe.asm) and confirmed against
+ * the CGU registers read out of the running part — not the 400 MHz this
+ * firmware's constants assume, and NOT the ~190 MHz an earlier estimate
+ * inferred from the blink rate. That estimate divided by an assumed 5
+ * cycles per delay-loop iteration; the real figure is 13, which is the
+ * whole of the discrepancy. These counts land near 40 ms / 320 ms at
+ * 491.52 MHz, and the decoder in tools/pi/dsp4_stagewatch.py works on
+ * ratios rather than absolute times. */
 #define PARK_PULSE_ITERS   1500000u
 #define PARK_GAP_ITERS    12000000u
 
@@ -374,27 +441,48 @@ static void park_delay(unsigned int iters)
     for (i = 0; i < iters; i++) { }
 }
 
-static void bisect_park(int code)
+/* The pulse engine shared by bisect_park() and bisect_mark(). Emits
+ * `code` pulses on PB_05 followed by a long gap; interrupts are already
+ * off by the time it is called. */
+static void bisect_pulses(int code)
 {
     int n;
 
-    /* Own the pin outright: with interrupts left on, _diag_timer_isr's
-     * LED mirror drives PB_05 too and the two patterns interleave. */
-    diag_irq_off();
+    for (n = 0; n < code; n++) {
+        REG32(PORTB_DATA_SET) = RDY_PIN_BIT;
+        park_delay(PARK_PULSE_ITERS);
+        REG32(PORTB_DATA_CLR) = RDY_PIN_BIT;
+        park_delay(PARK_PULSE_ITERS);
+    }
+    park_delay(PARK_GAP_ITERS);
+}
 
+/* Take the pin, once. Idempotent, so a mark can call it every lane. */
+static void bisect_take_pin(void)
+{
+    diag_irq_off();
     REG32(PORTB_FER_CLR)  = RDY_PIN_BIT;    /* GPIO, not SPI2 */
     REG32(PORTB_INEN_CLR) = RDY_PIN_BIT;
     REG32(PORTB_DATA_CLR) = RDY_PIN_BIT;    /* low before driving */
     REG32(PORTB_DIR_SET)  = RDY_PIN_BIT;
+}
+
+/* One burst, then carry on. */
+static void bisect_mark(int code)
+{
+    bisect_take_pin();
+    bisect_pulses(code);
+}
+
+static void bisect_park(int code)
+{
+
+    /* Own the pin outright: with interrupts left on, _diag_timer_isr's
+     * LED mirror drives PB_05 too and the two patterns interleave. */
+    bisect_take_pin();
 
     for (;;) {
-        for (n = 0; n < code; n++) {
-            REG32(PORTB_DATA_SET) = RDY_PIN_BIT;
-            park_delay(PARK_PULSE_ITERS);
-            REG32(PORTB_DATA_CLR) = RDY_PIN_BIT;
-            park_delay(PARK_PULSE_ITERS);
-        }
-        park_delay(PARK_GAP_ITERS);
+        bisect_pulses(code);
     }
 }
 #else
@@ -403,6 +491,16 @@ static void bisect_park(int code)
 
 void dma_cfg_init(void)
 {
+#if DSP4_BISECT == 17
+    /* Rung 17 is rung 1 with ONE variable changed: interrupts are shut
+     * off (and the pin taken) BEFORE any channel is armed, instead of
+     * inside the park afterwards. Rung 16 shows every lane of both
+     * regions arming and arm_region() returning, yet rung 1's park two
+     * statements later is silent — and the only difference between the
+     * two paths is whether the core timer was still firing while the
+     * channels came up. This build says which. */
+    bisect_take_pin();
+#endif
     DIAG_STAGE(1);
 #if DSP4_BISECT == 4
     bisect_park(1);     /* 1 pulse = the image runs and got this far */
@@ -410,7 +508,7 @@ void dma_cfg_init(void)
     arm_region(REGION_A_LANES, REGION_A_COUNT, 0,
                REGION_A_PING, REGION_A_PONG, desc_a);
     DIAG_STAGE(2);
-#if DSP4_BISECT == 1 || DSP4_BISECT == 3
+#if DSP4_BISECT == 1 || DSP4_BISECT == 3 || DSP4_BISECT == 17
     bisect_park(2);     /* 2 pulses = arm_region(A) returned */
 #endif
     arm_region(REGION_B_LANES, REGION_B_COUNT, 1,
@@ -422,8 +520,17 @@ void dma_cfg_init(void)
 
     sec_init();
     DIAG_STAGE(4);
+#if DSP4_BISECT == 18
+    bisect_park(4);     /* 4 pulses = sec_init() returned */
+#endif
     spi2_init();
     DIAG_STAGE(5);
+#if DSP4_BISECT == 19
+    /* 5 pulses = spi2_init() returned. This park re-takes PB_05 from
+     * the SPI2 flow-control function spi2_init() just gave it, which is
+     * fine for a diagnostic build and is why 19 and 20 must never ship. */
+    bisect_park(5);
+#endif
 
     /* Hand the asm side its buffer views (byte -> word inside) */
     set_rx_bufs(REGION_A_PING, REGION_A_PONG);
@@ -434,4 +541,7 @@ void dma_cfg_init(void)
     DIAG_STAGE(6);
     enable_region(REGION_A_LANES, REGION_A_COUNT, 0);
     enable_region(REGION_B_LANES, REGION_B_COUNT, 1);
+#if DSP4_BISECT == 20
+    bisect_park(6);     /* 6 pulses = the whole of dma_cfg_init ran */
+#endif
 }

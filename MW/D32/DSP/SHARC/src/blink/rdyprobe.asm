@@ -42,8 +42,18 @@
 #define RDY_BIT (1 << 5)   /* PB_05 = SPI2_RDY net — Pi reads it on GPIO8 */
 
 /* Delay calibration — see the note above. */
-#define CCLK_HZ          400000000
-#define CYCLES_PER_ITER  5
+/* CCLK = 491.52 MHz, MEASURED 2026-08-21 off the core timer with
+ * src/blink/clkprobe.asm and cross-checked against the CGU registers
+ * read out of the running part: SYS_CLKIN0 24.576 MHz, CGU reset
+ * defaults DF=0 MSEL=40 CSEL=1 SYSSEL=2 S0SEL=4, and the 2156x PLL's
+ * built-in /2 — exactly the tree dsp4-architecture-decisions.md D10
+ * predicted. The firmware does NOT program the CGU; it corrects its own
+ * constants instead (D10 addendum). A two-instruction delay loop costs
+ * 13 cycles per iteration on this core, not the 5 these files used to
+ * assume; that factor, not the clock, is what made the blink images
+ * look 2.1x slow and produced the retracted "~190 MHz" estimate. */
+#define CCLK_HZ          491520000
+#define CYCLES_PER_ITER  13
 #if CHIP_ID == 1
 #define HALF_PERIOD_MS   500       /* ~1 Hz */
 #elif CHIP_ID == 2

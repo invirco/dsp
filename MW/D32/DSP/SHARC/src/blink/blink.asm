@@ -22,12 +22,13 @@
  * which part booted which image — and if only one blinks, you know which
  * chip select failed.
  *
- * The delay is a counted loop, so the ABSOLUTE rate depends on the core
- * clock the boot ROM leaves configured, which is not yet measured on
- * this board. The 2:1 RATIO is exact regardless. If the observed rate is
- * off by N times, then CCLK is off by N from CCLK_HZ below — that is a
- * free core-clock measurement, so write the number down rather than
- * just retuning the constant.
+ * The delay is a counted loop, so the ABSOLUTE rate depends on both the
+ * core clock and the cycles the loop itself costs. Both are now measured
+ * (491.52 MHz and 13 cycles per iteration, see CCLK_HZ below), so the
+ * rate should be within a percent of nominal. Do NOT read a wrong rate
+ * back as a CCLK measurement — that inference is what produced the
+ * retracted "~190 MHz" figure. src/blink/clkprobe.asm measures the clock
+ * properly, off the core timer.
  *
  * Infrastructure (hand-maintained). Built by build.sh's "blink" target,
  * per chip via -DCHIP_ID, into blink1.ldr / blink2.ldr.
@@ -38,8 +39,18 @@
 #define LED_BIT     0x00001000     /* PA_12 = BLINK_LED */
 
 /* Delay calibration — see the note above. */
-#define CCLK_HZ          400000000
-#define CYCLES_PER_ITER  5
+/* CCLK = 491.52 MHz, MEASURED 2026-08-21 off the core timer with
+ * src/blink/clkprobe.asm and cross-checked against the CGU registers
+ * read out of the running part: SYS_CLKIN0 24.576 MHz, CGU reset
+ * defaults DF=0 MSEL=40 CSEL=1 SYSSEL=2 S0SEL=4, and the 2156x PLL's
+ * built-in /2 — exactly the tree dsp4-architecture-decisions.md D10
+ * predicted. The firmware does NOT program the CGU; it corrects its own
+ * constants instead (D10 addendum). A two-instruction delay loop costs
+ * 13 cycles per iteration on this core, not the 5 these files used to
+ * assume; that factor, not the clock, is what made the blink images
+ * look 2.1x slow and produced the retracted "~190 MHz" estimate. */
+#define CCLK_HZ          491520000
+#define CYCLES_PER_ITER  13
 #if CHIP_ID == 1
 #define HALF_PERIOD_MS   500       /* ~1 Hz */
 #elif CHIP_ID == 2

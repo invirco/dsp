@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-08-21 20:34Z — P2.2 cont'd — _sru_init hang + the ~190 vs 400 MHz CCLK suspect (nail the clock, get past SRU, reach dma_cfg_init)   [status: 🟡 dispatched]   [model: opus]
+## HUB DISPATCH 2026-08-21 20:34Z — P2.2 cont'd — _sru_init hang + the ~190 vs 400 MHz CCLK suspect (nail the clock, get past SRU, reach dma_cfg_init)   [status: 🟢 done — **P2.2's wedge is closed: both chips now run the ENTIRE init sequence** — SRU, SPORTs, DMA rings, SEC, SPI2 — and park at the host handshake (bisect rung 21, chip 1 and chip 2). CCLK is **491.52 MHz**, measured off the core timer and confirmed against the CGU registers read out of the running part; the "~190 MHz" figure is RETRACTED (it divided by an assumed 5 cycles per delay-loop iteration; the real cost is 13). The CGU is left at its reset defaults by decision — they already give a fully in-spec tree from 24.576 MHz — and the firmware's own constants are corrected instead. `_sru_init` was never a clock or a peripheral fault: **main.asm was calling C with the wrong ABI**, and the four assembly helpers C calls returned with `rts`. Two real bugs fixed: the cc21k call convention (new `src/c_abi.h`, decision D15) and **IMASK/IRPTL never cleared after boot**, which killed the core as soon as eleven DMA channels were armed with the boot kernel's interrupts still live. `dma_cfg_init`, `sport_dma_base()` and `l1_to_sys()` all now have their hardware test and all pass. STILL OPEN, and it is a different subsystem: the SPI parameter link answers all-zero, so nothing downstream of the handshake is proven — that is the next item]   [model: opus]
 
 model: opus
 
@@ -35,6 +35,159 @@ frozen splash; ~/db Dropbox; single trunk; no AI attribution.
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
 no AI attribution in commits or any work product.
+
+### Outcome 2026-08-21 22:4xZ — 🟢 the init sequence runs end to end on both chips
+
+**Headline: `_sru_init` was a C-calling-convention bug, not a clock and
+not a peripheral.** Every register write in it always completed. What it
+could not do was return.
+
+#### 1. CCLK is 491.52 MHz. Measured, not inferred.
+
+New instrument, `src/blink/clkprobe.asm` + `tools/pi/dsp4_clkprobe.py`:
+a standalone image that times everything off the SHARC **core timer**,
+which decrements once per core-clock cycle by construction, and frames
+the result onto PB_05 as pulse-width-coded words. Two independent
+readings in one transcript — the tick unit and a 32-tick square — both
+gave **491.52 MHz** to five figures. The same image reads the CGU back
+out of the running part:
+
+| register | value | fields |
+|---|---|---|
+| `CGU0_CTL`   | `0x00002800` | DF=0, MSEL=40 |
+| `CGU0_DIV`   | `0x05144281` | CSEL=1, SYSSEL=2, S0SEL=4, S1SEL=2 |
+| `CGU0_STAT`  | `0x00000005` | |
+| `CGU0_DIVEX` | `0x00200030` | |
+
+Those are the reset defaults, and with SYS_CLKIN0 = 24.576 MHz and the
+2156x PLL's built-in /2 they give PLLCLK/CCLK 491.52, SYSCLK 245.76,
+SCLK0 61.44, SCLK1 122.88 MHz — all inside the datasheet ranges, and
+fCCLK = 2 × fSYSCLK as required. **This is exactly what D10 predicted.**
+
+**DECISION (dispatch item 2): do NOT program the CGU; correct the
+firmware's assumptions.** The defaults are already in spec and
+audio-rational, so a CGU write in early init buys nothing and costs a
+PLL relock during boot on the shared SPI port. Written up as the D10
+addendum in `dsp4-architecture-decisions.md`. `DIAG_TPERIOD` is now
+491520 (a 1.000 ms tick) and the blink images carry
+`CCLK_HZ = 491520000`.
+
+**RETRACTED: "~190 MHz".** It came from the blink rate divided by an
+*assumed* 5 cycles per iteration of a two-instruction delay loop. The
+real figure is **13 cycles** (measured: the park's 15,000,000-iteration
+half period is 397 ms at 491.52 MHz), and 13/5 × 400/491.52 = 2.12 —
+the whole of the "2.1x slow" observation. Nothing was wrong with the
+clock. Every 400 MHz and 190 MHz constant and comment in the tree is
+now corrected or deleted.
+
+#### 2. The SRU register space was innocent — proved before touching it
+
+`src/blink/sruprobe.asm` performs the DAI0 half of `sru_init()`
+write-for-write in a standalone image with no C, no stack and no
+interrupts, pulsing PB_05 after each one. **All 36 writes complete**,
+repeatedly, and the routing reads back changed (`DAI0_DAT0` 0x08144040
+at reset → 0x02144040 after; `DAI0_CLK0` 0x24992649; `DAI0_PIN0`
+0x03480B14). So "the DAI0 block is unclocked / not answering the bus"
+is dead as a theory, and so is the CCLK suspicion behind it.
+
+#### 3. ROOT CAUSE — the cc21k C ABI was never being met
+
+`cc21k` returns from a C function with `jump (m14,i12) (db); rframe;`
+after fetching the return address with `i12 = dm(m7,i6)`, and callers
+must use `cjump fn (db); dm(i7,m7)=r2; dm(i7,m7)=pc;`. `main.asm` used a
+plain `call` and set up the stack **B/I/L registers but not one M
+register** — with M7 and M14 left at whatever the boot kernel had put
+there, the frame push and the return both went somewhere arbitrary.
+The same mismatch ran the other way for the four assembly helpers C
+calls (`_diag_stage_set`, `_diag_irq_off`, `_set_rx_bufs`,
+`_set_tx_bufs`), which all returned with `rts`.
+
+Fixed by a new `src/c_abi.h` — `C_RUNTIME_INIT`, `CCALL()`, `C_RETURN`,
+copied from what the compiler emits and from CCES's own
+`SHARC/lib/src/libc_src/set_c.asm`, with every deliberate divergence
+from `___lib_setup_c` documented in the file (L6/L7 linear; NESTM NOT
+set, because `diag.asm` and `_sec_isr` require non-nesting interrupts;
+MMASK and IRPTEN left to their owners). Recorded as **decision D15**.
+
+**Result on hardware: bisect rung 8 (park after `_sru_init` returns)
+went from 0/6 silent to firing 6/6.**
+
+#### 4. SECOND BUG — IMASK and IRPTL are never cleared after boot
+
+Found by bisecting inside `dma_cfg_init` once it became reachable. Rung
+16 (a pulse per lane, no park) showed **all 8 region-A lanes and all 3
+region-B lanes arming and both `arm_region()` calls returning** — while
+rung 1, whose park is two statements later, stayed silent. Rung 17 (rung
+1 with interrupts turned off *before* arming instead of after) fired.
+So the variable was the live interrupt, not the DMA.
+
+The SPI target boot kernel hands over with its own interrupts still
+unmasked and latched; `_diag_init` only ORs TMZLI in, so those survive
+and fire into an IVT with no handler the moment IRPTEN goes on. Adding
+`imask = 0; irptl = 0;` to `_start` (what `___lib_setup_c` does, and for
+this exact reason) made rung 1 fire immediately. Also in D15.
+
+#### 5. Where the firmware is now — all of it runs
+
+Bisect ladder on chip 1, six boots' worth of sampling per rung, read
+over ssh with `dsp4_stagewatch.py`:
+
+| rung | park point | before | after |
+|---|---|---|---|
+| 8 | after `_sru_init` | **0/6 silent** | fires |
+| 9 | after `_sport_cfg_init` | 0/6 silent | fires |
+| 4 | entry to `dma_cfg_init` | 0/6 silent | fires |
+| 13/14/15 | first lane: before DSCPTR / before CFG / after CFG | — | all fire |
+| 16 | a mark per lane (does not stop) | — | 8 + 3 lanes, both regions |
+| 1 | after `arm_region(A)` | silent | fires (needed the IMASK clear) |
+| 2 | after `arm_region(B)` | silent | fires |
+| 20 | after `enable_region` = end of `dma_cfg_init` | — | **fires** |
+| 21 | main.asm, at the `.wait_boot` host handshake | — | **fires on chip 1 AND chip 2** |
+
+**`dma_cfg_init` is closed.** The `sport_dma_base()` SPORT4-7 DMA-base
+fix and `l1_to_sys()` finally have their hardware test and both pass:
+every lane arms, including the four on the second DMA MMR bank, and the
+core survives every descriptor fetch. `l1_to_sys()`'s +0x28000000 is
+confirmed against the datasheet (Rev. A Table 4: L1 block 0 private
+0x00240000–0x0026FFFF ↔ completer-port 0x28240000–0x2826FFFF, and the
+same offset for blocks 1-3).
+
+#### 6. WHAT IS STILL OPEN — and it is a different subsystem
+
+The **SPI parameter link answers all-zero**. `dsp4_diag.py` now runs
+(it was crashing before — `dsp4_config.py` requested the RDY line even
+when none was given, passing `None` to gpiod; fixed), but a read of
+`DIAG_MAGIC` comes back `0x00000000` with the response out of step. So:
+the core reaches the handshake, and nothing past it is proven — no
+register in `diagnostics.md` has been read off a running part. That is
+the next item, and it is the SPI2 slave protocol (watermark, RDY
+polarity/timing, response framing), not `dma_cfg_init`.
+
+Because of that the DSP4_BISECT scaffolding **stays** for now, and
+build.sh's default is still 1 — but the comment beside it has been
+corrected: a plain rebuild now produces an image that parks after
+`arm_region(A)` on purpose, because a build that runs on into the
+unproven SPI link cannot be read on this bench. `DSP4_BISECT=0` gives a
+production image, `21` proves the init sequence.
+
+#### Instruments added (they earn their keep, keep them)
+
+- `src/blink/clkprobe.asm` — CCLK and any MMR, read out over PB_05,
+  timed off the core timer. This is how a clock gets measured on a part
+  with no emulator; do not infer one from a blink rate again.
+- `src/blink/sruprobe.asm` — the DAI0 SRU sequence standalone, one
+  pulse per write.
+- `tools/pi/dsp4_clkprobe.py` — decoder for both, with `--rle` and a
+  pulse-burst counter.
+- `DSP4_BISECT` rungs 11 (mirror, no park), 13-15 (inside the first
+  lane), 16 (a mark per lane, does not stop), 17 (the interrupt
+  control), 18-20 (the tail of `dma_cfg_init`), 21 (the handshake).
+
+**Bench state at hand-off:** `matrix-app` restarted and active, all
+three MCUs verified 22:39-22:40 (H1S1, H1S3, H1S4 — "MCU verified" and
+"MCU boot verified"), GPIO 8/9/10/11/12 back to `a0`. Both SHARCs hold
+the rung-21 image and are parked at the handshake, blinking 3 long
+pulses on their RDY line.
 
 ## HUB DISPATCH 2026-08-21 14:37Z — P2.2 cont'd — characterise the >8KB boot-stream limit so the full 208KB image runs, then dma_cfg_init   [status: 🟢 done — **BOTH SHARCs now load and execute their full firmware, deterministically.** The ">8 KB block-size limit" never existed and is retired. Two real faults, both fixed: (1) elfloader's ZERO-FILL blocks desynchronise the boot kernel — fixed with `-NoFillBlock` plus a build-time guard; (2) U7/H1S1 was a second master on the boot bus — the two offending call sites were removed from its firmware and it was reflashed through MH1, after which the bus measures ZERO events in 15 s and chip 1's 258 KB image boots 6/6 unsynced at 10 MHz and 2/2 at 1 MHz on a 3.45 s stream. The stream-length budget is gone. **P2.2 itself is NOT closed**: with the image finally running, the firmware hangs in `_sru_init`'s DAI0 half — the very first SRU register writes — so `dma_cfg_init` and the `sport_dma_base()` fix are still untested. That is a new, separate item]   [model: opus]
 

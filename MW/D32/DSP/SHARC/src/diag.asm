@@ -58,6 +58,7 @@
 
 #include <def21564.h>
 #include "diag.h"
+#include "c_abi.h"
 
 /* PA_12 = BLINK_LED */
 #define DIAG_LED_BIT      0x00001000
@@ -83,10 +84,11 @@
  *--------------------------------------------------------------------*/
 #if DSP4_BISECT
 #define DIAG_RDY_BIT      0x00000020        /* PB_05 = SPI2_RDY */
-/* Busy-loop counts for _bisect_park_asm — ~2 cycles per iteration, and
- * CCLK measures near 190 MHz on this card (rdyprobe1 runs 2.1x slow
- * against its assumed 400 MHz), so these land near 150 ms and 1.2 s.
- * dsp4_stagewatch.py decodes ratios, not absolute times. */
+/* Busy-loop counts for _bisect_park_asm — 13 cycles per iteration at
+ * the measured CCLK of 491.52 MHz (see the note by DIAG_TPERIOD), so
+ * these land near 400 ms and 3.2 s. dsp4_stagewatch.py decodes ratios,
+ * not absolute times, so the exact figures do not matter; they are only
+ * documented so a transcript can be read without re-deriving them. */
 #define DIAG_PARK_PULSE   15000000
 #define DIAG_PARK_GAP    120000000
 #define DIAG_MIRROR_HI    r0 = DIAG_RDY_BIT; dm(REG_PORTB_DATA_SET) = r0;
@@ -102,14 +104,23 @@
 #define DIAG_MIRROR_INIT
 #endif
 
-/* Core-timer period in CCLK cycles = one diag tick. Nominally 1 ms at
- * CCLK = 400 MHz, which is NOT yet measured on this board (same caveat
- * as blink.asm). The LED intervals below are in ticks, so if the
- * observed rate is off by N then CCLK is off by N — write the measured
- * number down rather than retuning this constant. DIAG_TICKS is
- * readable over SPI, so the CM4 can measure it directly: read TICKS,
- * sleep a known wall-clock second, read again. */
-#define DIAG_TPERIOD      400000
+/* CCLK = 491.52 MHz, MEASURED 2026-08-21 off the core timer with
+ * src/blink/clkprobe.asm and cross-checked against the CGU registers
+ * read out of the running part: SYS_CLKIN0 24.576 MHz, CGU reset
+ * defaults DF=0 MSEL=40 CSEL=1 SYSSEL=2 S0SEL=4, and the 2156x PLL's
+ * built-in /2 — exactly the tree dsp4-architecture-decisions.md D10
+ * predicted. The firmware does NOT program the CGU; it corrects its own
+ * constants instead (D10 addendum). A two-instruction delay loop costs
+ * 13 cycles per iteration on this core, not the 5 these files used to
+ * assume; that factor, not the clock, is what made the blink images
+ * look 2.1x slow and produced the retracted "~190 MHz" estimate. */
+
+/* Core-timer period in CCLK cycles = one diag tick: 1.000 ms at the
+ * measured clock. The LED intervals below are in ticks, so they now
+ * mean what they say in milliseconds. DIAG_TICKS is readable over SPI,
+ * so the CM4 can confirm it: read TICKS, sleep a known wall-clock
+ * second, read again. */
+#define DIAG_TPERIOD      491520
 
 /* LED intervals, in ticks. Fault code = N flashes then a long gap. */
 #define DIAG_LED_ON       150
@@ -216,7 +227,7 @@
    (C data refs cannot touch the word-addressed .var directly). */
 _diag_stage_set:
     dm(_diag_boot_stage) = r4;
-    rts;
+    C_RETURN
 
 #if DSP4_BISECT
 /* TEMP bisect helper 2026-08-21: shut the core timer and global
@@ -229,7 +240,7 @@ _diag_irq_off:
     bit clr mode2 BITM_REGF_MODE2_TIMEN;
     nop;
     nop;
-    rts;
+    C_RETURN
 _diag_irq_off.end:
 
 /*----------------------------------------------------------------------

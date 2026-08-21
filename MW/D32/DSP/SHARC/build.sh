@@ -437,6 +437,15 @@ tiny_image() {
 
 blink()    { tiny_image blink    blink.asm    PA_12; }
 rdyprobe() { tiny_image rdyprobe rdyprobe.asm "PB_05 = Pi GPIO8/GPIO12"; }
+# clkprobe — dumps the CGU registers and probes whether a peripheral MMR
+# READ returns, all timed off the core timer so the pulse widths measure
+# CCLK directly. See src/blink/clkprobe.asm; decoded by
+# tools/pi/dsp4_clkprobe.py. Not a blink: it emits a frame, not a rate.
+clkprobe() { tiny_image clkprobe clkprobe.asm "PB_05 = Pi GPIO8/GPIO12"; }
+# sruprobe — the DAI0 half of sru_init()'s SRU writes, one at a time, in
+# an image with no C, no stack and no interrupts. See
+# src/blink/sruprobe.asm; decoded by tools/pi/dsp4_clkprobe.py --rle.
+sruprobe() { tiny_image sruprobe sruprobe.asm "PB_05 = Pi GPIO8/GPIO12"; }
 
 # ---- Boot-size probe (see src/blink/bulkprobe.asm) -----------------------
 # rdyprobe plus a slab of never-executed code, at five sizes, chip 1 only.
@@ -473,9 +482,11 @@ case "${1:-build}" in
     all)   clean && build ;;
     blink) blink ;;
     rdyprobe) rdyprobe ;;
+    clkprobe) clkprobe ;;
+    sruprobe) sruprobe ;;
     bulkprobe) bulkprobe ;;
     count) count ;;
     single) single "$2" ;;
-    *)     echo "Usage: $0 [clean|build|all|blink|rdyprobe|bulkprobe|count|single <asm-file>]"
+    *)     echo "Usage: $0 [clean|build|all|blink|rdyprobe|clkprobe|sruprobe|bulkprobe|count|single <asm-file>]"
            exit 1 ;;
 esac

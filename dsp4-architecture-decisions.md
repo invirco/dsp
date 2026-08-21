@@ -394,6 +394,53 @@ clock source that D2's single-sourced slot map and the CPLD's clkgen are
 built around. The cost of keeping the CPLD as the source is the level
 translation. That trade is now deliberate.
 
+### Addendum 2026-08-21 — the clock tree is MEASURED, and the firmware
+### does not program the CGU
+
+**CCLK = 491.52 MHz.** Measured on chip 1 off the SHARC core timer,
+which decrements once per core-clock cycle by construction, so the
+number depends on no assumption about instruction timing:
+`src/blink/clkprobe.asm` frames a known count of timer reloads onto
+PB_05 and `tools/pi/dsp4_clkprobe.py` times it. Two independent
+readings in the same transcript — the tick unit and a 32-tick square —
+gave 491.52 MHz to five figures.
+
+The same image reads the CGU registers back out of the running part and
+serialises them on the same wire:
+
+| register | value | fields |
+|---|---|---|
+| `CGU0_CTL`   | `0x00002800` | DF=0, MSEL=40 |
+| `CGU0_DIV`   | `0x05144281` | CSEL=1, SYSSEL=2, S0SEL=4, S1SEL=2, DSEL=20, OSEL=20 |
+| `CGU0_STAT`  | `0x00000005` | |
+| `CGU0_DIVEX` | `0x00200030` | |
+
+Those are the reset defaults this decision predicted, and with
+SYS_CLKIN0 = 24.576 MHz and the PLL's built-in /2 they give PLLCLK
+491.52, **CCLK 491.52**, SYSCLK 245.76, SCLK0 61.44, SCLK1 122.88 MHz —
+every one inside the datasheet ranges (fCCLK 400–1000, fSYSCLK 200–500,
+fSCLK0 30–125), and fCCLK = 2 × fSYSCLK as Table 14 requires. **D10's
+arithmetic is confirmed by measurement, including the /2.**
+
+**DECISION: the firmware does NOT program the CGU.** The reset defaults
+already land on a fully in-spec, audio-rational tree from the one
+24.576 MHz CLKIN, so a CGU write in early init would buy nothing and
+cost a PLL relock during boot — with the boot kernel's own SPI transfer
+still in flight on the shared port. The firmware's *assumptions* are
+corrected instead: `DIAG_TPERIOD` is 491520 (a 1.000 ms tick) and the
+blink images carry `CCLK_HZ = 491520000`. If a future board changes the
+CPLD divider, D10's rule stands — re-check all four derived clocks, and
+re-measure with `clkprobe`.
+
+**RETRACTED: the "~190 MHz" reading.** It came from the blink images
+running 2.1x slower than their nominal rate, divided by an *assumed* 5
+cycles per iteration of a two-instruction delay loop. The real cost is
+**13 cycles** per iteration on this core (measured: the bisect park's
+15,000,000-iteration half period is 397 ms at 491.52 MHz), and
+13/5 × 400/491.52 = 2.12 — the whole of the discrepancy. Nothing was
+ever wrong with the clock. No conclusion should rest on the 190 MHz
+figure, and nothing in the tree does any more.
+
 ## D14 — SPI target boot requires a SPICMD byte before the stream (2026-08-21)
 
 **Decision/fact, verified on hardware.** A 2156x booting in SPI *target*
@@ -424,3 +471,52 @@ one**: with BMODE non-zero it outputs SYS_CLKIN directly as soon as
 hardware reset deasserts, with no code and no JTAG, so it reports power,
 clock and reset state at a single probe point.
 
+
+## D15 — The bare-metal firmware owns the cc21k C runtime contract (2026-08-21)
+
+**Decision/fact, verified on hardware.** This firmware has its own `_start`
+and does not link CCES's CRT or `___lib_setup_c`. That is the right choice
+for a 258 KB slave-booted image, but it makes the C calling convention the
+firmware's own responsibility, and until 2026-08-21 it was not being met.
+Two rules, both now enforced from `src/c_abi.h`:
+
+1. **The compiler's registers must be set up before the first C call.**
+   `cc21k` returns from a C function with `jump (m14, i12) (db); rframe;`
+   after fetching the return address with `i12 = dm(m7, i6)`. That needs
+   **M7 = -1** and **M14 = 1** (plus M5/M6/M13/M15), not just the B/I/L
+   stack registers `_start` was setting. With M7 and M14 left at whatever
+   the boot kernel had put there, `sru_init()` executed every one of its
+   SRU writes and then returned to a garbage address.
+2. **Assembly and C must call each other the compiler's way.** A `call` /
+   `rts` pair is not the convention: the caller must use
+   `cjump fn (db); dm(i7,m7)=r2; dm(i7,m7)=pc;` and an assembly function
+   that C calls must return with the sequence in rule 1, not `rts`.
+   `CCALL()` and `C_RETURN` in `c_abi.h` are those two sequences and
+   nothing else — copied from what the compiler emits and from CCES's
+   `SHARC/lib/src/libc_src/set_c.asm`.
+
+**Deliberate divergences from `___lib_setup_c`, and why** (they are listed
+in `c_abi.h` too, so the file itself says which differences are choices):
+L6/L7 stay 0 — ADI makes the stack circular only so an overflow wraps;
+NESTM is NOT set, because `diag.asm` and `_sec_isr` are written for
+non-nesting interrupts and set_c.asm's default would silently reverse
+that; MMASK is left alone for the same reason; IRPTEN stays `_diag_init`'s
+to own.
+
+3. **IMASK and IRPTL must be cleared at reset.** The SPI target boot kernel
+   hands control over with its own interrupts still unmasked and latched.
+   `_diag_init` only ORs TMZLI in, so those survived into the firmware and
+   fired into an IVT with no handler the moment IRPTEN went on. It only
+   showed up under load: arming eleven DMA channels with the leftovers
+   enabled killed the core, and the same code with interrupts off ran
+   clean. `___lib_setup_c` clears both for exactly this reason.
+
+**Why this is recorded as a decision.** The alternative is to adopt the
+CCES CRT, which would give all of the above for free — and is explicitly
+NOT chosen: the CRT drags in heap setup, the dispatched-interrupt tables
+and a `main()`-shaped entry, none of which this image wants, and it would
+have to be reconciled with the hand-written IVT and the `-NoFillBlock`
+boot-stream shape. Owning the contract is cheaper, but only if it is
+written down and centralised — hence `c_abi.h` rather than four copies of
+the idiom. **Any new assembly that calls C, or C that calls assembly, uses
+those macros.**

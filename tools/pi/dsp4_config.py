@@ -124,22 +124,32 @@ class SpiLink:
             import gpiod
             from gpiod.line import Direction, Value
             self._V = Value
-            self._req_cs = gpiod.request_lines(
-                gpiochip if gpiochip.startswith('/dev/') else '/dev/' + gpiochip,
-                consumer='dsp4_config',
-                config={cs_gpio: gpiod.LineSettings(
-                    direction=Direction.OUTPUT, output_value=Value.ACTIVE)})
-            self._cs_num = cs_gpio
+            chippath = (gpiochip if gpiochip.startswith('/dev/')
+                        else '/dev/' + gpiochip)
+
             class _L:
                 def __init__(s, req, num, V): s.req, s.num, s.V = req, num, V
                 def set_value(s, v): s.req.set_value(s.num, s.V.ACTIVE if v else s.V.INACTIVE)
                 def get_value(s): return 1 if s.req.get_value(s.num) == s.V.ACTIVE else 0
-            self.line = _L(self._req_cs, cs_gpio, Value)
-            if True:
+
+            # Each line is claimed only if it was actually asked for.
+            # Requesting RDY unconditionally passed None to gpiod and
+            # raised "argument 1 must be str, not None" before any
+            # transaction could happen — which is what made dsp4_diag.py
+            # unusable (tasks.md, 2026-08-21).
+            if cs_gpio is not None:
+                self._req_cs = gpiod.request_lines(
+                    chippath, consumer='dsp4_config',
+                    config={cs_gpio: gpiod.LineSettings(
+                        direction=Direction.OUTPUT,
+                        output_value=Value.ACTIVE)})
+                self._cs_num = cs_gpio
+                self.line = _L(self._req_cs, cs_gpio, Value)
+            if rdy_gpio is not None:
                 self._req_rdy = gpiod.request_lines(
-                    gpiochip if gpiochip.startswith('/dev/') else '/dev/' + gpiochip,
-                    consumer='dsp4_config_rdy',
-                    config={rdy_gpio: gpiod.LineSettings(direction=Direction.INPUT)})
+                    chippath, consumer='dsp4_config_rdy',
+                    config={rdy_gpio: gpiod.LineSettings(
+                        direction=Direction.INPUT)})
                 self.rdy = _L(self._req_rdy, rdy_gpio, Value)
 
     def wait_ready(self):

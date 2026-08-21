@@ -25,6 +25,7 @@
 
 #include <def21564.h>
 #include "diag.h"
+#include "c_abi.h"
 
 /* Chip identity is COMPILE-TIME, not detected. Resolved 2026-08-11
  * against the rev-C schematic: the DSPA (U6) and DSPB (U5) sheets are
@@ -103,17 +104,28 @@ _start:
     r0 = CHIP_ID;
     dm(_chip_id) = r0;
 
-    /* ---- C runtime stack (i6/i7) for the C config functions ----
-     * Uses the LDF's RESERVE(ldf_stack_space, ldf_stack_length) block.
-     * Descending stack; top aligned down to 8 address units (same
-     * idiom as the CCES lib_setup_c). */
-    b7 = ldf_stack_space;
-    i7 = ((ldf_stack_space + ldf_stack_length - 1)
-          - ((ldf_stack_space + ldf_stack_length - 1) % 8));
-    l7 = 0;
-    b6 = ldf_stack_space;
-    i6 = i7;
-    l6 = 0;
+    /* ---- C runtime for the C config functions ----
+     * The stack out of the LDF's RESERVE(ldf_stack_space,
+     * ldf_stack_length) block AND the compiler's DAG registers. This
+     * used to set only B/I/L; M7 and M14 were left at whatever the boot
+     * kernel had put in them, which broke both halves of the cc21k call
+     * convention and is why the first C call (_sru_init) never returned.
+     * See src/c_abi.h for the convention and the evidence. */
+    C_RUNTIME_INIT
+
+    /* Interrupts: start from a known state. The SPI target boot kernel
+     * runs with interrupts of its own and hands control over with
+     * whatever it had unmasked still in IMASK and whatever it had taken
+     * still latched in IRPTL. _diag_init only ORs TMZLI in, so anything
+     * the kernel left enabled survives into our firmware and fires into
+     * an IVT that has no handler for it the moment _diag_init sets
+     * IRPTEN. CCES's own ___lib_setup_c clears both for exactly this
+     * reason; this firmware does not link it, so it does it here. */
+    r0 = 0;
+    imask = r0;
+    irptl = r0;
+    nop;
+    nop;
 
 #if DSP4_BISECT == 6
     /* TEMP bisect rung (2026-08-21, goes with the rest of the
@@ -142,7 +154,7 @@ _start:
      * + SPI2 slave + SPEN (dma_config.c also hands the asm side its
      * buffer pointers). Each stamp means "the call above returned", so
      * N flashes on the LED reads as "stuck in step N+1". */
-    call _sru_init;
+    CCALL(_sru_init)
     r0 = DIAG_STAGE_SRU;
     dm(_diag_boot_stage) = r0;
 
@@ -155,7 +167,7 @@ _start:
     call _bisect_park_asm;
 #endif
 
-    call _sport_cfg_init;
+    CCALL(_sport_cfg_init)
     r0 = DIAG_STAGE_SPORT;
     dm(_diag_boot_stage) = r0;
 
@@ -166,7 +178,7 @@ _start:
     call _bisect_park_asm;
 #endif
 
-    call _dma_cfg_init;
+    CCALL(_dma_cfg_init)
     r0 = DIAG_STAGE_DMA;
     dm(_diag_boot_stage) = r0;
 
@@ -178,6 +190,18 @@ _start:
 
     r0 = DIAG_STAGE_WAITCFG;
     dm(_diag_boot_stage) = r0;
+
+#if DSP4_BISECT == 21
+    /* TEMP bisect rung 21 (2026-08-21): everything before the host
+     * handshake has run — SRU, SPORTs, DMA rings, SEC, SPI2 — and the
+     * core is about to sit in .wait_boot. Three LONG pulses, because
+     * this is _bisect_park_asm's busy loop (~400 ms each at the
+     * measured 491.52 MHz CCLK) and not the much shorter C park in
+     * dma_config.c, so the two are never confused. It takes PB_05 back
+     * off SPI2 flow control, so it is a diagnostic build only. */
+    r4 = 3;
+    call _bisect_park_asm;
+#endif
 
     /* Wait for product config from the Pi/CM4 host (D1) — the host
      * writes the 0xF000+ config registers then CONFIG_COMMIT, which
