@@ -1,6 +1,6 @@
-artifact: dsp4_logic.fd6a5ec69198.{pof,svf}
-built: 2026-08-19T16:27:59Z
+artifact: dsp4_logic.a1f6672af6c3.{pof,svf}
+built: 2026-08-21T07:40:31Z
 slot_map: sha256:efd8d555440094b627345b5a84894f9e7a6b569056f4eccb417d42d6ce32182e
 sim_gate: PASS
 device: 5M1270ZT144C4
-fmax: 67.06 MHz
+fmax: 70.21 MHz

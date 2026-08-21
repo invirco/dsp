@@ -97,7 +97,28 @@ module dsp4_logic_top (
         .frame_pos    (frame_pos)
     );
 
-    assign dsp_clk = sysclk;   // SYS_CLKIN0 pass-through
+    // ---- DSP clock: SYS_CLKIN0 = sysclk / 2 = 24.576 MHz ----
+    // The ADSP-2156x CLKIN range is fCKIN = 20-30 MHz (datasheet Rev. A
+    // Table 23, crystal and external clock alike). The raw 49.152 MHz XO
+    // is OUT OF RANGE: at reset the CGU defaults to MSEL = 60, DF = 0, so
+    // PLLCLK would be 49.152 x 60 = 2.95 GHz and the PLL cannot lock — a
+    // part in that state never runs its boot ROM. Divided by 2 the same
+    // default gives 24.576 x 60 = 1.47 GHz, in range, and the clock stays
+    // audio-rational (512 x 48 kHz).
+    //
+    // A single toggle flop, registered straight to the pin: exact 50 %
+    // duty (the datasheet asks 45-55 %) and glitch-free by construction.
+    // U3 has no reset — MAX V macrocells power up cleared — so no reset
+    // term here, matching the rest of this design.
+    // `preserve` keeps this its own macrocell: without it the synthesiser
+    // spots that hb[0] toggles identically and merges the two, putting the
+    // DSPs' only clock on an LE inside the heartbeat counter's carry chain.
+    // Functionally the same, but this is the most critical net on the card
+    // — 1 LE buys it a dedicated flop and a direct route to pin 140.
+    reg dsp_clk_q /* synthesis preserve */;
+    always @(posedge sysclk)
+        dsp_clk_q <= ~dsp_clk_q;
+    assign dsp_clk = dsp_clk_q;
 
     // Clock pair roles. BCKI/FSI 0-3 serve DSPA, 4-7 serve DSPB; per
     // DSP the four pairs are {DAI0-in, DAI0-out, DAI1-in, DAI1-out}.

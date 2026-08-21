@@ -10,7 +10,10 @@
 //   3. DSPB output routing incl. the schematic-review facts: B_O1 -> DA3
 //      (NOT DA1), DA1/DA2 driven low, B_O2 = codec on D24 / snake on D32,
 //      B_O3 (DAC MAIN) parked with no D24 sink.
-//   4. dsp_clk is the raw 49.152 MHz XO passed to both DSPs' SYS_CLKIN0.
+//   4. dsp_clk is sysclk/2 = 24.576 MHz with a 50% duty cycle — the
+//      ADSP-2156x CLKIN range is 20-30 MHz, so passing the raw 49.152 MHz
+//      XO through (as rev C does in copper) leaves the DSPs' PLL unable to
+//      lock and their boot ROM never runs.
 //   5. The TEST1-4 bring-up pins carry the clkgen nets they claim to,
 //      and none of them is stuck — a dead test point is worse than no
 //      test point, because it reads as a dead board at bring-up.
@@ -66,6 +69,7 @@ module tb_logic_top;
         dut.u_pcm.right_q  = 32'd0;
         dut.u_pcm.tdm_out  = 1'b0;
         dut.hb             = 25'd0;
+        dut.dsp_clk_q      = 1'b0;
     end
 
     integer errors = 0;
@@ -85,6 +89,27 @@ module tb_logic_top;
     // DSPB (4-7): {in TDM16, out TDM8, in TDM16, out TDM8}
     integer sysclk_ticks = 0;
     always @(posedge sysclk) sysclk_ticks = sysclk_ticks + 1;
+
+    // ---- dsp_clk = sysclk/2, 50% duty (SYS_CLKIN0 must be 20-30 MHz) ----
+    integer dsp_last_rise  = -1;
+    integer dsp_edges      = 0;
+    integer dsp_bad_period = 0;
+    integer dsp_bad_duty   = 0;
+    always @(posedge dsp_clk) begin
+        if (dsp_last_rise >= 0 && (sysclk_ticks - dsp_last_rise) != 2) begin
+            $display("FAIL: dsp_clk period %0d sysclk, expected 2 (t=%0t)",
+                     sysclk_ticks - dsp_last_rise, $time);
+            dsp_bad_period = dsp_bad_period + 1;
+        end
+        dsp_last_rise = sysclk_ticks;
+        dsp_edges     = dsp_edges + 1;
+    end
+    always @(negedge dsp_clk)
+        if (dsp_last_rise >= 0 && (sysclk_ticks - dsp_last_rise) != 1) begin
+            $display("FAIL: dsp_clk high for %0d sysclk, expected 1 (t=%0t)",
+                     sysclk_ticks - dsp_last_rise, $time);
+            dsp_bad_duty = dsp_bad_duty + 1;
+        end
 
     integer exp_div [0:7];
     integer last_edge [0:7];
@@ -222,7 +247,9 @@ module tb_logic_top;
 
         #(1024.0 * 2.0 * SYS_HALF * 2.5);   // let the clock checks run
 
-        check(dsp_clk === sysclk, "dsp_clk is not the raw XO");
+        check(dsp_edges > 100, "dsp_clk is not toggling");
+        check(dsp_bad_period == 0, "dsp_clk period is not 2 sysclk cycles");
+        check(dsp_bad_duty == 0, "dsp_clk is not 50% duty (1 sysclk high)");
         for (k = 0; k < 8; k = k + 1)
             if (seen[k] < 4) begin
                 $display("FAIL: bcki[%0d] barely toggled (%0d edges)", k, seen[k]);
