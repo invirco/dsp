@@ -1392,7 +1392,9 @@ about SHARC behaviour as unproven.
    the shared !SPI1 net can corrupt boot DATA — near-term firmware fix
    (see item just below P2.2); (b) rev-D boot-bus owner. **PW confirmed 2026-08-21: both DSP blink LEDs visible at the
    expected rates — milestone closed visually (schematic map: LD3=DSPA/
-   chip1 1 Hz, LD2=DSPB/chip2 2 Hz; LD1 is the CPLD LED, not a DSP).**
+   chip1 1 Hz, LD2=DSPB/chip2 2 Hz; LD1 is the CPLD LED, not a DSP).
+   NOTE: on the rev C board these are SILKSCREENED D2/D1 = schematic
+   LD2/LD3 respectively — refdes offset, don't re-confuse them.**
 
 1. **P2.2 — dma_cfg_init wedge: ROOT CAUSE FOUND 2026-08-20 (desk
    review), fix in the tree, NOT yet flashed.**
