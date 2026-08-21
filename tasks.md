@@ -14,6 +14,39 @@ are reachable natively:
   test 3 SYS_HWRST = J6 pin 36 (RST_D/GPIO16), 0.1"; expect a clean low pulse
     >= 11 x tCKIN (~450 ns at 24.576 MHz) at each boot.
 
+**PW BENCH RESULT + NEW LEAD 2026-08-21 (highest priority now):** with the
+square-wave driver running, PW scoped the Pi header: J6.23 (SCK) TOGGLING,
+J6.19 (MOSI) TOGGLING, **J6.36 (RST_D/SYS_HWRST) STUCK HIGH — not toggling.**
+The Pi drives the boot bus fine, but it CANNOT toggle RST_D. This matches the
+netprobe ("!RST_D held high, U7 p47 also drives it") and the dual-master
+errata: the S MCU H1S1 (U7 PA13, pin 47) drives RST_D push-pull and wins over
+the Pi's GPIO16. CONSEQUENCE: the Pi has never been able to pulse SYS_HWRST low,
+so the two SHARCs came out of reset once at power-on (ran the boot ROM with
+nothing to receive) and every dsp4_boot since sent a stream to a part not in
+its boot-listen window — exactly "boot reports OK, GPIO8 flat".
+
+DO THIS:
+1. CONFIRM contention (not a script miss): with the Pi driving GPIO16 LOW
+   push-pull, read GPIO16 back — if it reads HIGH while driven low, U7 is
+   overpowering it = confirmed. (If it reads low, the earlier script just
+   didn't drive it — fix and re-scope.)
+2. RELEASE RST_D to the Pi so a real reset is possible. Options, cheapest
+   first: (a) does current H1S1 firmware drive PA13, or is this the rev-A
+   image that should leave it as input? Check the H1S1 source (Core/... 
+   the errata "H1S1 fw leaves PA13 as input" rule). (b) Hold H1S1 in reset
+   (its NRST) during a DSP boot so PA13 goes hi-Z and the Pi owns RST_D —
+   find how NRST is reachable (power-MCU? a GPIO? the SWD/prog path?).
+   (c) If neither is quick, PW bench: physically lift U7 PA13 or the RST_D
+   link — record as a red mod.
+3. With RST_D released, run dsp4_boot (which pulses RST_D low then streams)
+   and check GPIO8. THIS is the real boot test — the clock is good, the bus
+   toggles, and now the part can actually be reset into boot mode.
+4. Record the verdict. If GPIO8 finally toggles: the boot-handoff root cause
+   = RST_D dual-master (H1S1 held the DSPs out of Pi-controlled reset), not
+   damaged parts — a firmware/mod fix, no new card needed. Update the
+   dual-master item on the mods PDF accordingly (still a rev-D hardware fix,
+   but the immediate unblock is releasing PA13).
+
 **PW REFINEMENT (do this FIRST, priority over the boot loop):** PW wants
 INDEPENDENT steady repeating signals on each of the three pins to scope
 directly — not boot-shaped bursts. Deploy a small script on the Pi
