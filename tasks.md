@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-08-21 10:46Z — SHARC testing ② — boot retest on corrected CLKIN (÷2 + level-shift fitted)   [status: 🟡 dispatched]   [model: opus]
+## HUB DISPATCH 2026-08-21 10:46Z — SHARC testing ② — boot retest on corrected CLKIN (÷2 + level-shift fitted)   [status: 🔴 blocked — clock now verified good at the pad and BOTH chips are still flat (GPIO8/GPIO12 never move, no RDY high in a reset-pulse trace); new lead found at the desk: neither SHARC has any decoupling in the rev-C schematic — PW checklist written, ordered by cost]   [model: opus]
 
 model: opus
 
@@ -51,7 +51,107 @@ Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
 no AI attribution in commits or any work product.
 
-## HUB DISPATCH 2026-08-21 07:23Z — SHARC testing ① — CPLD dsp_clk ÷2 (CLKIN out of range) + closed-loop retest   [status: 🔴 blocked]   [model: opus]
+### Outcome 2026-08-21 11:05Z — 🔴 BLOCKED. Clock cleared, parts still dead.
+
+**Verdict: the corrected CLKIN is NOT the root cause of the boot-handoff
+failure.** With the clock verified good at the pad by PW's scope
+(0.70–0.82 V, 24.576 MHz) and the ÷2 bitstream on the CPLD, every liveness
+test reads exactly as it did against the dead-part baseline of 08-20.
+
+| test | result |
+|---|---|
+| `dsp4_netprobe.py` full sweep (matrix-app stopped) | identical to the 08-20 baseline: PCM_CLK/PCM_FS **toggling** (CPLD alive), RDY1/RDY2 held low on R34/R22, MOSI/SCK held high, !RST_D held high by U7, MISO/CS floating |
+| `dsp4_boot.py --ldr rdyprobe1.ldr --chip 1`, then 20 × `pinctrl get 8` | boot reported OK (1024 B on CS1); GPIO8 **`lo` on every sample** |
+| `dsp4_boot.py --ldr rdyprobe2.ldr --chip 2`, then 20 × `pinctrl get 12` | boot reported OK (1024 B on CS2); GPIO12 **`lo` on every sample** |
+| `--rdy-trace 1 --window 1.0` (!RST_D pulse, no SPI traffic, ~14 µs sampling) | 69727 samples, **no HIGH** |
+| `--rdy-trace 2 --window 1.0` | 70789 samples, **no HIGH** |
+| LD2/LD3 after a boot (PW, bench) | no activity |
+
+No blind iteration beyond that: two boots per chip, one trace per chip.
+Images on the unit were hash-checked against `build/` first (rdyprobe1
+`6f8da654…`, rdyprobe2 `049792ab…`) — identical, so nothing stale was booted.
+
+### The new lead, found at the desk: neither SHARC has any decoupling
+
+The DSPA (p5) and DSPB (p4) sheets of `D24 DSP.pdf` each instantiate a
+sub-sheet block labelled **CAPS** carrying VDD_INT / VDD_EXT / VDD_REF —
+and both of those sheets (PDF pages 9 and 10) are **blank**: title block,
+zero ink, measured. There are no C-designators anywhere on either DSP
+sheet, while every other device on the card is decoupled (CPLD C8–C21, the
+1V8 regulator C3/C4/C6/C7, the XO C2/C5, the M MCU C202–C205). Each part
+has ~25 VDD_INT pins plus VDD_EXT and VDD_REF (the PLL/OTP supply), all
+arriving over the DIL100 stack.
+
+Unverified against the layout/BOM (the Proteus project is on the Windows
+machine), so it is a lead, not a finding — but it is a **one-minute check
+with the board in hand**, it would explain everything seen since March, and
+the bodge is a handful of 0402s. It is step 0 of the checklist below and
+rev-D **mod 14**.
+
+### Two suspects cleared from the desk (do not spend bench time on them)
+
+- **Reset timing.** `dsp4_boot.py` holds `!RST_D` low 50 ms and waits
+  500 ms before the first byte; the datasheet asks 11 × tCKIN ≈ 0.45 µs for
+  both tWRST and tRST_IN_PWR (Tables 22/23), with supplies long stable. The
+  timing half of the HWRST suspect is answered; only the *level* at pin 104
+  is unproven, given the two unarbitrated masters on that net.
+- **CGU arithmetic — and a correction to this dispatch's premise.** The HRM
+  gives **PLLCLK = SYS_CLKIN × MSEL / 2** with reset defaults **MSEL = 40,
+  CSEL = 1, SYSSEL = 2, S0SEL = 4** (Tables 2-10/2-11 + register diagrams).
+  So at 24.576 MHz: PLLCLK 491.5 MHz, CCLK 491.5 MHz, SYSCLK 245.8 MHz,
+  SCLK0 61.4 MHz — every one inside spec, ROM correctly clocked with no CGU
+  programming (there is none anywhere in `SHARC/src`, correctly). At the old
+  49.152 MHz it was 983 MHz PLLCLK/CCLK — inside the *family* maxima though
+  about double the 21564 grade. The 07:23Z claim "MSEL = 60, DF = 0 →
+  2.95 GHz, cannot lock, the ROM can never have run" was wrong twice (it
+  dropped the /2 and used the wrong default). The ÷2 is still right — fCKIN
+  20–30 MHz is an input-pin spec and 49.152 MHz violated it by 64 % — but
+  the mechanism was not "the PLL could not lock", and nothing should rest on
+  that story. Recorded in D10.
+
+### Checklist written for PW, ordered by cost
+
+`~/db/TransferOnly/PCB mods/dsp4-revC-liveness-checklist.md` (new):
+
+0. **Eyes, no instruments** — are there ANY caps on the DSP power pins;
+   does the layout/BOM have what the schematic lacks.
+1. **DMM** — +0.9 V (0.855–0.945), **+1V8 VDD_REF** (1.71–1.89, U2 output;
+   never measured, and without it the PLL cannot lock), +3V3.
+2. **Scope during a desk-driven boot** — SPI2 CLK/MOSI at R52/R51 (DSPA),
+   R19/R18 (DSPB): 1 MHz burst, mode 1. First proof a part receives data.
+3. **Scope** — SYS_HWRST at p104 across the !RST_D pulse: does it actually
+   reach VIL ≤ 0.7 V with U7 pin 47 also driving that net.
+4. **The parts.** If 0–3 are clean and RDY still never moves: both were
+   overdriven ~80 mA into a 6 mA-max clamp since March. Fresh card / fresh
+   SHARCs is the only clean proof; a JTAG bodge is the alternative — and
+   note the DSP TAP pins (99–103) are terminals that reach *nothing* on
+   rev C, not even each other, so it is 5 wires per part on 0.5 mm pitch.
+5. **Boot stream** last: it was verified byte-by-byte on 08-20 and cannot
+   be ruled in until step 2 passes.
+
+### Bookkeeping done
+
+- Mod doc `dsp4-revC-clkin-bodge.md`: status → **fitted and scope-verified**,
+  the as-fitted 1 k + 330 R recorded against the specified 1k2 + 390 R, a
+  second trim ladder added for the 1 k series (300 R is the trim-down if a
+  card reads > 0.82 V), the fault-1 mechanism corrected, and §6 records the
+  retest result. Hub: the mod can go BLUE on the mods PDF — PW has scoped it.
+- `dsp4-revD-modlist.md`: **mod 14 (DSP decoupling, RED)** added; mod 8
+  annotated as fixed-and-verified-but-not-the-cause; mod 11 gains the "the
+  TAP pins connect to nothing" detail.
+- `dsp4-architecture-decisions.md` **D10**: bodge fitted + verified,
+  the CGU correction, and what the fix did not fix.
+- `MW/D24/HW/hardware-map.md` §3: verified clock chain, the decoupling
+  observation, the three DSP supplies and where they come from (VDD_REF is
+  on-card from U2), JTAG/RESOUT/FAULT connectivity.
+- Unit left with matrix-app running and all three MCUs verifying.
+
+**Blocked on:** PW at the board — checklist step 0 (eyes) and step 1 (DMM)
+need nobody's permission and may end this investigation; steps 2–3 need a
+scope on a powered card, and the boot side of them can be driven from the
+desk.
+
+## HUB DISPATCH 2026-08-21 07:23Z — SHARC testing ① — CPLD dsp_clk ÷2 (CLKIN out of range) + closed-loop retest   [status: 🔴 closed — VERDICT 2026-08-21: the clock chain was a real two-part fault (fCKIN out of range + a 3.3 V drive on a VDD_INT pin), both halves are now fixed and scope-verified on the card, and the boot handoff is STILL dead — so CLKIN was necessary but not sufficient, and this block's premise that it was the root cause is not confirmed]   [model: opus]
 
 **Outcome 2026-08-21 09:55Z — 🔴 BLOCKED ON PW HANDS. Desk half done: ÷2 built, flashed and verified on the card; the level-shift bodge is specified and waiting to be fitted. No boot retest attempted — by the 08:45Z addendum it would not have produced a verdict.** See the outcome section at the end of this block.
 

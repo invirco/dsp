@@ -334,10 +334,21 @@ run.
 - `dsp_clk` = **24.576 MHz** = sysclk / 2 = 512 × 48 kHz, 50 % duty from a
   dedicated toggle flop. The part specifies **fCKIN = 20–30 MHz** (Table
   23, crystal and external clock alike) and tCKINH/L ≥ 16.67 ns. The raw
-  XO is out of range: at the CGU reset default (MSEL = 60, DF = 0) it asks
-  the PLL for 2.95 GHz, which cannot lock, so the boot ROM never runs.
-  Any future change to the divider must keep fCKIN inside 20–30 MHz AND
-  keep MSEL × fCKIN inside the CCLK range (400 MHz – 1 GHz).
+  49.152 MHz XO is 64 % over that maximum, which is the violation — the
+  reset-default CGU arithmetic is a separate check and it passes at both
+  frequencies. Get it right: the HRM gives **PLLCLK = SYS_CLKIN × MSEL / 2**
+  and the reset defaults are **MSEL = 40, CSEL = 1, SYSSEL = 2, S0SEL = 4**
+  (HRM Tables 2-10 / 2-11 and the register diagrams). At 24.576 MHz that is
+  PLLCLK 491.5 MHz, CCLK 491.5 MHz, SYSCLK 245.8 MHz, SCLK0 61.4 MHz — all
+  in range (fPLLCLK 0.40–1.00 GHz, fCCLK 400–1000 MHz, fSYSCLK 200–500 MHz,
+  fSCLK0 30–125 MHz), so the boot ROM runs correctly clocked with no CGU
+  programming at all. At 49.152 MHz it was PLLCLK/CCLK 983 MHz: inside the
+  family maxima, but about double the 21564's grade. Any future change to
+  the divider must keep fCKIN inside 20–30 MHz **and** re-check all four
+  reset-default derived clocks against those ranges. An earlier version of
+  this decision said the PLL was asked for 2.95 GHz and could not lock;
+  that was wrong (it dropped the /2 and used MSEL = 60), and no conclusion
+  should rest on it.
 - `SYS_CLKIN0` is a **VDD_INT-domain pin** — the only signal pin on the
   part that is. Table 7 puts it in the VDD_INT domain, Table 19 makes its
   absolute maximum `−0.3 V to VDD_INT`, and the operating conditions give
@@ -354,11 +365,26 @@ run.
 **Rev-C state and the bodge.** Rev C drives the pin at 3.3 V through 22 R
 (R65 → DSPA U6 pin 5, R33 → DSPB U5 pin 5), so both parts have had their
 clock input clamped ~2.4 V above absolute maximum, continuously, since
-March, with the clamp current injected into the +0.9 V core rail. The ÷2
-half is fixed in the CPLD (`dsp4_logic.a1f6672af6c3`, programmed
-2026-08-21); the level half needs hands. Values, fitting and the bench
-checklist: `TransferOnly/PCB mods/dsp4-revC-clkin-bodge.md` (Dropbox);
-the permanent fix is mod 8 in `dsp4-revD-modlist.md`.
+March, with the clamp current injected into the +0.9 V core rail. **Both
+halves are now corrected on the bench card and the contract above is met
+by measurement:** the ÷2 in the CPLD (`dsp4_logic.a1f6672af6c3`, programmed
+2026-08-21) and the divider fitted 2026-08-21 (1 k replacing R65/R33 plus
+330 R from each DSP-side pad to GND — ratio 0.248, the specified 1k2/390 R
+to within 1 %), scope-verified by PW at the R33/R65 pad: **0.70–0.82 V
+high, 24.576 MHz**. Values, fitting and the bench checklist:
+`TransferOnly/PCB mods/dsp4-revC-clkin-bodge.md` (Dropbox); the permanent
+fix is mod 8 in `dsp4-revD-modlist.md`.
+
+**What it did not fix.** With that verified clock, the boot retest is
+unchanged: `rdyprobe1`/`rdyprobe2` boot and SPI_RDY stays flat on both
+chips, the reset-pulse RDY trace shows no HIGH in a 1 s window on either
+chip, and LD2/LD3 do not light. So the clock chain was a genuine two-part
+fault that had to be fixed, and it was not the sole cause. The contract
+stands on its own merits (it is what the datasheet requires); the search
+for why the parts are dead continues in
+`TransferOnly/PCB mods/dsp4-revC-liveness-checklist.md`, whose cheapest
+item is that **neither SHARC has any decoupling in the rev-C schematic**
+(rev-D mod 14).
 
 **Why this is recorded as a decision.** The alternative — a crystal per
 DSP across SYS_CLKIN0/SYS_XTAL0, which is what ADI's Figure 5 shows —

@@ -169,8 +169,29 @@ analog source (NET only); the LOGIC slot map must route DSPB O1 → DA3.
   fCKIN = 20-30 MHz (fixed in RTL 2026-08-21, `dsp_clk` = sysclk/2 =
   24.576 MHz), and `SYS_CLKIN0` is a **VDD_INT-domain** pin (abs max
   = VDD_INT ≈ 0.9 V, VIHCLKIN 0.68 V…VDD_INT, VILCLKIN ≤ 0.12 V) being
-  driven at 3.3 V — needs the level-shift bodge before any boot retest
-  means anything.
+  driven at 3.3 V. **Both corrected on the bench card 2026-08-21:** the ÷2
+  bitstream, and a divider fitted at the 22 R pads (1 k in place of
+  R65/R33 + 330 R from each DSP-side pad to GND), scope-verified at
+  0.70–0.82 V / 24.576 MHz. The boot retest on that verified clock is
+  still flat on both chips, so the clock was not the sole cause — see
+  `TransferOnly/PCB mods/dsp4-revC-liveness-checklist.md`.
+- **DSP decoupling: none in the schematic.** The DSPA (p5) and DSPB (p4)
+  sheets each instantiate a `CAPS` sub-sheet with VDD_INT/VDD_EXT/VDD_REF
+  ports, and both of those sheets (PDF pages 9/10) are blank — no
+  components, and no C-designators anywhere on either DSP sheet, while
+  every other device on the card is decoupled (CPLD C8-C21, U2 C3/C4/C6/C7,
+  Y1 C2/C5, M MCU C202-C205). Unverified against the layout/BOM; if it is
+  real it is a rev-C fault and a candidate root cause (rev-D mod 14).
+- **DSP supplies:** VDD_INT ← **+0.9 V** and VDD_EXT ← **+3V3**, both from
+  the motherboard over the J1/J2 DIL100 stack (J1 P1/P3/P5 = +0.9 V,
+  P7/P9/P11 = +3V3); VDD_REF (pins 7/79, the PLL and OTP supply) ←
+  **+1V8**, generated on-card by U2 (AMS1117-1.8) off +3V3, which also
+  feeds the CPLD core. None of the three has ever been measured.
+- **DSP JTAG: not connected at all.** `JTG_TDI/TMS/TCK/TDO/TRST`
+  (pins 99-103) are terminals inside the DSPA/DSPB sheets and are not
+  ports on those hierarchy blocks — they reach neither each other, nor
+  the CPLD's TAP chain, nor any header. `SYS_RESOUT` (p107) and
+  `SYS_FAULT` (p102) are likewise N/C. `SYS_HWRST` is p104, net `RST`.
 
 ## 3a. S MCU (U7) pin inventory — rev D / D8 supervisor scoping
 
