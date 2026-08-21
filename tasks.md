@@ -90,10 +90,17 @@ cleanly, **12 MHz and above fail outright**. `dsp4_boot.py --sync-poll`
 
 **Why chip 1 is still blocked.** 258 KB, ~320 ms on the wire. It does not
 fit between two bursts at any clock this bus supports, so no host-side
-trick reaches it. The poll is already DEAD CODE (the Pi's `a0` clamp
-shorts its clock, nothing has ever answered) and appears absent from the
-current H1S1 sources in `~/build-h1s1`. **Reflashing H1S1 is very likely
-the whole fix — NOT DONE, it needs PW's go-ahead** (and the 13:09Z
+trick reaches it. **CORRECTED 2026-08-21: it is not an "ADAU
+meter poll" and it is NOT absent from the current sources** — `main.c`
+line 24 `#include "matrix.cs"`, so that file is compiled. The two
+interferers are `TimeSplice()`'s periodic `TestMicPres()` (25 bytes on
+the mic-preamp CS, fired off a MainLoop ITERATION COUNTER, which is why
+the period wanders 40–254 ms) and `MainLoop()`'s `DspTx(0xF520)` writes
+to **CS1–CS8** on every blink transition — the latter asserting the very
+chip selects the Pi boots through, for a legacy register the SHARC
+firmware does not implement. Both are removable in a few lines;
+`TestMicPres()` is also called once at init, so mic gain survives.
+**NOT DONE, it needs PW's go-ahead** (and the 13:09Z
 dispatch fenced the ADAU-poll item off).
 
 **item 2 — the wedge is in `_sru_init`, NOT `dma_cfg_init`.** Redone on

@@ -193,14 +193,29 @@ analog source (NET only); the LOGIC slot map must route DSPB O1 → DA3.
     ~240 KB at 11 MHz.
   - CONSEQUENCE: chip2's firmware fits; **chip1's (258 KB, ~320 ms) does
     not, at any clock this bus supports.** Unblocking chip1 means
-    stopping the poll, not reshaping the image. The poll is already dead
-    code — the Pi's `a0` clamp shorts its clock, so nothing has ever
-    answered it — and it is absent from the current H1S1 sources in
-    `~/build-h1s1` (`main.c`'s `DspTx` is commented out; the only
-    `HAL_SPI_Transmit` calls left are in `Core/Inc/matrix.cs`, which is
-    not compiled). A reflash of H1S1 with current firmware is very
-    likely all that is needed. NOT DONE — reflashing the S MCU on the
-    bench unit needs PW's go-ahead.
+    stopping the interference, not reshaping the image.
+  - **CORRECTION 2026-08-21: it is not an "ADAU meter poll", and it is
+    NOT absent from the current sources.** `Core/Src/main.c` line 24 does
+    `#include "matrix.cs"`, so `Core/Inc/matrix.cs` IS compiled. Two
+    things in it drive the shared SPI1 bus in steady state:
+    1. `TimeSplice()` (matrix.cs:170) counts MainLoop iterations and
+       every `timeSplice > 1000000` calls `TestMicPres()`, which does
+       `SpiTx(GPIOA, CS_M_Pin, 25, micGainFull)` — 25 bytes on the mic
+       preamp's chip select. That is the ~0.5 ms burst. It is driven by
+       a LOOP COUNTER, not a timer, which is exactly why the measured
+       period wanders between ~40 ms and ~254 ms with the serial load.
+       `TestMicPres()` is ALSO called once at init (matrix.cs:131), so
+       dropping only the periodic call still leaves mic gain set.
+    2. `MainLoop()` (matrix.cs:134) writes `DspTx(..., 0xF520, ...)` to
+       **CS1..CS8** on every blink transition. CS1/CS2 are the DSPs' own
+       boot chip selects, so this is not merely bus noise — it is a
+       second master asserting the very select the Pi boots through.
+       The 0xF520 register is legacy ADAU-era protocol that the SHARC
+       firmware does not implement, so these writes accomplish nothing.
+    Fix: drop the `TestMicPres()` call inside `TimeSplice()` and the
+    CS1–CS8 `DspTx` block in `MainLoop()`, rebuild with `Debug/fw.sh`,
+    reflash. NOT DONE — reflashing the S MCU on the bench unit needs
+    PW's go-ahead.
   - Operational trap: claiming GPIO9/10/11 with gpiod/`gpiomon` takes
     them out of `a0`, and **spidev does not put them back** (the pinmux
     is applied at probe time, not per open). A boot with those pins left
