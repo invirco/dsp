@@ -255,15 +255,50 @@ this project does not mean an empty net.
 
 With that, **every suspect on the list is closed except the parts.**
 
-**One loose end found in the captures, not the cause:** with matrix-app
-stopped and the Pi idle, **MOSI carries a periodic burst of ~80 transitions
-every ~256 ms with no SCK** (48.3, 301.2, 557.2, 808.2, 1064.0, 1319.9,
-1575.9 ms in the chip-1 capture). Something other than the Pi drives that
-net — the Pi's SPI_SCK/MOSI/MISO are the same `!SPI0/1/2` nets U7 masters
-for its housekeeping SPI (hardware-map §3a). It missed every boot burst in
-these runs, but a 14 ms boot against a 256 ms period is roughly a 5 % chance
-of collision per attempt, so it is a real hazard on a shared bus and worth
-closing on rev D.
+**One loose end, characterised 2026-08-21 but not identified.** With the Pi
+idle, `SPI_MOSI` (GPIO10, the `!SPI1` net) carries a burst of ~80
+transitions every ~256 ms. What it is not, each with evidence:
+
+- **Not the Pi.** With GPIO10 reconfigured from `a0` to a plain input with
+  the internal pull-down, the bursts persist — 440 transitions in 1.5 s
+  against 472 with SPI0 attached, and the net still reads 99.8 % high. An
+  external device drives it, and holds it high at rest (which is what
+  `dsp4_netprobe.py` has been reporting as "held high by something stronger
+  than the Pi pull" all along).
+- **Not an SPI transaction.** Over the same window `SCK` (`!SPI0`, GPIO11)
+  has **zero** transitions and so does `MISO`. No master is clocking; a
+  device is driving a data line on its own.
+- **Not H1S1**, on the evidence available: `MX_SPI1_Init()` runs, but the
+  only `HAL_SPI_Transmit` in `~/build-h1s1` sits inside a `DspTx()` that is
+  entirely commented out. Not airtight — `MainInit`/`MainLoop` are called
+  from `main()` but are not in that tree, so it is not the whole firmware.
+- **Not our CPLD by design.** `ISPI0`/`ISPI1`/`ICS_L` are not ports of
+  `dsp4_logic_top.v` at all; the RTL only mentions them as "provisioned …
+  not implemented", so whatever Quartus's unused-pin default is applies to
+  them. That would explain a resting level, not a burst.
+
+Shape, for whoever picks this up: bursts of ~8 frames, each frame ~77 µs
+made of a ~21 µs low, a cluster of 1–7 µs pulses spanning ~20 µs, a ~33 µs
+low, then a short high; burst ~0.6 ms; repeat interval measured at
+250.9–256.0 ms. The few ms of jitter says software timer, not a hardware
+divider. (The 20.8 µs element equals one 48 kHz frame, 20.83 µs —-
+suggestive, not proof.)
+
+**PW's instinct that this is ADAU-era legacy has support in the firmware:**
+H1S1's commented-out `DspTx()` builds `buffer[0]=0; buffer[1]=addr>>8;
+buffer[2]=addr&0xff` followed by payload, over `CS_C`/`CS_M` — that is the
+SigmaDSP/ADAU write format. The housekeeping bus was designed around
+ADAU-era parts, so a legacy device still fitted on that shared net and
+still doing something periodic is a coherent candidate. Identifying it
+needs the D24 Digital schematic's `!SPI0/1/2` fan-out, which is not in this
+repo.
+
+**Not the cause of the boot failure, but a real hazard.** The bursts fell
+at 48.3, 301.2, 557.2 and 808.2 ms in the chip-1 capture and the boot burst
+ran 714.6 → 728.4 ms, so nothing collided. But the DSPs' `SPI2_MOSI`
+(PA_01) is fed from this same net through the 22 R network, and a 14 ms
+boot against a 256 ms period is roughly a 5 % chance of corruption per
+attempt. Rev-D item: give the DSP boot bus an owner, or arbitrate it.
 
 Unit left with matrix-app running and all three MCUs verified (13:17).
 
