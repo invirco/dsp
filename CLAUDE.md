@@ -89,3 +89,25 @@ has the layout; `tasks.md` has current work state — read both first.
   Code, def CSVs, and working trackers get no header. Published documents are
   hand-written or hand-rewritten; removing the header is the sign-off that the
   rewrite happened.
+
+## Model tiering (hub dispatch policy)
+
+Dispatched sessions may arrive on any model tier (`[model: …]` in the HUB
+DISPATCH header; absent = this machine's default). Whatever the main model,
+tier the work inside the session:
+
+- **Delegate to `sonnet` subagents** (Agent tool, `model: sonnet`; `haiku`
+  for pure scanning): builds and reflashes from a known recipe, running a
+  soak/qual/smoke and scoring it, log and capture triage, bulk or fully
+  specified edits, bookkeeping in tasks.md/findings.md, scripted bench
+  recipes. Give the subagent the exact recipe and the pass/fail criterion;
+  verify its claimed result against the artifact (W0 rule: image size/md5,
+  scorer output, UART witness), never by its summary alone.
+- **Keep on the main model**: planning and decomposition, anything of
+  unknown shape (root-causing, bring-up that deviates from the recipe),
+  new subsystems, and anything touching clock discipline, TRDC/MDAC,
+  power sequencing, or the defs wire contract.
+- A session launched on `sonnet` that meets design-grade or unknown-shape
+  work does NOT push through it: record the point reached and what was
+  found in the dispatch block, mark 🔴 blocked with "needs opus-tier
+  dispatch", push, and stop. The hub re-dispatches on the higher tier.
