@@ -50,6 +50,29 @@ datasheet is NOT in Dropbox or the repo (analog.com blocks fetch) — PW
 asked to drop it into `_mx/_temp/adsp-2156x-docs/`; when it appears,
 confirm the fCLKIN min/max line and close the [verify] tags.
 
+**HUB ADDENDUM 2026-08-21 08:45Z — datasheet now in hand (PW).** Files:
+`~/db/_mx/_temp/adsp-2156x-docs/adsp-21560-21561-21564-21568.pdf` (Rev. A,
+Feb 2026) + the 21564-specific HRM, EE-461 and the anomaly list, same
+folder. mx26 errata DSP4 section updated (mx26 3371173). Two CONFIRMED
+clock faults, which change TASK A:
+1. fCKIN = 20–30 MHz (Table 23, crystal and external alike) — the ÷2 is
+   right; finish step 1 (RTL/SDC/tb/build/commit).
+2. **SYS_CLKIN0 is a VDD_INT-domain pin.** Abs max SYS_CLKIN0 input =
+   –0.3 V to VDD_INT (Table 19); VIHCLKIN max = VDD_INT, VILCLKIN max
+   +0.12 V; "must not exceed the internal (VDD_INT) voltage level". The
+   CPLD drives it at 3.3 V through 22R → both SHARCs overdriven since
+   first power-up; the pin clamp pumps the +0.9 V rail; parts may be
+   damaged.
+So: do NOT flash + retest expecting a verdict. Instead (a) commit the ÷2
+build; (b) size a proto level-shift at R65/R33 to a ~0.8 V swing at pin 5
+(e.g. ~560R series + ~180R shunt on the DSP side; check RC against the
+24.576 MHz edges and the CPLD drive) and write it as a RED mod for PW to
+fit, plus the scope checklist (first: +0.9 V sane with the card fitted,
+clamping at pin 5); (c) downgrade TRST (internal pull-down per the signal
+table), note BMODE2 internal PD and SYS_FAULT open-drain (external pull-up
+if used). Record in this block + the decisions doc; when the desk work is
+done mark the block 🔴 blocked on PW hands (bodge); push.
+
 Constraints: chips may be freely booted/reset; ALWAYS restart matrix-app
 and confirm the three MCUs verify before ending the session or between
 long gaps; Dropbox via ~/db. The rev C unit is yours (no other machine
