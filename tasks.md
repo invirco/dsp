@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-08-22 21:05Z — EARLY AUDIO: word-phase fix, then CPLD loopback bitstream + Pi capture path (no analog boards, no hands)   [status: 🟡 rung 1 HALF DONE — the CPLD half is complete: `dsp4_logic_loopback.48fa9b8590d5` built through the sim and STA gates (47 LE vs shipping 156, Fmax 167.98 vs 70.21 — the fitter prunes the now-unused input muxes and the PCM reframer, which matters for rung 2), flashed over the CM4 JTAG bit-bang, and proven healthy on the card: both DSPs still boot (so DSP_CLK survives) and PCM_CLK/PCM_FS still toggle. **SHIPPING BITSTREAM RESTORED and re-verified** — IDCODE good, clocks toggling, chip 1 answers MAGIC/CHIP_ID/BOOT_STAGE. The pattern generator/checker firmware is NOT written, so none of the four facts rung 1 exists to close are established and no PROVISIONAL tags were retired. OPERATIONAL TRAP now documented in shared/dsp4-logic/README.md: OpenOCD's linuxgpiod leaves its GPIOs claimed on exit, so `pinctrl set ... a0` after every flash is MANDATORY — without it the SPI link is dead on both chips with a known-good bitstream and it looks exactly like a bricked card. Recommendation: run rung 1's verdicts over the PB_05 dump, not the SPI link. Old status follows] [was: 🟡 link now POLLED and much improved; rung 1 NOT started — the parameter link is off the SEC entirely: `sec_init()` keeps only the audio block clock and `_spi_poll` collects requests from the main loop AND from `.wait_boot` (the latter is mandatory — the config that releases that loop arrives over the link being polled, and omitting it deadlocks). Plus the two SPI_TFIFO pushes are separated by NOPs: back to back one was being lost and every read came back as (value, value). Production reads did not work AT ALL before this; they now run 11 of 12 consecutive full-block reads clean, with writes landing (PRODUCT_ID reads back 1). Read-after-write in one session is still an intermittent race — better, not solved; the echo is checked on every read so a bad answer is rejected rather than believed. Rung 1 deliberately not started at the tail of a long session: toolchain all verified present (Quartus 21.1, iverilog 12.0, OpenOCD + cpld-jtag.cfg, IDCODE 0x020a30dd, shipping .pof/.svf on the Pi ready to restore), and the recommendation is to read rung-1 verdicts over the PB_05 dump rather than the SPI link. SHIPPING CPLD bitstream UNTOUCHED. Old status follows] [was: 🟡 gate MET + read regression largely fixed; rungs 1-2 not started — the two all-zero-MISO events were ONE fault and it was in the RECEIVE side, not the response path: the RFIFO was left holding a single stale word around the boot handover, so with the correct RFS==FULL drain guard the level could never reach FULL again and the handler stopped firing (SPI2_STAT 0x00142001, RFS=2, counters FROZEN at 74 and IDENTICAL across two runs with different traffic, one with matrix-app stopped). Fixed with stuck-partial recovery in the diag timer ISR (three consecutive 1 ms ticks half-full = stale, discard a word) — SPI2_STAT now 0x00540001, everything empty and clean. Answers then come back rotated by one word, which dsp4_diag.py now tolerates with the ECHO as the check, so a wrong guess cannot be read as data. POLLED variant (rung 27) reads the full diag block RELIABLY; interrupt-driven production reads most of it then drops/duplicates one word. Per the steer the pipeline is not stopped on this: rung 1 proceeds on the polled channel. Remaining suspicion recorded — the ISR can enter mid-transfer when FULL is momentarily true, which the polled loop cannot; gate the drain on the transaction boundary. Old status follows] [was: 🟡 gate MET, rungs 1-2 not started — **BOOT_STAGE 6 on BOTH chips**, proven on the PB_05 dump (BOOT_STAGE 6, BOOT_CFG 1, PRODUCT_ID 1 on each; images md5-checked before flashing). Root cause of the config never landing was NOT rung 0: the drain guard tested SPI_STAT.RFE ("not empty") when a request is TWO words, so entering with a single word present drained one real word and one garbage one and desynced the stream permanently. Guarding on RFS == 4 (Full RFIFO) gives a clean 1:1 — chip 2 shows 5 handler entries for 5 writes where RFE gave 2.3x — and CONFIG_COMMIT then applies. REGRESSION, stated plainly: the same change broke READS, which now return all-zeros on MISO; the two states are (RFE: reads work, config never lands) and (RFS: config lands, reads dead). RFS is kept because it is provably the right condition and it reaches the gate. Rungs 1-2 not started — building a CPLD bitstream on a link that cannot be read back would be building on an unverifiable channel. Next: the read fault is between .spi_read and the TFIFO writes, everything upstream is excluded; see the outcome. Old status follows] [was: 🔴 blocked at rung 0 — the word-phase fix was implemented twice and REVERTED both times; nothing shipped and the tree is back at `f2bdb93`, rebuilt and re-verified on the bench. Making every transaction answer turned MISO to ALL-ZEROS on every transaction, reads included — worse than the known-good, which reads fine. The failing build is healthy everywhere except the answer: core alive, SEC_COUNT = SPI_RX_COUNT = 86, SPI2_STAT = 0x00540001 (RFIFO empty, no ROR/TUR/RUWM), RESP_DROP = 0 — so receive, delivery and dispatch all still work and only the queued answer is wrong. Both variants failed identically: echo stashed in a .var (the var read back CORRECTLY as 0xE0FE0000 from the main loop, yet answers were still zero) and echo queued while r0 is still live via a new subroutine. Rungs 1 and 2 not started — rung 0 is their gate. Full state note, four ranked next suspects and a recommendation to retry as a strictly smaller step are in the outcome below]
+## HUB DISPATCH 2026-08-22 21:05Z — EARLY AUDIO: word-phase fix, then CPLD loopback bitstream + Pi capture path (no analog boards, no hands)   [status: 🟠 rung 1 blocked on a REAL DMA BUG, now half fixed — **the DMA descriptors were being optimised away.** Nothing in C reads them (only the DDE does, through the fabric) so at -O the stores filling them were dead-store eliminated; taking &desc[i][0][0] does not save them because the address is only converted to an integer. Descriptor words read back 0x00000000 before and 0x282549D4 / 0x28254D40 after making them volatile — correct L1 aliases, correct ring. THAT is why no audio block has ever arrived on this card. Found from DMA_STAT 0x00006032 = IRQERR, ERRC 3 ("Memory Access or Fabric Error"), RUN 0. STILL FAILING: with correct descriptors the channel is unchanged (ADDRSTART 0, FRAME_COUNT 0, SEC_COUNT 0), and a write-completion barrier changed nothing, so it is not a store-buffer race; CFG reads back exactly as written. Next and specific: HRM ch.27 descriptor ELEMENT ORDER and alignment — the code assumes {NXT, ADDRSTART, CFG, XCNT, XMOD} but the data sheet prose says link/address/LENGTH/CONFIG. Five-minute check. Also corrected: the DMA channel, not the SPI link, is rung 1's real gate — the pattern firmware cannot mean anything until one block completes. Old status follows] [was: 🟡 rung 1 HALF DONE — the CPLD half is complete: `dsp4_logic_loopback.48fa9b8590d5` built through the sim and STA gates (47 LE vs shipping 156, Fmax 167.98 vs 70.21 — the fitter prunes the now-unused input muxes and the PCM reframer, which matters for rung 2), flashed over the CM4 JTAG bit-bang, and proven healthy on the card: both DSPs still boot (so DSP_CLK survives) and PCM_CLK/PCM_FS still toggle. **SHIPPING BITSTREAM RESTORED and re-verified** — IDCODE good, clocks toggling, chip 1 answers MAGIC/CHIP_ID/BOOT_STAGE. The pattern generator/checker firmware is NOT written, so none of the four facts rung 1 exists to close are established and no PROVISIONAL tags were retired. OPERATIONAL TRAP now documented in shared/dsp4-logic/README.md: OpenOCD's linuxgpiod leaves its GPIOs claimed on exit, so `pinctrl set ... a0` after every flash is MANDATORY — without it the SPI link is dead on both chips with a known-good bitstream and it looks exactly like a bricked card. Recommendation: run rung 1's verdicts over the PB_05 dump, not the SPI link. Old status follows] [was: 🟡 link now POLLED and much improved; rung 1 NOT started — the parameter link is off the SEC entirely: `sec_init()` keeps only the audio block clock and `_spi_poll` collects requests from the main loop AND from `.wait_boot` (the latter is mandatory — the config that releases that loop arrives over the link being polled, and omitting it deadlocks). Plus the two SPI_TFIFO pushes are separated by NOPs: back to back one was being lost and every read came back as (value, value). Production reads did not work AT ALL before this; they now run 11 of 12 consecutive full-block reads clean, with writes landing (PRODUCT_ID reads back 1). Read-after-write in one session is still an intermittent race — better, not solved; the echo is checked on every read so a bad answer is rejected rather than believed. Rung 1 deliberately not started at the tail of a long session: toolchain all verified present (Quartus 21.1, iverilog 12.0, OpenOCD + cpld-jtag.cfg, IDCODE 0x020a30dd, shipping .pof/.svf on the Pi ready to restore), and the recommendation is to read rung-1 verdicts over the PB_05 dump rather than the SPI link. SHIPPING CPLD bitstream UNTOUCHED. Old status follows] [was: 🟡 gate MET + read regression largely fixed; rungs 1-2 not started — the two all-zero-MISO events were ONE fault and it was in the RECEIVE side, not the response path: the RFIFO was left holding a single stale word around the boot handover, so with the correct RFS==FULL drain guard the level could never reach FULL again and the handler stopped firing (SPI2_STAT 0x00142001, RFS=2, counters FROZEN at 74 and IDENTICAL across two runs with different traffic, one with matrix-app stopped). Fixed with stuck-partial recovery in the diag timer ISR (three consecutive 1 ms ticks half-full = stale, discard a word) — SPI2_STAT now 0x00540001, everything empty and clean. Answers then come back rotated by one word, which dsp4_diag.py now tolerates with the ECHO as the check, so a wrong guess cannot be read as data. POLLED variant (rung 27) reads the full diag block RELIABLY; interrupt-driven production reads most of it then drops/duplicates one word. Per the steer the pipeline is not stopped on this: rung 1 proceeds on the polled channel. Remaining suspicion recorded — the ISR can enter mid-transfer when FULL is momentarily true, which the polled loop cannot; gate the drain on the transaction boundary. Old status follows] [was: 🟡 gate MET, rungs 1-2 not started — **BOOT_STAGE 6 on BOTH chips**, proven on the PB_05 dump (BOOT_STAGE 6, BOOT_CFG 1, PRODUCT_ID 1 on each; images md5-checked before flashing). Root cause of the config never landing was NOT rung 0: the drain guard tested SPI_STAT.RFE ("not empty") when a request is TWO words, so entering with a single word present drained one real word and one garbage one and desynced the stream permanently. Guarding on RFS == 4 (Full RFIFO) gives a clean 1:1 — chip 2 shows 5 handler entries for 5 writes where RFE gave 2.3x — and CONFIG_COMMIT then applies. REGRESSION, stated plainly: the same change broke READS, which now return all-zeros on MISO; the two states are (RFE: reads work, config never lands) and (RFS: config lands, reads dead). RFS is kept because it is provably the right condition and it reaches the gate. Rungs 1-2 not started — building a CPLD bitstream on a link that cannot be read back would be building on an unverifiable channel. Next: the read fault is between .spi_read and the TFIFO writes, everything upstream is excluded; see the outcome. Old status follows] [was: 🔴 blocked at rung 0 — the word-phase fix was implemented twice and REVERTED both times; nothing shipped and the tree is back at `f2bdb93`, rebuilt and re-verified on the bench. Making every transaction answer turned MISO to ALL-ZEROS on every transaction, reads included — worse than the known-good, which reads fine. The failing build is healthy everywhere except the answer: core alive, SEC_COUNT = SPI_RX_COUNT = 86, SPI2_STAT = 0x00540001 (RFIFO empty, no ROR/TUR/RUWM), RESP_DROP = 0 — so receive, delivery and dispatch all still work and only the queued answer is wrong. Both variants failed identically: echo stashed in a .var (the var read back CORRECTLY as 0xE0FE0000 from the main loop, yet answers were still zero) and echo queued while r0 is still live via a new subroutine. Rungs 1 and 2 not started — rung 0 is their gate. Full state note, four ranked next suspects and a recommendation to retry as a strictly smaller step are in the outcome below]
 
 model: opus
 
@@ -47,6 +47,78 @@ hands-off; always leave matrix-app running + 3 MCUs verified; the SHIPPING
 bitstream must be restored on the CPLD before ending; single trunk; no AI
 attribution. Rung 3 (real ADC/DAC via J41/J42, codec) is PW-hands and NOT
 part of this dispatch.
+
+### Outcome 2026-08-23 00:5xZ — 🟠 THE DMA DESCRIPTORS WERE BEING OPTIMISED AWAY. Fixed. Channel still errors — one step left.
+
+**This is why no audio block has ever arrived on this card.** Nothing in C
+ever READS the DMA descriptors — only the DMA engine does, through the
+fabric, which the compiler cannot see. At `-O` the stores that fill them
+are dead by the compiler's reckoning and were being eliminated. Taking
+`&desc[i][0][0]` does not save them: the address is only converted to an
+integer and never dereferenced in C.
+
+Measured, on md5-verified builds, over the PB_05 dump (no SPI link
+involved):
+
+| | before | after `volatile` |
+|---|---|---|
+| descriptor word 0 (ring next ptr) | `0x00000000` | **`0x282549D4`** |
+| descriptor word 1 (ADDRSTART) | `0x00000000` | **`0x28254D40`** |
+
+Both post-fix values are correct L1-alias addresses, and `0x282549D4` is
+exactly the second descriptor of the pair — the ring is right.
+
+`desc_a`/`desc_b` and `arm_region()`'s parameter are now `volatile`, with
+the reasoning written where the arrays are declared so it cannot be
+"tidied" away again.
+
+#### How it was found
+
+`DMA_STAT = 0x00006032` decodes as **IRQERR set, ERRC = 3, RUN = 0** —
+ERRC 3 is *"Memory Access or Fabric Error"* (HRM Table 27-25). The channel
+had errored on its very first work unit and stopped. Dumping what
+`arm_region()` actually handed the DDE showed the descriptor address was
+sane (`0x282549C0`, a valid block-0 alias) while the descriptor CONTENT
+read back as zeros — so the DDE was faithfully fetching zeros and then
+aiming a transfer at address 0.
+
+#### STILL FAILING, and the next step is specific
+
+With correct descriptors in memory the channel is unchanged:
+`DMA0_ADDRSTART` still reads `0x00000000`, `DMA_STAT` still `0x00006032`,
+`FRAME_COUNT` and `SEC_COUNT` still 0. So the DDE is not applying the
+descriptor it fetches.
+
+Excluded already:
+- `DMA0_CFG` reads back `0x00144223` = EN, WNR, PSIZE 4B, MSIZE 4B,
+  FLOW = DSCLIST, NDSIZE = fetch-5, XCNT_INT — exactly as written.
+- The descriptor address handed over is a valid alias.
+- The descriptor contents are now correct.
+- A write-completion barrier before arming (volatile read-back of two
+  descriptor words) changed nothing, so it is not a store-buffer race.
+
+That leaves the **descriptor element order and alignment**. The code
+assumes `{DSCPTR_NXT, ADDRSTART, CFG, XCNT, XMOD}`, the ADI convention.
+The data sheet's prose describes a 1D descriptor as *"a link pointer, an
+address, a length, and a configuration"* — CFG and XCNT the other way
+round. One of those is loose wording and the other is the hardware; HRM
+ch.27 has a "Descriptor Set Address Alignment" table and an element-order
+definition that settles it. **Read that first next session** — it is a
+five-minute check that either confirms the layout or explains everything.
+
+#### Rung 1 status
+
+The CPLD half is done (see the previous outcome). The pattern
+generator/checker firmware is still not written, and now clearly should
+not be: a pattern test cannot mean anything until a single DMA block
+completes. **The DMA channel is the real gate for rung 1, not the
+verification channel** — that was the wrong diagnosis, and chasing the SPI
+link earlier was chasing the wrong thing.
+
+**Bench state:** SHIPPING CPLD bitstream restored and verified (IDCODE
+`0x020a30dd`, chip 1 boots and answers MAGIC/CHIP_ID/BOOT_STAGE 5); both
+chips hold the production build; GPIOs back to `a0` after the flash;
+`matrix-app` restarted; three MCUs verified 00:44.
 
 ### Outcome 2026-08-23 00:2xZ — 🟡 rung 1 HALF DONE: loopback bitstream built, flashed and proven; pattern firmware not written. SHIPPING RESTORED.
 

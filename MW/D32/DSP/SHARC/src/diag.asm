@@ -167,6 +167,14 @@
 .global _diag_resp_drop;
 .var _diag_resp_drop = 0;
 
+/* Bring-up diagnostics for the DMA descriptor hand-off (2026-08-23).
+ * C cannot touch a word-addressed .var directly, which is why this goes
+ * through a setter exactly like _diag_stage_set. */
+.global _dbg_dscptr;
+.var _dbg_dscptr = 0;
+.global _dbg_desc0;
+.var _dbg_desc0 = 0;
+
 /* SPI2 stuck-partial-request recovery, see _diag_timer_isr. */
 .var _spi_partial_ticks = 0;
 .global _spi_partial_fix;
@@ -232,6 +240,14 @@
    (C data refs cannot touch the word-addressed .var directly). */
 _diag_stage_set:
     dm(_diag_boot_stage) = r4;
+    C_RETURN
+
+/* TEMP bring-up helper 2026-08-23: record what arm_region handed the DDE.
+   In: r4 = descriptor address as written, r8 = first descriptor word. */
+.global _dbg_set_dscptr;
+_dbg_set_dscptr:
+    dm(_dbg_dscptr) = r4;
+    dm(_dbg_desc0) = r8;
     C_RETURN
 
 #if DSP4_BISECT

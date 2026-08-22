@@ -55,7 +55,8 @@ FRAMES = {
     # DSP4_BISECT=29: sampled AFTER CONFIG_COMMIT, from the main loop.
     'audio': ['MAGIC', 'DIAG_TICKS', 'SEC_COUNT', 'FRAME_COUNT',
               'BOOT_STAGE', 'UNK_CSID', 'SPORT0_ERR_A', 'DMA0_STAT',
-              'UNK_COUNT'],
+              'DMA0_CFG', 'DMA0_ADDRSTART', 'DMA0_DSCPTR_NXT',
+              'DMA0_DSCPTR_CUR', 'DESC0_NXT', 'DESC0_ADDRSTART'],
 }
 
 # Bits worth naming in the spi2 frame, so a transcript reads as a verdict

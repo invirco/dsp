@@ -133,8 +133,8 @@ static inline uint32_t l1_to_sys(uint32_t a)
 #ifndef DSP4_BISECT
 #define DSP4_BISECT 1
 #endif
-#if DSP4_BISECT < 0 || DSP4_BISECT > 29
-#error "DSP4_BISECT must be 0 (production), 1, 2, 3 (variants), 4 (entry park), 5 (_start park), 6..10 (main.asm pre-init parks; 10 also cuts sru_config.c short at the DAI0/DAI1 boundary) 11 (no park at all, LED mirror on PB_05 only) 13..15 (inside arm_region, first lane) 16 (a mark per lane, does not stop) 17 (rung 1 with interrupts off before arming) 18..20 (after sec_init, after spi2_init, after enable_region) 21 (main.asm, at the host handshake) 22 (dump the SPI2 + pin-mux registers) 23/24/25 (main.asm: the SEC/SPI counters at the handshake; 24 masks SECI, 25 masks everything, 26 gives TMZLI an RTI-only vector, 27 polls the SPI instead of using the SEC, 29 dumps from AFTER the host handshake)"
+#if DSP4_BISECT < 0 || DSP4_BISECT > 30
+#error "DSP4_BISECT must be 0 (production), 1, 2, 3 (variants), 4 (entry park), 5 (_start park), 6..10 (main.asm pre-init parks; 10 also cuts sru_config.c short at the DAI0/DAI1 boundary) 11 (no park at all, LED mirror on PB_05 only) 13..15 (inside arm_region, first lane) 16 (a mark per lane, does not stop) 17 (rung 1 with interrupts off before arming) 18..20 (after sec_init, after spi2_init, after enable_region) 21 (main.asm, at the host handshake) 22 (dump the SPI2 + pin-mux registers) 23/24/25 (main.asm: the SEC/SPI counters at the handshake; 24 masks SECI, 25 masks everything, 26 gives TMZLI an RTI-only vector, 27 polls the SPI instead of using the SEC, 29 dumps from AFTER the host handshake, 30 self-configures and reports from INSIDE the running main loop)"
 #endif
 
 #define REG32(addr) (*(volatile uint32_t *)(addr))
@@ -226,10 +226,23 @@ void set_tx_bufs(unsigned int *ping, unsigned int *pong);
 
 /* Descriptor storage: [lane][half][element]; 8 lanes covers both
  * regions on either chip (region A up to 8, region B up to 5). */
+/* VOLATILE, and that is load-bearing (2026-08-23).
+ *
+ * Nothing in C ever READS these descriptors — only the DMA engine does,
+ * through the fabric, which the compiler cannot see. At -O the stores
+ * that fill them are therefore dead by the compiler's reckoning and get
+ * eliminated: the bench found the descriptor memory reading back as all
+ * zeros from the core, the DDE dutifully fetching those zeros, and
+ * DMA_ADDRSTART coming up 0x00000000 so the first data transfer aimed at
+ * address zero and raised DMA_STAT.ERRC = 3, "Memory Access or Fabric
+ * Error", with RUN = 0. No audio block had ever arrived on this card and
+ * this is why. Taking &desc[i][0][0] does not save the stores, because
+ * the address is only converted to an integer for the descriptor and
+ * never dereferenced in C. */
 #pragma align 32
-static uint32_t desc_a[8][2][5];
+static volatile uint32_t desc_a[8][2][5];
 #pragma align 32
-static uint32_t desc_b[8][2][5];
+static volatile uint32_t desc_b[8][2][5];
 
 #if DSP4_BISECT
 static void bisect_park(int code);   /* defined below; rungs 13-15 park
@@ -237,9 +250,16 @@ static void bisect_park(int code);   /* defined below; rungs 13-15 park
 static void bisect_mark(int code);   /* same, but RETURNS — rung 16 */
 #endif
 
+/* Diagnostic: the descriptor address handed to the FIRST channel armed,
+ * exported so a PB_05 dump can show what the DDE was actually given
+ * without the SPI link being involved. */
+#pragma linkage_name _dbg_set_dscptr
+extern void dbg_set_dscptr(uint32_t addr, uint32_t word0);
+static int dbg_dscptr_done = 0;
+
 static void arm_region(const int *lanes, int count, int dir,
                        unsigned int *ping, unsigned int *pong,
-                       uint32_t desc[][2][5])
+                       volatile uint32_t desc[][2][5])
 {
     int i, h;
     for (i = 0; i < count; i++) {
@@ -270,6 +290,18 @@ static void arm_region(const int *lanes, int count, int dir,
             desc[i][h][4] = 4u;                           /* byte stride */
         }
 
+        /* Barrier before arming. The core writes these descriptors into
+         * L1; the DDE reads them back through the fabric alias. Issuing
+         * the stores is not the same as their having landed, and the
+         * CFG write below starts a fetch immediately — on the bench the
+         * channel latched ADDRSTART = 0 while the descriptor in memory
+         * was correct, then errored (ERRC = 3) and stopped with RUN = 0,
+         * never retrying. Reading a word back forces the writes to
+         * complete first; the reads are volatile so they cannot be
+         * optimised away. */
+        (void)desc[i][0][0];
+        (void)desc[i][1][0];
+
 #if DSP4_BISECT == 3
         /* Variant C: configure with the channel DISABLED, then start it.
          * The in-descriptor CFG word above keeps EN set — that copy is
@@ -288,6 +320,14 @@ static void arm_region(const int *lanes, int count, int dir,
          * register has been touched. */
         if (i == 0) { bisect_park(5); }
 #endif
+        if (!dbg_dscptr_done) {
+            dbg_dscptr_done = 1;
+            /* Both descriptor words: [0] is the ring's next pointer,
+             * [1] is ADDRSTART — the buffer the DDE will actually move
+             * data to. ADDRSTART reads back 0 from the channel, so the
+             * question is whether the descriptor itself carries 0. */
+            dbg_set_dscptr(desc[i][0][0], desc[i][0][1]);
+        }
         REG32(dma + DMA_OFF_DSCPTR) =
             l1_to_sys((uint32_t)&desc[i][0][0]);
 #if DSP4_BISECT == 14

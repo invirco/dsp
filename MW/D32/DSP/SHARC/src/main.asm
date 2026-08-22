@@ -310,6 +310,25 @@ _start:
     /* Wait for product config from the Pi/CM4 host (D1) — the host
      * writes the 0xF000+ config registers then CONFIG_COMMIT, which
      * applies input patch + scope gates and sets the flag below. */
+#if DSP4_BISECT == 30
+    /* TEMP bisect rung 30 (2026-08-23) — SELF-CONFIGURE and report from
+     * inside the running main loop.
+     *
+     * Two things this fixes about rung 29. First, it does not need the
+     * host at all: it applies the product config itself, so a flaky
+     * parameter link cannot stop the measurement. Second, and this is
+     * what made rung 29 useless, the wait happens INSIDE the main loop
+     * rather than before it — rung 29 busy-waited ahead of .main_loop,
+     * so the block loop never ran and FRAME_COUNT could not have moved
+     * whatever the hardware was doing.
+     *
+     * The question it answers: with the loopback bitstream on the CPLD,
+     * does a single audio block ever arrive? */
+    r0 = 1;                        /* d24 */
+    dm(_product_id) = r0;
+    call _product_config_commit;   /* sets _boot_config_received + stage 6 */
+#endif
+
 .wait_boot:
     /* Poll here as well as in the main loop: the config that releases
      * this loop arrives over the very link being polled, so without it
@@ -344,6 +363,56 @@ _start:
     r1 = 0;
     comp(r0, r1);
     if eq jump (pc, .wait_boot);
+
+#if DSP4_BISECT == 30
+    /* Reachable ONLY by the branch from inside the loop. Without this
+     * jump the report sits in the straight-line path and executes on the
+     * way past, before the main loop has run a single iteration —
+     * which is exactly how rung 29 produced a FRAME_COUNT of 0 that
+     * meant nothing (and, the first time round, a DIAG_TICKS of 0 that
+     * gave the game away). */
+    jump (pc, .main_loop);
+.b30_report:
+    bit clr mode1 BITM_REGF_MODE1_IRPTEN;
+    bit clr mode2 BITM_REGF_MODE2_TIMEN;
+    nop;
+    nop;
+    r0 = 0x00000020;
+    dm(REG_PORTB_FER_CLR)  = r0;
+    dm(REG_PORTB_INEN_CLR) = r0;
+    dm(REG_PORTB_DATA_CLR) = r0;
+    dm(REG_PORTB_DIR_SET)  = r0;
+.b30_frame:
+    r4 = 0xA5C3F00D;
+    call _bisect_dump_asm;
+    r4 = dm(_diag_ticks);
+    call _bisect_dump_asm;
+    r4 = dm(_diag_sec_count);     /* any SEC interrupt at all? */
+    call _bisect_dump_asm;
+    r4 = dm(_frame_count);        /* AUDIO BLOCKS — the whole question */
+    call _bisect_dump_asm;
+    r4 = dm(_diag_boot_stage);
+    call _bisect_dump_asm;
+    r4 = dm(_diag_unk_csid);
+    call _bisect_dump_asm;
+    r4 = dm(REG_SPORT0_ERR_A);
+    call _bisect_dump_asm;
+    r4 = dm(REG_DMA0_STAT);
+    call _bisect_dump_asm;
+    r4 = dm(REG_DMA0_CFG);        /* did our CFG write take? */
+    call _bisect_dump_asm;
+    r4 = dm(REG_DMA0_ADDRSTART);  /* the buffer address the DDE holds */
+    call _bisect_dump_asm;
+    r4 = dm(REG_DMA0_DSCPTR_NXT); /* consumed by the fetch attempt? */
+    call _bisect_dump_asm;
+    r4 = dm(REG_DMA0_DSCPTR_CUR); /* what it actually tried to fetch */
+    call _bisect_dump_asm;
+    r4 = dm(_dbg_dscptr);         /* descriptor word 0: ring next ptr */
+    call _bisect_dump_asm;
+    r4 = dm(_dbg_desc0);          /* descriptor word 1: ADDRSTART */
+    call _bisect_dump_asm;
+    jump (pc, .b30_frame);
+#endif
 
 #if DSP4_BISECT == 29
     /* TEMP bisect rung 29 (2026-08-22) — report from AFTER the host
@@ -414,6 +483,14 @@ _start:
      * block clock, which is the source that actually has to be
      * interrupt-driven. sec_init() no longer routes SPI2_STAT. */
     call _spi_poll;
+
+#if DSP4_BISECT == 30
+    /* Let the loop actually RUN for ~8 s, then report. */
+    r0 = dm(_diag_ticks);
+    r1 = 8000;
+    comp(r0, r1);
+    if ge jump (pc, .b30_report);
+#endif
 
     r0 = dm(_block_ready);
     r1 = 0;
