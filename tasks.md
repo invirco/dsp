@@ -1,6 +1,15 @@
-## QUEUED DISPATCH (fire when the SPI link round-trips) — EARLY AUDIO: CPLD loopback bitstream + Pi capture path (no analog boards, no hands)   [status: 🔴 queued]
+## HUB DISPATCH 2026-08-22 21:05Z — EARLY AUDIO: word-phase fix, then CPLD loopback bitstream + Pi capture path (no analog boards, no hands)   [status: 🔴 in progress]
 
 model: opus
+
+Rung 0 — WORD-PHASE FIX FIRST (your own finding, 20:3xZ outcome): make every
+accepted transaction queue exactly one two-word answer — a write echoes its
+request word with value 0 — in BOTH `spi_handler.asm` variants + the protocol
+note in `diag.asm`; update `dsp4_diag.py`/`dsp4_config.py` to expect it and
+remove the bounded re-ask workaround. Prove: 200 alternating write/read
+round-trips on chip 1 and chip 2 with zero phase slips, `--led` reliable.
+Then run `dsp4_config.py` end to end → BOOT_STAGE 6 on both chips. Stage 6
+is the gate for rung 1. Commit + push before starting rung 1.
 
 Rung 1 — CPLD FEEDBACK LOOP (tasks item 5, PW 2026-08-20). Non-shipping,
 STA-gated, hash-named LOGIC build: `i_dspa[k] = o_dspb[k]` for k=0..7 (and
@@ -25,6 +34,39 @@ hands-off; always leave matrix-app running + 3 MCUs verified; the SHIPPING
 bitstream must be restored on the CPLD before ending; single trunk; no AI
 attribution. Rung 3 (real ADC/DAC via J41/J42, codec) is PW-hands and NOT
 part of this dispatch.
+
+## QUEUED DISPATCH (fire after the early-audio block) — DESK FILLERS: SPI2_RDY never asserts · 570Z scratch-fit · OSPI clock gate   [status: 🔴 queued]
+
+model: opus
+
+All desk work, no bench contention beyond a register read; do them in order,
+stop when done or blocked, push main.
+
+1. **SPI2_RDY never asserts** (20:3xZ loose end). With RFIFO empty the part
+   holds FCS set and PB_05 low under FCPL=1/FCWM=1. Read HRM ch.15 flow
+   control end to end (FCEN, FCCH = which channel RDY follows, FCPL, FCWM,
+   the TX-channel rule — RDY may be following the TFIFO, not the RFIFO) and
+   find the configuration under which RDY means "slave can accept a
+   transaction". Prove with a register dump + PB_05 reading on the bench.
+   If RDY can be made meaningful, add `--rdy-gpio 8` honouring to spiraw.py
+   / dsp4_diag.py and re-measure; if it cannot on this silicon, write that
+   verdict and close the item — either way rev-D mod 9 (RDY pull-up) stands.
+2. **570Z scratch-fit** (tasks item 6 open): fit the rev-D unified lane map
+   (2×TDM16/direction AK5558 cascade, 1×TDM8 AK4619, Pi I2S→TDM8 with MEMS
+   at slots 5-6, one TDM32 NET pair, D32 snake on the same pair) into a
+   5M570ZT144C4N scratch Quartus project from the current dsp4_logic RTL.
+   Record LE/pin utilisation, the MEMS-input pin move off PIN_137, and
+   whether clkgen meets the ±10 ns BICK↓ vs MCLK↑ constraint for the
+   cascaded slaves. Deliver numbers into the rev-D list (mod 3/4 rows via
+   the hub — report, do not edit TransferOnly from this machine).
+3. **OSPI clock gate** (rev-D list §D, open): from the ADSP-2156x data
+   sheet OSPI timing section, the max OSPI clock (133 vs 200 MHz) and
+   whether xSPI profile-2 / RWDS-strobe HyperRAM 2.0 is supported; confirm
+   against the EV-21568-SOM reference design. Verdict for mod 1's final part
+   pick; report to the hub.
+
+Rules as above: bench = rev-C CM4 app@192.168.1.219; rev A hands-off; leave
+matrix-app running + 3 MCUs verified; single trunk; no AI attribution.
 
 ## HUB DISPATCH 2026-08-22 19:05Z — SPI PARAMETER LINK — the handler runs exactly ONCE per reset (RX FIFO above watermark / ROR / host ignores RDY)   [status: 🟢 done — **the link is UP on both chips and the whole diagnostic register block now reads off a running SHARC, a first for this card.** Root cause of once-per-reset: the SEC handshake is TWO-step and `_sec_isr` only did steps 1 and 4 — it never wrote `SEC_CSID0` back to acknowledge, so the SEC never arbitrated another request. One line took SEC_COUNT from 1 to 94. Proved by bisect rung 27, which polls the SAME handler and round-tripped correctly while the interrupt build was stuck at one. Three more fixed: the RFIFO came out of boot FULL (no flush bit exists — `SPI_CTL.EN` must go low, HRM 15; now measured empty, ROR/RUWM clear); the handler drained an empty FIFO and dispatched the garbage (RFE guard added); and `dsp4_diag.py` asserted GPIO7 for chip 2 where `dsp4_boot.py` has always used GPIO24 — the whole reason chip 2 read all-zero. Chip 1 and chip 2 both return MAGIC 0xD5B40001 and their own CHIP_ID. STILL OPEN, precisely characterised: a write (or DIAG_NOP) queues no answer but still clocks two words out of the 2-deep TFIFO, leaving an odd word outstanding and slipping every later echo by one — so reads are solid but write-then-read-back is not. Real fix is DSP-side: make every accepted transaction queue exactly one two-word answer. Also open: SPI2_RDY never asserts even with the RFIFO empty, so dispatch task 2 as written is not actionable — a host honouring this RDY would wait forever]
 
