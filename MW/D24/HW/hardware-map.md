@@ -311,7 +311,9 @@ analog source (NET only); the LOGIC slot map must route DSPB O1 → DA3.
   `SYS_XTAL0` (p6, correct for an oscillator source) or `xSPI_RWDS`
   (p9). D14's "free liveness probe on SYS_CLKOUT" is therefore a rev-D
   request on this card, not a technique available today. Full detail:
-  `MW/D32/DSP/dsp4-pin-audit.md`.
+  `MW/D32/DSP/dsp4-pin-audit.md`; marked up on the sheets in
+  `_Matrix/Products/D24/hw/_mods/D24 DSP mods 2026-08-22.pdf`
+  (regenerate: `MW/D24/HW/schematics/rebuild-revd-mods-markup.py`).
 
 ## 3a. S MCU (U7) pin inventory — rev D / D8 supervisor scoping
 

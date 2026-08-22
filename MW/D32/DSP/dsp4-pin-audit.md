@@ -239,6 +239,15 @@ on 2026-08-22 so this does not grow a parallel action list.
 | D | floating DAI outputs during the boot window | open question, not a PCB mod — decide when audio runs |
 | — | the 31.25 MHz fSPTCLKEXT limit | carried into D6 in `dsp4-architecture-decisions.md` |
 
+The rev-D mod list and the marked-up schematic set are both updated:
+`D24 DSP mods 2026-08-22.pdf` in the _Matrix store
+(`Products/D24/hw/_mods/`) carries the whole rev-D list in red on the
+sheets it applies to, plus a blue "checked, no change" block on each DSP
+sheet recording what this audit verified. Regenerate it with
+`MW/D24/HW/schematics/rebuild-revd-mods-markup.py` — it builds on top of
+`D24 DSP mods.pdf` rather than the raw schematic, so PW's existing MOD
+A-D notes survive.
+
 Of the four, only C was new. That is a reasonable result for an audit run
 after the fact: it says the rev-D list was already close to complete, and
 it names the one pin nobody had noticed was missing.
