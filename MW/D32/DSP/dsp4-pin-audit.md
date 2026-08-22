@@ -228,9 +228,17 @@ against PW's measurements of 2026-08-21:
 
 ## Actions
 
-| # | item | where |
+Checked against `dsp4-revD-modlist.md` (Dropbox `TransferOnly/PCB mods/`)
+on 2026-08-22 so this does not grow a parallel action list.
+
+| # | item | status |
 |---|---|---|
-| B | `SYS_FAULT` needs an external pull-up or a recorded decision | rev-D mod list |
-| C | bring `SYS_CLKOUT` and `SYS_RESOUT` to test points | rev-D mod list |
-| D | decide whether floating DAI outputs during boot need a mute story | when audio runs |
-| — | carry the 31.25 MHz fSPTCLKEXT limit into D6 as supporting evidence | `dsp4-architecture-decisions.md` |
+| A | floating JTAG is safe | **already closed** — rev-D mod 7, downgraded to "no action" on 2026-08-21 for exactly this reason. The audit re-derived it independently; no new work |
+| B | `SYS_FAULT` needs its external pull-up | **already covered** — rev-D mod 12 |
+| C | `SYS_CLKOUT` (p10) is not brought out | **NEW — added to rev-D mod 12 on 2026-08-22.** Mod 12 named RESOUT and FAULT only, and mod 13's test-point list did not include it either |
+| D | floating DAI outputs during the boot window | open question, not a PCB mod — decide when audio runs |
+| — | the 31.25 MHz fSPTCLKEXT limit | carried into D6 in `dsp4-architecture-decisions.md` |
+
+Of the four, only C was new. That is a reasonable result for an audit run
+after the fact: it says the rev-D list was already close to complete, and
+it names the one pin nobody had noticed was missing.
