@@ -149,6 +149,22 @@ module dsp4_logic_top (
     // D32: personality TBD with the D32 board work.
     wire [3:0] net_sel = strap_d32 ? 4'b1000 : 4'b1000;
 
+`ifdef DSP4_LOOPBACK
+    // ---- NON-SHIPPING BRING-UP BUILD: fabric feedback loop ----
+    //
+    // Every DSPA input lane is fed from the matching DSPB output lane,
+    // so DSPB can emit a known per-lane pattern and DSPA can check it
+    // without a single converter, analog board or scope. That closes
+    // BCKI/FSI pair order, sample edge / MFD, within-TDM8 slot order and
+    // the NET crossed-index question by measurement instead of by
+    // assumption.
+    //
+    // NOTHING else changes: same clkgen, same reframer, same DA/NO
+    // output routing, same pinout. This define is never set for a
+    // shipping build, and build.sh labels the artifact
+    // dsp4_logic_loopback.<hash> so the two can never be confused.
+    assign i_dspa = o_dspb;
+`else
     assign i_dspa[0] = net_sel[0] ? ni[0] : ad[0];
     assign i_dspa[1] = net_sel[1] ? ni[1] : ad[1];
     assign i_dspa[2] = net_sel[2] ? ni[2] : ad[2];
@@ -157,6 +173,7 @@ module dsp4_logic_top (
     assign i_dspa[5] = strap_d32 ? snake_in : 1'b0;
     assign i_dspa[6] = pcm_tdm;
     assign i_dspa[7] = mems;
+`endif
 
     // ---- DSPB output routing (slot map B_O0..B_O7) ----
     assign da[0] = o_dspb[0];                       // DAC 1-8

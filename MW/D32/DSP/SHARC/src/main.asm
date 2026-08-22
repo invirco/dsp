@@ -345,6 +345,55 @@ _start:
     comp(r0, r1);
     if eq jump (pc, .wait_boot);
 
+#if DSP4_BISECT == 29
+    /* TEMP bisect rung 29 (2026-08-22) — report from AFTER the host
+     * handshake. CONFIG_COMMIT has been applied and the firmware is
+     * about to enter the audio main loop, a path that had never
+     * executed on hardware until today: stage 6 was only ever proven on
+     * a build that parked in .wait_boot. The bench sees the parameter
+     * link go dead immediately after a successful commit, so the
+     * question is whether the core survives the transition at all and
+     * whether any audio block ever arrives. Wait with interrupts ON so
+     * blocks can flow, then dump. */
+    r9 = 200000000;
+.b29_wait:
+    r9 = r9 - 1;
+    if ne jump (pc, .b29_wait);
+
+    bit clr mode1 BITM_REGF_MODE1_IRPTEN;
+    bit clr mode2 BITM_REGF_MODE2_TIMEN;
+    nop;
+    nop;
+    r0 = 0x00000020;
+    dm(REG_PORTB_FER_CLR)  = r0;
+    dm(REG_PORTB_INEN_CLR) = r0;
+    dm(REG_PORTB_DATA_CLR) = r0;
+    dm(REG_PORTB_DIR_SET)  = r0;
+.b29_frame:
+    r4 = 0xA5C3F00D;
+    call _bisect_dump_asm;
+    r4 = dm(_diag_ticks);         /* core alive? */
+    call _bisect_dump_asm;
+    r4 = dm(_diag_sec_count);     /* any SEC interrupt at all? */
+    call _bisect_dump_asm;
+    r4 = dm(_frame_count);        /* audio blocks since reset */
+    call _bisect_dump_asm;
+    r4 = dm(_diag_boot_stage);
+    call _bisect_dump_asm;
+    r4 = dm(_diag_unk_csid);      /* a SEC source with no handler? */
+    call _bisect_dump_asm;
+    r4 = dm(REG_SPORT0_ERR_A);    /* the block-clock lane */
+    call _bisect_dump_asm;
+    r4 = dm(REG_DMA0_STAT);       /* named, not guessed: an unmapped
+                                   * MMR read HANGS the core, and a
+                                   * guessed 0x31022008 did exactly
+                                   * that here on 2026-08-22 */
+    call _bisect_dump_asm;
+    r4 = dm(_diag_unk_count);
+    call _bisect_dump_asm;
+    jump (pc, .b29_frame);
+#endif
+
     /* ---- Main loop ---- */
 .main_loop:
     idle;                          /* low-power wait for DMA interrupt */

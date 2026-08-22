@@ -52,6 +52,10 @@ FRAMES = {
     'secspi': ['MAGIC', 'DIAG_TICKS', 'SEC_COUNT', 'SPI_RX_COUNT',
                'BOOT_STAGE', 'BOOT_CFG', 'SPI2_STAT', 'RESP_DROP',
                'PRODUCT_ID'],
+    # DSP4_BISECT=29: sampled AFTER CONFIG_COMMIT, from the main loop.
+    'audio': ['MAGIC', 'DIAG_TICKS', 'SEC_COUNT', 'FRAME_COUNT',
+              'BOOT_STAGE', 'UNK_CSID', 'SPORT0_ERR_A', 'DMA0_STAT',
+              'UNK_COUNT'],
 }
 
 # Bits worth naming in the spi2 frame, so a transcript reads as a verdict

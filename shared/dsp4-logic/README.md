@@ -51,6 +51,48 @@ Rules (same as the rest of the repo):
 `provisional` (assignment plausible but unverified — confirm before HDL
 freeze), `reserved` (line defined, no signals yet).
 
+## Flashing the CPLD from the CM4 (hands-off)
+
+OpenOCD bit-bangs JTAG off CM4 GPIOs; config at `/home/app/cpld-jtag.cfg`
+on the bench Pi (TCK=7, TDI=23, TDO=22, TMS=25), device IDCODE
+`0x020a30dd`.
+
+```
+sudo systemctl stop matrix-app
+sudo openocd -f cpld-jtag.cfg -c "init; svf -tap cpld.tap <file>.svf; shutdown"
+sudo openocd -f cpld-jtag.cfg -c "init; scan_chain; shutdown"   # IDCODE check
+pinctrl set 6,7,8,9,10,11,12,22,23,24,25 a0                     # SEE BELOW
+sudo systemctl start matrix-app
+```
+
+**The `pinctrl` line is not optional.** OpenOCD's `linuxgpiod` adapter
+leaves its GPIOs claimed on exit and does not return them to their ALT
+functions, which kills the DSP SPI link until they are restored. The
+failure looks exactly like a bricked card — reads return nothing at all,
+on either chip, with a known-good bitstream loaded (bench, 2026-08-22).
+Same class of trap as the gpiod/spidev one on GPIO9/10/11, different tool.
+
+Verify a flash functionally, not just by IDCODE: both DSPs should still
+boot (that proves `DSP_CLK` survives) and PCM_CLK/PCM_FS should still
+toggle on `dsp4_netprobe.py` (that proves clkgen is intact).
+
+## Non-shipping loopback build
+
+`LOOPBACK=1 ./build.sh` sets `DSP4_LOOPBACK`, which replaces the input-lane
+sources with `assign i_dspa = o_dspb` — every DSPA input lane fed from the
+matching DSPB output lane, for fabric bring-up with no converters, no
+analog boards and no scope. Everything else is identical.
+
+The artifact is labelled `dsp4_logic_loopback.<hash>` and its manifest says
+`SHIPPING: NO`; the define is part of the hash input so the two can never
+collide. **Restore the shipping bitstream before leaving the bench.**
+
+Note the fitter prunes what the loopback build no longer uses: the ADC/NET
+input muxes and the whole PCM reframer lose their consumer, so LE count
+drops 156 -> 47 and Fmax rises 70.21 -> 167.98 MHz. Expected, but it means
+a loopback build is NOT a vehicle for testing the reframer — that needs a
+variant where `pcm_din` has a real source.
+
 ## Timing conventions (LOCKED 2026-07-31)
 
 Encoded in the generated outputs (`timing` in sport_map.json,

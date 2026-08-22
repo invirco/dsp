@@ -27,13 +27,28 @@ else
     exit 1
 fi
 
+# LOOPBACK=1 builds the NON-SHIPPING bring-up variant: every DSPA input
+# lane fed from the matching DSPB output lane (rtl/dsp4_logic_top.v,
+# `ifdef DSP4_LOOPBACK). It is labelled dsp4_logic_loopback.<hash> so it
+# can never be confused with a shipping artifact, and the define is part
+# of the hash input so the two never collide.
+if [ "${LOOPBACK:-0}" = "1" ]; then
+    MACRO_ARG=(--verilog_macro=DSP4_LOOPBACK=1)
+    NAME="dsp4_logic_loopback"
+    echo "*** NON-SHIPPING LOOPBACK BUILD (i_dspa = o_dspb) ***" >&2
+else
+    MACRO_ARG=()
+    NAME="dsp4_logic"
+fi
+
 SRC_HASH=$(cat \
     <(grep -o 'sha256:[0-9a-f]*' generated/dsp4_slot_map.vh | head -1) \
+    <(echo "loopback=${LOOPBACK:-0}") \
     rtl/*.v quartus/dsp4_logic.qsf quartus/dsp4_logic.sdc \
     | sha256sum | cut -c1-12)
 
 cd quartus
-"$Q/quartus_map" dsp4_logic
+"$Q/quartus_map" dsp4_logic "${MACRO_ARG[@]}"
 "$Q/quartus_fit" dsp4_logic
 "$Q/quartus_sta" dsp4_logic
 "$Q/quartus_asm" dsp4_logic
@@ -47,15 +62,22 @@ if grep -q "Timing requirements not met" output_files/dsp4_logic.sta.rpt; then
 fi
 
 mkdir -p ../bitstream
-cp output_files/dsp4_logic.pof "../bitstream/dsp4_logic.$SRC_HASH.pof"
-cp output_files/dsp4_logic.svf "../bitstream/dsp4_logic.$SRC_HASH.svf"
+cp output_files/dsp4_logic.pof "../bitstream/$NAME.$SRC_HASH.pof"
+cp output_files/dsp4_logic.svf "../bitstream/$NAME.$SRC_HASH.svf"
 {
-    echo "artifact: dsp4_logic.$SRC_HASH.{pof,svf}"
+    echo "artifact: $NAME.$SRC_HASH.{pof,svf}"
+    if [ "${LOOPBACK:-0}" = "1" ]; then
+        echo "SHIPPING: NO — bring-up loopback build, i_dspa = o_dspb."
+        echo "  Differs from shipping by that one assign only; the sim gate"
+        echo "  below ran on the SHIPPING path, which is everything else."
+    else
+        echo "SHIPPING: yes"
+    fi
     echo "built: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
     echo "slot_map: $(grep -o 'sha256:[0-9a-f]*' ../generated/dsp4_slot_map.vh | head -1)"
     echo "sim_gate: $([ "${SKIP_SIM:-0}" = "1" ] && echo SKIPPED || echo PASS)"
     echo "device: 5M1270ZT144C4"
     echo "fmax: $(grep -A4 '; Fmax' output_files/dsp4_logic.sta.rpt | grep MHz | head -1 | awk -F';' '{print $2}' | xargs)"
-} > "../bitstream/dsp4_logic.$SRC_HASH.manifest"
+} > "../bitstream/$NAME.$SRC_HASH.manifest"
 
-echo "OK: bitstream/dsp4_logic.$SRC_HASH.{pof,svf,manifest}"
+echo "OK: bitstream/$NAME.$SRC_HASH.{pof,svf,manifest}"

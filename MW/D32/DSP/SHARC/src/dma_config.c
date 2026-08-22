@@ -133,8 +133,8 @@ static inline uint32_t l1_to_sys(uint32_t a)
 #ifndef DSP4_BISECT
 #define DSP4_BISECT 1
 #endif
-#if DSP4_BISECT < 0 || DSP4_BISECT > 27
-#error "DSP4_BISECT must be 0 (production), 1, 2, 3 (variants), 4 (entry park), 5 (_start park), 6..10 (main.asm pre-init parks; 10 also cuts sru_config.c short at the DAI0/DAI1 boundary) 11 (no park at all, LED mirror on PB_05 only) 13..15 (inside arm_region, first lane) 16 (a mark per lane, does not stop) 17 (rung 1 with interrupts off before arming) 18..20 (after sec_init, after spi2_init, after enable_region) 21 (main.asm, at the host handshake) 22 (dump the SPI2 + pin-mux registers) 23/24/25 (main.asm: the SEC/SPI counters at the handshake; 24 masks SECI, 25 masks everything, 26 gives TMZLI an RTI-only vector, 27 polls the SPI instead of using the SEC)"
+#if DSP4_BISECT < 0 || DSP4_BISECT > 29
+#error "DSP4_BISECT must be 0 (production), 1, 2, 3 (variants), 4 (entry park), 5 (_start park), 6..10 (main.asm pre-init parks; 10 also cuts sru_config.c short at the DAI0/DAI1 boundary) 11 (no park at all, LED mirror on PB_05 only) 13..15 (inside arm_region, first lane) 16 (a mark per lane, does not stop) 17 (rung 1 with interrupts off before arming) 18..20 (after sec_init, after spi2_init, after enable_region) 21 (main.asm, at the host handshake) 22 (dump the SPI2 + pin-mux registers) 23/24/25 (main.asm: the SEC/SPI counters at the handshake; 24 masks SECI, 25 masks everything, 26 gives TMZLI an RTI-only vector, 27 polls the SPI instead of using the SEC, 29 dumps from AFTER the host handshake)"
 #endif
 
 #define REG32(addr) (*(volatile uint32_t *)(addr))
