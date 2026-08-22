@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-08-22 21:05Z — EARLY AUDIO: word-phase fix, then CPLD loopback bitstream + Pi capture path (no analog boards, no hands)   [status: 🔴 in progress]
+## HUB DISPATCH 2026-08-22 21:05Z — EARLY AUDIO: word-phase fix, then CPLD loopback bitstream + Pi capture path (no analog boards, no hands)   [status: 🔴 blocked at rung 0 — the word-phase fix was implemented twice and REVERTED both times; nothing shipped and the tree is back at `f2bdb93`, rebuilt and re-verified on the bench. Making every transaction answer turned MISO to ALL-ZEROS on every transaction, reads included — worse than the known-good, which reads fine. The failing build is healthy everywhere except the answer: core alive, SEC_COUNT = SPI_RX_COUNT = 86, SPI2_STAT = 0x00540001 (RFIFO empty, no ROR/TUR/RUWM), RESP_DROP = 0 — so receive, delivery and dispatch all still work and only the queued answer is wrong. Both variants failed identically: echo stashed in a .var (the var read back CORRECTLY as 0xE0FE0000 from the main loop, yet answers were still zero) and echo queued while r0 is still live via a new subroutine. Rungs 1 and 2 not started — rung 0 is their gate. Full state note, four ranked next suspects and a recommendation to retry as a strictly smaller step are in the outcome below]
 
 model: opus
 
@@ -34,6 +34,92 @@ hands-off; always leave matrix-app running + 3 MCUs verified; the SHIPPING
 bitstream must be restored on the CPLD before ending; single trunk; no AI
 attribution. Rung 3 (real ADC/DAC via J41/J42, codec) is PW-hands and NOT
 part of this dispatch.
+
+### Outcome 2026-08-22 21:4xZ — 🔴 rung 0 attempted and REVERTED; tree is back at the known-good commit
+
+**Nothing shipped. The tree is exactly `f2bdb93` for all firmware and host
+files, rebuilt and re-verified on the bench after the revert: chip 1 reads
+its whole diagnostic block with both chips booted.** Rungs 1 and 2 were not
+started — rung 0 is their gate.
+
+#### What was tried
+
+The word-phase fix as specified: make every accepted transaction queue
+exactly one two-word answer (write / unmapped-address / `DIAG_NOP` answer
+with value 0), in both `spi_handler.asm` variants, with the protocol notes
+in `diag.asm` and `diag.h` updated and `dsp4_diag.py` restored to the plain
+two-step read.
+
+**Result: MISO went to all-zeros on every transaction, reads included** —
+i.e. worse than the known-good, which reads correctly. Two variants, same
+outcome:
+
+1. **Echo stashed in a `.var`,** reloaded in the responder because the
+   write paths clobber r0. The variable itself was fine — a rung-23 dump
+   read `_spi_req_word = 0xE0FE0000`, the last `DIAG_NOP` request, exactly
+   right. But every answer still went out as zero.
+2. **Echo queued while r0 is still live** — the write side calls a new
+   `_spi_queue_resp` subroutine immediately after the READ-flag branch,
+   before the dispatch clobbers r0; the read path calls the same
+   subroutine. No memory round trip at all. Same all-zero result.
+
+#### What the evidence says, and does not say
+
+On the failing build the part is **healthy everywhere except the answer**:
+
+| | value |
+|---|---|
+| core alive | `DIAG_TICKS` climbing |
+| handler running | `SEC_COUNT` = `SPI_RX_COUNT` = 86 over ~48 words |
+| receive side | `SPI2_STAT = 0x00540001` — RFIFO empty, no ROR, no TUR, no RUWM |
+| responses dropped | `RESP_DROP = 0` |
+
+So the receive path, the interrupt delivery and the dispatch are all still
+working; only the queued answer is wrong. That points at the two `dm(SPI2_TFIFO)`
+writes or the registers feeding them, not at anything upstream.
+
+**Do not trust one earlier reading.** A `RESP_DROP = 0` / `REQ_WORD = 0`
+pair was taken from a STALE image: the rung-23 build failed on an
+unresolved symbol (`_spi_req_word` needed `.global`), but the shell chain
+continued because the `grep` guarding it matched the error text and exited
+0, so the previous `.ldr` was flashed and read. Caught and re-run after
+fixing the link; the numbers in the table above are from a verified build.
+**Rebuild-and-md5 before every dump reading from here on.**
+
+#### Next suspects, in the order worth trying
+
+1. **TFIFO occupancy.** Once every transaction queues, a two-deep TFIFO is
+   written on every transaction instead of only on reads. If the read
+   answer is queued while the previous write answer is still unshifted it
+   takes `.spi_read_drop` — which should show in `RESP_DROP`, and did not,
+   but that counter deserves re-checking on a verified build before the
+   theory is discarded.
+2. **PC-stack depth inside the SEC ISR.** Variant 2 adds a third nested
+   `call` (`_sec_isr` → `_spi2_rx_work` → `_spi_queue_resp`, and
+   `_diag_read` is already a third on the read path, making four). Cheap
+   to test: inline the queue instead of calling it.
+3. **Does `_diag_read` really preserve r0?** Its comment says so and the
+   known-good code depends on it, but the known-good code reads r0 at a
+   different point in the flow than variant 2 does.
+4. **Fall-through.** `.spi_read_zero` used to fall into the responder
+   label; after the restructure that label is a subroutine ending in
+   `rts`, so the zero path now returns straight to `_sec_isr` and skips
+   the `.spi_done` epilogue (the ILAT/STAT clear). Not the cause of the
+   all-zero MISO — `.spi_read_zero` is only reached for out-of-range or
+   unmapped addresses — but it is a real defect in the reverted-away code
+   and must not come back when this is retried.
+
+#### Recommendation
+
+Retry rung 0 as a **strictly smaller step**: leave the read path exactly as
+it is in the known-good build, and add the write-side answer alone, inline,
+with no new subroutine and no new variable. Verify MISO on a raw read
+BEFORE adding the 200-round-trip harness — the harness masked which half
+broke for two build cycles.
+
+**Bench state:** both chips hold the known-good production images
+(`chip1.ldr`/`chip2.ldr` = the `f2bdb93` build); `matrix-app` restarted and
+active; all three MCUs verified; GPIOs returned to `a0`.
 
 ## QUEUED DISPATCH (fire after the early-audio block) — DESK FILLERS: SPI2_RDY never asserts · 570Z scratch-fit · OSPI clock gate   [status: 🔴 queued]
 
