@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-08-22 21:05Z — EARLY AUDIO: word-phase fix, then CPLD loopback bitstream + Pi capture path (no analog boards, no hands)   [status: 🟡 gate MET, rungs 1-2 not started — **BOOT_STAGE 6 on BOTH chips**, proven on the PB_05 dump (BOOT_STAGE 6, BOOT_CFG 1, PRODUCT_ID 1 on each; images md5-checked before flashing). Root cause of the config never landing was NOT rung 0: the drain guard tested SPI_STAT.RFE ("not empty") when a request is TWO words, so entering with a single word present drained one real word and one garbage one and desynced the stream permanently. Guarding on RFS == 4 (Full RFIFO) gives a clean 1:1 — chip 2 shows 5 handler entries for 5 writes where RFE gave 2.3x — and CONFIG_COMMIT then applies. REGRESSION, stated plainly: the same change broke READS, which now return all-zeros on MISO; the two states are (RFE: reads work, config never lands) and (RFS: config lands, reads dead). RFS is kept because it is provably the right condition and it reaches the gate. Rungs 1-2 not started — building a CPLD bitstream on a link that cannot be read back would be building on an unverifiable channel. Next: the read fault is between .spi_read and the TFIFO writes, everything upstream is excluded; see the outcome. Old status follows] [was: 🔴 blocked at rung 0 — the word-phase fix was implemented twice and REVERTED both times; nothing shipped and the tree is back at `f2bdb93`, rebuilt and re-verified on the bench. Making every transaction answer turned MISO to ALL-ZEROS on every transaction, reads included — worse than the known-good, which reads fine. The failing build is healthy everywhere except the answer: core alive, SEC_COUNT = SPI_RX_COUNT = 86, SPI2_STAT = 0x00540001 (RFIFO empty, no ROR/TUR/RUWM), RESP_DROP = 0 — so receive, delivery and dispatch all still work and only the queued answer is wrong. Both variants failed identically: echo stashed in a .var (the var read back CORRECTLY as 0xE0FE0000 from the main loop, yet answers were still zero) and echo queued while r0 is still live via a new subroutine. Rungs 1 and 2 not started — rung 0 is their gate. Full state note, four ranked next suspects and a recommendation to retry as a strictly smaller step are in the outcome below]
+## HUB DISPATCH 2026-08-22 21:05Z — EARLY AUDIO: word-phase fix, then CPLD loopback bitstream + Pi capture path (no analog boards, no hands)   [status: 🟡 gate MET + read regression largely fixed; rungs 1-2 not started — the two all-zero-MISO events were ONE fault and it was in the RECEIVE side, not the response path: the RFIFO was left holding a single stale word around the boot handover, so with the correct RFS==FULL drain guard the level could never reach FULL again and the handler stopped firing (SPI2_STAT 0x00142001, RFS=2, counters FROZEN at 74 and IDENTICAL across two runs with different traffic, one with matrix-app stopped). Fixed with stuck-partial recovery in the diag timer ISR (three consecutive 1 ms ticks half-full = stale, discard a word) — SPI2_STAT now 0x00540001, everything empty and clean. Answers then come back rotated by one word, which dsp4_diag.py now tolerates with the ECHO as the check, so a wrong guess cannot be read as data. POLLED variant (rung 27) reads the full diag block RELIABLY; interrupt-driven production reads most of it then drops/duplicates one word. Per the steer the pipeline is not stopped on this: rung 1 proceeds on the polled channel. Remaining suspicion recorded — the ISR can enter mid-transfer when FULL is momentarily true, which the polled loop cannot; gate the drain on the transaction boundary. Old status follows] [was: 🟡 gate MET, rungs 1-2 not started — **BOOT_STAGE 6 on BOTH chips**, proven on the PB_05 dump (BOOT_STAGE 6, BOOT_CFG 1, PRODUCT_ID 1 on each; images md5-checked before flashing). Root cause of the config never landing was NOT rung 0: the drain guard tested SPI_STAT.RFE ("not empty") when a request is TWO words, so entering with a single word present drained one real word and one garbage one and desynced the stream permanently. Guarding on RFS == 4 (Full RFIFO) gives a clean 1:1 — chip 2 shows 5 handler entries for 5 writes where RFE gave 2.3x — and CONFIG_COMMIT then applies. REGRESSION, stated plainly: the same change broke READS, which now return all-zeros on MISO; the two states are (RFE: reads work, config never lands) and (RFS: config lands, reads dead). RFS is kept because it is provably the right condition and it reaches the gate. Rungs 1-2 not started — building a CPLD bitstream on a link that cannot be read back would be building on an unverifiable channel. Next: the read fault is between .spi_read and the TFIFO writes, everything upstream is excluded; see the outcome. Old status follows] [was: 🔴 blocked at rung 0 — the word-phase fix was implemented twice and REVERTED both times; nothing shipped and the tree is back at `f2bdb93`, rebuilt and re-verified on the bench. Making every transaction answer turned MISO to ALL-ZEROS on every transaction, reads included — worse than the known-good, which reads fine. The failing build is healthy everywhere except the answer: core alive, SEC_COUNT = SPI_RX_COUNT = 86, SPI2_STAT = 0x00540001 (RFIFO empty, no ROR/TUR/RUWM), RESP_DROP = 0 — so receive, delivery and dispatch all still work and only the queued answer is wrong. Both variants failed identically: echo stashed in a .var (the var read back CORRECTLY as 0xE0FE0000 from the main loop, yet answers were still zero) and echo queued while r0 is still live via a new subroutine. Rungs 1 and 2 not started — rung 0 is their gate. Full state note, four ranked next suspects and a recommendation to retry as a strictly smaller step are in the outcome below]
 
 model: opus
 
@@ -47,6 +47,78 @@ hands-off; always leave matrix-app running + 3 MCUs verified; the SHIPPING
 bitstream must be restored on the CPLD before ending; single trunk; no AI
 attribution. Rung 3 (real ADC/DAC via J41/J42, codec) is PW-hands and NOT
 part of this dispatch.
+
+### Outcome 2026-08-22 23:0xZ — 🟡 read regression largely fixed; polled channel is reliable, interrupt-driven is intermittent
+
+**The two all-zero-MISO events were one fault, and the hub's framing was
+right.** It was not the response path at all: the RECEIVE FIFO was being
+left holding a single stale word, and with the (correct) RFS==FULL drain
+guard the level can then never reach FULL again, so the handler stops
+firing and the link is dead from that moment.
+
+Measured, on a verified build (md5 checked both ends):
+
+| | value | meaning |
+|---|---|---|
+| `SPI2_STAT` | `0x00142001` | **RFS = 2 — one word of two** |
+| `SEC_COUNT` / `SPI_RX_COUNT` | frozen at 74 | handler could no longer fire |
+| `RESP_DROP` | 0 | nothing was being dropped |
+
+The counters were **identical across two runs with completely different
+host traffic**, including one with `matrix-app` stopped to rule out the
+other SPI master. That is what proved the handler had stopped rather than
+misbehaving.
+
+The residue arrives around the boot handover: `spi2_init()`'s EN-low flush
+happens before the host has finished with the port, so a fragment can land
+after it.
+
+#### Fix 1 — stuck-partial recovery in the diag timer ISR
+
+A genuine request is only half-arrived for microseconds, so three
+consecutive 1 ms ticks with `RFS` neither empty nor full means stale.
+Discard one word; if still stuck, discard another. Cheaper and less
+disruptive than an EN off/on, which would also throw away a legitimately
+queued answer. `_spi_partial_fix` counts how often it fires.
+
+Effect: `SPI2_STAT` goes to `0x00540001` — RFIFO empty, TFIFO empty, no
+ROR/TUR/RUWM — and the counters move again.
+
+#### Fix 2 — the host tolerates a one-word rotation, checked by the echo
+
+With the wedge cleared, answers come back but the (echo, value) pair can
+arrive rotated — value first. `dsp4_diag.py` now tries both arrangements
+and **the echo decides**: an answer is only accepted when the request word
+comes back verbatim, so a wrong guess cannot be mistaken for data.
+
+#### Where it stands
+
+| build | reads |
+|---|---|
+| **polled (bisect rung 27)** | **reliable** — full diag block: MAGIC 0xD5B40001, CHIP_ID 1, BOOT_STAGE 5, TICKS, SEC_COUNT 87, LAST_CSID 71 |
+| interrupt-driven (production) | **intermittent** — reads most of the block, then fails on one register with a duplicated word (e.g. 0xE014 returning DMA0_STAT's value twice) |
+
+So the regression is largely fixed but the interrupt path is not yet
+trustworthy enough to verify anything else through.
+
+#### Per the hub steer, the pipeline is NOT stopped on this
+
+Rung 1 should proceed using the **polled variant as the verification
+channel**, which reads reliably, plus `dsp4_boot`/`stagewatch`. The RFS
+build stays on the chips: `CONFIG_COMMIT` lands and BOOT_STAGE 6 is
+reached on both.
+
+**Remaining suspicion for the intermittent case,** for whoever picks it
+up: the interrupt path can enter the handler while the host is still
+clocking the next transaction, so the FULL condition is momentarily true
+mid-transfer and the drain takes one real word plus one that is still
+arriving. The polled loop only ever looks between transactions, which is
+exactly why it is clean. If that is right, the fix is to gate the drain on
+the transaction boundary (SPI_STAT.SPIF or the slave-select edge) rather
+than on FIFO level alone — worth a look before anything more elaborate.
+
+**Bench state:** chip 1 holds the production RFS build; `matrix-app`
+restarted and active; three MCUs verified; GPIOs back to `a0`.
 
 ### Outcome 2026-08-22 22:2xZ — 🟡 BOOT_STAGE 6 reached on BOTH chips; the read path regressed doing it
 

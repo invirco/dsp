@@ -50,7 +50,7 @@ FRAMES = {
              'PORTA_FER', 'PORTA_MUX', 'PORTB_FER', 'PORTB_MUX'],
     # DSP4_BISECT=23 in main.asm, sampled at the host handshake.
     'secspi': ['MAGIC', 'DIAG_TICKS', 'SEC_COUNT', 'SPI_RX_COUNT',
-               'BOOT_STAGE', 'BOOT_CFG', 'SPI2_STAT', 'IRPTL',
+               'BOOT_STAGE', 'BOOT_CFG', 'SPI2_STAT', 'RESP_DROP',
                'PRODUCT_ID'],
 }
 

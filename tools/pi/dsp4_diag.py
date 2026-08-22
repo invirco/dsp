@@ -135,39 +135,29 @@ class DiagLink:
     def read(self, addr):
         """Read one diagnostic register, verifying the echoed request.
 
-        The collect transaction repeats the SAME read rather than sending
-        a DIAG_NOP. The DSP queues its two-word answer for the master's
-        NEXT transaction, and on the bench (2026-08-22) a run of
-        back-to-back real reads pipelines perfectly - each transaction
-        carries the previous request's echo and value - while inserting a
-        NOP to collect slips the stream by one word, because a NOP queues
-        no answer and the 2-deep SPI_TFIFO is left holding a partial pair.
-        Asking twice costs one extra transaction and keeps the FIFO
-        always carrying whole pairs. The second ask leaves one answer
-        outstanding, which the next read's first transaction discards.
+        The answer is two words, (echo, value), collected on the
+        transaction after the one that asked. On this silicon the pair
+        can arrive ROTATED - value first, then echo - because the DSP's
+        receive FIFO can be left holding a single stale word around the
+        boot handover; the firmware's timer ISR discards it, but the
+        stream stays a word out of phase afterwards. So both
+        arrangements are tried and the ECHO decides which is real. That
+        is safe: an answer is only accepted when the request word comes
+        back verbatim, so a wrong guess cannot be mistaken for data.
         """
         want = frame(addr, 0, read=True)
         want0 = int.from_bytes(want[0:4], 'big')
-        self._fetch(addr, next_read=True)          # ask; collects stale
-        echo, value = self._fetch(addr, next_read=True)   # ask again; collect
-        # Bounded self-resync. WORKAROUND, not a fix: a transaction that
-        # produces NO response - a register write, or DIAG_NOP - still
-        # clocks two words out of the 2-deep SPI_TFIFO, so mixing writes
-        # and reads slips the stream by one word and every later echo is
-        # a value. The real fix is on the DSP side: make every accepted
-        # transaction queue exactly one two-word answer (a write echoing
-        # its request with value 0), so the stream is aligned by
-        # construction. Until then, re-ask until the echo matches.
-        for _ in range(3):
-            if echo == want0:
-                return value
-            echo, value = self._fetch(addr, next_read=True)
-        if echo != want0:
-            raise IOError(
-                f'response out of step reading 0x{addr:04X}: '
-                f'echo 0x{echo:08X}, expected 0x{want0:08X}. '
-                'Check RESP_DROP, and re-run with --resync.')
-        return value
+        self._fetch(addr, next_read=True)          # ask
+        for _ in range(4):
+            w0, w1 = self._fetch()                 # collect (sends NOP)
+            if w0 == want0:
+                return w1                          # (echo, value)
+            if w1 == want0:
+                return w0                          # rotated by one word
+        raise IOError(
+            f'response out of step reading 0x{addr:04X}: '
+            f'got 0x{w0:08X} 0x{w1:08X}, neither is the echo '
+            f'0x{want0:08X}. Check RESP_DROP.')
 
     def resync(self):
         """Drain any answer left queued by an interrupted earlier run."""

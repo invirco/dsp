@@ -265,7 +265,7 @@ _start:
     call _bisect_dump_asm;
     r4 = dm(REG_SPI2_STAT);       /* live: RUWM, TUR, RFIFO state */
     call _bisect_dump_asm;
-    r4 = irptl;                   /* which vectors actually latched */
+    r4 = dm(_diag_resp_drop);     /* answers dropped: TFIFO was not empty */
     call _bisect_dump_asm;
     r4 = dm(_product_id);         /* CFG_PRODUCT_ID as the part stored it */
     call _bisect_dump_asm;

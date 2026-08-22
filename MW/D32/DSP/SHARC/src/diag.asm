@@ -167,6 +167,11 @@
 .global _diag_resp_drop;
 .var _diag_resp_drop = 0;
 
+/* SPI2 stuck-partial-request recovery, see _diag_timer_isr. */
+.var _spi_partial_ticks = 0;
+.global _spi_partial_fix;
+.var _spi_partial_fix = 0;
+
 .global _diag_led_mode;
 .var _diag_led_mode = DIAG_LED_AUTO;
 .var _diag_peek_addr = 0;
@@ -392,6 +397,55 @@ _diag_timer_isr:
     r0 = dm(_diag_ticks);
     r0 = r0 + 1;
     dm(_diag_ticks) = r0;
+
+    /* ---- SPI2 stuck-partial-request recovery (2026-08-22) ----
+     *
+     * A parameter request is TWO words and _spi2_rx_work only drains
+     * when SPI_RFIFO is FULL, so a single stale word left in the FIFO
+     * wedges the link permanently: the level can never reach FULL again
+     * and every later request is one word out of phase behind it.
+     *
+     * That is not hypothetical. Bench 2026-08-22: after boot the part
+     * sat at SPI_STAT = 0x00142001 - RFS = 2, i.e. ONE word of two -
+     * with SEC_COUNT and SPI_RX_COUNT frozen at 74 and identical across
+     * runs with completely different host traffic, because the handler
+     * had stopped being able to fire at all. The residue arrives around
+     * the boot handover: spi2_init's EN-low flush happens before the
+     * host has finished with the port, so a fragment can land after it.
+     *
+     * A real request only sits half-arrived for microseconds, so three
+     * consecutive 1 ms ticks in that state means stale. Discard one
+     * word; if it is still stuck next time, discard another. Cheaper
+     * and less disruptive than an EN off/on, which would also throw
+     * away a legitimately queued answer. */
+    r0 = dm(REG_SPI2_STAT);
+    r1 = 0x00007000;              /* SPI_STAT.RFS, bits 14:12 */
+    r0 = r0 and r1;
+    r1 = 0;
+    comp(r0, r1);
+    if eq jump (pc, .spi_rx_settled);      /* empty: nothing pending */
+    r1 = 0x00004000;              /* RFS = 4 = Full: handler will take it */
+    comp(r0, r1);
+    if eq jump (pc, .spi_rx_settled);
+
+    r0 = dm(_spi_partial_ticks);
+    r0 = r0 + 1;
+    dm(_spi_partial_ticks) = r0;
+    r1 = 3;
+    comp(r0, r1);
+    if lt jump (pc, .spi_rx_checked);
+    r0 = dm(REG_SPI2_RFIFO);      /* discard one stale word */
+    r0 = 0;
+    dm(_spi_partial_ticks) = r0;
+    r0 = dm(_spi_partial_fix);
+    r0 = r0 + 1;
+    dm(_spi_partial_fix) = r0;    /* how often this had to fire */
+    jump (pc, .spi_rx_checked);
+
+.spi_rx_settled:
+    r0 = 0;
+    dm(_spi_partial_ticks) = r0;
+.spi_rx_checked:
 
     /* Manual override: force the LED off or on, e.g. to identify which
      * physical card or which of the two chips you are talking to. */
