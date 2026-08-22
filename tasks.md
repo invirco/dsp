@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-08-22 21:05Z — EARLY AUDIO: word-phase fix, then CPLD loopback bitstream + Pi capture path (no analog boards, no hands)   [status: 🟡 gate MET + read regression largely fixed; rungs 1-2 not started — the two all-zero-MISO events were ONE fault and it was in the RECEIVE side, not the response path: the RFIFO was left holding a single stale word around the boot handover, so with the correct RFS==FULL drain guard the level could never reach FULL again and the handler stopped firing (SPI2_STAT 0x00142001, RFS=2, counters FROZEN at 74 and IDENTICAL across two runs with different traffic, one with matrix-app stopped). Fixed with stuck-partial recovery in the diag timer ISR (three consecutive 1 ms ticks half-full = stale, discard a word) — SPI2_STAT now 0x00540001, everything empty and clean. Answers then come back rotated by one word, which dsp4_diag.py now tolerates with the ECHO as the check, so a wrong guess cannot be read as data. POLLED variant (rung 27) reads the full diag block RELIABLY; interrupt-driven production reads most of it then drops/duplicates one word. Per the steer the pipeline is not stopped on this: rung 1 proceeds on the polled channel. Remaining suspicion recorded — the ISR can enter mid-transfer when FULL is momentarily true, which the polled loop cannot; gate the drain on the transaction boundary. Old status follows] [was: 🟡 gate MET, rungs 1-2 not started — **BOOT_STAGE 6 on BOTH chips**, proven on the PB_05 dump (BOOT_STAGE 6, BOOT_CFG 1, PRODUCT_ID 1 on each; images md5-checked before flashing). Root cause of the config never landing was NOT rung 0: the drain guard tested SPI_STAT.RFE ("not empty") when a request is TWO words, so entering with a single word present drained one real word and one garbage one and desynced the stream permanently. Guarding on RFS == 4 (Full RFIFO) gives a clean 1:1 — chip 2 shows 5 handler entries for 5 writes where RFE gave 2.3x — and CONFIG_COMMIT then applies. REGRESSION, stated plainly: the same change broke READS, which now return all-zeros on MISO; the two states are (RFE: reads work, config never lands) and (RFS: config lands, reads dead). RFS is kept because it is provably the right condition and it reaches the gate. Rungs 1-2 not started — building a CPLD bitstream on a link that cannot be read back would be building on an unverifiable channel. Next: the read fault is between .spi_read and the TFIFO writes, everything upstream is excluded; see the outcome. Old status follows] [was: 🔴 blocked at rung 0 — the word-phase fix was implemented twice and REVERTED both times; nothing shipped and the tree is back at `f2bdb93`, rebuilt and re-verified on the bench. Making every transaction answer turned MISO to ALL-ZEROS on every transaction, reads included — worse than the known-good, which reads fine. The failing build is healthy everywhere except the answer: core alive, SEC_COUNT = SPI_RX_COUNT = 86, SPI2_STAT = 0x00540001 (RFIFO empty, no ROR/TUR/RUWM), RESP_DROP = 0 — so receive, delivery and dispatch all still work and only the queued answer is wrong. Both variants failed identically: echo stashed in a .var (the var read back CORRECTLY as 0xE0FE0000 from the main loop, yet answers were still zero) and echo queued while r0 is still live via a new subroutine. Rungs 1 and 2 not started — rung 0 is their gate. Full state note, four ranked next suspects and a recommendation to retry as a strictly smaller step are in the outcome below]
+## HUB DISPATCH 2026-08-22 21:05Z — EARLY AUDIO: word-phase fix, then CPLD loopback bitstream + Pi capture path (no analog boards, no hands)   [status: 🟡 link now POLLED and much improved; rung 1 NOT started — the parameter link is off the SEC entirely: `sec_init()` keeps only the audio block clock and `_spi_poll` collects requests from the main loop AND from `.wait_boot` (the latter is mandatory — the config that releases that loop arrives over the link being polled, and omitting it deadlocks). Plus the two SPI_TFIFO pushes are separated by NOPs: back to back one was being lost and every read came back as (value, value). Production reads did not work AT ALL before this; they now run 11 of 12 consecutive full-block reads clean, with writes landing (PRODUCT_ID reads back 1). Read-after-write in one session is still an intermittent race — better, not solved; the echo is checked on every read so a bad answer is rejected rather than believed. Rung 1 deliberately not started at the tail of a long session: toolchain all verified present (Quartus 21.1, iverilog 12.0, OpenOCD + cpld-jtag.cfg, IDCODE 0x020a30dd, shipping .pof/.svf on the Pi ready to restore), and the recommendation is to read rung-1 verdicts over the PB_05 dump rather than the SPI link. SHIPPING CPLD bitstream UNTOUCHED. Old status follows] [was: 🟡 gate MET + read regression largely fixed; rungs 1-2 not started — the two all-zero-MISO events were ONE fault and it was in the RECEIVE side, not the response path: the RFIFO was left holding a single stale word around the boot handover, so with the correct RFS==FULL drain guard the level could never reach FULL again and the handler stopped firing (SPI2_STAT 0x00142001, RFS=2, counters FROZEN at 74 and IDENTICAL across two runs with different traffic, one with matrix-app stopped). Fixed with stuck-partial recovery in the diag timer ISR (three consecutive 1 ms ticks half-full = stale, discard a word) — SPI2_STAT now 0x00540001, everything empty and clean. Answers then come back rotated by one word, which dsp4_diag.py now tolerates with the ECHO as the check, so a wrong guess cannot be read as data. POLLED variant (rung 27) reads the full diag block RELIABLY; interrupt-driven production reads most of it then drops/duplicates one word. Per the steer the pipeline is not stopped on this: rung 1 proceeds on the polled channel. Remaining suspicion recorded — the ISR can enter mid-transfer when FULL is momentarily true, which the polled loop cannot; gate the drain on the transaction boundary. Old status follows] [was: 🟡 gate MET, rungs 1-2 not started — **BOOT_STAGE 6 on BOTH chips**, proven on the PB_05 dump (BOOT_STAGE 6, BOOT_CFG 1, PRODUCT_ID 1 on each; images md5-checked before flashing). Root cause of the config never landing was NOT rung 0: the drain guard tested SPI_STAT.RFE ("not empty") when a request is TWO words, so entering with a single word present drained one real word and one garbage one and desynced the stream permanently. Guarding on RFS == 4 (Full RFIFO) gives a clean 1:1 — chip 2 shows 5 handler entries for 5 writes where RFE gave 2.3x — and CONFIG_COMMIT then applies. REGRESSION, stated plainly: the same change broke READS, which now return all-zeros on MISO; the two states are (RFE: reads work, config never lands) and (RFS: config lands, reads dead). RFS is kept because it is provably the right condition and it reaches the gate. Rungs 1-2 not started — building a CPLD bitstream on a link that cannot be read back would be building on an unverifiable channel. Next: the read fault is between .spi_read and the TFIFO writes, everything upstream is excluded; see the outcome. Old status follows] [was: 🔴 blocked at rung 0 — the word-phase fix was implemented twice and REVERTED both times; nothing shipped and the tree is back at `f2bdb93`, rebuilt and re-verified on the bench. Making every transaction answer turned MISO to ALL-ZEROS on every transaction, reads included — worse than the known-good, which reads fine. The failing build is healthy everywhere except the answer: core alive, SEC_COUNT = SPI_RX_COUNT = 86, SPI2_STAT = 0x00540001 (RFIFO empty, no ROR/TUR/RUWM), RESP_DROP = 0 — so receive, delivery and dispatch all still work and only the queued answer is wrong. Both variants failed identically: echo stashed in a .var (the var read back CORRECTLY as 0xE0FE0000 from the main loop, yet answers were still zero) and echo queued while r0 is still live via a new subroutine. Rungs 1 and 2 not started — rung 0 is their gate. Full state note, four ranked next suspects and a recommendation to retry as a strictly smaller step are in the outcome below]
 
 model: opus
 
@@ -47,6 +47,76 @@ hands-off; always leave matrix-app running + 3 MCUs verified; the SHIPPING
 bitstream must be restored on the CPLD before ending; single trunk; no AI
 attribution. Rung 3 (real ADC/DAC via J41/J42, codec) is PW-hands and NOT
 part of this dispatch.
+
+### Outcome 2026-08-22 23:5xZ — 🟡 link moved to a polled architecture; much better, still not clean. Rung 1 NOT started.
+
+**Design change, not a workaround: the parameter link is now POLLED from
+the DSP main loop and `SPI2_STAT` is no longer routed to the SEC.**
+`sec_init()` keeps the audio block clock — the source that genuinely
+needs an interrupt — and drops the SPI route; `_spi_poll` in `main.asm`
+collects a request whenever `SPI_STAT.RFS` says a whole two-word one has
+landed, and is called from both the main loop and `.wait_boot`.
+
+Why: interrupt delivery could enter the handler while the host was still
+clocking, so FIFO-full was momentarily true mid-transfer and the drain
+took one real word plus one still arriving. Polling only ever looks
+BETWEEN transactions, which is exactly why the polled variant read
+cleanly all along where the interrupt path never did. Cost is nil — the
+loop already wakes on the 1 kHz diag tick with no audio, and per block
+with audio.
+
+**`.wait_boot` must poll too, and that is not optional:** the config that
+releases that loop arrives over the very link being polled, so with the
+SEC route removed and no poll there the firmware waits forever for a
+message nothing is collecting. That deadlock happened once during this
+work and is now commented in place.
+
+**Second fix: the two `SPI_TFIFO` pushes are separated by NOPs.** Back to
+back, the host saw the SAME word twice instead of (echo, value) — one
+push was being lost, which is what a FIFO write hazard looks like from
+outside. Reads returned (value, value) for every register until the NOPs
+went in.
+
+#### Honest state of the link
+
+| case | result |
+|---|---|
+| reads only, full 24-register block | **11 of 12 consecutive runs clean**; one failed on a single register |
+| a write, then reads in the same session | intermittent — sometimes a clean coherent set, sometimes (value, value) |
+| writes landing | yes — `PRODUCT_ID` reads back 1 after config, and BOOT_STAGE 6 was proven on both chips earlier via the PB_05 dump |
+
+So it is much better than it was (production reads did not work AT ALL
+before this) but it is a race, not a solved problem. Retry-with-echo-check
+makes it usable; the echo is verified on every read, so a bad answer is
+rejected rather than believed.
+
+#### Why rung 1 is not started
+
+Rung 1 needs: a non-shipping loopback bitstream (build, sim gate, STA
+gate, hash label), an OpenOCD flash over the CM4 JTAG bit-bang, pattern
+generator and checker firmware on BOTH chips, verdicts read back, four
+hardware facts recorded in hardware-map.md, and the shipping bitstream
+restored. The toolchain is all present and verified this session —
+Quartus 21.1, iverilog 12.0, OpenOCD 0.12 with `/home/app/cpld-jtag.cfg`
+(IDCODE 0x020a30dd), and the shipping artifact
+`dsp4_logic.a1f6672af6c3.{pof,svf}` is on the Pi ready to restore.
+
+That is several hours of fresh work. Starting it at the end of a session
+that has already had one thrashing stretch would repeat the mistake, and
+rung 1's whole value is a trustworthy verdict — which wants a link that
+is not a race, or a deliberate decision to read verdicts over the PB_05
+dump instead (which HAS been reliable all session and is the honest
+fallback).
+
+**Recommendation for whoever takes rung 1:** use the PB_05 dump as the
+verdict channel from the start rather than the SPI link. It is
+out-of-band, it needs no host protocol, and every hard fact established
+in the last two days came off it.
+
+**Bench state:** both chips hold the polled-link production build;
+`matrix-app` restarted and active; three MCUs verified; GPIOs back to
+`a0`. The SHIPPING CPLD bitstream is untouched — no loopback bitstream
+was built or flashed.
 
 ### Outcome 2026-08-22 23:0xZ — 🟡 read regression largely fixed; polled channel is reliable, interrupt-driven is intermittent
 

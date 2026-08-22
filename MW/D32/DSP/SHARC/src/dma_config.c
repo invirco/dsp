@@ -337,7 +337,14 @@ static void sec_init(void)
     REG32(REG_SEC0_GCTL) = BITM_SEC_GCTL_EN;
     REG32(REG_SEC0_CCTL0) = BITM_SEC_CCTL_EN;
     sec_route(BLOCK_CLOCK_SRC);
-    sec_route(SPI2_STAT_SRC);
+    /* SPI2_STAT is deliberately NOT routed (2026-08-22). The parameter
+     * link is polled from the main loop instead: interrupt delivery
+     * could enter the handler mid-transaction, so the FIFO-full
+     * condition was momentarily true while the host was still clocking
+     * and the drain took one real word plus one still arriving. Polling
+     * only looks between transactions. The SEC keeps the block clock,
+     * which is the source that genuinely needs an interrupt.
+     *   sec_route(SPI2_STAT_SRC); */
 }
 
 static void spi2_init(void)

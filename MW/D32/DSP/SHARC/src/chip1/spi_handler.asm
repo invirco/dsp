@@ -341,8 +341,16 @@ _spi2_rx_work:
     r6 = SPI2_TFS_EMPTY;
     comp(r5, r6);
     if ne jump (pc, .spi_read_drop);
+    /* The two pushes are separated. Back to back, the host was seeing
+     * the SAME word twice instead of (echo, value) — one push was being
+     * lost — which is what a FIFO write hazard looks like from outside.
+     * Bench 2026-08-22: reads returned (value, value) for every register
+     * until these NOPs went in. */
     dm(SPI2_TFIFO) = r0;                 /* echo of the request word 0 */
+    nop;
+    nop;
     dm(SPI2_TFIFO) = r4;                 /* value */
+    nop;
     jump (pc, .spi_done);
 .spi_read_drop:
     r5 = dm(_diag_resp_drop);

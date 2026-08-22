@@ -93,6 +93,27 @@
 /*----------------------------------------------------------------------
  * _start — Reset entry point
  *----------------------------------------------------------------------*/
+/*----------------------------------------------------------------------
+ * _spi_poll — collect one parameter request if a whole one has arrived.
+ *
+ * The link is polled, not interrupt-driven: SEC delivery could enter the
+ * handler while the host was still clocking, so the FIFO-full condition
+ * was momentarily true mid-transfer and the drain took one real word
+ * plus one still arriving. Polling only ever looks BETWEEN transactions.
+ * Called from .wait_boot and from the main loop; both wake at least at
+ * the 1 kHz diag tick, far above what this link needs.
+ * Clobbers r0, r1 and whatever _spi2_rx_work clobbers.
+ *--------------------------------------------------------------------*/
+_spi_poll:
+    r0 = dm(REG_SPI2_STAT);
+    r1 = 0x00007000;               /* SPI_STAT.RFS, bits 14:12 */
+    r0 = r0 and r1;
+    r1 = 0x00004000;               /* RFS = 4 = Full: a whole request */
+    comp(r0, r1);
+    if ne rts;
+    jump _spi2_rx_work;            /* tail call: its rts returns to us */
+_spi_poll.end:
+
 .global _start;
 _start:
 #if DSP4_BISECT == 5
@@ -290,6 +311,10 @@ _start:
      * writes the 0xF000+ config registers then CONFIG_COMMIT, which
      * applies input patch + scope gates and sets the flag below. */
 .wait_boot:
+    /* Poll here as well as in the main loop: the config that releases
+     * this loop arrives over the very link being polled, so without it
+     * the firmware waits forever for a message nothing is collecting. */
+    call _spi_poll;
 #if DSP4_BISECT == 27
     /* TEMP bisect rung 27 (2026-08-22) — POLL the SPI instead of waiting
      * for the SEC to deliver its interrupt.
@@ -323,6 +348,23 @@ _start:
     /* ---- Main loop ---- */
 .main_loop:
     idle;                          /* low-power wait for DMA interrupt */
+
+    /* ---- Parameter link, POLLED (2026-08-22) ----
+     * The SPI2 request FIFO is serviced from here rather than from the
+     * SEC. Interrupt delivery for this source could enter the handler
+     * while the host was still clocking a transaction, so the FIFO-full
+     * condition was momentarily true mid-transfer and the drain took
+     * one real word plus one still arriving — reads came back with
+     * words duplicated or dropped. Polling only ever looks BETWEEN
+     * transactions, which is exactly why the polled variant read
+     * cleanly where the interrupt path did not (bench 2026-08-22).
+     *
+     * Cost is nil: the loop already wakes on the 1 kHz diag tick even
+     * with no audio, and once per block (1500/s) with audio, which is
+     * far above what a parameter link needs. The SEC keeps the audio
+     * block clock, which is the source that actually has to be
+     * interrupt-driven. sec_init() no longer routes SPI2_STAT. */
+    call _spi_poll;
 
     r0 = dm(_block_ready);
     r1 = 0;
