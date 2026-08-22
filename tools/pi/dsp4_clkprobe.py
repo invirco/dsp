@@ -50,8 +50,8 @@ FRAMES = {
              'PORTA_FER', 'PORTA_MUX', 'PORTB_FER', 'PORTB_MUX'],
     # DSP4_BISECT=23 in main.asm, sampled at the host handshake.
     'secspi': ['MAGIC', 'DIAG_TICKS', 'SEC_COUNT', 'SPI_RX_COUNT',
-               'UNK_CSID', 'UNK_COUNT', 'SPI2_STAT', 'IRPTL',
-               'SEC0_SCTL71'],
+               'BOOT_STAGE', 'BOOT_CFG', 'SPI2_STAT', 'IRPTL',
+               'PRODUCT_ID'],
 }
 
 # Bits worth naming in the spi2 frame, so a transcript reads as a verdict

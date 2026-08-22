@@ -14,8 +14,10 @@ Config registers live at 0xF000+ and are written with ramp id 0.
 Chip select: the D24 Digital board drives CS1..CS8 from Pi GPIOs (not
 the hardware CE lines), so this tool takes --cs-gpio and drives it via
 gpiod around each transfer. Read off the DSP4 PI header J6 (page 7/10):
-CS1 = GPIO6 -> chip 1, CS2 = GPIO7 -> chip 2. (GPIO5 is CS7, not CS1 —
-the examples here said 5/6 until 2026-08-11.) SPI_RDY flow control
+CS1 = GPIO6 -> chip 1, CS2 = GPIO24 -> chip 2. (GPIO5 is CS7, not CS1 —
+the examples here said 5/6 until 2026-08-11; and chip 2 was documented as
+GPIO7 until 2026-08-22, which is wrong and is why chip 2 answered all-zero
+on MISO. dsp4_boot.py has always had it right: CS_GPIO = {1: 6, 2: 24}.) SPI_RDY flow control
 (CS3 = GPIO8 for chip 1, CS4 = GPIO12 for chip 2, back from the card)
 is honoured when --rdy-gpio is given; see SpiLink.
 
@@ -24,7 +26,7 @@ implements the two-transaction read protocol on top of this SpiLink.
 
 Usage examples:
   dsp4_config.py --product d24 --chip 1 --cs-gpio 6      # config chip 1
-  dsp4_config.py --product d24 --chip 2 --cs-gpio 7
+  dsp4_config.py --product d24 --chip 2 --cs-gpio 24
   dsp4_config.py --poke 0xF000 1 --chip 1 --cs-gpio 6    # raw register
   dsp4_config.py --product d24 --chip 1 --cs-gpio 6 --rdy-gpio 8
   dsp4_config.py --product d24 --dry-run                 # print writes
@@ -190,7 +192,11 @@ def main():
                     help='SPI clock Hz (default 1 MHz for bring-up)')
     ap.add_argument('--cs-gpio', type=int,
                     help='BCM GPIO driving this chip\'s CS line '
-                         '(chip 1 = 6, chip 2 = 7)')
+                         '(default: chip 1 = 6, chip 2 = 24)')
+    ap.add_argument('--verify', action='store_true',
+                    help='after writing, read BOOT_STAGE / BOOT_CFG / '
+                         'PRODUCT_ID back off the part and report whether '
+                         'CONFIG_COMMIT actually landed')
     ap.add_argument('--rdy-gpio', type=int,
                     help='BCM GPIO carrying this chip\'s SPI_RDY '
                          '(chip 1 = 8, chip 2 = 12)')
@@ -214,13 +220,50 @@ def main():
         print(f'({len(writes)} writes, chip {args.chip})')
         return
 
-    link = SpiLink(args.dev, args.speed, args.cs_gpio,
+    cs = args.cs_gpio if args.cs_gpio is not None else (
+        6 if args.chip == 1 else 24)
+    link = SpiLink(args.dev, args.speed, cs,
                    rdy_gpio=args.rdy_gpio,
                    rdy_active_low=args.rdy_active_low)
     for addr, value in writes:
         link.write(addr, value)
-    print(f'wrote {len(writes)} registers to chip {args.chip}')
+    print(f'wrote {len(writes)} registers to chip {args.chip} (CS GPIO{cs})')
+
+    if not args.verify:
+        return 0
+    return verify(link, args.chip, args.product)
+
+
+def verify(link, chip, product):
+    """Read the commit's consequences back off the part.
+
+    The 0xF000 config registers are write-only on the DSP side — the read
+    path routes anything >= 0xE000 into _diag_read, which covers the
+    0xE0xx block only. So a CONFIG_COMMIT is verified by its EFFECTS,
+    which product_config.asm does publish: it sets _boot_config_received
+    (DIAG_BOOT_CFG), stamps DIAG_STAGE_CONFIGED (BOOT_STAGE 6) and stores
+    the product id (DIAG_PRODUCT_ID).
+    """
+    from dsp4_diag import DiagLink
+    d = DiagLink(link)
+    want_pid = PRODUCT_IDS[product] if product else None
+    try:
+        stage = d.read(0xE002)
+        cfg = d.read(0xE003)
+        pid = d.read(0xE010)
+        err = d.read(0xE00C)
+        drop = d.read(0xE00F)
+    except IOError as e:
+        print(f'  VERIFY FAILED: {e}')
+        return 1
+    ok = (stage == 6) and (cfg != 0) and (want_pid is None or pid == want_pid)
+    print(f'  chip {chip}: BOOT_STAGE {stage} (want 6), BOOT_CFG {cfg} '
+          f'(want non-zero), PRODUCT_ID {pid}'
+          + ('' if want_pid is None else f' (want {want_pid})'))
+    print(f'  chip {chip}: SPI_ERR_COUNT {err}, RESP_DROP {drop}')
+    print(f'  chip {chip}: CONFIG_COMMIT {"LANDED" if ok else "DID NOT LAND"}')
+    return 0 if ok else 1
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main() or 0)

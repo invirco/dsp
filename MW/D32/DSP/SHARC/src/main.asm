@@ -259,17 +259,15 @@ _start:
     call _bisect_dump_asm;
     r4 = dm(_spi_rx_count);       /* did the SPI handler ever run? */
     call _bisect_dump_asm;
-    r4 = dm(_diag_unk_csid);      /* a SEC source with no handler? */
+    r4 = dm(_diag_boot_stage);    /* 6 = CONFIG_COMMIT applied */
     call _bisect_dump_asm;
-    r4 = dm(_diag_unk_count);
+    r4 = dm(_boot_config_received);
     call _bisect_dump_asm;
     r4 = dm(REG_SPI2_STAT);       /* live: RUWM, TUR, RFIFO state */
     call _bisect_dump_asm;
     r4 = irptl;                   /* which vectors actually latched */
     call _bisect_dump_asm;
-    r4 = dm(0x31089A38);          /* SEC0_SCTL71 = SPI2_STAT's route:
-                                   * SEC_SCTL_BASE + 71*8. Did sec_route
-                                   * actually take? */
+    r4 = dm(_product_id);         /* CFG_PRODUCT_ID as the part stored it */
     call _bisect_dump_asm;
     /* No extra gap: _bisect_dump_asm already ends every word with a
      * 6-unit low, and the host aligns the transcript on the constant. */

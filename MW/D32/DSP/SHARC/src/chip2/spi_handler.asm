@@ -47,7 +47,8 @@
  * _diag_spi_stat_stk. Positions from sys/ADSP-21564.h: RUWM = 1,
  * ROR = 4, TUR = 5. */
 #define SPI2_ILAT_RUWM  0x00000002
-#define SPI2_STAT_RFE   0x00400000   /* SPI_STAT.RFE: 1 = RFIFO empty */
+#define SPI2_STAT_RFS_MASK 0x00007000  /* SPI_STAT.RFS, bits 14:12 */
+#define SPI2_STAT_RFS_FULL 0x00004000  /* RFS = 4 = Full RFIFO */
 #define SPI2_STAT_ERRS  0x00000030   /* ROR | TUR */
 
 /* SPI_STAT.TFS (bits 18:16) == 4 means "Empty TFIFO" (HRM Table 15-32).
@@ -121,21 +122,25 @@ _spi2_rx_work:
 
     /* Collect ONLY when the receive FIFO actually holds something.
      *
-     * SPI_STAT.RFE (bit 22) is 1 when SPI_RFIFO is empty. Reading the
-     * FIFO empty returns garbage and, worse, that garbage is then
-     * dispatched as if it were a request. The SEC can deliver more
-     * events than there are transactions - bench 2026-08-22 measured 94
-     * handler entries against 48 words actually clocked in - so an
-     * unguarded drain corrupts the request stream and the host sees a
-     * constant, meaningless response. The polled variant (bisect rung
-     * 27) checked RFE and round-tripped correctly; this is the same
-     * check in the interrupt path. */
+     * The condition is RFIFO **FULL**, not merely non-empty. A request
+     * is TWO words and this handler drains two; SPI_STAT.RFE only says
+     * "not empty", so entering with a single word present drains one
+     * real word and one garbage one, and from that moment every later
+     * pair is shifted by a word. That is a permanent desync, and it is
+     * what an RFE guard let through.
+     *
+     * Bench 2026-08-22, with the RFE guard: 51 config writes produced
+     * 117 handler entries (2.3x too many), CONFIG_COMMIT never applied
+     * — BOOT_STAGE stuck at 5, BOOT_CFG 0, PRODUCT_ID 0 — and host
+     * reads came back one word out of phase. RFS = 4 (Full RFIFO, 2
+     * words at 32-bit word size) is the condition that matches both the
+     * RUWM=FULL interrupt trigger and the two-word protocol. */
     r2 = dm(SPI2_STAT);
-    r3 = SPI2_STAT_RFE;
+    r3 = SPI2_STAT_RFS_MASK;
     r2 = r2 AND r3;
-    r3 = 0;
+    r3 = SPI2_STAT_RFS_FULL;
     comp(r2, r3);
-    if ne jump (pc, .spi_done);   /* empty - nothing to collect */
+    if ne jump (pc, .spi_done);   /* not a whole request yet — see below */
 
     r0 = dm(SPI2_RFIFO);          /* Word 0: address + flags */
     r1 = dm(SPI2_RFIFO);          /* Word 1: coefficient value */

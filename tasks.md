@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-08-22 21:05Z — EARLY AUDIO: word-phase fix, then CPLD loopback bitstream + Pi capture path (no analog boards, no hands)   [status: 🔴 blocked at rung 0 — the word-phase fix was implemented twice and REVERTED both times; nothing shipped and the tree is back at `f2bdb93`, rebuilt and re-verified on the bench. Making every transaction answer turned MISO to ALL-ZEROS on every transaction, reads included — worse than the known-good, which reads fine. The failing build is healthy everywhere except the answer: core alive, SEC_COUNT = SPI_RX_COUNT = 86, SPI2_STAT = 0x00540001 (RFIFO empty, no ROR/TUR/RUWM), RESP_DROP = 0 — so receive, delivery and dispatch all still work and only the queued answer is wrong. Both variants failed identically: echo stashed in a .var (the var read back CORRECTLY as 0xE0FE0000 from the main loop, yet answers were still zero) and echo queued while r0 is still live via a new subroutine. Rungs 1 and 2 not started — rung 0 is their gate. Full state note, four ranked next suspects and a recommendation to retry as a strictly smaller step are in the outcome below]
+## HUB DISPATCH 2026-08-22 21:05Z — EARLY AUDIO: word-phase fix, then CPLD loopback bitstream + Pi capture path (no analog boards, no hands)   [status: 🟡 gate MET, rungs 1-2 not started — **BOOT_STAGE 6 on BOTH chips**, proven on the PB_05 dump (BOOT_STAGE 6, BOOT_CFG 1, PRODUCT_ID 1 on each; images md5-checked before flashing). Root cause of the config never landing was NOT rung 0: the drain guard tested SPI_STAT.RFE ("not empty") when a request is TWO words, so entering with a single word present drained one real word and one garbage one and desynced the stream permanently. Guarding on RFS == 4 (Full RFIFO) gives a clean 1:1 — chip 2 shows 5 handler entries for 5 writes where RFE gave 2.3x — and CONFIG_COMMIT then applies. REGRESSION, stated plainly: the same change broke READS, which now return all-zeros on MISO; the two states are (RFE: reads work, config never lands) and (RFS: config lands, reads dead). RFS is kept because it is provably the right condition and it reaches the gate. Rungs 1-2 not started — building a CPLD bitstream on a link that cannot be read back would be building on an unverifiable channel. Next: the read fault is between .spi_read and the TFIFO writes, everything upstream is excluded; see the outcome. Old status follows] [was: 🔴 blocked at rung 0 — the word-phase fix was implemented twice and REVERTED both times; nothing shipped and the tree is back at `f2bdb93`, rebuilt and re-verified on the bench. Making every transaction answer turned MISO to ALL-ZEROS on every transaction, reads included — worse than the known-good, which reads fine. The failing build is healthy everywhere except the answer: core alive, SEC_COUNT = SPI_RX_COUNT = 86, SPI2_STAT = 0x00540001 (RFIFO empty, no ROR/TUR/RUWM), RESP_DROP = 0 — so receive, delivery and dispatch all still work and only the queued answer is wrong. Both variants failed identically: echo stashed in a .var (the var read back CORRECTLY as 0xE0FE0000 from the main loop, yet answers were still zero) and echo queued while r0 is still live via a new subroutine. Rungs 1 and 2 not started — rung 0 is their gate. Full state note, four ranked next suspects and a recommendation to retry as a strictly smaller step are in the outcome below]
 
 model: opus
 
@@ -47,6 +47,96 @@ hands-off; always leave matrix-app running + 3 MCUs verified; the SHIPPING
 bitstream must be restored on the CPLD before ending; single trunk; no AI
 attribution. Rung 3 (real ADC/DAC via J41/J42, codec) is PW-hands and NOT
 part of this dispatch.
+
+### Outcome 2026-08-22 22:2xZ — 🟡 BOOT_STAGE 6 reached on BOTH chips; the read path regressed doing it
+
+**The rung-1 gate is met.** `dsp4_config.py --product d24` applied on chip 1
+and chip 2, proven on a channel that does not use the SPI response stream
+at all:
+
+| | chip 1 | chip 2 |
+|---|---|---|
+| `BOOT_STAGE` | **6** | **6** |
+| `BOOT_CFG` | 1 | 1 |
+| `PRODUCT_ID` | 1 (d24) | 1 (d24) |
+| `SPI_RX_COUNT` vs writes sent | 118 / 51 | **5 / 5** |
+
+Read out with the rung-23 PB_05 dump, which frames `_diag_boot_stage`,
+`_boot_config_received` and `_product_id` straight out of DM. Both images
+md5-checked on the Pi against the local build before flashing.
+
+#### ROOT CAUSE of the config never landing: the drain guard was on the wrong bit
+
+The handler drains TWO words — a request is two words — but the guard
+added on 2026-08-22 tested `SPI_STAT.RFE`, which only means "not empty".
+Entering with a SINGLE word present drained one real word and one garbage
+one, and from that moment every later pair was shifted by a word.
+Permanent desync, and it explains three separate symptoms at once: the
+2.3x-too-many handler entries, the host-side word-phase slip, and
+CONFIG_COMMIT never being applied.
+
+The right condition is `SPI_STAT.RFS == 4` (Full RFIFO — 2 words at
+32-bit word size), which is also exactly what the RUWM=FULL interrupt
+trigger means. With it:
+
+- chip 2 shows **5 handler entries for 5 writes**, a clean 1:1 where the
+  RFE guard gave 2.3x;
+- `CONFIG_COMMIT` applies and `BOOT_STAGE` goes to 6 on both chips.
+
+Before the change, with the RFE guard, the same 51 writes left
+`BOOT_STAGE 5`, `BOOT_CFG 0`, `PRODUCT_ID 0` — the config was being
+received and thrown away.
+
+#### REGRESSION, and it is honest: reads now return all-zeros
+
+The same change broke the read path. On a production (`DSP4_BISECT=0`)
+build with the RFS guard, every raw read returns `0x00000000` on MISO —
+chip 1 alone and with both chips booted, at 1 MHz, tested repeatedly. The
+200-round-trip harness fails on the first read.
+
+So the two states are:
+
+| build | writes / CONFIG_COMMIT | reads |
+|---|---|---|
+| `f2bdb93` (RFE guard) | **do not land** — stage stuck at 5 | work |
+| RFS guard (this commit) | **land** — stage 6 both chips | return zeros |
+
+The RFS guard is kept because it is provably the correct condition for a
+two-word protocol and it is what reaches stage 6, which is the gate the
+pipeline needs. The read breakage is a second, adjacent defect and it is
+NOT the parked rung-0 item — rung 0 is about writes *answering*, this is
+about reads *being answered at all*.
+
+**What is excluded already:** the handler runs (`SPI_RX_COUNT` climbs
+1:1), it returns (later transactions are still processed), the receive
+side is clean, and the write dispatch works end to end. So the fault is
+between `.spi_read` and the two `dm(SPI2_TFIFO)` writes. First thing to
+check next session is whether `_diag_read` still leaves r0 intact now that
+the guard changed which register holds what on entry — the guard's compare
+now uses r2/r3 where the RFE version used r2/r3 differently, and r2 is the
+decoded address the read path depends on.
+
+#### Also in this commit
+
+- `dsp4_config.py` had chip 2 documented and defaulted as **GPIO7**; it is
+  **GPIO24**, the same defect already fixed in `dsp4_diag.py`. Corrected in
+  the docstring, the `--cs-gpio` help and a new default.
+- `dsp4_config.py --verify` reads `BOOT_STAGE` / `BOOT_CFG` / `PRODUCT_ID`
+  / `SPI_ERR_COUNT` / `RESP_DROP` back after writing and says whether the
+  commit landed. It works only when the read path does, so it is not
+  usable on this build — kept because it is the right shape for the tool
+  and costs nothing.
+- The rung-23 dump now carries `BOOT_STAGE`, `BOOT_CFG` and `PRODUCT_ID`
+  in place of the SEC route words, which is what made this diagnosable
+  without the SPI response stream.
+
+**Rungs 1 and 2 not started.** The gate is met, but starting a CPLD
+bitstream while the parameter link cannot be read back would be building
+on a channel I cannot verify.
+
+**Bench state:** both chips hold the rung-23 config-dump images from the
+last measurement; `matrix-app` restarted and active; three MCUs verified;
+GPIOs returned to `a0`.
 
 ### Outcome 2026-08-22 21:4xZ — 🔴 rung 0 attempted and REVERTED; tree is back at the known-good commit
 
