@@ -67,6 +67,53 @@ stop when done or blocked, push main.
 
 Rules as above: bench = rev-C CM4 app@192.168.1.219; rev A hands-off; leave
 matrix-app running + 3 MCUs verified; single trunk; no AI attribution.
+When done or blocked, continue straight into the next QUEUED block.
+
+## QUEUED DISPATCH (fire after the desk fillers) — VIRTUAL AUDIO TESTS over the CPLD feedback loop: the golden harness gets a hardware target   [status: 🔴 queued]
+
+model: opus
+
+Precondition: early-audio rung 2 delivered (Pi aplay → DSPA I6, DSPB lane
+de-framed back to Pi arecord over the CPLD loopback bitstream; soak clean).
+Purpose (PW 2026-08-22): exercise gain, EQ, dynamics etc. with generated
+tones and levels through the REAL SHARC path and measure, no ears, no
+converters. The yardstick already exists — `shared/numeric-spec.md`
+"Acceptance tolerances (golden harness)", `tools/dsp/golden_harness.py`,
+`tools/dsp/fixed_ref.py`. The hardware becomes a third target of the same
+harness: target ≡ fixed_ref (bit-exact), fixed_ref ≈ float64 (tolerances).
+
+1. **Path calibration first.** Pass-through strip (all nodes unity/bypass):
+   play the standard vector set, capture, align by a known preamble, and
+   prove the loop is bit-exact end to end (Pi I2S → TDM slot → SPORT → node
+   chain → SPORT → TDM → I2S). Record fixed latency in samples. If the loop
+   is not bit-exact, STOP and find why (slot/justification/MSB-first,
+   24-vs-32-bit, sign extension) — nothing below is meaningful until it is.
+2. **Harness extension.** `golden_harness.py --target hw`: for each vector
+   and parameter set, push parameters over the SPI link (dsp4_config.py /
+   diag protocol, float32 words as today), play, capture, compare against
+   fixed_ref bit-exact and float64 within the spec tolerances. One report
+   per kernel family with pass/fail and worst-case deviation.
+3. **Families, in this order** (each on one channel strip, chip 1, then the
+   output-side twin on chip 2 where one exists):
+   - GAIN / FDR: stepped levels −60…+18 dB, ±0.5 LSB; fader ramps — no
+     zipper (spectral check during a ramp), ramp time vs cell table ±2 %.
+   - EQ / FILT / GEQ: swept sine or MLS → magnitude/phase per band at several
+     f0/Q/gain, ±0.01 dB (≥50 Hz), ±0.05 dB at 20 Hz; residual < −120 dBFS.
+   - COMP / GATE / LIM: tone bursts at stepped levels → static curve ±0.05 dB
+     (threshold, ratio, knee, make-up); attack/release from envelope fits
+     ±2 %; gate hold/range; limiter ceiling never exceeded.
+   - DLY: sample-exact delay vs setting; TUBE: harmonic series vs reference.
+   - Bus summing: exact to LSB; MTR: peak readback over SPI vs captured peak.
+4. **Keep the vectors.** Commit stimulus generators (not WAVs), the hw
+   capture alignment tool, and the per-family reports under tools/dsp/;
+   results table into findings (dsp4-architecture-decisions.md D5 gets a
+   "hardware-verified" line per family with date + build id). Any family
+   that fails is a firmware bug or a spec [REVIEW] to resolve — report it,
+   do not loosen the tolerance.
+5. Leave the pass-through loop soaking when you stop.
+
+Rules as above. This is the item PW most wants to see results from; write
+the results table so it reads at a glance.
 
 ## HUB DISPATCH 2026-08-22 19:05Z — SPI PARAMETER LINK — the handler runs exactly ONCE per reset (RX FIFO above watermark / ROR / host ignores RDY)   [status: 🟢 done — **the link is UP on both chips and the whole diagnostic register block now reads off a running SHARC, a first for this card.** Root cause of once-per-reset: the SEC handshake is TWO-step and `_sec_isr` only did steps 1 and 4 — it never wrote `SEC_CSID0` back to acknowledge, so the SEC never arbitrated another request. One line took SEC_COUNT from 1 to 94. Proved by bisect rung 27, which polls the SAME handler and round-tripped correctly while the interrupt build was stuck at one. Three more fixed: the RFIFO came out of boot FULL (no flush bit exists — `SPI_CTL.EN` must go low, HRM 15; now measured empty, ROR/RUWM clear); the handler drained an empty FIFO and dispatched the garbage (RFE guard added); and `dsp4_diag.py` asserted GPIO7 for chip 2 where `dsp4_boot.py` has always used GPIO24 — the whole reason chip 2 read all-zero. Chip 1 and chip 2 both return MAGIC 0xD5B40001 and their own CHIP_ID. STILL OPEN, precisely characterised: a write (or DIAG_NOP) queues no answer but still clocks two words out of the 2-deep TFIFO, leaving an odd word outstanding and slipping every later echo by one — so reads are solid but write-then-read-back is not. Real fix is DSP-side: make every accepted transaction queue exactly one two-word answer. Also open: SPI2_RDY never asserts even with the RFIFO empty, so dispatch task 2 as written is not actionable — a host honouring this RDY would wait forever]
 
