@@ -47,6 +47,7 @@
  * _diag_spi_stat_stk. Positions from sys/ADSP-21564.h: RUWM = 1,
  * ROR = 4, TUR = 5. */
 #define SPI2_ILAT_RUWM  0x00000002
+#define SPI2_STAT_RFE   0x00400000   /* SPI_STAT.RFE: 1 = RFIFO empty */
 #define SPI2_STAT_ERRS  0x00000030   /* ROR | TUR */
 
 /* SPI_STAT.TFS (bits 18:16) == 4 means "Empty TFIFO" (HRM Table 15-32).
@@ -117,6 +118,24 @@ _spi2_rx_work:
     r3 = dm(_diag_spi_stat_stk);
     r3 = r3 OR r2;
     dm(_diag_spi_stat_stk) = r3;
+
+    /* Collect ONLY when the receive FIFO actually holds something.
+     *
+     * SPI_STAT.RFE (bit 22) is 1 when SPI_RFIFO is empty. Reading the
+     * FIFO empty returns garbage and, worse, that garbage is then
+     * dispatched as if it were a request. The SEC can deliver more
+     * events than there are transactions - bench 2026-08-22 measured 94
+     * handler entries against 48 words actually clocked in - so an
+     * unguarded drain corrupts the request stream and the host sees a
+     * constant, meaningless response. The polled variant (bisect rung
+     * 27) checked RFE and round-tripped correctly; this is the same
+     * check in the interrupt path. */
+    r2 = dm(SPI2_STAT);
+    r3 = SPI2_STAT_RFE;
+    r2 = r2 AND r3;
+    r3 = 0;
+    comp(r2, r3);
+    if ne jump (pc, .spi_done);   /* empty - nothing to collect */
 
     r0 = dm(SPI2_RFIFO);          /* Word 0: address + flags */
     r1 = dm(SPI2_RFIFO);          /* Word 1: coefficient value */

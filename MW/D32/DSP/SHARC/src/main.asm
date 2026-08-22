@@ -62,6 +62,9 @@
 .extern _bisect_park_asm;
 #endif
 .extern _diag_boot_stage;
+#if DSP4_BISECT == 27
+.extern _spi2_rx_work;
+#endif
 #if DSP4_BISECT == 23
 .extern _bisect_dump_asm, _diag_ticks, _diag_sec_count;
 .extern _diag_unk_csid, _diag_unk_count, _spi_rx_count;
@@ -289,6 +292,31 @@ _start:
      * writes the 0xF000+ config registers then CONFIG_COMMIT, which
      * applies input patch + scope gates and sets the flag below. */
 .wait_boot:
+#if DSP4_BISECT == 27
+    /* TEMP bisect rung 27 (2026-08-22) — POLL the SPI instead of waiting
+     * for the SEC to deliver its interrupt.
+     *
+     * The handler runs exactly ONCE per reset even though the RFIFO is
+     * verifiably EMPTY at init (rung 22 after the flush: RFE=1, ROR=0,
+     * RUWM=0) and the SPI2_STAT route is correct (SEC0_SCTL71 = 0x5).
+     * That splits into two candidates: the SPI block never re-raises, or
+     * the SEC never re-delivers. Polling SPI_STAT.RFE and calling the
+     * SAME handler answers it — if the link round-trips when polled, the
+     * SPI side is sound and the fault is in interrupt delivery.
+     *
+     * This is a diagnostic, not a design change: the parameter link is
+     * meant to be interrupt-driven so it cannot steal cycles from the
+     * audio block loop. */
+.poll_spi:
+    r0 = dm(0x31030040);          /* SPI2_STAT */
+    r1 = 0x00400000;              /* RFE, bit 22: 1 = RFIFO empty */
+    r0 = r0 and r1;
+    r1 = 0;
+    comp(r0, r1);
+    if ne jump (pc, .poll_spi);   /* empty — nothing to collect */
+    call _spi2_rx_work;
+    jump (pc, .poll_spi);
+#endif
     r0 = dm(_boot_config_received);
     r1 = 0;
     comp(r0, r1);

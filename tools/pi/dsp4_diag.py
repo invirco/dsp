@@ -133,11 +133,35 @@ class DiagLink:
         return echo, value
 
     def read(self, addr):
-        """Read one diagnostic register, verifying the echoed request."""
+        """Read one diagnostic register, verifying the echoed request.
+
+        The collect transaction repeats the SAME read rather than sending
+        a DIAG_NOP. The DSP queues its two-word answer for the master's
+        NEXT transaction, and on the bench (2026-08-22) a run of
+        back-to-back real reads pipelines perfectly - each transaction
+        carries the previous request's echo and value - while inserting a
+        NOP to collect slips the stream by one word, because a NOP queues
+        no answer and the 2-deep SPI_TFIFO is left holding a partial pair.
+        Asking twice costs one extra transaction and keeps the FIFO
+        always carrying whole pairs. The second ask leaves one answer
+        outstanding, which the next read's first transaction discards.
+        """
         want = frame(addr, 0, read=True)
         want0 = int.from_bytes(want[0:4], 'big')
-        self._fetch(addr, next_read=True)          # ask
-        echo, value = self._fetch()                # collect
+        self._fetch(addr, next_read=True)          # ask; collects stale
+        echo, value = self._fetch(addr, next_read=True)   # ask again; collect
+        # Bounded self-resync. WORKAROUND, not a fix: a transaction that
+        # produces NO response - a register write, or DIAG_NOP - still
+        # clocks two words out of the 2-deep SPI_TFIFO, so mixing writes
+        # and reads slips the stream by one word and every later echo is
+        # a value. The real fix is on the DSP side: make every accepted
+        # transaction queue exactly one two-word answer (a write echoing
+        # its request with value 0), so the stream is aligned by
+        # construction. Until then, re-ask until the echo matches.
+        for _ in range(3):
+            if echo == want0:
+                return value
+            echo, value = self._fetch(addr, next_read=True)
         if echo != want0:
             raise IOError(
                 f'response out of step reading 0x{addr:04X}: '
@@ -299,7 +323,13 @@ def main():
     args = ap.parse_args()
 
     if args.cs_gpio is None:
-        args.cs_gpio = 6 if args.chip == 1 else 7
+        # CS1 -> GPIO6, CS2 -> GPIO24. NOT GPIO7: that was wrong
+        # from the start and is why chip 2 answered all-zero on
+        # MISO while chip 1 worked - the tool was asserting a chip
+        # select DSPB does not listen on. dsp4_boot.py has had the
+        # right map all along (CS_GPIO = {1: 6, 2: 24}); these two
+        # tools disagreed with it.
+        args.cs_gpio = 6 if args.chip == 1 else 24
 
     link = SpiLink(args.dev, args.speed, args.cs_gpio,
                    rdy_gpio=args.rdy_gpio,

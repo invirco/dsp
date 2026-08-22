@@ -146,7 +146,24 @@ _sec_isr:
     push sts;
 
     r0 = dm(REG_SEC0_CSID0);      /* active source id */
+    dm(REG_SEC0_CSID0) = r0;      /* ACK: see below */
     dm(_sec_active_csid) = r0;    /* survives the handlers; see above */
+
+    /* The write-back on the line above is step 2 of the SEC handshake and
+     * it is NOT optional (HRM ch.6, "Core/SEC Handshake Requirements"):
+     *   1. read SEC_CSID[n] for the source id
+     *   2. WRITE IT BACK to SEC_CSID[n] - this is the acknowledge that
+     *      tells the SEC the core has accepted the request
+     *   3. run the handler
+     *   4. write the same id to SEC_END when the ISR is done
+     * Without step 2 "the SEC knows what it passed to the core because of
+     * the write to the SEC_CSID[n] register" never happens, so it never
+     * arbitrates another request: the core is delivered EXACTLY ONE SECI
+     * per reset. Bench 2026-08-22: ~21 host transactions gave SEC_COUNT=1
+     * and SPI_RX_COUNT=1, while polling the very same handler from the
+     * main loop (bisect rung 27) ran it repeatedly and round-tripped
+     * DIAG_MAGIC, CHIP_ID and BUILD_ID correctly - which is what proved
+     * the fault was delivery, not the SPI block or the handler. */
 
     r2 = dm(_diag_sec_count);
     r2 = r2 + 1;

@@ -133,8 +133,8 @@ static inline uint32_t l1_to_sys(uint32_t a)
 #ifndef DSP4_BISECT
 #define DSP4_BISECT 1
 #endif
-#if DSP4_BISECT < 0 || DSP4_BISECT > 26
-#error "DSP4_BISECT must be 0 (production), 1, 2, 3 (variants), 4 (entry park), 5 (_start park), 6..10 (main.asm pre-init parks; 10 also cuts sru_config.c short at the DAI0/DAI1 boundary) 11 (no park at all, LED mirror on PB_05 only) 13..15 (inside arm_region, first lane) 16 (a mark per lane, does not stop) 17 (rung 1 with interrupts off before arming) 18..20 (after sec_init, after spi2_init, after enable_region) 21 (main.asm, at the host handshake) 22 (dump the SPI2 + pin-mux registers) 23/24/25 (main.asm: the SEC/SPI counters at the handshake; 24 masks SECI, 25 masks everything, 26 gives TMZLI an RTI-only vector)"
+#if DSP4_BISECT < 0 || DSP4_BISECT > 27
+#error "DSP4_BISECT must be 0 (production), 1, 2, 3 (variants), 4 (entry park), 5 (_start park), 6..10 (main.asm pre-init parks; 10 also cuts sru_config.c short at the DAI0/DAI1 boundary) 11 (no park at all, LED mirror on PB_05 only) 13..15 (inside arm_region, first lane) 16 (a mark per lane, does not stop) 17 (rung 1 with interrupts off before arming) 18..20 (after sec_init, after spi2_init, after enable_region) 21 (main.asm, at the host handshake) 22 (dump the SPI2 + pin-mux registers) 23/24/25 (main.asm: the SEC/SPI counters at the handshake; 24 masks SECI, 25 masks everything, 26 gives TMZLI an RTI-only vector, 27 polls the SPI instead of using the SEC)"
 #endif
 
 #define REG32(addr) (*(volatile uint32_t *)(addr))
@@ -434,6 +434,30 @@ static void spi2_init(void)
     REG32(REG_PORTA_FER_SET) = (1u << 0) | (1u << 1) | (1u << 4) | (1u << 5);
     REG32(REG_PORTB_FER_SET) = (1u << 5);
 
+    /* ---- DISABLE FIRST, to flush whatever boot left in the RFIFO ----
+     *
+     * The SPI target boot kernel drives this same SPI2, and it hands over
+     * with the block still ENABLED. There is no RFIFO flush bit on this
+     * part: "the receive FIFO is reset (cleared) when the SPI is disabled
+     * after being enabled" (HRM 15, SPI_RFIFO). So unless the firmware
+     * takes EN low at least once, SPI2 starts life holding whatever the
+     * tail of the boot stream left in a 2-deep FIFO.
+     *
+     * That is what the bench saw on 2026-08-22: on a FRESH boot, before
+     * the host had sent a single parameter transaction, SPI2_RDY already
+     * read LOW — i.e. deasserted, "not ready" — with ROR, TUR and FCS set
+     * and RUWM asserted. A full FIFO from the word go also explains the
+     * handler running exactly ONCE: RUWM latches, the handler drains two
+     * words, but the level never reaches the RRWM=empty deassertion
+     * condition, so SPI_ILAT.RUWM never releases and the SEC never sees
+     * another edge.
+     *
+     * Errors are cleared explicitly too (W1C) so a later ROR means a NEW
+     * overrun rather than the boot residue. */
+    REG32(REG_SPI2_CTL) = 0u;                    /* EN low: resets RFIFO */
+    REG32(REG_SPI2_STAT) = BITM_SPI_STAT_ROR | BITM_SPI_STAT_TUR;
+    REG32(REG_SPI2_ILAT_CLR) = BITM_SPI_ILAT_RUWM;
+
     REG32(REG_SPI2_RXCTL) = BITM_SPI_RXCTL_REN | ENUM_SPI_RXCTL_UWM_FULL |
                             ENUM_SPI_RXCTL_RWM_0;
     REG32(REG_SPI2_TXCTL) = BITM_SPI_TXCTL_TEN;
@@ -442,6 +466,12 @@ static void spi2_init(void)
                           BITM_SPI_CTL_EMISO |
                           BITM_SPI_CTL_FCEN | BITM_SPI_CTL_FCPL |
                           ENUM_SPI_CTL_FIFO1;   /* FCWM: RFIFO >= 75% */
+
+    /* The transmit path is PROVEN (2026-08-22): priming SPI_TFIFO with a
+     * sentinel made MISO return that sentinel instead of the constant
+     * 0x697EBB71, which identified the old constant as nothing more than
+     * an unloaded shift register. The priming is removed again because it
+     * puts every read response one transaction out of step. */
 }
 
 #pragma linkage_name _dma_cfg_init

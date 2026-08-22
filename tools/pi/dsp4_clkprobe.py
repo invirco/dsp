@@ -260,6 +260,17 @@ def report_spi2(words, names):
     if 'SPI2_CTL' in v:
         print(f"  SPI2_CTL   word size: "
               f"{SPI2_SIZE[(v['SPI2_CTL'] >> 9) & 3]}")
+    if 'SPI2_STAT' in v:
+        st = v['SPI2_STAT']
+        lvl = {0: 'empty', 1: '25% full', 2: '50% full', 3: '75% full',
+               4: 'FULL'}
+        # RFS = bits 14:12, RFE = 22, FCS = 20, ROR = 4, TUR = 5, RUWM = 1
+        print(f"  SPI2_STAT  RFIFO level: {lvl.get((st >> 12) & 7, '?')}"
+              f"; RFE(empty)={int(bool(st & (1 << 22)))}"
+              f"; FCS(stalled)={int(bool(st & (1 << 20)))}"
+              f"; ROR={int(bool(st & (1 << 4)))}"
+              f"; TUR={int(bool(st & (1 << 5)))}"
+              f"; RUWM={int(bool(st & (1 << 1)))}")
     if 'PORTA_FER' in v:
         on = [f'PA_{p:02d} {n}' for p, n in sorted(SPI2_PINS_A.items())
               if v['PORTA_FER'] & (1 << p)]

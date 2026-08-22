@@ -26,7 +26,7 @@ bitstream must be restored on the CPLD before ending; single trunk; no AI
 attribution. Rung 3 (real ADC/DAC via J41/J42, codec) is PW-hands and NOT
 part of this dispatch.
 
-## HUB DISPATCH 2026-08-22 19:05Z — SPI PARAMETER LINK — the handler runs exactly ONCE per reset (RX FIFO above watermark / ROR / host ignores RDY)   [status: 🔴 in progress]
+## HUB DISPATCH 2026-08-22 19:05Z — SPI PARAMETER LINK — the handler runs exactly ONCE per reset (RX FIFO above watermark / ROR / host ignores RDY)   [status: 🟢 done — **the link is UP on both chips and the whole diagnostic register block now reads off a running SHARC, a first for this card.** Root cause of once-per-reset: the SEC handshake is TWO-step and `_sec_isr` only did steps 1 and 4 — it never wrote `SEC_CSID0` back to acknowledge, so the SEC never arbitrated another request. One line took SEC_COUNT from 1 to 94. Proved by bisect rung 27, which polls the SAME handler and round-tripped correctly while the interrupt build was stuck at one. Three more fixed: the RFIFO came out of boot FULL (no flush bit exists — `SPI_CTL.EN` must go low, HRM 15; now measured empty, ROR/RUWM clear); the handler drained an empty FIFO and dispatched the garbage (RFE guard added); and `dsp4_diag.py` asserted GPIO7 for chip 2 where `dsp4_boot.py` has always used GPIO24 — the whole reason chip 2 read all-zero. Chip 1 and chip 2 both return MAGIC 0xD5B40001 and their own CHIP_ID. STILL OPEN, precisely characterised: a write (or DIAG_NOP) queues no answer but still clocks two words out of the 2-deep TFIFO, leaving an odd word outstanding and slipping every later echo by one — so reads are solid but write-then-read-back is not. Real fix is DSP-side: make every accepted transaction queue exactly one two-word answer. Also open: SPI2_RDY never asserts even with the RFIFO empty, so dispatch task 2 as written is not actionable — a host honouring this RDY would wait forever]
 
 model: opus
 
@@ -69,6 +69,121 @@ frozen splash; ~/db Dropbox; single trunk; no AI attribution; disk is now
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
 no AI attribution in commits or any work product.
+
+### Outcome 2026-08-22 20:3xZ — 🟢 the SPI parameter link is UP on both chips
+
+**The full diagnostic register block now reads off a running SHARC.** That
+has never happened before on this card. Chip 1, production build
+(`DSP4_BISECT=0`), interrupt-driven:
+
+```
+MAGIC 0xD5B40001   CHIP_ID 1 (DSPA/U6)   BOOT_STAGE 5 (waiting for host
+config)   TICKS 74671   SEC_COUNT 38   LAST_CSID 71 (SPI2_STAT)
+SPI_RX_COUNT 48   SPI_ERR_COUNT 0   UNK_COUNT 0   RESP_DROP 0
+SPI_STAT 0x00540001   BUILD_ID 0x20260812
+```
+
+Chip 2 answers too: MAGIC `0xD5B40001`, **CHIP_ID 2**, BUILD_ID
+`0x20260812`.
+
+#### ROOT CAUSE of "the handler runs exactly ONCE" — the SEC handshake is two-step
+
+`_sec_isr` read `SEC_CSID0` and wrote `SEC_END`, but never did the step in
+between. HRM ch.6, *Core/SEC Handshake Requirements*, is explicit:
+
+1. read `SEC_CSID[n]` for the source id
+2. **write that value BACK to `SEC_CSID[n]`** — the acknowledge that tells
+   the SEC the core has accepted the request
+3. run the handler
+4. write the same id to `SEC_END`
+
+Without step 2, *"the SEC knows what it passed to the core because of the
+write to the SEC_CSID[n] register"* never happens, so it never arbitrates
+another request. **One SECI per reset, exactly as observed.** One line in
+`sport_init.asm` took SEC_COUNT from **1 to 94** over the same probe.
+
+What proved it was delivery rather than the SPI block: bisect rung 27
+polls `SPI_STAT.RFE` in the main loop and calls the SAME handler. Polled,
+the link round-tripped MAGIC, CHIP_ID and BUILD_ID perfectly while the
+interrupt-driven build was still stuck at one. Handler good, SPI good,
+delivery broken.
+
+#### Three more faults fixed on the way
+
+**The RFIFO came out of boot already full.** There is no flush bit on this
+part — *"the receive FIFO is reset (cleared) when the SPI is disabled after
+being enabled"* (HRM 15) — and the boot kernel hands over with SPI2 still
+enabled. `spi2_init()` now takes `SPI_CTL.EN` low before configuring.
+Measured before/after on a fresh boot with no host traffic at all:
+
+| | before | after |
+|---|---|---|
+| `SPI2_STAT` | `0x00144033` | `0x00540020` |
+| RFIFO level | **FULL** | **empty** (RFE=1) |
+| ROR / RUWM | set / set | **clear / clear** |
+
+**The handler drained an empty FIFO.** The SEC can deliver more events
+than there are transactions — 94 handler entries against 48 words actually
+clocked in. Reading `SPI_RFIFO` empty returns garbage, and that garbage
+was then dispatched as a request, which is why the host saw one constant
+meaningless answer. Both `spi_handler.asm` variants now check
+`SPI_STAT.RFE` before draining, the same check the polled variant used.
+
+**`dsp4_diag.py` asserted the wrong chip select for chip 2.** It defaulted
+to GPIO7; `dsp4_boot.py` has always had the right map (`CS_GPIO = {1: 6,
+2: 24}`). That is the whole of why chip 2 answered all-zero on MISO while
+chip 1 worked — the tool was selecting something DSPB does not listen on.
+Fixed in `dsp4_diag.py`.
+
+#### The transmit path was never broken
+
+Priming `SPI_TFIFO` with `0xA5A5A5A5` made MISO return `0xA5A5A5A5` for
+every transaction, which identifies the old constant `0x697EBB71` as
+nothing more than an unloaded shift register. The priming was removed
+again once it had answered the question — it puts every response one
+transaction out of step.
+
+#### STILL OPEN — a write between reads slips the word phase
+
+Reads pipeline correctly: each transaction carries the previous request's
+echo and value, exactly as `diag.asm` describes. But a transaction that
+produces NO response — a register write, or `DIAG_NOP` — still clocks two
+words out of the 2-deep `SPI_TFIFO`, leaving an ODD number of words
+outstanding. Every later echo then lands where a value should be, and it
+does not self-correct: re-asking consumes two more words and preserves the
+bad phase. A one-word (4-byte) transfer would re-align it.
+
+So `dsp4_diag.py` reads a whole register block cleanly, but the
+write-then-read-back round-trip (`--led`, and hence `dsp4_config.py`'s
+CONFIG_COMMIT path) is not yet reliable.
+
+**The real fix is DSP-side and small: make every accepted transaction
+queue exactly one two-word answer** — a write echoing its request word
+with value 0 — so the stream is aligned by construction instead of by
+convention. It touches both `spi_handler.asm` variants and the protocol
+note in `diag.asm`, and it shifts what `dsp4_config.py` sees, so it wants
+doing deliberately rather than at the end of a long session. A bounded
+re-ask is in `dsp4_diag.py` now as a WORKAROUND and is commented as one.
+
+#### Loose ends worth knowing
+
+- **`SPI2_RDY` never asserts.** On a fresh boot with the RFIFO verifiably
+  EMPTY (RFE=1, ROR=0, RUWM=0) the part still has `FCS` set and drives
+  PB_05 low. With FCPL=1 (active-high per HRM Table 15-18) and FCWM=1
+  (RFIFO ≥ 75% full), an empty FIFO should read READY. It does not, and
+  the RX-channel flow-control rule alone does not explain it. The link
+  works anyway because the host never waits on RDY. Task 2 of the dispatch
+  — "make the host honour RDY" — is therefore NOT actionable as written:
+  a host that honoured this RDY would wait forever. Left open.
+- `SPI_STAT` sticky bits after a good session are TUR and FCS only. TUR is
+  expected: TEN is set and the TFIFO is empty between responses.
+- FRAME_COUNT is 0 and DMA0_STAT reads `0x00006032` — no audio block has
+  arrived, which is expected while the LOGIC CPLD is not sourcing frame
+  syncs. Not a link fault.
+
+**Bench state:** both chips hold the production `c1_p8`/`c2_p8` images
+(all fixes, `DSP4_BISECT=0`); `matrix-app` restarted and active; all three
+MCUs verified 20:34-20:35; GPIO 6/7/8/9/10/11/12/24 returned to `a0`.
 
 ## SPI PARAMETER LINK 2026-08-22 — 🟡 two more root causes fixed, one still open
 

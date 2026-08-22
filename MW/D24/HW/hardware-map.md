@@ -311,9 +311,13 @@ analog source (NET only); the LOGIC slot map must route DSPB O1 → DA3.
   `SYS_XTAL0` (p6, correct for an oscillator source) or `xSPI_RWDS`
   (p9). D14's "free liveness probe on SYS_CLKOUT" is therefore a rev-D
   request on this card, not a technique available today. Full detail:
-  `MW/D32/DSP/dsp4-pin-audit.md`; marked up on the sheets in
-  `_Matrix/Products/D24/hw/_mods/D24 DSP mods 2026-08-22.pdf`
-  (regenerate: `MW/D24/HW/schematics/rebuild-revd-mods-markup.py`).
+  `MW/D32/DSP/dsp4-pin-audit.md`. **The source-of-truth schematic markup
+  lives in `_Matrix` ON THE HUB, not in this machine's Dropbox folder:
+  there is no sync daemon here, so `~/Stonepower Dropbox/...` is a stale
+  local copy and must not be edited or trusted as SOT.** The hub applied
+  the rev-D mod-list content to `D24 DSP mods.pdf` as proper annotations
+  (baked appearance streams + print flag) on 2026-08-22; that is the
+  mandated mechanism, not baked page content.
 
 ## 3a. S MCU (U7) pin inventory — rev D / D8 supervisor scoping
 
