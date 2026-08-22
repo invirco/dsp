@@ -1,3 +1,47 @@
+## HUB DISPATCH 2026-08-22 19:05Z — SPI PARAMETER LINK — the handler runs exactly ONCE per reset (RX FIFO above watermark / ROR / host ignores RDY)   [status: 🔴 in progress]
+
+model: opus
+
+Continue the 🟡 SPI PARAMETER LINK item above. Two root causes are fixed
+(SPI2 pins never routed; IIVT never set). Remaining: ~21 host transactions →
+`SEC_COUNT = 1`, `SPI_RX_COUNT = 1`, MISO a constant `0x697EBB71`;
+`SPI2_STAT = 0x00144033` = RUWM still asserted after the two-word drain,
+ROR + TUR + FCS set, PB_05/RDY low. Clearing `SPI2_ILAT` is in the tree and
+changed nothing — keep it, do not call it a fix. Read your own notes in the
+🟡 block first.
+
+Bench: the rev-C unit, CM4 app@192.168.1.219 (`/home/app/dspboot`: dsp4_boot.py,
+spiraw.py, dsp4_diag.py, dsp4_stagewatch.py), reachable now and 24/7. The rev-A
+show unit (.115) is hands-off — never touch it.
+
+TASK (hands-off desk + bench work, chase it to ground):
+1. WHY does the RX FIFO stay above the watermark after a two-word drain? Check
+   the 2-deep-FIFO / UWM_FULL reasoning in `spi2_init()`'s comment against the
+   HRM SPI chapter (RFIFO depth, RUWM semantics, what clears RUWM). Determine
+   whether ROR needs an explicit flush (RFIFO flush bit / status W1C) or an
+   SPI_EN off→on before the channel resumes. Prove it with a register dump
+   before/after — no inference.
+2. Make the host honour RDY: pass `--rdy-gpio 8` (or add it) to spiraw.py and
+   dsp4_diag.py so the master stops clocking a stalled slave. Re-measure the
+   21-transaction probe with RDY honoured; record SEC/RX counts + SPI2_STAT.
+3. Only then the response framing: the read path queues its answer for the
+   master's NEXT transaction. Exercise it: write a parameter, read it back on
+   the following transaction, prove the value round-trips on chip 1 then chip 2.
+4. Record the verdict in the 🟡 block (flip to 🟢 when the link round-trips);
+   if a fault is in the PCB, it is a red mod in the mods PDF — tell the hub,
+   do NOT edit the PDF from this machine (its Dropbox scope is _Matrix,
+   TransferOnly, _fx, config only; the hub owns the SOT markup).
+5. If it cannot be closed, leave a precise state note (register dumps, what
+   was tried, what is excluded) and stop.
+Constraints: chips freely bootable; ALWAYS restart matrix-app + confirm the 3
+MCUs verify before ending or between long gaps — never leave the unit on a
+frozen splash; ~/db Dropbox; single trunk; no AI attribution; disk is now
+222 GB free — do not recreate the buildroot tree.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## SPI PARAMETER LINK 2026-08-22 — 🟡 two more root causes fixed, one still open
 
 Follow-on from the P2.2 close below, working the one thing that blocked
