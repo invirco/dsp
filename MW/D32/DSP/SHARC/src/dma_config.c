@@ -101,6 +101,12 @@ static inline uint32_t l1_to_sys(uint32_t a)
  *   21 in main.asm, not this file: park at .wait_boot, so everything
  *      up to the host handshake has run. Three LONG pulses (the asm
  *      park's, not this file's short ones).
+ *   22 not a park either: reads SPI2_CTL/RXCTL/TXCTL/STAT and the
+ *      PORTA/PORTB FER and MUX registers straight after spi2_init() and
+ *      frames them onto PB_05 in clkprobe.asm's encoding, forever.
+ *      Decode with `dsp4_clkprobe.py --frame spi2`. It is how the
+ *      all-zero parameter link gets split into "the writes did not
+ *      take" versus "the pins are not on SPI2".
  *
  * HOW A PARK REPORTS (2026-08-21). Not via the LED state machine: that is
  * driven by _diag_timer_isr, so it answers a question about the interrupt
@@ -127,8 +133,8 @@ static inline uint32_t l1_to_sys(uint32_t a)
 #ifndef DSP4_BISECT
 #define DSP4_BISECT 1
 #endif
-#if DSP4_BISECT < 0 || DSP4_BISECT > 21
-#error "DSP4_BISECT must be 0 (production), 1, 2, 3 (variants), 4 (entry park), 5 (_start park), 6..10 (main.asm pre-init parks; 10 also cuts sru_config.c short at the DAI0/DAI1 boundary) 11 (no park at all, LED mirror on PB_05 only) 13..15 (inside arm_region, first lane) 16 (a mark per lane, does not stop) 17 (rung 1 with interrupts off before arming) 18..20 (after sec_init, after spi2_init, after enable_region) or 21 (main.asm, at the host handshake)"
+#if DSP4_BISECT < 0 || DSP4_BISECT > 26
+#error "DSP4_BISECT must be 0 (production), 1, 2, 3 (variants), 4 (entry park), 5 (_start park), 6..10 (main.asm pre-init parks; 10 also cuts sru_config.c short at the DAI0/DAI1 boundary) 11 (no park at all, LED mirror on PB_05 only) 13..15 (inside arm_region, first lane) 16 (a mark per lane, does not stop) 17 (rung 1 with interrupts off before arming) 18..20 (after sec_init, after spi2_init, after enable_region) 21 (main.asm, at the host handshake) 22 (dump the SPI2 + pin-mux registers) 23/24/25 (main.asm: the SEC/SPI counters at the handshake; 24 masks SECI, 25 masks everything, 26 gives TMZLI an RTI-only vector)"
 #endif
 
 #define REG32(addr) (*(volatile uint32_t *)(addr))
@@ -390,7 +396,44 @@ static void spi2_init(void)
      * All five of these registers are readable back over the diagnostic
      * block (DIAG_SPI_CTL / RXCTL / TXCTL / STAT), so the bench can
      * confirm the part actually took this configuration instead of
-     * inferring it from source. */
+     * inferring it from source — and DSP4_BISECT=22 reads them, and the
+     * pin registers below, out over PB_05 without needing the link to
+     * work at all. */
+    /* ---- PIN ROUTING (2026-08-22) ----
+     *
+     * Configuring SPI2 does not connect it to anything. Nothing in this
+     * firmware ever set PORTA_FER, PORTB_FER or either MUX, so the block
+     * came up correctly configured and wired to no pads at all: a rung-22
+     * dump off the running part read SPI2_CTL 0x0001A501 (EN, EMISO,
+     * SIZE32, FCEN, FCPL, FCWM — exactly what the writes below ask for)
+     * with PORTA_FER, PORTA_MUX, PORTB_FER and PORTB_MUX ALL ZERO. That
+     * is why every host readback came back all-zero: the part was never
+     * listening, and never drove MISO.
+     *
+     * Pin assignment from the ADSP-2156x data sheet Rev. A, Tables 10 and
+     * 11 (GPIO Multiplexing) — the pin-mux table the earlier bring-up
+     * notes recorded as missing:
+     *
+     *   PA_00  SPI2_MISO   mux function 0
+     *   PA_01  SPI2_MOSI   mux function 0
+     *   PA_04  SPI2_CLK    mux function 0
+     *   PA_05  SPI2_SEL1   mux function 0, and SPI2_SS on the INPUT TAP —
+     *          which is the one that matters here, because in slave mode
+     *          "SPI_SS acts as the slave select input" (HRM ch.15). This
+     *          is the host's CS1/CS2 arriving.
+     *   PB_05  SPI2_RDY    mux function 1
+     *
+     * Port A wants function 0 on all four, so its MUX field is already
+     * correct at reset and only FER is set. Port B's is not: MUX5 must be
+     * 1, read-modify-written so the other port B pins keep theirs.
+     *
+     * The LED (PA_12) is deliberately NOT in this list — diag.asm owns it
+     * as GPIO, which is mux-independent. */
+    REG32(REG_PORTB_MUX) = (REG32(REG_PORTB_MUX) & ~BITM_PORT_MUX_MUX5)
+                           | ((uint32_t)1u << BITP_PORT_MUX_MUX5);
+    REG32(REG_PORTA_FER_SET) = (1u << 0) | (1u << 1) | (1u << 4) | (1u << 5);
+    REG32(REG_PORTB_FER_SET) = (1u << 5);
+
     REG32(REG_SPI2_RXCTL) = BITM_SPI_RXCTL_REN | ENUM_SPI_RXCTL_UWM_FULL |
                             ENUM_SPI_RXCTL_RWM_0;
     REG32(REG_SPI2_TXCTL) = BITM_SPI_TXCTL_TEN;
@@ -474,6 +517,42 @@ static void bisect_mark(int code)
     bisect_pulses(code);
 }
 
+/*----------------------------------------------------------------------
+ * bisect_dump_word — put a 32-bit register value on PB_05.
+ *
+ * Same pulse-width framing as src/blink/clkprobe.asm, so
+ * tools/pi/dsp4_clkprobe.py decodes it unchanged: 8 units high / 4 low
+ * as a header, then 32 bits MSB first, a bit being 1 unit high (0) or 3
+ * units high (1) each followed by 1 unit low, then 6 units low.
+ *
+ * clkprobe times its units off the core timer because it is measuring
+ * the clock. Here the clock is known and only the RATIOS matter — the
+ * host derives the unit from the shortest run — so this uses the same
+ * busy loop as the parks and needs no timer, which matters because
+ * bisect_take_pin() has just shut the timer off.
+ *--------------------------------------------------------------------*/
+#define DUMP_UNIT_ITERS  (PARK_PULSE_ITERS / 4)
+
+static void bisect_dump_word(uint32_t v)
+{
+    int b;
+
+    REG32(PORTB_DATA_SET) = RDY_PIN_BIT;
+    park_delay(8u * DUMP_UNIT_ITERS);
+    REG32(PORTB_DATA_CLR) = RDY_PIN_BIT;
+    park_delay(4u * DUMP_UNIT_ITERS);
+
+    for (b = 0; b < 32; b++) {
+        REG32(PORTB_DATA_SET) = RDY_PIN_BIT;
+        park_delay((v & 0x80000000u) ? (3u * DUMP_UNIT_ITERS)
+                                     : DUMP_UNIT_ITERS);
+        REG32(PORTB_DATA_CLR) = RDY_PIN_BIT;
+        park_delay(DUMP_UNIT_ITERS);
+        v <<= 1;
+    }
+    park_delay(6u * DUMP_UNIT_ITERS);
+}
+
 static void bisect_park(int code)
 {
 
@@ -530,6 +609,42 @@ void dma_cfg_init(void)
      * the SPI2 flow-control function spi2_init() just gave it, which is
      * fine for a diagnostic build and is why 19 and 20 must never ship. */
     bisect_park(5);
+#endif
+#if DSP4_BISECT == 22
+    /* Rung 22 — the SPI2 configuration, read back off the part.
+     *
+     * The parameter link answers all-zero (tasks.md 2026-08-21), and
+     * that has two quite different causes: spi2_init()'s writes did not
+     * take, or the pins are not routed to SPI2 at all. This reads both
+     * halves out over PB_05 and settles it without needing the link
+     * that is broken.
+     *
+     * ORDER MATTERS. Every register is snapshotted BEFORE the pin is
+     * taken, because taking it clears PORTB_FER — which is one of the
+     * values in question. Reading it afterwards would report the
+     * diagnostic's own handiwork.
+     */
+    {
+        uint32_t snap[9];
+        snap[0] = 0xA5C3F00Du;              /* proves the decoder */
+        snap[1] = REG32(REG_SPI2_CTL);
+        snap[2] = REG32(REG_SPI2_RXCTL);
+        snap[3] = REG32(REG_SPI2_TXCTL);
+        snap[4] = REG32(REG_SPI2_STAT);
+        snap[5] = REG32(REG_PORTA_FER);
+        snap[6] = REG32(REG_PORTA_MUX);
+        snap[7] = REG32(REG_PORTB_FER);
+        snap[8] = REG32(REG_PORTB_MUX);
+
+        bisect_take_pin();
+        for (;;) {
+            int w;
+            for (w = 0; w < 9; w++) {
+                bisect_dump_word(snap[w]);
+            }
+            park_delay(PARK_GAP_ITERS);
+        }
+    }
 #endif
 
     /* Hand the asm side its buffer views (byte -> word inside) */

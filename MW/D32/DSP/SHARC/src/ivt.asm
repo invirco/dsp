@@ -77,7 +77,17 @@
 /* Offset 0x04C — (reserved)                          */ rti; nop; nop; nop;
 /* Offset 0x050 — RINSEQI Restricted instr. sequence  */ rti; nop; nop; nop;
 /* Offset 0x054 — CB15I   Circular buffer 15 overflow */ rti; nop; nop; nop;
+#if DSP4_BISECT == 26
+/* TEMP bisect rung 26 (2026-08-22): the TMZLI vector, but with nothing
+ * behind it. Rung 24 showed the core dies once the core timer is the
+ * only unmasked interrupt, and this splits that in two — an RTI-only
+ * vector still dying means the fault is in TAKING the interrupt (the
+ * NW-coded IVT jumping into VISA code, the status stack, MODE1); the
+ * core surviving means the fault is inside _diag_timer_isr's body. */
+/* Offset 0x058 — TMZLI   Timer=0 (low priority)      */ rti; nop; nop; nop;
+#else
 /* Offset 0x058 — TMZLI   Timer=0 (low priority)      */ jump _diag_timer_isr; nop; nop; nop;
+#endif
 /* Offset 0x05C — FIXI    Fixed-point overflow        */ rti; nop; nop; nop;
 /* Offset 0x060 — FLTOI   Float overflow              */ rti; nop; nop; nop;
 /* Offset 0x064 — FLTUI   Float underflow             */ rti; nop; nop; nop;

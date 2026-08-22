@@ -56,6 +56,18 @@
  *   - MMASK is left alone for the same reason: the ISRs here manage
  *     their own mode bits.
  *   - IRPTEN is left alone; _diag_init owns it.
+ *
+ * CMMR_SYSCTL.IIVT is NOT a divergence — it is required and was missing.
+ * It selects the INTERNAL interrupt vector table, i.e. the one this
+ * firmware assembles at 0x00090000 (src/ivt.asm). Without it the reset
+ * entry still works, because the boot kernel jumps straight to the
+ * entry address rather than vectoring, so everything looks fine right
+ * up until the first interrupt is TAKEN — at which point the core
+ * vectors somewhere else and never comes back. Bench evidence
+ * 2026-08-22: with the core timer as the only unmasked source the core
+ * died, and it died just the same with an RTI-only TMZLI vector, which
+ * is what says the fault was in taking the interrupt and not in any
+ * handler. ___lib_setup_c sets this bit for every SHARC+ part.
  *--------------------------------------------------------------------*/
 #define C_RUNTIME_INIT                                                  \
     m5  = 0;                                                            \
@@ -80,7 +92,10 @@
                    BITM_REGF_MODE1_ALUSAT | BITM_REGF_MODE1_TRUNCATE);  \
     bit set mode1 (BITM_REGF_MODE1_RND32 | BITM_REGF_MODE1_CBUFEN);     \
     nop;                                                                \
-    nop;
+    nop;                                                                \
+    r0 = dm(REG_CMMR_SYSCTL);                                           \
+    r0 = bset r0 by BITP_CMMR_SYSCTL_IIVT;                              \
+    dm(REG_CMMR_SYSCTL) = r0;
 
 /*----------------------------------------------------------------------
  * CCALL(fn) — call a C function from assembly.

@@ -62,6 +62,10 @@
 .extern _bisect_park_asm;
 #endif
 .extern _diag_boot_stage;
+#if DSP4_BISECT == 23
+.extern _bisect_dump_asm, _diag_ticks, _diag_sec_count;
+.extern _diag_unk_csid, _diag_unk_count, _spi_rx_count;
+#endif
 .extern ldf_stack_space, ldf_stack_length;
 .extern _block_ready;
 .extern _rx_active_buf, _tx_active_buf;
@@ -190,6 +194,84 @@ _start:
 
     r0 = DIAG_STAGE_WAITCFG;
     dm(_diag_boot_stage) = r0;
+
+#if DSP4_BISECT >= 23 && DSP4_BISECT <= 26
+    /* TEMP bisect rung 23 (2026-08-22) — did the SPI interrupt path ever
+     * run?
+     *
+     * With the SPI2 pins finally routed (dma_config.c spi2_init), the
+     * part drives MISO — but it drives ONE constant word forever, the
+     * same value whatever the host sends, at every clock and in either
+     * mode. That is a TX FIFO that nobody ever loads: the receive side
+     * is not being serviced. This rung waits with interrupts ON so the
+     * host can transact, then shuts everything off and frames the
+     * counters that say which link in the chain is missing —
+     * SEC route -> SEC ISR -> SPI handler.
+     *
+     * Rung 24 is the same thing with SECI masked, so only the core
+     * timer can interrupt. Rung 25 masks EVERYTHING, and is the control
+     * that has to be run first: it proves the dump instrument itself
+     * works, without which 23 and 24 going quiet prove nothing.
+     *
+     * Decode with `dsp4_clkprobe.py --frame secspi`. */
+#if DSP4_BISECT == 24 || DSP4_BISECT == 26
+    bit clr imask BITM_REGF_IMASK_SECI;
+    nop;
+    nop;
+#elif DSP4_BISECT == 25
+    r0 = 0;
+    imask = r0;
+    nop;
+    nop;
+#endif
+    /* Wait with a plain busy loop, NOT on _diag_ticks. Whether the core
+     * timer ISR runs at all is one of the things this rung is asking —
+     * waiting on its counter would deadlock on exactly the failure it
+     * is meant to report, which is what the first version of this rung
+     * did. ~450e6 iterations at 13 cycles is about 12 s at 491.52 MHz.
+     * Interrupts stay ON throughout so the host can transact. */
+    r9 = 450000000;
+.b23_wait:
+    r9 = r9 - 1;
+    if ne jump (pc, .b23_wait);
+
+    bit clr mode1 BITM_REGF_MODE1_IRPTEN;
+    bit clr mode2 BITM_REGF_MODE2_TIMEN;
+    nop;
+    nop;
+
+    /* Take PB_05 back off SPI2 flow control to report on it. */
+    r0 = 0x00000020;
+    dm(REG_PORTB_FER_CLR)  = r0;
+    dm(REG_PORTB_INEN_CLR) = r0;
+    dm(REG_PORTB_DATA_CLR) = r0;
+    dm(REG_PORTB_DIR_SET)  = r0;
+
+.b23_frame:
+    r4 = 0xA5C3F00D;              /* proves the decoder */
+    call _bisect_dump_asm;
+    r4 = dm(_diag_ticks);         /* is the core timer ISR alive? */
+    call _bisect_dump_asm;
+    r4 = dm(_diag_sec_count);     /* did the SEC ISR ever fire? */
+    call _bisect_dump_asm;
+    r4 = dm(_spi_rx_count);       /* did the SPI handler ever run? */
+    call _bisect_dump_asm;
+    r4 = dm(_diag_unk_csid);      /* a SEC source with no handler? */
+    call _bisect_dump_asm;
+    r4 = dm(_diag_unk_count);
+    call _bisect_dump_asm;
+    r4 = dm(REG_SPI2_STAT);       /* live: RUWM, TUR, RFIFO state */
+    call _bisect_dump_asm;
+    r4 = irptl;                   /* which vectors actually latched */
+    call _bisect_dump_asm;
+    r4 = dm(0x31089A38);          /* SEC0_SCTL71 = SPI2_STAT's route:
+                                   * SEC_SCTL_BASE + 71*8. Did sec_route
+                                   * actually take? */
+    call _bisect_dump_asm;
+    /* No extra gap: _bisect_dump_asm already ends every word with a
+     * 6-unit low, and the host aligns the transcript on the constant. */
+    jump (pc, .b23_frame);
+#endif
 
 #if DSP4_BISECT == 21
     /* TEMP bisect rung 21 (2026-08-21): everything before the host

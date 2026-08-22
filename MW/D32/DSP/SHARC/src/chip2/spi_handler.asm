@@ -40,6 +40,14 @@
 #define SPI2_TFIFO   0x31030058   /* SPI2 transmit FIFO */
 #define SPI2_STAT    0x31030040   /* SPI2 status */
 #define SPI2_CTL     0x31030004   /* SPI2 control */
+#define SPI2_ILAT_CLR 0x31030048  /* SPI2 masked-interrupt CLEAR (W1C) */
+
+/* The interrupt condition this handler services, and the two sticky
+ * error bits worth clearing once they have been latched into
+ * _diag_spi_stat_stk. Positions from sys/ADSP-21564.h: RUWM = 1,
+ * ROR = 4, TUR = 5. */
+#define SPI2_ILAT_RUWM  0x00000002
+#define SPI2_STAT_ERRS  0x00000030   /* ROR | TUR */
 
 /* SPI_STAT.TFS (bits 18:16) == 4 means "Empty TFIFO" (HRM Table 15-32).
  * At 32-bit word size SPI_TFIFO is only 2 words deep, which is exactly
@@ -250,6 +258,24 @@ _spi2_rx_work:
     dm(_spi_err_count) = r2;
 
 .spi_done:
+    /* Acknowledge the SPI's own interrupt condition and clear the
+     * sticky errors. ROR/TUR are write-1-to-clear and have already been
+     * ORed into _diag_spi_stat_stk at the top of this function, so the
+     * record survives while a NEW overrun stays visible instead of
+     * being hidden behind the first one.
+     *
+     * HONEST STATUS (2026-08-22): this was added to explain why the
+     * handler runs exactly ONCE per reset — ~21 host transactions gave
+     * SEC_COUNT = 1, SPI_RX_COUNT = 1, with SPI_STAT = 0x00144033
+     * (RUWM still asserted after the drain, ROR set, FCS stalling
+     * SPI2_RDY). **It did not change that**: the same measurement after
+     * this change is bit-identical. Clearing ILAT is still right — ADI's
+     * own drivers do it — but it is NOT the cause, and the once-only
+     * behaviour is still open. Do not read this comment as a fix. */
+    r2 = SPI2_ILAT_RUWM;
+    dm(SPI2_ILAT_CLR) = r2;
+    r2 = SPI2_STAT_ERRS;
+    dm(SPI2_STAT) = r2;
     rts;
 
 .spi_read:

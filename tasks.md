@@ -1,3 +1,110 @@
+## SPI PARAMETER LINK 2026-08-22 — 🟡 two more root causes fixed, one still open
+
+Follow-on from the P2.2 close below, working the one thing that blocked
+everything downstream. Two more faults of the same family as D15 —
+things `___lib_setup_c` does that this firmware never did, and things
+configured but never connected.
+
+### FIXED 1 — the SPI2 pins were never routed to the pads
+
+New instrument, `DSP4_BISECT=22`: read SPI2_CTL/RXCTL/TXCTL/STAT and the
+PORTA/PORTB FER and MUX registers off the running part and frame them
+onto PB_05 in clkprobe's encoding, so the question can be answered
+without the link that is broken. Registers are snapshotted BEFORE the
+pin is taken, because taking it clears PORTB_FER — one of the values in
+question.
+
+| register | before | after |
+|---|---|---|
+| `SPI2_CTL` | `0x0001A501` | unchanged |
+| `PORTA_FER` | **`0x00000000`** | `0x00000033` |
+| `PORTB_FER` | **`0x00000000`** | `0x00000020` |
+| `PORTB_MUX` | **`0x00000000`** | `0x00000400` |
+
+`spi2_init()`'s writes had ALWAYS taken — CTL decodes as EN, EMISO,
+SIZE32, FCEN, FCPL, FCWM, MSTR=0, exactly as written. The block was
+correctly configured **and wired to nothing**. Nothing in this firmware
+had ever set a FER or MUX bit; the only port writes it made were to
+CLEAR FER, for the LED and the RDY mirror.
+
+Pin assignment now in `spi2_init()`, from the data sheet Rev. A Tables
+10/11 — **the GPIO multiplexing table earlier notes recorded as missing;
+it is in the datasheet already in Dropbox**: PA_00 SPI2_MISO, PA_01
+SPI2_MOSI, PA_04 SPI2_CLK, PA_05 SPI2_SEL1 (with SPI2_SS on the input
+tap, which is the host's CS), all mux function 0; PB_05 SPI2_RDY, mux
+function **1**. Port A's mux is already 0 at reset so only FER is set
+there; port B's MUX5 is read-modify-written so other pins keep theirs.
+
+**Effect: the part now drives MISO.** Every readback was `0x00000000`
+before; it is real data after.
+
+### FIXED 2 — CMMR_SYSCTL.IIVT was never set, so no interrupt could be taken
+
+Found by bisecting the interrupt path with three new rungs. Rung 25
+(mask everything) was the control that proved the dump instrument
+works — it reported `IRPTL = 0x00408820`, i.e. TMZLI, TMZHI, SECI and
+CB7I all LATCHED, with `DIAG_TICKS = 0`. Rung 24 (only the core timer
+unmasked) went dead. **Rung 26 — the same thing with an RTI-only TMZLI
+vector — also went dead**, which is what says the fault was in TAKING
+the interrupt, not in any handler.
+
+`CMMR_SYSCTL.IIVT` selects the INTERNAL interrupt vector table, the one
+`src/ivt.asm` assembles at 0x00090000. Reset entry does not need it,
+because the boot kernel jumps straight to the entry address rather than
+vectoring — so everything looks healthy right up until the first
+interrupt is taken. `___lib_setup_c` sets it for every SHARC+ part; this
+firmware does not link it. It is now in `C_RUNTIME_INIT` (`src/c_abi.h`)
+with the rest of that family.
+
+**Effect, measured: `DIAG_TICKS = 0x3213` — 12819 ticks over a 12 s
+window at the 1 ms tick.** The core-timer ISR had never run before
+today. The LED fault codes work for the first time as a consequence.
+
+With SECI unmasked as well: `SEC_COUNT = 1`, `SPI_RX_COUNT = 1`, and
+`SEC0_SCTL71 = 0x5` (IEN bit 0, SEN bit 2 — both set, so the SPI2_STAT
+route is correct). The SEC ISR runs, demuxes, and the SPI handler runs.
+**The whole chain SEC route -> SEC ISR -> SPI handler is proved.**
+
+### STILL OPEN — the handler runs exactly ONCE per reset
+
+~21 host transactions produce `SEC_COUNT = 1`, `SPI_RX_COUNT = 1`, and
+MISO stuck on a constant `0x697EBB71` — the same word for every input,
+at every clock, in either SPI mode, which is a TX FIFO nobody reloads.
+`SPI2_STAT = 0x00144033` decodes as **RUWM still asserted after the
+handler drained two words, ROR (receive overrun) set, TUR set, and FCS
+(flow-control stall) set** — and PB_05/RDY reads low, i.e. the part is
+telling the host to stop, which `spiraw.py` and `dsp4_diag.py` both
+ignore because neither passes `--rdy-gpio`.
+
+Clearing `SPI2_ILAT` in the handler was the obvious candidate and is now
+in the tree (ADI's own drivers do it), but **it changed nothing** — the
+measurement after it is bit-identical. It is kept as correct-but-not-
+the-cause, and the comment in `spi_handler.asm` says so. Do not read it
+as a fix.
+
+**Next, in order.** (1) Why does the RX FIFO stay above the watermark
+after a two-word drain — is the 2-deep-FIFO/UWM_FULL reasoning in
+`spi2_init()`'s comment right, and does ROR need an explicit flush, or
+an EN off/on, before the channel resumes? (2) Have the host honour RDY
+(`--rdy-gpio 8`) so it stops overrunning a stalled slave; that may be
+half the picture. (3) Only then the response framing — the read path
+queues its answer for the master's NEXT transaction, and none of that
+has been exercised yet.
+
+### Also fixed on the way
+
+- `dsp4_config.py` requested the RDY line even when none was asked for,
+  passing `None` to gpiod — which is why `dsp4_diag.py` crashed on
+  start. It runs now.
+- `dsp4_clkprobe.py` gained `--frame spi2` / `--frame secspi` decoders, a
+  pulse-burst counter, and MAGIC alignment for every framed image (a
+  capture may start mid-transcript). Two bit tables in it were written
+  from memory and were WRONG — SPI_CTL's EMISO/FCEN/FCPL positions, and
+  SEC_SCTL's SEN/IEN — both corrected against `sys/ADSP-21564.h`.
+
+**Bench state:** production images built with all of the above; chip 1
+holds the rung-23 diagnostic image from the last measurement.
+
 ## HUB DISPATCH 2026-08-21 20:34Z — P2.2 cont'd — _sru_init hang + the ~190 vs 400 MHz CCLK suspect (nail the clock, get past SRU, reach dma_cfg_init)   [status: 🟢 done — **P2.2's wedge is closed: both chips now run the ENTIRE init sequence** — SRU, SPORTs, DMA rings, SEC, SPI2 — and park at the host handshake (bisect rung 21, chip 1 and chip 2). CCLK is **491.52 MHz**, measured off the core timer and confirmed against the CGU registers read out of the running part; the "~190 MHz" figure is RETRACTED (it divided by an assumed 5 cycles per delay-loop iteration; the real cost is 13). The CGU is left at its reset defaults by decision — they already give a fully in-spec tree from 24.576 MHz — and the firmware's own constants are corrected instead. `_sru_init` was never a clock or a peripheral fault: **main.asm was calling C with the wrong ABI**, and the four assembly helpers C calls returned with `rts`. Two real bugs fixed: the cc21k call convention (new `src/c_abi.h`, decision D15) and **IMASK/IRPTL never cleared after boot**, which killed the core as soon as eleven DMA channels were armed with the boot kernel's interrupts still live. `dma_cfg_init`, `sport_dma_base()` and `l1_to_sys()` all now have their hardware test and all pass. STILL OPEN, and it is a different subsystem: the SPI parameter link answers all-zero, so nothing downstream of the handshake is proven — that is the next item]   [model: opus]
 
 model: opus

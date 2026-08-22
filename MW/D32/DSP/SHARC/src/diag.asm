@@ -289,6 +289,57 @@ _park_delay:
     if ne jump (pc, _park_delay);
     rts;
 _bisect_park_asm.end:
+
+/*----------------------------------------------------------------------
+ * _bisect_dump_asm — TEMP (2026-08-22): put a 32-bit value on PB_05 in
+ * the same pulse-width framing src/blink/clkprobe.asm uses, so
+ * tools/pi/dsp4_clkprobe.py decodes it unchanged.
+ *
+ * The C version of this lives in dma_config.c (rung 22). This one is in
+ * assembly because the values worth reading at the host handshake are
+ * the diagnostic counters, and those are word-addressed `.var`s that C
+ * cannot reach — the same reason _diag_stage_set exists.
+ *
+ * Assumes interrupts and the core timer are already off and PB_05 is
+ * already a driven GPIO output. In: r4 = value (consumed). Clobbers
+ * r0, r1, r5, r6, r12.
+ *--------------------------------------------------------------------*/
+#define DIAG_DUMP_UNIT   750000       /* ~20 ms at 13 cycles/iteration */
+
+.global _bisect_dump_asm;
+_bisect_dump_asm:
+    r0 = DIAG_RDY_BIT;
+    dm(REG_PORTB_DATA_SET) = r0;
+    r1 = 8 * DIAG_DUMP_UNIT;
+    call _park_delay;
+    r0 = DIAG_RDY_BIT;
+    dm(REG_PORTB_DATA_CLR) = r0;
+    r1 = 4 * DIAG_DUMP_UNIT;
+    call _park_delay;
+
+    r12 = 32;
+.bd_bit:
+    r1 = DIAG_DUMP_UNIT;
+    r5 = lshift r4 by -31;        /* MSB, zero-filled */
+    r4 = lshift r4 by 1;
+    r6 = pass r5;                 /* sets AZ from the bit */
+    if eq jump (pc, .bd_drive);
+    r1 = 3 * DIAG_DUMP_UNIT;
+.bd_drive:
+    r0 = DIAG_RDY_BIT;
+    dm(REG_PORTB_DATA_SET) = r0;
+    call _park_delay;
+    r0 = DIAG_RDY_BIT;
+    dm(REG_PORTB_DATA_CLR) = r0;
+    r1 = DIAG_DUMP_UNIT;
+    call _park_delay;
+    r12 = r12 - 1;
+    if ne jump (pc, .bd_bit);
+
+    r1 = 6 * DIAG_DUMP_UNIT;
+    call _park_delay;
+    rts;
+_bisect_dump_asm.end:
 #endif
 
 .global _diag_init;

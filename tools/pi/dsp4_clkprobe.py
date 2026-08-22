@@ -45,7 +45,31 @@ FRAMES = {
     'clk': ['MAGIC', 'CGU0_CTL', 'CGU0_DIV', 'CGU0_STAT', 'CGU0_DIVEX',
             'PORTB_DATA', 'DAI0_DAT0'],
     'sru': ['DAI0_DAT0', 'DAI0_CLK0', 'DAI0_PIN0'],
+    # DSP4_BISECT=22 in dma_config.c, dumped straight after spi2_init().
+    'spi2': ['MAGIC', 'SPI2_CTL', 'SPI2_RXCTL', 'SPI2_TXCTL', 'SPI2_STAT',
+             'PORTA_FER', 'PORTA_MUX', 'PORTB_FER', 'PORTB_MUX'],
+    # DSP4_BISECT=23 in main.asm, sampled at the host handshake.
+    'secspi': ['MAGIC', 'DIAG_TICKS', 'SEC_COUNT', 'SPI_RX_COUNT',
+               'UNK_CSID', 'UNK_COUNT', 'SPI2_STAT', 'IRPTL',
+               'SEC0_SCTL71'],
 }
+
+# Bits worth naming in the spi2 frame, so a transcript reads as a verdict
+# rather than as four hex words. (register, bit position, name).
+# Bit positions from sys/ADSP-21564.h (BITP_SPI_CTL_*), not from memory.
+SPI2_BITS = {
+    'SPI2_CTL':   [(0, 'EN'), (1, 'MSTR'), (4, 'CPHA'), (5, 'CPOL'),
+                   (6, 'ASSEL'), (7, 'SELST'), (8, 'EMISO'), (13, 'FCEN'),
+                   (14, 'FCCH'), (15, 'FCPL'), (16, 'FCWM')],
+    'SPI2_RXCTL': [(0, 'REN'), (4, 'RDR')],
+    'SPI2_TXCTL': [(0, 'TEN')],
+}
+# SPI_CTL.SIZE is a 2-bit field, not a flag.
+SPI2_SIZE = {0: '8-bit', 1: '16-bit', 2: '32-bit', 3: 'reserved'}
+# Which port pins carry SPI2, per the data sheet Rev. A Tables 10 and 11.
+SPI2_PINS_A = {0: 'MISO', 1: 'MOSI', 4: 'CLK', 5: 'SEL1/SS'}
+RDY_PIN_BIT = 5      # PB_05 = SPI2_RDY
+LED_PIN_BIT = 12     # PA_12 = BLINK_LED
 
 
 def sample(pin, seconds):
@@ -223,6 +247,77 @@ def report_cgu(words, clkin_hz):
     print(f"    SCLK1   = {pll/syssel/s1sel/1e6:9.3f} MHz")
 
 
+def report_spi2(words, names):
+    """Turn the rung-22 frame into the two verdicts it exists to give."""
+    if not words or words[0] != MAGIC:
+        print("  WARNING: no MAGIC word — frame alignment is not trusted")
+        return
+    v = dict(zip(names, words))
+    for reg, bits in SPI2_BITS.items():
+        if reg in v:
+            on = [n for p, n in bits if v[reg] & (1 << p)]
+            print(f"  {reg:<10s} set: {', '.join(on) if on else '(nothing)'}")
+    if 'SPI2_CTL' in v:
+        print(f"  SPI2_CTL   word size: "
+              f"{SPI2_SIZE[(v['SPI2_CTL'] >> 9) & 3]}")
+    if 'PORTA_FER' in v:
+        on = [f'PA_{p:02d} {n}' for p, n in sorted(SPI2_PINS_A.items())
+              if v['PORTA_FER'] & (1 << p)]
+        off = [f'PA_{p:02d} {n}' for p, n in sorted(SPI2_PINS_A.items())
+               if not v['PORTA_FER'] & (1 << p)]
+        print(f"  port A SPI2 pins enabled: {', '.join(on) or 'NONE'}")
+        if off:
+            print(f"  port A SPI2 pins STILL GPIO: {', '.join(off)}")
+    if 'PORTB_FER' in v and 'PORTB_MUX' in v:
+        fer = bool(v['PORTB_FER'] & (1 << RDY_PIN_BIT))
+        mux = (v['PORTB_MUX'] >> (2 * RDY_PIN_BIT)) & 3
+        ok = fer and mux == 1
+        print(f"  PB_05 SPI2_RDY: FER={'peripheral' if fer else 'GPIO'}, "
+              f"MUX={mux} (needs 1) -> "
+              f"{'routed' if ok else 'NOT routed to the pad'}")
+
+
+def report_secspi(words, names):
+    """Say which link in SEC route -> SEC ISR -> SPI handler is missing."""
+    if not words or words[0] != MAGIC:
+        print("  WARNING: no MAGIC word — frame alignment is not trusted")
+        return
+    v = dict(zip(names, words))
+    if v.get('DIAG_TICKS', 0) == 0:
+        print("  the core timer ISR never ran — no interrupt reaches the "
+              "core at all")
+    if 'SEC0_SCTL71' in v:
+        # BITP_SEC_SCTL_IEN = 0, SEN = 2 (sys/ADSP-21564.h) — not the
+        # other way round, which an earlier version of this guessed.
+        ien = bool(v['SEC0_SCTL71'] & (1 << 0))
+        sen = bool(v['SEC0_SCTL71'] & (1 << 2))
+        print(f"  SEC0_SCTL71 (SPI2_STAT route): SEN={int(sen)} "
+              f"IEN={int(ien)} -> "
+              f"{'routed' if sen and ien else 'NOT routed'}")
+    if 'IRPTL' in v:
+        names_irptl = {0: 'EMUI', 1: 'RSTI', 3: 'PARI', 4: 'ILOPI',
+                       5: 'CB7I', 6: 'IICDI', 7: 'SOVFI', 8: 'ILADI',
+                       11: 'TMZHI', 12: 'BKPI', 13: 'FIRI', 14: 'IIRI',
+                       15: 'SECI', 20: 'RINSEQI', 21: 'CB15I',
+                       22: 'TMZLI', 23: 'FIXI'}
+        on = [n for b, n in sorted(names_irptl.items())
+              if v['IRPTL'] & (1 << b)]
+        print(f"  IRPTL latched: {', '.join(on) if on else '(nothing)'}")
+    print(f"  SEC interrupts serviced: {v.get('SEC_COUNT')}")
+    print(f"  SPI transactions handled: {v.get('SPI_RX_COUNT')}")
+    if v.get('UNK_COUNT'):
+        print(f"  SEC sources with no handler: {v['UNK_COUNT']}, "
+              f"last id {v['UNK_CSID']}")
+    if v.get('SEC_COUNT') == 0:
+        print("  VERDICT: the SEC never raised SECI — the route or the "
+              "SPI status interrupt is the missing link, not the handler")
+    elif v.get('SPI_RX_COUNT') == 0:
+        print("  VERDICT: SECI fires but never for SPI2 — check UNK_CSID")
+    else:
+        print("  VERDICT: the SPI handler ran; the fault is downstream "
+              "of it (response framing)")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -254,7 +349,10 @@ def main():
 
     unit = find_unit(runs)
     words, squares = decode(runs, unit)
-    if args.frame == 'clk':
+    # Any frame whose first word is the constant can be aligned on it,
+    # which is the whole reason the constant is there: a capture that
+    # starts mid-transcript still lines its words up with the names.
+    if names[0] == 'MAGIC':
         frames = words.count(MAGIC)
         words = align(words)[:len(names)]
     else:
@@ -268,9 +366,11 @@ def main():
 
     print(f"chip {args.chip} (GPIO{pin}): {len(runs)} edges, "
           f"tick = {unit:.2f} ms")
-    freqs = cclk_from(unit, squares)
-    for k, v in freqs.items():
-        print(f"  CCLK from {k:6s} = {v/1e6:8.3f} MHz")
+    if args.frame == 'clk':
+        # Only clkprobe times its units off the core timer; deriving a
+        # clock from any other frame's unit is meaningless.
+        for k, v in cclk_from(unit, squares).items():
+            print(f"  CCLK from {k:6s} = {v/1e6:8.3f} MHz")
 
     print(f"  1-tick pulse bursts: {bursts(runs, unit)}")
     if args.rle:
@@ -290,6 +390,10 @@ def main():
         if words and words[0] != MAGIC:
             print("  WARNING: no MAGIC word — frame alignment is not trusted")
         report_cgu(words, args.clkin)
+    if args.frame == 'spi2':
+        report_spi2(words, names)
+    if args.frame == 'secspi':
+        report_secspi(words, names)
     if len(words) < len(names):
         missing = names[len(words):]
         print(f"  DID NOT RETURN: {', '.join(missing)} — the read of "

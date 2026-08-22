@@ -511,6 +511,27 @@ to own.
    enabled killed the core, and the same code with interrupts off ran
    clean. `___lib_setup_c` clears both for exactly this reason.
 
+4. **CMMR_SYSCTL.IIVT must be set at reset.** It selects the internal
+   interrupt vector table — the one `src/ivt.asm` assembles at
+   0x00090000. Reset entry does not need it, because the boot kernel
+   jumps straight to the entry address rather than vectoring, so a
+   firmware that never takes an interrupt looks perfectly healthy
+   without it. The first interrupt TAKEN goes somewhere else and never
+   returns. Bench evidence 2026-08-22: with the core timer as the only
+   unmasked source the core died, and it died identically with an
+   RTI-only TMZLI vector, which is what separates "taking the
+   interrupt" from "running the handler". `___lib_setup_c` sets it for
+   every SHARC+ part. With it set, `DIAG_TICKS` climbs for the first
+   time and the SEC/SPI interrupt path runs.
+
+**The pattern these four share** is worth naming, because it will
+generate more of them: everything CCES's CRT does that this firmware
+skipped is invisible until the exact feature it enables is first used,
+and each one presented as a fault in a completely different subsystem —
+a dead SRU, a dead DMA channel, a dead SPI link. When a subsystem looks
+dead on this part, check what `set_c.asm` does about it BEFORE
+suspecting the peripheral.
+
 **Why this is recorded as a decision.** The alternative is to adopt the
 CCES CRT, which would give all of the above for free — and is explicitly
 NOT chosen: the CRT drags in heap setup, the dispatched-interrupt tables
