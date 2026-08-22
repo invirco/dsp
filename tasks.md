@@ -2,7 +2,20 @@
 
 model: opus
 
-Rung 0 — WORD-PHASE FIX FIRST (your own finding, 20:3xZ outcome): make every
+**HUB STEER 2026-08-22 22:05Z — rung 0 PARKED, pipeline continues.** Reads
+work and the bounded re-ask workaround in dsp4_diag.py covers writes, so
+rung 0 is a protocol nicety, not a gate. Do NOT retry it now. Proceed:
+(a) `dsp4_config.py` end to end to BOOT_STAGE 6 on both chips USING the
+re-ask workaround, verifying every CONFIG_COMMIT write by re-read; if a
+write provably does not land even with re-ask, that and only that reopens
+rung 0. (b) Rung 1, then rung 2, then chain into the queued blocks. Rung 0
+becomes a separate item — "SPI answer-every-transaction" — to be tried at a
+quiet point with a 1-hour time-box, in your own suspect order (TFIFO
+occupancy on a verified build first, then inline the queue to drop the
+nesting depth, then the r0 preservation in `_diag_read`). Rebuild-and-md5
+before every dump reading — keep that rule.
+
+Rung 0 — WORD-PHASE FIX FIRST (PARKED — see steer) (your own finding, 20:3xZ outcome): make every
 accepted transaction queue exactly one two-word answer — a write echoes its
 request word with value 0 — in BOTH `spi_handler.asm` variants + the protocol
 note in `diag.asm`; update `dsp4_diag.py`/`dsp4_config.py` to expect it and
