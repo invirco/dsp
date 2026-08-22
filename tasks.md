@@ -1,3 +1,31 @@
+## QUEUED DISPATCH (fire when the SPI link round-trips) — EARLY AUDIO: CPLD loopback bitstream + Pi capture path (no analog boards, no hands)   [status: 🔴 queued]
+
+model: opus
+
+Rung 1 — CPLD FEEDBACK LOOP (tasks item 5, PW 2026-08-20). Non-shipping,
+STA-gated, hash-named LOGIC build: `i_dspa[k] = o_dspb[k]` for k=0..7 (and
+`ni[k] = no[k]`), everything else identical to the shipping bitstream.
+Firmware: counter-pattern generator per lane on DSPB, checker per lane/slot on
+DSPA, verdicts via the 0xE000 diag readback. Closes without a scope: BCKI/FSI
+pair order, CKRE/MFD, within-TDM8 slot order, NI/NO crossed-index vs
+slot-map.csv. Record each fact in hardware-map.md as VERIFIED with the build
+hash + date; retire the PROVISIONAL tags.
+
+Rung 2 — PI CAPTURE PATH. `pcm_din` (LOGIC -> Pi) is tied off in
+dsp4_pcm_reframe.v. In the SAME loopback build, de-frame one DSPB output
+lane/slot pair to I2S on pcm_din (document which). Then on the CM4:
+`aplay` a known file -> DSPA I6 via the reframer, `arecord` the return;
+Pi -> DSPA -> fabric -> DSPB -> Pi becomes a software-scorable loop. Reuse
+the net repo's long-soak scorer (torn/gaps/dups/silence) — do not write a new
+one. Deliver: one 10-minute clean pass on chip 1 + chip 2, then leave a
+≥12 h soak running with the verdict log path in this block.
+
+Rules as the block above: bench = rev-C CM4 app@192.168.1.219; rev A
+hands-off; always leave matrix-app running + 3 MCUs verified; the SHIPPING
+bitstream must be restored on the CPLD before ending; single trunk; no AI
+attribution. Rung 3 (real ADC/DAC via J41/J42, codec) is PW-hands and NOT
+part of this dispatch.
+
 ## HUB DISPATCH 2026-08-22 19:05Z — SPI PARAMETER LINK — the handler runs exactly ONCE per reset (RX FIFO above watermark / ROR / host ignores RDY)   [status: 🔴 in progress]
 
 model: opus
