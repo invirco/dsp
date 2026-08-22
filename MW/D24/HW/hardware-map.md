@@ -296,6 +296,22 @@ analog source (NET only); the LOGIC slot map must route DSPB O1 → DA3.
   ports on those hierarchy blocks — they reach neither each other, nor
   the CPLD's TAP chain, nor any header. `SYS_RESOUT` (p107) and
   `SYS_FAULT` (p102) are likewise N/C. `SYS_HWRST` is p104, net `RST`.
+  **Floating JTAG is electrically SAFE (pin audit 2026-08-22):**
+  `JTG_TRST` carries an internal pull-down present both during and after
+  reset, so the TAP is held in reset; TCK/TDI/TMS have internal pull-ups.
+  The only cost is the missing emulator. **`SYS_FAULT` is the one place
+  the board contradicts a stated data sheet requirement** — Table 13 says
+  "external pull-up required to keep signal in deasserted state".
+- **DSP boot straps, read off both sheets 2026-08-22:** `SYS_BMODE0`
+  (p105) → GND, `SYS_BMODE1` (p106) → VDD_EXT, `SYS_BMODE2` (p82) → GND,
+  i.e. `BMODE[2:0] = 0b010` = SPI2 slave/target boot, matching D14 and
+  `dsp4_boot.py`. All three explicitly strapped, so the two the data
+  sheet says must not float do not.
+- **`SYS_CLKOUT` (p10) is NOT brought out** on either sheet, nor is
+  `SYS_XTAL0` (p6, correct for an oscillator source) or `xSPI_RWDS`
+  (p9). D14's "free liveness probe on SYS_CLKOUT" is therefore a rev-D
+  request on this card, not a technique available today. Full detail:
+  `MW/D32/DSP/dsp4-pin-audit.md`.
 
 ## 3a. S MCU (U7) pin inventory — rev D / D8 supervisor scoping
 

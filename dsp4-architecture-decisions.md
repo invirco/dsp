@@ -131,6 +131,15 @@ Hardware ground truth: [MW/D24/HW/hardware-map.md](MW/D24/HW/hardware-map.md)
   needing 96 kHz forces either the FPGA entry tier (7020-class) or a
   deliberate DSP4-at-96k exception recorded here.
 
+**Supporting evidence added 2026-08-22 (pin audit).** The 32 ch / 48 kHz
+line is not only an engineering preference — it is where the part's
+external SPORT clock runs out. Data sheet Rev. A Table 14 caps
+`fSPTCLKEXT` at **31.25 MHz when transmitting data or frame sync** (and
+at fSCLK0, which is 61.44 MHz on this clock tree). At 48 kHz a TDM16
+lane needs 24.576 MHz BCK and passes with 27 % headroom; at 96 kHz it
+needs 49.152 MHz and exceeds the limit outright. See
+`MW/D32/DSP/dsp4-pin-audit.md`.
+
 ## D7 — Fabric-only FPGA baseline; per-tier hybrid FX (SHARC sidecar)
 
 - Decided 2026-08-04 (scope amendment text in
