@@ -815,6 +815,13 @@ harness: target ≡ fixed_ref (bit-exact), fixed_ref ≈ float64 (tolerances).
    that fails is a firmware bug or a spec [REVIEW] to resolve — report it,
    do not loosen the tolerance.
 5. Leave the pass-through loop soaking when you stop.
+   **HUB RULING 2026-08-23 14:30Z on the bitstream conflict: while THIS block
+   runs, the loopback-capture bitstream stays on the CPLD (the soak needs it;
+   the bench is 24/7 and nobody else is on the unit). The standing rule
+   "restore SHIPPING before ending" applies at the END of this block, before
+   any hand-off to PW, or the moment PW says the unit is needed — the hub
+   will say so. Record the currently-flashed bitstream hash in the block
+   status at every stop so the state is never ambiguous.**
 
 Rules as above. This is the item PW most wants to see results from; write
 the results table so it reads at a glance.
