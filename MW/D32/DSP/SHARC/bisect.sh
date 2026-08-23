@@ -1,0 +1,63 @@
+#!/bin/bash
+# bisect.sh — build/flash/measure one bisect point with a pass RATE.
+#
+# Two rules this enforces, both learned the hard way on 2026-08-23:
+#
+#  1. A build flag is not trusted until it is seen in the RUNNING image.
+#     _build_flags (main.asm) encodes every bisect define; the harness
+#     peeks it off the part and aborts if it does not match what was
+#     asked for. Four DSP4_STUB_* defines once silently failed to reach
+#     easm21k and a day of results were all one identical image.
+#
+#  2. A single alive/dead call is not a measurement. Every point gets N
+#     repeats and a pass rate. NODE_LIMIT 5 vs 6 looked decisive on one
+#     run each and did not reproduce in either direction.
+#
+# usage:  [FLAG=val ...] ./bisect.sh <repeats>
+set -u
+REPEATS="${1:-3}"
+cd "$(dirname "$0")"
+BENCH=app@192.168.1.219
+
+DSP4_BLOCK_MASK="${DSP4_BLOCK_MASK:-7}"
+DSP4_NODE_LIMIT="${DSP4_NODE_LIMIT:-0}"
+DSP4_COMMIT_STAGE="${DSP4_COMMIT_STAGE:-2}"
+DSP4_NO_IDLE_OVERRIDE="${DSP4_NO_IDLE_OVERRIDE:-0}"
+DSP4_STUB_COMPGAIN="${DSP4_STUB_COMPGAIN:-0}"
+DSP4_STUB_EXP2="${DSP4_STUB_EXP2:-0}"
+DSP4_STUB_LOG2="${DSP4_STUB_LOG2:-0}"
+DSP4_STUB_POLY="${DSP4_STUB_POLY:-0}"
+DSP4_COMP_NOCVT="${DSP4_COMP_NOCVT:-0}"
+DSP4_BLOCK_DECIMATE="${DSP4_BLOCK_DECIMATE:-1}"
+export DSP4_BLOCK_MASK DSP4_NODE_LIMIT DSP4_COMMIT_STAGE DSP4_NO_IDLE_OVERRIDE \
+       DSP4_STUB_COMPGAIN DSP4_STUB_EXP2 DSP4_STUB_LOG2 DSP4_STUB_POLY DSP4_COMP_NOCVT DSP4_BLOCK_DECIMATE
+
+EXPECT=$(( (DSP4_BLOCK_MASK & 0xF) \
+        | ((DSP4_NODE_LIMIT & 0xFFF) << 4) \
+        | ((DSP4_COMMIT_STAGE & 0x3) << 16) \
+        | ((DSP4_NO_IDLE_OVERRIDE & 1) << 18) \
+        | ((DSP4_STUB_COMPGAIN & 7) << 19) \
+        | ((DSP4_STUB_EXP2 & 1) << 22) \
+        | ((DSP4_STUB_LOG2 & 1) << 23) \
+        | ((DSP4_STUB_POLY & 1) << 24) \
+        | ((DSP4_COMP_NOCVT & 1) << 25) \
+        | ((DSP4_BLOCK_DECIMATE & 0x3F) << 26) ))
+
+DSP4_BISECT=0 ./build.sh > /tmp/bisect_build.log 2>&1
+if [ "$(grep -ciE '\[Error|Build FAILED' /tmp/bisect_build.log)" -ne 0 ]; then
+    echo "BUILD FAILED"; grep -iE '\[Error|error:' /tmp/bisect_build.log | head -5; exit 2
+fi
+MD5=$(md5sum build/chip1.ldr | cut -c1-12)
+ADDR=$(python3 -c "
+import re,sys
+s=open('build/chip1.map.xml',errors='ignore').read()
+m=re.search(r\"build_flags' address='(0x[0-9a-fA-F]+)'\", s)
+print(m.group(1) if m else '')")
+[ -z "$ADDR" ] && { echo "no _build_flags symbol in map"; exit 2; }
+
+scp -q build/chip1.ldr build/chip2.ldr $BENCH:/home/app/dspboot/
+printf 'mask=%d limit=%d commit=%d noidle=%d stub_cg=%d nocvt=%d  md5=%s  stamp@%s expect=0x%08X\n' \
+  "$DSP4_BLOCK_MASK" "$DSP4_NODE_LIMIT" "$DSP4_COMMIT_STAGE" "$DSP4_NO_IDLE_OVERRIDE" \
+  "$DSP4_STUB_COMPGAIN" "$DSP4_COMP_NOCVT" "$MD5" "$ADDR" "$EXPECT"
+
+ssh $BENCH "bash /home/app/bisect_run.sh $REPEATS $ADDR $EXPECT"

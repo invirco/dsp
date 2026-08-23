@@ -45,9 +45,31 @@
 /* Boot config received flag (set by product_config.asm CONFIG_COMMIT) */
 .global _boot_config_received;
 .var _boot_config_received = 0;
+
+/* Build-flag stamp, carried INTO the image and readable off the running
+ * part. A bisect is only as good as the guarantee that the flag it names
+ * actually reached the assembler; on 2026-08-23 four DSP4_STUB_* defines
+ * silently did not, because a build.sh string replace matched nothing,
+ * and a whole day of stub results turned out to be one identical image.
+ * Peek this and compare against what was asked for -- that closes the
+ * loop through the assembler, the linker, the loader and the boot. */
+.global _build_flags;
+.var _build_flags =
+      (DSP4_BLOCK_MASK        & 0xF)
+    | ((DSP4_NODE_LIMIT       & 0xFFF) << 4)
+    | ((DSP4_COMMIT_STAGE     & 0x3)   << 16)
+    | ((DSP4_NO_IDLE_OVERRIDE & 0x1)   << 18)
+    | ((DSP4_STUB_COMPGAIN    & 0x7)   << 19)
+    | ((DSP4_STUB_EXP2        & 0x1)   << 22)
+    | ((DSP4_STUB_LOG2        & 0x1)   << 23)
+    | ((DSP4_STUB_POLY        & 0x1)   << 24)
+    | ((DSP4_COMP_NOCVT       & 0x1)   << 25)
+    | ((DSP4_BLOCK_DECIMATE   & 0x3F)  << 26);
 /* Non-zero while _spi_poll is running, so the 1 kHz tick cannot re-enter
  * a drain the main loop is already half way through. */
 .var _spi_poll_busy = 0;
+/* Block decimation counter — see DSP4_BLOCK_DECIMATE in the main loop. */
+.var _blk_decim = 0;
 
 /* Sample index within current block (0..31) */
 .global _sample_idx;
@@ -553,6 +575,27 @@ _start:
     /* Clear block-ready flag */
     r0 = 0;
     dm(_block_ready) = r0;
+
+#if DSP4_BLOCK_DECIMATE > 1
+    /* Process only every Nth block, to buy the node graph N times the
+     * per-block cycle budget without changing WHAT it computes. This
+     * separates "a node is broken" from "the graph does not fit in a
+     * block period" -- the two look identical from outside, because a
+     * main loop that never finishes a block never services the link
+     * either. Audio is wrong while this is on; it is a measurement, not
+     * a mode. */
+    r0 = dm(_blk_decim);
+    r0 = r0 + 1;
+    r1 = DSP4_BLOCK_DECIMATE;
+    comp(r0, r1);
+    if lt jump (pc, .decim_skip);
+    r0 = 0;
+.decim_skip:
+    dm(_blk_decim) = r0;
+    r1 = 0;
+    comp(r0, r1);
+    if ne jump (pc, .main_loop);
+#endif
 
     /* Audio is flowing: the LED switches from fault codes to a steady
      * 1 Hz square. Restamped every block so a stall that leaves the
