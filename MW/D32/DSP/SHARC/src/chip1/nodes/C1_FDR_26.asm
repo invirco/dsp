@@ -104,13 +104,21 @@
             f3 = f1 * f2;
             r2 = fix f3;
             dm(_fdr_gq_C1_FDR_26) = r2;
-/* L/R pan gains (linear pan law, matches float node) */
+/* L/R pan gains (linear pan law, matches float node).
+ *
+ * PAN GAIN ONLY -- do NOT fold `comp` in here. The sample path
+ * below multiplies the ALREADY-POST-FADER mono by these, so
+ * including comp applied the fader twice and the bus feed came
+ * out as x * level^2 * (1-pan). It is invisible at unity, which
+ * is how it shipped: bench 2026-08-23 measured the main bus
+ * 6.02 dB low at level 0.5 and 12.04 dB low at level 0.25, and
+ * exact at level 1.0. The float node this was ported from does
+ * `f1 = f14 * f7` with f7 = 1 - pan and no comp -- the squaring
+ * was introduced by the fixed-point port, not inherited. */
 r2 = 0x3F800000;
 f2 = r2;
 f5 = dm(_fdr_pan_C1_FDR_26);
-f6 = f2 - f5;                     /* 1 - pan */
-f6 = f6 * f1;                     /* L = comp * (1-pan) */
-f5 = f5 * f1;                     /* R = comp * pan */
+f6 = f2 - f5;                     /* L gain = 1 - pan */
 r2 = 0x4D800000;
 f7 = r2;
 f6 = f6 * f7;

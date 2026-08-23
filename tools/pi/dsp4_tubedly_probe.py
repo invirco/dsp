@@ -29,7 +29,7 @@ def f32(x):
     return struct.unpack('<I', struct.pack('<f', float(x)))[0]
 
 
-def wrv(sc, addr, val, tries=12, ramp_id=0, settle=0.0):
+def wrv(sc, addr, val, tries=4, ramp_id=0, settle=0.0, polls=12):
     """Write and confirm by read-back.
 
     RAMP_ID MATTERS AND IS THE HOST'S JOB. The DSP has no per-address
@@ -46,11 +46,18 @@ def wrv(sc, addr, val, tries=12, ramp_id=0, settle=0.0):
     for _ in range(tries):
         sc.d.link.write(addr, val, ramp_id)
         time.sleep(S.SETTLE + settle)
-        try:
-            if sc.rd(addr) == val:
-                return
-        except IOError:
-            pass
+        # A RAMPED write must NOT be retried blindly: re-writing the target
+        # restarts the ramp, so a parameter that ramps at BLOCK rate never
+        # arrives. FDR takes ~128 blocks (~85 ms) and failed to verify for
+        # exactly this reason, while TUBE (which ramps per SAMPLE, ~2.7 ms)
+        # survived the same loop. Poll the read-back without re-writing.
+        for _ in range(polls if ramp_id else 1):
+            try:
+                if sc.rd(addr) == val:
+                    return
+            except IOError:
+                pass
+            time.sleep(0.03)
     raise IOError('SPI 0x%04X would not take 0x%08X (ramp_id=%d)'
                   % (addr, val, ramp_id))
 
