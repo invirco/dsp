@@ -278,6 +278,14 @@ static void bisect_mark(int code);   /* same, but RETURNS — rung 16 */
 extern void dbg_set_dscptr(uint32_t addr, uint32_t word0);
 static int dbg_dscptr_done = 0;
 
+#ifndef DSP4_RX0_L2
+#define DSP4_RX0_L2 0
+#endif
+#if DSP4_RX0_L2
+#pragma section("seg_delay")
+static volatile uint32_t l2_rx_probe[256];
+#endif
+
 static void arm_region(const int *lanes, int count, int dir,
                        unsigned int *ping, unsigned int *pong,
                        volatile uint32_t desc[][2][5])
@@ -310,6 +318,21 @@ static void arm_region(const int *lanes, int count, int dir,
         }
 
 #if DSP4_DMA_AUTOBUF
+#if DSP4_RX0_L2
+        /* Experiment: put the block-clock lane's destination in L2
+         * instead of the L1 alias. L2 (0x20000000..) is already a system
+         * address, so the DDE needs no translation to reach it -- if the
+         * ERRC 3 that follows the first received word disappears here,
+         * the fault is specifically the DDE WRITING to L1 through the
+         * l1_to_sys() alias, which arming alone could never have shown. */
+        if (sport == 0 && dir == 0) {
+            REG32(dma + DMA_OFF_ADDR) = (uint32_t)&l2_rx_probe[0];
+            REG32(dma + DMA_OFF_XCNT) = lane_words * 32u;
+            REG32(dma + DMA_OFF_XMOD) = 4u;
+            REG32(dma + DMA_OFF_CFG)  = cfg;
+            continue;
+        }
+#endif
         /* Autobuffer: ping only for now. pong is a separate extern array
          * with no guaranteed adjacency, so a 2D walk across the pair is
          * not safe to assume; double buffering comes back once the two
@@ -422,6 +445,29 @@ static void sec_route(uint32_t src)
 {
     REG32(SEC_SCTL_BASE + src * SEC_SCTL_STRIDE) =
         BITM_SEC_SCTL_SEN | BITM_SEC_SCTL_IEN;
+}
+
+/* The DDE issues NON-SECURE transactions unless the peripheral is marked
+ * a secure master. Bench evidence (2026-08-23, chip 1): the core reads
+ * SPU0_SECURECHK as 0xFFFFFFFF, so the core is a SECURE master, while
+ * the SPORT DMA's first memory write is refused and SMPU3 logs it with
+ * SMPU_BDTLS.SECURE = 0 -- a non-secure write -- at exactly the address
+ * the channel was pointed at. Setting SPU_SECUREP[n].MSEC (bit 1) makes
+ * peripheral n generate secure transactions (HRM 32-7, "Configuring
+ * Security Privileges of a Peripheral").
+ *
+ * This sets MSEC on every peripheral rather than just the SPORTs: the
+ * per-peripheral index map is not in the header, and the card has no
+ * security model to protect -- there is one core, one trust domain and
+ * no non-secure software. SSEC (secure SLAVE, bit 0) is deliberately
+ * NOT set, which would make peripherals refuse non-secure MMR access. */
+static void spu_secure_masters(void)
+{
+    int i;
+    for (i = 0; i < 137; i++) {
+        volatile uint32_t *p = (volatile uint32_t *)(0x3108BA00u + (uint32_t)i * 4u);
+        *p |= 0x2u;                       /* MSEC: secure master */
+    }
 }
 
 static void sec_init(void)
@@ -779,6 +825,8 @@ void dma_cfg_init(void)
 #if DSP4_BISECT == 4
     bisect_park(1);     /* 1 pulse = the image runs and got this far */
 #endif
+    spu_secure_masters();       /* must precede arming -- see above */
+
     arm_region(REGION_A_LANES, REGION_A_COUNT, 0,
                REGION_A_PING, REGION_A_PONG, desc_a);
     DIAG_STAGE(2);

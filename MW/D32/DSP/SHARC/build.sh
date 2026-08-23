@@ -59,6 +59,14 @@ CFLAGS="$CFLAGS -DDSP4_BISECT=$DSP4_BISECT"
 ASMFLAGS="$ASMFLAGS -DDSP4_BISECT=$DSP4_BISECT"
 echo "  (P2.2 bisect variant: DSP4_BISECT=$DSP4_BISECT)"
 
+# Ring-mode switches (see dma_config.c). DSP4_DMA_AUTOBUF=0 goes back to
+# descriptor lists; DSP4_RX0_L2=1 puts the block-clock lane's destination
+# in L2 instead of the L1 alias, which is how a DDE-write-to-L1 fault is
+# told apart from a descriptor or address-translation one.
+DSP4_DMA_AUTOBUF="${DSP4_DMA_AUTOBUF:-1}"
+DSP4_RX0_L2="${DSP4_RX0_L2:-0}"
+CFLAGS="$CFLAGS -DDSP4_DMA_AUTOBUF=$DSP4_DMA_AUTOBUF -DDSP4_RX0_L2=$DSP4_RX0_L2"
+
 # Linker flags — LDF resolved in build(): the repo LDF hardcodes
 # ARCHITECTURE(ADSP-21564); for a fit-proxy build under a different
 # PROC_TARGET a matching temp LDF is generated in the build dir (same

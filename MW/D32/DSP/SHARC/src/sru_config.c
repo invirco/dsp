@@ -26,6 +26,26 @@ void sru_init(void);
 
 void sru_init(void)
 {
+    /* ---- DAI pad input buffers ----
+     *
+     * MUST come before any routing. The SRU only connects signals that
+     * are already inside the part; the DAI pads have a separate input
+     * enable in the PADS block that comes out of reset at ZERO, so with
+     * routing alone every DAI input is dead at the pin. That is exactly
+     * what the card did: SPORT0_A correctly configured and enabled in
+     * TDM8 slave mode (CTL_A 0x31F1, MCTL_A 0x715, CS0_A 0xFF, DIV_A 0),
+     * its DMA channel armed and clean (DMA0_STAT 0x00006200), and not a
+     * single word ever arriving, because BCK0/FS0 never got past the
+     * pad. Bench 2026-08-23: both registers read 0x00000000 on a running
+     * chip 1, and nothing in this firmware had ever written them.
+     *
+     * Bit n enables the input buffer for DAI pin n+1; 20 pins per port.
+     * Enabling it on a pin the SRU drives as an output is harmless -- it
+     * only powers the input path -- so all twenty go on for both ports
+     * rather than tracking direction in two places. */
+    *(volatile unsigned int *)0x31004460u = 0x000FFFFFu;  /* PADS0_DAI0_IE */
+    *(volatile unsigned int *)0x31004464u = 0x000FFFFFu;  /* PADS0_DAI1_IE */
+
     /* ---- DAI0: data pins <-> SPORT0-3 ---- */
     SRU(DAI0_PB01_O, SPT0_AD0_I);     /* I0 -> SPORT0 half A */
     SRU(SPT0_BD0_O, DAI0_PB02_I);     /* SPORT0 half B -> O0 */

@@ -165,6 +165,18 @@ SECTIONS
      * that work is TRACKED IN tasks.md, and until it lands the delay
      * lines come up holding whatever was in L2.
      *------------------------------------------------------------------*/
+    /* Byte-addressed L2 data from cc21k-compiled C. Same dual-mapping
+     * idiom as sec_dmda_c_bw above: sec_delay below is DM-qualified, so
+     * it cannot place the byte-addressed seg_delay the C ABI emits, and
+     * without this a C object in L2 fails to link ('referenced, but not
+     * mapped'). Must come before sec_delay so the BW form is tried
+     * first. */
+    sec_delay_c_bw NO_INIT BW
+    {
+        INPUT_SECTION_ALIGN(32)
+        INPUT_SECTIONS( $COMMAND_LINE_OBJECTS(seg_delay) )
+    } > mem_L2_bw
+
     sec_delay NO_INIT DM
     {
         INPUT_SECTION_ALIGN(4)
