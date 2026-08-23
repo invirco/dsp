@@ -27,7 +27,24 @@ accumulators (D5). (3) fewer nodes per product — real scope gating (D24 ≠
 D32), lazy nodes (bypassed = skipped). (4) larger block (64/128 samples) —
 amortises overhead, costs latency. Hub recommendation: 1 + 2 + 3 together,
 in that order; 4 only if the profile says the remaining gap is overhead-bound.
-This reopens nothing in the rev-D PCB.**
+This reopens nothing in the rev-D PCB.
+PROFILE UPDATE 10:5xZ (MW/D32/DSP/dsp4-cycle-budget.md): fixed overhead 44 %
+before any strip (block I/O 20 %, buses/sends 24 %); one strip 19.3 %; full
+graph 660 %. RTG (a ROUTING node) is the most expensive class at 601
+cycles/sample = 30.5 % of a strip — more than EQ+COMP together. So option 1
+(per-block kernels) plus a rewrite of RTG and the bus/send path are the big
+levers; dynamics maths is NOT the problem.**
+
+**HUB STEER 2026-08-23 11:55Z — the "2.5x margin" is most likely the test,
+not the DSP.** Aliveness is judged over the parameter link, which is polled
+from the MAIN LOOP — at 73 % block load the poll is starved and the link
+looks dead while audio may be running fine. Do this first: judge aliveness by
+FRAME_COUNT advancing + DMA0_STAT + SPORT_ERR over 3 s (audio truth), not by
+the link. If audio runs at 1 strip/1x, move the SPI poll into the per-block
+work (once per block = 1500 Hz, ample) so the link survives load; re-measure
+the strips ceiling. Then RUNG 2: flash the loopback-capture bitstream, prove
+pcm_din bit-exact (all 32 bits) with the pattern firmware, then latency with
+the 1-strip graph. Then the queued chain.
 
 model: opus
 
