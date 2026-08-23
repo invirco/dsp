@@ -15,6 +15,14 @@ table in hardware-map.md or a new dsp4-cycle-budget.md — this is the data PW's
 decision needs. Then the queued chain (desk fillers; virtual audio on the
 1-strip graph). Keep going without stopping to ask.
 
+**PW DECISIONS 2026-08-23 16:2xZ (recorded by the hub): (1) CM4 path = TDM8 —
+8 channels Pi→DSP on A_I6 and 8 channels DSP→Pi on B_O3, LOGIC regroups
+frames; allocate at the single source (slot-map.csv) — supersedes the stereo
+B_O3 2/3 allocation (which is now a subset). (2) Rev-D mod 3 DROPPED: the
+5M1270Z stays (738 LE + 4.1 % timing margin rule out the 570Z); recorded in
+TransferOnly/PCB mods/dsp4-revD-modlist.md. The cycle-budget decision below
+is still open.**
+
 **DECISION ASK (PW): node graph is ~16x over the per-block cycle budget
 (needs ~5.2 M cycles/block vs 327,680 available at 491.52 MHz / 1500
 blocks/s; 431 nodes × 32 samples = 13,792 per-sample node CALLS per block).
