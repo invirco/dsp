@@ -893,6 +893,32 @@ Method — one family at a time, in profile order, measured after each:
    block above) are the reference; every rewritten family must pass the same
    rows bit-exact vs fixed_ref before it replaces the old one. The cycle
    instrument (TCOUNT per class) runs on every build — update the table.
+0b. BASELINE MEASURED 2026-08-24 (post-fix build). Harness families are
+   green and recorded in tools/dsp/hw-reports/README.md - that is the
+   bit-exactness reference. GAIN cycle baseline re-measured on the current
+   build: NODE_LIMIT=1 (IN only) 67,809 cycles/pass, NODE_LIMIT=2 (IN+GAIN)
+   70,130, so GAIN = 2,321 cycles/block = 72.5 cycles/sample. Almost all of
+   that is overhead - a call/rts per sample, the _sample_idx==0 guard
+   evaluated 32x, and a second call/rts into _mrf_rns28.
+
+0c. DESIGN, decided 2026-08-24 before any code. The conversion is NOT
+   node-local: a per-block kernel needs per-block BUFFERS, so the sample
+   loop, scatter/gather and every node buffer move together. Shape:
+       for s in 0..31: scatter(s)        -> fills 32-word input buffers
+       process_all_block()               -> one call per node per block
+       for s in 0..31: gather(s)         -> drains 32-word output buffers
+   Each node's `.var _buf_X` becomes `.var _buf_X[32]`; the block-rate
+   section (ramp + Q4.28 shadow refresh) runs ONCE at kernel entry with no
+   guard, and the 32-sample loop wraps only the arithmetic. _mrf_rns28
+   should be inlined in the loop rather than called.
+   Do it behind DSP4_BLOCK_KERNELS (default 0) so the tree stays buildable
+   and the per-sample path remains the reference to diff against. Convert
+   IN + GAIN first and profile at NODE_LIMIT=2, which needs no other node
+   to change; roll the rest of the chain class by class after.
+   Expected for GAIN: the arithmetic is ~8-12 cycles/sample, so the target
+   is under ~400 cycles/block against 2,321 - a 6x class of win, and the
+   same overhead is paid by every one of the 431 nodes.
+
 1. GENERATOR: nodes become per-BLOCK kernels — one call per node per block,
    the 32-sample loop inside the kernel, parameters fixed once per block (as
    D5 already specifies). Control/ramp plane unchanged. Prove on GAIN first

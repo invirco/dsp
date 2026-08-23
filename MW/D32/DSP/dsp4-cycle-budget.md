@@ -59,6 +59,23 @@ Per-sample is per-block ÷ 32.
 | IN | 760 | 24 | 1.2% |
 | **strip total** | **63,131** | **1,973** | 100% |
 
+### Re-measured 2026-08-24, post-fix build — KERNEL REWRITE baseline
+
+The table above was taken before the biquad, compressor, fader and ramp
+fixes. GAIN re-measured on the current build as the reference the rewrite
+must beat:
+
+| point | cycles/pass |
+|---|---|
+| `DSP4_NODE_LIMIT=1` (IN only) | 67,809 |
+| `DSP4_NODE_LIMIT=2` (IN + GAIN) | 70,130 |
+| **GAIN** | **2,321 cycles/block = 72.5 cycles/sample** |
+
+72.5 cycles/sample for a load, a multiply, a round and a store is almost
+all overhead: a `call`/`rts` per sample, the `_sample_idx == 0` guard
+re-evaluated 32 times, and a second `call`/`rts` into `_mrf_rns28`. That is
+the case for per-block kernels, now measured rather than assumed.
+
 ### What stands out
 
 **RTG is the most expensive node class on the part** — 601 cycles per
