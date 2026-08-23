@@ -310,7 +310,7 @@ _start:
     /* Wait for product config from the Pi/CM4 host (D1) — the host
      * writes the 0xF000+ config registers then CONFIG_COMMIT, which
      * applies input patch + scope gates and sets the flag below. */
-#if DSP4_BISECT == 30 || DSP4_BISECT == 31
+#if DSP4_BISECT >= 30 && DSP4_BISECT <= 32
     /* TEMP bisect rung 30 (2026-08-23) — SELF-CONFIGURE and report from
      * inside the running main loop.
      *
@@ -364,7 +364,7 @@ _start:
     comp(r0, r1);
     if eq jump (pc, .wait_boot);
 
-#if DSP4_BISECT == 30 || DSP4_BISECT == 31
+#if DSP4_BISECT >= 30 && DSP4_BISECT <= 32
     /* Reachable ONLY by the branch from inside the loop. Without this
      * jump the report sits in the straight-line path and executes on the
      * way past, before the main loop has run a single iteration —
@@ -409,15 +409,15 @@ _start:
     call _bisect_dump_asm;
     r4 = dm(REG_DMA0_XCNT);       /* loaded from the descriptor? (want 256) */
     call _bisect_dump_asm;
-    r4 = dm(REG_SMPU0_CTL);
+    r4 = dm(REG_CDU0_STAT);       /* are the CDU outputs actually running? */
     call _bisect_dump_asm;
-    r4 = dm(REG_SMPU2_CTL);
+    r4 = dm(REG_CDU0_CFG0);
     call _bisect_dump_asm;
-    r4 = dm(REG_SMPU3_CTL);
+    r4 = dm(REG_CDU0_CFG1);
     call _bisect_dump_asm;
-    r4 = dm(REG_SMPU9_CTL);
+    r4 = dm(REG_CGU0_STAT);
     call _bisect_dump_asm;
-    r4 = dm(REG_SMPU11_CTL);
+    r4 = dm(REG_SPORT0_CTL_A);    /* is the SPORT itself enabled? */
     call _bisect_dump_asm;
     jump (pc, .b30_frame);
 #endif
@@ -492,7 +492,7 @@ _start:
      * interrupt-driven. sec_init() no longer routes SPI2_STAT. */
     call _spi_poll;
 
-#if DSP4_BISECT == 30 || DSP4_BISECT == 31
+#if DSP4_BISECT >= 30 && DSP4_BISECT <= 32
     /* Let the loop actually RUN for ~8 s, then report. */
     r0 = dm(_diag_ticks);
     r1 = 8000;

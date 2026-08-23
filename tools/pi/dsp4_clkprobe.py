@@ -56,8 +56,8 @@ FRAMES = {
     'audio': ['MAGIC', 'DIAG_TICKS', 'SEC_COUNT', 'FRAME_COUNT',
               'BOOT_STAGE', 'UNK_CSID', 'SPORT0_ERR_A', 'DMA0_STAT',
               'DMA0_CFG', 'DMA0_ADDRSTART', 'DMA0_DSCPTR_NXT',
-              'DMA0_DSCPTR_CUR', 'DMA0_XCNT', 'SMPU0_CTL', 'SMPU2_CTL',
-              'SMPU3_CTL', 'SMPU9_CTL', 'SMPU11_CTL'],
+              'DMA0_DSCPTR_CUR', 'DMA0_XCNT', 'CDU0_STAT', 'CDU0_CFG0',
+              'CDU0_CFG1', 'CGU0_STAT', 'SPORT0_CTL_A'],
 }
 
 # Bits worth naming in the spi2 frame, so a transcript reads as a verdict
