@@ -137,7 +137,9 @@ module dsp4_logic_top (
     // channels each way instead of two -- see dsp4_pcm_reframe.v. It is a
     // build-time evaluation switch, not a shipping default, until the
     // eight-channel path is proven on hardware.
-`ifdef DSP4_PI_TDM8
+`ifdef DSP4_PI_SELFTEST
+    dsp4_pcm_reframe #(.PI_TDM8(1), .PI_SELFTEST(1)) u_pcm (
+`elsif DSP4_PI_TDM8
     dsp4_pcm_reframe #(.PI_TDM8(1)) u_pcm (
 `else
     dsp4_pcm_reframe u_pcm (

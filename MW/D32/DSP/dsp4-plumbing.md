@@ -297,6 +297,47 @@ what makes it a proof rather than a plausibility check.
 Artefacts: `dsp4_logic_loopback.e1530dc70431` (PI_TDM8 evaluation),
 firmware `DSP4_PATTERN=1 DSP4_BLOCK_MASK=0`.
 
+#### DUPLEX PROVEN 2026-08-23 — both directions, simultaneously
+
+`aplay` and `arecord` running together, per-word counter stimulus so every
+word carries its own index:
+
+    counter range 1..192000 over 192000 words
+    consecutive +1 steps: 191999/191999 = 100.00%
+    aplay stderr: (none)   arecord stderr: (none)
+
+Every one of 192,000 words arrived in order with no gap, repeat or
+reorder. Because each run of eight consecutive words is one 48 kHz frame
+across slots 0-7, a clean climb proves **all eight slots in both
+directions at once** — de-framing inbound and re-framing outbound — and
+proves them bit-exact on all 32 bits.
+
+This is the Pi↔LOGIC loop (`PI_SELFTEST`), which is the part that was
+unproven; the DSP→Pi direction was measured separately at 8 of 8 slots.
+
+Two things worth recording from getting there:
+
+- The first duplex run read 50% and looked like every value duplicated. It
+  was not: the raw words incremented by `0x80` where the stimulus
+  incremented by `0x100` — the capture was the stimulus **shifted right
+  one bit**, and a `>>8` decode disguised that as repeats. `CAP_EXTRA_DELAY`
+  compensates the *DSP* transmitter's framing; in the self-test the words
+  never cross the DSP, so applying it shifted the result. Now conditional.
+- **The earlier 48 kHz duplex scrambling does not reproduce here.** Same
+  two-dai-link overlay, both streams running, 100% clean. So the duplex
+  fault previously blamed on the overlay is not reproducible in this
+  configuration, and the planned `google,voicehat` single-link change may
+  be unnecessary. It should not be made on the strength of the old
+  evidence alone.
+
+#### The CM4 side needs NO device-tree change
+
+Worth stating plainly because it is the cheapest part of the answer: Route
+A runs the Pi at **2 channels, 192 kHz** — still two channels, just a
+higher rate. `dsp4-pcm-slave.dts` is unchanged, the card is unchanged, and
+`RATE: [8000 768000]` already covers it. Every bit of the eight-channel
+work is in the CPLD.
+
 #### Why LOGIC bridges it, and why the CM4 and DSP cannot just talk directly
 
 **It is not codecing.** No sample-format conversion happens — the 32-bit

@@ -53,6 +53,12 @@ module dsp4_pcm_reframe #(
     // logical 48 kHz channels; LOGIC does the re-framing, as it already
     // does today.
     parameter integer PI_TDM8 = 0,
+    // PI_SELFTEST = 1 feeds the Pi's capture from its OWN de-framed
+    // playback words instead of the DSP lane, so aplay -> LOGIC ->
+    // arecord closes without the DSP in it. That isolates the two
+    // re-framing directions and duplex operation, which is exactly what
+    // is unproven; the DSP path is measured separately. Evaluation only.
+    parameter integer PI_SELFTEST = 0,
     // Extra BCK periods of delay on the capture launch, on top of
     // PCM_DATA_DELAY. MEASURED, not guessed: with 0, the CM4 recorded
     // 0xB4B40000 / 0xB4B40002 where the DSP was transmitting
@@ -155,8 +161,13 @@ module dsp4_pcm_reframe #(
     // Launch on the PCM BCK FALLING edge so the Pi samples mid-bit on the
     // rising edge. CAP_EXTRA_DELAY is measured, not guessed -- see its
     // declaration.
-    wire [5:0] out_word_pos = pi_word_pos
-                            - PCM_DATA_DELAY[5:0] - CAP_EXTRA_DELAY[5:0];
+    // CAP_EXTRA_DELAY compensates the DSP transmitter's framing and is
+    // measured against it. In PI_SELFTEST the words come from the Pi's own
+    // playback, never crossing the DSP, so applying it there would shift
+    // the result by one bit -- which is exactly what the first duplex run
+    // showed (captured words were the stimulus >> 1).
+    wire [5:0] cap_extra = PI_SELFTEST ? 6'd0 : CAP_EXTRA_DELAY[5:0];
+    wire [5:0] out_word_pos = pi_word_pos - PCM_DATA_DELAY[5:0] - cap_extra;
     // Hoisted out of the index expression: a ternary inside a
     // concatenation used as a bit select does not bind in all tools.
     wire [2:0] cap_sel = out_word_pos[5] ? sel_r : sel_l;
@@ -166,7 +177,7 @@ module dsp4_pcm_reframe #(
     reg  pcm_din_r;
     always @(posedge sysclk) begin
         if (pi_launch)
-            pcm_din_r <= cap_flat[cap_idx];
+            pcm_din_r <= PI_SELFTEST ? pw_flat[cap_idx] : cap_flat[cap_idx];
     end
     assign pcm_din = pcm_din_r;
 

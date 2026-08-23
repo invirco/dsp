@@ -45,7 +45,10 @@ fi
 
 # PI_TDM8=1 adds the eight-channel CM4 link evaluation mode (4x frame
 # rate on the Pi side). Non-shipping; combines with LOOPBACK.
-if [ "${PI_TDM8:-0}" = "1" ]; then
+if [ "${PI_SELFTEST:-0}" = "1" ]; then
+    MACRO_ARG+=(--verilog_macro=DSP4_PI_SELFTEST=1)
+    echo "*** PI_SELFTEST BUILD (Pi playback looped back to Pi capture) ***" >&2
+elif [ "${PI_TDM8:-0}" = "1" ]; then
     MACRO_ARG+=(--verilog_macro=DSP4_PI_TDM8=1)
     echo "*** PI_TDM8 EVALUATION BUILD (CM4 link at 4x rate, 8 channels) ***" >&2
 fi
