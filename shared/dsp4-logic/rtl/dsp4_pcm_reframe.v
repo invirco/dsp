@@ -32,7 +32,16 @@ module dsp4_pcm_reframe #(
     // Bring-up only: the capture path is compiled in solely for the
     // DSP4_LOOPBACK build, so the shipping bitstream is unchanged.
     parameter integer CAP_SLOT_L = 0,
-    parameter integer CAP_SLOT_R = 1
+    parameter integer CAP_SLOT_R = 1,
+    // Extra BCK periods of delay on the capture launch, on top of
+    // PCM_DATA_DELAY. MEASURED, not guessed: with 0, the CM4 recorded
+    // 0xB4B40000 / 0xB4B40002 where the DSP was transmitting
+    // 0x5A5A0000 / 0x5A5A0001 -- the expected words shifted LEFT exactly
+    // one bit, 100% stable over 96,000 frames. Left-shifted by one means
+    // the receiver started a bit early, so the launch needs one more BCK
+    // of delay. The playback direction does not need it because it is
+    // launched against a different edge of the same frame.
+    parameter integer CAP_EXTRA_DELAY = 1
 ) (
     input  wire        sysclk,       // 49.152 MHz
     input  wire [9:0]  frame_pos,    // from dsp4_clkgen (1024/frame)
@@ -95,7 +104,8 @@ module dsp4_pcm_reframe #(
     // Launch on the PCM BCK FALLING edge (frame_pos[3:0]==8, the same
     // cycle pcm_clk goes low) so the Pi samples mid-bit on the rising
     // edge, a half BCK period (~163 ns) later.
-    wire [5:0] out_word_pos = frame_pos[9:4] - PCM_DATA_DELAY[5:0];
+    wire [5:0] out_word_pos = frame_pos[9:4]
+                            - PCM_DATA_DELAY[5:0] - CAP_EXTRA_DELAY[5:0];
     reg  pcm_din_r;
     always @(posedge sysclk) begin
         if (frame_pos[3:0] == 4'b1000)
