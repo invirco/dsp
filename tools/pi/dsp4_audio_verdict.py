@@ -16,11 +16,13 @@ made a loaded-but-running graph look like a hang.
 """
 import sys, time
 WINDOW = float(sys.argv[1]) if len(sys.argv) > 1 else 3.0
-PASSES = int(sys.argv[2], 16) if len(sys.argv) > 2 else None
+PASSES = int(sys.argv[2], 16) if len(sys.argv) > 2 and sys.argv[2] != '-' else None
+CHIP = int(sys.argv[3]) if len(sys.argv) > 3 else 1
 sys.argv = ['v']
 import dsp4_diag as D
 
-link = D.SpiLink('0.0', 1000000, 6, rdy_gpio=8)
+link = D.SpiLink('0.0', 1000000, 6 if CHIP == 1 else 24,
+                 rdy_gpio=8 if CHIP == 1 else 12)
 diag = D.DiagLink(link); diag.resync()
 
 def read_block(patience=40):

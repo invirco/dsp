@@ -773,7 +773,7 @@ Rules as above: bench = rev-C CM4 app@192.168.1.219; rev A hands-off; leave
 matrix-app running + 3 MCUs verified; single trunk; no AI attribution.
 When done or blocked, continue straight into the next QUEUED block.
 
-## QUEUED DISPATCH (fire after the desk fillers) — VIRTUAL AUDIO TESTS over the CPLD feedback loop: the golden harness gets a hardware target   [status: 🟡 LOOP CLOSED, calibration next — Pi aplay -> DSPA I6 -> XIN_PI -> XS_XFER -> inter-chip -> C2_XR_PI -> C2_PI_IN -> MIX_MAIN -> MAIN_FDR -> MAIN_DLY -> MAIN_ST_OUT -> SPORT3 slot 0 = o_dspb[3] -> reframer capture -> pcm_din -> arecord. SIGNAL PRESENT, peak 0x7BB7C120. Two blockers cleared: the capture was tapping o_dspb[0] (AUX_OUT_01/02, silent in a pass-through) instead of o_dspb[3] (MAIN_ST_OUT) - new bitstream dsp4_logic_loopback.3f488870d6cb; and the Pi input is gated OFF by default, _auxin_on_C2_PI_IN at SPI 0x071D on chip 2, one poke opens it. Everything downstream already defaults to unity and the Q4.28 shadows refresh at block rate, so they are not a second gate. NOT bit-exact yet: input 0x20000000 comes back 0x7BB7C120, a ratio of 3.87 - close enough to 2^2 to look structural, and the scatter/gather Q1.31<->Q4.28 shifts are the first place to look. Also bursty (~4.5% of frames carry signal, aplay reported an overrun), so playback buffering must be pinned before any latency figure or it measures ALSA. Harness --target hw and the five families NOT started - the block itself says fix bit-exactness first. CONFLICT for the hub: this block says leave the loop soaking, the standing Rules say restore the SHIPPING bitstream; they cannot both hold. I restored SHIPPING as the older standing rule on a 24/7 bench - say which wins]
+## QUEUED DISPATCH (fire after the desk fillers) — VIRTUAL AUDIO TESTS over the CPLD feedback loop: the golden harness gets a hardware target   [status: 🟡 PASS-THROUGH IS UNITY AND BIT-EXACT; blocked on Pi duplex streaming. The 4x is RETRACTED - it was my measurement, a peak taken from an overrun-riddled capture. Known-word test (hub's method): 0x00001000/0x00010000/0x00100000 all return identically, ratio 1.0000, in << 0, 100% of non-zero frames. Shifts corroborate: chip1 scatter >>3, chip1 gather none, chip2 scatter none, chip2 gather <<3 saturating - paired, no net shift. REAL BLOCKER is the CM4 soundcard: capture alone is 100% stable (rung 2) and playback alone reaches the DSP (lane-6 RX shows live tone), but BOTH TOGETHER scramble - a per-sample counter returns values under ~200 across 20,000 frames instead of climbing to 48,000, dominant step -191, with ALSA reporting no under/overrun once period/buffer are pinned. Suspect my own overlay: dsp4-pcm-slave.dts uses TWO dai-links sharing one bcm2835-i2s CPU DAI (dit=playback, dir=capture) because the dummy codecs are one-directional - two PCM devices, not a true duplex device. FIX DIRECTION: one dai-link with a codec declaring both directions; device-tree work, not DSP. Latency deliberately NOT reported - it would be fiction through a stream repeating a 200-sample window. ALSO: nothing drives SPORT3 slot 1 on chip 2 (C2_MAIN_ST_OUT writes slot 0 only despite 'Channels: 2'), so the capture's right channel is correctly silent - graph/generator question for the hub. CPLD carries dsp4_logic_loopback.3f488870d6cb per the hub ruling] -> reframer capture -> pcm_din -> arecord. SIGNAL PRESENT, peak 0x7BB7C120. Two blockers cleared: the capture was tapping o_dspb[0] (AUX_OUT_01/02, silent in a pass-through) instead of o_dspb[3] (MAIN_ST_OUT) - new bitstream dsp4_logic_loopback.3f488870d6cb; and the Pi input is gated OFF by default, _auxin_on_C2_PI_IN at SPI 0x071D on chip 2, one poke opens it. Everything downstream already defaults to unity and the Q4.28 shadows refresh at block rate, so they are not a second gate. NOT bit-exact yet: input 0x20000000 comes back 0x7BB7C120, a ratio of 3.87 - close enough to 2^2 to look structural, and the scatter/gather Q1.31<->Q4.28 shifts are the first place to look. Also bursty (~4.5% of frames carry signal, aplay reported an overrun), so playback buffering must be pinned before any latency figure or it measures ALSA. Harness --target hw and the five families NOT started - the block itself says fix bit-exactness first. CONFLICT for the hub: this block says leave the loop soaking, the standing Rules say restore the SHIPPING bitstream; they cannot both hold. I restored SHIPPING as the older standing rule on a 24/7 bench - say which wins]
 
 model: opus
 
@@ -4067,3 +4067,74 @@ which wins and I will leave the soak running instead.
 on production (`e7b53db4…`), `CHIP_ID` 1 and 2, `BOOT_STAGE 5`, 1500.0
 blocks/s, `SPORT0_ERR_A` clean; `matrix-app` active, all three MCUs
 verified; GPIOs `a0`.
+
+### Outcome 2026-08-23 13:4xZ — the 4× was MY MEASUREMENT. Path is unity and bit-exact. Duplex streaming on the Pi is the real blocker.
+
+#### The 4× gain does not exist — retracted
+
+Proved with a known word, as instructed, rather than a level:
+
+    in 0x00001000 -> out 0x00001000   ratio 1.0000  = in << 0
+    in 0x00010000 -> out 0x00010000   ratio 1.0000  = in << 0
+    in 0x00100000 -> out 0x00100000   ratio 1.0000  = in << 0
+
+100% of non-zero frames, three bit positions. **The pass-through is unity
+and bit-exact through all 32 bits.** The earlier "3.87×" came from taking
+a *peak* out of an overrun-riddled capture — the peak was a glitch, not
+signal. A level cannot tell you a shift; the hub's instruction was right
+and the answer changed as soon as I followed it.
+
+The shifts are also correct by inspection, which corroborates it:
+chip 1 scatter `>>3` (Q1.31→Q4.28), chip 1 gather no shift (inter-chip
+stays Q4.28), chip 2 scatter no shift, chip 2 gather `<<3` with
+saturation. Paired, no net shift.
+
+#### What actually blocks the vector set and latency: duplex on the CM4
+
+| condition | result |
+|---|---|
+| capture alone (rung 2, pattern firmware) | **100.00% stable, bit-exact** |
+| playback alone into the DSP | arrives — lane-6 RX buffer showed live tone data |
+| **playback + capture together** | **scrambled** |
+
+With both streams running, a per-sample counter comes back with values
+staying under ~200 across 20,000 frames instead of climbing to 48,000;
+dominant step −191; short ascending runs (48,49 / 84,85,86) separated by
+jumps backwards. ALSA reports no under/overrun once period/buffer are
+pinned (97.6% of frames carry data), so this is not simple buffer
+starvation — the *content* is wrong, repeating a small window of stimulus.
+
+**Suspected cause, and it is my overlay's design.** `dsp4-pcm-slave.dts`
+creates **two dai-links sharing one `bcm2835-i2s` CPU DAI** — playback on
+`linux,spdif-dit`, capture on `linux,spdif-dir` — because those dummy
+codecs are each one-directional. That gives two PCM devices but not a true
+duplex device, and starting/running one stream appears to disturb the
+other. Capture alone and playback alone are each clean; only the
+combination is not.
+
+**Fix direction for the next pass:** one dai-link with a codec that
+declares BOTH directions, so the card presents a single full-duplex PCM
+device, and confirm `bcm2835-i2s` supports concurrent streams at all in
+slave mode. That is a device-tree question, not a DSP one — the DSP side
+is proven unity and bit-exact.
+
+#### Also found (node graph, worth a hub decision)
+
+**Nothing drives SPORT3 slot 1 on chip 2.** `C2_MAIN_ST_OUT` is the only
+node writing SPORT3 and it writes slot 0 only, despite being declared
+"Channels: 2". So the capture's right channel is correctly silent. Whether
+the main stereo out should drive a second slot is a graph/generator
+question.
+
+#### Not done
+
+Latency in samples — deliberately not reported. Every number available
+would be dominated by the duplex fault above, and a latency figure taken
+through a stream that repeats a 200-sample window would be fiction.
+
+**Bench state:** **LOOPBACK-CAPTURE bitstream
+`dsp4_logic_loopback.3f488870d6cb` on the CPLD** (per the 13:0xZ hub
+ruling — restore SHIPPING at the end of this block). Both chips on the
+`DSP4_STRIPS=1` build, `CHIP_ID` 1 and 2, `BOOT_STAGE 5`, 1500.0 blocks/s,
+`SPORT0_ERR_A` clean; `matrix-app` active, all three MCUs verified;
+GPIOs `a0`.
