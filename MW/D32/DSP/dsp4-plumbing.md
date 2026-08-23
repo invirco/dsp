@@ -155,7 +155,22 @@ CM4's single I2S port via `rtl/dsp4_pcm_reframe.v`, which re-frames I2S
 ↔ TDM8 in both directions. The CM4 is the I2S **slave**; LOGIC masters
 `pcm_clk` (3.072 MHz) and `pcm_fs` (48 kHz).
 
-**Status: HUB-ACCEPTED 2026-08-23, PW TO RATIFY.** PW required a stereo
+**Status: PW-DECIDED 2026-08-23** — the CM4 path is TDM8, 8 channels each
+way via LOGIC regrouping, and rev-D mod 3 is dropped (the 5M1270Z stays).
+Slots are allocated at the single source, `slot-map.csv`.
+
+**One collision to resolve, and it is not mine to take.** `A_I6` is the
+Pi's own lane, so all eight input slots are allocated cleanly. `B_O3`
+already carries `DAC_MAIN_L/R` on slots 0/1 — marked *provisional, no D24
+sink found* — so only slots 2-7 were free and the return is allocated as
+**six** channels, not eight. Getting the last two means displacing
+`DAC_MAIN`, and since `B_O3` is the lane explicitly *"reserved for
+D32/future main DAC"*, that displacement would leave the D32 main DAC with
+nowhere obvious to go (`B_O2` is codec/snake, `B_O4-7` are NET). Six return
+channels already exceeds the stated need — USB 2-track plus Bluetooth plus
+margin — so this is flagged rather than forced.
+
+ PW required a stereo
 send and return and said "you can choose most convenient slots"; the
 specific choice of `B_O3` slots 2/3 is therefore mine and the hub's, not
 PW's, and is recorded as provisional until ratified.

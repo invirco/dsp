@@ -45,6 +45,12 @@ A_I5,6,SNAKE_RET_07,D32,
 A_I5,7,SNAKE_RET_08,D32,
 A_I6,0,PI_PCM_L,BOTH,Pi playback L (LOGIC re-framed) - USB 2-track PLAY sink
 A_I6,1,PI_PCM_R,BOTH,Pi playback R - USB 2-track PLAY sink
+A_I6,2,PI_PCM_3,BOTH,Pi CM4 TDM8 channel 3 (LOGIC regroups 4 Pi frames per DSP frame) - PW-DECIDED 2026-08-23
+A_I6,3,PI_PCM_4,BOTH,Pi CM4 TDM8 channel 4 (LOGIC regroups 4 Pi frames per DSP frame) - PW-DECIDED 2026-08-23
+A_I6,4,PI_PCM_5,BOTH,Pi CM4 TDM8 channel 5 (LOGIC regroups 4 Pi frames per DSP frame) - PW-DECIDED 2026-08-23
+A_I6,5,PI_PCM_6,BOTH,Pi CM4 TDM8 channel 6 (LOGIC regroups 4 Pi frames per DSP frame) - PW-DECIDED 2026-08-23
+A_I6,6,PI_PCM_7,BOTH,Pi CM4 TDM8 channel 7 (LOGIC regroups 4 Pi frames per DSP frame) - PW-DECIDED 2026-08-23
+A_I6,7,PI_PCM_8,BOTH,Pi CM4 TDM8 channel 8 (LOGIC regroups 4 Pi frames per DSP frame) - PW-DECIDED 2026-08-23
 A_I7,5,MEMS_TB,BOTH,ADAU7302 TDM8 slot 5 per 47K strap
 MIX_0,0,BUS_MAIN_L,BOTH,global mix slot 0 (= legacy sport7 slot 0)
 MIX_0,1,BUS_MAIN_R,BOTH,global mix slot 1
@@ -113,8 +119,12 @@ B_O2,6,SNAKE_OUT_07,D32,
 B_O2,7,SNAKE_OUT_08,D32,
 B_O3,0,DAC_MAIN_L,BOTH,provisional - no D24 sink found (rev B)
 B_O3,1,DAC_MAIN_R,BOTH,provisional
-B_O3,2,PI_RET_L,BOTH,Pi CM4 stereo return L (LOGIC de-frames to pcm_din) - USB 2-track REC source - HUB-ACCEPTED 2026-08-23 PW TO RATIFY
-B_O3,3,PI_RET_R,BOTH,Pi CM4 stereo return R - USB 2-track REC source - HUB-ACCEPTED 2026-08-23 PW TO RATIFY
+B_O3,2,PI_RET_L,BOTH,Pi CM4 stereo return L (LOGIC de-frames to pcm_din) - USB 2-track REC source - PW-DECIDED 2026-08-23
+B_O3,3,PI_RET_R,BOTH,Pi CM4 stereo return R - USB 2-track REC source - PW-DECIDED 2026-08-23
+B_O3,4,PI_RET_3,BOTH,Pi CM4 TDM8 return channel 3 - PW-DECIDED 2026-08-23
+B_O3,5,PI_RET_4,BOTH,Pi CM4 TDM8 return channel 4 - PW-DECIDED 2026-08-23
+B_O3,6,PI_RET_5,BOTH,Pi CM4 TDM8 return channel 5 - PW-DECIDED 2026-08-23
+B_O3,7,PI_RET_6,BOTH,Pi CM4 TDM8 return channel 6 - PW-DECIDED 2026-08-23
 B_O4,0,NET_OUT_01,BOTH,
 B_O4,1,NET_OUT_02,BOTH,
 B_O4,2,NET_OUT_03,BOTH,

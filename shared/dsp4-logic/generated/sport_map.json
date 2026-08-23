@@ -1,6 +1,6 @@
 {
   "generated_by": "shared/dsp4-logic/gen_slot_map.py",
-  "source_hash": "4868ae9d9c30ad19771b6438fb5153d8d464a0caed05412b736a65d257619c89",
+  "source_hash": "4ecc4aa221a0787e924c8546839d01344c8de16a9a521e915e8d06c1676c3c96",
   "sport_convention": "sport_id = DAI port index; I ports are RX, O ports are TX; chip1=DSPA, chip2=DSPB",
   "timing": {
     "sample_edge": "rising",
@@ -559,6 +559,42 @@
               "signal": "PI_PCM_R",
               "scope": "BOTH",
               "note": "Pi playback R - USB 2-track PLAY sink"
+            },
+            {
+              "slot": 2,
+              "signal": "PI_PCM_3",
+              "scope": "BOTH",
+              "note": "Pi CM4 TDM8 channel 3 (LOGIC regroups 4 Pi frames per DSP frame) - PW-DECIDED 2026-08-23"
+            },
+            {
+              "slot": 3,
+              "signal": "PI_PCM_4",
+              "scope": "BOTH",
+              "note": "Pi CM4 TDM8 channel 4 (LOGIC regroups 4 Pi frames per DSP frame) - PW-DECIDED 2026-08-23"
+            },
+            {
+              "slot": 4,
+              "signal": "PI_PCM_5",
+              "scope": "BOTH",
+              "note": "Pi CM4 TDM8 channel 5 (LOGIC regroups 4 Pi frames per DSP frame) - PW-DECIDED 2026-08-23"
+            },
+            {
+              "slot": 5,
+              "signal": "PI_PCM_6",
+              "scope": "BOTH",
+              "note": "Pi CM4 TDM8 channel 6 (LOGIC regroups 4 Pi frames per DSP frame) - PW-DECIDED 2026-08-23"
+            },
+            {
+              "slot": 6,
+              "signal": "PI_PCM_7",
+              "scope": "BOTH",
+              "note": "Pi CM4 TDM8 channel 7 (LOGIC regroups 4 Pi frames per DSP frame) - PW-DECIDED 2026-08-23"
+            },
+            {
+              "slot": 7,
+              "signal": "PI_PCM_8",
+              "scope": "BOTH",
+              "note": "Pi CM4 TDM8 channel 8 (LOGIC regroups 4 Pi frames per DSP frame) - PW-DECIDED 2026-08-23"
             }
           ]
         },
@@ -1356,13 +1392,37 @@
               "slot": 2,
               "signal": "PI_RET_L",
               "scope": "BOTH",
-              "note": "Pi CM4 stereo return L (LOGIC de-frames to pcm_din) - USB 2-track REC source - HUB-ACCEPTED 2026-08-23 PW TO RATIFY"
+              "note": "Pi CM4 stereo return L (LOGIC de-frames to pcm_din) - USB 2-track REC source - PW-DECIDED 2026-08-23"
             },
             {
               "slot": 3,
               "signal": "PI_RET_R",
               "scope": "BOTH",
-              "note": "Pi CM4 stereo return R - USB 2-track REC source - HUB-ACCEPTED 2026-08-23 PW TO RATIFY"
+              "note": "Pi CM4 stereo return R - USB 2-track REC source - PW-DECIDED 2026-08-23"
+            },
+            {
+              "slot": 4,
+              "signal": "PI_RET_3",
+              "scope": "BOTH",
+              "note": "Pi CM4 TDM8 return channel 3 - PW-DECIDED 2026-08-23"
+            },
+            {
+              "slot": 5,
+              "signal": "PI_RET_4",
+              "scope": "BOTH",
+              "note": "Pi CM4 TDM8 return channel 4 - PW-DECIDED 2026-08-23"
+            },
+            {
+              "slot": 6,
+              "signal": "PI_RET_5",
+              "scope": "BOTH",
+              "note": "Pi CM4 TDM8 return channel 5 - PW-DECIDED 2026-08-23"
+            },
+            {
+              "slot": 7,
+              "signal": "PI_RET_6",
+              "scope": "BOTH",
+              "note": "Pi CM4 TDM8 return channel 6 - PW-DECIDED 2026-08-23"
             }
           ]
         },
