@@ -155,6 +155,11 @@ CM4's single I2S port via `rtl/dsp4_pcm_reframe.v`, which re-frames I2S
 ↔ TDM8 in both directions. The CM4 is the I2S **slave**; LOGIC masters
 `pcm_clk` (3.072 MHz) and `pcm_fs` (48 kHz).
 
+**Status: HUB-ACCEPTED 2026-08-23, PW TO RATIFY.** PW required a stereo
+send and return and said "you can choose most convenient slots"; the
+specific choice of `B_O3` slots 2/3 is therefore mine and the hub's, not
+PW's, and is recorded as provisional until ratified.
+
 **Why B_O3 slots 2/3 for the return**
 
 - `B_O3` is the emptiest TDM8 output lane: only slots 0/1 were allocated
@@ -228,3 +233,65 @@ the DSP's native TDM8 frame at mask-selected slots, instead of LOGIC
 re-framing 2-slot I2S ↔ TDM8 in `dsp4_pcm_reframe.v`. The clkgen already
 produces TDM8 BCK/FS. That is a genuine simplification available for rev-D
 — not required, and not done here.
+
+### TDM8 on the CM4/DSP interface — YES, and what it takes
+
+**PW asks for TDM8 on the CM4/DSP interface to carry USB audio, Bluetooth
+and margin. It is achievable — 8 channels each way — but not with a
+device-tree overlay alone.**
+
+**The `channels_max = 2` in `bcm2835-i2s` is a conservative DEFAULT, not a
+hardware limit.** The proof is in the tree: `audioinjector-octo-soundcard.c`
+raises it at stream start and puts it back on shutdown —
+
+```c
+asoc_rtd_to_cpu(rtd, 0)->driver->playback.channels_min = 8;
+asoc_rtd_to_cpu(rtd, 0)->driver->playback.channels_max = 8;
+asoc_rtd_to_cpu(rtd, 0)->driver->capture.channels_min  = 8;
+```
+
+— and that card runs 8 channels on the same SoC. So the earlier reading of
+"two channels, full stop" was wrong in an important way: two is what
+`simple-audio-card` can reach, not what the silicon can.
+
+**What it costs: a small machine driver.** `simple-audio-card` has no way
+to raise the cap, which is exactly why the Octo has a bespoke driver. For
+DSP4 that means roughly 120 lines modelled on the Octo card, plus a DT
+overlay, built as a DKMS module. Kernel headers are already installed on
+the bench CM4 (`/lib/modules/6.18.34+rpt-rpi-v8/build`), so it builds
+in place.
+
+**The frame maths lands exactly on what LOGIC already generates:**
+
+    8 slots x 32 bit = 256 BCK per frame
+    256 x 48 kHz     = 12.288 MHz BCK
+
+which is `bck8`/`fs8` — the DSP's own TDM8 clock pair, already produced by
+`dsp4_clkgen.v`. So the CM4 would join the **DSP's native TDM8 frame
+directly**, and `dsp4_pcm_reframe.v`'s I2S↔TDM8 re-framing for the Pi path
+could be **deleted rather than extended**. That is a simplification, not
+an addition.
+
+**Slot budget then matches the ask exactly** — 8 slots each way:
+
+| use | slots | note |
+|---|---|---|
+| USB 2-track play / rec | 2 | today's `PI_PCM` / `PI_RET` |
+| Bluetooth play | 2 | the thing that could not fit before |
+| spare | 4 | margin for extra functions |
+
+**Honest status.** This is **not yet measured on this hardware.** The
+evidence is the Octo driver doing it on the same SoC plus the driver source
+showing no hardware barrier — strong, but not the same as having run it
+here. The prototype step is: write the machine driver, load it, and show
+`arecord`/`aplay` accepting `-c 8` with the counter test intact. Until
+that is done this stays a supported plan rather than a proven capability.
+
+**Consequences if adopted**
+
+- The Pi's send/return slot allocation should be revisited: with the CM4 on
+  a TDM8 lane of its own, `PI_RET` need not sit on `B_O3` at all.
+- The machine driver is a maintained artefact — it needs DKMS and will need
+  rebuilding across kernel updates. Without it loaded the card falls back
+  to two channels.
+- `cm4-setup-pi.sh` gains the module build, not just an overlay line.

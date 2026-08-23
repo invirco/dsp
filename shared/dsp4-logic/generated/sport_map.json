@@ -1,6 +1,6 @@
 {
   "generated_by": "shared/dsp4-logic/gen_slot_map.py",
-  "source_hash": "1507e8813e3db2bb6a006ed224318c880fac0e21dffeb891b304a9427b711307",
+  "source_hash": "4868ae9d9c30ad19771b6438fb5153d8d464a0caed05412b736a65d257619c89",
   "sport_convention": "sport_id = DAI port index; I ports are RX, O ports are TX; chip1=DSPA, chip2=DSPB",
   "timing": {
     "sample_edge": "rising",
@@ -1356,13 +1356,13 @@
               "slot": 2,
               "signal": "PI_RET_L",
               "scope": "BOTH",
-              "note": "Pi CM4 stereo return L (LOGIC de-frames to pcm_din) - USB 2-track REC source"
+              "note": "Pi CM4 stereo return L (LOGIC de-frames to pcm_din) - USB 2-track REC source - HUB-ACCEPTED 2026-08-23 PW TO RATIFY"
             },
             {
               "slot": 3,
               "signal": "PI_RET_R",
               "scope": "BOTH",
-              "note": "Pi CM4 stereo return R - USB 2-track REC source"
+              "note": "Pi CM4 stereo return R - USB 2-track REC source - HUB-ACCEPTED 2026-08-23 PW TO RATIFY"
             }
           ]
         },

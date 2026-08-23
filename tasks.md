@@ -774,8 +774,13 @@ matrix-app running + 3 MCUs verified; single trunk; no AI attribution.
 When done or blocked, continue straight into the next QUEUED block.
 
 
-**PRODUCT REQUIREMENT 2026-08-23 (PW): CM4 stereo send + return = the USB
-2-track path.** Allocated and implemented:
+**CM4 stereo send + return = the USB 2-track path.** The *requirement* is
+PW's ("on final product cm4 pi needs a stereo send and return to dsp", plus
+"this same stereo path is the source/sink for USB 2-track audio play/rec").
+**The slot allocation below is NOT PW's — PW said "you can choose most
+convenient slots". It is HUB-ACCEPTED 2026-08-23, PW TO RATIFY.** It is
+sensible on the face of it (no PCB change, no new pin) but it has not been
+ratified:
 
 | direction | line | slots | signal | USB role |
 |---|---|---|---|---|
