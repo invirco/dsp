@@ -40,6 +40,19 @@ module dsp4_pcm_reframe #(
     // where that lane becomes the real main DAC.
     parameter integer CAP_SLOT_L = 2,
     parameter integer CAP_SLOT_R = 3,
+    // PI_TDM8 = 1 runs the CM4 link at 4x rate so it carries EIGHT
+    // channels each way instead of two.
+    //
+    // The BCM2711 PCM block can only place two channels in a frame
+    // (Broadcom peripherals sec.8; bcm2835_i2s_hw_params only ever writes
+    // CH1_POS/CH2_POS), so eight channels cannot be had by lengthening
+    // the frame. They CAN be had by shortening it: 2 x 32 bits at a
+    // 192 kHz frame rate is 12.288 MHz -- the same bit rate as TDM8 at
+    // 48 kHz -- so four Pi frames fit inside one DSP TDM8 frame and carry
+    // its eight slots. The Pi runs -c 2 -r 192000 and interleaves eight
+    // logical 48 kHz channels; LOGIC does the re-framing, as it already
+    // does today.
+    parameter integer PI_TDM8 = 0,
     // Extra BCK periods of delay on the capture launch, on top of
     // PCM_DATA_DELAY. MEASURED, not guessed: with 0, the CM4 recorded
     // 0xB4B40000 / 0xB4B40002 where the DSP was transmitting
@@ -68,98 +81,145 @@ module dsp4_pcm_reframe #(
 
     // ---- PCM clock generation: BCK = sysclk/16, LRCLK = frame ----
     // frame_pos[3:0] counts the 16 sysclk per PCM BCK; [9:4] = 64 BCK.
+    // In PI_TDM8 the Pi runs a 64-BCK frame at 12.288 MHz (192 kHz frame
+    // rate): pcm_clk = sysclk/4, and frame_pos[7] is a 50% 192 kHz sync.
+    // Four of those frames tile one 48 kHz DSP frame, selected by
+    // frame_pos[9:8].
     always @(posedge sysclk) begin
-        pcm_clk <= ~frame_pos[3];
-        // LRCLK: low = left = first half of frame (I2S convention)
-        if (frame_pos[3:0] == 4'b1000)          // PCM BCK falling launch
-            pcm_fs <= frame_pos[9];              // low first half
+        if (PI_TDM8) begin
+            pcm_clk <= ~frame_pos[1];
+            if (frame_pos[1:0] == 2'b10)        // BCK falling launch
+                pcm_fs <= frame_pos[7];
+        end else begin
+            pcm_clk <= ~frame_pos[3];
+            // LRCLK: low = left = first half of frame (I2S convention)
+            if (frame_pos[3:0] == 4'b1000)      // PCM BCK falling launch
+                pcm_fs <= frame_pos[9];          // low first half
+        end
     end
+
+    // Launch/sample strobes and the word position within the Pi frame,
+    // chosen by mode so the datapaths below can stay common.
+    wire pi_launch = PI_TDM8 ? (frame_pos[1:0] == 2'b10)
+                             : (frame_pos[3:0] == 4'b1000);
+    wire pi_sample = PI_TDM8 ? (frame_pos[1:0] == 2'b00)
+                             : (frame_pos[3:0] == 4'b0000);
+    wire [5:0] pi_word_pos = PI_TDM8 ? frame_pos[7:2] : frame_pos[9:4];
+    wire [1:0] pi_subframe = frame_pos[9:8];   // which Pi frame in the DSP frame
     // PCM BCK rising edge lands at frame_pos[3:0]==1; sampling one
     // sysclk early keeps the capture in the same BCK period while the
     // Pi's data has been stable for 7 sysclk (~142 ns) since its
     // falling-edge launch.
     wire pcm_bck_sample = (frame_pos[3:0] == 4'b0000); // BCK rising
 
-    // ---- Capture path: DSPB TDM8 slot -> Pi I2S (pcm_din) ----
+    // ---- Capture path: DSPB TDM8 slots -> Pi (pcm_din) ----
     //
     // PRODUCT FEATURE, built in every configuration: the CM4 needs a
-    // stereo send AND return. The send already existed (Pi I2S -> TDM8
-    // A_I6 slots 0/1); this is the return. It costs no pin and no PCB
-    // change -- B_O3 is an existing DSPB output already routed to LOGIC
-    // as dac_main, and pcm_din is an existing net to Pi GPIO20.
+    // stereo send AND return. It costs no pin and no PCB change -- B_O3
+    // is an existing DSPB output already routed to LOGIC as dac_main, and
+    // pcm_din is an existing net to Pi GPIO20.
     //
-    // The transmitter runs MFD = 1, so slot s bit b sits on the wire
-    // during TDM8 period (s*32 + b + 1) -- the same +1 the tdm_out path
-    // below applies to its launches. Undo it to index the incoming bit.
+    // All eight slots are captured regardless of mode; the mode only
+    // decides which pair is presented in a given Pi frame. In PI_TDM8 the
+    // four Pi frames of a DSP frame carry slots (0,1) (2,3) (4,5) (6,7),
+    // so the Pi sees all eight as a 192 kHz stereo stream.
+    //
+    // The transmitter runs MFD = 1, so slot s bit b is on the wire during
+    // period (s*32 + b + 1); undo that +1 to index the incoming bit.
     wire [7:0] in_period = frame_pos[9:2] - 8'd1;
     wire [2:0] in_slot   = in_period[7:5];
     wire [4:0] in_bit    = in_period[4:0];
 
-    reg [31:0] cap_sh_l, cap_sh_r;
-    reg [31:0] cap_l, cap_r;
+    // Flat 8x32 register file, NOT a Verilog array. A doubly-indexed
+    // array (slot, then bit) makes the MAX V flow try to infer memory the
+    // device does not have -- quartus_map segfaults after reporting
+    // "Cannot find Memory Initialization File ... for ROM instance".
+    // Flattened, the read is a plain 256:1 bit mux and the write a
+    // 32-bit slice at a slot-aligned offset. MAX V registers power up
+    // cleared, so no initialiser is needed (and an initialiser is itself
+    // enough to trigger the ROM inference).
+    reg [31:0]  cap_sh;
+    reg [255:0] cap_flat;
+
     always @(posedge sysclk) begin
         if (bck8_sample) begin
-            if (in_slot == CAP_SLOT_L[2:0]) begin
-                cap_sh_l <= {cap_sh_l[30:0], tdm_in};
-                if (in_bit == 5'd31) cap_l <= {cap_sh_l[30:0], tdm_in};
-            end
-            if (in_slot == CAP_SLOT_R[2:0]) begin
-                cap_sh_r <= {cap_sh_r[30:0], tdm_in};
-                if (in_bit == 5'd31) cap_r <= {cap_sh_r[30:0], tdm_in};
-            end
+            cap_sh <= {cap_sh[30:0], tdm_in};
+            if (in_bit == 5'd31)
+                cap_flat[{in_slot, 5'd0} +: 32] <= {cap_sh[30:0], tdm_in};
         end
     end
 
-    // Launch on the PCM BCK FALLING edge (frame_pos[3:0]==8, the same
-    // cycle pcm_clk goes low) so the Pi samples mid-bit on the rising
-    // edge, a half BCK period (~163 ns) later.
-    wire [5:0] out_word_pos = frame_pos[9:4]
+    wire [2:0] sel_l = PI_TDM8 ? {pi_subframe, 1'b0} : CAP_SLOT_L[2:0];
+    wire [2:0] sel_r = PI_TDM8 ? {pi_subframe, 1'b1} : CAP_SLOT_R[2:0];
+
+    // Launch on the PCM BCK FALLING edge so the Pi samples mid-bit on the
+    // rising edge. CAP_EXTRA_DELAY is measured, not guessed -- see its
+    // declaration.
+    wire [5:0] out_word_pos = pi_word_pos
                             - PCM_DATA_DELAY[5:0] - CAP_EXTRA_DELAY[5:0];
+    // Hoisted out of the index expression: a ternary inside a
+    // concatenation used as a bit select does not bind in all tools.
+    wire [2:0] cap_sel = out_word_pos[5] ? sel_r : sel_l;
+    wire [4:0] cap_bit = 5'd31 - out_word_pos[4:0];
+    wire [7:0] cap_idx = {cap_sel, cap_bit};
+
     reg  pcm_din_r;
     always @(posedge sysclk) begin
-        if (frame_pos[3:0] == 4'b1000)
-            pcm_din_r <= out_word_pos[5]
-                       ? cap_r[5'd31 - out_word_pos[4:0]]
-                       : cap_l[5'd31 - out_word_pos[4:0]];
+        if (pi_launch)
+            pcm_din_r <= cap_flat[cap_idx];
     end
     assign pcm_din = pcm_din_r;
 
-    // ---- I2S capture: one shift register + two holding registers ----
-    // LRCLK goes LOW at the falling edge of BCK period 0 and HIGH at the
-    // falling edge of period 32, so with the MSB delayed PCM_DATA_DELAY
-    // periods the words are complete at:
-    //   left  : period PCM_DATA_DELAY + 32
-    //   right : period PCM_DATA_DELAY (of the FOLLOWING frame)
-    localparam [5:0] LEFT_DONE  = PCM_DATA_DELAY + 32;
-    localparam [5:0] RIGHT_DONE = PCM_DATA_DELAY;
+    // ---- Pi -> LOGIC: de-frame the Pi's I2S into TDM8 slots ----
+    // The word boundaries sit PCM_DATA_DELAY periods after the frame
+    // sync, so within a Pi frame the left word completes at
+    // PCM_DATA_DELAY+31 and the right at PCM_DATA_DELAY+63. The latter
+    // wraps past the end of the frame, which is why the subframe index in
+    // force when the LEFT word completed is held and reused for the
+    // right -- by then pi_subframe has already moved on.
+    // Word-complete positions, unchanged from the two-channel design:
+    //   left  : PCM_DATA_DELAY + 32
+    //   right : PCM_DATA_DELAY, of the FOLLOWING frame
+    // The right word therefore lands after pi_subframe has already moved
+    // on, so it is written to the PREVIOUS subframe's odd slot.
+    localparam [5:0] LEFT_DONE  = PCM_DATA_DELAY[5:0] + 6'd32;
+    localparam [5:0] RIGHT_DONE = PCM_DATA_DELAY[5:0];
 
-    reg [31:0] shift;
-    reg [31:0] left_q, right_q;      // captured previous frame
+    reg [31:0]  shift;
+    reg [255:0] pw_flat;             // de-framed Pi words, by TDM8 slot
+    wire [1:0] sub_prev = pi_subframe - 2'd1;
+    wire [2:0] pw_sel_l = PI_TDM8 ? {pi_subframe, 1'b0} : 3'd0;
+    wire [2:0] pw_sel_r = PI_TDM8 ? {sub_prev,    1'b1} : 3'd1;
+
     always @(posedge sysclk) begin
-        if (pcm_bck_sample) begin
+        if (pi_sample) begin
             shift <= {shift[30:0], pcm_dout};
-            if (frame_pos[9:4] == LEFT_DONE)
-                left_q <= {shift[30:0], pcm_dout};
-            if (frame_pos[9:4] == RIGHT_DONE)
-                right_q <= {shift[30:0], pcm_dout};
+            if (pi_word_pos == LEFT_DONE)
+                pw_flat[{pw_sel_l, 5'd0} +: 32] <= {shift[30:0], pcm_dout};
+            if (pi_word_pos == RIGHT_DONE)
+                pw_flat[{pw_sel_r, 5'd0} +: 32] <= {shift[30:0], pcm_dout};
         end
     end
 
-    // ---- TDM8 output: slots 0/1 carry L/R, slots 2-7 zero ----
-    // TDM8 frame: 256 BCK8 periods = frame_pos[9:2]; 8 slots x 32 bits,
-    // so slot = period[7:5] and bit = period[4:0]. The launch at period
-    // P drives the bit the DSP samples in period P+1 (MFD=1, see header).
+    // ---- TDM8 output toward DSPA I6 ----
+    // 8 slots x 32 bits over frame_pos[9:2]; slot = period[7:5],
+    // bit = period[4:0]. The launch at period P drives the bit the DSP
+    // samples at P+1 (MFD = 1), hence the +1.
+    //
+    // In PI_TDM8 every slot carries Pi audio. Otherwise only slots 0/1 do
+    // and the rest are silent, exactly as before.
     wire [7:0] out_period = frame_pos[9:2] + 8'd1;
     wire [2:0] slot   = out_period[7:5];
     wire [4:0] bit_ix = out_period[4:0];
+    wire [4:0] tdm_bit = 5'd31 - bit_ix;
+    wire [7:0] tdm_idx = {slot, tdm_bit};
 
     always @(posedge sysclk) begin
         if (bck8_launch) begin
-            case (slot)
-                3'd0: tdm_out <= left_q[5'd31 - bit_ix];
-                3'd1: tdm_out <= right_q[5'd31 - bit_ix];
-                default: tdm_out <= 1'b0;
-            endcase
+            if (PI_TDM8 || slot < 3'd2)
+                tdm_out <= pw_flat[tdm_idx];
+            else
+                tdm_out <= 1'b0;
         end
     end
 

@@ -133,7 +133,15 @@ module dsp4_logic_top (
 
     // ---- Pi PCM re-framer -> DSPA I6 ----
     wire pcm_tdm;
+    // DSP4_PI_TDM8 runs the CM4 link at 4x rate so it carries eight
+    // channels each way instead of two -- see dsp4_pcm_reframe.v. It is a
+    // build-time evaluation switch, not a shipping default, until the
+    // eight-channel path is proven on hardware.
+`ifdef DSP4_PI_TDM8
+    dsp4_pcm_reframe #(.PI_TDM8(1)) u_pcm (
+`else
     dsp4_pcm_reframe u_pcm (
+`endif
         .sysclk      (sysclk),
         .frame_pos   (frame_pos),
         .pcm_clk     (pcm_clk),
@@ -152,7 +160,15 @@ module dsp4_logic_top (
         // XIN_PI -> XS_XFER -> inter-chip -> C2_XR_PI -> C2_PI_IN ->
         // MIX_MAIN -> MAIN_FDR -> MAIN_DLY -> MAIN_ST_OUT. Lane 0 slots
         // 0/1 are AUX_OUT_01/02 and carry nothing in a pass-through.
+`ifdef DSP4_PI_TDM8
+        // EVALUATION: lane 0 is the only DSPB output the DSP4_PATTERN
+        // firmware drives on ALL EIGHT slots (c2_tx cs_mask 0x00FF), so
+        // it is the one that can prove eight distinct channels arriving.
+        // The product capture stays on o_dspb[3] below.
+        .tdm_in      (o_dspb[0]),
+`else
         .tdm_in      (o_dspb[3]),
+`endif
         .tdm_out     (pcm_tdm)
     );
 

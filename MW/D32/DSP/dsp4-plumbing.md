@@ -279,7 +279,61 @@ channels. But `hw_params` still only programs CH1/CH2, so **the mechanism
 is not explained by the code read so far** — recorded as an open question,
 not a plan. Worth investigating only if Route A fails.
 
+#### PROVEN ON HARDWARE 2026-08-23 — 8 of 8 channels
+
+Route A measured end to end. The `DSP4_PATTERN` firmware puts a word
+naming its own position in every TDM8 slot; the evaluation bitstream taps
+DSPB lane 0, whose eight slots are all driven; the CM4 captured at
+192 kHz stereo:
+
+    0x5A5A0000 .. 0x5A5A0007   96000 words each, 12.5% each
+    distinct pattern SLOTS seen: [0, 1, 2, 3, 4, 5, 6, 7]
+    RESULT: 8 of 8 slots reached the Pi
+
+Exactly one eighth per slot, so nothing is dropped or duplicated. At
+48 kHz this capture could only ever have shown two of the eight — that is
+what makes it a proof rather than a plausibility check.
+
+Artefacts: `dsp4_logic_loopback.e1530dc70431` (PI_TDM8 evaluation),
+firmware `DSP4_PATTERN=1 DSP4_BLOCK_MASK=0`.
+
+#### Why LOGIC bridges it, and why the CM4 and DSP cannot just talk directly
+
+**It is not codecing.** No sample-format conversion happens — the 32-bit
+words pass through untouched, as the bit-exact result shows. What LOGIC
+does is *frame regrouping*: it gathers four consecutive 2-channel Pi
+frames into one 8-slot DSP frame, and splits the other way.
+
+**The two devices want structurally different frames, and neither can
+adopt the other's:**
+
+- The CM4 cannot adopt the DSP's. Its PCM block places **two channels per
+  frame** (Broadcom §8; `bcm2835_i2s_hw_params` only ever writes
+  `CH1_POS`/`CH2_POS`). Put it on the DSP's 8-slot 48 kHz frame and it
+  occupies two slots — measured, `CHANNELS: 2`. Eight channels *require*
+  four Pi frames per DSP frame.
+- The DSP could in principle adopt the CM4's — a SPORT can run 2 slots at
+  192 kHz — but then that lane's framing differs from every other lane in
+  the system (all TDM8/48 kHz), and the 4:1 regrouping moves into DSP
+  software. The DSP is currently **6.6× over its per-block cycle budget**
+  (`dsp4-cycle-budget.md`), so spending core cycles to save CPLD registers
+  is the wrong trade today.
+
+So something has to bridge, and LOGIC is the cheapest place: it already
+masters every clock in the system and the work is pure registers.
+
+**Cost, measured:** the 8-channel re-framing takes the CPLD from 312 to
+**738 / 1270 LE (58%)**, Fmax 62.18 MHz against the 49.152 MHz
+requirement. That is ~426 LE for 8×32 capture plus 8×32 playback registers
+and their muxes.
+
+**Part consequence:** 738 LE **cannot fit the 5M570Z at all** (570 LE).
+If the 8-channel CM4 link is adopted, the 5M1270Z is mandatory — which
+reinforces, on a second independent ground, the timing failure already
+recorded for the 570Z.
+
 #### What this means for the ask
+
 
 USB 2-track + Bluetooth + margin needs 4–6 channels; Route A supplies 8
 with no kernel work. The Pi's wire is deliberately *not* the DSP's TDM8

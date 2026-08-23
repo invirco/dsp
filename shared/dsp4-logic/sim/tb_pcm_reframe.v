@@ -84,15 +84,15 @@ module tb_pcm_reframe;
         u_pcm_a.pcm_clk = 1'b0;
         u_pcm_a.pcm_fs  = 1'b0;
         u_pcm_a.shift   = 32'd0;
-        u_pcm_a.left_q  = 32'd0;
-        u_pcm_a.right_q = 32'd0;
-        u_pcm_a.tdm_out = 1'b0;
+        u_pcm_a.pw_flat  = 256'd0;
+        u_pcm_a.cap_flat = 256'd0;
+        u_pcm_a.tdm_out  = 1'b0;
         u_pcm_b.pcm_clk = 1'b0;
         u_pcm_b.pcm_fs  = 1'b0;
         u_pcm_b.shift   = 32'd0;
-        u_pcm_b.left_q  = 32'd0;
-        u_pcm_b.right_q = 32'd0;
-        u_pcm_b.tdm_out = 1'b0;
+        u_pcm_b.pw_flat  = 256'd0;
+        u_pcm_b.cap_flat = 256'd0;
+        u_pcm_b.tdm_out  = 1'b0;
     end
 
     integer errors = 0;

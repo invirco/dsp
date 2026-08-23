@@ -32,6 +32,8 @@ fi
 # `ifdef DSP4_LOOPBACK). It is labelled dsp4_logic_loopback.<hash> so it
 # can never be confused with a shipping artifact, and the define is part
 # of the hash input so the two never collide.
+# PI_TDM8=1 adds the eight-channel CM4 link evaluation mode (4x frame
+# rate). Combines with LOOPBACK; both are non-shipping.
 if [ "${LOOPBACK:-0}" = "1" ]; then
     MACRO_ARG=(--verilog_macro=DSP4_LOOPBACK=1)
     NAME="dsp4_logic_loopback"
@@ -39,6 +41,13 @@ if [ "${LOOPBACK:-0}" = "1" ]; then
 else
     MACRO_ARG=()
     NAME="dsp4_logic"
+fi
+
+# PI_TDM8=1 adds the eight-channel CM4 link evaluation mode (4x frame
+# rate on the Pi side). Non-shipping; combines with LOOPBACK.
+if [ "${PI_TDM8:-0}" = "1" ]; then
+    MACRO_ARG+=(--verilog_macro=DSP4_PI_TDM8=1)
+    echo "*** PI_TDM8 EVALUATION BUILD (CM4 link at 4x rate, 8 channels) ***" >&2
 fi
 
 SRC_HASH=$(cat \
