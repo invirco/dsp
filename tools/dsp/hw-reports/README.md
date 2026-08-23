@@ -28,6 +28,13 @@ Errors are worst absolute difference in Q4.28 LSB against `fixed_ref` with
 the DSP's own float32 parameter conversions modelled. Where a family also
 has a dB or timing spec, the report carries it.
 
+**Re-verified on the current image, 2026-08-23** (`dffca40`, after the
+biquad and compressor fixes and the SPI poll change): EQ 9 vectors, COMP 7
+levels and GATE 7 levels all re-run at **0 LSB**. The earlier families were
+measured on builds predating the poll change, so this confirms the results
+hold on the build that carries all the fixes rather than on the builds they
+were found with.
+
 ## Defects this run has found
 
 | defect | family | fix |
