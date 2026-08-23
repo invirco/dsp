@@ -31,6 +31,7 @@ SCOPE_MODE, SCOPE_ARM, SCOPE_RD = 0xE0E3, 0xE0E4, 0xE0E5
 SCOPE_DATA, SCOPE_LEN = 0xE0E6, 0xE0E7
 SCOPE_RUNS, SCOPE_IDX = 0xE0E8, 0xE0E9
 CS_GPIO = {1: 6, 2: 24}
+RDY_GPIO = {1: 8, 2: 12}
 SETTLE = 0.002     # three audio block periods; see Scope.rd
 SCOPE_MAX = 1024   # buffer capacity; the REGISTER is SCOPE_LEN above
 
@@ -39,8 +40,25 @@ class Scope:
     def __init__(self, chip, symfile=None):
         self.chip = chip
         self.sym = json.load(open(symfile or 'chip%d.sym.json' % chip))
-        self.d = DiagLink(SpiLink('0.0', 1_000_000, CS_GPIO[chip]))
+        # RDY GPIO is per chip and MUST be passed: without it SpiLink
+        # defaults to chip 1's line, and a Scope(2) then answers as chip 1
+        # while being read with chip 2's symbol addresses. Bench
+        # 2026-08-23: DIAG_CHIP_ID read 1 from a Scope(2), and a whole
+        # chip-2 chain walk read as dead because of it.
+        self.d = DiagLink(SpiLink('0.0', 1_000_000, CS_GPIO[chip],
+                                  rdy_gpio=RDY_GPIO[chip]))
         self.d.resync()
+
+    def check_chip(self):
+        """Refuse to measure the wrong part. dsp4_boot.py can silently leave
+        chip 2 running chip 1's firmware, and a mis-addressed link answers
+        as chip 1 regardless -- either way every symbol address is then
+        wrong and the capture is fiction."""
+        got = self.rd(0xE001)
+        if got != self.chip:
+            raise SystemExit('link answers as CHIP %d, expected %d — '
+                             'wrong CS/RDY or chip 2 is running chip 1 firmware'
+                             % (got, self.chip))
 
     def addr(self, name):
         if name.startswith('0x'):
@@ -158,21 +176,29 @@ class Scope:
         raise IOError('scope would not arm (run counter never advanced)')
 
     def wait(self, timeout=5.0):
-        """Wait on the sample INDEX, not on ARM.
+        """Wait for the buffer to fill, polling the sample INDEX.
 
-        ARM is the one live value here: the buffer fills in ~21 ms, far
-        faster than a read, so ARM is almost always already back to 0 and
-        voting on it just races (measured {1:1, 0:7} in one read). The
-        index is static once the run ends, so it votes cleanly and it also
-        says whether the capture completed or was cut short.
+        Deliberately does NOT use the voting read: while a capture is in
+        flight the index is a MOVING value and no two reads agree, so
+        voting throws instead of waiting (bench 2026-08-23, chip 2 caught
+        mid-fill: 0x3e, 0x5c, 0x74 ... all distinct). A single unvoted ask
+        is right here because a dropped answer reads as 0, which is simply
+        "not finished" and costs one more loop. The completed value is
+        confirmed twice, since by then the index is static.
+
+        ARM is not used: the buffer fills in ~21 ms, faster than a read,
+        so ARM is almost always already back to 0 and says nothing.
         """
         end = time.time() + timeout
+        n = 0
         while time.time() < end:
-            n = self.rd(SCOPE_IDX)
-            if n >= SCOPE_MAX:
-                return True
-            time.sleep(0.05)
-        raise IOError('capture stalled at %d of %d samples' % (n, SCOPE_MAX))
+            v = self._ask(SCOPE_IDX)
+            if v is not None and v >= SCOPE_MAX:
+                if self._ask(SCOPE_IDX) == v:      # static now: confirm
+                    return True
+            n = v if v is not None else n
+            time.sleep(0.02)
+        raise IOError('capture stalled at %s of %d samples' % (n, SCOPE_MAX))
 
     def fetch(self, n):
         out = []

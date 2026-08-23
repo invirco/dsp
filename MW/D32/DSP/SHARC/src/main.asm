@@ -676,11 +676,22 @@ _start:
      * ARM write silently returned the PREVIOUS capture, which made a
      * working signal chain read as dead at the first node.
      *
-     * 48 kHz gives 48000 polls/s, well clear of any burst the host can
-     * produce, and the busy guard inside _spi_poll makes the extra calls
-     * nearly free when nothing is pending. */
+     * Every 8th sample, not every sample: 6000 polls/s is still far above
+     * any burst the host can produce, at an eighth of the cost. Polling
+     * on EVERY sample was too expensive for CHIP 2 -- after CONFIG_COMMIT
+     * it stopped restamping _diag_boot_stage (BOOT_STAGE read 0, link
+     * intermittent), the signature of a main loop that can no longer
+     * finish a block. Chip 1 carried it fine, and chip 1 was the only one
+     * being checked, which is how it went unnoticed for four families. */
 #if !DSP4_POLL_ISR_ONLY
+    r0 = dm(_sample_idx);
+    r1 = 7;
+    r0 = r0 AND r1;
+    r1 = 0;
+    comp(r0, r1);
+    if ne jump (pc, .skip_poll_c1);
     call _spi_poll;
+.skip_poll_c1:
 #endif
 
     /* Gather: output slot variables → IC TX DMA buffer */
@@ -770,11 +781,22 @@ _start:
      * ARM write silently returned the PREVIOUS capture, which made a
      * working signal chain read as dead at the first node.
      *
-     * 48 kHz gives 48000 polls/s, well clear of any burst the host can
-     * produce, and the busy guard inside _spi_poll makes the extra calls
-     * nearly free when nothing is pending. */
+     * Every 8th sample, not every sample: 6000 polls/s is still far above
+     * any burst the host can produce, at an eighth of the cost. Polling
+     * on EVERY sample was too expensive for CHIP 2 -- after CONFIG_COMMIT
+     * it stopped restamping _diag_boot_stage (BOOT_STAGE read 0, link
+     * intermittent), the signature of a main loop that can no longer
+     * finish a block. Chip 1 carried it fine, and chip 1 was the only one
+     * being checked, which is how it went unnoticed for four families. */
 #if !DSP4_POLL_ISR_ONLY
+    r0 = dm(_sample_idx);
+    r1 = 7;
+    r0 = r0 AND r1;
+    r1 = 0;
+    comp(r0, r1);
+    if ne jump (pc, .skip_poll_c2);
     call _spi_poll;
+.skip_poll_c2:
 #endif
 
     /* Gather: output slot variables → DAC TX DMA buffer */
