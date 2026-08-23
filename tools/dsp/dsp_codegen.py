@@ -6352,12 +6352,29 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
             f.write(f'_{chip_label}_process_all:\n')
             if chip_label == 'chip1':
                 f.write(f'    call _bus_clear_all;    /* zero all bus accumulators */\n')
-            # DSP4_NODE_LIMIT bisects the chain: 0 (default) runs every
-            # node, N runs only the first N. One node in this list wedges
-            # the core, and a flat list of several hundred calls is not
-            # something you can bisect without a knob like this.
+            # Two orthogonal knobs on this chain, both default-off.
+            #
+            # DSP4_NODE_LIMIT is a raw PREFIX cut: 0 runs every node, N
+            # runs the first N. It is a bisect tool -- it will happily cut
+            # the chain in the middle of a strip, and it removes the bus
+            # and send nodes at the tail, so the audio it produces is not
+            # meaningful.
+            #
+            # DSP4_STRIPS keeps the graph FUNCTIONAL: it drops whole
+            # channel strips (IN GAIN FILT EQ GATE COMP TUBE DLY FDR RTG)
+            # beyond the first N, while keeping every bus, send, cross-in
+            # and transfer node. That is what a real-time-at-1x graph
+            # needs, because the strips are what the budget cannot afford
+            # and the buses are what the signal still has to flow through.
+            strip_re = re.compile(
+                r'^C\d+_(IN|GAIN|FILT|EQ|GATE|COMP|TUBE|DLY|FDR|RTG)_(\d+)$')
             for idx, nid in enumerate(call_sequence):
-                f.write(f'#if DSP4_NODE_LIMIT == 0 || {idx} < DSP4_NODE_LIMIT\n')
+                guards = [f'DSP4_NODE_LIMIT == 0 || {idx} < DSP4_NODE_LIMIT']
+                m = strip_re.match(nid)
+                if m:
+                    strip = int(m.group(2)) - 1
+                    guards.append(f'DSP4_STRIPS == 0 || {strip} < DSP4_STRIPS')
+                f.write('#if (' + ') && ('.join(guards) + ')\n')
                 f.write(f'    call _{nid}_process;\n')
                 f.write(f'#endif\n')
             f.write(f'    rts;\n')

@@ -27,7 +27,12 @@
 // model_tdm_rx (sim/tb_pcm_reframe.v).
 
 module dsp4_pcm_reframe #(
-    parameter integer PCM_DATA_DELAY = 1     // 1 = I2S, 0 = left-justified
+    parameter integer PCM_DATA_DELAY = 1,    // 1 = I2S, 0 = left-justified
+    // Which TDM8 slots of tdm_in are de-framed to the Pi's L/R channels.
+    // Bring-up only: the capture path is compiled in solely for the
+    // DSP4_LOOPBACK build, so the shipping bitstream is unchanged.
+    parameter integer CAP_SLOT_L = 0,
+    parameter integer CAP_SLOT_R = 1
 ) (
     input  wire        sysclk,       // 49.152 MHz
     input  wire [9:0]  frame_pos,    // from dsp4_clkgen (1024/frame)
@@ -40,6 +45,8 @@ module dsp4_pcm_reframe #(
 
     // TDM8 line toward DSPA I6 (launched with the TDM8 clock role)
     input  wire        bck8_launch,  // sysclk strobe of BCK8 falling edge
+    input  wire        bck8_sample,  // sysclk strobe of BCK8 rising edge
+    input  wire        tdm_in,       // TDM8 line to de-frame toward the Pi
     output reg         tdm_out
 );
 
@@ -57,7 +64,49 @@ module dsp4_pcm_reframe #(
     // falling-edge launch.
     wire pcm_bck_sample = (frame_pos[3:0] == 4'b0000); // BCK rising
 
-    assign pcm_din = 1'b0;   // capture path to the Pi: future work
+    // ---- Capture path: DSPB TDM8 slot -> Pi I2S (pcm_din) ----
+    //
+    // `ifdef DSP4_LOOPBACK only. The shipping build keeps pcm_din tied
+    // low exactly as before, so this cannot change what ships.
+    //
+    // The transmitter runs MFD = 1, so slot s bit b sits on the wire
+    // during TDM8 period (s*32 + b + 1) -- the same +1 the tdm_out path
+    // below applies to its launches. Undo it to index the incoming bit.
+`ifdef DSP4_LOOPBACK
+    wire [7:0] in_period = frame_pos[9:2] - 8'd1;
+    wire [2:0] in_slot   = in_period[7:5];
+    wire [4:0] in_bit    = in_period[4:0];
+
+    reg [31:0] cap_sh_l, cap_sh_r;
+    reg [31:0] cap_l, cap_r;
+    always @(posedge sysclk) begin
+        if (bck8_sample) begin
+            if (in_slot == CAP_SLOT_L[2:0]) begin
+                cap_sh_l <= {cap_sh_l[30:0], tdm_in};
+                if (in_bit == 5'd31) cap_l <= {cap_sh_l[30:0], tdm_in};
+            end
+            if (in_slot == CAP_SLOT_R[2:0]) begin
+                cap_sh_r <= {cap_sh_r[30:0], tdm_in};
+                if (in_bit == 5'd31) cap_r <= {cap_sh_r[30:0], tdm_in};
+            end
+        end
+    end
+
+    // Launch on the PCM BCK FALLING edge (frame_pos[3:0]==8, the same
+    // cycle pcm_clk goes low) so the Pi samples mid-bit on the rising
+    // edge, a half BCK period (~163 ns) later.
+    wire [5:0] out_word_pos = frame_pos[9:4] - PCM_DATA_DELAY[5:0];
+    reg  pcm_din_r;
+    always @(posedge sysclk) begin
+        if (frame_pos[3:0] == 4'b1000)
+            pcm_din_r <= out_word_pos[5]
+                       ? cap_r[5'd31 - out_word_pos[4:0]]
+                       : cap_l[5'd31 - out_word_pos[4:0]];
+    end
+    assign pcm_din = pcm_din_r;
+`else
+    assign pcm_din = 1'b0;   // capture path to the Pi: shipping ties it off
+`endif
 
     // ---- I2S capture: one shift register + two holding registers ----
     // LRCLK goes LOW at the falling edge of BCK period 0 and HIGH at the

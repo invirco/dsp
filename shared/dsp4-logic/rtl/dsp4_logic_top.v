@@ -141,6 +141,12 @@ module dsp4_logic_top (
         .pcm_dout    (pcm_dout),
         .pcm_din     (pcm_din),
         .bck8_launch (bck8_launch),
+        .bck8_sample (bck8_sample),
+        // Capture source for the Pi. In the loopback bring-up build this
+        // is a DSPB output lane, so the Pi can record what DSPB actually
+        // transmits; the shipping build ties pcm_din off inside the
+        // reframer and this input is unused.
+        .tdm_in      (o_dspb[0]),
         .tdm_out     (pcm_tdm)
     );
 

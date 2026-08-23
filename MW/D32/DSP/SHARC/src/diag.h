@@ -84,6 +84,11 @@
 #define DIAG_NOP             0xE0FE  /* W */
 #define DIAG_CLEAR           0xE0FF  /* W  write anything: zero the counters */
 
+/* Core-timer reload, in CCLK cycles. 491520 at the measured CCLK of
+ * 491.52 MHz is a 1 kHz diag tick. Shared: diag.asm programs TPERIOD
+ * with it and main.asm uses it to convert ticks to cycles. */
+#define DIAG_TPERIOD         491520
+
 #define DIAG_MAGIC_VALUE     0xD5B40001
 #define DIAG_BUILD_VALUE     0x20260812
 

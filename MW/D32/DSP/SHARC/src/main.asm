@@ -65,11 +65,37 @@
     | ((DSP4_STUB_POLY        & 0x1)   << 24)
     | ((DSP4_COMP_NOCVT       & 0x1)   << 25)
     | ((DSP4_BLOCK_DECIMATE   & 0x3F)  << 26);
+/* Second stamp word — the first is full. */
+.global _build_flags2;
+.var _build_flags2 = (DSP4_STRIPS & 0x3F);
 /* Non-zero while _spi_poll is running, so the 1 kHz tick cannot re-enter
  * a drain the main loop is already half way through. */
 .var _spi_poll_busy = 0;
 /* Block decimation counter — see DSP4_BLOCK_DECIMATE in the main loop. */
 .var _blk_decim = 0;
+
+/* Block-processing cost accounting, at CCLK resolution.
+ *
+ * TCOUNT counts core clocks down to 0 and reloads from TPERIOD, and the
+ * diag tick ISR fires on each reload. Combining the two gives the exact
+ * cycle cost of one block pass:
+ *
+ *   cycles = (ticks_end - ticks_start) * DIAG_TPERIOD
+ *          + (tcount_start - tcount_end)
+ *
+ * Exact per pass, so one sample is a measurement rather than a sample of
+ * a distribution -- which matters, because differencing 1 ms-quantised
+ * averages could not resolve a single node (about 4,700 cycles) against
+ * the noise of a 2,000-pass total. _proc_cyc is the last pass, _proc_cyc_max
+ * the worst seen. */
+.global _proc_cyc;
+.var _proc_cyc = 0;
+.global _proc_cyc_max;
+.var _proc_cyc_max = 0;
+.global _proc_passes;
+.var _proc_passes = 0;
+.var _proc_t0 = 0;
+.var _proc_c0 = 0;
 
 /* Sample index within current block (0..31) */
 .global _sample_idx;
@@ -605,6 +631,11 @@ _start:
     dm(_diag_boot_stage) = r0;
 
     /* ---- Block processing: 32 samples per block ---- */
+    r0 = dm(_diag_ticks);
+    dm(_proc_t0) = r0;
+    r0 = tcount;
+    dm(_proc_c0) = r0;
+
 #if CHIP_ID == 1
 
     /* ========== Chip 1 block loop ========== */
@@ -651,6 +682,26 @@ _start:
     call _meter_scan_chip1;
     r0 = 32;
     call _meter_decay_block;
+
+    /* cycles = ticks_elapsed * TPERIOD + (tcount_start - tcount_now) */
+    r2 = tcount;
+    r0 = dm(_diag_ticks);
+    r1 = dm(_proc_t0);
+    r0 = r0 - r1;
+    r1 = DIAG_TPERIOD;
+    r0 = r0 * r1 (SSI);
+    r1 = dm(_proc_c0);
+    r1 = r1 - r2;
+    r0 = r0 + r1;
+    dm(_proc_cyc) = r0;
+    r1 = dm(_proc_cyc_max);
+    comp(r0, r1);
+    if le jump (pc, .proc_nomax);
+    dm(_proc_cyc_max) = r0;
+.proc_nomax:
+    r0 = dm(_proc_passes);
+    r0 = r0 + 1;
+    dm(_proc_passes) = r0;
 
     jump (pc, .main_loop);
 
@@ -700,6 +751,26 @@ _start:
     call _meter_scan_chip2;
     r0 = 18;
     call _meter_decay_block;
+
+    /* cycles = ticks_elapsed * TPERIOD + (tcount_start - tcount_now) */
+    r2 = tcount;
+    r0 = dm(_diag_ticks);
+    r1 = dm(_proc_t0);
+    r0 = r0 - r1;
+    r1 = DIAG_TPERIOD;
+    r0 = r0 * r1 (SSI);
+    r1 = dm(_proc_c0);
+    r1 = r1 - r2;
+    r0 = r0 + r1;
+    dm(_proc_cyc) = r0;
+    r1 = dm(_proc_cyc_max);
+    comp(r0, r1);
+    if le jump (pc, .proc_nomax);
+    dm(_proc_cyc_max) = r0;
+.proc_nomax:
+    r0 = dm(_proc_passes);
+    r0 = r0 + 1;
+    dm(_proc_passes) = r0;
 
     jump (pc, .main_loop);
 

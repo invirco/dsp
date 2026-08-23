@@ -1,0 +1,7 @@
+artifact: dsp4_logic.70ccb93d7270.{pof,svf}
+SHIPPING: yes
+built: 2026-08-23T10:08:58Z
+slot_map: sha256:efd8d555440094b627345b5a84894f9e7a6b569056f4eccb417d42d6ce32182e
+sim_gate: PASS
+device: 5M1270ZT144C4
+fmax: 70.21 MHz

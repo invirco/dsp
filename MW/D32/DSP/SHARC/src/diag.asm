@@ -120,7 +120,8 @@
  * mean what they say in milliseconds. DIAG_TICKS is readable over SPI,
  * so the CM4 can confirm it: read TICKS, sleep a known wall-clock
  * second, read again. */
-#define DIAG_TPERIOD      491520
+/* DIAG_TPERIOD now lives in diag.h — main.asm needs it too, for the
+ * block-cost accounting (cycles = ticks * TPERIOD + tcount delta). */
 
 /* LED intervals, in ticks. Fault code = N flashes then a long gap. */
 #define DIAG_LED_ON       150
