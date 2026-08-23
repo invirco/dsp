@@ -711,7 +711,13 @@ static void spi2_init(void)
     REG32(REG_SPI2_CTL) = BITM_SPI_CTL_EN | ENUM_SPI_CTL_SIZE32 |
                           BITM_SPI_CTL_EMISO |
                           BITM_SPI_CTL_FCEN | BITM_SPI_CTL_FCPL |
+#if DSP4_FCWM == 0
+                          ENUM_SPI_CTL_FIFO0;   /* FCWM: RFIFO full   */
+#elif DSP4_FCWM == 2
+                          ENUM_SPI_CTL_FIFO2;   /* FCWM: RFIFO >= 50% */
+#else
                           ENUM_SPI_CTL_FIFO1;   /* FCWM: RFIFO >= 75% */
+#endif
 
     /* The transmit path is PROVEN (2026-08-22): priming SPI_TFIFO with a
      * sentinel made MISO return that sentinel instead of the constant
