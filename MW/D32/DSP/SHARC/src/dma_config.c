@@ -530,6 +530,38 @@ static void sec_route(uint32_t src)
  * security model to protect -- there is one core, one trust domain and
  * no non-secure software. SSEC (secure SLAVE, bit 0) is deliberately
  * NOT set, which would make peripherals refuse non-secure MMR access. */
+/* Clear the L2 delay-line memory before anything can read it.
+ *
+ * sec_delay / sec_delay_ovf are NO_INIT in the LDF and deliberately so:
+ * the boot stream carries -NoFillBlock, so every zero-initialised byte is
+ * really clocked into the part, and these two sections are ~1.7 MB of
+ * zeros between them -- enough to push chip 2 past the ~220 ms the DSP
+ * boot bus tolerates. The LDF says in as many words that firmware must
+ * clear them instead, and until now nothing did: the delay lines came up
+ * holding whatever was in L2 at power-on.
+ *
+ * That is not a cosmetic gap. The node graph indexes delay lines through
+ * DAG registers; a garbage index is an unmapped DM access, and an
+ * unmapped access on this part hangs the core dead -- no main loop, no
+ * timer interrupt, nothing. Which is exactly what the card does the
+ * moment CONFIG_COMMIT starts block processing.
+ *
+ * Both L2 ranges come straight from the LDF MEMORY block. Nothing with
+ * initialised content is placed in either, so a blanket clear is safe. */
+static void l2_clear(void)
+{
+    volatile uint32_t *p;
+    volatile uint32_t *end;
+
+    p   = (volatile uint32_t *)0x20000000u;      /* mem_L2_bw     */
+    end = (volatile uint32_t *)0x200FA000u;
+    while (p < end) { *p++ = 0u; }
+
+    p   = (volatile uint32_t *)0x80000000u;      /* mem_L2CTL1_bw */
+    end = (volatile uint32_t *)0x80100000u;
+    while (p < end) { *p++ = 0u; }
+}
+
 static void spu_secure_masters(void)
 {
     int i;
@@ -894,6 +926,7 @@ void dma_cfg_init(void)
 #if DSP4_BISECT == 4
     bisect_park(1);     /* 1 pulse = the image runs and got this far */
 #endif
+    l2_clear();                 /* before any node can read a delay line */
     spu_secure_masters();       /* must precede arming -- see above */
 
     arm_region(REGION_A_LANES, REGION_A_COUNT, 0,

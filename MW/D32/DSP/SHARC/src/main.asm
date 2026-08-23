@@ -45,6 +45,9 @@
 /* Boot config received flag (set by product_config.asm CONFIG_COMMIT) */
 .global _boot_config_received;
 .var _boot_config_received = 0;
+/* Non-zero while _spi_poll is running, so the 1 kHz tick cannot re-enter
+ * a drain the main loop is already half way through. */
+.var _spi_poll_busy = 0;
 
 /* Sample index within current block (0..31) */
 .global _sample_idx;
@@ -104,14 +107,32 @@
  * the 1 kHz diag tick, far above what this link needs.
  * Clobbers r0, r1 and whatever _spi2_rx_work clobbers.
  *--------------------------------------------------------------------*/
+.global _spi_poll;
 _spi_poll:
+    /* Reentrancy guard. This is called from the main loop AND from the
+     * 1 kHz diag timer ISR, and the ISR can preempt the loop in the
+     * middle of a drain. A plain flag is enough and is race-free in the
+     * one direction that exists: the ISR can interrupt the loop, the
+     * loop can never interrupt the ISR, so the ISR simply declines when
+     * the loop is already inside. */
+    r0 = dm(_spi_poll_busy);
+    r1 = 0;
+    comp(r0, r1);
+    if ne rts;
+    r1 = 1;
+    dm(_spi_poll_busy) = r1;
+
     r0 = dm(REG_SPI2_STAT);
     r1 = 0x00007000;               /* SPI_STAT.RFS, bits 14:12 */
     r0 = r0 and r1;
     r1 = 0x00004000;               /* RFS = 4 = Full: a whole request */
     comp(r0, r1);
-    if ne rts;
-    jump _spi2_rx_work;            /* tail call: its rts returns to us */
+    if ne jump (pc, .spi_poll_out);
+    call _spi2_rx_work;            /* call, not tail-jump: the flag below */
+.spi_poll_out:
+    r0 = 0;
+    dm(_spi_poll_busy) = r0;
+    rts;
 _spi_poll.end:
 
 .global _start;
@@ -333,7 +354,9 @@ _start:
     /* Poll here as well as in the main loop: the config that releases
      * this loop arrives over the very link being polled, so without it
      * the firmware waits forever for a message nothing is collecting. */
+#if !DSP4_POLL_ISR_ONLY
     call _spi_poll;
+#endif
 #if DSP4_BISECT == 27
     /* TEMP bisect rung 27 (2026-08-22) — POLL the SPI instead of waiting
      * for the SEC to deliver its interrupt.
@@ -490,7 +513,9 @@ _start:
      * far above what a parameter link needs. The SEC keeps the audio
      * block clock, which is the source that actually has to be
      * interrupt-driven. sec_init() no longer routes SPI2_STAT. */
+#if !DSP4_POLL_ISR_ONLY
     call _spi_poll;
+#endif
 
 #if DSP4_BISECT >= 30 && DSP4_BISECT <= 32
     /* Let the loop actually RUN for ~8 s, then report. */

@@ -137,6 +137,7 @@
 .extern _chip_id;                 /* main.asm         */
 .extern _boot_config_received;    /* main.asm         */
 .extern _frame_count;             /* sport_init.asm   */
+.extern _spi_poll;                /* main.asm — parameter link poll */
 .extern _sec_active_csid;         /* sport_init.asm   */
 .extern _product_id;              /* product_config.asm */
 .extern _spi_rx_count;            /* chipN/spi_handler.asm */
@@ -406,7 +407,11 @@ _diag_init.end:
  *----------------------------------------------------------------------*/
 .global _diag_timer_isr;
 _diag_timer_isr:
-    bit set mode1 BITM_REGF_MODE1_SRRFL;
+    /* Full register file + DAG1, not just the low half: this ISR now
+     * services the parameter link as a backstop and _diag_read
+     * addresses its table through i0. Same set as _sec_isr. */
+    bit set mode1 BITM_REGF_MODE1_SRRFL | BITM_REGF_MODE1_SRRFH |
+                  BITM_REGF_MODE1_SRD1L | BITM_REGF_MODE1_SRD1H;
     nop;
     push sts;
 
@@ -462,6 +467,31 @@ _diag_timer_isr:
     r0 = 0;
     dm(_spi_partial_ticks) = r0;
 .spi_rx_checked:
+
+    /* ---- BACKSTOP: service the parameter link from the tick ----
+     *
+     * The main loop polls the link too, and while it keeps up that is
+     * where the work happens -- it is far lower latency than 1 kHz. But
+     * the loop stops keeping up the moment there is real audio: with
+     * blocks arriving at 1500/s the per-block processing owns it, and
+     * from the instant CONFIG_COMMIT lands the handler is never reached
+     * at all. Bench 2026-08-23, with answer-every-transaction in place
+     * so that ANY handler entry would echo: every read after
+     * CONFIG_COMMIT returned 0x00000000, i.e. the handler was not
+     * running, not merely out of phase.
+     *
+     * NOT gated on being the only poller -- _spi_poll carries a
+     * reentrancy flag for that. It IS gated on boot stage: this tick
+     * starts at DIAG_STAGE_INIT, long before dma_cfg_init has run
+     * spi2_init, and polling a peripheral that is still being brought
+     * up raced spi2_init's EN-low flush and wedged the link from boot.
+     * That is what broke the first attempt at moving the poll here. */
+    r0 = dm(_diag_boot_stage);
+    r1 = DIAG_STAGE_DMA;
+    comp(r0, r1);
+    if lt jump (pc, .spi_poll_skip);
+    call _spi_poll;
+.spi_poll_skip:
 
     /* Manual override: force the LED off or on, e.g. to identify which
      * physical card or which of the two chips you are talking to. */
@@ -548,7 +578,8 @@ _diag_timer_isr:
 
 .diag_tick_done:
     pop sts;
-    bit clr mode1 BITM_REGF_MODE1_SRRFL;
+    bit clr mode1 BITM_REGF_MODE1_SRRFL | BITM_REGF_MODE1_SRRFH |
+                  BITM_REGF_MODE1_SRD1L | BITM_REGF_MODE1_SRD1H;
     nop;
     rti;
 _diag_timer_isr.end:

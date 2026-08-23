@@ -91,6 +91,15 @@
 .global _spi_err_count;
 .var _spi_err_count = 0;
 
+/* The request word of the transaction currently being serviced.
+ * ANSWER-EVERY-TRANSACTION needs the echo at the very END of the
+ * handler, and every write path between here and there clobbers r0 --
+ * the ramp dispatch, the product-config write and _diag_write all use
+ * it. Stash it once, immediately after the drain, and load it back in
+ * the responder. */
+.global _spi_req_word;
+.var _spi_req_word = 0;
+
 .extern _diag_spi_stat_stk;
 .extern _diag_resp_drop;
 
@@ -144,6 +153,7 @@ _spi2_rx_work:
 
     r0 = dm(SPI2_RFIFO);          /* Word 0: address + flags */
     r1 = dm(SPI2_RFIFO);          /* Word 1: coefficient value */
+    dm(_spi_req_word) = r0;       /* echo source — see the .var comment */
 
     /* Increment RX counter */
     r2 = dm(_spi_rx_count);
@@ -250,7 +260,7 @@ _spi2_rx_work:
     r2 = dm(i0, 0);               /* mode: 0=Instant, 1=Slew, 2=LinearFrames */
 
     call _ramp_set_target;
-    jump (pc, .spi_done);
+    jump (pc, .spi_write_answer);
 
 .spi_instant:
     /* Direct write via dispatch table */
@@ -263,23 +273,43 @@ _spi2_rx_work:
     if eq jump (pc, .spi_error); /* unmapped SPI address */
     i1 = r4;
     dm(i1, 0) = r1;              /* write coefficient to target */
-    jump (pc, .spi_done);
+    jump (pc, .spi_write_answer);
 
 .spi_config:
     /* r2 = config address (0xF000+), r1 = value */
     call _product_config_write;
-    jump (pc, .spi_done);
+    jump (pc, .spi_write_answer);
 
 .spi_diag_write:
     /* r2 = diag address (0xE000+), r1 = value */
     call _diag_write;
-    jump (pc, .spi_done);
+    jump (pc, .spi_write_answer);
 
 .spi_error:
     r2 = dm(_spi_err_count);
     r5 = 1;
     r2 = r2 + r5;
     dm(_spi_err_count) = r2;
+    jump (pc, .spi_write_answer);   /* an unmapped write still answers */
+
+/* ---- ANSWER EVERY ACCEPTED TRANSACTION ----
+ *
+ * A write answers with (echo, 0). Reads already answered with
+ * (echo, value). The point is that the master's transaction stream and
+ * the answer stream then advance in lockstep: transaction N+1 always
+ * carries the answer to request N, whatever request N was, so the two
+ * can never drift apart.
+ *
+ * They used to. Writes queued nothing, so a run of writes left the
+ * answer to the last READ sitting in the FIFO while the master kept
+ * clocking, and every answer after that belonged to some earlier
+ * request. Bench 2026-08-23: after the 51-write CONFIG_COMMIT a read of
+ * DIAG_MAGIC came back 0x20260812, which is BUILD_ID -- a real answer to
+ * a different question -- and ten further attempts never resynchronised.
+ * That is what gates rung 2, not a protocol nicety. */
+.spi_write_answer:
+    r4 = 0;                         /* writes answer with value 0 */
+    jump (pc, .spi_read_respond);
 
 .spi_done:
     /* Acknowledge the SPI's own interrupt condition and clear the
@@ -345,6 +375,8 @@ _spi2_rx_work:
      * lost — which is what a FIFO write hazard looks like from outside.
      * Bench 2026-08-22: reads returned (value, value) for every register
      * until these NOPs went in. */
+    r0 = dm(_spi_req_word);              /* NOT r0: the write paths above
+                                          * clobber it before we get here */
     dm(SPI2_TFIFO) = r0;                 /* echo of the request word 0 */
     nop;
     nop;

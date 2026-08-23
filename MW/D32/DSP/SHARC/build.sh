@@ -68,7 +68,11 @@ DSP4_RX0_L2="${DSP4_RX0_L2:-0}"
 # DSP4_PATTERN=1 fills the transmit region with the rung-1 loopback
 # pattern (dma_config.c). Bring-up only; never a shipping build.
 DSP4_PATTERN="${DSP4_PATTERN:-0}"
+# Diagnostic: service the parameter link ONLY from the diag timer ISR,
+# so the ISR backstop can be tested independently of the main loop.
+DSP4_POLL_ISR_ONLY="${DSP4_POLL_ISR_ONLY:-0}"
 CFLAGS="$CFLAGS -DDSP4_DMA_AUTOBUF=$DSP4_DMA_AUTOBUF -DDSP4_RX0_L2=$DSP4_RX0_L2 -DDSP4_PATTERN=$DSP4_PATTERN"
+ASMFLAGS="$ASMFLAGS -DDSP4_POLL_ISR_ONLY=$DSP4_POLL_ISR_ONLY"
 
 # Linker flags — LDF resolved in build(): the repo LDF hardcodes
 # ARCHITECTURE(ADSP-21564); for a fit-proxy build under a different
