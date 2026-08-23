@@ -23,7 +23,8 @@ samples.
 | DLY | **PASS** | 0 LSB | 5 offsets, 0…200 samples | [dly-tube](dly-tube-2026-08-23.md) |
 | TUBE | **PASS** | 0 LSB | 20 points, sat 0…1 | [dly-tube](dly-tube-2026-08-23.md) |
 | bus summing | **PARTIAL** | 0 LSB single-term | multi-term not exercised | [fdr-bus](fdr-bus-2026-08-23.md) |
-| MTR (meters) | not run | — | — | — |
+| MTR nodes | **FAIL** | meaningless | peak 3.85e−34 vs 0.5 | [mtr](mtr-2026-08-23.md) |
+| meter lib (`_meter_peaks`) | **PASS** | exact | 2 levels | [mtr](mtr-2026-08-23.md) |
 
 Errors are worst absolute difference in Q4.28 LSB against `fixed_ref` with
 the DSP's own float32 parameter conversions modelled. Where a family also
@@ -45,6 +46,7 @@ were found with.
 | ramp engine wrote one word low — `dm(i4, N)` is post-modify | GAIN | `d2e4dc6`, moved into the generator in `2ef49fd` |
 | fader gain applied TWICE on the L/R bus feed — bus low by the fader setting in dB at any position below unity | FDR | `45fdd47` |
 | ramp times 32× longer than the cell table on every block-decrementing parameter | FDR | **proposed, not applied** |
+| MTR nodes read a Q4.28 integer as IEEE-754 — no fixed→float conversion; RMS never updates; decay 32× fast; `_mtr_gr` never written | MTR | **design call, not applied** |
 | `Scope()` used chip 1's RDY for both chips, and chip 2 was silently running chip 1's firmware — a chip-2 chain read as dead | LIM (bench, not a kernel defect) | `dffca40` |
 | per-sample SPI poll starved chip 2's block loop — `BOOT_STAGE` stuck at 0 after config | LIM (bench, not a kernel defect) | `dffca40` |
 
