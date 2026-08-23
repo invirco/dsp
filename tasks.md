@@ -23,7 +23,12 @@ B_O3 2/3 allocation (which is now a subset). (2) Rev-D mod 3 DROPPED: the
 TransferOnly/PCB mods/dsp4-revD-modlist.md. The cycle-budget decision below
 is still open.**
 
-**DECISION ASK (PW): node graph is ~16x over the per-block cycle budget
+**PW DECISION 2026-08-23 16:5xZ: GO on 1 + 2 + 3 (per-block kernels; cheaper
+RTG/bus/dynamics math; product scope gating). Option 4 (bigger blocks) NOT
+taken. Dispatched as the QUEUED block "KERNEL REWRITE" below the virtual-audio
+block; the harness families on the current code are the baseline first.**
+
+**(resolved) DECISION ASK (PW): node graph is ~16x over the per-block cycle budget
 (needs ~5.2 M cycles/block vs 327,680 available at 491.52 MHz / 1500
 blocks/s; 431 nodes × 32 samples = 13,792 per-sample node CALLS per block).
 Options: (1) per-BLOCK kernels — each node processes the 32-sample block in
@@ -872,6 +877,53 @@ harness: target ≡ fixed_ref (bit-exact), fixed_ref ≈ float64 (tolerances).
 
 Rules as above. This is the item PW most wants to see results from; write
 the results table so it reads at a glance.
+
+## QUEUED DISPATCH (fire after the virtual-audio block) — KERNEL REWRITE: per-block kernels + cheaper RTG/bus/dynamics + scope gating (PW GO 2026-08-23)   [status: 🔴 queued]
+
+model: opus
+
+Goal: the full 32-strip D24 graph in real time on the two SHARCs as fabbed,
+with margin — target ≤ 70 % of the 327,680-cycle block budget on chip 1, chip
+2 lower, at 32-sample blocks (block size does NOT change; latency preserved).
+Evidence: MW/D32/DSP/dsp4-cycle-budget.md (today 660 %; RTG 601 cyc/sample,
+EQ 338, fixed overhead 44 %). Numeric contract: shared/numeric-spec.md (D5).
+
+Method — one family at a time, in profile order, measured after each:
+0. BASELINE: the virtual-audio harness results on the CURRENT kernels (the
+   block above) are the reference; every rewritten family must pass the same
+   rows bit-exact vs fixed_ref before it replaces the old one. The cycle
+   instrument (TCOUNT per class) runs on every build — update the table.
+1. GENERATOR: nodes become per-BLOCK kernels — one call per node per block,
+   the 32-sample loop inside the kernel, parameters fixed once per block (as
+   D5 already specifies). Control/ramp plane unchanged. Prove on GAIN first
+   (simplest): bit-exact + cycles/sample, then roll the generator change
+   across the classes as each kernel is rewritten.
+2. RTG + bus/send path (the measured hot spot, 601 cyc/sample + 24 % fixed):
+   a send to N buses is N MACs; drop per-sample table walks, compute routing
+   masks at block rate, SIMD the accumulate. Target ≤ 40 cyc/sample.
+3. EQ / FILT: D5 fixed-point biquads, wide accumulators, SIMD two channels
+   or two sections; coefficient staging at crossfade-swap as implemented.
+   Target ≤ 25 cyc/sample for the strip's bands.
+4. COMP / GATE / LIM: envelope per sample (one-pole Q4.28), gain computer
+   (log2/exp2 polynomials) at BLOCK rate with per-sample interpolation of the
+   gain — write the interpolation as a numeric-spec amendment with its error
+   bound, verified by the harness dynamics rows. Target ≤ 50 cyc/sample for
+   COMP+GATE.
+5. Block I/O (20 % fixed): scatter/gather without the per-sample Q-format
+   shuffles — convert once per lane per block; meter scan at block rate.
+6. SCOPE GATING (option 3): make _scope_gates_apply real — D24 runs only D24
+   nodes; bypassed nodes are skipped at the dispatch table, not inside the
+   kernel. Measure the D24 graph, not D32's.
+7. After each step: re-run the cycle table + the harness rows for the touched
+   family; record cyc/sample before/after in dsp4-cycle-budget.md; commit.
+   Stop condition for the block: 32 strips at 1x with FRAME_COUNT 1500/s and
+   all harness families green, or a precise state note of where it stands.
+
+Rules: bench = rev-C CM4 app@192.168.1.219; the loopback-capture bitstream
+may stay flashed while this block runs (same ruling as the virtual-audio
+block); restore SHIPPING at the end; rev A hands-off; matrix-app running +
+3 MCUs verified at every stop; single trunk; no AI attribution; numeric-spec
+changes are amendments with a date, never silent.
 
 ## HUB DISPATCH 2026-08-22 19:05Z — SPI PARAMETER LINK — the handler runs exactly ONCE per reset (RX FIFO above watermark / ROR / host ignores RDY)   [status: 🟢 done — **the link is UP on both chips and the whole diagnostic register block now reads off a running SHARC, a first for this card.** Root cause of once-per-reset: the SEC handshake is TWO-step and `_sec_isr` only did steps 1 and 4 — it never wrote `SEC_CSID0` back to acknowledge, so the SEC never arbitrated another request. One line took SEC_COUNT from 1 to 94. Proved by bisect rung 27, which polls the SAME handler and round-tripped correctly while the interrupt build was stuck at one. Three more fixed: the RFIFO came out of boot FULL (no flush bit exists — `SPI_CTL.EN` must go low, HRM 15; now measured empty, ROR/RUWM clear); the handler drained an empty FIFO and dispatched the garbage (RFE guard added); and `dsp4_diag.py` asserted GPIO7 for chip 2 where `dsp4_boot.py` has always used GPIO24 — the whole reason chip 2 read all-zero. Chip 1 and chip 2 both return MAGIC 0xD5B40001 and their own CHIP_ID. STILL OPEN, precisely characterised: a write (or DIAG_NOP) queues no answer but still clocks two words out of the 2-deep TFIFO, leaving an odd word outstanding and slipping every later echo by one — so reads are solid but write-then-read-back is not. Real fix is DSP-side: make every accepted transaction queue exactly one two-word answer. Also open: SPI2_RDY never asserts even with the RFIFO empty, so dispatch task 2 as written is not actionable — a host honouring this RDY would wait forever]
 
