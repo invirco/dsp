@@ -19,8 +19,8 @@ samples.
 | FDR (fader ramps) | not run | — | — | — |
 | GATE | **PASS** | 0 LSB | 7 levels, −60…−6 dBFS | [gate](gate-2026-08-23.md) |
 | LIM | **PASS** | 0 LSB | 6 levels, −6…+6 dBFS | [lim](lim-2026-08-23.md) |
-| DLY | not run | — | — | — |
-| TUBE | not run | — | — | — |
+| DLY | **PASS** | 0 LSB | 5 offsets, 0…200 samples | [dly-tube](dly-tube-2026-08-23.md) |
+| TUBE | **PASS** | 0 LSB | 20 points, sat 0…1 | [dly-tube](dly-tube-2026-08-23.md) |
 | bus summing | not run | — | — | — |
 | MTR (meters) | not run | — | — | — |
 

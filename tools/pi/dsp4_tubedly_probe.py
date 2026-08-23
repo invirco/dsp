@@ -29,17 +29,30 @@ def f32(x):
     return struct.unpack('<I', struct.pack('<f', float(x)))[0]
 
 
-def wrv(sc, addr, val, tries=12):
+def wrv(sc, addr, val, tries=12, ramp_id=0, settle=0.0):
+    """Write and confirm by read-back.
+
+    RAMP_ID MATTERS AND IS THE HOST'S JOB. The DSP has no per-address
+    ramp-profile table: the profile lives in bits 11:8 of the request word
+    (spi_handler.asm ~line 180), so the host must say which parameters are
+    ramped. Writing a ramped parameter with ramp_id 0 takes the INSTANT
+    path, which sets only the level word -- and the node's block-rate code
+    then does `if frames <= 0: level = target` and clobbers it from a
+    target that was never set. Bench 2026-08-23: _tube_sat (0x004D) read
+    back 0 forever with ramp_id 0, with sat, target and frames all zero.
+    dsp4_gain_sweep.py already carries this warning for _auxin_level.
+    """
     val &= 0xFFFFFFFF
     for _ in range(tries):
-        sc.d.write(addr, val)
-        time.sleep(S.SETTLE)
+        sc.d.link.write(addr, val, ramp_id)
+        time.sleep(S.SETTLE + settle)
         try:
             if sc.rd(addr) == val:
                 return
         except IOError:
             pass
-    raise IOError('SPI 0x%04X would not take 0x%08X' % (addr, val))
+    raise IOError('SPI 0x%04X would not take 0x%08X (ramp_id=%d)'
+                  % (addr, val, ramp_id))
 
 
 def transparent_chain(sc):
@@ -75,7 +88,7 @@ def main():
 
     if a.mode == 'tube':
         wrv(sc, TUBE_ON, 1)
-        wrv(sc, TUBE_SAT, f32(a.sat))
+        wrv(sc, TUBE_SAT, f32(a.sat), ramp_id=1, settle=0.05)
         time.sleep(0.4)
         src = sc.sym['_buf_C1_TUBE_01']
         for amp in (0x02000000, 0x04000000, 0x08000000,
