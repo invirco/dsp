@@ -773,6 +773,40 @@ Rules as above: bench = rev-C CM4 app@192.168.1.219; rev A hands-off; leave
 matrix-app running + 3 MCUs verified; single trunk; no AI attribution.
 When done or blocked, continue straight into the next QUEUED block.
 
+
+**PRODUCT REQUIREMENT 2026-08-23 (PW): CM4 stereo send + return = the USB
+2-track path.** Allocated and implemented:
+
+| direction | line | slots | signal | USB role |
+|---|---|---|---|---|
+| Pi → DSP | `A_I6` | 0, 1 | `PI_PCM_L/R` | 2-track **PLAY** sink |
+| DSP → Pi | `B_O3` | **2, 3** | `PI_RET_L/R` | 2-track **REC** source |
+
+Chosen because `B_O3` had only slots 0/1 used (provisional `DAC_MAIN`, no
+D24 sink), 2/3 keep clear of DAC MAIN on D32, and it needs **no PCB change
+and no new pin** — `B_O3` already reaches LOGIC as `dac_main` and `pcm_din`
+is an existing net to GPIO20. Done at the single source (`slot-map.csv`),
+so one edit feeds both the CPLD constants and the DSP SPORT map; new slot
+map hash `sha256:1507e8813e3db2bb…`. Documented in
+`MW/D32/DSP/dsp4-plumbing.md`. 48 kHz only — D7 excludes USB audio on the
+96 kHz products.
+
+The capture path is now a **product feature**, out of the `DSP4_LOOPBACK`
+ifdef, so the shipping bitstream changes deliberately: **156 → 312/1270 LE
+(25%), Fmax 70.21 → 66.18 MHz**, still 35% margin at 49.152 MHz.
+**This flips the 570Z answer**: the same design is 312/570 LE (55%) and now
+**fails timing at −0.198 ns**, where it met +0.842 ns before the return.
+
+**Open, and it is a matrix question:** nothing writes `B_O3` slots 2/3 yet,
+so the return is silent. What feeds `PI_RET_L/R` — a dedicated stereo bus
+(recommended: a USB recording usually wants its own mix) or a copy of the
+main mix? Needs node definitions from mx26.
+
+**Bitstreams:** shipping `dsp4_logic.758b7c82ef6e`, bring-up
+`dsp4_logic_loopback.1e831a2cf29d`. The bench still carries
+`dsp4_logic_loopback.3f488870d6cb` on purpose — that one captures `B_O3`
+slot 0 (`MAIN_ST_OUT`), which is the only slot anything drives today.
+
 ## QUEUED DISPATCH (fire after the desk fillers) — VIRTUAL AUDIO TESTS over the CPLD feedback loop: the golden harness gets a hardware target   [status: 🟡 PASS-THROUGH IS UNITY AND BIT-EXACT; blocked on Pi duplex streaming. The 4x is RETRACTED - it was my measurement, a peak taken from an overrun-riddled capture. Known-word test (hub's method): 0x00001000/0x00010000/0x00100000 all return identically, ratio 1.0000, in << 0, 100% of non-zero frames. Shifts corroborate: chip1 scatter >>3, chip1 gather none, chip2 scatter none, chip2 gather <<3 saturating - paired, no net shift. REAL BLOCKER is the CM4 soundcard: capture alone is 100% stable (rung 2) and playback alone reaches the DSP (lane-6 RX shows live tone), but BOTH TOGETHER scramble - a per-sample counter returns values under ~200 across 20,000 frames instead of climbing to 48,000, dominant step -191, with ALSA reporting no under/overrun once period/buffer are pinned. Suspect my own overlay: dsp4-pcm-slave.dts uses TWO dai-links sharing one bcm2835-i2s CPU DAI (dit=playback, dir=capture) because the dummy codecs are one-directional - two PCM devices, not a true duplex device. FIX DIRECTION: one dai-link with a codec declaring both directions; device-tree work, not DSP. Latency deliberately NOT reported - it would be fiction through a stream repeating a 200-sample window. ALSO: nothing drives SPORT3 slot 1 on chip 2 (C2_MAIN_ST_OUT writes slot 0 only despite 'Channels: 2'), so the capture's right channel is correctly silent - graph/generator question for the hub. CPLD carries dsp4_logic_loopback.3f488870d6cb per the hub ruling] -> reframer capture -> pcm_din -> arecord. SIGNAL PRESENT, peak 0x7BB7C120. Two blockers cleared: the capture was tapping o_dspb[0] (AUX_OUT_01/02, silent in a pass-through) instead of o_dspb[3] (MAIN_ST_OUT) - new bitstream dsp4_logic_loopback.3f488870d6cb; and the Pi input is gated OFF by default, _auxin_on_C2_PI_IN at SPI 0x071D on chip 2, one poke opens it. Everything downstream already defaults to unity and the Q4.28 shadows refresh at block rate, so they are not a second gate. NOT bit-exact yet: input 0x20000000 comes back 0x7BB7C120, a ratio of 3.87 - close enough to 2^2 to look structural, and the scatter/gather Q1.31<->Q4.28 shifts are the first place to look. Also bursty (~4.5% of frames carry signal, aplay reported an overrun), so playback buffering must be pinned before any latency figure or it measures ALSA. Harness --target hw and the five families NOT started - the block itself says fix bit-exactness first. CONFLICT for the hub: this block says leave the loop soaking, the standing Rules say restore the SHIPPING bitstream; they cannot both hold. I restored SHIPPING as the older standing rule on a 24/7 bench - say which wins]
 
 model: opus
