@@ -78,6 +78,20 @@
  * There is no bounds check; an address that faults will fault. */
 #define DIAG_PEEK_ADDR       0xE0F0  /* RW */
 #define DIAG_PEEK_DATA       0xE0F1  /* R  */
+/* Scope control (src/scope.asm). Named registers, NOT the peek window:
+ * peek/poke take TWO transactions (set address, then move data) and under
+ * audio load the answer to the second can belong to a different request --
+ * bench 2026-08-23 read _frame_count as 0 and a gain coefficient as
+ * 0xE0FE0000, which is the DIAG_NOP request word echoing back. One
+ * transaction per register cannot desynchronise that way. */
+#define DIAG_SCOPE_SRC       0xE0E0  /* W  word address to record          */
+#define DIAG_SCOPE_INJ       0xE0E1  /* W  word address to drive (0 = off) */
+#define DIAG_SCOPE_AMP       0xE0E2  /* W  value to inject                 */
+#define DIAG_SCOPE_MODE      0xE0E3  /* W  1 = impulse, 2 = step           */
+#define DIAG_SCOPE_ARM       0xE0E4  /* RW write 1 to start; 0 when full   */
+#define DIAG_SCOPE_RD        0xE0E5  /* W  set the read cursor             */
+#define DIAG_SCOPE_DATA      0xE0E6  /* R  buf[cursor], cursor auto-bumps  */
+#define DIAG_SCOPE_LEN       0xE0E7  /* R  capacity in samples             */
 
 /* NOP — accepted and ignored. The host sends this as the second half of
  * a read (see diag.asm); it must not itself generate a response. */

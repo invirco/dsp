@@ -60,6 +60,9 @@
 #include "diag.h"
 #include "c_abi.h"
 
+.extern _scope_buf, _scope_src, _scope_inj, _scope_amp;
+.extern _scope_mode, _scope_idx, _scope_arm, _scope_len, _scope_rd, _scope_go;
+
 /* PA_12 = BLINK_LED */
 #define DIAG_LED_BIT      0x00001000
 
@@ -635,6 +638,35 @@ _diag_read:
     r4 = DIAG_PEEK_DATA;
     comp(r2, r4);
     if eq jump (pc, .diag_rd_peek);
+    r4 = DIAG_SCOPE_DATA;
+    comp(r2, r4);
+    if eq jump (pc, .diag_rd_scope_data);
+    r4 = DIAG_SCOPE_ARM;
+    comp(r2, r4);
+    if eq jump (pc, .diag_rd_scope_arm);
+    r4 = DIAG_SCOPE_LEN;
+    comp(r2, r4);
+    if eq jump (pc, .diag_rd_scope_len);
+    /* The write registers read back too. A write on this link is
+     * fire-and-forget and IS dropped under audio load, and a scope armed
+     * with a source of 0 records silence -- which is indistinguishable
+     * from a real null measurement. Read-back is what tells the two
+     * apart, so every arm verifies. */
+    r4 = DIAG_SCOPE_SRC;
+    comp(r2, r4);
+    if eq jump (pc, .diag_rd_scope_src);
+    r4 = DIAG_SCOPE_INJ;
+    comp(r2, r4);
+    if eq jump (pc, .diag_rd_scope_inj);
+    r4 = DIAG_SCOPE_AMP;
+    comp(r2, r4);
+    if eq jump (pc, .diag_rd_scope_amp);
+    r4 = DIAG_SCOPE_MODE;
+    comp(r2, r4);
+    if eq jump (pc, .diag_rd_scope_mode);
+    r4 = DIAG_SCOPE_RD;
+    comp(r2, r4);
+    if eq jump (pc, .diag_rd_scope_rd);
 
     r4 = DIAG_BASE;
     r4 = r2 - r4;                 /* table index */
@@ -666,6 +698,42 @@ _diag_read:
     r4 = dm(i0, 0);
     rts;
 
+.diag_rd_scope_data:
+    /* Deliberately does NOT advance the cursor. The host sets _scope_rd
+     * and reads this, so the read is idempotent and can be retried; an
+     * auto-incrementing register cannot be, and every read here needs
+     * retrying because the link answers out of step under audio load. */
+    r4 = dm(_scope_rd);
+    r5 = _scope_buf;
+    r5 = r5 + r4;
+    i0 = r5;
+    r4 = dm(i0, 0);
+    rts;
+
+.diag_rd_scope_arm:
+    r4 = dm(_scope_arm);
+    rts;
+
+.diag_rd_scope_len:
+    r4 = dm(_scope_len);
+    rts;
+
+.diag_rd_scope_src:
+    r4 = dm(_scope_src);
+    rts;
+.diag_rd_scope_inj:
+    r4 = dm(_scope_inj);
+    rts;
+.diag_rd_scope_amp:
+    r4 = dm(_scope_amp);
+    rts;
+.diag_rd_scope_mode:
+    r4 = dm(_scope_mode);
+    rts;
+.diag_rd_scope_rd:
+    r4 = dm(_scope_rd);
+    rts;
+
 .diag_rd_zero:
     r4 = 0;
     rts;
@@ -687,6 +755,24 @@ _diag_write:
     r4 = DIAG_PEEK_ADDR;
     comp(r2, r4);
     if eq jump (pc, .diag_wr_peek);
+    r4 = DIAG_SCOPE_SRC;
+    comp(r2, r4);
+    if eq jump (pc, .diag_wr_scope_src);
+    r4 = DIAG_SCOPE_INJ;
+    comp(r2, r4);
+    if eq jump (pc, .diag_wr_scope_inj);
+    r4 = DIAG_SCOPE_AMP;
+    comp(r2, r4);
+    if eq jump (pc, .diag_wr_scope_amp);
+    r4 = DIAG_SCOPE_MODE;
+    comp(r2, r4);
+    if eq jump (pc, .diag_wr_scope_mode);
+    r4 = DIAG_SCOPE_RD;
+    comp(r2, r4);
+    if eq jump (pc, .diag_wr_scope_rd);
+    r4 = DIAG_SCOPE_ARM;
+    comp(r2, r4);
+    if eq jump (pc, .diag_wr_scope_arm);
     r4 = DIAG_CLEAR;
     comp(r2, r4);
     if eq jump (pc, .diag_wr_clear);
@@ -698,6 +784,30 @@ _diag_write:
 
 .diag_wr_peek:
     dm(_diag_peek_addr) = r1;
+    rts;
+
+.diag_wr_scope_src:
+    dm(_scope_src) = r1;
+    rts;
+.diag_wr_scope_inj:
+    dm(_scope_inj) = r1;
+    rts;
+.diag_wr_scope_amp:
+    dm(_scope_amp) = r1;
+    rts;
+.diag_wr_scope_mode:
+    dm(_scope_mode) = r1;
+    rts;
+.diag_wr_scope_rd:
+    dm(_scope_rd) = r1;
+    rts;
+.diag_wr_scope_arm:
+    /* Arming also rewinds the write index, so the host cannot start a
+     * capture on top of the previous one's tail. */
+    r4 = 0;
+    dm(_scope_idx) = r4;
+    dm(_scope_go)  = r4;
+    dm(_scope_arm) = r1;
     rts;
 
 .diag_wr_clear:

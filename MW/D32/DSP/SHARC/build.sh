@@ -54,10 +54,21 @@ CFLAGS="$PROC -O -DNDEBUG"
 # Always passed explicitly (defaulting to the same 1 that dma_config.c
 # falls back to) so the C and asm halves can never disagree about which
 # variant is being built.
-DSP4_BISECT="${DSP4_BISECT:-1}"
+# Default is 0 = PRODUCTION. It used to be 1, which is a debug variant that
+# PARKS the firmware inside dma_cfg_init -- so a plain ./build.sh produced an
+# image that never reached the main loop and never brought SPI2 up. On the
+# bench that looks exactly like a hung part: no parameter link on either chip,
+# and dsp4_stagewatch.py reports the park pulses as "stuck after stage 2".
+# Cost half a session on 2026-08-23. A debugging aid must never be the default.
+DSP4_BISECT="${DSP4_BISECT:-0}"
 CFLAGS="$CFLAGS -DDSP4_BISECT=$DSP4_BISECT"
 ASMFLAGS="$ASMFLAGS -DDSP4_BISECT=$DSP4_BISECT"
-echo "  (P2.2 bisect variant: DSP4_BISECT=$DSP4_BISECT)"
+if [ "$DSP4_BISECT" != "0" ]; then
+    echo "  *** DEBUG BUILD: DSP4_BISECT=$DSP4_BISECT parks the firmware ***"
+    echo "  *** the parameter link will NOT come up. Use 0 for production. ***"
+else
+    echo "  (production build: DSP4_BISECT=0)"
+fi
 
 # Ring-mode switches (see dma_config.c). DSP4_DMA_AUTOBUF=0 goes back to
 # descriptor lists; DSP4_RX0_L2=1 puts the block-clock lane's destination

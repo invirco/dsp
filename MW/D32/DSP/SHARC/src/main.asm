@@ -136,6 +136,7 @@
 .extern _scatter_chip1, _gather_chip1;
 #elif CHIP_ID == 2
 .extern _chip2_process_all;
+.extern _scope_inject, _scope_record;
 .extern _scatter_chip2, _gather_chip2;
 #else
 #error "CHIP_ID must be defined as 1 or 2"
@@ -652,10 +653,17 @@ _start:
     call _scatter_chip1;
 #endif
 
+    /* Stimulus: the one point where an input slot holds a value the
+     * node chain has not yet consumed. Off unless the host armed it. */
+    call _scope_inject;
+
     /* Process all Chip 1 nodes (single sample) */
 #if DSP4_BLOCK_MASK & 2
     call _chip1_process_all;
 #endif
+
+    /* Capture the watched node output for this sample. */
+    call _scope_record;
 
     /* Gather: output slot variables → IC TX DMA buffer */
     r0 = dm(_sample_idx);         /* reload (process may have clobbered r5) */
@@ -721,10 +729,17 @@ _start:
     call _scatter_chip2;
 #endif
 
+    /* Stimulus: the one point where an input slot holds a value the
+     * node chain has not yet consumed. Off unless the host armed it. */
+    call _scope_inject;
+
     /* Process all Chip 2 nodes (single sample) */
 #if DSP4_BLOCK_MASK & 2
     call _chip2_process_all;
 #endif
+
+    /* Capture the watched node output for this sample. */
+    call _scope_record;
 
     /* Gather: output slot variables → DAC TX DMA buffer */
     r0 = dm(_sample_idx);
