@@ -18,7 +18,7 @@ samples.
 | COMP | **PASS** | 0 LSB | 7 levels, −30…0 dBFS | [comp](comp-2026-08-23.md) |
 | FDR (fader ramps) | not run | — | — | — |
 | GATE | **PASS** | 0 LSB | 7 levels, −60…−6 dBFS | [gate](gate-2026-08-23.md) |
-| LIM | not run | — | — | — |
+| LIM | **PASS** | 0 LSB | 6 levels, −6…+6 dBFS | [lim](lim-2026-08-23.md) |
 | DLY | not run | — | — | — |
 | TUBE | not run | — | — | — |
 | bus summing | not run | — | — | — |
@@ -35,6 +35,8 @@ has a dB or timing spec, the report carries it.
 | every biquad ran with `b1 = 0` — `r1` and `f1` are the same SHARC register | EQ / FILT | `a42a315` |
 | `parallel = 1.0` overflowed Q0.31 to −1, bypassing the compressor | COMP | `2ef49fd` |
 | ramp engine wrote one word low — `dm(i4, N)` is post-modify | GAIN | `d2e4dc6`, moved into the generator in `2ef49fd` |
+| `Scope()` used chip 1's RDY for both chips, and chip 2 was silently running chip 1's firmware — a chip-2 chain read as dead | LIM (bench, not a kernel defect) | `dffca40` |
+| per-sample SPI poll starved chip 2's block loop — `BOOT_STAGE` stuck at 0 after config | LIM (bench, not a kernel defect) | `dffca40` |
 
 ## Open against D5, not silently accepted
 
