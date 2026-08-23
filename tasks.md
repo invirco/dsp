@@ -773,7 +773,7 @@ Rules as above: bench = rev-C CM4 app@192.168.1.219; rev A hands-off; leave
 matrix-app running + 3 MCUs verified; single trunk; no AI attribution.
 When done or blocked, continue straight into the next QUEUED block.
 
-## QUEUED DISPATCH (fire after the desk fillers) — VIRTUAL AUDIO TESTS over the CPLD feedback loop: the golden harness gets a hardware target   [status: 🔴 queued]
+## QUEUED DISPATCH (fire after the desk fillers) — VIRTUAL AUDIO TESTS over the CPLD feedback loop: the golden harness gets a hardware target   [status: 🟡 LOOP CLOSED, calibration next — Pi aplay -> DSPA I6 -> XIN_PI -> XS_XFER -> inter-chip -> C2_XR_PI -> C2_PI_IN -> MIX_MAIN -> MAIN_FDR -> MAIN_DLY -> MAIN_ST_OUT -> SPORT3 slot 0 = o_dspb[3] -> reframer capture -> pcm_din -> arecord. SIGNAL PRESENT, peak 0x7BB7C120. Two blockers cleared: the capture was tapping o_dspb[0] (AUX_OUT_01/02, silent in a pass-through) instead of o_dspb[3] (MAIN_ST_OUT) - new bitstream dsp4_logic_loopback.3f488870d6cb; and the Pi input is gated OFF by default, _auxin_on_C2_PI_IN at SPI 0x071D on chip 2, one poke opens it. Everything downstream already defaults to unity and the Q4.28 shadows refresh at block rate, so they are not a second gate. NOT bit-exact yet: input 0x20000000 comes back 0x7BB7C120, a ratio of 3.87 - close enough to 2^2 to look structural, and the scatter/gather Q1.31<->Q4.28 shifts are the first place to look. Also bursty (~4.5% of frames carry signal, aplay reported an overrun), so playback buffering must be pinned before any latency figure or it measures ALSA. Harness --target hw and the five families NOT started - the block itself says fix bit-exactness first. CONFLICT for the hub: this block says leave the loop soaking, the standing Rules say restore the SHIPPING bitstream; they cannot both hold. I restored SHIPPING as the older standing rule on a 24/7 bench - say which wins]
 
 model: opus
 
@@ -4000,3 +4000,63 @@ in "OSPI Port—Master Timing" in the Timing Specifications section.
 **Bench state:** SHIPPING bitstream; both chips on production
 (`e7b53db4…` / `a4b8f3b5…`), `CHIP_ID` 1 and 2, `BOOT_STAGE 5`, 1500.0
 blocks/s, `SPORT0_ERR_A` clean; `matrix-app` active, three MCUs verified.
+
+### Outcome 2026-08-23 13:1xZ — virtual audio: the pass-through LOOP IS CLOSED; calibration to bit-exact is the next step
+
+#### The loop runs end to end
+
+    captured 96000 frames, peak |L| = 0x7BB7C120, SIGNAL PRESENT
+
+Pi `aplay` → `pcm_dout` → reframer → DSPA I6 → `C1_XIN_PI_L/R` →
+`C1_XS_XFER_PI_*` → inter-chip → `C2_XR_PI_*` → `C2_PI_IN` → `C2_MIX_MAIN_*`
+→ `C2_MAIN_FDR` → `C2_MAIN_DLY` → `C2_MAIN_ST_OUT` → SPORT3 slot 0 →
+`o_dspb[3]` → reframer capture → `pcm_din` → Pi `arecord`.
+
+That is the precondition the whole virtual-audio block was waiting on.
+
+#### The two things that were blocking it
+
+**1. The capture was tapping the wrong lane.** `o_dspb[0]` slots 0/1 are
+`C2_AUX_OUT_01/02` and carry nothing in a pass-through. The main stereo
+output is `C2_MAIN_ST_OUT` → SPORT3 slot 0 → **`o_dspb[3]`** (the CPLD's
+`dac_main`). Loopback bitstream now taps that:
+`dsp4_logic_loopback.3f488870d6cb`.
+
+**2. The Pi input is gated OFF by default.** `_auxin_on_C2_PI_IN = 0`,
+SPI address **0x071D** on chip 2. One poke opens it. Everything downstream
+already defaults to unity — mix gains 1.0, `_fdr_level` 1.0, mute 0 — and
+the Q4.28 shadows are refreshed at block rate, so they self-populate and
+are not a second gate.
+
+#### NOT yet bit-exact — the gain is about 4x
+
+Input tone amplitude `0x20000000`, captured peak `0x7BB7C120`: a ratio of
+**3.87**, near enough 2^2 to look structural rather than accidental. Step 1
+of this block says stop and find why before anything else is meaningful,
+and that is where it stands. Worth noting the scatter/gather Q1.31↔Q4.28
+shifts (`ashift by -3` on the way in) as the first place to look, since a
+mismatched pair there is exactly a power-of-two error.
+
+Also seen: only ~4.5% of captured frames carry signal, so the stream is
+bursty — `aplay` reported an overrun earlier. Playback buffering needs
+pinning down before any latency figure is taken, or it will measure ALSA
+rather than the DSP.
+
+#### Not started
+
+The harness extension (`--target hw`) and the five kernel families. They
+need a bit-exact unity path first, per the block's own instruction.
+
+#### One conflict for the hub to resolve
+
+This block says "leave the pass-through loop soaking when you stop"; the
+standing Rules say "the SHIPPING bitstream must be restored on the CPLD
+before ending". They cannot both hold — the soak needs the loopback
+bitstream on the card. **I restored SHIPPING**, on the grounds that it is
+the older standing rule and this is a 24/7 bench others may pick up. Say
+which wins and I will leave the soak running instead.
+
+**Bench state:** SHIPPING bitstream `dsp4_logic.a1f6672af6c3`; both chips
+on production (`e7b53db4…`), `CHIP_ID` 1 and 2, `BOOT_STAGE 5`, 1500.0
+blocks/s, `SPORT0_ERR_A` clean; `matrix-app` active, all three MCUs
+verified; GPIOs `a0`.

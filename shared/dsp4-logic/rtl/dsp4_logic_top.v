@@ -146,7 +146,13 @@ module dsp4_logic_top (
         // is a DSPB output lane, so the Pi can record what DSPB actually
         // transmits; the shipping build ties pcm_din off inside the
         // reframer and this input is unused.
-        .tdm_in      (o_dspb[0]),
+        // Capture the MAIN stereo output lane. C2_MAIN_ST_OUT writes
+        // SPORT3 slot 0 on chip 2, which is o_dspb[3] (the CPLD's
+        // dac_main). That is where a Pi -> DSP -> Pi pass-through lands:
+        // XIN_PI -> XS_XFER -> inter-chip -> C2_XR_PI -> C2_PI_IN ->
+        // MIX_MAIN -> MAIN_FDR -> MAIN_DLY -> MAIN_ST_OUT. Lane 0 slots
+        // 0/1 are AUX_OUT_01/02 and carry nothing in a pass-through.
+        .tdm_in      (o_dspb[3]),
         .tdm_out     (pcm_tdm)
     );
 
