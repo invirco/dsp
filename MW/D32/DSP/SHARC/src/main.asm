@@ -641,6 +641,53 @@ _start:
 
     /* ========== Chip 1 block loop ========== */
 .block_chip1:
+#if DSP4_BLOCK_KERNELS
+    /* Per-BLOCK kernels. Scatter the WHOLE block into the 32-word input
+     * arrays, run each node exactly once, then gather the whole block.
+     * The node chain no longer pays a call/rts and a _sample_idx guard
+     * 32 times over; the loop lives inside the kernel. */
+    r5 = 0;
+.c1_scat_loop:
+    dm(_sample_idx) = r5;
+    r0 = r5;
+#if DSP4_BLOCK_MASK & 1
+    call _scatter_chip1;
+#endif
+    call _scope_inject;
+    r5 = dm(_sample_idx);
+    r5 = r5 + 1;
+    r6 = BLOCK_SIZE;
+    comp(r5, r6);
+    if lt jump (pc, .c1_scat_loop);
+
+#if DSP4_BLOCK_MASK & 2
+    call _chip1_process_all;
+#endif
+
+    r5 = 0;
+.c1_gath_loop:
+    dm(_sample_idx) = r5;
+    call _scope_record;
+#if !DSP4_POLL_ISR_ONLY
+    r0 = dm(_sample_idx);
+    r1 = 7;
+    r0 = r0 AND r1;
+    r1 = 0;
+    comp(r0, r1);
+    if ne jump (pc, .skip_poll_bk1);
+    call _spi_poll;
+.skip_poll_bk1:
+#endif
+    r0 = dm(_sample_idx);
+#if DSP4_BLOCK_MASK & 4
+    call _gather_chip1;
+#endif
+    r5 = dm(_sample_idx);
+    r5 = r5 + 1;
+    r6 = BLOCK_SIZE;
+    comp(r5, r6);
+    if lt jump (pc, .c1_gath_loop);
+#else
     r5 = 0;                       /* sample index */
     r6 = BLOCK_SIZE;
 
@@ -715,6 +762,7 @@ _start:
     comp(r5, r6);
     if lt jump (pc, .c1_sample_loop);
 
+#endif
     /* Post-block: scan input slot vars for peak levels, then decay */
     call _meter_scan_chip1;
     r0 = 32;
@@ -746,6 +794,53 @@ _start:
 
     /* ========== Chip 2 block loop ========== */
 .block_chip2:
+#if DSP4_BLOCK_KERNELS
+    /* Per-BLOCK kernels. Scatter the WHOLE block into the 32-word input
+     * arrays, run each node exactly once, then gather the whole block.
+     * The node chain no longer pays a call/rts and a _sample_idx guard
+     * 32 times over; the loop lives inside the kernel. */
+    r5 = 0;
+.c2_scat_loop:
+    dm(_sample_idx) = r5;
+    r0 = r5;
+#if DSP4_BLOCK_MASK & 1
+    call _scatter_chip2;
+#endif
+    call _scope_inject;
+    r5 = dm(_sample_idx);
+    r5 = r5 + 1;
+    r6 = BLOCK_SIZE;
+    comp(r5, r6);
+    if lt jump (pc, .c2_scat_loop);
+
+#if DSP4_BLOCK_MASK & 2
+    call _chip2_process_all;
+#endif
+
+    r5 = 0;
+.c2_gath_loop:
+    dm(_sample_idx) = r5;
+    call _scope_record;
+#if !DSP4_POLL_ISR_ONLY
+    r0 = dm(_sample_idx);
+    r1 = 7;
+    r0 = r0 AND r1;
+    r1 = 0;
+    comp(r0, r1);
+    if ne jump (pc, .skip_poll_bk2);
+    call _spi_poll;
+.skip_poll_bk2:
+#endif
+    r0 = dm(_sample_idx);
+#if DSP4_BLOCK_MASK & 4
+    call _gather_chip2;
+#endif
+    r5 = dm(_sample_idx);
+    r5 = r5 + 1;
+    r6 = BLOCK_SIZE;
+    comp(r5, r6);
+    if lt jump (pc, .c2_gath_loop);
+#else
     r5 = 0;
     r6 = BLOCK_SIZE;
 
@@ -820,6 +915,7 @@ _start:
     comp(r5, r6);
     if lt jump (pc, .c2_sample_loop);
 
+#endif
     /* Post-block: scan output slot vars for peak levels, then decay */
     call _meter_scan_chip2;
     r0 = 18;

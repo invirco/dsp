@@ -15,15 +15,37 @@
 /* INPUT_TDM: Read from SPORT3 TDM slot 7 */
 
 .section/dm seg_dmda;
+#if DSP4_BLOCK_KERNELS
+.global _rx_slot_C1_IN_32;
+.var _rx_slot_C1_IN_32[32];
+.global _buf_C1_IN_32;
+.var _buf_C1_IN_32[32];
+#else
 .global _rx_slot_C1_IN_32;
 .var _rx_slot_C1_IN_32;
 .global _buf_C1_IN_32;
 .var _buf_C1_IN_32;
+#endif
 
 .section/pm seg_pmco;
 .global _C1_IN_32_process;
 _C1_IN_32_process:
+#if DSP4_BLOCK_KERNELS
+    /* per-BLOCK kernel: one call per block, loop inside */
+    l0 = 0;
+    l1 = 0;
+    i0 = _rx_slot_C1_IN_32;
+    i1 = _buf_C1_IN_32;
+    r5 = 32;
+    lcntr = r5; do .in_lp_C1_IN_32 until lce;
+        r0 = dm(i0, 1);
+        dm(i1, 1) = r0;
+.in_lp_C1_IN_32:
+        nop;
+    rts;
+#else
     r0 = dm(_rx_slot_C1_IN_32);
     dm(_buf_C1_IN_32) = r0;
     rts;
+#endif
 _C1_IN_32_process.end:

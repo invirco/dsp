@@ -33,19 +33,27 @@
 .var _polarity_C1_GAIN_32 = 0;
 .global _tap_post_trim_C1_GAIN_32;
 .var _tap_post_trim_C1_GAIN_32;
+#if DSP4_BLOCK_KERNELS
+.global _buf_C1_GAIN_32;
+.var _buf_C1_GAIN_32[32];
+#else
 .global _buf_C1_GAIN_32;
 .var _buf_C1_GAIN_32;
+#endif
 
 .section/pm seg_pmco;
 .extern _sample_idx;
 .extern _mrf_rns28;
 .global _C1_GAIN_32_process;
 _C1_GAIN_32_process:
-    /* block-rate: advance float ramp, refresh Q4.28 shadow */
+#if !DSP4_BLOCK_KERNELS
+    /* per-sample path: the block-rate work has to be guarded,
+     * and that guard is re-evaluated 32 times per block. */
     r4 = dm(_sample_idx);
     r1 = 0;
     comp(r4, r1);
     if ne jump (pc, .apply_C1_GAIN_32);
+#endif
 
     r4 = dm(_gain_frames_C1_GAIN_32);
     r1 = 0;
@@ -81,6 +89,52 @@ _C1_GAIN_32_process:
     r1 = fix f1;
     dm(_gain_q_C1_GAIN_32) = r1;
 
+#if DSP4_BLOCK_KERNELS
+    /* Fold polarity and mute into the coefficient ONCE per block.
+     * Both are loop-invariant, and mute is exactly x*0 in this
+     * format, so it needs no per-sample test. */
+    r3 = dm(_polarity_C1_GAIN_32);
+    r4 = 0;
+    comp(r3, r4);
+    if ne r1 = -r1;
+    r2 = dm(_mute_C1_GAIN_32);
+    comp(r2, r4);
+    if ne r1 = r4;
+
+    /* _mrf_rns28 inlined with its constants hoisted. The call/rts
+     * and the reload of those constants were most of this node's
+     * measured 72.5 cycles/sample. The saturation fix-up is a
+     * CONDITIONAL MOVE, not a branch, so the body stays inside a
+     * hardware loop. */
+    r6 = 0x08000000;                  /* 2^27, the rounding half */
+    r7 = 1;
+    r10 = 0x7FFFFFFF;
+    l0 = 0;
+    l1 = 0;
+    i0 = _buf_C1_IN_32;
+    i1 = _buf_C1_GAIN_32;
+    r5 = 32;
+    lcntr = r5; do .gk_lp_C1_GAIN_32 until lce;
+        r0 = dm(i0, 1);
+        mrf = r0 * r1 (ssi);
+        mrf = mrf + r6 * r7 (ssi);
+        r8 = mr0f;
+        r2 = mr1f;
+        r8 = lshift r8 by -28;
+        r9 = lshift r2 by 4;
+        r0 = r8 or r9;
+        r8 = ashift r2 by -28;
+        r9 = ashift r0 by -31;
+        r11 = ashift r2 by -31;
+        r11 = r10 xor r11;
+        comp(r8, r9);
+        if ne r0 = r11;
+        dm(i1, 1) = r0;
+.gk_lp_C1_GAIN_32:
+        nop;
+    dm(_tap_post_trim_C1_GAIN_32) = r0;
+    rts;
+#else
 .apply_C1_GAIN_32:
     r0 = dm(_buf_C1_IN_32);
     r1 = dm(_gain_q_C1_GAIN_32);
@@ -99,4 +153,5 @@ _C1_GAIN_32_process:
     dm(_tap_post_trim_C1_GAIN_32) = r0;
     dm(_buf_C1_GAIN_32) = r0;
     rts;
+#endif
 _C1_GAIN_32_process.end:

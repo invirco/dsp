@@ -88,6 +88,16 @@ DSP4_BLOCK_MASK="${DSP4_BLOCK_MASK:-7}"
 # Node-chain bisect: 0 = every node (production), N = only the first N.
 DSP4_NODE_LIMIT="${DSP4_NODE_LIMIT:-0}"
 # TEMP bisect: skip the compressor block-rate parameter conversion.
+# Per-BLOCK kernels (KERNEL REWRITE block). 0 = the shipping per-sample
+# path, which stays the bit-exact reference to diff against. 1 = one call
+# per node per block with the 32-sample loop inside the kernel, block-rate
+# work done once at entry with no per-sample guard. Staged: only the node
+# classes already converted are affected, so intermediate values are only
+# meaningful up to the converted prefix of the chain.
+DSP4_BLOCK_KERNELS="${DSP4_BLOCK_KERNELS:-0}"
+CFLAGS="$CFLAGS -DDSP4_BLOCK_KERNELS=$DSP4_BLOCK_KERNELS"
+ASMFLAGS="$ASMFLAGS -DDSP4_BLOCK_KERNELS=$DSP4_BLOCK_KERNELS"
+
 DSP4_COMP_NOCVT="${DSP4_COMP_NOCVT:-0}"
 # Run the node graph only every Nth block (measurement, not a mode).
 DSP4_BLOCK_DECIMATE="${DSP4_BLOCK_DECIMATE:-1}"

@@ -76,6 +76,40 @@ all overhead: a `call`/`rts` per sample, the `_sample_idx == 0` guard
 re-evaluated 32 times, and a second `call`/`rts` into `_mrf_rns28`. That is
 the case for per-block kernels, now measured rather than assumed.
 
+### KERNEL REWRITE — GAIN converted 2026-08-24 (`DSP4_BLOCK_KERNELS=1`)
+
+First family through the per-block conversion. Measured at the same
+profile points, same build otherwise:
+
+| point | per-sample | per-block | delta |
+|---|---|---|---|
+| `NODE_LIMIT=1` (IN only) | 67,809 | 62,238 | −5,571 |
+| `NODE_LIMIT=2` (IN + GAIN) | 70,130 | 62,811 | −7,319 |
+| **GAIN alone** | **2,321** (72.5/sample) | **573** (17.9/sample) | **4.05× faster** |
+
+**Bit-exact: 0 LSB** against `fixed_ref` at gains 1.0, 0.5, 0.25, 2.0,
+0.001 and 7.94328, with all 32 samples of the block identical under a step,
+as they must be.
+
+What the 4× came from, in order of size: the per-sample `call`/`rts` into
+the node, the `_sample_idx == 0` guard re-evaluated 32 times per block, and
+a second `call`/`rts` into `_mrf_rns28` — all of it overhead around a
+load, a multiply, a round and a store. The kernel hoists the coefficient,
+folds polarity and mute into it once (mute is exactly `x*0` in this
+format), and inlines the rounding with its constants hoisted. The
+saturation fix-up is a **conditional move rather than a branch**, so the
+body stays inside a hardware loop.
+
+IN dropped too — a 32-iteration copy loop instead of 32 calls.
+
+The same overhead is paid by every one of the 431 nodes, so this ratio is
+the case for the rest of the conversion. Next: RTG (601 cycles/sample, the
+measured hot spot) and the bus/send path.
+
+`DSP4_BLOCK_KERNELS=0` remains the default and the bit-exact reference: the
+default build is **byte-identical** to the pre-conversion image, so the
+shipping path is provably untouched.
+
 ### What stands out
 
 **RTG is the most expensive node class on the part** — 601 cycles per

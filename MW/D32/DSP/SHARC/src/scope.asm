@@ -64,6 +64,7 @@
 .var _scope_runs = 0;
 
 .section/pm seg_pmco;
+.extern _sample_idx;
 
 /*----------------------------------------------------------------------
  * _scope_inject — drive the stimulus into the armed input slot.
@@ -80,6 +81,13 @@ _scope_inject:
     r0 = dm(_scope_inj);
     comp(r0, r1);
     if eq jump (pc, .scope_inj_nostim);   /* capture-only run */
+#if DSP4_BLOCK_KERNELS
+    /* Under per-block kernels the input slots are 32-word arrays, so the
+     * stimulus address advances with the sample the scatter loop is on.
+     * Injecting at the base alone would drive only sample 0. */
+    r2 = dm(_sample_idx);
+    r0 = r0 + r2;
+#endif
     l4 = 0;
     i4 = r0;
     r2 = dm(_scope_go);
@@ -126,6 +134,12 @@ _scope_record:
     r0 = dm(_scope_src);
     comp(r0, r1);
     if eq jump (pc, .scope_rec_bump);
+#if DSP4_BLOCK_KERNELS
+    /* Node output buffers are 32-word arrays too: read the element for
+     * the sample this gather pass is on, not the base every time. */
+    r4 = dm(_sample_idx);
+    r0 = r0 + r4;
+#endif
     l4 = 0;
     i4 = r0;
     r4 = dm(i4, 0);

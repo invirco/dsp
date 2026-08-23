@@ -476,6 +476,9 @@ _scatter_chip1:
         r3 = r3 + r2;
         r3 = r6 + r3;         /* DMA word address */
         r5 = dm(i3, 1);       /* node slot var ptr */
+        #if DSP4_BLOCK_KERNELS
+        r5 = r5 + r0;         /* slot[sample] */
+        #endif
         i4 = r3;
         r2 = dm(i4, 0);   /* read DMA */
         r2 = ashift r2 by -3;  /* Q1.31 -> Q4.28 */

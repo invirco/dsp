@@ -146,15 +146,35 @@ def gen_input_tdm(node):
         /* INPUT_TDM: Read from SPORT{p.get('sport_id','?')} TDM slot {p.get('slot_start','?')} */
 
         .section/dm seg_dmda;
+        #if DSP4_BLOCK_KERNELS
+        .var _rx_slot_{node['id']}[32];
+        .var _buf_{node['id']}[32];
+        #else
         .var _rx_slot_{node['id']};
         .var _buf_{node['id']};
+        #endif
 
         .section/pm seg_pmco;
         .global _{node['id']}_process;
         _{node['id']}_process:
+        #if DSP4_BLOCK_KERNELS
+            /* per-BLOCK kernel: one call per block, loop inside */
+            l0 = 0;
+            l1 = 0;
+            i0 = _rx_slot_{node['id']};
+            i1 = _buf_{node['id']};
+            r5 = 32;
+            lcntr = r5; do .in_lp_{node['id']} until lce;
+                r0 = dm(i0, 1);
+                dm(i1, 1) = r0;
+        .in_lp_{node['id']}:
+                nop;
+            rts;
+        #else
             r0 = dm(_rx_slot_{node['id']});
             dm(_buf_{node['id']}) = r0;
             rts;
+        #endif
         _{node['id']}_process.end:
     """)
 
@@ -2974,15 +2994,37 @@ def gen_interchip_recv(node):
         /* INTERCHIP_RECV: mix-fabric line {p.get('sport_id','?')} slot {p.get('slot','?')} (global slot {p.get('global_slot', p.get('slot','?'))}, signal {p.get('signal','?')}) */
 
         .section/dm seg_dmda;
+        #if DSP4_BLOCK_KERNELS
+        /* Scatter writes slot[sample] under block kernels, so this MUST
+         * be a 32-word array even before the node itself is converted --
+         * otherwise scatter writes past a scalar. */
+        .var _rx_ic_slot_{node['id']}[32];
+        .var _buf_{node['id']}[32];
+        #else
         .var _rx_ic_slot_{node['id']};
         .var _buf_{node['id']};
+        #endif
 
         .section/pm seg_pmco;
         .global _{node['id']}_process;
         _{node['id']}_process:
+        #if DSP4_BLOCK_KERNELS
+            l0 = 0;
+            l1 = 0;
+            i0 = _rx_ic_slot_{node['id']};
+            i1 = _buf_{node['id']};
+            r5 = 32;
+            lcntr = r5; do .icr_lp_{node['id']} until lce;
+                r0 = dm(i0, 1);
+                dm(i1, 1) = r0;
+        .icr_lp_{node['id']}:
+                nop;
+            rts;
+        #else
             r0 = dm(_rx_ic_slot_{node['id']});
             dm(_buf_{node['id']}) = r0;
             rts;
+        #endif
         _{node['id']}_process.end:
     """)
 
@@ -3699,6 +3741,15 @@ def gen_block_io(chip_label, chip_nodes):
         lines.append(f'        r3 = r3 + r2;')
         lines.append(f'        r3 = r6 + r3;         /* DMA word address */')
         lines.append(f'        r5 = dm(i3, 1);       /* node slot var ptr */')
+        if not to_dma:
+            # Per-BLOCK kernels: the RX slot variables become 32-word
+            # arrays so a kernel can consume a whole block. Scatter then
+            # writes slot[sample] instead of slot -- one add. Gather is
+            # deliberately NOT indexed yet: no converted node writes a TX
+            # slot, so the TX side is still scalar.
+            lines.append(f'        #if DSP4_BLOCK_KERNELS')
+            lines.append(f'        r5 = r5 + r0;         /* slot[sample] */')
+            lines.append(f'        #endif')
         loop = fn.lstrip('_')
         if to_dma:
             lines.append(f'        i4 = r5;')
@@ -4934,18 +4985,25 @@ def gen_gain_fixed(node):
         .var _mute_{nid} = {p.get('mute', '0')};
         .var _polarity_{nid} = {p.get('polarity', '0')};
         .var _tap_post_trim_{nid};
+        #if DSP4_BLOCK_KERNELS
+        .var _buf_{nid}[32];
+        #else
         .var _buf_{nid};
+        #endif
 
         .section/pm seg_pmco;
         .extern _sample_idx;
         .extern _mrf_rns28;
         .global _{nid}_process;
         _{nid}_process:
-            /* block-rate: advance float ramp, refresh Q4.28 shadow */
+        #if !DSP4_BLOCK_KERNELS
+            /* per-sample path: the block-rate work has to be guarded,
+             * and that guard is re-evaluated 32 times per block. */
             r4 = dm(_sample_idx);
             r1 = 0;
             comp(r4, r1);
             if ne jump (pc, .apply_{nid});
+        #endif
 
             r4 = dm(_gain_frames_{nid});
             r1 = 0;
@@ -4981,6 +5039,52 @@ def gen_gain_fixed(node):
             r1 = fix f1;
             dm(_gain_q_{nid}) = r1;
 
+        #if DSP4_BLOCK_KERNELS
+            /* Fold polarity and mute into the coefficient ONCE per block.
+             * Both are loop-invariant, and mute is exactly x*0 in this
+             * format, so it needs no per-sample test. */
+            r3 = dm(_polarity_{nid});
+            r4 = 0;
+            comp(r3, r4);
+            if ne r1 = -r1;
+            r2 = dm(_mute_{nid});
+            comp(r2, r4);
+            if ne r1 = r4;
+
+            /* _mrf_rns28 inlined with its constants hoisted. The call/rts
+             * and the reload of those constants were most of this node's
+             * measured 72.5 cycles/sample. The saturation fix-up is a
+             * CONDITIONAL MOVE, not a branch, so the body stays inside a
+             * hardware loop. */
+            r6 = 0x08000000;                  /* 2^27, the rounding half */
+            r7 = 1;
+            r10 = 0x7FFFFFFF;
+            l0 = 0;
+            l1 = 0;
+            i0 = _buf_{inp};
+            i1 = _buf_{nid};
+            r5 = 32;
+            lcntr = r5; do .gk_lp_{nid} until lce;
+                r0 = dm(i0, 1);
+                mrf = r0 * r1 (ssi);
+                mrf = mrf + r6 * r7 (ssi);
+                r8 = mr0f;
+                r2 = mr1f;
+                r8 = lshift r8 by -28;
+                r9 = lshift r2 by 4;
+                r0 = r8 or r9;
+                r8 = ashift r2 by -28;
+                r9 = ashift r0 by -31;
+                r11 = ashift r2 by -31;
+                r11 = r10 xor r11;
+                comp(r8, r9);
+                if ne r0 = r11;
+                dm(i1, 1) = r0;
+        .gk_lp_{nid}:
+                nop;
+            dm(_tap_post_trim_{nid}) = r0;
+            rts;
+        #else
         .apply_{nid}:
             r0 = dm(_buf_{inp});
             r1 = dm(_gain_q_{nid});
@@ -4999,6 +5103,7 @@ def gen_gain_fixed(node):
             dm(_tap_post_trim_{nid}) = r0;
             dm(_buf_{nid}) = r0;
             rts;
+        #endif
         _{nid}_process.end:
     """)
 
