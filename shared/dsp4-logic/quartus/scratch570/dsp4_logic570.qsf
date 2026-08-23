@@ -1,0 +1,136 @@
+# dsp4_logic570.qsf - SCRATCH fit of the CURRENT dsp4_logic RTL into the
+# smaller 5M570ZT144C4N, to measure headroom for the rev-D unified lane
+# map. NOT a shipping project. The rev-D map (2xTDM16/direction AK5558
+# cascade, 1xTDM8 AK4619, Pi I2S->TDM8 with MEMS at slots 5-6, one TDM32
+# NET pair, D32 snake on the same pair) has no RTL yet, so what this
+# measures is what TODAY's design costs on the smaller part -- i.e. the
+# headroom the rev-D additions would have to fit into.
+# dsp4_logic.qsf — Quartus settings for the DSP4 LOGIC CPLD (U3)
+#
+# Pin assignments extracted 2026-07-31 from the rev C LOGIC sheet
+# (D24 DSP.pdf page 2/10, 300 DPI render, all four pin banks read).
+# PROVISIONAL assignments (X-logic parking, S4 personality) are marked.
+set_global_assignment -name FAMILY "MAX V"
+set_global_assignment -name DEVICE 5M570ZT144C4
+set_global_assignment -name TOP_LEVEL_ENTITY dsp4_logic_top
+set_global_assignment -name VERILOG_FILE ../../rtl/dsp4_logic_top.v
+set_global_assignment -name VERILOG_FILE ../../rtl/dsp4_clkgen.v
+set_global_assignment -name VERILOG_FILE ../../rtl/dsp4_pcm_reframe.v
+set_global_assignment -name SDC_FILE ../dsp4_logic.sdc
+set_global_assignment -name SEARCH_PATH ../../rtl
+set_global_assignment -name SEARCH_PATH ../../generated
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
+set_global_assignment -name NUM_PARALLEL_PROCESSORS 4
+# Unused pins: inputs, tri-stated with weak pull-up (mandatory — this CPLD
+# shares copper with the MH/panel UARTs and the S-MCU matrix nets, so a
+# driven unused pin is a bus fight, not a cosmetic default).
+#
+# TRAP, hardware-proven 2026-08-19: RESERVE_ALL_UNUSED_PINS_WEAK_PULLUP is
+# NOT the setting. It is a subordinate assignment whose Quartus default is
+# already "As input tri-stated with weak pull-up" (see
+# quartus/linux64/assignment_defaults.qdf:494); setting it does nothing on
+# its own and leaves the PRIMARY assignment below unspecified, which then
+# defaults to "As output driving ground". Both the f827e124 and the
+# committed 2be52d4ad5b5 builds shipped that way and ground-drove
+# MHRX/MHTX/SRX/MRX/PTRX/S5-7/BUSY, killing the MH and panel UARTs.
+# ALWAYS confirm in output_files/dsp4_logic.fit.rpt ("Reserve all unused
+# pins" in the Fitter Device Options table) — do not trust this line.
+set_global_assignment -name RESERVE_ALL_UNUSED_PINS "AS INPUT TRI-STATED WITH WEAK PULL-UP"
+
+# ---- Clock / system ----
+set_location_assignment PIN_88  -to sysclk
+set_location_assignment PIN_140 -to dsp_clk
+
+# ---- Straps ----
+set_location_assignment PIN_87  -to ic_strap[0]
+set_location_assignment PIN_142 -to ic_strap[1]
+set_location_assignment PIN_85  -to ic_strap[2]
+set_location_assignment PIN_141 -to il_strap[0]
+set_location_assignment PIN_81  -to il_strap[1]
+set_location_assignment PIN_70  -to strap_d32
+
+# ---- DSP clock pairs ----
+set_location_assignment PIN_20  -to bcki[0]
+set_location_assignment PIN_21  -to bcki[1]
+set_location_assignment PIN_22  -to bcki[2]
+set_location_assignment PIN_23  -to bcki[3]
+set_location_assignment PIN_38  -to bcki[4]
+set_location_assignment PIN_39  -to bcki[5]
+set_location_assignment PIN_40  -to bcki[6]
+set_location_assignment PIN_41  -to bcki[7]
+set_location_assignment PIN_14  -to fsi[0]
+set_location_assignment PIN_15  -to fsi[1]
+set_location_assignment PIN_16  -to fsi[2]
+set_location_assignment PIN_18  -to fsi[3]
+set_location_assignment PIN_30  -to fsi[4]
+set_location_assignment PIN_31  -to fsi[5]
+set_location_assignment PIN_32  -to fsi[6]
+set_location_assignment PIN_37  -to fsi[7]
+
+# ---- DSPA inputs / DSPB outputs ----
+set_location_assignment PIN_24  -to i_dspa[0]
+set_location_assignment PIN_27  -to i_dspa[1]
+set_location_assignment PIN_28  -to i_dspa[2]
+set_location_assignment PIN_29  -to i_dspa[3]
+set_location_assignment PIN_42  -to i_dspa[4]
+set_location_assignment PIN_43  -to i_dspa[5]
+set_location_assignment PIN_44  -to i_dspa[6]
+set_location_assignment PIN_45  -to i_dspa[7]
+set_location_assignment PIN_48  -to o_dspb[0]
+set_location_assignment PIN_49  -to o_dspb[1]
+set_location_assignment PIN_50  -to o_dspb[2]
+set_location_assignment PIN_51  -to o_dspb[3]
+set_location_assignment PIN_52  -to o_dspb[4]
+set_location_assignment PIN_53  -to o_dspb[5]
+set_location_assignment PIN_55  -to o_dspb[6]
+set_location_assignment PIN_57  -to o_dspb[7]
+
+# ---- Converter lanes ----
+set_location_assignment PIN_139 -to ad[0]
+set_location_assignment PIN_138 -to ad[1]
+set_location_assignment PIN_134 -to ad[2]
+set_location_assignment PIN_133 -to ad[3]
+set_location_assignment PIN_132 -to da[0]
+set_location_assignment PIN_131 -to da[1]
+set_location_assignment PIN_130 -to da[2]
+set_location_assignment PIN_129 -to da[3]
+
+# ---- Network lanes ----
+set_location_assignment PIN_6   -to ni[0]
+set_location_assignment PIN_5   -to ni[1]
+set_location_assignment PIN_4   -to ni[2]
+set_location_assignment PIN_3   -to ni[3]
+set_location_assignment PIN_2   -to no[0]
+set_location_assignment PIN_1   -to no[1]
+set_location_assignment PIN_144 -to no[2]
+set_location_assignment PIN_143 -to no[3]
+
+# ---- Codec / MEMS ----
+set_location_assignment PIN_123 -to cdc_o
+set_location_assignment PIN_124 -to cdc_i
+
+# ---- D32 snake / DAC MAIN parking (X-logic, PROVISIONAL) ----
+set_location_assignment PIN_109 -to snake_in
+set_location_assignment PIN_110 -to snake_out
+set_location_assignment PIN_111 -to dac_main
+
+# ---- Pi PCM (roles per hardware-map: 0=CLK 1=DOUT 2=DIN 3=FS) ----
+set_location_assignment PIN_80  -to pcm_clk
+set_location_assignment PIN_86  -to pcm_dout
+set_location_assignment PIN_63  -to pcm_din
+set_location_assignment PIN_79  -to pcm_fs
+
+# ---- Status ----
+set_location_assignment PIN_59  -to blink_led
+
+# ---- Bring-up test points (-> J1/J2 P17-P20 -> D24 Digital J15, DNP) ----
+set_location_assignment PIN_13  -to test[0]
+set_location_assignment PIN_12  -to test[1]
+set_location_assignment PIN_7   -to test[3]
+
+# Unassigned board pins intentionally left unconstrained (reserved as
+# tri-stated inputs by the global above):
+# !BLINK (58), ISPI0/ISPI1/ICS_L (60,61,62 - provisioned S-MCU SPI),
+# BUSY (66), S5-S7 (69,68,67), UART pass-throughs SRX/MRX (72,71),
+# MHTX/MHRX (73,74), STRX1/STRX0 (75,76), PTRX1/PTRX0 (77,84),
+# PLL1-4 groups (89-108 X-logic), PLL5_3-PLL7_3 (112-122 X-logic).

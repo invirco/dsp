@@ -739,7 +739,7 @@ broke for two build cycles.
 (`chip1.ldr`/`chip2.ldr` = the `f2bdb93` build); `matrix-app` restarted and
 active; all three MCUs verified; GPIOs returned to `a0`.
 
-## QUEUED DISPATCH (fire after the early-audio block) — DESK FILLERS: SPI2_RDY never asserts · 570Z scratch-fit · OSPI clock gate   [status: 🔴 queued]
+## QUEUED DISPATCH (fire after the early-audio block) — DESK FILLERS: SPI2_RDY never asserts · 570Z scratch-fit · OSPI clock gate   [status: 🟡 1 CLOSED / 2 DONE / 3 BLOCKED — (1) SPI2_RDY is NOT usable on this silicon: firmware is already FCEN=1 FCCH=0(RX) FCPL=1 as hoped, pin is driven and idles asserted, but a guaranteed 16-word overfill of the 2-deep RFIFO never deasserts it at ANY of the three legal FCWM values (0/40 each). SPI_STAT.FCS also reads 1 constantly with both FIFOs empty. No host change; rev-D mod 9 stands. (2) 570Z scratch-fit DONE: 157/570 LE (28%), 71/114 pins (62%), but only +0.842 ns slack = 51.27 MHz implied Fmax against a 49.152 MHz requirement — 4.1% margin vs 70.21 MHz on the 1270Z. The part decision is TIMING-bound, not capacity-bound. PIN_137 (mems) and PIN_8 (test[2]) are both illegal on the 570Z in the same T144 package and must move. The AK5558 BICK/MCLK constraint is NOT assessed - the rev-D lane map has no RTL. (3) OSPI BLOCKED on document access: HRM ch.16 confirms Octal DDR/DTR and data-capture tuning but contains NO mention of RWDS, HyperRAM, HyperBus or xSPI 'profile'; the max-clock figure is a datasheet spec and every route is blocked (analog.com times out, verical 403, mouser times out). ASK: drop the Rev D datasheet into _Matrix adsp-2156x-docs and this closes in minutes]
 
 model: opus
 
@@ -3900,3 +3900,103 @@ both chips on production (`e7b53db4…` / `a4b8f3b5…`), `BOOT_STAGE 5`,
 verified; GPIOs `a0`. The I2S overlay is persistent and survives reboot by
 design — it does not disturb `matrix-app` (I2S uses GPIO 18-21,
 `matrix-app` uses 6-12 and 22-25).
+
+### Outcome 2026-08-23 12:5xZ — desk fillers: 1 CLOSED, 2 DONE with numbers, 3 BLOCKED on document access
+
+#### 1. SPI2_RDY — CLOSED, verdict: not usable on this silicon
+
+HRM ch.15: in slave mode `SPI_RDY` is an output and `SPI_CTL.FCCH` picks
+the FIFO it follows — 0 = RX buffer ("I can accept"), 1 = TX buffer
+("I have data"). The firmware is **already** configured the way the task
+hoped to find, read back off a running chip 1:
+
+    SPI2_CTL = 0x0001A501
+      EN=1  MSTR=0  FCEN=1  FCCH=0 (RX)  FCPL=1 (active-high)  FCWM=1
+
+It idles high on both chips (10/10; chip 1 GPIO8, chip 2 GPIO12), and high
+against the board's 10K pulldown means the pin **is** driven.
+
+It never deasserts. The decisive test clocks one 64-byte transfer with CS
+held — 16 words into a 2-deep FIFO, which the DSP cannot drain because it
+drains by polling *between* transactions — and samples RDY the instant it
+returns:
+
+| FCWM | meaning | RDY low |
+|---|---|---|
+| 1 | RFIFO ≥ 75% | 0/40 |
+| 2 | RFIFO ≥ 50% | 0/40 |
+| 0 | RFIFO full | 0/40 |
+
+All three legal values, each confirmed live in `SPI2_CTL` first. A
+guaranteed overfill never moves the pin. Corroborating: `SPI_STAT.FCS`
+reads 1 constantly with both FIFOs empty and the link idle — FCS is
+documented as a *master*-mode stall indication, and permanently set in
+slave mode fits a flow-control block not behaving as ch.15 describes.
+
+**No host change made.** The tools already accept `--rdy-gpio` and call
+`wait_ready()`; with the pin stuck asserted that never blocks, so it is
+harmless but buys nothing and must not be relied on for pacing. rev-D
+mod 9 (RDY pull-up) stands. Note the boot kernel uses the opposite
+polarity — `dsp4_boot.py` expects RDY **low** during pre-select.
+
+#### 2. 570Z scratch-fit — DONE
+
+`shared/dsp4-logic/quartus/scratch570/` fits the **current** RTL (shipping
+configuration) into the smaller part. Correct Quartus device name is
+`5M570ZT144C4` — the `N` in `5M570ZT144C4N` is an ordering-code suffix and
+Quartus rejects it.
+
+| | 5M570ZT144C4 |
+|---|---|
+| logic elements | **157 / 570 (28%)** |
+| registers | 127 / 570 (22%) |
+| pins | **71 / 114 (62%)** |
+| headroom | 413 LE, 43 pins |
+| worst setup slack | **+0.842 ns** on the 20.345 ns (49.152 MHz) sysclk |
+| implied Fmax | **51.27 MHz — only 4.1% margin** |
+
+**Two pins in the current map are illegal on the 570Z in the same T144
+package**, and one is exactly the pin the task flagged:
+
+- `mems` on **PIN_137** — illegal; fitter relocated to PIN_58
+- `test[2]` on **PIN_8** — illegal; fitter relocated to PIN_11
+
+Those relocations are the *fitter's* choice with no knowledge of the PCB —
+they confirm the pins must move and give a legal example, they are not a
+layout recommendation.
+
+**The headline for the part decision is timing, not capacity.** The design
+uses only 28% of the LEs but leaves just 4.1% timing margin at 49.152 MHz,
+where the 5M1270ZT144C4 manifest records 70.21 MHz. The rev-D lane map
+adds logic to a design that is already close to the edge on the smaller,
+slower part.
+
+**Not assessed: the ±10 ns BICK↓ vs MCLK↑ constraint for the cascaded
+AK5558 slaves.** That constraint belongs to the rev-D unified lane map,
+and no RTL for it exists — there is nothing to time. What the numbers
+above bound is the headroom that map would have to fit into.
+
+#### 3. OSPI clock gate — BLOCKED on document access
+
+The HRM ch.16 is functional, not electrical. It **does** establish:
+Octal DDR and DTR protocol supported, up to 16 bits per SPI clock,
+programmable dummy cycles, and a "tune data capture mechanism to improve
+high speed operation". It contains **no** occurrence of RWDS, HyperRAM,
+HyperBus, or xSPI "profile" anywhere — so profile-2 / HyperRAM 2.0 support
+is *not* evidenced by the HRM.
+
+The max OSPI clock (133 vs 200 MHz) is a datasheet electrical spec and the
+datasheet is not reachable from this machine: not in `_Matrix`, analog.com
+times out, the verical mirror returns 403, the Mouser mirror times out,
+and the ampnuts mirror only carries the HRM. One search result indicates
+OSPI **boot** is capped at 62.5 MHz OSPI clock, which is a boot-mode
+constraint and not the interface maximum.
+
+**Ask for the hub:** drop
+`adsp-21562-21563-21565-21566-21567-21569.pdf` (Rev D) into
+`_Matrix/.../adsp-2156x-docs` and this closes in minutes — the answer is
+in "OSPI Port—Master Timing" in the Timing Specifications section.
+
+**Bench state:** SHIPPING bitstream; both chips on production
+(`e7b53db4…` / `a4b8f3b5…`), `CHIP_ID` 1 and 2, `BOOT_STAGE 5`, 1500.0
+blocks/s, `SPORT0_ERR_A` clean; `matrix-app` active, three MCUs verified.
