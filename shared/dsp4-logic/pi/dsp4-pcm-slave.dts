@@ -1,0 +1,78 @@
+// dsp4-pcm-slave.dts — duplex I2S soundcard for the DSP4 bench CM4.
+//
+// The LOGIC CPLD masters pcm_clk (3.072 MHz) and pcm_fs (48 kHz), so the
+// Pi must be an I2S SLAVE: bitclock-master/frame-master point at the
+// CODEC side of each link, not the cpu side. (The stock
+// audioinjector-bare-i2s overlay is the opposite -- Pi master -- and is
+// playback only, which is why it cannot be used here.)
+//
+// Two dai-links because the dummy codecs are single-direction:
+// linux,spdif-dit is playback only and linux,spdif-dir is capture only.
+// One card, device 0 = playback, device 1 = capture.
+//
+// 32-bit slots, 2 per frame: the DSP4 lanes carry 32-bit words and the
+// rung-2 check is bit-exact across all 32.
+/dts-v1/;
+/plugin/;
+
+/ {
+    compatible = "brcm,bcm2835";
+
+    fragment@0 {
+        target = <&i2s_clk_consumer>;
+        __overlay__ { status = "okay"; };
+    };
+
+    fragment@1 {
+        target-path = "/";
+        __overlay__ {
+            dsp4_dit: dsp4-dit {
+                compatible = "linux,spdif-dit";
+                #sound-dai-cells = <0>;
+                status = "okay";
+            };
+            dsp4_dir: dsp4-dir {
+                compatible = "linux,spdif-dir";
+                #sound-dai-cells = <0>;
+                status = "okay";
+            };
+        };
+    };
+
+    fragment@2 {
+        target = <&sound>;
+        __overlay__ {
+            compatible = "simple-audio-card";
+            simple-audio-card,name = "dsp4pcm";
+            status = "okay";
+            #address-cells = <1>;
+            #size-cells = <0>;
+
+            simple-audio-card,dai-link@0 {
+                reg = <0>;
+                format = "i2s";
+                bitclock-master = <&dsp4_pb_codec>;
+                frame-master = <&dsp4_pb_codec>;
+                cpu {
+                    sound-dai = <&i2s_clk_consumer>;
+                    dai-tdm-slot-num = <2>;
+                    dai-tdm-slot-width = <32>;
+                };
+                dsp4_pb_codec: codec { sound-dai = <&dsp4_dit>; };
+            };
+
+            simple-audio-card,dai-link@1 {
+                reg = <1>;
+                format = "i2s";
+                bitclock-master = <&dsp4_cap_codec>;
+                frame-master = <&dsp4_cap_codec>;
+                cpu {
+                    sound-dai = <&i2s_clk_consumer>;
+                    dai-tdm-slot-num = <2>;
+                    dai-tdm-slot-width = <32>;
+                };
+                dsp4_cap_codec: codec { sound-dai = <&dsp4_dir>; };
+            };
+        };
+    };
+};
