@@ -210,6 +210,18 @@ _sec_isr.end:
  *----------------------------------------------------------------------*/
 .global _sport_dma_work;
 _sport_dma_work:
+    /* ACK THE DMA FIRST. DMA_STAT.IRQDONE is write-1-to-clear, and until
+     * it is cleared the channel holds its interrupt request asserted --
+     * so the SEC re-arbitrates the same source the instant SEC_END is
+     * written and the core re-enters this ISR immediately, forever.
+     * Bench 2026-08-23, first run with audio actually flowing: 11e6
+     * frames and 11e6 SEC interrupts over 4.6 s of DIAG_TICKS, against
+     * an expected 1500/s. Only bit 0 is written: IRQERR (bit 1) is left
+     * alone so a real channel error stays latched and visible in
+     * DIAG_DMA0_STAT. */
+    r2 = 0x00000001;
+    dm(REG_DMA0_STAT) = r2;
+
     /* Toggle inbound pointer */
 #if CHIP_ID == 1
     r2 = dm(_rx_active_buf);
