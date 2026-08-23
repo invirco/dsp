@@ -169,7 +169,14 @@ module dsp4_logic_top (
     // output routing, same pinout. This define is never set for a
     // shipping build, and build.sh labels the artifact
     // dsp4_logic_loopback.<hash> so the two can never be confused.
-    assign i_dspa = o_dspb;
+    // Lane 6 is the EXCEPTION and it has to be: it carries the Pi's
+    // playback (pcm_tdm, from the reframer). Feeding it from o_dspb too
+    // would tie off the only path the Pi has INTO the DSP, and rung 2 is
+    // a Pi -> DSPA -> fabric -> DSPB -> Pi round trip. Everything else
+    // still comes from the matching DSPB output lane.
+    assign i_dspa[5:0] = o_dspb[5:0];
+    assign i_dspa[6]   = pcm_tdm;
+    assign i_dspa[7]   = o_dspb[7];
 `else
     assign i_dspa[0] = net_sel[0] ? ni[0] : ad[0];
     assign i_dspa[1] = net_sel[1] ? ni[1] : ad[1];

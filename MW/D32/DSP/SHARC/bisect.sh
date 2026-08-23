@@ -49,16 +49,19 @@ if [ "$(grep -ciE '\[Error|Build FAILED' /tmp/bisect_build.log)" -ne 0 ]; then
     echo "BUILD FAILED"; grep -iE '\[Error|error:' /tmp/bisect_build.log | head -5; exit 2
 fi
 MD5=$(md5sum build/chip1.ldr | cut -c1-12)
-ADDR=$(python3 -c "
-import re,sys
+read -r ADDR ADDR2 <<<"$(python3 -c "
+import re
 s=open('build/chip1.map.xml',errors='ignore').read()
-m=re.search(r\"build_flags' address='(0x[0-9a-fA-F]+)'\", s)
-print(m.group(1) if m else '')")
-[ -z "$ADDR" ] && { echo "no _build_flags symbol in map"; exit 2; }
+def a(n):
+    m=re.search(n+r\"' address='(0x[0-9a-fA-F]+)'\", s); return m.group(1) if m else ''
+print(a('build_flags'), a('build_flags2'))")"
+[ -z "$ADDR" ] || [ -z "$ADDR2" ] && { echo "no _build_flags/_build_flags2 in map"; exit 2; }
+EXPECT2=$(( DSP4_STRIPS & 0x3F ))
 
 scp -q build/chip1.ldr build/chip2.ldr $BENCH:/home/app/dspboot/
 printf 'mask=%d limit=%d commit=%d noidle=%d stub_cg=%d nocvt=%d  md5=%s  stamp@%s expect=0x%08X\n' \
   "$DSP4_BLOCK_MASK" "$DSP4_NODE_LIMIT" "$DSP4_COMMIT_STAGE" "$DSP4_NO_IDLE_OVERRIDE" \
   "$DSP4_STUB_COMPGAIN" "$DSP4_COMP_NOCVT" "$MD5" "$ADDR" "$EXPECT"
+printf '  strips=%d  stamp2@%s expect2=0x%08X\n' "$DSP4_STRIPS" "$ADDR2" "$EXPECT2"
 
-ssh $BENCH "bash /home/app/bisect_run.sh $REPEATS $ADDR $EXPECT"
+ssh $BENCH "bash /home/app/bisect_run.sh $REPEATS $ADDR $EXPECT $ADDR2 $EXPECT2"
