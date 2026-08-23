@@ -451,6 +451,54 @@ static void arm_region(const int *lanes, int count, int dir,
     }
 }
 
+#ifndef DSP4_PATTERN
+#define DSP4_PATTERN 0
+#endif
+#if DSP4_PATTERN
+/* RUNG 1 PATTERN GENERATOR (bring-up only, never a shipping build).
+ *
+ * Fills this chip's TRANSMIT region with a word that names its own
+ * position, so that with the CPLD loopback bitstream (i_dspa = o_dspb)
+ * the receiving chip's buffer can be read straight out of DM and every
+ * one of rung 1's questions answered by inspection:
+ *
+ *   0x5A5A | lane | slot
+ *   31..16   15..8   7..0
+ *
+ * - lane mismatch        -> DSPB O(n) is not landing on DSPA I(n)
+ * - slot field rotated   -> within-TDM8 slot order is not identity
+ * - 0x5A5A becomes 0xB4B4 / 0x2D2D -> sampled on the wrong edge, or the
+ *   frame sync is off by a bit (MFD); 0x5A is chosen precisely because
+ *   a one-bit shift in either direction is unmistakable
+ * - whole word off by one position -> FS/BCK pair order is swapped
+ *
+ * The SAME value goes in every sample of the block, so the check does
+ * not depend on where in the block the reader happens to look, and both
+ * halves are filled so every transmitted block carries the pattern
+ * whichever half the ring is on. */
+static void pattern_fill(const int *lanes, int count, unsigned int *base,
+                         uint32_t region_words)
+{
+    int i, h, s, k;
+    for (h = 0; h < 2; h++) {
+        unsigned int *half = base + h * region_words;
+        for (i = 0; i < count; i++) {
+            int sport      = lanes[4 * i + 0];
+            int lane_words = lanes[4 * i + 2];
+            int off        = lanes[4 * i + 3];
+            unsigned int *p = half + off;
+            for (s = 0; s < 32; s++) {
+                for (k = 0; k < lane_words; k++) {
+                    p[s * lane_words + k] = 0x5A5A0000u
+                                            | ((unsigned int)sport << 8)
+                                            | (unsigned int)k;
+                }
+            }
+        }
+    }
+}
+#endif
+
 static void enable_region(const int *lanes, int count, int dir)
 {
     int i;
@@ -920,6 +968,13 @@ void dma_cfg_init(void)
     /* All rings armed: enable the serial ports (clock slaves — they
      * start on the next LOGIC frame sync) */
     DIAG_STAGE(6);
+#if DSP4_PATTERN
+    /* Before the SPORTs are enabled, so the very first transmitted block
+     * already carries the pattern. REGION_B is the transmit region on
+     * both chips. */
+    pattern_fill(REGION_B_LANES, REGION_B_COUNT, REGION_B_PING,
+                 (uint32_t)REGION_B_WORDS);
+#endif
     enable_region(REGION_A_LANES, REGION_A_COUNT, 0);
     enable_region(REGION_B_LANES, REGION_B_COUNT, 1);
 #if DSP4_BISECT == 20

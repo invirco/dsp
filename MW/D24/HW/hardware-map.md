@@ -403,3 +403,72 @@ Pi-independent functions D8 keeps off the CM4.
 Change path per repo rules: edit `tools/dsp/gen_dsp_csv.py` (D24 config) →
 regen `dsp.csv` → `tools/dsp/dsp_codegen.py` → node ASM. Do not hand-edit
 generated files.
+
+## 2026-08-23 — TDM slot map VERIFIED by loopback measurement (rung 1)
+
+The four facts below were assumptions until now. They are closed by
+measurement on the rev-C bench, not by inspection of the RTL or the
+datasheet.
+
+**Method.** CPLD bring-up bitstream `dsp4_logic_loopback.48fa9b8590d5`
+(`i_dspa = o_dspb`, everything else identical to shipping) ties every DSPA
+input lane to the matching DSPB output lane. Firmware built with
+`DSP4_PATTERN=1` fills each chip's transmit region with a word that names
+its own position — `0x5A5A | lane<<8 | slot` — and the receiving chip's
+DMA buffer is read straight out of DM through the diag peek window. No
+converter, analog board, scope or hands.
+
+Images: chip1 `7aa4f88152cff81fda2cd0aef0135346`, chip2
+`89d314f0480db03a678e8a60c8cf0ed5`. Both chips' `CHIP_ID` verified over
+the link before the reading was taken — see the boot caveat below.
+
+**Result — chip 1 (DSPA/U6) receive buffer, driven by chip 2 (DSPB/U5):**
+
+| RX lane | slot 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
+|---|---|---|---|---|---|---|---|---|
+| 0 | `5A5A0000` | `..01` | `..02` | `..03` | `..04` | `..05` | `..06` | `..07` |
+| 1 | `5A5A0100` | `..01` | `..02` | `..03` | `..04` | `..05` | `..06` | `..07` |
+| 2 | `5A5A0200` | `..01` | `..02` | `..03` | `..04` | `..05` | `..06` | `..07` |
+| 3 | `5A5A0300` | `..01` | `..02` | `..03` | `..04` | `..05` | `..06` | `..07` |
+
+1. **BCKI/FSI pair order is correct.** Every word lands aligned at its own
+   slot with no rotation. A swapped BCK/FS pair cannot produce aligned
+   words at slot 0 of every lane.
+2. **Sample edge / MFD are correct.** The `0x5A5A` signature survives
+   intact on all lanes. `0x5A` was chosen because a one-bit shift in
+   either direction is unmistakable — it would read `0xB4B4` or `0x2D2D`.
+   Nothing of the kind appears.
+3. **Within-TDM8 slot order is identity**, 0 through 7 in order, on four
+   full lanes.
+4. **Lane index is identity**: DSPB O(n) lands on DSPA I(n) for n = 0..4.
+   No crossed index.
+
+**The decisive case is lane 4**, and it is worth more than the four full
+lanes together. Its receive channel-select mask is `0x000D` — slots 0, 2
+and 3, deliberately non-consecutive — while the transmitter drives all
+eight. It received exactly:
+
+    5A5A0400   5A5A0402   5A5A0403
+
+Slots **0, 2, 3**. So slot numbering is absolute within the TDM8 frame and
+the channel-select mask picks the right ones; a rotated or offset slot map
+would have produced a different triple from the same stream.
+
+Lanes 5, 6 and 7 read `0x00000000`, correct: chip 2's transmit region has
+five lanes (0-4) and nothing drives 5-7.
+
+### Boot caveat found while doing this — READ CHIP_ID BEFORE BELIEVING ANY MEASUREMENT
+
+`dsp4_boot.py` can leave **chip 2 running chip 1's firmware**, silently.
+It reports `booted 2 chip(s)` and warns `92% unsynced collision risk`, and
+the part answers on chip 2's chip select with `CHIP_ID 1`. The first
+reading of this test was taken in that state and was wrong in a way that
+looked like a real hardware finding: chip 1's receive lane 0 showed a
+16-slot stream (`0..7` then `8..15`, alternating) because the part on chip
+2 was transmitting chip 1's 16-word inter-chip pattern instead of chip
+2's 8-word one.
+
+It took two boot attempts to get `CHIP_ID 2 (DSPB/U5)`. **Every bench
+measurement must read `CHIP_ID` off both parts first**; the identical
+`ADDRSTART`/`XCNT` values on both chips are the giveaway, since the two
+images have different lane geometry and cannot legitimately match.

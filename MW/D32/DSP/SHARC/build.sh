@@ -65,7 +65,10 @@ echo "  (P2.2 bisect variant: DSP4_BISECT=$DSP4_BISECT)"
 # told apart from a descriptor or address-translation one.
 DSP4_DMA_AUTOBUF="${DSP4_DMA_AUTOBUF:-1}"
 DSP4_RX0_L2="${DSP4_RX0_L2:-0}"
-CFLAGS="$CFLAGS -DDSP4_DMA_AUTOBUF=$DSP4_DMA_AUTOBUF -DDSP4_RX0_L2=$DSP4_RX0_L2"
+# DSP4_PATTERN=1 fills the transmit region with the rung-1 loopback
+# pattern (dma_config.c). Bring-up only; never a shipping build.
+DSP4_PATTERN="${DSP4_PATTERN:-0}"
+CFLAGS="$CFLAGS -DDSP4_DMA_AUTOBUF=$DSP4_DMA_AUTOBUF -DDSP4_RX0_L2=$DSP4_RX0_L2 -DDSP4_PATTERN=$DSP4_PATTERN"
 
 # Linker flags — LDF resolved in build(): the repo LDF hardcodes
 # ARCHITECTURE(ADSP-21564); for a fit-proxy build under a different
