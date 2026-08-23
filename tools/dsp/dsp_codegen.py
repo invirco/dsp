@@ -4951,10 +4951,23 @@ def gen_gain_fixed(node):
             r1 = 0;
             comp(r4, r1);
             if le jump (pc, .snap_{nid});
-            r4 = r4 - 1;
+            /* Consume a BLOCK's worth of frames and apply a BLOCK's
+             * worth of step. spi_handler scales every profile frame count
+             * by 32 (BLOCK_SIZE), which is right for the ramps that
+             * decrement once per SAMPLE. This one decrements once per
+             * BLOCK, so taking 1 per block ran it 32x long: measured
+             * 2026-08-23, a GainSafe down-ramp took 960 ms against the
+             * 30 ms its own cell table specifies, and a GainFast fader
+             * move took 85 ms instead of 3 ms. 32.0f is exact in binary,
+             * so scaling the step loses nothing. */
+            r5 = 32;
+            r4 = r4 - r5;
             dm(_gain_frames_{nid}) = r4;
             f1 = dm(_gain_coeff_{nid});
             f2 = dm(_gain_step_{nid});
+            r5 = 0x42000000;                  /* 32.0f */
+            f5 = r5;
+            f2 = f2 * f5;
             f1 = f1 + f2;
             dm(_gain_coeff_{nid}) = f1;
             jump (pc, .cvt_{nid});
@@ -5080,10 +5093,23 @@ def gen_fader_pan_fixed(node):
             r1 = 0;
             comp(r4, r1);
             if le jump (pc, .lsnap_{nid});
-            r4 = r4 - 1;
+            /* Consume a BLOCK's worth of frames and apply a BLOCK's
+             * worth of step. spi_handler scales every profile frame count
+             * by 32 (BLOCK_SIZE), which is right for the ramps that
+             * decrement once per SAMPLE. This one decrements once per
+             * BLOCK, so taking 1 per block ran it 32x long: measured
+             * 2026-08-23, a GainSafe down-ramp took 960 ms against the
+             * 30 ms its own cell table specifies, and a GainFast fader
+             * move took 85 ms instead of 3 ms. 32.0f is exact in binary,
+             * so scaling the step loses nothing. */
+            r5 = 32;
+            r4 = r4 - r5;
             dm(_fdr_level_frames_{nid}) = r4;
             f1 = dm(_fdr_level_{nid});
             f2 = dm(_fdr_level_step_{nid});
+            r5 = 0x42000000;                  /* 32.0f */
+            f5 = r5;
+            f2 = f2 * f5;
             f1 = f1 + f2;
             dm(_fdr_level_{nid}) = f1;
             jump (pc, .pramp_{nid});
@@ -5096,10 +5122,23 @@ def gen_fader_pan_fixed(node):
             r1 = 0;
             comp(r4, r1);
             if le jump (pc, .psnap_{nid});
-            r4 = r4 - 1;
+            /* Consume a BLOCK's worth of frames and apply a BLOCK's
+             * worth of step. spi_handler scales every profile frame count
+             * by 32 (BLOCK_SIZE), which is right for the ramps that
+             * decrement once per SAMPLE. This one decrements once per
+             * BLOCK, so taking 1 per block ran it 32x long: measured
+             * 2026-08-23, a GainSafe down-ramp took 960 ms against the
+             * 30 ms its own cell table specifies, and a GainFast fader
+             * move took 85 ms instead of 3 ms. 32.0f is exact in binary,
+             * so scaling the step loses nothing. */
+            r5 = 32;
+            r4 = r4 - r5;
             dm(_fdr_pan_frames_{nid}) = r4;
             f1 = dm(_fdr_pan_{nid});
             f2 = dm(_fdr_pan_step_{nid});
+            r5 = 0x42000000;                  /* 32.0f */
+            f5 = r5;
+            f2 = f2 * f5;
             f1 = f1 + f2;
             dm(_fdr_pan_{nid}) = f1;
             jump (pc, .cvt_{nid});
@@ -5715,13 +5754,27 @@ def gen_talkback_fixed(node):
             call _bq_fx_convert_N;
         .tk_ramp_{nid}:
 
+            /* Consume a BLOCK's worth of frames and apply a BLOCK's
+             * worth of step. spi_handler scales every profile frame count
+             * by 32 (BLOCK_SIZE), which is right for the ramps that
+             * decrement once per SAMPLE. This one decrements once per
+             * BLOCK, so taking 1 per block ran it 32x long: measured
+             * 2026-08-23, a GainSafe down-ramp took 960 ms against the
+             * 30 ms its own cell table specifies, and a GainFast fader
+             * move took 85 ms instead of 3 ms. 32.0f is exact in binary,
+             * so scaling the step loses nothing. */
             r4 = dm(_talk_gain_frames_{nid});
-            r15 = 1;
-            r4 = r4 - r15;
+            r15 = 0;
+            comp(r4, r15);
             if le jump (pc, .no_tkramp_{nid});
+            r15 = 32;
+            r4 = r4 - r15;
             dm(_talk_gain_frames_{nid}) = r4;
             f1 = dm(_talk_gain_{nid});
             f2 = dm(_talk_gain_step_{nid});
+            r15 = 0x42000000;                 /* 32.0f */
+            f15 = r15;
+            f2 = f2 * f15;
             f1 = f1 + f2;
             dm(_talk_gain_{nid}) = f1;
             jump (pc, .tk_go_{nid});
@@ -5953,10 +6006,23 @@ def gen_compressor_fixed(node):
             r4 = dm(_comp_makeup_frames_{nid});
             comp(r4, r1);
             if le jump (pc, .no_mramp_{nid});
-            r4 = r4 - 1;
+            /* Consume a BLOCK's worth of frames and apply a BLOCK's
+             * worth of step. spi_handler scales every profile frame count
+             * by 32 (BLOCK_SIZE), which is right for the ramps that
+             * decrement once per SAMPLE. This one decrements once per
+             * BLOCK, so taking 1 per block ran it 32x long: measured
+             * 2026-08-23, a GainSafe down-ramp took 960 ms against the
+             * 30 ms its own cell table specifies, and a GainFast fader
+             * move took 85 ms instead of 3 ms. 32.0f is exact in binary,
+             * so scaling the step loses nothing. */
+            r5 = 32;
+            r4 = r4 - r5;
             dm(_comp_makeup_frames_{nid}) = r4;
             f1 = dm(_comp_makeup_{nid});
             f2 = dm(_comp_makeup_step_{nid});
+            r5 = 0x42000000;                  /* 32.0f */
+            f5 = r5;
+            f2 = f2 * f5;
             f1 = f1 + f2;
             dm(_comp_makeup_{nid}) = f1;
             jump (pc, .comp_cvt_{nid});

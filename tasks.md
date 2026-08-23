@@ -911,6 +911,28 @@ Method — one family at a time, in profile order, measured after each:
    COMP+GATE.
 5. Block I/O (20 % fixed): scatter/gather without the per-sample Q-format
    shuffles — convert once per lane per block; meter scan at block rate.
+5b. METERS — fold in the MTR-node rework (added 2026-08-24 by hub steer).
+   Measured 2026-08-23: the MTR node class is numerically meaningless. It
+   loads a Q4.28 INTEGER and does `f0 = abs f0`, and r0/f0 are the same
+   SHARC register, so the bit pattern is reinterpreted as IEEE-754 — peak
+   read 3.85e-34 for a 0.5 input. RMS is dead (the peak branch takes an
+   early rts before the RMS update), decay runs per sample against a
+   comment written for the 1500 Hz block rate so the time constant is 32x
+   fast, and _mtr_gr is declared and never written. Values are host-visible
+   at SPI 0x1200/0x1201 with mislabelled dispatch comments.
+   The LIBRARY meter path (_meter_peaks[], _meter_scan_chip1) is correct
+   and is what the host readback contract uses — measured 0.49975 for a 0.5
+   input, converting properly and decaying per block.
+   OPTION FOR THE HUB TO DECIDE HERE: if the library meter is the only path
+   the host contract uses, RETIRE the MTR nodes rather than repair them —
+   that removes ~32 nodes per chip from the per-sample graph, which serves
+   this block's cycle-budget goal directly. If they are kept, they need the
+   fixed->float conversion, the RMS ordering fix, a decay-rate decision,
+   and a meter model added to fixed_ref.py (there is none) before they can
+   go under the harness. Report: tools/dsp/hw-reports/mtr-2026-08-23.md.
+   Also unmeasured but found by inspection: _meter_decay_block decays 32
+   entries while _meter_scan_chip1 writes 46, so 32-45 never decay.
+
 6. SCOPE GATING (option 3): make _scope_gates_apply real — D24 runs only D24
    nodes; bypassed nodes are skipped at the dispatch table, not inside the
    kernel. Measure the D24 graph, not D32's.

@@ -97,10 +97,23 @@ _C1_COMP_14_process:
     r4 = dm(_comp_makeup_frames_C1_COMP_14);
     comp(r4, r1);
     if le jump (pc, .no_mramp_C1_COMP_14);
-    r4 = r4 - 1;
+    /* Consume a BLOCK's worth of frames and apply a BLOCK's
+     * worth of step. spi_handler scales every profile frame count
+     * by 32 (BLOCK_SIZE), which is right for the ramps that
+     * decrement once per SAMPLE. This one decrements once per
+     * BLOCK, so taking 1 per block ran it 32x long: measured
+     * 2026-08-23, a GainSafe down-ramp took 960 ms against the
+     * 30 ms its own cell table specifies, and a GainFast fader
+     * move took 85 ms instead of 3 ms. 32.0f is exact in binary,
+     * so scaling the step loses nothing. */
+    r5 = 32;
+    r4 = r4 - r5;
     dm(_comp_makeup_frames_C1_COMP_14) = r4;
     f1 = dm(_comp_makeup_C1_COMP_14);
     f2 = dm(_comp_makeup_step_C1_COMP_14);
+    r5 = 0x42000000;                  /* 32.0f */
+    f5 = r5;
+    f2 = f2 * f5;
     f1 = f1 + f2;
     dm(_comp_makeup_C1_COMP_14) = f1;
     jump (pc, .comp_cvt_C1_COMP_14);

@@ -62,13 +62,27 @@ _C1_TALK_02_process:
     call _bq_fx_convert_N;
 .tk_ramp_C1_TALK_02:
 
+    /* Consume a BLOCK's worth of frames and apply a BLOCK's
+     * worth of step. spi_handler scales every profile frame count
+     * by 32 (BLOCK_SIZE), which is right for the ramps that
+     * decrement once per SAMPLE. This one decrements once per
+     * BLOCK, so taking 1 per block ran it 32x long: measured
+     * 2026-08-23, a GainSafe down-ramp took 960 ms against the
+     * 30 ms its own cell table specifies, and a GainFast fader
+     * move took 85 ms instead of 3 ms. 32.0f is exact in binary,
+     * so scaling the step loses nothing. */
     r4 = dm(_talk_gain_frames_C1_TALK_02);
-    r15 = 1;
-    r4 = r4 - r15;
+    r15 = 0;
+    comp(r4, r15);
     if le jump (pc, .no_tkramp_C1_TALK_02);
+    r15 = 32;
+    r4 = r4 - r15;
     dm(_talk_gain_frames_C1_TALK_02) = r4;
     f1 = dm(_talk_gain_C1_TALK_02);
     f2 = dm(_talk_gain_step_C1_TALK_02);
+    r15 = 0x42000000;                 /* 32.0f */
+    f15 = r15;
+    f2 = f2 * f15;
     f1 = f1 + f2;
     dm(_talk_gain_C1_TALK_02) = f1;
     jump (pc, .tk_go_C1_TALK_02);

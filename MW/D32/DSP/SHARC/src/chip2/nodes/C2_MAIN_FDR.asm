@@ -61,10 +61,23 @@ _C2_MAIN_FDR_process:
     r1 = 0;
     comp(r4, r1);
     if le jump (pc, .lsnap_C2_MAIN_FDR);
-    r4 = r4 - 1;
+    /* Consume a BLOCK's worth of frames and apply a BLOCK's
+     * worth of step. spi_handler scales every profile frame count
+     * by 32 (BLOCK_SIZE), which is right for the ramps that
+     * decrement once per SAMPLE. This one decrements once per
+     * BLOCK, so taking 1 per block ran it 32x long: measured
+     * 2026-08-23, a GainSafe down-ramp took 960 ms against the
+     * 30 ms its own cell table specifies, and a GainFast fader
+     * move took 85 ms instead of 3 ms. 32.0f is exact in binary,
+     * so scaling the step loses nothing. */
+    r5 = 32;
+    r4 = r4 - r5;
     dm(_fdr_level_frames_C2_MAIN_FDR) = r4;
     f1 = dm(_fdr_level_C2_MAIN_FDR);
     f2 = dm(_fdr_level_step_C2_MAIN_FDR);
+    r5 = 0x42000000;                  /* 32.0f */
+    f5 = r5;
+    f2 = f2 * f5;
     f1 = f1 + f2;
     dm(_fdr_level_C2_MAIN_FDR) = f1;
     jump (pc, .pramp_C2_MAIN_FDR);
@@ -77,10 +90,23 @@ _C2_MAIN_FDR_process:
     r1 = 0;
     comp(r4, r1);
     if le jump (pc, .psnap_C2_MAIN_FDR);
-    r4 = r4 - 1;
+    /* Consume a BLOCK's worth of frames and apply a BLOCK's
+     * worth of step. spi_handler scales every profile frame count
+     * by 32 (BLOCK_SIZE), which is right for the ramps that
+     * decrement once per SAMPLE. This one decrements once per
+     * BLOCK, so taking 1 per block ran it 32x long: measured
+     * 2026-08-23, a GainSafe down-ramp took 960 ms against the
+     * 30 ms its own cell table specifies, and a GainFast fader
+     * move took 85 ms instead of 3 ms. 32.0f is exact in binary,
+     * so scaling the step loses nothing. */
+    r5 = 32;
+    r4 = r4 - r5;
     dm(_fdr_pan_frames_C2_MAIN_FDR) = r4;
     f1 = dm(_fdr_pan_C2_MAIN_FDR);
     f2 = dm(_fdr_pan_step_C2_MAIN_FDR);
+    r5 = 0x42000000;                  /* 32.0f */
+    f5 = r5;
+    f2 = f2 * f5;
     f1 = f1 + f2;
     dm(_fdr_pan_C2_MAIN_FDR) = f1;
     jump (pc, .cvt_C2_MAIN_FDR);
