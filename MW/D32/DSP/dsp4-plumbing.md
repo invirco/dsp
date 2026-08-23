@@ -380,3 +380,39 @@ USB 2-track + Bluetooth + margin needs 4–6 channels; Route A supplies 8
 with no kernel work. The Pi's wire is deliberately *not* the DSP's TDM8
 frame — LOGIC bridges the two, as it already does today.
 
+
+### Round-trip latency through the DSP — 93 samples (1.9 ms)
+
+Measured **differentially**, because a single round-trip offset mixes ALSA
+start skew with real path latency and cannot separate them. The same
+counter stimulus and identical ALSA settings were run against two
+bitstreams — one looping inside LOGIC, one going through the DSP — so the
+skew cancels in the difference:
+
+| | baseline (Pi→LOGIC→Pi) | through DSP | difference |
+|---|---|---|---|
+| median offset | 14445 | 14538 | **93** |
+| minimum offset | 14435 | 14529 | **94** |
+
+Medians and minima agree to within one sample, which is what gives this
+confidence: the run-to-run jitter is ~110 samples on the baseline, far
+larger than the answer, but it is *additive* start skew, so the minimum is
+the least-contaminated estimate and it lands on the same number as the
+median.
+
+    DSP round-trip latency ~= 93 samples = 1.94 ms at 48 kHz
+                           ~= 2.9 x the 32-sample block period
+
+Which is exactly the shape of the pipeline: DSPA scatter/process/gather →
+inter-chip → DSPB scatter/process/gather → out, about three block periods.
+Path measured: Pi → `A_I6` → `XIN_PI` → `XS_XFER` → inter-chip →
+`C2_XR_PI` → `C2_PI_IN` → `MIX_MAIN` → `MAIN_FDR` → `MAIN_DLY` →
+`MAIN_ST_OUT` → `B_O3` slot 0 → LOGIC → Pi, on the `DSP4_STRIPS=1` graph.
+
+**Note on the capture slot.** This used a bitstream capturing `B_O3`
+**slot 0** (`C2_MAIN_ST_OUT`) because that is the only slot the node graph
+drives today. The product allocation remains **slots 2/3** (`PI_RET_L/R`),
+which nothing writes yet — see the allocation status above.
+
+Bitstreams: baseline `dsp4_logic_loopback.7231549d2545`, DSP path
+`dsp4_logic_loopback.2b00c3e17e2a`. Tool: `tools/pi/dsp4_latency.py`.

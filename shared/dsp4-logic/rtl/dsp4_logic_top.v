@@ -137,8 +137,21 @@ module dsp4_logic_top (
     // channels each way instead of two -- see dsp4_pcm_reframe.v. It is a
     // build-time evaluation switch, not a shipping default, until the
     // eight-channel path is proven on hardware.
+    // The two evaluation switches are independent: PI_TDM8 sets the 4x
+    // frame rate, PI_SELFTEST loops the Pi's playback back to its capture
+    // inside LOGIC. Stereo self-test (no TDM8) is what the differential
+    // latency measurement needs, so they must combine freely.
 `ifdef DSP4_PI_SELFTEST
+ `ifdef DSP4_PI_TDM8
     dsp4_pcm_reframe #(.PI_TDM8(1), .PI_SELFTEST(1)) u_pcm (
+ `else
+    dsp4_pcm_reframe #(.PI_SELFTEST(1), .CAP_SLOT_L(0), .CAP_SLOT_R(1)) u_pcm (
+ `endif
+`elsif DSP4_PI_MAINCAP
+    // Latency measurement through the DSP: capture B_O3 slot 0, which is
+    // C2_MAIN_ST_OUT and the only slot the node graph drives today. The
+    // product allocation stays slots 2/3.
+    dsp4_pcm_reframe #(.CAP_SLOT_L(0), .CAP_SLOT_R(1)) u_pcm (
 `elsif DSP4_PI_TDM8
     dsp4_pcm_reframe #(.PI_TDM8(1)) u_pcm (
 `else

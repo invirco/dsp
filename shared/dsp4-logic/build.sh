@@ -48,7 +48,12 @@ fi
 if [ "${PI_SELFTEST:-0}" = "1" ]; then
     MACRO_ARG+=(--verilog_macro=DSP4_PI_SELFTEST=1)
     echo "*** PI_SELFTEST BUILD (Pi playback looped back to Pi capture) ***" >&2
-elif [ "${PI_TDM8:-0}" = "1" ]; then
+fi
+if [ "${PI_MAINCAP:-0}" = "1" ]; then
+    MACRO_ARG+=(--verilog_macro=DSP4_PI_MAINCAP=1)
+    echo "*** PI_MAINCAP BUILD (capture B_O3 slot 0 = MAIN_ST_OUT) ***" >&2
+fi
+if [ "${PI_TDM8:-0}" = "1" ]; then
     MACRO_ARG+=(--verilog_macro=DSP4_PI_TDM8=1)
     echo "*** PI_TDM8 EVALUATION BUILD (CM4 link at 4x rate, 8 channels) ***" >&2
 fi
