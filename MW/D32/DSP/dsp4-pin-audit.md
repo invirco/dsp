@@ -251,3 +251,35 @@ A-D notes survive.
 Of the four, only C was new. That is a reasonable result for an audit run
 after the fact: it says the rev-D list was already close to complete, and
 it names the one pin nobody had noticed was missing.
+
+## 2026-08-23 — DAI pad input enables (the pin fault that blocked all audio)
+
+`PADS0_DAI0_IE` (0x31004460) and `PADS0_DAI1_IE` (0x31004464) come out of
+reset at **zero** and nothing in the firmware had ever written them. Bit n
+enables the input buffer for DAI pin n+1, twenty pins per port.
+
+This is a pin-level fault that no amount of SRU or SPORT inspection could
+find, because both of those were correct. The SRU only connects signals
+that are already inside the part; with the pad input buffers off, BCK0/FS0
+never got past the pin. What the card looked like:
+
+| | reading |
+|---|---|
+| `SPORT0_CTL_A` | `0x31F1` — SPENPRI set, 32-bit word |
+| `SPORT0_MCTL_A` | `0x715` — MCE, MFD locked, WSIZE = 8 slots |
+| `SPORT0_CS0_A` | `0xFF` — slots 0-7 enabled |
+| `SPORT0_DIV_A` | `0` — external clock, correct for a slave |
+| `DMA0_STAT` | `0x00006200` — armed, RUN 2, no error |
+| `FRAME_COUNT` | **0** |
+
+Everything configured, nothing arriving. Enabling both registers in
+`sru_init()` before any routing is what started the SPORT receiving.
+
+The immediate next symptom was diagnostic in itself: `SPORT0_ERR_A`
+latched `0x10` = **DERRPSTAT (receive overflow) with FSERRSTAT CLEAR**,
+which proved the frame sync had been correct all along and the lane was
+simply backing up behind a DMA that could not write memory.
+
+**Check `PADS0_*_IE` first on any new pin bring-up on this part.** The same
+class of fault as the unrouted SPI2 pins found on 2026-08-22: the mux and
+the peripheral were both right, and the pin was simply not switched on.
