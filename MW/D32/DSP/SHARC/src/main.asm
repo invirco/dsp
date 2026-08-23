@@ -574,23 +574,33 @@ _start:
 
     /* Scatter: DMA RX → input slot variables */
     r0 = r5;                      /* sample index arg */
-#if DSP4_BLOCK_STAGE >= 2
+#if DSP4_BLOCK_MASK & 1
     call _scatter_chip1;
 #endif
 
     /* Process all Chip 1 nodes (single sample) */
-#if DSP4_BLOCK_STAGE >= 3
+#if DSP4_BLOCK_MASK & 2
     call _chip1_process_all;
 #endif
 
     /* Gather: output slot variables → IC TX DMA buffer */
     r0 = dm(_sample_idx);         /* reload (process may have clobbered r5) */
-#if DSP4_BLOCK_STAGE >= 2
+#if DSP4_BLOCK_MASK & 4
     call _gather_chip1;
 #endif
 
     r5 = dm(_sample_idx);
     r5 = r5 + 1;
+    /* Reload the bound. _scatter_chipN and _gather_chipN BOTH load the
+     * active DMA buffer address into r6 -- ~0x95350 -- so the loop bound
+     * set before .cN_sample_loop is gone by the time we get here. The
+     * compare below then ran the 32-sample loop about 610,000 times per
+     * block, which is not a fault but is indistinguishable from a hang:
+     * the main loop never comes back, the parameter link goes dead, and
+     * that is exactly what the card did from the instant CONFIG_COMMIT
+     * released .wait_boot. r5 is already reloaded from _sample_idx two
+     * lines up for precisely this reason; r6 was missed. */
+    r6 = BLOCK_SIZE;
     comp(r5, r6);
     if lt jump (pc, .c1_sample_loop);
 
@@ -613,23 +623,33 @@ _start:
 
     /* Scatter: IC RX DMA → recv slot variables */
     r0 = r5;
-#if DSP4_BLOCK_STAGE >= 2
+#if DSP4_BLOCK_MASK & 1
     call _scatter_chip2;
 #endif
 
     /* Process all Chip 2 nodes (single sample) */
-#if DSP4_BLOCK_STAGE >= 3
+#if DSP4_BLOCK_MASK & 2
     call _chip2_process_all;
 #endif
 
     /* Gather: output slot variables → DAC TX DMA buffer */
     r0 = dm(_sample_idx);
-#if DSP4_BLOCK_STAGE >= 2
+#if DSP4_BLOCK_MASK & 4
     call _gather_chip2;
 #endif
 
     r5 = dm(_sample_idx);
     r5 = r5 + 1;
+    /* Reload the bound. _scatter_chipN and _gather_chipN BOTH load the
+     * active DMA buffer address into r6 -- ~0x95350 -- so the loop bound
+     * set before .cN_sample_loop is gone by the time we get here. The
+     * compare below then ran the 32-sample loop about 610,000 times per
+     * block, which is not a fault but is indistinguishable from a hang:
+     * the main loop never comes back, the parameter link goes dead, and
+     * that is exactly what the card did from the instant CONFIG_COMMIT
+     * released .wait_boot. r5 is already reloaded from _sample_idx two
+     * lines up for precisely this reason; r6 was missed. */
+    r6 = BLOCK_SIZE;
     comp(r5, r6);
     if lt jump (pc, .c2_sample_loop);
 

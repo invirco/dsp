@@ -71,16 +71,16 @@ DSP4_PATTERN="${DSP4_PATTERN:-0}"
 # Diagnostic: service the parameter link ONLY from the diag timer ISR,
 # so the ISR backstop can be tested independently of the main loop.
 DSP4_POLL_ISR_ONLY="${DSP4_POLL_ISR_ONLY:-0}"
-# Block-loop bisect: 3 = scatter+process+gather (production), 2 = scatter
-# and gather only, 1 = consume the block and do nothing with it.
-DSP4_BLOCK_STAGE="${DSP4_BLOCK_STAGE:-3}"
+# Block-loop bisect bitmask: 1 = scatter, 2 = node graph, 4 = gather.
+# 7 = production. 0 = consume the block and do nothing with it.
+DSP4_BLOCK_MASK="${DSP4_BLOCK_MASK:-7}"
 # CONFIG_COMMIT bisect: 0 = neither apply call, 1 = rx patch only, 2 = both.
 DSP4_COMMIT_STAGE="${DSP4_COMMIT_STAGE:-2}"
 # Diagnostic: put the main loop's `idle` back (it wedges the parameter
 # link -- see main.asm). Off by default; the loop spins.
 DSP4_NO_IDLE_OVERRIDE="${DSP4_NO_IDLE_OVERRIDE:-0}"
 CFLAGS="$CFLAGS -DDSP4_DMA_AUTOBUF=$DSP4_DMA_AUTOBUF -DDSP4_RX0_L2=$DSP4_RX0_L2 -DDSP4_PATTERN=$DSP4_PATTERN"
-ASMFLAGS="$ASMFLAGS -DDSP4_POLL_ISR_ONLY=$DSP4_POLL_ISR_ONLY -DDSP4_BLOCK_STAGE=$DSP4_BLOCK_STAGE -DDSP4_COMMIT_STAGE=$DSP4_COMMIT_STAGE -DDSP4_NO_IDLE_OVERRIDE=$DSP4_NO_IDLE_OVERRIDE"
+ASMFLAGS="$ASMFLAGS -DDSP4_POLL_ISR_ONLY=$DSP4_POLL_ISR_ONLY -DDSP4_BLOCK_MASK=$DSP4_BLOCK_MASK -DDSP4_COMMIT_STAGE=$DSP4_COMMIT_STAGE -DDSP4_NO_IDLE_OVERRIDE=$DSP4_NO_IDLE_OVERRIDE"
 
 # Linker flags — LDF resolved in build(): the repo LDF hardcodes
 # ARCHITECTURE(ADSP-21564); for a fit-proxy build under a different
