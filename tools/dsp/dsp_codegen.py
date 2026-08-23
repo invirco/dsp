@@ -3516,16 +3516,42 @@ def gen_ramp_engine():
     lines.append('    f8 = f10 - f8;')
     lines.append('    f7 = f7 * f8;           /* ~32-bit 1/f6 */')
     lines.append('    f5 = f5 * f7;           /* step = delta / frames */')
-    lines.append('    /* Store: target at [r0+1], step at [r0+2], frames at [r0+3] */')
-    lines.append('    dm(i4, 1) = f1;         /* target */')
-    lines.append('    dm(i4, 2) = f5;         /* step */')
-    lines.append('    dm(i4, 3) = r3;         /* frame counter */')
+    lines.append('    /* Store target at [r0+1], step at [r0+2], frames at [r0+3].')
+    lines.append('     *')
+    lines.append('     * NOT dm(i4, 1) / dm(i4, 2) / dm(i4, 3). That form is POST-modify:')
+    lines.append('     * it writes the address currently in i4 and THEN adds the modifier,')
+    lines.append('     * so the old code wrote target over the LEVEL at [r0+0], step over')
+    lines.append('     * the TARGET at [r0+1], and only landed frames correctly by luck.')
+    lines.append('     *')
+    lines.append('     * Bench 2026-08-23: writing 1.0 to C2_PI_IN\'s level put 1/128 in')
+    lines.append('     * the target slot, converging to ~1/129 over repeats -- that value')
+    lines.append('     * is step = delta/frames, which is what identified the fault. The')
+    lines.append('     * block-rate code then copied the bogus target into level and the')
+    lines.append('     * audio path went silent, unrecoverable by any further write')
+    lines.append('     * because the copy happens every block.')
+    lines.append('     *')
+    lines.append('     * Explicit address arithmetic instead, so the intent is on the')
+    lines.append('     * page. */')
+    lines.append('    r11 = r0;')
+    lines.append('    r12 = 1;')
+    lines.append('    r11 = r11 + r12;  i4 = r11;  dm(i4, 0) = f1;   /* target  [r0+1] */')
+    lines.append('    r11 = r11 + r12;  i4 = r11;  dm(i4, 0) = f5;   /* step    [r0+2] */')
+    lines.append('    r11 = r11 + r12;  i4 = r11;  dm(i4, 0) = r3;   /* frames  [r0+3] */')
     lines.append('    rts;')
     lines.append('')
     lines.append('.ramp_instant:')
-    lines.append('    dm(i4, 0) = f1;         /* write target directly */')
+    lines.append('    /* Instant must set the TARGET as well as the value: the node\'s')
+    lines.append('     * block-rate code is `if frames <= 0: level = target`, so writing')
+    lines.append('     * the level alone is undone within one block. Same post-modify')
+    lines.append('     * trap as above -- the old dm(i4, 3) wrote back over [r0+0]. */')
+    lines.append('    dm(i4, 0) = f1;                                /* level   [r0+0] */')
+    lines.append('    r11 = r0;')
+    lines.append('    r12 = 1;')
+    lines.append('    r11 = r11 + r12;  i4 = r11;  dm(i4, 0) = f1;   /* target  [r0+1] */')
+    lines.append('    r12 = 2;')
+    lines.append('    r11 = r11 + r12;  i4 = r11;')
     lines.append('    r4 = 0;')
-    lines.append('    dm(i4, 3) = r4;         /* clear frame counter */')
+    lines.append('    dm(i4, 0) = r4;                                /* frames  [r0+3] */')
     lines.append('    rts;')
     lines.append('_ramp_set_target.end:')
     lines.append('')
@@ -5940,6 +5966,17 @@ def gen_compressor_fixed(node):
             f2 = r2;
             f1 = f1 * f2;
             r1 = fix f1;
+            /* CLAMP. parallel = 1.0 scales to 2^31, which int32 cannot
+             * hold: `fix` wrapped and stored -1, so in Q0.31 the MAXIMUM
+             * parallel setting blended in essentially nothing and the
+             * compressor went fully DRY -- the same output as
+             * parallel = 0, with a working compressor sitting behind it.
+             * Bench 2026-08-23: par 0.999 settled at -16.49 dBFS on a
+             * -6.02 dBFS step, par 1.0 returned the input untouched. */
+            r3 = 0;
+            r2 = 0x7FFFFFFF;
+            comp(r1, r3);
+            if lt r1 = pass r2;
             dm(_comp_parq_{nid}) = r1;
 {_fx_dyn_block_cvt(nid, 'comp', with_knee=True, with_slope=True)}
         .comp_go_{nid}:

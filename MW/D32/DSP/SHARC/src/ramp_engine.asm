@@ -50,14 +50,15 @@ _ramp_set_target:
      * so the old code wrote target over the LEVEL at [r0+0], step over
      * the TARGET at [r0+1], and only landed frames correctly by luck.
      *
-     * Bench 2026-08-23: writing 1.0 to C2_PI_IN's level put 1/128 in the
-     * target slot, converging to ~1/129 over repeats -- that value is
-     * step = delta/frames, which is what identified the fault. The
+     * Bench 2026-08-23: writing 1.0 to C2_PI_IN's level put 1/128 in
+     * the target slot, converging to ~1/129 over repeats -- that value
+     * is step = delta/frames, which is what identified the fault. The
      * block-rate code then copied the bogus target into level and the
-     * audio path went silent, unrecoverable by any further write because
-     * the copy happens every block.
+     * audio path went silent, unrecoverable by any further write
+     * because the copy happens every block.
      *
-     * Explicit address arithmetic instead, so the intent is on the page. */
+     * Explicit address arithmetic instead, so the intent is on the
+     * page. */
     r11 = r0;
     r12 = 1;
     r11 = r11 + r12;  i4 = r11;  dm(i4, 0) = f1;   /* target  [r0+1] */
@@ -67,9 +68,9 @@ _ramp_set_target:
 
 .ramp_instant:
     /* Instant must set the TARGET as well as the value: the node's
-     * block-rate code is `if frames <= 0: level = target`, so writing the
-     * level alone is undone within one block. Same post-modify trap as
-     * above -- the old dm(i4, 3) wrote back over [r0+0]. */
+     * block-rate code is `if frames <= 0: level = target`, so writing
+     * the level alone is undone within one block. Same post-modify
+     * trap as above -- the old dm(i4, 3) wrote back over [r0+0]. */
     dm(i4, 0) = f1;                                /* level   [r0+0] */
     r11 = r0;
     r12 = 1;

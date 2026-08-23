@@ -95,6 +95,14 @@ Hardware ground truth: [MW/D24/HW/hardware-map.md](MW/D24/HW/hardware-map.md)
   This family found `_bq_fx_convert_N` running every biquad in the
   product with **b1 = 0** (r1 and f1 are the same SHARC register), fixed
   in `a42a315`.
+- **hardware-verified 2026-08-23 — COMP**: static curve at 7 input levels
+  from −30 to 0 dBFS, 0 LSB against `fixed_ref.comp_gain` with the envelope
+  and every float32 parameter conversion modelled; gain computer 0 LSB when
+  fed the measured envelope. Report:
+  `tools/dsp/hw-reports/comp-2026-08-23.md`. Found and fixed a Q0.31
+  overflow: `parallel = 1.0` converted to −1 and bypassed the compressor
+  entirely, so the maximum setting behaved as the minimum. GATE and LIM not
+  yet covered.
 - **OPEN against this decision, raised 2026-08-23**: the on-target
   conversion named above is performed in **float32**, whose 24-bit
   mantissa cannot represent Q4.28 exactly, so coefficients land 1–3 LSB

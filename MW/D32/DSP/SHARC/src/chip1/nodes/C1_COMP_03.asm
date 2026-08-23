@@ -118,6 +118,17 @@ _C1_COMP_03_process:
     f2 = r2;
     f1 = f1 * f2;
     r1 = fix f1;
+    /* CLAMP. parallel = 1.0 scales to 2^31, which int32 cannot
+     * hold: `fix` wrapped and stored -1, so in Q0.31 the MAXIMUM
+     * parallel setting blended in essentially nothing and the
+     * compressor went fully DRY -- the same output as
+     * parallel = 0, with a working compressor sitting behind it.
+     * Bench 2026-08-23: par 0.999 settled at -16.49 dBFS on a
+     * -6.02 dBFS step, par 1.0 returned the input untouched. */
+    r3 = 0;
+    r2 = 0x7FFFFFFF;
+    comp(r1, r3);
+    if lt r1 = pass r2;
     dm(_comp_parq_C1_COMP_03) = r1;
     r2 = 0x4F000000;              /* 2^31 float */
     f2 = r2;
