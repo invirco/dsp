@@ -164,7 +164,28 @@ static inline uint32_t l1_to_sys(uint32_t a)
 #define DMA_MMR_BASE_HI 0x31023000u     /* DMA10..DMA17 — SPORT4..7 */
 #define DMA_STRIDE      0x80u
 #define DMA_OFF_DSCPTR  0x00u           /* DMA_DSCPTR_NXT */
+#define DMA_OFF_ADDR    0x04u           /* DMA_ADDRSTART   */
 #define DMA_OFF_CFG     0x08u
+#define DMA_OFF_XCNT    0x0Cu           /* DMA_XCNT        */
+#define DMA_OFF_XMOD    0x10u           /* DMA_XMOD        */
+
+/* Ring mode. Descriptor-list arming has never worked on this part: the
+ * channel takes ERRC = 3 (Memory Access or Fabric Error) the moment CFG
+ * is written, with ADDRSTART and XCNT latched at 0, and it does so even
+ * for a self-referencing descriptor built word by word in the probe
+ * itself (rung 32), which rules out arm_region()'s construction. The
+ * same channel arms CLEAN when the same buffer is programmed straight
+ * into the registers -- DMA_STAT 0x00006200, RUN = 2, no error -- with
+ * both the l1_to_sys() alias and a plain L2 address, so neither the
+ * address translation nor L1 reachability from the DDE is at fault.
+ *
+ * So the rings are armed in AUTOBUFFER flow instead: the channel keeps
+ * ADDRSTART/XCNT in its own registers and reloads them itself at the end
+ * of each pass, with no fabric read of a descriptor anywhere in the
+ * path. Set DSP4_DMA_AUTOBUF = 0 to go back to descriptor lists. */
+#ifndef DSP4_DMA_AUTOBUF
+#define DSP4_DMA_AUTOBUF 1
+#endif
 
 static inline uint32_t sport_dma_base(int sport, int dir)
 {
@@ -268,14 +289,44 @@ static void arm_region(const int *lanes, int count, int dir,
         uint32_t region_off = (uint32_t)lanes[4 * i + 3];
         uint32_t dma = sport_dma_base(sport, dir);
 
+#if DSP4_DMA_AUTOBUF
+        /* No NDSIZE/FETCH field in autobuffer flow -- there is no
+         * descriptor to size. WNR = 1 is a memory WRITE, which is what a
+         * SPORT receive lane needs; leaving it clear was what made the
+         * register-based probe look like a dead channel for a whole
+         * session. */
+        uint32_t cfg = ENUM_DMA_CFG_AUTO
+                       | ENUM_DMA_CFG_MSIZE04 | ENUM_DMA_CFG_PSIZE04
+                       | BITM_DMA_CFG_EN
+                       | (dir ? 0u : BITM_DMA_CFG_WNR);
+#else
         uint32_t cfg = ENUM_DMA_CFG_DSCLIST | ENUM_DMA_CFG_FETCH05
                        | ENUM_DMA_CFG_MSIZE04 | ENUM_DMA_CFG_PSIZE04
                        | BITM_DMA_CFG_EN
                        | (dir ? 0u : BITM_DMA_CFG_WNR);
+#endif
         if (sport == 0 && dir == 0) {
             cfg |= ENUM_DMA_CFG_XCNT_INT;   /* block clock lane */
         }
 
+#if DSP4_DMA_AUTOBUF
+        /* Autobuffer: ping only for now. pong is a separate extern array
+         * with no guaranteed adjacency, so a 2D walk across the pair is
+         * not safe to assume; double buffering comes back once the two
+         * are placed contiguously or descriptor flow is fixed. One
+         * interrupt per pass, on the block-clock lane only, which is the
+         * same lane that carried the interrupt in descriptor flow. */
+        (void)pong;
+        REG32(dma + DMA_OFF_ADDR) = l1_to_sys((uint32_t)(ping + region_off));
+        REG32(dma + DMA_OFF_XCNT) = lane_words * 32u;
+        REG32(dma + DMA_OFF_XMOD) = 4u;
+        REG32(dma + DMA_OFF_CFG)  = cfg;
+        if (!dbg_dscptr_done) {
+            dbg_dscptr_done = 1;
+            dbg_set_dscptr(l1_to_sys((uint32_t)(ping + region_off)), cfg);
+        }
+        (void)desc;
+#else
         for (h = 0; h < 2; h++) {
             unsigned int *buf = h ? pong : ping;
             /* 2026-08-19 hardware fix: every address the DDE dereferences
@@ -352,6 +403,7 @@ static void arm_region(const int *lanes, int count, int dir,
         bisect_mark(i + 1);
 #endif
 #endif
+#endif /* DSP4_DMA_AUTOBUF */
     }
 }
 
