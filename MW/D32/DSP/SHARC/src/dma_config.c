@@ -133,8 +133,8 @@ static inline uint32_t l1_to_sys(uint32_t a)
 #ifndef DSP4_BISECT
 #define DSP4_BISECT 1
 #endif
-#if DSP4_BISECT < 0 || DSP4_BISECT > 30
-#error "DSP4_BISECT must be 0 (production), 1, 2, 3 (variants), 4 (entry park), 5 (_start park), 6..10 (main.asm pre-init parks; 10 also cuts sru_config.c short at the DAI0/DAI1 boundary) 11 (no park at all, LED mirror on PB_05 only) 13..15 (inside arm_region, first lane) 16 (a mark per lane, does not stop) 17 (rung 1 with interrupts off before arming) 18..20 (after sec_init, after spi2_init, after enable_region) 21 (main.asm, at the host handshake) 22 (dump the SPI2 + pin-mux registers) 23/24/25 (main.asm: the SEC/SPI counters at the handshake; 24 masks SECI, 25 masks everything, 26 gives TMZLI an RTI-only vector, 27 polls the SPI instead of using the SEC, 29 dumps from AFTER the host handshake, 30 self-configures and reports from INSIDE the running main loop)"
+#if DSP4_BISECT < 0 || DSP4_BISECT > 31
+#error "DSP4_BISECT must be 0 (production), 1, 2, 3 (variants), 4 (entry park), 5 (_start park), 6..10 (main.asm pre-init parks; 10 also cuts sru_config.c short at the DAI0/DAI1 boundary) 11 (no park at all, LED mirror on PB_05 only) 13..15 (inside arm_region, first lane) 16 (a mark per lane, does not stop) 17 (rung 1 with interrupts off before arming) 18..20 (after sec_init, after spi2_init, after enable_region) 21 (main.asm, at the host handshake) 22 (dump the SPI2 + pin-mux registers) 23/24/25 (main.asm: the SEC/SPI counters at the handshake; 24 masks SECI, 25 masks everything, 26 gives TMZLI an RTI-only vector, 27 polls the SPI instead of using the SEC, 29 dumps from AFTER the host handshake, 30 self-configures and reports from INSIDE the running main loop, 31 arms DMA0 register-based with no descriptor)"
 #endif
 
 #define REG32(addr) (*(volatile uint32_t *)(addr))
@@ -645,8 +645,200 @@ static void bisect_park(int code)
 #define DIAG_STAGE(n) ((void)0)
 #endif
 
+void dma_cfg_init(void);
+
+#if DSP4_BISECT
+#pragma linkage_name _diag_stage_set
+extern void diag_stage_set(int stage);  /* TEMP bisect stamps 2026-08-19 */
+#define DIAG_STAGE(n) diag_stage_set(n)
+
+#pragma linkage_name _diag_irq_off
+extern void diag_irq_off(void);         /* TEMP bisect helper 2026-08-21 */
+
+/* PB_05 = SPI2_RDY -> card edge CS3/CS4 -> Pi GPIO8 / GPIO12. Same pin,
+ * same push-pull-over-the-10K-pulldown reasoning as src/blink/rdyprobe.asm.
+ * Safe here because every park is upstream of spi2_init(), so the SPI2
+ * flow-control function of the pin is never configured in a park build. */
+#define PORTB_FER_CLR   0x31004088u
+#define PORTB_INEN_CLR  0x310040ACu
+#define PORTB_DATA_SET  0x31004090u
+#define PORTB_DATA_CLR  0x31004094u
+#define PORTB_DIR_SET   0x3100409Cu
+#define RDY_PIN_BIT     (1u << 5)
+
+/* Busy-loop delays. CCLK on this card is 491.52 MHz, MEASURED off the
+ * core timer 2026-08-21 (src/blink/clkprobe.asm) and confirmed against
+ * the CGU registers read out of the running part — not the 400 MHz this
+ * firmware's constants assume, and NOT the ~190 MHz an earlier estimate
+ * inferred from the blink rate. That estimate divided by an assumed 5
+ * cycles per delay-loop iteration; the real figure is 13, which is the
+ * whole of the discrepancy. These counts land near 40 ms / 320 ms at
+ * 491.52 MHz, and the decoder in tools/pi/dsp4_stagewatch.py works on
+ * ratios rather than absolute times. */
+#define PARK_PULSE_ITERS   1500000u
+#define PARK_GAP_ITERS    12000000u
+
+static void park_delay(unsigned int iters)
+{
+    volatile unsigned int i;
+    for (i = 0; i < iters; i++) { }
+}
+
+/* The pulse engine shared by bisect_park() and bisect_mark(). Emits
+ * `code` pulses on PB_05 followed by a long gap; interrupts are already
+ * off by the time it is called. */
+static void bisect_pulses(int code)
+{
+    int n;
+
+    for (n = 0; n < code; n++) {
+        REG32(PORTB_DATA_SET) = RDY_PIN_BIT;
+        park_delay(PARK_PULSE_ITERS);
+        REG32(PORTB_DATA_CLR) = RDY_PIN_BIT;
+        park_delay(PARK_PULSE_ITERS);
+    }
+    park_delay(PARK_GAP_ITERS);
+}
+
+/* Take the pin, once. Idempotent, so a mark can call it every lane. */
+static void bisect_take_pin(void)
+{
+    diag_irq_off();
+    REG32(PORTB_FER_CLR)  = RDY_PIN_BIT;    /* GPIO, not SPI2 */
+    REG32(PORTB_INEN_CLR) = RDY_PIN_BIT;
+    REG32(PORTB_DATA_CLR) = RDY_PIN_BIT;    /* low before driving */
+    REG32(PORTB_DIR_SET)  = RDY_PIN_BIT;
+}
+
+/* One burst, then carry on. */
+static void bisect_mark(int code)
+{
+    bisect_take_pin();
+    bisect_pulses(code);
+}
+
+/*----------------------------------------------------------------------
+ * bisect_dump_word — put a 32-bit register value on PB_05.
+ *
+ * Same pulse-width framing as src/blink/clkprobe.asm, so
+ * tools/pi/dsp4_clkprobe.py decodes it unchanged: 8 units high / 4 low
+ * as a header, then 32 bits MSB first, a bit being 1 unit high (0) or 3
+ * units high (1) each followed by 1 unit low, then 6 units low.
+ *
+ * clkprobe times its units off the core timer because it is measuring
+ * the clock. Here the clock is known and only the RATIOS matter — the
+ * host derives the unit from the shortest run — so this uses the same
+ * busy loop as the parks and needs no timer, which matters because
+ * bisect_take_pin() has just shut the timer off.
+ *--------------------------------------------------------------------*/
+#define DUMP_UNIT_ITERS  (PARK_PULSE_ITERS / 4)
+
+static void bisect_dump_word(uint32_t v)
+{
+    int b;
+
+    REG32(PORTB_DATA_SET) = RDY_PIN_BIT;
+    park_delay(8u * DUMP_UNIT_ITERS);
+    REG32(PORTB_DATA_CLR) = RDY_PIN_BIT;
+    park_delay(4u * DUMP_UNIT_ITERS);
+
+    for (b = 0; b < 32; b++) {
+        REG32(PORTB_DATA_SET) = RDY_PIN_BIT;
+        park_delay((v & 0x80000000u) ? (3u * DUMP_UNIT_ITERS)
+                                     : DUMP_UNIT_ITERS);
+        REG32(PORTB_DATA_CLR) = RDY_PIN_BIT;
+        park_delay(DUMP_UNIT_ITERS);
+        v <<= 1;
+    }
+    park_delay(6u * DUMP_UNIT_ITERS);
+}
+
+static void bisect_park(int code)
+{
+
+    /* Own the pin outright: with interrupts left on, _diag_timer_isr's
+     * LED mirror drives PB_05 too and the two patterns interleave. */
+    bisect_take_pin();
+
+    for (;;) {
+        bisect_pulses(code);
+    }
+}
+#else
+#define DIAG_STAGE(n) ((void)0)
+#endif
+
+/* SMPU read-address checking, all five instances. Their CTL registers
+ * are not contiguous, hence the list. */
+#define SMPU0_CTL_ADDR   0x31007000u
+#define SMPU2_CTL_ADDR   0x31083000u
+#define SMPU3_CTL_ADDR   0x31084000u
+#define SMPU9_CTL_ADDR   0x310A0000u
+#define SMPU11_CTL_ADDR  0x310A1000u
+
+static void smpu_open_reads(void)
+{
+    /* The SPI target boot kernel hands over with SMPU_CTL.RSDIS = 1 on
+     * EVERY instance — read addresses are checked before being sent to
+     * the slave (HRM, SMPU_CTL) — and nothing in this firmware ever
+     * configured a region to permit the DMA engine. The DDE's descriptor
+     * fetch then goes through the motions and returns ZEROS: DSCPTR_CUR
+     * advances by exactly five words while DMA_XCNT and DMA_ADDRSTART
+     * both load 0 from memory the core reads back correctly, and the
+     * channel stops with DMA_STAT.ERRC = 3, a memory/fabric error.
+     *
+     * This product has no security requirement, so read-address checking
+     * is turned off rather than given regions to check against. If that
+     * ever changes, the alternative is to program SMPU regions covering
+     * L1 and L2 for the DDE master instead.
+     *
+     * Must run BEFORE the channels are armed: the first descriptor fetch
+     * happens on the CFG write inside arm_region(). */
+    REG32(SMPU0_CTL_ADDR)  = 0u;
+    REG32(SMPU2_CTL_ADDR)  = 0u;
+    REG32(SMPU3_CTL_ADDR)  = 0u;
+    REG32(SMPU9_CTL_ADDR)  = 0u;
+    REG32(SMPU11_CTL_ADDR) = 0u;
+}
+
 void dma_cfg_init(void)
 {
+#if DSP4_BISECT == 31
+    /* Rung 31 (2026-08-23) — REGISTER-BASED DMA, no descriptor at all.
+     *
+     * Splits the one question left. ADDRSTART and XCNT reading 0 is not
+     * proof that the fetch returned zeros: it is equally what you see if
+     * the fetch NEVER HAPPENED, since nothing else ever writes those
+     * registers. Arming DMA0 straight from MMRs with FLOW = STOP removes
+     * the descriptor from the picture entirely.
+     *
+     * If this runs, the buffer address is reachable and the fault is the
+     * descriptor fetch. If it raises the same ERRC = 3, the buffer
+     * address itself is unpopulated as far as the DDE is concerned, and
+     * the address translation is what to fix. */
+    {
+        uint32_t d = DMA_MMR_BASE_LO;          /* DMA0 = SPORT0 half A */
+        /* Clear any latched error FIRST. DMA_STAT.IRQERR is sticky and,
+         * while it is set, "the channel reports no other error" (HRM 27)
+         * — and the SPI target boot kernel uses DMA to load the image,
+         * so whatever state it leaves behind is inherited. Nothing in
+         * this firmware has ever cleared it. W1C, bit 1. */
+        REG32(d + 0x30u) = 0x00000002u;
+        /* Deliberately an L2 address, not the L1 alias. Register-based
+         * arming with the L1 alias (0x28254D40, inside the data sheet's
+         * Table 4 window for block 0) still raised ERRC = 3 with no
+         * descriptor anywhere in the picture, so the DDE treats that
+         * address as unpopulated. L2 is unambiguously system memory. */
+        REG32(d + 0x04u) = 0x200F0000u;                       /* ADDRSTART */
+        REG32(d + 0x0Cu) = 256u;                              /* XCNT */
+        REG32(d + 0x10u) = 4u;                                /* XMOD */
+        REG32(d + DMA_OFF_CFG) =
+            BITM_DMA_CFG_EN | ENUM_DMA_CFG_MSIZE04 |
+            ENUM_DMA_CFG_PSIZE04;              /* FLOW=STOP, NDSIZE=0 */
+        DIAG_STAGE(6);
+        return;                                /* nothing else this rung */
+    }
+#endif
 #if DSP4_BISECT == 17
     /* Rung 17 is rung 1 with ONE variable changed: interrupts are shut
      * off (and the pin taken) BEFORE any channel is armed, instead of
