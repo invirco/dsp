@@ -15,7 +15,17 @@ occupancy on a verified build first, then inline the queue to drop the
 nesting depth, then the r0 preservation in `_diag_read`). Rebuild-and-md5
 before every dump reading — keep that rule.
 
-Rung 0 — WORD-PHASE FIX FIRST (PARKED — see steer) (your own finding, 20:3xZ outcome): make every
+**HUB STEER 2026-08-23 05:40Z — rung 0 UNPARKED: it gates rung 2.** Evidence
+accepted (link permanently out of phase after CONFIG_COMMIT). Retry the
+answer-every-transaction design FRESH — both failed attempts predate the
+stale-word recovery, the polled link and the TFIFO NOP fix, so their
+all-zero result may have been those faults, not the design. 3-hour box.
+Fallback if it still resists: host-side resync — `dsp4_diag.py` detects
+the phase error by ECHO mismatch and issues one 1-word (4-byte) transfer to
+realign, repeated until ECHO matches; protocol note says "phase repair is
+host-side". Either way, rung 2 follows immediately, then the queued chain.
+
+Rung 0 — WORD-PHASE FIX (UNPARKED 05:40Z — see steer) (your own finding, 20:3xZ outcome): make every
 accepted transaction queue exactly one two-word answer — a write echoes its
 request word with value 0 — in BOTH `spi_handler.asm` variants + the protocol
 note in `diag.asm`; update `dsp4_diag.py`/`dsp4_config.py` to expect it and
