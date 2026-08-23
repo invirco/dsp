@@ -39,6 +39,11 @@ _polyq_fx:
     r0 = 0x20000000;           /* TEMP bisect */
     rts;
 #endif
+    /* L0 = 0 makes dm(i0,1) LINEAR. Without it the walk is circular on
+     * b0/l0, and neither is set by anything on this path -- whatever the
+     * C startup or an earlier node last left in them decides where these
+     * six reads actually land. */
+    l0 = 0;
     r1 = dm(i0, 1);            /* acc = C0 */
     r5 = 5;
     lcntr = r5, do .pq_lp until lce;
@@ -153,10 +158,37 @@ _envq_fx.end:
 
 .global _compgain_fx;
 _compgain_fx:
-#if DSP4_STUB_COMPGAIN
+#if DSP4_STUB_COMPGAIN == 1
     r0 = 0x10000000;           /* TEMP bisect: unity Q4.28, do nothing */
     rts;
 #endif
+#if DSP4_STUB_COMPGAIN == 3
+    /* TEMP bisect: clobber r8-r11 with constants, NO memory access.
+     * Separates "the i0 reads" from "writing r8-r11". */
+    r8 = 1; r9 = 2; r10 = 3; r11 = 4;
+    r0 = 0x10000000;
+    rts;
+#endif
+#if DSP4_STUB_COMPGAIN == 4
+    /* TEMP bisect: the four i0 reads, but into r0-r3 so r8-r11 survive. */
+    l0 = 0;
+    r1 = dm(i0, 1); r2 = dm(i0, 1); r3 = dm(i0, 1); r1 = dm(i0, 1);
+    r0 = 0x10000000;
+    rts;
+#endif
+#if DSP4_STUB_COMPGAIN == 2
+    /* TEMP bisect: do the four i0 reads, then return the SAME value the
+     * real .cg_unity path returns for a zero input. Separates "reading
+     * the coefficients" from "everything after". */
+    l0 = 0;
+    r8 = dm(i0, 1);
+    r9 = dm(i0, 1);
+    r10 = dm(i0, 1);
+    r11 = dm(i0, 1);
+    r0 = 0x10000000;
+    rts;
+#endif
+    l0 = 0;                    /* linear walk — see _polyq_fx */
     r8 = dm(i0, 1);            /* thr_q625 */
     r9 = dm(i0, 1);            /* slope_q31 */
     r10 = dm(i0, 1);           /* halfk_q625 */
