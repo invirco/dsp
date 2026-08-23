@@ -50,6 +50,12 @@ DIAG_LED_MODE = 0xE011
 # phase before giving up. Each try costs one 4-byte transfer.
 REALIGN_TRIES = 6
 
+# How many collect transactions to clock before concluding the stream is
+# out of phase rather than merely slow. The DSP polls this link from the
+# block loop, so under load an answer can be a block or more away; each
+# collect is ~64 us at 1 MHz, so 24 covers well over a millisecond.
+COLLECT_TRIES = 24
+
 MAGIC_VALUE = 0xD5B40001
 
 # (addr, name, formatter)
@@ -154,19 +160,29 @@ class DiagLink:
         w0 = w1 = 0
         for attempt in range(REALIGN_TRIES):
             self._fetch(addr, next_read=True)      # ask
-            w0, w1 = self._fetch()                 # collect (sends NOP)
-            if w0 == want0:
-                return w1                          # (echo, value)
-            if w1 == want0:
-                return w0                          # rotated by one word
-            # Out of step. Clock ONE word to shift the stream and re-ask.
-            # See SpiLink.realign: the firmware answers every accepted
-            # transaction, so a lost answer leaves master and slave one
-            # word apart permanently, and only the host can see it.
+            # COLLECT PATIENTLY BEFORE ASSUMING A PHASE ERROR.
+            #
+            # The DSP services this link by polling, so an answer appears
+            # only after the firmware next looks -- at worst one audio
+            # block, ~667 us, and longer while the block loop is busy.
+            # The host clocks its collect microseconds after the ask, so
+            # "no echo yet" is the NORMAL case under load, not a phase
+            # error. Realigning here would shift a stream that was never
+            # out of step and turn a slow answer into a real fault; that
+            # is what made a loaded but perfectly healthy card look dead.
+            for _ in range(COLLECT_TRIES):
+                w0, w1 = self._fetch()             # collect (sends NOP)
+                if w0 == want0:
+                    return w1                      # (echo, value)
+                if w1 == want0:
+                    return w0                      # rotated by one word
+            # Still nothing after waiting. NOW treat it as a lost answer
+            # leaving master and slave a word apart -- see
+            # SpiLink.realign -- and re-ask.
             self.link.realign()
         raise IOError(
             f'response out of step reading 0x{addr:04X} after '
-            f'{REALIGN_TRIES} realign attempts: '
+            f'{REALIGN_TRIES} realign attempts of {COLLECT_TRIES} collects: '
             f'got 0x{w0:08X} 0x{w1:08X}, neither is the echo '
             f'0x{want0:08X}. Check RESP_DROP.')
 

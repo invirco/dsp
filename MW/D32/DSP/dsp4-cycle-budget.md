@@ -75,42 +75,48 @@ GATE costs the same. They are reasonable.
 I/O alone is ~20%: scatter walks 46 channels and gather 37 sends, each 32
 times per block. Buses and sends are another ~24%.
 
-## How many strips fit in real time — and a warning about this question
+## How many strips fit in real time — 2
 
-The arithmetic says available for strips = 327,680 − 144,166 = 183,514,
-so 183,514 / 63,131 ≈ **2.9 strips**.
+Arithmetic: available for strips = 327,680 − 144,166 = 183,514, so
+183,514 / 63,131 ≈ 2.9 strips.
 
-**The bench says otherwise, and the bench wins.** `DSP4_STRIPS=1` — one
-strip with every bus, send and transfer kept — measures **240,129
-cycles/pass, 73.3% of the budget**, so by the arithmetic it fits with room
-to spare. It is nevertheless **0 alive / 3** at 1×, with the flag verified
-in the running image via `_build_flags2`.
+Bench, judged on **audio truth** rather than link responsiveness —
+`_proc_passes` counts completed block passes, so passes/s = 1500 means the
+main loop finished every block:
 
-So the usable ceiling is well below 100% of the nominal budget:
-
-| configuration | measured load | alive at 1× |
+| `DSP4_STRIPS` | passes/s | verdict |
 |---|---|---|
-| 1 node | 20.0% | 3/3 |
-| 1 strip prefix (10 nodes) | 39.0% | 1/3 |
-| 2 strip prefix (20 nodes) | 50.0% | not tested |
-| `DSP4_STRIPS=1` (1 strip + buses) | 73.3% | 0/3 |
-| full graph | 660% | 0/6 |
+| 1 | 1500 | real time |
+| **2** | **1500** | **real time — this is the ceiling** |
+| 3 | 1342 | 89% — dropping ~1 block in 9 |
+| 4 | 1144 | 76% — over budget |
 
-Reliable below ~20%, marginal around ~39%, gone by ~73%. **Something is
-consuming roughly a 2.5× margin that the cycle count alone does not
-explain**, and it is not identified yet. Two candidates worth separating
-before anyone sizes a design against these numbers:
+**Two channel strips hold real time at 1×**, against 32 required, and the
+measurement agrees with the arithmetic to better than one strip.
 
-- the alive/dead test is a *parameter-link* test — the harness reads over
-  the SPI link, which the main loop services. It may be the link that
-  gives out first, not the audio;
-- interrupt overhead and overrun compounding, which the per-pass cycle
-  count does not capture.
+### A test artefact worth recording, because it cost a day
 
-**The cycles/class table above is solid and is what the sizing decision
-needs. The "how many strips fit" number is not settled**, and the honest
-current answer is that even one strip does not hold 1× on this firmware.
-`DSP4_STRIPS=N` builds the graph so the question stays directly testable.
+An earlier version of this page reported a "2.5× unexplained margin" —
+that `DSP4_STRIPS=1` measured 73.3% of budget and still appeared dead.
+**That was the test, not the DSP.** Aliveness was being judged by whether
+the parameter link gave a prompt clean answer, and that link is serviced
+by polling from the block loop: under load an answer is a block or more
+away, which is normal, not a fault. The card was running the whole time —
+`BOOT_STAGE 7`, `FRAME_COUNT` at 1500/s, `DMA0_STAT 0x00006200`,
+`SPORT0_ERR_A` clean.
+
+Two things came out of it and both are kept:
+
+- **Judge audio by audio.** `_proc_passes` versus `FRAME_COUNT` separates
+  "transport running" (an ISR increments FRAME_COUNT regardless) from
+  "loop keeping up". `audio_verdict.py` reports UNKNOWN when the link
+  never answers, distinct from AUDIO_DEAD — conflating those two is the
+  original error.
+- **The host was making it worse.** `dsp4_diag.py.read()` realigned the
+  word phase on the first echo mismatch, when the usual cause is simply
+  that the DSP has not polled yet. It now collects patiently
+  (`COLLECT_TRIES`) before concluding anything is out of phase, so a slow
+  answer is no longer turned into a manufactured fault.
 
 ## What this means for the decision
 
