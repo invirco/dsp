@@ -1,0 +1,9 @@
+artifact: dsp4_logic_loopback.1e831a2cf29d.{pof,svf}
+SHIPPING: NO — bring-up loopback build, i_dspa = o_dspb.
+  Differs from shipping by that one assign only; the sim gate
+  below ran on the SHIPPING path, which is everything else.
+built: 2026-08-23T12:54:34Z
+slot_map: sha256:1507e8813e3db2bb6a006ed224318c880fac0e21dffeb891b304a9427b711307
+sim_gate: PASS
+device: 5M1270ZT144C4
+fmax: 68.22 MHz

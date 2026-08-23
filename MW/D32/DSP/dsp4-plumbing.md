@@ -138,3 +138,48 @@ all clock pins. Use `SRU(...)` macros from `sru21564.h`.
    itself: LED fault codes say which bring-up step it stopped at, and
    `tools/pi/dsp4_diag.py` reads the state out over SPI. Procedure and
    register map: `diagnostics.md`.
+
+## CM4 stereo send and return — the USB 2-track path (2026-08-23)
+
+The CM4 has a **stereo send and a stereo return** to the DSP. This pair is
+the source and sink for **USB 2-track audio play/record** through the CM4:
+the Pi plays a 2-track into the console and records a 2-track out of it.
+
+| direction | line | slots | signal | USB role |
+|---|---|---|---|---|
+| Pi → DSP (send) | `A_I6` (DSPA I6) | 0, 1 | `PI_PCM_L` / `PI_PCM_R` | 2-track **PLAY** sink |
+| DSP → Pi (return) | `B_O3` (DSPB O3) | **2, 3** | `PI_RET_L` / `PI_RET_R` | 2-track **REC** source |
+
+Both are TDM8 slots on lines that already exist, and both ends land on the
+CM4's single I2S port via `rtl/dsp4_pcm_reframe.v`, which re-frames I2S
+↔ TDM8 in both directions. The CM4 is the I2S **slave**; LOGIC masters
+`pcm_clk` (3.072 MHz) and `pcm_fs` (48 kHz).
+
+**Why B_O3 slots 2/3 for the return**
+
+- `B_O3` is the emptiest TDM8 output lane: only slots 0/1 were allocated
+  (`DAC_MAIN_L/R`, both marked provisional, no D24 sink), leaving 2–7 free.
+- Slots 2/3 stay clear of `DAC_MAIN` on slots 0/1, so on D32 — where this
+  lane becomes the real main DAC — the return does not collide.
+- **No PCB change and no new pin.** `B_O3` is an existing DSPB output
+  already routed to LOGIC as `dac_main`; LOGIC taps it internally and
+  drives `pcm_din`, an existing net to CM4 GPIO20. Nothing is added to the
+  rev-D mod list for this.
+- Slots 4–7 on the lane remain spare.
+
+**Scope note.** This is a 48 kHz DSP4 feature. Per the D7 decision there is
+no onboard recording or USB UAC audio on the 96 kHz products, so this path
+does not carry forward to those.
+
+**Cost, measured.** Adding the return to the shipping CPLD build takes it
+from 156 to **312 / 1270 LE (25%)** and Fmax from 70.21 to **66.18 MHz** —
+still 35% margin over the 49.152 MHz requirement on the 5M1270Z. On the
+smaller 5M570Z the same design is **312 / 570 LE (55%) and FAILS timing at
+−0.198 ns slack**, which it met (+0.842 ns) before the return was added.
+
+**Still open — what the return carries.** The slots are allocated and the
+CPLD de-frames them, but no node writes them yet, so the return is
+currently silent. Deciding what feeds `PI_RET_L/R` is a matrix/definition
+question: a dedicated stereo bus (independently routable, like an aux
+send — recommended, since a USB recording usually wants its own mix) or a
+copy of the main mix. That needs node definitions from the mx26 matrix.

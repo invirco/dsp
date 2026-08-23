@@ -29,10 +29,17 @@
 module dsp4_pcm_reframe #(
     parameter integer PCM_DATA_DELAY = 1,    // 1 = I2S, 0 = left-justified
     // Which TDM8 slots of tdm_in are de-framed to the Pi's L/R channels.
-    // Bring-up only: the capture path is compiled in solely for the
-    // DSP4_LOOPBACK build, so the shipping bitstream is unchanged.
-    parameter integer CAP_SLOT_L = 0,
-    parameter integer CAP_SLOT_R = 1,
+    // These are the Pi's stereo RETURN slots and they ship: the CM4
+    // needs a send and a return, and the send (A_I6 slots 0/1) already
+    // existed.
+    // Pi CM4 stereo RETURN slots on the captured lane. B_O3 slots 2/3
+    // per slot-map.csv (PI_RET_L / PI_RET_R): B_O3 is the emptiest TDM8
+    // output lane -- only slots 0/1 were used, and both are provisional
+    // DAC_MAIN -- so taking two costs nothing and leaves 4-7 spare.
+    // Avoiding slots 0/1 keeps the return clear of DAC MAIN on D32,
+    // where that lane becomes the real main DAC.
+    parameter integer CAP_SLOT_L = 2,
+    parameter integer CAP_SLOT_R = 3,
     // Extra BCK periods of delay on the capture launch, on top of
     // PCM_DATA_DELAY. MEASURED, not guessed: with 0, the CM4 recorded
     // 0xB4B40000 / 0xB4B40002 where the DSP was transmitting
@@ -75,13 +82,15 @@ module dsp4_pcm_reframe #(
 
     // ---- Capture path: DSPB TDM8 slot -> Pi I2S (pcm_din) ----
     //
-    // `ifdef DSP4_LOOPBACK only. The shipping build keeps pcm_din tied
-    // low exactly as before, so this cannot change what ships.
+    // PRODUCT FEATURE, built in every configuration: the CM4 needs a
+    // stereo send AND return. The send already existed (Pi I2S -> TDM8
+    // A_I6 slots 0/1); this is the return. It costs no pin and no PCB
+    // change -- B_O3 is an existing DSPB output already routed to LOGIC
+    // as dac_main, and pcm_din is an existing net to Pi GPIO20.
     //
     // The transmitter runs MFD = 1, so slot s bit b sits on the wire
     // during TDM8 period (s*32 + b + 1) -- the same +1 the tdm_out path
     // below applies to its launches. Undo it to index the incoming bit.
-`ifdef DSP4_LOOPBACK
     wire [7:0] in_period = frame_pos[9:2] - 8'd1;
     wire [2:0] in_slot   = in_period[7:5];
     wire [4:0] in_bit    = in_period[4:0];
@@ -114,9 +123,6 @@ module dsp4_pcm_reframe #(
                        : cap_l[5'd31 - out_word_pos[4:0]];
     end
     assign pcm_din = pcm_din_r;
-`else
-    assign pcm_din = 1'b0;   // capture path to the Pi: shipping ties it off
-`endif
 
     // ---- I2S capture: one shift register + two holding registers ----
     // LRCLK goes LOW at the falling edge of BCK period 0 and HIGH at the

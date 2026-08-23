@@ -43,8 +43,8 @@ A_I5,4,SNAKE_RET_05,D32,
 A_I5,5,SNAKE_RET_06,D32,
 A_I5,6,SNAKE_RET_07,D32,
 A_I5,7,SNAKE_RET_08,D32,
-A_I6,0,PI_PCM_L,BOTH,Pi playback L (LOGIC re-framed)
-A_I6,1,PI_PCM_R,BOTH,Pi playback R
+A_I6,0,PI_PCM_L,BOTH,Pi playback L (LOGIC re-framed) - USB 2-track PLAY sink
+A_I6,1,PI_PCM_R,BOTH,Pi playback R - USB 2-track PLAY sink
 A_I7,5,MEMS_TB,BOTH,ADAU7302 TDM8 slot 5 per 47K strap
 MIX_0,0,BUS_MAIN_L,BOTH,global mix slot 0 (= legacy sport7 slot 0)
 MIX_0,1,BUS_MAIN_R,BOTH,global mix slot 1
@@ -113,6 +113,8 @@ B_O2,6,SNAKE_OUT_07,D32,
 B_O2,7,SNAKE_OUT_08,D32,
 B_O3,0,DAC_MAIN_L,BOTH,provisional - no D24 sink found (rev B)
 B_O3,1,DAC_MAIN_R,BOTH,provisional
+B_O3,2,PI_RET_L,BOTH,Pi CM4 stereo return L (LOGIC de-frames to pcm_din) - USB 2-track REC source
+B_O3,3,PI_RET_R,BOTH,Pi CM4 stereo return R - USB 2-track REC source
 B_O4,0,NET_OUT_01,BOTH,
 B_O4,1,NET_OUT_02,BOTH,
 B_O4,2,NET_OUT_03,BOTH,
