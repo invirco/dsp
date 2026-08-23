@@ -897,7 +897,7 @@ def gen_compressor(node):
         .var _comp_makeup_target_{node['id']} = 1.0;
         .var _comp_makeup_step_{node['id']} = 0.0;
         .var _comp_makeup_frames_{node['id']} = 0;
-        .var _comp_knee_{node['id']};
+        .var _comp_knee_{node['id']} = 0.0;   /* hard knee until the host sets it */
         .var _comp_parallel_{node['id']} = 0.0;
         .var _comp_type_{node['id']} = 0;       /* 0=VCA, 1=FET, 2=Tube, 3=Optical */
         .var _comp_key_src_{node['id']} = 0;
@@ -5875,7 +5875,7 @@ def gen_compressor_fixed(node):
         .var _comp_makeup_target_{nid} = 1.0;
         .var _comp_makeup_step_{nid} = 0.0;
         .var _comp_makeup_frames_{nid} = 0;
-        .var _comp_knee_{nid};
+        .var _comp_knee_{nid} = 0.0;   /* hard knee until the host sets it */
         .var _comp_parallel_{nid} = 0.0;
         .var _comp_type_{nid} = 0;
         .var _comp_key_src_{nid} = 0;
@@ -5907,6 +5907,9 @@ def gen_compressor_fixed(node):
             comp(r2, r3);
             if eq jump (pc, .comp_bypass_{nid});
             r13 = r0;                     /* dry (r13-r15 lib-safe) */
+        #if DSP4_COMP_NOCVT
+            jump (pc, .comp_go_{nid});   /* TEMP bisect: skip block-rate cvt */
+        #endif
 
             /* --- block rate: makeup ramp + param conversion --- */
             r4 = dm(_sample_idx);
@@ -6349,8 +6352,14 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
             f.write(f'_{chip_label}_process_all:\n')
             if chip_label == 'chip1':
                 f.write(f'    call _bus_clear_all;    /* zero all bus accumulators */\n')
-            for nid in call_sequence:
+            # DSP4_NODE_LIMIT bisects the chain: 0 (default) runs every
+            # node, N runs only the first N. One node in this list wedges
+            # the core, and a flat list of several hundred calls is not
+            # something you can bisect without a knob like this.
+            for idx, nid in enumerate(call_sequence):
+                f.write(f'#if DSP4_NODE_LIMIT == 0 || {idx} < DSP4_NODE_LIMIT\n')
                 f.write(f'    call _{nid}_process;\n')
+                f.write(f'#endif\n')
             f.write(f'    rts;\n')
             f.write(f'_{chip_label}_process_all.end:\n')
         files_written += 1

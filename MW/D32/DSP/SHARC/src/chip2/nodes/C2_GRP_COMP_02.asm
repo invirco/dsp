@@ -36,7 +36,7 @@
 .global _comp_makeup_frames_C2_GRP_COMP_02;
 .var _comp_makeup_frames_C2_GRP_COMP_02 = 0;
 .global _comp_knee_C2_GRP_COMP_02;
-.var _comp_knee_C2_GRP_COMP_02;
+.var _comp_knee_C2_GRP_COMP_02 = 0.0;   /* hard knee until the host sets it */
 .global _comp_parallel_C2_GRP_COMP_02;
 .var _comp_parallel_C2_GRP_COMP_02 = 0.0;
 .global _comp_type_C2_GRP_COMP_02;
@@ -85,6 +85,9 @@ _C2_GRP_COMP_02_process:
     comp(r2, r3);
     if eq jump (pc, .comp_bypass_C2_GRP_COMP_02);
     r13 = r0;                     /* dry (r13-r15 lib-safe) */
+#if DSP4_COMP_NOCVT
+    jump (pc, .comp_go_C2_GRP_COMP_02);   /* TEMP bisect: skip block-rate cvt */
+#endif
 
     /* --- block rate: makeup ramp + param conversion --- */
     r4 = dm(_sample_idx);

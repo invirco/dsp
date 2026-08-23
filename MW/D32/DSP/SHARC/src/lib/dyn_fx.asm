@@ -35,6 +35,10 @@
 
 .global _polyq_fx;
 _polyq_fx:
+#if DSP4_STUB_POLY
+    r0 = 0x20000000;           /* TEMP bisect */
+    rts;
+#endif
     r1 = dm(i0, 1);            /* acc = C0 */
     r5 = 5;
     lcntr = r5, do .pq_lp until lce;
@@ -56,6 +60,10 @@ _polyq_fx.end:
 
 .global _log2q_fx;
 _log2q_fx:
+#if DSP4_STUB_LOG2
+    r0 = 0;                    /* TEMP bisect */
+    rts;
+#endif
     /* e = 3 - leftz(x); m_q31 = x << leftz; t = m & 0x7FFFFFFF */
     r1 = leftz r0;
     r2 = 3;
@@ -77,6 +85,10 @@ _log2q_fx.end:
 
 .global _exp2q_fx;
 _exp2q_fx:
+#if DSP4_STUB_EXP2
+    r0 = 0x10000000;           /* TEMP bisect */
+    rts;
+#endif
     r2 = ashift r0 by -25;     /* e = floor(l / 2^25) */
     r6 = r2;                   /* save e (polyq spares r6) */
     r3 = lshift r2 by 25;
@@ -141,6 +153,10 @@ _envq_fx.end:
 
 .global _compgain_fx;
 _compgain_fx:
+#if DSP4_STUB_COMPGAIN
+    r0 = 0x10000000;           /* TEMP bisect: unity Q4.28, do nothing */
+    rts;
+#endif
     r8 = dm(i0, 1);            /* thr_q625 */
     r9 = dm(i0, 1);            /* slope_q31 */
     r10 = dm(i0, 1);           /* halfk_q625 */

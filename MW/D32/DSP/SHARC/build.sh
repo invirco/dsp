@@ -74,13 +74,22 @@ DSP4_POLL_ISR_ONLY="${DSP4_POLL_ISR_ONLY:-0}"
 # Block-loop bisect bitmask: 1 = scatter, 2 = node graph, 4 = gather.
 # 7 = production. 0 = consume the block and do nothing with it.
 DSP4_BLOCK_MASK="${DSP4_BLOCK_MASK:-7}"
+# Node-chain bisect: 0 = every node (production), N = only the first N.
+DSP4_NODE_LIMIT="${DSP4_NODE_LIMIT:-0}"
+# TEMP bisect: skip the compressor block-rate parameter conversion.
+DSP4_COMP_NOCVT="${DSP4_COMP_NOCVT:-0}"
+# TEMP bisect: make _compgain_fx return unity immediately.
+DSP4_STUB_COMPGAIN="${DSP4_STUB_COMPGAIN:-0}"
+DSP4_STUB_EXP2="${DSP4_STUB_EXP2:-0}"
+DSP4_STUB_LOG2="${DSP4_STUB_LOG2:-0}"
+DSP4_STUB_POLY="${DSP4_STUB_POLY:-0}"
 # CONFIG_COMMIT bisect: 0 = neither apply call, 1 = rx patch only, 2 = both.
 DSP4_COMMIT_STAGE="${DSP4_COMMIT_STAGE:-2}"
 # Diagnostic: put the main loop's `idle` back (it wedges the parameter
 # link -- see main.asm). Off by default; the loop spins.
 DSP4_NO_IDLE_OVERRIDE="${DSP4_NO_IDLE_OVERRIDE:-0}"
 CFLAGS="$CFLAGS -DDSP4_DMA_AUTOBUF=$DSP4_DMA_AUTOBUF -DDSP4_RX0_L2=$DSP4_RX0_L2 -DDSP4_PATTERN=$DSP4_PATTERN"
-ASMFLAGS="$ASMFLAGS -DDSP4_POLL_ISR_ONLY=$DSP4_POLL_ISR_ONLY -DDSP4_BLOCK_MASK=$DSP4_BLOCK_MASK -DDSP4_COMMIT_STAGE=$DSP4_COMMIT_STAGE -DDSP4_NO_IDLE_OVERRIDE=$DSP4_NO_IDLE_OVERRIDE"
+ASMFLAGS="$ASMFLAGS -DDSP4_POLL_ISR_ONLY=$DSP4_POLL_ISR_ONLY -DDSP4_BLOCK_MASK=$DSP4_BLOCK_MASK -DDSP4_NODE_LIMIT=$DSP4_NODE_LIMIT -DDSP4_COMP_NOCVT=$DSP4_COMP_NOCVT -DDSP4_COMMIT_STAGE=$DSP4_COMMIT_STAGE -DDSP4_NO_IDLE_OVERRIDE=$DSP4_NO_IDLE_OVERRIDE"
 
 # Linker flags — LDF resolved in build(): the repo LDF hardcodes
 # ARCHITECTURE(ADSP-21564); for a fit-proxy build under a different
