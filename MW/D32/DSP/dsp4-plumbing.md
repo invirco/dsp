@@ -234,56 +234,54 @@ re-framing 2-slot I2S ↔ TDM8 in `dsp4_pcm_reframe.v`. The clkgen already
 produces TDM8 BCK/FS. That is a genuine simplification available for rev-D
 — not required, and not done here.
 
-### TDM8 on the CM4/DSP interface — CORRECTED, and the limit is real
+### TDM8 on the CM4/DSP interface — 8 slots, but only 2 channels. And how to get 8 anyway.
 
-**Correction 2026-08-23.** An earlier version of this section said the CM4
-could "join the DSP's native TDM8 frame directly". **That was wrong**, and
-the Broadcom peripherals datasheet says so in one sentence (§8, PCM /
-Audio Interface):
+**Answer: TDM8 gives the CM4 eight SLOTS but only ONE bidirectional stereo
+pair of DATA.** Three independent sources agree, so this is settled:
 
-> "Frames can contain **1 or 2 audio/data channels in each direction**.
-> Each channel can be between 8 and 32 bits wide and can be positioned
-> anywhere within the frame as long as the two channels don't overlap."
+1. **Broadcom peripherals datasheet, §8 PCM/Audio:** *"Frames can contain 1
+   or 2 audio/data channels in each direction. Each channel can be between
+   8 and 32 bits wide and can be positioned anywhere within the frame as
+   long as the two channels don't overlap."*
+2. **`bcm2835_i2s_hw_params()` never calls `params_channels()`.** It writes
+   `RXC_A`/`TXC_A` with `CH1_POS`/`CH2_POS` only. Tell it eight channels
+   and it sets `FLEN = 256` — a TDM8-shaped frame — then still places data
+   in exactly two slots. The other six are neither driven nor sampled.
+3. **Measured on the bench:** an 8-slot frame with 32-bit slots reports
+   `CHANNELS: 2`.
 
-So `FLEN` (10 bits, up to 1024 clocks) lets the frame be as long as a TDM8
-frame, and `CH1POS`/`CH2POS` let the Pi sit on any two slots in it — but
-**only two**. A literal 8-slot / 48 kHz frame with eight Pi channels is not
-something the PCM block can do.
+So `dai-tdm-slot-num = <8>` buys slot *placement* — the Pi can sit on any
+two slots of a TDM8 frame — not slot *count*.
 
-**Yet the AudioInjector Octo really does run 8 channels on this SoC.** Its
-machine driver raises the CPU DAI's channel cap at stream start —
+#### But 8 channels of audio ARE reachable — the limit is channels per frame, not bandwidth
 
-```c
-asoc_rtd_to_cpu(rtd, 0)->driver->playback.channels_max = 8;
-snd_soc_dai_set_bclk_ratio(asoc_rtd_to_cpu(rtd, 0), 64);
-```
+**Route A — 2 channels at 192 kHz. Recommended.** The PCM block moves
+2 × 32 bits per frame; run the frame at 4× and that is
+`2 × 32 × 192 kHz = 12.288 MHz` — **the same bit rate as TDM8 at 48 kHz**.
+LOGIC gives the Pi a 64-clock frame with a 192 kHz sync and re-frames into
+the DSP's 48 kHz TDM8, which is what `dsp4_pcm_reframe.v` already does, now
+with a 4× frame sync. The Pi interleaves eight logical 48 kHz channels into
+the 192 kHz stereo stream in software.
 
-— and restores 2 on shutdown. A 64-clock frame carrying two 32-bit
-channels, with eight channels of audio to move per 48 kHz period, only
-balances if **the frame rate is a multiple of the audio rate** (four
-frames of two channels per 48 kHz period = eight channels, BCLK
-12.288 MHz).
+- **No kernel module.** This is the big advantage over the alternatives.
+- **Measured:** the card accepts `-c 2 -r 192000` (`RATE: [8000 768000]`).
+- **Gives:** 8 × 48 kHz channels each way, full 32-bit.
+- **Costs:** a de-interleave step on the Pi, and a 192 kHz frame sync for
+  the Pi in the CPLD. `dsp4_clkgen.v` already generates the 12.288 MHz.
 
-**Status of that reconciliation: HYPOTHESIS, not verified.** It is the only
-arithmetic consistent with both the datasheet and a working Octo, but I
-have not proved it, and this section has already been wrong once.
+**Route B — 16-bit frame-packed.** `FTXP`/`FRXP` pack two channels per
+32-bit word when the data is ≤16 bits. Four channels each way, 16-bit only.
+A real option but a quality compromise on a mix path; not recommended.
 
-**What it would mean if true.** The Pi's wire would be 2 channels × 32 bits
-at a 4× frame rate — **not** the DSP's TDM8 frame — so LOGIC would still
-re-frame, as `dsp4_pcm_reframe.v` does today, just carrying 8 channels
-instead of 2. That is an extension of the reframer, not a deletion of it.
-PW's goal (USB 2-track + Bluetooth + margin) is still met; the CPLD simply
-keeps doing the work it already does.
+**Route C — an Octo-style machine driver.** `audioinjector-octo-soundcard.c`
+raises `channels_max` to 8 at stream start and that card genuinely runs 8
+channels. But `hw_params` still only programs CH1/CH2, so **the mechanism
+is not explained by the code read so far** — recorded as an open question,
+not a plan. Worth investigating only if Route A fails.
 
-**The decisive test**, before any of this is designed in: write the machine
-driver, set the CPLD to whatever frame the hypothesis implies, and show
-`aplay`/`arecord` accepting `-c 8` at 48 kHz with the per-sample counter
-arriving intact on all eight. Kernel headers are installed on the bench
-CM4, so it can be built in place.
+#### What this means for the ask
 
-**Reference obtained.** `bcm2835-peripherals.pdf` (Broadcom BCM2835 ARM
-Peripherals, RP-008249) — the PCM chapter is §8. The BCM2711 PCM block is
-the same peripheral. Fetched 2026-08-23 from
-`pip-assets.raspberrypi.com`; **it is not in `_Matrix` and should be**, as
-it is the only document that settles this question.
+USB 2-track + Bluetooth + margin needs 4–6 channels; Route A supplies 8
+with no kernel work. The Pi's wire is deliberately *not* the DSP's TDM8
+frame — LOGIC bridges the two, as it already does today.
 
