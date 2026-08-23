@@ -127,11 +127,24 @@ _product_config_write.end:
  *----------------------------------------------------------------------*/
 .global _product_config_commit;
 _product_config_commit:
+/* DSP4_COMMIT_STAGE bisects this function, because a single write of
+ * CONFIG_COMMIT (0xF004) is what kills the part: all 50 data writes
+ * before it leave the link perfectly healthy at BOOT_STAGE 5 with blocks
+ * still arriving, and this one write stops the core dead -- main loop,
+ * 1 kHz timer ISR and all. 0 = neither call, 1 = rx patch only,
+ * 2 = both (production). */
+#ifndef DSP4_COMMIT_STAGE
+#define DSP4_COMMIT_STAGE 2
+#endif
 #if CHIP_ID == 1
+#if DSP4_COMMIT_STAGE >= 1
     call _rx_patch_apply;         /* rebuild RX ptr table from patch regs */
 #endif
+#endif
+#if DSP4_COMMIT_STAGE >= 2
     r0 = dm(_product_id);
     call _scope_gates_apply;      /* force-off wrong-product enables */
+#endif
     r0 = 1;
     dm(_boot_config_received) = r0;
     /* Config landed. The LED now shows 6 flashes until the first audio

@@ -46,6 +46,10 @@ DIAG_NOP = 0xE0FE
 DIAG_CLEAR = 0xE0FF
 DIAG_LED_MODE = 0xE011
 
+# How many times read() will clock a single word to repair the answer
+# phase before giving up. Each try costs one 4-byte transfer.
+REALIGN_TRIES = 6
+
 MAGIC_VALUE = 0xD5B40001
 
 # (addr, name, formatter)
@@ -147,15 +151,22 @@ class DiagLink:
         """
         want = frame(addr, 0, read=True)
         want0 = int.from_bytes(want[0:4], 'big')
-        self._fetch(addr, next_read=True)          # ask
-        for _ in range(4):
+        w0 = w1 = 0
+        for attempt in range(REALIGN_TRIES):
+            self._fetch(addr, next_read=True)      # ask
             w0, w1 = self._fetch()                 # collect (sends NOP)
             if w0 == want0:
                 return w1                          # (echo, value)
             if w1 == want0:
                 return w0                          # rotated by one word
+            # Out of step. Clock ONE word to shift the stream and re-ask.
+            # See SpiLink.realign: the firmware answers every accepted
+            # transaction, so a lost answer leaves master and slave one
+            # word apart permanently, and only the host can see it.
+            self.link.realign()
         raise IOError(
-            f'response out of step reading 0x{addr:04X}: '
+            f'response out of step reading 0x{addr:04X} after '
+            f'{REALIGN_TRIES} realign attempts: '
             f'got 0x{w0:08X} 0x{w1:08X}, neither is the echo '
             f'0x{want0:08X}. Check RESP_DROP.')
 

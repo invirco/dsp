@@ -496,7 +496,27 @@ _start:
 
     /* ---- Main loop ---- */
 .main_loop:
-    idle;                          /* low-power wait for DMA interrupt */
+    /* NO `idle` HERE. It used to be, as a low-power wait for the DMA
+     * interrupt, and it wedged the parameter link the instant the loop
+     * was entered -- which is to say the instant CONFIG_COMMIT released
+     * .wait_boot. That is why the card looked dead after configuration
+     * while being perfectly healthy before it: .wait_boot spins, this
+     * loop slept.
+     *
+     * Bisected on the bench 2026-08-23 with three independent guards,
+     * all other things equal:
+     *
+     *   block work off, commit applies off, idle ON   -> link dead
+     *   block work off, commit applies ON,  idle off  -> BOOT_STAGE 7,
+     *                                                    1500 blocks/s,
+     *                                                    link healthy
+     *
+     * so it is the instruction itself, not the config, not the commit's
+     * apply calls and not the block loop. Spinning costs power this card
+     * does not care about; the interrupts that matter still preempt. */
+#if DSP4_NO_IDLE_OVERRIDE
+    idle;
+#endif
 
     /* ---- Parameter link, POLLED (2026-08-22) ----
      * The SPI2 request FIFO is serviced from here rather than from the
@@ -554,14 +574,20 @@ _start:
 
     /* Scatter: DMA RX → input slot variables */
     r0 = r5;                      /* sample index arg */
+#if DSP4_BLOCK_STAGE >= 2
     call _scatter_chip1;
+#endif
 
     /* Process all Chip 1 nodes (single sample) */
+#if DSP4_BLOCK_STAGE >= 3
     call _chip1_process_all;
+#endif
 
     /* Gather: output slot variables → IC TX DMA buffer */
     r0 = dm(_sample_idx);         /* reload (process may have clobbered r5) */
+#if DSP4_BLOCK_STAGE >= 2
     call _gather_chip1;
+#endif
 
     r5 = dm(_sample_idx);
     r5 = r5 + 1;
@@ -587,14 +613,20 @@ _start:
 
     /* Scatter: IC RX DMA → recv slot variables */
     r0 = r5;
+#if DSP4_BLOCK_STAGE >= 2
     call _scatter_chip2;
+#endif
 
     /* Process all Chip 2 nodes (single sample) */
+#if DSP4_BLOCK_STAGE >= 3
     call _chip2_process_all;
+#endif
 
     /* Gather: output slot variables → DAC TX DMA buffer */
     r0 = dm(_sample_idx);
+#if DSP4_BLOCK_STAGE >= 2
     call _gather_chip2;
+#endif
 
     r5 = dm(_sample_idx);
     r5 = r5 + 1;

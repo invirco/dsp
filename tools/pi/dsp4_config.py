@@ -178,6 +178,27 @@ class SpiLink:
                 self.line.set_value(1)
         return bytes(rx)
 
+    def realign(self, nbytes=4):
+        """Clock nbytes with nothing meaningful on MOSI, to shift the
+        answer stream by that much.
+
+        The DSP answers every accepted transaction with exactly two
+        words, so master and slave normally advance in lockstep. A
+        dropped answer (DIAG_RESP_DROP, transmit FIFO not empty when the
+        handler tried to queue) puts them one word apart and they stay
+        that way -- the firmware has no way to notice, and the ECHO check
+        on the host is what does. Phase repair is host-side: clock ONE
+        word and the pair lines up again.
+        """
+        self.wait_ready()
+        if self.line:
+            self.line.set_value(0)
+        try:
+            self.spi.xfer2([0] * nbytes)
+        finally:
+            if self.line:
+                self.line.set_value(1)
+
     def write(self, addr, value, ramp_id=0):
         self.xfer(addr, value, ramp_id)
 
