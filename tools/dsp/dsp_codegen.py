@@ -3946,10 +3946,17 @@ def gen_lane_config_c(chip_label, lane_info):
         out.append('};')
         out.append('')
         out.append(f'const int {region}_region_words = {words};')
+        # ONE object holding both halves, so ping and pong are guaranteed
+        # adjacent: pong is always ping + region_words. Two separately
+        # declared arrays are not guaranteed to be laid out next to each
+        # other, and the DMA rings walk from one half to the other with a
+        # 2D autobuffer whose YMOD is exactly that distance -- so the
+        # adjacency has to be a fact, not an observation. dma_config.c
+        # derives REGION_*_PONG from this symbol; there is deliberately no
+        # separate _buf_pong array any more.
         out.append('#pragma align 32')
-        out.append(f'unsigned int {region}_buf_ping[{words}];')
-        out.append('#pragma align 32')
-        out.append(f'unsigned int {region}_buf_pong[{words}];')
+        out.append(f'unsigned int {region}_buf_ping[2 * {words}];'
+                   f'  /* [0..{words}) ping, [{words}..2*{words}) pong */')
         out.append('')
     return '\n'.join(out)
 

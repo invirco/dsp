@@ -19,9 +19,7 @@ const int c1_rx_lanes[32] = {
 
 const int c1_rx_region_words = 1472;
 #pragma align 32
-unsigned int c1_rx_buf_ping[1472];
-#pragma align 32
-unsigned int c1_rx_buf_pong[1472];
+unsigned int c1_rx_buf_ping[2 * 1472];  /* [0..1472) ping, [1472..2*1472) pong */
 
 const int c1_ic_lanes_count = 3;
 const int c1_ic_lanes_dir = 1;    /* 0 = RX (half A), 1 = TX (half B) */
@@ -35,6 +33,4 @@ const int c1_ic_lanes[12] = {
 
 const int c1_ic_region_words = 1184;
 #pragma align 32
-unsigned int c1_ic_buf_ping[1184];
-#pragma align 32
-unsigned int c1_ic_buf_pong[1184];
+unsigned int c1_ic_buf_ping[2 * 1184];  /* [0..1184) ping, [1184..2*1184) pong */

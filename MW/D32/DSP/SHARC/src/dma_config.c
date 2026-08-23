@@ -168,6 +168,8 @@ static inline uint32_t l1_to_sys(uint32_t a)
 #define DMA_OFF_CFG     0x08u
 #define DMA_OFF_XCNT    0x0Cu           /* DMA_XCNT        */
 #define DMA_OFF_XMOD    0x10u           /* DMA_XMOD        */
+#define DMA_OFF_YCNT    0x14u           /* DMA_YCNT (2D)   */
+#define DMA_OFF_YMOD    0x18u           /* DMA_YMOD (2D)   */
 
 /* Ring mode. Descriptor-list arming has never worked on this part: the
  * channel takes ERRC = 3 (Memory Access or Fabric Error) the moment CFG
@@ -208,33 +210,41 @@ static inline uint32_t sport_dma_base(int sport, int dir)
 #if CHIP_ID == 1
 extern const int c1_rx_lanes[];
 extern const int c1_rx_lanes_count, c1_rx_lanes_dir;
-extern unsigned int c1_rx_buf_ping[], c1_rx_buf_pong[];
+extern unsigned int c1_rx_buf_ping[];      /* 2 * region_words */
+extern const int c1_rx_region_words;
 extern const int c1_ic_lanes[];
 extern const int c1_ic_lanes_count, c1_ic_lanes_dir;
-extern unsigned int c1_ic_buf_ping[], c1_ic_buf_pong[];
+extern unsigned int c1_ic_buf_ping[];      /* 2 * region_words */
+extern const int c1_ic_region_words;
 #define REGION_A_LANES c1_rx_lanes
 #define REGION_A_COUNT c1_rx_lanes_count
 #define REGION_A_PING  c1_rx_buf_ping
-#define REGION_A_PONG  c1_rx_buf_pong
+#define REGION_A_WORDS c1_rx_region_words
+#define REGION_A_PONG  (c1_rx_buf_ping + c1_rx_region_words)
 #define REGION_B_LANES c1_ic_lanes
 #define REGION_B_COUNT c1_ic_lanes_count
 #define REGION_B_PING  c1_ic_buf_ping
-#define REGION_B_PONG  c1_ic_buf_pong
+#define REGION_B_WORDS c1_ic_region_words
+#define REGION_B_PONG  (c1_ic_buf_ping + c1_ic_region_words)
 #elif CHIP_ID == 2
 extern const int c2_ic_lanes[];
 extern const int c2_ic_lanes_count, c2_ic_lanes_dir;
-extern unsigned int c2_ic_buf_ping[], c2_ic_buf_pong[];
+extern unsigned int c2_ic_buf_ping[];      /* 2 * region_words */
+extern const int c2_ic_region_words;
 extern const int c2_tx_lanes[];
 extern const int c2_tx_lanes_count, c2_tx_lanes_dir;
-extern unsigned int c2_tx_buf_ping[], c2_tx_buf_pong[];
+extern unsigned int c2_tx_buf_ping[];      /* 2 * region_words */
+extern const int c2_tx_region_words;
 #define REGION_A_LANES c2_ic_lanes
 #define REGION_A_COUNT c2_ic_lanes_count
 #define REGION_A_PING  c2_ic_buf_ping
-#define REGION_A_PONG  c2_ic_buf_pong
+#define REGION_A_WORDS c2_ic_region_words
+#define REGION_A_PONG  (c2_ic_buf_ping + c2_ic_region_words)
 #define REGION_B_LANES c2_tx_lanes
 #define REGION_B_COUNT c2_tx_lanes_count
 #define REGION_B_PING  c2_tx_buf_ping
-#define REGION_B_PONG  c2_tx_buf_pong
+#define REGION_B_WORDS c2_tx_region_words
+#define REGION_B_PONG  (c2_tx_buf_ping + c2_tx_region_words)
 #else
 #error "CHIP_ID must be defined as 1 or 2"
 #endif
@@ -278,16 +288,9 @@ static void bisect_mark(int code);   /* same, but RETURNS — rung 16 */
 extern void dbg_set_dscptr(uint32_t addr, uint32_t word0);
 static int dbg_dscptr_done = 0;
 
-#ifndef DSP4_RX0_L2
-#define DSP4_RX0_L2 0
-#endif
-#if DSP4_RX0_L2
-#pragma section("seg_delay")
-static volatile uint32_t l2_rx_probe[256];
-#endif
-
 static void arm_region(const int *lanes, int count, int dir,
                        unsigned int *ping, unsigned int *pong,
+                       uint32_t region_words,
                        volatile uint32_t desc[][2][5])
 {
     int i, h;
@@ -303,7 +306,15 @@ static void arm_region(const int *lanes, int count, int dir,
          * SPORT receive lane needs; leaving it clear was what made the
          * register-based probe look like a dead channel for a whole
          * session. */
-        uint32_t cfg = ENUM_DMA_CFG_AUTO
+        /* TWOD (bit 26) is what actually switches the channel to
+         * two-dimensional addressing. Setting YCNT and YMOD is NOT
+         * enough: without TWOD the DDE ignores both and autobuffers the
+         * single row forever. Bench 2026-08-23: with YCNT = 2 and a
+         * correct YMOD read back from the channel, 20 samples of
+         * DMA0_ADDR_CUR all landed inside the ping row and YCNT_CUR read
+         * 0 -- the outer loop was never taken and ping/pong was a
+         * fiction. */
+        uint32_t cfg = ENUM_DMA_CFG_AUTO | BITM_DMA_CFG_TWOD
                        | ENUM_DMA_CFG_MSIZE04 | ENUM_DMA_CFG_PSIZE04
                        | BITM_DMA_CFG_EN
                        | (dir ? 0u : BITM_DMA_CFG_WNR);
@@ -314,40 +325,50 @@ static void arm_region(const int *lanes, int count, int dir,
                        | (dir ? 0u : BITM_DMA_CFG_WNR);
 #endif
         if (sport == 0 && dir == 0) {
-            cfg |= ENUM_DMA_CFG_XCNT_INT;   /* block clock lane */
+            /* Only the block-clock lane raises an interrupt. Every lane
+             * shares the LOGIC frame sync, so one lane's row boundary is
+             * every lane's row boundary, and interrupting on all of them
+             * would be the same event delivered eleven times. */
+            cfg |= ENUM_DMA_CFG_XCNT_INT;
         }
 
 #if DSP4_DMA_AUTOBUF
-#if DSP4_RX0_L2
-        /* Experiment: put the block-clock lane's destination in L2
-         * instead of the L1 alias. L2 (0x20000000..) is already a system
-         * address, so the DDE needs no translation to reach it -- if the
-         * ERRC 3 that follows the first received word disappears here,
-         * the fault is specifically the DDE WRITING to L1 through the
-         * l1_to_sys() alias, which arming alone could never have shown. */
-        if (sport == 0 && dir == 0) {
-            REG32(dma + DMA_OFF_ADDR) = (uint32_t)&l2_rx_probe[0];
-            REG32(dma + DMA_OFF_XCNT) = lane_words * 32u;
+        /* 2D AUTOBUFFER PING/PONG.
+         *
+         * Row = one block for this lane (XCNT words, XMOD = 4 bytes).
+         * Column = the two halves of the region (YCNT = 2), so the
+         * channel walks ping then pong then reloads ADDRSTART itself.
+         * No descriptor is fetched anywhere in this path, which is the
+         * whole point: descriptor-list flow raises ERRC 3 on this part
+         * even for a descriptor built word by word in the probe.
+         *
+         * YMOD is the byte increment applied at the END of each row, and
+         * per HRM 27-28 the channel does NOT apply XMOD on the transfer
+         * that ends a row. So after a row the address stands at
+         *     start + (XCNT - 1) * XMOD
+         * and the next row must begin one whole region later:
+         *     YMOD = region_words * 4 - (XCNT - 1) * XMOD
+         * which is why ping and pong have to be halves of ONE object --
+         * see the generator, which now emits exactly that.
+         *
+         * Interrupt on END OF ROW (XCNT_INT), not end of work unit, so
+         * the core is told at every block boundary rather than every
+         * second one. */
+        {
+            uint32_t xcnt = lane_words * 32u;
+            uint32_t base = l1_to_sys((uint32_t)(ping + region_off));
+            REG32(dma + DMA_OFF_ADDR) = base;
+            REG32(dma + DMA_OFF_XCNT) = xcnt;
             REG32(dma + DMA_OFF_XMOD) = 4u;
+            REG32(dma + DMA_OFF_YCNT) = 2u;
+            REG32(dma + DMA_OFF_YMOD) = region_words * 4u - (xcnt - 1u) * 4u;
             REG32(dma + DMA_OFF_CFG)  = cfg;
-            continue;
+            if (!dbg_dscptr_done) {
+                dbg_dscptr_done = 1;
+                dbg_set_dscptr(base, cfg);
+            }
         }
-#endif
-        /* Autobuffer: ping only for now. pong is a separate extern array
-         * with no guaranteed adjacency, so a 2D walk across the pair is
-         * not safe to assume; double buffering comes back once the two
-         * are placed contiguously or descriptor flow is fixed. One
-         * interrupt per pass, on the block-clock lane only, which is the
-         * same lane that carried the interrupt in descriptor flow. */
         (void)pong;
-        REG32(dma + DMA_OFF_ADDR) = l1_to_sys((uint32_t)(ping + region_off));
-        REG32(dma + DMA_OFF_XCNT) = lane_words * 32u;
-        REG32(dma + DMA_OFF_XMOD) = 4u;
-        REG32(dma + DMA_OFF_CFG)  = cfg;
-        if (!dbg_dscptr_done) {
-            dbg_dscptr_done = 1;
-            dbg_set_dscptr(l1_to_sys((uint32_t)(ping + region_off)), cfg);
-        }
         (void)desc;
 #else
         for (h = 0; h < 2; h++) {
@@ -828,13 +849,15 @@ void dma_cfg_init(void)
     spu_secure_masters();       /* must precede arming -- see above */
 
     arm_region(REGION_A_LANES, REGION_A_COUNT, 0,
-               REGION_A_PING, REGION_A_PONG, desc_a);
+               REGION_A_PING, REGION_A_PONG,
+               (uint32_t)REGION_A_WORDS, desc_a);
     DIAG_STAGE(2);
 #if DSP4_BISECT == 1 || DSP4_BISECT == 3 || DSP4_BISECT == 17
     bisect_park(2);     /* 2 pulses = arm_region(A) returned */
 #endif
     arm_region(REGION_B_LANES, REGION_B_COUNT, 1,
-               REGION_B_PING, REGION_B_PONG, desc_b);
+               REGION_B_PING, REGION_B_PONG,
+               (uint32_t)REGION_B_WORDS, desc_b);
     DIAG_STAGE(3);
 #if DSP4_BISECT == 2
     bisect_park(3);     /* 3 pulses = arm_region(B) returned too */

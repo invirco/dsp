@@ -14,9 +14,7 @@ const int c2_ic_lanes[12] = {
 
 const int c2_ic_region_words = 1184;
 #pragma align 32
-unsigned int c2_ic_buf_ping[1184];
-#pragma align 32
-unsigned int c2_ic_buf_pong[1184];
+unsigned int c2_ic_buf_ping[2 * 1184];  /* [0..1184) ping, [1184..2*1184) pong */
 
 const int c2_tx_lanes_count = 5;
 const int c2_tx_lanes_dir = 1;    /* 0 = RX (half A), 1 = TX (half B) */
@@ -32,6 +30,4 @@ const int c2_tx_lanes[20] = {
 
 const int c2_tx_region_words = 1280;
 #pragma align 32
-unsigned int c2_tx_buf_ping[1280];
-#pragma align 32
-unsigned int c2_tx_buf_pong[1280];
+unsigned int c2_tx_buf_ping[2 * 1280];  /* [0..1280) ping, [1280..2*1280) pong */
