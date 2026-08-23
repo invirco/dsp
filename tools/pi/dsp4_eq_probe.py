@@ -29,6 +29,8 @@ import dsp4_scope as S
 GAIN_ADDR = 0x0000          # C1_GAIN_01 gain coeff (float)
 EQ_COEFF0 = 0x0010          # 20 float words
 EQ_SWAP   = 0x0024
+HPF_COEFF0, HPF_SWAP = 0x0004, 0x0009   # C1_FILT_01, 5 float words each
+LPF_COEFF0, LPF_SWAP = 0x000A, 0x000F
 
 
 def f32(x):
@@ -68,6 +70,14 @@ def rbj_peaking(f0, q, gain_db, fs=48000.0):
 UNITY = [1.0, 0.0, 0.0, 0.0, 0.0]
 
 
+def set_biquad(sc, base, swap, band):
+    for i, c in enumerate(band):
+        wr_verified(sc, base + i, f32(c))
+    for _ in range(3):
+        sc.d.write(swap, 1)
+        time.sleep(S.SETTLE)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--n', type=int, default=256)
@@ -75,6 +85,8 @@ def main():
     ap.add_argument('--bands', default='peak1k',
                     choices=('unity', 'peak1k', 'four', 'custom'))
     ap.add_argument('--rbj', help='band 0 as b0,b1,b2,a1,a2 (others unity)')
+    ap.add_argument('--filt', help='FILT instead of EQ: hpf b0,..,a2 / lpf b0,..,a2 '
+                                   'separated by a semicolon')
     ap.add_argument('--baseline', action='store_true',
                     help='inject nothing: prove the EQ is at rest')
     a = ap.parse_args()
@@ -83,7 +95,32 @@ def main():
     inj = sc.sym['_rx_slot_C1_IN_01']
     src = sc.sym['_buf_C1_EQ_01']
 
-    wr_verified(sc, GAIN_ADDR, f32(1.0))        # unity gain, whatever the last test left
+    # RESET THE WHOLE CHAIN, every run. Leaving the previous test's
+    # coefficients in an upstream node is how an EQ measurement ends up
+    # being taken through somebody else's low-pass: bench 2026-08-23, a
+    # peaking response looked wrong for an hour because FILT still held
+    # lpf b0 = 0.1 from the FILT sweep and the EQ sat downstream of it.
+    wr_verified(sc, GAIN_ADDR, f32(1.0))
+    if not a.filt:
+        set_biquad(sc, HPF_COEFF0, HPF_SWAP, UNITY)
+        set_biquad(sc, LPF_COEFF0, LPF_SWAP, UNITY)
+        time.sleep(0.3)
+
+    if a.filt:
+        # HPF/LPF cascade in C1_FILT_01, captured at its own output. Same
+        # _bq_fx_convert_N path as the EQ, so it carried the same b1 bug.
+        hpf, lpf = [[float(x) for x in part.split(',')] for part in a.filt.split(';')]
+        set_biquad(sc, HPF_COEFF0, HPF_SWAP, hpf)
+        set_biquad(sc, LPF_COEFF0, LPF_SWAP, lpf)
+        time.sleep(0.5)
+        src = sc.sym['_buf_C1_FILT_01']
+        amp = 0 if a.baseline else int(a.amp, 16)
+        sc.arm(src, inj, amp, 1)
+        sc.wait()
+        print('COEFFS ' + json.dumps([hpf, lpf]))
+        for i, v in enumerate(sc.fetch(a.n)):
+            print('%d %d' % (i, v - (1 << 32) if v & 0x80000000 else v))
+        return
 
     if a.bands == 'custom':
         bands = [[float(x) for x in a.rbj.split(',')]] + [UNITY] * 3

@@ -84,6 +84,28 @@ Hardware ground truth: [MW/D24/HW/hardware-map.md](MW/D24/HW/hardware-map.md)
   harness (float64 reference in tools/dsp/) within the tolerances in
   the numeric spec, plus a clean fit-proxy build, before it replaces
   the float version.
+- **hardware-verified 2026-08-23 — GAIN**: 13 levels, −60 to +18 dB,
+  0 LSB (Q4.28) against `fixed_ref`, tolerance ±0.5 LSB.
+  Report: `tools/dsp/hw-reports/gain-2026-08-23.md`.
+- **hardware-verified 2026-08-23 — EQ / FILT**: 13 coefficient vectors
+  plus a 400-sample RBJ peaking response, 0 LSB against `fixed_ref`;
+  magnitude 0.0000 dB against the analytic filter at eight frequencies.
+  Cascade order inside FILT measured as HPF→LPF (0 LSB, vs 2 LSB
+  reversed). Report: `tools/dsp/hw-reports/eq-filt-2026-08-23.md`.
+  This family found `_bq_fx_convert_N` running every biquad in the
+  product with **b1 = 0** (r1 and f1 are the same SHARC register), fixed
+  in `a42a315`.
+- **OPEN against this decision, raised 2026-08-23**: the on-target
+  conversion named above is performed in **float32**, whose 24-bit
+  mantissa cannot represent Q4.28 exactly, so coefficients land 1–3 LSB
+  from `fixed_ref.biquad_coeffs_q` (worth up to 22 LSB in the measured
+  impulse response). "One numeric spec across targets" and a conversion
+  that cannot hit the spec exactly are in tension. Three ways out, in
+  increasing order of contract disturbance: do the conversion in the
+  SHARC's 40-bit extended float (≈32-bit mantissa, exact for Q4.28, wire
+  contract untouched — preferred); state a coefficient-conversion
+  tolerance in `shared/numeric-spec.md`; or carry pre-quantised Q4.28
+  coefficients on the wire, which the host already computes. Hub/PW call.
 
 ## D4 — D24 node-graph topology follows the schematic, not the old plan
 
