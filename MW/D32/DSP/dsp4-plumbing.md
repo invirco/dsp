@@ -183,3 +183,48 @@ currently silent. Deciding what feeds `PI_RET_L/R` is a matrix/definition
 question: a dedicated stereo bus (independently routable, like an aux
 send — recommended, since a USB recording usually wants its own mix) or a
 copy of the main mix. That needs node definitions from the mx26 matrix.
+
+### Bluetooth play from the CM4 — cannot have its own slots, and why
+
+**TDM8 on the CM4 PCM pins IS supported** — measured, not assumed. The card
+probes cleanly with `dai-tdm-slot-num = <8>`, `dai-tdm-slot-width = <32>`
+(a 256-bit frame) and explicit two-bit slot masks, with zero ASoC errors.
+
+**But TDM8 does not buy more channels.** `bcm2835-i2s` is hard-limited to
+two, in two independent places:
+
+```c
+/* The driver is limited to 2-channel setups.
+   Check that exactly 2 bits are set in the masks. */
+if (hweight_long(rx_mask) != 2 || hweight_long(tx_mask) != 2)
+        return -EINVAL;
+```
+
+plus `channels_min = channels_max = 2` in the DAI driver. Confirmed on the
+running card: an 8-slot frame still reports `CHANNELS: 2`. TDM8 lets the Pi
+choose **which two slots** it occupies in a longer frame; it never gives it
+more than two.
+
+(An earlier attempt at `slots = 4` failed with `-EINVAL` at
+`snd_soc_dai_set_tdm_slot()`. That was **not** because four slots are
+illegal — it was the default mask having four bits set. Worth recording so
+nobody re-derives the wrong limit from that symptom.)
+
+**Consequence.** The CM4's two channels each way are the entire audio
+budget of that port, and both directions are already committed to the USB
+2-track path. **Bluetooth cannot be assigned its own DSP input pair.**
+
+| option | cost | console behaviour |
+|---|---|---|
+| **BT shares the stereo send**, mixed on the CM4 (PipeWire/Pulse) | none — no slot, no hardware | DSP sees one "CM4 stereo in"; USB vs BT chosen on the Pi |
+| BT gets independent console control | second physical stereo link; the CM4 has only one PCM block, so a USB audio interface or equivalent | separate faders/routing for USB and BT |
+
+The first is recommended unless BT genuinely needs its own fader and
+routing on the surface, in which case it is a rev-D hardware question and
+not a slot assignment.
+
+**Aside worth keeping.** Because TDM8 works, the Pi could sit *directly* in
+the DSP's native TDM8 frame at mask-selected slots, instead of LOGIC
+re-framing 2-slot I2S ↔ TDM8 in `dsp4_pcm_reframe.v`. The clkgen already
+produces TDM8 BCK/FS. That is a genuine simplification available for rev-D
+— not required, and not done here.

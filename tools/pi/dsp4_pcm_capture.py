@@ -34,7 +34,7 @@ def capture(device, seconds, rate):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument('--device', default='hw:0,0')
+    ap.add_argument('--device', default='hw:dsp4pcm,0')
     ap.add_argument('--seconds', type=int, default=2)
     ap.add_argument('--rate', type=int, default=48000)
     ap.add_argument('--expect-l', type=lambda x: int(x, 0), default=0x5A5A0000)
