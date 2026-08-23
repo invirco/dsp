@@ -1008,6 +1008,32 @@ OPEN DECISIONS (these gate everything else, and they are PW's):
   A53 does fixed-point fine. Float would be a deliberate deviation needing
   a D-number.
 
+USB MULTITRACK RECORD/PLAY (PW asked 2026-08-23): 8 ch to removable media.
+ESTIMATED, NOT MEASURED.
+- Bandwidth is a non-issue: 8 ch x 48 kHz x 24 bit = 1.15 MB/s, ~2.3 MB/s
+  if record and play run together, against 15-25 MB/s realistic for USB 2.0
+  HS on this part. One hour of 8-track 24/48 is ~4.15 GB.
+- THE RISK IS NOT BANDWIDTH, it is USB host overhead colliding with the
+  real-time audio thread. The Pi's DWC2 controller does much of its work in
+  software (FIQ-driven) and USB traffic causing audio dropouts is a
+  well-known Pi failure mode. This lands on top of risk 1 above and is the
+  thing to MEASURE early, not reason about.
+- Single OTG port, no onboard hub. The stick occupies the only port, and it
+  is the same port the USB 2-track audio path would want.
+- USB sticks stall for hundreds of ms during wear-levelling, which is fatal
+  for live recording. Mitigation is cheap: 30 s of 8-track ring buffer is
+  ~35 MB, affordable even in 512 MB, behind a writer thread.
+- Recommend: specify a USB SSD rather than a stick; write PER-TRACK mono
+  files (518 MB/hour each, dodges the FAT32 4 GB ceiling that an
+  interleaved 8-ch WAV hits at 57 minutes); consider an SD partition
+  instead, which skips USB host overhead entirely at the cost of swappable
+  media.
+- OPEN QUESTION for PW, changes the storage spec more than the Pi choice
+  does: are record and play SIMULTANEOUS, or separate modes? Multitrack
+  record and virtual-soundcheck playback usually are not concurrent; only
+  overdubbing needs both. Separate modes halve the load and keep the media
+  in the one-direction case where cheap flash behaves best.
+
 CHEAPEST NEXT STEP IF IT IS TAKEN FURTHER: publish a stripped Avalonia
 sample with PublishAot=true for linux-arm64 and measure RSS on the bench
 CM4. One afternoon, and it settles whether the existing stack fits a tight
