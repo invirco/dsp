@@ -4237,3 +4237,67 @@ ruling — restore SHIPPING at the end of this block). Both chips on the
 `DSP4_STRIPS=1` build, `CHIP_ID` 1 and 2, `BOOT_STAGE 5`, 1500.0 blocks/s,
 `SPORT0_ERR_A` clean; `matrix-app` active, all three MCUs verified;
 GPIOs `a0`.
+
+### Outcome 2026-08-23 15:0xZ — harness families BLOCKED: ramped parameter writes land one word low
+
+Latency delivered (93 samples, see `dsp4-plumbing.md`). The first family,
+GAIN, then hit a firmware bug that blocks every family needing a parameter
+write.
+
+#### The double bind
+
+**A direct write to a ramped parameter does nothing.** `C2_PI_IN`'s
+block-rate code is `if frames <= 0: level = target`, run every block, so a
+`ramp_id = 0` write to `_auxin_level` is overwritten within one block
+period. Measured: a full −60…+18 dB sweep produced *identical* output at
+every setting.
+
+**And the ramped write is broken.** Writing `1.0` (`0x3F800000`) to
+`0x071C` with `ramp_id = 1` put `0x3C000000` — **1/128** — in the target,
+converging over repeats to `0x3BFE03F8` ≈ **1/129**.
+
+That number is the giveaway. `_ramp_set_target` computes
+`step = (target − current) / frames` by Newton-Raphson reciprocal and
+stores **target at `[r0+1]`, step at `[r0+2]`, frames at `[r0+3]`**. A
+value of ~1/129 appearing where the target belongs is the *step*, so the
+stores are one word low, which means
+
+    r0 = 0x951DC = _auxin_on      (not 0x951DD = _auxin_level)
+
+C2_PI_IN's layout is `on 0x951DC, level 0x951DD, target 0x951DE,
+step 0x951DF, frames 0x951E0`, so a correct `r0` would put target at
+`0x951DE`. It puts step there instead.
+
+**Consequence:** a ramped write silently zeroes the parameter chain and
+corrupts `_auxin_on` along with it. Measured after the sweep:
+`auxin_level = 0.0`, `auxin_target = 0.0` — the audio path went silent and
+**no direct write could recover it**, because the block-rate copy
+immediately restores level from the zeroed target. Only a reboot restores
+it (the `.var` initialisers give level = target = 1.0).
+
+#### What is NOT established
+
+The symptom is localised; the cause is not. Three candidates, and I have
+not distinguished them:
+
+1. the SPI dispatch table entry for `0x071C` resolving to `_auxin_on`,
+2. how the handler computes `r0` before calling `_ramp_set_target`,
+3. the offset convention inside `_ramp_set_target` itself.
+
+The dispatch table *comment* says `0x071C: C2_PI_IN level`, so if the table
+is right the fault is in (2) or (3) — but the table's own generated
+comments are not proof of the address it emits.
+
+#### Why this matters beyond the harness
+
+Every family after GAIN needs parameter writes — EQ coefficients, dynamics
+thresholds, fader levels. **All of them are ramped.** So this is not one
+family blocked, it is the harness's whole parameter channel. It also lands
+squarely in the kernel-rewrite block's path, since that work touches
+parameter handling and the block-rate gain computer.
+
+**Bench state:** healthy and restored — bit-exact unity pass-through
+(`ratio 1.0000` on three known words, 100% of non-zero frames), both chips
+`CHIP_ID` 1 and 2 at `BOOT_STAGE 7` on the `DSP4_STRIPS=1` build. CPLD
+carries `dsp4_logic_loopback.2b00c3e17e2a` (captures `B_O3` slot 0 =
+`C2_MAIN_ST_OUT`, the only slot the graph drives).
