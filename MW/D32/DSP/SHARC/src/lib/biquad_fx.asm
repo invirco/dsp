@@ -132,6 +132,19 @@ _bq_fx_cascade_N.end:
 /*----------------------------------------------------------------------
  * _bq_fx_convert_N — RBJ float coeffs -> Q4.28 offset coeffs
  *
+ * THE FIX RESULT GOES IN r9, NOT r1. On SHARC the register file is
+ * unified: r1 and f1 are the SAME register. This routine holds b1 in f1
+ * across the b0 conversion, so `r1 = fix f5` for b0q DESTROYED b1 before
+ * `n1 = b1 + 2*b0` ever read it. The wreckage did not look like wreckage:
+ * b0q = 0x10000000 reinterpreted as a float is 2.6e-29, which adds as
+ * zero, so n1 came out as exactly 2*b0 and every biquad in the product
+ * silently ran with b1 = 0 -- EQ and HPF/LPF alike. Bench 2026-08-23:
+ * b1 = +1 and b1 = -1 gave the IDENTICAL impulse response, and a mixed
+ * set was wrong by exactly (b1 + 2b0 - 2b0) * x1. b2/a1/a2 live in
+ * f2/f3/f4 and were never touched, which is why ONLY the b1 term failed
+ * and why unity coefficients looked perfect. Keep the fix destination
+ * clear of f0-f8 here.
+ *
  * Mirrors fixed_ref.biquad_coeffs_q: each output word is
  * round-to-nearest of (value * 2^28), saturated. Uses the float unit
  * (dual-format core); FIX rounds per the current RND mode
@@ -156,30 +169,30 @@ _bq_fx_convert_N:
 
         /* b0q */
         f5 = f0 * f8;
-        r1 = fix f5;
-        dm(i1, 1) = r1;
+        r9 = fix f5;
+        dm(i1, 1) = r9;
         /* n1 = b1 + 2*b0 */
         f5 = f0 * f6;
         f5 = f1 + f5;
         f5 = f5 * f8;
-        r1 = fix f5;
-        dm(i1, 1) = r1;
+        r9 = fix f5;
+        dm(i1, 1) = r9;
         /* n2 = b2 - b0 */
         f5 = f2 - f0;
         f5 = f5 * f8;
-        r1 = fix f5;
-        dm(i1, 1) = r1;
+        r9 = fix f5;
+        dm(i1, 1) = r9;
         /* c1 = 2 + a1 */
         f5 = f3 + f6;
         f5 = f5 * f8;
-        r1 = fix f5;
-        dm(i1, 1) = r1;
+        r9 = fix f5;
+        dm(i1, 1) = r9;
         /* c2 = 1 - a2 */
         f5 = f7 - f4;
         f5 = f5 * f8;
-        r1 = fix f5;
+        r9 = fix f5;
     .bqcvt_stage:
-        dm(i1, 1) = r1;
+        dm(i1, 1) = r9;
 
     rts;
 _bq_fx_convert_N.end:

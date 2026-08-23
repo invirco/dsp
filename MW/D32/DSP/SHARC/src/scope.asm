@@ -55,6 +55,13 @@
  * and the whole capture read as zeros (bench 2026-08-23). */
 .global _scope_go;
 .var _scope_go   = 0;
+/* Incremented every time the host arms. The arm write is fire-and-forget
+ * like every write on this link, and when it was dropped wait() saw the
+ * PREVIOUS run's finished state and fetch() returned that run's buffer --
+ * a stale capture indistinguishable from a fresh one. The host checks
+ * this advanced before believing any data. */
+.global _scope_runs;
+.var _scope_runs = 0;
 
 .section/pm seg_pmco;
 

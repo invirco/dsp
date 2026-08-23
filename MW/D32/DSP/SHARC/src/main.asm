@@ -665,6 +665,24 @@ _start:
     /* Capture the watched node output for this sample. */
     call _scope_record;
 
+    /* Service the parameter link PER SAMPLE, not per block.
+     *
+     * The main loop polls it once per block, so the DSP answers ~1500/s
+     * while the host can clock ~10 transactions into a single block
+     * period at 1 MHz. The surplus overruns the response FIFO, and a
+     * dropped answer comes back as a well-formed (echo, 0) -- a wrong
+     * value that cannot be told from a real one. Measured 2026-08-23:
+     * ~8 reads in 25 correct under a 1-strip load, and a dropped scope
+     * ARM write silently returned the PREVIOUS capture, which made a
+     * working signal chain read as dead at the first node.
+     *
+     * 48 kHz gives 48000 polls/s, well clear of any burst the host can
+     * produce, and the busy guard inside _spi_poll makes the extra calls
+     * nearly free when nothing is pending. */
+#if !DSP4_POLL_ISR_ONLY
+    call _spi_poll;
+#endif
+
     /* Gather: output slot variables → IC TX DMA buffer */
     r0 = dm(_sample_idx);         /* reload (process may have clobbered r5) */
 #if DSP4_BLOCK_MASK & 4
@@ -740,6 +758,24 @@ _start:
 
     /* Capture the watched node output for this sample. */
     call _scope_record;
+
+    /* Service the parameter link PER SAMPLE, not per block.
+     *
+     * The main loop polls it once per block, so the DSP answers ~1500/s
+     * while the host can clock ~10 transactions into a single block
+     * period at 1 MHz. The surplus overruns the response FIFO, and a
+     * dropped answer comes back as a well-formed (echo, 0) -- a wrong
+     * value that cannot be told from a real one. Measured 2026-08-23:
+     * ~8 reads in 25 correct under a 1-strip load, and a dropped scope
+     * ARM write silently returned the PREVIOUS capture, which made a
+     * working signal chain read as dead at the first node.
+     *
+     * 48 kHz gives 48000 polls/s, well clear of any burst the host can
+     * produce, and the busy guard inside _spi_poll makes the extra calls
+     * nearly free when nothing is pending. */
+#if !DSP4_POLL_ISR_ONLY
+    call _spi_poll;
+#endif
 
     /* Gather: output slot variables → DAC TX DMA buffer */
     r0 = dm(_sample_idx);

@@ -92,6 +92,8 @@
 #define DIAG_SCOPE_RD        0xE0E5  /* W  set the read cursor             */
 #define DIAG_SCOPE_DATA      0xE0E6  /* R  buf[cursor], cursor auto-bumps  */
 #define DIAG_SCOPE_LEN       0xE0E7  /* R  capacity in samples             */
+#define DIAG_SCOPE_RUNS      0xE0E8  /* R  arm count -- proves a run happened */
+#define DIAG_SCOPE_IDX       0xE0E9  /* R  samples recorded this run       */
 
 /* NOP — accepted and ignored. The host sends this as the second half of
  * a read (see diag.asm); it must not itself generate a response. */

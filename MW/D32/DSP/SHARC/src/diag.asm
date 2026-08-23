@@ -62,6 +62,7 @@
 
 .extern _scope_buf, _scope_src, _scope_inj, _scope_amp;
 .extern _scope_mode, _scope_idx, _scope_arm, _scope_len, _scope_rd, _scope_go;
+.extern _scope_runs;
 
 /* PA_12 = BLINK_LED */
 #define DIAG_LED_BIT      0x00001000
@@ -667,6 +668,12 @@ _diag_read:
     r4 = DIAG_SCOPE_RD;
     comp(r2, r4);
     if eq jump (pc, .diag_rd_scope_rd);
+    r4 = DIAG_SCOPE_RUNS;
+    comp(r2, r4);
+    if eq jump (pc, .diag_rd_scope_runs);
+    r4 = DIAG_SCOPE_IDX;
+    comp(r2, r4);
+    if eq jump (pc, .diag_rd_scope_idx);
 
     r4 = DIAG_BASE;
     r4 = r2 - r4;                 /* table index */
@@ -732,6 +739,12 @@ _diag_read:
     rts;
 .diag_rd_scope_rd:
     r4 = dm(_scope_rd);
+    rts;
+.diag_rd_scope_runs:
+    r4 = dm(_scope_runs);
+    rts;
+.diag_rd_scope_idx:
+    r4 = dm(_scope_idx);
     rts;
 
 .diag_rd_zero:
@@ -808,6 +821,12 @@ _diag_write:
     dm(_scope_idx) = r4;
     dm(_scope_go)  = r4;
     dm(_scope_arm) = r1;
+    r4 = pass r1;
+    if eq rts;                    /* disarm: not a run */
+    r4 = dm(_scope_runs);
+    r5 = 1;
+    r4 = r4 + r5;
+    dm(_scope_runs) = r4;
     rts;
 
 .diag_wr_clear:

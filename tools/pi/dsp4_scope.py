@@ -29,6 +29,7 @@ DIAG_PEEK_DATA = 0xE0F1
 SCOPE_SRC, SCOPE_INJ, SCOPE_AMP = 0xE0E0, 0xE0E1, 0xE0E2
 SCOPE_MODE, SCOPE_ARM, SCOPE_RD = 0xE0E3, 0xE0E4, 0xE0E5
 SCOPE_DATA, SCOPE_LEN = 0xE0E6, 0xE0E7
+SCOPE_RUNS, SCOPE_IDX = 0xE0E8, 0xE0E9
 CS_GPIO = {1: 6, 2: 24}
 SETTLE = 0.002     # three audio block periods; see Scope.rd
 SCOPE_MAX = 1024   # buffer capacity; the REGISTER is SCOPE_LEN above
@@ -132,28 +133,46 @@ class Scope:
                 pass
         raise IOError('register 0x%04X would not take 0x%08X' % (reg, val))
 
-    def arm(self, src, inj=0, amp=0, mode=1):
+    def arm(self, src, inj=0, amp=0, mode=1, tries=8):
+        """Arm, and PROVE the arm landed by watching the run counter.
+
+        The arm write is fire-and-forget like every write on this link.
+        When it was dropped, wait() saw the previous run's finished state
+        and fetch() handed back the previous run's buffer -- a stale
+        capture that looks exactly like a fresh one. Chain-walking a
+        signal path with stale captures reads as "the signal stops here",
+        which is a wrong answer no amount of care downstream can catch.
+        """
         self.d.write(SCOPE_ARM, 0)
         time.sleep(SETTLE)
         self.wr(SCOPE_SRC, src)
         self.wr(SCOPE_INJ, inj)
         self.wr(SCOPE_AMP, amp)
         self.wr(SCOPE_MODE, mode)
-        # ARM clears itself when the buffer fills (~21 ms), so a read-back
-        # of 1 is racy; write it and confirm the capture actually ran by
-        # checking the index moved, in wait().
-        self.d.write(SCOPE_ARM, 1)
+        for _ in range(tries):
+            before = self.rd(SCOPE_RUNS)
+            self.d.write(SCOPE_ARM, 1)
+            time.sleep(SETTLE)
+            if self.rd(SCOPE_RUNS) != before:
+                return
+        raise IOError('scope would not arm (run counter never advanced)')
 
     def wait(self, timeout=5.0):
-        """The scope disarms itself when the buffer fills; a run that never
-        disarms means the sample loop is not turning, which is a result in
-        its own right and must not be reported as data."""
+        """Wait on the sample INDEX, not on ARM.
+
+        ARM is the one live value here: the buffer fills in ~21 ms, far
+        faster than a read, so ARM is almost always already back to 0 and
+        voting on it just races (measured {1:1, 0:7} in one read). The
+        index is static once the run ends, so it votes cleanly and it also
+        says whether the capture completed or was cut short.
+        """
         end = time.time() + timeout
         while time.time() < end:
-            if self.rd(SCOPE_ARM) == 0:
+            n = self.rd(SCOPE_IDX)
+            if n >= SCOPE_MAX:
                 return True
             time.sleep(0.05)
-        return False
+        raise IOError('capture stalled at %d of %d samples' % (n, SCOPE_MAX))
 
     def fetch(self, n):
         out = []
