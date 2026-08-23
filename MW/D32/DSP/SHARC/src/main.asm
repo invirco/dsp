@@ -407,7 +407,7 @@ _start:
     call _bisect_dump_asm;
     r4 = dm(REG_DMA0_DSCPTR_CUR); /* what it actually tried to fetch */
     call _bisect_dump_asm;
-    r4 = dm(_dbg_dscptr);         /* descriptor word 0: ring next ptr */
+    r4 = dm(REG_DMA0_XCNT);       /* loaded from the descriptor? (want 256) */
     call _bisect_dump_asm;
     r4 = dm(_dbg_desc0);          /* descriptor word 1: ADDRSTART */
     call _bisect_dump_asm;
