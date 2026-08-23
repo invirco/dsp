@@ -17,7 +17,7 @@ samples.
 | EQ / FILT | **PASS** | 0 LSB | 13 coeff sets + 400-sample RBJ | [eq-filt](eq-filt-2026-08-23.md) |
 | COMP | **PASS** | 0 LSB | 7 levels, −30…0 dBFS | [comp](comp-2026-08-23.md) |
 | FDR (fader ramps) | not run | — | — | — |
-| GATE | not run | — | — | — |
+| GATE | **PASS** | 0 LSB | 7 levels, −60…−6 dBFS | [gate](gate-2026-08-23.md) |
 | LIM | not run | — | — | — |
 | DLY | not run | — | — | — |
 | TUBE | not run | — | — | — |
@@ -50,9 +50,12 @@ has a dB or timing spec, the report carries it.
 
 ## Traps worth carrying forward
 
-- A fixed-point one-pole envelope does **not** settle to its target: it
-  sticks short once the increment rounds to zero. Assuming the limit
-  produced a 183 LSB "hardware error" that was entirely the model.
+- A fixed-point one-pole does **not** settle to its target: it sticks
+  short once the increment rounds to zero. This bit twice — a 183 LSB
+  "hardware error" on COMP and a 1 LSB one on GATE, both entirely the
+  model. Related: model the state the part is actually IN, not the declared
+  initialiser. GATE's gain initialises to 1.0 but is sitting near `range`
+  by the time any measurement runs, because the input has been silent.
 - `attack`/`release` on COMP are per-sample **alpha coefficients**, not
   seconds. `0.001` is a ~21 ms time constant.
 - Reset the **whole chain** before measuring. An EQ measured wrong for an
