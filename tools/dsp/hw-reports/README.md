@@ -16,12 +16,13 @@ samples.
 | GAIN | **PASS** | 0 LSB | 13 levels, −60…+18 dB | [gain](gain-2026-08-23.md) |
 | EQ / FILT | **PASS** | 0 LSB | 13 coeff sets + 400-sample RBJ | [eq-filt](eq-filt-2026-08-23.md) |
 | COMP | **PASS** | 0 LSB | 7 levels, −30…0 dBFS | [comp](comp-2026-08-23.md) |
-| FDR (fader ramps) | not run | — | — | — |
+| FDR gain/pan | **PASS** | 0 LSB | 9 points, level+pan | [fdr-bus](fdr-bus-2026-08-23.md) |
+| FDR ramp time | **FAIL** | 32× slow | GainFast, GainSafe | [fdr-bus](fdr-bus-2026-08-23.md) |
 | GATE | **PASS** | 0 LSB | 7 levels, −60…−6 dBFS | [gate](gate-2026-08-23.md) |
 | LIM | **PASS** | 0 LSB | 6 levels, −6…+6 dBFS | [lim](lim-2026-08-23.md) |
 | DLY | **PASS** | 0 LSB | 5 offsets, 0…200 samples | [dly-tube](dly-tube-2026-08-23.md) |
 | TUBE | **PASS** | 0 LSB | 20 points, sat 0…1 | [dly-tube](dly-tube-2026-08-23.md) |
-| bus summing | not run | — | — | — |
+| bus summing | **PARTIAL** | 0 LSB single-term | multi-term not exercised | [fdr-bus](fdr-bus-2026-08-23.md) |
 | MTR (meters) | not run | — | — | — |
 
 Errors are worst absolute difference in Q4.28 LSB against `fixed_ref` with
@@ -42,6 +43,8 @@ were found with.
 | every biquad ran with `b1 = 0` — `r1` and `f1` are the same SHARC register | EQ / FILT | `a42a315` |
 | `parallel = 1.0` overflowed Q0.31 to −1, bypassing the compressor | COMP | `2ef49fd` |
 | ramp engine wrote one word low — `dm(i4, N)` is post-modify | GAIN | `d2e4dc6`, moved into the generator in `2ef49fd` |
+| fader gain applied TWICE on the L/R bus feed — bus low by the fader setting in dB at any position below unity | FDR | `45fdd47` |
+| ramp times 32× longer than the cell table on every block-decrementing parameter | FDR | **proposed, not applied** |
 | `Scope()` used chip 1's RDY for both chips, and chip 2 was silently running chip 1's firmware — a chip-2 chain read as dead | LIM (bench, not a kernel defect) | `dffca40` |
 | per-sample SPI poll starved chip 2's block loop — `BOOT_STAGE` stuck at 0 after config | LIM (bench, not a kernel defect) | `dffca40` |
 
