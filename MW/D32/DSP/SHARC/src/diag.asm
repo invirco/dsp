@@ -226,7 +226,17 @@
     REG_SPI2_CTL,           /* 0xE014 SPI_CTL      (live MMR) */
     REG_SPI2_RXCTL,         /* 0xE015 SPI_RXCTL    (live MMR) */
     REG_SPI2_TXCTL,         /* 0xE016 SPI_TXCTL    (live MMR) */
+#if DSP4_SIMD_STRIPS
+    _diag_build_id,         /* 0xE017 BUILD_ID       */
+    /* Readable even when the MAIN LOOP is wedged. peek() is a two-
+     * transaction handshake -- write PEEK_ADDR, read PEEK_DATA -- and the
+     * diag ISR backstop can serve a single read but not that handshake, so
+     * a peek-based counter is unreadable in exactly the situation it
+     * exists to diagnose. A named register is one transaction. */
+    _iicdi_count;           /* 0xE018 IICDI fault count */
+#else
     _diag_build_id;         /* 0xE017 BUILD_ID       */
+#endif
 
 
 .section/pm seg_pmco;
@@ -410,6 +420,46 @@ _diag_init.end:
  * The loop re-checks _block_ready and goes straight back to idle, which
  * costs a handful of cycles against 1500 block interrupts a second.
  *----------------------------------------------------------------------*/
+#if DSP4_SIMD_STRIPS
+/*----------------------------------------------------------------------
+ * _iicdi_isr — make an unaligned long-word access VISIBLE.
+ *
+ * The stock vector is `rti`, with no handler. That is worse than it
+ * sounds: `rti` returns to the FAULTING INSTRUCTION, which faults again,
+ * forever. The main loop livelocks while every other interrupt keeps being
+ * serviced -- so the part answers the parameter link (the diag ISR is a
+ * backstop) and looks alive while doing no work at all. That signature
+ * cost hours on the SIMD investigation, because "the link answers" was
+ * read as "the part is running".
+ *
+ * This does not FIX anything -- the instruction still cannot complete --
+ * but it counts the faults and latches the PC, so the failure reports
+ * itself instead of masquerading as a hang.
+ *--------------------------------------------------------------------*/
+.section/dm seg_dmda;      /* DM, not PM -- diag.peek reads DM, and these
+                            * first landed in seg_pmco where nothing could
+                            * read them back. */
+.global _iicdi_count;
+.var _iicdi_count = 0;
+.global _iicdi_pc;
+.var _iicdi_pc = 0;
+
+.section/pm seg_pmco;
+.global _iicdi_isr;
+_iicdi_isr:
+    bit set mode1 BITM_REGF_MODE1_SRRFL | BITM_REGF_MODE1_SRRFH;
+    nop;
+    r0 = dm(_iicdi_count);
+    r0 = r0 + 1;
+    dm(_iicdi_count) = r0;
+    r0 = 1;
+    dm(_iicdi_pc) = r0;        /* latched marker: the fault was taken */
+    bit clr mode1 BITM_REGF_MODE1_SRRFL | BITM_REGF_MODE1_SRRFH;
+    nop;
+    rti;
+_iicdi_isr.end:
+#endif
+
 .global _diag_timer_isr;
 _diag_timer_isr:
     /* Full register file + DAG1, not just the low half: this ISR now

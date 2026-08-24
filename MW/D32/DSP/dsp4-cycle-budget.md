@@ -88,6 +88,50 @@ shadow that widens it. My first attempt had the order wrong.
 
 `CONFIG_COMMIT` now completes where it never did.
 
+### IICDI ruled out; the hang is still not diagnosed — stopping here
+
+`DSP4_BLOCK_MASK=0` was the right idea and it did clear the audio path out
+of the way. What it did not do is find the fault.
+
+**A diagnostic dead end worth recording.** The IICDI counter was first
+placed where `diag.peek()` could read it — and `peek()` is a **two**
+transaction handshake (write `PEEK_ADDR`, read `PEEK_DATA`). The diag ISR
+backstop can serve a single read but not that handshake, so **a peek-based
+counter is unreadable in exactly the situation it exists to diagnose.** It
+was moved to a named diag register (`0xE018`), one transaction, readable
+while the main loop is wedged. That is a general lesson about this link,
+not a SIMD one.
+
+**Result: `IICDI` read 0.** So the unaligned-long-word theory is **not
+supported** — the vector never fired. That was the strongest hypothesis and
+it is now off the list. Caveat: the one run that answered was on a build
+whose diag table was mis-sized (see below), so it is weaker evidence than I
+would like, and the corrected build then would not answer at all.
+
+**A rule violated and fixed.** Adding the register put a duplicate entry in
+the non-SIMD path of `_diag_table`, giving it 25 entries where it should
+have 24, and **the shipping image changed** — `45911c85` against
+`0df38e82`. Caught by the md5 check on the very next build and corrected;
+shipping is back at `0df38e82`. The check earned its keep again.
+
+**Where this stands.** `_bq_fx_cascade_simd` hangs when called with
+interrupts enabled. Ruled out: iteration count, loop-count arithmetic,
+PEYEN residue, PEYEN-in-ISR (fixed anyway, correctly), buffer alignment by
+inspection, and now IICDI by measurement. The verification harness itself
+has been the obstacle at every turn, and each placement failed for a
+different structural reason.
+
+I am stopping the bisect here rather than continuing to fire builds at it.
+**Nothing is wired into the graph**, shipping is byte-identical, and the
+tree with the SIMD flags off is CHAIN BIT-EXACT at 983.04 MHz.
+
+The next person — likely me, next session — should start from the ILOPI
+and SOVFI vectors, which are also bare `rti` and would livelock the same
+way (SOVFI in particular: status/loop/PC stack overflow, and this code
+calls a routine with nested hardware loops from inside another hardware
+loop). Instrumenting all three fault vectors at once costs one build and
+would have answered this hours ago.
+
 ### RETRACTION: "CONFIG_COMMIT now completes" was not evidence of a fix
 
 I reported that the PEYEN fix resolved the hang because config started

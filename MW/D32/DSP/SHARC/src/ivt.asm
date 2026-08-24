@@ -54,7 +54,11 @@
 /* Offset 0x00C — PARI    L1 parity error             */ rti; nop; nop; nop;
 /* Offset 0x010 — ILOPI   Illegal opcode              */ rti; nop; nop; nop;
 /* Offset 0x014 — CB7I    Circular buffer 7 overflow  */ rti; nop; nop; nop;
+#if DSP4_SIMD_STRIPS
+/* Offset 0x018 — IICDI   Unaligned long-word access  */ jump _iicdi_isr; nop; nop; nop;
+#else
 /* Offset 0x018 — IICDI   Unaligned long-word access  */ rti; nop; nop; nop;
+#endif
 /* Offset 0x01C — SOVFI   Status/loop/PC stack        */ rti; nop; nop; nop;
 /* Offset 0x020 — ILADI   Illegal address space       */ rti; nop; nop; nop;
 /* Offset 0x024 — (reserved)                          */ rti; nop; nop; nop;

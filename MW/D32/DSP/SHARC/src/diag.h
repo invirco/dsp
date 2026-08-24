@@ -71,7 +71,12 @@
 #define DIAG_SPI_TXCTL       0xE016  /* live SPI2_TXCTL — is TEN set?        */
 #define DIAG_BUILD_ID        0xE017  /* build stamp 0xYYYYMMDD               */
 
+#if DSP4_SIMD_STRIPS
+#define DIAG_TABLE_N         0x19    /* + IICDI_COUNT at 0xE018 */
+#else
 #define DIAG_TABLE_N         0x18    /* entries in _diag_table (0xE000..)    */
+#endif
+#define DIAG_IICDI_COUNT     0xE018
 
 /* Generic peek window — reads any MMR or DM address on a running DSP.
  * This is what replaces the emulator: write PEEK_ADDR, read PEEK_DATA.
