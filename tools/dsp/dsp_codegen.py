@@ -148,16 +148,13 @@ def gen_input_tdm(node):
         #include "blk_pool.h"
 
         .section/dm seg_dmda;
-        #if DSP4_BLOCK_KERNELS
-        .var _rx_slot_{node['id']}[32];
-        /* The block output lives in the SHARED pool; this scalar is kept
-         * only so unconverted consumers still link, and carries the last
-         * sample of the block. */
-        .var _buf_{node['id']};
-        #else
+        /* Under block kernels this kernel reads the DMA buffer directly,
+         * so the slot var is unreferenced -- kept as a scalar purely so
+         * block_io.asm's tables still resolve. The block output lives in
+         * the SHARED pool; _buf_ is kept for unconverted consumers and
+         * carries the last sample of the block. */
         .var _rx_slot_{node['id']};
         .var _buf_{node['id']};
-        #endif
 
         .section/pm seg_pmco;
         .global _{node['id']}_process;
@@ -166,15 +163,25 @@ def gen_input_tdm(node):
             /* per-BLOCK kernel: one call per block, loop inside */
             l0 = 0;
             l1 = 0;
-            i0 = _rx_slot_{node['id']};
+            /* Read this channel's DMA lane straight into the pool,
+             * converting Q1.31 -> Q4.28 on the way. off/stride come from
+             * the lane layout, handed to this node by gen_block_io. */
+            .extern _rx_active_buf;
+            r6 = dm(_rx_active_buf);
+            r3 = {p.get('rx_off', 0)};
+            r3 = r6 + r3;
+            i0 = r3;
+            r4 = {p.get('rx_stride', 1)};
+            m0 = r4;
             i1 = BLK_CHAIN_A;
             r5 = 32;
             lcntr = r5; do .in_lp_{node['id']} until lce;
-                r0 = dm(i0, 1);
-                dm(i1, 1) = r0;
+                r2 = dm(i0, m0);
+                r2 = ashift r2 by -3;
+                dm(i1, 1) = r2;
         .in_lp_{node['id']}:
                 nop;
-            dm(_buf_{node['id']}) = r0;   /* linkage scalar */
+            dm(_buf_{node['id']}) = r2;   /* linkage scalar */
             rts;
         #else
             r0 = dm(_rx_slot_{node['id']});
@@ -3733,6 +3740,14 @@ def gen_block_io(chip_label, chip_nodes):
         (<<3 with saturation). IC fabric lanes copy raw Q4.28."""
         lines.append(f'.global {fn};')
         lines.append(f'{fn}:')
+        if not to_dma and scale == 'rx':
+            # Under per-block kernels the INPUT_TDM kernels read the DMA
+            # buffer themselves and do the >>3 inline, so staging every
+            # channel into a slot array first is pure cost: 1,472 words of
+            # DM and a copy per sample per channel. Nothing to do here.
+            lines.append(f'#if DSP4_BLOCK_KERNELS')
+            lines.append(f'    rts;')
+            lines.append(f'#endif')
         lines.append(f'    /* r0 = sample index (0..{BLOCK-1}) */')
         lines.append(f'    r6 = dm({base_sym});')
         lines.append(f'    i1 = {off_tbl};')
@@ -3847,6 +3862,14 @@ def gen_block_io(chip_label, chip_nodes):
         lines.append('')
         lines.append(f'/* RX node tables ({num_rx} packed channels over '
                      f'{len(rx_lanes)} lanes) */')
+        # Hand each INPUT_TDM node its own DMA offset and stride so its
+        # block kernel can read the DMA buffer DIRECTLY, instead of scatter
+        # staging 46 x 32 words into slot arrays first. That reclaims 1,472
+        # words of DM and removes a whole copy per sample.
+        for _n in input_nodes:
+            _off, _stride = rx_map[_n['id']]
+            _n['params']['rx_off'] = _off
+            _n['params']['rx_stride'] = _stride
         emit_tables(lines, '_c1_rx', input_nodes, rx_map,
                     '_rx_slot_{id}', '_c1_rx_slot_ptrs')
 
@@ -5446,6 +5469,11 @@ def gen_bus_accumulators_fixed():
     # is the 1,472 words of RX slot arrays, which disappear if the IN
     # kernel reads the DMA buffer directly and does the Q1.31->Q4.28 shift
     # itself, removing a whole copy as well.
+    # Still L2. Measured 2026-08-24: the RX-slot reclaim took sec_dmda to
+    # 21,046 words (default is 20,840), but putting these 1,600 back
+    # internal reaches 22,646 and still overflows -- the ceiling sits
+    # around 22,500. L2 it is; that makes the RTG cycle figure conservative
+    # rather than optimistic.
     out.append('#if DSP4_BLOCK_KERNELS')
     out.append('.section/dm seg_delay;')
     for n in names:
@@ -6764,6 +6792,11 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
 
         call_sequence = []
 
+        # Generated first, not because its output is needed yet, but because
+        # it is what computes each input node's DMA lane offset/stride and
+        # annotates the node dicts. The block kernels below read those.
+        bio_text, lane_info = gen_block_io(chip_label, chip_nodes)
+
         for node in chip_nodes:
             # call_sequence is always populated (process_chain.asm must list every node)
             call_sequence.append(node['id'])
@@ -6846,7 +6879,6 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
 
         # Write block I/O (scatter/gather between DMA and node slot variables)
         bio_path = os.path.join(output_dir, chip_label, 'block_io.asm')
-        bio_text, lane_info = gen_block_io(chip_label, chip_nodes)
         with open(bio_path, 'w', encoding='utf-8') as f:
             f.write(bio_text)
         files_written += 1

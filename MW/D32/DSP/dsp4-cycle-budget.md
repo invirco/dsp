@@ -188,6 +188,44 @@ which disappear entirely if the IN kernel reads the DMA buffer directly and
 does the Q1.31→Q4.28 shift itself — that removes a whole copy as well as
 the storage.
 
+### RX slot reclaim 2026-08-24 — scatter deleted, block I/O nearly halved
+
+The `INPUT_TDM` kernels now read the DMA buffer **directly**, doing the
+Q1.31→Q4.28 shift inline, using the lane offset and stride that
+`gen_block_io` already computes and now hands to each node. Staging 46
+channels into slot arrays first was pure cost: 1,472 words of DM **and** a
+copy per sample per channel. `_scatter_chip1` is a bare `rts` under the
+flag.
+
+| point | per-sample | per-block | ratio |
+|---|---|---|---|
+| `NODE_LIMIT=1` — block I/O + IN | 67,809 | **32,707** | **2.07×** |
+| GAIN alone | 2,321 | 574 | 4.04× |
+| RTG alone | 19,186 | 2,626 | 7.3× |
+
+`NODE_LIMIT=1` is a fair like-for-like: both block I/O and IN are fully
+converted there. Nearly half the fixed overhead at that point was a copy
+that did not need to exist.
+
+`sec_dmda` on chip 1 across the whole conversion:
+
+| build | words |
+|---|---|
+| default (per-sample) | 20,840 |
+| block kernels, buffer per node | overflowed |
+| + shared pool | 22,472 |
+| + RX reclaim | **21,046** (+206 over default) |
+
+**The DM ceiling is about 22,500 words**, tighter than it looked: putting
+the 1,600 words of bus accumulators back internal reaches 22,646 and still
+overflows, so they stay in L2 — which makes the RTG figure conservative
+rather than optimistic.
+
+One regression to note against the flag: the boot-time input patch
+(`_rx_patch_regs`, which lets a D24 console remap which slot var receives
+which RX channel) is bypassed when the kernels read DMA directly. It needs
+folding into the per-node offset before this path can ship.
+
 ### What stands out
 
 **RTG is the most expensive node class on the part** — 601 cycles per

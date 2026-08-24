@@ -463,6 +463,9 @@
 /* Scatter 46 RX channels (lane-major packed) */
 .global _scatter_chip1;
 _scatter_chip1:
+#if DSP4_BLOCK_KERNELS
+    rts;
+#endif
     /* r0 = sample index (0..31) */
     r6 = dm(_rx_active_buf);
     i1 = _c1_rx_off;

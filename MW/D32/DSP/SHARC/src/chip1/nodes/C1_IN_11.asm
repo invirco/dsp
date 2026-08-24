@@ -17,20 +17,15 @@
 #include "blk_pool.h"
 
 .section/dm seg_dmda;
-#if DSP4_BLOCK_KERNELS
-.global _rx_slot_C1_IN_11;
-.var _rx_slot_C1_IN_11[32];
-/* The block output lives in the SHARED pool; this scalar is kept
- * only so unconverted consumers still link, and carries the last
- * sample of the block. */
-.global _buf_C1_IN_11;
-.var _buf_C1_IN_11;
-#else
+/* Under block kernels this kernel reads the DMA buffer directly,
+ * so the slot var is unreferenced -- kept as a scalar purely so
+ * block_io.asm's tables still resolve. The block output lives in
+ * the SHARED pool; _buf_ is kept for unconverted consumers and
+ * carries the last sample of the block. */
 .global _rx_slot_C1_IN_11;
 .var _rx_slot_C1_IN_11;
 .global _buf_C1_IN_11;
 .var _buf_C1_IN_11;
-#endif
 
 .section/pm seg_pmco;
 .global _C1_IN_11_process;
@@ -39,15 +34,25 @@ _C1_IN_11_process:
     /* per-BLOCK kernel: one call per block, loop inside */
     l0 = 0;
     l1 = 0;
-    i0 = _rx_slot_C1_IN_11;
+    /* Read this channel's DMA lane straight into the pool,
+     * converting Q1.31 -> Q4.28 on the way. off/stride come from
+     * the lane layout, handed to this node by gen_block_io. */
+    .extern _rx_active_buf;
+    r6 = dm(_rx_active_buf);
+    r3 = 258;
+    r3 = r6 + r3;
+    i0 = r3;
+    r4 = 8;
+    m0 = r4;
     i1 = BLK_CHAIN_A;
     r5 = 32;
     lcntr = r5; do .in_lp_C1_IN_11 until lce;
-        r0 = dm(i0, 1);
-        dm(i1, 1) = r0;
+        r2 = dm(i0, m0);
+        r2 = ashift r2 by -3;
+        dm(i1, 1) = r2;
 .in_lp_C1_IN_11:
         nop;
-    dm(_buf_C1_IN_11) = r0;   /* linkage scalar */
+    dm(_buf_C1_IN_11) = r2;   /* linkage scalar */
     rts;
 #else
     r0 = dm(_rx_slot_C1_IN_11);
