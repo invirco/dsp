@@ -14,6 +14,14 @@ basic strip for capacity purposes. Two levels to this and they are different:
   what actually recovers TUBE's cycles AND its DM state, so it is the version
   that counts for the 32-channel fit.
 
+**PW BENCH OBSERVATION 2026-08-24 19:1xZ: SHARCs at 983.04 have NO heatsink
+and run COOL to the touch under sustained operation — thermal half of the
+power question CLOSED (consistent with ~0.7 W/chip at 0.9 V). REMAINING for
+ship sign-off: the +0.9 V RAIL itself — voltage under load at 983 (must hold
+≥ ~0.855 V) and ideally the motherboard regulator's current rating vs the
+~1.5 A pair draw. One DMM reading whenever PW is next probing; until then
+983 stays "enabled for measurement", 786 the one-flag fallback.**
+
 **PW BENCH READ 2026-08-24 18:4xZ: U5/U6 MARKING = ADSP-21564KSWZ10 (1 GHz
 grade). The 983.04 MHz target is LEGAL on the fitted parts. ENABLE
 `DSP4_CCLK_TARGET=983` with the same discipline as 786: measure CCLK off the
