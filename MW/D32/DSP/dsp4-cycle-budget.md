@@ -2,6 +2,56 @@
 
 provenance: AI-drafted 2026-08-23 — prose may carry a statistical watermark; rewrite by hand before publication, then remove this header.
 
+## SIMD ROLLOUT — where it actually stands, 2026-08-24
+
+**Not rolled out. What exists is a pairing wrapper that builds but is not
+verified in situ, and the in-graph rollout needs a restructure I have not
+done.** Recording that plainly rather than implying progress.
+
+### What is established
+
+| | |
+|---|---|
+| PEy works on this part | verified live — both halves came back correct |
+| `_bq_fx_cascade_simd`, two strips one instruction stream | **2.39×**, **0 differing samples of 64**, different coefficients per strip |
+| `_bq_pair_blk` (gather → pair → scatter) | written, assembles, **NOT verified on the part** |
+| predicted net gain | FILT **+47**, EQ **+97** cycles/sample/strip after interleave overhead |
+
+### The blocker for in-graph use, which I under-scoped
+
+Strips share an 8-slot pool and run **sequentially** — that is the whole
+reason the pool is 256 words instead of 16 K. **Strip 2's block does not
+exist while strip 1 is running**, so two strips cannot be paired without
+either
+
+- doubling the pool to 16 slots (+256 words of DM, which is already tight
+  enough that a 1,024-word table overflowed `sec_stak` today), **and**
+- reordering the call chain to run strip PAIRS together — IN(1), IN(2),
+  GAIN(1), GAIN(2), FILT(1+2 paired), … — which changes node indices and
+  therefore `DSP4_NODE_LIMIT`, the scope-skip table and the fabric
+  measurement method,
+
+or restructuring the pool into 16 pair-slots outright. Either is a real
+piece of work with several verification steps, and it is the honest reason
+this is not done.
+
+### The verification harness for the wrapper is itself broken
+
+`DSP4_BQ_SELFTEST=1` now fails to reach `CONFIG_COMMIT` — `SPI_RDY never
+asserted`. Three attempts at the cause: reducing the timed iteration count
+(the selftest blocks inside CONFIG_COMMIT and ~90 ms was plausible), and
+replacing `Rn = Rx * Ry (ssi)` loop-count arithmetic with shifts and adds
+(an `lcntr` of 0 does not skip on this core, it runs for a very long time).
+Neither fixed it and I stopped rather than keep guessing.
+
+**It is contained**: `DSP4_BQ_SELFTEST` defaults to 0 and appears in no
+shipping or measurement build. The same tree with the flag off boots,
+runs real-time and is **CHAIN BIT-EXACT at 983.04**. So the defect is in
+the debug harness, not in the graph — but it does mean the pairing wrapper
+has no verification path right now, and wiring an unverified SIMD kernel
+into the graph would be exactly the kind of silently-wrong build this work
+has spent all day avoiding.
+
 ## 983.04 MHz ENABLED AND VERIFIED — 2026-08-24 (U5/U6 read as KSWZ10)
 
 PW read the marking: **ADSP-21564KSWZ10, the 1 GHz grade.** That removes

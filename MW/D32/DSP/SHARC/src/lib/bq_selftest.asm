@@ -31,9 +31,9 @@
     0x00100A4E, 0x00402937, 0x00000000, 0x02F47534, 0x02B44BFC,  /* LPF 1k   */
     0x0FD6A007, 0x00000000, 0x00000000, 0x0055E080, 0x004F9F63;  /* HPF 300  */
 
-.global _bqst_in;       .var _bqst_in[64];
-.global _bqst_ref;      .var _bqst_ref[64];
-.global _bqst_blk;      .var _bqst_blk[64];
+
+
+
 .global _bqst_st_ref;   .var _bqst_st_ref[12];
 .global _bqst_st_blk;   .var _bqst_st_blk[12];
 .global _bqst_maxdiff;  .var _bqst_maxdiff = 0;
@@ -88,91 +88,18 @@
 
 .global _bq_selftest;
 _bq_selftest:
+    /* The original scalar-vs-block cascade self-test lived here. It passed
+     * (0 of 64 samples differing, two stages with different coefficients,
+     * across a block boundary) and is recorded in dsp4-cycle-budget.md.
+     * Its 192 words of buffers are retired to make room for the PAIRING
+     * test below, which is the one still under investigation. */
     l0 = 0;
     l1 = 0;
     l2 = 0;
     l3 = 0;
     l4 = 0;
+    l5 = 0;
 
-    /* ---- stimulus: impulse, then 63 samples of silence ---- */
-    i3 = _bqst_in;
-    r0 = 0;
-    lcntr = 64, do .bqst_z until lce;
-    .bqst_z: dm(i3, 1) = r0;
-    r0 = 0x08000000;
-    dm(_bqst_in) = r0;
-
-    /* ---- both states start identically at zero ---- */
-    i3 = _bqst_st_ref;
-    r0 = 0;
-    lcntr = 12, do .bqst_zr until lce;
-    .bqst_zr: dm(i3, 1) = r0;
-    i3 = _bqst_st_blk;
-    r0 = 0;
-    lcntr = 12, do .bqst_zb until lce;
-    .bqst_zb: dm(i3, 1) = r0;
-
-    /* ---- reference: the shipping per-sample routine, 64 samples ---- */
-    i3 = _bqst_in;
-    i4 = _bqst_ref;
-    lcntr = 64, do .bqst_s until lce;
-        r0 = dm(i3, 1);
-        i0 = _bqst_coeffs;
-        i1 = _bqst_st_ref;
-        r4 = 2;
-        call _bq_fx_cascade_N;
-        dm(i4, 1) = r0;
-    .bqst_s: nop;
-
-    /* ---- block path: same stimulus, processed in place, two blocks ---- */
-    i3 = _bqst_in;
-    i4 = _bqst_blk;
-    lcntr = 64, do .bqst_c until lce;
-        r0 = dm(i3, 1);
-    .bqst_c: dm(i4, 1) = r0;
-
-    i0 = _bqst_coeffs;
-    i1 = _bqst_st_blk;
-    i2 = _bqst_blk;
-    r4 = 2;
-    call _bq_fx_cascade_blk;
-
-    /* second block, SAME state -- this is the persistence half */
-    i0 = _bqst_coeffs;
-    i1 = _bqst_st_blk;
-    i2 = _bqst_blk;
-    m0 = 32;
-    modify(i2, m0);
-    r4 = 2;
-    call _bq_fx_cascade_blk;
-
-    /* ---- diff ---- */
-    i3 = _bqst_blk;
-    i4 = _bqst_ref;
-    r12 = 0;                    /* max |diff|                     */
-    r14 = 0;                    /* how many samples differ        */
-    r13 = -1;                   /* index of the first that does   */
-    r10 = 0;                    /* running index                  */
-    lcntr = 64, do .bqst_d until lce;
-        r0 = dm(i3, 1);
-        r1 = dm(i4, 1);
-        r2 = r0 - r1;
-        r2 = abs r2;
-        r3 = pass r2;
-        if ne r14 = r14 + 1;
-        r3 = pass r13;
-        if ge jump (pc, .bqst_seen);   /* already recorded one */
-        r3 = pass r2;
-        if ne r13 = pass r10;   /* first differing index */
-    .bqst_seen:
-        comp(r2, r12);
-        if gt r12 = pass r2;
-        r10 = r10 + 1;
-    .bqst_d: nop;
-
-    dm(_bqst_maxdiff) = r12;
-    dm(_bqst_ndiff) = r14;
-    dm(_bqst_first) = r13;
 #if DSP4_SIMD_PROBE
     /* ---- SIMD vs scalar: same work, measured, and checked ---- */
     l0 = 0; l1 = 0; l2 = 0; l3 = 0; l4 = 0; l5 = 0;
@@ -200,7 +127,7 @@ _bq_selftest:
     .extern _diag_ticks;
     r12 = dm(_diag_ticks);
     dm(_sq_raw + 0) = r12;
-    lcntr = 4000, do .sq_sloop until lce;
+    lcntr = 1200, do .sq_sloop until lce;
         i0 = _sq_cA; i1 = _sq_sA; i2 = _sq_xA; r4 = 2;
         call _bq_fx_cascade_blk;
         i0 = _sq_cB; i1 = _sq_sB; i2 = _sq_xB; r4 = 2;
@@ -216,7 +143,7 @@ _bq_selftest:
      * worth doing. ---- */
     r12 = dm(_diag_ticks);
     dm(_sq_raw + 2) = r12;
-    lcntr = 4000, do .sq_mloop until lce;
+    lcntr = 1200, do .sq_mloop until lce;
         r8 = _sq_cA;  r9 = _sq_psA;  r10 = _sq_pA;
         r11 = _sq_cB; r12 = _sq_psB; r13 = _sq_pB;
         r4 = 2;

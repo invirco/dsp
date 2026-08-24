@@ -597,8 +597,8 @@ _bq_pair_blk:
     r14 = r4;                   /* keep the stage count */
 
     /* ---- interleave coefficients: 5 per stage from each strip ---- */
-    r0 = 5;
-    r0 = r0 * r14 (ssi);
+    r0 = lshift r14 by 2;
+    r0 = r0 + r14;              /* 5 coefficients per stage */
     i0 = r8;
     i1 = r11;
     i2 = _bqp_coeff;
@@ -609,8 +609,9 @@ _bq_pair_blk:
     .bqp_c: dm(i2, 1) = r1;
 
     /* ---- interleave state: 6 per stage from each strip ---- */
-    r0 = 6;
-    r0 = r0 * r14 (ssi);
+    r0 = lshift r14 by 1;
+    r1 = lshift r14 by 2;
+    r0 = r0 + r1;               /* 6 state words per stage */
     i0 = r9;
     i1 = r12;
     i2 = _bqp_state;
@@ -648,8 +649,9 @@ _bq_pair_blk:
     .bqp_xb: dm(i1, 1) = r1;
 
     /* ---- and the state, which must persist per strip ---- */
-    r0 = 6;
-    r0 = r0 * r14 (ssi);
+    r0 = lshift r14 by 1;
+    r1 = lshift r14 by 2;
+    r0 = r0 + r1;               /* 6 state words per stage */
     i2 = _bqp_state;
     i0 = r9;
     i1 = r12;
