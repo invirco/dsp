@@ -36,14 +36,40 @@ dynamics numbers, approached from the other side. Both arms are now built
 and measured the same way, with the unfused arm produced by stashing the
 generator change rather than trusting an older figure.)*
 
-**Expectation for the rest of the fusion work.** GAIN, TUBE and FDR are
-stateless and fuse cleanly at ~2 memory ops per sample each; GATE and COMP
-carry 4 state words apiece, so keeping them stage-outer stays right and
-only their boundary is deletable. On this measurement the whole
-GATE→COMP→TUBE→FDR grouping should be worth single-digit cycles/sample
-too, not the 4–6× that "one MAC per stage" implies. The cost in the strip
-is arithmetic — six biquads and the compressor's gain computer — and
-arithmetic does not fuse away.
+### The rest of the strip does NOT fuse, and the reason is the register file
+
+Fusing further was analysed before building it, using the FILT+EQ result as
+calibration: **4 memory ops deleted measured −5.1 cycles/sample, so ≈1.3
+cycles per memory op.**
+
+**`_compgain_fx` leaves only four registers standing.** Transitively — it
+calls `_exp2q_fx`, and the polynomial form of that reaches r6 — the clobber
+set is r0–r6 and r8–r12, so the survivors are **r7, r13, r14, r15**. COMP
+already uses all four (attq, dry, envelope, makeup). *Nothing* can carry
+another stage's hoisted state across that call.
+
+| fusion | saves | costs | net |
+|---|---|---|---|
+| COMP → TUBE → FDR | 4 ops/sample (2 boundaries) | 4 ops/sample — TUBE's `sat_q` and FDR's level and pan gains are hoisted **once per block** today and would have to reload **per sample** | **0** |
+| GATE → COMP | 2 ops/sample | 7 ops/sample — GATE's seven state words spill and reload around every `_compgain_fx` call | **+5, clearly worse** |
+
+So the general result: **fusing past a node that clobbers most of the
+register file is a net loss, because the downstream stages lose their
+hoisted invariants.** The saving is bounded by the number of boundaries;
+the cost is bounded by the register file, and here the register file is the
+smaller number.
+
+This is a calibrated prediction, not a direct measurement — the calibration
+comes from the FILT+EQ measurement above. It is recorded as a prediction
+deliberately; if the 1.3 cycles/op figure is wanted on this grouping
+specifically, the build is small and can be measured.
+
+**What this means for the fusion directive overall.** The measured lever on
+the biquad chain is 2 %, and the rest of the strip is net-zero. The strip's
+cost is arithmetic — six biquads at ~29 instructions each, and the
+compressor's gain computer — and arithmetic does not fuse away. The two
+levers that remain large are the ones already measured: **SIMD pairing at
+2.39×** and **the core clock at 1.6×**.
 
 
 ## LEVER STACK — numeric deviations for PW sign-off (batch)
