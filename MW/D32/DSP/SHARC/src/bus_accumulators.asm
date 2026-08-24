@@ -6,7 +6,11 @@
 
 #if DSP4_BLOCK_KERNELS
 .global _blk_pool;
+#if DSP4_SIMD_STRIPS
+.var _blk_pool[288];    /* 8 slots + the strip-pair park */
+#else
 .var _blk_pool[256];
+#endif
 #endif
 
 #if DSP4_BLOCK_KERNELS

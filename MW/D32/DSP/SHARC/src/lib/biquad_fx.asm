@@ -636,7 +636,9 @@ _bq_pair_blk:
     i1 = _bqp_state;
     i2 = _bqp_sig;
     r4 = r14;
+#if !DSP4_SKIP_SIMDCALL
     call _bq_fx_cascade_simd;
+#endif
 
     /* ---- scatter the signal back ---- */
     i2 = _bqp_sig;

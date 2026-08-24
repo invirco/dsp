@@ -6296,6 +6296,14 @@ def gen_blk_pool_header():
 #define BLK_TAP_EQ       BLK(5)
 #define BLK_TAP_PREFDR   BLK(6)
 #define BLK_TAP_POSTFDR  BLK(7)
+
+/* Strip-pair park (DSP4_SIMD_STRIPS). Pairing two strips for SIMD needs
+ * both strips' blocks live at once, and the pool is reused sequentially --
+ * strip N+1's block does not exist while strip N is running. ONE extra
+ * slot fixes that: strip N's chain value parks here while strip N+1
+ * catches up, then _bq_pair_blk interleaves the two. That is 32 words, not
+ * the doubled pool an earlier note claimed was needed. */
+#define BLK_PAIR_PARK    BLK(8)
 #endif
 
 #endif /* DSP4_BLK_POOL_H */
@@ -6323,7 +6331,11 @@ def gen_bus_accumulators_fixed():
     # words if every node kept its own block buffer.
     out.append('#if DSP4_BLOCK_KERNELS')
     out.append('.global _blk_pool;')
+    out.append('#if DSP4_SIMD_STRIPS')
+    out.append('.var _blk_pool[288];    /* 8 slots + the strip-pair park */')
+    out.append('#else')
     out.append('.var _blk_pool[256];')
+    out.append('#endif')
     out.append('#endif')
     out.append('')
     # Under per-block kernels every SAMPLE needs its own accumulator, so

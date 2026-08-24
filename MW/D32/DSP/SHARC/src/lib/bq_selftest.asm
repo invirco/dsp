@@ -147,7 +147,9 @@ _bq_selftest:
         r8 = _sq_cA;  r9 = _sq_psA;  r10 = _sq_pA;
         r11 = _sq_cB; r12 = _sq_psB; r13 = _sq_pB;
         r4 = 2;
+#if !DSP4_SKIP_PAIR
         call _bq_pair_blk;
+#endif
     .sq_mloop: nop;
     r13 = dm(_diag_ticks);
     dm(_sq_raw + 3) = r13;
@@ -170,7 +172,9 @@ _bq_selftest:
     r8 = _sq_cA;  r9 = _sq_psA;  r10 = _sq_pA;
     r11 = _sq_cB; r12 = _sq_psB; r13 = _sq_pB;
     r4 = 2;
+#if !DSP4_SKIP_PAIR
     call _bq_pair_blk;
+#endif
 
     /* compare against the scalar results, both strips */
     i3 = _sq_pA; i4 = _sq_xA; i5 = _sq_pB; r14 = 0;

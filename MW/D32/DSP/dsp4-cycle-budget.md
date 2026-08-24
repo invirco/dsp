@@ -35,22 +35,59 @@ or restructuring the pool into 16 pair-slots outright. Either is a real
 piece of work with several verification steps, and it is the honest reason
 this is not done.
 
-### The verification harness for the wrapper is itself broken
+### The wrapper hang — bisected, narrowed, NOT solved
 
-`DSP4_BQ_SELFTEST=1` now fails to reach `CONFIG_COMMIT` — `SPI_RDY never
-asserted`. Three attempts at the cause: reducing the timed iteration count
-(the selftest blocks inside CONFIG_COMMIT and ~90 ms was plausible), and
-replacing `Rn = Rx * Ry (ssi)` loop-count arithmetic with shifts and adds
-(an `lcntr` of 0 does not skip on this core, it runs for a very long time).
-Neither fixed it and I stopped rather than keep guessing.
+`_bq_pair_blk` hangs the part before `CONFIG_COMMIT`. Two bisect hooks were
+added (`DSP4_SKIP_PAIR`, `DSP4_SKIP_SIMDCALL`, both default 0) and they
+localise it precisely:
 
-**It is contained**: `DSP4_BQ_SELFTEST` defaults to 0 and appears in no
-shipping or measurement build. The same tree with the flag off boots,
-runs real-time and is **CHAIN BIT-EXACT at 983.04**. So the defect is in
-the debug harness, not in the graph — but it does mean the pairing wrapper
-has no verification path right now, and wiring an unverified SIMD kernel
-into the graph would be exactly the kind of silently-wrong build this work
-has spent all day avoiding.
+| build | result |
+|---|---|
+| selftest with the pairing call removed | **boots, configures** |
+| pairing call in, `_bq_fx_cascade_simd` call removed | **boots, configures** |
+| both in | **hangs** |
+
+So **the wrapper's interleave/de-interleave plumbing is fine, and the SIMD
+cascade hangs when invoked through it** — while the *same* cascade ran
+correctly standalone earlier, giving 2.39× and 0 differing samples of 64.
+It is the call context, not either piece alone.
+
+Ruled out along the way:
+
+- **Iteration count / time spent in `CONFIG_COMMIT`** — reduced 4000 → 1200,
+  no change.
+- **Loop-count arithmetic.** `Rn = Rx * Ry (ssi)` replaced with shifts and
+  adds, because `lcntr = 0` does not skip on this core, it runs about four
+  billion times and reads exactly like a hang. Not the cause here, but the
+  hazard is real and the shift form is kept.
+- **SIMD alignment.** Double-width accesses want even addresses; the three
+  `_bqp_*` scratch buffers the cascade actually reads are all even
+  (`0x095FA4`, `0x095FCC`, `0x095FFC`). The odd-addressed `_sq_*` buffers
+  are only touched by stride-1 scalar loops.
+
+Still open and worth trying first: loop-stack depth at the nested call
+site, and whether `MODE1.PEYEN` is left set on some path out of the cascade
+(the de-interleave loops that follow would then write double).
+
+**Nothing is wired into the graph.** The shipping image is byte-identical
+(`0df38e82`), and the same tree with the debug flags off is CHAIN BIT-EXACT
+at 983.04 MHz. An unverified SIMD kernel in the signal path is precisely
+the silently-wrong build this work has spent the day avoiding.
+
+### Foundation that IS in place
+
+The earlier claim that pairing needs the pool doubled to 16 slots was
+**wrong, and is corrected**: it needs **one** extra slot. Strip N's chain
+value parks in `BLK_PAIR_PARK` while strip N+1 catches up, then the two are
+interleaved. That is **32 words, not 256** — `_blk_pool` is 288 under
+`DSP4_SIMD_STRIPS` and 256 otherwise. The park slot and its flag are in,
+the build is clean, and the shipping image is unchanged.
+
+What remains for the rollout: the paired call order — for a pair (N, N+1),
+emit IN(N), GAIN(N), park, IN(N+1), GAIN(N+1), paired biquads, tail(N+1),
+unpark, tail(N) — which changes node indices and so touches
+`DSP4_NODE_LIMIT`, the scope-skip table and the fabric measurement method
+in SIMD builds only.
 
 ## 983.04 MHz ENABLED AND VERIFIED — 2026-08-24 (U5/U6 read as KSWZ10)
 
