@@ -899,6 +899,16 @@ Method — one family at a time, in profile order, measured after each:
      GAIN              2,321 ->    574                4.04x
      FDR               4,404 ->  1,886                2.33x
      RTG              19,186 ->  2,626                7.3x
+     FILT              6,973 ->  4,062                1.72x
+     EQ               11,590 ->  7,998                1.45x
+     GATE              5,999 ->  4,891                1.23x
+     DLY               4,185 ->  2,000                2.09x
+   Only COMP and TUBE remain unconverted (243 cycles/sample together, 24%
+   of a strip). STRIP 1,973 -> 1,005 cycles/sample over the whole rewrite.
+   PROJECTED CEILING 2.91 -> 6.79 strips. D24 4.6x -> 3.5x over. Converting
+   the last two at DLY's 2.09x would reach ~7.7 strips, still 3.1x short of
+   D24 - every class is now converted or measured, the total is better by a
+   factor of two, and it does not close the gap.
    BIT-EXACT END TO END: GAIN -> FDR -> RTG -> BUS verifies 0 LSB at 7
    points (level 1.0/0.5/0.25 x pan 0/0.25/0.5/0.75) - mono, pan-split L
    and the summed bus, including the 64-bit accumulator's single round at
@@ -975,7 +985,16 @@ Method — one family at a time, in profile order, measured after each:
               feedback and state store order are IDENTICAL to
               _bq_fx_cascade_N. It is not the maths. The block cascade is
               present but currently UNWIRED.
-     COMP/GATE NOT WORTH CONVERTING on the evidence. A wrap alone measured
+     COMP  still unconverted, but the "not worth converting" verdict is
+              now SUSPECT and should be retested. It was judged on a bare
+              WRAP, and GATE - the same class of node, also 8% slower under
+              a wrap - converted at 1.23x once the block-invariant work was
+              hoisted out of the sample loop (the _sample_idx guard, the
+              on/off tests, four constant reloads, register-resident
+              state). The general lesson on this page says a wrap alone
+              buys nothing; COMP was measured that way and no other.
+     TUBE  unconverted, 40 cycles/sample, trivial.
+     Historical note, superseded: COMP/GATE NOT WORTH CONVERTING. A wrap alone measured
               8% SLOWER; the gain computer everyone assumed was the cost is
               only 9.6% of COMP; and _compgain_fx clobbers all but four
               registers so almost nothing can be hoisted across it. Ceiling

@@ -57,11 +57,18 @@ def main():
     ap.add_argument('--range', dest='rng', type=float, default=0.001)
     ap.add_argument('--amp', default='0x08000000')
     ap.add_argument('--n', type=int, default=300)
+    ap.add_argument('--pool-inj', type=int, default=None,
+                    help='inject at _blk_pool + N*32 (per-block kernels)')
+    ap.add_argument('--pool-src', type=int, default=None,
+                    help='capture _blk_pool + N*32 (per-block kernels put '
+                         'node outputs in the shared pool, not _buf_<nid>)')
     a = ap.parse_args()
 
     sc = S.Scope(1)
-    inj = sc.sym['_rx_slot_C1_IN_01']
-    src = sc.sym['_buf_C1_GATE_01']
+    inj = (sc.sym['_blk_pool'] + a.pool_inj * 32) if a.pool_inj is not None \
+          else sc.sym['_rx_slot_C1_IN_01']
+    src = (sc.sym['_blk_pool'] + a.pool_src * 32) if a.pool_src is not None \
+          else sc.sym['_buf_C1_GATE_01']
 
     wrv(sc, GAIN, f32(1.0))
     set_bq(sc, HPF0, HPF_SW, UNITY)

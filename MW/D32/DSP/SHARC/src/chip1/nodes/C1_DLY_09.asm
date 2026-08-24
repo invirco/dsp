@@ -17,6 +17,8 @@
         /* Local fallback: 20.0ms = 960 samples */
         /* Shared max:     250.0ms = 12000 samples */
 
+        #include "blk_pool.h"
+
         .section/dm seg_delay;
 .extern _buf_C1_TUBE_09;
         .extern _dly_pool_buf_00;
@@ -56,6 +58,124 @@
         .section/pm seg_pmco;
         .global _C1_DLY_09_process;
         _C1_DLY_09_process:
+
+        #if DSP4_BLOCK_KERNELS
+            /* ---- per-block kernel ----
+             * Slot dispatch, read-offset clamp and the write-pointer
+             * load/store all happen ONCE instead of 32 times. */
+            r12 = dm(_dly_pool_slot_C1_DLY_09);
+            i0 = _dly_buf_C1_DLY_09;
+            i1 = _dly_write_ptr_C1_DLY_09;
+            r3 = dm(_dly_local_max_C1_DLY_09);
+
+            r13 = pass r12;
+            if lt jump (pc, .dkb_io_C1_DLY_09);
+            r14 = 8;
+            comp(r12, r14);
+            if ge jump (pc, .dkb_io_C1_DLY_09);
+    r12 = pass r12;
+    if eq jump (pc, .dkb_slot_0_C1_DLY_09);
+    r14 = 1;
+    comp(r12, r14);
+    if eq jump (pc, .dkb_slot_1_C1_DLY_09);
+    r14 = 2;
+    comp(r12, r14);
+    if eq jump (pc, .dkb_slot_2_C1_DLY_09);
+    r14 = 3;
+    comp(r12, r14);
+    if eq jump (pc, .dkb_slot_3_C1_DLY_09);
+    r14 = 4;
+    comp(r12, r14);
+    if eq jump (pc, .dkb_slot_4_C1_DLY_09);
+    r14 = 5;
+    comp(r12, r14);
+    if eq jump (pc, .dkb_slot_5_C1_DLY_09);
+    r14 = 6;
+    comp(r12, r14);
+    if eq jump (pc, .dkb_slot_6_C1_DLY_09);
+    r14 = 7;
+    comp(r12, r14);
+    if eq jump (pc, .dkb_slot_7_C1_DLY_09);
+
+        .dkb_io_C1_DLY_09:
+            r2 = dm(_dly_read_offset_C1_DLY_09);
+            comp(r2, r3);
+            if lt jump (pc, .dkb_ok_C1_DLY_09);
+            r2 = r3 - 1;
+        .dkb_ok_C1_DLY_09:
+            r7 = i0;                    /* delay-line base, reloaded per sample */
+            r1 = dm(i1, 0);             /* write pointer */
+            l3 = 0;
+            l4 = 0;
+            l5 = 0;
+            i3 = BLK_CHAIN_A;
+            i4 = BLK_CHAIN_B;
+            i5 = BLK_TAP_PREFDR;
+
+            lcntr = 32, do .dkb_lp_C1_DLY_09 until lce;
+                r0 = dm(i3, 1);
+                i0 = r7;
+                m0 = r1;
+                modify(i0, m0);
+                dm(i0, 0) = r0;         /* write at the write pointer */
+                r5 = r1 - r2;
+                if lt r5 = r5 + r3;     /* read index, wrapped */
+                r6 = r5 - r1;
+                m0 = r6;
+                modify(i0, m0);
+                r0 = dm(i0, 0);
+                r15 = 1;
+                r1 = r1 + r15;
+                comp(r1, r3);
+                if ge r1 = r1 - r3;     /* advance write pointer, wrapped */
+                dm(i5, 1) = r0;         /* pre-fader tap */
+            .dkb_lp_C1_DLY_09: dm(i4, 1) = r0;
+
+            dm(i1, 0) = r1;
+            rts;
+
+.dkb_slot_0_C1_DLY_09:
+    i0 = _dly_pool_buf_00;
+    i1 = _dly_pool_wptr_00;
+    r3 = dm(_dly_max_C1_DLY_09);
+    jump (pc, .dkb_io_C1_DLY_09);
+.dkb_slot_1_C1_DLY_09:
+    i0 = _dly_pool_buf_01;
+    i1 = _dly_pool_wptr_01;
+    r3 = dm(_dly_max_C1_DLY_09);
+    jump (pc, .dkb_io_C1_DLY_09);
+.dkb_slot_2_C1_DLY_09:
+    i0 = _dly_pool_buf_02;
+    i1 = _dly_pool_wptr_02;
+    r3 = dm(_dly_max_C1_DLY_09);
+    jump (pc, .dkb_io_C1_DLY_09);
+.dkb_slot_3_C1_DLY_09:
+    i0 = _dly_pool_buf_03;
+    i1 = _dly_pool_wptr_03;
+    r3 = dm(_dly_max_C1_DLY_09);
+    jump (pc, .dkb_io_C1_DLY_09);
+.dkb_slot_4_C1_DLY_09:
+    i0 = _dly_pool_buf_04;
+    i1 = _dly_pool_wptr_04;
+    r3 = dm(_dly_max_C1_DLY_09);
+    jump (pc, .dkb_io_C1_DLY_09);
+.dkb_slot_5_C1_DLY_09:
+    i0 = _dly_pool_buf_05;
+    i1 = _dly_pool_wptr_05;
+    r3 = dm(_dly_max_C1_DLY_09);
+    jump (pc, .dkb_io_C1_DLY_09);
+.dkb_slot_6_C1_DLY_09:
+    i0 = _dly_pool_buf_06;
+    i1 = _dly_pool_wptr_06;
+    r3 = dm(_dly_max_C1_DLY_09);
+    jump (pc, .dkb_io_C1_DLY_09);
+.dkb_slot_7_C1_DLY_09:
+    i0 = _dly_pool_buf_07;
+    i1 = _dly_pool_wptr_07;
+    r3 = dm(_dly_max_C1_DLY_09);
+    jump (pc, .dkb_io_C1_DLY_09);
+        #endif
+
             r0 = dm(_buf_C1_TUBE_09);
 
             /* Default to the local short buffer. Valid slot numbers promote to a shared long buffer. */

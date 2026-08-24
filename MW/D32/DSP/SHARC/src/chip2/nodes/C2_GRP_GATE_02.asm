@@ -15,6 +15,8 @@
 /* GATE (FIXED Q4.28, D5) */
 /* SPI page=1 addr=1132 */
 
+#include "blk_pool.h"
+
 .section/dm seg_dmda;
 .extern _buf_C2_GRP_GEQ_02;
 .global _gate_on_C2_GRP_GATE_02;
@@ -62,6 +64,11 @@
 .global _buf_C2_GRP_GATE_02;
 .var _buf_C2_GRP_GATE_02;
 
+#if DSP4_BLOCK_KERNELS
+.global _gate_saved_idx_C2_GRP_GATE_02;
+.var _gate_saved_idx_C2_GRP_GATE_02;
+#endif
+
 .section/pm seg_pmco;
 .extern _sample_idx;
 .extern _envq_fx;
@@ -69,8 +76,10 @@
 .extern _mrf_rns28;
 .extern _bq_fx_cascade_N;
 .extern _bq_fx_convert_N;
+
 .global _C2_GRP_GATE_02_process;
 _C2_GRP_GATE_02_process:
+
     r0 = dm(_buf_C2_GRP_GEQ_02);
     r2 = dm(_gate_on_C2_GRP_GATE_02);
     r3 = 0;

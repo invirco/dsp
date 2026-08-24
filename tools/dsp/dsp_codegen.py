@@ -1,4 +1,203 @@
 
+_DLY_BLK_BODY = """
+        #if DSP4_BLOCK_KERNELS
+            /* ---- per-block kernel ----
+             * Slot dispatch, read-offset clamp and the write-pointer
+             * load/store all happen ONCE instead of 32 times. */
+            r12 = dm(_dly_pool_slot_{nid});
+            i0 = _dly_buf_{nid};
+            i1 = _dly_write_ptr_{nid};
+            r3 = dm(_dly_local_max_{nid});
+
+            r13 = pass r12;
+            if lt jump (pc, .dkb_io_{nid});
+            r14 = 8;
+            comp(r12, r14);
+            if ge jump (pc, .dkb_io_{nid});
+{sel}
+
+        .dkb_io_{nid}:
+            r2 = dm(_dly_read_offset_{nid});
+            comp(r2, r3);
+            if lt jump (pc, .dkb_ok_{nid});
+            r2 = r3 - 1;
+        .dkb_ok_{nid}:
+            r7 = i0;                    /* delay-line base, reloaded per sample */
+            r1 = dm(i1, 0);             /* write pointer */
+            l3 = 0;
+            l4 = 0;
+            l5 = 0;
+            i3 = BLK_CHAIN_A;
+            i4 = BLK_CHAIN_B;
+            i5 = BLK_TAP_PREFDR;
+
+            lcntr = 32, do .dkb_lp_{nid} until lce;
+                r0 = dm(i3, 1);
+                i0 = r7;
+                m0 = r1;
+                modify(i0, m0);
+                dm(i0, 0) = r0;         /* write at the write pointer */
+                r5 = r1 - r2;
+                if lt r5 = r5 + r3;     /* read index, wrapped */
+                r6 = r5 - r1;
+                m0 = r6;
+                modify(i0, m0);
+                r0 = dm(i0, 0);
+                r15 = 1;
+                r1 = r1 + r15;
+                comp(r1, r3);
+                if ge r1 = r1 - r3;     /* advance write pointer, wrapped */
+                dm(i5, 1) = r0;         /* pre-fader tap */
+            .dkb_lp_{nid}: dm(i4, 1) = r0;
+
+            dm(i1, 0) = r1;
+            rts;
+
+{labels}
+        #endif
+"""
+
+
+_GATE_BLK_BODY = """
+        #if DSP4_BLOCK_KERNELS
+            /* ---- per-block kernel ----------------------------------
+             * Hoisted out of the sample loop: the _sample_idx == 0 guard
+             * (evaluated 32 times for work done once), the _gate_on and
+             * _gate_filter_on tests, and the four converted parameters,
+             * which are block constants but were re-loaded from DM every
+             * sample. Envelope, gain, gain target and hold count stay in
+             * registers across the block -- _envq_fx, _log2q_fx and
+             * _mrf_rns28 all preserve r6-r15, which is what makes that
+             * safe. The sidechain biquad does NOT (it clobbers r0-r12),
+             * so a gate with its sidechain filter enabled falls back to
+             * the per-sample path for the whole block.
+             *
+             * NOTE the guard cannot simply be kept: under block kernels
+             * _sample_idx is 31 when the chain runs, so a _sample_idx == 0
+             * test never fires and the parameters would never convert at
+             * all. The conversion is done unconditionally, once. */
+            l3 = 0;
+            l4 = 0;
+            i3 = BLK_CHAIN_B;
+            i4 = BLK_CHAIN_A;
+
+            r2 = dm(_gate_on_{nid});
+            r2 = pass r2;
+            if eq jump (pc, .gkb_copy_{nid});
+            r2 = dm(_gate_filter_on_{nid});
+            r2 = pass r2;
+            if ne jump (pc, .gkb_ref_{nid});
+
+            /* block-rate parameter conversion, once */
+            r2 = 0x4F000000;
+            f2 = r2;
+            f1 = dm(_gate_attack_{nid});
+            f1 = f1 * f2;
+            r1 = fix f1;
+            dm(_gate_attq_{nid}) = r1;
+            f1 = dm(_gate_release_{nid});
+            f1 = f1 * f2;
+            r1 = fix f1;
+            dm(_gate_relq_{nid}) = r1;
+            r2 = 0x4AAA152D;
+            f2 = r2;
+            f1 = dm(_gate_threshold_{nid});
+            f1 = f1 * f2;
+            r1 = fix f1;
+            dm(_gate_thrq_{nid}) = r1;
+            r2 = 0x4D800000;
+            f2 = r2;
+            f1 = dm(_gate_range_{nid});
+            f1 = f1 * f2;
+            r1 = fix f1;
+            dm(_gate_rngq_{nid}) = r1;
+
+            r6 = dm(_gate_attq_{nid});
+            r7 = dm(_gate_relq_{nid});
+            r8 = dm(_gate_thrq_{nid});
+            r9 = dm(_gate_rngq_{nid});
+            r10 = dm(_gate_envelope_{nid});
+            r11 = dm(_gate_gain_{nid});
+            r12 = dm(_gate_gain_target_q_{nid});
+            r14 = dm(_gate_hold_count_{nid});
+            r15 = dm(_gate_hold_{nid});
+
+            lcntr = 32, do .gkb_lp_{nid} until lce;
+                r13 = dm(i3, 1);
+                r0 = abs r13;
+                r1 = r10;
+                r2 = r6;
+                r3 = r7;
+                call _envq_fx;
+                r10 = r0;
+                r1 = pass r0;
+                if le jump (pc, .gkb_below_{nid});
+                call _log2q_fx;
+                comp(r0, r8);
+                if ge jump (pc, .gkb_open_{nid});
+            .gkb_below_{nid}:
+                r14 = r14 - 1;
+                if gt jump (pc, .gkb_ramp_{nid});
+                r12 = r9;
+                jump (pc, .gkb_ramp_{nid});
+            .gkb_open_{nid}:
+                r12 = 0x10000000;
+                r14 = r15;
+            .gkb_ramp_{nid}:
+                r0 = r12;
+                r1 = r11;
+                r2 = r6;
+                r3 = r7;
+                call _envq_fx;
+                r11 = r0;
+                r1 = r0;
+                r0 = r13;
+                mrf = r0 * r1 (ssi);
+                call _mrf_rns28;
+                nop;
+                nop;
+            .gkb_lp_{nid}: dm(i4, 1) = r0;
+
+            dm(_gate_envelope_{nid}) = r10;
+            dm(_gate_gain_{nid}) = r11;
+            dm(_gate_gain_target_q_{nid}) = r12;
+            dm(_gate_hold_count_{nid}) = r14;
+            rts;
+
+        .gkb_copy_{nid}:
+            /* bypassed: the per-sample body just passes x through */
+            lcntr = 32, do .gkb_cp_{nid} until lce;
+                r0 = dm(i3, 1);
+            .gkb_cp_{nid}: dm(i4, 1) = r0;
+            rts;
+
+        .gkb_ref_{nid}:
+            /* Sidechain filter enabled: hand the block to the per-sample
+             * reference path. _sample_idx is driven so its once-per-block
+             * conversion fires on the first sample exactly as it would in
+             * a per-sample build. */
+            r5 = dm(_sample_idx);
+            dm(_gate_saved_idx_{nid}) = r5;
+            r5 = 0;
+            dm(_sample_idx) = r5;
+            lcntr = 32, do .gkb_rl_{nid} until lce;
+                r0 = dm(i3, 1);
+                dm(_buf_{inp}) = r0;
+                call _{nid}_process_sample;
+                r5 = 1;
+                dm(_sample_idx) = r5;
+                r0 = dm(_buf_{nid});
+            .gkb_rl_{nid}: dm(i4, 1) = r0;
+            r5 = dm(_gate_saved_idx_{nid});
+            dm(_sample_idx) = r5;
+            rts;
+
+        .global _{nid}_process_sample;
+        _{nid}_process_sample:
+        #endif
+"""
+
+
 _EQ_BLK_BODY = """
         #if DSP4_BLOCK_KERNELS
             /* ---- per-block steady state; transients go per-sample ---- */
@@ -1339,6 +1538,34 @@ def gen_delay(node):
         for slot in range(8)
     ])
 
+    # Per-block kernel. The 8-way slot dispatch -- up to sixteen compares
+    # and branches -- is a BLOCK-CONSTANT decision that the per-sample body
+    # re-evaluates on every one of the 32 samples, and it dwarfs the actual
+    # delay-line I/O, which is about a dozen instructions. Hoisting it, the
+    # read-offset clamp and the write-pointer load/store out of the loop is
+    # the whole of the win here; the inner loop is unchanged arithmetic.
+    import re as _re
+    if _re.match(r'^C\d+_DLY_\d+$', node['id']):
+        _n = node['id']
+        _blk_sel = '\n'.join(
+            ['    r12 = pass r12;\n'
+             f'    if eq jump (pc, .dkb_slot_0_{_n});'] +
+            [f'    r14 = {slot};\n'
+             f'    comp(r12, r14);\n'
+             f'    if eq jump (pc, .dkb_slot_{slot}_{_n});'
+             for slot in range(1, 8)])
+        _blk_lab = '\n'.join([
+            f'.dkb_slot_{slot}_{_n}:\n'
+            f'    i0 = _dly_pool_buf_{slot:02d};\n'
+            f'    i1 = _dly_pool_wptr_{slot:02d};\n'
+            f'    r3 = dm(_dly_max_{_n});\n'
+            f'    jump (pc, .dkb_io_{_n});'
+            for slot in range(8)])
+        blk_dly_body = _DLY_BLK_BODY.format(nid=_n, sel=_blk_sel,
+                                            labels=_blk_lab)
+    else:
+        blk_dly_body = ''
+
     return dedent(f"""\
         {rc}
 
@@ -1346,6 +1573,8 @@ def gen_delay(node):
         /* SPI page={node['spi_page']} addr={node['spi_addr']} */
         /* Local fallback: {local_ms}ms = {local_samples} samples */
         /* Shared max:     {max_ms}ms = {max_samples} samples */
+
+        #include "blk_pool.h"
 
         .section/dm seg_delay;
         {pool_buf_externs}
@@ -1362,6 +1591,7 @@ def gen_delay(node):
         .section/pm seg_pmco;
         .global _{node['id']}_process;
         _{node['id']}_process:
+        {blk_dly_body}
             r0 = dm(_buf_{node['inputs_str']});
 
             /* Default to the local short buffer. Valid slot numbers promote to a shared long buffer. */
@@ -6898,6 +7128,13 @@ def gen_limiter_fixed(node):
 
 
 def gen_gate_fixed(node):
+    import re as _re
+    if _re.match(r'^C\d+_GATE_\d+$', node['id']):
+        blk_gate_body = _GATE_BLK_BODY.format(nid=node['id'],
+                                              inp=node['inputs_str'])
+    else:
+        blk_gate_body = ''
+
     """Fixed GATE (D5): fixed envelope, log2-domain threshold compare,
     integer hold counter, one-pole fixed gain smoother toward 1.0 or
     the range floor; sidechain filter via the fixed biquad core with
@@ -6910,6 +7147,8 @@ def gen_gate_fixed(node):
 
         /* GATE (FIXED Q4.28, D5) */
         /* SPI page={node['spi_page']} addr={node['spi_addr']} */
+
+        #include "blk_pool.h"
 
         .section/dm seg_dmda;
         .var _gate_on_{nid} = 1;
@@ -6935,6 +7174,10 @@ def gen_gate_fixed(node):
         .var _gate_rngq_{nid} = 0;
         .var _buf_{nid};
 
+        #if DSP4_BLOCK_KERNELS
+        .var _gate_saved_idx_{nid};
+        #endif
+
         .section/pm seg_pmco;
         .extern _sample_idx;
         .extern _envq_fx;
@@ -6942,8 +7185,10 @@ def gen_gate_fixed(node):
         .extern _mrf_rns28;
         .extern _bq_fx_cascade_N;
         .extern _bq_fx_convert_N;
+
         .global _{nid}_process;
         _{nid}_process:
+        {blk_gate_body}
             r0 = dm(_buf_{inp});
             r2 = dm(_gate_on_{nid});
             r3 = 0;

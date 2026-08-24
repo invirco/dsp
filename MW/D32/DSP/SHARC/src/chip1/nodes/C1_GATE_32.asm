@@ -15,6 +15,8 @@
 /* GATE (FIXED Q4.28, D5) */
 /* SPI page=1 addr=4504 */
 
+#include "blk_pool.h"
+
 .section/dm seg_dmda;
 .extern _buf_C1_EQ_32;
 .global _gate_on_C1_GATE_32;
@@ -62,6 +64,11 @@
 .global _buf_C1_GATE_32;
 .var _buf_C1_GATE_32;
 
+#if DSP4_BLOCK_KERNELS
+.global _gate_saved_idx_C1_GATE_32;
+.var _gate_saved_idx_C1_GATE_32;
+#endif
+
 .section/pm seg_pmco;
 .extern _sample_idx;
 .extern _envq_fx;
@@ -69,8 +76,147 @@
 .extern _mrf_rns28;
 .extern _bq_fx_cascade_N;
 .extern _bq_fx_convert_N;
+
 .global _C1_GATE_32_process;
 _C1_GATE_32_process:
+
+#if DSP4_BLOCK_KERNELS
+    /* ---- per-block kernel ----------------------------------
+     * Hoisted out of the sample loop: the _sample_idx == 0 guard
+     * (evaluated 32 times for work done once), the _gate_on and
+     * _gate_filter_on tests, and the four converted parameters,
+     * which are block constants but were re-loaded from DM every
+     * sample. Envelope, gain, gain target and hold count stay in
+     * registers across the block -- _envq_fx, _log2q_fx and
+     * _mrf_rns28 all preserve r6-r15, which is what makes that
+     * safe. The sidechain biquad does NOT (it clobbers r0-r12),
+     * so a gate with its sidechain filter enabled falls back to
+     * the per-sample path for the whole block.
+     *
+     * NOTE the guard cannot simply be kept: under block kernels
+     * _sample_idx is 31 when the chain runs, so a _sample_idx == 0
+     * test never fires and the parameters would never convert at
+     * all. The conversion is done unconditionally, once. */
+    l3 = 0;
+    l4 = 0;
+    i3 = BLK_CHAIN_B;
+    i4 = BLK_CHAIN_A;
+
+    r2 = dm(_gate_on_C1_GATE_32);
+    r2 = pass r2;
+    if eq jump (pc, .gkb_copy_C1_GATE_32);
+    r2 = dm(_gate_filter_on_C1_GATE_32);
+    r2 = pass r2;
+    if ne jump (pc, .gkb_ref_C1_GATE_32);
+
+    /* block-rate parameter conversion, once */
+    r2 = 0x4F000000;
+    f2 = r2;
+    f1 = dm(_gate_attack_C1_GATE_32);
+    f1 = f1 * f2;
+    r1 = fix f1;
+    dm(_gate_attq_C1_GATE_32) = r1;
+    f1 = dm(_gate_release_C1_GATE_32);
+    f1 = f1 * f2;
+    r1 = fix f1;
+    dm(_gate_relq_C1_GATE_32) = r1;
+    r2 = 0x4AAA152D;
+    f2 = r2;
+    f1 = dm(_gate_threshold_C1_GATE_32);
+    f1 = f1 * f2;
+    r1 = fix f1;
+    dm(_gate_thrq_C1_GATE_32) = r1;
+    r2 = 0x4D800000;
+    f2 = r2;
+    f1 = dm(_gate_range_C1_GATE_32);
+    f1 = f1 * f2;
+    r1 = fix f1;
+    dm(_gate_rngq_C1_GATE_32) = r1;
+
+    r6 = dm(_gate_attq_C1_GATE_32);
+    r7 = dm(_gate_relq_C1_GATE_32);
+    r8 = dm(_gate_thrq_C1_GATE_32);
+    r9 = dm(_gate_rngq_C1_GATE_32);
+    r10 = dm(_gate_envelope_C1_GATE_32);
+    r11 = dm(_gate_gain_C1_GATE_32);
+    r12 = dm(_gate_gain_target_q_C1_GATE_32);
+    r14 = dm(_gate_hold_count_C1_GATE_32);
+    r15 = dm(_gate_hold_C1_GATE_32);
+
+    lcntr = 32, do .gkb_lp_C1_GATE_32 until lce;
+        r13 = dm(i3, 1);
+        r0 = abs r13;
+        r1 = r10;
+        r2 = r6;
+        r3 = r7;
+        call _envq_fx;
+        r10 = r0;
+        r1 = pass r0;
+        if le jump (pc, .gkb_below_C1_GATE_32);
+        call _log2q_fx;
+        comp(r0, r8);
+        if ge jump (pc, .gkb_open_C1_GATE_32);
+    .gkb_below_C1_GATE_32:
+        r14 = r14 - 1;
+        if gt jump (pc, .gkb_ramp_C1_GATE_32);
+        r12 = r9;
+        jump (pc, .gkb_ramp_C1_GATE_32);
+    .gkb_open_C1_GATE_32:
+        r12 = 0x10000000;
+        r14 = r15;
+    .gkb_ramp_C1_GATE_32:
+        r0 = r12;
+        r1 = r11;
+        r2 = r6;
+        r3 = r7;
+        call _envq_fx;
+        r11 = r0;
+        r1 = r0;
+        r0 = r13;
+        mrf = r0 * r1 (ssi);
+        call _mrf_rns28;
+        nop;
+        nop;
+    .gkb_lp_C1_GATE_32: dm(i4, 1) = r0;
+
+    dm(_gate_envelope_C1_GATE_32) = r10;
+    dm(_gate_gain_C1_GATE_32) = r11;
+    dm(_gate_gain_target_q_C1_GATE_32) = r12;
+    dm(_gate_hold_count_C1_GATE_32) = r14;
+    rts;
+
+.gkb_copy_C1_GATE_32:
+    /* bypassed: the per-sample body just passes x through */
+    lcntr = 32, do .gkb_cp_C1_GATE_32 until lce;
+        r0 = dm(i3, 1);
+    .gkb_cp_C1_GATE_32: dm(i4, 1) = r0;
+    rts;
+
+.gkb_ref_C1_GATE_32:
+    /* Sidechain filter enabled: hand the block to the per-sample
+     * reference path. _sample_idx is driven so its once-per-block
+     * conversion fires on the first sample exactly as it would in
+     * a per-sample build. */
+    r5 = dm(_sample_idx);
+    dm(_gate_saved_idx_C1_GATE_32) = r5;
+    r5 = 0;
+    dm(_sample_idx) = r5;
+    lcntr = 32, do .gkb_rl_C1_GATE_32 until lce;
+        r0 = dm(i3, 1);
+        dm(_buf_C1_EQ_32) = r0;
+        call _C1_GATE_32_process_sample;
+        r5 = 1;
+        dm(_sample_idx) = r5;
+        r0 = dm(_buf_C1_GATE_32);
+    .gkb_rl_C1_GATE_32: dm(i4, 1) = r0;
+    r5 = dm(_gate_saved_idx_C1_GATE_32);
+    dm(_sample_idx) = r5;
+    rts;
+
+.global _C1_GATE_32_process_sample;
+_C1_GATE_32_process_sample:
+#endif
+
     r0 = dm(_buf_C1_EQ_32);
     r2 = dm(_gate_on_C1_GATE_32);
     r3 = 0;

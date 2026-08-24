@@ -543,6 +543,71 @@ saves is amortised over four times as much arithmetic, and the
 coefficients are still re-read per sample because six state registers plus
 five coefficients do not fit in sixteen.
 
+### GATE and DLY CONVERTED — 2026-08-24
+
+| | per-sample | per block | |
+|---|---|---|---|
+| GATE | 5,999 (187.5/sample) | **4,891** (152.8/sample) | **1.23×** |
+| DLY | 4,185 (130.8/sample) | **2,000** (62.5/sample) | **2.09×** |
+
+Both baselines re-measured on the current build (`DSP4_NODE_LIMIT` 4→5 and
+7→8, `DSP4_BLOCK_DECIMATE=32`).
+
+**GATE — 1.23×, and the modest number is the point.** None of the win is
+in the maths; it is all work lifted out of the loop: the `_sample_idx == 0`
+guard evaluated 32 times for work done once, the `_gate_on` and
+`_gate_filter_on` tests, four converted parameters that are block
+constants but were re-loaded from DM every sample, and envelope, gain,
+gain target and hold count made register-resident across the block.
+`_envq_fx`, `_log2q_fx` and `_mrf_rns28` all preserve r6–r15, which is
+what makes that safe — the sidechain biquad does NOT (it clobbers r0–r12),
+so a gate with its sidechain filter enabled falls back to the per-sample
+path for the whole block.
+
+This is the same class of node COMP is, and COMP measured 8 % SLOWER under
+a bare wrap. The difference is entirely the hoisting. It also means COMP
+is worth revisiting: it was judged on a wrap alone, which the general
+lesson on this page says buys nothing.
+
+**A trap the GATE conversion exposed.** Under `DSP4_BLOCK_KERNELS`,
+`_sample_idx` is **31** when the node chain runs — the scatter loop leaves
+it there — so a `_sample_idx == 0` guard never fires. Any unconverted node
+that does its parameter conversion under that guard **never converts at
+all** in a block build, and runs on whatever its `.var` initialisers hold
+(0, for GATE's alphas and threshold). The block kernel does the conversion
+unconditionally, once. This is another reason a block build is not
+functionally equivalent while unconverted classes remain.
+
+**DLY — 2.09×, and it is nearly all one thing.** The node runs an 8-way
+delay-slot dispatch — up to sixteen compares and branches — on every
+sample, for a decision that cannot change within a block, and it dwarfs
+the actual delay-line I/O of about a dozen instructions. Hoisting that,
+the read-offset clamp and the write-pointer load/store is the whole win;
+the inner loop is unchanged arithmetic.
+
+**Verifying DLY needed a different method, and two blind tests on the way
+are worth recording.** DLY sits behind GATE, COMP and TUBE; COMP and TUBE
+are not converted, so in a block build they never write the pool and DLY
+is handed EQ's output while a per-sample build hands it TUBE's. Comparing
+the builds directly would have compared two different stimuli.
+
+- First attempt checked `out[i] == in[i − offset]` from two separate scope
+  arms. It reported **0 mismatches over 27 samples — of zeros**: an
+  impulse never opens the gate, so nothing reached DLY. The probe now
+  refuses to report a pass unless the stimulus has at least four distinct
+  and four non-zero values, because a constant or silent input satisfies
+  that check for **any** delay, including none.
+- With a real stimulus the same two-arm method showed 1–3 LSB differences
+  that had nothing to do with the delay: FILT, EQ and GATE are all
+  stateful, so two separate arms do not start from identical state.
+
+The method that works is a true build-versus-build diff with **GATE, COMP
+and TUBE all bypassed over SPI**, which makes both builds present EQ's
+output to DLY. A resonant HPF in FILT keeps the signal varying — with the
+default unity filters a step is constant and the test is blind again.
+Result: **0 differing samples of 32**, 28 distinct values, with the
+5-sample delay visible in the capture.
+
 ### The strip after FILT and EQ — 2026-08-24
 
 | class | cycles/sample | state |
@@ -553,19 +618,27 @@ five coefficients do not fit in sixteen.
 | IN | 11.6 | converted (block I/O) |
 | **FILT** | **126.9** | **converted 1.72×** |
 | **EQ** | **250.0** | **converted 1.45×** |
-| GATE | 204 | not converted |
-| COMP | 202 | not converted (measured not worth it) |
-| DLY | 148 | not converted |
-| TUBE | 40 | not converted |
-| **strip total** | **1,141** | **36,515 cycles/block** |
+| **GATE** | **152.8** | **converted 1.23×** |
+| **DLY** | **62.5** | **converted 2.09×** |
+| COMP + TUBE | 243 | not converted |
+| **strip total** | **1,005** | **32,173 cycles/block** |
 
-Strip 1,329 → 1,141 cycles/sample. Projected ceiling
-218,616 / 36,515 = **5.99 strips**, up from 5.17. The four unconverted
-classes are now **52 %** of a strip, down from 88 %.
+(COMP and TUBE measured together as the `NODE_LIMIT` 5→7 difference on the
+current per-sample build, 7,776 cycles/block — the original profile's
+202 + 40 = 242 cycles/sample stands.)
 
-D24's 24 strips now need 876,360 cycles/block against 218,616 available —
-**4.0× over**, from 4.6×. The direction is right and the gap is still a
-change-of-shape gap, not an optimisation gap.
+Strip 1,973 → **1,005** cycles/sample across the whole rewrite; 1,141 →
+1,005 from GATE and DLY alone. Projected ceiling
+218,616 / 32,173 = **6.79 strips**, up from 5.99 and from 2.91 at the
+start. The unconverted share is now **24 %** of a strip, down from 88 %.
+
+D24's 24 strips need 772,152 cycles/block against 218,616 available —
+**3.5× over**, from 4.0× and from 4.6×. Converting the last two classes
+outright, at DLY's 2.09×, would take a strip to about 890 cycles/sample
+and 7.7 strips: still **3.1× short of D24**. That is the whole point of
+this table — every class has now been converted or measured, the total is
+a factor of two better than it started, and it does not close the gap. The
+remaining lever is a change of shape, not another class.
 
 ### Third attempt, 2026-08-24 — PARKED again, but the suspect list was wrong
 
