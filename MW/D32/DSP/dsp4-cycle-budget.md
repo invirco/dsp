@@ -880,6 +880,34 @@ Two things came out of it and both are kept:
   (`COLLECT_TRIES`) before concluding anything is out of phase, so a slow
   answer is no longer turned into a manufactured fault.
 
+## Deliverables for the capacity decision
+
+- **`dsp4-function-costs.csv`** — the per-function cost table as data: cycles
+  per sample, cycles per block for 32 channels, share of the whole chip,
+  whether SIMD can pair it, and the silence value where it differs.
+- **`dsp4-channel-budget.html`** — the same model, interactive: toggle
+  functions, channel count, one or two chips, SIMD, the dynamics rework and
+  the fabric target, and see where it lands.
+
+### The 2156x family, from the CCES architecture definitions
+
+| | |
+|---|---|
+| ADSP-21562 … 21569 | single SHARC+, **all with 640 KB L1** |
+| L2 | 992 KB (21562/21566), 1,248 KB (21563/21567), **1,760 KB (21564/21565/21569)** |
+| ADSP-2157x/2158x/2159x | ARM + **two** SHARC+ cores |
+
+**A family swap does not relieve the memory pressure**: every 2156x part has
+the same 640 KB L1, and the 21564 already carries the largest L2 in the
+family. The only 2156x variable that could help is core clock, and that
+needs the datasheet — which we do not have locally, and analog.com blocks
+both curl and WebFetch (see the recorded access note). **Unverified: treat
+any clock difference as unconfirmed until the datasheet is in hand.**
+
+The parts with genuinely more compute are the dual-SHARC 2157x/2158x/2159x,
+which also carry an ARM core — a different class of part, package and BOM,
+not a drop-in.
+
 ## The bus/send fabric, measured on the current build — 2026-08-24
 
 Node 320 is the strip/fabric boundary in the chip-1 call chain (0–319 are

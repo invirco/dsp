@@ -1,0 +1,327 @@
+<title>DSP4 Channel Budget</title>
+<style>
+:root{
+  --ground:#F1F3F4; --surface:#FFFFFF; --sunk:#E7EAEC;
+  --ink:#16191D; --ink-2:#4A5158; --ink-3:#7B838B;
+  --rule:#D3D8DC; --rule-2:#BFC6CB;
+  --accent:#17646E; --accent-ink:#FFFFFF; --accent-soft:#E2EEEF;
+  --fits:#2F7D57; --tight:#B07D2A; --over:#B23B33;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#15181C; --surface:#1C2126; --sunk:#111417;
+    --ink:#E7EBEE; --ink-2:#A8B1B8; --ink-3:#79838B;
+    --rule:#2C333A; --rule-2:#3C444C;
+    --accent:#4FA8B2; --accent-ink:#0E1417; --accent-soft:#1B2E31;
+    --fits:#5FB58A; --tight:#D6A44F; --over:#DB6B62;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#15181C; --surface:#1C2126; --sunk:#111417;
+  --ink:#E7EBEE; --ink-2:#A8B1B8; --ink-3:#79838B;
+  --rule:#2C333A; --rule-2:#3C444C;
+  --accent:#4FA8B2; --accent-ink:#0E1417; --accent-soft:#1B2E31;
+  --fits:#5FB58A; --tight:#D6A44F; --over:#DB6B62;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);
+  font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin:0 auto;padding:40px 24px 80px}
+header{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--ink-3)}
+h1{font-size:clamp(26px,4vw,38px);line-height:1.1;margin:0;letter-spacing:-.02em;
+  font-weight:650;text-wrap:balance}
+.sub{color:var(--ink-2);max-width:64ch}
+.verdict{margin:28px 0 8px;padding:22px 24px;border-radius:4px;background:var(--surface);
+  border:1px solid var(--rule);border-left:5px solid var(--state)}
+.verdict.fits{--state:var(--fits)} .verdict.tight{--state:var(--tight)}
+.verdict.over{--state:var(--over)}
+.vhead{display:flex;flex-wrap:wrap;align-items:baseline;gap:12px}
+.vtitle{font-size:22px;font-weight:650;color:var(--state);letter-spacing:-.01em}
+.vnote{color:var(--ink-2);font-size:14px}
+.meters{display:grid;gap:14px;margin-top:18px}
+.meter-row{display:grid;grid-template-columns:88px 1fr 140px;gap:14px;align-items:center}
+@media(max-width:640px){.meter-row{grid-template-columns:70px 1fr;}.meter-row .mnum{grid-column:2}}
+.mlabel{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3)}
+.track{position:relative;height:22px;background:var(--sunk);border:1px solid var(--rule);
+  border-radius:2px;overflow:hidden}
+.fill{position:absolute;inset:0 auto 0 0;background:var(--state);opacity:.85;
+  transition:width .18s ease}
+.tick{position:absolute;top:0;bottom:0;width:1px;background:var(--rule-2)}
+.tick.limit{background:var(--ink);width:2px;opacity:.55}
+.mnum{font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums;
+  text-align:right;color:var(--ink-2)}
+.grid{display:grid;grid-template-columns:300px 1fr;gap:28px;margin-top:34px;align-items:start}
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:18px}
+.panel h2{font-size:12px;font-family:var(--mono);letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ink-3);margin:0 0 14px;font-weight:600}
+.ins{display:flex;flex-direction:column;gap:2px}
+.ins label{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;
+  padding:7px 8px;border-radius:3px;cursor:pointer}
+.ins label:hover{background:var(--accent-soft)}
+.ins input{accent-color:var(--accent);width:15px;height:15px;margin:0}
+.fname{font-size:14px}
+.fcost{font-family:var(--mono);font-size:12px;font-variant-numeric:tabular-nums;color:var(--ink-3)}
+.ins label.off .fname,.ins label.off .fcost{color:var(--ink-3);text-decoration:line-through;
+  text-decoration-color:var(--rule-2)}
+.nopair{color:var(--tight)}
+.ctl{display:flex;flex-direction:column;gap:14px;margin-top:18px;padding-top:16px;
+  border-top:1px solid var(--rule)}
+.ctl-row{display:flex;flex-direction:column;gap:6px}
+.ctl-row>span{font-family:var(--mono);font-size:11px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink-3)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.seg{display:flex;border:1px solid var(--rule);border-radius:3px;overflow:hidden}
+.seg button{flex:1;padding:7px 4px;border:0;background:var(--surface);color:var(--ink-2);
+  font-family:var(--mono);font-size:12px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--rule)}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink)}
+button:focus-visible,input:focus-visible,label:focus-within{outline:2px solid var(--accent);
+  outline-offset:2px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+.tw{overflow-x:auto}
+th,td{text-align:right;padding:8px 10px;border-bottom:1px solid var(--rule)}
+th:first-child,td:first-child{text-align:left}
+thead th{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-3);font-weight:600;border-bottom:1px solid var(--rule-2)}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+tr.off td{color:var(--ink-3)}
+tr.tot td{font-weight:650;border-top:1px solid var(--rule-2);border-bottom:0}
+.bar{display:inline-block;height:9px;background:var(--accent);border-radius:1px;
+  vertical-align:middle;min-width:1px}
+.presets{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0 0}
+.presets button{padding:7px 12px;border:1px solid var(--rule-2);background:var(--surface);
+  color:var(--ink);border-radius:3px;font-size:13px;cursor:pointer;font-family:var(--sans)}
+.presets button:hover{border-color:var(--accent);color:var(--accent)}
+.notes{margin-top:40px;padding-top:22px;border-top:1px solid var(--rule);
+  display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.note h3{font-size:13px;margin:0 0 6px;font-weight:650}
+.note p{margin:0;color:var(--ink-2);font-size:13.5px}
+code{font-family:var(--mono);font-size:12.5px;background:var(--sunk);padding:1px 4px;
+  border-radius:2px}
+.caveat{border-left:3px solid var(--tight);padding-left:12px}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">DSP4 · ADSP-21564 · measured 24 Aug 2026</div>
+  <h1>What actually fits on the chip</h1>
+  <p class="sub">Every figure below was measured on the part with a signal present, not
+  estimated. Toggle channel functions to see what a given feature set costs and where it
+  lands against the budget.</p>
+</header>
+
+<div class="verdict" id="verdict">
+  <div class="vhead">
+    <span class="vtitle" id="vtitle">—</span>
+    <span class="vnote" id="vnote"></span>
+  </div>
+  <div class="meters" id="meters"></div>
+</div>
+
+<div class="presets" id="presets"></div>
+
+<div class="grid">
+  <div class="panel">
+    <h2>Channel functions</h2>
+    <div class="ins" id="ins"></div>
+    <div class="ctl">
+      <div class="ctl-row">
+        <span>Channels <b id="chLabel" style="font-family:var(--mono)">32</b></span>
+        <input type="range" id="ch" min="8" max="48" step="1" value="32">
+      </div>
+      <div class="ctl-row"><span>Chips</span>
+        <div class="seg" id="chips"><button data-v="1">1 chip</button><button data-v="2">2 chips</button></div>
+      </div>
+      <div class="ctl-row"><span>SIMD pairing (2.39× measured)</span>
+        <div class="seg" id="simd"><button data-v="0">off</button><button data-v="1">on</button></div>
+      </div>
+      <div class="ctl-row"><span>Dynamics rework</span>
+        <div class="seg" id="levers"><button data-v="0">as built</button><button data-v="1">log + table</button></div>
+      </div>
+      <div class="ctl-row"><span>Bus / send fabric</span>
+        <div class="seg" id="fabric"><button data-v="0">95,434 today</button><button data-v="1">40,000 target</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Cost per function</h2>
+    <div class="tw">
+      <table>
+        <thead><tr><th>Function</th><th>cyc/sample</th><th>All channels</th><th>% of chip</th><th></th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="notes">
+  <div class="note"><h3>Why signal matters</h3>
+  <p>Both dynamics nodes return early on a zero envelope, before reaching <code>log2</code>.
+  The bench has no audio source, so every earlier profile measured the cheap path — GATE read
+  152 and COMP 161. Under signal they are 247.5 and 421.6.</p></div>
+
+  <div class="note"><h3>What SIMD can't pair</h3>
+  <p>SIMD duplicates the compute units and register file, not the address generators. DLY and
+  RTG address per channel, so both stay scalar. Everything else pairs at the measured 2.39×.</p></div>
+
+  <div class="note"><h3>The dynamics rework</h3>
+  <p>GATE computes a log only to compare against a threshold — move the compare to the linear
+  domain and it costs nothing. COMP needs the log value, so it needs a table. Both change
+  <code>fixed_ref</code> and need D5 sign-off.</p></div>
+
+  <div class="note caveat"><h3>Not yet measured</h3>
+  <p>Chip 2's existing master load — 235 nodes of limiters, GEQ, FX, outputs — is not in this
+  model. A two-chip row assumes both chips start empty, which chip 2 does not. TUBE is measured
+  bypassed; its active cost is unknown.</p></div>
+
+  <div class="note"><h3>Family swap won't help memory</h3>
+  <p>Every 2156x part carries the same 640 KB L1, and the 21564 already has the largest L2 at
+  1,760 KB. Only clock speed could differ, and that needs the datasheet. Dual-SHARC parts exist
+  in 2157x/2158x/2159x but add an ARM core.</p></div>
+</div>
+</div>
+
+<script>
+const FN=[
+ {k:'IN',   n:'TDM input',        c:11.6, p:1},
+ {k:'GAIN', n:'Trim',             c:17.5, p:1},
+ {k:'FILT', n:'HPF + LPF',        c:87.5, p:1},
+ {k:'EQ',   n:'EQ, 4 band',       c:170.6,p:1},
+ {k:'GATE', n:'Gate',             c:247.5,p:1, lever:95.5},
+ {k:'COMP', n:'Compressor',       c:421.6,p:1, lever:200},
+ {k:'TUBE', n:'Tube saturation',  c:2.9,  p:1, note:'bypassed'},
+ {k:'DLY',  n:'Delay',            c:62.5, p:0},
+ {k:'FDR',  n:'Fader + pan',      c:60.0, p:0.999, pairable:1},
+ {k:'RTG',  n:'Routing to buses', c:81.8, p:0},
+];
+FN.forEach(f=>{ if(f.k==='FDR'){f.p=1;} });
+const BUDGET=327680, BLKIO=32707, FAB_NOW=95434, FAB_TGT=40000, SIMD=2.39;
+const st={on:Object.fromEntries(FN.map(f=>[f.k,true])),ch:32,chips:1,simd:1,levers:0,fabric:1};
+
+const PRESETS=[
+ {n:'Everything, 32 ch',   s:{on:all(true),ch:32,chips:1,simd:1,levers:0,fabric:1}},
+ {n:'Dynamics rework',     s:{on:all(true),ch:32,chips:1,simd:1,levers:1,fabric:1}},
+ {n:'Basic strip, 32 ch',  s:{on:only(['IN','GAIN','FILT','EQ','FDR','RTG']),ch:32,chips:1,simd:1,levers:0,fabric:1}},
+ {n:'Full strip, 2 chips', s:{on:all(true),ch:32,chips:2,simd:1,levers:1,fabric:1}},
+ {n:'As built today',      s:{on:all(true),ch:32,chips:1,simd:0,levers:0,fabric:0}},
+];
+function all(v){return Object.fromEntries(FN.map(f=>[f.k,v]))}
+function only(ks){return Object.fromEntries(FN.map(f=>[f.k,ks.includes(f.k)]))}
+
+function cost(f){ let c=f.c; if(st.levers&&f.lever) c-=f.lever; return c; }
+function strip(){
+  let pair=0,scal=0;
+  FN.forEach(f=>{ if(!st.on[f.k])return; (f.p?pair:scal).valueOf();
+    if(f.p) pair+=cost(f); else scal+=cost(f); });
+  return st.simd ? pair/SIMD+scal : pair+scal;
+}
+function model(){
+  const fab=st.fabric?FAB_TGT:FAB_NOW;
+  const avail=BUDGET-BLKIO-fab;
+  const per=st.ch/st.chips;
+  const s=strip();
+  const need=per*s*32;
+  return {avail,need,per,s,fab,use:need/avail};
+}
+
+function render(){
+  const m=model();
+  const cls=m.use<=0.9?'fits':(m.use<=1?'tight':'over');
+  const v=document.getElementById('verdict');
+  v.className='verdict '+cls;
+  document.getElementById('vtitle').textContent =
+    cls==='over' ? 'Does not fit' : (cls==='tight'?'Fits, no margin':'Fits');
+  document.getElementById('vnote').textContent =
+    `${st.ch} channels on ${st.chips} chip${st.chips>1?'s':''} — `+
+    `${m.per.toFixed(0)} per chip at ${m.s.toFixed(1)} cycles/sample, `+
+    `using ${(m.use*100).toFixed(0)}% of what's available`;
+
+  const mt=document.getElementById('meters'); mt.innerHTML='';
+  const rows=[['Channels',m.need,m.avail],['Fabric',m.fab,m.avail],['Block I/O',BLKIO,m.avail]];
+  rows.forEach(([lab,val,av])=>{
+    const pct=Math.min(val/av*100,140);
+    const rc=val/av<=0.9?'var(--fits)':(val/av<=1?'var(--tight)':'var(--over)');
+    const d=document.createElement('div'); d.className='meter-row';
+    d.innerHTML=`<span class="mlabel">${lab}</span>
+      <span class="track" style="--state:${lab==='Channels'?rc:'var(--accent)'}">
+        <span class="fill" style="width:${pct/1.4}%"></span>
+        <span class="tick limit" style="left:${100/1.4}%"></span></span>
+      <span class="mnum">${Math.round(val).toLocaleString()}</span>`;
+    mt.appendChild(d);
+  });
+  const d=document.createElement('div'); d.className='meter-row';
+  d.innerHTML=`<span class="mlabel">Available</span>
+    <span class="track"><span class="tick limit" style="left:${100/1.4}%"></span></span>
+    <span class="mnum">${Math.round(m.avail).toLocaleString()}</span>`;
+  mt.appendChild(d);
+
+  const tb=document.getElementById('rows'); tb.innerHTML='';
+  const maxc=Math.max(...FN.map(f=>cost(f)));
+  FN.forEach(f=>{
+    const on=st.on[f.k], c=cost(f), tot=c*32*st.ch, pct=tot/BUDGET*100;
+    const tr=document.createElement('tr'); if(!on) tr.className='off';
+    tr.innerHTML=`<td>${f.n}${f.p?'':' <span class="nopair">·no SIMD</span>'}</td>
+      <td class="num">${c.toFixed(1)}</td>
+      <td class="num">${on?Math.round(tot).toLocaleString():'—'}</td>
+      <td class="num">${on?pct.toFixed(1)+'%':'—'}</td>
+      <td><span class="bar" style="width:${on?Math.max(c/maxc*70,1):0}px"></span></td>`;
+    tb.appendChild(tr);
+  });
+  const m2=model();
+  const tr=document.createElement('tr'); tr.className='tot';
+  tr.innerHTML=`<td>Per channel${st.simd?', paired':''}</td>
+    <td class="num">${m2.s.toFixed(1)}</td>
+    <td class="num">${Math.round(m2.need).toLocaleString()}</td>
+    <td class="num">${(m2.need/BUDGET*100).toFixed(0)}%</td><td></td>`;
+  tb.appendChild(tr);
+
+  document.querySelectorAll('#ins label').forEach(l=>{
+    l.classList.toggle('off',!st.on[l.dataset.k]);
+  });
+  document.getElementById('chLabel').textContent=st.ch;
+  seg('chips',st.chips); seg('simd',st.simd); seg('levers',st.levers); seg('fabric',st.fabric);
+}
+function seg(id,val){
+  document.querySelectorAll('#'+id+' button').forEach(b=>
+    b.setAttribute('aria-pressed', String(+b.dataset.v===+val)));
+}
+
+const ins=document.getElementById('ins');
+FN.forEach(f=>{
+  const l=document.createElement('label'); l.dataset.k=f.k;
+  l.innerHTML=`<input type="checkbox" ${st.on[f.k]?'checked':''}>
+    <span class="fname">${f.n}</span>
+    <span class="fcost">${f.c.toFixed(1)}${f.note?' *':''}</span>`;
+  l.querySelector('input').addEventListener('change',e=>{
+    st.on[f.k]=e.target.checked; render();
+  });
+  ins.appendChild(l);
+});
+document.getElementById('ch').addEventListener('input',e=>{st.ch=+e.target.value;render()});
+[['chips','chips'],['simd','simd'],['levers','levers'],['fabric','fabric']].forEach(([id,key])=>{
+  document.getElementById(id).addEventListener('click',e=>{
+    const b=e.target.closest('button'); if(!b)return;
+    st[key]=+b.dataset.v; render();
+  });
+});
+const pr=document.getElementById('presets');
+PRESETS.forEach(p=>{
+  const b=document.createElement('button'); b.textContent=p.n;
+  b.addEventListener('click',()=>{
+    Object.assign(st,JSON.parse(JSON.stringify(p.s)));
+    document.querySelectorAll('#ins label').forEach(l=>
+      l.querySelector('input').checked=st.on[l.dataset.k]);
+    document.getElementById('ch').value=st.ch;
+    render();
+  });
+  pr.appendChild(b);
+});
+render();
+</script>

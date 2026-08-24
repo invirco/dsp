@@ -1,0 +1,27 @@
+# DSP4 per-function cost model - measured on the part, chip 1, 2026-08-24
+# Build: per-block kernels + fused biquads, every class converted.
+# Signal-present (DSP4_PROFILE_SIGNAL, constant -6 dBFS): both dynamics
+# nodes short-circuit on a zero envelope before log2, so silence measures
+# the cheap path. Columns marked "silence" differ; all others are identical
+# either way (no data-dependent branch).
+#
+# Budget: 491.52 MHz / 1500 blocks/s = 327,680 cycles/block. 32 samples/block.
+# cycles/block for N channels = cycles_per_sample * 32 * N
+function,cycles_per_sample,cycles_block_32ch,pct_of_chip_32ch,simd_pairable,silence_value,notes
+IN,11.6,11878,3.6,yes,11.6,TDM input; DMA-direct
+GAIN,17.5,17920,5.5,yes,17.5,trim; one MAC
+FILT,87.5,89600,27.3,yes,87.5,HPF+LPF; 2 biquads at 43.7 each
+EQ,170.6,174694,53.3,yes,170.6,4-band parametric; 4 biquads
+GATE,247.5,253440,77.3,yes,152.0,envelope + log2 + hold + ramp
+COMP,421.6,431718,131.7,yes,160.6,envelope + log2/exp2 + knee/slope + parallel blend
+TUBE,2.9,2970,0.9,yes,2.9,MEASURED BYPASSED (_tube_on defaults 0); active cost not yet measured
+DLY,62.5,64000,19.5,no,62.5,delay line; per-strip addressing so SIMD cannot pair it
+FDR,60.0,61440,18.8,yes,60.0,fader + pan
+RTG,81.8,83763,25.6,no,81.8,bus routing; data-dependent addressing so SIMD cannot pair it
+# --- fixed overhead, not per channel ---
+BLOCK_IO,,32707,10.0,,,scatter/gather/meter scan; already converted
+FABRIC,,95434,29.1,,,25 buses + 37 sends + 32 meters; 3104 calls/block at 30.7 cycles each
+FABRIC_TARGET,,40000,12.2,,,dispatch target; needs 2.39x - it is ~80 pct call overhead
+# --- totals ---
+STRIP_TOTAL,1163.5,1191424,363.6,,795.4,every function on every channel
+BUDGET,,327680,100.0,,,
