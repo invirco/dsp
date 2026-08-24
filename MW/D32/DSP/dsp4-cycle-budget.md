@@ -2,6 +2,78 @@
 
 provenance: AI-drafted 2026-08-23 — prose may carry a statistical watermark; rewrite by hand before publication, then remove this header.
 
+## THE MEASURED CEILING AT 786.432 MHz, AND THE 32-IN-ONE VERDICT
+
+Fully converted build, **signal present** so the dynamics take their real
+path, no decimation, judged on `_proc_passes`:
+
+| `DSP4_STRIPS` | `_proc_passes` | verdict |
+|---|---|---|
+| 8 | 1500/s | real time |
+| 9 | 1500/s | real time |
+| **10** | **1500/s** | **real time — the ceiling** |
+| 11 | 1472/s | **marginal — dropping ~2 % of blocks** |
+| 12 | 1377/s | over budget |
+| 14 | 1219/s | over budget |
+
+`dsp4_audio_verdict.py` calls 1472/s REAL_TIME because its threshold is
+1450, but 1472 is not 1500 and blocks are being dropped: **10 is the honest
+ceiling, 11 is marginal.**
+
+Two rows had to be thrown away rather than read as data, both worth
+recording:
+
+- A first pass at `STRIPS=10` returned `0 passes/s` with `BOOT_STAGE 5` —
+  the part never got past waiting for config, so it never ran the graph at
+  all. Read as over-budget it would have put the ceiling at 9.
+- `STRIPS=11` failed to link with unresolved symbols because **I ran a
+  verification build in the same tree while the sweep was using it.** Two
+  builds, one `build/` directory. The clean retry succeeded.
+
+### The verdict, plainly
+
+| | cycles/block |
+|---|---|
+| budget at 786.432 MHz | 524,288 |
+| block I/O | 32,707 |
+| fabric (converted) | 85,475 |
+| **available for channels** | **406,106** |
+| **needed per channel for 32** | **397 cycles/sample** |
+| **actual, measured** | **1,269 cycles/sample** |
+
+**32 channels in one 21564 at 786.432 MHz is NOT reachable. The measured
+ceiling is 10.** That is a factor of **3.2** short, and the measurement
+agrees with the arithmetic (which predicted 11) to within one channel.
+
+What the remaining levers are worth, applied to the measured figure:
+
+| | cycles/sample | channels/chip |
+|---|---|---|
+| today | 1,269 | **10** |
+| + SIMD pairing (2.39×, measured, not yet wired into the graph) | 615 | 20.6 |
+| + dynamics rework (GATE log removed, COMP tabled) | 491 | 25.8 |
+| + fabric at its 40k target | 491 | **28.7** |
+| **the same, at 983.04 MHz** | 491 | **37.0** |
+
+So even with **every** lever landed — SIMD across the strip, both dynamics
+changes, and the fabric hitting a target it is currently 2.1× away from —
+786.432 MHz reaches about **29 channels, not 32**. The last row is the one
+that closes it, and it needs a `KSWZ10` part.
+
+### And chip 2 is not the escape route
+
+Chip 2's own graph measures **1,978,933 cycles/block** — **3.8× over** the
+same 524,288 budget, essentially the same load as chip 1, and that is a
+**silence** reading so the true figure is higher. Its 235 nodes are 17
+graphic EQs, 21 EQ biquads, 18 limiters, 24 fader/pans, 15 delays, 12
+anti-feedback, 10 compressors and 6 FX engines.
+
+Earlier in this work I described chip 2 as "comparatively idle" and built
+two-chip splits on it. **That was an assumption, never a measurement, and it
+was wrong.** No split that moves work to chip 2 survives until chip 2's own
+load is cut first.
+
+
 ## 786.432 MHz ENABLED — 2026-08-24 (PW decision)
 
 `DSP4_CCLK_TARGET=786`. **Measured on the part: CCLK 786.29 MHz against a
