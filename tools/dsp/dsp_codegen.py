@@ -180,11 +180,27 @@ def gen_input_tdm(node):
              * converting Q1.31 -> Q4.28 on the way. off/stride come from
              * the lane layout, handed to this node by gen_block_io. */
             .extern _rx_active_buf;
+            .extern _c1_rx_node_entry;
+            .extern _c1_rx_off;
+            .extern _c1_rx_stride;
+            /* Look the DMA geometry up rather than hardcoding it, so the
+             * boot-time input patch still applies. Block rate, not per
+             * sample, so it costs nothing measurable. */
+            r3 = {p.get('rx_index', 0)};
+            m0 = r3;
+            i1 = _c1_rx_node_entry;
+            modify(i1, m0);
+            r3 = dm(i1, 0);               /* my RX table entry */
+            m0 = r3;
+            i1 = _c1_rx_off;
+            modify(i1, m0);
+            r3 = dm(i1, 0);               /* off    */
+            i1 = _c1_rx_stride;
+            modify(i1, m0);
+            r4 = dm(i1, 0);               /* stride */
             r6 = dm(_rx_active_buf);
-            r3 = {p.get('rx_off', 0)};
             r3 = r6 + r3;
             i0 = r3;
-            r4 = {p.get('rx_stride', 1)};
             m0 = r4;
             i1 = {blk_out_ptr};
             r5 = 32;
@@ -3725,6 +3741,10 @@ def gen_block_io(chip_label, chip_nodes):
         n = len(nodes_ordered)
         for node in nodes_ordered:
             lines.append(f'.extern {extern_fmt.format(id=node["id"])};')
+        lines.append('#if DSP4_BLOCK_KERNELS')
+        lines.append(f'.global {prefix}_off;')
+        lines.append(f'.global {prefix}_stride;')
+        lines.append('#endif')
         lines.append(f'.var {prefix}_off[{n}] =')
         for i, node in enumerate(nodes_ordered):
             comma = ',' if i < n - 1 else ';'
@@ -3878,13 +3898,26 @@ def gen_block_io(chip_label, chip_nodes):
         # block kernel can read the DMA buffer DIRECTLY, instead of scatter
         # staging 46 x 32 words into slot arrays first. That reclaims 1,472
         # words of DM and removes a whole copy per sample.
-        for _n in input_nodes:
+        for _i, _n in enumerate(input_nodes):
             _off, _stride = rx_map[_n['id']]
             _n['params']['rx_off'] = _off
             _n['params']['rx_stride'] = _stride
+            _n['params']['rx_index'] = _i
         emit_tables(lines, '_c1_rx', input_nodes, rx_map,
                     '_rx_slot_{id}', '_c1_rx_slot_ptrs')
 
+        lines.append('#if DSP4_BLOCK_KERNELS')
+        lines.append('/* Inverse of _rx_patch_regs for the DMA-direct input kernels:')
+        lines.append(' * _c1_rx_node_entry[k] = the RX table entry feeding the node at')
+        lines.append(' * default index k. The per-sample scatter applied the patch by')
+        lines.append(' * rewriting slot POINTERS; a kernel that reads DMA itself needs')
+        lines.append(' * the mapping the other way round. Rebuilt by _rx_patch_apply. */')
+        lines.append('.global _c1_rx_node_entry;')
+        lines.append(f'.var _c1_rx_node_entry[{num_rx}] =')
+        for _k in range(num_rx):
+            lines.append('    %d%s' % (_k, ',' if _k < num_rx - 1 else ';'))
+        lines.append('#endif')
+        lines.append('')
         lines.append(f'.global _c1_rx_slot_count;')
         lines.append(f'.var _c1_rx_slot_count = {num_rx};')
         lines.append('')
@@ -3942,6 +3975,9 @@ def gen_block_io(chip_label, chip_nodes):
         lines.append('    i1 = _c1_rx_slot_ptrs;')
         lines.append(f'    r5 = {num_rx};')
         lines.append(f'    r6 = {num_rx - 1};          /* clamp bound */')
+        lines.append('#if DSP4_BLOCK_KERNELS')
+        lines.append('    r7 = 0;               /* running entry index for the inverse */')
+        lines.append('#endif')
         lines.append('    lcntr = r5; do .c1_rxpatch until lce;')
         lines.append('        r2 = dm(i0, 1);       /* patch index */')
         lines.append('        comp(r2, r6);')
@@ -3954,6 +3990,14 @@ def gen_block_io(chip_label, chip_nodes):
         lines.append('        modify(i2, m1);')
         lines.append('        r3 = dm(i2, 0);       /* default ptr at patch index */')
         lines.append('        dm(i1, 1) = r3;')
+        lines.append('#if DSP4_BLOCK_KERNELS')
+        lines.append('        /* node_entry[patch[i]] = i -- the inverse kernels need */')
+        lines.append('        i2 = _c1_rx_node_entry;')
+        lines.append('        m1 = r2;')
+        lines.append('        modify(i2, m1);')
+        lines.append('        dm(i2, 0) = r7;')
+        lines.append('        r7 = r7 + 1;')
+        lines.append('#endif')
         lines.append('    .c1_rxpatch:')
         lines.append('        nop;')
         lines.append('    rts;')

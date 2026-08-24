@@ -41,11 +41,27 @@ _C1_IN_17_process:
      * converting Q1.31 -> Q4.28 on the way. off/stride come from
      * the lane layout, handed to this node by gen_block_io. */
     .extern _rx_active_buf;
+    .extern _c1_rx_node_entry;
+    .extern _c1_rx_off;
+    .extern _c1_rx_stride;
+    /* Look the DMA geometry up rather than hardcoding it, so the
+     * boot-time input patch still applies. Block rate, not per
+     * sample, so it costs nothing measurable. */
+    r3 = 16;
+    m0 = r3;
+    i1 = _c1_rx_node_entry;
+    modify(i1, m0);
+    r3 = dm(i1, 0);               /* my RX table entry */
+    m0 = r3;
+    i1 = _c1_rx_off;
+    modify(i1, m0);
+    r3 = dm(i1, 0);               /* off    */
+    i1 = _c1_rx_stride;
+    modify(i1, m0);
+    r4 = dm(i1, 0);               /* stride */
     r6 = dm(_rx_active_buf);
-    r3 = 512;
     r3 = r6 + r3;
     i0 = r3;
-    r4 = 8;
     m0 = r4;
     i1 = BLK_CHAIN_A;
     r5 = 32;

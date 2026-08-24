@@ -42,6 +42,10 @@
 .extern _rx_ic_slot_C2_XR_SNAKE_06;
 .extern _rx_ic_slot_C2_XR_SNAKE_07;
 .extern _rx_ic_slot_C2_XR_SNAKE_08;
+#if DSP4_BLOCK_KERNELS
+.global _c2_ic_rx_off;
+.global _c2_ic_rx_stride;
+#endif
 .var _c2_ic_rx_off[37] =
     0,
     1,
@@ -178,6 +182,10 @@
 .extern _tx_out_slot_C2_CODEC_AUX_OUT;
 .extern _tx_out_slot_C2_MAIN_ST_OUT;
 .extern _tx_out_slot_C2_SUB_OUT;
+#if DSP4_BLOCK_KERNELS
+.global _c2_tx_off;
+.global _c2_tx_stride;
+#endif
 .var _c2_tx_off[20] =
     0,
     1,

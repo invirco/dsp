@@ -51,6 +51,10 @@
 .extern _rx_slot_C1_XIN_PI_L;
 .extern _rx_slot_C1_XIN_PI_R;
 .extern _rx_slot_C1_XIN_MEMS;
+#if DSP4_BLOCK_KERNELS
+.global _c1_rx_off;
+.global _c1_rx_stride;
+#endif
 .var _c1_rx_off[46] =
     0,
     1,
@@ -192,6 +196,62 @@
     _rx_slot_C1_XIN_PI_L,
     _rx_slot_C1_XIN_PI_R,
     _rx_slot_C1_XIN_MEMS;
+
+#if DSP4_BLOCK_KERNELS
+/* Inverse of _rx_patch_regs for the DMA-direct input kernels:
+ * _c1_rx_node_entry[k] = the RX table entry feeding the node at
+ * default index k. The per-sample scatter applied the patch by
+ * rewriting slot POINTERS; a kernel that reads DMA itself needs
+ * the mapping the other way round. Rebuilt by _rx_patch_apply. */
+.global _c1_rx_node_entry;
+.var _c1_rx_node_entry[46] =
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45;
+#endif
 
 .global _c1_rx_slot_count;
 .var _c1_rx_slot_count = 46;
@@ -335,6 +395,10 @@
 .extern _tx_slot_C1_XS_XFER_SNAKE_06;
 .extern _tx_slot_C1_XS_XFER_SNAKE_07;
 .extern _tx_slot_C1_XS_XFER_SNAKE_08;
+#if DSP4_BLOCK_KERNELS
+.global _c1_ic_tx_off;
+.global _c1_ic_tx_stride;
+#endif
 .var _c1_ic_tx_off[37] =
     0,
     1,
@@ -548,6 +612,9 @@ _rx_patch_apply:
     i1 = _c1_rx_slot_ptrs;
     r5 = 46;
     r6 = 45;          /* clamp bound */
+#if DSP4_BLOCK_KERNELS
+    r7 = 0;               /* running entry index for the inverse */
+#endif
     lcntr = r5; do .c1_rxpatch until lce;
         r2 = dm(i0, 1);       /* patch index */
         comp(r2, r6);
@@ -560,6 +627,14 @@ _rx_patch_apply:
         modify(i2, m1);
         r3 = dm(i2, 0);       /* default ptr at patch index */
         dm(i1, 1) = r3;
+#if DSP4_BLOCK_KERNELS
+        /* node_entry[patch[i]] = i -- the inverse kernels need */
+        i2 = _c1_rx_node_entry;
+        m1 = r2;
+        modify(i2, m1);
+        dm(i2, 0) = r7;
+        r7 = r7 + 1;
+#endif
     .c1_rxpatch:
         nop;
     rts;
