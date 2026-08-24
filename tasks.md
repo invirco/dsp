@@ -1,3 +1,19 @@
+**PW DECISION (2026-08-24): TUBE SATURATION IS A PLUGIN, NOT A FIXED CHANNEL
+FUNCTION.** Only a few selected channels will use it, so it comes out of the
+basic strip for capacity purposes. Two levels to this and they are different:
+
+- **Runtime, already supported.** `_tube_on_<nid>` is an SPI parameter and the
+  per-block kernel already branches to a plain block copy when it is 0, so a
+  channel with the plugin off pays only that copy today. Measure it before
+  claiming it is free — a 32-word copy is not zero.
+- **Removed from the graph — needs a CONTRACT change and the hub owns it.**
+  The 32 `TUBE_SAT` nodes come from the matrix definition via the mx26
+  contract into `dsp.csv`; `defs.lock` is authoritative and these files are
+  never hand-edited here. Taking TUBE out of the fixed strip (and giving it
+  to selected channels only) is an mx26 matrix-definition change. That is
+  what actually recovers TUBE's cycles AND its DM state, so it is the version
+  that counts for the 32-channel fit.
+
 **PW PRIORITY (2026-08-24): #1 for the dsp side is CAPACITY-FIT — prove the
 full product processing fits the chips as fabbed (goal line: 32 basic strips
 real-time in ONE 21564; two on the card = margin/product headroom). Everything
