@@ -98,6 +98,14 @@ DSP4_BLOCK_KERNELS="${DSP4_BLOCK_KERNELS:-0}"
 CFLAGS="$CFLAGS -DDSP4_BLOCK_KERNELS=$DSP4_BLOCK_KERNELS"
 ASMFLAGS="$ASMFLAGS -DDSP4_BLOCK_KERNELS=$DSP4_BLOCK_KERNELS"
 
+# Product-scope gating: skip nodes scoped to the other product at the
+# dispatch table instead of entering the kernel. Block-kernel builds only
+# (per-sample the test costs 32x what it saves). 0 = control build, used to
+# measure what the gating is worth.
+DSP4_SCOPE_GATE="${DSP4_SCOPE_GATE:-1}"
+CFLAGS="$CFLAGS -DDSP4_SCOPE_GATE=$DSP4_SCOPE_GATE"
+ASMFLAGS="$ASMFLAGS -DDSP4_SCOPE_GATE=$DSP4_SCOPE_GATE"
+
 DSP4_COMP_NOCVT="${DSP4_COMP_NOCVT:-0}"
 # Run the node graph only every Nth block (measurement, not a mode).
 DSP4_BLOCK_DECIMATE="${DSP4_BLOCK_DECIMATE:-1}"

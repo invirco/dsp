@@ -438,6 +438,9 @@
 #if DSP4_BLOCK_KERNELS
 .extern _scope_inject_blk;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
+.extern _product_id;
+#endif
 .global _chip1_process_all;
 _chip1_process_all:
     call _bus_clear_all;    /* zero all bus accumulators */
@@ -1518,6 +1521,13 @@ _chip1_process_all:
 #if (DSP4_NODE_LIMIT == 0 || 357 < DSP4_NODE_LIMIT)
     call _C1_XIN_MEMS_process;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
+    /* nodes 358..365 are D32-only */
+    r2 = dm(_product_id);
+    r3 = 0;
+    comp(r2, r3);
+    if ne jump (pc, .sgrun0_end);
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 358 < DSP4_NODE_LIMIT)
     call _C1_XIN_SNK_01_process;
 #endif
@@ -1541,6 +1551,9 @@ _chip1_process_all:
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 365 < DSP4_NODE_LIMIT)
     call _C1_XIN_SNK_08_process;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
+.sgrun0_end:
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 366 < DSP4_NODE_LIMIT)
     call _C1_TALK_01_process;
@@ -1713,6 +1726,13 @@ _chip1_process_all:
 #if (DSP4_NODE_LIMIT == 0 || 422 < DSP4_NODE_LIMIT)
     call _C1_XS_XFER_PI_R_process;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
+    /* nodes 423..430 are D32-only */
+    r2 = dm(_product_id);
+    r3 = 0;
+    comp(r2, r3);
+    if ne jump (pc, .sgrun1_end);
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 423 < DSP4_NODE_LIMIT)
     call _C1_XS_XFER_SNAKE_01_process;
 #endif
@@ -1736,6 +1756,9 @@ _chip1_process_all:
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 430 < DSP4_NODE_LIMIT)
     call _C1_XS_XFER_SNAKE_08_process;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
+.sgrun1_end:
 #endif
     rts;
 _chip1_process_all.end:

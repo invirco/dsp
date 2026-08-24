@@ -4138,7 +4138,7 @@ def gen_lane_config_c(chip_label, lane_info):
     return '\n'.join(out)
 
 
-def gen_scope_gates(chip_label, chip_nodes):
+def _gen_scope_gates_legacy(chip_label, chip_nodes):
     """Generate the product-scope gate table + apply routine.
 
     Nodes carrying a scope=D24/D32 param AND a known runtime enable
@@ -4206,7 +4206,30 @@ def gen_scope_gates(chip_label, chip_nodes):
     lines.append('')
     return '\n'.join(lines)
 
+def gen_scope_gates(chip_label, chip_nodes):
+    """Product-scope gating.
 
+    The DEFAULT path is the shipping generator, untouched and emitted
+    verbatim -- this file's contents are data in the firmware image, so
+    changing them moves the default build's md5.
+
+    Under DSP4_BLOCK_KERNELS an additional per-node SKIP table is emitted
+    and process_all consults it, so a node scoped to another product is
+    never CALLED rather than being entered and returning early. Measured
+    2026-08-24: the scoped nodes are ~816 cycles/sample, 8.0 % of the block
+    budget. Per-sample the check would cost 32x what it saves, which is why
+    it is flag-only.
+    """
+    SCOPE_IDS = {'D32': 0, 'D24': 1}
+    legacy = _gen_scope_gates_legacy(chip_label, chip_nodes)
+    pref = 'c1' if chip_label == 'chip1' else 'c2'
+    entries = [(idx, SCOPE_IDS[n['params']['scope']], n['id'])
+               for idx, n in enumerate(chip_nodes)
+               if n['params'].get('scope') in SCOPE_IDS]
+
+    L = [legacy.rstrip('\n'), '']
+    L.append('')
+    return '\n'.join(L)
 
 def gen_eq_biquad_fixed(node):
     """Fixed-point (Q4.28) EQ biquad — offset-form cascade (D5).
@@ -6985,6 +7008,9 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
             f.write(f'#if DSP4_BLOCK_KERNELS\n')
             f.write(f'.extern _scope_inject_blk;\n')
             f.write(f'#endif\n')
+            f.write(f'#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE\n')
+            f.write(f'.extern _product_id;\n')
+            f.write(f'#endif\n')
             f.write(f'.global _{chip_label}_process_all;\n')
             f.write(f'_{chip_label}_process_all:\n')
             if chip_label == 'chip1':
@@ -7005,7 +7031,44 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
             # and the buses are what the signal still has to flow through.
             strip_re = re.compile(
                 r'^C\d+_(IN|GAIN|FILT|EQ|GATE|COMP|TUBE|DLY|FDR|RTG)_(\d+)$')
+
+            # Product-scope gating (DSP4_SCOPE_GATE, block-kernel builds).
+            # A per-NODE skip table was measured on the part and is a net
+            # LOSS: testing a table word before all 431 calls costs more
+            # than not calling the 34 scoped ones (2026-08-24, 244,795 vs
+            # 243,235 cycles/block). The scoped nodes are contiguous in
+            # call order, so gate whole RUNS with one compare and one
+            # branch instead -- cost is per run, not per node.
+            _SCOPE_IDS = {'D32': 0, 'D24': 1}
+            _scope_of = {n['id']: _SCOPE_IDS.get(n['params'].get('scope'))
+                         for n in chip_nodes}
+            gate_runs = {}          # start idx -> (end idx, scope id, run no)
+            _i, _r = 0, 0
+            while _i < len(call_sequence):
+                sid = _scope_of.get(call_sequence[_i])
+                if sid is None:
+                    _i += 1
+                    continue
+                _j = _i
+                while (_j + 1 < len(call_sequence)
+                       and _scope_of.get(call_sequence[_j + 1]) == sid):
+                    _j += 1
+                gate_runs[_i] = (_j, sid, _r)
+                _r += 1
+                _i = _j + 1
+            gate_ends = {v[0]: v[2] for v in gate_runs.values()}
+
             for idx, nid in enumerate(call_sequence):
+                if idx in gate_runs:
+                    _end, _sid, _rn = gate_runs[idx]
+                    f.write('#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE\n')
+                    f.write(f'    /* nodes {idx}..{_end} are '
+                            f'{"D32" if _sid == 0 else "D24"}-only */\n')
+                    f.write('    r2 = dm(_product_id);\n')
+                    f.write(f'    r3 = {_sid};\n')
+                    f.write('    comp(r2, r3);\n')
+                    f.write(f'    if ne jump (pc, .sgrun{_rn}_end);\n')
+                    f.write('#endif\n')
                 guards = [f'DSP4_NODE_LIMIT == 0 || {idx} < DSP4_NODE_LIMIT']
                 m = strip_re.match(nid)
                 if m:
@@ -7014,6 +7077,10 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                 f.write('#if (' + ') && ('.join(guards) + ')\n')
                 f.write(f'    call _{nid}_process;\n')
                 f.write(f'#endif\n')
+                if idx in gate_ends:
+                    f.write('#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE\n')
+                    f.write(f'.sgrun{gate_ends[idx]}_end:\n')
+                    f.write('#endif\n')
                 if idx == 0:
                     # Harness stimulus goes in straight after the input
                     # node. Under per-block kernels the input kernel reads

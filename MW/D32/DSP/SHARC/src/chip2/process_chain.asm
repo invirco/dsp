@@ -241,6 +241,9 @@
 #if DSP4_BLOCK_KERNELS
 .extern _scope_inject_blk;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
+.extern _product_id;
+#endif
 .global _chip2_process_all;
 _chip2_process_all:
 #if (DSP4_NODE_LIMIT == 0 || 0 < DSP4_NODE_LIMIT)
@@ -333,6 +336,13 @@ _chip2_process_all:
 #if (DSP4_NODE_LIMIT == 0 || 28 < DSP4_NODE_LIMIT)
     call _C2_XR_PI_R_process;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
+    /* nodes 29..36 are D32-only */
+    r2 = dm(_product_id);
+    r3 = 0;
+    comp(r2, r3);
+    if ne jump (pc, .sgrun0_end);
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 29 < DSP4_NODE_LIMIT)
     call _C2_XR_SNAKE_01_process;
 #endif
@@ -357,11 +367,21 @@ _chip2_process_all:
 #if (DSP4_NODE_LIMIT == 0 || 36 < DSP4_NODE_LIMIT)
     call _C2_XR_SNAKE_08_process;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
+.sgrun0_end:
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 37 < DSP4_NODE_LIMIT)
     call _C2_CODEC_AUX_IN_process;
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 38 < DSP4_NODE_LIMIT)
     call _C2_PI_IN_process;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
+    /* nodes 39..46 are D32-only */
+    r2 = dm(_product_id);
+    r3 = 0;
+    comp(r2, r3);
+    if ne jump (pc, .sgrun1_end);
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 39 < DSP4_NODE_LIMIT)
     call _C2_SNK_IN_01_process;
@@ -386,6 +406,9 @@ _chip2_process_all:
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 46 < DSP4_NODE_LIMIT)
     call _C2_SNK_IN_08_process;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
+.sgrun1_end:
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 47 < DSP4_NODE_LIMIT)
     call _C2_AUX_FDR_01_process;
@@ -831,8 +854,18 @@ _chip2_process_all:
 #if (DSP4_NODE_LIMIT == 0 || 194 < DSP4_NODE_LIMIT)
     call _C2_MON_DLY_process;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
+    /* nodes 195..195 are D24-only */
+    r2 = dm(_product_id);
+    r3 = 1;
+    comp(r2, r3);
+    if ne jump (pc, .sgrun2_end);
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 195 < DSP4_NODE_LIMIT)
     call _C2_MON_OUT_process;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
+.sgrun2_end:
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 196 < DSP4_NODE_LIMIT)
     call _C2_USB_IN_process;
@@ -948,8 +981,18 @@ _chip2_process_all:
 #if (DSP4_NODE_LIMIT == 0 || 233 < DSP4_NODE_LIMIT)
     call _C2_MAIN_ST_OUT_process;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
+    /* nodes 234..234 are D24-only */
+    r2 = dm(_product_id);
+    r3 = 1;
+    comp(r2, r3);
+    if ne jump (pc, .sgrun3_end);
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 234 < DSP4_NODE_LIMIT)
     call _C2_CODEC_AUX_OUT_process;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
+.sgrun3_end:
 #endif
     rts;
 _chip2_process_all.end:

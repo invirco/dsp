@@ -15,3 +15,4 @@
 _scope_gates_apply:
     rts;                      /* no scoped nodes on this chip */
 _scope_gates_apply.end:
+

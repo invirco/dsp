@@ -431,11 +431,45 @@ park:
   **state handling under feedback** in the register-resident loop — the MAC
   chain, coefficient conversion, HPF/LPF two-call structure and block
   plumbing are all exercised and correct.
-- Known and unfixed: `_bq_fx_cascade_blk` never advances `i0` between
-  stages, so it is only correct for `r4 = 1`. FILT calls it that way; EQ
-  would need `r4 = 4` and must not be attempted until that is fixed.
-- Suspects, in order: MAC-unit implicit registers across iterations, and
-  m-register interference (`m1` is used by both cascade routines).
+- **FIXED since the park:** `_bq_fx_cascade_blk` now advances `i0` by five
+  between stages (and restores the per-sample rewind), so `r4 > 1` is
+  correct and EQ's four bands are no longer blocked on it.
+
+### Third attempt, 2026-08-24 — PARKED again, but the suspect list was wrong
+
+Outcome: still fails on real filters, so the biquads stay parked. The
+useful product of this attempt is a correction to the reasoning above.
+
+**"`both_unity` passes at 0 LSB" does not exonerate the state handling —
+it cannot.** With unity coefficients the biquad reduces to
+`y = b0*x + b1*x1 + b2*x2 - a1*y1 - a2*y2` with `b1 = b2 = a1 = a2 = 0`,
+i.e. **`y = x`, and the stored state contributes nothing whatsoever**. Any
+fault that lives in *which* state a stage reads and writes — wrong
+instance, wrong stride, HPF and LPF sharing one state block, state not
+persisted across blocks, the A/B crossfade instance — passes unity at 0 LSB
+and fails every real filter. The earlier note read the unity pass as
+evidence that "the block plumbing is exercised and correct". It is not:
+unity is blind to exactly the thing that is broken.
+
+So the suspect order is now, and this is where the next attempt should
+start:
+
+1. **The state pointer the wrapper hands to `i1`** — per section, per
+   instance, per block. Cheapest possible test: two sections with
+   deliberately DIFFERENT coefficients, and check the second is not running
+   the first's state.
+2. State persistence across block boundaries (the register-resident copy is
+   written back once per stage; confirm the wrapper does not re-zero or
+   re-load it per block).
+3. Only then the MAC-unit implicit registers and `m1` interference.
+
+A line-by-line diff of the two inner bodies was done as part of this
+attempt: the arithmetic, the MAC order, the rounding, the saturation test,
+the error-feedback update and the state store order are **identical** to
+`_bq_fx_cascade_N`. That is a real narrowing — it is not the maths.
+
+- The block cascade assembles and is still **unwired**; wiring it is the
+  next attempt's first step, with test (1) above run before anything else.
 
 ### What stands out
 

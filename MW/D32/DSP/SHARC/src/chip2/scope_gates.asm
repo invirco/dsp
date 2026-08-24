@@ -56,3 +56,4 @@ _scope_gates_apply:
         nop;
     rts;
 _scope_gates_apply.end:
+
