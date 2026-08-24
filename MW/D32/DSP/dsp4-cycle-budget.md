@@ -471,6 +471,51 @@ the error-feedback update and the state store order are **identical** to
 - The block cascade assembles and is still **unwired**; wiring it is the
   next attempt's first step, with test (1) above run before anything else.
 
+### Product-scope gating — measured 2026-08-24, and the first mechanism was a loss
+
+Option 3 from the decision list ("fewer nodes per product") was still
+saving nothing: `_scope_gates_apply` only forced *enable flags* off, and
+every one of the 431 nodes was called on both products. Only **34 nodes**
+carry a `scope=` in `dsp.csv` — 32 D32-only, 2 D24-only, all of them
+`INPUT_TDM` / `INTERCHIP_SEND` / `INTERCHIP_RECV` / `AUX_INPUT` /
+`OUTPUT_TDM`.
+
+Measured on the part, chip 1, booted as **d24**, block-kernel build,
+`DSP4_BLOCK_DECIMATE=32`, 1101 passes each:
+
+| build | cycles/block | vs control |
+|---|---|---|
+| no gating at all (control) | 243,235 | — |
+| per-NODE skip table | 244,795 | **+1,560 (WORSE)** |
+| contiguous-RUN gating | **241,744** | **−1,491** |
+
+**The per-node table is a net loss and that is the finding.** Skipping the
+34 scoped nodes is worth 1,478 cycles/block, but a table word read plus a
+test before *all 431* dispatch calls costs more than that. The ratio does
+not improve in a per-sample build either — the check and the node cost both
+scale by 32. A gate paid per node cannot pay for itself when 8 % of the
+nodes are gated.
+
+The scoped nodes are contiguous in call order, so the working mechanism is
+one compare and one branch per **run**: two runs on chip 1 covering all 16
+of its scoped nodes, about 8 cycles/block against 1,491 saved. Kept.
+
+`DSP4_SCOPE_GATE` (default 1) selects it, so the saving stays measurable
+against a control build. The default per-sample image is byte-identical to
+the pre-conversion firmware (`d1c3dd5c…` / `85d546f9…`) — the gating is
+guarded to `DSP4_BLOCK_KERNELS`, and the legacy generator output including
+`_scope_gate_count` is emitted unchanged on the default path.
+
+Scale check, because it matters more than the number: 1,491 cycles/block is
+**0.46 % of the budget**. In a per-sample build the same nodes would cost
+32× as much, so gating them would be worth up to ~14 % — but that is an
+inference from this measurement, not a measurement. Either way it does not
+change the capacity picture below.
+
+Bit-exactness after gating: the `GAIN → FDR → RTG → BUS` chain still
+matches the model at **0 LSB** across all seven level/pan cases, booted as
+d32 with the D24-scoped run branched over.
+
 ### What stands out
 
 **RTG is the most expensive node class on the part** — 601 cycles per
