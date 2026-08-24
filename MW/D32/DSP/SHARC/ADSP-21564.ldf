@@ -110,6 +110,17 @@ SECTIONS
         INPUT_SECTIONS( $COMMAND_LINE_OBJECTS(seg_pmda) )
     } > mem_block2_bw
 
+    /* BW-qualified twin, same idiom as sec_dmda_c_bw below. mem_block2_bw
+     * is a byte-width region, so a DM-qualified output section alone does
+     * not place seg_pmda into it -- the symbols assemble but never map.
+     * Nothing used seg_pmda until the log2/exp2 tables, so this path had
+     * never been exercised. */
+    sec_pmda_bw BW
+    {
+        INPUT_SECTION_ALIGN(4)
+        INPUT_SECTIONS( $COMMAND_LINE_OBJECTS(seg_pmda) )
+    } > mem_block2_bw
+
     /*------------------------------------------------------------------
      * DM data — coefficients, parameters, state, audio buffers
      * Block 0 first, overflow to Block 1

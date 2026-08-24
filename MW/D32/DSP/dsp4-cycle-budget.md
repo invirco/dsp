@@ -35,6 +35,47 @@ a subtler one might have been accepted as "the expected deviation". Check
 the clobber list before placing a call — the same question that was got
 wrong about `_compgain_fx` earlier on this page.
 
+### 2. log2/exp2 by interpolated table — `DSP4_DYN_TABLES`
+
+256-entry tables with linear interpolation replace the 6-term Horner
+polynomials in `_log2q_fx` and `_exp2q_fx`.
+
+| | |
+|---|---|
+| worth | **160 cycles/sample** across GATE+COMP (64,145 → 59,037 cycles/block at `NODE_LIMIT` 6) |
+| accuracy, log2 | **0.000016 dB** worst — the polynomial it replaces is 0.0001 dB |
+| accuracy, 2^f | **0.000008 dB** worst — likewise 0.0001 dB |
+| **measured deviation on the part** | **NOT YET ESTABLISHED — see below** |
+
+**More accurate than what it replaces**, which is the unusual part: this is
+a numeric deviation from the current `fixed_ref` that moves *towards*
+exact, not away. It still needs a spec amendment because the reference
+changes.
+
+Two implementation constraints, both discovered rather than assumed:
+
+- **Register contract.** GATE and COMP hold their state in r6–r15 across
+  these calls, so the table forms use r0–r5, i0, l0 and MRF and nothing
+  else — a strict subset of the polynomial forms, which reached r6.
+- **Memory.** Value+delta tables were 1,024 words and **overflowed
+  `sec_stak`**. Storing values only and deriving the delta from the
+  adjacent entry halves it to 514 words, which fits. `seg_pmda` would have
+  been the tidier home — the LDF has a PM-data section described as
+  "lookup tables — if any" — but nothing has ever used it and the linker
+  does not map it even with a BW-qualified twin. Not worth chasing for
+  512 words.
+
+**The deviation measurement is INCONCLUSIVE and is not being reported as a
+pass.** Comparing COMP's output with tables on and off gave 0 differing
+samples of 200 — but the captured peak equals the injected amplitude
+exactly, so the compressor was passing signal through rather than
+compressing, and the comparison could not have failed. The likely cause is
+the recorded `_comp_parallel` default of 0 (fully dry), possibly compounded
+by the ramped-write trap that the `chain.py` negative control caught. **A
+deviation bound for COMP requires a probe that first proves the compressor
+is actually reducing gain.** Until then this lever has a measured cycle
+saving and an unmeasured numeric deviation.
+
 ### Speed grade is NOT readable from silicon — checked 2026-08-24
 
 Asked of both running chips over the diag link:

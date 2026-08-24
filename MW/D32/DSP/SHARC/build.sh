@@ -150,6 +150,14 @@ DSP4_GATE_LINTHR="${DSP4_GATE_LINTHR:-0}"
 CFLAGS="$CFLAGS -DDSP4_GATE_LINTHR=$DSP4_GATE_LINTHR"
 ASMFLAGS="$ASMFLAGS -DDSP4_GATE_LINTHR=$DSP4_GATE_LINTHR"
 
+# log2/exp2 by interpolated table instead of a 6-term polynomial. MORE
+# accurate than what it replaces (0.000016 / 0.000008 dB against 0.0001 dB)
+# but still a deviation from the current fixed_ref, so it needs a
+# numeric-spec amendment and PW sign-off. Costs 1,024 words of DM.
+DSP4_DYN_TABLES="${DSP4_DYN_TABLES:-0}"
+CFLAGS="$CFLAGS -DDSP4_DYN_TABLES=$DSP4_DYN_TABLES"
+ASMFLAGS="$ASMFLAGS -DDSP4_DYN_TABLES=$DSP4_DYN_TABLES"
+
 DSP4_COMP_NOCVT="${DSP4_COMP_NOCVT:-0}"
 # Run the node graph only every Nth block (measurement, not a mode).
 DSP4_BLOCK_DECIMATE="${DSP4_BLOCK_DECIMATE:-1}"

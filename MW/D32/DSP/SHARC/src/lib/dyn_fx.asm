@@ -63,6 +63,105 @@ _polyq_fx:
     rts;
 _polyq_fx.end:
 
+#if DSP4_DYN_TABLES
+/*----------------------------------------------------------------------
+ * _log2q_fx / _exp2q_fx — TABLE forms. 256 entries + deltas, linear
+ * interpolation. Worst error against exact: log2 0.000016 dB, 2^f
+ * 0.000008 dB -- both BETTER than the 6-term polynomials they replace,
+ * which are 0.0001 dB each.
+ *
+ * REGISTER CONTRACT IS THE BINDING CONSTRAINT HERE, not the arithmetic.
+ * The GATE and COMP block kernels hold their state in r6-r15 across these
+ * calls, so these forms use r0-r5, i0, l0 and MRF and NOTHING ELSE. That
+ * is a strict subset of what the polynomial forms touched -- the poly
+ * _exp2q_fx reached r6, which is exactly the bug that cost an hour on the
+ * GATE change.
+ *--------------------------------------------------------------------*/
+.extern _log2_tbl;
+.extern _exp2_tbl;
+
+.global _log2q_fx;
+_log2q_fx:
+    l0 = 0;
+    r1 = leftz r0;
+    r2 = 3;
+    r2 = r2 - r1;              /* e */
+    r3 = ashift r0 by r1;      /* mantissa, MSB set */
+    r4 = 0x7FFFFFFF;
+    r0 = r3 and r4;            /* t, Q31 in [0,1) */
+    r4 = r2;                   /* keep e */
+    r5 = lshift r0 by -23;     /* table index 0..255 */
+    r2 = 0x007FFFFF;
+    r2 = r0 and r2;            /* interpolation fraction, 23 bits */
+    r3 = _log2_tbl;
+    r3 = r3 + r5;
+    i0 = r3;
+    r3 = dm(i0, 1);            /* VAL[i],   Q2.30 */
+    r0 = dm(i0, 0);            /* VAL[i+1], adjacent */
+    r0 = r0 - r3;              /* delta, derived not stored */
+    mrf = r0 * r2 (ssi);
+    r0 = mr0f;
+    r1 = mr1f;
+    r0 = lshift r0 by -23;
+    r1 = lshift r1 by 9;
+    r0 = r0 or r1;             /* (DELTA*frac) >> 23 */
+    r0 = r3 + r0;              /* log2(1+t), Q2.30 */
+    r3 = 16;
+    r0 = r0 + r3;
+    r0 = ashift r0 by -5;      /* -> Q6.25, same rounding as the poly form */
+    r2 = lshift r4 by 25;
+    r0 = r0 + r2;              /* + e */
+    rts;
+_log2q_fx.end:
+
+.global _exp2q_fx;
+_exp2q_fx:
+    l0 = 0;
+    r1 = ashift r0 by -25;     /* integer part, floors for negatives */
+    r2 = 0x01FFFFFF;
+    r2 = r0 and r2;            /* fractional part, 25 bits, >= 0 */
+    r5 = lshift r2 by -17;     /* table index 0..255 */
+    r3 = 0x0001FFFF;
+    r3 = r2 and r3;            /* interpolation fraction, 17 bits */
+    r0 = _exp2_tbl;
+    r0 = r0 + r5;
+    i0 = r0;
+    r4 = dm(i0, 1);            /* VAL[i],   Q2.30 in [1,2) */
+    r0 = dm(i0, 0);            /* VAL[i+1], adjacent */
+    r0 = r0 - r4;              /* delta, derived not stored */
+    mrf = r0 * r3 (ssi);
+    r0 = mr0f;
+    r5 = mr1f;
+    r0 = lshift r0 by -17;
+    r5 = lshift r5 by 15;
+    r0 = r0 or r5;
+    r0 = r4 + r0;              /* 2^f, Q2.30 */
+    /* Q2.30 -> Q4.28 with the exponent: shift by (e - 2) */
+    r2 = 2;
+    r1 = r1 - r2;
+    r2 = 0;
+    comp(r1, r2);
+    if lt jump (pc, .e2t_right);
+    r0 = lshift r0 by r1;
+    rts;
+.e2t_right:
+    r1 = -r1;                  /* shift amount, positive */
+    r2 = 32;
+    comp(r1, r2);
+    if lt jump (pc, .e2t_rs);
+    r0 = 0;
+    rts;
+.e2t_rs:
+    r2 = r1 - 1;
+    r3 = 1;
+    r3 = lshift r3 by r2;      /* rounding half */
+    r0 = r0 + r3;
+    r2 = -r1;
+    r0 = ashift r0 by r2;
+    rts;
+_exp2q_fx.end:
+
+#else
 .global _log2q_fx;
 _log2q_fx:
 #if DSP4_STUB_LOG2
@@ -133,6 +232,7 @@ _exp2q_fx:
     r0 = ashift r0 by r2;
     rts;
 _exp2q_fx.end:
+#endif /* DSP4_DYN_TABLES */
 
 .global _envq_fx;
 _envq_fx:
