@@ -142,6 +142,14 @@ DSP4_CCLK_TARGET="${DSP4_CCLK_TARGET:-0}"
 CFLAGS="$CFLAGS -DDSP4_CCLK_TARGET=$DSP4_CCLK_TARGET"
 ASMFLAGS="$ASMFLAGS -DDSP4_CCLK_TARGET=$DSP4_CCLK_TARGET"
 
+# GATE threshold compared in the LINEAR domain instead of log2. Deletes a
+# _log2q_fx call per sample. NOT bit-exact against the current fixed_ref --
+# the gate's effective threshold shifts by at most 0.0002 dB -- so it needs
+# a numeric-spec amendment and PW sign-off before it ships. Default 0.
+DSP4_GATE_LINTHR="${DSP4_GATE_LINTHR:-0}"
+CFLAGS="$CFLAGS -DDSP4_GATE_LINTHR=$DSP4_GATE_LINTHR"
+ASMFLAGS="$ASMFLAGS -DDSP4_GATE_LINTHR=$DSP4_GATE_LINTHR"
+
 DSP4_COMP_NOCVT="${DSP4_COMP_NOCVT:-0}"
 # Run the node graph only every Nth block (measurement, not a mode).
 DSP4_BLOCK_DECIMATE="${DSP4_BLOCK_DECIMATE:-1}"

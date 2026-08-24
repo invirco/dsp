@@ -2,6 +2,60 @@
 
 provenance: AI-drafted 2026-08-23 — prose may carry a statistical watermark; rewrite by hand before publication, then remove this header.
 
+## LEVER STACK — numeric deviations for PW sign-off (batch)
+
+Each entry states what it changes, what it is worth, and the **measured**
+deviation, not just the theoretical bound. All are behind flags, all
+default off, and none is in the shipping image.
+
+### 1. GATE threshold in the linear domain — `DSP4_GATE_LINTHR`
+
+GATE computes `log2(env)` for exactly one purpose: to compare it against a
+threshold. `log2(env) >= thr` is `env >= 2^thr`, so the threshold is
+converted once per block instead of the envelope 32 times.
+
+| | |
+|---|---|
+| worth | **101 cycles/sample** (GATE 247.5 → 146.6, measured `NODE_LIMIT` 4→5) |
+| theoretical bound | **0.0002 dB** shift of the effective threshold |
+| **measured deviation on the part** | **0 differing samples of 120** |
+
+The bound is the sum of the two polynomial errors, each 0.0001 dB worst
+case over 0 to −100 dBFS (`log2_q` and `exp2_q` against exact). It is a
+fixed offset on the threshold, not per-sample noise, and the linear compare
+is *exact* where the log compare carried the polynomial error. Measured on
+a real gate-opening transient, nothing differed at all — no envelope sample
+landed within 0.0002 dB of the threshold.
+
+**A bug this found, worth recording.** `_exp2q_fx` clobbers **r6**, and the
+call was first placed after the attack alpha had been loaded into r6, so
+the envelope follower ran on garbage. It measured as a **60 dB** difference
+against a 0.0002 dB bound. The size of the discrepancy is what exposed it;
+a subtler one might have been accepted as "the expected deviation". Check
+the clobber list before placing a call — the same question that was got
+wrong about `_compgain_fx` earlier on this page.
+
+### Speed grade is NOT readable from silicon — checked 2026-08-24
+
+Asked of both running chips over the diag link:
+
+| register | value |
+|---|---|
+| `TAPC_IDCODE` | `0x128320CB` → **REVID=1 (silicon rev 0.1)**, part 0x2832, mfg 0x065 |
+| `CGU0/CDU0/DPM0/L2CTL0_REVID` | 0x30 / 0x11 / 0x20 / 0x04 — peripheral IP revisions |
+| `OTPC0_BOOT_RR0/RR1/RR2` | all zero |
+
+`IDCODE` carries **silicon revision, not speed grade** — the anomaly list
+says so explicitly, and the JTAG part field 0x2832 is a family ID shared
+across the 21560/61/64/68, not an ordering code. No OTP or fuse field
+exposes the bin. `KSWZ8` and `KSWZ10` are the same die binned by test and
+distinguished on the package marking.
+
+**Do not infer the grade by running at 983.04 and seeing if it survives** —
+that would show only that this sample worked at that moment and
+temperature. The marking on U5/U6 has to be read.
+
+
 ## THE MEASURED CEILING AT 786.432 MHz, AND THE 32-IN-ONE VERDICT
 
 Fully converted build, **signal present** so the dynamics take their real

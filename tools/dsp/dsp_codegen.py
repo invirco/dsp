@@ -273,9 +273,44 @@ _GATE_BLK_BODY = """
             r1 = fix f1;
             dm(_gate_rngq_{nid}) = r1;
 
+        #if DSP4_GATE_LINTHR
+            /* THRESHOLD IN THE LINEAR DOMAIN, ONCE PER BLOCK.
+             *
+             * GATE computes log2(env) for one purpose only: to compare it
+             * against a threshold. That comparison is equivalent in the
+             * linear domain -- log2(env) >= thr  <=>  env >= 2^thr -- so
+             * the threshold is converted ONCE here instead of the envelope
+             * being converted 32 times in the sample loop. It deletes a
+             * _log2q_fx call per sample, measured at ~95 cycles/sample.
+             *
+             * NUMERIC DEVIATION, and it is a small one. Both directions go
+             * through the same polynomials, whose worst error over 0 to
+             * -100 dBFS is 0.0001 dB (log2_q) and 0.0001 dB (exp2_q), so
+             * the gate's EFFECTIVE THRESHOLD shifts by at most 0.0002 dB.
+             * That is a fixed offset on the threshold, not per-sample
+             * noise, and the linear compare is exact where the log compare
+             * carried the polynomial error. Samples whose envelope sits
+             * within 0.0002 dB of the threshold may open or close one
+             * sample earlier or later; the gain then ramps through a
+             * one-pole smoother, so nothing steps.
+             *
+             * NOT bit-exact against the current fixed_ref, so it needs a
+             * numeric-spec amendment and PW's sign-off before it ships.
+             *
+             * THIS CALL MUST COME BEFORE r6/r7 ARE LOADED. _exp2q_fx
+             * clobbers r0-r6, so placing it after the attack/release
+             * alphas were in r6/r7 destroyed the attack alpha and the
+             * envelope follower ran on garbage -- measured as a 60 dB
+             * difference, not the 0.0002 dB the arithmetic predicts. */
+            r0 = dm(_gate_thrq_{nid});
+            call _exp2q_fx;
+            r8 = r0;                      /* 2^thr, Q4.28 linear */
+        #else
+            r8 = dm(_gate_thrq_{nid});
+        #endif
             r6 = dm(_gate_attq_{nid});
             r7 = dm(_gate_relq_{nid});
-            r8 = dm(_gate_thrq_{nid});
+
             r9 = dm(_gate_rngq_{nid});
             r10 = dm(_gate_envelope_{nid});
             r11 = dm(_gate_gain_{nid});
@@ -293,8 +328,12 @@ _GATE_BLK_BODY = """
                 r10 = r0;
                 r1 = pass r0;
                 if le jump (pc, .gkb_below_{nid});
+        #if DSP4_GATE_LINTHR
+                comp(r0, r8);             /* env vs 2^thr, both Q4.28 */
+        #else
                 call _log2q_fx;
                 comp(r0, r8);
+        #endif
                 if ge jump (pc, .gkb_open_{nid});
             .gkb_below_{nid}:
                 r14 = r14 - 1;
@@ -7449,6 +7488,7 @@ def gen_gate_fixed(node):
         .extern _sample_idx;
         .extern _envq_fx;
         .extern _log2q_fx;
+        .extern _exp2q_fx;
         .extern _mrf_rns28;
         .extern _bq_fx_cascade_N;
         .extern _bq_fx_convert_N;

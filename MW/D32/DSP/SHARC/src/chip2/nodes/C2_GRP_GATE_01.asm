@@ -73,6 +73,7 @@
 .extern _sample_idx;
 .extern _envq_fx;
 .extern _log2q_fx;
+.extern _exp2q_fx;
 .extern _mrf_rns28;
 .extern _bq_fx_cascade_N;
 .extern _bq_fx_convert_N;
