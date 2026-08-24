@@ -21,7 +21,16 @@ from GAIN through FDR, stages are bare MACs/cascades at 64-bit precision, the
 Q4.28 round/saturate/store happens ONCE at the strip boundary. The ~14-cycle
 per-stage exit tax (measured in GAIN's 18 cycles for 1 cycle of maths) is
 deleted at every stage, not optimised. SIMD pairing applies to the fused
-kernel. Then fabric to 40k, then the ceiling at 786.**
+kernel. Then fabric to 40k, then the ceiling at 786.
+ADDENDUM (PW, 16:5xZ): stage-to-stage handoff inside the fused strip is ZERO
+instructions — stage N's result register IS stage N+1's operand; at most one
+positioning move where the MAC accumulator demands it. Use the multifunction
+lines (multiplier + ALU + two data moves per cycle) so next-stage state loads
+overlap current-stage maths. Pipeline ORDER is hard-coded by the generator
+from the product definition — no runtime stage dispatch inside a strip. The
+fused kernel is judged against the floor: maths + persistent state +
+delay-line memory + one load/store/round-saturate at the strip ends;
+anything else emitted is structure to delete.**
 
 **PW DECISION 2026-08-24 14:0xZ: GO WITH THE 800 MHz OPERATING POINT —
 enable `DSP4_CCLK_TARGET=786` (786.432 MHz, legal on both speed grades;
