@@ -139,6 +139,17 @@ def parse_params(cell):
 # ===========================================================================
 
 def gen_input_tdm(node):
+    # A strip input feeds a strip that runs to completion before the next
+    # one starts, so those share the pool. Inputs that are NOT part of a
+    # strip (XIN_*) are not covered by DSP4_STRIPS and run AFTER the strips
+    # in the call chain -- pooling them made them overwrite strip 1's slot
+    # after its FILT had already written it, which read as a dead filter.
+    import re as _re
+    _strip_in = bool(_re.match(r'^C\d+_IN_\d+$', node['id']))
+    blk_out_ptr = 'BLK_CHAIN_A' if _strip_in else f"_buf_{node['id']}"
+    blk_out_decl = ('.var _buf_' + node['id'] + ';') if _strip_in \
+                   else ('.var _buf_' + node['id'] + '[32];')
+
     p = node['params']
     return dedent(f"""\
         {ramp_comment(node['ramp_profile'])}
@@ -150,11 +161,13 @@ def gen_input_tdm(node):
         .section/dm seg_dmda;
         /* Under block kernels this kernel reads the DMA buffer directly,
          * so the slot var is unreferenced -- kept as a scalar purely so
-         * block_io.asm's tables still resolve. The block output lives in
-         * the SHARED pool; _buf_ is kept for unconverted consumers and
-         * carries the last sample of the block. */
+         * block_io.asm's tables still resolve. */
         .var _rx_slot_{node['id']};
+        #if DSP4_BLOCK_KERNELS
+        {blk_out_decl}
+        #else
         .var _buf_{node['id']};
+        #endif
 
         .section/pm seg_pmco;
         .global _{node['id']}_process;
@@ -173,7 +186,7 @@ def gen_input_tdm(node):
             i0 = r3;
             r4 = {p.get('rx_stride', 1)};
             m0 = r4;
-            i1 = BLK_CHAIN_A;
+            i1 = {blk_out_ptr};
             r5 = 32;
             lcntr = r5; do .in_lp_{node['id']} until lce;
                 r2 = dm(i0, m0);
@@ -181,7 +194,6 @@ def gen_input_tdm(node):
                 dm(i1, 1) = r2;
         .in_lp_{node['id']}:
                 nop;
-            dm(_buf_{node['id']}) = r2;   /* linkage scalar */
             rts;
         #else
             r0 = dm(_rx_slot_{node['id']});

@@ -280,8 +280,36 @@ Register budget is the reason coefficients are still re-read per sample
 (one instruction each): six state registers plus five coefficients plus
 working room does not fit in sixteen.
 
-**Wiring FILT/EQ to it is the open step**, and it is not a wrap-and-go —
-see the reverted attempt above. The plan that accounts for that failure:
+**Wiring FILT/EQ is still open, but the search is now narrow.** Second
+attempt, wired per the plan below and reverted again — with two real
+findings banked on the way:
+
+**Fixed and kept: the pool had a slot-clobber bug.** Every `INPUT_TDM`
+node wrote `BLK_CHAIN_A`, but the non-strip inputs (`C1_XIN_*` — Pi,
+codec, MEMS, sinks) are **not** covered by the `DSP4_STRIPS` gate, so they
+run after the strips in the call chain and overwrote strip 1's slot *after*
+its FILT had already written it. The symptom was a filter that looked
+completely dead while its own state and linkage scalar showed it computing
+correctly — which is what finally localised it. Non-strip inputs now get
+private 32-word buffers; only strip inputs share the pool. This was a
+latent hazard for every future class, not just FILT.
+
+**Still open, and now precisely bounded:** with the block cascade wired,
+`both_unity` passes at **0 LSB** while every real filter fails
+(worst 1.2e8). Unity is exactly the case where the feedback terms cancel,
+so the fault is in **state handling under genuine feedback** in the
+register-resident loop — not in the MAC chain, the coefficient conversion,
+the two-call HPF/LPF structure, or the block plumbing, all of which unity
+exercises. Prime suspects in order: interaction with the MAC unit's
+implicit registers across iterations, and m-register interference
+(`_bq_fx_cascade_blk` sets m1/m2/m3 while `_bq_fx_cascade_N` also uses m1).
+
+Also spotted while tracing, not yet biting: `_bq_fx_cascade_blk` never
+advances `i0` between stages — the per-sample rewind leaves it on stage 0's
+coefficients. FILT calls it once per section with `r4 = 1` so it does not
+show, but EQ uses `r4 = 4` and would.
+
+The plan the attempt followed, which still looks right:
 
 1. Steady state uses `_bq_fx_cascade_blk` in place over the block, called
    once per section (HPF then LPF; their coefficient arrays are separate,

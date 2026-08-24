@@ -19,13 +19,16 @@
 .section/dm seg_dmda;
 /* Under block kernels this kernel reads the DMA buffer directly,
  * so the slot var is unreferenced -- kept as a scalar purely so
- * block_io.asm's tables still resolve. The block output lives in
- * the SHARED pool; _buf_ is kept for unconverted consumers and
- * carries the last sample of the block. */
+ * block_io.asm's tables still resolve. */
 .global _rx_slot_C1_XIN_CODEC_03;
 .var _rx_slot_C1_XIN_CODEC_03;
+#if DSP4_BLOCK_KERNELS
+.global _buf_C1_XIN_CODEC_03;
+.var _buf_C1_XIN_CODEC_03[32];
+#else
 .global _buf_C1_XIN_CODEC_03;
 .var _buf_C1_XIN_CODEC_03;
+#endif
 
 .section/pm seg_pmco;
 .global _C1_XIN_CODEC_03_process;
@@ -44,7 +47,7 @@ _C1_XIN_CODEC_03_process:
     i0 = r3;
     r4 = 3;
     m0 = r4;
-    i1 = BLK_CHAIN_A;
+    i1 = _buf_C1_XIN_CODEC_03;
     r5 = 32;
     lcntr = r5; do .in_lp_C1_XIN_CODEC_03 until lce;
         r2 = dm(i0, m0);
@@ -52,7 +55,6 @@ _C1_XIN_CODEC_03_process:
         dm(i1, 1) = r2;
 .in_lp_C1_XIN_CODEC_03:
         nop;
-    dm(_buf_C1_XIN_CODEC_03) = r2;   /* linkage scalar */
     rts;
 #else
     r0 = dm(_rx_slot_C1_XIN_CODEC_03);
