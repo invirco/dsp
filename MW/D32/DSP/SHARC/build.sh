@@ -121,6 +121,12 @@ DSP4_STRIP_FUSED="${DSP4_STRIP_FUSED:-0}"
 CFLAGS="$CFLAGS -DDSP4_STRIP_FUSED=$DSP4_STRIP_FUSED"
 ASMFLAGS="$ASMFLAGS -DDSP4_STRIP_FUSED=$DSP4_STRIP_FUSED"
 
+# SIMD (PEx/PEy) feasibility probe: pairs two strips into one instruction
+# stream. Measurement only, not wired into the graph.
+DSP4_SIMD_PROBE="${DSP4_SIMD_PROBE:-0}"
+CFLAGS="$CFLAGS -DDSP4_SIMD_PROBE=$DSP4_SIMD_PROBE"
+ASMFLAGS="$ASMFLAGS -DDSP4_SIMD_PROBE=$DSP4_SIMD_PROBE"
+
 DSP4_COMP_NOCVT="${DSP4_COMP_NOCVT:-0}"
 # Run the node graph only every Nth block (measurement, not a mode).
 DSP4_BLOCK_DECIMATE="${DSP4_BLOCK_DECIMATE:-1}"

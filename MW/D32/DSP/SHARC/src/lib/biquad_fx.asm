@@ -444,3 +444,120 @@ _bq_fx_convert_N:
 
     rts;
 _bq_fx_convert_N.end:
+
+#if DSP4_SIMD_PROBE
+/*----------------------------------------------------------------------
+ * _bq_fx_cascade_simd — the fused cascade, two strips per instruction
+ * stream on the PEx/PEy pair.
+ *
+ * Strips are per-channel and independent, which is exactly the shape SIMD
+ * wants. Coefficients, state and signal are INTERLEAVED by strip: A's word
+ * then B's word, so a single access with modifier 2 feeds both compute
+ * units. Every register below is really a pair.
+ *
+ * The one structural change from the fused scalar version is the
+ * saturation. A jump uses PEx's condition for BOTH units, so a branch here
+ * would saturate strip B whenever strip A clipped. It is a per-PE
+ * CONDITIONAL MOVE instead -- conditional COMPUTE is evaluated
+ * independently in each unit, which is the whole SIMD idiom. The saturated
+ * value is built before the compare, because the ALU ops that build it
+ * would otherwise overwrite the flags it is conditioned on.
+ *
+ * x is folded into the state update early, before the rounding, purely to
+ * free r0 as the third temporary the branch-free saturation needs.
+ *
+ * In:  i0 = interleaved coeffs, i1 = interleaved state,
+ *      i2 = interleaved signal (64 words), r4 = stages.
+ *----------------------------------------------------------------------*/
+.global _bq_fx_cascade_simd;
+_bq_fx_cascade_simd:
+    l0 = 0;
+    l1 = 0;
+    l2 = 0;
+    r15 = -64;
+    m2 = r15;                  /* rewind the interleaved block per stage */
+    r15 = 10;
+    m3 = r15;                  /* state base+2 -> next stage's base      */
+
+    bit set mode1 0x00200000;  /* PEYEN */
+    nop;
+    nop;
+
+    lcntr = r4, do .bqs_stage until lce;
+        r4 = dm(i0, 2);
+        r5 = dm(i0, 2);
+        r6 = dm(i0, 2);
+        r7 = dm(i0, 2);
+        r8 = dm(i0, 2);
+
+        r9  = dm(i1, 2);
+        r10 = dm(i1, 2);
+        r11 = dm(i1, 2);
+        r12 = dm(i1, 2);
+        r2  = dm(i1, 2);       /* efb_lo */
+        r3  = dm(i1, 0);       /* efb_hi */
+        mr0f = r2;
+        mr1f = r3;
+        r2 = ashift r3 by -31;
+        mr2f = r2;
+
+        r13 = 0x10000000;
+        r14 = 0x08000000;
+        r15 = 1;
+
+        lcntr = 32, do .bqs_samp until lce;
+            r0 = dm(i2, 0);
+            mrf = mrf + r4 * r0 (ssi);
+            mrf = mrf + r4 * r10 (ssi);
+            mrf = mrf - r4 * r9 (ssi);
+            mrf = mrf - r4 * r9 (ssi);
+            mrf = mrf + r5 * r9 (ssi);
+            mrf = mrf + r6 * r10 (ssi);
+            mrf = mrf - r7 * r11 (ssi);
+            mrf = mrf + r8 * r12 (ssi);
+            mrf = mrf + r13 * r11 (ssi);
+            mrf = mrf + r13 * r11 (ssi);
+            mrf = mrf - r13 * r12 (ssi);
+
+            r10 = r9;                       /* x2' = x1, frees r0 */
+            r9 = r0;
+
+            mrf = mrf + r14 * r15 (ssi);    /* round */
+            r2 = mr0f;
+            r3 = mr1f;
+            r1 = lshift r2 by -28;
+            r2 = lshift r3 by 4;
+            r1 = r1 or r2;                  /* candidate y */
+            r0 = ashift r3 by -31;          /* sign of acc */
+            r2 = 0x7FFFFFFF;
+            r0 = r2 xor r0;                 /* saturated value, built FIRST */
+            r2 = ashift r3 by -28;
+            r3 = ashift r1 by -31;
+            comp(r2, r3);
+            if ne r1 = pass r0;             /* per-PE, not a branch */
+
+            mrf = mrf - r14 * r15 (ssi);
+            mrf = mrf - r1 * r13 (ssi);
+            r12 = r11;
+            r11 = r1;
+        .bqs_samp: dm(i2, 2) = r1;
+
+        r2 = mr0f;
+        r3 = mr1f;
+        dm(i1, -2) = r3;
+        dm(i1, -2) = r2;
+        dm(i1, -2) = r12;
+        dm(i1, -2) = r11;
+        dm(i1, -2) = r10;
+        dm(i1, 2) = r9;
+        modify(i1, m3);
+        modify(i2, m2);
+    .bqs_stage:
+        nop;
+
+    bit clr mode1 0x00200000;
+    nop;
+    nop;
+    rts;
+_bq_fx_cascade_simd.end:
+#endif

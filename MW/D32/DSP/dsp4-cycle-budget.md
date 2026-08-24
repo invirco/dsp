@@ -880,6 +880,83 @@ Two things came out of it and both are kept:
   (`COLLECT_TRIES`) before concluding anything is out of phase, so a slow
   answer is no longer turned into a manufactured fault.
 
+## SIMD pairing works, and the fit answer — 2026-08-24
+
+### PEy is real and it is driven
+
+Asked of the part rather than the manual (`DSP4_SIMD_PROBE`): enable
+`MODE1.PEYEN`, do arithmetic on interleaved pairs, read both halves back.
+**Both PEy results came back correct.** SIMD is available on the
+ADSP-21564 and one instruction stream drives two compute units.
+
+### A SIMD biquad cascade, measured
+
+`_bq_fx_cascade_simd` runs the fused cascade for **two strips at once**,
+coefficients, state and signal interleaved by strip. Two things had to
+change from the scalar version:
+
+- **Saturation became a per-PE conditional MOVE.** A jump uses PEx's
+  condition for *both* units, so a branch would have saturated strip B
+  whenever strip A clipped. Conditional *compute* is evaluated
+  independently in each unit — that is the whole SIMD idiom. The saturated
+  value is built **before** the compare, because the ALU ops that build it
+  would otherwise overwrite the flags it is conditioned on.
+- **`x` folds into the state update early**, before the rounding, purely to
+  free r0 as the third temporary the branch-free saturation needs.
+
+| | |
+|---|---|
+| scalar, two strips one after the other | 43 ms / 4000 iterations |
+| **SIMD, the same two strips together** | **18 ms** |
+| **factor** | **2.39×** (2.2–2.6 at ±1 tick) |
+| output difference | **0 samples of 64** |
+
+The strips carry **different coefficients** — identical strips would hide a
+PEy quietly reading PEx's operands, which is exactly what this had to rule
+out. Above 2× because the scalar arm pays two calls and two per-stage
+setups where the SIMD arm pays one.
+
+*(Instrument note: TCOUNT read back values inconsistent with a TPERIOD
+reload and gave nonsense ratios. The 1 kHz diag tick over 4000 iterations
+is the instrument that works, and it is the one this page already trusts.)*
+
+### The fit against the goal line: 32 basic strips in ONE 21564
+
+Required, and what the measured path actually delivers:
+
+| | cycles/sample/strip | strips that fit one 21564 |
+|---|---|---|
+| **required for 32 strips** (fabric at its 40k target) | **249** | **32** |
+| scalar, fused biquads — measured today | 823 | 9.7 |
+| SIMD on the biquads only | 673 | 11.8 |
+| SIMD on all but DLY and RTG | 428 | 18.6 |
+| SIMD on the whole strip — **upper bound** | 344 | **23.2** |
+
+**On measurement, 32 basic strips do not fit one 21564.** The last row is
+an upper bound that assumes the entire strip pairs perfectly, and it still
+lands at 23 strips against 32. There is no arrangement of the current
+kernels that reaches the goal line.
+
+**Why DLY and RTG probably cannot pair.** SIMD duplicates the compute
+units and the register file (Rx/Sx) — it does **not** duplicate the address
+generators. Both strips of a pair share one set of DAGs, so any node whose
+*addressing* differs per strip cannot be a single SIMD access. DLY's
+delay-line read offset and pool slot are per-strip, and RTG's routing is
+data-dependent. That is why the realistic row is 18.6, not 23.2.
+
+**What would have to change to reach 32/chip.** The dynamics are 332 of the
+823 cycles/sample (GATE 153, COMP+TUBE 180) and are almost all log2/exp2
+polynomial evaluation. Halving them — a numerics change needing D5
+sign-off, not a coding change — gives 22 strips/chip with realistic SIMD.
+Still not 32. The goal line is not reachable by generating better code for
+the algorithms the strip currently runs.
+
+**What IS comfortably reachable: 32 strips on the CARD.** The card carries
+two 21564s. At the realistic 18.6 strips/chip the card does 37 strips
+*today's kernels plus SIMD*, i.e. the full 32-channel product with margin —
+which is the same product outcome, using the silicon already fabbed. What
+it does not give is PW's "32 in one chip, two on the card = headroom".
+
 ## The capacity arithmetic, after everything converted so far
 
 This is the number the conversion has to be judged against, and it is not
