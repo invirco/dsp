@@ -134,6 +134,14 @@ DSP4_PROFILE_SIGNAL="${DSP4_PROFILE_SIGNAL:-0}"
 CFLAGS="$CFLAGS -DDSP4_PROFILE_SIGNAL=$DSP4_PROFILE_SIGNAL"
 ASMFLAGS="$ASMFLAGS -DDSP4_PROFILE_SIGNAL=$DSP4_PROFILE_SIGNAL"
 
+# Core clock. 0 = CGU reset defaults (491.52 MHz), which is what every
+# shipping image has ever run. 786 = 786.432 MHz (legal on both speed
+# grades), 983 = 983.04 MHz (ADSP-21564KSWZ10 only -- OUT OF SPEC on a
+# KSWZ8). DO NOT set this until the part marking on U5/U6 has been read.
+DSP4_CCLK_TARGET="${DSP4_CCLK_TARGET:-0}"
+CFLAGS="$CFLAGS -DDSP4_CCLK_TARGET=$DSP4_CCLK_TARGET"
+ASMFLAGS="$ASMFLAGS -DDSP4_CCLK_TARGET=$DSP4_CCLK_TARGET"
+
 DSP4_COMP_NOCVT="${DSP4_COMP_NOCVT:-0}"
 # Run the node graph only every Nth block (measurement, not a mode).
 DSP4_BLOCK_DECIMATE="${DSP4_BLOCK_DECIMATE:-1}"

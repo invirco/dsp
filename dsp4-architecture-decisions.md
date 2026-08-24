@@ -461,6 +461,51 @@ every one inside the datasheet ranges (fCCLK 400–1000, fSYSCLK 200–500,
 fSCLK0 30–125), and fCCLK = 2 × fSYSCLK as Table 14 requires. **D10's
 arithmetic is confirmed by measurement, including the /2.**
 
+### D10 REVISION NOTE — 2026-08-24: the CGU decision is superseded on cost grounds
+
+D10 concluded that programming the CGU "would buy nothing and cost a PLL
+relock during boot". The first half is no longer true. The datasheet
+(Rev. A, Feb 2026, now local) rates the ADSP-21564 at **800 MHz
+(`ADSP-21564KSWZ8`) or 1 GHz (`ADSP-21564KSWZ10`)**, and the reset defaults
+run it at **491.52 MHz** — roughly half. Programming the CGU buys
+**1.6× to 2.0× of the entire cycle budget**, which is a larger lever than
+every kernel optimisation measured to date combined, and capacity is now
+the binding constraint on the product.
+
+**The second half of D10 still stands, as a constraint on WHEN.** The relock
+must not happen with the boot kernel's SPI transfer in flight. `cgu_init.asm`
+therefore runs at `CONFIG_COMMIT`, after boot and before audio.
+
+**A limit that defeats the obvious plan.** Table 14 requires
+`fSYSCLK = N × fSCLK0` with **N restricted to 2..6**, so SCLK0 cannot be
+held at its present 61.44 MHz once CCLK moves — at CCLK 983.04 the
+reachable values are 245.76, 163.84, 122.88, 98.304 and 81.92. S0SEL=6 is
+the closest legal setting. This is harmless for the audio path (the SPORTs
+are externally clocked by the CPLD and Table 14 only requires
+`fSPTCLKEXT ≤ fSCLK0`, which rises) and for the parameter link (the CM4 is
+SPI master, the DSP is slave, so there is no baud divider on this side to
+re-derive).
+
+| target | MSEL | CGU0_CTL | CGU0_DIV | CCLK | SYSCLK | SCLK0 | SCLK1 |
+|---|---|---|---|---|---|---|---|
+| today | 40 | `0x00002800` | `0x05144281` | 491.520 | 245.760 | 61.440 | 122.880 |
+| 786.432 MHz | 64 | `0x00004000` | `0x051442C1` | 786.432 | 393.216 | 65.536 | 196.608 |
+| 983.040 MHz | 80 | `0x00005000` | `0x051442C1` | 983.040 | 491.520 | 81.920 | 245.760 |
+
+The `CGU0_DIV` encoding was verified by decoding the value D10 measured off
+the running part — `0x05144281` decodes to CSEL=1, SYSSEL=2, S0SEL=4,
+S1SEL=2, DSEL=20, OSEL=20, exactly as D10 recorded.
+
+**Silicon errata: none apply.** The anomaly list (NR004940B, Rev B, March
+2025) has thirteen entries and not one concerns the CGU, the PLL or clock
+switching.
+
+**STATUS: PREPARED, NOT ENABLED.** `DSP4_CCLK_TARGET` defaults to 0 and the
+shipping image is byte-identical (`0df38e82…`). **983.04 MHz is out of
+specification on a `KSWZ8`** — the fitted grade on U5/U6 has not been read,
+and nothing may be flashed until it has. Power and thermal at ~2× core
+clock are also unassessed.
+
 **DECISION: the firmware does NOT program the CGU.** The reset defaults
 already land on a fully in-spec, audio-rational tree from the one
 24.576 MHz CLKIN, so a CGU write in early init would buy nothing and

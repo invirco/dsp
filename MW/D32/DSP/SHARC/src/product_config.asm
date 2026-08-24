@@ -59,6 +59,9 @@
 .section/pm seg_pmco;
 
 .extern _scope_gates_apply;
+#if DSP4_CCLK_TARGET != 0
+.extern _cgu_raise_cclk;
+#endif
 #if DSP4_BQ_SELFTEST
 .extern _bq_selftest;
 #endif
@@ -146,6 +149,16 @@ _product_config_commit:
 #endif
 #if DSP4_BQ_SELFTEST
     call _bq_selftest;            /* debug: block vs per-sample cascade */
+#endif
+#if DSP4_CCLK_TARGET != 0
+    /* Raise the core clock. Deliberately here and not in early boot:
+     * D10's objection to programming the CGU was a PLL relock with the
+     * boot kernel's SPI transfer still in flight, which is an objection
+     * to WHEN, not whether. By this point boot is done and audio has not
+     * started. The CM4 is the SPI MASTER and the DSP is the slave, so the
+     * link has no baud divider of its own to re-derive -- SCLK0 only has
+     * to stay above the master's clock, and it rises. */
+    call _cgu_raise_cclk;
 #endif
 #if DSP4_COMMIT_STAGE >= 2
     r0 = dm(_product_id);
