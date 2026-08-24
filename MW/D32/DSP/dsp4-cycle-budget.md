@@ -575,6 +575,45 @@ Two things came out of it and both are kept:
   (`COLLECT_TRIES`) before concluding anything is out of phase, so a slow
   answer is no longer turned into a manufactured fault.
 
+## The capacity arithmetic, after everything converted so far
+
+This is the number the conversion has to be judged against, and it is not
+close.
+
+Post-conversion, per strip and per block:
+
+| | cycles/block |
+|---|---|
+| strip, before the rewrite | 63,131 |
+| strip, now (IN, GAIN, FDR, RTG converted) | **42,306** |
+| fixed overhead, before | 144,166 |
+| fixed overhead, now (block I/O converted) | **109,064** |
+| available for strips = 327,680 − 109,064 | **218,616** |
+
+So **5.17 strips** by arithmetic, up from 2.91. Against what the products
+need:
+
+| | strips required | cycles/block needed | vs 218,616 available |
+|---|---|---|---|
+| D24 | 24 | 1,015,344 | **4.6× over** |
+| D32 | 32 | 1,353,792 | **6.2× over** |
+
+**The six unconverted classes are 88 % of what a strip now costs**: EQ 338,
+FILT 227, GATE 204, COMP 202, DLY 148, TUBE 40 = 1,159 of 1,329
+cycles/sample. Everything converted so far is the other 12 %.
+
+And converting them is not enough either. Halve **all six** — better than
+any measured conversion except RTG's, and COMP/GATE have already been
+measured as not worth converting at all — and a strip falls to 23,762,
+which fits **9.2 strips**. Still 2.6× short of D24.
+
+That is the honest state of it: the rewrite is working (2.91 → 5.17 strips,
+every step measured and bit-exact) and it cannot get one SHARC to 24
+channels by itself. Scope gating, worth 0.46 % of budget, does not change
+this; neither does any single remaining node class. What would move it is a
+change of shape — fewer nodes per strip, a bigger block, or the strip count
+per part — and that is a hub decision, not an optimisation.
+
 ## What this means for the decision
 
 The gap is 6.6×. Reading it against the hub's four options:
