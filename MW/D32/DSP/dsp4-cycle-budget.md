@@ -357,6 +357,40 @@ interpolate the gain per sample**, which is a numeric change and needs a
 `shared/numeric-spec.md` amendment with a stated error bound before it can
 be verified against anything.
 
+### The compressor's gain computer is only 9.6 % of it — measured 2026-08-24
+
+`DSP4_STUB_COMPGAIN=1` makes `_compgain_fx` return unity immediately, so
+the difference against a normal build is exactly what the log2/exp2 gain
+computer costs:
+
+| build | COMP cycles/block |
+|---|---|
+| normal | 6,232 |
+| `DSP4_STUB_COMPGAIN=1` | 5,634 |
+| **gain computer** | **598 (18.7 cycles/sample, 9.6 % of COMP)** |
+
+**This kills step 4 of the rewrite plan as written.** That step proposed
+running the gain computer at BLOCK rate with per-sample interpolation, and
+called for a `shared/numeric-spec.md` amendment with an error bound to
+justify the approximation. The prize is 9.6 % of one node class — about
+1 % of a channel strip — in exchange for making the dynamics no longer
+bit-exact against `fixed_ref`. **Not worth it.** The polynomials were the
+obvious suspect and they are not the problem; that is exactly why it was
+worth measuring before amending a numeric spec.
+
+The other 90 % is structure: the `_sample_idx` guard, three library calls
+per sample (`_envq_fx` and two `_mrf_rns28`), the parameter loads, and the
+parallel blend. Hoisting and inlining those is bit-exact and needs no spec
+change — but `_compgain_fx` and its callees clobber r0-r6 and r8-r12, so
+only **r7, r13, r14, r15** survive the call. Almost nothing can be hoisted
+ACROSS it, which caps the realistic saving at roughly 26 cycles/sample
+against the ~16 cycles/sample the wrapper itself costs. Net ≈ 5 %.
+
+So COMP and GATE are, on this evidence, **not worth converting**: the
+overhead that block form removes is not where their time goes. That is a
+different answer from GAIN and RTG, and it is the measurement that says so
+rather than a judgement call.
+
 ### Biquads — PARKED 2026-08-24, state note
 
 FILT/EQ are the second-biggest strip cost (227 and 338 cycles/sample,

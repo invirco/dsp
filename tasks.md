@@ -893,6 +893,39 @@ Method — one family at a time, in profile order, measured after each:
    block above) are the reference; every rewritten family must pass the same
    rows bit-exact vs fixed_ref before it replaces the old one. The cycle
    instrument (TCOUNT per class) runs on every build — update the table.
+0a. STATUS 2026-08-24 (one-read picture)
+   CONVERTED AND VERIFIED, default build byte-identical throughout:
+     block I/O + IN   67,809 -> 32,707 cycles/block   2.07x  (scatter deleted)
+     GAIN              2,321 ->    574                4.04x  bit-exact 0 LSB
+     RTG              19,186 ->  2,626                7.3x   cycles only *
+     * RTG reads FDR, which is unconverted, so its DATA is garbage; the code
+       shape and memory traffic are representative so the cycles stand.
+   ~50,000 cycles/block removed. sec_dmda 21,046 words vs 20,840 default,
+   ceiling ~22,500. Bus accumulators are parked in L2 (no room internally),
+   which makes the RTG figure conservative.
+
+   PARKED, with state notes below and in dsp4-cycle-budget.md:
+     FILT/EQ  register-resident cascade written and unused. Unity passes at
+              0 LSB, real filters fail -> fault is state handling under
+              feedback. _bq_fx_cascade_blk is only correct for r4=1, so EQ
+              (r4=4) must not be attempted until i0 advances between stages.
+     COMP/GATE NOT WORTH CONVERTING on the evidence. A wrap alone measured
+              8% SLOWER; the gain computer everyone assumed was the cost is
+              only 9.6% of COMP; and _compgain_fx clobbers all but four
+              registers so almost nothing can be hoisted across it. Ceiling
+              is ~5% net. Step 4 of this plan (block-rate gain computer +
+              interpolation, needing a numeric-spec amendment) is withdrawn
+              on those numbers.
+
+   THE GENERAL LESSON, measured three ways: a wrap on its own buys nothing.
+   Every win so far came from work LIFTED OUT of the sample loop - the
+   guard, hoisted invariants, inlined helpers, a gating tree run once. Ask
+   of each remaining class "how much can be lifted", not "can it be wrapped".
+
+   STILL OPEN: the boot-time input patch (_rx_patch_regs) is bypassed by the
+   RX reclaim and must be folded into the per-node offset before this path
+   can ship.
+
 0b. BASELINE MEASURED 2026-08-24 (post-fix build). Harness families are
    green and recorded in tools/dsp/hw-reports/README.md - that is the
    bit-exactness reference. GAIN cycle baseline re-measured on the current
