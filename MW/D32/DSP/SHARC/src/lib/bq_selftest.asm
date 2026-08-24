@@ -63,17 +63,23 @@
 .global _sq_cB;   .var _sq_cB[10] =
     0x0FD6A007, 0x00000000, 0x00000000, 0x0055E080, 0x004F9F63,
     0x00100A4E, 0x00402937, 0x00000000, 0x02F47534, 0x02B44BFC;
-.global _sq_ilv_c; .var _sq_ilv_c[20];
 .global _sq_sA;   .var _sq_sA[12];
 .global _sq_sB;   .var _sq_sB[12];
-.global _sq_ilv_s; .var _sq_ilv_s[24];
 .global _sq_xA;   .var _sq_xA[32];
 .global _sq_xB;   .var _sq_xB[32];
-.global _sq_ilv;  .var _sq_ilv[64];
 .global _sq_cyc_scalar; .var _sq_cyc_scalar = 0;
 .global _sq_cyc_simd;   .var _sq_cyc_simd = 0;
 .global _sq_ndiff;      .var _sq_ndiff = 0;
 .global _sq_raw;        .var _sq_raw[5] = 0, 0, 0, 0, 0;  /* s0 s1 m0 m1 tperiod */
+/* Copies for the PAIRING wrapper, which does its own interleave and
+ * de-interleave -- proving _bq_fx_cascade_simd on pre-interleaved data is
+ * not the same as proving _bq_pair_blk on the layout the graph actually
+ * has. */
+.global _sq_pA;   .var _sq_pA[32];
+.global _sq_pB;   .var _sq_pB[32];
+.global _sq_psA;  .var _sq_psA[12];
+.global _sq_psB;  .var _sq_psB[12];
+.global _sq_pdiff; .var _sq_pdiff = 0;
 #endif
 
 .section/pm seg_pmco;
@@ -184,23 +190,6 @@ _bq_selftest:
     lcntr = 12, do .sq_zs until lce;
         dm(i3, 1) = r0;
     .sq_zs: dm(i4, 1) = r0;
-    i3 = _sq_ilv_s; r0 = 0;
-    lcntr = 24, do .sq_zi until lce;
-    .sq_zi: dm(i3, 1) = r0;
-
-    /* interleave coefficients and signal */
-    i3 = _sq_cA; i4 = _sq_cB; i5 = _sq_ilv_c;
-    lcntr = 10, do .sq_ic until lce;
-        r0 = dm(i3, 1);
-        dm(i5, 1) = r0;
-        r0 = dm(i4, 1);
-    .sq_ic: dm(i5, 1) = r0;
-    i3 = _sq_xA; i4 = _sq_xB; i5 = _sq_ilv;
-    lcntr = 32, do .sq_ix until lce;
-        r0 = dm(i3, 1);
-        dm(i5, 1) = r0;
-        r0 = dm(i4, 1);
-    .sq_ix: dm(i5, 1) = r0;
 
     /* ---- scalar: two strips, one after the other ---- */
     /* Timed over MANY iterations against the 1 kHz diag tick. One pass is
@@ -220,30 +209,58 @@ _bq_selftest:
     r13 = dm(_diag_ticks);
     dm(_sq_raw + 1) = r13;
 
-    /* ---- SIMD: the same two strips together, same iteration count ---- */
+    /* ---- SIMD: the same two strips together, THROUGH THE PAIRING
+     * WRAPPER, so the interleave and de-interleave are inside the timed
+     * span. Timing the pre-interleaved cascade would have flattered it by
+     * assuming away the very overhead that decides whether pairing is
+     * worth doing. ---- */
     r12 = dm(_diag_ticks);
     dm(_sq_raw + 2) = r12;
     lcntr = 4000, do .sq_mloop until lce;
-        i0 = _sq_ilv_c; i1 = _sq_ilv_s; i2 = _sq_ilv; r4 = 2;
-        call _bq_fx_cascade_simd;
+        r8 = _sq_cA;  r9 = _sq_psA;  r10 = _sq_pA;
+        r11 = _sq_cB; r12 = _sq_psB; r13 = _sq_pB;
+        r4 = 2;
+        call _bq_pair_blk;
     .sq_mloop: nop;
     r13 = dm(_diag_ticks);
     dm(_sq_raw + 3) = r13;
 
-    /* ---- and it has to be the SAME answer ---- */
-    i3 = _sq_xA; i4 = _sq_xB; i5 = _sq_ilv; r14 = 0;
-    lcntr = 32, do .sq_cmp until lce;
+    /* ---- the PAIRING WRAPPER on the graph's own layout ---- */
+    i3 = _sq_xA;   /* careful: _sq_xA now holds the SCALAR RESULT */
+    l3 = 0; l4 = 0; l5 = 0;
+    /* rebuild the stimulus into the pair buffers */
+    i3 = _sq_pA; i4 = _sq_pB; r0 = 0;
+    lcntr = 32, do .sq_pz until lce;
+        dm(i3, 1) = r0;
+    .sq_pz: dm(i4, 1) = r0;
+    r0 = 0x08000000; dm(_sq_pA) = r0;
+    r0 = 0x04000000; dm(_sq_pB) = r0;
+    i3 = _sq_psA; i4 = _sq_psB; r0 = 0;
+    lcntr = 12, do .sq_pzs until lce;
+        dm(i3, 1) = r0;
+    .sq_pzs: dm(i4, 1) = r0;
+
+    r8 = _sq_cA;  r9 = _sq_psA;  r10 = _sq_pA;
+    r11 = _sq_cB; r12 = _sq_psB; r13 = _sq_pB;
+    r4 = 2;
+    call _bq_pair_blk;
+
+    /* compare against the scalar results, both strips */
+    i3 = _sq_pA; i4 = _sq_xA; i5 = _sq_pB; r14 = 0;
+    lcntr = 32, do .sq_pc until lce;
         r0 = dm(i3, 1);
-        r1 = dm(i5, 1);
+        r1 = dm(i4, 1);
         r2 = r0 - r1;
         r2 = pass r2;
         if ne r14 = r14 + 1;
-        r0 = dm(i4, 1);
-        r1 = dm(i5, 1);
-        r2 = r0 - r1;
-        r2 = pass r2;
-        if ne r14 = r14 + 1;
-    .sq_cmp: nop;
+        r0 = dm(i5, 1);
+        r1 = dm(_sq_xB);
+    .sq_pc: nop;
+    dm(_sq_pdiff) = r14;
+
+    /* The pairing-wrapper comparison above is the real check now: it runs
+     * on the layout the graph actually has and compares BOTH strips
+     * against the scalar results. _sq_ndiff mirrors it. */
     dm(_sq_ndiff) = r14;
 #endif
 

@@ -561,3 +561,103 @@ _bq_fx_cascade_simd:
     rts;
 _bq_fx_cascade_simd.end:
 #endif
+
+#if DSP4_SIMD_PROBE
+/*----------------------------------------------------------------------
+ * _bq_pair_blk — run TWO strips' cascades as one SIMD instruction stream.
+ *
+ * SIMD needs its operands interleaved, and the obvious way to get that is
+ * to restructure the whole block pool from 32 independent strips into 16
+ * pairs. This does not: it gathers the two strips into an interleaved
+ * scratch, runs the paired cascade, and scatters back. The overhead is
+ * 196 memory ops per pair per block for FILT (2 stages) -- about 4
+ * cycles/sample/strip at the measured 1.3 cycles per memory op -- against
+ * a saving of 51 cycles/sample/strip. It pays roughly twelve times over,
+ * and it leaves the pool, the node buffers and every other kernel alone.
+ *
+ * In:  r8 = strip A coeffs   r9  = strip A state   r10 = strip A block
+ *      r11 = strip B coeffs  r12 = strip B state   r13 = strip B block
+ *      r4  = stages (1..4)
+ * Clobbers freely -- callers treat this as a block-rate call.
+ *--------------------------------------------------------------------*/
+.section/dm seg_dmda;
+.var _bqp_coeff[40];        /* 2 strips x 4 stages x 5                */
+.var _bqp_state[48];        /* 2 strips x 4 stages x 6                */
+.var _bqp_sig[64];          /* 2 strips x 32 samples                  */
+
+.section/pm seg_pmco;
+.global _bq_pair_blk;
+_bq_pair_blk:
+    l0 = 0;
+    l1 = 0;
+    l2 = 0;
+    l3 = 0;
+    l4 = 0;
+    l5 = 0;
+    r14 = r4;                   /* keep the stage count */
+
+    /* ---- interleave coefficients: 5 per stage from each strip ---- */
+    r0 = 5;
+    r0 = r0 * r14 (ssi);
+    i0 = r8;
+    i1 = r11;
+    i2 = _bqp_coeff;
+    lcntr = r0, do .bqp_c until lce;
+        r1 = dm(i0, 1);
+        dm(i2, 1) = r1;
+        r1 = dm(i1, 1);
+    .bqp_c: dm(i2, 1) = r1;
+
+    /* ---- interleave state: 6 per stage from each strip ---- */
+    r0 = 6;
+    r0 = r0 * r14 (ssi);
+    i0 = r9;
+    i1 = r12;
+    i2 = _bqp_state;
+    lcntr = r0, do .bqp_s until lce;
+        r1 = dm(i0, 1);
+        dm(i2, 1) = r1;
+        r1 = dm(i1, 1);
+    .bqp_s: dm(i2, 1) = r1;
+
+    /* ---- interleave the two signal blocks ---- */
+    i0 = r10;
+    i1 = r13;
+    i2 = _bqp_sig;
+    lcntr = 32, do .bqp_x until lce;
+        r1 = dm(i0, 1);
+        dm(i2, 1) = r1;
+        r1 = dm(i1, 1);
+    .bqp_x: dm(i2, 1) = r1;
+
+    /* ---- one instruction stream, both strips ---- */
+    i0 = _bqp_coeff;
+    i1 = _bqp_state;
+    i2 = _bqp_sig;
+    r4 = r14;
+    call _bq_fx_cascade_simd;
+
+    /* ---- scatter the signal back ---- */
+    i2 = _bqp_sig;
+    i0 = r10;
+    i1 = r13;
+    lcntr = 32, do .bqp_xb until lce;
+        r1 = dm(i2, 1);
+        dm(i0, 1) = r1;
+        r1 = dm(i2, 1);
+    .bqp_xb: dm(i1, 1) = r1;
+
+    /* ---- and the state, which must persist per strip ---- */
+    r0 = 6;
+    r0 = r0 * r14 (ssi);
+    i2 = _bqp_state;
+    i0 = r9;
+    i1 = r12;
+    lcntr = r0, do .bqp_sb until lce;
+        r1 = dm(i2, 1);
+        dm(i0, 1) = r1;
+        r1 = dm(i2, 1);
+    .bqp_sb: dm(i1, 1) = r1;
+    rts;
+_bq_pair_blk.end:
+#endif
