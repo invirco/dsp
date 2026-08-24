@@ -38,7 +38,7 @@ busy-loop delays are deliberately NOT rescaled — they are debug-only
 **786.432 is also the gentler choice on the peripherals.** SCLK0 moves only
 61.44 → 65.536 MHz (6.7 %), where 983.04 would take it to 81.92.
 
-### Bit-exactness at the new clock is NOT yet re-established, and why
+### Bit-exactness at the new clock — RE-ESTABLISHED, and how the probe was wrong
 
 `chain.py` returned values that looked like a regression. It is not one —
 and the control run is what settles it:
@@ -58,12 +58,29 @@ converted now and the gate and compressor are **on by default**, so they
 legitimately change the signal. Bypassing them over SPI moved `mono`
 straight back to an exact power-of-two multiple of the input.
 
-**So: no regression, but no valid bit-exactness probe either.** `chain.py`
-must be rewritten to bypass the dynamics (or to model them) before it can
-be used to sign anything off. Until then, bit-exactness at 786 MHz is
-**unverified** — the earlier per-class 0-LSB results stand on their own
-measurements and are not affected by the clock, since cycle counts and
-arithmetic are properties of the code.
+`chain.py` now **configures the strip it tests** — unity gain, unity
+filters, unity EQ, dynamics bypassed, no delay — and assumes nothing. What
+it does not set, it does not trust.
+
+**Result at 786.432 MHz, with the fabric conversion in: BIT-EXACT, 0 of 7
+cases.** mono, pan-split L and the summed bus all land exactly on the model
+across level 1.0/0.5/0.25 and pan 0/0.25/0.5/0.75.
+
+**It also runs a negative control, and the control earned its keep
+immediately.** A probe that reports the input back could pass while reading
+a dead buffer, so it halves the gain and requires the reading to change.
+On the first run it did NOT change — because ramped parameters were being
+written with `ramp_id=0`. That takes the INSTANT path, which sets only the
+level word, and the node's block-rate code then does
+`if frames <= 0: level = target` and clobbers it from a target never
+written. This is already documented in `wrv()` and I walked into it anyway;
+the control is the only reason it surfaced instead of becoming a false
+pass. Gain, fader level, pan and DCA now go through `wrv(..., ramp_id=1)`.
+
+That makes three checks on this bench that could not have failed as first
+written — the `both_unity` biquad test blind to state, the delay test run
+on 27 samples of silence, and this one. The lesson is now enforced in the
+probes themselves rather than remembered.
 
 ### Fabric conversion — first cut measured
 
