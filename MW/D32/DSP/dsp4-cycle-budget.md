@@ -328,6 +328,54 @@ about 8-9 % of a channel strip. Worth having, but note it is a much smaller
 lever than the ones already taken: the big wins came where overhead
 dominated, and biquads are arithmetic-bound.
 
+### COMP wrapped 2026-08-24 — bit-exact, and MEASURABLY SLOWER. Reverted.
+
+| point | per-sample | per-block |
+|---|---|---|
+| `NODE_LIMIT=5` (through GATE) | 94,529 | 34,056 |
+| `NODE_LIMIT=6` (+ COMP) | 100,761 | 40,813 |
+| **COMP alone** | **6,232** (194.8/sample) | **6,757** (211/sample) |
+
+The wrapper was bit-exact — the sweep returned values identical to the
+per-sample family run that scored 0 LSB — and it cost **8 % more cycles**.
+
+**Why, and it generalises: a wrap on its own is worthless.** It replaces
+"`process_all` calls the node 32 times" with "the node calls its own body
+32 times". The same number of calls happen, plus loop bookkeeping, and
+nothing is hoisted. GAIN's 4× did **not** come from being wrapped; it came
+from what the wrap made possible — dropping the `_sample_idx` guard,
+hoisting the coefficient and the polarity/mute decision out of the loop,
+and inlining `_mrf_rns28` with its constants. RTG's 7.3× likewise came from
+running the gating tree once, not from looping.
+
+So for every remaining class the question is not "can it be wrapped" but
+"how much work can be lifted out of the sample loop". For COMP that is the
+`_sample_idx` guard, four parameter loads, and two `_mrf_rns28` calls —
+perhaps 30 of 195 cycles/sample, so ~15 %. The genuine lever is the one the
+plan already names: run the **log2/exp2 gain computer at block rate and
+interpolate the gain per sample**, which is a numeric change and needs a
+`shared/numeric-spec.md` amendment with a stated error bound before it can
+be verified against anything.
+
+### Biquads — PARKED 2026-08-24, state note
+
+FILT/EQ are the second-biggest strip cost (227 and 338 cycles/sample,
+together 29 % of a strip) and come back after the dynamics. State at the
+park:
+
+- `_bq_fx_cascade_blk` exists, assembles, and is unused. Its per-sample
+  arithmetic is a line-for-line copy of `_bq_fx_cascade_N`.
+- Wired to FILT, `both_unity` passes at **0 LSB**; every real filter fails.
+  Unity is exactly where the feedback terms cancel, so the fault is in
+  **state handling under feedback** in the register-resident loop — the MAC
+  chain, coefficient conversion, HPF/LPF two-call structure and block
+  plumbing are all exercised and correct.
+- Known and unfixed: `_bq_fx_cascade_blk` never advances `i0` between
+  stages, so it is only correct for `r4 = 1`. FILT calls it that way; EQ
+  would need `r4 = 4` and must not be attempted until that is fixed.
+- Suspects, in order: MAC-unit implicit registers across iterations, and
+  m-register interference (`m1` is used by both cascade routines).
+
 ### What stands out
 
 **RTG is the most expensive node class on the part** — 601 cycles per

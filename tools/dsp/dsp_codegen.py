@@ -6345,7 +6345,7 @@ def gen_compressor_fixed(node):
         /* COMPRESSOR (FIXED Q4.28, D5) */
         /* SPI page={node['spi_page']} addr={node['spi_addr']} */
 
-        .section/dm seg_dmda;
+.section/dm seg_dmda;
         .var _comp_on_{nid} = 1;
         .var _comp_threshold_{nid} = -20.0;
         .var _comp_ratio_{nid} = 4.0;

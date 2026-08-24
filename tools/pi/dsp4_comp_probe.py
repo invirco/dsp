@@ -63,12 +63,16 @@ def main():
     ap.add_argument('--parallel', type=float, default=1.0)
     ap.add_argument('--amp', default='0x08000000')
     ap.add_argument('--n', type=int, default=1024)
+    ap.add_argument('--pool-inj', type=int, default=None)
+    ap.add_argument('--pool-src', type=int, default=None)
     ap.add_argument('--gate-off', action='store_true', default=True)
     a = ap.parse_args()
 
     sc = S.Scope(1)
-    inj = sc.sym['_rx_slot_C1_IN_01']
-    src = sc.sym['_buf_C1_COMP_01']
+    inj = (sc.sym['_blk_pool'] + a.pool_inj * 32) if a.pool_inj is not None \
+          else sc.sym['_rx_slot_C1_IN_01']
+    src = (sc.sym['_blk_pool'] + a.pool_src * 32) if a.pool_src is not None \
+          else sc.sym['_buf_C1_COMP_01']
 
     wrv(sc, GAIN, f32(1.0))
     set_bq(sc, HPF0, HPF_SW, UNITY)
