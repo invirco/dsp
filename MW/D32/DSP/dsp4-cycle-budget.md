@@ -65,16 +65,41 @@ Two implementation constraints, both discovered rather than assumed:
   does not map it even with a BW-qualified twin. Not worth chasing for
   512 words.
 
-**The deviation measurement is INCONCLUSIVE and is not being reported as a
-pass.** Comparing COMP's output with tables on and off gave 0 differing
-samples of 200 — but the captured peak equals the injected amplitude
-exactly, so the compressor was passing signal through rather than
-compressing, and the comparison could not have failed. The likely cause is
-the recorded `_comp_parallel` default of 0 (fully dry), possibly compounded
-by the ramped-write trap that the `chain.py` negative control caught. **A
-deviation bound for COMP requires a probe that first proves the compressor
-is actually reducing gain.** Until then this lever has a measured cycle
-saving and an unmeasured numeric deviation.
+**Deviation measured, after two fixes to the probe and one to the
+firmware: 0.00009 dB worst over 200 samples, with the compressor proven
+active at −20.98 dB of gain reduction.** That sits between the two
+approximations' own errors (0.0001 dB polynomial, 0.000016 dB table),
+which is what it should be.
+
+Getting there took three corrections, and the last is a real firmware
+defect:
+
+1. The first comparison returned "0 of 200 differ" while the captured peak
+   equalled the injected amplitude — the compressor was passing through.
+   With the stock attack of 0.001 the envelope only reaches about
+   −20.8 dBFS after 200 samples, right at the default −20 dB threshold, so
+   the gain computer never left unity. `dsp4_comp_gr.py` now uses a fast
+   attack and a threshold well under the signal, and **refuses to print
+   samples unless the output is measurably below the input**.
+2. With the compressor active, the worst deviation read **1.75 dB at
+   sample 25** — mid-attack — while the settled tails agreed. That is the
+   envelope-state confound: the envelope persists across runs, so two
+   captures start from different points on the transient.
+3. **The real one.** The polynomial build's output was FROZEN from sample 1
+   at 15,418,270 while the table build converged smoothly. `_compgain_fx`
+   calls `_exp2q_fx`, and the polynomial `_exp2q_fx` **reaches r6** — where
+   COMP's block kernel was keeping the attack alpha. The envelope follower
+   ran on garbage from the second sample of every block.
+
+**That defect was mine, introduced with the COMP block kernel, and masked
+by the silent bench** — `_compgain_fx` returns unity before reaching exp2
+when the envelope is zero, so the "0 of 32 bit-exact" verification of the
+COMP conversion never exercised the path. The register note on this page
+originally said only r7, r13, r14 and r15 survive the call; I overrode it
+from a scan of `_compgain_fx`'s own text that was **not transitive through
+its callees**. The original note was right. COMP now keeps attq in r7 and
+reloads the release alpha from DM per sample.
+
 
 ### Speed grade is NOT readable from silicon — checked 2026-08-24
 
