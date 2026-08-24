@@ -113,6 +113,14 @@ DSP4_BQ_SELFTEST="${DSP4_BQ_SELFTEST:-0}"
 CFLAGS="$CFLAGS -DDSP4_BQ_SELFTEST=$DSP4_BQ_SELFTEST"
 ASMFLAGS="$ASMFLAGS -DDSP4_BQ_SELFTEST=$DSP4_BQ_SELFTEST"
 
+# STRIP FUSION (2026-08-24 dispatch): fused kernels that keep intermediate
+# state in registers and the MAC accumulator instead of round-tripping it
+# through memory. Block-kernel builds only; default 0 so the shipping image
+# is untouched.
+DSP4_STRIP_FUSED="${DSP4_STRIP_FUSED:-0}"
+CFLAGS="$CFLAGS -DDSP4_STRIP_FUSED=$DSP4_STRIP_FUSED"
+ASMFLAGS="$ASMFLAGS -DDSP4_STRIP_FUSED=$DSP4_STRIP_FUSED"
+
 DSP4_COMP_NOCVT="${DSP4_COMP_NOCVT:-0}"
 # Run the node graph only every Nth block (measurement, not a mode).
 DSP4_BLOCK_DECIMATE="${DSP4_BLOCK_DECIMATE:-1}"

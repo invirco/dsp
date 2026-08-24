@@ -130,6 +130,130 @@ _bq_fx_cascade_N:
 _bq_fx_cascade_N.end:
 
 #if DSP4_BLOCK_KERNELS
+#if DSP4_STRIP_FUSED
+/*----------------------------------------------------------------------
+ * _bq_fx_cascade_blk — FUSED form. Same arithmetic, same result, but the
+ * error feedback never leaves the MAC accumulator.
+ *
+ * The block form already kept state in registers. What it still did every
+ * sample was take the 64-bit accumulator apart to form the error
+ * feedback, store it in two registers, and push it back into MR0F/MR1F/
+ * MR2F on the next sample -- about ten instructions of pure plumbing per
+ * sample per stage.
+ *
+ * MRF is 80 bits and already holds exactly the accumulator that the error
+ * feedback IS. So instead of extracting it, the rounding half is
+ * subtracted back out and y*2^28 is subtracted with a MAC:
+ *
+ *     mrf = mrf - r14 * r15   (remove the 2^27 rounding half)
+ *     mrf = mrf - y   * r13   (r13 = 2^28, so this is y << 28)
+ *
+ * and MRF carries the residue straight into the next sample untouched.
+ * This is BIT-EXACT, not an approximation: the old code stored efb as two
+ * 32-bit words plus a sign extension into MR2F, which is the same 80-bit
+ * value MRF already holds.
+ *
+ * Registers, all sixteen used:
+ *   r0 x   r1 y   r2,r3 scratch
+ *   r4 b0  r5 n1  r6 n2  r7 c1  r8 c2
+ *   r9 x1  r10 x2 r11 y1 r12 y2
+ *   r13 = 2^28   r14 = 2^27   r15 = 1
+ * There is no register left for the 2^29 unity term, so it is applied as
+ * two MACs of 2^28 -- one instruction more, one register less, and the
+ * register is what was scarce.
+ *
+ * In:  i0 = coeffs, i1 = state, i2 = signal block (32 words, in place),
+ *      r4 = number of stages.
+ *----------------------------------------------------------------------*/
+.global _bq_fx_cascade_blk;
+_bq_fx_cascade_blk:
+    l0 = 0;
+    l1 = 0;
+    l2 = 0;
+    r15 = -32;
+    m2 = r15;                  /* rewind the signal block per stage */
+    r15 = 5;
+    m3 = r15;                  /* state base+1 -> next stage's base   */
+
+    lcntr = r4, do .bqf_stage until lce;
+
+        r4 = dm(i0, 1);        /* b0 */
+        r5 = dm(i0, 1);        /* n1 */
+        r6 = dm(i0, 1);        /* n2 */
+        r7 = dm(i0, 1);        /* c1 */
+        r8 = dm(i0, 1);        /* c2, i0 -> next stage                */
+
+        r9  = dm(i1, 1);       /* x1     */
+        r10 = dm(i1, 1);       /* x2     */
+        r11 = dm(i1, 1);       /* y1     */
+        r12 = dm(i1, 1);       /* y2     */
+        r2  = dm(i1, 1);       /* efb_lo */
+        r3  = dm(i1, 0);       /* efb_hi -- i1 parked at base+5       */
+
+        mr0f = r2;
+        mr1f = r3;
+        r2 = ashift r3 by -31;
+        mr2f = r2;             /* MRF = efb, sign extended 64 -> 80   */
+
+        r13 = 0x10000000;      /* 2^28 */
+        r14 = 0x08000000;      /* 2^27, the rounding half */
+        r15 = 1;
+
+        lcntr = 32, do .bqf_samp until lce;
+            r0 = dm(i2, 0);
+            mrf = mrf + r4 * r0 (ssi);      /* + b0*x   */
+            mrf = mrf + r4 * r10 (ssi);     /* + b0*x2  */
+            mrf = mrf - r4 * r9 (ssi);      /* - b0*x1  */
+            mrf = mrf - r4 * r9 (ssi);      /* - b0*x1  */
+            mrf = mrf + r5 * r9 (ssi);      /* + n1*x1  */
+            mrf = mrf + r6 * r10 (ssi);     /* + n2*x2  */
+            mrf = mrf - r7 * r11 (ssi);     /* - c1*y1  */
+            mrf = mrf + r8 * r12 (ssi);     /* + c2*y2  */
+            mrf = mrf + r13 * r11 (ssi);    /* + y1*2^28 */
+            mrf = mrf + r13 * r11 (ssi);    /*   twice = y1*2^29 */
+            mrf = mrf - r13 * r12 (ssi);    /* - y2*2^28 */
+
+            mrf = mrf + r14 * r15 (ssi);    /* round: + 2^27 */
+            r2 = mr0f;
+            r3 = mr1f;
+            r1 = lshift r2 by -28;
+            r2 = lshift r3 by 4;
+            r1 = r1 or r2;                  /* candidate y */
+            r2 = ashift r3 by -28;
+            r3 = ashift r1 by -31;
+            comp(r2, r3);
+            if eq jump (pc, .bqf_nosat);
+                r1 = 0x7FFFFFFF;
+                r2 = mr1f;
+                r2 = ashift r2 by -31;
+                r1 = r1 xor r2;
+        .bqf_nosat:
+            mrf = mrf - r14 * r15 (ssi);    /* take the rounding half back out */
+            mrf = mrf - r1 * r13 (ssi);     /* efb = acc - (y << 28), stays in MRF */
+
+            r10 = r9;                       /* x2' = x1 */
+            r9 = r0;                        /* x1' = x  */
+            r12 = r11;                      /* y2' = y1 */
+            r11 = r1;                       /* y1' = y  */
+        .bqf_samp: dm(i2, 1) = r1;
+
+        /* ---- state back to memory, ONCE for this stage ---- */
+        r2 = mr0f;
+        r3 = mr1f;
+        dm(i1, -1) = r3;       /* efb_hi at +5 */
+        dm(i1, -1) = r2;       /* efb_lo at +4 */
+        dm(i1, -1) = r12;      /* y2     at +3 */
+        dm(i1, -1) = r11;      /* y1     at +2 */
+        dm(i1, -1) = r10;      /* x2     at +1 */
+        dm(i1, 1) = r9;        /* x1     at +0, i1 -> base+1 */
+        modify(i1, m3);        /* -> next stage's state base */
+        modify(i2, m2);        /* rewind the block for the next stage */
+    .bqf_stage:
+        nop;
+    rts;
+_bq_fx_cascade_blk.end:
+
+#else
 /*----------------------------------------------------------------------
  * _bq_fx_cascade_blk — cascade a whole BLOCK, state resident in registers.
  *
@@ -250,6 +374,7 @@ _bq_fx_cascade_blk:
         nop;
     rts;
 _bq_fx_cascade_blk.end:
+#endif
 #endif
 
 /*----------------------------------------------------------------------
