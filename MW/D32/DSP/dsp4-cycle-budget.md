@@ -35,44 +35,48 @@ or restructuring the pool into 16 pair-slots outright. Either is a real
 piece of work with several verification steps, and it is the honest reason
 this is not done.
 
-### The wrapper hang — bisected, narrowed, NOT solved
+### PEYEN AND INTERRUPTS — a real hazard, found and fixed; a second fault behind it
 
-`_bq_pair_blk` hangs the part before `CONFIG_COMMIT`. Two bisect hooks were
-added (`DSP4_SKIP_PAIR`, `DSP4_SKIP_SIMDCALL`, both default 0) and they
-localise it precisely:
+**The hypothesis was right and the fix works.** An interrupt taken while
+`MODE1.PEYEN` is set runs the HANDLER in SIMD mode: every register the ISR
+writes becomes a pair write, clobbering the PEy shadow of state the ISR
+knows nothing about. The block and diag ISRs fire ~1500 and ~1000 times a
+second, so it corrupts something almost immediately — and it defeats
+instruction-level bisecting, because the fault is timing-dependent rather
+than positional.
 
-| build | result |
-|---|---|
-| selftest with the pairing call removed | **boots, configures** |
-| pairing call in, `_bq_fx_cascade_simd` call removed | **boots, configures** |
-| both in | **hangs** |
+It is also exactly why the standalone benchmark passed while the same
+routine hung through `_bq_pair_blk`: **the benchmark had already masked
+`IRPTEN` for its TCOUNT timing**, so PEYEN and an ISR never coincided. The
+passing measurement was passing for a reason unrelated to the code being
+correct in context.
 
-So **the wrapper's interleave/de-interleave plumbing is fine, and the SIMD
-cascade hangs when invoked through it** — while the *same* cascade ran
-correctly standalone earlier, giving 2.39× and 0 differing samples of 64.
-It is the call context, not either piece alone.
+`_bq_fx_cascade_simd` now saves `MODE1` whole, masks `IRPTEN`, then sets
+`PEYEN`, and restores `MODE1` on exit — so a caller that had already masked
+interrupts stays masked. **Order is load-bearing**: setting PEYEN before
+masking leaves a two-instruction window in which an interrupt can be taken
+with PEYEN set, which is the very failure being prevented, and MODE1 writes
+have a pipeline shadow that widens it. My first attempt had that order
+wrong.
 
-Ruled out along the way:
+Masked span is one cascade — about 2 µs for two stages at 983 MHz, against
+a 667 µs block period.
 
-- **Iteration count / time spent in `CONFIG_COMMIT`** — reduced 4000 → 1200,
-  no change.
-- **Loop-count arithmetic.** `Rn = Rx * Ry (ssi)` replaced with shifts and
-  adds, because `lcntr = 0` does not skip on this core, it runs about four
-  billion times and reads exactly like a hang. Not the cause here, but the
-  hazard is real and the shift form is kept.
-- **SIMD alignment.** Double-width accesses want even addresses; the three
-  `_bqp_*` scratch buffers the cascade actually reads are all even
-  (`0x095FA4`, `0x095FCC`, `0x095FFC`). The odd-addressed `_sq_*` buffers
-  are only touched by stride-1 scalar loops.
+**Result: `CONFIG_COMMIT` now completes, where before it never did.** That
+is the original hang resolved.
 
-Still open and worth trying first: loop-stack depth at the nested call
-site, and whether `MODE1.PEYEN` is left set on some path out of the cascade
-(the de-interleave loops that follow would then write double).
+**A second, different fault sits behind it.** The part configures, then
+stops responding — RDY never asserts on the next link open. So the selftest
+now runs to completion and leaves the machine in a state the main loop does
+not survive. Not yet diagnosed. The obvious next checks are whether MODE1
+is genuinely restored (store it after the selftest and read it back) and
+whether anything else in the SIMD path writes past its buffer — the access
+counts were checked and do fit (`_bqp_coeff` 20 of 40 used, `_bqp_state` 24
+of 48, `_bqp_sig` 64 of 64).
 
-**Nothing is wired into the graph.** The shipping image is byte-identical
-(`0df38e82`), and the same tree with the debug flags off is CHAIN BIT-EXACT
-at 983.04 MHz. An unverified SIMD kernel in the signal path is precisely
-the silently-wrong build this work has spent the day avoiding.
+**Containment is unchanged and verified this session:** shipping image
+byte-identical at `0df38e82`, and the same tree with the SIMD debug flags
+off is **CHAIN BIT-EXACT at 983.04 MHz**. Nothing is wired into the graph.
 
 ### Foundation that IS in place
 

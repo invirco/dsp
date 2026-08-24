@@ -469,6 +469,10 @@ _bq_fx_convert_N.end:
  * In:  i0 = interleaved coeffs, i1 = interleaved state,
  *      i2 = interleaved signal (64 words), r4 = stages.
  *----------------------------------------------------------------------*/
+.section/dm seg_dmda;
+.var _simd_mode1_save;
+
+.section/pm seg_pmco;
 .global _bq_fx_cascade_simd;
 _bq_fx_cascade_simd:
     l0 = 0;
@@ -479,9 +483,36 @@ _bq_fx_cascade_simd:
     r15 = 10;
     m3 = r15;                  /* state base+2 -> next stage's base      */
 
-    bit set mode1 0x00200000;  /* PEYEN */
+    /* PEYEN AND IRPTEN TOGETHER, and this is the whole bug.
+     *
+     * An interrupt taken while PEYEN is set runs the HANDLER in SIMD mode:
+     * every register the ISR writes becomes a pair write, clobbering the
+     * PEy shadow of state the ISR knows nothing about. The block and diag
+     * ISRs fire ~1500 and ~1000 times a second, so this corrupts something
+     * almost immediately -- and it defeats instruction-level bisecting,
+     * because the fault is timing-dependent rather than positional.
+     *
+     * It is why the standalone benchmark passed and the same routine hung
+     * when called through _bq_pair_blk: the benchmark had already masked
+     * IRPTEN for its TCOUNT timing, so PEYEN and an ISR never coincided.
+     *
+     * MODE1 is saved and restored whole rather than bit-toggled, so a
+     * caller that had already masked interrupts stays masked. The masked
+     * span is one cascade -- about 2 us for two stages at 983 MHz, against
+     * a 667 us block period. */
+    r0 = mode1;
+    dm(_simd_mode1_save) = r0;
+    bit clr mode1 0x00001000;  /* IRPTEN FIRST -- see below */
     nop;
     nop;
+    bit set mode1 0x00200000;  /* then PEYEN */
+    nop;
+    nop;
+    /* ORDER IS LOAD-BEARING. Setting PEYEN before masking interrupts
+     * leaves a two-instruction window in which an interrupt can be taken
+     * with PEYEN already set, which is the very failure this is meant to
+     * prevent -- and MODE1 writes have a pipeline shadow, so the window is
+     * wider than it looks. Mask first, then widen the datapath. */
 
     lcntr = r4, do .bqs_stage until lce;
         r4 = dm(i0, 2);
@@ -555,7 +586,8 @@ _bq_fx_cascade_simd:
     .bqs_stage:
         nop;
 
-    bit clr mode1 0x00200000;
+    r0 = dm(_simd_mode1_save);
+    mode1 = r0;                /* restores PEYEN and IRPTEN together */
     nop;
     nop;
     rts;
