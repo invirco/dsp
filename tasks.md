@@ -14,6 +14,15 @@ basic strip for capacity purposes. Two levels to this and they are different:
   what actually recovers TUBE's cycles AND its DM state, so it is the version
   that counts for the 32-channel fit.
 
+**RAIL MEASURED 2026-08-24 20:3xZ (PW, DMM at the DSP card, both chips
+running at 983.04): +0.9 V rail = 0.87 V — INSIDE the 0.855–0.945 V window
+with ~15 mV margin, DIL100 stack drop included. THE 983.04 OPERATING POINT
+IS CLOSED FOR SHIPPING: grade KSWZ10 confirmed, CCLK verified, bit-exact,
+real-time, thermally comfortable (heatsinkless, cool), regulator AP64501 at
+~3x current margin, rail in-window under load. One opportunistic residual:
+re-touch the rail at a confirmed max-strip load when the bench next allows —
+the margin arithmetic says it stays inside, but a reading beats arithmetic.**
+
 **PW BENCH OBSERVATION 2026-08-24 19:1xZ: SHARCs at 983.04 have NO heatsink
 and run COOL to the touch under sustained operation — thermal half of the
 power question CLOSED (consistent with ~0.7 W/chip at 0.9 V). REMAINING for
