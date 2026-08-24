@@ -13,6 +13,7 @@
 /* RampProfile: EqSafe | Mode: LinearFrames | Up: 12ms (18f) Down: 12ms (18f) | Curve: Linear | Scope: CoeffSetAtomic */
 
 /* EQ_BIQUAD (FIXED Q4.28, D5): 4-band, dual-instance crossfade */
+#include "blk_pool.h" 
 /* SPI page=1 addr=1446 */
 /* Normative model: tools/dsp/fixed_ref.py::biquad (offset form). */
 
@@ -48,9 +49,13 @@
 
 .section/pm seg_pmco;
 .extern _bq_fx_cascade_N;
+#if DSP4_BLOCK_KERNELS
+.extern _bq_fx_cascade_blk;
+#endif
 .extern _bq_fx_convert_N;
 .global _C2_MAIN_OEQ_02_process;
 _C2_MAIN_OEQ_02_process:
+
 
     /* new coefficients staged? */
     r4 = dm(_eq_swap_pending_C2_MAIN_OEQ_02);

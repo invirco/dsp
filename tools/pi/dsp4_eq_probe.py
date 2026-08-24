@@ -158,6 +158,11 @@ def main():
     active = sc.fetch(1)[0]
     print('EQ_ACTIVE %d' % active)
 
+    # Under per-block kernels the node output lives in the shared pool,
+    # not in _buf_<nid> -- the scalar is left behind and reading it gives a
+    # stale word rather than an error.
+    if a.pool_src is not None:
+        src = sc.sym['_blk_pool'] + a.pool_src * 32
     amp = 0 if a.baseline else int(a.amp, 16)
     sc.arm(src, inj, amp, 1)                     # impulse
     if not sc.wait():

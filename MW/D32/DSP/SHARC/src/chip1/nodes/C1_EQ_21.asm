@@ -13,6 +13,7 @@
 /* RampProfile: EqSafe | Mode: LinearFrames | Up: 12ms (18f) Down: 12ms (18f) | Curve: Linear | Scope: CoeffSetAtomic */
 
 /* EQ_BIQUAD (FIXED Q4.28, D5): 4-band, dual-instance crossfade */
+#include "blk_pool.h" 
 /* SPI page=1 addr=2896 */
 /* Normative model: tools/dsp/fixed_ref.py::biquad (offset form). */
 
@@ -48,9 +49,78 @@
 
 .section/pm seg_pmco;
 .extern _bq_fx_cascade_N;
+#if DSP4_BLOCK_KERNELS
+.extern _bq_fx_cascade_blk;
+#endif
 .extern _bq_fx_convert_N;
 .global _C1_EQ_21_process;
 _C1_EQ_21_process:
+
+#if DSP4_BLOCK_KERNELS
+    /* ---- per-block steady state; transients go per-sample ---- */
+    r4 = dm(_eq_swap_pending_C1_EQ_21);
+    r5 = dm(_eq_xfade_step_C1_EQ_21);
+    r4 = r4 or r5;
+    r4 = pass r4;
+    if eq jump (pc, .ekb_ss_C1_EQ_21);
+
+    /* Swap pending or fade running: hand the block to the
+     * per-sample reference path a sample at a time. */
+    l3 = 0;
+    l4 = 0;
+    l5 = 0;
+    i3 = BLK_CHAIN_A;
+    i4 = BLK_CHAIN_B;
+    i5 = BLK_TAP_EQ;
+    lcntr = 32, do .ekb_xl_C1_EQ_21 until lce;
+        r0 = dm(i3, 1);
+        dm(_buf_C1_FILT_21) = r0;
+        call _C1_EQ_21_process_sample;
+        r0 = dm(_buf_C1_EQ_21);
+        dm(i5, 1) = r0;         /* tap carries the block too */
+    .ekb_xl_C1_EQ_21: dm(i4, 1) = r0;
+    rts;
+
+.ekb_ss_C1_EQ_21:
+    /* Steady state. The cascade works IN PLACE at i2, so copy the
+     * input block into the output slot and filter it there. */
+    l0 = 0;
+    l1 = 0;
+    l2 = 0;
+    l3 = 0;
+    l4 = 0;
+    i3 = BLK_CHAIN_A;
+    i4 = BLK_CHAIN_B;
+    lcntr = 32, do .ekb_cp_C1_EQ_21 until lce;
+        r0 = dm(i3, 1);
+    .ekb_cp_C1_EQ_21: dm(i4, 1) = r0;
+
+    r4 = dm(_eq_active_C1_EQ_21);
+    r4 = pass r4;
+    if ne jump (pc, .ekb_b_C1_EQ_21);
+    i0 = _eq_coeffs_A_C1_EQ_21;
+    i1 = _eq_state_A_C1_EQ_21;
+    jump (pc, .ekb_go_C1_EQ_21);
+.ekb_b_C1_EQ_21:
+    i0 = _eq_coeffs_B_C1_EQ_21;
+    i1 = _eq_state_B_C1_EQ_21;
+.ekb_go_C1_EQ_21:
+    i2 = BLK_CHAIN_B;
+    r4 = 4;
+    call _bq_fx_cascade_blk;
+
+    /* the post-EQ tap the router picks from */
+    i3 = BLK_CHAIN_B;
+    i4 = BLK_TAP_EQ;
+    lcntr = 32, do .ekb_tp_C1_EQ_21 until lce;
+        r0 = dm(i3, 1);
+    .ekb_tp_C1_EQ_21: dm(i4, 1) = r0;
+    rts;
+
+.global _C1_EQ_21_process_sample;
+_C1_EQ_21_process_sample:
+#endif
+
 
     /* new coefficients staged? */
     r4 = dm(_eq_swap_pending_C1_EQ_21);

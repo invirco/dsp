@@ -515,6 +515,58 @@ called per sample, which looks exactly like the ramp ×32 defect. It is not
 one. `XFADE_SAMPLES = 12 ms × 48 kHz = 576 SAMPLES`, not 576 frames, so a
 per-sample step is correct.
 
+### EQ CONVERTED and bit-exact — 2026-08-24
+
+Same wrapper pattern as FILT. EQ runs the cascade with `r4 = 4`, so it is
+the first user of the i0-advance-between-stages fix — without that, every
+band would have run with band 0's coefficients.
+
+| | cycles/block | cycles/sample |
+|---|---|---|
+| EQ per-sample, re-measured on the CURRENT build | 11,590 | 362.2 |
+| **EQ per block** | **7,998** | **250.0** |
+| | | **1.45× faster** |
+
+**Bit-exact on the part: 0 differing samples of 24**, four real peaking
+bands (120 Hz −8 dB, 1 kHz +6 dB, 3.5 kHz −4 dB, 9 kHz +5 dB), captured at
+`DSP4_NODE_LIMIT=4`. The run also crosses a coefficient swap — `EQ_ACTIVE`
+reads 1, so the crossfade ran to completion through the per-sample
+fallback and the steady-state capture is on the B instance.
+
+EQ additionally maintains `BLK_TAP_EQ`, the post-EQ tap the router picks
+from; the block path fills it from the output block, and the per-sample
+fallback fills it sample by sample.
+
+EQ gains less than FILT (1.45× against 1.72×) and that is the expected
+shape: with four stages the per-stage state load/store that block form
+saves is amortised over four times as much arithmetic, and the
+coefficients are still re-read per sample because six state registers plus
+five coefficients do not fit in sixteen.
+
+### The strip after FILT and EQ — 2026-08-24
+
+| class | cycles/sample | state |
+|---|---|---|
+| RTG | 81.8 | converted 7.3× |
+| FDR | 58.9 | converted 2.33× |
+| GAIN | 17.9 | converted 4.04× |
+| IN | 11.6 | converted (block I/O) |
+| **FILT** | **126.9** | **converted 1.72×** |
+| **EQ** | **250.0** | **converted 1.45×** |
+| GATE | 204 | not converted |
+| COMP | 202 | not converted (measured not worth it) |
+| DLY | 148 | not converted |
+| TUBE | 40 | not converted |
+| **strip total** | **1,141** | **36,515 cycles/block** |
+
+Strip 1,329 → 1,141 cycles/sample. Projected ceiling
+218,616 / 36,515 = **5.99 strips**, up from 5.17. The four unconverted
+classes are now **52 %** of a strip, down from 88 %.
+
+D24's 24 strips now need 876,360 cycles/block against 218,616 available —
+**4.0× over**, from 4.6×. The direction is right and the gap is still a
+change-of-shape gap, not an optimisation gap.
+
 ### Third attempt, 2026-08-24 — PARKED again, but the suspect list was wrong
 
 Outcome: still fails on real filters, so the biquads stay parked. The

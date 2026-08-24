@@ -1,4 +1,72 @@
 
+_EQ_BLK_BODY = """
+        #if DSP4_BLOCK_KERNELS
+            /* ---- per-block steady state; transients go per-sample ---- */
+            r4 = dm(_eq_swap_pending_{nid});
+            r5 = dm(_eq_xfade_step_{nid});
+            r4 = r4 or r5;
+            r4 = pass r4;
+            if eq jump (pc, .ekb_ss_{nid});
+
+            /* Swap pending or fade running: hand the block to the
+             * per-sample reference path a sample at a time. */
+            l3 = 0;
+            l4 = 0;
+            l5 = 0;
+            i3 = BLK_CHAIN_A;
+            i4 = BLK_CHAIN_B;
+            i5 = BLK_TAP_EQ;
+            lcntr = 32, do .ekb_xl_{nid} until lce;
+                r0 = dm(i3, 1);
+                dm(_buf_{inp}) = r0;
+                call _{nid}_process_sample;
+                r0 = dm(_buf_{nid});
+                dm(i5, 1) = r0;         /* tap carries the block too */
+            .ekb_xl_{nid}: dm(i4, 1) = r0;
+            rts;
+
+        .ekb_ss_{nid}:
+            /* Steady state. The cascade works IN PLACE at i2, so copy the
+             * input block into the output slot and filter it there. */
+            l0 = 0;
+            l1 = 0;
+            l2 = 0;
+            l3 = 0;
+            l4 = 0;
+            i3 = BLK_CHAIN_A;
+            i4 = BLK_CHAIN_B;
+            lcntr = 32, do .ekb_cp_{nid} until lce;
+                r0 = dm(i3, 1);
+            .ekb_cp_{nid}: dm(i4, 1) = r0;
+
+            r4 = dm(_eq_active_{nid});
+            r4 = pass r4;
+            if ne jump (pc, .ekb_b_{nid});
+            i0 = _eq_coeffs_A_{nid};
+            i1 = _eq_state_A_{nid};
+            jump (pc, .ekb_go_{nid});
+        .ekb_b_{nid}:
+            i0 = _eq_coeffs_B_{nid};
+            i1 = _eq_state_B_{nid};
+        .ekb_go_{nid}:
+            i2 = BLK_CHAIN_B;
+            r4 = {bands};
+            call _bq_fx_cascade_blk;
+
+            /* the post-EQ tap the router picks from */
+            i3 = BLK_CHAIN_B;
+            i4 = BLK_TAP_EQ;
+            lcntr = 32, do .ekb_tp_{nid} until lce;
+                r0 = dm(i3, 1);
+            .ekb_tp_{nid}: dm(i4, 1) = r0;
+            rts;
+
+        .global _{nid}_process_sample;
+        _{nid}_process_sample:
+        #endif
+"""
+
+
 _FILT_BLK_BODY = """
         #if DSP4_BLOCK_KERNELS
             /* ---- per-block steady state; transients go per-sample ---- */
@@ -4303,6 +4371,20 @@ def gen_scope_gates(chip_label, chip_nodes):
     return '\n'.join(L)
 
 def gen_eq_biquad_fixed(node):
+    # Per-block wrapper, same shape as FILT: emitted AHEAD of the
+    # per-sample body, which is untouched, so without the flag
+    # _{nid}_process falls straight through and the default image cannot
+    # move. EQ runs the cascade with r4 = 4, which is why the
+    # i0-advance-between-stages fix had to land first -- without it every
+    # band would have run with band 0's coefficients.
+    import re as _re
+    if _re.match(r'^C\d+_EQ_\d+$', node['id']):
+        blk_eq_body = _EQ_BLK_BODY.format(
+            nid=node['id'], inp=node['inputs_str'],
+            bands=int(node['params'].get('bands', '4')))
+    else:
+        blk_eq_body = ''
+
     """Fixed-point (Q4.28) EQ biquad — offset-form cascade (D5).
 
     Same SPI/staging/crossfade contract as the float node: the host
@@ -4327,6 +4409,7 @@ def gen_eq_biquad_fixed(node):
         {rc}
 
         /* EQ_BIQUAD (FIXED Q4.28, D5): {bands}-band, dual-instance crossfade */
+        #include "blk_pool.h" 
         /* SPI page={node['spi_page']} addr={node['spi_addr']} */
         /* Normative model: tools/dsp/fixed_ref.py::biquad (offset form). */
 
@@ -4350,9 +4433,13 @@ def gen_eq_biquad_fixed(node):
 
         .section/pm seg_pmco;
         .extern _bq_fx_cascade_N;
+        #if DSP4_BLOCK_KERNELS
+        .extern _bq_fx_cascade_blk;
+        #endif
         .extern _bq_fx_convert_N;
         .global _{nid}_process;
         _{nid}_process:
+        {blk_eq_body}
 
             /* new coefficients staged? */
             r4 = dm(_eq_swap_pending_{nid});

@@ -932,7 +932,25 @@ Method — one family at a time, in profile order, measured after each:
    5.17 says the remaining classes still have to come.
 
    PARKED, with state notes below and in dsp4-cycle-budget.md:
-     FILT/EQ  PARKED after three attempts. _bq_fx_cascade_blk is written,
+     FILT/EQ  CONVERTED 2026-08-24 (fourth attempt) - both bit-exact.
+              FILT 6,973 -> 4,062 cycles/block (1.72x); EQ 11,590 ->
+              7,998 (1.45x); both baselines re-measured on the CURRENT
+              build, not taken from the pre-rewrite table. Strip 1,329 ->
+              1,141 cycles/sample, projected ceiling 5.17 -> 5.99 strips,
+              unconverted share 88% -> 52%, D24 4.6x -> 4.0x over.
+              WHAT UNBLOCKED IT: a self-test on the part (DSP4_BQ_SELFTEST)
+              ran _bq_fx_cascade_blk against _bq_fx_cascade_N on identical
+              data - two stages with DIFFERENT coefficients, across a block
+              boundary - and found 0 differing samples of 64. The routine
+              was never the fault; the wrapper was. Three things it has to
+              get right: input and output are DIFFERENT pool slots (the
+              cascade works in place); i1 carries over HPF -> LPF; and
+              crossfades are handed to the per-sample body a sample at a
+              time via a new _<nid>_process_sample label, so the alpha
+              bookkeeping and mid-block completion are right by
+              construction instead of re-derived - re-deriving them is what
+              defeated attempt one.
+              Historical note, superseded: PARKED after three attempts. _bq_fx_cascade_blk is written,
               assembles, and its i0-advance-between-stages bug is now FIXED
               (it was only correct for r4=1, so EQ at r4=4 would have run
               every band with band 0's coefficients). That fix does NOT
