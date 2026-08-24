@@ -14,6 +14,17 @@ basic strip for capacity purposes. Two levels to this and they are different:
   what actually recovers TUBE's cycles AND its DM state, so it is the version
   that counts for the 32-channel fit.
 
+**PW BENCH READ 2026-08-24 18:4xZ: U5/U6 MARKING = ADSP-21564KSWZ10 (1 GHz
+grade). The 983.04 MHz target is LEGAL on the fitted parts. ENABLE
+`DSP4_CCLK_TARGET=983` with the same discipline as 786: measure CCLK off the
+diag tick, prove stability on BOTH chips (sustained 1500 blocks/s, harness
+chain 0 LSB, SPORT/DMA clean, thermal eye over a sustained run — the
+power/thermal margin at 983 was flagged unchecked and gets checked now, IDD
+figures from the datasheet vs the rails), then continue SIMD, fabric and the
+ceiling AT 983.04 — budget 655,360 cycles/block, 32-in-one goal line ~497
+cycles/sample/strip after fixed costs. 786 remains the fallback operating
+point one flag away.**
+
 **PW CLARIFICATION 2026-08-24 18:1xZ: TUBE IS AN OPTION, NOT FIXED-STRIP.**
 Definition-vs-implementation drift found: diagram-master.csv (the signal-flow
 authority) has NO tube node; only Chan TubeSat/TubeOn cells exist (default
