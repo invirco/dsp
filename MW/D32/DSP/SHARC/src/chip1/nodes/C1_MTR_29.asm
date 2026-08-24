@@ -13,6 +13,8 @@
 /* METER: Read-back level / GR meter (DSP writes, host polls) */
 /* SPI page=1 addr=4720 */
 
+#include "blk_pool.h"
+
 .section/dm seg_dmda;
 .extern _buf_C1_GAIN_29;
 .global _mtr_peak_C1_MTR_29;
@@ -25,8 +27,33 @@
 .section/pm seg_pmco;
 .global _C1_MTR_29_process;
 _C1_MTR_29_process:
+#if DSP4_BLOCK_KERNELS
+    /* Per-block. The source tap is a POOL slot (BLK_CHAIN_B, which
+     * is where GAIN writes), live only while this channel's strip
+     * is running -- which is why the generator now places each
+     * meter immediately after its source instead of leaving it at
+     * chain index 320+, thirty-one channels too late.
+     *
+     * The arithmetic below is UNCHANGED, deliberately. The meters
+     * have four recorded defects (they read a Q4.28 word as an IEEE
+     * float, among others) and the decision on whether to fix or
+     * retire them is the hub's and still open. Converting a node to
+     * block form is not the moment to quietly change its numerics;
+     * this fixes only WHEN it samples, not WHAT it computes. */
+    l2 = 0;
+    i2 = BLK_CHAIN_B;
+    lcntr = 32, do .mtrk_C1_MTR_29 until lce;
+        r0 = dm(i2, 1);
+        call _mtr_step_C1_MTR_29;
+    .mtrk_C1_MTR_29: nop;
+    rts;
+
+_mtr_step_C1_MTR_29:
+#endif
     /* Read source tap */
+#if !DSP4_BLOCK_KERNELS
     r0 = dm(_buf_C1_GAIN_29);
+#endif
     f0 = abs f0;
 
     /* Peak hold with exponential decay */

@@ -97,10 +97,61 @@ comment saying it deliberately did not index because nothing converted
 wrote a TX slot, which stopped being true the moment the sends converted.
 Left alone it would have transmitted sample 0 thirty-two times.
 
-**This number is a floor, not the honest figure.** The 32 `METER` nodes in
-it still run once per block rather than 32 times, so they are counted 32×
-too cheap. Against the 40k target: 54,654 today, and the meters will push
-it up before other work pushes it down.
+### The meters converted, and the 54,654 was indeed a floor
+
+| | cycles/block |
+|---|---|
+| per-sample (original) | 95,434 |
+| buses + sends converted, **meters still running once per block** | 54,654 |
+| **buses + sends + meters, all running correctly** | **85,475** |
+
+**The meters cost 30,821 cycles/block once they actually run** — and that
+is the honest number. The 54,654 figure counted 32 meters at 1/32 of their
+work, which is exactly the kind of flattering measurement the ordering was
+meant to prevent; it is recorded here rather than quietly replaced.
+
+So the fabric conversion is worth **95,434 → 85,475, only 1.12×**, not the
+1.75× the intermediate number suggested. Converting buses and sends really
+did remove most of their call overhead; correcting the meters gave a large
+part of it straight back, because they had been skipping 31 of every 32
+samples.
+
+Against the dispatch's 40k target: **still 2.1× over.** At 786.432 MHz it is
+**16.3 % of the 524,288-cycle budget**, down from 29.1 % of the old one.
+
+**A self-inflicted cost still in that figure.** My meter block kernel calls
+a per-sample subroutine rather than inlining the body, to avoid duplicating
+arithmetic whose defects are under a separate open decision — 32 calls per
+meter per block, about 6,100 cycles/block of pure call overhead across the
+32 meters. Inlining it is straightforward and is the obvious next cut, but
+it belongs with whatever the hub decides about the meters themselves.
+
+### Meters: what was fixed and what deliberately was not
+
+Every chip-1 meter taps its own channel's GAIN output, which under block
+kernels lives in a shared pool slot the next strip overwrites. At chain
+index 320+ each meter was reading data **thirty-one channels stale**. They
+now run immediately after their source, and sample all 32 samples.
+
+Two guards this needed, both found by checking rather than by the build
+failing:
+
+- The reorder initially changed the **shipping** image, because the guard
+  was on the numeric format (always true) rather than on block kernels. The
+  meter call is now emitted in BOTH positions, each `#if`-guarded, so the
+  per-sample image keeps its bytes and its node indices.
+- The relocated call carried no `NODE_LIMIT` guard, which would have made
+  `DSP4_NODE_LIMIT` mean different things in the two builds — and the
+  fabric measurement IS `NODE_LIMIT` 320 versus 0, so it would have started
+  counting meters as strips. It now carries its original index.
+
+**The meter arithmetic is unchanged, deliberately.** The four recorded MTR
+defects — reading a Q4.28 word as an IEEE float among them — are still
+there. Converting a node to block form is not the moment to quietly change
+its numerics, and whether to fix or retire the meters is still the hub's
+open decision. This fixed only WHEN a meter samples, not WHAT it computes.
+It is now 30,821 cycles/block of known-defective work, which is an argument
+for settling that decision.
 
 
 ## THE CORE IS RUNNING AT HALF ITS RATED SPEED — 2026-08-24

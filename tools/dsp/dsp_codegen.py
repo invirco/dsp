@@ -3737,6 +3737,8 @@ def gen_meter(node):
         /* METER: Read-back level / GR meter (DSP writes, host polls) */
         /* SPI page={node['spi_page']} addr={node['spi_addr']} */
 
+        #include "blk_pool.h"
+
         .section/dm seg_dmda;
         .var _mtr_peak_{node['id']} = 0.0;
         .var _mtr_rms_{node['id']} = 0.0;
@@ -3745,8 +3747,33 @@ def gen_meter(node):
         .section/pm seg_pmco;
         .global _{node['id']}_process;
         _{node['id']}_process:
+        #if DSP4_BLOCK_KERNELS
+            /* Per-block. The source tap is a POOL slot (BLK_CHAIN_B, which
+             * is where GAIN writes), live only while this channel's strip
+             * is running -- which is why the generator now places each
+             * meter immediately after its source instead of leaving it at
+             * chain index 320+, thirty-one channels too late.
+             *
+             * The arithmetic below is UNCHANGED, deliberately. The meters
+             * have four recorded defects (they read a Q4.28 word as an IEEE
+             * float, among others) and the decision on whether to fix or
+             * retire them is the hub's and still open. Converting a node to
+             * block form is not the moment to quietly change its numerics;
+             * this fixes only WHEN it samples, not WHAT it computes. */
+            l2 = 0;
+            i2 = BLK_CHAIN_B;
+            lcntr = 32, do .mtrk_{node['id']} until lce;
+                r0 = dm(i2, 1);
+                call _mtr_step_{node['id']};
+            .mtrk_{node['id']}: nop;
+            rts;
+
+        _mtr_step_{node['id']}:
+        #endif
             /* Read source tap */
+        #if !DSP4_BLOCK_KERNELS
             r0 = dm(_buf_{node['inputs_str']});
+        #endif
             f0 = abs f0;
 
             /* Peak hold with exponential decay */
@@ -7633,8 +7660,28 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
         # annotates the node dicts. The block kernels below read those.
         bio_text, lane_info = gen_block_io(chip_label, chip_nodes)
 
+        # METER placement. Every chip-1 meter taps its own channel's GAIN
+        # output, and under per-block kernels that value lives in a SHARED
+        # pool slot (BLK_CHAIN_B) which the next strip overwrites. The
+        # meters sit at chain indices 320+, after all 32 strips have run and
+        # the pool has been reused 32 times, so by the time a meter reads
+        # "its" channel the data is thirty-one channels stale. Moving each
+        # meter to run immediately after its source keeps the read on live
+        # data. Meters are sinks with no downstream consumer, which is what
+        # makes the reorder safe.
+        _mtr_after = {}
+        if FORMAT == 'fixed':
+            for n in chip_nodes:
+                if n['type'] == 'METER' and n.get('inputs'):
+                    _mtr_after.setdefault(n['inputs'][0], []).append(n['id'])
+        _mtr_ids = {m for v in _mtr_after.values() for m in v}
+
         for node in chip_nodes:
-            # call_sequence is always populated (process_chain.asm must list every node)
+            # call_sequence keeps its ORIGINAL order. The meter move is done
+            # in the emitted chain under #if DSP4_BLOCK_KERNELS instead, so
+            # the per-sample image -- which is the shipping one -- keeps both
+            # its byte-for-byte content and its node indices, on which
+            # DSP4_NODE_LIMIT and the scope-skip table both depend.
             call_sequence.append(node['id'])
 
             gen_fn = GENERATORS.get(node['type'], gen_generic)
@@ -7750,8 +7797,31 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                     strip = int(m.group(2)) - 1
                     guards.append(f'DSP4_STRIPS == 0 || {strip} < DSP4_STRIPS')
                 f.write('#if (' + ') && ('.join(guards) + ')\n')
-                f.write(f'    call _{nid}_process;\n')
+                if nid in _mtr_ids:
+                    # Per-sample builds call the meter here, at its own chain
+                    # index, exactly as they always have.
+                    f.write('#if !DSP4_BLOCK_KERNELS\n')
+                    f.write(f'    call _{nid}_process;\n')
+                    f.write('#endif\n')
+                else:
+                    f.write(f'    call _{nid}_process;\n')
                 f.write(f'#endif\n')
+                for _m in _mtr_after.get(nid, []):
+                    # ...and block builds call it HERE instead, right after
+                    # its source, while that channel's pool slot is still
+                    # live. Guarded so the shipping image is unchanged.
+                    #
+                    # It keeps its ORIGINAL chain index in the NODE_LIMIT
+                    # guard. Without that, DSP4_NODE_LIMIT would mean two
+                    # different things in the two builds -- and the fabric
+                    # measurement, which is exactly NODE_LIMIT 320 versus 0,
+                    # would silently start counting meters as strips.
+                    _mi = call_sequence.index(_m)
+                    f.write('#if DSP4_BLOCK_KERNELS\n')
+                    f.write(f'#if (DSP4_NODE_LIMIT == 0 || {_mi} < DSP4_NODE_LIMIT)\n')
+                    f.write(f'    call _{_m}_process;\n')
+                    f.write('#endif\n')
+                    f.write('#endif\n')
                 if idx in gate_ends:
                     f.write('#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE\n')
                     f.write(f'.sgrun{gate_ends[idx]}_end:\n')

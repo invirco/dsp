@@ -453,6 +453,11 @@ _chip1_process_all:
 #if (DSP4_NODE_LIMIT == 0 || 1 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 0 < DSP4_STRIPS)
     call _C1_GAIN_01_process;
 #endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT == 0 || 320 < DSP4_NODE_LIMIT)
+    call _C1_MTR_01_process;
+#endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 2 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 0 < DSP4_STRIPS)
     call _C1_FILT_01_process;
 #endif
@@ -482,6 +487,11 @@ _chip1_process_all:
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 11 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 1 < DSP4_STRIPS)
     call _C1_GAIN_02_process;
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT == 0 || 321 < DSP4_NODE_LIMIT)
+    call _C1_MTR_02_process;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 12 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 1 < DSP4_STRIPS)
     call _C1_FILT_02_process;
@@ -513,6 +523,11 @@ _chip1_process_all:
 #if (DSP4_NODE_LIMIT == 0 || 21 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 2 < DSP4_STRIPS)
     call _C1_GAIN_03_process;
 #endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT == 0 || 322 < DSP4_NODE_LIMIT)
+    call _C1_MTR_03_process;
+#endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 22 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 2 < DSP4_STRIPS)
     call _C1_FILT_03_process;
 #endif
@@ -542,6 +557,11 @@ _chip1_process_all:
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 31 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 3 < DSP4_STRIPS)
     call _C1_GAIN_04_process;
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT == 0 || 323 < DSP4_NODE_LIMIT)
+    call _C1_MTR_04_process;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 32 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 3 < DSP4_STRIPS)
     call _C1_FILT_04_process;
@@ -573,6 +593,11 @@ _chip1_process_all:
 #if (DSP4_NODE_LIMIT == 0 || 41 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 4 < DSP4_STRIPS)
     call _C1_GAIN_05_process;
 #endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT == 0 || 324 < DSP4_NODE_LIMIT)
+    call _C1_MTR_05_process;
+#endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 42 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 4 < DSP4_STRIPS)
     call _C1_FILT_05_process;
 #endif
@@ -602,6 +627,11 @@ _chip1_process_all:
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 51 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 5 < DSP4_STRIPS)
     call _C1_GAIN_06_process;
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT == 0 || 325 < DSP4_NODE_LIMIT)
+    call _C1_MTR_06_process;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 52 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 5 < DSP4_STRIPS)
     call _C1_FILT_06_process;
@@ -633,6 +663,11 @@ _chip1_process_all:
 #if (DSP4_NODE_LIMIT == 0 || 61 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 6 < DSP4_STRIPS)
     call _C1_GAIN_07_process;
 #endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT == 0 || 326 < DSP4_NODE_LIMIT)
+    call _C1_MTR_07_process;
+#endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 62 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 6 < DSP4_STRIPS)
     call _C1_FILT_07_process;
 #endif
@@ -662,6 +697,11 @@ _chip1_process_all:
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 71 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 7 < DSP4_STRIPS)
     call _C1_GAIN_08_process;
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT == 0 || 327 < DSP4_NODE_LIMIT)
+    call _C1_MTR_08_process;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 72 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 7 < DSP4_STRIPS)
     call _C1_FILT_08_process;
@@ -693,6 +733,11 @@ _chip1_process_all:
 #if (DSP4_NODE_LIMIT == 0 || 81 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 8 < DSP4_STRIPS)
     call _C1_GAIN_09_process;
 #endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT == 0 || 328 < DSP4_NODE_LIMIT)
+    call _C1_MTR_09_process;
+#endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 82 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 8 < DSP4_STRIPS)
     call _C1_FILT_09_process;
 #endif
@@ -722,6 +767,11 @@ _chip1_process_all:
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 91 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 9 < DSP4_STRIPS)
     call _C1_GAIN_10_process;
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT == 0 || 329 < DSP4_NODE_LIMIT)
+    call _C1_MTR_10_process;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 92 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 9 < DSP4_STRIPS)
     call _C1_FILT_10_process;
@@ -753,6 +803,11 @@ _chip1_process_all:
 #if (DSP4_NODE_LIMIT == 0 || 101 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 10 < DSP4_STRIPS)
     call _C1_GAIN_11_process;
 #endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT == 0 || 330 < DSP4_NODE_LIMIT)
+    call _C1_MTR_11_process;
+#endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 102 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 10 < DSP4_STRIPS)
     call _C1_FILT_11_process;
 #endif
@@ -782,6 +837,11 @@ _chip1_process_all:
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 111 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 11 < DSP4_STRIPS)
     call _C1_GAIN_12_process;
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT == 0 || 331 < DSP4_NODE_LIMIT)
+    call _C1_MTR_12_process;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 112 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 11 < DSP4_STRIPS)
     call _C1_FILT_12_process;
@@ -813,6 +873,11 @@ _chip1_process_all:
 #if (DSP4_NODE_LIMIT == 0 || 121 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 12 < DSP4_STRIPS)
     call _C1_GAIN_13_process;
 #endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT == 0 || 332 < DSP4_NODE_LIMIT)
+    call _C1_MTR_13_process;
+#endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 122 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 12 < DSP4_STRIPS)
     call _C1_FILT_13_process;
 #endif
@@ -842,6 +907,11 @@ _chip1_process_all:
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 131 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 13 < DSP4_STRIPS)
     call _C1_GAIN_14_process;
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT == 0 || 333 < DSP4_NODE_LIMIT)
+    call _C1_MTR_14_process;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 132 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 13 < DSP4_STRIPS)
     call _C1_FILT_14_process;
@@ -873,6 +943,11 @@ _chip1_process_all:
 #if (DSP4_NODE_LIMIT == 0 || 141 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 14 < DSP4_STRIPS)
     call _C1_GAIN_15_process;
 #endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT == 0 || 334 < DSP4_NODE_LIMIT)
+    call _C1_MTR_15_process;
+#endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 142 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 14 < DSP4_STRIPS)
     call _C1_FILT_15_process;
 #endif
@@ -902,6 +977,11 @@ _chip1_process_all:
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 151 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 15 < DSP4_STRIPS)
     call _C1_GAIN_16_process;
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT == 0 || 335 < DSP4_NODE_LIMIT)
+    call _C1_MTR_16_process;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 152 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 15 < DSP4_STRIPS)
     call _C1_FILT_16_process;
@@ -933,6 +1013,11 @@ _chip1_process_all:
 #if (DSP4_NODE_LIMIT == 0 || 161 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 16 < DSP4_STRIPS)
     call _C1_GAIN_17_process;
 #endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT == 0 || 336 < DSP4_NODE_LIMIT)
+    call _C1_MTR_17_process;
+#endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 162 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 16 < DSP4_STRIPS)
     call _C1_FILT_17_process;
 #endif
@@ -962,6 +1047,11 @@ _chip1_process_all:
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 171 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 17 < DSP4_STRIPS)
     call _C1_GAIN_18_process;
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT == 0 || 337 < DSP4_NODE_LIMIT)
+    call _C1_MTR_18_process;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 172 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 17 < DSP4_STRIPS)
     call _C1_FILT_18_process;
@@ -993,6 +1083,11 @@ _chip1_process_all:
 #if (DSP4_NODE_LIMIT == 0 || 181 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 18 < DSP4_STRIPS)
     call _C1_GAIN_19_process;
 #endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT == 0 || 338 < DSP4_NODE_LIMIT)
+    call _C1_MTR_19_process;
+#endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 182 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 18 < DSP4_STRIPS)
     call _C1_FILT_19_process;
 #endif
@@ -1022,6 +1117,11 @@ _chip1_process_all:
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 191 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 19 < DSP4_STRIPS)
     call _C1_GAIN_20_process;
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT == 0 || 339 < DSP4_NODE_LIMIT)
+    call _C1_MTR_20_process;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 192 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 19 < DSP4_STRIPS)
     call _C1_FILT_20_process;
@@ -1053,6 +1153,11 @@ _chip1_process_all:
 #if (DSP4_NODE_LIMIT == 0 || 201 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 20 < DSP4_STRIPS)
     call _C1_GAIN_21_process;
 #endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT == 0 || 340 < DSP4_NODE_LIMIT)
+    call _C1_MTR_21_process;
+#endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 202 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 20 < DSP4_STRIPS)
     call _C1_FILT_21_process;
 #endif
@@ -1082,6 +1187,11 @@ _chip1_process_all:
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 211 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 21 < DSP4_STRIPS)
     call _C1_GAIN_22_process;
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT == 0 || 341 < DSP4_NODE_LIMIT)
+    call _C1_MTR_22_process;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 212 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 21 < DSP4_STRIPS)
     call _C1_FILT_22_process;
@@ -1113,6 +1223,11 @@ _chip1_process_all:
 #if (DSP4_NODE_LIMIT == 0 || 221 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 22 < DSP4_STRIPS)
     call _C1_GAIN_23_process;
 #endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT == 0 || 342 < DSP4_NODE_LIMIT)
+    call _C1_MTR_23_process;
+#endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 222 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 22 < DSP4_STRIPS)
     call _C1_FILT_23_process;
 #endif
@@ -1142,6 +1257,11 @@ _chip1_process_all:
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 231 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 23 < DSP4_STRIPS)
     call _C1_GAIN_24_process;
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT == 0 || 343 < DSP4_NODE_LIMIT)
+    call _C1_MTR_24_process;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 232 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 23 < DSP4_STRIPS)
     call _C1_FILT_24_process;
@@ -1173,6 +1293,11 @@ _chip1_process_all:
 #if (DSP4_NODE_LIMIT == 0 || 241 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 24 < DSP4_STRIPS)
     call _C1_GAIN_25_process;
 #endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT == 0 || 344 < DSP4_NODE_LIMIT)
+    call _C1_MTR_25_process;
+#endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 242 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 24 < DSP4_STRIPS)
     call _C1_FILT_25_process;
 #endif
@@ -1202,6 +1327,11 @@ _chip1_process_all:
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 251 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 25 < DSP4_STRIPS)
     call _C1_GAIN_26_process;
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT == 0 || 345 < DSP4_NODE_LIMIT)
+    call _C1_MTR_26_process;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 252 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 25 < DSP4_STRIPS)
     call _C1_FILT_26_process;
@@ -1233,6 +1363,11 @@ _chip1_process_all:
 #if (DSP4_NODE_LIMIT == 0 || 261 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 26 < DSP4_STRIPS)
     call _C1_GAIN_27_process;
 #endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT == 0 || 346 < DSP4_NODE_LIMIT)
+    call _C1_MTR_27_process;
+#endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 262 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 26 < DSP4_STRIPS)
     call _C1_FILT_27_process;
 #endif
@@ -1262,6 +1397,11 @@ _chip1_process_all:
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 271 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 27 < DSP4_STRIPS)
     call _C1_GAIN_28_process;
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT == 0 || 347 < DSP4_NODE_LIMIT)
+    call _C1_MTR_28_process;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 272 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 27 < DSP4_STRIPS)
     call _C1_FILT_28_process;
@@ -1293,6 +1433,11 @@ _chip1_process_all:
 #if (DSP4_NODE_LIMIT == 0 || 281 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 28 < DSP4_STRIPS)
     call _C1_GAIN_29_process;
 #endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT == 0 || 348 < DSP4_NODE_LIMIT)
+    call _C1_MTR_29_process;
+#endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 282 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 28 < DSP4_STRIPS)
     call _C1_FILT_29_process;
 #endif
@@ -1322,6 +1467,11 @@ _chip1_process_all:
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 291 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 29 < DSP4_STRIPS)
     call _C1_GAIN_30_process;
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT == 0 || 349 < DSP4_NODE_LIMIT)
+    call _C1_MTR_30_process;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 292 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 29 < DSP4_STRIPS)
     call _C1_FILT_30_process;
@@ -1353,6 +1503,11 @@ _chip1_process_all:
 #if (DSP4_NODE_LIMIT == 0 || 301 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 30 < DSP4_STRIPS)
     call _C1_GAIN_31_process;
 #endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT == 0 || 350 < DSP4_NODE_LIMIT)
+    call _C1_MTR_31_process;
+#endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 302 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 30 < DSP4_STRIPS)
     call _C1_FILT_31_process;
 #endif
@@ -1383,6 +1538,11 @@ _chip1_process_all:
 #if (DSP4_NODE_LIMIT == 0 || 311 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 31 < DSP4_STRIPS)
     call _C1_GAIN_32_process;
 #endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT == 0 || 351 < DSP4_NODE_LIMIT)
+    call _C1_MTR_32_process;
+#endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 312 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 31 < DSP4_STRIPS)
     call _C1_FILT_32_process;
 #endif
@@ -1408,100 +1568,164 @@ _chip1_process_all:
     call _C1_RTG_32_process;
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 320 < DSP4_NODE_LIMIT)
+#if !DSP4_BLOCK_KERNELS
     call _C1_MTR_01_process;
 #endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 321 < DSP4_NODE_LIMIT)
+#if !DSP4_BLOCK_KERNELS
     call _C1_MTR_02_process;
 #endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 322 < DSP4_NODE_LIMIT)
+#if !DSP4_BLOCK_KERNELS
     call _C1_MTR_03_process;
 #endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 323 < DSP4_NODE_LIMIT)
+#if !DSP4_BLOCK_KERNELS
     call _C1_MTR_04_process;
 #endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 324 < DSP4_NODE_LIMIT)
+#if !DSP4_BLOCK_KERNELS
     call _C1_MTR_05_process;
 #endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 325 < DSP4_NODE_LIMIT)
+#if !DSP4_BLOCK_KERNELS
     call _C1_MTR_06_process;
 #endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 326 < DSP4_NODE_LIMIT)
+#if !DSP4_BLOCK_KERNELS
     call _C1_MTR_07_process;
 #endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 327 < DSP4_NODE_LIMIT)
+#if !DSP4_BLOCK_KERNELS
     call _C1_MTR_08_process;
 #endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 328 < DSP4_NODE_LIMIT)
+#if !DSP4_BLOCK_KERNELS
     call _C1_MTR_09_process;
 #endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 329 < DSP4_NODE_LIMIT)
+#if !DSP4_BLOCK_KERNELS
     call _C1_MTR_10_process;
 #endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 330 < DSP4_NODE_LIMIT)
+#if !DSP4_BLOCK_KERNELS
     call _C1_MTR_11_process;
 #endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 331 < DSP4_NODE_LIMIT)
+#if !DSP4_BLOCK_KERNELS
     call _C1_MTR_12_process;
 #endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 332 < DSP4_NODE_LIMIT)
+#if !DSP4_BLOCK_KERNELS
     call _C1_MTR_13_process;
 #endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 333 < DSP4_NODE_LIMIT)
+#if !DSP4_BLOCK_KERNELS
     call _C1_MTR_14_process;
 #endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 334 < DSP4_NODE_LIMIT)
+#if !DSP4_BLOCK_KERNELS
     call _C1_MTR_15_process;
 #endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 335 < DSP4_NODE_LIMIT)
+#if !DSP4_BLOCK_KERNELS
     call _C1_MTR_16_process;
 #endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 336 < DSP4_NODE_LIMIT)
+#if !DSP4_BLOCK_KERNELS
     call _C1_MTR_17_process;
 #endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 337 < DSP4_NODE_LIMIT)
+#if !DSP4_BLOCK_KERNELS
     call _C1_MTR_18_process;
 #endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 338 < DSP4_NODE_LIMIT)
+#if !DSP4_BLOCK_KERNELS
     call _C1_MTR_19_process;
 #endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 339 < DSP4_NODE_LIMIT)
+#if !DSP4_BLOCK_KERNELS
     call _C1_MTR_20_process;
 #endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 340 < DSP4_NODE_LIMIT)
+#if !DSP4_BLOCK_KERNELS
     call _C1_MTR_21_process;
 #endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 341 < DSP4_NODE_LIMIT)
+#if !DSP4_BLOCK_KERNELS
     call _C1_MTR_22_process;
 #endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 342 < DSP4_NODE_LIMIT)
+#if !DSP4_BLOCK_KERNELS
     call _C1_MTR_23_process;
 #endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 343 < DSP4_NODE_LIMIT)
+#if !DSP4_BLOCK_KERNELS
     call _C1_MTR_24_process;
 #endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 344 < DSP4_NODE_LIMIT)
+#if !DSP4_BLOCK_KERNELS
     call _C1_MTR_25_process;
 #endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 345 < DSP4_NODE_LIMIT)
+#if !DSP4_BLOCK_KERNELS
     call _C1_MTR_26_process;
 #endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 346 < DSP4_NODE_LIMIT)
+#if !DSP4_BLOCK_KERNELS
     call _C1_MTR_27_process;
 #endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 347 < DSP4_NODE_LIMIT)
+#if !DSP4_BLOCK_KERNELS
     call _C1_MTR_28_process;
 #endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 348 < DSP4_NODE_LIMIT)
+#if !DSP4_BLOCK_KERNELS
     call _C1_MTR_29_process;
 #endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 349 < DSP4_NODE_LIMIT)
+#if !DSP4_BLOCK_KERNELS
     call _C1_MTR_30_process;
 #endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 350 < DSP4_NODE_LIMIT)
+#if !DSP4_BLOCK_KERNELS
     call _C1_MTR_31_process;
 #endif
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 351 < DSP4_NODE_LIMIT)
+#if !DSP4_BLOCK_KERNELS
     call _C1_MTR_32_process;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 352 < DSP4_NODE_LIMIT)
     call _C1_XIN_CODEC_01_process;
