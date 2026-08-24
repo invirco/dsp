@@ -2,6 +2,70 @@
 
 provenance: AI-drafted 2026-08-23 — prose may carry a statistical watermark; rewrite by hand before publication, then remove this header.
 
+## 983.04 MHz ENABLED AND VERIFIED — 2026-08-24 (U5/U6 read as KSWZ10)
+
+PW read the marking: **ADSP-21564KSWZ10, the 1 GHz grade.** That removes
+the only thing gating the 983.04 MHz target.
+
+| | |
+|---|---|
+| CCLK, chip 1 | **983.04 MHz** measured (target 983.04) |
+| CCLK, chip 2 | **983.05 MHz** measured |
+| budget/block | 327,680 → **655,360** (2.00× the original) |
+| real time | `_proc_passes` **1500/s**, `DSP4_STRIPS=1` |
+| harness | **CHAIN BIT-EXACT, 0 of 7, twice** |
+| 60 s soak | FRAME_COUNT monotonic at 1500/s, TICKS at 1000/s, **no resets** |
+| SPORT0_ERR_A / DMA0_STAT | 0x00000000 / 0x00006200 |
+
+Measured the same way as 786: `DIAG_TPERIOD` is built as 983,040 for a
+1.000 ms tick, so a tick rate of 1000.0/s *is* the clock.
+
+**I nearly reported 983 as unstable, on two bad reads.** A `chain.py` run
+returned zero, and a `dsp4_diag` snapshot showed `FRAME_COUNT 0` and
+`SPI_RX_COUNT 0` at `BOOT_STAGE 7` — which reads exactly like a part that
+has reset. Both were transient link artefacts: the 60 s soak shows the
+frame counter advancing monotonically throughout, and the harness is
+bit-exact on two consecutive runs. **On this link a single anomalous read
+is not evidence of anything** — that is the third time it has produced a
+convincing false signal, and the rule is now to require a second reading
+before drawing a conclusion.
+
+### Power and thermal — the gap is real and is NOT closed
+
+Datasheet IDD_TYP, VDD_INT 0.9 V, TJ 25 °C, ASF 1.0, DMA 328 MB/s:
+
+| CCLK | IDD_TYP per chip |
+|---|---|
+| 600 MHz | 490 mA |
+| 800 MHz | 619 mA |
+| **1000 MHz** | **748 mA** |
+
+So 983.04 draws roughly **740 mA per chip, ~1.5 A for the pair** on the
+0.9 V rail, against ~610 mA/chip at 786.432 — an increase of about
+**260 mA across the two chips**.
+
+**This cannot be signed off from here, for two specific reasons:**
+
+1. **The +0.9 V rail comes from the MOTHERBOARD** over the J1/J2 DIL100
+   stack (`hardware-map.md`), so the regulator and its rating are not in
+   this repo and its margin cannot be checked from the DSP card side.
+2. **PW's "all three supplies measured in spec" was taken 2026-08-21, at
+   CGU reset defaults — 491.52 MHz**, where each chip draws far less. That
+   measurement does not cover this operating point and **should be
+   repeated at 983.04 under load.**
+
+Also unaddressed: these are TYPICAL figures at TJ = 25 °C. The datasheet
+points to EE-471 for the real total-power equation, and there is no
+on-chip temperature sensor exposed over the diag link, so **a 60 s soak is
+not a thermal test.** A sustained run with a rail measurement is what would
+close this.
+
+**Recommendation: 983.04 is proven functionally correct and stable over a
+minute, and is NOT yet proven thermally or electrically.** Treat it as
+enabled for measurement work, not as shipped, until the rail is measured
+at this operating point.
+
+
 ## STRIP FUSION — FILT+EQ measured, and the lever is small
 
 FILT now cascades **in place on its input slot** and EQ continues on the
