@@ -16,6 +16,8 @@
 /* HPF: 80.0 Hz slope 18 | LPF: 20000.0 Hz */
 /* SPI page=1 addr=3460 */
 
+#include "blk_pool.h"
+
 .section/dm seg_dmda;
 .extern _buf_C1_GAIN_25;
 
@@ -55,8 +57,79 @@
 .section/pm seg_pmco;
 .extern _bq_fx_cascade_N;
 .extern _bq_fx_convert_N;
+#if DSP4_BLOCK_KERNELS
+.extern _bq_fx_cascade_blk;
+#endif
 .global _C1_FILT_25_process;
 _C1_FILT_25_process:
+
+#if DSP4_BLOCK_KERNELS
+    /* ---- per-block steady state; transients go per-sample ---- */
+    r4 = dm(_hpf_swap_pending_C1_FILT_25);
+    r5 = dm(_lpf_swap_pending_C1_FILT_25);
+    r4 = r4 or r5;
+    r5 = dm(_filt_xfade_step_C1_FILT_25);
+    r4 = r4 or r5;
+    r4 = pass r4;
+    if eq jump (pc, .fkb_ss_C1_FILT_25);
+
+    /* A swap is pending or a crossfade is running: run the block
+     * through the per-sample reference path, one sample at a time,
+     * staging through the scalar buffers it already uses. */
+    l3 = 0;
+    l4 = 0;
+    i3 = BLK_CHAIN_B;
+    i4 = BLK_CHAIN_A;
+    lcntr = 32, do .fkb_xl_C1_FILT_25 until lce;
+        r0 = dm(i3, 1);
+        dm(_buf_C1_GAIN_25) = r0;
+        call _C1_FILT_25_process_sample;
+        r0 = dm(_buf_C1_FILT_25);
+    .fkb_xl_C1_FILT_25: dm(i4, 1) = r0;
+    rts;
+
+.fkb_ss_C1_FILT_25:
+    /* Steady state. The cascade works IN PLACE at i2, so copy the
+     * input block into the output slot and filter it there. */
+    l0 = 0;
+    l1 = 0;
+    l2 = 0;
+    l3 = 0;
+    l4 = 0;
+    i3 = BLK_CHAIN_B;
+    i4 = BLK_CHAIN_A;
+    lcntr = 32, do .fkb_cp_C1_FILT_25 until lce;
+        r0 = dm(i3, 1);
+    .fkb_cp_C1_FILT_25: dm(i4, 1) = r0;
+
+    r4 = dm(_filt_active_C1_FILT_25);
+    r4 = pass r4;
+    if ne jump (pc, .fkb_b_C1_FILT_25);
+    i0 = _filt_hpf_A_C1_FILT_25;
+    i1 = _filt_state_A_C1_FILT_25;
+    i2 = BLK_CHAIN_A;
+    r4 = 1;
+    call _bq_fx_cascade_blk;
+    i0 = _filt_lpf_A_C1_FILT_25;
+    i2 = BLK_CHAIN_A;
+    r4 = 1;
+    call _bq_fx_cascade_blk;    /* i1 continued to LPF state */
+    rts;
+.fkb_b_C1_FILT_25:
+    i0 = _filt_hpf_B_C1_FILT_25;
+    i1 = _filt_state_B_C1_FILT_25;
+    i2 = BLK_CHAIN_A;
+    r4 = 1;
+    call _bq_fx_cascade_blk;
+    i0 = _filt_lpf_B_C1_FILT_25;
+    i2 = BLK_CHAIN_A;
+    r4 = 1;
+    call _bq_fx_cascade_blk;
+    rts;
+
+.global _C1_FILT_25_process_sample;
+_C1_FILT_25_process_sample:
+#endif
 
 
     r4 = dm(_hpf_swap_pending_C1_FILT_25);

@@ -106,6 +106,13 @@ DSP4_SCOPE_GATE="${DSP4_SCOPE_GATE:-1}"
 CFLAGS="$CFLAGS -DDSP4_SCOPE_GATE=$DSP4_SCOPE_GATE"
 ASMFLAGS="$ASMFLAGS -DDSP4_SCOPE_GATE=$DSP4_SCOPE_GATE"
 
+# Biquad block-cascade self-test (debug only, never in a shipping image):
+# runs _bq_fx_cascade_blk and _bq_fx_cascade_N on identical data inside the
+# part and diffs them, to separate the routine from the node wrapper.
+DSP4_BQ_SELFTEST="${DSP4_BQ_SELFTEST:-0}"
+CFLAGS="$CFLAGS -DDSP4_BQ_SELFTEST=$DSP4_BQ_SELFTEST"
+ASMFLAGS="$ASMFLAGS -DDSP4_BQ_SELFTEST=$DSP4_BQ_SELFTEST"
+
 DSP4_COMP_NOCVT="${DSP4_COMP_NOCVT:-0}"
 # Run the node graph only every Nth block (measurement, not a mode).
 DSP4_BLOCK_DECIMATE="${DSP4_BLOCK_DECIMATE:-1}"

@@ -59,6 +59,9 @@
 .section/pm seg_pmco;
 
 .extern _scope_gates_apply;
+#if DSP4_BQ_SELFTEST
+.extern _bq_selftest;
+#endif
 #if CHIP_ID == 1
 .extern _rx_patch_apply;
 #endif
@@ -140,6 +143,9 @@ _product_config_commit:
 #if DSP4_COMMIT_STAGE >= 1
     call _rx_patch_apply;         /* rebuild RX ptr table from patch regs */
 #endif
+#endif
+#if DSP4_BQ_SELFTEST
+    call _bq_selftest;            /* debug: block vs per-sample cascade */
 #endif
 #if DSP4_COMMIT_STAGE >= 2
     r0 = dm(_product_id);

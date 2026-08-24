@@ -435,6 +435,86 @@ park:
   between stages (and restores the per-sample rewind), so `r4 > 1` is
   correct and EQ's four bands are no longer blocked on it.
 
+### 2026-08-24, self-test on the part: the block routine is NOT the fault
+
+`_bq_fx_cascade_blk` was run against `_bq_fx_cascade_N` on byte-identical
+data **inside the part** (`DSP4_BQ_SELFTEST`, `src/lib/bq_selftest.asm`),
+and it is **bit-exact: 0 differing samples of 64, max |diff| = 0.**
+
+The test was built to be hostile to the recorded suspects:
+
+- **Two stages with DIFFERENT coefficients** — 1 kHz LPF Q0.707 then 300 Hz
+  HPF Q2. Equal stages would hide a stage-pointer fault; unity stages hide
+  everything.
+- **An impulse followed by silence**, so every sample after the first is
+  pure feedback tail — the ringing crosses zero inside the block
+  (`ref[31] = −3,884,542`), so this is not a degenerate signal.
+- **Two consecutive blocks off one state array**, which is exactly the
+  block-boundary persistence case, and samples 32–63 match too.
+
+So both of yesterday's sharpened suspects are cleared *for the routine*:
+in-block state handling and cross-block persistence are correct. What the
+test cannot clear — because it supplies them itself — is how the **node
+wrapper** drives `i0`, `i1` and `i2`, and the A/B-instance and crossfade
+bookkeeping around them. That is now the whole of the remaining suspect
+space, and it is a much smaller one.
+
+This is the second time on this page that a conclusion about the biquads
+came from a test that could not see the fault. The lesson is the same one:
+**a passing test proves only what its stimulus could have falsified.**
+
+### FILT CONVERTED and bit-exact — 2026-08-24, fourth attempt
+
+Once the self-test above proved the routine, the remaining suspect space
+was just the wrapper, and the wrapper is where the fault was.
+
+| | cycles/block | cycles/sample |
+|---|---|---|
+| FILT per-sample, re-measured on the CURRENT build | 6,973 | 217.9 |
+| **FILT per block** | **4,062** | **126.9** |
+| | | **1.72× faster** |
+
+(Differenced `DSP4_NODE_LIMIT` 2 → 3, `DSP4_BLOCK_DECIMATE=32`, both arms
+measured the same way on the same day. The pre-rewrite table's 7,254 was
+not reused.)
+
+**Bit-exact on the part: 0 differing samples of 24**, block build against
+per-sample build, same stimulus and same coefficients — a real 2-stage
+cascade (HPF `1,−2,1,−1.8,0.81` into a 1 kHz LPF) whose impulse response
+rings through zero and back, so the comparison has something to fail on.
+Method: `DSP4_NODE_LIMIT=3` cuts the chain immediately after FILT, so the
+pool slot still holds FILT's output when the scope reads it — without that
+cut, later strip nodes overwrite the slot and the capture is of whoever
+wrote last.
+
+What the wrapper has to get right, and what the earlier attempts did not:
+
+- **Input and output are different pool slots.** FILT reads `BLK_CHAIN_B`
+  (GAIN's output) and writes `BLK_CHAIN_A`. The cascade works IN PLACE at
+  `i2`, so the block is copied into the output slot and filtered there.
+- **`i1` carries over from HPF to LPF.** The per-sample node relies on this
+  and so does the block form — the routine leaves `i1` on the next stage's
+  state base after a call, which the self-test confirmed.
+- **Crossfades are handed to the per-sample path one sample at a time.**
+  The per-sample body is emitted under a second label,
+  `_<nid>_process_sample`, and the block wrapper calls it 32 times while a
+  swap is pending or a fade is running, staging through the scalar buffers
+  it already uses. That is the reference implementation itself, so the
+  alpha bookkeeping — and a crossfade COMPLETING mid-block, which flips the
+  active instance and must switch the remaining samples of that block to
+  steady state — is right by construction. Re-deriving that bookkeeping in
+  block form is what defeated the first attempt. A crossfade lasts 576
+  samples and is a transient, so the per-sample cost of it does not matter.
+
+The default image stays byte-identical: without the flag `_<nid>_process`
+falls straight through into the untouched per-sample body.
+
+**A ×32 suspicion that turned out to be wrong, recorded so it is not
+re-raised:** the crossfade advances `alpha` once per call and the chain is
+called per sample, which looks exactly like the ramp ×32 defect. It is not
+one. `XFADE_SAMPLES = 12 ms × 48 kHz = 576 SAMPLES`, not 576 frames, so a
+per-sample step is correct.
+
 ### Third attempt, 2026-08-24 — PARKED again, but the suspect list was wrong
 
 Outcome: still fails on real filters, so the biquads stay parked. The

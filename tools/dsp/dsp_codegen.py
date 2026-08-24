@@ -1,3 +1,74 @@
+
+_FILT_BLK_BODY = """
+        #if DSP4_BLOCK_KERNELS
+            /* ---- per-block steady state; transients go per-sample ---- */
+            r4 = dm(_hpf_swap_pending_{nid});
+            r5 = dm(_lpf_swap_pending_{nid});
+            r4 = r4 or r5;
+            r5 = dm(_filt_xfade_step_{nid});
+            r4 = r4 or r5;
+            r4 = pass r4;
+            if eq jump (pc, .fkb_ss_{nid});
+
+            /* A swap is pending or a crossfade is running: run the block
+             * through the per-sample reference path, one sample at a time,
+             * staging through the scalar buffers it already uses. */
+            l3 = 0;
+            l4 = 0;
+            i3 = BLK_CHAIN_B;
+            i4 = BLK_CHAIN_A;
+            lcntr = 32, do .fkb_xl_{nid} until lce;
+                r0 = dm(i3, 1);
+                dm(_buf_{inp}) = r0;
+                call _{nid}_process_sample;
+                r0 = dm(_buf_{nid});
+            .fkb_xl_{nid}: dm(i4, 1) = r0;
+            rts;
+
+        .fkb_ss_{nid}:
+            /* Steady state. The cascade works IN PLACE at i2, so copy the
+             * input block into the output slot and filter it there. */
+            l0 = 0;
+            l1 = 0;
+            l2 = 0;
+            l3 = 0;
+            l4 = 0;
+            i3 = BLK_CHAIN_B;
+            i4 = BLK_CHAIN_A;
+            lcntr = 32, do .fkb_cp_{nid} until lce;
+                r0 = dm(i3, 1);
+            .fkb_cp_{nid}: dm(i4, 1) = r0;
+
+            r4 = dm(_filt_active_{nid});
+            r4 = pass r4;
+            if ne jump (pc, .fkb_b_{nid});
+            i0 = _filt_hpf_A_{nid};
+            i1 = _filt_state_A_{nid};
+            i2 = BLK_CHAIN_A;
+            r4 = 1;
+            call _bq_fx_cascade_blk;
+            i0 = _filt_lpf_A_{nid};
+            i2 = BLK_CHAIN_A;
+            r4 = 1;
+            call _bq_fx_cascade_blk;    /* i1 continued to LPF state */
+            rts;
+        .fkb_b_{nid}:
+            i0 = _filt_hpf_B_{nid};
+            i1 = _filt_state_B_{nid};
+            i2 = BLK_CHAIN_A;
+            r4 = 1;
+            call _bq_fx_cascade_blk;
+            i0 = _filt_lpf_B_{nid};
+            i2 = BLK_CHAIN_A;
+            r4 = 1;
+            call _bq_fx_cascade_blk;
+            rts;
+
+        .global _{nid}_process_sample;
+        _{nid}_process_sample:
+        #endif
+"""
+
 #!/usr/bin/env python3
 """dsp_codegen.py — Generates SHARC+ ASM skeleton files from dsp.csv (D32).
 
@@ -4607,6 +4678,33 @@ def gen_anti_fb_fixed(node):
 
 
 def gen_hpf_lpf_fixed(node):
+    # Per-block wrapper (DSP4_BLOCK_KERNELS). Emitted AHEAD of the
+    # per-sample body, which is left byte-for-byte as it was: without the
+    # flag _{nid}_process falls straight through into it, so the default
+    # image cannot move.
+    #
+    # _bq_fx_cascade_blk was proved bit-exact against _bq_fx_cascade_N on
+    # the part (DSP4_BQ_SELFTEST, 0 of 64 samples differing, two stages
+    # with DIFFERENT coefficients, across a block boundary), so what is
+    # left to get right is exactly this wrapper.
+    #
+    # Crossfades are handed to the per-sample path a sample at a time.
+    # That is the reference implementation itself, so the alpha
+    # bookkeeping -- and a crossfade COMPLETING mid-block, which flips the
+    # active instance and must switch the remaining samples to steady
+    # state -- are right by construction rather than by re-derivation. A
+    # crossfade lasts 576 samples and is a transient, so its cost does not
+    # matter.
+    import re as _re
+    _pool = bool(_re.match(r'^C\d+_FILT_\d+$', node['id']))
+    if _pool:
+        _nid = node['id']
+        _inp = node['inputs_str']
+        blk_filt_body = _FILT_BLK_BODY.format(nid=_nid, inp=_inp)
+    else:
+        # Not a strip FILT: no pool slot, so there is no block form.
+        blk_filt_body = ''
+
     """Fixed HPF+LPF (D5): two 1-stage offset-form biquads in series,
     dual-instance crossfade, independent float HPF/LPF staging (wire
     unchanged). On swap: copy active FIXED coeffs to dormant as the
@@ -4623,6 +4721,8 @@ def gen_hpf_lpf_fixed(node):
         /* HPF_LPF (FIXED Q4.28, D5) — dual-instance crossfade */
         /* HPF: {p.get('hpf_freq','80')} Hz slope {p.get('hpf_slope','18')} | LPF: {p.get('lpf_freq','20000')} Hz */
         /* SPI page={node['spi_page']} addr={node['spi_addr']} */
+
+        #include "blk_pool.h"
 
         .section/dm seg_dmda;
 
@@ -4648,9 +4748,12 @@ def gen_hpf_lpf_fixed(node):
         .section/pm seg_pmco;
         .extern _bq_fx_cascade_N;
         .extern _bq_fx_convert_N;
+        #if DSP4_BLOCK_KERNELS
+        .extern _bq_fx_cascade_blk;
+        #endif
         .global _{nid}_process;
         _{nid}_process:
-
+        {blk_filt_body}
 
             r4 = dm(_hpf_swap_pending_{nid});
             r5 = dm(_lpf_swap_pending_{nid});
