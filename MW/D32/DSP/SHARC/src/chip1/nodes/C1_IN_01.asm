@@ -14,12 +14,17 @@
 
 /* INPUT_TDM: Read from SPORT0 TDM slot 0 */
 
+#include "blk_pool.h"
+
 .section/dm seg_dmda;
 #if DSP4_BLOCK_KERNELS
 .global _rx_slot_C1_IN_01;
 .var _rx_slot_C1_IN_01[32];
+/* The block output lives in the SHARED pool; this scalar is kept
+ * only so unconverted consumers still link, and carries the last
+ * sample of the block. */
 .global _buf_C1_IN_01;
-.var _buf_C1_IN_01[32];
+.var _buf_C1_IN_01;
 #else
 .global _rx_slot_C1_IN_01;
 .var _rx_slot_C1_IN_01;
@@ -35,13 +40,14 @@ _C1_IN_01_process:
     l0 = 0;
     l1 = 0;
     i0 = _rx_slot_C1_IN_01;
-    i1 = _buf_C1_IN_01;
+    i1 = BLK_CHAIN_A;
     r5 = 32;
     lcntr = r5; do .in_lp_C1_IN_01 until lce;
         r0 = dm(i0, 1);
         dm(i1, 1) = r0;
 .in_lp_C1_IN_01:
         nop;
+    dm(_buf_C1_IN_01) = r0;   /* linkage scalar */
     rts;
 #else
     r0 = dm(_rx_slot_C1_IN_01);

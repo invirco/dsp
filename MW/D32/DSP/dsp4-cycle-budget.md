@@ -156,6 +156,38 @@ buffers per strip suffice instead of one per node — 64 words instead of
 assignment, and it should land before the remaining classes are converted
 rather than after.
 
+### Buffer reuse landed 2026-08-24 — the memory blocker is gone
+
+One buffer per node does not fit. Strips run **sequentially** (the call
+chain is strip-ordered), so a strip's working set is dead the moment its
+RTG has accumulated into the buses, and every strip can reuse the same
+slots. One shared pool of **8 slots × 32 samples = 256 words** serves all
+32 strips:
+
+| slot | use |
+|---|---|
+| A, B | chain ping-pong: IN→A GAIN→B FILT→A EQ→B GATE→A COMP→B TUBE→A DLY→B FDR→A |
+| FDR_L, FDR_R | pan split, live until the router has read both |
+| TAP_TRIM, TAP_EQ, TAP_PREFDR, TAP_POSTFDR | the four taps the router picks from — these span the whole strip, so they cannot share the pair |
+
+Measured `sec_dmda` on chip 1:
+
+| build | words |
+|---|---|
+| default (per-sample) | 20,840 |
+| block kernels, one buffer per node | **overflowed `sec_stak`** |
+| block kernels, shared pool | **22,472** (+1,632) |
+
+GAIN re-verified against `fixed_ref` reading its pooled slot rather than a
+private buffer: still **0 LSB** at all six gains.
+
+**Headroom is still under ~1,600 words.** Moving the bus accumulators back
+from L2 to internal DM takes it to 24,072 and overflows again, so they stay
+in L2 for now. The next reclaim is the **1,472 words of RX slot arrays**,
+which disappear entirely if the IN kernel reads the DMA buffer directly and
+does the Q1.31→Q4.28 shift itself — that removes a whole copy as well as
+the storage.
+
 ### What stands out
 
 **RTG is the most expensive node class on the part** — 601 cycles per

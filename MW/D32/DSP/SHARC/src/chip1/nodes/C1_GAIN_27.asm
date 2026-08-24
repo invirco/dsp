@@ -15,6 +15,8 @@
 /* GAIN (FIXED Q4.28, D5) — float control, fixed sample path */
 /* SPI page=1 addr=3744 */
 
+#include "blk_pool.h"
+
 .section/dm seg_dmda;
 .extern _buf_C1_IN_27;
 .global _gain_coeff_C1_GAIN_27;
@@ -33,13 +35,11 @@
 .var _polarity_C1_GAIN_27 = 0;
 .global _tap_post_trim_C1_GAIN_27;
 .var _tap_post_trim_C1_GAIN_27;
-#if DSP4_BLOCK_KERNELS
-.global _buf_C1_GAIN_27;
-.var _buf_C1_GAIN_27[32];
-#else
+/* Block output and tap live in the SHARED pool; these scalars are
+ * kept for linkage with unconverted consumers and carry the last
+ * sample of the block. */
 .global _buf_C1_GAIN_27;
 .var _buf_C1_GAIN_27;
-#endif
 
 .section/pm seg_pmco;
 .extern _sample_idx;
@@ -111,8 +111,8 @@ _C1_GAIN_27_process:
     r10 = 0x7FFFFFFF;
     l0 = 0;
     l1 = 0;
-    i0 = _buf_C1_IN_27;
-    i1 = _buf_C1_GAIN_27;
+    i0 = BLK_CHAIN_A;
+    i1 = BLK_CHAIN_B;
     r5 = 32;
     lcntr = r5; do .gk_lp_C1_GAIN_27 until lce;
         r0 = dm(i0, 1);
@@ -132,7 +132,8 @@ _C1_GAIN_27_process:
         dm(i1, 1) = r0;
 .gk_lp_C1_GAIN_27:
         nop;
-    dm(_tap_post_trim_C1_GAIN_27) = r0;
+    dm(_tap_post_trim_C1_GAIN_27) = r0;   /* linkage scalars */
+    dm(_buf_C1_GAIN_27) = r0;
     rts;
 #else
 .apply_C1_GAIN_27:

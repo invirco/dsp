@@ -5,6 +5,11 @@
 .section/dm seg_dmda;
 
 #if DSP4_BLOCK_KERNELS
+.global _blk_pool;
+.var _blk_pool[256];
+#endif
+
+#if DSP4_BLOCK_KERNELS
 .section/dm seg_delay;
 .global _bus_acc_main_l;   .var _bus_acc_main_l[64];
 .global _bus_acc_main_r;   .var _bus_acc_main_r[64];
