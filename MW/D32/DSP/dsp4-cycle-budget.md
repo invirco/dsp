@@ -880,6 +880,65 @@ Two things came out of it and both are kept:
   (`COLLECT_TRIES`) before concluding anything is out of phase, so a slow
   answer is no longer turned into a manufactured fault.
 
+## The bus/send fabric, measured on the current build — 2026-08-24
+
+Node 320 is the strip/fabric boundary in the chip-1 call chain (0–319 are
+the 32 strips, 320–430 are meters, buses, sends, cross-ins and transfers),
+so `DSP4_NODE_LIMIT` 320 versus 0 isolates the fabric directly.
+
+| build | cycles/block |
+|---|---|
+| 32 strips, no fabric | 2,070,521 |
+| full 431-node graph | 2,165,955 |
+| **fabric** | **95,434 (29.1 % of the whole budget)** |
+
+**Higher than the 79,408 carried from the original profile** — that figure
+predates several changes and the current number supersedes it. Against the
+dispatch's 40k target this needs a **2.39×** reduction.
+
+**It is nearly all call overhead, and that is why the target is reachable.**
+97 non-strip nodes on chip 1 — 37 `INTERCHIP_SEND`, 32 `METER`, 25
+`MIX_BUS`, 2 `TALKBACK`, 1 `NOISE_GEN` — at 32 calls each is 3,104 calls per
+block, so **30.7 cycles per call** for bodies of two to four instructions:
+
+    MIX_BUS:          i2 = acc; call _acc64_rns28; dm(_buf) = r0; rts;
+    INTERCHIP_SEND:   r0 = dm(_buf_<src>); dm(_tx_slot) = r0; rts;
+
+That is the same shape GAIN had at 72.5 cycles/sample for one multiply,
+and GAIN converted at 4.04×.
+
+What hitting the target is worth, exactly:
+
+| | available for strips | per strip for 32 |
+|---|---|---|
+| fabric as-is (95,434) | 199,539 | **194.9 cycles/sample** |
+| fabric at 40k | 254,973 | **249.0 cycles/sample** |
+
+So the fabric work is worth **54 cycles/sample/strip** of headroom — real,
+but it does not change any conclusion above: the signal-present strip is
+1,152 cycles/sample and the best measured path with SIMD and both dynamics
+levers is ~442.
+
+### Why the fused-build strips ceiling is not measured yet
+
+It is gated on this conversion, and the reason is the same trap twice over:
+in a block-kernel build the **fabric nodes are unconverted, so they run once
+per block instead of 32 times** — they are 32× too cheap, and the graph is
+not functionally equivalent. A strips ceiling measured on that build would
+flatter itself exactly as a strips ceiling measured on a partly-converted
+strip would have. It becomes meaningful the moment the fabric converts.
+
+### What the conversion involves — one change or none
+
+Bus outputs and TX slots become 32-word arrays, which means every consumer
+indexes by sample: sends, meters, transfers and the chip-2 buses. The
+gather is the easy part — it already walks a pointer table
+(`_c1_ic_tx_ptrs`), so it needs one add to index the slot by sample.
+Converting a subset produces a build that is silently wrong, so this lands
+whole. Open risk: it wants roughly **1,900 extra words of DM**, and
+headroom is already tight enough that the bus accumulators are still parked
+in L2.
+
 ## EVERY DYNAMICS MEASUREMENT ON THIS PAGE WAS TAKEN ON SILENCE — corrected 2026-08-24
 
 This invalidates two earlier conclusions and makes the capacity picture
