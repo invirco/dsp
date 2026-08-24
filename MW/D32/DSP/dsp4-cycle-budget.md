@@ -357,6 +357,33 @@ interpolate the gain per sample**, which is a numeric change and needs a
 `shared/numeric-spec.md` amendment with a stated error bound before it can
 be verified against anything.
 
+### FDR converted 2026-08-24 — 2.33x, and the chain is now verified
+
+| point | per-sample | per-block |
+|---|---|---|
+| `NODE_LIMIT=8` (through DLY) | 106,460 | 34,454 |
+| `NODE_LIMIT=9` (+ FDR) | 110,864 | 36,340 |
+| **FDR alone** | **4,404** (137.6/sample) | **1,886** (58.9/sample) |
+
+Same treatment that worked for GAIN, and for the same reason: the three
+coefficients and the mute decision hoisted out of the loop, and all three
+`_mrf_rns28` calls inlined with their constants held. Mute folds into the
+gain because `x*0` is exactly 0 in this format. Bus faders (AUX/GRP/SUB/FX)
+are mono and get the same kernel without the pan split.
+
+**RTG is no longer cycles-only.** With FDR converted, `GAIN -> FDR -> RTG ->
+BUS` is a contiguous run of converted nodes through the shared pool, and it
+verifies **0 LSB at 7 points** across level 1.0/0.5/0.25 and pan
+0/0.25/0.5/0.75 — mono, pan-split L, and the summed bus all bit-exact
+against `fixed_ref`, with the 64-bit accumulator's single round at readout
+included.
+
+Two capture traps worth recording, both mine rather than the DSP's: under
+block kernels the scope indexes its source by sample, which is right for a
+pool array and **wrong for a scalar** — reading index 1 of
+`_buf_C1_BUS_MAIN_L` reads the word after it. That made a working bus read
+as zero twice before the accumulator itself was checked and found correct.
+
 ### The compressor's gain computer is only 9.6 % of it — measured 2026-08-24
 
 `DSP4_STUB_COMPGAIN=1` makes `_compgain_fx` return unity immediately, so

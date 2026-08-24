@@ -1276,6 +1276,21 @@ def gen_delay(node):
     """)
 
 
+_FDR_RNS = '''            mrf = mrf + r7 * r12 (ssi);
+            r8 = mr0f;
+            r2 = mr1f;
+            r8 = lshift r8 by -28;
+            r9 = lshift r2 by 4;
+            r0 = r8 or r9;
+            r8 = ashift r2 by -28;
+            r9 = ashift r0 by -31;
+            r11 = ashift r2 by -31;
+            r11 = r10 xor r11;
+            comp(r8, r9);
+            if ne r0 = r11;
+'''
+
+
 def gen_fader_pan(node):
     p = node['params']
     rc = ramp_comment(node['ramp_profile'])
@@ -5212,6 +5227,21 @@ def gen_fader_pan_fixed(node):
                    f'        .var _buf_R_{nid};')
     cvt_lr = ''
     apply_lr = ''
+    # Bus faders (AUX/GRP/SUB/FX) are mono -- no pan split, so no lq/rq.
+    blk_lr_hoist = ''
+    blk_lr_ptr = ''
+    blk_lr_body = ''
+    if is_ch_fdr:
+        blk_lr_hoist = (f'            r5 = dm(_fdr_lq_{nid});\n'
+                        f'            r6 = dm(_fdr_rq_{nid});\n')
+        blk_lr_ptr = ('            i2 = BLK_FDR_L;\n'
+                      '            i3 = BLK_FDR_R;\n')
+        blk_lr_body = ('            mrf = r13 * r5 (ssi);\n'
+                       + _FDR_RNS
+                       + '            dm(i2, 1) = r0;\n'
+                       + '            mrf = r13 * r6 (ssi);\n'
+                       + _FDR_RNS
+                       + '            dm(i3, 1) = r0;\n')
     if is_ch_fdr:
         cvt_lr = dedent(f"""\
             /* L/R pan gains (linear pan law, matches float node).
@@ -5251,6 +5281,8 @@ def gen_fader_pan_fixed(node):
     return dedent(f"""\
         {rc}
 
+        #include "blk_pool.h"
+
         /* FADER_PAN (FIXED Q4.28, D5) — float control, fixed sample path */
         /* SPI page={node['spi_page']} addr={node['spi_addr']} */
 
@@ -5276,10 +5308,12 @@ def gen_fader_pan_fixed(node):
         .global _{nid}_process;
         _{nid}_process:
             /* block-rate: float ramps + shadow conversion */
+        #if !DSP4_BLOCK_KERNELS
             r4 = dm(_sample_idx);
             r1 = 0;
             comp(r4, r1);
             if ne jump (pc, .apply_{nid});
+        #endif
 
             /* level ramp */
             r4 = dm(_fdr_level_frames_{nid});
@@ -5350,6 +5384,50 @@ def gen_fader_pan_fixed(node):
             dm(_fdr_gq_{nid}) = r2;
 {cvt_lr}
 
+        #if DSP4_BLOCK_KERNELS
+            /* Per-BLOCK kernel. Same shape that gave GAIN its 4x: the
+             * three coefficients and the mute decision are hoisted, and
+             * all three _mrf_rns28 calls are inlined with their constants
+             * held. Mute folds into the gain because x*0 is exactly 0 in
+             * this format, so it needs no per-sample test. */
+            r1 = dm(_fdr_gq_{nid});
+            r2 = dm(_fdr_mute_{nid});
+            r4 = 0;
+            comp(r2, r4);
+            if ne r1 = r4;
+{blk_lr_hoist}            r7 = 0x08000000;                  /* rounding half */
+            r12 = 1;
+            r10 = 0x7FFFFFFF;
+            l0 = 0;
+            l1 = 0;
+            l2 = 0;
+            l3 = 0;
+            i0 = BLK_CHAIN_B;                 /* input  */
+            i1 = BLK_CHAIN_A;                 /* mono   */
+{blk_lr_ptr}            r14 = 32;
+        .fdr_lp_{nid}:
+            r0 = dm(i0, 1);
+            mrf = r0 * r1 (ssi);
+            mrf = mrf + r7 * r12 (ssi);
+            r8 = mr0f;
+            r2 = mr1f;
+            r8 = lshift r8 by -28;
+            r9 = lshift r2 by 4;
+            r0 = r8 or r9;
+            r8 = ashift r2 by -28;
+            r9 = ashift r0 by -31;
+            r11 = ashift r2 by -31;
+            r11 = r10 xor r11;
+            comp(r8, r9);
+            if ne r0 = r11;
+            dm(i1, 1) = r0;
+            r13 = r0;
+{blk_lr_body}            r14 = r14 - 1;
+            if gt jump (pc, .fdr_lp_{nid});
+            dm(_tap_post_fader_{nid}) = r13;  /* linkage scalars */
+            dm(_buf_{nid}) = r13;
+            rts;
+#else
         .apply_{nid}:
             r0 = dm(_buf_{inp});
             r1 = dm(_fdr_gq_{nid});
@@ -5365,6 +5443,7 @@ def gen_fader_pan_fixed(node):
             dm(_buf_{nid}) = r0;
 {apply_lr}
             rts;
+#endif
         _{nid}_process.end:
     """)
 
@@ -5687,7 +5766,7 @@ def gen_routing_fixed(node):
                 r7 = 2;
                 comp(r6, r7);
                 if eq jump (pc, .r{kind}b_pk2_{nid});
-                r0 = _tap_post_fader_{fdr_id};
+                r0 = BLK_CHAIN_A;
                 jump (pc, .r{kind}b_pkd_{nid});
             .r{kind}b_pk0_{nid}:
                 r0 = _tap_post_trim_{gain_id};
@@ -5728,6 +5807,8 @@ def gen_routing_fixed(node):
         /* ROUTING (FIXED Q4.28, D5): fan-out with exact 64-bit accumulation */
         /* SPI page={node['spi_page']} addr={node['spi_addr']} */
         /* Send ramps: float control at block rate + Q4.28 shadows. */
+
+        #include "blk_pool.h"
 
         .section/dm seg_dmda;
         .extern _tap_post_trim_{gain_id};
@@ -5784,11 +5865,11 @@ def gen_routing_fixed(node):
             r2 = pass r2;
             if eq jump (pc, .rtg_nomain_{nid});
             r1 = 0x10000000;                  /* unity Q4.28 */
-            i0 = _buf_L_{fdr_id};
+            i0 = BLK_FDR_L;
             i2 = _bus_acc_main_l;
             call _acc64_mac_blk;
             r1 = 0x10000000;
-            i0 = _buf_R_{fdr_id};
+            i0 = BLK_FDR_R;
             i2 = _bus_acc_main_r;
             call _acc64_mac_blk;
         .rtg_nomain_{nid}:
@@ -5797,7 +5878,7 @@ def gen_routing_fixed(node):
             r2 = pass r2;
             if eq jump (pc, .rtg_nosub_{nid});
             r1 = 0x10000000;
-            i0 = _buf_{fdr_id};
+            i0 = BLK_CHAIN_A;
             i2 = _bus_acc_sub;
             call _acc64_mac_blk;
         .rtg_nosub_{nid}:
@@ -5811,7 +5892,7 @@ def gen_routing_fixed(node):
                 r2 = pass r2;
                 if eq jump (pc, .rtg_gskip_{nid});
                 i2 = r3;
-                i0 = _buf_{fdr_id};
+                i0 = BLK_CHAIN_A;
                 r1 = 0x10000000;
                 call _acc64_mac_blk;
             .rtg_gskip_{nid}:

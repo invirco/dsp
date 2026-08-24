@@ -16,6 +16,8 @@
 /* SPI page=1 addr=516 */
 /* Send ramps: float control at block rate + Q4.28 shadows. */
 
+#include "blk_pool.h"
+
 .section/dm seg_dmda;
 .extern _buf_C1_FDR_04;
 .extern _buf_L_C1_FDR_04;
@@ -164,11 +166,11 @@ _C1_RTG_04_process:
     r2 = pass r2;
     if eq jump (pc, .rtg_nomain_C1_RTG_04);
     r1 = 0x10000000;                  /* unity Q4.28 */
-    i0 = _buf_L_C1_FDR_04;
+    i0 = BLK_FDR_L;
     i2 = _bus_acc_main_l;
     call _acc64_mac_blk;
     r1 = 0x10000000;
-    i0 = _buf_R_C1_FDR_04;
+    i0 = BLK_FDR_R;
     i2 = _bus_acc_main_r;
     call _acc64_mac_blk;
 .rtg_nomain_C1_RTG_04:
@@ -177,7 +179,7 @@ _C1_RTG_04_process:
     r2 = pass r2;
     if eq jump (pc, .rtg_nosub_C1_RTG_04);
     r1 = 0x10000000;
-    i0 = _buf_C1_FDR_04;
+    i0 = BLK_CHAIN_A;
     i2 = _bus_acc_sub;
     call _acc64_mac_blk;
 .rtg_nosub_C1_RTG_04:
@@ -191,7 +193,7 @@ _C1_RTG_04_process:
         r2 = pass r2;
         if eq jump (pc, .rtg_gskip_C1_RTG_04);
         i2 = r3;
-        i0 = _buf_C1_FDR_04;
+        i0 = BLK_CHAIN_A;
         r1 = 0x10000000;
         call _acc64_mac_blk;
     .rtg_gskip_C1_RTG_04:
@@ -219,7 +221,7 @@ _C1_RTG_04_process:
         r7 = 2;
         comp(r6, r7);
         if eq jump (pc, .rab_pk2_C1_RTG_04);
-        r0 = _tap_post_fader_C1_FDR_04;
+        r0 = BLK_CHAIN_A;
         jump (pc, .rab_pkd_C1_RTG_04);
     .rab_pk0_C1_RTG_04:
         r0 = _tap_post_trim_C1_GAIN_04;
@@ -261,7 +263,7 @@ _C1_RTG_04_process:
         r7 = 2;
         comp(r6, r7);
         if eq jump (pc, .rfb_pk2_C1_RTG_04);
-        r0 = _tap_post_fader_C1_FDR_04;
+        r0 = BLK_CHAIN_A;
         jump (pc, .rfb_pkd_C1_RTG_04);
     .rfb_pk0_C1_RTG_04:
         r0 = _tap_post_trim_C1_GAIN_04;

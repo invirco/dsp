@@ -28,11 +28,13 @@ def main():
     ap.add_argument('--level', type=float, default=1.0)
     ap.add_argument('--pan', type=float, default=0.5)
     ap.add_argument('--amp', default='0x08000000')
+    ap.add_argument('--pool-inj', type=int, default=None)
     a = ap.parse_args()
 
     sc = S.Scope(1)
     sc.check_chip()
-    inj = sc.sym['_rx_slot_C1_IN_01']
+    inj = (sc.sym['_blk_pool'] + a.pool_inj * 32) if a.pool_inj is not None \
+          else sc.sym['_rx_slot_C1_IN_01']
     transparent_chain(sc)
     wrv(sc, DLY_OFF, 0)
     wrv(sc, FDR_MUTE, 0)
@@ -43,8 +45,12 @@ def main():
 
     amp = int(a.amp, 16)
     out = []
-    for name in ('_buf_C1_FDR_01', '_buf_L_C1_FDR_01', '_buf_C1_BUS_MAIN_L'):
-        sc.arm(sc.sym[name], inj, amp, 2)     # step
+    names = ((sc.sym['_blk_pool'], sc.sym['_blk_pool'] + 2 * 32,
+              sc.sym['_buf_C1_BUS_MAIN_L']) if a.pool_inj is not None
+             else (sc.sym['_buf_C1_FDR_01'], sc.sym['_buf_L_C1_FDR_01'],
+                   sc.sym['_buf_C1_BUS_MAIN_L']))
+    for name in names:
+        sc.arm(name, inj, amp, 2)     # step
         sc.wait()
         v = sc.fetch(8)[7]
         out.append(v - (1 << 32) if v & 0x80000000 else v)

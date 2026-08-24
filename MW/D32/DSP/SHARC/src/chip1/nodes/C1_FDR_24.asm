@@ -12,6 +12,8 @@
 
         /* RampProfile: GainFast | Mode: Slew | Up: 3ms (4f) Down: 8ms (12f) | Curve: Exp | Scope: Scalar */
 
+        #include "blk_pool.h"
+
         /* FADER_PAN (FIXED Q4.28, D5) — float control, fixed sample path */
         /* SPI page=1 addr=3392 */
 
@@ -58,10 +60,12 @@
         .global _C1_FDR_24_process;
         _C1_FDR_24_process:
             /* block-rate: float ramps + shadow conversion */
+        #if !DSP4_BLOCK_KERNELS
             r4 = dm(_sample_idx);
             r1 = 0;
             comp(r4, r1);
             if ne jump (pc, .apply_C1_FDR_24);
+        #endif
 
             /* level ramp */
             r4 = dm(_fdr_level_frames_C1_FDR_24);
@@ -154,6 +158,82 @@ f5 = f5 * f7;
 r2 = fix f5;
 dm(_fdr_rq_C1_FDR_24) = r2;
 
+        #if DSP4_BLOCK_KERNELS
+            /* Per-BLOCK kernel. Same shape that gave GAIN its 4x: the
+             * three coefficients and the mute decision are hoisted, and
+             * all three _mrf_rns28 calls are inlined with their constants
+             * held. Mute folds into the gain because x*0 is exactly 0 in
+             * this format, so it needs no per-sample test. */
+            r1 = dm(_fdr_gq_C1_FDR_24);
+            r2 = dm(_fdr_mute_C1_FDR_24);
+            r4 = 0;
+            comp(r2, r4);
+            if ne r1 = r4;
+            r5 = dm(_fdr_lq_C1_FDR_24);
+            r6 = dm(_fdr_rq_C1_FDR_24);
+            r7 = 0x08000000;                  /* rounding half */
+            r12 = 1;
+            r10 = 0x7FFFFFFF;
+            l0 = 0;
+            l1 = 0;
+            l2 = 0;
+            l3 = 0;
+            i0 = BLK_CHAIN_B;                 /* input  */
+            i1 = BLK_CHAIN_A;                 /* mono   */
+            i2 = BLK_FDR_L;
+            i3 = BLK_FDR_R;
+            r14 = 32;
+        .fdr_lp_C1_FDR_24:
+            r0 = dm(i0, 1);
+            mrf = r0 * r1 (ssi);
+            mrf = mrf + r7 * r12 (ssi);
+            r8 = mr0f;
+            r2 = mr1f;
+            r8 = lshift r8 by -28;
+            r9 = lshift r2 by 4;
+            r0 = r8 or r9;
+            r8 = ashift r2 by -28;
+            r9 = ashift r0 by -31;
+            r11 = ashift r2 by -31;
+            r11 = r10 xor r11;
+            comp(r8, r9);
+            if ne r0 = r11;
+            dm(i1, 1) = r0;
+            r13 = r0;
+            mrf = r13 * r5 (ssi);
+            mrf = mrf + r7 * r12 (ssi);
+            r8 = mr0f;
+            r2 = mr1f;
+            r8 = lshift r8 by -28;
+            r9 = lshift r2 by 4;
+            r0 = r8 or r9;
+            r8 = ashift r2 by -28;
+            r9 = ashift r0 by -31;
+            r11 = ashift r2 by -31;
+            r11 = r10 xor r11;
+            comp(r8, r9);
+            if ne r0 = r11;
+            dm(i2, 1) = r0;
+            mrf = r13 * r6 (ssi);
+            mrf = mrf + r7 * r12 (ssi);
+            r8 = mr0f;
+            r2 = mr1f;
+            r8 = lshift r8 by -28;
+            r9 = lshift r2 by 4;
+            r0 = r8 or r9;
+            r8 = ashift r2 by -28;
+            r9 = ashift r0 by -31;
+            r11 = ashift r2 by -31;
+            r11 = r10 xor r11;
+            comp(r8, r9);
+            if ne r0 = r11;
+            dm(i3, 1) = r0;
+            r14 = r14 - 1;
+            if gt jump (pc, .fdr_lp_C1_FDR_24);
+            dm(_tap_post_fader_C1_FDR_24) = r13;  /* linkage scalars */
+            dm(_buf_C1_FDR_24) = r13;
+            rts;
+#else
         .apply_C1_FDR_24:
             r0 = dm(_buf_C1_DLY_24);
             r1 = dm(_fdr_gq_C1_FDR_24);
@@ -178,4 +258,5 @@ call _mrf_rns28;
 dm(_buf_R_C1_FDR_24) = r0;
 r0 = r14;
             rts;
+#endif
         _C1_FDR_24_process.end:
