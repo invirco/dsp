@@ -14,6 +14,15 @@ basic strip for capacity purposes. Two levels to this and they are different:
   what actually recovers TUBE's cycles AND its DM state, so it is the version
   that counts for the 32-channel fit.
 
+**PW DECISION 2026-08-24 14:0xZ: GO WITH THE 800 MHz OPERATING POINT —
+enable `DSP4_CCLK_TARGET=786` (786.432 MHz, legal on both speed grades;
+983.04/KSWZ10 stays prepared but OFF). Budget becomes 524,288 cycles/block
+(786.432 MHz / 1500). Sequence: enable, verify CCLK by measurement, prove
+stability (audio 1500 blocks/s sustained + harness chain 0 LSB + thermal
+sanity), THEN continue the fabric conversion and all capacity measurements
+at the new operating point — every ceiling number from here on is quoted at
+786.432 MHz.**
+
 **PW PRIORITY (2026-08-24): #1 for the dsp side is CAPACITY-FIT — prove the
 full product processing fits the chips as fabbed (goal line: 32 basic strips
 real-time in ONE 21564; two on the card = margin/product headroom). Everything
