@@ -435,11 +435,17 @@
 .extern _C1_XS_XFER_SNAKE_06_process;
 .extern _C1_XS_XFER_SNAKE_07_process;
 .extern _C1_XS_XFER_SNAKE_08_process;
+#if DSP4_BLOCK_KERNELS
+.extern _scope_inject_blk;
+#endif
 .global _chip1_process_all;
 _chip1_process_all:
     call _bus_clear_all;    /* zero all bus accumulators */
 #if (DSP4_NODE_LIMIT == 0 || 0 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 0 < DSP4_STRIPS)
     call _C1_IN_01_process;
+#endif
+#if DSP4_BLOCK_KERNELS
+    call _scope_inject_blk;
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 1 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 0 < DSP4_STRIPS)
     call _C1_GAIN_01_process;

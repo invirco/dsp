@@ -4557,6 +4557,7 @@ def gen_hpf_lpf_fixed(node):
         .global _{nid}_process;
         _{nid}_process:
 
+
             r4 = dm(_hpf_swap_pending_{nid});
             r5 = dm(_lpf_swap_pending_{nid});
             r4 = r4 or r5;
@@ -6844,6 +6845,9 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                 f.write(f'.extern _bus_clear_all;\n')
             for nid in call_sequence:
                 f.write(f'.extern _{nid}_process;\n')
+            f.write(f'#if DSP4_BLOCK_KERNELS\n')
+            f.write(f'.extern _scope_inject_blk;\n')
+            f.write(f'#endif\n')
             f.write(f'.global _{chip_label}_process_all;\n')
             f.write(f'_{chip_label}_process_all:\n')
             if chip_label == 'chip1':
@@ -6873,6 +6877,14 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                 f.write('#if (' + ') && ('.join(guards) + ')\n')
                 f.write(f'    call _{nid}_process;\n')
                 f.write(f'#endif\n')
+                if idx == 0:
+                    # Harness stimulus goes in straight after the input
+                    # node. Under per-block kernels the input kernel reads
+                    # DMA directly, so there is no RX slot variable left to
+                    # inject into -- the hook has to sit inside the chain.
+                    f.write('#if DSP4_BLOCK_KERNELS\n')
+                    f.write('    call _scope_inject_blk;\n')
+                    f.write('#endif\n')
             f.write(f'    rts;\n')
             f.write(f'_{chip_label}_process_all.end:\n')
         files_written += 1

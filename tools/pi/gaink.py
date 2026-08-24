@@ -5,7 +5,7 @@ import dsp4_scope as S
 from dsp4_tubedly_probe import wrv, transparent_chain, f32
 sc=S.Scope(1); sc.check_chip()
 transparent_chain(sc)
-inj=sc.sym["_rx_slot_C1_IN_01"]; src=sc.sym["_blk_pool"]+32   # BLK_CHAIN_B: GAIN's pooled output
+inj=sc.sym["_blk_pool"]; src=sc.sym["_blk_pool"]+32   # inject slot A, capture GAIN in slot B
 AMP=0x08000000
 for g in (1.0, 0.5, 0.25, 2.0, 0.001, 7.94328):
     wrv(sc, 0x0000, f32(g), ramp_id=1, settle=0.05)

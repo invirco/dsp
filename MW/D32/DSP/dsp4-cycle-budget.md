@@ -226,6 +226,42 @@ One regression to note against the flag: the boot-time input patch
 which RX channel) is bypassed when the kernels read DMA directly. It needs
 folding into the per-node offset before this path can ship.
 
+### FILT/EQ attempted and REVERTED 2026-08-24 — what the biquads need
+
+The straightforward conversion — wrap the existing per-sample body in a
+32-iteration loop driven from the pool — builds and runs but produces
+**silence**, and it is reverted rather than left behind the flag.
+
+Two things were learned and both matter for the retry:
+
+1. **The active coefficients start at zero.** `_filt_hpf_A/B` have no
+   initialiser, so a FILT node outputs nothing at all until a coefficient
+   write and swap have happened. That is true of the shipping per-sample
+   path too — worth knowing on its own — and it means "outputs zero" is the
+   node's resting state, not necessarily evidence of a broken conversion.
+2. **The swap/crossfade machinery is block-rate and was left per-sample.**
+   Moving the `swap_pending -> _filt_start_xfade` check into the wrapper
+   fixed one restart-every-sample bug, but the crossfade *alpha* advance
+   and the A/B instance state are still per-sample inside the body, and the
+   filter still did not converge. The crossfade plane has to be split
+   properly — advance once per block by 32 steps, exactly as the ramps
+   were — rather than wrapped wholesale.
+
+So the biquads are not a wrap-it-and-go conversion like GAIN and RTG were.
+They also stand to gain least from block form: their cost is real
+arithmetic, not call overhead. The genuine lever for them is a
+**register-resident block cascade** — load the biquad state into registers
+once, run 32 samples, store it back — which removes roughly 12 memory
+operations per sample per stage. That is a new library routine and wants
+its own bit-exactness pass against `fixed_ref.biquad`.
+
+Kept from the attempt, because it is needed by everything downstream: the
+harness can now inject a whole block from **inside** the node chain
+(`_scope_inject_blk`, called straight after the input node). The old
+per-sample hook wrote an RX slot variable, and those no longer exist now
+that the input kernels read DMA directly. GAIN re-verified through the new
+hook: still 0 LSB at all six gains.
+
 ### What stands out
 
 **RTG is the most expensive node class on the part** — 601 cycles per

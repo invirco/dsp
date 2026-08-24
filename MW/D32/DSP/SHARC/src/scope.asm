@@ -155,3 +155,53 @@ _scope_record:
     dm(_scope_arm) = r1;
     rts;
 _scope_record.end:
+
+#if DSP4_BLOCK_KERNELS
+/*----------------------------------------------------------------------
+ * _scope_inject_blk — fill a whole block of stimulus at _scope_inj.
+ *
+ * Under per-block kernels the INPUT_TDM kernels read the DMA buffer
+ * directly, so the old per-sample hook (which wrote an RX slot variable)
+ * has nothing to write to -- the slot arrays are gone. This runs from
+ * inside the node chain, straight after the input node, so it can drop a
+ * known block into the shared pool where the rest of the chain will read
+ * it.
+ *----------------------------------------------------------------------*/
+.global _scope_inject_blk;
+_scope_inject_blk:
+    r0 = dm(_scope_arm);
+    r1 = 0;
+    comp(r0, r1);
+    if eq rts;
+    r0 = dm(_scope_inj);
+    comp(r0, r1);
+    if eq jump (pc, .sib_nostim);
+    l4 = 0;
+    i4 = r0;
+    r5 = dm(_scope_amp);
+    r3 = dm(_scope_mode);
+    r4 = 2;
+    comp(r3, r4);
+    if eq jump (pc, .sib_step);
+    /* impulse: amp in sample 0, silence after */
+    dm(i4, 1) = r5;
+    r2 = 31;
+    lcntr = r2, do .sib_z until lce;
+    .sib_z:
+        dm(i4, 1) = r1;
+    jump (pc, .sib_go);
+.sib_step:
+    r2 = 32;
+    lcntr = r2, do .sib_s until lce;
+    .sib_s:
+        dm(i4, 1) = r5;
+.sib_go:
+    r2 = 1;
+    dm(_scope_go) = r2;
+    rts;
+.sib_nostim:
+    r2 = 1;
+    dm(_scope_go) = r2;
+    rts;
+_scope_inject_blk.end:
+#endif

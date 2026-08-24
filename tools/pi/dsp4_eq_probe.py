@@ -87,12 +87,20 @@ def main():
     ap.add_argument('--rbj', help='band 0 as b0,b1,b2,a1,a2 (others unity)')
     ap.add_argument('--filt', help='FILT instead of EQ: hpf b0,..,a2 / lpf b0,..,a2 '
                                    'separated by a semicolon')
+    ap.add_argument('--pool-inj', type=int, default=None,
+                    help='inject at _blk_pool + N*32 (per-block kernels: the\n'
+                         'input kernel reads DMA directly, so the stimulus goes\n'
+                         'into the pool from inside the chain)')
+    ap.add_argument('--pool-src', type=int, default=None,
+                    help='capture _blk_pool + N*32 instead of the node buffer '
+                         '(per-block kernels put node outputs in the shared pool)')
     ap.add_argument('--baseline', action='store_true',
                     help='inject nothing: prove the EQ is at rest')
     a = ap.parse_args()
 
     sc = S.Scope(1)
-    inj = sc.sym['_rx_slot_C1_IN_01']
+    inj = (sc.sym['_blk_pool'] + a.pool_inj * 32) if a.pool_inj is not None \
+          else sc.sym['_rx_slot_C1_IN_01']
     src = sc.sym['_buf_C1_EQ_01']
 
     # RESET THE WHOLE CHAIN, every run. Leaving the previous test's
@@ -113,7 +121,8 @@ def main():
         set_biquad(sc, HPF_COEFF0, HPF_SWAP, hpf)
         set_biquad(sc, LPF_COEFF0, LPF_SWAP, lpf)
         time.sleep(0.5)
-        src = sc.sym['_buf_C1_FILT_01']
+        src = (sc.sym['_blk_pool'] + a.pool_src * 32) if a.pool_src is not None \
+              else sc.sym['_buf_C1_FILT_01']
         amp = 0 if a.baseline else int(a.amp, 16)
         sc.arm(src, inj, amp, 1)
         sc.wait()

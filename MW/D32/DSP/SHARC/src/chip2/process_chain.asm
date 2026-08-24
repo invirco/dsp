@@ -238,10 +238,16 @@
 .extern _C2_MTR_FX_06_process;
 .extern _C2_MAIN_ST_OUT_process;
 .extern _C2_CODEC_AUX_OUT_process;
+#if DSP4_BLOCK_KERNELS
+.extern _scope_inject_blk;
+#endif
 .global _chip2_process_all;
 _chip2_process_all:
 #if (DSP4_NODE_LIMIT == 0 || 0 < DSP4_NODE_LIMIT)
     call _C2_RECV_MAIN_L_process;
+#endif
+#if DSP4_BLOCK_KERNELS
+    call _scope_inject_blk;
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 1 < DSP4_NODE_LIMIT)
     call _C2_RECV_MAIN_R_process;
