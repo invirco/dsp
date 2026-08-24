@@ -147,9 +147,6 @@ _product_config_commit:
     call _rx_patch_apply;         /* rebuild RX ptr table from patch regs */
 #endif
 #endif
-#if DSP4_BQ_SELFTEST
-    call _bq_selftest;            /* debug: block vs per-sample cascade */
-#endif
 #if DSP4_CCLK_TARGET != 0
     /* Raise the core clock. Deliberately here and not in early boot:
      * D10's objection to programming the CGU was a PLL relock with the

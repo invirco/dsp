@@ -102,6 +102,10 @@
 .var _sample_idx = 0;
 
 
+#if DSP4_BQ_SELFTEST
+.extern _bq_selftest;
+#endif
+
 .section/pm seg_pmco;
 
 /* External symbols */
@@ -545,6 +549,23 @@ _start:
 
     /* ---- Main loop ---- */
 .main_loop:
+#if DSP4_BQ_SELFTEST
+    /* Selftest runs ONCE from the main loop, and the placement took three
+     * attempts to get right:
+     *   - from CONFIG_COMMIT it executed inside the diag timer ISR (which
+     *     services the parameter link as a backstop), with the secondary
+     *     register file live and a 1 ms timer waiting to re-enter;
+     *   - before interrupts were enabled it blocked the boot handshake, so
+     *     host SPI traffic arrived with nothing draining the RFIFO and the
+     *     response stream came up permanently out of phase.
+     * Here the link is up, the graph is configured, and this is ordinary
+     * main-loop context. */
+    r0 = dm(_bqst_done);
+    r0 = pass r0;
+    if ne jump (pc, .bqst_skip);
+    call _bq_selftest;
+.bqst_skip:
+#endif
     /* NO `idle` HERE. It used to be, as a low-power wait for the DMA
      * interrupt, and it wedged the parameter link the instant the loop
      * was entered -- which is to say the instant CONFIG_COMMIT released

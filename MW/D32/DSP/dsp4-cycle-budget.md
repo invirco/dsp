@@ -63,48 +63,50 @@ or restructuring the pool into 16 pair-slots outright. Either is a real
 piece of work with several verification steps, and it is the honest reason
 this is not done.
 
-### PEYEN AND INTERRUPTS — a real hazard, found and fixed; a second fault behind it
+### PEYEN AND INTERRUPTS — a real hazard, found and fixed
 
-**The hypothesis was right and the fix works.** An interrupt taken while
-`MODE1.PEYEN` is set runs the HANDLER in SIMD mode: every register the ISR
-writes becomes a pair write, clobbering the PEy shadow of state the ISR
-knows nothing about. The block and diag ISRs fire ~1500 and ~1000 times a
-second, so it corrupts something almost immediately — and it defeats
-instruction-level bisecting, because the fault is timing-dependent rather
-than positional.
+**The hypothesis was right.** An interrupt taken while `MODE1.PEYEN` is set
+runs the HANDLER in SIMD mode: every register it writes becomes a pair
+write, clobbering PEy shadows the ISR knows nothing about. The block and
+diag ISRs fire ~2,500 times a second between them, and the fault is
+timing-dependent rather than positional, which is why instruction-level
+bisecting could not localise it.
 
-It is also exactly why the standalone benchmark passed while the same
-routine hung through `_bq_pair_blk`: **the benchmark had already masked
-`IRPTEN` for its TCOUNT timing**, so PEYEN and an ISR never coincided. The
-passing measurement was passing for a reason unrelated to the code being
-correct in context.
+It also explains why the standalone benchmark passed while the same routine
+hung through the wrapper: **the benchmark had already masked `IRPTEN` for
+its TCOUNT timing**, so PEYEN and an ISR never coincided. That measurement
+passed for a reason unrelated to the code being correct in context.
 
-`_bq_fx_cascade_simd` now saves `MODE1` whole, masks `IRPTEN`, then sets
-`PEYEN`, and restores `MODE1` on exit — so a caller that had already masked
-interrupts stays masked. **Order is load-bearing**: setting PEYEN before
-masking leaves a two-instruction window in which an interrupt can be taken
-with PEYEN set, which is the very failure being prevented, and MODE1 writes
-have a pipeline shadow that widens it. My first attempt had that order
-wrong.
+**Systemic fix, per the steer:** both ISRs (`_diag_timer_isr`, `_sec_isr`)
+now clear PEYEN immediately after `push sts`; `pop sts` restores it on the
+way out. Masking around every SIMD region does not scale past one kernel.
+Guarded by `DSP4_SIMD_STRIPS`, so the shipping image stays byte-identical.
+`_bq_fx_cascade_simd` additionally saves `MODE1` whole, masks `IRPTEN`,
+then sets PEYEN — **in that order**, because setting PEYEN first leaves a
+window with interrupts still enabled, and MODE1 writes have a pipeline
+shadow that widens it. My first attempt had the order wrong.
 
-Masked span is one cascade — about 2 µs for two stages at 983 MHz, against
-a 667 µs block period.
+`CONFIG_COMMIT` now completes where it never did.
 
-**Result: `CONFIG_COMMIT` now completes, where before it never did.** That
-is the original hang resolved.
+### The remaining blocker is the HARNESS, not the wrapper
 
-**A second, different fault sits behind it.** The part configures, then
-stops responding — RDY never asserts on the next link open. So the selftest
-now runs to completion and leaves the machine in a state the main loop does
-not survive. Not yet diagnosed. The obvious next checks are whether MODE1
-is genuinely restored (store it after the selftest and read it back) and
-whether anything else in the SIMD path writes past its buffer — the access
-counts were checked and do fit (`_bqp_coeff` 20 of 40 used, `_bqp_state` 24
-of 48, `_bqp_sig` 64 of 64).
+The wrapper is still unverified, and three placements of the selftest have
+each failed for a *different* and instructive reason:
 
-**Containment is unchanged and verified this session:** shipping image
-byte-identical at `0df38e82`, and the same tree with the SIMD debug flags
-off is **CHAIN BIT-EXACT at 983.04 MHz**. Nothing is wired into the graph.
+| placement | outcome |
+|---|---|
+| from `CONFIG_COMMIT` | ran **inside the diag timer ISR** — that ISR services the parameter link as a backstop — with the secondary register file live and a 1 ms timer waiting to re-enter |
+| before interrupts are enabled | **blocked the boot handshake**; host SPI traffic arrived with nothing draining the RFIFO, and the response stream came up permanently out of phase |
+| once from the main loop | **starves the SPI poll**, which runs every 8 samples from the block loop; a ~50 µs blocking call drops a response and shifts the word phase by one — the documented `RESP_DROP` failure. The part answers correctly (`0x00000001` for CHIP_ID) but one word out of step |
+
+So: **any long-running blocking work inside the audio path desyncs the
+parameter link.** That is a property of this firmware, not of the SIMD
+code, and it is the actual reason the wrapper has no verification.
+
+**The verification has to happen out of the audio path** — a build with
+the block graph disabled (`DSP4_BLOCK_MASK=0`), or in-graph comparison
+once the kernel is wired, which is the in-graph verification wanted
+anyway. Not a bisect problem; a harness-design problem.
 
 ### Foundation that IS in place
 

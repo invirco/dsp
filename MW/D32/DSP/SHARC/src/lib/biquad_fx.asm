@@ -670,6 +670,12 @@ _bq_pair_blk:
     r4 = r14;
 #if !DSP4_SKIP_SIMDCALL
     call _bq_fx_cascade_simd;
+    /* Belt and braces while the post-cascade fault is being chased: force
+     * PEYEN down here regardless of what the MODE1 restore did. If this
+     * makes the difference, the restore is the bug. */
+    bit clr mode1 0x00200000;
+    nop;
+    nop;
 #endif
 
     /* ---- scatter the signal back ---- */
