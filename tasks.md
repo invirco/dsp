@@ -20,7 +20,13 @@ power question CLOSED (consistent with ~0.7 W/chip at 0.9 V). REMAINING for
 ship sign-off: the +0.9 V RAIL itself — voltage under load at 983 (must hold
 ≥ ~0.855 V) and ideally the motherboard regulator's current rating vs the
 ~1.5 A pair draw. One DMM reading whenever PW is next probing; until then
-983 stays "enabled for measurement", 786 the one-flag fallback.**
+983 stays "enabled for measurement", 786 the one-flag fallback.
+UPDATE (PW, 19:2xZ): the 0.9 V regulator is an **AP64501** on the Digital
+schematic — a 5 A-class synchronous buck, so ~3× current margin at the
+~1.5 A pair draw. Rating half CLOSED. The remaining reading is the rail
+VOLTAGE at the DSP card under load at 983 — the risk is drop through the
+DIL100 stack contacts and tracks at 1.5 A, not the regulator; ≥ ~0.855 V
+at the card = ship sign-off for the 983 operating point.**
 
 **PW BENCH READ 2026-08-24 18:4xZ: U5/U6 MARKING = ADSP-21564KSWZ10 (1 GHz
 grade). The 983.04 MHz target is LEGAL on the fitted parts. ENABLE
