@@ -144,6 +144,16 @@ _sec_isr:
                   BITM_REGF_MODE1_SRD1L | BITM_REGF_MODE1_SRD1H;
     nop;                          /* effect latency */
     push sts;
+#if DSP4_SIMD_STRIPS
+    /* THE INTERRUPTED CODE MAY HAVE BEEN RUNNING SIMD. `push sts` has
+     * saved MODE1, so PEYEN is restored by `pop sts` on the way out -- but
+     * without clearing it here the HANDLER BODY executes on both compute
+     * units, and every register it writes becomes a pair write. Clearing
+     * it per-ISR is the systemic fix; masking interrupts around every SIMD
+     * region does not scale past one kernel. */
+    bit clr mode1 0x00200000;      /* PEYEN */
+    nop;
+#endif
 
     r0 = dm(REG_SEC0_CSID0);      /* active source id */
     dm(REG_SEC0_CSID0) = r0;      /* ACK: see below */

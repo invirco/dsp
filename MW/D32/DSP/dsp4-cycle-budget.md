@@ -2,6 +2,34 @@
 
 provenance: AI-drafted 2026-08-23 — prose may carry a statistical watermark; rewrite by hand before publication, then remove this header.
 
+## The 0.9 V rail at 983.04 — measured, in spec, and the margin is thin
+
+PW measured **0.87 V at the card under load** at 983.04 MHz. The datasheet
+window for VDD_INT (400 MHz ≤ CCLK ≤ 1 GHz) is **0.855 min / 0.900 nominal
+/ 0.945 max**, so it is inside — but by **15 mV, 1.8 % above the minimum**,
+and 30 mV under nominal.
+
+**Two caveats on what that measurement covers, both worth stating:**
+
+1. **It was taken at `DSP4_STRIPS=12`, which runs REAL-TIME** — the chip
+   finishes each block with cycles to spare. The heaviest draw is a chip
+   that never gets ahead, i.e. one running MORE than fits, computing
+   flat out for the whole block period. That configuration was not
+   measured and will draw more.
+2. **Datasheet IDD figures are TJ = 25 °C typical.** Current rises with
+   junction temperature, and there is no on-chip temperature sensor exposed
+   over the diag link, so nothing here observes the hot case.
+
+With 15 mV of headroom, both of those matter. **Opportunistic item: the
+next time a max-strip (over-budget, never-idle) configuration is running
+for another reason, flag it so the rail can be re-touched at that
+operating point.** That is the measurement that would turn "in spec" into
+"in spec with known margin".
+
+Recorded as: 983.04 is closed for shipping on PW's measurement; the
+worst-case load point remains unmeasured.
+
+
 ## SIMD ROLLOUT — where it actually stands, 2026-08-24
 
 **Not rolled out. What exists is a pairing wrapper that builds but is not

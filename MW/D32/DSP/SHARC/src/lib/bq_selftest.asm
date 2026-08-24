@@ -127,7 +127,7 @@ _bq_selftest:
     .extern _diag_ticks;
     r12 = dm(_diag_ticks);
     dm(_sq_raw + 0) = r12;
-    lcntr = 1200, do .sq_sloop until lce;
+    lcntr = 2, do .sq_sloop until lce;
         i0 = _sq_cA; i1 = _sq_sA; i2 = _sq_xA; r4 = 2;
         call _bq_fx_cascade_blk;
         i0 = _sq_cB; i1 = _sq_sB; i2 = _sq_xB; r4 = 2;
@@ -143,7 +143,7 @@ _bq_selftest:
      * worth doing. ---- */
     r12 = dm(_diag_ticks);
     dm(_sq_raw + 2) = r12;
-    lcntr = 1200, do .sq_mloop until lce;
+    lcntr = 2, do .sq_mloop until lce;
         r8 = _sq_cA;  r9 = _sq_psA;  r10 = _sq_pA;
         r11 = _sq_cB; r12 = _sq_psB; r13 = _sq_pB;
         r4 = 2;
