@@ -97,12 +97,23 @@
              * The earlier verdict that COMP was not worth converting came
              * from a bare WRAP, which measured 8 % SLOWER, and from a
              * reading that _compgain_fx "clobbers all but four registers".
-             * It does not: it touches r0-r3, r8-r12 and i0, so r4-r7 and
-             * r13-r15 survive it. _envq_fx additionally takes r4 and r5,
-             * so the set that survives BOTH is r6, r7, r13, r14, r15 --
-             * enough for the attack and release alphas, the dry sample,
-             * the envelope and the makeup, which is most of the per-sample
-             * DM traffic. */
+             * CORRECTED 2026-08-24. An earlier note here claimed r6 also
+             * survives, from a scan of _compgain_fx's OWN text. That scan
+             * was not transitive: _compgain_fx calls _exp2q_fx, and the
+             * polynomial _exp2q_fx reaches r6. Keeping attq in r6 meant
+             * the attack alpha was destroyed after the first sample and
+             * the envelope follower ran on garbage for the rest of the
+             * block -- visible as a compressor output FROZEN from sample 1
+             * while a correct build converged smoothly. It never showed in
+             * the earlier verification because that ran on a silent bench,
+             * where _compgain_fx returns unity before it ever reaches
+             * exp2.
+             *
+             * The survivors across BOTH _envq_fx (r0, r2, r4, r5) and
+             * _compgain_fx WITH ITS CALLEES (r0-r6, r8-r12) are r7, r13,
+             * r14 and r15 -- which is exactly what the original note on
+             * this page said before it was overridden. Four registers, so
+             * the release alpha goes back to a DM load per sample. */
             l3 = 0;
             l4 = 0;
             i3 = BLK_CHAIN_A;
@@ -124,8 +135,7 @@
             r5 = 1;
             dm(_sample_idx) = r5;
 
-            r6 = dm(_comp_attq_C1_COMP_07);
-            r7 = dm(_comp_relq_C1_COMP_07);
+            r7 = dm(_comp_attq_C1_COMP_07);
             r14 = dm(_comp_envelope_C1_COMP_07);
             r15 = dm(_comp_mkq_C1_COMP_07);
 
@@ -133,8 +143,8 @@
                 r13 = dm(i3, 1);
                 r0 = abs r13;
                 r1 = r14;
-                r2 = r6;
-                r3 = r7;
+                r2 = r7;                  /* attq */
+                r3 = dm(_comp_relq_C1_COMP_07);
                 call _envq_fx;
                 r14 = r0;
                 i0 = _comp_cgp_C1_COMP_07;
