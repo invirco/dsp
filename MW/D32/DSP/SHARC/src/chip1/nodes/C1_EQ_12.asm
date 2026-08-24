@@ -82,18 +82,14 @@ _C1_EQ_12_process:
     rts;
 
 .ekb_ss_C1_EQ_12:
-    /* Steady state. The cascade works IN PLACE at i2, so copy the
-     * input block into the output slot and filter it there. */
+    /* Steady state, FUSED. FILT left its result in BLK_CHAIN_B and
+     * the cascade works in place, so EQ continues on the same slot.
+     * The FILT->EQ handoff is zero instructions. */
     l0 = 0;
     l1 = 0;
     l2 = 0;
     l3 = 0;
     l4 = 0;
-    i3 = BLK_CHAIN_A;
-    i4 = BLK_CHAIN_B;
-    lcntr = 32, do .ekb_cp_C1_EQ_12 until lce;
-        r0 = dm(i3, 1);
-    .ekb_cp_C1_EQ_12: dm(i4, 1) = r0;
 
     r4 = dm(_eq_active_C1_EQ_12);
     r4 = pass r4;
@@ -105,7 +101,7 @@ _C1_EQ_12_process:
     i0 = _eq_coeffs_B_C1_EQ_12;
     i1 = _eq_state_B_C1_EQ_12;
 .ekb_go_C1_EQ_12:
-    i2 = BLK_CHAIN_B;
+    i2 = BLK_CHAIN_B;           /* the slot FILT already filtered */
     r4 = 4;
     call _bq_fx_cascade_blk;
 

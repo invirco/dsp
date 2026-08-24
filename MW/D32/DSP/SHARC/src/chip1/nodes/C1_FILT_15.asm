@@ -89,41 +89,36 @@ _C1_FILT_15_process:
     rts;
 
 .fkb_ss_C1_FILT_15:
-    /* Steady state. The cascade works IN PLACE at i2, so copy the
-     * input block into the output slot and filter it there. */
+    /* Steady state, FUSED. The cascade works IN PLACE, so FILT
+     * filters its INPUT slot where it stands instead of copying the
+     * block to the other half of the ping-pong first. EQ then
+     * cascades in place on the same slot, so the FILT->EQ handoff
+     * costs nothing at all: no copy, no slot change, no call
+     * between them beyond the cascade itself. Two block copies
+     * deleted, 4 memory ops per sample. */
     l0 = 0;
     l1 = 0;
     l2 = 0;
     l3 = 0;
     l4 = 0;
-    i3 = BLK_CHAIN_B;
-    i4 = BLK_CHAIN_A;
-    lcntr = 32, do .fkb_cp_C1_FILT_15 until lce;
-        r0 = dm(i3, 1);
-    .fkb_cp_C1_FILT_15: dm(i4, 1) = r0;
 
     r4 = dm(_filt_active_C1_FILT_15);
     r4 = pass r4;
     if ne jump (pc, .fkb_b_C1_FILT_15);
     i0 = _filt_hpf_A_C1_FILT_15;
     i1 = _filt_state_A_C1_FILT_15;
-    i2 = BLK_CHAIN_A;
-    r4 = 1;
+    i2 = BLK_CHAIN_B;
+    r4 = 2;                     /* HPF and LPF in ONE call: their
+                                 * coefficient arrays are adjacent
+                                 * and the state array is 2x6, so
+                                 * the cascade walks both. */
     call _bq_fx_cascade_blk;
-    i0 = _filt_lpf_A_C1_FILT_15;
-    i2 = BLK_CHAIN_A;
-    r4 = 1;
-    call _bq_fx_cascade_blk;    /* i1 continued to LPF state */
     rts;
 .fkb_b_C1_FILT_15:
     i0 = _filt_hpf_B_C1_FILT_15;
     i1 = _filt_state_B_C1_FILT_15;
-    i2 = BLK_CHAIN_A;
-    r4 = 1;
-    call _bq_fx_cascade_blk;
-    i0 = _filt_lpf_B_C1_FILT_15;
-    i2 = BLK_CHAIN_A;
-    r4 = 1;
+    i2 = BLK_CHAIN_B;
+    r4 = 2;
     call _bq_fx_cascade_blk;
     rts;
 

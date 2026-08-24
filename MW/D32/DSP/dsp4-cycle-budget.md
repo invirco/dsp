@@ -2,6 +2,50 @@
 
 provenance: AI-drafted 2026-08-23 — prose may carry a statistical watermark; rewrite by hand before publication, then remove this header.
 
+## STRIP FUSION — FILT+EQ measured, and the lever is small
+
+FILT now cascades **in place on its input slot** and EQ continues on the
+same slot: both block copies deleted, and FILT's two `r4 = 1` cascade calls
+collapsed into one `r4 = 2` call (the HPF and LPF coefficient arrays are
+adjacent — verified in the map at exactly 5 words). The FILT→EQ handoff is
+**zero instructions**: no copy, no slot change, nothing between them.
+
+Both arms measured identically, signal present, `NODE_LIMIT` 2/3/4:
+
+| | FILT | EQ | FILT+EQ |
+|---|---|---|---|
+| unfused | 2,794 | 5,445 | 8,239 cycles/block = **257.5/sample** |
+| **fused** | 3,025 | 5,051 | 8,076 = **252.4/sample** |
+| | | | **−163 cycles/block, −5.1/sample, 2.0 %** |
+
+**That is exactly what the memory-traffic model predicted** — four memory
+ops per sample deleted, which at roughly one cycle each is 4–8 cycles. The
+model and the part agree, which is the useful part of this result.
+
+**It also settles the size of the fusion lever for the biquad chain: 2 %.**
+The stage-to-stage structure was never the cost there. A biquad is ~29
+instructions of arithmetic measured at ~43 cycles/sample, and its handoff
+was already nearly free — the value moved through a pool slot that the next
+stage read directly, not through a call or a round-trip to L2.
+
+*(A first reading of this said fusion made FILT **worse**. That comparison
+was invalid: the fused arm ran with `DSP4_PROFILE_SIGNAL=1` and the
+reference came from a ladder without it, and the biquad's saturation check
+is data-dependent. Same silence-versus-signal trap that invalidated the
+dynamics numbers, approached from the other side. Both arms are now built
+and measured the same way, with the unfused arm produced by stashing the
+generator change rather than trusting an older figure.)*
+
+**Expectation for the rest of the fusion work.** GAIN, TUBE and FDR are
+stateless and fuse cleanly at ~2 memory ops per sample each; GATE and COMP
+carry 4 state words apiece, so keeping them stage-outer stays right and
+only their boundary is deletable. On this measurement the whole
+GATE→COMP→TUBE→FDR grouping should be worth single-digit cycles/sample
+too, not the 4–6× that "one MAC per stage" implies. The cost in the strip
+is arithmetic — six biquads and the compressor's gain computer — and
+arithmetic does not fuse away.
+
+
 ## LEVER STACK — numeric deviations for PW sign-off (batch)
 
 Each entry states what it changes, what it is worth, and the **measured**
