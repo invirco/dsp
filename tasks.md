@@ -14,6 +14,15 @@ basic strip for capacity purposes. Two levels to this and they are different:
   what actually recovers TUBE's cycles AND its DM state, so it is the version
   that counts for the 32-channel fit.
 
+**PW CLARIFICATION 2026-08-24 18:1xZ: TUBE IS AN OPTION, NOT FIXED-STRIP.**
+Definition-vs-implementation drift found: diagram-master.csv (the signal-flow
+authority) has NO tube node; only Chan TubeSat/TubeOn cells exist (default
+off) — yet the generator emits C1_TUBE_xx into every channel. Per the
+mandate, implementation follows the diagram: TUBE leaves the always-emitted
+pipeline (conditionally emitted per product config; cells remain the option
+interface), reclaiming its DM. Note: its ACTIVE cost was never measured —
+measure it once, as an option, before any product enables it.
+
 **PW DIRECTIVE 2026-08-24 16:3xZ: GAIN IS A SINGLE MAC — full strip fusion
 is now the PRIMARY lever, ahead of everything except the in-flight comp-probe
 fix. The generator emits ONE kernel per strip: samples stay in registers/MR
