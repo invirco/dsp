@@ -5370,8 +5370,23 @@ def gen_bus_accumulators_fixed():
     out.append('')
     out.append('.section/dm seg_dmda;')
     out.append('')
+    # Under per-block kernels every SAMPLE needs its own accumulator, so
+    # each bus becomes 32 [lo,hi] pairs. Same total clearing work per
+    # block (25 x 64 words once, versus 25 x 2 words thirty-two times).
+    # Per-sample accumulators are 25 x 64 = 1600 words against 50, and that
+    # does not fit: the IN+GAIN block conversion already left under ~1.5K
+    # words of DM headroom on chip 1, and adding these overflowed sec_stak.
+    # They go to L2 (seg_delay), which is NO_INIT -- fine, they carry no
+    # initialiser and _bus_clear_all zeroes them every block anyway.
+    out.append('#if DSP4_BLOCK_KERNELS')
+    out.append('.section/dm seg_delay;')
+    for n in names:
+        out.append(f'.global _bus_acc_{n};   .var _bus_acc_{n}[64];')
+    out.append('.section/dm seg_dmda;')
+    out.append('#else')
     for n in names:
         out.append(f'.global _bus_acc_{n};   .var _bus_acc_{n}[2];')
+    out.append('#endif')
     out.append('')
     out.append('.global _bus_acc_grp_ptrs;')
     out.append('.var _bus_acc_grp_ptrs[4] = ' +
@@ -5390,14 +5405,58 @@ def gen_bus_accumulators_fixed():
     out.append('    i2 = _bus_acc_all_ptrs;')
     out.append('    r0 = 0;')
     out.append('    r1 = 25;')
+    out.append('#if DSP4_BLOCK_KERNELS')
+    out.append('    lcntr = r1, do .bca_clr until lce;')
+    out.append('        r2 = dm(i2, 1);')
+    out.append('        i3 = r2;')
+    out.append('        r3 = 64;')
+    out.append('        lcntr = r3, do .bca_clr_in until lce;')
+    out.append('    .bca_clr_in:')
+    out.append('            dm(i3, 1) = r0;')
+    out.append('    .bca_clr:')
+    out.append('        nop;')
+    out.append('#else')
     out.append('    lcntr = r1, do .bca_clr until lce;')
     out.append('        r2 = dm(i2, 1);')
     out.append('        i3 = r2;')
     out.append('        dm(i3, 1) = r0;')
     out.append('    .bca_clr:')
     out.append('        dm(i3, 0) = r0;')
+    out.append('#endif')
     out.append('    rts;')
     out.append('_bus_clear_all.end:')
+    out.append('')
+    # Per-block accumulate: one call per CONTRIBUTION per block instead of
+    # one per contribution per sample. RTG's measured 601 cycles/sample is
+    # almost all gating and call overhead -- with only MAIN enabled by
+    # default that is two _acc64_mac calls (~30 cycles) inside 22 gated
+    # loop iterations, evaluated 32 times over.
+    out.append('#if DSP4_BLOCK_KERNELS')
+    out.append('.global _acc64_mac_blk;')
+    out.append('/* i0 = source array (32 words), i2 = accumulator (32 [lo,hi]')
+    out.append(' * pairs), r1 = gain Q4.28. Exact: no rounding here, one')
+    out.append(' * round happens at readout in _acc64_rns28. */')
+    out.append('_acc64_mac_blk:')
+    out.append('    l0 = 0;')
+    out.append('    l2 = 0;')
+    out.append('    r5 = 32;')
+    out.append('    lcntr = r5, do .amb_lp until lce;')
+    out.append('        r0 = dm(i0, 1);')
+    out.append('        r2 = dm(i2, 1);            /* lo; i2 -> hi */')
+    out.append('        r3 = dm(i2, 0);            /* hi           */')
+    out.append('        mr0f = r2;')
+    out.append('        mr1f = r3;')
+    out.append('        r2 = ashift r3 by -31;')
+    out.append('        mr2f = r2;')
+    out.append('        mrf = mrf + r0 * r1 (ssi);')
+    out.append('        r2 = mr1f;')
+    out.append('        dm(i2, -1) = r2;           /* hi; i2 -> lo */')
+    out.append('        r2 = mr0f;')
+    out.append('    .amb_lp:')
+    out.append('        dm(i2, 2) = r2;            /* lo; i2 -> next pair */')
+    out.append('    rts;')
+    out.append('_acc64_mac_blk.end:')
+    out.append('#endif')
     out.append('')
     return '\n'.join(out)
 
@@ -5461,6 +5520,31 @@ def gen_routing_fixed(node):
     dly_id = fdr_id.replace('_FDR_', '_DLY_')
     aux_pick_defaults = ', '.join(['3'] * 12)
     fx_pick_defaults = ', '.join(['3'] * 6)
+
+    def pick_addr(kind):
+        """Same pickoff, but selects the SOURCE ARRAY ADDRESS rather than a
+        single sample -- the block accumulate walks the array itself."""
+        return f"""\
+                r6 = dm(i6, 1);               /* pickoff enum */
+                r6 = pass r6;
+                if eq jump (pc, .r{kind}b_pk0_{nid});
+                r7 = 1;
+                comp(r6, r7);
+                if eq jump (pc, .r{kind}b_pk1_{nid});
+                r7 = 2;
+                comp(r6, r7);
+                if eq jump (pc, .r{kind}b_pk2_{nid});
+                r0 = _tap_post_fader_{fdr_id};
+                jump (pc, .r{kind}b_pkd_{nid});
+            .r{kind}b_pk0_{nid}:
+                r0 = _tap_post_trim_{gain_id};
+                jump (pc, .r{kind}b_pkd_{nid});
+            .r{kind}b_pk1_{nid}:
+                r0 = _tap_post_eq_{eq_id};
+                jump (pc, .r{kind}b_pkd_{nid});
+            .r{kind}b_pk2_{nid}:
+                r0 = _tap_pre_fader_{dly_id};
+            .r{kind}b_pkd_{nid}:"""
 
     def pick_block(kind):
         return f"""\
@@ -5535,6 +5619,99 @@ def gen_routing_fixed(node):
 {_fx_send_ramp_asm(nid, 'aux', 12)}
 {_fx_send_ramp_asm(nid, 'fx', 6)}
         .rtg_acc_{nid}:
+
+        #if DSP4_BLOCK_KERNELS
+            /* Per-BLOCK routing. The whole gating tree runs ONCE per block
+             * instead of 32 times, and each enabled contribution becomes a
+             * single _acc64_mac_blk over the block. Measured 2026-08-24 the
+             * per-sample form cost 601 cycles/sample with only MAIN enabled
+             * -- two MACs (~30 cycles) buried in 22 gated loop iterations,
+             * re-evaluated every sample. The MACs were never the cost. */
+            r2 = dm(_rtg_main_on_{nid});
+            r2 = pass r2;
+            if eq jump (pc, .rtg_nomain_{nid});
+            r1 = 0x10000000;                  /* unity Q4.28 */
+            i0 = _buf_L_{fdr_id};
+            i2 = _bus_acc_main_l;
+            call _acc64_mac_blk;
+            r1 = 0x10000000;
+            i0 = _buf_R_{fdr_id};
+            i2 = _bus_acc_main_r;
+            call _acc64_mac_blk;
+        .rtg_nomain_{nid}:
+
+            r2 = dm(_rtg_sub_on_{nid});
+            r2 = pass r2;
+            if eq jump (pc, .rtg_nosub_{nid});
+            r1 = 0x10000000;
+            i0 = _buf_{fdr_id};
+            i2 = _bus_acc_sub;
+            call _acc64_mac_blk;
+        .rtg_nosub_{nid}:
+
+            i3 = _bus_acc_grp_ptrs;
+            i5 = _rtg_grp_on_{nid};
+            r5 = 4;
+            lcntr = r5, do .rtg_grp_{nid} until lce;
+                r2 = dm(i5, 1);
+                r3 = dm(i3, 1);
+                r2 = pass r2;
+                if eq jump (pc, .rtg_gskip_{nid});
+                i2 = r3;
+                i0 = _buf_{fdr_id};
+                r1 = 0x10000000;
+                call _acc64_mac_blk;
+            .rtg_gskip_{nid}:
+                nop;
+            .rtg_grp_{nid}:
+                nop;
+
+            i3 = _bus_acc_aux_ptrs;
+            i4 = _rtg_aux_sq_{nid};
+            i5 = _rtg_aux_on_{nid};
+            i6 = _rtg_aux_pick_{nid};
+            r5 = 12;
+            lcntr = r5, do .rtg_aux_{nid} until lce;
+                r2 = dm(i5, 1);
+                r3 = dm(i3, 1);
+                r1 = dm(i4, 1);
+                r2 = pass r2;
+                if eq jump (pc, .rtg_askip_{nid});
+{pick_addr('a')}
+                i0 = r0;
+                i2 = r3;
+                call _acc64_mac_blk;
+                jump (pc, .rtg_anext_{nid});
+            .rtg_askip_{nid}:
+                modify(i6, 1);
+            .rtg_anext_{nid}:
+                nop;
+            .rtg_aux_{nid}:
+                nop;
+
+            i3 = _bus_acc_fx_ptrs;
+            i4 = _rtg_fx_sq_{nid};
+            i5 = _rtg_fx_on_{nid};
+            i6 = _rtg_fx_pick_{nid};
+            r5 = 6;
+            lcntr = r5, do .rtg_fx_{nid} until lce;
+                r2 = dm(i5, 1);
+                r3 = dm(i3, 1);
+                r1 = dm(i4, 1);
+                r2 = pass r2;
+                if eq jump (pc, .rtg_fskip_{nid});
+{pick_addr('f')}
+                i0 = r0;
+                i2 = r3;
+                call _acc64_mac_blk;
+                jump (pc, .rtg_fnext_{nid});
+            .rtg_fskip_{nid}:
+                modify(i6, 1);
+            .rtg_fnext_{nid}:
+                nop;
+            .rtg_fx_{nid}:
+                nop;
+        #else
 
             /* ===== Main L/R (unity, pan-split bufs) ===== */
             r2 = dm(_rtg_main_on_{nid});
@@ -5622,6 +5799,8 @@ def gen_routing_fixed(node):
                 nop;
             .rtg_fx_{nid}:
                 nop;
+
+        #endif
 
             r0 = dm(_tap_post_fader_{fdr_id});
             dm(_buf_{nid}) = r0;

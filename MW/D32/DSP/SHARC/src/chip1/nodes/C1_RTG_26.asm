@@ -153,6 +153,137 @@ _C1_RTG_26_process:
 
 .rtg_acc_C1_RTG_26:
 
+#if DSP4_BLOCK_KERNELS
+    /* Per-BLOCK routing. The whole gating tree runs ONCE per block
+     * instead of 32 times, and each enabled contribution becomes a
+     * single _acc64_mac_blk over the block. Measured 2026-08-24 the
+     * per-sample form cost 601 cycles/sample with only MAIN enabled
+     * -- two MACs (~30 cycles) buried in 22 gated loop iterations,
+     * re-evaluated every sample. The MACs were never the cost. */
+    r2 = dm(_rtg_main_on_C1_RTG_26);
+    r2 = pass r2;
+    if eq jump (pc, .rtg_nomain_C1_RTG_26);
+    r1 = 0x10000000;                  /* unity Q4.28 */
+    i0 = _buf_L_C1_FDR_26;
+    i2 = _bus_acc_main_l;
+    call _acc64_mac_blk;
+    r1 = 0x10000000;
+    i0 = _buf_R_C1_FDR_26;
+    i2 = _bus_acc_main_r;
+    call _acc64_mac_blk;
+.rtg_nomain_C1_RTG_26:
+
+    r2 = dm(_rtg_sub_on_C1_RTG_26);
+    r2 = pass r2;
+    if eq jump (pc, .rtg_nosub_C1_RTG_26);
+    r1 = 0x10000000;
+    i0 = _buf_C1_FDR_26;
+    i2 = _bus_acc_sub;
+    call _acc64_mac_blk;
+.rtg_nosub_C1_RTG_26:
+
+    i3 = _bus_acc_grp_ptrs;
+    i5 = _rtg_grp_on_C1_RTG_26;
+    r5 = 4;
+    lcntr = r5, do .rtg_grp_C1_RTG_26 until lce;
+        r2 = dm(i5, 1);
+        r3 = dm(i3, 1);
+        r2 = pass r2;
+        if eq jump (pc, .rtg_gskip_C1_RTG_26);
+        i2 = r3;
+        i0 = _buf_C1_FDR_26;
+        r1 = 0x10000000;
+        call _acc64_mac_blk;
+    .rtg_gskip_C1_RTG_26:
+        nop;
+    .rtg_grp_C1_RTG_26:
+        nop;
+
+    i3 = _bus_acc_aux_ptrs;
+    i4 = _rtg_aux_sq_C1_RTG_26;
+    i5 = _rtg_aux_on_C1_RTG_26;
+    i6 = _rtg_aux_pick_C1_RTG_26;
+    r5 = 12;
+    lcntr = r5, do .rtg_aux_C1_RTG_26 until lce;
+        r2 = dm(i5, 1);
+        r3 = dm(i3, 1);
+        r1 = dm(i4, 1);
+        r2 = pass r2;
+        if eq jump (pc, .rtg_askip_C1_RTG_26);
+        r6 = dm(i6, 1);               /* pickoff enum */
+        r6 = pass r6;
+        if eq jump (pc, .rab_pk0_C1_RTG_26);
+        r7 = 1;
+        comp(r6, r7);
+        if eq jump (pc, .rab_pk1_C1_RTG_26);
+        r7 = 2;
+        comp(r6, r7);
+        if eq jump (pc, .rab_pk2_C1_RTG_26);
+        r0 = _tap_post_fader_C1_FDR_26;
+        jump (pc, .rab_pkd_C1_RTG_26);
+    .rab_pk0_C1_RTG_26:
+        r0 = _tap_post_trim_C1_GAIN_26;
+        jump (pc, .rab_pkd_C1_RTG_26);
+    .rab_pk1_C1_RTG_26:
+        r0 = _tap_post_eq_C1_EQ_26;
+        jump (pc, .rab_pkd_C1_RTG_26);
+    .rab_pk2_C1_RTG_26:
+        r0 = _tap_pre_fader_C1_DLY_26;
+    .rab_pkd_C1_RTG_26:
+        i0 = r0;
+        i2 = r3;
+        call _acc64_mac_blk;
+        jump (pc, .rtg_anext_C1_RTG_26);
+    .rtg_askip_C1_RTG_26:
+        modify(i6, 1);
+    .rtg_anext_C1_RTG_26:
+        nop;
+    .rtg_aux_C1_RTG_26:
+        nop;
+
+    i3 = _bus_acc_fx_ptrs;
+    i4 = _rtg_fx_sq_C1_RTG_26;
+    i5 = _rtg_fx_on_C1_RTG_26;
+    i6 = _rtg_fx_pick_C1_RTG_26;
+    r5 = 6;
+    lcntr = r5, do .rtg_fx_C1_RTG_26 until lce;
+        r2 = dm(i5, 1);
+        r3 = dm(i3, 1);
+        r1 = dm(i4, 1);
+        r2 = pass r2;
+        if eq jump (pc, .rtg_fskip_C1_RTG_26);
+        r6 = dm(i6, 1);               /* pickoff enum */
+        r6 = pass r6;
+        if eq jump (pc, .rfb_pk0_C1_RTG_26);
+        r7 = 1;
+        comp(r6, r7);
+        if eq jump (pc, .rfb_pk1_C1_RTG_26);
+        r7 = 2;
+        comp(r6, r7);
+        if eq jump (pc, .rfb_pk2_C1_RTG_26);
+        r0 = _tap_post_fader_C1_FDR_26;
+        jump (pc, .rfb_pkd_C1_RTG_26);
+    .rfb_pk0_C1_RTG_26:
+        r0 = _tap_post_trim_C1_GAIN_26;
+        jump (pc, .rfb_pkd_C1_RTG_26);
+    .rfb_pk1_C1_RTG_26:
+        r0 = _tap_post_eq_C1_EQ_26;
+        jump (pc, .rfb_pkd_C1_RTG_26);
+    .rfb_pk2_C1_RTG_26:
+        r0 = _tap_pre_fader_C1_DLY_26;
+    .rfb_pkd_C1_RTG_26:
+        i0 = r0;
+        i2 = r3;
+        call _acc64_mac_blk;
+        jump (pc, .rtg_fnext_C1_RTG_26);
+    .rtg_fskip_C1_RTG_26:
+        modify(i6, 1);
+    .rtg_fnext_C1_RTG_26:
+        nop;
+    .rtg_fx_C1_RTG_26:
+        nop;
+#else
+
     /* ===== Main L/R (unity, pan-split bufs) ===== */
     r2 = dm(_rtg_main_on_C1_RTG_26);
     r2 = pass r2;
@@ -277,6 +408,8 @@ _C1_RTG_26_process:
         nop;
     .rtg_fx_C1_RTG_26:
         nop;
+
+#endif
 
     r0 = dm(_tap_post_fader_C1_FDR_26);
     dm(_buf_C1_RTG_26) = r0;

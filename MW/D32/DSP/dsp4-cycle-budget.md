@@ -110,6 +110,52 @@ measured hot spot) and the bus/send path.
 default build is **byte-identical** to the pre-conversion image, so the
 shipping path is provably untouched.
 
+### KERNEL REWRITE — RTG converted 2026-08-24 (cycles only, see caveat)
+
+| point | per-sample | per-block |
+|---|---|---|
+| `NODE_LIMIT=9` (through FDR) | 110,872 | 67,171 |
+| `NODE_LIMIT=10` (+ RTG) | 130,058 | 69,790 |
+| **RTG alone** | **19,186** (599.6/sample) | **2,619** (81.8/sample) |
+
+**7.3× faster.** The per-sample figure reproduces the 601 cycles/sample in
+the table above, which is a useful check on the instrument.
+
+The MACs were never the cost. With only MAIN enabled by default that is
+two `_acc64_mac` calls, about 30 cycles — buried inside 22 gated loop
+iterations that were re-evaluated on every one of the 32 samples. The block
+form runs the whole gating tree **once per block** and turns each enabled
+contribution into a single `_acc64_mac_blk` over the block.
+
+**CAVEAT — this is a cycles-only result.** RTG reads FDR's buffers, and FDR
+is not converted yet, so the block accumulate walks past a scalar and the
+DATA is garbage. Code shape and memory traffic are representative, so the
+cycle count stands; bit-exactness cannot be claimed until the chain between
+GAIN and RTG is converted. Recorded as measured, not as verified.
+
+### The binding constraint is MEMORY, not cycles
+
+Converting RTG needs per-sample bus accumulators — 25 buses × 32 samples ×
+2 words = **1,600 words against 50** — and that **overflowed DM**:
+`Out of memory in output section 'sec_stak'`. The IN+GAIN conversion had
+already left under ~1.5 K words of headroom on chip 1.
+
+Block buffers are expensive: every converted node's buffer becomes 32
+words, and on chip 1 the IN nodes alone (46 × 64 for slot + buffer) are
+~2.9 K words. A full conversion of the ten strip classes would want roughly
+13–14 K extra words of internal DM, which the part does not have.
+
+The accumulators are parked in L2 (`seg_delay`) to unblock the measurement,
+which if anything makes the 2,619 figure **conservative** — L2 is slower
+than internal DM.
+
+**The real fix is buffer reuse.** A strip is a linear chain, so a node's
+block buffer is dead as soon as its consumer has run: two ping-pong block
+buffers per strip suffice instead of one per node — 64 words instead of
+320, and it scales. That belongs in the generator as a buffer-pool
+assignment, and it should land before the remaining classes are converted
+rather than after.
+
 ### What stands out
 
 **RTG is the most expensive node class on the part** — 601 cycles per

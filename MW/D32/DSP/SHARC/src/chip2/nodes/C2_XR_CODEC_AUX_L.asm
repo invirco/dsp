@@ -13,15 +13,39 @@
 /* INTERCHIP_RECV: mix-fabric line 1 slot 9 (global slot 25, signal XFER_CODEC_AUX_L) */
 
 .section/dm seg_dmda;
+#if DSP4_BLOCK_KERNELS
+/* Scatter writes slot[sample] under block kernels, so this MUST
+ * be a 32-word array even before the node itself is converted --
+ * otherwise scatter writes past a scalar. */
+.global _rx_ic_slot_C2_XR_CODEC_AUX_L;
+.var _rx_ic_slot_C2_XR_CODEC_AUX_L[32];
+.global _buf_C2_XR_CODEC_AUX_L;
+.var _buf_C2_XR_CODEC_AUX_L[32];
+#else
 .global _rx_ic_slot_C2_XR_CODEC_AUX_L;
 .var _rx_ic_slot_C2_XR_CODEC_AUX_L;
 .global _buf_C2_XR_CODEC_AUX_L;
 .var _buf_C2_XR_CODEC_AUX_L;
+#endif
 
 .section/pm seg_pmco;
 .global _C2_XR_CODEC_AUX_L_process;
 _C2_XR_CODEC_AUX_L_process:
+#if DSP4_BLOCK_KERNELS
+    l0 = 0;
+    l1 = 0;
+    i0 = _rx_ic_slot_C2_XR_CODEC_AUX_L;
+    i1 = _buf_C2_XR_CODEC_AUX_L;
+    r5 = 32;
+    lcntr = r5; do .icr_lp_C2_XR_CODEC_AUX_L until lce;
+        r0 = dm(i0, 1);
+        dm(i1, 1) = r0;
+.icr_lp_C2_XR_CODEC_AUX_L:
+        nop;
+    rts;
+#else
     r0 = dm(_rx_ic_slot_C2_XR_CODEC_AUX_L);
     dm(_buf_C2_XR_CODEC_AUX_L) = r0;
     rts;
+#endif
 _C2_XR_CODEC_AUX_L_process.end:

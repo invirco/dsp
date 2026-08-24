@@ -4,6 +4,35 @@
 
 .section/dm seg_dmda;
 
+#if DSP4_BLOCK_KERNELS
+.section/dm seg_delay;
+.global _bus_acc_main_l;   .var _bus_acc_main_l[64];
+.global _bus_acc_main_r;   .var _bus_acc_main_r[64];
+.global _bus_acc_sub;   .var _bus_acc_sub[64];
+.global _bus_acc_grp_01;   .var _bus_acc_grp_01[64];
+.global _bus_acc_grp_02;   .var _bus_acc_grp_02[64];
+.global _bus_acc_grp_03;   .var _bus_acc_grp_03[64];
+.global _bus_acc_grp_04;   .var _bus_acc_grp_04[64];
+.global _bus_acc_aux_01;   .var _bus_acc_aux_01[64];
+.global _bus_acc_aux_02;   .var _bus_acc_aux_02[64];
+.global _bus_acc_aux_03;   .var _bus_acc_aux_03[64];
+.global _bus_acc_aux_04;   .var _bus_acc_aux_04[64];
+.global _bus_acc_aux_05;   .var _bus_acc_aux_05[64];
+.global _bus_acc_aux_06;   .var _bus_acc_aux_06[64];
+.global _bus_acc_aux_07;   .var _bus_acc_aux_07[64];
+.global _bus_acc_aux_08;   .var _bus_acc_aux_08[64];
+.global _bus_acc_aux_09;   .var _bus_acc_aux_09[64];
+.global _bus_acc_aux_10;   .var _bus_acc_aux_10[64];
+.global _bus_acc_aux_11;   .var _bus_acc_aux_11[64];
+.global _bus_acc_aux_12;   .var _bus_acc_aux_12[64];
+.global _bus_acc_fx_01;   .var _bus_acc_fx_01[64];
+.global _bus_acc_fx_02;   .var _bus_acc_fx_02[64];
+.global _bus_acc_fx_03;   .var _bus_acc_fx_03[64];
+.global _bus_acc_fx_04;   .var _bus_acc_fx_04[64];
+.global _bus_acc_fx_05;   .var _bus_acc_fx_05[64];
+.global _bus_acc_fx_06;   .var _bus_acc_fx_06[64];
+.section/dm seg_dmda;
+#else
 .global _bus_acc_main_l;   .var _bus_acc_main_l[2];
 .global _bus_acc_main_r;   .var _bus_acc_main_r[2];
 .global _bus_acc_sub;   .var _bus_acc_sub[2];
@@ -29,6 +58,7 @@
 .global _bus_acc_fx_04;   .var _bus_acc_fx_04[2];
 .global _bus_acc_fx_05;   .var _bus_acc_fx_05[2];
 .global _bus_acc_fx_06;   .var _bus_acc_fx_06[2];
+#endif
 
 .global _bus_acc_grp_ptrs;
 .var _bus_acc_grp_ptrs[4] = _bus_acc_grp_01, _bus_acc_grp_02, _bus_acc_grp_03, _bus_acc_grp_04;
@@ -44,11 +74,50 @@ _bus_clear_all:
     i2 = _bus_acc_all_ptrs;
     r0 = 0;
     r1 = 25;
+#if DSP4_BLOCK_KERNELS
+    lcntr = r1, do .bca_clr until lce;
+        r2 = dm(i2, 1);
+        i3 = r2;
+        r3 = 64;
+        lcntr = r3, do .bca_clr_in until lce;
+    .bca_clr_in:
+            dm(i3, 1) = r0;
+    .bca_clr:
+        nop;
+#else
     lcntr = r1, do .bca_clr until lce;
         r2 = dm(i2, 1);
         i3 = r2;
         dm(i3, 1) = r0;
     .bca_clr:
         dm(i3, 0) = r0;
+#endif
     rts;
 _bus_clear_all.end:
+
+#if DSP4_BLOCK_KERNELS
+.global _acc64_mac_blk;
+/* i0 = source array (32 words), i2 = accumulator (32 [lo,hi]
+ * pairs), r1 = gain Q4.28. Exact: no rounding here, one
+ * round happens at readout in _acc64_rns28. */
+_acc64_mac_blk:
+    l0 = 0;
+    l2 = 0;
+    r5 = 32;
+    lcntr = r5, do .amb_lp until lce;
+        r0 = dm(i0, 1);
+        r2 = dm(i2, 1);            /* lo; i2 -> hi */
+        r3 = dm(i2, 0);            /* hi           */
+        mr0f = r2;
+        mr1f = r3;
+        r2 = ashift r3 by -31;
+        mr2f = r2;
+        mrf = mrf + r0 * r1 (ssi);
+        r2 = mr1f;
+        dm(i2, -1) = r2;           /* hi; i2 -> lo */
+        r2 = mr0f;
+    .amb_lp:
+        dm(i2, 2) = r2;            /* lo; i2 -> next pair */
+    rts;
+_acc64_mac_blk.end:
+#endif

@@ -13,15 +13,39 @@
 /* INTERCHIP_RECV: mix-fabric line 0 slot 14 (global slot 14, signal BUS_AUX_08) */
 
 .section/dm seg_dmda;
+#if DSP4_BLOCK_KERNELS
+/* Scatter writes slot[sample] under block kernels, so this MUST
+ * be a 32-word array even before the node itself is converted --
+ * otherwise scatter writes past a scalar. */
+.global _rx_ic_slot_C2_RECV_AUX_08;
+.var _rx_ic_slot_C2_RECV_AUX_08[32];
+.global _buf_C2_RECV_AUX_08;
+.var _buf_C2_RECV_AUX_08[32];
+#else
 .global _rx_ic_slot_C2_RECV_AUX_08;
 .var _rx_ic_slot_C2_RECV_AUX_08;
 .global _buf_C2_RECV_AUX_08;
 .var _buf_C2_RECV_AUX_08;
+#endif
 
 .section/pm seg_pmco;
 .global _C2_RECV_AUX_08_process;
 _C2_RECV_AUX_08_process:
+#if DSP4_BLOCK_KERNELS
+    l0 = 0;
+    l1 = 0;
+    i0 = _rx_ic_slot_C2_RECV_AUX_08;
+    i1 = _buf_C2_RECV_AUX_08;
+    r5 = 32;
+    lcntr = r5; do .icr_lp_C2_RECV_AUX_08 until lce;
+        r0 = dm(i0, 1);
+        dm(i1, 1) = r0;
+.icr_lp_C2_RECV_AUX_08:
+        nop;
+    rts;
+#else
     r0 = dm(_rx_ic_slot_C2_RECV_AUX_08);
     dm(_buf_C2_RECV_AUX_08) = r0;
     rts;
+#endif
 _C2_RECV_AUX_08_process.end:
