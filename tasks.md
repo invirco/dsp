@@ -14,6 +14,15 @@ basic strip for capacity purposes. Two levels to this and they are different:
   what actually recovers TUBE's cycles AND its DM state, so it is the version
   that counts for the 32-channel fit.
 
+**PW DIRECTIVE 2026-08-24 16:3xZ: GAIN IS A SINGLE MAC — full strip fusion
+is now the PRIMARY lever, ahead of everything except the in-flight comp-probe
+fix. The generator emits ONE kernel per strip: samples stay in registers/MR
+from GAIN through FDR, stages are bare MACs/cascades at 64-bit precision, the
+Q4.28 round/saturate/store happens ONCE at the strip boundary. The ~14-cycle
+per-stage exit tax (measured in GAIN's 18 cycles for 1 cycle of maths) is
+deleted at every stage, not optimised. SIMD pairing applies to the fused
+kernel. Then fabric to 40k, then the ceiling at 786.**
+
 **PW DECISION 2026-08-24 14:0xZ: GO WITH THE 800 MHz OPERATING POINT —
 enable `DSP4_CCLK_TARGET=786` (786.432 MHz, legal on both speed grades;
 983.04/KSWZ10 stays prepared but OFF). Budget becomes 524,288 cycles/block
