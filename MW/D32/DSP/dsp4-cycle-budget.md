@@ -262,6 +262,44 @@ per-sample hook wrote an RX slot variable, and those no longer exist now
 that the input kernels read DMA directly. GAIN re-verified through the new
 hook: still 0 LSB at all six gains.
 
+### Register-resident block cascade added 2026-08-24 — routine in, wiring open
+
+`_bq_fx_cascade_blk` (`src/lib/biquad_fx.asm`, behind the flag) cascades a
+whole block with the biquad state held in **registers**: six loads and six
+stores per SAMPLE become six per STAGE. The per-sample arithmetic is a
+line-for-line copy of `_bq_fx_cascade_N`, so it should be bit-exact by
+construction.
+
+The reordering is stage-at-a-time rather than sample-at-a-time. That is
+safe for a **cascade** specifically: each stage is causal with its own
+state, so running stage k over the whole block before stage k+1 produces
+the same samples in the same order. It would NOT be safe for a feedback
+topology across stages.
+
+Register budget is the reason coefficients are still re-read per sample
+(one instruction each): six state registers plus five coefficients plus
+working room does not fit in sixteen.
+
+**Wiring FILT/EQ to it is the open step**, and it is not a wrap-and-go —
+see the reverted attempt above. The plan that accounts for that failure:
+
+1. Steady state uses `_bq_fx_cascade_blk` in place over the block, called
+   once per section (HPF then LPF; their coefficient arrays are separate,
+   and `i1` walks on to the next stage's state exactly as the per-sample
+   version relies on).
+2. **Crossfade keeps a per-sample fallback** — loop the existing body 32
+   times. A crossfade lasts ~18 blocks and is a transient, so its cost does
+   not matter, and this stops the A/B instance and alpha bookkeeping from
+   having to be re-derived in block form. That bookkeeping is what defeated
+   the first attempt.
+3. Block-rate work — the `swap_pending -> _filt_start_xfade` check — runs
+   ONCE in the wrapper, never inside the sample loop.
+
+Expected gain is roughly 30 % on FILT (227 cycles/sample) and EQ (338),
+about 8-9 % of a channel strip. Worth having, but note it is a much smaller
+lever than the ones already taken: the big wins came where overhead
+dominated, and biquads are arithmetic-bound.
+
 ### What stands out
 
 **RTG is the most expensive node class on the part** — 601 cycles per

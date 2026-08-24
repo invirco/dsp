@@ -129,6 +129,119 @@ _bq_fx_cascade_N:
     rts;
 _bq_fx_cascade_N.end:
 
+#if DSP4_BLOCK_KERNELS
+/*----------------------------------------------------------------------
+ * _bq_fx_cascade_blk — cascade a whole BLOCK, state resident in registers.
+ *
+ * In:  i0 = coeffs, i1 = state, i2 = signal block (32 words, in place),
+ *      r4 = number of stages.
+ *
+ * Identical arithmetic to _bq_fx_cascade_N, reordered stage-at-a-time
+ * instead of sample-at-a-time. That is safe for a CASCADE: each stage is
+ * causal with its own state, so running stage k over the whole block
+ * before stage k+1 produces the same samples in the same order. The
+ * per-sample maths below is a line-for-line copy of the routine above.
+ *
+ * The win is the state: six loads and six stores PER SAMPLE become six
+ * loads and six stores per STAGE. Coefficients are still re-read per
+ * sample (one instruction each, and hoisting all five would not fit
+ * alongside the six state registers).
+ *----------------------------------------------------------------------*/
+.global _bq_fx_cascade_blk;
+_bq_fx_cascade_blk:
+    l0 = 0;
+    l1 = 0;
+    l2 = 0;
+    r15 = -5;
+    m1 = r15;                  /* rewind coeffs by one sample's worth */
+    r15 = -32;
+    m2 = r15;                  /* rewind the signal block per stage    */
+    r15 = 5;
+    m3 = r15;                  /* state base+1 -> next stage's base    */
+
+    lcntr = r4, do .bqb_stage until lce;
+
+        /* ---- state into registers, ONCE for this stage ---- */
+        r5 = dm(i1, 1);        /* x1     */
+        r6 = dm(i1, 1);        /* x2     */
+        r7 = dm(i1, 1);        /* y1     */
+        r8 = dm(i1, 1);        /* y2     */
+        r9 = dm(i1, 1);        /* efb_lo */
+        r10 = dm(i1, 0);       /* efb_hi -- i1 parked at base+5 */
+
+        r4 = 32;
+        lcntr = r4, do .bqb_samp until lce;
+            r0 = dm(i2, 0);                 /* x */
+            mr0f = r9;
+            mr1f = r10;
+            r11 = ashift r10 by -31;
+            mr2f = r11;
+            r1 = dm(i0, 1);                 /* b0 */
+            mrf = mrf + r1 * r0 (ssi);
+            mrf = mrf + r1 * r6 (ssi);
+            mrf = mrf - r1 * r5 (ssi);
+            mrf = mrf - r1 * r5 (ssi);
+            r1 = dm(i0, 1);                 /* n1 */
+            mrf = mrf + r1 * r5 (ssi);
+            r1 = dm(i0, 1);                 /* n2 */
+            mrf = mrf + r1 * r6 (ssi);
+            r1 = dm(i0, 1);                 /* c1 */
+            mrf = mrf - r1 * r7 (ssi);
+            r1 = dm(i0, 1);                 /* c2 */
+            mrf = mrf + r1 * r8 (ssi);
+            modify(i0, m1);                 /* rewind for the next sample */
+            r1 = 0x20000000;
+            mrf = mrf + r1 * r7 (ssi);
+            r1 = 0x10000000;
+            mrf = mrf - r1 * r8 (ssi);
+            r2 = mr0f;                      /* acc_lo */
+            r3 = mr1f;                      /* acc_hi */
+            r1 = 0x08000000;
+            r11 = 1;
+            mrf = mrf + r1 * r11 (ssi);
+            r11 = mr0f;
+            r12 = mr1f;
+            r11 = lshift r11 by -28;
+            r1 = lshift r12 by 4;
+            r11 = r11 or r1;
+            r1 = ashift r12 by -28;
+            r12 = ashift r11 by -31;
+            comp(r1, r12);
+            if eq jump (pc, .bqb_nosat);
+            r11 = 0x7FFFFFFF;
+            r1 = ashift r3 by -31;
+            r11 = r11 xor r1;
+        .bqb_nosat:
+            r1 = lshift r11 by 28;
+            r12 = ashift r11 by -4;
+            r2 = r2 - r1;
+            r3 = r3 - r12 + ci - 1;
+            /* state update stays in registers */
+            r6 = r5;                        /* x2' = x1 */
+            r5 = r0;                        /* x1' = x  */
+            r8 = r7;                        /* y2' = y1 */
+            r7 = r11;                       /* y1' = y  */
+            r9 = r2;                        /* efb_lo   */
+            r10 = r3;                       /* efb_hi   */
+            dm(i2, 1) = r11;                /* y, advance */
+        .bqb_samp:
+            nop;
+
+        /* ---- state back to memory, ONCE for this stage ---- */
+        dm(i1, -1) = r10;      /* efb_hi at +5 */
+        dm(i1, -1) = r9;       /* efb_lo at +4 */
+        dm(i1, -1) = r8;       /* y2     at +3 */
+        dm(i1, -1) = r7;       /* y1     at +2 */
+        dm(i1, -1) = r6;       /* x2     at +1 */
+        dm(i1, 1) = r5;        /* x1     at +0, i1 -> base+1 */
+        modify(i1, m3);        /* -> next stage's state base */
+        modify(i2, m2);        /* rewind the block for the next stage */
+    .bqb_stage:
+        nop;
+    rts;
+_bq_fx_cascade_blk.end:
+#endif
+
 /*----------------------------------------------------------------------
  * _bq_fx_convert_N — RBJ float coeffs -> Q4.28 offset coeffs
  *
