@@ -15,6 +15,8 @@
 /* TUBE_SAT (FIXED Q4.28, D5) */
 /* SPI page=1 addr=364 */
 
+#include "blk_pool.h"
+
 .section/dm seg_dmda;
 .extern _buf_C1_COMP_03;
 .global _tube_on_C1_TUBE_03;
@@ -34,6 +36,71 @@
 .extern _mrf_rns28;
 .global _C1_TUBE_03_process;
 _C1_TUBE_03_process:
+
+#if DSP4_BLOCK_KERNELS
+    /* ---- per-block kernel ----
+     * The saturation RAMP is per-sample by design (spi_handler
+     * scales profile frame counts by 32 for ramps that decrement
+     * once per sample), so `sat` -- and therefore sat_q -- changes
+     * within the block while a ramp is running. Only the settled
+     * case can hoist the conversion, so a ramping TUBE hands the
+     * block to the per-sample body. A sat ramp is a transient. */
+    l3 = 0;
+    l4 = 0;
+    i3 = BLK_CHAIN_B;
+    i4 = BLK_CHAIN_A;
+
+    r2 = dm(_tube_on_C1_TUBE_03);
+    r2 = pass r2;
+    if eq jump (pc, .tkb_copy_C1_TUBE_03);
+    r4 = dm(_tube_sat_frames_C1_TUBE_03);
+    r5 = 1;
+    r4 = r4 - r5;
+    if gt jump (pc, .tkb_ref_C1_TUBE_03);     /* ramping */
+
+    f3 = dm(_tube_sat_target_C1_TUBE_03);
+    dm(_tube_sat_C1_TUBE_03) = f3;
+    r4 = 0x4D800000;
+    f4 = r4;
+    f3 = f3 * f4;
+    r9 = fix f3;                          /* sat_q, hoisted */
+
+    lcntr = 32, do .tkb_lp_C1_TUBE_03 until lce;
+        r8 = dm(i3, 1);
+        mrf = r8 * r8 (ssi);
+        call _mrf_rns28;
+        r10 = 0x10000000;
+        r10 = r10 - r0;
+        mrf = r9 * r10 (ssi);
+        call _mrf_rns28;
+        r10 = 0x10000000;
+        r10 = r10 + r0;
+        mrf = r8 * r10 (ssi);
+        call _mrf_rns28;
+        nop;
+        nop;
+    .tkb_lp_C1_TUBE_03: dm(i4, 1) = r0;
+    rts;
+
+.tkb_copy_C1_TUBE_03:
+    lcntr = 32, do .tkb_cp_C1_TUBE_03 until lce;
+        r0 = dm(i3, 1);
+    .tkb_cp_C1_TUBE_03: dm(i4, 1) = r0;
+    rts;
+
+.tkb_ref_C1_TUBE_03:
+    lcntr = 32, do .tkb_rl_C1_TUBE_03 until lce;
+        r0 = dm(i3, 1);
+        dm(_buf_C1_COMP_03) = r0;
+        call _C1_TUBE_03_process_sample;
+        r0 = dm(_buf_C1_TUBE_03);
+    .tkb_rl_C1_TUBE_03: dm(i4, 1) = r0;
+    rts;
+
+.global _C1_TUBE_03_process_sample;
+_C1_TUBE_03_process_sample:
+#endif
+
     r0 = dm(_buf_C1_COMP_03);
 
     r4 = dm(_tube_sat_frames_C1_TUBE_03);

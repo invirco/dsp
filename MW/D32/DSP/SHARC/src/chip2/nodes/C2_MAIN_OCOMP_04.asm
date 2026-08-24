@@ -15,6 +15,8 @@
         /* COMPRESSOR (FIXED Q4.28, D5) */
         /* SPI page=1 addr=1560 */
 
+#include "blk_pool.h"
+
 .section/dm seg_dmda;
 .extern _buf_C2_MAIN_OEQ_04;
         .global _comp_on_C2_MAIN_OCOMP_04;
@@ -72,6 +74,10 @@
         .global _buf_C2_MAIN_OCOMP_04;
         .var _buf_C2_MAIN_OCOMP_04;
 
+#if DSP4_BLOCK_KERNELS
+.global _comp_saved_idx_C2_MAIN_OCOMP_04;
+.var _comp_saved_idx_C2_MAIN_OCOMP_04;
+#endif
         .section/pm seg_pmco;
         .extern _sample_idx;
         .extern _envq_fx;
@@ -79,6 +85,7 @@
         .extern _mrf_rns28;
         .global _C2_MAIN_OCOMP_04_process;
         _C2_MAIN_OCOMP_04_process:
+
             r0 = dm(_buf_C2_MAIN_OEQ_04);
             r2 = dm(_comp_on_C2_MAIN_OCOMP_04);
             r3 = 0;

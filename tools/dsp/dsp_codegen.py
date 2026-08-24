@@ -1,4 +1,165 @@
 
+_COMP_BLK_BODY = """
+        #if DSP4_BLOCK_KERNELS
+            /* ---- per-block kernel ----
+             * Sample 0 goes through the per-sample body with _sample_idx
+             * forced to 0, which runs the block-rate makeup ramp and the
+             * whole parameter conversion exactly as a per-sample build
+             * would -- and avoids duplicating ninety lines of conversion
+             * here. Samples 1..31 then run hoisted.
+             *
+             * The earlier verdict that COMP was not worth converting came
+             * from a bare WRAP, which measured 8 % SLOWER, and from a
+             * reading that _compgain_fx "clobbers all but four registers".
+             * It does not: it touches r0-r3, r8-r12 and i0, so r4-r7 and
+             * r13-r15 survive it. _envq_fx additionally takes r4 and r5,
+             * so the set that survives BOTH is r6, r7, r13, r14, r15 --
+             * enough for the attack and release alphas, the dry sample,
+             * the envelope and the makeup, which is most of the per-sample
+             * DM traffic. */
+            l3 = 0;
+            l4 = 0;
+            i3 = BLK_CHAIN_A;
+            i4 = BLK_CHAIN_B;
+
+            r2 = dm(_comp_on_{nid});
+            r2 = pass r2;
+            if eq jump (pc, .ckb_copy_{nid});
+
+            r5 = dm(_sample_idx);
+            dm(_comp_saved_idx_{nid}) = r5;
+            r5 = 0;
+            dm(_sample_idx) = r5;
+            r0 = dm(i3, 1);
+            dm(_buf_{inp}) = r0;
+            call _{nid}_process_sample;
+            r0 = dm(_buf_{nid});
+            dm(i4, 1) = r0;
+            r5 = 1;
+            dm(_sample_idx) = r5;
+
+            r6 = dm(_comp_attq_{nid});
+            r7 = dm(_comp_relq_{nid});
+            r14 = dm(_comp_envelope_{nid});
+            r15 = dm(_comp_mkq_{nid});
+
+            lcntr = 31, do .ckb_lp_{nid} until lce;
+                r13 = dm(i3, 1);
+                r0 = abs r13;
+                r1 = r14;
+                r2 = r6;
+                r3 = r7;
+                call _envq_fx;
+                r14 = r0;
+                i0 = _comp_cgp_{nid};
+                call _compgain_fx;
+                dm(_comp_gain_{nid}) = r0;
+                r1 = r0;
+                r0 = r13;
+                mrf = r0 * r1 (ssi);
+                call _mrf_rns28;
+                r1 = r15;
+                mrf = r0 * r1 (ssi);
+                call _mrf_rns28;
+                r5 = r0 - r13;
+                r4 = dm(_comp_parq_{nid});
+                mrf = r5 * r4 (ssi);
+                r1 = 0x40000000;
+                r12 = 1;
+                mrf = mrf + r1 * r12 (ssi);
+                r1 = mr0f;
+                r12 = mr1f;
+                r1 = lshift r1 by -31;
+                r12 = lshift r12 by 1;
+                r1 = r1 or r12;
+                r0 = r13 + r1;
+                nop;
+                nop;
+            .ckb_lp_{nid}: dm(i4, 1) = r0;
+
+            dm(_comp_envelope_{nid}) = r14;
+            r5 = dm(_comp_saved_idx_{nid});
+            dm(_sample_idx) = r5;
+            rts;
+
+        .ckb_copy_{nid}:
+            lcntr = 32, do .ckb_cp_{nid} until lce;
+                r0 = dm(i3, 1);
+            .ckb_cp_{nid}: dm(i4, 1) = r0;
+            rts;
+
+        .global _{nid}_process_sample;
+        _{nid}_process_sample:
+        #endif
+"""
+
+_TUBE_BLK_BODY = """
+        #if DSP4_BLOCK_KERNELS
+            /* ---- per-block kernel ----
+             * The saturation RAMP is per-sample by design (spi_handler
+             * scales profile frame counts by 32 for ramps that decrement
+             * once per sample), so `sat` -- and therefore sat_q -- changes
+             * within the block while a ramp is running. Only the settled
+             * case can hoist the conversion, so a ramping TUBE hands the
+             * block to the per-sample body. A sat ramp is a transient. */
+            l3 = 0;
+            l4 = 0;
+            i3 = BLK_CHAIN_B;
+            i4 = BLK_CHAIN_A;
+
+            r2 = dm(_tube_on_{nid});
+            r2 = pass r2;
+            if eq jump (pc, .tkb_copy_{nid});
+            r4 = dm(_tube_sat_frames_{nid});
+            r5 = 1;
+            r4 = r4 - r5;
+            if gt jump (pc, .tkb_ref_{nid});     /* ramping */
+
+            f3 = dm(_tube_sat_target_{nid});
+            dm(_tube_sat_{nid}) = f3;
+            r4 = 0x4D800000;
+            f4 = r4;
+            f3 = f3 * f4;
+            r9 = fix f3;                          /* sat_q, hoisted */
+
+            lcntr = 32, do .tkb_lp_{nid} until lce;
+                r8 = dm(i3, 1);
+                mrf = r8 * r8 (ssi);
+                call _mrf_rns28;
+                r10 = 0x10000000;
+                r10 = r10 - r0;
+                mrf = r9 * r10 (ssi);
+                call _mrf_rns28;
+                r10 = 0x10000000;
+                r10 = r10 + r0;
+                mrf = r8 * r10 (ssi);
+                call _mrf_rns28;
+                nop;
+                nop;
+            .tkb_lp_{nid}: dm(i4, 1) = r0;
+            rts;
+
+        .tkb_copy_{nid}:
+            lcntr = 32, do .tkb_cp_{nid} until lce;
+                r0 = dm(i3, 1);
+            .tkb_cp_{nid}: dm(i4, 1) = r0;
+            rts;
+
+        .tkb_ref_{nid}:
+            lcntr = 32, do .tkb_rl_{nid} until lce;
+                r0 = dm(i3, 1);
+                dm(_buf_{inp}) = r0;
+                call _{nid}_process_sample;
+                r0 = dm(_buf_{nid});
+            .tkb_rl_{nid}: dm(i4, 1) = r0;
+            rts;
+
+        .global _{nid}_process_sample;
+        _{nid}_process_sample:
+        #endif
+"""
+
+
 _DLY_BLK_BODY = """
         #if DSP4_BLOCK_KERNELS
             /* ---- per-block kernel ----
@@ -6488,6 +6649,12 @@ def gen_routing_fixed(node):
 
 
 def gen_tube_sat_fixed(node):
+    import re as _re
+    if _re.match(r'^C\d+_TUBE_\d+$', node['id']):
+        blk_tube_body = _TUBE_BLK_BODY.format(nid=node['id'], inp=node['inputs_str'])
+    else:
+        blk_tube_body = ''
+
     """Fixed TUBE_SAT (D5): y = x*(1 + sat*(1 - x^2)) entirely in
     Q4.28 MRF math; float sat ramp retained per sample with a FIX."""
     rc = ramp_comment(node['ramp_profile'])
@@ -6498,6 +6665,8 @@ def gen_tube_sat_fixed(node):
 
         /* TUBE_SAT (FIXED Q4.28, D5) */
         /* SPI page={node['spi_page']} addr={node['spi_addr']} */
+
+        #include "blk_pool.h"
 
         .section/dm seg_dmda;
         .var _tube_on_{nid} = 0;
@@ -6511,6 +6680,7 @@ def gen_tube_sat_fixed(node):
         .extern _mrf_rns28;
         .global _{nid}_process;
         _{nid}_process:
+        {blk_tube_body}
             r0 = dm(_buf_{inp});
 
             r4 = dm(_tube_sat_frames_{nid});
@@ -6901,6 +7071,12 @@ def _fx_dyn_block_cvt(nid, pfx, with_knee, with_slope):
 
 
 def gen_compressor_fixed(node):
+    import re as _re
+    if _re.match(r'^C\d+_COMP_\d+$', node['id']):
+        blk_comp_body = _COMP_BLK_BODY.format(nid=node['id'], inp=node['inputs_str'])
+    else:
+        blk_comp_body = ''
+
     """Fixed COMPRESSOR (D5): fixed envelope + _compgain_fx (log2
     domain, soft knee) per fixed_ref; float control converted at block
     rate; makeup + parallel blend fixed."""
@@ -6912,6 +7088,8 @@ def gen_compressor_fixed(node):
 
         /* COMPRESSOR (FIXED Q4.28, D5) */
         /* SPI page={node['spi_page']} addr={node['spi_addr']} */
+
+#include "blk_pool.h"
 
 .section/dm seg_dmda;
         .var _comp_on_{nid} = 1;
@@ -6942,6 +7120,9 @@ def gen_compressor_fixed(node):
         .var _comp_cgp_{nid}[4];              /* thr, slope, halfk, k2 */
         .var _buf_{nid};
 
+#if DSP4_BLOCK_KERNELS
+.var _comp_saved_idx_{nid};
+#endif
         .section/pm seg_pmco;
         .extern _sample_idx;
         .extern _envq_fx;
@@ -6949,6 +7130,7 @@ def gen_compressor_fixed(node):
         .extern _mrf_rns28;
         .global _{nid}_process;
         _{nid}_process:
+        {blk_comp_body}
             r0 = dm(_buf_{inp});
             r2 = dm(_comp_on_{nid});
             r3 = 0;

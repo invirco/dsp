@@ -608,6 +608,73 @@ default unity filters a step is constant and the test is blind again.
 Result: **0 differing samples of 32**, 28 distinct values, with the
 5-sample delay visible in the capture.
 
+### COMP and TUBE CONVERTED — the wrap verdict was wrong
+
+| | per-sample | per block | |
+|---|---|---|---|
+| COMP + TUBE together | 7,776 (243/sample) | **5,747** (179.6/sample) | **1.35×** |
+
+**COMP was previously recorded as "not worth converting" and that is now
+withdrawn.** It rested on two things, both wrong:
+
+- It was measured as a bare WRAP, which came out 8 % slower. A wrap alone
+  buys nothing — that is the general lesson of this whole page, and COMP
+  was never measured any other way.
+- The note that `_compgain_fx` "clobbers all but four registers" is not
+  what the routine does. It touches r0–r3, r8–r12 and i0, so **r4–r7 and
+  r13–r15 survive it**; intersecting with `_envq_fx` (which takes r4, r5)
+  leaves r6, r7, r13, r14, r15 — enough for both alphas, the dry sample,
+  the envelope and the makeup, which is most of COMP's per-sample DM
+  traffic.
+
+Implementation note worth reusing: rather than duplicate ninety lines of
+parameter conversion into the block kernel, **sample 0 is run through the
+per-sample body with `_sample_idx` forced to 0**, which performs the
+makeup ramp and the whole conversion exactly as a per-sample build would;
+samples 1–31 then run hoisted. TUBE hoists only when its saturation ramp
+is settled — the ramp is per-sample by design, so `sat_q` changes within
+the block while it runs, and a ramping TUBE hands the block to the
+per-sample body.
+
+Verified: **0 differing samples of 32** for the whole converted chain
+IN→GAIN→FILT→EQ→GATE→COMP→TUBE, block build against per-sample build,
+32 distinct non-zero values.
+
+### Every class converted — the strip as fabbed, 2026-08-24
+
+| class | cycles/sample |
+|---|---|
+| EQ | 250.0 |
+| COMP + TUBE | 179.6 |
+| GATE | 152.8 |
+| FILT | 126.9 |
+| RTG | 81.8 |
+| DLY | 62.5 |
+| FDR | 58.9 |
+| GAIN | 17.9 |
+| IN | 11.6 |
+| **strip total** | **942** (30,144 cycles/block) |
+
+Strip 1,973 → **942** cycles/sample, a **2.1×** improvement, every class
+measured on the part. Projected ceiling 218,616 / 30,144 = **7.25 strips**.
+
+**Against the goal line of 32 strips in one 21564**, this is the arithmetic
+that matters:
+
+| | |
+|---|---|
+| budget | 327,680 cycles/block |
+| block I/O (converted) | 32,707 |
+| bus/send fabric (not yet converted) | 79,408 |
+| available for strips | 218,616 |
+| **needed per strip for 32 strips** | **6,832 cycles/block = 213 cycles/sample** |
+| **actual** | **30,144 = 942 cycles/sample** |
+| **shortfall** | **4.4×** |
+
+With the fabric brought to the dispatch's 40k target, available rises to
+about 254,973 and the per-strip requirement to **249 cycles/sample** — a
+**3.8×** shortfall. That is what fusion and SIMD pairing have to find.
+
 ### The strip after FILT and EQ — 2026-08-24
 
 | class | cycles/sample | state |
