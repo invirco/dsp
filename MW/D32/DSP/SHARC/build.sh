@@ -127,6 +127,13 @@ DSP4_SIMD_PROBE="${DSP4_SIMD_PROBE:-0}"
 CFLAGS="$CFLAGS -DDSP4_SIMD_PROBE=$DSP4_SIMD_PROBE"
 ASMFLAGS="$ASMFLAGS -DDSP4_SIMD_PROBE=$DSP4_SIMD_PROBE"
 
+# Profiling with a signal present. The bench is silent and both dynamics
+# nodes short-circuit on a zero envelope before reaching log2, so a silent
+# profile measures the cheap path. 0 = normal.
+DSP4_PROFILE_SIGNAL="${DSP4_PROFILE_SIGNAL:-0}"
+CFLAGS="$CFLAGS -DDSP4_PROFILE_SIGNAL=$DSP4_PROFILE_SIGNAL"
+ASMFLAGS="$ASMFLAGS -DDSP4_PROFILE_SIGNAL=$DSP4_PROFILE_SIGNAL"
+
 DSP4_COMP_NOCVT="${DSP4_COMP_NOCVT:-0}"
 # Run the node graph only every Nth block (measurement, not a mode).
 DSP4_BLOCK_DECIMATE="${DSP4_BLOCK_DECIMATE:-1}"

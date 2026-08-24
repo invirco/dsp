@@ -64,6 +64,24 @@ _C1_IN_11_process:
     i0 = r3;
     m0 = r4;
     i1 = BLK_CHAIN_A;
+#if DSP4_PROFILE_SIGNAL
+    /* Profiling only. The bench has no analog boards and no audio
+     * source, so the TDM inputs are silent -- and BOTH dynamics
+     * nodes short-circuit on a zero envelope BEFORE they reach
+     * log2: _compgain_fx returns unity at `if le jump .cg_unity`
+     * and GATE branches to .gate_below. Profiling on silence
+     * therefore measures the cheap path and understates GATE and
+     * COMP badly. This substitutes a constant -6 dBFS, which is
+     * above both the -40 dB gate threshold and the -20 dB
+     * compressor threshold, so every node runs the path it runs
+     * with real audio. */
+    r2 = 0x08000000;
+    r5 = 32;
+    lcntr = r5; do .in_sig_C1_IN_11 until lce;
+.in_sig_C1_IN_11:
+        dm(i1, 1) = r2;
+    rts;
+#endif
     r5 = 32;
     lcntr = r5; do .in_lp_C1_IN_11 until lce;
         r2 = dm(i0, m0);

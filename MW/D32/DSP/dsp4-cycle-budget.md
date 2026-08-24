@@ -880,6 +880,81 @@ Two things came out of it and both are kept:
   (`COLLECT_TRIES`) before concluding anything is out of phase, so a slow
   answer is no longer turned into a manufactured fault.
 
+## EVERY DYNAMICS MEASUREMENT ON THIS PAGE WAS TAKEN ON SILENCE — corrected 2026-08-24
+
+This invalidates two earlier conclusions and makes the capacity picture
+**worse**, so it goes at the top of the record rather than in a footnote.
+
+The bench has no analog boards and no audio source, so the TDM inputs are
+silent. Both dynamics nodes short-circuit on a zero envelope **before they
+reach log2**:
+
+    _compgain_fx:   if le jump (pc, .cg_unity);   /* x <= 0 */
+                    call _log2q_fx;               /* never reached */
+    GATE:           r1 = pass r0;
+                    if le jump (pc, .gate_below); /* skips _log2q_fx */
+
+So every profile of GATE and COMP measured the cheap path. `DSP4_PROFILE_SIGNAL`
+substitutes a constant −6 dBFS in the input kernel — above the −40 dB gate
+threshold and the −20 dB compressor threshold — so every node runs the path
+it runs with real audio.
+
+| node | silence | **signal** | delta |
+|---|---|---|---|
+| GATE | 152.0 | **247.5** | +95.5 |
+| COMP | 160.6 | **421.6** | +261.0 |
+| GAIN, FILT, EQ, DLY, FDR, RTG, TUBE | unchanged | unchanged | — (no data-dependent branch) |
+| **strip** | **795.4** | **1,151.9** | **+356.5 (45 % worse)** |
+
+**COMP under signal is the most expensive node in the channel** — more than
+the 4-band EQ.
+
+### What this overturns
+
+- **"The compressor's gain computer is only 9.6 % of it."** That measured
+  598 cycles/block for `_compgain_fx` on a silent bench, where the routine
+  returns unity in about four instructions. Under signal the same routine
+  is **261 cycles/sample**. The section below it, which concluded the
+  polynomials "were the obvious suspect and are not the problem", had the
+  right instinct about measuring first and the wrong measurement.
+- **Every capacity figure derived before this** — 823 cycles/sample, 7.25
+  strips, 18.6 strips with SIMD — was optimistic, not conservative.
+
+### The lesson, which is the same one twice
+
+The biquad `both_unity` test could not fail because unity makes the state
+irrelevant. This profile could not see the dynamics because silence makes
+the expensive path unreachable. **A measurement is only worth what its
+stimulus could have exercised**, and on a bench with no signal source that
+has to be checked explicitly every time.
+
+### What the levers are actually worth, sized on the signal numbers
+
+| lever | cycles/sample recovered | kind |
+|---|---|---|
+| GATE: compare the threshold in the LINEAR domain | **~95** | algebra; needs a `fixed_ref` change, no table |
+| COMP: log2/exp2 by table + interpolation | **~200 of 261** | numerics; needs `numeric-spec.md` + `fixed_ref.py`, D5 |
+| TUBE removed from the fixed strip | ~3 | already bypassed at runtime; the real prize is its DM |
+
+GATE only needs `log2(env)` to compare against a threshold, and that
+comparison is equivalent in the linear domain: precompute `2^thr` once per
+block. COMP genuinely needs the log **value** for its knee and slope, so
+that one is a table or nothing.
+
+### The fit, on signal-present numbers
+
+| configuration | cycles/sample | strips per chip |
+|---|---|---|
+| **required for 32** (fabric at 40k) | **249** | **32** |
+| signal strip, scalar | 1,152 | 6.9 |
+| + SIMD on all but DLY/RTG | 566 | 14.1 |
+| + GATE log deleted + COMP tabled | 442 | 18.0 |
+| **basic strip: trim, HPF/LPF, EQ, fader, routing** (no dynamics, no delay) | **222** | **35.9 — fits** |
+
+**32 full-function channels do not fit one 21564 by any combination of the
+levers measured here.** 32 *basic* channels fit with margin. That is the
+decision, and it is a product-shape decision rather than a coding one.
+
 ## SIMD pairing works, and the fit answer — 2026-08-24
 
 ### PEy is real and it is driven
