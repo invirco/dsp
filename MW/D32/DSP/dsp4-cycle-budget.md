@@ -2,6 +2,77 @@
 
 provenance: AI-drafted 2026-08-23 — prose may carry a statistical watermark; rewrite by hand before publication, then remove this header.
 
+## THE CORE IS RUNNING AT HALF ITS RATED SPEED — 2026-08-24
+
+Everything on this page is measured at **CCLK 491.52 MHz**. The datasheet
+(Rev. A, Feb 2026, now local) rates the ADSP-21564 at **800 MHz or 1 GHz**
+depending on speed grade:
+
+| ordering code | instruction rate | L2 |
+|---|---|---|
+| `ADSP-21564KSWZ8` | **800 MHz** | 2 MB |
+| `ADSP-21564KSWZ10` | **1 GHz** | 2 MB |
+
+And per decision **D10 the firmware does not program the CGU at all** — the
+part runs on reset defaults (MSEL=40, the PLL's built-in ÷2, CSEL=1). D10
+concluded a CGU write "would buy nothing and cost a PLL relock during
+boot". That was correct when it was written and is **no longer true**: it
+buys between 1.6× and 2.0× of the entire cycle budget, which is a larger
+lever than SIMD, fusion and every kernel conversion on this page combined.
+
+### The clock tree, audio-coherent at each option
+
+`SYS_CLKIN0` is 24.576 MHz. `S0SEL`/`S1SEL` scale with `MSEL` so the
+peripheral clocks — and therefore all TDM timing — stay exactly where they
+are; only CCLK and SYSCLK move.
+
+| | CCLK | SYSCLK | SCLK0 | SCLK1 |
+|---|---|---|---|---|
+| today, MSEL=40 S0SEL=4 | 491.52 | 245.76 | 61.44 | 122.88 |
+| MSEL=64 S0SEL=6 | 786.43 | 393.22 | 65.54 | 131.07 |
+| **MSEL=80 S0SEL=8** | **983.04** | **491.52** | **61.44** | **122.88** |
+
+Datasheet ranges: fCCLK 400–1000, fSYSCLK 200–500, fSCLK0 30–125, and
+Table 14 requires **fCCLK = 2 × fSYSCLK** — satisfied by all three rows.
+**MSEL=80 is the clean one**: exactly 2×, still audio-rational (983.04 MHz
+= 48 kHz × 20480), SCLK0 and SCLK1 unchanged, every clock in range.
+
+### What it does to the fit
+
+Fabric at its 40k target, signal-present strip, SIMD on:
+
+| | budget/block | available | channels (SIMD) | channels (SIMD + dynamics rework) |
+|---|---|---|---|---|
+| 491.52 MHz (today) | 327,680 | 254,973 | 14.0 | 17.8 |
+| 786.43 MHz | 524,288 | 451,581 | 24.7 | 31.6 |
+| **983.04 MHz** | **655,360** | **582,653** | **31.9** | **40.7** |
+
+**At 983.04 MHz, 32 full-function channels fit one 21564** — right on the
+line with SIMD alone, comfortably with the dynamics rework. On the two-chip
+card that is the D32 product with genuine headroom, which is what the
+priority asked for.
+
+### What has to be checked before relying on this
+
+1. **THE FITTED SPEED GRADE IS UNKNOWN AND IT DECIDES THIS.** 983.04 MHz is
+   legal on a `KSWZ10` and **over spec on a `KSWZ8`**, whose ceiling forces
+   the 786.43 MHz row instead. Read the part marking on the card. Nothing
+   here should be committed to until that is known.
+2. **Power and thermal.** Roughly 2× the core clock is roughly 2× dynamic
+   core power, on a board whose thermal design assumed the reset default.
+3. **D10's original objection still applies to *when*, not whether** — a
+   PLL relock with the boot kernel's SPI transfer in flight. Programming
+   the CGU after boot completes avoids it.
+4. **The anomaly list** has not been checked for PLL/CGU errata.
+5. Every CCLK-derived constant moves with it: `DIAG_TPERIOD`, the
+   `dma_config.c` busy-loop delays, and the profile instrument's own
+   cycles-per-tick.
+
+This does not retire any measurement on this page — the cycle *counts* are
+properties of the code, not the clock. It changes what they are measured
+against.
+
+
 Measured on the rev-C bench, chip 1 (DSPA/U6), production firmware with a
 d24 product config committed. Measurement, not estimate: the block loop
 reads the core timer `TCOUNT` either side of each 32-sample block pass and
