@@ -908,7 +908,20 @@ Method — one family at a time, in profile order, measured after each:
    sec_dmda 21,046 words vs 20,840 default, ceiling ~22,500. Bus
    accumulators sit in L2 (no room internally), so RTG is conservative.
 
-   STRIPS CEILING - PROJECTED, not measured: 2.91 -> 5.17 strips at 1x.
+   STRIPS CEILING - MEASURED 2026-08-24 on the default build: STILL 2.
+     STRIPS=2  1500 transport / 1500 _proc_passes  REAL_TIME
+     STRIPS=3  1500 transport / 1329 _proc_passes  OVER_BUDGET
+   That is the expected answer, not a disappointment: the default image is
+   byte-identical (d1c3dd5c/85d546f9), so its ceiling could not have moved
+   - every conversion sits behind DSP4_BLOCK_KERNELS. 1329 reproduces the
+   1342 measured before the rewrite.
+   The CONVERTED build's ceiling cannot honestly be measured yet and was
+   not: there the six unconverted classes run once per block instead of 32
+   times, so a strips sweep would flatter itself ~32x on 88% of the strip.
+   Use _proc_passes, never FRAME_COUNT - the ISR advances FRAME_COUNT
+   whether or not the loop keeps up, and a first attempt that used it
+   reported an impossible 2023 blocks/s.
+   PROJECTED for the converted build: 2.91 -> 5.17 strips at 1x.
      per strip 63,131 -> 42,306 cycles/block (saved 20,825)
      fixed overhead 144,166 -> 109,064 (block I/O saved 35,102)
      328k budget - 109k fixed = 219k / 42.3k per strip = 5.17

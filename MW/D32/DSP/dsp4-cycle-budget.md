@@ -551,6 +551,39 @@ main loop finished every block:
 **Two channel strips hold real time at 1×**, against 32 required, and the
 measurement agrees with the arithmetic to better than one strip.
 
+### Re-measured 2026-08-24, after the kernel rewrite — still 2
+
+| `DSP4_STRIPS` | transport | `_proc_passes` | verdict |
+|---|---|---|---|
+| **2** | 1500/s | **1500/s** | **REAL_TIME — still the ceiling** |
+| 3 | 1500/s | 1329/s | OVER_BUDGET |
+
+`BOOT_STAGE 7`, `DMA0_STAT 0x00006200`, `SPORT0_ERR_A` clean at both
+points. 1329 reproduces the 1342 measured before the rewrite, which is the
+expected answer: **the default per-sample image is byte-identical**
+(`d1c3dd5c…` / `85d546f9…`), so its ceiling could not have moved. Every
+conversion so far sits behind `DSP4_BLOCK_KERNELS`.
+
+**The converted build's ceiling cannot honestly be measured yet, and it was
+not.** In a block-kernel build the six unconverted strip classes run ONCE
+per block instead of 32 times, so the graph is not functionally equivalent
+and a strips sweep on it would flatter itself by roughly 32× on 88 % of the
+strip. The 5.17 figure above stays a projection from measured per-class
+conversions until the whole strip converts.
+
+**A measurement trap this re-run walked into first, worth recording.**
+The initial sweep judged real time by `FRAME_COUNT` over a nominal dwell
+and produced nonsense — 2,023 "blocks/s" at `DSP4_STRIPS=4`, above the
+1,500 the transport can physically deliver. Two faults: `FRAME_COUNT` is
+incremented by the block ISR and keeps perfect time whether or not the main
+loop finishes its work, so it is structurally incapable of seeing an
+over-budget graph; and dividing by the requested dwell rather than measured
+elapsed inflated the rate. `dsp4_audio_verdict.py` exists precisely to
+avoid both, and using it gave a clean answer at the first attempt on a link
+that had refused fifteen. **Judge the loop by `_proc_passes`, never by
+`FRAME_COUNT`** — the same lesson that cost a day earlier on this page,
+relearned by ignoring it.
+
 ### A test artefact worth recording, because it cost a day
 
 An earlier version of this page reported a "2.5× unexplained margin" —
