@@ -236,6 +236,16 @@ _bq_fx_cascade_blk:
         dm(i1, 1) = r5;        /* x1     at +0, i1 -> base+1 */
         modify(i1, m3);        /* -> next stage's state base */
         modify(i2, m2);        /* rewind the block for the next stage */
+        /* i0 is rewound per SAMPLE, so after the inner loop it is still on
+         * this stage's coefficients -- advance it by five for the next.
+         * Without this the routine is only correct for r4 = 1, which is
+         * how FILT calls it (once per section); EQ uses r4 = 4 and would
+         * have run every band with band 0's coefficients. */
+        r15 = 5;
+        m1 = r15;
+        modify(i0, m1);
+        r15 = -5;
+        m1 = r15;              /* restore the per-sample rewind */
     .bqb_stage:
         nop;
     rts;

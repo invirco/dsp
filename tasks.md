@@ -896,19 +896,42 @@ Method — one family at a time, in profile order, measured after each:
 0a. STATUS 2026-08-24 (one-read picture)
    CONVERTED AND VERIFIED, default build byte-identical throughout:
      block I/O + IN   67,809 -> 32,707 cycles/block   2.07x  (scatter deleted)
-     GAIN              2,321 ->    574                4.04x  bit-exact 0 LSB
-     RTG              19,186 ->  2,626                7.3x   cycles only *
-     * RTG reads FDR, which is unconverted, so its DATA is garbage; the code
-       shape and memory traffic are representative so the cycles stand.
-   ~50,000 cycles/block removed. sec_dmda 21,046 words vs 20,840 default,
-   ceiling ~22,500. Bus accumulators are parked in L2 (no room internally),
-   which makes the RTG figure conservative.
+     GAIN              2,321 ->    574                4.04x
+     FDR               4,404 ->  1,886                2.33x
+     RTG              19,186 ->  2,626                7.3x
+   BIT-EXACT END TO END: GAIN -> FDR -> RTG -> BUS verifies 0 LSB at 7
+   points (level 1.0/0.5/0.25 x pan 0/0.25/0.5/0.75) - mono, pan-split L
+   and the summed bus, including the 64-bit accumulator's single round at
+   readout. RTG's earlier cycles-only caveat is CLOSED.
+   Boot-time input patch (_rx_patch_regs) folded into the per-node offset,
+   so the D24 console interleave still applies with DMA-direct kernels.
+   sec_dmda 21,046 words vs 20,840 default, ceiling ~22,500. Bus
+   accumulators sit in L2 (no room internally), so RTG is conservative.
+
+   STRIPS CEILING - PROJECTED, not measured: 2.91 -> 5.17 strips at 1x.
+     per strip 63,131 -> 42,306 cycles/block (saved 20,825)
+     fixed overhead 144,166 -> 109,064 (block I/O saved 35,102)
+     328k budget - 109k fixed = 219k / 42.3k per strip = 5.17
+   NOT measured, and deliberately so: a strips run on the block build would
+   flatter itself badly, because the six unconverted strip nodes only run
+   ONCE per block there and so appear 32x cheaper than they are. A real
+   ceiling needs the whole strip converted. Against 32 strips required,
+   5.17 says the remaining classes still have to come.
 
    PARKED, with state notes below and in dsp4-cycle-budget.md:
-     FILT/EQ  register-resident cascade written and unused. Unity passes at
-              0 LSB, real filters fail -> fault is state handling under
-              feedback. _bq_fx_cascade_blk is only correct for r4=1, so EQ
-              (r4=4) must not be attempted until i0 advances between stages.
+     FILT/EQ  PARKED after three attempts. _bq_fx_cascade_blk is written,
+              assembles, and its i0-advance-between-stages bug is now FIXED
+              (it was only correct for r4=1, so EQ at r4=4 would have run
+              every band with band 0's coefficients). That fix does NOT
+              explain the failure: FILT calls it with r4=1, so i0 never
+              advanced there. Wired, both_unity passes at 0 LSB and every
+              real filter fails - unity is exactly where the feedback terms
+              cancel, so the fault is state handling under feedback in the
+              register-resident loop. The MAC chain, coefficient
+              conversion, HPF/LPF two-call structure and block plumbing are
+              all exercised by unity and correct. Next suspects: MAC-unit
+              implicit registers across iterations, and m-register
+              interference between the two cascade routines.
      COMP/GATE NOT WORTH CONVERTING on the evidence. A wrap alone measured
               8% SLOWER; the gain computer everyone assumed was the cost is
               only 9.6% of COMP; and _compgain_fx clobbers all but four
@@ -922,9 +945,10 @@ Method — one family at a time, in profile order, measured after each:
    guard, hoisted invariants, inlined helpers, a gating tree run once. Ask
    of each remaining class "how much can be lifted", not "can it be wrapped".
 
-   STILL OPEN: the boot-time input patch (_rx_patch_regs) is bypassed by the
-   RX reclaim and must be folded into the per-node offset before this path
-   can ship.
+   NOT REACHED this block: scope gating (step 6) - making
+   _scope_gates_apply real so D24 stops running D32 nodes. On the numbers
+   above that is now the biggest single remaining lever, bigger than any
+   individual node class: the strip projection assumes all 431 nodes run.
 
 0b. BASELINE MEASURED 2026-08-24 (post-fix build). Harness families are
    green and recorded in tools/dsp/hw-reports/README.md - that is the
