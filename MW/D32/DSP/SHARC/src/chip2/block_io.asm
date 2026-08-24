@@ -302,6 +302,9 @@ _gather_chip2:
         r3 = r3 + r2;
         r3 = r6 + r3;         /* DMA word address */
         r5 = dm(i3, 1);       /* node slot var ptr */
+        #if DSP4_BLOCK_KERNELS
+        r5 = r5 + r0;         /* slot[sample] */
+        #endif
         i4 = r5;
         r2 = dm(i4, 0);   /* read slot var */
         /* Q4.28 -> Q1.31 with saturation */

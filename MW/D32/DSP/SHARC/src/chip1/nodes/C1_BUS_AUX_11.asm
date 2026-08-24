@@ -12,17 +12,41 @@
 
 /* MIX_BUS (FIXED, D5): bus_id=17 — exact 64-bit acc readout */
 
+#include "blk_pool.h"
+
 .section/dm seg_dmda;
+#if DSP4_BLOCK_KERNELS
+.global _buf_C1_BUS_AUX_11;
+.var _buf_C1_BUS_AUX_11[32];
+#else
 .global _buf_C1_BUS_AUX_11;
 .var _buf_C1_BUS_AUX_11;
+#endif
 
 .section/pm seg_pmco;
 .extern _bus_acc_aux_11;
 .extern _acc64_rns28;
 .global _C1_BUS_AUX_11_process;
 _C1_BUS_AUX_11_process:
+#if DSP4_BLOCK_KERNELS
+    /* One call per BLOCK instead of 32. The accumulator is
+     * already per-sample (64 words = 32 x 2), so this walks it
+     * and rounds each sample in turn. _acc64_rns28 advances i2
+     * by one, so it takes one more modify to step a pair. */
+    l2 = 0;
+    l3 = 0;
+    i2 = _bus_acc_aux_11;
+    i3 = _buf_C1_BUS_AUX_11;
+    m0 = 1;
+    lcntr = 32, do .mbk_C1_BUS_AUX_11 until lce;
+        call _acc64_rns28;
+        modify(i2, m0);
+    .mbk_C1_BUS_AUX_11: dm(i3, 1) = r0;
+    rts;
+#else
     i2 = _bus_acc_aux_11;
     call _acc64_rns28;
     dm(_buf_C1_BUS_AUX_11) = r0;
     rts;
+#endif
 _C1_BUS_AUX_11_process.end:

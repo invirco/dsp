@@ -756,7 +756,13 @@ extern void diag_irq_off(void);         /* TEMP bisect helper 2026-08-21 */
  * cycles per delay-loop iteration; the real figure is 13, which is the
  * whole of the discrepancy. These counts land near 40 ms / 320 ms at
  * 491.52 MHz, and the decoder in tools/pi/dsp4_stagewatch.py works on
- * ratios rather than absolute times. */
+ * ratios rather than absolute times.
+ *
+ * These are DEBUG-ONLY (bisect_park/bisect_mark, DSP4_BISECT != 0) and are
+ * deliberately NOT rescaled by DSP4_CCLK_TARGET: at 786.432 MHz they simply
+ * run 1.6x shorter in wall-clock, and the stagewatch decoder reads ratios.
+ * If they are ever used for an absolute timing they must be made to track
+ * the clock like DIAG_TPERIOD does. */
 #define PARK_PULSE_ITERS   1500000u
 #define PARK_GAP_ITERS    12000000u
 

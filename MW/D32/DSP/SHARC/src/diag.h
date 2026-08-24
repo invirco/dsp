@@ -103,7 +103,17 @@
 /* Core-timer reload, in CCLK cycles. 491520 at the measured CCLK of
  * 491.52 MHz is a 1 kHz diag tick. Shared: diag.asm programs TPERIOD
  * with it and main.asm uses it to convert ticks to cycles. */
-#define DIAG_TPERIOD         491520
+/* Core-timer reload = one diag tick = 1.000 ms of CCLK cycles. This MUST
+ * track DSP4_CCLK_TARGET: the tick is the instrument every cycle figure on
+ * this project is derived from, so a stale value here silently rescales
+ * every measurement rather than failing. */
+#if DSP4_CCLK_TARGET == 786
+#define DIAG_TPERIOD         786432      /* CCLK 786.432 MHz */
+#elif DSP4_CCLK_TARGET == 983
+#define DIAG_TPERIOD         983040      /* CCLK 983.040 MHz */
+#else
+#define DIAG_TPERIOD         491520      /* CCLK 491.52 MHz, CGU reset defaults */
+#endif
 
 #define DIAG_MAGIC_VALUE     0xD5B40001
 #define DIAG_BUILD_VALUE     0x20260812

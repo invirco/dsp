@@ -3579,15 +3579,32 @@ def gen_interchip_send(node):
     return dedent(f"""\
         /* INTERCHIP_SEND: mix-fabric line {p.get('sport_id','?')} slot {p.get('slot','?')} (global slot {p.get('global_slot', p.get('slot','?'))}, signal {p.get('signal','?')}) */
 
+        #include "blk_pool.h"
+
         .section/dm seg_dmda;
+        #if DSP4_BLOCK_KERNELS
+        .var _tx_slot_{node['id']}[32];
+        #else
         .var _tx_slot_{node['id']};
+        #endif
 
         .section/pm seg_pmco;
         .global _{node['id']}_process;
         _{node['id']}_process:
+        #if DSP4_BLOCK_KERNELS
+            l2 = 0;
+            l3 = 0;
+            i2 = _buf_{node['inputs_str']};
+            i3 = _tx_slot_{node['id']};
+            lcntr = 32, do .isk_{node['id']} until lce;
+                r0 = dm(i2, 1);
+            .isk_{node['id']}: dm(i3, 1) = r0;
+            rts;
+        #else
             r0 = dm(_buf_{node['inputs_str']});
             dm(_tx_slot_{node['id']}) = r0;
             rts;
+        #endif
         _{node['id']}_process.end:
     """)
 
@@ -4357,15 +4374,15 @@ def gen_block_io(chip_label, chip_nodes):
         lines.append(f'        r3 = r3 + r2;')
         lines.append(f'        r3 = r6 + r3;         /* DMA word address */')
         lines.append(f'        r5 = dm(i3, 1);       /* node slot var ptr */')
-        if not to_dma:
-            # Per-BLOCK kernels: the RX slot variables become 32-word
-            # arrays so a kernel can consume a whole block. Scatter then
-            # writes slot[sample] instead of slot -- one add. Gather is
-            # deliberately NOT indexed yet: no converted node writes a TX
-            # slot, so the TX side is still scalar.
-            lines.append(f'        #if DSP4_BLOCK_KERNELS')
-            lines.append(f'        r5 = r5 + r0;         /* slot[sample] */')
-            lines.append(f'        #endif')
+        # Per-BLOCK kernels: the slot variables become 32-word arrays so a
+        # kernel can consume or produce a whole block, and both directions
+        # index by sample -- one add. The TX side used to be scalar because
+        # nothing converted wrote a TX slot; the block-form INTERCHIP_SEND
+        # now does, so gather indexes too. Leaving it scalar once buses and
+        # sends were converted would have sent sample 0 thirty-two times.
+        lines.append(f'        #if DSP4_BLOCK_KERNELS')
+        lines.append(f'        r5 = r5 + r0;         /* slot[sample] */')
+        lines.append(f'        #endif')
         loop = fn.lstrip('_')
         if to_dma:
             lines.append(f'        i4 = r5;')
@@ -6084,18 +6101,41 @@ def gen_mix_bus_fixed(node):
         return dedent(f"""\
             /* MIX_BUS (FIXED, D5): bus_id={p.get('bus_id','?')} — exact 64-bit acc readout */
 
+            #include "blk_pool.h"
+
             .section/dm seg_dmda;
+            #if DSP4_BLOCK_KERNELS
+            .var _buf_{nid}[32];
+            #else
             .var _buf_{nid};
+            #endif
 
             .section/pm seg_pmco;
             .extern {acc_sym};
             .extern _acc64_rns28;
             .global _{nid}_process;
             _{nid}_process:
+            #if DSP4_BLOCK_KERNELS
+                /* One call per BLOCK instead of 32. The accumulator is
+                 * already per-sample (64 words = 32 x 2), so this walks it
+                 * and rounds each sample in turn. _acc64_rns28 advances i2
+                 * by one, so it takes one more modify to step a pair. */
+                l2 = 0;
+                l3 = 0;
+                i2 = {acc_sym};
+                i3 = _buf_{nid};
+                m0 = 1;
+                lcntr = 32, do .mbk_{nid} until lce;
+                    call _acc64_rns28;
+                    modify(i2, m0);
+                .mbk_{nid}: dm(i3, 1) = r0;
+                rts;
+            #else
                 i2 = {acc_sym};
                 call _acc64_rns28;
                 dm(_buf_{nid}) = r0;
                 rts;
+            #endif
             _{nid}_process.end:
         """)
     macs = []

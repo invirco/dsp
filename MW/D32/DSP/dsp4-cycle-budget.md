@@ -2,6 +2,90 @@
 
 provenance: AI-drafted 2026-08-23 — prose may carry a statistical watermark; rewrite by hand before publication, then remove this header.
 
+## 786.432 MHz ENABLED — 2026-08-24 (PW decision)
+
+`DSP4_CCLK_TARGET=786`. **Measured on the part: CCLK 786.29 MHz against a
+786.43 target, 0.02 % off.** The measurement is the diag tick itself:
+`DIAG_TPERIOD` is built as 786,432 for a 1.000 ms tick, so a tick rate of
+999.8/s *is* the clock. Had the CGU write silently failed, the tick would
+have run at 625/s.
+
+786.432 MHz is legal on **both** speed grades, so it needs no answer to the
+`KSWZ8` vs `KSWZ10` question. 983.04 MHz stays prepared and off.
+
+| | |
+|---|---|
+| cycles/block, was | 327,680 |
+| **cycles/block, now** | **524,288** |
+| gain | **1.60×** |
+
+Stability at the new clock, `DSP4_STRIPS=1`:
+
+| | |
+|---|---|
+| `_proc_passes` | **1500/s — REAL_TIME** |
+| `FRAME_COUNT` | 1499.9/s |
+| `SPORT0_ERR_A` | 0x00000000 |
+| `DMA0_STAT` | 0x00006200 (RUN, no error) |
+| `BLK_OVERRUN` | 8,593 and **static** over 8 s — accumulated during boot, not climbing |
+
+`DIAG_TPERIOD` now tracks `DSP4_CCLK_TARGET`. It has to: the tick is the
+instrument every cycle figure here is derived from, so a stale value would
+silently rescale every measurement rather than fail. The `dma_config.c`
+busy-loop delays are deliberately NOT rescaled — they are debug-only
+(`DSP4_BISECT != 0`) and the stagewatch decoder reads ratios.
+
+**786.432 is also the gentler choice on the peripherals.** SCLK0 moves only
+61.44 → 65.536 MHz (6.7 %), where 983.04 would take it to 81.92.
+
+### Bit-exactness at the new clock is NOT yet re-established, and why
+
+`chain.py` returned values that looked like a regression. It is not one —
+and the control run is what settles it:
+
+| build | result |
+|---|---|
+| 786 MHz + fabric conversion | same values |
+| 491 MHz + fabric conversion | **same values** |
+| 491 MHz, no fabric conversion (control) | **same values** |
+
+Identical in all three, so **neither the clock nor the fabric conversion
+changed anything**. What expired is the probe's assumption. `chain.py`
+checks `mono == input`, which held when only IN, GAIN, FDR and RTG were
+converted — FILT, EQ, GATE, COMP, TUBE and DLY were unconverted then, never
+touched the pool, and the strip really was transparent. All six are
+converted now and the gate and compressor are **on by default**, so they
+legitimately change the signal. Bypassing them over SPI moved `mono`
+straight back to an exact power-of-two multiple of the input.
+
+**So: no regression, but no valid bit-exactness probe either.** `chain.py`
+must be rewritten to bypass the dynamics (or to model them) before it can
+be used to sign anything off. Until then, bit-exactness at 786 MHz is
+**unverified** — the earlier per-class 0-LSB results stand on their own
+measurements and are not affected by the clock, since cycle counts and
+arithmetic are properties of the code.
+
+### Fabric conversion — first cut measured
+
+| | cycles/block |
+|---|---|
+| per-sample (original) | 95,434 |
+| **buses + sends in block form** | **54,654** |
+| | **1.75×** |
+
+25 `MIX_BUS` and 37 `INTERCHIP_SEND` converted: one call per block instead
+of 32, bus outputs and TX slots became 32-word arrays, and the gather now
+indexes by sample. That last part was a live trap — the gather carried a
+comment saying it deliberately did not index because nothing converted
+wrote a TX slot, which stopped being true the moment the sends converted.
+Left alone it would have transmitted sample 0 thirty-two times.
+
+**This number is a floor, not the honest figure.** The 32 `METER` nodes in
+it still run once per block rather than 32 times, so they are counted 32×
+too cheap. Against the 40k target: 54,654 today, and the meters will push
+it up before other work pushes it down.
+
+
 ## THE CORE IS RUNNING AT HALF ITS RATED SPEED — 2026-08-24
 
 Everything on this page is measured at **CCLK 491.52 MHz**. The datasheet

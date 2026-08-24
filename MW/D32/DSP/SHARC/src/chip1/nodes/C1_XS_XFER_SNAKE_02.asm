@@ -12,15 +12,33 @@
 
 /* INTERCHIP_SEND: mix-fabric line 1 slot 14 (global slot 30, signal XFER_SNAKE_02) */
 
+#include "blk_pool.h"
+
 .section/dm seg_dmda;
 .extern _buf_C1_XIN_SNK_02;
+#if DSP4_BLOCK_KERNELS
+.global _tx_slot_C1_XS_XFER_SNAKE_02;
+.var _tx_slot_C1_XS_XFER_SNAKE_02[32];
+#else
 .global _tx_slot_C1_XS_XFER_SNAKE_02;
 .var _tx_slot_C1_XS_XFER_SNAKE_02;
+#endif
 
 .section/pm seg_pmco;
 .global _C1_XS_XFER_SNAKE_02_process;
 _C1_XS_XFER_SNAKE_02_process:
+#if DSP4_BLOCK_KERNELS
+    l2 = 0;
+    l3 = 0;
+    i2 = _buf_C1_XIN_SNK_02;
+    i3 = _tx_slot_C1_XS_XFER_SNAKE_02;
+    lcntr = 32, do .isk_C1_XS_XFER_SNAKE_02 until lce;
+        r0 = dm(i2, 1);
+    .isk_C1_XS_XFER_SNAKE_02: dm(i3, 1) = r0;
+    rts;
+#else
     r0 = dm(_buf_C1_XIN_SNK_02);
     dm(_tx_slot_C1_XS_XFER_SNAKE_02) = r0;
     rts;
+#endif
 _C1_XS_XFER_SNAKE_02_process.end:

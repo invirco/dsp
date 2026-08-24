@@ -12,15 +12,33 @@
 
 /* INTERCHIP_SEND: mix-fabric line 1 slot 6 (global slot 22, signal BUS_FX_04) */
 
+#include "blk_pool.h"
+
 .section/dm seg_dmda;
 .extern _buf_C1_BUS_FX_04;
+#if DSP4_BLOCK_KERNELS
+.global _tx_slot_C1_BUS_FX_04_SEND;
+.var _tx_slot_C1_BUS_FX_04_SEND[32];
+#else
 .global _tx_slot_C1_BUS_FX_04_SEND;
 .var _tx_slot_C1_BUS_FX_04_SEND;
+#endif
 
 .section/pm seg_pmco;
 .global _C1_BUS_FX_04_SEND_process;
 _C1_BUS_FX_04_SEND_process:
+#if DSP4_BLOCK_KERNELS
+    l2 = 0;
+    l3 = 0;
+    i2 = _buf_C1_BUS_FX_04;
+    i3 = _tx_slot_C1_BUS_FX_04_SEND;
+    lcntr = 32, do .isk_C1_BUS_FX_04_SEND until lce;
+        r0 = dm(i2, 1);
+    .isk_C1_BUS_FX_04_SEND: dm(i3, 1) = r0;
+    rts;
+#else
     r0 = dm(_buf_C1_BUS_FX_04);
     dm(_tx_slot_C1_BUS_FX_04_SEND) = r0;
     rts;
+#endif
 _C1_BUS_FX_04_SEND_process.end:

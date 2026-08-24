@@ -12,15 +12,33 @@
 
 /* INTERCHIP_SEND: mix-fabric line 1 slot 9 (global slot 25, signal XFER_CODEC_AUX_L) */
 
+#include "blk_pool.h"
+
 .section/dm seg_dmda;
 .extern _buf_C1_XIN_CODEC_03;
+#if DSP4_BLOCK_KERNELS
+.global _tx_slot_C1_XS_XFER_CODEC_AUX_L;
+.var _tx_slot_C1_XS_XFER_CODEC_AUX_L[32];
+#else
 .global _tx_slot_C1_XS_XFER_CODEC_AUX_L;
 .var _tx_slot_C1_XS_XFER_CODEC_AUX_L;
+#endif
 
 .section/pm seg_pmco;
 .global _C1_XS_XFER_CODEC_AUX_L_process;
 _C1_XS_XFER_CODEC_AUX_L_process:
+#if DSP4_BLOCK_KERNELS
+    l2 = 0;
+    l3 = 0;
+    i2 = _buf_C1_XIN_CODEC_03;
+    i3 = _tx_slot_C1_XS_XFER_CODEC_AUX_L;
+    lcntr = 32, do .isk_C1_XS_XFER_CODEC_AUX_L until lce;
+        r0 = dm(i2, 1);
+    .isk_C1_XS_XFER_CODEC_AUX_L: dm(i3, 1) = r0;
+    rts;
+#else
     r0 = dm(_buf_C1_XIN_CODEC_03);
     dm(_tx_slot_C1_XS_XFER_CODEC_AUX_L) = r0;
     rts;
+#endif
 _C1_XS_XFER_CODEC_AUX_L_process.end:
