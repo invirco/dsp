@@ -925,13 +925,25 @@ Method — one family at a time, in profile order, measured after each:
               every band with band 0's coefficients). That fix does NOT
               explain the failure: FILT calls it with r4=1, so i0 never
               advanced there. Wired, both_unity passes at 0 LSB and every
-              real filter fails - unity is exactly where the feedback terms
-              cancel, so the fault is state handling under feedback in the
-              register-resident loop. The MAC chain, coefficient
-              conversion, HPF/LPF two-call structure and block plumbing are
-              all exercised by unity and correct. Next suspects: MAC-unit
-              implicit registers across iterations, and m-register
-              interference between the two cascade routines.
+              real filter fails.
+              CORRECTION, and it is the useful product of attempt three:
+              the earlier reading of that unity pass was WRONG. With unity
+              coefficients b1=b2=a1=a2=0, so y=x and the stored state
+              contributes NOTHING - unity is blind to state. It therefore
+              does NOT show that "the block plumbing is exercised and
+              correct". Any wrong state pointer (wrong instance, wrong
+              stride, HPF and LPF sharing a state block, state not
+              persisted across blocks, the A/B crossfade instance) passes
+              unity at 0 LSB and fails every real filter. Suspect order is
+              now: (1) the state pointer the wrapper hands to i1 - test it
+              with two sections carrying DIFFERENT coefficients; (2) state
+              persistence across block boundaries; (3) only then MAC-unit
+              implicit registers and m-register interference.
+              A line-by-line diff of the two inner bodies was done: the
+              arithmetic, MAC order, rounding, saturation test, error
+              feedback and state store order are IDENTICAL to
+              _bq_fx_cascade_N. It is not the maths. The block cascade is
+              present but currently UNWIRED.
      COMP/GATE NOT WORTH CONVERTING on the evidence. A wrap alone measured
               8% SLOWER; the gain computer everyone assumed was the cost is
               only 9.6% of COMP; and _compgain_fx clobbers all but four
@@ -945,10 +957,22 @@ Method — one family at a time, in profile order, measured after each:
    guard, hoisted invariants, inlined helpers, a gating tree run once. Ask
    of each remaining class "how much can be lifted", not "can it be wrapped".
 
-   NOT REACHED this block: scope gating (step 6) - making
-   _scope_gates_apply real so D24 stops running D32 nodes. On the numbers
-   above that is now the biggest single remaining lever, bigger than any
-   individual node class: the strip projection assumes all 431 nodes run.
+   SCOPE GATING (step 6) DONE - and the projection above that called it
+   "the biggest single remaining lever" was WRONG. Only 34 of the 431 nodes
+   carry a scope= at all (32 D32-only, 2 D24-only, all of them TDM in/out,
+   interchip send/recv and aux input). Measured booted as d24:
+     no gating at all (control)   243,235 cycles/block
+     per-NODE skip table          244,795   +1,560  A NET LOSS
+     contiguous-RUN gating        241,744   -1,491  kept
+   The per-node table loses because a table read and test before ALL 431
+   dispatch calls costs more than not calling the 34 scoped ones, and that
+   ratio does not improve per-sample either - check and node cost both
+   scale by 32. The mechanism that works is one compare and one branch per
+   contiguous RUN of same-scope nodes: two runs on chip 1, ~8 cycles/block
+   against 1,491 saved. DSP4_SCOPE_GATE=1 selects it; the default image
+   stays byte-identical. Chain still 0 LSB with a run branched over.
+   Worth 0.46% of budget here, up to ~14% inferred for a per-sample build.
+   Either way it is NOT a lever that changes the capacity picture.
 
 0b. BASELINE MEASURED 2026-08-24 (post-fix build). Harness families are
    green and recorded in tools/dsp/hw-reports/README.md - that is the
