@@ -1,3 +1,12 @@
+**PW PRIORITY (2026-08-24): #1 for the dsp side is CAPACITY-FIT — prove the
+full product processing fits the chips as fabbed (goal line: 32 basic strips
+real-time in ONE 21564; two on the card = margin/product headroom). Everything
+else queues behind it. No FPGA, no block-64, no PCB change: efficiency of the
+generated code is the lever, per the Matrix principle — single source,
+generate the efficient form. The strip-fusion dispatch below is this
+priority's execution; do not drift to other work until the fit is proven or
+disproven with measurements.**
+
 ## HUB DISPATCH 2026-08-24 11:00Z — STRIP FUSION: single-MAC stages, one round/saturate per strip (PW constraints: no FPGA, no block-64; target = 32 basic strips in ONE 21564)   [status: 🔴 in progress]
 
 model: opus
