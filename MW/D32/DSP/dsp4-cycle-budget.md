@@ -88,25 +88,57 @@ shadow that widens it. My first attempt had the order wrong.
 
 `CONFIG_COMMIT` now completes where it never did.
 
-### The remaining blocker is the HARNESS, not the wrapper
+### RETRACTION: "CONFIG_COMMIT now completes" was not evidence of a fix
 
-The wrapper is still unverified, and three placements of the selftest have
-each failed for a *different* and instructive reason:
+I reported that the PEYEN fix resolved the hang because config started
+succeeding. **That conclusion was wrong and is withdrawn.**
+
+The diag timer ISR **services the parameter link as a backstop** — it says
+so in its own header, and it is why the link answers when the main loop is
+dead. So `CONFIG OK` proves the ISR is running. It proves nothing about the
+main loop. Every "config now completes" reading in this investigation was
+compatible with the main loop being wedged the entire time.
+
+The measurement that actually distinguishes them: read `TICKS` and
+`FRAME_COUNT` twice. With the selftest built in, `TICKS` reads 49,031 and
+`FRAME_COUNT` 10,170 on the first pass and then the link degrades to no
+answer — the part is not healthy, and `_bqst_done` reads **0**, meaning the
+selftest never reached its final store. It hangs.
+
+So the position is: **`_bq_fx_cascade_simd` still hangs when called with
+interrupts enabled**, and the PEYEN work — which is correct and worth
+keeping on its own merits — did not fix it.
+
+**The strongest untested hypothesis, and where to start next.** The IVT
+entry for **IICDI, "Unaligned long-word access", is `rti; nop; nop; nop;`**
+— no handler. A SIMD access is long-word-like, so an unaligned one raises
+IICDI, the `rti` returns to the faulting instruction, and it re-executes
+forever: **the main loop livelocks while every ISR keeps running**, which
+is exactly the observed signature. The `_bqp_*` buffers were checked as
+even-addressed, but "even" may not be the alignment SIMD actually requires,
+and the LDF only asks for `INPUT_SECTION_ALIGN(4)`.
+
+Two cheap next steps, in order: put a real handler on the IICDI vector that
+records a marker so the fault becomes visible instead of silent, and force
+the SIMD buffers to a stronger alignment than the section default.
+
+**None of this touches the shipping path.** Shipping image byte-identical
+at `0df38e82`; the tree with SIMD flags off is CHAIN BIT-EXACT at
+983.04 MHz.
+
+### The harness placement findings still stand
+
+Three selftest placements each failed for a different reason, and these are
+real properties of the firmware regardless of the SIMD fault:
 
 | placement | outcome |
 |---|---|
-| from `CONFIG_COMMIT` | ran **inside the diag timer ISR** — that ISR services the parameter link as a backstop — with the secondary register file live and a 1 ms timer waiting to re-enter |
-| before interrupts are enabled | **blocked the boot handshake**; host SPI traffic arrived with nothing draining the RFIFO, and the response stream came up permanently out of phase |
-| once from the main loop | **starves the SPI poll**, which runs every 8 samples from the block loop; a ~50 µs blocking call drops a response and shifts the word phase by one — the documented `RESP_DROP` failure. The part answers correctly (`0x00000001` for CHIP_ID) but one word out of step |
+| from `CONFIG_COMMIT` | ran inside the diag timer ISR, secondary register file live, 1 ms timer waiting to re-enter |
+| before interrupts enabled | blocked the boot handshake; host SPI arrived with nothing draining the RFIFO, response stream permanently out of phase |
+| once from the main loop | starves the SPI poll (every 8 samples from the block loop); ~50 µs of blocking drops a response and shifts the word phase by one |
 
-So: **any long-running blocking work inside the audio path desyncs the
-parameter link.** That is a property of this firmware, not of the SIMD
-code, and it is the actual reason the wrapper has no verification.
-
-**The verification has to happen out of the audio path** — a build with
-the block graph disabled (`DSP4_BLOCK_MASK=0`), or in-graph comparison
-once the kernel is wired, which is the in-graph verification wanted
-anyway. Not a bisect problem; a harness-design problem.
+**Any long-running blocking work inside the audio path desyncs the
+parameter link.** That is worth knowing independently of SIMD.
 
 ### Foundation that IS in place
 
