@@ -1,0 +1,177 @@
+Codebase Review — invirco/dsp
+Scope: accuracy (correctness) and efficiency (performance, code quality)
+Reviewed at repo HEAD, ~20k lines of Python tooling + SHARC ASM/C firmware.
+
+===============================================================================
+1. OVERALL STRUCTURE
+===============================================================================
+This is the DSP "spoke" repo for the Invirco matrix product line. Matrix
+definitions are owned by the mx26 "hub" repo and consumed here via a
+hash-pinned CSV contract (defs.lock). The contract/governance layer
+(sync-from-mx26.sh, validate-matrix-contract.py, check-contract-drift.sh,
+regenerate-dsp-contract.sh) is small, consistent, and internally coherent:
+- validate-matrix-contract.py correctly enforces the documented "no unknown
+  cell family" policy (fails loudly on any D32 family not in
+  matrix-families-allowlist.txt, requires an explicit --update-allowlist to
+  accept new ones).
+- check-contract-drift.sh's --strict mode diffs a fixed list of generated
+  files against git status, which is a sound way to catch generator
+  non-determinism or hand-edits to synced files.
+- These scripts are accurate as written; no bugs found.
+
+The DSP codegen layer (tools/dsp/*.py, MW/D32/DSP/gen_dsp.py) is the largest
+and most important body of code (dsp_codegen.py alone is ~8000 lines) and is
+where most of the accuracy/efficiency findings below apply.
+
+===============================================================================
+2. ACCURACY FINDINGS
+===============================================================================
+
+2.1 KNOWN LIVE BUG — ramped-parameter writes corrupt state (tasks.md, current)
+    This is already tracked in tasks.md but is worth restating as the most
+    serious open accuracy issue in the codebase: a ramped SPI parameter write
+    (used by every family after GAIN — EQ, dynamics, faders) stores the
+    computed ramp *step* one word low, landing in the *target* slot and
+    zeroing the associated `_..._on` flag. A single ramped write can silently
+    mute a channel with no runtime error, and only a reboot recovers it
+    because the block-rate code re-copies the zeroed target back into level.
+    Root cause is not yet isolated (SPI dispatch table vs. r0 computation vs.
+    `_ramp_set_target` offset convention). This should stay the top
+    accuracy priority; it blocks correctness testing of every parameterized
+    node type.
+
+2.2 dsp_codegen.py: silent fallback for unrecognized node types
+    `gen_fn = GENERATORS.get(node['type'], gen_generic)` (~line 7748) falls
+    back to a stub generator (`gen_generic`, ~line 4091) whose body is
+    literally `/* TODO: implement */` for any node type not in the
+    dispatch table. This directly contradicts the repo's stated
+    "unknown cell families must fail loudly (no-fallback policy)" mandate —
+    the mandate is correctly enforced at the matrix/contract layer
+    (validate-matrix-contract.py) but not at the codegen layer. A typo'd or
+    newly-added node type would generate assembling-but-non-functional code
+    instead of failing the build.
+
+2.3 dsp_codegen.py: code-pattern mutation guarded only by runtime asserts
+    Multi-step template rewrites (e.g. ~lines 7640/7649) use
+    `assert body.count(old_pattern) == 1` to confirm a expected string
+    appears exactly once before doing a `.replace()`. This works, but the
+    assertion fires only after code generation has already run, and gives a
+    generic failure with no node/file context. A structural (AST- or
+    marker-based) code generation approach would catch this class of error
+    earlier and with a better message.
+
+2.4 tools/dsp/gen_dsp_csv.py: unguarded lookups that can raise generic errors
+    - Line ~837: `idx = next(i for i, r in enumerate(rows) if r['id']==n_eq)+1`
+      raises an unhandled StopIteration (not a clear error) if the graph is
+      out of sync with expectations.
+    - Line ~98: `assert g == 16*e['sport_id']+e['slot'], signal` validates
+      sport_map.json consistency only at the point of use, with no
+      pre-flight check, so a corrupt sport_map fails mid-generation.
+
+2.5 tools/dsp/dsp_validate.py: gaps in the referential checks
+    - A duplicate node ID is reported for its first occurrence only; the
+      duplicate row keeps being processed by the same pass, rather than
+      being rejected outright.
+    - `parse_id_list()` / `parse_params()` don't validate that referenced
+      IDs exist or that param keys are in the expected set for the node
+      type — malformed input for these fields passes silently through to
+      codegen.
+
+2.6 tools/dsp/fixed_ref.py (bit-exact reference model)
+    - `log2_q()` returns a fixed sentinel (`-(32 << 25)`) for `x <= 0`
+      instead of raising/flagging; if a legitimate computed value could
+      reach the same magnitude this is a silent collision. Given this file
+      is the bit-exactness reference that SHARC/FPGA are checked against,
+      any silent-sentinel behavior here is worth double-checking against
+      real operating ranges.
+    - Soft-knee compressor boundary conditions (`over <= -half_knee` vs.
+      `over < half_knee`) should be re-verified with an exact-boundary test
+      case; asymmetric `<=`/`<` at symmetric thresholds is easy to get
+      subtly wrong.
+
+2.7 MW/D32/DSP/gen_dsp.py
+    - `validate()` hardcodes the list of "MCU-only" cell prefixes
+      (`Sys, Fdr, Zz, Another, Mute, Rec`, ~line 1162) rather than deriving
+      it from a config/allowlist; a new MCU-only family from mx26 would be
+      misclassified as a missing DSP cell until this list is hand-updated.
+    - Several generated-file writes (ghost_cells.h, dsp_params.asm,
+      dsp_address_map.md) have no pre-flight check that the output
+      directory exists, so a moved/renamed output path fails with a raw
+      OSError rather than a clear message.
+
+===============================================================================
+3. EFFICIENCY FINDINGS
+===============================================================================
+
+3.1 Firmware-level (the repo's own stated #1 priority): capacity is NOT met
+    tasks.md's own measurements (HUB DISPATCH 2026-08-24, and later entries)
+    already establish, and this review's spot-check of the referenced files
+    confirms, that the current 786.432 MHz operating point achieves a
+    measured ceiling of ~10 real-time channels/chip against a 32-channel
+    target — roughly 3.2x short even with all currently-identified levers
+    (SIMD pairing, strip fusion, fabric optimization) applied on paper.
+    This is already an actively tracked, well-instrumented effort (measured
+    with real hardware, not estimated) and does not need re-diagnosis here;
+    it is flagged only so it appears in a general accuracy/efficiency
+    review as the dominant, already-known efficiency gap in the codebase.
+
+3.2 tools/dsp/gen_dsp_csv.py: O(n^2) row manipulation for GEQ insertion
+    The per-group-EQ insertion loop (~lines 823-838) does `rows.pop()` +
+    linear search + `rows.insert()` per group; for a small, fixed number of
+    groups this is not a real performance problem today, but the pattern
+    (repeated O(n) list mutation in a loop) doesn't scale if group/strip
+    counts grow, and a single index-mapped pass would be clearer.
+
+3.3 tools/dsp/dsp_simulate.py: redundant setup in the numpy simulator
+    - The script instantiates a second, independent `DSPSimulator` (loading
+      and re-parsing dsp.csv a second time) for WAV-file test paths after
+      already loading it once for trace/plot paths (~lines 724 & 797).
+    - `biquad_cascade()` calls `block.copy()` per biquad stage inside the
+      per-frame loop; for 4 cascaded biquads over many frames this is avoidable
+      array-copy overhead in a simulation tool (not shipping firmware, so
+      low severity, but easy to remove).
+    - `parse_id_list()`/`_parse_params()` duplicate logic that already
+      exists in dsp_validate.py; a shared utility module would avoid the
+      two copies drifting apart.
+
+3.4 tools/dsp/fixed_ref.py: polynomial fit computed at import time
+    `LOG2_POLY`/`EXP2_POLY` are derived via a numpy curve fit
+    (`_fit_poly()`) every time the module is imported, rather than being
+    checked-in constants. Since this is the bit-exact reference used
+    repeatedly by the harness/simulator, hardcoding the fitted coefficients
+    (with the fit script kept separately for regeneration) would remove
+    repeated import-time cost and also make the reference values reviewable
+    as data rather than as fit output.
+
+3.5 MW/D32/DSP/gen_dsp.py: repetitive per-node-type expansion functions
+    The ~18 `expand_<type>()` functions follow near-identical shapes
+    (extract params -> add_cell -> add_dispatch entries). A data-driven
+    table (param names + cell/dispatch shape per type) would cut this
+    boilerplate significantly and reduce the chance of one type's expander
+    drifting from the others when a shared field changes.
+
+===============================================================================
+4. RECOMMENDATIONS (priority order)
+===============================================================================
+1. Keep the ramped-parameter-write bug (2.1) as the top priority — it is a
+   correctness bug with silent data corruption, currently blocking
+   parameter testing for every node family after GAIN.
+2. Make dsp_codegen.py's node-type dispatch fail loudly on unknown types
+   (2.2), matching the no-fallback policy already enforced at the matrix
+   contract layer — this is a small, low-risk change (remove the
+   `gen_generic` default, raise instead).
+3. Harden gen_dsp_csv.py's `next(...)` lookup and sport_map validation
+   (2.4) to raise clear, contextual errors instead of generic
+   StopIteration/AssertionError.
+4. Tighten dsp_validate.py's duplicate-ID and param/reference checks (2.5)
+   so malformed dsp.csv rows are rejected rather than silently passed to
+   codegen.
+5. Continue the firmware capacity-fit effort (3.1) per the existing hub
+   dispatch — this review does not add new measurements, only confirms the
+   already-tracked gap is real and consistent with the code inspected.
+6. Lower-priority cleanups: dedupe parse helpers between dsp_validate.py and
+   dsp_simulate.py, hardcode fixed_ref.py's polynomial coefficients, and
+   consider a data-driven refactor of gen_dsp.py's per-type expanders.
+
+No secrets, credentials, or license material were observed in the reviewed
+files.
