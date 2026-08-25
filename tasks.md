@@ -93,6 +93,26 @@ generate the efficient form. The strip-fusion dispatch below is this
 priority's execution; do not drift to other work until the fit is proven or
 disproven with measurements.**
 
+## HUB MANDATE 2026-08-25 — crosspoint-coefficient mixing is Bible doctrine; dsp code must follow it   [status: 🔴 audit + enforce]
+
+PW engraved the concept in the mx26 Bible (docs/bible/10-cell-data-and-protocol.md,
+"Crosspoint-coefficient (matrix-gain) mixing"): one precomputed coefficient per
+source×bus crosspoint; ALL linear gain terms — fader, pan leg, bus assign,
+mute, aux/matrix sends, trims — fold into that coefficient at CONTROL rate
+(coefficient prep on the control core per D8, never in the audio path); the
+audio path is pure MACs and never branches on control state; mute = coefficient
+set to zero. Nonlinear/structural elements (comp, gate, tube, path enables) are
+graph structure, not coefficients — the fold does not apply to them.
+
+This generalises the 08-24 "GAIN IS A SINGLE MAC" directive to the whole
+routing layer. TASK: audit the per-block kernels and the generated strip/
+routing code for violations — per-sample branches on mute/assign state,
+gain chains applied as separate multiplies (fader then pan then mute), any
+control-state test inside the MAC loops — and fold them. Report findings and
+cycle deltas against the strip-fusion ledger; the Rtg* cells in the matrix
+are the coefficient-prep inputs, performer-state cells (e.g. Mute) never
+reach the DSP directly.
+
 ## HUB DISPATCH 2026-08-24 11:00Z — STRIP FUSION: single-MAC stages, one round/saturate per strip (PW constraints: no FPGA, no block-64; target = 32 basic strips in ONE 21564)   [status: 🟡 786 MHz LIVE AND VERIFIED; 32-IN-ONE IS NOT REACHABLE AT THIS CLOCK — measured ceiling 10 channels/chip.
   CLOCK: DSP4_CCLK_TARGET=786 enabled. CCLK measured 786.29 MHz off the diag tick against a 786.43 target (0.02%); a failed CGU write would have read 625/s instead of 999.8/s. Budget 327,680 -> 524,288 cycles/block (1.60x). Legal on BOTH speed grades so it needed no answer on the U5/U6 marking. 983 stays prepared and off. Real-time, SPORT/DMA clean, BLK_OVERRUN static at its boot value. Anomaly list checked: 13 entries, none touches the CGU or PLL.
   BIT-EXACT AT 786: chain.py rewritten to CONFIGURE the strip it tests (unity gain/filters/EQ, dynamics bypassed, no delay) instead of assuming transparency - the old probe's assumption expired when the dynamics were converted and left on by default. 0 of 7 cases. Its NEGATIVE CONTROL caught a real fault on the first run: ramped params were going out with ramp_id=0, which takes the instant path and is then clobbered by the node's own block-rate code from a target never written. Third check on this bench that could not have failed as first written; the lesson is now IN the probes.
