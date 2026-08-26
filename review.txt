@@ -175,3 +175,103 @@ where most of the accuracy/efficiency findings below apply.
 
 No secrets, credentials, or license material were observed in the reviewed
 files.
+
+===============================================================================
+5. CODE SUGGESTIONS (to meet stated spec/policy)
+===============================================================================
+These are concrete, targeted patches for the findings above that map directly
+to a documented repo policy (CLAUDE.md's "no-fallback policy" and "fail
+loudly" mandates) or to a clear correctness gap. They are suggestions only —
+not applied here — sized to be reviewed and landed independently.
+
+5.1 dsp_codegen.py (2.2) — enforce no-fallback at the codegen dispatch layer
+    File: tools/dsp/dsp_codegen.py
+    Today (~line 7748):
+        gen_fn = GENERATORS.get(node['type'], gen_generic)
+        if FORMAT == 'fixed':
+            gen_fn = FIXED_GENERATORS.get(node['type'], gen_fn)
+    Suggested:
+        gen_fn = GENERATORS.get(node['type'])
+        if gen_fn is None:
+            raise ValueError(
+                f"No codegen for node type {node['type']!r} "
+                f"(node {node['id']}). Unknown cell families must fail "
+                f"loudly per the no-fallback policy; add a generator or "
+                f"add the type to matrix-families-allowlist.txt if it is "
+                f"MCU-only.")
+        if FORMAT == 'fixed':
+            gen_fn = FIXED_GENERATORS.get(node['type'], gen_fn)
+    `gen_generic` (~line 4092) can then be deleted, or kept only as a
+    private helper used by an explicit opt-in list (e.g. node types
+    documented as intentionally stubbed) rather than as a silent default.
+
+5.2 gen_dsp_csv.py (2.4) — clear errors instead of generic exceptions
+    File: tools/dsp/gen_dsp_csv.py, ~line 837
+    Today:
+        idx = next(i for i, r in enumerate(rows) if r['id'] == n_eq) + 1
+    Suggested:
+        try:
+            idx = next(i for i, r in enumerate(rows) if r['id'] == n_eq) + 1
+        except StopIteration:
+            raise ValueError(
+                f"GEQ insertion: no row with id {n_eq!r} found; "
+                f"graph is out of sync with the expected EQ/GEQ/gate chain")
+    File: tools/dsp/gen_dsp_csv.py, ~line 98
+    Today:
+        assert g == 16 * e['sport_id'] + e['slot'], signal
+    Suggested: pre-flight-validate sport_map.json once at load time (loop
+    over all entries and collect every inconsistent `signal` into one
+    error) rather than asserting lazily at each point of use, e.g.:
+        errors = [s for s in sport_map
+                  if s['slot_global'] != 16*s['sport_id']+s['slot']]
+        if errors:
+            raise ValueError(f"sport_map.json inconsistent for: {errors}")
+
+5.3 dsp_validate.py (2.5) — reject malformed rows instead of passing them on
+    File: tools/dsp/dsp_validate.py
+    - On duplicate node ID detection: track seen IDs in a set/dict and
+      `continue`/skip re-processing the duplicate row (in addition to
+      reporting it), so a duplicate can't also be validated and forwarded
+      to codegen as if it were unique.
+    - `parse_id_list()` / `parse_params()`: after parsing, cross-check
+      each referenced ID against the known node-id set for that pass, and
+      each param key against a per-node-type expected-keys table (the
+      same table codegen already implicitly relies on), raising a
+      contextual error (including node id and file/line) on mismatch
+      instead of letting the value flow through unchecked.
+
+5.4 gen_dsp.py (2.7) — derive MCU-only prefixes from config, not a literal
+    File: MW/D32/DSP/gen_dsp.py, ~line 1162
+    Today:
+        if any(name.startswith(p) for p in
+               ('Sys', 'Fdr', 'Zz', 'Another', 'Mute', 'Rec')):
+    Suggested: move this list to a checked-in config (e.g. a
+    `mcu-only-prefixes.txt` alongside matrix-families-allowlist.txt, or a
+    key in that same allowlist file) and load it at startup:
+        MCU_ONLY_PREFIXES = tuple(load_mcu_only_prefixes())
+        if any(name.startswith(p) for p in MCU_ONLY_PREFIXES):
+    This keeps the "new family" adoption path (already required to touch
+    matrix-families-allowlist.txt) as the single place a new MCU-only
+    family needs to be registered, instead of also requiring a code edit.
+    Also guard the generated-file writes (ghost_cells.h, dsp_params.asm,
+    dsp_address_map.md) with `os.makedirs(os.path.dirname(path),
+    exist_ok=True)` before each write, so a moved output path fails with a
+    clear message rather than a raw OSError.
+
+5.5 fixed_ref.py (2.6) — replace silent sentinel with an explicit signal
+    File: tools/dsp/fixed_ref.py, `log2_q()` (~line 148)
+    Today: returns a fixed sentinel (`-(32 << 25)`) for `x <= 0`.
+    Suggested: raise on invalid input at the boundary the reference model
+    is actually used from, e.g.:
+        if x <= 0:
+            raise ValueError(f"log2_q undefined for x={x!r} (x must be > 0)")
+    or, if a sentinel is genuinely required by a caller, use a value
+    provably outside the representable range of legitimate computed
+    results (verified, not assumed) and document that choice at the call
+    site, plus add a boundary-condition test asserting the soft-knee
+    `over <= -half_knee` / `over < half_knee` split behaves symmetrically
+    at `over == ±half_knee`.
+
+None of the above have been applied to the codebase; each should be made as
+its own small, independently-tested change per the repo's existing
+incremental-change convention.
