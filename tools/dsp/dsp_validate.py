@@ -26,6 +26,9 @@ import sys
 import os
 from collections import defaultdict
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from csv_fields import parse_id_list, parse_params
+
 # ---------------------------------------------------------------------------
 REQUIRED_COLUMNS = {'id', 'chip', 'type', 'ch_count', 'inputs', 'outputs',
                     'spi_page', 'spi_addr', 'params', 'ramp_profile'}
@@ -104,26 +107,6 @@ EXTRA_PARAMS = {
 
 ALLOWED_PARAMS = {t: REQUIRED_PARAMS.get(t, set()) | EXTRA_PARAMS.get(t, set())
                    for t in VALID_TYPES}
-
-
-def parse_id_list(cell):
-    cell = cell.strip().strip('"')
-    if not cell:
-        return []
-    return [x.strip() for x in cell.split(';') if x.strip()]
-
-
-def parse_params(cell):
-    cell = cell.strip().strip('"')
-    if not cell:
-        return {}
-    params = {}
-    for pair in cell.split(';'):
-        pair = pair.strip()
-        if '=' in pair:
-            k, v = pair.split('=', 1)
-            params[k.strip()] = v.strip()
-    return params
 
 
 def validate(csv_path):

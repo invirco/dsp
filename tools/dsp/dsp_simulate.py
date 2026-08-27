@@ -39,6 +39,9 @@ import argparse
 import numpy as np
 from collections import defaultdict, deque
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from csv_fields import parse_id_list as _parse_id_list, parse_params as _parse_params
+
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
@@ -49,24 +52,6 @@ NYQUIST       = SAMPLE_RATE / 2.0
 # ---------------------------------------------------------------------------
 # CSV helpers
 # ---------------------------------------------------------------------------
-
-def _parse_id_list(cell):
-    cell = cell.strip().strip('"')
-    if not cell:
-        return []
-    return [x.strip() for x in cell.split(';') if x.strip()]
-
-
-def _parse_params(cell):
-    cell = cell.strip().strip('"')
-    params = {}
-    for pair in cell.split(';'):
-        pair = pair.strip()
-        if '=' in pair:
-            k, v = pair.split('=', 1)
-            params[k.strip()] = v.strip()
-    return params
-
 
 def load_nodes(csv_path):
     """Return list of node dicts from dsp.csv."""
@@ -203,7 +188,7 @@ def biquad_process(block, coeffs, state):
 
 def biquad_cascade(block, coeffs_list, states):
     """Process through a cascade of N biquads."""
-    x = block.copy()
+    x = block
     for i, coeffs in enumerate(coeffs_list):
         x = biquad_process(x, coeffs, states[i])
     return x
@@ -519,6 +504,10 @@ class DSPSimulator:
             csv_path = os.path.join(script_dir, '..', 'dsp.csv')
         self.nodes   = load_nodes(csv_path)
         self.order   = topo_sort(self.nodes)
+        self.reset()
+
+    def reset(self):
+        """Rebuild fresh per-node runtime state (same parsed graph)."""
         self.states  = {nid: make_state(n) for nid, n in self.nodes.items()}
 
     # ── Parameter control ────────────────────────────────────────────────────
@@ -794,21 +783,21 @@ def main():
 
         ch = channels[0]
         n_frames = int(args.duration * SAMPLE_RATE / BLOCK_SIZE)
-        sim2 = DSPSimulator(args.csv)
-        sim2.set_gain(ch, args.gain_db)
+        sim.reset()  # clean state — don't carry over the trace run above
+        sim.set_gain(ch, args.gain_db)
         if args.hpf:
-            sim2.set_hpf(ch, args.hpf)
+            sim.set_hpf(ch, args.hpf)
         if args.lpf:
-            sim2.set_lpf(ch, args.lpf)
+            sim.set_lpf(ch, args.lpf)
 
         out_buf = []
         for frame in range(n_frames):
             t_arr = np.arange(BLOCK_SIZE) / SAMPLE_RATE + frame * BLOCK_SIZE / SAMPLE_RATE
             block = np.sin(2 * math.pi * args.freq * t_arr)
-            sim2.inject(ch, block)
-            sim2.process_frame()
+            sim.inject(ch, block)
+            sim.process_frame()
             out_nid = f'C1_RTG_{ch:02d}'
-            out_buf.append(sim2.states[out_nid]['buf'].copy())
+            out_buf.append(sim.states[out_nid]['buf'].copy())
 
         audio = np.concatenate(out_buf).astype(np.float32)
         wavfile.write(args.wav, SAMPLE_RATE, audio)
