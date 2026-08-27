@@ -1,3 +1,42 @@
+## HUB DISPATCH 2026-08-27 17:27Z — review R1 ramp-write root cause + fix, R2 codegen fail-loudly   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+Review follow-through (HUB REVIEW 2026-08-27 block): R1 + R2 only — R3–R6
+stay queued for a later mechanical pass; do not fold them in.
+
+1. R1 — ROOT-CAUSE AND FIX the ramped-parameter write bug (the 2026-08-23
+   15:0xZ outcome at the bottom of this file; review §2.1). Three
+   candidates — distinguish by evidence, not comments: (a) the generated
+   SPI dispatch-table ADDRESS for 0x071C (read the emitted table/asm, not
+   its comment), (b) the handler's r0 computation before
+   `_ramp_set_target`, (c) `_ramp_set_target`'s own offset convention.
+   Whichever it is, establish whether the SAME off-by-one hits every
+   ramped cell or only some (generator vs runtime decides the blast
+   radius). Fix, then verify ON THE PART over the SPI link: a ramped
+   write of 1.0 to 0x071C lands the target at 0x951DE (not 0x951DF),
+   `_auxin_on` preserved, a −60…+18 dB ramped sweep produces measurably
+   different output, repeatable without reboot. Then re-run the GAIN
+   harness family as the unblock proof.
+2. R2 — codegen fail-loudly (review §5.1): `GENERATORS.get` raises with
+   node type + node id on a miss; delete `gen_generic` or gate it behind
+   an explicit opt-in list. Regenerate: the default image must be
+   BYTE-IDENTICAL (md5) since no known node type changes — that md5 check
+   IS the proof.
+3. If the session has room after 1–2: resume the 08-25
+   crosspoint-coefficient audit mandate (block above) — R1's fix sits in
+   its path anyway.
+
+Bench rules: standing traps apply (W0 discipline; shipping
+bitstream/firmware restored at end; matrix-app active with all 3 MCUs
+verified — expect the second-restart pattern). Hand-back: if R1's root
+cause is none of the three candidates or spans the generator contract,
+record findings, mark 🔴, push, stop.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 Legend: 🔴 not started/blocked · 🟡 in progress · 🟢 done
 
 **PW DECISION (2026-08-24): TUBE SATURATION IS A PLUGIN, NOT A FIXED CHANNEL
