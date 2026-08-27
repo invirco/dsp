@@ -1,3 +1,47 @@
+## HUB DISPATCH 2026-08-27 22:49Z — R3-R6 review-hardening mechanical pass (desk only)   [status: 🟡 dispatched]   [model: sonnet]
+
+model: sonnet
+
+Mechanical desk pass — NO bench work, NO flashing, the board is on verified
+shipping images and stays untouched. Execute R3–R6 from the HUB REVIEW
+2026-08-27 block in this file, using review.txt §5's patches as the
+starting point (they are suggestions — verify each against current HEAD
+before applying; several files changed today):
+
+1. R3 — gen_dsp_csv.py: GEQ-insertion `next(...)` StopIteration → clear
+   contextual ValueError; sport_map.json pre-flight validated once at load
+   (collect ALL inconsistent entries into one error) instead of per-use
+   asserts.
+2. R4 — dsp_validate.py: duplicate node IDs rejected (skipped after
+   reporting, not re-processed); parse_id_list()/parse_params()
+   cross-checked against the known node-id set and a per-type
+   expected-param-keys table; contextual errors with node id.
+3. R5 — fixed_ref.py: log2_q() raises on x <= 0 instead of the silent
+   sentinel (check callers first — if a caller legitimately feeds x<=0,
+   use a verified out-of-range sentinel and document at the call site);
+   add the soft-knee boundary test at over == ±half_knee.
+4. R6 — opportunistic, same files only: dedupe the parse helpers between
+   dsp_validate.py and dsp_simulate.py into a shared module; drop
+   dsp_simulate.py's second DSPSimulator instantiation and the per-stage
+   block.copy(); hardcode fixed_ref.py's fitted LOG2/EXP2 polynomial
+   coefficients as checked-in constants (keep the fit code as a separate
+   regeneration script); makedirs guards on gen_dsp.py's generated-file
+   writes; MCU-only prefixes loaded from a config file alongside
+   matrix-families-allowlist.txt instead of the hardcoded tuple.
+
+Acceptance: every change keeps the golden harness green (run the relevant
+host-side tests/generators; the default generated outputs must be
+byte-identical except where an error path is the change); small commits,
+one concern each. Do NOT touch dsp_codegen.py's kernel/generator logic —
+today's sessions own that ground. Hand-back rule: anything that stops
+looking mechanical (a caller genuinely depends on the sentinel, a
+validator change breaks generation), record it, mark that sub-item, move
+to the next; 🔴 only if everything blocks.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-08-27 18:21Z — crosspoint-coefficient audit + enforce (08-25 mandate)   [status: 🟢 done — every in-scope violation folded and PROVEN ON THE PART: strip 1 BIT-EXACT at all 7 level/pan points plus mute and polarity, and routing sends WORK for the first time in the converted build (all 4 pickoffs, negative control passing). Three defects found on the way, all pre-existing and all severe: (1) the ramp-stride table matched only 610 of the ramped parameters, so **every GAIN, FADER_PAN and MONITOR ramped parameter was unsettable over SPI** — proven on the part, and fixed; (2) 132 nodes carried a `_sample_idx == 0` guard that never fires in a block-kernel build, which is why ROUTING never computed a send coefficient there; (3) the chip-1 DM ceiling was an LDF ordering artifact — the overflow region was 0% used and the converted build would not link at all at HEAD. Cycle deltas, converted build, per strip: FDR 1,908 → 1,011 cycles/block (1.89×); RTG 2,617 (prep dead) → 3,196 (prep live, sends working) → 3,667 (folded); FDR+RTG −426 cycles/block against the honest baseline = −13.3 cycles/sample. Capacity: 1,269 → ~1,256 cycles/sample/channel, converted-build ceiling stays 10 — this does NOT move the 32-in-one verdict. **FOLLOW-THROUGH on the same-evening hub steer, all four items done:** the compacted active-crosspoint list landed and is what actually recovers the walk — ROUTING 589.2 → 202.3 cycles/sample (2.91×) and **the SHIPPING ceiling moved from 2 strips to 3** (STRIPS=3 now 1500 passes/s, 4 over budget); the per-sample delta is measured across four tree states (fold −79.8, list −404.9, total **−484.7 cycles/sample**, and the LDF/Block-1 spill costs a measured nothing); the dynamics guard fixes are re-verified on the part, 11 classes across both chips, 0 failures. **TWO OF MY OWN CLAIMS CORRECTED:** the dead-guard count was 132 and is really **68** — chip 1's COMP and GATE drive `_sample_idx` from their own block kernels, so blanket-removing their guard was itself a regression (GATE's sidechain fallback would have converted 32× a block), now decided per node; and the "3 MCUs could not be verified" note was **wrong** — matrix-app logs to `/home/app/logs/log`, not the journal, as the 08-22 block already said, and all three had verified. No app regression exists. Bench restored, all three MCUs verified. **OVERNIGHT RUNG — fabric 40k + measured 32-channel feasibility:** the ledger's fabric row is **NOT double-counted** — measured at its own boundary it reads 86,212 against 85,475 recorded, 0.9% apart, so it was a real still-open lever. Root cause of the fabric cost was the ADDRESS, not the arithmetic: the 25 bus accumulators sat in L2, which the 08-24 note blamed on a DM limit that was really the LDF ordering defect fixed earlier the same evening. Moving them internal + inlining the bus readout: **fabric 86,212 → 51,645 (−40.1%), 2.16x → 1.29x of target**, full graph −7.2%, and the STRIPS fell 41,784 too because ROUTING's crosspoint MACs were paying the same L2 penalty. Bit-exact on the part; per-sample image byte-identical. **MEASURED ceilings, converted build, per chip: 786 → 15, 983 → 20**, and the cycle model predicts both EXACTLY (strip 881.6 cycles/sample, fabric 51,645, block I/O 32,707). **CAVEAT THAT GOVERNS THE FEASIBILITY ANSWER: these are SILENCE measurements.** The recorded 786 ceiling of 10 was signal-present; the same pre-fabric arithmetic projects 13.3, so signal costs ~25% and the signal-present equivalents are **~11–12 at 786 and ~15–16 at 983**. **D24's 24 channels do NOT fit one chip at 983**; D32's 32 are further still; chip 2 remains 3.8x over its own budget. Progress is real (786 ceiling 10 → 15) but the remaining gap is a factor, not a margin. **Meter call then inlined** (numerics-neutral half, standing approval): meters 32,324 → 20,921, **fabric 40,109 = the 40k target MET (2.16x → 1.00x)**, settled meter state bit-identical across builds. **BUT THE CEILINGS DID NOT MOVE** — read by the honest rule (1500/s, not the tool's 1450 threshold) they are still **15 at 786 and 20 at 983**; the inline bought half a channel of margin, moving the next strip count from over-budget to marginal. Both things are true at once and the second is the one that matters. The ledger's fabric row is now SPENT; what remains for 32-in-one is SIMD and the dynamics rework, and the strip is untouched at 881.6 cycles/sample. **PARKED FOR PW: meter decimation, now ~21k cycles/block** — 52% of the remaining fabric; the numerics-neutral part is taken, all that is left comes from sampling less often, and the meters already carry four recorded defects; fix-numerics / decimate / retire is one ruling]   [model: opus]
 
 model: opus
