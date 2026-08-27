@@ -83,6 +83,12 @@
 /* Chip 2 SPI dispatch table (in dsp_params.asm) — maps SPI address → DM target */
 .extern _spi_dispatch_c2;
 .extern _spi_dispatch_c2_size;   /* bounds for dispatch (generated) */
+/* Parallel to the dispatch table, same indexing: 0 = plain word (write it
+ * directly), s >= 1 = ramped, with target at +s, step at +2s, frames at
+ * +3s. Scalars are stride 1; the routing sends keep target/step/frames in
+ * PARALLEL ARRAYS, so their stride is the array width (12 AuxSend,
+ * 6 FxSend) and +1/+2/+3 would land on the next crosspoint. */
+.extern _spi_dispatch_c2_stride;
 
 /* SPI stats — exposed read-only as DIAG_SPI_RX_COUNT /
  * DIAG_SPI_ERR_COUNT, and zeroed by a write to DIAG_CLEAR. */
@@ -99,6 +105,13 @@
  * the responder. */
 .global _spi_req_word;
 .var _spi_req_word = 0;
+
+/* The decoded address of that request. Both the ramp and the instant path
+ * need it after r2 has been reused for the profile arithmetic, and
+ * recomputing it from _spi_req_word at each site is one more place to get
+ * the shift and mask wrong. */
+.global _spi_req_addr;
+.var _spi_req_addr = 0;
 
 .extern _diag_spi_stat_stk;
 .extern _diag_resp_drop;
@@ -165,6 +178,7 @@ _spi2_rx_work:
     r2 = lshift r0 by -16;        /* address in r2 */
     r3 = 0xFFFF;
     r2 = r2 AND r3;
+    dm(_spi_req_addr) = r2;
 
     /* Check READ flag (bit 13 of Word 0) — respond before dispatch */
     r4 = READ_FLAG;
@@ -259,11 +273,25 @@ _spi2_rx_work:
     modify(i0, m0);
     r2 = dm(i0, 0);               /* mode: 0=Instant, 1=Slew, 2=LinearFrames */
 
+    /* Stride for this entry. 0 means the parameter has no ramp state, so a
+     * ramp profile cannot be honoured -- fall back to a plain write rather
+     * than scribbling target/step/frames over whatever follows it. */
+    i0 = _spi_dispatch_c2_stride;
+    m0 = dm(_spi_req_addr);
+    modify(i0, m0);
+    r4 = dm(i0, 0);
+    r5 = 0;
+    comp(r4, r5);
+    if eq jump (pc, .spi_instant);
+
     call _ramp_set_target;
     jump (pc, .spi_write_answer);
 
 .spi_instant:
-    /* Direct write via dispatch table */
+    /* Profile-0 write. Look the address up again from scratch: this label is
+     * also the fallback for a ramp profile aimed at a parameter with no ramp
+     * state, and that path has already reused r2. */
+    r2 = dm(_spi_req_addr);
     i0 = _spi_dispatch_c2;
     m0 = r2;
     modify(i0, m0);
@@ -271,6 +299,28 @@ _spi2_rx_work:
     r5 = 0;
     comp(r4, r5);
     if eq jump (pc, .spi_error); /* unmapped SPI address */
+
+    /* A parameter with ramp state cannot be set by writing the value alone:
+     * its block-rate code runs `if frames <= 0: level = target` every block
+     * and would undo the write within one block period. Hand those to
+     * _ramp_set_target in Instant mode, which sets level AND target and
+     * clears frames. Plain words (stride 0) are written directly. */
+    i0 = _spi_dispatch_c2_stride;
+    m0 = r2;
+    modify(i0, m0);
+    r5 = dm(i0, 0);              /* stride */
+    r6 = 0;
+    comp(r5, r6);
+    if eq jump (pc, .spi_instant_plain);
+
+    r0 = r4;                     /* value pointer */
+    r2 = 0;                      /* mode = Instant */
+    r3 = 0;                      /* frames */
+    r4 = r5;                     /* stride */
+    call _ramp_set_target;
+    jump (pc, .spi_write_answer);
+
+.spi_instant_plain:
     i1 = r4;
     dm(i1, 0) = r1;              /* write coefficient to target */
     jump (pc, .spi_write_answer);

@@ -26,6 +26,8 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DSP_CSV    = os.path.join(SCRIPT_DIR, 'SHARC', 'dsp.csv')
 MATRIX_CSV = os.path.join(SCRIPT_DIR, '..', 'MX', '_matrix.csv')
 
+NODES_DIR_C1       = os.path.join(SCRIPT_DIR, 'SHARC', 'src', 'chip1', 'nodes')
+NODES_DIR_C2       = os.path.join(SCRIPT_DIR, 'SHARC', 'src', 'chip2', 'nodes')
 OUT_PARAMS_C1      = os.path.join(SCRIPT_DIR, 'SHARC', 'src', 'chip1', 'dsp_params.asm')
 OUT_PARAMS_C2      = os.path.join(SCRIPT_DIR, 'SHARC', 'src', 'chip2', 'dsp_params.asm')
 OUT_GHOST_H        = os.path.join(SCRIPT_DIR, 'ghost_cells.h')
@@ -859,11 +861,79 @@ def backfill_matrix(header, rows, *, force=False):
 # ---------------------------------------------------------------------------
 # Output: dsp_params.asm (per-chip split)
 # ---------------------------------------------------------------------------
-def _build_chip_params(chip_num, table_name, out_path):
+# ---------------------------------------------------------------------------
+# Ramp stride map
+#
+# A ramped parameter carries three companion words -- target, step and frames
+# -- that _ramp_set_target fills in. For a SCALAR parameter the node emits
+# them immediately after the value, so they sit at +1/+2/+3. For an ARRAY
+# parameter (the routing sends) the node emits four parallel arrays instead:
+#
+#     _rtg_aux_send        [12]   <- the dispatch table points in here
+#     _rtg_aux_send_target [12]
+#     _rtg_aux_send_step   [12]
+#     _rtg_aux_send_frames [12]
+#
+# so element i's companions are at +12/+24/+36, not +1/+2/+3. One STRIDE per
+# dispatch entry covers both shapes: target = p + s, step = p + 2s,
+# frames = p + 3s, with s = 1 for scalars. Entries with no ramp state get 0,
+# which the handler reads as "direct write only".
+#
+# The map is derived by SCANNING THE EMITTED NODE ASM rather than by
+# annotating each add_dispatch() call site. The node generator
+# (tools/dsp/dsp_codegen.py) decides which parameters get ramp state and how
+# wide it is; restating that here by hand is the same duplicated-assumption
+# bug this table exists to fix, and it would drift silently. Reading the
+# artifact cannot drift: if a node stops ramping a parameter, its
+# _target_ declaration goes with it and the stride follows.
+# ---------------------------------------------------------------------------
+_RAMP_TARGET_RE = re.compile(
+    r'^\.var\s+(_\w+?)_target_(\w+?)(?:\[(\d+)\])?\s*[;=]', re.M)
+
+
+def build_ramp_stride_map(nodes_dir):
+    """Map a ramped value symbol -> stride to its target/step/frames words."""
+    if not os.path.isdir(nodes_dir):
+        raise FileNotFoundError(
+            f"node ASM directory not found: {nodes_dir}. The ramp stride "
+            f"table is derived from the emitted node ASM, so dsp_codegen.py "
+            f"must run before gen_dsp.py (see regenerate-dsp-contract.sh).")
+    strides = {}
+    for name in sorted(os.listdir(nodes_dir)):
+        if not name.endswith('.asm'):
+            continue
+        with open(os.path.join(nodes_dir, name), encoding='utf-8') as f:
+            text = f.read()
+        for base, nid, count in _RAMP_TARGET_RE.findall(text):
+            value_sym = f'{base}_{nid}'
+            stride = int(count) if count else 1
+            prev = strides.get(value_sym)
+            if prev is not None and prev != stride:
+                raise ValueError(
+                    f"conflicting ramp stride for {value_sym}: {prev} vs "
+                    f"{stride} (in {name})")
+            strides[value_sym] = stride
+    if not strides:
+        raise ValueError(
+            f"no ramped parameters found under {nodes_dir}; the node ASM is "
+            f"missing or stale, and emitting an all-zero stride table would "
+            f"silently disable every ramp.")
+    return strides
+
+
+def _entry_stride(sym, strides):
+    """Stride for one dispatch entry symbol ('_sym' or '_sym + 3')."""
+    if not sym:
+        return 0
+    return strides.get(sym.split('+')[0].strip(), 0)
+
+
+def _build_chip_params(chip_num, table_name, out_path, strides=None):
     """Build dsp_params.asm content for one chip."""
     chip_entries = {a: v for (c, a), v in dispatch.items() if c == chip_num}
     if not chip_entries:
         return None, 0
+    strides = strides or {}
 
     max_addr = max(chip_entries.keys())
     size = ((max_addr + 4) // 4) * 4  # align to 4
@@ -916,17 +986,59 @@ def _build_chip_params(chip_num, table_name, out_path):
             lines.append(f'    0{comma}{cmt}')
     lines.append('')
 
+    # ---- Parallel ramp-stride table ----
+    # Same length and indexing as the dispatch table. 0 = plain scalar with no
+    # ramp state (direct write only); s >= 1 = ramped, with target at +s,
+    # step at +2s and frames at +3s. See build_ramp_stride_map().
+    stride_vals = []
+    for addr in range(size):
+        entry = chip_entries.get(addr)
+        stride_vals.append(_entry_stride(entry[0] if entry else None, strides))
+
+    hist = {}
+    for v in stride_vals:
+        if v:
+            hist[v] = hist.get(v, 0) + 1
+    ramped_n = sum(hist.values())
+
+    lines.append(f'/* ---- Chip {chip_num} ramp-stride table ({size} entries) ---- */')
+    lines.append('/*')
+    lines.append(' * Companion to the dispatch table above, same indexing.')
+    lines.append(' *   0      -- no ramp state; the SPI handler writes the word directly')
+    lines.append(' *   s >= 1 -- ramped: target at +s, step at +2s, frames at +3s')
+    lines.append(' *')
+    lines.append(' * Scalars are stride 1 (target/step/frames follow the value). The')
+    lines.append(' * routing sends are parallel ARRAYS, so their stride is the array')
+    lines.append(' * length -- 12 for AuxSend, 6 for FxSend. Writing those at +1/+2/+3')
+    lines.append(" * lands on the NEIGHBOURING crosspoint's level instead.")
+    lines.append(' *')
+    lines.append(f' * {ramped_n} ramped entries; strides ' +
+                 '{' + ', '.join(f'{k}: {v}' for k, v in sorted(hist.items())) + '}')
+    lines.append(' */')
+    lines.append(f'.global {table_name}_stride;')
+    lines.append(f'.var {table_name}_stride[{size}] =')
+    for addr in range(size):
+        entry = chip_entries.get(addr)
+        comment = entry[1] if entry else ''
+        comma = ',' if addr < size - 1 else ';'
+        v = stride_vals[addr]
+        cmt = f'  /* 0x{addr:04X}: {comment} */' if comment else f'  /* 0x{addr:04X} */'
+        lines.append(f'    {v}{comma}{cmt}')
+    lines.append('')
+
     content = '\n'.join(lines) + '\n'
     return content, len(lines)
 
 
 def write_dsp_params_asm(dry_run=False):
     """Generate per-chip SPI dispatch tables."""
-    for chip_num, table_name, out_path in [
-        (1, '_spi_dispatch_c1', OUT_PARAMS_C1),
-        (2, '_spi_dispatch_c2', OUT_PARAMS_C2),
+    for chip_num, table_name, out_path, nodes_dir in [
+        (1, '_spi_dispatch_c1', OUT_PARAMS_C1, NODES_DIR_C1),
+        (2, '_spi_dispatch_c2', OUT_PARAMS_C2, NODES_DIR_C2),
     ]:
-        content, line_count = _build_chip_params(chip_num, table_name, out_path)
+        strides = build_ramp_stride_map(nodes_dir)
+        content, line_count = _build_chip_params(chip_num, table_name, out_path,
+                                                 strides)
         if content is None:
             continue
         if dry_run:

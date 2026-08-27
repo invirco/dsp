@@ -2657,3 +2657,1971 @@
     _geq_coeffs_next_C2_GRP_GEQ_04 + 26,    /* 0x079E: C2_GRP_GEQ_04 GEQ coeff[26] */
     _geq_coeffs_next_C2_GRP_GEQ_04 + 27;    /* 0x079F: C2_GRP_GEQ_04 GEQ coeff[27] */
 
+/* ---- Chip 2 ramp-stride table (1952 entries) ---- */
+/*
+ * Companion to the dispatch table above, same indexing.
+ *   0      -- no ramp state; the SPI handler writes the word directly
+ *   s >= 1 -- ramped: target at +s, step at +2s, frames at +3s
+ *
+ * Scalars are stride 1 (target/step/frames follow the value). The
+ * routing sends are parallel ARRAYS, so their stride is the array
+ * length -- 12 for AuxSend, 6 for FxSend. Writing those at +1/+2/+3
+ * lands on the NEIGHBOURING crosspoint's level instead.
+ *
+ * 28 ramped entries; strides {1: 28}
+ */
+.global _spi_dispatch_c2_stride;
+.var _spi_dispatch_c2_stride[1952] =
+    0,  /* 0x0000: C2_AUX_FDR_01 level */
+    0,  /* 0x0001: C2_AUX_FDR_01 pan */
+    0,  /* 0x0002: C2_AUX_FDR_01 mute */
+    0,  /* 0x0003: C2_AUX_FDR_01 DCA gain */
+    0,  /* 0x0004: C2_AUX_EQ_01 EQ coeff[0] */
+    0,  /* 0x0005: C2_AUX_EQ_01 EQ coeff[1] */
+    0,  /* 0x0006: C2_AUX_EQ_01 EQ coeff[2] */
+    0,  /* 0x0007: C2_AUX_EQ_01 EQ coeff[3] */
+    0,  /* 0x0008: C2_AUX_EQ_01 EQ coeff[4] */
+    0,  /* 0x0009: C2_AUX_EQ_01 EQ coeff[5] */
+    0,  /* 0x000A: C2_AUX_EQ_01 EQ coeff[6] */
+    0,  /* 0x000B: C2_AUX_EQ_01 EQ coeff[7] */
+    0,  /* 0x000C: C2_AUX_EQ_01 EQ coeff[8] */
+    0,  /* 0x000D: C2_AUX_EQ_01 EQ coeff[9] */
+    0,  /* 0x000E: C2_AUX_EQ_01 EQ coeff[10] */
+    0,  /* 0x000F: C2_AUX_EQ_01 EQ coeff[11] */
+    0,  /* 0x0010: C2_AUX_EQ_01 EQ coeff[12] */
+    0,  /* 0x0011: C2_AUX_EQ_01 EQ coeff[13] */
+    0,  /* 0x0012: C2_AUX_EQ_01 EQ coeff[14] */
+    0,  /* 0x0013: C2_AUX_EQ_01 EQ coeff[15] */
+    0,  /* 0x0014: C2_AUX_EQ_01 EQ coeff[16] */
+    0,  /* 0x0015: C2_AUX_EQ_01 EQ coeff[17] */
+    0,  /* 0x0016: C2_AUX_EQ_01 EQ coeff[18] */
+    0,  /* 0x0017: C2_AUX_EQ_01 EQ coeff[19] */
+    0,  /* 0x0018: C2_AUX_EQ_01 EQ swap trigger */
+    0,  /* 0x0019: C2_AUX_EQ_01 EqOn (MCU-managed) */
+    0,  /* 0x001A: C2_AUX_EQ_01 spare */
+    0,  /* 0x001B: C2_AUX_EQ_01 spare */
+    0,  /* 0x001C: C2_AUX_GEQ_01 GEQ coeff[0] */
+    0,  /* 0x001D: C2_AUX_GEQ_01 GEQ coeff[1] */
+    0,  /* 0x001E: C2_AUX_GEQ_01 GEQ coeff[2] */
+    0,  /* 0x001F: C2_AUX_GEQ_01 GEQ coeff[3] */
+    0,  /* 0x0020: C2_AUX_GEQ_01 GEQ coeff[4] */
+    0,  /* 0x0021: C2_AUX_GEQ_01 GEQ coeff[5] */
+    0,  /* 0x0022: C2_AUX_GEQ_01 GEQ coeff[6] */
+    0,  /* 0x0023: C2_AUX_GEQ_01 GEQ coeff[7] */
+    0,  /* 0x0024: C2_AUX_GEQ_01 GEQ coeff[8] */
+    0,  /* 0x0025: C2_AUX_GEQ_01 GEQ coeff[9] */
+    0,  /* 0x0026: C2_AUX_GEQ_01 GEQ coeff[10] */
+    0,  /* 0x0027: C2_AUX_GEQ_01 GEQ coeff[11] */
+    0,  /* 0x0028: C2_AUX_GEQ_01 GEQ coeff[12] */
+    0,  /* 0x0029: C2_AUX_GEQ_01 GEQ coeff[13] */
+    0,  /* 0x002A: C2_AUX_GEQ_01 GEQ coeff[14] */
+    0,  /* 0x002B: C2_AUX_GEQ_01 GEQ coeff[15] */
+    0,  /* 0x002C: C2_AUX_GEQ_01 GEQ coeff[16] */
+    0,  /* 0x002D: C2_AUX_GEQ_01 GEQ coeff[17] */
+    0,  /* 0x002E: C2_AUX_GEQ_01 GEQ coeff[18] */
+    0,  /* 0x002F: C2_AUX_GEQ_01 GEQ coeff[19] */
+    0,  /* 0x0030: C2_AUX_GEQ_01 GEQ coeff[20] */
+    0,  /* 0x0031: C2_AUX_GEQ_01 GEQ coeff[21] */
+    0,  /* 0x0032: C2_AUX_GEQ_01 GEQ coeff[22] */
+    0,  /* 0x0033: C2_AUX_GEQ_01 GEQ coeff[23] */
+    0,  /* 0x0034: C2_AUX_GEQ_01 GEQ coeff[24] */
+    0,  /* 0x0035: C2_AUX_GEQ_01 GEQ coeff[25] */
+    0,  /* 0x0036: C2_AUX_GEQ_01 GEQ coeff[26] */
+    0,  /* 0x0037: C2_AUX_GEQ_01 GEQ coeff[27] */
+    0,  /* 0x0038: C2_AUX_AFB_01 AntiFbOn */
+    0,  /* 0x0039: C2_AUX_AFB_01 AntiFbCtrlOn */
+    0,  /* 0x003A: C2_AUX_AFB_01 NotchFreq[1] */
+    0,  /* 0x003B: C2_AUX_AFB_01 NotchFreq[2] */
+    0,  /* 0x003C: C2_AUX_AFB_01 NotchFreq[3] */
+    0,  /* 0x003D: C2_AUX_AFB_01 NotchFreq[4] */
+    0,  /* 0x003E: C2_AUX_AFB_01 NotchFreq[5] */
+    0,  /* 0x003F: C2_AUX_AFB_01 NotchFreq[6] */
+    0,  /* 0x0040: C2_AUX_AFB_01 NotchGain[1] */
+    0,  /* 0x0041: C2_AUX_AFB_01 NotchGain[2] */
+    0,  /* 0x0042: C2_AUX_AFB_01 NotchGain[3] */
+    0,  /* 0x0043: C2_AUX_AFB_01 NotchGain[4] */
+    0,  /* 0x0044: C2_AUX_AFB_01 NotchGain[5] */
+    0,  /* 0x0045: C2_AUX_AFB_01 NotchGain[6] */
+    0,  /* 0x0046: C2_AUX_AFB_01 NotchQ[1] */
+    0,  /* 0x0047: C2_AUX_AFB_01 NotchQ[2] */
+    0,  /* 0x0048: C2_AUX_AFB_01 NotchQ[3] */
+    0,  /* 0x0049: C2_AUX_AFB_01 NotchQ[4] */
+    0,  /* 0x004A: C2_AUX_AFB_01 NotchQ[5] */
+    0,  /* 0x004B: C2_AUX_AFB_01 NotchQ[6] */
+    0,  /* 0x004C: C2_AUX_AFB_01 spare coeff [20] */
+    0,  /* 0x004D: C2_AUX_AFB_01 spare coeff [21] */
+    0,  /* 0x004E: C2_AUX_AFB_01 spare coeff [22] */
+    0,  /* 0x004F: C2_AUX_AFB_01 spare coeff [23] */
+    0,  /* 0x0050: C2_AUX_LIM_01 LimiterOn */
+    0,  /* 0x0051: C2_AUX_LIM_01 LimiterThr */
+    0,  /* 0x0052: C2_AUX_LIM_01 LimiterAtt */
+    0,  /* 0x0053: C2_AUX_LIM_01 LimiterRel */
+    0,  /* 0x0054: C2_AUX_DLY_01 delay offset */
+    0,  /* 0x0055: C2_AUX_DLY_01 pool_slot */
+    0,  /* 0x0056 */
+    0,  /* 0x0057: C2_AUX_FDR_02 level */
+    0,  /* 0x0058: C2_AUX_FDR_02 pan */
+    0,  /* 0x0059: C2_AUX_FDR_02 mute */
+    0,  /* 0x005A: C2_AUX_FDR_02 DCA gain */
+    0,  /* 0x005B: C2_AUX_EQ_02 EQ coeff[0] */
+    0,  /* 0x005C: C2_AUX_EQ_02 EQ coeff[1] */
+    0,  /* 0x005D: C2_AUX_EQ_02 EQ coeff[2] */
+    0,  /* 0x005E: C2_AUX_EQ_02 EQ coeff[3] */
+    0,  /* 0x005F: C2_AUX_EQ_02 EQ coeff[4] */
+    0,  /* 0x0060: C2_AUX_EQ_02 EQ coeff[5] */
+    0,  /* 0x0061: C2_AUX_EQ_02 EQ coeff[6] */
+    0,  /* 0x0062: C2_AUX_EQ_02 EQ coeff[7] */
+    0,  /* 0x0063: C2_AUX_EQ_02 EQ coeff[8] */
+    0,  /* 0x0064: C2_AUX_EQ_02 EQ coeff[9] */
+    0,  /* 0x0065: C2_AUX_EQ_02 EQ coeff[10] */
+    0,  /* 0x0066: C2_AUX_EQ_02 EQ coeff[11] */
+    0,  /* 0x0067: C2_AUX_EQ_02 EQ coeff[12] */
+    0,  /* 0x0068: C2_AUX_EQ_02 EQ coeff[13] */
+    0,  /* 0x0069: C2_AUX_EQ_02 EQ coeff[14] */
+    0,  /* 0x006A: C2_AUX_EQ_02 EQ coeff[15] */
+    0,  /* 0x006B: C2_AUX_EQ_02 EQ coeff[16] */
+    0,  /* 0x006C: C2_AUX_EQ_02 EQ coeff[17] */
+    0,  /* 0x006D: C2_AUX_EQ_02 EQ coeff[18] */
+    0,  /* 0x006E: C2_AUX_EQ_02 EQ coeff[19] */
+    0,  /* 0x006F: C2_AUX_EQ_02 EQ swap trigger */
+    0,  /* 0x0070: C2_AUX_EQ_02 EqOn (MCU-managed) */
+    0,  /* 0x0071: C2_AUX_EQ_02 spare */
+    0,  /* 0x0072: C2_AUX_EQ_02 spare */
+    0,  /* 0x0073: C2_AUX_GEQ_02 GEQ coeff[0] */
+    0,  /* 0x0074: C2_AUX_GEQ_02 GEQ coeff[1] */
+    0,  /* 0x0075: C2_AUX_GEQ_02 GEQ coeff[2] */
+    0,  /* 0x0076: C2_AUX_GEQ_02 GEQ coeff[3] */
+    0,  /* 0x0077: C2_AUX_GEQ_02 GEQ coeff[4] */
+    0,  /* 0x0078: C2_AUX_GEQ_02 GEQ coeff[5] */
+    0,  /* 0x0079: C2_AUX_GEQ_02 GEQ coeff[6] */
+    0,  /* 0x007A: C2_AUX_GEQ_02 GEQ coeff[7] */
+    0,  /* 0x007B: C2_AUX_GEQ_02 GEQ coeff[8] */
+    0,  /* 0x007C: C2_AUX_GEQ_02 GEQ coeff[9] */
+    0,  /* 0x007D: C2_AUX_GEQ_02 GEQ coeff[10] */
+    0,  /* 0x007E: C2_AUX_GEQ_02 GEQ coeff[11] */
+    0,  /* 0x007F: C2_AUX_GEQ_02 GEQ coeff[12] */
+    0,  /* 0x0080: C2_AUX_GEQ_02 GEQ coeff[13] */
+    0,  /* 0x0081: C2_AUX_GEQ_02 GEQ coeff[14] */
+    0,  /* 0x0082: C2_AUX_GEQ_02 GEQ coeff[15] */
+    0,  /* 0x0083: C2_AUX_GEQ_02 GEQ coeff[16] */
+    0,  /* 0x0084: C2_AUX_GEQ_02 GEQ coeff[17] */
+    0,  /* 0x0085: C2_AUX_GEQ_02 GEQ coeff[18] */
+    0,  /* 0x0086: C2_AUX_GEQ_02 GEQ coeff[19] */
+    0,  /* 0x0087: C2_AUX_GEQ_02 GEQ coeff[20] */
+    0,  /* 0x0088: C2_AUX_GEQ_02 GEQ coeff[21] */
+    0,  /* 0x0089: C2_AUX_GEQ_02 GEQ coeff[22] */
+    0,  /* 0x008A: C2_AUX_GEQ_02 GEQ coeff[23] */
+    0,  /* 0x008B: C2_AUX_GEQ_02 GEQ coeff[24] */
+    0,  /* 0x008C: C2_AUX_GEQ_02 GEQ coeff[25] */
+    0,  /* 0x008D: C2_AUX_GEQ_02 GEQ coeff[26] */
+    0,  /* 0x008E: C2_AUX_GEQ_02 GEQ coeff[27] */
+    0,  /* 0x008F: C2_AUX_AFB_02 AntiFbOn */
+    0,  /* 0x0090: C2_AUX_AFB_02 AntiFbCtrlOn */
+    0,  /* 0x0091: C2_AUX_AFB_02 NotchFreq[1] */
+    0,  /* 0x0092: C2_AUX_AFB_02 NotchFreq[2] */
+    0,  /* 0x0093: C2_AUX_AFB_02 NotchFreq[3] */
+    0,  /* 0x0094: C2_AUX_AFB_02 NotchFreq[4] */
+    0,  /* 0x0095: C2_AUX_AFB_02 NotchFreq[5] */
+    0,  /* 0x0096: C2_AUX_AFB_02 NotchFreq[6] */
+    0,  /* 0x0097: C2_AUX_AFB_02 NotchGain[1] */
+    0,  /* 0x0098: C2_AUX_AFB_02 NotchGain[2] */
+    0,  /* 0x0099: C2_AUX_AFB_02 NotchGain[3] */
+    0,  /* 0x009A: C2_AUX_AFB_02 NotchGain[4] */
+    0,  /* 0x009B: C2_AUX_AFB_02 NotchGain[5] */
+    0,  /* 0x009C: C2_AUX_AFB_02 NotchGain[6] */
+    0,  /* 0x009D: C2_AUX_AFB_02 NotchQ[1] */
+    0,  /* 0x009E: C2_AUX_AFB_02 NotchQ[2] */
+    0,  /* 0x009F: C2_AUX_AFB_02 NotchQ[3] */
+    0,  /* 0x00A0: C2_AUX_AFB_02 NotchQ[4] */
+    0,  /* 0x00A1: C2_AUX_AFB_02 NotchQ[5] */
+    0,  /* 0x00A2: C2_AUX_AFB_02 NotchQ[6] */
+    0,  /* 0x00A3: C2_AUX_AFB_02 spare coeff [20] */
+    0,  /* 0x00A4: C2_AUX_AFB_02 spare coeff [21] */
+    0,  /* 0x00A5: C2_AUX_AFB_02 spare coeff [22] */
+    0,  /* 0x00A6: C2_AUX_AFB_02 spare coeff [23] */
+    0,  /* 0x00A7: C2_AUX_LIM_02 LimiterOn */
+    0,  /* 0x00A8: C2_AUX_LIM_02 LimiterThr */
+    0,  /* 0x00A9: C2_AUX_LIM_02 LimiterAtt */
+    0,  /* 0x00AA: C2_AUX_LIM_02 LimiterRel */
+    0,  /* 0x00AB: C2_AUX_DLY_02 delay offset */
+    0,  /* 0x00AC: C2_AUX_DLY_02 pool_slot */
+    0,  /* 0x00AD */
+    0,  /* 0x00AE: C2_AUX_FDR_03 level */
+    0,  /* 0x00AF: C2_AUX_FDR_03 pan */
+    0,  /* 0x00B0: C2_AUX_FDR_03 mute */
+    0,  /* 0x00B1: C2_AUX_FDR_03 DCA gain */
+    0,  /* 0x00B2: C2_AUX_EQ_03 EQ coeff[0] */
+    0,  /* 0x00B3: C2_AUX_EQ_03 EQ coeff[1] */
+    0,  /* 0x00B4: C2_AUX_EQ_03 EQ coeff[2] */
+    0,  /* 0x00B5: C2_AUX_EQ_03 EQ coeff[3] */
+    0,  /* 0x00B6: C2_AUX_EQ_03 EQ coeff[4] */
+    0,  /* 0x00B7: C2_AUX_EQ_03 EQ coeff[5] */
+    0,  /* 0x00B8: C2_AUX_EQ_03 EQ coeff[6] */
+    0,  /* 0x00B9: C2_AUX_EQ_03 EQ coeff[7] */
+    0,  /* 0x00BA: C2_AUX_EQ_03 EQ coeff[8] */
+    0,  /* 0x00BB: C2_AUX_EQ_03 EQ coeff[9] */
+    0,  /* 0x00BC: C2_AUX_EQ_03 EQ coeff[10] */
+    0,  /* 0x00BD: C2_AUX_EQ_03 EQ coeff[11] */
+    0,  /* 0x00BE: C2_AUX_EQ_03 EQ coeff[12] */
+    0,  /* 0x00BF: C2_AUX_EQ_03 EQ coeff[13] */
+    0,  /* 0x00C0: C2_AUX_EQ_03 EQ coeff[14] */
+    0,  /* 0x00C1: C2_AUX_EQ_03 EQ coeff[15] */
+    0,  /* 0x00C2: C2_AUX_EQ_03 EQ coeff[16] */
+    0,  /* 0x00C3: C2_AUX_EQ_03 EQ coeff[17] */
+    0,  /* 0x00C4: C2_AUX_EQ_03 EQ coeff[18] */
+    0,  /* 0x00C5: C2_AUX_EQ_03 EQ coeff[19] */
+    0,  /* 0x00C6: C2_AUX_EQ_03 EQ swap trigger */
+    0,  /* 0x00C7: C2_AUX_EQ_03 EqOn (MCU-managed) */
+    0,  /* 0x00C8: C2_AUX_EQ_03 spare */
+    0,  /* 0x00C9: C2_AUX_EQ_03 spare */
+    0,  /* 0x00CA: C2_AUX_GEQ_03 GEQ coeff[0] */
+    0,  /* 0x00CB: C2_AUX_GEQ_03 GEQ coeff[1] */
+    0,  /* 0x00CC: C2_AUX_GEQ_03 GEQ coeff[2] */
+    0,  /* 0x00CD: C2_AUX_GEQ_03 GEQ coeff[3] */
+    0,  /* 0x00CE: C2_AUX_GEQ_03 GEQ coeff[4] */
+    0,  /* 0x00CF: C2_AUX_GEQ_03 GEQ coeff[5] */
+    0,  /* 0x00D0: C2_AUX_GEQ_03 GEQ coeff[6] */
+    0,  /* 0x00D1: C2_AUX_GEQ_03 GEQ coeff[7] */
+    0,  /* 0x00D2: C2_AUX_GEQ_03 GEQ coeff[8] */
+    0,  /* 0x00D3: C2_AUX_GEQ_03 GEQ coeff[9] */
+    0,  /* 0x00D4: C2_AUX_GEQ_03 GEQ coeff[10] */
+    0,  /* 0x00D5: C2_AUX_GEQ_03 GEQ coeff[11] */
+    0,  /* 0x00D6: C2_AUX_GEQ_03 GEQ coeff[12] */
+    0,  /* 0x00D7: C2_AUX_GEQ_03 GEQ coeff[13] */
+    0,  /* 0x00D8: C2_AUX_GEQ_03 GEQ coeff[14] */
+    0,  /* 0x00D9: C2_AUX_GEQ_03 GEQ coeff[15] */
+    0,  /* 0x00DA: C2_AUX_GEQ_03 GEQ coeff[16] */
+    0,  /* 0x00DB: C2_AUX_GEQ_03 GEQ coeff[17] */
+    0,  /* 0x00DC: C2_AUX_GEQ_03 GEQ coeff[18] */
+    0,  /* 0x00DD: C2_AUX_GEQ_03 GEQ coeff[19] */
+    0,  /* 0x00DE: C2_AUX_GEQ_03 GEQ coeff[20] */
+    0,  /* 0x00DF: C2_AUX_GEQ_03 GEQ coeff[21] */
+    0,  /* 0x00E0: C2_AUX_GEQ_03 GEQ coeff[22] */
+    0,  /* 0x00E1: C2_AUX_GEQ_03 GEQ coeff[23] */
+    0,  /* 0x00E2: C2_AUX_GEQ_03 GEQ coeff[24] */
+    0,  /* 0x00E3: C2_AUX_GEQ_03 GEQ coeff[25] */
+    0,  /* 0x00E4: C2_AUX_GEQ_03 GEQ coeff[26] */
+    0,  /* 0x00E5: C2_AUX_GEQ_03 GEQ coeff[27] */
+    0,  /* 0x00E6: C2_AUX_AFB_03 AntiFbOn */
+    0,  /* 0x00E7: C2_AUX_AFB_03 AntiFbCtrlOn */
+    0,  /* 0x00E8: C2_AUX_AFB_03 NotchFreq[1] */
+    0,  /* 0x00E9: C2_AUX_AFB_03 NotchFreq[2] */
+    0,  /* 0x00EA: C2_AUX_AFB_03 NotchFreq[3] */
+    0,  /* 0x00EB: C2_AUX_AFB_03 NotchFreq[4] */
+    0,  /* 0x00EC: C2_AUX_AFB_03 NotchFreq[5] */
+    0,  /* 0x00ED: C2_AUX_AFB_03 NotchFreq[6] */
+    0,  /* 0x00EE: C2_AUX_AFB_03 NotchGain[1] */
+    0,  /* 0x00EF: C2_AUX_AFB_03 NotchGain[2] */
+    0,  /* 0x00F0: C2_AUX_AFB_03 NotchGain[3] */
+    0,  /* 0x00F1: C2_AUX_AFB_03 NotchGain[4] */
+    0,  /* 0x00F2: C2_AUX_AFB_03 NotchGain[5] */
+    0,  /* 0x00F3: C2_AUX_AFB_03 NotchGain[6] */
+    0,  /* 0x00F4: C2_AUX_AFB_03 NotchQ[1] */
+    0,  /* 0x00F5: C2_AUX_AFB_03 NotchQ[2] */
+    0,  /* 0x00F6: C2_AUX_AFB_03 NotchQ[3] */
+    0,  /* 0x00F7: C2_AUX_AFB_03 NotchQ[4] */
+    0,  /* 0x00F8: C2_AUX_AFB_03 NotchQ[5] */
+    0,  /* 0x00F9: C2_AUX_AFB_03 NotchQ[6] */
+    0,  /* 0x00FA: C2_AUX_AFB_03 spare coeff [20] */
+    0,  /* 0x00FB: C2_AUX_AFB_03 spare coeff [21] */
+    0,  /* 0x00FC: C2_AUX_AFB_03 spare coeff [22] */
+    0,  /* 0x00FD: C2_AUX_AFB_03 spare coeff [23] */
+    0,  /* 0x00FE: C2_AUX_LIM_03 LimiterOn */
+    0,  /* 0x00FF: C2_AUX_LIM_03 LimiterThr */
+    0,  /* 0x0100: C2_AUX_LIM_03 LimiterAtt */
+    0,  /* 0x0101: C2_AUX_LIM_03 LimiterRel */
+    0,  /* 0x0102: C2_AUX_DLY_03 delay offset */
+    0,  /* 0x0103: C2_AUX_DLY_03 pool_slot */
+    0,  /* 0x0104 */
+    0,  /* 0x0105: C2_AUX_FDR_04 level */
+    0,  /* 0x0106: C2_AUX_FDR_04 pan */
+    0,  /* 0x0107: C2_AUX_FDR_04 mute */
+    0,  /* 0x0108: C2_AUX_FDR_04 DCA gain */
+    0,  /* 0x0109: C2_AUX_EQ_04 EQ coeff[0] */
+    0,  /* 0x010A: C2_AUX_EQ_04 EQ coeff[1] */
+    0,  /* 0x010B: C2_AUX_EQ_04 EQ coeff[2] */
+    0,  /* 0x010C: C2_AUX_EQ_04 EQ coeff[3] */
+    0,  /* 0x010D: C2_AUX_EQ_04 EQ coeff[4] */
+    0,  /* 0x010E: C2_AUX_EQ_04 EQ coeff[5] */
+    0,  /* 0x010F: C2_AUX_EQ_04 EQ coeff[6] */
+    0,  /* 0x0110: C2_AUX_EQ_04 EQ coeff[7] */
+    0,  /* 0x0111: C2_AUX_EQ_04 EQ coeff[8] */
+    0,  /* 0x0112: C2_AUX_EQ_04 EQ coeff[9] */
+    0,  /* 0x0113: C2_AUX_EQ_04 EQ coeff[10] */
+    0,  /* 0x0114: C2_AUX_EQ_04 EQ coeff[11] */
+    0,  /* 0x0115: C2_AUX_EQ_04 EQ coeff[12] */
+    0,  /* 0x0116: C2_AUX_EQ_04 EQ coeff[13] */
+    0,  /* 0x0117: C2_AUX_EQ_04 EQ coeff[14] */
+    0,  /* 0x0118: C2_AUX_EQ_04 EQ coeff[15] */
+    0,  /* 0x0119: C2_AUX_EQ_04 EQ coeff[16] */
+    0,  /* 0x011A: C2_AUX_EQ_04 EQ coeff[17] */
+    0,  /* 0x011B: C2_AUX_EQ_04 EQ coeff[18] */
+    0,  /* 0x011C: C2_AUX_EQ_04 EQ coeff[19] */
+    0,  /* 0x011D: C2_AUX_EQ_04 EQ swap trigger */
+    0,  /* 0x011E: C2_AUX_EQ_04 EqOn (MCU-managed) */
+    0,  /* 0x011F: C2_AUX_EQ_04 spare */
+    0,  /* 0x0120: C2_AUX_EQ_04 spare */
+    0,  /* 0x0121: C2_AUX_GEQ_04 GEQ coeff[0] */
+    0,  /* 0x0122: C2_AUX_GEQ_04 GEQ coeff[1] */
+    0,  /* 0x0123: C2_AUX_GEQ_04 GEQ coeff[2] */
+    0,  /* 0x0124: C2_AUX_GEQ_04 GEQ coeff[3] */
+    0,  /* 0x0125: C2_AUX_GEQ_04 GEQ coeff[4] */
+    0,  /* 0x0126: C2_AUX_GEQ_04 GEQ coeff[5] */
+    0,  /* 0x0127: C2_AUX_GEQ_04 GEQ coeff[6] */
+    0,  /* 0x0128: C2_AUX_GEQ_04 GEQ coeff[7] */
+    0,  /* 0x0129: C2_AUX_GEQ_04 GEQ coeff[8] */
+    0,  /* 0x012A: C2_AUX_GEQ_04 GEQ coeff[9] */
+    0,  /* 0x012B: C2_AUX_GEQ_04 GEQ coeff[10] */
+    0,  /* 0x012C: C2_AUX_GEQ_04 GEQ coeff[11] */
+    0,  /* 0x012D: C2_AUX_GEQ_04 GEQ coeff[12] */
+    0,  /* 0x012E: C2_AUX_GEQ_04 GEQ coeff[13] */
+    0,  /* 0x012F: C2_AUX_GEQ_04 GEQ coeff[14] */
+    0,  /* 0x0130: C2_AUX_GEQ_04 GEQ coeff[15] */
+    0,  /* 0x0131: C2_AUX_GEQ_04 GEQ coeff[16] */
+    0,  /* 0x0132: C2_AUX_GEQ_04 GEQ coeff[17] */
+    0,  /* 0x0133: C2_AUX_GEQ_04 GEQ coeff[18] */
+    0,  /* 0x0134: C2_AUX_GEQ_04 GEQ coeff[19] */
+    0,  /* 0x0135: C2_AUX_GEQ_04 GEQ coeff[20] */
+    0,  /* 0x0136: C2_AUX_GEQ_04 GEQ coeff[21] */
+    0,  /* 0x0137: C2_AUX_GEQ_04 GEQ coeff[22] */
+    0,  /* 0x0138: C2_AUX_GEQ_04 GEQ coeff[23] */
+    0,  /* 0x0139: C2_AUX_GEQ_04 GEQ coeff[24] */
+    0,  /* 0x013A: C2_AUX_GEQ_04 GEQ coeff[25] */
+    0,  /* 0x013B: C2_AUX_GEQ_04 GEQ coeff[26] */
+    0,  /* 0x013C: C2_AUX_GEQ_04 GEQ coeff[27] */
+    0,  /* 0x013D: C2_AUX_AFB_04 AntiFbOn */
+    0,  /* 0x013E: C2_AUX_AFB_04 AntiFbCtrlOn */
+    0,  /* 0x013F: C2_AUX_AFB_04 NotchFreq[1] */
+    0,  /* 0x0140: C2_AUX_AFB_04 NotchFreq[2] */
+    0,  /* 0x0141: C2_AUX_AFB_04 NotchFreq[3] */
+    0,  /* 0x0142: C2_AUX_AFB_04 NotchFreq[4] */
+    0,  /* 0x0143: C2_AUX_AFB_04 NotchFreq[5] */
+    0,  /* 0x0144: C2_AUX_AFB_04 NotchFreq[6] */
+    0,  /* 0x0145: C2_AUX_AFB_04 NotchGain[1] */
+    0,  /* 0x0146: C2_AUX_AFB_04 NotchGain[2] */
+    0,  /* 0x0147: C2_AUX_AFB_04 NotchGain[3] */
+    0,  /* 0x0148: C2_AUX_AFB_04 NotchGain[4] */
+    0,  /* 0x0149: C2_AUX_AFB_04 NotchGain[5] */
+    0,  /* 0x014A: C2_AUX_AFB_04 NotchGain[6] */
+    0,  /* 0x014B: C2_AUX_AFB_04 NotchQ[1] */
+    0,  /* 0x014C: C2_AUX_AFB_04 NotchQ[2] */
+    0,  /* 0x014D: C2_AUX_AFB_04 NotchQ[3] */
+    0,  /* 0x014E: C2_AUX_AFB_04 NotchQ[4] */
+    0,  /* 0x014F: C2_AUX_AFB_04 NotchQ[5] */
+    0,  /* 0x0150: C2_AUX_AFB_04 NotchQ[6] */
+    0,  /* 0x0151: C2_AUX_AFB_04 spare coeff [20] */
+    0,  /* 0x0152: C2_AUX_AFB_04 spare coeff [21] */
+    0,  /* 0x0153: C2_AUX_AFB_04 spare coeff [22] */
+    0,  /* 0x0154: C2_AUX_AFB_04 spare coeff [23] */
+    0,  /* 0x0155: C2_AUX_LIM_04 LimiterOn */
+    0,  /* 0x0156: C2_AUX_LIM_04 LimiterThr */
+    0,  /* 0x0157: C2_AUX_LIM_04 LimiterAtt */
+    0,  /* 0x0158: C2_AUX_LIM_04 LimiterRel */
+    0,  /* 0x0159: C2_AUX_DLY_04 delay offset */
+    0,  /* 0x015A: C2_AUX_DLY_04 pool_slot */
+    0,  /* 0x015B */
+    0,  /* 0x015C: C2_AUX_FDR_05 level */
+    0,  /* 0x015D: C2_AUX_FDR_05 pan */
+    0,  /* 0x015E: C2_AUX_FDR_05 mute */
+    0,  /* 0x015F: C2_AUX_FDR_05 DCA gain */
+    0,  /* 0x0160: C2_AUX_EQ_05 EQ coeff[0] */
+    0,  /* 0x0161: C2_AUX_EQ_05 EQ coeff[1] */
+    0,  /* 0x0162: C2_AUX_EQ_05 EQ coeff[2] */
+    0,  /* 0x0163: C2_AUX_EQ_05 EQ coeff[3] */
+    0,  /* 0x0164: C2_AUX_EQ_05 EQ coeff[4] */
+    0,  /* 0x0165: C2_AUX_EQ_05 EQ coeff[5] */
+    0,  /* 0x0166: C2_AUX_EQ_05 EQ coeff[6] */
+    0,  /* 0x0167: C2_AUX_EQ_05 EQ coeff[7] */
+    0,  /* 0x0168: C2_AUX_EQ_05 EQ coeff[8] */
+    0,  /* 0x0169: C2_AUX_EQ_05 EQ coeff[9] */
+    0,  /* 0x016A: C2_AUX_EQ_05 EQ coeff[10] */
+    0,  /* 0x016B: C2_AUX_EQ_05 EQ coeff[11] */
+    0,  /* 0x016C: C2_AUX_EQ_05 EQ coeff[12] */
+    0,  /* 0x016D: C2_AUX_EQ_05 EQ coeff[13] */
+    0,  /* 0x016E: C2_AUX_EQ_05 EQ coeff[14] */
+    0,  /* 0x016F: C2_AUX_EQ_05 EQ coeff[15] */
+    0,  /* 0x0170: C2_AUX_EQ_05 EQ coeff[16] */
+    0,  /* 0x0171: C2_AUX_EQ_05 EQ coeff[17] */
+    0,  /* 0x0172: C2_AUX_EQ_05 EQ coeff[18] */
+    0,  /* 0x0173: C2_AUX_EQ_05 EQ coeff[19] */
+    0,  /* 0x0174: C2_AUX_EQ_05 EQ swap trigger */
+    0,  /* 0x0175: C2_AUX_EQ_05 EqOn (MCU-managed) */
+    0,  /* 0x0176: C2_AUX_EQ_05 spare */
+    0,  /* 0x0177: C2_AUX_EQ_05 spare */
+    0,  /* 0x0178: C2_AUX_GEQ_05 GEQ coeff[0] */
+    0,  /* 0x0179: C2_AUX_GEQ_05 GEQ coeff[1] */
+    0,  /* 0x017A: C2_AUX_GEQ_05 GEQ coeff[2] */
+    0,  /* 0x017B: C2_AUX_GEQ_05 GEQ coeff[3] */
+    0,  /* 0x017C: C2_AUX_GEQ_05 GEQ coeff[4] */
+    0,  /* 0x017D: C2_AUX_GEQ_05 GEQ coeff[5] */
+    0,  /* 0x017E: C2_AUX_GEQ_05 GEQ coeff[6] */
+    0,  /* 0x017F: C2_AUX_GEQ_05 GEQ coeff[7] */
+    0,  /* 0x0180: C2_AUX_GEQ_05 GEQ coeff[8] */
+    0,  /* 0x0181: C2_AUX_GEQ_05 GEQ coeff[9] */
+    0,  /* 0x0182: C2_AUX_GEQ_05 GEQ coeff[10] */
+    0,  /* 0x0183: C2_AUX_GEQ_05 GEQ coeff[11] */
+    0,  /* 0x0184: C2_AUX_GEQ_05 GEQ coeff[12] */
+    0,  /* 0x0185: C2_AUX_GEQ_05 GEQ coeff[13] */
+    0,  /* 0x0186: C2_AUX_GEQ_05 GEQ coeff[14] */
+    0,  /* 0x0187: C2_AUX_GEQ_05 GEQ coeff[15] */
+    0,  /* 0x0188: C2_AUX_GEQ_05 GEQ coeff[16] */
+    0,  /* 0x0189: C2_AUX_GEQ_05 GEQ coeff[17] */
+    0,  /* 0x018A: C2_AUX_GEQ_05 GEQ coeff[18] */
+    0,  /* 0x018B: C2_AUX_GEQ_05 GEQ coeff[19] */
+    0,  /* 0x018C: C2_AUX_GEQ_05 GEQ coeff[20] */
+    0,  /* 0x018D: C2_AUX_GEQ_05 GEQ coeff[21] */
+    0,  /* 0x018E: C2_AUX_GEQ_05 GEQ coeff[22] */
+    0,  /* 0x018F: C2_AUX_GEQ_05 GEQ coeff[23] */
+    0,  /* 0x0190: C2_AUX_GEQ_05 GEQ coeff[24] */
+    0,  /* 0x0191: C2_AUX_GEQ_05 GEQ coeff[25] */
+    0,  /* 0x0192: C2_AUX_GEQ_05 GEQ coeff[26] */
+    0,  /* 0x0193: C2_AUX_GEQ_05 GEQ coeff[27] */
+    0,  /* 0x0194: C2_AUX_AFB_05 AntiFbOn */
+    0,  /* 0x0195: C2_AUX_AFB_05 AntiFbCtrlOn */
+    0,  /* 0x0196: C2_AUX_AFB_05 NotchFreq[1] */
+    0,  /* 0x0197: C2_AUX_AFB_05 NotchFreq[2] */
+    0,  /* 0x0198: C2_AUX_AFB_05 NotchFreq[3] */
+    0,  /* 0x0199: C2_AUX_AFB_05 NotchFreq[4] */
+    0,  /* 0x019A: C2_AUX_AFB_05 NotchFreq[5] */
+    0,  /* 0x019B: C2_AUX_AFB_05 NotchFreq[6] */
+    0,  /* 0x019C: C2_AUX_AFB_05 NotchGain[1] */
+    0,  /* 0x019D: C2_AUX_AFB_05 NotchGain[2] */
+    0,  /* 0x019E: C2_AUX_AFB_05 NotchGain[3] */
+    0,  /* 0x019F: C2_AUX_AFB_05 NotchGain[4] */
+    0,  /* 0x01A0: C2_AUX_AFB_05 NotchGain[5] */
+    0,  /* 0x01A1: C2_AUX_AFB_05 NotchGain[6] */
+    0,  /* 0x01A2: C2_AUX_AFB_05 NotchQ[1] */
+    0,  /* 0x01A3: C2_AUX_AFB_05 NotchQ[2] */
+    0,  /* 0x01A4: C2_AUX_AFB_05 NotchQ[3] */
+    0,  /* 0x01A5: C2_AUX_AFB_05 NotchQ[4] */
+    0,  /* 0x01A6: C2_AUX_AFB_05 NotchQ[5] */
+    0,  /* 0x01A7: C2_AUX_AFB_05 NotchQ[6] */
+    0,  /* 0x01A8: C2_AUX_AFB_05 spare coeff [20] */
+    0,  /* 0x01A9: C2_AUX_AFB_05 spare coeff [21] */
+    0,  /* 0x01AA: C2_AUX_AFB_05 spare coeff [22] */
+    0,  /* 0x01AB: C2_AUX_AFB_05 spare coeff [23] */
+    0,  /* 0x01AC: C2_AUX_LIM_05 LimiterOn */
+    0,  /* 0x01AD: C2_AUX_LIM_05 LimiterThr */
+    0,  /* 0x01AE: C2_AUX_LIM_05 LimiterAtt */
+    0,  /* 0x01AF: C2_AUX_LIM_05 LimiterRel */
+    0,  /* 0x01B0: C2_AUX_DLY_05 delay offset */
+    0,  /* 0x01B1: C2_AUX_DLY_05 pool_slot */
+    0,  /* 0x01B2 */
+    0,  /* 0x01B3: C2_AUX_FDR_06 level */
+    0,  /* 0x01B4: C2_AUX_FDR_06 pan */
+    0,  /* 0x01B5: C2_AUX_FDR_06 mute */
+    0,  /* 0x01B6: C2_AUX_FDR_06 DCA gain */
+    0,  /* 0x01B7: C2_AUX_EQ_06 EQ coeff[0] */
+    0,  /* 0x01B8: C2_AUX_EQ_06 EQ coeff[1] */
+    0,  /* 0x01B9: C2_AUX_EQ_06 EQ coeff[2] */
+    0,  /* 0x01BA: C2_AUX_EQ_06 EQ coeff[3] */
+    0,  /* 0x01BB: C2_AUX_EQ_06 EQ coeff[4] */
+    0,  /* 0x01BC: C2_AUX_EQ_06 EQ coeff[5] */
+    0,  /* 0x01BD: C2_AUX_EQ_06 EQ coeff[6] */
+    0,  /* 0x01BE: C2_AUX_EQ_06 EQ coeff[7] */
+    0,  /* 0x01BF: C2_AUX_EQ_06 EQ coeff[8] */
+    0,  /* 0x01C0: C2_AUX_EQ_06 EQ coeff[9] */
+    0,  /* 0x01C1: C2_AUX_EQ_06 EQ coeff[10] */
+    0,  /* 0x01C2: C2_AUX_EQ_06 EQ coeff[11] */
+    0,  /* 0x01C3: C2_AUX_EQ_06 EQ coeff[12] */
+    0,  /* 0x01C4: C2_AUX_EQ_06 EQ coeff[13] */
+    0,  /* 0x01C5: C2_AUX_EQ_06 EQ coeff[14] */
+    0,  /* 0x01C6: C2_AUX_EQ_06 EQ coeff[15] */
+    0,  /* 0x01C7: C2_AUX_EQ_06 EQ coeff[16] */
+    0,  /* 0x01C8: C2_AUX_EQ_06 EQ coeff[17] */
+    0,  /* 0x01C9: C2_AUX_EQ_06 EQ coeff[18] */
+    0,  /* 0x01CA: C2_AUX_EQ_06 EQ coeff[19] */
+    0,  /* 0x01CB: C2_AUX_EQ_06 EQ swap trigger */
+    0,  /* 0x01CC: C2_AUX_EQ_06 EqOn (MCU-managed) */
+    0,  /* 0x01CD: C2_AUX_EQ_06 spare */
+    0,  /* 0x01CE: C2_AUX_EQ_06 spare */
+    0,  /* 0x01CF: C2_AUX_GEQ_06 GEQ coeff[0] */
+    0,  /* 0x01D0: C2_AUX_GEQ_06 GEQ coeff[1] */
+    0,  /* 0x01D1: C2_AUX_GEQ_06 GEQ coeff[2] */
+    0,  /* 0x01D2: C2_AUX_GEQ_06 GEQ coeff[3] */
+    0,  /* 0x01D3: C2_AUX_GEQ_06 GEQ coeff[4] */
+    0,  /* 0x01D4: C2_AUX_GEQ_06 GEQ coeff[5] */
+    0,  /* 0x01D5: C2_AUX_GEQ_06 GEQ coeff[6] */
+    0,  /* 0x01D6: C2_AUX_GEQ_06 GEQ coeff[7] */
+    0,  /* 0x01D7: C2_AUX_GEQ_06 GEQ coeff[8] */
+    0,  /* 0x01D8: C2_AUX_GEQ_06 GEQ coeff[9] */
+    0,  /* 0x01D9: C2_AUX_GEQ_06 GEQ coeff[10] */
+    0,  /* 0x01DA: C2_AUX_GEQ_06 GEQ coeff[11] */
+    0,  /* 0x01DB: C2_AUX_GEQ_06 GEQ coeff[12] */
+    0,  /* 0x01DC: C2_AUX_GEQ_06 GEQ coeff[13] */
+    0,  /* 0x01DD: C2_AUX_GEQ_06 GEQ coeff[14] */
+    0,  /* 0x01DE: C2_AUX_GEQ_06 GEQ coeff[15] */
+    0,  /* 0x01DF: C2_AUX_GEQ_06 GEQ coeff[16] */
+    0,  /* 0x01E0: C2_AUX_GEQ_06 GEQ coeff[17] */
+    0,  /* 0x01E1: C2_AUX_GEQ_06 GEQ coeff[18] */
+    0,  /* 0x01E2: C2_AUX_GEQ_06 GEQ coeff[19] */
+    0,  /* 0x01E3: C2_AUX_GEQ_06 GEQ coeff[20] */
+    0,  /* 0x01E4: C2_AUX_GEQ_06 GEQ coeff[21] */
+    0,  /* 0x01E5: C2_AUX_GEQ_06 GEQ coeff[22] */
+    0,  /* 0x01E6: C2_AUX_GEQ_06 GEQ coeff[23] */
+    0,  /* 0x01E7: C2_AUX_GEQ_06 GEQ coeff[24] */
+    0,  /* 0x01E8: C2_AUX_GEQ_06 GEQ coeff[25] */
+    0,  /* 0x01E9: C2_AUX_GEQ_06 GEQ coeff[26] */
+    0,  /* 0x01EA: C2_AUX_GEQ_06 GEQ coeff[27] */
+    0,  /* 0x01EB: C2_AUX_AFB_06 AntiFbOn */
+    0,  /* 0x01EC: C2_AUX_AFB_06 AntiFbCtrlOn */
+    0,  /* 0x01ED: C2_AUX_AFB_06 NotchFreq[1] */
+    0,  /* 0x01EE: C2_AUX_AFB_06 NotchFreq[2] */
+    0,  /* 0x01EF: C2_AUX_AFB_06 NotchFreq[3] */
+    0,  /* 0x01F0: C2_AUX_AFB_06 NotchFreq[4] */
+    0,  /* 0x01F1: C2_AUX_AFB_06 NotchFreq[5] */
+    0,  /* 0x01F2: C2_AUX_AFB_06 NotchFreq[6] */
+    0,  /* 0x01F3: C2_AUX_AFB_06 NotchGain[1] */
+    0,  /* 0x01F4: C2_AUX_AFB_06 NotchGain[2] */
+    0,  /* 0x01F5: C2_AUX_AFB_06 NotchGain[3] */
+    0,  /* 0x01F6: C2_AUX_AFB_06 NotchGain[4] */
+    0,  /* 0x01F7: C2_AUX_AFB_06 NotchGain[5] */
+    0,  /* 0x01F8: C2_AUX_AFB_06 NotchGain[6] */
+    0,  /* 0x01F9: C2_AUX_AFB_06 NotchQ[1] */
+    0,  /* 0x01FA: C2_AUX_AFB_06 NotchQ[2] */
+    0,  /* 0x01FB: C2_AUX_AFB_06 NotchQ[3] */
+    0,  /* 0x01FC: C2_AUX_AFB_06 NotchQ[4] */
+    0,  /* 0x01FD: C2_AUX_AFB_06 NotchQ[5] */
+    0,  /* 0x01FE: C2_AUX_AFB_06 NotchQ[6] */
+    0,  /* 0x01FF: C2_AUX_AFB_06 spare coeff [20] */
+    0,  /* 0x0200: C2_AUX_AFB_06 spare coeff [21] */
+    0,  /* 0x0201: C2_AUX_AFB_06 spare coeff [22] */
+    0,  /* 0x0202: C2_AUX_AFB_06 spare coeff [23] */
+    0,  /* 0x0203: C2_AUX_LIM_06 LimiterOn */
+    0,  /* 0x0204: C2_AUX_LIM_06 LimiterThr */
+    0,  /* 0x0205: C2_AUX_LIM_06 LimiterAtt */
+    0,  /* 0x0206: C2_AUX_LIM_06 LimiterRel */
+    0,  /* 0x0207: C2_AUX_DLY_06 delay offset */
+    0,  /* 0x0208: C2_AUX_DLY_06 pool_slot */
+    0,  /* 0x0209 */
+    0,  /* 0x020A: C2_AUX_FDR_07 level */
+    0,  /* 0x020B: C2_AUX_FDR_07 pan */
+    0,  /* 0x020C: C2_AUX_FDR_07 mute */
+    0,  /* 0x020D: C2_AUX_FDR_07 DCA gain */
+    0,  /* 0x020E: C2_AUX_EQ_07 EQ coeff[0] */
+    0,  /* 0x020F: C2_AUX_EQ_07 EQ coeff[1] */
+    0,  /* 0x0210: C2_AUX_EQ_07 EQ coeff[2] */
+    0,  /* 0x0211: C2_AUX_EQ_07 EQ coeff[3] */
+    0,  /* 0x0212: C2_AUX_EQ_07 EQ coeff[4] */
+    0,  /* 0x0213: C2_AUX_EQ_07 EQ coeff[5] */
+    0,  /* 0x0214: C2_AUX_EQ_07 EQ coeff[6] */
+    0,  /* 0x0215: C2_AUX_EQ_07 EQ coeff[7] */
+    0,  /* 0x0216: C2_AUX_EQ_07 EQ coeff[8] */
+    0,  /* 0x0217: C2_AUX_EQ_07 EQ coeff[9] */
+    0,  /* 0x0218: C2_AUX_EQ_07 EQ coeff[10] */
+    0,  /* 0x0219: C2_AUX_EQ_07 EQ coeff[11] */
+    0,  /* 0x021A: C2_AUX_EQ_07 EQ coeff[12] */
+    0,  /* 0x021B: C2_AUX_EQ_07 EQ coeff[13] */
+    0,  /* 0x021C: C2_AUX_EQ_07 EQ coeff[14] */
+    0,  /* 0x021D: C2_AUX_EQ_07 EQ coeff[15] */
+    0,  /* 0x021E: C2_AUX_EQ_07 EQ coeff[16] */
+    0,  /* 0x021F: C2_AUX_EQ_07 EQ coeff[17] */
+    0,  /* 0x0220: C2_AUX_EQ_07 EQ coeff[18] */
+    0,  /* 0x0221: C2_AUX_EQ_07 EQ coeff[19] */
+    0,  /* 0x0222: C2_AUX_EQ_07 EQ swap trigger */
+    0,  /* 0x0223: C2_AUX_EQ_07 EqOn (MCU-managed) */
+    0,  /* 0x0224: C2_AUX_EQ_07 spare */
+    0,  /* 0x0225: C2_AUX_EQ_07 spare */
+    0,  /* 0x0226: C2_AUX_GEQ_07 GEQ coeff[0] */
+    0,  /* 0x0227: C2_AUX_GEQ_07 GEQ coeff[1] */
+    0,  /* 0x0228: C2_AUX_GEQ_07 GEQ coeff[2] */
+    0,  /* 0x0229: C2_AUX_GEQ_07 GEQ coeff[3] */
+    0,  /* 0x022A: C2_AUX_GEQ_07 GEQ coeff[4] */
+    0,  /* 0x022B: C2_AUX_GEQ_07 GEQ coeff[5] */
+    0,  /* 0x022C: C2_AUX_GEQ_07 GEQ coeff[6] */
+    0,  /* 0x022D: C2_AUX_GEQ_07 GEQ coeff[7] */
+    0,  /* 0x022E: C2_AUX_GEQ_07 GEQ coeff[8] */
+    0,  /* 0x022F: C2_AUX_GEQ_07 GEQ coeff[9] */
+    0,  /* 0x0230: C2_AUX_GEQ_07 GEQ coeff[10] */
+    0,  /* 0x0231: C2_AUX_GEQ_07 GEQ coeff[11] */
+    0,  /* 0x0232: C2_AUX_GEQ_07 GEQ coeff[12] */
+    0,  /* 0x0233: C2_AUX_GEQ_07 GEQ coeff[13] */
+    0,  /* 0x0234: C2_AUX_GEQ_07 GEQ coeff[14] */
+    0,  /* 0x0235: C2_AUX_GEQ_07 GEQ coeff[15] */
+    0,  /* 0x0236: C2_AUX_GEQ_07 GEQ coeff[16] */
+    0,  /* 0x0237: C2_AUX_GEQ_07 GEQ coeff[17] */
+    0,  /* 0x0238: C2_AUX_GEQ_07 GEQ coeff[18] */
+    0,  /* 0x0239: C2_AUX_GEQ_07 GEQ coeff[19] */
+    0,  /* 0x023A: C2_AUX_GEQ_07 GEQ coeff[20] */
+    0,  /* 0x023B: C2_AUX_GEQ_07 GEQ coeff[21] */
+    0,  /* 0x023C: C2_AUX_GEQ_07 GEQ coeff[22] */
+    0,  /* 0x023D: C2_AUX_GEQ_07 GEQ coeff[23] */
+    0,  /* 0x023E: C2_AUX_GEQ_07 GEQ coeff[24] */
+    0,  /* 0x023F: C2_AUX_GEQ_07 GEQ coeff[25] */
+    0,  /* 0x0240: C2_AUX_GEQ_07 GEQ coeff[26] */
+    0,  /* 0x0241: C2_AUX_GEQ_07 GEQ coeff[27] */
+    0,  /* 0x0242: C2_AUX_AFB_07 AntiFbOn */
+    0,  /* 0x0243: C2_AUX_AFB_07 AntiFbCtrlOn */
+    0,  /* 0x0244: C2_AUX_AFB_07 NotchFreq[1] */
+    0,  /* 0x0245: C2_AUX_AFB_07 NotchFreq[2] */
+    0,  /* 0x0246: C2_AUX_AFB_07 NotchFreq[3] */
+    0,  /* 0x0247: C2_AUX_AFB_07 NotchFreq[4] */
+    0,  /* 0x0248: C2_AUX_AFB_07 NotchFreq[5] */
+    0,  /* 0x0249: C2_AUX_AFB_07 NotchFreq[6] */
+    0,  /* 0x024A: C2_AUX_AFB_07 NotchGain[1] */
+    0,  /* 0x024B: C2_AUX_AFB_07 NotchGain[2] */
+    0,  /* 0x024C: C2_AUX_AFB_07 NotchGain[3] */
+    0,  /* 0x024D: C2_AUX_AFB_07 NotchGain[4] */
+    0,  /* 0x024E: C2_AUX_AFB_07 NotchGain[5] */
+    0,  /* 0x024F: C2_AUX_AFB_07 NotchGain[6] */
+    0,  /* 0x0250: C2_AUX_AFB_07 NotchQ[1] */
+    0,  /* 0x0251: C2_AUX_AFB_07 NotchQ[2] */
+    0,  /* 0x0252: C2_AUX_AFB_07 NotchQ[3] */
+    0,  /* 0x0253: C2_AUX_AFB_07 NotchQ[4] */
+    0,  /* 0x0254: C2_AUX_AFB_07 NotchQ[5] */
+    0,  /* 0x0255: C2_AUX_AFB_07 NotchQ[6] */
+    0,  /* 0x0256: C2_AUX_AFB_07 spare coeff [20] */
+    0,  /* 0x0257: C2_AUX_AFB_07 spare coeff [21] */
+    0,  /* 0x0258: C2_AUX_AFB_07 spare coeff [22] */
+    0,  /* 0x0259: C2_AUX_AFB_07 spare coeff [23] */
+    0,  /* 0x025A: C2_AUX_LIM_07 LimiterOn */
+    0,  /* 0x025B: C2_AUX_LIM_07 LimiterThr */
+    0,  /* 0x025C: C2_AUX_LIM_07 LimiterAtt */
+    0,  /* 0x025D: C2_AUX_LIM_07 LimiterRel */
+    0,  /* 0x025E: C2_AUX_DLY_07 delay offset */
+    0,  /* 0x025F: C2_AUX_DLY_07 pool_slot */
+    0,  /* 0x0260 */
+    0,  /* 0x0261: C2_AUX_FDR_08 level */
+    0,  /* 0x0262: C2_AUX_FDR_08 pan */
+    0,  /* 0x0263: C2_AUX_FDR_08 mute */
+    0,  /* 0x0264: C2_AUX_FDR_08 DCA gain */
+    0,  /* 0x0265: C2_AUX_EQ_08 EQ coeff[0] */
+    0,  /* 0x0266: C2_AUX_EQ_08 EQ coeff[1] */
+    0,  /* 0x0267: C2_AUX_EQ_08 EQ coeff[2] */
+    0,  /* 0x0268: C2_AUX_EQ_08 EQ coeff[3] */
+    0,  /* 0x0269: C2_AUX_EQ_08 EQ coeff[4] */
+    0,  /* 0x026A: C2_AUX_EQ_08 EQ coeff[5] */
+    0,  /* 0x026B: C2_AUX_EQ_08 EQ coeff[6] */
+    0,  /* 0x026C: C2_AUX_EQ_08 EQ coeff[7] */
+    0,  /* 0x026D: C2_AUX_EQ_08 EQ coeff[8] */
+    0,  /* 0x026E: C2_AUX_EQ_08 EQ coeff[9] */
+    0,  /* 0x026F: C2_AUX_EQ_08 EQ coeff[10] */
+    0,  /* 0x0270: C2_AUX_EQ_08 EQ coeff[11] */
+    0,  /* 0x0271: C2_AUX_EQ_08 EQ coeff[12] */
+    0,  /* 0x0272: C2_AUX_EQ_08 EQ coeff[13] */
+    0,  /* 0x0273: C2_AUX_EQ_08 EQ coeff[14] */
+    0,  /* 0x0274: C2_AUX_EQ_08 EQ coeff[15] */
+    0,  /* 0x0275: C2_AUX_EQ_08 EQ coeff[16] */
+    0,  /* 0x0276: C2_AUX_EQ_08 EQ coeff[17] */
+    0,  /* 0x0277: C2_AUX_EQ_08 EQ coeff[18] */
+    0,  /* 0x0278: C2_AUX_EQ_08 EQ coeff[19] */
+    0,  /* 0x0279: C2_AUX_EQ_08 EQ swap trigger */
+    0,  /* 0x027A: C2_AUX_EQ_08 EqOn (MCU-managed) */
+    0,  /* 0x027B: C2_AUX_EQ_08 spare */
+    0,  /* 0x027C: C2_AUX_EQ_08 spare */
+    0,  /* 0x027D: C2_AUX_GEQ_08 GEQ coeff[0] */
+    0,  /* 0x027E: C2_AUX_GEQ_08 GEQ coeff[1] */
+    0,  /* 0x027F: C2_AUX_GEQ_08 GEQ coeff[2] */
+    0,  /* 0x0280: C2_AUX_GEQ_08 GEQ coeff[3] */
+    0,  /* 0x0281: C2_AUX_GEQ_08 GEQ coeff[4] */
+    0,  /* 0x0282: C2_AUX_GEQ_08 GEQ coeff[5] */
+    0,  /* 0x0283: C2_AUX_GEQ_08 GEQ coeff[6] */
+    0,  /* 0x0284: C2_AUX_GEQ_08 GEQ coeff[7] */
+    0,  /* 0x0285: C2_AUX_GEQ_08 GEQ coeff[8] */
+    0,  /* 0x0286: C2_AUX_GEQ_08 GEQ coeff[9] */
+    0,  /* 0x0287: C2_AUX_GEQ_08 GEQ coeff[10] */
+    0,  /* 0x0288: C2_AUX_GEQ_08 GEQ coeff[11] */
+    0,  /* 0x0289: C2_AUX_GEQ_08 GEQ coeff[12] */
+    0,  /* 0x028A: C2_AUX_GEQ_08 GEQ coeff[13] */
+    0,  /* 0x028B: C2_AUX_GEQ_08 GEQ coeff[14] */
+    0,  /* 0x028C: C2_AUX_GEQ_08 GEQ coeff[15] */
+    0,  /* 0x028D: C2_AUX_GEQ_08 GEQ coeff[16] */
+    0,  /* 0x028E: C2_AUX_GEQ_08 GEQ coeff[17] */
+    0,  /* 0x028F: C2_AUX_GEQ_08 GEQ coeff[18] */
+    0,  /* 0x0290: C2_AUX_GEQ_08 GEQ coeff[19] */
+    0,  /* 0x0291: C2_AUX_GEQ_08 GEQ coeff[20] */
+    0,  /* 0x0292: C2_AUX_GEQ_08 GEQ coeff[21] */
+    0,  /* 0x0293: C2_AUX_GEQ_08 GEQ coeff[22] */
+    0,  /* 0x0294: C2_AUX_GEQ_08 GEQ coeff[23] */
+    0,  /* 0x0295: C2_AUX_GEQ_08 GEQ coeff[24] */
+    0,  /* 0x0296: C2_AUX_GEQ_08 GEQ coeff[25] */
+    0,  /* 0x0297: C2_AUX_GEQ_08 GEQ coeff[26] */
+    0,  /* 0x0298: C2_AUX_GEQ_08 GEQ coeff[27] */
+    0,  /* 0x0299: C2_AUX_AFB_08 AntiFbOn */
+    0,  /* 0x029A: C2_AUX_AFB_08 AntiFbCtrlOn */
+    0,  /* 0x029B: C2_AUX_AFB_08 NotchFreq[1] */
+    0,  /* 0x029C: C2_AUX_AFB_08 NotchFreq[2] */
+    0,  /* 0x029D: C2_AUX_AFB_08 NotchFreq[3] */
+    0,  /* 0x029E: C2_AUX_AFB_08 NotchFreq[4] */
+    0,  /* 0x029F: C2_AUX_AFB_08 NotchFreq[5] */
+    0,  /* 0x02A0: C2_AUX_AFB_08 NotchFreq[6] */
+    0,  /* 0x02A1: C2_AUX_AFB_08 NotchGain[1] */
+    0,  /* 0x02A2: C2_AUX_AFB_08 NotchGain[2] */
+    0,  /* 0x02A3: C2_AUX_AFB_08 NotchGain[3] */
+    0,  /* 0x02A4: C2_AUX_AFB_08 NotchGain[4] */
+    0,  /* 0x02A5: C2_AUX_AFB_08 NotchGain[5] */
+    0,  /* 0x02A6: C2_AUX_AFB_08 NotchGain[6] */
+    0,  /* 0x02A7: C2_AUX_AFB_08 NotchQ[1] */
+    0,  /* 0x02A8: C2_AUX_AFB_08 NotchQ[2] */
+    0,  /* 0x02A9: C2_AUX_AFB_08 NotchQ[3] */
+    0,  /* 0x02AA: C2_AUX_AFB_08 NotchQ[4] */
+    0,  /* 0x02AB: C2_AUX_AFB_08 NotchQ[5] */
+    0,  /* 0x02AC: C2_AUX_AFB_08 NotchQ[6] */
+    0,  /* 0x02AD: C2_AUX_AFB_08 spare coeff [20] */
+    0,  /* 0x02AE: C2_AUX_AFB_08 spare coeff [21] */
+    0,  /* 0x02AF: C2_AUX_AFB_08 spare coeff [22] */
+    0,  /* 0x02B0: C2_AUX_AFB_08 spare coeff [23] */
+    0,  /* 0x02B1: C2_AUX_LIM_08 LimiterOn */
+    0,  /* 0x02B2: C2_AUX_LIM_08 LimiterThr */
+    0,  /* 0x02B3: C2_AUX_LIM_08 LimiterAtt */
+    0,  /* 0x02B4: C2_AUX_LIM_08 LimiterRel */
+    0,  /* 0x02B5: C2_AUX_DLY_08 delay offset */
+    0,  /* 0x02B6: C2_AUX_DLY_08 pool_slot */
+    0,  /* 0x02B7 */
+    0,  /* 0x02B8: C2_AUX_FDR_09 level */
+    0,  /* 0x02B9: C2_AUX_FDR_09 pan */
+    0,  /* 0x02BA: C2_AUX_FDR_09 mute */
+    0,  /* 0x02BB: C2_AUX_FDR_09 DCA gain */
+    0,  /* 0x02BC: C2_AUX_EQ_09 EQ coeff[0] */
+    0,  /* 0x02BD: C2_AUX_EQ_09 EQ coeff[1] */
+    0,  /* 0x02BE: C2_AUX_EQ_09 EQ coeff[2] */
+    0,  /* 0x02BF: C2_AUX_EQ_09 EQ coeff[3] */
+    0,  /* 0x02C0: C2_AUX_EQ_09 EQ coeff[4] */
+    0,  /* 0x02C1: C2_AUX_EQ_09 EQ coeff[5] */
+    0,  /* 0x02C2: C2_AUX_EQ_09 EQ coeff[6] */
+    0,  /* 0x02C3: C2_AUX_EQ_09 EQ coeff[7] */
+    0,  /* 0x02C4: C2_AUX_EQ_09 EQ coeff[8] */
+    0,  /* 0x02C5: C2_AUX_EQ_09 EQ coeff[9] */
+    0,  /* 0x02C6: C2_AUX_EQ_09 EQ coeff[10] */
+    0,  /* 0x02C7: C2_AUX_EQ_09 EQ coeff[11] */
+    0,  /* 0x02C8: C2_AUX_EQ_09 EQ coeff[12] */
+    0,  /* 0x02C9: C2_AUX_EQ_09 EQ coeff[13] */
+    0,  /* 0x02CA: C2_AUX_EQ_09 EQ coeff[14] */
+    0,  /* 0x02CB: C2_AUX_EQ_09 EQ coeff[15] */
+    0,  /* 0x02CC: C2_AUX_EQ_09 EQ coeff[16] */
+    0,  /* 0x02CD: C2_AUX_EQ_09 EQ coeff[17] */
+    0,  /* 0x02CE: C2_AUX_EQ_09 EQ coeff[18] */
+    0,  /* 0x02CF: C2_AUX_EQ_09 EQ coeff[19] */
+    0,  /* 0x02D0: C2_AUX_EQ_09 EQ swap trigger */
+    0,  /* 0x02D1: C2_AUX_EQ_09 EqOn (MCU-managed) */
+    0,  /* 0x02D2: C2_AUX_EQ_09 spare */
+    0,  /* 0x02D3: C2_AUX_EQ_09 spare */
+    0,  /* 0x02D4: C2_AUX_GEQ_09 GEQ coeff[0] */
+    0,  /* 0x02D5: C2_AUX_GEQ_09 GEQ coeff[1] */
+    0,  /* 0x02D6: C2_AUX_GEQ_09 GEQ coeff[2] */
+    0,  /* 0x02D7: C2_AUX_GEQ_09 GEQ coeff[3] */
+    0,  /* 0x02D8: C2_AUX_GEQ_09 GEQ coeff[4] */
+    0,  /* 0x02D9: C2_AUX_GEQ_09 GEQ coeff[5] */
+    0,  /* 0x02DA: C2_AUX_GEQ_09 GEQ coeff[6] */
+    0,  /* 0x02DB: C2_AUX_GEQ_09 GEQ coeff[7] */
+    0,  /* 0x02DC: C2_AUX_GEQ_09 GEQ coeff[8] */
+    0,  /* 0x02DD: C2_AUX_GEQ_09 GEQ coeff[9] */
+    0,  /* 0x02DE: C2_AUX_GEQ_09 GEQ coeff[10] */
+    0,  /* 0x02DF: C2_AUX_GEQ_09 GEQ coeff[11] */
+    0,  /* 0x02E0: C2_AUX_GEQ_09 GEQ coeff[12] */
+    0,  /* 0x02E1: C2_AUX_GEQ_09 GEQ coeff[13] */
+    0,  /* 0x02E2: C2_AUX_GEQ_09 GEQ coeff[14] */
+    0,  /* 0x02E3: C2_AUX_GEQ_09 GEQ coeff[15] */
+    0,  /* 0x02E4: C2_AUX_GEQ_09 GEQ coeff[16] */
+    0,  /* 0x02E5: C2_AUX_GEQ_09 GEQ coeff[17] */
+    0,  /* 0x02E6: C2_AUX_GEQ_09 GEQ coeff[18] */
+    0,  /* 0x02E7: C2_AUX_GEQ_09 GEQ coeff[19] */
+    0,  /* 0x02E8: C2_AUX_GEQ_09 GEQ coeff[20] */
+    0,  /* 0x02E9: C2_AUX_GEQ_09 GEQ coeff[21] */
+    0,  /* 0x02EA: C2_AUX_GEQ_09 GEQ coeff[22] */
+    0,  /* 0x02EB: C2_AUX_GEQ_09 GEQ coeff[23] */
+    0,  /* 0x02EC: C2_AUX_GEQ_09 GEQ coeff[24] */
+    0,  /* 0x02ED: C2_AUX_GEQ_09 GEQ coeff[25] */
+    0,  /* 0x02EE: C2_AUX_GEQ_09 GEQ coeff[26] */
+    0,  /* 0x02EF: C2_AUX_GEQ_09 GEQ coeff[27] */
+    0,  /* 0x02F0: C2_AUX_AFB_09 AntiFbOn */
+    0,  /* 0x02F1: C2_AUX_AFB_09 AntiFbCtrlOn */
+    0,  /* 0x02F2: C2_AUX_AFB_09 NotchFreq[1] */
+    0,  /* 0x02F3: C2_AUX_AFB_09 NotchFreq[2] */
+    0,  /* 0x02F4: C2_AUX_AFB_09 NotchFreq[3] */
+    0,  /* 0x02F5: C2_AUX_AFB_09 NotchFreq[4] */
+    0,  /* 0x02F6: C2_AUX_AFB_09 NotchFreq[5] */
+    0,  /* 0x02F7: C2_AUX_AFB_09 NotchFreq[6] */
+    0,  /* 0x02F8: C2_AUX_AFB_09 NotchGain[1] */
+    0,  /* 0x02F9: C2_AUX_AFB_09 NotchGain[2] */
+    0,  /* 0x02FA: C2_AUX_AFB_09 NotchGain[3] */
+    0,  /* 0x02FB: C2_AUX_AFB_09 NotchGain[4] */
+    0,  /* 0x02FC: C2_AUX_AFB_09 NotchGain[5] */
+    0,  /* 0x02FD: C2_AUX_AFB_09 NotchGain[6] */
+    0,  /* 0x02FE: C2_AUX_AFB_09 NotchQ[1] */
+    0,  /* 0x02FF: C2_AUX_AFB_09 NotchQ[2] */
+    0,  /* 0x0300: C2_AUX_AFB_09 NotchQ[3] */
+    0,  /* 0x0301: C2_AUX_AFB_09 NotchQ[4] */
+    0,  /* 0x0302: C2_AUX_AFB_09 NotchQ[5] */
+    0,  /* 0x0303: C2_AUX_AFB_09 NotchQ[6] */
+    0,  /* 0x0304: C2_AUX_AFB_09 spare coeff [20] */
+    0,  /* 0x0305: C2_AUX_AFB_09 spare coeff [21] */
+    0,  /* 0x0306: C2_AUX_AFB_09 spare coeff [22] */
+    0,  /* 0x0307: C2_AUX_AFB_09 spare coeff [23] */
+    0,  /* 0x0308: C2_AUX_LIM_09 LimiterOn */
+    0,  /* 0x0309: C2_AUX_LIM_09 LimiterThr */
+    0,  /* 0x030A: C2_AUX_LIM_09 LimiterAtt */
+    0,  /* 0x030B: C2_AUX_LIM_09 LimiterRel */
+    0,  /* 0x030C: C2_AUX_DLY_09 delay offset */
+    0,  /* 0x030D: C2_AUX_DLY_09 pool_slot */
+    0,  /* 0x030E */
+    0,  /* 0x030F: C2_AUX_FDR_10 level */
+    0,  /* 0x0310: C2_AUX_FDR_10 pan */
+    0,  /* 0x0311: C2_AUX_FDR_10 mute */
+    0,  /* 0x0312: C2_AUX_FDR_10 DCA gain */
+    0,  /* 0x0313: C2_AUX_EQ_10 EQ coeff[0] */
+    0,  /* 0x0314: C2_AUX_EQ_10 EQ coeff[1] */
+    0,  /* 0x0315: C2_AUX_EQ_10 EQ coeff[2] */
+    0,  /* 0x0316: C2_AUX_EQ_10 EQ coeff[3] */
+    0,  /* 0x0317: C2_AUX_EQ_10 EQ coeff[4] */
+    0,  /* 0x0318: C2_AUX_EQ_10 EQ coeff[5] */
+    0,  /* 0x0319: C2_AUX_EQ_10 EQ coeff[6] */
+    0,  /* 0x031A: C2_AUX_EQ_10 EQ coeff[7] */
+    0,  /* 0x031B: C2_AUX_EQ_10 EQ coeff[8] */
+    0,  /* 0x031C: C2_AUX_EQ_10 EQ coeff[9] */
+    0,  /* 0x031D: C2_AUX_EQ_10 EQ coeff[10] */
+    0,  /* 0x031E: C2_AUX_EQ_10 EQ coeff[11] */
+    0,  /* 0x031F: C2_AUX_EQ_10 EQ coeff[12] */
+    0,  /* 0x0320: C2_AUX_EQ_10 EQ coeff[13] */
+    0,  /* 0x0321: C2_AUX_EQ_10 EQ coeff[14] */
+    0,  /* 0x0322: C2_AUX_EQ_10 EQ coeff[15] */
+    0,  /* 0x0323: C2_AUX_EQ_10 EQ coeff[16] */
+    0,  /* 0x0324: C2_AUX_EQ_10 EQ coeff[17] */
+    0,  /* 0x0325: C2_AUX_EQ_10 EQ coeff[18] */
+    0,  /* 0x0326: C2_AUX_EQ_10 EQ coeff[19] */
+    0,  /* 0x0327: C2_AUX_EQ_10 EQ swap trigger */
+    0,  /* 0x0328: C2_AUX_EQ_10 EqOn (MCU-managed) */
+    0,  /* 0x0329: C2_AUX_EQ_10 spare */
+    0,  /* 0x032A: C2_AUX_EQ_10 spare */
+    0,  /* 0x032B: C2_AUX_GEQ_10 GEQ coeff[0] */
+    0,  /* 0x032C: C2_AUX_GEQ_10 GEQ coeff[1] */
+    0,  /* 0x032D: C2_AUX_GEQ_10 GEQ coeff[2] */
+    0,  /* 0x032E: C2_AUX_GEQ_10 GEQ coeff[3] */
+    0,  /* 0x032F: C2_AUX_GEQ_10 GEQ coeff[4] */
+    0,  /* 0x0330: C2_AUX_GEQ_10 GEQ coeff[5] */
+    0,  /* 0x0331: C2_AUX_GEQ_10 GEQ coeff[6] */
+    0,  /* 0x0332: C2_AUX_GEQ_10 GEQ coeff[7] */
+    0,  /* 0x0333: C2_AUX_GEQ_10 GEQ coeff[8] */
+    0,  /* 0x0334: C2_AUX_GEQ_10 GEQ coeff[9] */
+    0,  /* 0x0335: C2_AUX_GEQ_10 GEQ coeff[10] */
+    0,  /* 0x0336: C2_AUX_GEQ_10 GEQ coeff[11] */
+    0,  /* 0x0337: C2_AUX_GEQ_10 GEQ coeff[12] */
+    0,  /* 0x0338: C2_AUX_GEQ_10 GEQ coeff[13] */
+    0,  /* 0x0339: C2_AUX_GEQ_10 GEQ coeff[14] */
+    0,  /* 0x033A: C2_AUX_GEQ_10 GEQ coeff[15] */
+    0,  /* 0x033B: C2_AUX_GEQ_10 GEQ coeff[16] */
+    0,  /* 0x033C: C2_AUX_GEQ_10 GEQ coeff[17] */
+    0,  /* 0x033D: C2_AUX_GEQ_10 GEQ coeff[18] */
+    0,  /* 0x033E: C2_AUX_GEQ_10 GEQ coeff[19] */
+    0,  /* 0x033F: C2_AUX_GEQ_10 GEQ coeff[20] */
+    0,  /* 0x0340: C2_AUX_GEQ_10 GEQ coeff[21] */
+    0,  /* 0x0341: C2_AUX_GEQ_10 GEQ coeff[22] */
+    0,  /* 0x0342: C2_AUX_GEQ_10 GEQ coeff[23] */
+    0,  /* 0x0343: C2_AUX_GEQ_10 GEQ coeff[24] */
+    0,  /* 0x0344: C2_AUX_GEQ_10 GEQ coeff[25] */
+    0,  /* 0x0345: C2_AUX_GEQ_10 GEQ coeff[26] */
+    0,  /* 0x0346: C2_AUX_GEQ_10 GEQ coeff[27] */
+    0,  /* 0x0347: C2_AUX_AFB_10 AntiFbOn */
+    0,  /* 0x0348: C2_AUX_AFB_10 AntiFbCtrlOn */
+    0,  /* 0x0349: C2_AUX_AFB_10 NotchFreq[1] */
+    0,  /* 0x034A: C2_AUX_AFB_10 NotchFreq[2] */
+    0,  /* 0x034B: C2_AUX_AFB_10 NotchFreq[3] */
+    0,  /* 0x034C: C2_AUX_AFB_10 NotchFreq[4] */
+    0,  /* 0x034D: C2_AUX_AFB_10 NotchFreq[5] */
+    0,  /* 0x034E: C2_AUX_AFB_10 NotchFreq[6] */
+    0,  /* 0x034F: C2_AUX_AFB_10 NotchGain[1] */
+    0,  /* 0x0350: C2_AUX_AFB_10 NotchGain[2] */
+    0,  /* 0x0351: C2_AUX_AFB_10 NotchGain[3] */
+    0,  /* 0x0352: C2_AUX_AFB_10 NotchGain[4] */
+    0,  /* 0x0353: C2_AUX_AFB_10 NotchGain[5] */
+    0,  /* 0x0354: C2_AUX_AFB_10 NotchGain[6] */
+    0,  /* 0x0355: C2_AUX_AFB_10 NotchQ[1] */
+    0,  /* 0x0356: C2_AUX_AFB_10 NotchQ[2] */
+    0,  /* 0x0357: C2_AUX_AFB_10 NotchQ[3] */
+    0,  /* 0x0358: C2_AUX_AFB_10 NotchQ[4] */
+    0,  /* 0x0359: C2_AUX_AFB_10 NotchQ[5] */
+    0,  /* 0x035A: C2_AUX_AFB_10 NotchQ[6] */
+    0,  /* 0x035B: C2_AUX_AFB_10 spare coeff [20] */
+    0,  /* 0x035C: C2_AUX_AFB_10 spare coeff [21] */
+    0,  /* 0x035D: C2_AUX_AFB_10 spare coeff [22] */
+    0,  /* 0x035E: C2_AUX_AFB_10 spare coeff [23] */
+    0,  /* 0x035F: C2_AUX_LIM_10 LimiterOn */
+    0,  /* 0x0360: C2_AUX_LIM_10 LimiterThr */
+    0,  /* 0x0361: C2_AUX_LIM_10 LimiterAtt */
+    0,  /* 0x0362: C2_AUX_LIM_10 LimiterRel */
+    0,  /* 0x0363: C2_AUX_DLY_10 delay offset */
+    0,  /* 0x0364: C2_AUX_DLY_10 pool_slot */
+    0,  /* 0x0365 */
+    0,  /* 0x0366: C2_AUX_FDR_11 level */
+    0,  /* 0x0367: C2_AUX_FDR_11 pan */
+    0,  /* 0x0368: C2_AUX_FDR_11 mute */
+    0,  /* 0x0369: C2_AUX_FDR_11 DCA gain */
+    0,  /* 0x036A: C2_AUX_EQ_11 EQ coeff[0] */
+    0,  /* 0x036B: C2_AUX_EQ_11 EQ coeff[1] */
+    0,  /* 0x036C: C2_AUX_EQ_11 EQ coeff[2] */
+    0,  /* 0x036D: C2_AUX_EQ_11 EQ coeff[3] */
+    0,  /* 0x036E: C2_AUX_EQ_11 EQ coeff[4] */
+    0,  /* 0x036F: C2_AUX_EQ_11 EQ coeff[5] */
+    0,  /* 0x0370: C2_AUX_EQ_11 EQ coeff[6] */
+    0,  /* 0x0371: C2_AUX_EQ_11 EQ coeff[7] */
+    0,  /* 0x0372: C2_AUX_EQ_11 EQ coeff[8] */
+    0,  /* 0x0373: C2_AUX_EQ_11 EQ coeff[9] */
+    0,  /* 0x0374: C2_AUX_EQ_11 EQ coeff[10] */
+    0,  /* 0x0375: C2_AUX_EQ_11 EQ coeff[11] */
+    0,  /* 0x0376: C2_AUX_EQ_11 EQ coeff[12] */
+    0,  /* 0x0377: C2_AUX_EQ_11 EQ coeff[13] */
+    0,  /* 0x0378: C2_AUX_EQ_11 EQ coeff[14] */
+    0,  /* 0x0379: C2_AUX_EQ_11 EQ coeff[15] */
+    0,  /* 0x037A: C2_AUX_EQ_11 EQ coeff[16] */
+    0,  /* 0x037B: C2_AUX_EQ_11 EQ coeff[17] */
+    0,  /* 0x037C: C2_AUX_EQ_11 EQ coeff[18] */
+    0,  /* 0x037D: C2_AUX_EQ_11 EQ coeff[19] */
+    0,  /* 0x037E: C2_AUX_EQ_11 EQ swap trigger */
+    0,  /* 0x037F: C2_AUX_EQ_11 EqOn (MCU-managed) */
+    0,  /* 0x0380: C2_AUX_EQ_11 spare */
+    0,  /* 0x0381: C2_AUX_EQ_11 spare */
+    0,  /* 0x0382: C2_AUX_GEQ_11 GEQ coeff[0] */
+    0,  /* 0x0383: C2_AUX_GEQ_11 GEQ coeff[1] */
+    0,  /* 0x0384: C2_AUX_GEQ_11 GEQ coeff[2] */
+    0,  /* 0x0385: C2_AUX_GEQ_11 GEQ coeff[3] */
+    0,  /* 0x0386: C2_AUX_GEQ_11 GEQ coeff[4] */
+    0,  /* 0x0387: C2_AUX_GEQ_11 GEQ coeff[5] */
+    0,  /* 0x0388: C2_AUX_GEQ_11 GEQ coeff[6] */
+    0,  /* 0x0389: C2_AUX_GEQ_11 GEQ coeff[7] */
+    0,  /* 0x038A: C2_AUX_GEQ_11 GEQ coeff[8] */
+    0,  /* 0x038B: C2_AUX_GEQ_11 GEQ coeff[9] */
+    0,  /* 0x038C: C2_AUX_GEQ_11 GEQ coeff[10] */
+    0,  /* 0x038D: C2_AUX_GEQ_11 GEQ coeff[11] */
+    0,  /* 0x038E: C2_AUX_GEQ_11 GEQ coeff[12] */
+    0,  /* 0x038F: C2_AUX_GEQ_11 GEQ coeff[13] */
+    0,  /* 0x0390: C2_AUX_GEQ_11 GEQ coeff[14] */
+    0,  /* 0x0391: C2_AUX_GEQ_11 GEQ coeff[15] */
+    0,  /* 0x0392: C2_AUX_GEQ_11 GEQ coeff[16] */
+    0,  /* 0x0393: C2_AUX_GEQ_11 GEQ coeff[17] */
+    0,  /* 0x0394: C2_AUX_GEQ_11 GEQ coeff[18] */
+    0,  /* 0x0395: C2_AUX_GEQ_11 GEQ coeff[19] */
+    0,  /* 0x0396: C2_AUX_GEQ_11 GEQ coeff[20] */
+    0,  /* 0x0397: C2_AUX_GEQ_11 GEQ coeff[21] */
+    0,  /* 0x0398: C2_AUX_GEQ_11 GEQ coeff[22] */
+    0,  /* 0x0399: C2_AUX_GEQ_11 GEQ coeff[23] */
+    0,  /* 0x039A: C2_AUX_GEQ_11 GEQ coeff[24] */
+    0,  /* 0x039B: C2_AUX_GEQ_11 GEQ coeff[25] */
+    0,  /* 0x039C: C2_AUX_GEQ_11 GEQ coeff[26] */
+    0,  /* 0x039D: C2_AUX_GEQ_11 GEQ coeff[27] */
+    0,  /* 0x039E: C2_AUX_AFB_11 AntiFbOn */
+    0,  /* 0x039F: C2_AUX_AFB_11 AntiFbCtrlOn */
+    0,  /* 0x03A0: C2_AUX_AFB_11 NotchFreq[1] */
+    0,  /* 0x03A1: C2_AUX_AFB_11 NotchFreq[2] */
+    0,  /* 0x03A2: C2_AUX_AFB_11 NotchFreq[3] */
+    0,  /* 0x03A3: C2_AUX_AFB_11 NotchFreq[4] */
+    0,  /* 0x03A4: C2_AUX_AFB_11 NotchFreq[5] */
+    0,  /* 0x03A5: C2_AUX_AFB_11 NotchFreq[6] */
+    0,  /* 0x03A6: C2_AUX_AFB_11 NotchGain[1] */
+    0,  /* 0x03A7: C2_AUX_AFB_11 NotchGain[2] */
+    0,  /* 0x03A8: C2_AUX_AFB_11 NotchGain[3] */
+    0,  /* 0x03A9: C2_AUX_AFB_11 NotchGain[4] */
+    0,  /* 0x03AA: C2_AUX_AFB_11 NotchGain[5] */
+    0,  /* 0x03AB: C2_AUX_AFB_11 NotchGain[6] */
+    0,  /* 0x03AC: C2_AUX_AFB_11 NotchQ[1] */
+    0,  /* 0x03AD: C2_AUX_AFB_11 NotchQ[2] */
+    0,  /* 0x03AE: C2_AUX_AFB_11 NotchQ[3] */
+    0,  /* 0x03AF: C2_AUX_AFB_11 NotchQ[4] */
+    0,  /* 0x03B0: C2_AUX_AFB_11 NotchQ[5] */
+    0,  /* 0x03B1: C2_AUX_AFB_11 NotchQ[6] */
+    0,  /* 0x03B2: C2_AUX_AFB_11 spare coeff [20] */
+    0,  /* 0x03B3: C2_AUX_AFB_11 spare coeff [21] */
+    0,  /* 0x03B4: C2_AUX_AFB_11 spare coeff [22] */
+    0,  /* 0x03B5: C2_AUX_AFB_11 spare coeff [23] */
+    0,  /* 0x03B6: C2_AUX_LIM_11 LimiterOn */
+    0,  /* 0x03B7: C2_AUX_LIM_11 LimiterThr */
+    0,  /* 0x03B8: C2_AUX_LIM_11 LimiterAtt */
+    0,  /* 0x03B9: C2_AUX_LIM_11 LimiterRel */
+    0,  /* 0x03BA: C2_AUX_DLY_11 delay offset */
+    0,  /* 0x03BB: C2_AUX_DLY_11 pool_slot */
+    0,  /* 0x03BC */
+    0,  /* 0x03BD: C2_AUX_FDR_12 level */
+    0,  /* 0x03BE: C2_AUX_FDR_12 pan */
+    0,  /* 0x03BF: C2_AUX_FDR_12 mute */
+    0,  /* 0x03C0: C2_AUX_FDR_12 DCA gain */
+    0,  /* 0x03C1: C2_AUX_EQ_12 EQ coeff[0] */
+    0,  /* 0x03C2: C2_AUX_EQ_12 EQ coeff[1] */
+    0,  /* 0x03C3: C2_AUX_EQ_12 EQ coeff[2] */
+    0,  /* 0x03C4: C2_AUX_EQ_12 EQ coeff[3] */
+    0,  /* 0x03C5: C2_AUX_EQ_12 EQ coeff[4] */
+    0,  /* 0x03C6: C2_AUX_EQ_12 EQ coeff[5] */
+    0,  /* 0x03C7: C2_AUX_EQ_12 EQ coeff[6] */
+    0,  /* 0x03C8: C2_AUX_EQ_12 EQ coeff[7] */
+    0,  /* 0x03C9: C2_AUX_EQ_12 EQ coeff[8] */
+    0,  /* 0x03CA: C2_AUX_EQ_12 EQ coeff[9] */
+    0,  /* 0x03CB: C2_AUX_EQ_12 EQ coeff[10] */
+    0,  /* 0x03CC: C2_AUX_EQ_12 EQ coeff[11] */
+    0,  /* 0x03CD: C2_AUX_EQ_12 EQ coeff[12] */
+    0,  /* 0x03CE: C2_AUX_EQ_12 EQ coeff[13] */
+    0,  /* 0x03CF: C2_AUX_EQ_12 EQ coeff[14] */
+    0,  /* 0x03D0: C2_AUX_EQ_12 EQ coeff[15] */
+    0,  /* 0x03D1: C2_AUX_EQ_12 EQ coeff[16] */
+    0,  /* 0x03D2: C2_AUX_EQ_12 EQ coeff[17] */
+    0,  /* 0x03D3: C2_AUX_EQ_12 EQ coeff[18] */
+    0,  /* 0x03D4: C2_AUX_EQ_12 EQ coeff[19] */
+    0,  /* 0x03D5: C2_AUX_EQ_12 EQ swap trigger */
+    0,  /* 0x03D6: C2_AUX_EQ_12 EqOn (MCU-managed) */
+    0,  /* 0x03D7: C2_AUX_EQ_12 spare */
+    0,  /* 0x03D8: C2_AUX_EQ_12 spare */
+    0,  /* 0x03D9: C2_AUX_GEQ_12 GEQ coeff[0] */
+    0,  /* 0x03DA: C2_AUX_GEQ_12 GEQ coeff[1] */
+    0,  /* 0x03DB: C2_AUX_GEQ_12 GEQ coeff[2] */
+    0,  /* 0x03DC: C2_AUX_GEQ_12 GEQ coeff[3] */
+    0,  /* 0x03DD: C2_AUX_GEQ_12 GEQ coeff[4] */
+    0,  /* 0x03DE: C2_AUX_GEQ_12 GEQ coeff[5] */
+    0,  /* 0x03DF: C2_AUX_GEQ_12 GEQ coeff[6] */
+    0,  /* 0x03E0: C2_AUX_GEQ_12 GEQ coeff[7] */
+    0,  /* 0x03E1: C2_AUX_GEQ_12 GEQ coeff[8] */
+    0,  /* 0x03E2: C2_AUX_GEQ_12 GEQ coeff[9] */
+    0,  /* 0x03E3: C2_AUX_GEQ_12 GEQ coeff[10] */
+    0,  /* 0x03E4: C2_AUX_GEQ_12 GEQ coeff[11] */
+    0,  /* 0x03E5: C2_AUX_GEQ_12 GEQ coeff[12] */
+    0,  /* 0x03E6: C2_AUX_GEQ_12 GEQ coeff[13] */
+    0,  /* 0x03E7: C2_AUX_GEQ_12 GEQ coeff[14] */
+    0,  /* 0x03E8: C2_AUX_GEQ_12 GEQ coeff[15] */
+    0,  /* 0x03E9: C2_AUX_GEQ_12 GEQ coeff[16] */
+    0,  /* 0x03EA: C2_AUX_GEQ_12 GEQ coeff[17] */
+    0,  /* 0x03EB: C2_AUX_GEQ_12 GEQ coeff[18] */
+    0,  /* 0x03EC: C2_AUX_GEQ_12 GEQ coeff[19] */
+    0,  /* 0x03ED: C2_AUX_GEQ_12 GEQ coeff[20] */
+    0,  /* 0x03EE: C2_AUX_GEQ_12 GEQ coeff[21] */
+    0,  /* 0x03EF: C2_AUX_GEQ_12 GEQ coeff[22] */
+    0,  /* 0x03F0: C2_AUX_GEQ_12 GEQ coeff[23] */
+    0,  /* 0x03F1: C2_AUX_GEQ_12 GEQ coeff[24] */
+    0,  /* 0x03F2: C2_AUX_GEQ_12 GEQ coeff[25] */
+    0,  /* 0x03F3: C2_AUX_GEQ_12 GEQ coeff[26] */
+    0,  /* 0x03F4: C2_AUX_GEQ_12 GEQ coeff[27] */
+    0,  /* 0x03F5: C2_AUX_AFB_12 AntiFbOn */
+    0,  /* 0x03F6: C2_AUX_AFB_12 AntiFbCtrlOn */
+    0,  /* 0x03F7: C2_AUX_AFB_12 NotchFreq[1] */
+    0,  /* 0x03F8: C2_AUX_AFB_12 NotchFreq[2] */
+    0,  /* 0x03F9: C2_AUX_AFB_12 NotchFreq[3] */
+    0,  /* 0x03FA: C2_AUX_AFB_12 NotchFreq[4] */
+    0,  /* 0x03FB: C2_AUX_AFB_12 NotchFreq[5] */
+    0,  /* 0x03FC: C2_AUX_AFB_12 NotchFreq[6] */
+    0,  /* 0x03FD: C2_AUX_AFB_12 NotchGain[1] */
+    0,  /* 0x03FE: C2_AUX_AFB_12 NotchGain[2] */
+    0,  /* 0x03FF: C2_AUX_AFB_12 NotchGain[3] */
+    0,  /* 0x0400: C2_AUX_AFB_12 NotchGain[4] */
+    0,  /* 0x0401: C2_AUX_AFB_12 NotchGain[5] */
+    0,  /* 0x0402: C2_AUX_AFB_12 NotchGain[6] */
+    0,  /* 0x0403: C2_AUX_AFB_12 NotchQ[1] */
+    0,  /* 0x0404: C2_AUX_AFB_12 NotchQ[2] */
+    0,  /* 0x0405: C2_AUX_AFB_12 NotchQ[3] */
+    0,  /* 0x0406: C2_AUX_AFB_12 NotchQ[4] */
+    0,  /* 0x0407: C2_AUX_AFB_12 NotchQ[5] */
+    0,  /* 0x0408: C2_AUX_AFB_12 NotchQ[6] */
+    0,  /* 0x0409: C2_AUX_AFB_12 spare coeff [20] */
+    0,  /* 0x040A: C2_AUX_AFB_12 spare coeff [21] */
+    0,  /* 0x040B: C2_AUX_AFB_12 spare coeff [22] */
+    0,  /* 0x040C: C2_AUX_AFB_12 spare coeff [23] */
+    0,  /* 0x040D: C2_AUX_LIM_12 LimiterOn */
+    0,  /* 0x040E: C2_AUX_LIM_12 LimiterThr */
+    0,  /* 0x040F: C2_AUX_LIM_12 LimiterAtt */
+    0,  /* 0x0410: C2_AUX_LIM_12 LimiterRel */
+    0,  /* 0x0411: C2_AUX_DLY_12 delay offset */
+    0,  /* 0x0412: C2_AUX_DLY_12 pool_slot */
+    0,  /* 0x0413 */
+    0,  /* 0x0414: C2_GRP_FDR_01 level */
+    0,  /* 0x0415: C2_GRP_FDR_01 pan (unused) */
+    0,  /* 0x0416: C2_GRP_FDR_01 mute */
+    0,  /* 0x0417: C2_GRP_FDR_01 DCA gain */
+    0,  /* 0x0418: C2_GRP_EQ_01 EQ coeff[0] */
+    0,  /* 0x0419: C2_GRP_EQ_01 EQ coeff[1] */
+    0,  /* 0x041A: C2_GRP_EQ_01 EQ coeff[2] */
+    0,  /* 0x041B: C2_GRP_EQ_01 EQ coeff[3] */
+    0,  /* 0x041C: C2_GRP_EQ_01 EQ coeff[4] */
+    0,  /* 0x041D: C2_GRP_EQ_01 EQ coeff[5] */
+    0,  /* 0x041E: C2_GRP_EQ_01 EQ coeff[6] */
+    0,  /* 0x041F: C2_GRP_EQ_01 EQ coeff[7] */
+    0,  /* 0x0420: C2_GRP_EQ_01 EQ coeff[8] */
+    0,  /* 0x0421: C2_GRP_EQ_01 EQ coeff[9] */
+    0,  /* 0x0422: C2_GRP_EQ_01 EQ coeff[10] */
+    0,  /* 0x0423: C2_GRP_EQ_01 EQ coeff[11] */
+    0,  /* 0x0424: C2_GRP_EQ_01 EQ coeff[12] */
+    0,  /* 0x0425: C2_GRP_EQ_01 EQ coeff[13] */
+    0,  /* 0x0426: C2_GRP_EQ_01 EQ coeff[14] */
+    0,  /* 0x0427: C2_GRP_EQ_01 EQ coeff[15] */
+    0,  /* 0x0428: C2_GRP_EQ_01 EQ coeff[16] */
+    0,  /* 0x0429: C2_GRP_EQ_01 EQ coeff[17] */
+    0,  /* 0x042A: C2_GRP_EQ_01 EQ coeff[18] */
+    0,  /* 0x042B: C2_GRP_EQ_01 EQ coeff[19] */
+    0,  /* 0x042C: C2_GRP_EQ_01 EQ swap trigger */
+    0,  /* 0x042D: C2_GRP_EQ_01 EqOn (MCU-managed) */
+    0,  /* 0x042E: C2_GRP_EQ_01 spare */
+    0,  /* 0x042F: C2_GRP_EQ_01 spare */
+    0,  /* 0x0430: C2_GRP_GATE_01 GateOn */
+    0,  /* 0x0431: C2_GRP_GATE_01 GateThr */
+    0,  /* 0x0432: C2_GRP_GATE_01 GateAtt */
+    0,  /* 0x0433: C2_GRP_GATE_01 GateHold */
+    0,  /* 0x0434: C2_GRP_GATE_01 GateRel */
+    0,  /* 0x0435: C2_GRP_GATE_01 GateRng */
+    0,  /* 0x0436: C2_GRP_GATE_01 GateKey */
+    0,  /* 0x0437: C2_GRP_GATE_01 GateDetSrc */
+    0,  /* 0x0438: C2_GRP_GATE_01 GateFilterOn */
+    0,  /* 0x0439: C2_GRP_GATE_01 GateFilter HPF[0] */
+    0,  /* 0x043A: C2_GRP_GATE_01 GateFilter HPF[1] */
+    0,  /* 0x043B: C2_GRP_GATE_01 GateFilter HPF[2] */
+    0,  /* 0x043C: C2_GRP_GATE_01 GateFilter HPF[3] */
+    0,  /* 0x043D: C2_GRP_GATE_01 GateFilter HPF[4] */
+    0,  /* 0x043E: C2_GRP_GATE_01 GateFilter LPF[0] */
+    0,  /* 0x043F: C2_GRP_GATE_01 GateFilter LPF[1] */
+    0,  /* 0x0440: C2_GRP_COMP_01 CompOn */
+    0,  /* 0x0441: C2_GRP_COMP_01 CompThr */
+    0,  /* 0x0442: C2_GRP_COMP_01 CompRat */
+    0,  /* 0x0443: C2_GRP_COMP_01 CompAtt */
+    0,  /* 0x0444: C2_GRP_COMP_01 CompRel */
+    0,  /* 0x0445: C2_GRP_COMP_01 CompMake */
+    0,  /* 0x0446: C2_GRP_COMP_01 CompKnee */
+    0,  /* 0x0447: C2_GRP_COMP_01 CompPar */
+    0,  /* 0x0448: C2_GRP_COMP_01 CompType */
+    0,  /* 0x0449: C2_GRP_COMP_01 CompKey */
+    0,  /* 0x044A: C2_GRP_COMP_01 CompDetSrc */
+    0,  /* 0x044B: C2_GRP_COMP_01 CompLimMode */
+    0,  /* 0x044C: C2_GRP_COMP_01 CompEqPos */
+    0,  /* 0x044D: C2_GRP_COMP_01 CompFilterOn */
+    0,  /* 0x044E: C2_GRP_COMP_01 CompFilter HPF[0] */
+    0,  /* 0x044F: C2_GRP_COMP_01 CompFilter HPF[1] */
+    0,  /* 0x0450: C2_GRP_FDR_02 level */
+    0,  /* 0x0451: C2_GRP_FDR_02 pan (unused) */
+    0,  /* 0x0452: C2_GRP_FDR_02 mute */
+    0,  /* 0x0453: C2_GRP_FDR_02 DCA gain */
+    0,  /* 0x0454: C2_GRP_EQ_02 EQ coeff[0] */
+    0,  /* 0x0455: C2_GRP_EQ_02 EQ coeff[1] */
+    0,  /* 0x0456: C2_GRP_EQ_02 EQ coeff[2] */
+    0,  /* 0x0457: C2_GRP_EQ_02 EQ coeff[3] */
+    0,  /* 0x0458: C2_GRP_EQ_02 EQ coeff[4] */
+    0,  /* 0x0459: C2_GRP_EQ_02 EQ coeff[5] */
+    0,  /* 0x045A: C2_GRP_EQ_02 EQ coeff[6] */
+    0,  /* 0x045B: C2_GRP_EQ_02 EQ coeff[7] */
+    0,  /* 0x045C: C2_GRP_EQ_02 EQ coeff[8] */
+    0,  /* 0x045D: C2_GRP_EQ_02 EQ coeff[9] */
+    0,  /* 0x045E: C2_GRP_EQ_02 EQ coeff[10] */
+    0,  /* 0x045F: C2_GRP_EQ_02 EQ coeff[11] */
+    0,  /* 0x0460: C2_GRP_EQ_02 EQ coeff[12] */
+    0,  /* 0x0461: C2_GRP_EQ_02 EQ coeff[13] */
+    0,  /* 0x0462: C2_GRP_EQ_02 EQ coeff[14] */
+    0,  /* 0x0463: C2_GRP_EQ_02 EQ coeff[15] */
+    0,  /* 0x0464: C2_GRP_EQ_02 EQ coeff[16] */
+    0,  /* 0x0465: C2_GRP_EQ_02 EQ coeff[17] */
+    0,  /* 0x0466: C2_GRP_EQ_02 EQ coeff[18] */
+    0,  /* 0x0467: C2_GRP_EQ_02 EQ coeff[19] */
+    0,  /* 0x0468: C2_GRP_EQ_02 EQ swap trigger */
+    0,  /* 0x0469: C2_GRP_EQ_02 EqOn (MCU-managed) */
+    0,  /* 0x046A: C2_GRP_EQ_02 spare */
+    0,  /* 0x046B: C2_GRP_EQ_02 spare */
+    0,  /* 0x046C: C2_GRP_GATE_02 GateOn */
+    0,  /* 0x046D: C2_GRP_GATE_02 GateThr */
+    0,  /* 0x046E: C2_GRP_GATE_02 GateAtt */
+    0,  /* 0x046F: C2_GRP_GATE_02 GateHold */
+    0,  /* 0x0470: C2_GRP_GATE_02 GateRel */
+    0,  /* 0x0471: C2_GRP_GATE_02 GateRng */
+    0,  /* 0x0472: C2_GRP_GATE_02 GateKey */
+    0,  /* 0x0473: C2_GRP_GATE_02 GateDetSrc */
+    0,  /* 0x0474: C2_GRP_GATE_02 GateFilterOn */
+    0,  /* 0x0475: C2_GRP_GATE_02 GateFilter HPF[0] */
+    0,  /* 0x0476: C2_GRP_GATE_02 GateFilter HPF[1] */
+    0,  /* 0x0477: C2_GRP_GATE_02 GateFilter HPF[2] */
+    0,  /* 0x0478: C2_GRP_GATE_02 GateFilter HPF[3] */
+    0,  /* 0x0479: C2_GRP_GATE_02 GateFilter HPF[4] */
+    0,  /* 0x047A: C2_GRP_GATE_02 GateFilter LPF[0] */
+    0,  /* 0x047B: C2_GRP_GATE_02 GateFilter LPF[1] */
+    0,  /* 0x047C: C2_GRP_COMP_02 CompOn */
+    0,  /* 0x047D: C2_GRP_COMP_02 CompThr */
+    0,  /* 0x047E: C2_GRP_COMP_02 CompRat */
+    0,  /* 0x047F: C2_GRP_COMP_02 CompAtt */
+    0,  /* 0x0480: C2_GRP_COMP_02 CompRel */
+    0,  /* 0x0481: C2_GRP_COMP_02 CompMake */
+    0,  /* 0x0482: C2_GRP_COMP_02 CompKnee */
+    0,  /* 0x0483: C2_GRP_COMP_02 CompPar */
+    0,  /* 0x0484: C2_GRP_COMP_02 CompType */
+    0,  /* 0x0485: C2_GRP_COMP_02 CompKey */
+    0,  /* 0x0486: C2_GRP_COMP_02 CompDetSrc */
+    0,  /* 0x0487: C2_GRP_COMP_02 CompLimMode */
+    0,  /* 0x0488: C2_GRP_COMP_02 CompEqPos */
+    0,  /* 0x0489: C2_GRP_COMP_02 CompFilterOn */
+    0,  /* 0x048A: C2_GRP_COMP_02 CompFilter HPF[0] */
+    0,  /* 0x048B: C2_GRP_COMP_02 CompFilter HPF[1] */
+    0,  /* 0x048C: C2_GRP_FDR_03 level */
+    0,  /* 0x048D: C2_GRP_FDR_03 pan (unused) */
+    0,  /* 0x048E: C2_GRP_FDR_03 mute */
+    0,  /* 0x048F: C2_GRP_FDR_03 DCA gain */
+    0,  /* 0x0490: C2_GRP_EQ_03 EQ coeff[0] */
+    0,  /* 0x0491: C2_GRP_EQ_03 EQ coeff[1] */
+    0,  /* 0x0492: C2_GRP_EQ_03 EQ coeff[2] */
+    0,  /* 0x0493: C2_GRP_EQ_03 EQ coeff[3] */
+    0,  /* 0x0494: C2_GRP_EQ_03 EQ coeff[4] */
+    0,  /* 0x0495: C2_GRP_EQ_03 EQ coeff[5] */
+    0,  /* 0x0496: C2_GRP_EQ_03 EQ coeff[6] */
+    0,  /* 0x0497: C2_GRP_EQ_03 EQ coeff[7] */
+    0,  /* 0x0498: C2_GRP_EQ_03 EQ coeff[8] */
+    0,  /* 0x0499: C2_GRP_EQ_03 EQ coeff[9] */
+    0,  /* 0x049A: C2_GRP_EQ_03 EQ coeff[10] */
+    0,  /* 0x049B: C2_GRP_EQ_03 EQ coeff[11] */
+    0,  /* 0x049C: C2_GRP_EQ_03 EQ coeff[12] */
+    0,  /* 0x049D: C2_GRP_EQ_03 EQ coeff[13] */
+    0,  /* 0x049E: C2_GRP_EQ_03 EQ coeff[14] */
+    0,  /* 0x049F: C2_GRP_EQ_03 EQ coeff[15] */
+    0,  /* 0x04A0: C2_GRP_EQ_03 EQ coeff[16] */
+    0,  /* 0x04A1: C2_GRP_EQ_03 EQ coeff[17] */
+    0,  /* 0x04A2: C2_GRP_EQ_03 EQ coeff[18] */
+    0,  /* 0x04A3: C2_GRP_EQ_03 EQ coeff[19] */
+    0,  /* 0x04A4: C2_GRP_EQ_03 EQ swap trigger */
+    0,  /* 0x04A5: C2_GRP_EQ_03 EqOn (MCU-managed) */
+    0,  /* 0x04A6: C2_GRP_EQ_03 spare */
+    0,  /* 0x04A7: C2_GRP_EQ_03 spare */
+    0,  /* 0x04A8: C2_GRP_GATE_03 GateOn */
+    0,  /* 0x04A9: C2_GRP_GATE_03 GateThr */
+    0,  /* 0x04AA: C2_GRP_GATE_03 GateAtt */
+    0,  /* 0x04AB: C2_GRP_GATE_03 GateHold */
+    0,  /* 0x04AC: C2_GRP_GATE_03 GateRel */
+    0,  /* 0x04AD: C2_GRP_GATE_03 GateRng */
+    0,  /* 0x04AE: C2_GRP_GATE_03 GateKey */
+    0,  /* 0x04AF: C2_GRP_GATE_03 GateDetSrc */
+    0,  /* 0x04B0: C2_GRP_GATE_03 GateFilterOn */
+    0,  /* 0x04B1: C2_GRP_GATE_03 GateFilter HPF[0] */
+    0,  /* 0x04B2: C2_GRP_GATE_03 GateFilter HPF[1] */
+    0,  /* 0x04B3: C2_GRP_GATE_03 GateFilter HPF[2] */
+    0,  /* 0x04B4: C2_GRP_GATE_03 GateFilter HPF[3] */
+    0,  /* 0x04B5: C2_GRP_GATE_03 GateFilter HPF[4] */
+    0,  /* 0x04B6: C2_GRP_GATE_03 GateFilter LPF[0] */
+    0,  /* 0x04B7: C2_GRP_GATE_03 GateFilter LPF[1] */
+    0,  /* 0x04B8: C2_GRP_COMP_03 CompOn */
+    0,  /* 0x04B9: C2_GRP_COMP_03 CompThr */
+    0,  /* 0x04BA: C2_GRP_COMP_03 CompRat */
+    0,  /* 0x04BB: C2_GRP_COMP_03 CompAtt */
+    0,  /* 0x04BC: C2_GRP_COMP_03 CompRel */
+    0,  /* 0x04BD: C2_GRP_COMP_03 CompMake */
+    0,  /* 0x04BE: C2_GRP_COMP_03 CompKnee */
+    0,  /* 0x04BF: C2_GRP_COMP_03 CompPar */
+    0,  /* 0x04C0: C2_GRP_COMP_03 CompType */
+    0,  /* 0x04C1: C2_GRP_COMP_03 CompKey */
+    0,  /* 0x04C2: C2_GRP_COMP_03 CompDetSrc */
+    0,  /* 0x04C3: C2_GRP_COMP_03 CompLimMode */
+    0,  /* 0x04C4: C2_GRP_COMP_03 CompEqPos */
+    0,  /* 0x04C5: C2_GRP_COMP_03 CompFilterOn */
+    0,  /* 0x04C6: C2_GRP_COMP_03 CompFilter HPF[0] */
+    0,  /* 0x04C7: C2_GRP_COMP_03 CompFilter HPF[1] */
+    0,  /* 0x04C8: C2_GRP_FDR_04 level */
+    0,  /* 0x04C9: C2_GRP_FDR_04 pan (unused) */
+    0,  /* 0x04CA: C2_GRP_FDR_04 mute */
+    0,  /* 0x04CB: C2_GRP_FDR_04 DCA gain */
+    0,  /* 0x04CC: C2_GRP_EQ_04 EQ coeff[0] */
+    0,  /* 0x04CD: C2_GRP_EQ_04 EQ coeff[1] */
+    0,  /* 0x04CE: C2_GRP_EQ_04 EQ coeff[2] */
+    0,  /* 0x04CF: C2_GRP_EQ_04 EQ coeff[3] */
+    0,  /* 0x04D0: C2_GRP_EQ_04 EQ coeff[4] */
+    0,  /* 0x04D1: C2_GRP_EQ_04 EQ coeff[5] */
+    0,  /* 0x04D2: C2_GRP_EQ_04 EQ coeff[6] */
+    0,  /* 0x04D3: C2_GRP_EQ_04 EQ coeff[7] */
+    0,  /* 0x04D4: C2_GRP_EQ_04 EQ coeff[8] */
+    0,  /* 0x04D5: C2_GRP_EQ_04 EQ coeff[9] */
+    0,  /* 0x04D6: C2_GRP_EQ_04 EQ coeff[10] */
+    0,  /* 0x04D7: C2_GRP_EQ_04 EQ coeff[11] */
+    0,  /* 0x04D8: C2_GRP_EQ_04 EQ coeff[12] */
+    0,  /* 0x04D9: C2_GRP_EQ_04 EQ coeff[13] */
+    0,  /* 0x04DA: C2_GRP_EQ_04 EQ coeff[14] */
+    0,  /* 0x04DB: C2_GRP_EQ_04 EQ coeff[15] */
+    0,  /* 0x04DC: C2_GRP_EQ_04 EQ coeff[16] */
+    0,  /* 0x04DD: C2_GRP_EQ_04 EQ coeff[17] */
+    0,  /* 0x04DE: C2_GRP_EQ_04 EQ coeff[18] */
+    0,  /* 0x04DF: C2_GRP_EQ_04 EQ coeff[19] */
+    0,  /* 0x04E0: C2_GRP_EQ_04 EQ swap trigger */
+    0,  /* 0x04E1: C2_GRP_EQ_04 EqOn (MCU-managed) */
+    0,  /* 0x04E2: C2_GRP_EQ_04 spare */
+    0,  /* 0x04E3: C2_GRP_EQ_04 spare */
+    0,  /* 0x04E4: C2_GRP_GATE_04 GateOn */
+    0,  /* 0x04E5: C2_GRP_GATE_04 GateThr */
+    0,  /* 0x04E6: C2_GRP_GATE_04 GateAtt */
+    0,  /* 0x04E7: C2_GRP_GATE_04 GateHold */
+    0,  /* 0x04E8: C2_GRP_GATE_04 GateRel */
+    0,  /* 0x04E9: C2_GRP_GATE_04 GateRng */
+    0,  /* 0x04EA: C2_GRP_GATE_04 GateKey */
+    0,  /* 0x04EB: C2_GRP_GATE_04 GateDetSrc */
+    0,  /* 0x04EC: C2_GRP_GATE_04 GateFilterOn */
+    0,  /* 0x04ED: C2_GRP_GATE_04 GateFilter HPF[0] */
+    0,  /* 0x04EE: C2_GRP_GATE_04 GateFilter HPF[1] */
+    0,  /* 0x04EF: C2_GRP_GATE_04 GateFilter HPF[2] */
+    0,  /* 0x04F0: C2_GRP_GATE_04 GateFilter HPF[3] */
+    0,  /* 0x04F1: C2_GRP_GATE_04 GateFilter HPF[4] */
+    0,  /* 0x04F2: C2_GRP_GATE_04 GateFilter LPF[0] */
+    0,  /* 0x04F3: C2_GRP_GATE_04 GateFilter LPF[1] */
+    0,  /* 0x04F4: C2_GRP_COMP_04 CompOn */
+    0,  /* 0x04F5: C2_GRP_COMP_04 CompThr */
+    0,  /* 0x04F6: C2_GRP_COMP_04 CompRat */
+    0,  /* 0x04F7: C2_GRP_COMP_04 CompAtt */
+    0,  /* 0x04F8: C2_GRP_COMP_04 CompRel */
+    0,  /* 0x04F9: C2_GRP_COMP_04 CompMake */
+    0,  /* 0x04FA: C2_GRP_COMP_04 CompKnee */
+    0,  /* 0x04FB: C2_GRP_COMP_04 CompPar */
+    0,  /* 0x04FC: C2_GRP_COMP_04 CompType */
+    0,  /* 0x04FD: C2_GRP_COMP_04 CompKey */
+    0,  /* 0x04FE: C2_GRP_COMP_04 CompDetSrc */
+    0,  /* 0x04FF: C2_GRP_COMP_04 CompLimMode */
+    0,  /* 0x0500: C2_GRP_COMP_04 CompEqPos */
+    0,  /* 0x0501: C2_GRP_COMP_04 CompFilterOn */
+    0,  /* 0x0502: C2_GRP_COMP_04 CompFilter HPF[0] */
+    0,  /* 0x0503: C2_GRP_COMP_04 CompFilter HPF[1] */
+    0,  /* 0x0504: C2_SUB_FDR level */
+    0,  /* 0x0505: C2_SUB_FDR pan (unused) */
+    0,  /* 0x0506: C2_SUB_FDR mute */
+    0,  /* 0x0507: C2_SUB_FDR DCA gain */
+    0,  /* 0x0508: C2_SUB_EQ EQ coeff[0] */
+    0,  /* 0x0509: C2_SUB_EQ EQ coeff[1] */
+    0,  /* 0x050A: C2_SUB_EQ EQ coeff[2] */
+    0,  /* 0x050B: C2_SUB_EQ EQ coeff[3] */
+    0,  /* 0x050C: C2_SUB_EQ EQ coeff[4] */
+    0,  /* 0x050D: C2_SUB_EQ EQ coeff[5] */
+    0,  /* 0x050E: C2_SUB_EQ EQ coeff[6] */
+    0,  /* 0x050F: C2_SUB_EQ EQ coeff[7] */
+    0,  /* 0x0510: C2_SUB_EQ EQ coeff[8] */
+    0,  /* 0x0511: C2_SUB_EQ EQ coeff[9] */
+    0,  /* 0x0512: C2_SUB_EQ EQ coeff[10] */
+    0,  /* 0x0513: C2_SUB_EQ EQ coeff[11] */
+    0,  /* 0x0514: C2_SUB_EQ EQ coeff[12] */
+    0,  /* 0x0515: C2_SUB_EQ EQ coeff[13] */
+    0,  /* 0x0516: C2_SUB_EQ EQ coeff[14] */
+    0,  /* 0x0517: C2_SUB_EQ EQ coeff[15] */
+    0,  /* 0x0518: C2_SUB_EQ EQ coeff[16] */
+    0,  /* 0x0519: C2_SUB_EQ EQ coeff[17] */
+    0,  /* 0x051A: C2_SUB_EQ EQ coeff[18] */
+    0,  /* 0x051B: C2_SUB_EQ EQ coeff[19] */
+    0,  /* 0x051C: C2_SUB_EQ EQ swap trigger */
+    0,  /* 0x051D: C2_SUB_EQ EqOn (MCU-managed) */
+    0,  /* 0x051E: C2_SUB_EQ spare */
+    0,  /* 0x051F: C2_SUB_EQ spare */
+    0,  /* 0x0520: C2_SUB_COMP CompOn */
+    0,  /* 0x0521: C2_SUB_COMP CompThr */
+    0,  /* 0x0522: C2_SUB_COMP CompRat */
+    0,  /* 0x0523: C2_SUB_COMP CompAtt */
+    0,  /* 0x0524: C2_SUB_COMP CompRel */
+    0,  /* 0x0525: C2_SUB_COMP CompMake */
+    0,  /* 0x0526: C2_SUB_COMP CompKnee */
+    0,  /* 0x0527: C2_SUB_COMP CompPar */
+    0,  /* 0x0528: C2_SUB_COMP CompType */
+    0,  /* 0x0529: C2_SUB_COMP CompKey */
+    0,  /* 0x052A: C2_SUB_COMP CompDetSrc */
+    0,  /* 0x052B: C2_SUB_COMP CompLimMode */
+    0,  /* 0x052C: C2_SUB_COMP CompEqPos */
+    0,  /* 0x052D: C2_SUB_COMP CompFilterOn */
+    0,  /* 0x052E: C2_SUB_COMP CompFilter HPF[0] */
+    0,  /* 0x052F: C2_SUB_COMP CompFilter HPF[1] */
+    0,  /* 0x0530: C2_SUB_LIM LimiterOn */
+    0,  /* 0x0531: C2_SUB_LIM LimiterThr */
+    0,  /* 0x0532: C2_SUB_LIM LimiterAtt */
+    0,  /* 0x0533: C2_SUB_LIM LimiterRel */
+    0,  /* 0x0534: C2_SUB_DLY delay offset */
+    0,  /* 0x0535: C2_SUB_DLY pool_slot */
+    0,  /* 0x0536 */
+    0,  /* 0x0537: C2_MIX_MAIN_L bus_id */
+    0,  /* 0x0538: C2_MIX_MAIN_L source_count */
+    0,  /* 0x0539 */
+    0,  /* 0x053A */
+    0,  /* 0x053B: C2_MIX_MAIN_R bus_id */
+    0,  /* 0x053C: C2_MIX_MAIN_R source_count */
+    0,  /* 0x053D */
+    0,  /* 0x053E */
+    0,  /* 0x053F: C2_MAIN_FDR level */
+    0,  /* 0x0540: C2_MAIN_FDR pan (unused) */
+    0,  /* 0x0541: C2_MAIN_FDR mute */
+    0,  /* 0x0542: C2_MAIN_FDR DCA gain */
+    0,  /* 0x0543: C2_MAIN_GEQ GEQ coeff[0] */
+    0,  /* 0x0544: C2_MAIN_GEQ GEQ coeff[1] */
+    0,  /* 0x0545: C2_MAIN_GEQ GEQ coeff[2] */
+    0,  /* 0x0546: C2_MAIN_GEQ GEQ coeff[3] */
+    0,  /* 0x0547: C2_MAIN_GEQ GEQ coeff[4] */
+    0,  /* 0x0548: C2_MAIN_GEQ GEQ coeff[5] */
+    0,  /* 0x0549: C2_MAIN_GEQ GEQ coeff[6] */
+    0,  /* 0x054A: C2_MAIN_GEQ GEQ coeff[7] */
+    0,  /* 0x054B: C2_MAIN_GEQ GEQ coeff[8] */
+    0,  /* 0x054C: C2_MAIN_GEQ GEQ coeff[9] */
+    0,  /* 0x054D: C2_MAIN_GEQ GEQ coeff[10] */
+    0,  /* 0x054E: C2_MAIN_GEQ GEQ coeff[11] */
+    0,  /* 0x054F: C2_MAIN_GEQ GEQ coeff[12] */
+    0,  /* 0x0550: C2_MAIN_GEQ GEQ coeff[13] */
+    0,  /* 0x0551: C2_MAIN_GEQ GEQ coeff[14] */
+    0,  /* 0x0552: C2_MAIN_GEQ GEQ coeff[15] */
+    0,  /* 0x0553: C2_MAIN_GEQ GEQ coeff[16] */
+    0,  /* 0x0554: C2_MAIN_GEQ GEQ coeff[17] */
+    0,  /* 0x0555: C2_MAIN_GEQ GEQ coeff[18] */
+    0,  /* 0x0556: C2_MAIN_GEQ GEQ coeff[19] */
+    0,  /* 0x0557: C2_MAIN_GEQ GEQ coeff[20] */
+    0,  /* 0x0558: C2_MAIN_GEQ GEQ coeff[21] */
+    0,  /* 0x0559: C2_MAIN_GEQ GEQ coeff[22] */
+    0,  /* 0x055A: C2_MAIN_GEQ GEQ coeff[23] */
+    0,  /* 0x055B: C2_MAIN_GEQ GEQ coeff[24] */
+    0,  /* 0x055C: C2_MAIN_GEQ GEQ coeff[25] */
+    0,  /* 0x055D: C2_MAIN_GEQ GEQ coeff[26] */
+    0,  /* 0x055E: C2_MAIN_GEQ GEQ coeff[27] */
+    0,  /* 0x055F: C2_MAIN_COMP CompOn */
+    0,  /* 0x0560: C2_MAIN_COMP CompThr */
+    0,  /* 0x0561: C2_MAIN_COMP CompRat */
+    0,  /* 0x0562: C2_MAIN_COMP CompAtt */
+    0,  /* 0x0563: C2_MAIN_COMP CompRel */
+    0,  /* 0x0564: C2_MAIN_COMP CompMake */
+    0,  /* 0x0565: C2_MAIN_COMP CompKnee */
+    0,  /* 0x0566: C2_MAIN_COMP CompPar */
+    0,  /* 0x0567: C2_MAIN_COMP CompType */
+    0,  /* 0x0568: C2_MAIN_COMP CompKey */
+    0,  /* 0x0569: C2_MAIN_COMP CompDetSrc */
+    0,  /* 0x056A: C2_MAIN_COMP CompLimMode */
+    0,  /* 0x056B: C2_MAIN_COMP CompEqPos */
+    0,  /* 0x056C: C2_MAIN_COMP CompFilterOn */
+    0,  /* 0x056D: C2_MAIN_COMP CompFilter HPF[0] */
+    0,  /* 0x056E: C2_MAIN_COMP CompFilter HPF[1] */
+    0,  /* 0x056F: C2_MAIN_LIM LimiterOn */
+    0,  /* 0x0570: C2_MAIN_LIM LimiterThr */
+    0,  /* 0x0571: C2_MAIN_LIM LimiterAtt */
+    0,  /* 0x0572: C2_MAIN_LIM LimiterRel */
+    0,  /* 0x0573: C2_MAIN_DLY delay offset */
+    0,  /* 0x0574: C2_MAIN_DLY pool_slot */
+    0,  /* 0x0575: C2_MAIN_XOVER XOVER coeff[0] */
+    0,  /* 0x0576: C2_MAIN_XOVER XOVER coeff[1] */
+    0,  /* 0x0577: C2_MAIN_XOVER XOVER coeff[2] */
+    0,  /* 0x0578: C2_MAIN_XOVER XOVER coeff[3] */
+    0,  /* 0x0579: C2_MAIN_OEQ_01 EQ coeff[0] */
+    0,  /* 0x057A: C2_MAIN_OEQ_01 EQ coeff[1] */
+    0,  /* 0x057B: C2_MAIN_OEQ_01 EQ coeff[2] */
+    0,  /* 0x057C: C2_MAIN_OEQ_01 EQ coeff[3] */
+    0,  /* 0x057D: C2_MAIN_OEQ_01 EQ coeff[4] */
+    0,  /* 0x057E: C2_MAIN_OEQ_01 EQ coeff[5] */
+    0,  /* 0x057F: C2_MAIN_OEQ_01 EQ coeff[6] */
+    0,  /* 0x0580: C2_MAIN_OEQ_01 EQ coeff[7] */
+    0,  /* 0x0581: C2_MAIN_OEQ_01 EQ coeff[8] */
+    0,  /* 0x0582: C2_MAIN_OEQ_01 EQ coeff[9] */
+    0,  /* 0x0583: C2_MAIN_OEQ_01 EQ coeff[10] */
+    0,  /* 0x0584: C2_MAIN_OEQ_01 EQ coeff[11] */
+    0,  /* 0x0585: C2_MAIN_OEQ_01 EQ coeff[12] */
+    0,  /* 0x0586: C2_MAIN_OEQ_01 EQ coeff[13] */
+    0,  /* 0x0587: C2_MAIN_OEQ_01 EQ coeff[14] */
+    0,  /* 0x0588: C2_MAIN_OEQ_01 EQ coeff[15] */
+    0,  /* 0x0589: C2_MAIN_OEQ_01 EQ coeff[16] */
+    0,  /* 0x058A: C2_MAIN_OEQ_01 EQ coeff[17] */
+    0,  /* 0x058B: C2_MAIN_OEQ_01 EQ coeff[18] */
+    0,  /* 0x058C: C2_MAIN_OEQ_01 EQ coeff[19] */
+    0,  /* 0x058D: C2_MAIN_OEQ_01 EQ swap trigger */
+    0,  /* 0x058E: C2_MAIN_OEQ_01 EqOn (MCU-managed) */
+    0,  /* 0x058F: C2_MAIN_OEQ_01 spare */
+    0,  /* 0x0590: C2_MAIN_OEQ_01 spare */
+    0,  /* 0x0591: C2_MAIN_OCOMP_01 CompOn */
+    0,  /* 0x0592: C2_MAIN_OCOMP_01 CompThr */
+    0,  /* 0x0593: C2_MAIN_OCOMP_01 CompRat */
+    0,  /* 0x0594: C2_MAIN_OCOMP_01 CompAtt */
+    0,  /* 0x0595: C2_MAIN_OCOMP_01 CompRel */
+    0,  /* 0x0596: C2_MAIN_OCOMP_01 CompMake */
+    0,  /* 0x0597: C2_MAIN_OCOMP_01 CompKnee */
+    0,  /* 0x0598: C2_MAIN_OCOMP_01 CompPar */
+    0,  /* 0x0599: C2_MAIN_OCOMP_01 CompType */
+    0,  /* 0x059A: C2_MAIN_OCOMP_01 CompKey */
+    0,  /* 0x059B: C2_MAIN_OCOMP_01 CompDetSrc */
+    0,  /* 0x059C: C2_MAIN_OCOMP_01 CompLimMode */
+    0,  /* 0x059D: C2_MAIN_OCOMP_01 CompEqPos */
+    0,  /* 0x059E: C2_MAIN_OCOMP_01 CompFilterOn */
+    0,  /* 0x059F: C2_MAIN_OCOMP_01 CompFilter HPF[0] */
+    0,  /* 0x05A0: C2_MAIN_OCOMP_01 CompFilter HPF[1] */
+    0,  /* 0x05A1: C2_MAIN_OLIM_01 LimiterOn */
+    0,  /* 0x05A2: C2_MAIN_OLIM_01 LimiterThr */
+    0,  /* 0x05A3: C2_MAIN_OLIM_01 LimiterAtt */
+    0,  /* 0x05A4: C2_MAIN_OLIM_01 LimiterRel */
+    0,  /* 0x05A5 */
+    0,  /* 0x05A6: C2_MAIN_OEQ_02 EQ coeff[0] */
+    0,  /* 0x05A7: C2_MAIN_OEQ_02 EQ coeff[1] */
+    0,  /* 0x05A8: C2_MAIN_OEQ_02 EQ coeff[2] */
+    0,  /* 0x05A9: C2_MAIN_OEQ_02 EQ coeff[3] */
+    0,  /* 0x05AA: C2_MAIN_OEQ_02 EQ coeff[4] */
+    0,  /* 0x05AB: C2_MAIN_OEQ_02 EQ coeff[5] */
+    0,  /* 0x05AC: C2_MAIN_OEQ_02 EQ coeff[6] */
+    0,  /* 0x05AD: C2_MAIN_OEQ_02 EQ coeff[7] */
+    0,  /* 0x05AE: C2_MAIN_OEQ_02 EQ coeff[8] */
+    0,  /* 0x05AF: C2_MAIN_OEQ_02 EQ coeff[9] */
+    0,  /* 0x05B0: C2_MAIN_OEQ_02 EQ coeff[10] */
+    0,  /* 0x05B1: C2_MAIN_OEQ_02 EQ coeff[11] */
+    0,  /* 0x05B2: C2_MAIN_OEQ_02 EQ coeff[12] */
+    0,  /* 0x05B3: C2_MAIN_OEQ_02 EQ coeff[13] */
+    0,  /* 0x05B4: C2_MAIN_OEQ_02 EQ coeff[14] */
+    0,  /* 0x05B5: C2_MAIN_OEQ_02 EQ coeff[15] */
+    0,  /* 0x05B6: C2_MAIN_OEQ_02 EQ coeff[16] */
+    0,  /* 0x05B7: C2_MAIN_OEQ_02 EQ coeff[17] */
+    0,  /* 0x05B8: C2_MAIN_OEQ_02 EQ coeff[18] */
+    0,  /* 0x05B9: C2_MAIN_OEQ_02 EQ coeff[19] */
+    0,  /* 0x05BA: C2_MAIN_OEQ_02 EQ swap trigger */
+    0,  /* 0x05BB: C2_MAIN_OEQ_02 EqOn (MCU-managed) */
+    0,  /* 0x05BC: C2_MAIN_OEQ_02 spare */
+    0,  /* 0x05BD: C2_MAIN_OEQ_02 spare */
+    0,  /* 0x05BE: C2_MAIN_OCOMP_02 CompOn */
+    0,  /* 0x05BF: C2_MAIN_OCOMP_02 CompThr */
+    0,  /* 0x05C0: C2_MAIN_OCOMP_02 CompRat */
+    0,  /* 0x05C1: C2_MAIN_OCOMP_02 CompAtt */
+    0,  /* 0x05C2: C2_MAIN_OCOMP_02 CompRel */
+    0,  /* 0x05C3: C2_MAIN_OCOMP_02 CompMake */
+    0,  /* 0x05C4: C2_MAIN_OCOMP_02 CompKnee */
+    0,  /* 0x05C5: C2_MAIN_OCOMP_02 CompPar */
+    0,  /* 0x05C6: C2_MAIN_OCOMP_02 CompType */
+    0,  /* 0x05C7: C2_MAIN_OCOMP_02 CompKey */
+    0,  /* 0x05C8: C2_MAIN_OCOMP_02 CompDetSrc */
+    0,  /* 0x05C9: C2_MAIN_OCOMP_02 CompLimMode */
+    0,  /* 0x05CA: C2_MAIN_OCOMP_02 CompEqPos */
+    0,  /* 0x05CB: C2_MAIN_OCOMP_02 CompFilterOn */
+    0,  /* 0x05CC: C2_MAIN_OCOMP_02 CompFilter HPF[0] */
+    0,  /* 0x05CD: C2_MAIN_OCOMP_02 CompFilter HPF[1] */
+    0,  /* 0x05CE: C2_MAIN_OLIM_02 LimiterOn */
+    0,  /* 0x05CF: C2_MAIN_OLIM_02 LimiterThr */
+    0,  /* 0x05D0: C2_MAIN_OLIM_02 LimiterAtt */
+    0,  /* 0x05D1: C2_MAIN_OLIM_02 LimiterRel */
+    0,  /* 0x05D2 */
+    0,  /* 0x05D3: C2_MAIN_OEQ_03 EQ coeff[0] */
+    0,  /* 0x05D4: C2_MAIN_OEQ_03 EQ coeff[1] */
+    0,  /* 0x05D5: C2_MAIN_OEQ_03 EQ coeff[2] */
+    0,  /* 0x05D6: C2_MAIN_OEQ_03 EQ coeff[3] */
+    0,  /* 0x05D7: C2_MAIN_OEQ_03 EQ coeff[4] */
+    0,  /* 0x05D8: C2_MAIN_OEQ_03 EQ coeff[5] */
+    0,  /* 0x05D9: C2_MAIN_OEQ_03 EQ coeff[6] */
+    0,  /* 0x05DA: C2_MAIN_OEQ_03 EQ coeff[7] */
+    0,  /* 0x05DB: C2_MAIN_OEQ_03 EQ coeff[8] */
+    0,  /* 0x05DC: C2_MAIN_OEQ_03 EQ coeff[9] */
+    0,  /* 0x05DD: C2_MAIN_OEQ_03 EQ coeff[10] */
+    0,  /* 0x05DE: C2_MAIN_OEQ_03 EQ coeff[11] */
+    0,  /* 0x05DF: C2_MAIN_OEQ_03 EQ coeff[12] */
+    0,  /* 0x05E0: C2_MAIN_OEQ_03 EQ coeff[13] */
+    0,  /* 0x05E1: C2_MAIN_OEQ_03 EQ coeff[14] */
+    0,  /* 0x05E2: C2_MAIN_OEQ_03 EQ coeff[15] */
+    0,  /* 0x05E3: C2_MAIN_OEQ_03 EQ coeff[16] */
+    0,  /* 0x05E4: C2_MAIN_OEQ_03 EQ coeff[17] */
+    0,  /* 0x05E5: C2_MAIN_OEQ_03 EQ coeff[18] */
+    0,  /* 0x05E6: C2_MAIN_OEQ_03 EQ coeff[19] */
+    0,  /* 0x05E7: C2_MAIN_OEQ_03 EQ swap trigger */
+    0,  /* 0x05E8: C2_MAIN_OEQ_03 EqOn (MCU-managed) */
+    0,  /* 0x05E9: C2_MAIN_OEQ_03 spare */
+    0,  /* 0x05EA: C2_MAIN_OEQ_03 spare */
+    0,  /* 0x05EB: C2_MAIN_OCOMP_03 CompOn */
+    0,  /* 0x05EC: C2_MAIN_OCOMP_03 CompThr */
+    0,  /* 0x05ED: C2_MAIN_OCOMP_03 CompRat */
+    0,  /* 0x05EE: C2_MAIN_OCOMP_03 CompAtt */
+    0,  /* 0x05EF: C2_MAIN_OCOMP_03 CompRel */
+    0,  /* 0x05F0: C2_MAIN_OCOMP_03 CompMake */
+    0,  /* 0x05F1: C2_MAIN_OCOMP_03 CompKnee */
+    0,  /* 0x05F2: C2_MAIN_OCOMP_03 CompPar */
+    0,  /* 0x05F3: C2_MAIN_OCOMP_03 CompType */
+    0,  /* 0x05F4: C2_MAIN_OCOMP_03 CompKey */
+    0,  /* 0x05F5: C2_MAIN_OCOMP_03 CompDetSrc */
+    0,  /* 0x05F6: C2_MAIN_OCOMP_03 CompLimMode */
+    0,  /* 0x05F7: C2_MAIN_OCOMP_03 CompEqPos */
+    0,  /* 0x05F8: C2_MAIN_OCOMP_03 CompFilterOn */
+    0,  /* 0x05F9: C2_MAIN_OCOMP_03 CompFilter HPF[0] */
+    0,  /* 0x05FA: C2_MAIN_OCOMP_03 CompFilter HPF[1] */
+    0,  /* 0x05FB: C2_MAIN_OLIM_03 LimiterOn */
+    0,  /* 0x05FC: C2_MAIN_OLIM_03 LimiterThr */
+    0,  /* 0x05FD: C2_MAIN_OLIM_03 LimiterAtt */
+    0,  /* 0x05FE: C2_MAIN_OLIM_03 LimiterRel */
+    0,  /* 0x05FF */
+    0,  /* 0x0600: C2_MAIN_OEQ_04 EQ coeff[0] */
+    0,  /* 0x0601: C2_MAIN_OEQ_04 EQ coeff[1] */
+    0,  /* 0x0602: C2_MAIN_OEQ_04 EQ coeff[2] */
+    0,  /* 0x0603: C2_MAIN_OEQ_04 EQ coeff[3] */
+    0,  /* 0x0604: C2_MAIN_OEQ_04 EQ coeff[4] */
+    0,  /* 0x0605: C2_MAIN_OEQ_04 EQ coeff[5] */
+    0,  /* 0x0606: C2_MAIN_OEQ_04 EQ coeff[6] */
+    0,  /* 0x0607: C2_MAIN_OEQ_04 EQ coeff[7] */
+    0,  /* 0x0608: C2_MAIN_OEQ_04 EQ coeff[8] */
+    0,  /* 0x0609: C2_MAIN_OEQ_04 EQ coeff[9] */
+    0,  /* 0x060A: C2_MAIN_OEQ_04 EQ coeff[10] */
+    0,  /* 0x060B: C2_MAIN_OEQ_04 EQ coeff[11] */
+    0,  /* 0x060C: C2_MAIN_OEQ_04 EQ coeff[12] */
+    0,  /* 0x060D: C2_MAIN_OEQ_04 EQ coeff[13] */
+    0,  /* 0x060E: C2_MAIN_OEQ_04 EQ coeff[14] */
+    0,  /* 0x060F: C2_MAIN_OEQ_04 EQ coeff[15] */
+    0,  /* 0x0610: C2_MAIN_OEQ_04 EQ coeff[16] */
+    0,  /* 0x0611: C2_MAIN_OEQ_04 EQ coeff[17] */
+    0,  /* 0x0612: C2_MAIN_OEQ_04 EQ coeff[18] */
+    0,  /* 0x0613: C2_MAIN_OEQ_04 EQ coeff[19] */
+    0,  /* 0x0614: C2_MAIN_OEQ_04 EQ swap trigger */
+    0,  /* 0x0615: C2_MAIN_OEQ_04 EqOn (MCU-managed) */
+    0,  /* 0x0616: C2_MAIN_OEQ_04 spare */
+    0,  /* 0x0617: C2_MAIN_OEQ_04 spare */
+    0,  /* 0x0618: C2_MAIN_OCOMP_04 CompOn */
+    0,  /* 0x0619: C2_MAIN_OCOMP_04 CompThr */
+    0,  /* 0x061A: C2_MAIN_OCOMP_04 CompRat */
+    0,  /* 0x061B: C2_MAIN_OCOMP_04 CompAtt */
+    0,  /* 0x061C: C2_MAIN_OCOMP_04 CompRel */
+    0,  /* 0x061D: C2_MAIN_OCOMP_04 CompMake */
+    0,  /* 0x061E: C2_MAIN_OCOMP_04 CompKnee */
+    0,  /* 0x061F: C2_MAIN_OCOMP_04 CompPar */
+    0,  /* 0x0620: C2_MAIN_OCOMP_04 CompType */
+    0,  /* 0x0621: C2_MAIN_OCOMP_04 CompKey */
+    0,  /* 0x0622: C2_MAIN_OCOMP_04 CompDetSrc */
+    0,  /* 0x0623: C2_MAIN_OCOMP_04 CompLimMode */
+    0,  /* 0x0624: C2_MAIN_OCOMP_04 CompEqPos */
+    0,  /* 0x0625: C2_MAIN_OCOMP_04 CompFilterOn */
+    0,  /* 0x0626: C2_MAIN_OCOMP_04 CompFilter HPF[0] */
+    0,  /* 0x0627: C2_MAIN_OCOMP_04 CompFilter HPF[1] */
+    0,  /* 0x0628: C2_MAIN_OLIM_04 LimiterOn */
+    0,  /* 0x0629: C2_MAIN_OLIM_04 LimiterThr */
+    0,  /* 0x062A: C2_MAIN_OLIM_04 LimiterAtt */
+    0,  /* 0x062B: C2_MAIN_OLIM_04 LimiterRel */
+    0,  /* 0x062C */
+    0,  /* 0x062D: C2_FX_ENG_01 On */
+    0,  /* 0x062E: C2_FX_ENG_01 Type */
+    0,  /* 0x062F: C2_FX_ENG_01 Decay */
+    0,  /* 0x0630: C2_FX_ENG_01 PreDelay */
+    0,  /* 0x0631: C2_FX_ENG_01 DelayTime */
+    0,  /* 0x0632: C2_FX_ENG_01 Feedback */
+    0,  /* 0x0633: C2_FX_ENG_01 Balance */
+    0,  /* 0x0634: C2_FX_ENG_01 Damp */
+    0,  /* 0x0635: C2_FX_ENG_01 EqLo */
+    0,  /* 0x0636: C2_FX_ENG_01 EqMid */
+    0,  /* 0x0637: C2_FX_ENG_01 EqPresence */
+    0,  /* 0x0638: C2_FX_ENG_01 FX HPF[0] */
+    0,  /* 0x0639: C2_FX_ENG_01 FX HPF[1] */
+    0,  /* 0x063A: C2_FX_ENG_01 FX HPF[2] */
+    0,  /* 0x063B: C2_FX_ENG_01 FX HPF[3] */
+    0,  /* 0x063C: C2_FX_ENG_01 FX HPF[4] */
+    0,  /* 0x063D: C2_FX_ENG_01 ModRate */
+    0,  /* 0x063E: C2_FX_ENG_01 ModLevel */
+    0,  /* 0x063F: C2_FX_ENG_01 LfoShape */
+    0,  /* 0x0640: C2_FX_ENG_01 StereoWidth */
+    1,  /* 0x0641: C2_FX_ENG_01 Mix */
+    0,  /* 0x0642: C2_FX_ENG_01 DuckOn */
+    0,  /* 0x0643: C2_FX_ENG_01 DuckSens */
+    0,  /* 0x0644: C2_FX_ENG_01 spare */
+    0,  /* 0x0645: C2_FX_FDR_01 level */
+    0,  /* 0x0646: C2_FX_FDR_01 pan (unused) */
+    0,  /* 0x0647: C2_FX_FDR_01 mute */
+    0,  /* 0x0648: C2_FX_FDR_01 DCA gain */
+    0,  /* 0x0649: C2_FX_ENG_02 On */
+    0,  /* 0x064A: C2_FX_ENG_02 Type */
+    0,  /* 0x064B: C2_FX_ENG_02 Decay */
+    0,  /* 0x064C: C2_FX_ENG_02 PreDelay */
+    0,  /* 0x064D: C2_FX_ENG_02 DelayTime */
+    0,  /* 0x064E: C2_FX_ENG_02 Feedback */
+    0,  /* 0x064F: C2_FX_ENG_02 Balance */
+    0,  /* 0x0650: C2_FX_ENG_02 Damp */
+    0,  /* 0x0651: C2_FX_ENG_02 EqLo */
+    0,  /* 0x0652: C2_FX_ENG_02 EqMid */
+    0,  /* 0x0653: C2_FX_ENG_02 EqPresence */
+    0,  /* 0x0654: C2_FX_ENG_02 FX HPF[0] */
+    0,  /* 0x0655: C2_FX_ENG_02 FX HPF[1] */
+    0,  /* 0x0656: C2_FX_ENG_02 FX HPF[2] */
+    0,  /* 0x0657: C2_FX_ENG_02 FX HPF[3] */
+    0,  /* 0x0658: C2_FX_ENG_02 FX HPF[4] */
+    0,  /* 0x0659: C2_FX_ENG_02 ModRate */
+    0,  /* 0x065A: C2_FX_ENG_02 ModLevel */
+    0,  /* 0x065B: C2_FX_ENG_02 LfoShape */
+    0,  /* 0x065C: C2_FX_ENG_02 StereoWidth */
+    1,  /* 0x065D: C2_FX_ENG_02 Mix */
+    0,  /* 0x065E: C2_FX_ENG_02 DuckOn */
+    0,  /* 0x065F: C2_FX_ENG_02 DuckSens */
+    0,  /* 0x0660: C2_FX_ENG_02 spare */
+    0,  /* 0x0661: C2_FX_FDR_02 level */
+    0,  /* 0x0662: C2_FX_FDR_02 pan (unused) */
+    0,  /* 0x0663: C2_FX_FDR_02 mute */
+    0,  /* 0x0664: C2_FX_FDR_02 DCA gain */
+    0,  /* 0x0665: C2_FX_ENG_03 On */
+    0,  /* 0x0666: C2_FX_ENG_03 Type */
+    0,  /* 0x0667: C2_FX_ENG_03 Decay */
+    0,  /* 0x0668: C2_FX_ENG_03 PreDelay */
+    0,  /* 0x0669: C2_FX_ENG_03 DelayTime */
+    0,  /* 0x066A: C2_FX_ENG_03 Feedback */
+    0,  /* 0x066B: C2_FX_ENG_03 Balance */
+    0,  /* 0x066C: C2_FX_ENG_03 Damp */
+    0,  /* 0x066D: C2_FX_ENG_03 EqLo */
+    0,  /* 0x066E: C2_FX_ENG_03 EqMid */
+    0,  /* 0x066F: C2_FX_ENG_03 EqPresence */
+    0,  /* 0x0670: C2_FX_ENG_03 FX HPF[0] */
+    0,  /* 0x0671: C2_FX_ENG_03 FX HPF[1] */
+    0,  /* 0x0672: C2_FX_ENG_03 FX HPF[2] */
+    0,  /* 0x0673: C2_FX_ENG_03 FX HPF[3] */
+    0,  /* 0x0674: C2_FX_ENG_03 FX HPF[4] */
+    0,  /* 0x0675: C2_FX_ENG_03 ModRate */
+    0,  /* 0x0676: C2_FX_ENG_03 ModLevel */
+    0,  /* 0x0677: C2_FX_ENG_03 LfoShape */
+    0,  /* 0x0678: C2_FX_ENG_03 StereoWidth */
+    1,  /* 0x0679: C2_FX_ENG_03 Mix */
+    0,  /* 0x067A: C2_FX_ENG_03 DuckOn */
+    0,  /* 0x067B: C2_FX_ENG_03 DuckSens */
+    0,  /* 0x067C: C2_FX_ENG_03 spare */
+    0,  /* 0x067D: C2_FX_FDR_03 level */
+    0,  /* 0x067E: C2_FX_FDR_03 pan (unused) */
+    0,  /* 0x067F: C2_FX_FDR_03 mute */
+    0,  /* 0x0680: C2_FX_FDR_03 DCA gain */
+    0,  /* 0x0681: C2_FX_ENG_04 On */
+    0,  /* 0x0682: C2_FX_ENG_04 Type */
+    0,  /* 0x0683: C2_FX_ENG_04 Decay */
+    0,  /* 0x0684: C2_FX_ENG_04 PreDelay */
+    0,  /* 0x0685: C2_FX_ENG_04 DelayTime */
+    0,  /* 0x0686: C2_FX_ENG_04 Feedback */
+    0,  /* 0x0687: C2_FX_ENG_04 Balance */
+    0,  /* 0x0688: C2_FX_ENG_04 Damp */
+    0,  /* 0x0689: C2_FX_ENG_04 EqLo */
+    0,  /* 0x068A: C2_FX_ENG_04 EqMid */
+    0,  /* 0x068B: C2_FX_ENG_04 EqPresence */
+    0,  /* 0x068C: C2_FX_ENG_04 FX HPF[0] */
+    0,  /* 0x068D: C2_FX_ENG_04 FX HPF[1] */
+    0,  /* 0x068E: C2_FX_ENG_04 FX HPF[2] */
+    0,  /* 0x068F: C2_FX_ENG_04 FX HPF[3] */
+    0,  /* 0x0690: C2_FX_ENG_04 FX HPF[4] */
+    0,  /* 0x0691: C2_FX_ENG_04 ModRate */
+    0,  /* 0x0692: C2_FX_ENG_04 ModLevel */
+    0,  /* 0x0693: C2_FX_ENG_04 LfoShape */
+    0,  /* 0x0694: C2_FX_ENG_04 StereoWidth */
+    1,  /* 0x0695: C2_FX_ENG_04 Mix */
+    0,  /* 0x0696: C2_FX_ENG_04 DuckOn */
+    0,  /* 0x0697: C2_FX_ENG_04 DuckSens */
+    0,  /* 0x0698: C2_FX_ENG_04 spare */
+    0,  /* 0x0699: C2_FX_FDR_04 level */
+    0,  /* 0x069A: C2_FX_FDR_04 pan (unused) */
+    0,  /* 0x069B: C2_FX_FDR_04 mute */
+    0,  /* 0x069C: C2_FX_FDR_04 DCA gain */
+    0,  /* 0x069D: C2_FX_ENG_05 On */
+    0,  /* 0x069E: C2_FX_ENG_05 Type */
+    0,  /* 0x069F: C2_FX_ENG_05 Decay */
+    0,  /* 0x06A0: C2_FX_ENG_05 PreDelay */
+    0,  /* 0x06A1: C2_FX_ENG_05 DelayTime */
+    0,  /* 0x06A2: C2_FX_ENG_05 Feedback */
+    0,  /* 0x06A3: C2_FX_ENG_05 Balance */
+    0,  /* 0x06A4: C2_FX_ENG_05 Damp */
+    0,  /* 0x06A5: C2_FX_ENG_05 EqLo */
+    0,  /* 0x06A6: C2_FX_ENG_05 EqMid */
+    0,  /* 0x06A7: C2_FX_ENG_05 EqPresence */
+    0,  /* 0x06A8: C2_FX_ENG_05 FX HPF[0] */
+    0,  /* 0x06A9: C2_FX_ENG_05 FX HPF[1] */
+    0,  /* 0x06AA: C2_FX_ENG_05 FX HPF[2] */
+    0,  /* 0x06AB: C2_FX_ENG_05 FX HPF[3] */
+    0,  /* 0x06AC: C2_FX_ENG_05 FX HPF[4] */
+    0,  /* 0x06AD: C2_FX_ENG_05 ModRate */
+    0,  /* 0x06AE: C2_FX_ENG_05 ModLevel */
+    0,  /* 0x06AF: C2_FX_ENG_05 LfoShape */
+    0,  /* 0x06B0: C2_FX_ENG_05 StereoWidth */
+    1,  /* 0x06B1: C2_FX_ENG_05 Mix */
+    0,  /* 0x06B2: C2_FX_ENG_05 DuckOn */
+    0,  /* 0x06B3: C2_FX_ENG_05 DuckSens */
+    0,  /* 0x06B4: C2_FX_ENG_05 spare */
+    0,  /* 0x06B5: C2_FX_FDR_05 level */
+    0,  /* 0x06B6: C2_FX_FDR_05 pan (unused) */
+    0,  /* 0x06B7: C2_FX_FDR_05 mute */
+    0,  /* 0x06B8: C2_FX_FDR_05 DCA gain */
+    0,  /* 0x06B9: C2_FX_ENG_06 On */
+    0,  /* 0x06BA: C2_FX_ENG_06 Type */
+    0,  /* 0x06BB: C2_FX_ENG_06 Decay */
+    0,  /* 0x06BC: C2_FX_ENG_06 PreDelay */
+    0,  /* 0x06BD: C2_FX_ENG_06 DelayTime */
+    0,  /* 0x06BE: C2_FX_ENG_06 Feedback */
+    0,  /* 0x06BF: C2_FX_ENG_06 Balance */
+    0,  /* 0x06C0: C2_FX_ENG_06 Damp */
+    0,  /* 0x06C1: C2_FX_ENG_06 EqLo */
+    0,  /* 0x06C2: C2_FX_ENG_06 EqMid */
+    0,  /* 0x06C3: C2_FX_ENG_06 EqPresence */
+    0,  /* 0x06C4: C2_FX_ENG_06 FX HPF[0] */
+    0,  /* 0x06C5: C2_FX_ENG_06 FX HPF[1] */
+    0,  /* 0x06C6: C2_FX_ENG_06 FX HPF[2] */
+    0,  /* 0x06C7: C2_FX_ENG_06 FX HPF[3] */
+    0,  /* 0x06C8: C2_FX_ENG_06 FX HPF[4] */
+    0,  /* 0x06C9: C2_FX_ENG_06 ModRate */
+    0,  /* 0x06CA: C2_FX_ENG_06 ModLevel */
+    0,  /* 0x06CB: C2_FX_ENG_06 LfoShape */
+    0,  /* 0x06CC: C2_FX_ENG_06 StereoWidth */
+    1,  /* 0x06CD: C2_FX_ENG_06 Mix */
+    0,  /* 0x06CE: C2_FX_ENG_06 DuckOn */
+    0,  /* 0x06CF: C2_FX_ENG_06 DuckSens */
+    0,  /* 0x06D0: C2_FX_ENG_06 spare */
+    0,  /* 0x06D1: C2_FX_FDR_06 level */
+    0,  /* 0x06D2: C2_FX_FDR_06 pan (unused) */
+    0,  /* 0x06D3: C2_FX_FDR_06 mute */
+    0,  /* 0x06D4: C2_FX_FDR_06 DCA gain */
+    0,  /* 0x06D5: C2_MON source */
+    1,  /* 0x06D6: C2_MON level L */
+    1,  /* 0x06D7: C2_MON level R */
+    0,  /* 0x06D8: C2_MON spare */
+    0,  /* 0x06D9: C2_MON spare */
+    0,  /* 0x06DA: C2_MON spare */
+    0,  /* 0x06DB: C2_MON_DLY delay offset */
+    0,  /* 0x06DC: C2_MON_DLY pool_slot */
+    0,  /* 0x06DD */
+    1,  /* 0x06DE: C2_USB_IN level */
+    0,  /* 0x06DF: C2_USB_IN on */
+    1,  /* 0x06E0: C2_BT_IN level */
+    0,  /* 0x06E1: C2_BT_IN on */
+    1,  /* 0x06E2: C2_DCA_01 level */
+    0,  /* 0x06E3: C2_DCA_01 mute */
+    1,  /* 0x06E4: C2_DCA_02 level */
+    0,  /* 0x06E5: C2_DCA_02 mute */
+    1,  /* 0x06E6: C2_DCA_03 level */
+    0,  /* 0x06E7: C2_DCA_03 mute */
+    1,  /* 0x06E8: C2_DCA_04 level */
+    0,  /* 0x06E9: C2_DCA_04 mute */
+    1,  /* 0x06EA: C2_DCA_05 level */
+    0,  /* 0x06EB: C2_DCA_05 mute */
+    1,  /* 0x06EC: C2_DCA_06 level */
+    0,  /* 0x06ED: C2_DCA_06 mute */
+    1,  /* 0x06EE: C2_DCA_07 level */
+    0,  /* 0x06EF: C2_DCA_07 mute */
+    1,  /* 0x06F0: C2_DCA_08 level */
+    0,  /* 0x06F1: C2_DCA_08 mute */
+    0,  /* 0x06F2: C2_MTR_AUX_01 */
+    0,  /* 0x06F3: C2_MTR_AUX_02 */
+    0,  /* 0x06F4: C2_MTR_AUX_03 */
+    0,  /* 0x06F5: C2_MTR_AUX_04 */
+    0,  /* 0x06F6: C2_MTR_AUX_05 */
+    0,  /* 0x06F7: C2_MTR_AUX_06 */
+    0,  /* 0x06F8: C2_MTR_AUX_07 */
+    0,  /* 0x06F9: C2_MTR_AUX_08 */
+    0,  /* 0x06FA: C2_MTR_AUX_09 */
+    0,  /* 0x06FB: C2_MTR_AUX_10 */
+    0,  /* 0x06FC: C2_MTR_AUX_11 */
+    0,  /* 0x06FD: C2_MTR_AUX_12 */
+    0,  /* 0x06FE: C2_MTR_MAIN_01 L */
+    0,  /* 0x06FF: C2_MTR_MAIN_01 R */
+    0,  /* 0x0700: C2_MTR_MAIN_02 L */
+    0,  /* 0x0701: C2_MTR_MAIN_02 R */
+    0,  /* 0x0702: C2_MTR_MAIN_03 L */
+    0,  /* 0x0703: C2_MTR_MAIN_03 R */
+    0,  /* 0x0704: C2_MTR_MAIN_04 L */
+    0,  /* 0x0705: C2_MTR_MAIN_04 R */
+    0,  /* 0x0706: C2_MTR_GRP_01 */
+    0,  /* 0x0707: C2_MTR_GRP_02 */
+    0,  /* 0x0708: C2_MTR_GRP_03 */
+    0,  /* 0x0709: C2_MTR_GRP_04 */
+    0,  /* 0x070A: C2_MTR_SUB */
+    0,  /* 0x070B: C2_MTR_FX_01 */
+    0,  /* 0x070C: C2_MTR_FX_02 */
+    0,  /* 0x070D: C2_MTR_FX_03 */
+    0,  /* 0x070E: C2_MTR_FX_04 */
+    0,  /* 0x070F: C2_MTR_FX_05 */
+    0,  /* 0x0710: C2_MTR_FX_06 */
+    0,  /* 0x0711 */
+    0,  /* 0x0712 */
+    0,  /* 0x0713 */
+    0,  /* 0x0714 */
+    0,  /* 0x0715 */
+    0,  /* 0x0716 */
+    0,  /* 0x0717 */
+    0,  /* 0x0718 */
+    0,  /* 0x0719 */
+    1,  /* 0x071A: C2_CODEC_AUX_IN level */
+    0,  /* 0x071B: C2_CODEC_AUX_IN on */
+    1,  /* 0x071C: C2_PI_IN level */
+    0,  /* 0x071D: C2_PI_IN on */
+    1,  /* 0x071E: C2_SNK_IN_01 level */
+    0,  /* 0x071F: C2_SNK_IN_01 on */
+    1,  /* 0x0720: C2_SNK_IN_02 level */
+    0,  /* 0x0721: C2_SNK_IN_02 on */
+    1,  /* 0x0722: C2_SNK_IN_03 level */
+    0,  /* 0x0723: C2_SNK_IN_03 on */
+    1,  /* 0x0724: C2_SNK_IN_04 level */
+    0,  /* 0x0725: C2_SNK_IN_04 on */
+    1,  /* 0x0726: C2_SNK_IN_05 level */
+    0,  /* 0x0727: C2_SNK_IN_05 on */
+    1,  /* 0x0728: C2_SNK_IN_06 level */
+    0,  /* 0x0729: C2_SNK_IN_06 on */
+    1,  /* 0x072A: C2_SNK_IN_07 level */
+    0,  /* 0x072B: C2_SNK_IN_07 on */
+    1,  /* 0x072C: C2_SNK_IN_08 level */
+    0,  /* 0x072D: C2_SNK_IN_08 on */
+    0,  /* 0x072E */
+    0,  /* 0x072F */
+    0,  /* 0x0730: C2_GRP_GEQ_01 GEQ coeff[0] */
+    0,  /* 0x0731: C2_GRP_GEQ_01 GEQ coeff[1] */
+    0,  /* 0x0732: C2_GRP_GEQ_01 GEQ coeff[2] */
+    0,  /* 0x0733: C2_GRP_GEQ_01 GEQ coeff[3] */
+    0,  /* 0x0734: C2_GRP_GEQ_01 GEQ coeff[4] */
+    0,  /* 0x0735: C2_GRP_GEQ_01 GEQ coeff[5] */
+    0,  /* 0x0736: C2_GRP_GEQ_01 GEQ coeff[6] */
+    0,  /* 0x0737: C2_GRP_GEQ_01 GEQ coeff[7] */
+    0,  /* 0x0738: C2_GRP_GEQ_01 GEQ coeff[8] */
+    0,  /* 0x0739: C2_GRP_GEQ_01 GEQ coeff[9] */
+    0,  /* 0x073A: C2_GRP_GEQ_01 GEQ coeff[10] */
+    0,  /* 0x073B: C2_GRP_GEQ_01 GEQ coeff[11] */
+    0,  /* 0x073C: C2_GRP_GEQ_01 GEQ coeff[12] */
+    0,  /* 0x073D: C2_GRP_GEQ_01 GEQ coeff[13] */
+    0,  /* 0x073E: C2_GRP_GEQ_01 GEQ coeff[14] */
+    0,  /* 0x073F: C2_GRP_GEQ_01 GEQ coeff[15] */
+    0,  /* 0x0740: C2_GRP_GEQ_01 GEQ coeff[16] */
+    0,  /* 0x0741: C2_GRP_GEQ_01 GEQ coeff[17] */
+    0,  /* 0x0742: C2_GRP_GEQ_01 GEQ coeff[18] */
+    0,  /* 0x0743: C2_GRP_GEQ_01 GEQ coeff[19] */
+    0,  /* 0x0744: C2_GRP_GEQ_01 GEQ coeff[20] */
+    0,  /* 0x0745: C2_GRP_GEQ_01 GEQ coeff[21] */
+    0,  /* 0x0746: C2_GRP_GEQ_01 GEQ coeff[22] */
+    0,  /* 0x0747: C2_GRP_GEQ_01 GEQ coeff[23] */
+    0,  /* 0x0748: C2_GRP_GEQ_01 GEQ coeff[24] */
+    0,  /* 0x0749: C2_GRP_GEQ_01 GEQ coeff[25] */
+    0,  /* 0x074A: C2_GRP_GEQ_01 GEQ coeff[26] */
+    0,  /* 0x074B: C2_GRP_GEQ_01 GEQ coeff[27] */
+    0,  /* 0x074C: C2_GRP_GEQ_02 GEQ coeff[0] */
+    0,  /* 0x074D: C2_GRP_GEQ_02 GEQ coeff[1] */
+    0,  /* 0x074E: C2_GRP_GEQ_02 GEQ coeff[2] */
+    0,  /* 0x074F: C2_GRP_GEQ_02 GEQ coeff[3] */
+    0,  /* 0x0750: C2_GRP_GEQ_02 GEQ coeff[4] */
+    0,  /* 0x0751: C2_GRP_GEQ_02 GEQ coeff[5] */
+    0,  /* 0x0752: C2_GRP_GEQ_02 GEQ coeff[6] */
+    0,  /* 0x0753: C2_GRP_GEQ_02 GEQ coeff[7] */
+    0,  /* 0x0754: C2_GRP_GEQ_02 GEQ coeff[8] */
+    0,  /* 0x0755: C2_GRP_GEQ_02 GEQ coeff[9] */
+    0,  /* 0x0756: C2_GRP_GEQ_02 GEQ coeff[10] */
+    0,  /* 0x0757: C2_GRP_GEQ_02 GEQ coeff[11] */
+    0,  /* 0x0758: C2_GRP_GEQ_02 GEQ coeff[12] */
+    0,  /* 0x0759: C2_GRP_GEQ_02 GEQ coeff[13] */
+    0,  /* 0x075A: C2_GRP_GEQ_02 GEQ coeff[14] */
+    0,  /* 0x075B: C2_GRP_GEQ_02 GEQ coeff[15] */
+    0,  /* 0x075C: C2_GRP_GEQ_02 GEQ coeff[16] */
+    0,  /* 0x075D: C2_GRP_GEQ_02 GEQ coeff[17] */
+    0,  /* 0x075E: C2_GRP_GEQ_02 GEQ coeff[18] */
+    0,  /* 0x075F: C2_GRP_GEQ_02 GEQ coeff[19] */
+    0,  /* 0x0760: C2_GRP_GEQ_02 GEQ coeff[20] */
+    0,  /* 0x0761: C2_GRP_GEQ_02 GEQ coeff[21] */
+    0,  /* 0x0762: C2_GRP_GEQ_02 GEQ coeff[22] */
+    0,  /* 0x0763: C2_GRP_GEQ_02 GEQ coeff[23] */
+    0,  /* 0x0764: C2_GRP_GEQ_02 GEQ coeff[24] */
+    0,  /* 0x0765: C2_GRP_GEQ_02 GEQ coeff[25] */
+    0,  /* 0x0766: C2_GRP_GEQ_02 GEQ coeff[26] */
+    0,  /* 0x0767: C2_GRP_GEQ_02 GEQ coeff[27] */
+    0,  /* 0x0768: C2_GRP_GEQ_03 GEQ coeff[0] */
+    0,  /* 0x0769: C2_GRP_GEQ_03 GEQ coeff[1] */
+    0,  /* 0x076A: C2_GRP_GEQ_03 GEQ coeff[2] */
+    0,  /* 0x076B: C2_GRP_GEQ_03 GEQ coeff[3] */
+    0,  /* 0x076C: C2_GRP_GEQ_03 GEQ coeff[4] */
+    0,  /* 0x076D: C2_GRP_GEQ_03 GEQ coeff[5] */
+    0,  /* 0x076E: C2_GRP_GEQ_03 GEQ coeff[6] */
+    0,  /* 0x076F: C2_GRP_GEQ_03 GEQ coeff[7] */
+    0,  /* 0x0770: C2_GRP_GEQ_03 GEQ coeff[8] */
+    0,  /* 0x0771: C2_GRP_GEQ_03 GEQ coeff[9] */
+    0,  /* 0x0772: C2_GRP_GEQ_03 GEQ coeff[10] */
+    0,  /* 0x0773: C2_GRP_GEQ_03 GEQ coeff[11] */
+    0,  /* 0x0774: C2_GRP_GEQ_03 GEQ coeff[12] */
+    0,  /* 0x0775: C2_GRP_GEQ_03 GEQ coeff[13] */
+    0,  /* 0x0776: C2_GRP_GEQ_03 GEQ coeff[14] */
+    0,  /* 0x0777: C2_GRP_GEQ_03 GEQ coeff[15] */
+    0,  /* 0x0778: C2_GRP_GEQ_03 GEQ coeff[16] */
+    0,  /* 0x0779: C2_GRP_GEQ_03 GEQ coeff[17] */
+    0,  /* 0x077A: C2_GRP_GEQ_03 GEQ coeff[18] */
+    0,  /* 0x077B: C2_GRP_GEQ_03 GEQ coeff[19] */
+    0,  /* 0x077C: C2_GRP_GEQ_03 GEQ coeff[20] */
+    0,  /* 0x077D: C2_GRP_GEQ_03 GEQ coeff[21] */
+    0,  /* 0x077E: C2_GRP_GEQ_03 GEQ coeff[22] */
+    0,  /* 0x077F: C2_GRP_GEQ_03 GEQ coeff[23] */
+    0,  /* 0x0780: C2_GRP_GEQ_03 GEQ coeff[24] */
+    0,  /* 0x0781: C2_GRP_GEQ_03 GEQ coeff[25] */
+    0,  /* 0x0782: C2_GRP_GEQ_03 GEQ coeff[26] */
+    0,  /* 0x0783: C2_GRP_GEQ_03 GEQ coeff[27] */
+    0,  /* 0x0784: C2_GRP_GEQ_04 GEQ coeff[0] */
+    0,  /* 0x0785: C2_GRP_GEQ_04 GEQ coeff[1] */
+    0,  /* 0x0786: C2_GRP_GEQ_04 GEQ coeff[2] */
+    0,  /* 0x0787: C2_GRP_GEQ_04 GEQ coeff[3] */
+    0,  /* 0x0788: C2_GRP_GEQ_04 GEQ coeff[4] */
+    0,  /* 0x0789: C2_GRP_GEQ_04 GEQ coeff[5] */
+    0,  /* 0x078A: C2_GRP_GEQ_04 GEQ coeff[6] */
+    0,  /* 0x078B: C2_GRP_GEQ_04 GEQ coeff[7] */
+    0,  /* 0x078C: C2_GRP_GEQ_04 GEQ coeff[8] */
+    0,  /* 0x078D: C2_GRP_GEQ_04 GEQ coeff[9] */
+    0,  /* 0x078E: C2_GRP_GEQ_04 GEQ coeff[10] */
+    0,  /* 0x078F: C2_GRP_GEQ_04 GEQ coeff[11] */
+    0,  /* 0x0790: C2_GRP_GEQ_04 GEQ coeff[12] */
+    0,  /* 0x0791: C2_GRP_GEQ_04 GEQ coeff[13] */
+    0,  /* 0x0792: C2_GRP_GEQ_04 GEQ coeff[14] */
+    0,  /* 0x0793: C2_GRP_GEQ_04 GEQ coeff[15] */
+    0,  /* 0x0794: C2_GRP_GEQ_04 GEQ coeff[16] */
+    0,  /* 0x0795: C2_GRP_GEQ_04 GEQ coeff[17] */
+    0,  /* 0x0796: C2_GRP_GEQ_04 GEQ coeff[18] */
+    0,  /* 0x0797: C2_GRP_GEQ_04 GEQ coeff[19] */
+    0,  /* 0x0798: C2_GRP_GEQ_04 GEQ coeff[20] */
+    0,  /* 0x0799: C2_GRP_GEQ_04 GEQ coeff[21] */
+    0,  /* 0x079A: C2_GRP_GEQ_04 GEQ coeff[22] */
+    0,  /* 0x079B: C2_GRP_GEQ_04 GEQ coeff[23] */
+    0,  /* 0x079C: C2_GRP_GEQ_04 GEQ coeff[24] */
+    0,  /* 0x079D: C2_GRP_GEQ_04 GEQ coeff[25] */
+    0,  /* 0x079E: C2_GRP_GEQ_04 GEQ coeff[26] */
+    0;  /* 0x079F: C2_GRP_GEQ_04 GEQ coeff[27] */
+

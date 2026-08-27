@@ -11,6 +11,10 @@
  *           r1 = new target value
  *           r2 = ramp mode (0=Instant, 1=Slew, 2=LinearFrames, 3=ExpFrames)
  *           r3 = frame count (0 for Instant)
+ *           r4 = STRIDE from the value to its companion words
+ *                (1 for a scalar; the array length for the routing
+ *                 sends, whose target/step/frames are parallel
+ *                 arrays -- see _spi_dispatch_cN_stride)
  *
  * For Instant: write target directly, frames=0
  * For Slew/LinearFrames:
@@ -25,8 +29,11 @@
 .global _ramp_set_target;
 _ramp_set_target:
     i4 = r0;               /* save coeff pointer in DAG I register */
-    r4 = 0;
-    comp(r2, r4);
+    /* Stash the stride FIRST: the slew path loads the current value
+     * into f4, and f4 IS r4, so the incoming stride would be gone. */
+    r12 = r4;              /* stride */
+    r5 = 0;
+    comp(r2, r5);
     if eq jump (pc, .ramp_instant);
 
     /* Slew / LinearFrames: compute step = (target - current) / frames */
@@ -43,12 +50,21 @@ _ramp_set_target:
     f8 = f10 - f8;
     f7 = f7 * f8;           /* ~32-bit 1/f6 */
     f5 = f5 * f7;           /* step = delta / frames */
-    /* Store target at [r0+1], step at [r0+2], frames at [r0+3].
+    /* Store target at [r0+s], step at [r0+2s], frames at [r0+3s].
      *
      * NOT dm(i4, 1) / dm(i4, 2) / dm(i4, 3). That form is POST-modify:
      * it writes the address currently in i4 and THEN adds the modifier,
      * so the old code wrote target over the LEVEL at [r0+0], step over
      * the TARGET at [r0+1], and only landed frames correctly by luck.
+     *
+     * The stride is NOT always 1. A scalar parameter emits
+     * value/target/step/frames back to back, but the routing sends
+     * emit four PARALLEL ARRAYS, so element i of a 12-wide AuxSend has
+     * its companions 12/24/36 words away. Writing those at +1/+2/+3
+     * corrupts the NEIGHBOURING crosspoint's level and leaves the send
+     * with no ramp state at all -- which is why aux and fx sends could
+     * never be set over SPI. The handler passes the right stride from
+     * the generated _spi_dispatch_cN_stride table.
      *
      * Bench 2026-08-23: writing 1.0 to C2_PI_IN's level put 1/128 in
      * the target slot, converging to ~1/129 over repeats -- that value
@@ -60,24 +76,27 @@ _ramp_set_target:
      * Explicit address arithmetic instead, so the intent is on the
      * page. */
     r11 = r0;
-    r12 = 1;
-    r11 = r11 + r12;  i4 = r11;  dm(i4, 0) = f1;   /* target  [r0+1] */
-    r11 = r11 + r12;  i4 = r11;  dm(i4, 0) = f5;   /* step    [r0+2] */
-    r11 = r11 + r12;  i4 = r11;  dm(i4, 0) = r3;   /* frames  [r0+3] */
+    r11 = r11 + r12;  i4 = r11;  dm(i4, 0) = f1;   /* target  [r0+s]  */
+    r11 = r11 + r12;  i4 = r11;  dm(i4, 0) = f5;   /* step    [r0+2s] */
+    r11 = r11 + r12;  i4 = r11;  dm(i4, 0) = r3;   /* frames  [r0+3s] */
     rts;
 
 .ramp_instant:
     /* Instant must set the TARGET as well as the value: the node's
      * block-rate code is `if frames <= 0: level = target`, so writing
      * the level alone is undone within one block. Same post-modify
-     * trap as above -- the old dm(i4, 3) wrote back over [r0+0]. */
-    dm(i4, 0) = f1;                                /* level   [r0+0] */
+     * trap as above -- the old dm(i4, 3) wrote back over [r0+0].
+     *
+     * Reached for a profile-0 (InstantCtl) write to a parameter that
+     * HAS ramp state. Setting the level alone is not enough: the
+     * block-rate code runs `if frames <= 0: level = target` every
+     * block, so the write would be undone within one block period.
+     * Level and target both, and frames cleared so the snap path
+     * holds the new value. r5 is still 0 from the mode test. */
+    dm(i4, 0) = f1;                                /* level   [r0+0]  */
     r11 = r0;
-    r12 = 1;
-    r11 = r11 + r12;  i4 = r11;  dm(i4, 0) = f1;   /* target  [r0+1] */
-    r12 = 2;
-    r11 = r11 + r12;  i4 = r11;
-    r4 = 0;
-    dm(i4, 0) = r4;                                /* frames  [r0+3] */
+    r11 = r11 + r12;  i4 = r11;  dm(i4, 0) = f1;   /* target  [r0+s]  */
+    r11 = r11 + r12;                               /* step    [r0+2s] */
+    r11 = r11 + r12;  i4 = r11;  dm(i4, 0) = r5;   /* frames  [r0+3s] */
     rts;
 _ramp_set_target.end:

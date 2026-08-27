@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-08-27 17:27Z — review R1 ramp-write root cause + fix, R2 codegen fail-loudly   [status: 🟢 done — R1 was ALREADY root-caused and fixed on 08-23 (commit d2e4dc6, candidate 3: post-modify offset); review restated a stale symptom. R2 landed, image byte-identical. Bench unreachable this session (different subnet) — GAIN harness re-run still owed]
+## HUB DISPATCH 2026-08-27 17:27Z — review R1 ramp-write root cause + fix, R2 codegen fail-loudly   [status: 🟢 done — R1 was already fixed 08-23 (d2e4dc6, candidate 3) and is RE-PROVEN on the part; R2 landed byte-identical; F1 (profile-0 discard) fixed per hub ruling; **F3 FOUND AND FIXED — array-valued ramped params (576 routing crosspoints) wrote their ramp state onto neighbouring sends, so aux/fx sends could never be set over SPI at all**. GAIN family unblocked: full −60…+18 dB sweep monotonic, unity bit-exact. Bench restored, 3 MCUs verified]
 
 model: opus
 
@@ -39,7 +39,117 @@ no AI attribution in commits or any work product.
 
 Legend: 🔴 not started/blocked · 🟡 in progress · 🟢 done
 
-### Outcome 2026-08-27 — R1 was already fixed; R2 landed; two new findings
+### Outcome 2026-08-27 (rev 2, after bench access) — R1 re-proven, F1 fixed, F3 found and fixed, GAIN unblocked
+
+**Bench access correction:** the `MW-D32-*` aliases in `~/.ssh/config` are
+stale (old 192.168.0.x subnet, per-unit IdentityFile the unit no longer
+accepts). The rig is `app@192.168.1.219` (MW-D24-2) with the default
+`id_ed25519`. First pass this session wrongly reported the bench
+unreachable; everything below was then run on the part.
+
+**F3 — THE HEADLINE, and it was not in the review or the queue: a ramped
+write to an ARRAY-valued parameter wrote its ramp state onto the
+neighbouring crosspoints and never reached its own.** `_ramp_set_target`
+assumed target/step/frames sit at +1/+2/+3. That holds for a SCALAR
+parameter, which emits them right after the value. The routing sends do not:
+they emit four PARALLEL arrays —
+
+    _rtg_aux_send        [12]   <- the dispatch table points in here
+    _rtg_aux_send_target [12]
+    _rtg_aux_send_step   [12]
+    _rtg_aux_send_frames [12]
+
+— so element i's companions are 12/24/36 words away, not 1/2/3. A ramped
+write to AuxSend[1] therefore stored target/step/frames onto AuxSend[2],
+[3] and [4]'s LEVELS, and left its own target/step/frames untouched at
+zero. The block-rate code reads the parallel arrays and runs
+`if frames <= 0: level = target`, so every send snapped back to its
+zero-initialised target every block. Net effect: **the aux and fx sends
+could never be set over SPI at all**, and trying corrupted three
+neighbouring crosspoints on the way. Scope: `_rtg_aux_send` (stride 12) and
+`_rtg_fx_send` (stride 6) across 32 RTG nodes on chip 1 = **576 crosspoint
+controls**, i.e. every send in the routing layer; the 130 scalar ramped
+params were already correct after `d2e4dc6`. This sits directly in the
+08-25 crosspoint-coefficient mandate's path.
+
+**The fix — one stride per dispatch entry, derived from the artifact, not
+asserted.** `gen_dsp.py` now emits `_spi_dispatch_cN_stride[]`, parallel to
+and same-indexed as the dispatch table: 0 = plain word (direct write), s ≥ 1
+= ramped with target at +s, step at +2s, frames at +3s. Scalars are stride
+1, so their behaviour is unchanged by construction. The map is built by
+SCANNING THE EMITTED NODE ASM for each `_..._target_<nid>` declaration and
+its array width — restating "which params ramp and how wide" by hand in a
+second generator is the same duplicated-assumption bug this table exists to
+fix, and it would drift silently; reading the artifact cannot. It fails
+loudly if the node ASM is missing or yields no ramped params. Emitted
+counts, visible in the file header: chip 1 610 ramped entries
+{1: 34, 6: 192, 12: 384}, chip 2 28 {1: 28}. `_ramp_set_target` takes the
+stride in r4 (stashed to r12 immediately — the slew path loads the current
+value into f4, and f4 IS r4); both SPI handlers look the stride up and pass
+it. Cost: one word per dispatch entry — chip 1 +19 KB, chip 2 +7.9 KB of DM.
+Packing to 4 bits is available later if DM gets tight; correctness first.
+
+**F1 — fixed per the hub ruling (generator flag table), and it fell out of
+the same table.** `.spi_instant` wrote only the level word, so a profile-0
+write to a ramped parameter was undone within one block. It now consults the
+stride: 0 → direct write as before; s ≥ 1 → routed through
+`_ramp_set_target` in Instant mode, which sets level AND target and clears
+frames. A ramp profile aimed at a stride-0 word falls back to a plain write
+rather than scribbling on its neighbours.
+
+#### Proven on the part (chip 1 + chip 2, DSP4_STRIPS=1, BOOT_STAGE 7, 1500 blocks/s, SPORT/DMA clean)
+
+    A  R1  0x071C ramp_id=1   target 0.5 landed at 0x951DE, level converged
+                              1.0 -> 0.5 (caught mid-ramp at 0.529955),
+                              step -0.0013, _auxin_on preserved        PASS
+    B  F1  0x071C ramp_id=0   level AND target = 0.25, frames 0, and it
+                              SURVIVED ~1500 blocks (pre-fix: reverted
+                              within one block)                        PASS
+    C  F3  0x0066 ramp_id=1   AuxSend[1] -> send[0] 0.75, target[0] 0.75 at
+                              0x92C36 (base+12), step[0] 0.00586 at
+                              0x92C42 (base+24); neighbours send[1..3]
+                              UNCHANGED at 0                           PASS
+
+Linked addresses confirm the stride in the image: `_rtg_aux_send_C1_RTG_01`
+0x92C2A, target 0x92C36 (+12), step 0x92C42 (+24), frames 0x92C4E (+36).
+
+**GAIN harness family — UNBLOCKED.** Full −60…+18 dB sweep through the
+ramped path, DC 0x00100000 in, captured over the loopback bitstream:
+
+    -60 dB   1048 (exp 1048.6)      0 dB  1048576 (exp 1048576, BIT-EXACT)
+    -36 dB  16616 (exp 16618.8)    +6 dB  2092184 (exp 2092184.2)
+    -12 dB 263392 (exp 263390.4)  +18 dB  8329136 (exp 8329135.2)
+
+Monotonic across all 13 points, unity bit-exact, worst error 549 ppm at
+−60 dB where the output is only 1048 counts (sub-LSB for Q4.28) and ≤ 10 ppm
+from −24 dB up. Compare 2026-08-23, which produced *identical* output at
+every setting. One harness note recorded: the sweep does not set
+`_auxin_on_C2_PI_IN`, which initialises to 0 and forces the node output to
+zero, so the first run reads NONE at every level regardless of gain —
+write 1 to 0x071D first.
+
+**Not caused by this change, re-confirmed:** the post-CONFIG_COMMIT link
+desync reproduces identically on the ORIGINAL bench image, and clears on the
+second boot+config cycle. matrix-app needed its usual SECOND restart to
+announce all three MCUs (first gave H1S3 only) — another occurrence for the
+hub's mx26 app-bug tally.
+
+**Bench restored and verified:** shipping CPLD `dsp4_logic.a1f6672af6c3`
+(md5 dd1e09185804cb2e451d5089cdd56be3) re-flashed, IDCODE 0x020a30dd
+verified, GPIOs `a0`; shipping firmware restored byte-for-byte
+(25a1afed0e0097ee94e04f0d9be8b383 / 7052c5d1810975f5b64130c73a048a46, kept
+in `~/dspboot/bak-20260827/`); matrix-app active, H1S1/H1S3/H1S4 all
+verified. NOTE for the hub: the image on the bench is NOT the recorded
+production build — this tree reproduces production
+(0df38e8270c14e01ba6ffc57c2122563 / 130ddb0f546966b38ec23b6d9b923748)
+exactly, but `~/dspboot` held a larger Aug-24 build. Left as found.
+
+**Default image necessarily MOVES** (this is a behaviour fix, not a
+refactor): 11f166ab3cd701f76e3b7b38b097aa10 /
+89fbe274eb12dd45951a2f9d23be7c8f. Both generators re-verified deterministic;
+`check-contract-drift.sh` clean.
+
+### Outcome 2026-08-27 (rev 1) — R1 was already fixed; R2 landed; two new findings
 
 **R1 — the bug was root-caused and fixed on 2026-08-23, an hour after the
 outcome the review quotes.** Commit `d2e4dc6` ("FIX: ramp engine wrote one
@@ -109,7 +219,7 @@ GENERATORS), which is why the image could not move.
 
 #### New findings from this pass (not fixed here — both need a decision)
 
-- 🔴 **F1 — the OTHER half of the 08-23 double bind is still live: a
+- 🟢 **F1 — FIXED 2026-08-27 (hub ruling: generator flag table). Was: a
   profile-0 write to a ramped parameter is silently discarded.** The SPI
   handler intercepts `RAMP_INSTANT` before `_ramp_set_target` and takes
   `.spi_instant`, which writes ONLY the level word (`dm(i1, 0) = r1`). For a
@@ -234,7 +344,7 @@ generate the efficient form. The strip-fusion dispatch below is this
 priority's execution; do not drift to other work until the fit is proven or
 disproven with measurements.**
 
-## HUB REVIEW 2026-08-27 — review.txt (accuracy/efficiency codebase review, 2026-08-25/26) folded into the queue   [status: 🟡 R1 🟢 (was already fixed 08-23; bench re-verify + GAIN harness still owed) · R2 🟢 landed 08-27 · R3–R5 still open hardening items · R6 opportunistic · new: F1 profile-0 ramped writes, F2 D24 stale ramp_engine]
+## HUB REVIEW 2026-08-27 — review.txt (accuracy/efficiency codebase review, 2026-08-25/26) folded into the queue   [status: 🟡 R1 🟢 fixed 08-23 + re-proven on the part 08-27 · R2 🟢 landed byte-identical · F1 🟢 fixed · F3 🟢 found+fixed (array-stride ramp corruption, 576 routing crosspoints — the review missed it) · F2 🔴 D24 stale ramp_engine · R3–R5 open hardening · R6 opportunistic]
 
 `review.txt` (committed 08-25, code suggestions §5 appended 08-26) reviewed
 the contract layer, the codegen/tooling layer and the bit-exact reference
