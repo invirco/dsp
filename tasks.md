@@ -1,3 +1,32 @@
+## HUB DISPATCH 2026-08-27 18:21Z — crosspoint-coefficient audit + enforce (08-25 mandate)   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+Execute the standing HUB MANDATE 2026-08-25 block in this file:
+"crosspoint-coefficient mixing is Bible doctrine; dsp code must follow it"
+(status 🔴 audit + enforce). It is next in the queue now that the 08-27
+review dispatch is closed.
+
+Scope reminder from the mandate: audit the per-block kernels and generated
+strip/routing code for violations of the crosspoint-coefficient fold —
+per-sample branches on mute/assign state, gain chains applied as separate
+multiplies (fader then pan then mute), any control-state test inside the MAC
+loops — and fold them into the per-crosspoint coefficient at control rate.
+Nonlinear/structural elements (comp, gate, tube, path enables) are graph
+structure, not coefficients — out of scope for the fold. Report findings and
+cycle deltas against the strip-fusion ledger. Remember today's ramp-engine
+work (stride-aware companion writes, F1 profile-0 fix) sits in this same
+code path — build on the fixed generator, and note the capacity arithmetic
+impact: every cycle recovered here counts toward the 32-strips-in-one goal
+at 786 (PW #1 priority).
+
+W0 discipline throughout; bench restored to shipping at the end; update the
+mandate block's status with findings + deltas.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-08-27 17:27Z — review R1 ramp-write root cause + fix, R2 codegen fail-loudly   [status: 🟢 done — R1 was already fixed 08-23 (d2e4dc6, candidate 3) and is RE-PROVEN on the part; R2 landed byte-identical; F1 (profile-0 discard) fixed per hub ruling; **F3 FOUND AND FIXED — array-valued ramped params (576 routing crosspoints) wrote their ramp state onto neighbouring sends, so aux/fx sends could never be set over SPI at all**. GAIN family unblocked: full −60…+18 dB sweep monotonic, unity bit-exact. Bench restored, 3 MCUs verified. F2 closed: D24 ramp engine regenerated, now byte-identical to the bench-proven D32 file (D24 still builds no image — retired Wine flow, pre-existing)]
 
 model: opus
