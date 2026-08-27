@@ -14,7 +14,6 @@
 #endif
 
 #if DSP4_BLOCK_KERNELS
-.section/dm seg_delay;
 .global _bus_acc_main_l;   .var _bus_acc_main_l[64];
 .global _bus_acc_main_r;   .var _bus_acc_main_r[64];
 .global _bus_acc_sub;   .var _bus_acc_sub[64];
@@ -40,7 +39,6 @@
 .global _bus_acc_fx_04;   .var _bus_acc_fx_04[64];
 .global _bus_acc_fx_05;   .var _bus_acc_fx_05[64];
 .global _bus_acc_fx_06;   .var _bus_acc_fx_06[64];
-.section/dm seg_dmda;
 #else
 .global _bus_acc_main_l;   .var _bus_acc_main_l[2];
 .global _bus_acc_main_r;   .var _bus_acc_main_r[2];

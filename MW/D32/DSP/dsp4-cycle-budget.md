@@ -549,6 +549,94 @@ that would show only that this sample worked at that moment and
 temperature. The marking on U5/U6 has to be read.
 
 
+## FABRIC AND THE MEASURED CEILINGS AT 786 AND 983 — 2026-08-27/28
+
+### The fabric row was not double-counted, and its cost was an ADDRESS
+
+Measured at the ledger's own boundary (`NODE_LIMIT` 320 vs 0) the fabric read
+**86,212 cycles/block** against the **85,475** recorded 2026-08-24 — 0.9 %
+apart, with the meters inside both. Nothing had been reclassified and nothing
+had improved; the 40k row was a real lever.
+
+Where it went, and why:
+
+| segment | cycles/block | share |
+|---|---|---|
+| 32 meters | 32,324 | 37.5 % |
+| cross-ins + talkback + noise | 1,106 | 1.3 % |
+| **25 buses + 25 sends** | **52,427** | **60.8 %** |
+| 12 inter-chip transfers | 355 | 0.4 % |
+
+52,427 is 32.8 cycles/sample per bus node for ONE round-and-saturate. The
+arithmetic never explained that — the 25 x 64-word accumulators were in
+`seg_delay`, i.e. **L2 at 0x20000000, off-core and contending with the audio
+DMA**. They were there because putting them internal "overflowed sec_stak",
+which was not a memory limit but the LDF ordering defect (see the crosspoint
+entry above). Moving them internal and inlining the readout:
+
+| segment | before | after | delta |
+|---|---|---|---|
+| 32 strips | 977,214 | 935,430 | **−41,784** |
+| cross-ins + buses + sends | 53,533 | 19,531 | **−34,002 (−63.5 %)** |
+| full graph | 1,063,426 | 987,075 | −76,351 (−7.2 %) |
+| **FABRIC (320 vs 0)** | **86,212** | **51,645** | **−34,567 (−40.1 %)** |
+
+**The strips fell by more than the buses did** — ROUTING's `_acc64_mac_blk` was
+paying the same L2 penalty on every crosspoint MAC. Fabric is now **1.29x** its
+40k target, from 2.16x.
+
+### Measured ceilings, converted build, per chip
+
+| `DSP4_STRIPS` | 786.432 MHz | 983.04 MHz |
+|---|---|---|
+| **15** | **1500/s — ceiling** | — |
+| 16 | 1446/s over budget | — |
+| **20** | — | **1500/s — ceiling** |
+| 21 | — | 1442/s over budget |
+
+Arithmetic and bench agree to the channel, which no previous ceiling figure has
+managed. With block I/O 32,707 (carried from 2026-08-24), fabric 51,645 and a
+strip of 28,210 cycles/block = **881.6 cycles/sample**:
+
+| clock | budget/block | predicted | measured |
+|---|---|---|---|
+| 786.432 | 524,288 | 15 | **15** |
+| 983.04 | 655,360 | 20 | **20** |
+
+No other value of block I/O predicts both, which retro-validates the carried
+figure.
+
+### THESE ARE SILENCE MEASUREMENTS — the governing caveat
+
+`strips_run.sh` injects nothing and the bench has no analog input, so the gate
+is closed and the compressor idle. The recorded 786 ceiling of **10** was taken
+signal-present. The pre-fabric numbers measured the same night project **13.3**
+at 786 against that 10, so **signal costs about a quarter of the headroom**:
+
+| | silence (measured) | signal-present estimate |
+|---|---|---|
+| 786.432 | 15 | **~11–12** |
+| 983.04 | 20 | **~15–16** |
+
+**Do not quote the silence figures as the feasibility answer.** A
+signal-present sweep needs a stimulus on every strip at once; the scope reaches
+one input slot, so it does not. That measurement is the next thing this line of
+work needs.
+
+### The 32-in-one verdict, updated
+
+**D24's 24 channels do not fit one chip at 983** — 20 measured in silence,
+~15–16 with signal. D32's 32 are further still. Chip 2 remains 3.8x over its
+own budget (2026-08-24, also silence) and is not the escape route. The 786
+ceiling has moved **10 → 15** across this week in silence terms and the fabric
+is 40 % cheaper, so the direction is right — but the remaining gap is a
+**factor, not a margin**, and nothing left in the fabric closes it alone.
+
+The largest single item still in the fabric is the meters at 32,324
+cycles/block; decimating them recovers ~26,000 but changes what they report,
+and they carry four recorded defects. **PARKED FOR PW** — see tasks.md.
+
+
 ## THE MEASURED CEILING AT 786.432 MHz, AND THE 32-IN-ONE VERDICT
 
 Fully converted build, **signal present** so the dynamics take their real

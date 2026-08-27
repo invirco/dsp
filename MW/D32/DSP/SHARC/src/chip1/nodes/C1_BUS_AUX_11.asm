@@ -29,18 +29,45 @@
 .global _C1_BUS_AUX_11_process;
 _C1_BUS_AUX_11_process:
 #if DSP4_BLOCK_KERNELS
-    /* One call per BLOCK instead of 32. The accumulator is
-     * already per-sample (64 words = 32 x 2), so this walks it
-     * and rounds each sample in turn. _acc64_rns28 advances i2
-     * by one, so it takes one more modify to step a pair. */
+    /* One pass per BLOCK, with _acc64_rns28 + _mrf_rns28 INLINED
+     * and their constants hoisted. The accumulator is already
+     * per-sample (64 words = 32 x 2 pairs), so this walks it and
+     * rounds each sample in turn.
+     *
+     * The shared routine costs a call, an rts and two constant
+     * reloads on every one of 25 buses x 32 samples = 800
+     * invocations per block, which is the same shape that made
+     * GAIN 4x cheaper when it was inlined. The saturation
+     * fix-up here is a CONDITIONAL MOVE, not the early `rts`
+     * the shared routine uses, so the body stays inside a
+     * hardware loop. Arithmetic is unchanged and must stay
+     * bit-identical to fixed_ref.mix_sum. */
     l2 = 0;
     l3 = 0;
     i2 = _bus_acc_aux_11;
     i3 = _buf_C1_BUS_AUX_11;
-    m0 = 1;
+    r8 = 0x08000000;          /* 2^27, the rounding half */
+    r9 = 1;
+    r10 = 0x7FFFFFFF;
     lcntr = 32, do .mbk_C1_BUS_AUX_11 until lce;
-        call _acc64_rns28;
-        modify(i2, m0);
+        r1 = dm(i2, 1);       /* lo; i2 -> hi              */
+        r2 = dm(i2, 1);       /* hi; i2 -> next pair       */
+        mr0f = r1;
+        mr1f = r2;
+        r3 = ashift r2 by -31;
+        mr2f = r3;
+        mrf = mrf + r8 * r9 (ssi);
+        r1 = mr0f;
+        r2 = mr1f;
+        r1 = lshift r1 by -28;
+        r3 = lshift r2 by 4;
+        r0 = r1 or r3;
+        r1 = ashift r2 by -28;
+        r3 = ashift r0 by -31;
+        r11 = ashift r2 by -31;
+        r11 = r10 xor r11;
+        comp(r1, r3);
+        if ne r0 = r11;
     .mbk_C1_BUS_AUX_11: dm(i3, 1) = r0;
     rts;
 #else

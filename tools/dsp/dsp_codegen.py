@@ -6183,18 +6183,45 @@ def gen_mix_bus_fixed(node):
             .global _{nid}_process;
             _{nid}_process:
             #if DSP4_BLOCK_KERNELS
-                /* One call per BLOCK instead of 32. The accumulator is
-                 * already per-sample (64 words = 32 x 2), so this walks it
-                 * and rounds each sample in turn. _acc64_rns28 advances i2
-                 * by one, so it takes one more modify to step a pair. */
+                /* One pass per BLOCK, with _acc64_rns28 + _mrf_rns28 INLINED
+                 * and their constants hoisted. The accumulator is already
+                 * per-sample (64 words = 32 x 2 pairs), so this walks it and
+                 * rounds each sample in turn.
+                 *
+                 * The shared routine costs a call, an rts and two constant
+                 * reloads on every one of 25 buses x 32 samples = 800
+                 * invocations per block, which is the same shape that made
+                 * GAIN 4x cheaper when it was inlined. The saturation
+                 * fix-up here is a CONDITIONAL MOVE, not the early `rts`
+                 * the shared routine uses, so the body stays inside a
+                 * hardware loop. Arithmetic is unchanged and must stay
+                 * bit-identical to fixed_ref.mix_sum. */
                 l2 = 0;
                 l3 = 0;
                 i2 = {acc_sym};
                 i3 = _buf_{nid};
-                m0 = 1;
+                r8 = 0x08000000;          /* 2^27, the rounding half */
+                r9 = 1;
+                r10 = 0x7FFFFFFF;
                 lcntr = 32, do .mbk_{nid} until lce;
-                    call _acc64_rns28;
-                    modify(i2, m0);
+                    r1 = dm(i2, 1);       /* lo; i2 -> hi              */
+                    r2 = dm(i2, 1);       /* hi; i2 -> next pair       */
+                    mr0f = r1;
+                    mr1f = r2;
+                    r3 = ashift r2 by -31;
+                    mr2f = r3;
+                    mrf = mrf + r8 * r9 (ssi);
+                    r1 = mr0f;
+                    r2 = mr1f;
+                    r1 = lshift r1 by -28;
+                    r3 = lshift r2 by 4;
+                    r0 = r1 or r3;
+                    r1 = ashift r2 by -28;
+                    r3 = ashift r0 by -31;
+                    r11 = ashift r2 by -31;
+                    r11 = r10 xor r11;
+                    comp(r1, r3);
+                    if ne r0 = r11;
                 .mbk_{nid}: dm(i3, 1) = r0;
                 rts;
             #else
@@ -6359,11 +6386,25 @@ def gen_bus_accumulators_fixed():
     # internal reaches 22,646 and still overflows -- the ceiling sits
     # around 22,500. L2 it is; that makes the RTG cycle figure conservative
     # rather than optimistic.
+    # THESE ARE NOW INTERNAL, and that is the single biggest thing in the
+    # fabric. Measured 2026-08-27 on the part: buses + sends cost 52,427
+    # cycles/block, 61 % of an 86,212-cycle fabric, which is 32.8
+    # cycles/sample for what is one round-and-saturate per bus. The
+    # arithmetic does not explain that; the ADDRESS does. Every
+    # _acc64_mac_blk reads two words and writes two words per sample per
+    # live crosspoint, and every readout reads two more, and all of it was
+    # going to L2 at 0x20000000 -- off-core, and contending with the DMA
+    # that is streaming audio through the same fabric.
+    #
+    # They lived in L2 because putting them internal "overflowed sec_stak"
+    # (2026-08-24). That was never a memory limit: sec_stak was declared
+    # AFTER sec_dmda in the LDF, so Block 0 had to hold everything while
+    # the overflow region sat at 0 %. With the reserve declared first
+    # (2026-08-27) chip 1 has ~178 KB of DM free and these 1,600 words fit
+    # with room to spare.
     out.append('#if DSP4_BLOCK_KERNELS')
-    out.append('.section/dm seg_delay;')
     for n in names:
         out.append(f'.global _bus_acc_{n};   .var _bus_acc_{n}[64];')
-    out.append('.section/dm seg_dmda;')
     out.append('#else')
     for n in names:
         out.append(f'.global _bus_acc_{n};   .var _bus_acc_{n}[2];')
