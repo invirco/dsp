@@ -1,3 +1,5 @@
+Legend: 🔴 not started/blocked · 🟡 in progress · 🟢 done
+
 **PW DECISION (2026-08-24): TUBE SATURATION IS A PLUGIN, NOT A FIXED CHANNEL
 FUNCTION.** Only a few selected channels will use it, so it comes out of the
 basic strip for capacity purposes. Two levels to this and they are different:
@@ -92,6 +94,59 @@ generated code is the lever, per the Matrix principle — single source,
 generate the efficient form. The strip-fusion dispatch below is this
 priority's execution; do not drift to other work until the fit is proven or
 disproven with measurements.**
+
+## HUB REVIEW 2026-08-27 — review.txt (accuracy/efficiency codebase review, 2026-08-25/26) folded into the queue   [status: 🔴 open — R1 already gates the harness families; R2–R5 are small hardening items; R6 opportunistic]
+
+`review.txt` (committed 08-25, code suggestions §5 appended 08-26) reviewed
+the contract layer, the codegen/tooling layer and the bit-exact reference
+model at HEAD. The contract/governance layer (sync-from-mx26.sh,
+validate-matrix-contract.py, check-contract-drift.sh,
+regenerate-dsp-contract.sh) came back CLEAN — no bugs found, no action.
+Capacity-fit (PW #1) is unchanged by this review: §3.1 only confirms the
+already-tracked, already-measured ~10-channels-per-chip vs 32 gap and adds
+no new measurements. The rest, folded into tracked items — §5's patches are
+suggestions only, NONE applied; land each as its own small change:
+
+- 🔴 **R1 — ramped-parameter writes land one word low (review §2.1 = the
+  2026-08-23 15:0xZ outcome at the bottom of this file).** Already tracked;
+  the review restates it as the top ACCURACY item in the codebase: one
+  ramped SPI write stores the step in the *target* slot and zeroes the
+  `_..._on` flag — silently mutes the channel, reboot-only recovery, blocks
+  parameter testing of EVERY family after GAIN. Root cause still not
+  isolated (dispatch-table address vs `r0` computation vs `_ramp_set_target`
+  offset convention). Rides in the kernel-rewrite path; fix before the
+  harness families resume.
+- 🔴 **R2 — codegen must fail loudly on unknown node types (review §2.2,
+  patch §5.1).** `GENERATORS.get(node['type'], gen_generic)`
+  (dsp_codegen.py ~7748) silently emits a `/* TODO */` stub for any unknown
+  type — violates the no-fallback policy that the contract layer already
+  enforces. Small change: raise with node context; delete `gen_generic` or
+  make it explicit opt-in.
+- 🔴 **R3 — gen_dsp_csv.py error hardening (review §2.4, patch §5.2):** the
+  GEQ-insertion `next(...)` raises bare StopIteration when the graph is out
+  of sync → contextual ValueError; sport_map.json pre-flight-validated once
+  at load (collect all inconsistent entries) instead of asserted per use.
+- 🔴 **R4 — dsp_validate.py tightening (review §2.5, patch §5.3):**
+  duplicate node IDs must be rejected, not reported once and re-processed;
+  `parse_id_list()`/`parse_params()` cross-checked against the known
+  node-id set and a per-type expected-param-keys table so malformed dsp.csv
+  rows cannot flow through to codegen.
+- 🔴 **R5 — fixed_ref.py: silent sentinel + knee boundary (review §2.6,
+  patch §5.5):** `log2_q()` returns a fixed sentinel for `x <= 0` — raise
+  instead, or prove the sentinel unreachable by legitimate values and
+  document it; add a soft-knee boundary test at `over == ±half_knee`. This
+  file is the SHARC/FPGA bit-exactness reference — silent behaviour here is
+  contract risk.
+- 🔴 **R6 — opportunistic cleanups (review §2.3, §2.7, §3.2–3.5, patch
+  §5.4), do when touching each file, not as their own dispatch:**
+  gen_dsp.py's MCU-only prefixes from config (single registration point
+  with the allowlist) instead of a hardcoded tuple, plus makedirs guards on
+  the generated-file writes; dedupe the parse helpers between
+  dsp_validate.py and dsp_simulate.py (and drop dsp_simulate's second
+  DSPSimulator instantiation / per-stage block.copy()); hardcode
+  fixed_ref.py's fitted polynomial coefficients (fit script kept for
+  regeneration); single-pass GEQ insertion; assert-guarded template
+  rewrites → marker-based with node/file context in the error.
 
 ## HUB MANDATE 2026-08-25 — crosspoint-coefficient mixing is Bible doctrine; dsp code must follow it   [status: 🔴 audit + enforce]
 
