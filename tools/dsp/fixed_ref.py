@@ -121,20 +121,15 @@ def envelope_step(env, target, alpha):
 # log2 / exp2 polynomial approximants (normalize-then-poly, degree 5)
 # Coefficients are Chebyshev-fitted then quantized to Q2.30 — these
 # EXACT integer coefficient sets are part of the normative spec.
+#
+# Checked-in constants, not computed at import time: regenerate with
+# tools/dsp/fit_log2exp2_poly.py if the fit degree, range, or QC changes.
 # ---------------------------------------------------------------------------
 
-def _fit_poly(fn, lo, hi, degree=5):
-    import numpy as np
-    k = np.arange(degree + 1)
-    nodes = (lo + hi) / 2 + (hi - lo) / 2 * np.cos((2 * k + 1) * np.pi
-                                                   / (2 * (degree + 1)))
-    c = np.polyfit(nodes, [fn(t) for t in nodes], degree)
-    return [sat32(int(round(v * (1 << QC)))) for v in c]   # Q2.30, high->low
-
 # log2(1+t), t in [0,1)
-LOG2_POLY = _fit_poly(lambda t: math.log2(1.0 + t), 0.0, 1.0)
+LOG2_POLY = [46176222, -201314356, 439665385, -758584049, 1547790691, 17732]
 # 2^f, f in [0,1)
-EXP2_POLY = _fit_poly(lambda f: 2.0 ** f, 0.0, 1.0)
+EXP2_POLY = [2033403, 9609550, 59979580, 257850314, 744268966, 1073741715]
 
 
 def _poly_eval_q(coeffs_q230, t_q31):
