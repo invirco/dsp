@@ -27,6 +27,63 @@ Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
 no AI attribution in commits or any work product.
 
+## NEXT RUNG (queued 2026-08-28 00:0xZ) — SIGNAL-PRESENT ceiling sweep   [status: 🔴 queued]
+
+model: opus
+
+**This is the number that decides D32-on-card at 983.** Every ceiling measured
+on 2026-08-27/28 is a SILENCE measurement: `strips_run.sh` injects nothing and
+the bench has no analog input, so the gate sits closed and the compressor idle
+and both take their cheap path. Measured silence ceilings are **15 at 786 and
+20 at 983** per chip, converted build. The signal-present equivalents are
+estimated at **~11–12 and ~15–16**, from a bias sized against the one
+signal-present figure on record (the 786 ceiling of 10, versus 13.3 projected
+by the same arithmetic — so signal costs roughly a quarter of the headroom).
+
+**Why it is the deciding measurement.** A two-chip D32 split needs 16
+channels/chip. The signal-present estimate at 983 is 15–16. That is a margin
+question sitting exactly on the boundary, and an estimate carrying a ±25 %
+bias correction cannot answer it. A measured number can.
+
+**Two caveats that must travel with the answer, or it will be over-read:**
+
+1. **16/chip is not a free split.** Chip 2 is not idle capacity — its own
+   graph measured **1,978,933 cycles/block on 2026-08-24, 3.8x over the same
+   budget**, and that was itself a silence reading. "32 across two chips"
+   requires chip 2's existing load to be cut first, which nothing this week
+   touched. Do not report a per-chip figure as a per-card answer.
+2. The 2026-08-24 note "chip 2 is comparatively idle" was retracted as an
+   assumption that was never measured. It should not creep back.
+
+### How to get signal on all 32 strips at once — the actual obstacle
+
+The scope injects into ONE input slot (`sc.arm(src, inj, amp, mode)`), so it
+cannot drive a 32-strip sweep. Two routes, cheaper one first:
+
+- **A firmware stimulus behind a build flag** (`DSP4_STIM`), written into every
+  strip's input by the scatter or the IN kernel. Self-contained, needs no
+  bitstream change, and is the same class of measurement scaffolding as
+  `DSP4_STRIPS` and `DSP4_NODE_LIMIT`. **The amplitude has to be chosen so the
+  dynamics take their REAL path** — above the gate threshold (default
+  −40 dBFS) and above the compressor threshold (default −20 dBFS), and clear of
+  saturation. A stimulus that leaves the gate shut measures silence with extra
+  steps, so the sweep must prove the gate is open before it reports a ceiling
+  (read `_gate_gain` or the GR meter, and require it to show the gate passing).
+- **The loopback CPLD bitstream + `DSP4_PATTERN`** feeds the TDM inputs for
+  real. Higher fidelity, but it means flashing the CPLD, and the shipping
+  bitstream must be restored afterwards.
+
+### Deliverable
+
+Measured signal-present ceilings per chip at 786 AND 983, converted build,
+`_proc_passes` methodology, judged by the honest rule (**1500/s is real time;
+`dsp4_audio_verdict.py`'s REAL_TIME label only means it cleared a 1450
+threshold**). Report alongside the silence figures so the bias is visible
+rather than folded away, and state the chip-2 caveat with the per-card answer.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status; no AI attribution.
+
 ## HUB DISPATCH 2026-08-27 17:27Z — review R1 ramp-write root cause + fix, R2 codegen fail-loudly   [status: 🟢 done — R1 was already fixed 08-23 (d2e4dc6, candidate 3) and is RE-PROVEN on the part; R2 landed byte-identical; F1 (profile-0 discard) fixed per hub ruling; **F3 FOUND AND FIXED — array-valued ramped params (576 routing crosspoints) wrote their ramp state onto neighbouring sends, so aux/fx sends could never be set over SPI at all**. GAIN family unblocked: full −60…+18 dB sweep monotonic, unity bit-exact. Bench restored, 3 MCUs verified. F2 closed: D24 ramp engine regenerated, now byte-identical to the bench-proven D32 file (D24 still builds no image — retired Wine flow, pre-existing)]
 
 model: opus

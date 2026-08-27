@@ -641,6 +641,10 @@ at 786 against that 10, so **signal costs about a quarter of the headroom**:
 | 983.04 | 20 | **~15–16** |
 
 **Do not quote the silence figures as the feasibility answer.** A
+signal-present sweep is queued as the next rung in tasks.md — it is the number
+that decides D32-on-card at 983, where a two-chip split needs 16/chip against a
+15–16 estimate. Note that 16/chip is not a free split: chip 2's own graph is
+3.8x over the same budget (2026-08-24, also silence). A
 signal-present sweep needs a stimulus on every strip at once; the scope reaches
 one input slot, so it does not. That measurement is the next thing this line of
 work needs.
