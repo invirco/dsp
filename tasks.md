@@ -1,3 +1,42 @@
+## HUB DISPATCH 2026-08-27 22:59Z — signal-present ceiling sweep at 786 and 983 (queued rung)   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+Execute the queued rung from tonight's crosspoint/fabric session (commit
+c5a6e36 "queue the signal-present ceiling sweep as the next rung" — read
+its notes first; they define the methodology): the SIGNAL-PRESENT ceiling
+sweep on the converted build, at 786 AND 983.
+
+Why it matters (docs/plan-32ch-options.md in mx26 leads with this): the
+measured ceilings 15@786 / 20@983 are SILENCE numbers; signal-present is
+estimated ~25% lower (~11–12 / ~15–16) from the one recorded
+signal-present point (10 @ 786, pre-fabric). This sweep converts every
+feasibility verdict — especially D32-on-card at 983 (needs 16/chip) —
+from estimate to fact. PW reads the result at breakfast.
+
+Requirements:
+- Same _proc_passes methodology and the honest 1500/s rule (not the
+  tool's 1450 threshold), exactly as tonight's sweeps.
+- Signal path per the recorded recipe (the known-word/loopback technique
+  from the virtual-audio work) — the stimulus must be one that could
+  fail; no all-zero data taking cheap paths. State in the outcome WHAT
+  signal was driven and through which path.
+- Sweep strip counts to the over-budget point at both clocks; report the
+  measured signal-present ceiling per clock, the effective signal cost vs
+  silence (%), and the updated D24/D32/32-in-one verdicts in the same
+  table form as the block.
+- Standing traps all apply (W0, CHIP_ID before believing, one ttyACM0
+  reader, second-restart pattern). Bench restored to shipping and
+  verified at the end; outcome appended to the tonight block; push.
+- Hand-back: if the signal path won't come up cleanly (routes are
+  host-written parameters — use tonight's fixed ramp/SPI writes to set
+  them), record what blocks and stop rather than quoting a compromised
+  number. A wrong ceiling at breakfast is worse than none.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-08-27 22:49Z — R3-R6 review-hardening mechanical pass (desk only)   [status: 🟢 done — all four items landed as 5 small commits, golden harness 10/10 and gen_dsp_csv.py/dsp_validate.py/gen_dsp.py outputs verified byte-identical throughout. R3: GEQ-insertion next() and sport_map.json now fail with contextual ValueErrors (pre-flight checks all buses at load, not per-use). R4: duplicate node IDs short-circuit the rest of that row's checks instead of being validated and forwarded; params cross-checked against a new per-type allowed-key table (required ∪ observed-optional, derived from current dsp.csv). R5: log2_q() raises on negative input; x==0 keeps the -32 sentinel — verified out-of-range (smallest legitimate positive value already floors at -28) and documented, since comp_gain's x_abs legitimately hits 0 on silence; added a golden-harness soft-knee boundary test at over==+/-half_knee (both configs land within 0.00003 dB, branch split is not actually asymmetric in effect). R6: parse_id_list()/parse_params() deduped into tools/dsp/csv_fields.py; dsp_simulate.py's WAV path now reuses the one DSPSimulator via a new reset() instead of a second CSV load (proved byte-identical against a from-scratch instance); biquad_cascade()'s block.copy() removed (biquad_process already returns a fresh array); fixed_ref.py's LOG2_POLY/EXP2_POLY hardcoded as checked-in constants with the fit moved to tools/dsp/fit_log2exp2_poly.py; gen_dsp.py's MCU-only prefixes moved to mcu-only-prefixes.txt alongside matrix-families-allowlist.txt, and the two generated-file writes missing a makedirs guard got one. Nothing hit the hand-back rule — no sub-item stopped looking mechanical. Board untouched throughout, desk-only as scoped.]   [model: sonnet]
 
 model: sonnet
