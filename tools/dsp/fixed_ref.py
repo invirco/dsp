@@ -146,11 +146,21 @@ def _poly_eval_q(coeffs_q230, t_q31):
 
 
 def log2_q(x):
-    """log2 of a positive Q4.28 value -> Q6.25 result (range ±32).
+    """log2 of a nonnegative Q4.28 value -> Q6.25 result (range ±32).
 
     Normalize: x = m * 2^e with m in [1,2); log2(x) = e + log2(m).
+
+    x == 0 is a legitimate call (silence, comp_gain's x_abs); it returns
+    the -32 sentinel rather than raising. This is provably collision-free:
+    the smallest legitimate positive Q4.28 value is x=1, whose exponent
+    is nbits-1-QS = 0-28 = -28, so no positive x can produce a result at
+    or below -32 (verified against the encoding, not assumed). x < 0 is
+    not legitimate for any current caller (comp_gain's x_abs is always
+    an absolute value) and raises.
     """
-    if x <= 0:
+    if x < 0:
+        raise ValueError(f'log2_q undefined for negative x={x!r}')
+    if x == 0:
         return -(32 << 25)                  # -inf sentinel (~-32 in Q6.25)
     nbits = x.bit_length()                  # Q4.28: value 1.0 has 29 bits
     e = nbits - 1 - QS                      # integer exponent

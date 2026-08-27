@@ -165,6 +165,30 @@ def t_dynamics(verbose):
                   f'worst {worst:.5f} dB')
     check('compressor static curve error', worst, 0.05, 'dB')
 
+    # Soft-knee boundary: over == ±half_knee is where the hard/soft
+    # branches meet, so an asymmetric <=/< split at the two symmetric
+    # thresholds would show up here even though it doesn't on the
+    # broader sweep above (2.6).
+    worst_boundary = 0.0
+    for thr_db, ratio, knee in [(-20, 4, 6), (-30, 8, 12)]:
+        thr_q = int(round(thr_db / k * (1 << 25)))
+        slope = 1.0 - 1.0 / ratio
+        slope_q = fr.to_q(slope, fr.QA)
+        hk_q = int(round((knee / 2) / k * (1 << 25)))
+        k2_q = int(round(slope / (2 * knee / k) * (1 << 25)))
+        for over_db in (-knee / 2, knee / 2):
+            db = thr_db + over_db
+            x = 10 ** (db / 20.0)
+            gq = fr.from_q(fr.comp_gain(fr.to_q(x), thr_q, slope_q,
+                                        hk_q, k2_q))
+            gf = fr.comp_gain_f(x, thr_db, ratio, knee)
+            d = abs(20 * math.log10(gq / gf + 1e-30))
+            worst_boundary = max(worst_boundary, d)
+        if verbose:
+            print(f'  knee boundary thr={thr_db} r={ratio} knee={knee}: '
+                  f'worst {worst_boundary:.5f} dB')
+    check('soft-knee boundary error (over=+/-half_knee)', worst_boundary, 0.05, 'dB')
+
     # Envelope time constant: alpha for 10 ms attack, measure 63.2% time
     tau_s = 0.010
     alpha = 1.0 - math.exp(-1.0 / (tau_s * FS))
