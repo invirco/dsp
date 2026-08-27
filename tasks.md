@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-08-27 18:21Z — crosspoint-coefficient audit + enforce (08-25 mandate)   [status: 🟢 done — every in-scope violation folded and PROVEN ON THE PART: strip 1 BIT-EXACT at all 7 level/pan points plus mute and polarity, and routing sends WORK for the first time in the converted build (all 4 pickoffs, negative control passing). Three defects found on the way, all pre-existing and all severe: (1) the ramp-stride table matched only 610 of the ramped parameters, so **every GAIN, FADER_PAN and MONITOR ramped parameter was unsettable over SPI** — proven on the part, and fixed; (2) 132 nodes carried a `_sample_idx == 0` guard that never fires in a block-kernel build, which is why ROUTING never computed a send coefficient there; (3) the chip-1 DM ceiling was an LDF ordering artifact — the overflow region was 0% used and the converted build would not link at all at HEAD. Cycle deltas, converted build, per strip: FDR 1,908 → 1,011 cycles/block (1.89×); RTG 2,617 (prep dead) → 3,196 (prep live, sends working) → 3,667 (folded); FDR+RTG −426 cycles/block against the honest baseline = −13.3 cycles/sample. Capacity: 1,269 → ~1,256 cycles/sample/channel, converted-build ceiling stays 10 — this does NOT move the 32-in-one verdict. **FOLLOW-THROUGH on the same-evening hub steer, all four items done:** the compacted active-crosspoint list landed and is what actually recovers the walk — ROUTING 589.2 → 202.3 cycles/sample (2.91×) and **the SHIPPING ceiling moved from 2 strips to 3** (STRIPS=3 now 1500 passes/s, 4 over budget); the per-sample delta is measured across four tree states (fold −79.8, list −404.9, total **−484.7 cycles/sample**, and the LDF/Block-1 spill costs a measured nothing); the dynamics guard fixes are re-verified on the part, 11 classes across both chips, 0 failures. **TWO OF MY OWN CLAIMS CORRECTED:** the dead-guard count was 132 and is really **68** — chip 1's COMP and GATE drive `_sample_idx` from their own block kernels, so blanket-removing their guard was itself a regression (GATE's sidechain fallback would have converted 32× a block), now decided per node; and the "3 MCUs could not be verified" note was **wrong** — matrix-app logs to `/home/app/logs/log`, not the journal, as the 08-22 block already said, and all three had verified. No app regression exists. Bench restored, all three MCUs verified. **OVERNIGHT RUNG — fabric 40k + measured 32-channel feasibility:** the ledger's fabric row is **NOT double-counted** — measured at its own boundary it reads 86,212 against 85,475 recorded, 0.9% apart, so it was a real still-open lever. Root cause of the fabric cost was the ADDRESS, not the arithmetic: the 25 bus accumulators sat in L2, which the 08-24 note blamed on a DM limit that was really the LDF ordering defect fixed earlier the same evening. Moving them internal + inlining the bus readout: **fabric 86,212 → 51,645 (−40.1%), 2.16x → 1.29x of target**, full graph −7.2%, and the STRIPS fell 41,784 too because ROUTING's crosspoint MACs were paying the same L2 penalty. Bit-exact on the part; per-sample image byte-identical. **MEASURED ceilings, converted build, per chip: 786 → 15, 983 → 20**, and the cycle model predicts both EXACTLY (strip 881.6 cycles/sample, fabric 51,645, block I/O 32,707). **CAVEAT THAT GOVERNS THE FEASIBILITY ANSWER: these are SILENCE measurements.** The recorded 786 ceiling of 10 was signal-present; the same pre-fabric arithmetic projects 13.3, so signal costs ~25% and the signal-present equivalents are **~11–12 at 786 and ~15–16 at 983**. **D24's 24 channels do NOT fit one chip at 983**; D32's 32 are further still; chip 2 remains 3.8x over its own budget. Progress is real (786 ceiling 10 → 15) but the remaining gap is a factor, not a margin. **PARKED FOR PW: meter decimation, ~26k cycles/block** — 37.5% of the fabric, but it changes what the meters REPORT and they already carry four recorded defects; fix-numerics / decimate / retire is one ruling]   [model: opus]
+## HUB DISPATCH 2026-08-27 18:21Z — crosspoint-coefficient audit + enforce (08-25 mandate)   [status: 🟢 done — every in-scope violation folded and PROVEN ON THE PART: strip 1 BIT-EXACT at all 7 level/pan points plus mute and polarity, and routing sends WORK for the first time in the converted build (all 4 pickoffs, negative control passing). Three defects found on the way, all pre-existing and all severe: (1) the ramp-stride table matched only 610 of the ramped parameters, so **every GAIN, FADER_PAN and MONITOR ramped parameter was unsettable over SPI** — proven on the part, and fixed; (2) 132 nodes carried a `_sample_idx == 0` guard that never fires in a block-kernel build, which is why ROUTING never computed a send coefficient there; (3) the chip-1 DM ceiling was an LDF ordering artifact — the overflow region was 0% used and the converted build would not link at all at HEAD. Cycle deltas, converted build, per strip: FDR 1,908 → 1,011 cycles/block (1.89×); RTG 2,617 (prep dead) → 3,196 (prep live, sends working) → 3,667 (folded); FDR+RTG −426 cycles/block against the honest baseline = −13.3 cycles/sample. Capacity: 1,269 → ~1,256 cycles/sample/channel, converted-build ceiling stays 10 — this does NOT move the 32-in-one verdict. **FOLLOW-THROUGH on the same-evening hub steer, all four items done:** the compacted active-crosspoint list landed and is what actually recovers the walk — ROUTING 589.2 → 202.3 cycles/sample (2.91×) and **the SHIPPING ceiling moved from 2 strips to 3** (STRIPS=3 now 1500 passes/s, 4 over budget); the per-sample delta is measured across four tree states (fold −79.8, list −404.9, total **−484.7 cycles/sample**, and the LDF/Block-1 spill costs a measured nothing); the dynamics guard fixes are re-verified on the part, 11 classes across both chips, 0 failures. **TWO OF MY OWN CLAIMS CORRECTED:** the dead-guard count was 132 and is really **68** — chip 1's COMP and GATE drive `_sample_idx` from their own block kernels, so blanket-removing their guard was itself a regression (GATE's sidechain fallback would have converted 32× a block), now decided per node; and the "3 MCUs could not be verified" note was **wrong** — matrix-app logs to `/home/app/logs/log`, not the journal, as the 08-22 block already said, and all three had verified. No app regression exists. Bench restored, all three MCUs verified. **OVERNIGHT RUNG — fabric 40k + measured 32-channel feasibility:** the ledger's fabric row is **NOT double-counted** — measured at its own boundary it reads 86,212 against 85,475 recorded, 0.9% apart, so it was a real still-open lever. Root cause of the fabric cost was the ADDRESS, not the arithmetic: the 25 bus accumulators sat in L2, which the 08-24 note blamed on a DM limit that was really the LDF ordering defect fixed earlier the same evening. Moving them internal + inlining the bus readout: **fabric 86,212 → 51,645 (−40.1%), 2.16x → 1.29x of target**, full graph −7.2%, and the STRIPS fell 41,784 too because ROUTING's crosspoint MACs were paying the same L2 penalty. Bit-exact on the part; per-sample image byte-identical. **MEASURED ceilings, converted build, per chip: 786 → 15, 983 → 20**, and the cycle model predicts both EXACTLY (strip 881.6 cycles/sample, fabric 51,645, block I/O 32,707). **CAVEAT THAT GOVERNS THE FEASIBILITY ANSWER: these are SILENCE measurements.** The recorded 786 ceiling of 10 was signal-present; the same pre-fabric arithmetic projects 13.3, so signal costs ~25% and the signal-present equivalents are **~11–12 at 786 and ~15–16 at 983**. **D24's 24 channels do NOT fit one chip at 983**; D32's 32 are further still; chip 2 remains 3.8x over its own budget. Progress is real (786 ceiling 10 → 15) but the remaining gap is a factor, not a margin. **Meter call then inlined** (numerics-neutral half, standing approval): meters 32,324 → 20,921, **fabric 40,109 = the 40k target MET (2.16x → 1.00x)**, settled meter state bit-identical across builds. **BUT THE CEILINGS DID NOT MOVE** — read by the honest rule (1500/s, not the tool's 1450 threshold) they are still **15 at 786 and 20 at 983**; the inline bought half a channel of margin, moving the next strip count from over-budget to marginal. Both things are true at once and the second is the one that matters. The ledger's fabric row is now SPENT; what remains for 32-in-one is SIMD and the dynamics rework, and the strip is untouched at 881.6 cycles/sample. **PARKED FOR PW: meter decimation, now ~21k cycles/block** — 52% of the remaining fabric; the numerics-neutral part is taken, all that is left comes from sampling less often, and the meters already carry four recorded defects; fix-numerics / decimate / retire is one ruling]   [model: opus]
 
 model: opus
 
@@ -215,18 +215,92 @@ so it does not reach. Recorded as the next measurement this line of work needs.
   the remaining gap to 24-on-one-chip is a **factor**, not a margin, and no
   single lever left in the fabric closes it.
 
-#### PARKED FOR PW — meter decimation, worth ~26k cycles/block
+#### Meter call inlined — and the 40k target is MET
+
+The numerics-neutral half of the parked meter item, taken under standing
+approval: `_mtr_step` is inlined into the block loop, deleting a call and an
+rts on every one of 32 samples x 32 meters = **1,024 invocations per block**,
+with the two constants hoisted into f2 and f5 across the whole loop (nothing
+in the body touches them).
+
+**The arithmetic is reproduced exactly, including its oddity**: the new-peak
+path stores the peak and does NOT update the RMS, so the RMS only advances on
+decay samples. That is what the shared step did; it is preserved deliberately
+rather than tidied, because the numerics are PW's call.
+
+| | before tonight | after bus fix | + meter inline |
+|---|---|---|---|
+| 32 meters | 32,324 | 31,816 | **20,921** |
+| **FABRIC (320 vs 0)** | 86,212 | 51,645 | **40,109** |
+| **vs the 40k target** | 2.16x | 1.29x | **1.00x — MET** |
+| full graph | 1,063,426 | 987,075 | 975,578 |
+| 32 strips | 977,214 | 935,430 | 935,469 |
+
+The inline recovered **10,895 cycles/block**, twice the ~5,000 estimated. The
+strips moved +39 — nothing — which is the right control, since the meters are
+not in the strip and should not have shifted.
+
+**Bit-exactness, and two instrument traps it walked into first.**
+
+The obvious probe -- point the scope at `_mtr_peak` and diff a 32-sample trace
+between builds -- **does not work**, and the way it fails is worth recording:
+`_scope_record` runs in the GATHER loop, after the whole chain has run, so it
+cannot see a per-block kernel's state evolving mid-block. It returned two
+plausible words followed by uninitialised buffer, which would have read as
+corruption if trusted. Second, the diag link intermittently answers
+`0xFFFFFFFF` to a peek and a single read cannot tell that from a value -- the
+first version of the probe duly reported the peak as NaN twice.
+
+`tools/pi/dsp4_mtr_state.py` therefore compares the SETTLED state, and requires
+two consecutive agreeing reads. Identical across both builds:
+
+    amp=0x40000000  rms=407FFFCE (3.999988)      <- twice, both builds
+    amp=0x20000000  rms=03C94582 (1.182968e-36)  <- both builds
+
+The second row is the stronger evidence: a history-dependent mid-settle value
+that both builds arrive at bit-for-bit. The peak reads UNREADABLE in both, and
+that is the check working -- with a constant input the peak sits in a
+two-sample limit cycle, so no two reads agree and the probe refuses to report
+an unstable value rather than inventing one. `SENDS WORK (0 mismatched)` still
+passes on the same image, and the per-sample image stays byte-identical
+(`a2fcda81...`).
+
+**Limits of this proof, stated plainly:** it compares fixed points, not
+sample-by-sample behaviour. It would catch a clobbered constant, a wrong
+branch or a wrong iteration count -- the realistic failure modes -- but it is
+not the bit-exact-per-sample proof the strip nodes got.
+
+#### Ceilings after the meter inline — read by the HONEST rule, not the tool's
+
+| `DSP4_STRIPS` | 786.432 MHz | 983.04 MHz |
+|---|---|---|
+| 15 | **1500/s — ceiling** | — |
+| 16 | 1487/s — **marginal** | — |
+| 17 | 1413/s over budget | — |
+| 20 | — | **1499/s — ceiling** |
+| 21 | — | 1471/s — **marginal** |
+
+**The tool labels 1487 and 1471 REAL_TIME and that label is wrong**, for the
+reason already recorded on 2026-08-24: `dsp4_audio_verdict.py`'s threshold is
+1450, but anything below 1500 is dropping blocks. By that rule **the ceilings
+are unchanged at 15 and 20** — what the meter inline bought is half a channel
+of margin, visible as the next strip count moving from clearly over budget
+(1446 and 1442) to marginal (1487 and 1471). The cycle model predicting 16 at
+786 is consistent with 16 sitting right on the edge.
+
+**So: the fabric target is met and the ceilings did not move.** Both of those
+are true at once, and the second is the one that matters for feasibility.
+
+#### PARKED FOR PW — meter decimation, worth ~21k cycles/block
 
 **The decision:** should the 32 channel meters keep sampling every sample, or
 be decimated to once per block (or retired)?
 
-**What it is worth:** the meters cost **32,324 cycles/block** — 37.5 % of the
-fabric and the single largest item left in it. They run a peak-hold-with-decay
-and a single-pole RMS on all 32 samples of every block, reached through a
-`call`/`rts` per sample. Decimating to one sample per block recovers roughly
-**26,000 cycles/block**, which at 983 is very close to another channel per
-chip; inlining the call alone (numerics-neutral) recovers about 5,000 and can
-be done without a ruling.
+**What it is worth, updated after the inline:** the meters now cost **20,921
+cycles/block** — still the largest single item in a 40,109-cycle fabric, at
+52 % of it. The numerics-neutral part has been taken (the call inline, worth
+10,895). What remains is worth roughly **21,000 cycles/block** and CANNOT be
+taken without a ruling, because all of it comes from sampling less often.
 
 **Why it is not mine to take:** decimation changes what the meters REPORT, not
 just when they sample — a peak meter that looks at 1 sample in 32 will miss
@@ -247,8 +321,16 @@ cycles/block comes back for nothing.
 Shipping firmware restored byte-identical (`25a1afed...` / `7052c5d1...`),
 BOOT_STAGE 7 at 1500/s, DMA0_STAT 0x00006200, SPORT0_ERR_A clean; CPLD IDCODE
 0x020a30dd on the untouched shipping bitstream; GPIOs released; matrix-app
-active with all three MCUs verified (H1S1, H1S3, H1S4 at 23:08:33) — second
+active with all three MCUs verified (H1S1, H1S3, H1S4 at 23:39:05) — second
 restart again, the first announcing only H1S3.
+
+#### What the lever stack looks like now
+
+The ledger's "+ fabric at its 40k target" row is **spent** — everything it
+attributed to the fabric has been collected, and the fabric is at 40,109. What
+is left for 32-in-one is SIMD across the strip and the dynamics rework, and
+**the strip itself is untouched at 881.6 cycles/sample**. Hitting the fabric
+target closed the fabric gap; it did not close the channel gap.
 
 #### Not done
 

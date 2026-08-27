@@ -28,32 +28,58 @@
 .global _C2_MTR_AUX_03_process;
 _C2_MTR_AUX_03_process:
 #if DSP4_BLOCK_KERNELS
-    /* Per-block. The source tap is a POOL slot (BLK_CHAIN_B, which
-     * is where GAIN writes), live only while this channel's strip
-     * is running -- which is why the generator now places each
-     * meter immediately after its source instead of leaving it at
-     * chain index 320+, thirty-one channels too late.
+    /* Per-block, with the step INLINED. The source tap is a POOL
+     * slot (BLK_CHAIN_B, which is where GAIN writes), live only
+     * while this channel's strip is running -- which is why the
+     * generator places each meter immediately after its source
+     * instead of leaving it at chain index 320+, thirty-one
+     * channels too late.
      *
-     * The arithmetic below is UNCHANGED, deliberately. The meters
-     * have four recorded defects (they read a Q4.28 word as an IEEE
-     * float, among others) and the decision on whether to fix or
-     * retire them is the hub's and still open. Converting a node to
-     * block form is not the moment to quietly change its numerics;
-     * this fixes only WHEN it samples, not WHAT it computes. */
+     * THE ARITHMETIC BELOW IS UNCHANGED, deliberately, and that
+     * includes its oddities: the new-peak path stores the peak and
+     * does NOT update the RMS, so the RMS only advances on the
+     * decay path. That is what the shared step did and it is
+     * reproduced exactly. The meters have four recorded defects
+     * (they read a Q4.28 word as an IEEE float, among others) and
+     * whether to fix, decimate or retire them is the hub's decision
+     * and still open -- so this changes only how the same
+     * arithmetic is REACHED, not what it computes.
+     *
+     * What the inline removes: a call and an rts on every one of
+     * 32 samples x 32 meters = 1,024 invocations per block, plus
+     * the two constant reloads, which now sit in f2 and f5 across
+     * the whole loop (nothing in the body touches them). Measured
+     * 2026-08-27: the meters were 32,324 cycles/block, 37.5 % of
+     * the fabric. */
     l2 = 0;
     i2 = BLK_CHAIN_B;
+    r2 = 0x3F7FDF3B;          /* 0.9995 IEEE 754, hoisted */
+    f2 = r2;
+    r5 = 0x3C23D70A;          /* 0.01   IEEE 754, hoisted */
+    f5 = r5;
     lcntr = 32, do .mtrk_C2_MTR_AUX_03 until lce;
         r0 = dm(i2, 1);
-        call _mtr_step_C2_MTR_AUX_03;
-    .mtrk_C2_MTR_AUX_03: nop;
+        f0 = abs f0;
+        f1 = dm(_mtr_peak_C2_MTR_AUX_03);
+        comp(f0, f1);
+        if le jump (pc, .mtrd_C2_MTR_AUX_03);
+        dm(_mtr_peak_C2_MTR_AUX_03) = f0;
+        jump (pc, .mtrk_C2_MTR_AUX_03);
+    .mtrd_C2_MTR_AUX_03:
+        f1 = f1 * f2;                     /* peak *= 0.9995 */
+        dm(_mtr_peak_C2_MTR_AUX_03) = f1;
+        f3 = dm(_mtr_rms_C2_MTR_AUX_03);
+        f4 = f0 * f0;                     /* x^2 */
+        f6 = f4 - f3;
+        f6 = f5 * f6;
+        f3 = f3 + f6;
+        dm(_mtr_rms_C2_MTR_AUX_03) = f3;
+    .mtrk_C2_MTR_AUX_03:
+        nop;
     rts;
-
-_mtr_step_C2_MTR_AUX_03:
-#endif
+#else
     /* Read source tap */
-#if !DSP4_BLOCK_KERNELS
     r0 = dm(_buf_C2_AUX_OUT_03);
-#endif
     f0 = abs f0;
 
     /* Peak hold with exponential decay */
@@ -77,4 +103,5 @@ _mtr_step_C2_MTR_AUX_03:
     f3 = f3 + f6;
     dm(_mtr_rms_C2_MTR_AUX_03) = f3;
     rts;
+#endif
 _C2_MTR_AUX_03_process.end:

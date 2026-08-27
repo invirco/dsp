@@ -606,6 +606,28 @@ strip of 28,210 cycles/block = **881.6 cycles/sample**:
 No other value of block I/O predicts both, which retro-validates the carried
 figure.
 
+### Meter call inlined — target met, ceilings unmoved
+
+`_mtr_step` inlined into the block loop (1,024 call/rts pairs per block gone,
+two constants hoisted), arithmetic reproduced exactly including its quirk that
+the new-peak path skips the RMS update:
+
+| | before | after bus fix | + meter inline |
+|---|---|---|---|
+| 32 meters | 32,324 | 31,816 | **20,921** |
+| **FABRIC (320 vs 0)** | 86,212 | 51,645 | **40,109 — target MET** |
+| full graph | 1,063,426 | 987,075 | 975,578 |
+
+**The ceilings did not move.** 786 stays 15 (16 now marginal at 1487/s, was
+1446 over budget); 983 stays 20 (21 now marginal at 1471/s, was 1442). The
+harness labels 1487 and 1471 REAL_TIME because its threshold is 1450 — by the
+rule recorded 2026-08-24, anything under 1500 is dropping blocks. The inline
+bought half a channel of margin, not a channel.
+
+**The fabric row in the lever stack is now spent.** What remains for 32-in-one
+is SIMD across the strip and the dynamics rework; the strip is untouched at
+881.6 cycles/sample.
+
 ### THESE ARE SILENCE MEASUREMENTS — the governing caveat
 
 `strips_run.sh` injects nothing and the bench has no analog input, so the gate
