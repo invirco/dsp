@@ -65,6 +65,23 @@ for _chip in ('1', '2'):
 MIX_GLOBAL = {b['signal']: b['global_slot']
               for b in SPORT_MAP['mix_fabric']['buses']}
 
+# Pre-flight: every mix-fabric bus's global_slot must agree with its chip-1
+# tx (sport_id, slot) per the fabric_params() convention below. Check all of
+# them once at load rather than asserting lazily per fabric_params() call.
+_fabric_errors = []
+for _signal, _g in MIX_GLOBAL.items():
+    _e = SIG.get(('1', 'tx', _signal))
+    if _e is None:
+        _fabric_errors.append(f'{_signal}: no chip-1 tx entry in sport_map')
+    elif _g != 16 * _e['sport_id'] + _e['slot']:
+        _fabric_errors.append(
+            f'{_signal}: global_slot={_g} != 16*sport_id+slot '
+            f'({16 * _e["sport_id"] + _e["slot"]})')
+if _fabric_errors:
+    raise ValueError(
+        'sport_map.json inconsistent for mix-fabric bus(es):\n  ' +
+        '\n  '.join(_fabric_errors))
+
 
 def sig_rx1(signal):
     return SIG[('1', 'rx', signal)]
@@ -95,7 +112,6 @@ def fabric_params(signal):
     """Inter-chip fabric slot: chip1 TX line n == chip2 RX line n."""
     e = SIG[('1', 'tx', signal)]
     g = MIX_GLOBAL[signal]
-    assert g == 16 * e['sport_id'] + e['slot'], signal
     return (f'sport_id={e["sport_id"]};slot={e["slot"]};global_slot={g};'
             f'sport_slots=16;signal={signal}')
 
@@ -834,7 +850,12 @@ for g in range(1, NUM_GRP + 1):
             r['outputs'] = n_geq
         elif r['id'] == n_gate:
             r['inputs'] = n_geq
-    idx = next(i for i, r in enumerate(rows) if r['id'] == n_eq) + 1
+    try:
+        idx = next(i for i, r in enumerate(rows) if r['id'] == n_eq) + 1
+    except StopIteration:
+        raise ValueError(
+            f'GEQ insertion: no row with id {n_eq!r} found; graph is out '
+            f'of sync with the expected EQ/GEQ/gate chain')
     rows.insert(idx, geq_row)
 
 # ===========================================================================
