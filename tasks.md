@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-08-27 17:27Z — review R1 ramp-write root cause + fix, R2 codegen fail-loudly   [status: 🟡 dispatched]   [model: opus]
+## HUB DISPATCH 2026-08-27 17:27Z — review R1 ramp-write root cause + fix, R2 codegen fail-loudly   [status: 🟢 done — R1 was ALREADY root-caused and fixed on 08-23 (commit d2e4dc6, candidate 3: post-modify offset); review restated a stale symptom. R2 landed, image byte-identical. Bench unreachable this session (different subnet) — GAIN harness re-run still owed]
 
 model: opus
 
@@ -38,6 +38,106 @@ update this block's status (🟢 done / 🔴 blocked) with a short outcome;
 no AI attribution in commits or any work product.
 
 Legend: 🔴 not started/blocked · 🟡 in progress · 🟢 done
+
+### Outcome 2026-08-27 — R1 was already fixed; R2 landed; two new findings
+
+**R1 — the bug was root-caused and fixed on 2026-08-23, an hour after the
+outcome the review quotes.** Commit `d2e4dc6` ("FIX: ramp engine wrote one
+word low — dm(i4, N) is post-modify, not indexed"), 2026-08-23 16:09. The
+review (08-25/26) and the HUB REVIEW block read the 15:0xZ bench outcome at
+the bottom of this file and did not check the log, so R1 was carried forward
+as open. It is not.
+
+**Which candidate it was — (3), the offset convention inside
+`_ramp_set_target`.** Evidence, read off the emitted artifacts rather than
+their comments:
+
+- *Candidate (1), the dispatch-table address for `0x071C`: CLEAN.*
+  `_spi_dispatch_c2` is a symbolic array; index 1820 = 0x071C is
+  `_auxin_level_C2_PI_IN` (dsp_params.asm:2527) — the LEVEL, matching its
+  comment. The 08-23 note's inference that `r0 = 0x951DC = _auxin_on` was
+  wrong.
+- *Candidate (2), the handler's `r0`: CLEAN.* spi_handler.asm does
+  `i0 = _spi_dispatch_c2; m0 = r2; modify(i0, m0); r0 = dm(i0, 0)` — a
+  straight table load, no arithmetic that could bias it by a word.
+- *Candidate (3), `_ramp_set_target`: THE FAULT.* It used `dm(i4, 1)` /
+  `dm(i4, 2)` / `dm(i4, 3)`, which on SHARC is POST-modify: it writes the
+  address currently in i4 and THEN adds the modifier. So target landed on
+  [r0+0] (level), step on [r0+1] (target), frames on [r0+3] by luck. With
+  `r0` correctly = level, step lands in the target slot at 0x951DE — exactly
+  the 1/128 → 1/129 the bench saw. The two clean candidates and the observed
+  address agree only on this explanation.
+
+**Blast radius: every ramped cell, uniformly — runtime, not generator.**
+`_ramp_set_target` is one shared routine that both chips' handlers call for
+every ramped write; the dispatch table supplies only the base pointer, and
+the generator's per-node variable order (`on, level, target, step, frames`,
+verified on C2_PI_IN) is consistent across nodes. So there was no
+per-cell variation — 392 of 670 nodes carry a ramping profile (GainFast 175,
+EqSafe 115, DynSafe 96, GainSafe 6) and all were hit identically.
+
+**The fix is in the GENERATOR, not just the .asm.** `d2e4dc6` touched only
+`ramp_engine.asm`; `gen_ramp_engine()` in dsp_codegen.py picked the same text
+up in `2ef49fd`. Verified by regenerating the whole D32 tree into a scratch
+dir: all 711 files byte-identical to the working tree, so the fix survives
+the next regenerate rather than being edited away.
+
+**Still owed on R1: the on-the-part re-verification and the GAIN harness
+family re-run.** The original fix was proven over SPI on both chips by
+known-word write + full read-back (recorded in `d2e4dc6`: chip 2 `0x071C`
+write 2.0 → target 2.0/level 2.0/step +0.0117; chip 1 `0x0000` caught
+mid-ramp at level 1.402, frames 42, settling to 2.0). This session could not
+repeat it or run the harness: the bench Pis are on 192.168.0.0/24 and this
+machine is on 192.168.1.0/24 with no route (`MW-D32-1/-2` both time out).
+`tools/pi/dsp4_ramp_proof.py` is the ready-made proof script for whoever is
+next at the bench.
+
+**R2 — codegen fail-loudly: LANDED.** `GENERATORS.get(node['type'],
+gen_generic)` is replaced by a format-aware lookup that raises `ValueError`
+naming node type, id, chip and label; `gen_generic` (the `/* TODO:
+implement */` stub) is deleted, with no remaining references. The check
+resolves FIXED_GENERATORS first and raises only if neither table serves the
+active format, so a fixed-only generator is still legal. Proof both ways:
+- *Positive:* regenerated D32 tree md5 manifest is unchanged —
+  `2703989fc79e72cac757d99778561a96` before and after, all 711 files
+  byte-for-byte identical. No known node type changes behaviour.
+- *Negative:* a dsp.csv row with type `WIDGET_XYZ` now aborts generation
+  with `no fixed codegen for node type 'WIDGET_XYZ' (node C1_IN_01, chip 1,
+  label 'Ch 1 Input')` instead of silently emitting a dead node.
+No current node type used the fallback (all 25 types in dsp.csv are in
+GENERATORS), which is why the image could not move.
+
+#### New findings from this pass (not fixed here — both need a decision)
+
+- 🔴 **F1 — the OTHER half of the 08-23 double bind is still live: a
+  profile-0 write to a ramped parameter is silently discarded.** The SPI
+  handler intercepts `RAMP_INSTANT` before `_ramp_set_target` and takes
+  `.spi_instant`, which writes ONLY the level word (`dm(i1, 0) = r1`). For a
+  node with a ramp triplet the block-rate code runs `if frames <= 0: level =
+  target` every block, so the write is undone within one block period —
+  which is what "a direct write to a ramped parameter does nothing" was on
+  08-23. `d2e4dc6` fixed `.ramp_instant` INSIDE `_ramp_set_target`, but that
+  label is unreachable from SPI: profile 0 is intercepted first, and
+  profiles 1–4 all carry mode ≠ 0 (ramp_tables.asm). Scope is exact — the 48
+  `InstantCtl` nodes have no triplet (verified: zero target/step/frames refs
+  in their node .asm) so the direct write is correct for them; the 392
+  ramped-profile nodes lose the write. Severity is below R1: it is a silent
+  no-op, not the state corruption R1 caused. **Not fixed here because the
+  clean fix spans the generator contract** — the handler cannot tell a
+  triplet-bearing entry from a bare scalar without a new generator-emitted
+  parallel flag table (e.g. `_spi_ramped_c2[]`), and the hand-back rule for
+  this dispatch reserves generator-contract changes for the hub. Cheap
+  alternative if the hub prefers it: rule profile 0 unsupported on ramped
+  parameters and have the host always send a ramp profile.
+- 🔴 **F2 — D24's `ramp_engine.asm` still carries the pre-fix buggy form.**
+  `MW/D24/DSP/SHARC/src/ramp_engine.asm` still has `dm(i4, 1)/(i4, 2)/(i4,
+  3)`; last touched 2026-07-29 (`d2a264d`), i.e. it predates the 08-23 fix.
+  `gen_ramp_engine()` takes no product argument, so a D24 regenerate would
+  emit the corrected file — this is D24 tree lag, not a second generator
+  bug. Left alone deliberately: regenerating D24 would churn a tree that is
+  known to lag D32 and is out of this dispatch's scope. Anyone bringing D24
+  SHARC up must regenerate before trusting a ramped write.
+
 
 **PW DECISION (2026-08-24): TUBE SATURATION IS A PLUGIN, NOT A FIXED CHANNEL
 FUNCTION.** Only a few selected channels will use it, so it comes out of the
@@ -134,7 +234,7 @@ generate the efficient form. The strip-fusion dispatch below is this
 priority's execution; do not drift to other work until the fit is proven or
 disproven with measurements.**
 
-## HUB REVIEW 2026-08-27 — review.txt (accuracy/efficiency codebase review, 2026-08-25/26) folded into the queue   [status: 🔴 open — R1 already gates the harness families; R2–R5 are small hardening items; R6 opportunistic]
+## HUB REVIEW 2026-08-27 — review.txt (accuracy/efficiency codebase review, 2026-08-25/26) folded into the queue   [status: 🟡 R1 🟢 (was already fixed 08-23; bench re-verify + GAIN harness still owed) · R2 🟢 landed 08-27 · R3–R5 still open hardening items · R6 opportunistic · new: F1 profile-0 ramped writes, F2 D24 stale ramp_engine]
 
 `review.txt` (committed 08-25, code suggestions §5 appended 08-26) reviewed
 the contract layer, the codegen/tooling layer and the bit-exact reference
@@ -146,21 +246,27 @@ already-tracked, already-measured ~10-channels-per-chip vs 32 gap and adds
 no new measurements. The rest, folded into tracked items — §5's patches are
 suggestions only, NONE applied; land each as its own small change:
 
-- 🔴 **R1 — ramped-parameter writes land one word low (review §2.1 = the
+- 🟢 **R1 — ramped-parameter writes land one word low (review §2.1 = the
   2026-08-23 15:0xZ outcome at the bottom of this file).** Already tracked;
   the review restates it as the top ACCURACY item in the codebase: one
   ramped SPI write stores the step in the *target* slot and zeroes the
   `_..._on` flag — silently mutes the channel, reboot-only recovery, blocks
   parameter testing of EVERY family after GAIN. Root cause still not
   isolated (dispatch-table address vs `r0` computation vs `_ramp_set_target`
-  offset convention). Rides in the kernel-rewrite path; fix before the
-  harness families resume.
-- 🔴 **R2 — codegen must fail loudly on unknown node types (review §2.2,
+  offset convention). **RESOLVED — and was already resolved when the review
+  was written:** commit `d2e4dc6` (2026-08-23 16:09) fixed it; the cause was
+  the `_ramp_set_target` offset convention (`dm(i4, N)` is post-modify, not
+  indexed). Dispatch-table address and handler `r0` both verified clean.
+  See the 08-27 outcome above. Residual: bench re-verification + GAIN
+  harness re-run still owed, and F1 (profile-0 writes) is still open.
+- 🟢 **R2 — codegen must fail loudly on unknown node types (review §2.2,
   patch §5.1).** `GENERATORS.get(node['type'], gen_generic)`
   (dsp_codegen.py ~7748) silently emits a `/* TODO */` stub for any unknown
   type — violates the no-fallback policy that the contract layer already
   enforces. Small change: raise with node context; delete `gen_generic` or
-  make it explicit opt-in.
+  make it explicit opt-in. **DONE 2026-08-27** — raises with type/id/chip/
+  label, `gen_generic` deleted, regenerated image byte-identical
+  (manifest md5 `2703989f…` unchanged).
 - 🔴 **R3 — gen_dsp_csv.py error hardening (review §2.4, patch §5.2):** the
   GEQ-insertion `next(...)` raises bare StopIteration when the graph is out
   of sync → contextual ValueError; sport_map.json pre-flight-validated once

@@ -4089,22 +4089,6 @@ def gen_noise_gen(node):
     """)
 
 
-def gen_generic(node):
-    return dedent(f"""\
-        /* {node['type']}: {node['label']} */
-        /* TODO: implement */
-
-        .section/dm seg_dmda;
-        .var _buf_{node['id']};
-
-        .section/pm seg_pmco;
-        .global _{node['id']}_process;
-        _{node['id']}_process:
-            rts;
-        _{node['id']}_process.end:
-    """)
-
-
 # ===========================================================================
 # Post-processing: cross-file symbol visibility
 # ===========================================================================
@@ -7745,9 +7729,25 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
             # DSP4_NODE_LIMIT and the scope-skip table both depend.
             call_sequence.append(node['id'])
 
-            gen_fn = GENERATORS.get(node['type'], gen_generic)
+            # No-fallback policy: an unknown node type is a hard error here,
+            # the same way an unknown cell family is at the contract layer
+            # (validate-matrix-contract.py). There used to be a gen_generic
+            # stub as the default, which emitted a `/* TODO: implement */`
+            # body that assembles and links but silently does nothing -- a
+            # typo'd or newly-adopted type produced a running image with a
+            # dead node instead of failing the build.
+            gen_fn = GENERATORS.get(node['type'])
             if FORMAT == 'fixed':
                 gen_fn = FIXED_GENERATORS.get(node['type'], gen_fn)
+            if gen_fn is None:
+                raise ValueError(
+                    f"no {FORMAT} codegen for node type {node['type']!r} "
+                    f"(node {node['id']}, chip {node['chip']}, "
+                    f"label {node['label']!r}). Unknown node types must fail "
+                    f"loudly per the no-fallback policy: add a generator to "
+                    f"GENERATORS/FIXED_GENERATORS, or -- if the family is "
+                    f"MCU-only and should never reach the DSP -- keep it out "
+                    f"of dsp.csv via gen_dsp_csv.py.")
 
             ramp_line = f'RampProfile: {node["ramp_profile"]}' if node['ramp_profile'] else 'RampProfile: (none)'
 
