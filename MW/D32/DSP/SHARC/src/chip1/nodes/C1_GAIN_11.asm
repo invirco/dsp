@@ -87,12 +87,17 @@ _C1_GAIN_11_process:
     f2 = r2;
     f1 = f1 * f2;
     r1 = fix f1;
-    dm(_gain_q_C1_GAIN_11) = r1;
-
-#if DSP4_BLOCK_KERNELS
-    /* Fold polarity and mute into the coefficient ONCE per block.
-     * Both are loop-invariant, and mute is exactly x*0 in this
-     * format, so it needs no per-sample test. */
+    /* CROSSPOINT-COEFFICIENT FOLD (08-25 mandate). Polarity and
+     * mute are LINEAR gain terms (-1 and 0), so they belong in the
+     * coefficient at CONTROL rate; the sample path is then one MAC
+     * that never reads control state. Mute is exactly x*0 in this
+     * format. Folding polarity is also what the normative model
+     * does -- fixed_ref.gain(x, g) with g negative is
+     * sat(rns(x*-g)), whereas the old per-sample form computed
+     * -sat(rns(x*|g|)), and those differ by one LSB when the
+     * product lands exactly on a rounding tie (rns rounds half
+     * toward +inf, which is not symmetric under negation). The
+     * folded form is the reference form. */
     r3 = dm(_polarity_C1_GAIN_11);
     r4 = 0;
     comp(r3, r4);
@@ -100,7 +105,9 @@ _C1_GAIN_11_process:
     r2 = dm(_mute_C1_GAIN_11);
     comp(r2, r4);
     if ne r1 = r4;
+    dm(_gain_q_C1_GAIN_11) = r1;
 
+#if DSP4_BLOCK_KERNELS
     /* _mrf_rns28 inlined with its constants hoisted. The call/rts
      * and the reload of those constants were most of this node's
      * measured 72.5 cycles/sample. The saturation fix-up is a
@@ -111,8 +118,15 @@ _C1_GAIN_11_process:
     r10 = 0x7FFFFFFF;
     l0 = 0;
     l1 = 0;
+    l4 = 0;
     i0 = BLK_CHAIN_A;
     i1 = BLK_CHAIN_B;
+    /* The post-trim tap the router picks from, as a BLOCK. EQ and
+     * DLY already publish theirs (BLK_TAP_EQ, BLK_TAP_PREFDR);
+     * this one never was, so a block-form aux send set to pickoff
+     * 0 was handed the address of the SCALAR tap and walked 32
+     * words off the end of it. */
+    i4 = BLK_TAP_TRIM;
     r5 = 32;
     lcntr = r5; do .gk_lp_C1_GAIN_11 until lce;
         r0 = dm(i0, 1);
@@ -131,25 +145,17 @@ _C1_GAIN_11_process:
         if ne r0 = r11;
         dm(i1, 1) = r0;
 .gk_lp_C1_GAIN_11:
-        nop;
+        dm(i4, 1) = r0;           /* post-trim tap block */
     dm(_tap_post_trim_C1_GAIN_11) = r0;   /* linkage scalars */
     dm(_buf_C1_GAIN_11) = r0;
     rts;
 #else
 .apply_C1_GAIN_11:
+    /* Pure MAC. Polarity and mute are already inside _gain_q. */
     r0 = dm(_buf_C1_IN_11);
     r1 = dm(_gain_q_C1_GAIN_11);
     mrf = r0 * r1 (ssi);
     call _mrf_rns28;                      /* r0 = sat(rns(x*g,28)) */
-
-    r3 = dm(_polarity_C1_GAIN_11);
-    r4 = 0;
-    comp(r3, r4);
-    if ne r0 = -r0;
-
-    r2 = dm(_mute_C1_GAIN_11);
-    comp(r2, r4);
-    if ne r0 = r4;
 
     dm(_tap_post_trim_C1_GAIN_11) = r0;
     dm(_buf_C1_GAIN_11) = r0;

@@ -6,8 +6,12 @@ Chain: IN -> GAIN -> FILT -> EQ -> GATE -> COMP -> TUBE -> DLY -> FDR -> RTG -> 
 Captures three points for the same stimulus so the fader's own stages can
 be told apart:
     _buf_C1_FDR_01     mono post-fader   (x * gq)
-    _buf_L_C1_FDR_01   pan-split left
     _buf_C1_BUS_MAIN_L bus readout after _acc64_rns28
+
+The pan-split buffer it used to capture in between is gone: since the
+08-25 crosspoint-coefficient mandate landed (2026-08-27) the pan leg is
+the main-bus crosspoint COEFFICIENT, readable at _fdr_lq_C1_FDR_01, and
+ROUTING MACs the post-fader mono by it straight into the accumulator.
 
 FDR level and pan are RAMPED (GainFast) and must be written with
 ramp_id=1; with ramp_id=0 the node clobbers them from an unset target.
@@ -45,17 +49,17 @@ def main():
 
     amp = int(a.amp, 16)
     out = []
-    names = ((sc.sym['_blk_pool'], sc.sym['_blk_pool'] + 2 * 32,
-              sc.sym['_buf_C1_BUS_MAIN_L']) if a.pool_inj is not None
-             else (sc.sym['_buf_C1_FDR_01'], sc.sym['_buf_L_C1_FDR_01'],
-                   sc.sym['_buf_C1_BUS_MAIN_L']))
+    names = ((sc.sym['_blk_pool'], sc.sym['_buf_C1_BUS_MAIN_L'])
+             if a.pool_inj is not None
+             else (sc.sym['_buf_C1_FDR_01'], sc.sym['_buf_C1_BUS_MAIN_L']))
     for name in names:
         sc.arm(name, inj, amp, 2)     # step
         sc.wait()
         v = sc.fetch(8)[7]
         out.append(v - (1 << 32) if v & 0x80000000 else v)
-    print('FDR level=%g pan=%g in=%d mono=%d L=%d bus=%d'
-          % (a.level, a.pan, amp, out[0], out[1], out[2]))
+    lq = sc.d.peek(sc.sym['_fdr_lq_C1_FDR_01'])
+    print('FDR level=%g pan=%g in=%d mono=%d bus=%d  (pan-leg coeff 0x%08X)'
+          % (a.level, a.pan, amp, out[0], out[1], lq))
 
 
 if __name__ == '__main__':

@@ -6573,11 +6573,11 @@
  * length -- 12 for AuxSend, 6 for FxSend. Writing those at +1/+2/+3
  * lands on the NEIGHBOURING crosspoint's level instead.
  *
- * 610 ramped entries; strides {1: 34, 6: 192, 12: 384}
+ * 738 ramped entries; strides {1: 162, 6: 192, 12: 384}
  */
 .global _spi_dispatch_c1_stride;
 .var _spi_dispatch_c1_stride[4800] =
-    0,  /* 0x0000: C1_GAIN_01 gain coeff */
+    1,  /* 0x0000: C1_GAIN_01 gain coeff */
     0,  /* 0x0001: C1_GAIN_01 polarity */
     0,  /* 0x0002: phantom (MCU-only) */
     0,  /* 0x0003: input_sel (MCU-only) */
@@ -6638,7 +6638,7 @@
     0,  /* 0x003A: C1_COMP_01 CompRat */
     0,  /* 0x003B: C1_COMP_01 CompAtt */
     0,  /* 0x003C: C1_COMP_01 CompRel */
-    0,  /* 0x003D: C1_COMP_01 CompMake */
+    1,  /* 0x003D: C1_COMP_01 CompMake */
     0,  /* 0x003E: C1_COMP_01 CompKnee */
     0,  /* 0x003F: C1_COMP_01 CompPar */
     0,  /* 0x0040: C1_COMP_01 CompType */
@@ -6657,8 +6657,8 @@
     1,  /* 0x004D: C1_TUBE_01 saturation */
     0,  /* 0x004E: C1_DLY_01 delay offset */
     0,  /* 0x004F: C1_DLY_01 pool_slot */
-    0,  /* 0x0050: C1_FDR_01 level */
-    0,  /* 0x0051: C1_FDR_01 pan */
+    1,  /* 0x0050: C1_FDR_01 level */
+    1,  /* 0x0051: C1_FDR_01 pan */
     0,  /* 0x0052: C1_FDR_01 mute */
     0,  /* 0x0053: C1_FDR_01 DCA gain */
     0,  /* 0x0054: C1_RTG_01 MainOn */
@@ -6721,7 +6721,7 @@
     0,  /* 0x008D: C1_RTG_01 FxPick[4] */
     0,  /* 0x008E: C1_RTG_01 FxPick[5] */
     0,  /* 0x008F: C1_RTG_01 FxPick[6] */
-    0,  /* 0x0090: C1_GAIN_02 gain coeff */
+    1,  /* 0x0090: C1_GAIN_02 gain coeff */
     0,  /* 0x0091: C1_GAIN_02 polarity */
     0,  /* 0x0092: phantom (MCU-only) */
     0,  /* 0x0093: input_sel (MCU-only) */
@@ -6782,7 +6782,7 @@
     0,  /* 0x00CA: C1_COMP_02 CompRat */
     0,  /* 0x00CB: C1_COMP_02 CompAtt */
     0,  /* 0x00CC: C1_COMP_02 CompRel */
-    0,  /* 0x00CD: C1_COMP_02 CompMake */
+    1,  /* 0x00CD: C1_COMP_02 CompMake */
     0,  /* 0x00CE: C1_COMP_02 CompKnee */
     0,  /* 0x00CF: C1_COMP_02 CompPar */
     0,  /* 0x00D0: C1_COMP_02 CompType */
@@ -6801,8 +6801,8 @@
     1,  /* 0x00DD: C1_TUBE_02 saturation */
     0,  /* 0x00DE: C1_DLY_02 delay offset */
     0,  /* 0x00DF: C1_DLY_02 pool_slot */
-    0,  /* 0x00E0: C1_FDR_02 level */
-    0,  /* 0x00E1: C1_FDR_02 pan */
+    1,  /* 0x00E0: C1_FDR_02 level */
+    1,  /* 0x00E1: C1_FDR_02 pan */
     0,  /* 0x00E2: C1_FDR_02 mute */
     0,  /* 0x00E3: C1_FDR_02 DCA gain */
     0,  /* 0x00E4: C1_RTG_02 MainOn */
@@ -6865,7 +6865,7 @@
     0,  /* 0x011D: C1_RTG_02 FxPick[4] */
     0,  /* 0x011E: C1_RTG_02 FxPick[5] */
     0,  /* 0x011F: C1_RTG_02 FxPick[6] */
-    0,  /* 0x0120: C1_GAIN_03 gain coeff */
+    1,  /* 0x0120: C1_GAIN_03 gain coeff */
     0,  /* 0x0121: C1_GAIN_03 polarity */
     0,  /* 0x0122: phantom (MCU-only) */
     0,  /* 0x0123: input_sel (MCU-only) */
@@ -6926,7 +6926,7 @@
     0,  /* 0x015A: C1_COMP_03 CompRat */
     0,  /* 0x015B: C1_COMP_03 CompAtt */
     0,  /* 0x015C: C1_COMP_03 CompRel */
-    0,  /* 0x015D: C1_COMP_03 CompMake */
+    1,  /* 0x015D: C1_COMP_03 CompMake */
     0,  /* 0x015E: C1_COMP_03 CompKnee */
     0,  /* 0x015F: C1_COMP_03 CompPar */
     0,  /* 0x0160: C1_COMP_03 CompType */
@@ -6945,8 +6945,8 @@
     1,  /* 0x016D: C1_TUBE_03 saturation */
     0,  /* 0x016E: C1_DLY_03 delay offset */
     0,  /* 0x016F: C1_DLY_03 pool_slot */
-    0,  /* 0x0170: C1_FDR_03 level */
-    0,  /* 0x0171: C1_FDR_03 pan */
+    1,  /* 0x0170: C1_FDR_03 level */
+    1,  /* 0x0171: C1_FDR_03 pan */
     0,  /* 0x0172: C1_FDR_03 mute */
     0,  /* 0x0173: C1_FDR_03 DCA gain */
     0,  /* 0x0174: C1_RTG_03 MainOn */
@@ -7009,7 +7009,7 @@
     0,  /* 0x01AD: C1_RTG_03 FxPick[4] */
     0,  /* 0x01AE: C1_RTG_03 FxPick[5] */
     0,  /* 0x01AF: C1_RTG_03 FxPick[6] */
-    0,  /* 0x01B0: C1_GAIN_04 gain coeff */
+    1,  /* 0x01B0: C1_GAIN_04 gain coeff */
     0,  /* 0x01B1: C1_GAIN_04 polarity */
     0,  /* 0x01B2: phantom (MCU-only) */
     0,  /* 0x01B3: input_sel (MCU-only) */
@@ -7070,7 +7070,7 @@
     0,  /* 0x01EA: C1_COMP_04 CompRat */
     0,  /* 0x01EB: C1_COMP_04 CompAtt */
     0,  /* 0x01EC: C1_COMP_04 CompRel */
-    0,  /* 0x01ED: C1_COMP_04 CompMake */
+    1,  /* 0x01ED: C1_COMP_04 CompMake */
     0,  /* 0x01EE: C1_COMP_04 CompKnee */
     0,  /* 0x01EF: C1_COMP_04 CompPar */
     0,  /* 0x01F0: C1_COMP_04 CompType */
@@ -7089,8 +7089,8 @@
     1,  /* 0x01FD: C1_TUBE_04 saturation */
     0,  /* 0x01FE: C1_DLY_04 delay offset */
     0,  /* 0x01FF: C1_DLY_04 pool_slot */
-    0,  /* 0x0200: C1_FDR_04 level */
-    0,  /* 0x0201: C1_FDR_04 pan */
+    1,  /* 0x0200: C1_FDR_04 level */
+    1,  /* 0x0201: C1_FDR_04 pan */
     0,  /* 0x0202: C1_FDR_04 mute */
     0,  /* 0x0203: C1_FDR_04 DCA gain */
     0,  /* 0x0204: C1_RTG_04 MainOn */
@@ -7153,7 +7153,7 @@
     0,  /* 0x023D: C1_RTG_04 FxPick[4] */
     0,  /* 0x023E: C1_RTG_04 FxPick[5] */
     0,  /* 0x023F: C1_RTG_04 FxPick[6] */
-    0,  /* 0x0240: C1_GAIN_05 gain coeff */
+    1,  /* 0x0240: C1_GAIN_05 gain coeff */
     0,  /* 0x0241: C1_GAIN_05 polarity */
     0,  /* 0x0242: phantom (MCU-only) */
     0,  /* 0x0243: input_sel (MCU-only) */
@@ -7214,7 +7214,7 @@
     0,  /* 0x027A: C1_COMP_05 CompRat */
     0,  /* 0x027B: C1_COMP_05 CompAtt */
     0,  /* 0x027C: C1_COMP_05 CompRel */
-    0,  /* 0x027D: C1_COMP_05 CompMake */
+    1,  /* 0x027D: C1_COMP_05 CompMake */
     0,  /* 0x027E: C1_COMP_05 CompKnee */
     0,  /* 0x027F: C1_COMP_05 CompPar */
     0,  /* 0x0280: C1_COMP_05 CompType */
@@ -7233,8 +7233,8 @@
     1,  /* 0x028D: C1_TUBE_05 saturation */
     0,  /* 0x028E: C1_DLY_05 delay offset */
     0,  /* 0x028F: C1_DLY_05 pool_slot */
-    0,  /* 0x0290: C1_FDR_05 level */
-    0,  /* 0x0291: C1_FDR_05 pan */
+    1,  /* 0x0290: C1_FDR_05 level */
+    1,  /* 0x0291: C1_FDR_05 pan */
     0,  /* 0x0292: C1_FDR_05 mute */
     0,  /* 0x0293: C1_FDR_05 DCA gain */
     0,  /* 0x0294: C1_RTG_05 MainOn */
@@ -7297,7 +7297,7 @@
     0,  /* 0x02CD: C1_RTG_05 FxPick[4] */
     0,  /* 0x02CE: C1_RTG_05 FxPick[5] */
     0,  /* 0x02CF: C1_RTG_05 FxPick[6] */
-    0,  /* 0x02D0: C1_GAIN_06 gain coeff */
+    1,  /* 0x02D0: C1_GAIN_06 gain coeff */
     0,  /* 0x02D1: C1_GAIN_06 polarity */
     0,  /* 0x02D2: phantom (MCU-only) */
     0,  /* 0x02D3: input_sel (MCU-only) */
@@ -7358,7 +7358,7 @@
     0,  /* 0x030A: C1_COMP_06 CompRat */
     0,  /* 0x030B: C1_COMP_06 CompAtt */
     0,  /* 0x030C: C1_COMP_06 CompRel */
-    0,  /* 0x030D: C1_COMP_06 CompMake */
+    1,  /* 0x030D: C1_COMP_06 CompMake */
     0,  /* 0x030E: C1_COMP_06 CompKnee */
     0,  /* 0x030F: C1_COMP_06 CompPar */
     0,  /* 0x0310: C1_COMP_06 CompType */
@@ -7377,8 +7377,8 @@
     1,  /* 0x031D: C1_TUBE_06 saturation */
     0,  /* 0x031E: C1_DLY_06 delay offset */
     0,  /* 0x031F: C1_DLY_06 pool_slot */
-    0,  /* 0x0320: C1_FDR_06 level */
-    0,  /* 0x0321: C1_FDR_06 pan */
+    1,  /* 0x0320: C1_FDR_06 level */
+    1,  /* 0x0321: C1_FDR_06 pan */
     0,  /* 0x0322: C1_FDR_06 mute */
     0,  /* 0x0323: C1_FDR_06 DCA gain */
     0,  /* 0x0324: C1_RTG_06 MainOn */
@@ -7441,7 +7441,7 @@
     0,  /* 0x035D: C1_RTG_06 FxPick[4] */
     0,  /* 0x035E: C1_RTG_06 FxPick[5] */
     0,  /* 0x035F: C1_RTG_06 FxPick[6] */
-    0,  /* 0x0360: C1_GAIN_07 gain coeff */
+    1,  /* 0x0360: C1_GAIN_07 gain coeff */
     0,  /* 0x0361: C1_GAIN_07 polarity */
     0,  /* 0x0362: phantom (MCU-only) */
     0,  /* 0x0363: input_sel (MCU-only) */
@@ -7502,7 +7502,7 @@
     0,  /* 0x039A: C1_COMP_07 CompRat */
     0,  /* 0x039B: C1_COMP_07 CompAtt */
     0,  /* 0x039C: C1_COMP_07 CompRel */
-    0,  /* 0x039D: C1_COMP_07 CompMake */
+    1,  /* 0x039D: C1_COMP_07 CompMake */
     0,  /* 0x039E: C1_COMP_07 CompKnee */
     0,  /* 0x039F: C1_COMP_07 CompPar */
     0,  /* 0x03A0: C1_COMP_07 CompType */
@@ -7521,8 +7521,8 @@
     1,  /* 0x03AD: C1_TUBE_07 saturation */
     0,  /* 0x03AE: C1_DLY_07 delay offset */
     0,  /* 0x03AF: C1_DLY_07 pool_slot */
-    0,  /* 0x03B0: C1_FDR_07 level */
-    0,  /* 0x03B1: C1_FDR_07 pan */
+    1,  /* 0x03B0: C1_FDR_07 level */
+    1,  /* 0x03B1: C1_FDR_07 pan */
     0,  /* 0x03B2: C1_FDR_07 mute */
     0,  /* 0x03B3: C1_FDR_07 DCA gain */
     0,  /* 0x03B4: C1_RTG_07 MainOn */
@@ -7585,7 +7585,7 @@
     0,  /* 0x03ED: C1_RTG_07 FxPick[4] */
     0,  /* 0x03EE: C1_RTG_07 FxPick[5] */
     0,  /* 0x03EF: C1_RTG_07 FxPick[6] */
-    0,  /* 0x03F0: C1_GAIN_08 gain coeff */
+    1,  /* 0x03F0: C1_GAIN_08 gain coeff */
     0,  /* 0x03F1: C1_GAIN_08 polarity */
     0,  /* 0x03F2: phantom (MCU-only) */
     0,  /* 0x03F3: input_sel (MCU-only) */
@@ -7646,7 +7646,7 @@
     0,  /* 0x042A: C1_COMP_08 CompRat */
     0,  /* 0x042B: C1_COMP_08 CompAtt */
     0,  /* 0x042C: C1_COMP_08 CompRel */
-    0,  /* 0x042D: C1_COMP_08 CompMake */
+    1,  /* 0x042D: C1_COMP_08 CompMake */
     0,  /* 0x042E: C1_COMP_08 CompKnee */
     0,  /* 0x042F: C1_COMP_08 CompPar */
     0,  /* 0x0430: C1_COMP_08 CompType */
@@ -7665,8 +7665,8 @@
     1,  /* 0x043D: C1_TUBE_08 saturation */
     0,  /* 0x043E: C1_DLY_08 delay offset */
     0,  /* 0x043F: C1_DLY_08 pool_slot */
-    0,  /* 0x0440: C1_FDR_08 level */
-    0,  /* 0x0441: C1_FDR_08 pan */
+    1,  /* 0x0440: C1_FDR_08 level */
+    1,  /* 0x0441: C1_FDR_08 pan */
     0,  /* 0x0442: C1_FDR_08 mute */
     0,  /* 0x0443: C1_FDR_08 DCA gain */
     0,  /* 0x0444: C1_RTG_08 MainOn */
@@ -7729,7 +7729,7 @@
     0,  /* 0x047D: C1_RTG_08 FxPick[4] */
     0,  /* 0x047E: C1_RTG_08 FxPick[5] */
     0,  /* 0x047F: C1_RTG_08 FxPick[6] */
-    0,  /* 0x0480: C1_GAIN_09 gain coeff */
+    1,  /* 0x0480: C1_GAIN_09 gain coeff */
     0,  /* 0x0481: C1_GAIN_09 polarity */
     0,  /* 0x0482: phantom (MCU-only) */
     0,  /* 0x0483: input_sel (MCU-only) */
@@ -7790,7 +7790,7 @@
     0,  /* 0x04BA: C1_COMP_09 CompRat */
     0,  /* 0x04BB: C1_COMP_09 CompAtt */
     0,  /* 0x04BC: C1_COMP_09 CompRel */
-    0,  /* 0x04BD: C1_COMP_09 CompMake */
+    1,  /* 0x04BD: C1_COMP_09 CompMake */
     0,  /* 0x04BE: C1_COMP_09 CompKnee */
     0,  /* 0x04BF: C1_COMP_09 CompPar */
     0,  /* 0x04C0: C1_COMP_09 CompType */
@@ -7809,8 +7809,8 @@
     1,  /* 0x04CD: C1_TUBE_09 saturation */
     0,  /* 0x04CE: C1_DLY_09 delay offset */
     0,  /* 0x04CF: C1_DLY_09 pool_slot */
-    0,  /* 0x04D0: C1_FDR_09 level */
-    0,  /* 0x04D1: C1_FDR_09 pan */
+    1,  /* 0x04D0: C1_FDR_09 level */
+    1,  /* 0x04D1: C1_FDR_09 pan */
     0,  /* 0x04D2: C1_FDR_09 mute */
     0,  /* 0x04D3: C1_FDR_09 DCA gain */
     0,  /* 0x04D4: C1_RTG_09 MainOn */
@@ -7873,7 +7873,7 @@
     0,  /* 0x050D: C1_RTG_09 FxPick[4] */
     0,  /* 0x050E: C1_RTG_09 FxPick[5] */
     0,  /* 0x050F: C1_RTG_09 FxPick[6] */
-    0,  /* 0x0510: C1_GAIN_10 gain coeff */
+    1,  /* 0x0510: C1_GAIN_10 gain coeff */
     0,  /* 0x0511: C1_GAIN_10 polarity */
     0,  /* 0x0512: phantom (MCU-only) */
     0,  /* 0x0513: input_sel (MCU-only) */
@@ -7934,7 +7934,7 @@
     0,  /* 0x054A: C1_COMP_10 CompRat */
     0,  /* 0x054B: C1_COMP_10 CompAtt */
     0,  /* 0x054C: C1_COMP_10 CompRel */
-    0,  /* 0x054D: C1_COMP_10 CompMake */
+    1,  /* 0x054D: C1_COMP_10 CompMake */
     0,  /* 0x054E: C1_COMP_10 CompKnee */
     0,  /* 0x054F: C1_COMP_10 CompPar */
     0,  /* 0x0550: C1_COMP_10 CompType */
@@ -7953,8 +7953,8 @@
     1,  /* 0x055D: C1_TUBE_10 saturation */
     0,  /* 0x055E: C1_DLY_10 delay offset */
     0,  /* 0x055F: C1_DLY_10 pool_slot */
-    0,  /* 0x0560: C1_FDR_10 level */
-    0,  /* 0x0561: C1_FDR_10 pan */
+    1,  /* 0x0560: C1_FDR_10 level */
+    1,  /* 0x0561: C1_FDR_10 pan */
     0,  /* 0x0562: C1_FDR_10 mute */
     0,  /* 0x0563: C1_FDR_10 DCA gain */
     0,  /* 0x0564: C1_RTG_10 MainOn */
@@ -8017,7 +8017,7 @@
     0,  /* 0x059D: C1_RTG_10 FxPick[4] */
     0,  /* 0x059E: C1_RTG_10 FxPick[5] */
     0,  /* 0x059F: C1_RTG_10 FxPick[6] */
-    0,  /* 0x05A0: C1_GAIN_11 gain coeff */
+    1,  /* 0x05A0: C1_GAIN_11 gain coeff */
     0,  /* 0x05A1: C1_GAIN_11 polarity */
     0,  /* 0x05A2: phantom (MCU-only) */
     0,  /* 0x05A3: input_sel (MCU-only) */
@@ -8078,7 +8078,7 @@
     0,  /* 0x05DA: C1_COMP_11 CompRat */
     0,  /* 0x05DB: C1_COMP_11 CompAtt */
     0,  /* 0x05DC: C1_COMP_11 CompRel */
-    0,  /* 0x05DD: C1_COMP_11 CompMake */
+    1,  /* 0x05DD: C1_COMP_11 CompMake */
     0,  /* 0x05DE: C1_COMP_11 CompKnee */
     0,  /* 0x05DF: C1_COMP_11 CompPar */
     0,  /* 0x05E0: C1_COMP_11 CompType */
@@ -8097,8 +8097,8 @@
     1,  /* 0x05ED: C1_TUBE_11 saturation */
     0,  /* 0x05EE: C1_DLY_11 delay offset */
     0,  /* 0x05EF: C1_DLY_11 pool_slot */
-    0,  /* 0x05F0: C1_FDR_11 level */
-    0,  /* 0x05F1: C1_FDR_11 pan */
+    1,  /* 0x05F0: C1_FDR_11 level */
+    1,  /* 0x05F1: C1_FDR_11 pan */
     0,  /* 0x05F2: C1_FDR_11 mute */
     0,  /* 0x05F3: C1_FDR_11 DCA gain */
     0,  /* 0x05F4: C1_RTG_11 MainOn */
@@ -8161,7 +8161,7 @@
     0,  /* 0x062D: C1_RTG_11 FxPick[4] */
     0,  /* 0x062E: C1_RTG_11 FxPick[5] */
     0,  /* 0x062F: C1_RTG_11 FxPick[6] */
-    0,  /* 0x0630: C1_GAIN_12 gain coeff */
+    1,  /* 0x0630: C1_GAIN_12 gain coeff */
     0,  /* 0x0631: C1_GAIN_12 polarity */
     0,  /* 0x0632: phantom (MCU-only) */
     0,  /* 0x0633: input_sel (MCU-only) */
@@ -8222,7 +8222,7 @@
     0,  /* 0x066A: C1_COMP_12 CompRat */
     0,  /* 0x066B: C1_COMP_12 CompAtt */
     0,  /* 0x066C: C1_COMP_12 CompRel */
-    0,  /* 0x066D: C1_COMP_12 CompMake */
+    1,  /* 0x066D: C1_COMP_12 CompMake */
     0,  /* 0x066E: C1_COMP_12 CompKnee */
     0,  /* 0x066F: C1_COMP_12 CompPar */
     0,  /* 0x0670: C1_COMP_12 CompType */
@@ -8241,8 +8241,8 @@
     1,  /* 0x067D: C1_TUBE_12 saturation */
     0,  /* 0x067E: C1_DLY_12 delay offset */
     0,  /* 0x067F: C1_DLY_12 pool_slot */
-    0,  /* 0x0680: C1_FDR_12 level */
-    0,  /* 0x0681: C1_FDR_12 pan */
+    1,  /* 0x0680: C1_FDR_12 level */
+    1,  /* 0x0681: C1_FDR_12 pan */
     0,  /* 0x0682: C1_FDR_12 mute */
     0,  /* 0x0683: C1_FDR_12 DCA gain */
     0,  /* 0x0684: C1_RTG_12 MainOn */
@@ -8305,7 +8305,7 @@
     0,  /* 0x06BD: C1_RTG_12 FxPick[4] */
     0,  /* 0x06BE: C1_RTG_12 FxPick[5] */
     0,  /* 0x06BF: C1_RTG_12 FxPick[6] */
-    0,  /* 0x06C0: C1_GAIN_13 gain coeff */
+    1,  /* 0x06C0: C1_GAIN_13 gain coeff */
     0,  /* 0x06C1: C1_GAIN_13 polarity */
     0,  /* 0x06C2: phantom (MCU-only) */
     0,  /* 0x06C3: input_sel (MCU-only) */
@@ -8366,7 +8366,7 @@
     0,  /* 0x06FA: C1_COMP_13 CompRat */
     0,  /* 0x06FB: C1_COMP_13 CompAtt */
     0,  /* 0x06FC: C1_COMP_13 CompRel */
-    0,  /* 0x06FD: C1_COMP_13 CompMake */
+    1,  /* 0x06FD: C1_COMP_13 CompMake */
     0,  /* 0x06FE: C1_COMP_13 CompKnee */
     0,  /* 0x06FF: C1_COMP_13 CompPar */
     0,  /* 0x0700: C1_COMP_13 CompType */
@@ -8385,8 +8385,8 @@
     1,  /* 0x070D: C1_TUBE_13 saturation */
     0,  /* 0x070E: C1_DLY_13 delay offset */
     0,  /* 0x070F: C1_DLY_13 pool_slot */
-    0,  /* 0x0710: C1_FDR_13 level */
-    0,  /* 0x0711: C1_FDR_13 pan */
+    1,  /* 0x0710: C1_FDR_13 level */
+    1,  /* 0x0711: C1_FDR_13 pan */
     0,  /* 0x0712: C1_FDR_13 mute */
     0,  /* 0x0713: C1_FDR_13 DCA gain */
     0,  /* 0x0714: C1_RTG_13 MainOn */
@@ -8449,7 +8449,7 @@
     0,  /* 0x074D: C1_RTG_13 FxPick[4] */
     0,  /* 0x074E: C1_RTG_13 FxPick[5] */
     0,  /* 0x074F: C1_RTG_13 FxPick[6] */
-    0,  /* 0x0750: C1_GAIN_14 gain coeff */
+    1,  /* 0x0750: C1_GAIN_14 gain coeff */
     0,  /* 0x0751: C1_GAIN_14 polarity */
     0,  /* 0x0752: phantom (MCU-only) */
     0,  /* 0x0753: input_sel (MCU-only) */
@@ -8510,7 +8510,7 @@
     0,  /* 0x078A: C1_COMP_14 CompRat */
     0,  /* 0x078B: C1_COMP_14 CompAtt */
     0,  /* 0x078C: C1_COMP_14 CompRel */
-    0,  /* 0x078D: C1_COMP_14 CompMake */
+    1,  /* 0x078D: C1_COMP_14 CompMake */
     0,  /* 0x078E: C1_COMP_14 CompKnee */
     0,  /* 0x078F: C1_COMP_14 CompPar */
     0,  /* 0x0790: C1_COMP_14 CompType */
@@ -8529,8 +8529,8 @@
     1,  /* 0x079D: C1_TUBE_14 saturation */
     0,  /* 0x079E: C1_DLY_14 delay offset */
     0,  /* 0x079F: C1_DLY_14 pool_slot */
-    0,  /* 0x07A0: C1_FDR_14 level */
-    0,  /* 0x07A1: C1_FDR_14 pan */
+    1,  /* 0x07A0: C1_FDR_14 level */
+    1,  /* 0x07A1: C1_FDR_14 pan */
     0,  /* 0x07A2: C1_FDR_14 mute */
     0,  /* 0x07A3: C1_FDR_14 DCA gain */
     0,  /* 0x07A4: C1_RTG_14 MainOn */
@@ -8593,7 +8593,7 @@
     0,  /* 0x07DD: C1_RTG_14 FxPick[4] */
     0,  /* 0x07DE: C1_RTG_14 FxPick[5] */
     0,  /* 0x07DF: C1_RTG_14 FxPick[6] */
-    0,  /* 0x07E0: C1_GAIN_15 gain coeff */
+    1,  /* 0x07E0: C1_GAIN_15 gain coeff */
     0,  /* 0x07E1: C1_GAIN_15 polarity */
     0,  /* 0x07E2: phantom (MCU-only) */
     0,  /* 0x07E3: input_sel (MCU-only) */
@@ -8654,7 +8654,7 @@
     0,  /* 0x081A: C1_COMP_15 CompRat */
     0,  /* 0x081B: C1_COMP_15 CompAtt */
     0,  /* 0x081C: C1_COMP_15 CompRel */
-    0,  /* 0x081D: C1_COMP_15 CompMake */
+    1,  /* 0x081D: C1_COMP_15 CompMake */
     0,  /* 0x081E: C1_COMP_15 CompKnee */
     0,  /* 0x081F: C1_COMP_15 CompPar */
     0,  /* 0x0820: C1_COMP_15 CompType */
@@ -8673,8 +8673,8 @@
     1,  /* 0x082D: C1_TUBE_15 saturation */
     0,  /* 0x082E: C1_DLY_15 delay offset */
     0,  /* 0x082F: C1_DLY_15 pool_slot */
-    0,  /* 0x0830: C1_FDR_15 level */
-    0,  /* 0x0831: C1_FDR_15 pan */
+    1,  /* 0x0830: C1_FDR_15 level */
+    1,  /* 0x0831: C1_FDR_15 pan */
     0,  /* 0x0832: C1_FDR_15 mute */
     0,  /* 0x0833: C1_FDR_15 DCA gain */
     0,  /* 0x0834: C1_RTG_15 MainOn */
@@ -8737,7 +8737,7 @@
     0,  /* 0x086D: C1_RTG_15 FxPick[4] */
     0,  /* 0x086E: C1_RTG_15 FxPick[5] */
     0,  /* 0x086F: C1_RTG_15 FxPick[6] */
-    0,  /* 0x0870: C1_GAIN_16 gain coeff */
+    1,  /* 0x0870: C1_GAIN_16 gain coeff */
     0,  /* 0x0871: C1_GAIN_16 polarity */
     0,  /* 0x0872: phantom (MCU-only) */
     0,  /* 0x0873: input_sel (MCU-only) */
@@ -8798,7 +8798,7 @@
     0,  /* 0x08AA: C1_COMP_16 CompRat */
     0,  /* 0x08AB: C1_COMP_16 CompAtt */
     0,  /* 0x08AC: C1_COMP_16 CompRel */
-    0,  /* 0x08AD: C1_COMP_16 CompMake */
+    1,  /* 0x08AD: C1_COMP_16 CompMake */
     0,  /* 0x08AE: C1_COMP_16 CompKnee */
     0,  /* 0x08AF: C1_COMP_16 CompPar */
     0,  /* 0x08B0: C1_COMP_16 CompType */
@@ -8817,8 +8817,8 @@
     1,  /* 0x08BD: C1_TUBE_16 saturation */
     0,  /* 0x08BE: C1_DLY_16 delay offset */
     0,  /* 0x08BF: C1_DLY_16 pool_slot */
-    0,  /* 0x08C0: C1_FDR_16 level */
-    0,  /* 0x08C1: C1_FDR_16 pan */
+    1,  /* 0x08C0: C1_FDR_16 level */
+    1,  /* 0x08C1: C1_FDR_16 pan */
     0,  /* 0x08C2: C1_FDR_16 mute */
     0,  /* 0x08C3: C1_FDR_16 DCA gain */
     0,  /* 0x08C4: C1_RTG_16 MainOn */
@@ -8881,7 +8881,7 @@
     0,  /* 0x08FD: C1_RTG_16 FxPick[4] */
     0,  /* 0x08FE: C1_RTG_16 FxPick[5] */
     0,  /* 0x08FF: C1_RTG_16 FxPick[6] */
-    0,  /* 0x0900: C1_GAIN_17 gain coeff */
+    1,  /* 0x0900: C1_GAIN_17 gain coeff */
     0,  /* 0x0901: C1_GAIN_17 polarity */
     0,  /* 0x0902: phantom (MCU-only) */
     0,  /* 0x0903: input_sel (MCU-only) */
@@ -8942,7 +8942,7 @@
     0,  /* 0x093A: C1_COMP_17 CompRat */
     0,  /* 0x093B: C1_COMP_17 CompAtt */
     0,  /* 0x093C: C1_COMP_17 CompRel */
-    0,  /* 0x093D: C1_COMP_17 CompMake */
+    1,  /* 0x093D: C1_COMP_17 CompMake */
     0,  /* 0x093E: C1_COMP_17 CompKnee */
     0,  /* 0x093F: C1_COMP_17 CompPar */
     0,  /* 0x0940: C1_COMP_17 CompType */
@@ -8961,8 +8961,8 @@
     1,  /* 0x094D: C1_TUBE_17 saturation */
     0,  /* 0x094E: C1_DLY_17 delay offset */
     0,  /* 0x094F: C1_DLY_17 pool_slot */
-    0,  /* 0x0950: C1_FDR_17 level */
-    0,  /* 0x0951: C1_FDR_17 pan */
+    1,  /* 0x0950: C1_FDR_17 level */
+    1,  /* 0x0951: C1_FDR_17 pan */
     0,  /* 0x0952: C1_FDR_17 mute */
     0,  /* 0x0953: C1_FDR_17 DCA gain */
     0,  /* 0x0954: C1_RTG_17 MainOn */
@@ -9025,7 +9025,7 @@
     0,  /* 0x098D: C1_RTG_17 FxPick[4] */
     0,  /* 0x098E: C1_RTG_17 FxPick[5] */
     0,  /* 0x098F: C1_RTG_17 FxPick[6] */
-    0,  /* 0x0990: C1_GAIN_18 gain coeff */
+    1,  /* 0x0990: C1_GAIN_18 gain coeff */
     0,  /* 0x0991: C1_GAIN_18 polarity */
     0,  /* 0x0992: phantom (MCU-only) */
     0,  /* 0x0993: input_sel (MCU-only) */
@@ -9086,7 +9086,7 @@
     0,  /* 0x09CA: C1_COMP_18 CompRat */
     0,  /* 0x09CB: C1_COMP_18 CompAtt */
     0,  /* 0x09CC: C1_COMP_18 CompRel */
-    0,  /* 0x09CD: C1_COMP_18 CompMake */
+    1,  /* 0x09CD: C1_COMP_18 CompMake */
     0,  /* 0x09CE: C1_COMP_18 CompKnee */
     0,  /* 0x09CF: C1_COMP_18 CompPar */
     0,  /* 0x09D0: C1_COMP_18 CompType */
@@ -9105,8 +9105,8 @@
     1,  /* 0x09DD: C1_TUBE_18 saturation */
     0,  /* 0x09DE: C1_DLY_18 delay offset */
     0,  /* 0x09DF: C1_DLY_18 pool_slot */
-    0,  /* 0x09E0: C1_FDR_18 level */
-    0,  /* 0x09E1: C1_FDR_18 pan */
+    1,  /* 0x09E0: C1_FDR_18 level */
+    1,  /* 0x09E1: C1_FDR_18 pan */
     0,  /* 0x09E2: C1_FDR_18 mute */
     0,  /* 0x09E3: C1_FDR_18 DCA gain */
     0,  /* 0x09E4: C1_RTG_18 MainOn */
@@ -9169,7 +9169,7 @@
     0,  /* 0x0A1D: C1_RTG_18 FxPick[4] */
     0,  /* 0x0A1E: C1_RTG_18 FxPick[5] */
     0,  /* 0x0A1F: C1_RTG_18 FxPick[6] */
-    0,  /* 0x0A20: C1_GAIN_19 gain coeff */
+    1,  /* 0x0A20: C1_GAIN_19 gain coeff */
     0,  /* 0x0A21: C1_GAIN_19 polarity */
     0,  /* 0x0A22: phantom (MCU-only) */
     0,  /* 0x0A23: input_sel (MCU-only) */
@@ -9230,7 +9230,7 @@
     0,  /* 0x0A5A: C1_COMP_19 CompRat */
     0,  /* 0x0A5B: C1_COMP_19 CompAtt */
     0,  /* 0x0A5C: C1_COMP_19 CompRel */
-    0,  /* 0x0A5D: C1_COMP_19 CompMake */
+    1,  /* 0x0A5D: C1_COMP_19 CompMake */
     0,  /* 0x0A5E: C1_COMP_19 CompKnee */
     0,  /* 0x0A5F: C1_COMP_19 CompPar */
     0,  /* 0x0A60: C1_COMP_19 CompType */
@@ -9249,8 +9249,8 @@
     1,  /* 0x0A6D: C1_TUBE_19 saturation */
     0,  /* 0x0A6E: C1_DLY_19 delay offset */
     0,  /* 0x0A6F: C1_DLY_19 pool_slot */
-    0,  /* 0x0A70: C1_FDR_19 level */
-    0,  /* 0x0A71: C1_FDR_19 pan */
+    1,  /* 0x0A70: C1_FDR_19 level */
+    1,  /* 0x0A71: C1_FDR_19 pan */
     0,  /* 0x0A72: C1_FDR_19 mute */
     0,  /* 0x0A73: C1_FDR_19 DCA gain */
     0,  /* 0x0A74: C1_RTG_19 MainOn */
@@ -9313,7 +9313,7 @@
     0,  /* 0x0AAD: C1_RTG_19 FxPick[4] */
     0,  /* 0x0AAE: C1_RTG_19 FxPick[5] */
     0,  /* 0x0AAF: C1_RTG_19 FxPick[6] */
-    0,  /* 0x0AB0: C1_GAIN_20 gain coeff */
+    1,  /* 0x0AB0: C1_GAIN_20 gain coeff */
     0,  /* 0x0AB1: C1_GAIN_20 polarity */
     0,  /* 0x0AB2: phantom (MCU-only) */
     0,  /* 0x0AB3: input_sel (MCU-only) */
@@ -9374,7 +9374,7 @@
     0,  /* 0x0AEA: C1_COMP_20 CompRat */
     0,  /* 0x0AEB: C1_COMP_20 CompAtt */
     0,  /* 0x0AEC: C1_COMP_20 CompRel */
-    0,  /* 0x0AED: C1_COMP_20 CompMake */
+    1,  /* 0x0AED: C1_COMP_20 CompMake */
     0,  /* 0x0AEE: C1_COMP_20 CompKnee */
     0,  /* 0x0AEF: C1_COMP_20 CompPar */
     0,  /* 0x0AF0: C1_COMP_20 CompType */
@@ -9393,8 +9393,8 @@
     1,  /* 0x0AFD: C1_TUBE_20 saturation */
     0,  /* 0x0AFE: C1_DLY_20 delay offset */
     0,  /* 0x0AFF: C1_DLY_20 pool_slot */
-    0,  /* 0x0B00: C1_FDR_20 level */
-    0,  /* 0x0B01: C1_FDR_20 pan */
+    1,  /* 0x0B00: C1_FDR_20 level */
+    1,  /* 0x0B01: C1_FDR_20 pan */
     0,  /* 0x0B02: C1_FDR_20 mute */
     0,  /* 0x0B03: C1_FDR_20 DCA gain */
     0,  /* 0x0B04: C1_RTG_20 MainOn */
@@ -9457,7 +9457,7 @@
     0,  /* 0x0B3D: C1_RTG_20 FxPick[4] */
     0,  /* 0x0B3E: C1_RTG_20 FxPick[5] */
     0,  /* 0x0B3F: C1_RTG_20 FxPick[6] */
-    0,  /* 0x0B40: C1_GAIN_21 gain coeff */
+    1,  /* 0x0B40: C1_GAIN_21 gain coeff */
     0,  /* 0x0B41: C1_GAIN_21 polarity */
     0,  /* 0x0B42: phantom (MCU-only) */
     0,  /* 0x0B43: input_sel (MCU-only) */
@@ -9518,7 +9518,7 @@
     0,  /* 0x0B7A: C1_COMP_21 CompRat */
     0,  /* 0x0B7B: C1_COMP_21 CompAtt */
     0,  /* 0x0B7C: C1_COMP_21 CompRel */
-    0,  /* 0x0B7D: C1_COMP_21 CompMake */
+    1,  /* 0x0B7D: C1_COMP_21 CompMake */
     0,  /* 0x0B7E: C1_COMP_21 CompKnee */
     0,  /* 0x0B7F: C1_COMP_21 CompPar */
     0,  /* 0x0B80: C1_COMP_21 CompType */
@@ -9537,8 +9537,8 @@
     1,  /* 0x0B8D: C1_TUBE_21 saturation */
     0,  /* 0x0B8E: C1_DLY_21 delay offset */
     0,  /* 0x0B8F: C1_DLY_21 pool_slot */
-    0,  /* 0x0B90: C1_FDR_21 level */
-    0,  /* 0x0B91: C1_FDR_21 pan */
+    1,  /* 0x0B90: C1_FDR_21 level */
+    1,  /* 0x0B91: C1_FDR_21 pan */
     0,  /* 0x0B92: C1_FDR_21 mute */
     0,  /* 0x0B93: C1_FDR_21 DCA gain */
     0,  /* 0x0B94: C1_RTG_21 MainOn */
@@ -9601,7 +9601,7 @@
     0,  /* 0x0BCD: C1_RTG_21 FxPick[4] */
     0,  /* 0x0BCE: C1_RTG_21 FxPick[5] */
     0,  /* 0x0BCF: C1_RTG_21 FxPick[6] */
-    0,  /* 0x0BD0: C1_GAIN_22 gain coeff */
+    1,  /* 0x0BD0: C1_GAIN_22 gain coeff */
     0,  /* 0x0BD1: C1_GAIN_22 polarity */
     0,  /* 0x0BD2: phantom (MCU-only) */
     0,  /* 0x0BD3: input_sel (MCU-only) */
@@ -9662,7 +9662,7 @@
     0,  /* 0x0C0A: C1_COMP_22 CompRat */
     0,  /* 0x0C0B: C1_COMP_22 CompAtt */
     0,  /* 0x0C0C: C1_COMP_22 CompRel */
-    0,  /* 0x0C0D: C1_COMP_22 CompMake */
+    1,  /* 0x0C0D: C1_COMP_22 CompMake */
     0,  /* 0x0C0E: C1_COMP_22 CompKnee */
     0,  /* 0x0C0F: C1_COMP_22 CompPar */
     0,  /* 0x0C10: C1_COMP_22 CompType */
@@ -9681,8 +9681,8 @@
     1,  /* 0x0C1D: C1_TUBE_22 saturation */
     0,  /* 0x0C1E: C1_DLY_22 delay offset */
     0,  /* 0x0C1F: C1_DLY_22 pool_slot */
-    0,  /* 0x0C20: C1_FDR_22 level */
-    0,  /* 0x0C21: C1_FDR_22 pan */
+    1,  /* 0x0C20: C1_FDR_22 level */
+    1,  /* 0x0C21: C1_FDR_22 pan */
     0,  /* 0x0C22: C1_FDR_22 mute */
     0,  /* 0x0C23: C1_FDR_22 DCA gain */
     0,  /* 0x0C24: C1_RTG_22 MainOn */
@@ -9745,7 +9745,7 @@
     0,  /* 0x0C5D: C1_RTG_22 FxPick[4] */
     0,  /* 0x0C5E: C1_RTG_22 FxPick[5] */
     0,  /* 0x0C5F: C1_RTG_22 FxPick[6] */
-    0,  /* 0x0C60: C1_GAIN_23 gain coeff */
+    1,  /* 0x0C60: C1_GAIN_23 gain coeff */
     0,  /* 0x0C61: C1_GAIN_23 polarity */
     0,  /* 0x0C62: phantom (MCU-only) */
     0,  /* 0x0C63: input_sel (MCU-only) */
@@ -9806,7 +9806,7 @@
     0,  /* 0x0C9A: C1_COMP_23 CompRat */
     0,  /* 0x0C9B: C1_COMP_23 CompAtt */
     0,  /* 0x0C9C: C1_COMP_23 CompRel */
-    0,  /* 0x0C9D: C1_COMP_23 CompMake */
+    1,  /* 0x0C9D: C1_COMP_23 CompMake */
     0,  /* 0x0C9E: C1_COMP_23 CompKnee */
     0,  /* 0x0C9F: C1_COMP_23 CompPar */
     0,  /* 0x0CA0: C1_COMP_23 CompType */
@@ -9825,8 +9825,8 @@
     1,  /* 0x0CAD: C1_TUBE_23 saturation */
     0,  /* 0x0CAE: C1_DLY_23 delay offset */
     0,  /* 0x0CAF: C1_DLY_23 pool_slot */
-    0,  /* 0x0CB0: C1_FDR_23 level */
-    0,  /* 0x0CB1: C1_FDR_23 pan */
+    1,  /* 0x0CB0: C1_FDR_23 level */
+    1,  /* 0x0CB1: C1_FDR_23 pan */
     0,  /* 0x0CB2: C1_FDR_23 mute */
     0,  /* 0x0CB3: C1_FDR_23 DCA gain */
     0,  /* 0x0CB4: C1_RTG_23 MainOn */
@@ -9889,7 +9889,7 @@
     0,  /* 0x0CED: C1_RTG_23 FxPick[4] */
     0,  /* 0x0CEE: C1_RTG_23 FxPick[5] */
     0,  /* 0x0CEF: C1_RTG_23 FxPick[6] */
-    0,  /* 0x0CF0: C1_GAIN_24 gain coeff */
+    1,  /* 0x0CF0: C1_GAIN_24 gain coeff */
     0,  /* 0x0CF1: C1_GAIN_24 polarity */
     0,  /* 0x0CF2: phantom (MCU-only) */
     0,  /* 0x0CF3: input_sel (MCU-only) */
@@ -9950,7 +9950,7 @@
     0,  /* 0x0D2A: C1_COMP_24 CompRat */
     0,  /* 0x0D2B: C1_COMP_24 CompAtt */
     0,  /* 0x0D2C: C1_COMP_24 CompRel */
-    0,  /* 0x0D2D: C1_COMP_24 CompMake */
+    1,  /* 0x0D2D: C1_COMP_24 CompMake */
     0,  /* 0x0D2E: C1_COMP_24 CompKnee */
     0,  /* 0x0D2F: C1_COMP_24 CompPar */
     0,  /* 0x0D30: C1_COMP_24 CompType */
@@ -9969,8 +9969,8 @@
     1,  /* 0x0D3D: C1_TUBE_24 saturation */
     0,  /* 0x0D3E: C1_DLY_24 delay offset */
     0,  /* 0x0D3F: C1_DLY_24 pool_slot */
-    0,  /* 0x0D40: C1_FDR_24 level */
-    0,  /* 0x0D41: C1_FDR_24 pan */
+    1,  /* 0x0D40: C1_FDR_24 level */
+    1,  /* 0x0D41: C1_FDR_24 pan */
     0,  /* 0x0D42: C1_FDR_24 mute */
     0,  /* 0x0D43: C1_FDR_24 DCA gain */
     0,  /* 0x0D44: C1_RTG_24 MainOn */
@@ -10033,7 +10033,7 @@
     0,  /* 0x0D7D: C1_RTG_24 FxPick[4] */
     0,  /* 0x0D7E: C1_RTG_24 FxPick[5] */
     0,  /* 0x0D7F: C1_RTG_24 FxPick[6] */
-    0,  /* 0x0D80: C1_GAIN_25 gain coeff */
+    1,  /* 0x0D80: C1_GAIN_25 gain coeff */
     0,  /* 0x0D81: C1_GAIN_25 polarity */
     0,  /* 0x0D82: phantom (MCU-only) */
     0,  /* 0x0D83: input_sel (MCU-only) */
@@ -10094,7 +10094,7 @@
     0,  /* 0x0DBA: C1_COMP_25 CompRat */
     0,  /* 0x0DBB: C1_COMP_25 CompAtt */
     0,  /* 0x0DBC: C1_COMP_25 CompRel */
-    0,  /* 0x0DBD: C1_COMP_25 CompMake */
+    1,  /* 0x0DBD: C1_COMP_25 CompMake */
     0,  /* 0x0DBE: C1_COMP_25 CompKnee */
     0,  /* 0x0DBF: C1_COMP_25 CompPar */
     0,  /* 0x0DC0: C1_COMP_25 CompType */
@@ -10113,8 +10113,8 @@
     1,  /* 0x0DCD: C1_TUBE_25 saturation */
     0,  /* 0x0DCE: C1_DLY_25 delay offset */
     0,  /* 0x0DCF: C1_DLY_25 pool_slot */
-    0,  /* 0x0DD0: C1_FDR_25 level */
-    0,  /* 0x0DD1: C1_FDR_25 pan */
+    1,  /* 0x0DD0: C1_FDR_25 level */
+    1,  /* 0x0DD1: C1_FDR_25 pan */
     0,  /* 0x0DD2: C1_FDR_25 mute */
     0,  /* 0x0DD3: C1_FDR_25 DCA gain */
     0,  /* 0x0DD4: C1_RTG_25 MainOn */
@@ -10177,7 +10177,7 @@
     0,  /* 0x0E0D: C1_RTG_25 FxPick[4] */
     0,  /* 0x0E0E: C1_RTG_25 FxPick[5] */
     0,  /* 0x0E0F: C1_RTG_25 FxPick[6] */
-    0,  /* 0x0E10: C1_GAIN_26 gain coeff */
+    1,  /* 0x0E10: C1_GAIN_26 gain coeff */
     0,  /* 0x0E11: C1_GAIN_26 polarity */
     0,  /* 0x0E12: phantom (MCU-only) */
     0,  /* 0x0E13: input_sel (MCU-only) */
@@ -10238,7 +10238,7 @@
     0,  /* 0x0E4A: C1_COMP_26 CompRat */
     0,  /* 0x0E4B: C1_COMP_26 CompAtt */
     0,  /* 0x0E4C: C1_COMP_26 CompRel */
-    0,  /* 0x0E4D: C1_COMP_26 CompMake */
+    1,  /* 0x0E4D: C1_COMP_26 CompMake */
     0,  /* 0x0E4E: C1_COMP_26 CompKnee */
     0,  /* 0x0E4F: C1_COMP_26 CompPar */
     0,  /* 0x0E50: C1_COMP_26 CompType */
@@ -10257,8 +10257,8 @@
     1,  /* 0x0E5D: C1_TUBE_26 saturation */
     0,  /* 0x0E5E: C1_DLY_26 delay offset */
     0,  /* 0x0E5F: C1_DLY_26 pool_slot */
-    0,  /* 0x0E60: C1_FDR_26 level */
-    0,  /* 0x0E61: C1_FDR_26 pan */
+    1,  /* 0x0E60: C1_FDR_26 level */
+    1,  /* 0x0E61: C1_FDR_26 pan */
     0,  /* 0x0E62: C1_FDR_26 mute */
     0,  /* 0x0E63: C1_FDR_26 DCA gain */
     0,  /* 0x0E64: C1_RTG_26 MainOn */
@@ -10321,7 +10321,7 @@
     0,  /* 0x0E9D: C1_RTG_26 FxPick[4] */
     0,  /* 0x0E9E: C1_RTG_26 FxPick[5] */
     0,  /* 0x0E9F: C1_RTG_26 FxPick[6] */
-    0,  /* 0x0EA0: C1_GAIN_27 gain coeff */
+    1,  /* 0x0EA0: C1_GAIN_27 gain coeff */
     0,  /* 0x0EA1: C1_GAIN_27 polarity */
     0,  /* 0x0EA2: phantom (MCU-only) */
     0,  /* 0x0EA3: input_sel (MCU-only) */
@@ -10382,7 +10382,7 @@
     0,  /* 0x0EDA: C1_COMP_27 CompRat */
     0,  /* 0x0EDB: C1_COMP_27 CompAtt */
     0,  /* 0x0EDC: C1_COMP_27 CompRel */
-    0,  /* 0x0EDD: C1_COMP_27 CompMake */
+    1,  /* 0x0EDD: C1_COMP_27 CompMake */
     0,  /* 0x0EDE: C1_COMP_27 CompKnee */
     0,  /* 0x0EDF: C1_COMP_27 CompPar */
     0,  /* 0x0EE0: C1_COMP_27 CompType */
@@ -10401,8 +10401,8 @@
     1,  /* 0x0EED: C1_TUBE_27 saturation */
     0,  /* 0x0EEE: C1_DLY_27 delay offset */
     0,  /* 0x0EEF: C1_DLY_27 pool_slot */
-    0,  /* 0x0EF0: C1_FDR_27 level */
-    0,  /* 0x0EF1: C1_FDR_27 pan */
+    1,  /* 0x0EF0: C1_FDR_27 level */
+    1,  /* 0x0EF1: C1_FDR_27 pan */
     0,  /* 0x0EF2: C1_FDR_27 mute */
     0,  /* 0x0EF3: C1_FDR_27 DCA gain */
     0,  /* 0x0EF4: C1_RTG_27 MainOn */
@@ -10465,7 +10465,7 @@
     0,  /* 0x0F2D: C1_RTG_27 FxPick[4] */
     0,  /* 0x0F2E: C1_RTG_27 FxPick[5] */
     0,  /* 0x0F2F: C1_RTG_27 FxPick[6] */
-    0,  /* 0x0F30: C1_GAIN_28 gain coeff */
+    1,  /* 0x0F30: C1_GAIN_28 gain coeff */
     0,  /* 0x0F31: C1_GAIN_28 polarity */
     0,  /* 0x0F32: phantom (MCU-only) */
     0,  /* 0x0F33: input_sel (MCU-only) */
@@ -10526,7 +10526,7 @@
     0,  /* 0x0F6A: C1_COMP_28 CompRat */
     0,  /* 0x0F6B: C1_COMP_28 CompAtt */
     0,  /* 0x0F6C: C1_COMP_28 CompRel */
-    0,  /* 0x0F6D: C1_COMP_28 CompMake */
+    1,  /* 0x0F6D: C1_COMP_28 CompMake */
     0,  /* 0x0F6E: C1_COMP_28 CompKnee */
     0,  /* 0x0F6F: C1_COMP_28 CompPar */
     0,  /* 0x0F70: C1_COMP_28 CompType */
@@ -10545,8 +10545,8 @@
     1,  /* 0x0F7D: C1_TUBE_28 saturation */
     0,  /* 0x0F7E: C1_DLY_28 delay offset */
     0,  /* 0x0F7F: C1_DLY_28 pool_slot */
-    0,  /* 0x0F80: C1_FDR_28 level */
-    0,  /* 0x0F81: C1_FDR_28 pan */
+    1,  /* 0x0F80: C1_FDR_28 level */
+    1,  /* 0x0F81: C1_FDR_28 pan */
     0,  /* 0x0F82: C1_FDR_28 mute */
     0,  /* 0x0F83: C1_FDR_28 DCA gain */
     0,  /* 0x0F84: C1_RTG_28 MainOn */
@@ -10609,7 +10609,7 @@
     0,  /* 0x0FBD: C1_RTG_28 FxPick[4] */
     0,  /* 0x0FBE: C1_RTG_28 FxPick[5] */
     0,  /* 0x0FBF: C1_RTG_28 FxPick[6] */
-    0,  /* 0x0FC0: C1_GAIN_29 gain coeff */
+    1,  /* 0x0FC0: C1_GAIN_29 gain coeff */
     0,  /* 0x0FC1: C1_GAIN_29 polarity */
     0,  /* 0x0FC2: phantom (MCU-only) */
     0,  /* 0x0FC3: input_sel (MCU-only) */
@@ -10670,7 +10670,7 @@
     0,  /* 0x0FFA: C1_COMP_29 CompRat */
     0,  /* 0x0FFB: C1_COMP_29 CompAtt */
     0,  /* 0x0FFC: C1_COMP_29 CompRel */
-    0,  /* 0x0FFD: C1_COMP_29 CompMake */
+    1,  /* 0x0FFD: C1_COMP_29 CompMake */
     0,  /* 0x0FFE: C1_COMP_29 CompKnee */
     0,  /* 0x0FFF: C1_COMP_29 CompPar */
     0,  /* 0x1000: C1_COMP_29 CompType */
@@ -10689,8 +10689,8 @@
     1,  /* 0x100D: C1_TUBE_29 saturation */
     0,  /* 0x100E: C1_DLY_29 delay offset */
     0,  /* 0x100F: C1_DLY_29 pool_slot */
-    0,  /* 0x1010: C1_FDR_29 level */
-    0,  /* 0x1011: C1_FDR_29 pan */
+    1,  /* 0x1010: C1_FDR_29 level */
+    1,  /* 0x1011: C1_FDR_29 pan */
     0,  /* 0x1012: C1_FDR_29 mute */
     0,  /* 0x1013: C1_FDR_29 DCA gain */
     0,  /* 0x1014: C1_RTG_29 MainOn */
@@ -10753,7 +10753,7 @@
     0,  /* 0x104D: C1_RTG_29 FxPick[4] */
     0,  /* 0x104E: C1_RTG_29 FxPick[5] */
     0,  /* 0x104F: C1_RTG_29 FxPick[6] */
-    0,  /* 0x1050: C1_GAIN_30 gain coeff */
+    1,  /* 0x1050: C1_GAIN_30 gain coeff */
     0,  /* 0x1051: C1_GAIN_30 polarity */
     0,  /* 0x1052: phantom (MCU-only) */
     0,  /* 0x1053: input_sel (MCU-only) */
@@ -10814,7 +10814,7 @@
     0,  /* 0x108A: C1_COMP_30 CompRat */
     0,  /* 0x108B: C1_COMP_30 CompAtt */
     0,  /* 0x108C: C1_COMP_30 CompRel */
-    0,  /* 0x108D: C1_COMP_30 CompMake */
+    1,  /* 0x108D: C1_COMP_30 CompMake */
     0,  /* 0x108E: C1_COMP_30 CompKnee */
     0,  /* 0x108F: C1_COMP_30 CompPar */
     0,  /* 0x1090: C1_COMP_30 CompType */
@@ -10833,8 +10833,8 @@
     1,  /* 0x109D: C1_TUBE_30 saturation */
     0,  /* 0x109E: C1_DLY_30 delay offset */
     0,  /* 0x109F: C1_DLY_30 pool_slot */
-    0,  /* 0x10A0: C1_FDR_30 level */
-    0,  /* 0x10A1: C1_FDR_30 pan */
+    1,  /* 0x10A0: C1_FDR_30 level */
+    1,  /* 0x10A1: C1_FDR_30 pan */
     0,  /* 0x10A2: C1_FDR_30 mute */
     0,  /* 0x10A3: C1_FDR_30 DCA gain */
     0,  /* 0x10A4: C1_RTG_30 MainOn */
@@ -10897,7 +10897,7 @@
     0,  /* 0x10DD: C1_RTG_30 FxPick[4] */
     0,  /* 0x10DE: C1_RTG_30 FxPick[5] */
     0,  /* 0x10DF: C1_RTG_30 FxPick[6] */
-    0,  /* 0x10E0: C1_GAIN_31 gain coeff */
+    1,  /* 0x10E0: C1_GAIN_31 gain coeff */
     0,  /* 0x10E1: C1_GAIN_31 polarity */
     0,  /* 0x10E2: phantom (MCU-only) */
     0,  /* 0x10E3: input_sel (MCU-only) */
@@ -10958,7 +10958,7 @@
     0,  /* 0x111A: C1_COMP_31 CompRat */
     0,  /* 0x111B: C1_COMP_31 CompAtt */
     0,  /* 0x111C: C1_COMP_31 CompRel */
-    0,  /* 0x111D: C1_COMP_31 CompMake */
+    1,  /* 0x111D: C1_COMP_31 CompMake */
     0,  /* 0x111E: C1_COMP_31 CompKnee */
     0,  /* 0x111F: C1_COMP_31 CompPar */
     0,  /* 0x1120: C1_COMP_31 CompType */
@@ -10977,8 +10977,8 @@
     1,  /* 0x112D: C1_TUBE_31 saturation */
     0,  /* 0x112E: C1_DLY_31 delay offset */
     0,  /* 0x112F: C1_DLY_31 pool_slot */
-    0,  /* 0x1130: C1_FDR_31 level */
-    0,  /* 0x1131: C1_FDR_31 pan */
+    1,  /* 0x1130: C1_FDR_31 level */
+    1,  /* 0x1131: C1_FDR_31 pan */
     0,  /* 0x1132: C1_FDR_31 mute */
     0,  /* 0x1133: C1_FDR_31 DCA gain */
     0,  /* 0x1134: C1_RTG_31 MainOn */
@@ -11041,7 +11041,7 @@
     0,  /* 0x116D: C1_RTG_31 FxPick[4] */
     0,  /* 0x116E: C1_RTG_31 FxPick[5] */
     0,  /* 0x116F: C1_RTG_31 FxPick[6] */
-    0,  /* 0x1170: C1_GAIN_32 gain coeff */
+    1,  /* 0x1170: C1_GAIN_32 gain coeff */
     0,  /* 0x1171: C1_GAIN_32 polarity */
     0,  /* 0x1172: phantom (MCU-only) */
     0,  /* 0x1173: input_sel (MCU-only) */
@@ -11102,7 +11102,7 @@
     0,  /* 0x11AA: C1_COMP_32 CompRat */
     0,  /* 0x11AB: C1_COMP_32 CompAtt */
     0,  /* 0x11AC: C1_COMP_32 CompRel */
-    0,  /* 0x11AD: C1_COMP_32 CompMake */
+    1,  /* 0x11AD: C1_COMP_32 CompMake */
     0,  /* 0x11AE: C1_COMP_32 CompKnee */
     0,  /* 0x11AF: C1_COMP_32 CompPar */
     0,  /* 0x11B0: C1_COMP_32 CompType */
@@ -11121,8 +11121,8 @@
     1,  /* 0x11BD: C1_TUBE_32 saturation */
     0,  /* 0x11BE: C1_DLY_32 delay offset */
     0,  /* 0x11BF: C1_DLY_32 pool_slot */
-    0,  /* 0x11C0: C1_FDR_32 level */
-    0,  /* 0x11C1: C1_FDR_32 pan */
+    1,  /* 0x11C0: C1_FDR_32 level */
+    1,  /* 0x11C1: C1_FDR_32 pan */
     0,  /* 0x11C2: C1_FDR_32 mute */
     0,  /* 0x11C3: C1_FDR_32 DCA gain */
     0,  /* 0x11C4: C1_RTG_32 MainOn */

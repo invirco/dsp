@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-08-27 18:21Z — crosspoint-coefficient audit + enforce (08-25 mandate)   [status: 🟡 dispatched]   [model: opus]
+## HUB DISPATCH 2026-08-27 18:21Z — crosspoint-coefficient audit + enforce (08-25 mandate)   [status: 🟢 done — every in-scope violation folded and PROVEN ON THE PART: strip 1 BIT-EXACT at all 7 level/pan points plus mute and polarity, and routing sends WORK for the first time in the converted build (all 4 pickoffs, negative control passing). Three defects found on the way, all pre-existing and all severe: (1) the ramp-stride table matched only 610 of the ramped parameters, so **every GAIN, FADER_PAN and MONITOR ramped parameter was unsettable over SPI** — proven on the part, and fixed; (2) 132 nodes carried a `_sample_idx == 0` guard that never fires in a block-kernel build, which is why ROUTING never computed a send coefficient there; (3) the chip-1 DM ceiling was an LDF ordering artifact — the overflow region was 0% used and the converted build would not link at all at HEAD. Cycle deltas, converted build, per strip: FDR 1,908 → 1,011 cycles/block (1.89×); RTG 2,617 (prep dead) → 3,196 (prep live, sends working) → 3,667 (folded); FDR+RTG −426 cycles/block against the honest baseline = −13.3 cycles/sample. Capacity: 1,269 → ~1,256 cycles/sample/channel, ceiling stays 10 — this does NOT move the 32-in-one verdict. Bench restored to shipping and re-verified]   [model: opus]
 
 model: opus
 
@@ -67,6 +67,209 @@ update this block's status (🟢 done / 🔴 blocked) with a short outcome;
 no AI attribution in commits or any work product.
 
 Legend: 🔴 not started/blocked · 🟡 in progress · 🟢 done
+
+### Outcome 2026-08-27 (evening) — crosspoint-coefficient audit + enforce
+
+**Audit method.** Scanned the EMITTED node ASM, not the generators, resolving
+`#if DSP4_BLOCK_KERNELS` for both builds and separating the per-sample region
+from the control-rate one, then counted control-state reads inside MAC paths
+and round-and-saturate stages per sample. That is what made the findings below
+countable rather than anecdotal, and re-running it is the check that the folds
+landed: it now reports zero in-scope violations in both builds.
+
+#### The folds (the mandate's actual task)
+
+| violation | where | fold |
+|---|---|---|
+| `_mute` + `_polarity` tested per sample | GAIN × 32 | into `_gain_q` at control rate |
+| `_fdr_mute` tested per sample | FADER_PAN × 56 (both chips) | into `_fdr_gq` at control rate |
+| fader → pan → unity-MAC, three round/saturate stages | FADER_PAN → ROUTING | pan leg IS the main-bus crosspoint coefficient; two stages deleted |
+| `_rtg_main/sub/grp/aux/fx_on` read in the accumulate path | ROUTING × 32 | folded into per-crosspoint coefficients (`_rtg_mlq/_mrq/_subq/_grpq`, and into the send shadow) |
+| pickoff enum decision tree in the accumulate path | ROUTING × 32 | resolved to a source ADDRESS at control rate (`_rtg_aux_src`, `_rtg_fx_src`) |
+| `_auxin_on` tested per sample, and the whole float→Q4.28 conversion running per sample | AUX_INPUT × 12 | assign folded into `_auxin_q`; conversion moved to control rate |
+| L/R levels converted per sample; ramp quad unrepresentable | MONITOR | control-rate conversion, two independent ramp quads |
+
+Polarity folding is also the more correct form, not just the cheaper one:
+`fixed_ref.gain(x, g)` with g negative is `sat(rns(x*-g))`, whereas the old
+per-sample code computed `-sat(rns(x*|g|))`. Those differ by one LSB when the
+product lands on a rounding tie, because `rns` rounds half toward +inf and that
+is not symmetric under negation. The folded form is the reference form.
+
+The main-bus fold is bit-identical for a single source and strictly better for
+several: the old path rounded `mono * pan` into `_buf_L` and then accumulated
+that with a unity coefficient, so N sources rounded N times; the folded path
+accumulates `mono * pan` exactly in 64 bits and rounds once at the bus.
+
+#### Three defects found on the way, none of them mine, all severe
+
+**1. The ramp-stride table matched only 610 of the ramped parameters, and
+every GAIN, FADER_PAN and MONITOR ramped parameter was unsettable over SPI.**
+Proven on the part before I changed anything: a ramped write of 0.5 to SPI
+0x0000 left `_gain_target` at 1.0, and reading the dispatch and stride tables
+off the running chip showed the dispatch ADDRESS correct and the stride ZERO.
+Stride 0 means "plain word, direct write", so the value went straight into the
+value word and the node's own block-rate code then did
+`if frames <= 0: value = target` and clobbered it from a target nothing had
+set. Two independent causes in one regex: it was anchored at column 0, so
+generators that emit their `.var` lines INDENTED (FADER_PAN among them) matched
+nothing at all; and where it did match it assumed the value symbol is the
+target's name minus `_target`, which is false for GAIN (`_gain_coeff` vs
+`_gain_target`). The "fail if no ramped params were found" guard passed
+throughout, because ROUTING, TUBE_SAT and TALKBACK do emit at column 0 and
+supplied 610 entries between them.
+
+Fixed by pairing on LAYOUT rather than names — `_ramp_set_target` addresses
+the companions at +s/+2s/+3s from the VALUE, and the node emits the value
+immediately before its target, so that adjacency IS the contract and it is what
+the scan now reads. It also validates the quad (value, target, step, frames,
+consecutive, same width, same family stem) and requires the number of quads
+recognised to equal the number of `_frames_` declarations in the file, so a
+node whose layout changes is an error rather than a silent zero. Counts:
+chip 1 610 {1: 34, 6: 192, 12: 384} → **738 {1: 162, 6: 192, 12: 384}**;
+chip 2 28 {1: 28} → **86 {1: 86}**. Re-proven on the part: a ramped write of
+0.5 to 0x0000 now lands, and the full chain harness passes.
+
+That check immediately caught two more things. `_gate_gain_target_q` and
+`_eq_xfade_step` contain the suffixes but are not ramps, which is why the
+recogniser needs the complete quad and not a name match. And MONITOR really
+was shaped wrongly: `_mon_level_l` and `_mon_level_r` shared ONE step and ONE
+frames word with their targets interleaved, and no single stride can describe
+that — so both monitor levels were unsettable for the same reason. Each level
+now carries its own quad.
+
+**2. 132 nodes carry a block-rate guard that never fires in the converted
+build.** `_sample_idx` is left at 31 by the scatter loop, so a surviving
+`_sample_idx == 0` test never fires and the node runs on its `.var`
+initialisers. This was RECORDED as a trap on 2026-08-22 but never enumerated
+or fixed. Enumerated now: COMP 32, GATE 32, RTG 32, TALK 2 on chip 1; AUX_LIM
+12, GRP_COMP 4, GRP_GATE 4, MAIN_COMP 1, MAIN_LIM 1, MAIN_OCOMP 4, MAIN_OLIM 4,
+MIX_MAIN 2, SUB_COMP 1, SUB_LIM 1 on chip 2. The one in this mandate's path is
+ROUTING: its send ramps never advanced and its 576 aux/fx crosspoint
+coefficients were never computed, so **no send could carry signal in the
+converted build at all.** The guard is now `#if !DSP4_BLOCK_KERNELS` in all
+six generators that emitted it. Landed on its own first, and the default image
+came out **byte-identical** (11f166ab.../89fbe274...) — that md5 is the proof
+it touches only the converted build.
+
+**3. The converted build's aux/fx pickoffs read garbage, and BLK_TAP_TRIM was
+never written.** In block form the pickoff handed `_acc64_mac_blk` the address
+of a SCALAR tap and let it walk 32 words off the end of it; only the default
+post-fader pickoff, which resolves to a real pool slot, was correct.
+`BLK_TAP_TRIM`/`BLK_TAP_EQ`/`BLK_TAP_PREFDR` were declared in `blk_pool.h` for
+exactly this and two of the three were written by EQ and DLY but never read.
+ROUTING now resolves to the pool slots, and GAIN publishes its post-trim tap as
+a block (one store per sample).
+
+#### The DM ceiling was an LDF ordering artifact
+
+The first build of the fold failed with `Out of memory in output section
+'sec_stak'`, which is what the 2026-08-24 note "DM headroom is under ~1,600
+words" was describing. Measured: the true margin at that point was **262
+words**, and `mem_block1_bw` — the overflow region `sec_dmda_ovf` exists to
+reach — was at **0%** with 180,224 bytes free and had never received a single
+word. Output sections mapped to the same region are placed in declaration
+order, and `sec_stak` was declared LAST, so `sec_dmda` took Block 0 greedily
+and the stack reserve got the remainder. Reserving the stack FIRST fixes it:
+chip 1 now sits at Block 0 89.7% + Block 1 11.9%, 178,840 bytes free overall.
+`ldf_stack_space`/`ldf_stack_length` are read by the startup code so the stack
+follows the reserve; nothing hard-codes the address.
+
+Worth stating plainly: **the converted build did not link at HEAD.** Today's
+stride table pushed it past the same ceiling, so the DSP4_BLOCK_KERNELS build
+was unbuildable until this change.
+
+#### Proven on the part
+
+Shipping (per-sample) build, `tools/pi/dsp4_xpoint_chain.py`, negative control
+passing (halving the gain must change the reading, and does):
+
+    CHAIN BIT-EXACT (0 checks mismatched)
+
+— all 7 level/pan points exact against the reference arithmetic, FDR mute
+folding to a zero coefficient and back, GAIN polarity folding and back.
+
+Converted build, `tools/pi/dsp4_send_proof.py`, negative control passing (send
+off must give a silent aux bus, and does):
+
+    SENDS WORK (0 checks mismatched)
+
+— all four pickoffs (post-fader, post-trim, post-EQ, pre-fader), each at two
+send levels, with the crosspoint coefficient read back exactly and the resolved
+source address landing on the right pool slot. This is the first time a routing
+send has carried signal in a block-kernel build.
+
+Both images: BOOT_STAGE 7, FRAME_COUNT 1500/s, DMA0_STAT 0x00006200,
+SPORT0_ERR_A 0x00000000 — the same as the control image.
+
+#### Cycle deltas against the strip-fusion ledger
+
+Measured with `profile.sh` (TCOUNT, DSP4_NODE_LIMIT 8/9/10, DEC=32) on the
+CONVERTED build, which is what the ledger's capacity arithmetic uses. Three
+variants, so the correctness cost and the fold cost are separated rather than
+lumped:
+
+| ROUTING variant | cycles/block | cycles/sample |
+|---|---|---|
+| HEAD — send prep never ran, sends dead | 2,617 | 81.8 |
+| HEAD + dead-guard fix — prep runs, sends work | 3,196 | 99.9 |
+| + crosspoint fold (this work) | 3,667 | 114.6 |
+
+| FADER_PAN | cycles/block | cycles/sample |
+|---|---|---|
+| before | 1,908 | 59.6 |
+| after (two round/saturate stages deleted) | **1,011** | **31.6** |
+
+So ROUTING costs +579 cycles/block to make the sends work at all — that is a
+correctness price, not a regression, and HEAD's cheaper number is for a graph
+that cannot route a send. The fold itself adds a further +471 cycles/block of
+control-rate prep and buys a MAC path with no control-state reads in it. Against
+the honest baseline (prep live) the strip nets **−426 cycles/block, −13.3
+cycles/sample**.
+
+**Capacity arithmetic, stated so it cannot be over-read.** At 786.432 MHz the
+ledger has 406,106 cycles/block available for channels and a measured 1,269
+cycles/sample/channel, giving 10. This takes it to ~1,256, i.e. 10.1 channels.
+**The ceiling stays 10 and the 32-in-one verdict is unchanged.** Every cycle
+counts toward PW #1, but the honest headline of this work is correctness, not
+capacity.
+
+#### Not done, and deliberately
+
+- **The shipping build's ROUTING still walks all 22 crosspoints per sample.**
+  Each iteration is cheaper now (one coefficient load instead of a coefficient
+  plus an assign word, no pickoff tree) but it is still a per-sample loop. The
+  doctrinal end state is a COMPACTED active-crosspoint list built at control
+  rate, so the audio path iterates only over live crosspoints. That needs
+  ~2,100 words of DM, which is why it was not attempted before — and the LDF
+  fix above now makes the room available. Recommended next.
+- **The per-sample build's cycle delta was not measured**, only the converted
+  one. The folds remove 3–7 instructions per sample per GAIN/FADER node there,
+  but that is a static count and is not reported as a measurement.
+- **MONITOR's sample path is still MONO** and uses the L level only, so
+  `_mon_level_r` is settable and has no effect. Making MONITOR stereo is a
+  graph change, not a coefficient fold, and was left alone.
+- **The remaining 100 dead-guard nodes on the dynamics classes** are fixed by
+  the same one-line change and are now converting their parameters, but their
+  behaviour in the converted build was NOT re-verified on the part — only
+  ROUTING was. They previously ran on `.var` initialisers, so this is a change
+  in their behaviour and someone should look at the dynamics in a converted
+  build before trusting it.
+- **The "3 MCUs verified" bench step could not be reproduced.** This build of
+  matrix-app emits no `H1S*` lines to the journal, so rather than claim it:
+  matrix-app is active, the CPLD IDCODE reads 0x020a30dd on the shipping
+  bitstream (never touched this session), the GPIOs are released, and the
+  shipping .ldr files are byte-identical to how the session found them.
+
+#### Artifacts
+
+| | |
+|---|---|
+| default image, this work | chip1 `24c45566b151849e57e69b5b8c764cad`, chip2 `302910134ba62681a52f3aa822ca4e8d` |
+| dead-guard fix alone | byte-identical to HEAD (`11f166ab...` / `89fbe274...`) |
+| bench restored to | chip1 `25a1afed0e0097ee94e04f0d9be8b383`, chip2 `7052c5d1810975f5b64130c73a048a46` |
+| CPLD | `dsp4_logic.a1f6672af6c3`, IDCODE 0x020a30dd verified, untouched |
+| new probes | `tools/pi/dsp4_xpoint_chain.py`, `tools/pi/dsp4_send_proof.py` |
+
 
 ### Outcome 2026-08-27 (rev 2, after bench access) — R1 re-proven, F1 fixed, F3 found and fixed, GAIN unblocked
 
@@ -484,7 +687,7 @@ suggestions only, NONE applied; land each as its own small change:
   regeneration); single-pass GEQ insertion; assert-guarded template
   rewrites → marker-based with node/file context in the error.
 
-## HUB MANDATE 2026-08-25 — crosspoint-coefficient mixing is Bible doctrine; dsp code must follow it   [status: 🔴 audit + enforce]
+## HUB MANDATE 2026-08-25 — crosspoint-coefficient mixing is Bible doctrine; dsp code must follow it   [status: 🟢 ENFORCED 2026-08-27 — audit clean, folds landed, proven on the part. No MAC path in either build now reads control state: fader/DCA/mute, pan leg, bus assign, send level and input assign are all folded into one Q4.28 coefficient per crosspoint at control rate, and the pickoff enum is resolved to a source ADDRESS at control rate too. Out of scope and left as graph structure, as the mandate directs: GATE filter enable, TUBE on, NOISE on, TALKBACK HPF enable. Findings, deltas and what is NOT done are in the outcome dated 2026-08-27 at the bottom of this file]
 
 PW engraved the concept in the mx26 Bible (docs/bible/10-cell-data-and-protocol.md,
 "Crosspoint-coefficient (matrix-gain) mixing"): one precomputed coefficient per

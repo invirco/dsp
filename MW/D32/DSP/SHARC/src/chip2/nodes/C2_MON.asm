@@ -21,42 +21,86 @@
 .var _mon_source_C2_MON = 0;
 .global _mon_level_l_C2_MON;
 .var _mon_level_l_C2_MON = 1.0;
-.global _mon_level_r_C2_MON;
-.var _mon_level_r_C2_MON = 1.0;
 .global _mon_level_l_target_C2_MON;
 .var _mon_level_l_target_C2_MON = 1.0;
+.global _mon_level_l_step_C2_MON;
+.var _mon_level_l_step_C2_MON = 0.0;
+.global _mon_level_l_frames_C2_MON;
+.var _mon_level_l_frames_C2_MON = 0;
+.global _mon_level_r_C2_MON;
+.var _mon_level_r_C2_MON = 1.0;
 .global _mon_level_r_target_C2_MON;
 .var _mon_level_r_target_C2_MON = 1.0;
-.global _mon_level_step_C2_MON;
-.var _mon_level_step_C2_MON = 0.0;
-.global _mon_level_frames_C2_MON;
-.var _mon_level_frames_C2_MON = 0;
+.global _mon_level_r_step_C2_MON;
+.var _mon_level_r_step_C2_MON = 0.0;
+.global _mon_level_r_frames_C2_MON;
+.var _mon_level_r_frames_C2_MON = 0;
+.global _mon_q_l_C2_MON;
+.var _mon_q_l_C2_MON = 0x10000000;         /* Q4.28 shadows */
+.global _mon_q_r_C2_MON;
+.var _mon_q_r_C2_MON = 0x10000000;
 .global _buf_C2_MON;
 .var _buf_C2_MON;
 
 .section/pm seg_pmco;
+.extern _sample_idx;
 .extern _mrf_rns28;
 .global _C2_MON_process;
 _C2_MON_process:
-    r4 = dm(_mon_level_frames_C2_MON);
-    r15 = 1;
+#if !DSP4_BLOCK_KERNELS
+    r4 = dm(_sample_idx);
+    r1 = 0;
+    comp(r4, r1);
+    if ne jump (pc, .mon_go_C2_MON);
+#endif
+    r4 = dm(_mon_level_l_frames_C2_MON);
+    r15 = 32;
     r4 = r4 - r15;
-    if le jump (pc, .no_monramp_C2_MON);
-    dm(_mon_level_frames_C2_MON) = r4;
+    if le jump (pc, .no_monramp_l_C2_MON);
+    dm(_mon_level_l_frames_C2_MON) = r4;
     f1 = dm(_mon_level_l_C2_MON);
-    f2 = dm(_mon_level_step_C2_MON);
+    f2 = dm(_mon_level_l_step_C2_MON);
+    r15 = 0x42000000;                 /* 32.0f */
+    f15 = r15;
+    f2 = f2 * f15;
     f1 = f1 + f2;
     dm(_mon_level_l_C2_MON) = f1;
-    jump (pc, .mon_go_C2_MON);
-.no_monramp_C2_MON:
+    jump (pc, .moncvt_l_C2_MON);
+.no_monramp_l_C2_MON:
     f1 = dm(_mon_level_l_target_C2_MON);
     dm(_mon_level_l_C2_MON) = f1;
-.mon_go_C2_MON:
+.moncvt_l_C2_MON:
     r2 = 0x4D800000;
     f2 = r2;
     f1 = f1 * f2;
     r1 = fix f1;
+    dm(_mon_q_l_C2_MON) = r1;
+    r4 = dm(_mon_level_r_frames_C2_MON);
+    r15 = 32;
+    r4 = r4 - r15;
+    if le jump (pc, .no_monramp_r_C2_MON);
+    dm(_mon_level_r_frames_C2_MON) = r4;
+    f1 = dm(_mon_level_r_C2_MON);
+    f2 = dm(_mon_level_r_step_C2_MON);
+    r15 = 0x42000000;                 /* 32.0f */
+    f15 = r15;
+    f2 = f2 * f15;
+    f1 = f1 + f2;
+    dm(_mon_level_r_C2_MON) = f1;
+    jump (pc, .moncvt_r_C2_MON);
+.no_monramp_r_C2_MON:
+    f1 = dm(_mon_level_r_target_C2_MON);
+    dm(_mon_level_r_C2_MON) = f1;
+.moncvt_r_C2_MON:
+    r2 = 0x4D800000;
+    f2 = r2;
+    f1 = f1 * f2;
+    r1 = fix f1;
+    dm(_mon_q_r_C2_MON) = r1;
+
+.mon_go_C2_MON:
     r0 = dm(_buf_C2_MAIN_FDR);
+    r1 = dm(_mon_q_l_C2_MON);
     mrf = r0 * r1 (ssi);
     call _mrf_rns28;
     dm(_buf_C2_MON) = r0;

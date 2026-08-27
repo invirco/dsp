@@ -126,20 +126,22 @@
             f2 = r2;
             f3 = f1 * f2;
             r2 = fix f3;
+            /* CROSSPOINT-COEFFICIENT FOLD (08-25 mandate): mute is a LINEAR
+             * gain term, so it belongs in the coefficient at control rate.
+             * x*0 is exactly 0 in this format, so the sample path needs no
+             * test -- it is one MAC that never reads control state. */
+            r3 = dm(_fdr_mute_C2_MAIN_FDR);
+            r4 = 0;
+            comp(r3, r4);
+            if ne r2 = r4;
             dm(_fdr_gq_C2_MAIN_FDR) = r2;
 
 
         #if DSP4_BLOCK_KERNELS
             /* Per-BLOCK kernel. Same shape that gave GAIN its 4x: the
-             * three coefficients and the mute decision are hoisted, and
-             * all three _mrf_rns28 calls are inlined with their constants
-             * held. Mute folds into the gain because x*0 is exactly 0 in
-             * this format, so it needs no per-sample test. */
+             * coefficient is hoisted and _mrf_rns28 is inlined with its
+             * constants held. Mute is already inside _fdr_gq. */
             r1 = dm(_fdr_gq_C2_MAIN_FDR);
-            r2 = dm(_fdr_mute_C2_MAIN_FDR);
-            r4 = 0;
-            comp(r2, r4);
-            if ne r1 = r4;
             r7 = 0x08000000;                  /* rounding half */
             r12 = 1;
             r10 = 0x7FFFFFFF;
@@ -174,15 +176,12 @@
             rts;
 #else
         .apply_C2_MAIN_FDR:
+            /* Pure MAC. Mute is already inside _fdr_gq; the pan legs are
+             * ROUTING's main-bus crosspoint coefficients. */
             r0 = dm(_buf_C2_MIX_MAIN_L);
             r1 = dm(_fdr_gq_C2_MAIN_FDR);
             mrf = r0 * r1 (ssi);
             call _mrf_rns28;
-
-            r2 = dm(_fdr_mute_C2_MAIN_FDR);
-            r4 = 0;
-            comp(r2, r4);
-            if ne r0 = r4;
 
             dm(_tap_post_fader_C2_MAIN_FDR) = r0;
             dm(_buf_C2_MAIN_FDR) = r0;

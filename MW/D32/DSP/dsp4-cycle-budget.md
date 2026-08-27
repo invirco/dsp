@@ -263,6 +263,51 @@ enabled for measurement work, not as shipped, until the rail is measured
 at this operating point.
 
 
+## CROSSPOINT-COEFFICIENT FOLD — measured 2026-08-27
+
+The 08-25 mandate's fold, measured on the CONVERTED build with `profile.sh`
+(TCOUNT, `DSP4_NODE_LIMIT` 8/9/10, DEC=32). Three ROUTING variants, because
+lumping them would hide which part is a correctness price and which is the
+fold:
+
+| ROUTING | cycles/block | cycles/sample |
+|---|---|---|
+| before — the block-rate send prep sat behind a `_sample_idx == 0` guard that never fires here, so it never ran and **no send could carry signal** | 2,617 | 81.8 |
+| guard fixed — prep runs, sends work | 3,196 | 99.9 |
+| + crosspoint fold | 3,667 | 114.6 |
+
+| FADER_PAN | cycles/block | cycles/sample |
+|---|---|---|
+| before — fader multiply, then pan multiply, then a unity MAC at the bus | 1,908 | 59.6 |
+| after — pan leg IS the main-bus crosspoint coefficient, two round/saturate stages deleted | **1,011** | **31.6** |
+
+**Net for the strip, against the honest baseline (sends working): −426
+cycles/block, −13.3 cycles/sample.** The pre-fold ROUTING figure is cheaper
+only because it was skipping work it was supposed to do.
+
+### What that is worth, and what it is not
+
+Applied to the measured ceiling above: 1,269 → ~1,256 cycles/sample/channel,
+so 406,106 / (1,256 × 32) = **10.1 channels**. **The ceiling stays 10 and the
+32-in-one verdict is unchanged.** This is a ~1 % capacity gain; its value is
+correctness — before it, routing sends did not work in this build at all, and
+every GAIN and FADER_PAN ramped parameter was unsettable over SPI on either
+build (see tasks.md, outcome 2026-08-27 evening).
+
+### The DM ceiling recorded here on 2026-08-24 was not a memory limit
+
+"DM headroom is under ~1,600 words" was measuring the distance from `sec_dmda`
+to a stack reserve declared AFTER it in the LDF, not exhausted memory. Sections
+mapped to one region are placed in declaration order, so `sec_dmda` took Block 0
+greedily and `sec_stak` got the remainder — while `sec_dmda_ovf` and the whole
+of Block 1 sat at **0 %** with 180,224 bytes free. The true margin at that point
+was **262 words**, and today's stride table had already pushed the converted
+build past it: **DSP4_BLOCK_KERNELS would not link at all.** Reserving the stack
+first fixes it; chip 1 now sits at Block 0 89.7 % + Block 1 11.9 %, 178,840 bytes
+free overall. Any future note about DM headroom should quote the per-purpose
+total from `dsp_memreport.py`, not a single region.
+
+
 ## STRIP FUSION — FILT+EQ measured, and the lever is small
 
 FILT now cascades **in place on its input slot** and EQ continues on the

@@ -50,10 +50,18 @@ _C2_AUX_LIM_08_process:
     if eq jump (pc, .lim_bypass_C2_AUX_LIM_08);
     r13 = r0;
 
+/* The block-rate guard exists ONLY for the per-sample build. Under
+ * DSP4_BLOCK_KERNELS the node chain runs ONCE per block with
+ * _sample_idx left at 31 by the scatter loop, so a surviving
+ * `_sample_idx == 0` test NEVER fires and the parameters below are
+ * never converted -- the node then runs on its .var initialisers.
+ * Audited 2026-08-27: 132 nodes carried this dead guard. */
+#if !DSP4_BLOCK_KERNELS
     r4 = dm(_sample_idx);
     r1 = 0;
     comp(r4, r1);
     if ne jump (pc, .lim_go_C2_AUX_LIM_08);
+#endif
     r2 = 0x4F000000;              /* 2^31 float */
     f2 = r2;
     f1 = dm(_lim_attack_C2_AUX_LIM_08);

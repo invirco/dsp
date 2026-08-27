@@ -2668,12 +2668,12 @@
  * length -- 12 for AuxSend, 6 for FxSend. Writing those at +1/+2/+3
  * lands on the NEIGHBOURING crosspoint's level instead.
  *
- * 28 ramped entries; strides {1: 28}
+ * 86 ramped entries; strides {1: 86}
  */
 .global _spi_dispatch_c2_stride;
 .var _spi_dispatch_c2_stride[1952] =
-    0,  /* 0x0000: C2_AUX_FDR_01 level */
-    0,  /* 0x0001: C2_AUX_FDR_01 pan */
+    1,  /* 0x0000: C2_AUX_FDR_01 level */
+    1,  /* 0x0001: C2_AUX_FDR_01 pan */
     0,  /* 0x0002: C2_AUX_FDR_01 mute */
     0,  /* 0x0003: C2_AUX_FDR_01 DCA gain */
     0,  /* 0x0004: C2_AUX_EQ_01 EQ coeff[0] */
@@ -2759,8 +2759,8 @@
     0,  /* 0x0054: C2_AUX_DLY_01 delay offset */
     0,  /* 0x0055: C2_AUX_DLY_01 pool_slot */
     0,  /* 0x0056 */
-    0,  /* 0x0057: C2_AUX_FDR_02 level */
-    0,  /* 0x0058: C2_AUX_FDR_02 pan */
+    1,  /* 0x0057: C2_AUX_FDR_02 level */
+    1,  /* 0x0058: C2_AUX_FDR_02 pan */
     0,  /* 0x0059: C2_AUX_FDR_02 mute */
     0,  /* 0x005A: C2_AUX_FDR_02 DCA gain */
     0,  /* 0x005B: C2_AUX_EQ_02 EQ coeff[0] */
@@ -2846,8 +2846,8 @@
     0,  /* 0x00AB: C2_AUX_DLY_02 delay offset */
     0,  /* 0x00AC: C2_AUX_DLY_02 pool_slot */
     0,  /* 0x00AD */
-    0,  /* 0x00AE: C2_AUX_FDR_03 level */
-    0,  /* 0x00AF: C2_AUX_FDR_03 pan */
+    1,  /* 0x00AE: C2_AUX_FDR_03 level */
+    1,  /* 0x00AF: C2_AUX_FDR_03 pan */
     0,  /* 0x00B0: C2_AUX_FDR_03 mute */
     0,  /* 0x00B1: C2_AUX_FDR_03 DCA gain */
     0,  /* 0x00B2: C2_AUX_EQ_03 EQ coeff[0] */
@@ -2933,8 +2933,8 @@
     0,  /* 0x0102: C2_AUX_DLY_03 delay offset */
     0,  /* 0x0103: C2_AUX_DLY_03 pool_slot */
     0,  /* 0x0104 */
-    0,  /* 0x0105: C2_AUX_FDR_04 level */
-    0,  /* 0x0106: C2_AUX_FDR_04 pan */
+    1,  /* 0x0105: C2_AUX_FDR_04 level */
+    1,  /* 0x0106: C2_AUX_FDR_04 pan */
     0,  /* 0x0107: C2_AUX_FDR_04 mute */
     0,  /* 0x0108: C2_AUX_FDR_04 DCA gain */
     0,  /* 0x0109: C2_AUX_EQ_04 EQ coeff[0] */
@@ -3020,8 +3020,8 @@
     0,  /* 0x0159: C2_AUX_DLY_04 delay offset */
     0,  /* 0x015A: C2_AUX_DLY_04 pool_slot */
     0,  /* 0x015B */
-    0,  /* 0x015C: C2_AUX_FDR_05 level */
-    0,  /* 0x015D: C2_AUX_FDR_05 pan */
+    1,  /* 0x015C: C2_AUX_FDR_05 level */
+    1,  /* 0x015D: C2_AUX_FDR_05 pan */
     0,  /* 0x015E: C2_AUX_FDR_05 mute */
     0,  /* 0x015F: C2_AUX_FDR_05 DCA gain */
     0,  /* 0x0160: C2_AUX_EQ_05 EQ coeff[0] */
@@ -3107,8 +3107,8 @@
     0,  /* 0x01B0: C2_AUX_DLY_05 delay offset */
     0,  /* 0x01B1: C2_AUX_DLY_05 pool_slot */
     0,  /* 0x01B2 */
-    0,  /* 0x01B3: C2_AUX_FDR_06 level */
-    0,  /* 0x01B4: C2_AUX_FDR_06 pan */
+    1,  /* 0x01B3: C2_AUX_FDR_06 level */
+    1,  /* 0x01B4: C2_AUX_FDR_06 pan */
     0,  /* 0x01B5: C2_AUX_FDR_06 mute */
     0,  /* 0x01B6: C2_AUX_FDR_06 DCA gain */
     0,  /* 0x01B7: C2_AUX_EQ_06 EQ coeff[0] */
@@ -3194,8 +3194,8 @@
     0,  /* 0x0207: C2_AUX_DLY_06 delay offset */
     0,  /* 0x0208: C2_AUX_DLY_06 pool_slot */
     0,  /* 0x0209 */
-    0,  /* 0x020A: C2_AUX_FDR_07 level */
-    0,  /* 0x020B: C2_AUX_FDR_07 pan */
+    1,  /* 0x020A: C2_AUX_FDR_07 level */
+    1,  /* 0x020B: C2_AUX_FDR_07 pan */
     0,  /* 0x020C: C2_AUX_FDR_07 mute */
     0,  /* 0x020D: C2_AUX_FDR_07 DCA gain */
     0,  /* 0x020E: C2_AUX_EQ_07 EQ coeff[0] */
@@ -3281,8 +3281,8 @@
     0,  /* 0x025E: C2_AUX_DLY_07 delay offset */
     0,  /* 0x025F: C2_AUX_DLY_07 pool_slot */
     0,  /* 0x0260 */
-    0,  /* 0x0261: C2_AUX_FDR_08 level */
-    0,  /* 0x0262: C2_AUX_FDR_08 pan */
+    1,  /* 0x0261: C2_AUX_FDR_08 level */
+    1,  /* 0x0262: C2_AUX_FDR_08 pan */
     0,  /* 0x0263: C2_AUX_FDR_08 mute */
     0,  /* 0x0264: C2_AUX_FDR_08 DCA gain */
     0,  /* 0x0265: C2_AUX_EQ_08 EQ coeff[0] */
@@ -3368,8 +3368,8 @@
     0,  /* 0x02B5: C2_AUX_DLY_08 delay offset */
     0,  /* 0x02B6: C2_AUX_DLY_08 pool_slot */
     0,  /* 0x02B7 */
-    0,  /* 0x02B8: C2_AUX_FDR_09 level */
-    0,  /* 0x02B9: C2_AUX_FDR_09 pan */
+    1,  /* 0x02B8: C2_AUX_FDR_09 level */
+    1,  /* 0x02B9: C2_AUX_FDR_09 pan */
     0,  /* 0x02BA: C2_AUX_FDR_09 mute */
     0,  /* 0x02BB: C2_AUX_FDR_09 DCA gain */
     0,  /* 0x02BC: C2_AUX_EQ_09 EQ coeff[0] */
@@ -3455,8 +3455,8 @@
     0,  /* 0x030C: C2_AUX_DLY_09 delay offset */
     0,  /* 0x030D: C2_AUX_DLY_09 pool_slot */
     0,  /* 0x030E */
-    0,  /* 0x030F: C2_AUX_FDR_10 level */
-    0,  /* 0x0310: C2_AUX_FDR_10 pan */
+    1,  /* 0x030F: C2_AUX_FDR_10 level */
+    1,  /* 0x0310: C2_AUX_FDR_10 pan */
     0,  /* 0x0311: C2_AUX_FDR_10 mute */
     0,  /* 0x0312: C2_AUX_FDR_10 DCA gain */
     0,  /* 0x0313: C2_AUX_EQ_10 EQ coeff[0] */
@@ -3542,8 +3542,8 @@
     0,  /* 0x0363: C2_AUX_DLY_10 delay offset */
     0,  /* 0x0364: C2_AUX_DLY_10 pool_slot */
     0,  /* 0x0365 */
-    0,  /* 0x0366: C2_AUX_FDR_11 level */
-    0,  /* 0x0367: C2_AUX_FDR_11 pan */
+    1,  /* 0x0366: C2_AUX_FDR_11 level */
+    1,  /* 0x0367: C2_AUX_FDR_11 pan */
     0,  /* 0x0368: C2_AUX_FDR_11 mute */
     0,  /* 0x0369: C2_AUX_FDR_11 DCA gain */
     0,  /* 0x036A: C2_AUX_EQ_11 EQ coeff[0] */
@@ -3629,8 +3629,8 @@
     0,  /* 0x03BA: C2_AUX_DLY_11 delay offset */
     0,  /* 0x03BB: C2_AUX_DLY_11 pool_slot */
     0,  /* 0x03BC */
-    0,  /* 0x03BD: C2_AUX_FDR_12 level */
-    0,  /* 0x03BE: C2_AUX_FDR_12 pan */
+    1,  /* 0x03BD: C2_AUX_FDR_12 level */
+    1,  /* 0x03BE: C2_AUX_FDR_12 pan */
     0,  /* 0x03BF: C2_AUX_FDR_12 mute */
     0,  /* 0x03C0: C2_AUX_FDR_12 DCA gain */
     0,  /* 0x03C1: C2_AUX_EQ_12 EQ coeff[0] */
@@ -3716,8 +3716,8 @@
     0,  /* 0x0411: C2_AUX_DLY_12 delay offset */
     0,  /* 0x0412: C2_AUX_DLY_12 pool_slot */
     0,  /* 0x0413 */
-    0,  /* 0x0414: C2_GRP_FDR_01 level */
-    0,  /* 0x0415: C2_GRP_FDR_01 pan (unused) */
+    1,  /* 0x0414: C2_GRP_FDR_01 level */
+    1,  /* 0x0415: C2_GRP_FDR_01 pan (unused) */
     0,  /* 0x0416: C2_GRP_FDR_01 mute */
     0,  /* 0x0417: C2_GRP_FDR_01 DCA gain */
     0,  /* 0x0418: C2_GRP_EQ_01 EQ coeff[0] */
@@ -3765,7 +3765,7 @@
     0,  /* 0x0442: C2_GRP_COMP_01 CompRat */
     0,  /* 0x0443: C2_GRP_COMP_01 CompAtt */
     0,  /* 0x0444: C2_GRP_COMP_01 CompRel */
-    0,  /* 0x0445: C2_GRP_COMP_01 CompMake */
+    1,  /* 0x0445: C2_GRP_COMP_01 CompMake */
     0,  /* 0x0446: C2_GRP_COMP_01 CompKnee */
     0,  /* 0x0447: C2_GRP_COMP_01 CompPar */
     0,  /* 0x0448: C2_GRP_COMP_01 CompType */
@@ -3776,8 +3776,8 @@
     0,  /* 0x044D: C2_GRP_COMP_01 CompFilterOn */
     0,  /* 0x044E: C2_GRP_COMP_01 CompFilter HPF[0] */
     0,  /* 0x044F: C2_GRP_COMP_01 CompFilter HPF[1] */
-    0,  /* 0x0450: C2_GRP_FDR_02 level */
-    0,  /* 0x0451: C2_GRP_FDR_02 pan (unused) */
+    1,  /* 0x0450: C2_GRP_FDR_02 level */
+    1,  /* 0x0451: C2_GRP_FDR_02 pan (unused) */
     0,  /* 0x0452: C2_GRP_FDR_02 mute */
     0,  /* 0x0453: C2_GRP_FDR_02 DCA gain */
     0,  /* 0x0454: C2_GRP_EQ_02 EQ coeff[0] */
@@ -3825,7 +3825,7 @@
     0,  /* 0x047E: C2_GRP_COMP_02 CompRat */
     0,  /* 0x047F: C2_GRP_COMP_02 CompAtt */
     0,  /* 0x0480: C2_GRP_COMP_02 CompRel */
-    0,  /* 0x0481: C2_GRP_COMP_02 CompMake */
+    1,  /* 0x0481: C2_GRP_COMP_02 CompMake */
     0,  /* 0x0482: C2_GRP_COMP_02 CompKnee */
     0,  /* 0x0483: C2_GRP_COMP_02 CompPar */
     0,  /* 0x0484: C2_GRP_COMP_02 CompType */
@@ -3836,8 +3836,8 @@
     0,  /* 0x0489: C2_GRP_COMP_02 CompFilterOn */
     0,  /* 0x048A: C2_GRP_COMP_02 CompFilter HPF[0] */
     0,  /* 0x048B: C2_GRP_COMP_02 CompFilter HPF[1] */
-    0,  /* 0x048C: C2_GRP_FDR_03 level */
-    0,  /* 0x048D: C2_GRP_FDR_03 pan (unused) */
+    1,  /* 0x048C: C2_GRP_FDR_03 level */
+    1,  /* 0x048D: C2_GRP_FDR_03 pan (unused) */
     0,  /* 0x048E: C2_GRP_FDR_03 mute */
     0,  /* 0x048F: C2_GRP_FDR_03 DCA gain */
     0,  /* 0x0490: C2_GRP_EQ_03 EQ coeff[0] */
@@ -3885,7 +3885,7 @@
     0,  /* 0x04BA: C2_GRP_COMP_03 CompRat */
     0,  /* 0x04BB: C2_GRP_COMP_03 CompAtt */
     0,  /* 0x04BC: C2_GRP_COMP_03 CompRel */
-    0,  /* 0x04BD: C2_GRP_COMP_03 CompMake */
+    1,  /* 0x04BD: C2_GRP_COMP_03 CompMake */
     0,  /* 0x04BE: C2_GRP_COMP_03 CompKnee */
     0,  /* 0x04BF: C2_GRP_COMP_03 CompPar */
     0,  /* 0x04C0: C2_GRP_COMP_03 CompType */
@@ -3896,8 +3896,8 @@
     0,  /* 0x04C5: C2_GRP_COMP_03 CompFilterOn */
     0,  /* 0x04C6: C2_GRP_COMP_03 CompFilter HPF[0] */
     0,  /* 0x04C7: C2_GRP_COMP_03 CompFilter HPF[1] */
-    0,  /* 0x04C8: C2_GRP_FDR_04 level */
-    0,  /* 0x04C9: C2_GRP_FDR_04 pan (unused) */
+    1,  /* 0x04C8: C2_GRP_FDR_04 level */
+    1,  /* 0x04C9: C2_GRP_FDR_04 pan (unused) */
     0,  /* 0x04CA: C2_GRP_FDR_04 mute */
     0,  /* 0x04CB: C2_GRP_FDR_04 DCA gain */
     0,  /* 0x04CC: C2_GRP_EQ_04 EQ coeff[0] */
@@ -3945,7 +3945,7 @@
     0,  /* 0x04F6: C2_GRP_COMP_04 CompRat */
     0,  /* 0x04F7: C2_GRP_COMP_04 CompAtt */
     0,  /* 0x04F8: C2_GRP_COMP_04 CompRel */
-    0,  /* 0x04F9: C2_GRP_COMP_04 CompMake */
+    1,  /* 0x04F9: C2_GRP_COMP_04 CompMake */
     0,  /* 0x04FA: C2_GRP_COMP_04 CompKnee */
     0,  /* 0x04FB: C2_GRP_COMP_04 CompPar */
     0,  /* 0x04FC: C2_GRP_COMP_04 CompType */
@@ -3956,8 +3956,8 @@
     0,  /* 0x0501: C2_GRP_COMP_04 CompFilterOn */
     0,  /* 0x0502: C2_GRP_COMP_04 CompFilter HPF[0] */
     0,  /* 0x0503: C2_GRP_COMP_04 CompFilter HPF[1] */
-    0,  /* 0x0504: C2_SUB_FDR level */
-    0,  /* 0x0505: C2_SUB_FDR pan (unused) */
+    1,  /* 0x0504: C2_SUB_FDR level */
+    1,  /* 0x0505: C2_SUB_FDR pan (unused) */
     0,  /* 0x0506: C2_SUB_FDR mute */
     0,  /* 0x0507: C2_SUB_FDR DCA gain */
     0,  /* 0x0508: C2_SUB_EQ EQ coeff[0] */
@@ -3989,7 +3989,7 @@
     0,  /* 0x0522: C2_SUB_COMP CompRat */
     0,  /* 0x0523: C2_SUB_COMP CompAtt */
     0,  /* 0x0524: C2_SUB_COMP CompRel */
-    0,  /* 0x0525: C2_SUB_COMP CompMake */
+    1,  /* 0x0525: C2_SUB_COMP CompMake */
     0,  /* 0x0526: C2_SUB_COMP CompKnee */
     0,  /* 0x0527: C2_SUB_COMP CompPar */
     0,  /* 0x0528: C2_SUB_COMP CompType */
@@ -4015,8 +4015,8 @@
     0,  /* 0x053C: C2_MIX_MAIN_R source_count */
     0,  /* 0x053D */
     0,  /* 0x053E */
-    0,  /* 0x053F: C2_MAIN_FDR level */
-    0,  /* 0x0540: C2_MAIN_FDR pan (unused) */
+    1,  /* 0x053F: C2_MAIN_FDR level */
+    1,  /* 0x0540: C2_MAIN_FDR pan (unused) */
     0,  /* 0x0541: C2_MAIN_FDR mute */
     0,  /* 0x0542: C2_MAIN_FDR DCA gain */
     0,  /* 0x0543: C2_MAIN_GEQ GEQ coeff[0] */
@@ -4052,7 +4052,7 @@
     0,  /* 0x0561: C2_MAIN_COMP CompRat */
     0,  /* 0x0562: C2_MAIN_COMP CompAtt */
     0,  /* 0x0563: C2_MAIN_COMP CompRel */
-    0,  /* 0x0564: C2_MAIN_COMP CompMake */
+    1,  /* 0x0564: C2_MAIN_COMP CompMake */
     0,  /* 0x0565: C2_MAIN_COMP CompKnee */
     0,  /* 0x0566: C2_MAIN_COMP CompPar */
     0,  /* 0x0567: C2_MAIN_COMP CompType */
@@ -4102,7 +4102,7 @@
     0,  /* 0x0593: C2_MAIN_OCOMP_01 CompRat */
     0,  /* 0x0594: C2_MAIN_OCOMP_01 CompAtt */
     0,  /* 0x0595: C2_MAIN_OCOMP_01 CompRel */
-    0,  /* 0x0596: C2_MAIN_OCOMP_01 CompMake */
+    1,  /* 0x0596: C2_MAIN_OCOMP_01 CompMake */
     0,  /* 0x0597: C2_MAIN_OCOMP_01 CompKnee */
     0,  /* 0x0598: C2_MAIN_OCOMP_01 CompPar */
     0,  /* 0x0599: C2_MAIN_OCOMP_01 CompType */
@@ -4147,7 +4147,7 @@
     0,  /* 0x05C0: C2_MAIN_OCOMP_02 CompRat */
     0,  /* 0x05C1: C2_MAIN_OCOMP_02 CompAtt */
     0,  /* 0x05C2: C2_MAIN_OCOMP_02 CompRel */
-    0,  /* 0x05C3: C2_MAIN_OCOMP_02 CompMake */
+    1,  /* 0x05C3: C2_MAIN_OCOMP_02 CompMake */
     0,  /* 0x05C4: C2_MAIN_OCOMP_02 CompKnee */
     0,  /* 0x05C5: C2_MAIN_OCOMP_02 CompPar */
     0,  /* 0x05C6: C2_MAIN_OCOMP_02 CompType */
@@ -4192,7 +4192,7 @@
     0,  /* 0x05ED: C2_MAIN_OCOMP_03 CompRat */
     0,  /* 0x05EE: C2_MAIN_OCOMP_03 CompAtt */
     0,  /* 0x05EF: C2_MAIN_OCOMP_03 CompRel */
-    0,  /* 0x05F0: C2_MAIN_OCOMP_03 CompMake */
+    1,  /* 0x05F0: C2_MAIN_OCOMP_03 CompMake */
     0,  /* 0x05F1: C2_MAIN_OCOMP_03 CompKnee */
     0,  /* 0x05F2: C2_MAIN_OCOMP_03 CompPar */
     0,  /* 0x05F3: C2_MAIN_OCOMP_03 CompType */
@@ -4237,7 +4237,7 @@
     0,  /* 0x061A: C2_MAIN_OCOMP_04 CompRat */
     0,  /* 0x061B: C2_MAIN_OCOMP_04 CompAtt */
     0,  /* 0x061C: C2_MAIN_OCOMP_04 CompRel */
-    0,  /* 0x061D: C2_MAIN_OCOMP_04 CompMake */
+    1,  /* 0x061D: C2_MAIN_OCOMP_04 CompMake */
     0,  /* 0x061E: C2_MAIN_OCOMP_04 CompKnee */
     0,  /* 0x061F: C2_MAIN_OCOMP_04 CompPar */
     0,  /* 0x0620: C2_MAIN_OCOMP_04 CompType */
@@ -4277,8 +4277,8 @@
     0,  /* 0x0642: C2_FX_ENG_01 DuckOn */
     0,  /* 0x0643: C2_FX_ENG_01 DuckSens */
     0,  /* 0x0644: C2_FX_ENG_01 spare */
-    0,  /* 0x0645: C2_FX_FDR_01 level */
-    0,  /* 0x0646: C2_FX_FDR_01 pan (unused) */
+    1,  /* 0x0645: C2_FX_FDR_01 level */
+    1,  /* 0x0646: C2_FX_FDR_01 pan (unused) */
     0,  /* 0x0647: C2_FX_FDR_01 mute */
     0,  /* 0x0648: C2_FX_FDR_01 DCA gain */
     0,  /* 0x0649: C2_FX_ENG_02 On */
@@ -4305,8 +4305,8 @@
     0,  /* 0x065E: C2_FX_ENG_02 DuckOn */
     0,  /* 0x065F: C2_FX_ENG_02 DuckSens */
     0,  /* 0x0660: C2_FX_ENG_02 spare */
-    0,  /* 0x0661: C2_FX_FDR_02 level */
-    0,  /* 0x0662: C2_FX_FDR_02 pan (unused) */
+    1,  /* 0x0661: C2_FX_FDR_02 level */
+    1,  /* 0x0662: C2_FX_FDR_02 pan (unused) */
     0,  /* 0x0663: C2_FX_FDR_02 mute */
     0,  /* 0x0664: C2_FX_FDR_02 DCA gain */
     0,  /* 0x0665: C2_FX_ENG_03 On */
@@ -4333,8 +4333,8 @@
     0,  /* 0x067A: C2_FX_ENG_03 DuckOn */
     0,  /* 0x067B: C2_FX_ENG_03 DuckSens */
     0,  /* 0x067C: C2_FX_ENG_03 spare */
-    0,  /* 0x067D: C2_FX_FDR_03 level */
-    0,  /* 0x067E: C2_FX_FDR_03 pan (unused) */
+    1,  /* 0x067D: C2_FX_FDR_03 level */
+    1,  /* 0x067E: C2_FX_FDR_03 pan (unused) */
     0,  /* 0x067F: C2_FX_FDR_03 mute */
     0,  /* 0x0680: C2_FX_FDR_03 DCA gain */
     0,  /* 0x0681: C2_FX_ENG_04 On */
@@ -4361,8 +4361,8 @@
     0,  /* 0x0696: C2_FX_ENG_04 DuckOn */
     0,  /* 0x0697: C2_FX_ENG_04 DuckSens */
     0,  /* 0x0698: C2_FX_ENG_04 spare */
-    0,  /* 0x0699: C2_FX_FDR_04 level */
-    0,  /* 0x069A: C2_FX_FDR_04 pan (unused) */
+    1,  /* 0x0699: C2_FX_FDR_04 level */
+    1,  /* 0x069A: C2_FX_FDR_04 pan (unused) */
     0,  /* 0x069B: C2_FX_FDR_04 mute */
     0,  /* 0x069C: C2_FX_FDR_04 DCA gain */
     0,  /* 0x069D: C2_FX_ENG_05 On */
@@ -4389,8 +4389,8 @@
     0,  /* 0x06B2: C2_FX_ENG_05 DuckOn */
     0,  /* 0x06B3: C2_FX_ENG_05 DuckSens */
     0,  /* 0x06B4: C2_FX_ENG_05 spare */
-    0,  /* 0x06B5: C2_FX_FDR_05 level */
-    0,  /* 0x06B6: C2_FX_FDR_05 pan (unused) */
+    1,  /* 0x06B5: C2_FX_FDR_05 level */
+    1,  /* 0x06B6: C2_FX_FDR_05 pan (unused) */
     0,  /* 0x06B7: C2_FX_FDR_05 mute */
     0,  /* 0x06B8: C2_FX_FDR_05 DCA gain */
     0,  /* 0x06B9: C2_FX_ENG_06 On */
@@ -4417,8 +4417,8 @@
     0,  /* 0x06CE: C2_FX_ENG_06 DuckOn */
     0,  /* 0x06CF: C2_FX_ENG_06 DuckSens */
     0,  /* 0x06D0: C2_FX_ENG_06 spare */
-    0,  /* 0x06D1: C2_FX_FDR_06 level */
-    0,  /* 0x06D2: C2_FX_FDR_06 pan (unused) */
+    1,  /* 0x06D1: C2_FX_FDR_06 level */
+    1,  /* 0x06D2: C2_FX_FDR_06 pan (unused) */
     0,  /* 0x06D3: C2_FX_FDR_06 mute */
     0,  /* 0x06D4: C2_FX_FDR_06 DCA gain */
     0,  /* 0x06D5: C2_MON source */

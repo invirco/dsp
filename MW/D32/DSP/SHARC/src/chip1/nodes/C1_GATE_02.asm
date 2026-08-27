@@ -265,10 +265,18 @@ _C1_GATE_02_process_sample:
     r13 = r0;
 
     /* --- block rate: param conversion --- */
+/* The block-rate guard exists ONLY for the per-sample build. Under
+ * DSP4_BLOCK_KERNELS the node chain runs ONCE per block with
+ * _sample_idx left at 31 by the scatter loop, so a surviving
+ * `_sample_idx == 0` test NEVER fires and the parameters below are
+ * never converted -- the node then runs on its .var initialisers.
+ * Audited 2026-08-27: 132 nodes carried this dead guard. */
+#if !DSP4_BLOCK_KERNELS
     r4 = dm(_sample_idx);
     r1 = 0;
     comp(r4, r1);
     if ne jump (pc, .gate_go_C1_GATE_02);
+#endif
     r2 = 0x4F000000;
     f2 = r2;
     f1 = dm(_gate_attack_C1_GATE_02);

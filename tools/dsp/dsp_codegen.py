@@ -5856,12 +5856,17 @@ def gen_gain_fixed(node):
             f2 = r2;
             f1 = f1 * f2;
             r1 = fix f1;
-            dm(_gain_q_{nid}) = r1;
-
-        #if DSP4_BLOCK_KERNELS
-            /* Fold polarity and mute into the coefficient ONCE per block.
-             * Both are loop-invariant, and mute is exactly x*0 in this
-             * format, so it needs no per-sample test. */
+            /* CROSSPOINT-COEFFICIENT FOLD (08-25 mandate). Polarity and
+             * mute are LINEAR gain terms (-1 and 0), so they belong in the
+             * coefficient at CONTROL rate; the sample path is then one MAC
+             * that never reads control state. Mute is exactly x*0 in this
+             * format. Folding polarity is also what the normative model
+             * does -- fixed_ref.gain(x, g) with g negative is
+             * sat(rns(x*-g)), whereas the old per-sample form computed
+             * -sat(rns(x*|g|)), and those differ by one LSB when the
+             * product lands exactly on a rounding tie (rns rounds half
+             * toward +inf, which is not symmetric under negation). The
+             * folded form is the reference form. */
             r3 = dm(_polarity_{nid});
             r4 = 0;
             comp(r3, r4);
@@ -5869,7 +5874,9 @@ def gen_gain_fixed(node):
             r2 = dm(_mute_{nid});
             comp(r2, r4);
             if ne r1 = r4;
+            dm(_gain_q_{nid}) = r1;
 
+        #if DSP4_BLOCK_KERNELS
             /* _mrf_rns28 inlined with its constants hoisted. The call/rts
              * and the reload of those constants were most of this node's
              * measured 72.5 cycles/sample. The saturation fix-up is a
@@ -5880,8 +5887,15 @@ def gen_gain_fixed(node):
             r10 = 0x7FFFFFFF;
             l0 = 0;
             l1 = 0;
+            l4 = 0;
             i0 = BLK_CHAIN_A;
             i1 = BLK_CHAIN_B;
+            /* The post-trim tap the router picks from, as a BLOCK. EQ and
+             * DLY already publish theirs (BLK_TAP_EQ, BLK_TAP_PREFDR);
+             * this one never was, so a block-form aux send set to pickoff
+             * 0 was handed the address of the SCALAR tap and walked 32
+             * words off the end of it. */
+            i4 = BLK_TAP_TRIM;
             r5 = 32;
             lcntr = r5; do .gk_lp_{nid} until lce;
                 r0 = dm(i0, 1);
@@ -5900,25 +5914,17 @@ def gen_gain_fixed(node):
                 if ne r0 = r11;
                 dm(i1, 1) = r0;
         .gk_lp_{nid}:
-                nop;
+                dm(i4, 1) = r0;           /* post-trim tap block */
             dm(_tap_post_trim_{nid}) = r0;   /* linkage scalars */
             dm(_buf_{nid}) = r0;
             rts;
         #else
         .apply_{nid}:
+            /* Pure MAC. Polarity and mute are already inside _gain_q. */
             r0 = dm(_buf_{inp});
             r1 = dm(_gain_q_{nid});
             mrf = r0 * r1 (ssi);
             call _mrf_rns28;                      /* r0 = sat(rns(x*g,28)) */
-
-            r3 = dm(_polarity_{nid});
-            r4 = 0;
-            comp(r3, r4);
-            if ne r0 = -r0;
-
-            r2 = dm(_mute_{nid});
-            comp(r2, r4);
-            if ne r0 = r4;
 
             dm(_tap_post_trim_{nid}) = r0;
             dm(_buf_{nid}) = r0;
@@ -5939,26 +5945,21 @@ def gen_fader_pan_fixed(node):
     lr_vars = ''
     if is_ch_fdr:
         lr_vars = (f'        .var _fdr_lq_{nid} = 0;\n'
-                   f'        .var _fdr_rq_{nid} = 0;\n'
-                   f'        .var _buf_L_{nid};\n'
-                   f'        .var _buf_R_{nid};')
+                   f'        .var _fdr_rq_{nid} = 0;')
     cvt_lr = ''
     apply_lr = ''
     # Bus faders (AUX/GRP/SUB/FX) are mono -- no pan split, so no lq/rq.
+    #
+    # CROSSPOINT-COEFFICIENT FOLD (08-25 mandate): the pan legs are no
+    # longer MULTIPLIED here. _fdr_lq/_fdr_rq are published as the pan-leg
+    # coefficients and ROUTING folds them into the main-L/main-R crosspoint
+    # coefficients, so the bus feed is one MAC off the post-fader mono
+    # instead of fader-multiply -> pan-multiply -> unity MAC. That deletes
+    # two of the three round-and-saturate stages this node used to run per
+    # sample, and one intermediate rounding with them.
     blk_lr_hoist = ''
     blk_lr_ptr = ''
     blk_lr_body = ''
-    if is_ch_fdr:
-        blk_lr_hoist = (f'            r5 = dm(_fdr_lq_{nid});\n'
-                        f'            r6 = dm(_fdr_rq_{nid});\n')
-        blk_lr_ptr = ('            i2 = BLK_FDR_L;\n'
-                      '            i3 = BLK_FDR_R;\n')
-        blk_lr_body = ('            mrf = r13 * r5 (ssi);\n'
-                       + _FDR_RNS
-                       + '            dm(i2, 1) = r0;\n'
-                       + '            mrf = r13 * r6 (ssi);\n'
-                       + _FDR_RNS
-                       + '            dm(i3, 1) = r0;\n')
     if is_ch_fdr:
         cvt_lr = dedent(f"""\
             /* L/R pan gains (linear pan law, matches float node).
@@ -5984,17 +5985,6 @@ def gen_fader_pan_fixed(node):
             f5 = f5 * f7;
             r2 = fix f5;
             dm(_fdr_rq_{nid}) = r2;""")
-        apply_lr = dedent(f"""\
-            r14 = r0;                         /* mono in (lib preserves) */
-            r1 = dm(_fdr_lq_{nid});
-            mrf = r14 * r1 (ssi);
-            call _mrf_rns28;
-            dm(_buf_L_{nid}) = r0;
-            r1 = dm(_fdr_rq_{nid});
-            mrf = r14 * r1 (ssi);
-            call _mrf_rns28;
-            dm(_buf_R_{nid}) = r0;
-            r0 = r14;""")
     return dedent(f"""\
         {rc}
 
@@ -6098,20 +6088,22 @@ def gen_fader_pan_fixed(node):
             f2 = r2;
             f3 = f1 * f2;
             r2 = fix f3;
+            /* CROSSPOINT-COEFFICIENT FOLD (08-25 mandate): mute is a LINEAR
+             * gain term, so it belongs in the coefficient at control rate.
+             * x*0 is exactly 0 in this format, so the sample path needs no
+             * test -- it is one MAC that never reads control state. */
+            r3 = dm(_fdr_mute_{nid});
+            r4 = 0;
+            comp(r3, r4);
+            if ne r2 = r4;
             dm(_fdr_gq_{nid}) = r2;
 {cvt_lr}
 
         #if DSP4_BLOCK_KERNELS
             /* Per-BLOCK kernel. Same shape that gave GAIN its 4x: the
-             * three coefficients and the mute decision are hoisted, and
-             * all three _mrf_rns28 calls are inlined with their constants
-             * held. Mute folds into the gain because x*0 is exactly 0 in
-             * this format, so it needs no per-sample test. */
+             * coefficient is hoisted and _mrf_rns28 is inlined with its
+             * constants held. Mute is already inside _fdr_gq. */
             r1 = dm(_fdr_gq_{nid});
-            r2 = dm(_fdr_mute_{nid});
-            r4 = 0;
-            comp(r2, r4);
-            if ne r1 = r4;
 {blk_lr_hoist}            r7 = 0x08000000;                  /* rounding half */
             r12 = 1;
             r10 = 0x7FFFFFFF;
@@ -6146,15 +6138,12 @@ def gen_fader_pan_fixed(node):
             rts;
 #else
         .apply_{nid}:
+            /* Pure MAC. Mute is already inside _fdr_gq; the pan legs are
+             * ROUTING's main-bus crosspoint coefficients. */
             r0 = dm(_buf_{inp});
             r1 = dm(_fdr_gq_{nid});
             mrf = r0 * r1 (ssi);
             call _mrf_rns28;
-
-            r2 = dm(_fdr_mute_{nid});
-            r4 = 0;
-            comp(r2, r4);
-            if ne r0 = r4;
 
             dm(_tap_post_fader_{nid}) = r0;
             dm(_buf_{nid}) = r0;
@@ -6244,10 +6233,18 @@ def gen_mix_bus_fixed(node):
         .global _{nid}_process;
         _{nid}_process:
             /* block-rate gain shadow refresh */
+        /* The block-rate guard exists ONLY for the per-sample build. Under
+         * DSP4_BLOCK_KERNELS the node chain runs ONCE per block with
+         * _sample_idx left at 31 by the scatter loop, so a surviving
+         * `_sample_idx == 0` test NEVER fires and the parameters below are
+         * never converted -- the node then runs on its .var initialisers.
+         * Audited 2026-08-27: 132 nodes carried this dead guard. */
+        #if !DSP4_BLOCK_KERNELS
             r4 = dm(_sample_idx);
             r1 = 0;
             comp(r4, r1);
             if ne jump (pc, .mix_go_{nid});
+        #endif
             r2 = 0x4D800000;
             f2 = r2;
                 {cvt_block}
@@ -6446,12 +6443,22 @@ def gen_bus_accumulators_fixed():
 
 
 
-def _fx_send_ramp_asm(nid, kind, count):
-    """Block-rate float send-ramp advance + Q4.28 shadow refresh for
-    ROUTING send arrays. Consumes up to 32 per-sample steps per block
-    (send ramps are block-granular in fixed mode; within the DynSafe/
-    GainFast tolerance budget)."""
+def _fx_send_ramp_asm(nid, kind, count, srcs):
+    """Block-rate CONTROL work for one send array: advance the float ramp,
+    convert to a Q4.28 crosspoint coefficient with the bus-assign bit
+    folded in, and resolve the pickoff enum to a source ADDRESS.
+
+    CROSSPOINT-COEFFICIENT FOLD (08-25 mandate). Everything here is control
+    state and it all resolves at control rate, so the accumulate path reads
+    coefficients and addresses only. An unassigned send is a coefficient of
+    exactly zero -- there is nothing left for the audio path to test.
+
+    srcs = (pickoff 0, 1, 2, default) source expressions for this build.
+    """
+    s0, s1, s2, sd = srcs
     return f"""\
+            l0 = 0;
+            i0 = _rtg_{kind}_on_{nid};
             i4 = _rtg_{kind}_send_{nid};
             i5 = _rtg_{kind}_send_step_{nid};
             i6 = _rtg_{kind}_send_frames_{nid};
@@ -6482,20 +6489,74 @@ def _fx_send_ramp_asm(nid, kind, count):
                 f2 = r4;
                 f1 = f1 * f2;
                 r4 = fix f1;
-                dm(i2, 1) = r4;               /* Q4.28 shadow */
+                /* fold the bus-assign bit INTO the coefficient */
+                r6 = 0;
+                r7 = dm(i0, 1);
+                r7 = pass r7;
+                if eq r4 = r6;
+                dm(i2, 1) = r4;               /* Q4.28 crosspoint coeff */
                 modify(i4, 1);
                 modify(i5, 1);
                 modify(i3, 1);
             .{kind}rmp_{nid}:
                 nop;
+
+            /* Pickoff enum -> source address, once per block. Left in the
+             * accumulate path it cost every enabled send up to three
+             * compares and two branches PER SAMPLE. Crosspoints whose
+             * coefficient is zero keep the default and are never read. */
+            l1 = 0;
+            i1 = _rtg_{kind}_sq_{nid};
+            i5 = _rtg_{kind}_pick_{nid};
+            i6 = _rtg_{kind}_src_{nid};
+            r5 = {count};
+            lcntr = r5, do .{kind}src_{nid} until lce;
+                r6 = dm(i5, 1);               /* pickoff enum */
+                r4 = dm(i1, 1);               /* coefficient */
+                r0 = {sd};
+                r4 = pass r4;
+                if eq jump (pc, .{kind}srcd_{nid});
+                r6 = pass r6;
+                if eq jump (pc, .{kind}src0_{nid});
+                r7 = 1;
+                comp(r6, r7);
+                if eq jump (pc, .{kind}src1_{nid});
+                r7 = 2;
+                comp(r6, r7);
+                if ne jump (pc, .{kind}srcd_{nid});
+                r0 = {s2};
+                jump (pc, .{kind}srcd_{nid});
+            .{kind}src0_{nid}:
+                r0 = {s0};
+                jump (pc, .{kind}srcd_{nid});
+            .{kind}src1_{nid}:
+                r0 = {s1};
+            .{kind}srcd_{nid}:
+                dm(i6, 1) = r0;
+            .{kind}src_{nid}:
+                nop;
 """
 
 
 def gen_routing_fixed(node):
-    """Fixed ROUTING (D5): float send ramps advance at BLOCK rate with
-    Q4.28 shadows; every bus contribution is an exact 64-bit
-    _acc64_mac (better than float, which rounded each send product).
-    Pickoff taps are Q4.28 values produced by the fixed strip nodes."""
+    """Fixed ROUTING (D5) as a CROSSPOINT-COEFFICIENT matrix (08-25 hub
+    mandate, Bible docs/bible/10-cell-data-and-protocol.md).
+
+    ONE precomputed Q4.28 coefficient per source x bus crosspoint. Every
+    linear term -- fader level, DCA, mute, pan leg, bus assign, send level
+    -- is folded into it HERE, at control rate. The accumulate path is
+    exact 64-bit MACs that read a coefficient, a source address and a bus
+    accumulator, and never look at control state; an unassigned or muted
+    crosspoint is a coefficient of exactly zero.
+
+    What this replaced (audited 2026-08-27): the main bus was fed from
+    FADER_PAN's PRE-MULTIPLIED L/R buffers with a unity coefficient, so the
+    pan leg was a second multiply with its own round-and-saturate --
+    `fader then pan then unity MAC` where doctrine says one coefficient and
+    one MAC. Folding it removes two of FADER_PAN's three round/saturate
+    stages per sample and removes an intermediate rounding, so the bus sum
+    is also strictly closer to the reference model.
+    """
     rc = ramp_comment(node['ramp_profile'])
     nid = node['id']
     fdr_id = node['inputs_str']
@@ -6505,60 +6566,29 @@ def gen_routing_fixed(node):
     aux_pick_defaults = ', '.join(['3'] * 12)
     fx_pick_defaults = ', '.join(['3'] * 6)
 
-    def pick_addr(kind):
-        """Same pickoff, but selects the SOURCE ARRAY ADDRESS rather than a
-        single sample -- the block accumulate walks the array itself."""
-        return f"""\
-                r6 = dm(i6, 1);               /* pickoff enum */
-                r6 = pass r6;
-                if eq jump (pc, .r{kind}b_pk0_{nid});
-                r7 = 1;
-                comp(r6, r7);
-                if eq jump (pc, .r{kind}b_pk1_{nid});
-                r7 = 2;
-                comp(r6, r7);
-                if eq jump (pc, .r{kind}b_pk2_{nid});
-                r0 = BLK_CHAIN_A;
-                jump (pc, .r{kind}b_pkd_{nid});
-            .r{kind}b_pk0_{nid}:
-                r0 = _tap_post_trim_{gain_id};
-                jump (pc, .r{kind}b_pkd_{nid});
-            .r{kind}b_pk1_{nid}:
-                r0 = _tap_post_eq_{eq_id};
-                jump (pc, .r{kind}b_pkd_{nid});
-            .r{kind}b_pk2_{nid}:
-                r0 = _tap_pre_fader_{dly_id};
-            .r{kind}b_pkd_{nid}:"""
+    # Source expressions. Per-sample builds read SCALAR taps; block builds
+    # walk 32-word tap slots out of the shared pool. The block form used to
+    # hand _acc64_mac_blk the address of a SCALAR tap and let it walk 32
+    # words off the end of it -- pickoffs 0/1/2 read whatever followed the
+    # variable. BLK_TAP_* existed in blk_pool.h for exactly this and was
+    # never wired up.
+    scalar_srcs = (f'_tap_post_trim_{gain_id}', f'_tap_post_eq_{eq_id}',
+                   f'_tap_pre_fader_{dly_id}', f'_tap_post_fader_{fdr_id}')
+    block_srcs = ('BLK_TAP_TRIM', 'BLK_TAP_EQ', 'BLK_TAP_PREFDR',
+                  'BLK_CHAIN_A')
 
-    def pick_block(kind):
-        return f"""\
-                r6 = dm(i6, 1);               /* pickoff enum */
-                r6 = pass r6;
-                if eq jump (pc, .r{kind}_pk0_{nid});
-                r7 = 1;
-                comp(r6, r7);
-                if eq jump (pc, .r{kind}_pk1_{nid});
-                r7 = 2;
-                comp(r6, r7);
-                if eq jump (pc, .r{kind}_pk2_{nid});
-                r0 = dm(_tap_post_fader_{fdr_id});
-                jump (pc, .r{kind}_pkd_{nid});
-            .r{kind}_pk0_{nid}:
-                r0 = dm(_tap_post_trim_{gain_id});
-                jump (pc, .r{kind}_pkd_{nid});
-            .r{kind}_pk1_{nid}:
-                r0 = dm(_tap_post_eq_{eq_id});
-                jump (pc, .r{kind}_pkd_{nid});
-            .r{kind}_pk2_{nid}:
-                r0 = dm(_tap_pre_fader_{dly_id});
-            .r{kind}_pkd_{nid}:"""
+    def send_prep(kind, count):
+        return (f'        #if DSP4_BLOCK_KERNELS\n'
+                + _fx_send_ramp_asm(nid, kind, count, block_srcs)
+                + f'        #else\n'
+                + _fx_send_ramp_asm(nid, kind, count, scalar_srcs)
+                + f'        #endif\n')
 
     return dedent(f"""\
         {rc}
 
-        /* ROUTING (FIXED Q4.28, D5): fan-out with exact 64-bit accumulation */
+        /* ROUTING (FIXED Q4.28, D5): crosspoint-coefficient matrix mixing */
         /* SPI page={node['spi_page']} addr={node['spi_addr']} */
-        /* Send ramps: float control at block rate + Q4.28 shadows. */
 
         #include "blk_pool.h"
 
@@ -6567,6 +6597,8 @@ def gen_routing_fixed(node):
         .extern _tap_post_eq_{eq_id};
         .extern _tap_pre_fader_{dly_id};
         .extern _tap_post_fader_{fdr_id};
+        .extern _fdr_lq_{fdr_id};
+        .extern _fdr_rq_{fdr_id};
         .var _rtg_main_on_{nid} = 1;
         .var _rtg_sub_on_{nid} = 0;
         .var _rtg_grp_on_{nid}[4] = 0, 0, 0, 0;
@@ -6576,7 +6608,8 @@ def gen_routing_fixed(node):
         .var _rtg_aux_send_step_{nid}[12];
         .var _rtg_aux_send_frames_{nid}[12];
         .var _rtg_aux_pick_{nid}[12] = {aux_pick_defaults};
-        .var _rtg_aux_sq_{nid}[12];               /* Q4.28 shadows */
+        .var _rtg_aux_sq_{nid}[12];               /* crosspoint coeffs */
+        .var _rtg_aux_src_{nid}[12];              /* resolved sources  */
         .var _rtg_fx_on_{nid}[6];
         .var _rtg_fx_send_{nid}[6];
         .var _rtg_fx_send_target_{nid}[6];
@@ -6584,6 +6617,13 @@ def gen_routing_fixed(node):
         .var _rtg_fx_send_frames_{nid}[6];
         .var _rtg_fx_pick_{nid}[6] = {fx_pick_defaults};
         .var _rtg_fx_sq_{nid}[6];
+        .var _rtg_fx_src_{nid}[6];
+        /* main/sub/group crosspoint coefficients: pan leg or unity, times
+         * the bus-assign bit. Prepared below at control rate. */
+        .var _rtg_mlq_{nid} = 0;
+        .var _rtg_mrq_{nid} = 0;
+        .var _rtg_subq_{nid} = 0;
+        .var _rtg_grpq_{nid}[4] = 0, 0, 0, 0;
         .var _buf_{nid};
 
         .section/pm seg_pmco;
@@ -6597,55 +6637,98 @@ def gen_routing_fixed(node):
         .global _{nid}_process;
         _{nid}_process:
 
-            /* ===== block-rate: send ramps + shadows ===== */
+            /* ===== control rate: prepare every crosspoint coefficient =====
+             * The block-rate guard exists ONLY for the per-sample build.
+             * Under DSP4_BLOCK_KERNELS the chain runs once per block with
+             * _sample_idx left at 31, so a surviving `_sample_idx == 0`
+             * test never fires -- and this node's send coefficients would
+             * never be computed at all. */
+        #if !DSP4_BLOCK_KERNELS
             r4 = dm(_sample_idx);
             r1 = 0;
             comp(r4, r1);
             if ne jump (pc, .rtg_acc_{nid});
-{_fx_send_ramp_asm(nid, 'aux', 12)}
-{_fx_send_ramp_asm(nid, 'fx', 6)}
-        .rtg_acc_{nid}:
+        #endif
 
-        #if DSP4_BLOCK_KERNELS
-            /* Per-BLOCK routing. The whole gating tree runs ONCE per block
-             * instead of 32 times, and each enabled contribution becomes a
-             * single _acc64_mac_blk over the block. Measured 2026-08-24 the
-             * per-sample form cost 601 cycles/sample with only MAIN enabled
-             * -- two MACs (~30 cycles) buried in 22 gated loop iterations,
-             * re-evaluated every sample. The MACs were never the cost. */
+            /* main L/R: pan leg x main assign. _fdr_lq/_fdr_rq are PAN
+             * ONLY -- the fader, DCA and mute are already inside the
+             * post-fader mono this coefficient multiplies, so folding the
+             * fader in here would apply it twice (bench 2026-08-23). */
+            r8 = 0;
+            r9 = 0x10000000;                  /* unity Q4.28 */
             r2 = dm(_rtg_main_on_{nid});
+            r1 = dm(_fdr_lq_{fdr_id});
             r2 = pass r2;
-            if eq jump (pc, .rtg_nomain_{nid});
-            r1 = 0x10000000;                  /* unity Q4.28 */
-            i0 = BLK_FDR_L;
-            i2 = _bus_acc_main_l;
-            call _acc64_mac_blk;
-            r1 = 0x10000000;
-            i0 = BLK_FDR_R;
-            i2 = _bus_acc_main_r;
-            call _acc64_mac_blk;
-        .rtg_nomain_{nid}:
+            if eq r1 = r8;
+            dm(_rtg_mlq_{nid}) = r1;
+            r1 = dm(_fdr_rq_{fdr_id});
+            r2 = pass r2;
+            if eq r1 = r8;
+            dm(_rtg_mrq_{nid}) = r1;
 
             r2 = dm(_rtg_sub_on_{nid});
+            r1 = r9;
             r2 = pass r2;
+            if eq r1 = r8;
+            dm(_rtg_subq_{nid}) = r1;
+
+            l5 = 0;
+            l6 = 0;
+            i5 = _rtg_grp_on_{nid};
+            i6 = _rtg_grpq_{nid};
+            lcntr = 4, do .rtg_gq_{nid} until lce;
+                r2 = dm(i5, 1);
+                r1 = r9;
+                r2 = pass r2;
+                if eq r1 = r8;
+            .rtg_gq_{nid}:
+                dm(i6, 1) = r1;
+
+{send_prep('aux', 12)}{send_prep('fx', 6)}
+        .rtg_acc_{nid}:
+            l1 = 0;
+            l3 = 0;
+            l4 = 0;
+            l5 = 0;
+            l6 = 0;
+
+        #if DSP4_BLOCK_KERNELS
+            /* Per-BLOCK accumulate: one _acc64_mac_blk per LIVE crosspoint
+             * per block. Coefficients only -- no control state is read
+             * here, and a zero coefficient contributes nothing, so it is
+             * skipped rather than multiplied. */
+            r1 = dm(_rtg_mlq_{nid});
+            r1 = pass r1;
+            if eq jump (pc, .rtg_noml_{nid});
+            i0 = BLK_CHAIN_A;
+            i2 = _bus_acc_main_l;
+            call _acc64_mac_blk;
+        .rtg_noml_{nid}:
+            r1 = dm(_rtg_mrq_{nid});
+            r1 = pass r1;
+            if eq jump (pc, .rtg_nomr_{nid});
+            i0 = BLK_CHAIN_A;
+            i2 = _bus_acc_main_r;
+            call _acc64_mac_blk;
+        .rtg_nomr_{nid}:
+            r1 = dm(_rtg_subq_{nid});
+            r1 = pass r1;
             if eq jump (pc, .rtg_nosub_{nid});
-            r1 = 0x10000000;
             i0 = BLK_CHAIN_A;
             i2 = _bus_acc_sub;
             call _acc64_mac_blk;
         .rtg_nosub_{nid}:
 
             i3 = _bus_acc_grp_ptrs;
-            i5 = _rtg_grp_on_{nid};
+            i5 = _rtg_grpq_{nid};
             r5 = 4;
             lcntr = r5, do .rtg_grp_{nid} until lce;
-                r2 = dm(i5, 1);
+                r1 = dm(i5, 1);
                 r3 = dm(i3, 1);
-                r2 = pass r2;
+                r1 = pass r1;
                 if eq jump (pc, .rtg_gskip_{nid});
                 i2 = r3;
                 i0 = BLK_CHAIN_A;
-                r1 = 0x10000000;
                 call _acc64_mac_blk;
             .rtg_gskip_{nid}:
                 nop;
@@ -6654,111 +6737,99 @@ def gen_routing_fixed(node):
 
             i3 = _bus_acc_aux_ptrs;
             i4 = _rtg_aux_sq_{nid};
-            i5 = _rtg_aux_on_{nid};
-            i6 = _rtg_aux_pick_{nid};
+            i6 = _rtg_aux_src_{nid};
             r5 = 12;
             lcntr = r5, do .rtg_aux_{nid} until lce;
-                r2 = dm(i5, 1);
-                r3 = dm(i3, 1);
-                r1 = dm(i4, 1);
-                r2 = pass r2;
+                r1 = dm(i4, 1);           /* crosspoint coefficient */
+                r3 = dm(i3, 1);           /* bus accumulator        */
+                r6 = dm(i6, 1);           /* resolved source block  */
+                r1 = pass r1;
                 if eq jump (pc, .rtg_askip_{nid});
-{pick_addr('a')}
-                i0 = r0;
+                i0 = r6;
                 i2 = r3;
                 call _acc64_mac_blk;
-                jump (pc, .rtg_anext_{nid});
             .rtg_askip_{nid}:
-                modify(i6, 1);
-            .rtg_anext_{nid}:
                 nop;
             .rtg_aux_{nid}:
                 nop;
 
             i3 = _bus_acc_fx_ptrs;
             i4 = _rtg_fx_sq_{nid};
-            i5 = _rtg_fx_on_{nid};
-            i6 = _rtg_fx_pick_{nid};
+            i6 = _rtg_fx_src_{nid};
             r5 = 6;
             lcntr = r5, do .rtg_fx_{nid} until lce;
-                r2 = dm(i5, 1);
-                r3 = dm(i3, 1);
                 r1 = dm(i4, 1);
-                r2 = pass r2;
+                r3 = dm(i3, 1);
+                r6 = dm(i6, 1);
+                r1 = pass r1;
                 if eq jump (pc, .rtg_fskip_{nid});
-{pick_addr('f')}
-                i0 = r0;
+                i0 = r6;
                 i2 = r3;
                 call _acc64_mac_blk;
-                jump (pc, .rtg_fnext_{nid});
             .rtg_fskip_{nid}:
-                modify(i6, 1);
-            .rtg_fnext_{nid}:
                 nop;
             .rtg_fx_{nid}:
                 nop;
         #else
 
-            /* ===== Main L/R (unity, pan-split bufs) ===== */
-            r2 = dm(_rtg_main_on_{nid});
-            r2 = pass r2;
-            if eq jump (pc, .rtg_nomain_{nid});
-            r1 = 0x10000000;                  /* unity Q4.28 */
-            r0 = dm(_buf_L_{fdr_id});
+            /* ===== Main L/R: post-fader mono x pan-leg coefficient ===== */
+            r0 = dm(_buf_{fdr_id});
+            r1 = dm(_rtg_mlq_{nid});
+            r1 = pass r1;
+            if eq jump (pc, .rtg_noml_{nid});
             i2 = _bus_acc_main_l;
             call _acc64_mac;
-            r0 = dm(_buf_R_{fdr_id});
+        .rtg_noml_{nid}:
+            r0 = dm(_buf_{fdr_id});
+            r1 = dm(_rtg_mrq_{nid});
+            r1 = pass r1;
+            if eq jump (pc, .rtg_nomr_{nid});
             i2 = _bus_acc_main_r;
             call _acc64_mac;
-        .rtg_nomain_{nid}:
+        .rtg_nomr_{nid}:
 
-            /* ===== Sub (unity, mono) ===== */
-            r2 = dm(_rtg_sub_on_{nid});
-            r2 = pass r2;
-            if eq jump (pc, .rtg_nosub_{nid});
-            r1 = 0x10000000;
+            /* ===== Sub (mono) ===== */
             r0 = dm(_buf_{fdr_id});
+            r1 = dm(_rtg_subq_{nid});
+            r1 = pass r1;
+            if eq jump (pc, .rtg_nosub_{nid});
             i2 = _bus_acc_sub;
             call _acc64_mac;
         .rtg_nosub_{nid}:
 
-            /* ===== Groups (unity, ptr pairs) ===== */
+            /* ===== Groups ===== */
             i3 = _bus_acc_grp_ptrs;
-            i5 = _rtg_grp_on_{nid};
+            i5 = _rtg_grpq_{nid};
             r5 = 4;
             lcntr = r5, do .rtg_grp_{nid} until lce;
-                r2 = dm(i5, 1);
-                r3 = dm(i3, 1);               /* pair base */
-                r2 = pass r2;
+                r1 = dm(i5, 1);           /* crosspoint coefficient */
+                r3 = dm(i3, 1);           /* pair base              */
+                r1 = pass r1;
                 if eq jump (pc, .rtg_gskip_{nid});
                 i2 = r3;
                 r0 = dm(_buf_{fdr_id});
-                r1 = 0x10000000;
                 call _acc64_mac;
             .rtg_gskip_{nid}:
                 nop;
             .rtg_grp_{nid}:
                 nop;
 
-            /* ===== Aux sends (pickoff x shadow, exact MAC) ===== */
+            /* ===== Aux sends ===== */
             i3 = _bus_acc_aux_ptrs;
             i4 = _rtg_aux_sq_{nid};
-            i5 = _rtg_aux_on_{nid};
-            i6 = _rtg_aux_pick_{nid};
+            i6 = _rtg_aux_src_{nid};
             r5 = 12;
             lcntr = r5, do .rtg_aux_{nid} until lce;
-                r2 = dm(i5, 1);
-                r3 = dm(i3, 1);               /* pair base */
-                r1 = dm(i4, 1);               /* send shadow */
-                r2 = pass r2;
+                r1 = dm(i4, 1);           /* crosspoint coefficient */
+                r3 = dm(i3, 1);           /* pair base              */
+                r6 = dm(i6, 1);           /* resolved source tap    */
+                r1 = pass r1;
                 if eq jump (pc, .rtg_askip_{nid});
-{pick_block('a')}
+                i1 = r6;
+                r0 = dm(i1, 0);
                 i2 = r3;
                 call _acc64_mac;
-                jump (pc, .rtg_anext_{nid});
             .rtg_askip_{nid}:
-                modify(i6, 1);
-            .rtg_anext_{nid}:
                 nop;
             .rtg_aux_{nid}:
                 nop;
@@ -6766,22 +6837,19 @@ def gen_routing_fixed(node):
             /* ===== FX sends ===== */
             i3 = _bus_acc_fx_ptrs;
             i4 = _rtg_fx_sq_{nid};
-            i5 = _rtg_fx_on_{nid};
-            i6 = _rtg_fx_pick_{nid};
+            i6 = _rtg_fx_src_{nid};
             r5 = 6;
             lcntr = r5, do .rtg_fx_{nid} until lce;
-                r2 = dm(i5, 1);
-                r3 = dm(i3, 1);
                 r1 = dm(i4, 1);
-                r2 = pass r2;
+                r3 = dm(i3, 1);
+                r6 = dm(i6, 1);
+                r1 = pass r1;
                 if eq jump (pc, .rtg_fskip_{nid});
-{pick_block('f')}
+                i1 = r6;
+                r0 = dm(i1, 0);
                 i2 = r3;
                 call _acc64_mac;
-                jump (pc, .rtg_fnext_{nid});
             .rtg_fskip_{nid}:
-                modify(i6, 1);
-            .rtg_fnext_{nid}:
                 nop;
             .rtg_fx_{nid}:
                 nop;
@@ -6793,7 +6861,6 @@ def gen_routing_fixed(node):
             rts;
         _{nid}_process.end:
     """)
-
 
 
 def gen_tube_sat_fixed(node):
@@ -6894,19 +6961,41 @@ def gen_aux_input_fixed(node):
         .var _auxin_level_target_{nid} = 1.0;
         .var _auxin_level_step_{nid} = 0.0;
         .var _auxin_level_frames_{nid} = 0;
+        .var _auxin_q_{nid} = 0;                  /* Q4.28 coeff x assign */
         .var _buf_{nid};
 
         .section/pm seg_pmco;
+        .extern _sample_idx;
         .extern _mrf_rns28;
         .global _{nid}_process;
         _{nid}_process:
+            /* CONTROL RATE (08-25 crosspoint-coefficient mandate). This
+             * node used to advance its ramp, multiply by 2^28 and FIX the
+             * result on EVERY SAMPLE -- coefficient prep sitting in the
+             * audio path, thirty-two times per block -- and then test the
+             * input-assign bit per sample as well. Both are control state:
+             * the coefficient is prepared once per block with the assign
+             * bit folded in, and the sample path is one MAC.
+             *
+             * The frame count is consumed 32 at a time to keep the ramp
+             * DURATION identical now that it advances once per block; the
+             * same correction GAIN and FADER_PAN carry (2026-08-23). */
+        #if !DSP4_BLOCK_KERNELS
+            r4 = dm(_sample_idx);
+            r1 = 0;
+            comp(r4, r1);
+            if ne jump (pc, .auxin_apply_{nid});
+        #endif
             r4 = dm(_auxin_level_frames_{nid});
-            r15 = 1;
+            r15 = 32;
             r4 = r4 - r15;
             if le jump (pc, .no_auxramp_{nid});
             dm(_auxin_level_frames_{nid}) = r4;
             f1 = dm(_auxin_level_{nid});
             f2 = dm(_auxin_level_step_{nid});
+            r15 = 0x42000000;                 /* 32.0f */
+            f15 = r15;
+            f2 = f2 * f15;
             f1 = f1 + f2;
             dm(_auxin_level_{nid}) = f1;
             jump (pc, .auxin_go_{nid});
@@ -6914,19 +7003,22 @@ def gen_aux_input_fixed(node):
             f1 = dm(_auxin_level_target_{nid});
             dm(_auxin_level_{nid}) = f1;
         .auxin_go_{nid}:
-
             r2 = 0x4D800000;
             f2 = r2;
             f1 = f1 * f2;
             r1 = fix f1;
+            /* fold the input-assign bit INTO the coefficient */
+            r3 = 0;
+            r2 = dm(_auxin_on_{nid});
+            r2 = pass r2;
+            if eq r1 = r3;
+            dm(_auxin_q_{nid}) = r1;
+
+        .auxin_apply_{nid}:
             r0 = dm(_buf_{inp});
+            r1 = dm(_auxin_q_{nid});
             mrf = r0 * r1 (ssi);
             call _mrf_rns28;
-
-            r2 = dm(_auxin_on_{nid});
-            r3 = 0;
-            comp(r2, r3);
-            if eq r0 = r3;
             dm(_buf_{nid}) = r0;
             rts;
         _{nid}_process.end:
@@ -6934,10 +7026,60 @@ def gen_aux_input_fixed(node):
 
 
 def gen_monitor_fixed(node):
-    """Fixed MONITOR (D5): float level ramp + FIX shadow, MRF path."""
+    """Fixed MONITOR (D5): level ramps and Q4.28 conversion at CONTROL rate,
+    one MAC in the sample path.
+
+    Two things were wrong here and both are the same mistake in different
+    clothes (08-25 crosspoint-coefficient mandate, audited 2026-08-27):
+
+    1. The ramp advanced, the float multiply by 2^28 ran and the FIX ran on
+       EVERY SAMPLE. That is coefficient prep sitting in the audio path,
+       thirty-two times per block, for a value that changes once per block.
+
+    2. The L and R levels shared ONE step and ONE frames word, with their
+       targets interleaved between the two values. _ramp_set_target
+       addresses a parameter's companions at +s/+2s/+3s from the VALUE, and
+       no single stride describes that layout -- so the ramp-stride table
+       had no entry for either level, every ramped write to them degraded to
+       a plain write, and the block-rate code then clobbered it from a
+       target nothing had set. Both monitor levels were unsettable.
+
+    Each level now carries its own complete quad in the standard order.
+
+    NOT FIXED HERE, and recorded rather than papered over: the sample path
+    is MONO and uses the L level only, so _mon_level_r is settable but has
+    no effect. Making MONITOR genuinely stereo is a graph change, not a
+    coefficient fold, and is out of this mandate's scope.
+    """
     rc = ramp_comment(node['ramp_profile'])
     nid = node['id']
     inp = node['inputs_str']
+
+    def ramp(side):
+        return f"""\
+            r4 = dm(_mon_level_{side}_frames_{nid});
+            r15 = 32;
+            r4 = r4 - r15;
+            if le jump (pc, .no_monramp_{side}_{nid});
+            dm(_mon_level_{side}_frames_{nid}) = r4;
+            f1 = dm(_mon_level_{side}_{nid});
+            f2 = dm(_mon_level_{side}_step_{nid});
+            r15 = 0x42000000;                 /* 32.0f */
+            f15 = r15;
+            f2 = f2 * f15;
+            f1 = f1 + f2;
+            dm(_mon_level_{side}_{nid}) = f1;
+            jump (pc, .moncvt_{side}_{nid});
+        .no_monramp_{side}_{nid}:
+            f1 = dm(_mon_level_{side}_target_{nid});
+            dm(_mon_level_{side}_{nid}) = f1;
+        .moncvt_{side}_{nid}:
+            r2 = 0x4D800000;
+            f2 = r2;
+            f1 = f1 * f2;
+            r1 = fix f1;
+            dm(_mon_q_{side}_{nid}) = r1;"""
+
     return dedent(f"""\
         {rc}
 
@@ -6947,36 +7089,34 @@ def gen_monitor_fixed(node):
         .section/dm seg_dmda;
         .var _mon_source_{nid} = 0;
         .var _mon_level_l_{nid} = 1.0;
-        .var _mon_level_r_{nid} = 1.0;
         .var _mon_level_l_target_{nid} = 1.0;
+        .var _mon_level_l_step_{nid} = 0.0;
+        .var _mon_level_l_frames_{nid} = 0;
+        .var _mon_level_r_{nid} = 1.0;
         .var _mon_level_r_target_{nid} = 1.0;
-        .var _mon_level_step_{nid} = 0.0;
-        .var _mon_level_frames_{nid} = 0;
+        .var _mon_level_r_step_{nid} = 0.0;
+        .var _mon_level_r_frames_{nid} = 0;
+        .var _mon_q_l_{nid} = 0x10000000;         /* Q4.28 shadows */
+        .var _mon_q_r_{nid} = 0x10000000;
         .var _buf_{nid};
 
         .section/pm seg_pmco;
+        .extern _sample_idx;
         .extern _mrf_rns28;
         .global _{nid}_process;
         _{nid}_process:
-            r4 = dm(_mon_level_frames_{nid});
-            r15 = 1;
-            r4 = r4 - r15;
-            if le jump (pc, .no_monramp_{nid});
-            dm(_mon_level_frames_{nid}) = r4;
-            f1 = dm(_mon_level_l_{nid});
-            f2 = dm(_mon_level_step_{nid});
-            f1 = f1 + f2;
-            dm(_mon_level_l_{nid}) = f1;
-            jump (pc, .mon_go_{nid});
-        .no_monramp_{nid}:
-            f1 = dm(_mon_level_l_target_{nid});
-            dm(_mon_level_l_{nid}) = f1;
+        #if !DSP4_BLOCK_KERNELS
+            r4 = dm(_sample_idx);
+            r1 = 0;
+            comp(r4, r1);
+            if ne jump (pc, .mon_go_{nid});
+        #endif
+{ramp('l')}
+{ramp('r')}
+
         .mon_go_{nid}:
-            r2 = 0x4D800000;
-            f2 = r2;
-            f1 = f1 * f2;
-            r1 = fix f1;
             r0 = dm(_buf_{inp});
+            r1 = dm(_mon_q_l_{nid});
             mrf = r0 * r1 (ssi);
             call _mrf_rns28;
             dm(_buf_{nid}) = r0;
@@ -7023,10 +7163,18 @@ def gen_talkback_fixed(node):
             if eq rts;
 
             /* block-rate: refresh fixed HPF coeffs from float set */
+        /* The block-rate guard exists ONLY for the per-sample build. Under
+         * DSP4_BLOCK_KERNELS the node chain runs ONCE per block with
+         * _sample_idx left at 31 by the scatter loop, so a surviving
+         * `_sample_idx == 0` test NEVER fires and the parameters below are
+         * never converted -- the node then runs on its .var initialisers.
+         * Audited 2026-08-27: 132 nodes carried this dead guard. */
+        #if !DSP4_BLOCK_KERNELS
             r4 = dm(_sample_idx);
             r1 = 0;
             comp(r4, r1);
             if ne jump (pc, .tk_ramp_{nid});
+        #endif
             i0 = _talk_hpf_coeffs_{nid};
             i1 = _talk_hpf_cq_{nid};
             r4 = 1;
@@ -7290,10 +7438,18 @@ def gen_compressor_fixed(node):
         #endif
 
             /* --- block rate: makeup ramp + param conversion --- */
+        /* The block-rate guard exists ONLY for the per-sample build. Under
+         * DSP4_BLOCK_KERNELS the node chain runs ONCE per block with
+         * _sample_idx left at 31 by the scatter loop, so a surviving
+         * `_sample_idx == 0` test NEVER fires and the parameters below are
+         * never converted -- the node then runs on its .var initialisers.
+         * Audited 2026-08-27: 132 nodes carried this dead guard. */
+        #if !DSP4_BLOCK_KERNELS
             r4 = dm(_sample_idx);
             r1 = 0;
             comp(r4, r1);
             if ne jump (pc, .comp_go_{nid});
+        #endif
             r4 = dm(_comp_makeup_frames_{nid});
             comp(r4, r1);
             if le jump (pc, .no_mramp_{nid});
@@ -7428,10 +7584,18 @@ def gen_limiter_fixed(node):
             if eq jump (pc, .lim_bypass_{nid});
             r13 = r0;
 
+        /* The block-rate guard exists ONLY for the per-sample build. Under
+         * DSP4_BLOCK_KERNELS the node chain runs ONCE per block with
+         * _sample_idx left at 31 by the scatter loop, so a surviving
+         * `_sample_idx == 0` test NEVER fires and the parameters below are
+         * never converted -- the node then runs on its .var initialisers.
+         * Audited 2026-08-27: 132 nodes carried this dead guard. */
+        #if !DSP4_BLOCK_KERNELS
             r4 = dm(_sample_idx);
             r1 = 0;
             comp(r4, r1);
             if ne jump (pc, .lim_go_{nid});
+        #endif
 {_fx_dyn_block_cvt(nid, 'lim', with_knee=False, with_slope=False)}
         .lim_go_{nid}:
 
@@ -7528,10 +7692,18 @@ def gen_gate_fixed(node):
             r13 = r0;
 
             /* --- block rate: param conversion --- */
+        /* The block-rate guard exists ONLY for the per-sample build. Under
+         * DSP4_BLOCK_KERNELS the node chain runs ONCE per block with
+         * _sample_idx left at 31 by the scatter loop, so a surviving
+         * `_sample_idx == 0` test NEVER fires and the parameters below are
+         * never converted -- the node then runs on its .var initialisers.
+         * Audited 2026-08-27: 132 nodes carried this dead guard. */
+        #if !DSP4_BLOCK_KERNELS
             r4 = dm(_sample_idx);
             r1 = 0;
             comp(r4, r1);
             if ne jump (pc, .gate_go_{nid});
+        #endif
             r2 = 0x4F000000;
             f2 = r2;
             f1 = dm(_gate_attack_{nid});

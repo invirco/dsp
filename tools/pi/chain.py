@@ -119,13 +119,21 @@ def main():
         wrv(sc, FDR_LEVEL, f32(lv), ramp_id=1, settle=0.05)
         wrv(sc, FDR_PAN, f32(pn), ramp_id=1, settle=0.05)
         time.sleep(0.4)
-        mono, L, bus = cap(P), cap(P + 2 * 32), cap(BUS_L)
+        # THERE IS NO PAN-SPLIT BUFFER ANY MORE (08-25 crosspoint-coefficient
+        # mandate, landed 2026-08-27). FADER_PAN used to multiply the mono by
+        # the pan leg into BLK_FDR_L/R and ROUTING accumulated that with a
+        # unity coefficient; the pan leg is now the main-bus CROSSPOINT
+        # COEFFICIENT and ROUTING MACs the mono by it directly. The bus
+        # reading is unchanged for one source -- the old form rounded the pan
+        # product and then accumulated it exactly, which is the same single
+        # rounding -- so this still checks the same number, one stage earlier.
+        mono, bus = cap(P), cap(BUS_L)
         e_mono = int(round(AMP * lv))
-        e_L    = int(round(e_mono * (1.0 - pn)))
-        ok = (mono == e_mono and L == e_L and bus == e_L)
+        e_bus  = int(round(e_mono * (1.0 - pn)))
+        ok = (mono == e_mono and bus == e_bus)
         bad += 0 if ok else 1
-        print('lv=%-5g pn=%-5g mono=%10d/%-10d L=%10d/%-10d bus=%10d  %s'
-              % (lv, pn, mono, e_mono, L, e_L, bus, 'ok' if ok else '<-- MISMATCH'))
+        print('lv=%-5g pn=%-5g mono=%10d/%-10d bus=%10d/%-10d  %s'
+              % (lv, pn, mono, e_mono, bus, e_bus, 'ok' if ok else '<-- MISMATCH'))
     print('CHAIN %s (%d of 7 cases mismatched)'
           % ('BIT-EXACT' if bad == 0 else 'DIFFERS', bad))
     return 1 if bad else 0

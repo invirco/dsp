@@ -27,20 +27,43 @@
 .var _auxin_level_step_C2_SNK_IN_03 = 0.0;
 .global _auxin_level_frames_C2_SNK_IN_03;
 .var _auxin_level_frames_C2_SNK_IN_03 = 0;
+.global _auxin_q_C2_SNK_IN_03;
+.var _auxin_q_C2_SNK_IN_03 = 0;                  /* Q4.28 coeff x assign */
 .global _buf_C2_SNK_IN_03;
 .var _buf_C2_SNK_IN_03;
 
 .section/pm seg_pmco;
+.extern _sample_idx;
 .extern _mrf_rns28;
 .global _C2_SNK_IN_03_process;
 _C2_SNK_IN_03_process:
+    /* CONTROL RATE (08-25 crosspoint-coefficient mandate). This
+     * node used to advance its ramp, multiply by 2^28 and FIX the
+     * result on EVERY SAMPLE -- coefficient prep sitting in the
+     * audio path, thirty-two times per block -- and then test the
+     * input-assign bit per sample as well. Both are control state:
+     * the coefficient is prepared once per block with the assign
+     * bit folded in, and the sample path is one MAC.
+     *
+     * The frame count is consumed 32 at a time to keep the ramp
+     * DURATION identical now that it advances once per block; the
+     * same correction GAIN and FADER_PAN carry (2026-08-23). */
+#if !DSP4_BLOCK_KERNELS
+    r4 = dm(_sample_idx);
+    r1 = 0;
+    comp(r4, r1);
+    if ne jump (pc, .auxin_apply_C2_SNK_IN_03);
+#endif
     r4 = dm(_auxin_level_frames_C2_SNK_IN_03);
-    r15 = 1;
+    r15 = 32;
     r4 = r4 - r15;
     if le jump (pc, .no_auxramp_C2_SNK_IN_03);
     dm(_auxin_level_frames_C2_SNK_IN_03) = r4;
     f1 = dm(_auxin_level_C2_SNK_IN_03);
     f2 = dm(_auxin_level_step_C2_SNK_IN_03);
+    r15 = 0x42000000;                 /* 32.0f */
+    f15 = r15;
+    f2 = f2 * f15;
     f1 = f1 + f2;
     dm(_auxin_level_C2_SNK_IN_03) = f1;
     jump (pc, .auxin_go_C2_SNK_IN_03);
@@ -48,19 +71,22 @@ _C2_SNK_IN_03_process:
     f1 = dm(_auxin_level_target_C2_SNK_IN_03);
     dm(_auxin_level_C2_SNK_IN_03) = f1;
 .auxin_go_C2_SNK_IN_03:
-
     r2 = 0x4D800000;
     f2 = r2;
     f1 = f1 * f2;
     r1 = fix f1;
+    /* fold the input-assign bit INTO the coefficient */
+    r3 = 0;
+    r2 = dm(_auxin_on_C2_SNK_IN_03);
+    r2 = pass r2;
+    if eq r1 = r3;
+    dm(_auxin_q_C2_SNK_IN_03) = r1;
+
+.auxin_apply_C2_SNK_IN_03:
     r0 = dm(_buf_C2_XR_SNAKE_03);
+    r1 = dm(_auxin_q_C2_SNK_IN_03);
     mrf = r0 * r1 (ssi);
     call _mrf_rns28;
-
-    r2 = dm(_auxin_on_C2_SNK_IN_03);
-    r3 = 0;
-    comp(r2, r3);
-    if eq r0 = r3;
     dm(_buf_C2_SNK_IN_03) = r0;
     rts;
 _C2_SNK_IN_03_process.end:

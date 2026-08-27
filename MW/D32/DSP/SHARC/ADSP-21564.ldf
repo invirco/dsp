@@ -122,6 +122,36 @@ SECTIONS
     } > mem_block2_bw
 
     /*------------------------------------------------------------------
+     * Stack reserve — placed BEFORE sec_dmda, and that ordering is the
+     * whole point.
+     *
+     * It used to sit last. Output sections mapped to the same region are
+     * placed in declaration order, so sec_dmda took Block 0 greedily and
+     * the stack reserve got whatever was left — which meant Block 0 had to
+     * hold ALL of the DM data plus 0x4000 words of stack or the link
+     * failed, while sec_dmda_ovf and the whole of Block 1 sat at 0% and
+     * never received a single word.
+     *
+     * That is what the recorded "DM headroom is under ~1,600 words"
+     * (2026-08-24) was actually measuring: not exhausted memory, but the
+     * distance from sec_dmda to a stack reserve queued behind it. Measured
+     * 2026-08-27 the true margin at that point was 262 words, and the
+     * overflow region had 180,224 bytes free the linker was never allowed
+     * to reach.
+     *
+     * Reserving first fixes it: the stack takes its 0x4000 words at the
+     * bottom of Block 0, sec_dmda fills the rest, and the remainder spills
+     * into sec_dmda_ovf as the LDF always intended. ldf_stack_space and
+     * ldf_stack_length are read by the startup code (c_abi.h, main.asm),
+     * so the stack follows the reserve wherever it lands — nothing hard-
+     * codes the address.
+     *------------------------------------------------------------------*/
+    sec_stak NO_INIT DM
+    {
+        RESERVE(ldf_stack_space, ldf_stack_length = 0x4000, 8)
+    } > mem_block0_bw
+
+    /*------------------------------------------------------------------
      * DM data — coefficients, parameters, state, audio buffers
      * Block 0 first, overflow to Block 1
      *------------------------------------------------------------------*/
@@ -201,14 +231,6 @@ SECTIONS
         INPUT_SECTION_ALIGN(4)
         INPUT_SECTIONS( $COMMAND_LINE_OBJECTS(seg_delay) )
     } > mem_L2CTL1_bw
-
-    /*------------------------------------------------------------------
-     * Stack reserve (top of Block 0)
-     *------------------------------------------------------------------*/
-    sec_stak NO_INIT DM
-    {
-        RESERVE(ldf_stack_space, ldf_stack_length = 0x4000, 8)
-    } > mem_block0_bw
 
 } /* end SECTIONS */
 

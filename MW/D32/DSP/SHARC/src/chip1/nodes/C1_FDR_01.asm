@@ -49,10 +49,6 @@
         .var _fdr_lq_C1_FDR_01 = 0;
         .global _fdr_rq_C1_FDR_01;
         .var _fdr_rq_C1_FDR_01 = 0;
-        .global _buf_L_C1_FDR_01;
-        .var _buf_L_C1_FDR_01;
-        .global _buf_R_C1_FDR_01;
-        .var _buf_R_C1_FDR_01;
 
         .section/pm seg_pmco;
         .extern _sample_idx;
@@ -133,6 +129,14 @@
             f2 = r2;
             f3 = f1 * f2;
             r2 = fix f3;
+            /* CROSSPOINT-COEFFICIENT FOLD (08-25 mandate): mute is a LINEAR
+             * gain term, so it belongs in the coefficient at control rate.
+             * x*0 is exactly 0 in this format, so the sample path needs no
+             * test -- it is one MAC that never reads control state. */
+            r3 = dm(_fdr_mute_C1_FDR_01);
+            r4 = 0;
+            comp(r3, r4);
+            if ne r2 = r4;
             dm(_fdr_gq_C1_FDR_01) = r2;
 /* L/R pan gains (linear pan law, matches float node).
  *
@@ -160,17 +164,9 @@ dm(_fdr_rq_C1_FDR_01) = r2;
 
         #if DSP4_BLOCK_KERNELS
             /* Per-BLOCK kernel. Same shape that gave GAIN its 4x: the
-             * three coefficients and the mute decision are hoisted, and
-             * all three _mrf_rns28 calls are inlined with their constants
-             * held. Mute folds into the gain because x*0 is exactly 0 in
-             * this format, so it needs no per-sample test. */
+             * coefficient is hoisted and _mrf_rns28 is inlined with its
+             * constants held. Mute is already inside _fdr_gq. */
             r1 = dm(_fdr_gq_C1_FDR_01);
-            r2 = dm(_fdr_mute_C1_FDR_01);
-            r4 = 0;
-            comp(r2, r4);
-            if ne r1 = r4;
-            r5 = dm(_fdr_lq_C1_FDR_01);
-            r6 = dm(_fdr_rq_C1_FDR_01);
             r7 = 0x08000000;                  /* rounding half */
             r12 = 1;
             r10 = 0x7FFFFFFF;
@@ -180,8 +176,6 @@ dm(_fdr_rq_C1_FDR_01) = r2;
             l3 = 0;
             i0 = BLK_CHAIN_B;                 /* input  */
             i1 = BLK_CHAIN_A;                 /* mono   */
-            i2 = BLK_FDR_L;
-            i3 = BLK_FDR_R;
             r14 = 32;
         .fdr_lp_C1_FDR_01:
             r0 = dm(i0, 1);
@@ -200,34 +194,6 @@ dm(_fdr_rq_C1_FDR_01) = r2;
             if ne r0 = r11;
             dm(i1, 1) = r0;
             r13 = r0;
-            mrf = r13 * r5 (ssi);
-            mrf = mrf + r7 * r12 (ssi);
-            r8 = mr0f;
-            r2 = mr1f;
-            r8 = lshift r8 by -28;
-            r9 = lshift r2 by 4;
-            r0 = r8 or r9;
-            r8 = ashift r2 by -28;
-            r9 = ashift r0 by -31;
-            r11 = ashift r2 by -31;
-            r11 = r10 xor r11;
-            comp(r8, r9);
-            if ne r0 = r11;
-            dm(i2, 1) = r0;
-            mrf = r13 * r6 (ssi);
-            mrf = mrf + r7 * r12 (ssi);
-            r8 = mr0f;
-            r2 = mr1f;
-            r8 = lshift r8 by -28;
-            r9 = lshift r2 by 4;
-            r0 = r8 or r9;
-            r8 = ashift r2 by -28;
-            r9 = ashift r0 by -31;
-            r11 = ashift r2 by -31;
-            r11 = r10 xor r11;
-            comp(r8, r9);
-            if ne r0 = r11;
-            dm(i3, 1) = r0;
             r14 = r14 - 1;
             if gt jump (pc, .fdr_lp_C1_FDR_01);
             dm(_tap_post_fader_C1_FDR_01) = r13;  /* linkage scalars */
@@ -235,28 +201,16 @@ dm(_fdr_rq_C1_FDR_01) = r2;
             rts;
 #else
         .apply_C1_FDR_01:
+            /* Pure MAC. Mute is already inside _fdr_gq; the pan legs are
+             * ROUTING's main-bus crosspoint coefficients. */
             r0 = dm(_buf_C1_DLY_01);
             r1 = dm(_fdr_gq_C1_FDR_01);
             mrf = r0 * r1 (ssi);
             call _mrf_rns28;
 
-            r2 = dm(_fdr_mute_C1_FDR_01);
-            r4 = 0;
-            comp(r2, r4);
-            if ne r0 = r4;
-
             dm(_tap_post_fader_C1_FDR_01) = r0;
             dm(_buf_C1_FDR_01) = r0;
-r14 = r0;                         /* mono in (lib preserves) */
-r1 = dm(_fdr_lq_C1_FDR_01);
-mrf = r14 * r1 (ssi);
-call _mrf_rns28;
-dm(_buf_L_C1_FDR_01) = r0;
-r1 = dm(_fdr_rq_C1_FDR_01);
-mrf = r14 * r1 (ssi);
-call _mrf_rns28;
-dm(_buf_R_C1_FDR_01) = r0;
-r0 = r14;
+
             rts;
 #endif
         _C1_FDR_01_process.end:

@@ -52,10 +52,18 @@ _C1_TALK_01_process:
     if eq rts;
 
     /* block-rate: refresh fixed HPF coeffs from float set */
+/* The block-rate guard exists ONLY for the per-sample build. Under
+ * DSP4_BLOCK_KERNELS the node chain runs ONCE per block with
+ * _sample_idx left at 31 by the scatter loop, so a surviving
+ * `_sample_idx == 0` test NEVER fires and the parameters below are
+ * never converted -- the node then runs on its .var initialisers.
+ * Audited 2026-08-27: 132 nodes carried this dead guard. */
+#if !DSP4_BLOCK_KERNELS
     r4 = dm(_sample_idx);
     r1 = 0;
     comp(r4, r1);
     if ne jump (pc, .tk_ramp_C1_TALK_01);
+#endif
     i0 = _talk_hpf_coeffs_C1_TALK_01;
     i1 = _talk_hpf_cq_C1_TALK_01;
     r4 = 1;

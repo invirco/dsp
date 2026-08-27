@@ -886,13 +886,59 @@ def backfill_matrix(header, rows, *, force=False):
 # bug this table exists to fix, and it would drift silently. Reading the
 # artifact cannot drift: if a node stops ramping a parameter, its
 # _target_ declaration goes with it and the stride follows.
+#
+# HOW THE VALUE SYMBOL IS FOUND, and why it is not derived from the target's
+# NAME (measured on the part 2026-08-27).
+#
+# The first version matched `^\.var (_X)_target_(nid)` and paired it with the
+# symbol `_X_nid`. That got 610 of the ramped parameters and silently missed
+# every other one, for TWO independent reasons:
+#
+#   1. The pattern was anchored at column 0. Node generators that emit their
+#      `.var` lines INDENTED -- FADER_PAN among them -- matched nothing at
+#      all, so fader level, pan and DCA all came out stride 0.
+#   2. Where it did match, it assumed the value symbol is the target's name
+#      with `_target` removed. GAIN's value is `_gain_coeff_<nid>` while its
+#      target is `_gain_target_<nid>`, so the derived name did not exist and
+#      the entry came out stride 0 as well.
+#
+# Stride 0 means "plain word, direct write", so those parameters were written
+# straight into the value word -- and the node's own block-rate code then does
+# `if frames <= 0: value = target` and clobbers it from a target nothing ever
+# set. Net effect on the part: EVERY GAIN and FADER_PAN ramped parameter was
+# unsettable over SPI, reading back its initialiser forever. The table's
+# existing "fail if no ramped params were found" guard passed the whole time,
+# because ROUTING, TUBE_SAT and TALKBACK do emit at column 0 and supplied 610
+# entries between them.
+#
+# So the pairing now uses LAYOUT, not names: `_ramp_set_target` writes at
+# +s/+2s/+3s from the VALUE address, and the node emits the value immediately
+# before its target -- that adjacency IS the contract, and it is what this
+# reads. The quad must be complete and consistently sized, and a node file
+# that declares a target but yields no stride is an error rather than a
+# silent zero.
 # ---------------------------------------------------------------------------
-_RAMP_TARGET_RE = re.compile(
-    r'^\.var\s+(_\w+?)_target_(\w+?)(?:\[(\d+)\])?\s*[;=]', re.M)
+_VAR_RE = re.compile(r'^\s*\.var\s+(_\w+)\s*(?:\[\s*(\d+)\s*\])?\s*[;=]')
+_SUFFIXES = ('_target_', '_step_', '_frames_')
+
+
+def _split_suffix(sym):
+    """('_fdr_level_target_C1_FDR_01', '_target_') -> '_fdr_level_C1_FDR_01'."""
+    for suf in _SUFFIXES:
+        i = sym.find(suf)
+        if i > 0:
+            return suf, sym[:i] + '_' + sym[i + len(suf):]
+    return None, None
 
 
 def build_ramp_stride_map(nodes_dir):
-    """Map a ramped value symbol -> stride to its target/step/frames words."""
+    """Map a ramped value symbol -> stride to its target/step/frames words.
+
+    Pairs each `_target_` declaration with the `.var` DECLARED IMMEDIATELY
+    BEFORE it, because that adjacency is the runtime contract
+    (_ramp_set_target writes at +s/+2s/+3s from the value address). Names are
+    not assumed: `_gain_coeff_<nid>` is the value for `_gain_target_<nid>`.
+    """
     if not os.path.isdir(nodes_dir):
         raise FileNotFoundError(
             f"node ASM directory not found: {nodes_dir}. The ramp stride "
@@ -902,17 +948,60 @@ def build_ramp_stride_map(nodes_dir):
     for name in sorted(os.listdir(nodes_dir)):
         if not name.endswith('.asm'):
             continue
-        with open(os.path.join(nodes_dir, name), encoding='utf-8') as f:
-            text = f.read()
-        for base, nid, count in _RAMP_TARGET_RE.findall(text):
-            value_sym = f'{base}_{nid}'
-            stride = int(count) if count else 1
+        path = os.path.join(nodes_dir, name)
+        with open(path, encoding='utf-8') as f:
+            lines = f.read().splitlines()
+
+        decls = []                       # [(symbol, width)] in emission order
+        for ln in lines:
+            m = _VAR_RE.match(ln)
+            if m:
+                decls.append((m.group(1), int(m.group(2)) if m.group(2) else 1))
+
+        # A ramp quad is VALUE, _target_, _step_, _frames_ in consecutive
+        # .var declarations with the same family stem and the same width.
+        # Names alone are not enough to spot one: C1_GATE carries
+        # _gate_gain_target_q and C1_EQ carries _eq_xfade_step, neither of
+        # which is a ramp. _frames_ is the unmistakable marker -- every real
+        # quad has exactly one -- so the count of quads recognised must equal
+        # the count of _frames_ declarations, and a mismatch is an error
+        # rather than a silent zero.
+        n_frames = sum(1 for sym, _ in decls if _split_suffix(sym)[0] == '_frames_')
+        found_here = 0
+        for i, (sym, width) in enumerate(decls):
+            suf, stem = _split_suffix(sym)
+            if suf != '_target_' or i == 0 or i + 2 >= len(decls):
+                continue
+            comps = decls[i + 1:i + 3]
+            if [_split_suffix(c[0])[0] for c in comps] != ['_step_', '_frames_']:
+                continue
+            if [_split_suffix(c[0])[1] for c in comps] != [stem, stem]:
+                continue
+            value_sym, value_width = decls[i - 1]
+            if value_width != width or any(c[1] != width for c in comps):
+                raise ValueError(
+                    f"{name}: ramp quad for {value_sym} has inconsistent "
+                    f"widths -- value[{value_width}], {sym}[{width}], "
+                    f"{comps[0][0]}[{comps[0][1]}], {comps[1][0]}[{comps[1][1]}]. "
+                    f"_ramp_set_target addresses the companions at +s/+2s/+3s "
+                    f"from the value, so one stride must describe all four.")
+            found_here += 1
             prev = strides.get(value_sym)
-            if prev is not None and prev != stride:
+            if prev is not None and prev != width:
                 raise ValueError(
                     f"conflicting ramp stride for {value_sym}: {prev} vs "
-                    f"{stride} (in {name})")
-            strides[value_sym] = stride
+                    f"{width} (in {name})")
+            strides[value_sym] = width
+
+        if found_here != n_frames:
+            raise ValueError(
+                f"{name}: {n_frames} ramp-frame declarations but "
+                f"{found_here} complete quads recognised. The stride table is "
+                f"read out of the emitted .var layout; if this node's "
+                f"generator changed that layout the scan must be updated, "
+                f"because the fallback is a zero stride and a zero stride "
+                f"silently turns a ramped parameter into an unsettable one.")
+
     if not strides:
         raise ValueError(
             f"no ramped parameters found under {nodes_dir}; the node ASM is "

@@ -12,20 +12,19 @@
 
 /* RampProfile: GainFast | Mode: Slew | Up: 3ms (4f) Down: 8ms (12f) | Curve: Exp | Scope: Scalar */
 
-/* ROUTING (FIXED Q4.28, D5): fan-out with exact 64-bit accumulation */
+/* ROUTING (FIXED Q4.28, D5): crosspoint-coefficient matrix mixing */
 /* SPI page=1 addr=4548 */
-/* Send ramps: float control at block rate + Q4.28 shadows. */
 
 #include "blk_pool.h"
 
 .section/dm seg_dmda;
 .extern _buf_C1_FDR_32;
-.extern _buf_L_C1_FDR_32;
-.extern _buf_R_C1_FDR_32;
 .extern _tap_post_trim_C1_GAIN_32;
 .extern _tap_post_eq_C1_EQ_32;
 .extern _tap_pre_fader_C1_DLY_32;
 .extern _tap_post_fader_C1_FDR_32;
+.extern _fdr_lq_C1_FDR_32;
+.extern _fdr_rq_C1_FDR_32;
 .global _rtg_main_on_C1_RTG_32;
 .var _rtg_main_on_C1_RTG_32 = 1;
 .global _rtg_sub_on_C1_RTG_32;
@@ -45,7 +44,9 @@
 .global _rtg_aux_pick_C1_RTG_32;
 .var _rtg_aux_pick_C1_RTG_32[12] = 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3;
 .global _rtg_aux_sq_C1_RTG_32;
-.var _rtg_aux_sq_C1_RTG_32[12];               /* Q4.28 shadows */
+.var _rtg_aux_sq_C1_RTG_32[12];               /* crosspoint coeffs */
+.global _rtg_aux_src_C1_RTG_32;
+.var _rtg_aux_src_C1_RTG_32[12];              /* resolved sources  */
 .global _rtg_fx_on_C1_RTG_32;
 .var _rtg_fx_on_C1_RTG_32[6];
 .global _rtg_fx_send_C1_RTG_32;
@@ -60,6 +61,18 @@
 .var _rtg_fx_pick_C1_RTG_32[6] = 3, 3, 3, 3, 3, 3;
 .global _rtg_fx_sq_C1_RTG_32;
 .var _rtg_fx_sq_C1_RTG_32[6];
+.global _rtg_fx_src_C1_RTG_32;
+.var _rtg_fx_src_C1_RTG_32[6];
+/* main/sub/group crosspoint coefficients: pan leg or unity, times
+ * the bus-assign bit. Prepared below at control rate. */
+.global _rtg_mlq_C1_RTG_32;
+.var _rtg_mlq_C1_RTG_32 = 0;
+.global _rtg_mrq_C1_RTG_32;
+.var _rtg_mrq_C1_RTG_32 = 0;
+.global _rtg_subq_C1_RTG_32;
+.var _rtg_subq_C1_RTG_32 = 0;
+.global _rtg_grpq_C1_RTG_32;
+.var _rtg_grpq_C1_RTG_32[4] = 0, 0, 0, 0;
 .global _buf_C1_RTG_32;
 .var _buf_C1_RTG_32;
 
@@ -74,11 +87,56 @@
 .global _C1_RTG_32_process;
 _C1_RTG_32_process:
 
-    /* ===== block-rate: send ramps + shadows ===== */
+    /* ===== control rate: prepare every crosspoint coefficient =====
+     * The block-rate guard exists ONLY for the per-sample build.
+     * Under DSP4_BLOCK_KERNELS the chain runs once per block with
+     * _sample_idx left at 31, so a surviving `_sample_idx == 0`
+     * test never fires -- and this node's send coefficients would
+     * never be computed at all. */
+#if !DSP4_BLOCK_KERNELS
     r4 = dm(_sample_idx);
     r1 = 0;
     comp(r4, r1);
     if ne jump (pc, .rtg_acc_C1_RTG_32);
+#endif
+
+    /* main L/R: pan leg x main assign. _fdr_lq/_fdr_rq are PAN
+     * ONLY -- the fader, DCA and mute are already inside the
+     * post-fader mono this coefficient multiplies, so folding the
+     * fader in here would apply it twice (bench 2026-08-23). */
+    r8 = 0;
+    r9 = 0x10000000;                  /* unity Q4.28 */
+    r2 = dm(_rtg_main_on_C1_RTG_32);
+    r1 = dm(_fdr_lq_C1_FDR_32);
+    r2 = pass r2;
+    if eq r1 = r8;
+    dm(_rtg_mlq_C1_RTG_32) = r1;
+    r1 = dm(_fdr_rq_C1_FDR_32);
+    r2 = pass r2;
+    if eq r1 = r8;
+    dm(_rtg_mrq_C1_RTG_32) = r1;
+
+    r2 = dm(_rtg_sub_on_C1_RTG_32);
+    r1 = r9;
+    r2 = pass r2;
+    if eq r1 = r8;
+    dm(_rtg_subq_C1_RTG_32) = r1;
+
+    l5 = 0;
+    l6 = 0;
+    i5 = _rtg_grp_on_C1_RTG_32;
+    i6 = _rtg_grpq_C1_RTG_32;
+    lcntr = 4, do .rtg_gq_C1_RTG_32 until lce;
+        r2 = dm(i5, 1);
+        r1 = r9;
+        r2 = pass r2;
+        if eq r1 = r8;
+    .rtg_gq_C1_RTG_32:
+        dm(i6, 1) = r1;
+
+#if DSP4_BLOCK_KERNELS
+    l0 = 0;
+    i0 = _rtg_aux_on_C1_RTG_32;
     i4 = _rtg_aux_send_C1_RTG_32;
     i5 = _rtg_aux_send_step_C1_RTG_32;
     i6 = _rtg_aux_send_frames_C1_RTG_32;
@@ -109,13 +167,135 @@ _C1_RTG_32_process:
         f2 = r4;
         f1 = f1 * f2;
         r4 = fix f1;
-        dm(i2, 1) = r4;               /* Q4.28 shadow */
+        /* fold the bus-assign bit INTO the coefficient */
+        r6 = 0;
+        r7 = dm(i0, 1);
+        r7 = pass r7;
+        if eq r4 = r6;
+        dm(i2, 1) = r4;               /* Q4.28 crosspoint coeff */
         modify(i4, 1);
         modify(i5, 1);
         modify(i3, 1);
     .auxrmp_C1_RTG_32:
         nop;
 
+    /* Pickoff enum -> source address, once per block. Left in the
+     * accumulate path it cost every enabled send up to three
+     * compares and two branches PER SAMPLE. Crosspoints whose
+     * coefficient is zero keep the default and are never read. */
+    l1 = 0;
+    i1 = _rtg_aux_sq_C1_RTG_32;
+    i5 = _rtg_aux_pick_C1_RTG_32;
+    i6 = _rtg_aux_src_C1_RTG_32;
+    r5 = 12;
+    lcntr = r5, do .auxsrc_C1_RTG_32 until lce;
+        r6 = dm(i5, 1);               /* pickoff enum */
+        r4 = dm(i1, 1);               /* coefficient */
+        r0 = BLK_CHAIN_A;
+        r4 = pass r4;
+        if eq jump (pc, .auxsrcd_C1_RTG_32);
+        r6 = pass r6;
+        if eq jump (pc, .auxsrc0_C1_RTG_32);
+        r7 = 1;
+        comp(r6, r7);
+        if eq jump (pc, .auxsrc1_C1_RTG_32);
+        r7 = 2;
+        comp(r6, r7);
+        if ne jump (pc, .auxsrcd_C1_RTG_32);
+        r0 = BLK_TAP_PREFDR;
+        jump (pc, .auxsrcd_C1_RTG_32);
+    .auxsrc0_C1_RTG_32:
+        r0 = BLK_TAP_TRIM;
+        jump (pc, .auxsrcd_C1_RTG_32);
+    .auxsrc1_C1_RTG_32:
+        r0 = BLK_TAP_EQ;
+    .auxsrcd_C1_RTG_32:
+        dm(i6, 1) = r0;
+    .auxsrc_C1_RTG_32:
+        nop;
+#else
+    l0 = 0;
+    i0 = _rtg_aux_on_C1_RTG_32;
+    i4 = _rtg_aux_send_C1_RTG_32;
+    i5 = _rtg_aux_send_step_C1_RTG_32;
+    i6 = _rtg_aux_send_frames_C1_RTG_32;
+    i3 = _rtg_aux_send_target_C1_RTG_32;
+    i2 = _rtg_aux_sq_C1_RTG_32;
+    r5 = 12;
+    lcntr = r5, do .auxrmp_C1_RTG_32 until lce;
+        r4 = dm(i6, 0);
+        r6 = 32;
+        comp(r4, r6);
+        if lt r6 = r4;                /* n = min(frames, 32) */
+        r4 = r4 - r6;
+        dm(i6, 1) = r4;
+        r4 = pass r6;
+        if eq jump (pc, .auxsnap_C1_RTG_32);
+        f1 = dm(i4, 0);
+        f2 = dm(i5, 0);
+        f3 = float r6;
+        f2 = f2 * f3;                 /* step * n */
+        f1 = f1 + f2;
+        dm(i4, 0) = f1;
+        jump (pc, .auxcvt_C1_RTG_32);
+    .auxsnap_C1_RTG_32:
+        f1 = dm(i3, 0);               /* snap to target */
+        dm(i4, 0) = f1;
+    .auxcvt_C1_RTG_32:
+        r4 = 0x4D800000;              /* 2^28 float */
+        f2 = r4;
+        f1 = f1 * f2;
+        r4 = fix f1;
+        /* fold the bus-assign bit INTO the coefficient */
+        r6 = 0;
+        r7 = dm(i0, 1);
+        r7 = pass r7;
+        if eq r4 = r6;
+        dm(i2, 1) = r4;               /* Q4.28 crosspoint coeff */
+        modify(i4, 1);
+        modify(i5, 1);
+        modify(i3, 1);
+    .auxrmp_C1_RTG_32:
+        nop;
+
+    /* Pickoff enum -> source address, once per block. Left in the
+     * accumulate path it cost every enabled send up to three
+     * compares and two branches PER SAMPLE. Crosspoints whose
+     * coefficient is zero keep the default and are never read. */
+    l1 = 0;
+    i1 = _rtg_aux_sq_C1_RTG_32;
+    i5 = _rtg_aux_pick_C1_RTG_32;
+    i6 = _rtg_aux_src_C1_RTG_32;
+    r5 = 12;
+    lcntr = r5, do .auxsrc_C1_RTG_32 until lce;
+        r6 = dm(i5, 1);               /* pickoff enum */
+        r4 = dm(i1, 1);               /* coefficient */
+        r0 = _tap_post_fader_C1_FDR_32;
+        r4 = pass r4;
+        if eq jump (pc, .auxsrcd_C1_RTG_32);
+        r6 = pass r6;
+        if eq jump (pc, .auxsrc0_C1_RTG_32);
+        r7 = 1;
+        comp(r6, r7);
+        if eq jump (pc, .auxsrc1_C1_RTG_32);
+        r7 = 2;
+        comp(r6, r7);
+        if ne jump (pc, .auxsrcd_C1_RTG_32);
+        r0 = _tap_pre_fader_C1_DLY_32;
+        jump (pc, .auxsrcd_C1_RTG_32);
+    .auxsrc0_C1_RTG_32:
+        r0 = _tap_post_trim_C1_GAIN_32;
+        jump (pc, .auxsrcd_C1_RTG_32);
+    .auxsrc1_C1_RTG_32:
+        r0 = _tap_post_eq_C1_EQ_32;
+    .auxsrcd_C1_RTG_32:
+        dm(i6, 1) = r0;
+    .auxsrc_C1_RTG_32:
+        nop;
+#endif
+#if DSP4_BLOCK_KERNELS
+    l0 = 0;
+    i0 = _rtg_fx_on_C1_RTG_32;
     i4 = _rtg_fx_send_C1_RTG_32;
     i5 = _rtg_fx_send_step_C1_RTG_32;
     i6 = _rtg_fx_send_frames_C1_RTG_32;
@@ -146,55 +326,177 @@ _C1_RTG_32_process:
         f2 = r4;
         f1 = f1 * f2;
         r4 = fix f1;
-        dm(i2, 1) = r4;               /* Q4.28 shadow */
+        /* fold the bus-assign bit INTO the coefficient */
+        r6 = 0;
+        r7 = dm(i0, 1);
+        r7 = pass r7;
+        if eq r4 = r6;
+        dm(i2, 1) = r4;               /* Q4.28 crosspoint coeff */
         modify(i4, 1);
         modify(i5, 1);
         modify(i3, 1);
     .fxrmp_C1_RTG_32:
         nop;
 
+    /* Pickoff enum -> source address, once per block. Left in the
+     * accumulate path it cost every enabled send up to three
+     * compares and two branches PER SAMPLE. Crosspoints whose
+     * coefficient is zero keep the default and are never read. */
+    l1 = 0;
+    i1 = _rtg_fx_sq_C1_RTG_32;
+    i5 = _rtg_fx_pick_C1_RTG_32;
+    i6 = _rtg_fx_src_C1_RTG_32;
+    r5 = 6;
+    lcntr = r5, do .fxsrc_C1_RTG_32 until lce;
+        r6 = dm(i5, 1);               /* pickoff enum */
+        r4 = dm(i1, 1);               /* coefficient */
+        r0 = BLK_CHAIN_A;
+        r4 = pass r4;
+        if eq jump (pc, .fxsrcd_C1_RTG_32);
+        r6 = pass r6;
+        if eq jump (pc, .fxsrc0_C1_RTG_32);
+        r7 = 1;
+        comp(r6, r7);
+        if eq jump (pc, .fxsrc1_C1_RTG_32);
+        r7 = 2;
+        comp(r6, r7);
+        if ne jump (pc, .fxsrcd_C1_RTG_32);
+        r0 = BLK_TAP_PREFDR;
+        jump (pc, .fxsrcd_C1_RTG_32);
+    .fxsrc0_C1_RTG_32:
+        r0 = BLK_TAP_TRIM;
+        jump (pc, .fxsrcd_C1_RTG_32);
+    .fxsrc1_C1_RTG_32:
+        r0 = BLK_TAP_EQ;
+    .fxsrcd_C1_RTG_32:
+        dm(i6, 1) = r0;
+    .fxsrc_C1_RTG_32:
+        nop;
+#else
+    l0 = 0;
+    i0 = _rtg_fx_on_C1_RTG_32;
+    i4 = _rtg_fx_send_C1_RTG_32;
+    i5 = _rtg_fx_send_step_C1_RTG_32;
+    i6 = _rtg_fx_send_frames_C1_RTG_32;
+    i3 = _rtg_fx_send_target_C1_RTG_32;
+    i2 = _rtg_fx_sq_C1_RTG_32;
+    r5 = 6;
+    lcntr = r5, do .fxrmp_C1_RTG_32 until lce;
+        r4 = dm(i6, 0);
+        r6 = 32;
+        comp(r4, r6);
+        if lt r6 = r4;                /* n = min(frames, 32) */
+        r4 = r4 - r6;
+        dm(i6, 1) = r4;
+        r4 = pass r6;
+        if eq jump (pc, .fxsnap_C1_RTG_32);
+        f1 = dm(i4, 0);
+        f2 = dm(i5, 0);
+        f3 = float r6;
+        f2 = f2 * f3;                 /* step * n */
+        f1 = f1 + f2;
+        dm(i4, 0) = f1;
+        jump (pc, .fxcvt_C1_RTG_32);
+    .fxsnap_C1_RTG_32:
+        f1 = dm(i3, 0);               /* snap to target */
+        dm(i4, 0) = f1;
+    .fxcvt_C1_RTG_32:
+        r4 = 0x4D800000;              /* 2^28 float */
+        f2 = r4;
+        f1 = f1 * f2;
+        r4 = fix f1;
+        /* fold the bus-assign bit INTO the coefficient */
+        r6 = 0;
+        r7 = dm(i0, 1);
+        r7 = pass r7;
+        if eq r4 = r6;
+        dm(i2, 1) = r4;               /* Q4.28 crosspoint coeff */
+        modify(i4, 1);
+        modify(i5, 1);
+        modify(i3, 1);
+    .fxrmp_C1_RTG_32:
+        nop;
+
+    /* Pickoff enum -> source address, once per block. Left in the
+     * accumulate path it cost every enabled send up to three
+     * compares and two branches PER SAMPLE. Crosspoints whose
+     * coefficient is zero keep the default and are never read. */
+    l1 = 0;
+    i1 = _rtg_fx_sq_C1_RTG_32;
+    i5 = _rtg_fx_pick_C1_RTG_32;
+    i6 = _rtg_fx_src_C1_RTG_32;
+    r5 = 6;
+    lcntr = r5, do .fxsrc_C1_RTG_32 until lce;
+        r6 = dm(i5, 1);               /* pickoff enum */
+        r4 = dm(i1, 1);               /* coefficient */
+        r0 = _tap_post_fader_C1_FDR_32;
+        r4 = pass r4;
+        if eq jump (pc, .fxsrcd_C1_RTG_32);
+        r6 = pass r6;
+        if eq jump (pc, .fxsrc0_C1_RTG_32);
+        r7 = 1;
+        comp(r6, r7);
+        if eq jump (pc, .fxsrc1_C1_RTG_32);
+        r7 = 2;
+        comp(r6, r7);
+        if ne jump (pc, .fxsrcd_C1_RTG_32);
+        r0 = _tap_pre_fader_C1_DLY_32;
+        jump (pc, .fxsrcd_C1_RTG_32);
+    .fxsrc0_C1_RTG_32:
+        r0 = _tap_post_trim_C1_GAIN_32;
+        jump (pc, .fxsrcd_C1_RTG_32);
+    .fxsrc1_C1_RTG_32:
+        r0 = _tap_post_eq_C1_EQ_32;
+    .fxsrcd_C1_RTG_32:
+        dm(i6, 1) = r0;
+    .fxsrc_C1_RTG_32:
+        nop;
+#endif
+
 .rtg_acc_C1_RTG_32:
+    l1 = 0;
+    l3 = 0;
+    l4 = 0;
+    l5 = 0;
+    l6 = 0;
 
 #if DSP4_BLOCK_KERNELS
-    /* Per-BLOCK routing. The whole gating tree runs ONCE per block
-     * instead of 32 times, and each enabled contribution becomes a
-     * single _acc64_mac_blk over the block. Measured 2026-08-24 the
-     * per-sample form cost 601 cycles/sample with only MAIN enabled
-     * -- two MACs (~30 cycles) buried in 22 gated loop iterations,
-     * re-evaluated every sample. The MACs were never the cost. */
-    r2 = dm(_rtg_main_on_C1_RTG_32);
-    r2 = pass r2;
-    if eq jump (pc, .rtg_nomain_C1_RTG_32);
-    r1 = 0x10000000;                  /* unity Q4.28 */
-    i0 = BLK_FDR_L;
+    /* Per-BLOCK accumulate: one _acc64_mac_blk per LIVE crosspoint
+     * per block. Coefficients only -- no control state is read
+     * here, and a zero coefficient contributes nothing, so it is
+     * skipped rather than multiplied. */
+    r1 = dm(_rtg_mlq_C1_RTG_32);
+    r1 = pass r1;
+    if eq jump (pc, .rtg_noml_C1_RTG_32);
+    i0 = BLK_CHAIN_A;
     i2 = _bus_acc_main_l;
     call _acc64_mac_blk;
-    r1 = 0x10000000;
-    i0 = BLK_FDR_R;
+.rtg_noml_C1_RTG_32:
+    r1 = dm(_rtg_mrq_C1_RTG_32);
+    r1 = pass r1;
+    if eq jump (pc, .rtg_nomr_C1_RTG_32);
+    i0 = BLK_CHAIN_A;
     i2 = _bus_acc_main_r;
     call _acc64_mac_blk;
-.rtg_nomain_C1_RTG_32:
-
-    r2 = dm(_rtg_sub_on_C1_RTG_32);
-    r2 = pass r2;
+.rtg_nomr_C1_RTG_32:
+    r1 = dm(_rtg_subq_C1_RTG_32);
+    r1 = pass r1;
     if eq jump (pc, .rtg_nosub_C1_RTG_32);
-    r1 = 0x10000000;
     i0 = BLK_CHAIN_A;
     i2 = _bus_acc_sub;
     call _acc64_mac_blk;
 .rtg_nosub_C1_RTG_32:
 
     i3 = _bus_acc_grp_ptrs;
-    i5 = _rtg_grp_on_C1_RTG_32;
+    i5 = _rtg_grpq_C1_RTG_32;
     r5 = 4;
     lcntr = r5, do .rtg_grp_C1_RTG_32 until lce;
-        r2 = dm(i5, 1);
+        r1 = dm(i5, 1);
         r3 = dm(i3, 1);
-        r2 = pass r2;
+        r1 = pass r1;
         if eq jump (pc, .rtg_gskip_C1_RTG_32);
         i2 = r3;
         i0 = BLK_CHAIN_A;
-        r1 = 0x10000000;
         call _acc64_mac_blk;
     .rtg_gskip_C1_RTG_32:
         nop;
@@ -203,168 +505,99 @@ _C1_RTG_32_process:
 
     i3 = _bus_acc_aux_ptrs;
     i4 = _rtg_aux_sq_C1_RTG_32;
-    i5 = _rtg_aux_on_C1_RTG_32;
-    i6 = _rtg_aux_pick_C1_RTG_32;
+    i6 = _rtg_aux_src_C1_RTG_32;
     r5 = 12;
     lcntr = r5, do .rtg_aux_C1_RTG_32 until lce;
-        r2 = dm(i5, 1);
-        r3 = dm(i3, 1);
-        r1 = dm(i4, 1);
-        r2 = pass r2;
+        r1 = dm(i4, 1);           /* crosspoint coefficient */
+        r3 = dm(i3, 1);           /* bus accumulator        */
+        r6 = dm(i6, 1);           /* resolved source block  */
+        r1 = pass r1;
         if eq jump (pc, .rtg_askip_C1_RTG_32);
-        r6 = dm(i6, 1);               /* pickoff enum */
-        r6 = pass r6;
-        if eq jump (pc, .rab_pk0_C1_RTG_32);
-        r7 = 1;
-        comp(r6, r7);
-        if eq jump (pc, .rab_pk1_C1_RTG_32);
-        r7 = 2;
-        comp(r6, r7);
-        if eq jump (pc, .rab_pk2_C1_RTG_32);
-        r0 = BLK_CHAIN_A;
-        jump (pc, .rab_pkd_C1_RTG_32);
-    .rab_pk0_C1_RTG_32:
-        r0 = _tap_post_trim_C1_GAIN_32;
-        jump (pc, .rab_pkd_C1_RTG_32);
-    .rab_pk1_C1_RTG_32:
-        r0 = _tap_post_eq_C1_EQ_32;
-        jump (pc, .rab_pkd_C1_RTG_32);
-    .rab_pk2_C1_RTG_32:
-        r0 = _tap_pre_fader_C1_DLY_32;
-    .rab_pkd_C1_RTG_32:
-        i0 = r0;
+        i0 = r6;
         i2 = r3;
         call _acc64_mac_blk;
-        jump (pc, .rtg_anext_C1_RTG_32);
     .rtg_askip_C1_RTG_32:
-        modify(i6, 1);
-    .rtg_anext_C1_RTG_32:
         nop;
     .rtg_aux_C1_RTG_32:
         nop;
 
     i3 = _bus_acc_fx_ptrs;
     i4 = _rtg_fx_sq_C1_RTG_32;
-    i5 = _rtg_fx_on_C1_RTG_32;
-    i6 = _rtg_fx_pick_C1_RTG_32;
+    i6 = _rtg_fx_src_C1_RTG_32;
     r5 = 6;
     lcntr = r5, do .rtg_fx_C1_RTG_32 until lce;
-        r2 = dm(i5, 1);
-        r3 = dm(i3, 1);
         r1 = dm(i4, 1);
-        r2 = pass r2;
+        r3 = dm(i3, 1);
+        r6 = dm(i6, 1);
+        r1 = pass r1;
         if eq jump (pc, .rtg_fskip_C1_RTG_32);
-        r6 = dm(i6, 1);               /* pickoff enum */
-        r6 = pass r6;
-        if eq jump (pc, .rfb_pk0_C1_RTG_32);
-        r7 = 1;
-        comp(r6, r7);
-        if eq jump (pc, .rfb_pk1_C1_RTG_32);
-        r7 = 2;
-        comp(r6, r7);
-        if eq jump (pc, .rfb_pk2_C1_RTG_32);
-        r0 = BLK_CHAIN_A;
-        jump (pc, .rfb_pkd_C1_RTG_32);
-    .rfb_pk0_C1_RTG_32:
-        r0 = _tap_post_trim_C1_GAIN_32;
-        jump (pc, .rfb_pkd_C1_RTG_32);
-    .rfb_pk1_C1_RTG_32:
-        r0 = _tap_post_eq_C1_EQ_32;
-        jump (pc, .rfb_pkd_C1_RTG_32);
-    .rfb_pk2_C1_RTG_32:
-        r0 = _tap_pre_fader_C1_DLY_32;
-    .rfb_pkd_C1_RTG_32:
-        i0 = r0;
+        i0 = r6;
         i2 = r3;
         call _acc64_mac_blk;
-        jump (pc, .rtg_fnext_C1_RTG_32);
     .rtg_fskip_C1_RTG_32:
-        modify(i6, 1);
-    .rtg_fnext_C1_RTG_32:
         nop;
     .rtg_fx_C1_RTG_32:
         nop;
 #else
 
-    /* ===== Main L/R (unity, pan-split bufs) ===== */
-    r2 = dm(_rtg_main_on_C1_RTG_32);
-    r2 = pass r2;
-    if eq jump (pc, .rtg_nomain_C1_RTG_32);
-    r1 = 0x10000000;                  /* unity Q4.28 */
-    r0 = dm(_buf_L_C1_FDR_32);
+    /* ===== Main L/R: post-fader mono x pan-leg coefficient ===== */
+    r0 = dm(_buf_C1_FDR_32);
+    r1 = dm(_rtg_mlq_C1_RTG_32);
+    r1 = pass r1;
+    if eq jump (pc, .rtg_noml_C1_RTG_32);
     i2 = _bus_acc_main_l;
     call _acc64_mac;
-    r0 = dm(_buf_R_C1_FDR_32);
+.rtg_noml_C1_RTG_32:
+    r0 = dm(_buf_C1_FDR_32);
+    r1 = dm(_rtg_mrq_C1_RTG_32);
+    r1 = pass r1;
+    if eq jump (pc, .rtg_nomr_C1_RTG_32);
     i2 = _bus_acc_main_r;
     call _acc64_mac;
-.rtg_nomain_C1_RTG_32:
+.rtg_nomr_C1_RTG_32:
 
-    /* ===== Sub (unity, mono) ===== */
-    r2 = dm(_rtg_sub_on_C1_RTG_32);
-    r2 = pass r2;
-    if eq jump (pc, .rtg_nosub_C1_RTG_32);
-    r1 = 0x10000000;
+    /* ===== Sub (mono) ===== */
     r0 = dm(_buf_C1_FDR_32);
+    r1 = dm(_rtg_subq_C1_RTG_32);
+    r1 = pass r1;
+    if eq jump (pc, .rtg_nosub_C1_RTG_32);
     i2 = _bus_acc_sub;
     call _acc64_mac;
 .rtg_nosub_C1_RTG_32:
 
-    /* ===== Groups (unity, ptr pairs) ===== */
+    /* ===== Groups ===== */
     i3 = _bus_acc_grp_ptrs;
-    i5 = _rtg_grp_on_C1_RTG_32;
+    i5 = _rtg_grpq_C1_RTG_32;
     r5 = 4;
     lcntr = r5, do .rtg_grp_C1_RTG_32 until lce;
-        r2 = dm(i5, 1);
-        r3 = dm(i3, 1);               /* pair base */
-        r2 = pass r2;
+        r1 = dm(i5, 1);           /* crosspoint coefficient */
+        r3 = dm(i3, 1);           /* pair base              */
+        r1 = pass r1;
         if eq jump (pc, .rtg_gskip_C1_RTG_32);
         i2 = r3;
         r0 = dm(_buf_C1_FDR_32);
-        r1 = 0x10000000;
         call _acc64_mac;
     .rtg_gskip_C1_RTG_32:
         nop;
     .rtg_grp_C1_RTG_32:
         nop;
 
-    /* ===== Aux sends (pickoff x shadow, exact MAC) ===== */
+    /* ===== Aux sends ===== */
     i3 = _bus_acc_aux_ptrs;
     i4 = _rtg_aux_sq_C1_RTG_32;
-    i5 = _rtg_aux_on_C1_RTG_32;
-    i6 = _rtg_aux_pick_C1_RTG_32;
+    i6 = _rtg_aux_src_C1_RTG_32;
     r5 = 12;
     lcntr = r5, do .rtg_aux_C1_RTG_32 until lce;
-        r2 = dm(i5, 1);
-        r3 = dm(i3, 1);               /* pair base */
-        r1 = dm(i4, 1);               /* send shadow */
-        r2 = pass r2;
+        r1 = dm(i4, 1);           /* crosspoint coefficient */
+        r3 = dm(i3, 1);           /* pair base              */
+        r6 = dm(i6, 1);           /* resolved source tap    */
+        r1 = pass r1;
         if eq jump (pc, .rtg_askip_C1_RTG_32);
-        r6 = dm(i6, 1);               /* pickoff enum */
-        r6 = pass r6;
-        if eq jump (pc, .ra_pk0_C1_RTG_32);
-        r7 = 1;
-        comp(r6, r7);
-        if eq jump (pc, .ra_pk1_C1_RTG_32);
-        r7 = 2;
-        comp(r6, r7);
-        if eq jump (pc, .ra_pk2_C1_RTG_32);
-        r0 = dm(_tap_post_fader_C1_FDR_32);
-        jump (pc, .ra_pkd_C1_RTG_32);
-    .ra_pk0_C1_RTG_32:
-        r0 = dm(_tap_post_trim_C1_GAIN_32);
-        jump (pc, .ra_pkd_C1_RTG_32);
-    .ra_pk1_C1_RTG_32:
-        r0 = dm(_tap_post_eq_C1_EQ_32);
-        jump (pc, .ra_pkd_C1_RTG_32);
-    .ra_pk2_C1_RTG_32:
-        r0 = dm(_tap_pre_fader_C1_DLY_32);
-    .ra_pkd_C1_RTG_32:
+        i1 = r6;
+        r0 = dm(i1, 0);
         i2 = r3;
         call _acc64_mac;
-        jump (pc, .rtg_anext_C1_RTG_32);
     .rtg_askip_C1_RTG_32:
-        modify(i6, 1);
-    .rtg_anext_C1_RTG_32:
         nop;
     .rtg_aux_C1_RTG_32:
         nop;
@@ -372,41 +605,19 @@ _C1_RTG_32_process:
     /* ===== FX sends ===== */
     i3 = _bus_acc_fx_ptrs;
     i4 = _rtg_fx_sq_C1_RTG_32;
-    i5 = _rtg_fx_on_C1_RTG_32;
-    i6 = _rtg_fx_pick_C1_RTG_32;
+    i6 = _rtg_fx_src_C1_RTG_32;
     r5 = 6;
     lcntr = r5, do .rtg_fx_C1_RTG_32 until lce;
-        r2 = dm(i5, 1);
-        r3 = dm(i3, 1);
         r1 = dm(i4, 1);
-        r2 = pass r2;
+        r3 = dm(i3, 1);
+        r6 = dm(i6, 1);
+        r1 = pass r1;
         if eq jump (pc, .rtg_fskip_C1_RTG_32);
-        r6 = dm(i6, 1);               /* pickoff enum */
-        r6 = pass r6;
-        if eq jump (pc, .rf_pk0_C1_RTG_32);
-        r7 = 1;
-        comp(r6, r7);
-        if eq jump (pc, .rf_pk1_C1_RTG_32);
-        r7 = 2;
-        comp(r6, r7);
-        if eq jump (pc, .rf_pk2_C1_RTG_32);
-        r0 = dm(_tap_post_fader_C1_FDR_32);
-        jump (pc, .rf_pkd_C1_RTG_32);
-    .rf_pk0_C1_RTG_32:
-        r0 = dm(_tap_post_trim_C1_GAIN_32);
-        jump (pc, .rf_pkd_C1_RTG_32);
-    .rf_pk1_C1_RTG_32:
-        r0 = dm(_tap_post_eq_C1_EQ_32);
-        jump (pc, .rf_pkd_C1_RTG_32);
-    .rf_pk2_C1_RTG_32:
-        r0 = dm(_tap_pre_fader_C1_DLY_32);
-    .rf_pkd_C1_RTG_32:
+        i1 = r6;
+        r0 = dm(i1, 0);
         i2 = r3;
         call _acc64_mac;
-        jump (pc, .rtg_fnext_C1_RTG_32);
     .rtg_fskip_C1_RTG_32:
-        modify(i6, 1);
-    .rtg_fnext_C1_RTG_32:
         nop;
     .rtg_fx_C1_RTG_32:
         nop;
