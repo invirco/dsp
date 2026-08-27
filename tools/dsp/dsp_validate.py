@@ -72,6 +72,39 @@ REQUIRED_PARAMS = {
 NO_SPI_TYPES = {'INPUT_TDM', 'OUTPUT_TDM', 'INTERCHIP_RECV', 'INTERCHIP_SEND',
                 'METER', 'TALKBACK', 'NOISE_GEN'}
 
+# Optional param keys seen in practice, beyond REQUIRED_PARAMS, per node type.
+# Anything outside REQUIRED_PARAMS | EXTRA_PARAMS for a type is flagged as an
+# unrecognized param key rather than passed through silently.
+EXTRA_PARAMS = {
+    'AUX_INPUT':      {'level_db', 'on', 'scope'},
+    'COMPRESSOR':     {'det_src', 'eq_pos', 'filter_hpf', 'filter_lpf',
+                        'filter_on', 'filter_q', 'key', 'lim_mode',
+                        'parallel', 'type'},
+    'DELAY':          {'local_ms', 'pool_slot'},
+    'EQ_BIQUAD':      {'coeffs'},
+    'FADER_PAN':      {'pan'},
+    'FX_ENGINE':      {'balance', 'damping', 'decay', 'delay_ms', 'duck_on',
+                        'duck_sens', 'eq_hi', 'eq_lo', 'eq_mid', 'feedback',
+                        'hpf', 'mix', 'mod_level', 'mod_rate',
+                        'predelay_ms', 'room_size'},
+    'GATE':           {'det_src', 'filter_hpf', 'filter_lpf', 'filter_on',
+                        'filter_q', 'key'},
+    'INPUT_TDM':      {'scope', 'signal', 'sport_slots'},
+    'INTERCHIP_RECV': {'global_slot', 'scope', 'signal', 'sport_slots'},
+    'INTERCHIP_SEND': {'global_slot', 'scope', 'signal', 'sport_slots'},
+    'METER':          {'taps'},
+    'MIX_BUS':        {'source_count'},
+    'MONITOR':        {'level_l_db', 'level_r_db'},
+    'NOISE_GEN':      {'hpf_on'},
+    'OUTPUT_TDM':     {'scope', 'signal', 'sport_slots'},
+    'ROUTING':        {'fx_on'},
+    'TALKBACK':       {'hpf_on'},
+    'TUBE_SAT':       {'on'},
+}
+
+ALLOWED_PARAMS = {t: REQUIRED_PARAMS.get(t, set()) | EXTRA_PARAMS.get(t, set())
+                   for t in VALID_TYPES}
+
 
 def parse_id_list(cell):
     cell = cell.strip().strip('"')
@@ -121,6 +154,7 @@ def validate(csv_path):
     # ── Parse all rows ───────────────────────────────────────────────────────
     all_ids = set()
     spi_addresses = {}  # (chip, page, addr) → node_id
+    duplicate_rows = set()  # row_num of rows rejected as duplicate IDs
 
     for row_num, row in enumerate(rows, start=2):  # row 1 = header
         nid = row['id'].strip()
@@ -140,6 +174,8 @@ def validate(csv_path):
             continue
         if nid in all_ids:
             err(row_num, nid, f'Duplicate node ID')
+            duplicate_rows.add(row_num)
+            continue
         all_ids.add(nid)
 
         # ── Check 3: chip ───────────────────────────────────────────────────
@@ -189,15 +225,21 @@ def validate(csv_path):
             else:
                 spi_addresses[key] = nid
 
-        # ── Check 10: Required params ────────────────────────────────────────
+        # ── Check 10: Required + recognized params ──────────────────────────
         required = REQUIRED_PARAMS.get(ntype, set())
         missing_params = required - set(params.keys())
         if missing_params:
             err(row_num, nid, f'Missing required params for {ntype}: {sorted(missing_params)}')
+        allowed = ALLOWED_PARAMS.get(ntype, required)
+        unknown_params = set(params.keys()) - allowed
+        if unknown_params:
+            err(row_num, nid, f'Unrecognized params for {ntype}: {sorted(unknown_params)}')
 
     # ── Check 9: input/output references ────────────────────────────────────
     # Re-iterate to validate references (all IDs now known)
     for row_num, row in enumerate(rows, start=2):
+        if row_num in duplicate_rows:
+            continue
         nid = row['id'].strip()
         inputs = parse_id_list(row.get('inputs', ''))
         outputs = parse_id_list(row.get('outputs', ''))
