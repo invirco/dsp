@@ -47,14 +47,6 @@ _ramp_profile_table:
     .var = 1;    /* curve: Exp */
     .var = 0;    /* scope: Scalar */
 
-/* Individual profile labels (aliases into table above) */
-.global _ramp_profile_InstantCtl;
-/* _ramp_profile_InstantCtl = _ramp_profile_table + 0 */
-.global _ramp_profile_GainFast;
-/* _ramp_profile_GainFast = _ramp_profile_table + 5 */
-.global _ramp_profile_GainSafe;
-/* _ramp_profile_GainSafe = _ramp_profile_table + 10 */
-.global _ramp_profile_EqSafe;
-/* _ramp_profile_EqSafe = _ramp_profile_table + 15 */
-.global _ramp_profile_DynSafe;
-/* _ramp_profile_DynSafe = _ramp_profile_table + 20 */
+/* Profile offsets: _ramp_profile_table + id*5; ids per
+ * spi_handler.asm (0=InstantCtl 1=GainFast 2=GainSafe
+ * 3=EqSafe 4=DynSafe). No per-profile alias symbols. */

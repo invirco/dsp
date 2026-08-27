@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-08-27 17:27Z — review R1 ramp-write root cause + fix, R2 codegen fail-loudly   [status: 🟢 done — R1 was already fixed 08-23 (d2e4dc6, candidate 3) and is RE-PROVEN on the part; R2 landed byte-identical; F1 (profile-0 discard) fixed per hub ruling; **F3 FOUND AND FIXED — array-valued ramped params (576 routing crosspoints) wrote their ramp state onto neighbouring sends, so aux/fx sends could never be set over SPI at all**. GAIN family unblocked: full −60…+18 dB sweep monotonic, unity bit-exact. Bench restored, 3 MCUs verified]
+## HUB DISPATCH 2026-08-27 17:27Z — review R1 ramp-write root cause + fix, R2 codegen fail-loudly   [status: 🟢 done — R1 was already fixed 08-23 (d2e4dc6, candidate 3) and is RE-PROVEN on the part; R2 landed byte-identical; F1 (profile-0 discard) fixed per hub ruling; **F3 FOUND AND FIXED — array-valued ramped params (576 routing crosspoints) wrote their ramp state onto neighbouring sends, so aux/fx sends could never be set over SPI at all**. GAIN family unblocked: full −60…+18 dB sweep monotonic, unity bit-exact. Bench restored, 3 MCUs verified. F2 closed: D24 ramp engine regenerated, now byte-identical to the bench-proven D32 file (D24 still builds no image — retired Wine flow, pre-existing)]
 
 model: opus
 
@@ -149,6 +149,58 @@ refactor): 11f166ab3cd701f76e3b7b38b097aa10 /
 89fbe274eb12dd45951a2f9d23be7c8f. Both generators re-verified deterministic;
 `check-contract-drift.sh` clean.
 
+#### F2 closed 2026-08-27 — D24 ramp engine regenerated from the fixed generator
+
+Per the generated-files mandate: regenerated, not hand-edited.
+`MW/D24/DSP/SHARC/src/ramp_engine.asm` and `ramp_tables.asm` re-emitted from
+`tools/dsp/dsp_codegen.py`, so D24 now carries BOTH the 08-23 post-modify fix
+and today's stride fix.
+
+    ramp_engine.asm   a497c0cc50010dbce4a8fc4cb0c1fc63 -> fa9278c2ae595ab96ad1bd5f7f9bdbf8
+    ramp_tables.asm   e5eb1fa6a0df779bc2a94644fdd1c8bf -> b60fcb907ca4b3248e845872987d4ae8
+
+`gen_ramp_engine()` takes no product argument, so the emitted
+`ramp_engine.asm` is **byte-identical to D32's** — the same
+`fa9278c2ae595ab96ad1bd5f7f9bdbf8` that was proven on the part today by
+tests A/B/C and the GAIN sweep. `ramp_tables.asm` also dropped five stale
+`.global _ramp_profile_<name>` aliases whose definitions the generator
+stopped emitting (declared, never defined — a latent link hazard); nothing in
+D24 referenced them. Regeneration is idempotent, and the change is confined
+to those two files.
+
+**Scoped deliberately to the ramp files, not a whole-tree regenerate.** A
+full `dsp_codegen.py` run against `MW/D24/DSP/SHARC/dsp.csv` rewrites **212
+files** — it would port D24's entire lagging tree forward (fixed-point
+conversion, block kernels, bus accumulators, lane config), which is a
+different and much larger piece of work than F2 and is not reviewable as part
+of it. Flagged for the hub as its own decision.
+
+**Build: the two files assemble clean, but D24 STILL PRODUCES NO IMAGE, and
+that is pre-existing.** `MW/D24/DSP/SHARC/build.sh` is the retired
+**Wine-wrapped** CCES flow (`~/.wine/drive_c/CCES/asm21k.exe`); it has not
+been touched since the initial commit (`06c3f0f`, 2026-04-21) and fails with
+207 errors at baseline, before any change of mine — D32 migrated to native
+Linux CCES and D24 never followed. So "build clean" was verified the only way
+it honestly can be: both files assembled standalone with the native
+`easm21k -proc ADSP-21564` for `CHIP_ID` 1 and 2 — 4 of 4 OK, 0 errors, 0
+warnings (ramp_engine 1108 B, ramp_tables 956 B each). Porting D24's build.sh
+to native CCES is a separate item.
+
+**Bench re-verification: there is no runtime path to exercise, and I did not
+manufacture one.** Three independent reasons: D24's tree produces no image
+(above); `_ramp_set_target` has **no callers anywhere in D24** — the tree has
+no `spi_handler.asm` and no `dsp_params.asm`, so the SPI dispatch layer does
+not exist there; and no D24 SHARC image runs on any bench (the reachable unit
+reports hostname `MW-D24-2` but carries the DSP4 card running D32 firmware).
+Booting something and watching a link answer would be exactly the false pass
+this file already records from 08-22. The real evidence is stronger and it is
+on the record above: the emitted file is byte-identical to the D32 one
+verified on the part today. What remains unverified is D24-specific
+integration, which does not yet exist — when D24 gains an SPI handler it must
+supply the stride in r4 and needs its own `_spi_dispatch_cN_stride` table,
+or `_ramp_set_target` will scatter companion words at whatever offset r4
+happens to hold.
+
 ### Outcome 2026-08-27 (rev 1) — R1 was already fixed; R2 landed; two new findings
 
 **R1 — the bug was root-caused and fixed on 2026-08-23, an hour after the
@@ -239,7 +291,7 @@ GENERATORS), which is why the image could not move.
   this dispatch reserves generator-contract changes for the hub. Cheap
   alternative if the hub prefers it: rule profile 0 unsupported on ramped
   parameters and have the host always send a ramp profile.
-- 🔴 **F2 — D24's `ramp_engine.asm` still carries the pre-fix buggy form.**
+- 🟢 **F2 — CLOSED 2026-08-27 (regenerated; see the F2 section above). Was: D24's `ramp_engine.asm` carried the pre-fix buggy form.**
   `MW/D24/DSP/SHARC/src/ramp_engine.asm` still has `dm(i4, 1)/(i4, 2)/(i4,
   3)`; last touched 2026-07-29 (`d2a264d`), i.e. it predates the 08-23 fix.
   `gen_ramp_engine()` takes no product argument, so a D24 regenerate would
@@ -344,7 +396,7 @@ generate the efficient form. The strip-fusion dispatch below is this
 priority's execution; do not drift to other work until the fit is proven or
 disproven with measurements.**
 
-## HUB REVIEW 2026-08-27 — review.txt (accuracy/efficiency codebase review, 2026-08-25/26) folded into the queue   [status: 🟡 R1 🟢 fixed 08-23 + re-proven on the part 08-27 · R2 🟢 landed byte-identical · F1 🟢 fixed · F3 🟢 found+fixed (array-stride ramp corruption, 576 routing crosspoints — the review missed it) · F2 🔴 D24 stale ramp_engine · R3–R5 open hardening · R6 opportunistic]
+## HUB REVIEW 2026-08-27 — review.txt (accuracy/efficiency codebase review, 2026-08-25/26) folded into the queue   [status: 🟡 R1 🟢 fixed 08-23 + re-proven on the part 08-27 · R2 🟢 landed byte-identical · F1 🟢 fixed · F3 🟢 found+fixed (array-stride ramp corruption, 576 routing crosspoints — the review missed it) · F2 🟢 D24 ramp engine regenerated · R3–R5 open hardening · R6 opportunistic]
 
 `review.txt` (committed 08-25, code suggestions §5 appended 08-26) reviewed
 the contract layer, the codegen/tooling layer and the bit-exact reference
