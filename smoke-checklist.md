@@ -28,6 +28,32 @@ Scope: D24 and D32 contract bump verification after regeneration.
   - matrix cells without DSP mapping
 - [ ] Contract note fields added per release-notes-contract-convention.md
 
+## Bench hand-back (any session that booted the DSPs)
+
+The bench is a 24/7 unit and must not be left on a frozen splash or on a
+work image. Every one of these has its own instrument; do not substitute
+another and read the absence of output as a result.
+
+| check | instrument | pass |
+|---|---|---|
+| shipping DSP firmware restored | `md5sum /home/app/dspboot/chip{1,2}.ldr` | matches the md5 recorded at the start of the session |
+| DSPs running on it | `bash run1.sh /home/app/dspboot` (boot+config+verdict) | `BOOT_STAGE 7`, `FRAME_COUNT ~1500/s`, `DMA0_STAT 0x00006200`, `SPORT0_ERR_A 0x00000000` |
+| shipping CPLD bitstream | `openocd -f cpld-jtag.cfg -c "init; scan_chain; shutdown"` | IDCODE `0x020a30dd` |
+| GPIOs released | `pinctrl set 6,7,8,9,10,11,12,22,23,24,25 a0` | mandatory after any openocd or dsp4_boot run — a claimed line looks exactly like a bricked card |
+| matrix-app up | `systemctl is-active matrix-app` | `active` |
+| **all three MCUs verified** | **`grep -aE "MCU (boot )?verified" /home/app/logs/log \| tail -6`** | H1S1, H1S3 and H1S4 all present, timestamped after the restart |
+
+**The MCU check reads `/home/app/logs/log`, not the systemd journal.**
+matrix-app has never logged `H1S*` to the journal — `journalctl -u matrix-app`
+returns nothing for it over the whole retention window, and the binary carries
+no such strings. A session that greps the journal will find silence and can
+mistake that for an app regression; that happened on 2026-08-27 and cost a
+wrong entry in the outcome, corrected the same day.
+
+Expect the documented **second-restart pattern**: the first `systemctl restart
+matrix-app` after a DSP reflash often announces only some of the MCUs, and a
+second restart brings all three.
+
 ## Pass criteria
 
 All checks above are complete with no hash mismatch, no unexpected family additions, and no unreconciled drift for intended merge scope.

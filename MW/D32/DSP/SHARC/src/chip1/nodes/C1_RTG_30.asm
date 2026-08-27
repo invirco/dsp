@@ -18,7 +18,6 @@
 #include "blk_pool.h"
 
 .section/dm seg_dmda;
-.extern _buf_C1_FDR_30;
 .extern _tap_post_trim_C1_GAIN_30;
 .extern _tap_post_eq_C1_EQ_30;
 .extern _tap_pre_fader_C1_DLY_30;
@@ -73,6 +72,16 @@
 .var _rtg_subq_C1_RTG_30 = 0;
 .global _rtg_grpq_C1_RTG_30;
 .var _rtg_grpq_C1_RTG_30[4] = 0, 0, 0, 0;
+/* The live-crosspoint list: (source, bus accumulator, coefficient)
+ * triples, rebuilt at control rate, walked by the audio path. 25
+ * crosspoints is the worst case -- main L, main R, sub, 4 groups,
+ * 12 aux, 6 fx -- so the list is sized for all of them being on and
+ * never needs a bounds test. _rtg_n starts at 0, so the accumulate
+ * does nothing until the first control-rate pass has built it. */
+.global _rtg_list_C1_RTG_30;
+.var _rtg_list_C1_RTG_30[75];
+.global _rtg_n_C1_RTG_30;
+.var _rtg_n_C1_RTG_30 = 0;
 .global _buf_C1_RTG_30;
 .var _buf_C1_RTG_30;
 
@@ -453,176 +462,142 @@ _C1_RTG_30_process:
         nop;
 #endif
 
-.rtg_acc_C1_RTG_30:
-    l1 = 0;
+    /* ===== compact the LIVE crosspoints into one list =====
+     * The fold above left the accumulate path reading coefficients
+     * only, but it still WALKED all 25 crosspoints every sample to
+     * find the two or three that are live. That walk is control
+     * state too -- which crosspoints are on is a control-rate fact --
+     * so it resolves here, into a dense list of
+     * (source address, bus accumulator, coefficient) triples and a
+     * count. The audio path then iterates over live crosspoints
+     * only, with no test of any kind in it.
+     *
+     * Cost is one 25-entry walk per BLOCK against 25 walked per
+     * SAMPLE; a channel assigned to main only goes from 25
+     * iterations per sample to 2. */
+#if DSP4_BLOCK_KERNELS
+    r12 = BLK_CHAIN_A;                /* post-fader mono block */
+#else
+    r12 = _buf_C1_FDR_30;              /* post-fader mono word  */
+#endif
+    l0 = 0;
     l3 = 0;
     l4 = 0;
     l5 = 0;
+    i0 = _rtg_list_C1_RTG_30;
+    r10 = 0;                          /* live count */
+
+    r1 = dm(_rtg_mlq_C1_RTG_30);
+    r1 = pass r1;
+    if eq jump (pc, .lb_noml_C1_RTG_30);
+    dm(i0, 1) = r12;
+    r2 = _bus_acc_main_l;
+    dm(i0, 1) = r2;
+    dm(i0, 1) = r1;
+    r10 = r10 + 1;
+.lb_noml_C1_RTG_30:
+    r1 = dm(_rtg_mrq_C1_RTG_30);
+    r1 = pass r1;
+    if eq jump (pc, .lb_nomr_C1_RTG_30);
+    dm(i0, 1) = r12;
+    r2 = _bus_acc_main_r;
+    dm(i0, 1) = r2;
+    dm(i0, 1) = r1;
+    r10 = r10 + 1;
+.lb_nomr_C1_RTG_30:
+    r1 = dm(_rtg_subq_C1_RTG_30);
+    r1 = pass r1;
+    if eq jump (pc, .lb_nosub_C1_RTG_30);
+    dm(i0, 1) = r12;
+    r2 = _bus_acc_sub;
+    dm(i0, 1) = r2;
+    dm(i0, 1) = r1;
+    r10 = r10 + 1;
+.lb_nosub_C1_RTG_30:
+
+    i4 = _rtg_grpq_C1_RTG_30;
+    i3 = _bus_acc_grp_ptrs;
+    lcntr = 4, do .lb_grp_C1_RTG_30 until lce;
+        r1 = dm(i4, 1);
+        r3 = dm(i3, 1);
+        r1 = pass r1;
+        if eq jump (pc, .lb_gskip_C1_RTG_30);
+        dm(i0, 1) = r12;
+        dm(i0, 1) = r3;
+        dm(i0, 1) = r1;
+        r10 = r10 + 1;
+    .lb_gskip_C1_RTG_30:
+        nop;
+    .lb_grp_C1_RTG_30:
+        nop;
+
+    i4 = _rtg_aux_sq_C1_RTG_30;
+    i5 = _rtg_aux_src_C1_RTG_30;
+    i3 = _bus_acc_aux_ptrs;
+    lcntr = 12, do .lb_aux_C1_RTG_30 until lce;
+        r1 = dm(i4, 1);
+        r3 = dm(i3, 1);
+        r2 = dm(i5, 1);
+        r1 = pass r1;
+        if eq jump (pc, .lb_askip_C1_RTG_30);
+        dm(i0, 1) = r2;
+        dm(i0, 1) = r3;
+        dm(i0, 1) = r1;
+        r10 = r10 + 1;
+    .lb_askip_C1_RTG_30:
+        nop;
+    .lb_aux_C1_RTG_30:
+        nop;
+
+    i4 = _rtg_fx_sq_C1_RTG_30;
+    i5 = _rtg_fx_src_C1_RTG_30;
+    i3 = _bus_acc_fx_ptrs;
+    lcntr = 6, do .lb_fx_C1_RTG_30 until lce;
+        r1 = dm(i4, 1);
+        r3 = dm(i3, 1);
+        r2 = dm(i5, 1);
+        r1 = pass r1;
+        if eq jump (pc, .lb_fskip_C1_RTG_30);
+        dm(i0, 1) = r2;
+        dm(i0, 1) = r3;
+        dm(i0, 1) = r1;
+        r10 = r10 + 1;
+    .lb_fskip_C1_RTG_30:
+        nop;
+    .lb_fx_C1_RTG_30:
+        nop;
+
+    dm(_rtg_n_C1_RTG_30) = r10;
+
+.rtg_acc_C1_RTG_30:
+    /* ===== crosspoint accumulate =====
+     * Nothing here reads control state and nothing here branches on
+     * it. Every iteration is a live crosspoint: fetch its source,
+     * its bus and its coefficient, and MAC. */
+    r5 = dm(_rtg_n_C1_RTG_30);
+    r5 = pass r5;
+    if eq jump (pc, .rtg_tail_C1_RTG_30);
+    l1 = 0;
+    l2 = 0;
     l6 = 0;
-
+    i6 = _rtg_list_C1_RTG_30;
+    lcntr = r5, do .rtg_xp_C1_RTG_30 until lce;
+        r6 = dm(i6, 1);               /* source            */
+        r3 = dm(i6, 1);               /* bus accumulator   */
+        r1 = dm(i6, 1);               /* coefficient       */
 #if DSP4_BLOCK_KERNELS
-    /* Per-BLOCK accumulate: one _acc64_mac_blk per LIVE crosspoint
-     * per block. Coefficients only -- no control state is read
-     * here, and a zero coefficient contributes nothing, so it is
-     * skipped rather than multiplied. */
-    r1 = dm(_rtg_mlq_C1_RTG_30);
-    r1 = pass r1;
-    if eq jump (pc, .rtg_noml_C1_RTG_30);
-    i0 = BLK_CHAIN_A;
-    i2 = _bus_acc_main_l;
-    call _acc64_mac_blk;
-.rtg_noml_C1_RTG_30:
-    r1 = dm(_rtg_mrq_C1_RTG_30);
-    r1 = pass r1;
-    if eq jump (pc, .rtg_nomr_C1_RTG_30);
-    i0 = BLK_CHAIN_A;
-    i2 = _bus_acc_main_r;
-    call _acc64_mac_blk;
-.rtg_nomr_C1_RTG_30:
-    r1 = dm(_rtg_subq_C1_RTG_30);
-    r1 = pass r1;
-    if eq jump (pc, .rtg_nosub_C1_RTG_30);
-    i0 = BLK_CHAIN_A;
-    i2 = _bus_acc_sub;
-    call _acc64_mac_blk;
-.rtg_nosub_C1_RTG_30:
-
-    i3 = _bus_acc_grp_ptrs;
-    i5 = _rtg_grpq_C1_RTG_30;
-    r5 = 4;
-    lcntr = r5, do .rtg_grp_C1_RTG_30 until lce;
-        r1 = dm(i5, 1);
-        r3 = dm(i3, 1);
-        r1 = pass r1;
-        if eq jump (pc, .rtg_gskip_C1_RTG_30);
-        i2 = r3;
-        i0 = BLK_CHAIN_A;
-        call _acc64_mac_blk;
-    .rtg_gskip_C1_RTG_30:
-        nop;
-    .rtg_grp_C1_RTG_30:
-        nop;
-
-    i3 = _bus_acc_aux_ptrs;
-    i4 = _rtg_aux_sq_C1_RTG_30;
-    i6 = _rtg_aux_src_C1_RTG_30;
-    r5 = 12;
-    lcntr = r5, do .rtg_aux_C1_RTG_30 until lce;
-        r1 = dm(i4, 1);           /* crosspoint coefficient */
-        r3 = dm(i3, 1);           /* bus accumulator        */
-        r6 = dm(i6, 1);           /* resolved source block  */
-        r1 = pass r1;
-        if eq jump (pc, .rtg_askip_C1_RTG_30);
         i0 = r6;
         i2 = r3;
         call _acc64_mac_blk;
-    .rtg_askip_C1_RTG_30:
-        nop;
-    .rtg_aux_C1_RTG_30:
-        nop;
-
-    i3 = _bus_acc_fx_ptrs;
-    i4 = _rtg_fx_sq_C1_RTG_30;
-    i6 = _rtg_fx_src_C1_RTG_30;
-    r5 = 6;
-    lcntr = r5, do .rtg_fx_C1_RTG_30 until lce;
-        r1 = dm(i4, 1);
-        r3 = dm(i3, 1);
-        r6 = dm(i6, 1);
-        r1 = pass r1;
-        if eq jump (pc, .rtg_fskip_C1_RTG_30);
-        i0 = r6;
-        i2 = r3;
-        call _acc64_mac_blk;
-    .rtg_fskip_C1_RTG_30:
-        nop;
-    .rtg_fx_C1_RTG_30:
-        nop;
 #else
-
-    /* ===== Main L/R: post-fader mono x pan-leg coefficient ===== */
-    r0 = dm(_buf_C1_FDR_30);
-    r1 = dm(_rtg_mlq_C1_RTG_30);
-    r1 = pass r1;
-    if eq jump (pc, .rtg_noml_C1_RTG_30);
-    i2 = _bus_acc_main_l;
-    call _acc64_mac;
-.rtg_noml_C1_RTG_30:
-    r0 = dm(_buf_C1_FDR_30);
-    r1 = dm(_rtg_mrq_C1_RTG_30);
-    r1 = pass r1;
-    if eq jump (pc, .rtg_nomr_C1_RTG_30);
-    i2 = _bus_acc_main_r;
-    call _acc64_mac;
-.rtg_nomr_C1_RTG_30:
-
-    /* ===== Sub (mono) ===== */
-    r0 = dm(_buf_C1_FDR_30);
-    r1 = dm(_rtg_subq_C1_RTG_30);
-    r1 = pass r1;
-    if eq jump (pc, .rtg_nosub_C1_RTG_30);
-    i2 = _bus_acc_sub;
-    call _acc64_mac;
-.rtg_nosub_C1_RTG_30:
-
-    /* ===== Groups ===== */
-    i3 = _bus_acc_grp_ptrs;
-    i5 = _rtg_grpq_C1_RTG_30;
-    r5 = 4;
-    lcntr = r5, do .rtg_grp_C1_RTG_30 until lce;
-        r1 = dm(i5, 1);           /* crosspoint coefficient */
-        r3 = dm(i3, 1);           /* pair base              */
-        r1 = pass r1;
-        if eq jump (pc, .rtg_gskip_C1_RTG_30);
-        i2 = r3;
-        r0 = dm(_buf_C1_FDR_30);
-        call _acc64_mac;
-    .rtg_gskip_C1_RTG_30:
-        nop;
-    .rtg_grp_C1_RTG_30:
-        nop;
-
-    /* ===== Aux sends ===== */
-    i3 = _bus_acc_aux_ptrs;
-    i4 = _rtg_aux_sq_C1_RTG_30;
-    i6 = _rtg_aux_src_C1_RTG_30;
-    r5 = 12;
-    lcntr = r5, do .rtg_aux_C1_RTG_30 until lce;
-        r1 = dm(i4, 1);           /* crosspoint coefficient */
-        r3 = dm(i3, 1);           /* pair base              */
-        r6 = dm(i6, 1);           /* resolved source tap    */
-        r1 = pass r1;
-        if eq jump (pc, .rtg_askip_C1_RTG_30);
         i1 = r6;
         r0 = dm(i1, 0);
         i2 = r3;
         call _acc64_mac;
-    .rtg_askip_C1_RTG_30:
-        nop;
-    .rtg_aux_C1_RTG_30:
-        nop;
-
-    /* ===== FX sends ===== */
-    i3 = _bus_acc_fx_ptrs;
-    i4 = _rtg_fx_sq_C1_RTG_30;
-    i6 = _rtg_fx_src_C1_RTG_30;
-    r5 = 6;
-    lcntr = r5, do .rtg_fx_C1_RTG_30 until lce;
-        r1 = dm(i4, 1);
-        r3 = dm(i3, 1);
-        r6 = dm(i6, 1);
-        r1 = pass r1;
-        if eq jump (pc, .rtg_fskip_C1_RTG_30);
-        i1 = r6;
-        r0 = dm(i1, 0);
-        i2 = r3;
-        call _acc64_mac;
-    .rtg_fskip_C1_RTG_30:
-        nop;
-    .rtg_fx_C1_RTG_30:
-        nop;
-
 #endif
+    .rtg_xp_C1_RTG_30:
+        nop;
+.rtg_tail_C1_RTG_30:
 
     r0 = dm(_tap_post_fader_C1_FDR_30);
     dm(_buf_C1_RTG_30) = r0;

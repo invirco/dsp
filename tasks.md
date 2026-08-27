@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-08-27 18:21Z — crosspoint-coefficient audit + enforce (08-25 mandate)   [status: 🟢 done — every in-scope violation folded and PROVEN ON THE PART: strip 1 BIT-EXACT at all 7 level/pan points plus mute and polarity, and routing sends WORK for the first time in the converted build (all 4 pickoffs, negative control passing). Three defects found on the way, all pre-existing and all severe: (1) the ramp-stride table matched only 610 of the ramped parameters, so **every GAIN, FADER_PAN and MONITOR ramped parameter was unsettable over SPI** — proven on the part, and fixed; (2) 132 nodes carried a `_sample_idx == 0` guard that never fires in a block-kernel build, which is why ROUTING never computed a send coefficient there; (3) the chip-1 DM ceiling was an LDF ordering artifact — the overflow region was 0% used and the converted build would not link at all at HEAD. Cycle deltas, converted build, per strip: FDR 1,908 → 1,011 cycles/block (1.89×); RTG 2,617 (prep dead) → 3,196 (prep live, sends working) → 3,667 (folded); FDR+RTG −426 cycles/block against the honest baseline = −13.3 cycles/sample. Capacity: 1,269 → ~1,256 cycles/sample/channel, ceiling stays 10 — this does NOT move the 32-in-one verdict. Bench restored to shipping and re-verified]   [model: opus]
+## HUB DISPATCH 2026-08-27 18:21Z — crosspoint-coefficient audit + enforce (08-25 mandate)   [status: 🟢 done — every in-scope violation folded and PROVEN ON THE PART: strip 1 BIT-EXACT at all 7 level/pan points plus mute and polarity, and routing sends WORK for the first time in the converted build (all 4 pickoffs, negative control passing). Three defects found on the way, all pre-existing and all severe: (1) the ramp-stride table matched only 610 of the ramped parameters, so **every GAIN, FADER_PAN and MONITOR ramped parameter was unsettable over SPI** — proven on the part, and fixed; (2) 132 nodes carried a `_sample_idx == 0` guard that never fires in a block-kernel build, which is why ROUTING never computed a send coefficient there; (3) the chip-1 DM ceiling was an LDF ordering artifact — the overflow region was 0% used and the converted build would not link at all at HEAD. Cycle deltas, converted build, per strip: FDR 1,908 → 1,011 cycles/block (1.89×); RTG 2,617 (prep dead) → 3,196 (prep live, sends working) → 3,667 (folded); FDR+RTG −426 cycles/block against the honest baseline = −13.3 cycles/sample. Capacity: 1,269 → ~1,256 cycles/sample/channel, converted-build ceiling stays 10 — this does NOT move the 32-in-one verdict. **FOLLOW-THROUGH on the same-evening hub steer, all four items done:** the compacted active-crosspoint list landed and is what actually recovers the walk — ROUTING 589.2 → 202.3 cycles/sample (2.91×) and **the SHIPPING ceiling moved from 2 strips to 3** (STRIPS=3 now 1500 passes/s, 4 over budget); the per-sample delta is measured across four tree states (fold −79.8, list −404.9, total **−484.7 cycles/sample**, and the LDF/Block-1 spill costs a measured nothing); the dynamics guard fixes are re-verified on the part, 11 classes across both chips, 0 failures. **TWO OF MY OWN CLAIMS CORRECTED:** the dead-guard count was 132 and is really **68** — chip 1's COMP and GATE drive `_sample_idx` from their own block kernels, so blanket-removing their guard was itself a regression (GATE's sidechain fallback would have converted 32× a block), now decided per node; and the "3 MCUs could not be verified" note was **wrong** — matrix-app logs to `/home/app/logs/log`, not the journal, as the 08-22 block already said, and all three had verified. No app regression exists. Bench restored, all three MCUs verified]   [model: opus]
 
 model: opus
 
@@ -67,6 +67,198 @@ update this block's status (🟢 done / 🔴 blocked) with a short outcome;
 no AI attribution in commits or any work product.
 
 Legend: 🔴 not started/blocked · 🟡 in progress · 🟢 done
+
+### Outcome 2026-08-27 (late) — active-crosspoint list, per-sample deltas, dynamics re-verified
+
+Hub steer of the same evening: build the compacted active-crosspoint list for
+the shipping path and measure it; measure the per-sample delta properly; re-
+verify the dynamics guard fixes on the part; name the matrix-app build that
+stopped emitting `H1S*`.
+
+#### 1. The compacted active-crosspoint list — the shipping ceiling is now 3
+
+ROUTING now resolves WHICH crosspoints are live at control rate, into a dense
+list of (source address, bus accumulator, coefficient) triples plus a count,
+and the audio path iterates over live crosspoints only. Nothing in it reads or
+tests control state, and there is no walk over dead crosspoints: a channel
+assigned to main only goes from 25 iterations per sample to 2.
+
+Measured on the part with `profile.sh` (TCOUNT, `DSP4_NODE_LIMIT`, DEC=32),
+per-sample build, per strip:
+
+| ROUTING | cycles/block | cycles/sample |
+|---|---|---|
+| before any of this work | 18,853 | 589.2 |
+| + crosspoint fold (committed earlier today) | 19,140 | 598.1 |
+| + active-crosspoint list | **6,474** | **202.3** |
+
+**RTG 589.2 → 202.3 cycles/sample, 2.91×.** The middle row is the point: the
+fold on its own did NOT make the per-sample router cheaper — it made the
+per-crosspoint work cheaper but still walked all 25 every sample, and paid new
+control-rate prep on top. The list is what recovers it, which is what the steer
+predicted.
+
+**And the shipping ceiling moved.** `strips.sh` at the default clock, judged on
+`_proc_passes` (audio truth, not link responsiveness):
+
+| `DSP4_STRIPS` | `_proc_passes` | verdict |
+|---|---|---|
+| 2 | 1500/s | real time |
+| **3** | **1500/s** | **real time — the new ceiling** |
+| 4 | 1334/s | over budget |
+
+That is **2 → 3 strips** on the shipping image, against a ceiling of 2 recorded
+since 2026-08-22 (where STRIPS=3 measured 1342/s, 89 %). Same clock, same
+harness, same verdict rule.
+
+#### 2. The per-sample delta, measured across four tree states
+
+Four states so the memory-layout change is separated from the fold and the fold
+from the list. Limits 1/2/8/9/10 give GAIN, FADER_PAN and ROUTING respectively.
+
+| variant | GAIN | FADER_PAN | ROUTING | chain @ L10 |
+|---|---|---|---|---|
+| A — before this work | 71.7 | 147.6 | 589.2 | 130,185 |
+| B — A + the LDF reorder only | 71.0 | 147.2 | 590.2 | 130,215 |
+| C — crosspoint fold | 64.4 | 75.0 | 598.1 | 127,631 |
+| D — fold + active list | 64.3 | 60.8 | 202.3 | 114,675 |
+
+(cycles/sample per strip; chain figure is cycles/block)
+
+| step | whole chain |
+|---|---|
+| LDF reorder / Block-1 spill (A→B) | **+30 cycles/block — nothing** |
+| crosspoint fold (A→C) | −2,554 (−79.8 cycles/sample) |
+| active list (C→D) | −12,956 (−404.9 cycles/sample) |
+| **total (A→D)** | **−15,510 cycles/block, −484.7 cycles/sample** |
+
+Two things worth reading off this rather than asserting:
+
+- **Spilling DM into Block 1 costs nothing measurable.** A and B are the same
+  code at different addresses and differ by 30 cycles/block over the whole
+  chain, which is the noise floor itself. The LDF reorder was free.
+- **The per-node figures carry layout noise; the chain figure does not.**
+  FADER_PAN is byte-identical in C and D yet reads 75.0 and 60.8 — RTG's code
+  grew, which moved later objects and changed instruction-fetch alignment for
+  nodes that run 32× per block. The trustworthy FADER_PAN number is the A→C
+  one, **−72.6 cycles/sample**, and it agrees almost exactly with the two
+  `_mrf_rns28` calls the fold deleted (~36 cycles each). GAIN's −7.3 likewise
+  matches the ~7 instructions of mute and polarity test removed. Where a
+  per-node delta and the chain delta disagree, the chain delta is the one to
+  quote.
+
+**In the converted build the list is neutral**: 63,156 → 63,203 cycles/block,
++47, inside noise. There the accumulate already ran once per block, so
+compacting saves about what building the list costs. It is kept in both builds
+because it is one code path and the doctrine is the same; the measurement is
+recorded so nobody re-derives it.
+
+**Capacity.** The 786 MHz ledger arithmetic is on the CONVERTED build, which is
+unchanged — **that ceiling stays 10 and the 32-in-one verdict is untouched.**
+The gain here lands on the shipping image, which is the per-sample build, and
+there it is worth a whole strip.
+
+#### 3. Dynamics guard fixes re-verified — and my own count was wrong
+
+**Correction: it was 68 nodes, not 132.** The naive scan counted any surviving
+`_sample_idx == 0` guard under DSP4_BLOCK_KERNELS. That is not sufficient:
+chip 1's COMPRESSOR and GATE emit a block kernel that DRIVES `_sample_idx`
+itself before reaching the guard, so their guard fires exactly once per block
+and was never dead. 64 of the 132 were those, and they are false positives.
+
+**Worse, blanket-removing the guard was a regression for them, and the bench
+found it.** GATE's sidechain-filter fallback hands the block to the per-sample
+body **32 times**, driving `_sample_idx` 0 then 1 — so with the guard gone the
+entire parameter conversion ran on every sample of the block whenever a gate
+had its sidechain filter enabled. The guard decision is now made PER NODE, from
+whether that node actually has a block kernel: kept where something drives the
+index (chip 1 COMP and GATE, 64 nodes), dropped in the block build everywhere
+else. The scan reports 0 genuinely-dead guards. **The per-sample image is
+byte-identical across that correction** (`a2fcda81...`), which is the proof it
+touches only the converted build.
+
+Genuinely affected, and now verified: ROUTING 32 and TALKBACK 2 on chip 1;
+AUX_LIM 12, GRP_COMP 4, GRP_GATE 4, MAIN_COMP 1, MAIN_LIM 1, MAIN_OCOMP 4,
+MAIN_OLIM 4, MIX_MAIN 2, SUB_COMP 1, SUB_LIM 1 on chip 2 — 68 in all.
+
+On the part, converted build, `tools/pi/dsp4_dyn_convert.py`, writing two host
+floats per class and requiring the converted Q0.31 shadow to track both (one
+value could match an initialiser by luck; two cannot):
+
+    DYNAMICS BLOCK-RATE CONVERSION RUNS (0 of 2 classes failed)     chip 1
+    DYNAMICS BLOCK-RATE CONVERSION RUNS (0 of 9 classes failed)     chip 2
+
+covering GATE and COMP on chip 1 and AUX_LIM, GRP_GATE, GRP_COMP, SUB_COMP,
+SUB_LIM, MAIN_COMP, MAIN_LIM, MAIN_OCOMP and MAIN_OLIM on chip 2 — every
+dynamics class in the affected set.
+
+**A trap the probe had to learn, recorded because it produced a false
+failure first:** every one of these nodes tests its on-flag BEFORE the
+block-rate conversion and bypasses the whole body when it is clear, so a
+bypassed node does not convert. The first run followed `dsp4_send_proof.py`,
+which switches the gate and compressor off to get a transparent strip, and read
+two stuck shadows as a conversion failure. The probe now enables the node
+first, and peeks the HOST FLOAT as well as the shadow so that "the write never
+landed" and "the conversion never ran" cannot be confused.
+
+#### 4. The `H1S*` verify lines — no app regression; the instrument was mine
+
+**There is nothing to name, and the earlier entry was wrong.** matrix-app has
+never logged `H1S*` to the systemd journal: `journalctl -u matrix-app` returns
+zero matches across the whole retention window, and the binary (2026-08-18,
+unchanged) carries no such strings. It logs to **`/home/app/logs/log`**, which
+the 2026-08-22 dispatch block already specified — "confirm the three MCUs
+verify in /home/app/logs/log". I grepped the journal, found silence, and
+reported the absence as a possible bench-instrumentation regression. It is not
+one.
+
+The bench was in fact verified at the time: `MCU verified: // H1S1 DSP`,
+`// H1S4 SW Left`, `// H1S3 SW Right` at 20:42:12, all three `MCU boot
+verified` at 20:42:18.
+
+To stop this recurring, `smoke-checklist.md` now carries a **Bench hand-back**
+table that names the instrument for every check — firmware md5, boot verdict,
+CPLD IDCODE, GPIO release, matrix-app, and the MCU grep — and states plainly
+that the MCU check reads `/home/app/logs/log` and not the journal. The two
+bench helpers this session had been running out of scratch are committed as
+`tools/pi/dsp4_boot_verify.sh` and `tools/pi/dsp4_probe_after_boot.sh`.
+
+#### Proven on the part, this pass
+
+Shipping (per-sample) build with the active list, `dsp4_xpoint_chain.py`:
+
+    CHAIN BIT-EXACT (0 checks mismatched)
+
+now including pan 0.0 and pan 1.0 — which drive one main-bus coefficient to
+exactly zero, so the crosspoint is absent from the list entirely and the bus
+must read 0 — and a live-count sweep over main/sub/group that reads
+2 → 3 → 4 → 2 → 2 as the assignment changes. Negative control passing.
+
+Converted build, `dsp4_send_proof.py`: `SENDS WORK (0 checks mismatched)`,
+all four pickoffs, negative control passing.
+
+#### Bench hand-back
+
+Shipping firmware restored byte-identical (`25a1afed...` / `7052c5d1...`),
+BOOT_STAGE 7 at 1500/s with DMA0_STAT 0x00006200 and SPORT0_ERR_A clean; CPLD
+IDCODE 0x020a30dd on the untouched shipping bitstream; GPIOs released;
+matrix-app active with **all three MCUs verified** (H1S1, H1S3, H1S4 at
+22:08:21) — and the documented second-restart pattern held again, the first
+restart announcing only H1S4.
+
+#### Still not done
+
+- The converted build's fabric is where the 786 MHz capacity lever lives and
+  this work did not move it. The next item there is the one the ledger already
+  names: the fabric against its 40k target.
+- `dsp4_xpoint_chain.py` exercises strip 1 only. Summing several strips into one
+  bus is where the folded form should be strictly MORE exact than the old one
+  (one rounding at the bus instead of one per source) and that has not been
+  measured.
+- TALKBACK's block-rate HPF coefficient refresh is in the genuinely-affected 68
+  but was covered by the static scan only, not on the part; it has no attack
+  parameter to drive the generic probe with.
+
 
 ### Outcome 2026-08-27 (evening) — crosspoint-coefficient audit + enforce
 
@@ -137,8 +329,10 @@ frames word with their targets interleaved, and no single stride can describe
 that — so both monitor levels were unsettable for the same reason. Each level
 now carries its own quad.
 
-**2. 132 nodes carry a block-rate guard that never fires in the converted
-build.** `_sample_idx` is left at 31 by the scatter loop, so a surviving
+**2. Nodes carrying a block-rate guard that never fires in the converted
+build.** (Counted as 132 here; **corrected to 68** in the later outcome above —
+chip 1's COMPRESSOR and GATE drive `_sample_idx` from their own block kernels,
+so their guard was never dead, and removing it there was itself a regression.) `_sample_idx` is left at 31 by the scatter loop, so a surviving
 `_sample_idx == 0` test never fires and the node runs on its `.var`
 initialisers. This was RECORDED as a trap on 2026-08-22 but never enumerated
 or fixed. Enumerated now: COMP 32, GATE 32, RTG 32, TALK 2 on chip 1; AUX_LIM
@@ -235,6 +429,10 @@ capacity.
 
 #### Not done, and deliberately
 
+- ~~**The shipping build's ROUTING still walks all 22 crosspoints per sample.**~~
+  DONE the same evening — see the later outcome above: the compacted list
+  landed, ROUTING went 589.2 → 202.3 cycles/sample and the shipping ceiling
+  moved from 2 strips to 3. Original note follows.
 - **The shipping build's ROUTING still walks all 22 crosspoints per sample.**
   Each iteration is cheaper now (one coefficient load instead of a coefficient
   plus an assign word, no pickoff tree) but it is still a per-sample loop. The
@@ -242,23 +440,19 @@ capacity.
   rate, so the audio path iterates only over live crosspoints. That needs
   ~2,100 words of DM, which is why it was not attempted before — and the LDF
   fix above now makes the room available. Recommended next.
-- **The per-sample build's cycle delta was not measured**, only the converted
-  one. The folds remove 3–7 instructions per sample per GAIN/FADER node there,
-  but that is a static count and is not reported as a measurement.
+- ~~**The per-sample build's cycle delta was not measured.**~~ MEASURED the
+  same evening across four tree states — see the later outcome above.
 - **MONITOR's sample path is still MONO** and uses the L level only, so
   `_mon_level_r` is settable and has no effect. Making MONITOR stereo is a
   graph change, not a coefficient fold, and was left alone.
-- **The remaining 100 dead-guard nodes on the dynamics classes** are fixed by
-  the same one-line change and are now converting their parameters, but their
-  behaviour in the converted build was NOT re-verified on the part — only
-  ROUTING was. They previously ran on `.var` initialisers, so this is a change
-  in their behaviour and someone should look at the dynamics in a converted
-  build before trusting it.
-- **The "3 MCUs verified" bench step could not be reproduced.** This build of
-  matrix-app emits no `H1S*` lines to the journal, so rather than claim it:
-  matrix-app is active, the CPLD IDCODE reads 0x020a30dd on the shipping
-  bitstream (never touched this session), the GPIOs are released, and the
-  shipping .ldr files are byte-identical to how the session found them.
+- **The remaining dead-guard nodes on the dynamics classes** — re-verified on
+  the part in the later outcome above, and the count corrected from 132 to 68.
+- **The "3 MCUs verified" bench step could not be reproduced.** **WRONG, and
+  corrected in the later outcome above:** matrix-app logs to
+  `/home/app/logs/log`, not the journal, and all three MCUs had in fact
+  verified at 20:42. The rest of the hand-back stands: matrix-app active, CPLD
+  IDCODE 0x020a30dd on the shipping bitstream (never touched), GPIOs released,
+  shipping .ldr byte-identical to how the session found them.
 
 #### Artifacts
 
@@ -687,7 +881,7 @@ suggestions only, NONE applied; land each as its own small change:
   regeneration); single-pass GEQ insertion; assert-guarded template
   rewrites → marker-based with node/file context in the error.
 
-## HUB MANDATE 2026-08-25 — crosspoint-coefficient mixing is Bible doctrine; dsp code must follow it   [status: 🟢 ENFORCED 2026-08-27 — audit clean, folds landed, proven on the part. No MAC path in either build now reads control state: fader/DCA/mute, pan leg, bus assign, send level and input assign are all folded into one Q4.28 coefficient per crosspoint at control rate, and the pickoff enum is resolved to a source ADDRESS at control rate too. Out of scope and left as graph structure, as the mandate directs: GATE filter enable, TUBE on, NOISE on, TALKBACK HPF enable. Findings, deltas and what is NOT done are in the outcome dated 2026-08-27 at the bottom of this file]
+## HUB MANDATE 2026-08-25 — crosspoint-coefficient mixing is Bible doctrine; dsp code must follow it   [status: 🟢 ENFORCED 2026-08-27 — audit clean, folds landed, proven on the part. No MAC path in either build now reads control state: fader/DCA/mute, pan leg, bus assign, send level and input assign are all folded into one Q4.28 coefficient per crosspoint at control rate, and the pickoff enum is resolved to a source ADDRESS at control rate too. Out of scope and left as graph structure, as the mandate directs: GATE filter enable, TUBE on, NOISE on, TALKBACK HPF enable. Findings, deltas and what is NOT done are in the TWO outcomes dated 2026-08-27 (evening, then late) at the bottom of this file. The late one closes the doctrine properly: the audio path no longer even WALKS dead crosspoints — which are live is resolved at control rate into a compact list — and that is worth ROUTING 589.2 → 202.3 cycles/sample and a shipping ceiling of 3 strips against 2]
 
 PW engraved the concept in the mx26 Bible (docs/bible/10-cell-data-and-protocol.md,
 "Crosspoint-coefficient (matrix-gain) mixing"): one precomputed coefficient per

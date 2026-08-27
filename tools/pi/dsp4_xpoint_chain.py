@@ -25,6 +25,7 @@ import dsp4_scope as S
 from dsp4_tubedly_probe import wrv
 
 GAIN, POLARITY = 0x0000, 0x0001   # _mute_C1_GAIN_01 has no dispatch entry — mute lives on the fader
+MAIN_ON, SUB_ON, GRP_ON_1 = 0x0054, 0x0055, 0x0056
 HPF0, HPF_SW = 0x0004, 0x0009
 LPF0, LPF_SW = 0x000A, 0x000F
 EQ0,  EQ_SW  = 0x0010, 0x0024
@@ -79,8 +80,15 @@ def main():
     print('negative control ok: gain 1.0 -> %d, gain 0.5 -> %d' % (base, halved))
 
     bad = 0
+    # pan 0.0 and 1.0 matter beyond covering the ends of the law: they drive
+    # one main-bus crosspoint coefficient to EXACTLY ZERO, which is how the
+    # doctrine spells "not assigned". With the compacted active-crosspoint
+    # list that crosspoint is absent from the list entirely, so these two
+    # rows are what prove the list is built from the coefficients and not
+    # from a fixed walk.
     for lv, pn in ((1.0, 0.5), (0.5, 0.5), (0.25, 0.5),
-                   (1.0, 0.0), (1.0, 0.25), (1.0, 0.75), (0.5, 0.25)):
+                   (1.0, 0.0), (1.0, 1.0), (1.0, 0.25), (1.0, 0.75),
+                   (0.5, 0.25)):
         wrv(sc, FDR_LEVEL, f32(lv), ramp_id=1, settle=0.05)
         wrv(sc, FDR_PAN, f32(pn), ramp_id=1, settle=0.05)
         time.sleep(0.4)
@@ -91,6 +99,35 @@ def main():
         bad += 0 if ok else 1
         print('lv=%-5g pn=%-5g mono=%10d/%-10d bus=%10d/%-10d  %s'
               % (lv, pn, mono, e_mono, bus, e_bus, 'ok' if ok else '<-- MISMATCH'))
+
+    # ---- the list must GROW and SHRINK with the assignment ----
+    wrv(sc, FDR_LEVEL, f32(1.0), ramp_id=1, settle=0.05)
+    wrv(sc, FDR_PAN, f32(0.5), ramp_id=1, settle=0.05)
+    time.sleep(0.4)
+    N = sc.sym.get('_rtg_n_C1_RTG_01')
+    if N is not None:
+        def n_live():
+            for _ in range(8):
+                try: return sc.d.peek(N)
+                except Exception: time.sleep(0.05)
+            return None
+        seq = []
+        for main, sub, grp in ((1, 0, 0), (1, 1, 0), (1, 1, 1), (0, 1, 1), (1, 0, 0)):
+            sc.d.write(MAIN_ON, main); sc.d.write(SUB_ON, sub)
+            sc.d.write(GRP_ON_1, grp)
+            time.sleep(0.4)
+            seq.append((main, sub, grp, n_live()))
+        want = [2, 3, 4, 2, 2]        # main is TWO crosspoints, L and R
+        got = [s[3] for s in seq]
+        ok = got == want
+        bad += 0 if ok else 1
+        print('live-crosspoint count main/sub/grp %s -> %s (expect %s)  %s'
+              % ([s[:3] for s in seq], got, want, 'ok' if ok else '<-- MISMATCH'))
+        sc.d.write(MAIN_ON, 1); sc.d.write(SUB_ON, 0); sc.d.write(GRP_ON_1, 0)
+        time.sleep(0.4)
+    else:
+        print('live-crosspoint count: _rtg_n absent — build predates the '
+              'compacted list, skipping')
 
     # ---- the folds themselves ----
     wrv(sc, FDR_LEVEL, f32(1.0), ramp_id=1, settle=0.05)

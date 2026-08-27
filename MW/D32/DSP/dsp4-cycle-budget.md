@@ -285,6 +285,57 @@ fold:
 cycles/block, −13.3 cycles/sample.** The pre-fold ROUTING figure is cheaper
 only because it was skipping work it was supposed to do.
 
+### The active-crosspoint list — measured 2026-08-27 (late)
+
+The fold left the accumulate path reading coefficients only, but it still
+WALKED all 25 crosspoints every sample looking for the live ones. Which are
+live is control state too, so it now resolves at control rate into a dense list
+of (source, bus accumulator, coefficient) triples and a count; the audio path
+iterates over live crosspoints only.
+
+Per-sample build, per strip, four tree states so the memory layout, the fold
+and the list are separated:
+
+| variant | GAIN | FADER_PAN | ROUTING | chain @ NODE_LIMIT 10 |
+|---|---|---|---|---|
+| before this work | 71.7 | 147.6 | 589.2 | 130,185 |
+| + the LDF reorder alone | 71.0 | 147.2 | 590.2 | 130,215 |
+| + crosspoint fold | 64.4 | 75.0 | **598.1** | 127,631 |
+| + active-crosspoint list | 64.3 | 60.8 | **202.3** | 114,675 |
+
+(cycles/sample per strip; the chain column is cycles/block)
+
+**ROUTING 589.2 → 202.3 cycles/sample, 2.91×**, and note the third row: the
+fold ALONE made the per-sample router slightly worse, because it still walked
+every crosspoint and added control-rate prep on top. The list is what pays.
+
+| step | whole chain |
+|---|---|
+| LDF reorder / Block-1 spill | +30 cycles/block — nothing |
+| crosspoint fold | −2,554 (−79.8 cycles/sample) |
+| active list | −12,956 (−404.9 cycles/sample) |
+| **total** | **−15,510 cycles/block, −484.7 cycles/sample** |
+
+**THE SHIPPING CEILING MOVED FROM 2 STRIPS TO 3**, measured with `strips.sh` at
+the default clock on `_proc_passes`: STRIPS=3 holds 1500/s where it measured
+1342/s (89 %) on 2026-08-22; STRIPS=4 is over budget at 1334/s.
+
+**In the CONVERTED build the list is neutral** — 63,156 → 63,203 cycles/block,
+inside noise — because there the accumulate already ran once per block and the
+list build costs about what the walk did. So this does not move the 786 MHz
+channel ceiling; that stays 10. The gain is on the shipping image.
+
+Two method notes from this measurement, both of which would otherwise mislead:
+
+- **Per-node differencing carries layout noise that the chain figure does not.**
+  FADER_PAN is byte-identical in the last two rows yet reads 75.0 and 60.8:
+  ROUTING's code grew, which moved later objects and changed instruction-fetch
+  alignment for bodies that run 32× a block. Quote the chain delta when the two
+  disagree. The trustworthy FADER_PAN figure is −72.6 cycles/sample, which
+  matches the two `_mrf_rns28` calls the fold deleted.
+- **Spilling DM into Block 1 is free.** Rows one and two are the same code at
+  different addresses.
+
 ### What that is worth, and what it is not
 
 Applied to the measured ceiling above: 1,269 → ~1,256 cycles/sample/channel,

@@ -6624,6 +6624,14 @@ def gen_routing_fixed(node):
         .var _rtg_mrq_{nid} = 0;
         .var _rtg_subq_{nid} = 0;
         .var _rtg_grpq_{nid}[4] = 0, 0, 0, 0;
+        /* The live-crosspoint list: (source, bus accumulator, coefficient)
+         * triples, rebuilt at control rate, walked by the audio path. 25
+         * crosspoints is the worst case -- main L, main R, sub, 4 groups,
+         * 12 aux, 6 fx -- so the list is sized for all of them being on and
+         * never needs a bounds test. _rtg_n starts at 0, so the accumulate
+         * does nothing until the first control-rate pass has built it. */
+        .var _rtg_list_{nid}[75];
+        .var _rtg_n_{nid} = 0;
         .var _buf_{nid};
 
         .section/pm seg_pmco;
@@ -6685,176 +6693,142 @@ def gen_routing_fixed(node):
                 dm(i6, 1) = r1;
 
 {send_prep('aux', 12)}{send_prep('fx', 6)}
-        .rtg_acc_{nid}:
-            l1 = 0;
+            /* ===== compact the LIVE crosspoints into one list =====
+             * The fold above left the accumulate path reading coefficients
+             * only, but it still WALKED all 25 crosspoints every sample to
+             * find the two or three that are live. That walk is control
+             * state too -- which crosspoints are on is a control-rate fact --
+             * so it resolves here, into a dense list of
+             * (source address, bus accumulator, coefficient) triples and a
+             * count. The audio path then iterates over live crosspoints
+             * only, with no test of any kind in it.
+             *
+             * Cost is one 25-entry walk per BLOCK against 25 walked per
+             * SAMPLE; a channel assigned to main only goes from 25
+             * iterations per sample to 2. */
+        #if DSP4_BLOCK_KERNELS
+            r12 = BLK_CHAIN_A;                /* post-fader mono block */
+        #else
+            r12 = _buf_{fdr_id};              /* post-fader mono word  */
+        #endif
+            l0 = 0;
             l3 = 0;
             l4 = 0;
             l5 = 0;
+            i0 = _rtg_list_{nid};
+            r10 = 0;                          /* live count */
+
+            r1 = dm(_rtg_mlq_{nid});
+            r1 = pass r1;
+            if eq jump (pc, .lb_noml_{nid});
+            dm(i0, 1) = r12;
+            r2 = _bus_acc_main_l;
+            dm(i0, 1) = r2;
+            dm(i0, 1) = r1;
+            r10 = r10 + 1;
+        .lb_noml_{nid}:
+            r1 = dm(_rtg_mrq_{nid});
+            r1 = pass r1;
+            if eq jump (pc, .lb_nomr_{nid});
+            dm(i0, 1) = r12;
+            r2 = _bus_acc_main_r;
+            dm(i0, 1) = r2;
+            dm(i0, 1) = r1;
+            r10 = r10 + 1;
+        .lb_nomr_{nid}:
+            r1 = dm(_rtg_subq_{nid});
+            r1 = pass r1;
+            if eq jump (pc, .lb_nosub_{nid});
+            dm(i0, 1) = r12;
+            r2 = _bus_acc_sub;
+            dm(i0, 1) = r2;
+            dm(i0, 1) = r1;
+            r10 = r10 + 1;
+        .lb_nosub_{nid}:
+
+            i4 = _rtg_grpq_{nid};
+            i3 = _bus_acc_grp_ptrs;
+            lcntr = 4, do .lb_grp_{nid} until lce;
+                r1 = dm(i4, 1);
+                r3 = dm(i3, 1);
+                r1 = pass r1;
+                if eq jump (pc, .lb_gskip_{nid});
+                dm(i0, 1) = r12;
+                dm(i0, 1) = r3;
+                dm(i0, 1) = r1;
+                r10 = r10 + 1;
+            .lb_gskip_{nid}:
+                nop;
+            .lb_grp_{nid}:
+                nop;
+
+            i4 = _rtg_aux_sq_{nid};
+            i5 = _rtg_aux_src_{nid};
+            i3 = _bus_acc_aux_ptrs;
+            lcntr = 12, do .lb_aux_{nid} until lce;
+                r1 = dm(i4, 1);
+                r3 = dm(i3, 1);
+                r2 = dm(i5, 1);
+                r1 = pass r1;
+                if eq jump (pc, .lb_askip_{nid});
+                dm(i0, 1) = r2;
+                dm(i0, 1) = r3;
+                dm(i0, 1) = r1;
+                r10 = r10 + 1;
+            .lb_askip_{nid}:
+                nop;
+            .lb_aux_{nid}:
+                nop;
+
+            i4 = _rtg_fx_sq_{nid};
+            i5 = _rtg_fx_src_{nid};
+            i3 = _bus_acc_fx_ptrs;
+            lcntr = 6, do .lb_fx_{nid} until lce;
+                r1 = dm(i4, 1);
+                r3 = dm(i3, 1);
+                r2 = dm(i5, 1);
+                r1 = pass r1;
+                if eq jump (pc, .lb_fskip_{nid});
+                dm(i0, 1) = r2;
+                dm(i0, 1) = r3;
+                dm(i0, 1) = r1;
+                r10 = r10 + 1;
+            .lb_fskip_{nid}:
+                nop;
+            .lb_fx_{nid}:
+                nop;
+
+            dm(_rtg_n_{nid}) = r10;
+
+        .rtg_acc_{nid}:
+            /* ===== crosspoint accumulate =====
+             * Nothing here reads control state and nothing here branches on
+             * it. Every iteration is a live crosspoint: fetch its source,
+             * its bus and its coefficient, and MAC. */
+            r5 = dm(_rtg_n_{nid});
+            r5 = pass r5;
+            if eq jump (pc, .rtg_tail_{nid});
+            l1 = 0;
+            l2 = 0;
             l6 = 0;
-
+            i6 = _rtg_list_{nid};
+            lcntr = r5, do .rtg_xp_{nid} until lce;
+                r6 = dm(i6, 1);               /* source            */
+                r3 = dm(i6, 1);               /* bus accumulator   */
+                r1 = dm(i6, 1);               /* coefficient       */
         #if DSP4_BLOCK_KERNELS
-            /* Per-BLOCK accumulate: one _acc64_mac_blk per LIVE crosspoint
-             * per block. Coefficients only -- no control state is read
-             * here, and a zero coefficient contributes nothing, so it is
-             * skipped rather than multiplied. */
-            r1 = dm(_rtg_mlq_{nid});
-            r1 = pass r1;
-            if eq jump (pc, .rtg_noml_{nid});
-            i0 = BLK_CHAIN_A;
-            i2 = _bus_acc_main_l;
-            call _acc64_mac_blk;
-        .rtg_noml_{nid}:
-            r1 = dm(_rtg_mrq_{nid});
-            r1 = pass r1;
-            if eq jump (pc, .rtg_nomr_{nid});
-            i0 = BLK_CHAIN_A;
-            i2 = _bus_acc_main_r;
-            call _acc64_mac_blk;
-        .rtg_nomr_{nid}:
-            r1 = dm(_rtg_subq_{nid});
-            r1 = pass r1;
-            if eq jump (pc, .rtg_nosub_{nid});
-            i0 = BLK_CHAIN_A;
-            i2 = _bus_acc_sub;
-            call _acc64_mac_blk;
-        .rtg_nosub_{nid}:
-
-            i3 = _bus_acc_grp_ptrs;
-            i5 = _rtg_grpq_{nid};
-            r5 = 4;
-            lcntr = r5, do .rtg_grp_{nid} until lce;
-                r1 = dm(i5, 1);
-                r3 = dm(i3, 1);
-                r1 = pass r1;
-                if eq jump (pc, .rtg_gskip_{nid});
-                i2 = r3;
-                i0 = BLK_CHAIN_A;
-                call _acc64_mac_blk;
-            .rtg_gskip_{nid}:
-                nop;
-            .rtg_grp_{nid}:
-                nop;
-
-            i3 = _bus_acc_aux_ptrs;
-            i4 = _rtg_aux_sq_{nid};
-            i6 = _rtg_aux_src_{nid};
-            r5 = 12;
-            lcntr = r5, do .rtg_aux_{nid} until lce;
-                r1 = dm(i4, 1);           /* crosspoint coefficient */
-                r3 = dm(i3, 1);           /* bus accumulator        */
-                r6 = dm(i6, 1);           /* resolved source block  */
-                r1 = pass r1;
-                if eq jump (pc, .rtg_askip_{nid});
                 i0 = r6;
                 i2 = r3;
                 call _acc64_mac_blk;
-            .rtg_askip_{nid}:
-                nop;
-            .rtg_aux_{nid}:
-                nop;
-
-            i3 = _bus_acc_fx_ptrs;
-            i4 = _rtg_fx_sq_{nid};
-            i6 = _rtg_fx_src_{nid};
-            r5 = 6;
-            lcntr = r5, do .rtg_fx_{nid} until lce;
-                r1 = dm(i4, 1);
-                r3 = dm(i3, 1);
-                r6 = dm(i6, 1);
-                r1 = pass r1;
-                if eq jump (pc, .rtg_fskip_{nid});
-                i0 = r6;
-                i2 = r3;
-                call _acc64_mac_blk;
-            .rtg_fskip_{nid}:
-                nop;
-            .rtg_fx_{nid}:
-                nop;
         #else
-
-            /* ===== Main L/R: post-fader mono x pan-leg coefficient ===== */
-            r0 = dm(_buf_{fdr_id});
-            r1 = dm(_rtg_mlq_{nid});
-            r1 = pass r1;
-            if eq jump (pc, .rtg_noml_{nid});
-            i2 = _bus_acc_main_l;
-            call _acc64_mac;
-        .rtg_noml_{nid}:
-            r0 = dm(_buf_{fdr_id});
-            r1 = dm(_rtg_mrq_{nid});
-            r1 = pass r1;
-            if eq jump (pc, .rtg_nomr_{nid});
-            i2 = _bus_acc_main_r;
-            call _acc64_mac;
-        .rtg_nomr_{nid}:
-
-            /* ===== Sub (mono) ===== */
-            r0 = dm(_buf_{fdr_id});
-            r1 = dm(_rtg_subq_{nid});
-            r1 = pass r1;
-            if eq jump (pc, .rtg_nosub_{nid});
-            i2 = _bus_acc_sub;
-            call _acc64_mac;
-        .rtg_nosub_{nid}:
-
-            /* ===== Groups ===== */
-            i3 = _bus_acc_grp_ptrs;
-            i5 = _rtg_grpq_{nid};
-            r5 = 4;
-            lcntr = r5, do .rtg_grp_{nid} until lce;
-                r1 = dm(i5, 1);           /* crosspoint coefficient */
-                r3 = dm(i3, 1);           /* pair base              */
-                r1 = pass r1;
-                if eq jump (pc, .rtg_gskip_{nid});
-                i2 = r3;
-                r0 = dm(_buf_{fdr_id});
-                call _acc64_mac;
-            .rtg_gskip_{nid}:
-                nop;
-            .rtg_grp_{nid}:
-                nop;
-
-            /* ===== Aux sends ===== */
-            i3 = _bus_acc_aux_ptrs;
-            i4 = _rtg_aux_sq_{nid};
-            i6 = _rtg_aux_src_{nid};
-            r5 = 12;
-            lcntr = r5, do .rtg_aux_{nid} until lce;
-                r1 = dm(i4, 1);           /* crosspoint coefficient */
-                r3 = dm(i3, 1);           /* pair base              */
-                r6 = dm(i6, 1);           /* resolved source tap    */
-                r1 = pass r1;
-                if eq jump (pc, .rtg_askip_{nid});
                 i1 = r6;
                 r0 = dm(i1, 0);
                 i2 = r3;
                 call _acc64_mac;
-            .rtg_askip_{nid}:
-                nop;
-            .rtg_aux_{nid}:
-                nop;
-
-            /* ===== FX sends ===== */
-            i3 = _bus_acc_fx_ptrs;
-            i4 = _rtg_fx_sq_{nid};
-            i6 = _rtg_fx_src_{nid};
-            r5 = 6;
-            lcntr = r5, do .rtg_fx_{nid} until lce;
-                r1 = dm(i4, 1);
-                r3 = dm(i3, 1);
-                r6 = dm(i6, 1);
-                r1 = pass r1;
-                if eq jump (pc, .rtg_fskip_{nid});
-                i1 = r6;
-                r0 = dm(i1, 0);
-                i2 = r3;
-                call _acc64_mac;
-            .rtg_fskip_{nid}:
-                nop;
-            .rtg_fx_{nid}:
-                nop;
-
         #endif
+            .rtg_xp_{nid}:
+                nop;
+        .rtg_tail_{nid}:
 
             r0 = dm(_tap_post_fader_{fdr_id});
             dm(_buf_{nid}) = r0;
@@ -7366,12 +7340,51 @@ def _fx_dyn_block_cvt(nid, pfx, with_knee, with_slope):
         '_C_F_KHALF_', '0x%08X' % _C_F_KHALF)
 
 
+# ---------------------------------------------------------------------------
+# Block-rate guard, emitted per NODE rather than per generator.
+#
+# `_sample_idx` is left at 31 by the scatter loop, so under
+# DSP4_BLOCK_KERNELS a surviving `_sample_idx == 0` test never fires and the
+# node runs on its .var initialisers. That is a real defect and it cost the
+# routing sends entirely (audited 2026-08-27).
+#
+# But it is NOT universal, and removing the guard everywhere is its own bug.
+# COMPRESSOR and GATE emit a block kernel for the plain strip instances
+# (C1_COMP_01, C1_GATE_01, ...) and that kernel DRIVES `_sample_idx` itself
+# before calling the per-sample body -- GATE's sidechain-filter fallback
+# calls that body 32 TIMES per block with the index driven 0 then 1, so
+# dropping the guard there would run the whole parameter conversion on every
+# sample. The same two generators emit NO block kernel for the chip-2
+# instances (C2_GRP_COMP_01, C2_MAIN_COMP, ...), whose names do not match,
+# and there the guard genuinely is dead.
+#
+# So: keep the guard exactly where something drives the index, drop it in the
+# block build everywhere else.
+# ---------------------------------------------------------------------------
+def _blk_rate_guard(label, nid, has_block_kernel):
+    guard = (f'            r4 = dm(_sample_idx);\n'
+             f'            r1 = 0;\n'
+             f'            comp(r4, r1);\n'
+             f'            if ne jump (pc, .{label}_{nid});\n')
+    if has_block_kernel:
+        return ('        /* Kept in BOTH builds: this node has a block kernel that drives\n'
+                '         * _sample_idx before reaching here, so the guard fires exactly\n'
+                '         * once per block and is doing its job. */\n' + guard)
+    return ('        /* Per-sample builds only. Under DSP4_BLOCK_KERNELS this node has no\n'
+            '         * block kernel, the chain reaches it once per block with _sample_idx\n'
+            '         * at 31, and a surviving guard would never fire -- the parameters\n'
+            '         * below would never convert and the node would run on its .var\n'
+            '         * initialisers. */\n'
+            '        #if !DSP4_BLOCK_KERNELS\n' + guard + '        #endif\n')
+
+
 def gen_compressor_fixed(node):
     import re as _re
     if _re.match(r'^C\d+_COMP_\d+$', node['id']):
         blk_comp_body = _COMP_BLK_BODY.format(nid=node['id'], inp=node['inputs_str'])
     else:
         blk_comp_body = ''
+    comp_go_guard = _blk_rate_guard('comp_go', node['id'], bool(blk_comp_body))
 
     """Fixed COMPRESSOR (D5): fixed envelope + _compgain_fx (log2
     domain, soft knee) per fixed_ref; float control converted at block
@@ -7438,18 +7451,7 @@ def gen_compressor_fixed(node):
         #endif
 
             /* --- block rate: makeup ramp + param conversion --- */
-        /* The block-rate guard exists ONLY for the per-sample build. Under
-         * DSP4_BLOCK_KERNELS the node chain runs ONCE per block with
-         * _sample_idx left at 31 by the scatter loop, so a surviving
-         * `_sample_idx == 0` test NEVER fires and the parameters below are
-         * never converted -- the node then runs on its .var initialisers.
-         * Audited 2026-08-27: 132 nodes carried this dead guard. */
-        #if !DSP4_BLOCK_KERNELS
-            r4 = dm(_sample_idx);
-            r1 = 0;
-            comp(r4, r1);
-            if ne jump (pc, .comp_go_{nid});
-        #endif
+{comp_go_guard}
             r4 = dm(_comp_makeup_frames_{nid});
             comp(r4, r1);
             if le jump (pc, .no_mramp_{nid});
@@ -7628,6 +7630,7 @@ def gen_gate_fixed(node):
                                               inp=node['inputs_str'])
     else:
         blk_gate_body = ''
+    gate_go_guard = _blk_rate_guard('gate_go', node['id'], bool(blk_gate_body))
 
     """Fixed GATE (D5): fixed envelope, log2-domain threshold compare,
     integer hold counter, one-pole fixed gain smoother toward 1.0 or
@@ -7692,18 +7695,7 @@ def gen_gate_fixed(node):
             r13 = r0;
 
             /* --- block rate: param conversion --- */
-        /* The block-rate guard exists ONLY for the per-sample build. Under
-         * DSP4_BLOCK_KERNELS the node chain runs ONCE per block with
-         * _sample_idx left at 31 by the scatter loop, so a surviving
-         * `_sample_idx == 0` test NEVER fires and the parameters below are
-         * never converted -- the node then runs on its .var initialisers.
-         * Audited 2026-08-27: 132 nodes carried this dead guard. */
-        #if !DSP4_BLOCK_KERNELS
-            r4 = dm(_sample_idx);
-            r1 = 0;
-            comp(r4, r1);
-            if ne jump (pc, .gate_go_{nid});
-        #endif
+{gate_go_guard}
             r2 = 0x4F000000;
             f2 = r2;
             f1 = dm(_gate_attack_{nid});
