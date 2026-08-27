@@ -1,0 +1,10 @@
+# Matrix cell-name prefixes that are MCU-only (no DSP mapping expected).
+# Read by MW/D32/DSP/gen_dsp.py's validate() to skip these when reporting
+# _matrix.csv cells with no DSP mapping. Add a prefix here when a new
+# MCU-only family is adopted from mx26 — no code edit needed.
+Sys
+Fdr
+Zz
+Another
+Mute
+Rec

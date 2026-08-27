@@ -23,8 +23,16 @@ import sys
 from collections import OrderedDict
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+REPO_ROOT  = os.path.join(SCRIPT_DIR, '..', '..', '..')
 DSP_CSV    = os.path.join(SCRIPT_DIR, 'SHARC', 'dsp.csv')
 MATRIX_CSV = os.path.join(SCRIPT_DIR, '..', 'MX', '_matrix.csv')
+MCU_ONLY_PREFIXES_FILE = os.path.join(REPO_ROOT, 'mcu-only-prefixes.txt')
+
+
+def load_mcu_only_prefixes():
+    with open(MCU_ONLY_PREFIXES_FILE, encoding='utf-8') as f:
+        return tuple(line.split('#', 1)[0].strip() for line in f
+                     if line.split('#', 1)[0].strip())
 
 NODES_DIR_C1       = os.path.join(SCRIPT_DIR, 'SHARC', 'src', 'chip1', 'nodes')
 NODES_DIR_C2       = os.path.join(SCRIPT_DIR, 'SHARC', 'src', 'chip2', 'nodes')
@@ -1226,6 +1234,7 @@ def write_ghost_cells_h(dry_run=False):
         print(f'[DRY-RUN] Would write {OUT_GHOST_H_H1S1} ({n} cells, header only)')
         print(f'[DRY-RUN] Would write {OUT_GHOST_C_H1S1} ({n} cells, definition)')
     else:
+        os.makedirs(os.path.dirname(OUT_GHOST_H), exist_ok=True)
         with open(OUT_GHOST_H, 'w', encoding='utf-8') as f:
             f.write(dsp_h_content)
         print(f'  Wrote {OUT_GHOST_H} ({n} cells, header)')
@@ -1344,6 +1353,7 @@ def write_address_map(dry_run=False):
     if dry_run:
         print(f'[DRY-RUN] Would write {OUT_ADDR_MAP}')
     else:
+        os.makedirs(os.path.dirname(OUT_ADDR_MAP), exist_ok=True)
         with open(OUT_ADDR_MAP, 'w', encoding='utf-8') as f:
             f.write(content)
         print(f'  Wrote {OUT_ADDR_MAP}')
@@ -1356,11 +1366,12 @@ def validate(matrix_rows):
     """Warn on cells present in one source but not the other."""
     matrix_names = {r['_Cell'] for r in matrix_rows if r.get('_Cell')}
 
+    mcu_only_prefixes = load_mcu_only_prefixes()
     in_map_not_matrix = set(cell_map.keys()) - matrix_names
     in_matrix_no_dsp = set()
     for name in matrix_names:
         # Skip known MCU-only prefixes
-        if any(name.startswith(p) for p in ('Sys', 'Fdr', 'Zz', 'Another', 'Mute', 'Rec')):
+        if any(name.startswith(p) for p in mcu_only_prefixes):
             continue
         if name not in cell_map:
             in_matrix_no_dsp.add(name)
