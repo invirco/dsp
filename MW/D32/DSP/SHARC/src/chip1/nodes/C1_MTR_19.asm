@@ -11,98 +11,117 @@
  *----------------------------------------------------------------------*/
 #include "dsp_block.h"
 
-/* METER: Read-back level / GR meter (DSP writes, host polls) */
+/* METER: level read-back (DSP writes, host polls) */
 /* SPI page=1 addr=4680 */
 
 #include "blk_pool.h"
 
 .section/dm seg_dmda;
 .extern _buf_C1_GAIN_19;
+/* ORDER IS LOAD-BEARING: _mtr_fold takes the address of
+ * _mtr_peak_C1_MTR_19 and reaches the rest by offset. The three float
+ * words keep their names and their SPI dispatch entries. */
 .global _mtr_peak_C1_MTR_19;
-.var _mtr_peak_C1_MTR_19 = 0.0;
+.var _mtr_peak_C1_MTR_19 = 0.0;      /* +0 linear peak, host contract */
 .global _mtr_rms_C1_MTR_19;
-.var _mtr_rms_C1_MTR_19 = 0.0;
+.var _mtr_rms_C1_MTR_19 = 0.0;       /* +1 linear TRUE rms            */
 .global _mtr_gr_C1_MTR_19;
-.var _mtr_gr_C1_MTR_19 = 0.0;         /* gain reduction (gate or comp) */
+.var _mtr_gr_C1_MTR_19 = 0.0;        /* +2 gain reduction -- see below */
+.global _mtr_st_C1_MTR_19;
+.var _mtr_st_C1_MTR_19[4];           /* +3 pk_lo pk_hi ms_lo ms_hi     */
+#if !DSP4_BLOCK_KERNELS
+.global _mtr_acc_C1_MTR_19;
+.var _mtr_acc_C1_MTR_19[4];          /* mx mn ssq_lo ssq_hi            */
+#endif
 
 .section/pm seg_pmco;
+.extern _mtr_fold;
+.extern _sample_idx;
 .global _C1_MTR_19_process;
 _C1_MTR_19_process:
 #if DSP4_BLOCK_KERNELS
-    /* Per-block, with the step INLINED. The source tap is a POOL
-     * slot (BLK_CHAIN_B, which is where GAIN writes), live only
-     * while this channel's strip is running -- which is why the
-     * generator places each meter immediately after its source
-     * instead of leaving it at chain index 320+, thirty-one
-     * channels too late.
+    /* Per block. Three instructions per sample, no memory traffic
+     * beyond the source read, then one fold.
      *
-     * THE ARITHMETIC BELOW IS UNCHANGED, deliberately, and that
-     * includes its oddities: the new-peak path stores the peak and
-     * does NOT update the RMS, so the RMS only advances on the
-     * decay path. That is what the shared step did and it is
-     * reproduced exactly. The meters have four recorded defects
-     * (they read a Q4.28 word as an IEEE float, among others) and
-     * whether to fix, decimate or retire them is the hub's decision
-     * and still open -- so this changes only how the same
-     * arithmetic is REACHED, not what it computes.
+     * Source: BLK_TAP_TRIM, the block C1_GAIN_19 publishes.
+     * Every sample of the block is in the peak and
+     * in the mean square -- nothing is decimated.
      *
-     * What the inline removes: a call and an rts on every one of
-     * 32 samples x 32 meters = 1,024 invocations per block, plus
-     * the two constant reloads, which now sit in f2 and f5 across
-     * the whole loop (nothing in the body touches them). Measured
-     * 2026-08-27: the meters were 32,324 cycles/block, 37.5 % of
-     * the fabric. */
+     * The arithmetic this replaces was wrong four separate ways
+     * (tools/dsp/hw-reports/mtr-2026-08-23.md): it read a Q4.28
+     * word as an IEEE float, its RMS never advanced because the
+     * new-peak branch returned first, its decay constant was
+     * derived for a block rate and applied per sample, and there
+     * was no reference model to catch any of it. */
     l2 = 0;
-    i2 = BLK_CHAIN_B;
-    r2 = 0x3F7FDF3B;          /* 0.9995 IEEE 754, hoisted */
-    f2 = r2;
-    r5 = 0x3C23D70A;          /* 0.01   IEEE 754, hoisted */
-    f5 = r5;
+    m2 = 1;
+    i2 = BLK_TAP_TRIM;          /* C1_GAIN_19 publishes its block here */
+    r8 = 0x80000000;              /* running max: most negative */
+    r9 = 0x7FFFFFFF;              /* running min: most positive */
+    mrf = 0;
     lcntr = DSP4_BLOCK_SIZE, do .mtrk_C1_MTR_19 until lce;
-        r0 = dm(i2, 1);
-        f0 = abs f0;
-        f1 = dm(_mtr_peak_C1_MTR_19);
-        comp(f0, f1);
-        if le jump (pc, .mtrd_C1_MTR_19);
-        dm(_mtr_peak_C1_MTR_19) = f0;
-        jump (pc, .mtrk_C1_MTR_19);
-    .mtrd_C1_MTR_19:
-        f1 = f1 * f2;                     /* peak *= 0.9995 */
-        dm(_mtr_peak_C1_MTR_19) = f1;
-        f3 = dm(_mtr_rms_C1_MTR_19);
-        f4 = f0 * f0;                     /* x^2 */
-        f6 = f4 - f3;
-        f6 = f5 * f6;
-        f3 = f3 + f6;
-        dm(_mtr_rms_C1_MTR_19) = f3;
+        r0 = dm(i2, m2);
+        r8 = max(r8, r0);
+        mrf = mrf + r0 * r0 (ssi);
     .mtrk_C1_MTR_19:
-        nop;
+        r9 = min(r9, r0);
+    r0 = _mtr_peak_C1_MTR_19;
+#if !DSP4_MTR_NOFOLD
+    call _mtr_fold;
+#endif
     rts;
 #else
-    /* Read source tap */
+    /* Per SAMPLE. The block accumulators live in DM because there
+     * is no loop to hold them in registers, and the fold fires on
+     * the last sample of the block -- so both paths run the SAME
+     * arithmetic and the same reference covers both. */
     r0 = dm(_buf_C1_GAIN_19);
-    f0 = abs f0;
-
-    /* Peak hold with exponential decay */
-    f1 = dm(_mtr_peak_C1_MTR_19);
-    comp(f0, f1);
-    if le jump (pc, .mtr_decay_C1_MTR_19);
-    dm(_mtr_peak_C1_MTR_19) = f0;
+    r4 = dm(_sample_idx);
+    r1 = 0;
+    comp(r4, r1);
+    if ne jump (pc, .mtacc_C1_MTR_19);
+    /* first sample of the block: seed rather than accumulate */
+    dm(_mtr_acc_C1_MTR_19 + 0) = r0;
+    dm(_mtr_acc_C1_MTR_19 + 1) = r0;
+    mrf = 0;
+    mrf = mrf + r0 * r0 (ssi);
+    r2 = mr0f;
+    dm(_mtr_acc_C1_MTR_19 + 2) = r2;
+    r2 = mr1f;
+    dm(_mtr_acc_C1_MTR_19 + 3) = r2;
     rts;
-.mtr_decay_C1_MTR_19:
-    /* Decay: peak *= 0.9995 (~150ms to -60dB at 1500 Hz frame rate) */
-    r2 = 0x3F7FDF3B;  /* 0.9995 IEEE 754 */
-    f1 = f1 * f2;
-    dm(_mtr_peak_C1_MTR_19) = f1;
-
-    /* RMS: single-pole IIR on x² */
-    f3 = dm(_mtr_rms_C1_MTR_19);
-    f4 = f0 * f0;             /* x² */
-    r5 = 0x3C23D70A;  /* 0.01 IEEE 754 */
-    f6 = f4 - f3;
-    f6 = f5 * f6;
-    f3 = f3 + f6;
-    dm(_mtr_rms_C1_MTR_19) = f3;
+.mtacc_C1_MTR_19:
+    r2 = dm(_mtr_acc_C1_MTR_19 + 0);
+    r2 = max(r2, r0);
+    dm(_mtr_acc_C1_MTR_19 + 0) = r2;
+    r2 = dm(_mtr_acc_C1_MTR_19 + 1);
+    r2 = min(r2, r0);
+    dm(_mtr_acc_C1_MTR_19 + 1) = r2;
+    r2 = dm(_mtr_acc_C1_MTR_19 + 2);
+    mr0f = r2;
+    r3 = dm(_mtr_acc_C1_MTR_19 + 3);
+    mr1f = r3;
+    r2 = ashift r3 by -31;
+    mr2f = r2;
+    mrf = mrf + r0 * r0 (ssi);
+    r2 = mr0f;
+    dm(_mtr_acc_C1_MTR_19 + 2) = r2;
+    r2 = mr1f;
+    dm(_mtr_acc_C1_MTR_19 + 3) = r2;
+    r1 = DSP4_BLOCK_SIZE - 1;
+    comp(r4, r1);
+    if ne rts;
+    r8 = dm(_mtr_acc_C1_MTR_19 + 0);
+    r9 = dm(_mtr_acc_C1_MTR_19 + 1);
+    r0 = _mtr_peak_C1_MTR_19;
+    call _mtr_fold;
     rts;
 #endif
 _C1_MTR_19_process.end:
+
+/* _mtr_gr_C1_MTR_19 IS STILL NOT WRITTEN, and that is recorded defect
+ * 4. It is not a numerics bug: the meter's `taps` parameter names
+ * gate_gr and comp_gr but dsp.csv carries no ids for them, so
+ * there is nothing to read without inventing a naming convention
+ * between MTR_nn and GATE_nn. That belongs in the mx26 contract,
+ * not here. The word stays declared and zero. */

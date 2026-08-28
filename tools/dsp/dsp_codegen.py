@@ -591,6 +591,13 @@ assert BLOCK == (1 << BLOCK_SHIFT) and BLOCK >= 2, \
 BLOCK_HALF = BLOCK // 2
 BLOCKS_PER_SEC = 48000.0 / BLOCK
 
+# How often the meters convert their fixed-point state to the float the
+# host reads. The MEASUREMENT is every sample of every block; only the
+# presentation is rate-limited, because a square root and two float
+# converts per meter per block is real money at BLOCK=8 and no display
+# needs 6 kHz. 8 gives 750 Hz at BLOCK=8.
+MTR_CVT_DIV = 8
+
 
 def _f32hex(x):
     """IEEE-754 single-precision bit pattern of x, as an ASM hex literal."""
@@ -3940,6 +3947,165 @@ def gen_meter(node):
     """)
 
 
+# Which pool slot a meter's SOURCE publishes its block into. This is a
+# fact about the source node's block kernel, not a guess:
+#   GAIN       -- gen_gain_fixed writes BLK_TAP_TRIM (the post-trim tap)
+#   FADER_PAN  -- gen_fader_pan_fixed writes its mono result to BLK_CHAIN_A
+# Any other source publishes no block, and the meter falls back to the
+# scalar _buf_ of its source: ONE sample per block, correctly converted,
+# instead of the whole block. That is a real limitation and it is NOT
+# hidden -- the generated node says so and it is recorded in tasks.md.
+#
+# It is still a repair. Before 2026-08-28 every meter read BLK_CHAIN_B
+# unconditionally, and on chip 2 that is not its source at all: FADER_PAN
+# READS BLK_CHAIN_B and writes BLK_CHAIN_A, and OUTPUT_TDM and
+# COMPRESSOR do not touch the pool. Twenty-one chip-2 meters were
+# metering another node's signal.
+_METER_SRC_BLOCK = {
+    'GAIN': 'BLK_TAP_TRIM',
+    'FADER_PAN': 'BLK_CHAIN_A',
+}
+
+
+def gen_meter_fixed(node):
+    """METER — rebuilt in-kernel, 2026-08-28 (PW ruling).
+
+    NORMATIVE REFERENCE: fixed_ref.meter_block. The per-sample line is
+    three instructions and touches no memory; everything else happens
+    once per block in _mtr_fold (src/lib/meter_fx.asm), which is where
+    the arithmetic and the reasoning are written down.
+    """
+    nid = node['id']
+    src = node['inputs_str']
+    src_blk = node['params'].get('mtr_src_blk', '')
+    if src_blk:
+        tap = (f'            i2 = {src_blk};'
+               f'          /* {src} publishes its block here */')
+        note = (f'             * Source: {src_blk}, the block {src} publishes.\n'
+                f'             * Every sample of the block is in the peak and\n'
+                f'             * in the mean square -- nothing is decimated.')
+    else:
+        tap = f'            i2 = _buf_{src};                  /* scalar */'
+        note = (f'             * LIMITATION, recorded: {src} publishes no\n'
+                f'             * block under DSP4_BLOCK_KERNELS, only the\n'
+                f'             * scalar _buf_{src} holding the LAST sample,\n'
+                f'             * so this meter sees one sample per block.\n'
+                f'             * Before today it read BLK_CHAIN_B, which is\n'
+                f'             * not this signal at all. Fixing it properly\n'
+                f'             * means block-converting the SOURCE.')
+        # one sample, read BLOCK times from the same address: m0 = 0
+    step = '1' if src_blk else '0'
+
+    return dedent(f"""\
+        /* METER: level read-back (DSP writes, host polls) */
+        /* SPI page={node['spi_page']} addr={node['spi_addr']} */
+
+        #include "blk_pool.h"
+
+        .section/dm seg_dmda;
+        /* ORDER IS LOAD-BEARING: _mtr_fold takes the address of
+         * _mtr_peak_{nid} and reaches the rest by offset. The three float
+         * words keep their names and their SPI dispatch entries. */
+        .var _mtr_peak_{nid} = 0.0;      /* +0 linear peak, host contract */
+        .var _mtr_rms_{nid} = 0.0;       /* +1 linear TRUE rms            */
+        .var _mtr_gr_{nid} = 0.0;        /* +2 gain reduction -- see below */
+        .var _mtr_st_{nid}[4];           /* +3 pk_lo pk_hi ms_lo ms_hi     */
+        #if !DSP4_BLOCK_KERNELS
+        .var _mtr_acc_{nid}[4];          /* mx mn ssq_lo ssq_hi            */
+        #endif
+
+        .section/pm seg_pmco;
+        .extern _mtr_fold;
+        .extern _sample_idx;
+        .global _{nid}_process;
+        _{nid}_process:
+        #if DSP4_BLOCK_KERNELS
+            /* Per block. Three instructions per sample, no memory traffic
+             * beyond the source read, then one fold.
+             *
+{note}
+             *
+             * The arithmetic this replaces was wrong four separate ways
+             * (tools/dsp/hw-reports/mtr-2026-08-23.md): it read a Q4.28
+             * word as an IEEE float, its RMS never advanced because the
+             * new-peak branch returned first, its decay constant was
+             * derived for a block rate and applied per sample, and there
+             * was no reference model to catch any of it. */
+            l2 = 0;
+            m2 = {step};
+{tap}
+            r8 = 0x80000000;              /* running max: most negative */
+            r9 = 0x7FFFFFFF;              /* running min: most positive */
+            mrf = 0;
+            lcntr = DSP4_BLOCK_SIZE, do .mtrk_{nid} until lce;
+                r0 = dm(i2, m2);
+                r8 = max(r8, r0);
+                mrf = mrf + r0 * r0 (ssi);
+            .mtrk_{nid}:
+                r9 = min(r9, r0);
+            r0 = _mtr_peak_{nid};
+        #if !DSP4_MTR_NOFOLD
+            call _mtr_fold;
+        #endif
+            rts;
+        #else
+            /* Per SAMPLE. The block accumulators live in DM because there
+             * is no loop to hold them in registers, and the fold fires on
+             * the last sample of the block -- so both paths run the SAME
+             * arithmetic and the same reference covers both. */
+            r0 = dm(_buf_{src});
+            r4 = dm(_sample_idx);
+            r1 = 0;
+            comp(r4, r1);
+            if ne jump (pc, .mtacc_{nid});
+            /* first sample of the block: seed rather than accumulate */
+            dm(_mtr_acc_{nid} + 0) = r0;
+            dm(_mtr_acc_{nid} + 1) = r0;
+            mrf = 0;
+            mrf = mrf + r0 * r0 (ssi);
+            r2 = mr0f;
+            dm(_mtr_acc_{nid} + 2) = r2;
+            r2 = mr1f;
+            dm(_mtr_acc_{nid} + 3) = r2;
+            rts;
+        .mtacc_{nid}:
+            r2 = dm(_mtr_acc_{nid} + 0);
+            r2 = max(r2, r0);
+            dm(_mtr_acc_{nid} + 0) = r2;
+            r2 = dm(_mtr_acc_{nid} + 1);
+            r2 = min(r2, r0);
+            dm(_mtr_acc_{nid} + 1) = r2;
+            r2 = dm(_mtr_acc_{nid} + 2);
+            mr0f = r2;
+            r3 = dm(_mtr_acc_{nid} + 3);
+            mr1f = r3;
+            r2 = ashift r3 by -31;
+            mr2f = r2;
+            mrf = mrf + r0 * r0 (ssi);
+            r2 = mr0f;
+            dm(_mtr_acc_{nid} + 2) = r2;
+            r2 = mr1f;
+            dm(_mtr_acc_{nid} + 3) = r2;
+            r1 = DSP4_BLOCK_SIZE - 1;
+            comp(r4, r1);
+            if ne rts;
+            r8 = dm(_mtr_acc_{nid} + 0);
+            r9 = dm(_mtr_acc_{nid} + 1);
+            r0 = _mtr_peak_{nid};
+            call _mtr_fold;
+            rts;
+        #endif
+        _{nid}_process.end:
+
+        /* _mtr_gr_{nid} IS STILL NOT WRITTEN, and that is recorded defect
+         * 4. It is not a numerics bug: the meter's `taps` parameter names
+         * gate_gr and comp_gr but dsp.csv carries no ids for them, so
+         * there is nothing to read without inventing a naming convention
+         * between MTR_nn and GATE_nn. That belongs in the mx26 contract,
+         * not here. The word stays declared and zero. */
+    """)
+
+
 def gen_dca(node):
     p = node['params']
     rc = ramp_comment(node['ramp_profile'])
@@ -6525,6 +6691,8 @@ def gen_block_header():
     (dma_config.c). Anything that needs a sample count per block asks
     here; nothing hardcodes one.
     """
+    import fixed_ref
+    _mtr_alpha_q, _mtr_beta_q = fixed_ref.meter_coeffs(BLOCK)
     return f"""\
 /* dsp_block.h — audio block size (samples per DMA block) */
 /* AUTO-GENERATED by tools/dsp/dsp_codegen.py — do not edit directly. */
@@ -6553,6 +6721,23 @@ def gen_block_header():
 #define DSP4_BLOCK_SHIFT  {BLOCK_SHIFT}
 #define DSP4_BLOCK_F32    {_f32hex(BLOCK)}
 #define DSP4_BLOCK_RATE   {int(BLOCKS_PER_SEC)}
+
+/* METER coefficients. They live here because they are functions of the
+ * BLOCK RATE, not of the meter: the time constants are fixed properties
+ * (RMS window {fixed_ref.METER_TAU_RMS_S * 1000:.0f} ms, peak-hold decay
+ * {fixed_ref.METER_TAU_PEAK_S:.3f} s) and the per-block coefficient that
+ * realises them moves when the block size moves. Getting this wrong is
+ * exactly the third recorded meter defect -- a constant derived for 1500
+ * blocks/s applied once per SAMPLE, which ran the decay 32x fast.
+ * Q4.28, one - exp(-1 / (rate * tau)). Normative source:
+ * tools/dsp/fixed_ref.py::meter_coeffs.
+ *
+ * DSP4_MTR_CVT_DIV rate-limits only the float CONVERSION for the host
+ * ({int(BLOCKS_PER_SEC) // MTR_CVT_DIV} Hz); the measurement itself is
+ * every sample of every block. */
+#define DSP4_MTR_ALPHA_Q  {_mtr_alpha_q}
+#define DSP4_MTR_BETA_Q   {_mtr_beta_q}
+#define DSP4_MTR_CVT_DIV  {MTR_CVT_DIV}
 
 #endif /* DSP4_BLOCK_H */
 """
@@ -8171,6 +8356,7 @@ def gen_fx_engine_fixed(node):
 
 
 FIXED_GENERATORS = {
+    'METER': gen_meter_fixed,
     'EQ_BIQUAD': gen_eq_biquad_fixed,
     'GEQ': gen_geq_fixed,
     'ANTI_FB': gen_anti_fb_fixed,
@@ -8252,9 +8438,23 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
         # makes the reorder safe.
         _mtr_after = {}
         if FORMAT == 'fixed':
+            _by_id = {n['id']: n for n in nodes}
             for n in chip_nodes:
                 if n['type'] == 'METER' and n.get('inputs'):
-                    _mtr_after.setdefault(n['inputs'][0], []).append(n['id'])
+                    src_id = n['inputs'][0]
+                    _mtr_after.setdefault(src_id, []).append(n['id'])
+                    # Resolve the source's block publication ONCE, here,
+                    # where the whole graph is in hand. No-fallback policy
+                    # does not apply: a source that publishes no block is a
+                    # known, recorded state, not an unknown one -- the
+                    # generated node says so in its own header.
+                    src = _by_id.get(src_id)
+                    if src is None:
+                        raise ValueError(
+                            f"METER {n['id']} names input {src_id!r}, which "
+                            f"is not a node in dsp.csv")
+                    n['params']['mtr_src_blk'] = _METER_SRC_BLOCK.get(
+                        src['type'], '')
         _mtr_ids = {m for v in _mtr_after.values() for m in v}
 
         for node in chip_nodes:

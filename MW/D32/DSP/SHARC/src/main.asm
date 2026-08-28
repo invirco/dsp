@@ -139,6 +139,7 @@
 .extern _rx_active_buf, _tx_active_buf;
 .extern _ic_rx_active_buf, _ic_tx_active_buf;
 .extern _meter_decay_block;
+.extern _mtr_block_tick;
 #if CHIP_ID == 1
 .extern _meter_scan_chip1;
 #elif CHIP_ID == 2
@@ -676,6 +677,13 @@ _start:
     dm(_proc_t0) = r0;
     r0 = tcount;
     dm(_proc_c0) = r0;
+
+    /* Meter readback gate for this block. The meters MEASURE every
+     * sample of every block; this only says whether this block's fold
+     * also converts the fixed-point state to the float the host reads
+     * (see src/lib/meter_fx.asm). It has to be set before the node
+     * chain runs, because the meters live inside it. */
+    call _mtr_block_tick;
 
 #if CHIP_ID == 1
 

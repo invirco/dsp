@@ -239,3 +239,109 @@ def comp_gain_f(x_abs, thr_db, ratio, knee_db=0.0):
     else:
         gr = over * slope
     return 10.0 ** (-gr / 20.0)
+
+
+# ---------------------------------------------------------------------------
+# METER — NORMATIVE (2026-08-28, PW ruling "rebuild in-kernel")
+#
+# The meter that this replaces had four recorded defects (see
+# tools/dsp/hw-reports/mtr-2026-08-23.md): it reinterpreted a Q4.28 word
+# as an IEEE float, its RMS never advanced because the new-peak branch
+# returned first, its decay ran once per SAMPLE against a constant
+# derived for once per BLOCK, and it had no reference model at all. This
+# is that model, and the assembly is written to match it bit-exactly.
+#
+# SHAPE. Per sample the kernel keeps three running quantities and touches
+# no memory: the maximum of x, the minimum of x, and an exact sum of x^2
+# in the 80-bit multiplier accumulator. Per block it folds those into two
+# 64-bit states. Nothing is decimated: every sample is in the peak and in
+# the mean square.
+#
+#   peak of the block   pk_blk = max(max x, -min x)          Q4.28
+#   mean square         ms_blk = (sum x^2) >> (QS + shift)   Q4.28
+#                       where 2**shift == BLOCK, so the shift is exact
+#                       and the block mean needs no divide
+#
+# STATE IS 64-BIT, and that is the point. Both one-poles have a
+# time constant of hundreds of blocks, so their per-block correction is
+# ~1e-4 of the state. Held in Q4.28 that correction rounds to zero for
+# anything below about -50 dBFS and the meter simply stops moving. Held
+# as Q8.56 -- which is what the multiplier produces anyway -- the
+# correction is a single exact MAC and the smallest step is 2^-56.
+#
+#   ms64 += alpha_q * (ms_blk - (ms64 >> QS))       [Q8.56 += Q4.28*Q4.28]
+#   pk64  = pk_blk << QS                     if pk_blk > (pk64 >> QS)
+#   pk64 -= beta_q * (pk64 >> QS)            otherwise
+#
+# Readback stays FLOAT, which is the existing host contract:
+#   peak = (pk64 >> QS) / 2**QS              linear amplitude
+#   rms  = sqrt((ms64 >> QS) / 2**QS)        linear amplitude, TRUE rms
+#
+# Time constants are properties of the meter, not of the block size, so
+# the coefficients are derived from the block RATE and every one of them
+# moves when BLOCK moves.
+# ---------------------------------------------------------------------------
+
+METER_TAU_RMS_S = 0.300      # RMS window, 300 ms class
+METER_TAU_PEAK_S = 1.333     # peak-hold decay; matches the library meter's
+                             # documented ~1.33 s at any block size
+METER_FS = 48000.0
+
+
+def meter_coeffs(block, fs=METER_FS):
+    """(alpha_q, beta_q) in Q4.28 for a given block size.
+
+    alpha is the RMS window's one-pole coefficient, beta the peak-hold
+    decay's, both per BLOCK: 1 - exp(-1 / (rate * tau)).
+    """
+    rate = fs / block
+    alpha = 1.0 - math.exp(-1.0 / (rate * METER_TAU_RMS_S))
+    beta = 1.0 - math.exp(-1.0 / (rate * METER_TAU_PEAK_S))
+    return to_q(alpha, QS), to_q(beta, QS)
+
+
+def meter_state():
+    """[pk64, ms64] — both Q8.56, both zero at reset."""
+    return [0, 0]
+
+
+def meter_block(xs, state, alpha_q, beta_q):
+    """One block of Q4.28 samples into the meter state (updated in place).
+
+    Returns (pk_blk, ms_blk) in Q4.28 — the block's own peak and mean
+    square, before the one-poles — because those are what the assembly
+    holds in registers and are the useful intermediate to diff against.
+    """
+    block = len(xs)
+    shift = block.bit_length() - 1
+    assert block == (1 << shift), 'BLOCK must be a power of two'
+
+    hi = max(xs)
+    lo = min(xs)
+    pk_blk = hi if hi > -lo else -lo
+    pk_blk = sat32(pk_blk)
+
+    ssq = 0
+    for x in xs:
+        ssq += x * x
+    ms_blk = sat32(ssq >> (QS + shift))
+
+    # RMS window: exact Q8.56 accumulate of a Q4.28 x Q4.28 correction.
+    ms_q = state[1] >> QS
+    state[1] += alpha_q * (ms_blk - ms_q)
+
+    # Peak hold: instant attack, one-pole decay, same 64-bit domain.
+    pk_q = state[0] >> QS
+    if pk_blk > pk_q:
+        state[0] = pk_blk << QS
+    else:
+        state[0] -= beta_q * pk_q
+
+    return pk_blk, ms_blk
+
+
+def meter_readback(state):
+    """(peak, rms) as floats — linear amplitude, the host contract."""
+    peak = (state[0] >> QS) / float(1 << QS)
+    ms = (state[1] >> QS) / float(1 << QS)
+    return peak, math.sqrt(ms) if ms > 0.0 else 0.0

@@ -26,4 +26,21 @@
 #define DSP4_BLOCK_F32    0x41000000
 #define DSP4_BLOCK_RATE   6000
 
+/* METER coefficients. They live here because they are functions of the
+ * BLOCK RATE, not of the meter: the time constants are fixed properties
+ * (RMS window 300 ms, peak-hold decay
+ * 1.333 s) and the per-block coefficient that
+ * realises them moves when the block size moves. Getting this wrong is
+ * exactly the third recorded meter defect -- a constant derived for 1500
+ * blocks/s applied once per SAMPLE, which ran the decay 32x fast.
+ * Q4.28, one - exp(-1 / (rate * tau)). Normative source:
+ * tools/dsp/fixed_ref.py::meter_coeffs.
+ *
+ * DSP4_MTR_CVT_DIV rate-limits only the float CONVERSION for the host
+ * (750 Hz); the measurement itself is
+ * every sample of every block. */
+#define DSP4_MTR_ALPHA_Q  149089
+#define DSP4_MTR_BETA_Q   33561
+#define DSP4_MTR_CVT_DIV  8
+
 #endif /* DSP4_BLOCK_H */
