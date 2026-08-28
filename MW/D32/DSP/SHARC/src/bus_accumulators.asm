@@ -12,6 +12,10 @@
 #else
 .var _blk_pool[64];    /* 8 slots x8 */
 #endif
+#if DSP4_PAIRED_GRAPH
+.global _blk_pool1;
+.var _blk_pool1[64];   /* the ODD strip of each pair, 8 slots x8 */
+#endif
 #endif
 
 #if DSP4_BLOCK_KERNELS
@@ -86,7 +90,10 @@ _bus_clear_all:
     lcntr = r1, do .bca_clr until lce;
         r2 = dm(i2, 1);
         i3 = r2;
-        r3 = 64;
+        /* 2 x BLOCK: one [lo, hi] pair per SAMPLE. This was a
+         * literal 64, right only at BLOCK=32; at BLOCK=8 each
+         * bus zeroed 48 words past its own array. */
+        r3 = 2*DSP4_BLOCK_SIZE;
         lcntr = r3, do .bca_clr_in until lce;
     .bca_clr_in:
             dm(i3, 1) = r0;

@@ -30,8 +30,10 @@
 .var _gate_release_C2_GRP_GATE_03 = 0.005;
 .global _gate_hold_C2_GRP_GATE_03;
 .var _gate_hold_C2_GRP_GATE_03 = 2400;
+#if !DSP4_PAIRED_GRAPH
 .global _gate_hold_count_C2_GRP_GATE_03;
 .var _gate_hold_count_C2_GRP_GATE_03 = 0;
+#endif
 .global _gate_range_C2_GRP_GATE_03;
 .var _gate_range_C2_GRP_GATE_03 = 0.001;       /* linear floor (float) */
 .global _gate_key_src_C2_GRP_GATE_03;
@@ -48,12 +50,24 @@
 .var _gate_filter_cq_C2_GRP_GATE_03[10];
 .global _gate_filter_state_C2_GRP_GATE_03;
 .var _gate_filter_state_C2_GRP_GATE_03[12];
+/* DECLARATION ORDER IS THE PAIR INTERFACE. _gate_pair_blk gathers
+ * and scatters the gate STATE as four consecutive words
+ * (env, gain, target, hold count) and reads its PARAMETERS as five
+ * (attq, relq, thrq, rngq, hold), so under a paired graph the hold
+ * count moves next to the other three state words and `hold` gets
+ * a converted twin next to the other four parameters. Both moves
+ * are guarded, so a build without pairing keeps the old layout and
+ * therefore the old bytes. */
 .global _gate_envelope_C2_GRP_GATE_03;
 .var _gate_envelope_C2_GRP_GATE_03 = 0;
 .global _gate_gain_C2_GRP_GATE_03;
 .var _gate_gain_C2_GRP_GATE_03 = 0x10000000;
 .global _gate_gain_target_q_C2_GRP_GATE_03;
 .var _gate_gain_target_q_C2_GRP_GATE_03 = 0x10000000;
+#if DSP4_PAIRED_GRAPH
+.global _gate_hold_count_C2_GRP_GATE_03;
+.var _gate_hold_count_C2_GRP_GATE_03 = 0;
+#endif
 .global _gate_attq_C2_GRP_GATE_03;
 .var _gate_attq_C2_GRP_GATE_03 = 0;
 .global _gate_relq_C2_GRP_GATE_03;
@@ -62,6 +76,10 @@
 .var _gate_thrq_C2_GRP_GATE_03 = 0;
 .global _gate_rngq_C2_GRP_GATE_03;
 .var _gate_rngq_C2_GRP_GATE_03 = 0;
+#if DSP4_PAIRED_GRAPH
+.global _gate_holdq_C2_GRP_GATE_03;
+.var _gate_holdq_C2_GRP_GATE_03 = 2400;
+#endif
 .global _buf_C2_GRP_GATE_03;
 .var _buf_C2_GRP_GATE_03;
 
@@ -124,6 +142,10 @@ _C2_GRP_GATE_03_process:
     f1 = f1 * f2;
     r1 = fix f1;
     dm(_gate_rngq_C2_GRP_GATE_03) = r1;
+#if DSP4_PAIRED_GRAPH
+    r1 = dm(_gate_hold_C2_GRP_GATE_03);
+    dm(_gate_holdq_C2_GRP_GATE_03) = r1;   /* five consecutive param words */
+#endif
     r2 = dm(_gate_filter_on_C2_GRP_GATE_03);
     r2 = pass r2;
     if eq jump (pc, .gate_go_C2_GRP_GATE_03);

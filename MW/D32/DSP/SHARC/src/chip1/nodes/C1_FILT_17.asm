@@ -79,8 +79,8 @@ _C1_FILT_17_process:
      * staging through the scalar buffers it already uses. */
     l3 = 0;
     l4 = 0;
-    i3 = BLK_CHAIN_B;
-    i4 = BLK_CHAIN_A;
+    i3 = BLK_CHAIN_B_P1;
+    i4 = BLK_CHAIN_A_P1;
     lcntr = DSP4_BLOCK_SIZE, do .fkb_xl_C1_FILT_17 until lce;
         r0 = dm(i3, 1);
         dm(_buf_C1_GAIN_17) = r0;
@@ -108,7 +108,7 @@ _C1_FILT_17_process:
     if ne jump (pc, .fkb_b_C1_FILT_17);
     i0 = _filt_hpf_A_C1_FILT_17;
     i1 = _filt_state_A_C1_FILT_17;
-    i2 = BLK_CHAIN_B;
+    i2 = BLK_CHAIN_B_P1;
     r4 = 2;                     /* HPF and LPF in ONE call: their
                                  * coefficient arrays are adjacent
                                  * and the state array is 2x6, so
@@ -118,7 +118,7 @@ _C1_FILT_17_process:
 .fkb_b_C1_FILT_17:
     i0 = _filt_hpf_B_C1_FILT_17;
     i1 = _filt_state_B_C1_FILT_17;
-    i2 = BLK_CHAIN_B;
+    i2 = BLK_CHAIN_B_P1;
     r4 = 2;
     call _bq_fx_cascade_blk;
     rts;

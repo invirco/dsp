@@ -120,14 +120,14 @@ _C1_GAIN_27_process:
     l0 = 0;
     l1 = 0;
     l4 = 0;
-    i0 = BLK_CHAIN_A;
-    i1 = BLK_CHAIN_B;
+    i0 = BLK_CHAIN_A_P1;
+    i1 = BLK_CHAIN_B_P1;
     /* The post-trim tap the router picks from, as a BLOCK. EQ and
-     * DLY already publish theirs (BLK_TAP_EQ, BLK_TAP_PREFDR);
+     * DLY already publish theirs (BLK_TAP_EQ_P1, BLK_TAP_PREFDR_P1);
      * this one never was, so a block-form aux send set to pickoff
      * 0 was handed the address of the SCALAR tap and walked 32
      * words off the end of it. */
-    i4 = BLK_TAP_TRIM;
+    i4 = BLK_TAP_TRIM_P1;
 #if DSP4_STRIP_FUSED
     /* FUSED (2026-08-28): the same seventeen instructions, two
      * samples at a time, interleaved, the second accumulating in
@@ -149,7 +149,7 @@ _C1_GAIN_27_process:
      * exactly into the first biquad stage's numerator triple,
      * b0/n1/n2 scaled by g, since n1 = b1 + 2*b0 and n2 = b2 - b0
      * scale with it). It cannot remove the meter, which reads
-     * BLK_CHAIN_B directly and is the subject of a parked ruling.
+     * BLK_CHAIN_B_P1 directly and is the subject of a parked ruling.
      * That is why GAIN is not one cycle/sample here.
      *
      * Nothing about the ARITHMETIC changes -- same operations,

@@ -43,4 +43,19 @@
 #define DSP4_MTR_BETA_Q   33561
 #define DSP4_MTR_CVT_DIV  8
 
+/* PAIRED GRAPH. DSP4_SIMD_DYN says the paired dynamics KERNELS are in the
+ * image; DSP4_SIMD_GRAPH says the graph is WIRED for them -- the odd pool,
+ * the pair drivers and the pair-ordered chain. They are separate because
+ * the self-test build wants the kernels and their scalar twins and nothing
+ * else: with the drivers in as well, chip 1's PM overflows sec_swco. Every
+ * piece of the wiring is guarded on this one macro. */
+#ifndef DSP4_SIMD_GRAPH
+#define DSP4_SIMD_GRAPH 1
+#endif
+#if DSP4_SIMD_DYN && DSP4_SIMD_GRAPH
+#define DSP4_PAIRED_GRAPH 1
+#else
+#define DSP4_PAIRED_GRAPH 0
+#endif
+
 #endif /* DSP4_BLOCK_H */

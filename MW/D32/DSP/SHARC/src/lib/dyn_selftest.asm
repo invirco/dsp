@@ -55,7 +55,19 @@
 
 .section/dm seg_dmda;
 
-/* ---- stimulus: two blocks per channel, deliberately unequal ---- */
+/* ---- stimulus: two blocks per channel, deliberately unequal ----
+ *
+ * FILLED AT RUN TIME by _dst_fillx, from DSP4_BLOCK_SIZE. It used to be
+ * these initialisers, laid out as 32 samples of block 1 followed by 32 of
+ * block 2 -- and the whole point of block 2 is that it puts the two
+ * channels in OPPOSITE arms of every predicated branch (A silent on the
+ * compressor's unity path with its gate closing into hold, B still above
+ * both thresholds). At BLOCK=8 the second block came out of words 8..15,
+ * which are still block 1's square wave, and the test quietly lost the
+ * branch coverage it exists for. The initialisers below are left as
+ * documentation of the intended shape; the array is 64 words so any block
+ * size up to 32 fits.
+ */
 .global _dst_xA;
 .var _dst_xA[64] =
     0x08000000, 0xF8000000, 0x08000000, 0xF8000000,
@@ -126,7 +138,15 @@
 /* tick counts: [comp scalar, comp pair, gate scalar, gate pair, null] */
 .global _dst_tick;      .var _dst_tick[20] =
     0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0;
-.global _dst_iters;     .var _dst_iters = 2048;
+/* ITERATIONS, SCALED BY THE BLOCK. The cap exists because the self-test
+ * owns the main loop while it runs and the main loop is what drains the
+ * SPI2 request FIFO: much past ~180 ms of link silence and the response
+ * stream comes back permanently out of phase. 2048 iterations was that
+ * budget at BLOCK=32; at BLOCK=8 each iteration is a quarter of the work,
+ * so the same wall clock buys four times as many -- and the timing is read
+ * in whole milliseconds, so at 2048 a paired arm came back as ONE tick and
+ * every ratio was quantised into uselessness. */
+.global _dst_iters;     .var _dst_iters = 65536/DSP4_BLOCK_SIZE;
 
 #if DSP4_SIMD_PROBE
 /* ---- biquad pairing arm ------------------------------------------
@@ -188,6 +208,12 @@
 .extern _mrf_rns28;
 .extern _comp_pair_blk;
 .extern _gate_pair_blk;
+/* The pair kernels take their sample count from _dsim_n so the graph
+ * driver can hand them BLOCK-1 (sample 0 goes through the scalar body
+ * for its block-rate conversion). This test always wants a FULL block,
+ * and it shares the image with the drivers, so it sets the count itself
+ * rather than trusting whatever ran last. */
+.extern _dsim_n;
 #if DSP4_SIMD_PROBE
 .extern _bq_fx_cascade_blk;
 .extern _bq_pair_blk;
@@ -362,9 +388,43 @@ _dst_bprep.end:
 /*----------------------------------------------------------------------
  * _dyn_selftest
  *--------------------------------------------------------------------*/
+/*----------------------------------------------------------------------
+ * _dst_fillx — lay the stimulus out ONE BLOCK APART, whatever the block.
+ *
+ *   A  block 1: +/-0.5 square (-6 dBFS)      block 2: silence
+ *   B  block 1: ramp, 1/32 FS per sample     block 2: constant 1/16 FS
+ *
+ * Same two shapes the initialisers describe, but indexed from BLOCK, so
+ * block 2 is always block 2.
+ *--------------------------------------------------------------------*/
+_dst_fillx:
+    l0 = 0;
+    i0 = _dst_xA;
+    r0 = 0x08000000;
+    r1 = 0xF8000000;
+    lcntr = DSP4_BLOCK_HALF, do .dfx_a1 until lce;
+        dm(i0, 1) = r0;
+    .dfx_a1: dm(i0, 1) = r1;
+    r2 = 0;
+    lcntr = DSP4_BLOCK_SIZE, do .dfx_a2 until lce;
+    .dfx_a2: dm(i0, 1) = r2;
+
+    i0 = _dst_xB;
+    r0 = 0;
+    r1 = 0x00800000;
+    lcntr = DSP4_BLOCK_SIZE, do .dfx_b1 until lce;
+        dm(i0, 1) = r0;
+    .dfx_b1: r0 = r0 + r1;
+    r2 = 0x01000000;
+    lcntr = DSP4_BLOCK_SIZE, do .dfx_b2 until lce;
+    .dfx_b2: dm(i0, 1) = r2;
+    rts;
+_dst_fillx.end:
+
 .global _dyn_selftest;
 _dyn_selftest:
     l0 = 0; l1 = 0; l2 = 0; l3 = 0; l4 = 0; l5 = 0;
+    call _dst_fillx;
 
     /* ================= COMPRESSOR: reference ================= */
     i0 = _dst_cpA;
@@ -399,22 +459,28 @@ _dyn_selftest:
     r4 = _dst_cpA;  r5 = _dst_cpB;
     r6 = _dst_ceA;  r7 = _dst_ceB;
     r8 = _dst_pA;   r9 = _dst_pB;
+    r0 = DSP4_BLOCK_SIZE;
+    dm(_dsim_n) = r0;
+    dm(_dsim_n + 1) = r0;
     call _comp_pair_blk;
     r4 = _dst_cpA;  r5 = _dst_cpB;
     r6 = _dst_ceA;  r7 = _dst_ceB;
     r0 = _dst_pA;   r1 = DSP4_BLOCK_SIZE;  r8 = r0 + r1;
     r0 = _dst_pB;   r9 = r0 + r1;
+    r0 = DSP4_BLOCK_SIZE;
+    dm(_dsim_n) = r0;
+    dm(_dsim_n + 1) = r0;
     call _comp_pair_blk;
 
-    /* diff, both channels, 128 samples. Walked BACKWARDS so "first
+    /* diff, both channels, 2 blocks x 2 channels. Walked BACKWARDS so "first
      * differing index" needs one conditional move and no branch inside a
      * hardware loop -- the hazard that hung the first cut of the biquad
      * self-test on the part. */
-    r0 = _dst_rA;  r1 = 63;  r0 = r0 + r1;  i3 = r0;
+    r0 = _dst_rA;  r1 = 2*DSP4_BLOCK_SIZE-1;  r0 = r0 + r1;  i3 = r0;
     r0 = _dst_pA;  r0 = r0 + r1;  i4 = r0;
     r0 = _dst_rB;  r0 = r0 + r1;  i5 = r0;
     r0 = _dst_pB;  r0 = r0 + r1;  i0 = r0;
-    r12 = 0; r13 = 0; r14 = -1; r15 = 63;
+    r12 = 0; r13 = 0; r14 = -1; r15 = 2*DSP4_BLOCK_SIZE-1;
     r3 = 0;
     lcntr = 2*DSP4_BLOCK_SIZE, do .dst_cd until lce;
         r0 = dm(i3, -1);
@@ -478,18 +544,24 @@ _dyn_selftest:
     r4 = _dst_gpA;  r5 = _dst_gpB;
     r6 = _dst_gsA;  r7 = _dst_gsB;
     r8 = _dst_pA;   r9 = _dst_pB;
+    r0 = DSP4_BLOCK_SIZE;
+    dm(_dsim_n) = r0;
+    dm(_dsim_n + 1) = r0;
     call _gate_pair_blk;
     r4 = _dst_gpA;  r5 = _dst_gpB;
     r6 = _dst_gsA;  r7 = _dst_gsB;
     r0 = _dst_pA;   r1 = DSP4_BLOCK_SIZE;  r8 = r0 + r1;
     r0 = _dst_pB;   r9 = r0 + r1;
+    r0 = DSP4_BLOCK_SIZE;
+    dm(_dsim_n) = r0;
+    dm(_dsim_n + 1) = r0;
     call _gate_pair_blk;
 
-    r0 = _dst_rA;  r1 = 63;  r0 = r0 + r1;  i3 = r0;
+    r0 = _dst_rA;  r1 = 2*DSP4_BLOCK_SIZE-1;  r0 = r0 + r1;  i3 = r0;
     r0 = _dst_pA;  r0 = r0 + r1;  i4 = r0;
     r0 = _dst_rB;  r0 = r0 + r1;  i5 = r0;
     r0 = _dst_pB;  r0 = r0 + r1;  i0 = r0;
-    r12 = 0; r13 = 0; r14 = -1; r15 = 63;
+    r12 = 0; r13 = 0; r14 = -1; r15 = 2*DSP4_BLOCK_SIZE-1;
     r3 = 0;
     lcntr = 2*DSP4_BLOCK_SIZE, do .dst_gd until lce;
         r0 = dm(i3, -1);
@@ -543,7 +615,11 @@ _dyn_selftest:
     call _dst_bprep;
     r8 = _dst_bcA;  r9 = _dst_bsA;  r10 = _dst_pA;
     r11 = _dst_bcB; r12 = _dst_bsB; r13 = _dst_pB;
-    r4 = 4;
+    /* DSP4_BQ_PAIR_STAGES exists to bisect the paired-cascade hang: the
+     * fault is inside _bq_fx_cascade_simd (DSP4_SKIP_SIMDCALL=1 boots and
+     * runs), and one stage versus four separates its per-stage rewind and
+     * state advance from its sample loop. */
+    r4 = DSP4_BQ_PAIR_STAGES;
 #if !DSP4_SKIP_PAIR
     call _bq_pair_blk;
 #endif
@@ -551,16 +627,16 @@ _dyn_selftest:
     r0 = _dst_pA; r1 = DSP4_BLOCK_SIZE; r10 = r0 + r1;
     r11 = _dst_bcB; r12 = _dst_bsB;
     r0 = _dst_pB; r13 = r0 + r1;
-    r4 = 4;
+    r4 = DSP4_BQ_PAIR_STAGES;
 #if !DSP4_SKIP_PAIR
     call _bq_pair_blk;
 #endif
 
-    r0 = _dst_rA;  r1 = 63;  r0 = r0 + r1;  i3 = r0;
+    r0 = _dst_rA;  r1 = 2*DSP4_BLOCK_SIZE-1;  r0 = r0 + r1;  i3 = r0;
     r0 = _dst_pA;  r0 = r0 + r1;  i4 = r0;
     r0 = _dst_rB;  r0 = r0 + r1;  i5 = r0;
     r0 = _dst_pB;  r0 = r0 + r1;  i0 = r0;
-    r12 = 0; r13 = 0; r14 = -1; r15 = 63;
+    r12 = 0; r13 = 0; r14 = -1; r15 = 2*DSP4_BLOCK_SIZE-1;
     r3 = 0;
     lcntr = 2*DSP4_BLOCK_SIZE, do .dst_bd until lce;
         r0 = dm(i3, -1);
@@ -628,6 +704,9 @@ _dyn_selftest:
     /* --- COMP paired --- */
     r0 = dm(_diag_ticks);
     dm(_dst_tick + 2) = r0;
+    r0 = DSP4_BLOCK_SIZE;
+    dm(_dsim_n) = r0;
+    dm(_dsim_n + 1) = r0;
     r10 = dm(_dst_iters);
     lcntr = r10, do .dst_tcp until lce;
         r4 = _dst_cpA;  r5 = _dst_cpB;
@@ -662,6 +741,9 @@ _dyn_selftest:
     /* --- GATE paired --- */
     r0 = dm(_diag_ticks);
     dm(_dst_tick + 6) = r0;
+    r0 = DSP4_BLOCK_SIZE;
+    dm(_dsim_n) = r0;
+    dm(_dsim_n + 1) = r0;
     r10 = dm(_dst_iters);
     lcntr = r10, do .dst_tgp until lce;
         r4 = _dst_gpA;  r5 = _dst_gpB;

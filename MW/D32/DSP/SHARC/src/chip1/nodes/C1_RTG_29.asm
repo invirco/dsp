@@ -201,7 +201,7 @@ _C1_RTG_29_process:
     lcntr = r5, do .auxsrc_C1_RTG_29 until lce;
         r6 = dm(i5, 1);               /* pickoff enum */
         r4 = dm(i1, 1);               /* coefficient */
-        r0 = BLK_CHAIN_A;
+        r0 = BLK_CHAIN_A_P1;
         r4 = pass r4;
         if eq jump (pc, .auxsrcd_C1_RTG_29);
         r6 = pass r6;
@@ -212,13 +212,13 @@ _C1_RTG_29_process:
         r7 = 2;
         comp(r6, r7);
         if ne jump (pc, .auxsrcd_C1_RTG_29);
-        r0 = BLK_TAP_PREFDR;
+        r0 = BLK_TAP_PREFDR_P1;
         jump (pc, .auxsrcd_C1_RTG_29);
     .auxsrc0_C1_RTG_29:
-        r0 = BLK_TAP_TRIM;
+        r0 = BLK_TAP_TRIM_P1;
         jump (pc, .auxsrcd_C1_RTG_29);
     .auxsrc1_C1_RTG_29:
-        r0 = BLK_TAP_EQ;
+        r0 = BLK_TAP_EQ_P1;
     .auxsrcd_C1_RTG_29:
         dm(i6, 1) = r0;
     .auxsrc_C1_RTG_29:
@@ -360,7 +360,7 @@ _C1_RTG_29_process:
     lcntr = r5, do .fxsrc_C1_RTG_29 until lce;
         r6 = dm(i5, 1);               /* pickoff enum */
         r4 = dm(i1, 1);               /* coefficient */
-        r0 = BLK_CHAIN_A;
+        r0 = BLK_CHAIN_A_P1;
         r4 = pass r4;
         if eq jump (pc, .fxsrcd_C1_RTG_29);
         r6 = pass r6;
@@ -371,13 +371,13 @@ _C1_RTG_29_process:
         r7 = 2;
         comp(r6, r7);
         if ne jump (pc, .fxsrcd_C1_RTG_29);
-        r0 = BLK_TAP_PREFDR;
+        r0 = BLK_TAP_PREFDR_P1;
         jump (pc, .fxsrcd_C1_RTG_29);
     .fxsrc0_C1_RTG_29:
-        r0 = BLK_TAP_TRIM;
+        r0 = BLK_TAP_TRIM_P1;
         jump (pc, .fxsrcd_C1_RTG_29);
     .fxsrc1_C1_RTG_29:
-        r0 = BLK_TAP_EQ;
+        r0 = BLK_TAP_EQ_P1;
     .fxsrcd_C1_RTG_29:
         dm(i6, 1) = r0;
     .fxsrc_C1_RTG_29:
@@ -477,7 +477,7 @@ _C1_RTG_29_process:
      * SAMPLE; a channel assigned to main only goes from 25
      * iterations per sample to 2. */
 #if DSP4_BLOCK_KERNELS
-    r12 = BLK_CHAIN_A;                /* post-fader mono block */
+    r12 = BLK_CHAIN_A_P1;                /* post-fader mono block */
 #else
     r12 = _buf_C1_FDR_29;              /* post-fader mono word  */
 #endif

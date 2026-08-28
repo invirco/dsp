@@ -109,9 +109,9 @@
             l3 = 0;
             l4 = 0;
             l5 = 0;
-            i3 = BLK_CHAIN_A;
-            i4 = BLK_CHAIN_B;
-            i5 = BLK_TAP_PREFDR;
+            i3 = BLK_CHAIN_A_P1;
+            i4 = BLK_CHAIN_B_P1;
+            i5 = BLK_TAP_PREFDR_P1;
 
             lcntr = DSP4_BLOCK_SIZE, do .dkb_lp_C1_DLY_09 until lce;
                 r0 = dm(i3, 1);

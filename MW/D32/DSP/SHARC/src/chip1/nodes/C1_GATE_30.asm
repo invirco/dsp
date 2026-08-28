@@ -30,8 +30,10 @@
 .var _gate_release_C1_GATE_30 = 0.005;
 .global _gate_hold_C1_GATE_30;
 .var _gate_hold_C1_GATE_30 = 2400;
+#if !DSP4_PAIRED_GRAPH
 .global _gate_hold_count_C1_GATE_30;
 .var _gate_hold_count_C1_GATE_30 = 0;
+#endif
 .global _gate_range_C1_GATE_30;
 .var _gate_range_C1_GATE_30 = 0.001;       /* linear floor (float) */
 .global _gate_key_src_C1_GATE_30;
@@ -48,12 +50,24 @@
 .var _gate_filter_cq_C1_GATE_30[10];
 .global _gate_filter_state_C1_GATE_30;
 .var _gate_filter_state_C1_GATE_30[12];
+/* DECLARATION ORDER IS THE PAIR INTERFACE. _gate_pair_blk gathers
+ * and scatters the gate STATE as four consecutive words
+ * (env, gain, target, hold count) and reads its PARAMETERS as five
+ * (attq, relq, thrq, rngq, hold), so under a paired graph the hold
+ * count moves next to the other three state words and `hold` gets
+ * a converted twin next to the other four parameters. Both moves
+ * are guarded, so a build without pairing keeps the old layout and
+ * therefore the old bytes. */
 .global _gate_envelope_C1_GATE_30;
 .var _gate_envelope_C1_GATE_30 = 0;
 .global _gate_gain_C1_GATE_30;
 .var _gate_gain_C1_GATE_30 = 0x10000000;
 .global _gate_gain_target_q_C1_GATE_30;
 .var _gate_gain_target_q_C1_GATE_30 = 0x10000000;
+#if DSP4_PAIRED_GRAPH
+.global _gate_hold_count_C1_GATE_30;
+.var _gate_hold_count_C1_GATE_30 = 0;
+#endif
 .global _gate_attq_C1_GATE_30;
 .var _gate_attq_C1_GATE_30 = 0;
 .global _gate_relq_C1_GATE_30;
@@ -62,6 +76,10 @@
 .var _gate_thrq_C1_GATE_30 = 0;
 .global _gate_rngq_C1_GATE_30;
 .var _gate_rngq_C1_GATE_30 = 0;
+#if DSP4_PAIRED_GRAPH
+.global _gate_holdq_C1_GATE_30;
+.var _gate_holdq_C1_GATE_30 = 2400;
+#endif
 .global _buf_C1_GATE_30;
 .var _buf_C1_GATE_30;
 
@@ -134,6 +152,10 @@ _C1_GATE_30_process:
     f1 = f1 * f2;
     r1 = fix f1;
     dm(_gate_rngq_C1_GATE_30) = r1;
+#if DSP4_PAIRED_GRAPH
+    r1 = dm(_gate_hold_C1_GATE_30);
+    dm(_gate_holdq_C1_GATE_30) = r1;   /* five consecutive param words */
+#endif
 
 #if DSP4_GATE_LINTHR
     /* THRESHOLD IN THE LINEAR DOMAIN, ONCE PER BLOCK.
@@ -296,6 +318,10 @@ _C1_GATE_30_process_sample:
     f1 = f1 * f2;
     r1 = fix f1;
     dm(_gate_rngq_C1_GATE_30) = r1;
+#if DSP4_PAIRED_GRAPH
+    r1 = dm(_gate_hold_C1_GATE_30);
+    dm(_gate_holdq_C1_GATE_30) = r1;   /* five consecutive param words */
+#endif
     r2 = dm(_gate_filter_on_C1_GATE_30);
     r2 = pass r2;
     if eq jump (pc, .gate_go_C1_GATE_30);

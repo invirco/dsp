@@ -473,7 +473,10 @@ _bq_fx_convert_N.end:
  *      i2 = interleaved signal (64 words), r4 = stages.
  *----------------------------------------------------------------------*/
 .section/dm seg_dmda;
-.var _simd_mode1_save;
+/* Two words: the reload at the bottom happens with PEYEN still set, so
+ * PEy reads the word after. Same reason dyn_simd_fx.asm's _dsim_mode1 is
+ * a pair. */
+.var _simd_mode1_save[2];
 
 .section/pm seg_pmco;
 .global _bq_fx_cascade_simd;
@@ -481,41 +484,45 @@ _bq_fx_cascade_simd:
     l0 = 0;
     l1 = 0;
     l2 = 0;
-    r15 = -64;
+    /* -2 * BLOCK: the block is INTERLEAVED, so one stage walks i2 by two
+     * words per sample. This was a literal -64, right for BLOCK=32 and
+     * wrong for every other block size -- at BLOCK=8 it rewound i2 to 48
+     * words BEFORE _bqp_sig and the second stage then read and WROTE
+     * there, which is what hung the part. */
+    r15 = -2*DSP4_BLOCK_SIZE;
     m2 = r15;                  /* rewind the interleaved block per stage */
     r15 = 10;
     m3 = r15;                  /* state base+2 -> next stage's base      */
 
-    /* PEYEN AND IRPTEN TOGETHER, and this is the whole bug.
+    /* PEYEN ONLY -- INTERRUPTS ARE **NOT** MASKED HERE ANY MORE.
      *
-     * An interrupt taken while PEYEN is set runs the HANDLER in SIMD mode:
-     * every register the ISR writes becomes a pair write, clobbering the
-     * PEy shadow of state the ISR knows nothing about. The block and diag
-     * ISRs fire ~1500 and ~1000 times a second, so this corrupts something
-     * almost immediately -- and it defeats instruction-level bisecting,
-     * because the fault is timing-dependent rather than positional.
+     * The hazard is real: an interrupt taken while PEYEN is set runs the
+     * HANDLER in SIMD mode, and every register it writes becomes a pair
+     * write that clobbers the PEy shadow of state the ISR knows nothing
+     * about. The fix for it is systemic and already in the tree -- _sec_isr
+     * and _diag_timer_isr clear PEYEN after `push sts`, and `pop sts` puts
+     * it back -- which is what the PAIRED DYNAMICS kernels rely on. They
+     * mask nothing and they run, in the self-test and in the graph.
      *
-     * It is why the standalone benchmark passed and the same routine hung
-     * when called through _bq_pair_blk: the benchmark had already masked
-     * IRPTEN for its TCOUNT timing, so PEYEN and an ISR never coincided.
+     * THIS ROUTINE MASKED IRPTEN AS WELL, AND THAT IS WHY IT HUNG THE PART.
+     * The masked span is one cascade, which sounds harmless against a block
+     * period -- but the self-test calls it in a hardware loop thousands of
+     * times with a handful of instructions between calls, so the block ISR
+     * is starved for the whole run and the audio DMA never gets serviced.
+     * The part is not crashed; it is running with interrupts off. It looks
+     * identical from the bench: BOOT_STAGE stops advancing, frames stop,
+     * "never reached stage 6". Bisected 2026-08-28: DSP4_SKIP_SIMDCALL=1
+     * boots, one stage hangs exactly as four do (so it is not the per-stage
+     * rewind), and the paired dynamics -- same PEYEN, no IRPTEN mask -- have
+     * never hung.
      *
-     * MODE1 is saved and restored whole rather than bit-toggled, so a
-     * caller that had already masked interrupts stays masked. The masked
-     * span is one cascade -- about 2 us for two stages at 983 MHz, against
-     * a 667 us block period. */
+     * MODE1 is still saved and restored WHOLE rather than bit-toggled, so a
+     * caller that had already masked interrupts stays masked. */
     r0 = mode1;
     dm(_simd_mode1_save) = r0;
-    bit clr mode1 0x00001000;  /* IRPTEN FIRST -- see below */
+    bit set mode1 0x00200000;  /* PEYEN */
     nop;
     nop;
-    bit set mode1 0x00200000;  /* then PEYEN */
-    nop;
-    nop;
-    /* ORDER IS LOAD-BEARING. Setting PEYEN before masking interrupts
-     * leaves a two-instruction window in which an interrupt can be taken
-     * with PEYEN already set, which is the very failure this is meant to
-     * prevent -- and MODE1 writes have a pipeline shadow, so the window is
-     * wider than it looks. Mask first, then widen the datapath. */
 
     lcntr = r4, do .bqs_stage until lce;
         r4 = dm(i0, 2);

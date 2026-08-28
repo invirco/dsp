@@ -46,7 +46,7 @@ _C1_MTR_19_process:
     /* Per block. Three instructions per sample, no memory traffic
      * beyond the source read, then one fold.
      *
-     * Source: BLK_TAP_TRIM, the block C1_GAIN_19 publishes.
+     * Source: BLK_TAP_TRIM_P1, the block C1_GAIN_19 publishes.
      * Every sample of the block is in the peak and
      * in the mean square -- nothing is decimated.
      *
@@ -58,7 +58,7 @@ _C1_MTR_19_process:
      * was no reference model to catch any of it. */
     l2 = 0;
     m2 = 1;
-    i2 = BLK_TAP_TRIM;          /* C1_GAIN_19 publishes its block here */
+    i2 = BLK_TAP_TRIM_P1;          /* C1_GAIN_19 publishes its block here */
     r8 = 0x80000000;              /* running max: most negative */
     r9 = 0x7FFFFFFF;              /* running min: most positive */
     mrf = 0;

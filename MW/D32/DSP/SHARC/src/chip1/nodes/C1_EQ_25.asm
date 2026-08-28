@@ -70,9 +70,9 @@ _C1_EQ_25_process:
     l3 = 0;
     l4 = 0;
     l5 = 0;
-    i3 = BLK_CHAIN_A;
-    i4 = BLK_CHAIN_B;
-    i5 = BLK_TAP_EQ;
+    i3 = BLK_CHAIN_A_P1;
+    i4 = BLK_CHAIN_B_P1;
+    i5 = BLK_TAP_EQ_P1;
     lcntr = DSP4_BLOCK_SIZE, do .ekb_xl_C1_EQ_25 until lce;
         r0 = dm(i3, 1);
         dm(_buf_C1_FILT_25) = r0;
@@ -83,7 +83,7 @@ _C1_EQ_25_process:
     rts;
 
 .ekb_ss_C1_EQ_25:
-    /* Steady state, FUSED. FILT left its result in BLK_CHAIN_B and
+    /* Steady state, FUSED. FILT left its result in BLK_CHAIN_B_P1 and
      * the cascade works in place, so EQ continues on the same slot.
      * The FILT->EQ handoff is zero instructions. */
     l0 = 0;
@@ -102,13 +102,13 @@ _C1_EQ_25_process:
     i0 = _eq_coeffs_B_C1_EQ_25;
     i1 = _eq_state_B_C1_EQ_25;
 .ekb_go_C1_EQ_25:
-    i2 = BLK_CHAIN_B;           /* the slot FILT already filtered */
+    i2 = BLK_CHAIN_B_P1;           /* the slot FILT already filtered */
     r4 = 4;
     call _bq_fx_cascade_blk;
 
     /* the post-EQ tap the router picks from */
-    i3 = BLK_CHAIN_B;
-    i4 = BLK_TAP_EQ;
+    i3 = BLK_CHAIN_B_P1;
+    i4 = BLK_TAP_EQ_P1;
     lcntr = DSP4_BLOCK_SIZE, do .ekb_tp_C1_EQ_25 until lce;
         r0 = dm(i3, 1);
     .ekb_tp_C1_EQ_25: dm(i4, 1) = r0;

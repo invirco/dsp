@@ -71,6 +71,19 @@
  * reload happens with PEYEN still set and PEy reads the word after. */
 .var _dsim_mode1[2];
 
+/* SAMPLES PER CALL. Both pair kernels used to run exactly
+ * DSP4_BLOCK_SIZE samples, which is what the self-test drives them with.
+ * The GRAPH cannot: the block-rate PARAMETER CONVERSION lives inside each
+ * node's per-sample body behind its `_sample_idx == 0` guard, so the pair
+ * driver runs sample 0 of each channel through that scalar body -- which
+ * converts, and is bit-identical to the scalar path by construction --
+ * and hands the pair the remaining BLOCK-1. Two words because the count
+ * is read with PEYEN set in the sample loop. The .var initialiser is the
+ * full block, so a caller that does not set it (the self-test) behaves
+ * exactly as before. */
+.global _dsim_n;
+.var _dsim_n[2] = DSP4_BLOCK_SIZE, DSP4_BLOCK_SIZE;
+
 /* ---- COMPRESSOR pair park -------------------------------------------
  * Interleaved by channel: A's word then B's. 8 parameters, 1 state word
  * and 32 samples per channel.
@@ -381,7 +394,8 @@ _comp_pair_blk:
     dm(i2, 1) = r0;
 
     i0 = r8; i1 = r9; i2 = _cmp_sig;
-    lcntr = DSP4_BLOCK_SIZE, do .cpb_gx until lce;
+    r1 = dm(_dsim_n);
+    lcntr = r1, do .cpb_gx until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -415,7 +429,8 @@ _comp_pair_blk:
 
     i2 = _cmp_sig;
     i4 = _cmp_sig;
-    lcntr = DSP4_BLOCK_SIZE, do .cpb_lp until lce;
+    r5 = dm(_dsim_n);              /* PEYEN is set: reads both words */
+    lcntr = r5, do .cpb_lp until lce;
         r13 = dm(i2, 2);           /* dry */
 
         /* envelope: env += rns(alpha * (|x| - env), 31) */
@@ -486,7 +501,8 @@ _comp_pair_blk:
     r4 = dm(i0, 1);
     r5 = dm(i0, 1);
     i0 = r4; i1 = r5;
-    lcntr = DSP4_BLOCK_SIZE, do .cpb_sx until lce;
+    r6 = dm(_dsim_n);
+    lcntr = r6, do .cpb_sx until lce;
         r0 = dm(i2, 1);
         dm(i0, 1) = r0;
         r0 = dm(i2, 1);
@@ -552,7 +568,8 @@ _gate_pair_blk:
     .gpb_gs: dm(i2, 1) = r0;
 
     i0 = r8; i1 = r9; i2 = _gat_sig;
-    lcntr = DSP4_BLOCK_SIZE, do .gpb_gx until lce;
+    r1 = dm(_dsim_n);
+    lcntr = r1, do .gpb_gx until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -578,7 +595,8 @@ _gate_pair_blk:
 
     i2 = _gat_sig;
     i4 = _gat_sig;
-    lcntr = DSP4_BLOCK_SIZE, do .gpb_lp until lce;
+    r5 = dm(_dsim_n);              /* PEYEN is set: reads both words */
+    lcntr = r5, do .gpb_lp until lce;
         r13 = dm(i2, 2);
 
         /* detector envelope */
@@ -667,7 +685,8 @@ _gate_pair_blk:
     r4 = dm(i0, 1);
     r5 = dm(i0, 1);
     i0 = r4; i1 = r5;
-    lcntr = DSP4_BLOCK_SIZE, do .gpb_sx until lce;
+    r6 = dm(_dsim_n);
+    lcntr = r6, do .gpb_sx until lce;
         r0 = dm(i2, 1);
         dm(i0, 1) = r0;
         r0 = dm(i2, 1);

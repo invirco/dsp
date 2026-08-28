@@ -64,7 +64,7 @@ _C1_IN_13_process:
     r3 = r6 + r3;
     i0 = r3;
     m0 = r4;
-    i1 = BLK_CHAIN_A;
+    i1 = BLK_CHAIN_A_P1;
 #if DSP4_PROFILE_SIGNAL
     /* Profiling only. The bench has no analog boards and no audio
      * source, so the TDM inputs are silent -- and BOTH dynamics

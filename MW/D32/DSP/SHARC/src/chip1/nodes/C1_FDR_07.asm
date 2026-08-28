@@ -175,8 +175,8 @@ dm(_fdr_rq_C1_FDR_07) = r2;
             l1 = 0;
             l2 = 0;
             l3 = 0;
-            i0 = BLK_CHAIN_B;                 /* input  */
-            i1 = BLK_CHAIN_A;                 /* mono   */
+            i0 = BLK_CHAIN_B_P1;                 /* input  */
+            i1 = BLK_CHAIN_A_P1;                 /* mono   */
         #if DSP4_STRIP_FUSED
             /* FUSED (2026-08-28): two samples per iteration, interleaved,
              * second accumulator in MRB -- the same treatment as GAIN.

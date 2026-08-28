@@ -9,20 +9,63 @@ The working operating point is **block 8**, not 32 (PW ruling 2026-08-28).
 BLOCK-32 figure** and is superseded by `dsp4-function-costs.csv`, which
 carries the block size on every row.
 
-The measured block-8 ceilings, honest 6000 blocks/s rule, channels per
-chip: **signal present 5 at 786.432 MHz and 6 at 983.04 MHz** (block 32:
-11 and 14); **silence 8 and 11** (block 32: 15 and 20).
+**RE-MEASURED 2026-08-28 (fourth session), signal present, honest 6000
+blocks/s rule, channels per chip:**
 
-The strip costs **2,719.9 cycles/sample at block 8 against 1,233.4 at
-block 32** — 2.21x — because block-invariant work does not shrink when
-the block does. A two-point fit of the same code puts 15,856 cycles/block
-of the strip in block-invariant work (40 % of the strip at block 32,
-73 % at block 8), and **13.5k of that 15.9k is COMP alone**. The fabric,
-by contrast, is 97.6 % per-sample work and scales almost perfectly.
+| | 786.432 MHz | 983.04 MHz |
+|---|---|---|
+| block 32 (2026-08-27) | 11 | 14 |
+| block 8, scalar | **9** | **12** |
+| block 8, SIMD paired | **11** | **15** |
 
-So the block-8 capacity cost is not the diffuse price of a shorter block:
-it is the compressor's once-per-block section, and cutting it is worth
-more at block 8 than SIMD is.
+The block-8 figures recorded earlier the same day — 5 and 6 signal
+present, 8 and 11 silence — were measured on a build in which the
+compressor did four times its proper work per block (see the retraction
+below). They are withdrawn. The block-32 rows are unaffected: at BLOCK=32
+the defective loop count was the right one.
+
+Every accepted point is witnessed with all N gates OPEN and all N
+compressors ACTIVE, and every rejected one is a clean miss: 10 at 786
+reads 5,679/s, 13 at 983 reads 5,656/s, 12 paired at 786 reads 5,903/s,
+16 paired at 983 reads 5,756/s.
+
+**16 per chip at 983 — what a two-chip D32 split needs — now misses by
+4.2 % of the block budget.** That is a margin, not a factor.
+
+### RETRACTED 2026-08-28 (fourth session): "COMP is block-invariant"
+
+The paragraph that stood here said the strip costs 2,719.9 cycles/sample
+at block 8 against 1,233.4 at block 32, that a two-point fit put 15,856
+cycles/block of it in block-INVARIANT work, that 13.5k of that was COMP
+alone, and therefore that cutting COMP's once-per-block section was worth
+more at block 8 than SIMD. **All of it rests on a defect, and it is
+withdrawn.**
+
+`_COMP_BLK_BODY` in the generator carried a literal `lcntr = 31` — the
+only loop count in the tree written as a number instead of derived from
+the block size. At BLOCK=8 the compressor therefore ran **1 + 31 = 32
+samples of an 8-sample block**, reading 32 words from `BLK_CHAIN_A` and
+writing 32 to `BLK_CHAIN_B`, three slots past the end of each, over
+`BLK_FDR_L`, `BLK_FDR_R` and `BLK_TAP_TRIM`. A node that does the same 32
+samples of work whatever the block size measures as block-invariant
+because it IS invariant. The measurement was honest; the instrument was
+reading a defect.
+
+It could not be caught by the byte-identical block-32 control that proved
+the parameterisation, because the control image is the PER-SAMPLE build
+and every affected line lives behind `DSP4_BLOCK_KERNELS` or a self-test
+guard. **The shipping image never ran any of it.**
+
+Five more literals of the same kind were found with it and are listed in
+tasks.md (2026-08-28, fourth session): the bus-accumulator clear, the
+paired biquad cascade's per-stage rewind, the backwards diff start index
+in BOTH self-tests — which is why the paired-dynamics bit-exactness test
+could not fail at block 8, negative control included — and the
+cycles-per-sample divisor in `dynst_read.py`. Every one is now derived
+from `DSP4_BLOCK_SIZE`.
+
+The replacement figures are in `dsp4-function-costs.csv`, measured on the
+same instrument with the loop count derived.
 
 Digital latency at block 8 is **derived, not measured**: the block period
 is measured (166.7 us, from FRAME_COUNT 5999-6000/s) and the ring
@@ -30,6 +73,94 @@ geometry and pipeline depth are unchanged, so the measured
 93-samples-at-block-32 pipeline scales to ~23 samples = 0.48 ms. The
 end-to-end measurement is blocked on the Pi-input-to-Pi-output route,
 which the boot config does not set.
+
+## SIMD IN THE GRAPH — 2026-08-28 (fourth session)
+
+The paired dynamics kernels landed on 2026-08-28 (963f181) and measured
+2.04-2.12x on COMP and 2.36-2.54x on GATE, bit-exact, with a negative
+control that failed as it must. **No strip ran paired**, because the chain
+is strip-ordered and the block pool is reused strip by strip: a pair could
+never hold two live channels. This session wired it.
+
+### Two pools, not a park
+
+The scaffolding already in the tree parked ONE slot (`BLK_PAIR_PARK`) and
+copied into and out of it. That is enough for a biquad pair inside a
+single strip's kernel and not enough for a pair of whole strips: the TAPS
+(trim, EQ, pre-fader) are written in the strip's HEAD and read by its
+router in the TAIL, so parking the chain block alone leaves strip A's
+router reading strip B's taps.
+
+So the ODD strip of each pair gets a second complete pool (`_blk_pool1`,
+8 slots x BLOCK = 64 words at BLOCK=8) and the even strip keeps the
+original. **No copying at all**: the odd strip's nodes are GENERATED
+against `BLK_*_P1` and the even strip's against `BLK_*`, both pools are
+live across the pair, and the paired kernels read one channel from each.
+
+    A: IN GAIN FILT EQ        (odd strip, pool 1)
+    B: IN GAIN FILT EQ        (even strip, pool 0)
+    GATE pair, COMP pair      (one channel from each pool)
+    A: TUBE DLY FDR RTG
+    B: TUBE DLY FDR RTG
+
+The paired dynamics run IN PLACE on each pool's `BLK_CHAIN_B`, which is
+the same net slot movement as the scalar ping-pong (B -GATE-> A -COMP-> B),
+so the tails are untouched. With `DSP4_SIMD_DYN` off every `BLK_*_P1`
+macro aliases its original, which is what keeps the shipping image
+byte-identical while the generator emits P1 names for sixteen strips.
+
+### Three places it could have been silently wrong
+
+- **The block-rate parameter conversion is not duplicated.** Both dynamics
+  classes convert once per block inside their own per-sample body, behind
+  the `_sample_idx == 0` guard, and the scalar COMPRESSOR block kernel
+  already drives that body for sample 0 for exactly this reason. The pair
+  driver does the same for both channels and hands the pair kernel the
+  remaining BLOCK-1 samples through `_dsim_n`. Sample 0 is bit-identical
+  to the scalar path by construction, and there is no second copy of the
+  conversion arithmetic to drift.
+- **Declaration order is the pair interface.** `_gate_pair_blk` reads five
+  consecutive parameter words and scatters four consecutive state words.
+  COMP's eight were already consecutive, deliberately. GATE's were not:
+  `hold` sat in the host parameter block and `hold_count` beside it, so a
+  pair would have read `_buf_` as `hold` and written the hold count over
+  `attq`. Under a paired graph both move, guarded, and the build now
+  CHECKS the addresses out of the .map rather than trusting the ordering.
+- **The fallback is net-preserving.** A pair whose channels disagree (one
+  gate off, one sidechain filter on, one compressor bypassed) runs the two
+  scalar nodes and squares the slots up, so "the dynamics section reads
+  BLK_CHAIN_B and writes BLK_CHAIN_B" holds on both paths. An odd strip
+  count falls out of the same mechanism: the last strip's two dynamics
+  nodes run scalar on their own pool.
+
+**Chip 2 is not applicable.** Its dynamics are `C2_GRP_COMP`,
+`C2_MAIN_COMP` and friends, which do not match the strip-node pattern,
+have no block kernel and have no pair. Its chain file is unchanged.
+
+`DSP4_SIMD_GRAPH` separates "the paired KERNELS are in the image"
+(`DSP4_SIMD_DYN`) from "the graph is WIRED for them". They have to be
+separable: with the kernels and the 32 drivers both in, chip 1 overflows
+`sec_swco`, and the kernel self-test wants the kernels and their scalar
+twins without the drivers.
+
+### The paired biquad cascade still hangs
+
+`_bq_fx_cascade_simd` hangs the part when driven from the main loop with
+the graph configured; it presents as "never reached stage 6", the part not
+answering the link while the self-test owns the main loop. Nothing in the
+GRAPH calls it — only the self-tests do — so it does not block the rung.
+
+Two real defects in it were found and fixed and neither cleared the hang:
+the per-stage rewind `m2 = -64` (right only at BLOCK=32; at BLOCK=8 stage
+two read and WROTE 48 words before `_bqp_sig`), and the IRPTEN mask around
+the whole cascade — the paired DYNAMICS kernels mask nothing and rely on
+the per-ISR PEYEN clear, and masking is what a self-test that calls the
+cascade thousands of times in a hardware loop cannot afford. What the
+bisect says now: `DSP4_SKIP_SIMDCALL=1` boots and runs cleanly through
+`_bq_pair_blk`'s interleave and scatter; **one stage hangs exactly as four
+do**, so it is not the per-stage rewind or the state advance; and removing
+the interrupt mask does not change it. That leaves the sample loop and the
+MODE1 entry/exit.
 
 ## The 0.9 V rail at 983.04 — measured, in spec, and the margin is thin
 

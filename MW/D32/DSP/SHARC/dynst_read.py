@@ -6,6 +6,12 @@ Symbols come from chip1.sym.json, staged beside the images -- they move on
 every build and hand-copied addresses go stale.
 """
 import json, sys
+# BLOCK comes from the GENERATED dsp4_block.py staged beside the images, so
+# a verdict can never be scored against a block size the image was not
+# built with. It used to be a literal 32 in two places here -- the diff
+# count and the cycles-per-sample divisor -- and at BLOCK=8 that reported
+# every paired figure four times too cheap.
+from dsp4_block import BLOCK
 CCLK = float(sys.argv[1]) if len(sys.argv) > 1 else 983040000.0
 sys.argv = ['p']
 import dsp4_diag as D
@@ -36,16 +42,20 @@ def rd(name, off=0):
 
 print('done      =', rd('_dst_done'))
 print('iters     =', rd('_dst_iters'))
-print('--- bit-exactness: scalar vs paired, 128 samples, 2 channels ---')
+NCMP = 4 * BLOCK      # two blocks x two channels
+print('--- bit-exactness: scalar vs paired, %d samples, 2 channels ---'
+      % NCMP)
 for tag, pfx in (('COMP', 'c'), ('GATE', 'g'), ('BQ4 ', 'b')):
     if ('_dst_%sndiff' % pfx) not in sym:
         continue
     n = rd('_dst_%sndiff' % pfx)
     m = rd('_dst_%smaxdiff' % pfx)
     f = sg(rd('_dst_%sfirst' % pfx))
-    print('%s  ndiff=%s of 128   maxdiff=%s   first=%s' % (tag, n, m, f))
+    print('%s  ndiff=%s of %d   maxdiff=%s   first=%s'
+          % (tag, n, NCMP, m, f))
 
-print('--- timing: one 32-sample block, TWO channels, per iteration ---')
+print('--- timing: one %d-sample block, TWO channels, per iteration ---'
+      % BLOCK)
 nt = 18 if '_dst_bndiff' in sym else 10
 t = [rd('_dst_tick', i) for i in range(nt)] + [None] * (18 - nt)
 it = rd('_dst_iters')
@@ -59,7 +69,7 @@ for nm, a, b in names:
         print('%-12s unreadable' % nm); continue
     ticks = t[b] - t[a]
     cyc = ticks * CCLK / 1000.0
-    per_samp = cyc / (it * 32 * 2)      # 32 samples x 2 channels
+    per_samp = cyc / (it * BLOCK * 2)   # BLOCK samples x 2 channels
     res[nm] = (ticks, per_samp)
     print('%-12s %6d ticks  %8.1f cycles/sample/channel' % (nm, ticks, per_samp))
 for a, b in (('COMP scalar', 'COMP paired'), ('GATE scalar', 'GATE paired'),

@@ -8,7 +8,7 @@ regenerated from it), negative controls still required — not against the
 old per-stage-rounded chain. Unblocks GAIN = 1 MAC (−17 cycles/sample).
 Implementation rides the next kernel session after the SIMD wiring rung.
 
-## HUB DISPATCH 2026-08-28 17:17Z — SIMD graph wiring — measured paired-strip ceilings at block 8 and 32   [status: 🟡 dispatched]   [model: opus]
+## HUB DISPATCH 2026-08-28 17:17Z — SIMD graph wiring — measured paired-strip ceilings at block 8 and 32   [status: 🟢 done — **THE GRAPH IS PAIRED AND MEASURED, AND THE NUMBERS THIS RUNG WAS SENT TO BUILD ON WERE WRONG.** Six block-32 literals survived the block-size parameterisation, invisible to its byte-identical control because every one lives behind a block-kernel or self-test guard. The worst is `lcntr = 31` in the generator's COMPRESSOR block kernel: at BLOCK=8 **COMP ran 32 samples of an 8-sample block**, four times the work, writing three slots past `BLK_CHAIN_B` over the trim tap. **That is the whole of "COMP is block-invariant, 13.5k cycles/block, 73 % of the strip" — WITHDRAWN.** Re-measured: COMP is 3,465 cycles/block = 433.1 cycles/sample against 426.1 at block 32, the strip is 11,726 (second reading 11,859, 1.1 % apart), and the block-8 penalty is 1.19x per sample, not 2.21x. Every other class reproduces its recorded figure to within 0.5 %, which is what makes COMP's move attributable. **THE CEILINGS ROUGHLY DOUBLE AND THE PAIRED ONES ARE MEASURED, signal present, honest 6000/s, per chip: scalar 9 at 786 and 12 at 983 (was 5 and 6); PAIRED 11 and 15.** **16/chip at 983 — what a two-chip D32 split needs — now misses by 4.2 % of the block budget, not by a factor.** Pairing is worth +22 % at 786 and +25 % at 983 in the GRAPH, less than the kernel factors alone because the driver's per-block work is inside the number. **THE WIRING IS TWO POOLS, NOT A PARK:** the odd strip of each pair is GENERATED against a second block pool so both strips are live at once with NO copying, the chain is pair-ordered, the block-rate conversion is not duplicated (sample 0 goes through the scalar body, the pair takes BLOCK-1 via a new `_dsim_n`), the fallback is net-preserving and odd strip counts fall out of it — the 11- and 15-strip ceilings are both odd, so that path is exercised in the measurement. GATE's variable layout had to move to satisfy the pair interface and **the build now checks the addresses out of the .map instead of trusting declaration order**. Chip 2 has no strip-shaped dynamics: not applicable, unchanged. **KERNEL BIT-EXACTNESS RE-ESTABLISHED WITH A DIFF THAT CAN NOW FAIL** (it compared untouched zeros at block 8 before): COMP and GATE 0 of 32 positive, **16 of 32 under NEGCTL** — exactly one channel of the pair — at 2.07x and 2.43x. **THE GRAPH-LEVEL BIT-EXACTNESS BAR IS NOT MET:** the probe and harness are in the tree and correct, but every attempt was lost to the bench link (BOOT_STAGE 0, `answers as CHIP 0`, then empty reads after ~45 boot cycles), one of them to a bug of mine in the probe's retry that is fixed. What IS established at graph level is that the paired graph boots, configures and runs real-time with gate OPEN and comp ACTIVE on ALL N strips at every accepted point to 15 — a functional witness, labelled as one. **ONE BUG OF MY OWN WORTH THE RECORD:** process_chain.asm did not include dsp_block.h, so every "paired" build ran the SCALAR chain; it presented as the paired GATE costing 153 cycles LESS than not running it. Fixed and verified statically (33 driver calls vs 0). The biquad-pair hang SURVIVES two real fixes (`m2 = -64`, and the IRPTEN mask the dynamics kernels prove unnecessary); one stage hangs exactly as four do, so it is not the per-stage rewind — recorded, not chased further, and nothing in the graph calls it. **W0: the default image is byte-identical through all of it — chip1.ldr 45f5f2dd, chip2.ldr f6733b6d.**]   [model: opus]
 
 model: opus
 
@@ -62,6 +62,324 @@ reader, CFG_COMMIT gain witness). PW is around — report blocks promptly.
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
 no AI attribution in commits or any work product.
+
+### Outcome 2026-08-28 (fourth session) — the graph is paired, and the numbers it was sent to build on were wrong
+
+#### 1. THE FINDING THAT COMES FIRST: six block-32 literals survived the parameterisation
+
+The block-8 session made block size a build parameter and proved it a pure
+refactor with a byte-identical block-32 control. The control was sound and
+the refactor was almost complete — but **six numbers stayed literal**, and
+because each is only reachable in a block-kernel or self-test build, not
+one of them could move the control image by a single byte. All six are now
+derived from `DSP4_BLOCK_SIZE`:
+
+| where | was | what it did at BLOCK=8 |
+|---|---|---|
+| `dsp_codegen.py::_COMP_BLK_BODY` | `lcntr = 31` | **COMP ran 1+31 = 32 samples of an 8-sample block** — 4x the work, reading 32 words from `BLK_CHAIN_A` and writing 32 to `BLK_CHAIN_B`, three slots past the end of each, over `BLK_FDR_L/R` and `BLK_TAP_TRIM` |
+| `dsp_codegen.py::gen_bus_accumulators_fixed` | `r3 = 64` | `_bus_clear_all` zeroed 64 words from each of 25 bus bases where each array is 16 |
+| `biquad_fx.asm::_bq_fx_cascade_simd` | `r15 = -64` | the per-stage rewind of the INTERLEAVED block; stage 2 read and WROTE 48 words before `_bqp_sig` |
+| `dyn_selftest.asm` (3 sites) | `63` | the backwards diff started at word 63 of arrays whose first 16 held the data — **the paired-dynamics bit-exactness test compared untouched zeros and could not fail**, negative control included |
+| `bq_selftest.asm` | `63` | the same, for the biquad diff |
+| `dynst_read.py` | `/32`, `of 128` | every paired cycles/sample figure read four times too cheap |
+
+and one that is not a literal but the same mistake: `dyn_selftest`'s
+stimulus was a 64-word initialiser with block 2 starting at index 32, so at
+BLOCK=8 both "blocks" came out of block 1's square wave and the test lost
+the opposite-branch-arm coverage that is the whole reason block 2 exists.
+It is filled at run time from `DSP4_BLOCK_SIZE` now.
+
+**The shipping image never ran any of it.** The default build is per-sample
+(`DSP4_BLOCK_KERNELS=0`) and every affected line sits behind a block-kernel
+or self-test guard. The byte-identical control holds after all six fixes
+and after the whole pairing change: **chip1.ldr 45f5f2dd, chip2.ldr
+f6733b6d.**
+
+Corroboration that the bus-clear fix is real and not bookkeeping: the
+NODE_LIMIT=1 point fell from 10,222 to 9,022 cycles/block — 1,200 cycles,
+which is exactly the 25 buses x 48 excess words the defect wrote.
+
+#### 2. "COMP is block-invariant" is WITHDRAWN
+
+The block-8 re-baseline's headline was that 15,856 cycles/block of the
+strip is block-INVARIANT (73 % of it at block 8), that 13.5k of that is
+COMP alone, and therefore that cutting COMP's once-per-block section is
+worth more at block 8 than SIMD is. **All of it was the `lcntr = 31`.** A
+node that does the same 32 samples of work whatever the block size measures
+as block-invariant because it IS invariant. The measurement was honest; the
+instrument was reading a defect.
+
+Re-measured on the same instrument, signal present, block 8:
+
+| | recorded 08-28 (3rd session) | **measured now** | block 32 | per sample |
+|---|---|---|---|---|
+| COMP | 13,870 cycles/block | **3,465** | 13,635 | **433.1 vs 426.1** |
+| strip | 21,760 | **11,726** | 39,470 | 1,465.8 vs 1,233.4 |
+
+COMP is per-sample work like everything else — 433.1 cycles/sample at block
+8 against 426.1 at block 32, 1.6 % apart — and the paired-dynamics
+self-test's scalar arm agrees independently at 420.0 cycles/sample/channel.
+The block-8 penalty on the strip is **1.19x per sample, not 2.21x**.
+
+The strip was read TWICE in the same sweep: limits 1→10 give 11,726 and
+limits 10→20 (the second strip) give 11,859, 1.1 % apart. Every other class
+reproduces its recorded figure — FILT 1,095 against 1,089, EQ+GATE 4,201
+against 4,204, RTG 1,861 against 1,872 — which is what makes COMP's move
+attributable to the fix and not to the instrument. **The largest remaining
+block-invariant item in the strip is now RTG.**
+
+#### 3. Wiring the graph for pairing: two pools, not a park
+
+The kernels have paired the dynamics since 963f181. Nothing in the GRAPH ran
+paired, because the chain is strip-ordered and the pool is reused strip by
+strip. The scaffolding in the tree parked ONE slot and copied into and out
+of it — enough for a biquad pair inside one strip's kernel, and **not**
+enough for a pair of whole strips: the TAPS (trim, EQ, pre-fader) are
+written in the HEAD and read by the router in the TAIL, so parking the chain
+block alone leaves strip A's router reading strip B's taps.
+
+So the ODD strip of each pair gets a whole SECOND POOL (`_blk_pool1`, 8
+slots x BLOCK = 64 words at BLOCK=8) and the even strip keeps the original.
+**No copying at all**: the odd strip's nodes are GENERATED against
+`BLK_*_P1` and the even strip's against `BLK_*`, both pools are live across
+the pair, and the paired kernels read one channel from each.
+
+    A: IN GAIN FILT EQ        (odd strip, pool 1)
+    B: IN GAIN FILT EQ        (even strip, pool 0)
+    GATE pair, COMP pair      (one channel from each pool)
+    A: TUBE DLY FDR RTG
+    B: TUBE DLY FDR RTG
+
+The paired dynamics run IN PLACE on each pool's `BLK_CHAIN_B`, the same net
+slot movement as the scalar ping-pong (B -GATE-> A -COMP-> B), so the tails
+are untouched. With `DSP4_SIMD_DYN` off every `BLK_*_P1` macro aliases its
+original, which is what keeps the shipping image byte-identical while the
+generator emits P1 names for sixteen strips.
+
+Three places it could have been silently wrong, and what was done:
+
+- **The block-rate parameter conversion is not duplicated.** Both dynamics
+  classes convert once per block inside their own per-sample body behind the
+  `_sample_idx == 0` guard, and the scalar COMPRESSOR block kernel already
+  drives that body for sample 0 for exactly this reason. The pair driver
+  does the same for both channels and hands the pair kernel the remaining
+  BLOCK-1 through a new `_dsim_n`. Sample 0 is bit-identical to the scalar
+  path by construction, and there is no second copy of the conversion to
+  drift.
+- **Declaration order is the pair interface, and GATE's was wrong for it.**
+  `_gate_pair_blk` reads five consecutive parameter words and scatters four
+  consecutive state words. COMP's eight were already consecutive,
+  deliberately. GATE's were not — `hold` sat in the host parameter block and
+  `hold_count` beside it, so a pair would have read `_buf_` as `hold` and
+  written the hold count over `attq`. Both move under a paired graph,
+  guarded, and **the build now CHECKS the addresses out of the .map** rather
+  than trusting declaration order: GATE params 0x92711-0x92715, GATE state
+  0x9270d-0x92710, COMP params 0x90705-0x9070c, all verified consecutive.
+- **The fallback is net-preserving.** A pair whose channels disagree runs
+  the two scalar nodes and squares the slots up, so "the dynamics section
+  reads BLK_CHAIN_B and writes BLK_CHAIN_B" holds on both paths. Odd strip
+  counts fall out of the same mechanism, and the 11-strip and 15-strip
+  ceiling points below are odd — the last strip's dynamics ran scalar on its
+  own pool in both.
+
+**Chip 2 is not applicable**: its dynamics are `C2_GRP_COMP`,
+`C2_MAIN_COMP` and friends, which do not match the strip-node pattern, have
+no block kernel and have no pair. Its chain file is unchanged.
+
+`DSP4_SIMD_GRAPH` is new and separates "the paired KERNELS are in the image"
+from "the graph is WIRED for them" — they have to be separable, because with
+the kernels and the 32 drivers both in, chip 1 overflows `sec_swco`.
+
+**ONE BUG OF MY OWN, found by the measurement and worth recording because
+of how it presented:** `process_chain.asm` did not `#include "dsp_block.h"`,
+so `DSP4_PAIRED_GRAPH` was undefined in the one file that decides which
+chain order is emitted, and **every "paired" build ran the SCALAR chain**.
+It showed up as the paired GATE costing 153 cycles LESS than not running it
+at all — the shape of a measurement of nothing. Fixed, and verified
+statically: the paired chain now emits 33 pair-driver calls where it emitted
+zero, and the scalar build still emits none.
+
+#### 4. Bit-exactness: the kernels, with a diff that can now fail
+
+Same self-test, at block 8, with the diff index derived and the stimulus
+laid out one block apart:
+
+| | positive | NEGCTL (pair gathers B from A) |
+|---|---|---|
+| COMP | **0 of 32** | **16 of 32**, maxdiff 1.87e8, first=0 |
+| GATE | **0 of 32** | **16 of 32**, maxdiff 1.79e8, first=0 |
+
+16 of 32 is exactly one channel of the pair: channel B differs on every
+sample, channel A matches. That is the precise signature of the fault the
+bar exists to catch, and it is the first time this test could produce it at
+block 8.
+
+Kernel factors, block 8, with the corrected divisor: **COMP 420.0 → 202.5
+cycles/sample/channel (2.07x), GATE 255.0 → 105.0 (2.43x)**, against
+2.04-2.12x and 2.36-2.54x measured at block 32. The factors carry.
+
+**THE GRAPH-LEVEL BAR IS NOT MET, AND THE REASON IS THE BENCH, NOT THE
+PAIRING.** `tools/pi/dsp4_pairgraph.py` and `pairgraph.sh` are in the tree
+and do the right thing — configure both lanes of a pair differently, drive
+one and mute the other so the two lanes sit in OPPOSITE arms of every
+predicated branch, capture the main bus (the one symbol both builds share,
+since the odd strip's pool moves), diff two builds, and require the NEGCTL
+build to differ. Four attempts, none of them reaching a capture:
+
+- the first two to the link — `BOOT_STAGE 0` and `link answers as CHIP 0`;
+- the third to a bug of mine in the probe's own hardening: the `check_chip`
+  retry constructed a SECOND `Scope` while the first still held the RDY
+  GPIO line, so the request failed with `Errno 16, Device or resource busy`
+  — which looks exactly like a dead part and is not. Fixed: the retry now
+  re-votes on the same Scope, which is all the retry that was ever wanted;
+- the fourth to the link again, by then reporting an EMPTY `BOOT_STAGE`
+  after ~45 boot cycles on the day.
+
+A fifth was run after restoring the bench and it got furthest, leaving two
+precise leads rather than "the bench was flaky":
+
+1. **The SCALAR reference capture SUCCEEDED** — `strip 1 driven, 2 muted,
+   paired_build=False: 48/48 non-zero, sha256 d6360646efec1e97`, taken at
+   BOOT_STAGE 7 with SPORT and DMA clean. So the probe, the injection, the
+   configuration and the capture path all work. What is missing is the
+   other side of the comparison.
+2. **The PAIRED build would not come up to a readable state at
+   `DSP4_STRIPS=2`** — repeated `BOOT_STAGE` empty or 0 — on the same run,
+   minutes after the scalar build captured cleanly. **This is NOT evidence
+   that the paired graph is broken**: the same paired image ran real-time
+   at up to 15 strips per chip through sixteen witnessed ceiling points on
+   this bench today. It is an unexplained asymmetry at this ONE
+   configuration (2 strips, no clock override) and it is where to start.
+
+Earlier attempts also showed `Scope.rd`'s paced read answering "CHIP 0"
+while `dsp4_diag.py` read BOOT_STAGE 7 on the same part in the same second,
+so the scope read path is a second thing worth looking at.
+
+**What IS established at graph level**: the paired graph builds, boots,
+configures and runs real-time up to 15 strips per chip, and
+`dsp4_dyn_witness.py` reads gate OPEN and compressor ACTIVE on ALL N strips
+at every accepted ceiling point — the paired dynamics produce correct
+per-strip state on every strip, including the odd last strip that falls back
+to scalar. That is a functional witness, not bit-exactness, and it is
+labelled as one. **The bar itself is unfinished and the instrument to finish
+it is in the tree.**
+
+#### 5. The measured ceilings — signal present, honest 6000 blocks/s rule, channels per chip
+
+| | 786.432 MHz | 983.04 MHz |
+|---|---|---|
+| block 32 (2026-08-27) | 11 | 14 |
+| block 8 as recorded 08-28 (defective COMP) | 5 | 6 |
+| **block 8, scalar** | **9** | **12** |
+| **block 8, SIMD paired** | **11** | **15** |
+
+Every accepted point witnessed with all N gates OPEN and all N compressors
+ACTIVE; every rejection a clean miss:
+
+    scalar 786:  8 = 5999/s   9 = 5999/s   10 = 5679/s   11 = 5234/s
+    scalar 983: 11 = 6000/s  12 = 5999/s   13 = 5656/s   14 = 5297/s
+    paired 786: 11 = 5999/s  12 = 5903/s   13 = 5422/s   14 = 5173/s
+    paired 983: 14 = 5999/s  15 = 5999/s   16 = 5756/s   17 = 5384/s
+
+The 12-strip paired point at 786 hit the CFG_COMMIT parameter slip on strip
+1 mid-run and gainfix could not repair it on the first pass. A dead strip is
+a CHEAP strip, so 5,903/s is if anything flattered — 12 is over budget
+either way and the ceiling of 11 stands.
+
+**What pairing is worth in the graph: +22 % at 786 (9 → 11) and +25 % at
+983 (12 → 15).** That is less than the kernel factors alone would give,
+and the difference is real work, not measurement: the pair driver runs
+sample 0 of each channel through the scalar body for its block-rate
+conversion, sets up pointers, and copies the compressor gain display back
+per channel, and the pair kernels gather and scatter their own interleaved
+park. All of that is inside the measured ceiling.
+
+**Measured per class on the PAIR-ORDERED chain** (NODE_LIMIT counts
+pair-order positions there: 8 = both heads, 9 = + the GATE pair, 10 = + the
+COMP pair, 18 = the whole pair):
+
+| | for TWO channels | scalar for two | graph factor | kernel factor |
+|---|---|---|---|---|
+| GATE pair | **2,284** cycles/block | 4,156 | **1.82x** | 2.43x |
+| COMP pair | **4,023** | 6,930 | **1.72x** | 2.07x |
+
+and the whole pair reads 28,147 against 32,607 for two scalar strips —
+4,460 cycles/block per pair, 2,230 per channel, taking the strip from
+11,726 to **9,496 (−19 %)**. The per-class parts sum to 4,779 for the pair,
+7 % from the whole-pair figure, the difference being the two meters the
+paired limit carries and the scalar limit does not.
+
+**THE MODEL PREDICTS BOTH PAIRED CEILINGS.** Backing the fixed overhead out
+of the SCALAR ceilings and re-solving with the paired strip gives **11.3 at
+786 and 15.1 at 983, against 11 and 15 measured.** The per-class profile
+and the ceiling sweeps share no arithmetic, so that is two independent
+instruments agreeing.
+
+**THE DECIDING NUMBER: 16 per chip at 983 — what a two-chip D32 split needs
+— now misses by 4.2 % of the block budget.** Before this session the same
+question read 6 against 16. It is a margin now, not a factor.
+
+#### 6. The paired biquad cascade still hangs
+
+`_bq_fx_cascade_simd` hangs the part when driven from the main loop with the
+graph configured; it presents as "never reached stage 6" — the part not
+answering the link while the self-test owns the main loop. **Nothing in the
+GRAPH calls it**; only the self-tests do, so it does not block this rung.
+
+Two real defects in it were found and fixed and neither cleared the hang:
+the per-stage rewind `m2 = -64` (right only at BLOCK=32; at BLOCK=8 stage
+two read and WROTE 48 words before `_bqp_sig`), and the IRPTEN mask around
+the whole cascade — the paired DYNAMICS kernels mask nothing and rely on the
+per-ISR PEYEN clear, and masking is what a self-test calling the cascade
+thousands of times in a hardware loop cannot afford. `DSP4_SIMD_STRIPS`
+(which carries that per-ISR PEYEN clear and the IICDI handler) now also
+defaults on for a `DSP4_SIMD_PROBE` build, which previously ran SIMD kernels
+with no ISR protection at all.
+
+What the bisect says now: `DSP4_SKIP_SIMDCALL=1` boots and runs cleanly
+through `_bq_pair_blk`'s interleave and scatter; **one stage hangs exactly
+as four do** (new knob `DSP4_BQ_PAIR_STAGES`), so it is not the per-stage
+rewind or the state advance; and removing the interrupt mask does not change
+it. That leaves the sample loop and the MODE1 entry/exit. The stale 2.39x
+biquad pairing figure is therefore still unreplaced.
+
+#### 7. Bench
+
+Restored and verified. The default shipping image rebuilt **byte-identical
+— chip1.ldr 45f5f2dd, chip2.ldr f6733b6d** — and was flashed; both parts
+boot and run: chip 1 MAGIC 0xD5B40001, BOOT_STAGE 5, **FRAME_COUNT
+advancing 576,097 → 602,062 → 627,979 across three reads with TICKS
+advancing with it**; chip 2 the same at BOOT_STAGE 5 with its own frame
+count; matrix-app active. The CPLD was never touched — everything this
+session went the firmware route.
+
+The frame counts are quoted as a SEQUENCE on purpose. The first read of
+chip 1 after this flash returned `MAGIC 0x00000000`, which the tool
+correctly refuses to interpret, and a restore script that had stopped there
+would have reported a dead part. Re-reading gave a healthy one three times
+running. **One read is not a verification on this link** — which is the
+cheap version of the lesson the graph-bar attempts above taught expensively.
+
+Two instrument occurrences logged again: `dsp4_diag.py --chip 2` answering
+`CHIP_ID 1` (both parts confirmed alive by their own frame counts), and the
+CFG_COMMIT parameter slip on roughly a third of boots, which `gainfix.py`
+repairs over the link before any point is scored.
+
+#### 8. What is NOT in this session
+
+- Ceilings at BLOCK=32 with the corrected code. The block-32 rows above are
+  from 2026-08-27 and are unaffected by the COMP fix (at BLOCK=32 the
+  defective loop count was the right one), but the PAIRED block-32 ceiling
+  was not measured.
+- Silence controls at block 8. The 8 and 11 recorded earlier on 08-28 were
+  measured with the defective COMP and are withdrawn; they were not
+  re-measured.
+- The EQ point of the per-class profile (limit 4) lost its witness three
+  times to the link fault, so EQ and GATE are carried as a combined 4,201
+  cycles/block, which is 0.07 % from the sum of their separately measured
+  figures.
+- Digital latency: still derived, not measured. The blocker is unchanged
+  (the boot config sets no Pi-in-to-Pi-out route).
 
 ## HUB DISPATCH 2026-08-28 13:26Z — block-8 parameterization + in-kernel meter rebuild + re-baseline   [status: 🟢 done — **BLOCK SIZE IS A BUILD PARAMETER AND 8 IS THE OPERATING POINT; THE METER IS REBUILT AND BIT-EXACT AGAINST A REFERENCE THAT DID NOT EXIST; THE BLOCK-8 CEILINGS ARE MEASURED AND THEY COST A FACTOR OF 2.2.** Parameterization is proven a PURE REFACTOR: with BLOCK set back to 32 the build reproduces the previous images byte for byte (chip1.ldr a2fcda81, chip2.ldr 30291013), so block size is the only variable. One source (dsp_codegen.BLOCK) feeds a generated dsp_block.h for the assembler and C, and a generated dsp4_block.py for the bench tools, so a verdict can never be scored against a block size the image was not built with; the real-time bar is now 48000/BLOCK with the thresholds as fractions of it instead of 1450/1500 literals. **THE METER: three instructions per sample, no memory traffic beyond the source read, and one fold per block in 64-bit Q8.56 state** — max, min, and an exact sum of squares in the MRF, folded into a one-pole RMS window and a peak-hold whose coefficients are generated FROM THE BLOCK RATE (which is exactly the third recorded defect: a constant derived for 1500 blocks/s applied per sample). **THE BAR WAS MET ON THE PART: ms64 EXACT, both pk64 words EXACT, float readback exact, negative control against the block-32 coefficients correctly rejected.** The peak is compared word-wise because it sits in a two-state limit cycle stepping every 167 us while a diag peek takes a millisecond — the first run of the test read lo from one phase and hi from the other and called it a mismatch, which was the test being wrong. Three of the four recorded defects are gone by construction; **the fourth (_mtr_gr never written) is NOT a numerics bug and cannot be fixed in this repo** — dsp.csv names gate_gr and comp_gr in the meter's taps but carries no ids for them, so it needs an mx26 contract change. **A FIFTH DEFECT FOUND: every meter read BLK_CHAIN_B unconditionally, and on chip 2 that is not its source** — FADER_PAN reads BLK_CHAIN_B and writes BLK_CHAIN_A, OUTPUT_TDM and COMPRESSOR never touch the pool, so twenty-one chip-2 meters were metering another node's signal. Sources are now resolved per meter from the graph. **THE RE-BASELINE, AND IT IS THE UNCOMFORTABLE PART: block 8 costs 2.2x the cycles per sample and the ceilings fall with it.** Measured, honest 6000/s rule, per chip: signal-present **5 at 786 and 6 at 983** (was 11 and 14 at block 32); silence **8 and 11** (was 15 and 20). Two independent methods agree on the strip to 0.17% (per-class profile 21,760 cycles/block, ceiling-slope 21,798) and the slope model predicts both signal ceilings (5.03 and 6.52). **THE CAUSE IS ONE NODE.** A two-point fit of the same code at both block sizes — today's block-32 control reproduces this morning's strip to 0.1%, which is what makes the fit legitimate — puts 15,856 cycles/block of the strip in BLOCK-INVARIANT work (40% of the strip at block 32, 73% at block 8), **and 13.5k of that 15.9k is COMP**, whose cost is block-invariant to within measurement error (13,484 at block 32, 13,870 at block 8). The fabric, by contrast, is 97.6% per-sample work and scales almost perfectly. **So the block-8 penalty is not diffuse and it is not the price of latency: it is the compressor's once-per-block section, and cutting it is worth more at block 8 than SIMD is.** **LATENCY WAS NOT MEASURED and the blocker is pre-existing**: the DSP does not route Pi input to a Pi-visible output under the boot config (routes are host-written matrix parameters), and dsp4_passthru.py's ALSA device names do not match this Pi. What IS measured is the block rate — FRAME_COUNT 5999–6000/s, so the block period is 166.7 us against 666.7 us — and the ring geometry and ping-pong depth are unchanged by construction, only the row length. The ~23 samples / 0.48 ms figure therefore stands as a derivation, not a measurement, and is labelled that way. **A SEPARATE FAILURE FOUND AND EXONERATED: the per-sample (shipping) image cannot answer the diag link after CONFIG_COMMIT — and this is PRE-EXISTING.** It presents as "response out of step ... neither is the echo". It reproduces at block 8, at block 16, at block 32, with the meters removed entirely, AND **on the exact bytes that shipped (a2fcda81) reflashed from a saved copy** — so it is not block size, not the meter, not this session. It needs its own dispatch. **Bench restored and verified: the new default block-8 images (chip1.ldr 45f5f2dd, chip2.ldr f6733b6d) flashed, both parts booted to BOOT_STAGE 5 with frames arriving, matrix-app started, all three MCUs verified 17:57:23 ON THE FIRST RESTART.** CPLD never touched. The previous shipping md5s a2fcda81/30291013 are superseded: block 8 changes the image by design.]   [model: opus]
 

@@ -40,6 +40,52 @@
  * catches up, then _bq_pair_blk interleaves the two. That is ONE slot --
  * BLOCK words -- not the doubled pool an earlier note claimed. */
 #define BLK_PAIR_PARK    BLK(8)
+
+/* ---- THE ODD POOL (DSP4_SIMD_DYN) ---------------------------------
+ * Pairing the dynamics needs BOTH strips of a pair to hold live chain
+ * blocks at the same moment, and the pool above cannot do that: it is
+ * reused sequentially, so strip N's block is dead the instant strip N+1
+ * starts. The earlier scaffolding parked ONE slot (BLK_PAIR_PARK) and
+ * copied into and out of it, which is enough for a biquad pair inside a
+ * single strip's kernel but not for a pair whose two strips each run
+ * four head nodes and four tail nodes around the paired dynamics: the
+ * TAPS (trim, EQ, pre-fader) are written in the head and read by RTG in
+ * the TAIL, so parking the chain alone would leave strip A's router
+ * reading strip B's taps.
+ *
+ * So the ODD strip of each pair gets a whole SECOND POOL and the even
+ * strip keeps the original. No copying at all: strip A's nodes are
+ * GENERATED against BLK_*_P1 and strip B's against BLK_*, both pools
+ * are live across the pair, and the paired kernels read one channel
+ * from each. Cost is 8 slots x BLOCK words -- 64 words at BLOCK=8.
+ *
+ * With DSP4_SIMD_DYN off every BLK_*_P1 collapses onto its BLK_*
+ * original, so a node generated for the odd pool assembles to exactly
+ * the bytes it did before pairing existed. That aliasing is what keeps
+ * the shipping image byte-identical while the generator emits P1 names
+ * for half the strips.
+ */
+#if DSP4_PAIRED_GRAPH
+.extern _blk_pool1;
+#define BLK1(n)             (_blk_pool1 + (n) * DSP4_BLOCK_SIZE)
+#define BLK_CHAIN_A_P1      BLK1(0)
+#define BLK_CHAIN_B_P1      BLK1(1)
+#define BLK_FDR_L_P1        BLK1(2)
+#define BLK_FDR_R_P1        BLK1(3)
+#define BLK_TAP_TRIM_P1     BLK1(4)
+#define BLK_TAP_EQ_P1       BLK1(5)
+#define BLK_TAP_PREFDR_P1   BLK1(6)
+#define BLK_TAP_POSTFDR_P1  BLK1(7)
+#else
+#define BLK_CHAIN_A_P1      BLK_CHAIN_A
+#define BLK_CHAIN_B_P1      BLK_CHAIN_B
+#define BLK_FDR_L_P1        BLK_FDR_L
+#define BLK_FDR_R_P1        BLK_FDR_R
+#define BLK_TAP_TRIM_P1     BLK_TAP_TRIM
+#define BLK_TAP_EQ_P1       BLK_TAP_EQ
+#define BLK_TAP_PREFDR_P1   BLK_TAP_PREFDR
+#define BLK_TAP_POSTFDR_P1  BLK_TAP_POSTFDR
+#endif
 #endif
 
 #endif /* DSP4_BLK_POOL_H */

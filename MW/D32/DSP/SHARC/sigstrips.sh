@@ -23,8 +23,14 @@ cd "$(dirname "$0")"
 BENCH=app@192.168.1.219
 SIG="${DSP4_PROFILE_SIGNAL:-1}"
 FUS="${DSP4_STRIP_FUSED:-0}"
+# SIMD strip pairing: passed through so the same instrument
+# measures the scalar and the paired graph. Under pairing the
+# chain is PAIR-ORDERED and DSP4_NODE_LIMIT counts positions in
+# that order (18 per pair), which is what makes the paired
+# dynamics readable as one consecutive difference.
+SIMD="${DSP4_SIMD_DYN:-0}"
 for S in "$@"; do
-  DSP4_BISECT=0 DSP4_BLOCK_KERNELS=1 DSP4_PROFILE_SIGNAL=$SIG DSP4_STRIP_FUSED=$FUS DSP4_STRIPS=$S \
+  DSP4_BISECT=0 DSP4_BLOCK_KERNELS=1 DSP4_PROFILE_SIGNAL=$SIG DSP4_STRIP_FUSED=$FUS DSP4_SIMD_DYN=$SIMD DSP4_STRIPS=$S \
     ./build.sh > /tmp/sigstrips_build.log 2>&1
   if [ "$(grep -ciE '\[Error|Build FAILED' /tmp/sigstrips_build.log)" -ne 0 ]; then
     echo "strips=$S BUILD FAILED"; continue; fi
@@ -37,5 +43,5 @@ m=re.search(r\"proc_passes' address='(0x[0-9a-fA-F]+)'\",s); print(m.group(1) if
   scp -q build/chip1.ldr build/chip2.ldr /tmp/chip1.sym.json ../../../../tools/pi/dsp4_block.py $BENCH:/home/app/dspboot/
   scp -q ../../../../tools/pi/dsp4_audio_verdict.py $BENCH:/home/app/dspboot/audio_verdict.py
   scp -q sigstrips_run.sh $BENCH:/home/app/
-  echo "strips=$S sig=$SIG fused=$FUS clk=${DSP4_CCLK_TARGET:-0}  $(ssh $BENCH "bash /home/app/sigstrips_run.sh $PP $S" 2>&1 | tr '\n' ' | ')"
+  echo "strips=$S sig=$SIG fused=$FUS simd=$SIMD clk=${DSP4_CCLK_TARGET:-0}  $(ssh $BENCH "bash /home/app/sigstrips_run.sh $PP $S" 2>&1 | tr '\n' ' | ')"
 done

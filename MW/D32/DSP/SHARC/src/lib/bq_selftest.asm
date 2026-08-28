@@ -188,7 +188,7 @@ _bq_selftest:
      * lowest differing one, which is the same answer from one
      * conditional move. */
     r0 = _bqst_ref;
-    r1 = 63;
+    r1 = 2*DSP4_BLOCK_SIZE-1;       /* LAST index the two blocks filled */
     r0 = r0 + r1;
     i3 = r0;
     r0 = _bqst_blk;
@@ -197,7 +197,7 @@ _bq_selftest:
     r12 = 0;                        /* ndiff   */
     r13 = 0;                        /* maxdiff */
     r14 = -1;                       /* first differing index */
-    r15 = 63;                       /* index, counting down  */
+    r15 = 2*DSP4_BLOCK_SIZE-1;      /* index, counting down  */
     r3 = 0;
     lcntr = 2*DSP4_BLOCK_SIZE, do .bqst_cmp until lce;
         r0 = dm(i3, -1);

@@ -6,7 +6,19 @@ _COMP_BLK_BODY = """
              * forced to 0, which runs the block-rate makeup ramp and the
              * whole parameter conversion exactly as a per-sample build
              * would -- and avoids duplicating ninety lines of conversion
-             * here. Samples 1..31 then run hoisted.
+             * here. Samples 1..BLOCK-1 then run hoisted.
+             *
+             * THE LOOP COUNT IS DSP4_BLOCK_SIZE-1 AND IT USED TO BE A
+             * LITERAL 31. That literal survived the block-size
+             * parameterisation (2026-08-28) because it is the only loop
+             * count in the generator that was written as a number rather
+             * than derived, and nothing downstream could see it: at
+             * BLOCK=8 the compressor ran 1+31 = 32 samples of an 8-sample
+             * block, reading 32 words from BLK_CHAIN_A and writing 32 to
+             * BLK_CHAIN_B -- three slots past the end of each, over
+             * BLK_FDR_L/R and BLK_TAP_TRIM. It is what made COMP look
+             * BLOCK-INVARIANT (13.5k cycles/block at both block sizes);
+             * it was doing the same 32 samples of work either way.
              *
              * The earlier verdict that COMP was not worth converting came
              * from a bare WRAP, which measured 8 % SLOWER, and from a
@@ -53,7 +65,7 @@ _COMP_BLK_BODY = """
             r14 = dm(_comp_envelope_{nid});
             r15 = dm(_comp_mkq_{nid});
 
-            lcntr = 31, do .ckb_lp_{nid} until lce;
+            lcntr = DSP4_BLOCK_SIZE-1, do .ckb_lp_{nid} until lce;
                 r13 = dm(i3, 1);
                 r0 = abs r13;
                 r1 = r14;
@@ -282,6 +294,10 @@ _GATE_BLK_BODY = """
             f1 = f1 * f2;
             r1 = fix f1;
             dm(_gate_rngq_{nid}) = r1;
+        #if DSP4_PAIRED_GRAPH
+            r1 = dm(_gate_hold_{nid});
+            dm(_gate_holdq_{nid}) = r1;   /* five consecutive param words */
+        #endif
 
         #if DSP4_GATE_LINTHR
             /* THRESHOLD IN THE LINEAR DOMAIN, ONCE PER BLOCK.
@@ -6742,6 +6758,21 @@ def gen_block_header():
 #define DSP4_MTR_BETA_Q   {_mtr_beta_q}
 #define DSP4_MTR_CVT_DIV  {MTR_CVT_DIV}
 
+/* PAIRED GRAPH. DSP4_SIMD_DYN says the paired dynamics KERNELS are in the
+ * image; DSP4_SIMD_GRAPH says the graph is WIRED for them -- the odd pool,
+ * the pair drivers and the pair-ordered chain. They are separate because
+ * the self-test build wants the kernels and their scalar twins and nothing
+ * else: with the drivers in as well, chip 1's PM overflows sec_swco. Every
+ * piece of the wiring is guarded on this one macro. */
+#ifndef DSP4_SIMD_GRAPH
+#define DSP4_SIMD_GRAPH 1
+#endif
+#if DSP4_SIMD_DYN && DSP4_SIMD_GRAPH
+#define DSP4_PAIRED_GRAPH 1
+#else
+#define DSP4_PAIRED_GRAPH 0
+#endif
+
 #endif /* DSP4_BLOCK_H */
 """
 
@@ -6811,6 +6842,52 @@ def gen_blk_pool_header():
  * catches up, then _bq_pair_blk interleaves the two. That is ONE slot --
  * BLOCK words -- not the doubled pool an earlier note claimed. */
 #define BLK_PAIR_PARK    BLK(8)
+
+/* ---- THE ODD POOL (DSP4_SIMD_DYN) ---------------------------------
+ * Pairing the dynamics needs BOTH strips of a pair to hold live chain
+ * blocks at the same moment, and the pool above cannot do that: it is
+ * reused sequentially, so strip N's block is dead the instant strip N+1
+ * starts. The earlier scaffolding parked ONE slot (BLK_PAIR_PARK) and
+ * copied into and out of it, which is enough for a biquad pair inside a
+ * single strip's kernel but not for a pair whose two strips each run
+ * four head nodes and four tail nodes around the paired dynamics: the
+ * TAPS (trim, EQ, pre-fader) are written in the head and read by RTG in
+ * the TAIL, so parking the chain alone would leave strip A's router
+ * reading strip B's taps.
+ *
+ * So the ODD strip of each pair gets a whole SECOND POOL and the even
+ * strip keeps the original. No copying at all: strip A's nodes are
+ * GENERATED against BLK_*_P1 and strip B's against BLK_*, both pools
+ * are live across the pair, and the paired kernels read one channel
+ * from each. Cost is 8 slots x BLOCK words -- 64 words at BLOCK=8.
+ *
+ * With DSP4_SIMD_DYN off every BLK_*_P1 collapses onto its BLK_*
+ * original, so a node generated for the odd pool assembles to exactly
+ * the bytes it did before pairing existed. That aliasing is what keeps
+ * the shipping image byte-identical while the generator emits P1 names
+ * for half the strips.
+ */
+#if DSP4_PAIRED_GRAPH
+.extern _blk_pool1;
+#define BLK1(n)             (_blk_pool1 + (n) * DSP4_BLOCK_SIZE)
+#define BLK_CHAIN_A_P1      BLK1(0)
+#define BLK_CHAIN_B_P1      BLK1(1)
+#define BLK_FDR_L_P1        BLK1(2)
+#define BLK_FDR_R_P1        BLK1(3)
+#define BLK_TAP_TRIM_P1     BLK1(4)
+#define BLK_TAP_EQ_P1       BLK1(5)
+#define BLK_TAP_PREFDR_P1   BLK1(6)
+#define BLK_TAP_POSTFDR_P1  BLK1(7)
+#else
+#define BLK_CHAIN_A_P1      BLK_CHAIN_A
+#define BLK_CHAIN_B_P1      BLK_CHAIN_B
+#define BLK_FDR_L_P1        BLK_FDR_L
+#define BLK_FDR_R_P1        BLK_FDR_R
+#define BLK_TAP_TRIM_P1     BLK_TAP_TRIM
+#define BLK_TAP_EQ_P1       BLK_TAP_EQ
+#define BLK_TAP_PREFDR_P1   BLK_TAP_PREFDR
+#define BLK_TAP_POSTFDR_P1  BLK_TAP_POSTFDR
+#endif
 #endif
 
 #endif /* DSP4_BLK_POOL_H */
@@ -6844,6 +6921,16 @@ def gen_bus_accumulators_fixed():
                f'    /* 8 slots + the strip-pair park, x{BLOCK} */')
     out.append('#else')
     out.append(f'.var _blk_pool[{8 * BLOCK}];    /* 8 slots x{BLOCK} */')
+    out.append('#endif')
+    # The odd pool is its OWN array, not slots 9..16 of the first. That is
+    # deliberate and it is what the bench reads: a probe can ask the symbol
+    # table whether _blk_pool1 exists, and get both "is this a paired-graph
+    # build" and "where does the odd strip's chain live" from one lookup,
+    # instead of computing an offset that only a matching build makes true.
+    out.append('#if DSP4_PAIRED_GRAPH')
+    out.append('.global _blk_pool1;')
+    out.append(f'.var _blk_pool1[{8 * BLOCK}];   '
+               f'/* the ODD strip of each pair, 8 slots x{BLOCK} */')
     out.append('#endif')
     out.append('#endif')
     out.append('')
@@ -6913,7 +7000,10 @@ def gen_bus_accumulators_fixed():
     out.append('    lcntr = r1, do .bca_clr until lce;')
     out.append('        r2 = dm(i2, 1);')
     out.append('        i3 = r2;')
-    out.append('        r3 = 64;')
+    out.append('        /* 2 x BLOCK: one [lo, hi] pair per SAMPLE. This was a')
+    out.append('         * literal 64, right only at BLOCK=32; at BLOCK=8 each')
+    out.append('         * bus zeroed 48 words past its own array. */')
+    out.append('        r3 = 2*DSP4_BLOCK_SIZE;')
     out.append('        lcntr = r3, do .bca_clr_in until lce;')
     out.append('    .bca_clr_in:')
     out.append('            dm(i3, 1) = r0;')
@@ -8194,7 +8284,9 @@ def gen_gate_fixed(node):
         .var _gate_attack_{nid} = 0.05;
         .var _gate_release_{nid} = 0.005;
         .var _gate_hold_{nid} = 2400;
+        #if !DSP4_PAIRED_GRAPH
         .var _gate_hold_count_{nid} = 0;
+        #endif
         .var _gate_range_{nid} = 0.001;       /* linear floor (float) */
         .var _gate_key_src_{nid} = 0;
         .var _gate_det_src_{nid} = 0;
@@ -8203,13 +8295,27 @@ def gen_gate_fixed(node):
         .var _gate_filter_lpf_{nid}[5] = 1.0, 0.0, 0.0, 0.0, 0.0;
         .var _gate_filter_cq_{nid}[10];
         .var _gate_filter_state_{nid}[12];
+        /* DECLARATION ORDER IS THE PAIR INTERFACE. _gate_pair_blk gathers
+         * and scatters the gate STATE as four consecutive words
+         * (env, gain, target, hold count) and reads its PARAMETERS as five
+         * (attq, relq, thrq, rngq, hold), so under a paired graph the hold
+         * count moves next to the other three state words and `hold` gets
+         * a converted twin next to the other four parameters. Both moves
+         * are guarded, so a build without pairing keeps the old layout and
+         * therefore the old bytes. */
         .var _gate_envelope_{nid} = 0;
         .var _gate_gain_{nid} = 0x10000000;
         .var _gate_gain_target_q_{nid} = 0x10000000;
+        #if DSP4_PAIRED_GRAPH
+        .var _gate_hold_count_{nid} = 0;
+        #endif
         .var _gate_attq_{nid} = 0;
         .var _gate_relq_{nid} = 0;
         .var _gate_thrq_{nid} = 0;
         .var _gate_rngq_{nid} = 0;
+        #if DSP4_PAIRED_GRAPH
+        .var _gate_holdq_{nid} = 2400;
+        #endif
         .var _buf_{nid};
 
         #if DSP4_BLOCK_KERNELS
@@ -8259,6 +8365,10 @@ def gen_gate_fixed(node):
             f1 = f1 * f2;
             r1 = fix f1;
             dm(_gate_rngq_{nid}) = r1;
+        #if DSP4_PAIRED_GRAPH
+            r1 = dm(_gate_hold_{nid});
+            dm(_gate_holdq_{nid}) = r1;   /* five consecutive param words */
+        #endif
             r2 = dm(_gate_filter_on_{nid});
             r2 = pass r2;
             if eq jump (pc, .gate_go_{nid});
@@ -8386,6 +8496,284 @@ FIXED_GENERATORS = {
 # Main generation
 # ===========================================================================
 
+
+# ---------------------------------------------------------------------------
+# SIMD STRIP PAIRING (DSP4_SIMD_DYN)
+#
+# The kernels have paired the dynamics since 2026-08-28 and measured
+# 2.04-2.12x on COMP and 2.36-2.54x on GATE -- but nothing in the GRAPH ran
+# paired, because the chain is STRIP-ORDERED and the block pool is reused
+# strip by strip: strip N+1's block does not exist while strip N is running,
+# so a pair could never hold two live channels.
+#
+# What makes it work is not a park and a copy. It is TWO POOLS. The ODD
+# strip of each pair is GENERATED against a second set of slot macros
+# (BLK_*_P1) and the even strip keeps the originals, so both strips' whole
+# working sets -- chain ping-pong AND the three taps the router reads in the
+# TAIL, which is what a single parked slot could never cover -- are live at
+# the same moment, at zero copying cost. With DSP4_SIMD_DYN off the P1 names
+# alias the originals (blk_pool.h) and the image is byte-identical.
+#
+# The chain then runs, per pair:
+#     A: IN GAIN FILT EQ        (odd strip, pool 1)
+#     B: IN GAIN FILT EQ        (even strip, pool 0)
+#     GATE pair, COMP pair      (one channel from each pool)
+#     A: TUBE DLY FDR RTG
+#     B: TUBE DLY FDR RTG
+#
+# The paired dynamics run IN PLACE on each pool's BLK_CHAIN_B, which is the
+# same net slot movement as the scalar ping-pong (B --GATE--> A --COMP--> B),
+# so the tails need no change at all. The RTG order within a pair is A then
+# B as before; bus accumulation is exact 64-bit integer addition, so strip
+# order cannot change a bus sum in any case.
+# ---------------------------------------------------------------------------
+
+# The classes that make up a channel strip, in chain order, split at the
+# dynamics. Only chip 1 has these -- chip 2's dynamics are C2_GRP_COMP,
+# C2_MAIN_COMP and friends, which have no block kernel and no pair.
+_STRIP_HEAD = ('IN', 'GAIN', 'FILT', 'EQ')
+_STRIP_DYN  = ('GATE', 'COMP')
+_STRIP_TAIL = ('TUBE', 'DLY', 'FDR', 'RTG')
+_STRIP_TYPES = _STRIP_HEAD + _STRIP_DYN + _STRIP_TAIL
+
+_STRIP_NODE_RE = re.compile(
+    r'^C(\d+)_(' + '|'.join(_STRIP_TYPES) + r')_(\d+)$')
+
+# Every pool slot a strip node can name. The odd strip of a pair gets the
+# _P1 twin of each.
+_POOL_SLOT_RE = re.compile(
+    r'\b(BLK_CHAIN_A|BLK_CHAIN_B|BLK_FDR_L|BLK_FDR_R|BLK_TAP_TRIM'
+    r'|BLK_TAP_EQ|BLK_TAP_PREFDR|BLK_TAP_POSTFDR)\b')
+
+
+def _odd_pool(text):
+    """Rewrite a generated node body onto the odd pool's slot macros."""
+    return _POOL_SLOT_RE.sub(lambda m: m.group(1) + '_P1', text)
+
+
+def _strip_index(nid):
+    """1-based strip number of a strip node, or None."""
+    m = _STRIP_NODE_RE.match(nid)
+    return int(m.group(3)) if m else None
+
+
+def gen_dyn_pairs(chip_label, strips, meter_src):
+    """chipN/dyn_pairs.asm — one driver per paired class per strip pair.
+
+    A driver is a NODE as far as the chain is concerned: it is called once
+    per block and it leaves its pair's two channels exactly where the two
+    scalar nodes would have left them.
+
+    THE BLOCK-RATE CONVERSION IS NOT DUPLICATED HERE. Both dynamics classes
+    convert their control parameters once per block inside their own
+    per-sample body, behind the `_sample_idx == 0` guard, and the scalar
+    COMPRESSOR block kernel already drives that body for sample 0 for
+    exactly this reason. The driver does the same for both channels and
+    hands the pair kernel the remaining BLOCK-1 samples through _dsim_n.
+    That is what makes sample 0 bit-identical to the scalar path by
+    construction rather than by inspection, and it is why there is no
+    second copy of the conversion arithmetic to drift.
+
+    THE FALLBACK IS NET-PRESERVING. A pair whose channels disagree -- one
+    gate off, one sidechain filter on, one compressor bypassed -- cannot
+    run paired, and the two scalar nodes ping-pong B->A->B across the two
+    of them. The driver therefore calls the scalar nodes and squares the
+    slots up itself, so that "the dynamics section reads BLK_CHAIN_B and
+    writes BLK_CHAIN_B" holds on BOTH paths and the two drivers can make
+    their bypass decisions independently.
+    """
+    out = []
+    a = out.append
+    a(f'/* {chip_label.upper()} — SIMD strip-pair dynamics drivers */')
+    a('/* AUTO-GENERATED by tools/dsp/dsp_codegen.py — do not edit directly. */')
+    a('#include "dsp_block.h"')
+    a('#include "blk_pool.h"')
+    a('')
+    a('#if DSP4_PAIRED_GRAPH')
+    a('')
+    a('.section/dm seg_dmda;')
+    a('.var _dynpair_saved_idx;')
+    a('')
+    a('.section/pm seg_pmco;')
+    a('.extern _sample_idx;')
+    a('.extern _dsim_n;')
+    a('.extern _gate_pair_blk;')
+    a('.extern _comp_pair_blk;')
+    a('.extern _cmp_gn;')
+
+    pairs = []
+    nums = sorted(strips)
+    for i in range(0, len(nums) - 1, 2):
+        pairs.append((nums[i], nums[i + 1]))
+    odd_left = nums[-1] if len(nums) % 2 else None
+
+    for sa, sb in pairs:
+        for sn in (sa, sb):
+            g, c, e = strips[sn]['GATE'], strips[sn]['COMP'], strips[sn]['EQ']
+            for sym in (f'_{g}_process', f'_{g}_process_sample',
+                        f'_{c}_process', f'_{c}_process_sample',
+                        f'_gate_on_{g}', f'_gate_filter_on_{g}',
+                        f'_gate_attq_{g}', f'_gate_envelope_{g}',
+                        f'_comp_on_{c}', f'_comp_attq_{c}',
+                        f'_comp_envelope_{c}', f'_comp_gain_{c}',
+                        f'_buf_{e}', f'_buf_{g}', f'_buf_{c}'):
+                a(f'.extern {sym};')
+
+    for sa, sb in pairs:
+        ga, gb = strips[sa]['GATE'], strips[sb]['GATE']
+        ca, cb = strips[sa]['COMP'], strips[sb]['COMP']
+        ia, ib = strips[sa]['EQ'], strips[sb]['EQ']
+        tag = f'{sa:02d}_{sb:02d}'
+
+        # ---- GATE pair -------------------------------------------------
+        a('')
+        a(f'/* ---- strips {sa} + {sb}: GATE ---- */')
+        a(f'.global _DYNGATE_{tag}_process;')
+        a(f'_DYNGATE_{tag}_process:')
+        a('    /* Both channels must be on the same path or there is no pair. */')
+        for g in (ga, gb):
+            a(f'    r0 = dm(_gate_on_{g});')
+            a('    r0 = pass r0;')
+            a(f'    if eq jump (pc, .dgs_{tag});')
+        for g in (ga, gb):
+            a(f'    r0 = dm(_gate_filter_on_{g});')
+            a('    r0 = pass r0;')
+            a(f'    if ne jump (pc, .dgs_{tag});')
+        a('')
+        a('    /* sample 0 through each channel\'s own per-sample body: that is')
+        a('     * where the block-rate parameter conversion lives. */')
+        a('    r5 = dm(_sample_idx);')
+        a('    dm(_dynpair_saved_idx) = r5;')
+        a('    r5 = 0;')
+        a('    dm(_sample_idx) = r5;')
+        for g, inp, slot in ((ga, ia, 'BLK_CHAIN_B_P1'), (gb, ib, 'BLK_CHAIN_B')):
+            a(f'    r0 = dm({slot});')
+            a(f'    dm(_buf_{inp}) = r0;')
+            a(f'    call _{g}_process_sample;')
+            a(f'    r0 = dm(_buf_{g});')
+            a(f'    dm({slot}) = r0;')
+        a('    r5 = dm(_dynpair_saved_idx);')
+        a('    dm(_sample_idx) = r5;')
+        a('')
+        a('    /* samples 1..BLOCK-1, two channels in one instruction stream */')
+        a('    r0 = DSP4_BLOCK_SIZE-1;')
+        a('    dm(_dsim_n) = r0;')
+        a('    dm(_dsim_n + 1) = r0;')
+        a(f'    r4 = _gate_attq_{ga};        /* attq relq thrq rngq hold */')
+        a(f'    r5 = _gate_attq_{gb};')
+        a(f'    r6 = _gate_envelope_{ga};    /* env gain target holdcount */')
+        a(f'    r7 = _gate_envelope_{gb};')
+        a('    r0 = BLK_CHAIN_B_P1;')
+        a('    r1 = 1;')
+        a('    r8 = r0 + r1;')
+        a('    r0 = BLK_CHAIN_B;')
+        a('    r9 = r0 + r1;')
+        a('    call _gate_pair_blk;')
+        a('    rts;')
+        a('')
+        a(f'.dgs_{tag}:')
+        a('    /* scalar fallback, squared up to B-in/B-out per pool */')
+        a(f'    call _{ga}_process;          /* B_P1 -> A_P1 */')
+        a('    l3 = 0; l4 = 0;')
+        a('    i3 = BLK_CHAIN_A_P1;')
+        a('    i4 = BLK_CHAIN_B_P1;')
+        a(f'    lcntr = DSP4_BLOCK_SIZE, do .dgs_c1_{tag} until lce;')
+        a('        r0 = dm(i3, 1);')
+        a(f'    .dgs_c1_{tag}: dm(i4, 1) = r0;')
+        a(f'    call _{gb}_process;          /* B -> A */')
+        a('    i3 = BLK_CHAIN_A;')
+        a('    i4 = BLK_CHAIN_B;')
+        a(f'    lcntr = DSP4_BLOCK_SIZE, do .dgs_c2_{tag} until lce;')
+        a('        r0 = dm(i3, 1);')
+        a(f'    .dgs_c2_{tag}: dm(i4, 1) = r0;')
+        a('    rts;')
+        a(f'_DYNGATE_{tag}_process.end:')
+
+        # ---- COMP pair -------------------------------------------------
+        a('')
+        a(f'/* ---- strips {sa} + {sb}: COMP ---- */')
+        a(f'.global _DYNCOMP_{tag}_process;')
+        a(f'_DYNCOMP_{tag}_process:')
+        for c in (ca, cb):
+            a(f'    r0 = dm(_comp_on_{c});')
+            a('    r0 = pass r0;')
+            a(f'    if eq jump (pc, .dcs_{tag});')
+        a('')
+        a('    r5 = dm(_sample_idx);')
+        a('    dm(_dynpair_saved_idx) = r5;')
+        a('    r5 = 0;')
+        a('    dm(_sample_idx) = r5;')
+        for c, g, slot in ((ca, ga, 'BLK_CHAIN_B_P1'), (cb, gb, 'BLK_CHAIN_B')):
+            a(f'    r0 = dm({slot});')
+            a(f'    dm(_buf_{g}) = r0;')
+            a(f'    call _{c}_process_sample;')
+            a(f'    r0 = dm(_buf_{c});')
+            a(f'    dm({slot}) = r0;')
+        a('    r5 = dm(_dynpair_saved_idx);')
+        a('    dm(_sample_idx) = r5;')
+        a('')
+        a('    r0 = DSP4_BLOCK_SIZE-1;')
+        a('    dm(_dsim_n) = r0;')
+        a('    dm(_dsim_n + 1) = r0;')
+        a(f'    r4 = _comp_attq_{ca};        /* attq relq mkq parq thr slope halfk k2 */')
+        a(f'    r5 = _comp_attq_{cb};')
+        a(f'    r6 = _comp_envelope_{ca};')
+        a(f'    r7 = _comp_envelope_{cb};')
+        a('    r0 = BLK_CHAIN_B_P1;')
+        a('    r1 = 1;')
+        a('    r8 = r0 + r1;')
+        a('    r0 = BLK_CHAIN_B;')
+        a('    r9 = r0 + r1;')
+        a('    call _comp_pair_blk;')
+        a('    /* the pair writes its gain display to the shared park; give it')
+        a('     * back to each node so dsp4_dyn_witness.py still reads a live')
+        a('     * per-strip compressor gain. */')
+        a('    i0 = _cmp_gn;')
+        a('    r0 = dm(i0, 1);')
+        a(f'    dm(_comp_gain_{ca}) = r0;')
+        a('    r0 = dm(i0, 1);')
+        a(f'    dm(_comp_gain_{cb}) = r0;')
+        a('    rts;')
+        a('')
+        a(f'.dcs_{tag}:')
+        a('    /* scalar fallback, squared up to B-in/B-out per pool */')
+        a('    l3 = 0; l4 = 0;')
+        a('    i3 = BLK_CHAIN_B_P1;')
+        a('    i4 = BLK_CHAIN_A_P1;')
+        a(f'    lcntr = DSP4_BLOCK_SIZE, do .dcs_c1_{tag} until lce;')
+        a('        r0 = dm(i3, 1);')
+        a(f'    .dcs_c1_{tag}: dm(i4, 1) = r0;')
+        a(f'    call _{ca}_process;          /* A_P1 -> B_P1 */')
+        a('    i3 = BLK_CHAIN_B;')
+        a('    i4 = BLK_CHAIN_A;')
+        a(f'    lcntr = DSP4_BLOCK_SIZE, do .dcs_c2_{tag} until lce;')
+        a('        r0 = dm(i3, 1);')
+        a(f'    .dcs_c2_{tag}: dm(i4, 1) = r0;')
+        a(f'    call _{cb}_process;          /* A -> B */')
+        a('    rts;')
+        a(f'_DYNCOMP_{tag}_process.end:')
+
+    if odd_left is not None:
+        a('')
+        a(f'/* strip {odd_left} has no partner: it runs its two dynamics nodes')
+        a(' * scalar, in place in the chain, on the EVEN pool. Nothing is')
+        a(' * emitted here for it. */')
+
+    a('')
+    a('#if DSP4_GATE_LINTHR')
+    a('#error "DSP4_SIMD_DYN pairs the GATE in the log2 domain; '
+      'DSP4_GATE_LINTHR converts the threshold to linear once per block '
+      'and the two are different arithmetic. Build with DSP4_GATE_LINTHR=0."')
+    a('#endif')
+    a('#if !DSP4_BLOCK_KERNELS')
+    a('#error "DSP4_SIMD_GRAPH is a per-BLOCK pairing: build with '
+      'DSP4_BLOCK_KERNELS=1."')
+    a('#endif')
+    a('')
+    a('#endif /* DSP4_PAIRED_GRAPH */')
+    return '\n'.join(out) + '\n'
+
+
 def generate(csv_path, output_dir, force=False, node_type_filter=None):
     with open(csv_path, newline='', encoding='utf-8') as f:
         rows = list(csv.DictReader(f))
@@ -8460,6 +8848,28 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                         src['type'], '')
         _mtr_ids = {m for v in _mtr_after.values() for m in v}
 
+        # ---- SIMD strip pairing: which nodes are generated on which pool
+        #
+        # strips[<n>][<CLASS>] = node id, for every complete channel strip.
+        # The ODD strip of each pair (1, 3, 5, ...) is generated against the
+        # BLK_*_P1 slot macros so a pair can hold both channels live; the
+        # even one keeps the originals. A meter rides on whichever pool its
+        # source is on, because what it taps is a pool slot.
+        strips = {}
+        for n in chip_nodes:
+            m = _STRIP_NODE_RE.match(n['id'])
+            if m:
+                strips.setdefault(int(m.group(3)), {})[m.group(2)] = n['id']
+        # Only COMPLETE strips pair: a partial one has no dynamics to pair.
+        strips = {k: v for k, v in strips.items()
+                  if all(c in v for c in _STRIP_TYPES)}
+        odd_pool_ids = set()
+        for sn, cls in strips.items():
+            if sn % 2:
+                odd_pool_ids.update(cls.values())
+                for src in cls.values():
+                    odd_pool_ids.update(_mtr_after.get(src, []))
+
         for node in chip_nodes:
             # call_sequence keeps its ORIGINAL order. The meter move is done
             # in the emitted chain under #if DSP4_BLOCK_KERNELS instead, so
@@ -8504,6 +8914,11 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
             body = gen_fn(node)
             body = add_global_decls(body)
             body = add_extern_decls(body)
+            if node['id'] in odd_pool_ids:
+                # Odd strip of a SIMD pair: same kernel, second pool. With
+                # DSP4_SIMD_DYN off every _P1 macro aliases its original, so
+                # this assembles to the bytes it did before pairing existed.
+                body = _odd_pool(body)
             content = header + '\n' + body
 
             asm_path = os.path.join(nodes_dir, f"{node['id']}.asm")
@@ -8522,11 +8937,25 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
             f.write(f'/* {chip_label.upper()} — Processing chain call sequence */\n')
             f.write(f'/* AUTO-GENERATED by tools/dsp/dsp_codegen.py — do not edit directly. */\n')
             f.write(f'/* {len(call_sequence)} nodes in processing order */\n\n')
+            # THE CHAIN NEEDS THE BLOCK HEADER. DSP4_PAIRED_GRAPH is defined
+            # there, and without the include it is simply undefined here --
+            # which the preprocessor reads as 0, so a DSP4_SIMD_DYN=1 build
+            # emitted the SCALAR chain and every "paired" measurement was a
+            # scalar one. It presented as the paired GATE costing nothing.
+            f.write('#include "dsp_block.h"\n\n')
             f.write(f'.section/pm seg_pmco;\n')
             if chip_label == 'chip1':
                 f.write(f'.extern _bus_clear_all;\n')
             for nid in call_sequence:
                 f.write(f'.extern _{nid}_process;\n')
+            if strips:
+                f.write('#if DSP4_PAIRED_GRAPH\n')
+                _pn = sorted(strips)
+                for _k in range(0, len(_pn) - 1, 2):
+                    _tg = f'{_pn[_k]:02d}_{_pn[_k + 1]:02d}'
+                    f.write(f'.extern _DYNGATE_{_tg}_process;\n')
+                    f.write(f'.extern _DYNCOMP_{_tg}_process;\n')
+                f.write('#endif\n')
             f.write(f'#if DSP4_BLOCK_KERNELS\n')
             f.write(f'.extern _scope_inject_blk;\n')
             f.write(f'#endif\n')
@@ -8564,78 +8993,194 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
             _SCOPE_IDS = {'D32': 0, 'D24': 1}
             _scope_of = {n['id']: _SCOPE_IDS.get(n['params'].get('scope'))
                          for n in chip_nodes}
-            gate_runs = {}          # start idx -> (end idx, scope id, run no)
-            _i, _r = 0, 0
-            while _i < len(call_sequence):
-                sid = _scope_of.get(call_sequence[_i])
-                if sid is None:
-                    _i += 1
-                    continue
-                _j = _i
-                while (_j + 1 < len(call_sequence)
-                       and _scope_of.get(call_sequence[_j + 1]) == sid):
-                    _j += 1
-                gate_runs[_i] = (_j, sid, _r)
-                _r += 1
-                _i = _j + 1
-            gate_ends = {v[0]: v[2] for v in gate_runs.values()}
+            # ---- one emitter, two orderings ---------------------------
+            #
+            # The strip-ordered chain and the SIMD PAIR-ORDERED chain are
+            # the same nodes with the same guards in a different sequence,
+            # so they share this emitter. `seq` is a list of entries --
+            # ('node', nid) or ('pair', CLASS, tag, sa, sb) -- and
+            # `pos_of` maps a node id to the position DSP4_NODE_LIMIT
+            # counts. Under pairing that position is the PAIR-ORDER one,
+            # which is what makes limits 1..18 walk exactly one pair and
+            # consecutive differences read as per-class costs again.
+            def emit_chain(seq, pos_of, sgpfx):
+                # Product-scope gating (DSP4_SCOPE_GATE, block-kernel
+                # builds). A per-NODE skip table was measured on the part
+                # and is a net LOSS: testing a table word before all 431
+                # calls costs more than not calling the 34 scoped ones
+                # (2026-08-24, 244,795 vs 243,235 cycles/block). The scoped
+                # nodes are contiguous in call order, so gate whole RUNS
+                # with one compare and one branch instead -- cost is per
+                # run, not per node.
+                runs, _i, _r = {}, 0, 0
+                while _i < len(seq):
+                    sid = (_scope_of.get(seq[_i][1])
+                           if seq[_i][0] == 'node' else None)
+                    if sid is None:
+                        _i += 1
+                        continue
+                    _j = _i
+                    while (_j + 1 < len(seq) and seq[_j + 1][0] == 'node'
+                           and _scope_of.get(seq[_j + 1][1]) == sid):
+                        _j += 1
+                    runs[_i] = (_j, sid, _r)
+                    _r += 1
+                    _i = _j + 1
+                ends = {v[0]: v[2] for v in runs.values()}
 
-            for idx, nid in enumerate(call_sequence):
-                if idx in gate_runs:
-                    _end, _sid, _rn = gate_runs[idx]
-                    f.write('#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE\n')
-                    f.write(f'    /* nodes {idx}..{_end} are '
-                            f'{"D32" if _sid == 0 else "D24"}-only */\n')
-                    f.write('    r2 = dm(_product_id);\n')
-                    f.write(f'    r3 = {_sid};\n')
-                    f.write('    comp(r2, r3);\n')
-                    f.write(f'    if ne jump (pc, .sgrun{_rn}_end);\n')
+                for idx, ent in enumerate(seq):
+                    if idx in runs:
+                        _end, _sid, _rn = runs[idx]
+                        f.write('#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE\n')
+                        f.write(f'    /* nodes {idx}..{_end} are '
+                                f'{"D32" if _sid == 0 else "D24"}-only */\n')
+                        f.write('    r2 = dm(_product_id);\n')
+                        f.write(f'    r3 = {_sid};\n')
+                        f.write('    comp(r2, r3);\n')
+                        f.write(f'    if ne jump (pc, .{sgpfx}{_rn}_end);\n')
+                        f.write('#endif\n')
+
+                    if ent[0] == 'pair':
+                        _cls, _tag, _sa, _sb = ent[1], ent[2], ent[3], ent[4]
+                        _p = pos_of[('pair', _cls, _tag)]
+                        _nl = f'DSP4_NODE_LIMIT == 0 || {_p} < DSP4_NODE_LIMIT'
+                        # Both strips have to be in the graph for a pair to
+                        # exist. With an odd DSP4_STRIPS the last strip is
+                        # in on its own, and its two dynamics nodes run
+                        # SCALAR -- on their own pool, which is why that
+                        # costs nothing but the call.
+                        f.write(f'#if ({_nl}) && (DSP4_STRIPS == 0 || '
+                                f'{_sb - 1} < DSP4_STRIPS)\n')
+                        f.write(f'    call _DYN{_cls}_{_tag}_process;\n')
+                        f.write(f'#elif ({_nl}) && (DSP4_STRIPS == 0 || '
+                                f'{_sa - 1} < DSP4_STRIPS)\n')
+                        f.write(f'    call _{strips[_sa][_cls]}_process;\n')
+                        f.write('#endif\n')
+                        continue
+
+                    nid = ent[1]
+                    guards = [f'DSP4_NODE_LIMIT == 0 || '
+                              f'{pos_of[nid]} < DSP4_NODE_LIMIT']
+                    m = strip_re.match(nid)
+                    if m:
+                        strip = int(m.group(2)) - 1
+                        guards.append(f'DSP4_STRIPS == 0 || {strip} < DSP4_STRIPS')
+                    f.write('#if (' + ') && ('.join(guards) + ')\n')
+                    if nid in _mtr_ids:
+                        # Per-sample builds call the meter here, at its own
+                        # chain index, exactly as they always have.
+                        f.write('#if !DSP4_BLOCK_KERNELS\n')
+                        f.write(f'    call _{nid}_process;\n')
+                        f.write('#endif\n')
+                    else:
+                        f.write(f'    call _{nid}_process;\n')
                     f.write('#endif\n')
-                guards = [f'DSP4_NODE_LIMIT == 0 || {idx} < DSP4_NODE_LIMIT']
-                m = strip_re.match(nid)
-                if m:
-                    strip = int(m.group(2)) - 1
-                    guards.append(f'DSP4_STRIPS == 0 || {strip} < DSP4_STRIPS')
-                f.write('#if (' + ') && ('.join(guards) + ')\n')
-                if nid in _mtr_ids:
-                    # Per-sample builds call the meter here, at its own chain
-                    # index, exactly as they always have.
-                    f.write('#if !DSP4_BLOCK_KERNELS\n')
-                    f.write(f'    call _{nid}_process;\n')
-                    f.write('#endif\n')
-                else:
-                    f.write(f'    call _{nid}_process;\n')
-                f.write(f'#endif\n')
-                for _m in _mtr_after.get(nid, []):
-                    # ...and block builds call it HERE instead, right after
-                    # its source, while that channel's pool slot is still
-                    # live. Guarded so the shipping image is unchanged.
-                    #
-                    # It keeps its ORIGINAL chain index in the NODE_LIMIT
-                    # guard. Without that, DSP4_NODE_LIMIT would mean two
-                    # different things in the two builds -- and the fabric
-                    # measurement, which is exactly NODE_LIMIT 320 versus 0,
-                    # would silently start counting meters as strips.
-                    _mi = call_sequence.index(_m)
-                    f.write('#if DSP4_BLOCK_KERNELS\n')
-                    f.write(f'#if (DSP4_NODE_LIMIT == 0 || {_mi} < DSP4_NODE_LIMIT)\n')
-                    f.write(f'    call _{_m}_process;\n')
-                    f.write('#endif\n')
-                    f.write('#endif\n')
-                if idx in gate_ends:
-                    f.write('#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE\n')
-                    f.write(f'.sgrun{gate_ends[idx]}_end:\n')
-                    f.write('#endif\n')
-                if idx == 0:
-                    # Harness stimulus goes in straight after the input
-                    # node. Under per-block kernels the input kernel reads
-                    # DMA directly, so there is no RX slot variable left to
-                    # inject into -- the hook has to sit inside the chain.
-                    f.write('#if DSP4_BLOCK_KERNELS\n')
-                    f.write('    call _scope_inject_blk;\n')
-                    f.write('#endif\n')
+                    for _m in _mtr_after.get(nid, []):
+                        # ...and block builds call it HERE instead, right
+                        # after its source, while that channel's pool slot
+                        # is still live. Guarded so the shipping image is
+                        # unchanged.
+                        f.write('#if DSP4_BLOCK_KERNELS\n')
+                        f.write(f'#if (DSP4_NODE_LIMIT == 0 || '
+                                f'{pos_of[_m]} < DSP4_NODE_LIMIT)\n')
+                        f.write(f'    call _{_m}_process;\n')
+                        f.write('#endif\n')
+                        f.write('#endif\n')
+                    if idx in ends:
+                        f.write('#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE\n')
+                        f.write(f'.{sgpfx}{ends[idx]}_end:\n')
+                        f.write('#endif\n')
+                    if idx == 0:
+                        # Harness stimulus goes in straight after the input
+                        # node. Under per-block kernels the input kernel
+                        # reads DMA directly, so there is no RX slot
+                        # variable left to inject into -- the hook has to
+                        # sit inside the chain.
+                        f.write('#if DSP4_BLOCK_KERNELS\n')
+                        f.write('    call _scope_inject_blk;\n')
+                        f.write('#endif\n')
+
+            # The strip-ordered chain: every node in dsp.csv order, each
+            # keeping its own index. Meters keep their ORIGINAL index too --
+            # without that, DSP4_NODE_LIMIT would mean two different things
+            # in the two builds, and the fabric measurement, which is
+            # exactly NODE_LIMIT 320 versus 0, would silently start counting
+            # meters as strips.
+            scalar_seq = [('node', nid) for nid in call_sequence]
+            scalar_pos = {nid: i for i, nid in enumerate(call_sequence)}
+
+            # The pair-ordered chain, built only where there are pairs to
+            # build (chip 1). Chip 2's dynamics are C2_GRP_COMP and friends:
+            # they have no block kernel, so there is nothing to pair and its
+            # chain file is unchanged.
+            pair_nums = sorted(strips)
+            pair_seq, pair_pos = [], {}
+            if pair_nums:
+                _strip_ids = {i for c in strips.values() for i in c.values()}
+                _first = min(i for i, n in enumerate(call_sequence)
+                             if n in _strip_ids)
+                _last = max(i for i, n in enumerate(call_sequence)
+                            if n in _strip_ids)
+                _span = call_sequence[_first:_last + 1]
+                if any(n not in _strip_ids for n in _span):
+                    raise ValueError(
+                        f'{chip_label}: the channel strips are not a '
+                        f'contiguous run of the chain, so the SIMD pair '
+                        f'order cannot be built by reordering that run')
+                pair_seq += [('node', n) for n in call_sequence[:_first]]
+                for _k in range(0, len(pair_nums) - 1, 2):
+                    _sa, _sb = pair_nums[_k], pair_nums[_k + 1]
+                    _tag = f'{_sa:02d}_{_sb:02d}'
+                    for _cls in _STRIP_HEAD:
+                        pair_seq.append(('node', strips[_sa][_cls]))
+                    for _cls in _STRIP_HEAD:
+                        pair_seq.append(('node', strips[_sb][_cls]))
+                    for _cls in _STRIP_DYN:
+                        pair_seq.append(('pair', _cls, _tag, _sa, _sb))
+                    for _cls in _STRIP_TAIL:
+                        pair_seq.append(('node', strips[_sa][_cls]))
+                    for _cls in _STRIP_TAIL:
+                        pair_seq.append(('node', strips[_sb][_cls]))
+                if len(pair_nums) % 2:
+                    for _cls in _STRIP_TYPES:
+                        pair_seq.append(('node', strips[pair_nums[-1]][_cls]))
+                pair_seq += [('node', n) for n in call_sequence[_last + 1:]]
+                for _i, _e in enumerate(pair_seq):
+                    pair_pos[_e[1] if _e[0] == 'node'
+                             else ('pair', _e[1], _e[2])] = _i
+                # A meter runs if and only if its source ran, so it takes
+                # its source's position rather than one of its own.
+                for _src, _ms in _mtr_after.items():
+                    for _m in _ms:
+                        if _src in pair_pos:
+                            pair_pos[_m] = pair_pos[_src]
+
+            if pair_seq:
+                f.write('/* SIMD PAIR ORDER (DSP4_PAIRED_GRAPH). Head A, head B,\n')
+                f.write(' * the two paired dynamics calls, tail A, tail B --\n')
+                f.write(f' * {len(pair_seq)} positions against '
+                        f'{len(scalar_seq)} strip-ordered ones, because each\n')
+                f.write(' * pair replaces four dynamics nodes with two driver\n')
+                f.write(' * calls. DSP4_NODE_LIMIT COUNTS THESE POSITIONS in\n')
+                f.write(' * this build, so limits 1..18 walk exactly one pair.\n')
+                f.write(' */\n')
+                f.write('#if DSP4_PAIRED_GRAPH\n')
+                emit_chain(pair_seq, pair_pos, 'psgrun')
+                f.write('#else\n')
+                emit_chain(scalar_seq, scalar_pos, 'sgrun')
+                f.write('#endif\n')
+            else:
+                emit_chain(scalar_seq, scalar_pos, 'sgrun')
             f.write(f'    rts;\n')
             f.write(f'_{chip_label}_process_all.end:\n')
+        files_written += 1
+
+        # Write the SIMD strip-pair dynamics drivers. Always written --
+        # the whole file is inside #if DSP4_SIMD_DYN, so it costs the
+        # default image nothing and the tree never carries a stale copy.
+        pairs_path = os.path.join(output_dir, chip_label, 'dyn_pairs.asm')
+        with open(pairs_path, 'w', encoding='utf-8') as f:
+            f.write(gen_dyn_pairs(chip_label, strips, _mtr_after))
         files_written += 1
 
         # Write block I/O (scatter/gather between DMA and node slot variables)

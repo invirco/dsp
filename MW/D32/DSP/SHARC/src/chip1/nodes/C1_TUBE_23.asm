@@ -48,8 +48,8 @@ _C1_TUBE_23_process:
      * block to the per-sample body. A sat ramp is a transient. */
     l3 = 0;
     l4 = 0;
-    i3 = BLK_CHAIN_B;
-    i4 = BLK_CHAIN_A;
+    i3 = BLK_CHAIN_B_P1;
+    i4 = BLK_CHAIN_A_P1;
 
     r2 = dm(_tube_on_C1_TUBE_23);
     r2 = pass r2;

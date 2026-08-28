@@ -23,11 +23,17 @@ set -u
 DEC="${DEC:-32}"; DWELL="${DWELL:-20}"
 SIG="${DSP4_PROFILE_SIGNAL:-1}"
 FUS="${DSP4_STRIP_FUSED:-0}"
+# SIMD strip pairing: passed through so the same instrument
+# measures the scalar and the paired graph. Under pairing the
+# chain is PAIR-ORDERED and DSP4_NODE_LIMIT counts positions in
+# that order (18 per pair), which is what makes the paired
+# dynamics readable as one consecutive difference.
+SIMD="${DSP4_SIMD_DYN:-0}"
 cd "$(dirname "$0")"
 BENCH=app@192.168.1.219
 for L in "$@"; do
   DSP4_BISECT=0 DSP4_BLOCK_KERNELS=1 DSP4_PROFILE_SIGNAL=$SIG \
-    DSP4_STRIP_FUSED=$FUS DSP4_NODE_LIMIT=$L DSP4_BLOCK_DECIMATE=$DEC ./build.sh > /tmp/sigprof_build.log 2>&1
+    DSP4_STRIP_FUSED=$FUS DSP4_SIMD_DYN=$SIMD DSP4_NODE_LIMIT=$L DSP4_BLOCK_DECIMATE=$DEC ./build.sh > /tmp/sigprof_build.log 2>&1
   if [ "$(grep -ciE '\[Error|Build FAILED' /tmp/sigprof_build.log)" -ne 0 ]; then
     echo "limit=$L BUILD FAILED"; continue; fi
   read -r PT PP <<<"$(python3 -c "
@@ -41,5 +47,5 @@ print(a('proc_cyc'), a('proc_passes'))")"
   scp -q build/chip1.ldr build/chip2.ldr /tmp/chip1.sym.json ../../../../tools/pi/dsp4_block.py $BENCH:/home/app/dspboot/
   scp -q ../../../../tools/pi/dsp4_audio_verdict.py $BENCH:/home/app/dspboot/audio_verdict.py
   scp -q sigprofile_run.sh $BENCH:/home/app/
-  echo "limit=$L sig=$SIG fused=$FUS  $(ssh $BENCH "bash /home/app/sigprofile_run.sh $PT $PP $DWELL" 2>&1 | tr '\n' ' | ')"
+  echo "limit=$L sig=$SIG fused=$FUS simd=$SIMD  $(ssh $BENCH "bash /home/app/sigprofile_run.sh $PT $PP $DWELL" 2>&1 | tr '\n' ' | ')"
 done

@@ -93,7 +93,19 @@
              * forced to 0, which runs the block-rate makeup ramp and the
              * whole parameter conversion exactly as a per-sample build
              * would -- and avoids duplicating ninety lines of conversion
-             * here. Samples 1..31 then run hoisted.
+             * here. Samples 1..BLOCK-1 then run hoisted.
+             *
+             * THE LOOP COUNT IS DSP4_BLOCK_SIZE-1 AND IT USED TO BE A
+             * LITERAL 31. That literal survived the block-size
+             * parameterisation (2026-08-28) because it is the only loop
+             * count in the generator that was written as a number rather
+             * than derived, and nothing downstream could see it: at
+             * BLOCK=8 the compressor ran 1+31 = 32 samples of an 8-sample
+             * block, reading 32 words from BLK_CHAIN_A_P1 and writing 32 to
+             * BLK_CHAIN_B_P1 -- three slots past the end of each, over
+             * BLK_FDR_L_P1/R and BLK_TAP_TRIM_P1. It is what made COMP look
+             * BLOCK-INVARIANT (13.5k cycles/block at both block sizes);
+             * it was doing the same 32 samples of work either way.
              *
              * The earlier verdict that COMP was not worth converting came
              * from a bare WRAP, which measured 8 % SLOWER, and from a
@@ -117,8 +129,8 @@
              * the release alpha goes back to a DM load per sample. */
             l3 = 0;
             l4 = 0;
-            i3 = BLK_CHAIN_A;
-            i4 = BLK_CHAIN_B;
+            i3 = BLK_CHAIN_A_P1;
+            i4 = BLK_CHAIN_B_P1;
 
             r2 = dm(_comp_on_C1_COMP_19);
             r2 = pass r2;
@@ -140,7 +152,7 @@
             r14 = dm(_comp_envelope_C1_COMP_19);
             r15 = dm(_comp_mkq_C1_COMP_19);
 
-            lcntr = 31, do .ckb_lp_C1_COMP_19 until lce;
+            lcntr = DSP4_BLOCK_SIZE-1, do .ckb_lp_C1_COMP_19 until lce;
                 r13 = dm(i3, 1);
                 r0 = abs r13;
                 r1 = r14;

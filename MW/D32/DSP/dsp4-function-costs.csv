@@ -26,38 +26,59 @@
 #         983.04  MHz / 6000 blocks/s = 163,840 cycles/block.  8 samples.
 # (At block 32 those were 524,288 and 655,360 over 1500 blocks/s.)
 #
-# THE HEADLINE OF THE BLOCK-8 RE-BASELINE: per SAMPLE the strip costs
-# 2,719.9 cycles at block 8 against 1,233.4 at block 32 - 2.21x - and
-# the ceilings fall by the same factor. Block-invariant work does not
-# shrink when the block does, and 15,856 cycles/block of the strip is
-# block-invariant: 40% of it at block 32, 73% at block 8.
-# 85% OF THAT INVARIANT IS COMP ALONE.
-function,blk32_cycles_block,blk8_cycles_block,blk32_cycles_sample,blk8_cycles_sample,concentration,notes
-GAIN,566,189,17.7,23.6,1.33,one MAC; the other 16 instructions are the round/saturate and the two block stores its consumers need. The METER is no longer one of those consumers (2026-08-28) but the router's post-trim pickoff still is
-FILT,3946,1089,123.3,136.1,1.10,HPF+LPF; 2 biquad stages; almost all per-sample work
-EQ,7934,2126,247.9,265.8,1.07,4-band parametric; 4 biquad stages; almost all per-sample work
-GATE,7946,2078,248.3,259.8,1.05,envelope + log2 + hold + ramp; almost all per-sample work
-COMP,13635,13870,426.1,1733.8,4.07,**THE BLOCK-8 PROBLEM.** 13.5k cycles/block at BOTH block sizes - its cost is block-INVARIANT to within measurement error (13484 measured at block 32 on today's tree; 13870 at block 8; 2.9% apart). DSP4_COMP_NOCVT=1 drops it to 5228 at block 8, so the once-per-block parameter conversion is up to 8.6k cycles - but NOCVT also leaves the sample path on unconverted parameters and therefore cheapens it too, so 8.6k is an UPPER bound on the conversion and a lower bound on what is recoverable
-TUBE,~0,~0,~0,~0,,MEASURED BYPASSED (_tube_on defaults 0). At block 8 the consecutive difference reads -379 cycles/block: that is scatter, not a negative cost. ACTIVE cost still not measured - open since 08-24
-DLY,1985,895,62.0,111.9,1.80,delay line. TUBE's scatter lands on this difference; read TUBE+DLY together as 516 cycles/block at block 8
-FDR,1195,18,37.3,2.2,,BELOW THE NOISE FLOOR at block 8: 18 cycles/block against ~400 of run-to-run scatter. Not a measurement; do not quote it
-RTG,2263,1872,70.7,234.1,3.31,bus routing over the active-crosspoint list; substantially block-invariant, second only to COMP
-# --- per-channel total ---
-STRIP_TOTAL,39470,21760,1233.4,2719.9,2.21,GAIN..RTG inclusive. Two-point fit of the same code: 15856 cycles/block block-INVARIANT + 737.9 cycles/sample. The invariant share is 40% at block 32 and 73% at block 8
-# --- fixed overhead, not per channel (from the ceiling-slope model) ---
-FIXED_786,77912,21532,,,,block I/O + fabric at 786.432 MHz
-FIXED_983,80824,21635,,,,block I/O + fabric at 983.04 MHz. Two-point fit: 1908 cycles/block invariant + 2466 cycles/sample - the fabric is 97.6% per-sample work and scales almost perfectly with the block. The block-8 capacity loss is ENTIRELY in the strip, and inside the strip it is COMP
-# --- MEASURED ceilings, channels per chip, honest full-rate rule ---
-# (6000 blocks/s at block 8; the block-32 column was judged at 1500/s)
-CEILING_786_SIGNAL,11,5,,,,block 32 measured 2026-08-27; block 8 MEASURED today - 5 = 5999/s, 6 = 5163/s over. Slope model predicts 5.03
-CEILING_983_SIGNAL,14,6,,,,block 32 measured 2026-08-27; block 8 MEASURED today - 6 = 5999/s, 7 = 5645/s over. Slope model predicts 6.52
-CEILING_786_SILENCE,15,8,,,,block 8 MEASURED - 8 = 5999/s; 9 = 5802/s, which the tool labels REAL_TIME because it clears 97% but which is dropping blocks by the honest rule
-CEILING_983_SILENCE,20,11,,,,block 8 MEASURED - 11 = 6000/s exactly; 12 = 5667/s over
-# --- two independent methods agree on the strip ---
-# The 983 signal sweep's pass-rate slope gives 21,798 cycles per strip and
-# a fixed overhead of 21,635; the per-class profile gives 21,760 for the
-# same strip. 0.17% apart, and they share no arithmetic.
+# RETRACTED AND REPLACED 2026-08-28 (fourth session). This file previously
+# said the strip costs 2.21x more per sample at block 8 than at block 32,
+# that 15,856 cycles/block of it is block-INVARIANT (73% of the strip at
+# block 8) and that 85% of that invariant is COMP alone. All of it came
+# from ONE DEFECT: `lcntr = 31` in the generator's compressor block kernel,
+# a literal that survived the block-size parameterisation and made COMP run
+# 32 samples of an 8-sample block. A node doing the same 32 samples of work
+# whatever the block size measures as block-invariant because it IS.
 #
+# Corrected and re-measured on the same instrument: COMP is 3,465
+# cycles/block at block 8 = 433.1 cycles/sample against 426.1 at block 32,
+# the strip is 11,726 cycles/block (second reading 11,859, 1.1% apart), and
+# the block-8 penalty is 1.19x per sample, not 2.21x. The ceilings roughly
+# double. The largest remaining block-invariant item in the strip is RTG.
+function,blk32_cycles_block,blk8_cycles_block,blk32_cycles_sample,blk8_cycles_sample,notes
+GAIN,566,183,17.7,22.9,one MAC; the rest is the round/saturate and the two block stores its consumers need. Includes its METER at block 8 (the meter now rides with its source)
+FILT,3946,1095,123.3,136.9,HPF+LPF; 2 biquad stages; almost all per-sample work
+EQ+GATE,,4201,,525.1,taken together: the EQ point (limit 4) lost its witness three times to the link fault. 4201 against 4204 for EQ 2126 + GATE 2078 measured 2026-08-28 - 0.07% apart which is why the two are carried at their earlier split
+COMP,13635,3465,426.1,433.1,**RE-MEASURED 2026-08-28 (fourth session) AND IT IS NOT BLOCK-INVARIANT.** The 13870 previously recorded at block 8 was a defect: `lcntr = 31` in the generator ran 32 samples of an 8-sample block. Corrected it is 3465 cycles/block = 433.1 cycles/sample against 426.1 at block 32 - 1.6% apart. Confirmed independently by the paired-dynamics self-test scalar arm at 420.0 cycles/sample/channel
+TUBE,~0,93,~0,11.6,MEASURED BYPASSED (_tube_on defaults 0). ACTIVE cost still not measured - open since 08-24
+DLY,1985,505,62.0,63.1,delay line. TUBE's scatter lands on this difference; read TUBE+DLY together as 598 cycles/block at block 8
+FDR,1195,323,37.3,40.4,
+RTG,2263,1861,70.7,232.6,bus routing over the active-crosspoint list; substantially block-invariant, and with COMP corrected it is now the LARGEST block-invariant item in the strip
+# --- per-channel total, MEASURED TWICE ---
+STRIP_TOTAL,39470,11726,1233.4,1465.8,GAIN..RTG inclusive, limits 1->10. The SECOND strip (limits 10->20) reads 11859 - 1.1% apart, which is two independent readings of the same quantity. Block 8 costs 1.19x block 32 per sample, NOT the 2.21x recorded before the COMP loop count was fixed
+# --- SIMD PAIRED (DSP4_SIMD_DYN=1, pair-ordered chain) ---
+# KERNEL factors, re-measured at block 8 with a diff that can now fail:
+# COMP 2.07x (420.0 -> 202.5 cycles/sample/channel), GATE 2.43x (255.0 -> 105.0).
+# GRAPH factors, measured by consecutive differences on the PAIR-ORDERED
+# chain (DSP4_NODE_LIMIT counts pair-order positions in that build; 8 = both
+# heads, 9 = + the GATE pair, 10 = + the COMP pair, 18 = the whole pair):
+GATE_PAIR,,2284,,142.8,for TWO channels. Against 2 x 2078 = 4156 scalar: 1.82x in the graph where the kernel alone gives 2.43x
+COMP_PAIR,,4023,,251.4,for TWO channels. Against 2 x 3465 = 6930 scalar: 1.72x where the kernel alone gives 2.07x
+# The gap between kernel and graph is real work and it is inside every
+# ceiling below: the pair driver runs sample 0 of EACH channel through the
+# scalar per-sample body (that is where the block-rate parameter conversion
+# lives, and doing it this way is what makes sample 0 bit-identical to the
+# scalar path by construction), sets up pointers, and copies the compressor
+# gain display back per channel; the pair kernels gather and scatter their
+# own interleaved park.
+STRIP_TOTAL_PAIRED,,9496,,1187.0,from the whole-pair measurement: paired limits 1->18 read 28147 against 32607 for two scalar strips (limits 1->20), so 4460 cycles/block per PAIR = 2230 per channel off an 11726 strip, -19%. The per-class parts sum to 4779 for the pair, 7% from the whole-pair figure, the difference being the two meters the paired limit carries and the scalar limit does not
+# THE MODEL PREDICTS BOTH PAIRED CEILINGS. Backing the fixed overhead out of
+# the SCALAR ceilings and re-solving with the paired strip gives 11.3 at 786
+# and 15.1 at 983, against 11 and 15 MEASURED. The per-class profile and the
+# ceiling sweeps share no arithmetic.
+# --- MEASURED ceilings, channels per chip, signal present, honest 6000/s rule ---
+CEILING_786_SIGNAL_SCALAR,11,9,,,block 32 measured 2026-08-27. Block 8 MEASURED 2026-08-28 (fourth session): 9 = 5999/s and 10 = 5679/s. SUPERSEDES the 5 recorded earlier that day which was measured with the defective COMP loop count
+CEILING_983_SIGNAL_SCALAR,14,12,,,block 8 MEASURED: 12 = 5999/s and 13 = 5656/s. SUPERSEDES the 6 recorded earlier that day
+CEILING_786_SIGNAL_PAIRED,,11,,,MEASURED: 11 = 5999/s and 12 = 5903/s. +22% over scalar. 11 strips is an ODD count so the last strip runs its dynamics scalar - the odd-count fallback is exercised in this measurement
+CEILING_983_SIGNAL_PAIRED,,15,,,MEASURED: 15 = 5999/s and 16 = 5756/s. +25% over scalar. **16/chip - what a two-chip D32 split needs - misses by 4.2% of the block budget**
+# --- silence controls ---
+CEILING_786_SILENCE,15,,,,block-32 figure; the block-8 silence rows recorded earlier on 2026-08-28 (8 and 11) were measured with the defective COMP loop count and are WITHDRAWN. Not re-measured this session
+CEILING_983_SILENCE,20,,,,as above
 # --- what is NOT in this file ---
 # SIMD pairing: the 2026-08-28 paired figures (GATE 106.8, COMP 204.2
 # cycles/sample) were measured at BLOCK 32 and are NOT carried forward.

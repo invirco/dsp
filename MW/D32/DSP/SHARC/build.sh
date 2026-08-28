@@ -175,7 +175,21 @@ ASMFLAGS="$ASMFLAGS -DDSP4_SIMD_DYN=$DSP4_SIMD_DYN"
 DSP4_SIMD_NEGCTL="${DSP4_SIMD_NEGCTL:-0}"
 CFLAGS="$CFLAGS -DDSP4_SIMD_NEGCTL=$DSP4_SIMD_NEGCTL"
 ASMFLAGS="$ASMFLAGS -DDSP4_SIMD_NEGCTL=$DSP4_SIMD_NEGCTL"
-if [ "$DSP4_SIMD_DYN" != "0" ]; then
+# Wire the GRAPH for pairing: the odd block pool, the per-pair dynamics
+# drivers and the pair-ordered chain (2026-08-28). Separate from
+# DSP4_SIMD_DYN, which only puts the paired KERNELS in the image, because
+# the self-test build wants the kernels and their scalar twins WITHOUT the
+# 32 drivers -- with both, chip 1 overflows sec_swco. Defaults on whenever
+# the kernels are in, so DSP4_SIMD_DYN=1 alone gives a paired graph.
+DSP4_SIMD_GRAPH="${DSP4_SIMD_GRAPH:-1}"
+CFLAGS="$CFLAGS -DDSP4_SIMD_GRAPH=$DSP4_SIMD_GRAPH"
+ASMFLAGS="$ASMFLAGS -DDSP4_SIMD_GRAPH=$DSP4_SIMD_GRAPH"
+# The per-ISR PEYEN clear lives under DSP4_SIMD_STRIPS, and EVERY routine
+# that sets PEYEN needs it -- the paired dynamics and the paired biquad
+# cascade alike. It used to default on for DSP4_SIMD_DYN only, which left a
+# DSP4_SIMD_PROBE build (the biquad self-test) running SIMD kernels with no
+# ISR protection at all.
+if [ "$DSP4_SIMD_DYN" != "0" ] || [ "${DSP4_SIMD_PROBE:-0}" != "0" ]; then
     DSP4_SIMD_STRIPS_DEFAULT=1
 else
     DSP4_SIMD_STRIPS_DEFAULT=0
@@ -193,6 +207,10 @@ ASMFLAGS="$ASMFLAGS -DDSP4_SKIP_PAIR=$DSP4_SKIP_PAIR"
 DSP4_SKIP_SIMDCALL="${DSP4_SKIP_SIMDCALL:-0}"
 CFLAGS="$CFLAGS -DDSP4_SKIP_SIMDCALL=$DSP4_SKIP_SIMDCALL"
 ASMFLAGS="$ASMFLAGS -DDSP4_SKIP_SIMDCALL=$DSP4_SKIP_SIMDCALL"
+# Stages the paired-cascade self-test arm asks for (1..4). A bisect knob
+# for the _bq_fx_cascade_simd hang, not a mode.
+DSP4_BQ_PAIR_STAGES="${DSP4_BQ_PAIR_STAGES:-4}"
+ASMFLAGS="$ASMFLAGS -DDSP4_BQ_PAIR_STAGES=$DSP4_BQ_PAIR_STAGES"
 
 # Meter bisect hooks (2026-08-28 rebuild). NOFOLD stops at the per-sample
 # accumulation, NOCVT stops before the float readback, NOSQRT stops before
