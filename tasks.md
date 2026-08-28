@@ -1,3 +1,49 @@
+## HUB DISPATCH 2026-08-28 09:02Z — strip fusion — the 08-24 main event (per-class baseline, fused kernel, GAIN=1 MAC acceptance)   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+STRIP FUSION — execute the still-open main event of the 08-24 11:00Z
+dispatch (its item 2; PW re-affirmed today: "gain should be a single MAC,
+we discussed this before"). The preconditions that dispatch lacked now
+exist: fabric is AT its 40k target, the strip is 881.6 cycles/sample
+per-node-converted, ROUTING is active-list, the ramp/SPI plane is fixed,
+and the measurement infrastructure is hardened (config-commit stimulus
+trap root-caused 8a87d17).
+
+0. BASELINE FIRST: per-class re-profile of the current 881.6 (TCOUNT
+   methodology, signal-present stimulus, the hardened probes) — the
+   honest map fusion is judged against. Publish the table in the block.
+1. FUSION, via the GENERATOR per the 08-24 spec: ONE fused kernel per
+   strip — samples resident in registers/MR across
+   GAIN→EQ→FILT→GATE→COMP→TUBE→DLY→FDR; stage-to-stage handoff ZERO
+   instructions (stage N's result register IS stage N+1's operand);
+   intermediate stages bare MACs/cascades at 64-bit precision; ONE
+   round/saturate/store at the strip boundary; multifunction lines so
+   next-stage state loads overlap current maths; pipeline order
+   hard-coded by the generator from the product definition. Block-rate
+   section (ramps, Q shadows, coefficient swaps) once at kernel entry.
+   GAIN inside the fused strip must measure as ~1 cycle/sample marginal
+   cost — that is the acceptance PW named.
+2. PROVE bit-exactness per the standing bar: chain.py configured probes,
+   negative controls, stimulus that could fail; per-stage crossfade and
+   mid-block semantics preserved (the _process_sample lessons apply).
+3. RE-MEASURE: strip cycles/sample fused; ceilings at 786 AND 983,
+   silence and signal-present, honest 1500/s rule. Update
+   dsp4-function-costs.csv.
+4. SIMD wiring (the measured-2.39x lever) is NOT in this dispatch — it
+   follows fusion in its own session; note in the block what fusion
+   leaves as SIMD's starting shape.
+
+Rules: W0 throughout; bench restored to shipping verified at the end;
+ladder discipline; hand-back if the generator rewrite stops being
+convergent in one session — land the largest bit-exact subset (e.g.
+GAIN→EQ→FILT fused) with measurements rather than an all-or-nothing
+branch. Push main; update the 08-24 block AND this one.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-08-27 22:59Z — signal-present ceiling sweep at 786 and 983 (queued rung)   [status: 🟢 done — **MEASURED signal-present ceilings, converted build, chip 1, honest 1500/s rule: 11 at 786.432 MHz and 14 at 983.04 MHz** (silence 15 and 20). Stimulus: a full-rate +/-0.5 (-6 dBFS) square wave ADDED to the real DMA word inside every retained strip's IN kernel (DSP4_PROFILE_SIGNAL, upgraded from the old constant so the production read is still paid for and the sample word varies); proven on the part at every sweep point by a new witness that reads the dynamics state — gate OPEN and compressor ACTIVE on all N strips, envelope exactly 0.500000 and comp gain 0x04C8FBF3 = **-10.48 dB GR against -10.5 dB predicted**, which is only reachable through log2 -> knee -> exp2. Negative control on the same tree: gate gain 0x000418F7 (the 0.001 range floor), comp unity, envelope exactly 0 — so every ceiling ever recorded on this bench really was a silence number. Silence controls re-run through the same harness reproduce last night EXACTLY (15 at 786 and 20 at 983, both 1500/s). **THE DECIDING ANSWER: a two-chip D32 split needs 16/chip at 983 and the part delivers 14. It does not fit — and the ~15-16 estimate was optimistic, not conservative.** Signal costs +40.5% on the strip (881.6 -> 1,238.4 cycles/sample) and 27-30% of the channels. **ALL of it is GATE+COMP** (+360.7 cycles/sample measured independently by node profile, against +356.8 from the sweep slope — 1.1% apart); the two dynamics nodes are now **54% of a signal-present strip**. The cycle model reproduces both ceilings from the pass-rate slope (786: fixed 77,912 + 39,627/strip -> 11.26; 983: fixed 80,824 + 39,438/strip -> 14.57, and it predicts the marginal 15th strip at 1,457/s against 1,462 measured). **One row is a margin rather than a factor:** 16/chip at 983 needs the strip down 9.4%, and the dynamics pair alone would deliver it with a 17.4% cut. Everything else is still a factor: D24 24-on-one at 983 is short by 10, 32-in-one is 2.3x at 983 and 2.9x at 786, and chip 2 is NOT spare capacity (1,978,933 cycles/block on 2026-08-24, 3.8x over its own budget, itself a silence reading). NOT quoted: the GATE-vs-COMP split — the NODE_LIMIT=5 build's gate reads envelope exactly 0 with the stimulus compiled in and measurably executing, while NODE_LIMIT=6's is open, so chain truncation interacts with the stimulus in a way I could not explain and I will not publish a number that rests on it. Bench restored to shipping byte-identical (25a1afed/7052c5d1), BOOT_STAGE 7 at 1500/s, DMA0_STAT 0x00006200, SPORT0_ERR_A clean, CPLD never touched (firmware route, not the loopback bitstream), matrix-app active with all three MCUs verified 01:10:55.]   [model: opus]
 
 model: opus
