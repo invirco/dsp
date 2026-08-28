@@ -5960,6 +5960,77 @@ def gen_gain_fixed(node):
              * 0 was handed the address of the SCALAR tap and walked 32
              * words off the end of it. */
             i4 = BLK_TAP_TRIM;
+        #if DSP4_STRIP_FUSED
+            /* FUSED (2026-08-28): the same seventeen instructions, two
+             * samples at a time, interleaved, the second accumulating in
+             * MRB so even the MAC pair does not serialise.
+             *
+             * SIZE THIS HONESTLY. The 2026-08-28 baseline measures this
+             * node at 17.7 cycles/sample for seventeen instructions, i.e.
+             * the loop already issues at about one instruction per cycle
+             * and there are no stalls left to hide. Interleaving buys the
+             * loop bookkeeping and nothing else -- one cycle/sample, at
+             * most. It is here because it is free and bit-exact, not
+             * because it is the lever.
+             *
+             * The lever on this node is the sixteen instructions that are
+             * NOT the MAC: one Q4.28 round/saturate and two block stores,
+             * paid because three consumers want the post-trim block --
+             * FILT, the post-trim meter, and the router's post-trim
+             * pickoff. Fusion removes FILT from that list (the gain folds
+             * exactly into the first biquad stage's numerator triple,
+             * b0/n1/n2 scaled by g, since n1 = b1 + 2*b0 and n2 = b2 - b0
+             * scale with it). It cannot remove the meter, which reads
+             * BLK_CHAIN_B directly and is the subject of a parked ruling.
+             * That is why GAIN is not one cycle/sample here.
+             *
+             * Nothing about the ARITHMETIC changes -- same operations,
+             * same order within a sample, same single rounding -- so this
+             * is bit-exact by construction, not by tolerance.
+             *
+             * comp/conditional-move pairs are kept ADJACENT: the condition
+             * reads ASTAT from the last flag-setting instruction, so an
+             * interleaved shift between a comp and its `if ne` would move
+             * on stale flags. */
+            r5 = 16;
+            lcntr = r5; do .gk_lp_{nid} until lce;
+                r0 = dm(i0, 1);                   /* xA */
+                r3 = dm(i0, 1);                   /* xB */
+                mrf = r0 * r1 (ssi);
+                mrb = r3 * r1 (ssi);
+                mrf = mrf + r6 * r7 (ssi);
+                mrb = mrb + r6 * r7 (ssi);
+                r8 = mr0f;
+                r12 = mr0b;
+                r2 = mr1f;
+                r4 = mr1b;
+                r8 = lshift r8 by -28;
+                r12 = lshift r12 by -28;
+                r9 = lshift r2 by 4;
+                r13 = lshift r4 by 4;
+                r0 = r8 or r9;                    /* yA candidate */
+                r3 = r12 or r13;                  /* yB candidate */
+                r8 = ashift r2 by -28;
+                r12 = ashift r4 by -28;
+                r9 = ashift r0 by -31;
+                r13 = ashift r3 by -31;
+                r11 = ashift r2 by -31;
+                r14 = ashift r4 by -31;
+                r11 = r10 xor r11;
+                r14 = r10 xor r14;
+                comp(r8, r9);
+                if ne r0 = r11;                   /* yA saturated */
+                comp(r12, r13);
+                if ne r3 = r14;                   /* yB saturated */
+                dm(i1, 1) = r0;
+                dm(i4, 1) = r0;                   /* post-trim tap block */
+                dm(i1, 1) = r3;
+        .gk_lp_{nid}:
+                dm(i4, 1) = r3;
+            dm(_tap_post_trim_{nid}) = r3;   /* linkage scalars */
+            dm(_buf_{nid}) = r3;
+            rts;
+        #else
             r5 = 32;
             lcntr = r5; do .gk_lp_{nid} until lce;
                 r0 = dm(i0, 1);
@@ -5982,6 +6053,7 @@ def gen_gain_fixed(node):
             dm(_tap_post_trim_{nid}) = r0;   /* linkage scalars */
             dm(_buf_{nid}) = r0;
             rts;
+        #endif
         #else
         .apply_{nid}:
             /* Pure MAC. Polarity and mute are already inside _gain_q. */
@@ -6021,6 +6093,12 @@ def gen_fader_pan_fixed(node):
     # instead of fader-multiply -> pan-multiply -> unity MAC. That deletes
     # two of the three round-and-saturate stages this node used to run per
     # sample, and one intermediate rounding with them.
+    # These three are the remains of the pan-leg multiply, which the 08-25
+    # crosspoint-coefficient fold deleted: the legs are ROUTING's
+    # coefficients now, so the block body really is one MAC per sample.
+    # The FUSED loop below assumes exactly that and does not splice them
+    # in, so if they ever come back the generator must say so rather than
+    # emit a fused loop that silently drops them.
     blk_lr_hoist = ''
     blk_lr_ptr = ''
     blk_lr_body = ''
@@ -6049,6 +6127,11 @@ def gen_fader_pan_fixed(node):
             f5 = f5 * f7;
             r2 = fix f5;
             dm(_fdr_rq_{nid}) = r2;""")
+    if blk_lr_hoist or blk_lr_ptr or blk_lr_body:
+        raise ValueError(
+            f'{nid}: the FADER_PAN block body has pan-leg work again '
+            '(blk_lr_*), which the DSP4_STRIP_FUSED loop does not carry. '
+            'Splice it into both loops or drop the fused one.')
     return dedent(f"""\
         {rc}
 
@@ -6177,7 +6260,53 @@ def gen_fader_pan_fixed(node):
             l3 = 0;
             i0 = BLK_CHAIN_B;                 /* input  */
             i1 = BLK_CHAIN_A;                 /* mono   */
-{blk_lr_ptr}            r14 = 32;
+{blk_lr_ptr}        #if DSP4_STRIP_FUSED
+            /* FUSED (2026-08-28): two samples per iteration, interleaved,
+             * second accumulator in MRB -- the same treatment as GAIN.
+             * The bigger change here is the LOOP: the unfused body is a
+             * manual counter with a branch at the bottom, which a
+             * hardware loop replaces outright. The pan legs are already
+             * gone (the 08-25 crosspoint fold), so the body really is one
+             * MAC per sample. Identical arithmetic, so bit-exact by
+             * construction. */
+            r14 = 16;
+            lcntr = r14; do .fdr_lp_{nid} until lce;
+                r0 = dm(i0, 1);                 /* xA */
+                r3 = dm(i0, 1);                 /* xB */
+                mrf = r0 * r1 (ssi);
+                mrb = r3 * r1 (ssi);
+                mrf = mrf + r7 * r12 (ssi);
+                mrb = mrb + r7 * r12 (ssi);
+                r8 = mr0f;
+                r5 = mr0b;
+                r2 = mr1f;
+                r4 = mr1b;
+                r8 = lshift r8 by -28;
+                r5 = lshift r5 by -28;
+                r9 = lshift r2 by 4;
+                r6 = lshift r4 by 4;
+                r0 = r8 or r9;                  /* yA candidate */
+                r3 = r5 or r6;                  /* yB candidate */
+                r8 = ashift r2 by -28;
+                r5 = ashift r4 by -28;
+                r9 = ashift r0 by -31;
+                r6 = ashift r3 by -31;
+                r11 = ashift r2 by -31;
+                r13 = ashift r4 by -31;
+                r11 = r10 xor r11;
+                r13 = r10 xor r13;
+                comp(r8, r9);
+                if ne r0 = r11;                 /* yA saturated */
+                comp(r5, r6);
+                if ne r3 = r13;                 /* yB saturated */
+                dm(i1, 1) = r0;
+        .fdr_lp_{nid}:
+                dm(i1, 1) = r3;
+            dm(_tap_post_fader_{nid}) = r3;   /* linkage scalars */
+            dm(_buf_{nid}) = r3;
+            rts;
+        #else
+            r14 = 32;
         .fdr_lp_{nid}:
             r0 = dm(i0, 1);
             mrf = r0 * r1 (ssi);
@@ -6200,6 +6329,7 @@ def gen_fader_pan_fixed(node):
             dm(_tap_post_fader_{nid}) = r13;  /* linkage scalars */
             dm(_buf_{nid}) = r13;
             rts;
+        #endif
 #else
         .apply_{nid}:
             /* Pure MAC. Mute is already inside _fdr_gq; the pan legs are

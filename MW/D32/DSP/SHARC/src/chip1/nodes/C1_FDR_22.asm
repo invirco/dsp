@@ -176,6 +176,52 @@ dm(_fdr_rq_C1_FDR_22) = r2;
             l3 = 0;
             i0 = BLK_CHAIN_B;                 /* input  */
             i1 = BLK_CHAIN_A;                 /* mono   */
+        #if DSP4_STRIP_FUSED
+            /* FUSED (2026-08-28): two samples per iteration, interleaved,
+             * second accumulator in MRB -- the same treatment as GAIN.
+             * The bigger change here is the LOOP: the unfused body is a
+             * manual counter with a branch at the bottom, which a
+             * hardware loop replaces outright. The pan legs are already
+             * gone (the 08-25 crosspoint fold), so the body really is one
+             * MAC per sample. Identical arithmetic, so bit-exact by
+             * construction. */
+            r14 = 16;
+            lcntr = r14; do .fdr_lp_C1_FDR_22 until lce;
+                r0 = dm(i0, 1);                 /* xA */
+                r3 = dm(i0, 1);                 /* xB */
+                mrf = r0 * r1 (ssi);
+                mrb = r3 * r1 (ssi);
+                mrf = mrf + r7 * r12 (ssi);
+                mrb = mrb + r7 * r12 (ssi);
+                r8 = mr0f;
+                r5 = mr0b;
+                r2 = mr1f;
+                r4 = mr1b;
+                r8 = lshift r8 by -28;
+                r5 = lshift r5 by -28;
+                r9 = lshift r2 by 4;
+                r6 = lshift r4 by 4;
+                r0 = r8 or r9;                  /* yA candidate */
+                r3 = r5 or r6;                  /* yB candidate */
+                r8 = ashift r2 by -28;
+                r5 = ashift r4 by -28;
+                r9 = ashift r0 by -31;
+                r6 = ashift r3 by -31;
+                r11 = ashift r2 by -31;
+                r13 = ashift r4 by -31;
+                r11 = r10 xor r11;
+                r13 = r10 xor r13;
+                comp(r8, r9);
+                if ne r0 = r11;                 /* yA saturated */
+                comp(r5, r6);
+                if ne r3 = r13;                 /* yB saturated */
+                dm(i1, 1) = r0;
+        .fdr_lp_C1_FDR_22:
+                dm(i1, 1) = r3;
+            dm(_tap_post_fader_C1_FDR_22) = r3;   /* linkage scalars */
+            dm(_buf_C1_FDR_22) = r3;
+            rts;
+        #else
             r14 = 32;
         .fdr_lp_C1_FDR_22:
             r0 = dm(i0, 1);
@@ -199,6 +245,7 @@ dm(_fdr_rq_C1_FDR_22) = r2;
             dm(_tap_post_fader_C1_FDR_22) = r13;  /* linkage scalars */
             dm(_buf_C1_FDR_22) = r13;
             rts;
+        #endif
 #else
         .apply_C1_FDR_22:
             /* Pure MAC. Mute is already inside _fdr_gq; the pan legs are

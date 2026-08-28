@@ -22,11 +22,12 @@
 set -u
 DEC="${DEC:-32}"; DWELL="${DWELL:-20}"
 SIG="${DSP4_PROFILE_SIGNAL:-1}"
+FUS="${DSP4_STRIP_FUSED:-0}"
 cd "$(dirname "$0")"
 BENCH=app@192.168.1.219
 for L in "$@"; do
   DSP4_BISECT=0 DSP4_BLOCK_KERNELS=1 DSP4_PROFILE_SIGNAL=$SIG \
-    DSP4_NODE_LIMIT=$L DSP4_BLOCK_DECIMATE=$DEC ./build.sh > /tmp/sigprof_build.log 2>&1
+    DSP4_STRIP_FUSED=$FUS DSP4_NODE_LIMIT=$L DSP4_BLOCK_DECIMATE=$DEC ./build.sh > /tmp/sigprof_build.log 2>&1
   if [ "$(grep -ciE '\[Error|Build FAILED' /tmp/sigprof_build.log)" -ne 0 ]; then
     echo "limit=$L BUILD FAILED"; continue; fi
   read -r PT PP <<<"$(python3 -c "
@@ -38,5 +39,5 @@ print(a('proc_cyc'), a('proc_passes'))")"
   # the symbol table moves on every build; the witness reads .var addresses
   python3 ../../../../tools/dsp/map_syms.py build/chip1.map.xml > /tmp/chip1.sym.json
   scp -q build/chip1.ldr build/chip2.ldr /tmp/chip1.sym.json $BENCH:/home/app/dspboot/
-  echo "limit=$L sig=$SIG  $(ssh $BENCH "bash /home/app/sigprofile_run.sh $PT $PP $DWELL" 2>&1 | tr '\n' ' | ')"
+  echo "limit=$L sig=$SIG fused=$FUS  $(ssh $BENCH "bash /home/app/sigprofile_run.sh $PT $PP $DWELL" 2>&1 | tr '\n' ' | ')"
 done
