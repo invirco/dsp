@@ -1,3 +1,58 @@
+## HUB DISPATCH 2026-08-28 17:17Z — SIMD graph wiring — measured paired-strip ceilings at block 8 and 32   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+SIMD GRAPH-WIRING RUNG — pre-authorized by PW ("report back when simd
+strip is measured"). The dynamics pair bit-exact with measured factors
+(963f181: COMP 2.04-2.12x, GATE 2.36-2.54x) but NO strip runs paired:
+the chain blocks are reused strip-by-strip, so the graph cannot hold a
+pair's two strips live at once. This rung turns the projection into a
+measured ceiling. Block size is now a build parameter (744b2e6), so
+measure BOTH operating points — the numbers from this session are what
+PW decides block 8 vs 32 with.
+
+1. WIRE PAIRING THROUGH THE GRAPH (generator change): both strips of a
+   pair hold live chain blocks simultaneously; strip-ordered chain
+   becomes pair-ordered where DSP4_SIMD_DYN is on; scatter/gather stays
+   inside the timed span as in the kernel measurements. Odd strip counts
+   handled (last strip scalar). Bit-exactness bar: chain.py configured
+   probes + negative controls (the NEGCTL discipline from 963f181), on
+   the part, both chips' graphs where applicable.
+
+2. THE BIQUAD HANG, in this session (it blocks the number that matters):
+   `_bq_fx_cascade_simd` hangs the part when driven from the main loop
+   with the graph configured — bisected to the routine on 08-28, timeboxed
+   away. Root-cause it (the two recorded SHARC loop hazards are prime
+   suspects), then RE-MEASURE the biquad pair factor against the FUSED
+   cascade (the 2.39x on record predates fusion and is stale). If it
+   resists beyond a reasonable timebox, land dynamics-only pairing with
+   measurements and mark the biquad half with findings — do not hold the
+   rung hostage.
+
+3. MEASURE, per the standing honest rules (full-rate bar, witnessed
+   stimulus, signal present AND silence controls, 786.432 AND 983.04):
+   - paired strip per-class table (cycles/block and /sample);
+   - ceilings at BLOCK=8 AND BLOCK=32 — four sweep points minimum
+     (block x clock), ledger figures carry block size;
+   - SPECIFICALLY: what pairing does to COMP's block-invariant section
+     (13.5k cycles/block, 73% of the block-8 strip per 340b133) — the
+     pair factor on the per-block section vs the per-sample section,
+     separately. That single number decides whether a COMP block-rate
+     cut is still needed after SIMD.
+
+4. Update ledger + options paper (block-tagged rows); tasks.md status.
+   Not in scope: the COMP block-rate conversion cut, the CONFIG_COMMIT
+   diag-link defect, chip-2 OUTPUT_TDM/COMPRESSOR block conversion —
+   all queued at the hub, do not start them.
+
+Rules: W0 throughout; bench restored to a verified state at the end;
+ladder discipline; standing traps (DO-loop branch hazards, one tty
+reader, CFG_COMMIT gain witness). PW is around — report blocks promptly.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-08-28 13:26Z — block-8 parameterization + in-kernel meter rebuild + re-baseline   [status: 🟢 done — **BLOCK SIZE IS A BUILD PARAMETER AND 8 IS THE OPERATING POINT; THE METER IS REBUILT AND BIT-EXACT AGAINST A REFERENCE THAT DID NOT EXIST; THE BLOCK-8 CEILINGS ARE MEASURED AND THEY COST A FACTOR OF 2.2.** Parameterization is proven a PURE REFACTOR: with BLOCK set back to 32 the build reproduces the previous images byte for byte (chip1.ldr a2fcda81, chip2.ldr 30291013), so block size is the only variable. One source (dsp_codegen.BLOCK) feeds a generated dsp_block.h for the assembler and C, and a generated dsp4_block.py for the bench tools, so a verdict can never be scored against a block size the image was not built with; the real-time bar is now 48000/BLOCK with the thresholds as fractions of it instead of 1450/1500 literals. **THE METER: three instructions per sample, no memory traffic beyond the source read, and one fold per block in 64-bit Q8.56 state** — max, min, and an exact sum of squares in the MRF, folded into a one-pole RMS window and a peak-hold whose coefficients are generated FROM THE BLOCK RATE (which is exactly the third recorded defect: a constant derived for 1500 blocks/s applied per sample). **THE BAR WAS MET ON THE PART: ms64 EXACT, both pk64 words EXACT, float readback exact, negative control against the block-32 coefficients correctly rejected.** The peak is compared word-wise because it sits in a two-state limit cycle stepping every 167 us while a diag peek takes a millisecond — the first run of the test read lo from one phase and hi from the other and called it a mismatch, which was the test being wrong. Three of the four recorded defects are gone by construction; **the fourth (_mtr_gr never written) is NOT a numerics bug and cannot be fixed in this repo** — dsp.csv names gate_gr and comp_gr in the meter's taps but carries no ids for them, so it needs an mx26 contract change. **A FIFTH DEFECT FOUND: every meter read BLK_CHAIN_B unconditionally, and on chip 2 that is not its source** — FADER_PAN reads BLK_CHAIN_B and writes BLK_CHAIN_A, OUTPUT_TDM and COMPRESSOR never touch the pool, so twenty-one chip-2 meters were metering another node's signal. Sources are now resolved per meter from the graph. **THE RE-BASELINE, AND IT IS THE UNCOMFORTABLE PART: block 8 costs 2.2x the cycles per sample and the ceilings fall with it.** Measured, honest 6000/s rule, per chip: signal-present **5 at 786 and 6 at 983** (was 11 and 14 at block 32); silence **8 and 11** (was 15 and 20). Two independent methods agree on the strip to 0.17% (per-class profile 21,760 cycles/block, ceiling-slope 21,798) and the slope model predicts both signal ceilings (5.03 and 6.52). **THE CAUSE IS ONE NODE.** A two-point fit of the same code at both block sizes — today's block-32 control reproduces this morning's strip to 0.1%, which is what makes the fit legitimate — puts 15,856 cycles/block of the strip in BLOCK-INVARIANT work (40% of the strip at block 32, 73% at block 8), **and 13.5k of that 15.9k is COMP**, whose cost is block-invariant to within measurement error (13,484 at block 32, 13,870 at block 8). The fabric, by contrast, is 97.6% per-sample work and scales almost perfectly. **So the block-8 penalty is not diffuse and it is not the price of latency: it is the compressor's once-per-block section, and cutting it is worth more at block 8 than SIMD is.** **LATENCY WAS NOT MEASURED and the blocker is pre-existing**: the DSP does not route Pi input to a Pi-visible output under the boot config (routes are host-written matrix parameters), and dsp4_passthru.py's ALSA device names do not match this Pi. What IS measured is the block rate — FRAME_COUNT 5999–6000/s, so the block period is 166.7 us against 666.7 us — and the ring geometry and ping-pong depth are unchanged by construction, only the row length. The ~23 samples / 0.48 ms figure therefore stands as a derivation, not a measurement, and is labelled that way. **A SEPARATE FAILURE FOUND AND EXONERATED: the per-sample (shipping) image cannot answer the diag link after CONFIG_COMMIT — and this is PRE-EXISTING.** It presents as "response out of step ... neither is the echo". It reproduces at block 8, at block 16, at block 32, with the meters removed entirely, AND **on the exact bytes that shipped (a2fcda81) reflashed from a saved copy** — so it is not block size, not the meter, not this session. It needs its own dispatch. **Bench restored and verified: the new default block-8 images (chip1.ldr 45f5f2dd, chip2.ldr f6733b6d) flashed, both parts booted to BOOT_STAGE 5 with frames arriving, matrix-app started, all three MCUs verified 17:57:23 ON THE FIRST RESTART.** CPLD never touched. The previous shipping md5s a2fcda81/30291013 are superseded: block 8 changes the image by design.]   [model: opus]
 
 model: opus
