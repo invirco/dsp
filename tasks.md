@@ -1,3 +1,22 @@
+**PW RULING 2026-08-28 (~13:00): WORK WITH BLOCK SIZE 8 FOR NOW.** Target
+digital latency ~23 samples ≈ 0.48 ms (from the measured 93-at-block-32
+pipeline ratio), leaving room under 1 ms for converter group delay. This
+supersedes the "block stays 32" line in the 08-24 fusion dispatch (that
+line vetoed block-64 for capacity; the veto on 64 stands). Consequences to
+handle in the NEXT dispatch after SIMD lands (SIMD finishes at 32 so its
+lever attribution stays clean against the 32-baseline ledger):
+- If block size is not yet a clean build parameter, MAKE it one first
+  (generator loop counts, DMA ring/2D geometry, scatter/gather, BLK_*
+  sizing, the `_sample_idx == 31` class of guards, verdict rate 1500→6000
+  blocks/s in every harness/verdict tool).
+- Then the block-8 re-baseline: capacity sweeps at 786 AND 983, silence +
+  signal, honest 6000/s rule; measured digital latency on the part
+  (predict ~23 samples); per-class costs re-measured (per-block hoisted
+  work runs 4x per sample — the concentration is the number to measure,
+  not estimate).
+- Every ceiling in the ledger/options paper is a block-32 number until
+  the re-baseline lands; quote block size with every figure from now on.
+
 ## HUB DISPATCH 2026-08-28 11:47Z — SIMD pairing on the fused strip — dynamics first (32-in-one lever)   [status: 🟡 dispatched]   [model: opus]
 
 model: opus
