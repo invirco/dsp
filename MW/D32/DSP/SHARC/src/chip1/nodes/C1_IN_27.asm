@@ -74,14 +74,27 @@ _C1_IN_27_process:
      * understates GATE and COMP badly.
      *
      * The stimulus is a full-rate square wave at +/-0.5 (Q4.28
-     * 0x08000000 = -6 dBFS), ADDED to the real DMA word rather
-     * than replacing it:
+     * 0x08000000 = -6 dBFS). The production read is EXECUTED and
+     * then DISCARDED -- deliberately, and the reason is a defect
+     * this replaces:
      *
      *   - the production read (`dm(i0, m0)` + the Q1.31 -> Q4.28
-     *     shift) is still executed, so this path cannot
-     *     UNDERSTATE the cost of the node it stands in for. It
-     *     overstates it by the add and the negate, ~2
-     *     cycles/sample out of a ~880-cycle strip;
+     *     shift) still runs, so this path cannot UNDERSTATE the
+     *     cost of the node it stands in for;
+     *   - but its VALUE is thrown away. An earlier version added
+     *     the stimulus to it, which made the stimulus a function
+     *     of the input -- and the input is not independent of the
+     *     output. On roughly a third of boots the RX word this
+     *     kernel reads came back carrying the strip's own signal
+     *     at about -0.5 instead of the -1 LSB idle, in antiphase
+     *     with the locally generated square, and CANCELLED it:
+     *     the strip then ran on silence with BOOT_STAGE 7, a
+     *     clean pass rate and clean DMA/SPORT status, i.e. no
+     *     indicator except the dynamics witness showed anything
+     *     wrong. Caught 2026-08-28 by FILT's captured input word
+     *     reading exactly +1 LSB, which requires a pre-add sample
+     *     of -0x07FFFFFF. A stimulus must not be a function of
+     *     anything the graph it stimulates can influence;
      *   - |x| is CONSTANT at -6 dBFS, which is above the -40 dB
      *     gate threshold and the -20 dB compressor threshold at
      *     every sample, so the envelope never dips back onto a
@@ -99,8 +112,8 @@ _C1_IN_27_process:
     r7 = 0x08000000;              /* +0.5 Q4.28 = -6 dBFS */
     lcntr = r5; do .in_sig_C1_IN_27 until lce;
         r2 = dm(i0, m0);          /* production read, still paid */
-        r2 = ashift r2 by -3;
-        r2 = r2 + r7;             /* silent bench: r2 == r7 */
+        r2 = ashift r2 by -3;     /* production shift, still paid */
+        r2 = r7;                  /* DISCARD it -- see above */
         dm(i1, 1) = r2;
 .in_sig_C1_IN_27:
         r7 = -r7;                 /* flip sign, |x| unchanged */
