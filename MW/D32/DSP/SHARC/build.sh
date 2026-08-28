@@ -158,10 +158,32 @@ DSP4_DYN_TABLES="${DSP4_DYN_TABLES:-0}"
 CFLAGS="$CFLAGS -DDSP4_DYN_TABLES=$DSP4_DYN_TABLES"
 ASMFLAGS="$ASMFLAGS -DDSP4_DYN_TABLES=$DSP4_DYN_TABLES"
 
+# SIMD on the DYNAMICS: GATE and COMP for two channels in one instruction
+# stream (src/lib/dyn_simd_fx.asm). Needs the POLYNOMIAL log2/exp2 -- a
+# table lookup is a gather at two indices and the DAGs are shared -- so it
+# is incompatible with DSP4_DYN_TABLES=1 and the assembler says so. It also
+# needs the per-ISR PEYEN clear, which lives under DSP4_SIMD_STRIPS, so
+# enabling this defaults that on. Default 0; the shipping image is
+# byte-identical with it off.
+DSP4_SIMD_DYN="${DSP4_SIMD_DYN:-0}"
+CFLAGS="$CFLAGS -DDSP4_SIMD_DYN=$DSP4_SIMD_DYN"
+ASMFLAGS="$ASMFLAGS -DDSP4_SIMD_DYN=$DSP4_SIMD_DYN"
+# Negative control for the paired-dynamics self-test: gather channel B
+# from channel A, so the pair computes one channel twice. The diff MUST
+# fail with this set.
+DSP4_SIMD_NEGCTL="${DSP4_SIMD_NEGCTL:-0}"
+CFLAGS="$CFLAGS -DDSP4_SIMD_NEGCTL=$DSP4_SIMD_NEGCTL"
+ASMFLAGS="$ASMFLAGS -DDSP4_SIMD_NEGCTL=$DSP4_SIMD_NEGCTL"
+if [ "$DSP4_SIMD_DYN" != "0" ]; then
+    DSP4_SIMD_STRIPS_DEFAULT=1
+else
+    DSP4_SIMD_STRIPS_DEFAULT=0
+fi
+
 # Strip pairing for SIMD: adds one pool slot to park strip N's block while
 # strip N+1 catches up, and emits the biquad section of a strip PAIR as a
 # single paired call. Block-kernel builds only, default 0.
-DSP4_SIMD_STRIPS="${DSP4_SIMD_STRIPS:-0}"
+DSP4_SIMD_STRIPS="${DSP4_SIMD_STRIPS:-$DSP4_SIMD_STRIPS_DEFAULT}"
 CFLAGS="$CFLAGS -DDSP4_SIMD_STRIPS=$DSP4_SIMD_STRIPS"
 ASMFLAGS="$ASMFLAGS -DDSP4_SIMD_STRIPS=$DSP4_SIMD_STRIPS"
 DSP4_SKIP_PAIR="${DSP4_SKIP_PAIR:-0}"   # bisect hook for the selftest hang

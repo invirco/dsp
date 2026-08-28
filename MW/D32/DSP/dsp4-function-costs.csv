@@ -22,21 +22,33 @@
 #
 # Budget: 786.432 MHz / 1500 blocks/s = 524,288 cycles/block;
 #         983.04  MHz / 1500 blocks/s = 655,360 cycles/block. 32 samples.
-function,baseline_cycles_per_sample,fused_cycles_per_sample,fused_cycles_block_per_ch,touched_by_fusion,simd_pairable,notes
-GAIN,17.7,17.8,570,yes,yes,one MAC; the other 16 instructions are the round/saturate and the two block stores its consumers need
-FILT,123.3,84.1,2692,yes,yes,HPF+LPF; 2 biquad stages
-EQ,247.9,168.5,5391,yes,yes,4-band parametric; 4 biquad stages
-GATE,248.3,252.1,8068,no,yes,envelope + log2 + hold + ramp
-COMP,426.1,416.6,13332,no,yes,envelope + log2/exp2 + knee/slope + parallel blend
-TUBE,~0,~8,267,no,yes,MEASURED BYPASSED (_tube_on defaults 0); both readings are inside the scatter; active cost still not measured
-DLY,62.0,76.8,2456,no,no,delay line; per-strip addressing so SIMD cannot pair it
-FDR,37.3,21.0,672,yes,yes,fader; mute folded into the coefficient, pan legs are ROUTING's crosspoints
-RTG,70.7,53.5,1713,no,no,bus routing over the active-crosspoint list
+# SIMD PAIRING (2026-08-28, second session). paired_cycles_per_sample is
+# per CHANNEL with the pair's gather and scatter INSIDE the measured span,
+# from the self-test in src/lib/dyn_selftest.asm (dynst.sh) -- a separate
+# instrument from sigprofile.sh, timed against the 1 kHz diag tick. Its
+# scalar arm reproduces this table's fused column to within 1-3 %, which is
+# what makes the paired column comparable: COMP 412.5 vs 416.6, GATE 247.5
+# vs 252.1, 4-stage cascade 165.0 vs EQ's 168.5, 2-stage 82.5 vs FILT's
+# 84.1. Blank = NOT MEASURED, and no projection is carried in this file.
+function,baseline_cycles_per_sample,fused_cycles_per_sample,fused_cycles_block_per_ch,touched_by_fusion,simd_pairable,paired_cycles_per_sample,notes
+GAIN,17.7,17.8,570,yes,yes,,one MAC; the other 16 instructions are the round/saturate and the two block stores its consumers need; pairable; not attempted: 1.6 % of the strip and already ~1 instruction/cycle
+FILT,123.3,84.1,2692,yes,yes,,HPF+LPF; 2 biquad stages; pairable; NOT MEASURED on the fused cascade: _bq_fx_cascade_simd hangs the part (localised 2026-08-28); the 2.39x on record was measured against the PRE-fusion cascade and must not be carried forward
+EQ,247.9,168.5,5391,yes,yes,,4-band parametric; 4 biquad stages; pairable; NOT MEASURED on the fused cascade: see FILT
+GATE,248.3,252.1,8068,no,yes,106.8,envelope + log2 + hold + ramp; PAIRED AND BIT-EXACT on the part: 247.5 -> 97.5..105.0 measured; 2.36-2.54x; column is the fused 252.1 at the conservative 2.36x
+COMP,426.1,416.6,13332,no,yes,204.2,envelope + log2/exp2 + knee/slope + parallel blend; PAIRED AND BIT-EXACT on the part: 412.5 -> 195.0..202.5 measured; 2.04-2.12x; column is the fused 416.6 at the conservative 2.04x
+TUBE,~0,~8,267,no,yes,,MEASURED BYPASSED (_tube_on defaults 0); both readings are inside the scatter; active cost still not measured; pairable in principle; bypassed; so nothing to pair yet
+DLY,62.0,76.8,2456,no,no,,delay line; per-strip addressing so SIMD cannot pair it; NOT pairable: per-strip; data-dependent addressing and the DAGs are shared
+FDR,37.3,21.0,672,yes,yes,,fader; mute folded into the coefficient; pan legs are ROUTING's crosspoints; pairable; not attempted: 1.9 % of the strip
+RTG,70.7,53.5,1713,no,no,,bus routing over the active-crosspoint list; NOT pairable: same reason as DLY
 # --- per-channel total ---
-STRIP_TOTAL,1231.8,1098.8,35162,,,GAIN..RTG inclusive; -10.8%
+STRIP_TOTAL,1231.8,1098.8,35162,,,741.1,GAIN..RTG inclusive; -10.8%. PAIRED COLUMN IS A SUM WITH TWO CLASSES PAIRED AND SEVEN UNCHANGED -- GATE and COMP at their measured conservative factors; everything else at its fused cost. It is arithmetic on measured parts; not a measured strip: NO strip runs paired yet (the graph is not wired for pairing)
 # --- fixed overhead, not per channel (from the ceiling-slope model) ---
-FIXED_786,,,77912,,,block I/O + fabric at 786.432 MHz
-FIXED_983,,,80824,,,block I/O + fabric at 983.04 MHz; part of it is SYSCLK-clocked, hence not equal to FIXED_786
+FIXED_786,,,77912,,,,block I/O + fabric at 786.432 MHz
+FIXED_983,,,80824,,,,block I/O + fabric at 983.04 MHz; part of it is SYSCLK-clocked; hence not equal to FIXED_786
 # --- measured ceilings, channels per chip, signal present, honest 1500/s rule ---
-CEILING_786,11,12,,,,baseline 11 measured 2026-08-27; fused predicted 12.70
-CEILING_983,14,16,,,,baseline 14 measured 2026-08-27; fused predicted 16.34 - this is the number a two-chip D32 split needs
+CEILING_786,11,12,,,,,baseline 11 measured 2026-08-27; fused 12 MEASURED (predicted 12.70); no paired ceiling measured - the graph is not wired for pairing
+CEILING_983,14,16,,,,,baseline 14 measured 2026-08-27; fused 16 MEASURED (predicted 16.34) - the number a two-chip D32 split needs; no paired ceiling measured
+# --- SIMD pairing, projected NOT measured (no strip is wired for pairing) ---
+# Scaling the measured fused ceilings by 1098.8/741.1 gives 18.8 at 786 and
+# 24.2 at 983 with the DYNAMICS ALONE paired. Both are projections and are
+# recorded here as such; the measured ceiling rows above are unchanged.

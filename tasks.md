@@ -38,7 +38,7 @@ needed), not just A/B vs the defective meter. SEQUENCING: this rides in
 the SAME session as block-8 parameterization (both rewrite the generated
 kernel loop) — dispatch after SIMD lands.
 
-## HUB DISPATCH 2026-08-28 11:47Z — SIMD pairing on the fused strip — dynamics first (32-in-one lever)   [status: 🟡 dispatched]   [model: opus]
+## HUB DISPATCH 2026-08-28 11:47Z — SIMD pairing on the fused strip — dynamics first (32-in-one lever)   [status: 🟢 done — **THE DYNAMICS ARE PAIRED, BIT-EXACT ON THE PART, AND MEASURED: COMP 412.5 → 195.0–202.5 cycles/sample/channel (2.04–2.12x) and GATE 247.5 → 97.5–105.0 (2.36–2.54x)**, with the pair's gather and scatter INSIDE the timed span and no numeric deviation anywhere in the sample path — ndiff **0 of 128** for both, twice, maxdiff 0. **THE NEGATIVE CONTROL IS THE POINT:** the fusion session's bar was that a pair which quietly computes channel N twice must not pass, so `DSP4_SIMD_NEGCTL` gathers channel B from channel A's pointers and the same test then reports **64 of 128 differing, first=0, maxdiff 2.1e8** for COMP and GATE alike — the diff detects exactly the fault the bar names. Every channel-dependent quantity differs between the two lanes (stimulus, attack, release, threshold, ratio, makeup, parallel blend, knee, range, hold) and block 2 puts them in OPPOSITE arms of every predicated branch: A silent on the compressor's unity path with its gate closing into hold, B at −24 dBFS on the SOFT knee with its gate held open, A's knee HARD where B's is soft. **WHAT MADE IT POSSIBLE, and it is three facts about this core, not effort:** (1) a branch takes PEx's condition for BOTH units, so every data-dependent branch in the dynamics — the envelope's attack/release select, the compressor's unity/hard/soft split, exp2's three-way shift, the gate's open/hold/close ladder — is rewritten as per-unit CONDITIONAL COMPUTE, building the alternative value BEFORE the compare that selects it; (2) a data access reads two CONSECUTIVE words, so per-channel operands are interleaved and shared constants are DOUBLED — the log2/exp2 coefficients now generate a `_log2_poly_dup`/`_exp2_poly_dup` twin from the same fixed_ref integers; (3) **the TABLE forms of log2/exp2 cannot be paired at all** — a table lookup is a gather at two indices and the DAGs are shared — so SIMD dynamics and `DSP4_DYN_TABLES=1` are mutually exclusive and the assembler now says so. **COST OF THE LAYOUT DECISION, stated before it was wired:** gather/scatter into a private interleaved park rather than repartitioning the block pool into 16 pairs — 156 words of DM total, ~4.6 cycles/sample/channel of copying, and it leaves the pool, the node buffers and every other kernel untouched. That overhead is inside every number above. **HOW MUCH OF THE >2x IS SIMD:** not all of it. The paired kernels also hoist the four `_comp_cgp` words into registers where the scalar re-reads them per sample, so a scalar block kernel could recover part of the margin above 2.0x without any pairing. The honest reading is 'pairing delivers essentially the full 2x on the dynamics, plus a little'. **WHAT THAT DOES TO THE STRIP, as arithmetic on measured parts and NOT as a measured strip:** GATE 252.1 → 106.8 and COMP 416.6 → 204.2 at the conservative ends, so 668.7 → 311.0 and the strip 1,098.8 → **741.1 cycles/sample, −32.6 %**. Scaling the measured fused ceilings by that gives **18.8 at 786 and 24.2 at 983** — projections, recorded as projections. **NO CEILING WAS RE-MEASURED, because no strip runs paired: the graph is not wired for pairing and wiring it is a generator change (the chain is strip-ordered and BLK_CHAIN_A/B are reused strip by strip, so a pair needs both strips' blocks live at once).** That is where SIMD stops today and it is the next rung. **WHERE THE BIQUADS STOPPED, and this matters because the 2.39x on record is now known to be stale:** that figure was measured against the PRE-fusion cascade, which fusion then made 32 % cheaper, so the pairing factor on the cascade the graph actually runs is an open number. Re-measuring it failed: **`_bq_fx_cascade_simd` hangs the part** when driven from the main loop with the graph configured — bisected to that routine and not to its wrapper by `DSP4_SKIP_SIMDCALL=1`, which boots and runs cleanly through `_bq_pair_blk`'s interleave and scatter. Not chased further, per the hub's timebox. What WAS gained: the fused biquad SCALAR baseline is re-measured on this instrument at **165.0 cycles/sample/channel for 4 stages and 82.5 for 2**, against sigprofile's 168.5 (EQ) and 84.1 (FILT) — 2 % apart. **THE CALIBRATION IS WHY ANY OF THIS IS QUOTABLE:** the self-test's scalar arm is a second instrument that shares no arithmetic with sigprofile.sh, and it reproduces the fused per-class table to within 1–3 % on all four classes it can see (COMP 412.5 vs 416.6, GATE 247.5 vs 252.1, 4-stage 165.0 vs 168.5, 2-stage 82.5 vs 84.1). GAIN and FDR were not attempted: 1.6 % and 1.9 % of the strip, both already ~1 instruction/cycle. DLY and RTG remain unpairable. **W0: the default image is byte-identical — chip1.ldr a2fcda81, chip2.ldr 30291013**, the same md5s the fusion session recorded, with the generator change and 1,200 lines of new ASM in the tree; `DSP4_SIMD_DYN` and `DSP4_STRIP_FUSED` both stay default 0. Bench restored to those images and verified: booted, matrix-app active, **all three MCUs verified 13:43:47 on the FIRST restart** (logged as a counter-occurrence to the second/third-restart pattern). CPLD never touched. **One bench-instrument limit found and written down:** the self-test owns the main loop while it runs and the main loop is what drains the SPI2 request FIFO — at 8192 iterations the arms total ~700 ms of link silence and the response stream comes back permanently out of phase, so the iteration count is capped at 2048 (~180 ms) and the price is ±1 tick quantisation, which is why the factors above are quoted as ranges from repeated runs rather than as single numbers.]   [model: opus]
 
 model: opus
 
@@ -84,6 +84,167 @@ largest measured bit-exact subset.
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
 no AI attribution in commits or any work product.
+
+### Outcome 2026-08-28 (second session) — SIMD pairing: the dynamics, measured
+
+#### What landed
+
+`src/lib/dyn_simd_fx.asm` (new, hand-maintained) — the dynamics for two
+channels in one instruction stream: `_polyq_simd`, `_log2q_simd`,
+`_exp2q_simd`, `_mrf_rns28_simd`, `_compgain_simd`, and the two block
+kernels `_comp_pair_blk` and `_gate_pair_blk`. Behind `DSP4_SIMD_DYN`,
+default 0. `src/lib/dyn_selftest.asm` (new) is the acceptance and the
+instrument; `dynst.sh` / `dynst_run.sh` / `dynst_read.py` drive it.
+
+#### The measured result
+
+| | scalar c/s/ch | paired c/s/ch | factor | ticks (2048 iterations) |
+|---|---|---|---|---|
+| COMP | 412.5 | 195.0 – 202.5 | **2.04 – 2.12x** | 55 vs 26–27 |
+| GATE | 247.5 | 97.5 – 105.0 | **2.36 – 2.54x** | 33 vs 13–14 |
+| cascade, 4 stages | 165.0 | — | — | 22 |
+| cascade, 2 stages | 82.5 | — | — | 11 |
+
+Per CHANNEL, gather and scatter inside the span, three runs. The spread is
+tick quantisation on the shorter arm, not scatter: every scalar arm read
+the same tick count every time.
+
+**Bit-exact, both classes, 0 of 128 samples differing, maxdiff 0** —
+two consecutive blocks per channel so envelope, gain, target and hold
+count have to survive the park's gather and scatter, and a block-boundary
+persistence fault cannot hide.
+
+**The negative control fails the way it must.** `DSP4_SIMD_NEGCTL=1`
+gathers channel B from channel A's pointers — the pair then computes one
+channel twice, which is precisely the fault the fusion session's bar
+names and precisely what an identical-data test cannot see. The same diff
+reports **64 of 128 differing, first=0, maxdiff 210,729,160 (COMP) and
+394,251,093 (GATE)**.
+
+#### The calibration, and why the numbers are quotable
+
+The self-test's scalar arm is a second instrument. It shares no arithmetic
+with `sigprofile.sh` — a 1 kHz tick over 2048 iterations against
+TCOUNT/`_proc_cyc` on a `DSP4_NODE_LIMIT` prefix cut — and it reproduces
+the fused per-class table on all four classes it can reach:
+
+| class | sigprofile (fused) | self-test scalar | apart |
+|---|---|---|---|
+| COMP | 416.6 | 412.5 | 1.0 % |
+| GATE | 252.1 | 247.5 | 1.8 % |
+| EQ (4 stages) | 168.5 | 165.0 | 2.1 % |
+| FILT (2 stages) | 84.1 | 82.5 | 1.9 % |
+
+#### The three facts about this core that shaped the code
+
+1. **A branch takes PEx's condition for both units.** Every data-dependent
+   branch in the dynamics is rewritten as per-unit CONDITIONAL COMPUTE:
+   the envelope's attack/release select, the compressor's
+   unity/hard-knee/soft-knee split, `exp2`'s three-way shift, and the
+   gate's open/hold/close ladder. The trap that governs the whole idiom is
+   that an ALU op between `comp` and the conditional move overwrites the
+   flags, so every alternative value is built BEFORE the compare that
+   selects it — the same rule the biquad pair's saturation follows.
+2. **A data access reads two consecutive words.** Per-channel operands are
+   interleaved; shared constants are DOUBLED. The log2/exp2 coefficients
+   therefore gained a generated twin, `_log2_poly_dup` / `_exp2_poly_dup`,
+   emitted from the same `fixed_ref` integers so there is still one source
+   for the numbers.
+3. **The TABLE forms of log2/exp2 cannot be paired at all.** A table
+   lookup is a gather at two different indices and the DAGs are shared —
+   one address per access, whatever PEYEN says. Only the polynomial forms
+   pair, which is what `DSP4_DYN_TABLES=0` (the default) already selects;
+   `DSP4_SIMD_DYN` with tables on is now an assembler error rather than a
+   silent wrong answer.
+
+Two smaller ones worth keeping. `_compgain_simd` cannot fold the unity
+case into the exponent — `exp2q(0)` is `0x0FFFFFE5`, not the `0x10000000`
+the scalar's unity path returns — so unity is carried as a per-unit flag
+in r7 and applied AFTER exp2, and paying for that register is why the COMP
+loop reloads the release alpha from the park each sample. And interrupts
+are NOT masked around these kernels: the per-ISR PEYEN clear already in
+the tree is the systemic fix, and masking around a whole block of
+dynamics would be a ~40 us blackout against a 667 us block.
+
+#### The layout decision, stated before it was wired
+
+Gather and scatter into a private interleaved park — 82 words for COMP, 74
+for GATE, one park shared by all pairs because pairs run one after
+another — rather than repartitioning the block pool into 16 channel pairs.
+That is ~4.6 cycles/sample/channel of copying against the several hundred
+a paired dynamics stage saves, it is inside every number above, and it
+leaves the pool, the node buffers and every other kernel untouched.
+
+#### How much of the >2x is actually SIMD
+
+Not all of it. The paired kernels also hoist the four `_comp_cgp` words
+into registers where the scalar re-reads them from DM every sample, so a
+scalar block kernel could recover part of the margin above 2.0x with no
+pairing at all. The honest reading is that pairing delivers essentially
+the full 2x on the dynamics, plus a little.
+
+#### What it does to the strip — arithmetic, not a measurement
+
+GATE 252.1 → 106.8 and COMP 416.6 → 204.2 at the conservative ends of the
+measured ranges: 668.7 → 311.0, and the strip **1,098.8 → 741.1
+cycles/sample, −32.6 %**. Scaling the measured fused ceilings by that
+gives **18.8 at 786 and 24.2 at 983**.
+
+**Those are projections and nothing here measured a ceiling.** No strip
+runs paired: the chain is strip-ordered and `BLK_CHAIN_A`/`B` are reused
+strip by strip, so a pair needs both strips' blocks live at the same time
+and the generator has to emit a pair-aware chain order. That wiring is the
+next rung, and it is where SIMD stops today.
+
+#### Where the biquads stopped, and a stale number retired
+
+**The 2.39x on record for the biquad pair was measured against the
+PRE-fusion cascade.** Fusion then took 32 % out of that baseline, so the
+pairing factor on the cascade the graph actually runs is an open number
+and the 2.39x must not be carried into any projection.
+
+Re-measuring it failed. **`_bq_fx_cascade_simd` hangs the part** when
+driven from the main loop with the graph configured — the link goes fully
+dead, not the "diag ISR still answering" signature. It is bisected to that
+routine and not to its wrapper: with `DSP4_SKIP_SIMDCALL=1` the same build
+boots, runs, and completes `_bq_pair_blk`'s interleave and scatter cleanly
+(and the diff then reports 127 of 128 differing, which is what a pairing
+wrapper that does no arithmetic should report). Not chased further, per
+the hub's timebox. The fused cascade's SCALAR cost was re-measured on the
+way past and is in the table above.
+
+GAIN and FDR were not attempted: 1.6 % and 1.9 % of the strip, both
+already running at about one instruction per cycle. DLY and RTG stay
+unpairable — per-strip, data-dependent addressing against shared DAGs.
+
+#### One bench-instrument limit, found and written down
+
+The self-test owns the main loop while it runs, and the main loop is what
+drains the SPI2 request FIFO. At 8192 iterations the arms total ~700 ms of
+link silence and the response stream comes back permanently out of phase —
+the same failure mode that made the self-test's first placement unusable.
+The iteration count is capped at 2048 (~180 ms); the price is ±1 tick on
+the shortest arm, which is why the factors are quoted as ranges from
+repeated runs rather than as single numbers.
+
+#### Bench
+
+**Default image byte-identical either side of everything above: chip1.ldr
+a2fcda81, chip2.ldr 30291013** — the same md5s the fusion session
+recorded, with the generator change and ~1,200 lines of new ASM in the
+tree. `DSP4_SIMD_DYN` and `DSP4_STRIP_FUSED` both stay default 0.
+
+Bench restored to those images and verified: booted to BOOT_STAGE 5 on the
+shipping firmware, matrix-app started, **all three MCUs verified at
+13:43:47 — on the FIRST restart**, which is a counter-occurrence to the
+second/third-restart pattern and is logged as one. CPLD never touched.
+
+Measurement points were witnessed at the point of measurement:
+BOOT_STAGE 7, `DMA0_STAT 0x00006200`, `SPORT0_ERR_A 0x00000000`. Note the
+distinction the harness now makes explicit: MAGIC reading while peeks
+return None means the MAIN LOOP is wedged, because a peek is a
+two-transaction handshake the diag ISR backstop cannot serve. That is how
+the biquad hang was recognised as a hang rather than as a zero.
 
 ## HUB DISPATCH 2026-08-28 09:02Z — strip fusion — the 08-24 main event (per-class baseline, fused kernel, GAIN=1 MAC acceptance)   [status: 🟢 done — **STRIP FUSION LANDED AND MEASURED: the signal-present strip is 1,231.8 → 1,098.8 cycles/sample (−10.8 %), and the measured ceilings move 11 → 12 at 786 and 14 → 16 at 983, per chip, signal present, every point witnessed.** **THE ROW THAT MATTERS: a two-chip D32 split at 983.04 MHz needs 16 channels/chip and the part now delivers 16** — last night that row read 14 and the answer was "it does not fit"; the gap was 9.4 % and fusion returned 10.8 %. It is a fit with no headroom (16 strips = 98.2 % of the 983 budget) and it rests on 983.04 MHz, a KSWZ10 clock that is OUT OF SPEC on a KSWZ8, so the U5/U6 marking still has to be read. Silence controls moved by the same proportion (15 → 18 at 786, 20 → 24 at 983, both +20 %), which is what says the gain is in the strip and not in an interaction with the stimulus. **BASELINE FIRST, published per class** (`sigprofile.sh`, new today — the signal-present twin of profile.sh, with a per-point gain witness because three of the first ten points came up carrying the CFG_COMMIT header word in strip 1's coefficient and would have reported the SILENCE cost with everything else reading clean): GAIN 17.7, FILT 123.3, EQ 247.9, GATE 248.3, COMP 426.1, TUBE ~0 (bypassed), DLY 62.0, FDR 37.3, RTG 70.7 = **1,231.8 cycles/sample**, against 1,238.4 from the ceiling-slope model that shares no arithmetic with it — 0.5 % apart. **WHAT FUSION DELETED:** the fused biquad cascade (written 08-24, never measured until today) keeps the error feedback in the 80-bit MRF across samples instead of taking it apart into two words and pushing it back every sample, and hoists the five coefficients per stage — FILT −31.8 %, EQ −32.1 %; FADER_PAN −43.8 %, mostly from replacing a manual counter loop with a hardware one. **BIT-EXACT, proven twice on the part:** the scalar-vs-block self-test was reinstated for the fused routine (a proof of the routine being replaced is not a proof of the replacement) — two stages with DIFFERENT coefficients over two consecutive blocks, impulse then silence, **ndiff=0 of 64, maxdiff=0**; and chain.py on the fused build is **BIT-EXACT, 0 of 7**, negative control passing, with the unfused control run first on the same tree. No numeric deviation to bound and no tolerance loosened — the arithmetic is unchanged, only the plumbing around it. **THE GAIN ACCEPTANCE IS NOT MET AND THE REASON IS STRUCTURAL: GAIN measures 17.8 cycles/sample, unchanged.** One of its seventeen instructions is the MAC; twelve are the single Q4.28 round/saturate and two are block stores, and those exist because THREE consumers want the post-trim block — FILT, the post-trim METER, and the router's post-trim pickoff. Fusion removes FILT from that list exactly and for free (the gain folds into the first biquad stage's numerator triple at control rate: the offset form stores n1 = b1 + 2·b0 and n2 = b2 − b0, both of which scale with b0, so scaling [b0,n1,n2] by g is identical to scaling the input by g at infinite precision, with the x-history left unscaled — and it deletes the intermediate rounding rather than moving it). **It cannot remove the meter**, which reads BLK_CHAIN_B directly; moving what the meter taps belongs in the parked meter ruling, not in a fusion commit. So GAIN = 1 MAC is reachable, the arithmetic for it is derived and written down, and it is gated on that ruling — worth at most 17 cycles/sample, 1.5 % of the strip. A second thing is recorded as buying nothing: the 2-sample interleave was applied to GAIN and FADER_PAN expecting stalls to hide, and the baseline says there are none (17.7 cycles/sample for seventeen instructions is about one per cycle). **FOR SIMD (item 4, not done here):** GATE+COMP is now **61 %** of a fused strip, up from 54.7 %, because fusion took cycles out of everything else and none out of the dynamics — SIMD that pairs only the biquads now caps at ~11 % of a strip and has to reach the dynamics to matter; DLY and RTG (130.3 cycles/sample, 12 %) are not pairable at all; at the 2.39x measured on a biquad pair the pairable remainder would put the strip near 535 cycles/sample = 33 channels at 983 and 26 at 786, which is the projection to test, not a claim. Two SHARC loop hazards cost a bench cycle each and are now written down where they bite (a DO loop's last three instructions may not be a branch or a call; a conditional branch onto a loop's own end instruction hangs the core while the diag timer ISR keeps answering the link, so it presents as firmware that never ran). Default image byte-identical either side of the generator change (chip1.ldr a2fcda81, chip2.ldr 30291013). Bench restored to shipping and verified: those images reflashed, matrix-app active, all three MCUs verified 12:41:32 — on the THIRD restart, one more than the filed bug's second-restart pattern, logged as another occurrence. CPLD never touched.]   [model: opus]
 

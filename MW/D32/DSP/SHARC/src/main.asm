@@ -105,6 +105,10 @@
 #if DSP4_BQ_SELFTEST
 .extern _bq_selftest;
 #endif
+#if DSP4_SIMD_DYN
+.extern _dyn_selftest;
+.extern _dst_done;
+#endif
 
 .section/pm seg_pmco;
 
@@ -565,6 +569,15 @@ _start:
     if ne jump (pc, .bqst_skip);
     call _bq_selftest;
 .bqst_skip:
+#endif
+#if DSP4_SIMD_DYN
+    /* Same placement and the same reason: ordinary main-loop context,
+     * link up, graph configured. Runs once. */
+    r0 = dm(_dst_done);
+    r0 = pass r0;
+    if ne jump (pc, .dynst_skip);
+    call _dyn_selftest;
+.dynst_skip:
 #endif
     /* NO `idle` HERE. It used to be, as a low-power wait for the DMA
      * interrupt, and it wedged the parameter link the instant the loop

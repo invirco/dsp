@@ -7494,6 +7494,24 @@ def gen_poly_tables_fixed():
     out.append('.var _exp2_poly_fx[6] = ' +
                ', '.join('0x%08X' % (c & 0xFFFFFFFF) for c in fixed_ref.EXP2_POLY) + ';')
     out.append('')
+    # SIMD (DSP4_SIMD_DYN) needs the SAME coefficient in both compute
+    # units. A SIMD data access reads TWO CONSECUTIVE WORDS -- PEx takes
+    # the addressed word and PEy the one after it -- so walking the table
+    # above with modifier 2 would hand PEy C[k+1] where it wants C[k].
+    # These are the same integers with every entry doubled, so one
+    # dm(i0, 2) broadcasts. Doubled here rather than copied at run time
+    # so there is still exactly one source for the numbers.
+    out.append('#if DSP4_SIMD_DYN')
+    for name, poly in (('_log2_poly_dup', fixed_ref.LOG2_POLY),
+                       ('_exp2_poly_dup', fixed_ref.EXP2_POLY)):
+        pairs = []
+        for c in poly:
+            w = '0x%08X' % (c & 0xFFFFFFFF)
+            pairs.append(w + ', ' + w)
+        out.append('.global %s;' % name)
+        out.append('.var %s[12] =\n    ' % name + ',\n    '.join(pairs) + ';')
+    out.append('#endif')
+    out.append('')
     return '\n'.join(out)
 
 
