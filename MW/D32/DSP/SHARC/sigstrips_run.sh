@@ -26,6 +26,10 @@ attempt() {
   done
   for c in 1 2 3; do
     python3 dsp4_config.py --product d24 --chip 1 >/dev/null 2>&1; sleep 2
+    # Repair any strip whose GAIN coefficient the config commit zeroed,
+    # over the link, before spending a whole reboot on it. A dead strip is
+    # a CHEAP strip, so it flatters a ceiling rather than failing it.
+    python3 gainfix.py "$N" 2>&1 | sed 's/^/  /'
     R=$(python3 audio_verdict.py 3 "$PP" 2>&1)
     echo "$R" | grep -q "BOOT_STAGE 7" && break
   done

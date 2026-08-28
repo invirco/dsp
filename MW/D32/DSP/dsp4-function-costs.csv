@@ -1,27 +1,42 @@
-# DSP4 per-function cost model - measured on the part, chip 1, 2026-08-24
-# Build: per-block kernels + fused biquads, every class converted.
-# Signal-present (DSP4_PROFILE_SIGNAL, constant -6 dBFS): both dynamics
-# nodes short-circuit on a zero envelope before log2, so silence measures
-# the cheap path. Columns marked "silence" differ; all others are identical
-# either way (no data-dependent branch).
+# DSP4 per-function cost model - measured on the part, chip 1, 2026-08-28.
+# Supersedes the 2026-08-24 table, which was taken at 491.52 MHz, before the
+# crosspoint fold, the active-crosspoint list, the fabric move out of L2 and
+# strip fusion, and whose GATE/COMP rows were silence readings.
 #
-# Budget: 491.52 MHz / 1500 blocks/s = 327,680 cycles/block. 32 samples/block.
-# cycles/block for N channels = cycles_per_sample * 32 * N
-function,cycles_per_sample,cycles_block_32ch,pct_of_chip_32ch,simd_pairable,silence_value,notes
-IN,11.6,11878,3.6,yes,11.6,TDM input; DMA-direct
-GAIN,17.5,17920,5.5,yes,17.5,trim; one MAC
-FILT,87.5,89600,27.3,yes,87.5,HPF+LPF; 2 biquads at 43.7 each
-EQ,170.6,174694,53.3,yes,170.6,4-band parametric; 4 biquads
-GATE,247.5,253440,77.3,yes,152.0,envelope + log2 + hold + ramp
-COMP,421.6,431718,131.7,yes,160.6,envelope + log2/exp2 + knee/slope + parallel blend
-TUBE,2.9,2970,0.9,yes,2.9,MEASURED BYPASSED (_tube_on defaults 0); active cost not yet measured
-DLY,62.5,64000,19.5,no,62.5,delay line; per-strip addressing so SIMD cannot pair it
-FDR,60.0,61440,18.8,yes,60.0,fader + pan
-RTG,81.8,83763,25.6,no,81.8,bus routing; data-dependent addressing so SIMD cannot pair it
-# --- fixed overhead, not per channel ---
-BLOCK_IO,,32707,10.0,,,scatter/gather/meter scan; already converted
-FABRIC,,95434,29.1,,,25 buses + 37 sends + 32 meters; 3104 calls/block at 30.7 cycles each
-FABRIC_TARGET,,40000,12.2,,,dispatch target; needs 2.39x - it is ~80 pct call overhead
-# --- totals ---
-STRIP_TOTAL,1163.5,1191424,363.6,,795.4,every function on every channel
-BUDGET,,327680,100.0,,,
+# METHOD: sigprofile.sh - TCOUNT/_proc_cyc, DSP4_NODE_LIMIT prefix cut,
+# DEC=32, DSP4_BLOCK_KERNELS=1, DSP4_PROFILE_SIGNAL=1. A class costs the
+# difference between two consecutive limits. Every point is witnessed
+# (strip 1's GAIN coefficient must read 1.0f) because roughly one boot in
+# three lands the CFG_COMMIT header word there and then reports the
+# SILENCE cost with everything else reading clean.
+#
+# SIGNAL-PRESENT throughout: a full-rate +/-0.5 (-6 dBFS) square wave in
+# every retained strip's IN kernel. Silence measures GATE and COMP on
+# their cheap branch and understates a strip by ~29%.
+#
+# baseline = HEAD before strip fusion; fused = DSP4_STRIP_FUSED=1.
+# GAIN, FILT, EQ and FADER_PAN are the classes fusion touches. The other
+# six are untouched: their columns differ by code-layout scatter only and
+# net +60 cycles/block over the whole strip, which is the internal check
+# that the -4,255 total really is the four touched classes (-4,315).
+#
+# Budget: 786.432 MHz / 1500 blocks/s = 524,288 cycles/block;
+#         983.04  MHz / 1500 blocks/s = 655,360 cycles/block. 32 samples.
+function,baseline_cycles_per_sample,fused_cycles_per_sample,fused_cycles_block_per_ch,touched_by_fusion,simd_pairable,notes
+GAIN,17.7,17.8,570,yes,yes,one MAC; the other 16 instructions are the round/saturate and the two block stores its consumers need
+FILT,123.3,84.1,2692,yes,yes,HPF+LPF; 2 biquad stages
+EQ,247.9,168.5,5391,yes,yes,4-band parametric; 4 biquad stages
+GATE,248.3,252.1,8068,no,yes,envelope + log2 + hold + ramp
+COMP,426.1,416.6,13332,no,yes,envelope + log2/exp2 + knee/slope + parallel blend
+TUBE,~0,~8,267,no,yes,MEASURED BYPASSED (_tube_on defaults 0); both readings are inside the scatter; active cost still not measured
+DLY,62.0,76.8,2456,no,no,delay line; per-strip addressing so SIMD cannot pair it
+FDR,37.3,21.0,672,yes,yes,fader; mute folded into the coefficient, pan legs are ROUTING's crosspoints
+RTG,70.7,53.5,1713,no,no,bus routing over the active-crosspoint list
+# --- per-channel total ---
+STRIP_TOTAL,1231.8,1098.8,35162,,,GAIN..RTG inclusive; -10.8%
+# --- fixed overhead, not per channel (from the ceiling-slope model) ---
+FIXED_786,,,77912,,,block I/O + fabric at 786.432 MHz
+FIXED_983,,,80824,,,block I/O + fabric at 983.04 MHz; part of it is SYSCLK-clocked, hence not equal to FIXED_786
+# --- measured ceilings, channels per chip, signal present, honest 1500/s rule ---
+CEILING_786,11,12,,,,baseline 11 measured 2026-08-27; fused predicted 12.70
+CEILING_983,14,16,,,,baseline 14 measured 2026-08-27; fused predicted 16.34 - this is the number a two-chip D32 split needs

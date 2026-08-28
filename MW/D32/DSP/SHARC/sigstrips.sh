@@ -21,8 +21,9 @@ set -u
 cd "$(dirname "$0")"
 BENCH=app@192.168.1.219
 SIG="${DSP4_PROFILE_SIGNAL:-1}"
+FUS="${DSP4_STRIP_FUSED:-0}"
 for S in "$@"; do
-  DSP4_BISECT=0 DSP4_BLOCK_KERNELS=1 DSP4_PROFILE_SIGNAL=$SIG DSP4_STRIPS=$S \
+  DSP4_BISECT=0 DSP4_BLOCK_KERNELS=1 DSP4_PROFILE_SIGNAL=$SIG DSP4_STRIP_FUSED=$FUS DSP4_STRIPS=$S \
     ./build.sh > /tmp/sigstrips_build.log 2>&1
   if [ "$(grep -ciE '\[Error|Build FAILED' /tmp/sigstrips_build.log)" -ne 0 ]; then
     echo "strips=$S BUILD FAILED"; continue; fi
@@ -33,5 +34,5 @@ m=re.search(r\"proc_passes' address='(0x[0-9a-fA-F]+)'\",s); print(m.group(1) if
   # the symbol table moves on every build; the witness reads .var addresses
   python3 ../../../../tools/dsp/map_syms.py build/chip1.map.xml > /tmp/chip1.sym.json
   scp -q build/chip1.ldr build/chip2.ldr /tmp/chip1.sym.json $BENCH:/home/app/dspboot/
-  echo "strips=$S sig=$SIG clk=${DSP4_CCLK_TARGET:-0}  $(ssh $BENCH "bash /home/app/sigstrips_run.sh $PP $S" 2>&1 | tr '\n' ' | ')"
+  echo "strips=$S sig=$SIG fused=$FUS clk=${DSP4_CCLK_TARGET:-0}  $(ssh $BENCH "bash /home/app/sigstrips_run.sh $PP $S" 2>&1 | tr '\n' ' | ')"
 done

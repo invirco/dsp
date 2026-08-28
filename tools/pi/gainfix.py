@@ -14,8 +14,13 @@ host uses in service anyway. GAIN is a RAMPED parameter, so the write
 must carry ramp_id=1 or it takes the instant path and the node's own
 block-rate code clobbers it from a target that was never set.
 
-Exit 0 = the coefficient reads 1.0f (repaired or already good),
-       1 = still wrong, 2 = unreadable.
+Takes an optional strip count (default 1). GAIN parameters are 144
+apart on the SPI page, so strip n lives at (n-1)*144 -- a ceiling sweep
+can have the slip land on any of its strips, and one dead strip is a
+CHEAP strip, so it flatters the number rather than failing it.
+
+Exit 0 = every coefficient asked for reads 1.0f (repaired or already
+good), 1 = at least one is still wrong, 2 = at least one is unreadable.
 """
 import json
 import struct
@@ -27,6 +32,7 @@ import dsp4_scope as S
 from dsp4_tubedly_probe import wrv
 
 GAIN_ADDR = 0x0000
+GAIN_STRIDE = 144        # per strip, from dsp.csv's spi_addr column
 UNITY_F32 = struct.unpack('<I', struct.pack('<f', 1.0))[0]   # 0x3F800000
 
 
@@ -52,32 +58,47 @@ def read_coeff(sc, addr):
     return None
 
 
-def main():
-    sc = S.Scope(1)
-    sc.check_chip()
-    addr = sc.sym['_gain_coeff_C1_GAIN_01']
+def fix_one(sc, strip):
+    """strip is 1-based. Returns 0 ok, 1 still wrong, 2 unreadable."""
+    sym = '_gain_coeff_C1_GAIN_%02d' % strip
+    if sym not in sc.sym:
+        return 0                       # strip not in this build
+    addr = sc.sym[sym]
+    spi = GAIN_ADDR + (strip - 1) * GAIN_STRIDE
 
     v = read_coeff(sc, addr)
     if v is None:
-        print('gainfix: coefficient unreadable')
+        print('gainfix: strip %d coefficient unreadable' % strip)
         return 2
     if v == UNITY_F32:
-        print('gainfix: already 0x%08X' % v)
         return 0
 
-    print('gainfix: coefficient is 0x%08X, rewriting GAIN = 1.0' % v)
+    print('gainfix: strip %d is 0x%08X, rewriting GAIN = 1.0' % (strip, v))
     for attempt in range(3):
         try:
-            wrv(sc, GAIN_ADDR, UNITY_F32, ramp_id=1, settle=0.05)
+            wrv(sc, spi, UNITY_F32, ramp_id=1, settle=0.05)
         except Exception as e:
-            print('gainfix: write failed (%s)' % e)
+            print('gainfix: strip %d write failed (%s)' % (strip, e))
         time.sleep(0.4)
         v = read_coeff(sc, addr)
         if v == UNITY_F32:
-            print('gainfix: repaired on attempt %d' % (attempt + 1))
+            print('gainfix: strip %d repaired on attempt %d' % (strip, attempt + 1))
             return 0
-    print('gainfix: still 0x%s' % ('unreadable' if v is None else '%08X' % v))
+    print('gainfix: strip %d still 0x%s'
+          % (strip, 'unreadable' if v is None else '%08X' % v))
     return 1
+
+
+def main():
+    n = int(sys.argv[1]) if len(sys.argv) > 1 else 1
+    sc = S.Scope(1)
+    sc.check_chip()
+    worst = 0
+    for strip in range(1, n + 1):
+        worst = max(worst, fix_one(sc, strip))
+    if worst == 0:
+        print('gainfix: %d strip(s) at 0x%08X' % (n, UNITY_F32))
+    return worst
 
 
 if __name__ == '__main__':
