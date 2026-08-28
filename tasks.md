@@ -206,7 +206,168 @@ Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
 no AI attribution in commits or any work product.
 
+## FOUND 2026-08-28 — CONFIG COMMIT CAN WRITE A LIVE AUDIO PARAMETER   [status: 🔴 open — needs a fix and a product-path check]
+
+Root-caused while chasing a measurement artifact (outcome below). On roughly
+a THIRD of boot+config cycles, `_gain_coeff_C1_GAIN_01` and
+`_gain_target_C1_GAIN_01` come up holding **`0xF0040000`** instead of 1.0.
+That value is the `CFG_COMMIT` (register 0xF004) transaction's own word0
+header — a one-word phase slip in the two-word parameter protocol landing the
+header where a value belongs. Strip 1 then multiplies by −1.6e29 and
+everything downstream of GAIN runs on zero, while BOOT_STAGE 7, pass rate,
+DMA0_STAT and SPORT0_ERR_A all stay clean.
+
+Negative control is clean: **6/6 boots with no config write leave the
+coefficient correct**, so this arrives with `dsp4_config.py`, not the image.
+Blast radius is exactly those two adjacent words — the other 15 strips'
+coefficients and the neighbouring `_mute`/`_polarity` are untouched.
+
+The "config commit desyncs the parameter link" behaviour has been on record
+since the bench recipe was written and was treated as cosmetic. It is not: it
+can corrupt a live audio parameter.
+
+**Why it may be a shipping defect, not a bench nuisance:** per D1 the Pi
+masters the DSP and writes this same config through the same commit at every
+product boot, so a shipped card could come up with channel 1 at a garbage
+gain and nothing to show for it. NOT YET CONFIRMED on the shipping app's
+config path — the shipping image's symbol map is not in this tree, so the
+coefficient could not be read back on it. **That check comes first**, then the
+fix in `spi_handler.asm` / `product_config.asm`.
+
 Legend: 🔴 not started/blocked · 🟡 in progress · 🟢 done
+
+### Outcome 2026-08-28 (early, second rung) — the NODE_LIMIT=5 "stimulus gap", root-caused
+
+Hub task: root-cause the gap, because it is measurement-infrastructure
+integrity and every future per-node figure depends on it. **Root-caused, and
+it is not what it looked like.**
+
+#### It was never about NODE_LIMIT
+
+The first thing that had to go was my own characterization. Rebuilding the
+same `DSP4_NODE_LIMIT=5` configuration and walking the chain showed the
+stimulus arriving perfectly — ±0.5 through the pool, FILT and EQ state, into
+an open gate. Booting **the same image** repeatedly then reproduced both
+outcomes: signal, zero, signal. It is **intermittent, roughly a third of
+boots**, and NODE_LIMIT had nothing to do with it. The original limit-5 /
+limit-6 pair was two boots that happened to land on opposite sides of a coin
+flip, and I read a mechanism into it that was not there.
+
+#### A second wrong turn, worth recording because the evidence looked strong
+
+The failing boots showed FILT's captured input word at exactly `+1 LSB`, which
+requires a pre-add sample of `−0x07FFFFFF` — i.e. the value the IN kernel read
+was ≈ −0.5, not the −1 LSB idle. Since the stimulus was ADDED to the input,
+that reads as a feedback loop: the strip's own output returning in antiphase
+and cancelling the stimulus. It is a coherent story and it was wrong. Changing
+the stimulus to discard the input word (below) did **not** stop the failures —
+3 of 8 boots still came up dead. What that reasoning missed is that **pool A is
+written LAST by GATE**, not by IN, so "pool A reads zero" never was evidence
+about the IN kernel at all. Every inference built on it was unsound.
+
+#### The actual cause: the config commit writes a garbage gain coefficient
+
+On a failing boot, exactly **two adjacent words** are wrong, and nothing else
+in the image is:
+
+    _gain_coeff_C1_GAIN_01   @92F3C  F0040000   (should be 3F800000 = 1.0)
+    _gain_target_C1_GAIN_01  @92F3D  F0040000
+    gain_coeff across strips 1..16:  ok=15  bad=1
+    _mute/_polarity (next words), FILT and EQ coefficients:  all correct
+
+**`0xF0040000` is not garbage — it is the `CFG_COMMIT` transaction's own header
+word.** The parameter protocol is two 32-bit words, `word0[31:16] = address`,
+and `CFG_COMMIT` is register `0xF004`, so its word0 is `0xF004 << 16 =
+0xF0040000` exactly. A one-word phase slip in that two-word stream lands the
+header where a value belongs, and it lands on the two words a ramped GAIN
+write sets.
+
+So this is the **already-recorded "the config commit desyncs the parameter
+link every time"** behaviour — but it does more than desync the link. It can
+**write a live audio parameter**. That was not known.
+
+**Negative control, and it is clean: 6/6 boots with NO config write leave the
+coefficient at `3F800000`.** The boot stream is exonerated; the corruption
+arrives with `dsp4_config.py`, not with the image.
+
+Strip 1 then multiplies by a coefficient of −1.6e29, and everything downstream
+of GAIN runs on approximately zero.
+
+#### Why nothing caught it — and what it costs a measurement
+
+In that state the card reports **BOOT_STAGE 7, a clean 47/s decimated pass
+rate, `DMA0_STAT 0x00006200` and `SPORT0_ERR_A` clean**. Every health
+indicator this bench has says the run is good. The only instrument that sees
+it is the dynamics witness.
+
+And it changes the number. Measured at `NODE_LIMIT=6`, 8 boots, perfect
+correlation:
+
+| state | `_gate_envelope` | `_comp_gain` | pool0 | `_proc_cyc` |
+|---|---|---|---|---|
+| signal (5 boots) | 0.500000 | 0x04C8FBF4 | 0x08000000 | **66,416–66,428** |
+| zero-strip (3 boots) | 0.000000 | 0x10000000 (unity) | 0x00000000 | **54,942–54,949** |
+
+54,94x is the **silence** figure (54,825 measured directly) and 66,42x is the
+**signal** figure (66,422). **A build that says signal silently returns the
+silence cost, 17 % low, with nothing to indicate it.** That is the
+infrastructure defect in one line.
+
+#### What this does and does not invalidate
+
+- **The 786/983 ceilings stand.** Every sweep point ran the witness across
+  ALL N strips and reported gate OPEN and comp ACTIVE on every one; a
+  corrupted strip reads SHUT. The failure mode is exactly what that check was
+  put there to catch, and it did not fire on any reported point.
+- **The GATE-versus-COMP split is now explained.** The limit-5 point was taken
+  in the corrupt state, which is why GATE appeared to cost nothing and
+  `DSP4_GATE_LINTHR` appeared to buy nothing. Declining to publish those was
+  right, and they remain unpublished — the split needs re-measuring with a
+  witness at each point, which is now cheap.
+- **Silence measurements are cycle-safe but semantically blind**: a strip
+  running on a garbage coefficient takes the same cheap branch as a strip
+  running on silence, so the cycle count is unaffected — but nothing would
+  have revealed the fault either.
+
+#### This is very likely a PRODUCT defect, not a bench nuisance
+
+Per decision D1 the Pi masters the DSP and writes this same product config at
+every boot, through the same two-word protocol and the same commit. If the
+slip happens there, a shipped card can come up with **channel 1 at a garbage
+gain** and no indication anywhere. **Not yet confirmed against the shipping
+app's config path** — the shipping image's symbol map is not in this tree, so
+the coefficient could not be read back on it tonight. That is the next check
+and it should happen before this is filed as bench-only.
+
+#### Landed
+
+1. **`DSP4_PROFILE_SIGNAL` now discards the input word** rather than adding to
+   it. This was NOT the root cause and is not presented as the fix — it is
+   hardening that the investigation showed was needed anyway: a stimulus must
+   not be a function of anything the graph it stimulates can influence. The
+   production read and shift still execute, so the cost is still a superset of
+   production; only the value is dropped. Proven: the pool now reads exactly
+   `0x08000000` where it previously read `0x07FFFFFF` (the input's −1 LSB
+   leaking in). The flag-off build stays byte-identical to HEAD.
+2. **`sigstrips_run.sh` retries on a failed witness.** The witness already
+   refused to certify these runs; now it also re-runs boot+config, which
+   clears the state. Sweeps become self-healing instead of silently losing a
+   third of their points.
+
+#### Not done
+
+- **The desync itself is not fixed.** That is `spi_handler.asm` /
+  `product_config.asm` ground and a larger piece of work than this rung; it is
+  recorded here with the mechanism named rather than half-fixed.
+- Confirming it on the shipping app's config path (see above).
+- Re-measuring the GATE/COMP split with a per-point witness.
+
+#### Bench hand-back
+
+Shipping firmware restored byte-identical (`25a1afed…` / `7052c5d1…`),
+BOOT_STAGE 7 at 1500/s, DMA0_STAT 0x00006200, SPORT0_ERR_A clean, CPLD never
+touched. matrix-app active, all three MCUs verified 01:49:39.
+
 
 ### Outcome 2026-08-28 (early) — the SIGNAL-PRESENT ceilings, measured
 
