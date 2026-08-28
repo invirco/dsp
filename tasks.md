@@ -5,6 +5,11 @@ Consequence for all capacity reporting from now on: the deliverable
 number is not "does 32 fit" but "cycles/percent REMAINING at 32
 channels" — a fit with no headroom is not a fit. Floors, ceilings and
 the review's closing sum are to be stated with the margin-at-32 column.
+Reaching 32 does NOT end the optimization program: work continues until
+every kernel sits at its derived floor under the ruled numeric spec (or
+a remaining gap demonstrably costs more than it buys) — the finish line
+is floors reached, and the margin at 32 at that point is the product's
+plugin headroom.
 
 ## HUB DISPATCH 2026-08-28 21:19Z — dsp codebase review — efficiency floors, correctness sweep, headroom proof   [status: 🟡 dispatched]   [model: fable]
 
