@@ -36,6 +36,15 @@
 
 .global _bqst_st_ref;   .var _bqst_st_ref[12];
 .global _bqst_st_blk;   .var _bqst_st_blk[12];
+/* Two consecutive blocks of stimulus and the two results. Retired once,
+ * when the block cascade had been proved and the buffers were wanted for
+ * the pairing test; back because DSP4_STRIP_FUSED replaces the block
+ * cascade with a different routine (the error feedback stays in MRF
+ * across samples instead of being taken apart and pushed back), and a
+ * proof of the routine it replaced is not a proof of this one. */
+.global _bqst_x;        .var _bqst_x[64];
+.global _bqst_ref;      .var _bqst_ref[64];
+.global _bqst_blk;      .var _bqst_blk[64];
 .global _bqst_maxdiff;  .var _bqst_maxdiff = 0;
 .global _bqst_ndiff;    .var _bqst_ndiff = 0;
 .global _bqst_first;    .var _bqst_first = -1;
@@ -88,11 +97,122 @@
 
 .global _bq_selftest;
 _bq_selftest:
-    /* The original scalar-vs-block cascade self-test lived here. It passed
-     * (0 of 64 samples differing, two stages with different coefficients,
-     * across a block boundary) and is recorded in dsp4-cycle-budget.md.
-     * Its 192 words of buffers are retired to make room for the PAIRING
-     * test below, which is the one still under investigation. */
+    l0 = 0;
+    l1 = 0;
+    l2 = 0;
+    l3 = 0;
+    l4 = 0;
+    l5 = 0;
+
+    /* ---- block cascade vs the per-sample reference -------------------
+     * Both routines run on byte-identical data inside the part and the
+     * results are diffed, which separates the routine from every node
+     * wrapper by construction. Under DSP4_STRIP_FUSED the block routine
+     * is the FUSED one, so this is the acceptance for strip fusion's
+     * biggest single change.
+     *
+     * Two stages with DIFFERENT coefficients (1 kHz LPF Q0.707 then
+     * 300 Hz HPF Q2) -- equal stages would hide a stage-pointer fault,
+     * and unity stages hide everything, because with unity coefficients
+     * y = x and the stored state contributes nothing at all.
+     *
+     * Two CONSECUTIVE blocks: block 1 an impulse, block 2 silence, so
+     * every sample of block 2 is pure feedback tail. Block 1 matching
+     * while block 2 diverges is block-boundary persistence -- which is
+     * exactly what the fused form changes, since it carries the error
+     * feedback in MRF and only writes it out at the end of a stage.
+     * ------------------------------------------------------------------ */
+    i3 = _bqst_x;
+    i4 = _bqst_ref;
+    r0 = 0;
+    lcntr = 64, do .bqst_z until lce;
+        dm(i3, 1) = r0;
+    .bqst_z: dm(i4, 1) = r0;
+    r0 = 0x08000000;                /* impulse at sample 0, -6 dBFS */
+    dm(_bqst_x) = r0;
+
+    i3 = _bqst_st_ref;
+    i4 = _bqst_st_blk;
+    r0 = 0;
+    lcntr = 12, do .bqst_zs until lce;
+        dm(i3, 1) = r0;
+    .bqst_zs: dm(i4, 1) = r0;
+
+    /* reference: the per-sample cascade, one sample at a time */
+    i3 = _bqst_x;
+    i4 = _bqst_ref;
+    lcntr = 64, do .bqst_rl until lce;
+        r0 = dm(i3, 1);
+        i0 = _bqst_coeffs;
+        i1 = _bqst_st_ref;
+        r4 = 2;
+        call _bq_fx_cascade_N;
+        /* A DO loop's last three instructions may not be a branch or a
+         * call, so the call gets padded away from the loop end. Same
+         * idiom as the generated dynamics kernels. */
+        nop;
+        nop;
+    .bqst_rl: dm(i4, 1) = r0;
+
+    /* the block form works IN PLACE, so it gets its own copy */
+    i3 = _bqst_x;
+    i4 = _bqst_blk;
+    lcntr = 64, do .bqst_cp until lce;
+        r0 = dm(i3, 1);
+    .bqst_cp: dm(i4, 1) = r0;
+
+    i0 = _bqst_coeffs;
+    i1 = _bqst_st_blk;
+    i2 = _bqst_blk;
+    r4 = 2;
+    call _bq_fx_cascade_blk;
+    i0 = _bqst_coeffs;
+    i1 = _bqst_st_blk;
+    r0 = _bqst_blk;
+    r1 = 32;
+    r0 = r0 + r1;
+    i2 = r0;                        /* the second block, same state */
+    r4 = 2;
+    call _bq_fx_cascade_blk;
+
+    /* Diff: count, worst magnitude, and where it FIRST goes wrong.
+     *
+     * Walked BACKWARDS on purpose. "First differing index" needs two
+     * conditions in the forward direction (differs AND nothing recorded
+     * yet), and the second one cannot be tested without a branch -- and a
+     * branch inside a hardware loop, especially one landing on the loop's
+     * own end instruction, is exactly the hazard that hung the first cut
+     * of this test on the part. Backwards, the LAST index written is the
+     * lowest differing one, which is the same answer from one
+     * conditional move. */
+    r0 = _bqst_ref;
+    r1 = 63;
+    r0 = r0 + r1;
+    i3 = r0;
+    r0 = _bqst_blk;
+    r0 = r0 + r1;
+    i4 = r0;
+    r12 = 0;                        /* ndiff   */
+    r13 = 0;                        /* maxdiff */
+    r14 = -1;                       /* first differing index */
+    r15 = 63;                       /* index, counting down  */
+    r3 = 0;
+    lcntr = 64, do .bqst_cmp until lce;
+        r0 = dm(i3, -1);
+        r1 = dm(i4, -1);
+        r2 = r0 - r1;
+        r2 = abs r2;
+        comp(r2, r3);
+        if ne r12 = r12 + 1;
+        comp(r2, r3);
+        if ne r14 = r15;
+        comp(r2, r13);
+        if gt r13 = r2;
+    .bqst_cmp: r15 = r15 - 1;
+    dm(_bqst_ndiff) = r12;
+    dm(_bqst_maxdiff) = r13;
+    dm(_bqst_first) = r14;
+
     l0 = 0;
     l1 = 0;
     l2 = 0;
