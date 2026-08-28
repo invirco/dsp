@@ -1,3 +1,13 @@
+**PW RULING 2026-08-28 (~17:35): GAIN=1MAC NUMERIC AMENDMENT — the
+gain-into-biquad fold's arithmetic IS the new reference.** The fold
+(scale [b0, n1, n2] by g at control rate, x-history unscaled) deletes
+the intermediate Q4.28 round/saturate between GAIN and the first biquad
+stage; that deletion is SANCTIONED. Bit-exactness bar unchanged in form:
+exact match against fixed_ref UPDATED to the folded arithmetic (goldens
+regenerated from it), negative controls still required — not against the
+old per-stage-rounded chain. Unblocks GAIN = 1 MAC (−17 cycles/sample).
+Implementation rides the next kernel session after the SIMD wiring rung.
+
 ## HUB DISPATCH 2026-08-28 17:17Z — SIMD graph wiring — measured paired-strip ceilings at block 8 and 32   [status: 🟡 dispatched]   [model: opus]
 
 model: opus
