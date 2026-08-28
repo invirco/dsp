@@ -112,6 +112,12 @@ So what landed is fusion where the graph actually permits it:
   accumulating in MRB. FADER_PAN also loses a manual counter loop and the branch
   at the bottom of it.
 
+**`DSP4_STRIP_FUSED` stays default 0.** Everything above is proven and the
+shipping image is byte-identical either way (it is a per-sample build, where the
+flag is compiled out entirely), so flipping the default is a decision about
+which build ships, not about whether fusion works — and that belongs to the hub
+along with the block-kernel default it sits behind.
+
 #### 2. Bit-exactness
 
 - **The fused cascade against the per-sample reference, inside the part.** The
