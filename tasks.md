@@ -1,3 +1,82 @@
+## HUB DISPATCH 2026-08-28 21:19Z — dsp codebase review — efficiency floors, correctness sweep, headroom proof   [status: 🟡 dispatched]   [model: fable]
+
+model: fable
+
+DSP CODEBASE REVIEW — full-depth, findings only (PW go, 2026-08-28
+evening). PW's goal is 32 channels in a single 21564 at 983.04 MHz and
+believes efficient coding gets there; this review serves that goal by
+being EXACT — no optimistic shading, no projection language. Every claim
+names file:line and is stated so the hub (and PW, who writes asm) can
+verify it by reading the tree. FINDINGS ONLY: no fixes land, no source
+changes, no flashing — desk work against the existing tree and the
+existing measured record (this week's calibrated numbers). Where a
+finding genuinely needs a new measurement to be actionable, mark it
+"needs measurement" for the fix session rather than arguing it.
+
+Deliverable: `review-dsp-20260828.md` at repo root, committed and
+pushed. Numbered findings D1..Dn, each with severity, evidence
+(file:line + the measured record), and effort size (S/M/L). Plus the
+two tables below.
+
+AXIS 1 — EFFICIENCY FLOORS, per node class (the core of the review):
+For every generated kernel class (GAIN, EQ, FILT, GATE, COMP, TUBE,
+DLY, FDR, RTG, meter, and the block-rate/driver sections): derive the
+INSTRUCTION FLOOR from the ruled numeric spec (Q4.28 interchange, 64-bit
+error feedback where ruled, single round/saturate per strip, the
+GAIN-fold amendment, multifunction packing and dual-fetch as the
+hardware allows), then COUNT the emitted code against it. Known entry
+point: `_bq_fx_cascade_N` emits ~40/stage against a packed floor
+estimated 18-22 (loads not fused into MAC lines) — do this analysis for
+EVERY class, and for the SIMD-paired forms state floors per CHANNEL.
+Table: class | emitted (cyc/sample, measured where the record has it) |
+floor | gap | dominant waste (named lines) | packed-replacement sketch |
+effort. Also flag scaffolding that repeats per sample but could move to
+block rate or control rate without violating a ruling.
+
+AXIS 2 — THE CLOSING SUM: floors + measured fabric/block-I/O + driver
+per-block work, at BLOCK=8, per chip, 983.04 and 786.432: how many
+channels fit AT FLOOR, scalar and paired. State the verdict in one of
+three forms ONLY: "32 fits at floor with margin X", "32 misses floor by
+X", or "32 fits only if numeric ruling Y is relaxed (state the trade)".
+The 32-in-one goal line is ~550 cycles/sample/strip at 983 after
+measured overheads — show the arithmetic, do not round in the goal's
+favour.
+
+AXIS 3 — CORRECTNESS SWEEP (the classes that bit this week):
+- Block-size literals: audit EVERY numeric literal in the generator and
+  kernels that encodes 32/31/8/BLOCK-derived values, INCLUDING code
+  behind guards where the byte-identical control is blind (the lcntr=31
+  class — six found today; find the rest or state there are none).
+- Graph wiring: every tap, pool reference, and guard in generated nodes
+  resolved FROM the graph, never assumed (the 21-meter wrong-source
+  class); pool ownership consistency on both chips.
+- The two recorded SHARC loop hazards: audit every DO-loop tail and
+  branch target in emitted code against them.
+AXIS 4 — GOLDEN-REFERENCE COVERAGE MAP: which numeric paths have
+fixed_ref goldens and which do not (the meter had NONE until
+yesterday); list every uncovered path as a finding.
+AXIS 5 — CONTRACT AUDIT: dsp.csv vs the mx26 masters — every named tap
+or parameter that lacks an id (the gate_gr/comp_gr class), every id
+that maps to nothing, every unit/scale mismatch.
+AXIS 6 — HEADROOM AND ROUNDING PROOF (PW ask, tonight): enumerate EVERY
+32-bit touchpoint in the audio path (strip exits, bus taps, delay-line
+stores, TDM output, meter taps); verify each SATURATES and cannot wrap;
+bound the bus-summing worst case (32 coherent channels = +30 dB — are
+the bus accumulators 64-bit end to end, saturating only at the final
+output round?); inventory every rounding site and confirm the
+single-round-per-strip claim holds everywhere. Any touchpoint that can
+wrap is a SEVERE finding.
+
+Rules: no fixes, no reordering of PW's rulings (Q4.28, error feedback,
+block-8 operating point, GAIN-fold amendment are the spec — floors are
+derived UNDER them, and relaxations may only be STATED as options with
+trades, never assumed); severity honest; push main when the document is
+committed. This is overnight desk work — take the time the depth needs.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 **PW RULING 2026-08-28 (~17:35): GAIN=1MAC NUMERIC AMENDMENT — the
 gain-into-biquad fold's arithmetic IS the new reference.** The fold
 (scale [b0, n1, n2] by g at control rate, x-history unscaled) deletes
