@@ -43,6 +43,28 @@
 #include "dsp_block.h"
 #define BLOCK_SIZE  DSP4_BLOCK_SIZE
 
+/* SPI poll cadence in the PER-SAMPLE loop: FOUR polls per pass at any
+ * block size. The mask was a bare 7, and the comment below reads "every
+ * 8th sample ... 6000 polls/s" -- a sentence that is only true at
+ * BLOCK=32. The per-sample full graph has never been real time, so what
+ * the host sees is polls per PASS, and a bare 7 gives four at BLOCK=32
+ * and only ONE at BLOCK=8. This keeps it at four either way, and at
+ * BLOCK=32 it still expands to 7, so that image is unchanged.
+ *
+ * WHAT THIS IS NOT: it is not the fix for the per-sample image failing
+ * to answer the diag link after CONFIG_COMMIT ("response out of step ...
+ * neither is the echo"). That was chased on 2026-08-28 and it is
+ * PRE-EXISTING: the exact bytes that shipped (chip1.ldr a2fcda81) do the
+ * same thing on the same bench, at BLOCK=32, with the meters removed.
+ * See tasks.md.
+ *
+ * The BLOCK-KERNEL gather loop below keeps a bare 7 deliberately: that
+ * path IS real time, so one poll per block is 48000/BLOCK = 6000 polls/s
+ * at any block size -- exactly the rate the cadence was designed for --
+ * and polling more often there costs cycles that every ceiling
+ * measurement is made of. */
+#define SPI_POLL_MASK  ((DSP4_BLOCK_SIZE / 4) - 1)
+
 .section/dm seg_dmda;
 
 .global _chip_id;
@@ -780,7 +802,7 @@ _start:
      * being checked, which is how it went unnoticed for four families. */
 #if !DSP4_POLL_ISR_ONLY
     r0 = dm(_sample_idx);
-    r1 = 7;
+    r1 = SPI_POLL_MASK;
     r0 = r0 AND r1;
     r1 = 0;
     comp(r0, r1);
@@ -933,7 +955,7 @@ _start:
      * being checked, which is how it went unnoticed for four families. */
 #if !DSP4_POLL_ISR_ONLY
     r0 = dm(_sample_idx);
-    r1 = 7;
+    r1 = SPI_POLL_MASK;
     r0 = r0 AND r1;
     r1 = 0;
     comp(r0, r1);

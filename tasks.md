@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-08-28 13:26Z — block-8 parameterization + in-kernel meter rebuild + re-baseline   [status: 🟡 dispatched]   [model: opus]
+## HUB DISPATCH 2026-08-28 13:26Z — block-8 parameterization + in-kernel meter rebuild + re-baseline   [status: 🟢 done — **BLOCK SIZE IS A BUILD PARAMETER AND 8 IS THE OPERATING POINT; THE METER IS REBUILT AND BIT-EXACT AGAINST A REFERENCE THAT DID NOT EXIST; THE BLOCK-8 CEILINGS ARE MEASURED AND THEY COST A FACTOR OF 2.2.** Parameterization is proven a PURE REFACTOR: with BLOCK set back to 32 the build reproduces the previous images byte for byte (chip1.ldr a2fcda81, chip2.ldr 30291013), so block size is the only variable. One source (dsp_codegen.BLOCK) feeds a generated dsp_block.h for the assembler and C, and a generated dsp4_block.py for the bench tools, so a verdict can never be scored against a block size the image was not built with; the real-time bar is now 48000/BLOCK with the thresholds as fractions of it instead of 1450/1500 literals. **THE METER: three instructions per sample, no memory traffic beyond the source read, and one fold per block in 64-bit Q8.56 state** — max, min, and an exact sum of squares in the MRF, folded into a one-pole RMS window and a peak-hold whose coefficients are generated FROM THE BLOCK RATE (which is exactly the third recorded defect: a constant derived for 1500 blocks/s applied per sample). **THE BAR WAS MET ON THE PART: ms64 EXACT, both pk64 words EXACT, float readback exact, negative control against the block-32 coefficients correctly rejected.** The peak is compared word-wise because it sits in a two-state limit cycle stepping every 167 us while a diag peek takes a millisecond — the first run of the test read lo from one phase and hi from the other and called it a mismatch, which was the test being wrong. Three of the four recorded defects are gone by construction; **the fourth (_mtr_gr never written) is NOT a numerics bug and cannot be fixed in this repo** — dsp.csv names gate_gr and comp_gr in the meter's taps but carries no ids for them, so it needs an mx26 contract change. **A FIFTH DEFECT FOUND: every meter read BLK_CHAIN_B unconditionally, and on chip 2 that is not its source** — FADER_PAN reads BLK_CHAIN_B and writes BLK_CHAIN_A, OUTPUT_TDM and COMPRESSOR never touch the pool, so twenty-one chip-2 meters were metering another node's signal. Sources are now resolved per meter from the graph. **THE RE-BASELINE, AND IT IS THE UNCOMFORTABLE PART: block 8 costs 2.2x the cycles per sample and the ceilings fall with it.** Measured, honest 6000/s rule, per chip: signal-present **5 at 786 and 6 at 983** (was 11 and 14 at block 32); silence **8 and 11** (was 15 and 20). Two independent methods agree on the strip to 0.17% (per-class profile 21,760 cycles/block, ceiling-slope 21,798) and the slope model predicts both signal ceilings (5.03 and 6.52). **THE CAUSE IS ONE NODE.** A two-point fit of the same code at both block sizes — today's block-32 control reproduces this morning's strip to 0.1%, which is what makes the fit legitimate — puts 15,856 cycles/block of the strip in BLOCK-INVARIANT work (40% of the strip at block 32, 73% at block 8), **and 13.5k of that 15.9k is COMP**, whose cost is block-invariant to within measurement error (13,484 at block 32, 13,870 at block 8). The fabric, by contrast, is 97.6% per-sample work and scales almost perfectly. **So the block-8 penalty is not diffuse and it is not the price of latency: it is the compressor's once-per-block section, and cutting it is worth more at block 8 than SIMD is.** **LATENCY WAS NOT MEASURED and the blocker is pre-existing**: the DSP does not route Pi input to a Pi-visible output under the boot config (routes are host-written matrix parameters), and dsp4_passthru.py's ALSA device names do not match this Pi. What IS measured is the block rate — FRAME_COUNT 5999–6000/s, so the block period is 166.7 us against 666.7 us — and the ring geometry and ping-pong depth are unchanged by construction, only the row length. The ~23 samples / 0.48 ms figure therefore stands as a derivation, not a measurement, and is labelled that way. **A SEPARATE FAILURE FOUND AND EXONERATED: the per-sample (shipping) image cannot answer the diag link after CONFIG_COMMIT — and this is PRE-EXISTING.** It presents as "response out of step ... neither is the echo". It reproduces at block 8, at block 16, at block 32, with the meters removed entirely, AND **on the exact bytes that shipped (a2fcda81) reflashed from a saved copy** — so it is not block size, not the meter, not this session. It needs its own dispatch. **Bench restored and verified: the new default block-8 images (chip1.ldr 45f5f2dd, chip2.ldr f6733b6d) flashed, both parts booted to BOOT_STAGE 5 with frames arriving, matrix-app started, all three MCUs verified 17:57:23 ON THE FIRST RESTART.** CPLD never touched. The previous shipping md5s a2fcda81/30291013 are superseded: block 8 changes the image by design.]   [model: opus]
 
 model: opus
 
@@ -52,7 +52,246 @@ Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
 no AI attribution in commits or any work product.
 
-**PW RULING 2026-08-28 (~13:00): WORK WITH BLOCK SIZE 8 FOR NOW.** Target
+### Outcome 2026-08-28 (third session) — block 8, the meter, and what block 8 costs
+
+#### 1. Block size is a build parameter, and the proof is a byte-identical control
+
+`tools/dsp/dsp_codegen.py::BLOCK` is the single source. The generator
+writes it to `src/dsp_block.h` (`DSP4_BLOCK_SIZE` / `_HALF` / `_SHIFT` /
+`_F32` / `_RATE`, plus the meter coefficients that are functions of the
+block rate) for the assembler and the C DMA configuration, and to
+`tools/pi/dsp4_block.py` for the bench tools. Both are generated, so a
+verdict cannot be scored against a block size the image was not built
+with, and the harness scripts stage both onto the bench beside the .ldr.
+
+What is now derived from that one number: every block-length hardware
+loop in the generated kernels and the two-samples-per-iteration fused
+kernels (BLOCK/2); slot and buffer arrays, the shared block pool and the
+64-bit bus accumulators; the DMA ring geometry (lane offsets and
+`region_words` in the generated `lane_config.c`, XCNT/YMOD and the
+descriptor word count in `dma_config.c`); the ramp plane (`FRAME_MS`, the
+profile frame tables, the per-BLOCK ramp step and its float scale, and
+spi_handler's block-frames-to-samples shift); the scope stimulus fills;
+the hand-maintained `src/lib` kernels; and the real-time bar in
+`dsp4_audio_verdict.py`.
+
+**THE CONTROL IS THE POINT.** With `BLOCK` set back to 32 the build
+reproduces the previous images byte for byte — **chip1.ldr a2fcda81,
+chip2.ldr 30291013** — so this is a pure refactor and block size is the
+only variable in everything below. It was re-run after every later
+generator change and held both times.
+
+At BLOCK=8 the block rate is confirmed end to end on the part:
+**FRAME_COUNT 5999–6000/s** against 1500 before, with the SPORT still
+running at 48 kHz. The DMA geometry change is right.
+
+#### 2. The meter, rebuilt
+
+Per sample, inside the node's own block kernel, touching no memory beyond
+the source read:
+
+```
+    r8 = max(r8, x);            running maximum
+    mrf = mrf + x * x (ssi);    exact sum of squares, 80-bit
+    r9 = min(r9, x);            running minimum
+```
+
+Peak comes from max and min rather than `abs(x)` because MAX and MIN are
+one ALU op each and an abs would be a third on top of a max; the sign
+fold happens once per block. Then one fold (`src/lib/meter_fx.asm`).
+
+**The state is 64-bit Q8.56 and that is not an indulgence.** Both
+one-poles have time constants of hundreds of blocks, so the per-block
+correction is ~1e-4 of the state; held in Q4.28 it rounds to zero below
+about -50 dBFS and the meter simply stops moving — a dead zone in the
+middle of the useful range. In Q8.56, which is what the multiplier
+produces anyway, the correction is one exact MAC and the smallest step is
+2^-56. The block mean costs no divide: BLOCK is a power of two, so it is
+part of the same shift that takes Q8.56 to Q4.28.
+
+#### 3. The bar: golden reference, not A/B
+
+`fixed_ref.meter_block` is new — the meter had no reference model at all,
+which is how four defects survived. `tools/pi/dsp4_mtr_verify.py` drives
+the DSP4_PROFILE_SIGNAL square wave, which makes every block identical
+and the recurrence's limit set small and exact, and compares the
+**fixed-point state**:
+
+| | read on the part | verdict |
+|---|---|---|
+| `ms64` | 18014398509513833 | **EXACT** |
+| `pk_lo` | 0x00000000 / 0x38000000 | **EXACT** |
+| `pk_hi` | 0x007FFBE7 / 0x00800000 | **EXACT** |
+| peak / rms float | 0.5 / 0.5 | relative error 0 / 0 |
+| negative control (block-32 coefficients) | | **correctly rejected** |
+
+Every word is exactly an integer the reference produces from a zero state
+under the same stimulus. **The peak is compared word-wise, and the reason
+is worth keeping:** it sits in a two-state limit cycle that steps once per
+block (167 us) while a diag peek takes about a millisecond, so the two
+halves of `pk64` are necessarily read in different phases. The first run
+of the test read `lo` from the decay state and `hi` from the latch state
+and reported a mismatch — the test was wrong, not the meter, and a test
+that cannot tell those apart is not testing anything.
+
+#### 4. The four defects, and a fifth
+
+1. **Q4.28 read as an IEEE float** — gone. The path is native Q4.28 and
+   the only float is the readback convert.
+2. **RMS never advanced** (the new-peak branch returned first) — gone.
+   There are no branches in the per-sample line at all.
+3. **Decay 32x fast** — gone by construction. `DSP4_MTR_ALPHA_Q` and
+   `DSP4_MTR_BETA_Q` are generated from the BLOCK RATE, so they move when
+   the block moves. That defect could only exist because the rate was
+   written into the constant by hand.
+4. **`_mtr_gr` never written** — **NOT fixed, and it is not a numerics
+   bug.** The meter's `taps` parameter names `gate_gr` and `comp_gr` but
+   dsp.csv carries no ids for them, so there is nothing to read without
+   inventing a naming convention between MTR_nn and GATE_nn. **That is an
+   mx26 contract change, not a spoke fix.**
+
+**FIFTH, found here: the source tap was wrong on chip 2.** Every meter
+read `BLK_CHAIN_B` unconditionally. On chip 1 that is GAIN's output and
+correct; on chip 2 FADER_PAN *reads* BLK_CHAIN_B and writes BLK_CHAIN_A,
+and OUTPUT_TDM and COMPRESSOR never touch the pool at all — so **21
+chip-2 meters were metering another node's signal.** Sources are now
+resolved per meter from the graph (GAIN → BLK_TAP_TRIM, FADER_PAN →
+BLK_CHAIN_A) and a source that publishes no block falls back to its
+scalar `_buf_` — one sample per block, correctly converted, with the
+limitation stated in the generated node itself. Fixing those 21 properly
+means block-converting OUTPUT_TDM and COMPRESSOR on chip 2.
+
+#### 5. What the meter rebuild is worth, honestly
+
+Full graph, signal present, block 8: **721,205 cycles/block with the new
+meter against 722,354 with the old — 1,149 cycles/block, 0.16%.**
+
+The ruling projected ~21k. That projection was a BLOCK-32 number and both
+sides of it scale with the block: the old meter's per-sample cost fell by
+4x when the block did, and the new meter's per-block fold now runs 4x as
+often per sample. **At block 8 the rebuild is close to cost-neutral.** Its
+value here is correctness — four defects, a fifth found, and a reference
+model that did not exist — plus un-gating GAIN = 1 MAC. It is not a
+capacity lever at this block size, and it should not be quoted as one.
+
+#### 6. The re-baseline, and the number PW needs
+
+Measured on the part, honest full-rate rule (6000 blocks/s), channels per
+chip, `DSP4_STRIP_FUSED=0`:
+
+| | 786.432 MHz | 983.04 MHz |
+|---|---|---|
+| signal present, **block 8** | **5** | **6** |
+| signal present, block 32 | 11 | 14 |
+| silence, **block 8** | **8** | **11** |
+| silence, block 32 | 15 | 20 |
+
+Every point witnessed: gate OPEN and compressor ACTIVE on all N strips
+for the signal rows, gate SHUT and comp unity for the silence rows, and
+strip 1's GAIN coefficient at 1.0f. 6 at 983 reads 5999/s and 7 reads
+5645/s; 5 at 786 reads 5999/s and 6 reads 5163/s. The 786 silence row is
+called at 8 because 9 reads 5802/s — `audio_verdict.py` labels that
+REAL_TIME because it clears 97 %, and by the honest rule it is dropping
+blocks.
+
+**Two independent methods agree on the strip to 0.17 %**: the per-class
+profile gives 21,760 cycles/block and the 983 sweep's pass-rate slope
+gives 21,798, and they share no arithmetic. The slope model predicts both
+signal ceilings (5.03 and 6.52).
+
+#### 7. Where the 2.2x goes, and it is one node
+
+Per class, signal present, cycles/block (the full table is in
+`dsp4-function-costs.csv`, and every figure there now carries its block
+size):
+
+| class | block 32 | block 8 | per sample, 32 → 8 |
+|---|---|---|---|
+| GAIN | 566 | 189 | 17.7 → 23.6 |
+| FILT | 3,946 | 1,089 | 123.3 → 136.1 |
+| EQ | 7,934 | 2,126 | 247.9 → 265.8 |
+| GATE | 7,946 | 2,078 | 248.3 → 259.8 |
+| **COMP** | **13,635** | **13,870** | **426.1 → 1,733.8** |
+| RTG | 2,263 | 1,872 | 70.7 → 234.1 |
+| **strip** | **39,470** | **21,760** | **1,233.4 → 2,719.9** |
+
+**Today's block-32 control reproduces this morning's strip to 0.1 %**
+(39,470 against 39,417), which is what makes a two-point fit of the same
+code legitimate. That fit puts **15,856 cycles/block of the strip in
+BLOCK-INVARIANT work** — 40 % of the strip at block 32, **73 % at block
+8** — and **13.5k of those 15.9k are COMP alone**, whose cost is
+block-invariant to within measurement error (13,484 at block 32, 13,870
+at block 8, 2.9 % apart, measured on the same instrument the same day).
+
+The fabric is the opposite: fitted at 1,908 cycles/block invariant plus
+2,466 cycles/sample, i.e. **97.6 % per-sample work**, and it scales almost
+perfectly with the block (80,824 → 21,635 at 983).
+
+**So the block-8 capacity loss is not the diffuse price of a shorter
+block. It is the compressor's once-per-block section, and at block 8 that
+one section is worth more than SIMD.** `DSP4_COMP_NOCVT=1` drops COMP from
+13,870 to 5,228 cycles/block, which bounds the parameter conversion at
+≤8.6k — but NOCVT also leaves the sample path running on unconverted
+parameters and therefore cheapens it too, so treat 8.6k as an upper bound
+on the conversion and a lower bound on what is recoverable. **Isolating
+and cutting it is the next rung, ahead of anything else on the ledger.**
+
+One consequence for the ledger: the SIMD pairing figures (GATE 106.8,
+COMP 204.2 cycles/sample) were measured at block 32 on the SAMPLE path.
+At block 8 those classes are dominated by block-invariant work, so
+pairing buys much less. They are not carried forward.
+
+#### 8. Latency: NOT measured, and the blocker is not new
+
+The block PERIOD is measured — FRAME_COUNT 5999–6000/s, so 166.7 us
+against 666.7 us — and the ring geometry, the ping-pong depth and the
+core sequence are unchanged by construction; only the row length moved.
+The ~23 samples / 0.48 ms figure therefore stands as a **derivation from
+the measured 93-at-block-32 pipeline, not a measurement**, and is
+labelled that way everywhere.
+
+Two things block the end-to-end measurement, and the first is recorded
+from an earlier session: **the DSP does not route Pi input to a
+Pi-visible output under the boot config** — routes are host-written matrix
+parameters that nothing in boot config sets — and `dsp4_passthru.py`'s
+ALSA device names do not match this Pi (`hw:dsp4pcm,0/1`). Attempted on a
+real-time block-8 build and both bit. **Reported rather than worked
+around: it needs the routing work, not this session.**
+
+#### 9. A separate failure, found and then exonerated
+
+**The per-sample (shipping) image cannot answer the diag link after
+CONFIG_COMMIT.** It presents as `response out of step ... neither is the
+echo`, with the core running underneath.
+
+It looked like block-8 fallout and it is not. It reproduces at block 8,
+at block 16, at **block 32**, with the meters removed entirely
+(`DSP4_MTR_OFF=1`), and — the control that settles it — **on the exact
+bytes that shipped, `chip1.ldr a2fcda81`, reflashed from a saved copy.**
+So it is not block size, not the meter, not this session. It is
+pre-existing and it needs its own dispatch.
+
+The one change made while chasing it is kept because it is right on its
+own terms: the per-sample loop's SPI poll mask is now
+`(DSP4_BLOCK_SIZE/4)-1`, four polls per pass at any block size, where a
+bare 7 gave four at block 32 and one at block 8. At block 32 it still
+expands to 7. It did **not** fix the failure above and `main.asm` says so.
+
+#### 10. Bench
+
+Default block-8 images **chip1.ldr 45f5f2dd, chip2.ldr f6733b6d** built,
+flashed and verified: both parts boot to BOOT_STAGE 5 with frames
+arriving, matrix-app started, **all three MCUs verified 17:57:23 on the
+FIRST restart**. CPLD never touched. The previous shipping md5s
+a2fcda81/30291013 are superseded — block 8 changes the image by design,
+and the byte-identical control above is what shows the change is only the
+block size plus the meter.
+
+One instrument quirk logged again: `dsp4_diag.py --chip 2` sometimes
+answers `CHIP_ID 1`. Both parts were confirmed alive by their own frame
+counts.
+
+**PW RULING 2026-08-28 (~13:00): WORK WITH BLOCK SIZE 8 FOR NOW.** [EXECUTED 2026-08-28 — see the outcome above. Block size is a build parameter (dsp_codegen.BLOCK -> dsp_block.h + dsp4_block.py), proven a pure refactor by a byte-identical block-32 control, and the block-8 re-baseline is measured. The predicted latency is NOT measured: the route the measurement needs does not exist yet.] Target
 digital latency ~23 samples ≈ 0.48 ms (from the measured 93-at-block-32
 pipeline ratio), leaving room under 1 ms for converter group delay. This
 supersedes the "block stays 32" line in the 08-24 fusion dispatch (that
@@ -72,7 +311,7 @@ lever attribution stays clean against the 32-baseline ledger):
   the re-baseline lands; quote block size with every figure from now on.
 
 **PW RULING 2026-08-28 (~13:15): THE METER RULING IS MADE — REBUILD
-IN-KERNEL** (retire and naive-decimate are off the table). Design agreed
+IN-KERNEL** [EXECUTED 2026-08-28 — rebuilt, bit-exact against a new fixed_ref.meter_block with a negative control, three of the four defects fixed by construction and a fifth found. TWO PARTS NOT DONE and both are recorded above: _mtr_gr needs an mx26 contract change, and GAIN = 1 MAC is still gated — not on the meter any more, but on the gain-into-biquad fold, which is derived but unimplemented and is NOT bit-exact (it deletes a rounding), so it needs a numeric-spec amendment. The ~21k recovery was a block-32 figure; at block 8 the rebuild measures 1,149 cycles/block, near cost-neutral.] (retire and naive-decimate are off the table). Design agreed
 with the hub: per-sample multifunction line inside the fused kernel —
 multiplier accumulates x² into the RMS state while the ALU does peak MAX
 on the in-register post-trim value (~1 cycle/sample/channel, zero memory

@@ -1,54 +1,66 @@
 # DSP4 per-function cost model - measured on the part, chip 1, 2026-08-28.
-# Supersedes the 2026-08-24 table, which was taken at 491.52 MHz, before the
-# crosspoint fold, the active-crosspoint list, the fabric move out of L2 and
-# strip fusion, and whose GATE/COMP rows were silence readings.
+#
+# EVERY FIGURE IN THIS FILE CARRIES ITS BLOCK SIZE. The 2026-08-28 PW
+# ruling made 8 the working operating point; the file that this replaces
+# was entirely block-32 and did not say so, because until today nothing
+# in the tree could be built at another block size.
 #
 # METHOD: sigprofile.sh - TCOUNT/_proc_cyc, DSP4_NODE_LIMIT prefix cut,
-# DEC=32, DSP4_BLOCK_KERNELS=1, DSP4_PROFILE_SIGNAL=1. A class costs the
-# difference between two consecutive limits. Every point is witnessed
-# (strip 1's GAIN coefficient must read 1.0f) because roughly one boot in
-# three lands the CFG_COMMIT header word there and then reports the
-# SILENCE cost with everything else reading clean.
+# DEC=32, DSP4_BLOCK_KERNELS=1, DSP4_STRIP_FUSED=0, DSP4_PROFILE_SIGNAL=1.
+# A class costs the difference between two consecutive limits. Every point
+# is witnessed (strip 1's GAIN coefficient must read 1.0f) because roughly
+# one boot in three lands the CFG_COMMIT header word there and then reports
+# the SILENCE cost with everything else reading clean.
 #
 # SIGNAL-PRESENT throughout: a full-rate +/-0.5 (-6 dBFS) square wave in
 # every retained strip's IN kernel. Silence measures GATE and COMP on
 # their cheap branch and understates a strip by ~29%.
 #
-# baseline = HEAD before strip fusion; fused = DSP4_STRIP_FUSED=1.
-# GAIN, FILT, EQ and FADER_PAN are the classes fusion touches. The other
-# six are untouched: their columns differ by code-layout scatter only and
-# net +60 cycles/block over the whole strip, which is the internal check
-# that the -4,255 total really is the four touched classes (-4,315).
+# THE INSTRUMENT IS CALIBRATED. Today's BLOCK=32 control, taken on today's
+# tree with the same script, puts the strip at 39,470 cycles/block against
+# the 39,417 the 08-28 morning session recorded - 0.1% apart. So the
+# block-8 column below is comparable to the block-32 column, and the two
+# together are a two-point fit of the same code at two block sizes.
 #
-# Budget: 786.432 MHz / 1500 blocks/s = 524,288 cycles/block;
-#         983.04  MHz / 1500 blocks/s = 655,360 cycles/block. 32 samples.
-# SIMD PAIRING (2026-08-28, second session). paired_cycles_per_sample is
-# per CHANNEL with the pair's gather and scatter INSIDE the measured span,
-# from the self-test in src/lib/dyn_selftest.asm (dynst.sh) -- a separate
-# instrument from sigprofile.sh, timed against the 1 kHz diag tick. Its
-# scalar arm reproduces this table's fused column to within 1-3 %, which is
-# what makes the paired column comparable: COMP 412.5 vs 416.6, GATE 247.5
-# vs 252.1, 4-stage cascade 165.0 vs EQ's 168.5, 2-stage 82.5 vs FILT's
-# 84.1. Blank = NOT MEASURED, and no projection is carried in this file.
-function,baseline_cycles_per_sample,fused_cycles_per_sample,fused_cycles_block_per_ch,touched_by_fusion,simd_pairable,paired_cycles_per_sample,notes
-GAIN,17.7,17.8,570,yes,yes,,one MAC; the other 16 instructions are the round/saturate and the two block stores its consumers need; pairable; not attempted: 1.6 % of the strip and already ~1 instruction/cycle
-FILT,123.3,84.1,2692,yes,yes,,HPF+LPF; 2 biquad stages; pairable; NOT MEASURED on the fused cascade: _bq_fx_cascade_simd hangs the part (localised 2026-08-28); the 2.39x on record was measured against the PRE-fusion cascade and must not be carried forward
-EQ,247.9,168.5,5391,yes,yes,,4-band parametric; 4 biquad stages; pairable; NOT MEASURED on the fused cascade: see FILT
-GATE,248.3,252.1,8068,no,yes,106.8,envelope + log2 + hold + ramp; PAIRED AND BIT-EXACT on the part: 247.5 -> 97.5..105.0 measured; 2.36-2.54x; column is the fused 252.1 at the conservative 2.36x
-COMP,426.1,416.6,13332,no,yes,204.2,envelope + log2/exp2 + knee/slope + parallel blend; PAIRED AND BIT-EXACT on the part: 412.5 -> 195.0..202.5 measured; 2.04-2.12x; column is the fused 416.6 at the conservative 2.04x
-TUBE,~0,~8,267,no,yes,,MEASURED BYPASSED (_tube_on defaults 0); both readings are inside the scatter; active cost still not measured; pairable in principle; bypassed; so nothing to pair yet
-DLY,62.0,76.8,2456,no,no,,delay line; per-strip addressing so SIMD cannot pair it; NOT pairable: per-strip; data-dependent addressing and the DAGs are shared
-FDR,37.3,21.0,672,yes,yes,,fader; mute folded into the coefficient; pan legs are ROUTING's crosspoints; pairable; not attempted: 1.9 % of the strip
-RTG,70.7,53.5,1713,no,no,,bus routing over the active-crosspoint list; NOT pairable: same reason as DLY
+# Budget: 786.432 MHz / 6000 blocks/s = 131,072 cycles/block;
+#         983.04  MHz / 6000 blocks/s = 163,840 cycles/block.  8 samples.
+# (At block 32 those were 524,288 and 655,360 over 1500 blocks/s.)
+#
+# THE HEADLINE OF THE BLOCK-8 RE-BASELINE: per SAMPLE the strip costs
+# 2,719.9 cycles at block 8 against 1,233.4 at block 32 - 2.21x - and
+# the ceilings fall by the same factor. Block-invariant work does not
+# shrink when the block does, and 15,856 cycles/block of the strip is
+# block-invariant: 40% of it at block 32, 73% at block 8.
+# 85% OF THAT INVARIANT IS COMP ALONE.
+function,blk32_cycles_block,blk8_cycles_block,blk32_cycles_sample,blk8_cycles_sample,concentration,notes
+GAIN,566,189,17.7,23.6,1.33,one MAC; the other 16 instructions are the round/saturate and the two block stores its consumers need. The METER is no longer one of those consumers (2026-08-28) but the router's post-trim pickoff still is
+FILT,3946,1089,123.3,136.1,1.10,HPF+LPF; 2 biquad stages; almost all per-sample work
+EQ,7934,2126,247.9,265.8,1.07,4-band parametric; 4 biquad stages; almost all per-sample work
+GATE,7946,2078,248.3,259.8,1.05,envelope + log2 + hold + ramp; almost all per-sample work
+COMP,13635,13870,426.1,1733.8,4.07,**THE BLOCK-8 PROBLEM.** 13.5k cycles/block at BOTH block sizes - its cost is block-INVARIANT to within measurement error (13484 measured at block 32 on today's tree; 13870 at block 8; 2.9% apart). DSP4_COMP_NOCVT=1 drops it to 5228 at block 8, so the once-per-block parameter conversion is up to 8.6k cycles - but NOCVT also leaves the sample path on unconverted parameters and therefore cheapens it too, so 8.6k is an UPPER bound on the conversion and a lower bound on what is recoverable
+TUBE,~0,~0,~0,~0,,MEASURED BYPASSED (_tube_on defaults 0). At block 8 the consecutive difference reads -379 cycles/block: that is scatter, not a negative cost. ACTIVE cost still not measured - open since 08-24
+DLY,1985,895,62.0,111.9,1.80,delay line. TUBE's scatter lands on this difference; read TUBE+DLY together as 516 cycles/block at block 8
+FDR,1195,18,37.3,2.2,,BELOW THE NOISE FLOOR at block 8: 18 cycles/block against ~400 of run-to-run scatter. Not a measurement; do not quote it
+RTG,2263,1872,70.7,234.1,3.31,bus routing over the active-crosspoint list; substantially block-invariant, second only to COMP
 # --- per-channel total ---
-STRIP_TOTAL,1231.8,1098.8,35162,,,741.1,GAIN..RTG inclusive; -10.8%. PAIRED COLUMN IS A SUM WITH TWO CLASSES PAIRED AND SEVEN UNCHANGED -- GATE and COMP at their measured conservative factors; everything else at its fused cost. It is arithmetic on measured parts; not a measured strip: NO strip runs paired yet (the graph is not wired for pairing)
+STRIP_TOTAL,39470,21760,1233.4,2719.9,2.21,GAIN..RTG inclusive. Two-point fit of the same code: 15856 cycles/block block-INVARIANT + 737.9 cycles/sample. The invariant share is 40% at block 32 and 73% at block 8
 # --- fixed overhead, not per channel (from the ceiling-slope model) ---
-FIXED_786,,,77912,,,,block I/O + fabric at 786.432 MHz
-FIXED_983,,,80824,,,,block I/O + fabric at 983.04 MHz; part of it is SYSCLK-clocked; hence not equal to FIXED_786
-# --- measured ceilings, channels per chip, signal present, honest 1500/s rule ---
-CEILING_786,11,12,,,,,baseline 11 measured 2026-08-27; fused 12 MEASURED (predicted 12.70); no paired ceiling measured - the graph is not wired for pairing
-CEILING_983,14,16,,,,,baseline 14 measured 2026-08-27; fused 16 MEASURED (predicted 16.34) - the number a two-chip D32 split needs; no paired ceiling measured
-# --- SIMD pairing, projected NOT measured (no strip is wired for pairing) ---
-# Scaling the measured fused ceilings by 1098.8/741.1 gives 18.8 at 786 and
-# 24.2 at 983 with the DYNAMICS ALONE paired. Both are projections and are
-# recorded here as such; the measured ceiling rows above are unchanged.
+FIXED_786,77912,21532,,,,block I/O + fabric at 786.432 MHz
+FIXED_983,80824,21635,,,,block I/O + fabric at 983.04 MHz. Two-point fit: 1908 cycles/block invariant + 2466 cycles/sample - the fabric is 97.6% per-sample work and scales almost perfectly with the block. The block-8 capacity loss is ENTIRELY in the strip, and inside the strip it is COMP
+# --- MEASURED ceilings, channels per chip, honest full-rate rule ---
+# (6000 blocks/s at block 8; the block-32 column was judged at 1500/s)
+CEILING_786_SIGNAL,11,5,,,,block 32 measured 2026-08-27; block 8 MEASURED today - 5 = 5999/s, 6 = 5163/s over. Slope model predicts 5.03
+CEILING_983_SIGNAL,14,6,,,,block 32 measured 2026-08-27; block 8 MEASURED today - 6 = 5999/s, 7 = 5645/s over. Slope model predicts 6.52
+CEILING_786_SILENCE,15,8,,,,block 8 MEASURED - 8 = 5999/s; 9 = 5802/s, which the tool labels REAL_TIME because it clears 97% but which is dropping blocks by the honest rule
+CEILING_983_SILENCE,20,11,,,,block 8 MEASURED - 11 = 6000/s exactly; 12 = 5667/s over
+# --- two independent methods agree on the strip ---
+# The 983 signal sweep's pass-rate slope gives 21,798 cycles per strip and
+# a fixed overhead of 21,635; the per-class profile gives 21,760 for the
+# same strip. 0.17% apart, and they share no arithmetic.
+#
+# --- what is NOT in this file ---
+# SIMD pairing: the 2026-08-28 paired figures (GATE 106.8, COMP 204.2
+# cycles/sample) were measured at BLOCK 32 and are NOT carried forward.
+# They were per-sample factors on classes whose block-8 cost is dominated
+# by block-invariant work, so pairing the sample path buys much less at
+# block 8 than it did at block 32. Re-measure before quoting.

@@ -4019,7 +4019,10 @@ def gen_meter_fixed(node):
         .extern _sample_idx;
         .global _{nid}_process;
         _{nid}_process:
-        #if DSP4_BLOCK_KERNELS
+        #if DSP4_MTR_OFF
+            /* measurement only: what the meter costs, by removing it */
+            rts;
+        #elif DSP4_BLOCK_KERNELS
             /* Per block. Three instructions per sample, no memory traffic
              * beyond the source read, then one fold.
              *

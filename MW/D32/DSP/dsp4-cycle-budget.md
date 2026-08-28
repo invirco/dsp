@@ -2,6 +2,35 @@
 
 provenance: AI-drafted 2026-08-23 — prose may carry a statistical watermark; rewrite by hand before publication, then remove this header.
 
+## BLOCK SIZE (2026-08-28) — read this before any figure below
+
+The working operating point is **block 8**, not 32 (PW ruling 2026-08-28).
+**Every capacity figure in this document that does not say otherwise is a
+BLOCK-32 figure** and is superseded by `dsp4-function-costs.csv`, which
+carries the block size on every row.
+
+The measured block-8 ceilings, honest 6000 blocks/s rule, channels per
+chip: **signal present 5 at 786.432 MHz and 6 at 983.04 MHz** (block 32:
+11 and 14); **silence 8 and 11** (block 32: 15 and 20).
+
+The strip costs **2,719.9 cycles/sample at block 8 against 1,233.4 at
+block 32** — 2.21x — because block-invariant work does not shrink when
+the block does. A two-point fit of the same code puts 15,856 cycles/block
+of the strip in block-invariant work (40 % of the strip at block 32,
+73 % at block 8), and **13.5k of that 15.9k is COMP alone**. The fabric,
+by contrast, is 97.6 % per-sample work and scales almost perfectly.
+
+So the block-8 capacity cost is not the diffuse price of a shorter block:
+it is the compressor's once-per-block section, and cutting it is worth
+more at block 8 than SIMD is.
+
+Digital latency at block 8 is **derived, not measured**: the block period
+is measured (166.7 us, from FRAME_COUNT 5999-6000/s) and the ring
+geometry and pipeline depth are unchanged, so the measured
+93-samples-at-block-32 pipeline scales to ~23 samples = 0.48 ms. The
+end-to-end measurement is blocked on the Pi-input-to-Pi-output route,
+which the boot config does not set.
+
 ## The 0.9 V rail at 983.04 — measured, in spec, and the margin is thin
 
 PW measured **0.87 V at the card under load** at 983.04 MHz. The datasheet

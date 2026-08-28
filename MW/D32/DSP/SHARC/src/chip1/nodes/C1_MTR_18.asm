@@ -39,7 +39,10 @@
 .extern _sample_idx;
 .global _C1_MTR_18_process;
 _C1_MTR_18_process:
-#if DSP4_BLOCK_KERNELS
+#if DSP4_MTR_OFF
+    /* measurement only: what the meter costs, by removing it */
+    rts;
+#elif DSP4_BLOCK_KERNELS
     /* Per block. Three instructions per sample, no memory traffic
      * beyond the source read, then one fold.
      *
