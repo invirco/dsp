@@ -93,7 +93,7 @@ _COMP_BLK_BODY = """
             rts;
 
         .ckb_copy_{nid}:
-            lcntr = 32, do .ckb_cp_{nid} until lce;
+            lcntr = DSP4_BLOCK_SIZE, do .ckb_cp_{nid} until lce;
                 r0 = dm(i3, 1);
             .ckb_cp_{nid}: dm(i4, 1) = r0;
             rts;
@@ -132,7 +132,7 @@ _TUBE_BLK_BODY = """
             f3 = f3 * f4;
             r9 = fix f3;                          /* sat_q, hoisted */
 
-            lcntr = 32, do .tkb_lp_{nid} until lce;
+            lcntr = DSP4_BLOCK_SIZE, do .tkb_lp_{nid} until lce;
                 r8 = dm(i3, 1);
                 mrf = r8 * r8 (ssi);
                 call _mrf_rns28;
@@ -150,13 +150,13 @@ _TUBE_BLK_BODY = """
             rts;
 
         .tkb_copy_{nid}:
-            lcntr = 32, do .tkb_cp_{nid} until lce;
+            lcntr = DSP4_BLOCK_SIZE, do .tkb_cp_{nid} until lce;
                 r0 = dm(i3, 1);
             .tkb_cp_{nid}: dm(i4, 1) = r0;
             rts;
 
         .tkb_ref_{nid}:
-            lcntr = 32, do .tkb_rl_{nid} until lce;
+            lcntr = DSP4_BLOCK_SIZE, do .tkb_rl_{nid} until lce;
                 r0 = dm(i3, 1);
                 dm(_buf_{inp}) = r0;
                 call _{nid}_process_sample;
@@ -202,7 +202,7 @@ _DLY_BLK_BODY = """
             i4 = BLK_CHAIN_B;
             i5 = BLK_TAP_PREFDR;
 
-            lcntr = 32, do .dkb_lp_{nid} until lce;
+            lcntr = DSP4_BLOCK_SIZE, do .dkb_lp_{nid} until lce;
                 r0 = dm(i3, 1);
                 i0 = r7;
                 m0 = r1;
@@ -328,7 +328,7 @@ _GATE_BLK_BODY = """
             r14 = dm(_gate_hold_count_{nid});
             r15 = dm(_gate_hold_{nid});
 
-            lcntr = 32, do .gkb_lp_{nid} until lce;
+            lcntr = DSP4_BLOCK_SIZE, do .gkb_lp_{nid} until lce;
                 r13 = dm(i3, 1);
                 r0 = abs r13;
                 r1 = r10;
@@ -376,7 +376,7 @@ _GATE_BLK_BODY = """
 
         .gkb_copy_{nid}:
             /* bypassed: the per-sample body just passes x through */
-            lcntr = 32, do .gkb_cp_{nid} until lce;
+            lcntr = DSP4_BLOCK_SIZE, do .gkb_cp_{nid} until lce;
                 r0 = dm(i3, 1);
             .gkb_cp_{nid}: dm(i4, 1) = r0;
             rts;
@@ -390,7 +390,7 @@ _GATE_BLK_BODY = """
             dm(_gate_saved_idx_{nid}) = r5;
             r5 = 0;
             dm(_sample_idx) = r5;
-            lcntr = 32, do .gkb_rl_{nid} until lce;
+            lcntr = DSP4_BLOCK_SIZE, do .gkb_rl_{nid} until lce;
                 r0 = dm(i3, 1);
                 dm(_buf_{inp}) = r0;
                 call _{nid}_process_sample;
@@ -425,7 +425,7 @@ _EQ_BLK_BODY = """
             i3 = BLK_CHAIN_A;
             i4 = BLK_CHAIN_B;
             i5 = BLK_TAP_EQ;
-            lcntr = 32, do .ekb_xl_{nid} until lce;
+            lcntr = DSP4_BLOCK_SIZE, do .ekb_xl_{nid} until lce;
                 r0 = dm(i3, 1);
                 dm(_buf_{inp}) = r0;
                 call _{nid}_process_sample;
@@ -461,7 +461,7 @@ _EQ_BLK_BODY = """
             /* the post-EQ tap the router picks from */
             i3 = BLK_CHAIN_B;
             i4 = BLK_TAP_EQ;
-            lcntr = 32, do .ekb_tp_{nid} until lce;
+            lcntr = DSP4_BLOCK_SIZE, do .ekb_tp_{nid} until lce;
                 r0 = dm(i3, 1);
             .ekb_tp_{nid}: dm(i4, 1) = r0;
             rts;
@@ -490,7 +490,7 @@ _FILT_BLK_BODY = """
             l4 = 0;
             i3 = BLK_CHAIN_B;
             i4 = BLK_CHAIN_A;
-            lcntr = 32, do .fkb_xl_{nid} until lce;
+            lcntr = DSP4_BLOCK_SIZE, do .fkb_xl_{nid} until lce;
                 r0 = dm(i3, 1);
                 dm(_buf_{inp}) = r0;
                 call _{nid}_process_sample;
@@ -565,10 +565,44 @@ import os
 from textwrap import dedent
 
 # ===========================================================================
+# BLOCK SIZE — the single source of truth for the whole firmware
+# ===========================================================================
+# Every loop count, DMA ring geometry, slot-array size, per-block ramp step
+# and verdict rate in this tree is derived from BLOCK. Nothing downstream
+# hardcodes a sample count: the generator emits the DSP4_BLOCK_* macros into
+# src/dsp_block.h and hand-maintained sources include that header.
+#
+# 2026-08-28 (PW ruling): 8 is the working operating point. The block-64
+# veto stands; 32 was the operating point until today and every figure in
+# the ledger taken before this change is a BLOCK-32 figure.
+#
+# Latency: the digital path is a small multiple of the block, so halving
+# the block halves the path. At 32 the measured pipeline was 93 samples;
+# the same ratio at 8 predicts ~23 samples = 0.48 ms at 48 kHz.
+#
+# BLOCK must be a power of two: spi_handler converts block-rate ramp frame
+# counts to samples with a shift, and the DMA 2D geometry wants the ring
+# halves aligned.
+BLOCK = 8
+
+BLOCK_SHIFT = BLOCK.bit_length() - 1
+assert BLOCK == (1 << BLOCK_SHIFT) and BLOCK >= 2, \
+    f'BLOCK must be a power of two >= 2, got {BLOCK}'
+BLOCK_HALF = BLOCK // 2
+BLOCKS_PER_SEC = 48000.0 / BLOCK
+
+
+def _f32hex(x):
+    """IEEE-754 single-precision bit pattern of x, as an ASM hex literal."""
+    import struct
+    return '0x%08X' % struct.unpack('<I', struct.pack('<f', float(x)))[0]
+
+
+# ===========================================================================
 # Ramp profile definitions (from dsp-def.md §3b)
 # ===========================================================================
-# Frame period = 32 samples / 48000 Hz = 0.6667 ms
-FRAME_MS = 32.0 / 48000.0 * 1000.0  # 0.6667 ms
+# Frame period = BLOCK samples / 48000 Hz
+FRAME_MS = BLOCK / 48000.0 * 1000.0
 
 RAMP_PROFILES = {
     'InstantCtl': {
@@ -647,6 +681,7 @@ HEADER = """\
  *
  * AUTO-GENERATED by tools/dsp/dsp_codegen.py — do not edit directly.
  *----------------------------------------------------------------------*/
+#include "dsp_block.h"
 """
 
 
@@ -687,7 +722,7 @@ def gen_input_tdm(node):
     _strip_in = bool(_re.match(r'^C\d+_IN_\d+$', node['id']))
     blk_out_ptr = 'BLK_CHAIN_A' if _strip_in else f"_buf_{node['id']}"
     blk_out_decl = ('.var _buf_' + node['id'] + ';') if _strip_in \
-                   else ('.var _buf_' + node['id'] + '[32];')
+                   else ('.var _buf_' + node['id'] + '[DSP4_BLOCK_SIZE];')
 
     p = node['params']
     return dedent(f"""\
@@ -786,7 +821,7 @@ def gen_input_tdm(node):
              * 0x10000000 (open) and _comp_gain ~ 0x04C7xxxx (-10.5 dB of
              * gain reduction) -- both only reachable through log2/exp2,
              * so reading them proves the expensive path ran. */
-            r5 = 32;
+            r5 = DSP4_BLOCK_SIZE;
             r7 = 0x08000000;              /* +0.5 Q4.28 = -6 dBFS */
             lcntr = r5; do .in_sig_{node['id']} until lce;
                 r2 = dm(i0, m0);          /* production read, still paid */
@@ -797,7 +832,7 @@ def gen_input_tdm(node):
                 r7 = -r7;                 /* flip sign, |x| unchanged */
             rts;
         #endif
-            r5 = 32;
+            r5 = DSP4_BLOCK_SIZE;
             lcntr = r5; do .in_lp_{node['id']} until lce;
                 r2 = dm(i0, m0);
                 r2 = ashift r2 by -3;
@@ -3660,7 +3695,7 @@ def gen_interchip_send(node):
 
         .section/dm seg_dmda;
         #if DSP4_BLOCK_KERNELS
-        .var _tx_slot_{node['id']}[32];
+        .var _tx_slot_{node['id']}[DSP4_BLOCK_SIZE];
         #else
         .var _tx_slot_{node['id']};
         #endif
@@ -3673,7 +3708,7 @@ def gen_interchip_send(node):
             l3 = 0;
             i2 = _buf_{node['inputs_str']};
             i3 = _tx_slot_{node['id']};
-            lcntr = 32, do .isk_{node['id']} until lce;
+            lcntr = DSP4_BLOCK_SIZE, do .isk_{node['id']} until lce;
                 r0 = dm(i2, 1);
             .isk_{node['id']}: dm(i3, 1) = r0;
             rts;
@@ -3696,8 +3731,8 @@ def gen_interchip_recv(node):
         /* Scatter writes slot[sample] under block kernels, so this MUST
          * be a 32-word array even before the node itself is converted --
          * otherwise scatter writes past a scalar. */
-        .var _rx_ic_slot_{node['id']}[32];
-        .var _buf_{node['id']}[32];
+        .var _rx_ic_slot_{node['id']}[DSP4_BLOCK_SIZE];
+        .var _buf_{node['id']}[DSP4_BLOCK_SIZE];
         #else
         .var _rx_ic_slot_{node['id']};
         .var _buf_{node['id']};
@@ -3711,7 +3746,7 @@ def gen_interchip_recv(node):
             l1 = 0;
             i0 = _rx_ic_slot_{node['id']};
             i1 = _buf_{node['id']};
-            r5 = 32;
+            r5 = DSP4_BLOCK_SIZE;
             lcntr = r5; do .icr_lp_{node['id']} until lce;
                 r0 = dm(i0, 1);
                 dm(i1, 1) = r0;
@@ -3854,7 +3889,7 @@ def gen_meter(node):
             f2 = r2;
             r5 = 0x3C23D70A;          /* 0.01   IEEE 754, hoisted */
             f5 = r5;
-            lcntr = 32, do .mtrk_{node['id']} until lce;
+            lcntr = DSP4_BLOCK_SIZE, do .mtrk_{node['id']} until lce;
                 r0 = dm(i2, 1);
                 f0 = abs f0;
                 f1 = dm(_mtr_peak_{node['id']});
@@ -4252,7 +4287,7 @@ def gen_ramp_engine():
     lines.append('/* ramp_engine.asm — Shared slew/ramp infrastructure for D32 DSP */')
     lines.append('/* AUTO-GENERATED by tools/dsp/dsp_codegen.py — do not edit directly. */')
     lines.append('')
-    lines.append('/* Frame period: 32 samples @ 48 kHz = 0.6667 ms */')
+    lines.append(f'/* Frame period: {BLOCK} samples @ 48 kHz = {FRAME_MS:.4f} ms */')
     lines.append('/* Ramp modes: Instant (0 frames), Slew, LinearFrames, ExpFrames */')
     lines.append('/* Ramp scope: Scalar (per-value ramp), CoeffSetAtomic (double-buffer swap) */')
     lines.append('')
@@ -4361,7 +4396,7 @@ def gen_ramp_tables():
     lines.append('/* ramp_tables.asm — Ramp profile presets for D32 DSP */')
     lines.append('/* AUTO-GENERATED by tools/dsp/dsp_codegen.py — do not edit directly. */')
     lines.append('')
-    lines.append(f'/* Frame period: {FRAME_MS:.4f} ms (32 samples @ 48 kHz) */')
+    lines.append(f'/* Frame period: {FRAME_MS:.4f} ms ({BLOCK} samples @ 48 kHz) */')
     lines.append('')
     lines.append('.section/dm seg_dmda;')
     lines.append('')
@@ -4423,9 +4458,8 @@ def gen_block_io(chip_label, chip_nodes):
 
     Chip 1: scatter RX (ADC/superset -> input slots), gather IC TX
     Chip 2: scatter IC RX (mix fabric -> recv slots), gather TX
-    Each scatter/gather takes r0 = sample index (0..31).
+    Each scatter/gather takes r0 = sample index (0..BLOCK-1).
     """
-    BLOCK = 32
 
     def lane_layout(specs, window=None):
         """specs: [(node, sport, slot)]. window=None -> packed lanes;
@@ -4582,6 +4616,7 @@ def gen_block_io(chip_label, chip_nodes):
     lines.append(f'/* block_io.asm — DMA↔node scatter/gather for {chip_label.upper()} */')
     lines.append('/* AUTO-GENERATED by tools/dsp/dsp_codegen.py — do not edit directly. */')
     lines.append('/* Lane-major DMA layout per MW/D32/DSP/dsp4-plumbing.md. */')
+    lines.append('#include "dsp_block.h"')
     lines.append('')
 
     if chip_label == 'chip1':
@@ -4801,7 +4836,6 @@ def gen_lane_config_c(chip_label, lane_info):
     """Generated C data consumed by sport_config.c (C linkage — the
     byte-addressed SHARC C ABI dot-mangles symbols, so cross-language
     data sharing goes C-to-C)."""
-    BLOCK = 32
     out = []
     out.append(f'/* lane_config.c — generated lane tables + DMA buffers for {chip_label.upper()} */')
     out.append('/* AUTO-GENERATED by tools/dsp/dsp_codegen.py — do not edit directly. */')
@@ -5894,19 +5928,19 @@ def gen_gain_fixed(node):
             if le jump (pc, .snap_{nid});
             /* Consume a BLOCK's worth of frames and apply a BLOCK's
              * worth of step. spi_handler scales every profile frame count
-             * by 32 (BLOCK_SIZE), which is right for the ramps that
+             * by DSP4_BLOCK_SIZE, which is right for the ramps that
              * decrement once per SAMPLE. This one decrements once per
-             * BLOCK, so taking 1 per block ran it 32x long: measured
-             * 2026-08-23, a GainSafe down-ramp took 960 ms against the
-             * 30 ms its own cell table specifies, and a GainFast fader
-             * move took 85 ms instead of 3 ms. 32.0f is exact in binary,
-             * so scaling the step loses nothing. */
-            r5 = 32;
+             * BLOCK, so taking 1 per block ran it BLOCK times long:
+             * measured 2026-08-23 at BLOCK=32, a GainSafe down-ramp took
+             * 960 ms against the 30 ms its own cell table specifies, and a
+             * GainFast fader move took 85 ms instead of 3 ms. A power of
+             * two is exact in binary, so scaling the step loses nothing. */
+            r5 = DSP4_BLOCK_SIZE;
             r4 = r4 - r5;
             dm(_gain_frames_{nid}) = r4;
             f1 = dm(_gain_coeff_{nid});
             f2 = dm(_gain_step_{nid});
-            r5 = 0x42000000;                  /* 32.0f */
+            r5 = DSP4_BLOCK_F32;              /* BLOCK_SIZE as float */
             f5 = r5;
             f2 = f2 * f5;
             f1 = f1 + f2;
@@ -5992,7 +6026,7 @@ def gen_gain_fixed(node):
              * reads ASTAT from the last flag-setting instruction, so an
              * interleaved shift between a comp and its `if ne` would move
              * on stale flags. */
-            r5 = 16;
+            r5 = DSP4_BLOCK_HALF;
             lcntr = r5; do .gk_lp_{nid} until lce;
                 r0 = dm(i0, 1);                   /* xA */
                 r3 = dm(i0, 1);                   /* xB */
@@ -6031,7 +6065,7 @@ def gen_gain_fixed(node):
             dm(_buf_{nid}) = r3;
             rts;
         #else
-            r5 = 32;
+            r5 = DSP4_BLOCK_SIZE;
             lcntr = r5; do .gk_lp_{nid} until lce;
                 r0 = dm(i0, 1);
                 mrf = r0 * r1 (ssi);
@@ -6176,19 +6210,19 @@ def gen_fader_pan_fixed(node):
             if le jump (pc, .lsnap_{nid});
             /* Consume a BLOCK's worth of frames and apply a BLOCK's
              * worth of step. spi_handler scales every profile frame count
-             * by 32 (BLOCK_SIZE), which is right for the ramps that
+             * by DSP4_BLOCK_SIZE, which is right for the ramps that
              * decrement once per SAMPLE. This one decrements once per
-             * BLOCK, so taking 1 per block ran it 32x long: measured
-             * 2026-08-23, a GainSafe down-ramp took 960 ms against the
-             * 30 ms its own cell table specifies, and a GainFast fader
-             * move took 85 ms instead of 3 ms. 32.0f is exact in binary,
-             * so scaling the step loses nothing. */
-            r5 = 32;
+             * BLOCK, so taking 1 per block ran it BLOCK times long:
+             * measured 2026-08-23 at BLOCK=32, a GainSafe down-ramp took
+             * 960 ms against the 30 ms its own cell table specifies, and a
+             * GainFast fader move took 85 ms instead of 3 ms. A power of
+             * two is exact in binary, so scaling the step loses nothing. */
+            r5 = DSP4_BLOCK_SIZE;
             r4 = r4 - r5;
             dm(_fdr_level_frames_{nid}) = r4;
             f1 = dm(_fdr_level_{nid});
             f2 = dm(_fdr_level_step_{nid});
-            r5 = 0x42000000;                  /* 32.0f */
+            r5 = DSP4_BLOCK_F32;              /* BLOCK_SIZE as float */
             f5 = r5;
             f2 = f2 * f5;
             f1 = f1 + f2;
@@ -6205,19 +6239,19 @@ def gen_fader_pan_fixed(node):
             if le jump (pc, .psnap_{nid});
             /* Consume a BLOCK's worth of frames and apply a BLOCK's
              * worth of step. spi_handler scales every profile frame count
-             * by 32 (BLOCK_SIZE), which is right for the ramps that
+             * by DSP4_BLOCK_SIZE, which is right for the ramps that
              * decrement once per SAMPLE. This one decrements once per
-             * BLOCK, so taking 1 per block ran it 32x long: measured
-             * 2026-08-23, a GainSafe down-ramp took 960 ms against the
-             * 30 ms its own cell table specifies, and a GainFast fader
-             * move took 85 ms instead of 3 ms. 32.0f is exact in binary,
-             * so scaling the step loses nothing. */
-            r5 = 32;
+             * BLOCK, so taking 1 per block ran it BLOCK times long:
+             * measured 2026-08-23 at BLOCK=32, a GainSafe down-ramp took
+             * 960 ms against the 30 ms its own cell table specifies, and a
+             * GainFast fader move took 85 ms instead of 3 ms. A power of
+             * two is exact in binary, so scaling the step loses nothing. */
+            r5 = DSP4_BLOCK_SIZE;
             r4 = r4 - r5;
             dm(_fdr_pan_frames_{nid}) = r4;
             f1 = dm(_fdr_pan_{nid});
             f2 = dm(_fdr_pan_step_{nid});
-            r5 = 0x42000000;                  /* 32.0f */
+            r5 = DSP4_BLOCK_F32;              /* BLOCK_SIZE as float */
             f5 = r5;
             f2 = f2 * f5;
             f1 = f1 + f2;
@@ -6269,7 +6303,7 @@ def gen_fader_pan_fixed(node):
              * gone (the 08-25 crosspoint fold), so the body really is one
              * MAC per sample. Identical arithmetic, so bit-exact by
              * construction. */
-            r14 = 16;
+            r14 = DSP4_BLOCK_HALF;
             lcntr = r14; do .fdr_lp_{nid} until lce;
                 r0 = dm(i0, 1);                 /* xA */
                 r3 = dm(i0, 1);                 /* xB */
@@ -6306,7 +6340,7 @@ def gen_fader_pan_fixed(node):
             dm(_buf_{nid}) = r3;
             rts;
         #else
-            r14 = 32;
+            r14 = DSP4_BLOCK_SIZE;
         .fdr_lp_{nid}:
             r0 = dm(i0, 1);
             mrf = r0 * r1 (ssi);
@@ -6366,7 +6400,7 @@ def gen_mix_bus_fixed(node):
 
             .section/dm seg_dmda;
             #if DSP4_BLOCK_KERNELS
-            .var _buf_{nid}[32];
+            .var _buf_{nid}[DSP4_BLOCK_SIZE];
             #else
             .var _buf_{nid};
             #endif
@@ -6397,7 +6431,7 @@ def gen_mix_bus_fixed(node):
                 r8 = 0x08000000;          /* 2^27, the rounding half */
                 r9 = 1;
                 r10 = 0x7FFFFFFF;
-                lcntr = 32, do .mbk_{nid} until lce;
+                lcntr = DSP4_BLOCK_SIZE, do .mbk_{nid} until lce;
                     r1 = dm(i2, 1);       /* lo; i2 -> hi              */
                     r2 = dm(i2, 1);       /* hi; i2 -> next pair       */
                     mr0f = r1;
@@ -6482,6 +6516,68 @@ def gen_mix_bus_fixed(node):
     """)
 
 
+def gen_block_header():
+    """dsp_block.h — the block size, as preprocessor macros.
+
+    THE contract between the generator and the hand-maintained sources.
+    Pure #defines, so the same header serves the assembler (main.asm,
+    spi_handler.asm, the src/lib kernels) and the C compiler
+    (dma_config.c). Anything that needs a sample count per block asks
+    here; nothing hardcodes one.
+    """
+    return f"""\
+/* dsp_block.h — audio block size (samples per DMA block) */
+/* AUTO-GENERATED by tools/dsp/dsp_codegen.py — do not edit directly. */
+/*
+ * BLOCK SIZE IS A BUILD PARAMETER. Change it in dsp_codegen.py (BLOCK)
+ * and regenerate; every loop count, slot array, DMA ring, ramp step and
+ * verdict rate in the tree follows from these macros.
+ *
+ * 2026-08-28 (PW ruling): the working operating point is {BLOCK}.
+ * Predicted digital latency ~23 samples = 0.48 ms at 48 kHz, from the
+ * 93-samples-at-BLOCK-32 pipeline measured on the part. Any figure in
+ * the ledger or the options paper that predates this header is a
+ * BLOCK-32 figure and is labelled as one.
+ *
+ * DSP4_BLOCK_SIZE   samples per block
+ * DSP4_BLOCK_HALF   for the two-samples-per-iteration fused kernels
+ * DSP4_BLOCK_SHIFT  log2(BLOCK): block-rate frames -> samples
+ * DSP4_BLOCK_F32    BLOCK as an IEEE-754 single, for per-block ramp steps
+ * DSP4_BLOCK_RATE   blocks per second at 48 kHz -- the verdict rate
+ */
+#ifndef DSP4_BLOCK_H
+#define DSP4_BLOCK_H
+
+#define DSP4_BLOCK_SIZE   {BLOCK}
+#define DSP4_BLOCK_HALF   {BLOCK_HALF}
+#define DSP4_BLOCK_SHIFT  {BLOCK_SHIFT}
+#define DSP4_BLOCK_F32    {_f32hex(BLOCK)}
+#define DSP4_BLOCK_RATE   {int(BLOCKS_PER_SEC)}
+
+#endif /* DSP4_BLOCK_H */
+"""
+
+
+def gen_block_py():
+    """dsp4_block.py — the block size for the Pi-side bench tools.
+
+    Same number as dsp_block.h, same source. Staged next to the .ldr by
+    the harness scripts so the verdict is always scored against the block
+    size the image on the part was actually built with.
+    """
+    q = chr(34) * 3
+    return (
+        q + 'dsp4_block.py -- audio block size, for the Pi-side bench tools.\n'
+        '\n'
+        'AUTO-GENERATED by tools/dsp/dsp_codegen.py -- do not edit directly.\n'
+        'Staged onto the bench beside the .ldr files by the harness scripts.\n'
+        + q + '\n'
+        '\n'
+        f'BLOCK = {BLOCK}                 # samples per DMA block\n'
+        f'BLOCK_RATE = {int(BLOCKS_PER_SEC)}          '
+        '# blocks/s at 48 kHz -- the real-time bar\n')
+
+
 def gen_blk_pool_header():
     """blk_pool.h — slot names for the shared per-strip block buffers."""
     return """\
@@ -6491,16 +6587,18 @@ def gen_blk_pool_header():
  * Buffer reuse, not one buffer per node. A strip is a linear chain and the
  * strips run one after another, so the live set at any moment is small and
  * fixed: a ping-pong pair for the chain itself, the fader's L/R split, and
- * the four taps the router picks from. 8 slots x 32 = 256 words serves all
- * 32 strips; one buffer per node would want ~16K words, which is what
- * overflowed DM on 2026-08-24.
+ * the four taps the router picks from. 8 slots x BLOCK serves all 32
+ * strips; one buffer per node would want ~16K words at BLOCK=32, which is
+ * what overflowed DM on 2026-08-24.
  */
 #ifndef DSP4_BLK_POOL_H
 #define DSP4_BLK_POOL_H
 
+#include "dsp_block.h"
+
 #if DSP4_BLOCK_KERNELS
 .extern _blk_pool;
-#define BLK(n)           (_blk_pool + (n) * 32)
+#define BLK(n)           (_blk_pool + (n) * DSP4_BLOCK_SIZE)
 
 /* chain ping-pong: IN->A GAIN->B FILT->A EQ->B GATE->A COMP->B TUBE->A
  * DLY->B FDR->A */
@@ -6522,8 +6620,8 @@ def gen_blk_pool_header():
  * both strips' blocks live at once, and the pool is reused sequentially --
  * strip N+1's block does not exist while strip N is running. ONE extra
  * slot fixes that: strip N's chain value parks here while strip N+1
- * catches up, then _bq_pair_blk interleaves the two. That is 32 words, not
- * the doubled pool an earlier note claimed was needed. */
+ * catches up, then _bq_pair_blk interleaves the two. That is ONE slot --
+ * BLOCK words -- not the doubled pool an earlier note claimed. */
 #define BLK_PAIR_PARK    BLK(8)
 #endif
 
@@ -6541,6 +6639,7 @@ def gen_bus_accumulators_fixed():
     out.append('/* bus_accumulators.asm — FIXED (D5): 64-bit exact bus accumulators */')
     out.append('/* AUTO-GENERATED by tools/dsp/dsp_codegen.py (--format fixed) — do not edit. */')
     out.append('/* Pairs [lo, hi]; contributions via _acc64_mac; readout _acc64_rns28. */')
+    out.append('#include "dsp_block.h"')
     out.append('')
     out.append('.section/dm seg_dmda;')
     out.append('')
@@ -6548,14 +6647,15 @@ def gen_bus_accumulators_fixed():
     # chain is strip-ordered: IN GAIN FILT EQ GATE COMP TUBE DLY FDR RTG),
     # so a strip's working set is dead the moment its RTG has accumulated
     # into the buses -- every strip reuses the same slots. One pool of 8
-    # slots x 32 samples = 256 words serves all 32 strips, against ~16K
-    # words if every node kept its own block buffer.
+    # slots x BLOCK samples serves all 32 strips, against ~16K words at
+    # BLOCK=32 if every node kept its own block buffer.
     out.append('#if DSP4_BLOCK_KERNELS')
     out.append('.global _blk_pool;')
     out.append('#if DSP4_SIMD_STRIPS')
-    out.append('.var _blk_pool[288];    /* 8 slots + the strip-pair park */')
+    out.append(f'.var _blk_pool[{9 * BLOCK}];'
+               f'    /* 8 slots + the strip-pair park, x{BLOCK} */')
     out.append('#else')
-    out.append('.var _blk_pool[256];')
+    out.append(f'.var _blk_pool[{8 * BLOCK}];    /* 8 slots x{BLOCK} */')
     out.append('#endif')
     out.append('#endif')
     out.append('')
@@ -6598,7 +6698,7 @@ def gen_bus_accumulators_fixed():
     # with room to spare.
     out.append('#if DSP4_BLOCK_KERNELS')
     for n in names:
-        out.append(f'.global _bus_acc_{n};   .var _bus_acc_{n}[64];')
+        out.append(f'.global _bus_acc_{n};   .var _bus_acc_{n}[{2 * BLOCK}];')
     out.append('#else')
     for n in names:
         out.append(f'.global _bus_acc_{n};   .var _bus_acc_{n}[2];')
@@ -6655,7 +6755,7 @@ def gen_bus_accumulators_fixed():
     out.append('_acc64_mac_blk:')
     out.append('    l0 = 0;')
     out.append('    l2 = 0;')
-    out.append('    r5 = 32;')
+    out.append('    r5 = DSP4_BLOCK_SIZE;')
     out.append('    lcntr = r5, do .amb_lp until lce;')
     out.append('        r0 = dm(i0, 1);')
     out.append('        r2 = dm(i2, 1);            /* lo; i2 -> hi */')
@@ -6702,9 +6802,9 @@ def _fx_send_ramp_asm(nid, kind, count, srcs):
             r5 = {count};
             lcntr = r5, do .{kind}rmp_{nid} until lce;
                 r4 = dm(i6, 0);
-                r6 = 32;
+                r6 = DSP4_BLOCK_SIZE;
                 comp(r4, r6);
-                if lt r6 = r4;                /* n = min(frames, 32) */
+                if lt r6 = r4;                /* n = min(frames, BLOCK) */
                 r4 = r4 - r6;
                 dm(i6, 1) = r4;
                 r4 = pass r6;
@@ -7196,13 +7296,13 @@ def gen_aux_input_fixed(node):
             if ne jump (pc, .auxin_apply_{nid});
         #endif
             r4 = dm(_auxin_level_frames_{nid});
-            r15 = 32;
+            r15 = DSP4_BLOCK_SIZE;
             r4 = r4 - r15;
             if le jump (pc, .no_auxramp_{nid});
             dm(_auxin_level_frames_{nid}) = r4;
             f1 = dm(_auxin_level_{nid});
             f2 = dm(_auxin_level_step_{nid});
-            r15 = 0x42000000;                 /* 32.0f */
+            r15 = DSP4_BLOCK_F32;             /* BLOCK_SIZE as float */
             f15 = r15;
             f2 = f2 * f15;
             f1 = f1 + f2;
@@ -7267,13 +7367,13 @@ def gen_monitor_fixed(node):
     def ramp(side):
         return f"""\
             r4 = dm(_mon_level_{side}_frames_{nid});
-            r15 = 32;
+            r15 = DSP4_BLOCK_SIZE;
             r4 = r4 - r15;
             if le jump (pc, .no_monramp_{side}_{nid});
             dm(_mon_level_{side}_frames_{nid}) = r4;
             f1 = dm(_mon_level_{side}_{nid});
             f2 = dm(_mon_level_{side}_step_{nid});
-            r15 = 0x42000000;                 /* 32.0f */
+            r15 = DSP4_BLOCK_F32;             /* BLOCK_SIZE as float */
             f15 = r15;
             f2 = f2 * f15;
             f1 = f1 + f2;
@@ -7392,23 +7492,23 @@ def gen_talkback_fixed(node):
 
             /* Consume a BLOCK's worth of frames and apply a BLOCK's
              * worth of step. spi_handler scales every profile frame count
-             * by 32 (BLOCK_SIZE), which is right for the ramps that
+             * by DSP4_BLOCK_SIZE, which is right for the ramps that
              * decrement once per SAMPLE. This one decrements once per
-             * BLOCK, so taking 1 per block ran it 32x long: measured
-             * 2026-08-23, a GainSafe down-ramp took 960 ms against the
-             * 30 ms its own cell table specifies, and a GainFast fader
-             * move took 85 ms instead of 3 ms. 32.0f is exact in binary,
-             * so scaling the step loses nothing. */
+             * BLOCK, so taking 1 per block ran it BLOCK times long:
+             * measured 2026-08-23 at BLOCK=32, a GainSafe down-ramp took
+             * 960 ms against the 30 ms its own cell table specifies, and a
+             * GainFast fader move took 85 ms instead of 3 ms. A power of
+             * two is exact in binary, so scaling the step loses nothing. */
             r4 = dm(_talk_gain_frames_{nid});
             r15 = 0;
             comp(r4, r15);
             if le jump (pc, .no_tkramp_{nid});
-            r15 = 32;
+            r15 = DSP4_BLOCK_SIZE;
             r4 = r4 - r15;
             dm(_talk_gain_frames_{nid}) = r4;
             f1 = dm(_talk_gain_{nid});
             f2 = dm(_talk_gain_step_{nid});
-            r15 = 0x42000000;                 /* 32.0f */
+            r15 = DSP4_BLOCK_F32;             /* BLOCK_SIZE as float */
             f15 = r15;
             f2 = f2 * f15;
             f1 = f1 + f2;
@@ -7710,19 +7810,19 @@ def gen_compressor_fixed(node):
             if le jump (pc, .no_mramp_{nid});
             /* Consume a BLOCK's worth of frames and apply a BLOCK's
              * worth of step. spi_handler scales every profile frame count
-             * by 32 (BLOCK_SIZE), which is right for the ramps that
+             * by DSP4_BLOCK_SIZE, which is right for the ramps that
              * decrement once per SAMPLE. This one decrements once per
-             * BLOCK, so taking 1 per block ran it 32x long: measured
-             * 2026-08-23, a GainSafe down-ramp took 960 ms against the
-             * 30 ms its own cell table specifies, and a GainFast fader
-             * move took 85 ms instead of 3 ms. 32.0f is exact in binary,
-             * so scaling the step loses nothing. */
-            r5 = 32;
+             * BLOCK, so taking 1 per block ran it BLOCK times long:
+             * measured 2026-08-23 at BLOCK=32, a GainSafe down-ramp took
+             * 960 ms against the 30 ms its own cell table specifies, and a
+             * GainFast fader move took 85 ms instead of 3 ms. A power of
+             * two is exact in binary, so scaling the step loses nothing. */
+            r5 = DSP4_BLOCK_SIZE;
             r4 = r4 - r5;
             dm(_comp_makeup_frames_{nid}) = r4;
             f1 = dm(_comp_makeup_{nid});
             f2 = dm(_comp_makeup_step_{nid});
-            r5 = 0x42000000;                  /* 32.0f */
+            r5 = DSP4_BLOCK_F32;              /* BLOCK_SIZE as float */
             f5 = r5;
             f2 = f2 * f5;
             f1 = f1 + f2;
@@ -8365,6 +8465,24 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
         with open(os.path.join(output_dir, 'blk_pool.h'), 'w',
                   encoding='utf-8') as f:
             f.write(gen_blk_pool_header())
+        files_written += 1
+
+    # dsp_block.h is NOT fixed-mode-only: it is the block-size contract the
+    # whole tree reads, including the C DMA configuration.
+    with open(os.path.join(output_dir, 'dsp_block.h'), 'w',
+              encoding='utf-8') as f:
+        f.write(gen_block_header())
+    files_written += 1
+
+    # ...and the same number for the BENCH tools, which score a pass rate
+    # against 48000/BLOCK. A verdict tool that carries its own copy of the
+    # block size will one day score an image that was not built with it.
+    pi_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                          '..', 'pi')
+    if os.path.isdir(pi_dir):
+        with open(os.path.join(pi_dir, 'dsp4_block.py'), 'w',
+                  encoding='utf-8') as f:
+            f.write(gen_block_py())
         files_written += 1
 
     # Write ramp infrastructure

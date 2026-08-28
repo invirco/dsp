@@ -31,10 +31,20 @@ Requires python3-spidev + python3-libgpiod on the Pi.
 """
 
 import argparse
+import os
 import sys
 import time
 
 from dsp4_config import SpiLink, frame
+
+# Audio block size. Generated into dsp4_block.py by tools/dsp/dsp_codegen.py
+# from the same BLOCK constant the firmware is built with, so the nominal
+# block rate quoted here can never disagree with the image on the part.
+try:
+    from dsp4_block import BLOCK as _BLK
+except ImportError:
+    _BLK = None
+BLOCK = int(os.environ.get('DSP4_BLOCK', _BLK if _BLK else 32))
 
 READ_FLAG = 0x2000
 
@@ -308,9 +318,9 @@ def measure_rate(diag, seconds):
           f'(nominal 1000 Hz at CCLK = 400 MHz)')
     print(f'  implied CCLK    {tick_hz * 400000 / 1e6:.2f} MHz')
     print(f'  audio blocks    {b_frames - a_frames}  ->  {frame_hz:.1f} Hz '
-          f'(nominal 1500 Hz = 48 kHz / 32)')
+          f'(nominal {48000 // BLOCK} Hz = 48 kHz / {BLOCK})')
     if frame_hz > 0:
-        print(f'  implied Fs      {frame_hz * 32 / 1000:.3f} kHz')
+        print(f'  implied Fs      {frame_hz * BLOCK / 1000:.3f} kHz')
 
 
 LED_MODES = {'auto': 0, 'off': 1, 'on': 2}

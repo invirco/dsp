@@ -58,6 +58,8 @@
  * Infrastructure (hand-maintained).
  *======================================================================*/
 
+#include "dsp_block.h"
+
 #if DSP4_SIMD_DYN
 
 .section/dm seg_dmda;
@@ -92,7 +94,7 @@
 .global _cmp_par;   .var _cmp_par[16];
 .global _cmp_st;    .var _cmp_st[2];    /* envelope */
 .global _cmp_gn;    .var _cmp_gn[2];    /* last gain, for the display/witness */
-.global _cmp_sig;   .var _cmp_sig[64];
+.global _cmp_sig;   .var _cmp_sig[2*DSP4_BLOCK_SIZE];
 .var _cmp_ptr[6];                       /* parA parB stA stB sigA sigB */
 
 /* ---- GATE pair park -------------------------------------------------
@@ -101,7 +103,7 @@
  */
 .global _gat_par;   .var _gat_par[10];
 .global _gat_st;    .var _gat_st[8];
-.global _gat_sig;   .var _gat_sig[64];
+.global _gat_sig;   .var _gat_sig[2*DSP4_BLOCK_SIZE];
 .var _gat_ptr[6];
 
 .section/pm seg_pmco;
@@ -379,7 +381,7 @@ _comp_pair_blk:
     dm(i2, 1) = r0;
 
     i0 = r8; i1 = r9; i2 = _cmp_sig;
-    lcntr = 32, do .cpb_gx until lce;
+    lcntr = DSP4_BLOCK_SIZE, do .cpb_gx until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -413,7 +415,7 @@ _comp_pair_blk:
 
     i2 = _cmp_sig;
     i4 = _cmp_sig;
-    lcntr = 32, do .cpb_lp until lce;
+    lcntr = DSP4_BLOCK_SIZE, do .cpb_lp until lce;
         r13 = dm(i2, 2);           /* dry */
 
         /* envelope: env += rns(alpha * (|x| - env), 31) */
@@ -484,7 +486,7 @@ _comp_pair_blk:
     r4 = dm(i0, 1);
     r5 = dm(i0, 1);
     i0 = r4; i1 = r5;
-    lcntr = 32, do .cpb_sx until lce;
+    lcntr = DSP4_BLOCK_SIZE, do .cpb_sx until lce;
         r0 = dm(i2, 1);
         dm(i0, 1) = r0;
         r0 = dm(i2, 1);
@@ -550,7 +552,7 @@ _gate_pair_blk:
     .gpb_gs: dm(i2, 1) = r0;
 
     i0 = r8; i1 = r9; i2 = _gat_sig;
-    lcntr = 32, do .gpb_gx until lce;
+    lcntr = DSP4_BLOCK_SIZE, do .gpb_gx until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -576,7 +578,7 @@ _gate_pair_blk:
 
     i2 = _gat_sig;
     i4 = _gat_sig;
-    lcntr = 32, do .gpb_lp until lce;
+    lcntr = DSP4_BLOCK_SIZE, do .gpb_lp until lce;
         r13 = dm(i2, 2);
 
         /* detector envelope */
@@ -665,7 +667,7 @@ _gate_pair_blk:
     r4 = dm(i0, 1);
     r5 = dm(i0, 1);
     i0 = r4; i1 = r5;
-    lcntr = 32, do .gpb_sx until lce;
+    lcntr = DSP4_BLOCK_SIZE, do .gpb_sx until lce;
         r0 = dm(i2, 1);
         dm(i0, 1) = r0;
         r0 = dm(i2, 1);

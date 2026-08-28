@@ -46,7 +46,9 @@ from csv_fields import parse_id_list as _parse_id_list, parse_params as _parse_p
 # Constants
 # ---------------------------------------------------------------------------
 SAMPLE_RATE   = 48000
-BLOCK_SIZE    = 32        # SHARC frame size
+# SHARC frame size. Single source: dsp_codegen.BLOCK, so the simulator and
+# the firmware can never disagree about a block.
+from dsp_codegen import BLOCK as BLOCK_SIZE
 NYQUIST       = SAMPLE_RATE / 2.0
 
 # ---------------------------------------------------------------------------
@@ -698,7 +700,7 @@ def main():
     ap.add_argument('--lpf', type=float, default=None,
                     help='LPF cutoff frequency Hz (overrides CSV default)')
     ap.add_argument('--frames', type=int, default=150,
-                    help='Number of 32-sample frames to process (default: 150)')
+                    help='Number of BLOCK-sample frames to process (default: 150)')
     ap.add_argument('--freq-response', choices=['hpf', 'eq', 'strip'], default=None,
                     dest='freq_response',
                     help='Plot/print frequency response at given node type')

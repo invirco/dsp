@@ -26,6 +26,8 @@
  * an impulse plus an FFT on the host rather than a swept sine.
  *----------------------------------------------------------------------*/
 
+#include "dsp_block.h"
+
 #define SCOPE_LEN 1024
 
 .section/dm seg_dmda;
@@ -82,7 +84,7 @@ _scope_inject:
     comp(r0, r1);
     if eq jump (pc, .scope_inj_nostim);   /* capture-only run */
 #if DSP4_BLOCK_KERNELS
-    /* Under per-block kernels the input slots are 32-word arrays, so the
+    /* Under per-block kernels the input slots are BLOCK-word arrays, so the
      * stimulus address advances with the sample the scatter loop is on.
      * Injecting at the base alone would drive only sample 0. */
     r2 = dm(_sample_idx);
@@ -135,7 +137,7 @@ _scope_record:
     comp(r0, r1);
     if eq jump (pc, .scope_rec_bump);
 #if DSP4_BLOCK_KERNELS
-    /* Node output buffers are 32-word arrays too: read the element for
+    /* Node output buffers are BLOCK-word arrays too: read the element for
      * the sample this gather pass is on, not the base every time. */
     r4 = dm(_sample_idx);
     r0 = r0 + r4;
@@ -185,13 +187,13 @@ _scope_inject_blk:
     if eq jump (pc, .sib_step);
     /* impulse: amp in sample 0, silence after */
     dm(i4, 1) = r5;
-    r2 = 31;
+    r2 = DSP4_BLOCK_SIZE - 1;
     lcntr = r2, do .sib_z until lce;
     .sib_z:
         dm(i4, 1) = r1;
     jump (pc, .sib_go);
 .sib_step:
-    r2 = 32;
+    r2 = DSP4_BLOCK_SIZE;
     lcntr = r2, do .sib_s until lce;
     .sib_s:
         dm(i4, 1) = r5;

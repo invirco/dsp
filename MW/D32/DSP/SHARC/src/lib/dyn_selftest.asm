@@ -49,6 +49,8 @@
  * Debug only: DSP4_SIMD_DYN. Not built into any shipping image.
  *====================================================================*/
 
+#include "dsp_block.h"
+
 #if DSP4_SIMD_DYN
 
 .section/dm seg_dmda;
@@ -194,7 +196,7 @@
 
 /*----------------------------------------------------------------------
  * _cref_blk — ONE block of the scalar compressor.
- * i3 -> 32 input samples, i4 -> 32 output samples. State in _cref_env.
+ * i3 -> BLOCK input samples, i4 -> BLOCK output samples. State in _cref_env.
  * This IS the generated COMP block kernel's hoisted loop; only the
  * parameter fetches are re-pointed at the scratch above.
  *--------------------------------------------------------------------*/
@@ -204,7 +206,7 @@ _cref_blk:
     r7  = dm(_cref_att);
     r14 = dm(_cref_env);
     r15 = dm(_cref_mk);
-    lcntr = 32, do .crb_lp until lce;
+    lcntr = DSP4_BLOCK_SIZE, do .crb_lp until lce;
         r13 = dm(i3, 1);
         r0 = abs r13;
         r1 = r14;
@@ -256,7 +258,7 @@ _gref_blk:
     r11 = dm(_gref_gain);
     r12 = dm(_gref_tgt);
     r14 = dm(_gref_hc);
-    lcntr = 32, do .grb_lp until lce;
+    lcntr = DSP4_BLOCK_SIZE, do .grb_lp until lce;
         r13 = dm(i3, 1);
         r0 = abs r13;
         r1 = r10;
@@ -348,7 +350,7 @@ _dst_bprep:
     i4 = _dst_pA;
     i5 = _dst_xB;
     i0 = _dst_pB;
-    lcntr = 64, do .dbp_c until lce;
+    lcntr = 2*DSP4_BLOCK_SIZE, do .dbp_c until lce;
         r0 = dm(i3, 1);
         dm(i4, 1) = r0;
         r0 = dm(i5, 1);
@@ -385,7 +387,7 @@ _dyn_selftest:
     i5 = _dst_xB;
     i0 = _dst_pB;
     l5 = 0;
-    lcntr = 64, do .dst_ccp until lce;
+    lcntr = 2*DSP4_BLOCK_SIZE, do .dst_ccp until lce;
         r0 = dm(i3, 1);
         dm(i4, 1) = r0;
         r0 = dm(i5, 1);
@@ -400,7 +402,7 @@ _dyn_selftest:
     call _comp_pair_blk;
     r4 = _dst_cpA;  r5 = _dst_cpB;
     r6 = _dst_ceA;  r7 = _dst_ceB;
-    r0 = _dst_pA;   r1 = 32;  r8 = r0 + r1;
+    r0 = _dst_pA;   r1 = DSP4_BLOCK_SIZE;  r8 = r0 + r1;
     r0 = _dst_pB;   r9 = r0 + r1;
     call _comp_pair_blk;
 
@@ -414,7 +416,7 @@ _dyn_selftest:
     r0 = _dst_pB;  r0 = r0 + r1;  i0 = r0;
     r12 = 0; r13 = 0; r14 = -1; r15 = 63;
     r3 = 0;
-    lcntr = 64, do .dst_cd until lce;
+    lcntr = 2*DSP4_BLOCK_SIZE, do .dst_cd until lce;
         r0 = dm(i3, -1);
         r1 = dm(i4, -1);
         r2 = r0 - r1;
@@ -461,7 +463,7 @@ _dyn_selftest:
     i4 = _dst_pA;
     i5 = _dst_xB;
     i0 = _dst_pB;
-    lcntr = 64, do .dst_gcp until lce;
+    lcntr = 2*DSP4_BLOCK_SIZE, do .dst_gcp until lce;
         r0 = dm(i3, 1);
         dm(i4, 1) = r0;
         r0 = dm(i5, 1);
@@ -479,7 +481,7 @@ _dyn_selftest:
     call _gate_pair_blk;
     r4 = _dst_gpA;  r5 = _dst_gpB;
     r6 = _dst_gsA;  r7 = _dst_gsB;
-    r0 = _dst_pA;   r1 = 32;  r8 = r0 + r1;
+    r0 = _dst_pA;   r1 = DSP4_BLOCK_SIZE;  r8 = r0 + r1;
     r0 = _dst_pB;   r9 = r0 + r1;
     call _gate_pair_blk;
 
@@ -489,7 +491,7 @@ _dyn_selftest:
     r0 = _dst_pB;  r0 = r0 + r1;  i0 = r0;
     r12 = 0; r13 = 0; r14 = -1; r15 = 63;
     r3 = 0;
-    lcntr = 64, do .dst_gd until lce;
+    lcntr = 2*DSP4_BLOCK_SIZE, do .dst_gd until lce;
         r0 = dm(i3, -1);
         r1 = dm(i4, -1);
         r2 = r0 - r1;
@@ -522,17 +524,17 @@ _dyn_selftest:
     call _dst_bprep;
     i0 = _dst_bcA; i1 = _dst_bsA; i2 = _dst_pA; r4 = 4;
     call _bq_fx_cascade_blk;
-    r0 = _dst_pA; r1 = 32; r0 = r0 + r1;
+    r0 = _dst_pA; r1 = DSP4_BLOCK_SIZE; r0 = r0 + r1;
     i0 = _dst_bcA; i1 = _dst_bsA; i2 = r0; r4 = 4;
     call _bq_fx_cascade_blk;
     i0 = _dst_bcB; i1 = _dst_bsB; i2 = _dst_pB; r4 = 4;
     call _bq_fx_cascade_blk;
-    r0 = _dst_pB; r1 = 32; r0 = r0 + r1;
+    r0 = _dst_pB; r1 = DSP4_BLOCK_SIZE; r0 = r0 + r1;
     i0 = _dst_bcB; i1 = _dst_bsB; i2 = r0; r4 = 4;
     call _bq_fx_cascade_blk;
     /* park the scalar results */
     i3 = _dst_pA; i4 = _dst_rA; i5 = _dst_pB; i0 = _dst_rB;
-    lcntr = 64, do .dst_bpk until lce;
+    lcntr = 2*DSP4_BLOCK_SIZE, do .dst_bpk until lce;
         r0 = dm(i3, 1);
         dm(i4, 1) = r0;
         r0 = dm(i5, 1);
@@ -546,7 +548,7 @@ _dyn_selftest:
     call _bq_pair_blk;
 #endif
     r8 = _dst_bcA;  r9 = _dst_bsA;
-    r0 = _dst_pA; r1 = 32; r10 = r0 + r1;
+    r0 = _dst_pA; r1 = DSP4_BLOCK_SIZE; r10 = r0 + r1;
     r11 = _dst_bcB; r12 = _dst_bsB;
     r0 = _dst_pB; r13 = r0 + r1;
     r4 = 4;
@@ -560,7 +562,7 @@ _dyn_selftest:
     r0 = _dst_pB;  r0 = r0 + r1;  i0 = r0;
     r12 = 0; r13 = 0; r14 = -1; r15 = 63;
     r3 = 0;
-    lcntr = 64, do .dst_bd until lce;
+    lcntr = 2*DSP4_BLOCK_SIZE, do .dst_bd until lce;
         r0 = dm(i3, -1);
         r1 = dm(i4, -1);
         r2 = r0 - r1;
@@ -588,7 +590,7 @@ _dyn_selftest:
 #endif
 
     /* ================= TIMING ================================
-     * Same work either side: ONE block of 32 samples for TWO channels.
+     * Same work either side: ONE block of BLOCK samples for TWO channels.
      * The scalar arm is the calibration against sigprofile.sh's per-class
      * numbers; the null arm is the loop and call overhead, subtracted
      * from both. */

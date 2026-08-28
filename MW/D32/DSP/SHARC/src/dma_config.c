@@ -33,6 +33,11 @@
 #include <stdint.h>
 #include <def21564.h>
 
+/* Block size — generated; see tools/dsp/dsp_codegen.py (BLOCK). The DMA
+ * ring geometry is BLOCK samples per row, so this is the same number the
+ * kernels loop on and the lane offsets in lane_config.c are built from. */
+#include "dsp_block.h"
+
 /* L1 core byte-view -> system view for the DDE (ADI libcc math inlined —
  * this bare-metal build links no runtime lib). 2156x: single MP port,
  * L1 byte space 0x00240000+, system alias = +0x28000000. */
@@ -355,7 +360,7 @@ static void arm_region(const int *lanes, int count, int dir,
          * the core is told at every block boundary rather than every
          * second one. */
         {
-            uint32_t xcnt = lane_words * 32u;
+            uint32_t xcnt = lane_words * (uint32_t)DSP4_BLOCK_SIZE;
             uint32_t base = l1_to_sys((uint32_t)(ping + region_off));
             REG32(dma + DMA_OFF_ADDR) = base;
             REG32(dma + DMA_OFF_XCNT) = xcnt;
@@ -381,7 +386,7 @@ static void arm_region(const int *lanes, int count, int dir,
             desc[i][h][0] = l1_to_sys((uint32_t)&desc[i][1 - h][0]); /* ring */
             desc[i][h][1] = l1_to_sys((uint32_t)(buf + region_off));
             desc[i][h][2] = cfg;
-            desc[i][h][3] = lane_words * 32u;             /* words/block */
+            desc[i][h][3] = lane_words * (uint32_t)DSP4_BLOCK_SIZE; /* words/block */
             desc[i][h][4] = 4u;                           /* byte stride */
         }
 

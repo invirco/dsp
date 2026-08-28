@@ -38,6 +38,8 @@ def a(n):
 print(a('proc_cyc'), a('proc_passes'))")"
   # the symbol table moves on every build; the witness reads .var addresses
   python3 ../../../../tools/dsp/map_syms.py build/chip1.map.xml > /tmp/chip1.sym.json
-  scp -q build/chip1.ldr build/chip2.ldr /tmp/chip1.sym.json $BENCH:/home/app/dspboot/
+  scp -q build/chip1.ldr build/chip2.ldr /tmp/chip1.sym.json ../../../../tools/pi/dsp4_block.py $BENCH:/home/app/dspboot/
+  scp -q ../../../../tools/pi/dsp4_audio_verdict.py $BENCH:/home/app/dspboot/audio_verdict.py
+  scp -q sigprofile_run.sh $BENCH:/home/app/
   echo "limit=$L sig=$SIG fused=$FUS  $(ssh $BENCH "bash /home/app/sigprofile_run.sh $PT $PP $DWELL" 2>&1 | tr '\n' ' | ')"
 done

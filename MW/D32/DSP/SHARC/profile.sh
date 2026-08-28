@@ -20,7 +20,9 @@ s=open('build/chip1.map.xml',errors='ignore').read()
 def a(n):
     m=re.search(re.escape(n)+r\"' address='(0x[0-9a-fA-F]+)'\",s); return m.group(1) if m else '0'
 print(a('proc_cyc'), a('proc_passes'), a('proc_cyc_max'))")"
-  scp -q build/chip1.ldr build/chip2.ldr $BENCH:/home/app/dspboot/
+  scp -q build/chip1.ldr build/chip2.ldr ../../../../tools/pi/dsp4_block.py $BENCH:/home/app/dspboot/
+  scp -q ../../../../tools/pi/dsp4_audio_verdict.py $BENCH:/home/app/dspboot/audio_verdict.py
+  scp -q profile_run.sh $BENCH:/home/app/
   R=""
   for try in 1 2 3; do          # the link is flaky; a point is worth retrying
     R=$(ssh $BENCH "bash /home/app/profile_run.sh $PT $PP $DWELL" 2>&1)

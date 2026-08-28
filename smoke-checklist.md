@@ -37,7 +37,7 @@ another and read the absence of output as a result.
 | check | instrument | pass |
 |---|---|---|
 | shipping DSP firmware restored | `md5sum /home/app/dspboot/chip{1,2}.ldr` | matches the md5 recorded at the start of the session |
-| DSPs running on it | `bash run1.sh /home/app/dspboot` (boot+config+verdict) | `BOOT_STAGE 7`, `FRAME_COUNT ~1500/s`, `DMA0_STAT 0x00006200`, `SPORT0_ERR_A 0x00000000` |
+| DSPs running on it | `bash run1.sh /home/app/dspboot` (boot+config+verdict) | `BOOT_STAGE 7`, `FRAME_COUNT ~6000/s` (48 kHz / block 8), `DMA0_STAT 0x00006200`, `SPORT0_ERR_A 0x00000000` |
 | shipping CPLD bitstream | `openocd -f cpld-jtag.cfg -c "init; scan_chain; shutdown"` | IDCODE `0x020a30dd` |
 | GPIOs released | `pinctrl set 6,7,8,9,10,11,12,22,23,24,25 a0` | mandatory after any openocd or dsp4_boot run — a claimed line looks exactly like a bricked card |
 | matrix-app up | `systemctl is-active matrix-app` | `active` |

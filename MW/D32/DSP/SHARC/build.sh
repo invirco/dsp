@@ -38,8 +38,9 @@ PROC="-proc $PROC_TARGET"
 # same way from src/, src/chipN/ and src/lib/.
 ASMFLAGS="$PROC -I $SRC_DIR"
 
-# Compiler flags (for any C files)
-CFLAGS="$PROC -O -DNDEBUG"
+# Compiler flags (for any C files). -I <src> for the generated headers
+# (dsp_block.h carries the block size to dma_config.c).
+CFLAGS="$PROC -O -DNDEBUG -I $SRC_DIR"
 
 # P2.2 bisect variant selector (TEMPORARY — goes with the scaffolding when
 # tasks.md NOW item 3 lands). See the DSP4_BISECT block at the top of

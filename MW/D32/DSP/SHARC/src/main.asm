@@ -6,10 +6,10 @@
  *   2. Publish the compile-time chip identity (-DCHIP_ID)
  *   3. Register bring-up: SRU + SPORT + DMA/SEC/SPI (C config files)
  *   4. Wait for Pi product config (PRODUCT_ID, CHAN_MASK, ... + COMMIT)
- *   5. Enter main loop: wait for _block_ready, run 32-sample block
+ *   5. Enter main loop: wait for _block_ready, run one BLOCK_SIZE block
  *
  * Block processing (per DMA completion):
- *   For each sample n in [0..31]:
+ *   For each sample n in [0..BLOCK_SIZE-1]:
  *     1. Scatter: DMA RX buffer[n] → per-node _rx_slot_* variables
  *     2. Call process chain (all nodes, single sample)
  *     3. Gather: per-node _tx_slot_* variables → DMA TX buffer[n]
@@ -35,7 +35,13 @@
  * CS. The old runtime detect read "FLAG0" at an invented address
  * (0x08004040); the 2156x has no FLAG pins at all, so it could only
  * ever have returned garbage. -DCHIP_ID=1|2 is the single source. */
-#define BLOCK_SIZE  32
+
+/* Block size is a BUILD PARAMETER, generated into dsp_block.h by
+ * tools/dsp/dsp_codegen.py from its BLOCK constant. It used to be a 32
+ * defined right here, which is why the DMA geometry, the ramp scaling and
+ * every loop bound in the tree each kept a private copy of the number. */
+#include "dsp_block.h"
+#define BLOCK_SIZE  DSP4_BLOCK_SIZE
 
 .section/dm seg_dmda;
 
@@ -97,7 +103,7 @@
 .var _proc_t0 = 0;
 .var _proc_c0 = 0;
 
-/* Sample index within current block (0..31) */
+/* Sample index within current block (0..BLOCK_SIZE-1) */
 .global _sample_idx;
 .var _sample_idx = 0;
 
@@ -665,7 +671,7 @@ _start:
     r0 = DIAG_STAGE_RUNNING;
     dm(_diag_boot_stage) = r0;
 
-    /* ---- Block processing: 32 samples per block ---- */
+    /* ---- Block processing: BLOCK_SIZE samples per block ---- */
     r0 = dm(_diag_ticks);
     dm(_proc_t0) = r0;
     r0 = tcount;
@@ -676,10 +682,10 @@ _start:
     /* ========== Chip 1 block loop ========== */
 .block_chip1:
 #if DSP4_BLOCK_KERNELS
-    /* Per-BLOCK kernels. Scatter the WHOLE block into the 32-word input
-     * arrays, run each node exactly once, then gather the whole block.
-     * The node chain no longer pays a call/rts and a _sample_idx guard
-     * 32 times over; the loop lives inside the kernel. */
+    /* Per-BLOCK kernels. Scatter the WHOLE block into the BLOCK_SIZE-word
+     * input arrays, run each node exactly once, then gather the whole
+     * block. The node chain no longer pays a call/rts and a _sample_idx
+     * guard BLOCK_SIZE times over; the loop lives inside the kernel. */
     r5 = 0;
 .c1_scat_loop:
     dm(_sample_idx) = r5;
@@ -786,7 +792,7 @@ _start:
     /* Reload the bound. _scatter_chipN and _gather_chipN BOTH load the
      * active DMA buffer address into r6 -- ~0x95350 -- so the loop bound
      * set before .cN_sample_loop is gone by the time we get here. The
-     * compare below then ran the 32-sample loop about 610,000 times per
+     * compare below then ran the sample loop about 610,000 times per
      * block, which is not a fault but is indistinguishable from a hang:
      * the main loop never comes back, the parameter link goes dead, and
      * that is exactly what the card did from the instant CONFIG_COMMIT
@@ -829,10 +835,10 @@ _start:
     /* ========== Chip 2 block loop ========== */
 .block_chip2:
 #if DSP4_BLOCK_KERNELS
-    /* Per-BLOCK kernels. Scatter the WHOLE block into the 32-word input
-     * arrays, run each node exactly once, then gather the whole block.
-     * The node chain no longer pays a call/rts and a _sample_idx guard
-     * 32 times over; the loop lives inside the kernel. */
+    /* Per-BLOCK kernels. Scatter the WHOLE block into the BLOCK_SIZE-word
+     * input arrays, run each node exactly once, then gather the whole
+     * block. The node chain no longer pays a call/rts and a _sample_idx
+     * guard BLOCK_SIZE times over; the loop lives inside the kernel. */
     r5 = 0;
 .c2_scat_loop:
     dm(_sample_idx) = r5;
@@ -939,7 +945,7 @@ _start:
     /* Reload the bound. _scatter_chipN and _gather_chipN BOTH load the
      * active DMA buffer address into r6 -- ~0x95350 -- so the loop bound
      * set before .cN_sample_loop is gone by the time we get here. The
-     * compare below then ran the 32-sample loop about 610,000 times per
+     * compare below then ran the sample loop about 610,000 times per
      * block, which is not a fault but is indistinguishable from a hang:
      * the main loop never comes back, the parameter link goes dead, and
      * that is exactly what the card did from the instant CONFIG_COMMIT

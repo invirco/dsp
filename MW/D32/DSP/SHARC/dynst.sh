@@ -24,6 +24,7 @@ DSP4_BISECT=0 DSP4_BLOCK_KERNELS=1 DSP4_SIMD_DYN=1 DSP4_SIMD_NEGCTL=${NEGCTL:-0}
 if [ "$(grep -ciE '\[Error|Build FAILED' /tmp/dynst_build.log)" -ne 0 ]; then
   echo "BUILD FAILED"; grep -iE '\[Error' /tmp/dynst_build.log | head; exit 1; fi
 python3 ../../../../tools/dsp/map_syms.py build/chip1.map.xml > /tmp/chip1.sym.json
-scp -q build/chip1.ldr build/chip2.ldr /tmp/chip1.sym.json dynst_read.py $BENCH:/home/app/dspboot/
+scp -q build/chip1.ldr build/chip2.ldr /tmp/chip1.sym.json dynst_read.py ../../../../tools/pi/dsp4_block.py $BENCH:/home/app/dspboot/
+scp -q ../../../../tools/pi/dsp4_audio_verdict.py $BENCH:/home/app/dspboot/audio_verdict.py
 scp -q dynst_run.sh $BENCH:/home/app/
 ssh $BENCH "bash /home/app/dynst_run.sh $HZ"

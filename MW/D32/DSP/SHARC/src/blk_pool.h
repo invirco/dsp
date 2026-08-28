@@ -4,16 +4,18 @@
  * Buffer reuse, not one buffer per node. A strip is a linear chain and the
  * strips run one after another, so the live set at any moment is small and
  * fixed: a ping-pong pair for the chain itself, the fader's L/R split, and
- * the four taps the router picks from. 8 slots x 32 = 256 words serves all
- * 32 strips; one buffer per node would want ~16K words, which is what
- * overflowed DM on 2026-08-24.
+ * the four taps the router picks from. 8 slots x BLOCK serves all 32
+ * strips; one buffer per node would want ~16K words at BLOCK=32, which is
+ * what overflowed DM on 2026-08-24.
  */
 #ifndef DSP4_BLK_POOL_H
 #define DSP4_BLK_POOL_H
 
+#include "dsp_block.h"
+
 #if DSP4_BLOCK_KERNELS
 .extern _blk_pool;
-#define BLK(n)           (_blk_pool + (n) * 32)
+#define BLK(n)           (_blk_pool + (n) * DSP4_BLOCK_SIZE)
 
 /* chain ping-pong: IN->A GAIN->B FILT->A EQ->B GATE->A COMP->B TUBE->A
  * DLY->B FDR->A */
@@ -35,8 +37,8 @@
  * both strips' blocks live at once, and the pool is reused sequentially --
  * strip N+1's block does not exist while strip N is running. ONE extra
  * slot fixes that: strip N's chain value parks here while strip N+1
- * catches up, then _bq_pair_blk interleaves the two. That is 32 words, not
- * the doubled pool an earlier note claimed was needed. */
+ * catches up, then _bq_pair_blk interleaves the two. That is ONE slot --
+ * BLOCK words -- not the doubled pool an earlier note claimed. */
 #define BLK_PAIR_PARK    BLK(8)
 #endif
 

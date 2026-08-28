@@ -21,6 +21,8 @@
  * Debug only: DSP4_BQ_SELFTEST. Not built into any shipping image.
  *====================================================================*/
 
+#include "dsp_block.h"
+
 #if DSP4_BQ_SELFTEST
 
 .section/dm seg_dmda;
@@ -125,7 +127,7 @@ _bq_selftest:
     i3 = _bqst_x;
     i4 = _bqst_ref;
     r0 = 0;
-    lcntr = 64, do .bqst_z until lce;
+    lcntr = 2*DSP4_BLOCK_SIZE, do .bqst_z until lce;
         dm(i3, 1) = r0;
     .bqst_z: dm(i4, 1) = r0;
     r0 = 0x08000000;                /* impulse at sample 0, -6 dBFS */
@@ -141,7 +143,7 @@ _bq_selftest:
     /* reference: the per-sample cascade, one sample at a time */
     i3 = _bqst_x;
     i4 = _bqst_ref;
-    lcntr = 64, do .bqst_rl until lce;
+    lcntr = 2*DSP4_BLOCK_SIZE, do .bqst_rl until lce;
         r0 = dm(i3, 1);
         i0 = _bqst_coeffs;
         i1 = _bqst_st_ref;
@@ -157,7 +159,7 @@ _bq_selftest:
     /* the block form works IN PLACE, so it gets its own copy */
     i3 = _bqst_x;
     i4 = _bqst_blk;
-    lcntr = 64, do .bqst_cp until lce;
+    lcntr = 2*DSP4_BLOCK_SIZE, do .bqst_cp until lce;
         r0 = dm(i3, 1);
     .bqst_cp: dm(i4, 1) = r0;
 
@@ -169,7 +171,7 @@ _bq_selftest:
     i0 = _bqst_coeffs;
     i1 = _bqst_st_blk;
     r0 = _bqst_blk;
-    r1 = 32;
+    r1 = DSP4_BLOCK_SIZE;
     r0 = r0 + r1;
     i2 = r0;                        /* the second block, same state */
     r4 = 2;
@@ -197,7 +199,7 @@ _bq_selftest:
     r14 = -1;                       /* first differing index */
     r15 = 63;                       /* index, counting down  */
     r3 = 0;
-    lcntr = 64, do .bqst_cmp until lce;
+    lcntr = 2*DSP4_BLOCK_SIZE, do .bqst_cmp until lce;
         r0 = dm(i3, -1);
         r1 = dm(i4, -1);
         r2 = r0 - r1;
@@ -226,7 +228,7 @@ _bq_selftest:
 
     /* stimulus: an impulse for A, a different one for B */
     i3 = _sq_xA; i4 = _sq_xB; r0 = 0;
-    lcntr = 32, do .sq_z until lce;
+    lcntr = DSP4_BLOCK_SIZE, do .sq_z until lce;
         dm(i3, 1) = r0;
     .sq_z: dm(i4, 1) = r0;
     r0 = 0x08000000; dm(_sq_xA) = r0;
@@ -279,7 +281,7 @@ _bq_selftest:
     l3 = 0; l4 = 0; l5 = 0;
     /* rebuild the stimulus into the pair buffers */
     i3 = _sq_pA; i4 = _sq_pB; r0 = 0;
-    lcntr = 32, do .sq_pz until lce;
+    lcntr = DSP4_BLOCK_SIZE, do .sq_pz until lce;
         dm(i3, 1) = r0;
     .sq_pz: dm(i4, 1) = r0;
     r0 = 0x08000000; dm(_sq_pA) = r0;
@@ -298,7 +300,7 @@ _bq_selftest:
 
     /* compare against the scalar results, both strips */
     i3 = _sq_pA; i4 = _sq_xA; i5 = _sq_pB; r14 = 0;
-    lcntr = 32, do .sq_pc until lce;
+    lcntr = DSP4_BLOCK_SIZE, do .sq_pc until lce;
         r0 = dm(i3, 1);
         r1 = dm(i4, 1);
         r2 = r0 - r1;

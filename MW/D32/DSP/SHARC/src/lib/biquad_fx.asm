@@ -37,6 +37,8 @@
  * Infrastructure (hand-maintained).
  *======================================================================*/
 
+#include "dsp_block.h"
+
 .section/pm seg_pmco;
 
 .global _bq_fx_cascade_N;
@@ -162,15 +164,16 @@ _bq_fx_cascade_N.end:
  * two MACs of 2^28 -- one instruction more, one register less, and the
  * register is what was scarce.
  *
- * In:  i0 = coeffs, i1 = state, i2 = signal block (32 words, in place),
+ * In:  i0 = coeffs, i1 = state, i2 = signal block (BLOCK words, in place),
  *      r4 = number of stages.
  *----------------------------------------------------------------------*/
+
 .global _bq_fx_cascade_blk;
 _bq_fx_cascade_blk:
     l0 = 0;
     l1 = 0;
     l2 = 0;
-    r15 = -32;
+    r15 = -DSP4_BLOCK_SIZE;
     m2 = r15;                  /* rewind the signal block per stage */
     r15 = 5;
     m3 = r15;                  /* state base+1 -> next stage's base   */
@@ -199,7 +202,7 @@ _bq_fx_cascade_blk:
         r14 = 0x08000000;      /* 2^27, the rounding half */
         r15 = 1;
 
-        lcntr = 32, do .bqf_samp until lce;
+        lcntr = DSP4_BLOCK_SIZE, do .bqf_samp until lce;
             r0 = dm(i2, 0);
             mrf = mrf + r4 * r0 (ssi);      /* + b0*x   */
             mrf = mrf + r4 * r10 (ssi);     /* + b0*x2  */
@@ -257,7 +260,7 @@ _bq_fx_cascade_blk.end:
 /*----------------------------------------------------------------------
  * _bq_fx_cascade_blk — cascade a whole BLOCK, state resident in registers.
  *
- * In:  i0 = coeffs, i1 = state, i2 = signal block (32 words, in place),
+ * In:  i0 = coeffs, i1 = state, i2 = signal block (BLOCK words, in place),
  *      r4 = number of stages.
  *
  * Identical arithmetic to _bq_fx_cascade_N, reordered stage-at-a-time
@@ -278,7 +281,7 @@ _bq_fx_cascade_blk:
     l2 = 0;
     r15 = -5;
     m1 = r15;                  /* rewind coeffs by one sample's worth */
-    r15 = -32;
+    r15 = -DSP4_BLOCK_SIZE;
     m2 = r15;                  /* rewind the signal block per stage    */
     r15 = 5;
     m3 = r15;                  /* state base+1 -> next stage's base    */
@@ -293,7 +296,7 @@ _bq_fx_cascade_blk:
         r9 = dm(i1, 1);        /* efb_lo */
         r10 = dm(i1, 0);       /* efb_hi -- i1 parked at base+5 */
 
-        r4 = 32;
+        r4 = DSP4_BLOCK_SIZE;
         lcntr = r4, do .bqb_samp until lce;
             r0 = dm(i2, 0);                 /* x */
             mr0f = r9;
@@ -536,7 +539,7 @@ _bq_fx_cascade_simd:
         r14 = 0x08000000;
         r15 = 1;
 
-        lcntr = 32, do .bqs_samp until lce;
+        lcntr = DSP4_BLOCK_SIZE, do .bqs_samp until lce;
             r0 = dm(i2, 0);
             mrf = mrf + r4 * r0 (ssi);
             mrf = mrf + r4 * r10 (ssi);
@@ -615,7 +618,7 @@ _bq_fx_cascade_simd.end:
 .section/dm seg_dmda;
 .var _bqp_coeff[40];        /* 2 strips x 4 stages x 5                */
 .var _bqp_state[48];        /* 2 strips x 4 stages x 6                */
-.var _bqp_sig[64];          /* 2 strips x 32 samples                  */
+.var _bqp_sig[2*DSP4_BLOCK_SIZE];  /* 2 strips x BLOCK samples        */
 
 .section/pm seg_pmco;
 .global _bq_pair_blk;
@@ -657,7 +660,7 @@ _bq_pair_blk:
     i0 = r10;
     i1 = r13;
     i2 = _bqp_sig;
-    lcntr = 32, do .bqp_x until lce;
+    lcntr = DSP4_BLOCK_SIZE, do .bqp_x until lce;
         r1 = dm(i0, 1);
         dm(i2, 1) = r1;
         r1 = dm(i1, 1);
@@ -682,7 +685,7 @@ _bq_pair_blk:
     i2 = _bqp_sig;
     i0 = r10;
     i1 = r13;
-    lcntr = 32, do .bqp_xb until lce;
+    lcntr = DSP4_BLOCK_SIZE, do .bqp_xb until lce;
         r1 = dm(i2, 1);
         dm(i0, 1) = r1;
         r1 = dm(i2, 1);

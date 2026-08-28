@@ -14,6 +14,8 @@ for S in "$@"; do
 import re
 s=open('build/chip1.map.xml',errors='ignore').read()
 m=re.search(r\"proc_passes' address='(0x[0-9a-fA-F]+)'\",s); print(m.group(1) if m else '')")
-  scp -q build/chip1.ldr build/chip2.ldr $BENCH:/home/app/dspboot/
+  scp -q build/chip1.ldr build/chip2.ldr ../../../../tools/pi/dsp4_block.py $BENCH:/home/app/dspboot/
+  scp -q ../../../../tools/pi/dsp4_audio_verdict.py $BENCH:/home/app/dspboot/audio_verdict.py
+  scp -q strips_run.sh $BENCH:/home/app/
   echo "strips=$S  $(ssh $BENCH "bash /home/app/strips_run.sh $PP" 2>&1 | tr '\n' ' | ')"
 done

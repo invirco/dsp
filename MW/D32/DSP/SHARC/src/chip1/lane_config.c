@@ -8,18 +8,18 @@ const int c1_rx_lanes_mcpde = 1;
 const int c1_rx_lanes_wsize = 7;
 const int c1_rx_lanes[32] = {
     0, 0x00FF, 8, 0,
-    1, 0x00FF, 8, 256,
-    2, 0x00FF, 8, 512,
-    3, 0x00FF, 8, 768,
-    4, 0x000D, 3, 1024,
-    5, 0x00FF, 8, 1120,
-    6, 0x0003, 2, 1376,
-    7, 0x0020, 1, 1440
+    1, 0x00FF, 8, 64,
+    2, 0x00FF, 8, 128,
+    3, 0x00FF, 8, 192,
+    4, 0x000D, 3, 256,
+    5, 0x00FF, 8, 280,
+    6, 0x0003, 2, 344,
+    7, 0x0020, 1, 360
 };
 
-const int c1_rx_region_words = 1472;
+const int c1_rx_region_words = 368;
 #pragma align 32
-unsigned int c1_rx_buf_ping[2 * 1472];  /* [0..1472) ping, [1472..2*1472) pong */
+unsigned int c1_rx_buf_ping[2 * 368];  /* [0..368) ping, [368..2*368) pong */
 
 const int c1_ic_lanes_count = 3;
 const int c1_ic_lanes_dir = 1;    /* 0 = RX (half A), 1 = TX (half B) */
@@ -27,10 +27,10 @@ const int c1_ic_lanes_mcpde = 1;
 const int c1_ic_lanes_wsize = 15;
 const int c1_ic_lanes[12] = {
     0, 0xFFFF, 16, 0,
-    1, 0xFFFF, 16, 512,
-    2, 0x001F, 5, 1024
+    1, 0xFFFF, 16, 128,
+    2, 0x001F, 5, 256
 };
 
-const int c1_ic_region_words = 1184;
+const int c1_ic_region_words = 296;
 #pragma align 32
-unsigned int c1_ic_buf_ping[2 * 1184];  /* [0..1184) ping, [1184..2*1184) pong */
+unsigned int c1_ic_buf_ping[2 * 296];  /* [0..296) ping, [296..2*296) pong */

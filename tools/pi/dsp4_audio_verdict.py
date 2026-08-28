@@ -7,14 +7,31 @@ SPORT/DMA transport is running -- NOT that the main loop finished its
 work. _proc_passes counts completed block passes, so comparing the two
 is what actually says "real time":
 
-  frames/s ~ 1500 and passes/s ~ 1500  -> REAL TIME
-  frames/s ~ 1500 and passes/s < that  -> transport fine, loop OVER BUDGET
+  frames/s ~ RATE and passes/s ~ RATE  -> REAL TIME
+  frames/s ~ RATE and passes/s < that  -> transport fine, loop OVER BUDGET
+
+RATE is 48000 / BLOCK, so it moved with the 2026-08-28 block-size ruling:
+1500/s at BLOCK=32, 6000/s at BLOCK=8. It is NOT hardcoded here -- it
+comes from dsp4_block.py, which the generator writes from the same BLOCK
+constant the firmware is built with, so a verdict can never be scored
+against a block size the image was not built for. DSP4_BLOCK in the
+environment overrides it for a hand-staged image.
 
 Three link outcomes are kept distinct: UNKNOWN (link never answered) says
 nothing about the audio, and conflating it with dead is the error that
 made a loaded-but-running graph look like a hang.
 """
-import sys, time
+import sys, time, os
+
+try:
+    from dsp4_block import BLOCK as _BLK
+except ImportError:            # not staged beside us -- say so, do not guess
+    _BLK = None
+BLOCK = int(os.environ.get('DSP4_BLOCK', _BLK if _BLK else 32))
+if _BLK is None and 'DSP4_BLOCK' not in os.environ:
+    print('WARNING: dsp4_block.py not staged and DSP4_BLOCK unset '
+          '-- scoring against BLOCK=32', file=sys.stderr)
+RATE = 48000.0 / BLOCK
 WINDOW = float(sys.argv[1]) if len(sys.argv) > 1 else 3.0
 PASSES = int(sys.argv[2], 16) if len(sys.argv) > 2 and sys.argv[2] != '-' else None
 CHIP = int(sys.argv[3]) if len(sys.argv) > 3 else 1
@@ -49,18 +66,19 @@ if b is None:
 dt = time.time() - t0
 
 frate = (b[0] - a[0]) / dt
-print(f'FRAME_COUNT {a[0]} -> {b[0]}  = {frate:.0f}/s (expect ~1500)')
+print(f'FRAME_COUNT {a[0]} -> {b[0]}  = {frate:.0f}/s '
+      f'(expect ~{RATE:.0f} at BLOCK={BLOCK})')
 prate = None
 if PASSES and a[4] is not None and b[4] is not None:
     prate = (b[4] - a[4]) / dt
     print(f'_proc_passes {a[4]} -> {b[4]}  = {prate:.0f}/s')
 print(f'DMA0_STAT 0x{b[1]:08X}  SPORT0_ERR_A 0x{b[2]:08X}  BOOT_STAGE {b[3]}')
 
-transport = frate > 1200 and b[2] == 0
+transport = frate > 0.80 * RATE and b[2] == 0
 if not transport:
     print('AUDIO_DEAD'); sys.exit(1)
 if prate is None:
     print('AUDIO_ALIVE (transport only — no pass rate available)'); sys.exit(0)
-if prate > 1450:            # 97% of 1500 — below this it is dropping blocks
-    print(f'REAL_TIME ({prate:.0f} passes/s)'); sys.exit(0)
+if prate > 0.9667 * RATE:   # 97% of RATE — below this it is dropping blocks
+    print(f'REAL_TIME ({prate:.0f} passes/s of {RATE:.0f})'); sys.exit(0)
 print(f'OVER_BUDGET: transport {frate:.0f}/s but only {prate:.0f} passes/s'); sys.exit(1)
