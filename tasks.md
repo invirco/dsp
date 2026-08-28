@@ -1,3 +1,57 @@
+## HUB DISPATCH 2026-08-28 13:26Z — block-8 parameterization + in-kernel meter rebuild + re-baseline   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+BLOCK-8 + METER-REBUILD SESSION — executes the two PW rulings recorded
+2026-08-28 at the top of tasks.md (block size 8 working operating point;
+meter rebuilt in-kernel). The sequencing gate is met: SIMD landed at 32
+(963f181) so lever attribution against the 32-baseline ledger is clean.
+Bench is free. Both items rewrite the generated kernel loop — that is why
+they share one session; do them in this order:
+
+1. BLOCK SIZE AS A CLEAN BUILD PARAMETER first (per the block-8 ruling):
+   generator loop counts, DMA ring/2D geometry, scatter/gather, BLK_*
+   sizing, the `_sample_idx == 31` guard class, verdict rate 1500→6000
+   blocks/s in every harness/verdict tool. Nothing hardcodes 32 when this
+   step is done.
+
+2. METER REBUILD IN-KERNEL per the ruling's agreed design: per-sample
+   multifunction line — multiplier accumulates x² into RMS state while
+   the ALU does peak MAX on the in-register post-trim value; per-block —
+   one-pole RMS window fold (300 ms-class coefficient) + block-max into
+   peak-hold/decay. Target ≈2 cycles/sample/channel vs ~20 today.
+   Ride-alongs from the same ruling, all in this session:
+   - GAIN = 1 MAC un-gated: meter reads the register, not the post-trim
+     block; fold the router's post-trim pickoff into crosspoint
+     coefficients per Bible ch 10 doctrine — VERIFY the fold, then the
+     round/store dies (−17 cycles/sample).
+   - The four recorded meter numerics defects fixed BY CONSTRUCTION
+     (native Q4.28, true windowed RMS, sample-accurate peak).
+   - Bit-exactness bar: golden-reference tests for RMS window + peak
+     against fixed_ref (write new reference functions as needed) — NOT
+     just A/B against the defective meter.
+
+3. BLOCK-8 RE-BASELINE last: capacity sweeps at 786 AND 983 MHz, silence
+   AND signal, honest 6000 blocks/s rule; digital latency MEASURED on the
+   part (prediction ~23 samples ≈ 0.48 ms); per-class costs re-measured —
+   per-block hoisted work now runs 4x per sample and that concentration
+   is measured, not estimated. Every ledger/options-paper figure carries
+   its block size from now on; existing figures stay labeled block-32
+   until superseded.
+
+4. Update the ledger + options paper with the block-8 numbers and the
+   meter/GAIN recoveries; tasks.md statuses (the two ruling paragraphs
+   can be marked executed with pointers to the evidence).
+
+Rules: ladder discipline — if the meter fold or the GAIN pickoff fold
+resists verification, land block-8 parameterization + re-baseline and
+mark the resisting item with findings rather than holding the session
+hostage; standing traps; PW is around today — report blocks promptly.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 **PW RULING 2026-08-28 (~13:00): WORK WITH BLOCK SIZE 8 FOR NOW.** Target
 digital latency ~23 samples ≈ 0.48 ms (from the measured 93-at-block-32
 pipeline ratio), leaving room under 1 ms for converter group delay. This
