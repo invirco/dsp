@@ -17,6 +17,27 @@ lever attribution stays clean against the 32-baseline ledger):
 - Every ceiling in the ledger/options paper is a block-32 number until
   the re-baseline lands; quote block size with every figure from now on.
 
+**PW RULING 2026-08-28 (~13:15): THE METER RULING IS MADE — REBUILD
+IN-KERNEL** (retire and naive-decimate are off the table). Design agreed
+with the hub: per-sample multifunction line inside the fused kernel —
+multiplier accumulates x² into the RMS state while the ALU does peak MAX
+on the in-register post-trim value (~1 cycle/sample/channel, zero memory
+traffic); per 8-sample block — one-pole RMS window fold (300 ms-class
+coefficient) + block-max into peak-hold/decay (~1 cycle/sample
+equivalent). Target ≈ 2 cycles/sample/channel vs ~20 today (~590
+cycles/sample recovered at 32 channels). CONSEQUENCES THIS UNLOCKS, all
+to land in the same session: GAIN = 1 MAC (meter stops tapping the
+post-trim BLOCK — reads the register; FILT already folded; fold the
+router's post-trim pickoff into crosspoint coefficients per Bible ch 10
+doctrine — verify, then the round/store dies, −17 cycles/sample); the
+four recorded meter numerics defects are fixed BY CONSTRUCTION (native
+Q4.28, true windowed RMS, sample-accurate peak); the remaining ~21k
+fabric meter cost collapses. Bit-exactness bar: golden-reference tests
+for RMS window + peak against fixed_ref (new reference functions as
+needed), not just A/B vs the defective meter. SEQUENCING: this rides in
+the SAME session as block-8 parameterization (both rewrite the generated
+kernel loop) — dispatch after SIMD lands.
+
 ## HUB DISPATCH 2026-08-28 11:47Z — SIMD pairing on the fused strip — dynamics first (32-in-one lever)   [status: 🟡 dispatched]   [model: opus]
 
 model: opus
