@@ -69,17 +69,41 @@ _C1_IN_15_process:
      * source, so the TDM inputs are silent -- and BOTH dynamics
      * nodes short-circuit on a zero envelope BEFORE they reach
      * log2: _compgain_fx returns unity at `if le jump .cg_unity`
-     * and GATE branches to .gate_below. Profiling on silence
-     * therefore measures the cheap path and understates GATE and
-     * COMP badly. This substitutes a constant -6 dBFS, which is
-     * above both the -40 dB gate threshold and the -20 dB
-     * compressor threshold, so every node runs the path it runs
-     * with real audio. */
-    r2 = 0x08000000;
+     * and GATE takes .gkb_below without ever calling _log2q_fx.
+     * Profiling on silence therefore measures the cheap path and
+     * understates GATE and COMP badly.
+     *
+     * The stimulus is a full-rate square wave at +/-0.5 (Q4.28
+     * 0x08000000 = -6 dBFS), ADDED to the real DMA word rather
+     * than replacing it:
+     *
+     *   - the production read (`dm(i0, m0)` + the Q1.31 -> Q4.28
+     *     shift) is still executed, so this path cannot
+     *     UNDERSTATE the cost of the node it stands in for. It
+     *     overstates it by the add and the negate, ~2
+     *     cycles/sample out of a ~880-cycle strip;
+     *   - |x| is CONSTANT at -6 dBFS, which is above the -40 dB
+     *     gate threshold and the -20 dB compressor threshold at
+     *     every sample, so the envelope never dips back onto a
+     *     cheap branch mid-block;
+     *   - the sample WORD alternates, so a path that is stuck,
+     *     bypassed or reading a stale slot does not look like a
+     *     working one. A constant would survive most of those.
+     *
+     * With the shipping defaults (gate on/-40 dB, comp on/-20 dB,
+     * ratio 4, hard knee) the settled witnesses are _gate_gain =
+     * 0x10000000 (open) and _comp_gain ~ 0x04C7xxxx (-10.5 dB of
+     * gain reduction) -- both only reachable through log2/exp2,
+     * so reading them proves the expensive path ran. */
     r5 = 32;
+    r7 = 0x08000000;              /* +0.5 Q4.28 = -6 dBFS */
     lcntr = r5; do .in_sig_C1_IN_15 until lce;
-.in_sig_C1_IN_15:
+        r2 = dm(i0, m0);          /* production read, still paid */
+        r2 = ashift r2 by -3;
+        r2 = r2 + r7;             /* silent bench: r2 == r7 */
         dm(i1, 1) = r2;
+.in_sig_C1_IN_15:
+        r7 = -r7;                 /* flip sign, |x| unchanged */
     rts;
 #endif
     r5 = 32;
