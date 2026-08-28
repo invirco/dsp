@@ -1,3 +1,50 @@
+## HUB DISPATCH 2026-08-28 11:47Z — SIMD pairing on the fused strip — dynamics first (32-in-one lever)   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+SIMD PAIRING on the fused strip — options-paper item B, the 32-in-one
+lever, with the fusion session's item-4 map (08-28 block) as the brief.
+
+The measured starting point: fused strip 1,098.8 cycles/sample signal-
+present; ceilings 12@786 / 16@983 per chip. GATE+COMP is 61% of the strip
+(GATE 248.3 + COMP 426.1) — **SIMD must pair the dynamics to matter**;
+biquad-only pairing caps at ~11%. DLY+RTG (130.3, 12%) are unpairable.
+The projection TO TEST, not to claim: 2.39x (measured on a biquad pair)
+across the pairable remainder puts the strip near 535 cycles/sample =
+33 channels at 983 — 32-in-one with margin. 983 is confirmed-legal:
+PW read U5/U6 = KSWZ10 (1 GHz grade) on 08-24.
+
+Approach:
+1. Data layout first: paired-channel operands through the fused kernel
+   (channel N and N+1 resident in the paired register sets). State the
+   layout decision and its DM cost in the block before wiring.
+2. Wire SIMD through the pairable classes IN COST ORDER: COMP, GATE
+   (the 61%), then EQ/FILT biquad cascades, GAIN/FDR. Per class: measure
+   the paired cost on the part, bit-exact proof per the fusion session's
+   bar (scalar-vs-paired self-test with DIFFERENT data per channel — a
+   pair that computes channel N twice would pass identical-data tests).
+3. The dynamics' log2/exp2 polynomials and envelope state are per-channel
+   — if true pairing stalls on divergent branches, measure the honest
+   cost and say what caps it; a partial SIMD strip with measured numbers
+   beats a claimed full one.
+4. Re-measure ceilings at 786 and 983, silence + signal, honest 1500/s
+   rule. Update the cost model CSV and the ledger.
+5. DSP4_STRIP_FUSED stays default 0; SIMD behind its own flag likewise —
+   shipping image byte-identical throughout, proven per W0.
+
+Known traps now written down (respect them): DO-loop last-three-
+instruction rule; conditional branch onto a loop end hangs the core with
+the diag ISR still answering (presents as firmware that never ran);
+CFG_COMMIT header-word slip on strip 1 (use sigprofile.sh's per-point
+gain witness); matrix-app may need up to three restarts to verify all
+MCUs (log occurrences). Bench restored to shipping verified at the end;
+hand-back per ladder rules if pairing stops converging — land the
+largest measured bit-exact subset.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-08-28 09:02Z — strip fusion — the 08-24 main event (per-class baseline, fused kernel, GAIN=1 MAC acceptance)   [status: 🟢 done — **STRIP FUSION LANDED AND MEASURED: the signal-present strip is 1,231.8 → 1,098.8 cycles/sample (−10.8 %), and the measured ceilings move 11 → 12 at 786 and 14 → 16 at 983, per chip, signal present, every point witnessed.** **THE ROW THAT MATTERS: a two-chip D32 split at 983.04 MHz needs 16 channels/chip and the part now delivers 16** — last night that row read 14 and the answer was "it does not fit"; the gap was 9.4 % and fusion returned 10.8 %. It is a fit with no headroom (16 strips = 98.2 % of the 983 budget) and it rests on 983.04 MHz, a KSWZ10 clock that is OUT OF SPEC on a KSWZ8, so the U5/U6 marking still has to be read. Silence controls moved by the same proportion (15 → 18 at 786, 20 → 24 at 983, both +20 %), which is what says the gain is in the strip and not in an interaction with the stimulus. **BASELINE FIRST, published per class** (`sigprofile.sh`, new today — the signal-present twin of profile.sh, with a per-point gain witness because three of the first ten points came up carrying the CFG_COMMIT header word in strip 1's coefficient and would have reported the SILENCE cost with everything else reading clean): GAIN 17.7, FILT 123.3, EQ 247.9, GATE 248.3, COMP 426.1, TUBE ~0 (bypassed), DLY 62.0, FDR 37.3, RTG 70.7 = **1,231.8 cycles/sample**, against 1,238.4 from the ceiling-slope model that shares no arithmetic with it — 0.5 % apart. **WHAT FUSION DELETED:** the fused biquad cascade (written 08-24, never measured until today) keeps the error feedback in the 80-bit MRF across samples instead of taking it apart into two words and pushing it back every sample, and hoists the five coefficients per stage — FILT −31.8 %, EQ −32.1 %; FADER_PAN −43.8 %, mostly from replacing a manual counter loop with a hardware one. **BIT-EXACT, proven twice on the part:** the scalar-vs-block self-test was reinstated for the fused routine (a proof of the routine being replaced is not a proof of the replacement) — two stages with DIFFERENT coefficients over two consecutive blocks, impulse then silence, **ndiff=0 of 64, maxdiff=0**; and chain.py on the fused build is **BIT-EXACT, 0 of 7**, negative control passing, with the unfused control run first on the same tree. No numeric deviation to bound and no tolerance loosened — the arithmetic is unchanged, only the plumbing around it. **THE GAIN ACCEPTANCE IS NOT MET AND THE REASON IS STRUCTURAL: GAIN measures 17.8 cycles/sample, unchanged.** One of its seventeen instructions is the MAC; twelve are the single Q4.28 round/saturate and two are block stores, and those exist because THREE consumers want the post-trim block — FILT, the post-trim METER, and the router's post-trim pickoff. Fusion removes FILT from that list exactly and for free (the gain folds into the first biquad stage's numerator triple at control rate: the offset form stores n1 = b1 + 2·b0 and n2 = b2 − b0, both of which scale with b0, so scaling [b0,n1,n2] by g is identical to scaling the input by g at infinite precision, with the x-history left unscaled — and it deletes the intermediate rounding rather than moving it). **It cannot remove the meter**, which reads BLK_CHAIN_B directly; moving what the meter taps belongs in the parked meter ruling, not in a fusion commit. So GAIN = 1 MAC is reachable, the arithmetic for it is derived and written down, and it is gated on that ruling — worth at most 17 cycles/sample, 1.5 % of the strip. A second thing is recorded as buying nothing: the 2-sample interleave was applied to GAIN and FADER_PAN expecting stalls to hide, and the baseline says there are none (17.7 cycles/sample for seventeen instructions is about one per cycle). **FOR SIMD (item 4, not done here):** GATE+COMP is now **61 %** of a fused strip, up from 54.7 %, because fusion took cycles out of everything else and none out of the dynamics — SIMD that pairs only the biquads now caps at ~11 % of a strip and has to reach the dynamics to matter; DLY and RTG (130.3 cycles/sample, 12 %) are not pairable at all; at the 2.39x measured on a biquad pair the pairable remainder would put the strip near 535 cycles/sample = 33 channels at 983 and 26 at 786, which is the projection to test, not a claim. Two SHARC loop hazards cost a bench cycle each and are now written down where they bite (a DO loop's last three instructions may not be a branch or a call; a conditional branch onto a loop's own end instruction hangs the core while the diag timer ISR keeps answering the link, so it presents as firmware that never ran). Default image byte-identical either side of the generator change (chip1.ldr a2fcda81, chip2.ldr 30291013). Bench restored to shipping and verified: those images reflashed, matrix-app active, all three MCUs verified 12:41:32 — on the THIRD restart, one more than the filed bug's second-restart pattern, logged as another occurrence. CPLD never touched.]   [model: opus]
 
 model: opus
