@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-08-27 22:59Z — signal-present ceiling sweep at 786 and 983 (queued rung)   [status: 🟡 dispatched]   [model: opus]
+## HUB DISPATCH 2026-08-27 22:59Z — signal-present ceiling sweep at 786 and 983 (queued rung)   [status: 🟢 done — **MEASURED signal-present ceilings, converted build, chip 1, honest 1500/s rule: 11 at 786.432 MHz and 14 at 983.04 MHz** (silence 15 and 20). Stimulus: a full-rate +/-0.5 (-6 dBFS) square wave ADDED to the real DMA word inside every retained strip's IN kernel (DSP4_PROFILE_SIGNAL, upgraded from the old constant so the production read is still paid for and the sample word varies); proven on the part at every sweep point by a new witness that reads the dynamics state — gate OPEN and compressor ACTIVE on all N strips, envelope exactly 0.500000 and comp gain 0x04C8FBF3 = **-10.48 dB GR against -10.5 dB predicted**, which is only reachable through log2 -> knee -> exp2. Negative control on the same tree: gate gain 0x000418F7 (the 0.001 range floor), comp unity, envelope exactly 0 — so every ceiling ever recorded on this bench really was a silence number. Silence controls re-run through the same harness reproduce last night EXACTLY (15 at 786 and 20 at 983, both 1500/s). **THE DECIDING ANSWER: a two-chip D32 split needs 16/chip at 983 and the part delivers 14. It does not fit — and the ~15-16 estimate was optimistic, not conservative.** Signal costs +40.5% on the strip (881.6 -> 1,238.4 cycles/sample) and 27-30% of the channels. **ALL of it is GATE+COMP** (+360.7 cycles/sample measured independently by node profile, against +356.8 from the sweep slope — 1.1% apart); the two dynamics nodes are now **54% of a signal-present strip**. The cycle model reproduces both ceilings from the pass-rate slope (786: fixed 77,912 + 39,627/strip -> 11.26; 983: fixed 80,824 + 39,438/strip -> 14.57, and it predicts the marginal 15th strip at 1,457/s against 1,462 measured). **One row is a margin rather than a factor:** 16/chip at 983 needs the strip down 9.4%, and the dynamics pair alone would deliver it with a 17.4% cut. Everything else is still a factor: D24 24-on-one at 983 is short by 10, 32-in-one is 2.3x at 983 and 2.9x at 786, and chip 2 is NOT spare capacity (1,978,933 cycles/block on 2026-08-24, 3.8x over its own budget, itself a silence reading). NOT quoted: the GATE-vs-COMP split — the NODE_LIMIT=5 build's gate reads envelope exactly 0 with the stimulus compiled in and measurably executing, while NODE_LIMIT=6's is open, so chain truncation interacts with the stimulus in a way I could not explain and I will not publish a number that rests on it. Bench restored to shipping byte-identical (25a1afed/7052c5d1), BOOT_STAGE 7 at 1500/s, DMA0_STAT 0x00006200, SPORT0_ERR_A clean, CPLD never touched (firmware route, not the loopback bitstream), matrix-app active with all three MCUs verified 01:10:55.]   [model: opus]
 
 model: opus
 
@@ -110,7 +110,7 @@ Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
 no AI attribution in commits or any work product.
 
-## NEXT RUNG (queued 2026-08-28 00:0xZ) — SIGNAL-PRESENT ceiling sweep   [status: 🔴 queued]
+## NEXT RUNG (queued 2026-08-28 00:0xZ) — SIGNAL-PRESENT ceiling sweep   [status: 🟢 done 2026-08-28 — executed as the 22:59Z dispatch above. Measured 11 at 786 and 14 at 983 against the 11-12 / 15-16 estimate: the 786 estimate held, the 983 one was optimistic and the D32-on-card boundary question is answered NO. Route taken was the firmware stimulus behind DSP4_PROFILE_SIGNAL, not the loopback bitstream; the gate-is-open proof the block demanded is `tools/pi/dsp4_dyn_witness.py` and it ran at every sweep point. Both caveats travelled with the answer.]
 
 model: opus
 
@@ -207,6 +207,207 @@ update this block's status (🟢 done / 🔴 blocked) with a short outcome;
 no AI attribution in commits or any work product.
 
 Legend: 🔴 not started/blocked · 🟡 in progress · 🟢 done
+
+### Outcome 2026-08-28 (early) — the SIGNAL-PRESENT ceilings, measured
+
+The rung queued at c5a6e36. Every ceiling on record was taken on a silent
+bench; this replaces the ±25 % bias correction with a measurement, at both
+clocks, on the converted build.
+
+#### The stimulus, and why this one
+
+Route taken was the cheap one the block listed first: a firmware stimulus
+behind a build flag, not the loopback CPLD bitstream. `DSP4_PROFILE_SIGNAL`
+already existed and already substituted a constant −6 dBFS in the IN kernel;
+it was upgraded rather than replaced, in two ways that both matter to whether
+the number can be trusted:
+
+1. **It now ADDS to the real DMA word instead of replacing it.** The old form
+   returned early and never executed the `dm(i0, m0)` read or the Q1.31 →
+   Q4.28 shift, so it measured a strip whose input node was *cheaper* than the
+   production one. The new form pays the production read and then adds the
+   stimulus, so it cannot understate the node it stands in for. It overstates
+   it instead, by the add and the negate — **measured at 54 cycles/block per
+   strip, 1.7 cycles/sample out of 1,238**, which is 0.14 % and in the safe
+   direction.
+2. **The sample word alternates** (+0.5, −0.5, … at full rate) while |x| stays
+   constant. Constant magnitude is what keeps the dynamics on their expensive
+   branch at *every* sample rather than dipping back mid-block; the
+   alternating word is what stops a stuck, bypassed or stale-slot path from
+   looking like a working one. A DC constant would have survived most of those.
+
+−6 dBFS sits above the −40 dB gate threshold and the −20 dB compressor
+threshold at the shipping defaults, which is the condition the block set.
+
+#### Proof that the signal was actually there — every point, not once
+
+`tools/pi/dsp4_dyn_witness.py` reads the dynamics state and refuses to report
+a value that two consecutive reads do not agree on (the diag link answers
+0xFFFFFFFF intermittently, and one read cannot tell that from a value —
+recorded 2026-08-27 and it bit this probe too).
+
+    strip  gate_env   gate_gain          comp_env   comp_gain
+        1  0.500000   0x10000000 OPEN    0.500000   0x04C8FBF3  −10.48 dB GR
+
+**The comp gain is the strong witness, not the gate.** With thr −20 dB, ratio
+4 and a hard knee, −6 dBFS predicts 2^−(0.75·log2(0.5/0.1)) = 0.2988 → −10.50
+dB. The part returned 0x04C8FBF3 = 0.298873 → **−10.48 dB**. That value is
+only reachable by running log2, the knee and exp2 end to end; "non-zero" would
+not have proved it.
+
+**Negative control, same tree, stimulus off:** gate gain 0x000418F7 — the
+0.001 range floor, i.e. shut — comp unity, envelopes exactly 0, on every
+strip. So the bench really is silent without this, and **every ceiling
+previously recorded on it really is a silence number.** That was an assumption
+until tonight.
+
+#### MEASURED signal-present ceilings, converted build, chip 1
+
+Judged by the honest rule: 1500 passes/s is real time; `audio_verdict.py`
+labels anything over 1450 REAL_TIME and that label is wrong.
+
+| `DSP4_STRIPS` | 786.432 MHz | 983.04 MHz |
+|---|---|---|
+| **11** | **1500/s — ceiling** | — |
+| 12 | 1421/s over budget | — |
+| 13 | 1326/s over budget | — |
+| **14** | 1243/s over budget | **1500/s — ceiling** |
+| 15 | — | 1462/s — **marginal** (the tool calls this REAL_TIME) |
+| 16 | — | 1381/s over budget |
+
+Witness at every one of those points: gate OPEN and comp ACTIVE on **all N**
+strips, 0 unreadable.
+
+**Silence controls re-run through the same harness**, so the only variable
+between the two columns is the stimulus: **15 at 786 = 1500/s** and **20 at
+983 = 1500/s**, witness reporting every strip on the cheap branch. Those
+reproduce 2026-08-27 exactly.
+
+| | silence (measured) | estimated | **signal-present (MEASURED)** |
+|---|---|---|---|
+| 786.432 | 15 | ~11–12 | **11** |
+| 983.04 | 20 | ~15–16 | **14** |
+
+**The 786 estimate held. The 983 estimate was optimistic, and that is the one
+the feasibility answer turned on.**
+
+#### What signal costs
+
+Taken from the pass-rate slope, which needs no chain truncation: at a strip
+count that is over budget, cycles/block = CCLK / passes_per_second.
+
+| clock | points used | cycles per strip | fixed cost | predicted ceiling | measured |
+|---|---|---|---|---|---|
+| 786.432 | 12, 13, 14 | 39,627 | 77,912 | 11.26 → **11** | **11** |
+| 983.04 | 15, 16 | 39,438 | 80,824 | 14.57 → **14** | **14** |
+
+The two clocks agree on the strip to 0.5 % — as they must, since it is core
+cycles. The model also predicts the *marginal* point: 14.57 strips of capacity
+means 15 strips run at 97.1 % = 1,457/s, and 1,462/s was measured.
+
+- **A signal-present strip is 39,627 cycles/block = 1,238.4 cycles/sample**,
+  against 881.6 silent. **+40.5 %.**
+- In channels: 15 → 11 at 786 (−26.7 %), 20 → 14 at 983 (−30.0 %). The "signal
+  costs roughly a quarter of the headroom" bias was close at 786 and too kind
+  at 983.
+- Fixed cost grows 3.7 % between the clocks (77,912 → 80,824 core cycles)
+  because part of it is off-core and clocked by SYSCLK, not CCLK. It is a
+  small effect but it is real, and it is why the ceiling ratio (1.29) is not
+  the clock ratio (1.25).
+
+#### ALL of it is the two dynamics nodes
+
+Independent method — `profile.sh`, `DSP4_NODE_LIMIT` 6 versus 4, run with the
+stimulus on and off. Limit 4 is IN+GAIN+FILT+EQ, limit 6 adds GATE and COMP.
+
+| | limit 4 | limit 6 | GATE+COMP |
+|---|---|---|---|
+| silence | 44,969 | 54,825 | 9,856 |
+| signal | 45,023 | 66,422 | **21,399** |
+| delta | +54 | | **+11,543 = +360.7 cycles/sample** |
+
++360.7 against **+356.8** from the ceiling-sweep slope: **1.1 % apart, two
+methods that share no arithmetic.** And the limit-4 row is the control that
+makes it safe — the rest of the chain moves by 54 cycles/block, which is
+exactly the stimulus's own overhead, so IN/GAIN/FILT/EQ are data-independent
+as expected.
+
+**GATE+COMP with signal = 21,399 cycles/block = 668.7 cycles/sample = 54 % of
+the entire signal-present strip.** The dynamics rework is no longer one lever
+among several; it is most of what is left.
+
+#### The 32-channel answer, restated on measurements
+
+- **D32 as a two-chip split at 983 needs 16 channels/chip. The part delivers
+  14. It does not fit.** This was the question the rung existed to answer, and
+  the estimate that made it look like a boundary case was optimistic.
+- **BUT this is the one row that is a margin rather than a factor.** 16/chip
+  at 983 needs the strip down from 1,238.4 to 1,122.2 cycles/sample — **−9.4
+  %**. GATE+COMP is 668.7 of that strip, so a **17.4 % cut in the dynamics
+  pair alone** closes it. Nothing else on this page is that close.
+- **D24, 24 channels on one chip at 983: short by 10** (14 measured). Needs
+  748.1 cycles/sample against 1,238.4 — a factor of 1.66.
+- **D32, 32 channels on one chip: 2.29x short at 983, 2.91x at 786.**
+- **Chip 2 is still not the escape route, and the per-chip figure is not a
+  per-card answer.** Its own graph measured 1,978,933 cycles/block on
+  2026-08-24, 3.8x over the same budget, and that was itself a silence
+  reading. Nothing this week touched it, and it was not measured with signal
+  tonight either. "32 across two chips" requires chip 2's load to be cut
+  first.
+- The 2026-08-24 note "chip 2 is comparatively idle" stays retracted.
+
+#### One thing I could not explain, so it is not quoted
+
+The GATE-versus-COMP split. Profiling at `DSP4_NODE_LIMIT` 5 makes GATE the
+last node in the chain, and in that build the witness reads
+`_gate_envelope` = **exactly 0** with the stimulus compiled in and
+**measurably executing** (the limit-4 cost carries its +54). At
+`DSP4_NODE_LIMIT` 6 the same stimulus reaches an OPEN gate and an ACTIVE
+compressor. Truncating the chain therefore interacts with the stimulus in a
+way I did not get to the bottom of, and every per-node number that leans on
+the limit-5 point is unsafe:
+
+- **GATE alone and COMP alone are NOT reported.** The limit-5 readings make
+  GATE look free (4,903 silent, 4,710 with signal, 4,712 with log2 stubbed)
+  and put the whole cost in COMP; that would be an interesting claim about
+  `_log2q_fx` and it is exactly the claim the suspect point would produce.
+- For the same reason **the reading that `DSP4_GATE_LINTHR`'s recorded "~95
+  cycles/sample" is not real is NOT asserted here**, even though three
+  measurements pointed that way. That flag is carried as a lever needing a
+  numeric-spec amendment and PW's sign-off; re-price it once the truncation
+  interaction is understood, before anyone spends the amendment on it.
+- **GATE+COMP together is safe** and is what is reported above: at limit 6
+  both builds are internally consistent — the signal build has signal at both
+  nodes, the silence build at neither.
+
+#### Also not done
+
+- **Chip 2 was not measured with signal.** Its 3.8x is a silence figure and
+  the correct signal-present figure is worse by something like the 40 % found
+  on chip 1, but that is an inference and is not quoted as a measurement.
+- The stimulus is **steady state**. It holds both dynamics on the expensive
+  branch continuously, which is the right worst case for a ceiling, but it
+  does not exercise transients — makeup ramps, gate hold expiry, knee
+  traversal. A programme-material ceiling would sit between this and silence,
+  nearer this end.
+- **TUBE is off at the shipping default**, so it takes its copy path in both
+  columns and its active cost is in neither number. That has been an open item
+  since 2026-08-24 and still is.
+- The knee is 0 at the default, so COMP takes the hard-knee path. Soft knee is
+  a longer path and is not measured.
+
+#### Bench hand-back
+
+Shipping firmware restored byte-identical (`25a1afed…` / `7052c5d1…`),
+BOOT_STAGE 7 at 1500/s, DMA0_STAT 0x00006200, SPORT0_ERR_A clean. The CPLD was
+never touched — the firmware-stimulus route was taken precisely so the
+shipping bitstream never had to move. matrix-app active, all three MCUs
+verified at 01:10:55 (H1S1, H1S3, H1S4); the second-restart pattern held
+again. The default per-sample image rebuilds to `a2fcda81…`, the same md5
+recorded on 2026-08-27, and the converted build with the flag off is
+byte-identical to HEAD — so the stimulus is inert in everything that is not
+explicitly asking for it.
+
 
 ### Outcome 2026-08-27/28 (overnight) — fabric 40k rung, and a measured 32-channel feasibility update
 
