@@ -75,10 +75,16 @@ def hplp(f0, q, hp):
 
 
 def s_metric(cq):
-    """Sum of coefficient magnitudes, weighted by how often each is MACed."""
+    """Sum of coefficient magnitudes, weighted by how often each is MACed.
+
+    n1 is stored HALVED and MACed twice (PW ruling 2026-08-29): each of
+    the two MACs carries the stored word at the ordinary Q4.28 scale, so
+    the term is 2*|nh| = |n1| and the bound is unchanged by the
+    encoding -- only the reading of the stored word is."""
     q = lambda v: v / (1 << fr.QB)
-    b0, n1, n2, c1, c2 = cq
-    return 4 * abs(q(b0)) + abs(q(n1)) + abs(q(n2)) + abs(q(c1)) + abs(q(c2)) + 3
+    b0, nh, n2, c1, c2 = cq
+    return (4 * abs(q(b0)) + 2 * abs(q(nh)) + abs(q(n2))
+            + abs(q(c1)) + abs(q(c2)) + 3)
 
 
 def design_space(nf=121, ng=61, nq=41):

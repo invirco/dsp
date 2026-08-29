@@ -6,7 +6,7 @@
  * first-order error feedback, shared/numeric-spec.md):
  *
  *   acc  = efb + b0*x + b0*x2 - b0*x1 - b0*x1        (x - 2x1 + x2)
- *        + n1*x1 + n2*x2 - c1*y1 + c2*y2
+ *        + nh*x1 + nh*x1 + n2*x2 - c1*y1 + c2*y2      (nh = n1/2)
  *        + y1*2^29 - y2*2^28                          (2*y1 - y2) << 28
  *   y    = sat32(rns(acc, 28))
  *   efb' = acc - (y << 28)
@@ -15,8 +15,24 @@
  * as a 64-bit pair. rns() = add 2^27 then arithmetic >>28 (matches
  * fixed_ref.rns for the value ranges reachable here).
  *
- * Coefficient block per stage (5 words, Q4.28):  [b0, n1, n2, c1, c2]
+ * Coefficient block per stage (5 words):  [b0, nh, n2, c1, c2]
  *   n1 = b1 + 2*b0,  n2 = b2 - b0,  c1 = 2 + a1,  c2 = 1 - a2
+ *   b0/n2/c1/c2 are Q4.28; nh is n1 HALVED, stored Q5.27.
+ *
+ * WHY n1 IS HALVED (PW ruling 2026-08-29, minimum EQ Q = 0.10). n1 is
+ * the only offset coefficient whose design-space range escapes Q4.28:
+ * at +15 dB with Q <= 0.12 the peaking design gives n1 up to 8.318
+ * against a ceiling of 7.999..., and it used to SATURATE at conversion,
+ * so the filter silently became a different filter (1323 of 909,315
+ * swept sets). Q5.27 doubles the headroom to +/-16 and the kernel
+ * accumulates nh's product TWICE into the exact 80-bit MRF, which is
+ * arithmetically n1*x1 with no intermediate rounding.
+ *
+ * UNIFORM AND UNCONDITIONAL. Every cascade form pays the extra MAC on
+ * every stage of every sample whatever the loaded coefficients are: the
+ * instruction stream must not vary with settings, or a measured ceiling
+ * becomes a function of what happened to be loaded when it was measured.
+ * ~+6 cycles/sample on a scalar strip, ~+3 per channel paired.
  * State block per stage (6 words): [x1, x2, y1, y2, efb_lo, efb_hi]
  *
  * Entry points:
@@ -67,8 +83,9 @@ _bq_fx_cascade_N:
         mrf = mrf - r1 * r5 (ssi);      /* - b0*x1 */
 
         /* ---- offset terms ---- */
-        r1 = dm(i0, 1);        /* n1 */
-        mrf = mrf + r1 * r5 (ssi);      /* + n1*x1 */
+        r1 = dm(i0, 1);        /* nh = n1/2, Q5.27 */
+        mrf = mrf + r1 * r5 (ssi);      /* + nh*x1 */
+        mrf = mrf + r1 * r5 (ssi);      /*   twice  = n1*x1 */
         r1 = dm(i0, 1);        /* n2 */
         mrf = mrf + r1 * r6 (ssi);      /* + n2*x2 */
         r1 = dm(i0, 1);        /* c1 */
@@ -230,7 +247,8 @@ _bq_fx_cascade_blk:
             mrf = mrf + r4 * r10 (ssi);     /* + b0*x2  */
             mrf = mrf - r4 * r9 (ssi);      /* - b0*x1  */
             mrf = mrf - r4 * r9 (ssi);      /* - b0*x1  */
-            mrf = mrf + r5 * r9 (ssi);      /* + n1*x1  */
+            mrf = mrf + r5 * r9 (ssi);      /* + nh*x1  */
+            mrf = mrf + r5 * r9 (ssi);      /*   twice  = n1*x1 */
             mrf = mrf + r6 * r10 (ssi);     /* + n2*x2  */
             mrf = mrf - r7 * r11 (ssi);     /* - c1*y1  */
             mrf = mrf + r8 * r12 (ssi);     /* + c2*y2  */
@@ -334,8 +352,9 @@ _bq_fx_cascade_blk:
             mrf = mrf + r1 * r6 (ssi);
             mrf = mrf - r1 * r5 (ssi);
             mrf = mrf - r1 * r5 (ssi);
-            r1 = dm(i0, 1);                 /* n1 */
+            r1 = dm(i0, 1);                 /* nh = n1/2, Q5.27 */
             mrf = mrf + r1 * r5 (ssi);
+            mrf = mrf + r1 * r5 (ssi);      /* twice = n1*x1 */
             r1 = dm(i0, 1);                 /* n2 */
             mrf = mrf + r1 * r6 (ssi);
             r1 = dm(i0, 1);                 /* c1 */
@@ -448,10 +467,22 @@ _bq_fx_convert_N:
         f5 = f0 * f8;
         r9 = fix f5;
         dm(i1, 1) = r9;
-        /* n1 = b1 + 2*b0 */
+        /* nh = (b1 + 2*b0) / 2, stored Q5.27 -- the halved n1. Scaling
+         * by 2^27 instead of 2^28 IS the halving: one multiply, no extra
+         * instruction, and the ceiling moves from 7.999 to 15.999.
+         *
+         * The 2^27 constant goes in f1, NOT in a fresh register, and the
+         * reason is the one this routine's header already learned the
+         * hard way: the register file is unified, so a hoisted f9 would
+         * be destroyed by the `r9 = fix f5` of the b0 conversion one
+         * line earlier and n1 would quantise against garbage. f1 held
+         * b1, which the add above has just consumed and which the next
+         * iteration reloads, and r1 is inside this routine's documented
+         * clobber set. */
         f5 = f0 * f6;
         f5 = f1 + f5;
-        f5 = f5 * f8;
+        r1 = 0x4D000000;       /* 134217728.0f = 2^27 */
+        f5 = f5 * f1;
         r9 = fix f5;
         dm(i1, 1) = r9;
         /* n2 = b2 - b0 */
@@ -578,7 +609,8 @@ _bq_fx_cascade_simd:
             mrf = mrf + r4 * r10 (ssi);
             mrf = mrf - r4 * r9 (ssi);
             mrf = mrf - r4 * r9 (ssi);
-            mrf = mrf + r5 * r9 (ssi);
+            mrf = mrf + r5 * r9 (ssi);      /* + nh*x1 */
+            mrf = mrf + r5 * r9 (ssi);      /*   twice = n1*x1 */
             mrf = mrf + r6 * r10 (ssi);
             mrf = mrf - r7 * r11 (ssi);
             mrf = mrf + r8 * r12 (ssi);

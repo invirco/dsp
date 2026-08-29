@@ -12,6 +12,11 @@
 # rewrite of the arithmetic's PLUMBING, not of the arithmetic, and the
 # reference cascade it is diffed against is the one the numeric spec names.
 #
+# Since 2026-08-29 it also diffs BOTH cascades against fixed_ref itself
+# (tools/pi/dsp4_bq_verify.py). Two asm arms agreeing proves they agree;
+# it does not prove either one is the ruled arithmetic, and the biquad had
+# no asm-vs-model instrument until the halved-n1 encoding needed one.
+#
 #   ./bqst.sh            fused (the default question)
 #   FUSED=0 ./bqst.sh    the unfused block cascade, same bar
 set -u
@@ -25,13 +30,11 @@ DSP4_BISECT=0 DSP4_BLOCK_KERNELS=1 DSP4_BQ_SELFTEST=1 \
 if [ "$(grep -ciE '\[Error|Build FAILED' /tmp/bqst_build.log)" -ne 0 ]; then
   echo "BUILD FAILED"; grep -iE '\[Error' /tmp/bqst_build.log | head; exit 1; fi
 echo "  image: chip1.ldr $(md5sum build/chip1.ldr | cut -c1-8)  (FUSED=${FUSED:-1})"
-read -r A B C D E F <<<"$(python3 -c "
-import re
-s=open('build/chip1.map.xml',errors='ignore').read()
-def a(n):
-    m=re.search(re.escape(n)+r\"' address='(0x[0-9a-fA-F]+)'\",s); return m.group(1) if m else '0'
-print(a('_bqst_done'), a('_bqst_ndiff'), a('_bqst_maxdiff'), a('_bqst_first'),
-      a('_bqst_ref'), a('_bqst_blk'))")"
-scp -q build/chip1.ldr build/chip2.ldr $ROOT/tools/pi/dsp4_block.py $BENCH:/home/app/dspboot/
+BLOCK=$(sed -n 's/.*DSP4_BLOCK_SIZE[ \t]*\([0-9][0-9]*\).*/\1/p' src/dsp_block.h | head -1)
+python3 $ROOT/tools/dsp/map_syms.py build/chip1.map.xml > /tmp/chip1.sym.json
+scp -q build/chip1.ldr build/chip2.ldr /tmp/chip1.sym.json \
+    $ROOT/tools/pi/dsp4_block.py \
+    $ROOT/tools/pi/dsp4_bq_verify.py \
+    $ROOT/tools/dsp/fixed_ref.py $BENCH:/home/app/dspboot/
 scp -q bqst_run.sh $BENCH:/home/app/
-ssh $BENCH "bash /home/app/bqst_run.sh $A $B $C $D $E $F"
+ssh $BENCH "bash /home/app/bqst_run.sh $BLOCK"

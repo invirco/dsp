@@ -33,7 +33,7 @@
 .global _talk_hpf_coeffs_C1_TALK_01;
 .var _talk_hpf_coeffs_C1_TALK_01[5] = 1.0, 0.0, 0.0, 0.0, 0.0;
 .global _talk_hpf_cq_C1_TALK_01;
-.var _talk_hpf_cq_C1_TALK_01[5] = 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000;
+.var _talk_hpf_cq_C1_TALK_01[5] = 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
 .global _talk_hpf_state_C1_TALK_01;
 .var _talk_hpf_state_C1_TALK_01[6];
 .global _talk_route_C1_TALK_01;

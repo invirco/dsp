@@ -23,15 +23,15 @@
 .extern _buf_C1_GAIN_24;
 
 .global _filt_hpf_A_C1_FILT_24;
-.var _filt_hpf_A_C1_FILT_24[5] = 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000;
+.var _filt_hpf_A_C1_FILT_24[5] = 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
 .global _filt_lpf_A_C1_FILT_24;
-.var _filt_lpf_A_C1_FILT_24[5] = 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000;
+.var _filt_lpf_A_C1_FILT_24[5] = 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
 .global _filt_state_A_C1_FILT_24;
 .var _filt_state_A_C1_FILT_24[12];
 .global _filt_hpf_B_C1_FILT_24;
-.var _filt_hpf_B_C1_FILT_24[5] = 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000;
+.var _filt_hpf_B_C1_FILT_24[5] = 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
 .global _filt_lpf_B_C1_FILT_24;
-.var _filt_lpf_B_C1_FILT_24[5] = 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000;
+.var _filt_lpf_B_C1_FILT_24[5] = 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
 .global _filt_state_B_C1_FILT_24;
 .var _filt_state_B_C1_FILT_24[12];
 

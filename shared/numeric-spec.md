@@ -132,10 +132,20 @@ square at f0, DC; 200 k samples per set; greedy per-sample adversary as
 a cross-check) the largest `|efb|` observed anywhere is **2^62.606**, at
 f0 = 14.16 kHz, +15 dB, Q = 0.1. The state words are not independent —
 y1/y2 are this filter's own past outputs — and that is what keeps the
-reachable value inside the store.
+reachable value inside the store. (Those two paragraphs quote the
+2026-08-29 pre-ruling sweep: worst S 38.56, |efb| 2^62.606. Both moved
+when n1 stopped saturating — see the normative bound below.)
 
 **NORMATIVE BOUND: `|efb| < 2^63` holds for every input within the
-design space, with 0.394 bits of margin (1.314×).**
+design space.** Re-measured 2026-08-29 after the halved-n1 encoding
+landed: **2^61.648, 1.352 bits of margin (2.553×)**, at f0 = 12.62 kHz,
++15 dB, Q = 0.1 under DC drive. The pre-ruling figure was 2^62.606 and
+0.394 bits, and the improvement is a consequence of the encoding rather
+than of anything aimed at this bound: that worst set is one of the 1 323
+whose n1 used to saturate, so what the bound was measuring there was a
+different — and more extreme — filter than the one the settings ask
+for. The pessimistic bound still does not close (worst S = 41.743,
+`|acc| ≤ 2^64.383`), for the reasons below.
 
 That margin is thin and it is recorded as thin. It is only consumed
 under SUSTAINED output saturation with an extreme EQ setting, and the
@@ -157,13 +167,77 @@ folding it in there is cheaper than adding it now.
 8.318, which does not fit Q4.28 and SATURATES at conversion — the
 filter silently becomes a different filter. 1323 of 909 315 swept
 design-space sets are affected, all of them in that corner. Coverage
-for `_bq_fx_convert_N` is review finding D27.
+for `_bq_fx_convert_N` is review finding D27. **That saturation is
+fixed by the halved-n1 encoding below.**
+
+### Minimum filter Q, and the halved n1 (PW ruling 2026-08-29)
+
+**MINIMUM Q = 0.10, NORMATIVE.** It matches the wide-gentle extreme of
+the console field rather than the mainstream 0.3 floor, and the corner
+it admits is in spec. `fixed_ref.check_q` and `dsp_simulate.check_q`
+REJECT a lower Q — they do not clamp it, because a silently clamped Q
+is the same class of defect as the silently saturated n1 it was ruled
+alongside. The product-side design code that turns (f0, Q, gain) into
+the RBJ set the DSP receives lives outside this repo and needs the same
+floor.
+
+**n1 IS STORED HALVED, IN Q5.27, AND THE KERNEL ACCUMULATES ITS PRODUCT
+TWICE.** Of the five offset coefficients n1 is the only one whose
+design-space range escapes Q4.28. Over the full swept space that
+`bound_efb.design_space` enumerates — peaking, both shelves and HP/LP,
+869 627 quantised sets — **1 323 reach |n1| ≥ 8** and saturated Q4.28.
+Q5.27 puts the ceiling at 16.0 and clears **1 313 of those 1 323**. The
+two MACs go into the exact 80-bit MRF, so `nh·x1 + nh·x1` is `n1·x1`
+with no intermediate rounding.
+
+**TEN SETS STILL SATURATE, and that is a finding, not a rounding.** The
+largest |n1| in the space is **17.835**, and it is not the peaking
+corner the ruling was written for: it is a LOW SHELF at f0 = 18.9–20 kHz,
++14…15 dB, shelf-Q 2.8–3.5 — ten sets, all of them a low shelf placed
+at the top of the audio band. Q5.27 does not reach them and neither
+would the six-word split option below, whose ceiling is also 16. Closing
+them is a RANGE decision for PW, not an encoding one: either the DEFS
+bound low-shelf f0 (a low shelf at Nyquist is not a control anyone
+means to offer) or the stored n1 needs a third bit and a third MAC.
+Until then, conversion of those ten sets silently produces a different
+filter, exactly as the 1 323 did.
+
+**UNIFORM AND UNCONDITIONAL.** Every cascade form pays the extra MAC on
+every stage of every sample whatever the loaded coefficients are — the
+instruction stream must not vary with settings, or a measured ceiling
+becomes a function of what happened to be loaded when it was measured.
+Cost ≈ +6 cycles/sample on a scalar strip, ≈ +3 per channel paired.
+
+**WHAT IT COSTS IN ACCURACY, MEASURED.** One bit of n1 resolution: the
+grid goes from 2^−28 to 2^−27. On golden_harness's biquad sweep the
+worst magnitude error against float64 moves **0.046151 dB → 0.060560
+dB**, both at f0 = 20 Hz / −12 dB / Q = 4, and is **unchanged at
+0.003479 dB for f0 ≥ 50 Hz** — the cost lands only at LF, which is
+exactly where the offset form's benefit lives. Still 6.6× better than
+the shipping FP32 firmware's 0.4 dB on the same case. The harness bar
+moved 0.05 → 0.07 dB to match, and the 0.046 dB figure quoted under
+*Coefficient formats* below is the PRE-RULING number.
+
+**OPTION NOT TAKEN, costed for PW.** A six-word coefficient block that
+splits n1 into two Q4.28 halves summing EXACTLY to `round(n1·2^28)`
+would give the same doubled range at the same +1 MAC, with NO
+resolution loss — the arithmetic would stay bit-identical to the
+pre-ruling kernel for every setting where n1 already fitted, and only
+the 22 saturating sets would change. It costs one DM word per stage
+(EQ: 4 stages × 3 buffers × 32 nodes = 384 words per chip, against
+177 KB free) and it changes the internal coefficient-block stride from
+5 to 6, which is wired into the generator, all four cascade forms,
+`_bq_fx_convert_N` and both self-test tables. It is a strictly better
+trade on the numbers above; it is not taken here because the ruling
+names the halved form.
 
 ## Coefficient formats
 
 - Biquad topology (NORMATIVE): **offset-coefficient direct-form I with
-  first-order error feedback** (fixed_ref.biquad). Stored coefficients
-  in **Q4.28**: b0, n1 = b1+2·b0, n2 = b2−b0, c1 = 2+a1, c2 = 1−a2.
+  first-order error feedback** (fixed_ref.biquad). Stored coefficients:
+  b0, n2 = b2−b0, c1 = 2+a1, c2 = 1−a2 in **Q4.28**, and **n1 = b1+2·b0
+  stored HALVED in Q5.27**, its product accumulated twice (see *Minimum
+  filter Q, and the halved n1* above).
   Rationale (measured): plain DF1 with 32-bit coefficients fails at LF
   (12.8 dB response error at 20 Hz; today's FP32 firmware shows 0.4 dB
   on the same case); the offset form passes 0.046 dB worst-case, ~9×

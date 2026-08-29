@@ -5336,9 +5336,10 @@ def gen_eq_biquad_fixed(node):
     n5 = bands * 5      # coeff words per instance (fixed offset form)
     n6 = bands * 6      # state words per instance
     rc = ramp_comment(node['ramp_profile'])
-    # bypass = identity: b0=1.0 -> 0x10000000; n1=2.0 -> 0x20000000;
+    # bypass = identity: b0=1.0 -> 0x10000000; n1=2.0 stored HALVED as
+    # nh=1.0 in Q5.27 -> 0x10000000 (PW ruling 2026-08-29);
     # n2=-1.0 -> -0x10000000; c1=2.0; c2=1.0 (a1=0,a2=0)
-    bypass = ', '.join(['0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000'] * bands)
+    bypass = ', '.join(['0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000'] * bands)
     nid = node['id']
     inp = node['inputs_str']
     return dedent(f"""\
@@ -5488,7 +5489,7 @@ def gen_eq_biquad_fixed(node):
 def _fx_bypass5(stages):
     """Q4.28 offset-form identity coefficient list for N stages."""
     return ', '.join(
-        ['0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000'] * stages)
+        ['0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000'] * stages)
 
 
 def _xfade_blend_core(pfx, nid):
@@ -5762,7 +5763,7 @@ def gen_hpf_lpf_fixed(node):
     rc = ramp_comment(node['ramp_profile'])
     nid = node['id']
     inp = node['inputs_str']
-    byp = '0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000'
+    byp = '0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000'
     fbyp = '1.0, 0.0, 0.0, 0.0, 0.0'
     return dedent(f"""\
         {rc}
@@ -5993,8 +5994,8 @@ def gen_crossover_fixed(node):
     rc = ramp_comment(node['ramp_profile'])
     nid = node['id']
     inp = node['inputs_str']
-    byp10 = ('0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000, '
-             '0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000')
+    byp10 = ('0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, '
+             '0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000')
     fbyp20 = ', '.join(['1.0, 0.0, 0.0, 0.0, 0.0'] * 4)
     return dedent(f"""\
         {rc}
@@ -8677,7 +8678,7 @@ def gen_talkback_fixed(node):
         .var _talk_gain_frames_{nid} = 0;
         .var _talk_hpf_on_{nid} = 1;
         .var _talk_hpf_coeffs_{nid}[5] = 1.0, 0.0, 0.0, 0.0, 0.0;
-        .var _talk_hpf_cq_{nid}[5] = 0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000;
+        .var _talk_hpf_cq_{nid}[5] = 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
         .var _talk_hpf_state_{nid}[6];
         .var _talk_route_{nid}[3];
         .var _buf_{nid};

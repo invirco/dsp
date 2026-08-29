@@ -50,6 +50,7 @@ SAMPLE_RATE   = 48000
 # the firmware can never disagree about a block.
 from dsp_codegen import BLOCK as BLOCK_SIZE
 NYQUIST       = SAMPLE_RATE / 2.0
+Q_MIN         = 0.10   # ruled minimum filter Q (PW 2026-08-29)
 
 # ---------------------------------------------------------------------------
 # CSV helpers
@@ -124,8 +125,18 @@ def biquad_coeffs_bypass():
     return np.array([1.0, 0.0, 0.0, 0.0, 0.0])  # [b0, b1, b2, a1, a2]
 
 
+def check_q(q):
+    """The ruled minimum filter Q (PW 2026-08-29, shared/numeric-spec.md).
+    Rejected, not clamped: a silently clamped Q is the same class of
+    defect as the silently saturated n1 the floor was ruled alongside."""
+    if q < Q_MIN:
+        raise ValueError(f'Q = {q} is below the ruled minimum {Q_MIN}')
+    return q
+
+
 def biquad_coeffs_hpf(freq_hz, q=0.707):
     """2nd-order Butterworth high-pass filter coefficients."""
+    check_q(q)
     freq_hz = max(1.0, min(freq_hz, NYQUIST - 1))
     w0 = 2 * math.pi * freq_hz / SAMPLE_RATE
     alpha = math.sin(w0) / (2 * q)
@@ -141,6 +152,7 @@ def biquad_coeffs_hpf(freq_hz, q=0.707):
 
 def biquad_coeffs_lpf(freq_hz, q=0.707):
     """2nd-order Butterworth low-pass filter coefficients."""
+    check_q(q)
     freq_hz = max(1.0, min(freq_hz, NYQUIST - 1))
     w0 = 2 * math.pi * freq_hz / SAMPLE_RATE
     alpha = math.sin(w0) / (2 * q)
@@ -156,6 +168,7 @@ def biquad_coeffs_lpf(freq_hz, q=0.707):
 
 def biquad_coeffs_peaking(freq_hz, gain_db, q=0.707):
     """Peaking EQ biquad coefficients."""
+    check_q(q)
     freq_hz = max(1.0, min(freq_hz, NYQUIST - 1))
     A  = 10 ** (gain_db / 40.0)
     w0 = 2 * math.pi * freq_hz / SAMPLE_RATE

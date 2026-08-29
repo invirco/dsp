@@ -93,7 +93,15 @@ def t_biquad(verbose):
     noise_dbfs = 20 * math.log10(np.sqrt(np.mean(res * res)) + 1e-30)
     worst_noise = max(worst_noise, noise_dbfs)
 
-    check('biquad magnitude error (worst incl. 20 Hz)', worst_mag, 0.05, 'dB')
+    # 0.07 dB, RAISED FROM 0.05 on 2026-08-29 and the reason is a ruling,
+    # not a regression: the halved-n1 encoding (PW ruling, minimum EQ
+    # Q = 0.10) spends one bit of n1 resolution to buy the range the
+    # +15 dB / low-Q corner needs. MEASURED on this same sweep: 0.046151
+    # dB before, 0.060560 dB after, both at f0 = 20 Hz / -12 dB / Q = 4,
+    # and IDENTICAL at 0.003479 dB for f0 >= 50 Hz -- the cost lands only
+    # where the offset form's whole benefit lives. Still 6.6x better than
+    # the shipping FP32 firmware's 0.4 dB on the same case.
+    check('biquad magnitude error (worst incl. 20 Hz)', worst_mag, 0.07, 'dB')
     check('biquad magnitude error (f0 >= 50 Hz)', worst_mag_hf, 0.01, 'dB')
     check('biquad residual vs float64 (RMS)', worst_noise, -120.0, 'dBFS')
 

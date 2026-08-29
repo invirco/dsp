@@ -18,6 +18,8 @@ import math
 
 QS = 28              # sample fraction bits (Q4.28)
 QB = 28              # biquad offset-coefficient fraction bits (Q4.28)
+QN1 = 27             # n1 is stored HALVED, in Q5.27 (PW ruling 2026-08-29)
+Q_MIN = 0.10         # minimum EQ/filter Q the conversion accepts
 QC = 30              # poly coeff fraction bits (Q2.30)
 QA = 31              # alpha fraction bits (Q0.31)
 I32_MAX = (1 << 31) - 1
@@ -75,9 +77,12 @@ def gain(x, g):
 # ---------------------------------------------------------------------------
 
 def biquad(x, coeffs, state):
-    b0, n1, n2, c1, c2 = coeffs
+    b0, n1h, n2, c1, c2 = coeffs
     x1, x2, y1, y2, efb = state
-    acc = (b0 * (x - 2 * x1 + x2) + n1 * x1 + n2 * x2
+    # n1h is n1/2 (see biquad_coeffs_q): its product is accumulated TWICE
+    # into the exact wide accumulator, which is the same value as n1*x1
+    # and is written as two MACs because that is what the kernel issues.
+    acc = (b0 * (x - 2 * x1 + x2) + n1h * x1 + n1h * x1 + n2 * x2
            - c1 * y1 + c2 * y2)             # Q8.56, exact
     acc += (2 * y1 - y2) << QB              # exact unity/two terms
     acc += efb                              # error feedback
@@ -93,9 +98,41 @@ def biquad_state():
 
 
 def biquad_coeffs_q(b0, b1, b2, a1, a2):
-    """Float RBJ coefficient set -> quantized offset form (load-time)."""
+    """Float RBJ coefficient set -> quantized offset form (load-time).
+
+    n1 IS STORED HALVED, IN Q5.27, AND THAT IS NORMATIVE (PW ruling
+    2026-08-29, minimum EQ Q = 0.10). Of the five offset coefficients n1
+    is the only one whose design-space range escapes Q4.28: at +15 dB
+    with Q <= 0.12 the peaking design gives n1 = b1 + 2*b0 up to 8.318
+    against a Q4.28 ceiling of 7.999..., and before this it SATURATED at
+    conversion -- the filter silently became a different filter, in 1323
+    of 909,315 swept sets. Storing n1/2 in Q5.27 doubles the headroom to
+    +/-16 and the kernel accumulates its product twice, which is the same
+    product in the exact wide accumulator.
+
+    The encoding is UNIFORM AND UNCONDITIONAL, not a corner case: the
+    kernel's instruction stream must not vary with the loaded settings,
+    or measured ceilings become setting-dependent. It costs one MAC per
+    biquad stage everywhere, and one bit of n1 resolution -- the n1 grid
+    goes from 2^-28 to 2^-27, which golden_harness measures against the
+    same 0.046 dB response bar as before.
+
+    Q < 0.10 is REJECTED, not clamped -- see check_q().
+    """
     q = lambda c: sat32(int(round(c * (1 << QB))))
-    return (q(b0), q(b1 + 2 * b0), q(b2 - b0), q(2 + a1), q(1 - a2))
+    qh = lambda c: sat32(int(round(c * (1 << QN1))))
+    return (q(b0), qh(b1 + 2 * b0), q(b2 - b0), q(2 + a1), q(1 - a2))
+
+
+def check_q(q):
+    """Reject a filter Q below the ruled floor. Loud, per the no-fallback
+    policy: a silently clamped Q is the same class of defect as the
+    silently saturated n1 this floor was ruled alongside."""
+    if q < Q_MIN:
+        raise ValueError(
+            f'Q = {q} is below the ruled minimum {Q_MIN} '
+            '(PW ruling 2026-08-29; shared/numeric-spec.md)')
+    return q
 
 
 # ---------------------------------------------------------------------------
