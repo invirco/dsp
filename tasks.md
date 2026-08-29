@@ -1,3 +1,48 @@
+## HUB DISPATCH 2026-08-29 16:31Z — session 3: program-memory recovery, pair hang, min-Q, the capacity table   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+SESSION 3 — PROGRAM-MEMORY RECOVERY, then the capacity table (PW order:
+this first, conformance harness immediately after as session 4).
+
+THE WALL (session 2): chip 1 sec_swco is 131,070/131,072; fused+paired
+DOES NOT LINK (paired-unfused leaves 418 B; paired + profile stimulus
+fails even alone). The capacity table is blocked on BYTES.
+
+1. RECLAIM PM on chip 1: audit the link map — what fills sec_swco per
+   build config. Prime suspects from the review: legacy per-sample node
+   bodies compiled alongside block kernels, dead scan paths (D14 class),
+   self-test/instrument code not behind flags, duplicated library
+   routines. Gate legacy code OUT of block-kernel builds (#if), delete
+   the provably dead. W0 discipline: the default per-sample shipping
+   image must remain byte-identical (its code is the legacy path — gate,
+   do not break); state the reclaimed bytes per change, and keep a
+   before/after link-map summary in the block.
+2. LINK fused+paired at block 8. If it still does not fit after honest
+   reclamation, say by how much and what the next options cost.
+3. THE BIQUAD-PAIR HANG (localized to _bq_pair_blk, DO-tail hazard
+   eliminated): root-cause it — the paired table's FILT/EQ column
+   depends on it. Timebox; if it resists, the table ships with
+   dynamics-only pairs and the hang gets its own finding update.
+4. LAND the min-Q halved-n1 encoding (PW ruling 060e605, queued from
+   session 2) — uniform +1 MAC/stage, bit-exact by construction against
+   regenerated goldens; corner vectors still ride D27 later.
+5. Re-evaluate D24 (dynamics parameter shadows) under the recovered PM
+   budget — land it if it now fits comfortably (it was deferred at
+   1,124 B cost when only 1,312 B remained).
+6. THE CAPACITY TABLE (the deliverable): fused + paired together,
+   per-class re-profile, ceilings at BLOCK=8 AND 32, 786.432 AND
+   983.04, signal AND silence, honest full-rate rule, witnessed
+   stimulus; the MARGIN-AT-32 table per the standing ruling. Measured
+   rows only. Update ledger + options paper + review index.
+
+Rules: W0 throughout; bench restored verified; standing traps; ladder
+discipline; push main. The hub relays the table to PW on landing.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 **PW RULING 2026-08-29 (~13:40): FULL PROTOCOL TESTING PULLED FORWARD.**
 Contract conformance is interleaved with the capacity work, not queued
 behind it. Session 3 (after the running efficiency session) = the
