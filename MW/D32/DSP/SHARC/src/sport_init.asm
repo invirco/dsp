@@ -26,11 +26,15 @@
 #include <def21564.h>
 #include "c_abi.h"
 
-/* ---- Audio block parameters ---- */
-#define BLOCK_SIZE         32
-#define NUM_CHANNELS       32      /* console channel strips */
-#define SAMPLE_RATE        48000
-#define TDM_WORD_BITS      32
+/* No local audio-block defines here. There used to be four
+ * (BLOCK_SIZE 32, NUM_CHANNELS 32, SAMPLE_RATE 48000, TDM_WORD_BITS 32),
+ * all of them unreferenced in this file. BLOCK_SIZE was review finding
+ * D11: each .asm assembles independently so it collided with nothing
+ * today, but it sat in exactly the file where a future use would
+ * silently mean 32 while the rest of the tree runs at DSP4_BLOCK_SIZE.
+ * If this file ever needs the block size, `#include "dsp_block.h"` —
+ * that header is the single source. The SPORT SLEN/WSIZE fields below
+ * are hardware word widths, not block sizes. */
 
 .section/dm seg_dmda;
 
