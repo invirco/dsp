@@ -323,12 +323,42 @@ _GATE_BLK_BODY = """
             f1 = f1 * f2;
             r1 = fix f1;
             dm(_gate_thrq_{nid}) = r1;
-            r2 = 0x4D800000;
-            f2 = r2;
+            /* GATE RANGE IS DECIBELS ON THE WIRE (review finding D39).
+             * The master documents Chan[1-32]GateRng as depth in dB
+             * (d32-mx-master.csv, table 0=0/127=60, note "Gate
+             * depth/range 0-60dB"). This used to scale the wire float
+             * straight by 2^28 and use it as a LINEAR floor, so a host
+             * writing the documented 40.0 got 40.0 x 2^28 -- saturated
+             * garbage -- and the deepest gate the protocol can ask for
+             * produced no attenuation at all. dsp_simulate.py:237 has
+             * always performed this conversion, which is what proved the
+             * convention was dB before it was ever measured.
+             *
+             * CELL SEMANTICS ARE THE CONTRACT AND THE MASTERS WIN, so the
+             * conversion belongs here: floor = 10^(-dB/20), which is
+             * 2^(-dB * log2(10)/20), clamped to the documented 0..60 dB.
+             * It is BLOCK RATE -- this whole section sits behind the
+             * _sample_idx == 0 guard -- and _exp2q_fx preserves r6-r15 in
+             * both its table and polynomial forms, so the live sample in
+             * r13 survives the call. */
             f1 = dm(_gate_range_{nid});
+            r2 = 0x00000000;              /* 0 dB, documented minimum */
+            f2 = r2;
+            comp(f1, f2);
+            if lt f1 = f2;
+            r2 = 0x42700000;              /* 60 dB, documented maximum */
+            f2 = r2;
+            comp(f1, f2);
+            if gt f1 = f2;
+            r2 = 0xBE2A152D;              /* -log2(10)/20 */
+            f2 = r2;
             f1 = f1 * f2;
-            r1 = fix f1;
-            dm(_gate_rngq_{nid}) = r1;
+            r2 = 0x4C000000;              /* x 2^25 -> Q6.25 for _exp2q_fx */
+            f2 = r2;
+            f1 = f1 * f2;
+            r0 = fix f1;
+            call _exp2q_fx;               /* r0 = 2^l, Q4.28 */
+            dm(_gate_rngq_{nid}) = r0;
         #if DSP4_PAIRED_GRAPH
             r1 = dm(_gate_hold_{nid});
             dm(_gate_holdq_{nid}) = r1;   /* five consecutive param words */
@@ -9068,13 +9098,29 @@ def gen_compressor_fixed(node):
             f1 = f1 * f2;
             r1 = fix f1;
             dm(_comp_mkq_{nid}) = r1;
+            /* PARALLEL BLEND IS PERCENT ON THE WIRE (review finding
+             * D40). The master documents Chan[1-32]CompPar as 0-100 %
+             * (d32-mx-master.csv, table 0=0/127=100); this used to
+             * multiply the raw wire value by 2^31 with no /100, so any
+             * documented value of 1 % or more pinned the blend fully wet
+             * and the control could not take an intermediate setting at
+             * all. The masters win: clamp to the documented 0..100 and
+             * scale by 2^31/100. */
             f1 = dm(_comp_parallel_{nid});
-            r2 = 0x4F000000;
+            r2 = 0x00000000;              /* 0 %, documented minimum */
+            f2 = r2;
+            comp(f1, f2);
+            if lt f1 = f2;
+            r2 = 0x42C80000;              /* 100 %, documented maximum */
+            f2 = r2;
+            comp(f1, f2);
+            if gt f1 = f2;
+            r2 = 0x4BA3D70A;              /* 2^31 / 100 */
             f2 = r2;
             f1 = f1 * f2;
             r1 = fix f1;
-            /* CLAMP. parallel = 1.0 scales to 2^31, which int32 cannot
-             * hold: `fix` wrapped and stored -1, so in Q0.31 the MAXIMUM
+            /* CLAMP. parallel = 100 % scales to exactly 2^31, which int32 cannot
+             * hold: `fix` wraps and stores -1, so in Q0.31 the MAXIMUM
              * parallel setting blended in essentially nothing and the
              * compressor went fully DRY -- the same output as
              * parallel = 0, with a working compressor sitting behind it.
@@ -9312,12 +9358,42 @@ def gen_gate_fixed(node):
             f1 = f1 * f2;
             r1 = fix f1;
             dm(_gate_thrq_{nid}) = r1;
-            r2 = 0x4D800000;
-            f2 = r2;
+            /* GATE RANGE IS DECIBELS ON THE WIRE (review finding D39).
+             * The master documents Chan[1-32]GateRng as depth in dB
+             * (d32-mx-master.csv, table 0=0/127=60, note "Gate
+             * depth/range 0-60dB"). This used to scale the wire float
+             * straight by 2^28 and use it as a LINEAR floor, so a host
+             * writing the documented 40.0 got 40.0 x 2^28 -- saturated
+             * garbage -- and the deepest gate the protocol can ask for
+             * produced no attenuation at all. dsp_simulate.py:237 has
+             * always performed this conversion, which is what proved the
+             * convention was dB before it was ever measured.
+             *
+             * CELL SEMANTICS ARE THE CONTRACT AND THE MASTERS WIN, so the
+             * conversion belongs here: floor = 10^(-dB/20), which is
+             * 2^(-dB * log2(10)/20), clamped to the documented 0..60 dB.
+             * It is BLOCK RATE -- this whole section sits behind the
+             * _sample_idx == 0 guard -- and _exp2q_fx preserves r6-r15 in
+             * both its table and polynomial forms, so the live sample in
+             * r13 survives the call. */
             f1 = dm(_gate_range_{nid});
+            r2 = 0x00000000;              /* 0 dB, documented minimum */
+            f2 = r2;
+            comp(f1, f2);
+            if lt f1 = f2;
+            r2 = 0x42700000;              /* 60 dB, documented maximum */
+            f2 = r2;
+            comp(f1, f2);
+            if gt f1 = f2;
+            r2 = 0xBE2A152D;              /* -log2(10)/20 */
+            f2 = r2;
             f1 = f1 * f2;
-            r1 = fix f1;
-            dm(_gate_rngq_{nid}) = r1;
+            r2 = 0x4C000000;              /* x 2^25 -> Q6.25 for _exp2q_fx */
+            f2 = r2;
+            f1 = f1 * f2;
+            r0 = fix f1;
+            call _exp2q_fx;               /* r0 = 2^l, Q4.28 */
+            dm(_gate_rngq_{nid}) = r0;
         #if DSP4_PAIRED_GRAPH
             r1 = dm(_gate_hold_{nid});
             dm(_gate_holdq_{nid}) = r1;   /* five consecutive param words */

@@ -146,12 +146,42 @@ _C1_GATE_23_process:
     f1 = f1 * f2;
     r1 = fix f1;
     dm(_gate_thrq_C1_GATE_23) = r1;
-    r2 = 0x4D800000;
-    f2 = r2;
+    /* GATE RANGE IS DECIBELS ON THE WIRE (review finding D39).
+     * The master documents Chan[1-32]GateRng as depth in dB
+     * (d32-mx-master.csv, table 0=0/127=60, note "Gate
+     * depth/range 0-60dB"). This used to scale the wire float
+     * straight by 2^28 and use it as a LINEAR floor, so a host
+     * writing the documented 40.0 got 40.0 x 2^28 -- saturated
+     * garbage -- and the deepest gate the protocol can ask for
+     * produced no attenuation at all. dsp_simulate.py:237 has
+     * always performed this conversion, which is what proved the
+     * convention was dB before it was ever measured.
+     *
+     * CELL SEMANTICS ARE THE CONTRACT AND THE MASTERS WIN, so the
+     * conversion belongs here: floor = 10^(-dB/20), which is
+     * 2^(-dB * log2(10)/20), clamped to the documented 0..60 dB.
+     * It is BLOCK RATE -- this whole section sits behind the
+     * _sample_idx == 0 guard -- and _exp2q_fx preserves r6-r15 in
+     * both its table and polynomial forms, so the live sample in
+     * r13 survives the call. */
     f1 = dm(_gate_range_C1_GATE_23);
+    r2 = 0x00000000;              /* 0 dB, documented minimum */
+    f2 = r2;
+    comp(f1, f2);
+    if lt f1 = f2;
+    r2 = 0x42700000;              /* 60 dB, documented maximum */
+    f2 = r2;
+    comp(f1, f2);
+    if gt f1 = f2;
+    r2 = 0xBE2A152D;              /* -log2(10)/20 */
+    f2 = r2;
     f1 = f1 * f2;
-    r1 = fix f1;
-    dm(_gate_rngq_C1_GATE_23) = r1;
+    r2 = 0x4C000000;              /* x 2^25 -> Q6.25 for _exp2q_fx */
+    f2 = r2;
+    f1 = f1 * f2;
+    r0 = fix f1;
+    call _exp2q_fx;               /* r0 = 2^l, Q4.28 */
+    dm(_gate_rngq_C1_GATE_23) = r0;
 #if DSP4_PAIRED_GRAPH
     r1 = dm(_gate_hold_C1_GATE_23);
     dm(_gate_holdq_C1_GATE_23) = r1;   /* five consecutive param words */
@@ -312,12 +342,42 @@ _C1_GATE_23_process_sample:
     f1 = f1 * f2;
     r1 = fix f1;
     dm(_gate_thrq_C1_GATE_23) = r1;
-    r2 = 0x4D800000;
-    f2 = r2;
+    /* GATE RANGE IS DECIBELS ON THE WIRE (review finding D39).
+     * The master documents Chan[1-32]GateRng as depth in dB
+     * (d32-mx-master.csv, table 0=0/127=60, note "Gate
+     * depth/range 0-60dB"). This used to scale the wire float
+     * straight by 2^28 and use it as a LINEAR floor, so a host
+     * writing the documented 40.0 got 40.0 x 2^28 -- saturated
+     * garbage -- and the deepest gate the protocol can ask for
+     * produced no attenuation at all. dsp_simulate.py:237 has
+     * always performed this conversion, which is what proved the
+     * convention was dB before it was ever measured.
+     *
+     * CELL SEMANTICS ARE THE CONTRACT AND THE MASTERS WIN, so the
+     * conversion belongs here: floor = 10^(-dB/20), which is
+     * 2^(-dB * log2(10)/20), clamped to the documented 0..60 dB.
+     * It is BLOCK RATE -- this whole section sits behind the
+     * _sample_idx == 0 guard -- and _exp2q_fx preserves r6-r15 in
+     * both its table and polynomial forms, so the live sample in
+     * r13 survives the call. */
     f1 = dm(_gate_range_C1_GATE_23);
+    r2 = 0x00000000;              /* 0 dB, documented minimum */
+    f2 = r2;
+    comp(f1, f2);
+    if lt f1 = f2;
+    r2 = 0x42700000;              /* 60 dB, documented maximum */
+    f2 = r2;
+    comp(f1, f2);
+    if gt f1 = f2;
+    r2 = 0xBE2A152D;              /* -log2(10)/20 */
+    f2 = r2;
     f1 = f1 * f2;
-    r1 = fix f1;
-    dm(_gate_rngq_C1_GATE_23) = r1;
+    r2 = 0x4C000000;              /* x 2^25 -> Q6.25 for _exp2q_fx */
+    f2 = r2;
+    f1 = f1 * f2;
+    r0 = fix f1;
+    call _exp2q_fx;               /* r0 = 2^l, Q4.28 */
+    dm(_gate_rngq_C1_GATE_23) = r0;
 #if DSP4_PAIRED_GRAPH
     r1 = dm(_gate_hold_C1_GATE_23);
     dm(_gate_holdq_C1_GATE_23) = r1;   /* five consecutive param words */

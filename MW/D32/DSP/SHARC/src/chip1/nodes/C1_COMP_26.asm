@@ -252,13 +252,29 @@
             f1 = f1 * f2;
             r1 = fix f1;
             dm(_comp_mkq_C1_COMP_26) = r1;
+            /* PARALLEL BLEND IS PERCENT ON THE WIRE (review finding
+             * D40). The master documents Chan[1-32]CompPar as 0-100 %
+             * (d32-mx-master.csv, table 0=0/127=100); this used to
+             * multiply the raw wire value by 2^31 with no /100, so any
+             * documented value of 1 % or more pinned the blend fully wet
+             * and the control could not take an intermediate setting at
+             * all. The masters win: clamp to the documented 0..100 and
+             * scale by 2^31/100. */
             f1 = dm(_comp_parallel_C1_COMP_26);
-            r2 = 0x4F000000;
+            r2 = 0x00000000;              /* 0 %, documented minimum */
+            f2 = r2;
+            comp(f1, f2);
+            if lt f1 = f2;
+            r2 = 0x42C80000;              /* 100 %, documented maximum */
+            f2 = r2;
+            comp(f1, f2);
+            if gt f1 = f2;
+            r2 = 0x4BA3D70A;              /* 2^31 / 100 */
             f2 = r2;
             f1 = f1 * f2;
             r1 = fix f1;
-            /* CLAMP. parallel = 1.0 scales to 2^31, which int32 cannot
-             * hold: `fix` wrapped and stored -1, so in Q0.31 the MAXIMUM
+            /* CLAMP. parallel = 100 % scales to exactly 2^31, which int32 cannot
+             * hold: `fix` wraps and stores -1, so in Q0.31 the MAXIMUM
              * parallel setting blended in essentially nothing and the
              * compressor went fully DRY -- the same output as
              * parallel = 0, with a working compressor sitting behind it.
