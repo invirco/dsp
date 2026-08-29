@@ -634,7 +634,15 @@ from textwrap import dedent
 # BLOCK must be a power of two: spi_handler converts block-rate ramp frame
 # counts to samples with a shift, and the DMA 2D geometry wants the ring
 # halves aligned.
-BLOCK = 8
+#
+# THE SHIPPING BLOCK SIZE IS 8 (PW ruling 2026-08-28) -- the default in
+# the line below, and the only value the repo tree is ever generated at.
+# DSP4_GEN_BLOCK overrides it for a SCRATCH tree only (2026-08-29): the
+# capacity table has to report ceilings at BLOCK = 8 AND 32, and the block
+# size is baked into every generated file, so the 32 tree is generated
+# beside the repo's and built with DSP_SRC_DIR rather than by editing this
+# constant and regenerating back.
+BLOCK = int(__import__('os').environ.get('DSP4_GEN_BLOCK', 8))
 
 BLOCK_SHIFT = BLOCK.bit_length() - 1
 assert BLOCK == (1 << BLOCK_SHIFT) and BLOCK >= 2, \
@@ -10283,13 +10291,28 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
     # ...and the same number for the BENCH tools, which score a pass rate
     # against 48000/BLOCK. A verdict tool that carries its own copy of the
     # block size will one day score an image that was not built with it.
-    pi_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                          '..', 'pi')
-    if os.path.isdir(pi_dir):
-        with open(os.path.join(pi_dir, 'dsp4_block.py'), 'w',
-                  encoding='utf-8') as f:
-            f.write(gen_block_py())
-        files_written += 1
+    #
+    # It goes BESIDE THE GENERATED TREE, always, so a harness can stage the
+    # copy that matches the image it just built. The repo's tools/pi copy is
+    # only rewritten when this is the SHIPPING tree: a DSP4_GEN_BLOCK
+    # scratch generation used to overwrite it too, because pi_dir is derived
+    # from this script's own location rather than from output_dir, and every
+    # bench run after a block-32 generation then scored a block-8 image
+    # against 1500 blocks/s (2026-08-29 -- the mislabelling was harmless
+    # because the honest rule was applied by hand, and it is fixed here so
+    # that it does not have to be).
+    with open(os.path.join(output_dir, 'dsp4_block.py'), 'w',
+              encoding='utf-8') as f:
+        f.write(gen_block_py())
+    files_written += 1
+    if 'DSP4_GEN_BLOCK' not in os.environ:
+        pi_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                              '..', 'pi')
+        if os.path.isdir(pi_dir):
+            with open(os.path.join(pi_dir, 'dsp4_block.py'), 'w',
+                      encoding='utf-8') as f:
+                f.write(gen_block_py())
+            files_written += 1
 
     # Write ramp infrastructure
     ramp_path = os.path.join(output_dir, 'ramp_engine.asm')

@@ -2,6 +2,147 @@
 
 provenance: AI-drafted 2026-08-23 — prose may carry a statistical watermark; rewrite by hand before publication, then remove this header.
 
+## THE MEASURED CAPACITY TABLE — 2026-08-29 (session 3)
+
+**This is the first table taken with strip fusion and dynamics pairing in
+the SAME image.** Session 2 could not build that combination at all: chip
+1 was out of program memory and the linker was 4,890 bytes short. The
+reclamation that unblocked it is recorded under *Program memory* below.
+
+Every figure here was taken AFTER the halved-n1 encoding landed (PW
+ruling, minimum EQ Q = 0.10), so the extra MAC per biquad stage is inside
+every number. Figures from earlier sessions predate it.
+
+### Ceilings — channels per chip, fused + paired, honest full-rate rule
+
+Real time is the FULL block rate: 6000 blocks/s at BLOCK 8, 1500 at
+BLOCK 32. Every accepted point is witnessed — all N gates OPEN and all N
+compressors ACTIVE for a signal row, all N SHUT and unity for a silence
+row — and every rejected point is a clean miss, not a marginal one.
+
+| | 786.432 MHz | 983.04 MHz |
+|---|---|---|
+| BLOCK 8, signal | **16** | **22** |
+| BLOCK 8, silence | **18** | **23** |
+| BLOCK 32, signal | **21** | **28** |
+| BLOCK 32, silence | **22** | **28** |
+
+The rejected points, so the misses can be read as misses: block 8 at
+983.04, 22 = 5999/s and 23 = 5739/s; at 786.432, 16 = 5999/s and
+17 = 5930/s. Block 32 at 983.04, 28 = 1500/s and 29 = 1434/s; at
+786.432, 21 = 1500/s and 22 = 1493/s. The silence rows: block 8 at
+983.04, 23 = 5999/s and 24 = 5907/s; at 786.432, 18 = 6000/s and
+19 = 5785/s. Block 32 at 983.04, 28 = 1500/s and 29 = 1483/s; at
+786.432, 22 = 1500/s and 23 = 1459/s.
+
+**Against the record this replaces:** block 8 at 983.04 signal present
+was 12 scalar-unfused (08-28), 15 paired-unfused (08-28) and 16
+scalar-fused (08-29 session 2). It is now **22**.
+
+**THE SILENCE CONTROL HAS ALMOST STOPPED MATTERING, and that is a
+result.** Silence used to flatter a ceiling by ~29 %: it is now worth one
+channel at block 8 and none at all at block 32. Pairing moved the
+dynamics off the branch that silence was cheating on.
+
+### MARGIN AT 32 CHANNELS — the number the ruling asks for
+
+Cycles per graph pass at 32 strips, signal present, measured with the
+graph decimated so it completes whether or not it fits, then compared
+against the real-time budget for that block size and clock.
+
+**983.04 MHz, BLOCK 8 — budget 163,840 cycles/block**
+
+| config | cycles/block | % of budget | margin |
+|---|---|---|---|
+| scalar, unfused | 349,555 | 213.4 % | −185,715 (−113.4 %) |
+| scalar, fused | 303,355 | 185.2 % | −139,515 (−85.2 %) |
+| paired, unfused | 274,419 | 167.5 % | −110,579 (−67.5 %) |
+| **paired + fused** | **226,462** | **138.2 %** | **−62,622 (−38.2 %)** |
+
+**983.04 MHz, BLOCK 32 — budget 655,360 cycles/block**
+
+| config | cycles/block | % of budget | margin |
+|---|---|---|---|
+| scalar, unfused | 1,280,847 | 195.4 % | −625,487 (−95.4 %) |
+| scalar, fused | 1,095,628 | 167.2 % | −440,268 (−67.2 %) |
+| paired, unfused | 922,754 | 140.8 % | −267,394 (−40.8 %) |
+| **paired + fused** | **736,848** | **112.4 %** | **−81,488 (−12.4 %)** |
+
+Fused + paired at 786.432 MHz: **174.0 %** of budget at BLOCK 8
+(228,081 of 131,072) and **140.6 %** at BLOCK 32 (737,126 of 524,288).
+
+**THE MARGIN AT 32 IS NEGATIVE IN EVERY MEASURED CONFIGURATION.** The
+best is BLOCK 32 at 983.04 with fusion and pairing, and it is **12.4 %
+over the budget**, not under it. Nothing in this table reaches 32
+channels on one 21564; the honest statement of where the campaign stands
+is that the gap has gone from roughly a factor of two to 12.4 %.
+
+**Two chips is a different question and it is now answered with room.**
+A two-chip D32 needs 16 per chip. At block 8 and 983.04 the ceiling is
+22, against exactly 16 in session 2 — the split has stopped being
+marginal.
+
+### The two instruments agree, and they share no arithmetic
+
+The ceiling sweep scores a pass rate on the part. The margin table counts
+cycles in a decimated graph. Ratio of cycles at 32 strips, scalar-fused
+against paired-fused: **1.340**. Ratio of the ceilings those two configs
+reach at block 8 / 983.04: **22 / 16 = 1.375**. Three per cent apart, from
+two measurements that have no step in common.
+
+### What is in these numbers, and what is not
+
+IN: strip fusion; dynamics pairing (GATE and COMP as pair drivers on the
+pair-ordered chain); the D21 packed biquad loop; D22's control-rate gate;
+D25's circular delay addressing; the halved-n1 MAC.
+
+NOT IN, and it is the next lever: **the biquad cascade is NOT paired in
+the graph.** `_bq_pair_blk` is still behind `DSP4_SIMD_PROBE` and only the
+self-test calls it. Its factor is now measured rather than hung — 1.43 to
+1.54× on a four-stage cascade, 1.43 to 1.57× on two stages, against the
+FUSED cascade — and FILT and EQ together are the largest per-sample block
+left in the strip. Wiring a FILT/EQ pair driver is the obvious next step
+and it now has a number instead of a hang.
+
+Also not in: D20's GAIN fold (blocked on a meter ruling), D24's parameter
+shadows (re-evaluated below), and chip 2, which still has no block
+kernels at all (review finding D16).
+
+### Program memory — what was reclaimed and what it cost
+
+Chip 1's `sec_swco` is full at 131,070 of 131,072 bytes in every
+block-kernel build and everything spills into the block-2 overflow; the
+two together are 262,144 bytes and there is no third tier. Free bytes:
+
+| config | before | after |
+|---|---|---|
+| scalar, unfused | 15,062 | 29,518 |
+| scalar, fused | 9,882 | 24,338 |
+| paired, unfused | 418 | 17,134 |
+| paired + fused | **−4,890 (would not link)** | **11,954** |
+
+Three reclamations, each measured on its own: the DLY per-sample body,
+dead in block-kernel builds because that class's block kernel has no
+fallback into it, 13,568 bytes (424 in each of 32 nodes); `dyn_selftest`,
+which was gated on `DSP4_SIMD_DYN` and therefore rode in every paired
+build including a shipping one, 2,240 bytes; and `lib/dynamics.asm` plus
+`lib/delay.asm`, float-era routines with no caller anywhere that the
+linker placed anyway because they were on its command line, 888 bytes.
+The halved-n1 MAC then cost 12 bytes back.
+
+`tools/dsp/pm_audit.py` is the instrument: it attributes every byte of
+the code output sections to the object that contributed it and rolls
+objects up by node class. `dsp_memreport.py` says how much is left; this
+says who is using it.
+
+**The structural lever is still there and is still the big one.** RTG is
+41,344 bytes of the paired+fused image — 16.4 %, 1,292 bytes per node
+across 32 nodes — and the same indexed-array-plus-shared-routine move that
+took the control-rate gate from 41 bytes per node to 3 has not been
+applied to the rest of its prep.
+
+---
+
 ## BLOCK SIZE (2026-08-28) — read this before any figure below
 
 The working operating point is **block 8**, not 32 (PW ruling 2026-08-28).

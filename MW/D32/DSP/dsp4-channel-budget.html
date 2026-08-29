@@ -109,12 +109,58 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--sunk);padding:1px
 
 <div class="wrap">
 <header>
-  <div class="eyebrow">DSP4 · ADSP-21564 · measured 24 Aug 2026</div>
+  <div class="eyebrow">DSP4 · ADSP-21564 · measured 29 Aug 2026</div>
   <h1>What actually fits on the chip</h1>
-  <p class="sub">Every figure below was measured on the part with a signal present, not
-  estimated. Toggle channel functions to see what a given feature set costs and where it
-  lands against the budget.</p>
+  <p class="sub">Every figure here was measured on the part with a signal present, not
+  estimated. The table immediately below is the current answer. The calculator further
+  down is the 24 Aug model &mdash; block 32 at 491.52 MHz, per-sample costs &mdash; kept
+  for the shape of the trade, not for its numbers.</p>
 </header>
+
+<section class="verdict over" style="--state:var(--over)">
+  <div class="vhead">
+    <span class="vtitle">32 channels on one chip: not reached</span>
+    <span class="vnote">best measured configuration is 12.4&thinsp;% over the block budget</span>
+  </div>
+  <p style="margin:14px 0 0;color:var(--ink-2);max-width:78ch">
+  Measured 29 Aug 2026 with strip fusion and dynamics pairing in the same image for the
+  first time. Real time is the FULL block rate &mdash; 6000 blocks/s at block 8, 1500 at
+  block 32 &mdash; and every accepted point is witnessed with all N gates open and all N
+  compressors active. The biquad cascade is <em>not</em> paired in the graph yet; its
+  measured pairing factor is 1.43&ndash;1.54&times; and it is the next lever.</p>
+
+  <div class="tw" style="margin-top:18px">
+  <table>
+    <caption style="text-align:left;color:var(--ink-3);font-size:12px;padding-bottom:6px">
+      Ceilings &mdash; channels per chip, fused + paired</caption>
+    <thead><tr><th></th><th>786.432 MHz</th><th>983.04 MHz</th></tr></thead>
+    <tbody>
+      <tr><td>block 8, signal</td><td>16</td><td><b>22</b></td></tr>
+      <tr><td>block 8, silence</td><td>18</td><td>23</td></tr>
+      <tr><td>block 32, signal</td><td>21</td><td><b>28</b></td></tr>
+      <tr><td>block 32, silence</td><td>22</td><td>28</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="tw" style="margin-top:18px">
+  <table>
+    <caption style="text-align:left;color:var(--ink-3);font-size:12px;padding-bottom:6px">
+      Margin at 32 channels &mdash; cycles per graph pass, signal present, 983.04 MHz</caption>
+    <thead><tr><th>config</th><th>block 8<br>(budget 163,840)</th><th>block 32<br>(budget 655,360)</th></tr></thead>
+    <tbody>
+      <tr><td>scalar, unfused</td><td>349,555 &mdash; 213.4&thinsp;%</td><td>1,280,847 &mdash; 195.4&thinsp;%</td></tr>
+      <tr><td>scalar, fused</td><td>303,355 &mdash; 185.2&thinsp;%</td><td>1,095,628 &mdash; 167.2&thinsp;%</td></tr>
+      <tr><td>paired, unfused</td><td>274,419 &mdash; 167.5&thinsp;%</td><td>922,754 &mdash; 140.8&thinsp;%</td></tr>
+      <tr><td><b>paired + fused</b></td><td><b>226,462 &mdash; 138.2&thinsp;%</b></td><td><b>736,848 &mdash; 112.4&thinsp;%</b></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p style="margin:14px 0 0;color:var(--ink-2);max-width:78ch">
+  A two-chip D32 needs 16 per chip. At block 8 and 983.04 the ceiling is 22, against
+  exactly 16 in the previous session &mdash; that split is no longer marginal.</p>
+</section>
 
 <div class="verdict" id="verdict">
   <div class="vhead">
@@ -138,7 +184,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--sunk);padding:1px
       <div class="ctl-row"><span>Chips</span>
         <div class="seg" id="chips"><button data-v="1">1 chip</button><button data-v="2">2 chips</button></div>
       </div>
-      <div class="ctl-row"><span>SIMD pairing (2.39× measured)</span>
+      <div class="ctl-row"><span>SIMD pairing (2.39× &mdash; superseded, see note)</span>
         <div class="seg" id="simd"><button data-v="0">off</button><button data-v="1">on</button></div>
       </div>
       <div class="ctl-row"><span>Dynamics rework</span>
@@ -167,9 +213,12 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--sunk);padding:1px
   The bench has no audio source, so every earlier profile measured the cheap path — GATE read
   152 and COMP 161. Under signal they are 247.5 and 421.6.</p></div>
 
-  <div class="note"><h3>What SIMD can't pair</h3>
-  <p>SIMD duplicates the compute units and register file, not the address generators. DLY and
-  RTG address per channel, so both stay scalar. Everything else pairs at the measured 2.39×.</p></div>
+  <div class="note caveat"><h3>The 2.39× is superseded</h3>
+  <p>SIMD duplicates the compute units and register file, not the address generators, so DLY and
+  RTG stay scalar. But 2.39× was measured against the <em>old</em> block cascade. Against the
+  fused one, re-measured 29 Aug: biquad 1.43&ndash;1.54×, GATE 2.27×, COMP 2.04× as kernels, and
+  1.8× / 1.7× once the pair driver's gather, scatter and sample-0 work are inside the timed span.
+  The calculator below still uses 2.39× and therefore flatters pairing.</p></div>
 
   <div class="note"><h3>The dynamics rework</h3>
   <p>GATE computes a log only to compare against a threshold — move the compare to the linear
