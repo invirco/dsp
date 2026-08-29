@@ -220,6 +220,15 @@ fi
 DSP4_SIMD_STRIPS="${DSP4_SIMD_STRIPS:-$DSP4_SIMD_STRIPS_DEFAULT}"
 CFLAGS="$CFLAGS -DDSP4_SIMD_STRIPS=$DSP4_SIMD_STRIPS"
 ASMFLAGS="$ASMFLAGS -DDSP4_SIMD_STRIPS=$DSP4_SIMD_STRIPS"
+# The paired-dynamics SELF-TEST (lib/dyn_selftest.asm) is an instrument,
+# not a kernel: 2,240 bytes of program memory plus its stimulus tables. It
+# used to be gated on DSP4_SIMD_DYN, so EVERY paired build -- including a
+# shipping one -- carried it, which is 2,240 bytes of the wall session 3
+# ran into. It now has its own switch, defaulting to DSP4_SIMD_PROBE so
+# dynst.sh (which sets PROBE=1) keeps working unchanged.
+DSP4_DYN_SELFTEST="${DSP4_DYN_SELFTEST:-${DSP4_SIMD_PROBE:-0}}"
+CFLAGS="$CFLAGS -DDSP4_DYN_SELFTEST=$DSP4_DYN_SELFTEST"
+ASMFLAGS="$ASMFLAGS -DDSP4_DYN_SELFTEST=$DSP4_DYN_SELFTEST"
 DSP4_SKIP_PAIR="${DSP4_SKIP_PAIR:-0}"   # bisect hook for the selftest hang
 CFLAGS="$CFLAGS -DDSP4_SKIP_PAIR=$DSP4_SKIP_PAIR"
 ASMFLAGS="$ASMFLAGS -DDSP4_SKIP_PAIR=$DSP4_SKIP_PAIR"

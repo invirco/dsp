@@ -51,7 +51,7 @@
 
 #include "dsp_block.h"
 
-#if DSP4_SIMD_DYN
+#if DSP4_SIMD_DYN && DSP4_DYN_SELFTEST
 
 .section/dm seg_dmda;
 

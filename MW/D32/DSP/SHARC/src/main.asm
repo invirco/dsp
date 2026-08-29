@@ -137,7 +137,7 @@
 .extern _num_selftest;
 .extern _nst_done;
 #endif
-#if DSP4_SIMD_DYN
+#if DSP4_SIMD_DYN && DSP4_DYN_SELFTEST
 .extern _dyn_selftest;
 .extern _dst_done;
 #endif
@@ -603,7 +603,7 @@ _start:
     call _bq_selftest;
 .bqst_skip:
 #endif
-#if DSP4_SIMD_DYN
+#if DSP4_SIMD_DYN && DSP4_DYN_SELFTEST
     /* Same placement and the same reason: ordinary main-loop context,
      * link up, graph configured. Runs once. */
     r0 = dm(_dst_done);

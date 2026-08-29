@@ -1983,6 +1983,13 @@ def gen_delay(node):
         .global _{node['id']}_process;
         _{node['id']}_process:
         {blk_dly_body}
+        /* PER-SAMPLE BODY, gated out of block-kernel builds (2026-08-29,
+         * program-memory reclamation). Unlike GATE/COMP/EQ/FILT/TUBE, the
+         * DLY block kernel has NO fallback into this path -- it handles
+         * every slot, offset and wrap case itself and rts's -- so under
+         * DSP4_BLOCK_KERNELS this body was unreachable code the linker
+         * still had to place: ~212 bytes in each of 32 nodes per chip. */
+        #if !DSP4_BLOCK_KERNELS
             r0 = dm(_buf_{node['inputs_str']});
 
             /* Default to the local short buffer. Valid slot numbers promote to a shared long buffer. */
@@ -2032,6 +2039,7 @@ def gen_delay(node):
             rts;
 
         {slot_labels}
+        #endif
         _{node['id']}_process.end:
     """)
 
