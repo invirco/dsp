@@ -671,7 +671,14 @@ FORMAT = 'fixed'
 
 
 def ms_to_frames(ms):
-    """Quantize milliseconds to frame count: max(1, round(ms / 0.6667))."""
+    """Quantize milliseconds to ramp-engine FRAMES: max(1, round(ms / FRAME_MS)).
+
+    A frame is one audio BLOCK, so FRAME_MS moves with BLOCK (0.1667 ms
+    at BLOCK=8, 0.6667 at BLOCK=32). MW/D32/DSP/gen_dsp.py imports this
+    function rather than restating the arithmetic -- it used to carry its
+    own hardcoded 0.667 and baked block-32 frame counts into
+    ghost_cells.c (review finding D10).
+    """
     if ms <= 0:
         return 0
     return max(1, round(ms / FRAME_MS))
