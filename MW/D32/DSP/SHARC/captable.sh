@@ -55,14 +55,28 @@ WORK="${WORK:-/tmp/captable}"
 mkdir -p "$WORK"
 
 # ---- source trees, one per block size ----
+# THE SCRATCH TREE IS REGENERATED EVERY RUN, and that is not paranoia.
+# It used to be cached on the BLOCK SIZE alone -- "if dsp_block.h already
+# says 32, reuse it" -- so a tree generated on one day was reused on the
+# next against a codegen that had changed underneath it. On 2026-08-30 that
+# silently produced a whole BLOCK-32 half of a capacity table from a tree
+# with no bq_pairs.asm, no wide-word metering and no D55 fix in it: four
+# ceilings and two cycle counts that reproduced the PREVIOUS session's
+# numbers exactly, which is what made it visible. A cached measurement tree
+# is a stale-golden defect wearing a performance hat. Regeneration costs a
+# couple of seconds ONCE per captable run.
 srctree() {   # $1 = block size -> echoes the src dir to build from
     if [ "$1" = "8" ]; then echo "$PWD/src"; return; fi
     local t="$WORK/src$1"
-    if [ ! -f "$t/dsp_block.h" ] || \
-       ! grep -q "define DSP4_BLOCK_SIZE   $1\$" "$t/dsp_block.h"; then
+    if [ ! -f "$t/.generated-$$" ]; then
         rm -rf "$t"; cp -r "$PWD/src" "$t"
         DSP4_GEN_BLOCK=$1 python3 $ROOT/tools/dsp/dsp_codegen.py \
             "$PWD/dsp.csv" "$t" --force >/dev/null 2>&1
+        if ! grep -q "define DSP4_BLOCK_SIZE   $1\$" "$t/dsp_block.h"; then
+            echo "srctree: generated tree for block $1 does not say so" >&2
+            exit 5
+        fi
+        touch "$t/.generated-$$"
     fi
     echo "$t"
 }

@@ -6477,14 +6477,29 @@ _GAIN_BLK_METERED = """\
             r13 = 0x80000000;                 /* block max: most negative */
             r15 = 0x7FFFFFFF;                 /* block min: most positive */
             mrf = 0;                          /* exact sum of squares     */
+            /* ONE SAMPLE BEHIND, and that is what makes it free. Reading
+             * mr1b in the instruction after the MAC that produced it
+             * stalls on the multiplier's result latency, and the first cut
+             * of this loop measured +25.5 cycles/sample/strip at BLOCK 8
+             * against a fused loop with a separate meter node -- three
+             * instructions of arithmetic paying for themselves several
+             * times over in stalls. The meter's three ops therefore run on
+             * the PREVIOUS sample's wide word while the current MAC is in
+             * flight, and the last sample's are done after the loop.
+             *
+             * Seeding r12 = 0 is EXACTLY neutral, not approximately: zero
+             * adds nothing to the sum of squares, and the block peak is
+             * max(hi, -lo) which is non-negative already, so widening the
+             * range by a zero cannot move it. */
+            r12 = 0;
             r5 = DSP4_BLOCK_SIZE;
             lcntr = r5; do .gk_lp_{nid} until lce;
                 r0 = dm(i0, 1);
                 mrb = r0 * r1 (ssi);
-                r12 = mr1b;                   /* WIDE post-trim, Q8.24 */
-                r13 = max(r13, r12);
+                r13 = max(r13, r12);          /* meter, one sample behind */
                 mrf = mrf + r12 * r12 (ssi);
                 r15 = min(r15, r12);
+                r12 = mr1b;                   /* WIDE post-trim, Q8.24 */
                 mrb = mrb + r6 * r7 (ssi);
                 r8 = mr0b;
                 r2 = mr1b;
@@ -6502,6 +6517,10 @@ _GAIN_BLK_METERED = """\
                 dm(i4, 1) = r0;
             dm(_tap_post_trim_{nid}) = r0;   /* linkage scalars */
             dm(_buf_{nid}) = r0;
+            /* the last sample's meter ops, outside the loop */
+            r13 = max(r13, r12);
+            mrf = mrf + r12 * r12 (ssi);
+            r15 = min(r15, r12);
 {flush}
             rts;
 """
@@ -6662,14 +6681,21 @@ _FDR_BLK_METERED = """\
             r13 = 0x80000000;                 /* block max: most negative */
             r15 = 0x7FFFFFFF;                 /* block min: most positive */
             mrf = 0;                          /* exact sum of squares     */
+            /* i4 carries the accumulator hand-over below and this node's
+             * block preamble sets l0-l3 only. A stale l4 would make that a
+             * CIRCULAR write. */
+            l4 = 0;
+            /* One sample behind, for the multiplier-latency reason written
+             * out in GAIN's copy of this loop. r6 = 0 is exactly neutral. */
+            r6 = 0;
             r14 = DSP4_BLOCK_SIZE;
             lcntr = r14; do .fdr_lp_{nid} until lce;
                 r0 = dm(i0, 1);
                 mrb = r0 * r1 (ssi);
-                r6 = mr1b;                    /* WIDE post-fader, Q8.24 */
-                r13 = max(r13, r6);
+                r13 = max(r13, r6);           /* meter, one sample behind */
                 mrf = mrf + r6 * r6 (ssi);
                 r15 = min(r15, r6);
+                r6 = mr1b;                    /* WIDE post-fader, Q8.24 */
                 mrb = mrb + r7 * r12 (ssi);
                 r8 = mr0b;
                 r2 = mr1b;
@@ -6686,6 +6712,10 @@ _FDR_BLK_METERED = """\
                 dm(i1, 1) = r0;
             dm(_tap_post_fader_{nid}) = r0;   /* linkage scalars */
             dm(_buf_{nid}) = r0;
+            /* the last sample's meter ops, outside the loop */
+            r13 = max(r13, r6);
+            mrf = mrf + r6 * r6 (ssi);
+            r15 = min(r15, r6);
 {flush}
             rts;
 """

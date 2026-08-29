@@ -19,6 +19,7 @@
 set -u
 CHIP="$1"; TAG="$2"
 PHASE="${PHASE:-all}"; LIMIT="${LIMIT:-0}"; NEGCTL="${NEGCTL:-0}"
+INERTWIN="${INERTWIN:-bus}"
 cd /home/app/dspboot
 sudo systemctl stop matrix-app >/dev/null 2>&1
 sudo pinctrl set 6,7,8,9,10,11,12,22,23,24,25 a0 >/dev/null 2>&1
@@ -80,7 +81,8 @@ for attempt in 1 2 3 4 5; do
 
   OK=0
   python3 dsp4_conform.py --plan plan.json --chip "$CHIP" --phase "$PHASE" \
-      $LIM --out "conform_${TAG}_c${CHIP}.json" && OK=1
+      $LIM --inert-window "$INERTWIN" \
+      --out "conform_${TAG}_c${CHIP}.json" && OK=1
   if [ "$OK" = "1" ] && [ "$NEGCTL" = "1" ] && [ "$CHIP" = "1" ]; then
     # THE HARNESS MUST BE ABLE TO FAIL. Two controls, both required:
     #   1. a deliberately wrong expected unit must fail its cell

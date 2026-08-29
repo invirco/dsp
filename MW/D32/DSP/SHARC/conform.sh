@@ -16,6 +16,16 @@
 #   LIMIT=200 ./conform.sh           pilot: first 200 addresses per chip
 #   NEGCTL=1 ./conform.sh            run the negative controls as well
 #   TAG=after ./conform.sh           name the result files
+#   INERTWIN=state ./conform.sh      the retired control-state inert window
+#
+# THE INERT PHASE DRIVES THE GRAPH (2026-08-29). It arms the DSP-side scope
+# with a -6 dBFS step into the input slot and watches the MAIN BUS, so
+# "kernel-visible" means the audio path rather than a proxy for it. Session
+# 4 could not do that and said so: its control-state window failed its own
+# positive control on an idle graph, and the injection it tried went into
+# _buf_C1_IN_01, which the input node overwrites every sample. The slot the
+# step has to go into is _rx_slot_C1_IN_01 in a per-sample build and the
+# pool in a block build; the probe resolves that from the symbol table.
 #
 # The plan is built IN THE TREE, from the contract, by tools/dsp/
 # wire_contract.py -- so a harness run always tests the surface the current
@@ -61,6 +71,7 @@ scp -q conform_run.sh $BENCH:/home/app/ || exit 3
 for c in $CHIPS; do
   echo "=== chip $c — $PHASE ==="
   ssh $BENCH "PHASE=$PHASE LIMIT=$LIMIT NEGCTL=${NEGCTL:-0} \
+              INERTWIN=${INERTWIN:-bus} \
               bash /home/app/conform_run.sh $c $TAG" || exit 4
   scp -q $BENCH:/home/app/dspboot/"conform_${TAG}_c${c}*.json" $OUT/ || exit 4
 done

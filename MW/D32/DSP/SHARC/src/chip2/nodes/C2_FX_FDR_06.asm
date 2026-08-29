@@ -267,14 +267,21 @@
             r13 = 0x80000000;                 /* block max: most negative */
             r15 = 0x7FFFFFFF;                 /* block min: most positive */
             mrf = 0;                          /* exact sum of squares     */
+            /* i4 carries the accumulator hand-over below and this node's
+             * block preamble sets l0-l3 only. A stale l4 would make that a
+             * CIRCULAR write. */
+            l4 = 0;
+            /* One sample behind, for the multiplier-latency reason written
+             * out in GAIN's copy of this loop. r6 = 0 is exactly neutral. */
+            r6 = 0;
             r14 = DSP4_BLOCK_SIZE;
             lcntr = r14; do .fdr_lp_C2_FX_FDR_06 until lce;
                 r0 = dm(i0, 1);
                 mrb = r0 * r1 (ssi);
-                r6 = mr1b;                    /* WIDE post-fader, Q8.24 */
-                r13 = max(r13, r6);
+                r13 = max(r13, r6);           /* meter, one sample behind */
                 mrf = mrf + r6 * r6 (ssi);
                 r15 = min(r15, r6);
+                r6 = mr1b;                    /* WIDE post-fader, Q8.24 */
                 mrb = mrb + r7 * r12 (ssi);
                 r8 = mr0b;
                 r2 = mr1b;
@@ -291,6 +298,10 @@
                 dm(i1, 1) = r0;
             dm(_tap_post_fader_C2_FX_FDR_06) = r0;   /* linkage scalars */
             dm(_buf_C2_FX_FDR_06) = r0;
+            /* the last sample's meter ops, outside the loop */
+            r13 = max(r13, r6);
+            mrf = mrf + r6 * r6 (ssi);
+            r15 = min(r15, r6);
             i4 = _mtr_acc_C2_MTR_FX_06;
             dm(i4, 1) = r13;
             dm(i4, 1) = r15;

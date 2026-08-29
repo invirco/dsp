@@ -688,6 +688,177 @@ def snapshot(part, addrs):
     return [agreeing_peek(part, a) for a in addrs]
 
 
+# ---------------------------------------------------------------------------
+# THE DRIVEN-GRAPH PROBE (2026-08-29). Session 4's honest gap, closed.
+#
+# The strip_window probe above watches CONTROL state and it FAILED ITS OWN
+# CONTROL: on an idle graph the positive control moved 2-8 of 97 quiet words
+# while the unwritten interval moved 0-22, so its signal never cleared its
+# noise floor and no inert verdict was reported. The note under strip_window
+# names the stronger probe -- capture the BUS while the graph is DRIVEN --
+# and says why it was not used: "the shipping per-sample build's scope
+# injection does not reach the chain (injecting a -6 dBFS step into
+# _buf_C1_IN_01 and capturing the same address returns the pre-existing
+# word)."
+#
+# THAT WAS THE PROBE'S BUG, NOT THE FIRMWARE'S, and it is one address.
+# _scope_inject runs in the per-sample loop AFTER _scatter_chipN and BEFORE
+# the node chain (main.asm), which is the point the file's own header names
+# -- "the one point where an input slot variable holds a value nothing
+# downstream has overwritten yet". _buf_C1_IN_01 is not that slot: it is the
+# INPUT NODE'S OUTPUT, and C1_IN_01's per-sample body copies _rx_slot into
+# it on every sample, so a step written there is overwritten before any node
+# reads it. _rx_slot_C1_IN_01 IS that slot. Under block kernels the input
+# slots are the pool itself, which is why the block-form injection targets
+# _blk_pool and has always worked (dsp4_pairgraph.py captures 64 of 64
+# non-zero words through it).
+#
+# So the shipping image was drivable all along, and this probe drives it.
+# ---------------------------------------------------------------------------
+
+BUS_SRC = '_buf_C1_BUS_MAIN_L'
+BUS_AMP = 0x08000000                   # -6 dBFS in Q4.28, the injected step
+
+
+def bus_inject_addr(part):
+    """The input slot the step must go into for it to reach the chain.
+
+    Block builds put the input slots in the shared pool; per-sample builds
+    keep a scalar _rx_slot per input node, which _scatter_chipN fills and
+    _scope_inject then overwrites. The symbol table settles which build
+    this is -- _blk_pool exists only under DSP4_BLOCK_KERNELS (blk_pool.h).
+    """
+    if '_blk_pool' in part.sc.sym:
+        return part.sc.sym['_blk_pool']
+    return part.sc.sym['_rx_slot_C1_IN_01']
+
+
+def bus_capture(part, inj, n):
+    """One armed capture of the main bus with the step driving the graph.
+
+    Returns None rather than a wrong answer if the scope will not arm or
+    the capture stalls: a dropped capture and an inert cell look identical
+    from a list of words, and that is the mistake this whole probe exists
+    to avoid.
+    """
+    try:
+        part.sc.arm(part.sc.sym[BUS_SRC], inj, BUS_AMP, 2)
+        part.sc.wait()
+        return part.sc.fetch(n)
+    except (IOError, SystemExit):
+        return None
+
+
+def driven_inert_probe(part, entries, samples, n=32, log=print, strip=1):
+    """Write to a candidate inert address; the DRIVEN bus must not move.
+
+    Same three-part shape as the control-state probe -- null interval,
+    positive control, then the candidates -- but the window is the audio
+    path itself, which is what "kernel-visible" was always supposed to
+    mean. A cell that reaches the audio and leaves no mark in control state
+    is invisible to the other probe and cannot hide from this one.
+
+    THE BAR IS UNCHANGED AND IT IS STILL THE CONTROL'S TO CLEAR: the
+    positive control must move more than 3x what the unwritten interval
+    moves, and more than 3 words, or the run reports NO inert verdict.
+    """
+    out = []
+    inj = bus_inject_addr(part)
+    base = bus_capture(part, inj, n)
+    if base is None:
+        out.append({'addr': None, 'class': 'WINDOW', 'cells': [],
+                    'verdict': 'NO CAPTURE — the scope would not arm; no '
+                               'inert verdict is reported from this run'})
+        log('  driven window: NO CAPTURE')
+        return out
+    nz = sum(1 for w in base if w)
+    log(f'  driven window: {BUS_SRC} through inj 0x{inj:X}, '
+        f'{nz} of {n} words non-zero')
+    out.append({'addr': None, 'class': 'WINDOW', 'cells': [],
+                'inject': inj, 'window_words': n, 'nonzero': nz,
+                'verdict': 'INFO'})
+    if not nz:
+        # An all-zero capture is what a dead strip, a dropped arm and a
+        # muted graph all look like. It is not a driven graph.
+        out[-1]['verdict'] = ('SILENT BUS — every cell would look inert; '
+                              'no inert verdict is reported from this run')
+        log('  driven window: SILENT BUS — nothing is reported from this run')
+        return out
+
+    def null_noise():
+        """Which words move between two captures with nothing written."""
+        a = bus_capture(part, inj, n)
+        b = bus_capture(part, inj, n)
+        if a is None or b is None:
+            return None, None
+        return {i for i in range(n) if a[i] != b[i]}, b
+
+    def moved(before):
+        after = bus_capture(part, inj, n)
+        if after is None:
+            return None, None
+        return [i for i in range(n) if after[i] != before[i]], after
+
+    SETTLE = 0.3
+    ctl_addr = (strip - 1) * STRIDE + 0x0039        # CompThr, a wired cell
+    noise, before = null_noise()
+    if noise is None:
+        out.append({'addr': ctl_addr, 'class': 'POSITIVE CONTROL',
+                    'cells': [], 'verdict': 'NO CAPTURE'})
+        return out
+    orig = part.read(ctl_addr)
+    part.write(ctl_addr, f32(-55.0), 4)
+    time.sleep(SETTLE)
+    diff, _ = moved(before)
+    part.write(ctl_addr, orig, 4)
+    time.sleep(SETTLE)
+    diff = [i for i in (diff or []) if i not in noise]
+    control_ok = len(diff) > max(3, 3 * len(noise))
+    out.append({'addr': ctl_addr, 'class': 'POSITIVE CONTROL',
+                'cells': ['Chan%03dCompThr001' % strip],
+                'words_moved': len(diff), 'noise_words': len(noise),
+                'moved': control_ok,
+                'verdict': 'CONTROL OK' if control_ok
+                           else ('CONTROL DID NOT CLEAR THE NOISE FLOOR '
+                                 f'({len(diff)} moved, {len(noise)} moved '
+                                 'unwritten) — NO inert verdict is reported '
+                                 'from this run')})
+    log(f'  positive control (CompThr): {len(diff)} of {n} bus words moved '
+        f'({len(noise)} moved on their own over the same wait)')
+    if not control_ok:
+        return out
+
+    for e in samples:
+        addr = e['addr']
+        words, kind, _b = probes(e)
+        if not words:
+            continue
+        noise, before = null_noise()
+        if noise is None:
+            continue
+        orig = part.read(addr)
+        part.write(addr, words[-1], 0)
+        time.sleep(SETTLE)
+        diff, _ = moved(before)
+        part.write(addr, orig, 0)
+        time.sleep(0.2)
+        if diff is None:
+            out.append({'addr': addr, 'cells': e['cells'],
+                        'class': e['kernel_note'],
+                        'verdict': 'NO CAPTURE'})
+            continue
+        diff = [i for i in diff if i not in noise]
+        out.append({'addr': addr, 'cells': e['cells'],
+                    'class': e['kernel_note'], 'wrote': words[-1],
+                    'words_moved': len(diff), 'noise_words': len(noise),
+                    'moved': bool(diff),
+                    'verdict': 'INERT CONFIRMED' if not diff else 'NOT INERT'})
+        log(f'  0x{addr:04X} {",".join(e["cells"])[:38]:<38} '
+            f'{"inert" if not diff else "MOVED %d words" % len(diff)}'
+            f'  (noise {len(noise)})')
+    return out
+
+
 def inert_probe(part, entries, samples, n=64, log=print, strip=1):
     """Write to a candidate inert address; nothing kernel-visible may move.
 
@@ -811,6 +982,12 @@ def main():
                          'unit the kernel assumes instead of the documented '
                          'one; that family MUST fail')
     ap.add_argument('--inert-samples', type=int, default=12)
+    ap.add_argument('--inert-window', default='bus', choices=('bus', 'state'),
+                    help='bus = the DRIVEN main-bus capture (default); '
+                         'state = the strip control-state window, which '
+                         'failed its own noise floor on an idle graph')
+    ap.add_argument('--inert-capture', type=int, default=32,
+                    help='bus words per capture (2 link reads each)')
     args = ap.parse_args()
 
     plan = json.load(open(args.plan))
@@ -874,12 +1051,23 @@ def main():
                 break
         res['inert_candidates'] = len(cand)
         res['inert_sampled'] = len(samples)
-        res['inert'] = inert_probe(part, entries, samples)
+        # THE DRIVEN BUS IS THE PROBE (2026-08-29). The control-state
+        # window failed its own noise floor on an idle graph; this drives
+        # the graph and watches the audio. --inert-window=state puts the
+        # old probe back, which is how the two are compared rather than
+        # asserted against each other.
+        res['inert_window'] = args.inert_window
+        if args.inert_window == 'state':
+            res['inert'] = inert_probe(part, entries, samples)
+        else:
+            res['inert'] = driven_inert_probe(part, entries, samples,
+                                              n=args.inert_capture)
         print(f'  inert: {len(samples)} classes sampled of '
-              f'{len(cand)} candidate addresses')
+              f'{len(cand)} candidate addresses '
+              f'({args.inert_window} window)')
     elif args.phase in ('inert', 'all'):
-        res['inert_skipped'] = ('the bus capture and its positive control '
-                                'are chip-1 symbols')
+        res['inert_skipped'] = ('the bus capture, the injection slot and '
+                                'the positive control are chip-1 symbols')
         print('  inert: skipped —', res['inert_skipped'])
 
     res['final_health'] = part.healthy()
