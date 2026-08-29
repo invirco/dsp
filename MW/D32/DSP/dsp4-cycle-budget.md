@@ -35,6 +35,16 @@ The rejected points, so the misses can be read as misses: block 8 at
 19 = 5785/s. Block 32 at 983.04, 28 = 1500/s and 29 = 1483/s; at
 786.432, 22 = 1500/s and 23 = 1459/s.
 
+**A label to ignore in the raw logs (review finding D49).** Every line in
+this session's sweep logs says `REAL_TIME (N passes/s of 1500)`, block 8
+rows included, because generating the block-32 scratch tree overwrote
+`tools/pi/dsp4_block.py` and audio_verdict.py takes its BAR from there.
+The bar is the only thing that came from it — the measured `N passes/s`
+is a pass-counter delta over wall time and does not depend on the block
+size — and every ceiling above was decided by applying 48000/BLOCK by
+hand, not by reading the label. The leak is fixed; the logs are not
+reprinted.
+
 **Against the record this replaces:** block 8 at 983.04 signal present
 was 12 scalar-unfused (08-28), 15 paired-unfused (08-28) and 16
 scalar-fused (08-29 session 2). It is now **22**.
@@ -136,7 +146,7 @@ objects up by node class. `dsp_memreport.py` says how much is left; this
 says who is using it.
 
 **The structural lever is still there and is still the big one.** RTG is
-41,344 bytes of the paired+fused image — 16.4 %, 1,292 bytes per node
+41,344 bytes of the paired+fused image — 16.6 %, 1,292 bytes per node
 across 32 nodes — and the same indexed-array-plus-shared-routine move that
 took the control-rate gate from 41 bytes per node to 3 has not been
 applied to the rest of its prep.
