@@ -28,6 +28,69 @@ sign-off; everything else follows from them.
   rounding where the hardware offers it: SHARC `SSFR`/MRF rounding),
   then **saturate**. Wrap-around is forbidden everywhere.
 
+## Wide-accumulator bounds (PW ruling: saturate, never wrap)
+
+Every 32-bit touchpoint saturates (above). The 64-bit and 80-bit
+accumulators need the same guarantee, and for those it is a BOUND that
+has to be stated, not a saturate instruction: a value that wraps in a
+wide accumulator re-enters range and reads back as a clean wrong sample.
+
+### Biquad error feedback (review finding D2)
+
+`fixed_ref.biquad` keeps the stage remainder `efb = acc − (y<<28)` in
+the Q8.56 domain, and the SHARC kernel stores it as a 64-bit pair —
+range ±2^63, MR2F discarded (`lib/biquad_fx.asm`).
+
+**Where it is provably safe.** When the stage output does not saturate,
+`y = rns(acc,28)` exactly, so `efb` is the rounding remainder and
+`|efb| ≤ 2^27` by construction — 36 bits below the store boundary. The
+efb can only grow through the SATURATION branch, where `y` is clamped
+and the difference is no longer a remainder.
+
+**The pessimistic bound does not close.** Treating the four state words
+as independent at ±8.0 and choosing adversarial signs,
+`|acc| ≤ 8 · S · 2^56` where
+`S = 4|b0| + |n1| + |n2| + |c1| + |c2| + 3`. Over the product's own
+design space (RBJ peaking / shelves / HPF / LPF; f0 20 Hz–20 kHz, gain
+±15 dB, Q 0.1–10, quantised through `biquad_coeffs_q`) the worst S is
+**38.56**, giving `|acc| ≤ 2^64.27` — ABOVE the 2^63 store. A
+conversion-time clamp on Σ|coeff| would have to demand S ≤ 16, which
+rejects settings the product's own DEFS ranges allow, so that option is
+closed.
+
+**The reachable bound, measured.** Driving the worst design-space
+coefficient sets with full-scale adversarial input (random ±full scale,
+square at f0, DC; 200 k samples per set; greedy per-sample adversary as
+a cross-check) the largest `|efb|` observed anywhere is **2^62.606**, at
+f0 = 14.16 kHz, +15 dB, Q = 0.1. The state words are not independent —
+y1/y2 are this filter's own past outputs — and that is what keeps the
+reachable value inside the store.
+
+**NORMATIVE BOUND: `|efb| < 2^63` holds for every input within the
+design space, with 0.394 bits of margin (1.314×).**
+
+That margin is thin and it is recorded as thin. It is only consumed
+under SUSTAINED output saturation with an extreme EQ setting, and the
+consequence of exceeding it is not a rounding error: a wrapped efb of
+order 2^63 re-enters the next accumulation as ~2^35 in Q4.28, which
+saturates the stage output until the state washes out.
+
+**Option, NOT taken here, for PW:** saturate the efb store-back at
+±(2^63−1). It is bit-identical to today's arithmetic everywhere in the
+reachable domain (the clamp never fires below 2^62.61), it executes the
+saturate-never-wrap ruling on this touchpoint, and it costs ~3
+instructions per stage per sample on the hottest kernel in the strip.
+Because it touches ruled per-sample arithmetic it needs sign-off, and
+the biquad inner loop is being reworked anyway (review finding D21) —
+folding it in there is cheaper than adding it now.
+
+**Adjacent, recorded here because the same corner produced it:** at
++15 dB with Q ≤ 0.12 the peaking design gives `n1 = b1 + 2·b0` up to
+8.318, which does not fit Q4.28 and SATURATES at conversion — the
+filter silently becomes a different filter. 1323 of 909 315 swept
+design-space sets are affected, all of them in that corner. Coverage
+for `_bq_fx_convert_N` is review finding D27.
+
 ## Coefficient formats
 
 - Biquad topology (NORMATIVE): **offset-coefficient direct-form I with
