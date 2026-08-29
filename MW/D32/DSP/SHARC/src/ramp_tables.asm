@@ -3,6 +3,18 @@
 
 /* Frame period: 0.1667 ms (8 samples @ 48 kHz) */
 
+#include "dsp_block.h"
+
+/* GENERATION-TIME BLOCK SIZE GUARD (review finding D12).
+ * The up/down FRAME counts below -- a frame is one BLOCK, so each
+ * is ms / (BLOCK / 48000), quantised at generation --
+ * are baked here at GENERATION time from BLOCK=8. What walks
+ * them resolves DSP4_BLOCK_SIZE at BUILD time. This makes the two
+ * disagreeing a build failure instead of an out-of-bounds write. */
+#if DSP4_BLOCK_SIZE != 8
+#error "STALE GENERATED FILE: baked for DSP4_BLOCK_SIZE=8, built against a different one. Regenerate: python3 tools/dsp/dsp_codegen.py <dsp.csv> <src> --force"
+#endif
+
 .section/dm seg_dmda;
 
 /* Profile table: { mode, up_frames, down_frames, curve, scope } */

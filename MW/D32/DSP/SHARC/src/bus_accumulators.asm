@@ -3,6 +3,15 @@
 /* Pairs [lo, hi]; contributions via _acc64_mac; readout _acc64_rns28. */
 #include "dsp_block.h"
 
+/* GENERATION-TIME BLOCK SIZE GUARD (review finding D12).
+ * The block pool extents and every bus accumulator extent below
+ * are baked here at GENERATION time from BLOCK=8. What walks
+ * them resolves DSP4_BLOCK_SIZE at BUILD time. This makes the two
+ * disagreeing a build failure instead of an out-of-bounds write. */
+#if DSP4_BLOCK_SIZE != 8
+#error "STALE GENERATED FILE: baked for DSP4_BLOCK_SIZE=8, built against a different one. Regenerate: python3 tools/dsp/dsp_codegen.py <dsp.csv> <src> --force"
+#endif
+
 .section/dm seg_dmda;
 
 #if DSP4_BLOCK_KERNELS
