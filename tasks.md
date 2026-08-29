@@ -1,3 +1,15 @@
+**PW RULING 2026-08-29 (~13:10): MINIMUM EQ Q = 0.10** (matching the
+wide-gentle extreme of the console field, not the mainstream 0.3 floor).
+The +15 dB / Q <= 0.12 corner (session-1 finding: n1 = 8.318 exceeds
+Q4.28) is IN SPEC and is handled by the halved-n1 encoding — store
+n1/2, accumulate its product twice into the MRF (bit-exact by
+construction, uniform +1 MAC per biquad stage, ~+6 c/s scalar strip /
++3 paired per channel). UNIFORM always-on, not conditional: the kernel's
+instruction stream must not vary with loaded settings or measured
+ceilings become setting-dependent. Conversion rejects Q < 0.10. Record
+in numeric-spec.md; golden vectors at the corner ride the D27 coverage
+work; floors and the capacity arithmetic absorb the +1.
+
 ## HUB DISPATCH 2026-08-29 10:45Z — fix session 2: efficiency batch D20-D25 + biquad pair + measured capacity table   [status: 🟡 dispatched]   [model: opus]
 
 model: opus
