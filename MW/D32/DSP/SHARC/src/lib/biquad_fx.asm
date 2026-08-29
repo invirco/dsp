@@ -155,14 +155,36 @@ _bq_fx_cascade_N.end:
  * 32-bit words plus a sign extension into MR2F, which is the same 80-bit
  * value MRF already holds.
  *
+ * PACKED 2026-08-29 (review finding D21). Three changes, all bit-exact:
+ *
+ *   1. SATURATION IS A CONDITIONAL MOVE, not a taken branch. The SIMD twin
+ *      below has always done it this way and the scalar form should have:
+ *      the branch was TAKEN on every non-saturating sample -- i.e. on
+ *      essentially every sample of every stage of every strip -- and a
+ *      taken jump on this core is not free.
+ *
+ *   2. THE ROUNDING HALF NEVER ENTERS MRF. It used to be added with a MAC
+ *      and then subtracted back out with another, purely so that the error
+ *      feedback left behind was the UNROUNDED accumulator. Adding 2^27 to
+ *      the extracted 64-bit pair with an add and a carry-add gives exactly
+ *      the same rounded value -- the two forms differ only in where the
+ *      addition happens -- and MRF is then already the unrounded
+ *      accumulator the feedback wants, so the undo disappears.
+ *
+ *   3. THE x HISTORY SHIFTS BEFORE THE EXTRACTION, not after. That is not
+ *      cosmetic: it puts two register moves between the last MAC and the
+ *      first `Rn = MR0F`, which is where the multiplier's result latency
+ *      was being paid as a stall. It also frees a scratch register,
+ *      because the incoming sample can live in one once x1 has taken it.
+ *
  * Registers, all sixteen used:
- *   r0 x   r1 y   r2,r3 scratch
+ *   r0,r2,r3 scratch (r2 carries x until the history shifts)   r1 y
  *   r4 b0  r5 n1  r6 n2  r7 c1  r8 c2
  *   r9 x1  r10 x2 r11 y1 r12 y2
- *   r13 = 2^28   r14 = 2^27   r15 = 1
- * There is no register left for the 2^29 unity term, so it is applied as
- * two MACs of 2^28 -- one instruction more, one register less, and the
- * register is what was scarce.
+ *   r13 = 2^28   r14 = 2^27   r15 = 0x7FFFFFFF
+ * There is still no register left for the 2^29 unity term, so it is
+ * applied as two MACs of 2^28: the third scratch register the branch-free
+ * saturation needs is worth more than the one MAC it would have saved.
  *
  * In:  i0 = coeffs, i1 = state, i2 = signal block (BLOCK words, in place),
  *      r4 = number of stages.
@@ -200,11 +222,11 @@ _bq_fx_cascade_blk:
 
         r13 = 0x10000000;      /* 2^28 */
         r14 = 0x08000000;      /* 2^27, the rounding half */
-        r15 = 1;
+        r15 = 0x7FFFFFFF;      /* the positive saturation pattern */
 
         lcntr = DSP4_BLOCK_SIZE, do .bqf_samp until lce;
-            r0 = dm(i2, 0);
-            mrf = mrf + r4 * r0 (ssi);      /* + b0*x   */
+            r2 = dm(i2, 0);
+            mrf = mrf + r4 * r2 (ssi);      /* + b0*x   */
             mrf = mrf + r4 * r10 (ssi);     /* + b0*x2  */
             mrf = mrf - r4 * r9 (ssi);      /* - b0*x1  */
             mrf = mrf - r4 * r9 (ssi);      /* - b0*x1  */
@@ -216,26 +238,30 @@ _bq_fx_cascade_blk:
             mrf = mrf + r13 * r11 (ssi);    /*   twice = y1*2^29 */
             mrf = mrf - r13 * r12 (ssi);    /* - y2*2^28 */
 
-            mrf = mrf + r14 * r15 (ssi);    /* round: + 2^27 */
+            /* x history FIRST: it frees r2 for the extraction, and the two
+             * moves stand between the last MAC and the first MR read. */
+            r10 = r9;                       /* x2' = x1 */
+            r9 = r2;                        /* x1' = x  */
+
+            /* y = sat32(rns(acc, 28)). The rounding half goes into the
+             * EXTRACTED pair, so MRF still holds the UNROUNDED accumulator
+             * and the error feedback needs no undo. */
             r2 = mr0f;
             r3 = mr1f;
-            r1 = lshift r2 by -28;
-            r2 = lshift r3 by 4;
-            r1 = r1 or r2;                  /* candidate y */
-            r2 = ashift r3 by -28;
-            r3 = ashift r1 by -31;
-            comp(r2, r3);
-            if eq jump (pc, .bqf_nosat);
-                r1 = 0x7FFFFFFF;
-                r2 = mr1f;
-                r2 = ashift r2 by -31;
-                r1 = r1 xor r2;
-        .bqf_nosat:
-            mrf = mrf - r14 * r15 (ssi);    /* take the rounding half back out */
-            mrf = mrf - r1 * r13 (ssi);     /* efb = acc - (y << 28), stays in MRF */
+            r2 = r2 + r14;                  /* + 2^27, low word, sets carry */
+            r3 = r3 + ci;                   /* carry into the high word     */
+            r0 = lshift r2 by -28;
+            r1 = lshift r3 by 4;
+            r1 = r1 or r0;                  /* candidate y                  */
+            r0 = ashift r3 by -28;          /* the bits above y             */
+            r2 = ashift r0 by -31;          /* sign of the accumulator      */
+            r2 = r15 xor r2;                /* MAX, or MIN if negative      */
+            r3 = ashift r1 by -31;          /* sign of the candidate        */
+            comp(r0, r3);
+            if ne r1 = r2;                  /* saturate, WITHOUT branching  */
 
-            r10 = r9;                       /* x2' = x1 */
-            r9 = r0;                        /* x1' = x  */
+            mrf = mrf - r1 * r13 (ssi);     /* efb = acc - (y << 28), in MRF */
+
             r12 = r11;                      /* y2' = y1 */
             r11 = r1;                       /* y1' = y  */
         .bqf_samp: dm(i2, 1) = r1;
