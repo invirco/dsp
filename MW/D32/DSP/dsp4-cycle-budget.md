@@ -160,6 +160,11 @@ The working operating point is **block 8**, not 32 (PW ruling 2026-08-28).
 BLOCK-32 figure** and is superseded by `dsp4-function-costs.csv`, which
 carries the block size on every row.
 
+**SUPERSEDED by the session-3 table at the top of this file** — those
+rows are scalar-unfused and paired-unfused, and none of them had strip
+fusion and pairing in the same image. Kept because they are the
+comparison the new table is read against.
+
 **RE-MEASURED 2026-08-28 (fourth session), signal present, honest 6000
 blocks/s rule, channels per chip:**
 
