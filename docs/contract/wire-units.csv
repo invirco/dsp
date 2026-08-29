@@ -1,0 +1,14 @@
+family,unit,kernel_expects,note
+Chan_Mtr,dBFS readback,Q4.28 fixed via float mirror,meter cells are device->host readback
+ChanGateRng,dB,linear gain — MISMATCH (dsp review D39),masters say dB; kernel treats wire value as linear
+ChanCompPar,percent 0-100,fraction 0-1 — MISMATCH (dsp review D40),all-or-nothing today
+ChanCompAtt,ms (log table),alpha coefficient — needs conversion declared,table 0=0/254=250/[Log] class
+ChanCompRel,ms (log table),alpha coefficient — needs conversion declared,
+ChanGateAtt,ms (log table),alpha coefficient — needs conversion declared,
+ChanGateRel,ms (log table),alpha coefficient — needs conversion declared,
+ChanGateHold,ms,hold samples — conversion to declare,
+ChanDelay,ms,delay samples — conversion to declare,
+ChanMute,bool 0/1,coefficient fold to exact 0,folded at control rate
+ChanPol,bool 0/1,coefficient sign fold,folded at control rate — 0 instr per sample
+ChanName,text,n/a — host-side only,names are the forever contract keys
+MainComp,mixed — see per-cell rows,per-parameter,Main L/R compressor family
