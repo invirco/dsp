@@ -1,3 +1,53 @@
+## HUB DISPATCH 2026-08-29 08:46Z — fix session 1: wraps and shipping correctness (D1-D6, hygiene)   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+FIX SESSION 1 — wraps and shipping correctness, from review-dsp-20260828.md
+(hub-verified D1 against the tree; PW's standing ruling: every 32-bit
+touchpoint saturates, a touchpoint that can wrap is SEVERE). Bench is
+free; measure on the part where the standing instruments reach.
+
+1. D1 (SEVERE) — bus accumulators must SATURATE, never wrap. Choose the
+   fix shape (saturating accumulate / mr2f store / control-rate bound)
+   with the trade written down and the per-MAC cost MEASURED, not
+   argued. fixed_ref.mix_sum currently models an unbounded sum: update
+   the model to saturate at the same boundary (this executes the PW
+   saturate-never-wrap ruling — record it in numeric-spec.md), add
+   golden vectors AT and ACROSS the boundary, prove asm==model on both
+   sides, negative control (the unfixed behavior must fail the new
+   vectors).
+2. D3 — crossfade blend 64-bit difference via MRF; add the minimal
+   blend model (D33) first so the fix is provable; boundary vectors.
+3. D2 — bound the efb store-back analytically; clamp at conversion time
+   OR accept with written justification; the bound lands in
+   numeric-spec.md either way.
+4. D5 — chip-2 main mix reads USB/BT one sample stale: fix the call
+   order; state the audible consequence it had; prove with the graph
+   process-order check.
+5. D6 — legacy peak decay constant derived for 1500 blocks/s applied at
+   6000: derive from the block rate (the meter rebuild already
+   established the pattern); this is in the SHIPPING image — say so in
+   the outcome.
+6. Hygiene batch, one commit each, trivial: D8 (dead routine with rts
+   loop-end), D9 (comment vs code), D11 (stale define), D10 (ramp frame
+   counts from block rate), D12 (generation-vs-build block-size
+   consistency check that FAILS the build on mismatch).
+7. W0 discipline throughout: state expected image deltas up front
+   (D5/D6 change the shipping image BY DESIGN — new ledger entries);
+   bench restored verified at the end; per-fix bit-exact bars.
+
+NOT in this session: the efficiency batch (D20-D25), the biquad hang,
+fused+paired measurements — they are FIX SESSION 2, dispatched after
+this lands. Do not start them.
+
+Rules: standing traps; ladder discipline; findings for anything that
+resists; push main; update the review index (mark each D# fixed with
+the commit) and this block.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 **PW RULING 2026-08-28 (~21:25): 32 CHANNELS IS THE MINIMUM, NOT THE
 GOAL.** The capacity requirement is 32 strips in one 21564 PLUS headroom:
 margin for a few plugins and for whatever the preliminary spec missed.
