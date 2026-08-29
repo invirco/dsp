@@ -41,6 +41,9 @@ BENCH=app@192.168.1.219
 ROOT=../../../..
 FUSED="${FUSED:-1}"
 SIMD="${SIMD:-1}"
+# BQ=0 is the CONTROL: dynamics-only pairs, which is the configuration the
+# session-3 table was measured on. BQ=1 pairs FILT and EQ too.
+BQ="${BQ:-1}"
 # MODE=rate (default) scores the block rate at N strips -- the CEILING
 # question. MODE=cyc measures cycles per graph pass at N strips with the
 # graph decimated so it always completes -- the MARGIN-AT-32 question,
@@ -68,12 +71,13 @@ srctree() {   # $1 = block size -> echoes the src dir to build from
 build_one() {   # $1 = point
     IFS=: read -r B C S N L <<<"$1"
     L="${L:-0}"
-    local d="$WORK/$MODE-$B-$C-$S-$N-$L-$FUSED$SIMD"
+    local d="$WORK/$MODE-$B-$C-$S-$N-$L-$FUSED$SIMD$BQ"
     local dec=1
     [ "$MODE" = cyc ] && dec=$DEC
     DSP_SRC_DIR="$(srctree "$B")" DSP_BUILD_DIR="$d" \
     DSP4_BISECT=0 DSP4_BLOCK_KERNELS=1 DSP4_PROFILE_SIGNAL=$S \
-    DSP4_STRIP_FUSED=$FUSED DSP4_SIMD_DYN=$SIMD DSP4_STRIPS=$N \
+    DSP4_STRIP_FUSED=$FUSED DSP4_SIMD_DYN=$SIMD DSP4_BQ_GRAPH=$BQ \
+    DSP4_STRIPS=$N \
     DSP4_BLOCK_DECIMATE=$dec DSP4_NODE_LIMIT=$L \
     DSP4_CCLK_TARGET=$C ./build.sh all > "$d.log" 2>&1
     if [ "$(grep -ciE '\[Error|Build FAILED' "$d.log")" -ne 0 ]; then
@@ -87,7 +91,7 @@ build_one() {   # $1 = point
 # builds start, or four of them race to generate the same one.
 for p in "$@"; do IFS=: read -r B _ _ _ <<<"$p"; srctree "$B" >/dev/null; done
 
-echo "=== building $# points (fused=$FUSED paired=$SIMD)"
+echo "=== building $# points (fused=$FUSED paired=$SIMD bq=$BQ)"
 i=0
 for p in "$@"; do
     build_one "$p" &
@@ -102,7 +106,7 @@ echo "=== measuring"
 for p in "$@"; do
     IFS=: read -r B C S N L <<<"$p"
     L="${L:-0}"
-    d="$WORK/$MODE-$B-$C-$S-$N-$L-$FUSED$SIMD"
+    d="$WORK/$MODE-$B-$C-$S-$N-$L-$FUSED$SIMD$BQ"
     if [ "$(cat "$d.status" 2>/dev/null)" != "ok" ]; then
         echo "block=$B clk=$C sig=$S strips=$N limit=$L  BUILD FAILED"; continue; fi
     read -r PT PP <<<"$(python3 -c "
@@ -119,5 +123,5 @@ print(a('proc_cyc'), a('proc_passes'))")"
     else
         R=$(ssh $BENCH "bash /home/app/sigstrips_run.sh $PP $N" 2>&1)
     fi
-    echo "block=$B clk=$C sig=$S strips=$N limit=$L fused=$FUSED paired=$SIMD  $(echo "$R" | tr '\n' ' | ')"
+    echo "block=$B clk=$C sig=$S strips=$N limit=$L fused=$FUSED paired=$SIMD bq=$BQ  $(echo "$R" | tr '\n' ' | ')"
 done

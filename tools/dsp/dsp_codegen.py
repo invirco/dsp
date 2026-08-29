@@ -10161,11 +10161,16 @@ def gen_dyn_pairs(chip_label, strips, meter_src):
 _BQ_PAIR_CLASSES = ('FILT', 'EQ')
 
 
-def _bq_pair_ptrs(cls, nid, bands):
-    """Pick the ACTIVE instance's coefficient and state bases into r8/r9.
+def _bq_pair_ptrs(cls, nid, rc='r8', rs='r9'):
+    """Pick the ACTIVE instance's coefficient and state bases into the
+    registers _bq_pair_blk wants them in.
 
     Conditional MOVES, not a branch: two `if eq` in a row read the ASTAT
-    that `pass` set, and nothing between them touches the flags.
+    that `pass` set, and nothing between them touches the flags. The
+    DESTINATION is a parameter so each strip lands in its final register --
+    selecting both into r8/r9 and shuffling afterwards cost six
+    instructions a pair, which is 1,152 bytes of a chip that has under two
+    thousand left.
     """
     if cls == 'FILT':
         a_c, a_s = f'_filt_hpf_A_{nid}', f'_filt_state_A_{nid}'
@@ -10176,9 +10181,9 @@ def _bq_pair_ptrs(cls, nid, bands):
         b_c, b_s = f'_eq_coeffs_B_{nid}', f'_eq_state_B_{nid}'
         act = f'_eq_active_{nid}'
     return [f'    r2 = {a_c};', f'    r3 = {a_s};',
-            f'    r8 = {b_c};', f'    r9 = {b_s};',
+            f'    {rc} = {b_c};', f'    {rs} = {b_s};',
             f'    r0 = dm({act});', '    r0 = pass r0;',
-            '    if eq r8 = r2;', '    if eq r9 = r3;']
+            f'    if eq {rc} = r2;', f'    if eq {rs} = r3;']
 
 
 def _bq_pair_steady(cls, nid):
@@ -10209,6 +10214,27 @@ def gen_bq_pairs(chip_label, strips, bands_of):
     a('')
     a('.section/pm seg_pmco;')
     a('.extern _bq_pair_blk;')
+    a('')
+    a('/* The post-EQ tap copy, ONCE. Every pair copies the same two pool')
+    a(' * slots to the same two tap slots -- the addresses are macros, not')
+    a(' * per-pair facts -- so sixteen copies of this loop were 1,850 bytes')
+    a(' * of chip 1\'s program memory for nothing, and chip 1 has 926 bytes')
+    a(' * of it left. */')
+    a('.global _bqp_tap_eq;')
+    a('_bqp_tap_eq:')
+    a('    l3 = 0; l4 = 0;')
+    a('    i3 = BLK_CHAIN_B_P1;')
+    a('    i4 = BLK_TAP_EQ_P1;')
+    a('    lcntr = DSP4_BLOCK_SIZE, do .bqt1 until lce;')
+    a('        r0 = dm(i3, 1);')
+    a('    .bqt1: dm(i4, 1) = r0;')
+    a('    i3 = BLK_CHAIN_B;')
+    a('    i4 = BLK_TAP_EQ;')
+    a('    lcntr = DSP4_BLOCK_SIZE, do .bqt2 until lce;')
+    a('        r0 = dm(i3, 1);')
+    a('    .bqt2: dm(i4, 1) = r0;')
+    a('    rts;')
+    a('_bqp_tap_eq.end:')
 
     nums = sorted(strips)
     pairs = [(nums[i], nums[i + 1]) for i in range(0, len(nums) - 1, 2)]
@@ -10253,50 +10279,39 @@ def gen_bq_pairs(chip_label, strips, bands_of):
             a('    /* Both channels must be in steady state or there is no')
             a('     * pair: a staged coefficient set or a running crossfade')
             a("     * goes through the node's own reference path. */")
-            a('    r1 = 0;')
+            _st = []
             for n in (na, nb):
-                for line in _bq_pair_steady(cls, n):
-                    a(line)
+                _st += _bq_pair_steady(cls, n)
+            # The first OR has nothing to OR with, so start from the load.
+            assert _st[1] == '    r1 = r1 or r0;'
+            _st[0] = _st[0].replace('    r0 = dm(', '    r1 = dm(')
+            del _st[1]
+            for line in _st:
+                a(line)
             a('    r1 = pass r1;')
             a(f'    if ne jump (pc, .bqs_{cls}_{tag});')
             a('')
-            for line in _bq_pair_ptrs(cls, na, stages):
+            for line in _bq_pair_ptrs(cls, na, 'r8', 'r9'):
                 a(line)
             a('    r10 = BLK_CHAIN_B_P1;         /* strip A, odd pool */')
-            a('    r14 = r8;')
-            a('    r15 = r9;')
-            for line in _bq_pair_ptrs(cls, nb, stages):
-                a(line)
             a('#if DSP4_BQ_NEGCTL')
             a('    /* NEGATIVE CONTROL: give strip B strip A\'s coefficient')
             a('     * and state pointers, so the pair computes ONE channel')
             a('     * twice. The bus sum MUST differ, or the comparison that')
             a('     * says the paired graph is bit-exact was not testing')
             a('     * anything. */')
-            a('    r11 = r14;')
-            a('    r12 = r15;')
-            a('#else')
             a('    r11 = r8;')
             a('    r12 = r9;')
+            a('#else')
+            for line in _bq_pair_ptrs(cls, nb, 'r11', 'r12'):
+                a(line)
             a('#endif')
-            a('    r8 = r14;')
-            a('    r9 = r15;')
             a('    r13 = BLK_CHAIN_B;            /* strip B, base pool */')
             a(f'    r4 = {stages};')
             a('    call _bq_pair_blk;')
             if cls == 'EQ':
                 a('    /* the post-EQ tap the router picks from, both pools */')
-                a('    l3 = 0; l4 = 0;')
-                a('    i3 = BLK_CHAIN_B_P1;')
-                a('    i4 = BLK_TAP_EQ_P1;')
-                a(f'    lcntr = DSP4_BLOCK_SIZE, do .bqt1_{tag} until lce;')
-                a('        r0 = dm(i3, 1);')
-                a(f'    .bqt1_{tag}: dm(i4, 1) = r0;')
-                a('    i3 = BLK_CHAIN_B;')
-                a('    i4 = BLK_TAP_EQ;')
-                a(f'    lcntr = DSP4_BLOCK_SIZE, do .bqt2_{tag} until lce;')
-                a('        r0 = dm(i3, 1);')
-                a(f'    .bqt2_{tag}: dm(i4, 1) = r0;')
+                a('    call _bqp_tap_eq;')
             a('    rts;')
             a('')
             a(f'.bqs_{cls}_{tag}:')

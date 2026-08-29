@@ -8,6 +8,27 @@
 .section/pm seg_pmco;
 .extern _bq_pair_blk;
 
+/* The post-EQ tap copy, ONCE. Every pair copies the same two pool
+ * slots to the same two tap slots -- the addresses are macros, not
+ * per-pair facts -- so sixteen copies of this loop were 1,850 bytes
+ * of chip 1's program memory for nothing, and chip 1 has 926 bytes
+ * of it left. */
+.global _bqp_tap_eq;
+_bqp_tap_eq:
+    l3 = 0; l4 = 0;
+    i3 = BLK_CHAIN_B_P1;
+    i4 = BLK_TAP_EQ_P1;
+    lcntr = DSP4_BLOCK_SIZE, do .bqt1 until lce;
+        r0 = dm(i3, 1);
+    .bqt1: dm(i4, 1) = r0;
+    i3 = BLK_CHAIN_B;
+    i4 = BLK_TAP_EQ;
+    lcntr = DSP4_BLOCK_SIZE, do .bqt2 until lce;
+        r0 = dm(i3, 1);
+    .bqt2: dm(i4, 1) = r0;
+    rts;
+_bqp_tap_eq.end:
+
 #if !DSP4_BLOCK_KERNELS
 #error "DSP4_BQ_GRAPH is a per-BLOCK pairing: build with DSP4_BLOCK_KERNELS=1."
 #endif

@@ -7,6 +7,27 @@
 
 .section/pm seg_pmco;
 .extern _bq_pair_blk;
+
+/* The post-EQ tap copy, ONCE. Every pair copies the same two pool
+ * slots to the same two tap slots -- the addresses are macros, not
+ * per-pair facts -- so sixteen copies of this loop were 1,850 bytes
+ * of chip 1's program memory for nothing, and chip 1 has 926 bytes
+ * of it left. */
+.global _bqp_tap_eq;
+_bqp_tap_eq:
+    l3 = 0; l4 = 0;
+    i3 = BLK_CHAIN_B_P1;
+    i4 = BLK_TAP_EQ_P1;
+    lcntr = DSP4_BLOCK_SIZE, do .bqt1 until lce;
+        r0 = dm(i3, 1);
+    .bqt1: dm(i4, 1) = r0;
+    i3 = BLK_CHAIN_B;
+    i4 = BLK_TAP_EQ;
+    lcntr = DSP4_BLOCK_SIZE, do .bqt2 until lce;
+        r0 = dm(i3, 1);
+    .bqt2: dm(i4, 1) = r0;
+    rts;
+_bqp_tap_eq.end:
 .extern _C1_FILT_01_process;
 .extern _hpf_swap_pending_C1_FILT_01;
 .extern _lpf_swap_pending_C1_FILT_01;
@@ -558,9 +579,7 @@ _BQPFILT_01_02_process:
     /* Both channels must be in steady state or there is no
      * pair: a staged coefficient set or a running crossfade
      * goes through the node's own reference path. */
-    r1 = 0;
-    r0 = dm(_hpf_swap_pending_C1_FILT_01);
-    r1 = r1 or r0;
+    r1 = dm(_hpf_swap_pending_C1_FILT_01);
     r0 = dm(_lpf_swap_pending_C1_FILT_01);
     r1 = r1 or r0;
     r0 = dm(_filt_xfade_step_C1_FILT_01);
@@ -583,30 +602,24 @@ _BQPFILT_01_02_process:
     if eq r8 = r2;
     if eq r9 = r3;
     r10 = BLK_CHAIN_B_P1;         /* strip A, odd pool */
-    r14 = r8;
-    r15 = r9;
-    r2 = _filt_hpf_A_C1_FILT_02;
-    r3 = _filt_state_A_C1_FILT_02;
-    r8 = _filt_hpf_B_C1_FILT_02;
-    r9 = _filt_state_B_C1_FILT_02;
-    r0 = dm(_filt_active_C1_FILT_02);
-    r0 = pass r0;
-    if eq r8 = r2;
-    if eq r9 = r3;
 #if DSP4_BQ_NEGCTL
     /* NEGATIVE CONTROL: give strip B strip A's coefficient
      * and state pointers, so the pair computes ONE channel
      * twice. The bus sum MUST differ, or the comparison that
      * says the paired graph is bit-exact was not testing
      * anything. */
-    r11 = r14;
-    r12 = r15;
-#else
     r11 = r8;
     r12 = r9;
+#else
+    r2 = _filt_hpf_A_C1_FILT_02;
+    r3 = _filt_state_A_C1_FILT_02;
+    r11 = _filt_hpf_B_C1_FILT_02;
+    r12 = _filt_state_B_C1_FILT_02;
+    r0 = dm(_filt_active_C1_FILT_02);
+    r0 = pass r0;
+    if eq r11 = r2;
+    if eq r12 = r3;
 #endif
-    r8 = r14;
-    r9 = r15;
     r13 = BLK_CHAIN_B;            /* strip B, base pool */
     r4 = 2;
     call _bq_pair_blk;
@@ -626,9 +639,7 @@ _BQPEQ_01_02_process:
     /* Both channels must be in steady state or there is no
      * pair: a staged coefficient set or a running crossfade
      * goes through the node's own reference path. */
-    r1 = 0;
-    r0 = dm(_eq_swap_pending_C1_EQ_01);
-    r1 = r1 or r0;
+    r1 = dm(_eq_swap_pending_C1_EQ_01);
     r0 = dm(_eq_xfade_step_C1_EQ_01);
     r1 = r1 or r0;
     r0 = dm(_eq_swap_pending_C1_EQ_02);
@@ -647,45 +658,29 @@ _BQPEQ_01_02_process:
     if eq r8 = r2;
     if eq r9 = r3;
     r10 = BLK_CHAIN_B_P1;         /* strip A, odd pool */
-    r14 = r8;
-    r15 = r9;
-    r2 = _eq_coeffs_A_C1_EQ_02;
-    r3 = _eq_state_A_C1_EQ_02;
-    r8 = _eq_coeffs_B_C1_EQ_02;
-    r9 = _eq_state_B_C1_EQ_02;
-    r0 = dm(_eq_active_C1_EQ_02);
-    r0 = pass r0;
-    if eq r8 = r2;
-    if eq r9 = r3;
 #if DSP4_BQ_NEGCTL
     /* NEGATIVE CONTROL: give strip B strip A's coefficient
      * and state pointers, so the pair computes ONE channel
      * twice. The bus sum MUST differ, or the comparison that
      * says the paired graph is bit-exact was not testing
      * anything. */
-    r11 = r14;
-    r12 = r15;
-#else
     r11 = r8;
     r12 = r9;
+#else
+    r2 = _eq_coeffs_A_C1_EQ_02;
+    r3 = _eq_state_A_C1_EQ_02;
+    r11 = _eq_coeffs_B_C1_EQ_02;
+    r12 = _eq_state_B_C1_EQ_02;
+    r0 = dm(_eq_active_C1_EQ_02);
+    r0 = pass r0;
+    if eq r11 = r2;
+    if eq r12 = r3;
 #endif
-    r8 = r14;
-    r9 = r15;
     r13 = BLK_CHAIN_B;            /* strip B, base pool */
     r4 = 4;
     call _bq_pair_blk;
     /* the post-EQ tap the router picks from, both pools */
-    l3 = 0; l4 = 0;
-    i3 = BLK_CHAIN_B_P1;
-    i4 = BLK_TAP_EQ_P1;
-    lcntr = DSP4_BLOCK_SIZE, do .bqt1_01_02 until lce;
-        r0 = dm(i3, 1);
-    .bqt1_01_02: dm(i4, 1) = r0;
-    i3 = BLK_CHAIN_B;
-    i4 = BLK_TAP_EQ;
-    lcntr = DSP4_BLOCK_SIZE, do .bqt2_01_02 until lce;
-        r0 = dm(i3, 1);
-    .bqt2_01_02: dm(i4, 1) = r0;
+    call _bqp_tap_eq;
     rts;
 
 .bqs_EQ_01_02:
@@ -702,9 +697,7 @@ _BQPFILT_03_04_process:
     /* Both channels must be in steady state or there is no
      * pair: a staged coefficient set or a running crossfade
      * goes through the node's own reference path. */
-    r1 = 0;
-    r0 = dm(_hpf_swap_pending_C1_FILT_03);
-    r1 = r1 or r0;
+    r1 = dm(_hpf_swap_pending_C1_FILT_03);
     r0 = dm(_lpf_swap_pending_C1_FILT_03);
     r1 = r1 or r0;
     r0 = dm(_filt_xfade_step_C1_FILT_03);
@@ -727,30 +720,24 @@ _BQPFILT_03_04_process:
     if eq r8 = r2;
     if eq r9 = r3;
     r10 = BLK_CHAIN_B_P1;         /* strip A, odd pool */
-    r14 = r8;
-    r15 = r9;
-    r2 = _filt_hpf_A_C1_FILT_04;
-    r3 = _filt_state_A_C1_FILT_04;
-    r8 = _filt_hpf_B_C1_FILT_04;
-    r9 = _filt_state_B_C1_FILT_04;
-    r0 = dm(_filt_active_C1_FILT_04);
-    r0 = pass r0;
-    if eq r8 = r2;
-    if eq r9 = r3;
 #if DSP4_BQ_NEGCTL
     /* NEGATIVE CONTROL: give strip B strip A's coefficient
      * and state pointers, so the pair computes ONE channel
      * twice. The bus sum MUST differ, or the comparison that
      * says the paired graph is bit-exact was not testing
      * anything. */
-    r11 = r14;
-    r12 = r15;
-#else
     r11 = r8;
     r12 = r9;
+#else
+    r2 = _filt_hpf_A_C1_FILT_04;
+    r3 = _filt_state_A_C1_FILT_04;
+    r11 = _filt_hpf_B_C1_FILT_04;
+    r12 = _filt_state_B_C1_FILT_04;
+    r0 = dm(_filt_active_C1_FILT_04);
+    r0 = pass r0;
+    if eq r11 = r2;
+    if eq r12 = r3;
 #endif
-    r8 = r14;
-    r9 = r15;
     r13 = BLK_CHAIN_B;            /* strip B, base pool */
     r4 = 2;
     call _bq_pair_blk;
@@ -770,9 +757,7 @@ _BQPEQ_03_04_process:
     /* Both channels must be in steady state or there is no
      * pair: a staged coefficient set or a running crossfade
      * goes through the node's own reference path. */
-    r1 = 0;
-    r0 = dm(_eq_swap_pending_C1_EQ_03);
-    r1 = r1 or r0;
+    r1 = dm(_eq_swap_pending_C1_EQ_03);
     r0 = dm(_eq_xfade_step_C1_EQ_03);
     r1 = r1 or r0;
     r0 = dm(_eq_swap_pending_C1_EQ_04);
@@ -791,45 +776,29 @@ _BQPEQ_03_04_process:
     if eq r8 = r2;
     if eq r9 = r3;
     r10 = BLK_CHAIN_B_P1;         /* strip A, odd pool */
-    r14 = r8;
-    r15 = r9;
-    r2 = _eq_coeffs_A_C1_EQ_04;
-    r3 = _eq_state_A_C1_EQ_04;
-    r8 = _eq_coeffs_B_C1_EQ_04;
-    r9 = _eq_state_B_C1_EQ_04;
-    r0 = dm(_eq_active_C1_EQ_04);
-    r0 = pass r0;
-    if eq r8 = r2;
-    if eq r9 = r3;
 #if DSP4_BQ_NEGCTL
     /* NEGATIVE CONTROL: give strip B strip A's coefficient
      * and state pointers, so the pair computes ONE channel
      * twice. The bus sum MUST differ, or the comparison that
      * says the paired graph is bit-exact was not testing
      * anything. */
-    r11 = r14;
-    r12 = r15;
-#else
     r11 = r8;
     r12 = r9;
+#else
+    r2 = _eq_coeffs_A_C1_EQ_04;
+    r3 = _eq_state_A_C1_EQ_04;
+    r11 = _eq_coeffs_B_C1_EQ_04;
+    r12 = _eq_state_B_C1_EQ_04;
+    r0 = dm(_eq_active_C1_EQ_04);
+    r0 = pass r0;
+    if eq r11 = r2;
+    if eq r12 = r3;
 #endif
-    r8 = r14;
-    r9 = r15;
     r13 = BLK_CHAIN_B;            /* strip B, base pool */
     r4 = 4;
     call _bq_pair_blk;
     /* the post-EQ tap the router picks from, both pools */
-    l3 = 0; l4 = 0;
-    i3 = BLK_CHAIN_B_P1;
-    i4 = BLK_TAP_EQ_P1;
-    lcntr = DSP4_BLOCK_SIZE, do .bqt1_03_04 until lce;
-        r0 = dm(i3, 1);
-    .bqt1_03_04: dm(i4, 1) = r0;
-    i3 = BLK_CHAIN_B;
-    i4 = BLK_TAP_EQ;
-    lcntr = DSP4_BLOCK_SIZE, do .bqt2_03_04 until lce;
-        r0 = dm(i3, 1);
-    .bqt2_03_04: dm(i4, 1) = r0;
+    call _bqp_tap_eq;
     rts;
 
 .bqs_EQ_03_04:
@@ -846,9 +815,7 @@ _BQPFILT_05_06_process:
     /* Both channels must be in steady state or there is no
      * pair: a staged coefficient set or a running crossfade
      * goes through the node's own reference path. */
-    r1 = 0;
-    r0 = dm(_hpf_swap_pending_C1_FILT_05);
-    r1 = r1 or r0;
+    r1 = dm(_hpf_swap_pending_C1_FILT_05);
     r0 = dm(_lpf_swap_pending_C1_FILT_05);
     r1 = r1 or r0;
     r0 = dm(_filt_xfade_step_C1_FILT_05);
@@ -871,30 +838,24 @@ _BQPFILT_05_06_process:
     if eq r8 = r2;
     if eq r9 = r3;
     r10 = BLK_CHAIN_B_P1;         /* strip A, odd pool */
-    r14 = r8;
-    r15 = r9;
-    r2 = _filt_hpf_A_C1_FILT_06;
-    r3 = _filt_state_A_C1_FILT_06;
-    r8 = _filt_hpf_B_C1_FILT_06;
-    r9 = _filt_state_B_C1_FILT_06;
-    r0 = dm(_filt_active_C1_FILT_06);
-    r0 = pass r0;
-    if eq r8 = r2;
-    if eq r9 = r3;
 #if DSP4_BQ_NEGCTL
     /* NEGATIVE CONTROL: give strip B strip A's coefficient
      * and state pointers, so the pair computes ONE channel
      * twice. The bus sum MUST differ, or the comparison that
      * says the paired graph is bit-exact was not testing
      * anything. */
-    r11 = r14;
-    r12 = r15;
-#else
     r11 = r8;
     r12 = r9;
+#else
+    r2 = _filt_hpf_A_C1_FILT_06;
+    r3 = _filt_state_A_C1_FILT_06;
+    r11 = _filt_hpf_B_C1_FILT_06;
+    r12 = _filt_state_B_C1_FILT_06;
+    r0 = dm(_filt_active_C1_FILT_06);
+    r0 = pass r0;
+    if eq r11 = r2;
+    if eq r12 = r3;
 #endif
-    r8 = r14;
-    r9 = r15;
     r13 = BLK_CHAIN_B;            /* strip B, base pool */
     r4 = 2;
     call _bq_pair_blk;
@@ -914,9 +875,7 @@ _BQPEQ_05_06_process:
     /* Both channels must be in steady state or there is no
      * pair: a staged coefficient set or a running crossfade
      * goes through the node's own reference path. */
-    r1 = 0;
-    r0 = dm(_eq_swap_pending_C1_EQ_05);
-    r1 = r1 or r0;
+    r1 = dm(_eq_swap_pending_C1_EQ_05);
     r0 = dm(_eq_xfade_step_C1_EQ_05);
     r1 = r1 or r0;
     r0 = dm(_eq_swap_pending_C1_EQ_06);
@@ -935,45 +894,29 @@ _BQPEQ_05_06_process:
     if eq r8 = r2;
     if eq r9 = r3;
     r10 = BLK_CHAIN_B_P1;         /* strip A, odd pool */
-    r14 = r8;
-    r15 = r9;
-    r2 = _eq_coeffs_A_C1_EQ_06;
-    r3 = _eq_state_A_C1_EQ_06;
-    r8 = _eq_coeffs_B_C1_EQ_06;
-    r9 = _eq_state_B_C1_EQ_06;
-    r0 = dm(_eq_active_C1_EQ_06);
-    r0 = pass r0;
-    if eq r8 = r2;
-    if eq r9 = r3;
 #if DSP4_BQ_NEGCTL
     /* NEGATIVE CONTROL: give strip B strip A's coefficient
      * and state pointers, so the pair computes ONE channel
      * twice. The bus sum MUST differ, or the comparison that
      * says the paired graph is bit-exact was not testing
      * anything. */
-    r11 = r14;
-    r12 = r15;
-#else
     r11 = r8;
     r12 = r9;
+#else
+    r2 = _eq_coeffs_A_C1_EQ_06;
+    r3 = _eq_state_A_C1_EQ_06;
+    r11 = _eq_coeffs_B_C1_EQ_06;
+    r12 = _eq_state_B_C1_EQ_06;
+    r0 = dm(_eq_active_C1_EQ_06);
+    r0 = pass r0;
+    if eq r11 = r2;
+    if eq r12 = r3;
 #endif
-    r8 = r14;
-    r9 = r15;
     r13 = BLK_CHAIN_B;            /* strip B, base pool */
     r4 = 4;
     call _bq_pair_blk;
     /* the post-EQ tap the router picks from, both pools */
-    l3 = 0; l4 = 0;
-    i3 = BLK_CHAIN_B_P1;
-    i4 = BLK_TAP_EQ_P1;
-    lcntr = DSP4_BLOCK_SIZE, do .bqt1_05_06 until lce;
-        r0 = dm(i3, 1);
-    .bqt1_05_06: dm(i4, 1) = r0;
-    i3 = BLK_CHAIN_B;
-    i4 = BLK_TAP_EQ;
-    lcntr = DSP4_BLOCK_SIZE, do .bqt2_05_06 until lce;
-        r0 = dm(i3, 1);
-    .bqt2_05_06: dm(i4, 1) = r0;
+    call _bqp_tap_eq;
     rts;
 
 .bqs_EQ_05_06:
@@ -990,9 +933,7 @@ _BQPFILT_07_08_process:
     /* Both channels must be in steady state or there is no
      * pair: a staged coefficient set or a running crossfade
      * goes through the node's own reference path. */
-    r1 = 0;
-    r0 = dm(_hpf_swap_pending_C1_FILT_07);
-    r1 = r1 or r0;
+    r1 = dm(_hpf_swap_pending_C1_FILT_07);
     r0 = dm(_lpf_swap_pending_C1_FILT_07);
     r1 = r1 or r0;
     r0 = dm(_filt_xfade_step_C1_FILT_07);
@@ -1015,30 +956,24 @@ _BQPFILT_07_08_process:
     if eq r8 = r2;
     if eq r9 = r3;
     r10 = BLK_CHAIN_B_P1;         /* strip A, odd pool */
-    r14 = r8;
-    r15 = r9;
-    r2 = _filt_hpf_A_C1_FILT_08;
-    r3 = _filt_state_A_C1_FILT_08;
-    r8 = _filt_hpf_B_C1_FILT_08;
-    r9 = _filt_state_B_C1_FILT_08;
-    r0 = dm(_filt_active_C1_FILT_08);
-    r0 = pass r0;
-    if eq r8 = r2;
-    if eq r9 = r3;
 #if DSP4_BQ_NEGCTL
     /* NEGATIVE CONTROL: give strip B strip A's coefficient
      * and state pointers, so the pair computes ONE channel
      * twice. The bus sum MUST differ, or the comparison that
      * says the paired graph is bit-exact was not testing
      * anything. */
-    r11 = r14;
-    r12 = r15;
-#else
     r11 = r8;
     r12 = r9;
+#else
+    r2 = _filt_hpf_A_C1_FILT_08;
+    r3 = _filt_state_A_C1_FILT_08;
+    r11 = _filt_hpf_B_C1_FILT_08;
+    r12 = _filt_state_B_C1_FILT_08;
+    r0 = dm(_filt_active_C1_FILT_08);
+    r0 = pass r0;
+    if eq r11 = r2;
+    if eq r12 = r3;
 #endif
-    r8 = r14;
-    r9 = r15;
     r13 = BLK_CHAIN_B;            /* strip B, base pool */
     r4 = 2;
     call _bq_pair_blk;
@@ -1058,9 +993,7 @@ _BQPEQ_07_08_process:
     /* Both channels must be in steady state or there is no
      * pair: a staged coefficient set or a running crossfade
      * goes through the node's own reference path. */
-    r1 = 0;
-    r0 = dm(_eq_swap_pending_C1_EQ_07);
-    r1 = r1 or r0;
+    r1 = dm(_eq_swap_pending_C1_EQ_07);
     r0 = dm(_eq_xfade_step_C1_EQ_07);
     r1 = r1 or r0;
     r0 = dm(_eq_swap_pending_C1_EQ_08);
@@ -1079,45 +1012,29 @@ _BQPEQ_07_08_process:
     if eq r8 = r2;
     if eq r9 = r3;
     r10 = BLK_CHAIN_B_P1;         /* strip A, odd pool */
-    r14 = r8;
-    r15 = r9;
-    r2 = _eq_coeffs_A_C1_EQ_08;
-    r3 = _eq_state_A_C1_EQ_08;
-    r8 = _eq_coeffs_B_C1_EQ_08;
-    r9 = _eq_state_B_C1_EQ_08;
-    r0 = dm(_eq_active_C1_EQ_08);
-    r0 = pass r0;
-    if eq r8 = r2;
-    if eq r9 = r3;
 #if DSP4_BQ_NEGCTL
     /* NEGATIVE CONTROL: give strip B strip A's coefficient
      * and state pointers, so the pair computes ONE channel
      * twice. The bus sum MUST differ, or the comparison that
      * says the paired graph is bit-exact was not testing
      * anything. */
-    r11 = r14;
-    r12 = r15;
-#else
     r11 = r8;
     r12 = r9;
+#else
+    r2 = _eq_coeffs_A_C1_EQ_08;
+    r3 = _eq_state_A_C1_EQ_08;
+    r11 = _eq_coeffs_B_C1_EQ_08;
+    r12 = _eq_state_B_C1_EQ_08;
+    r0 = dm(_eq_active_C1_EQ_08);
+    r0 = pass r0;
+    if eq r11 = r2;
+    if eq r12 = r3;
 #endif
-    r8 = r14;
-    r9 = r15;
     r13 = BLK_CHAIN_B;            /* strip B, base pool */
     r4 = 4;
     call _bq_pair_blk;
     /* the post-EQ tap the router picks from, both pools */
-    l3 = 0; l4 = 0;
-    i3 = BLK_CHAIN_B_P1;
-    i4 = BLK_TAP_EQ_P1;
-    lcntr = DSP4_BLOCK_SIZE, do .bqt1_07_08 until lce;
-        r0 = dm(i3, 1);
-    .bqt1_07_08: dm(i4, 1) = r0;
-    i3 = BLK_CHAIN_B;
-    i4 = BLK_TAP_EQ;
-    lcntr = DSP4_BLOCK_SIZE, do .bqt2_07_08 until lce;
-        r0 = dm(i3, 1);
-    .bqt2_07_08: dm(i4, 1) = r0;
+    call _bqp_tap_eq;
     rts;
 
 .bqs_EQ_07_08:
@@ -1134,9 +1051,7 @@ _BQPFILT_09_10_process:
     /* Both channels must be in steady state or there is no
      * pair: a staged coefficient set or a running crossfade
      * goes through the node's own reference path. */
-    r1 = 0;
-    r0 = dm(_hpf_swap_pending_C1_FILT_09);
-    r1 = r1 or r0;
+    r1 = dm(_hpf_swap_pending_C1_FILT_09);
     r0 = dm(_lpf_swap_pending_C1_FILT_09);
     r1 = r1 or r0;
     r0 = dm(_filt_xfade_step_C1_FILT_09);
@@ -1159,30 +1074,24 @@ _BQPFILT_09_10_process:
     if eq r8 = r2;
     if eq r9 = r3;
     r10 = BLK_CHAIN_B_P1;         /* strip A, odd pool */
-    r14 = r8;
-    r15 = r9;
-    r2 = _filt_hpf_A_C1_FILT_10;
-    r3 = _filt_state_A_C1_FILT_10;
-    r8 = _filt_hpf_B_C1_FILT_10;
-    r9 = _filt_state_B_C1_FILT_10;
-    r0 = dm(_filt_active_C1_FILT_10);
-    r0 = pass r0;
-    if eq r8 = r2;
-    if eq r9 = r3;
 #if DSP4_BQ_NEGCTL
     /* NEGATIVE CONTROL: give strip B strip A's coefficient
      * and state pointers, so the pair computes ONE channel
      * twice. The bus sum MUST differ, or the comparison that
      * says the paired graph is bit-exact was not testing
      * anything. */
-    r11 = r14;
-    r12 = r15;
-#else
     r11 = r8;
     r12 = r9;
+#else
+    r2 = _filt_hpf_A_C1_FILT_10;
+    r3 = _filt_state_A_C1_FILT_10;
+    r11 = _filt_hpf_B_C1_FILT_10;
+    r12 = _filt_state_B_C1_FILT_10;
+    r0 = dm(_filt_active_C1_FILT_10);
+    r0 = pass r0;
+    if eq r11 = r2;
+    if eq r12 = r3;
 #endif
-    r8 = r14;
-    r9 = r15;
     r13 = BLK_CHAIN_B;            /* strip B, base pool */
     r4 = 2;
     call _bq_pair_blk;
@@ -1202,9 +1111,7 @@ _BQPEQ_09_10_process:
     /* Both channels must be in steady state or there is no
      * pair: a staged coefficient set or a running crossfade
      * goes through the node's own reference path. */
-    r1 = 0;
-    r0 = dm(_eq_swap_pending_C1_EQ_09);
-    r1 = r1 or r0;
+    r1 = dm(_eq_swap_pending_C1_EQ_09);
     r0 = dm(_eq_xfade_step_C1_EQ_09);
     r1 = r1 or r0;
     r0 = dm(_eq_swap_pending_C1_EQ_10);
@@ -1223,45 +1130,29 @@ _BQPEQ_09_10_process:
     if eq r8 = r2;
     if eq r9 = r3;
     r10 = BLK_CHAIN_B_P1;         /* strip A, odd pool */
-    r14 = r8;
-    r15 = r9;
-    r2 = _eq_coeffs_A_C1_EQ_10;
-    r3 = _eq_state_A_C1_EQ_10;
-    r8 = _eq_coeffs_B_C1_EQ_10;
-    r9 = _eq_state_B_C1_EQ_10;
-    r0 = dm(_eq_active_C1_EQ_10);
-    r0 = pass r0;
-    if eq r8 = r2;
-    if eq r9 = r3;
 #if DSP4_BQ_NEGCTL
     /* NEGATIVE CONTROL: give strip B strip A's coefficient
      * and state pointers, so the pair computes ONE channel
      * twice. The bus sum MUST differ, or the comparison that
      * says the paired graph is bit-exact was not testing
      * anything. */
-    r11 = r14;
-    r12 = r15;
-#else
     r11 = r8;
     r12 = r9;
+#else
+    r2 = _eq_coeffs_A_C1_EQ_10;
+    r3 = _eq_state_A_C1_EQ_10;
+    r11 = _eq_coeffs_B_C1_EQ_10;
+    r12 = _eq_state_B_C1_EQ_10;
+    r0 = dm(_eq_active_C1_EQ_10);
+    r0 = pass r0;
+    if eq r11 = r2;
+    if eq r12 = r3;
 #endif
-    r8 = r14;
-    r9 = r15;
     r13 = BLK_CHAIN_B;            /* strip B, base pool */
     r4 = 4;
     call _bq_pair_blk;
     /* the post-EQ tap the router picks from, both pools */
-    l3 = 0; l4 = 0;
-    i3 = BLK_CHAIN_B_P1;
-    i4 = BLK_TAP_EQ_P1;
-    lcntr = DSP4_BLOCK_SIZE, do .bqt1_09_10 until lce;
-        r0 = dm(i3, 1);
-    .bqt1_09_10: dm(i4, 1) = r0;
-    i3 = BLK_CHAIN_B;
-    i4 = BLK_TAP_EQ;
-    lcntr = DSP4_BLOCK_SIZE, do .bqt2_09_10 until lce;
-        r0 = dm(i3, 1);
-    .bqt2_09_10: dm(i4, 1) = r0;
+    call _bqp_tap_eq;
     rts;
 
 .bqs_EQ_09_10:
@@ -1278,9 +1169,7 @@ _BQPFILT_11_12_process:
     /* Both channels must be in steady state or there is no
      * pair: a staged coefficient set or a running crossfade
      * goes through the node's own reference path. */
-    r1 = 0;
-    r0 = dm(_hpf_swap_pending_C1_FILT_11);
-    r1 = r1 or r0;
+    r1 = dm(_hpf_swap_pending_C1_FILT_11);
     r0 = dm(_lpf_swap_pending_C1_FILT_11);
     r1 = r1 or r0;
     r0 = dm(_filt_xfade_step_C1_FILT_11);
@@ -1303,30 +1192,24 @@ _BQPFILT_11_12_process:
     if eq r8 = r2;
     if eq r9 = r3;
     r10 = BLK_CHAIN_B_P1;         /* strip A, odd pool */
-    r14 = r8;
-    r15 = r9;
-    r2 = _filt_hpf_A_C1_FILT_12;
-    r3 = _filt_state_A_C1_FILT_12;
-    r8 = _filt_hpf_B_C1_FILT_12;
-    r9 = _filt_state_B_C1_FILT_12;
-    r0 = dm(_filt_active_C1_FILT_12);
-    r0 = pass r0;
-    if eq r8 = r2;
-    if eq r9 = r3;
 #if DSP4_BQ_NEGCTL
     /* NEGATIVE CONTROL: give strip B strip A's coefficient
      * and state pointers, so the pair computes ONE channel
      * twice. The bus sum MUST differ, or the comparison that
      * says the paired graph is bit-exact was not testing
      * anything. */
-    r11 = r14;
-    r12 = r15;
-#else
     r11 = r8;
     r12 = r9;
+#else
+    r2 = _filt_hpf_A_C1_FILT_12;
+    r3 = _filt_state_A_C1_FILT_12;
+    r11 = _filt_hpf_B_C1_FILT_12;
+    r12 = _filt_state_B_C1_FILT_12;
+    r0 = dm(_filt_active_C1_FILT_12);
+    r0 = pass r0;
+    if eq r11 = r2;
+    if eq r12 = r3;
 #endif
-    r8 = r14;
-    r9 = r15;
     r13 = BLK_CHAIN_B;            /* strip B, base pool */
     r4 = 2;
     call _bq_pair_blk;
@@ -1346,9 +1229,7 @@ _BQPEQ_11_12_process:
     /* Both channels must be in steady state or there is no
      * pair: a staged coefficient set or a running crossfade
      * goes through the node's own reference path. */
-    r1 = 0;
-    r0 = dm(_eq_swap_pending_C1_EQ_11);
-    r1 = r1 or r0;
+    r1 = dm(_eq_swap_pending_C1_EQ_11);
     r0 = dm(_eq_xfade_step_C1_EQ_11);
     r1 = r1 or r0;
     r0 = dm(_eq_swap_pending_C1_EQ_12);
@@ -1367,45 +1248,29 @@ _BQPEQ_11_12_process:
     if eq r8 = r2;
     if eq r9 = r3;
     r10 = BLK_CHAIN_B_P1;         /* strip A, odd pool */
-    r14 = r8;
-    r15 = r9;
-    r2 = _eq_coeffs_A_C1_EQ_12;
-    r3 = _eq_state_A_C1_EQ_12;
-    r8 = _eq_coeffs_B_C1_EQ_12;
-    r9 = _eq_state_B_C1_EQ_12;
-    r0 = dm(_eq_active_C1_EQ_12);
-    r0 = pass r0;
-    if eq r8 = r2;
-    if eq r9 = r3;
 #if DSP4_BQ_NEGCTL
     /* NEGATIVE CONTROL: give strip B strip A's coefficient
      * and state pointers, so the pair computes ONE channel
      * twice. The bus sum MUST differ, or the comparison that
      * says the paired graph is bit-exact was not testing
      * anything. */
-    r11 = r14;
-    r12 = r15;
-#else
     r11 = r8;
     r12 = r9;
+#else
+    r2 = _eq_coeffs_A_C1_EQ_12;
+    r3 = _eq_state_A_C1_EQ_12;
+    r11 = _eq_coeffs_B_C1_EQ_12;
+    r12 = _eq_state_B_C1_EQ_12;
+    r0 = dm(_eq_active_C1_EQ_12);
+    r0 = pass r0;
+    if eq r11 = r2;
+    if eq r12 = r3;
 #endif
-    r8 = r14;
-    r9 = r15;
     r13 = BLK_CHAIN_B;            /* strip B, base pool */
     r4 = 4;
     call _bq_pair_blk;
     /* the post-EQ tap the router picks from, both pools */
-    l3 = 0; l4 = 0;
-    i3 = BLK_CHAIN_B_P1;
-    i4 = BLK_TAP_EQ_P1;
-    lcntr = DSP4_BLOCK_SIZE, do .bqt1_11_12 until lce;
-        r0 = dm(i3, 1);
-    .bqt1_11_12: dm(i4, 1) = r0;
-    i3 = BLK_CHAIN_B;
-    i4 = BLK_TAP_EQ;
-    lcntr = DSP4_BLOCK_SIZE, do .bqt2_11_12 until lce;
-        r0 = dm(i3, 1);
-    .bqt2_11_12: dm(i4, 1) = r0;
+    call _bqp_tap_eq;
     rts;
 
 .bqs_EQ_11_12:
@@ -1422,9 +1287,7 @@ _BQPFILT_13_14_process:
     /* Both channels must be in steady state or there is no
      * pair: a staged coefficient set or a running crossfade
      * goes through the node's own reference path. */
-    r1 = 0;
-    r0 = dm(_hpf_swap_pending_C1_FILT_13);
-    r1 = r1 or r0;
+    r1 = dm(_hpf_swap_pending_C1_FILT_13);
     r0 = dm(_lpf_swap_pending_C1_FILT_13);
     r1 = r1 or r0;
     r0 = dm(_filt_xfade_step_C1_FILT_13);
@@ -1447,30 +1310,24 @@ _BQPFILT_13_14_process:
     if eq r8 = r2;
     if eq r9 = r3;
     r10 = BLK_CHAIN_B_P1;         /* strip A, odd pool */
-    r14 = r8;
-    r15 = r9;
-    r2 = _filt_hpf_A_C1_FILT_14;
-    r3 = _filt_state_A_C1_FILT_14;
-    r8 = _filt_hpf_B_C1_FILT_14;
-    r9 = _filt_state_B_C1_FILT_14;
-    r0 = dm(_filt_active_C1_FILT_14);
-    r0 = pass r0;
-    if eq r8 = r2;
-    if eq r9 = r3;
 #if DSP4_BQ_NEGCTL
     /* NEGATIVE CONTROL: give strip B strip A's coefficient
      * and state pointers, so the pair computes ONE channel
      * twice. The bus sum MUST differ, or the comparison that
      * says the paired graph is bit-exact was not testing
      * anything. */
-    r11 = r14;
-    r12 = r15;
-#else
     r11 = r8;
     r12 = r9;
+#else
+    r2 = _filt_hpf_A_C1_FILT_14;
+    r3 = _filt_state_A_C1_FILT_14;
+    r11 = _filt_hpf_B_C1_FILT_14;
+    r12 = _filt_state_B_C1_FILT_14;
+    r0 = dm(_filt_active_C1_FILT_14);
+    r0 = pass r0;
+    if eq r11 = r2;
+    if eq r12 = r3;
 #endif
-    r8 = r14;
-    r9 = r15;
     r13 = BLK_CHAIN_B;            /* strip B, base pool */
     r4 = 2;
     call _bq_pair_blk;
@@ -1490,9 +1347,7 @@ _BQPEQ_13_14_process:
     /* Both channels must be in steady state or there is no
      * pair: a staged coefficient set or a running crossfade
      * goes through the node's own reference path. */
-    r1 = 0;
-    r0 = dm(_eq_swap_pending_C1_EQ_13);
-    r1 = r1 or r0;
+    r1 = dm(_eq_swap_pending_C1_EQ_13);
     r0 = dm(_eq_xfade_step_C1_EQ_13);
     r1 = r1 or r0;
     r0 = dm(_eq_swap_pending_C1_EQ_14);
@@ -1511,45 +1366,29 @@ _BQPEQ_13_14_process:
     if eq r8 = r2;
     if eq r9 = r3;
     r10 = BLK_CHAIN_B_P1;         /* strip A, odd pool */
-    r14 = r8;
-    r15 = r9;
-    r2 = _eq_coeffs_A_C1_EQ_14;
-    r3 = _eq_state_A_C1_EQ_14;
-    r8 = _eq_coeffs_B_C1_EQ_14;
-    r9 = _eq_state_B_C1_EQ_14;
-    r0 = dm(_eq_active_C1_EQ_14);
-    r0 = pass r0;
-    if eq r8 = r2;
-    if eq r9 = r3;
 #if DSP4_BQ_NEGCTL
     /* NEGATIVE CONTROL: give strip B strip A's coefficient
      * and state pointers, so the pair computes ONE channel
      * twice. The bus sum MUST differ, or the comparison that
      * says the paired graph is bit-exact was not testing
      * anything. */
-    r11 = r14;
-    r12 = r15;
-#else
     r11 = r8;
     r12 = r9;
+#else
+    r2 = _eq_coeffs_A_C1_EQ_14;
+    r3 = _eq_state_A_C1_EQ_14;
+    r11 = _eq_coeffs_B_C1_EQ_14;
+    r12 = _eq_state_B_C1_EQ_14;
+    r0 = dm(_eq_active_C1_EQ_14);
+    r0 = pass r0;
+    if eq r11 = r2;
+    if eq r12 = r3;
 #endif
-    r8 = r14;
-    r9 = r15;
     r13 = BLK_CHAIN_B;            /* strip B, base pool */
     r4 = 4;
     call _bq_pair_blk;
     /* the post-EQ tap the router picks from, both pools */
-    l3 = 0; l4 = 0;
-    i3 = BLK_CHAIN_B_P1;
-    i4 = BLK_TAP_EQ_P1;
-    lcntr = DSP4_BLOCK_SIZE, do .bqt1_13_14 until lce;
-        r0 = dm(i3, 1);
-    .bqt1_13_14: dm(i4, 1) = r0;
-    i3 = BLK_CHAIN_B;
-    i4 = BLK_TAP_EQ;
-    lcntr = DSP4_BLOCK_SIZE, do .bqt2_13_14 until lce;
-        r0 = dm(i3, 1);
-    .bqt2_13_14: dm(i4, 1) = r0;
+    call _bqp_tap_eq;
     rts;
 
 .bqs_EQ_13_14:
@@ -1566,9 +1405,7 @@ _BQPFILT_15_16_process:
     /* Both channels must be in steady state or there is no
      * pair: a staged coefficient set or a running crossfade
      * goes through the node's own reference path. */
-    r1 = 0;
-    r0 = dm(_hpf_swap_pending_C1_FILT_15);
-    r1 = r1 or r0;
+    r1 = dm(_hpf_swap_pending_C1_FILT_15);
     r0 = dm(_lpf_swap_pending_C1_FILT_15);
     r1 = r1 or r0;
     r0 = dm(_filt_xfade_step_C1_FILT_15);
@@ -1591,30 +1428,24 @@ _BQPFILT_15_16_process:
     if eq r8 = r2;
     if eq r9 = r3;
     r10 = BLK_CHAIN_B_P1;         /* strip A, odd pool */
-    r14 = r8;
-    r15 = r9;
-    r2 = _filt_hpf_A_C1_FILT_16;
-    r3 = _filt_state_A_C1_FILT_16;
-    r8 = _filt_hpf_B_C1_FILT_16;
-    r9 = _filt_state_B_C1_FILT_16;
-    r0 = dm(_filt_active_C1_FILT_16);
-    r0 = pass r0;
-    if eq r8 = r2;
-    if eq r9 = r3;
 #if DSP4_BQ_NEGCTL
     /* NEGATIVE CONTROL: give strip B strip A's coefficient
      * and state pointers, so the pair computes ONE channel
      * twice. The bus sum MUST differ, or the comparison that
      * says the paired graph is bit-exact was not testing
      * anything. */
-    r11 = r14;
-    r12 = r15;
-#else
     r11 = r8;
     r12 = r9;
+#else
+    r2 = _filt_hpf_A_C1_FILT_16;
+    r3 = _filt_state_A_C1_FILT_16;
+    r11 = _filt_hpf_B_C1_FILT_16;
+    r12 = _filt_state_B_C1_FILT_16;
+    r0 = dm(_filt_active_C1_FILT_16);
+    r0 = pass r0;
+    if eq r11 = r2;
+    if eq r12 = r3;
 #endif
-    r8 = r14;
-    r9 = r15;
     r13 = BLK_CHAIN_B;            /* strip B, base pool */
     r4 = 2;
     call _bq_pair_blk;
@@ -1634,9 +1465,7 @@ _BQPEQ_15_16_process:
     /* Both channels must be in steady state or there is no
      * pair: a staged coefficient set or a running crossfade
      * goes through the node's own reference path. */
-    r1 = 0;
-    r0 = dm(_eq_swap_pending_C1_EQ_15);
-    r1 = r1 or r0;
+    r1 = dm(_eq_swap_pending_C1_EQ_15);
     r0 = dm(_eq_xfade_step_C1_EQ_15);
     r1 = r1 or r0;
     r0 = dm(_eq_swap_pending_C1_EQ_16);
@@ -1655,45 +1484,29 @@ _BQPEQ_15_16_process:
     if eq r8 = r2;
     if eq r9 = r3;
     r10 = BLK_CHAIN_B_P1;         /* strip A, odd pool */
-    r14 = r8;
-    r15 = r9;
-    r2 = _eq_coeffs_A_C1_EQ_16;
-    r3 = _eq_state_A_C1_EQ_16;
-    r8 = _eq_coeffs_B_C1_EQ_16;
-    r9 = _eq_state_B_C1_EQ_16;
-    r0 = dm(_eq_active_C1_EQ_16);
-    r0 = pass r0;
-    if eq r8 = r2;
-    if eq r9 = r3;
 #if DSP4_BQ_NEGCTL
     /* NEGATIVE CONTROL: give strip B strip A's coefficient
      * and state pointers, so the pair computes ONE channel
      * twice. The bus sum MUST differ, or the comparison that
      * says the paired graph is bit-exact was not testing
      * anything. */
-    r11 = r14;
-    r12 = r15;
-#else
     r11 = r8;
     r12 = r9;
+#else
+    r2 = _eq_coeffs_A_C1_EQ_16;
+    r3 = _eq_state_A_C1_EQ_16;
+    r11 = _eq_coeffs_B_C1_EQ_16;
+    r12 = _eq_state_B_C1_EQ_16;
+    r0 = dm(_eq_active_C1_EQ_16);
+    r0 = pass r0;
+    if eq r11 = r2;
+    if eq r12 = r3;
 #endif
-    r8 = r14;
-    r9 = r15;
     r13 = BLK_CHAIN_B;            /* strip B, base pool */
     r4 = 4;
     call _bq_pair_blk;
     /* the post-EQ tap the router picks from, both pools */
-    l3 = 0; l4 = 0;
-    i3 = BLK_CHAIN_B_P1;
-    i4 = BLK_TAP_EQ_P1;
-    lcntr = DSP4_BLOCK_SIZE, do .bqt1_15_16 until lce;
-        r0 = dm(i3, 1);
-    .bqt1_15_16: dm(i4, 1) = r0;
-    i3 = BLK_CHAIN_B;
-    i4 = BLK_TAP_EQ;
-    lcntr = DSP4_BLOCK_SIZE, do .bqt2_15_16 until lce;
-        r0 = dm(i3, 1);
-    .bqt2_15_16: dm(i4, 1) = r0;
+    call _bqp_tap_eq;
     rts;
 
 .bqs_EQ_15_16:
@@ -1710,9 +1523,7 @@ _BQPFILT_17_18_process:
     /* Both channels must be in steady state or there is no
      * pair: a staged coefficient set or a running crossfade
      * goes through the node's own reference path. */
-    r1 = 0;
-    r0 = dm(_hpf_swap_pending_C1_FILT_17);
-    r1 = r1 or r0;
+    r1 = dm(_hpf_swap_pending_C1_FILT_17);
     r0 = dm(_lpf_swap_pending_C1_FILT_17);
     r1 = r1 or r0;
     r0 = dm(_filt_xfade_step_C1_FILT_17);
@@ -1735,30 +1546,24 @@ _BQPFILT_17_18_process:
     if eq r8 = r2;
     if eq r9 = r3;
     r10 = BLK_CHAIN_B_P1;         /* strip A, odd pool */
-    r14 = r8;
-    r15 = r9;
-    r2 = _filt_hpf_A_C1_FILT_18;
-    r3 = _filt_state_A_C1_FILT_18;
-    r8 = _filt_hpf_B_C1_FILT_18;
-    r9 = _filt_state_B_C1_FILT_18;
-    r0 = dm(_filt_active_C1_FILT_18);
-    r0 = pass r0;
-    if eq r8 = r2;
-    if eq r9 = r3;
 #if DSP4_BQ_NEGCTL
     /* NEGATIVE CONTROL: give strip B strip A's coefficient
      * and state pointers, so the pair computes ONE channel
      * twice. The bus sum MUST differ, or the comparison that
      * says the paired graph is bit-exact was not testing
      * anything. */
-    r11 = r14;
-    r12 = r15;
-#else
     r11 = r8;
     r12 = r9;
+#else
+    r2 = _filt_hpf_A_C1_FILT_18;
+    r3 = _filt_state_A_C1_FILT_18;
+    r11 = _filt_hpf_B_C1_FILT_18;
+    r12 = _filt_state_B_C1_FILT_18;
+    r0 = dm(_filt_active_C1_FILT_18);
+    r0 = pass r0;
+    if eq r11 = r2;
+    if eq r12 = r3;
 #endif
-    r8 = r14;
-    r9 = r15;
     r13 = BLK_CHAIN_B;            /* strip B, base pool */
     r4 = 2;
     call _bq_pair_blk;
@@ -1778,9 +1583,7 @@ _BQPEQ_17_18_process:
     /* Both channels must be in steady state or there is no
      * pair: a staged coefficient set or a running crossfade
      * goes through the node's own reference path. */
-    r1 = 0;
-    r0 = dm(_eq_swap_pending_C1_EQ_17);
-    r1 = r1 or r0;
+    r1 = dm(_eq_swap_pending_C1_EQ_17);
     r0 = dm(_eq_xfade_step_C1_EQ_17);
     r1 = r1 or r0;
     r0 = dm(_eq_swap_pending_C1_EQ_18);
@@ -1799,45 +1602,29 @@ _BQPEQ_17_18_process:
     if eq r8 = r2;
     if eq r9 = r3;
     r10 = BLK_CHAIN_B_P1;         /* strip A, odd pool */
-    r14 = r8;
-    r15 = r9;
-    r2 = _eq_coeffs_A_C1_EQ_18;
-    r3 = _eq_state_A_C1_EQ_18;
-    r8 = _eq_coeffs_B_C1_EQ_18;
-    r9 = _eq_state_B_C1_EQ_18;
-    r0 = dm(_eq_active_C1_EQ_18);
-    r0 = pass r0;
-    if eq r8 = r2;
-    if eq r9 = r3;
 #if DSP4_BQ_NEGCTL
     /* NEGATIVE CONTROL: give strip B strip A's coefficient
      * and state pointers, so the pair computes ONE channel
      * twice. The bus sum MUST differ, or the comparison that
      * says the paired graph is bit-exact was not testing
      * anything. */
-    r11 = r14;
-    r12 = r15;
-#else
     r11 = r8;
     r12 = r9;
+#else
+    r2 = _eq_coeffs_A_C1_EQ_18;
+    r3 = _eq_state_A_C1_EQ_18;
+    r11 = _eq_coeffs_B_C1_EQ_18;
+    r12 = _eq_state_B_C1_EQ_18;
+    r0 = dm(_eq_active_C1_EQ_18);
+    r0 = pass r0;
+    if eq r11 = r2;
+    if eq r12 = r3;
 #endif
-    r8 = r14;
-    r9 = r15;
     r13 = BLK_CHAIN_B;            /* strip B, base pool */
     r4 = 4;
     call _bq_pair_blk;
     /* the post-EQ tap the router picks from, both pools */
-    l3 = 0; l4 = 0;
-    i3 = BLK_CHAIN_B_P1;
-    i4 = BLK_TAP_EQ_P1;
-    lcntr = DSP4_BLOCK_SIZE, do .bqt1_17_18 until lce;
-        r0 = dm(i3, 1);
-    .bqt1_17_18: dm(i4, 1) = r0;
-    i3 = BLK_CHAIN_B;
-    i4 = BLK_TAP_EQ;
-    lcntr = DSP4_BLOCK_SIZE, do .bqt2_17_18 until lce;
-        r0 = dm(i3, 1);
-    .bqt2_17_18: dm(i4, 1) = r0;
+    call _bqp_tap_eq;
     rts;
 
 .bqs_EQ_17_18:
@@ -1854,9 +1641,7 @@ _BQPFILT_19_20_process:
     /* Both channels must be in steady state or there is no
      * pair: a staged coefficient set or a running crossfade
      * goes through the node's own reference path. */
-    r1 = 0;
-    r0 = dm(_hpf_swap_pending_C1_FILT_19);
-    r1 = r1 or r0;
+    r1 = dm(_hpf_swap_pending_C1_FILT_19);
     r0 = dm(_lpf_swap_pending_C1_FILT_19);
     r1 = r1 or r0;
     r0 = dm(_filt_xfade_step_C1_FILT_19);
@@ -1879,30 +1664,24 @@ _BQPFILT_19_20_process:
     if eq r8 = r2;
     if eq r9 = r3;
     r10 = BLK_CHAIN_B_P1;         /* strip A, odd pool */
-    r14 = r8;
-    r15 = r9;
-    r2 = _filt_hpf_A_C1_FILT_20;
-    r3 = _filt_state_A_C1_FILT_20;
-    r8 = _filt_hpf_B_C1_FILT_20;
-    r9 = _filt_state_B_C1_FILT_20;
-    r0 = dm(_filt_active_C1_FILT_20);
-    r0 = pass r0;
-    if eq r8 = r2;
-    if eq r9 = r3;
 #if DSP4_BQ_NEGCTL
     /* NEGATIVE CONTROL: give strip B strip A's coefficient
      * and state pointers, so the pair computes ONE channel
      * twice. The bus sum MUST differ, or the comparison that
      * says the paired graph is bit-exact was not testing
      * anything. */
-    r11 = r14;
-    r12 = r15;
-#else
     r11 = r8;
     r12 = r9;
+#else
+    r2 = _filt_hpf_A_C1_FILT_20;
+    r3 = _filt_state_A_C1_FILT_20;
+    r11 = _filt_hpf_B_C1_FILT_20;
+    r12 = _filt_state_B_C1_FILT_20;
+    r0 = dm(_filt_active_C1_FILT_20);
+    r0 = pass r0;
+    if eq r11 = r2;
+    if eq r12 = r3;
 #endif
-    r8 = r14;
-    r9 = r15;
     r13 = BLK_CHAIN_B;            /* strip B, base pool */
     r4 = 2;
     call _bq_pair_blk;
@@ -1922,9 +1701,7 @@ _BQPEQ_19_20_process:
     /* Both channels must be in steady state or there is no
      * pair: a staged coefficient set or a running crossfade
      * goes through the node's own reference path. */
-    r1 = 0;
-    r0 = dm(_eq_swap_pending_C1_EQ_19);
-    r1 = r1 or r0;
+    r1 = dm(_eq_swap_pending_C1_EQ_19);
     r0 = dm(_eq_xfade_step_C1_EQ_19);
     r1 = r1 or r0;
     r0 = dm(_eq_swap_pending_C1_EQ_20);
@@ -1943,45 +1720,29 @@ _BQPEQ_19_20_process:
     if eq r8 = r2;
     if eq r9 = r3;
     r10 = BLK_CHAIN_B_P1;         /* strip A, odd pool */
-    r14 = r8;
-    r15 = r9;
-    r2 = _eq_coeffs_A_C1_EQ_20;
-    r3 = _eq_state_A_C1_EQ_20;
-    r8 = _eq_coeffs_B_C1_EQ_20;
-    r9 = _eq_state_B_C1_EQ_20;
-    r0 = dm(_eq_active_C1_EQ_20);
-    r0 = pass r0;
-    if eq r8 = r2;
-    if eq r9 = r3;
 #if DSP4_BQ_NEGCTL
     /* NEGATIVE CONTROL: give strip B strip A's coefficient
      * and state pointers, so the pair computes ONE channel
      * twice. The bus sum MUST differ, or the comparison that
      * says the paired graph is bit-exact was not testing
      * anything. */
-    r11 = r14;
-    r12 = r15;
-#else
     r11 = r8;
     r12 = r9;
+#else
+    r2 = _eq_coeffs_A_C1_EQ_20;
+    r3 = _eq_state_A_C1_EQ_20;
+    r11 = _eq_coeffs_B_C1_EQ_20;
+    r12 = _eq_state_B_C1_EQ_20;
+    r0 = dm(_eq_active_C1_EQ_20);
+    r0 = pass r0;
+    if eq r11 = r2;
+    if eq r12 = r3;
 #endif
-    r8 = r14;
-    r9 = r15;
     r13 = BLK_CHAIN_B;            /* strip B, base pool */
     r4 = 4;
     call _bq_pair_blk;
     /* the post-EQ tap the router picks from, both pools */
-    l3 = 0; l4 = 0;
-    i3 = BLK_CHAIN_B_P1;
-    i4 = BLK_TAP_EQ_P1;
-    lcntr = DSP4_BLOCK_SIZE, do .bqt1_19_20 until lce;
-        r0 = dm(i3, 1);
-    .bqt1_19_20: dm(i4, 1) = r0;
-    i3 = BLK_CHAIN_B;
-    i4 = BLK_TAP_EQ;
-    lcntr = DSP4_BLOCK_SIZE, do .bqt2_19_20 until lce;
-        r0 = dm(i3, 1);
-    .bqt2_19_20: dm(i4, 1) = r0;
+    call _bqp_tap_eq;
     rts;
 
 .bqs_EQ_19_20:
@@ -1998,9 +1759,7 @@ _BQPFILT_21_22_process:
     /* Both channels must be in steady state or there is no
      * pair: a staged coefficient set or a running crossfade
      * goes through the node's own reference path. */
-    r1 = 0;
-    r0 = dm(_hpf_swap_pending_C1_FILT_21);
-    r1 = r1 or r0;
+    r1 = dm(_hpf_swap_pending_C1_FILT_21);
     r0 = dm(_lpf_swap_pending_C1_FILT_21);
     r1 = r1 or r0;
     r0 = dm(_filt_xfade_step_C1_FILT_21);
@@ -2023,30 +1782,24 @@ _BQPFILT_21_22_process:
     if eq r8 = r2;
     if eq r9 = r3;
     r10 = BLK_CHAIN_B_P1;         /* strip A, odd pool */
-    r14 = r8;
-    r15 = r9;
-    r2 = _filt_hpf_A_C1_FILT_22;
-    r3 = _filt_state_A_C1_FILT_22;
-    r8 = _filt_hpf_B_C1_FILT_22;
-    r9 = _filt_state_B_C1_FILT_22;
-    r0 = dm(_filt_active_C1_FILT_22);
-    r0 = pass r0;
-    if eq r8 = r2;
-    if eq r9 = r3;
 #if DSP4_BQ_NEGCTL
     /* NEGATIVE CONTROL: give strip B strip A's coefficient
      * and state pointers, so the pair computes ONE channel
      * twice. The bus sum MUST differ, or the comparison that
      * says the paired graph is bit-exact was not testing
      * anything. */
-    r11 = r14;
-    r12 = r15;
-#else
     r11 = r8;
     r12 = r9;
+#else
+    r2 = _filt_hpf_A_C1_FILT_22;
+    r3 = _filt_state_A_C1_FILT_22;
+    r11 = _filt_hpf_B_C1_FILT_22;
+    r12 = _filt_state_B_C1_FILT_22;
+    r0 = dm(_filt_active_C1_FILT_22);
+    r0 = pass r0;
+    if eq r11 = r2;
+    if eq r12 = r3;
 #endif
-    r8 = r14;
-    r9 = r15;
     r13 = BLK_CHAIN_B;            /* strip B, base pool */
     r4 = 2;
     call _bq_pair_blk;
@@ -2066,9 +1819,7 @@ _BQPEQ_21_22_process:
     /* Both channels must be in steady state or there is no
      * pair: a staged coefficient set or a running crossfade
      * goes through the node's own reference path. */
-    r1 = 0;
-    r0 = dm(_eq_swap_pending_C1_EQ_21);
-    r1 = r1 or r0;
+    r1 = dm(_eq_swap_pending_C1_EQ_21);
     r0 = dm(_eq_xfade_step_C1_EQ_21);
     r1 = r1 or r0;
     r0 = dm(_eq_swap_pending_C1_EQ_22);
@@ -2087,45 +1838,29 @@ _BQPEQ_21_22_process:
     if eq r8 = r2;
     if eq r9 = r3;
     r10 = BLK_CHAIN_B_P1;         /* strip A, odd pool */
-    r14 = r8;
-    r15 = r9;
-    r2 = _eq_coeffs_A_C1_EQ_22;
-    r3 = _eq_state_A_C1_EQ_22;
-    r8 = _eq_coeffs_B_C1_EQ_22;
-    r9 = _eq_state_B_C1_EQ_22;
-    r0 = dm(_eq_active_C1_EQ_22);
-    r0 = pass r0;
-    if eq r8 = r2;
-    if eq r9 = r3;
 #if DSP4_BQ_NEGCTL
     /* NEGATIVE CONTROL: give strip B strip A's coefficient
      * and state pointers, so the pair computes ONE channel
      * twice. The bus sum MUST differ, or the comparison that
      * says the paired graph is bit-exact was not testing
      * anything. */
-    r11 = r14;
-    r12 = r15;
-#else
     r11 = r8;
     r12 = r9;
+#else
+    r2 = _eq_coeffs_A_C1_EQ_22;
+    r3 = _eq_state_A_C1_EQ_22;
+    r11 = _eq_coeffs_B_C1_EQ_22;
+    r12 = _eq_state_B_C1_EQ_22;
+    r0 = dm(_eq_active_C1_EQ_22);
+    r0 = pass r0;
+    if eq r11 = r2;
+    if eq r12 = r3;
 #endif
-    r8 = r14;
-    r9 = r15;
     r13 = BLK_CHAIN_B;            /* strip B, base pool */
     r4 = 4;
     call _bq_pair_blk;
     /* the post-EQ tap the router picks from, both pools */
-    l3 = 0; l4 = 0;
-    i3 = BLK_CHAIN_B_P1;
-    i4 = BLK_TAP_EQ_P1;
-    lcntr = DSP4_BLOCK_SIZE, do .bqt1_21_22 until lce;
-        r0 = dm(i3, 1);
-    .bqt1_21_22: dm(i4, 1) = r0;
-    i3 = BLK_CHAIN_B;
-    i4 = BLK_TAP_EQ;
-    lcntr = DSP4_BLOCK_SIZE, do .bqt2_21_22 until lce;
-        r0 = dm(i3, 1);
-    .bqt2_21_22: dm(i4, 1) = r0;
+    call _bqp_tap_eq;
     rts;
 
 .bqs_EQ_21_22:
@@ -2142,9 +1877,7 @@ _BQPFILT_23_24_process:
     /* Both channels must be in steady state or there is no
      * pair: a staged coefficient set or a running crossfade
      * goes through the node's own reference path. */
-    r1 = 0;
-    r0 = dm(_hpf_swap_pending_C1_FILT_23);
-    r1 = r1 or r0;
+    r1 = dm(_hpf_swap_pending_C1_FILT_23);
     r0 = dm(_lpf_swap_pending_C1_FILT_23);
     r1 = r1 or r0;
     r0 = dm(_filt_xfade_step_C1_FILT_23);
@@ -2167,30 +1900,24 @@ _BQPFILT_23_24_process:
     if eq r8 = r2;
     if eq r9 = r3;
     r10 = BLK_CHAIN_B_P1;         /* strip A, odd pool */
-    r14 = r8;
-    r15 = r9;
-    r2 = _filt_hpf_A_C1_FILT_24;
-    r3 = _filt_state_A_C1_FILT_24;
-    r8 = _filt_hpf_B_C1_FILT_24;
-    r9 = _filt_state_B_C1_FILT_24;
-    r0 = dm(_filt_active_C1_FILT_24);
-    r0 = pass r0;
-    if eq r8 = r2;
-    if eq r9 = r3;
 #if DSP4_BQ_NEGCTL
     /* NEGATIVE CONTROL: give strip B strip A's coefficient
      * and state pointers, so the pair computes ONE channel
      * twice. The bus sum MUST differ, or the comparison that
      * says the paired graph is bit-exact was not testing
      * anything. */
-    r11 = r14;
-    r12 = r15;
-#else
     r11 = r8;
     r12 = r9;
+#else
+    r2 = _filt_hpf_A_C1_FILT_24;
+    r3 = _filt_state_A_C1_FILT_24;
+    r11 = _filt_hpf_B_C1_FILT_24;
+    r12 = _filt_state_B_C1_FILT_24;
+    r0 = dm(_filt_active_C1_FILT_24);
+    r0 = pass r0;
+    if eq r11 = r2;
+    if eq r12 = r3;
 #endif
-    r8 = r14;
-    r9 = r15;
     r13 = BLK_CHAIN_B;            /* strip B, base pool */
     r4 = 2;
     call _bq_pair_blk;
@@ -2210,9 +1937,7 @@ _BQPEQ_23_24_process:
     /* Both channels must be in steady state or there is no
      * pair: a staged coefficient set or a running crossfade
      * goes through the node's own reference path. */
-    r1 = 0;
-    r0 = dm(_eq_swap_pending_C1_EQ_23);
-    r1 = r1 or r0;
+    r1 = dm(_eq_swap_pending_C1_EQ_23);
     r0 = dm(_eq_xfade_step_C1_EQ_23);
     r1 = r1 or r0;
     r0 = dm(_eq_swap_pending_C1_EQ_24);
@@ -2231,45 +1956,29 @@ _BQPEQ_23_24_process:
     if eq r8 = r2;
     if eq r9 = r3;
     r10 = BLK_CHAIN_B_P1;         /* strip A, odd pool */
-    r14 = r8;
-    r15 = r9;
-    r2 = _eq_coeffs_A_C1_EQ_24;
-    r3 = _eq_state_A_C1_EQ_24;
-    r8 = _eq_coeffs_B_C1_EQ_24;
-    r9 = _eq_state_B_C1_EQ_24;
-    r0 = dm(_eq_active_C1_EQ_24);
-    r0 = pass r0;
-    if eq r8 = r2;
-    if eq r9 = r3;
 #if DSP4_BQ_NEGCTL
     /* NEGATIVE CONTROL: give strip B strip A's coefficient
      * and state pointers, so the pair computes ONE channel
      * twice. The bus sum MUST differ, or the comparison that
      * says the paired graph is bit-exact was not testing
      * anything. */
-    r11 = r14;
-    r12 = r15;
-#else
     r11 = r8;
     r12 = r9;
+#else
+    r2 = _eq_coeffs_A_C1_EQ_24;
+    r3 = _eq_state_A_C1_EQ_24;
+    r11 = _eq_coeffs_B_C1_EQ_24;
+    r12 = _eq_state_B_C1_EQ_24;
+    r0 = dm(_eq_active_C1_EQ_24);
+    r0 = pass r0;
+    if eq r11 = r2;
+    if eq r12 = r3;
 #endif
-    r8 = r14;
-    r9 = r15;
     r13 = BLK_CHAIN_B;            /* strip B, base pool */
     r4 = 4;
     call _bq_pair_blk;
     /* the post-EQ tap the router picks from, both pools */
-    l3 = 0; l4 = 0;
-    i3 = BLK_CHAIN_B_P1;
-    i4 = BLK_TAP_EQ_P1;
-    lcntr = DSP4_BLOCK_SIZE, do .bqt1_23_24 until lce;
-        r0 = dm(i3, 1);
-    .bqt1_23_24: dm(i4, 1) = r0;
-    i3 = BLK_CHAIN_B;
-    i4 = BLK_TAP_EQ;
-    lcntr = DSP4_BLOCK_SIZE, do .bqt2_23_24 until lce;
-        r0 = dm(i3, 1);
-    .bqt2_23_24: dm(i4, 1) = r0;
+    call _bqp_tap_eq;
     rts;
 
 .bqs_EQ_23_24:
@@ -2286,9 +1995,7 @@ _BQPFILT_25_26_process:
     /* Both channels must be in steady state or there is no
      * pair: a staged coefficient set or a running crossfade
      * goes through the node's own reference path. */
-    r1 = 0;
-    r0 = dm(_hpf_swap_pending_C1_FILT_25);
-    r1 = r1 or r0;
+    r1 = dm(_hpf_swap_pending_C1_FILT_25);
     r0 = dm(_lpf_swap_pending_C1_FILT_25);
     r1 = r1 or r0;
     r0 = dm(_filt_xfade_step_C1_FILT_25);
@@ -2311,30 +2018,24 @@ _BQPFILT_25_26_process:
     if eq r8 = r2;
     if eq r9 = r3;
     r10 = BLK_CHAIN_B_P1;         /* strip A, odd pool */
-    r14 = r8;
-    r15 = r9;
-    r2 = _filt_hpf_A_C1_FILT_26;
-    r3 = _filt_state_A_C1_FILT_26;
-    r8 = _filt_hpf_B_C1_FILT_26;
-    r9 = _filt_state_B_C1_FILT_26;
-    r0 = dm(_filt_active_C1_FILT_26);
-    r0 = pass r0;
-    if eq r8 = r2;
-    if eq r9 = r3;
 #if DSP4_BQ_NEGCTL
     /* NEGATIVE CONTROL: give strip B strip A's coefficient
      * and state pointers, so the pair computes ONE channel
      * twice. The bus sum MUST differ, or the comparison that
      * says the paired graph is bit-exact was not testing
      * anything. */
-    r11 = r14;
-    r12 = r15;
-#else
     r11 = r8;
     r12 = r9;
+#else
+    r2 = _filt_hpf_A_C1_FILT_26;
+    r3 = _filt_state_A_C1_FILT_26;
+    r11 = _filt_hpf_B_C1_FILT_26;
+    r12 = _filt_state_B_C1_FILT_26;
+    r0 = dm(_filt_active_C1_FILT_26);
+    r0 = pass r0;
+    if eq r11 = r2;
+    if eq r12 = r3;
 #endif
-    r8 = r14;
-    r9 = r15;
     r13 = BLK_CHAIN_B;            /* strip B, base pool */
     r4 = 2;
     call _bq_pair_blk;
@@ -2354,9 +2055,7 @@ _BQPEQ_25_26_process:
     /* Both channels must be in steady state or there is no
      * pair: a staged coefficient set or a running crossfade
      * goes through the node's own reference path. */
-    r1 = 0;
-    r0 = dm(_eq_swap_pending_C1_EQ_25);
-    r1 = r1 or r0;
+    r1 = dm(_eq_swap_pending_C1_EQ_25);
     r0 = dm(_eq_xfade_step_C1_EQ_25);
     r1 = r1 or r0;
     r0 = dm(_eq_swap_pending_C1_EQ_26);
@@ -2375,45 +2074,29 @@ _BQPEQ_25_26_process:
     if eq r8 = r2;
     if eq r9 = r3;
     r10 = BLK_CHAIN_B_P1;         /* strip A, odd pool */
-    r14 = r8;
-    r15 = r9;
-    r2 = _eq_coeffs_A_C1_EQ_26;
-    r3 = _eq_state_A_C1_EQ_26;
-    r8 = _eq_coeffs_B_C1_EQ_26;
-    r9 = _eq_state_B_C1_EQ_26;
-    r0 = dm(_eq_active_C1_EQ_26);
-    r0 = pass r0;
-    if eq r8 = r2;
-    if eq r9 = r3;
 #if DSP4_BQ_NEGCTL
     /* NEGATIVE CONTROL: give strip B strip A's coefficient
      * and state pointers, so the pair computes ONE channel
      * twice. The bus sum MUST differ, or the comparison that
      * says the paired graph is bit-exact was not testing
      * anything. */
-    r11 = r14;
-    r12 = r15;
-#else
     r11 = r8;
     r12 = r9;
+#else
+    r2 = _eq_coeffs_A_C1_EQ_26;
+    r3 = _eq_state_A_C1_EQ_26;
+    r11 = _eq_coeffs_B_C1_EQ_26;
+    r12 = _eq_state_B_C1_EQ_26;
+    r0 = dm(_eq_active_C1_EQ_26);
+    r0 = pass r0;
+    if eq r11 = r2;
+    if eq r12 = r3;
 #endif
-    r8 = r14;
-    r9 = r15;
     r13 = BLK_CHAIN_B;            /* strip B, base pool */
     r4 = 4;
     call _bq_pair_blk;
     /* the post-EQ tap the router picks from, both pools */
-    l3 = 0; l4 = 0;
-    i3 = BLK_CHAIN_B_P1;
-    i4 = BLK_TAP_EQ_P1;
-    lcntr = DSP4_BLOCK_SIZE, do .bqt1_25_26 until lce;
-        r0 = dm(i3, 1);
-    .bqt1_25_26: dm(i4, 1) = r0;
-    i3 = BLK_CHAIN_B;
-    i4 = BLK_TAP_EQ;
-    lcntr = DSP4_BLOCK_SIZE, do .bqt2_25_26 until lce;
-        r0 = dm(i3, 1);
-    .bqt2_25_26: dm(i4, 1) = r0;
+    call _bqp_tap_eq;
     rts;
 
 .bqs_EQ_25_26:
@@ -2430,9 +2113,7 @@ _BQPFILT_27_28_process:
     /* Both channels must be in steady state or there is no
      * pair: a staged coefficient set or a running crossfade
      * goes through the node's own reference path. */
-    r1 = 0;
-    r0 = dm(_hpf_swap_pending_C1_FILT_27);
-    r1 = r1 or r0;
+    r1 = dm(_hpf_swap_pending_C1_FILT_27);
     r0 = dm(_lpf_swap_pending_C1_FILT_27);
     r1 = r1 or r0;
     r0 = dm(_filt_xfade_step_C1_FILT_27);
@@ -2455,30 +2136,24 @@ _BQPFILT_27_28_process:
     if eq r8 = r2;
     if eq r9 = r3;
     r10 = BLK_CHAIN_B_P1;         /* strip A, odd pool */
-    r14 = r8;
-    r15 = r9;
-    r2 = _filt_hpf_A_C1_FILT_28;
-    r3 = _filt_state_A_C1_FILT_28;
-    r8 = _filt_hpf_B_C1_FILT_28;
-    r9 = _filt_state_B_C1_FILT_28;
-    r0 = dm(_filt_active_C1_FILT_28);
-    r0 = pass r0;
-    if eq r8 = r2;
-    if eq r9 = r3;
 #if DSP4_BQ_NEGCTL
     /* NEGATIVE CONTROL: give strip B strip A's coefficient
      * and state pointers, so the pair computes ONE channel
      * twice. The bus sum MUST differ, or the comparison that
      * says the paired graph is bit-exact was not testing
      * anything. */
-    r11 = r14;
-    r12 = r15;
-#else
     r11 = r8;
     r12 = r9;
+#else
+    r2 = _filt_hpf_A_C1_FILT_28;
+    r3 = _filt_state_A_C1_FILT_28;
+    r11 = _filt_hpf_B_C1_FILT_28;
+    r12 = _filt_state_B_C1_FILT_28;
+    r0 = dm(_filt_active_C1_FILT_28);
+    r0 = pass r0;
+    if eq r11 = r2;
+    if eq r12 = r3;
 #endif
-    r8 = r14;
-    r9 = r15;
     r13 = BLK_CHAIN_B;            /* strip B, base pool */
     r4 = 2;
     call _bq_pair_blk;
@@ -2498,9 +2173,7 @@ _BQPEQ_27_28_process:
     /* Both channels must be in steady state or there is no
      * pair: a staged coefficient set or a running crossfade
      * goes through the node's own reference path. */
-    r1 = 0;
-    r0 = dm(_eq_swap_pending_C1_EQ_27);
-    r1 = r1 or r0;
+    r1 = dm(_eq_swap_pending_C1_EQ_27);
     r0 = dm(_eq_xfade_step_C1_EQ_27);
     r1 = r1 or r0;
     r0 = dm(_eq_swap_pending_C1_EQ_28);
@@ -2519,45 +2192,29 @@ _BQPEQ_27_28_process:
     if eq r8 = r2;
     if eq r9 = r3;
     r10 = BLK_CHAIN_B_P1;         /* strip A, odd pool */
-    r14 = r8;
-    r15 = r9;
-    r2 = _eq_coeffs_A_C1_EQ_28;
-    r3 = _eq_state_A_C1_EQ_28;
-    r8 = _eq_coeffs_B_C1_EQ_28;
-    r9 = _eq_state_B_C1_EQ_28;
-    r0 = dm(_eq_active_C1_EQ_28);
-    r0 = pass r0;
-    if eq r8 = r2;
-    if eq r9 = r3;
 #if DSP4_BQ_NEGCTL
     /* NEGATIVE CONTROL: give strip B strip A's coefficient
      * and state pointers, so the pair computes ONE channel
      * twice. The bus sum MUST differ, or the comparison that
      * says the paired graph is bit-exact was not testing
      * anything. */
-    r11 = r14;
-    r12 = r15;
-#else
     r11 = r8;
     r12 = r9;
+#else
+    r2 = _eq_coeffs_A_C1_EQ_28;
+    r3 = _eq_state_A_C1_EQ_28;
+    r11 = _eq_coeffs_B_C1_EQ_28;
+    r12 = _eq_state_B_C1_EQ_28;
+    r0 = dm(_eq_active_C1_EQ_28);
+    r0 = pass r0;
+    if eq r11 = r2;
+    if eq r12 = r3;
 #endif
-    r8 = r14;
-    r9 = r15;
     r13 = BLK_CHAIN_B;            /* strip B, base pool */
     r4 = 4;
     call _bq_pair_blk;
     /* the post-EQ tap the router picks from, both pools */
-    l3 = 0; l4 = 0;
-    i3 = BLK_CHAIN_B_P1;
-    i4 = BLK_TAP_EQ_P1;
-    lcntr = DSP4_BLOCK_SIZE, do .bqt1_27_28 until lce;
-        r0 = dm(i3, 1);
-    .bqt1_27_28: dm(i4, 1) = r0;
-    i3 = BLK_CHAIN_B;
-    i4 = BLK_TAP_EQ;
-    lcntr = DSP4_BLOCK_SIZE, do .bqt2_27_28 until lce;
-        r0 = dm(i3, 1);
-    .bqt2_27_28: dm(i4, 1) = r0;
+    call _bqp_tap_eq;
     rts;
 
 .bqs_EQ_27_28:
@@ -2574,9 +2231,7 @@ _BQPFILT_29_30_process:
     /* Both channels must be in steady state or there is no
      * pair: a staged coefficient set or a running crossfade
      * goes through the node's own reference path. */
-    r1 = 0;
-    r0 = dm(_hpf_swap_pending_C1_FILT_29);
-    r1 = r1 or r0;
+    r1 = dm(_hpf_swap_pending_C1_FILT_29);
     r0 = dm(_lpf_swap_pending_C1_FILT_29);
     r1 = r1 or r0;
     r0 = dm(_filt_xfade_step_C1_FILT_29);
@@ -2599,30 +2254,24 @@ _BQPFILT_29_30_process:
     if eq r8 = r2;
     if eq r9 = r3;
     r10 = BLK_CHAIN_B_P1;         /* strip A, odd pool */
-    r14 = r8;
-    r15 = r9;
-    r2 = _filt_hpf_A_C1_FILT_30;
-    r3 = _filt_state_A_C1_FILT_30;
-    r8 = _filt_hpf_B_C1_FILT_30;
-    r9 = _filt_state_B_C1_FILT_30;
-    r0 = dm(_filt_active_C1_FILT_30);
-    r0 = pass r0;
-    if eq r8 = r2;
-    if eq r9 = r3;
 #if DSP4_BQ_NEGCTL
     /* NEGATIVE CONTROL: give strip B strip A's coefficient
      * and state pointers, so the pair computes ONE channel
      * twice. The bus sum MUST differ, or the comparison that
      * says the paired graph is bit-exact was not testing
      * anything. */
-    r11 = r14;
-    r12 = r15;
-#else
     r11 = r8;
     r12 = r9;
+#else
+    r2 = _filt_hpf_A_C1_FILT_30;
+    r3 = _filt_state_A_C1_FILT_30;
+    r11 = _filt_hpf_B_C1_FILT_30;
+    r12 = _filt_state_B_C1_FILT_30;
+    r0 = dm(_filt_active_C1_FILT_30);
+    r0 = pass r0;
+    if eq r11 = r2;
+    if eq r12 = r3;
 #endif
-    r8 = r14;
-    r9 = r15;
     r13 = BLK_CHAIN_B;            /* strip B, base pool */
     r4 = 2;
     call _bq_pair_blk;
@@ -2642,9 +2291,7 @@ _BQPEQ_29_30_process:
     /* Both channels must be in steady state or there is no
      * pair: a staged coefficient set or a running crossfade
      * goes through the node's own reference path. */
-    r1 = 0;
-    r0 = dm(_eq_swap_pending_C1_EQ_29);
-    r1 = r1 or r0;
+    r1 = dm(_eq_swap_pending_C1_EQ_29);
     r0 = dm(_eq_xfade_step_C1_EQ_29);
     r1 = r1 or r0;
     r0 = dm(_eq_swap_pending_C1_EQ_30);
@@ -2663,45 +2310,29 @@ _BQPEQ_29_30_process:
     if eq r8 = r2;
     if eq r9 = r3;
     r10 = BLK_CHAIN_B_P1;         /* strip A, odd pool */
-    r14 = r8;
-    r15 = r9;
-    r2 = _eq_coeffs_A_C1_EQ_30;
-    r3 = _eq_state_A_C1_EQ_30;
-    r8 = _eq_coeffs_B_C1_EQ_30;
-    r9 = _eq_state_B_C1_EQ_30;
-    r0 = dm(_eq_active_C1_EQ_30);
-    r0 = pass r0;
-    if eq r8 = r2;
-    if eq r9 = r3;
 #if DSP4_BQ_NEGCTL
     /* NEGATIVE CONTROL: give strip B strip A's coefficient
      * and state pointers, so the pair computes ONE channel
      * twice. The bus sum MUST differ, or the comparison that
      * says the paired graph is bit-exact was not testing
      * anything. */
-    r11 = r14;
-    r12 = r15;
-#else
     r11 = r8;
     r12 = r9;
+#else
+    r2 = _eq_coeffs_A_C1_EQ_30;
+    r3 = _eq_state_A_C1_EQ_30;
+    r11 = _eq_coeffs_B_C1_EQ_30;
+    r12 = _eq_state_B_C1_EQ_30;
+    r0 = dm(_eq_active_C1_EQ_30);
+    r0 = pass r0;
+    if eq r11 = r2;
+    if eq r12 = r3;
 #endif
-    r8 = r14;
-    r9 = r15;
     r13 = BLK_CHAIN_B;            /* strip B, base pool */
     r4 = 4;
     call _bq_pair_blk;
     /* the post-EQ tap the router picks from, both pools */
-    l3 = 0; l4 = 0;
-    i3 = BLK_CHAIN_B_P1;
-    i4 = BLK_TAP_EQ_P1;
-    lcntr = DSP4_BLOCK_SIZE, do .bqt1_29_30 until lce;
-        r0 = dm(i3, 1);
-    .bqt1_29_30: dm(i4, 1) = r0;
-    i3 = BLK_CHAIN_B;
-    i4 = BLK_TAP_EQ;
-    lcntr = DSP4_BLOCK_SIZE, do .bqt2_29_30 until lce;
-        r0 = dm(i3, 1);
-    .bqt2_29_30: dm(i4, 1) = r0;
+    call _bqp_tap_eq;
     rts;
 
 .bqs_EQ_29_30:
@@ -2718,9 +2349,7 @@ _BQPFILT_31_32_process:
     /* Both channels must be in steady state or there is no
      * pair: a staged coefficient set or a running crossfade
      * goes through the node's own reference path. */
-    r1 = 0;
-    r0 = dm(_hpf_swap_pending_C1_FILT_31);
-    r1 = r1 or r0;
+    r1 = dm(_hpf_swap_pending_C1_FILT_31);
     r0 = dm(_lpf_swap_pending_C1_FILT_31);
     r1 = r1 or r0;
     r0 = dm(_filt_xfade_step_C1_FILT_31);
@@ -2743,30 +2372,24 @@ _BQPFILT_31_32_process:
     if eq r8 = r2;
     if eq r9 = r3;
     r10 = BLK_CHAIN_B_P1;         /* strip A, odd pool */
-    r14 = r8;
-    r15 = r9;
-    r2 = _filt_hpf_A_C1_FILT_32;
-    r3 = _filt_state_A_C1_FILT_32;
-    r8 = _filt_hpf_B_C1_FILT_32;
-    r9 = _filt_state_B_C1_FILT_32;
-    r0 = dm(_filt_active_C1_FILT_32);
-    r0 = pass r0;
-    if eq r8 = r2;
-    if eq r9 = r3;
 #if DSP4_BQ_NEGCTL
     /* NEGATIVE CONTROL: give strip B strip A's coefficient
      * and state pointers, so the pair computes ONE channel
      * twice. The bus sum MUST differ, or the comparison that
      * says the paired graph is bit-exact was not testing
      * anything. */
-    r11 = r14;
-    r12 = r15;
-#else
     r11 = r8;
     r12 = r9;
+#else
+    r2 = _filt_hpf_A_C1_FILT_32;
+    r3 = _filt_state_A_C1_FILT_32;
+    r11 = _filt_hpf_B_C1_FILT_32;
+    r12 = _filt_state_B_C1_FILT_32;
+    r0 = dm(_filt_active_C1_FILT_32);
+    r0 = pass r0;
+    if eq r11 = r2;
+    if eq r12 = r3;
 #endif
-    r8 = r14;
-    r9 = r15;
     r13 = BLK_CHAIN_B;            /* strip B, base pool */
     r4 = 2;
     call _bq_pair_blk;
@@ -2786,9 +2409,7 @@ _BQPEQ_31_32_process:
     /* Both channels must be in steady state or there is no
      * pair: a staged coefficient set or a running crossfade
      * goes through the node's own reference path. */
-    r1 = 0;
-    r0 = dm(_eq_swap_pending_C1_EQ_31);
-    r1 = r1 or r0;
+    r1 = dm(_eq_swap_pending_C1_EQ_31);
     r0 = dm(_eq_xfade_step_C1_EQ_31);
     r1 = r1 or r0;
     r0 = dm(_eq_swap_pending_C1_EQ_32);
@@ -2807,45 +2428,29 @@ _BQPEQ_31_32_process:
     if eq r8 = r2;
     if eq r9 = r3;
     r10 = BLK_CHAIN_B_P1;         /* strip A, odd pool */
-    r14 = r8;
-    r15 = r9;
-    r2 = _eq_coeffs_A_C1_EQ_32;
-    r3 = _eq_state_A_C1_EQ_32;
-    r8 = _eq_coeffs_B_C1_EQ_32;
-    r9 = _eq_state_B_C1_EQ_32;
-    r0 = dm(_eq_active_C1_EQ_32);
-    r0 = pass r0;
-    if eq r8 = r2;
-    if eq r9 = r3;
 #if DSP4_BQ_NEGCTL
     /* NEGATIVE CONTROL: give strip B strip A's coefficient
      * and state pointers, so the pair computes ONE channel
      * twice. The bus sum MUST differ, or the comparison that
      * says the paired graph is bit-exact was not testing
      * anything. */
-    r11 = r14;
-    r12 = r15;
-#else
     r11 = r8;
     r12 = r9;
+#else
+    r2 = _eq_coeffs_A_C1_EQ_32;
+    r3 = _eq_state_A_C1_EQ_32;
+    r11 = _eq_coeffs_B_C1_EQ_32;
+    r12 = _eq_state_B_C1_EQ_32;
+    r0 = dm(_eq_active_C1_EQ_32);
+    r0 = pass r0;
+    if eq r11 = r2;
+    if eq r12 = r3;
 #endif
-    r8 = r14;
-    r9 = r15;
     r13 = BLK_CHAIN_B;            /* strip B, base pool */
     r4 = 4;
     call _bq_pair_blk;
     /* the post-EQ tap the router picks from, both pools */
-    l3 = 0; l4 = 0;
-    i3 = BLK_CHAIN_B_P1;
-    i4 = BLK_TAP_EQ_P1;
-    lcntr = DSP4_BLOCK_SIZE, do .bqt1_31_32 until lce;
-        r0 = dm(i3, 1);
-    .bqt1_31_32: dm(i4, 1) = r0;
-    i3 = BLK_CHAIN_B;
-    i4 = BLK_TAP_EQ;
-    lcntr = DSP4_BLOCK_SIZE, do .bqt2_31_32 until lce;
-        r0 = dm(i3, 1);
-    .bqt2_31_32: dm(i4, 1) = r0;
+    call _bqp_tap_eq;
     rts;
 
 .bqs_EQ_31_32:
