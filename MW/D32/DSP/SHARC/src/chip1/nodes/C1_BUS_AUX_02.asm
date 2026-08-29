@@ -30,19 +30,32 @@
 .global _C1_BUS_AUX_02_process;
 _C1_BUS_AUX_02_process:
 #if DSP4_BLOCK_KERNELS
-    /* One pass per BLOCK, with _acc64_rns28 + _mrf_rns28 INLINED
-     * and their constants hoisted. The accumulator is already
-     * per-sample (64 words = 32 x 2 pairs), so this walks it and
-     * rounds each sample in turn.
+    /* One pass per BLOCK, with _acc64_rns28 INLINED and its
+     * constants hoisted. The accumulator is already
+     * per-sample (3 x BLOCK words = BLOCK [lo, hi, ex]
+     * TRIPLES), so this walks it and rounds each sample in
+     * turn.
      *
      * The shared routine costs a call, an rts and two constant
-     * reloads on every one of 25 buses x 32 samples = 800
-     * invocations per block, which is the same shape that made
-     * GAIN 4x cheaper when it was inlined. The saturation
-     * fix-up here is a CONDITIONAL MOVE, not the early `rts`
-     * the shared routine uses, so the body stays inside a
-     * hardware loop. Arithmetic is unchanged and must stay
-     * bit-identical to fixed_ref.mix_sum. */
+     * reloads on every one of 25 buses x BLOCK samples per
+     * block, which is the same shape that made GAIN 4x cheaper
+     * when it was inlined. The saturation fix-up here is a
+     * CONDITIONAL MOVE, not the early `rts` the shared routine
+     * uses, so the body stays inside a hardware loop.
+     * Arithmetic must stay bit-identical to
+     * fixed_ref.mix_sum.
+     *
+     * THE SATURATION TEST IS OVER ALL 80 BITS (review finding
+     * D1). Two conditions, ORed into one conditional move:
+     *   (a) bits 63..59 are the sign of y, and
+     *   (b) ex is the sign extension of hi.
+     * (b) is the one the two-word accumulator could not ask,
+     * because it manufactured ex from hi on every load -- so a
+     * bus sum past +/-128.0 wrapped and then passed (a) as a
+     * clean, full-scale, wrong-sign sample. (b) is tested on
+     * the low 16 bits only: MR2F holds bits 79..64 and the
+     * read-back representation of the unused upper half is not
+     * relied on. */
     l2 = 0;
     l3 = 0;
     i2 = _bus_acc_aux_02;
@@ -52,22 +65,31 @@ _C1_BUS_AUX_02_process:
     r10 = 0x7FFFFFFF;
     lcntr = DSP4_BLOCK_SIZE, do .mbk_C1_BUS_AUX_02 until lce;
         r1 = dm(i2, 1);       /* lo; i2 -> hi              */
-        r2 = dm(i2, 1);       /* hi; i2 -> next pair       */
         mr0f = r1;
+        r2 = dm(i2, 1);       /* hi; i2 -> ex              */
         mr1f = r2;
-        r3 = ashift r2 by -31;
+        r3 = dm(i2, 1);       /* ex; i2 -> next triple     */
         mr2f = r3;
         mrf = mrf + r8 * r9 (ssi);
         r1 = mr0f;
         r2 = mr1f;
         r1 = lshift r1 by -28;
-        r3 = lshift r2 by 4;
-        r0 = r1 or r3;
-        r1 = ashift r2 by -28;
-        r3 = ashift r0 by -31;
-        r11 = ashift r2 by -31;
+        r12 = lshift r2 by 4;
+        r0 = r1 or r12;
+        /* saturation value, by the sign of the TRUE top word */
+        r11 = lshift r3 by 16;
+        r11 = ashift r11 by -31;
         r11 = r10 xor r11;
-        comp(r1, r3);
+        /* (a) */
+        r1 = ashift r2 by -28;
+        r12 = ashift r0 by -31;
+        comp(r1, r12);
+        if ne r0 = r11;
+        /* (b) */
+        r1 = ashift r2 by -31;
+        r3 = r3 xor r1;
+        r3 = lshift r3 by 16;
+        r3 = pass r3;
         if ne r0 = r11;
     .mbk_C1_BUS_AUX_02: dm(i3, 1) = r0;
     rts;

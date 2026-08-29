@@ -1,7 +1,9 @@
 # DSP4 numeric specification (decision D5)
 
 Status: draft-normative, 2026-07-31; core families VALIDATED by
-tools/dsp/golden_harness.py (9/9) on this date. Governs the fixed-point audio
+tools/dsp/golden_harness.py — 16/16 as of 2026-08-29, when the
+wide-accumulator and blend boundary families were added (the long-stale
+"9/9" was review finding D36). Governs the fixed-point audio
 path on BOTH targets: the SHARC DSP4 firmware (now) and the future
 FPGA mixer engine (`fpga/`). Changes here are behavioural contract
 changes — treat like the slot map (deliberate edits, noted in release
@@ -34,6 +36,72 @@ Every 32-bit touchpoint saturates (above). The 64-bit and 80-bit
 accumulators need the same guarantee, and for those it is a BOUND that
 has to be stated, not a saturate instruction: a value that wraps in a
 wide accumulator re-enters range and reads back as a clean wrong sample.
+
+### Bus accumulators (review finding D1 — the review's one SEVERE)
+
+Bus summing is exact and order-independent, with ONE round/saturate at
+readout (above). The accumulator lives in MEMORY between contributions,
+and what is stored is **the whole 80-bit SHARC multiplier result,
+MR2F:MR1F:MR0F — three words, [lo, hi, ex]** (`lib/mac64_fx.asm`,
+`bus_accumulators.asm`). Q8.56 in 80 bits: range ±2^23 = ±8388608.0
+linear.
+
+**NORMATIVE BOUND: |Σ x·g| ≤ 4096 = 2^12, eleven bits (2048×) below the
+store.** A bus takes at most ~64 contributions; a strip exit saturates at
+±7.999 and one crosspoint coefficient is Q4.28 up to 7.999, so a single
+contribution reaches 64.0. Wrap is not unlikely, it is unreachable from
+representable inputs. `fixed_ref.mix_sum` saturates at the same
+boundary rather than being unbounded — that is the PW saturate-never-
+wrap ruling applied to a 64-bit-and-wider touchpoint, and the margin is
+what makes it a formality rather than a limit.
+
+It was TWO words until 2026-08-29. MR2F was discarded on store and
+rebuilt from the sign of `hi` on load, capping the stored value at
+64-bit Q8.56 = ±128.0 with nothing saturating it — and the readout's
+saturation check then ran on a value that had ALREADY wrapped, so a
+wrapped sum came out as a clean, full-scale, WRONG-SIGN sample rather
+than as a clip. Reachable: three contributions at 64.0 cross it, 32
+coherent channels at full scale exceed it by 16×. The model could not
+see it (unbounded ints), and no golden vector went near it.
+
+**Why three words and not a saturating 64-bit accumulate.** Saturating
+at ±128.0 clips a PARTIAL SUM: a bus whose contributions cancel (+100
+and −100) has a legitimate small answer, and a saturating accumulate
+returns the wrong one, order-dependently. Exactness and
+order-independence are what the wide accumulator is for. Measured cost
+on the part: **+2.003 cycles/MAC** per-sample and **+2.005** in the
+block kernel, against ~5–6 for a saturating accumulate.
+
+### Dual-instance crossfade blend (review finding D3)
+
+`out = old + rns(a31·(new − old), 31)`, with `a31 = fix(alpha·2^31)` in
+**float32** (the parameter plane is float32 by ruling, so alpha and the
+multiply are both float32; modelling it in float64 was measured to
+disagree with the part by 15 LSB). Model: `fixed_ref.xfade_blend`.
+
+**The difference is EXACT and is never formed in a 32-bit register.**
+`new` and `old` are independently saturated Q4.28 outputs, so
+`new − old` spans ±(2^32−1); the kernel forms `a31·new − a31·old` as two
+MACs into the 80-bit MRF. Same instruction count as the 32-bit subtract
+it replaces, and identical arithmetic everywhere that subtract did not
+wrap.
+
+**The final add cannot overflow, and this is a bound, not an
+assumption:** |a31| ≤ 2^31−1 and |new−old| ≤ 2^32−1, so
+`rns(a31·(new−old), 31) ≤ 2^32−2`, and `old ≥ −2^31`, giving
+`out ≤ 2^31−2 < I32_MAX`. Symmetrically at the lower end. No saturation
+is applied to it and none is needed. Equivalently: the result is a
+convex combination of two int32s and lies within the interval they span,
+bar one LSB of rounding — which the golden harness asserts.
+
+**DOMAIN: alpha ∈ [0, 1).** The kernel's ramp guarantees it — the new
+alpha is stored only when still below 1.0, otherwise the crossfade ENDS
+and alpha is zeroed — so the largest alpha ever blended is one step
+short of unity. `alpha == 1.0` makes the float32 product exactly 2^31,
+which is not a 32-bit integer; `fix` was measured on the part to return
+0xFFFFFFFF for it, not a saturated 0x7FFFFFFF. That corner is
+unreachable and deliberately unmodelled. **Any change to the alpha ramp
+must preserve alpha < 1.0.**
 
 ### Biquad error feedback (review finding D2)
 
@@ -157,3 +225,18 @@ The SHARC asm and the FPGA RTL both implement the *fixed reference
 model* (`tools/dsp/fixed_ref.py`) bit-exactly; the reference model is
 what gets tolerance-tested against float64. Two-step equivalence:
 target ≡ fixed_ref (bit-exact), fixed_ref ≈ float64 (tolerances).
+
+### Boundary vectors, and where the bit-exact half is checked
+
+The tolerance half is `golden_harness.py`. The BIT-EXACT half, for the
+two wide touchpoints above, is `MW/D32/DSP/SHARC/numverify.sh`: it
+builds `DSP4_NUM_SELFTEST=1`, which runs the REAL `_acc64_mac` /
+`_acc64_rns28` and a blend probe emitted from the same generator
+expression as every EQ/FILT/CROSSOVER node, over the vectors in
+`tools/dsp/boundary_vectors.py` — the same vectors the harness uses —
+and compares the part's results against `fixed_ref`.
+
+Result 2026-08-29, on the part at 491.52 MHz: **57 of 57 bit-exact**,
+in both a per-sample and a block-kernel build. Negative control
+(`DSP4_NUM_NEGCTL=1`, the pre-fix arithmetic): **31 of 31 boundary
+vectors detected, 26 of 26 non-boundary vectors untouched.**

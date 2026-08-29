@@ -170,14 +170,31 @@ _C1_EQ_17_process_sample:
     r14 = r0;                      /* old = yb */
     r0 = r5;
 .eq_bl_C1_EQ_17:
-    /* alpha_q31 = fix(alpha * 2^31); blend in MRF */
     f4 = dm(_eq_xfade_alpha_C1_EQ_17);
     r5 = 0x4F000000;               /* 2^31 as float */
     f5 = r5;
     f4 = f4 * f5;
-    r4 = fix f4;
-    r5 = r0 - r14;                 /* new - old */
-    mrf = r5 * r4 (ssi);
+    r4 = fix f4;                   /* alpha_q31; `fix` saturates */
+    /* alpha*(new - old) as TWO MACs into the 80-bit MRF, so the
+     * difference is NEVER formed in a 32-bit register (review
+     * finding D3). `new` and `old` are independently saturated
+     * Q4.28 outputs, so new-old spans +/-(2^32-1) and the old
+     * `r5 = r0 - r14` wrapped when the two instances straddled
+     * full scale mid-swap -- up to a block of full-scale-wrong
+     * samples, a click. Same instruction count, and identical
+     * arithmetic everywhere the subtract did not wrap.
+     * Model: fixed_ref.xfade_blend. The final add cannot
+     * overflow -- the result is a convex combination of two
+     * int32s, bounded by them; the bound is in numeric-spec.md.
+     *
+     * EMITTED FROM ONE PLACE: _xfade_blend_core() in
+     * dsp_codegen.py. Every EQ/GEQ/AFB/FILT/CROSSOVER node and
+     * the in-part self-test (lib/num_selftest.asm) get these
+     * exact instructions from this one expression, so the
+     * sequence the self-test proves bit-exact against the model
+     * is the sequence the nodes run. */
+    mrf = r0 * r4 (ssi);           /* + new*alpha */
+    mrf = mrf - r14 * r4 (ssi);    /* - old*alpha */
     r5 = 0x40000000;               /* 2^30 rounding half */
     r12 = 1;
     mrf = mrf + r5 * r12 (ssi);

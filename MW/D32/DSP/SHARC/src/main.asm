@@ -133,6 +133,10 @@
 #if DSP4_BQ_SELFTEST
 .extern _bq_selftest;
 #endif
+#if DSP4_NUM_SELFTEST
+.extern _num_selftest;
+.extern _nst_done;
+#endif
 #if DSP4_SIMD_DYN
 .extern _dyn_selftest;
 .extern _dst_done;
@@ -607,6 +611,16 @@ _start:
     if ne jump (pc, .dynst_skip);
     call _dyn_selftest;
 .dynst_skip:
+#endif
+#if DSP4_NUM_SELFTEST
+    /* Numeric boundary self-test (D1/D3). Same placement, same reason,
+     * and it is short -- 15 mix vectors and 42 blend vectors, plus
+     * three timing arms of 20k iterations each. Runs once. */
+    r0 = dm(_nst_done);
+    r0 = pass r0;
+    if ne jump (pc, .numst_skip);
+    call _num_selftest;
+.numst_skip:
 #endif
     /* NO `idle` HERE. It used to be, as a low-power wait for the DMA
      * interrupt, and it wedged the parameter link the instant the loop

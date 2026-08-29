@@ -212,6 +212,18 @@ ASMFLAGS="$ASMFLAGS -DDSP4_SKIP_SIMDCALL=$DSP4_SKIP_SIMDCALL"
 DSP4_BQ_PAIR_STAGES="${DSP4_BQ_PAIR_STAGES:-4}"
 ASMFLAGS="$ASMFLAGS -DDSP4_BQ_PAIR_STAGES=$DSP4_BQ_PAIR_STAGES"
 
+# NUMERIC BOUNDARY SELF-TEST (2026-08-29, review findings D1/D3). Runs
+# the REAL _acc64_mac/_acc64_rns28 and the generated crossfade blend over
+# vectors that straddle the wide-accumulator and 32-bit-difference
+# boundaries, inside the part, and leaves the results in DM for
+# tools/pi/dsp4_num_verify.py to diff against fixed_ref.
+# DSP4_NUM_NEGCTL=1 swaps in the PRE-FIX arithmetic: the same vectors
+# must then FAIL, and fail exactly where the model predicts. Debug only.
+DSP4_NUM_SELFTEST="${DSP4_NUM_SELFTEST:-0}"
+DSP4_NUM_NEGCTL="${DSP4_NUM_NEGCTL:-0}"
+CFLAGS="$CFLAGS -DDSP4_NUM_SELFTEST=$DSP4_NUM_SELFTEST -DDSP4_NUM_NEGCTL=$DSP4_NUM_NEGCTL"
+ASMFLAGS="$ASMFLAGS -DDSP4_NUM_SELFTEST=$DSP4_NUM_SELFTEST -DDSP4_NUM_NEGCTL=$DSP4_NUM_NEGCTL"
+
 # Meter bisect hooks (2026-08-28 rebuild). NOFOLD stops at the per-sample
 # accumulation, NOCVT stops before the float readback, NOSQRT stops before
 # the square root. All 0 = the real meter.

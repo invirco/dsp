@@ -5323,23 +5323,7 @@ def gen_eq_biquad_fixed(node):
             r14 = r0;                      /* old = yb */
             r0 = r5;
         .eq_bl_{nid}:
-            /* alpha_q31 = fix(alpha * 2^31); blend in MRF */
-            f4 = dm(_eq_xfade_alpha_{nid});
-            r5 = 0x4F000000;               /* 2^31 as float */
-            f5 = r5;
-            f4 = f4 * f5;
-            r4 = fix f4;
-            r5 = r0 - r14;                 /* new - old */
-            mrf = r5 * r4 (ssi);
-            r5 = 0x40000000;               /* 2^30 rounding half */
-            r12 = 1;
-            mrf = mrf + r5 * r12 (ssi);
-            r5 = mr0f;
-            r12 = mr1f;
-            r5 = lshift r5 by -31;
-            r12 = lshift r12 by 1;
-            r5 = r5 or r12;
-            r0 = r14 + r5;                 /* blended output */
+{_xfade_blend_core('eq', nid)}
             dm(_tap_post_eq_{nid}) = r0;
             dm(_buf_{nid}) = r0;
 
@@ -5402,18 +5386,45 @@ def _fx_bypass5(stages):
         ['0x10000000, 0x20000000, 0xF0000000, 0x20000000, 0x10000000'] * stages)
 
 
-def _fx_blend_asm(pfx, nid):
-    """Fixed blend: r0 = old(r7) + rns((new(r0)-old)*alpha_q31, 31);
-    advances alpha and finishes the crossfade. Emitted inside a node."""
-    return f"""\
-            /* alpha_q31 = fix(alpha * 2^31); blend in MRF */
+def _xfade_blend_core(pfx, nid):
+    """THE dual-instance crossfade blend, emitted from one place.
+
+    In:  r0 = new instance output, r14 = old, both Q4.28
+         _{pfx}_xfade_alpha_{nid} = the float control ramp
+    Out: r0 = blended sample.  Clobbers r4, r5, r12, f4, f5, MRF.
+
+    Normative model: fixed_ref.xfade_blend. Boundary vectors and the
+    negative control live in golden_harness.t_blend_boundary, and the
+    in-part bit-exactness proof (lib/num_selftest.asm) calls a routine
+    generated from THIS function, so the tested instructions and the
+    shipped instructions are the same text.
+    """
+    return """\
             f4 = dm(_{pfx}_xfade_alpha_{nid});
             r5 = 0x4F000000;               /* 2^31 as float */
             f5 = r5;
             f4 = f4 * f5;
-            r4 = fix f4;
-            r5 = r0 - r14;                 /* new - old */
-            mrf = r5 * r4 (ssi);
+            r4 = fix f4;                   /* alpha_q31; `fix` saturates */
+            /* alpha*(new - old) as TWO MACs into the 80-bit MRF, so the
+             * difference is NEVER formed in a 32-bit register (review
+             * finding D3). `new` and `old` are independently saturated
+             * Q4.28 outputs, so new-old spans +/-(2^32-1) and the old
+             * `r5 = r0 - r14` wrapped when the two instances straddled
+             * full scale mid-swap -- up to a block of full-scale-wrong
+             * samples, a click. Same instruction count, and identical
+             * arithmetic everywhere the subtract did not wrap.
+             * Model: fixed_ref.xfade_blend. The final add cannot
+             * overflow -- the result is a convex combination of two
+             * int32s, bounded by them; the bound is in numeric-spec.md.
+             *
+             * EMITTED FROM ONE PLACE: _xfade_blend_core() in
+             * dsp_codegen.py. Every EQ/GEQ/AFB/FILT/CROSSOVER node and
+             * the in-part self-test (lib/num_selftest.asm) get these
+             * exact instructions from this one expression, so the
+             * sequence the self-test proves bit-exact against the model
+             * is the sequence the nodes run. */
+            mrf = r0 * r4 (ssi);           /* + new*alpha */
+            mrf = mrf - r14 * r4 (ssi);    /* - old*alpha */
             r5 = 0x40000000;               /* 2^30 rounding half */
             r12 = 1;
             mrf = mrf + r5 * r12 (ssi);
@@ -5422,7 +5433,14 @@ def _fx_blend_asm(pfx, nid):
             r5 = lshift r5 by -31;
             r12 = lshift r12 by 1;
             r5 = r5 or r12;
-            r0 = r14 + r5;                 /* blended output */"""
+            r0 = r14 + r5;                 /* blended output */""".format(pfx=pfx, nid=nid)
+
+
+def _fx_blend_asm(pfx, nid):
+    """Fixed blend: r0 = old(r7) + rns((new(r0)-old)*alpha_q31, 31);
+    advances alpha and finishes the crossfade. Emitted inside a node."""
+    return f"""\
+{_xfade_blend_core(pfx, nid)}"""
 
 
 def _fx_cascade_node(node, pfx, stages, extra_dm='', extra_store=''):
@@ -5744,22 +5762,7 @@ def gen_hpf_lpf_fixed(node):
             r14 = r0;
             r0 = r5;
         .filt_bl_{nid}:
-            f4 = dm(_filt_xfade_alpha_{nid});
-            r5 = 0x4F000000;
-            f5 = r5;
-            f4 = f4 * f5;
-            r4 = fix f4;
-            r5 = r0 - r14;
-            mrf = r5 * r4 (ssi);
-            r5 = 0x40000000;
-            r12 = 1;
-            mrf = mrf + r5 * r12 (ssi);
-            r5 = mr0f;
-            r12 = mr1f;
-            r5 = lshift r5 by -31;
-            r12 = lshift r12 by 1;
-            r5 = r5 or r12;
-            r0 = r14 + r5;
+{_xfade_blend_core('filt', nid)}
             dm(_buf_{nid}) = r0;
 
             f4 = dm(_filt_xfade_alpha_{nid});
@@ -5987,22 +5990,7 @@ def gen_crossover_fixed(node):
             r14 = r0;
             r0 = r5;
         .xo_bl_lp_{nid}:
-            f4 = dm(_xover_xfade_alpha_{nid});
-            r5 = 0x4F000000;
-            f5 = r5;
-            f4 = f4 * f5;
-            r4 = fix f4;
-            r5 = r0 - r14;
-            mrf = r5 * r4 (ssi);
-            r5 = 0x40000000;
-            r12 = 1;
-            mrf = mrf + r5 * r12 (ssi);
-            r5 = mr0f;
-            r12 = mr1f;
-            r5 = lshift r5 by -31;
-            r12 = lshift r12 by 1;
-            r5 = r5 or r12;
-            r0 = r14 + r5;
+{_xfade_blend_core('xover', nid)}
             dm(_buf_lp_{nid}) = r0;
 
             /* HP: A then B */
@@ -6024,22 +6012,7 @@ def gen_crossover_fixed(node):
             r14 = r0;
             r0 = r5;
         .xo_bl_hp_{nid}:
-            f4 = dm(_xover_xfade_alpha_{nid});
-            r5 = 0x4F000000;
-            f5 = r5;
-            f4 = f4 * f5;
-            r4 = fix f4;
-            r5 = r0 - r14;
-            mrf = r5 * r4 (ssi);
-            r5 = 0x40000000;
-            r12 = 1;
-            mrf = mrf + r5 * r12 (ssi);
-            r5 = mr0f;
-            r12 = mr1f;
-            r5 = lshift r5 by -31;
-            r12 = lshift r12 by 1;
-            r5 = r5 or r12;
-            r0 = r14 + r5;
+{_xfade_blend_core('xover', nid)}
             dm(_buf_hp_{nid}) = r0;
             dm(_buf_{nid}) = r0;
 
@@ -6648,19 +6621,32 @@ def gen_mix_bus_fixed(node):
             .global _{nid}_process;
             _{nid}_process:
             #if DSP4_BLOCK_KERNELS
-                /* One pass per BLOCK, with _acc64_rns28 + _mrf_rns28 INLINED
-                 * and their constants hoisted. The accumulator is already
-                 * per-sample (64 words = 32 x 2 pairs), so this walks it and
-                 * rounds each sample in turn.
+                /* One pass per BLOCK, with _acc64_rns28 INLINED and its
+                 * constants hoisted. The accumulator is already
+                 * per-sample (3 x BLOCK words = BLOCK [lo, hi, ex]
+                 * TRIPLES), so this walks it and rounds each sample in
+                 * turn.
                  *
                  * The shared routine costs a call, an rts and two constant
-                 * reloads on every one of 25 buses x 32 samples = 800
-                 * invocations per block, which is the same shape that made
-                 * GAIN 4x cheaper when it was inlined. The saturation
-                 * fix-up here is a CONDITIONAL MOVE, not the early `rts`
-                 * the shared routine uses, so the body stays inside a
-                 * hardware loop. Arithmetic is unchanged and must stay
-                 * bit-identical to fixed_ref.mix_sum. */
+                 * reloads on every one of 25 buses x BLOCK samples per
+                 * block, which is the same shape that made GAIN 4x cheaper
+                 * when it was inlined. The saturation fix-up here is a
+                 * CONDITIONAL MOVE, not the early `rts` the shared routine
+                 * uses, so the body stays inside a hardware loop.
+                 * Arithmetic must stay bit-identical to
+                 * fixed_ref.mix_sum.
+                 *
+                 * THE SATURATION TEST IS OVER ALL 80 BITS (review finding
+                 * D1). Two conditions, ORed into one conditional move:
+                 *   (a) bits 63..59 are the sign of y, and
+                 *   (b) ex is the sign extension of hi.
+                 * (b) is the one the two-word accumulator could not ask,
+                 * because it manufactured ex from hi on every load -- so a
+                 * bus sum past +/-128.0 wrapped and then passed (a) as a
+                 * clean, full-scale, wrong-sign sample. (b) is tested on
+                 * the low 16 bits only: MR2F holds bits 79..64 and the
+                 * read-back representation of the unused upper half is not
+                 * relied on. */
                 l2 = 0;
                 l3 = 0;
                 i2 = {acc_sym};
@@ -6670,22 +6656,31 @@ def gen_mix_bus_fixed(node):
                 r10 = 0x7FFFFFFF;
                 lcntr = DSP4_BLOCK_SIZE, do .mbk_{nid} until lce;
                     r1 = dm(i2, 1);       /* lo; i2 -> hi              */
-                    r2 = dm(i2, 1);       /* hi; i2 -> next pair       */
                     mr0f = r1;
+                    r2 = dm(i2, 1);       /* hi; i2 -> ex              */
                     mr1f = r2;
-                    r3 = ashift r2 by -31;
+                    r3 = dm(i2, 1);       /* ex; i2 -> next triple     */
                     mr2f = r3;
                     mrf = mrf + r8 * r9 (ssi);
                     r1 = mr0f;
                     r2 = mr1f;
                     r1 = lshift r1 by -28;
-                    r3 = lshift r2 by 4;
-                    r0 = r1 or r3;
-                    r1 = ashift r2 by -28;
-                    r3 = ashift r0 by -31;
-                    r11 = ashift r2 by -31;
+                    r12 = lshift r2 by 4;
+                    r0 = r1 or r12;
+                    /* saturation value, by the sign of the TRUE top word */
+                    r11 = lshift r3 by 16;
+                    r11 = ashift r11 by -31;
                     r11 = r10 xor r11;
-                    comp(r1, r3);
+                    /* (a) */
+                    r1 = ashift r2 by -28;
+                    r12 = ashift r0 by -31;
+                    comp(r1, r12);
+                    if ne r0 = r11;
+                    /* (b) */
+                    r1 = ashift r2 by -31;
+                    r3 = r3 xor r1;
+                    r3 = lshift r3 by 16;
+                    r3 = pass r3;
                     if ne r0 = r11;
                 .mbk_{nid}: dm(i3, 1) = r0;
                 rts;
@@ -6965,6 +6960,467 @@ def gen_blk_pool_header():
 """
 
 
+NUM_SELFTEST_TEMPLATE = '''\
+/*======================================================================
+ * num_selftest.asm — is the ASSEMBLY the same arithmetic as fixed_ref,
+ * AT the wide-accumulator and blend boundaries and on BOTH sides of them?
+ *
+ * AUTO-GENERATED by tools/dsp/dsp_codegen.py — do not edit directly.
+ *
+ * Two arms, for the two touchpoints the 2026-08-28 review found could
+ * WRAP rather than saturate:
+ *
+ *   MIX   review finding D1 (SEVERE). The bus accumulators. Zero a
+ *         [lo, hi, ex] triple, MAC N contributions into it with the
+ *         REAL _acc64_mac, read it out with the REAL _acc64_rns28.
+ *         No copied arithmetic: these are the routines the graph runs.
+ *   BLEND review finding D3. The dual-instance crossfade. The probe
+ *         body is emitted from _xfade_blend_core() in dsp_codegen.py --
+ *         the SAME expression that emits it into all 32 EQ, all 32
+ *         FILT and both crossover nodes -- so the instructions proved
+ *         here are the instructions those nodes execute.
+ *
+ * THE VECTORS STRADDLE THE BOUNDARIES ON PURPOSE, and the host reads
+ * the results back and compares them against fixed_ref.mix_sum and
+ * fixed_ref.xfade_blend. They are the same vectors golden_harness.py
+ * uses, so "asm == model" and "model is right" are checked on identical
+ * numbers.
+ *
+ * NEGATIVE CONTROL, IN THE SAME INSTRUMENT: DSP4_NUM_NEGCTL=1 swaps the
+ * fixed routines for _nst_mac_old / _nst_rns_old / _nst_blend_old, which
+ * are the PRE-FIX arithmetic -- the 64-bit accumulator that discards
+ * MR2F and the 32-bit new-old difference. The host requires those to
+ * FAIL exactly the vectors that cross a boundary and to PASS every
+ * vector that does not. A test that cannot fail proves nothing, and
+ * this bench has produced two of those already.
+ *
+ * TIMING ARM: the same two MAC forms over the same work, against the
+ * 1 kHz diag tick. That is the per-MAC cost of the third word, MEASURED.
+ *
+ * Debug only: DSP4_NUM_SELFTEST. Never in a shipping image.
+ *====================================================================*/
+
+#include "dsp_block.h"
+#include "diag.h"
+
+#if DSP4_NUM_SELFTEST
+
+.section/dm seg_dmda;
+
+/* ---- MIX vectors: {nmix} of them ------------------------------------
+ * Each is (n1, x1, g1, n2, x2, g2): n1 contributions of x1*g1 followed
+ * by n2 of x2*g2 (n2 = 0 for the single-part vectors). Unity x unity is
+ * exactly 2^56 in Q8.56, so a count of 128 lands the sum EXACTLY on the
+ * old 64-bit +/-128.0 boundary and 127/129 sit one contribution either
+ * side of it.
+ */
+.global _nst_mix_v;
+.var _nst_mix_v[{nmix6}] =
+{mixv};
+.global _nst_mix_n;     .var _nst_mix_n = {nmix};
+.global _nst_mix_r;     .var _nst_mix_r[{nmix}];
+
+/* ---- BLEND vectors: {nbl} of them, (new, old, alpha_f32) ---------- */
+.global _nst_bl_v;
+.var _nst_bl_v[{nbl3}] =
+{blv};
+.global _nst_bl_n;      .var _nst_bl_n = {nbl};
+.global _nst_bl_r;      .var _nst_bl_r[{nbl}];
+
+/* the blend core reads its alpha from here (pfx=nst, nid=PROBE) */
+.global _nst_xfade_alpha_PROBE;
+.var _nst_xfade_alpha_PROBE = 0.0;
+
+/* one accumulator triple for the MIX arm */
+.global _nst_acc;       .var _nst_acc[3];
+
+/* ---- results / timing ------------------------------------------- */
+.global _nst_done;      .var _nst_done = 0;
+.global _nst_negctl;    .var _nst_negctl = DSP4_NUM_NEGCTL;
+/* TIMING. Six (ticks, tcount) PAIRS -- ticks alone quantises to 1 ms,
+ * which at 200k iterations is 2.46 cycles/MAC and cannot see a two- or
+ * three-instruction change. TCOUNT counts core clocks down and reloads
+ * from DIAG_TPERIOD, so
+ *     cycles = (ticks_end - ticks_start) * DIAG_TPERIOD
+ *              + (tcount_start - tcount_end)
+ * which is the form main.asm already uses for its per-block cost. */
+.global _nst_tick;      .var _nst_tick[20] =
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+/* BLOCK arms present? The block-kernel MAC only exists in a
+ * DSP4_BLOCK_KERNELS build, and that is the operating point the
+ * capacity work runs at, so it gets its own pair of arms there. */
+.global _nst_have_blk;  .var _nst_have_blk = DSP4_BLOCK_KERNELS;
+.global _nst_blk_n;     .var _nst_blk_n = DSP4_BLOCK_SIZE;
+/* BLOCK arms need a BLOCK-long source and a BLOCK-triple accumulator */
+.global _nst_blk_src;   .var _nst_blk_src[DSP4_BLOCK_SIZE];
+.global _nst_blk_acc;   .var _nst_blk_acc[3*DSP4_BLOCK_SIZE];
+.global _nst_tper;      .var _nst_tper = DIAG_TPERIOD;
+.global _nst_iters;     .var _nst_iters = 200000;
+
+.section/pm seg_pmco;
+.extern _acc64_mac;
+.extern _acc64_rns28;
+.extern _diag_ticks;
+#if DSP4_BLOCK_KERNELS
+.extern _acc64_mac_blk;
+#endif
+
+/*----------------------------------------------------------------------
+ * _xfade_blend_probe — the SHIPPED blend body, callable.
+ * In:  r0 = new, r14 = old, _nst_xfade_alpha_PROBE = alpha (float)
+ * Out: r0 = blended sample
+ *----------------------------------------------------------------------*/
+.global _xfade_blend_probe;
+_xfade_blend_probe:
+{blend_core}
+    rts;
+_xfade_blend_probe.end:
+
+/*----------------------------------------------------------------------
+ * _nst_blend_old — the PRE-FIX blend: the difference in 32 bits.
+ * Same registers. Only the two MACs differ.
+ *----------------------------------------------------------------------*/
+.global _nst_blend_old;
+_nst_blend_old:
+    f4 = dm(_nst_xfade_alpha_PROBE);
+    r5 = 0x4F000000;
+    f5 = r5;
+    f4 = f4 * f5;
+    r4 = fix f4;
+    r5 = r0 - r14;                 /* new - old, IN 32 BITS: wraps */
+    mrf = r5 * r4 (ssi);
+    r5 = 0x40000000;
+    r12 = 1;
+    mrf = mrf + r5 * r12 (ssi);
+    r5 = mr0f;
+    r12 = mr1f;
+    r5 = lshift r5 by -31;
+    r12 = lshift r12 by 1;
+    r5 = r5 or r12;
+    r0 = r14 + r5;
+    rts;
+_nst_blend_old.end:
+
+/*----------------------------------------------------------------------
+ * _nst_mac_old / _nst_rns_old — the PRE-FIX bus accumulator: two words,
+ * MR2F discarded on store and manufactured from the sign of hi on load.
+ * Byte-for-byte what lib/mac64_fx.asm held before 2026-08-29.
+ *----------------------------------------------------------------------*/
+.global _nst_mac_old;
+_nst_mac_old:
+    r2 = dm(i2, 1);
+    r3 = dm(i2, 0);
+    mr0f = r2;
+    mr1f = r3;
+    r2 = ashift r3 by -31;
+    mr2f = r2;
+    mrf = mrf + r0 * r1 (ssi);
+    r2 = mr1f;
+    dm(i2, -1) = r2;
+    r2 = mr0f;
+    dm(i2, 0) = r2;
+    rts;
+_nst_mac_old.end:
+
+#if DSP4_BLOCK_KERNELS
+/*----------------------------------------------------------------------
+ * _nst_mac_blk_old — the PRE-FIX per-BLOCK accumulate: BLOCK [lo, hi]
+ * pairs, MR2F discarded. Byte-for-byte what the generator emitted as
+ * _acc64_mac_blk before 2026-08-29. Timing arm only.
+ *----------------------------------------------------------------------*/
+.global _nst_mac_blk_old;
+_nst_mac_blk_old:
+    l0 = 0;
+    l2 = 0;
+    r5 = DSP4_BLOCK_SIZE;
+    lcntr = r5, do .nmbo_lp until lce;
+        r0 = dm(i0, 1);
+        r2 = dm(i2, 1);            /* lo; i2 -> hi */
+        r3 = dm(i2, 0);            /* hi           */
+        mr0f = r2;
+        mr1f = r3;
+        r2 = ashift r3 by -31;
+        mr2f = r2;
+        mrf = mrf + r0 * r1 (ssi);
+        r2 = mr1f;
+        dm(i2, -1) = r2;           /* hi; i2 -> lo */
+        r2 = mr0f;
+    .nmbo_lp:
+        dm(i2, 2) = r2;            /* lo; i2 -> next pair */
+    rts;
+_nst_mac_blk_old.end:
+#endif
+
+.global _nst_rns_old;
+_nst_rns_old:
+    r1 = dm(i2, 1);
+    r2 = dm(i2, 0);
+    mr0f = r1;
+    mr1f = r2;
+    r3 = ashift r2 by -31;
+    mr2f = r3;
+    r1 = 0x08000000;
+    r3 = 1;
+    mrf = mrf + r1 * r3 (ssi);
+    r1 = mr0f;
+    r2 = mr1f;
+    r1 = lshift r1 by -28;
+    r3 = lshift r2 by 4;
+    r0 = r1 or r3;
+    r1 = ashift r2 by -28;
+    r3 = ashift r0 by -31;
+    comp(r1, r3);
+    if eq rts;
+    r0 = 0x7FFFFFFF;
+    r1 = ashift r2 by -31;
+    r0 = r0 xor r1;
+    rts;
+_nst_rns_old.end:
+
+/*----------------------------------------------------------------------
+ * _num_selftest — run both arms once, then the timing arm.
+ *----------------------------------------------------------------------*/
+.global _num_selftest;
+_num_selftest:
+    l0 = 0; l1 = 0; l2 = 0; l3 = 0; l4 = 0; l5 = 0;
+
+    /* ================= MIX arm ================= */
+    i4 = _nst_mix_v;
+    i5 = _nst_mix_r;
+    r14 = dm(_nst_mix_n);
+    lcntr = r14, do .nst_mix_lp until lce;
+        /* zero the triple */
+        r0 = 0;
+        dm(_nst_acc) = r0;
+        dm(_nst_acc + 1) = r0;
+        dm(_nst_acc + 2) = r0;
+        /* part 1 */
+        r10 = dm(i4, 1);           /* n1 */
+        r11 = dm(i4, 1);           /* x1 */
+        r12 = dm(i4, 1);           /* g1 */
+        r10 = pass r10;
+        if eq jump (pc, .nst_p2);
+        lcntr = r10, do .nst_a1 until lce;
+            r0 = r11;
+            r1 = r12;
+            i2 = _nst_acc;
+#if DSP4_NUM_NEGCTL
+            call _nst_mac_old;
+#else
+            call _acc64_mac;
+#endif
+            nop;
+        .nst_a1:
+            nop;
+    .nst_p2:
+        /* part 2 */
+        r10 = dm(i4, 1);           /* n2 */
+        r11 = dm(i4, 1);           /* x2 */
+        r12 = dm(i4, 1);           /* g2 */
+        r10 = pass r10;
+        if eq jump (pc, .nst_rd);
+        lcntr = r10, do .nst_a2 until lce;
+            r0 = r11;
+            r1 = r12;
+            i2 = _nst_acc;
+#if DSP4_NUM_NEGCTL
+            call _nst_mac_old;
+#else
+            call _acc64_mac;
+#endif
+            nop;
+        .nst_a2:
+            nop;
+    .nst_rd:
+        i2 = _nst_acc;
+#if DSP4_NUM_NEGCTL
+        call _nst_rns_old;
+#else
+        call _acc64_rns28;
+#endif
+        dm(i5, 1) = r0;
+        nop;
+    .nst_mix_lp:
+        nop;
+
+    /* ================= BLEND arm ================= */
+    i4 = _nst_bl_v;
+    i5 = _nst_bl_r;
+    r14 = dm(_nst_bl_n);
+    lcntr = r14, do .nst_bl_lp until lce;
+        r10 = dm(i4, 1);           /* new */
+        r11 = dm(i4, 1);           /* old */
+        r12 = dm(i4, 1);           /* alpha, float bits */
+        dm(_nst_xfade_alpha_PROBE) = r12;
+        r0 = r10;
+        r14 = r11;
+#if DSP4_NUM_NEGCTL
+        call _nst_blend_old;
+#else
+        call _xfade_blend_probe;
+#endif
+        dm(i5, 1) = r0;
+        nop;
+    .nst_bl_lp:
+        nop;
+
+    /* ================= TIMING arm =================
+     * The SAME work through both MAC forms. Three arms:
+     *   pair 0  null loop (the setup and loop overhead)
+     *   pair 1  _acc64_mac   -- the three-word form the graph now runs
+     *   pair 2  _nst_mac_old -- the pre-fix two-word form
+     * Each pair is (ticks, tcount) at the start and again at the end,
+     * six pairs in _nst_tick. The host computes
+     *   cycles = (ticks_end - ticks_start) * DIAG_TPERIOD
+     *            + (tcount_start - tcount_end)
+     * which is main.asm's own per-block accounting form -- ticks alone
+     * quantise to 1 ms, which at 200k iterations is 2.46 cycles/MAC and
+     * cannot see a two-instruction change. */
+    r2 = tcount;
+    r0 = dm(_diag_ticks);
+    dm(_nst_tick + 0) = r0;
+    dm(_nst_tick + 1) = r2;
+    r10 = dm(_nst_iters);
+    lcntr = r10, do .nst_tn until lce;
+        r0 = 0x40000000;
+        r1 = 0x10000000;
+        i2 = _nst_acc;
+        nop;
+        nop;
+    .nst_tn:
+        nop;
+    r2 = tcount;
+    r0 = dm(_diag_ticks);
+    dm(_nst_tick + 2) = r0;
+    dm(_nst_tick + 3) = r2;
+
+    r2 = tcount;
+    r0 = dm(_diag_ticks);
+    dm(_nst_tick + 4) = r0;
+    dm(_nst_tick + 5) = r2;
+    r10 = dm(_nst_iters);
+    lcntr = r10, do .nst_tnew until lce;
+        r0 = 0x40000000;
+        r1 = 0x10000000;
+        i2 = _nst_acc;
+        call _acc64_mac;
+        nop;
+    .nst_tnew:
+        nop;
+    r2 = tcount;
+    r0 = dm(_diag_ticks);
+    dm(_nst_tick + 6) = r0;
+    dm(_nst_tick + 7) = r2;
+
+    r2 = tcount;
+    r0 = dm(_diag_ticks);
+    dm(_nst_tick + 8) = r0;
+    dm(_nst_tick + 9) = r2;
+    r10 = dm(_nst_iters);
+    lcntr = r10, do .nst_told until lce;
+        r0 = 0x40000000;
+        r1 = 0x10000000;
+        i2 = _nst_acc;
+        call _nst_mac_old;
+        nop;
+    .nst_told:
+        nop;
+    r2 = tcount;
+    r0 = dm(_diag_ticks);
+    dm(_nst_tick + 10) = r0;
+    dm(_nst_tick + 11) = r2;
+
+#if DSP4_BLOCK_KERNELS
+    /* pair 3 = _acc64_mac_blk (3 word), pair 4 = the pre-fix 2-word
+     * block form. Each call is BLOCK MACs, so the host divides by
+     * iters * BLOCK. This is the form the block-8 operating point runs
+     * and the one the capacity arithmetic is built on. */
+    r2 = tcount;
+    r0 = dm(_diag_ticks);
+    dm(_nst_tick + 12) = r0;
+    dm(_nst_tick + 13) = r2;
+    r10 = dm(_nst_iters);
+    lcntr = r10, do .nst_tbn until lce;
+        r1 = 0x10000000;
+        i0 = _nst_blk_src;
+        i2 = _nst_blk_acc;
+        call _acc64_mac_blk;
+        nop;
+    .nst_tbn:
+        nop;
+    r2 = tcount;
+    r0 = dm(_diag_ticks);
+    dm(_nst_tick + 14) = r0;
+    dm(_nst_tick + 15) = r2;
+
+    r2 = tcount;
+    r0 = dm(_diag_ticks);
+    dm(_nst_tick + 16) = r0;
+    dm(_nst_tick + 17) = r2;
+    r10 = dm(_nst_iters);
+    lcntr = r10, do .nst_tbo until lce;
+        r1 = 0x10000000;
+        i0 = _nst_blk_src;
+        i2 = _nst_blk_acc;
+        call _nst_mac_blk_old;
+        nop;
+    .nst_tbo:
+        nop;
+    r2 = tcount;
+    r0 = dm(_diag_ticks);
+    dm(_nst_tick + 18) = r0;
+    dm(_nst_tick + 19) = r2;
+#endif
+
+    r0 = 1;
+    dm(_nst_done) = r0;
+    rts;
+_num_selftest.end:
+
+#endif /* DSP4_NUM_SELFTEST */
+'''
+
+
+def gen_num_selftest():
+    """lib/num_selftest.asm — the in-part bit-exactness proof for the two
+    WRAP findings (D1, D3).
+
+    Vectors come from tools/dsp/boundary_vectors.py, the same module
+    golden_harness.py and the Pi-side reader use, and the blend body
+    comes from _xfade_blend_core() -- the same expression that emits it
+    into every EQ/FILT/CROSSOVER node. Neither the numbers nor the
+    instructions are retyped here, which is what makes the result a
+    proof about the shipped code rather than about a copy.
+    """
+    import boundary_vectors as bv
+
+    def row(v):
+        n1, x1, g1, n2, x2, g2 = v[:6]
+        return ('    ' + ', '.join(f'0x{w & 0xFFFFFFFF:08X}'
+                                   for w in (n1, x1, g1, n2, x2, g2))
+                + f',   /* {v[6]} */')
+
+    mixv = '\n'.join(row(v) for v in bv.MIX)
+    mixv = mixv.rstrip(',') if not mixv.endswith('*/') else mixv
+    # strip the trailing comma of the LAST row (it is before the comment)
+    lines = mixv.split('\n')
+    lines[-1] = lines[-1].replace(',   /*', '    /*', 1)
+    mixv = '\n'.join(lines)
+
+    bl = []
+    for v in bv.BLEND:
+        bl.append('    0x%08X, 0x%08X, 0x%08X,   /* %s */'
+                  % (v[0] & 0xFFFFFFFF, v[1] & 0xFFFFFFFF,
+                     bv.f32_bits(v[2]), v[3]))
+    bl[-1] = bl[-1].replace(',   /*', '    /*', 1)
+    blv = '\n'.join(bl)
+
+    return NUM_SELFTEST_TEMPLATE.format(
+        nmix=len(bv.MIX), nmix6=6 * len(bv.MIX), mixv=mixv,
+        nbl=len(bv.BLEND), nbl3=3 * len(bv.BLEND), blv=blv,
+        blend_core=_xfade_blend_core('nst', 'PROBE'))
+
+
 def gen_bus_accumulators_fixed():
     """Fixed bus_accumulators.asm: 64-bit pairs per bus + clear."""
     names = (['main_l', 'main_r', 'sub']
@@ -6974,7 +7430,8 @@ def gen_bus_accumulators_fixed():
     out = []
     out.append('/* bus_accumulators.asm — FIXED (D5): 64-bit exact bus accumulators */')
     out.append('/* AUTO-GENERATED by tools/dsp/dsp_codegen.py (--format fixed) — do not edit. */')
-    out.append('/* Pairs [lo, hi]; contributions via _acc64_mac; readout _acc64_rns28. */')
+    out.append('/* TRIPLES [lo, hi, ex] = the whole 80-bit MRF (review finding D1);')
+    out.append(' * contributions via _acc64_mac / _acc64_mac_blk, readout _acc64_rns28. */')
     out.append('#include "dsp_block.h"')
     out.append('')
     out.append(block_size_guard(
@@ -7046,10 +7503,10 @@ def gen_bus_accumulators_fixed():
     # with room to spare.
     out.append('#if DSP4_BLOCK_KERNELS')
     for n in names:
-        out.append(f'.global _bus_acc_{n};   .var _bus_acc_{n}[{2 * BLOCK}];')
+        out.append(f'.global _bus_acc_{n};   .var _bus_acc_{n}[{3 * BLOCK}];')
     out.append('#else')
     for n in names:
-        out.append(f'.global _bus_acc_{n};   .var _bus_acc_{n}[2];')
+        out.append(f'.global _bus_acc_{n};   .var _bus_acc_{n}[3];')
     out.append('#endif')
     out.append('')
     out.append('.global _bus_acc_grp_ptrs;')
@@ -7073,10 +7530,12 @@ def gen_bus_accumulators_fixed():
     out.append('    lcntr = r1, do .bca_clr until lce;')
     out.append('        r2 = dm(i2, 1);')
     out.append('        i3 = r2;')
-    out.append('        /* 2 x BLOCK: one [lo, hi] pair per SAMPLE. This was a')
-    out.append('         * literal 64, right only at BLOCK=32; at BLOCK=8 each')
-    out.append('         * bus zeroed 48 words past its own array. */')
-    out.append('        r3 = 2*DSP4_BLOCK_SIZE;')
+    out.append('        /* 3 x BLOCK: one [lo, hi, ex] TRIPLE per SAMPLE.')
+    out.append('         * It was 2 x BLOCK while the accumulator was 64-bit,')
+    out.append('         * and a literal 64 before that -- right only at')
+    out.append('         * BLOCK=32; at BLOCK=8 each bus zeroed 48 words past')
+    out.append('         * its own array. */')
+    out.append('        r3 = 3*DSP4_BLOCK_SIZE;')
     out.append('        lcntr = r3, do .bca_clr_in until lce;')
     out.append('    .bca_clr_in:')
     out.append('            dm(i3, 1) = r0;')
@@ -7086,9 +7545,10 @@ def gen_bus_accumulators_fixed():
     out.append('    lcntr = r1, do .bca_clr until lce;')
     out.append('        r2 = dm(i2, 1);')
     out.append('        i3 = r2;')
-    out.append('        dm(i3, 1) = r0;')
+    out.append('        dm(i3, 1) = r0;      /* lo */')
+    out.append('        dm(i3, 1) = r0;      /* hi */')
     out.append('    .bca_clr:')
-    out.append('        dm(i3, 0) = r0;')
+    out.append('        dm(i3, 0) = r0;      /* ex */')
     out.append('#endif')
     out.append('    rts;')
     out.append('_bus_clear_all.end:')
@@ -7100,9 +7560,17 @@ def gen_bus_accumulators_fixed():
     # loop iterations, evaluated 32 times over.
     out.append('#if DSP4_BLOCK_KERNELS')
     out.append('.global _acc64_mac_blk;')
-    out.append('/* i0 = source array (32 words), i2 = accumulator (32 [lo,hi]')
-    out.append(' * pairs), r1 = gain Q4.28. Exact: no rounding here, one')
-    out.append(' * round happens at readout in _acc64_rns28. */')
+    out.append('/* i0 = source array (BLOCK words), i2 = accumulator (BLOCK')
+    out.append(' * [lo, hi, ex] TRIPLES), r1 = gain Q4.28. Exact: no rounding')
+    out.append(' * here, one round happens at readout in _acc64_rns28.')
+    out.append(' *')
+    out.append(' * THE THIRD WORD IS MR2F and it is review finding D1. The')
+    out.append(' * pair form discarded it and rebuilt it from the sign of hi,')
+    out.append(' * which caps the accumulator at 64-bit Q8.56 = +/-128.0 with')
+    out.append(' * nothing saturating it -- and the readout then checked a')
+    out.append(' * value that had already wrapped. Cost of the third word is')
+    out.append(' * +3 instructions per MAC here; see lib/mac64_fx.asm for the')
+    out.append(' * trade against a saturating 64-bit accumulate. */')
     out.append('_acc64_mac_blk:')
     out.append('    l0 = 0;')
     out.append('    l2 = 0;')
@@ -7110,17 +7578,19 @@ def gen_bus_accumulators_fixed():
     out.append('    lcntr = r5, do .amb_lp until lce;')
     out.append('        r0 = dm(i0, 1);')
     out.append('        r2 = dm(i2, 1);            /* lo; i2 -> hi */')
-    out.append('        r3 = dm(i2, 0);            /* hi           */')
     out.append('        mr0f = r2;')
-    out.append('        mr1f = r3;')
-    out.append('        r2 = ashift r3 by -31;')
+    out.append('        r2 = dm(i2, 1);            /* hi; i2 -> ex */')
+    out.append('        mr1f = r2;')
+    out.append('        r2 = dm(i2, 0);            /* ex           */')
     out.append('        mr2f = r2;')
     out.append('        mrf = mrf + r0 * r1 (ssi);')
+    out.append('        r2 = mr2f;')
+    out.append('        dm(i2, -1) = r2;           /* ex; i2 -> hi */')
     out.append('        r2 = mr1f;')
     out.append('        dm(i2, -1) = r2;           /* hi; i2 -> lo */')
     out.append('        r2 = mr0f;')
     out.append('    .amb_lp:')
-    out.append('        dm(i2, 2) = r2;            /* lo; i2 -> next pair */')
+    out.append('        dm(i2, 3) = r2;            /* lo; i2 -> next triple */')
     out.append('    rts;')
     out.append('_acc64_mac_blk.end:')
     out.append('#endif')
@@ -9374,11 +9844,19 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
             f.write(gen_scope_gates(chip_label, chip_nodes))
         files_written += 1
 
-    # Fixed mode: the bus accumulators become generated (64-bit pairs)
+    # Fixed mode: the bus accumulators become generated (80-bit triples)
     if FORMAT == 'fixed':
         with open(os.path.join(output_dir, 'bus_accumulators.asm'), 'w',
                   encoding='utf-8') as f:
             f.write(gen_bus_accumulators_fixed())
+        files_written += 1
+        # The numeric boundary self-test (D1/D3). Always written -- the
+        # whole file is inside #if DSP4_NUM_SELFTEST, so it costs the
+        # default image nothing and the tree never carries a stale copy.
+        os.makedirs(os.path.join(output_dir, 'lib'), exist_ok=True)
+        with open(os.path.join(output_dir, 'lib', 'num_selftest.asm'), 'w',
+                  encoding='utf-8') as f:
+            f.write(gen_num_selftest())
         files_written += 1
         with open(os.path.join(output_dir, 'poly_tables_fx.asm'), 'w',
                   encoding='utf-8') as f:
