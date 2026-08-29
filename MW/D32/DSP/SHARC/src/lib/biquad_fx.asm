@@ -505,7 +505,7 @@ _bq_fx_convert_N:
     rts;
 _bq_fx_convert_N.end:
 
-#if DSP4_SIMD_PROBE
+#if DSP4_BQ_PAIRED
 /*----------------------------------------------------------------------
  * _bq_fx_cascade_simd — the fused cascade, two strips per instruction
  * stream on the PEx/PEy pair.
@@ -662,7 +662,7 @@ _bq_fx_cascade_simd:
 _bq_fx_cascade_simd.end:
 #endif
 
-#if DSP4_SIMD_PROBE
+#if DSP4_BQ_PAIRED
 /*----------------------------------------------------------------------
  * _bq_pair_blk — run TWO strips' cascades as one SIMD instruction stream.
  *

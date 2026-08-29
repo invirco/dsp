@@ -499,11 +499,23 @@ _EQ_BLK_BODY = """
             if eq jump (pc, .ekb_ss_{nid});
 
             /* Swap pending or fade running: hand the block to the
-             * per-sample reference path a sample at a time. */
+             * per-sample reference path a sample at a time.
+             *
+             * IN PLACE ON BLK_CHAIN_B, like the steady path below and like
+             * FILT's two paths (review finding D55, 2026-08-29). This read
+             * BLK_CHAIN_A until today, which is only the right slot when
+             * FILT happens to be crossfading TOO -- FILT's transient path
+             * was the only writer of A. The two crossfades are independent
+             * events, so the common case (an EQ band written while the
+             * filters sit still) had this node processing the block GAIN
+             * read rather than the one it wrote: the whole strip's trim,
+             * HPF and LPF vanished for the 576 samples of the fade. Both
+             * classes now read and write the same slot on every path, so
+             * the four combinations are one case. */
             l3 = 0;
             l4 = 0;
             l5 = 0;
-            i3 = BLK_CHAIN_A;
+            i3 = BLK_CHAIN_B;
             i4 = BLK_CHAIN_B;
             i5 = BLK_TAP_EQ;
             lcntr = DSP4_BLOCK_SIZE, do .ekb_xl_{nid} until lce;
@@ -566,11 +578,19 @@ _FILT_BLK_BODY = """
 
             /* A swap is pending or a crossfade is running: run the block
              * through the per-sample reference path, one sample at a time,
-             * staging through the scalar buffers it already uses. */
+             * staging through the scalar buffers it already uses.
+             *
+             * IN PLACE ON BLK_CHAIN_B (review finding D55, 2026-08-29).
+             * This wrote BLK_CHAIN_A until today, which EQ's transient path
+             * then read -- correct only when BOTH were crossfading. With
+             * EQ steady, EQ cascaded the stale contents of B and this
+             * node's output was dropped on the floor for the 576 samples of
+             * the fade. The read and the write walk together, so sample i
+             * is consumed before it is overwritten. */
             l3 = 0;
             l4 = 0;
             i3 = BLK_CHAIN_B;
-            i4 = BLK_CHAIN_A;
+            i4 = BLK_CHAIN_B;
             lcntr = DSP4_BLOCK_SIZE, do .fkb_xl_{nid} until lce;
                 r0 = dm(i3, 1);
                 dm(_buf_{inp}) = r0;
@@ -7267,6 +7287,30 @@ def gen_block_header():
 #define DSP4_PAIRED_GRAPH 0
 #endif
 
+/* PAIRED BIQUADS IN THE GRAPH (2026-08-29). The same separation once more:
+ * DSP4_SIMD_PROBE puts _bq_pair_blk and _bq_fx_cascade_simd in the image
+ * for the self-test, DSP4_BQ_GRAPH wires the FILT and EQ classes of a
+ * strip PAIR into one call the way the dynamics already are. The kernel
+ * side has been measured at 1.43-1.54x since the paired-cascade hang was
+ * root-caused; until this macro nothing in the GRAPH used it.
+ *
+ * DSP4_BQ_PAIRED is what the library and the drivers are guarded on, so a
+ * probe build and a graph build reach the same code and there is one
+ * copy of it. */
+#ifndef DSP4_BQ_GRAPH
+#define DSP4_BQ_GRAPH 1
+#endif
+#if DSP4_PAIRED_GRAPH && DSP4_BQ_GRAPH
+#define DSP4_BQ_PAIRED_GRAPH 1
+#else
+#define DSP4_BQ_PAIRED_GRAPH 0
+#endif
+#if DSP4_BQ_PAIRED_GRAPH || DSP4_SIMD_PROBE
+#define DSP4_BQ_PAIRED 1
+#else
+#define DSP4_BQ_PAIRED 0
+#endif
+
 #endif /* DSP4_BLOCK_H */
 """
 
@@ -9830,6 +9874,10 @@ FIXED_GENERATORS = {
 # dynamics. Only chip 1 has these -- chip 2's dynamics are C2_GRP_COMP,
 # C2_MAIN_COMP and friends, which have no block kernel and no pair.
 _STRIP_HEAD = ('IN', 'GAIN', 'FILT', 'EQ')
+# Where the head splits when the BIQUADS pair too (DSP4_BQ_GRAPH):
+# IN and GAIN stay per strip, FILT and EQ become pair calls.
+_STRIP_HEAD_SCALAR = ('IN', 'GAIN')
+_STRIP_BQ = ('FILT', 'EQ')
 _STRIP_DYN  = ('GATE', 'COMP')
 _STRIP_TAIL = ('TUBE', 'DLY', 'FDR', 'RTG')
 _STRIP_TYPES = _STRIP_HEAD + _STRIP_DYN + _STRIP_TAIL
@@ -10079,6 +10127,198 @@ def gen_dyn_pairs(chip_label, strips, meter_src):
     a('#endif')
     a('')
     a('#endif /* DSP4_PAIRED_GRAPH */')
+    return '\n'.join(out) + '\n'
+
+
+# ---------------------------------------------------------------------------
+# BIQUAD STRIP PAIRING IN THE GRAPH (2026-08-29)
+#
+# The dynamics have been pair-ordered in the graph since 2026-08-28 and the
+# biquads have not, for one reason: _bq_pair_blk HUNG. That was root-caused
+# on 2026-08-29 (a clobbered register, five words of DM) and the paired
+# cascade measured at 1.43-1.54x, but nothing in the graph called it.
+#
+# This is the same wiring the dynamics got, one class earlier in the strip:
+#
+#     A: IN GAIN          (odd strip, pool 1)
+#     B: IN GAIN          (even strip, pool 0)
+#     FILT pair, EQ pair  <-- new
+#     GATE pair, COMP pair
+#     A: TUBE DLY FDR RTG
+#     B: TUBE DLY FDR RTG
+#
+# It is SAFE TO REORDER because both classes work IN PLACE on their own
+# pool's BLK_CHAIN_B: A's GAIN output sits in BLK_CHAIN_B_P1 while B's IN and
+# GAIN run on the base pool, so no slot is read by one strip while the other
+# writes it. That is the same property the two-pool design was built for.
+#
+# THE FALLBACK IS THE SCALAR NODES, unchanged. A pair whose channels are not
+# both in steady state -- a coefficient swap staged, a crossfade running --
+# cannot run paired, and the driver calls the two nodes' own block bodies,
+# which handle exactly those cases and work in place. So "the biquad section
+# reads BLK_CHAIN_B and writes BLK_CHAIN_B" holds on both paths, per pool,
+# and neither driver has to know what the other decided.
+_BQ_PAIR_CLASSES = ('FILT', 'EQ')
+
+
+def _bq_pair_ptrs(cls, nid, bands):
+    """Pick the ACTIVE instance's coefficient and state bases into r8/r9.
+
+    Conditional MOVES, not a branch: two `if eq` in a row read the ASTAT
+    that `pass` set, and nothing between them touches the flags.
+    """
+    if cls == 'FILT':
+        a_c, a_s = f'_filt_hpf_A_{nid}', f'_filt_state_A_{nid}'
+        b_c, b_s = f'_filt_hpf_B_{nid}', f'_filt_state_B_{nid}'
+        act = f'_filt_active_{nid}'
+    else:
+        a_c, a_s = f'_eq_coeffs_A_{nid}', f'_eq_state_A_{nid}'
+        b_c, b_s = f'_eq_coeffs_B_{nid}', f'_eq_state_B_{nid}'
+        act = f'_eq_active_{nid}'
+    return [f'    r2 = {a_c};', f'    r3 = {a_s};',
+            f'    r8 = {b_c};', f'    r9 = {b_s};',
+            f'    r0 = dm({act});', '    r0 = pass r0;',
+            '    if eq r8 = r2;', '    if eq r9 = r3;']
+
+
+def _bq_pair_steady(cls, nid):
+    """OR together everything that takes this node off the steady-state
+    path. Non-zero in r1 means the pair cannot run."""
+    if cls == 'FILT':
+        syms = (f'_hpf_swap_pending_{nid}', f'_lpf_swap_pending_{nid}',
+                f'_filt_xfade_step_{nid}')
+    else:
+        syms = (f'_eq_swap_pending_{nid}', f'_eq_xfade_step_{nid}')
+    out = []
+    for sym in syms:
+        out.append(f'    r0 = dm({sym});')
+        out.append('    r1 = r1 or r0;')
+    return out
+
+
+def gen_bq_pairs(chip_label, strips, bands_of):
+    """chipN/bq_pairs.asm — one driver per paired biquad class per pair."""
+    out = []
+    a = out.append
+    a(f'/* {chip_label.upper()} — SIMD strip-pair biquad drivers */')
+    a('/* AUTO-GENERATED by tools/dsp/dsp_codegen.py — do not edit directly. */')
+    a('#include "dsp_block.h"')
+    a('#include "blk_pool.h"')
+    a('')
+    a('#if DSP4_BQ_PAIRED_GRAPH')
+    a('')
+    a('.section/pm seg_pmco;')
+    a('.extern _bq_pair_blk;')
+
+    nums = sorted(strips)
+    pairs = [(nums[i], nums[i + 1]) for i in range(0, len(nums) - 1, 2)]
+
+    for sa, sb in pairs:
+        for sn in (sa, sb):
+            f, e = strips[sn]['FILT'], strips[sn]['EQ']
+            for sym in (f'_{f}_process', f'_hpf_swap_pending_{f}',
+                        f'_lpf_swap_pending_{f}', f'_filt_xfade_step_{f}',
+                        f'_filt_active_{f}', f'_filt_hpf_A_{f}',
+                        f'_filt_state_A_{f}', f'_filt_hpf_B_{f}',
+                        f'_filt_state_B_{f}',
+                        f'_{e}_process', f'_eq_swap_pending_{e}',
+                        f'_eq_xfade_step_{e}', f'_eq_active_{e}',
+                        f'_eq_coeffs_A_{e}', f'_eq_state_A_{e}',
+                        f'_eq_coeffs_B_{e}', f'_eq_state_B_{e}'):
+                a(f'.extern {sym};')
+
+    for sa, sb in pairs:
+        tag = f'{sa:02d}_{sb:02d}'
+        for cls in _BQ_PAIR_CLASSES:
+            na, nb = strips[sa][cls], strips[sb][cls]
+            # FILT is always two stages -- HPF then LPF, adjacent
+            # coefficient blocks, one 2x6 state array. EQ's length is its
+            # band count, and a pair is ONE instruction stream.
+            stages = 2 if cls == 'FILT' else bands_of[na]
+            stages_b = 2 if cls == 'FILT' else bands_of.get(nb, stages)
+            if stages_b != stages:
+                raise ValueError(
+                    f'{na} has {stages} stages and {nb} has '
+                    f'{stages_b}: a SIMD pair is ONE instruction '
+                    f'stream, so the two strips must ask for the same '
+                    f'cascade length.')
+            if stages > 4:
+                raise ValueError(
+                    f'{na}: {stages} stages -- _bq_pair_blk\'s interleave '
+                    f'scratch is sized for 4 (biquad_fx.asm).')
+            a('')
+            a(f'/* ---- strips {sa} + {sb}: {cls} ---- */')
+            a(f'.global _BQP{cls}_{tag}_process;')
+            a(f'_BQP{cls}_{tag}_process:')
+            a('    /* Both channels must be in steady state or there is no')
+            a('     * pair: a staged coefficient set or a running crossfade')
+            a("     * goes through the node's own reference path. */")
+            a('    r1 = 0;')
+            for n in (na, nb):
+                for line in _bq_pair_steady(cls, n):
+                    a(line)
+            a('    r1 = pass r1;')
+            a(f'    if ne jump (pc, .bqs_{cls}_{tag});')
+            a('')
+            for line in _bq_pair_ptrs(cls, na, stages):
+                a(line)
+            a('    r10 = BLK_CHAIN_B_P1;         /* strip A, odd pool */')
+            a('    r14 = r8;')
+            a('    r15 = r9;')
+            for line in _bq_pair_ptrs(cls, nb, stages):
+                a(line)
+            a('#if DSP4_BQ_NEGCTL')
+            a('    /* NEGATIVE CONTROL: give strip B strip A\'s coefficient')
+            a('     * and state pointers, so the pair computes ONE channel')
+            a('     * twice. The bus sum MUST differ, or the comparison that')
+            a('     * says the paired graph is bit-exact was not testing')
+            a('     * anything. */')
+            a('    r11 = r14;')
+            a('    r12 = r15;')
+            a('#else')
+            a('    r11 = r8;')
+            a('    r12 = r9;')
+            a('#endif')
+            a('    r8 = r14;')
+            a('    r9 = r15;')
+            a('    r13 = BLK_CHAIN_B;            /* strip B, base pool */')
+            a(f'    r4 = {stages};')
+            a('    call _bq_pair_blk;')
+            if cls == 'EQ':
+                a('    /* the post-EQ tap the router picks from, both pools */')
+                a('    l3 = 0; l4 = 0;')
+                a('    i3 = BLK_CHAIN_B_P1;')
+                a('    i4 = BLK_TAP_EQ_P1;')
+                a(f'    lcntr = DSP4_BLOCK_SIZE, do .bqt1_{tag} until lce;')
+                a('        r0 = dm(i3, 1);')
+                a(f'    .bqt1_{tag}: dm(i4, 1) = r0;')
+                a('    i3 = BLK_CHAIN_B;')
+                a('    i4 = BLK_TAP_EQ;')
+                a(f'    lcntr = DSP4_BLOCK_SIZE, do .bqt2_{tag} until lce;')
+                a('        r0 = dm(i3, 1);')
+                a(f'    .bqt2_{tag}: dm(i4, 1) = r0;')
+            a('    rts;')
+            a('')
+            a(f'.bqs_{cls}_{tag}:')
+            a('    /* scalar fallback: both nodes work IN PLACE on their own')
+            a('     * pool, so nothing has to be squared up afterwards. */')
+            a(f'    call _{na}_process;')
+            a(f'    call _{nb}_process;')
+            a('    rts;')
+            a(f'_BQP{cls}_{tag}_process.end:')
+
+    if len(nums) % 2:
+        a('')
+        a(f'/* strip {nums[-1]} has no partner: its FILT and EQ run scalar,')
+        a(' * in place in the chain, on the odd pool. Nothing here for it. */')
+
+    a('')
+    a('#if !DSP4_BLOCK_KERNELS')
+    a('#error "DSP4_BQ_GRAPH is a per-BLOCK pairing: build with '
+      'DSP4_BLOCK_KERNELS=1."')
+    a('#endif')
+    a('')
+    a('#endif /* DSP4_BQ_PAIRED_GRAPH */')
     return '\n'.join(out) + '\n'
 
 
@@ -10372,6 +10612,10 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                     _tg = f'{_pn[_k]:02d}_{_pn[_k + 1]:02d}'
                     f.write(f'.extern _DYNGATE_{_tg}_process;\n')
                     f.write(f'.extern _DYNCOMP_{_tg}_process;\n')
+                    f.write('#if DSP4_BQ_PAIRED_GRAPH\n')
+                    f.write(f'.extern _BQPFILT_{_tg}_process;\n')
+                    f.write(f'.extern _BQPEQ_{_tg}_process;\n')
+                    f.write('#endif\n')
                 f.write('#endif\n')
             f.write(f'#if DSP4_BLOCK_KERNELS\n')
             f.write(f'.extern _scope_inject_blk;\n')
@@ -10468,7 +10712,8 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                         # costs nothing but the call.
                         f.write(f'#if ({_nl}) && (DSP4_STRIPS == 0 || '
                                 f'{_sb - 1} < DSP4_STRIPS)\n')
-                        f.write(f'    call _DYN{_cls}_{_tag}_process;\n')
+                        _pfx = ('DYN' if _cls in _STRIP_DYN else 'BQP')
+                        f.write(f'    call _{_pfx}{_cls}_{_tag}_process;\n')
                         f.write(f'#elif ({_nl}) && (DSP4_STRIPS == 0 || '
                                 f'{_sa - 1} < DSP4_STRIPS)\n')
                         f.write(f'    call _{strips[_sa][_cls]}_process;\n')
@@ -10544,7 +10789,12 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                         f'{chip_label}: the channel strips are not a '
                         f'contiguous run of the chain, so the SIMD pair '
                         f'order cannot be built by reordering that run')
+                # TWO pair-ordered chains, because the biquads pair
+                # independently of the dynamics (DSP4_BQ_GRAPH): one with
+                # FILT and EQ still per strip, one with them paired too.
+                bq_seq, bq_pos = [], {}
                 pair_seq += [('node', n) for n in call_sequence[:_first]]
+                bq_seq += [('node', n) for n in call_sequence[:_first]]
                 for _k in range(0, len(pair_nums) - 1, 2):
                     _sa, _sb = pair_nums[_k], pair_nums[_k + 1]
                     _tag = f'{_sa:02d}_{_sb:02d}'
@@ -10552,25 +10802,37 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                         pair_seq.append(('node', strips[_sa][_cls]))
                     for _cls in _STRIP_HEAD:
                         pair_seq.append(('node', strips[_sb][_cls]))
+                    for _cls in _STRIP_HEAD_SCALAR:
+                        bq_seq.append(('node', strips[_sa][_cls]))
+                    for _cls in _STRIP_HEAD_SCALAR:
+                        bq_seq.append(('node', strips[_sb][_cls]))
+                    for _cls in _STRIP_BQ:
+                        bq_seq.append(('pair', _cls, _tag, _sa, _sb))
                     for _cls in _STRIP_DYN:
                         pair_seq.append(('pair', _cls, _tag, _sa, _sb))
+                        bq_seq.append(('pair', _cls, _tag, _sa, _sb))
                     for _cls in _STRIP_TAIL:
                         pair_seq.append(('node', strips[_sa][_cls]))
+                        bq_seq.append(('node', strips[_sa][_cls]))
                     for _cls in _STRIP_TAIL:
                         pair_seq.append(('node', strips[_sb][_cls]))
+                        bq_seq.append(('node', strips[_sb][_cls]))
                 if len(pair_nums) % 2:
                     for _cls in _STRIP_TYPES:
                         pair_seq.append(('node', strips[pair_nums[-1]][_cls]))
+                        bq_seq.append(('node', strips[pair_nums[-1]][_cls]))
                 pair_seq += [('node', n) for n in call_sequence[_last + 1:]]
-                for _i, _e in enumerate(pair_seq):
-                    pair_pos[_e[1] if _e[0] == 'node'
-                             else ('pair', _e[1], _e[2])] = _i
-                # A meter runs if and only if its source ran, so it takes
-                # its source's position rather than one of its own.
-                for _src, _ms in _mtr_after.items():
-                    for _m in _ms:
-                        if _src in pair_pos:
-                            pair_pos[_m] = pair_pos[_src]
+                bq_seq += [('node', n) for n in call_sequence[_last + 1:]]
+                for _sq, _ps in ((pair_seq, pair_pos), (bq_seq, bq_pos)):
+                    for _i, _e in enumerate(_sq):
+                        _ps[_e[1] if _e[0] == 'node'
+                            else ('pair', _e[1], _e[2])] = _i
+                    # A meter runs if and only if its source ran, so it
+                    # takes its source's position rather than one of its own.
+                    for _src, _ms in _mtr_after.items():
+                        for _m in _ms:
+                            if _src in _ps:
+                                _ps[_m] = _ps[_src]
 
             if pair_seq:
                 f.write('/* SIMD PAIR ORDER (DSP4_PAIRED_GRAPH). Head A, head B,\n')
@@ -10581,7 +10843,9 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                 f.write(' * calls. DSP4_NODE_LIMIT COUNTS THESE POSITIONS in\n')
                 f.write(' * this build, so limits 1..18 walk exactly one pair.\n')
                 f.write(' */\n')
-                f.write('#if DSP4_PAIRED_GRAPH\n')
+                f.write('#if DSP4_BQ_PAIRED_GRAPH\n')
+                emit_chain(bq_seq, bq_pos, 'bqgrun')
+                f.write('#elif DSP4_PAIRED_GRAPH\n')
                 emit_chain(pair_seq, pair_pos, 'psgrun')
                 f.write('#else\n')
                 emit_chain(scalar_seq, scalar_pos, 'sgrun')
@@ -10598,6 +10862,16 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
         pairs_path = os.path.join(output_dir, chip_label, 'dyn_pairs.asm')
         with open(pairs_path, 'w', encoding='utf-8') as f:
             f.write(gen_dyn_pairs(chip_label, strips, _mtr_after))
+        files_written += 1
+
+        # Paired biquad drivers. Same rule as dyn_pairs.asm: always
+        # written, whole file inside #if DSP4_BQ_PAIRED_GRAPH, so the tree
+        # never carries a stale copy and the default image is untouched.
+        _bands = {n['id']: int(n['params'].get('bands', '4'))
+                  for n in chip_nodes}
+        bqp_path = os.path.join(output_dir, chip_label, 'bq_pairs.asm')
+        with open(bqp_path, 'w', encoding='utf-8') as f:
+            f.write(gen_bq_pairs(chip_label, strips, _bands))
         files_written += 1
 
         # Write block I/O (scatter/gather between DMA and node slot variables)

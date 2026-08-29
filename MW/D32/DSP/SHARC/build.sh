@@ -203,6 +203,23 @@ ASMFLAGS="$ASMFLAGS -DDSP4_SIMD_NEGCTL=$DSP4_SIMD_NEGCTL"
 DSP4_SIMD_GRAPH="${DSP4_SIMD_GRAPH:-1}"
 CFLAGS="$CFLAGS -DDSP4_SIMD_GRAPH=$DSP4_SIMD_GRAPH"
 ASMFLAGS="$ASMFLAGS -DDSP4_SIMD_GRAPH=$DSP4_SIMD_GRAPH"
+# PAIRED BIQUADS IN THE GRAPH (2026-08-29). The FILT and EQ classes of a
+# strip PAIR run as one SIMD instruction stream, the way the dynamics have
+# since 08-28. Only takes effect in a paired-graph build (it needs the odd
+# pool and the pair-ordered chain), so it defaults ON and DSP4_BQ_GRAPH=0 is
+# the CONTROL: same image, dynamics-only pairs, which is what the session-3
+# capacity table was measured on.
+DSP4_BQ_GRAPH="${DSP4_BQ_GRAPH:-1}"
+CFLAGS="$CFLAGS -DDSP4_BQ_GRAPH=$DSP4_BQ_GRAPH"
+ASMFLAGS="$ASMFLAGS -DDSP4_BQ_GRAPH=$DSP4_BQ_GRAPH"
+# NEGATIVE CONTROL for the paired-biquad graph: the pair takes strip B's
+# coefficients and state from strip A, so it computes one channel twice.
+# The bus capture MUST differ under this, or bqgraph.sh's bit-exact verdict
+# is a diff that cannot fail. Debug only.
+DSP4_BQ_NEGCTL="${DSP4_BQ_NEGCTL:-0}"
+CFLAGS="$CFLAGS -DDSP4_BQ_NEGCTL=$DSP4_BQ_NEGCTL"
+ASMFLAGS="$ASMFLAGS -DDSP4_BQ_NEGCTL=$DSP4_BQ_NEGCTL"
+
 # The per-ISR PEYEN clear lives under DSP4_SIMD_STRIPS, and EVERY routine
 # that sets PEYEN needs it -- the paired dynamics and the paired biquad
 # cascade alike. It used to default on for DSP4_SIMD_DYN only, which left a

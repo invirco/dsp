@@ -60,6 +60,11 @@ GATE_ON, GATE_THR, GATE_ATT, GATE_HOLD, GATE_REL = (
 COMP_ON, COMP_THR, COMP_RATIO, COMP_ATT, COMP_REL = (
     0x0038, 0x0039, 0x003A, 0x003B, 0x003C)
 TUBE_ON = 0x004C
+# FILT and EQ take FLOAT RBJ coefficient words on the wire and convert to
+# the Q4.28 offset form themselves (dsp4_eq_probe.py, review finding D51).
+HPF_COEFF0, HPF_SWAP = 0x0004, 0x0009
+LPF_COEFF0, LPF_SWAP = 0x000A, 0x000F
+EQ_COEFF0, EQ_SWAP = 0x0010, 0x0024
 DLY_OFF = 0x004E
 FDR_LEVEL, FDR_PAN, FDR_MUTE, FDR_DCA = 0x0050, 0x0051, 0x0052, 0x0053
 
@@ -78,6 +83,48 @@ PARAMS = {
 
 def f32(x):
     return struct.unpack('<I', struct.pack('<f', float(x)))[0]
+
+
+def rbj_peak(f0, q, gain_db, fs=48000.0):
+    """One RBJ peaking section, normalised to a0. Enough of a design to
+    put a NON-BYPASS filter in the cascade, which is the whole point: with
+    bypass coefficients the paired and scalar cascades are bit-identical BY
+    CONSTRUCTION and the comparison proves nothing about the pairing. That
+    is exactly why the session-3 bus golden reproduced with no biquad
+    coefficient coverage at all."""
+    import math
+    a = 10.0 ** (gain_db / 40.0)
+    w = 2.0 * math.pi * f0 / fs
+    al = math.sin(w) / (2.0 * q)
+    b0, b1, b2 = 1 + al * a, -2 * math.cos(w), 1 - al * a
+    a0, a1, a2 = 1 + al / a, -2 * math.cos(w), 1 - al / a
+    return (b0 / a0, b1 / a0, b2 / a0, a1 / a0, a2 / a0)
+
+
+def load_biquads(sc, strip, seed):
+    """Put a real, strip-specific filter in FILT and EQ.
+
+    The two strips of a pair get DIFFERENT designs on purpose, for the same
+    reason their dynamics parameters differ: a pair that computes one
+    channel twice has to be unable to land on the right bus sum.
+    """
+    b = (strip - 1) * STRIDE
+    for base, swap, (f0, q, g) in (
+            (HPF_COEFF0, HPF_SWAP, (60.0 + 25.0 * seed, 0.9, 4.0 + seed)),
+            (LPF_COEFF0, LPF_SWAP, (7000.0 - 1500.0 * seed, 0.8, -3.0 - seed))):
+        for k, c in enumerate(rbj_peak(f0, q, g)):
+            sc.d.write(b + base + k, f32(c))
+            time.sleep(S.SETTLE)
+        sc.d.write(b + swap, 1)
+        time.sleep(S.SETTLE)
+    for band in range(4):
+        f0 = 200.0 * (band + 1) * (1.0 + 0.3 * seed)
+        for k, c in enumerate(rbj_peak(f0, 1.1 + 0.4 * band, 6.0 - 2.0 * band
+                                       + seed)):
+            sc.d.write(b + EQ_COEFF0 + band * 5 + k, f32(c))
+            time.sleep(S.SETTLE)
+    sc.d.write(b + EQ_SWAP, 1)
+    time.sleep(S.SETTLE)
 
 
 def configure(sc, strip, loud):
@@ -131,6 +178,16 @@ def capture(sc, inj, src, n):
 
 
 def compare(a, b):
+    # A comparison between two captures that were taken from the SAME
+    # wiring is not a test of the wiring. Say so rather than printing a
+    # clean verdict that means nothing.
+    for k in ('paired_build', 'bq_paired_build', 'bq'):
+        if a.get(k) is not None and a.get(k) == b.get(k) and k != 'bq':
+            print('  note: both captures have %s=%s' % (k, a.get(k)))
+    if a.get('bq') is False or b.get('bq') is False:
+        print('  WARNING: at least one capture was taken with BYPASS '
+              'biquads, which are bit-identical paired or not -- this '
+              'comparison says nothing about the paired biquads')
     wa, wb = a['words'], b['words']
     n = min(len(wa), len(wb))
     diffs = [(i, wa[i], wb[i]) for i in range(n) if wa[i] != wb[i]]
@@ -154,6 +211,9 @@ def main():
     ap.add_argument('--tag', default='')
     ap.add_argument('-n', type=int, default=64,
                     help='samples to read back (2 link transactions each)')
+    ap.add_argument('--bq', action='store_true',
+                    help='load real FILT and EQ coefficients first -- '
+                         'REQUIRED for any verdict about the paired biquads')
     ap.add_argument('--compare', nargs=2, metavar='FILE',
                     help='compare two captures instead of taking one')
     args = ap.parse_args()
@@ -185,7 +245,18 @@ def main():
     partner = args.strip + 1 if args.strip % 2 else args.strip - 1
     configure(sc, args.strip, True)
     configure(sc, partner, False)
-    time.sleep(1.0)                            # let the ramped writes land
+    if args.bq:
+        # Both strips, not just the driven one: the pair runs paired only
+        # when BOTH are in steady state, and a silent lane still has to be
+        # filtered by its own coefficients for the negative control to be
+        # able to fail.
+        load_biquads(sc, args.strip, 0)
+        load_biquads(sc, partner, 1)
+    # A coefficient swap starts a 576-sample CROSSFADE, and a crossfading
+    # pair falls back to the two scalar nodes -- so capturing too early
+    # would compare two builds that are BOTH running the scalar path and
+    # would pass whatever the pairing did.
+    time.sleep(2.0)
 
     inj = inject_addr(sc, args.strip)
     src = sc.sym['_buf_C1_BUS_MAIN_L']
@@ -197,11 +268,16 @@ def main():
     json.dump({'tag': args.tag or args.out, 'strip': args.strip,
                'partner': partner, 'block': BLOCK,
                'paired_build': '_blk_pool1' in sc.sym,
+               'bq_paired_build': any(k.startswith('_BQPFILT_')
+                                      for k in sc.sym),
+               'bq': bool(args.bq),
                'inj': inj, 'src': src, 'sha256': digest,
                'nonzero': nz, 'words': words}, open(args.out, 'w'))
-    print('strip %d driven, %d muted, paired_build=%s: %d/%d non-zero, '
-          'sha256 %s' % (args.strip, partner, '_blk_pool1' in sc.sym,
-                         nz, len(words), digest[:16]))
+    print('strip %d driven, %d muted, paired_build=%s bq_paired_build=%s '
+          'bq_loaded=%s: %d/%d non-zero, sha256 %s'
+          % (args.strip, partner, '_blk_pool1' in sc.sym,
+             any(k.startswith('_BQPFILT_') for k in sc.sym), bool(args.bq),
+             nz, len(words), digest[:16]))
     # A capture of all zeros proves nothing: it is what a dead strip, a
     # dropped arm and a muted graph all look like.
     return 0 if nz else 1

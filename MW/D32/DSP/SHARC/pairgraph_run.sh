@@ -5,7 +5,7 @@
 # to three boot attempts and three config attempts on a bad day, and a
 # capture taken through a half-configured graph is fiction.
 set -u
-STRIP="$1"; N="$2"; TAG="$3"
+STRIP="$1"; N="$2"; TAG="$3"; BQ="${4:-}"
 cd /home/app/dspboot
 sudo systemctl stop matrix-app >/dev/null 2>&1
 sudo pinctrl set 6,7,8,9,10,11,12,22,23,24,25 a0 >/dev/null 2>&1
@@ -45,11 +45,26 @@ for attempt in 1 2 3 4 5; do
     echo "  (attempt $attempt: BOOT_STAGE reads $S — link down, re-booting)"
     continue
   fi
-  python3 gainfix.py 2 2>&1 | sed 's/^/  /'
-  if python3 dsp4_pairgraph.py --strip "$STRIP" -n "$N" --tag "$TAG" \
-       --out "pairgraph_$TAG.json"; then
-    exit 0
-  fi
+  # THE SCOPE LINK NEEDS A RESYNC that the diag link does not. dsp4_diag
+  # answers cleanly while Scope(1).check_chip() reads CHIP 0 -- the two
+  # open the transaction differently and the parameter link can be sitting
+  # one word out of phase. A diag read walks it back into phase, so every
+  # scope-side tool here gets one in front of it and a few goes at it.
+  # Without this the run burns all five boot attempts on a link state.
+  for g in 1 2 3 4 5 6; do
+    python3 dsp4_diag.py --chip 1 >/dev/null 2>&1
+    python3 gainfix.py 2 > /tmp/gf.log 2>&1 && break
+    sleep 2
+  done
+  sed 's/^/  /' /tmp/gf.log
+  for g in 1 2 3 4; do
+    python3 dsp4_diag.py --chip 1 >/dev/null 2>&1
+    if python3 dsp4_pairgraph.py --strip "$STRIP" -n "$N" --tag "$TAG" $BQ \
+         --out "pairgraph_$TAG.json"; then
+      exit 0
+    fi
+    sleep 2
+  done
   echo "  (attempt $attempt: no capture — re-booting)"
 done
 echo "no usable capture in 5 attempts"

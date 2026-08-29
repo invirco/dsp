@@ -66,11 +66,23 @@ _C1_EQ_32_process:
     if eq jump (pc, .ekb_ss_C1_EQ_32);
 
     /* Swap pending or fade running: hand the block to the
-     * per-sample reference path a sample at a time. */
+     * per-sample reference path a sample at a time.
+     *
+     * IN PLACE ON BLK_CHAIN_B, like the steady path below and like
+     * FILT's two paths (review finding D55, 2026-08-29). This read
+     * BLK_CHAIN_A until today, which is only the right slot when
+     * FILT happens to be crossfading TOO -- FILT's transient path
+     * was the only writer of A. The two crossfades are independent
+     * events, so the common case (an EQ band written while the
+     * filters sit still) had this node processing the block GAIN
+     * read rather than the one it wrote: the whole strip's trim,
+     * HPF and LPF vanished for the 576 samples of the fade. Both
+     * classes now read and write the same slot on every path, so
+     * the four combinations are one case. */
     l3 = 0;
     l4 = 0;
     l5 = 0;
-    i3 = BLK_CHAIN_A;
+    i3 = BLK_CHAIN_B;
     i4 = BLK_CHAIN_B;
     i5 = BLK_TAP_EQ;
     lcntr = DSP4_BLOCK_SIZE, do .ekb_xl_C1_EQ_32 until lce;

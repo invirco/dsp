@@ -70,4 +70,28 @@
 #define DSP4_PAIRED_GRAPH 0
 #endif
 
+/* PAIRED BIQUADS IN THE GRAPH (2026-08-29). The same separation once more:
+ * DSP4_SIMD_PROBE puts _bq_pair_blk and _bq_fx_cascade_simd in the image
+ * for the self-test, DSP4_BQ_GRAPH wires the FILT and EQ classes of a
+ * strip PAIR into one call the way the dynamics already are. The kernel
+ * side has been measured at 1.43-1.54x since the paired-cascade hang was
+ * root-caused; until this macro nothing in the GRAPH used it.
+ *
+ * DSP4_BQ_PAIRED is what the library and the drivers are guarded on, so a
+ * probe build and a graph build reach the same code and there is one
+ * copy of it. */
+#ifndef DSP4_BQ_GRAPH
+#define DSP4_BQ_GRAPH 1
+#endif
+#if DSP4_PAIRED_GRAPH && DSP4_BQ_GRAPH
+#define DSP4_BQ_PAIRED_GRAPH 1
+#else
+#define DSP4_BQ_PAIRED_GRAPH 0
+#endif
+#if DSP4_BQ_PAIRED_GRAPH || DSP4_SIMD_PROBE
+#define DSP4_BQ_PAIRED 1
+#else
+#define DSP4_BQ_PAIRED 0
+#endif
+
 #endif /* DSP4_BLOCK_H */

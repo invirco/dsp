@@ -76,11 +76,19 @@ _C1_FILT_13_process:
 
     /* A swap is pending or a crossfade is running: run the block
      * through the per-sample reference path, one sample at a time,
-     * staging through the scalar buffers it already uses. */
+     * staging through the scalar buffers it already uses.
+     *
+     * IN PLACE ON BLK_CHAIN_B_P1 (review finding D55, 2026-08-29).
+     * This wrote BLK_CHAIN_A_P1 until today, which EQ's transient path
+     * then read -- correct only when BOTH were crossfading. With
+     * EQ steady, EQ cascaded the stale contents of B and this
+     * node's output was dropped on the floor for the 576 samples of
+     * the fade. The read and the write walk together, so sample i
+     * is consumed before it is overwritten. */
     l3 = 0;
     l4 = 0;
     i3 = BLK_CHAIN_B_P1;
-    i4 = BLK_CHAIN_A_P1;
+    i4 = BLK_CHAIN_B_P1;
     lcntr = DSP4_BLOCK_SIZE, do .fkb_xl_C1_FILT_13 until lce;
         r0 = dm(i3, 1);
         dm(_buf_C1_GAIN_13) = r0;
