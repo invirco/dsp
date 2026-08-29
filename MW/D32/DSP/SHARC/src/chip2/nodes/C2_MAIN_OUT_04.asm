@@ -19,6 +19,8 @@
 .var _tx_out_slot_C2_MAIN_OUT_04;
 .global _buf_C2_MAIN_OUT_04;
 .var _buf_C2_MAIN_OUT_04;
+.global _mtr_wide_C2_MAIN_OUT_04;
+.var _mtr_wide_C2_MAIN_OUT_04;
 
 .section/pm seg_pmco;
 .global _C2_MAIN_OUT_04_process;
@@ -26,5 +28,7 @@ _C2_MAIN_OUT_04_process:
     r0 = dm(_buf_C2_MAIN_OLIM_04);
     dm(_tx_out_slot_C2_MAIN_OUT_04) = r0;
     dm(_buf_C2_MAIN_OUT_04) = r0;
+    r1 = ashift r0 by -4;    /* Q4.28 -> Q8.24 */
+    dm(_mtr_wide_C2_MAIN_OUT_04) = r1;
     rts;
 _C2_MAIN_OUT_04_process.end:

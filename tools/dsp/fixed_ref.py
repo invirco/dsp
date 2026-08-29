@@ -481,12 +481,27 @@ def meter_state():
     return [0, 0]
 
 
+QM = 24              # METER sample fraction bits (Q8.24) — PW ruling
+                     # 2026-08-29: every meter taps the MS 32-bit word of
+                     # the accumulator at its tap point, unrounded and
+                     # unsaturated, so the meter's input is the Q8.24 view
+                     # of a value the Q4.28 interchange word cannot hold.
+
+
 def meter_block(xs, state, alpha_q, beta_q):
-    """One block of Q4.28 samples into the meter state (updated in place).
+    """One block of Q8.24 samples into the meter state (updated in place).
 
     Returns (pk_blk, ms_blk) in Q4.28 — the block's own peak and mean
     square, before the one-poles — because those are what the assembly
     holds in registers and are the useful intermediate to diff against.
+
+    THE INPUT IS Q8.24 AND THE OUTPUT IS Q4.28, deliberately: the meter's
+    64-bit state, its one-poles and its float readback are unchanged by the
+    wide-word ruling; only what is fed in changed. Squares are therefore
+    Q16.48 and the mean-square shift is 48 - 28 = 20 plus log2(BLOCK). The
+    peak converts by a left shift of 4 and CLAMPS at 8.0 linear (+18.06
+    dBFS), which is where a Q4.28 peak word runs out; a saturated Q4.28
+    source could never have reported above 0 dBFS at all.
     """
     block = len(xs)
     shift = block.bit_length() - 1
@@ -496,11 +511,15 @@ def meter_block(xs, state, alpha_q, beta_q):
     lo = min(xs)
     pk_blk = hi if hi > -lo else -lo
     pk_blk = sat32(pk_blk)
+    pk_clamp = (1 << (QM + 3)) - 1          # 0x07FFFFFF
+    if pk_blk > pk_clamp:
+        pk_blk = pk_clamp
+    pk_blk <<= (QS - QM)
 
     ssq = 0
     for x in xs:
         ssq += x * x
-    ms_blk = sat32(ssq >> (QS + shift))
+    ms_blk = sat32(ssq >> (2 * QM - QS + shift))
 
     # RMS window: exact Q8.56 accumulate of a Q4.28 x Q4.28 correction.
     ms_q = state[1] >> QS

@@ -1,0 +1,2 @@
+[Warning ld0278]: Unable to determine start address for first block.
+	There is no entry address in the ELF file header in build_mtroff/chip1.dxe. Defaulting to 0x90004.

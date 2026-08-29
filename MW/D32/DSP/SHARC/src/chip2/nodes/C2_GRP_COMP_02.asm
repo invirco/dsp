@@ -74,6 +74,8 @@
         .var _comp_cgp_C2_GRP_COMP_02[4];              /* thr, slope, halfk, k2 */
         .global _buf_C2_GRP_COMP_02;
         .var _buf_C2_GRP_COMP_02;
+        .global _mtr_wide_C2_GRP_COMP_02;
+        .var _mtr_wide_C2_GRP_COMP_02;
 
 #if DSP4_BLOCK_KERNELS
 .global _comp_saved_idx_C2_GRP_COMP_02;
@@ -285,8 +287,12 @@
             r1 = r1 or r12;
             r0 = r13 + r1;
             dm(_buf_C2_GRP_COMP_02) = r0;
+            r1 = ashift r0 by -4;    /* Q4.28 -> Q8.24 */
+            dm(_mtr_wide_C2_GRP_COMP_02) = r1;
             rts;
         .comp_bypass_C2_GRP_COMP_02:
             dm(_buf_C2_GRP_COMP_02) = r0;
+            r1 = ashift r0 by -4;    /* Q4.28 -> Q8.24 */
+            dm(_mtr_wide_C2_GRP_COMP_02) = r1;
             rts;
         _C2_GRP_COMP_02_process.end:

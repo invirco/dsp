@@ -57,10 +57,16 @@
         .global _buf_C2_FX_FDR_05;
         .var _buf_C2_FX_FDR_05;
 
+        /* The Q8.24 word the PER-SAMPLE path publishes for
+         * C2_MTR_FX_05. The block path never stores it -- it hands
+         * the finished accumulators over instead. */
+        .global _mtr_wide_C2_FX_FDR_05;
+        .var _mtr_wide_C2_FX_FDR_05;
 
         .section/pm seg_pmco;
         .extern _sample_idx;
         .extern _mrf_rns28;
+        .extern _mtr_acc_C2_MTR_FX_05;
         .global _C2_FX_FDR_05_process;
         _C2_FX_FDR_05_process:
             /* block-rate: float ramps + shadow conversion */
@@ -181,6 +187,7 @@
             l3 = 0;
             i0 = BLK_CHAIN_B;                 /* input  */
             i1 = BLK_CHAIN_A;                 /* mono   */
+        #if DSP4_MTR_OFF
         #if DSP4_STRIP_FUSED
             /* FUSED (2026-08-28): two samples per iteration, interleaved,
              * second accumulator in MRB -- the same treatment as GAIN.
@@ -251,6 +258,50 @@
             dm(_buf_C2_FX_FDR_05) = r13;
             rts;
         #endif
+        #else
+            /* WIDE-WORD METER, INLINE (PW ruling 2026-08-29). See GAIN's
+             * copy of this note: the meter accumulates the MS word of this
+             * node's own product, in register, unrounded and unsaturated,
+             * and hands the finished block accumulators to the meter node
+             * five words at a time. */
+            r13 = 0x80000000;                 /* block max: most negative */
+            r15 = 0x7FFFFFFF;                 /* block min: most positive */
+            mrf = 0;                          /* exact sum of squares     */
+            r14 = DSP4_BLOCK_SIZE;
+            lcntr = r14; do .fdr_lp_C2_FX_FDR_05 until lce;
+                r0 = dm(i0, 1);
+                mrb = r0 * r1 (ssi);
+                r6 = mr1b;                    /* WIDE post-fader, Q8.24 */
+                r13 = max(r13, r6);
+                mrf = mrf + r6 * r6 (ssi);
+                r15 = min(r15, r6);
+                mrb = mrb + r7 * r12 (ssi);
+                r8 = mr0b;
+                r2 = mr1b;
+                r8 = lshift r8 by -28;
+                r9 = lshift r2 by 4;
+                r0 = r8 or r9;
+                r8 = ashift r2 by -28;
+                r9 = ashift r0 by -31;
+                r11 = ashift r2 by -31;
+                r11 = r10 xor r11;
+                comp(r8, r9);
+                if ne r0 = r11;
+        .fdr_lp_C2_FX_FDR_05:
+                dm(i1, 1) = r0;
+            dm(_tap_post_fader_C2_FX_FDR_05) = r0;   /* linkage scalars */
+            dm(_buf_C2_FX_FDR_05) = r0;
+            i4 = _mtr_acc_C2_MTR_FX_05;
+            dm(i4, 1) = r13;
+            dm(i4, 1) = r15;
+            r0 = mr0f;
+            dm(i4, 1) = r0;
+            r0 = mr1f;
+            dm(i4, 1) = r0;
+            r0 = mr2f;
+            dm(i4, 0) = r0;
+            rts;
+        #endif
 #else
         .apply_C2_FX_FDR_05:
             /* Pure MAC. Mute is already inside _fdr_gq; the pan legs are
@@ -258,6 +309,8 @@
             r0 = dm(_buf_C2_FX_ENG_05);
             r1 = dm(_fdr_gq_C2_FX_FDR_05);
             mrf = r0 * r1 (ssi);
+            r12 = mr1f;                           /* WIDE post-fader, Q8.24 */
+            dm(_mtr_wide_C2_FX_FDR_05) = r12;
             call _mrf_rns28;
 
             dm(_tap_post_fader_C2_FX_FDR_05) = r0;

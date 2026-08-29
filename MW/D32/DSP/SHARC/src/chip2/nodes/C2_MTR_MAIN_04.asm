@@ -11,124 +11,122 @@
  *----------------------------------------------------------------------*/
 #include "dsp_block.h"
 
-/* METER: level read-back (DSP writes, host polls) */
-/* SPI page=1 addr=1796 */
+        /* METER: level read-back (DSP writes, host polls) */
+        /* SPI page=1 addr=1796 */
 
-#include "blk_pool.h"
+        #include "blk_pool.h"
 
-.section/dm seg_dmda;
-.extern _buf_C2_MAIN_OUT_04;
-/* ORDER IS LOAD-BEARING: _mtr_fold takes the address of
- * _mtr_peak_C2_MTR_MAIN_04 and reaches the rest by offset. The three float
- * words keep their names and their SPI dispatch entries. */
-.global _mtr_peak_C2_MTR_MAIN_04;
-.var _mtr_peak_C2_MTR_MAIN_04 = 0.0;      /* +0 linear peak, host contract */
-.global _mtr_rms_C2_MTR_MAIN_04;
-.var _mtr_rms_C2_MTR_MAIN_04 = 0.0;       /* +1 linear TRUE rms            */
-.global _mtr_gr_C2_MTR_MAIN_04;
-.var _mtr_gr_C2_MTR_MAIN_04 = 0.0;        /* +2 gain reduction -- see below */
-.global _mtr_st_C2_MTR_MAIN_04;
-.var _mtr_st_C2_MTR_MAIN_04[4];           /* +3 pk_lo pk_hi ms_lo ms_hi     */
-#if !DSP4_BLOCK_KERNELS
-.global _mtr_acc_C2_MTR_MAIN_04;
-.var _mtr_acc_C2_MTR_MAIN_04[4];          /* mx mn ssq_lo ssq_hi            */
-#endif
+        .section/dm seg_dmda;
+        /* ORDER IS LOAD-BEARING: _mtr_fold takes the address of
+         * _mtr_peak_C2_MTR_MAIN_04 and reaches the rest by offset. The three float
+         * words keep their names and their SPI dispatch entries. */
+        .global _mtr_peak_C2_MTR_MAIN_04;
+        .var _mtr_peak_C2_MTR_MAIN_04 = 0.0;      /* +0 linear peak, host contract */
+        .global _mtr_rms_C2_MTR_MAIN_04;
+        .var _mtr_rms_C2_MTR_MAIN_04 = 0.0;       /* +1 linear TRUE rms            */
+        .global _mtr_gr_C2_MTR_MAIN_04;
+        .var _mtr_gr_C2_MTR_MAIN_04 = 0.0;        /* +2 gain reduction -- see below */
+        .global _mtr_st_C2_MTR_MAIN_04;
+        .var _mtr_st_C2_MTR_MAIN_04[4];           /* +3 pk_lo pk_hi ms_lo ms_hi     */
+        /* The block accumulators. FIVE words, not four: the sum of Q8.24
+         * squares is Q16.48 and a block of them overruns 64 bits, so mr2f
+         * is state and not a sign extension. Filled by C2_MAIN_OUT_04 under block
+         * kernels and by this node's own per-sample body otherwise. */
+        .global _mtr_acc_C2_MTR_MAIN_04;
+        .var _mtr_acc_C2_MTR_MAIN_04[5];          /* mx mn ssq_lo ssq_hi ssq_ex     */
 
-.section/pm seg_pmco;
-.extern _mtr_fold;
-.extern _sample_idx;
-.global _C2_MTR_MAIN_04_process;
-_C2_MTR_MAIN_04_process:
-#if DSP4_MTR_OFF
-    /* measurement only: what the meter costs, by removing it */
-    rts;
-#elif DSP4_BLOCK_KERNELS
-    /* Per block. Three instructions per sample, no memory traffic
-     * beyond the source read, then one fold.
-     *
-     * LIMITATION, recorded: C2_MAIN_OUT_04 publishes no
-     * block under DSP4_BLOCK_KERNELS, only the
-     * scalar _buf_C2_MAIN_OUT_04 holding the LAST sample,
-     * so this meter sees one sample per block.
-     * Before today it read BLK_CHAIN_B, which is
-     * not this signal at all. Fixing it properly
-     * means block-converting the SOURCE.
-     *
-     * The arithmetic this replaces was wrong four separate ways
-     * (tools/dsp/hw-reports/mtr-2026-08-23.md): it read a Q4.28
-     * word as an IEEE float, its RMS never advanced because the
-     * new-peak branch returned first, its decay constant was
-     * derived for a block rate and applied per sample, and there
-     * was no reference model to catch any of it. */
-    l2 = 0;
-    m2 = 0;
-    i2 = _buf_C2_MAIN_OUT_04;                  /* scalar */
-    r8 = 0x80000000;              /* running max: most negative */
-    r9 = 0x7FFFFFFF;              /* running min: most positive */
-    mrf = 0;
-    lcntr = DSP4_BLOCK_SIZE, do .mtrk_C2_MTR_MAIN_04 until lce;
-        r0 = dm(i2, m2);
-        r8 = max(r8, r0);
-        mrf = mrf + r0 * r0 (ssi);
-    .mtrk_C2_MTR_MAIN_04:
-        r9 = min(r9, r0);
-    r0 = _mtr_peak_C2_MTR_MAIN_04;
-#if !DSP4_MTR_NOFOLD
-    call _mtr_fold;
-#endif
-    rts;
-#else
-    /* Per SAMPLE. The block accumulators live in DM because there
-     * is no loop to hold them in registers, and the fold fires on
-     * the last sample of the block -- so both paths run the SAME
-     * arithmetic and the same reference covers both. */
-    r0 = dm(_buf_C2_MAIN_OUT_04);
-    r4 = dm(_sample_idx);
-    r1 = 0;
-    comp(r4, r1);
-    if ne jump (pc, .mtacc_C2_MTR_MAIN_04);
-    /* first sample of the block: seed rather than accumulate */
-    dm(_mtr_acc_C2_MTR_MAIN_04 + 0) = r0;
-    dm(_mtr_acc_C2_MTR_MAIN_04 + 1) = r0;
-    mrf = 0;
+        .section/pm seg_pmco;
+        .extern _mtr_fold;
+        .extern _sample_idx;
+        .extern _mtr_wide_C2_MAIN_OUT_04;
+        .global _C2_MTR_MAIN_04_process;
+        _C2_MTR_MAIN_04_process:
+        #if DSP4_MTR_OFF
+            /* measurement only: what the meter costs, by removing it */
+            rts;
+        #elif DSP4_BLOCK_KERNELS
+/* WIDE WORD, 'scalar' shape. C2_MAIN_OUT_04 has no accumulator at this
+ * tap point -- it is an unconverted per-sample node -- so it
+ * publishes the same value in the meter's Q8.24 format and this
+ * node walks it. RECORDED LIMITATION, unchanged by the wide-word
+ * work: C2_MAIN_OUT_04 produces ONE word per block under
+ * DSP4_BLOCK_KERNELS, so this meter still sees one sample per
+ * block. Fixing that means block-converting the SOURCE. */
+l2 = 0;
+m2 = 0;
+i2 = _mtr_wide_C2_MAIN_OUT_04;
+r8 = 0x80000000;              /* running max: most negative */
+r9 = 0x7FFFFFFF;              /* running min: most positive */
+mrf = 0;
+lcntr = DSP4_BLOCK_SIZE, do .mtrk_C2_MTR_MAIN_04 until lce;
+    r0 = dm(i2, m2);
+    r8 = max(r8, r0);
     mrf = mrf + r0 * r0 (ssi);
-    r2 = mr0f;
-    dm(_mtr_acc_C2_MTR_MAIN_04 + 2) = r2;
-    r2 = mr1f;
-    dm(_mtr_acc_C2_MTR_MAIN_04 + 3) = r2;
-    rts;
-.mtacc_C2_MTR_MAIN_04:
-    r2 = dm(_mtr_acc_C2_MTR_MAIN_04 + 0);
-    r2 = max(r2, r0);
-    dm(_mtr_acc_C2_MTR_MAIN_04 + 0) = r2;
-    r2 = dm(_mtr_acc_C2_MTR_MAIN_04 + 1);
-    r2 = min(r2, r0);
-    dm(_mtr_acc_C2_MTR_MAIN_04 + 1) = r2;
-    r2 = dm(_mtr_acc_C2_MTR_MAIN_04 + 2);
-    mr0f = r2;
-    r3 = dm(_mtr_acc_C2_MTR_MAIN_04 + 3);
-    mr1f = r3;
-    r2 = ashift r3 by -31;
-    mr2f = r2;
-    mrf = mrf + r0 * r0 (ssi);
-    r2 = mr0f;
-    dm(_mtr_acc_C2_MTR_MAIN_04 + 2) = r2;
-    r2 = mr1f;
-    dm(_mtr_acc_C2_MTR_MAIN_04 + 3) = r2;
-    r1 = DSP4_BLOCK_SIZE - 1;
-    comp(r4, r1);
-    if ne rts;
-    r8 = dm(_mtr_acc_C2_MTR_MAIN_04 + 0);
-    r9 = dm(_mtr_acc_C2_MTR_MAIN_04 + 1);
-    r0 = _mtr_peak_C2_MTR_MAIN_04;
-    call _mtr_fold;
-    rts;
-#endif
-_C2_MTR_MAIN_04_process.end:
+.mtrk_C2_MTR_MAIN_04:
+    r9 = min(r9, r0);
+r0 = _mtr_peak_C2_MTR_MAIN_04;
+        #if !DSP4_MTR_NOFOLD
+            call _mtr_fold;
+        #endif
+            rts;
+        #else
+            /* Per SAMPLE. The block accumulators live in DM because there
+             * is no loop to hold them in registers, and the fold fires on
+             * the last sample of the block -- so both paths run the SAME
+             * arithmetic and the same reference covers both.
+             *
+             * Source: _mtr_wide_C2_MAIN_OUT_04, the Q8.24 word C2_MAIN_OUT_04 publishes. */
+            r0 = dm(_mtr_wide_C2_MAIN_OUT_04);
+            r4 = dm(_sample_idx);
+            r1 = 0;
+            comp(r4, r1);
+            if ne jump (pc, .mtacc_C2_MTR_MAIN_04);
+            /* first sample of the block: seed rather than accumulate */
+            dm(_mtr_acc_C2_MTR_MAIN_04 + 0) = r0;
+            dm(_mtr_acc_C2_MTR_MAIN_04 + 1) = r0;
+            mrf = 0;
+            mrf = mrf + r0 * r0 (ssi);
+            r2 = mr0f;
+            dm(_mtr_acc_C2_MTR_MAIN_04 + 2) = r2;
+            r2 = mr1f;
+            dm(_mtr_acc_C2_MTR_MAIN_04 + 3) = r2;
+            r2 = mr2f;
+            dm(_mtr_acc_C2_MTR_MAIN_04 + 4) = r2;
+            rts;
+        .mtacc_C2_MTR_MAIN_04:
+            r2 = dm(_mtr_acc_C2_MTR_MAIN_04 + 0);
+            r2 = max(r2, r0);
+            dm(_mtr_acc_C2_MTR_MAIN_04 + 0) = r2;
+            r2 = dm(_mtr_acc_C2_MTR_MAIN_04 + 1);
+            r2 = min(r2, r0);
+            dm(_mtr_acc_C2_MTR_MAIN_04 + 1) = r2;
+            r2 = dm(_mtr_acc_C2_MTR_MAIN_04 + 2);
+            mr0f = r2;
+            r3 = dm(_mtr_acc_C2_MTR_MAIN_04 + 3);
+            mr1f = r3;
+            r2 = dm(_mtr_acc_C2_MTR_MAIN_04 + 4);
+            mr2f = r2;
+            mrf = mrf + r0 * r0 (ssi);
+            r2 = mr0f;
+            dm(_mtr_acc_C2_MTR_MAIN_04 + 2) = r2;
+            r2 = mr1f;
+            dm(_mtr_acc_C2_MTR_MAIN_04 + 3) = r2;
+            r2 = mr2f;
+            dm(_mtr_acc_C2_MTR_MAIN_04 + 4) = r2;
+            r1 = DSP4_BLOCK_SIZE - 1;
+            comp(r4, r1);
+            if ne rts;
+            r8 = dm(_mtr_acc_C2_MTR_MAIN_04 + 0);
+            r9 = dm(_mtr_acc_C2_MTR_MAIN_04 + 1);
+            r0 = _mtr_peak_C2_MTR_MAIN_04;
+            call _mtr_fold;
+            rts;
+        #endif
+        _C2_MTR_MAIN_04_process.end:
 
-/* _mtr_gr_C2_MTR_MAIN_04 IS STILL NOT WRITTEN, and that is recorded defect
- * 4. It is not a numerics bug: the meter's `taps` parameter names
- * gate_gr and comp_gr but dsp.csv carries no ids for them, so
- * there is nothing to read without inventing a naming convention
- * between MTR_nn and GATE_nn. That belongs in the mx26 contract,
- * not here. The word stays declared and zero. */
+        /* _mtr_gr_C2_MTR_MAIN_04 IS STILL NOT WRITTEN, and that is recorded defect
+         * 4. It is not a numerics bug: the meter's `taps` parameter names
+         * gate_gr and comp_gr but dsp.csv carries no ids for them, so
+         * there is nothing to read without inventing a naming convention
+         * between MTR_nn and GATE_nn. That belongs in the mx26 contract,
+         * not here. The word stays declared and zero. */

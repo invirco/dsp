@@ -19,6 +19,8 @@
 .var _tx_out_slot_C2_SUB_OUT;
 .global _buf_C2_SUB_OUT;
 .var _buf_C2_SUB_OUT;
+.global _mtr_wide_C2_SUB_OUT;
+.var _mtr_wide_C2_SUB_OUT;
 
 .section/pm seg_pmco;
 .global _C2_SUB_OUT_process;
@@ -26,5 +28,7 @@ _C2_SUB_OUT_process:
     r0 = dm(_buf_C2_SUB_DLY);
     dm(_tx_out_slot_C2_SUB_OUT) = r0;
     dm(_buf_C2_SUB_OUT) = r0;
+    r1 = ashift r0 by -4;    /* Q4.28 -> Q8.24 */
+    dm(_mtr_wide_C2_SUB_OUT) = r1;
     rts;
 _C2_SUB_OUT_process.end:

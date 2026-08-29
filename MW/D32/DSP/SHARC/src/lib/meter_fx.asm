@@ -7,8 +7,7 @@
  * nothing to test against (tools/dsp/hw-reports/mtr-2026-08-23.md).
  *
  * WHAT THE CALLER DOES, and it is deliberately almost nothing. Per
- * sample, inside its own block kernel and touching no memory beyond the
- * one source read:
+ * sample, touching no memory at all:
  *
  *     r8 = max(r8, x);            running maximum
  *     mrf = mrf + x * x (ssi);    exact sum of squares, 80-bit
@@ -20,6 +19,24 @@
  * rather than from abs(x) because MAX and MIN are one ALU op each while
  * an abs would be a third op on top of a max; the sign fold happens once
  * per block, here.
+ *
+ * WHO THE CALLER IS, since 2026-08-29 (PW ruling, wide-word metering).
+ * Not the meter node: the SOURCE node, inside its own sample loop, with
+ *
+ *     x = mr1b     the MS 32-bit word of the product it just formed
+ *
+ * -- the Q8.24 view of the signal at the tap point, before the rounding
+ * half goes in and before the saturation fix-up runs. That is the whole
+ * change: sign, the full over-range a 32-bit Q4.28 store cannot hold, and
+ * 24 fractional bits (-144 dB). Truncation is fine for metering; the
+ * absence of saturation is the FEATURE. The source hands the finished
+ * accumulators over in _mtr_acc_<meter>, five words once per block, and
+ * the meter node does nothing per sample at all.
+ *
+ * A source with no accumulator at its tap point -- chip 2's OUTPUT_TDM is
+ * a copy, its bus COMPRESSOR finishes in the ALU -- publishes the same
+ * value in the same format instead (_mtr_wide_<src>, ashift by -4), so
+ * this fold has ONE input format and no variants.
  *
  * WHY THE STATE IS 64-BIT. Both one-poles have time constants of
  * hundreds of blocks, so each per-block correction is ~1e-4 of the
@@ -48,10 +65,13 @@
 
 #include "dsp_block.h"
 
-/* Total right shift that turns the exact Q8.56 sum of BLOCK squares into
- * a Q4.28 mean square: 28 fraction bits, plus log2(BLOCK) for the mean.
- * The mean therefore costs no divide at all. */
-#define MTR_SQSH   (28 + DSP4_BLOCK_SHIFT)
+/* THE METER'S INPUT IS Q8.24 (PW ruling 2026-08-29): the MS 32-bit word of
+ * the accumulator that produced the signal at the tap point, unrounded and
+ * unsaturated. Squares are therefore Q16.48, and the right shift that turns
+ * the exact sum of BLOCK of them into a Q4.28 mean square is 48 - 28 = 20
+ * fraction bits plus log2(BLOCK) for the mean. The mean still costs no
+ * divide. It was (28 + shift) while the meter read a stored Q4.28 block. */
+#define MTR_SQSH   (20 + DSP4_BLOCK_SHIFT)
 
 .section/dm seg_dmda;
 
@@ -110,7 +130,20 @@ _mtr_fold:
     r9 = -r9;
     comp(r9, r5);
     if lt r9 = r6;
-    r8 = max(r8, r9);              /* r8 = pk_blk, Q4.28, >= 0 */
+    r8 = max(r8, r9);              /* r8 = pk_blk, Q8.24, >= 0 */
+
+    /* ---- pk_blk into the state's Q4.28 domain ------------------------
+     * The 64-bit peak state and the float readback are Q4.28 views and
+     * they do not move; only the INPUT format changed. Q8.24 -> Q4.28 is a
+     * left shift of 4, and the shift is where the meter's over-range
+     * finally runs out: it holds up to 8.0 linear, +18.06 dBFS, against a
+     * saturated Q4.28 store that could never report more than 0 dBFS at
+     * all. Anything above that clamps here rather than wrapping into a
+     * negative peak. */
+    r4 = 0x07FFFFFF;               /* the largest Q8.24 that fits Q4.28 */
+    comp(r8, r4);
+    if gt r8 = pass r4;
+    r8 = lshift r8 by 4;           /* r8 = pk_blk, Q4.28, >= 0 */
 
     /* ---- block mean square = sat(MRF >> MTR_SQSH) --------------------
      * MRF is a sum of squares, so it is non-negative and the only

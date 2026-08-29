@@ -40,7 +40,7 @@ negative control; the absence of output is not a result.
 | biquad vs model | `./bqst.sh` | 0 of 16 both arms, negative control fires |
 | dynamics | `./dynst.sh` | 0 of 32 on all three arms |
 | numerics | `./numverify.sh` | 57/57 |
-| meter | `./mtrverify.sh` | ms64 and both pk64 words exact |
+| meter | `./mtrverify.sh` | ms64 and both pk64 words exact, **and both negative controls fire** — the BLOCK-32 coefficients and the retired narrow (rounded-store) meter form. The wide-word control moves the gain off unity on purpose: at unity the two forms carry the same value and the primary comparison cannot separate them. |
 
 **The conformance run is the only bar that measures the kernel against
 the MASTERS rather than against itself**, so a session that skips it can

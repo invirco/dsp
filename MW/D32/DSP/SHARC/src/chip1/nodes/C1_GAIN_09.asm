@@ -41,10 +41,16 @@
  * sample of the block. */
 .global _buf_C1_GAIN_09;
 .var _buf_C1_GAIN_09;
+/* The Q8.24 word the PER-SAMPLE path publishes for
+ * C1_MTR_09. The block path never stores it -- it hands
+ * the finished accumulators over instead. */
+.global _mtr_wide_C1_GAIN_09;
+.var _mtr_wide_C1_GAIN_09;
 
 .section/pm seg_pmco;
 .extern _sample_idx;
 .extern _mrf_rns28;
+.extern _mtr_acc_C1_MTR_09;
 .global _C1_GAIN_09_process;
 _C1_GAIN_09_process:
 #if !DSP4_BLOCK_KERNELS
@@ -126,8 +132,17 @@ _C1_GAIN_09_process:
      * DLY already publish theirs (BLK_TAP_EQ_P1, BLK_TAP_PREFDR_P1);
      * this one never was, so a block-form aux send set to pickoff
      * 0 was handed the address of the SCALAR tap and walked 32
-     * words off the end of it. */
+     * words off the end of it.
+     *
+     * THIS STORE IS NOT THE METER'S (PW ruling 2026-08-29). It
+     * survives the wide-word rework because the ROUTER reads it --
+     * pickoff 0, post-trim -- and the router needs a Q4.28 sample.
+     * The ruling's "kill every tap store whose only consumer is a
+     * meter" therefore kills nothing on this node, and D20's
+     * -17 c/s/strip stays blocked on the GAIN->FILT coefficient
+     * fold rather than on the meter. Stated, not glossed. */
     i4 = BLK_TAP_TRIM_P1;
+#if DSP4_MTR_OFF
 #if DSP4_STRIP_FUSED
     /* FUSED (2026-08-28): the same seventeen instructions, two
      * samples at a time, interleaved, the second accumulating in
@@ -140,17 +155,6 @@ _C1_GAIN_09_process:
      * loop bookkeeping and nothing else -- one cycle/sample, at
      * most. It is here because it is free and bit-exact, not
      * because it is the lever.
-     *
-     * The lever on this node is the sixteen instructions that are
-     * NOT the MAC: one Q4.28 round/saturate and two block stores,
-     * paid because three consumers want the post-trim block --
-     * FILT, the post-trim meter, and the router's post-trim
-     * pickoff. Fusion removes FILT from that list (the gain folds
-     * exactly into the first biquad stage's numerator triple,
-     * b0/n1/n2 scaled by g, since n1 = b1 + 2*b0 and n2 = b2 - b0
-     * scale with it). It cannot remove the meter, which reads
-     * BLK_CHAIN_B_P1 directly and is the subject of a parked ruling.
-     * That is why GAIN is not one cycle/sample here.
      *
      * Nothing about the ARITHMETIC changes -- same operations,
      * same order within a sample, same single rounding -- so this
@@ -217,17 +221,80 @@ _C1_GAIN_09_process:
         if ne r0 = r11;
         dm(i1, 1) = r0;
 .gk_lp_C1_GAIN_09:
-        dm(i4, 1) = r0;           /* post-trim tap block */
+        dm(i4, 1) = r0;
     dm(_tap_post_trim_C1_GAIN_09) = r0;   /* linkage scalars */
     dm(_buf_C1_GAIN_09) = r0;
     rts;
 #endif
+#else
+    /* WIDE-WORD METER, INLINE (PW ruling 2026-08-29). This node's
+     * meter no longer walks a stored block: it accumulates the MS
+     * word of THIS MAC, in register, before the rounding half is
+     * added and before the saturation fix-up runs.
+     *
+     *     r12 = mr1b   is the Q8.24 view of x*g -- sign, the full
+     *                  over-range the 32-bit store cannot hold,
+     *                  and 24 fractional bits (-144 dB).
+     *
+     * THE AUDIO MAC MOVED TO MRB so MRF can carry the meter's
+     * exact sum of squares across the whole block. That is also
+     * why this node does not use the STRIP_FUSED two-at-a-time
+     * loop when it feeds a meter: fusion needs both accumulators
+     * for two audio samples and there is no third. The audio
+     * arithmetic is bit-identical either way, and the fused loop's
+     * own comment sizes the interleave at one cycle/sample at most.
+     *
+     * Cost: four instructions per sample HERE, against four per
+     * sample plus the block loads, the call and the pointer setup
+     * that the meter node no longer runs. */
+    r13 = 0x80000000;                 /* block max: most negative */
+    r15 = 0x7FFFFFFF;                 /* block min: most positive */
+    mrf = 0;                          /* exact sum of squares     */
+    r5 = DSP4_BLOCK_SIZE;
+    lcntr = r5; do .gk_lp_C1_GAIN_09 until lce;
+        r0 = dm(i0, 1);
+        mrb = r0 * r1 (ssi);
+        r12 = mr1b;                   /* WIDE post-trim, Q8.24 */
+        r13 = max(r13, r12);
+        mrf = mrf + r12 * r12 (ssi);
+        r15 = min(r15, r12);
+        mrb = mrb + r6 * r7 (ssi);
+        r8 = mr0b;
+        r2 = mr1b;
+        r8 = lshift r8 by -28;
+        r9 = lshift r2 by 4;
+        r0 = r8 or r9;
+        r8 = ashift r2 by -28;
+        r9 = ashift r0 by -31;
+        r11 = ashift r2 by -31;
+        r11 = r10 xor r11;
+        comp(r8, r9);
+        if ne r0 = r11;
+        dm(i1, 1) = r0;
+.gk_lp_C1_GAIN_09:
+        dm(i4, 1) = r0;
+    dm(_tap_post_trim_C1_GAIN_09) = r0;   /* linkage scalars */
+    dm(_buf_C1_GAIN_09) = r0;
+    i4 = _mtr_acc_C1_MTR_09;
+    dm(i4, 1) = r13;
+    dm(i4, 1) = r15;
+    r0 = mr0f;
+    dm(i4, 1) = r0;
+    r0 = mr1f;
+    dm(i4, 1) = r0;
+    r0 = mr2f;
+    dm(i4, 0) = r0;
+    rts;
+#endif
+
 #else
 .apply_C1_GAIN_09:
     /* Pure MAC. Polarity and mute are already inside _gain_q. */
     r0 = dm(_buf_C1_IN_09);
     r1 = dm(_gain_q_C1_GAIN_09);
     mrf = r0 * r1 (ssi);
+    r12 = mr1f;                           /* WIDE post-trim, Q8.24 */
+    dm(_mtr_wide_C1_GAIN_09) = r12;
     call _mrf_rns28;                      /* r0 = sat(rns(x*g,28)) */
 
     dm(_tap_post_trim_C1_GAIN_09) = r0;

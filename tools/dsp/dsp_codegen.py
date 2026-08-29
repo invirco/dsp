@@ -3977,21 +3977,37 @@ def gen_mix_bus(node):
 
 def gen_output_tdm(node):
     p = node['params']
+    nid = node['id']
+    # WIDE-WORD METERING (PW ruling 2026-08-29), 'scalar' shape. This node
+    # is a COPY: there is no accumulator at its tap point and no wider form
+    # of the signal exists here, because its producer is an unconverted
+    # per-sample node that already stored a rounded Q4.28 word. What it can
+    # honestly publish is that same value in the meter's format, which is
+    # one arithmetic shift. It costs the meters that read it four bits at
+    # the bottom (-144 dB instead of -168) and it does NOT fix their
+    # one-sample-per-block decimation -- that is the source's, and it is
+    # recorded on the meter node itself.
+    mtr = p.get('mtr_sink', '')
+    mtr_decl = ('' if not mtr else
+                f'        .var _mtr_wide_{nid};\n')
+    mtr_pub = ('' if not mtr else
+               f'            r1 = ashift r0 by -4;    /* Q4.28 -> Q8.24 */\n'
+               f'            dm(_mtr_wide_{nid}) = r1;\n')
     return dedent(f"""\
         /* OUTPUT_TDM: Write to SPORT{p.get('sport_id','?')} slot {p.get('slot_start','?')} */
 
         .section/dm seg_dmda;
-        .var _tx_out_slot_{node['id']};
-        .var _buf_{node['id']};
-
+        .var _tx_out_slot_{nid};
+        .var _buf_{nid};
+{mtr_decl}
         .section/pm seg_pmco;
-        .global _{node['id']}_process;
-        _{node['id']}_process:
+        .global _{nid}_process;
+        _{nid}_process:
             r0 = dm(_buf_{node['inputs_str']});
-            dm(_tx_out_slot_{node['id']}) = r0;
-            dm(_buf_{node['id']}) = r0;
-            rts;
-        _{node['id']}_process.end:
+            dm(_tx_out_slot_{nid}) = r0;
+            dm(_buf_{nid}) = r0;
+{mtr_pub}            rts;
+        _{nid}_process.end:
     """)
 
 
@@ -4111,34 +4127,115 @@ _METER_SRC_BLOCK = {
 }
 
 
-def gen_meter_fixed(node):
-    """METER — rebuilt in-kernel, 2026-08-28 (PW ruling).
+# ---------------------------------------------------------------------------
+# WIDE-WORD METERING (PW ruling 2026-08-29 ~17:05)
+#
+# Every meter taps the SIGNAL'S WIDE FORM at its tap point -- the
+# most-significant 32-bit word of the accumulator that produced it, which is
+# the Q8.24 view of an unrounded, unsaturated Q4.28xQ4.28 product -- and never
+# a rounded/saturated 32-bit store made for the meter's benefit. Truncation is
+# fine for metering; the ABSENCE OF SATURATION is the point, because a meter
+# that saturates with the signal cannot show over-range at all.
+#
+# TWO SHAPES, and which one a meter gets is a fact about its SOURCE, not a
+# preference:
+#
+#   'acc'    -- the source's tap point is a live MAC accumulator (GAIN's
+#               trim product, FADER_PAN's level product). The meter's three
+#               per-sample instructions move INTO the source's block loop and
+#               read mr1b in-register; the source hands the block's finished
+#               accumulators to the meter through _mtr_acc_<meter>, five words
+#               ONCE PER BLOCK. Nothing rounded is stored for the meter and
+#               nothing is stored per sample.
+#
+#   'scalar' -- the source has no accumulator at the tap point at all: chip
+#               2's OUTPUT_TDM is a copy and its COMPRESSOR finishes in the
+#               ALU, and both are unconverted per-sample nodes that publish
+#               one word per block. The wide form there IS that word, so the
+#               source publishes _mtr_wide_<src> = ashift(x, -4): the same
+#               value in the meter's Q8.24 format, at the same tap point. It
+#               costs those meters four bits at the BOTTOM (-144 dB instead of
+#               -168) and it does not fix their one-sample-per-block
+#               decimation, which is a property of the unconverted source and
+#               is recorded, not hidden.
+#
+# THE METER'S INPUT FORMAT IS Q8.24 EVERYWHERE. _mtr_fold's block mean square
+# and its peak conversion are derived from that one fact (meter_fx.asm), and
+# fixed_ref.meter_block takes Q8.24 samples for the same reason.
+_MTR_WIDE_ACC = ('GAIN', 'FADER_PAN')
 
-    NORMATIVE REFERENCE: fixed_ref.meter_block. The per-sample line is
-    three instructions and touches no memory; everything else happens
-    once per block in _mtr_fold (src/lib/meter_fx.asm), which is where
-    the arithmetic and the reasoning are written down.
+
+def _mtr_acc_flush(meter_id, mx='r13', mn='r15', ireg='i4'):
+    """Hand a block's meter accumulators to the meter node. Five words at
+    BLOCK rate, against BLOCK rounded stores it replaces."""
+    return (f'            {ireg} = _mtr_acc_{meter_id};\n'
+            f'            dm({ireg}, 1) = {mx};\n'
+            f'            dm({ireg}, 1) = {mn};\n'
+            f'            r0 = mr0f;\n'
+            f'            dm({ireg}, 1) = r0;\n'
+            f'            r0 = mr1f;\n'
+            f'            dm({ireg}, 1) = r0;\n'
+            f'            r0 = mr2f;\n'
+            f'            dm({ireg}, 0) = r0;')
+
+
+def gen_meter_fixed(node):
+    """METER — rebuilt in-kernel 2026-08-28, moved onto the WIDE WORD
+    2026-08-29 (PW rulings).
+
+    NORMATIVE REFERENCE: fixed_ref.meter_block, which now takes Q8.24
+    samples. The meter no longer reads a stored Q4.28 block at all: see
+    the _MTR_WIDE_ACC note above for the two shapes and why each source
+    gets the one it gets.
     """
     nid = node['id']
     src = node['inputs_str']
-    src_blk = node['params'].get('mtr_src_blk', '')
-    if src_blk:
-        tap = (f'            i2 = {src_blk};'
-               f'          /* {src} publishes its block here */')
-        note = (f'             * Source: {src_blk}, the block {src} publishes.\n'
-                f'             * Every sample of the block is in the peak and\n'
-                f'             * in the mean square -- nothing is decimated.')
+    mode = node['params'].get('mtr_wide_mode', 'scalar')
+
+    if mode == 'acc':
+        blk_body = dedent(f"""\
+            /* WIDE WORD, 'acc' shape. {src} accumulated this block's peak,
+             * trough and exact sum of squares from the MS word of its own
+             * product register, inside its own loop, and left them here.
+             * There is no per-sample work in this node at all and nothing
+             * rounded was stored anywhere on the way. */
+            l3 = 0;
+            i3 = _mtr_acc_{nid};
+            r8 = dm(i3, 1);               /* block max, Q8.24  */
+            r9 = dm(i3, 1);               /* block min, Q8.24  */
+            r0 = dm(i3, 1);
+            mr0f = r0;
+            r0 = dm(i3, 1);
+            mr1f = r0;
+            r0 = dm(i3, 0);
+            mr2f = r0;                    /* MRF = sum of squares, Q16.48 */
+            r0 = _mtr_peak_{nid};""")
+        note_ps = (f'_mtr_wide_{src}, the Q8.24 word {src} publishes '
+                   f'from its\n             * product register before it '
+                   f'rounds or saturates.')
     else:
-        tap = f'            i2 = _buf_{src};                  /* scalar */'
-        note = (f'             * LIMITATION, recorded: {src} publishes no\n'
-                f'             * block under DSP4_BLOCK_KERNELS, only the\n'
-                f'             * scalar _buf_{src} holding the LAST sample,\n'
-                f'             * so this meter sees one sample per block.\n'
-                f'             * Before today it read BLK_CHAIN_B, which is\n'
-                f'             * not this signal at all. Fixing it properly\n'
-                f'             * means block-converting the SOURCE.')
-        # one sample, read BLOCK times from the same address: m0 = 0
-    step = '1' if src_blk else '0'
+        blk_body = dedent(f"""\
+            /* WIDE WORD, 'scalar' shape. {src} has no accumulator at this
+             * tap point -- it is an unconverted per-sample node -- so it
+             * publishes the same value in the meter's Q8.24 format and this
+             * node walks it. RECORDED LIMITATION, unchanged by the wide-word
+             * work: {src} produces ONE word per block under
+             * DSP4_BLOCK_KERNELS, so this meter still sees one sample per
+             * block. Fixing that means block-converting the SOURCE. */
+            l2 = 0;
+            m2 = 0;
+            i2 = _mtr_wide_{src};
+            r8 = 0x80000000;              /* running max: most negative */
+            r9 = 0x7FFFFFFF;              /* running min: most positive */
+            mrf = 0;
+            lcntr = DSP4_BLOCK_SIZE, do .mtrk_{nid} until lce;
+                r0 = dm(i2, m2);
+                r8 = max(r8, r0);
+                mrf = mrf + r0 * r0 (ssi);
+            .mtrk_{nid}:
+                r9 = min(r9, r0);
+            r0 = _mtr_peak_{nid};""")
+        note_ps = (f'_mtr_wide_{src}, the Q8.24 word {src} publishes.')
 
     return dedent(f"""\
         /* METER: level read-back (DSP writes, host polls) */
@@ -4154,43 +4251,23 @@ def gen_meter_fixed(node):
         .var _mtr_rms_{nid} = 0.0;       /* +1 linear TRUE rms            */
         .var _mtr_gr_{nid} = 0.0;        /* +2 gain reduction -- see below */
         .var _mtr_st_{nid}[4];           /* +3 pk_lo pk_hi ms_lo ms_hi     */
-        #if !DSP4_BLOCK_KERNELS
-        .var _mtr_acc_{nid}[4];          /* mx mn ssq_lo ssq_hi            */
-        #endif
+        /* The block accumulators. FIVE words, not four: the sum of Q8.24
+         * squares is Q16.48 and a block of them overruns 64 bits, so mr2f
+         * is state and not a sign extension. Filled by {src} under block
+         * kernels and by this node's own per-sample body otherwise. */
+        .var _mtr_acc_{nid}[5];          /* mx mn ssq_lo ssq_hi ssq_ex     */
 
         .section/pm seg_pmco;
         .extern _mtr_fold;
         .extern _sample_idx;
+        .extern _mtr_wide_{src};
         .global _{nid}_process;
         _{nid}_process:
         #if DSP4_MTR_OFF
             /* measurement only: what the meter costs, by removing it */
             rts;
         #elif DSP4_BLOCK_KERNELS
-            /* Per block. Three instructions per sample, no memory traffic
-             * beyond the source read, then one fold.
-             *
-{note}
-             *
-             * The arithmetic this replaces was wrong four separate ways
-             * (tools/dsp/hw-reports/mtr-2026-08-23.md): it read a Q4.28
-             * word as an IEEE float, its RMS never advanced because the
-             * new-peak branch returned first, its decay constant was
-             * derived for a block rate and applied per sample, and there
-             * was no reference model to catch any of it. */
-            l2 = 0;
-            m2 = {step};
-{tap}
-            r8 = 0x80000000;              /* running max: most negative */
-            r9 = 0x7FFFFFFF;              /* running min: most positive */
-            mrf = 0;
-            lcntr = DSP4_BLOCK_SIZE, do .mtrk_{nid} until lce;
-                r0 = dm(i2, m2);
-                r8 = max(r8, r0);
-                mrf = mrf + r0 * r0 (ssi);
-            .mtrk_{nid}:
-                r9 = min(r9, r0);
-            r0 = _mtr_peak_{nid};
+{blk_body}
         #if !DSP4_MTR_NOFOLD
             call _mtr_fold;
         #endif
@@ -4199,8 +4276,10 @@ def gen_meter_fixed(node):
             /* Per SAMPLE. The block accumulators live in DM because there
              * is no loop to hold them in registers, and the fold fires on
              * the last sample of the block -- so both paths run the SAME
-             * arithmetic and the same reference covers both. */
-            r0 = dm(_buf_{src});
+             * arithmetic and the same reference covers both.
+             *
+             * Source: {note_ps} */
+            r0 = dm(_mtr_wide_{src});
             r4 = dm(_sample_idx);
             r1 = 0;
             comp(r4, r1);
@@ -4214,6 +4293,8 @@ def gen_meter_fixed(node):
             dm(_mtr_acc_{nid} + 2) = r2;
             r2 = mr1f;
             dm(_mtr_acc_{nid} + 3) = r2;
+            r2 = mr2f;
+            dm(_mtr_acc_{nid} + 4) = r2;
             rts;
         .mtacc_{nid}:
             r2 = dm(_mtr_acc_{nid} + 0);
@@ -4226,13 +4307,15 @@ def gen_meter_fixed(node):
             mr0f = r2;
             r3 = dm(_mtr_acc_{nid} + 3);
             mr1f = r3;
-            r2 = ashift r3 by -31;
+            r2 = dm(_mtr_acc_{nid} + 4);
             mr2f = r2;
             mrf = mrf + r0 * r0 (ssi);
             r2 = mr0f;
             dm(_mtr_acc_{nid} + 2) = r2;
             r2 = mr1f;
             dm(_mtr_acc_{nid} + 3) = r2;
+            r2 = mr2f;
+            dm(_mtr_acc_{nid} + 4) = r2;
             r1 = DSP4_BLOCK_SIZE - 1;
             comp(r4, r1);
             if ne rts;
@@ -6232,103 +6315,7 @@ def gen_crossover_fixed(node):
 
 
 
-def gen_gain_fixed(node):
-    """Fixed GAIN (D5): float control plane unchanged (ramp quad stays
-    float, spec revision 2026-07-31); the coefficient converts to Q4.28
-    once per block; the sample path is MRF MAC + rns + saturate."""
-    p = node['params']
-    rc = ramp_comment(node['ramp_profile'])
-    nid = node['id']
-    inp = node['inputs_str']
-    return dedent(f"""\
-        {rc}
-
-        /* GAIN (FIXED Q4.28, D5) — float control, fixed sample path */
-        /* SPI page={node['spi_page']} addr={node['spi_addr']} */
-
-        #include "blk_pool.h"
-
-        .section/dm seg_dmda;
-        .var _gain_coeff_{nid} = 1.0;            /* FLOAT (ramped) */
-        .var _gain_target_{nid} = 1.0;
-        .var _gain_step_{nid} = 0.0;
-        .var _gain_frames_{nid} = 0;
-        .var _gain_q_{nid} = 0x10000000;          /* Q4.28 shadow */
-        .var _mute_{nid} = {p.get('mute', '0')};
-        .var _polarity_{nid} = {p.get('polarity', '0')};
-        .var _tap_post_trim_{nid};
-        /* Block output and tap live in the SHARED pool; these scalars are
-         * kept for linkage with unconverted consumers and carry the last
-         * sample of the block. */
-        .var _buf_{nid};
-
-        .section/pm seg_pmco;
-        .extern _sample_idx;
-        .extern _mrf_rns28;
-        .global _{nid}_process;
-        _{nid}_process:
-        #if !DSP4_BLOCK_KERNELS
-            /* per-sample path: the block-rate work has to be guarded,
-             * and that guard is re-evaluated 32 times per block. */
-            r4 = dm(_sample_idx);
-            r1 = 0;
-            comp(r4, r1);
-            if ne jump (pc, .apply_{nid});
-        #endif
-
-            r4 = dm(_gain_frames_{nid});
-            r1 = 0;
-            comp(r4, r1);
-            if le jump (pc, .snap_{nid});
-            /* Consume a BLOCK's worth of frames and apply a BLOCK's
-             * worth of step. spi_handler scales every profile frame count
-             * by DSP4_BLOCK_SIZE, which is right for the ramps that
-             * decrement once per SAMPLE. This one decrements once per
-             * BLOCK, so taking 1 per block ran it BLOCK times long:
-             * measured 2026-08-23 at BLOCK=32, a GainSafe down-ramp took
-             * 960 ms against the 30 ms its own cell table specifies, and a
-             * GainFast fader move took 85 ms instead of 3 ms. A power of
-             * two is exact in binary, so scaling the step loses nothing. */
-            r5 = DSP4_BLOCK_SIZE;
-            r4 = r4 - r5;
-            dm(_gain_frames_{nid}) = r4;
-            f1 = dm(_gain_coeff_{nid});
-            f2 = dm(_gain_step_{nid});
-            r5 = DSP4_BLOCK_F32;              /* BLOCK_SIZE as float */
-            f5 = r5;
-            f2 = f2 * f5;
-            f1 = f1 + f2;
-            dm(_gain_coeff_{nid}) = f1;
-            jump (pc, .cvt_{nid});
-        .snap_{nid}:
-            f1 = dm(_gain_target_{nid});
-            dm(_gain_coeff_{nid}) = f1;
-        .cvt_{nid}:
-            r2 = 0x4D800000;                      /* 2^28 as float */
-            f2 = r2;
-            f1 = f1 * f2;
-            r1 = fix f1;
-            /* CROSSPOINT-COEFFICIENT FOLD (08-25 mandate). Polarity and
-             * mute are LINEAR gain terms (-1 and 0), so they belong in the
-             * coefficient at CONTROL rate; the sample path is then one MAC
-             * that never reads control state. Mute is exactly x*0 in this
-             * format. Folding polarity is also what the normative model
-             * does -- fixed_ref.gain(x, g) with g negative is
-             * sat(rns(x*-g)), whereas the old per-sample form computed
-             * -sat(rns(x*|g|)), and those differ by one LSB when the
-             * product lands exactly on a rounding tie (rns rounds half
-             * toward +inf, which is not symmetric under negation). The
-             * folded form is the reference form. */
-            r3 = dm(_polarity_{nid});
-            r4 = 0;
-            comp(r3, r4);
-            if ne r1 = -r1;
-            r2 = dm(_mute_{nid});
-            comp(r2, r4);
-            if ne r1 = r4;
-            dm(_gain_q_{nid}) = r1;
-
-        #if DSP4_BLOCK_KERNELS
+_GAIN_BLK_COMMON = """\
             /* _mrf_rns28 inlined with its constants hoisted. The call/rts
              * and the reload of those constants were most of this node's
              * measured 72.5 cycles/sample. The saturation fix-up is a
@@ -6346,8 +6333,20 @@ def gen_gain_fixed(node):
              * DLY already publish theirs (BLK_TAP_EQ, BLK_TAP_PREFDR);
              * this one never was, so a block-form aux send set to pickoff
              * 0 was handed the address of the SCALAR tap and walked 32
-             * words off the end of it. */
+             * words off the end of it.
+             *
+             * THIS STORE IS NOT THE METER'S (PW ruling 2026-08-29). It
+             * survives the wide-word rework because the ROUTER reads it --
+             * pickoff 0, post-trim -- and the router needs a Q4.28 sample.
+             * The ruling's "kill every tap store whose only consumer is a
+             * meter" therefore kills nothing on this node, and D20's
+             * -17 c/s/strip stays blocked on the GAIN->FILT coefficient
+             * fold rather than on the meter. Stated, not glossed. */
             i4 = BLK_TAP_TRIM;
+"""
+
+
+_GAIN_BLK_FUSED = """\
         #if DSP4_STRIP_FUSED
             /* FUSED (2026-08-28): the same seventeen instructions, two
              * samples at a time, interleaved, the second accumulating in
@@ -6360,17 +6359,6 @@ def gen_gain_fixed(node):
              * loop bookkeeping and nothing else -- one cycle/sample, at
              * most. It is here because it is free and bit-exact, not
              * because it is the lever.
-             *
-             * The lever on this node is the sixteen instructions that are
-             * NOT the MAC: one Q4.28 round/saturate and two block stores,
-             * paid because three consumers want the post-trim block --
-             * FILT, the post-trim meter, and the router's post-trim
-             * pickoff. Fusion removes FILT from that list (the gain folds
-             * exactly into the first biquad stage's numerator triple,
-             * b0/n1/n2 scaled by g, since n1 = b1 + 2*b0 and n2 = b2 - b0
-             * scale with it). It cannot remove the meter, which reads
-             * BLK_CHAIN_B directly and is the subject of a parked ruling.
-             * That is why GAIN is not one cycle/sample here.
              *
              * Nothing about the ARITHMETIC changes -- same operations,
              * same order within a sample, same single rounding -- so this
@@ -6437,18 +6425,205 @@ def gen_gain_fixed(node):
                 if ne r0 = r11;
                 dm(i1, 1) = r0;
         .gk_lp_{nid}:
-                dm(i4, 1) = r0;           /* post-trim tap block */
+                dm(i4, 1) = r0;
             dm(_tap_post_trim_{nid}) = r0;   /* linkage scalars */
             dm(_buf_{nid}) = r0;
             rts;
         #endif
+"""
+
+
+_GAIN_BLK_METERED = """\
+            /* WIDE-WORD METER, INLINE (PW ruling 2026-08-29). This node's
+             * meter no longer walks a stored block: it accumulates the MS
+             * word of THIS MAC, in register, before the rounding half is
+             * added and before the saturation fix-up runs.
+             *
+             *     r12 = mr1b   is the Q8.24 view of x*g -- sign, the full
+             *                  over-range the 32-bit store cannot hold,
+             *                  and 24 fractional bits (-144 dB).
+             *
+             * THE AUDIO MAC MOVED TO MRB so MRF can carry the meter's
+             * exact sum of squares across the whole block. That is also
+             * why this node does not use the STRIP_FUSED two-at-a-time
+             * loop when it feeds a meter: fusion needs both accumulators
+             * for two audio samples and there is no third. The audio
+             * arithmetic is bit-identical either way, and the fused loop's
+             * own comment sizes the interleave at one cycle/sample at most.
+             *
+             * Cost: four instructions per sample HERE, against four per
+             * sample plus the block loads, the call and the pointer setup
+             * that the meter node no longer runs. */
+            r13 = 0x80000000;                 /* block max: most negative */
+            r15 = 0x7FFFFFFF;                 /* block min: most positive */
+            mrf = 0;                          /* exact sum of squares     */
+            r5 = DSP4_BLOCK_SIZE;
+            lcntr = r5; do .gk_lp_{nid} until lce;
+                r0 = dm(i0, 1);
+                mrb = r0 * r1 (ssi);
+                r12 = mr1b;                   /* WIDE post-trim, Q8.24 */
+                r13 = max(r13, r12);
+                mrf = mrf + r12 * r12 (ssi);
+                r15 = min(r15, r12);
+                mrb = mrb + r6 * r7 (ssi);
+                r8 = mr0b;
+                r2 = mr1b;
+                r8 = lshift r8 by -28;
+                r9 = lshift r2 by 4;
+                r0 = r8 or r9;
+                r8 = ashift r2 by -28;
+                r9 = ashift r0 by -31;
+                r11 = ashift r2 by -31;
+                r11 = r10 xor r11;
+                comp(r8, r9);
+                if ne r0 = r11;
+                dm(i1, 1) = r0;
+        .gk_lp_{nid}:
+                dm(i4, 1) = r0;
+            dm(_tap_post_trim_{nid}) = r0;   /* linkage scalars */
+            dm(_buf_{nid}) = r0;
+{flush}
+            rts;
+"""
+
+
+def gen_gain_fixed(node):
+    """Fixed GAIN (D5): float control plane unchanged (ramp quad stays
+    float, spec revision 2026-07-31); the coefficient converts to Q4.28
+    once per block; the sample path is one MAC + rns + saturate.
+
+    Where this node feeds a METER the sample path also carries the meter's
+    three instructions on the WIDE word (PW ruling 2026-08-29) -- see
+    _GAIN_BLK_METERED."""
+    p = node['params']
+    rc = ramp_comment(node['ramp_profile'])
+    nid = node['id']
+    inp = node['inputs_str']
+    mtr = p.get('mtr_sink', '')
+    if mtr:
+        # DSP4_MTR_OFF still means "what do the meters cost": with the
+        # accumulation living inside this loop, removing the meter node
+        # alone would have measured nothing. The preprocessor picks one
+        # body, so carrying both costs the image nothing.
+        blk_body = (_GAIN_BLK_COMMON
+                    + '        #if DSP4_MTR_OFF\n'
+                    + _GAIN_BLK_FUSED.format(nid=nid)
+                    + '        #else\n'
+                    + _GAIN_BLK_METERED.format(
+                        nid=nid, flush=_mtr_acc_flush(mtr))
+                    + '        #endif\n')
+        mtr_decl = (
+            '        /* The Q8.24 word the PER-SAMPLE path publishes for\n'
+            '         * ' + mtr + '. The block path never stores it -- it hands\n'
+            '         * the finished accumulators over instead. */\n'
+            '        .var _mtr_wide_' + nid + ';\n')
+        mtr_extern = '        .extern _mtr_acc_' + mtr + ';\n'
+        mtr_pub = (
+            '            r12 = mr1f;                           '
+            '/* WIDE post-trim, Q8.24 */\n'
+            '            dm(_mtr_wide_' + nid + ') = r12;\n')
+    else:
+        blk_body = _GAIN_BLK_COMMON + _GAIN_BLK_FUSED.format(nid=nid)
+        mtr_decl = ''
+        mtr_extern = ''
+        mtr_pub = ''
+    return dedent(f"""\
+        {rc}
+
+        /* GAIN (FIXED Q4.28, D5) — float control, fixed sample path */
+        /* SPI page={node['spi_page']} addr={node['spi_addr']} */
+
+        #include "blk_pool.h"
+
+        .section/dm seg_dmda;
+        .var _gain_coeff_{nid} = 1.0;            /* FLOAT (ramped) */
+        .var _gain_target_{nid} = 1.0;
+        .var _gain_step_{nid} = 0.0;
+        .var _gain_frames_{nid} = 0;
+        .var _gain_q_{nid} = 0x10000000;          /* Q4.28 shadow */
+        .var _mute_{nid} = {p.get('mute', '0')};
+        .var _polarity_{nid} = {p.get('polarity', '0')};
+        .var _tap_post_trim_{nid};
+        /* Block output and tap live in the SHARED pool; these scalars are
+         * kept for linkage with unconverted consumers and carry the last
+         * sample of the block. */
+        .var _buf_{nid};
+{mtr_decl}
+        .section/pm seg_pmco;
+        .extern _sample_idx;
+        .extern _mrf_rns28;
+{mtr_extern}        .global _{nid}_process;
+        _{nid}_process:
+        #if !DSP4_BLOCK_KERNELS
+            /* per-sample path: the block-rate work has to be guarded,
+             * and that guard is re-evaluated 32 times per block. */
+            r4 = dm(_sample_idx);
+            r1 = 0;
+            comp(r4, r1);
+            if ne jump (pc, .apply_{nid});
+        #endif
+
+            r4 = dm(_gain_frames_{nid});
+            r1 = 0;
+            comp(r4, r1);
+            if le jump (pc, .snap_{nid});
+            /* Consume a BLOCK's worth of frames and apply a BLOCK's
+             * worth of step. spi_handler scales every profile frame count
+             * by DSP4_BLOCK_SIZE, which is right for the ramps that
+             * decrement once per SAMPLE. This one decrements once per
+             * BLOCK, so taking 1 per block ran it BLOCK times long:
+             * measured 2026-08-23 at BLOCK=32, a GainSafe down-ramp took
+             * 960 ms against the 30 ms its own cell table specifies, and a
+             * GainFast fader move took 85 ms instead of 3 ms. A power of
+             * two is exact in binary, so scaling the step loses nothing. */
+            r5 = DSP4_BLOCK_SIZE;
+            r4 = r4 - r5;
+            dm(_gain_frames_{nid}) = r4;
+            f1 = dm(_gain_coeff_{nid});
+            f2 = dm(_gain_step_{nid});
+            r5 = DSP4_BLOCK_F32;              /* BLOCK_SIZE as float */
+            f5 = r5;
+            f2 = f2 * f5;
+            f1 = f1 + f2;
+            dm(_gain_coeff_{nid}) = f1;
+            jump (pc, .cvt_{nid});
+        .snap_{nid}:
+            f1 = dm(_gain_target_{nid});
+            dm(_gain_coeff_{nid}) = f1;
+        .cvt_{nid}:
+            r2 = 0x4D800000;                      /* 2^28 as float */
+            f2 = r2;
+            f1 = f1 * f2;
+            r1 = fix f1;
+            /* CROSSPOINT-COEFFICIENT FOLD (08-25 mandate). Polarity and
+             * mute are LINEAR gain terms (-1 and 0), so they belong in the
+             * coefficient at CONTROL rate; the sample path is then one MAC
+             * that never reads control state. Mute is exactly x*0 in this
+             * format. Folding polarity is also what the normative model
+             * does -- fixed_ref.gain(x, g) with g negative is
+             * sat(rns(x*-g)), whereas the old per-sample form computed
+             * -sat(rns(x*|g|)), and those differ by one LSB when the
+             * product lands exactly on a rounding tie (rns rounds half
+             * toward +inf, which is not symmetric under negation). The
+             * folded form is the reference form. */
+            r3 = dm(_polarity_{nid});
+            r4 = 0;
+            comp(r3, r4);
+            if ne r1 = -r1;
+            r2 = dm(_mute_{nid});
+            comp(r2, r4);
+            if ne r1 = r4;
+            dm(_gain_q_{nid}) = r1;
+
+        #if DSP4_BLOCK_KERNELS
+{blk_body}
         #else
         .apply_{nid}:
             /* Pure MAC. Polarity and mute are already inside _gain_q. */
             r0 = dm(_buf_{inp});
             r1 = dm(_gain_q_{nid});
             mrf = r0 * r1 (ssi);
-            call _mrf_rns28;                      /* r0 = sat(rns(x*g,28)) */
+{mtr_pub}            call _mrf_rns28;                      /* r0 = sat(rns(x*g,28)) */
 
             dm(_tap_post_trim_{nid}) = r0;
             dm(_buf_{nid}) = r0;
@@ -6456,6 +6631,118 @@ def gen_gain_fixed(node):
         #endif
         _{nid}_process.end:
     """)
+
+
+_FDR_BLK_METERED = """\
+            /* WIDE-WORD METER, INLINE (PW ruling 2026-08-29). See GAIN's
+             * copy of this note: the meter accumulates the MS word of this
+             * node's own product, in register, unrounded and unsaturated,
+             * and hands the finished block accumulators to the meter node
+             * five words at a time. */
+            r13 = 0x80000000;                 /* block max: most negative */
+            r15 = 0x7FFFFFFF;                 /* block min: most positive */
+            mrf = 0;                          /* exact sum of squares     */
+            r14 = DSP4_BLOCK_SIZE;
+            lcntr = r14; do .fdr_lp_{nid} until lce;
+                r0 = dm(i0, 1);
+                mrb = r0 * r1 (ssi);
+                r6 = mr1b;                    /* WIDE post-fader, Q8.24 */
+                r13 = max(r13, r6);
+                mrf = mrf + r6 * r6 (ssi);
+                r15 = min(r15, r6);
+                mrb = mrb + r7 * r12 (ssi);
+                r8 = mr0b;
+                r2 = mr1b;
+                r8 = lshift r8 by -28;
+                r9 = lshift r2 by 4;
+                r0 = r8 or r9;
+                r8 = ashift r2 by -28;
+                r9 = ashift r0 by -31;
+                r11 = ashift r2 by -31;
+                r11 = r10 xor r11;
+                comp(r8, r9);
+                if ne r0 = r11;
+        .fdr_lp_{nid}:
+                dm(i1, 1) = r0;
+            dm(_tap_post_fader_{nid}) = r0;   /* linkage scalars */
+            dm(_buf_{nid}) = r0;
+{flush}
+            rts;
+"""
+
+
+_FDR_BLK_PAIR = """\
+        #if DSP4_STRIP_FUSED
+            /* FUSED (2026-08-28): two samples per iteration, interleaved,
+             * second accumulator in MRB -- the same treatment as GAIN.
+             * The bigger change here is the LOOP: the unfused body is a
+             * manual counter with a branch at the bottom, which a
+             * hardware loop replaces outright. The pan legs are already
+             * gone (the 08-25 crosspoint fold), so the body really is one
+             * MAC per sample. Identical arithmetic, so bit-exact by
+             * construction. */
+            r14 = DSP4_BLOCK_HALF;
+            lcntr = r14; do .fdr_lp_{nid} until lce;
+                r0 = dm(i0, 1);                 /* xA */
+                r3 = dm(i0, 1);                 /* xB */
+                mrf = r0 * r1 (ssi);
+                mrb = r3 * r1 (ssi);
+                mrf = mrf + r7 * r12 (ssi);
+                mrb = mrb + r7 * r12 (ssi);
+                r8 = mr0f;
+                r5 = mr0b;
+                r2 = mr1f;
+                r4 = mr1b;
+                r8 = lshift r8 by -28;
+                r5 = lshift r5 by -28;
+                r9 = lshift r2 by 4;
+                r6 = lshift r4 by 4;
+                r0 = r8 or r9;                  /* yA candidate */
+                r3 = r5 or r6;                  /* yB candidate */
+                r8 = ashift r2 by -28;
+                r5 = ashift r4 by -28;
+                r9 = ashift r0 by -31;
+                r6 = ashift r3 by -31;
+                r11 = ashift r2 by -31;
+                r13 = ashift r4 by -31;
+                r11 = r10 xor r11;
+                r13 = r10 xor r13;
+                comp(r8, r9);
+                if ne r0 = r11;                 /* yA saturated */
+                comp(r5, r6);
+                if ne r3 = r13;                 /* yB saturated */
+                dm(i1, 1) = r0;
+        .fdr_lp_{nid}:
+                dm(i1, 1) = r3;
+            dm(_tap_post_fader_{nid}) = r3;   /* linkage scalars */
+            dm(_buf_{nid}) = r3;
+            rts;
+        #else
+            r14 = DSP4_BLOCK_SIZE;
+        .fdr_lp_{nid}:
+            r0 = dm(i0, 1);
+            mrf = r0 * r1 (ssi);
+            mrf = mrf + r7 * r12 (ssi);
+            r8 = mr0f;
+            r2 = mr1f;
+            r8 = lshift r8 by -28;
+            r9 = lshift r2 by 4;
+            r0 = r8 or r9;
+            r8 = ashift r2 by -28;
+            r9 = ashift r0 by -31;
+            r11 = ashift r2 by -31;
+            r11 = r10 xor r11;
+            comp(r8, r9);
+            if ne r0 = r11;
+            dm(i1, 1) = r0;
+            r13 = r0;
+{blk_lr_body}            r14 = r14 - 1;
+            if gt jump (pc, .fdr_lp_{nid});
+            dm(_tap_post_fader_{nid}) = r13;  /* linkage scalars */
+            dm(_buf_{nid}) = r13;
+            rts;
+        #endif
+"""
 
 
 def gen_fader_pan_fixed(node):
@@ -6520,6 +6807,45 @@ def gen_fader_pan_fixed(node):
             f'{nid}: the FADER_PAN block body has pan-leg work again '
             '(blk_lr_*), which the DSP4_STRIP_FUSED loop does not carry. '
             'Splice it into both loops or drop the fused one.')
+
+    # WIDE-WORD METER, inline (PW ruling 2026-08-29). Same shape as GAIN's
+    # and for the same reason: the meter reads the MS word of THIS product
+    # register before the rounding half goes in, so the audio MAC moves to
+    # MRB and MRF carries the block's exact sum of squares. A metered fader
+    # does not take the STRIP_FUSED two-at-a-time loop -- fusion wants both
+    # accumulators for two audio samples and there is no third.
+    mtr = node['params'].get('mtr_sink', '')
+    if mtr:
+        if blk_lr_body:
+            raise ValueError(
+                f'{nid}: a metered FADER_PAN with pan-leg work in the sample '
+                'path -- the metered loop does not carry blk_lr_body.')
+        # See GAIN: DSP4_MTR_OFF must still remove the meter's arithmetic
+        # now that it lives inside this node's loop.
+        blk_mtr = ('        #if DSP4_MTR_OFF\n'
+                   + _FDR_BLK_PAIR.format(nid=nid, blk_lr_body=blk_lr_body)
+                   + '        #else\n'
+                   + _FDR_BLK_METERED.format(
+                       nid=nid, flush=_mtr_acc_flush(mtr))
+                   + '        #endif\n')
+        blk_pair = ''
+        mtr_decl = (
+            '        /* The Q8.24 word the PER-SAMPLE path publishes for\n'
+            '         * ' + mtr + '. The block path never stores it -- it hands\n'
+            '         * the finished accumulators over instead. */\n'
+            '        .var _mtr_wide_' + nid + ';\n')
+        mtr_extern = '        .extern _mtr_acc_' + mtr + ';\n'
+        mtr_pub = (
+            '            r12 = mr1f;                           '
+            '/* WIDE post-fader, Q8.24 */\n'
+            '            dm(_mtr_wide_' + nid + ') = r12;\n')
+    else:
+        blk_mtr = ''
+        blk_pair = _FDR_BLK_PAIR.format(
+            nid=nid, blk_lr_body=blk_lr_body)
+        mtr_decl = ''
+        mtr_extern = ''
+        mtr_pub = ''
     return dedent(f"""\
         {rc}
 
@@ -6552,11 +6878,11 @@ def gen_fader_pan_fixed(node):
         .var _tap_post_fader_{nid};
         .var _buf_{nid};
 {lr_vars}
-
+{mtr_decl}
         .section/pm seg_pmco;
         .extern _sample_idx;
         .extern _mrf_rns28;
-        .global _{nid}_process;
+{mtr_extern}        .global _{nid}_process;
         _{nid}_process:
             /* block-rate: float ramps + shadow conversion */
         #if !DSP4_BLOCK_KERNELS
@@ -6676,84 +7002,14 @@ def gen_fader_pan_fixed(node):
             l3 = 0;
             i0 = BLK_CHAIN_B;                 /* input  */
             i1 = BLK_CHAIN_A;                 /* mono   */
-{blk_lr_ptr}        #if DSP4_STRIP_FUSED
-            /* FUSED (2026-08-28): two samples per iteration, interleaved,
-             * second accumulator in MRB -- the same treatment as GAIN.
-             * The bigger change here is the LOOP: the unfused body is a
-             * manual counter with a branch at the bottom, which a
-             * hardware loop replaces outright. The pan legs are already
-             * gone (the 08-25 crosspoint fold), so the body really is one
-             * MAC per sample. Identical arithmetic, so bit-exact by
-             * construction. */
-            r14 = DSP4_BLOCK_HALF;
-            lcntr = r14; do .fdr_lp_{nid} until lce;
-                r0 = dm(i0, 1);                 /* xA */
-                r3 = dm(i0, 1);                 /* xB */
-                mrf = r0 * r1 (ssi);
-                mrb = r3 * r1 (ssi);
-                mrf = mrf + r7 * r12 (ssi);
-                mrb = mrb + r7 * r12 (ssi);
-                r8 = mr0f;
-                r5 = mr0b;
-                r2 = mr1f;
-                r4 = mr1b;
-                r8 = lshift r8 by -28;
-                r5 = lshift r5 by -28;
-                r9 = lshift r2 by 4;
-                r6 = lshift r4 by 4;
-                r0 = r8 or r9;                  /* yA candidate */
-                r3 = r5 or r6;                  /* yB candidate */
-                r8 = ashift r2 by -28;
-                r5 = ashift r4 by -28;
-                r9 = ashift r0 by -31;
-                r6 = ashift r3 by -31;
-                r11 = ashift r2 by -31;
-                r13 = ashift r4 by -31;
-                r11 = r10 xor r11;
-                r13 = r10 xor r13;
-                comp(r8, r9);
-                if ne r0 = r11;                 /* yA saturated */
-                comp(r5, r6);
-                if ne r3 = r13;                 /* yB saturated */
-                dm(i1, 1) = r0;
-        .fdr_lp_{nid}:
-                dm(i1, 1) = r3;
-            dm(_tap_post_fader_{nid}) = r3;   /* linkage scalars */
-            dm(_buf_{nid}) = r3;
-            rts;
-        #else
-            r14 = DSP4_BLOCK_SIZE;
-        .fdr_lp_{nid}:
-            r0 = dm(i0, 1);
-            mrf = r0 * r1 (ssi);
-            mrf = mrf + r7 * r12 (ssi);
-            r8 = mr0f;
-            r2 = mr1f;
-            r8 = lshift r8 by -28;
-            r9 = lshift r2 by 4;
-            r0 = r8 or r9;
-            r8 = ashift r2 by -28;
-            r9 = ashift r0 by -31;
-            r11 = ashift r2 by -31;
-            r11 = r10 xor r11;
-            comp(r8, r9);
-            if ne r0 = r11;
-            dm(i1, 1) = r0;
-            r13 = r0;
-{blk_lr_body}            r14 = r14 - 1;
-            if gt jump (pc, .fdr_lp_{nid});
-            dm(_tap_post_fader_{nid}) = r13;  /* linkage scalars */
-            dm(_buf_{nid}) = r13;
-            rts;
-        #endif
-#else
+{blk_lr_ptr}{blk_mtr}{blk_pair}#else
         .apply_{nid}:
             /* Pure MAC. Mute is already inside _fdr_gq; the pan legs are
              * ROUTING's main-bus crosspoint coefficients. */
             r0 = dm(_buf_{inp});
             r1 = dm(_fdr_gq_{nid});
             mrf = r0 * r1 (ssi);
-            call _mrf_rns28;
+{mtr_pub}            call _mrf_rns28;
 
             dm(_tap_post_fader_{nid}) = r0;
             dm(_buf_{nid}) = r0;
@@ -9000,6 +9256,19 @@ def gen_compressor_fixed(node):
         blk_comp_body = ''
     comp_go_guard = _blk_rate_guard('comp_go', node['id'], bool(blk_comp_body))
 
+    # WIDE-WORD METERING (PW ruling 2026-08-29), 'scalar' shape. Chip 2's
+    # bus compressors finish in the ALU (`r0 = r13 + r1`), not in a product
+    # register, so there is no MS word to take: the wide form at this tap
+    # point IS r0. It is published in the meter's Q8.24 format so one fold
+    # serves every meter. These nodes have no block kernel, so their meters
+    # still see one word per block -- recorded on the meter, not hidden.
+    _mtr = node['params'].get('mtr_sink', '')
+    mtr_decl = ('' if not _mtr else
+                f"        .var _mtr_wide_{node['id']};\n")
+    mtr_pub = ('' if not _mtr else
+               f'            r1 = ashift r0 by -4;    /* Q4.28 -> Q8.24 */\n'
+               f"            dm(_mtr_wide_{node['id']}) = r1;\n")
+
     """Fixed COMPRESSOR (D5): fixed envelope + _compgain_fx (log2
     domain, soft knee) per fixed_ref; float control converted at block
     rate; makeup + parallel blend fixed."""
@@ -9042,7 +9311,7 @@ def gen_compressor_fixed(node):
         .var _comp_parq_{nid} = 0;            /* Q0.31 */
         .var _comp_cgp_{nid}[4];              /* thr, slope, halfk, k2 */
         .var _buf_{nid};
-
+{mtr_decl}
 #if DSP4_BLOCK_KERNELS
 .var _comp_saved_idx_{nid};
 #endif
@@ -9171,10 +9440,10 @@ def gen_compressor_fixed(node):
             r1 = r1 or r12;
             r0 = r13 + r1;
             dm(_buf_{nid}) = r0;
-            rts;
+{mtr_pub}            rts;
         .comp_bypass_{nid}:
             dm(_buf_{nid}) = r0;
-            rts;
+{mtr_pub}            rts;
         _{nid}_process.end:
     """)
 
@@ -9947,6 +10216,24 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                             f"is not a node in dsp.csv")
                     n['params']['mtr_src_blk'] = _METER_SRC_BLOCK.get(
                         src['type'], '')
+                    # WIDE-WORD METERING (PW ruling 2026-08-29). Which of
+                    # the two shapes this meter gets is a fact about its
+                    # SOURCE -- see _MTR_WIDE_ACC. The link is recorded on
+                    # BOTH nodes because both emit code for it: the source
+                    # publishes, the meter consumes.
+                    mode = ('acc' if src['type'] in _MTR_WIDE_ACC
+                            else 'scalar')
+                    n['params']['mtr_wide_mode'] = mode
+                    if src['params'].get('mtr_sink'):
+                        raise ValueError(
+                            f"{src_id} feeds more than one METER "
+                            f"({src['params']['mtr_sink']} and {n['id']}). "
+                            f"The wide-word meter accumulates INSIDE the "
+                            f"source's loop into one meter's accumulator "
+                            f"block, so a second meter on the same source "
+                            f"needs a decision, not a second store.")
+                    src['params']['mtr_sink'] = n['id']
+                    src['params']['mtr_wide_mode'] = mode
         _mtr_ids = {m for v in _mtr_after.values() for m in v}
 
         # ---- SIMD strip pairing: which nodes are generated on which pool
