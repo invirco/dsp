@@ -19,6 +19,11 @@ Checks:
   8. SPI (chip, page, addr) tuples are unique among nodes with valid addresses
   9. inputs and outputs reference valid node IDs
  10. Required params are present for each node type
+ 11. The per-chip graph is ACYCLIC on same-chip input edges, so the
+     generator can order every producer ahead of its consumers
+     (review finding D5). CSV rows whose inputs run later are reported
+     as notes: dsp_codegen.py repairs those, and this is the
+     independent second instrument that says what it had to repair.
 """
 
 import csv
@@ -233,8 +238,62 @@ def validate(csv_path):
             if ref not in all_ids:
                 err(row_num, nid, f'Output reference "{ref}" does not exist')
 
+    # ── Check 11: process order / acyclicity, per chip ───────────────────────
+    # Resolved from the graph, never from an emitted call order. A node
+    # that reads a same-chip node appearing LATER in dsp.csv gets its
+    # input one sample stale unless the generator reorders the chain --
+    # which it now does (dsp_codegen.repair_process_order). A CYCLE it
+    # cannot reorder away, and that is an error here.
+    order_notes = []
+    for chip in ('1', '2'):
+        chip_rows = [r for r in rows if (r.get('chip') or '').strip() == chip]
+        ids = [(r.get('id') or '').strip() for r in chip_rows]
+        pos = {nid: i for i, nid in enumerate(ids)}
+        edges = {}
+        for i, r in enumerate(chip_rows):
+            nid = ids[i]
+            srcs = [x for x in parse_id_list(r.get('inputs', '')) if x in pos]
+            edges[nid] = srcs
+            for src in srcs:
+                if pos[src] > i:
+                    order_notes.append(
+                        f'  chip {chip}: {nid} (row {i}) reads {src} '
+                        f'(row {pos[src]}), which appears later — the '
+                        f'generator moves {src} ahead of it')
+        # DFS cycle detection (white/grey/black)
+        state = {}
+
+        def _visit(n, stack):
+            state[n] = 1
+            for m in edges.get(n, ()):
+                if state.get(m) == 1:
+                    cyc = stack[stack.index(m):] + [m] if m in stack else [m, n]
+                    err(0, n, f'chip {chip}: CYCLE in the node graph: '
+                              f'{" -> ".join(cyc)}. A cycle is a one-sample '
+                              f'feedback path; it must be declared '
+                              f'deliberately, not left for the chain order '
+                              f'to resolve')
+                    state[m] = 2
+                elif state.get(m, 0) == 0:
+                    _visit(m, stack + [m])
+            state[n] = 2
+
+        sys.setrecursionlimit(max(2000, len(ids) * 4))
+        for nid in ids:
+            if state.get(nid, 0) == 0:
+                _visit(nid, [nid])
+
     # ── Report ───────────────────────────────────────────────────────────────
     print(f"Validated {len(rows)} nodes in {os.path.basename(csv_path)}")
+
+    if order_notes:
+        print(f"\n  {len(order_notes)} process-order note(s) "
+              f"(repaired by the generator, not errors):")
+        for n in order_notes:
+            print(n)
+    else:
+        print("  process order: every node's same-chip inputs already "
+              "precede it in dsp.csv")
 
     if warnings:
         print(f"\n  {len(warnings)} warning(s):")

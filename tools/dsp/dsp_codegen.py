@@ -8838,6 +8838,68 @@ def gen_dyn_pairs(chip_label, strips, meter_src):
     return '\n'.join(out) + '\n'
 
 
+def process_order_violations(seq, by_id):
+    """Every (consumer, i, producer, j) edge in `seq` where a node reads a
+    same-chip node that runs LATER in the chain.
+
+    Resolved FROM THE GRAPH (dsp.csv `inputs`), never from the emitted
+    call order — that is the whole point. Cross-chip inputs are not
+    edges here: they arrive over the TDM fabric, one block delayed by
+    construction, and the chain cannot order them.
+    """
+    pos = {nid: i for i, nid in enumerate(seq)}
+    bad = []
+    for i, nid in enumerate(seq):
+        for src in by_id[nid]['inputs']:
+            j = pos.get(src)
+            if j is not None and j > i:
+                bad.append((nid, i, src, j))
+    return bad
+
+
+def repair_process_order(chip_label, seq, chip_nodes):
+    """Order the chain so every producer runs before its consumers.
+
+    Review finding D5: chip 2's main mix read _buf_C2_USB_IN and
+    _buf_C2_BT_IN at chain position 157/158 while the only writers of
+    those buffers -- the AUX_INPUT nodes themselves -- ran at 196/197.
+    The mix therefore took whatever those buffers held from the PREVIOUS
+    sample. That is the wrong-graph-order class, and it was in the
+    shipping image.
+
+    This is a MINIMAL, STABLE repair, not a topological sort: the chain
+    keeps its dsp.csv order except where a dependency forces a move, and
+    each violating producer is moved to immediately before its earliest
+    consumer. A full re-sort would shuffle nodes that have no reason to
+    move and make every future diff unreadable.
+
+    Anything left over after the repair is a hard error: a violation the
+    repair cannot fix is a cycle in the graph, and a cycle is a design
+    question, not something a generator may quietly linearise.
+    """
+    by_id = {n['id']: n for n in chip_nodes}
+    seq = list(seq)
+    moved = []
+    for _ in range(len(seq) + 1):
+        bad = process_order_violations(seq, by_id)
+        if not bad:
+            break
+        consumer, i, producer, j = bad[0]
+        seq.insert(i, seq.pop(j))
+        moved.append((producer, consumer))
+    remaining = process_order_violations(seq, by_id)
+    if remaining:
+        detail = '; '.join(f'{c} reads {p}, which still runs later'
+                           for c, _, p, _ in remaining[:6])
+        raise ValueError(
+            f'{chip_label}: the process chain cannot be ordered so every '
+            f'producer runs before its consumers -- this means a CYCLE in '
+            f'the dsp.csv graph. {detail}. A cycle is a one-sample feedback '
+            f'path and it has to be declared deliberately, not linearised '
+            f'by the generator.')
+    return seq, moved
+
+
 def generate(csv_path, output_dir, force=False, node_type_filter=None):
     with open(csv_path, newline='', encoding='utf-8') as f:
         rows = list(csv.DictReader(f))
@@ -8935,11 +8997,12 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                     odd_pool_ids.update(_mtr_after.get(src, []))
 
         for node in chip_nodes:
-            # call_sequence keeps its ORIGINAL order. The meter move is done
-            # in the emitted chain under #if DSP4_BLOCK_KERNELS instead, so
-            # the per-sample image -- which is the shipping one -- keeps both
-            # its byte-for-byte content and its node indices, on which
-            # DSP4_NODE_LIMIT and the scope-skip table both depend.
+            # call_sequence starts in dsp.csv order and is then repaired
+            # for producer-before-consumer below (D5). The METER move is a
+            # separate thing and is still done in the emitted chain under
+            # #if DSP4_BLOCK_KERNELS, so the per-sample image keeps its
+            # meter indices, on which DSP4_NODE_LIMIT and the scope-skip
+            # table both depend.
             call_sequence.append(node['id'])
 
             # No-fallback policy: an unknown node type is a hard error here,
@@ -8995,12 +9058,40 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                 f.write(content)
             files_written += 1
 
+        # GRAPH PROCESS-ORDER CHECK AND REPAIR (review finding D5).
+        # Resolved from dsp.csv's `inputs`, not from the emitted order.
+        _pre_bad = process_order_violations(
+            call_sequence, {n['id']: n for n in chip_nodes})
+        call_sequence, _moved = repair_process_order(
+            chip_label, call_sequence, chip_nodes)
+        if _pre_bad:
+            print(f'  {chip_label}: process order repaired -- '
+                  f'{len(_pre_bad)} stale-read edge(s):')
+            for _c, _i, _p, _j in _pre_bad:
+                print(f'      {_c} (#{_i}) read {_p} (#{_j}), which ran later')
+            for _p, _c in _moved:
+                print(f'      moved {_p} to run before {_c}')
+
         # Write process chain
         chain_path = os.path.join(output_dir, chip_label, 'process_chain.asm')
         with open(chain_path, 'w', encoding='utf-8') as f:
             f.write(f'/* {chip_label.upper()} — Processing chain call sequence */\n')
             f.write(f'/* AUTO-GENERATED by tools/dsp/dsp_codegen.py — do not edit directly. */\n')
-            f.write(f'/* {len(call_sequence)} nodes in processing order */\n\n')
+            f.write(f'/* {len(call_sequence)} nodes in processing order */\n')
+            f.write('/*\n')
+            f.write(' * PROCESS ORDER IS CHECKED AGAINST THE GRAPH, not assumed\n')
+            f.write(' * (review finding D5). Every node runs after every same-chip\n')
+            f.write(' * node named in its dsp.csv `inputs`; the generator repairs\n')
+            f.write(' * the order where it has to and fails outright on a cycle.\n')
+            if _moved:
+                f.write(' *\n')
+                f.write(' * Moved out of dsp.csv order for this chip:\n')
+                for _p, _c in _moved:
+                    f.write(f' *   {_p} -> ahead of {_c}\n')
+            else:
+                f.write(' *\n')
+                f.write(' * Nothing had to move: dsp.csv order is already correct here.\n')
+            f.write(' */\n\n')
             # THE CHAIN NEEDS THE BLOCK HEADER. DSP4_PAIRED_GRAPH is defined
             # there, and without the include it is simply undefined here --
             # which the preprocessor reads as 0, so a DSP4_SIMD_DYN=1 build
