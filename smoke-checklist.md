@@ -28,6 +28,25 @@ Scope: D24 and D32 contract bump verification after regeneration.
   - matrix cells without DSP mapping
 - [ ] Contract note fields added per release-notes-contract-convention.md
 
+## Standing acceptance bars (every session's requal)
+
+Run these alongside the smokes. Each has its own instrument and its own
+negative control; the absence of output is not a result.
+
+| bar | invocation | pass |
+|---|---|---|
+| **contract conformance** | `cd MW/D32/DSP/SHARC && NEGCTL=1 ./conform.sh` | the scorer prints `VERDICT: PASS` — every address agrees with the dispatch table, every declared unit checks out apart from the named `KNOWN_MISMATCH` findings, **and both negative controls fired**. See `docs/contract/conformance-harness.md`. |
+| bus golden | `./busgold.sh` | 0 of 256 words differ |
+| biquad vs model | `./bqst.sh` | 0 of 16 both arms, negative control fires |
+| dynamics | `./dynst.sh` | 0 of 32 on all three arms |
+| numerics | `./numverify.sh` | 57/57 |
+| meter | `./mtrverify.sh` | ms64 and both pk64 words exact |
+
+**The conformance run is the only bar that measures the kernel against
+the MASTERS rather than against itself**, so a session that skips it can
+still pass every other bar with a cell wired to the wrong variable. It
+costs about ten minutes for both chips.
+
 ## Bench hand-back (any session that booted the DSPs)
 
 The bench is a 24/7 unit and must not be left on a frozen splash or on a

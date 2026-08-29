@@ -24,6 +24,10 @@ tools/dsp/                    # shared DSP codegen package (all products)
     dsp_validate.py           #   dsp.csv graph rules check
     dsp_simulate.py           #   node-level simulation harness
     dsp_diagram.py            #   dsp.csv -> Graphviz diagram
+    wire_contract.py          #   the SPI wire contract, assembled from
+                              #   _matrix.csv + the dispatch tables +
+                              #   wire-units.csv; feeds the conformance
+                              #   harness and emits the D38 inert list
 MW/<PRODUCT>/                 # one tree per product (D24, D32, ...)
     DEFS/  dNN.csv            # feature definition        (synced from mx26)
     FW/    fw.csv             # hardware config           (synced from mx26)
@@ -61,6 +65,8 @@ DEFS/FW/MX/DSPCFG/DSP shape, driven by the same contract flow.
 | `python3 tools/dsp/dsp_memreport.py MW/<P>/DSP/SHARC/build/chip*.map.xml` | Memory headroom per primary+overflow pool (exit 1 above 90%) |
 | `./scaffold-product.sh <PRODUCT>` | Create a new product tree + integration checklist |
 | `MW/D32/DSP/SHARC/build.sh` | Assemble + link D32 DXEs (requires CCES at /opt/analog/cces) |
+| `MW/D32/DSP/SHARC/conform.sh` | Contract conformance on the live part — a standing per-session bar ([docs/contract/conformance-harness.md](docs/contract/conformance-harness.md)) |
+| `python3 tools/dsp/wire_contract.py --product d32 --coverage` | Which documented master cells reach a DSP address, and which are inert |
 
 Quickstart and troubleshooting: [workflow-quickstart.md](workflow-quickstart.md).
 Contract-bump checklist: [smoke-checklist.md](smoke-checklist.md) and

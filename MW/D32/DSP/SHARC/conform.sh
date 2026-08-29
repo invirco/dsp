@@ -1,0 +1,72 @@
+#!/bin/bash
+# conform.sh — the CONTRACT CONFORMANCE HARNESS (protocol goldens).
+#
+# Every other bar in this tree measures the kernel against itself. This one
+# measures it against the MASTERS: the wire tables in docs/contract/ say
+# what each cell is and what unit it carries, and this writes them over the
+# live SPI plane and requires the documented consequence.
+#
+# It is a STANDING per-session bar (PW addendum 2026-08-29): a session's
+# requal includes a conform run, exactly as it includes the smokes and the
+# goldens. See smoke-checklist.md.
+#
+#   ./conform.sh                     full sweep, both chips, effect + inert
+#   PHASE=effect ./conform.sh        the declared-unit checks only (fast)
+#   CHIPS=1 ./conform.sh             one chip
+#   LIMIT=200 ./conform.sh           pilot: first 200 addresses per chip
+#   NEGCTL=1 ./conform.sh            run the negative controls as well
+#   TAG=after ./conform.sh           name the result files
+#
+# The plan is built IN THE TREE, from the contract, by tools/dsp/
+# wire_contract.py -- so a harness run always tests the surface the current
+# contract describes, and a contract bump that the kernel has not caught up
+# with fails here rather than being tested against its own stale copy.
+set -u
+cd "$(dirname "$0")"
+BENCH=app@192.168.1.219
+ROOT=../../../..
+TAG="${TAG:-cur}"
+PHASE="${PHASE:-all}"
+CHIPS="${CHIPS:-1 2}"
+LIMIT="${LIMIT:-0}"
+PRODUCT="${PRODUCT:-d32}"
+OUT=/tmp/conform; mkdir -p $OUT
+
+echo "=== plan (from the contract, not from the image) ==="
+python3 $ROOT/tools/dsp/wire_contract.py --product $PRODUCT \
+        --plan $OUT/plan.json || exit 2
+
+if [ "${BUILD:-1}" = "1" ]; then
+  # THE SHIPPING CONFIGURATION, and nothing else by default. The contract
+  # is a promise about the image that ships; testing it against a research
+  # build (block kernels, pairing, fusion) would prove conformance of a
+  # firmware no product runs. Plain ./build.sh reproduces the bench's
+  # baseline byte for byte, which is the W0 check as well as the setup.
+  echo "=== build (shipping configuration) ==="
+  ./build.sh > $OUT/build.log 2>&1
+  if [ "$(grep -ciE '\[Error|Build FAILED' $OUT/build.log)" -ne 0 ]; then
+    echo "BUILD FAILED"; grep -iE '\[Error' $OUT/build.log | head; exit 1; fi
+  echo "  chip1.ldr $(md5sum build/chip1.ldr | cut -c1-8) \
+chip2.ldr $(md5sum build/chip2.ldr | cut -c1-8)"
+  python3 $ROOT/tools/dsp/map_syms.py build/chip1.map.xml > /tmp/chip1.sym.json
+  python3 $ROOT/tools/dsp/map_syms.py build/chip2.map.xml > /tmp/chip2.sym.json
+  scp -q build/chip1.ldr build/chip2.ldr /tmp/chip1.sym.json /tmp/chip2.sym.json \
+      $BENCH:/home/app/dspboot/ || exit 3
+fi
+
+scp -q $ROOT/tools/pi/dsp4_conform.py $ROOT/tools/pi/dsp4_block.py \
+    $OUT/plan.json $BENCH:/home/app/dspboot/ || exit 3
+scp -q conform_run.sh $BENCH:/home/app/ || exit 3
+
+for c in $CHIPS; do
+  echo "=== chip $c — $PHASE ==="
+  ssh $BENCH "PHASE=$PHASE LIMIT=$LIMIT NEGCTL=${NEGCTL:-0} \
+              bash /home/app/conform_run.sh $c $TAG" || exit 4
+  scp -q $BENCH:/home/app/dspboot/"conform_${TAG}_c${c}*.json" $OUT/ || exit 4
+done
+
+echo "=== report ==="
+python3 $ROOT/tools/pi/dsp4_conform_report.py $OUT/conform_${TAG}_c*.json \
+        --plan $OUT/plan.json --markdown $OUT/conform_${TAG}.md \
+        --csv $OUT/conform_${TAG}.csv
+echo "  table: $OUT/conform_${TAG}.md"
