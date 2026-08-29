@@ -1,3 +1,20 @@
+**PW RULING 2026-08-29 (~17:05): METER FROM THE WIDE WORD — ALL DSP
+METERING.** Every meter taps the SIGNAL'S WIDE FORM at its tap point —
+the accumulator's most-significant 32-bit word (Q8.24 view: sign, full
+range incl. over-range, 24 fractional bits ≈ −144 dB floor) or the
+in-register value — NEVER a dedicated rounded/saturated 32-bit store
+made for the meter's benefit. Truncation is fine for metering; the
+absence of saturation is a FEATURE (meters see genuine over-range).
+Kill every tap store whose only consumer is a meter (BLK_TAP_TRIM
+class). This CLOSES D20: the input meter is post-trim, measured, via
+the MS word — GAIN stays one real MAC feeding stage 1 unrounded (the
+intermediate-round deletion is covered by the GAIN-fold numeric
+amendment), total ≈ 3–4 c/s/ch vs 17. Applies to input, GR, aux/group/
+main and chip-2 meters alike; goldens updated where a meter's source
+changes (same bit-exact bar, negative controls). Implementation is its
+own session after the conformance harness (order: session 3 PM+table →
+4 harness → 5 metering); do not bolt it onto a running session.
+
 ## HUB DISPATCH 2026-08-29 16:31Z — session 3: program-memory recovery, pair hang, min-Q, the capacity table   [status: 🟡 dispatched]   [model: opus]
 
 model: opus
