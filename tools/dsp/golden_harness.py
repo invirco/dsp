@@ -18,9 +18,12 @@ import numpy as np
 
 sys.path.insert(0, __import__('os').path.dirname(__import__('os').path.abspath(__file__)))
 import fixed_ref as fr
+import boundary_vectors as bv
 
 FS = 48000.0
 results = []
+FULL = fr.I32_MAX
+NFULL = fr.I32_MIN
 
 
 def check(name, value, limit, unit, lower_is_better=True):
@@ -204,9 +207,90 @@ def t_dynamics(verbose):
     check('envelope tau error (10 ms attack)', err_pct, 2.0, '%')
 
 
+# ---------------------------------------------------------------------------
+# Boundary vectors — the wide-accumulator and blend touchpoints (D1, D3)
+#
+# These are not tolerance tests. They are the SHARED vector set: the same
+# cases the in-part self-test runs, so "asm == model" and "model is
+# right" are checked against identical numbers. Each family also asserts
+# its NEGATIVE CONTROL — the pre-fix arithmetic must FAIL on the vectors
+# that sit across the boundary, or the vectors prove nothing.
+# ---------------------------------------------------------------------------
+
+FULL = fr.I32_MAX
+NFULL = fr.I32_MIN
+
+
+def t_mix_boundary(verbose):
+    """The 80-bit accumulator, and what the 64-bit one got wrong (D1).
+
+    Two assertions, and the second is the negative control:
+      1. mix_sum equals an unbounded exact sum on every vector -- the
+         80-bit store is never reached, which is the D1 margin claim;
+      2. the PRE-FIX 64-bit sum differs on EXACTLY the vectors whose
+         final accumulator value leaves +/-2^63, and on no others. The
+         predicted set is computed from the vectors (bv), not written
+         down, so a vector added later cannot quietly stop testing.
+    """
+    worst = 0
+    predicted, observed = set(), set()
+    for v in bv.MIX:
+        xs, gs = bv.mix_expand(v)
+        label = v[6]
+        good = fr.mix_sum(xs, gs)
+        exact = fr.sat32(fr.rns(sum(x * g for x, g in zip(xs, gs)), fr.QS))
+        worst = max(worst, abs(good - exact))
+        bad = fr.mix_sum_wrapping(xs, gs)
+        if bv.mix_predicted_wrong(v):
+            predicted.add(label)
+        if bad != good:
+            observed.add(label)
+        if verbose:
+            print(f'  mix {label:38s} model {good:12d}  '
+                  f'pre-fix {bad:12d}  '
+                  f'{"DIFFERS" if bad != good else "same":8s}')
+    check('mix_sum vs unbounded exact, boundary vectors', worst, 0, 'LSB')
+    check('boundary vectors the PRE-FIX 64-bit sum gets wrong',
+          len(observed), 1, 'vectors', lower_is_better=False)
+    check('pre-fix mix failures match the predicted set exactly',
+          len(predicted ^ observed), 0, 'vectors')
+
+
+def t_blend_boundary(verbose):
+    """The crossfade blend, and what the 32-bit difference got wrong (D3).
+
+      1. the blend never leaves the interval its two operands span (bar
+         one LSB of rounding) -- which is why its final add cannot
+         overflow and no saturation is applied to it;
+      2. the PRE-FIX 32-bit difference differs on EXACTLY the vectors
+         where new-old does not fit int32 and alpha is non-zero.
+    """
+    worst_range = 0
+    predicted, observed = set(), set()
+    for v in bv.BLEND:
+        new, old, a, label = v
+        y = fr.xfade_blend(new, old, a)
+        lo, hi = min(new, old), max(new, old)
+        worst_range = max(worst_range, max(0, lo - 1 - y, y - (hi + 1)))
+        bad = fr.xfade_blend_wrapping(new, old, a)
+        if bv.blend_predicted_wrong(v):
+            predicted.add(label)
+        if bad != y:
+            observed.add(label)
+        if verbose and label in predicted | observed:
+            print(f'  blend {label:24s} model {y:12d}  pre-fix {bad:12d}  '
+                  f'{"DIFFERS" if bad != y else "same"}')
+    check('blend stays within [min,max] of its operands', worst_range, 0, 'LSB')
+    check('boundary vectors the PRE-FIX 32-bit difference gets wrong',
+          len(observed), 1, 'vectors', lower_is_better=False)
+    check('pre-fix blend failures match the predicted set exactly',
+          len(predicted ^ observed), 0, 'vectors')
+
+
 def main():
     verbose = '-v' in sys.argv
-    for t in (t_biquad, t_gain_sum, t_log_exp, t_dynamics):
+    for t in (t_biquad, t_gain_sum, t_log_exp, t_dynamics,
+              t_mix_boundary, t_blend_boundary):
         t(verbose)
     print(f'{"test":44s} {"value":>12s} {"limit":>10s}  unit   result')
     fails = 0

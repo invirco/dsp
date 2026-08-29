@@ -100,13 +100,152 @@ def biquad_coeffs_q(b0, b1, b2, a1, a2):
 
 # ---------------------------------------------------------------------------
 # Mix summing: exact wide-accumulator MAC, ONE round/saturate at the end
+#
+# THE ACCUMULATOR IS 80 BITS AND THAT IS NORMATIVE (2026-08-29, executing
+# PW's saturate-never-wrap ruling; review finding D1). The bus
+# accumulators live in memory between contributions, and what is stored
+# is the WHOLE SHARC multiplier result MR2F:MR1F:MR0F -- Q8.56 in 80
+# bits, range +/-2^23 = +/-8388608.0 linear.
+#
+# It was 64 bits until 2026-08-29: MR2F was discarded on store and
+# rebuilt from the sign of the high word on load, capping the stored
+# value at +/-128.0 with NOTHING saturating it, and the readout then ran
+# its saturation check on a value that had already wrapped -- so a
+# wrapped sum came out as a clean, full-scale, WRONG-SIGN sample rather
+# than as a clip. This model could not see it: it used unbounded Python
+# ints, so the model was RIGHT and the assembly was wrong, and no golden
+# vector went near the boundary.
+#
+# ACC_BITS states the boundary so vectors can be placed at it and on
+# both sides of it. It is not reachable from representable inputs: a bus
+# takes at most ~64 contributions, each at most 8.0 x 8.0 = 64.0, so
+# |sum| <= 4096 = 2^12 against 2^23 -- eleven bits, 2048x. Saturating
+# rather than wrapping at the boundary is the ruling; the margin is what
+# makes it a formality rather than a limit.
 # ---------------------------------------------------------------------------
+
+ACC_BITS = 80                            # SHARC MR2F:MR1F:MR0F
+ACC_MAX = (1 << (ACC_BITS - 1)) - 1
+ACC_MIN = -(1 << (ACC_BITS - 1))
+
+
+def sat_acc(v):
+    """Saturate a wide accumulator to the 80-bit store. Never wraps."""
+    return ACC_MAX if v > ACC_MAX else (ACC_MIN if v < ACC_MIN else v)
+
 
 def mix_sum(samples, gains):
     acc = 0
     for x, g in zip(samples, gains):
-        acc += x * g                    # Q8.56 terms, exact
+        acc = sat_acc(acc + x * g)      # Q8.56 terms, exact to 80 bits
     return sat32(rns(acc, QS))
+
+
+def mix_sum_wrapping(samples, gains, bits=64):
+    """The PRE-FIX arithmetic, kept as the negative control.
+
+    Identical to mix_sum except that the accumulator is stored in
+    `bits` bits and WRAPS, which is what discarding MR2F did. Any vector
+    on which these two disagree is a vector the old assembly got wrong.
+    """
+    lim = 1 << bits
+    half = lim >> 1
+    acc = 0
+    for x, g in zip(samples, gains):
+        acc = (acc + x * g) & (lim - 1)
+        if acc >= half:
+            acc -= lim
+    return sat32(rns(acc, QS))
+
+
+# ---------------------------------------------------------------------------
+# Dual-instance coefficient crossfade blend — NORMATIVE (2026-08-29)
+#
+# The EQ, GEQ, AFB, FILT and CROSSOVER nodes hold two independent
+# coefficient sets (A/B). When SPI delivers a new set the dormant
+# instance is loaded and both run for XFADE_SAMPLES while their outputs
+# are blended. THIS is that blend, and until 2026-08-29 it had no model
+# at all (review finding D33), which is why review finding D3 -- the
+# 32-bit `new - old` difference wrapping mid-swap -- could not be proved
+# either way.
+#
+#   alpha    float control-plane ramp 0.0 -> 1.0, one step per call
+#   a31      = sat32(int(alpha * 2**31))     (the kernel's `fix`, which
+#            saturates, so alpha == 1.0 gives 2**31 - 1, not 2**31)
+#   out      = old + rns(a31 * (new - old), 31)
+#
+# THE DIFFERENCE IS EXACT. `new` and `old` are independently saturated
+# Q4.28 outputs, so new - old spans [-2**32+1, 2**32-1] and does NOT fit
+# a 32-bit word: with hot program material during a coefficient swap the
+# two instances can straddle full scale and the 32-bit form wrapped,
+# putting up to a block of full-scale-wrong samples into the chain (a
+# click, self-clearing when the fade ends). The assembly forms the
+# product as TWO MACs into the 80-bit MRF -- a31*new then minus a31*old
+# -- so no 32-bit difference exists at any point. That is arithmetically
+# identical to the old form everywhere the old form did not wrap, which
+# is what makes this a bug fix and not a spec change.
+#
+# THE FINAL ADD CANNOT OVERFLOW, and this is a bound, not an assumption:
+# |a31| <= 2**31 - 1 and |new - old| <= 2**32 - 1, so
+# rns(a31*(new-old), 31) <= 2**32 - 2, and old >= -2**31, giving
+# out <= 2**31 - 2 < I32_MAX. Symmetrically for the lower end. No
+# saturation is needed on the add and none is applied.
+# ---------------------------------------------------------------------------
+
+XFADE_MS = 12.0
+XFADE_SAMPLES = int(XFADE_MS / 1000.0 * 48000)      # 576 @ 48 kHz
+XFADE_STEP = 1.0 / XFADE_SAMPLES
+
+
+def xfade_alpha_q(alpha):
+    """Control-plane float alpha -> the kernel's Q0.31 integer.
+
+    THIS IS FLOAT32 ARITHMETIC, not float64, and getting that wrong was
+    worth 15 LSB on the part: the whole parameter plane is float32
+    (numeric-spec.md, "Parameter boundary"), so alpha is stored as a
+    float32 and the kernel's `f4 = f4 * f5` is a float32 multiply by
+    2^31 before `r4 = fix f4`. Measured 2026-08-29: modelling it in
+    float64 disagreed with the part by 15 at alpha = 1 - 1/576, and
+    modelling it in float32 agrees exactly on every vector.
+
+    DOMAIN: alpha in [0, 1). The kernel's own ramp guarantees it --
+    `f4 = alpha + step; comp(f4, 1.0); if lt rts;` stores the new alpha
+    only when it is still below 1.0, and otherwise ENDS the crossfade
+    and zeroes alpha -- so the largest alpha ever blended is one step
+    short of unity. alpha == 1.0 makes the float32 product exactly 2^31,
+    which is not a 32-bit integer; `fix` was measured on the part to
+    return 0xFFFFFFFF for it, not a saturated 0x7FFFFFFF. That corner is
+    unreachable and is left unmodelled deliberately, but any change to
+    the alpha ramp has to preserve alpha < 1.0.
+    """
+    import struct
+    f32 = lambda x: struct.unpack('<f', struct.pack('<f', x))[0]
+    return sat32(int(f32(f32(alpha) * f32(float(1 << QA)))))
+
+
+def _wrap32(v):
+    """Two's-complement wrap into a 32-bit register — what a SHARC Rn does
+    and what the models of the PRE-FIX arithmetic have to reproduce."""
+    v &= 0xFFFFFFFF
+    return v - (1 << 32) if v >= (1 << 31) else v
+
+
+def xfade_blend(new, old, alpha):
+    """One blended sample. new/old are Q4.28; alpha is the float ramp."""
+    a31 = xfade_alpha_q(alpha)
+    return old + rns(a31 * (new - old), QA)
+
+
+def xfade_blend_wrapping(new, old, alpha):
+    """The PRE-FIX arithmetic, kept as the negative control.
+
+    Identical to xfade_blend except that the difference is formed in a
+    32-bit register and wraps. Any vector on which these two disagree is
+    a vector the old assembly got wrong.
+    """
+    a31 = xfade_alpha_q(alpha)
+    d = _wrap32(new - old)                          # THE defect: 32-bit sub
+    return _wrap32(old + rns(a31 * d, QA))          # the final add is 32-bit too
 
 
 # ---------------------------------------------------------------------------
