@@ -232,6 +232,15 @@ ASMFLAGS="$ASMFLAGS -DDSP4_DYN_SELFTEST=$DSP4_DYN_SELFTEST"
 DSP4_SKIP_PAIR="${DSP4_SKIP_PAIR:-0}"   # bisect hook for the selftest hang
 CFLAGS="$CFLAGS -DDSP4_SKIP_PAIR=$DSP4_SKIP_PAIR"
 ASMFLAGS="$ASMFLAGS -DDSP4_SKIP_PAIR=$DSP4_SKIP_PAIR"
+# NEGATIVE CONTROL for the paired-cascade hang fix (2026-08-29). 1 skips
+# the reload of the pointers _bq_pair_blk parked before calling
+# _bq_fx_cascade_simd, which puts the pre-fix behaviour back: the scatter
+# then runs on the cascade's leftover registers and the state loop takes
+# lcntr = 0x10000000. The self-test MUST fail to complete with this set,
+# or the fix was not what fixed it.
+DSP4_BQP_NOSAVE="${DSP4_BQP_NOSAVE:-0}"
+CFLAGS="$CFLAGS -DDSP4_BQP_NOSAVE=$DSP4_BQP_NOSAVE"
+ASMFLAGS="$ASMFLAGS -DDSP4_BQP_NOSAVE=$DSP4_BQP_NOSAVE"
 DSP4_SKIP_SIMDCALL="${DSP4_SKIP_SIMDCALL:-0}"
 CFLAGS="$CFLAGS -DDSP4_SKIP_SIMDCALL=$DSP4_SKIP_SIMDCALL"
 ASMFLAGS="$ASMFLAGS -DDSP4_SKIP_SIMDCALL=$DSP4_SKIP_SIMDCALL"

@@ -684,6 +684,9 @@ _bq_fx_cascade_simd.end:
 .var _bqp_coeff[40];        /* 2 strips x 4 stages x 5                */
 .var _bqp_state[48];        /* 2 strips x 4 stages x 6                */
 .var _bqp_sig[2*DSP4_BLOCK_SIZE];  /* 2 strips x BLOCK samples        */
+/* THE SCATTER-BACK POINTERS, PARKED ACROSS THE SIMD CALL. See the note
+ * on the save below -- this is what the paired-cascade hang was. */
+.var _bqp_save[5];          /* r9, r10, r12, r13, r14                 */
 
 .section/pm seg_pmco;
 .global _bq_pair_blk;
@@ -695,6 +698,43 @@ _bq_pair_blk:
     l4 = 0;
     l5 = 0;
     r14 = r4;                   /* keep the stage count */
+
+    /* ---- PARK THE POINTERS AND THE STAGE COUNT IN MEMORY ------------
+     * THIS IS THE PAIRED-CASCADE HANG (2026-08-29), and it is not a
+     * hazard, a loop tail or an interrupt mask: it is a clobbered
+     * register.
+     *
+     * _bq_fx_cascade_simd writes r0-r15 -- r4-r8 are the stage's five
+     * coefficients, r9-r12 its four state words, r13/r14/r15 its
+     * constants -- so NOTHING this routine holds in a register survives
+     * the call. The code after it then did `i0 = r10; i1 = r13;` for the
+     * signal scatter and rebuilt the state length from r14, reading the
+     * cascade's leftovers: r13 comes back as 0x10000000 and r14 as
+     * 0x08000000, so the scatter wrote a block to address 0x10000000 and
+     * then entered a hardware loop with lcntr = 0x10000000 -- 268 million
+     * iterations, scribbling as it went.
+     *
+     * That is exactly the symptom the bench saw and could not explain:
+     * the part never crashed and the diag ISR kept answering the link,
+     * but BOOT_STAGE stopped at 5 and the self-test never set done. It
+     * was not hung; it was inside a quarter-billion-iteration loop, and
+     * it did that on EVERY call.
+     *
+     * It also explains the two eliminations already on record. Removing
+     * the call (DSP4_SKIP_SIMDCALL=1) boots, because the registers then
+     * survive. One stage hangs exactly as four do, because the corrupt
+     * lcntr does not depend on the stage count. And the paired DYNAMICS,
+     * which have the same PEYEN and no interrupt mask, never hung --
+     * their drivers do not carry pointers across the paired kernel.
+     *
+     * Five words of DM at block rate. r8 and r11 are the coefficient
+     * pointers and are not needed again. */
+    i2 = _bqp_save;
+    dm(i2, 1) = r9;
+    dm(i2, 1) = r10;
+    dm(i2, 1) = r12;
+    dm(i2, 1) = r13;
+    dm(i2, 1) = r14;
 
     /* ---- interleave coefficients: 5 per stage from each strip ---- */
     r0 = lshift r14 by 2;
@@ -738,12 +778,23 @@ _bq_pair_blk:
     r4 = r14;
 #if !DSP4_SKIP_SIMDCALL
     call _bq_fx_cascade_simd;
-    /* Belt and braces while the post-cascade fault is being chased: force
-     * PEYEN down here regardless of what the MODE1 restore did. If this
-     * makes the difference, the restore is the bug. */
+    /* Belt and braces: force PEYEN down here regardless of what the MODE1
+     * restore did. Kept after the hang was found elsewhere -- it costs
+     * three instructions at block rate and a stray PEYEN is a whole class
+     * of fault that is very hard to see from the bench. */
     bit clr mode1 0x00200000;
     nop;
     nop;
+#endif
+
+    /* ---- everything the cascade clobbered, back from memory ---- */
+#if !DSP4_BQP_NOSAVE
+    i2 = _bqp_save;
+    r9  = dm(i2, 1);
+    r10 = dm(i2, 1);
+    r12 = dm(i2, 1);
+    r13 = dm(i2, 1);
+    r14 = dm(i2, 1);
 #endif
 
     /* ---- scatter the signal back ---- */
