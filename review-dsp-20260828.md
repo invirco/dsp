@@ -18,8 +18,10 @@ S (< half a day), M (a session), L (multiple sessions).
 ### Index
 
 FIX SESSION 1 (2026-08-29) closed D1, D2, D3, D5, D6, D8, D9, D10, D11,
-D12 and D33; the `status` column carries the commit. Everything else is
-still open. D13 was already cleared by the review itself.
+D12 and D33. FIX SESSION 2 (same day) closed D14, D21, D22 and most of
+D25, WITHDREW D23 as misread, and left D20 and D24 open with the
+measurements that say why. The `status` column carries the commit. D13
+was already cleared by the review itself.
 
 | # | sev | one line | effort | status (2026-08-29) |
 |---|---|---|---|---|
@@ -36,14 +38,14 @@ still open. D13 was already cleared by the review itself.
 | D11 | MINOR | stale unused `#define BLOCK_SIZE 32` in sport_init.asm | S | **FIXED** 2b336d3 — the four dead defines removed; image byte-identical |
 | D12 | MAJOR | generation-time `.var` sizes vs build-time `DSP4_BLOCK_SIZE`: no consistency check; silent OOB on mismatch | S | **FIXED** 39eaa40 — `#if DSP4_BLOCK_SIZE != N / #error` in all four baking files; negative control FAILS the build |
 | D13 | — | literal sweep otherwise CLEAN: the `lcntr=31` class is extinct (evidence in Axis 3) | — | cleared, not a fix — the two dead biquad routines it named left with D8 |
-| D14 | MAJOR | block-kernel builds: legacy input-peak scan reads never-written slot vars → frozen host meters + waste | S | open |
+| D14 | MAJOR | block-kernel builds: legacy input-peak scan reads never-written slot vars → frozen host meters + waste | S | **FIXED** f179002 — scan returns immediately under block kernels; confirmed the slot vars are never written (`_scatter_chip1` already early-returns), so no host value changes |
 | D16 | MAJOR | chip 2 has no block kernels: block-8 record is chip-1-only; block-8 shipping gated on chip-2 conversion | L | open |
-| D20 | MAJOR | GAIN=1MAC fold ruled, not yet implemented (−17 c/s/strip) | S | open |
-| D21 | MAJOR | biquad inner loop ~1.6–2× over packed floor (branch saturation, no multifunction packing) | M | open |
-| D22 | MAJOR | RTG rebuilds control state every block: 15–29× over floor, largest gap in the strip | M | open |
-| D23 | MAJOR | `_acc64_mac_blk` reloads the 64-bit accumulator every sample (~3.4× on the accumulate) | S | open |
-| D24 | MAJOR | per-block parameter conversion belongs at control rate (dirty flag); also most of the pair drivers' overhead | M | open |
-| D25 | MINOR | batched small wastes: SEND copies, EQ tap loop, TUBE bypass copy, DLY addressing, dead scan | S ea | open |
+| D20 | MAJOR | GAIN=1MAC fold ruled, not yet implemented (−17 c/s/strip) | S | **BLOCKED, analysed** — the fold deletes GAIN's BLK_CHAIN_B store (~1 c/s) and no more: the round/saturate and the tap store exist for the METER and the router's pickoff-0, both of which need a Q4.28 post-trim sample. −17 needs a ruling on what the input meter measures. Arithmetic + both options in the session outcome |
+| D21 | MAJOR | biquad inner loop ~1.6–2× over packed floor (branch saturation, no multifunction packing) | M | **FIXED** 7c0bae9 — branch-free conditional-move saturation, the rounding half out of MRF, x-history shifted before the extraction to cover the multiplier latency; bq_selftest ndiff 0/64 on real data |
+| D22 | MAJOR | RTG rebuilds control state every block: 15–29× over floor, largest gap in the strip | M | **FIXED** f179002 — per-strip control-epoch counter bumped by the SPI handler, plus published ramp-busy words; 0 of 256 bus words differ against the pre-batch golden |
+| D23 | MAJOR | `_acc64_mac_blk` reloads the 64-bit accumulator every sample (~3.4× on the accumulate) | S | **WITHDRAWN as written** — the accumulator is BLOCK triples, one per SAMPLE, not one per bus: the "load once, 8 MACs, store once" form the finding prescribes does not exist. The reload is per-sample because the accumulator is. See the session outcome for what is and is not available here |
+| D24 | MAJOR | per-block parameter conversion belongs at control rate (dirty flag); also most of the pair drivers' overhead | M | **IMPLEMENTED THEN REVERTED, with numbers** — gates on GAIN/FDR/GATE cost ~1,124 words of program memory against the 1,312 left in the paired 32-strip build, and buy ~9 c/s of 1,466. The real prize named in the finding — the pair drivers' sample-0 overhead — is a restructure, not a gate. Still open in that form |
+| D25 | MINOR | batched small wastes: SEND copies, EQ tap loop, TUBE bypass copy, DLY addressing, dead scan | S ea | **PARTLY FIXED** f179002 — DLY circular DAG addressing (17 → 5 instr/sample), the 37 INTERCHIP_SEND copy bodies deleted, dead scan with D14. EQ tap fold and TUBE bypass NOT taken: both ~2 c/s against a slot-protocol change, costed in the session outcome |
 | D26 | MAJOR | meter model never exercised by golden_harness | S | open |
 | D27 | MAJOR | `_bq_fx_convert_N` (the b1=0 site) has no automated regression | S | open |
 | D28 | MAJOR | COMP wet path (makeup 2nd round + parallel blend) unmodelled | S–M | open |

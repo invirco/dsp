@@ -27,7 +27,7 @@ ceilings become setting-dependent. Conversion rejects Q < 0.10. Record
 in numeric-spec.md; golden vectors at the corner ride the D27 coverage
 work; floors and the capacity arithmetic absorb the +1.
 
-## HUB DISPATCH 2026-08-29 10:45Z — fix session 2: efficiency batch D20-D25 + biquad pair + measured capacity table   [status: 🟡 dispatched]   [model: opus]
+## HUB DISPATCH 2026-08-29 10:45Z — fix session 2: efficiency batch D20-D25 + biquad pair + measured capacity table   [status: 🔴 blocked — **THE EFFICIENCY WORK LANDED AND IS MEASURED; THE CAPACITY TABLE THE SESSION WAS SENT TO PRODUCE CANNOT BE BUILT, AND THE REASON IS PROGRAM MEMORY.** **D22 is the whole story on cycles: RTG 1,861 → 416 cycles/block, −1,445, twenty times the instrument's noise, and the strip goes 11,726 → 10,198, −13.0 %** (block 8, signal, unfused, same script and same switches as the record it replaces; GAIN, FILT, EQ+GATE and COMP all reproduce to within 2 %, which is what makes RTG attributable). The gate is an EPOCH COUNTER, not a dirty flag, because a flag has to be cleared by its consumer and two nodes watching one strip then race; the strip index is addr/144 computed as (addr·7282)>>20, EXACT over the whole 0..4607 range, no divide and no MR register because the handler is an ISR and must not disturb the multiplier the audio path is using. **D25: the delay line went from 17 instructions per sample to 5 (circular DAG addressing) and the class moved 598 → 531 — which ANSWERS the review's open L2 question: 96 instructions per block were deleted and 67 came back, so of DLY's 63 cycles/sample only 8.4 was addressing and ~55 is L2 latency that no address arithmetic will touch.** The 37 INTERCHIP_SEND bodies are gone (the gather points at the bus buffers), and **D14** with them — confirmed first that nothing writes the RX slot vars under block kernels, so the legacy input peaks were ALREADY frozen and deleting the scan changes no host-visible value. **D21: the fused biquad inner loop is packed** — branch-free conditional-move saturation (the branch was taken on essentially every sample), the rounding half moved out of MRF (two MACs became an add and a carry-add, and the undo disappeared), and the x-history shifted before the extraction to put two moves between the last MAC and the first MR read. **bq_selftest: ndiff 0 of 64, maxdiff 0, on REAL data** (ref 520298, 1974192, …), not the untouched zeros an earlier run of that test compared. **THE BIQUAD-PAIR HANG IS LOCALISED AND ONE SUSPECT IS ELIMINATED:** the self-test would not complete at all until DSP4_SKIP_PAIR=1 — BOOT_STAGE 5 and done=0 while the diag ISR kept answering the link — and with the identical image and only that call removed, BOOT_STAGE 7 and done=1. So it is inside `_bq_pair_blk`, and **it is NOT the DO-loop-tail hazard**: the loop two lines above has exactly the same shape, `call _bq_fx_cascade_blk` second-from-last inside a hardware loop, and runs perfectly. **BIT-EXACTNESS, and the instrument is new: goldens/busgraph-prebatch-20260829.json** — 256 words of the main bus captured out of a running graph on 87fded2, sha256 811af470…. The whole batch reproduces it, **0 of 256 words differ**, and it can fail because the harness writes ~20 parameters per strip over SPI with opposite dynamics on the two strips before capturing. Two negative-control switches exist (DSP4_CTL_ALWAYS removes the gate, DSP4_CTL_NEGCTL makes it deaf to writes). **MEASURED CEILING: 16 channels/chip at 983.04, scalar+fused, block 8, signal present, honest 6000/s rule, every strip witnessed gate-OPEN and comp-ACTIVE** (16 = 5999/s, 17 = 5779/s). Against 12 for scalar-unfused on 08-28. The slope model calibrates on that: it predicts 12 before and 14 for scalar-unfused after, and 16 fused. **AND HERE IS THE BLOCK. Dispatch item 8 — build fused + paired TOGETHER at block 8 for the first time — DOES NOT LINK. Chip 1 is out of PROGRAM MEMORY.** `sec_swco` is FULL (131,070 of 131,072) in every block-kernel build and everything spills to block 2's overflow; free bytes there are 15,062 scalar-unfused, 9,882 scalar-fused, 418 paired-unfused, and **paired+fused is over**. **It is not the gate** — the same build with DSP4_CTL_ALWAYS=1 still overflows. Nor is the paired SIGNAL-PRESENT ceiling measurable any more: paired + the profile stimulus fails to link WITH AND WITHOUT the gate, so it is pre-existing growth, not a regression from this session. That is why the record has never carried a fused+paired number, and the reason is now measured instead of assumed. **The lever is structural and this session demonstrated it in miniature**: the gate began as nine inline instructions per node — ~41 bytes each because a directly-addressed DM access is a LONG VISA instruction, 1,320 across 32 nodes, which BY ITSELF stopped the paired build linking — and became a three-instruction call into one shared routine over indexed per-strip arrays, giving 896 bytes back for ~2.5 cycles/sample/strip. The same move applied to ROUTING's whole prep (~600 lines × 32) and to the dynamics bodies is what buys the room fused+paired needs. Recorded in dsp4-cycle-budget.md. **NOT LANDED, each with the number that says why: D20** — the GAIN=1MAC fold deletes GAIN's BLK_CHAIN_B store and NOTHING ELSE (~1 c/s): the round/saturate and the tap store exist for the METER and the router's pickoff-0, both of which need a Q4.28 post-trim sample, so −17 c/s is gated on a ruling about what the input meter measures, not on implementation. **D23 — WITHDRAWN as written**: the bus accumulator is BLOCK triples, one per SAMPLE, not one per bus, so the "load once, 8 MACs, store once per block" form the finding prescribes does not exist; the reload is per-sample because the accumulator is. **D24 — implemented, then REVERTED on the measurement**: gates on GAIN/FDR/GATE cost ~1,124 bytes of the 1,312 left in the paired build and buy ~9 cycles/sample of 1,466. EQ tap fold and TUBE bypass: ~2 c/s each against a slot-protocol change, not taken. **A NEW PW RULING LANDED MID-SESSION (060e605, minimum EQ Q = 0.10 via halved-n1 double-accumulate) AND IS DELIBERATELY NOT ABSORBED HERE** — it adds +1 MAC per biquad stage, uniform, so every number above predates it and the ruling's own +6 c/s scalar strip has to be added. It should be the first thing the next kernel session lands, on top of the packed loop. **W0: the shipping per-sample image is BYTE-IDENTICAL through all of it — chip1.ldr 2072e0de, chip2.ldr a248d25d, unchanged from fix session 1.** Every line is behind DSP4_BLOCK_KERNELS, and ctl_epoch.asm additionally behind CHIP_ID == 1. Bench restored: those exact images rebuilt from a clean tree (md5s checked), reflashed, matrix-app started clean on the FIRST restart at 14:21:43 — the three-MCU verification line itself was not read back, so it is recorded as "app up on the first restart", not as a full MCU witness. CPLD never touched. Commits 7c0bae9, f179002.]   [model: opus]
 
 model: opus
 
@@ -145,6 +145,218 @@ every kernel sits at its derived floor under the ruled numeric spec (or
 a remaining gap demonstrably costs more than it buys) — the finish line
 is floors reached, and the margin at 32 at that point is the product's
 plugin headroom.
+
+### Outcome 2026-08-29 (fix session 2) — the efficiency batch, and the wall it ran into
+
+Two commits, `7c0bae9` (D21) and `f179002` (D22 + D25 + D14). Finding
+numbers are from `review-dsp-20260828.md`, whose index carries them.
+
+#### W0, stated before any of it was built
+
+| item | expected image delta | actual |
+|---|---|---|
+| D21 | fused path only; shipping build is `STRIP_FUSED=0` | shipping byte-identical |
+| D22, D25, D14 | block-kernel builds only, BY DESIGN | shipping byte-identical |
+| shipping baseline | unchanged | **chip1.ldr 2072e0de, chip2.ldr a248d25d** |
+
+Keeping the shipping image byte-identical was not free and it is worth
+saying how: the first cut declared the gate's state words and the
+handler's epoch bump unconditionally, and the per-sample image moved.
+Everything is now behind `DSP4_BLOCK_KERNELS`, and `ctl_epoch.asm`
+additionally behind `CHIP_ID == 1` because every file under `src/` is
+assembled once per chip and the fader-busy pointer table names chip-1
+symbols a chip-2 link does not have.
+
+#### The per-class re-profile — block 8, signal present, unfused, scalar
+
+Same instrument and the same switches as the record it replaces
+(`sigprofile.sh`, DEC=32, `DSP4_PROFILE_SIGNAL=1`, `DSP4_STRIP_FUSED=0`,
+every point witnessed). Limits 4 and 7 lost their witness to the bench
+link, so EQ+GATE and TUBE+DLY are carried as pairs.
+
+| class | 08-28 | 08-29 | Δ cycles/block | what it is |
+|---|---|---|---|---|
+| GAIN (+MTR) | 183 | 187 | +4 | untouched — instrument noise |
+| FILT | 1095 | 1085 | −10 | untouched (D21 is the FUSED path) |
+| EQ+GATE | 4201 | 4163 | −38 | untouched |
+| COMP | 3465 | 3538 | +73 | untouched |
+| TUBE+DLY | 598 | 531 | **−67** | **D25, circular DAG addressing** |
+| FDR | 323 | 278 | −45 | untouched — see the flag below |
+| RTG | 1861 | **416** | **−1,445** | **D22, the control-rate gate** |
+| **STRIP** | **11,726** | **10,198** | **−1,528 (−13.0 %)** | |
+
+**The instrument is calibrated by the classes that did not change**:
+four of them land inside ±2 %, which is the band this instrument has
+always shown (the record's own two readings of the strip are 1.1 %
+apart). RTG's −1,445 is twenty times that. **FDR's −45 is OUTSIDE the
+band and is not explained by anything in this batch** — that kernel was
+not touched — so it is carried as measured and flagged rather than
+attributed; re-read it before anything is built on the difference.
+
+**The delay-line result answers a question the review left open.** D25
+removed twelve instructions per sample, which is 96 per block, and 67
+came back. So of DLY's 63.1 cycles/sample the ADDRESSING was worth 8.4
+and about 55 is L2 latency on the delay lines. "L2 cost needs
+measurement" is now measured, and the answer is that the class is
+memory-bound: no further address arithmetic will touch it.
+
+#### The measured ceiling, and the honest rule
+
+983.04 MHz, block 8, signal present, full-rate rule (6000 blocks/s),
+per chip, every point witnessed gate-OPEN and compressor-ACTIVE on every
+retained strip:
+
+| configuration | ch/chip | evidence |
+|---|---|---|
+| scalar, unfused, 08-28 | 12 | recorded |
+| **scalar, FUSED, after this batch** | **16** | 16 = 5999/s, 17 = 5779/s |
+
+The slope model calibrates against both ends: holding the derived
+block-8 fixed overhead F = 18,785 cycles/block, the 17-strip point
+(5779/s → 170,104 cycles/block) puts the fused strip at 8,901
+cycles/block = 1,112.6 cycles/sample, which predicts 16 at 983.04 — and
+the same model with the measured unfused strip predicts 12 before the
+batch and 14 after it, against 12 measured before. Two arithmetics that
+share nothing agree.
+
+#### Margin at 32 (the PW ruling's deliverable column)
+
+Available per strip at 32 channels is `(budget − F) / 32`: **566.6
+cycles/sample at 983.04**, 438.6 at 786.432.
+
+| configuration | strip c/s | margin at 32, c/s/strip | % of budget |
+|---|---|---|---|
+| 983.04 scalar unfused, BEFORE | 1,465.8 | −899.2 | **−175.9 %** |
+| 983.04 scalar unfused, AFTER | 1,274.8 | −708.2 | **−138.6 %** |
+| 983.04 scalar FUSED, AFTER | 1,112.6 | −546.0 | **−106.8 %** |
+| 983.04 paired unfused (08-28) | 1,187.0 | −620.4 | −121.4 % |
+| 983.04 paired + fused | **not buildable** | — | — |
+
+**32 still does not fit, and the batch moved it from 2.59× over to
+1.96× over.** No row here is a projection: each strip figure is either
+measured per class or derived from a measured ceiling with F held at the
+value the record already derived. The floors say the remaining factor is
+still in the code — the two dynamics classes are 7,701 of the 10,198
+strip, 76 %, and neither was touched today.
+
+#### THE BLOCK: chip 1 is out of program memory
+
+Dispatch item 8 was "build fused + paired TOGETHER at block 8 for the
+first time". **It does not link.** Measured on the link map, all 32
+strips' node bodies present (`DSP4_STRIPS` gates chain CALLS, not code):
+
+| configuration | free bytes | links? |
+|---|---|---|
+| scalar unfused | 15,062 | yes |
+| scalar fused | 9,882 | yes |
+| paired unfused | 418 | yes |
+| **paired + fused** | **over** | **NO** |
+
+`sec_swco` is FULL — 131,070 of 131,072 — in every block-kernel build,
+so everything else spills into block 2's overflow section, and the
+paired+fused build exhausts that too. **It is not this session's gate**:
+the same build with `DSP4_CTL_ALWAYS=1`, which compiles the gate out
+entirely, still overflows. Nor is the paired SIGNAL-PRESENT ceiling
+measurable any more — paired plus the profile stimulus fails to link
+with and without the gate, so that is pre-existing growth rather than a
+regression from today, and it is why item 8's paired column is empty.
+
+**The lever is structural, and this session demonstrated it in
+miniature.** The gate began as nine inline instructions per node. A
+directly-addressed DM access is a LONG VISA instruction, so that came to
+~41 bytes per node, 1,320 across 32 ROUTING nodes — by itself enough to
+stop the paired build linking. Rewritten as indexed per-strip arrays
+plus one shared `_ctl_strip_prep_needed`, the caller is three
+instructions: 896 bytes back, ~2.5 cycles/sample/strip paid, against the
+~180 the gate saves. The graph is 431 node files each carrying its own
+copy of a kernel that differs from its neighbours only in which
+variables it names; ROUTING is ~600 lines × 32. Applying the same move
+to ROUTING's whole prep and then to the dynamics bodies is what buys the
+room fused+paired needs. Recorded in `dsp4-cycle-budget.md`.
+
+#### What did not land, and the number that says why
+
+- **D20 (GAIN = 1 MAC).** The fold deletes GAIN's `BLK_CHAIN_B` store
+  and nothing else — about 1 cycle/sample. The twelve-instruction
+  round/saturate and the tap store are not there for FILT; they are
+  there for the **METER** and for the router's **pickoff-0**, and both
+  need a Q4.28 post-trim sample that the fold makes cease to exist. The
+  two ways out are (a) fuse the meter into GAIN's loop and fold the
+  pickoff into the crosspoint coefficients — still leaves the
+  round/saturate, worth ~4 c/s — or (b) meter the PRE-trim signal and
+  scale at fold time (peak ×|g|, mean square ×g²), which is the only
+  form that reaches ~2 c/s and which CHANGES WHAT THE INPUT METER
+  MEASURES. That is a ruling, not an implementation, and the 17:35
+  amendment does not cover it: it sanctions deleting the intermediate
+  rounding between GAIN and the biquad, not moving the meter's tap.
+- **D23 — withdrawn as written.** The finding says `_acc64_mac_blk`
+  "reloads the 64-bit accumulator every sample" and prescribes "load the
+  pair once, 8 dual-issued load+MACs, store once". **The accumulator is
+  BLOCK triples — one `[lo, hi, ex]` per SAMPLE of the block, not one
+  per bus** (`bus_accumulators.asm:32-56`), because the bus produces a
+  block of output samples. The reload is per-sample because the
+  accumulator is. The loop-inversion that WOULD make an MRF-resident
+  form possible needs the crosspoint sources to stay live across strips,
+  and they do not: `BLK_CHAIN_A` is a two-pool ping-pong reused by the
+  next strip. What is left in RTG's 416 cycles/block is that accumulate,
+  14 instructions per sample per live crosspoint, and it is the next
+  real target — but not in the shape the finding describes.
+- **D24 — implemented, then reverted on the measurement.** Gates on
+  GAIN, FADER_PAN and GATE cost **~1,124 bytes** of the 1,312 left in
+  the paired build and buy **~9 cycles/sample of 1,466** (GAIN 2.5, FDR
+  4.9, GATE 2.0 by instruction count). Against the binding constraint
+  that is a bad trade, and it is the constraint the previous section is
+  about. The part of D24 that is worth real money — the pair drivers'
+  sample-0-through-the-scalar-body overhead — is a restructure of
+  `dyn_pairs.asm`, not a gate, and is still open.
+- **D25 remainder.** The EQ tap-copy loop and the TUBE bypass copy are
+  ~2 cycles/sample each and both need the generator's slot protocol
+  changed (TUBE would have to run in place so the ping-pong survives its
+  runtime bypass). Not taken: the risk is a silent wiring error in 32
+  strips for 0.14 % each.
+
+#### The biquad-pair hang — localised, and one suspect eliminated
+
+The D21 self-test would not run at all: `_bqst_done` stayed 0, the part
+stamped BOOT_STAGE 5 and the diag timer ISR kept answering the link,
+which is exactly the recorded signature of firmware that never ran. With
+`DSP4_SKIP_PAIR=1` — the identical image with only the `_bq_pair_blk`
+call removed — BOOT_STAGE 7 and done=1.
+
+So the hang is inside `_bq_pair_blk` or what it calls, and **the DO-loop
+tail hazard is eliminated as the cause**: the loop two lines above it in
+the same routine has exactly the same shape, `call _bq_fx_cascade_blk`
+as the second-from-last instruction of a hardware loop, and runs
+perfectly. Together with the shipping RTG loop (review finding D7),
+that is now a second piece of evidence that rule (a) as recorded is
+broader than what this silicon enforces for a call that returns into its
+loop. `bqst.sh` defaults `SKIP_PAIR=1` so the instrument is usable while
+the pair is unresolved.
+
+#### New instruments
+
+- **`goldens/busgraph-prebatch-20260829.json`** — 256 words of the main
+  bus, captured out of a running graph on `87fded2`. The efficiency
+  batch is bit-exact by construction, so one capture tests all of it.
+- **`busgold.sh`** — builds the current tree and holds it to that
+  capture. Result: 0 of 256 words differ, same sha256.
+- **`ctlgate.sh`** — the gate against its own controls: `DSP4_CTL_ALWAYS`
+  (gate compiled out) and `DSP4_CTL_NEGCTL` (gate present, handler's
+  epoch bump removed, so the gate goes deaf to host writes).
+- **`bqst.sh`** — the local driver `bq_selftest.asm` never had.
+
+#### Not done, and it is the dispatch's own item list
+
+Items 8, 9 and 10 are complete only as far as the program-memory wall
+allows. **Measured**: the per-class re-profile at block 8 unfused, the
+fused scalar ceiling at 983.04, and the margin-at-32 table above.
+**Not measured**: 786.432 (no points taken), the silence controls, block
+32, and every paired row — the last three because paired-plus-stimulus
+does not link. The options paper and ledger carry the memory finding;
+`dsp4-function-costs.csv` carries the new per-class numbers with the old
+ones beside them.
+
+---
 
 ### Outcome 2026-08-29 (fix session 1) — the wraps, and what the part said about them
 

@@ -2297,3 +2297,51 @@ The gap is 6.6×. Reading it against the hub's four options:
 
 The one thing the data says on its own: **profile RTG before optimising
 anything else.** It is a third of a strip.
+
+## PROGRAM MEMORY IS NOW A CAPACITY CONSTRAINT, AND IT BLOCKS THE CONFIGURATION EVERY PROJECTION RESTS ON — measured 2026-08-29
+
+Every capacity projection in `review-dsp-20260828.md` assumes the strip
+is BOTH fused and paired. **That configuration does not build.** Not
+because of cycles — because chip 1 runs out of program memory.
+
+Measured on the part's own link map, chip 1, block 8, all 32 strips'
+node bodies linked (`DSP4_STRIPS` gates the chain CALLS, not the code,
+so the PM figure is the same at every strip count):
+
+| configuration | PM words free | links? |
+|---|---|---|
+| scalar, unfused | 15,062 | yes |
+| scalar, fused | 9,882 | yes |
+| paired, unfused | 418 | yes |
+| **paired, fused** | **over** | **NO** |
+
+`sec_swco` (block 3) is FULL — 131,070 of 131,072 words — in every one
+of those builds, so everything else spills into block 2's overflow
+section, and the paired+fused build exhausts that too.
+
+**This is not caused by the control-rate gate.** The same build with
+`DSP4_CTL_ALWAYS=1`, which compiles the gate out entirely, still fails
+to link. The gate is 164 words of the deficit; the configuration is over
+without it. It is also not new — it is why the record has never carried
+a fused+paired measurement, and why the review's caveat 2 ("fused+paired
+at block 8 has never been built together") stayed open. The reason has
+now been measured rather than assumed.
+
+Where the memory goes: pairing costs about 14,600 words and fusion about
+5,200. Both are per-node inlined code across 431 generated node files.
+
+**The lever, and it is structural rather than incremental.** The graph
+is 431 node files each carrying its own copy of a kernel that differs
+from its neighbours only in which variables it names. ROUTING is the
+worst: ~600 lines per node, ×32. The control-rate gate landed today is
+the pattern that fixes it — the gate started as nine inline instructions
+per node (~41 words each, 1,320 across 32 nodes, which by itself stopped
+the paired build linking) and became a three-instruction call into one
+shared routine driven by indexed per-strip arrays, for 896 words back
+and about 2.5 cycles/sample/strip paid. Applying the same move to
+ROUTING's whole prep section, and then to the dynamics bodies, is what
+buys back the room the fused+paired configuration needs.
+
+Until that lands, the honest statement about capacity is: **the paired
+ceilings in the record are UNFUSED-paired, and fused+paired is not a
+measurable configuration on chip 1.**

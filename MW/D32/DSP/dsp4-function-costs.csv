@@ -40,17 +40,50 @@
 # the strip is 11,726 cycles/block (second reading 11,859, 1.1% apart), and
 # the block-8 penalty is 1.19x per sample, not 2.21x. The ceilings roughly
 # double. The largest remaining block-invariant item in the strip is RTG.
+#
+# ============================================================
+# RE-MEASURED 2026-08-29 (fifth session — the D20-D25 efficiency batch).
+# Same instrument, same switches (sigprofile.sh, DEC=32,
+# DSP4_BLOCK_KERNELS=1, DSP4_STRIP_FUSED=0, DSP4_PROFILE_SIGNAL=1,
+# witnessed), so the blk8 column below is directly comparable to the one
+# it replaces. Limits 4 and 7 lost their witness to the bench link on this
+# run, so EQ and GATE are carried together (limits 3->5) and TUBE and DLY
+# together (limits 6->8), which is how the earlier record already carried
+# EQ+GATE.
+#
+# THE INSTRUMENT IS CALIBRATED BY THE CLASSES THAT DID NOT CHANGE: GAIN
+# +0.6 %, FILT -0.9 %, EQ+GATE -0.9 %, COMP +2.1 %, FDR -13.9 %. The first
+# four are inside the +/-2 % this instrument has always shown (the record's
+# own two readings of the strip are 1.1 % apart). FDR's -45 cycles/block is
+# outside that band and is NOT explained by anything in this batch -- FDR's
+# kernel was not touched -- so it is carried as measured and flagged rather
+# than attributed.
+#
+# WHAT MOVED, and it is one class: RTG 1,861 -> 416 cycles/block, -1,445,
+# twenty times the instrument's noise. That is review finding D22 -- the
+# control-rate prep now runs only when the host has written a parameter or
+# a ramp is running. The strip goes 11,726 -> 10,198 cycles/block, -13.0 %.
+#
+# TUBE+DLY 598 -> 531, -67 cycles/block, is the D25 delay-line rewrite
+# (circular DAG addressing, 17 -> 5 instructions per sample). AND IT
+# ANSWERS THE REVIEW'S OPEN QUESTION ABOUT L2: twelve instructions per
+# sample were deleted, which is 96 per block, and only 67 came back. DLY
+# is 63.1 cycles/sample of which the ADDRESSING was worth 8.4. The rest is
+# the delay lines living in L2, which is now measured rather than
+# "unmeasured" -- roughly 55 cycles/sample of the class is memory latency
+# and no amount of address arithmetic will touch it.
+# ============================================================
 function,blk32_cycles_block,blk8_cycles_block,blk32_cycles_sample,blk8_cycles_sample,notes
-GAIN,566,183,17.7,22.9,one MAC; the rest is the round/saturate and the two block stores its consumers need. Includes its METER at block 8 (the meter now rides with its source)
-FILT,3946,1095,123.3,136.9,HPF+LPF; 2 biquad stages; almost all per-sample work
-EQ+GATE,,4201,,525.1,taken together: the EQ point (limit 4) lost its witness three times to the link fault. 4201 against 4204 for EQ 2126 + GATE 2078 measured 2026-08-28 - 0.07% apart which is why the two are carried at their earlier split
-COMP,13635,3465,426.1,433.1,**RE-MEASURED 2026-08-28 (fourth session) AND IT IS NOT BLOCK-INVARIANT.** The 13870 previously recorded at block 8 was a defect: `lcntr = 31` in the generator ran 32 samples of an 8-sample block. Corrected it is 3465 cycles/block = 433.1 cycles/sample against 426.1 at block 32 - 1.6% apart. Confirmed independently by the paired-dynamics self-test scalar arm at 420.0 cycles/sample/channel
-TUBE,~0,93,~0,11.6,MEASURED BYPASSED (_tube_on defaults 0). ACTIVE cost still not measured - open since 08-24
-DLY,1985,505,62.0,63.1,delay line. TUBE's scatter lands on this difference; read TUBE+DLY together as 598 cycles/block at block 8
-FDR,1195,323,37.3,40.4,
-RTG,2263,1861,70.7,232.6,bus routing over the active-crosspoint list; substantially block-invariant, and with COMP corrected it is now the LARGEST block-invariant item in the strip
+GAIN,566,187,17.7,23.4,one MAC; the rest is the round/saturate and the two block stores its consumers need. Includes its METER at block 8. Was 183 before the D20-D25 batch: unchanged within instrument noise, which is the point -- the GAIN=1MAC fold is NOT in this number and is blocked (see the review index D20)
+FILT,3946,1085,123.3,135.6,HPF+LPF; 2 biquad stages; almost all per-sample work. Was 1095. UNFUSED, so the D21 packing is not in this figure -- D21 rewrote the FUSED cascade only
+EQ+GATE,,4163,,520.4,taken together: limit 4 lost its witness to the link on the 08-29 re-measure, as it did on 08-28. Was 4201 - 0.9% apart, and neither class was touched by this batch
+COMP,13635,3538,426.1,442.3,**RE-MEASURED 2026-08-28 AND IT IS NOT BLOCK-INVARIANT.** The 13870 previously recorded at block 8 was a defect: `lcntr = 31` ran 32 samples of an 8-sample block. 2026-08-29 re-measure reads 3538 against 3465 - +2.1%, inside this instrument's band, and COMP was not touched by the efficiency batch
+TUBE,~0,,~0,,MEASURED BYPASSED. On the 2026-08-29 re-measure limit 7 lost its witness, so TUBE is carried inside TUBE+DLY below. ACTIVE cost still not measured - open since 08-24
+TUBE+DLY,1985,531,62.0,66.4,**D25 LANDED HERE: 598 -> 531 cycles/block.** Circular DAG addressing replaced 17 instructions per sample with 5. Twelve instructions x 8 samples = 96 removed, 67 recovered -- so about 55 cycles/sample of this class is L2 latency on the delay lines, which the review flagged as unmeasured and now is not
+FDR,1195,278,37.3,34.75,Was 323. -45 cycles/block, OUTSIDE this instrument's usual +/-2% and NOT attributable to anything in the efficiency batch (this kernel was not touched). Carried as measured and flagged; re-read it before anything is built on the difference
+RTG,2263,416,70.7,52.0,**THE ONE THAT MOVED: 1,861 -> 416 cycles/block, -1,445 (review finding D22).** The control-rate prep -- 18 send ramps, 18 pickoff resolutions, the 25-crosspoint list rebuild -- now runs only when the strip's control epoch has moved or a ramp is live. What is LEFT is the crosspoint accumulate itself: two live crosspoints x 8 samples x 14 instructions, plus the list walk and the gate call. Floor is 8-15 c/s, so RTG is now ~3-6x over rather than 15-29x, and the remainder is D23 territory
 # --- per-channel total, MEASURED TWICE ---
-STRIP_TOTAL,39470,11726,1233.4,1465.8,GAIN..RTG inclusive, limits 1->10. The SECOND strip (limits 10->20) reads 11859 - 1.1% apart, which is two independent readings of the same quantity. Block 8 costs 1.19x block 32 per sample, NOT the 2.21x recorded before the COMP loop count was fixed
+STRIP_TOTAL,39470,10198,1233.4,1274.8,GAIN..RTG inclusive, limits 1->10, 2026-08-29. Was 11,726: **-1,528 cycles/block, -13.0%**, essentially all of it RTG. Block-8 baseline for the strip after the D20-D25 batch, UNFUSED and UNPAIRED
 # --- SIMD PAIRED (DSP4_SIMD_DYN=1, pair-ordered chain) ---
 # KERNEL factors, re-measured at block 8 with a diff that can now fail:
 # COMP 2.07x (420.0 -> 202.5 cycles/sample/channel), GATE 2.43x (255.0 -> 105.0).
