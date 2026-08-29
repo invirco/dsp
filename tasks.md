@@ -1,3 +1,53 @@
+## HUB DISPATCH 2026-08-29 19:45Z — session 4: contract conformance harness — protocol goldens, standing bar   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+SESSION 4 — THE CONTRACT CONFORMANCE HARNESS (PW ruling 97a4d5d; PW
+order: after session 3, before the metering/wiring session). Protocol
+goldens: prove the live SPI contract does what the masters document,
+and make the proof a STANDING per-session bar.
+
+Contract source: docs/contract/ (distribution copies of the mx26 wire
+tables — mx26 is SOT). unit=UNDECLARED families get presence/echo
+testing only; declared families get semantic tests.
+
+1. BUILD the harness (tools/pi/, alongside the existing bench tools):
+   for EVERY cell in the wire table — write over live SPI at boundary
+   values (min, max, mid, and the scale-law knees where Table strings
+   define them), then verify:
+   a. ECHO/presence: the value is accepted and readable back where the
+      protocol provides readback.
+   b. EFFECT: for declared families, the kernel-visible consequence
+      matches the documented unit/range/law (coefficient lands where it
+      should, gain moves by the documented dB, mute mutes, ramp reaches
+      target in the documented time class) — use the existing calibrated
+      instruments (diag peeks, busgraph capture, meter words) as probes.
+   c. INERT detection: a write that changes NOTHING kernel-visible goes
+      on the authoritative D38 inert list with its cell name.
+2. NEGATIVE CONTROLS: prove the harness can fail — a deliberately wrong
+   expected-unit entry must FAIL its cell; a write to a known-good cell
+   with verification disabled must be DETECTED as unverified.
+3. KNOWN MISMATCHES (D39 GateRng dB-vs-linear, D40 CompPar %-vs-0..1):
+   fix the KERNEL side to match the documented unit (masters win — cell
+   semantics are the contract), each with before/after harness runs.
+4. RUN the full sweep on both chips' graphs as configured today; commit
+   the results table (pass/fail/inert per cell) as the harness's first
+   baseline; wire the harness into the standing acceptance ladder (a
+   session's requal now includes a harness run; document the invocation
+   next to the smoke scripts).
+5. OUTPUTS for the hub: the D38 authoritative inert list (counted,
+   named); any UNDECLARED family whose observed behavior lets a unit be
+   inferred — reported as PROPOSALS for mx26's wire-units.csv, never
+   silently adopted.
+
+Rules: W0 (kernel fixes in item 3 change the image by design — ledger);
+bench restored verified; standing traps; ladder discipline; push main.
+The hub relays the results table and the inert count to PW on landing.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 **PW RULING 2026-08-29 (~17:05): METER FROM THE WIDE WORD — ALL DSP
 METERING.** Every meter taps the SIGNAL'S WIDE FORM at its tap point —
 the accumulator's most-significant 32-bit word (Q8.24 view: sign, full
