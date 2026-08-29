@@ -15,7 +15,7 @@ changes (same bit-exact bar, negative controls). Implementation is its
 own session after the conformance harness (order: session 3 PM+table →
 4 harness → 5 metering); do not bolt it onto a running session.
 
-## HUB DISPATCH 2026-08-29 16:31Z — session 3: program-memory recovery, pair hang, min-Q, the capacity table   [status: 🟡 dispatched]   [model: opus]
+## HUB DISPATCH 2026-08-29 16:31Z — session 3: program-memory recovery, pair hang, min-Q, the capacity table   [status: 🟢 done — **THE MEMORY WALL IS DOWN, FUSED+PAIRED LINKS AND IS MEASURED, THE PAIR HANG IS ROOT-CAUSED, AND THE CAPACITY TABLE IS BUILT — BUT 32 CHANNELS ON ONE CHIP IS NOT REACHED IN ANY MEASURED CONFIGURATION.** **The linker's own shortfall was 0x131a = 4,890 bytes and three measured reclamations returned 16,824: the DLY per-sample body (13,568 — dead under block kernels because that class's block kernel, unlike GATE/COMP/EQ/FILT/TUBE, has no fallback into it and the node file carries no `_process_sample` label at all), `dyn_selftest` (2,240 — gated on DSP4_SIMD_DYN, so the instrument rode in every paired build including a shipping one), and the float-era `lib/dynamics.asm` + `lib/delay.asm` (888 — no caller anywhere since the D5 pivot, placed because the linker places every command-line object).** Chip 1 code free went 15,062 → 29,518 scalar-unfused, 9,882 → 24,338 scalar-fused, 418 → 17,134 paired-unfused, and **−4,890 (would not link) → 11,954 paired+fused**. `tools/dsp/pm_audit.py` is the new instrument that made it a ten-minute question. **THE BIQUAD-PAIR HANG IS A CLOBBERED REGISTER, not a hazard, a loop tail or an interrupt mask: `_bq_fx_cascade_simd` writes r0-r15, and `_bq_pair_blk` read r10/r13/r14 back afterwards for its scatter — r13 returns as 0x10000000 and r14 as 0x08000000, so it wrote a block to address 0x10000000 and entered a hardware loop with lcntr = 0x10000000. 268 million iterations, scribbling, on every call**, which is exactly why the part never looked crashed while BOOT_STAGE sat at 5 and the diag ISR kept answering. Five words of DM fix it; **negative control DSP4_BQP_NOSAVE=1 reproduces the session-2 symptom verbatim**. It also explains both prior eliminations (SKIP_SIMDCALL boots because the registers survive; one stage hung as four did because the corrupt lcntr does not depend on the stage count). **THE PAIRING FACTOR IS 1.43-1.54×, NOT THE 2.39× ON RECORD** — that was measured against the OLD cascade and strip fusion has already taken 32 % out of that baseline; COMP 2.04×, GATE 2.27×, all three arms ndiff 0 of 32. **THE MIN-Q RULING LANDED and it is not free**: n1 halved into Q5.27, product accumulated twice, all four cascade forms, proven ON THE PART by a new asm-vs-MODEL instrument the biquad never had (`dsp4_bq_verify.py`, 0/16 both forms, negative control 15/16). Over the full 869,627-set design space it clears **1,313 of the 1,323 sets that saturated Q4.28** — and **TEN STILL SATURATE (D48, new): a LOW SHELF at 18.9-20 kHz, +14..15 dB, shelf-Q 2.8-3.5, where |n1| reaches 17.835. No encoding at this width reaches them; closing them is a RANGE decision for PW.** The cost is measured: worst LF magnitude error **0.046151 → 0.060560 dB**, unchanged at 0.003479 for f0 ≥ 50 Hz, harness bar moved 0.05 → 0.07 dB, still 6.6× better than shipping FP32. **A six-word block splitting n1 into two Q4.28 halves would give the same range at the same +1 MAC with NO resolution loss and is costed in numeric-spec.md for PW; it is not taken because the ruling names the halved form.** Side effect: D2's reachable |efb| bound IMPROVED to 2^61.648, 1.352 bits, from 2^62.606 and 0.394. **THE TABLE. Ceilings, fused+paired, honest full-rate rule, every point witnessed: block 8 — 16 at 786.432 and 22 at 983.04 signal, 18 and 23 silence; block 32 — 21 and 28 signal, 22 and 28 silence.** Against 12 scalar-unfused, 15 paired-unfused and 16 scalar-fused on the same point. **MARGIN AT 32 IS NEGATIVE IN EVERY ROW**: block 8 at 983.04 goes 213.4 % → 185.2 % → 167.5 % → **138.2 %** of budget across the four configs, block 32 goes 195.4 % → 167.2 % → 140.8 % → **112.4 %**. **The best measured configuration is 12.4 % OVER the budget, not under it** — the gap has gone from about a factor of two to 12.4 %, which is progress and is not a fit. **Two chips is the part that moved: 16/chip is what a D32 split needs and block 8 at 983.04 now reaches 22, against exactly 16 last session.** The two instruments cross-check and share no arithmetic (cycles ratio 1.340 against ceiling ratio 22/16 = 1.375), the per-class profile sums to within 0.9 % of the whole-pair measurement and within 0.1 % of the independent 32-strip count, and **the silence control has almost stopped mattering — one channel at block 8, none at block 32, against the ~29 % it used to flatter by.** Strip total fused+paired **6,580 cycles/block/channel, −35.5 % on the 10,198 it replaces.** **NEXT LEVER, arithmetic not measurement: FILT+EQ is 29.6 % of the strip and the pair kernel is 1.43-1.54×, so wiring a FILT/EQ pair driver takes block 8 at 32 channels to ~125-127 % of budget. It does not reach 32 either.** **D24 re-evaluated: the memory objection is gone (1,124 bytes against 11,942 free) but it buys 0.76 % of a paired strip — below this instrument's ±2 % band and 0.24 of a channel — so it could not move a single row; NOT landed, and the decision is now PW's on value rather than memory.** W0: the PM reclamation left the shipping image byte-identical; the min-Q ruling changes it BY DESIGN — **new baseline chip1.ldr ea4c9f5f, chip2.ldr f0a47584** from 2072e0de/a248d25d. Bars: golden_harness 16/16, bqst 0/16 both arms with the model check and a firing negative control, dynst 0/32 on all three arms, busgold 0 of 256 words, numverify 57/57. **The busgold golden reproducing is a COVERAGE finding, not reassurance: it reproduced because the harness leaves the biquads bypassed, and bypass is bit-identical under the halved encoding by construction, so that golden has no biquad-coefficient coverage at all.** Bench restored to the new baseline, md5-verified on the part, both chips booting with frames arriving and DMA/SPORT clean, matrix-app active with all three MCUs verified on the FIRST restart. CPLD never touched. Commits c081060, 4f74d3e, 6077660, d7193be, a766d18, 8e6c481.]   [model: opus]
 
 model: opus
 
@@ -207,6 +207,338 @@ every kernel sits at its derived floor under the ruled numeric spec (or
 a remaining gap demonstrably costs more than it buys) — the finish line
 is floors reached, and the margin at 32 at that point is the product's
 plugin headroom.
+
+### Outcome 2026-08-29 (session 3) — the memory recovered, the hang root-caused, and the table
+
+Four commits: `c081060` (program-memory reclamation), `4f74d3e` (the
+min-Q ruling), `6077660` (the paired-cascade hang), and the documentation
+commit that carries this block. Finding numbers are from
+`review-dsp-20260828.md`, whose index carries them; D44-D50 are new this
+session.
+
+#### W0, stated before any of it was built
+
+| item | expected image delta | actual |
+|---|---|---|
+| PM reclamation (D45/D46/D47) | none — every reclamation is behind `!DSP4_BLOCK_KERNELS` or a new default-off switch | shipping **byte-identical**, chip1.ldr 2072e0de, chip2.ldr a248d25d |
+| min-Q halved-n1 | **CHANGES THE SHIPPING IMAGE BY DESIGN** — new arithmetic, new bypass literal | **new baseline chip1.ldr ea4c9f5f, chip2.ldr f0a47584** |
+| paired-cascade fix (D44) | probe builds only (`_bq_pair_blk` is behind `DSP4_SIMD_PROBE`) | shipping unaffected |
+
+#### 1-2. Program memory: the wall came down, and the linker's own number closed it
+
+Session 2 stopped because chip 1 would not link fused+paired. The
+shortfall has a measured value — the linker reports **0x131a = 4,890
+bytes** not mapped — and three reclamations, each measured on its own,
+returned **16,824**:
+
+| reclamation | bytes | why it was there |
+|---|---|---|
+| DLY per-sample body (D45) | 13,568 | 424 in each of 32 nodes. GATE/COMP/EQ/FILT/TUBE block kernels call BACK into their per-sample bodies for the sidechain-filter, sample-0 and ramping cases. DLY's does not — it handles every slot, offset and wrap case itself and returns — and the node file carries no `_process_sample` label at all, so the whole tail was unreachable code the linker still had to place |
+| `dyn_selftest` (D46) | 2,240 | gated on `DSP4_SIMD_DYN`, so the instrument rode in every paired build including a shipping one. Now `DSP4_DYN_SELFTEST`, defaulting to `DSP4_SIMD_PROBE` |
+| float-era library (D47) | 888 | `lib/dynamics.asm` and `lib/delay.asm`: no caller anywhere in the tree since the D5 pivot, but the linker places every object on its command line whether it is reachable or not |
+
+Chip 1 code free, block 3 + block 2 together, out of 262,144:
+
+| config | before | after |
+|---|---|---|
+| scalar, unfused | 15,062 | 29,518 |
+| scalar, fused | 9,882 | 24,338 |
+| paired, unfused | 418 | 17,134 |
+| **paired + fused** | **−4,890, would not link** | **11,954** |
+
+The min-Q MAC then took 12 bytes back, leaving 11,942.
+
+`tools/dsp/pm_audit.py` is new and is what made this a ten-minute
+question instead of a guess: it attributes every byte of the code output
+sections to the object that contributed it, rolls objects up by node
+class, and diffs two maps. `dsp_memreport.py` says how much is left;
+this says who is using it.
+
+**The structural lever named in session 2 is still there and is still the
+biggest single item.** RTG is 41,344 bytes of the paired+fused image —
+16.6 %, 1,292 bytes per node across 32 nodes. The indexed-array move that
+took the control-rate gate from ~41 bytes per node to 3 has not been
+applied to the rest of RTG's prep.
+
+#### 3. The biquad-pair hang: a clobbered register, not a hazard (D44)
+
+`_bq_fx_cascade_simd` writes r0-r15 — r4-r8 are the stage's five
+coefficients, r9-r12 its four state words, r13/r14/r15 its constants — so
+nothing `_bq_pair_blk` held in a register survived the call. The code
+after it did `i0 = r10; i1 = r13;` for the signal scatter and rebuilt the
+state length from r14, reading the cascade's leftovers: **r13 comes back
+as 0x10000000 and r14 as 0x08000000, so the scatter wrote a block to
+address 0x10000000 and then entered a hardware loop with
+lcntr = 0x10000000.**
+
+**268 million iterations, scribbling as it went, on every call.** That is
+why the part never looked crashed: the diag ISR kept answering the link
+while BOOT_STAGE sat at 5 and `done` never went to 1. It was not hung; it
+was inside a quarter-billion-iteration loop.
+
+It accounts for both eliminations already on record. `DSP4_SKIP_SIMDCALL=1`
+boots because the registers then survive. One stage hung exactly as four
+did because the corrupt lcntr does not depend on the stage count. And the
+paired dynamics — same PEYEN, no interrupt mask — never hung, because
+their drivers carry no pointers across the paired kernel.
+
+Fix: five words of DM at block rate. **Negative control in the tree:**
+`DSP4_BQP_NOSAVE=1` skips the reload and reproduces the session-2 symptom
+verbatim — "never reached stage 6" on all three attempts, where the same
+image with it at 0 completes.
+
+**And the pairing factor is now measurable.** dynst.sh, block 8, 983.04,
+two runs, all three arms `ndiff = 0 of 32` against their scalar twins:
+
+| arm | scalar | paired | factor |
+|---|---|---|---|
+| COMP | 412.5 c/s/channel | 202.5 | 2.04× |
+| GATE | 255.0 | 112.5 | 2.27× |
+| BQ4 | 150.0 | 97.5–105.0 | 1.43–1.54× |
+| BQ2 | 75.0 | 52.5 | 1.43–1.57× |
+
+**The biquad pairing factor is 1.4–1.5×, not the 2.39× on record.** The
+2.39× was measured against the OLD block cascade; strip fusion then took
+32 % out of that baseline, so most of what pairing used to buy has already
+been bought. The spread is tick quantisation — the paired arm is 13-14
+ticks against a 1-tick null loop, so one tick is 7 %.
+
+**It is NOT wired into the graph.** `_bq_pair_blk` is still behind
+`DSP4_SIMD_PROBE` and only the self-test calls it, so the paired ceilings
+below pair the DYNAMICS only. Wiring a FILT/EQ pair driver is the next
+lever and it now has a number instead of a hang.
+
+#### 4. The min-Q ruling landed, and it is not free
+
+n1 = b1 + 2·b0 is stored HALVED in Q5.27 and its product accumulated
+twice into the exact 80-bit MRF, in all four cascade forms and in
+`fixed_ref.biquad`. `_bq_fx_convert_N` scales by 2^27 instead of 2^28 —
+the halving is the existing multiply, not a new instruction, and the
+constant goes in f1 rather than a hoisted f9 because the register file is
+unified and `r9 = fix f5` one line earlier would have destroyed it.
+
+**Proven on the part, with an instrument the biquad did not have.**
+`bq_selftest` only ever diffed two asm cascades against each other, which
+proves they agree, not that either is the ruled arithmetic (review finding
+D35). `tools/pi/dsp4_bq_verify.py` reads the self-test's own coefficients,
+stimulus and both result buffers off the DSP and re-runs `fixed_ref` over
+the same words:
+
+| build | ref vs blk | ref vs MODEL | blk vs MODEL | NEGCTL |
+|---|---|---|---|---|
+| FUSED=1 | 0/16 | 0/16 | 0/16 | 15/16 differ, first at sample 1 |
+| FUSED=0 | 0/16 | 0/16 | 0/16 | 15/16 differ, first at sample 1 |
+
+The negative control is the pre-ruling single-accumulation model. It
+fires, so the stimulus does exercise n1 and the match means something.
+
+**What it fixes**, over the full swept design space that
+`bound_efb.design_space` enumerates — 869,627 quantised sets: **1,323
+reached |n1| ≥ 8 and saturated Q4.28**, silently becoming a different
+filter. Q5.27 clears **1,313** of them.
+
+**TEN STILL SATURATE, and it is a new finding (D48).** The largest |n1|
+in the space is **17.835**, and it is not the peaking corner the ruling
+was written for: it is a LOW SHELF at 18.9–20 kHz, +14…15 dB, shelf-Q
+2.8–3.5. No encoding at this width reaches them. Closing them is a RANGE
+decision for PW — bound low-shelf f0, or a third bit and a third MAC.
+
+**What it costs, measured**: worst magnitude error against float64
+**0.046151 → 0.060560 dB**, both at f0 = 20 Hz / −12 dB / Q = 4, and
+**unchanged at 0.003479 dB for f0 ≥ 50 Hz** — the cost lands only at LF,
+which is exactly where the offset form's benefit lives. golden_harness's
+bar moved 0.05 → 0.07 dB to match; still 6.6× better than the shipping
+FP32 firmware's 0.4 dB on the same case. Harness 16/16.
+
+**An option PW should see, because the ruling was written believing the
+encoding was free.** A six-word coefficient block splitting n1 into two
+Q4.28 halves that sum EXACTLY to `round(n1·2^28)` gives the same doubled
+range at the same +1 MAC with NO resolution loss — the arithmetic would
+stay bit-identical to the pre-ruling kernel wherever n1 already fitted,
+and only the saturating sets would change. It costs one DM word per stage
+(EQ: 4 stages × 3 buffers × 32 nodes = 384 words per chip, against 177 KB
+free) and changes the internal coefficient stride from 5 to 6. Costed in
+`numeric-spec.md`. Not taken here because the ruling names the halved
+form.
+
+**A side effect on D2, and it is an improvement**: the reachable |efb|
+bound re-measures at **2^61.648, 1.352 bits of margin (2.553×)**, against
+2^62.606 and 0.394 bits. The old worst set was one of the 1,323 whose n1
+saturated, so what that bound measured there was a more extreme filter
+than the settings ask for.
+
+Minimum Q = 0.10 is enforced where this repo converts — `fixed_ref
+.check_q` and `dsp_simulate.check_q` REJECT, they do not clamp. **The
+product-side (f0, Q, gain) → RBJ conversion lives outside this repo and
+needs the same floor**; that is a hub item.
+
+#### 5. D24 re-evaluated: the memory objection is gone, the cycle case is not made
+
+The paired+fused build now has 11,942 bytes free against the 1,312 that
+blocked it, so the ~1,124-byte gate fits with room. What has not changed
+is what it buys: **~9 cycles/sample against a paired strip of ~1,187, i.e.
+0.76 %** — below the ±2 % band this profiling instrument has always shown,
+and 0.24 of a channel against ceilings whose granularity is one channel in
+22 (4.5 %). **Landing it could not move a single measured row in the table
+below.** NOT landed. The decision is now PW's on grounds of value rather
+than of memory, and it is stated that way in the review index rather than
+quietly deferred.
+
+#### 6. THE CAPACITY TABLE — the deliverable
+
+Full detail is in `MW/D32/DSP/dsp4-cycle-budget.md` (new top section) and
+`dsp4-function-costs.csv` (block-tagged rows). The harness is new:
+`captable.sh` builds the whole point matrix in parallel and then walks the
+bench once, because the bench is the only serial resource and a table's
+points are all known up front.
+
+**Ceilings, channels per chip, fused + paired, honest full-rate rule,
+every point witnessed (all N gates OPEN and all N compressors ACTIVE for a
+signal row, all N SHUT and unity for a silence row):**
+
+| | 786.432 MHz | 983.04 MHz |
+|---|---|---|
+| BLOCK 8, signal | **16** | **22** |
+| BLOCK 8, silence | **18** | **23** |
+| BLOCK 32, signal | **21** | **28** |
+| BLOCK 32, silence | **22** | **28** |
+
+Block 8 at 983.04 signal present was 12 scalar-unfused and 15
+paired-unfused on 08-28, and 16 scalar-fused in session 2. **It is now 22.**
+
+**MARGIN AT 32 CHANNELS**, cycles per graph pass at 32 strips, signal
+present, graph decimated so it completes whether or not it fits:
+
+| config | BLOCK 8 (budget 163,840) | BLOCK 32 (budget 655,360) |
+|---|---|---|
+| scalar, unfused | 349,555 — 213.4 % | 1,280,847 — 195.4 % |
+| scalar, fused | 303,355 — 185.2 % | 1,095,628 — 167.2 % |
+| paired, unfused | 274,419 — 167.5 % | 922,754 — 140.8 % |
+| **paired + fused** | **226,462 — 138.2 %** | **736,848 — 112.4 %** |
+
+At 786.432: 174.0 % at BLOCK 8, 140.6 % at BLOCK 32.
+
+**THE MARGIN AT 32 IS NEGATIVE IN EVERY MEASURED CONFIGURATION.** The best
+is BLOCK 32 at 983.04 fused and paired, and it is **12.4 % OVER budget**.
+Nothing measured reaches 32 channels on one 21564. What can be said is
+that the gap has gone from about a factor of two to 12.4 %.
+
+**Two chips is the part that moved.** A two-chip D32 needs 16 per chip; at
+block 8 and 983.04 the ceiling is 22, against exactly 16 in session 2.
+
+**The two instruments agree and share no arithmetic.** Ratio of cycles at
+32 strips, scalar-fused against paired-fused: **1.340**. Ratio of the
+ceilings those configs reach at block 8 / 983.04: **22/16 = 1.375**. Three
+per cent apart.
+
+**The silence control has almost stopped mattering** — one channel at
+block 8, none at block 32, against the ~29 % it used to flatter a ceiling
+by. Pairing moved the dynamics off the branch silence was cheating on.
+
+**Per-class re-profile, fused + paired, block 8, 983.04, cycles/block per
+channel** (the pair-ordered chain gives A and B as two independent
+readings of every scalar class in the same run):
+
+| class | A | B | mean | c/sample |
+|---|---|---|---|---|
+| IN | (in baseline) | 28 | 28 | 3.5 |
+| GAIN + meter | 338 | 343 | 340.5 | 42.6 |
+| FILT | 657 | 650 | 653.5 | 81.7 |
+| EQ | 1,321 | 1,273 | 1,297 | 162.1 |
+| GATE pair | 2,609 for TWO | | 1,304.5 | 163.1 |
+| COMP pair | 3,801 for TWO | | 1,900.5 | 237.6 |
+| TUBE | −75 (noise) | 68 | 34 | 4.2 |
+| DLY | 492 | 481 | 486.5 | 60.8 |
+| FDR | 225 | 218 | 221.5 | 27.7 |
+| RTG | 363 | 378 | 370.5 | 46.3 |
+| **STRIP TOTAL** | | | **6,580.5** | **822.6** |
+
+Against the 10,198 cycles/block unfused-and-unpaired strip: **−35.5 %**.
+
+**The instrument cross-checks itself three ways on this run.** A against B
+on the same class: 1.1–4.0 % apart. Sum of parts against the whole-pair
+difference: 6,636 against 6,580, **0.9 %**. Per-class total against the
+independent 32-strip cycle count: 32 × 6,580 = 210,576 against 226,462 for
+the whole graph, the 15,886 difference being the fixed per-block overhead
+and the bus fabric a node-limited chain cuts off (the limit-1 point alone
+is 8,528).
+
+**The next lever, and it is arithmetic on measured parts rather than a
+measured row:** FILT + EQ is 1,950 of the 6,580 cycles/block/channel —
+**29.6 % of the strip** — and the biquad pair kernel measures 1.43–1.54×
+against the fused cascade. A FILT/EQ pair driver would take the 32-channel
+block-8 figure from 226,462 to roughly 205,000–208,000, i.e. 125–127 % of
+budget against 138.2 % today, before the gather/scatter a driver adds. **It
+does not reach 32 either.**
+
+#### Acceptance bars run this session
+
+| bar | result |
+|---|---|
+| `golden_harness.py` | **16/16** (the biquad LF bar moved 0.05 → 0.07 dB, with the measurement that moved it) |
+| `bqst.sh`, both FUSED arms | ref vs blk **0/16**, ref vs MODEL **0/16**, blk vs MODEL **0/16**, negative control fires 15/16 |
+| `dynst.sh` | COMP, GATE and BQ4 all **ndiff 0 of 32**; the pair hang is gone and its negative control reproduces it |
+| `busgold.sh` vs `busgraph-prebatch-20260829.json` | **0 of 256 words differ, sha256 identical** |
+| `numverify.sh pos` | **57 of 57 vectors bit-exact** against fixed_ref; third-word cost re-reads +2.016 c/MAC |
+| `bound_efb.py` | full 869,627-set sweep re-run; the reachable bound improved to 2^61.648 |
+
+**The busgraph golden reproducing is worth reading carefully rather than
+as reassurance.** The min-Q change alters biquad coefficient words, so a
+capture that exercised a real filter could not have reproduced. It
+reproduced because the harness leaves the biquads at their BYPASS
+coefficients, and bypass is bit-identical under the halved encoding by
+construction — n1 = 2.0 becomes nh = 1.0, and 2 × 0x10000000 is exactly
+0x20000000. **So that golden has no biquad-coefficient coverage at all**,
+which is worth knowing before it is cited as one. The instrument that CAN
+see this change is `dsp4_bq_verify.py`, and its negative control does.
+
+The same run re-establishes the D22 control-rate gate transitively: the
+gated build (`DSP4_CTL_ALWAYS=0`) reproduces word for word a capture taken
+on 87fded2, before the gate existed. `ctlgate.sh` itself was attempted and
+abandoned — the diag link had been through some sixty boot cycles by then
+and no arm could get a clean capture in five attempts each.
+
+#### Bench hand-back
+
+Shipping images restored and **verified by md5 on the bench**: chip1.ldr
+**ea4c9f5f**, chip2.ldr **f0a47584** — the new baseline this session
+created, not the one it started with. Both parts boot on them: MAGIC
+0xD5B40001 on both, FRAME_COUNT advancing (33,102 and 34,454 on the
+restore pass), DMA0_STAT 0x00006200, SPORT0_ERR_A 0x00000000. matrix-app
+**active on the FIRST restart with all three MCUs verified** —
+20:24:45 for H1S1, H1S4 and H1S3, and again at boot-verified 20:24:51.
+CPLD never touched. GPIOs released.
+
+**Stated rather than glossed:** the STANDALONE `dsp4_config.py` path did
+not commit — BOOT_STAGE stayed at 5 across five boot+config attempts at
+the end of the session. That is the same signature session 1 recorded on
+its own restore ("both parts boot to BOOT_STAGE 5 with frames arriving"),
+matrix-app performs its own configuration, and the standalone path
+succeeded repeatedly earlier tonight on these same parts. It is recorded
+as a link that degrades over a long session of reboots, not as a property
+of the new image.
+
+#### What was NOT done, and why
+
+- **FILT/EQ pairs are not wired into the graph.** The hang is fixed and
+  the factor measured, but `_bq_pair_blk` is still probe-only. The
+  dispatch anticipated this ("the table ships with dynamics-only pairs").
+- **D24 not landed** — see item 5. It fits now; it buys 0.76 %.
+- **The GAIN fold (D20) is unblocked but not taken here.** PW's
+  wide-word metering ruling landed at ~17:05, mid-session, and closes the
+  question this session's numbers were measured under. Every figure above
+  therefore still carries GAIN's round/saturate and its tap store, and the
+  ruling schedules the metering rework as its own session after the
+  conformance harness. `dsp4-function-costs.csv` puts GAIN + its meter at
+  340.5 cycles/block/channel, 42.6 per sample, which is the number that
+  work starts from.
+- **`ctlgate.sh` not re-run to completion** — bench link, above. Its claim
+  is re-established transitively by the busgold run.
+- **Chip 2** untouched, as directed (review finding D16), and D50 is new:
+  its `C2_AUX_DLY_*` nodes take the non-pool DLY template and so have no
+  block kernel at all.
+
+---
 
 ### Outcome 2026-08-29 (fix session 2) — the efficiency batch, and the wall it ran into
 
