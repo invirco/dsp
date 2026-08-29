@@ -8755,9 +8755,19 @@ def gen_dyn_pairs(chip_label, strips, meter_src):
 
     if odd_left is not None:
         a('')
+        _odd_pool = '_P1 (odd)' if odd_left % 2 else 'base (even)'
         a(f'/* strip {odd_left} has no partner: it runs its two dynamics nodes')
-        a(' * scalar, in place in the chain, on the EVEN pool. Nothing is')
-        a(' * emitted here for it. */')
+        a(' * scalar, in place in the chain. Nothing is emitted here for it.')
+        a(' *')
+        a(' * WHICH POOL: pool parity follows the STRIP NUMBER, not the')
+        a(' * position in the pair list -- see `if sn % 2` below, which puts')
+        a(' * every odd-numbered strip on _P1. The unpaired tail is the')
+        a(' * highest strip number of an odd-sized set, so it is odd, so it')
+        a(f' * runs on the {_odd_pool} pool. (This comment said "the EVEN')
+        a(' * pool" until 2026-08-29 -- review finding D9. Dead today: 32')
+        a(' * strips pair evenly and each node file is generated')
+        a(' * self-consistently either way, but it would have misled the')
+        a(' * first odd-count product.) */')
 
     a('')
     a('#if DSP4_GATE_LINTHR')
