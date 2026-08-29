@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-08-29 08:46Z — fix session 1: wraps and shipping correctness (D1-D6, hygiene)   [status: 🟡 dispatched]   [model: opus]
+## HUB DISPATCH 2026-08-29 08:46Z — fix session 1: wraps and shipping correctness (D1-D6, hygiene)   [status: 🟢 done — **ALL TEN ITEMS LANDED; THE SEVERE IS FIXED, MEASURED AND PROVEN ON THE PART.** **D1**: the bus accumulators are 80-bit triples [lo, hi, ex] — MR2F was discarded on store and rebuilt from the sign of `hi` on load, capping them at 64-bit Q8.56 = ±128.0 with nothing saturating them, and the readout's saturation check then ran on a value that had ALREADY wrapped, so a wrapped bus sum came out as a clean, full-scale, WRONG-SIGN sample. **The fix shape is mr2f-store, not a saturating accumulate, and the trade is written down: saturating at ±128 clips a PARTIAL sum, so a bus whose contributions cancel returns the wrong answer order-dependently, while 80 bits sums exactly and leaves the single ruled round at readout.** Cost MEASURED, not argued: **+2.003 cycles/MAC per-sample and +2.005 in the block kernel** (200k iterations against TCOUNT+tick at 491.52 MHz) — +2 for both even though the block form costs three more instructions, because the extra load and store pipeline against each other, which the instruction count did NOT predict. Against ~5–6 for a saturating accumulate: cheaper AND stronger. D23 will take the +2 back. Normative bound now in numeric-spec: |Σ| ≤ 4096 = 2^12 against 2^23, eleven bits, wrap unreachable. **D3**: the crossfade blend forms `new − old` as two MRF MACs — same instruction count, identical arithmetic wherever the 32-bit subtract did not wrap — and the five duplicated copies now come from ONE generator expression, which is also what emits the self-test's probe. **THE PROOF IS A NEW INSTRUMENT AND IT CUTS BOTH WAYS: numverify.sh + the generated lib/num_selftest.asm + tools/pi/dsp4_num_verify.py run the REAL `_acc64_mac`/`_acc64_rns28` and the generated blend over 15 mix and 42 blend vectors that straddle both boundaries — 57 of 57 BIT-EXACT against fixed_ref, per-sample AND block-kernel builds; DSP4_NUM_NEGCTL=1 puts the pre-fix arithmetic back in the same image and 31 of 31 boundary vectors are DETECTED with 26 of 26 non-boundary vectors untouched.** **THE PART CORRECTED THE MODEL ONCE, and it is worth the record: the alpha quantisation is FLOAT32, not float64** — modelling it in float64 disagreed by 15 LSB at alpha = 1−1/576. Also measured: `fix(2^31)` returns 0xFFFFFFFF on this core, not a saturated 0x7FFFFFFF; alpha = 1.0 is unreachable because the kernel's own ramp guard cannot present it, and numeric-spec now says a change to that ramp must preserve alpha < 1.0. **D2**: bounded, not fixed, with the arithmetic in tools/dsp/bound_efb.py. The pessimistic bound does NOT close inside the product's own design space (worst S = 38.56 → |acc| ≤ 2^64.27 > 2^63), so a conversion-time clamp on Σ|coeff| is CLOSED as an option — it would reject settings the DEFS allow. The REACHABLE bound, from full-scale adversarial drive on the worst sets, is **|efb| = 2^62.606 — 0.394 bits of margin, and it is recorded as thin**; growth needs sustained output saturation, and away from saturation |efb| ≤ 2^27, thirty-six bits clear. The option not taken (saturate the store at ±(2^63−1), bit-identical in the reachable domain, ~3 instr/stage/sample) is stated for PW and pointed at D21's rework. **One new finding from the same corner: at +15 dB with Q ≤ 0.12 the peaking design gives n1 = 8.318, which does not fit Q4.28 and SATURATES at conversion — 1323 of 909,315 swept sets, the filter silently becomes a different filter.** **D5**: fixed by resolving the chain order FROM THE GRAPH in the generator, with a minimal stable repair and a hard error on a cycle, plus the same check as an INDEPENDENT instrument in dsp_validate.py. Both agree: 4 edges on chip 2, 0 on chip 1, no cycle; the cycle path is negative-controlled. **The audible consequence is stated honestly and it is NOT the one-sample comb the finding predicted: nothing writes those two buffers at all** — no scatter, no XFER, no SPI cell — so USB and BT contribute silence regardless of order. The skew is what the defect BECOMES when the D24 USB/BT path is wired. Chip 1 is byte-identical through it, which is the control. **D6**: the legacy peak decay is derived from DSP4_BLOCK_RATE — 0.99950 was derived for 1500 blocks/s and applied at 6000, so the documented 1.33 s peak hold decayed in 0.333 s, −26.07 dB/s instead of −6.5, IN THE SHIPPING IMAGE. Proven at bit level: elfdump finds 0x3F7FF7CE exactly once and the old 0x3F7FDF3B nowhere. **Hygiene, one commit each**: D8 (the dead routines went, and `_biquad_cascade_N` was worse than a loop hazard — its `rts` WAS the loop-end, so an N-stage float cascade ran ONE stage; rewritten because the float generator emits 22 calls to it), D9 (comment, tree byte-identical), D10 (ghost-cell ramp frames were 4× short at BLOCK=8; now imported from dsp_codegen and the two sides agree — DSP 18/48, 60/180, 72/72, 36/120 — where ghost_cells had 4/12, 15/45, 18/18, 9/30), D11 (image byte-identical), D12 (a `#if DSP4_BLOCK_SIZE != N / #error` in all four baking files; **negative control: dsp_block.h edited to 16 now FAILS the build in all six translation units, where before it built cleanly and wrote past the bus accumulators**). Harness 9/9 → **16/16**, D36's stale count corrected on the way. **W0, stated up front and honoured: D1, D3, D5 and D6 change the shipping image BY DESIGN; D8 shrinks it by 320 bytes of dead PM; D9, D11 and D12 are byte-identical, and D10 touches no SHARC image at all.** New shipping baseline **chip1.ldr 2072e0de, chip2.ldr a248d25d** (from 45f5f2dd / f6733b6d). The self-test costs the default image nothing. **Bench restored to the new baseline and verified: both parts boot to BOOT_STAGE 5 with frames arriving, matrix-app active, all three MCUs verified 11:27:15 on the FIRST restart.** CPLD never touched. **One thing checked rather than assumed: BLK_OVERRUN ≈ FRAME_COUNT at BOOT_STAGE 5 on both chips — the PRE-SESSION image (45f5f2dd, rebuilt from fdae4b5 in a worktree and flashed as a control) does exactly the same, so it is pre-existing and untouched by this session.** NOT started, as directed: D20–D25, the biquad hang, fused+paired measurements.]   [model: opus]
 
 model: opus
 
@@ -60,6 +60,253 @@ every kernel sits at its derived floor under the ruled numeric spec (or
 a remaining gap demonstrably costs more than it buys) — the finish line
 is floors reached, and the margin at 32 at that point is the product's
 plugin headroom.
+
+### Outcome 2026-08-29 (fix session 1) — the wraps, and what the part said about them
+
+Ten items, ten commits, `fdae4b5..87fded2`. Every finding number below is
+from `review-dsp-20260828.md`, whose index now carries the commit for
+each.
+
+#### W0, stated before any of it was built
+
+| item | expected image delta | actual |
+|---|---|---|
+| D8 | shrinks (dead PM removed), no behaviour change | −320 bytes both chips |
+| D9, D11, D12 | none | byte-identical |
+| D10 | none (MCU-side artifact) | no SHARC change |
+| D5 | chip 2 only, BY DESIGN | chip 2 moved, **chip 1 byte-identical** |
+| D6 | both chips, BY DESIGN (shipping ballistics) | both moved |
+| D1, D3 | both chips, BY DESIGN (shipping arithmetic) | both moved |
+
+Baseline `chip1.ldr 45f5f2dd, chip2.ldr f6733b6d` (the md5s the SIMD
+graph-wiring session recorded, reproduced from a clean tree at the start
+of this one). New shipping baseline **`chip1.ldr 2072e0de,
+chip2.ldr a248d25d`**.
+
+#### D1 (SEVERE) — the bus accumulators
+
+`_acc64_mac` and `_acc64_mac_blk` accumulated in the 80-bit MRF and
+stored MR1F:MR0F, discarding MR2F and rebuilding it from the sign of
+`hi` on the next load. That is a 64-bit Q8.56 store, range ±128.0, with
+nothing saturating it — and the readout's saturation check then ran on a
+value that had already wrapped, so a wrapped sum passed as a clean
+sample. Reachable: one contribution reaches 64.0 (strip exit ±7.999 ×
+crosspoint coefficient ±7.999), so three cross it; 32 coherent channels
+at full scale exceed it by 16× and read back as −32 LSB, which is to say
+SILENCE.
+
+**The fix shape, chosen and written down.** Three words per accumulator
+slot, `[lo, hi, ex]` — the whole MRF — not a saturating 64-bit
+accumulate. Saturating at ±128.0 clips a PARTIAL SUM: a bus whose
+contributions cancel (+100 and −100) has a legitimate small answer and a
+saturating accumulate returns the wrong one, order-dependently.
+Exactness and order-independence are what a wide accumulator is for, and
+the ruled single round stays at readout where the spec puts it.
+
+**The cost, MEASURED.** `numverify.sh`'s timing arm, 200,000 iterations
+per arm against TCOUNT plus the 1 kHz tick (ticks alone quantise to
+2.46 cycles/MAC and cannot see this), 491.52 MHz:
+
+| form | pre-fix | fixed | delta |
+|---|---|---|---|
+| `_acc64_mac` (per-sample) | 27.073 | 29.076 | **+2.003 cycles/MAC** |
+| `_acc64_mac_blk` (block) | 15.290 | 17.296 | **+2.005 cycles/MAC** |
+
++2 for both, although the block form costs THREE more instructions — the
+extra load and store pipeline against each other. The instruction count
+predicted +3 and was wrong, which is the reason the dispatch asked for a
+measurement. Against ~5–6 for a saturating accumulate (the MV test plus
+a conditional 64-bit clamp): cheaper and stronger. Memory is +1 word per
+slot — 25 words per-sample, 200 at BLOCK=8. Finding D23 deletes the
+memory round-trip from the block form entirely and takes this +2 with
+it.
+
+`fixed_ref.mix_sum` now saturates at the 80-bit boundary instead of
+using unbounded ints. That is PW's saturate-never-wrap ruling applied to
+a wider-than-32 touchpoint, and it is what let the model see D1 at all —
+until 2026-08-29 the model was RIGHT and the assembly was wrong, and no
+golden vector went near the boundary. The bound is in
+`shared/numeric-spec.md`: a bus takes ≤ ~64 contributions each ≤ 64.0,
+so |Σ| ≤ 4096 = 2^12 against the store's 2^23 — eleven bits, 2048×.
+
+#### D3 — the crossfade blend
+
+`r5 = r0 - r14` wrapped when the two dual-instance outputs straddled
+full scale mid-swap. It is now `mrf = new*alpha; mrf = mrf - old*alpha`:
+the same two instructions, the difference never formed in 32 bits, and
+identical arithmetic everywhere the subtract did not wrap. The five
+duplicated copies (EQ, the GEQ/AFB helper, FILT, both crossover legs)
+now come from ONE generator expression, `_xfade_blend_core()`, which is
+also what emits the self-test's probe — so the instructions proved
+bit-exact are the instructions 66 nodes run. The refactor is
+comment-only in emitted bytes, verified by md5.
+
+The blend had no model at all (D33). It has one now, with the final
+add's non-overflow as a proven bound rather than an assumption.
+
+#### THE INSTRUMENT, and it cuts both ways
+
+`MW/D32/DSP/SHARC/numverify.sh` → `src/lib/num_selftest.asm` (generated)
+→ `tools/pi/dsp4_num_verify.py`. Vectors live once, in
+`tools/dsp/boundary_vectors.py`, and are consumed by the golden harness,
+the generated `.var` tables and the Pi-side reader — nobody retypes a
+number. 15 mix vectors (7 across the 64-bit boundary, including 128 ×
+1.0 which lands EXACTLY on it and 127/129 either side) and 42 blend
+vectors (24 across the 32-bit difference).
+
+    POSITIVE   57 of 57 BIT-EXACT against fixed_ref, in a per-sample
+               build and in a DSP4_BLOCK_KERNELS build
+    NEGATIVE   DSP4_NUM_NEGCTL=1 puts the pre-fix arithmetic back in the
+               SAME image: 31 of 31 boundary vectors DETECTED, 26 of 26
+               non-boundary vectors untouched
+
+The negative control's bar is "differs from the fixed model on exactly
+the vectors that cross a boundary, and matches it everywhere else" — a
+control that merely fails proves little.
+
+**Two things the part corrected, both worth the record:**
+
+1. **The alpha quantisation is FLOAT32.** The parameter plane is float32
+   by ruling, so alpha is a float32 and `f4 = f4 * f5` is a float32
+   multiply by 2^31 before `fix`. Modelling it in float64 disagreed with
+   the part by 15 LSB at alpha = 1 − 1/576; float32 agrees on every
+   vector. `fix(2^31)` was measured to return 0xFFFFFFFF on this core,
+   not a saturated 0x7FFFFFFF — but alpha = 1.0 is unreachable, because
+   the kernel stores the advanced alpha only while it is still below
+   1.0 and otherwise ends the fade. numeric-spec now says so, and says
+   any change to that ramp must preserve alpha < 1.0.
+2. **An unvoted `peek` produced a false mismatch** and cost a round of
+   theorising about SHARC MAC saturation before a re-read showed the
+   model had been right. A dropped answer on this link comes back as a
+   well-formed stale word, not as an error. Every result word is now
+   read until the same value returns twice.
+
+#### D2 — bounded, not fixed, and the margin is thin
+
+`tools/dsp/bound_efb.py` reproduces all of it.
+
+- **Provably safe region:** when the stage does not saturate,
+  `efb = acc − (y<<28)` IS the rounding remainder, |efb| ≤ 2^27 —
+  thirty-six bits below the store. Growth needs the saturation branch.
+- **The pessimistic bound does not close.** With the four state words
+  independent at ±8.0 and adversarial signs, |acc| ≤ 8·S·2^56 where
+  S = 4|b0|+|n1|+|n2|+|c1|+|c2|+3. Over the product's own DEFS ranges
+  (f0 20 Hz–20 kHz, ±15 dB, Q 0.1–10) the worst S is **38.56** →
+  |acc| ≤ 2^64.27, above 2^63. **So the conversion-time clamp option is
+  CLOSED**: it would have to demand S ≤ 16 and would reject settings the
+  contract allows.
+- **The reachable bound, measured:** full-scale adversarial drive
+  (random ±FS, square at f0, DC; 200 k samples per set; a greedy
+  per-sample adversary as a cross-check) on the worst design-space sets
+  gives **|efb| = 2^62.606** at f0 = 14.16 kHz, +15 dB, Q = 0.1.
+  **0.394 bits of margin (1.314×), and it is recorded as thin.**
+
+Consequence of exceeding it is not a rounding error: a wrapped efb of
+order 2^63 re-enters the next accumulation as ~2^35 in Q4.28 and pins
+the stage output at full scale until the state washes out. The option
+NOT taken — saturate the efb store at ±(2^63−1), bit-identical in the
+reachable domain, ~3 instructions per stage per sample — is in
+numeric-spec for PW, pointed at D21's biquad rework where it is cheaper
+to fold in than to add now.
+
+**ONE NEW FINDING, from the same corner.** At +15 dB with Q ≤ 0.12 the
+peaking design gives `n1 = b1 + 2·b0` up to **8.318**, which does not fit
+Q4.28 and SATURATES at conversion — the filter silently becomes a
+different filter. 1323 of 909,315 swept design-space sets, all in that
+corner. Recorded beside the bound; the missing coverage for
+`_bq_fx_convert_N` is D27.
+
+#### D5 — chip-2 process order, and what it actually cost
+
+Fixed by resolving the chain order FROM the graph (`dsp.csv` inputs) in
+the generator: a minimal, stable repair that keeps CSV order except
+where a dependency forces a move, and a hard error on a cycle rather
+than a quiet linearisation. `dsp_validate.py` gains the same check as an
+INDEPENDENT instrument. Both agree — 4 edges on chip 2, 0 on chip 1, no
+cycle — and the cycle path has its own negative control (an edited
+`dsp.csv` makes the validator name the cycle and the generator raise).
+
+**The audible consequence, stated honestly, is not the one-sample comb
+the finding predicted.** Nothing writes `_buf_C2_USB_IN` or
+`_buf_C2_BT_IN` at all: chip 2's scatter handles only the 37 inter-chip
+receives, no XFER node targets them, no SPI cell writes them, and the
+AUX_INPUT kernel reads and rewrites its own buffer in place. From reset
+the value is 0 and stays 0, so USB and BT contribute silence to the main
+mix regardless of call order. The skew is what the defect BECOMES the
+moment those inputs are wired — the D24 USB/BT path is exactly that —
+and the wrong-graph-order CLASS is what the fix retires. That the two
+nodes are inert at all belongs to D38.
+
+Chip 1 had zero violations, so the repair is a no-op there and chip1.ldr
+is byte-identical through the change. That is the control.
+
+#### D6 — the legacy peak decay, in the shipping image
+
+`_meter_decay = 0.99950` was derived for 48 kHz/32 = 1500 blocks/s and
+applied once per block at 6000. Ballistics at the shipping operating
+point: **τ = 0.3332 s, −26.07 dB/s**, against the file's own documented
+1.33 s and −6.5 dB/s. It now takes `DSP4_MTR_DECAY_F32` from the
+generated `dsp_block.h`, computed as exp(−1/(rate·τ)) from
+`fixed_ref.METER_TAU_PEAK_S` — the same time constant the rebuilt
+in-kernel meter's `DSP4_MTR_BETA_Q` uses, so the two meters now agree by
+construction. **τ = 1.3327 s, −6.52 dB/s.** Proven at bit level: elfdump
+of chip1.dxe finds 0x3F7FF7CE exactly once, in the initialiser for the
+word `_meter_decay_block` reads, and the old 0x3F7FDF3B nowhere.
+
+#### Hygiene, one commit each
+
+- **D8** the dead block routines went (~90 instructions of PM plus an
+  8-word scratch, linked into every shipping image). `_biquad_cascade_N`
+  was worse than the loop hazard D8 named: its `rts` WAS the loop-end
+  instruction, so `do .cascade_loop until lce` executed the return on
+  the FIRST iteration — an N-stage float cascade ran ONE stage and
+  returned from inside a live hardware loop. It is REWRITTEN rather than
+  removed, because the archived `--format float` generator emits 22
+  calls to it and deleting the symbol would only move the failure to the
+  link. Verified: float generation still produces an assembling EQ node.
+- **D9** comment corrected to `_P1`, with the rule (pool parity follows
+  the strip NUMBER) rather than the conclusion. Tree byte-identical.
+- **D10** ghost-cell ramp frames were computed against a hardcoded
+  0.667 ms — the BLOCK-32 frame period — so every count in
+  `ghost_cells.c` was 4× short at BLOCK=8. `gen_dsp.py` now imports
+  BLOCK/FRAME_MS/ms_to_frames from `dsp_codegen.py` and fails loudly if
+  it cannot. The two sides now agree, and did not before: DSP
+  `ramp_tables.asm` has always carried 18/48, 60/180, 72/72, 36/120;
+  `ghost_cells.c` carried 4/12, 15/45, 18/18, 9/30.
+- **D11** four dead defines removed; image byte-identical.
+- **D12** a `#if DSP4_BLOCK_SIZE != <generation BLOCK> / #error` is now
+  emitted into every generated file that BAKES a size —
+  `bus_accumulators.asm`, `ramp_tables.asm` and both `lane_config.c`
+  (two of which did not include `dsp_block.h` at all). **Negative
+  control: `dsp_block.h` edited to 16 with the tree still generated at 8
+  now FAILS the build, rc=1, all six translation units naming the
+  #error. Before this commit the same edit built cleanly and produced an
+  image that writes past the bus accumulators.**
+
+`golden_harness.py` is **16/16** (was 9/9 in the spec's stale count —
+D36 — then 10/10). The two new families carry structural negative
+controls: the pre-fix arithmetic must get wrong EXACTLY the vectors
+predicted to cross a boundary, and the predicted set is computed from
+the vectors rather than written down, so a vector added later cannot
+quietly stop testing anything.
+
+#### Bench
+
+Restored to the new baseline and verified: `chip1.ldr 2072e0de,
+chip2.ldr a248d25d` flashed, both parts boot to BOOT_STAGE 5 with frames
+arriving, matrix-app active, **all three MCUs verified 11:27:15 on the
+FIRST restart**. CPLD never touched.
+
+**One thing checked rather than assumed.** BLK_OVERRUN reads ≈
+FRAME_COUNT on both chips at BOOT_STAGE 5. The PRE-SESSION image
+(45f5f2dd, rebuilt from `fdae4b5` in a throwaway worktree and flashed as
+a control) does exactly the same, so it is pre-existing and untouched by
+this session. Not chased further here.
+
+#### Not started, as directed
+
+D20–D25 (the efficiency batch), the biquad-pair hang, fused+paired
+measurements. Those are fix session 2.
 
 ## HUB DISPATCH 2026-08-28 21:19Z — dsp codebase review — efficiency floors, correctness sweep, headroom proof   [status: 🟢 done — `review-dsp-20260828.md` at repo root: 38 assigned findings D1–D43 with file:line. AXIS 2 VERDICT: **32 fits at floor with margin at 983.04 — scalar floor 330–420 c/s vs 566.6 available (≥35 %), paired floor 200–256 vs the same (≥2.2×); at 786.432 scalar is a 4 % fit at the pessimistic floor end, paired ≥71 %** — fixed overhead 18,785 c/block DERIVED from the two paired-ceiling points (predicts the measured 5,756/s 16-strip miss to 0.03 %); today's paired strip misses the 32-line by 2.1× and the floors say that whole factor is code (RTG 15–29× over floor from control-rate work run every block; dynamics 3.3–4.1×; biquads ~2× even fused), not rulings. ONE SEVERE: the 64-bit bus accumulators DISCARD MR2F and wrap at Σ≥128.0 linear with no saturation before readout — the +30 dB coherent case holds with 12 dB margin but hot strip exits × boost sends wrap, and fixed_ref (unbounded ints) cannot see it. Correctness: chip-2 main mix reads USB/BT one sample stale (shipping); legacy peak decay 4× fast at block 8 (shipping); block-kernel builds report frozen input peaks off never-written slot vars; gen_dsp.py still bakes ramp frames at the 0.667 ms block-32 period into ghost_cells; the recorded call-in-last-3 loop rule is CONTRADICTED by the shipping RTG loop that measurably works — needs the SHARC+ Core PRM (not in the local doc set) before anyone "fixes" it; generation-time .var sizes vs build-time DSP4_BLOCK_SIZE have no consistency check (the lcntr=31 mechanism, still open at the seam — otherwise the literal class is EXTINCT, swept to zero across 666 node files). Coverage: COMP wet path, TUBE (zero coverage of any kind), GATE state machine, pan law, crossfade blend and _bq_fx_convert_N (the b1=0 site) all lack references; meter model never runs in golden_harness. Contract: gate_gr/comp_gr confirmed with mechanism (comp_gr is a live literal-0 cell); ~600 writable-but-inert SPI slots incl. AFB with NO bypass and an FX param key (fx_class) the CSV never emits; GateRng documented dB but consumed LINEAR; CompPar percent vs 0..1; att/rel/hold/delay ms-vs-native undecided cross-repo; pan law linear vs documented constant-power (PW decision). Chip 2 has no block kernels — every block-8 number is chip-1-only and block-8 shipping is gated on it. Desk work only: no builds, no flashes, tree clean. The ~21:25 margin-at-32 ruling landed mid-review and is honoured: the closing sum carries the margin-at-32 column (at floor: 147–237 c/s/strip remaining at 983 scalar, 311–367 paired; today's code: NEGATIVE, −620 c/s) and the review's own finish-line framing (floors, then margin-at-32 = plugin headroom) matches the 696523c addendum.]   [model: fable]
 

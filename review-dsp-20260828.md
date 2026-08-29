@@ -17,47 +17,51 @@ S (< half a day), M (a session), L (multiple sessions).
 
 ### Index
 
-| # | sev | one line | effort |
-|---|---|---|---|
-| D1 | SEVERE | 64-bit bus accumulators wrap at Σ ≥ 128.0 linear; mr2f discarded, no saturation before readout | M |
-| D2 | MAJOR | biquad efb 64-bit store-back wraps for \|acc\| ≥ 2^63 (extreme coefficient sets); model unbounded | S (bound it) |
-| D3 | MAJOR | crossfade blend's 32-bit new−old difference wraps at straddled full scale mid-swap | S |
-| D4 | MINOR | COMP blend / TUBE gain add unguarded against out-of-range host params (needs DEFS clamp answer) | S |
-| D5 | MAJOR | chip-2 main mix reads USB/BT one sample stale (shipping call order) | S |
-| D6 | MAJOR | legacy peak decay 0.99950 derived for 1500 blocks/s, applied at 6000 → 4× fast, shipping image | S |
-| D7 | MAJOR? | four loop shapes violate the recorded call-in-last-3 rule — incl. shipping RTG, which measurably works; rule needs the SHARC+ Core PRM (not in local docs) | S |
-| D8 | MINOR | dead `_biquad_cascade_N` has `rts` as its loop-end — remove | S |
-| D9 | MINOR | generator odd-tail pool comment contradicts the code | S |
-| D10 | MAJOR | `gen_dsp.py` bakes ramp frame counts at the block-32 frame period → ghost_cells 4× wrong | S |
-| D11 | MINOR | stale unused `#define BLOCK_SIZE 32` in sport_init.asm | S |
-| D12 | MAJOR | generation-time `.var` sizes vs build-time `DSP4_BLOCK_SIZE`: no consistency check; silent OOB on mismatch | S |
-| D13 | — | literal sweep otherwise CLEAN: the `lcntr=31` class is extinct (evidence in Axis 3) | — |
-| D14 | MAJOR | block-kernel builds: legacy input-peak scan reads never-written slot vars → frozen host meters + waste | S |
-| D16 | MAJOR | chip 2 has no block kernels: block-8 record is chip-1-only; block-8 shipping gated on chip-2 conversion | L |
-| D20 | MAJOR | GAIN=1MAC fold ruled, not yet implemented (−17 c/s/strip) | S |
-| D21 | MAJOR | biquad inner loop ~1.6–2× over packed floor (branch saturation, no multifunction packing) | M |
-| D22 | MAJOR | RTG rebuilds control state every block: 15–29× over floor, largest gap in the strip | M |
-| D23 | MAJOR | `_acc64_mac_blk` reloads the 64-bit accumulator every sample (~3.4× on the accumulate) | S |
-| D24 | MAJOR | per-block parameter conversion belongs at control rate (dirty flag); also most of the pair drivers' overhead | M |
-| D25 | MINOR | batched small wastes: SEND copies, EQ tap loop, TUBE bypass copy, DLY addressing, dead scan | S ea |
-| D26 | MAJOR | meter model never exercised by golden_harness | S |
-| D27 | MAJOR | `_bq_fx_convert_N` (the b1=0 site) has no automated regression | S |
-| D28 | MAJOR | COMP wet path (makeup 2nd round + parallel blend) unmodelled | S–M |
-| D29 | MAJOR | TUBE: zero coverage of any kind; active cost also unmeasured | S |
-| D30 | MODERATE | GATE node state machine unmodelled | M |
-| D31 | MODERATE | FDR pan law / level·dca unmodelled (site of the squared-gain bug) | S |
-| D32 | MODERATE | bench probes reimplement rns() instead of importing fixed_ref | S |
-| D33 | MODERATE | crossfade blend unmodelled (blocks D3's fix from being provable) | S |
-| D34 | MINOR | TDM boundary conversions have zero test surface | S |
-| D35 | MINOR | in-part selftests are ASM-vs-ASM only | M |
-| D36 | MINOR | spec bookkeeping: "9/9" stale, −90 dBFS null test untooled, NOISE exception undocumented | S |
-| D37 | MAJOR | gate_gr/comp_gr taps unresolvable (needs mx26); comp_gr served as a live literal-0 cell | — |
-| D38 | MAJOR | ~600 writable-but-inert SPI slots (comp/gate routing, AFB no bypass, FX surface, DCA, MON, TALK) | M–L |
-| D39 | MAJOR | GateRng: masters say dB, kernel treats wire value as linear — documented writes give garbage | S |
-| D40 | MAJOR | CompPar: masters say percent, kernel wants 0..1 — control is all-or-nothing | S |
-| D41 | MAJOR | ms-vs-native units (att/rel alphas, delay samples, hold samples) + float32-wire contract contradiction — needs a per-cell wire table (cross-repo) | M |
-| D42 | MODERATE | pan law linear vs documented constant-power (~3 dB centre dip) — PW decision, not a quiet fix | S |
-| D43 | MODERATE | D24: orphaned gate DEFS cells; family allowlist never checks D24 | S |
+FIX SESSION 1 (2026-08-29) closed D1, D2, D3, D5, D6, D8, D9, D10, D11,
+D12 and D33; the `status` column carries the commit. Everything else is
+still open. D13 was already cleared by the review itself.
+
+| # | sev | one line | effort | status (2026-08-29) |
+|---|---|---|---|---|
+| D1 | SEVERE | 64-bit bus accumulators wrap at Σ ≥ 128.0 linear; mr2f discarded, no saturation before readout | M | **FIXED** 87fded2 — 80-bit [lo,hi,ex] accumulators, +2.003 c/MAC measured on the part; 57/57 bit-exact, negctl 31/31 |
+| D2 | MAJOR | biquad efb 64-bit store-back wraps for \|acc\| ≥ 2^63 (extreme coefficient sets); model unbounded | S (bound it) | **BOUNDED** dfa02b0 — reachable \|efb\| = 2^62.606, 0.394 bits of margin; bound + the clamp option in numeric-spec.md |
+| D3 | MAJOR | crossfade blend's 32-bit new−old difference wraps at straddled full scale mid-swap | S | **FIXED** 87fded2 — difference via two MRF MACs, same instruction count; proven on the part with the D33 model |
+| D4 | MINOR | COMP blend / TUBE gain add unguarded against out-of-range host params (needs DEFS clamp answer) | S | open |
+| D5 | MAJOR | chip-2 main mix reads USB/BT one sample stale (shipping call order) | S | **FIXED** 5998698 — chain order resolved from the graph + a cycle check in two independent tools; chip 1 byte-identical |
+| D6 | MAJOR | legacy peak decay 0.99950 derived for 1500 blocks/s, applied at 6000 → 4× fast, shipping image | S | **FIXED** 1cbd9a1 — DSP4_MTR_DECAY_F32 from the block rate; τ 0.333 s → 1.333 s in the SHIPPING image |
+| D7 | MAJOR? | four loop shapes violate the recorded call-in-last-3 rule — incl. shipping RTG, which measurably works; rule needs the SHARC+ Core PRM (not in local docs) | S | open |
+| D8 | MINOR | dead `_biquad_cascade_N` has `rts` as its loop-end — remove | S | **FIXED** a774437 — dead block routines removed; `_biquad_cascade_N` rewritten (its `rts` was the loop-end, so it ran ONE stage) |
+| D9 | MINOR | generator odd-tail pool comment contradicts the code | S | **FIXED** 96f58d4 — comment corrected to _P1, rule stated; tree byte-identical |
+| D10 | MAJOR | `gen_dsp.py` bakes ramp frame counts at the block-32 frame period → ghost_cells 4× wrong | S | **FIXED** d21da3a — frame period imported from dsp_codegen; ghost_cells frame counts ×4, now agree with ramp_tables.asm |
+| D11 | MINOR | stale unused `#define BLOCK_SIZE 32` in sport_init.asm | S | **FIXED** 2b336d3 — the four dead defines removed; image byte-identical |
+| D12 | MAJOR | generation-time `.var` sizes vs build-time `DSP4_BLOCK_SIZE`: no consistency check; silent OOB on mismatch | S | **FIXED** 39eaa40 — `#if DSP4_BLOCK_SIZE != N / #error` in all four baking files; negative control FAILS the build |
+| D13 | — | literal sweep otherwise CLEAN: the `lcntr=31` class is extinct (evidence in Axis 3) | — | cleared, not a fix — the two dead biquad routines it named left with D8 |
+| D14 | MAJOR | block-kernel builds: legacy input-peak scan reads never-written slot vars → frozen host meters + waste | S | open |
+| D16 | MAJOR | chip 2 has no block kernels: block-8 record is chip-1-only; block-8 shipping gated on chip-2 conversion | L | open |
+| D20 | MAJOR | GAIN=1MAC fold ruled, not yet implemented (−17 c/s/strip) | S | open |
+| D21 | MAJOR | biquad inner loop ~1.6–2× over packed floor (branch saturation, no multifunction packing) | M | open |
+| D22 | MAJOR | RTG rebuilds control state every block: 15–29× over floor, largest gap in the strip | M | open |
+| D23 | MAJOR | `_acc64_mac_blk` reloads the 64-bit accumulator every sample (~3.4× on the accumulate) | S | open |
+| D24 | MAJOR | per-block parameter conversion belongs at control rate (dirty flag); also most of the pair drivers' overhead | M | open |
+| D25 | MINOR | batched small wastes: SEND copies, EQ tap loop, TUBE bypass copy, DLY addressing, dead scan | S ea | open |
+| D26 | MAJOR | meter model never exercised by golden_harness | S | open |
+| D27 | MAJOR | `_bq_fx_convert_N` (the b1=0 site) has no automated regression | S | open |
+| D28 | MAJOR | COMP wet path (makeup 2nd round + parallel blend) unmodelled | S–M | open |
+| D29 | MAJOR | TUBE: zero coverage of any kind; active cost also unmeasured | S | open |
+| D30 | MODERATE | GATE node state machine unmodelled | M | open |
+| D31 | MODERATE | FDR pan law / level·dca unmodelled (site of the squared-gain bug) | S | open |
+| D32 | MODERATE | bench probes reimplement rns() instead of importing fixed_ref | S | open |
+| D33 | MODERATE | crossfade blend unmodelled (blocks D3's fix from being provable) | S | **FIXED** 258bde2 — fixed_ref.xfade_blend + boundary_vectors.py; harness 9/9 → 16/16 |
+| D34 | MINOR | TDM boundary conversions have zero test surface | S | open |
+| D35 | MINOR | in-part selftests are ASM-vs-ASM only | M | open |
+| D36 | MINOR | spec bookkeeping: "9/9" stale, −90 dBFS null test untooled, NOISE exception undocumented | S | PARTIAL 87fded2 — the stale "9/9" is corrected to 16/16 and the spec now records where the bit-exact half is checked; the −90 dBFS null test and the NOISE exception are still open |
+| D37 | MAJOR | gate_gr/comp_gr taps unresolvable (needs mx26); comp_gr served as a live literal-0 cell | — | open |
+| D38 | MAJOR | ~600 writable-but-inert SPI slots (comp/gate routing, AFB no bypass, FX surface, DCA, MON, TALK) | M–L | open |
+| D39 | MAJOR | GateRng: masters say dB, kernel treats wire value as linear — documented writes give garbage | S | open |
+| D40 | MAJOR | CompPar: masters say percent, kernel wants 0..1 — control is all-or-nothing | S | open |
+| D41 | MAJOR | ms-vs-native units (att/rel alphas, delay samples, hold samples) + float32-wire contract contradiction — needs a per-cell wire table (cross-repo) | M | open |
+| D42 | MODERATE | pan law linear vs documented constant-power (~3 dB centre dip) — PW decision, not a quiet fix | S | open |
+| D43 | MODERATE | D24: orphaned gate DEFS cells; family allowlist never checks D24 | S | open |
 
 The build-flag ground truth all of this sits on: the shipping image is
 still the PER-SAMPLE build (`build.sh:98` — `DSP4_BLOCK_KERNELS` defaults
