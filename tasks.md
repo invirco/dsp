@@ -1,3 +1,17 @@
+**PW RULING 2026-08-29 (~13:40): FULL PROTOCOL TESTING PULLED FORWARD.**
+Contract conformance is interleaved with the capacity work, not queued
+behind it. Session 3 (after the running efficiency session) = the
+CONTRACT CONFORMANCE HARNESS: write every documented cell over the live
+SPI plane with boundary values, verify the kernel's behavior matches the
+master's documented unit/range/effect — protocol goldens that fail
+loudly on drift. Rides with it: the D39/D40 unit fixes, D37 gr-meter
+taps (mx26 supplies the ids), and application of the per-cell wire table
+(D41 — mx26 builds it, hub-side, in parallel with the bench sessions).
+D38's ~600 inert slots: the harness produces the authoritative list;
+which get WIRED vs documented-deferred is then a PW prioritization.
+Capacity floor remainders move to session 4 unless session 2 leaves
+little behind.
+
 **PW RULING 2026-08-29 (~13:10): MINIMUM EQ Q = 0.10** (matching the
 wide-gentle extreme of the console field, not the mainstream 0.3 floor).
 The +15 dB / Q <= 0.12 corner (session-1 finding: n1 = 8.318 exceeds
