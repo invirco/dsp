@@ -7,9 +7,18 @@
  *   _meter_peaks[0..31]  — Chip 1: input strip levels (post-gain)
  *   _meter_peaks[0..17]  — Chip 2: output bus levels
  *
- * Decay: 0.9995 per block @ 48kHz/32 = ~1500 blocks/s
- *   → τ ≈ 1 / (1500 × ln(1/0.9995)) ≈ 1.33 s
- *   → -6.5 dB/s decay (suitable for peak-hold display with ballistics)
+ * Decay: DSP4_MTR_DECAY_F32, derived in dsp_block.h from the BLOCK RATE
+ *   as exp(-1 / (rate × τ)) with τ = 1.333 s — the same peak-hold time
+ *   constant the rebuilt in-kernel meter uses (fixed_ref.METER_TAU_PEAK_S),
+ *   so the two meters agree by construction instead of by coincidence.
+ *
+ *   It was a hand constant, 0.99950, derived for 48 kHz / 32 = 1500
+ *   blocks/s and never revisited when the operating point became BLOCK=8.
+ *   Applied at 6000 blocks/s it gives τ = 0.333 s: the documented 1.33 s
+ *   peak hold decayed FOUR TIMES FAST, in the SHIPPING image (review
+ *   finding D6). Same class as the third recorded meter defect — a
+ *   constant derived for one block rate applied at another — in the one
+ *   meter path the 2026-08-28 rebuild did not replace.
  *
  * Usage:
  *   block_io scatter calls _meter_update inline (per sample, per channel).
@@ -20,6 +29,8 @@
  *   meter value. See spi_handler.asm for protocol details.
  *======================================================================*/
 
+#include "dsp_block.h"
+
 #define MAX_METERS  64    /* enough for 32 ch + 18 outputs + headroom */
 
 .section/dm seg_dmda;
@@ -27,7 +38,9 @@
 .global _meter_peaks;
 .var _meter_peaks[MAX_METERS];   /* float32 linear, initialized 0.0 */
 
-.var _meter_decay = 0.99950;     /* per-block decay coefficient */
+/* Per-block decay coefficient, IEEE-754 single. Loaded with `f2 = dm()`
+ * below, so the initialiser is the float's BIT PATTERN — see the header. */
+.var _meter_decay = DSP4_MTR_DECAY_F32;
 
 .section/pm seg_pmco;
 

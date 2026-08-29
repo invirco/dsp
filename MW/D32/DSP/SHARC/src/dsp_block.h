@@ -43,6 +43,18 @@
 #define DSP4_MTR_BETA_Q   33561
 #define DSP4_MTR_CVT_DIV  8
 
+/* LEGACY float meter (src/lib/meter.asm), IEEE-754 single. The peak
+ * array decays by this factor once per BLOCK, so it is the same
+ * 1.333 s time constant expressed as a survivor:
+ * exp(-1 / (rate * tau)) = 0.999874977 at 6000 blocks/s.
+ * It used to be a hand constant, 0.99950, derived for 1500 blocks/s and
+ * left unchanged when the operating point moved to BLOCK=8 -- so it
+ * decayed in 0.333 s, FOUR TIMES FAST, in the shipping image (review
+ * finding D6). It is the same recorded meter-defect class as
+ * DSP4_MTR_BETA_Q above, in the one meter path the 08-28 rebuild did not
+ * replace, and it is derived here for the same reason. */
+#define DSP4_MTR_DECAY_F32 0x3F7FF7CE
+
 /* PAIRED GRAPH. DSP4_SIMD_DYN says the paired dynamics KERNELS are in the
  * image; DSP4_SIMD_GRAPH says the graph is WIRED for them -- the odd pool,
  * the pair drivers and the pair-ordered chain. They are separate because
