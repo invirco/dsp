@@ -122,6 +122,25 @@ DSP4_STRIP_FUSED="${DSP4_STRIP_FUSED:-0}"
 CFLAGS="$CFLAGS -DDSP4_STRIP_FUSED=$DSP4_STRIP_FUSED"
 ASMFLAGS="$ASMFLAGS -DDSP4_STRIP_FUSED=$DSP4_STRIP_FUSED"
 
+# DSP4_CTL_ALWAYS=1 removes the control-rate gate (review findings D22/D24):
+# every gated node runs its prep section unconditionally every block, the way
+# it did before the gate. This is the NEGATIVE CONTROL for the gate's
+# bit-exactness claim -- the gated and ungated images must produce identical
+# audio -- and it is also the fallback if a gate is ever found to be missing a
+# dependency. It is not a performance option: 1 is the slow build.
+DSP4_CTL_ALWAYS="${DSP4_CTL_ALWAYS:-0}"
+CFLAGS="$CFLAGS -DDSP4_CTL_ALWAYS=$DSP4_CTL_ALWAYS"
+ASMFLAGS="$ASMFLAGS -DDSP4_CTL_ALWAYS=$DSP4_CTL_ALWAYS"
+
+# DSP4_CTL_NEGCTL=1 keeps the gate but removes the SPI handler's control-epoch
+# bump: the gated nodes then never learn that a parameter was written and hold
+# whatever they prepped at boot. It is the NEGATIVE CONTROL for the gate proof
+# (ctlgate.sh) -- the capture comparison must FAIL under it, or the comparison
+# was not testing anything.
+DSP4_CTL_NEGCTL="${DSP4_CTL_NEGCTL:-0}"
+CFLAGS="$CFLAGS -DDSP4_CTL_NEGCTL=$DSP4_CTL_NEGCTL"
+ASMFLAGS="$ASMFLAGS -DDSP4_CTL_NEGCTL=$DSP4_CTL_NEGCTL"
+
 # SIMD (PEx/PEy) feasibility probe: pairs two strips into one instruction
 # stream. Measurement only, not wired into the graph.
 DSP4_SIMD_PROBE="${DSP4_SIMD_PROBE:-0}"

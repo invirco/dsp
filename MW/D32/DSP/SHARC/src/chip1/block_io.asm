@@ -359,6 +359,8 @@
     _rx_slot_C1_XIN_MEMS;
 
 /* IC TX node tables (37 packed mix-fabric slots over 3 lanes) */
+/* D25: under block kernels these point at the SOURCE bus
+ * buffers, and the INTERCHIP_SEND bodies are empty. */
 .extern _tx_slot_C1_BUS_MAIN_L_SEND;
 .extern _tx_slot_C1_BUS_MAIN_R_SEND;
 .extern _tx_slot_C1_BUS_SUB_SEND;
@@ -396,6 +398,45 @@
 .extern _tx_slot_C1_XS_XFER_SNAKE_06;
 .extern _tx_slot_C1_XS_XFER_SNAKE_07;
 .extern _tx_slot_C1_XS_XFER_SNAKE_08;
+#if DSP4_BLOCK_KERNELS
+.extern _buf_C1_BUS_MAIN_L;
+.extern _buf_C1_BUS_MAIN_R;
+.extern _buf_C1_BUS_SUB;
+.extern _buf_C1_BUS_GRP_01;
+.extern _buf_C1_BUS_GRP_02;
+.extern _buf_C1_BUS_GRP_03;
+.extern _buf_C1_BUS_GRP_04;
+.extern _buf_C1_BUS_AUX_01;
+.extern _buf_C1_BUS_AUX_02;
+.extern _buf_C1_BUS_AUX_03;
+.extern _buf_C1_BUS_AUX_04;
+.extern _buf_C1_BUS_AUX_05;
+.extern _buf_C1_BUS_AUX_06;
+.extern _buf_C1_BUS_AUX_07;
+.extern _buf_C1_BUS_AUX_08;
+.extern _buf_C1_BUS_AUX_09;
+.extern _buf_C1_BUS_AUX_10;
+.extern _buf_C1_BUS_AUX_11;
+.extern _buf_C1_BUS_AUX_12;
+.extern _buf_C1_BUS_FX_01;
+.extern _buf_C1_BUS_FX_02;
+.extern _buf_C1_BUS_FX_03;
+.extern _buf_C1_BUS_FX_04;
+.extern _buf_C1_BUS_FX_05;
+.extern _buf_C1_BUS_FX_06;
+.extern _buf_C1_XIN_CODEC_03;
+.extern _buf_C1_XIN_CODEC_04;
+.extern _buf_C1_XIN_PI_L;
+.extern _buf_C1_XIN_PI_R;
+.extern _buf_C1_XIN_SNK_01;
+.extern _buf_C1_XIN_SNK_02;
+.extern _buf_C1_XIN_SNK_03;
+.extern _buf_C1_XIN_SNK_04;
+.extern _buf_C1_XIN_SNK_05;
+.extern _buf_C1_XIN_SNK_06;
+.extern _buf_C1_XIN_SNK_07;
+.extern _buf_C1_XIN_SNK_08;
+#endif
 #if DSP4_BLOCK_KERNELS
 .global _c1_ic_tx_off;
 .global _c1_ic_tx_stride;
@@ -476,6 +517,46 @@
     5,
     5,
     5;
+#if DSP4_BLOCK_KERNELS
+.var _c1_ic_tx_ptrs[37] =
+    _buf_C1_BUS_MAIN_L,
+    _buf_C1_BUS_MAIN_R,
+    _buf_C1_BUS_SUB,
+    _buf_C1_BUS_GRP_01,
+    _buf_C1_BUS_GRP_02,
+    _buf_C1_BUS_GRP_03,
+    _buf_C1_BUS_GRP_04,
+    _buf_C1_BUS_AUX_01,
+    _buf_C1_BUS_AUX_02,
+    _buf_C1_BUS_AUX_03,
+    _buf_C1_BUS_AUX_04,
+    _buf_C1_BUS_AUX_05,
+    _buf_C1_BUS_AUX_06,
+    _buf_C1_BUS_AUX_07,
+    _buf_C1_BUS_AUX_08,
+    _buf_C1_BUS_AUX_09,
+    _buf_C1_BUS_AUX_10,
+    _buf_C1_BUS_AUX_11,
+    _buf_C1_BUS_AUX_12,
+    _buf_C1_BUS_FX_01,
+    _buf_C1_BUS_FX_02,
+    _buf_C1_BUS_FX_03,
+    _buf_C1_BUS_FX_04,
+    _buf_C1_BUS_FX_05,
+    _buf_C1_BUS_FX_06,
+    _buf_C1_XIN_CODEC_03,
+    _buf_C1_XIN_CODEC_04,
+    _buf_C1_XIN_PI_L,
+    _buf_C1_XIN_PI_R,
+    _buf_C1_XIN_SNK_01,
+    _buf_C1_XIN_SNK_02,
+    _buf_C1_XIN_SNK_03,
+    _buf_C1_XIN_SNK_04,
+    _buf_C1_XIN_SNK_05,
+    _buf_C1_XIN_SNK_06,
+    _buf_C1_XIN_SNK_07,
+    _buf_C1_XIN_SNK_08;
+#else
 .var _c1_ic_tx_ptrs[37] =
     _tx_slot_C1_BUS_MAIN_L_SEND,
     _tx_slot_C1_BUS_MAIN_R_SEND,
@@ -514,6 +595,7 @@
     _tx_slot_C1_XS_XFER_SNAKE_06,
     _tx_slot_C1_XS_XFER_SNAKE_07,
     _tx_slot_C1_XS_XFER_SNAKE_08;
+#endif
 
 /* DMA ping-pong buffers live in generated lane_config.c
  * (byte-addressed C world — DMA + descriptors take byte
@@ -560,6 +642,9 @@ _scatter_chip1.end:
 /* Peak-hold meter scan over RX inputs (once per block) */
 .global _meter_scan_chip1;
 _meter_scan_chip1:
+#if DSP4_BLOCK_KERNELS
+    rts;
+#endif
     i0 = _c1_rx_slot_ptrs;
     i1 = _meter_peaks;
     m0 = 0;

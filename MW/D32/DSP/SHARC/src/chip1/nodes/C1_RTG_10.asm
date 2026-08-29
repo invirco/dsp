@@ -25,6 +25,34 @@
 .extern _tap_post_fader_C1_FDR_10;
 .extern _fdr_lq_C1_FDR_10;
 .extern _fdr_rq_C1_FDR_10;
+#if DSP4_BLOCK_KERNELS
+.extern _fdr_busy_C1_FDR_10;
+.extern _ctl_epoch;
+#endif
+/* CONTROL-RATE GATE (review finding D22). This node's whole prep
+ * section -- 18 send ramps, 18 pickoff resolutions and the
+ * 25-crosspoint list rebuild -- ran EVERY BLOCK for state that
+ * changes only when the host writes a parameter or while a ramp is
+ * running. At BLOCK=8 that measured 232.6 cycles/sample against a
+ * floor of 8-15, the largest gap in the strip.
+ *
+ * _rtg_ep holds the control epoch this node last prepped at and is
+ * compared against _ctl_epoch[strip], which the SPI handler bumps on
+ * any accepted write into this strip's 144-word page. _rtg_busy is
+ * set while any of this node's own 18 send ramps still has frames
+ * left; _fdr_busy_C1_FDR_10 is the same for the fader, whose pan legs
+ * this node's main L/R coefficients are computed from.
+ *
+ * NOTHING IN THE AUDIO PATH MOVES. The prep is idempotent on
+ * unchanged inputs -- it recomputes the same coefficients and stores
+ * them over themselves -- so not running it is exact, not
+ * approximate. DSP4_CTL_ALWAYS=1 restores the unconditional prep in
+ * the same image as the negative control. */
+#if DSP4_BLOCK_KERNELS
+.extern _ctl_strip_prep_needed;
+.extern _rtg_busy;
+#endif
+
 .global _rtg_main_on_C1_RTG_10;
 .var _rtg_main_on_C1_RTG_10 = 1;
 .global _rtg_sub_on_C1_RTG_10;
@@ -110,6 +138,12 @@ _C1_RTG_10_process:
     if ne jump (pc, .rtg_acc_C1_RTG_10);
 #endif
 
+#if DSP4_BLOCK_KERNELS && !DSP4_CTL_ALWAYS
+    r0 = 9;
+    call _ctl_strip_prep_needed;
+    if eq jump (pc, .rtg_acc_C1_RTG_10);
+#endif
+
     /* main L/R: pan leg x main assign. _fdr_lq/_fdr_rq are PAN
      * ONLY -- the fader, DCA and mute are already inside the
      * post-fader mono this coefficient multiplies, so folding the
@@ -132,6 +166,9 @@ _C1_RTG_10_process:
     if eq r1 = r8;
     dm(_rtg_subq_C1_RTG_10) = r1;
 
+#if DSP4_BLOCK_KERNELS && !DSP4_CTL_ALWAYS
+    r11 = 0;                      /* "any send ramp still running" */
+#endif
     l5 = 0;
     l6 = 0;
     i5 = _rtg_grp_on_C1_RTG_10;
@@ -160,6 +197,12 @@ _C1_RTG_10_process:
         if lt r6 = r4;                /* n = min(frames, BLOCK) */
         r4 = r4 - r6;
         dm(i6, 1) = r4;
+#if DSP4_BLOCK_KERNELS && !DSP4_CTL_ALWAYS
+        /* D22: "is any send ramp still running?", accumulated where
+         * the frame count is already in a register. The min() above
+         * clamps frames at zero, so OR is enough to ask it. */
+        r11 = r11 or r4;
+#endif
         r4 = pass r6;
         if eq jump (pc, .auxsnap_C1_RTG_10);
         f1 = dm(i4, 0);
@@ -239,6 +282,12 @@ _C1_RTG_10_process:
         if lt r6 = r4;                /* n = min(frames, BLOCK) */
         r4 = r4 - r6;
         dm(i6, 1) = r4;
+#if DSP4_BLOCK_KERNELS && !DSP4_CTL_ALWAYS
+        /* D22: "is any send ramp still running?", accumulated where
+         * the frame count is already in a register. The min() above
+         * clamps frames at zero, so OR is enough to ask it. */
+        r11 = r11 or r4;
+#endif
         r4 = pass r6;
         if eq jump (pc, .auxsnap_C1_RTG_10);
         f1 = dm(i4, 0);
@@ -319,6 +368,12 @@ _C1_RTG_10_process:
         if lt r6 = r4;                /* n = min(frames, BLOCK) */
         r4 = r4 - r6;
         dm(i6, 1) = r4;
+#if DSP4_BLOCK_KERNELS && !DSP4_CTL_ALWAYS
+        /* D22: "is any send ramp still running?", accumulated where
+         * the frame count is already in a register. The min() above
+         * clamps frames at zero, so OR is enough to ask it. */
+        r11 = r11 or r4;
+#endif
         r4 = pass r6;
         if eq jump (pc, .fxsnap_C1_RTG_10);
         f1 = dm(i4, 0);
@@ -398,6 +453,12 @@ _C1_RTG_10_process:
         if lt r6 = r4;                /* n = min(frames, BLOCK) */
         r4 = r4 - r6;
         dm(i6, 1) = r4;
+#if DSP4_BLOCK_KERNELS && !DSP4_CTL_ALWAYS
+        /* D22: "is any send ramp still running?", accumulated where
+         * the frame count is already in a register. The min() above
+         * clamps frames at zero, so OR is enough to ask it. */
+        r11 = r11 or r4;
+#endif
         r4 = pass r6;
         if eq jump (pc, .fxsnap_C1_RTG_10);
         f1 = dm(i4, 0);
@@ -569,6 +630,19 @@ _C1_RTG_10_process:
         nop;
 
     dm(_rtg_n_C1_RTG_10) = r10;
+
+#if DSP4_BLOCK_KERNELS && !DSP4_CTL_ALWAYS
+    /* Ramps are not SPI writes, so the epoch never sees them: while
+     * any send ramp still has frames its coefficient changes every
+     * block, and the prep has to keep running. r11 was accumulated
+     * inside the two send-ramp loops above, where the frame count
+     * was already in a register -- one instruction each, against the
+     * ten a separate 18-word scan cost, in a PM section with about a
+     * thousand words left in the paired build. It survives the
+     * pickoff-resolution and list-build loops between them; neither
+     * of those touches r11. */
+    dm(_rtg_busy + 9) = r11;
+#endif
 
 .rtg_acc_C1_RTG_10:
     /* ===== crosspoint accumulate =====

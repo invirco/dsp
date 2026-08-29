@@ -104,8 +104,48 @@
             if lt jump (pc, .dkb_ok_C1_DLY_32);
             r2 = r3 - 1;
         .dkb_ok_C1_DLY_32:
-            r7 = i0;                    /* delay-line base, reloaded per sample */
-            r1 = dm(i1, 0);             /* write pointer */
+            /* CIRCULAR DAG ADDRESSING (review finding D25).
+             *
+             * The loop this replaces rebuilt BOTH addresses from the base
+             * and a modifier on every sample -- two M-register writes, two
+             * modify()s, and a compare-and-fixup to wrap the write pointer
+             * by hand: seventeen instructions to move two words, on top of
+             * the register-to-DAG hazard that an `m0 = r1` immediately
+             * followed by a `modify(i0, m0)` costs twice per sample.
+             *
+             * The DAGs do modulo arithmetic for free. Give the write
+             * cursor and the read cursor the same base and the same
+             * length and the post-modify wraps in hardware; the two
+             * cursors then keep their spacing for the whole block because
+             * both advance by one. Five instructions, no M-register write
+             * inside the loop, and the pointer arithmetic that is left is
+             * per BLOCK.
+             *
+             * B AND I ARE WRITTEN TOGETHER on this core -- `b0 = x` also
+             * loads i0 -- so the base goes down FIRST and the cursor after
+             * it, or the offset is lost.
+             *
+             * Bit-exact by construction: sample k is written at
+             * base + (wptr + k) mod max and read from
+             * base + (wptr - offset + k) mod max, which is what the hand
+             * arithmetic computed, and the write pointer handed back is
+             * the same (wptr + BLOCK) mod max. */
+            r7 = i0;                    /* delay-line base */
+            r1 = dm(i1, 0);             /* write pointer, an OFFSET */
+            r5 = r1 - r2;
+            if lt r5 = r5 + r3;         /* read index, wrapped */
+
+            m0 = 1;
+            l0 = r3;
+            b0 = r7;                    /* sets i0 too -- cursor next */
+            r6 = r7 + r1;
+            i0 = r6;                    /* write cursor */
+            m2 = 1;
+            l2 = r3;
+            b2 = r7;
+            r6 = r7 + r5;
+            i2 = r6;                    /* read cursor  */
+
             l3 = 0;
             l4 = 0;
             l5 = 0;
@@ -115,24 +155,19 @@
 
             lcntr = DSP4_BLOCK_SIZE, do .dkb_lp_C1_DLY_32 until lce;
                 r0 = dm(i3, 1);
-                i0 = r7;
-                m0 = r1;
-                modify(i0, m0);
-                dm(i0, 0) = r0;         /* write at the write pointer */
-                r5 = r1 - r2;
-                if lt r5 = r5 + r3;     /* read index, wrapped */
-                r6 = r5 - r1;
-                m0 = r6;
-                modify(i0, m0);
-                r0 = dm(i0, 0);
-                r15 = 1;
-                r1 = r1 + r15;
-                comp(r1, r3);
-                if ge r1 = r1 - r3;     /* advance write pointer, wrapped */
+                dm(i0, m0) = r0;        /* write; the DAG wraps it */
+                r0 = dm(i2, m2);        /* read;  the DAG wraps it */
                 dm(i5, 1) = r0;         /* pre-fader tap */
             .dkb_lp_C1_DLY_32: dm(i4, 1) = r0;
 
+            /* the cursor back to an offset, and the DAGs back to LINEAR --
+             * a non-zero L left behind would silently make the next node's
+             * i0/i2 walk wrap into this delay line. */
+            r1 = i0;
+            r1 = r1 - r7;
             dm(i1, 0) = r1;
+            l0 = 0;
+            l2 = 0;
             rts;
 
 .dkb_slot_0_C1_DLY_32:

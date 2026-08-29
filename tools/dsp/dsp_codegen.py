@@ -205,8 +205,48 @@ _DLY_BLK_BODY = """
             if lt jump (pc, .dkb_ok_{nid});
             r2 = r3 - 1;
         .dkb_ok_{nid}:
-            r7 = i0;                    /* delay-line base, reloaded per sample */
-            r1 = dm(i1, 0);             /* write pointer */
+            /* CIRCULAR DAG ADDRESSING (review finding D25).
+             *
+             * The loop this replaces rebuilt BOTH addresses from the base
+             * and a modifier on every sample -- two M-register writes, two
+             * modify()s, and a compare-and-fixup to wrap the write pointer
+             * by hand: seventeen instructions to move two words, on top of
+             * the register-to-DAG hazard that an `m0 = r1` immediately
+             * followed by a `modify(i0, m0)` costs twice per sample.
+             *
+             * The DAGs do modulo arithmetic for free. Give the write
+             * cursor and the read cursor the same base and the same
+             * length and the post-modify wraps in hardware; the two
+             * cursors then keep their spacing for the whole block because
+             * both advance by one. Five instructions, no M-register write
+             * inside the loop, and the pointer arithmetic that is left is
+             * per BLOCK.
+             *
+             * B AND I ARE WRITTEN TOGETHER on this core -- `b0 = x` also
+             * loads i0 -- so the base goes down FIRST and the cursor after
+             * it, or the offset is lost.
+             *
+             * Bit-exact by construction: sample k is written at
+             * base + (wptr + k) mod max and read from
+             * base + (wptr - offset + k) mod max, which is what the hand
+             * arithmetic computed, and the write pointer handed back is
+             * the same (wptr + BLOCK) mod max. */
+            r7 = i0;                    /* delay-line base */
+            r1 = dm(i1, 0);             /* write pointer, an OFFSET */
+            r5 = r1 - r2;
+            if lt r5 = r5 + r3;         /* read index, wrapped */
+
+            m0 = 1;
+            l0 = r3;
+            b0 = r7;                    /* sets i0 too -- cursor next */
+            r6 = r7 + r1;
+            i0 = r6;                    /* write cursor */
+            m2 = 1;
+            l2 = r3;
+            b2 = r7;
+            r6 = r7 + r5;
+            i2 = r6;                    /* read cursor  */
+
             l3 = 0;
             l4 = 0;
             l5 = 0;
@@ -216,24 +256,19 @@ _DLY_BLK_BODY = """
 
             lcntr = DSP4_BLOCK_SIZE, do .dkb_lp_{nid} until lce;
                 r0 = dm(i3, 1);
-                i0 = r7;
-                m0 = r1;
-                modify(i0, m0);
-                dm(i0, 0) = r0;         /* write at the write pointer */
-                r5 = r1 - r2;
-                if lt r5 = r5 + r3;     /* read index, wrapped */
-                r6 = r5 - r1;
-                m0 = r6;
-                modify(i0, m0);
-                r0 = dm(i0, 0);
-                r15 = 1;
-                r1 = r1 + r15;
-                comp(r1, r3);
-                if ge r1 = r1 - r3;     /* advance write pointer, wrapped */
+                dm(i0, m0) = r0;        /* write; the DAG wraps it */
+                r0 = dm(i2, m2);        /* read;  the DAG wraps it */
                 dm(i5, 1) = r0;         /* pre-fader tap */
             .dkb_lp_{nid}: dm(i4, 1) = r0;
 
+            /* the cursor back to an offset, and the DAGs back to LINEAR --
+             * a non-zero L left behind would silently make the next node's
+             * i0/i2 walk wrap into this delay line. */
+            r1 = i0;
+            r1 = r1 - r7;
             dm(i1, 0) = r1;
+            l0 = 0;
+            l2 = 0;
             rts;
 
 {labels}
@@ -3769,13 +3804,18 @@ def gen_interchip_send(node):
         .global _{node['id']}_process;
         _{node['id']}_process:
         #if DSP4_BLOCK_KERNELS
-            l2 = 0;
-            l3 = 0;
-            i2 = _buf_{node['inputs_str']};
-            i3 = _tx_slot_{node['id']};
-            lcntr = DSP4_BLOCK_SIZE, do .isk_{node['id']} until lce;
-                r0 = dm(i2, 1);
-            .isk_{node['id']}: dm(i3, 1) = r0;
+            /* NOTHING TO DO (review finding D25). This body used to copy the
+             * source bus block into _tx_slot_{node['id']} so that
+             * _gather_chip1 had a named array to read. The gather walks a
+             * pointer table, and gen_block_io now points that table straight
+             * at _buf_{node['inputs_str']}, so the copy was moving a block to
+             * hand the same block over. The slot array above is kept
+             * declared -- it is the per-sample build's target and it costs a
+             * block-kernel image nothing but DM it no longer touches.
+             *
+             * The node is NOT removed from the chain: DSP4_NODE_LIMIT counts
+             * chain positions, and taking one out would silently renumber
+             * every profile point ever recorded against this graph. */
             rts;
         #else
             r0 = dm(_buf_{node['inputs_str']});
@@ -4717,10 +4757,19 @@ def gen_block_io(chip_label, chip_nodes):
             base += count * BLOCK
         return lanes, per_node
 
-    def emit_tables(lines, prefix, nodes_ordered, per_node, extern_fmt, var_fmt):
+    def emit_tables(lines, prefix, nodes_ordered, per_node, extern_fmt, var_fmt,
+                    blk_sym=None):
+        """blk_sym(node) -> the symbol the pointer table should hold under
+        per-block kernels, when that differs from the per-sample one. Used to
+        point the inter-chip gather straight at the bus buffers (D25)."""
         n = len(nodes_ordered)
         for node in nodes_ordered:
             lines.append(f'.extern {extern_fmt.format(id=node["id"])};')
+        if blk_sym:
+            lines.append('#if DSP4_BLOCK_KERNELS')
+            for node in nodes_ordered:
+                lines.append(f'.extern {blk_sym(node)};')
+            lines.append('#endif')
         lines.append('#if DSP4_BLOCK_KERNELS')
         lines.append(f'.global {prefix}_off;')
         lines.append(f'.global {prefix}_stride;')
@@ -4735,10 +4784,23 @@ def gen_block_io(chip_label, chip_nodes):
             comma = ',' if i < n - 1 else ';'
             off, stride = per_node[node['id']]
             lines.append(f'    {stride}{comma}')
-        lines.append(f'.var {var_fmt}[{n}] =')
-        for i, node in enumerate(nodes_ordered):
-            comma = ',' if i < n - 1 else ';'
-            lines.append(f'    {extern_fmt.format(id=node["id"])}{comma}')
+        if blk_sym:
+            lines.append('#if DSP4_BLOCK_KERNELS')
+            lines.append(f'.var {var_fmt}[{n}] =')
+            for i, node in enumerate(nodes_ordered):
+                comma = ',' if i < n - 1 else ';'
+                lines.append(f'    {blk_sym(node)}{comma}')
+            lines.append('#else')
+            lines.append(f'.var {var_fmt}[{n}] =')
+            for i, node in enumerate(nodes_ordered):
+                comma = ',' if i < n - 1 else ';'
+                lines.append(f'    {extern_fmt.format(id=node["id"])}{comma}')
+            lines.append('#endif')
+        else:
+            lines.append(f'.var {var_fmt}[{n}] =')
+            for i, node in enumerate(nodes_ordered):
+                comma = ',' if i < n - 1 else ';'
+                lines.append(f'    {extern_fmt.format(id=node["id"])}{comma}')
         lines.append('')
 
     def region_words(lanes):
@@ -4813,10 +4875,31 @@ def gen_block_io(chip_label, chip_nodes):
         lines.append(f'{fn}.end:')
         lines.append('')
 
-    def emit_meter_scan(lines, fn, count, ptr_tbl, what):
+    def emit_meter_scan(lines, fn, count, ptr_tbl, what, dead_under_block=False):
         lines.append(f'/* Peak-hold meter scan over {what} (once per block) */')
         lines.append(f'.global {fn};')
         lines.append(f'{fn}:')
+        if dead_under_block:
+            # Review finding D14. The scan reads the RX SLOT variables, and
+            # under per-block kernels nothing writes them: _scatter_chip1
+            # returns immediately (the INPUT_TDM kernels read the DMA buffer
+            # themselves) and the slot vars stay at their reset value for the
+            # life of the image. The scan therefore folded 46 zeros into
+            # _meter_peaks every block -- about 500 cycles to compute a
+            # result that was already frozen.
+            #
+            # DELETING IT CHANGES NO VALUE THE HOST CAN SEE, and that is the
+            # whole justification: the legacy input peaks are ALREADY dead in
+            # a block-kernel image, they are not being killed here. What
+            # replaces them is the rebuilt METER node on each strip's
+            # post-trim signal (src/lib/meter_fx.asm), which measures every
+            # sample of every block. Re-animating the legacy array would mean
+            # giving the INPUT_TDM kernels a running max, which is ADDING
+            # per-sample work to feed a superseded read-back -- a decision
+            # for the meter ruling, not for an efficiency batch.
+            lines.append('#if DSP4_BLOCK_KERNELS')
+            lines.append('    rts;')
+            lines.append('#endif')
         lines.append(f'    i0 = {ptr_tbl};')
         lines.append(f'    i1 = _meter_peaks;')
         lines.append(f'    m0 = 0;')
@@ -4920,8 +5003,22 @@ def gen_block_io(chip_label, chip_nodes):
 
         lines.append(f'/* IC TX node tables ({num_ic} packed mix-fabric slots '
                      f'over {len(ic_lanes)} lanes) */')
+        # Review finding D25. Under per-block kernels each INTERCHIP_SEND
+        # node existed only to COPY its source bus block into a private
+        # _tx_slot array so that the gather had a named place to read --
+        # 37 nodes x 2 memory operations x BLOCK, plus 37 call/rts, for a
+        # copy that changes nothing. The gather already walks a POINTER
+        # table, so it can point at the bus buffer itself. The send bodies
+        # then have nothing left to do and return immediately.
+        #
+        # SAFE BECAUSE THE BUS BUFFERS ARE PRIVATE, not pool slots: nothing
+        # between the bus node and the gather writes _buf_<bus>, so the
+        # gather reads exactly the words the copy would have handed it.
+        lines.append('/* D25: under block kernels these point at the SOURCE bus')
+        lines.append(' * buffers, and the INTERCHIP_SEND bodies are empty. */')
         emit_tables(lines, '_c1_ic_tx', send_nodes, ic_map,
-                    '_tx_slot_{id}', '_c1_ic_tx_ptrs')
+                    '_tx_slot_{id}', '_c1_ic_tx_ptrs',
+                    blk_sym=lambda nd: f'_buf_{nd["inputs_str"]}')
 
         rx_words = region_words(rx_lanes)
         ic_words = region_words(ic_lanes)
@@ -4942,7 +5039,7 @@ def gen_block_io(chip_label, chip_nodes):
                        '_c1_rx_off', '_c1_rx_stride', '_c1_rx_slot_ptrs',
                        to_dma=False, scale='rx')
         emit_meter_scan(lines, '_meter_scan_chip1', num_rx,
-                        '_c1_rx_slot_ptrs', 'RX inputs')
+                        '_c1_rx_slot_ptrs', 'RX inputs', dead_under_block=True)
         lines.append(f'/* Gather {num_ic} inter-chip sends (lane-major packed) */')
         emit_copy_loop(lines, '_gather_chip1', num_ic, '_ic_tx_active_buf',
                        '_c1_ic_tx_off', '_c1_ic_tx_stride', '_c1_ic_tx_ptrs',
@@ -6396,6 +6493,15 @@ def gen_fader_pan_fixed(node):
         .var _fdr_mute_{nid} = 0;
         .var _fdr_dca_gain_{nid} = 1.0;
         .var _fdr_gq_{nid} = 0x10000000;          /* Q4.28 level*dca */
+        /* 1 while either float ramp still has frames to run. ROUTING's
+         * main L/R crosspoint coefficients are this node's pan legs, so it
+         * has to keep re-prepping while the pan moves (review finding D22).
+         * A ramp is not an SPI write and the control epoch never sees it. */
+        #if DSP4_BLOCK_KERNELS
+        .global _fdr_busy_{nid};
+        .var _fdr_busy_{nid} = 0;
+        #endif
+
         .var _tap_post_fader_{nid};
         .var _buf_{nid};
 {lr_vars}
@@ -6411,6 +6517,25 @@ def gen_fader_pan_fixed(node):
             r1 = 0;
             comp(r4, r1);
             if ne jump (pc, .apply_{nid});
+        #endif
+
+        #if DSP4_BLOCK_KERNELS
+            /* Ramps-active publication for the control-rate gate (D22).
+             * Taken from the frame counts BEFORE they are consumed: the
+             * block that runs a ramp's last frames still moves the pan
+             * legs, so ROUTING has to prep on that block too.
+             *
+             * MAX, not OR: unlike the routing sends, these two counters
+             * are NOT clamped at zero -- `frames -= BLOCK` on a ramp with
+             * fewer than BLOCK frames left leaves a negative count that the
+             * snap test then treats as done, and OR-ing a negative word
+             * with a live one gives a negative answer. */
+            r4 = dm(_fdr_level_frames_{nid});
+            r1 = dm(_fdr_pan_frames_{nid});
+            r1 = max(r1, r4);
+            r5 = 0;
+            r1 = max(r1, r5);
+            dm(_fdr_busy_{nid}) = r1;
         #endif
 
             /* level ramp */
@@ -7421,6 +7546,221 @@ def gen_num_selftest():
         blend_core=_xfade_blend_core('nst', 'PROBE'))
 
 
+# ===========================================================================
+# Control-rate gate (review finding D22/D24)
+# ===========================================================================
+#
+# The strip nodes rebuild control state -- send ramps, pickoff resolution,
+# crosspoint lists, float->fixed parameter conversion -- once per BLOCK, for
+# state that only changes when the host writes a parameter or while a ramp is
+# running. At BLOCK=8 that is the largest floor gap in the strip (RTG alone
+# measured 232.6 cycles/sample of a 1,466-cycle strip).
+#
+# THE GATE IS AN EPOCH COUNTER, NOT A FLAG, and the difference matters. A
+# flag has to be CLEARED by whoever consumes it, so two nodes in the same
+# strip race for it: whichever runs first clears the write out from under the
+# other. A counter is only ever incremented by the writer; each node keeps
+# its own "epoch I last prepped at" word and compares. Nothing shared is
+# mutated by a reader, so any number of nodes can watch the same strip.
+#
+# ONE STRIP = ONE COUNTER. Chip 1's SPI address space is 32 contiguous
+# 144-word channel pages (Chan001Gain001 at 0, Chan002Gain001 at 144, ...,
+# Chan032Gain001 at 4464), so the strip a write belongs to is addr/144 --
+# computed in the handler as (addr * 7282) >> 20, which is EXACT over
+# 0..4607 and needs no divide and no MR register (the handler runs as an
+# ISR and must not disturb the multiplier the audio path is using).
+# Addresses at or above 4608 -- the meter read-back block, diag and product
+# config -- land in a 33rd catch-all slot that no strip node watches.
+#
+# THE RACE THAT IS LEFT IS BENIGN AND IS HANDLED BY ORDER: a node reads the
+# epoch BEFORE it preps and stores that value AFTER. A write that lands
+# mid-prep therefore leaves epoch > seen and the node preps again next
+# block, rather than recording that it has already seen it.
+#
+# RAMPS ARE NOT SPI WRITES, so the epoch does not see them: a node that
+# advanced a ramp this block publishes its own "busy" word and keeps
+# prepping while it is set. The node that consumes a ramped value from
+# ANOTHER node (ROUTING reads FADER_PAN's pan legs) watches that node's busy
+# word too.
+#
+# Bit-exactness: skipping the prep is exact because the prep is idempotent
+# on unchanged inputs -- it recomputes the same coefficients from the same
+# parameters and stores them over themselves. That is checked, not asserted:
+# DSP4_CTL_ALWAYS=1 puts the unconditional prep back in the same image, and
+# the two builds must agree sample for sample.
+CTL_EPOCH_SLOTS = 33          # 32 chip-1 strips + one catch-all
+CTL_ADDR_STRIDE = 144         # SPI addresses per channel page
+CTL_RECIP_M = 7282            # ceil(2^20 / 144); (a*M)>>20 == a/144 for a < 4608
+CTL_RECIP_SH = 20
+
+
+def gen_ctl_epoch():
+    """ctl_epoch.asm -- the per-strip control-epoch counters (D22/D24)."""
+    out = []
+    out.append('/* ctl_epoch.asm — per-strip control-rate epoch counters (D22/D24) */')
+    out.append('/* AUTO-GENERATED by tools/dsp/dsp_codegen.py — do not edit. */')
+    out.append('/*')
+    out.append(' * One counter per chip-1 channel strip, incremented by the SPI')
+    out.append(' * handler on every accepted write into that strip\'s 144-word page,')
+    out.append(' * plus a catch-all slot for everything outside the strip pages.')
+    out.append(' *')
+    out.append(' * A node preps its control state when the counter differs from the')
+    out.append(' * epoch it last prepped at, or while it (or a node it depends on) is')
+    out.append(' * running a ramp. Readers never write these words, so a strip can')
+    out.append(' * carry any number of watchers without a clear-race.')
+    out.append(' *')
+    out.append(' * CHIP 1 ONLY. Chip 2 assembles this file too -- everything under')
+    out.append(' * src/ is assembled once per chip -- but its nodes are not')
+    out.append(' * strip-shaped, none of them gate on an epoch, and the fader-busy')
+    out.append(' * pointer table below names chip-1 symbols that do not exist in a')
+    out.append(' * chip-2 link. So the whole body is behind CHIP_ID == 1.')
+    out.append(' *')
+    out.append(' * INITIALISED TO 1, and the node-side "last seen" words to 0, so every')
+    out.append(' * gated node preps on the first block after reset whatever the host')
+    out.append(' * has or has not written.')
+    out.append(' */')
+    out.append('')
+    out.append('#include "dsp_block.h"')
+    out.append('')
+    out.append('/* Only the block-kernel builds gate anything, so only they carry')
+    out.append(' * the counters or the handler bump that feeds them: the per-sample')
+    out.append(' * image is byte-identical either side of this file. */')
+    out.append('#if DSP4_BLOCK_KERNELS && CHIP_ID == 1')
+    out.append('.section/dm seg_dmda;')
+    out.append('')
+    out.append('.global _ctl_epoch;')
+    out.append(f'.var _ctl_epoch[{CTL_EPOCH_SLOTS}] = '
+               + ', '.join(['1'] * CTL_EPOCH_SLOTS) + ';')
+    out.append('')
+    out.append('/* Per-strip gate state, INDEXED not per-node, and the reason is')
+    out.append(' * program memory rather than data memory. Chip 1\'s VISA code')
+    out.append(' * section is 99.9 % full in the paired 32-strip build (block 3')
+    out.append(' * used 131,070 of 131,072 words; the overflow into block 2 leaves')
+    out.append(' * about 1,400). A directly-addressed DM access is a LONG VISA')
+    out.append(' * instruction, so an inline gate of nine instructions cost ~41')
+    out.append(' * words per node -- 1,320 across 32 ROUTING nodes, which is more')
+    out.append(' * than the whole remaining margin, and the paired build stopped')
+    out.append(' * linking. Indexed arrays plus one shared routine put the caller')
+    out.append(' * at three instructions.')
+    out.append(' *')
+    out.append(' * _rtg_ep    the epoch each ROUTING node last prepped at')
+    out.append(' * _rtg_busy  1 while that node still has a send ramp running')
+    out.append(' * _fdr_busy_ptrs  where to find the fader\'s ramp flag, whose pan')
+    out.append(' *            legs are the ROUTING node\'s main L/R coefficients */')
+    out.append('.global _rtg_ep;')
+    out.append('.var _rtg_ep[32] = ' + ', '.join(['0'] * 32) + ';')
+    out.append('.global _rtg_busy;')
+    out.append('.var _rtg_busy[32] = ' + ', '.join(['0'] * 32) + ';')
+    for k in range(1, 33):
+        out.append(f'.extern _fdr_busy_C1_FDR_{k:02d};')
+    out.append('.global _fdr_busy_ptrs;')
+    out.append('.var _fdr_busy_ptrs[32] =')
+    for k in range(1, 33):
+        out.append(f'    _fdr_busy_C1_FDR_{k:02d}'
+                   + (',' if k < 32 else ';'))
+    out.append('')
+    out.append('.section/pm seg_pmco;')
+    out.append('')
+    out.append('/*--------------------------------------------------------------')
+    out.append(' * _ctl_strip_prep_needed — does strip r0 have to rebuild its')
+    out.append(' * ROUTING control state this block?')
+    out.append(' *')
+    out.append(' * In:  r0 = strip index, 0..31')
+    out.append(' * Out: returns with AZ SET (so the caller\'s `if eq jump` is')
+    out.append(' *      taken) when the prep can be SKIPPED. When it cannot, the')
+    out.append(' *      node\'s epoch has already been updated to the value read')
+    out.append(' *      here and AZ is clear.')
+    out.append(' * Clobbers: r1, r2, r3, r4, i4, m4, l4.')
+    out.append(' *')
+    out.append(' * THE EPOCH IS STORED HERE, BEFORE the caller preps, and that is')
+    out.append(' * deliberate in the other direction from the obvious: the value')
+    out.append(' * stored is the one READ at this instant, so an SPI write that')
+    out.append(' * lands while the prep runs leaves _ctl_epoch AHEAD of what was')
+    out.append(' * stored and is picked up on the next block. Storing the epoch')
+    out.append(' * read AFTER the prep would swallow it.')
+    out.append(' *-------------------------------------------------------------*/')
+    out.append('.global _ctl_strip_prep_needed;')
+    out.append('_ctl_strip_prep_needed:')
+    out.append('    l4 = 0;')
+    out.append('    m4 = r0;')
+    out.append('    i4 = _ctl_epoch;')
+    out.append('    modify(i4, m4);')
+    out.append('    r4 = dm(i4, 0);                 /* this strip\'s epoch    */')
+    out.append('    i4 = _rtg_ep;')
+    out.append('    modify(i4, m4);')
+    out.append('    r1 = dm(i4, 0);')
+    out.append('    r1 = r1 xor r4;                 /* 0 iff unchanged       */')
+    out.append('    i4 = _rtg_busy;')
+    out.append('    modify(i4, m4);')
+    out.append('    r2 = dm(i4, 0);')
+    out.append('    r1 = r1 or r2;                  /* own send ramps        */')
+    out.append('    i4 = _fdr_busy_ptrs;')
+    out.append('    modify(i4, m4);')
+    out.append('    r3 = dm(i4, 0);')
+    out.append('    i4 = r3;')
+    out.append('    r2 = dm(i4, 0);')
+    out.append('    r1 = r1 or r2;                  /* the fader\'s pan ramp  */')
+    out.append('    if eq rts;                      /* nothing to do         */')
+    out.append('    i4 = _rtg_ep;')
+    out.append('    modify(i4, m4);')
+    out.append('    dm(i4, 0) = r4;')
+    out.append('    r1 = pass r1;                   /* leave AZ clear        */')
+    out.append('    rts;')
+    out.append('_ctl_strip_prep_needed.end:')
+    out.append('#endif')
+    out.append('')
+    return '\n'.join(out) + '\n'
+
+
+_CTL_STRIP_RE = re.compile(
+    r'^C1_(IN|GAIN|FILT|EQ|GATE|COMP|TUBE|DLY|FDR|RTG|MTR)_(\d{2})$')
+
+
+def ctl_strip_idx(nid):
+    """The epoch slot a chip-1 strip node watches, or None if the node is
+    not a chip-1 strip node at all. Chip 2's FADER_PANs and GATEs share the
+    generator functions but have no strip page, so they must not gate."""
+    m = _CTL_STRIP_RE.match(nid)
+    if not m:
+        return None
+    k = int(m.group(2))
+    return k - 1 if 1 <= k <= 32 else None
+
+
+def ctl_gate(nid, tag, skip_label, busy=()):
+    """The control-rate gate prologue (review finding D22).
+
+    THREE INSTRUCTIONS, and the work is in _ctl_strip_prep_needed
+    (ctl_epoch.asm). Inline it was nine, but a directly-addressed DM access
+    is a LONG VISA instruction and nine of them came to ~41 words per node
+    -- 1,320 across the 32 ROUTING nodes, against about 1,400 words left in
+    chip 1's code section in the paired 32-strip build. The call costs a
+    call/rts and a handful of indexed loads once per node per block, about
+    2.5 cycles/sample/strip, against the ~200 the gate saves.
+
+    Emits nothing for a node that has no strip page.
+    """
+    idx = ctl_strip_idx(nid)
+    if idx is None:
+        return ''
+    return ('        #if DSP4_BLOCK_KERNELS && !DSP4_CTL_ALWAYS\n'
+            f'            r0 = {idx};\n'
+            '            call _ctl_strip_prep_needed;\n'
+            f'            if eq jump (pc, {skip_label});\n'
+            '        #endif\n')
+
+
+def ctl_gate_var(nid, tag):
+    """The externs the gate call needs. The gate STATE is indexed, not
+    per-node: see _rtg_ep / _rtg_busy in ctl_epoch.asm."""
+    if ctl_strip_idx(nid) is None:
+        return ''
+    return ('        #if DSP4_BLOCK_KERNELS\n'
+            '        .extern _ctl_strip_prep_needed;\n'
+            '        .extern _rtg_busy;\n'
+            '        #endif\n')
+
+
 def gen_bus_accumulators_fixed():
     """Fixed bus_accumulators.asm: 64-bit pairs per bus + clear."""
     names = (['main_l', 'main_r', 'sub']
@@ -7628,6 +7968,12 @@ def _fx_send_ramp_asm(nid, kind, count, srcs):
                 if lt r6 = r4;                /* n = min(frames, BLOCK) */
                 r4 = r4 - r6;
                 dm(i6, 1) = r4;
+        #if DSP4_BLOCK_KERNELS && !DSP4_CTL_ALWAYS
+                /* D22: "is any send ramp still running?", accumulated where
+                 * the frame count is already in a register. The min() above
+                 * clamps frames at zero, so OR is enough to ask it. */
+                r11 = r11 or r4;
+        #endif
                 r4 = pass r6;
                 if eq jump (pc, .{kind}snap_{nid});
                 f1 = dm(i4, 0);
@@ -7719,6 +8065,12 @@ def gen_routing_fixed(node):
     gain_id = fdr_id.replace('_FDR_', '_GAIN_')
     eq_id = fdr_id.replace('_FDR_', '_EQ_')
     dly_id = fdr_id.replace('_FDR_', '_DLY_')
+    # D22 control-rate gate. This node's prep is the largest floor gap in
+    # the strip; it runs only when the strip's control epoch has moved, or
+    # while one of its own send ramps or the fader's pan ramp is running.
+    gate = ctl_gate(nid, 'rtg', f'.rtg_acc_{nid}')
+    gate_var = ctl_gate_var(nid, 'rtg')
+    strip_idx = ctl_strip_idx(nid)
     aux_pick_defaults = ', '.join(['3'] * 12)
     fx_pick_defaults = ', '.join(['3'] * 6)
 
@@ -7755,6 +8107,30 @@ def gen_routing_fixed(node):
         .extern _tap_post_fader_{fdr_id};
         .extern _fdr_lq_{fdr_id};
         .extern _fdr_rq_{fdr_id};
+        #if DSP4_BLOCK_KERNELS
+        .extern _fdr_busy_{fdr_id};
+        .extern _ctl_epoch;
+        #endif
+        /* CONTROL-RATE GATE (review finding D22). This node's whole prep
+         * section -- 18 send ramps, 18 pickoff resolutions and the
+         * 25-crosspoint list rebuild -- ran EVERY BLOCK for state that
+         * changes only when the host writes a parameter or while a ramp is
+         * running. At BLOCK=8 that measured 232.6 cycles/sample against a
+         * floor of 8-15, the largest gap in the strip.
+         *
+         * _rtg_ep holds the control epoch this node last prepped at and is
+         * compared against _ctl_epoch[strip], which the SPI handler bumps on
+         * any accepted write into this strip's 144-word page. _rtg_busy is
+         * set while any of this node's own 18 send ramps still has frames
+         * left; _fdr_busy_{fdr_id} is the same for the fader, whose pan legs
+         * this node's main L/R coefficients are computed from.
+         *
+         * NOTHING IN THE AUDIO PATH MOVES. The prep is idempotent on
+         * unchanged inputs -- it recomputes the same coefficients and stores
+         * them over themselves -- so not running it is exact, not
+         * approximate. DSP4_CTL_ALWAYS=1 restores the unconditional prep in
+         * the same image as the negative control. */
+{gate_var}
         .var _rtg_main_on_{nid} = 1;
         .var _rtg_sub_on_{nid} = 0;
         .var _rtg_grp_on_{nid}[4] = 0, 0, 0, 0;
@@ -7814,6 +8190,7 @@ def gen_routing_fixed(node):
             if ne jump (pc, .rtg_acc_{nid});
         #endif
 
+{gate}
             /* main L/R: pan leg x main assign. _fdr_lq/_fdr_rq are PAN
              * ONLY -- the fader, DCA and mute are already inside the
              * post-fader mono this coefficient multiplies, so folding the
@@ -7836,6 +8213,9 @@ def gen_routing_fixed(node):
             if eq r1 = r8;
             dm(_rtg_subq_{nid}) = r1;
 
+        #if DSP4_BLOCK_KERNELS && !DSP4_CTL_ALWAYS
+            r11 = 0;                      /* "any send ramp still running" */
+        #endif
             l5 = 0;
             l6 = 0;
             i5 = _rtg_grp_on_{nid};
@@ -7955,6 +8335,19 @@ def gen_routing_fixed(node):
                 nop;
 
             dm(_rtg_n_{nid}) = r10;
+
+        #if DSP4_BLOCK_KERNELS && !DSP4_CTL_ALWAYS
+            /* Ramps are not SPI writes, so the epoch never sees them: while
+             * any send ramp still has frames its coefficient changes every
+             * block, and the prep has to keep running. r11 was accumulated
+             * inside the two send-ramp loops above, where the frame count
+             * was already in a register -- one instruction each, against the
+             * ten a separate 18-word scan cost, in a PM section with about a
+             * thousand words left in the paired build. It survives the
+             * pickoff-resolution and list-build loops between them; neither
+             * of those touches r11. */
+            dm(_rtg_busy + {strip_idx}) = r11;
+        #endif
 
         .rtg_acc_{nid}:
             /* ===== crosspoint accumulate =====
@@ -9865,6 +10258,10 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
         with open(os.path.join(output_dir, 'blk_pool.h'), 'w',
                   encoding='utf-8') as f:
             f.write(gen_blk_pool_header())
+        files_written += 1
+        with open(os.path.join(output_dir, 'ctl_epoch.asm'), 'w',
+                  encoding='utf-8') as f:
+            f.write(gen_ctl_epoch())
         files_written += 1
 
     # dsp_block.h is NOT fixed-mode-only: it is the block-size contract the

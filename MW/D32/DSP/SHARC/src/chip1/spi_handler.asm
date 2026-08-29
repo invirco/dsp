@@ -92,6 +92,11 @@
  * PARALLEL ARRAYS, so their stride is the array width (12 AuxSend,
  * 6 FxSend) and +1/+2/+3 would land on the next crosspoint. */
 .extern _spi_dispatch_c1_stride;
+/* Per-strip control-epoch counters (ctl_epoch.asm, generated). 33 slots:
+ * 32 chip-1 channel strips plus a catch-all for every address outside the
+ * strip pages. See the bump at .spi_write_answer. */
+.extern _ctl_epoch;
+#define CTL_EPOCH_CATCHALL  32
 
 /* SPI stats — exposed read-only as DIAG_SPI_RX_COUNT /
  * DIAG_SPI_ERR_COUNT, and zeroed by a write to DIAG_CLEAR. */
@@ -361,6 +366,53 @@ _spi2_rx_work:
  * a different question -- and ten further attempts never resynchronised.
  * That is what gates rung 2, not a protocol nicety. */
 .spi_write_answer:
+    /* ---- CONTROL EPOCH (review finding D22/D24) ----
+     *
+     * Bump the epoch counter of the strip this write landed in. The strip
+     * nodes gate their control-rate prep on it, so a write is what makes
+     * them rebuild send coefficients, pickoff addresses and crosspoint
+     * lists; without a write and without a running ramp there is nothing
+     * for them to rebuild and they skip straight to the audio path.
+     *
+     * Chip 1's SPI map is 32 contiguous 144-word channel pages
+     * (Chan001Gain001 at 0, Chan032Gain001 at 4464), so the strip index is
+     * addr/144. There is no integer divide on this core and this runs
+     * inside an ISR, so it must not touch MR -- the audio path's
+     * accumulator is live in there. (addr * 7282) >> 20 is EXACT over
+     * 0..4607 (checked over the whole range) and the product of the widest
+     * address the handler can see, 0xFFFF, still fits in 32 bits, so the
+     * plain register-destination multiply is enough.
+     *
+     * Everything at or above 4608 -- the meter read-back block, diag at
+     * 0xE000 and product config at 0xF000, which also reach this label --
+     * is clamped into slot 32, a catch-all no strip node watches.
+     *
+     * INCREMENT, never a flag: several nodes in a strip watch the same
+     * word, and a flag would have to be cleared by whichever of them ran
+     * first, taking the write away from the others. */
+    /* DSP4_CTL_NEGCTL=1 removes the bump and NOTHING else, so the gated
+     * nodes go deaf to host writes and hold their boot-time coefficients.
+     * That is the negative control for the gate's bit-exactness proof: a
+     * capture comparison that cannot fail proves nothing, and this is what
+     * makes it fail. */
+#if DSP4_BLOCK_KERNELS && !DSP4_CTL_NEGCTL
+    r2 = dm(_spi_req_addr);
+    r3 = 7282;                      /* ceil(2^20 / 144) */
+    r2 = r2 * r3 (SSI);
+    r2 = lshift r2 by -20;
+    r3 = CTL_EPOCH_CATCHALL;
+    comp(r2, r3);
+    if gt r2 = r3;
+    l1 = 0;                         /* linear: this is an array index */
+    i1 = _ctl_epoch;
+    m1 = r2;
+    modify(i1, m1);
+    r5 = dm(i1, 0);
+    r6 = 1;
+    r5 = r5 + r6;
+    dm(i1, 0) = r5;
+#endif
+
     r4 = 0;                         /* writes answer with value 0 */
     jump (pc, .spi_read_respond);
 

@@ -29,13 +29,18 @@
 .global _C1_BUS_FX_05_SEND_process;
 _C1_BUS_FX_05_SEND_process:
 #if DSP4_BLOCK_KERNELS
-    l2 = 0;
-    l3 = 0;
-    i2 = _buf_C1_BUS_FX_05;
-    i3 = _tx_slot_C1_BUS_FX_05_SEND;
-    lcntr = DSP4_BLOCK_SIZE, do .isk_C1_BUS_FX_05_SEND until lce;
-        r0 = dm(i2, 1);
-    .isk_C1_BUS_FX_05_SEND: dm(i3, 1) = r0;
+    /* NOTHING TO DO (review finding D25). This body used to copy the
+     * source bus block into _tx_slot_C1_BUS_FX_05_SEND so that
+     * _gather_chip1 had a named array to read. The gather walks a
+     * pointer table, and gen_block_io now points that table straight
+     * at _buf_C1_BUS_FX_05, so the copy was moving a block to
+     * hand the same block over. The slot array above is kept
+     * declared -- it is the per-sample build's target and it costs a
+     * block-kernel image nothing but DM it no longer touches.
+     *
+     * The node is NOT removed from the chain: DSP4_NODE_LIMIT counts
+     * chain positions, and taking one out would silently renumber
+     * every profile point ever recorded against this graph. */
     rts;
 #else
     r0 = dm(_buf_C1_BUS_FX_05);

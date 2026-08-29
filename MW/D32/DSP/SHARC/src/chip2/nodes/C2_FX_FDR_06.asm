@@ -42,6 +42,16 @@
         .var _fdr_dca_gain_C2_FX_FDR_06 = 1.0;
         .global _fdr_gq_C2_FX_FDR_06;
         .var _fdr_gq_C2_FX_FDR_06 = 0x10000000;          /* Q4.28 level*dca */
+        /* 1 while either float ramp still has frames to run. ROUTING's
+         * main L/R crosspoint coefficients are this node's pan legs, so it
+         * has to keep re-prepping while the pan moves (review finding D22).
+         * A ramp is not an SPI write and the control epoch never sees it. */
+        #if DSP4_BLOCK_KERNELS
+        .global _fdr_busy_C2_FX_FDR_06;
+        .global _fdr_busy_C2_FX_FDR_06;
+        .var _fdr_busy_C2_FX_FDR_06 = 0;
+        #endif
+
         .global _tap_post_fader_C2_FX_FDR_06;
         .var _tap_post_fader_C2_FX_FDR_06;
         .global _buf_C2_FX_FDR_06;
@@ -59,6 +69,25 @@
             r1 = 0;
             comp(r4, r1);
             if ne jump (pc, .apply_C2_FX_FDR_06);
+        #endif
+
+        #if DSP4_BLOCK_KERNELS
+            /* Ramps-active publication for the control-rate gate (D22).
+             * Taken from the frame counts BEFORE they are consumed: the
+             * block that runs a ramp's last frames still moves the pan
+             * legs, so ROUTING has to prep on that block too.
+             *
+             * MAX, not OR: unlike the routing sends, these two counters
+             * are NOT clamped at zero -- `frames -= BLOCK` on a ramp with
+             * fewer than BLOCK frames left leaves a negative count that the
+             * snap test then treats as done, and OR-ing a negative word
+             * with a live one gives a negative answer. */
+            r4 = dm(_fdr_level_frames_C2_FX_FDR_06);
+            r1 = dm(_fdr_pan_frames_C2_FX_FDR_06);
+            r1 = max(r1, r4);
+            r5 = 0;
+            r1 = max(r1, r5);
+            dm(_fdr_busy_C2_FX_FDR_06) = r1;
         #endif
 
             /* level ramp */
