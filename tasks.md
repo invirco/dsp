@@ -10,7 +10,10 @@ taps (mx26 supplies the ids), and application of the per-cell wire table
 D38's ~600 inert slots: the harness produces the authoritative list;
 which get WIRED vs documented-deferred is then a PW prioritization.
 Capacity floor remainders move to session 4 unless session 2 leaves
-little behind.
+little behind. **PW addendum (~13:45): once built, the conformance
+harness joins the STANDING per-session acceptance bars** — it runs in
+every session's requal like the smokes and goldens do, so the many test
+passes each re-prove the contract for free.
 
 **PW RULING 2026-08-29 (~13:10): MINIMUM EQ Q = 0.10** (matching the
 wide-gentle extreme of the console field, not the mainstream 0.3 floor).
