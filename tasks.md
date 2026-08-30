@@ -12,6 +12,13 @@ SESSION 9 — TUBE ACTIVE COST MEASURED + EFFICIENCY TO FLOORS (per the
 capacity mandate: 32 channels is the minimum, headroom is the goal; keep
 going until there is no room left).
 
+> **PW RULING (2026-08-30, appended post-dispatch): SKIP step 1 (TUBE active
+> cost). TUBE is a plugin option — its active-cost measurement is DEFERRED to
+> plugin-group testing, not part of the capacity campaign.** Do not write
+> TubeOn, do not profile the engaged body; leave it in NEEDS MEASUREMENT
+> tagged "plugin group". Go straight to step 2, efficiency-to-floors. The
+> base-strip requirement (bypass ~0) is already met and proven (session 8).
+
 1. TUBE ACTIVE COST (the one thing session 8 left owed): teach
    sigprofile.sh to write TubeOn=1 before profiling (and restore it
    after), then measure the engaged TUBE body on the part. Expected
