@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-08-30 13:36Z — session 9: TUBE active measured + efficiency to floors   [status: 🔴 blocked — **TUBE ACTIVE COST IS MEASURED, CLEANLY, AND IT ESCALATES.** `sigprofile.sh`/`sigprofile_run.sh` now drive a new `tools/pi/tubeon.py` to write `TubeOn=1` on all 32 strips before the DWELL window and back to 0 after (mirrors `gainfix.py`'s repair pattern: SPI write at the channel's `TubeOn` address, ramp_id=0 since it's InstantCtl, confirmed by peeking the compiled `_tube_on_C1_TUBE_NN` DM var). Cross-boot `NODE_LIMIT` 6->7 sweeps were too noisy to trust on their own (383-878 cycles/block across three boot-pairs) because GATE/COMP's envelope state under a signal-present stimulus drifts boot to boot by an amount comparable to TUBE's own cost, so the number that stands is a **same-boot `TubeOn` 0->1 diff** (four repeats, `_tube_sat_frames` held at its compiled default of 0 throughout so the same hoisted `.tkb_lp_C1_TUBE_01` loop runs both sides): **829, 832, 830, 834 cycles/block — 103.9 c/s mean, under 0.6% spread.** That is **2.0x session 8's ~52 c/s arithmetic estimate**, not the expected agreement, so per the dispatch's own clause this thread stops here rather than being improvised past: **filed as `review-dsp-20260828.md`:D66**, with a working (unconfirmed) hypothesis that the three `call _mrf_rns28` pairs in the active loop cost ~17 c/s each rather than the ~1 c/instruction the arithmetic assumed — the same unmodeled cost AXIS 1's own floor table already named as COMP's and GATE's dominant waste. **That is why item 2 (efficiency to floors) was not attempted this session**: "inline the call fat" is the top item in the scoreboard queue, and its ROI is sized off the same call-cost assumption D66 just measured as wrong by ~2x for every class that leans on it, not just TUBE. Landing that work now would be sizing a fix against a floor number this session has direct evidence is understated. **W0: no image change** — plain `./build.sh` reproduces `3f0e479a`/`ab43c75b`, 301,732/182,060 bytes; only test-harness scripts and one new bench tool were touched, nothing in `dsp_codegen.py` or any node ASM. `golden_harness.py` 59/59. Bench restored and verified: fresh boot+config of the plain shipping build on both chips (md5s `3f0e479a`/`ab43c75b` unchanged), `CHIP_ID`/`BOOT_STAGE 7`/`DMA0_STAT 0x6200`/`SPORT0_ERR_A 0` clean on both chips before AND after `matrix-app` restart, GPIOs released, CPLD never touched. **Needs opus-tier follow-up**: an isolated bare call/rts measurement to confirm the ~17 c/s/pair figure, and a ruling on whether AXIS 1's floor rows (and therefore the efficiency-queue's priority order) should be restated before further inlining work is sized or attempted.]   [model: sonnet]
+## HUB DISPATCH 2026-08-30 13:36Z — session 9: TUBE active measured + efficiency to floors   [status: 🔴 blocked — **RACED THE PW RULING BELOW: the TUBE active-cost measurement it says to skip was already done and pushed before this session saw it land.** Kept rather than discarded because it surfaced a finding that bears directly on step 2, which the ruling says to do instead — see the note under the ruling and D66. Net effect either way: efficiency-to-floors (step 2) was not attempted this session, and that is what needs picking up next.]   [model: sonnet]
 
 model: sonnet
 (reasoning: bounded, fully-specified measurement + mechanical optimization
@@ -18,6 +18,27 @@ going until there is no room left).
 > TubeOn, do not profile the engaged body; leave it in NEEDS MEASUREMENT
 > tagged "plugin group". Go straight to step 2, efficiency-to-floors. The
 > base-strip requirement (bypass ~0) is already met and proven (session 8).
+
+> **SESSION 9 NOTE, post-ruling:** this ruling landed on `main` (`e72309a`,
+> 14:39 BST) while step 1 was already in flight on this dispatch (`13:36Z`
+> start) — the measurement below was taken, verified, and pushed (`06d5ebc`)
+> before this session pulled and saw the ruling. Retagging TUBE per the
+> ruling: NEEDS MEASUREMENT, plugin group — not a capacity-campaign
+> deliverable, and `dsp4-function-costs.csv`'s `TUBE_ACTIVE` row and
+> `review-dsp-20260828.md`'s TUBE floor row should be read with that label
+> rather than as a closed capacity item. **Not reverted**, because what it
+> surfaced isn't about TUBE: the measured active cost (103.9 c/s) is 2.0x
+> the ~52 c/s arithmetic estimate, and the gap matches an uncalibrated
+> call/rts pipeline cost — filed as `review-dsp-20260828.md`:D66 — which is
+> the SAME cost AXIS 1's floor table already blames for most of COMP's and
+> GATE's gap, i.e. exactly what step 2's top queue item ("inline the call
+> fat") is about to spend effort closing. Per the escalation clause still in
+> force above (a measurement disagreeing with the arithmetic by >10%), that
+> queue item was not started this session pending a ruling on whether the
+> floor rows need restating first. So step 2 was not reached either way —
+> by the ruling's instruction directly, and independently by the clause
+> once D66 was in hand. **Next session should get an explicit call on D66
+> before starting the COMP/GATE inlining work.**
 
 1. TUBE ACTIVE COST (the one thing session 8 left owed): teach
    sigprofile.sh to write TubeOn=1 before profiling (and restore it
