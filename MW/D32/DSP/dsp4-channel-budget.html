@@ -109,7 +109,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--sunk);padding:1px
 
 <div class="wrap">
 <header>
-  <div class="eyebrow">DSP4 · ADSP-21564 · measured 29 Aug 2026</div>
+  <div class="eyebrow">DSP4 · ADSP-21564 · measured 30 Aug 2026</div>
   <h1>What actually fits on the chip</h1>
   <p class="sub">Every figure here was measured on the part with a signal present, not
   estimated. The table immediately below is the current answer. The calculator further
@@ -117,28 +117,28 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--sunk);padding:1px
   for the shape of the trade, not for its numbers.</p>
 </header>
 
-<section class="verdict over" style="--state:var(--over)">
+<section class="verdict tight" style="--state:var(--tight)">
   <div class="vhead">
-    <span class="vtitle">32 channels on one chip: not reached</span>
-    <span class="vnote">best measured configuration is 12.4&thinsp;% over the block budget</span>
+    <span class="vtitle">32 channels on one chip: on the line at block 32</span>
+    <span class="vnote">full rate on the part, 0.26&thinsp;% over by cycle count</span>
   </div>
   <p style="margin:14px 0 0;color:var(--ink-2);max-width:78ch">
-  Measured 29 Aug 2026 with strip fusion and dynamics pairing in the same image for the
-  first time. Real time is the FULL block rate &mdash; 6000 blocks/s at block 8, 1500 at
-  block 32 &mdash; and every accepted point is witnessed with all N gates open and all N
-  compressors active. The biquad cascade is <em>not</em> paired in the graph yet; its
-  measured pairing factor is 1.43&ndash;1.54&times; and it is the next lever.</p>
+  Measured 30 Aug 2026 with strip fusion, dynamics pairing <em>and the biquad cascade
+  paired in the graph</em>, plus the wide-word metering ruling. Real time is the FULL
+  block rate &mdash; 6000 blocks/s at block 8, 1500 at block 32 &mdash; and every
+  accepted point is witnessed with all N gates open and all N compressors active.</p>
 
   <div class="tw" style="margin-top:18px">
   <table>
     <caption style="text-align:left;color:var(--ink-3);font-size:12px;padding-bottom:6px">
-      Ceilings &mdash; channels per chip, fused + paired</caption>
+      Ceilings &mdash; channels per chip, fused + paired + biquad-paired
+      (previous session in brackets)</caption>
     <thead><tr><th></th><th>786.432 MHz</th><th>983.04 MHz</th></tr></thead>
     <tbody>
-      <tr><td>block 8, signal</td><td>16</td><td><b>22</b></td></tr>
-      <tr><td>block 8, silence</td><td>18</td><td>23</td></tr>
-      <tr><td>block 32, signal</td><td>21</td><td><b>28</b></td></tr>
-      <tr><td>block 32, silence</td><td>22</td><td>28</td></tr>
+      <tr><td>block 8, signal</td><td>18 <span style="color:var(--ink-3)">(16)</span></td><td><b>23</b> <span style="color:var(--ink-3)">(22)</span></td></tr>
+      <tr><td>block 8, silence</td><td>19 <span style="color:var(--ink-3)">(18)</span></td><td>25 <span style="color:var(--ink-3)">(23)</span></td></tr>
+      <tr><td>block 32, signal</td><td>24 <span style="color:var(--ink-3)">(21)</span></td><td><b>32 &mdash; the whole product</b> <span style="color:var(--ink-3)">(28)</span></td></tr>
+      <tr><td>block 32, silence</td><td>25 <span style="color:var(--ink-3)">(22)</span></td><td>32 <span style="color:var(--ink-3)">(28)</span></td></tr>
     </tbody>
   </table>
   </div>
@@ -152,14 +152,28 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--sunk);padding:1px
       <tr><td>scalar, unfused</td><td>349,555 &mdash; 213.4&thinsp;%</td><td>1,280,847 &mdash; 195.4&thinsp;%</td></tr>
       <tr><td>scalar, fused</td><td>303,355 &mdash; 185.2&thinsp;%</td><td>1,095,628 &mdash; 167.2&thinsp;%</td></tr>
       <tr><td>paired, unfused</td><td>274,419 &mdash; 167.5&thinsp;%</td><td>922,754 &mdash; 140.8&thinsp;%</td></tr>
-      <tr><td><b>paired + fused</b></td><td><b>226,462 &mdash; 138.2&thinsp;%</b></td><td><b>736,848 &mdash; 112.4&thinsp;%</b></td></tr>
+      <tr><td>paired + fused</td><td>226,462 &mdash; 138.2&thinsp;%</td><td>736,848 &mdash; 112.4&thinsp;%</td></tr>
+      <tr><td>&nbsp;&nbsp;+ wide-word metering</td><td>233,714 &mdash; 142.6&thinsp;%</td><td>743,884 &mdash; 113.5&thinsp;%</td></tr>
+      <tr><td><b>&nbsp;&nbsp;+ paired biquads</b></td><td><b>214,249 &mdash; 130.8&thinsp;%</b></td><td><b>657,082 &mdash; 100.26&thinsp;%</b></td></tr>
     </tbody>
   </table>
   </div>
 
   <p style="margin:14px 0 0;color:var(--ink-2);max-width:78ch">
-  A two-chip D32 needs 16 per chip. At block 8 and 983.04 the ceiling is 22, against
-  exactly 16 in the previous session &mdash; that split is no longer marginal.</p>
+  <b>The two instruments disagree at the point that matters, and both are reported.</b>
+  The pass-rate instrument scores 32 strips at block 32 and 983.04 MHz at 1500 of 1500
+  passes per second, on two separate boots. The cycle instrument puts the same graph
+  1,722 cycles over its budget &mdash; 0.26&thinsp;%, which is under four blocks a second
+  and beneath the pass-rate counter's resolution. So 32 channels on one 21564 at block 32
+  is <em>on the line</em>: reached by one instrument, fractionally over by the other, and
+  not the comfortable fit a product decision would want. The previous session's best was
+  12.4&thinsp;% over.</p>
+
+  <p style="margin:14px 0 0;color:var(--ink-2);max-width:78ch">
+  Two things the ceilings say on their own. <b>D24's 24 channels now fit one chip</b> at
+  786.432 MHz and block 32 (24 = 1500/s, 25 = 1458/s), which an earlier session recorded
+  as not fitting. And a two-chip D32 split needs 16 per chip, which is under every ceiling
+  in the table.</p>
 </section>
 
 <div class="verdict" id="verdict">

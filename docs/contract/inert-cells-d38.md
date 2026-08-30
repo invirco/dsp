@@ -15,6 +15,25 @@ rather than over-reports.
 
 **896 addresses are inert**, naming **762 master cells**. A further **70 addresses** are reachable by offset from a symbol that is used, and are not claimed either way.
 
+## Confirmed on the part — 2026-08-30
+
+The list above is STATIC: it says nothing in the emitted source reads
+these targets. The live confirmation is `conform.sh`'s inert phase, which
+writes each candidate and requires the **driven main bus** not to move.
+Session 4 could not report a verdict at all — its window was the strip's
+control state on an idle graph and it failed its own positive control.
+
+**64 of chip 1's 288 candidates: INERT CONFIRMED, every one, with a noise
+floor of ZERO bus words.** Both positive controls moved 32 of 32 words
+over the same interval, so the comparison could have failed and did not.
+Nothing on the sampled set turned out to be live.
+
+The remaining candidates are not confirmed and are not claimed to be: at
+roughly nine seconds each — three armed captures, one of them the
+per-candidate null interval — the full 896 is about two hours of bench
+time, and the sample is one address per kernel class in dispatch order
+rather than a random draw. `INERTN=<n> ./conform.sh` raises the count.
+
 | kernel class | addresses | master cells | symbol |
 |---|---|---|---|
 | CompFilter HPF[i] | 180 | 123 | `_comp_filter_coeffs_*` |
