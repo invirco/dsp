@@ -33,6 +33,13 @@ Block 8 silence at 983.04: 25 = 5999/s and 26 = 5825/s; at 786.432,
 19 = 5999/s and 20 = 5846/s. Block 32 at 786.432: 24 = 1500/s and
 25 = 1458/s; silence, 25 = 1500/s and 26 = 1473/s.
 
+**AND THE RULED OPERATING POINT IS BLOCK 8, NOT BLOCK 32** (PW ruling
+2026-08-28), where the ceiling is 23. Block 32 is four times the block
+latency, and the 32-channel row is a statement about what the arithmetic
+can be made to fit, not about what the product runs today. Both rows are
+in the table for that reason and neither should be quoted without the
+other.
+
 **BLOCK 32 AT 983.04 HAS NO REJECTED POINT, because the graph runs out
 before the chip does.** 32 strips is the whole D32 channel count, it
 scores 1500 of 1500 passes/s with all 32 gates open and all 32
