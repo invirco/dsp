@@ -540,3 +540,472 @@ def meter_readback(state):
     peak = (state[0] >> QS) / float(1 << QS)
     ms = (state[1] >> QS) / float(1 << QS)
     return peak, math.sqrt(ms) if ms > 0.0 else 0.0
+
+
+# ===========================================================================
+# THE PARAMETER BOUNDARY: float32 and the SHARC `fix`
+#
+# Everything below this line models a NODE rather than a primitive, and a
+# node has two halves: a float32 control plane that converts host
+# parameters once per block, and a fixed sample path. numeric-spec.md
+# already rules the first half float32 ("Parameter boundary"), and
+# xfade_alpha_q was the first model to have to say so -- modelling its
+# alpha in float64 disagreed with the part by 15 LSB. Every conversion
+# below is therefore float32, single operation at a time, in the order
+# the emitted instructions perform it.
+# ===========================================================================
+
+def f32(x):
+    """Round to IEEE-754 single, which is what every register in the
+    control plane holds."""
+    import struct
+    return struct.unpack('<f', struct.pack('<f', float(x)))[0]
+
+
+F32_2P28 = f32(268435456.0)      # 0x4D800000, the Q4.28 scale
+F32_2P27 = f32(134217728.0)      # 0x4D000000, the Q5.27 scale (halved n1)
+F32_2P31 = f32(2147483648.0)     # 0x4F000000, the Q0.31 scale
+F32_2P25 = f32(33554432.0)       # 0x4C000000, the Q6.25 scale
+F32_DB_LOG2 = f32(5573270.5)     # 0x4AAA152D, dB -> Q6.25 log2 domain
+F32_2P31_100 = f32(21474836.0)   # 0x4BA3D70A, 2^31 / 100 (percent cells)
+
+
+def fix32(x):
+    """SHARC `Rn = FIX Fx`, in its DEFINED DOMAIN ONLY.
+
+    Round-to-nearest-even (the RND mode every one of these conversions
+    runs under; Python's round() is the same rule) of a float32, into a
+    32-bit signed word.
+
+    OUT OF RANGE IT RAISES, and that is the no-fallback policy rather
+    than laziness. `fix` on this part does NOT saturate and does NOT
+    two's-complement wrap: at exactly 2^31 it was MEASURED to return
+    0xFFFFFFFF, i.e. -1 (see the CLAMP note in the COMPRESSOR node and
+    xfade_alpha_q's docstring -- two independent measurements, both on
+    the part, both 2026-08-23/29). One measured point is not a model of
+    the overflow behaviour, so this refuses to invent the rest of it.
+
+    The consequence is a REQUIREMENT on the kernel, not a limitation of
+    the model: every host parameter that reaches a `fix` must be clamped
+    into range before it gets there. CompPar (review finding D40) and
+    GateRng (D39) are; FADER level and pan are not (finding D64)."""
+    v = f32(x)
+    if not (I32_MIN <= v <= I32_MAX):
+        raise ValueError(
+            f'fix32({v!r}) is outside the 32-bit domain. `fix` neither '
+            f'saturates nor wraps here -- at 2^31 the part returns '
+            f'0xFFFFFFFF -- so the conversion is undefined and the '
+            f'parameter must be clamped before it reaches this point '
+            f'(review finding D64).')
+    return int(round(v))
+
+
+def wrap32(v):
+    """Two's-complement wrap into a 32-bit register. THE ALU WRAPS: MODE1
+    ALUSAT is never set anywhere in this firmware (audited 2026-08-30),
+    so every `r0 = r1 + r2`, `r0 = r1 - r2` and `r0 = abs r1` in the
+    emitted nodes wraps rather than saturating. Only the explicit
+    round-and-saturate sequences (_mrf_rns28, _acc64_rns28) saturate."""
+    return _wrap32(v)
+
+
+def alu_abs(v):
+    """SHARC `Rn = ABS Rx` with ALUSAT clear: abs(I32_MIN) is I32_MIN."""
+    return _wrap32(abs(v))
+
+
+# ---------------------------------------------------------------------------
+# COMPRESSOR wet path — NORMATIVE (2026-08-30, review finding D28)
+#
+# comp_gain() above stops at the gain computer. What the node does with
+# that gain had no model at all, and it is where the two most recent
+# cell-semantics defects lived (D40's percent scaling, D59's fully-dry
+# default). Three things happen after the gain computer, in this order:
+#
+#   wet  = rns28(rns28(dry * gain) * makeup)     TWO roundings
+#   d    = wet - dry                             32-BIT register subtract
+#   out  = dry + rns(d * par, 31)                32-bit add
+#
+# THE SECOND ROUNDING IS THE POINT OF THE MODEL. The kernel cannot form
+# dry*gain*makeup in one accumulator -- both are Q4.28, so the triple
+# product is Q12.84 and the multiplier is 80 bits -- so it rounds and
+# saturates to Q4.28 between them. That is a half-LSB of extra error and
+# a saturation point that a single-rounding model does not have, and
+# comp_wet_1round() below is exactly that single-rounding model, kept as
+# the negative control: any vector on which the two disagree is a vector
+# that can tell the implemented arithmetic from the obvious one.
+#
+# THE 32-BIT DIFFERENCE IS BOUNDED, NOT SAFE BY ACCIDENT. gain is in
+# [0, 1] and makeup is non-negative, so wet and dry ALWAYS CARRY THE SAME
+# SIGN and |wet - dry| <= max(|wet|, |dry|) <= 2^31. That fits int32
+# everywhere except the single corner dry = I32_MIN with wet = 0, which
+# needs the gain computer's exp2 to underflow to zero -- reachable only
+# at extreme threshold/ratio settings. The bound depends on makeup being
+# non-negative, which nothing in the kernel enforces (review finding D4),
+# so it is a bound on the DOCUMENTED domain and the vector set sits on
+# its edge.
+# ---------------------------------------------------------------------------
+
+def comp_wet(dry, gain_q, mk_q):
+    """dry -> wet, both roundings. gain_q and mk_q are Q4.28."""
+    w = sat32(rns(dry * gain_q, QS))
+    return sat32(rns(w * mk_q, QS))
+
+
+def comp_wet_1round(dry, gain_q, mk_q):
+    """The single-rounding wet path — THE NEGATIVE CONTROL for the second
+    round. Arithmetically what a model that ignored the intermediate
+    store would say; not what the kernel can issue."""
+    return sat32(rns(dry * gain_q * mk_q, 2 * QS))
+
+
+def comp_blend(dry, wet, par_q31):
+    """out = dry + rns((wet - dry) * par, 31), with the kernel's exact
+    register widths. par is Q0.31.
+
+    The rns product itself cannot overflow: |wet-dry| <= 2^31 and
+    par <= 2^31 - 1, so |product| < 2^62 and the (mr1f<<1 | mr0f>>31)
+    extraction the kernel uses is exact. The two ALU operations either
+    side of it are the ones that wrap."""
+    d = _wrap32(wet - dry)
+    return _wrap32(dry + rns(d * par_q31, QA))
+
+
+def comp_out(dry, gain_q, mk_q, par_q31):
+    """The whole wet path: what `_buf_<COMP>` holds for a sample the
+    compressor did not bypass."""
+    return comp_blend(dry, comp_wet(dry, gain_q, mk_q), par_q31)
+
+
+def comp_par_q(percent):
+    """CompPar (PERCENT on the wire, review finding D40) -> Q0.31, as the
+    node converts it: clamp to the masters' documented 0..100, scale by
+    the float32 constant 2^31/100, `fix`, then the explicit negative
+    clamp that catches 100 % landing on exactly 2^31."""
+    p = f32(percent)
+    if p < 0.0:
+        p = 0.0
+    if p > f32(100.0):
+        p = f32(100.0)
+    scaled = f32(p * F32_2P31_100)
+    # The kernel's `fix` here CAN be handed 2^31 (at exactly 100 %) and
+    # the node repairs it afterwards with `if lt r1 = 0x7FFFFFFF`. Model
+    # the repair rather than the undefined conversion.
+    if scaled >= F32_2P31:
+        return I32_MAX
+    v = int(round(scaled))
+    return I32_MAX if v < 0 else v
+
+
+def comp_makeup_q(makeup):
+    """CompMkUp (linear gain, float) -> Q4.28."""
+    return fix32(f32(f32(makeup) * F32_2P28))
+
+
+# ---------------------------------------------------------------------------
+# One-pole with attack/release selection — the emitted `_envq_fx`
+#
+# envelope_step() above is the SPEC primitive: one alpha, saturating add.
+# _envq_fx is what every dynamics node actually calls, and it differs in
+# two ways that no vector had ever separated:
+#   * it picks the alpha from the SIGN of (target - env) -- attack when
+#     the target is above the state, release otherwise;
+#   * its final add is a plain ALU add, so it WRAPS where the spec
+#     primitive saturates.
+# The wrap is unreachable for legitimate inputs (the result is a convex
+# combination of two int32s and is bounded by them, the same bound the
+# crossfade blend carries), which is why the two forms have never been
+# seen to differ. It is modelled exactly anyway, because "unreachable"
+# is a claim a vector should be able to test.
+# ---------------------------------------------------------------------------
+
+def env_step(target, env, att_q, rel_q):
+    """_envq_fx, bit-exact. att_q/rel_q are Q0.31."""
+    d = _wrap32(target - env)
+    a = att_q if d > 0 else rel_q
+    return _wrap32(env + rns(a * d, QA))
+
+
+# ---------------------------------------------------------------------------
+# GATE node state machine — NORMATIVE (2026-08-30, review finding D30)
+#
+# The primitives had models; the LADDER did not, and the ladder is where
+# the behaviour is. Per sample, in the emitted order:
+#
+#   env    = envq(|x|, env, att, rel)              sidechain follower
+#   open   = env > 0 and log2(env) >= thr          (env == 0 is BELOW)
+#   open :   target = 1.0 ; hold_count = hold
+#   below:   hold_count -= 1 ; if hold_count <= 0: target = range
+#   gain   = envq(target, gain, att, rel)          one-pole smoother
+#   y      = sat32(rns(x * gain, 28))
+#
+# THREE THINGS THE LADDER DOES THAT A DESCRIPTION OF A GATE DOES NOT:
+#   * the hold counter is decremented UNCONDITIONALLY while below and is
+#     never floored, so a gate that stays shut runs it negative for as
+#     long as it stays shut. Only its sign is ever read, so nothing
+#     audible follows -- until 2^31 samples (12.4 hours at 48 kHz) take
+#     it through the wrap, after which it is briefly positive again while
+#     the target it would have set is already the range floor. Modelled
+#     with the wrap so the claim is testable rather than asserted.
+#   * the SAME alpha pair drives the sidechain follower and the gain
+#     smoother, so "attack" is the attack of both.
+#   * `|x|` is the ALU's ABS with ALUSAT clear, so |I32_MIN| is I32_MIN
+#     -- a full-negative sample presents a NEGATIVE level to the
+#     follower, and env then goes to it on the RELEASE alpha.
+#
+# The linear-threshold variant (DSP4_GATE_LINTHR) is a different
+# arithmetic and is NOT modelled here: it is unshipped, needs a
+# numeric-spec amendment, and its own note says so.
+# ---------------------------------------------------------------------------
+
+GATE_UNITY = 1 << QS
+
+
+def gate_state(env=0, gain=GATE_UNITY, target=GATE_UNITY, hold_count=0):
+    """[env, gain, target, hold_count] — the four words the node keeps."""
+    return [env, gain, target, hold_count]
+
+
+def gate_step(x, st, att_q, rel_q, thr_q625, rng_q, hold):
+    """One sample through the gate. st is updated in place; returns y."""
+    st[0] = env_step(alu_abs(x), st[0], att_q, rel_q)
+    if st[0] > 0 and log2_q(st[0]) >= thr_q625:
+        st[2] = GATE_UNITY
+        st[3] = hold
+    else:
+        st[3] = _wrap32(st[3] - 1)
+        if st[3] <= 0:
+            st[2] = rng_q
+    st[1] = env_step(st[2], st[1], att_q, rel_q)
+    return sat32(rns(x * st[1], QS))
+
+
+def gate_step_nohold(x, st, att_q, rel_q, thr_q625, rng_q, hold):
+    """THE NEGATIVE CONTROL for the hold ladder: identical except that
+    the gate closes the instant the level falls below threshold. Any
+    vector on which this and gate_step disagree is a vector that can see
+    the hold counter."""
+    st[0] = env_step(alu_abs(x), st[0], att_q, rel_q)
+    if st[0] > 0 and log2_q(st[0]) >= thr_q625:
+        st[2] = GATE_UNITY
+    else:
+        st[2] = rng_q
+    st[1] = env_step(st[2], st[1], att_q, rel_q)
+    return sat32(rns(x * st[1], QS))
+
+
+def gate_range_q(range_db):
+    """GateRng (DECIBELS on the wire, review finding D39) -> Q4.28 linear
+    floor: clamp to the documented 0..60 dB, then 2^(-dB * log2(10)/20)
+    through the SAME exp2 the kernel calls."""
+    d = f32(range_db)
+    if d < 0.0:
+        d = 0.0
+    if d > f32(60.0):
+        d = f32(60.0)
+    l = f32(f32(d * f32(-0.16609640419483185)) * F32_2P25)
+    return exp2_q(fix32(l))
+
+
+def gate_thr_q(thr_db):
+    """GateThr (dB) -> Q6.25 log2 domain."""
+    return fix32(f32(f32(thr_db) * F32_DB_LOG2))
+
+
+def dyn_alpha_q(alpha):
+    """A dynamics attack/release coefficient (float) -> Q0.31."""
+    return fix32(f32(f32(alpha) * F32_2P31))
+
+
+# ---------------------------------------------------------------------------
+# FADER_PAN — NORMATIVE (2026-08-30, review finding D31)
+#
+# The site of the 2026-08-23 squared-gain bug, and still the only strip
+# node whose float parameters reach a `fix` with NO CLAMP between them
+# (finding D64). Three coefficients, all block rate, all float32:
+#
+#   gq = fix(level * 2^28), forced to 0 when mute is set   (the 08-25
+#        crosspoint-coefficient fold: mute is a linear gain term, so it
+#        belongs in the coefficient and the sample path stays one MAC)
+#   lq = fix((1 - pan) * 2^28)        LINEAR pan law
+#   rq = fix(pan * 2^28)
+#
+# lq/rq are ROUTING's main-bus crosspoint coefficients, not sample-path
+# multipliers: the node's own MAC applies gq only. Folding the level into
+# the pan legs as well is precisely the shipped defect -- x * level^2 *
+# (1-pan), 6.02 dB low at level 0.5 and exact at unity, which is why it
+# shipped. fdr_pan_squared() keeps that arithmetic as the negative
+# control.
+#
+# THE PAN LAW IS LINEAR AND THAT IS AN OPEN DECISION, NOT A RULING. The
+# masters document a constant-power law; linear is what is implemented,
+# and the difference is a ~3 dB dip at centre (review finding D42, PW's
+# to decide). This models WHAT IS. If D42 rules constant-power, this
+# function and the emitted node change together and this comment is the
+# marker for it.
+# ---------------------------------------------------------------------------
+
+def fdr_coeffs(level, pan, mute=0):
+    """(gq, lq, rq) — the three Q4.28 coefficients, as the node builds
+    them. Raises through fix32 if level or pan is out of range, which is
+    finding D64: nothing in the kernel clamps them."""
+    gq = 0 if mute else fix32(f32(f32(level) * F32_2P28))
+    lq = fix32(f32(f32(f32(1.0) - f32(pan)) * F32_2P28))
+    rq = fix32(f32(f32(pan) * F32_2P28))
+    return gq, lq, rq
+
+
+def fdr_apply(x, gq):
+    """The whole sample path: one MAC, one round-and-saturate."""
+    return sat32(rns(x * gq, QS))
+
+
+def fdr_pan_squared(x, gq, leg_q):
+    """THE PRE-2026-08-23 ARITHMETIC, kept as the negative control: the
+    pan leg with the level folded in a second time, so the bus feed came
+    out as x * level^2 * leg. Bit-identical to the correct form at
+    level = 1.0, which is how it shipped."""
+    return sat32(rns(sat32(rns(x * gq, QS)) * sat32(rns(gq * leg_q, QS)), QS))
+
+
+# ---------------------------------------------------------------------------
+# TUBE_SAT — NORMATIVE (2026-08-30, review finding D29)
+#
+# THREE CHAINED ROUNDINGS and, until now, no coverage of any kind:
+#
+#   x2 = rns28(x * x)                    saturates at 7.999 (|x| > 2.83)
+#   t  = 1.0 - x2                        32-bit ALU, wraps
+#   s  = rns28(sat_q * t)
+#   g  = 1.0 + s                         32-bit ALU, wraps
+#   y  = rns28(x * g)
+#
+# A soft-clip shape only for |x| <= 1: above that x2 > 1, so g < 1 and
+# the transfer curve TURNS OVER -- at |x| = 2 with sat = 1.0 the gain
+# factor is 1 + (1 - 4) = -2 and the output has the WRONG SIGN. That is
+# what the arithmetic is, it is reachable from a Q4.28 sample (full scale
+# is 8.0), and it is why the vectors walk past unity rather than stopping
+# at it.
+#
+# PLUGIN-CLASS COVERAGE (PW ruling 2026-08-30). TUBE is a plug-in option,
+# not a fixed strip feature: the base strip's floors and ceilings are
+# computed with it bypassed, its ACTIVE cost bills to plugin headroom,
+# and this model covers the ACTIVE path -- engaged the way a plugin would
+# engage it. The bypass path's obligation is different and belongs to the
+# base strip: it must cost nothing, which is a MEASUREMENT (the node's
+# `_tube_on == 0` arm), not an arithmetic.
+# ---------------------------------------------------------------------------
+
+def tube(x, sat_q):
+    """One sample through an ENGAGED tube stage. sat_q is Q4.28."""
+    x2 = sat32(rns(x * x, QS))
+    t = _wrap32(GATE_UNITY - x2)
+    s = sat32(rns(sat_q * t, QS))
+    g = _wrap32(GATE_UNITY + s)
+    return sat32(rns(x * g, QS))
+
+
+def tube_2round(x, sat_q):
+    """THE NEGATIVE CONTROL: the same shape with the middle rounding
+    folded away (sat*(1-x^2) carried at full width into the last MAC).
+    Any vector on which this and tube() disagree is a vector that can see
+    the second of the three roundings."""
+    x2 = sat32(rns(x * x, QS))
+    t = _wrap32(GATE_UNITY - x2)
+    g = (GATE_UNITY << QS) + sat_q * t
+    return sat32(rns(x * g, 2 * QS))
+
+
+def tube_bypass(x):
+    """The bypassed path, which is the BASE strip's version of this node:
+    the sample is passed through untouched."""
+    return x
+
+
+def tube_sat_q(sat):
+    """TubeSat (float) -> Q4.28."""
+    return fix32(f32(f32(sat) * F32_2P28))
+
+
+# ---------------------------------------------------------------------------
+# TDM BOUNDARY — NORMATIVE (2026-08-30, review finding D34)
+#
+# The two places the fixed audio path meets the wire. Both are three-bit
+# shifts and neither had any test surface at all.
+#
+#   IN   (chip 1 `_scatter_chip1`)  Q1.31 -> Q4.28: an ARITHMETIC right
+#        shift by 3. It TRUNCATES TOWARD -INFINITY -- there is no
+#        rounding half added -- so every input sample carries up to one
+#        LSB of downward bias. Three bits of the wire word are discarded
+#        by construction: the interchange format has four integer bits
+#        the codec's does not.
+#   OUT  (chip 2 `_gather_chip2`)   Q4.28 -> Q1.31: a left shift by 3
+#        with a round-trip test, saturating to +/-full scale by the SIGN
+#        OF THE SOURCE when the value does not fit. Everything above
+#        1.0 linear clips here, which is the only place in the graph
+#        where the extra headroom of Q4.28 is finally spent.
+# ---------------------------------------------------------------------------
+
+TDM_SHIFT = 3
+
+
+def tdm_in(w):
+    """One wire word (Q1.31) -> one sample (Q4.28). Truncating."""
+    return w >> TDM_SHIFT
+
+
+def tdm_out(v):
+    """One sample (Q4.28) -> one wire word (Q1.31), saturating."""
+    y = _wrap32(v << TDM_SHIFT)
+    if (y >> TDM_SHIFT) == v:
+        return y
+    return I32_MAX if v >= 0 else I32_MIN
+
+
+def tdm_out_unchecked(v):
+    """THE NEGATIVE CONTROL: the shift without the round-trip test, i.e.
+    what the conversion would be if the saturation arm were dropped.
+    Differs on exactly the samples above 1.0 linear."""
+    return _wrap32(v << TDM_SHIFT)
+
+
+# ---------------------------------------------------------------------------
+# BIQUAD COEFFICIENT CONVERSION ON THE PART — `_bq_fx_convert_N`
+# (2026-08-30, review finding D27)
+#
+# biquad_coeffs_q() above is the NORMATIVE float64 definition. This is
+# the same conversion as the PART performs it: float32, one operation per
+# emitted instruction, `fix` instead of a saturating round. It is a
+# parameter-boundary function, so float32 is the spec (numeric-spec.md),
+# not a deviation -- but the two are not identical word for word and the
+# harness measures the gap rather than assuming it away.
+#
+# THE b1 SITE. This routine shipped a defect in which the b0 conversion's
+# `fix` destination was r1 -- the same register as f1, which held b1 --
+# so b1 was destroyed before `n1 = b1 + 2*b0` ever read it and EVERY
+# biquad in the product ran with b1 = 0. bq_convert_b1_lost() is that
+# arithmetic, kept as the negative control: it differs on every
+# coefficient set with a non-zero b1 and on none without one, which is
+# what makes a b1 = 0 vector worth having in the set.
+# ---------------------------------------------------------------------------
+
+def bq_convert_f32(b0, b1, b2, a1, a2):
+    """(b0q, nh, n2, c1, c2) exactly as `_bq_fx_convert_N` computes them."""
+    b0, b1, b2, a1, a2 = (f32(v) for v in (b0, b1, b2, a1, a2))
+    b0q = fix32(f32(b0 * F32_2P28))
+    nh = fix32(f32(f32(b1 + f32(b0 * f32(2.0))) * F32_2P27))
+    n2 = fix32(f32(f32(b2 - b0) * F32_2P28))
+    c1 = fix32(f32(f32(a1 + f32(2.0)) * F32_2P28))
+    c2 = fix32(f32(f32(f32(1.0) - a2) * F32_2P28))
+    return (b0q, nh, n2, c1, c2)
+
+
+def bq_convert_b1_lost(b0, b1, b2, a1, a2):
+    """THE NEGATIVE CONTROL: b1 destroyed by the b0 conversion, so
+    n1 comes out as exactly 2*b0 (`biquad_fx.asm`'s own header)."""
+    b0, b1, b2, a1, a2 = (f32(v) for v in (b0, b1, b2, a1, a2))
+    b0q = fix32(f32(b0 * F32_2P28))
+    nh = fix32(f32(f32(b0 * f32(2.0)) * F32_2P27))
+    n2 = fix32(f32(f32(b2 - b0) * F32_2P28))
+    c1 = fix32(f32(f32(a1 + f32(2.0)) * F32_2P28))
+    c2 = fix32(f32(f32(f32(1.0) - a2) * F32_2P28))
+    return (b0q, nh, n2, c1, c2)

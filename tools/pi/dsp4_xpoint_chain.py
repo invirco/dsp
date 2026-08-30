@@ -22,6 +22,7 @@ polarity now live in the coefficient, not in a per-sample test.
 import struct, sys, time
 sys.path.insert(0, '/home/app/dspboot')
 import dsp4_scope as S
+import fixed_ref as fr
 from dsp4_tubedly_probe import wrv
 
 GAIN, POLARITY = 0x0000, 0x0001   # _mute_C1_GAIN_01 has no dispatch entry — mute lives on the fader
@@ -45,8 +46,10 @@ def f32(x): return struct.unpack('<I', struct.pack('<f', float(x)))[0]
 def sgn(v): return v - (1 << 32) if v & 0x80000000 else v
 
 def rns(acc, sh=28):
-    v = (acc + (1 << (sh - 1))) >> sh
-    return max(-(1 << 31), min((1 << 31) - 1, v))
+    """Delegates to the normative model (review finding D32): this
+    used to be a hand copy of the round-and-saturate, which is
+    exactly the arithmetic that must not exist in two places."""
+    return fr.sat32(fr.rns(acc, sh))
 
 def configure(sc):
     wrv(sc, GAIN, f32(1.0), ramp_id=1, settle=0.05)

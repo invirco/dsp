@@ -16,6 +16,7 @@ with the send at 0 the aux bus must read 0, or the test cannot fail.
 import struct, sys, time
 sys.path.insert(0, '/home/app/dspboot')
 import dsp4_scope as S
+import fixed_ref as fr
 
 GAIN = 0x0000
 GATE_ON, COMP_ON, TUBE_ON, DLY_OFF = 0x0028, 0x0038, 0x004C, 0x004E
@@ -29,8 +30,10 @@ AMP = 0x08000000
 def f32(x): return struct.unpack('<I', struct.pack('<f', float(x)))[0]
 def sgn(v): return v - (1 << 32) if v & 0x80000000 else v
 def rns(a, sh=28):
-    v = (a + (1 << (sh - 1))) >> sh
-    return max(-(1 << 31), min((1 << 31) - 1, v))
+    """Delegates to the normative model (review finding D32): this
+    used to be a hand copy of the round-and-saturate, which is
+    exactly the arithmetic that must not exist in two places."""
+    return fr.sat32(fr.rns(a, sh))
 
 sc = S.Scope(1); sc.check_chip()
 POOL = sc.sym.get('_blk_pool')
