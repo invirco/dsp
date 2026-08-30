@@ -17,6 +17,7 @@
 #   STRIP=2 ./pairgraph.sh      the other way round
 set -u
 cd "$(dirname "$0")"
+source ./bench_lock.sh; bench_lock_acquire "$0"
 BENCH=app@192.168.1.219
 STRIP="${STRIP:-1}"
 N="${N:-64}"

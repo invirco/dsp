@@ -45,6 +45,18 @@
 .extern _start;
 .extern _sec_isr;
 .extern _diag_timer_isr;
+#if DSP4_FAULT_TRAP
+/* Diagnostic only (DSP4_FAULT_TRAP, default 0). A bare `rti` on a fault
+ * vector returns to the faulting instruction and re-faults forever, which
+ * looks exactly like a hang while every other interrupt keeps running.
+ * These handlers count instead. See diag.asm. */
+.extern _fault_ilopi;
+.extern _fault_cb7i;
+.extern _fault_sovfi;
+.extern _fault_iladi;
+.extern _fault_rinseq;
+.extern _fault_cb15i;
+#endif
 
 .section/pm seg_rth;
 
@@ -52,15 +64,31 @@
 /* Offset 0x004 — RSTI    Reset                       */ jump _start; nop; nop; nop;
 /* Offset 0x008 — (reserved)                          */ rti; nop; nop; nop;
 /* Offset 0x00C — PARI    L1 parity error             */ rti; nop; nop; nop;
+#if DSP4_FAULT_TRAP
+/* Offset 0x010 — ILOPI   Illegal opcode              */ jump _fault_ilopi; nop; nop; nop;
+#else
 /* Offset 0x010 — ILOPI   Illegal opcode              */ rti; nop; nop; nop;
+#endif
+#if DSP4_FAULT_TRAP
+/* Offset 0x014 — CB7I    Circular buffer 7 overflow  */ jump _fault_cb7i; nop; nop; nop;
+#else
 /* Offset 0x014 — CB7I    Circular buffer 7 overflow  */ rti; nop; nop; nop;
+#endif
 #if DSP4_SIMD_STRIPS
 /* Offset 0x018 — IICDI   Unaligned long-word access  */ jump _iicdi_isr; nop; nop; nop;
 #else
 /* Offset 0x018 — IICDI   Unaligned long-word access  */ rti; nop; nop; nop;
 #endif
+#if DSP4_FAULT_TRAP
+/* Offset 0x01C — SOVFI   Status/loop/PC stack        */ jump _fault_sovfi; nop; nop; nop;
+#else
 /* Offset 0x01C — SOVFI   Status/loop/PC stack        */ rti; nop; nop; nop;
+#endif
+#if DSP4_FAULT_TRAP
+/* Offset 0x020 — ILADI   Illegal address space       */ jump _fault_iladi; nop; nop; nop;
+#else
 /* Offset 0x020 — ILADI   Illegal address space       */ rti; nop; nop; nop;
+#endif
 /* Offset 0x024 — (reserved)                          */ rti; nop; nop; nop;
 /* Offset 0x028 — (reserved)                          */ rti; nop; nop; nop;
 /* Offset 0x02C — TMZHI   Timer=0 (high priority)     */ rti; nop; nop; nop;
@@ -79,8 +107,16 @@
 /* Offset 0x044 — (reserved)                          */ rti; nop; nop; nop;
 /* Offset 0x048 — (reserved)                          */ rti; nop; nop; nop;
 /* Offset 0x04C — (reserved)                          */ rti; nop; nop; nop;
+#if DSP4_FAULT_TRAP
+/* Offset 0x050 — RINSEQI Restricted instr. sequence  */ jump _fault_rinseq; nop; nop; nop;
+#else
 /* Offset 0x050 — RINSEQI Restricted instr. sequence  */ rti; nop; nop; nop;
+#endif
+#if DSP4_FAULT_TRAP
+/* Offset 0x054 — CB15I   Circular buffer 15 overflow */ jump _fault_cb15i; nop; nop; nop;
+#else
 /* Offset 0x054 — CB15I   Circular buffer 15 overflow */ rti; nop; nop; nop;
+#endif
 #if DSP4_BISECT == 26
 /* TEMP bisect rung 26 (2026-08-22): the TMZLI vector, but with nothing
  * behind it. Rung 24 showed the core dies once the core timer is the

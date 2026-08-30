@@ -311,9 +311,18 @@ to ≈ 480–550. Every step is bit-exact under the current rulings.
 
 Caveats that bound this sum, stated rather than shaded:
 
-1. **The paired biquads hang** (`dsp4-cycle-budget.md:146-163`,
-   unresolved). The paired floor assumes FILT/EQ pair; until the hang
-   is root-caused the paired column rests on the dynamics pairs only.
+1. ~~**The paired biquads hang**~~ — **CLOSED 2026-08-30 (session 12).**
+   The paired biquads do not hang, they have been wired into the graph
+   since session 5 (`DSP4_BQ_GRAPH`, default ON), and every margin figure
+   published since then already carries them. Measured both ways on one
+   tree, 32 strips, 983.04 MHz, TubeOn=0: FILT/EQ pairing is worth
+   **−19,673 cycles (−9.03 %) at block 8 and −88,913 (−13.20 %) at block
+   32**, and at block 32 it is the difference between 102.81 % of budget
+   and 89.24 %. The paired column rests on the biquad pairs as well as
+   the dynamics ones. `_bq_pair_blk` is bit-exact against the scalar
+   cascade on the part (0 of 16, both strips, negative control 8 of 16)
+   and the paired graph is bit-exact against the unpaired one (0 of 64
+   bus words, negative control 56 of 64).
 2. **Fusion at block 8 is unmeasured** — the block-8 record is
    `STRIP_FUSED=0`; fused+paired at block 8 has never been built
    together. Needs measurement before any of the ≈ 480–700 projections

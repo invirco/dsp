@@ -71,9 +71,20 @@
 .global _sq_cA;   .var _sq_cA[10] =
     0x00100A4E, 0x00402937, 0x00000000, 0x02F47534, 0x02B44BFC,
     0x0FD6A007, 0x00000000, 0x00000000, 0x0055E080, 0x004F9F63;
+/* A GENUINELY DIFFERENT FILTER, and that is a correction.
+ *
+ * _sq_cB used to be _sq_cA's two stages IN THE OPPOSITE ORDER. Word for
+ * word the two sets differ, which is what the comment above claimed and
+ * is why it read as adequate -- but a cascade of the same two sections in
+ * the other order is the SAME transfer function to within intermediate
+ * rounding. So the two strips were computing one filter, and a PEy that
+ * quietly read PEx's operands would have been nearly invisible: with the
+ * old sets the pair-arm negative control moved exactly ONE sample of
+ * sixteen. B is now LPF 5 kHz Q0.707 then HPF 1.5 kHz Q0.5 against A's
+ * LPF 1 kHz Q0.707 then HPF 300 Hz Q2. */
 .global _sq_cB;   .var _sq_cB[10] =
-    0x0FD6A007, 0x00000000, 0x00000000, 0x0055E080, 0x004F9F63,
-    0x00100A4E, 0x00402937, 0x00000000, 0x02F47534, 0x02B44BFC;
+    0x0127DB90, 0x024FB720, 0x00000000, 0x0E40994F, 0x09A12B10,
+    0x0D426D9D, 0x00000000, 0x00000000, 0x05BCFFD5, 0x053949B9;
 .global _sq_sA;   .var _sq_sA[12];
 .global _sq_sB;   .var _sq_sB[12];
 .global _sq_xA;   .var _sq_xA[32];
@@ -90,7 +101,7 @@
 .global _sq_pB;   .var _sq_pB[32];
 .global _sq_psA;  .var _sq_psA[12];
 .global _sq_psB;  .var _sq_psB[12];
-.global _sq_pdiff; .var _sq_pdiff = 0;
+.global _sq_pdiff; .var _sq_pdiff = -1;   /* -1 = pair arm not built */
 #endif
 
 .section/pm seg_pmco;
@@ -276,30 +287,73 @@ _bq_selftest:
     r13 = dm(_diag_ticks);
     dm(_sq_raw + 3) = r13;
 
-    /* ---- the PAIRING WRAPPER on the graph's own layout ---- */
-    i3 = _sq_xA;   /* careful: _sq_xA now holds the SCALAR RESULT */
+    /* ---- THE CORRECTNESS PASS, and it is a rewrite ------------------
+     * THE COMPARISON THAT USED TO BE HERE COULD NOT PASS, whatever the
+     * kernel did, and it is worth saying exactly why because its verdict
+     * has been on the record as a failing pair arm.
+     *
+     *   1. The scalar arm above is a TIMING loop: it runs
+     *      _bq_fx_cascade_blk over _sq_xA IN PLACE, twice, with _sq_sA
+     *      persisting between passes. So _sq_xA does not hold "the scalar
+     *      result" -- it holds the result of two chained in-place passes.
+     *      The pair arm then rebuilt a fresh stimulus with ZEROED state
+     *      and ran ONE pass. Two different computations, diffed.
+     *   2. Strip B was never compared at all. The B half of the loop read
+     *      dm(i5,1) and dm(_sq_xB) -- the second a DIRECT address, so the
+     *      same word every iteration -- and then did nothing with either.
+     *      No subtract, no compare, no counter. Dead code.
+     *
+     * Both arms now run ONE pass over the SAME stimulus from ZEROED state,
+     * and both strips are compared.
+     * ------------------------------------------------------------------ */
     l3 = 0; l4 = 0; l5 = 0;
-    /* rebuild the stimulus into the pair buffers */
+
+    /* stimulus, four buffers, identical A and identical B */
+    i3 = _sq_xA; i4 = _sq_xB; r0 = 0;
+    lcntr = DSP4_BLOCK_SIZE, do .sq_rz until lce;
+        dm(i3, 1) = r0;
+    .sq_rz: dm(i4, 1) = r0;
     i3 = _sq_pA; i4 = _sq_pB; r0 = 0;
     lcntr = DSP4_BLOCK_SIZE, do .sq_pz until lce;
         dm(i3, 1) = r0;
     .sq_pz: dm(i4, 1) = r0;
-    r0 = 0x08000000; dm(_sq_pA) = r0;
-    r0 = 0x04000000; dm(_sq_pB) = r0;
+    r0 = 0x08000000; dm(_sq_xA) = r0; dm(_sq_pA) = r0;
+    r0 = 0x04000000; dm(_sq_xB) = r0; dm(_sq_pB) = r0;
+
+    /* state, all four, zeroed */
+    i3 = _sq_sA; i4 = _sq_sB; r0 = 0;
+    lcntr = 12, do .sq_rzs until lce;
+        dm(i3, 1) = r0;
+    .sq_rzs: dm(i4, 1) = r0;
     i3 = _sq_psA; i4 = _sq_psB; r0 = 0;
     lcntr = 12, do .sq_pzs until lce;
         dm(i3, 1) = r0;
     .sq_pzs: dm(i4, 1) = r0;
 
+    /* the SCALAR reference: one pass per strip */
+    i0 = _sq_cA; i1 = _sq_sA; i2 = _sq_xA; r4 = 2;
+    call _bq_fx_cascade_blk;
+    i0 = _sq_cB; i1 = _sq_sB; i2 = _sq_xB; r4 = 2;
+    call _bq_fx_cascade_blk;
+
+    /* the PAIR, on the layout the graph actually hands it */
     r8 = _sq_cA;  r9 = _sq_psA;  r10 = _sq_pA;
+#if DSP4_SIMD_NEGCTL
+    /* NEGATIVE CONTROL: strip B gets strip A's coefficients and state, so
+     * the pair computes one channel twice and strip B MUST differ. A diff
+     * that cannot fail is not a bar. */
+    r11 = _sq_cA; r12 = _sq_psA; r13 = _sq_pB;
+#else
     r11 = _sq_cB; r12 = _sq_psB; r13 = _sq_pB;
+#endif
     r4 = 2;
 #if !DSP4_SKIP_PAIR
     call _bq_pair_blk;
-#endif
 
-    /* compare against the scalar results, both strips */
+    /* compare BOTH strips against their own scalar result */
     i3 = _sq_pA; i4 = _sq_xA; i5 = _sq_pB; r14 = 0;
+    l3 = 0; l4 = 0; l5 = 0;
+    i6 = _sq_xB; l6 = 0;
     lcntr = DSP4_BLOCK_SIZE, do .sq_pc until lce;
         r0 = dm(i3, 1);
         r1 = dm(i4, 1);
@@ -307,15 +361,16 @@ _bq_selftest:
         r2 = pass r2;
         if ne r14 = r14 + 1;
         r0 = dm(i5, 1);
-        r1 = dm(_sq_xB);
-    .sq_pc: nop;
+        r1 = dm(i6, 1);
+        r2 = r0 - r1;
+        r2 = pass r2;
+    .sq_pc: if ne r14 = r14 + 1;
     dm(_sq_pdiff) = r14;
-
-    /* The pairing-wrapper comparison above is the real check now: it runs
-     * on the layout the graph actually has and compares BOTH strips
-     * against the scalar results. _sq_ndiff mirrors it. */
     dm(_sq_ndiff) = r14;
-#endif
+#endif  /* !DSP4_SKIP_PAIR -- with the calls skipped _sq_pA still holds
+         * the stimulus, so the comparison would report a meaningless
+         * count rather than "this arm was not built". */
+#endif  /* DSP4_SIMD_PROBE */
 
     /* ---- SIMD probe ---- */
     i3 = _simdst_in;

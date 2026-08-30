@@ -535,9 +535,31 @@ _bq_fx_convert_N.end:
  * a pair. */
 .var _simd_mode1_save[2];
 
+#if DSP4_BQ_TRACE
+/* EXACT ITERATION COUNTING (2026-08-30). Every counter is TWO words and
+ * only the first is read: these are written from inside the PEYEN region,
+ * where a direct-address store writes the word after the address too.
+ *
+ *   _bqs_phase   1 entered  2 PEYEN set  3 stage loop done
+ *                4 MODE1 restored  5 about to rts
+ *   _bqs_stages  outer (per-stage) loop iterations, expect r4
+ *   _bqs_samps   inner (per-sample) loop iterations, expect r4*BLOCK
+ *
+ * "The self-test never finished" is compatible with a hundred mechanisms.
+ * A counter that stops at a known iteration is compatible with one. */
+.var _bqs_phase[2] = 0, 0;
+.var _bqs_stages[2] = 0, 0;
+.var _bqs_samps[2] = 0, 0;
+.global _bqs_phase; .global _bqs_stages; .global _bqs_samps;
+#endif
+
 .section/pm seg_pmco;
 .global _bq_fx_cascade_simd;
 _bq_fx_cascade_simd:
+#if DSP4_BQ_TRACE
+    r0 = 1; dm(_bqs_phase) = r0;
+    r0 = 0; dm(_bqs_stages) = r0; dm(_bqs_samps) = r0;
+#endif
     l0 = 0;
     l1 = 0;
     l2 = 0;
@@ -580,8 +602,18 @@ _bq_fx_cascade_simd:
     bit set mode1 0x00200000;  /* PEYEN */
     nop;
     nop;
+#if DSP4_BQ_TRACE
+    r0 = 2; dm(_bqs_phase) = r0;
+#endif
 
     lcntr = r4, do .bqs_stage until lce;
+#if DSP4_BQ_TRACE
+        /* r4 is the stage count and is dead here -- lcntr latched it -- so
+         * it is the one register free before the coefficients load. */
+        r4 = dm(_bqs_stages);
+        r4 = r4 + 1;
+        dm(_bqs_stages) = r4;
+#endif
         r4 = dm(i0, 2);
         r5 = dm(i0, 2);
         r6 = dm(i0, 2);
@@ -604,6 +636,13 @@ _bq_fx_cascade_simd:
         r15 = 1;
 
         lcntr = DSP4_BLOCK_SIZE, do .bqs_samp until lce;
+#if DSP4_BQ_TRACE
+            /* r1 is written by the saturation later in the body and holds
+             * nothing on entry. */
+            r1 = dm(_bqs_samps);
+            r1 = r1 + 1;
+            dm(_bqs_samps) = r1;
+#endif
             r0 = dm(i2, 0);
             mrf = mrf + r4 * r0 (ssi);
             mrf = mrf + r4 * r10 (ssi);
@@ -654,10 +693,16 @@ _bq_fx_cascade_simd:
     .bqs_stage:
         nop;
 
+#if DSP4_BQ_TRACE
+    r0 = 3; dm(_bqs_phase) = r0;
+#endif
     r0 = dm(_simd_mode1_save);
     mode1 = r0;                /* restores PEYEN and IRPTEN together */
     nop;
     nop;
+#if DSP4_BQ_TRACE
+    r0 = 4; dm(_bqs_phase) = r0;
+#endif
     rts;
 _bq_fx_cascade_simd.end:
 #endif
@@ -687,10 +732,22 @@ _bq_fx_cascade_simd.end:
 /* THE SCATTER-BACK POINTERS, PARKED ACROSS THE SIMD CALL. See the note
  * on the save below -- this is what the paired-cascade hang was. */
 .var _bqp_save[5];          /* r9, r10, r12, r13, r14                 */
+#if DSP4_BQ_TRACE
+/* 1 entered  2 coeffs interleaved  3 state interleaved  4 signal
+ * interleaved  5 cascade returned  6 pointers reloaded  7 signal
+ * scattered  8 state scattered (about to rts).  Two words: PEYEN is
+ * down here, but the wrapper shares its buffers with a routine that
+ * sets it, and a padded counter cannot be wrong. */
+.var _bqp_phase[2] = 0, 0;
+.global _bqp_phase;
+#endif
 
 .section/pm seg_pmco;
 .global _bq_pair_blk;
 _bq_pair_blk:
+#if DSP4_BQ_TRACE
+    r0 = 1; dm(_bqp_phase) = r0;
+#endif
     l0 = 0;
     l1 = 0;
     l2 = 0;
@@ -747,6 +804,9 @@ _bq_pair_blk:
         dm(i2, 1) = r1;
         r1 = dm(i1, 1);
     .bqp_c: dm(i2, 1) = r1;
+#if DSP4_BQ_TRACE
+    r0 = 2; dm(_bqp_phase) = r0;
+#endif
 
     /* ---- interleave state: 6 per stage from each strip ---- */
     r0 = lshift r14 by 1;
@@ -760,6 +820,9 @@ _bq_pair_blk:
         dm(i2, 1) = r1;
         r1 = dm(i1, 1);
     .bqp_s: dm(i2, 1) = r1;
+#if DSP4_BQ_TRACE
+    r0 = 3; dm(_bqp_phase) = r0;
+#endif
 
     /* ---- interleave the two signal blocks ---- */
     i0 = r10;
@@ -770,6 +833,9 @@ _bq_pair_blk:
         dm(i2, 1) = r1;
         r1 = dm(i1, 1);
     .bqp_x: dm(i2, 1) = r1;
+#if DSP4_BQ_TRACE
+    r0 = 4; dm(_bqp_phase) = r0;
+#endif
 
     /* ---- one instruction stream, both strips ---- */
     i0 = _bqp_coeff;
@@ -778,6 +844,9 @@ _bq_pair_blk:
     r4 = r14;
 #if !DSP4_SKIP_SIMDCALL
     call _bq_fx_cascade_simd;
+#if DSP4_BQ_TRACE
+    r0 = 5; dm(_bqp_phase) = r0;
+#endif
     /* Belt and braces: force PEYEN down here regardless of what the MODE1
      * restore did. Kept after the hang was found elsewhere -- it costs
      * three instructions at block rate and a stray PEYEN is a whole class
@@ -796,6 +865,9 @@ _bq_pair_blk:
     r13 = dm(i2, 1);
     r14 = dm(i2, 1);
 #endif
+#if DSP4_BQ_TRACE
+    r0 = 6; dm(_bqp_phase) = r0;
+#endif
 
     /* ---- scatter the signal back ---- */
     i2 = _bqp_sig;
@@ -806,6 +878,9 @@ _bq_pair_blk:
         dm(i0, 1) = r1;
         r1 = dm(i2, 1);
     .bqp_xb: dm(i1, 1) = r1;
+#if DSP4_BQ_TRACE
+    r0 = 7; dm(_bqp_phase) = r0;
+#endif
 
     /* ---- and the state, which must persist per strip ---- */
     r0 = lshift r14 by 1;
@@ -819,6 +894,9 @@ _bq_pair_blk:
         dm(i0, 1) = r1;
         r1 = dm(i2, 1);
     .bqp_sb: dm(i1, 1) = r1;
+#if DSP4_BQ_TRACE
+    r0 = 8; dm(_bqp_phase) = r0;
+#endif
     rts;
 _bq_pair_blk.end:
 #endif

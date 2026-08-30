@@ -69,6 +69,10 @@
 
 .global _chip_id;
 .var _chip_id = 0;                /* 1 = Chip 1 (Input DSP), 2 = Chip 2 (Output DSP) */
+#if DSP4_DAG_PROBE
+.global _dag_sec_l;
+.var _dag_sec_l[16] = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
+#endif
 
 /* Boot config received flag (set by product_config.asm CONFIG_COMMIT) */
 .global _boot_config_received;
@@ -242,6 +246,66 @@ _start:
     call _bisect_park_asm;      /* never returns */
 #endif
 
+#if DSP4_DAG_PROBE
+    /* ---- WHAT DOES THE BOOT KERNEL LEAVE IN THE SECONDARY DAGs? -------
+     * C_RUNTIME_INIT below zeroes l0..l15, but it does so with SRD1L/SRD1H
+     * and SRD2L/SRD2H CLEARED -- so it zeroes the PRIMARY set. Every ISR
+     * in this firmware runs with SRD1L|SRD1H SET (_sec_isr, sport_init.asm;
+     * _diag_timer_isr, diag.asm), on a SECONDARY DAG1 whose length
+     * registers are never written anywhere in the tree. If the SPI target
+     * boot kernel leaves any of them non-zero, every ISR-side DM access --
+     * including _product_config_write's i0-i2 -- is circular against a
+     * length nobody chose.
+     *
+     * This reads them back before anything can disturb them. Direct-address
+     * stores are used throughout: they take an immediate address and no DAG,
+     * so the probe cannot be corrupted by what it is measuring.
+     * Diagnostic only, default 0. */
+    bit set mode1 BITM_REGF_MODE1_SRD1L | BITM_REGF_MODE1_SRD1H |
+                  BITM_REGF_MODE1_SRD2L | BITM_REGF_MODE1_SRD2H;
+    nop;
+    nop;
+    r0 = l0;  dm(_dag_sec_l + 0)  = r0;
+    r0 = l1;  dm(_dag_sec_l + 1)  = r0;
+    r0 = l2;  dm(_dag_sec_l + 2)  = r0;
+    r0 = l3;  dm(_dag_sec_l + 3)  = r0;
+    r0 = l4;  dm(_dag_sec_l + 4)  = r0;
+    r0 = l5;  dm(_dag_sec_l + 5)  = r0;
+    r0 = l6;  dm(_dag_sec_l + 6)  = r0;
+    r0 = l7;  dm(_dag_sec_l + 7)  = r0;
+    r0 = l8;  dm(_dag_sec_l + 8)  = r0;
+    r0 = l9;  dm(_dag_sec_l + 9)  = r0;
+    r0 = l10; dm(_dag_sec_l + 10) = r0;
+    r0 = l11; dm(_dag_sec_l + 11) = r0;
+    r0 = l12; dm(_dag_sec_l + 12) = r0;
+    r0 = l13; dm(_dag_sec_l + 13) = r0;
+    r0 = l14; dm(_dag_sec_l + 14) = r0;
+    r0 = l15; dm(_dag_sec_l + 15) = r0;
+    bit clr mode1 BITM_REGF_MODE1_SRD1L | BITM_REGF_MODE1_SRD1H |
+                  BITM_REGF_MODE1_SRD2L | BITM_REGF_MODE1_SRD2H;
+    nop;
+    nop;
+#endif
+
+#if DSP4_DAG_SEC_INIT
+    /* ---- ZERO THE SECONDARY DAG LENGTH REGISTERS ----------------------
+     * See the probe above for why. Sixteen writes, once, at boot. Guarded
+     * because it changes the shipping image; the default is 0 so W0 holds
+     * until the change is taken deliberately. */
+    bit set mode1 BITM_REGF_MODE1_SRD1L | BITM_REGF_MODE1_SRD1H |
+                  BITM_REGF_MODE1_SRD2L | BITM_REGF_MODE1_SRD2H;
+    nop;
+    nop;
+    l0 = 0;  l1 = 0;  l2 = 0;  l3 = 0;
+    l4 = 0;  l5 = 0;  l6 = 0;  l7 = 0;
+    l8 = 0;  l9 = 0;  l10 = 0; l11 = 0;
+    l12 = 0; l13 = 0; l14 = 0; l15 = 0;
+    bit clr mode1 BITM_REGF_MODE1_SRD1L | BITM_REGF_MODE1_SRD1H |
+                  BITM_REGF_MODE1_SRD2L | BITM_REGF_MODE1_SRD2H;
+    nop;
+    nop;
+#endif
+
     /* Chip identity: compile-time (see the note at the top of this
      * file). Kept in _chip_id so the runtime paths are unchanged. */
     r0 = CHIP_ID;
@@ -328,6 +392,22 @@ _start:
     /* Unmask the SEC core interrupt and enable interrupts globally —
      * needed before .wait_boot: the product config arrives over SPI. */
     bit set imask BITM_REGF_IMASK_SECI;
+#if DSP4_FAULT_TRAP
+    /* Diagnostic only. THE FAULT VECTORS ARE MASKED IN THE SHIPPING
+     * IMAGE -- IMASK is zeroed above and only SECI and TMZLI are ever
+     * ORed back in -- so ILOPI, CB7I, IICDI, SOVFI, ILADI, RINSEQI and
+     * CB15I can latch in IRPTL and are never TAKEN. That matters for
+     * more than this instrument: the 2026-08-24 IICDI hypothesis was
+     * tested by reading a counter in a handler that could not run, so
+     * "IICDI read 0" was never evidence either way. Unmasking them is
+     * half the instrument; the handlers in diag.asm are the other half. */
+    bit set imask BITM_REGF_IMASK_ILOPI | BITM_REGF_IMASK_CB7I |
+                  BITM_REGF_IMASK_SOVFI | BITM_REGF_IMASK_ILADI |
+                  BITM_REGF_IMASK_RINSEQI | BITM_REGF_IMASK_CB15I;
+#if DSP4_SIMD_STRIPS
+    bit set imask BITM_REGF_IMASK_IICDI;
+#endif
+#endif
     bit set mode1 BITM_REGF_MODE1_IRPTEN;
     nop;
 

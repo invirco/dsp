@@ -258,6 +258,33 @@ ASMFLAGS="$ASMFLAGS -DDSP4_SKIP_PAIR=$DSP4_SKIP_PAIR"
 DSP4_BQP_NOSAVE="${DSP4_BQP_NOSAVE:-0}"
 CFLAGS="$CFLAGS -DDSP4_BQP_NOSAVE=$DSP4_BQP_NOSAVE"
 ASMFLAGS="$ASMFLAGS -DDSP4_BQP_NOSAVE=$DSP4_BQP_NOSAVE"
+# FAULT-VECTOR TRAP (2026-08-30). Unmasks the fault interrupts and puts a
+# counting handler on each one. Every fault vector ships as a bare `rti`
+# AND masked, so a fault is invisible twice over -- see the note in
+# main.asm. Diagnostic only; default 0 and the shipping image is
+# byte-identical with it off.
+# SECONDARY-DAG probe / fix (2026-08-30). Every ISR runs with SRD1L|SRD1H
+# set, on a secondary DAG1 whose LENGTH registers are written nowhere in
+# the tree -- C_RUNTIME_INIT zeroes the PRIMARY set. DSP4_DAG_PROBE reads
+# what the boot kernel left; DSP4_DAG_SEC_INIT zeroes it. Both default 0
+# so the shipping image is byte-identical until the fix is taken
+# deliberately.
+DSP4_DAG_PROBE="${DSP4_DAG_PROBE:-0}"
+CFLAGS="$CFLAGS -DDSP4_DAG_PROBE=$DSP4_DAG_PROBE"
+ASMFLAGS="$ASMFLAGS -DDSP4_DAG_PROBE=$DSP4_DAG_PROBE"
+DSP4_DAG_SEC_INIT="${DSP4_DAG_SEC_INIT:-0}"
+CFLAGS="$CFLAGS -DDSP4_DAG_SEC_INIT=$DSP4_DAG_SEC_INIT"
+ASMFLAGS="$ASMFLAGS -DDSP4_DAG_SEC_INIT=$DSP4_DAG_SEC_INIT"
+DSP4_FAULT_TRAP="${DSP4_FAULT_TRAP:-0}"
+CFLAGS="$CFLAGS -DDSP4_FAULT_TRAP=$DSP4_FAULT_TRAP"
+ASMFLAGS="$ASMFLAGS -DDSP4_FAULT_TRAP=$DSP4_FAULT_TRAP"
+# EXACT ITERATION COUNTING in the paired cascade and its wrapper: a phase
+# marker plus stage and sample loop counters, so a wedge says WHICH loop it
+# is in rather than only that the self-test never finished. Diagnostic
+# only; default 0.
+DSP4_BQ_TRACE="${DSP4_BQ_TRACE:-0}"
+CFLAGS="$CFLAGS -DDSP4_BQ_TRACE=$DSP4_BQ_TRACE"
+ASMFLAGS="$ASMFLAGS -DDSP4_BQ_TRACE=$DSP4_BQ_TRACE"
 DSP4_SKIP_SIMDCALL="${DSP4_SKIP_SIMDCALL:-0}"
 CFLAGS="$CFLAGS -DDSP4_SKIP_SIMDCALL=$DSP4_SKIP_SIMDCALL"
 ASMFLAGS="$ASMFLAGS -DDSP4_SKIP_SIMDCALL=$DSP4_SKIP_SIMDCALL"

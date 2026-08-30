@@ -526,7 +526,21 @@ separable: with the kernels and the 32 drivers both in, chip 1 overflows
 `sec_swco`, and the kernel self-test wants the kernels and their scalar
 twins without the drivers.
 
-### The paired biquad cascade still hangs
+### The paired biquad cascade still hangs — SUPERSEDED 2026-08-30 (session 12)
+
+> **THIS SECTION IS WRONG AND IS KEPT ONLY AS THE RECORD OF WHAT WAS
+> BELIEVED.** `_bq_fx_cascade_simd` does not hang and, on the evidence
+> below, never did in the form described here. See "THE CASCADE DOES NOT
+> HANG" at the end of this file for the measurements. In short: the
+> signature this section reads as a hang — `_bqst_done` stays 0, the part
+> answers the link, BOOT_STAGE stops short — is an INTERMITTENT
+> BOOT/CONFIG HANDSHAKE FAILURE that occurs on byte-identical images and
+> on builds containing no paired cascade at all, and the self-test arm
+> that was supposed to report on the cascade could not tell the two
+> apart. Every "bisect" result recorded below is a perturbation of image
+> layout, not a bisect.
+
+
 
 `_bq_fx_cascade_simd` hangs the part when driven from the main loop with
 the graph configured; it presents as "never reached stage 6", the part not
@@ -2752,3 +2766,186 @@ is the fact the strategic sections since (`dsp4-branch-cost-20260830.md`,
 and the D66/D67 entries in `review-dsp-20260828.md`) already assumed:
 fused+paired is the configuration those margin figures are measured in,
 it builds, and it is what is on the part.
+
+## THE CASCADE DOES NOT HANG — 2026-08-30 (session 12)
+
+**`_bq_fx_cascade_simd` was root-caused this session and the answer is
+that there is nothing in it to root-cause.** The hang the record has
+carried since 2026-08-24 is an artefact of two instruments, and the
+"bisect" results that eliminated hypothesis after hypothesis were
+eliminating nothing: each one perturbed the image, and the failure moves
+with the image rather than with the code.
+
+### What the failure actually is
+
+The signature on record is "`_bqst_done` reads 0, the part answers the
+parameter link, BOOT_STAGE stops short of running". Three measurements,
+each on its own:
+
+1. **`_bqs_phase` reads 0 in a wedged run** — the cascade was never
+   entered. A phase marker was added at the top of `_bq_fx_cascade_simd`
+   (`DSP4_BQ_TRACE`, default 0) together with exact iteration counters
+   for both hardware loops. In a run that wedged at BOOT_STAGE 5, the
+   marker is still at its initial 0: the routine had not executed a
+   single instruction. Whatever stops the part stops it before the
+   self-test runs at all, which is unsurprising once stated — the
+   self-test runs from the main loop, and BOOT_STAGE 5 means the main
+   loop is still in `.wait_boot` waiting for host config.
+2. **The same image both wedges and runs.** `chip1.ldr f4ce7a9a`,
+   byte-identical across three consecutive `bqst.sh` invocations: the
+   first wedged at BOOT_STAGE 5, the second and third reached BOOT_STAGE
+   7 and completed the self-test.
+3. **A build containing no paired cascade and no self-test wedges too.**
+   Eight independent boot+config cycles on a plain `DSP4_STRIPS=2` build
+   (one cycle per attempt, no retries, because retrying hides the rate
+   and the rate is the measurement): **BOOT_STAGE 7 7 7 7 0 7 7 0** — six
+   of eight. This is the "link that degrades over a long session of
+   reboots" already recorded at the end of session 5, and it is what
+   every bisect in this investigation was actually sampling.
+
+`bqst.sh` retries boot+config up to five times and reports only the last
+attempt, so a wedge means "five failures in a row" and a pass means "at
+least one success in five". At a per-cycle failure rate around a quarter
+that is a coin the harness flips, and the coin was read as a property of
+the code under test.
+
+### When it runs, it runs exactly as designed
+
+With the trace built in, a completing run reads:
+
+| | |
+|---|---|
+| `_bqp_phase` (wrapper, 1 in … 8 scattered) | **8** |
+| `_bqs_phase` (cascade, 1 in, 2 PEYEN, 3 loops done, 4 MODE1 back) | **4** |
+| `_bqs_stages` (outer hardware loop) | **2** — the stage count asked for |
+| `_bqs_samps` (inner hardware loop) | **16** — stages × BLOCK, exactly |
+
+No loop overruns, no missing iterations, no re-entry. The loop-stack,
+DAG-wrap and IT-buffer hypotheses on record are all excluded by these
+counts rather than by argument.
+
+### The self-test arm could not have passed, whatever the kernel did
+
+The pair arm's comparison was structurally invalid and is rewritten:
+
+* The scalar arm above it is a **timing** loop — it runs
+  `_bq_fx_cascade_blk` over `_sq_xA` **in place, twice**, with `_sq_sA`
+  persisting between passes. So `_sq_xA` never held "the scalar result";
+  it held two chained in-place passes. The pair arm then rebuilt a fresh
+  stimulus with **zeroed** state and ran **one** pass. Two different
+  computations, diffed.
+* **Strip B was never compared at all.** The B half of the loop read
+  `dm(i5,1)` and `dm(_sq_xB)` — the second a direct address, so the same
+  word every iteration — and then did nothing with either. No subtract,
+  no compare, no counter.
+* Nothing on the host ever read `_sq_pdiff`. The arm computed a verdict
+  inside the part and had no way of getting it out, which is how a
+  broken comparison stayed invisible for four sessions.
+
+Both arms now run one pass over the same stimulus from zeroed state, both
+strips are compared, and `dsp4_bq_verify.py` reads the result.
+
+**`_sq_cB` was also not a different filter.** It was `_sq_cA`'s two
+sections **in the opposite order** — word for word a different table, and
+to within intermediate rounding the same transfer function. The stated
+purpose of differing coefficients is to catch a PEy quietly reading PEx's
+operands, and against the old sets the pair-arm negative control moved
+exactly **one** sample of sixteen. Strip B is now LPF 5 kHz Q0.707 → HPF
+1.5 kHz Q0.5 against strip A's LPF 1 kHz Q0.707 → HPF 300 Hz Q2.
+
+### The verdict the record never had
+
+| bar | result |
+|---|---|
+| `_bq_pair_blk` vs the scalar cascade, both strips, on the part | **0 of 16 differ** |
+| the same with `DSP4_SIMD_NEGCTL=1` (strip B given strip A's coefficients and state) | **8 of 16 differ** — the whole of strip B |
+| the paired GRAPH vs the dynamics-only graph (`bqgraph.sh`) | **0 of 64 bus words** — `GRAPH BIT-EXACT` |
+| the same with `DSP4_BQ_NEGCTL=1` | **56 of 64** — `GRAPH DIFFERS` |
+
+### And the lever was never blocked — it was already banked
+
+`DSP4_BQ_GRAPH` pairs the FILT and EQ classes of a strip pair and has
+**defaulted ON since session 5**. Every margin figure published since
+then already carries it. Measured both ways on one tree in one run, 32
+strips, signal present, 983.04 MHz, `TUBEON=0` explicit:
+
+| config | BLOCK 8 (budget 163,840) | BLOCK 32 (budget 655,360) |
+|---|---|---|
+| `DSP4_BQ_GRAPH=0` — dynamics pairs only | 217,745 — **132.90 %** | 673,758 — **102.81 %** |
+| `DSP4_BQ_GRAPH=1` — FILT and EQ paired | 198,072 — **120.89 %** | 584,845 — **89.24 %** |
+| the lever | **−19,673 (−9.03 %)** | **−88,913 (−13.20 %)** |
+
+Session 5 measured the same lever at −19,465 (−8.3 %) and −86,802
+(−11.7 %) on a tree that has changed a great deal since; the two agree to
+1 % and 2.4 %. **At block 32 this lever is the whole difference between
+102.81 % of budget and 89.24 %** — 32 channels on one chip at block 32 is
+under budget *because* FILT and EQ are paired, not in spite of a pairing
+that never landed.
+
+### Three findings that fell out of building the instrument
+
+**D68 — every fault vector is silent twice over.** `IMASK` is zeroed at
+`_start` and only `SECI` and `TMZLI` are ever ORed back in, so ILOPI,
+CB7I, IICDI, SOVFI, ILADI, RINSEQI and CB15I are **masked**; and their
+IVT entries are bare `rti`, which returns to the faulting instruction.
+The 2026-08-24 conclusion "IICDI read 0, so the unaligned-long-word
+theory is not supported" was therefore **vacuous**: the counter lived in
+a handler that could not run, on a vector that could not be taken. The
+answer happens to be the same — an unmasked, unhandled fault is what
+would livelock, and no fault is unmasked — but the evidence was not
+evidence. `DSP4_FAULT_TRAP` (default 0) unmasks all seven and puts a
+counting handler on each.
+
+**D69 — CB7I fires exactly once per boot, in every configuration.** With
+the trap in, `_fault_count[CB7I]` reads 1 on every run measured,
+including builds with the paired cascade call removed. `i7` is the C
+stack pointer and `C_RUNTIME_INIT` sets `l7 = 0`, so the wrap is before
+that — the boot kernel's leftovers, not this firmware's. Benign today
+because the vector is masked; recorded because it is one more piece of
+state the SPI target boot kernel hands over dirty.
+
+**D70 — the ISRs run on a secondary DAG whose length registers are
+initialised nowhere, and the boot kernel leaves two of them non-zero.**
+`C_RUNTIME_INIT` zeroes `l0..l15` with `SRD1L/SRD1H` and `SRD2L/SRD2H`
+**cleared**, so it zeroes the PRIMARY set. Both ISRs (`_sec_isr`,
+`_diag_timer_isr`) run with `SRD1L|SRD1H` **set**, and nothing in the
+tree ever writes the secondary lengths. Read back at `_start` before
+anything can disturb them (`DSP4_DAG_PROBE`, default 0):
+
+```
+secondary DAG L at _start (l0..l15):
+  0 0 0 0 0 0 000002FF 000002FF 0 0 0 0 0 0 0 0
+```
+
+**`l6` and `l7` come up as 0x2FF.** Every ISR-side access through `i6` or
+`i7` — which includes anything the CCALL convention pushes — is circular
+against a length nobody chose. `DSP4_DAG_SEC_INIT` (default 0) zeroes
+them in sixteen instructions at boot.
+
+**It is NOT the boot-handshake failure, and that is a measurement, not an
+assumption.** Eight independent boot+config cycles each way, same build
+otherwise: **6 of 8 with the fix, 6 of 8 without**. Eight cycles cannot
+resolve a small effect, but there is no large one, and the hypothesis
+that looked strongest going in is not supported. The fix is worth taking
+on its own merits — an uninitialised length register in an interrupt
+handler is a defect whether or not it is *this* defect — and it is left
+behind a default-0 flag rather than changed silently, because it changes
+the shipping image.
+
+### What is still open
+
+**The intermittent boot+config failure is the real open item, and it is
+not a DSP-side hang.** Rate measured this session: about 2 in 8 cycles.
+It is the same failure recorded at the end of session 5 ("a link that
+degrades over a long session of reboots") and the same one `bqst_run.sh`,
+`captable.sh` and `bqgraph.sh` all carry retry loops for. It has now cost
+four sessions of misattributed debugging, and it deserves its own
+session with the boot handshake as the subject rather than as the
+harness.
+
+**W0.** No shipping path was touched: `./build.sh` reproduces chip1.ldr
+`3f0e479a` and chip2.ldr `ab43c75b`, 301,732 and 182,060 bytes,
+byte-identical to the session-10 baseline. Every switch added this
+session (`DSP4_FAULT_TRAP`, `DSP4_BQ_TRACE`, `DSP4_DAG_PROBE`,
+`DSP4_DAG_SEC_INIT`) defaults to the pre-existing behaviour, and the
+self-test changes are inside `DSP4_SIMD_PROBE`. Golden harness 59/59.

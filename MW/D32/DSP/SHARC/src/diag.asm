@@ -460,6 +460,114 @@ _iicdi_isr:
 _iicdi_isr.end:
 #endif
 
+#if DSP4_FAULT_TRAP
+/*----------------------------------------------------------------------
+ * _fault_* — make the SILENT fault vectors visible.
+ *
+ * Every fault vector below ships as a bare `rti`, and `rti` returns to the
+ * FAULTING INSTRUCTION: the instruction faults again, forever, while every
+ * other interrupt keeps being serviced. The part answers the parameter
+ * link and looks alive while the main loop does no work at all. That is
+ * the signature the paired-cascade investigation kept reading as "hang",
+ * and the only vector that ever had a handler was IICDI -- which is why
+ * IICDI is the only one that was ever ruled out by measurement.
+ *
+ * This is the instrument the record asked for on 2026-08-24 ("instrumenting
+ * all three fault vectors at once costs one build and would have answered
+ * this hours ago"), built for all six silent ones rather than three. It
+ * does not FIX anything: the faulting instruction still cannot complete.
+ * It counts, and it latches which vector fired first, so a livelock
+ * reports itself instead of masquerading as a hang.
+ *
+ * EVERY COUNTER IS TWO WORDS AND ONLY THE FIRST IS READ. A fault can be
+ * taken with MODE1.PEYEN set -- that is precisely the case under
+ * investigation -- and a direct-address store in SIMD mode writes the word
+ * AFTER the address as well. Padding is cheaper and safer than clearing
+ * PEYEN in a handler that has no saved MODE1 to restore it from.
+ *
+ * Diagnostic only -- DSP4_FAULT_TRAP defaults 0 and the shipping image is
+ * byte-identical with it off.
+ *--------------------------------------------------------------------*/
+.section/dm seg_dmda;
+/* 0 ILOPI  1 CB7I  2 SOVFI  3 ILADI  4 RINSEQI  5 CB15I, two words each */
+.global _fault_count;   .var _fault_count[12] =
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
+.global _fault_first;   .var _fault_first[2] = -1, -1;
+.global _fault_total;   .var _fault_total[2] = 0, 0;
+
+.section/pm seg_pmco;
+.global _fault_ilopi;  .global _fault_cb7i;   .global _fault_sovfi;
+.global _fault_iladi;  .global _fault_rinseq; .global _fault_cb15i;
+
+_fault_ilopi:
+    bit set mode1 BITM_REGF_MODE1_SRRFL | BITM_REGF_MODE1_SRRFH;
+    nop;
+    r0 = dm(_fault_count + 0);
+    r0 = r0 + 1;
+    dm(_fault_count + 0) = r0;
+    r0 = 0;
+    jump _fault_common;
+
+_fault_cb7i:
+    bit set mode1 BITM_REGF_MODE1_SRRFL | BITM_REGF_MODE1_SRRFH;
+    nop;
+    r0 = dm(_fault_count + 2);
+    r0 = r0 + 1;
+    dm(_fault_count + 2) = r0;
+    r0 = 1;
+    jump _fault_common;
+
+_fault_sovfi:
+    bit set mode1 BITM_REGF_MODE1_SRRFL | BITM_REGF_MODE1_SRRFH;
+    nop;
+    r0 = dm(_fault_count + 4);
+    r0 = r0 + 1;
+    dm(_fault_count + 4) = r0;
+    r0 = 2;
+    jump _fault_common;
+
+_fault_iladi:
+    bit set mode1 BITM_REGF_MODE1_SRRFL | BITM_REGF_MODE1_SRRFH;
+    nop;
+    r0 = dm(_fault_count + 6);
+    r0 = r0 + 1;
+    dm(_fault_count + 6) = r0;
+    r0 = 3;
+    jump _fault_common;
+
+_fault_rinseq:
+    bit set mode1 BITM_REGF_MODE1_SRRFL | BITM_REGF_MODE1_SRRFH;
+    nop;
+    r0 = dm(_fault_count + 8);
+    r0 = r0 + 1;
+    dm(_fault_count + 8) = r0;
+    r0 = 4;
+    jump _fault_common;
+
+_fault_cb15i:
+    bit set mode1 BITM_REGF_MODE1_SRRFL | BITM_REGF_MODE1_SRRFH;
+    nop;
+    r0 = dm(_fault_count + 10);
+    r0 = r0 + 1;
+    dm(_fault_count + 10) = r0;
+    r0 = 5;
+    jump _fault_common;
+
+_fault_common:
+    r1 = dm(_fault_total);
+    r1 = r1 + 1;
+    dm(_fault_total) = r1;
+    r1 = dm(_fault_first);
+    r1 = pass r1;
+    if ge jump (pc, .fc_out);
+    dm(_fault_first) = r0;
+.fc_out:
+    bit clr mode1 BITM_REGF_MODE1_SRRFL | BITM_REGF_MODE1_SRRFH;
+    nop;
+    rti;
+_fault_common.end:
+#endif
+
 .global _diag_timer_isr;
 _diag_timer_isr:
     /* Full register file + DAG1, not just the low half: this ISR now

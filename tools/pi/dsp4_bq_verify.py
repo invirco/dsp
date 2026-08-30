@@ -107,8 +107,36 @@ def block(base, n):
     return out
 
 
+def trace():
+    """Dump the paired-cascade trace, when the image carries it.
+
+    Printed WHETHER OR NOT the self-test completed: a wedge is exactly
+    when these words are worth reading, and every earlier report of this
+    hang could say only that _bqst_done stayed 0.
+    """
+    names = [('_bqp_phase', 'bqp phase   (1 in .. 8 scattered)'),
+             ('_bqs_phase', 'bqs phase   (1 in, 2 PEYEN, 3 loops done,'
+                            ' 4 MODE1 back)'),
+             ('_bqs_stages', 'bqs stages  (expect the stage count)'),
+             ('_bqs_samps', 'bqs samples (expect stages x BLOCK)')]
+    got = [(lbl, peek(SYMS[n])) for n, lbl in names if n in SYMS]
+    for lbl, v in got:
+        print(f'  {lbl:52} = {v}')
+    faults = [('_fault_count', 'ILOPI CB7I SOVFI ILADI RINSEQI CB15I'),
+              ('_fault_total', 'faults taken, total'),
+              ('_fault_first', 'first vector index (-1 = none)')]
+    if '_fault_count' in SYMS:
+        c = [peek(SYMS['_fault_count'] + 2 * i) for i in range(6)]
+        print(f'  {"fault counts  " + faults[0][1]:52} = {c}')
+        for n, lbl in faults[1:]:
+            print(f'  {lbl:52} = {sg(peek(SYMS[n]))}')
+
+
 done = peek(SYMS['_bqst_done'])
 print('done    =', done)
+if '_bqs_phase' in SYMS or '_fault_count' in SYMS:
+    print('trace:')
+    trace()
 if done != 1:
     print('SELF-TEST DID NOT COMPLETE -- nothing to verify')
     sys.exit(2)
@@ -183,5 +211,36 @@ if bad:
         print(f'  [{i:2}] {ref[i]:12} {blk[i]:12} {model[i]:12}{mark}')
     print('\nFAIL')
     sys.exit(1)
+
+# ---- the PAIRED (SIMD) arm, when the image carries it ---------------
+# _bq_pair_blk gathers two strips, runs _bq_fx_cascade_simd and scatters
+# back; the self-test compares its result against the SCALAR result for
+# the same two strips and leaves the count in _sq_pdiff. Nothing read
+# that word until now, so the pair arm had a verdict inside the part and
+# no way out of it -- which is how a fixed hang stayed on the record as
+# unresolved for four sessions.
+if '_sq_pdiff' in SYMS:
+    pdiff = peek(SYMS['_sq_pdiff'])
+    if pdiff is None:
+        print('\nPAIR ARM: link failed reading _sq_pdiff')
+        bad += 1
+    else:
+        pdiff = sg(pdiff)
+        if pdiff < 0:
+            print('\npair arm NOT BUILT (DSP4_SKIP_PAIR=1)')
+        else:
+            print(f'\npair vs scalar   ndiff = {pdiff}')
+        if pdiff > 0:
+            print('PAIR ARM FAILED: _bq_pair_blk does not reproduce the '
+                  'scalar cascade')
+            bad += 1
+    if '_sq_raw' in SYMS:
+        raw = block(SYMS['_sq_raw'], 5)
+        s_ms, m_ms = raw[1] - raw[0], raw[3] - raw[2]
+        print(f'pair timing      scalar {s_ms} ms   simd {m_ms} ms'
+              + (f'   ({s_ms / m_ms:.2f}x)' if m_ms else ''))
+    if bad:
+        print('\nFAIL')
+        sys.exit(1)
 
 print('\nPASS — both asm cascades are bit-exact against fixed_ref')

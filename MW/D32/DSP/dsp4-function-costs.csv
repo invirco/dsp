@@ -298,3 +298,20 @@ MARGIN32_BLK32_INLINED_786,584331,,111.5% of the 524288-cycle budget
 # confirm the record before closing the ranking rather than trusting it.
 MARGIN32_BLK8_RECONFIRMED_20260830S11,198721,,"121.28% of the 163840-cycle budget. 15 cycles off session 10's 198706 (0.008%), inside instrument noise -- same number, not a different one"
 MARGIN32_BLK32_RECONFIRMED_20260830S11,584352,,"89.16% of the 655360-cycle budget. 21 cycles off session 10's 584331 (0.004%), inside instrument noise"
+# --- SESSION 12 (2026-08-30): THE FILT/EQ PAIRING LEVER, MEASURED BOTH
+# WAYS ON ONE TREE. The session-11 note above says FILT/EQ pairing is
+# "still blocked on the unresolved cascade hang". THAT IS WRONG AND IS
+# CORRECTED HERE: DSP4_BQ_GRAPH pairs FILT and EQ, it has defaulted ON
+# since session 5, and every margin figure in this file since then was
+# already measured with it on. The block below is the control the record
+# never had side by side -- same tree, same instrument, same run,
+# TUBEON=0 explicit, 32 strips, signal present, 983.04 MHz.
+MARGIN32_BLK8_BQPAIR_OFF_20260830S12,217745,,"132.90% of the 163840-cycle budget. DSP4_BQ_GRAPH=0: dynamics paired, FILT and EQ per strip"
+MARGIN32_BLK8_BQPAIR_ON_20260830S12,198072,,"120.89% of the 163840-cycle budget. DSP4_BQ_GRAPH=1, the shipping default. 0.33% off session 11's 198721 -- instrument noise"
+MARGIN32_BLK32_BQPAIR_OFF_20260830S12,673758,,"102.81% of the 655360-cycle budget -- OVER"
+MARGIN32_BLK32_BQPAIR_ON_20260830S12,584845,,"89.24% of the 655360-cycle budget. 0.08% off session 11's 584352"
+# The lever: -19,673 cycles (-9.03%) at block 8 and -88,913 (-13.20%) at
+# block 32, against session 5's -19,465 (-8.3%) and -86,802 (-11.7%) for
+# the same lever on a tree that has changed a great deal since. IT IS
+# ALSO WHAT PUTS 32 CHANNELS AT BLOCK 32 UNDER BUDGET AT ALL: 102.81%
+# without it, 89.24% with it.
