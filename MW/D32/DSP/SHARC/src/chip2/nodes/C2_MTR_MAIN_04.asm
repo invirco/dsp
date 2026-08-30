@@ -37,6 +37,7 @@
 
         .section/pm seg_pmco;
         .extern _mtr_fold;
+        .extern _mtr_load_fold;
         .extern _sample_idx;
         .extern _mtr_wide_C2_MAIN_OUT_04;
         .global _C2_MTR_MAIN_04_process;

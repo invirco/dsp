@@ -37,6 +37,7 @@
 
         .section/pm seg_pmco;
         .extern _mtr_fold;
+        .extern _mtr_load_fold;
         .extern _sample_idx;
         .extern _mtr_wide_C1_GAIN_21;
         .global _C1_MTR_21_process;
@@ -49,22 +50,17 @@
  * trough and exact sum of squares from the MS word of its own
  * product register, inside its own loop, and left them here.
  * There is no per-sample work in this node at all and nothing
- * rounded was stored anywhere on the way. */
-l3 = 0;
-i3 = _mtr_acc_C1_MTR_21;
-r8 = dm(i3, 1);               /* block max, Q8.24  */
-r9 = dm(i3, 1);               /* block min, Q8.24  */
-r0 = dm(i3, 1);
-mr0f = r0;
-r0 = dm(i3, 1);
-mr1f = r0;
-r0 = dm(i3, 0);
-mr2f = r0;                    /* MRF = sum of squares, Q16.48 */
+ * rounded was stored anywhere on the way.
+ *
+ * The load and the fold are ONE SHARED ROUTINE
+ * (lib/meter_fx.asm::_mtr_load_fold): eleven instructions in
+ * each of 32 meter nodes is 2,112 bytes, and chip 1 has under
+ * two thousand left. */
 r0 = _mtr_peak_C1_MTR_21;
-        #if !DSP4_MTR_NOFOLD
-            call _mtr_fold;
-        #endif
-            rts;
+r1 = _mtr_acc_C1_MTR_21;
+call _mtr_load_fold;
+rts;
+
         #else
             /* Per SAMPLE. The block accumulators live in DM because there
              * is no loop to hold them in registers, and the fold fires on

@@ -2,6 +2,107 @@
 
 provenance: AI-drafted 2026-08-23 — prose may carry a statistical watermark; rewrite by hand before publication, then remove this header.
 
+## WIDE-WORD METERING — 2026-08-29/30 (session 5), and what it cost
+
+PW's ruling of 2026-08-29 ~17:05: every meter taps the SIGNAL'S WIDE FORM
+at its tap point — the most-significant 32-bit word of the accumulator
+that produced it, unrounded and unsaturated — and never a rounded 32-bit
+store made for the meter's benefit.
+
+**What was built.** Where a meter's source has a live MAC accumulator at
+the tap point (chip 1's 32 GAINs, the six metered chip-2 FADER_PANs) the
+meter's three per-sample instructions moved INTO the source's block loop
+and read `mr1b` in register; the source hands the finished block
+accumulators to the meter node in `_mtr_acc_<meter>`, five words once per
+block, and the meter node does nothing per sample at all. The audio MAC
+moved to MRB so MRF can carry the exact sum of squares, which also costs
+the metered node its `DSP4_STRIP_FUSED` two-at-a-time loop — fusion wants
+both accumulators for two audio samples and there is no third.
+
+Chip 2's `OUTPUT_TDM` (17 meters) and bus `COMPRESSOR` (4) have NO
+accumulator at their tap point — one is a copy, the other finishes in the
+ALU — so they publish the same value in the meter's format instead
+(`_mtr_wide_<src>`, an arithmetic shift of 4). Those meters lose four
+bits at the BOTTOM (−144 dB instead of −168) and their
+ONE-SAMPLE-PER-BLOCK decimation is unchanged: that is a property of an
+unconverted per-sample source, it is recorded on the meter node, and it is
+not fixed here.
+
+The meter's input format is Q8.24 everywhere, so `_mtr_fold`'s
+mean-square shift is 20 + log2(BLOCK) and its peak converts to the state's
+Q4.28 view with a left shift of 4, clamped at 8.0 linear (+18.06 dBFS).
+`fixed_ref.meter_block` takes Q8.24 for the same reason.
+
+**Proven on the part, C1_MTR_01, BLOCK 8: `METER_BIT_EXACT` with BOTH
+negative controls firing** — the BLOCK-32 coefficients, and the retired
+narrow (rounded-store) form. The second control needed its own operating
+point and that is the interesting part: **at unity gain the wide word and
+the rounded store carry the same value**, so the standing meter bar could
+not have told the ruling's arithmetic from the arithmetic it replaced.
+At gain 0.497 they separate exactly, and the part reads the wide model's
+`pk_blk>>4 = 4169139`, `ms_blk = 16576495` against the narrow model's
+4169138 / 16576493.
+
+**What it cost, and the first cut was not free.** At 32 strips, BLOCK 8,
+signal present, cycles per graph pass: 226,462 (session 3, no wide meter)
+→ **232,991**, which is +6,529 cycles/block, 204 per strip, **25.5
+cycles/sample/strip** — for three instructions of arithmetic that also
+deleted four per sample from the meter node. Reading `mr1b` in the
+instruction after the MAC that produced it stalls on the multiplier's
+result latency. The meter's ops now run ONE SAMPLE BEHIND, on the previous
+sample's wide word while the current MAC is in flight, with the last
+sample's done after the loop; seeding the pipeline register with zero is
+exactly neutral, because zero adds nothing to a sum of squares and the
+block peak is `max(hi, −lo)`, which is non-negative already.
+
+**D20 IS STILL BLOCKED, and by the router rather than by the meter.** The
+ruling's premise — "kill every tap store whose only consumer is a meter
+(BLK_TAP_TRIM class)" — is not this graph: `BLK_TAP_TRIM` is read by
+ROUTING's pickoff 0, which needs a Q4.28 sample, and GAIN still has to
+write `BLK_CHAIN_B` for FILT. The −17 c/s/strip is the round/saturate plus
+those two stores, so nothing on that node can be deleted by a metering
+decision. What remains of D20 is the GAIN→FILT COEFFICIENT fold (g folded
+into stage 1's b0/nh/n2, which is a numeric-spec amendment) plus
+materialising the post-trim tap only for the sends that actually select
+pickoff 0. It is said in the emitted node so the next reader does not have
+to re-derive it.
+
+## PAIRED BIQUADS IN THE GRAPH — 2026-08-30 (session 5)
+
+`_bq_pair_blk` has been measured at 1.43–1.54× since its hang was
+root-caused on 2026-08-29, and until this session nothing in the GRAPH
+called it. FILT and EQ now run as one SIMD instruction stream per strip
+PAIR, in the same two-pool arrangement the dynamics use:
+
+    A: IN GAIN / B: IN GAIN / FILT pair / EQ pair / GATE pair / COMP pair
+    A: TUBE DLY FDR RTG / B: TUBE DLY FDR RTG
+
+Safe to reorder because both classes work IN PLACE on their own pool's
+`BLK_CHAIN_B`, so no slot is read by one strip while the other writes it.
+A pair whose channels are not both in steady state falls back to the two
+scalar nodes, which work in place too.
+
+**Bit-exact on the part, with a firing negative control**: strip 1 driven
+and strip 2 muted, REAL filter designs written into both strips,
+`DSP4_BQ_GRAPH=0` against `=1` → **0 of 64 main-bus words differ**;
+against `DSP4_BQ_NEGCTL=1`, which gives strip B strip A's coefficients and
+state so the pair computes one channel twice → **56 of 64 differ, maxdiff
+69,476,676**. The negative control is also what witnesses that the paired
+path is the one running.
+
+**The bypass trap, stated because it nearly swallowed this proof.** With
+bypass coefficients the paired and scalar cascades are bit-identical BY
+CONSTRUCTION, so a comparison taken at bypass passes whatever the pairing
+does — which is exactly why session 3's bus golden reproduced with no
+biquad coefficient coverage at all. `bqgraph.sh` writes a different real
+RBJ design into each strip of the pair before it captures anything.
+
+**Program memory is now the binding constraint on chip 1.** The drivers
+cost 5,670 bytes and the SIMD cascade another 754; the shipping
+paired+fused image links with 1,782 bytes of code free and the 983 MHz
+profile-stimulus measurement image with 642. The first cut of the drivers
+cost 7,488 bytes and the measurement image did NOT link at all.
+
 ## THE MEASURED CAPACITY TABLE — 2026-08-29 (session 3)
 
 **This is the first table taken with strip fusion and dynamics pairing in

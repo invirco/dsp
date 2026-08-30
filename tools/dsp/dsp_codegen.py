@@ -4185,18 +4185,15 @@ _METER_SRC_BLOCK = {
 _MTR_WIDE_ACC = ('GAIN', 'FADER_PAN')
 
 
-def _mtr_acc_flush(meter_id, mx='r13', mn='r15', ireg='i4'):
+def _mtr_acc_flush(meter_id):
     """Hand a block's meter accumulators to the meter node. Five words at
-    BLOCK rate, against BLOCK rounded stores it replaces."""
-    return (f'            {ireg} = _mtr_acc_{meter_id};\n'
-            f'            dm({ireg}, 1) = {mx};\n'
-            f'            dm({ireg}, 1) = {mn};\n'
-            f'            r0 = mr0f;\n'
-            f'            dm({ireg}, 1) = r0;\n'
-            f'            r0 = mr1f;\n'
-            f'            dm({ireg}, 1) = r0;\n'
-            f'            r0 = mr2f;\n'
-            f'            dm({ireg}, 0) = r0;')
+    BLOCK rate, against BLOCK rounded stores it replaces.
+
+    SHARED (lib/meter_fx.asm::_mtr_flush) rather than inlined: 38 copies
+    of eight instructions is 1,368 bytes of a chip 1 that has under two
+    thousand left, and this is block-rate code."""
+    return (f'            r0 = _mtr_acc_{meter_id};\n'
+            f'            call _mtr_flush;')
 
 
 def gen_meter_fixed(node):
@@ -4218,21 +4215,20 @@ def gen_meter_fixed(node):
              * trough and exact sum of squares from the MS word of its own
              * product register, inside its own loop, and left them here.
              * There is no per-sample work in this node at all and nothing
-             * rounded was stored anywhere on the way. */
-            l3 = 0;
-            i3 = _mtr_acc_{nid};
-            r8 = dm(i3, 1);               /* block max, Q8.24  */
-            r9 = dm(i3, 1);               /* block min, Q8.24  */
-            r0 = dm(i3, 1);
-            mr0f = r0;
-            r0 = dm(i3, 1);
-            mr1f = r0;
-            r0 = dm(i3, 0);
-            mr2f = r0;                    /* MRF = sum of squares, Q16.48 */
-            r0 = _mtr_peak_{nid};""")
+             * rounded was stored anywhere on the way.
+             *
+             * The load and the fold are ONE SHARED ROUTINE
+             * (lib/meter_fx.asm::_mtr_load_fold): eleven instructions in
+             * each of 32 meter nodes is 2,112 bytes, and chip 1 has under
+             * two thousand left. */
+            r0 = _mtr_peak_{nid};
+            r1 = _mtr_acc_{nid};
+            call _mtr_load_fold;
+            rts;""")
         note_ps = (f'_mtr_wide_{src}, the Q8.24 word {src} publishes '
                    f'from its\n             * product register before it '
                    f'rounds or saturates.')
+        blk_tail = ''
     else:
         blk_body = dedent(f"""\
             /* WIDE WORD, 'scalar' shape. {src} has no accumulator at this
@@ -4256,6 +4252,10 @@ def gen_meter_fixed(node):
                 r9 = min(r9, r0);
             r0 = _mtr_peak_{nid};""")
         note_ps = (f'_mtr_wide_{src}, the Q8.24 word {src} publishes.')
+        blk_tail = ('        #if !DSP4_MTR_NOFOLD\n'
+                    '            call _mtr_fold;\n'
+                    '        #endif\n'
+                    '            rts;')
 
     return dedent(f"""\
         /* METER: level read-back (DSP writes, host polls) */
@@ -4279,6 +4279,7 @@ def gen_meter_fixed(node):
 
         .section/pm seg_pmco;
         .extern _mtr_fold;
+        .extern _mtr_load_fold;
         .extern _sample_idx;
         .extern _mtr_wide_{src};
         .global _{nid}_process;
@@ -4288,10 +4289,7 @@ def gen_meter_fixed(node):
             rts;
         #elif DSP4_BLOCK_KERNELS
 {blk_body}
-        #if !DSP4_MTR_NOFOLD
-            call _mtr_fold;
-        #endif
-            rts;
+{blk_tail}
         #else
             /* Per SAMPLE. The block accumulators live in DM because there
              * is no loop to hold them in registers, and the fold fires on
@@ -6556,7 +6554,8 @@ def gen_gain_fixed(node):
             '         * ' + mtr + '. The block path never stores it -- it hands\n'
             '         * the finished accumulators over instead. */\n'
             '        .var _mtr_wide_' + nid + ';\n')
-        mtr_extern = '        .extern _mtr_acc_' + mtr + ';\n'
+        mtr_extern = ('        .extern _mtr_acc_' + mtr + ';\n'
+                      '        .extern _mtr_flush;\n')
         mtr_pub = (
             '            r12 = mr1f;                           '
             '/* WIDE post-trim, Q8.24 */\n'
@@ -6884,7 +6883,8 @@ def gen_fader_pan_fixed(node):
             '         * ' + mtr + '. The block path never stores it -- it hands\n'
             '         * the finished accumulators over instead. */\n'
             '        .var _mtr_wide_' + nid + ';\n')
-        mtr_extern = '        .extern _mtr_acc_' + mtr + ';\n'
+        mtr_extern = ('        .extern _mtr_acc_' + mtr + ';\n'
+                      '        .extern _mtr_flush;\n')
         mtr_pub = (
             '            r12 = mr1f;                           '
             '/* WIDE post-fader, Q8.24 */\n'

@@ -67,6 +67,7 @@
         .extern _sample_idx;
         .extern _mrf_rns28;
         .extern _mtr_acc_C2_MTR_FX_05;
+        .extern _mtr_flush;
         .global _C2_FX_FDR_05_process;
         _C2_FX_FDR_05_process:
             /* block-rate: float ramps + shadow conversion */
@@ -302,15 +303,8 @@
             r13 = max(r13, r6);
             mrf = mrf + r6 * r6 (ssi);
             r15 = min(r15, r6);
-            i4 = _mtr_acc_C2_MTR_FX_05;
-            dm(i4, 1) = r13;
-            dm(i4, 1) = r15;
-            r0 = mr0f;
-            dm(i4, 1) = r0;
-            r0 = mr1f;
-            dm(i4, 1) = r0;
-            r0 = mr2f;
-            dm(i4, 0) = r0;
+            r0 = _mtr_acc_C2_MTR_FX_05;
+            call _mtr_flush;
             rts;
         #endif
 #else

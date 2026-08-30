@@ -51,6 +51,7 @@
 .extern _sample_idx;
 .extern _mrf_rns28;
 .extern _mtr_acc_C1_MTR_31;
+.extern _mtr_flush;
 .global _C1_GAIN_31_process;
 _C1_GAIN_31_process:
 #if !DSP4_BLOCK_KERNELS
@@ -294,15 +295,8 @@ _C1_GAIN_31_process:
     r13 = max(r13, r12);
     mrf = mrf + r12 * r12 (ssi);
     r15 = min(r15, r12);
-    i4 = _mtr_acc_C1_MTR_31;
-    dm(i4, 1) = r13;
-    dm(i4, 1) = r15;
-    r0 = mr0f;
-    dm(i4, 1) = r0;
-    r0 = mr1f;
-    dm(i4, 1) = r0;
-    r0 = mr2f;
-    dm(i4, 0) = r0;
+    r0 = _mtr_acc_C1_MTR_31;
+    call _mtr_flush;
     rts;
 #endif
 

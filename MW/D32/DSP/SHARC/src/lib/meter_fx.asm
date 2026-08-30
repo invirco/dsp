@@ -104,6 +104,59 @@ _mtr_block_tick:
 _mtr_block_tick.end:
 
 /*----------------------------------------------------------------------
+ * _mtr_flush — hand a block's meter accumulators to the meter node.
+ *
+ * SHARED, and for one reason: chip 1 has under two thousand bytes of
+ * program memory left. Eight instructions inlined in each of the 38
+ * metered source nodes is 1,368 bytes; two instructions and a call is
+ * 304 plus this routine.
+ *
+ * In:  r0 = base of the meter's _mtr_acc_<meter>[5]
+ *      r13 = block max, r15 = block min (Q8.24)
+ *      MRF = exact sum of squares (Q16.48)
+ * Clobbers r0, i4, l4.
+ *----------------------------------------------------------------------*/
+.global _mtr_flush;
+_mtr_flush:
+    l4 = 0;
+    i4 = r0;
+    dm(i4, 1) = r13;
+    dm(i4, 1) = r15;
+    r0 = mr0f;
+    dm(i4, 1) = r0;
+    r0 = mr1f;
+    dm(i4, 1) = r0;
+    r0 = mr2f;
+    dm(i4, 0) = r0;
+    rts;
+_mtr_flush.end:
+
+/*----------------------------------------------------------------------
+ * _mtr_load_fold — the other half of the same trade: load what the
+ * source left and fold it. The meter node is then three instructions.
+ *
+ * In:  r0 = address of _mtr_peak_<meter>  (the fold's variable base)
+ *      r1 = base of _mtr_acc_<meter>[5]
+ *----------------------------------------------------------------------*/
+.global _mtr_load_fold;
+_mtr_load_fold:
+    l3 = 0;
+    i3 = r1;
+    r8 = dm(i3, 1);                /* block max, Q8.24 */
+    r9 = dm(i3, 1);                /* block min, Q8.24 */
+    r1 = dm(i3, 1);
+    mr0f = r1;
+    r1 = dm(i3, 1);
+    mr1f = r1;
+    r1 = dm(i3, 0);
+    mr2f = r1;                     /* MRF = sum of squares, Q16.48 */
+#if !DSP4_MTR_NOFOLD
+    call _mtr_fold;
+#endif
+    rts;
+_mtr_load_fold.end:
+
+/*----------------------------------------------------------------------
  * _mtr_fold — fold one block's accumulators into the meter state.
  *
  * In:  r0  = meter variable base:
