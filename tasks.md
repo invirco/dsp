@@ -1,3 +1,47 @@
+## HUB DISPATCH 2026-08-30 23:27Z — session 15: D74 root-cause — reconcile the D71 fix with the scope path   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+(reasoning: D74 — unknown-shape ISR/SPI interaction: the D71 fix breaks
+a different read path; the two defects share an ISR and must be
+reconciled, not chosen between)
+
+SESSION 15 — ROOT-CAUSE D74, THEN SHIP A D71 FIX THAT BREAKS NOTHING.
+
+Context (session 14, blocked 🔴, evidence in the review index + the
+boot-handshake doc addendum): DSP4_SPI_PARTIAL_FIX2 default-on cures
+D71 (config-burst word eaten by _diag_timer_isr's stuck-partial
+recovery) but busgold.sh/goldnode.sh then FAIL outright through
+dsp4_scope.py's two-chip read path (2/2 clean flag-off vs 0/4 flag-on,
+same bench, interleaved). The recovery routine evidently serves a real
+purpose on the scope path that fix2 suppresses — or fix2 perturbs FIFO
+state the scope path depends on.
+
+1. CHARACTERIZE the scope-path failure with the flag on: what exactly
+   does dsp4_scope.py see (garbled frame? timeout? shifted words?),
+   which transaction in its sequence, SPI_RX_COUNT/_spi_partial_fix
+   counters at the failure — same counter discipline as session 13.
+2. UNDERSTAND both consumers of the recovery: why does the scope path
+   NEED (or trip over) the discard behaviour the config burst cannot
+   tolerate? Name the difference (request pacing, word parity, FIFO
+   depth at entry, chip-select framing).
+3. DESIGN the reconciled fix — candidates to test, one arm each:
+   burst-aware gating (suppress recovery only while a config burst is
+   in flight, e.g. between CONFIG_BEGIN and COMMIT), a longer stuck
+   threshold, draining to request BOUNDARIES only (never half a
+   request), or fixing the scope path's own framing if IT is the one
+   relying on a bug. The winner must pass BOTH: bootchar >=150
+   one-attempt cycles with 0 D71-class, AND busgold/goldnode clean
+   >=10 consecutive runs, same image.
+4. Ship it default-on with full bars, W0 old->new baselines, busgold
+   golden re-taken only if the graph moved with cause understood.
+5. D73 (stage-0 wedge) stays PW-parked — count it apart, do not chase.
+6. If the reconciliation resists: revert to safe defaults, land the
+   characterization, 🔴 with the sharpest finding. No thrash.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-08-30 20:45Z — session 14: ship the D71 fix (partial-fix2 default-on) + prove at scale   [status: 🔴 blocked — **D71 IS PROVEN AT SCALE AND STILL SHIPS BEHIND THE FLAG; DEFAULT-ON IS REVERTED BECAUSE IT BROKE SOMETHING BOOTCHAR CANNOT SEE.** Pooled with session 13's 150 cycles, this session's fresh 200 give **348/350 one-attempt cycles clean (99.4%), 0 D71-class events in 350 (`SPI_PART_FIX` never fired, `SPI_RX_COUNT` full 108 on every readable cycle), 2 D73 events** (the stopped-core mode, untouched by this fix, exactly as predicted) — failure rate 0.57% [0.16%, 2.06%] Wilson 95%, `tools/pi/dsp4_bootstats.py` on the pooled CSVs. **THEN THE STANDING-BARS SWEEP, ON THE SAME FLAG-ON IMAGE, FOUND D74**: `busgold.sh` and `goldnode.sh` failed outright — "no usable capture in 5 attempts", "chip 1 not ready after 8 attempts" — both through `dsp4_scope.py`'s two-chip `check_chip()` read path (register 0xE001, `DIAG_CHIP_ID`), reading `link answers as CHIP 0, expected 1` or timing out entirely; `bqst.sh`, `bqgraph.sh` and `mtrverify.sh` hit the same symptom at least once each but recovered inside their own retry ladders; `conform.sh` (VERDICT: PASS, presence classes unchanged from every prior clean session, the 16 declared-unit fails are the pre-existing named D41 mismatches), `dynst.sh` (0 of 32 all three arms) and `numverify.sh`/`dcapar.sh` did not hit it. **ISOLATED WITH A DIRECT A/B ON busgold.sh, SAME BENCH, INTERLEAVED IN TIME (not early-vs-late in the session)**: flag OFF passed clean on the first attempt, 2 of 2; flag ON exhausted all 5 internal retries and failed, 0 of 4 — one of the clean OFF runs landed AFTER two failed ON runs, so the flag tracks the result better than session order does. **NOT ROOT-CAUSED** — leading hypothesis (not measured): the fix's "only discard a stale RX FIFO word while `_spi_rx_count` is standing still" gate never arms while `dsp4_scope.py`'s own resync/retry traffic keeps that counter moving, so a stale fragment that traffic itself leaves behind is never cleared and misaligns every read after it. Filed as **D74** in the review index. Full write-up: `MW/D32/DSP/dsp4-boot-handshake-20260830.md` (session 14 addendum) and `MW/D32/DSP/dsp4-cycle-budget.md`. **REVERTED THE SAME SESSION, PER THE MODEL-TIERING RULE**: this is unknown-shape root-cause work on the same ISR the boot-config fix lives in, past what a bounded fix-and-prove session should push through — `DSP4_SPI_PARTIAL_FIX2`'s default in `build.sh` is back to 0, rebuilt and confirmed byte-identical to the pre-session-13 baseline (chip1.ldr `3f0e479a`, chip2.ldr `ab43c75b`, 301,732/182,060 bytes, reproducible across two clean builds). Golden harness 59/59 throughout (model-only, unaffected). **Item 4 (retire "chip-ID/link intermittent") done**: the six standing references in this file's session 7/8 history are annotated in place, pointing forward to D72 (the dropped-read mechanism those specific retries were) versus D71/D73 (the boot+config-commit failures this session's work is about) — none were the vague alias any more. **A SEPARATE, ACUTE BENCH-LINK EPISODE also hit mid-session** (chip 2 reading `CHIP_ID 1`, later chip 1 reading `MAGIC 0`), including once on the reverted flag-off baseline, so it is NOT folded into the D74 finding — `restore_bench.sh` (CPLD reflash + GPIO release) plus a fresh boot+config cycle cleared it. **Bench restored and verified**: both chips `BOOT_STAGE 7`, `SPI_ERR_COUNT 0`, `matrix-app` active with all three MCUs verified (H1S1 DSP, H1S4 SW Left, H1S3 SW Right) on the FIRST restart, CPLD reflashed to shipping and GPIOs released, TUBE never engaged. **NEEDS OPUS-TIER RE-DISPATCH** to root-cause D74 (live `_spi_partial_ticks`/`_spi_partial_rxmark` instrumentation during a reproduced Scope-path wedge, on a bench given time to rest first) before any second attempt at the default-on flip.]   [model: sonnet]
 
 model: sonnet
