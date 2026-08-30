@@ -226,3 +226,65 @@ LEVER_WIDEMTR_BLK8,7252,,"+3.2% against session 3's 226,462. A per-BLOCK constan
 LEVER_WIDEMTR_BLK32,7036,,+1.0% against session 3's 736848
 LEVER_BQPAIR_BLK8,-19465,,"-8.3%. The pre-measurement arithmetic in this file predicted 205,000-208,000 and the measurement is 214,249: the driver's gather/scatter overhead is real"
 LEVER_BQPAIR_BLK32,-86802,,-11.7%
+# ============================================================
+# SESSION 10 — 2026-08-30. THE BRANCH COST OF THIS PART, MEASURED
+# (review finding D66). Not a class profile: a calibration of the
+# arithmetic every floor and every "unmodeled waste" figure in
+# review-dsp-20260828.md is built from.
+#
+# INSTRUMENT: SHARC/src/lib/call_selftest.asm, eleven timed loops of
+# 20,000 iterations each, run three times with the minimum taken so a
+# repeat the 1 kHz diag-tick ISR landed in is discarded rather than
+# averaged in. Window arithmetic is main.asm's own (ticks x TPERIOD +
+# tcount delta), exact per pass. Driver SHARC/callcal.sh, scorer
+# tools/pi/dsp4_call_cal.py. Chip 1, 491.52 MHz, block 8. Repeat spread
+# 0.01-0.41 % across the whole ladder.
+#
+# THE INSTRUMENT IS CALIBRATED AGAINST THE GRAPH: rung 6 is TUBE's
+# per-sample body instruction for instruction and reads 103.267 c/s =
+# 826.1 c/block against session 9's 829-834 c/block measured through the
+# SHIPPING graph by a same-boot TubeOn 0->1 diff. 0.61 % apart, sharing
+# no arithmetic. Both numbers stand.
+#
+# STRAIGHT-LINE CODE ISSUES AT ONE INSTRUCTION PER CYCLE, MEASURED:
+# four branch-free rungs at 2, 10, 19 and 47 instructions land within
+# 0.12 cycles of their counts. THE FLOOR COLUMN OF THE REVIEW THEREFORE
+# STANDS. What was wrong is the price of the branches the EMITTED code
+# contains: the review counted them at one cycle apiece.
+# ============================================================
+event,penalty_cycles,naive_count,notes
+BRANCH_JUMP_UNCOND,6.02,1,"rung 8 minus rung 3 -- same 10 instructions, one of them a taken jump to the next instruction"
+BRANCH_COND_AFTER_COMP,11.08,1,"rung 5 excess; confirmed by rung 7 = rung 10 + 3 x 11.07. The extra over the unconditional jump is the comp-to-condition hazard"
+CALL_RTS_PAIR,15.04,2,"rungs 1 and 2: +15.043 with a callee that is a bare rts, +15.066 with a callee that is 8 nops and an rts. INDEPENDENT OF THE CALLEE'S BODY and of which object it lives in, so it is generic branch overhead -- the answer D66 asked for"
+CALL_RTS_PAIR_COND_RETURN,20.09,2,"rung 4: a callee ending comp; if eq rts. In context inside TUBE's loop (rung 6) the same site costs 17.76, the difference being penalty that overlaps with surrounding work"
+INLINE_SITE_RECOVERED,18.72,,"measured end to end on TUBE's three sites: 103.267 c/s called (rung 6) -> 47.121 inlined and branch-free (rung 10). 56.15 c/s over three sites"
+# --- what the census then says the emitted code is paying ---
+# Per sample, at the prices above. These are a census x a measured
+# penalty, NOT a per-class measurement; they are labelled as such.
+BRANCHCOST_GATE_SCALAR,86-97,,5 call/rts pairs (envq x2 log2q->polyq mrf_rns28) = 75 c/s + the loop's taken conditionals. 33-37% of the 259.75 emitted. Review said 3 pairs ~30 c/s
+BRANCHCOST_COMP_SCALAR,145-175,,8 call/rts pairs = 120 c/s + taken conditionals in envq/compgain/exp2q. 33-40% of the 433.1 emitted. Review said ~9 pairs ~45-60 c/s
+BRANCHCOST_FILT_SCALAR,22,,2 taken saturation branches per sample (biquad_fx.asm:382) x 11.08. ZERO in the paired graph -- _bq_fx_cascade_simd already saturates with a conditional move
+BRANCHCOST_EQ_SCALAR,44,,4 stages x the same
+BRANCHCOST_GATE_PAIR,22.6,,"per CHANNEL-sample: 3 call/rts pairs per SIMD sample (log2q_simd->polyq_simd, mrf_rns28_simd) = 45.1 c/SIMD-sample over 2 channels. 14% of GATE_PAIR_FP's 163.1"
+BRANCHCOST_COMP_PAIR,52.6,,"per CHANNEL-sample: 7 call/rts pairs per SIMD sample (compgain_simd, its nested log2q_simd->polyq_simd and exp2q_simd->polyq_simd, mrf_rns28_simd x2) = 105.3 c/SIMD-sample over 2 channels. 22% of COMP_PAIR_FP's 237.6"
+# --- THE LANDING: the ten call sites inlined (SHARC/src/lib/dyn_simd_inline.h,
+# DSP4_DYN_INLINE, default 2). Measured by dynst.sh's timing arm at 8,192
+# iterations; one tick = 7.5 cycles/sample/channel, which is the resolution.
+# Bit-exactness UNCHANGED at every level: scalar vs paired 0 of 32 on COMP,
+# GATE and BQ4. DSP4_DYN_INLINE=0 reproduces chip1.ldr 88cea050 byte for
+# byte, so the flag is provably the only difference.
+function,dynst_before,dynst_after,saved_cycles_sample_channel,notes
+COMP_PAIR_INLINED,210.0,157.5,52.5,"seven call/rts pairs removed. PREDICTED 52.6 from the ladder's 15.04 c/pair -- measured to a fifth of one tick, on a different instrument in a different loop"
+GATE_PAIR_INLINED,105.0,90.0,15.0,"three pairs removed. Predicted 22.6; measured 2 ticks against 3, inside the instrument's step"
+DYN_PAIR_INLINED_TOTAL,315.0,247.5,67.5,"the two classes together, per sample per channel, against 75.2 predicted"
+# --- MARGIN AT 32 CHANNELS after the inlining, 983.04 MHz, signal present,
+# graph decimated so the pass completes. Same instrument as session 5
+# (captable.sh MODE=cyc) and now with the TUBE ENGAGE EXPLICITLY OFF --
+# see review finding D67: the engage had been unconditional since session 9
+# and a whole-graph run had all 32 strips carrying an ENGAGED plugin.
+# The first run of this session, taken before the fix, read 225,242 at
+# block 8 and is NOT carried here; it is recorded in D67 as the evidence.
+MARGIN32_BLK8_INLINED,198706,,"121.3% of the 163840-cycle budget, from 214,249 = 130.8%. -15,543 cycles/block against 17,280 predicted from the per-class saving (67.5 c/s/channel x 32 x 8) -- 10% apart, the graph seeing slightly less than the kernel does"
+MARGIN32_BLK32_INLINED,584331,,"89.2% of the 655360-cycle budget, from 657,082 = 100.26%. **32 CHANNELS ON ONE CHIP AT BLOCK 32 AND 983.04 MHz IS NOW 10.8% UNDER BUDGET, HAVING BEEN 0.26% OVER.** -72,751 against 69,120 predicted, 5% apart"
+MARGIN32_BLK8_INLINED_786,198706,,151.6% of the 131072-cycle budget (same cycle count; the budget changes)
+MARGIN32_BLK32_INLINED_786,584331,,111.5% of the 524288-cycle budget

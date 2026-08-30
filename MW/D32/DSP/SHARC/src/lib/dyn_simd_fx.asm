@@ -59,6 +59,7 @@
  *======================================================================*/
 
 #include "dsp_block.h"
+#include "dyn_simd_inline.h"
 
 #if DSP4_SIMD_DYN
 
@@ -452,19 +453,37 @@ _comp_pair_blk:
         r5 = r2 or r3;
         r14 = r14 + r5;
 
-        /* gain computer */
+        /* gain computer -- INLINED (review finding D66). The call/rts
+         * pair costs 15.04 cycles of pipeline refill on this part,
+         * measured, and this site carried five of them: _compgain_simd
+         * and its nested _log2q_simd -> _polyq_simd and _exp2q_simd ->
+         * _polyq_simd. The body is the macro the standalone routine's
+         * text is checked against by tools/dsp/dyn_simd_inline_check.py,
+         * so the inlined path cannot drift from the called one. */
         r0 = r14;
+#if DSP4_DYN_INLINE >= 2
+        COMPGAIN_SIMD(.cpb_pq1, .cpb_pq2)
+#else
         call _compgain_simd;
+#endif
         dm(i5, 0) = r0;            /* display/witness */
 
-        /* wet = dry * gain * makeup */
+        /* wet = dry * gain * makeup -- both rounds INLINED, same reason */
         r1 = r0;
         r0 = r13;
         mrf = r0 * r1 (ssi);
+#if DSP4_DYN_INLINE >= 1
+        MRF_RNS28_SIMD
+#else
         call _mrf_rns28_simd;
+#endif
         r1 = r12;
         mrf = r0 * r1 (ssi);
+#if DSP4_DYN_INLINE >= 1
+        MRF_RNS28_SIMD
+#else
         call _mrf_rns28_simd;
+#endif
 
         /* parallel: out = dry + par*(wet - dry) */
         r5 = r0 - r13;
@@ -618,9 +637,15 @@ _gate_pair_blk:
         r5 = r2 or r3;
         r10 = r10 + r5;
 
-        /* level, guarded against log2(0) */
+        /* level, guarded against log2(0) -- INLINED with its nested
+         * _polyq_simd (review finding D66): two call/rts pairs, 30.1
+         * cycles per SIMD sample of pipeline refill. */
         r0 = r10;
+#if DSP4_DYN_INLINE >= 2
+        LOG2Q_SIMD(.gpb_pq)
+#else
         call _log2q_simd;
+#endif
         r1 = 0x80000000;
         r2 = 0;
         comp(r10, r2);
@@ -660,7 +685,11 @@ _gate_pair_blk:
         r1 = r11;
         r0 = r13;
         mrf = r0 * r1 (ssi);
+#if DSP4_DYN_INLINE >= 1
+        MRF_RNS28_SIMD
+#else
         call _mrf_rns28_simd;
+#endif
         nop;
         nop;
     .gpb_lp: dm(i4, 2) = r0;

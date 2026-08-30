@@ -8,8 +8,21 @@
 # whole chain then measures the SILENCE cost while BOOT_STAGE, pass rate,
 # DMA and SPORT all read clean), and the cycle read is taken twice with a
 # link-sanity check either side.
+#
+# TUBEON (4th argument, default 0) says whether to engage the TUBE plugin
+# for the DWELL window. IT MUST NOT DEFAULT ON. Session 9 added the
+# tubeon.py call unconditionally, reasoning that it is "harmless at limits
+# below 7 -- the class is skipped entirely there". That is true of a
+# per-CLASS profile, which is what it was written for, and FALSE of a
+# whole-graph measurement: with DSP4_NODE_LIMIT=0 every strip runs its
+# TUBE, so captable.sh's MODE=cyc margin-at-32 silently measured 32
+# ENGAGED tubes -- about 26,600 cycles/block at block 8 -- against a
+# record whose every earlier row was taken with TUBE bypassed. PW's
+# ruling is that TUBE is a PLUGIN and is never counted in the base strip,
+# so the base-strip default is off and the caller that wants limit 7 to
+# mean something asks for it.
 set -u
-PT="$1"; PP="$2"; DWELL="$3"
+PT="$1"; PP="$2"; DWELL="$3"; TUBEON="${4:-0}"
 cd /home/app/dspboot
 sudo systemctl stop matrix-app >/dev/null 2>&1
 sudo pinctrl set 6,7,8,9,10,11,12,22,23,24,25 a0 >/dev/null 2>&1
@@ -39,11 +52,11 @@ for attempt in 1 2 3; do
   [ "$G" = "0" ] && { echo "  (attempt $attempt: never reached stage 6)"; continue; }
   # Repair the coefficient over the link before spending a reboot on it.
   python3 gainfix.py 2>&1 | sed 's/^/  /'
-  # TUBE defaults OFF at compile time; engage it for the DWELL window so
-  # a build that reaches limit 7 measures the ACTIVE node, not the
-  # bypass copy. Harmless at limits below 7 -- the class is skipped
-  # entirely there and never reads TubeOn.
-  python3 tubeon.py on 2>&1 | sed 's/^/  /'
+  # TUBE defaults OFF at compile time. Engage it only when asked (see the
+  # header): a per-CLASS profile that wants limit 7 to mean the ACTIVE
+  # node passes TUBEON=1; a whole-graph measurement must not, or it
+  # measures a plugin the base strip does not carry.
+  [ "$TUBEON" = "1" ] && python3 tubeon.py on 2>&1 | sed 's/^/  /'
   sleep "$DWELL"
   R=$(python3 - "$PT" "$PP" <<'PYEOF'
 import json, sys
@@ -92,7 +105,7 @@ PYEOF
   # Restore before leaving this boot in any state -- a run that stops
   # here (or moves on to another limit without a reboot) should not
   # leave TUBE engaged behind it.
-  python3 tubeon.py off >/dev/null 2>&1
+  [ "$TUBEON" = "1" ] && python3 tubeon.py off >/dev/null 2>&1
   case "$R" in
     WITNESS-DEAD*|WITNESS-UNREADABLE*) echo "  (attempt $attempt: $R — re-running boot+config)";;
     *) echo "$R"; exit $RC;;

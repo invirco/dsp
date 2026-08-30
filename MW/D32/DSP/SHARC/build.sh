@@ -278,6 +278,31 @@ DSP4_NUM_NEGCTL="${DSP4_NUM_NEGCTL:-0}"
 CFLAGS="$CFLAGS -DDSP4_NUM_SELFTEST=$DSP4_NUM_SELFTEST -DDSP4_NUM_NEGCTL=$DSP4_NUM_NEGCTL"
 ASMFLAGS="$ASMFLAGS -DDSP4_NUM_SELFTEST=$DSP4_NUM_SELFTEST -DDSP4_NUM_NEGCTL=$DSP4_NUM_NEGCTL"
 
+# INLINE THE PAIRED-DYNAMICS CALL SITES (2026-08-30, review finding D66).
+# A call/rts pair costs 15.04 cycles of pipeline refill on this part,
+# measured, and the two pair kernels made ten of them per SIMD sample.
+#   0 = every site is a call -- the pre-inlining CONTROL, and the form the
+#       standalone _..._simd routines still document
+#   1 = _mrf_rns28_simd inlined (3 sites, no nested hardware loop)
+#   2 = + _compgain_simd and _log2q_simd inlined with their nested
+#       _polyq_simd/_exp2q_simd (7 more sites)
+# Levels exist so a numeric or a hang regression can be bisected to the
+# class of inlining that caused it rather than to the whole change.
+DSP4_DYN_INLINE="${DSP4_DYN_INLINE:-2}"
+CFLAGS="$CFLAGS -DDSP4_DYN_INLINE=$DSP4_DYN_INLINE"
+ASMFLAGS="$ASMFLAGS -DDSP4_DYN_INLINE=$DSP4_DYN_INLINE"
+
+# CALL/RTS CALIBRATION LADDER (2026-08-30, review finding D66). An
+# on-part instrument, not a mode: eight timed loops that price a bare
+# call/rts pair, the same pair around a real body, the same body inlined,
+# and TUBE's per-sample body both ways. It answers whether the ~17
+# cycles/sample/pair session 9 inferred is generic branch overhead or
+# something specific to _mrf_rns28 -- which is what decides whether AXIS
+# 1's floor rows are understated. Debug only; never in a shipping image.
+DSP4_CALL_SELFTEST="${DSP4_CALL_SELFTEST:-0}"
+CFLAGS="$CFLAGS -DDSP4_CALL_SELFTEST=$DSP4_CALL_SELFTEST"
+ASMFLAGS="$ASMFLAGS -DDSP4_CALL_SELFTEST=$DSP4_CALL_SELFTEST"
+
 # Meter bisect hooks (2026-08-28 rebuild). NOFOLD stops at the per-sample
 # accumulation, NOCVT stops before the float readback, NOSQRT stops before
 # the square root. All 0 = the real meter.

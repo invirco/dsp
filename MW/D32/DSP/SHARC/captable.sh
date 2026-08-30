@@ -154,7 +154,11 @@ print(a('proc_cyc'), a('proc_passes'))")"
     scp -q "$d/chip1.ldr" "$d/chip2.ldr" /tmp/chip1.sym.json \
         "$(srctree "$B")/dsp4_block.py" $BENCH:/home/app/dspboot/
     if [ "$MODE" = cyc ]; then
-        R=$(ssh $BENCH "bash /home/app/sigprofile_run.sh $PT $PP $DWELL" 2>&1)
+        # TUBEON=0: the margin question is about the BASE STRIP, and
+        # PW's ruling is that TUBE is a plugin that is never counted in
+        # it. Passing this explicitly rather than relying on the run
+        # script's default, because the default is what went wrong.
+        R=$(ssh $BENCH "bash /home/app/sigprofile_run.sh $PT $PP $DWELL ${TUBEON:-0}" 2>&1)
     else
         R=$(ssh $BENCH "bash /home/app/sigstrips_run.sh $PP $N" 2>&1)
     fi

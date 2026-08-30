@@ -141,6 +141,10 @@
 .extern _dyn_selftest;
 .extern _dst_done;
 #endif
+#if DSP4_CALL_SELFTEST
+.extern _cst_selftest;
+.extern _cst_done;
+#endif
 
 .section/pm seg_pmco;
 
@@ -621,6 +625,17 @@ _start:
     if ne jump (pc, .numst_skip);
     call _num_selftest;
 .numst_skip:
+#endif
+#if DSP4_CALL_SELFTEST
+    /* call/rts calibration ladder (review finding D66). Same placement
+     * and the same reason as the self-tests above: ordinary main-loop
+     * context, link up, nothing of the graph's state touched. Eleven
+     * timed loops x 20,000 iterations x 3 repeats is about 30 ms, once. */
+    r0 = dm(_cst_done);
+    r0 = pass r0;
+    if ne jump (pc, .callst_skip);
+    call _cst_selftest;
+.callst_skip:
 #endif
     /* NO `idle` HERE. It used to be, as a low-power wait for the DMA
      * interrupt, and it wedged the parameter link the instant the loop

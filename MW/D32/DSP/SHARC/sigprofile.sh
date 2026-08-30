@@ -19,9 +19,13 @@
 #
 # TUBE defaults OFF at compile time (the shipping plugin-off state), so
 # without help the 6->7 difference measures the ~2-cycle bypass copy,
-# not the active body. sigprofile_run.sh drives tubeon.py to write
-# TubeOn=1 on every strip before the DWELL window and back to 0 after,
-# so limit 7 (and anything above it) measures TUBE ENGAGED.
+# not the active body. This script therefore passes TUBEON=1 to
+# sigprofile_run.sh, which drives tubeon.py to write TubeOn=1 on every
+# strip before the DWELL window and back to 0 after, so limit 7 (and
+# anything above it) measures TUBE ENGAGED. TUBEON=0 ./sigprofile.sh is
+# the plugin-off control. A WHOLE-GRAPH caller (captable.sh MODE=cyc)
+# must leave it 0 -- see the header of sigprofile_run.sh for what
+# happened when the engage was unconditional.
 #
 #   ./sigprofile.sh 1 2 3 4 5 6 7 8 9 10
 #   DSP4_PROFILE_SIGNAL=0 ./sigprofile.sh ...   same sweep, silence control
@@ -54,5 +58,5 @@ print(a('proc_cyc'), a('proc_passes'))")"
   scp -q ../../../../tools/pi/dsp4_audio_verdict.py $BENCH:/home/app/dspboot/audio_verdict.py
   scp -q ../../../../tools/pi/tubeon.py $BENCH:/home/app/dspboot/
   scp -q sigprofile_run.sh $BENCH:/home/app/
-  echo "limit=$L sig=$SIG fused=$FUS simd=$SIMD  $(ssh $BENCH "bash /home/app/sigprofile_run.sh $PT $PP $DWELL" 2>&1 | tr '\n' ' | ')"
+  echo "limit=$L sig=$SIG fused=$FUS simd=$SIMD  $(ssh $BENCH "bash /home/app/sigprofile_run.sh $PT $PP $DWELL ${TUBEON:-1}" 2>&1 | tr '\n' ' | ')"
 done
