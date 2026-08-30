@@ -58,6 +58,9 @@
 
 .section/pm seg_pmco;
 
+#if DSP4_CFG_WATCH
+.extern _cfg_phase;
+#endif
 .extern _scope_gates_apply;
 #if DSP4_CCLK_TARGET != 0
 .extern _cgu_raise_cclk;
@@ -142,10 +145,22 @@ _product_config_commit:
 #ifndef DSP4_COMMIT_STAGE
 #define DSP4_COMMIT_STAGE 2
 #endif
+#if DSP4_CFG_WATCH
+    /* Phase stamp (diagnostic, default 0). If the part survives a wedged
+     * cycle at all, this says which step of the commit it died in; if it
+     * does not survive, that is itself the finding, because with the CGU
+     * watchdog fitted nothing left in here can spin forever. */
+    r0 = 1;
+    dm(_cfg_phase) = r0;
+#endif
 #if CHIP_ID == 1
 #if DSP4_COMMIT_STAGE >= 1
     call _rx_patch_apply;         /* rebuild RX ptr table from patch regs */
 #endif
+#endif
+#if DSP4_CFG_WATCH
+    r0 = 2;
+    dm(_cfg_phase) = r0;
 #endif
 #if DSP4_CCLK_TARGET != 0
     /* Raise the core clock. Deliberately here and not in early boot:
@@ -157,9 +172,17 @@ _product_config_commit:
      * to stay above the master's clock, and it rises. */
     call _cgu_raise_cclk;
 #endif
+#if DSP4_CFG_WATCH
+    r0 = 3;
+    dm(_cfg_phase) = r0;
+#endif
 #if DSP4_COMMIT_STAGE >= 2
     r0 = dm(_product_id);
     call _scope_gates_apply;      /* force-off wrong-product enables */
+#endif
+#if DSP4_CFG_WATCH
+    r0 = 4;
+    dm(_cfg_phase) = r0;
 #endif
     r0 = 1;
     dm(_boot_config_received) = r0;
@@ -168,5 +191,9 @@ _product_config_commit:
      * from "I am configured and the audio clock is dead". */
     r0 = DIAG_STAGE_CONFIGED;
     dm(_diag_boot_stage) = r0;
+#if DSP4_CFG_WATCH
+    r0 = 5;
+    dm(_cfg_phase) = r0;
+#endif
     rts;
 _product_config_commit.end:

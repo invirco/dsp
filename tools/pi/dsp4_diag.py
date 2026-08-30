@@ -37,6 +37,11 @@ import time
 
 from dsp4_config import SpiLink, frame
 
+try:
+    import dsp4_bootlog
+except ImportError:
+    dsp4_bootlog = None
+
 # Audio block size. Generated into dsp4_block.py by tools/dsp/dsp_codegen.py
 # from the same BLOCK constant the firmware is built with, so the nominal
 # block rate quoted here can never disagree with the image on the part.
@@ -97,6 +102,15 @@ REGISTERS = [
     (0xE015, 'SPI_RXCTL',     HEX),
     (0xE016, 'SPI_TXCTL',     HEX),
     (0xE017, 'BUILD_ID',      HEX),
+    # DSP4_CFG_WATCH block — reads 0 on an image built without it.
+    (0xE019, 'CFG_PHASE',     DEC),
+    (0xE01A, 'CGU_FAIL',      DEC),
+    (0xE01B, 'CGU_IT1',       DEC),
+    (0xE01C, 'CGU_IT2',       DEC),
+    (0xE01D, 'CGU_IT3',       DEC),
+    (0xE01E, 'CGU_IT4',       DEC),
+    (0xE01F, 'SPI_PART_FIX',  DEC),
+    (0xE020, 'SPI_PART_TICKS', DEC),
 ]
 
 BOOT_STAGES = {
@@ -223,6 +237,18 @@ def dump(diag, verbose=True):
         vals[name] = diag.read(addr)
 
     magic = vals['MAGIC']
+    # One line per dump, MAGIC and BOOT_STAGE together (dsp4_bootlog.py).
+    # They have to travel together: the read protocol's echo check accepts
+    # a DROPPED answer, which comes back as a well-formed (echo, 0), so a
+    # BOOT_STAGE of 0 read on its own does not distinguish a wedged part
+    # from a lost answer. MAGIC is a constant compiled into the image — if
+    # it reads back, the part is answering and the stage beside it is real.
+    if dsp4_bootlog is not None:
+        dsp4_bootlog.log(chip=vals.get('CHIP_ID', ''),
+                         ok=int(magic == MAGIC_VALUE),
+                         magic=f'0x{magic:08X}',
+                         stage=vals.get('BOOT_STAGE', ''),
+                         note='dump')
     print(f'  {"MAGIC":<14} 0x{magic:08X}'
           + ('' if magic == MAGIC_VALUE else
              f'   <-- expected 0x{MAGIC_VALUE:08X}: this is NOT diag firmware'))

@@ -181,10 +181,38 @@
 .global _dbg_desc0;
 .var _dbg_desc0 = 0;
 
+#if DSP4_CFG_WATCH
+/* CONFIG_COMMIT watch — see diag.h. Written by product_config.asm and
+ * cgu_init.asm, read as 0xE019..0xE01E. Diagnostic only; the whole block
+ * is compiled out when DSP4_CFG_WATCH is 0, so the shipping image is
+ * unchanged. */
+.global _cfg_phase;
+.var _cfg_phase = 0;
+.global _cgu_fail;
+.var _cgu_fail = 0;
+.global _cgu_it1;
+.var _cgu_it1 = 0;
+.global _cgu_it2;
+.var _cgu_it2 = 0;
+.global _cgu_it3;
+.var _cgu_it3 = 0;
+.global _cgu_it4;
+.var _cgu_it4 = 0;
+#if !DSP4_SIMD_STRIPS
+/* 0xE018 must still resolve to something when IICDI_COUNT is not built. */
+.var _diag_zero = 0;
+#endif
+#endif
+
 /* SPI2 stuck-partial-request recovery, see _diag_timer_isr. */
+.global _spi_partial_ticks;
 .var _spi_partial_ticks = 0;
 .global _spi_partial_fix;
 .var _spi_partial_fix = 0;
+#if DSP4_SPI_PARTIAL_FIX2
+/* Last _spi_rx_count seen by the recovery's dwell test. */
+.var _spi_partial_rxmark = 0;
+#endif
 
 .global _diag_led_mode;
 .var _diag_led_mode = DIAG_LED_AUTO;
@@ -226,14 +254,30 @@
     REG_SPI2_CTL,           /* 0xE014 SPI_CTL      (live MMR) */
     REG_SPI2_RXCTL,         /* 0xE015 SPI_RXCTL    (live MMR) */
     REG_SPI2_TXCTL,         /* 0xE016 SPI_TXCTL    (live MMR) */
-#if DSP4_SIMD_STRIPS
+#if DSP4_SIMD_STRIPS || DSP4_CFG_WATCH
     _diag_build_id,         /* 0xE017 BUILD_ID       */
     /* Readable even when the MAIN LOOP is wedged. peek() is a two-
      * transaction handshake -- write PEEK_ADDR, read PEEK_DATA -- and the
      * diag ISR backstop can serve a single read but not that handshake, so
      * a peek-based counter is unreadable in exactly the situation it
      * exists to diagnose. A named register is one transaction. */
-    _iicdi_count;           /* 0xE018 IICDI fault count */
+#if DSP4_SIMD_STRIPS
+    _iicdi_count            /* 0xE018 IICDI fault count */
+#else
+    _diag_zero              /* 0xE018 not built in this configuration */
+#endif
+#if DSP4_CFG_WATCH
+    ,
+    _cfg_phase,             /* 0xE019 CFG_PHASE      */
+    _cgu_fail,              /* 0xE01A CGU_FAIL       */
+    _cgu_it1,               /* 0xE01B CGU_IT1        */
+    _cgu_it2,               /* 0xE01C CGU_IT2        */
+    _cgu_it3,               /* 0xE01D CGU_IT3        */
+    _cgu_it4,               /* 0xE01E CGU_IT4        */
+    _spi_partial_fix,       /* 0xE01F SPI_PART_FIX   */
+    _spi_partial_ticks      /* 0xE020 SPI_PART_TICKS */
+#endif
+    ;
 #else
     _diag_build_id;         /* 0xE017 BUILD_ID       */
 #endif
@@ -622,6 +666,21 @@ _diag_timer_isr:
     comp(r0, r1);
     if eq jump (pc, .spi_rx_settled);
 
+#if DSP4_SPI_PARTIAL_FIX2
+    /* ARM ONLY WHILE THE LINK IS STANDING STILL — see diag.h. A config
+     * burst is 51 back-to-back requests and its words are in flight for
+     * tens of microseconds each, so "part full" on three ticks running
+     * is what a BUSY link looks like, not a stale fragment. Residue has
+     * the property that no complete request arrives behind it; that is
+     * what the original 2026-08-22 capture recorded (SPI_RX_COUNT frozen
+     * at 74). Compare the request counter against its value at the last
+     * tick and restart the dwell whenever it has moved. */
+    r0 = dm(_spi_rx_count);
+    r1 = dm(_spi_partial_rxmark);
+    dm(_spi_partial_rxmark) = r0;
+    comp(r0, r1);
+    if ne jump (pc, .spi_rx_settled);   /* traffic moved: not residue */
+#endif
     r0 = dm(_spi_partial_ticks);
     r0 = r0 + 1;
     dm(_spi_partial_ticks) = r0;

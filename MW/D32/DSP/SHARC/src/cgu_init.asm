@@ -91,6 +91,38 @@
 #endif
 #define NEW_DIV  0x051442C1        /* CSEL=1 SYSSEL=2 S0SEL=6 S1SEL=2 */
 
+#if DSP4_CFG_WATCH
+/* WATCHDOG ON THE FOUR SPIN-WAITS BELOW (diagnostic, default 0).
+ *
+ * Every wait in this function is an unbounded `if <bit not yet set> jump
+ * back` on CGU0_STAT, and the function is reached from inside the SPI RX
+ * interrupt via CONFIG_COMMIT. A bit that never settles therefore stops
+ * the core dead -- main loop, 1 kHz timer ISR and all -- which is exactly
+ * the state a wedged cycle is found in: the SPI2 peripheral keeps
+ * shifting, nothing ever loads its TX FIFO, and every diag read comes
+ * back as the host's own previous transaction, i.e. a well-formed
+ * (echo, 0).
+ *
+ * With this fitted each wait is bounded, its iteration count is published
+ * (so the normal margin becomes a measured number instead of an
+ * assumption), and an expiry stamps WHICH wait gave up and returns rather
+ * than spinning. The part is then left running on whatever clock the
+ * sequence reached -- slow, possibly bypassed, but ANSWERABLE, which is
+ * the whole point.
+ *
+ * The limit is deliberately enormous: 4,194,304 iterations of a five-
+ * instruction loop is ~40 ms at 491.52 MHz and ~0.9 s if the loop is
+ * running bypassed on SYS_CLKIN0. Any legitimate PLL relock is orders of
+ * magnitude short of that, so an expiry is never a false alarm. */
+#define CGU_WATCH_LIMIT 0x00400000
+
+.extern _cgu_fail;
+.extern _cgu_it1;
+.extern _cgu_it2;
+.extern _cgu_it3;
+.extern _cgu_it4;
+#endif
+
 .section/pm seg_pmco;
 .global _cgu_raise_cclk;
 _cgu_raise_cclk:
@@ -101,12 +133,31 @@ _cgu_raise_cclk:
     /* ---- 1. bypass the PLL ---- */
     r1 = PLLCTL_PLLBPST;
     dm(CGU0_PLLCTL) = r1;
+#if DSP4_CFG_WATCH
+    r3 = CGU_WATCH_LIMIT;
+.cgu_wait_bp:
+    r1 = dm(CGU0_STAT);
+    r2 = STAT_PLLBP;
+    r1 = r1 and r2;
+    r1 = pass r1;
+    if ne jump (pc, .cgu_bp_done);
+    r3 = r3 - 1;
+    if ne jump (pc, .cgu_wait_bp);
+    r0 = 1;
+    dm(_cgu_fail) = r0;
+    jump (pc, .cgu_watch_out);
+.cgu_bp_done:
+    r0 = CGU_WATCH_LIMIT;
+    r0 = r0 - r3;
+    dm(_cgu_it1) = r0;
+#else
 .cgu_wait_bp:
     r1 = dm(CGU0_STAT);
     r2 = STAT_PLLBP;
     r1 = r1 and r2;
     r1 = pass r1;
     if eq jump (pc, .cgu_wait_bp);
+#endif
 
     /* ---- 2. new MSEL, while bypassed ---- */
     r1 = NEW_CTL;
@@ -119,20 +170,58 @@ _cgu_raise_cclk:
     /* ---- 3. release the bypass and let the PLL relock ---- */
     r1 = PLLCTL_PLLBPCL;
     dm(CGU0_PLLCTL) = r1;
+#if DSP4_CFG_WATCH
+    r3 = CGU_WATCH_LIMIT;
+.cgu_wait_nobp:
+    r1 = dm(CGU0_STAT);
+    r2 = STAT_PLLBP;
+    r1 = r1 and r2;
+    r1 = pass r1;
+    if eq jump (pc, .cgu_nobp_done);
+    r3 = r3 - 1;
+    if ne jump (pc, .cgu_wait_nobp);
+    r0 = 2;
+    dm(_cgu_fail) = r0;
+    jump (pc, .cgu_watch_out);
+.cgu_nobp_done:
+    r0 = CGU_WATCH_LIMIT;
+    r0 = r0 - r3;
+    dm(_cgu_it2) = r0;
+#else
 .cgu_wait_nobp:
     r1 = dm(CGU0_STAT);
     r2 = STAT_PLLBP;
     r1 = r1 and r2;
     r1 = pass r1;
     if ne jump (pc, .cgu_wait_nobp);
+#endif
 
     /* ---- 4. wait for the clocks to realign ---- */
+#if DSP4_CFG_WATCH
+    r3 = CGU_WATCH_LIMIT;
+.cgu_wait_algn:
+    r1 = dm(CGU0_STAT);
+    r2 = STAT_CLKSALGN;
+    r1 = r1 and r2;
+    r1 = pass r1;
+    if eq jump (pc, .cgu_algn_done);
+    r3 = r3 - 1;
+    if ne jump (pc, .cgu_wait_algn);
+    r0 = 3;
+    dm(_cgu_fail) = r0;
+    jump (pc, .cgu_watch_out);
+.cgu_algn_done:
+    r0 = CGU_WATCH_LIMIT;
+    r0 = r0 - r3;
+    dm(_cgu_it3) = r0;
+#else
 .cgu_wait_algn:
     r1 = dm(CGU0_STAT);
     r2 = STAT_CLKSALGN;
     r1 = r1 and r2;
     r1 = pass r1;
     if ne jump (pc, .cgu_wait_algn);
+#endif
 
     /* ---- 5. new dividers, with UPDT ---- */
     r1 = NEW_DIV;
@@ -141,6 +230,38 @@ _cgu_raise_cclk:
     dm(CGU0_DIV) = r1;
     nop;
     nop;
+#if DSP4_CFG_WATCH
+    r3 = CGU_WATCH_LIMIT;
+.cgu_wait_updt:
+    r1 = dm(CGU0_DIV);
+    r2 = DIV_UPDT;
+    r1 = r1 and r2;
+    r1 = pass r1;
+    if ne jump (pc, .cgu_updt_done);
+    r3 = r3 - 1;
+    if ne jump (pc, .cgu_wait_updt);
+    r0 = 4;
+    dm(_cgu_fail) = r0;
+    jump (pc, .cgu_watch_out);
+.cgu_updt_done:
+    r0 = CGU_WATCH_LIMIT;
+    r0 = r0 - r3;
+    dm(_cgu_it4) = r0;
+
+    r3 = CGU_WATCH_LIMIT;
+.cgu_wait_algn2:
+    r1 = dm(CGU0_STAT);
+    r2 = STAT_CLKSALGN;
+    r1 = r1 and r2;
+    r1 = pass r1;
+    if eq jump (pc, .cgu_watch_out);
+    r3 = r3 - 1;
+    if ne jump (pc, .cgu_wait_algn2);
+    r0 = 5;
+    dm(_cgu_fail) = r0;
+.cgu_watch_out:
+    rts;
+#else
 .cgu_wait_updt:
     r1 = dm(CGU0_DIV);
     r2 = DIV_UPDT;
@@ -155,6 +276,7 @@ _cgu_raise_cclk:
     r1 = pass r1;
     if ne jump (pc, .cgu_wait_algn2);
     rts;
+#endif
 _cgu_raise_cclk.end:
 
 #endif /* DSP4_CCLK_TARGET */

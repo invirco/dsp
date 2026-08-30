@@ -75,6 +75,11 @@ import os
 import sys
 import time
 
+try:
+    import dsp4_bootlog
+except ImportError:                                # off-target --dry-run
+    dsp4_bootlog = None
+
 # BCM GPIO numbers, DSP4 J6 (see module docstring).
 CS_GPIO = {1: 6, 2: 24}
 RDY_GPIO = {1: 8, 2: 12}
@@ -341,6 +346,13 @@ def boot_chip(spi, gpio, chip, stream, verbose=True, attempt=1,
     finally:
         cs.set_value(1)
     dt = time.monotonic() - t0
+    # EVERY attempt is recorded, not just the one that worked — see
+    # dsp4_bootlog.py. This is the whole per-cycle rate, for free, in the
+    # one place every bench script already passes through.
+    if dsp4_bootlog is not None:
+        dsp4_bootlog.log(chip=chip, attempt=attempt, ok=1,
+                         ms=round(dt * 1e3, 1), bytes=sent,
+                         note='synced' if synced else '')
     if verbose:
         # The elapsed time is the number that matters on this card:
         # the DSP boot bus has a second master (U7/H1S1's legacy ADAU
@@ -375,6 +387,9 @@ def boot_chip_retrying(spi, gpio, chip, stream, verbose=True,
                              sync=sync)
         except TimeoutError as exc:
             last = exc
+            if dsp4_bootlog is not None:
+                dsp4_bootlog.log(chip=chip, attempt=attempt, ok=0,
+                                 note=str(exc)[:60])
             print(f'  chip {chip}: attempt {attempt}/{attempts} FAILED — '
                   f'{exc}', file=sys.stderr)
             if attempt < attempts:

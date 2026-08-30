@@ -269,6 +269,23 @@ ASMFLAGS="$ASMFLAGS -DDSP4_BQP_NOSAVE=$DSP4_BQP_NOSAVE"
 # what the boot kernel left; DSP4_DAG_SEC_INIT zeroes it. Both default 0
 # so the shipping image is byte-identical until the fix is taken
 # deliberately.
+# DSP4_CFG_WATCH (2026-08-30, session 13) — bound _cgu_raise_cclk's four
+# UNBOUNDED spin-waits on CGU0_STAT, publish how many iterations each one
+# takes, and stamp how far _product_config_commit got. A wedged cycle
+# answers every diag read with a well-formed (echo, 0), so nothing on the
+# part could report anything; this is what makes it speak. Default 0 —
+# it changes the shipping image.
+DSP4_CFG_WATCH="${DSP4_CFG_WATCH:-0}"
+CFLAGS="$CFLAGS -DDSP4_CFG_WATCH=$DSP4_CFG_WATCH"
+ASMFLAGS="$ASMFLAGS -DDSP4_CFG_WATCH=$DSP4_CFG_WATCH"
+# DSP4_SPI_PARTIAL_FIX2 (2026-08-30, session 13) — arm the stuck-partial
+# request recovery only while the parameter link is standing still, so a
+# config burst in flight can no longer be mistaken for a stale fragment
+# and have one of its words discarded. Default 0 — it changes the
+# shipping image.
+DSP4_SPI_PARTIAL_FIX2="${DSP4_SPI_PARTIAL_FIX2:-0}"
+CFLAGS="$CFLAGS -DDSP4_SPI_PARTIAL_FIX2=$DSP4_SPI_PARTIAL_FIX2"
+ASMFLAGS="$ASMFLAGS -DDSP4_SPI_PARTIAL_FIX2=$DSP4_SPI_PARTIAL_FIX2"
 DSP4_DAG_PROBE="${DSP4_DAG_PROBE:-0}"
 CFLAGS="$CFLAGS -DDSP4_DAG_PROBE=$DSP4_DAG_PROBE"
 ASMFLAGS="$ASMFLAGS -DDSP4_DAG_PROBE=$DSP4_DAG_PROBE"

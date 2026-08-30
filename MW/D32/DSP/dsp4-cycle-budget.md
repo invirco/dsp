@@ -2935,13 +2935,20 @@ the shipping image.
 ### What is still open
 
 **The intermittent boot+config failure is the real open item, and it is
-not a DSP-side hang.** Rate measured this session: about 2 in 8 cycles.
-It is the same failure recorded at the end of session 5 ("a link that
-degrades over a long session of reboots") and the same one `bqst_run.sh`,
-`captable.sh` and `bqgraph.sh` all carry retry loops for. It has now cost
-four sessions of misattributed debugging, and it deserves its own
-session with the boot handshake as the subject rather than as the
-harness.
+not a DSP-side hang.** ~~Rate measured this session: about 2 in 8
+cycles.~~ **CORRECTED 2026-08-30 (session 13): the rate is a couple of
+percent, not a quarter, and the "2 in 8" was the instrument.** Every
+figure of that shape was taken by reading BOOT_STAGE — one register,
+once — off a retrying script, and a dropped answer to that read comes
+back as a well-formed (echo, 0), i.e. as BOOT_STAGE 0, which is
+indistinguishable from a wedge (D72). Measured one attempt per cycle with
+every cycle recorded, **the boot half never failed at all** (160 chip
+boots, 160 successes) and the failure is a LOST CONFIG_COMMIT
+TRANSACTION eaten by this firmware's own stuck-partial-request recovery
+(D71, fixed behind `DSP4_SPI_PARTIAL_FIX2`). A second and rarer failure —
+chip 1's core stopping dead, MAGIC included — is real, is not the same
+thing, and is still open (D73). Full write-up:
+`MW/D32/DSP/dsp4-boot-handshake-20260830.md`.
 
 **W0.** No shipping path was touched: `./build.sh` reproduces chip1.ldr
 `3f0e479a` and chip2.ldr `ab43c75b`, 301,732 and 182,060 bytes,
