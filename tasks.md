@@ -1,3 +1,38 @@
+## HUB DISPATCH 2026-08-30 09:07Z — session 7: Rtg retirement propagation, Dca/DcaOn host-managed, address-authority finding   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+SESSION 7 — contract naming + the Q1/Q2 consequences (rulings f23ec5a,
+04455cd). Mechanical under recorded rulings; no new decisions.
+
+1. RTG RETIREMENT PROPAGATION: the masters retired the Rtg prefix
+   (2026-08-25) but dsp.csv never followed. Rename through dsp.csv, the
+   generated kernel labels, and every harness/tool reference
+   (RtgDca->Dca, RtgMute->Mute-family names per the current masters in
+   docs/contract/ wire tables — the wire table's cell column is the
+   authority for spelling). Byte-identical control where the change is
+   name-only; conform.sh re-run proves the renamed surface end to end.
+2. DcaOn INTAKE: the new DcaOn family exists in the contract
+   (docs/contract updated). Host-managed like Dca — the DSP does NOT
+   read it; it appears in dsp.csv marked host-managed so conform.sh
+   expects store-only behavior for both.
+3. Q2 CONSEQUENCES: mark Dca + DcaOn host-managed; REMOVE the
+   `_fdr_dca_gain_*` hook (not dormant — gone); conform results table
+   updated (the 56+ addresses move to the host-managed class, out of
+   the DSP-writable surface); W0 for the image change.
+4. ADDRESS-AUTHORITY FINDING (flagged in the ruling): document, as a
+   numbered finding with a concrete proposal, that dsp.csv currently
+   invents SPI page/addresses because the masters' Dsp columns are
+   empty — proposal: masters (mx26) become the address SOT and dsp.csv
+   becomes generated. Findings only on this item; the migration is its
+   own future workstream.
+5. All standing bars re-run; bench restored verified; push main;
+   review index updated.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 **PW RULING 2026-08-30: Q2 CLOSED — DCA GAIN IS APPLIED BY THE CM4,
 inside the isolated control-plane daemon.** Composite architecture
 ruling: (1) ALL non-GUI code moves to a dedicated CM4 control daemon —
