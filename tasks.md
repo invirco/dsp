@@ -1,3 +1,22 @@
+**PW RULING 2026-08-30: Q2 CLOSED — DCA GAIN IS APPLIED BY THE CM4,
+inside the isolated control-plane daemon.** Composite architecture
+ruling: (1) ALL non-GUI code moves to a dedicated CM4 control daemon —
+separate PROCESS, pinned to an isolated core (core 3: isolcpus/
+nohz_full, SPI IRQ affinity, RT priority) — owning SPI mastering, ramp
+TARGET writes (stepping stays in the DSP ramp engine; targets only ever
+cross the wire), DCA folds (effective fader = fader dB + DCA dB, mutes
+OR-ed, written through the existing ramps), coeff prep, preamp gain,
+meter ingest, scene recall. GUI owns cores 0-2. (2) Meters: control
+core drains the wire at wire rate into a SHARED-MEMORY RING; the GUI
+samples it once per frame — wire rate and paint rate decoupled.
+(3) Kernel-side consequences, this repo: `Dca`/`DcaOn` are HOST-MANAGED
+cells — the DSP never reads them; remove the `_fdr_dca_gain_*` hook
+rather than leaving it dormant; conform.sh marks the family
+host-managed; the 56 addresses leave the DSP-writable surface.
+(4) Core-isolation parameters land in cm4-setup-pi.sh (provisioning
+mandate — parameters, never hand-tweaks). App-side daemon split is an
+mx26 workstream with a design pass first.
+
 **PW RULINGS 2026-08-30 (morning): Q1 CLOSED + DcaOn minted + Rtg
 propagation ordered.** (1) Dca assignment encoding = INTEGER index,
 0 = unassigned, 1..8 = DCA n (option a). (2) NEW CELL FAMILY `DcaOn`
