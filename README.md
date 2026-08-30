@@ -66,6 +66,7 @@ DEFS/FW/MX/DSPCFG/DSP shape, driven by the same contract flow.
 | `./scaffold-product.sh <PRODUCT>` | Create a new product tree + integration checklist |
 | `MW/D32/DSP/SHARC/build.sh` | Assemble + link D32 DXEs (requires CCES at /opt/analog/cces) |
 | `MW/D32/DSP/SHARC/conform.sh` | Contract conformance on the live part — a standing per-session bar ([docs/contract/conformance-harness.md](docs/contract/conformance-harness.md)) |
+| `MW/D32/DSP/SHARC/bqgraph.sh` | Is the paired-biquad graph (`DSP4_BQ_GRAPH`) bit-exact against the dynamics-only one? Three builds, one bus capture each, real filter coefficients loaded — at bypass the two cascades are identical by construction and the comparison would prove nothing |
 | `python3 tools/dsp/wire_contract.py --product d32 --coverage` | Which documented master cells reach a DSP address, and which are inert |
 
 Quickstart and troubleshooting: [workflow-quickstart.md](workflow-quickstart.md).
