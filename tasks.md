@@ -182,12 +182,15 @@ Measured on the part, chip 1 strip 1, one boot per node:
 | COMP | **32 of 32 bit-exact** | single-rounding wet path differs in **9 of 32**, predicted 9 |
 | TUBE | **32 of 32 bit-exact**, both stimuli | two-rounding form differs in **32 of 32** and **1 of 32**, predicted 32 and 1 |
 | FDR | **32 of 32 bit-exact**, both stimuli | round-vs-truncate differs in **32 of 32** and **1 of 32** |
-| BQCVT | **12 of 14 coefficient sets bit-exact** | the b1-destroying form fires on every set with a non-zero b1 and **PASSES every set without one** |
+| BQCVT | **10 of the 14 coefficient sets bit-exact** | the b1-destroying form fires on every set with a non-zero b1 and **PASSES every set without one** |
 
-The BQCVT run's fourth group of four read back unreadable and is
-reported as SKIPPED, not as a pass — it holds the `b1 = -2*b0` set and
-the Q = 0.10 / +15 dB / 20 Hz n1 corner, so those two are covered by the
-harness and not yet by the part.
+One of the BQCVT run's four groups read back unreadable and is
+reported as SKIPPED, not as a pass. It holds four sets — the HPF- and
+LPF-shaped pair where `b1 = ∓2·b0` and `n1` lands on zero, the
+Q = 0.10 / +15 dB / 20 Hz n1 CORNER, and Q = 0.12 beside it — so those
+four are covered by the harness and not yet by the part. That is the
+most interesting group in the set, and it is named here rather than
+averaged into a pass.
 
 **The converted parameters are checked separately from the sample path,
 and that split is the point** — it is where D39's dB range and D40's
