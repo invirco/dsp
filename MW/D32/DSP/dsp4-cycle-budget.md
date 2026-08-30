@@ -2956,3 +2956,32 @@ byte-identical to the session-10 baseline. Every switch added this
 session (`DSP4_FAULT_TRAP`, `DSP4_BQ_TRACE`, `DSP4_DAG_PROBE`,
 `DSP4_DAG_SEC_INIT`) defaults to the pre-existing behaviour, and the
 self-test changes are inside `DSP4_SIMD_PROBE`. Golden harness 59/59.
+
+### Session 14 (2026-08-30): tried shipping D71, found D74, reverted
+
+Session 14's task was to flip `DSP4_SPI_PARTIAL_FIX2` to default-on and
+prove it at scale. The scale proof succeeded: pooled with session 13,
+**348/350 one-attempt cycles clean (99.4%), 0 D71-class events, 2 D73
+events** (unaffected by this fix, as predicted) — failure rate
+0.57% [0.16%, 2.06%] Wilson 95%.
+
+The standing-bars sweep on the flag-on image then found a regression the
+bootchar instrument cannot see: `busgold.sh` and `goldnode.sh` failed
+outright (link misidentifying chip 2 as chip 0/1, or timing out
+entirely) via `dsp4_scope.py`'s two-chip read path, distinct from
+`dsp4_diag.py`'s `DiagLink` that bootchar uses. A direct A/B on
+`busgold.sh`, interleaved in time: **2 of 2 clean with the flag off, 0 of
+4 clean with it on.** Filed as **D74**, not root-caused (leading
+hypothesis: the fix's "only discard while `_spi_rx_count` is standing
+still" gate never arms while Scope's own read traffic keeps that counter
+moving, so a stale fragment Scope's own protocol leaves behind is never
+cleared). Full write-up:
+`MW/D32/DSP/dsp4-boot-handshake-20260830.md` (session 14 addendum).
+
+**Reverted the same session.** `DSP4_SPI_PARTIAL_FIX2` default is back
+to 0; `./build.sh` reproduces chip1.ldr `3f0e479a` / chip2.ldr
+`ab43c75b`, 301,732 / 182,060 bytes, byte-identical to the standing
+baseline. D71 stays fixed and proven behind the flag; shipping it as
+default needs D74 root-caused first, on the opus tier per this session's
+own escalation clause. Golden harness 59/59 throughout (model-only,
+unaffected by the bench-side finding).

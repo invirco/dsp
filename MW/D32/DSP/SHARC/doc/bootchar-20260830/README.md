@@ -1,4 +1,4 @@
-# Per-cycle boot+config data, 2026-08-30 (session 13)
+# Per-cycle boot+config data, 2026-08-30 (sessions 13-14)
 
 Raw output of `tools/pi/dsp4_bootchar.py` — one boot attempt per cycle, no
 retry ladder, every cycle recorded pass or fail. Score with
@@ -16,10 +16,17 @@ settle timings, product `d24`, chip 1 configured.
 | `bootchar_pfix0.csv` | pfix0 | 24 | `DSP4_CFG_WATCH=1`, `SPI_PART_FIX` published | 1 × WEDGE_STAGE5 |
 | `bootchar_nowatch.csv` | nowatch | 10 | no diagnostic flags | 1 × WEDGE_STAGE0 |
 | `bootchar_fix2.csv` | fix2 | 150 | `DSP4_CFG_WATCH=1` **+ `DSP4_SPI_PARTIAL_FIX2=1`** | 1 × WEDGE_LINK |
+| `bootchar_shipfix2.csv` | shipfix2 | 200 | session 14, `DSP4_CFG_WATCH=1` **+ `DSP4_SPI_PARTIAL_FIX2=1`** | 1 × WEDGE_LINK |
 
 Unfixed = the first five, 132/136 clean, 2.94 % [1.15, 7.32].
-Fixed = the last, 149/150 clean, 0.67 % [0.12, 3.68], and its one failure
-is the stopped-core mode (D73) that the fix does not address.
+Fixed = `fix2` + `shipfix2` pooled (session 13 + 14), 348/350 clean,
+0.57 % [0.16, 2.06], and both failures are the stopped-core mode (D73)
+that this fix does not address — 0 D71-class events in 350. Session 14
+then found a SEPARATE regression (D74) in the standing-bars sweep on the
+same flag-on image, not visible to this instrument: see
+`MW/D32/DSP/dsp4-boot-handshake-20260830.md`'s session 14 addendum and
+review finding D74. `DSP4_SPI_PARTIAL_FIX2`'s shipping default was
+reverted to 0 the same session pending D74's root-cause.
 
 Two arms carry a scar worth knowing about. `nowatch` was run with
 `--tag fix2` on an image that did not carry the flags being tested —

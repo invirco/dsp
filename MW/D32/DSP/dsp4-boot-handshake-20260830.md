@@ -332,3 +332,65 @@ registers were added the probe grew by six fields, and the wider rows
 went into the existing file under the narrower header: every column past
 `pre1_build` shifted, the rows still parsed, and a 48-of-48 clean arm
 scored as 0-of-48. Caught because MAGIC came out as 2510.
+
+## Addendum, session 14 (2026-08-30): the flip to default-on, and D74
+
+Session 14's mandate was to flip `DSP4_SPI_PARTIAL_FIX2` to default-on and
+prove it at scale. The scale proof is clean and stands: pooling this
+session's 200 fresh one-attempt cycles with session 13's 150,
+**348 of 350 clean (99.4%), 0 D71-class events (`SPI_PART_FIX` never
+fired, `SPI_RX_COUNT` read the full 108 every readable cycle), 2 D73
+events (stopped core, untouched by this fix, as predicted)** —
+`tools/pi/dsp4_bootstats.py` on the pooled CSVs, failure rate
+0.57% [0.16%, 2.06%] Wilson 95%. D71 is proven at scale.
+
+**The flip was reverted the same session.** The instrument that caught
+it is the standing-bars sweep, not bootchar: with the flag on by default,
+`busgold.sh` and `goldnode.sh` — both of which drive `dsp4_scope.py`'s
+`Scope.check_chip()` over two chips — failed outright ("no usable
+capture in 5 attempts", "chip 1 not ready after 8 attempts"), reading
+`link answers as CHIP 0, expected 1` or timing out entirely on register
+`0xE001` (`DIAG_CHIP_ID`). `bqst.sh`, `bqgraph.sh` and `mtrverify.sh` hit
+the same symptom at least once each and recovered inside their own retry
+ladders; `conform.sh`, `dynst.sh`, `numverify.sh` and `dcapar.sh` did not
+hit it.
+
+Isolated with a direct A/B on `busgold.sh`, same bench, interleaved in
+time rather than early-vs-late in the session:
+
+| `DSP4_SPI_PARTIAL_FIX2` | runs | result |
+|---|---|---|
+| 0 (off) | 2 of 2 | clean, first attempt, `GRAPH BIT-EXACT` (0 of 256 words differ) both times |
+| 1 (on) | 0 of 4 | every run exhausted all 5 internal retries and failed |
+
+One of the two clean `=0` runs was taken AFTER two failed `=1` runs, so
+this is not simply "the bench was fresher earlier" — the flag tracks the
+result better than session order does. This is filed as **D74** in the
+review index and is NOT root-caused: the leading hypothesis is that
+`dsp4_scope.py`'s own read traffic (resync polls, `check_chip` retries)
+keeps `_spi_rx_count` moving just enough that the D71 fix — which only
+discards a stale RX FIFO word while that counter is standing still —
+never arms for a fragment that traffic itself left behind, so a word the
+OLD unconditional 3-tick discard would have cleared now sits and
+misaligns every read after it. This is a hypothesis, not a measurement;
+it needs `DSP4_CFG_WATCH`-class live instrumentation of
+`_spi_partial_ticks`/`_spi_partial_rxmark` during a reproduced Scope-path
+wedge, which this session did not attempt — flipping a shipping default
+back on with an unresolved regression is exactly the "push through
+unknown-shape work on the wrong tier" this project's dispatch discipline
+exists to prevent.
+
+A separate, acute bench-link instability (chip 2 reading `CHIP_ID 1`,
+later chip 1 reading `MAGIC 0`) also appeared during this session's
+investigation, including once on the reverted, flag-off, byte-identical
+baseline image — so it is recorded as a bench-health note, not folded
+into the D74 finding. `restore_bench.sh` (CPLD reflash + GPIO release)
+followed by a fresh boot+config cycle cleared it; the bench ended the
+session healthy (both chips `BOOT_STAGE 7`, `SPI_ERR_COUNT 0`, matrix-app
+verified all three MCUs on the first restart after).
+
+**Net state at end of session 14**: `DSP4_SPI_PARTIAL_FIX2` default is
+back to 0. The shipping image is byte-identical to the pre-session-13
+baseline, `./build.sh` reproducing chip1.ldr `3f0e479a` / chip2.ldr
+`ab43c75b`, 301,732 / 182,060 bytes. D71 remains fixed and proven at
+scale behind the flag; it is not yet safe to ship as the default.

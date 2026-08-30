@@ -281,8 +281,16 @@ ASMFLAGS="$ASMFLAGS -DDSP4_CFG_WATCH=$DSP4_CFG_WATCH"
 # DSP4_SPI_PARTIAL_FIX2 (2026-08-30, session 13) — arm the stuck-partial
 # request recovery only while the parameter link is standing still, so a
 # config burst in flight can no longer be mistaken for a stale fragment
-# and have one of its words discarded. Default 0 — it changes the
-# shipping image.
+# and have one of its words discarded. Fixes D71 (lost CONFIG_COMMIT
+# transaction): 0 D71 events in 350 pooled fixed-path cycles vs 2/136
+# unfixed. SESSION 14 TRIED DEFAULT-ON AND REVERTED IT THE SAME SESSION
+# (D74, new): with this flag on, busgold.sh's dsp4_scope.py read path
+# (distinct from dsp4_diag.py/bootchar's DiagLink path) fails to capture
+# 4 of 4 times (5/5 retries exhausted each time, "register 0xE001 never
+# settled: no answer" / "link answers as CHIP 0"); with the flag off,
+# busgold.sh passes cleanly 2/2 on the first attempt. Reproducible A/B on
+# the same bench, same session. Mechanism not yet root-caused — see D74.
+# Default 0 until D74 is resolved — the shipping image is unchanged.
 DSP4_SPI_PARTIAL_FIX2="${DSP4_SPI_PARTIAL_FIX2:-0}"
 CFLAGS="$CFLAGS -DDSP4_SPI_PARTIAL_FIX2=$DSP4_SPI_PARTIAL_FIX2"
 ASMFLAGS="$ASMFLAGS -DDSP4_SPI_PARTIAL_FIX2=$DSP4_SPI_PARTIAL_FIX2"
