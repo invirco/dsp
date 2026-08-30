@@ -17,6 +17,12 @@
 # so limits 1..10 add one node of each class and consecutive differences
 # are that class's cost.
 #
+# TUBE defaults OFF at compile time (the shipping plugin-off state), so
+# without help the 6->7 difference measures the ~2-cycle bypass copy,
+# not the active body. sigprofile_run.sh drives tubeon.py to write
+# TubeOn=1 on every strip before the DWELL window and back to 0 after,
+# so limit 7 (and anything above it) measures TUBE ENGAGED.
+#
 #   ./sigprofile.sh 1 2 3 4 5 6 7 8 9 10
 #   DSP4_PROFILE_SIGNAL=0 ./sigprofile.sh ...   same sweep, silence control
 set -u
@@ -46,6 +52,7 @@ print(a('proc_cyc'), a('proc_passes'))")"
   python3 ../../../../tools/dsp/map_syms.py build/chip1.map.xml > /tmp/chip1.sym.json
   scp -q build/chip1.ldr build/chip2.ldr /tmp/chip1.sym.json ../../../../tools/pi/dsp4_block.py $BENCH:/home/app/dspboot/
   scp -q ../../../../tools/pi/dsp4_audio_verdict.py $BENCH:/home/app/dspboot/audio_verdict.py
+  scp -q ../../../../tools/pi/tubeon.py $BENCH:/home/app/dspboot/
   scp -q sigprofile_run.sh $BENCH:/home/app/
   echo "limit=$L sig=$SIG fused=$FUS simd=$SIMD  $(ssh $BENCH "bash /home/app/sigprofile_run.sh $PT $PP $DWELL" 2>&1 | tr '\n' ' | ')"
 done

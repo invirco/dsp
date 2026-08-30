@@ -39,6 +39,11 @@ for attempt in 1 2 3; do
   [ "$G" = "0" ] && { echo "  (attempt $attempt: never reached stage 6)"; continue; }
   # Repair the coefficient over the link before spending a reboot on it.
   python3 gainfix.py 2>&1 | sed 's/^/  /'
+  # TUBE defaults OFF at compile time; engage it for the DWELL window so
+  # a build that reaches limit 7 measures the ACTIVE node, not the
+  # bypass copy. Harmless at limits below 7 -- the class is skipped
+  # entirely there and never reads TubeOn.
+  python3 tubeon.py on 2>&1 | sed 's/^/  /'
   sleep "$DWELL"
   R=$(python3 - "$PT" "$PP" <<'PYEOF'
 import json, sys
@@ -84,6 +89,10 @@ print(f'passes={p}  {c} cycles/pass  gain_coeff=0x{g:08X} OK')
 PYEOF
 )
   RC=$?
+  # Restore before leaving this boot in any state -- a run that stops
+  # here (or moves on to another limit without a reboot) should not
+  # leave TUBE engaged behind it.
+  python3 tubeon.py off >/dev/null 2>&1
   case "$R" in
     WITNESS-DEAD*|WITNESS-UNREADABLE*) echo "  (attempt $attempt: $R — re-running boot+config)";;
     *) echo "$R"; exit $RC;;
