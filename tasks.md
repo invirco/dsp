@@ -1,3 +1,13 @@
+**PW RULING 2026-08-30 (~09:45): TUBE IS A PLUG-IN OPTION, not a fixed
+strip feature.** Consequences: the BASE strip's floors, ceilings and
+margin-at-32 are computed with TUBE bypassed/absent (already the
+measured convention — now ruled); TUBE's ACTIVE cost is accounted
+against the PLUGIN headroom, not the base budget; its golden coverage
+(D29) is built as plugin-class coverage (model + vectors for the active
+path, engaged like any plugin would be), and the bypass path's
+zero-cost skip is the base-strip requirement. Capacity reporting keeps
+TUBE out of the required-strip rows.
+
 ## HUB DISPATCH 2026-08-30 09:07Z — session 7: Rtg retirement propagation, Dca/DcaOn host-managed, address-authority finding   [status: 🟡 dispatched]   [model: opus]
 
 model: opus
