@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-08-29 21:04Z — session 5: wide-word metering, FILT/EQ pairs in graph, driven inert probe   [status: 🟡 dispatched]   [model: opus]
+## HUB DISPATCH 2026-08-29 21:04Z — session 5: wide-word metering, FILT/EQ pairs in graph, driven inert probe   [status: 🟢 done — **32 CHANNELS ON ONE CHIP IS REACHED AT BLOCK 32 AND 983.04 MHz — 1500 OF 1500 PASSES/s WITH ALL 32 GATES OPEN AND ALL 32 COMPRESSORS ACTIVE, ON TWO SEPARATE BOOTS — AND THE CYCLE INSTRUMENT PUTS THE SAME GRAPH 0.26 % OVER BUDGET, SO IT IS ON THE LINE RATHER THAN COMFORTABLY INSIDE IT.** Session 3's best was 12.4 % over. Full table, fused + paired + biquad-paired, honest full-rate rule, every accepted point witnessed: block 8 signal **18 / 23** (was 16 / 22), block 8 silence 19 / 25, block 32 signal **24 / 32** (was 21 / 28), block 32 silence 25 / 32. **D24's 24 channels now fit one chip at 786.432 and BLOCK 32** (24 = 1500/s, 25 = 1458/s), which session 2 recorded as not fitting. Margin at 32 channels, 983.04, cycles per graph pass: 226,462 → 233,714 (wide-word metering) → **214,249 at BLOCK 8 (130.8 %)** and 736,848 → 743,884 → **657,082 at BLOCK 32 (100.26 %, 1,722 cycles over)**. **THE WIDE-WORD METER IS LANDED AND PROVEN: `METER_BIT_EXACT` with BOTH negative controls firing**, and the second one needed its own operating point because **at unity gain the wide word and the rounded store carry the same value** — the standing meter bar could not have told the ruling's arithmetic from the arithmetic it replaced. At gain 0.497 they separate and the part reads the wide model exactly (pk_blk>>4 4169139, ms_blk 16576495) against the narrow model's 4169138 / 16576493. **It costs about 220 cycles per strip per BLOCK — +3.2 % at block 8, +1.0 % at block 32 — and the pipelining fix I built for a multiplier-stall hypothesis did not help; the measurement says so and the ledger corrects the commit message rather than leaving it standing.** **D20 IS STILL BLOCKED AND THE RULING'S PREMISE IS NOT THIS GRAPH**: `BLK_TAP_TRIM` is read by ROUTING's pickoff 0 and GAIN still writes `BLK_CHAIN_B` for FILT, so "kill every tap store whose only consumer is a meter" kills nothing; what remains of D20 is the GAIN→FILT COEFFICIENT fold, a numeric-spec amendment. **THE PAIRED BIQUADS ARE BIT-EXACT WITH A FIRING NEGATIVE CONTROL**: 0 of 64 main-bus words differ against the dynamics-only build, 56 of 64 differ under `DSP4_BQ_NEGCTL` — and the comparison is only worth anything because `bqgraph.sh` writes REAL filter designs first: at bypass the paired and scalar cascades are bit-identical by construction, which is exactly why session 3's bus golden had no biquad coverage. **D55 found and fixed on the way**: FILT's and EQ's transient paths used different pool slots from their steady paths and from each other, so an EQ band written while the filters sat still made the strip's trim, HPF and LPF vanish for the 576 samples of the fade. **THE DRIVEN INERT PROBE WORKS AND SESSION 4'S GAP IS CLOSED: 64 of chip 1's 288 candidates INERT CONFIRMED, noise floor ZERO bus words, both positive controls moving 32 of 32.** Session 4's "the scope injection does not reach the chain" was the PROBE's bug, not the firmware's — it drove the input node's OUTPUT, which the node overwrites every sample. **TWO NEW CONTRACT FINDINGS FROM THE PART: D57**, `Chan001RtgDca001` is documented as a DCA ASSIGNMENT and the kernel treats it as a linear GAIN, so writing the obvious 0 silences the channel with the level word still reading 1.0; and **with `CompPar` at its default the compressor is fully DRY** — the bus read `0x03FFFFEE` at both a −20 dB and a −55 dB threshold while `_comp_gain_*` moved from `0x10000000` to `0x04FE8E90`, so a default-configured strip's compressor threshold is not an audible control at all. **D56**: the gate does not shut on silence at BLOCK 8 and does at BLOCK 32; not chased. **A FALSE CAPACITY TABLE WAS MEASURED FIRST AND CAUGHT** — `captable.sh` cached its BLOCK-32 scratch tree on the block size alone and reproduced session 3's numbers exactly from a day-old tree, which is what made it visible; the tree is regenerated every run now. Program memory is the new binding constraint on chip 1: shipping paired+fused links with 4,058 bytes free, the measurement image with 1,478, after three rounds of shrinking the drivers and sharing the meter routines. W0: metering changes the shipping image BY DESIGN — **new baseline chip1.ldr `e9ac266e`, chip2.ldr `73b4f168`**. `conform.sh` VERDICT: PASS, 6,088 ECHO / 388 UNMAPPED / 117 CLEARED / 159 meters skipped, unchanged from session 4, both negative controls firing.]   [model: opus]
 
 model: opus
 
@@ -38,6 +38,200 @@ verified; standing traps; ladder discipline; push main.
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
 no AI attribution in commits or any work product.
+
+---
+
+### Outcome 2026-08-30 (session 5) — wide-word metering, FILT/EQ pairs, the driven inert probe
+
+Commits `7072ceb`, `2d09b9a`, `7876a7c`, `60d49b4`, `30b6888`, `48381d4`,
+`47b8812` and the documentation commit carrying this block.
+
+#### W0, stated before any of it was built
+
+| item | expected image delta | actual |
+|---|---|---|
+| wide-word metering | changes the shipping image BY DESIGN (the ruling touches both the per-sample and the block path) | **new baseline chip1.ldr `e9ac266e`, chip2.ldr `73b4f168`** from `d3cdb0c1`/`a88ac883` |
+| paired biquads (`DSP4_BQ_GRAPH`) | block-kernel + paired builds only; whole driver file inside `#if DSP4_BQ_PAIRED_GRAPH` | shipping image untouched by it |
+| D55 (FILT/EQ transient slot) | block-kernel builds only | shipping image untouched by it |
+
+`conform.sh` rebuilt the shipping configuration independently and got the
+same two hashes, which is the W0 check as well as the setup.
+
+#### 1. WIDE-WORD METERING — landed, proven, and it is not free
+
+Every meter now taps the MS 32-bit word of the accumulator at its tap
+point, unrounded and unsaturated. Where the source has a live MAC there
+(chip 1's 32 GAINs, the six metered chip-2 FADER_PANs) the meter's three
+per-sample instructions moved INTO the source's loop and read `mr1b` in
+register; the source hands the finished block accumulators over five words
+once per block and the meter node does nothing per sample at all. Chip 2's
+OUTPUT_TDM and bus COMPRESSOR have no accumulator at their tap point, so
+they publish the same value in the meter's Q8.24 format instead — those 21
+meters lose four bits at the bottom (−144 dB instead of −168) and their
+one-sample-per-block decimation is unchanged and still recorded.
+
+**On the part: `METER_BIT_EXACT`, C1_MTR_01, BLOCK 8, with BOTH negative
+controls firing.** The second control is the interesting one and it needed
+its own operating point: **at unity gain the wide word and the rounded
+store carry the same value**, so the standing meter bar could not have
+told the ruling's arithmetic from the arithmetic it replaced. At gain
+0.497 they separate exactly and the part reads the wide model's
+`pk_blk>>4 = 4169139` / `ms_blk = 16576495` against the narrow model's
+4169138 / 16576493.
+
+**COST, measured at 32 strips: +7,252 cycles/block at BLOCK 8 (+3.2 %) and
++7,036 at BLOCK 32 (+1.0 %).** Nearly the same absolute number at both, so
+it is a per-BLOCK constant of about 220 cycles per strip, not a per-sample
+cost. **I built a pipelining fix for a multiplier-stall hypothesis and the
+measurement does not support it** — 232,991 before, 233,714 after — and
+the ledger says so rather than leaving the commit message standing. What
+is known: a metered node gives up the `DSP4_STRIP_FUSED` two-at-a-time
+loop because the meter owns MRF, and the hand-over adds two calls per
+strip per block. Those do not add up to 220 and the remainder is carried
+as measured.
+
+**D20 IS STILL BLOCKED AND THE RULING'S PREMISE IS NOT THIS GRAPH.** "Kill
+every tap store whose only consumer is a meter (BLK_TAP_TRIM class)" kills
+nothing: ROUTING reads `BLK_TAP_TRIM` for pickoff 0 and needs a Q4.28
+sample, and GAIN still writes `BLK_CHAIN_B` for FILT. The −17 c/s/strip is
+the round/saturate plus those two stores. What remains of D20 is the
+GAIN→FILT COEFFICIENT fold plus materialising the post-trim tap only for
+sends that actually select pickoff 0 — a numeric-spec amendment, not a
+meter question. It is written into the emitted node.
+
+#### 2. FILT/EQ PAIRS IN THE GRAPH — landed, bit-exact, and the lever is real
+
+FILT and EQ run as one SIMD instruction stream per strip pair, in the same
+two-pool arrangement the dynamics use. Safe to reorder because both work
+in place on their own pool's `BLK_CHAIN_B`; a pair not in steady state
+falls back to the two scalar nodes, which work in place too.
+
+**Bit-exact with a firing negative control**: strip 1 driven, strip 2
+muted, REAL filter designs in both, `DSP4_BQ_GRAPH=0` vs `=1` → **0 of 64
+main-bus words differ**; against `DSP4_BQ_NEGCTL=1` (strip B gets strip
+A's coefficients, so the pair computes one channel twice) → **56 of 64
+differ, maxdiff 69,476,676**. **The bypass trap is why `bqgraph.sh` writes
+real coefficients**: at bypass the paired and scalar cascades are
+bit-identical by construction, which is exactly why session 3's bus golden
+reproduced with no biquad coefficient coverage at all.
+
+**D55, found on the way and fixed**: FILT's and EQ's TRANSIENT block paths
+used different pool slots from their steady paths and from each other —
+FILT's crossfade wrote `BLK_CHAIN_A`, EQ's crossfade read it. Consistent
+only when both crossfade at once. With EQ crossfading and FILT steady (an
+EQ band written while the filters sit still — the common case) EQ cascaded
+the block GAIN read instead of the one it wrote, so the strip's trim, HPF
+and LPF vanished for the 576 samples of the fade.
+
+**Program memory is now the binding constraint on chip 1.** The first cut
+of the drivers was 7,488 bytes and the measurement image would not link at
+all; three size cuts took them to 5,670 and the shared meter routines
+bought another 3,400. Shipping paired+fused links with **4,058 bytes
+free**, the 983 MHz profile-stimulus image with **1,478**.
+
+#### 3. THE TABLE — and 32 channels on one chip is reached at BLOCK 32
+
+| | 786.432 MHz | 983.04 MHz |
+|---|---|---|
+| BLOCK 8, signal | **18** | **23** |
+| BLOCK 8, silence | **19** | **25** |
+| BLOCK 32, signal | **24** | **32 — the whole product** |
+| BLOCK 32, silence | **25** | **32** |
+
+Against session 3: 16 / 22, 18 / 23, 21 / 28, 22 / 28. Misses, so they
+read as misses: block 8 at 983.04, 23 = 5999/s and 24 = 5918/s; at
+786.432, 18 = 5999/s and 19 = 5667/s. Block 32 at 786.432, 24 = 1500/s
+and 25 = 1458/s. **Block 32 at 983.04 has no rejected point because the
+graph runs out before the chip does** — 32 strips scores 1500 of 1500
+passes/s with all 32 gates open and all 32 compressors active, on two
+separate boots.
+
+**MARGIN AT 32, 983.04 MHz, cycles per graph pass:**
+
+| config | BLOCK 8 (budget 163,840) | BLOCK 32 (budget 655,360) |
+|---|---|---|
+| session 3: paired + fused | 226,462 — 138.2 % | 736,848 — 112.4 % |
+| + wide-word metering | 233,714 — 142.6 % | 743,884 — 113.5 % |
+| **+ paired biquads** | **214,249 — 130.8 %** | **657,082 — 100.26 %** |
+
+**THE TWO INSTRUMENTS DISAGREE AT THE HEADLINE POINT AND BOTH ARE
+REPORTED.** The pass-rate instrument says 32 strips at BLOCK 32 / 983.04
+runs at full rate; the cycle instrument says the same graph is 1,722
+cycles over its budget, 0.26 %. That is beneath the pass-rate counter's
+resolution — 0.26 % of 1500 blocks/s is under four blocks a second — so
+**the honest statement is that 32-on-one-chip at BLOCK 32 and 983.04 MHz
+is ON THE LINE: reached by one instrument, 0.26 % over by the other, and
+not the comfortable fit a product decision would want.** Session 3's best
+was 12.4 % over.
+
+Two more the table says: **D24's 24 channels now fit one chip at 786.432
+and BLOCK 32** (24 = 1500/s, 25 = 1458/s), which session 2 recorded as not
+fitting; and a two-chip D32 split at 16/chip is under every ceiling in the
+table.
+
+**A FALSE TABLE WAS MEASURED FIRST AND CAUGHT.** `captable.sh` cached its
+BLOCK-32 scratch source tree on the block size alone, so the first BLOCK-32
+half of this table was built from a day-old tree with no `bq_pairs.asm`,
+no wide-word metering and no D55 fix — and returned 28 / 21 / 28 / 22 and
+737,160 cycles, i.e. session 3's numbers. **Reproducing the previous
+session's table exactly is what made it visible.** The tree is now
+regenerated every run and the generated header is checked.
+
+#### 4. THE DRIVEN-GRAPH INERT PROBE — session 4's gap, closed
+
+**64 of chip 1's 288 inert candidates INERT CONFIRMED from a driven graph,
+noise floor ZERO bus words, both positive controls moving 32 of 32.**
+
+Session 4's window was the strip's control state on an idle graph and it
+failed its own control (2–8 of 97 words under a write, 0–22 unwritten).
+The window is now the main bus with the graph driven. Four corrections,
+each of which first produced a probe that looked like it worked:
+
+* **The injection address.** Session 4 drove `_buf_C1_IN_01` and concluded
+  the shipping build's scope injection "does not reach the chain". It
+  reaches it — that is the input node's OUTPUT and the node copies
+  `_rx_slot_C1_IN_01` over it every sample. **No firmware defect existed.**
+* **The strip has to be driven on purpose**, or the capture is all zeros,
+  which is what a dead strip also looks like.
+* **The graph has to be at rest before each capture.** Two back-to-back
+  captures differed in 32 of 32 words until a fixed rest interval was
+  added; the noise floor is now zero.
+* **The window sits at sample 900, not 0.** With it at the start, writing
+  the compressor THRESHOLD moved zero words — the window was blind to the
+  whole dynamics section.
+
+**A chain witness was added because "non-zero" is not a witness**: a bus
+reading `0xFFFFFFF3` in every word passed a non-zero test while the
+fader's output was exactly zero. The probe now tests PEAK against the
+injected amplitude and, when the window is silent, walks the strip and
+names the node where the signal stops. It did, and it found D57.
+
+**TWO NEW FINDINGS, both from the part:**
+
+* **D57 (MAJOR): `Chan001RtgDca001` is documented as a DCA ASSIGNMENT and
+  the kernel treats it as a linear GAIN.** No scale law, `InstantCtl`
+  profile, and the dispatch lands it in `_fdr_dca_gain_*`, which the fader
+  multiplies into its coefficient. Writing the obvious "no DCA assigned"
+  value of 0 sets the strip's fader gain to ZERO and the channel goes
+  silent with the level word still reading 1.0. Same class as D39/D40 and
+  the one the declared-unit phase cannot catch, because RtgDca has no unit
+  declared in `wire-units.csv`. Needs an mx26 answer.
+* **With `CompPar` at its default the compressor is fully DRY.** The blend
+  is `out = dry + par*(wet − dry)`, so a compressor that is ON, above
+  threshold and visibly reducing gain passes the input through unchanged:
+  the bus read `0x03FFFFEE` at BOTH a −20 dB and a −55 dB threshold, to
+  the word, while `_comp_gain_C1_COMP_01` moved from `0x10000000` to
+  `0x04FE8E90`. **A default-configured strip's compressor threshold is not
+  an audible control at all.**
+* **D56 (MODERATE): the GATE does not shut on silence at BLOCK 8 and does
+  at BLOCK 32.** Every BLOCK-8 silence point is witnessed `gate OPEN N /
+  SHUT 0` and the scorer marks those rows MIXED/UNPROVEN for that reason;
+  every BLOCK-32 silence point on the same firmware reads `gate OPEN 0 /
+  SHUT N`. The gate's constants are block-rate derived, which is the class
+  D6 was. Not chased — the silence rows are a control, not a product
+  configuration — and the BLOCK-8 silence ceilings above are quoted as
+  measured with the witness stated rather than as witnessed rows.
+
 
 ## HUB DISPATCH 2026-08-29 19:45Z — session 4: contract conformance harness — protocol goldens, standing bar   [status: 🟢 done — **THE CONTRACT IS NOW MEASURED AGAINST THE MASTERS AND THE SURFACE AGREES WITH THE TREE ADDRESS FOR ADDRESS; D39 AND D40 ARE FIXED AND PROVEN ON THE PART; THE D38 LIST IS 896, NOT ~600; THE LIVE INERT CONFIRMATION FAILED ITS OWN CONTROL AND IS NOT CLAIMED.** Every other bar in this tree measures the kernel against ITSELF, so a cell addressed to the wrong variable or served in the wrong unit reproduces its own goldens forever; `conform.sh` asks the other question and is now a standing per-session bar in `smoke-checklist.md`. **PRESENCE: 6,752 addresses on both chips — 6,088 ECHO, 388 UNMAPPED, 117 CLEARED, 159 meters skipped — and NOT ONE answered differently from what the dispatch table in the tree predicts** (chip 1 4,800 in 293.9 s, chip 2 1,952 in 120.4 s, zero indeterminate). **The mapped/unmapped verdict comes from the PART, not from the read-back**: an unmapped address and a mapped one the kernel clears every block both read back zero — the coefficient-set swap triggers are exactly the second case — so `SPI_ERR_COUNT` is what settles it, and the error delta matched the write count on all 388 unmapped addresses and was zero on all mapped ones. It also finds D37's `comp_gr` independently, from the part, as 32 literal-0 dispatch slots. **D39: GateRng 20/40/60 dB went from `0xFFFFFFFF` — the deepest gate the protocol can ask for producing NO attenuation at all — to `0x0199999A`, `0x0028F5C3`, `0x00041894`, exact, exact and 1 LSB.** **D40: CompPar 25 % and 50 % went from `0x7FFFFFFF` (fully wet, the control dead) to `0x20000000` and `0x40000000` exactly.** Both measured before and after on the same script; the wrong-unit negative control fails all four GateRng values, so the check tests the unit and not the code. W0: the harness left the image byte-identical (the pre-fix build reproduced `ea4c9f5f`/`f0a47584`); the unit fixes change it BY DESIGN — **new baseline chip1.ldr `d3cdb0c1`, chip2.ldr `a88ac883`**, +2,496 bytes on chip 1, 78 node files and no others. **D38 IS ENUMERATED AND THE ESTIMATE WAS LOW: 896 addresses naming 762 master cells**, generated by kernel class into `docs/contract/inert-cells-d38.md`, conservative by construction — 70 offset-reachable addresses are counted separately rather than claimed dead, which is what keeps `_mtr_rms` off the list. **THE LIVE INERT CONFIRMATION IS THE ONE THING NOT DELIVERED**: two probes were built and both were rejected by their own positive control — the bus capture because the shipping per-sample build's scope injection does not reach the chain (a −6 dBFS step into `_buf_C1_IN_01` never lands), and the state-window probe because the control moved 2 words of 97 while the unwritten interval moved 0–13. No inert verdict is reported from the part, the bar now requires the control to clear its noise floor 3×, and the fix is a driven graph. **FOUR NEW FINDINGS, all generated rather than asserted: D51** the EQ/GEQ/FILT wire plane carries biquad COEFFICIENTS, not the documented parameters — 1,036 master cells collapse onto 322 addresses and `EqFreq`/`EqGain`/`EqQ`/`EqShelf` all resolve to word 0 of one coefficient set, so the host is expected to compute the biquad and no line of the masters says so; **D52** the masters name three main output chains and the DSP has four, with no stated correspondence, leaving 134 cells unresolvable by name; **D53** 1,331 documented cells reach no DSP address after subtracting the MCU-only prefixes; **D54** 1,244 mapped addresses carry a documented non-Instant ramp profile but have no ramp state, so the profile is discarded — 467 of them with no crossfade alternative, `Chan001GateThr001` among them. 199 UNDECLARED families are written up as PROPOSALS for mx26's `wire-units.csv` and adopted nowhere here. Both negative controls fired and the scorer fails a run in which either does not. Bench restored to the new baseline, md5-verified on the part, both chips at BOOT_STAGE 7 with frames advancing and DMA/SPORT clean, matrix-app active with all three MCUs verified on the second restart; CPLD never touched. Commits 241b7d2, 0f0b3bb, 540f437 and the documentation commit carrying this block.]   [model: opus]
 
