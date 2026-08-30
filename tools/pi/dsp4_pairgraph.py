@@ -145,6 +145,14 @@ def configure(sc, strip, loud):
                       (b + COMP_REL, f32(p['comp_rel']))):
         sc.d.write(addr, val)
         time.sleep(S.SETTLE)
+    # FDR_DCA is written for continuity with every golden taken before
+    # 2026-08-30, when the cell was a linear GAIN and 1.0 was the value
+    # that kept the strip audible. It is now a stored ASSIGNMENT that
+    # reaches no audio (review finding D57), so this write no longer does
+    # anything to the capture -- proven on the part the same day: RtgDca 0
+    # and RtgDca 1.0 give the same 32 bus words. Left in place because
+    # changing a bar's stimulus and its golden in one session leaves
+    # nothing to compare.
     for addr, val in ((b + FDR_LEVEL, 1.0), (b + FDR_PAN, 0.5),
                       (b + FDR_DCA, 1.0)):
         wrv(sc, addr, f32(val), ramp_id=1, settle=0.05)

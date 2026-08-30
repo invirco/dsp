@@ -475,8 +475,36 @@ def _kernel_class(entry):
     return n.strip() or '(no comment)'
 
 
+HAND_BEGIN = '<!-- BEGIN hand-written — preserved across regeneration -->'
+HAND_END = '<!-- END hand-written -->'
+
+
+def _preserved_block(out):
+    """Whatever a human wrote between the markers in a previous edition.
+
+    The static list below is generated, but the LIVE confirmation that
+    goes with it -- which candidates were written on the part and what the
+    bus did -- is bench evidence that no generator can re-derive. It was
+    hand-added under an `AUTO-GENERATED. Do not hand-edit.` header on
+    2026-08-30, which meant the next regeneration would have deleted it
+    silently. Same shape as D58's stale golden: evidence that only one
+    session can produce, sitting where a routine re-run destroys it.
+    Anything between the markers is carried across verbatim.
+    """
+    try:
+        prev = open(out, encoding='utf-8').read()
+    except OSError:
+        return ''
+    i = prev.find(HAND_BEGIN)
+    j = prev.find(HAND_END, i + 1)
+    if i < 0 or j < 0:
+        return ''
+    return prev[i:j + len(HAND_END)]
+
+
 def inert_markdown(entries, out):
     """The D38 authoritative inert list: counted, named, by class."""
+    preserved = _preserved_block(out)
     inert = [e for e in entries if e['role'] == 'INERT']
     uncertain = [e for e in entries if e['role'] == 'OFFSET_REACH']
     groups = {}
@@ -506,7 +534,10 @@ def inert_markdown(entries, out):
          f'**{len({c for e in inert for c in e["cells"]})} master cells**. '
          f'A further **{len(uncertain)} addresses** are reachable by offset '
          f'from a symbol that is used, and are not claimed either way.',
-         '',
+         '']
+    if preserved:
+        L += ['', preserved]
+    L += ['',
          '| kernel class | addresses | master cells | symbol |',
          '|---|---|---|---|']
     for name, g in sorted(groups.items(), key=lambda kv: -kv[1]['addr']):

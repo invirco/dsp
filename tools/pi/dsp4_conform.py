@@ -787,6 +787,12 @@ GATE_ON, GATE_THR, GATE_ATT = 0x0028, 0x0029, 0x002A
 GATE_HOLD, GATE_REL = 0x002B, 0x002C
 COMP_ON, COMP_THR, COMP_RATIO = 0x0038, 0x0039, 0x003A
 COMP_ATT, COMP_REL, COMP_PAR = 0x003B, 0x003C, 0x003F
+# FILT and EQ take FLOAT biquad COEFFICIENTS on the wire, not the
+# parameters the masters document (review finding D51), and each cascade
+# swaps coefficient sets on a trigger word.
+HPF_C0, HPF_SWAP, LPF_C0, LPF_SWAP = 0x0004, 0x0009, 0x000A, 0x000F
+EQ_C0, EQ_SWAP = 0x0010, 0x0024
+UNITY_BQ = (1.0, 0.0, 0.0, 0.0, 0.0)
 
 
 def wr_checked(part, addr, word, ramp, sym=None, want=None, log=print,
@@ -819,7 +825,7 @@ def wr_checked(part, addr, word, ramp, sym=None, want=None, log=print,
     return False
 
 
-def drive_strip(part, strip, log=print):
+def drive_strip(part, strip, log=print, skip=()):
     """Put one strip in a state where the injected step reaches the BUS.
 
     A boot leaves the fader, its pan legs and the DCA wherever the config
@@ -833,17 +839,23 @@ def drive_strip(part, strip, log=print):
     for addr, word, ramp in ((b + GAIN_OFF, f32(1.0), 4),
                              (b + FDR_LEVEL, f32(1.0), 4),
                              (b + FDR_PAN, f32(0.5), 4),
-                             # RtgDca IS A GAIN, whatever the masters say.
-                             # `Chan001RtgDca001` is documented with no
-                             # scale law -- a DCA ASSIGNMENT -- and the
-                             # kernel lands it in _fdr_dca_gain_*, which it
-                             # multiplies into the fader coefficient.写 0
-                             # here (the obvious "no DCA assigned") and the
-                             # fader coefficient goes to zero and the strip
-                             # goes silent, which is exactly what happened
-                             # on 2026-08-30 and cost three probe runs.
-                             # Review finding D57.
-                             (b + FDR_DCA, f32(1.0), 4),
+                             # RtgDca ASSIGNS. It does not scale, and 0
+                             # is the masters' documented "no DCA
+                             # assigned" -- so this drives the strip with
+                             # the value that used to KILL it, and every
+                             # conform run is now a standing witness for
+                             # review finding D57. Until 2026-08-30 the
+                             # cell dispatched to _fdr_dca_gain_*, which
+                             # FADER_PAN multiplies into its coefficient:
+                             # writing 0 set the fader gain to zero and
+                             # the channel went silent with _fdr_level_
+                             # still reading 1.0. It cost three probe runs
+                             # that day before the chain witness found it
+                             # at _buf_C1_FDR_01 = 0 with _buf_C1_DLY_01
+                             # carrying signal. The word now lands in
+                             # _fdr_dca_sel_*, which the sample path never
+                             # reads.
+                             (b + FDR_DCA, 0, 0),
                              (b + FDR_MUTE, 0, 0),
                              # Without this the strip reaches no bus at all
                              # and the capture is all zeros -- which is also
@@ -860,16 +872,22 @@ def drive_strip(part, strip, log=print):
                              (b + COMP_ON, 1, 0),
                              # AND THE COMPRESSOR HAS TO BE WET. The
                              # parallel blend is `out = dry + par*(wet -
-                             # dry)` and CompPar defaults to 0, so a
-                             # compressor that is ON, above threshold and
-                             # visibly reducing gain in _comp_gain_* passes
-                             # the DRY signal through unchanged. Measured
-                             # here 2026-08-30: with par at its default the
-                             # bus reads 0x03FFFFEE at BOTH a -20 dB and a
+                             # dry)`, so par = 0 is a compressor that is
+                             # ON, above threshold and visibly reducing
+                             # gain in _comp_gain_* while passing the DRY
+                             # signal through unchanged. Measured here
+                             # 2026-08-30 with the old default: the bus
+                             # read 0x03FFFFEE at BOTH a -20 dB and a
                              # -55 dB threshold, to the word, while
-                             # _comp_gain_C1_COMP_01 moves from 0x10000000
-                             # to 0x04FE8E90. The gain reduction is computed
-                             # and then blended out.
+                             # _comp_gain_C1_COMP_01 moved from 0x10000000
+                             # to 0x04FE8E90. The default is 100 % as of
+                             # the same day (review finding D59); this
+                             # write stays because a probe that depends on
+                             # a default it does not set is a probe that
+                             # silently changes meaning when the default
+                             # does. dsp4_dcapar_probe.py is the one that
+                             # measures the default, and it SKIPS this
+                             # write on purpose.
                              (b + COMP_PAR, f32(100.0), 4),
                              # FAST TIME CONSTANTS, AND A SHORT HOLD,
                              # because the probe's repeatability depends on
@@ -889,12 +907,36 @@ def drive_strip(part, strip, log=print):
                              (b + COMP_RATIO, f32(4.0), 4),
                              (b + COMP_ATT, f32(0.002), 4),
                              (b + COMP_REL, f32(0.002), 4)):
+        if (addr - b) in skip:
+            # For the probes that measure a POWER-ON DEFAULT: a cell this
+            # function writes is a cell whose default the run can no
+            # longer see. Named by offset, so the caller states which one.
+            continue
         try:
             part.write(addr, word, ramp)
         except Exception as e:
             log(f'  drive_strip: 0x{addr:04X} write failed ({e})')
         time.sleep(0.02)
     time.sleep(0.5)                      # let the ramped writes arrive
+    # PUT THE FILTERS BACK TO PASS-THROUGH, and this is not belt and
+    # braces. The PRESENCE phase writes every documented address at its
+    # boundary values, and the strip's HPF, LPF and four EQ bands take raw
+    # biquad COEFFICIENTS (D51) with a swap trigger -- so by the time the
+    # inert phase runs in the same boot, the cascade holds whatever the
+    # sweep left in it. Measured 2026-08-30: the driven window went SILENT
+    # with the chain witness naming `_buf_C1_EQ_01`, signal present at
+    # `_buf_C1_FILT_01`, and the run reported NO inert verdicts at all.
+    # Unity sections cost six writes per cascade and make the phase
+    # independent of what ran before it.
+    for base, swap in ((HPF_C0, HPF_SWAP), (LPF_C0, LPF_SWAP)):
+        for i, c in enumerate(UNITY_BQ):
+            part.write(b + base + i, f32(c), 0)
+        part.write(b + swap, 1, 0)
+    for band in range(4):
+        for i, c in enumerate(UNITY_BQ):
+            part.write(b + EQ_C0 + band * 5 + i, f32(c), 0)
+    part.write(b + EQ_SWAP, 1, 0)
+    time.sleep(0.3)
     # The gain is the one that has to be right, and it is the one that goes
     # wrong: re-write it until the Q4.28 shadow reads unity.
     wr_checked(part, b + GAIN_OFF, f32(1.0), 4,

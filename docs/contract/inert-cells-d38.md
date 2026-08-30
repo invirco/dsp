@@ -13,8 +13,10 @@ separately as uncertain rather than claimed dead, so everything on
 this list is provably unreferenced and the list under-reports
 rather than over-reports.
 
-**896 addresses are inert**, naming **762 master cells**. A further **70 addresses** are reachable by offset from a symbol that is used, and are not claimed either way.
+**952 addresses are inert**, naming **818 master cells**. A further **70 addresses** are reachable by offset from a symbol that is used, and are not claimed either way.
 
+
+<!-- BEGIN hand-written — preserved across regeneration -->
 ## Confirmed on the part — 2026-08-30
 
 The list above is STATIC: it says nothing in the emitted source reads
@@ -28,11 +30,30 @@ floor of ZERO bus words.** Both positive controls moved 32 of 32 words
 over the same interval, so the comparison could have failed and did not.
 Nothing on the sampled set turned out to be live.
 
+**Re-confirmed 2026-08-30 (session 6) on the fixed image**, 12 classes of
+320 chip-1 candidates, driven window, noise floor ZERO, both positive
+controls moving 32 of 32 words — and the sample now includes
+**`0x0053 Chan001RtgDca001`, INERT CONFIRMED**, which is review finding
+D57's fix measured by the harness rather than asserted: the cell that
+used to silence the channel now reaches no audio at all.
+
+**That run had to be taken on its own boot, and why is worth recording.**
+The inert phase that followed the full PRESENCE sweep in the same boot
+found a SILENT window — the chain witness put the signal at
+`_buf_C1_FILT_01` and gone by `_buf_C1_EQ_01`. The presence sweep writes
+every documented address at its boundary values, and the strip's HPF, LPF
+and four EQ bands take raw biquad COEFFICIENTS with a swap trigger (D51),
+so the sweep leaves the cascade holding whatever it last wrote. No inert
+verdict was reported from that run, which is the probe's own discipline
+working. `drive_strip()` now loads unity sections into both cascades
+before it captures, so the phase no longer depends on what ran before it.
+
 The remaining candidates are not confirmed and are not claimed to be: at
 roughly nine seconds each — three armed captures, one of them the
 per-candidate null interval — the full 896 is about two hours of bench
 time, and the sample is one address per kernel class in dispatch order
 rather than a random draw. `INERTN=<n> ./conform.sh` raises the count.
+<!-- END hand-written -->
 
 | kernel class | addresses | master cells | symbol |
 |---|---|---|---|
@@ -40,6 +61,7 @@ rather than a random draw. `INERTN=<n> ./conform.sh` raises the count.
 | NotchFreq[i] | 72 | 72 | `_afb_notch_freq_*` |
 | NotchGain[i] | 72 | 72 | `_afb_notch_gain_*` |
 | NotchQ[i] | 72 | 72 | `_afb_notch_q_*` |
+| DCA assignment | 56 | 56 | `_fdr_dca_sel_*` |
 | CompType | 42 | 41 | `_comp_type_*` |
 | CompKey | 42 | 41 | `_comp_key_src_*` |
 | CompDetSrc | 42 | 41 | `_comp_det_src_*` |
@@ -92,6 +114,12 @@ rather than a random draw. `INERTN=<n> ./conform.sh` raises the count.
 `Aux001AntiFbNotchQ001`, `Aux001AntiFbNotchQ002`, `Aux001AntiFbNotchQ003`, `Aux001AntiFbNotchQ004`, `Aux001AntiFbNotchQ005`, `Aux001AntiFbNotchQ006`, `Aux002AntiFbNotchQ001`, `Aux002AntiFbNotchQ002`, `Aux002AntiFbNotchQ003`, `Aux002AntiFbNotchQ004`, `Aux002AntiFbNotchQ005`, `Aux002AntiFbNotchQ006`, `Aux003AntiFbNotchQ001`, `Aux003AntiFbNotchQ002`, `Aux003AntiFbNotchQ003`, `Aux003AntiFbNotchQ004`, `Aux003AntiFbNotchQ005`, `Aux003AntiFbNotchQ006`, `Aux004AntiFbNotchQ001`, `Aux004AntiFbNotchQ002`, `Aux004AntiFbNotchQ003`, `Aux004AntiFbNotchQ004`, `Aux004AntiFbNotchQ005`, `Aux004AntiFbNotchQ006`, `Aux005AntiFbNotchQ001`, `Aux005AntiFbNotchQ002`, `Aux005AntiFbNotchQ003`, `Aux005AntiFbNotchQ004`, `Aux005AntiFbNotchQ005`, `Aux005AntiFbNotchQ006`, `Aux006AntiFbNotchQ001`, `Aux006AntiFbNotchQ002`, `Aux006AntiFbNotchQ003`, `Aux006AntiFbNotchQ004`, `Aux006AntiFbNotchQ005`, `Aux006AntiFbNotchQ006`, `Aux007AntiFbNotchQ001`, `Aux007AntiFbNotchQ002`, `Aux007AntiFbNotchQ003`, `Aux007AntiFbNotchQ004`
 
 ...and 32 more of the same shape (one per instance).
+
+### DCA assignment — 56 addresses, 56 cells
+
+`Aux001RtgDca001`, `Aux002RtgDca001`, `Aux003RtgDca001`, `Aux004RtgDca001`, `Aux005RtgDca001`, `Aux006RtgDca001`, `Aux007RtgDca001`, `Aux008RtgDca001`, `Aux009RtgDca001`, `Aux010RtgDca001`, `Aux011RtgDca001`, `Aux012RtgDca001`, `Chan001RtgDca001`, `Chan002RtgDca001`, `Chan003RtgDca001`, `Chan004RtgDca001`, `Chan005RtgDca001`, `Chan006RtgDca001`, `Chan007RtgDca001`, `Chan008RtgDca001`, `Chan009RtgDca001`, `Chan010RtgDca001`, `Chan011RtgDca001`, `Chan012RtgDca001`, `Chan013RtgDca001`, `Chan014RtgDca001`, `Chan015RtgDca001`, `Chan016RtgDca001`, `Chan017RtgDca001`, `Chan018RtgDca001`, `Chan019RtgDca001`, `Chan020RtgDca001`, `Chan021RtgDca001`, `Chan022RtgDca001`, `Chan023RtgDca001`, `Chan024RtgDca001`, `Chan025RtgDca001`, `Chan026RtgDca001`, `Chan027RtgDca001`, `Chan028RtgDca001`
+
+...and 16 more of the same shape (one per instance).
 
 ### CompType — 42 addresses, 41 cells
 

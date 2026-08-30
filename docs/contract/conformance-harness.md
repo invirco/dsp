@@ -91,16 +91,38 @@ worked and answered the wrong question:
    moved **zero** words — a control that fails because the window is
    blind to the entire dynamics section.
 
-**A fifth thing was found on the way and it is not a probe defect.** With
-`CompPar` at its default the compressor is fully DRY: the blend is
+**A fifth correction, 2026-08-30 (session 6): the sweep silences the
+strip it is about to drive.** Run in the same boot as the PRESENCE
+phase, the inert probe found a silent window — the chain witness put the
+signal at `_buf_C1_FILT_01` and gone by `_buf_C1_EQ_01` — and reported
+no inert verdicts at all. The presence sweep writes every documented
+address at its boundary values, and FILT and EQ take raw biquad
+COEFFICIENTS with a swap trigger (D51), so by the time the inert phase
+runs the cascade holds whatever the sweep last wrote. `drive_strip()`
+now loads unity sections into both cascades before capturing. With that,
+a `PHASE=inert` run on the same image gave a driven window at peak
+`0x015E7E31`, a noise floor of ZERO, both positive controls at 32 of 32,
+and 12 of 12 sampled classes inert.
+
+**A sixth was found on the way and it is not a probe defect.** With
+`CompPar` at its default the compressor was fully DRY: the blend is
 `out = dry + par*(wet − dry)`, so a compressor that is on, above
-threshold and visibly reducing gain in `_comp_gain_*` passes the input
-through unchanged. Measured: the bus read `0x03FFFFEE` at both a −20 dB
-and a −55 dB threshold, to the word, while `_comp_gain_C1_COMP_01` moved
-from `0x10000000` to `0x04FE8E90`. The probe therefore sets `CompPar` as
-part of driving the strip, and the fact is recorded here because it means
-**a default-configured strip's compressor threshold is not an audible
-control at all**.
+threshold and visibly reducing gain in `_comp_gain_*` passed the input
+through unchanged — **a default-configured strip's compressor threshold
+was not an audible control at all** (review finding D59, fixed the same
+day: the default is 100 %). The probe still sets `CompPar` as part of
+driving the strip, because a probe that leans on a default silently
+changes meaning when the default does.
+
+**And a seventh: `RtgDca`.** The strip the probe drove went silent three
+runs running, and the chain witness put it at `_buf_C1_FDR_01 = 0` with
+`_buf_C1_DLY_01` carrying signal — `Chan001RtgDca001` is documented as a
+DCA ASSIGNMENT and the kernel multiplied the written word into the fader
+coefficient, so the documented "no DCA assigned" value of 0 silenced the
+channel (review finding D57, fixed the same day). `drive_strip()` now
+writes **RtgDca = 0** on purpose, so every conformance run is a standing
+witness for that fix, and the before/after measurement lives in
+`MW/D32/DSP/SHARC/dcapar.sh`.
 
 There are now TWO positive controls and a run needs both. `Chan001Gain001`
 is a linear multiply the sample path reads on every sample and proves the
@@ -161,6 +183,8 @@ W0 check as well as the setup.
 | `tools/pi/dsp4_conform_report.py` | the scorer and the results table, kept apart so a stored run can be re-scored |
 | `MW/D32/DSP/SHARC/conform.sh` | the driver (plan → build → stage → run → pull → report) |
 | `MW/D32/DSP/SHARC/conform_run.sh` | the bench half's boot/config ladder |
+| `MW/D32/DSP/SHARC/dcapar.sh` | the D57/D59 cell-semantics evidence: runs against either image, so the fixes have a before |
+| `tools/pi/dsp4_dcapar_probe.py` | its bench half — shares `drive_strip()` and the capture window with the harness |
 | `docs/contract/inert-cells-d38.md` | generated: the authoritative inert list |
 | `docs/contract/wire-units-proposals.md` | generated: unit proposals for mx26, adopted nowhere here |
 

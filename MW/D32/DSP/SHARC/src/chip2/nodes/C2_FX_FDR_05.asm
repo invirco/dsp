@@ -38,8 +38,32 @@
         .var _fdr_pan_frames_C2_FX_FDR_05 = 0;
         .global _fdr_mute_C2_FX_FDR_05;
         .var _fdr_mute_C2_FX_FDR_05 = 0;
+        /* DCA ASSIGNMENT vs DCA GAIN (review finding D57).
+         *
+         * `_fdr_dca_sel_` is the CELL: `<Cat>[n]RtgDca[1-1]`, which the
+         * masters document as "DCA group assignment (1-8 or off)" with
+         * MxDatS 9 -- nine states, no scale law, no unit, the InstantCtl
+         * profile of a selector. It is STORED HERE AND MULTIPLIED BY
+         * NOTHING. Until 2026-08-30 the wire word landed in
+         * `_fdr_dca_gain_` instead and was multiplied straight into the
+         * fader coefficient, so a host writing the obvious "no DCA
+         * assigned" value of 0 SILENCED the strip with `_fdr_level_`
+         * still reading 1.0 -- found on the part when it killed the
+         * conformance probe's driven strip three runs running.
+         *
+         * `_fdr_dca_gain_` stays as the RESOLVED master gain the
+         * assignment selects, and is unity because nothing resolves it
+         * yet: the eight DCA masters are nodes on CHIP 2 and every
+         * channel strip is on CHIP 1, so a chip-1 fader cannot read the
+         * master it is assigned to, and whether the DSP should apply DCA
+         * gain at all (rather than the host folding it into the fader
+         * level it already sends) is a contract question, not a kernel
+         * one. Both are in the PW question filed with D57. Nothing but a
+         * ruling should write this word. */
+        .global _fdr_dca_sel_C2_FX_FDR_05;
+        .var _fdr_dca_sel_C2_FX_FDR_05 = 0;              /* 0 = no DCA assigned */
         .global _fdr_dca_gain_C2_FX_FDR_05;
-        .var _fdr_dca_gain_C2_FX_FDR_05 = 1.0;
+        .var _fdr_dca_gain_C2_FX_FDR_05 = 1.0;           /* resolved master gain */
         .global _fdr_gq_C2_FX_FDR_05;
         .var _fdr_gq_C2_FX_FDR_05 = 0x10000000;          /* Q4.28 level*dca */
         /* 1 while either float ramp still has frames to run. ROUTING's

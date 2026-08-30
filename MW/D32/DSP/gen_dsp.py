@@ -380,9 +380,15 @@ def expand_fader_pan(node, cat, inst):
     add_cell(cn(cat, inst, mute_suffix, 1), chip, pg, base + 2, '', 'InstantCtl')
     add_dispatch(chip, base + 2, f'_fdr_mute_{nid}', f'{nid} mute')
 
+    # RtgDca ASSIGNS, it does not scale (review finding D57). The masters
+    # document "DCA group assignment (1-8 or off)", MxDatS 9, no Table and
+    # no unit; this used to dispatch to _fdr_dca_gain_, which FADER_PAN
+    # multiplies into its coefficient, so writing the documented "off"
+    # value of 0 silenced the strip. The word now lands in a selector the
+    # sample path never reads.
     add_cell(cn(cat, inst, 'RtgDca', 1), chip, pg, base + 3, '', 'InstantCtl',
-             notes='DCA assignment')
-    add_dispatch(chip, base + 3, f'_fdr_dca_gain_{nid}', f'{nid} DCA gain')
+             notes='DCA assignment (0=off, 1-8=DCA master); selector, not a gain')
+    add_dispatch(chip, base + 3, f'_fdr_dca_sel_{nid}', f'{nid} DCA assignment')
 
 
 # ── ROUTING (channel strip fan-out) ──────────────────────────────────────

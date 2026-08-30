@@ -336,30 +336,30 @@
 .extern _eq_swap_pending_C2_MAIN_OEQ_03;
 .extern _eq_swap_pending_C2_MAIN_OEQ_04;
 .extern _eq_swap_pending_C2_SUB_EQ;
-.extern _fdr_dca_gain_C2_AUX_FDR_01;
-.extern _fdr_dca_gain_C2_AUX_FDR_02;
-.extern _fdr_dca_gain_C2_AUX_FDR_03;
-.extern _fdr_dca_gain_C2_AUX_FDR_04;
-.extern _fdr_dca_gain_C2_AUX_FDR_05;
-.extern _fdr_dca_gain_C2_AUX_FDR_06;
-.extern _fdr_dca_gain_C2_AUX_FDR_07;
-.extern _fdr_dca_gain_C2_AUX_FDR_08;
-.extern _fdr_dca_gain_C2_AUX_FDR_09;
-.extern _fdr_dca_gain_C2_AUX_FDR_10;
-.extern _fdr_dca_gain_C2_AUX_FDR_11;
-.extern _fdr_dca_gain_C2_AUX_FDR_12;
-.extern _fdr_dca_gain_C2_FX_FDR_01;
-.extern _fdr_dca_gain_C2_FX_FDR_02;
-.extern _fdr_dca_gain_C2_FX_FDR_03;
-.extern _fdr_dca_gain_C2_FX_FDR_04;
-.extern _fdr_dca_gain_C2_FX_FDR_05;
-.extern _fdr_dca_gain_C2_FX_FDR_06;
-.extern _fdr_dca_gain_C2_GRP_FDR_01;
-.extern _fdr_dca_gain_C2_GRP_FDR_02;
-.extern _fdr_dca_gain_C2_GRP_FDR_03;
-.extern _fdr_dca_gain_C2_GRP_FDR_04;
-.extern _fdr_dca_gain_C2_MAIN_FDR;
-.extern _fdr_dca_gain_C2_SUB_FDR;
+.extern _fdr_dca_sel_C2_AUX_FDR_01;
+.extern _fdr_dca_sel_C2_AUX_FDR_02;
+.extern _fdr_dca_sel_C2_AUX_FDR_03;
+.extern _fdr_dca_sel_C2_AUX_FDR_04;
+.extern _fdr_dca_sel_C2_AUX_FDR_05;
+.extern _fdr_dca_sel_C2_AUX_FDR_06;
+.extern _fdr_dca_sel_C2_AUX_FDR_07;
+.extern _fdr_dca_sel_C2_AUX_FDR_08;
+.extern _fdr_dca_sel_C2_AUX_FDR_09;
+.extern _fdr_dca_sel_C2_AUX_FDR_10;
+.extern _fdr_dca_sel_C2_AUX_FDR_11;
+.extern _fdr_dca_sel_C2_AUX_FDR_12;
+.extern _fdr_dca_sel_C2_FX_FDR_01;
+.extern _fdr_dca_sel_C2_FX_FDR_02;
+.extern _fdr_dca_sel_C2_FX_FDR_03;
+.extern _fdr_dca_sel_C2_FX_FDR_04;
+.extern _fdr_dca_sel_C2_FX_FDR_05;
+.extern _fdr_dca_sel_C2_FX_FDR_06;
+.extern _fdr_dca_sel_C2_GRP_FDR_01;
+.extern _fdr_dca_sel_C2_GRP_FDR_02;
+.extern _fdr_dca_sel_C2_GRP_FDR_03;
+.extern _fdr_dca_sel_C2_GRP_FDR_04;
+.extern _fdr_dca_sel_C2_MAIN_FDR;
+.extern _fdr_dca_sel_C2_SUB_FDR;
 .extern _fdr_level_C2_AUX_FDR_01;
 .extern _fdr_level_C2_AUX_FDR_02;
 .extern _fdr_level_C2_AUX_FDR_03;
@@ -707,7 +707,7 @@
     _fdr_level_C2_AUX_FDR_01,    /* 0x0000: C2_AUX_FDR_01 level */
     _fdr_pan_C2_AUX_FDR_01,    /* 0x0001: C2_AUX_FDR_01 pan */
     _fdr_mute_C2_AUX_FDR_01,    /* 0x0002: C2_AUX_FDR_01 mute */
-    _fdr_dca_gain_C2_AUX_FDR_01,    /* 0x0003: C2_AUX_FDR_01 DCA gain */
+    _fdr_dca_sel_C2_AUX_FDR_01,    /* 0x0003: C2_AUX_FDR_01 DCA assignment */
     _eq_coeffs_next_C2_AUX_EQ_01,    /* 0x0004: C2_AUX_EQ_01 EQ coeff[0] */
     _eq_coeffs_next_C2_AUX_EQ_01 + 1,    /* 0x0005: C2_AUX_EQ_01 EQ coeff[1] */
     _eq_coeffs_next_C2_AUX_EQ_01 + 2,    /* 0x0006: C2_AUX_EQ_01 EQ coeff[2] */
@@ -794,7 +794,7 @@
     _fdr_level_C2_AUX_FDR_02,    /* 0x0057: C2_AUX_FDR_02 level */
     _fdr_pan_C2_AUX_FDR_02,    /* 0x0058: C2_AUX_FDR_02 pan */
     _fdr_mute_C2_AUX_FDR_02,    /* 0x0059: C2_AUX_FDR_02 mute */
-    _fdr_dca_gain_C2_AUX_FDR_02,    /* 0x005A: C2_AUX_FDR_02 DCA gain */
+    _fdr_dca_sel_C2_AUX_FDR_02,    /* 0x005A: C2_AUX_FDR_02 DCA assignment */
     _eq_coeffs_next_C2_AUX_EQ_02,    /* 0x005B: C2_AUX_EQ_02 EQ coeff[0] */
     _eq_coeffs_next_C2_AUX_EQ_02 + 1,    /* 0x005C: C2_AUX_EQ_02 EQ coeff[1] */
     _eq_coeffs_next_C2_AUX_EQ_02 + 2,    /* 0x005D: C2_AUX_EQ_02 EQ coeff[2] */
@@ -881,7 +881,7 @@
     _fdr_level_C2_AUX_FDR_03,    /* 0x00AE: C2_AUX_FDR_03 level */
     _fdr_pan_C2_AUX_FDR_03,    /* 0x00AF: C2_AUX_FDR_03 pan */
     _fdr_mute_C2_AUX_FDR_03,    /* 0x00B0: C2_AUX_FDR_03 mute */
-    _fdr_dca_gain_C2_AUX_FDR_03,    /* 0x00B1: C2_AUX_FDR_03 DCA gain */
+    _fdr_dca_sel_C2_AUX_FDR_03,    /* 0x00B1: C2_AUX_FDR_03 DCA assignment */
     _eq_coeffs_next_C2_AUX_EQ_03,    /* 0x00B2: C2_AUX_EQ_03 EQ coeff[0] */
     _eq_coeffs_next_C2_AUX_EQ_03 + 1,    /* 0x00B3: C2_AUX_EQ_03 EQ coeff[1] */
     _eq_coeffs_next_C2_AUX_EQ_03 + 2,    /* 0x00B4: C2_AUX_EQ_03 EQ coeff[2] */
@@ -968,7 +968,7 @@
     _fdr_level_C2_AUX_FDR_04,    /* 0x0105: C2_AUX_FDR_04 level */
     _fdr_pan_C2_AUX_FDR_04,    /* 0x0106: C2_AUX_FDR_04 pan */
     _fdr_mute_C2_AUX_FDR_04,    /* 0x0107: C2_AUX_FDR_04 mute */
-    _fdr_dca_gain_C2_AUX_FDR_04,    /* 0x0108: C2_AUX_FDR_04 DCA gain */
+    _fdr_dca_sel_C2_AUX_FDR_04,    /* 0x0108: C2_AUX_FDR_04 DCA assignment */
     _eq_coeffs_next_C2_AUX_EQ_04,    /* 0x0109: C2_AUX_EQ_04 EQ coeff[0] */
     _eq_coeffs_next_C2_AUX_EQ_04 + 1,    /* 0x010A: C2_AUX_EQ_04 EQ coeff[1] */
     _eq_coeffs_next_C2_AUX_EQ_04 + 2,    /* 0x010B: C2_AUX_EQ_04 EQ coeff[2] */
@@ -1055,7 +1055,7 @@
     _fdr_level_C2_AUX_FDR_05,    /* 0x015C: C2_AUX_FDR_05 level */
     _fdr_pan_C2_AUX_FDR_05,    /* 0x015D: C2_AUX_FDR_05 pan */
     _fdr_mute_C2_AUX_FDR_05,    /* 0x015E: C2_AUX_FDR_05 mute */
-    _fdr_dca_gain_C2_AUX_FDR_05,    /* 0x015F: C2_AUX_FDR_05 DCA gain */
+    _fdr_dca_sel_C2_AUX_FDR_05,    /* 0x015F: C2_AUX_FDR_05 DCA assignment */
     _eq_coeffs_next_C2_AUX_EQ_05,    /* 0x0160: C2_AUX_EQ_05 EQ coeff[0] */
     _eq_coeffs_next_C2_AUX_EQ_05 + 1,    /* 0x0161: C2_AUX_EQ_05 EQ coeff[1] */
     _eq_coeffs_next_C2_AUX_EQ_05 + 2,    /* 0x0162: C2_AUX_EQ_05 EQ coeff[2] */
@@ -1142,7 +1142,7 @@
     _fdr_level_C2_AUX_FDR_06,    /* 0x01B3: C2_AUX_FDR_06 level */
     _fdr_pan_C2_AUX_FDR_06,    /* 0x01B4: C2_AUX_FDR_06 pan */
     _fdr_mute_C2_AUX_FDR_06,    /* 0x01B5: C2_AUX_FDR_06 mute */
-    _fdr_dca_gain_C2_AUX_FDR_06,    /* 0x01B6: C2_AUX_FDR_06 DCA gain */
+    _fdr_dca_sel_C2_AUX_FDR_06,    /* 0x01B6: C2_AUX_FDR_06 DCA assignment */
     _eq_coeffs_next_C2_AUX_EQ_06,    /* 0x01B7: C2_AUX_EQ_06 EQ coeff[0] */
     _eq_coeffs_next_C2_AUX_EQ_06 + 1,    /* 0x01B8: C2_AUX_EQ_06 EQ coeff[1] */
     _eq_coeffs_next_C2_AUX_EQ_06 + 2,    /* 0x01B9: C2_AUX_EQ_06 EQ coeff[2] */
@@ -1229,7 +1229,7 @@
     _fdr_level_C2_AUX_FDR_07,    /* 0x020A: C2_AUX_FDR_07 level */
     _fdr_pan_C2_AUX_FDR_07,    /* 0x020B: C2_AUX_FDR_07 pan */
     _fdr_mute_C2_AUX_FDR_07,    /* 0x020C: C2_AUX_FDR_07 mute */
-    _fdr_dca_gain_C2_AUX_FDR_07,    /* 0x020D: C2_AUX_FDR_07 DCA gain */
+    _fdr_dca_sel_C2_AUX_FDR_07,    /* 0x020D: C2_AUX_FDR_07 DCA assignment */
     _eq_coeffs_next_C2_AUX_EQ_07,    /* 0x020E: C2_AUX_EQ_07 EQ coeff[0] */
     _eq_coeffs_next_C2_AUX_EQ_07 + 1,    /* 0x020F: C2_AUX_EQ_07 EQ coeff[1] */
     _eq_coeffs_next_C2_AUX_EQ_07 + 2,    /* 0x0210: C2_AUX_EQ_07 EQ coeff[2] */
@@ -1316,7 +1316,7 @@
     _fdr_level_C2_AUX_FDR_08,    /* 0x0261: C2_AUX_FDR_08 level */
     _fdr_pan_C2_AUX_FDR_08,    /* 0x0262: C2_AUX_FDR_08 pan */
     _fdr_mute_C2_AUX_FDR_08,    /* 0x0263: C2_AUX_FDR_08 mute */
-    _fdr_dca_gain_C2_AUX_FDR_08,    /* 0x0264: C2_AUX_FDR_08 DCA gain */
+    _fdr_dca_sel_C2_AUX_FDR_08,    /* 0x0264: C2_AUX_FDR_08 DCA assignment */
     _eq_coeffs_next_C2_AUX_EQ_08,    /* 0x0265: C2_AUX_EQ_08 EQ coeff[0] */
     _eq_coeffs_next_C2_AUX_EQ_08 + 1,    /* 0x0266: C2_AUX_EQ_08 EQ coeff[1] */
     _eq_coeffs_next_C2_AUX_EQ_08 + 2,    /* 0x0267: C2_AUX_EQ_08 EQ coeff[2] */
@@ -1403,7 +1403,7 @@
     _fdr_level_C2_AUX_FDR_09,    /* 0x02B8: C2_AUX_FDR_09 level */
     _fdr_pan_C2_AUX_FDR_09,    /* 0x02B9: C2_AUX_FDR_09 pan */
     _fdr_mute_C2_AUX_FDR_09,    /* 0x02BA: C2_AUX_FDR_09 mute */
-    _fdr_dca_gain_C2_AUX_FDR_09,    /* 0x02BB: C2_AUX_FDR_09 DCA gain */
+    _fdr_dca_sel_C2_AUX_FDR_09,    /* 0x02BB: C2_AUX_FDR_09 DCA assignment */
     _eq_coeffs_next_C2_AUX_EQ_09,    /* 0x02BC: C2_AUX_EQ_09 EQ coeff[0] */
     _eq_coeffs_next_C2_AUX_EQ_09 + 1,    /* 0x02BD: C2_AUX_EQ_09 EQ coeff[1] */
     _eq_coeffs_next_C2_AUX_EQ_09 + 2,    /* 0x02BE: C2_AUX_EQ_09 EQ coeff[2] */
@@ -1490,7 +1490,7 @@
     _fdr_level_C2_AUX_FDR_10,    /* 0x030F: C2_AUX_FDR_10 level */
     _fdr_pan_C2_AUX_FDR_10,    /* 0x0310: C2_AUX_FDR_10 pan */
     _fdr_mute_C2_AUX_FDR_10,    /* 0x0311: C2_AUX_FDR_10 mute */
-    _fdr_dca_gain_C2_AUX_FDR_10,    /* 0x0312: C2_AUX_FDR_10 DCA gain */
+    _fdr_dca_sel_C2_AUX_FDR_10,    /* 0x0312: C2_AUX_FDR_10 DCA assignment */
     _eq_coeffs_next_C2_AUX_EQ_10,    /* 0x0313: C2_AUX_EQ_10 EQ coeff[0] */
     _eq_coeffs_next_C2_AUX_EQ_10 + 1,    /* 0x0314: C2_AUX_EQ_10 EQ coeff[1] */
     _eq_coeffs_next_C2_AUX_EQ_10 + 2,    /* 0x0315: C2_AUX_EQ_10 EQ coeff[2] */
@@ -1577,7 +1577,7 @@
     _fdr_level_C2_AUX_FDR_11,    /* 0x0366: C2_AUX_FDR_11 level */
     _fdr_pan_C2_AUX_FDR_11,    /* 0x0367: C2_AUX_FDR_11 pan */
     _fdr_mute_C2_AUX_FDR_11,    /* 0x0368: C2_AUX_FDR_11 mute */
-    _fdr_dca_gain_C2_AUX_FDR_11,    /* 0x0369: C2_AUX_FDR_11 DCA gain */
+    _fdr_dca_sel_C2_AUX_FDR_11,    /* 0x0369: C2_AUX_FDR_11 DCA assignment */
     _eq_coeffs_next_C2_AUX_EQ_11,    /* 0x036A: C2_AUX_EQ_11 EQ coeff[0] */
     _eq_coeffs_next_C2_AUX_EQ_11 + 1,    /* 0x036B: C2_AUX_EQ_11 EQ coeff[1] */
     _eq_coeffs_next_C2_AUX_EQ_11 + 2,    /* 0x036C: C2_AUX_EQ_11 EQ coeff[2] */
@@ -1664,7 +1664,7 @@
     _fdr_level_C2_AUX_FDR_12,    /* 0x03BD: C2_AUX_FDR_12 level */
     _fdr_pan_C2_AUX_FDR_12,    /* 0x03BE: C2_AUX_FDR_12 pan */
     _fdr_mute_C2_AUX_FDR_12,    /* 0x03BF: C2_AUX_FDR_12 mute */
-    _fdr_dca_gain_C2_AUX_FDR_12,    /* 0x03C0: C2_AUX_FDR_12 DCA gain */
+    _fdr_dca_sel_C2_AUX_FDR_12,    /* 0x03C0: C2_AUX_FDR_12 DCA assignment */
     _eq_coeffs_next_C2_AUX_EQ_12,    /* 0x03C1: C2_AUX_EQ_12 EQ coeff[0] */
     _eq_coeffs_next_C2_AUX_EQ_12 + 1,    /* 0x03C2: C2_AUX_EQ_12 EQ coeff[1] */
     _eq_coeffs_next_C2_AUX_EQ_12 + 2,    /* 0x03C3: C2_AUX_EQ_12 EQ coeff[2] */
@@ -1751,7 +1751,7 @@
     _fdr_level_C2_GRP_FDR_01,    /* 0x0414: C2_GRP_FDR_01 level */
     _fdr_pan_C2_GRP_FDR_01,    /* 0x0415: C2_GRP_FDR_01 pan (unused) */
     _fdr_mute_C2_GRP_FDR_01,    /* 0x0416: C2_GRP_FDR_01 mute */
-    _fdr_dca_gain_C2_GRP_FDR_01,    /* 0x0417: C2_GRP_FDR_01 DCA gain */
+    _fdr_dca_sel_C2_GRP_FDR_01,    /* 0x0417: C2_GRP_FDR_01 DCA assignment */
     _eq_coeffs_next_C2_GRP_EQ_01,    /* 0x0418: C2_GRP_EQ_01 EQ coeff[0] */
     _eq_coeffs_next_C2_GRP_EQ_01 + 1,    /* 0x0419: C2_GRP_EQ_01 EQ coeff[1] */
     _eq_coeffs_next_C2_GRP_EQ_01 + 2,    /* 0x041A: C2_GRP_EQ_01 EQ coeff[2] */
@@ -1811,7 +1811,7 @@
     _fdr_level_C2_GRP_FDR_02,    /* 0x0450: C2_GRP_FDR_02 level */
     _fdr_pan_C2_GRP_FDR_02,    /* 0x0451: C2_GRP_FDR_02 pan (unused) */
     _fdr_mute_C2_GRP_FDR_02,    /* 0x0452: C2_GRP_FDR_02 mute */
-    _fdr_dca_gain_C2_GRP_FDR_02,    /* 0x0453: C2_GRP_FDR_02 DCA gain */
+    _fdr_dca_sel_C2_GRP_FDR_02,    /* 0x0453: C2_GRP_FDR_02 DCA assignment */
     _eq_coeffs_next_C2_GRP_EQ_02,    /* 0x0454: C2_GRP_EQ_02 EQ coeff[0] */
     _eq_coeffs_next_C2_GRP_EQ_02 + 1,    /* 0x0455: C2_GRP_EQ_02 EQ coeff[1] */
     _eq_coeffs_next_C2_GRP_EQ_02 + 2,    /* 0x0456: C2_GRP_EQ_02 EQ coeff[2] */
@@ -1871,7 +1871,7 @@
     _fdr_level_C2_GRP_FDR_03,    /* 0x048C: C2_GRP_FDR_03 level */
     _fdr_pan_C2_GRP_FDR_03,    /* 0x048D: C2_GRP_FDR_03 pan (unused) */
     _fdr_mute_C2_GRP_FDR_03,    /* 0x048E: C2_GRP_FDR_03 mute */
-    _fdr_dca_gain_C2_GRP_FDR_03,    /* 0x048F: C2_GRP_FDR_03 DCA gain */
+    _fdr_dca_sel_C2_GRP_FDR_03,    /* 0x048F: C2_GRP_FDR_03 DCA assignment */
     _eq_coeffs_next_C2_GRP_EQ_03,    /* 0x0490: C2_GRP_EQ_03 EQ coeff[0] */
     _eq_coeffs_next_C2_GRP_EQ_03 + 1,    /* 0x0491: C2_GRP_EQ_03 EQ coeff[1] */
     _eq_coeffs_next_C2_GRP_EQ_03 + 2,    /* 0x0492: C2_GRP_EQ_03 EQ coeff[2] */
@@ -1931,7 +1931,7 @@
     _fdr_level_C2_GRP_FDR_04,    /* 0x04C8: C2_GRP_FDR_04 level */
     _fdr_pan_C2_GRP_FDR_04,    /* 0x04C9: C2_GRP_FDR_04 pan (unused) */
     _fdr_mute_C2_GRP_FDR_04,    /* 0x04CA: C2_GRP_FDR_04 mute */
-    _fdr_dca_gain_C2_GRP_FDR_04,    /* 0x04CB: C2_GRP_FDR_04 DCA gain */
+    _fdr_dca_sel_C2_GRP_FDR_04,    /* 0x04CB: C2_GRP_FDR_04 DCA assignment */
     _eq_coeffs_next_C2_GRP_EQ_04,    /* 0x04CC: C2_GRP_EQ_04 EQ coeff[0] */
     _eq_coeffs_next_C2_GRP_EQ_04 + 1,    /* 0x04CD: C2_GRP_EQ_04 EQ coeff[1] */
     _eq_coeffs_next_C2_GRP_EQ_04 + 2,    /* 0x04CE: C2_GRP_EQ_04 EQ coeff[2] */
@@ -1991,7 +1991,7 @@
     _fdr_level_C2_SUB_FDR,    /* 0x0504: C2_SUB_FDR level */
     _fdr_pan_C2_SUB_FDR,    /* 0x0505: C2_SUB_FDR pan (unused) */
     _fdr_mute_C2_SUB_FDR,    /* 0x0506: C2_SUB_FDR mute */
-    _fdr_dca_gain_C2_SUB_FDR,    /* 0x0507: C2_SUB_FDR DCA gain */
+    _fdr_dca_sel_C2_SUB_FDR,    /* 0x0507: C2_SUB_FDR DCA assignment */
     _eq_coeffs_next_C2_SUB_EQ,    /* 0x0508: C2_SUB_EQ EQ coeff[0] */
     _eq_coeffs_next_C2_SUB_EQ + 1,    /* 0x0509: C2_SUB_EQ EQ coeff[1] */
     _eq_coeffs_next_C2_SUB_EQ + 2,    /* 0x050A: C2_SUB_EQ EQ coeff[2] */
@@ -2050,7 +2050,7 @@
     _fdr_level_C2_MAIN_FDR,    /* 0x053F: C2_MAIN_FDR level */
     _fdr_pan_C2_MAIN_FDR,    /* 0x0540: C2_MAIN_FDR pan (unused) */
     _fdr_mute_C2_MAIN_FDR,    /* 0x0541: C2_MAIN_FDR mute */
-    _fdr_dca_gain_C2_MAIN_FDR,    /* 0x0542: C2_MAIN_FDR DCA gain */
+    _fdr_dca_sel_C2_MAIN_FDR,    /* 0x0542: C2_MAIN_FDR DCA assignment */
     _geq_coeffs_next_C2_MAIN_GEQ,    /* 0x0543: C2_MAIN_GEQ GEQ coeff[0] */
     _geq_coeffs_next_C2_MAIN_GEQ + 1,    /* 0x0544: C2_MAIN_GEQ GEQ coeff[1] */
     _geq_coeffs_next_C2_MAIN_GEQ + 2,    /* 0x0545: C2_MAIN_GEQ GEQ coeff[2] */
@@ -2312,7 +2312,7 @@
     _fdr_level_C2_FX_FDR_01,    /* 0x0645: C2_FX_FDR_01 level */
     _fdr_pan_C2_FX_FDR_01,    /* 0x0646: C2_FX_FDR_01 pan (unused) */
     _fdr_mute_C2_FX_FDR_01,    /* 0x0647: C2_FX_FDR_01 mute */
-    _fdr_dca_gain_C2_FX_FDR_01,    /* 0x0648: C2_FX_FDR_01 DCA gain */
+    _fdr_dca_sel_C2_FX_FDR_01,    /* 0x0648: C2_FX_FDR_01 DCA assignment */
     _fx_on_C2_FX_ENG_02,    /* 0x0649: C2_FX_ENG_02 On */
     _fx_type_C2_FX_ENG_02,    /* 0x064A: C2_FX_ENG_02 Type */
     _fx_decay_C2_FX_ENG_02,    /* 0x064B: C2_FX_ENG_02 Decay */
@@ -2340,7 +2340,7 @@
     _fdr_level_C2_FX_FDR_02,    /* 0x0661: C2_FX_FDR_02 level */
     _fdr_pan_C2_FX_FDR_02,    /* 0x0662: C2_FX_FDR_02 pan (unused) */
     _fdr_mute_C2_FX_FDR_02,    /* 0x0663: C2_FX_FDR_02 mute */
-    _fdr_dca_gain_C2_FX_FDR_02,    /* 0x0664: C2_FX_FDR_02 DCA gain */
+    _fdr_dca_sel_C2_FX_FDR_02,    /* 0x0664: C2_FX_FDR_02 DCA assignment */
     _fx_on_C2_FX_ENG_03,    /* 0x0665: C2_FX_ENG_03 On */
     _fx_type_C2_FX_ENG_03,    /* 0x0666: C2_FX_ENG_03 Type */
     _fx_decay_C2_FX_ENG_03,    /* 0x0667: C2_FX_ENG_03 Decay */
@@ -2368,7 +2368,7 @@
     _fdr_level_C2_FX_FDR_03,    /* 0x067D: C2_FX_FDR_03 level */
     _fdr_pan_C2_FX_FDR_03,    /* 0x067E: C2_FX_FDR_03 pan (unused) */
     _fdr_mute_C2_FX_FDR_03,    /* 0x067F: C2_FX_FDR_03 mute */
-    _fdr_dca_gain_C2_FX_FDR_03,    /* 0x0680: C2_FX_FDR_03 DCA gain */
+    _fdr_dca_sel_C2_FX_FDR_03,    /* 0x0680: C2_FX_FDR_03 DCA assignment */
     _fx_on_C2_FX_ENG_04,    /* 0x0681: C2_FX_ENG_04 On */
     _fx_type_C2_FX_ENG_04,    /* 0x0682: C2_FX_ENG_04 Type */
     _fx_decay_C2_FX_ENG_04,    /* 0x0683: C2_FX_ENG_04 Decay */
@@ -2396,7 +2396,7 @@
     _fdr_level_C2_FX_FDR_04,    /* 0x0699: C2_FX_FDR_04 level */
     _fdr_pan_C2_FX_FDR_04,    /* 0x069A: C2_FX_FDR_04 pan (unused) */
     _fdr_mute_C2_FX_FDR_04,    /* 0x069B: C2_FX_FDR_04 mute */
-    _fdr_dca_gain_C2_FX_FDR_04,    /* 0x069C: C2_FX_FDR_04 DCA gain */
+    _fdr_dca_sel_C2_FX_FDR_04,    /* 0x069C: C2_FX_FDR_04 DCA assignment */
     _fx_on_C2_FX_ENG_05,    /* 0x069D: C2_FX_ENG_05 On */
     _fx_type_C2_FX_ENG_05,    /* 0x069E: C2_FX_ENG_05 Type */
     _fx_decay_C2_FX_ENG_05,    /* 0x069F: C2_FX_ENG_05 Decay */
@@ -2424,7 +2424,7 @@
     _fdr_level_C2_FX_FDR_05,    /* 0x06B5: C2_FX_FDR_05 level */
     _fdr_pan_C2_FX_FDR_05,    /* 0x06B6: C2_FX_FDR_05 pan (unused) */
     _fdr_mute_C2_FX_FDR_05,    /* 0x06B7: C2_FX_FDR_05 mute */
-    _fdr_dca_gain_C2_FX_FDR_05,    /* 0x06B8: C2_FX_FDR_05 DCA gain */
+    _fdr_dca_sel_C2_FX_FDR_05,    /* 0x06B8: C2_FX_FDR_05 DCA assignment */
     _fx_on_C2_FX_ENG_06,    /* 0x06B9: C2_FX_ENG_06 On */
     _fx_type_C2_FX_ENG_06,    /* 0x06BA: C2_FX_ENG_06 Type */
     _fx_decay_C2_FX_ENG_06,    /* 0x06BB: C2_FX_ENG_06 Decay */
@@ -2452,7 +2452,7 @@
     _fdr_level_C2_FX_FDR_06,    /* 0x06D1: C2_FX_FDR_06 level */
     _fdr_pan_C2_FX_FDR_06,    /* 0x06D2: C2_FX_FDR_06 pan (unused) */
     _fdr_mute_C2_FX_FDR_06,    /* 0x06D3: C2_FX_FDR_06 mute */
-    _fdr_dca_gain_C2_FX_FDR_06,    /* 0x06D4: C2_FX_FDR_06 DCA gain */
+    _fdr_dca_sel_C2_FX_FDR_06,    /* 0x06D4: C2_FX_FDR_06 DCA assignment */
     _mon_source_C2_MON,    /* 0x06D5: C2_MON source */
     _mon_level_l_C2_MON,    /* 0x06D6: C2_MON level L */
     _mon_level_r_C2_MON,    /* 0x06D7: C2_MON level R */
@@ -2675,7 +2675,7 @@
     1,  /* 0x0000: C2_AUX_FDR_01 level */
     1,  /* 0x0001: C2_AUX_FDR_01 pan */
     0,  /* 0x0002: C2_AUX_FDR_01 mute */
-    0,  /* 0x0003: C2_AUX_FDR_01 DCA gain */
+    0,  /* 0x0003: C2_AUX_FDR_01 DCA assignment */
     0,  /* 0x0004: C2_AUX_EQ_01 EQ coeff[0] */
     0,  /* 0x0005: C2_AUX_EQ_01 EQ coeff[1] */
     0,  /* 0x0006: C2_AUX_EQ_01 EQ coeff[2] */
@@ -2762,7 +2762,7 @@
     1,  /* 0x0057: C2_AUX_FDR_02 level */
     1,  /* 0x0058: C2_AUX_FDR_02 pan */
     0,  /* 0x0059: C2_AUX_FDR_02 mute */
-    0,  /* 0x005A: C2_AUX_FDR_02 DCA gain */
+    0,  /* 0x005A: C2_AUX_FDR_02 DCA assignment */
     0,  /* 0x005B: C2_AUX_EQ_02 EQ coeff[0] */
     0,  /* 0x005C: C2_AUX_EQ_02 EQ coeff[1] */
     0,  /* 0x005D: C2_AUX_EQ_02 EQ coeff[2] */
@@ -2849,7 +2849,7 @@
     1,  /* 0x00AE: C2_AUX_FDR_03 level */
     1,  /* 0x00AF: C2_AUX_FDR_03 pan */
     0,  /* 0x00B0: C2_AUX_FDR_03 mute */
-    0,  /* 0x00B1: C2_AUX_FDR_03 DCA gain */
+    0,  /* 0x00B1: C2_AUX_FDR_03 DCA assignment */
     0,  /* 0x00B2: C2_AUX_EQ_03 EQ coeff[0] */
     0,  /* 0x00B3: C2_AUX_EQ_03 EQ coeff[1] */
     0,  /* 0x00B4: C2_AUX_EQ_03 EQ coeff[2] */
@@ -2936,7 +2936,7 @@
     1,  /* 0x0105: C2_AUX_FDR_04 level */
     1,  /* 0x0106: C2_AUX_FDR_04 pan */
     0,  /* 0x0107: C2_AUX_FDR_04 mute */
-    0,  /* 0x0108: C2_AUX_FDR_04 DCA gain */
+    0,  /* 0x0108: C2_AUX_FDR_04 DCA assignment */
     0,  /* 0x0109: C2_AUX_EQ_04 EQ coeff[0] */
     0,  /* 0x010A: C2_AUX_EQ_04 EQ coeff[1] */
     0,  /* 0x010B: C2_AUX_EQ_04 EQ coeff[2] */
@@ -3023,7 +3023,7 @@
     1,  /* 0x015C: C2_AUX_FDR_05 level */
     1,  /* 0x015D: C2_AUX_FDR_05 pan */
     0,  /* 0x015E: C2_AUX_FDR_05 mute */
-    0,  /* 0x015F: C2_AUX_FDR_05 DCA gain */
+    0,  /* 0x015F: C2_AUX_FDR_05 DCA assignment */
     0,  /* 0x0160: C2_AUX_EQ_05 EQ coeff[0] */
     0,  /* 0x0161: C2_AUX_EQ_05 EQ coeff[1] */
     0,  /* 0x0162: C2_AUX_EQ_05 EQ coeff[2] */
@@ -3110,7 +3110,7 @@
     1,  /* 0x01B3: C2_AUX_FDR_06 level */
     1,  /* 0x01B4: C2_AUX_FDR_06 pan */
     0,  /* 0x01B5: C2_AUX_FDR_06 mute */
-    0,  /* 0x01B6: C2_AUX_FDR_06 DCA gain */
+    0,  /* 0x01B6: C2_AUX_FDR_06 DCA assignment */
     0,  /* 0x01B7: C2_AUX_EQ_06 EQ coeff[0] */
     0,  /* 0x01B8: C2_AUX_EQ_06 EQ coeff[1] */
     0,  /* 0x01B9: C2_AUX_EQ_06 EQ coeff[2] */
@@ -3197,7 +3197,7 @@
     1,  /* 0x020A: C2_AUX_FDR_07 level */
     1,  /* 0x020B: C2_AUX_FDR_07 pan */
     0,  /* 0x020C: C2_AUX_FDR_07 mute */
-    0,  /* 0x020D: C2_AUX_FDR_07 DCA gain */
+    0,  /* 0x020D: C2_AUX_FDR_07 DCA assignment */
     0,  /* 0x020E: C2_AUX_EQ_07 EQ coeff[0] */
     0,  /* 0x020F: C2_AUX_EQ_07 EQ coeff[1] */
     0,  /* 0x0210: C2_AUX_EQ_07 EQ coeff[2] */
@@ -3284,7 +3284,7 @@
     1,  /* 0x0261: C2_AUX_FDR_08 level */
     1,  /* 0x0262: C2_AUX_FDR_08 pan */
     0,  /* 0x0263: C2_AUX_FDR_08 mute */
-    0,  /* 0x0264: C2_AUX_FDR_08 DCA gain */
+    0,  /* 0x0264: C2_AUX_FDR_08 DCA assignment */
     0,  /* 0x0265: C2_AUX_EQ_08 EQ coeff[0] */
     0,  /* 0x0266: C2_AUX_EQ_08 EQ coeff[1] */
     0,  /* 0x0267: C2_AUX_EQ_08 EQ coeff[2] */
@@ -3371,7 +3371,7 @@
     1,  /* 0x02B8: C2_AUX_FDR_09 level */
     1,  /* 0x02B9: C2_AUX_FDR_09 pan */
     0,  /* 0x02BA: C2_AUX_FDR_09 mute */
-    0,  /* 0x02BB: C2_AUX_FDR_09 DCA gain */
+    0,  /* 0x02BB: C2_AUX_FDR_09 DCA assignment */
     0,  /* 0x02BC: C2_AUX_EQ_09 EQ coeff[0] */
     0,  /* 0x02BD: C2_AUX_EQ_09 EQ coeff[1] */
     0,  /* 0x02BE: C2_AUX_EQ_09 EQ coeff[2] */
@@ -3458,7 +3458,7 @@
     1,  /* 0x030F: C2_AUX_FDR_10 level */
     1,  /* 0x0310: C2_AUX_FDR_10 pan */
     0,  /* 0x0311: C2_AUX_FDR_10 mute */
-    0,  /* 0x0312: C2_AUX_FDR_10 DCA gain */
+    0,  /* 0x0312: C2_AUX_FDR_10 DCA assignment */
     0,  /* 0x0313: C2_AUX_EQ_10 EQ coeff[0] */
     0,  /* 0x0314: C2_AUX_EQ_10 EQ coeff[1] */
     0,  /* 0x0315: C2_AUX_EQ_10 EQ coeff[2] */
@@ -3545,7 +3545,7 @@
     1,  /* 0x0366: C2_AUX_FDR_11 level */
     1,  /* 0x0367: C2_AUX_FDR_11 pan */
     0,  /* 0x0368: C2_AUX_FDR_11 mute */
-    0,  /* 0x0369: C2_AUX_FDR_11 DCA gain */
+    0,  /* 0x0369: C2_AUX_FDR_11 DCA assignment */
     0,  /* 0x036A: C2_AUX_EQ_11 EQ coeff[0] */
     0,  /* 0x036B: C2_AUX_EQ_11 EQ coeff[1] */
     0,  /* 0x036C: C2_AUX_EQ_11 EQ coeff[2] */
@@ -3632,7 +3632,7 @@
     1,  /* 0x03BD: C2_AUX_FDR_12 level */
     1,  /* 0x03BE: C2_AUX_FDR_12 pan */
     0,  /* 0x03BF: C2_AUX_FDR_12 mute */
-    0,  /* 0x03C0: C2_AUX_FDR_12 DCA gain */
+    0,  /* 0x03C0: C2_AUX_FDR_12 DCA assignment */
     0,  /* 0x03C1: C2_AUX_EQ_12 EQ coeff[0] */
     0,  /* 0x03C2: C2_AUX_EQ_12 EQ coeff[1] */
     0,  /* 0x03C3: C2_AUX_EQ_12 EQ coeff[2] */
@@ -3719,7 +3719,7 @@
     1,  /* 0x0414: C2_GRP_FDR_01 level */
     1,  /* 0x0415: C2_GRP_FDR_01 pan (unused) */
     0,  /* 0x0416: C2_GRP_FDR_01 mute */
-    0,  /* 0x0417: C2_GRP_FDR_01 DCA gain */
+    0,  /* 0x0417: C2_GRP_FDR_01 DCA assignment */
     0,  /* 0x0418: C2_GRP_EQ_01 EQ coeff[0] */
     0,  /* 0x0419: C2_GRP_EQ_01 EQ coeff[1] */
     0,  /* 0x041A: C2_GRP_EQ_01 EQ coeff[2] */
@@ -3779,7 +3779,7 @@
     1,  /* 0x0450: C2_GRP_FDR_02 level */
     1,  /* 0x0451: C2_GRP_FDR_02 pan (unused) */
     0,  /* 0x0452: C2_GRP_FDR_02 mute */
-    0,  /* 0x0453: C2_GRP_FDR_02 DCA gain */
+    0,  /* 0x0453: C2_GRP_FDR_02 DCA assignment */
     0,  /* 0x0454: C2_GRP_EQ_02 EQ coeff[0] */
     0,  /* 0x0455: C2_GRP_EQ_02 EQ coeff[1] */
     0,  /* 0x0456: C2_GRP_EQ_02 EQ coeff[2] */
@@ -3839,7 +3839,7 @@
     1,  /* 0x048C: C2_GRP_FDR_03 level */
     1,  /* 0x048D: C2_GRP_FDR_03 pan (unused) */
     0,  /* 0x048E: C2_GRP_FDR_03 mute */
-    0,  /* 0x048F: C2_GRP_FDR_03 DCA gain */
+    0,  /* 0x048F: C2_GRP_FDR_03 DCA assignment */
     0,  /* 0x0490: C2_GRP_EQ_03 EQ coeff[0] */
     0,  /* 0x0491: C2_GRP_EQ_03 EQ coeff[1] */
     0,  /* 0x0492: C2_GRP_EQ_03 EQ coeff[2] */
@@ -3899,7 +3899,7 @@
     1,  /* 0x04C8: C2_GRP_FDR_04 level */
     1,  /* 0x04C9: C2_GRP_FDR_04 pan (unused) */
     0,  /* 0x04CA: C2_GRP_FDR_04 mute */
-    0,  /* 0x04CB: C2_GRP_FDR_04 DCA gain */
+    0,  /* 0x04CB: C2_GRP_FDR_04 DCA assignment */
     0,  /* 0x04CC: C2_GRP_EQ_04 EQ coeff[0] */
     0,  /* 0x04CD: C2_GRP_EQ_04 EQ coeff[1] */
     0,  /* 0x04CE: C2_GRP_EQ_04 EQ coeff[2] */
@@ -3959,7 +3959,7 @@
     1,  /* 0x0504: C2_SUB_FDR level */
     1,  /* 0x0505: C2_SUB_FDR pan (unused) */
     0,  /* 0x0506: C2_SUB_FDR mute */
-    0,  /* 0x0507: C2_SUB_FDR DCA gain */
+    0,  /* 0x0507: C2_SUB_FDR DCA assignment */
     0,  /* 0x0508: C2_SUB_EQ EQ coeff[0] */
     0,  /* 0x0509: C2_SUB_EQ EQ coeff[1] */
     0,  /* 0x050A: C2_SUB_EQ EQ coeff[2] */
@@ -4018,7 +4018,7 @@
     1,  /* 0x053F: C2_MAIN_FDR level */
     1,  /* 0x0540: C2_MAIN_FDR pan (unused) */
     0,  /* 0x0541: C2_MAIN_FDR mute */
-    0,  /* 0x0542: C2_MAIN_FDR DCA gain */
+    0,  /* 0x0542: C2_MAIN_FDR DCA assignment */
     0,  /* 0x0543: C2_MAIN_GEQ GEQ coeff[0] */
     0,  /* 0x0544: C2_MAIN_GEQ GEQ coeff[1] */
     0,  /* 0x0545: C2_MAIN_GEQ GEQ coeff[2] */
@@ -4280,7 +4280,7 @@
     1,  /* 0x0645: C2_FX_FDR_01 level */
     1,  /* 0x0646: C2_FX_FDR_01 pan (unused) */
     0,  /* 0x0647: C2_FX_FDR_01 mute */
-    0,  /* 0x0648: C2_FX_FDR_01 DCA gain */
+    0,  /* 0x0648: C2_FX_FDR_01 DCA assignment */
     0,  /* 0x0649: C2_FX_ENG_02 On */
     0,  /* 0x064A: C2_FX_ENG_02 Type */
     0,  /* 0x064B: C2_FX_ENG_02 Decay */
@@ -4308,7 +4308,7 @@
     1,  /* 0x0661: C2_FX_FDR_02 level */
     1,  /* 0x0662: C2_FX_FDR_02 pan (unused) */
     0,  /* 0x0663: C2_FX_FDR_02 mute */
-    0,  /* 0x0664: C2_FX_FDR_02 DCA gain */
+    0,  /* 0x0664: C2_FX_FDR_02 DCA assignment */
     0,  /* 0x0665: C2_FX_ENG_03 On */
     0,  /* 0x0666: C2_FX_ENG_03 Type */
     0,  /* 0x0667: C2_FX_ENG_03 Decay */
@@ -4336,7 +4336,7 @@
     1,  /* 0x067D: C2_FX_FDR_03 level */
     1,  /* 0x067E: C2_FX_FDR_03 pan (unused) */
     0,  /* 0x067F: C2_FX_FDR_03 mute */
-    0,  /* 0x0680: C2_FX_FDR_03 DCA gain */
+    0,  /* 0x0680: C2_FX_FDR_03 DCA assignment */
     0,  /* 0x0681: C2_FX_ENG_04 On */
     0,  /* 0x0682: C2_FX_ENG_04 Type */
     0,  /* 0x0683: C2_FX_ENG_04 Decay */
@@ -4364,7 +4364,7 @@
     1,  /* 0x0699: C2_FX_FDR_04 level */
     1,  /* 0x069A: C2_FX_FDR_04 pan (unused) */
     0,  /* 0x069B: C2_FX_FDR_04 mute */
-    0,  /* 0x069C: C2_FX_FDR_04 DCA gain */
+    0,  /* 0x069C: C2_FX_FDR_04 DCA assignment */
     0,  /* 0x069D: C2_FX_ENG_05 On */
     0,  /* 0x069E: C2_FX_ENG_05 Type */
     0,  /* 0x069F: C2_FX_ENG_05 Decay */
@@ -4392,7 +4392,7 @@
     1,  /* 0x06B5: C2_FX_FDR_05 level */
     1,  /* 0x06B6: C2_FX_FDR_05 pan (unused) */
     0,  /* 0x06B7: C2_FX_FDR_05 mute */
-    0,  /* 0x06B8: C2_FX_FDR_05 DCA gain */
+    0,  /* 0x06B8: C2_FX_FDR_05 DCA assignment */
     0,  /* 0x06B9: C2_FX_ENG_06 On */
     0,  /* 0x06BA: C2_FX_ENG_06 Type */
     0,  /* 0x06BB: C2_FX_ENG_06 Decay */
@@ -4420,7 +4420,7 @@
     1,  /* 0x06D1: C2_FX_FDR_06 level */
     1,  /* 0x06D2: C2_FX_FDR_06 pan (unused) */
     0,  /* 0x06D3: C2_FX_FDR_06 mute */
-    0,  /* 0x06D4: C2_FX_FDR_06 DCA gain */
+    0,  /* 0x06D4: C2_FX_FDR_06 DCA assignment */
     0,  /* 0x06D5: C2_MON source */
     1,  /* 0x06D6: C2_MON level L */
     1,  /* 0x06D7: C2_MON level R */

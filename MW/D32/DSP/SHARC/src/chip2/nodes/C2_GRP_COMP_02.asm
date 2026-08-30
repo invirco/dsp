@@ -41,7 +41,7 @@
         .global _comp_knee_C2_GRP_COMP_02;
         .var _comp_knee_C2_GRP_COMP_02 = 0.0;   /* hard knee until the host sets it */
         .global _comp_parallel_C2_GRP_COMP_02;
-        .var _comp_parallel_C2_GRP_COMP_02 = 0.0;
+        .var _comp_parallel_C2_GRP_COMP_02 = 100.0;   /* PERCENT (D40); fully wet by default (D59) */
         .global _comp_type_C2_GRP_COMP_02;
         .var _comp_type_C2_GRP_COMP_02 = 0;
         .global _comp_key_src_C2_GRP_COMP_02;
@@ -69,7 +69,7 @@
         .global _comp_mkq_C2_GRP_COMP_02;
         .var _comp_mkq_C2_GRP_COMP_02 = 0x10000000;
         .global _comp_parq_C2_GRP_COMP_02;
-        .var _comp_parq_C2_GRP_COMP_02 = 0;            /* Q0.31 */
+        .var _comp_parq_C2_GRP_COMP_02 = 0x7FFFFFFF;   /* Q0.31, = _comp_parallel_ converted */
         .global _comp_cgp_C2_GRP_COMP_02;
         .var _comp_cgp_C2_GRP_COMP_02[4];              /* thr, slope, halfk, k2 */
         .global _buf_C2_GRP_COMP_02;

@@ -71,7 +71,14 @@ def main():
     w(COMP_REL, f32(a.release))
     w(COMP_MAKE, f32(1.0))
     w(COMP_KNEE, f32(0.0))
-    w(COMP_PAR, f32(1.0))          # fully wet, or the dry path hides everything
+    # FULLY WET, IN PERCENT. CompPar is 0..100 on the wire (review finding
+    # D40, fixed 2026-08-29); this said f32(1.0) until 2026-08-30, which
+    # after that fix meant ONE PERCENT -- 99 % dry, on the one probe whose
+    # whole job is to see the gain reduction. The kernel default is 100 %
+    # as of the same day (D59); written explicitly all the same, because a
+    # probe that leans on a default silently changes meaning when the
+    # default does.
+    w(COMP_PAR, f32(100.0))
     time.sleep(0.8)
 
     amp = int(a.amp, 16)

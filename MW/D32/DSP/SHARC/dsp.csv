@@ -4,7 +4,7 @@ C1_GAIN_01,1,GAIN,Ch 1 Gain,1,C1_IN_01,C1_FILT_01,1,0,gain_db=0.0;mute=0;polarit
 C1_FILT_01,1,HPF_LPF,Ch 1 HPF+LPF,1,C1_GAIN_01,C1_EQ_01,1,4,hpf_freq=80.0;hpf_slope=18;lpf_freq=20000.0,EqSafe
 C1_EQ_01,1,EQ_BIQUAD,Ch 1 EQ,1,C1_FILT_01,C1_GATE_01,1,16,bands=4;coeffs=default,EqSafe
 C1_GATE_01,1,GATE,Ch 1 Gate,1,C1_EQ_01,C1_COMP_01,1,40,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0;det_src=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
-C1_COMP_01,1,COMPRESSOR,Ch 1 Comp,1,C1_GATE_01,C1_TUBE_01,1,56,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=0;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
+C1_COMP_01,1,COMPRESSOR,Ch 1 Comp,1,C1_GATE_01,C1_TUBE_01,1,56,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
 C1_TUBE_01,1,TUBE_SAT,Ch 1 Tube,1,C1_COMP_01,C1_DLY_01,1,76,on=0;saturation=0.0,GainFast
 C1_DLY_01,1,DELAY,Ch 1 Delay,1,C1_TUBE_01,C1_FDR_01,1,78,delay_ms=0.0;local_ms=20.0;max_ms=250.0;pool_slot=0,InstantCtl
 C1_FDR_01,1,FADER_PAN,Ch 1 Fader,1,C1_DLY_01,C1_RTG_01,1,80,level_db=-inf;pan=0.0;mute=0,GainFast
@@ -14,7 +14,7 @@ C1_GAIN_02,1,GAIN,Ch 2 Gain,1,C1_IN_02,C1_FILT_02,1,144,gain_db=0.0;mute=0;polar
 C1_FILT_02,1,HPF_LPF,Ch 2 HPF+LPF,1,C1_GAIN_02,C1_EQ_02,1,148,hpf_freq=80.0;hpf_slope=18;lpf_freq=20000.0,EqSafe
 C1_EQ_02,1,EQ_BIQUAD,Ch 2 EQ,1,C1_FILT_02,C1_GATE_02,1,160,bands=4;coeffs=default,EqSafe
 C1_GATE_02,1,GATE,Ch 2 Gate,1,C1_EQ_02,C1_COMP_02,1,184,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0;det_src=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
-C1_COMP_02,1,COMPRESSOR,Ch 2 Comp,1,C1_GATE_02,C1_TUBE_02,1,200,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=0;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
+C1_COMP_02,1,COMPRESSOR,Ch 2 Comp,1,C1_GATE_02,C1_TUBE_02,1,200,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
 C1_TUBE_02,1,TUBE_SAT,Ch 2 Tube,1,C1_COMP_02,C1_DLY_02,1,220,on=0;saturation=0.0,GainFast
 C1_DLY_02,1,DELAY,Ch 2 Delay,1,C1_TUBE_02,C1_FDR_02,1,222,delay_ms=0.0;local_ms=20.0;max_ms=250.0;pool_slot=1,InstantCtl
 C1_FDR_02,1,FADER_PAN,Ch 2 Fader,1,C1_DLY_02,C1_RTG_02,1,224,level_db=-inf;pan=0.0;mute=0,GainFast
@@ -24,7 +24,7 @@ C1_GAIN_03,1,GAIN,Ch 3 Gain,1,C1_IN_03,C1_FILT_03,1,288,gain_db=0.0;mute=0;polar
 C1_FILT_03,1,HPF_LPF,Ch 3 HPF+LPF,1,C1_GAIN_03,C1_EQ_03,1,292,hpf_freq=80.0;hpf_slope=18;lpf_freq=20000.0,EqSafe
 C1_EQ_03,1,EQ_BIQUAD,Ch 3 EQ,1,C1_FILT_03,C1_GATE_03,1,304,bands=4;coeffs=default,EqSafe
 C1_GATE_03,1,GATE,Ch 3 Gate,1,C1_EQ_03,C1_COMP_03,1,328,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0;det_src=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
-C1_COMP_03,1,COMPRESSOR,Ch 3 Comp,1,C1_GATE_03,C1_TUBE_03,1,344,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=0;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
+C1_COMP_03,1,COMPRESSOR,Ch 3 Comp,1,C1_GATE_03,C1_TUBE_03,1,344,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
 C1_TUBE_03,1,TUBE_SAT,Ch 3 Tube,1,C1_COMP_03,C1_DLY_03,1,364,on=0;saturation=0.0,GainFast
 C1_DLY_03,1,DELAY,Ch 3 Delay,1,C1_TUBE_03,C1_FDR_03,1,366,delay_ms=0.0;local_ms=20.0;max_ms=250.0;pool_slot=2,InstantCtl
 C1_FDR_03,1,FADER_PAN,Ch 3 Fader,1,C1_DLY_03,C1_RTG_03,1,368,level_db=-inf;pan=0.0;mute=0,GainFast
@@ -34,7 +34,7 @@ C1_GAIN_04,1,GAIN,Ch 4 Gain,1,C1_IN_04,C1_FILT_04,1,432,gain_db=0.0;mute=0;polar
 C1_FILT_04,1,HPF_LPF,Ch 4 HPF+LPF,1,C1_GAIN_04,C1_EQ_04,1,436,hpf_freq=80.0;hpf_slope=18;lpf_freq=20000.0,EqSafe
 C1_EQ_04,1,EQ_BIQUAD,Ch 4 EQ,1,C1_FILT_04,C1_GATE_04,1,448,bands=4;coeffs=default,EqSafe
 C1_GATE_04,1,GATE,Ch 4 Gate,1,C1_EQ_04,C1_COMP_04,1,472,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0;det_src=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
-C1_COMP_04,1,COMPRESSOR,Ch 4 Comp,1,C1_GATE_04,C1_TUBE_04,1,488,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=0;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
+C1_COMP_04,1,COMPRESSOR,Ch 4 Comp,1,C1_GATE_04,C1_TUBE_04,1,488,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
 C1_TUBE_04,1,TUBE_SAT,Ch 4 Tube,1,C1_COMP_04,C1_DLY_04,1,508,on=0;saturation=0.0,GainFast
 C1_DLY_04,1,DELAY,Ch 4 Delay,1,C1_TUBE_04,C1_FDR_04,1,510,delay_ms=0.0;local_ms=20.0;max_ms=250.0;pool_slot=3,InstantCtl
 C1_FDR_04,1,FADER_PAN,Ch 4 Fader,1,C1_DLY_04,C1_RTG_04,1,512,level_db=-inf;pan=0.0;mute=0,GainFast
@@ -44,7 +44,7 @@ C1_GAIN_05,1,GAIN,Ch 5 Gain,1,C1_IN_05,C1_FILT_05,1,576,gain_db=0.0;mute=0;polar
 C1_FILT_05,1,HPF_LPF,Ch 5 HPF+LPF,1,C1_GAIN_05,C1_EQ_05,1,580,hpf_freq=80.0;hpf_slope=18;lpf_freq=20000.0,EqSafe
 C1_EQ_05,1,EQ_BIQUAD,Ch 5 EQ,1,C1_FILT_05,C1_GATE_05,1,592,bands=4;coeffs=default,EqSafe
 C1_GATE_05,1,GATE,Ch 5 Gate,1,C1_EQ_05,C1_COMP_05,1,616,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0;det_src=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
-C1_COMP_05,1,COMPRESSOR,Ch 5 Comp,1,C1_GATE_05,C1_TUBE_05,1,632,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=0;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
+C1_COMP_05,1,COMPRESSOR,Ch 5 Comp,1,C1_GATE_05,C1_TUBE_05,1,632,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
 C1_TUBE_05,1,TUBE_SAT,Ch 5 Tube,1,C1_COMP_05,C1_DLY_05,1,652,on=0;saturation=0.0,GainFast
 C1_DLY_05,1,DELAY,Ch 5 Delay,1,C1_TUBE_05,C1_FDR_05,1,654,delay_ms=0.0;local_ms=20.0;max_ms=250.0;pool_slot=4,InstantCtl
 C1_FDR_05,1,FADER_PAN,Ch 5 Fader,1,C1_DLY_05,C1_RTG_05,1,656,level_db=-inf;pan=0.0;mute=0,GainFast
@@ -54,7 +54,7 @@ C1_GAIN_06,1,GAIN,Ch 6 Gain,1,C1_IN_06,C1_FILT_06,1,720,gain_db=0.0;mute=0;polar
 C1_FILT_06,1,HPF_LPF,Ch 6 HPF+LPF,1,C1_GAIN_06,C1_EQ_06,1,724,hpf_freq=80.0;hpf_slope=18;lpf_freq=20000.0,EqSafe
 C1_EQ_06,1,EQ_BIQUAD,Ch 6 EQ,1,C1_FILT_06,C1_GATE_06,1,736,bands=4;coeffs=default,EqSafe
 C1_GATE_06,1,GATE,Ch 6 Gate,1,C1_EQ_06,C1_COMP_06,1,760,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0;det_src=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
-C1_COMP_06,1,COMPRESSOR,Ch 6 Comp,1,C1_GATE_06,C1_TUBE_06,1,776,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=0;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
+C1_COMP_06,1,COMPRESSOR,Ch 6 Comp,1,C1_GATE_06,C1_TUBE_06,1,776,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
 C1_TUBE_06,1,TUBE_SAT,Ch 6 Tube,1,C1_COMP_06,C1_DLY_06,1,796,on=0;saturation=0.0,GainFast
 C1_DLY_06,1,DELAY,Ch 6 Delay,1,C1_TUBE_06,C1_FDR_06,1,798,delay_ms=0.0;local_ms=20.0;max_ms=250.0;pool_slot=5,InstantCtl
 C1_FDR_06,1,FADER_PAN,Ch 6 Fader,1,C1_DLY_06,C1_RTG_06,1,800,level_db=-inf;pan=0.0;mute=0,GainFast
@@ -64,7 +64,7 @@ C1_GAIN_07,1,GAIN,Ch 7 Gain,1,C1_IN_07,C1_FILT_07,1,864,gain_db=0.0;mute=0;polar
 C1_FILT_07,1,HPF_LPF,Ch 7 HPF+LPF,1,C1_GAIN_07,C1_EQ_07,1,868,hpf_freq=80.0;hpf_slope=18;lpf_freq=20000.0,EqSafe
 C1_EQ_07,1,EQ_BIQUAD,Ch 7 EQ,1,C1_FILT_07,C1_GATE_07,1,880,bands=4;coeffs=default,EqSafe
 C1_GATE_07,1,GATE,Ch 7 Gate,1,C1_EQ_07,C1_COMP_07,1,904,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0;det_src=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
-C1_COMP_07,1,COMPRESSOR,Ch 7 Comp,1,C1_GATE_07,C1_TUBE_07,1,920,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=0;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
+C1_COMP_07,1,COMPRESSOR,Ch 7 Comp,1,C1_GATE_07,C1_TUBE_07,1,920,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
 C1_TUBE_07,1,TUBE_SAT,Ch 7 Tube,1,C1_COMP_07,C1_DLY_07,1,940,on=0;saturation=0.0,GainFast
 C1_DLY_07,1,DELAY,Ch 7 Delay,1,C1_TUBE_07,C1_FDR_07,1,942,delay_ms=0.0;local_ms=20.0;max_ms=250.0;pool_slot=6,InstantCtl
 C1_FDR_07,1,FADER_PAN,Ch 7 Fader,1,C1_DLY_07,C1_RTG_07,1,944,level_db=-inf;pan=0.0;mute=0,GainFast
@@ -74,7 +74,7 @@ C1_GAIN_08,1,GAIN,Ch 8 Gain,1,C1_IN_08,C1_FILT_08,1,1008,gain_db=0.0;mute=0;pola
 C1_FILT_08,1,HPF_LPF,Ch 8 HPF+LPF,1,C1_GAIN_08,C1_EQ_08,1,1012,hpf_freq=80.0;hpf_slope=18;lpf_freq=20000.0,EqSafe
 C1_EQ_08,1,EQ_BIQUAD,Ch 8 EQ,1,C1_FILT_08,C1_GATE_08,1,1024,bands=4;coeffs=default,EqSafe
 C1_GATE_08,1,GATE,Ch 8 Gate,1,C1_EQ_08,C1_COMP_08,1,1048,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0;det_src=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
-C1_COMP_08,1,COMPRESSOR,Ch 8 Comp,1,C1_GATE_08,C1_TUBE_08,1,1064,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=0;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
+C1_COMP_08,1,COMPRESSOR,Ch 8 Comp,1,C1_GATE_08,C1_TUBE_08,1,1064,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
 C1_TUBE_08,1,TUBE_SAT,Ch 8 Tube,1,C1_COMP_08,C1_DLY_08,1,1084,on=0;saturation=0.0,GainFast
 C1_DLY_08,1,DELAY,Ch 8 Delay,1,C1_TUBE_08,C1_FDR_08,1,1086,delay_ms=0.0;local_ms=20.0;max_ms=250.0;pool_slot=7,InstantCtl
 C1_FDR_08,1,FADER_PAN,Ch 8 Fader,1,C1_DLY_08,C1_RTG_08,1,1088,level_db=-inf;pan=0.0;mute=0,GainFast
@@ -84,7 +84,7 @@ C1_GAIN_09,1,GAIN,Ch 9 Gain,1,C1_IN_09,C1_FILT_09,1,1152,gain_db=0.0;mute=0;pola
 C1_FILT_09,1,HPF_LPF,Ch 9 HPF+LPF,1,C1_GAIN_09,C1_EQ_09,1,1156,hpf_freq=80.0;hpf_slope=18;lpf_freq=20000.0,EqSafe
 C1_EQ_09,1,EQ_BIQUAD,Ch 9 EQ,1,C1_FILT_09,C1_GATE_09,1,1168,bands=4;coeffs=default,EqSafe
 C1_GATE_09,1,GATE,Ch 9 Gate,1,C1_EQ_09,C1_COMP_09,1,1192,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0;det_src=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
-C1_COMP_09,1,COMPRESSOR,Ch 9 Comp,1,C1_GATE_09,C1_TUBE_09,1,1208,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=0;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
+C1_COMP_09,1,COMPRESSOR,Ch 9 Comp,1,C1_GATE_09,C1_TUBE_09,1,1208,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
 C1_TUBE_09,1,TUBE_SAT,Ch 9 Tube,1,C1_COMP_09,C1_DLY_09,1,1228,on=0;saturation=0.0,GainFast
 C1_DLY_09,1,DELAY,Ch 9 Delay,1,C1_TUBE_09,C1_FDR_09,1,1230,delay_ms=0.0;local_ms=20.0;max_ms=250.0;pool_slot=-1,InstantCtl
 C1_FDR_09,1,FADER_PAN,Ch 9 Fader,1,C1_DLY_09,C1_RTG_09,1,1232,level_db=-inf;pan=0.0;mute=0,GainFast
@@ -94,7 +94,7 @@ C1_GAIN_10,1,GAIN,Ch 10 Gain,1,C1_IN_10,C1_FILT_10,1,1296,gain_db=0.0;mute=0;pol
 C1_FILT_10,1,HPF_LPF,Ch 10 HPF+LPF,1,C1_GAIN_10,C1_EQ_10,1,1300,hpf_freq=80.0;hpf_slope=18;lpf_freq=20000.0,EqSafe
 C1_EQ_10,1,EQ_BIQUAD,Ch 10 EQ,1,C1_FILT_10,C1_GATE_10,1,1312,bands=4;coeffs=default,EqSafe
 C1_GATE_10,1,GATE,Ch 10 Gate,1,C1_EQ_10,C1_COMP_10,1,1336,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0;det_src=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
-C1_COMP_10,1,COMPRESSOR,Ch 10 Comp,1,C1_GATE_10,C1_TUBE_10,1,1352,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=0;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
+C1_COMP_10,1,COMPRESSOR,Ch 10 Comp,1,C1_GATE_10,C1_TUBE_10,1,1352,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
 C1_TUBE_10,1,TUBE_SAT,Ch 10 Tube,1,C1_COMP_10,C1_DLY_10,1,1372,on=0;saturation=0.0,GainFast
 C1_DLY_10,1,DELAY,Ch 10 Delay,1,C1_TUBE_10,C1_FDR_10,1,1374,delay_ms=0.0;local_ms=20.0;max_ms=250.0;pool_slot=-1,InstantCtl
 C1_FDR_10,1,FADER_PAN,Ch 10 Fader,1,C1_DLY_10,C1_RTG_10,1,1376,level_db=-inf;pan=0.0;mute=0,GainFast
@@ -104,7 +104,7 @@ C1_GAIN_11,1,GAIN,Ch 11 Gain,1,C1_IN_11,C1_FILT_11,1,1440,gain_db=0.0;mute=0;pol
 C1_FILT_11,1,HPF_LPF,Ch 11 HPF+LPF,1,C1_GAIN_11,C1_EQ_11,1,1444,hpf_freq=80.0;hpf_slope=18;lpf_freq=20000.0,EqSafe
 C1_EQ_11,1,EQ_BIQUAD,Ch 11 EQ,1,C1_FILT_11,C1_GATE_11,1,1456,bands=4;coeffs=default,EqSafe
 C1_GATE_11,1,GATE,Ch 11 Gate,1,C1_EQ_11,C1_COMP_11,1,1480,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0;det_src=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
-C1_COMP_11,1,COMPRESSOR,Ch 11 Comp,1,C1_GATE_11,C1_TUBE_11,1,1496,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=0;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
+C1_COMP_11,1,COMPRESSOR,Ch 11 Comp,1,C1_GATE_11,C1_TUBE_11,1,1496,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
 C1_TUBE_11,1,TUBE_SAT,Ch 11 Tube,1,C1_COMP_11,C1_DLY_11,1,1516,on=0;saturation=0.0,GainFast
 C1_DLY_11,1,DELAY,Ch 11 Delay,1,C1_TUBE_11,C1_FDR_11,1,1518,delay_ms=0.0;local_ms=20.0;max_ms=250.0;pool_slot=-1,InstantCtl
 C1_FDR_11,1,FADER_PAN,Ch 11 Fader,1,C1_DLY_11,C1_RTG_11,1,1520,level_db=-inf;pan=0.0;mute=0,GainFast
@@ -114,7 +114,7 @@ C1_GAIN_12,1,GAIN,Ch 12 Gain,1,C1_IN_12,C1_FILT_12,1,1584,gain_db=0.0;mute=0;pol
 C1_FILT_12,1,HPF_LPF,Ch 12 HPF+LPF,1,C1_GAIN_12,C1_EQ_12,1,1588,hpf_freq=80.0;hpf_slope=18;lpf_freq=20000.0,EqSafe
 C1_EQ_12,1,EQ_BIQUAD,Ch 12 EQ,1,C1_FILT_12,C1_GATE_12,1,1600,bands=4;coeffs=default,EqSafe
 C1_GATE_12,1,GATE,Ch 12 Gate,1,C1_EQ_12,C1_COMP_12,1,1624,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0;det_src=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
-C1_COMP_12,1,COMPRESSOR,Ch 12 Comp,1,C1_GATE_12,C1_TUBE_12,1,1640,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=0;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
+C1_COMP_12,1,COMPRESSOR,Ch 12 Comp,1,C1_GATE_12,C1_TUBE_12,1,1640,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
 C1_TUBE_12,1,TUBE_SAT,Ch 12 Tube,1,C1_COMP_12,C1_DLY_12,1,1660,on=0;saturation=0.0,GainFast
 C1_DLY_12,1,DELAY,Ch 12 Delay,1,C1_TUBE_12,C1_FDR_12,1,1662,delay_ms=0.0;local_ms=20.0;max_ms=250.0;pool_slot=-1,InstantCtl
 C1_FDR_12,1,FADER_PAN,Ch 12 Fader,1,C1_DLY_12,C1_RTG_12,1,1664,level_db=-inf;pan=0.0;mute=0,GainFast
@@ -124,7 +124,7 @@ C1_GAIN_13,1,GAIN,Ch 13 Gain,1,C1_IN_13,C1_FILT_13,1,1728,gain_db=0.0;mute=0;pol
 C1_FILT_13,1,HPF_LPF,Ch 13 HPF+LPF,1,C1_GAIN_13,C1_EQ_13,1,1732,hpf_freq=80.0;hpf_slope=18;lpf_freq=20000.0,EqSafe
 C1_EQ_13,1,EQ_BIQUAD,Ch 13 EQ,1,C1_FILT_13,C1_GATE_13,1,1744,bands=4;coeffs=default,EqSafe
 C1_GATE_13,1,GATE,Ch 13 Gate,1,C1_EQ_13,C1_COMP_13,1,1768,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0;det_src=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
-C1_COMP_13,1,COMPRESSOR,Ch 13 Comp,1,C1_GATE_13,C1_TUBE_13,1,1784,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=0;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
+C1_COMP_13,1,COMPRESSOR,Ch 13 Comp,1,C1_GATE_13,C1_TUBE_13,1,1784,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
 C1_TUBE_13,1,TUBE_SAT,Ch 13 Tube,1,C1_COMP_13,C1_DLY_13,1,1804,on=0;saturation=0.0,GainFast
 C1_DLY_13,1,DELAY,Ch 13 Delay,1,C1_TUBE_13,C1_FDR_13,1,1806,delay_ms=0.0;local_ms=20.0;max_ms=250.0;pool_slot=-1,InstantCtl
 C1_FDR_13,1,FADER_PAN,Ch 13 Fader,1,C1_DLY_13,C1_RTG_13,1,1808,level_db=-inf;pan=0.0;mute=0,GainFast
@@ -134,7 +134,7 @@ C1_GAIN_14,1,GAIN,Ch 14 Gain,1,C1_IN_14,C1_FILT_14,1,1872,gain_db=0.0;mute=0;pol
 C1_FILT_14,1,HPF_LPF,Ch 14 HPF+LPF,1,C1_GAIN_14,C1_EQ_14,1,1876,hpf_freq=80.0;hpf_slope=18;lpf_freq=20000.0,EqSafe
 C1_EQ_14,1,EQ_BIQUAD,Ch 14 EQ,1,C1_FILT_14,C1_GATE_14,1,1888,bands=4;coeffs=default,EqSafe
 C1_GATE_14,1,GATE,Ch 14 Gate,1,C1_EQ_14,C1_COMP_14,1,1912,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0;det_src=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
-C1_COMP_14,1,COMPRESSOR,Ch 14 Comp,1,C1_GATE_14,C1_TUBE_14,1,1928,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=0;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
+C1_COMP_14,1,COMPRESSOR,Ch 14 Comp,1,C1_GATE_14,C1_TUBE_14,1,1928,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
 C1_TUBE_14,1,TUBE_SAT,Ch 14 Tube,1,C1_COMP_14,C1_DLY_14,1,1948,on=0;saturation=0.0,GainFast
 C1_DLY_14,1,DELAY,Ch 14 Delay,1,C1_TUBE_14,C1_FDR_14,1,1950,delay_ms=0.0;local_ms=20.0;max_ms=250.0;pool_slot=-1,InstantCtl
 C1_FDR_14,1,FADER_PAN,Ch 14 Fader,1,C1_DLY_14,C1_RTG_14,1,1952,level_db=-inf;pan=0.0;mute=0,GainFast
@@ -144,7 +144,7 @@ C1_GAIN_15,1,GAIN,Ch 15 Gain,1,C1_IN_15,C1_FILT_15,1,2016,gain_db=0.0;mute=0;pol
 C1_FILT_15,1,HPF_LPF,Ch 15 HPF+LPF,1,C1_GAIN_15,C1_EQ_15,1,2020,hpf_freq=80.0;hpf_slope=18;lpf_freq=20000.0,EqSafe
 C1_EQ_15,1,EQ_BIQUAD,Ch 15 EQ,1,C1_FILT_15,C1_GATE_15,1,2032,bands=4;coeffs=default,EqSafe
 C1_GATE_15,1,GATE,Ch 15 Gate,1,C1_EQ_15,C1_COMP_15,1,2056,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0;det_src=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
-C1_COMP_15,1,COMPRESSOR,Ch 15 Comp,1,C1_GATE_15,C1_TUBE_15,1,2072,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=0;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
+C1_COMP_15,1,COMPRESSOR,Ch 15 Comp,1,C1_GATE_15,C1_TUBE_15,1,2072,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
 C1_TUBE_15,1,TUBE_SAT,Ch 15 Tube,1,C1_COMP_15,C1_DLY_15,1,2092,on=0;saturation=0.0,GainFast
 C1_DLY_15,1,DELAY,Ch 15 Delay,1,C1_TUBE_15,C1_FDR_15,1,2094,delay_ms=0.0;local_ms=20.0;max_ms=250.0;pool_slot=-1,InstantCtl
 C1_FDR_15,1,FADER_PAN,Ch 15 Fader,1,C1_DLY_15,C1_RTG_15,1,2096,level_db=-inf;pan=0.0;mute=0,GainFast
@@ -154,7 +154,7 @@ C1_GAIN_16,1,GAIN,Ch 16 Gain,1,C1_IN_16,C1_FILT_16,1,2160,gain_db=0.0;mute=0;pol
 C1_FILT_16,1,HPF_LPF,Ch 16 HPF+LPF,1,C1_GAIN_16,C1_EQ_16,1,2164,hpf_freq=80.0;hpf_slope=18;lpf_freq=20000.0,EqSafe
 C1_EQ_16,1,EQ_BIQUAD,Ch 16 EQ,1,C1_FILT_16,C1_GATE_16,1,2176,bands=4;coeffs=default,EqSafe
 C1_GATE_16,1,GATE,Ch 16 Gate,1,C1_EQ_16,C1_COMP_16,1,2200,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0;det_src=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
-C1_COMP_16,1,COMPRESSOR,Ch 16 Comp,1,C1_GATE_16,C1_TUBE_16,1,2216,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=0;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
+C1_COMP_16,1,COMPRESSOR,Ch 16 Comp,1,C1_GATE_16,C1_TUBE_16,1,2216,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
 C1_TUBE_16,1,TUBE_SAT,Ch 16 Tube,1,C1_COMP_16,C1_DLY_16,1,2236,on=0;saturation=0.0,GainFast
 C1_DLY_16,1,DELAY,Ch 16 Delay,1,C1_TUBE_16,C1_FDR_16,1,2238,delay_ms=0.0;local_ms=20.0;max_ms=250.0;pool_slot=-1,InstantCtl
 C1_FDR_16,1,FADER_PAN,Ch 16 Fader,1,C1_DLY_16,C1_RTG_16,1,2240,level_db=-inf;pan=0.0;mute=0,GainFast
@@ -164,7 +164,7 @@ C1_GAIN_17,1,GAIN,Ch 17 Gain,1,C1_IN_17,C1_FILT_17,1,2304,gain_db=0.0;mute=0;pol
 C1_FILT_17,1,HPF_LPF,Ch 17 HPF+LPF,1,C1_GAIN_17,C1_EQ_17,1,2308,hpf_freq=80.0;hpf_slope=18;lpf_freq=20000.0,EqSafe
 C1_EQ_17,1,EQ_BIQUAD,Ch 17 EQ,1,C1_FILT_17,C1_GATE_17,1,2320,bands=4;coeffs=default,EqSafe
 C1_GATE_17,1,GATE,Ch 17 Gate,1,C1_EQ_17,C1_COMP_17,1,2344,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0;det_src=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
-C1_COMP_17,1,COMPRESSOR,Ch 17 Comp,1,C1_GATE_17,C1_TUBE_17,1,2360,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=0;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
+C1_COMP_17,1,COMPRESSOR,Ch 17 Comp,1,C1_GATE_17,C1_TUBE_17,1,2360,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
 C1_TUBE_17,1,TUBE_SAT,Ch 17 Tube,1,C1_COMP_17,C1_DLY_17,1,2380,on=0;saturation=0.0,GainFast
 C1_DLY_17,1,DELAY,Ch 17 Delay,1,C1_TUBE_17,C1_FDR_17,1,2382,delay_ms=0.0;local_ms=20.0;max_ms=250.0;pool_slot=-1,InstantCtl
 C1_FDR_17,1,FADER_PAN,Ch 17 Fader,1,C1_DLY_17,C1_RTG_17,1,2384,level_db=-inf;pan=0.0;mute=0,GainFast
@@ -174,7 +174,7 @@ C1_GAIN_18,1,GAIN,Ch 18 Gain,1,C1_IN_18,C1_FILT_18,1,2448,gain_db=0.0;mute=0;pol
 C1_FILT_18,1,HPF_LPF,Ch 18 HPF+LPF,1,C1_GAIN_18,C1_EQ_18,1,2452,hpf_freq=80.0;hpf_slope=18;lpf_freq=20000.0,EqSafe
 C1_EQ_18,1,EQ_BIQUAD,Ch 18 EQ,1,C1_FILT_18,C1_GATE_18,1,2464,bands=4;coeffs=default,EqSafe
 C1_GATE_18,1,GATE,Ch 18 Gate,1,C1_EQ_18,C1_COMP_18,1,2488,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0;det_src=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
-C1_COMP_18,1,COMPRESSOR,Ch 18 Comp,1,C1_GATE_18,C1_TUBE_18,1,2504,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=0;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
+C1_COMP_18,1,COMPRESSOR,Ch 18 Comp,1,C1_GATE_18,C1_TUBE_18,1,2504,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
 C1_TUBE_18,1,TUBE_SAT,Ch 18 Tube,1,C1_COMP_18,C1_DLY_18,1,2524,on=0;saturation=0.0,GainFast
 C1_DLY_18,1,DELAY,Ch 18 Delay,1,C1_TUBE_18,C1_FDR_18,1,2526,delay_ms=0.0;local_ms=20.0;max_ms=250.0;pool_slot=-1,InstantCtl
 C1_FDR_18,1,FADER_PAN,Ch 18 Fader,1,C1_DLY_18,C1_RTG_18,1,2528,level_db=-inf;pan=0.0;mute=0,GainFast
@@ -184,7 +184,7 @@ C1_GAIN_19,1,GAIN,Ch 19 Gain,1,C1_IN_19,C1_FILT_19,1,2592,gain_db=0.0;mute=0;pol
 C1_FILT_19,1,HPF_LPF,Ch 19 HPF+LPF,1,C1_GAIN_19,C1_EQ_19,1,2596,hpf_freq=80.0;hpf_slope=18;lpf_freq=20000.0,EqSafe
 C1_EQ_19,1,EQ_BIQUAD,Ch 19 EQ,1,C1_FILT_19,C1_GATE_19,1,2608,bands=4;coeffs=default,EqSafe
 C1_GATE_19,1,GATE,Ch 19 Gate,1,C1_EQ_19,C1_COMP_19,1,2632,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0;det_src=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
-C1_COMP_19,1,COMPRESSOR,Ch 19 Comp,1,C1_GATE_19,C1_TUBE_19,1,2648,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=0;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
+C1_COMP_19,1,COMPRESSOR,Ch 19 Comp,1,C1_GATE_19,C1_TUBE_19,1,2648,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
 C1_TUBE_19,1,TUBE_SAT,Ch 19 Tube,1,C1_COMP_19,C1_DLY_19,1,2668,on=0;saturation=0.0,GainFast
 C1_DLY_19,1,DELAY,Ch 19 Delay,1,C1_TUBE_19,C1_FDR_19,1,2670,delay_ms=0.0;local_ms=20.0;max_ms=250.0;pool_slot=-1,InstantCtl
 C1_FDR_19,1,FADER_PAN,Ch 19 Fader,1,C1_DLY_19,C1_RTG_19,1,2672,level_db=-inf;pan=0.0;mute=0,GainFast
@@ -194,7 +194,7 @@ C1_GAIN_20,1,GAIN,Ch 20 Gain,1,C1_IN_20,C1_FILT_20,1,2736,gain_db=0.0;mute=0;pol
 C1_FILT_20,1,HPF_LPF,Ch 20 HPF+LPF,1,C1_GAIN_20,C1_EQ_20,1,2740,hpf_freq=80.0;hpf_slope=18;lpf_freq=20000.0,EqSafe
 C1_EQ_20,1,EQ_BIQUAD,Ch 20 EQ,1,C1_FILT_20,C1_GATE_20,1,2752,bands=4;coeffs=default,EqSafe
 C1_GATE_20,1,GATE,Ch 20 Gate,1,C1_EQ_20,C1_COMP_20,1,2776,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0;det_src=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
-C1_COMP_20,1,COMPRESSOR,Ch 20 Comp,1,C1_GATE_20,C1_TUBE_20,1,2792,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=0;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
+C1_COMP_20,1,COMPRESSOR,Ch 20 Comp,1,C1_GATE_20,C1_TUBE_20,1,2792,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
 C1_TUBE_20,1,TUBE_SAT,Ch 20 Tube,1,C1_COMP_20,C1_DLY_20,1,2812,on=0;saturation=0.0,GainFast
 C1_DLY_20,1,DELAY,Ch 20 Delay,1,C1_TUBE_20,C1_FDR_20,1,2814,delay_ms=0.0;local_ms=20.0;max_ms=250.0;pool_slot=-1,InstantCtl
 C1_FDR_20,1,FADER_PAN,Ch 20 Fader,1,C1_DLY_20,C1_RTG_20,1,2816,level_db=-inf;pan=0.0;mute=0,GainFast
@@ -204,7 +204,7 @@ C1_GAIN_21,1,GAIN,Ch 21 Gain,1,C1_IN_21,C1_FILT_21,1,2880,gain_db=0.0;mute=0;pol
 C1_FILT_21,1,HPF_LPF,Ch 21 HPF+LPF,1,C1_GAIN_21,C1_EQ_21,1,2884,hpf_freq=80.0;hpf_slope=18;lpf_freq=20000.0,EqSafe
 C1_EQ_21,1,EQ_BIQUAD,Ch 21 EQ,1,C1_FILT_21,C1_GATE_21,1,2896,bands=4;coeffs=default,EqSafe
 C1_GATE_21,1,GATE,Ch 21 Gate,1,C1_EQ_21,C1_COMP_21,1,2920,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0;det_src=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
-C1_COMP_21,1,COMPRESSOR,Ch 21 Comp,1,C1_GATE_21,C1_TUBE_21,1,2936,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=0;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
+C1_COMP_21,1,COMPRESSOR,Ch 21 Comp,1,C1_GATE_21,C1_TUBE_21,1,2936,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
 C1_TUBE_21,1,TUBE_SAT,Ch 21 Tube,1,C1_COMP_21,C1_DLY_21,1,2956,on=0;saturation=0.0,GainFast
 C1_DLY_21,1,DELAY,Ch 21 Delay,1,C1_TUBE_21,C1_FDR_21,1,2958,delay_ms=0.0;local_ms=20.0;max_ms=250.0;pool_slot=-1,InstantCtl
 C1_FDR_21,1,FADER_PAN,Ch 21 Fader,1,C1_DLY_21,C1_RTG_21,1,2960,level_db=-inf;pan=0.0;mute=0,GainFast
@@ -214,7 +214,7 @@ C1_GAIN_22,1,GAIN,Ch 22 Gain,1,C1_IN_22,C1_FILT_22,1,3024,gain_db=0.0;mute=0;pol
 C1_FILT_22,1,HPF_LPF,Ch 22 HPF+LPF,1,C1_GAIN_22,C1_EQ_22,1,3028,hpf_freq=80.0;hpf_slope=18;lpf_freq=20000.0,EqSafe
 C1_EQ_22,1,EQ_BIQUAD,Ch 22 EQ,1,C1_FILT_22,C1_GATE_22,1,3040,bands=4;coeffs=default,EqSafe
 C1_GATE_22,1,GATE,Ch 22 Gate,1,C1_EQ_22,C1_COMP_22,1,3064,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0;det_src=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
-C1_COMP_22,1,COMPRESSOR,Ch 22 Comp,1,C1_GATE_22,C1_TUBE_22,1,3080,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=0;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
+C1_COMP_22,1,COMPRESSOR,Ch 22 Comp,1,C1_GATE_22,C1_TUBE_22,1,3080,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
 C1_TUBE_22,1,TUBE_SAT,Ch 22 Tube,1,C1_COMP_22,C1_DLY_22,1,3100,on=0;saturation=0.0,GainFast
 C1_DLY_22,1,DELAY,Ch 22 Delay,1,C1_TUBE_22,C1_FDR_22,1,3102,delay_ms=0.0;local_ms=20.0;max_ms=250.0;pool_slot=-1,InstantCtl
 C1_FDR_22,1,FADER_PAN,Ch 22 Fader,1,C1_DLY_22,C1_RTG_22,1,3104,level_db=-inf;pan=0.0;mute=0,GainFast
@@ -224,7 +224,7 @@ C1_GAIN_23,1,GAIN,Ch 23 Gain,1,C1_IN_23,C1_FILT_23,1,3168,gain_db=0.0;mute=0;pol
 C1_FILT_23,1,HPF_LPF,Ch 23 HPF+LPF,1,C1_GAIN_23,C1_EQ_23,1,3172,hpf_freq=80.0;hpf_slope=18;lpf_freq=20000.0,EqSafe
 C1_EQ_23,1,EQ_BIQUAD,Ch 23 EQ,1,C1_FILT_23,C1_GATE_23,1,3184,bands=4;coeffs=default,EqSafe
 C1_GATE_23,1,GATE,Ch 23 Gate,1,C1_EQ_23,C1_COMP_23,1,3208,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0;det_src=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
-C1_COMP_23,1,COMPRESSOR,Ch 23 Comp,1,C1_GATE_23,C1_TUBE_23,1,3224,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=0;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
+C1_COMP_23,1,COMPRESSOR,Ch 23 Comp,1,C1_GATE_23,C1_TUBE_23,1,3224,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
 C1_TUBE_23,1,TUBE_SAT,Ch 23 Tube,1,C1_COMP_23,C1_DLY_23,1,3244,on=0;saturation=0.0,GainFast
 C1_DLY_23,1,DELAY,Ch 23 Delay,1,C1_TUBE_23,C1_FDR_23,1,3246,delay_ms=0.0;local_ms=20.0;max_ms=250.0;pool_slot=-1,InstantCtl
 C1_FDR_23,1,FADER_PAN,Ch 23 Fader,1,C1_DLY_23,C1_RTG_23,1,3248,level_db=-inf;pan=0.0;mute=0,GainFast
@@ -234,7 +234,7 @@ C1_GAIN_24,1,GAIN,Ch 24 Gain,1,C1_IN_24,C1_FILT_24,1,3312,gain_db=0.0;mute=0;pol
 C1_FILT_24,1,HPF_LPF,Ch 24 HPF+LPF,1,C1_GAIN_24,C1_EQ_24,1,3316,hpf_freq=80.0;hpf_slope=18;lpf_freq=20000.0,EqSafe
 C1_EQ_24,1,EQ_BIQUAD,Ch 24 EQ,1,C1_FILT_24,C1_GATE_24,1,3328,bands=4;coeffs=default,EqSafe
 C1_GATE_24,1,GATE,Ch 24 Gate,1,C1_EQ_24,C1_COMP_24,1,3352,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0;det_src=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
-C1_COMP_24,1,COMPRESSOR,Ch 24 Comp,1,C1_GATE_24,C1_TUBE_24,1,3368,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=0;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
+C1_COMP_24,1,COMPRESSOR,Ch 24 Comp,1,C1_GATE_24,C1_TUBE_24,1,3368,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
 C1_TUBE_24,1,TUBE_SAT,Ch 24 Tube,1,C1_COMP_24,C1_DLY_24,1,3388,on=0;saturation=0.0,GainFast
 C1_DLY_24,1,DELAY,Ch 24 Delay,1,C1_TUBE_24,C1_FDR_24,1,3390,delay_ms=0.0;local_ms=20.0;max_ms=250.0;pool_slot=-1,InstantCtl
 C1_FDR_24,1,FADER_PAN,Ch 24 Fader,1,C1_DLY_24,C1_RTG_24,1,3392,level_db=-inf;pan=0.0;mute=0,GainFast
@@ -244,7 +244,7 @@ C1_GAIN_25,1,GAIN,Ch 25 Gain,1,C1_IN_25,C1_FILT_25,1,3456,gain_db=0.0;mute=0;pol
 C1_FILT_25,1,HPF_LPF,Ch 25 HPF+LPF,1,C1_GAIN_25,C1_EQ_25,1,3460,hpf_freq=80.0;hpf_slope=18;lpf_freq=20000.0,EqSafe
 C1_EQ_25,1,EQ_BIQUAD,Ch 25 EQ,1,C1_FILT_25,C1_GATE_25,1,3472,bands=4;coeffs=default,EqSafe
 C1_GATE_25,1,GATE,Ch 25 Gate,1,C1_EQ_25,C1_COMP_25,1,3496,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0;det_src=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
-C1_COMP_25,1,COMPRESSOR,Ch 25 Comp,1,C1_GATE_25,C1_TUBE_25,1,3512,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=0;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
+C1_COMP_25,1,COMPRESSOR,Ch 25 Comp,1,C1_GATE_25,C1_TUBE_25,1,3512,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
 C1_TUBE_25,1,TUBE_SAT,Ch 25 Tube,1,C1_COMP_25,C1_DLY_25,1,3532,on=0;saturation=0.0,GainFast
 C1_DLY_25,1,DELAY,Ch 25 Delay,1,C1_TUBE_25,C1_FDR_25,1,3534,delay_ms=0.0;local_ms=20.0;max_ms=250.0;pool_slot=-1,InstantCtl
 C1_FDR_25,1,FADER_PAN,Ch 25 Fader,1,C1_DLY_25,C1_RTG_25,1,3536,level_db=-inf;pan=0.0;mute=0,GainFast
@@ -254,7 +254,7 @@ C1_GAIN_26,1,GAIN,Ch 26 Gain,1,C1_IN_26,C1_FILT_26,1,3600,gain_db=0.0;mute=0;pol
 C1_FILT_26,1,HPF_LPF,Ch 26 HPF+LPF,1,C1_GAIN_26,C1_EQ_26,1,3604,hpf_freq=80.0;hpf_slope=18;lpf_freq=20000.0,EqSafe
 C1_EQ_26,1,EQ_BIQUAD,Ch 26 EQ,1,C1_FILT_26,C1_GATE_26,1,3616,bands=4;coeffs=default,EqSafe
 C1_GATE_26,1,GATE,Ch 26 Gate,1,C1_EQ_26,C1_COMP_26,1,3640,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0;det_src=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
-C1_COMP_26,1,COMPRESSOR,Ch 26 Comp,1,C1_GATE_26,C1_TUBE_26,1,3656,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=0;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
+C1_COMP_26,1,COMPRESSOR,Ch 26 Comp,1,C1_GATE_26,C1_TUBE_26,1,3656,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
 C1_TUBE_26,1,TUBE_SAT,Ch 26 Tube,1,C1_COMP_26,C1_DLY_26,1,3676,on=0;saturation=0.0,GainFast
 C1_DLY_26,1,DELAY,Ch 26 Delay,1,C1_TUBE_26,C1_FDR_26,1,3678,delay_ms=0.0;local_ms=20.0;max_ms=250.0;pool_slot=-1,InstantCtl
 C1_FDR_26,1,FADER_PAN,Ch 26 Fader,1,C1_DLY_26,C1_RTG_26,1,3680,level_db=-inf;pan=0.0;mute=0,GainFast
@@ -264,7 +264,7 @@ C1_GAIN_27,1,GAIN,Ch 27 Gain,1,C1_IN_27,C1_FILT_27,1,3744,gain_db=0.0;mute=0;pol
 C1_FILT_27,1,HPF_LPF,Ch 27 HPF+LPF,1,C1_GAIN_27,C1_EQ_27,1,3748,hpf_freq=80.0;hpf_slope=18;lpf_freq=20000.0,EqSafe
 C1_EQ_27,1,EQ_BIQUAD,Ch 27 EQ,1,C1_FILT_27,C1_GATE_27,1,3760,bands=4;coeffs=default,EqSafe
 C1_GATE_27,1,GATE,Ch 27 Gate,1,C1_EQ_27,C1_COMP_27,1,3784,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0;det_src=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
-C1_COMP_27,1,COMPRESSOR,Ch 27 Comp,1,C1_GATE_27,C1_TUBE_27,1,3800,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=0;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
+C1_COMP_27,1,COMPRESSOR,Ch 27 Comp,1,C1_GATE_27,C1_TUBE_27,1,3800,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
 C1_TUBE_27,1,TUBE_SAT,Ch 27 Tube,1,C1_COMP_27,C1_DLY_27,1,3820,on=0;saturation=0.0,GainFast
 C1_DLY_27,1,DELAY,Ch 27 Delay,1,C1_TUBE_27,C1_FDR_27,1,3822,delay_ms=0.0;local_ms=20.0;max_ms=250.0;pool_slot=-1,InstantCtl
 C1_FDR_27,1,FADER_PAN,Ch 27 Fader,1,C1_DLY_27,C1_RTG_27,1,3824,level_db=-inf;pan=0.0;mute=0,GainFast
@@ -274,7 +274,7 @@ C1_GAIN_28,1,GAIN,Ch 28 Gain,1,C1_IN_28,C1_FILT_28,1,3888,gain_db=0.0;mute=0;pol
 C1_FILT_28,1,HPF_LPF,Ch 28 HPF+LPF,1,C1_GAIN_28,C1_EQ_28,1,3892,hpf_freq=80.0;hpf_slope=18;lpf_freq=20000.0,EqSafe
 C1_EQ_28,1,EQ_BIQUAD,Ch 28 EQ,1,C1_FILT_28,C1_GATE_28,1,3904,bands=4;coeffs=default,EqSafe
 C1_GATE_28,1,GATE,Ch 28 Gate,1,C1_EQ_28,C1_COMP_28,1,3928,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0;det_src=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
-C1_COMP_28,1,COMPRESSOR,Ch 28 Comp,1,C1_GATE_28,C1_TUBE_28,1,3944,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=0;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
+C1_COMP_28,1,COMPRESSOR,Ch 28 Comp,1,C1_GATE_28,C1_TUBE_28,1,3944,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
 C1_TUBE_28,1,TUBE_SAT,Ch 28 Tube,1,C1_COMP_28,C1_DLY_28,1,3964,on=0;saturation=0.0,GainFast
 C1_DLY_28,1,DELAY,Ch 28 Delay,1,C1_TUBE_28,C1_FDR_28,1,3966,delay_ms=0.0;local_ms=20.0;max_ms=250.0;pool_slot=-1,InstantCtl
 C1_FDR_28,1,FADER_PAN,Ch 28 Fader,1,C1_DLY_28,C1_RTG_28,1,3968,level_db=-inf;pan=0.0;mute=0,GainFast
@@ -284,7 +284,7 @@ C1_GAIN_29,1,GAIN,Ch 29 Gain,1,C1_IN_29,C1_FILT_29,1,4032,gain_db=0.0;mute=0;pol
 C1_FILT_29,1,HPF_LPF,Ch 29 HPF+LPF,1,C1_GAIN_29,C1_EQ_29,1,4036,hpf_freq=80.0;hpf_slope=18;lpf_freq=20000.0,EqSafe
 C1_EQ_29,1,EQ_BIQUAD,Ch 29 EQ,1,C1_FILT_29,C1_GATE_29,1,4048,bands=4;coeffs=default,EqSafe
 C1_GATE_29,1,GATE,Ch 29 Gate,1,C1_EQ_29,C1_COMP_29,1,4072,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0;det_src=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
-C1_COMP_29,1,COMPRESSOR,Ch 29 Comp,1,C1_GATE_29,C1_TUBE_29,1,4088,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=0;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
+C1_COMP_29,1,COMPRESSOR,Ch 29 Comp,1,C1_GATE_29,C1_TUBE_29,1,4088,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
 C1_TUBE_29,1,TUBE_SAT,Ch 29 Tube,1,C1_COMP_29,C1_DLY_29,1,4108,on=0;saturation=0.0,GainFast
 C1_DLY_29,1,DELAY,Ch 29 Delay,1,C1_TUBE_29,C1_FDR_29,1,4110,delay_ms=0.0;local_ms=20.0;max_ms=250.0;pool_slot=-1,InstantCtl
 C1_FDR_29,1,FADER_PAN,Ch 29 Fader,1,C1_DLY_29,C1_RTG_29,1,4112,level_db=-inf;pan=0.0;mute=0,GainFast
@@ -294,7 +294,7 @@ C1_GAIN_30,1,GAIN,Ch 30 Gain,1,C1_IN_30,C1_FILT_30,1,4176,gain_db=0.0;mute=0;pol
 C1_FILT_30,1,HPF_LPF,Ch 30 HPF+LPF,1,C1_GAIN_30,C1_EQ_30,1,4180,hpf_freq=80.0;hpf_slope=18;lpf_freq=20000.0,EqSafe
 C1_EQ_30,1,EQ_BIQUAD,Ch 30 EQ,1,C1_FILT_30,C1_GATE_30,1,4192,bands=4;coeffs=default,EqSafe
 C1_GATE_30,1,GATE,Ch 30 Gate,1,C1_EQ_30,C1_COMP_30,1,4216,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0;det_src=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
-C1_COMP_30,1,COMPRESSOR,Ch 30 Comp,1,C1_GATE_30,C1_TUBE_30,1,4232,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=0;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
+C1_COMP_30,1,COMPRESSOR,Ch 30 Comp,1,C1_GATE_30,C1_TUBE_30,1,4232,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
 C1_TUBE_30,1,TUBE_SAT,Ch 30 Tube,1,C1_COMP_30,C1_DLY_30,1,4252,on=0;saturation=0.0,GainFast
 C1_DLY_30,1,DELAY,Ch 30 Delay,1,C1_TUBE_30,C1_FDR_30,1,4254,delay_ms=0.0;local_ms=20.0;max_ms=250.0;pool_slot=-1,InstantCtl
 C1_FDR_30,1,FADER_PAN,Ch 30 Fader,1,C1_DLY_30,C1_RTG_30,1,4256,level_db=-inf;pan=0.0;mute=0,GainFast
@@ -304,7 +304,7 @@ C1_GAIN_31,1,GAIN,Ch 31 Gain,1,C1_IN_31,C1_FILT_31,1,4320,gain_db=0.0;mute=0;pol
 C1_FILT_31,1,HPF_LPF,Ch 31 HPF+LPF,1,C1_GAIN_31,C1_EQ_31,1,4324,hpf_freq=80.0;hpf_slope=18;lpf_freq=20000.0,EqSafe
 C1_EQ_31,1,EQ_BIQUAD,Ch 31 EQ,1,C1_FILT_31,C1_GATE_31,1,4336,bands=4;coeffs=default,EqSafe
 C1_GATE_31,1,GATE,Ch 31 Gate,1,C1_EQ_31,C1_COMP_31,1,4360,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0;det_src=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
-C1_COMP_31,1,COMPRESSOR,Ch 31 Comp,1,C1_GATE_31,C1_TUBE_31,1,4376,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=0;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
+C1_COMP_31,1,COMPRESSOR,Ch 31 Comp,1,C1_GATE_31,C1_TUBE_31,1,4376,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
 C1_TUBE_31,1,TUBE_SAT,Ch 31 Tube,1,C1_COMP_31,C1_DLY_31,1,4396,on=0;saturation=0.0,GainFast
 C1_DLY_31,1,DELAY,Ch 31 Delay,1,C1_TUBE_31,C1_FDR_31,1,4398,delay_ms=0.0;local_ms=20.0;max_ms=250.0;pool_slot=-1,InstantCtl
 C1_FDR_31,1,FADER_PAN,Ch 31 Fader,1,C1_DLY_31,C1_RTG_31,1,4400,level_db=-inf;pan=0.0;mute=0,GainFast
@@ -314,7 +314,7 @@ C1_GAIN_32,1,GAIN,Ch 32 Gain,1,C1_IN_32,C1_FILT_32,1,4464,gain_db=0.0;mute=0;pol
 C1_FILT_32,1,HPF_LPF,Ch 32 HPF+LPF,1,C1_GAIN_32,C1_EQ_32,1,4468,hpf_freq=80.0;hpf_slope=18;lpf_freq=20000.0,EqSafe
 C1_EQ_32,1,EQ_BIQUAD,Ch 32 EQ,1,C1_FILT_32,C1_GATE_32,1,4480,bands=4;coeffs=default,EqSafe
 C1_GATE_32,1,GATE,Ch 32 Gate,1,C1_EQ_32,C1_COMP_32,1,4504,threshold_db=-40.0;attack_ms=1.0;hold_ms=50.0;release_ms=100.0;range_db=60.0;key=0;det_src=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
-C1_COMP_32,1,COMPRESSOR,Ch 32 Comp,1,C1_GATE_32,C1_TUBE_32,1,4520,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=0;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
+C1_COMP_32,1,COMPRESSOR,Ch 32 Comp,1,C1_GATE_32,C1_TUBE_32,1,4520,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0,DynSafe
 C1_TUBE_32,1,TUBE_SAT,Ch 32 Tube,1,C1_COMP_32,C1_DLY_32,1,4540,on=0;saturation=0.0,GainFast
 C1_DLY_32,1,DELAY,Ch 32 Delay,1,C1_TUBE_32,C1_FDR_32,1,4542,delay_ms=0.0;local_ms=20.0;max_ms=250.0;pool_slot=-1,InstantCtl
 C1_FDR_32,1,FADER_PAN,Ch 32 Fader,1,C1_DLY_32,C1_RTG_32,1,4544,level_db=-inf;pan=0.0;mute=0,GainFast
@@ -591,7 +591,7 @@ C2_MIX_MAIN_L,2,MIX_BUS,Main Mix L,1,C2_RECV_MAIN_L;C2_GRP_COMP_01;C2_GRP_COMP_0
 C2_MIX_MAIN_R,2,MIX_BUS,Main Mix R,1,C2_RECV_MAIN_R;C2_GRP_COMP_01;C2_GRP_COMP_02;C2_GRP_COMP_03;C2_GRP_COMP_04;C2_USB_IN;C2_BT_IN;C2_CODEC_AUX_IN;C2_PI_IN;C2_SNK_IN_01;C2_SNK_IN_02;C2_SNK_IN_03;C2_SNK_IN_04;C2_SNK_IN_05;C2_SNK_IN_06;C2_SNK_IN_07;C2_SNK_IN_08,C2_MAIN_FDR,1,1339,bus_id=1,
 C2_MAIN_FDR,2,FADER_PAN,Main Fader,2,C2_MIX_MAIN_L;C2_MIX_MAIN_R,C2_MAIN_GEQ,1,1343,level_db=0.0;mute=0,GainFast
 C2_MAIN_GEQ,2,GEQ,Main GEQ,2,C2_MAIN_FDR,C2_MAIN_COMP,1,1347,bands=28,EqSafe
-C2_MAIN_COMP,2,COMPRESSOR,Main Comp,2,C2_MAIN_GEQ,C2_MAIN_LIM,1,1375,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=0;type=VCA,DynSafe
+C2_MAIN_COMP,2,COMPRESSOR,Main Comp,2,C2_MAIN_GEQ,C2_MAIN_LIM,1,1375,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA,DynSafe
 C2_MAIN_LIM,2,LIMITER,Main Lim,2,C2_MAIN_COMP,C2_MAIN_DLY,1,1391,threshold_db=-0.5;attack_ms=0.1;release_ms=50.0,DynSafe
 C2_MAIN_DLY,2,DELAY,Main Delay,2,C2_MAIN_LIM,C2_MAIN_XOVER;C2_MAIN_ST_OUT;C2_CODEC_AUX_OUT,1,1395,delay_ms=0.0;max_ms=250.0,InstantCtl
 C2_MAIN_XOVER,2,CROSSOVER,Main Xover,2,C2_MAIN_DLY,C2_MAIN_OUT_01;C2_MAIN_OUT_02;C2_MAIN_OUT_03;C2_MAIN_OUT_04,1,1397,freq=120.0;slope=24,EqSafe

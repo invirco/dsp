@@ -40,6 +40,7 @@ negative control; the absence of output is not a result.
 | biquad vs model | `./bqst.sh` | 0 of 16 both arms, negative control fires |
 | dynamics | `./dynst.sh` | 0 of 32 on all three arms |
 | numerics | `./numverify.sh` | 57/57 |
+| cell semantics | `./dcapar.sh` | `VERDICT: PASS` — RtgDca=0 leaves the bus carrying and reads word-for-word identical to RtgDca=1.0, and the compressor's threshold moves the bus **with CompPar untouched at its default**. Two defaults that were both wrong on 2026-08-30 (D57, D59) and that nothing else in this table would notice going wrong again: every other bar writes the cells it depends on. |
 | meter | `./mtrverify.sh` | ms64 and both pk64 words exact, **and both negative controls fire** — the BLOCK-32 coefficients and the retired narrow (rounded-store) meter form. The wide-word control moves the gain off unity on purpose: at unity the two forms carry the same value and the primary comparison cannot separate them. |
 
 **The conformance run is the only bar that measures the kernel against

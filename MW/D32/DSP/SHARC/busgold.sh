@@ -8,11 +8,15 @@
 # graph and require it to reproduce, word for word, the capture the code
 # produced before the batch.
 #
-#   goldens/busgraph-postD40-20260830.json      <- THE CURRENT GOLDEN
-#       taken 2026-08-30 on the tree at 7afe947 (session 4's last commit),
+#   goldens/busgraph-postD59-20260830.json      <- THE CURRENT GOLDEN
+#       taken 2026-08-30 (session 6) with CompPar's default at 100 %,
 #       DSP4_BLOCK_KERNELS=1, DSP4_STRIPS=2, strip 1 driven and strip 2
 #       muted, 256 consecutive words of _buf_C1_BUS_MAIN_L.
-#       sha256 a2f1a00a...
+#       sha256 ba3f52ec...
+#
+#   goldens/busgraph-postD40-20260830.json      <- RETIRED, kept as evidence
+#       the same capture with CompPar's default at 0, on the tree at
+#       7afe947 (session 4's last commit). sha256 a2f1a00a...
 #
 #   goldens/busgraph-prebatch-20260829.json     <- RETIRED, kept as evidence
 #       the same capture on the tree at 87fded2. sha256 811af470...
@@ -33,7 +37,22 @@
 # The last line is the useful one: session 5's wide-word metering, its D55
 # fix and its paired biquads produce a bus capture BYTE-IDENTICAL to the
 # tree they were built on. The 62 words are D39/D40's, they are intended,
-# and the golden below is the re-baseline.
+# and that golden was session 5's re-baseline.
+#
+# AND IT WAS RE-TAKEN AGAIN ON 2026-08-30 (session 6), IN THE SESSION THAT
+# INVALIDATED IT, which is the rule the paragraph above exists to state.
+# Review finding D59 moved CompPar's power-on value from 0 to 100 %, so a
+# default-configured strip's compressor went from FULLY DRY to fully wet —
+# and this bar's harness deliberately does not write CompPar, so the change
+# lands in the capture: 234 of 256 words differ against the postD40 golden,
+# first at word 22 (0x03FFFFF6 dry vs 0x03E8273B compressed), maxdiff
+# 45,807,405. The audio change is the fix; the golden below is this
+# session's re-baseline, sha256 ba3f52ec, and the retired one is kept
+# beside it.
+#
+# (D57 landed in the same session and is NOT in those 234 words: RtgDca
+# now reaches no audio, proven separately by dcapar.sh — 0 of 32 bus words
+# differ between RtgDca 0 and RtgDca 1.0.)
 #
 # The harness is dsp4_pairgraph.py unchanged: it configures both strips over
 # SPI with OPPOSITE dynamics settings, so the two lanes sit in opposite arms
@@ -50,7 +69,7 @@ cd "$(dirname "$0")"
 BENCH=app@192.168.1.219
 ROOT=../../../..
 STRIP="${STRIP:-1}"; N="${N:-256}"; STRIPS="${STRIPS:-2}"; TAG="${TAG:-cur}"
-GOLD="${GOLD:-goldens/busgraph-postD40-20260830.json}"
+GOLD="${GOLD:-goldens/busgraph-postD59-20260830.json}"
 OUT=/tmp/busgold; mkdir -p $OUT
 
 DSP4_BISECT=0 DSP4_BLOCK_KERNELS=1 DSP4_STRIPS=$STRIPS \

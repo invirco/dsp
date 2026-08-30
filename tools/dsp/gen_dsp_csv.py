@@ -235,10 +235,17 @@ for ch in range(1, NUM_CH + 1):
         ramp_profile='DynSafe')
 
     # --- COMPRESSOR ---
+    # parallel=100: CompPar is a PERCENT (review finding D40) and the blend
+    # is `out = dry + par*(wet - dry)`, so the old default of 0 shipped a
+    # compressor that reduced gain and then blended the reduction back out
+    # -- measured fully DRY on the part 2026-08-30 at two thresholds 35 dB
+    # apart. 100 % is a normal serial compressor. See comp_par_default() in
+    # tools/dsp/dsp_codegen.py for the masters' row and what it does and
+    # does not document.
     p, a = c1_alloc.next(20)  # on + thr + rat + att + rel + make + knee + par + type + key + det_src + eq_pos + filter params + state
     add(n_comp, 1, 'COMPRESSOR', f'Ch {ch} Comp', 1, n_gate, n_tube,
         spi_page=p, spi_addr=a,
-        params='threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=0;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0',
+        params='threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA;key=0;det_src=0;lim_mode=0;eq_pos=0;filter_on=0;filter_hpf=80.0;filter_lpf=8000.0;filter_q=1.0',
         ramp_profile='DynSafe')
 
     # --- TUBE SATURATION ---
@@ -608,7 +615,7 @@ add('C2_MAIN_GEQ', 2, 'GEQ', 'Main GEQ', 2, 'C2_MAIN_FDR', 'C2_MAIN_COMP',
 p, a2 = c2_alloc.next(16)
 add('C2_MAIN_COMP', 2, 'COMPRESSOR', 'Main Comp', 2, 'C2_MAIN_GEQ', 'C2_MAIN_LIM',
     spi_page=p, spi_addr=a2,
-    params='threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=0;type=VCA',
+    params='threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA',
     ramp_profile='DynSafe')
 
 p, a2 = c2_alloc.next(4)

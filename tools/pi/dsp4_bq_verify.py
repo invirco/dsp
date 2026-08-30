@@ -32,6 +32,7 @@ Usage (staged by bqst.sh):
 import json
 import sys
 import os
+import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import fixed_ref as fr
@@ -41,33 +42,53 @@ BLOCK = int(sys.argv[2])
 N = 2 * BLOCK
 
 sys.argv = ['p']
-import dsp4_diag as D
+# THE PACED READER, NOT dsp4_diag's. This read the part through
+# DiagLink until 2026-08-30 and could not answer it at all: five
+# boot+config rounds in a row returned MAGIC 0 and `done = None` while
+# dsp4_scope's paced, voted read got MAGIC 0xD5B40001, CHIP_ID 1 and a
+# moving FRAME_COUNT off the same part seconds later, first try. That is
+# the same defect session 5 took out of pairgraph_run.sh -- the DSP
+# services this link once per audio block and the unpaced reader
+# out-runs it, then returns a well-formed wrong answer -- and this bar
+# had been failing on it. Confirmed not to be a firmware change: the
+# tree from before that day's fixes fails the old reader identically.
+import dsp4_scope as S
 
-link = D.SpiLink('0.0', 1000000, 6, rdy_gpio=8)
-diag = D.DiagLink(link)
-diag.resync()
+sc = S.Scope(1)
+sc.d.resync()
+# ONE FAILED READ IS NOT PROOF THE WRONG PART IS ON THE OTHER END. The
+# link intermittently answers a read with nothing and check_chip reads
+# that as "CHIP 0" -- six diag reads in front of six fresh processes did
+# not clear it on 2026-08-30, and re-voting on the SAME Scope did, first
+# try. Never SKIP the check: a Scope(1) answering as chip 2 makes every
+# symbol address here wrong. Retry on the same object -- constructing a
+# second one grabs the RDY GPIO while the first still holds it and fails
+# with EBUSY, which looks like a dead part and is not.
+for _attempt in range(6):
+    try:
+        sc.check_chip()
+        break
+    except SystemExit:
+        if _attempt == 5:
+            raise
+        time.sleep(1.0)
 
 
 def peek(a):
-    """Only trust a value the link agrees with on two independent reads.
-
-    Re-syncs every eighth failed attempt: the link comes up out of phase
-    often enough after a boot that a fixed retry count alone returns None
-    on a part that is answering perfectly well one process later.
-    """
+    """Only trust a value the link agrees with on two independent reads."""
     last = None
-    for i in range(48):
+    for _ in range(24):
         try:
-            if i and i % 8 == 0:
-                diag.resync()
-            if diag.read(0xE000) != 0xD5B40001:
-                continue
-            v = diag.peek(a)
-            if v == last:
-                return v
-            last = v
-        except IOError:
+            v = sc.peek(a)
+        except (IOError, SystemExit):
             last = None
+            continue
+        if v == 0xFFFFFFFF:
+            last = None
+            continue
+        if v == last:
+            return v
+        last = v
     return None
 
 

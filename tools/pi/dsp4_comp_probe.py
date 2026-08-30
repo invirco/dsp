@@ -60,7 +60,11 @@ def main():
     ap.add_argument('--attack', type=float, default=0.001)
     ap.add_argument('--release', type=float, default=0.05)
     ap.add_argument('--knee', type=float, default=0.0)
-    ap.add_argument('--parallel', type=float, default=1.0)
+    # PERCENT on the wire (review finding D40, fixed 2026-08-29). The
+    # default was 1.0 -- which after that fix is 1 %, i.e. 99 % dry, on a
+    # compressor probe. 100 = fully wet, and the kernel's own default
+    # since D59.
+    ap.add_argument('--parallel', type=float, default=100.0)
     ap.add_argument('--amp', default='0x08000000')
     ap.add_argument('--n', type=int, default=1024)
     ap.add_argument('--pool-inj', type=int, default=None)

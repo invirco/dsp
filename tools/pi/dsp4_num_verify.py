@@ -54,22 +54,72 @@ def s32(v):
     return v - (1 << 32) if v & 0x80000000 else v
 
 
-def vpeek(sc, addr, need=2, limit=7):
-    """A VOTED peek. sc.peek() is one transaction and this link drops
-    answers: a dropped answer comes back as a well-formed stale or
-    rotated word, not as an error. On 2026-08-29 that turned one
-    negative-control vector into a false mismatch and cost a round of
-    theorising about SHARC MAC saturation. A bit-exact claim cannot rest
-    on unvoted reads, so every result word here is read until the same
-    value comes back `need` times."""
+MAGIC = 0xD5B40001
+SENTINEL = {}          # {'addr': _nst_done, 'want': 1}, filled in by main()
+
+
+def _sentinel(sc, need=2, limit=7):
+    """Is the PEEK path still answering? See vpeek()."""
+    if not SENTINEL:
+        try:
+            return sc.rd(0xE000) == MAGIC
+        except IOError:
+            return False
     seen = {}
     for _ in range(limit):
-        v = sc.peek(addr)
+        try:
+            v = sc.peek(SENTINEL['addr'])
+        except IOError:
+            return False
         seen[v] = seen.get(v, 0) + 1
         if seen[v] >= need:
-            return v
-    raise IOError('0x%X never returned the same value %d times in %d reads: %r'
-                  % (addr, need, limit, seen))
+            return v == SENTINEL['want']
+    return False
+
+
+def vpeek(sc, addr, need=2, limit=7, rounds=3):
+    """A VOTED peek, and a ZERO has to prove the link is still alive.
+
+    sc.peek() is one transaction and this link drops answers: a dropped
+    answer comes back as a well-formed stale or rotated word, not as an
+    error. On 2026-08-29 that turned one negative-control vector into a
+    false mismatch and cost a round of theorising about SHARC MAC
+    saturation. A bit-exact claim cannot rest on unvoted reads, so every
+    result word is read until the same value comes back `need` times.
+
+    VOTING IS NOT ENOUGH WHEN THE LINK DIES MID-RUN, which is what
+    happened on 2026-08-30: the last four vectors of one arm and six of
+    the next read a settled, agreeing ZERO, and the timing block that
+    follows them read a null loop of 0 cycles and 16,071 cycles/MAC. The
+    scorer duly reported a numeric mismatch on arithmetic that had not
+    changed. A zero votes just as cleanly as a value. So a zero now has
+    to be corroborated: MAGIC must still read back, or the link is
+    resynced and the word re-read. Zero IS a legitimate result for
+    several vectors, which is exactly why it cannot be rejected outright
+    and has to be CHECKED instead."""
+    for _ in range(rounds):
+        seen = {}
+        for _ in range(limit):
+            v = sc.peek(addr)
+            seen[v] = seen.get(v, 0) + 1
+            if seen[v] >= need:
+                if v != 0:
+                    return v
+                # A ZERO IS CORROBORATED THROUGH THE SAME PATH IT CAME
+                # FROM. Checking MAGIC with sc.rd() is not enough --
+                # measured 2026-08-30, the register read answered
+                # perfectly while a PEEK of one vector settled twice on a
+                # false 0. The sentinel is a DM word this build is known
+                # to hold at 1 (`_nst_done`, already checked before any
+                # vector is read), peeked the same way: if the peek path
+                # can still fetch that, a zero at the vector address is
+                # the arithmetic's answer and not the link's.
+                if _sentinel(sc):
+                    return 0
+                break
+        sc.d.resync()
+    raise IOError('0x%X never returned a corroborated value in %d rounds of '
+                  '%d reads: %r' % (addr, rounds, limit, seen))
 
 
 def main():
@@ -86,6 +136,10 @@ def main():
     sc.check_chip()
 
     done = vpeek(sc, sc.sym['_nst_done'])
+    if done == 1:
+        # From here on a zero result word has to be corroborated through
+        # this same address, which the part is now known to hold at 1.
+        SENTINEL.update(addr=sc.sym['_nst_done'], want=1)
     if done != 1:
         print(f'SELF-TEST NEVER RAN (_nst_done = {done}) — is this a '
               f'DSP4_NUM_SELFTEST build, and did the main loop reach it?')

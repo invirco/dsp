@@ -763,6 +763,47 @@ XFADE_STEP    = 1.0 / XFADE_SAMPLES               # ≈ 0.001736 per sample
 FORMAT = 'fixed'
 
 
+def comp_par_default(params):
+    """CompPar's power-on value: (percent, Q0.31 word).
+
+    THE DEFAULT IS FULLY WET, and it is a contract fix, not a taste
+    choice. The blend is `out = dry + par*(wet - dry)`, so par = 0 is a
+    compressor that is ON, above threshold and visibly reducing gain in
+    `_comp_gain_*` while passing the input through UNCHANGED. Measured on
+    the part 2026-08-30 by MW/D32/DSP/SHARC/dcapar.sh, which is kept
+    runnable against either image so this has a before: with the old
+    default the main bus read 0x03FFFF74 at BOTH a -20 dB and a -55 dB
+    threshold, 0 of 32 words differing, while `_comp_gain_C1_COMP_01`
+    captured on the same driven graph moved 0x0579F843 -> 0x00444578.
+    A default-configured strip's compressor threshold was not an audible
+    control at all. With this default the same two thresholds give
+    0x015E7DD7 and 0x0011114D, 32 of 32 words differing.
+
+    The masters carry no default for `Chan[1-32]CompPar[1-1]` (review
+    finding D59): the row (d32-mx-master.csv) gives Notes "Parallel
+    compression blend (dry/wet)", MxDatS 33 and Table
+    `0=0/127=100/[Lin]`, and its MxDat
+    column -- the one that carries a documented default where the masters
+    have one, e.g. EqGain's 60 of 121 -- is EMPTY. So the unit is ruled
+    (percent, D40) and the default is not. 100 % is the only value at
+    which a compressor left at its defaults behaves like a compressor,
+    which is the reading the hub dispatched; that the masters do not
+    state it is written up as a PW question rather than hidden here.
+
+    par = 100 % scales to exactly 2^31, which int32 cannot hold, so the
+    Q0.31 word saturates to 0x7FFFFFFF -- the same clamp the block-rate
+    conversion applies, stated here so the power-on word and the first
+    converted word are the same number.
+    """
+    try:
+        pct = float(params.get('parallel', 100))
+    except (TypeError, ValueError):
+        pct = 100.0
+    pct = min(max(pct, 0.0), 100.0)
+    q = min(int(round(pct / 100.0 * (1 << 31))), 0x7FFFFFFF)
+    return pct, q
+
+
 def ms_to_frames(ms):
     """Quantize milliseconds to ramp-engine FRAMES: max(1, round(ms / FRAME_MS)).
 
@@ -1725,6 +1766,7 @@ def gen_gate(node):
 def gen_compressor(node):
     p = node['params']
     rc = ramp_comment(node['ramp_profile'])
+    par_pct, _par_q = comp_par_default(p)
     return dedent(f"""\
         {rc}
 
@@ -1746,7 +1788,7 @@ def gen_compressor(node):
         .var _comp_makeup_step_{node['id']} = 0.0;
         .var _comp_makeup_frames_{node['id']} = 0;
         .var _comp_knee_{node['id']} = 0.0;   /* hard knee until the host sets it */
-        .var _comp_parallel_{node['id']} = 0.0;
+        .var _comp_parallel_{node['id']} = {par_pct};   /* PERCENT (D40); fully wet by default (D59) */
         .var _comp_type_{node['id']} = 0;       /* 0=VCA, 1=FET, 2=Tube, 3=Optical */
         .var _comp_key_src_{node['id']} = 0;
         .var _comp_det_src_{node['id']} = 0;
@@ -1826,9 +1868,20 @@ def gen_compressor(node):
             f1 = dm(_comp_makeup_{node['id']});
             f0 = f0 * f1;             /* apply makeup */
 
-            /* Parallel blend: out = dry * (1-par) + wet * par */
+            /* Parallel blend: out = dry * (1-par) + wet * par.
+             * CompPar IS PERCENT ON THE WIRE (review finding D40): the
+             * master documents 0=0/127=100, so the 0..1 fraction this
+             * blend wants is the written value over 100. Clamped to the
+             * documented domain, as the fixed node does. */
             f2 = dm(_comp_parallel_{node['id']});
-            r3 = 0x3F800000;  /* 1.0 IEEE 754 */
+            r3 = 0x3C23D70A;  /* 1/100 */
+            f2 = f2 * f3;             /* percent -> 0..1 */
+            r3 = 0x00000000;  /* 0 %, documented minimum */
+            comp(f2, f3);
+            if lt f2 = f3;
+            r3 = 0x3F800000;  /* 1.0 IEEE 754 = 100 %, documented maximum */
+            comp(f2, f3);
+            if gt f2 = f3;
             f3 = f3 - f2;             /* 1 - parallel */
             f4 = f15 * f3;            /* dry * (1-par) */
             f0 = f0 * f2;             /* wet * par */
@@ -2169,7 +2222,30 @@ def gen_fader_pan(node):
         .var _fdr_pan_step_{node['id']} = 0.0;
         .var _fdr_pan_frames_{node['id']} = 0;
         .var _fdr_mute_{node['id']} = 0;
-        .var _fdr_dca_gain_{node['id']} = 1.0;  /* DCA master multiplier */
+        /* DCA ASSIGNMENT vs DCA GAIN (review finding D57).
+         *
+         * `_fdr_dca_sel_` is the CELL: `<Cat>[n]RtgDca[1-1]`, which the
+         * masters document as "DCA group assignment (1-8 or off)" with
+         * MxDatS 9 -- nine states, no scale law, no unit, the InstantCtl
+         * profile of a selector. It is STORED HERE AND MULTIPLIED BY
+         * NOTHING. Until 2026-08-30 the wire word landed in
+         * `_fdr_dca_gain_` instead and was multiplied straight into the
+         * fader coefficient, so a host writing the obvious "no DCA
+         * assigned" value of 0 SILENCED the strip with `_fdr_level_`
+         * still reading 1.0 -- found on the part when it killed the
+         * conformance probe's driven strip three runs running.
+         *
+         * `_fdr_dca_gain_` stays as the RESOLVED master gain the
+         * assignment selects, and is unity because nothing resolves it
+         * yet: the eight DCA masters are nodes on CHIP 2 and every
+         * channel strip is on CHIP 1, so a chip-1 fader cannot read the
+         * master it is assigned to, and whether the DSP should apply DCA
+         * gain at all (rather than the host folding it into the fader
+         * level it already sends) is a contract question, not a kernel
+         * one. Both are in the PW question filed with D57. Nothing but a
+         * ruling should write this word. */
+        .var _fdr_dca_sel_{node['id']} = 0;     /* 0 = no DCA assigned */
+        .var _fdr_dca_gain_{node['id']} = 1.0;  /* resolved master gain */
         .var _tap_post_fader_{node['id']};      /* post-fader tap */
         .var _buf_{node['id']};
 {lr_vars}
@@ -6914,7 +6990,30 @@ def gen_fader_pan_fixed(node):
         .var _fdr_pan_step_{nid} = 0.0;
         .var _fdr_pan_frames_{nid} = 0;
         .var _fdr_mute_{nid} = 0;
-        .var _fdr_dca_gain_{nid} = 1.0;
+        /* DCA ASSIGNMENT vs DCA GAIN (review finding D57).
+         *
+         * `_fdr_dca_sel_` is the CELL: `<Cat>[n]RtgDca[1-1]`, which the
+         * masters document as "DCA group assignment (1-8 or off)" with
+         * MxDatS 9 -- nine states, no scale law, no unit, the InstantCtl
+         * profile of a selector. It is STORED HERE AND MULTIPLIED BY
+         * NOTHING. Until 2026-08-30 the wire word landed in
+         * `_fdr_dca_gain_` instead and was multiplied straight into the
+         * fader coefficient, so a host writing the obvious "no DCA
+         * assigned" value of 0 SILENCED the strip with `_fdr_level_`
+         * still reading 1.0 -- found on the part when it killed the
+         * conformance probe's driven strip three runs running.
+         *
+         * `_fdr_dca_gain_` stays as the RESOLVED master gain the
+         * assignment selects, and is unity because nothing resolves it
+         * yet: the eight DCA masters are nodes on CHIP 2 and every
+         * channel strip is on CHIP 1, so a chip-1 fader cannot read the
+         * master it is assigned to, and whether the DSP should apply DCA
+         * gain at all (rather than the host folding it into the fader
+         * level it already sends) is a contract question, not a kernel
+         * one. Both are in the PW question filed with D57. Nothing but a
+         * ruling should write this word. */
+        .var _fdr_dca_sel_{nid} = 0;              /* 0 = no DCA assigned */
+        .var _fdr_dca_gain_{nid} = 1.0;           /* resolved master gain */
         .var _fdr_gq_{nid} = 0x10000000;          /* Q4.28 level*dca */
         /* 1 while either float ramp still has frames to run. ROUTING's
          * main L/R crosspoint coefficients are this node's pan legs, so it
@@ -9349,6 +9448,7 @@ def gen_compressor_fixed(node):
     rc = ramp_comment(node['ramp_profile'])
     nid = node['id']
     inp = node['inputs_str']
+    par_pct, par_q = comp_par_default(node['params'])
     return dedent(f"""\
         {rc}
 
@@ -9368,7 +9468,7 @@ def gen_compressor_fixed(node):
         .var _comp_makeup_step_{nid} = 0.0;
         .var _comp_makeup_frames_{nid} = 0;
         .var _comp_knee_{nid} = 0.0;   /* hard knee until the host sets it */
-        .var _comp_parallel_{nid} = 0.0;
+        .var _comp_parallel_{nid} = {par_pct};   /* PERCENT (D40); fully wet by default (D59) */
         .var _comp_type_{nid} = 0;
         .var _comp_key_src_{nid} = 0;
         .var _comp_det_src_{nid} = 0;
@@ -9382,7 +9482,7 @@ def gen_compressor_fixed(node):
         .var _comp_attq_{nid} = 0;
         .var _comp_relq_{nid} = 0;
         .var _comp_mkq_{nid} = 0x10000000;
-        .var _comp_parq_{nid} = 0;            /* Q0.31 */
+        .var _comp_parq_{nid} = 0x{par_q:08X};   /* Q0.31, = _comp_parallel_ converted */
         .var _comp_cgp_{nid}[4];              /* thr, slope, halfk, k2 */
         .var _buf_{nid};
 {mtr_decl}

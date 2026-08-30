@@ -67,7 +67,7 @@ until one is accepted the family keeps presence/echo testing only.
 | ChanTubeSat | 32 | 32 | `0=0/127=100/[Lin]` | saturation | `_tube_sat_*` | declare the Table domain as the wire unit |
 | ChanRtgLevel | 32 | 32 | `dB:Off:-50@31:-30@63:-10@127:10` | level | `_fdr_level_*` | declare the Table domain as the wire unit |
 | ChanRtgPan | 32 | 32 | `Pan:dB:0:Off` | pan | `_fdr_pan_*` | declare the Table domain as the wire unit |
-| ChanRtgDca | 32 | 32 | `(none)` | DCA gain | `_fdr_dca_gain_*` | enum/bool — no scale law in the masters |
+| ChanRtgDca | 32 | 32 | `(none)` | DCA assignment | `_fdr_dca_sel_*` | no unit needed — every address in this family is INERT; mark the cells reserved or wire them (D38) |
 | ChanRtgMainOn | 32 | 32 | `(none)` | MainOn | `_rtg_main_on_*` | enum/bool — no scale law in the masters |
 | ChanRtgCtrOn | 32 | 32 | `(none)` | SubOn | `_rtg_sub_on_*` | enum/bool — no scale law in the masters |
 | MainGeq | 28 | 28 | `0=-12/127=12/[Lin]` | GEQ coeff[i] | `_geq_coeffs_next_*` | **the address holds a filter COEFFICIENT, not this parameter** — the masters document Freq/Gain/Q/Shelf as separate cells at one coefficient-set base, so the host computes the biquad. Declare the wire as a coefficient set and say which side converts |
@@ -82,7 +82,7 @@ until one is accepted the family keeps presence/echo testing only.
 | AuxRtgLevel | 12 | 12 | `dB:Off:-50@31:-30@63:-10@127:10` | level | `_fdr_level_*` | declare the Table domain as the wire unit |
 | AuxPan | 12 | 12 | `Pan:dB:0:Off` | pan | `_fdr_pan_*` | declare the Table domain as the wire unit |
 | AuxRtgMute | 12 | 12 | `(none)` | mute | `_fdr_mute_*` | enum/bool — no scale law in the masters |
-| AuxRtgDca | 12 | 12 | `(none)` | DCA gain | `_fdr_dca_gain_*` | enum/bool — no scale law in the masters |
+| AuxRtgDca | 12 | 12 | `(none)` | DCA assignment | `_fdr_dca_sel_*` | no unit needed — every address in this family is INERT; mark the cells reserved or wire them (D38) |
 | AuxEqHpf | 12 | 60 | `0=-15/60=15/[Lin]; 0=0.1/14=10/[Log]` | EQ coeff[i] | `_eq_coeffs_next_*` | **the address holds a filter COEFFICIENT, not this parameter** — the masters document Freq/Gain/Q/Shelf as separate cells at one coefficient-set base, so the host computes the biquad. Declare the wire as a coefficient set and say which side converts |
 | AuxEqOn | 12 | 12 | `(none)` | EqOn (MCU-managed) |  | enum/bool — no scale law in the masters |
 | AuxAntiFbOn | 12 | 12 | `(none)` | AntiFbOn | `_afb_on_*` | no unit needed — every address in this family is INERT; mark the cells reserved or wire them (D38) |
@@ -119,10 +119,10 @@ until one is accepted the family keeps presence/echo testing only.
 | FxDuckSens | 6 | 6 | `0=-30/127=0/[Lin]` | DuckSens |  | declare the Table domain as the wire unit |
 | FxRtgLevel | 6 | 6 | `dB:Off:-50@31:-30@63:-10@127:10` | level | `_fdr_level_*` | declare the Table domain as the wire unit |
 | FxRtgMute | 6 | 6 | `(none)` | mute | `_fdr_mute_*` | enum/bool — no scale law in the masters |
-| FxRtgDca | 6 | 6 | `(none)` | DCA gain | `_fdr_dca_gain_*` | enum/bool — no scale law in the masters |
+| FxRtgDca | 6 | 6 | `(none)` | DCA assignment | `_fdr_dca_sel_*` | no unit needed — every address in this family is INERT; mark the cells reserved or wire them (D38) |
 | GrpRtgLevel | 4 | 4 | `dB:Off:-50@31:-30@63:-10@127:10` | level | `_fdr_level_*` | declare the Table domain as the wire unit |
 | GrpRtgMute | 4 | 4 | `(none)` | mute | `_fdr_mute_*` | enum/bool — no scale law in the masters |
-| GrpRtgDca | 4 | 4 | `(none)` | DCA gain | `_fdr_dca_gain_*` | enum/bool — no scale law in the masters |
+| GrpRtgDca | 4 | 4 | `(none)` | DCA assignment | `_fdr_dca_sel_*` | no unit needed — every address in this family is INERT; mark the cells reserved or wire them (D38) |
 | GrpEqHpf | 4 | 20 | `0=-15/60=15/[Lin]; 0=0.1/14=10/[Log]` | EQ coeff[i] | `_eq_coeffs_next_*` | **the address holds a filter COEFFICIENT, not this parameter** — the masters document Freq/Gain/Q/Shelf as separate cells at one coefficient-set base, so the host computes the biquad. Declare the wire as a coefficient set and say which side converts |
 | GrpEqOn | 4 | 4 | `(none)` | EqOn (MCU-managed) |  | enum/bool — no scale law in the masters |
 | GrpGateOn | 4 | 4 | `(none)` | GateOn | `_gate_on_*` | enum/bool — no scale law in the masters |
@@ -173,7 +173,7 @@ until one is accepted the family keeps presence/echo testing only.
 | NoiseHpf | 1 | 1 | `(none)` | HPF | `_noise_hpf_on_*` | enum/bool — no scale law in the masters |
 | SubRtgLevel | 1 | 1 | `dB:Off:-50@31:-30@63:-10@127:10` | level | `_fdr_level_*` | declare the Table domain as the wire unit |
 | SubRtgMute | 1 | 1 | `(none)` | mute | `_fdr_mute_*` | enum/bool — no scale law in the masters |
-| SubRtgDca | 1 | 1 | `(none)` | DCA gain | `_fdr_dca_gain_*` | enum/bool — no scale law in the masters |
+| SubRtgDca | 1 | 1 | `(none)` | DCA assignment | `_fdr_dca_sel_*` | no unit needed — every address in this family is INERT; mark the cells reserved or wire them (D38) |
 | SubEqHpf | 1 | 5 | `0=-15/60=15/[Lin]; 0=0.1/14=10/[Log]` | EQ coeff[i] | `_eq_coeffs_next_*` | **the address holds a filter COEFFICIENT, not this parameter** — the masters document Freq/Gain/Q/Shelf as separate cells at one coefficient-set base, so the host computes the biquad. Declare the wire as a coefficient set and say which side converts |
 | SubEqOn | 1 | 1 | `(none)` | EqOn (MCU-managed) |  | enum/bool — no scale law in the masters |
 | SubCompOn | 1 | 1 | `(none)` | CompOn | `_comp_on_*` | enum/bool — no scale law in the masters |
@@ -200,7 +200,7 @@ until one is accepted the family keeps presence/echo testing only.
 | SubDelay | 1 | 1 | `0=0/127=250.0/[Log]` | delay offset | `_dly_read_offset_*` | declare the Table domain as the wire unit |
 | MainRtgLevel | 1 | 1 | `dB:Off:-50@31:-30@63:-10@127:10` | level | `_fdr_level_*` | declare the Table domain as the wire unit |
 | MainRtgMute | 1 | 1 | `(none)` | mute | `_fdr_mute_*` | enum/bool — no scale law in the masters |
-| MainRtgDca | 1 | 1 | `(none)` | DCA gain | `_fdr_dca_gain_*` | enum/bool — no scale law in the masters |
+| MainRtgDca | 1 | 1 | `(none)` | DCA assignment | `_fdr_dca_sel_*` | no unit needed — every address in this family is INERT; mark the cells reserved or wire them (D38) |
 | MainDelay | 1 | 1 | `0=0/127=250.0/[Log]` | delay offset | `_dly_read_offset_*` | declare the Table domain as the wire unit |
 | MainCrossoverFreq | 1 | 2 | `0=50/127=500/[Log]; 0=6/3=24/[Lin]` | XOVER coeff[i] | `_xover_coeffs_next_*` | **the address holds a filter COEFFICIENT, not this parameter** — the masters document Freq/Gain/Q/Shelf as separate cells at one coefficient-set base, so the host computes the biquad. Declare the wire as a coefficient set and say which side converts |
 | MainCrossoverSlope | 1 | 2 | `0=50/127=500/[Log]; 0=6/3=24/[Lin]` | XOVER coeff[i] | `_xover_coeffs_next_*` | **the address holds a filter COEFFICIENT, not this parameter** — the masters document Freq/Gain/Q/Shelf as separate cells at one coefficient-set base, so the host computes the biquad. Declare the wire as a coefficient set and say which side converts |
