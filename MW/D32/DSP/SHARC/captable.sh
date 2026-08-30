@@ -37,6 +37,7 @@
 #   FUSED=0 SIMD=0 ./captable.sh ...      the scalar-unfused control
 set -u
 cd "$(dirname "$0")"
+source ./bench_lock.sh; bench_lock_acquire "$0"
 BENCH=app@192.168.1.219
 ROOT=../../../..
 FUSED="${FUSED:-1}"

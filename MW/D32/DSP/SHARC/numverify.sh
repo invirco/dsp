@@ -13,6 +13,7 @@
 #   ./numverify.sh neg        # negative control only
 set -u
 cd "$(dirname "$0")"
+source ./bench_lock.sh; bench_lock_acquire "$0"
 BENCH=app@192.168.1.219
 MODE="${1:-both}"
 ROOT=../../../..

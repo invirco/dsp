@@ -33,6 +33,7 @@
 # with fails here rather than being tested against its own stale copy.
 set -u
 cd "$(dirname "$0")"
+source ./bench_lock.sh; bench_lock_acquire "$0"
 BENCH=app@192.168.1.219
 ROOT=../../../..
 TAG="${TAG:-cur}"

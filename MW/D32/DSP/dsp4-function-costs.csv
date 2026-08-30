@@ -288,3 +288,13 @@ MARGIN32_BLK8_INLINED,198706,,"121.3% of the 163840-cycle budget, from 214,249 =
 MARGIN32_BLK32_INLINED,584331,,"89.2% of the 655360-cycle budget, from 657,082 = 100.26%. **32 CHANNELS ON ONE CHIP AT BLOCK 32 AND 983.04 MHz IS NOW 10.8% UNDER BUDGET, HAVING BEEN 0.26% OVER.** -72,751 against 69,120 predicted, 5% apart"
 MARGIN32_BLK8_INLINED_786,198706,,151.6% of the 131072-cycle budget (same cycle count; the budget changes)
 MARGIN32_BLK32_INLINED_786,584331,,111.5% of the 524288-cycle budget
+# --- SESSION 11 RE-CONFIRMATION, no landing this session. Ranking on
+# capacity-configuration branch/call waste ran dry (see tasks.md): the
+# fused biquad saturate (D21), the ten dynamics call sites (session 10)
+# and FUSED FDR's loop are all already branch-free/predicated, and
+# FILT/EQ pairing is still blocked on the unresolved cascade hang
+# (dsp4-cycle-budget.md), out of this session's mandate. Re-ran
+# captable.sh MODE=cyc TUBEON=0 on today's tree, same configuration, to
+# confirm the record before closing the ranking rather than trusting it.
+MARGIN32_BLK8_RECONFIRMED_20260830S11,198721,,"121.28% of the 163840-cycle budget. 15 cycles off session 10's 198706 (0.008%), inside instrument noise -- same number, not a different one"
+MARGIN32_BLK32_RECONFIRMED_20260830S11,584352,,"89.16% of the 655360-cycle budget. 21 cycles off session 10's 584331 (0.004%), inside instrument noise"

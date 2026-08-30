@@ -40,6 +40,7 @@ FUS="${DSP4_STRIP_FUSED:-0}"
 # dynamics readable as one consecutive difference.
 SIMD="${DSP4_SIMD_DYN:-0}"
 cd "$(dirname "$0")"
+source ./bench_lock.sh; bench_lock_acquire "$0"
 BENCH=app@192.168.1.219
 for L in "$@"; do
   DSP4_BISECT=0 DSP4_BLOCK_KERNELS=1 DSP4_PROFILE_SIGNAL=$SIG \

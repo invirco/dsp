@@ -21,6 +21,7 @@
 #   FUSED=0 ./bqst.sh    the unfused block cascade, same bar
 set -u
 cd "$(dirname "$0")"
+source ./bench_lock.sh; bench_lock_acquire "$0"
 BENCH=app@192.168.1.219
 ROOT=../../../..
 DSP4_BISECT=0 DSP4_BLOCK_KERNELS=1 DSP4_BQ_SELFTEST=1 \

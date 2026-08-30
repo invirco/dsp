@@ -12,6 +12,7 @@ set -u
 CCLK="${CCLK:-983}"
 STRIPS="${STRIPS:-1}"
 cd "$(dirname "$0")"
+source ./bench_lock.sh; bench_lock_acquire "$0"
 BENCH=app@192.168.1.219
 case "$CCLK" in
   983) HZ=983040000;;

@@ -2728,3 +2728,27 @@ buys back the room the fused+paired configuration needs.
 Until that lands, the honest statement about capacity is: **the paired
 ceilings in the record are UNFUSED-paired, and fused+paired is not a
 measurable configuration on chip 1.**
+
+## THIS SECTION IS STALE — fused+paired links today, checked 2026-08-30 (session 11)
+
+Sessions 5 through 10 landed the wide-word metering, D55, the RTG
+control-epoch counter (D22) and the dynamics call-site inlining, none of
+which were re-checked against the deficit above. Session 11 rebuilt the
+exact configuration this section says does not link —
+`DSP4_STRIP_FUSED=1 DSP4_SIMD_DYN=1 DSP4_BQ_GRAPH=1 DSP4_STRIPS=32`,
+block 8, all 431 chip-1 node files — with plain `./build.sh all`: **it
+links.** `=== Build OK ===`, chip1.ldr 393,572 bytes, chip2.ldr 193,196
+bytes, no `[Error`, no `Build FAILED`. `captable.sh MODE=cyc` then ran
+the same configuration on the part at block 8 and block 32 and read
+198,721 and 584,352 cycles/pass — 15 and 21 cycles off session 10's
+published 198,706 and 584,331 (0.008% and 0.004%), i.e. the same number
+inside the instrument's own noise, not a different one.
+
+**So the "over / NO" row is wrong as a statement about today's tree.**
+Nothing here was root-caused to find out which of the five intervening
+landings closed the gap — the table above was never re-run — and that
+question is still open if someone needs the mechanism. What is settled
+is the fact the strategic sections since (`dsp4-branch-cost-20260830.md`,
+and the D66/D67 entries in `review-dsp-20260828.md`) already assumed:
+fused+paired is the configuration those margin figures are measured in,
+it builds, and it is what is on the part.

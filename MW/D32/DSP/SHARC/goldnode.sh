@@ -34,6 +34,7 @@
 #   BUILD=0 ./goldnode.sh         reuse whatever is already staged
 set -u
 cd "$(dirname "$0")"
+source ./bench_lock.sh; bench_lock_acquire "$0"
 BENCH=app@192.168.1.219
 ROOT=../../../..
 
