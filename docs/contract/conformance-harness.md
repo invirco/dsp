@@ -114,15 +114,24 @@ day: the default is 100 %). The probe still sets `CompPar` as part of
 driving the strip, because a probe that leans on a default silently
 changes meaning when the default does.
 
-**And a seventh: `RtgDca`.** The strip the probe drove went silent three
-runs running, and the chain witness put it at `_buf_C1_FDR_01 = 0` with
-`_buf_C1_DLY_01` carrying signal — `Chan001RtgDca001` is documented as a
-DCA ASSIGNMENT and the kernel multiplied the written word into the fader
-coefficient, so the documented "no DCA assigned" value of 0 silenced the
-channel (review finding D57, fixed the same day). `drive_strip()` now
-writes **RtgDca = 0** on purpose, so every conformance run is a standing
-witness for that fix, and the before/after measurement lives in
-`MW/D32/DSP/SHARC/dcapar.sh`.
+**And a seventh: the DCA cell.** The strip the probe drove went silent
+three runs running, and the chain witness put it at `_buf_C1_FDR_01 = 0`
+with `_buf_C1_DLY_01` carrying signal — `Chan001RtgDca001` is documented
+as a DCA ASSIGNMENT and the kernel multiplied the written word into the
+fader coefficient, so the documented "no DCA assigned" value of 0
+silenced the channel (review finding D57, fixed the same day).
+`drive_strip()` then wrote **DCA = 0** on purpose, so every conformance
+run stood witness to that fix.
+
+**That write is gone, and so is the cell.** PW closed Q2 later the same
+day: `Dca` and `DcaOn` are HOST-MANAGED — the CM4 control daemon folds
+DCA into the fader target it already sends — so the DSP is given no
+address for them, the kernel's `_fdr_dca_sel_` and `_fdr_dca_gain_` are
+both removed, and 0x0053 is a RESERVED word whose dispatch entry is 0.
+`drive_strip()` cannot write it (the handler would count an error), so
+the standing witness moved to `MW/D32/DSP/SHARC/dcapar.sh`, which now
+asserts the harder thing: the address is REJECTED while its mapped
+neighbour in the same batch is accepted, and the bus does not move.
 
 There are now TWO positive controls and a run needs both. `Chan001Gain001`
 is a linear multiply the sample path reads on every sample and proves the
@@ -196,6 +205,7 @@ W0 check as well as the setup.
 | `CLEARED` | mapped, accepted without error, reads back zero: the kernel consumed it (the swap triggers do this by design) |
 | `VOLATILE` | the kernel overwrote it with something else |
 | `UNMAPPED` | the part counted an error for every write — the dispatch entry is 0 |
+| `HOST_MANAGED` | unmapped **by ruling**: the generator's dispatch comment says the word is reserved because the host owns the cell (`Dca`, `DcaOn`, PW 2026-08-30). Its own class so that a decision cannot be read as an omission, and so the `UNMAPPED` total keeps meaning "no one has said why" |
 | `INDETERMINATE` | the error count moved by less than the write count: writes were dropped on the link and this address cannot be classified from this run |
 
 `INDETERMINATE` is not scored as drift. It is counted and shown, because

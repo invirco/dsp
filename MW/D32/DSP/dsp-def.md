@@ -532,15 +532,15 @@ ADC TDM (32 ch)   USB / BT / DAW return   Talkback [1-2]   Noise Gen
  │         │                                                              │
  │  [Input Delay]     ← Chan.Delay                                        │
  │         │                                                              │
- │  [Fader + Pan]     ← Chan.RtgLevel, RtgPan, RtgMute                  │
+ │  [Fader + Pan]     ← Chan.Level, Pan, Mute                  │
  │         │             DCA[1-8]: fader multiplier applied here          │
  │         │             MuteGrp[1-8]: mute OR applied here              │
  │         │                                                              │
- │         ├──── RtgMainOn ────────────────────────────→ Main L/R pre-sum│
- │         ├──── RtgCtrOn ─────────────────────────────→ Sub/Ctr pre-sum │
- │         ├──── RtgGrpOn[1-4] ────────────────────────→ Grp pre-sums    │
- │         ├──── RtgAuxSend[1-12] / RtgAuxOn / RtgAuxPick → Aux pre-sums│
- │         └──── RtgFxSend[1-6]  / RtgFx ────────────→ FX bus pre-sums  │
+ │         ├──── MainOn ────────────────────────────→ Main L/R pre-sum│
+ │         ├──── CtrOn ─────────────────────────────→ Sub/Ctr pre-sum │
+ │         ├──── GrpOn[1-4] ────────────────────────→ Grp pre-sums    │
+ │         ├──── AuxSend[1-12] / AuxOn / AuxPick → Aux pre-sums│
+ │         └──── FxSend[1-6]  / FxOn ────────────→ FX bus pre-sums  │
  │                                                                        │
  │  Bus pre-sums (Main, Sub, 4×Grp, 12×Aux, 6×FX) ──→ SPORT TDM → Chip 2│
  └────────────────────────────────────────────────────────────────────────┘
@@ -554,11 +554,11 @@ ADC TDM (32 ch)   USB / BT / DAW return   Talkback [1-2]   Noise Gen
  │                                                                        │
  │  Aux buses ×12 (D32) / ×8 (D24):                                      │
  │  [Sum] → [Fader] → [EQ] → [Anti-FB Notch] → [Limiter] → [Delay] → out│
- │           Aux.RtgLevel/Mute   EqOn/Hpf/Freq/Gain/Q/Shelf   LimOn/Thr  │
+ │           Aux.Level/Mute   EqOn/Hpf/Freq/Gain/Q/Shelf   LimOn/Thr  │
  │                                                                        │
  │  Group buses ×4:                                                       │
  │  [Sum] → [Fader] → [EQ] → [Gate] → [Comp] → out (+ feed Main)        │
- │           Grp.RtgLevel/Mute   GateOn/Thr…   CompOn/Thr…               │
+ │           Grp.Level/Mute   GateOn/Thr…   CompOn/Thr…               │
  │                                                                        │
  │  Center / Sub bus ×1:                                                  │
  │  [Sum] → [EQ] → [Comp] → [Limiter] → [Delay] → out                   │
@@ -570,7 +570,7 @@ ADC TDM (32 ch)   USB / BT / DAW return   Talkback [1-2]   Noise Gen
  │                                                                        │
  │  FX engines ×6:                                                        │
  │  [FX bus sum] → [FX Engine (reverb/delay/mod)] → [Return fader]       │
- │     → feeds Main, Aux, or other buses per RtgAuxOn/RtgAuxSend         │
+ │     → feeds Main, Aux, or other buses per AuxOn/AuxSend         │
  │                                                                        │
  │  Monitor / Phones:                                                     │
  │  [Source select] → [Level L/R] → [Delay] → Monitor out + Phones 1-4  │
@@ -856,18 +856,18 @@ a dedicated filter shapes the key signal before the RMS/peak detector.
 
 | _Cell | DspSpi | DspBaseAddr | Stride | Table | Notes |
 |-------|--------|-------------|--------|-------|-------|
-| `Chan[1-32]RtgLevel[1-1]` | TBD | TBD | TBD | `dB:Off:-50@31:-30@63:-10@127:10` | Channel fader |
-| `Chan[1-32]RtgPan[1-1]` | TBD | TBD | TBD | `Pan:dB:0:Off` | Pan (constant power) |
-| `Chan[1-32]RtgMute[1-1]` | TBD | TBD | TBD | | Channel mute |
-| `Chan[1-32]RtgMainOn[1-1]` | TBD | TBD | TBD | | Assign to main L/R |
-| `Chan[1-32]RtgCtrOn[1-1]` | TBD | TBD | TBD | | Assign to center/sub |
-| `Chan[1-32]RtgAuxSend[1-12]` | TBD | TBD | TBD | `dB:Off:-50@31:-30@63:-10@127:0` | Per-aux send level |
-| `Chan[1-32]RtgAuxOn[1-12]` | TBD | TBD | TBD | | Per-aux send on/off |
-| `Chan[1-32]RtgAuxPick[1-12]` | TBD | TBD | TBD | | Per-aux pickoff: PreEQ/PostEQ/PreFdr/PostFdr |
-| `Chan[1-32]RtgFxSend[1-6]` | TBD | TBD | TBD | `dB:Off:-50@31:-30@63:-10@127:0` | Per-FX send level |
-| `Chan[1-32]RtgFx[1-6]` | TBD | TBD | TBD | | Per-FX send on/off |
-| `Chan[1-32]RtgGrpOn[1-4]` | TBD | TBD | TBD | | Group routing on/off |
-| `Chan[1-32]RtgDca[1-1]` | TBD | TBD | TBD | | DCA assignment 1–8 |
+| `Chan[1-32]Level[1-1]` | TBD | TBD | TBD | `dB:Off:-50@31:-30@63:-10@127:10` | Channel fader |
+| `Chan[1-32]Pan[1-1]` | TBD | TBD | TBD | `Pan:dB:0:Off` | Pan (constant power) |
+| `Chan[1-32]Mute[1-1]` | TBD | TBD | TBD | | Channel mute |
+| `Chan[1-32]MainOn[1-1]` | TBD | TBD | TBD | | Assign to main L/R |
+| `Chan[1-32]CtrOn[1-1]` | TBD | TBD | TBD | | Assign to center/sub |
+| `Chan[1-32]AuxSend[1-12]` | TBD | TBD | TBD | `dB:Off:-50@31:-30@63:-10@127:0` | Per-aux send level |
+| `Chan[1-32]AuxOn[1-12]` | TBD | TBD | TBD | | Per-aux send on/off |
+| `Chan[1-32]AuxPick[1-12]` | TBD | TBD | TBD | | Per-aux pickoff: PreEQ/PostEQ/PreFdr/PostFdr |
+| `Chan[1-32]FxSend[1-6]` | TBD | TBD | TBD | `dB:Off:-50@31:-30@63:-10@127:0` | Per-FX send level |
+| `Chan[1-32]FxOn[1-6]` | TBD | TBD | TBD | | Per-FX send on/off |
+| `Chan[1-32]GrpOn[1-4]` | TBD | TBD | TBD | | Group routing on/off |
+| `Chan[1-32]Dca[1-1]` | TBD | TBD | TBD | | DCA assignment 1–8 |
 | `Chan[1-32]MuteGrp[1-8]` | TBD | TBD | TBD | | Mute group 1–8 assignment |
 | `Chan[1-32]CueSel[1-1]` | TBD | TBD | TBD | | Cue/solo: PFL/AFL/SIP |
 | `Chan[1-32]Color[1-1]` | TBD | TBD | TBD | | Fader cap color code (UI only, no DSP coeff) |
@@ -880,8 +880,8 @@ a dedicated filter shapes the key signal before the RMS/peak detector.
 
 | _Cell | DspSpi | DspBaseAddr | Stride | Table | Notes |
 |-------|--------|-------------|--------|-------|-------|
-| `Aux[1-12]RtgLevel[1-1]` | TBD | TBD | TBD | `dB:Off:-50@31:-30@63:-10@127:10` | Aux master level |
-| `Aux[1-12]RtgMute[1-1]` | TBD | TBD | TBD | | Aux master mute |
+| `Aux[1-12]Level[1-1]` | TBD | TBD | TBD | `dB:Off:-50@31:-30@63:-10@127:10` | Aux master level |
+| `Aux[1-12]Mute[1-1]` | TBD | TBD | TBD | | Aux master mute |
 | `Aux[1-12]Pan[1-1]` | TBD | TBD | TBD | `Pan:dB:0:Off` | Aux pan |
 | `Aux[1-12]Delay[1-1]` | TBD | TBD | TBD | `0=0/127=250/[Log]` | Aux output delay up to 250 ms |
 | `Aux[1-12]PickOff[1-1]` | TBD | TBD | TBD | | Global pickoff: PreEQ/PostEQ/PreFdr/PostFdr |
@@ -903,7 +903,7 @@ a dedicated filter shapes the key signal before the RMS/peak detector.
 | `Aux[1-12]AntiFbNotchFreq[1-6]` | TBD | TBD | TBD | `0=40/127=12000/[Log]` | Notch frequency (6 filters) |
 | `Aux[1-12]AntiFbNotchGain[1-6]` | TBD | TBD | TBD | `0=-18/127=0/[Lin]` | Notch depth (dB cut) |
 | `Aux[1-12]AntiFbNotchQ[1-6]` | TBD | TBD | TBD | `0=1/127=20/[Log]` | Notch Q / bandwidth |
-| `Aux[1-12]RtgDca[1-1]` | TBD | TBD | TBD | | DCA assignment 1–8 |
+| `Aux[1-12]Dca[1-1]` | TBD | TBD | TBD | | DCA assignment 1–8 |
 
 ---
 
@@ -915,7 +915,7 @@ a dedicated filter shapes the key signal before the RMS/peak detector.
 
 | _Cell | DspSpi | DspBaseAddr | Stride | Table | Notes |
 |-------|--------|-------------|--------|-------|-------|
-| `Main[1-1]RtgLevel[1-1]` | TBD | TBD | TBD | `dB:Off:-50@31:-30@63:-10@127:10` | Main L/R master fader |
+| `Main[1-1]Level[1-1]` | TBD | TBD | TBD | `dB:Off:-50@31:-30@63:-10@127:10` | Main L/R master fader |
 | `Main[1-1]Mute[1-1]` | TBD | TBD | TBD | | Main mute |
 | `Main[1-1]Delay[1-1]` | TBD | TBD | TBD | `0=0/127=250/[Log]` | Main delay up to 250 ms |
 | `Main[1-1]CueSel[1-1]` | TBD | TBD | TBD | | Cue/solo select |
@@ -988,11 +988,11 @@ a dedicated filter shapes the key signal before the RMS/peak detector.
 | `Fx[1-6]Tap[1-1]` | TBD | TBD | TBD | | Tap tempo trigger |
 | `Fx[1-6]PedAssign[1-4]` | TBD | TBD | TBD | | Footswitch pedal 1–4 assignment (D32 PI pedal on/off) |
 | `Fx[1-6]MuteGrp[1-8]` | TBD | TBD | TBD | | Mute group 1–8 assignment for FX return |
-| `Fx[1-6]RtgLevel[1-1]` | TBD | TBD | TBD | `dB:Off:-50@31:-30@63:-10@127:0` | FX return master level |
-| `Fx[1-6]RtgMute[1-1]` | TBD | TBD | TBD | | FX return mute |
-| `Fx[1-6]RtgDca[1-1]` | TBD | TBD | TBD | | FX return DCA assignment 1–8 |
-| `Fx[1-6]RtgAuxOn[1-12]` | TBD | TBD | TBD | | FX return to aux on/off (all 12 auxes) |
-| `Fx[1-6]RtgAuxSend[1-12]` | TBD | TBD | TBD | `dB:Off:-50@31:-30@63:-10@127:0` | FX return to aux level (all 12 auxes) |
+| `Fx[1-6]Level[1-1]` | TBD | TBD | TBD | `dB:Off:-50@31:-30@63:-10@127:0` | FX return master level |
+| `Fx[1-6]Mute[1-1]` | TBD | TBD | TBD | | FX return mute |
+| `Fx[1-6]Dca[1-1]` | TBD | TBD | TBD | | FX return DCA assignment 1–8 |
+| `Fx[1-6]AuxOn[1-12]` | TBD | TBD | TBD | | FX return to aux on/off (all 12 auxes) |
+| `Fx[1-6]AuxSend[1-12]` | TBD | TBD | TBD | `dB:Off:-50@31:-30@63:-10@127:0` | FX return to aux level (all 12 auxes) |
 
 ---
 
@@ -1006,9 +1006,9 @@ Sidechain key shares the same `0=self, 1–32=channel N` routing as channel gate
 
 | _Cell | DspSpi | DspBaseAddr | Stride | Table | Notes |
 |-------|--------|-------------|--------|-------|-------|
-| `Grp[1-4]RtgLevel[1-1]` | TBD | TBD | TBD | `dB:Off:-50@31:-30@63:-10@127:10` | Group master fader |
-| `Grp[1-4]RtgMute[1-1]` | TBD | TBD | TBD | | Group mute |
-| `Grp[1-4]RtgDca[1-1]` | TBD | TBD | TBD | | DCA assignment 1–8 |
+| `Grp[1-4]Level[1-1]` | TBD | TBD | TBD | `dB:Off:-50@31:-30@63:-10@127:10` | Group master fader |
+| `Grp[1-4]Mute[1-1]` | TBD | TBD | TBD | | Group mute |
+| `Grp[1-4]Dca[1-1]` | TBD | TBD | TBD | | DCA assignment 1–8 |
 | `Grp[1-4]EqOn[1-1]` | TBD | TBD | TBD | | EQ bypass |
 | `Grp[1-4]EqHpf[1-1]` | TBD | TBD | TBD | `0=20/64=1000/[Log]` | HPF frequency |
 | `Grp[1-4]EqFreq[1-1]` | TBD | TBD | TBD | `0=20/254=200/[Log]` | Band 1 frequency |
@@ -1042,14 +1042,14 @@ Sidechain key shares the same `0=self, 1–32=channel N` routing as channel gate
 
 > **DSP:** Chip 2
 
-Single mono bus. Fed from channel `RtgCtrOn` assigns and from Main L/R via the crossover.
+Single mono bus. Fed from channel `CtrOn` assigns and from Main L/R via the crossover.
 Processing chain: EQ → Compressor → Limiter → Delay → output.
 No gate (sub bus is not typically gated).
 
 | _Cell | DspSpi | DspBaseAddr | Stride | Table | Notes |
 |-------|--------|-------------|--------|-------|-------|
-| `Sub[1-1]RtgLevel[1-1]` | TBD | TBD | TBD | `dB:Off:-50@31:-30@63:-10@127:10` | Subwoofer master fader |
-| `Sub[1-1]RtgMute[1-1]` | TBD | TBD | TBD | | Subwoofer mute |
+| `Sub[1-1]Level[1-1]` | TBD | TBD | TBD | `dB:Off:-50@31:-30@63:-10@127:10` | Subwoofer master fader |
+| `Sub[1-1]Mute[1-1]` | TBD | TBD | TBD | | Subwoofer mute |
 | `Sub[1-1]Delay[1-1]` | TBD | TBD | TBD | `0=0/127=250/[Log]` | Output delay up to 250 ms |
 | `Sub[1-1]EqOn[1-1]` | TBD | TBD | TBD | | EQ bypass |
 | `Sub[1-1]EqHpf[1-1]` | TBD | TBD | TBD | `0=20/64=1000/[Log]` | HPF frequency |
@@ -1090,10 +1090,10 @@ No audio passes through the DCA node itself — the gain product is applied at e
 
 ## 11. Mute Groups (×8)
 
-> **DSP:** H1S1 MCU only — no dedicated DSP param RAM block; H1S1 fans out to each member's RtgMute coefficient on write.
+> **DSP:** H1S1 MCU only — no dedicated DSP param RAM block; H1S1 fans out to each member's Mute coefficient on write.
 
 Software mute groups: toggling a mute group activates/deactivates all member channel mutes simultaneously.
-No DSP coefficient — managed by H1S1 MCU logic, reflected into each `Chan[n]RtgMute` coefficient.
+No DSP coefficient — managed by H1S1 MCU logic, reflected into each `Chan[n]Mute` coefficient.
 
 | _Cell | DspSpi | DspBaseAddr | Stride | Table | Notes |
 |-------|--------|-------------|--------|-------|-------|
@@ -1200,10 +1200,10 @@ Routing is a bitmask over aux buses 1–N and main L/R; up to 3 route slots per 
 | `Talk[1-2]On[1-1]` | TBD | TBD | TBD | | Talkback enable (momentary press = latching on D32) |
 | `Talk[1-2]Gain[1-1]` | TBD | TBD | TBD | `0=0/127=40/[Lin]` | Mic input gain; fixed +48 V op-amp preamp on Talk[1] |
 | `Talk[1-2]Hpf[1-1]` | TBD | TBD | TBD | | HPF on/off (cuts below ~80 Hz) |
-| `Talk[1-2]Rtg[1-3]` | TBD | TBD | TBD | | Routing destinations: each slot selects an aux bus or main |
+| `Talk[1-2]Dest[1-3]` | TBD | TBD | TBD | | Routing destinations: each slot selects an aux bus or main |
 | `Talk[1-1]On[1-1]` | TBD | TBD | TBD | | Compatibility alias row used by `mx_master.csv` |
 | `Talk[1-1]Hpf[1-1]` | TBD | TBD | TBD | | Compatibility alias row used by `mx_master.csv` |
-| `Talk[1-1]Rtg[1-3]` | TBD | TBD | TBD | | Compatibility alias row used by `mx_master.csv` |
+| `Talk[1-1]Dest[1-3]` | TBD | TBD | TBD | | Compatibility alias row used by `mx_master.csv` |
 
 ### 14.2 Noise / Tone Generator
 
@@ -1212,7 +1212,7 @@ Routing is a bitmask over aux buses 1–N and main L/R; up to 3 route slots per 
 | `Noise[1-1]On[1-1]` | TBD | TBD | TBD | | Noise/tone generator enable |
 | `Noise[1-1]Level[1-1]` | TBD | TBD | TBD | `0=-40/127=0/[Lin]` | Output level |
 | `Noise[1-1]Hpf[1-1]` | TBD | TBD | TBD | | HPF ~80 Hz on/off (pink noise mode) |
-| `Noise[1-1]Rtg[1-10]` | TBD | TBD | TBD | | Routing bitmask to aux buses and main L/R |
+| `Noise[1-1]Dest[1-10]` | TBD | TBD | TBD | | Routing bitmask to aux buses and main L/R |
 
 ---
 
@@ -1281,7 +1281,7 @@ Start/end addresses are TBD until the ADSP-21564 program is designed and blocks 
 
 | Block | Notes |
 |-------|-------|
-| Mute groups ×8 | Virtual cells; H1S1 fans out to member RtgMute coefficients on write |
+| Mute groups ×8 | Virtual cells; H1S1 fans out to member Mute coefficients on write |
 
 ---
 
@@ -1521,7 +1521,7 @@ H1S1 builds outside STM32CubeIDE using `Debug/fw.sh`:
       - LimiterAtt/Rel × 13 buses — 26 cells
       - Modulation/FX (Balance, DuckSens, StereoWidth, LfoShape, ModLevel, ModRate, Mix) × 6 each — 42 cells
       - AaAux009–012Mtr — 4 meter cells (Aux 9–12 not yet in matrix)
-      - Minor routing (RtgDca, RtgMute, Rtg, On, Hpf) — 7 cells
+      - Minor routing (Dca, Mute, Dest, On, Hpf) — 7 cells
     - **None of the 846 represent a bug.** All are deliberate deferred-feature omissions.
 24. ⬜ **Cycle budget verification** — Confirm Chip 1 < 35%, Chip 2 < 41% (pessimistic targets from §1d).
 25. ⬜ **SRAM budget verification** — Confirm Chip 1 < 580 KB, Chip 2 < 1,400 KB delay buffer allocation.
@@ -1537,7 +1537,7 @@ H1S1 builds outside STM32CubeIDE using `Debug/fw.sh`:
 5. ✅ `build.sh` — zero assembler/linker errors (692 ASM sources, both chips linked)
 6. ✅ Spot-check representative cells — all present with correct table/ramp:
    - `Chan001EqFreq001`: chip=1, addr=16, table=`0=20/254=200/[Log]`, ramp=2 ✓
-   - `Aux001RtgLevel001`: chip=2, addr=0, table=`dB:Off:-50@31:-30@63:-10@127:10`, ramp=1 ✓
+   - `Aux001Level001`: chip=2, addr=0, table=`dB:Off:-50@31:-30@63:-10@127:10`, ramp=1 ✓
    - `Fx001Decay001`: chip=2, addr=1583, table=`0=0.1/127=10/[Log]`, ramp=1 ✓
    - `Main001Peq001` (GEQ band 1): chip=2, addr=1347, table=`0=-12/127=12/[Lin]`, ramp=2 ✓
    - `AaChan001Mtr001`: chip=1, addr=3712, table=`""` (meter read-only), ramp=0 ✓

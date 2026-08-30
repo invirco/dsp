@@ -67,7 +67,6 @@ until one is accepted the family keeps presence/echo testing only.
 | ChanTubeSat | 32 | 32 | `0=0/127=100/[Lin]` | saturation | `_tube_sat_*` | declare the Table domain as the wire unit |
 | ChanRtgLevel | 32 | 32 | `dB:Off:-50@31:-30@63:-10@127:10` | level | `_fdr_level_*` | declare the Table domain as the wire unit |
 | ChanRtgPan | 32 | 32 | `Pan:dB:0:Off` | pan | `_fdr_pan_*` | declare the Table domain as the wire unit |
-| ChanRtgDca | 32 | 32 | `(none)` | DCA assignment | `_fdr_dca_sel_*` | no unit needed — every address in this family is INERT; mark the cells reserved or wire them (D38) |
 | ChanRtgMainOn | 32 | 32 | `(none)` | MainOn | `_rtg_main_on_*` | enum/bool — no scale law in the masters |
 | ChanRtgCtrOn | 32 | 32 | `(none)` | SubOn | `_rtg_sub_on_*` | enum/bool — no scale law in the masters |
 | MainGeq | 28 | 28 | `0=-12/127=12/[Lin]` | GEQ coeff[i] | `_geq_coeffs_next_*` | **the address holds a filter COEFFICIENT, not this parameter** — the masters document Freq/Gain/Q/Shelf as separate cells at one coefficient-set base, so the host computes the biquad. Declare the wire as a coefficient set and say which side converts |
@@ -82,7 +81,6 @@ until one is accepted the family keeps presence/echo testing only.
 | AuxRtgLevel | 12 | 12 | `dB:Off:-50@31:-30@63:-10@127:10` | level | `_fdr_level_*` | declare the Table domain as the wire unit |
 | AuxPan | 12 | 12 | `Pan:dB:0:Off` | pan | `_fdr_pan_*` | declare the Table domain as the wire unit |
 | AuxRtgMute | 12 | 12 | `(none)` | mute | `_fdr_mute_*` | enum/bool — no scale law in the masters |
-| AuxRtgDca | 12 | 12 | `(none)` | DCA assignment | `_fdr_dca_sel_*` | no unit needed — every address in this family is INERT; mark the cells reserved or wire them (D38) |
 | AuxEqHpf | 12 | 60 | `0=-15/60=15/[Lin]; 0=0.1/14=10/[Log]` | EQ coeff[i] | `_eq_coeffs_next_*` | **the address holds a filter COEFFICIENT, not this parameter** — the masters document Freq/Gain/Q/Shelf as separate cells at one coefficient-set base, so the host computes the biquad. Declare the wire as a coefficient set and say which side converts |
 | AuxEqOn | 12 | 12 | `(none)` | EqOn (MCU-managed) |  | enum/bool — no scale law in the masters |
 | AuxAntiFbOn | 12 | 12 | `(none)` | AntiFbOn | `_afb_on_*` | no unit needed — every address in this family is INERT; mark the cells reserved or wire them (D38) |
@@ -118,11 +116,9 @@ until one is accepted the family keeps presence/echo testing only.
 | FxDuckOn | 6 | 6 | `(none)` | DuckOn |  | enum/bool — no scale law in the masters |
 | FxDuckSens | 6 | 6 | `0=-30/127=0/[Lin]` | DuckSens |  | declare the Table domain as the wire unit |
 | FxRtgLevel | 6 | 6 | `dB:Off:-50@31:-30@63:-10@127:10` | level | `_fdr_level_*` | declare the Table domain as the wire unit |
-| FxRtgMute | 6 | 6 | `(none)` | mute | `_fdr_mute_*` | enum/bool — no scale law in the masters |
-| FxRtgDca | 6 | 6 | `(none)` | DCA assignment | `_fdr_dca_sel_*` | no unit needed — every address in this family is INERT; mark the cells reserved or wire them (D38) |
+| FxRtgMute | 5 | 5 | `(none)` | mute | `_fdr_mute_*` | enum/bool — no scale law in the masters |
 | GrpRtgLevel | 4 | 4 | `dB:Off:-50@31:-30@63:-10@127:10` | level | `_fdr_level_*` | declare the Table domain as the wire unit |
 | GrpRtgMute | 4 | 4 | `(none)` | mute | `_fdr_mute_*` | enum/bool — no scale law in the masters |
-| GrpRtgDca | 4 | 4 | `(none)` | DCA assignment | `_fdr_dca_sel_*` | no unit needed — every address in this family is INERT; mark the cells reserved or wire them (D38) |
 | GrpEqHpf | 4 | 20 | `0=-15/60=15/[Lin]; 0=0.1/14=10/[Log]` | EQ coeff[i] | `_eq_coeffs_next_*` | **the address holds a filter COEFFICIENT, not this parameter** — the masters document Freq/Gain/Q/Shelf as separate cells at one coefficient-set base, so the host computes the biquad. Declare the wire as a coefficient set and say which side converts |
 | GrpEqOn | 4 | 4 | `(none)` | EqOn (MCU-managed) |  | enum/bool — no scale law in the masters |
 | GrpGateOn | 4 | 4 | `(none)` | GateOn | `_gate_on_*` | enum/bool — no scale law in the masters |
@@ -173,7 +169,6 @@ until one is accepted the family keeps presence/echo testing only.
 | NoiseHpf | 1 | 1 | `(none)` | HPF | `_noise_hpf_on_*` | enum/bool — no scale law in the masters |
 | SubRtgLevel | 1 | 1 | `dB:Off:-50@31:-30@63:-10@127:10` | level | `_fdr_level_*` | declare the Table domain as the wire unit |
 | SubRtgMute | 1 | 1 | `(none)` | mute | `_fdr_mute_*` | enum/bool — no scale law in the masters |
-| SubRtgDca | 1 | 1 | `(none)` | DCA assignment | `_fdr_dca_sel_*` | no unit needed — every address in this family is INERT; mark the cells reserved or wire them (D38) |
 | SubEqHpf | 1 | 5 | `0=-15/60=15/[Lin]; 0=0.1/14=10/[Log]` | EQ coeff[i] | `_eq_coeffs_next_*` | **the address holds a filter COEFFICIENT, not this parameter** — the masters document Freq/Gain/Q/Shelf as separate cells at one coefficient-set base, so the host computes the biquad. Declare the wire as a coefficient set and say which side converts |
 | SubEqOn | 1 | 1 | `(none)` | EqOn (MCU-managed) |  | enum/bool — no scale law in the masters |
 | SubCompOn | 1 | 1 | `(none)` | CompOn | `_comp_on_*` | enum/bool — no scale law in the masters |
@@ -199,11 +194,11 @@ until one is accepted the family keeps presence/echo testing only.
 | SubLimiterRel | 1 | 1 | `0=5/127=2000/[Log]` | LimiterRel | `_lim_release_*` | declare the Table domain as the wire unit |
 | SubDelay | 1 | 1 | `0=0/127=250.0/[Log]` | delay offset | `_dly_read_offset_*` | declare the Table domain as the wire unit |
 | MainRtgLevel | 1 | 1 | `dB:Off:-50@31:-30@63:-10@127:10` | level | `_fdr_level_*` | declare the Table domain as the wire unit |
-| MainRtgMute | 1 | 1 | `(none)` | mute | `_fdr_mute_*` | enum/bool — no scale law in the masters |
-| MainRtgDca | 1 | 1 | `(none)` | DCA assignment | `_fdr_dca_sel_*` | no unit needed — every address in this family is INERT; mark the cells reserved or wire them (D38) |
+| MainMute | 1 | 1 | `(none)` | mute | `_fdr_mute_*` | enum/bool — no scale law in the masters |
 | MainDelay | 1 | 1 | `0=0/127=250.0/[Log]` | delay offset | `_dly_read_offset_*` | declare the Table domain as the wire unit |
 | MainCrossoverFreq | 1 | 2 | `0=50/127=500/[Log]; 0=6/3=24/[Lin]` | XOVER coeff[i] | `_xover_coeffs_next_*` | **the address holds a filter COEFFICIENT, not this parameter** — the masters document Freq/Gain/Q/Shelf as separate cells at one coefficient-set base, so the host computes the biquad. Declare the wire as a coefficient set and say which side converts |
 | MainCrossoverSlope | 1 | 2 | `0=50/127=500/[Log]; 0=6/3=24/[Lin]` | XOVER coeff[i] | `_xover_coeffs_next_*` | **the address holds a filter COEFFICIENT, not this parameter** — the masters document Freq/Gain/Q/Shelf as separate cells at one coefficient-set base, so the host computes the biquad. Declare the wire as a coefficient set and say which side converts |
+| FxMute | 1 | 1 | `(none)` | mute | `_fdr_mute_*` | enum/bool — no scale law in the masters |
 | MonInputSel | 1 | 1 | `(none)` | source | `_mon_source_*` | no unit needed — every address in this family is INERT; mark the cells reserved or wire them (D38) |
 | MonDelay | 1 | 1 | `0=0/127=250.0/[Log]` | delay offset | `_dly_read_offset_*` | declare the Table domain as the wire unit |
 | UsbLevel | 1 | 1 | `0=-20/127=6/[Lin]` | level | `_auxin_level_*` | declare the Table domain as the wire unit |
@@ -215,6 +210,24 @@ until one is accepted the family keeps presence/echo testing only.
 | PiLevel | 1 | 1 | `0=-20/127=6/[Lin]` | level | `_auxin_level_*` | declare the Table domain as the wire unit |
 | PiOn | 1 | 1 | `(none)` | on | `_auxin_on_*` | enum/bool — no scale law in the masters |
 
+## host-managed cells (no DSP address, by ruling)
+
+Declared by `host_cells=` on the nodes that used to carry them in
+`MW/D32/DSP/SHARC/dsp.csv`. PW ruled on 2026-08-30 that the CM4
+control daemon owns the DCA fold — the effective fader is
+`fader dB + DCA dB` with the mutes OR-ed, written through the
+fader target the DSP already ramps — so the DSP is given no
+address for these cells and no line of the kernel reads them.
+They are listed here so that "has no address" and "has no address
+and nobody knows why" stay different statements.
+
+| family | cells | of those, in _matrix.csv | example |
+|---|---|---|---|
+| Dca | 58 | 55 | `MainL001Dca001` |
+| DcaOn | 58 | 0 | `MainL001DcaOn001` |
+
+Total: **116 host-managed cells across 2 families**.
+
 ## documented cells that reach no DSP address
 
 After subtracting the families `mcu-only-prefixes.txt` already
@@ -225,7 +238,7 @@ DSP does not implement it" from "the matrix never routed it".
 
 | family | cells with no DSP address | of those, in _matrix.csv | example |
 |---|---|---|---|
-| Chan_Rtg | 608 | 416 | `Chan001CueSel001` |
+| Chan_Rtg | 416 | 416 | `Chan001CueSel001` |
 | FxCtrl | 241 | 234 | `Fx001DuckThr001` |
 | ChanInput | 192 | 192 | `Chan001AntiClip001` |
 | MainEq | 38 | 0 | `MainL001EqFreq001` |
@@ -238,27 +251,25 @@ DSP does not implement it" from "the matrix never routed it".
 | AuxPickOff | 12 | 12 | `Aux001PickOff001` |
 | AuxName | 12 | 0 | `Aux001Name001` |
 | MainLimiter | 11 | 0 | `MainL001LimiterAtt001` |
-| NoiseDest | 10 | 0 | `Noise001Dest001` |
+| NoiseDest | 10 | 10 | `Noise001Dest001` |
 | DcaName | 8 | 0 | `Dca001Name001` |
 | MainCrossover | 6 | 0 | `MainL001CrossoverFreq001` |
-| TalkDest | 6 | 0 | `Talk001Dest001` |
 | FxName | 6 | 0 | `Fx001Name001` |
 | MatrixLevel | 4 | 4 | `Matrix001Level001` |
 | MatrixMute | 4 | 4 | `Matrix001Mute001` |
 | PhonesLevel | 4 | 4 | `Phones001Level001` |
 | PhonesSrc | 4 | 4 | `Phones001Src001` |
 | SubLimiter | 4 | 0 | `MainSub001LimiterAtt001` |
+| TalkDest | 4 | 4 | `Talk001Dest002` |
 | GrpName | 4 | 0 | `Grp001Name001` |
 | MatrixName | 4 | 0 | `Matrix001Name001` |
 | PhonesName | 4 | 0 | `Phones001Name001` |
 | ChanInstr | 2 | 2 | `Chan001Instr001` |
-| MainLDca | 1 | 0 | `MainL001Dca001` |
 | MainLLevel | 1 | 0 | `MainL001Level001` |
 | MainLMute | 1 | 0 | `MainL001Mute001` |
 | MainLDelay | 1 | 0 | `MainL001Delay001` |
 | MainLMtr | 1 | 0 | `MainL001Mtr001` |
 | MainLName | 1 | 0 | `MainL001Name001` |
-| MainRDca | 1 | 0 | `MainR001Dca001` |
 | MainRLevel | 1 | 0 | `MainR001Level001` |
 | MainRMute | 1 | 0 | `MainR001Mute001` |
 | MainRDelay | 1 | 0 | `MainR001Delay001` |
@@ -271,13 +282,12 @@ DSP does not implement it" from "the matrix never routed it".
 | RtaOn | 1 | 1 | `Rta001On001` |
 | RtaSrc | 1 | 1 | `Rta001Src001` |
 | MainSubDelay | 1 | 0 | `MainSub001Delay001` |
-| MainSubDca | 1 | 0 | `MainSub001Dca001` |
 | MainSubLevel | 1 | 0 | `MainSub001Level001` |
 | MainSubMute | 1 | 0 | `MainSub001Mute001` |
 | MainSubName | 1 | 0 | `MainSub001Name001` |
 | MainName | 1 | 0 | `Main001Name001` |
 
-Total: **1331 documented cells across 51 families**.
+Total: **1134 documented cells across 48 families**.
 
 A zero in the second column means `_matrix.csv` does not carry
 that cell NAME at all, which is two different things:

@@ -8,7 +8,7 @@ path, engaged like any plugin would be), and the bypass path's
 zero-cost skip is the base-strip requirement. Capacity reporting keeps
 TUBE out of the required-strip rows.
 
-## HUB DISPATCH 2026-08-30 09:07Z — session 7: Rtg retirement propagation, Dca/DcaOn host-managed, address-authority finding   [status: 🟡 dispatched]   [model: opus]
+## HUB DISPATCH 2026-08-30 09:07Z — session 7: Rtg retirement propagation, Dca/DcaOn host-managed, address-authority finding   [status: 🟢 done — **THE Rtg RETIREMENT IS PROPAGATED AND `Dca`/`DcaOn` HAVE LEFT THE DSP, WITH THE AUDIO PROVEN BIT-EXACT ON THE PART THREE INDEPENDENT WAYS.** The generator emits the masters' current spelling — the wire tables in `docs/contract/`, verified byte-identical to mx26 HEAD's own, are the authority — and `tools/dsp/master_names.py` is the ONE rename table the generator, the wire-contract join and the bench probes share. **The pinned `_matrix.csv` cannot follow and that is now a stated, measured fact rather than a silent mismatch (D62)**: `defs.lock` pins `defs-v2026.08.20`, the rename landed after it on an mx26 commit carrying no contract tag, and `sync-from-mx26.sh --update-lock` refuses an untagged HEAD by design — so the backfill resolves current-name-first, legacy-name-second, and REPORTS the split (**2,064 rows through the legacy spelling today, 0 the day the pin advances**). A rename that reaches no matrix row is a hard failure, because `--force` would otherwise CLEAR the DSP columns of rows it merely failed to find. **Two of the fifteen renames change the word, and one of them mattered**: the harness used to bridge the spellings by INSERTING `Rtg`, which cannot produce `RtgFx`, so **192 `FxOn` cells and 16 `Dest` cells were being reported as reaching no DSP address when they do — coverage moves 5,076 → 5,270 addressed on no kernel change at all.** **PW's Q2 ruling applied in full: `_fdr_dca_sel_` AND `_fdr_dca_gain_` are GONE rather than dormant**, the word at base+3 is RESERVED (compacting it would move every address after it in a 144-word channel block), and dsp.csv is the single source — the nodes that carried it declare `host_cells=Dca,DcaOn` and the generator, the contract report and `conform.sh` all read it from there. **D38 returns to 896 addresses / 762 cells** — the 56 did not become less inert, they stopped being addresses — the MCU ghost table goes 5,537 → 5,481, and `conform.sh` gives **exactly the predicted classes: 6,032 ECHO / 388 UNMAPPED / 117 CLEARED / 159 skipped / 56 HOST_MANAGED, `VERDICT: PASS`** with both negative controls firing. **W0: the image changes and gets SMALLER (301,988 → 301,732 and 182,540 → 182,060 bytes; new baseline chip1.ldr `3f0e479a`, chip2.ldr `ab43c75b` from `033d2921`/`f8883d4c`) and the AUDIO IS BIT-EXACT — `x * 1.0` is exactly `x` in IEEE 754.** Measured, not argued: **the bus golden reads 0 of 256 against a golden that was NOT re-taken**, the inert probe's driven window reads **`0x015E7E31`, the same word as session 6**, and `dcapar.sh`'s four D59 numbers come back identical to session 6's. `dcapar.sh`'s DCA rows now measure the RULING instead of D57 — **`SPI_ERR_COUNT` 1 → 1 across the mapped neighbour 0x0052 and 1 → 2 across 0x0053, with 0 of 32 bus words moving** — which subsumes D57, because an address the handler rejects cannot scale anything. **THREE FINDINGS OPENED, THE ONE THE DISPATCH ASKED FOR AND TWO FOUND WHILE DOING IT. D61: the DSP wire addresses have no authority outside this spoke** — mx26's masters have no `Dsp*` COLUMNS AT ALL, `AddrAlloc` in `gen_dsp_csv.py` is an unanchored bump counter, and **giving the channel GAIN node one extra word moves 347 of chip 1's 348 addressed nodes and renumbers 4,794 of the 4,798 addresses chip 1 uses, with nothing in the hub able to see it**; `MW/D24/MX/_matrix.csv` carries 0 of 5,125 rows with a `DspAdd`, so D24's half of the "single shared address map" exists only as D32's copy. The proposal is stated in full (masters carry authored address columns seeded from today's backfill, the generator reads instead of allocating, the backfill inverts into a check, the contract version starts covering the map). **D62**: two contract vintages, plus the operational trap that `check-contract-drift.sh` reads the mx26 WORKING TREE — a plain `git pull` in `~/mx26` makes it fail with `ERROR: Hash mismatch for D24_DEF_SHA256`, which is why this session ran the whole contract flow against a worktree pinned at the tag. **D63**: `Fx001Mute001` and `Main001Mute001` are in the pinned matrix under BOTH spellings, so their address was ambiguous between two rows; the generator now names them and states its rule. ALL STANDING BARS PASS: conform `VERDICT: PASS` (6,032/388/117/159/56, both negative controls firing), inert phase PASS on its own boot with 12 of 12 classes inert and both positive controls at 32 of 32, busgold **0 of 256 GRAPH BIT-EXACT**, dcapar `VERDICT: PASS`, bqst 0 of 16 on all three arms with its negative control at 15 of 16, dynst 0 of 32 on all three arms, mtrverify `METER_BIT_EXACT` with both negative controls firing, and numverify 57 of 57 with `NEGCTL PASSED` **on a re-run**. **THAT RE-RUN IS THE ONE THING THAT DID NOT GO CLEANLY, AND IT WAS NOT THE ARITHMETIC**: the first run's negative-control arm got `link never usable` on three consecutive boot cycles, and on the re-run the IDENTICAL positive image (`0105a7e6`) that had passed 57 of 57 nine minutes earlier failed its first cycle and passed its second — an image that is bit-exact, then unreachable, then bit-exact again on the same hash is a link fault, and it is recorded against the standing chip-ID/link intermittent rather than chased. `bqst` met the same class and ABSORBED it, because D60's fix votes on the same `Scope` object instead of believing one read. Bench restored to the new baseline and verified on the part; the CPLD was never touched.]   [model: opus]
 
 model: opus
 
@@ -76,6 +76,210 @@ no DSP addresses for these rows, so dsp.csv is inventing SPI addresses —
 flag the address-authority gap as a finding with a proposal (masters as
 address SOT, generated outward). Q2 (DCA architecture across chips) is
 STILL OPEN — assignments remain stored-and-inert until PW rules it.
+
+---
+
+### Outcome 2026-08-30 (session 7) — the Rtg retirement, and DCA leaving the DSP
+
+Commits `<C1>`, `<C2>` and the documentation commit carrying this block.
+
+#### W0, stated before any of it was built
+
+The tree at `6a5040f` was built first and reproduced the bench's running
+baseline exactly — `chip1.ldr 033d2921`, `chip2.ldr f8883d4c` — so the
+"before" column below is the image the product was running.
+
+| item | expected image delta | actual |
+|---|---|---|
+| the `Rtg` retirement | cell NAMES only: `_matrix.csv`, `ghost_cells.c/.h`, `mx_dsp_map.h`, `dsp_address_map.md`. No SHARC source line changes, so **no contribution to the image at all** | as predicted — every changed `.asm` in this session is a FADER_PAN, and those changed for the DCA removal below |
+| `Dca`/`DcaOn` host-managed: `_fdr_dca_sel_` and `_fdr_dca_gain_` removed, 0x0053 reserved | **the image CHANGES and gets SMALLER** — two DM words and two instructions gone from each of 56 FADER_PAN nodes, 56 dispatch entries to 0, 56 `.extern` lines gone. **AUDIO BIT-EXACT**: `_fdr_dca_gain_` is 1.0 and `f1 * 1.0` is exactly `f1` in IEEE 754, and `_fdr_dca_sel_` was read by no emitted line | **new baseline chip1.ldr `3f0e479a`, chip2.ldr `ab43c75b`**, `301,988 → 301,732` and `182,540 → 182,060` bytes; `_fdr_dca_*` is 0 symbols of 5,463 in the chip-1 map, `_fdr_level_*` still 32 |
+| the bench probes stop writing 0x0053 | no image change; audio-neutral, because the cell already reached no audio (0 of 32 bus words, measured session 6) | the bus golden was **NOT re-taken** — it is the check on this prediction |
+
+
+#### 1. The Rtg retirement, propagated — and the pin that could not follow it
+
+The masters dropped the `Rtg` infix on 2026-08-25. The generator now emits
+the current spelling and **`docs/contract/d32-wire-table.csv` is the
+authority for it** — that file is byte-identical to mx26 HEAD's own
+generated wire table, which was checked rather than assumed.
+
+The map is not "strip `Rtg`". Two of the fifteen renames change the word:
+
+| generator emits | the pinned `_matrix.csv` carries | why |
+|---|---|---|
+| `Chan001FxOn001` | `Chan001RtgFx001` | the family is an on/off, and the masters spell it `Chan[1-32]FxOn[1-6]` |
+| `Talk001Dest001`, `Noise001Dest001` | `Talk001Rtg001`, `Noise001Rtg001` | `Talk[1-1]Dest[1-3]`, `Noise[1-1]Dest[1-10]` |
+
+and the other thirteen (`Level`, `Pan`, `Mute`, `MainOn`, `CtrOn`,
+`GrpOn`, `AuxOn`, `AuxSend`, `AuxPick`, `FxSend`, `FxPick`, `MatrixOn`,
+`MatrixSend`) do drop the infix. **`RtgFx` is the one that mattered**: the
+harness used to bridge the two spellings by INSERTING `Rtg` into a
+wire-table name, which turns `Chan001FxOn001` into `Chan001RtgFxOn001` —
+a cell that does not exist — so 192 documented `FxOn` cells and 16
+`Dest` cells were being counted as reaching no DSP address when they do.
+Coverage against the wire table moves **5,076 → 5,270 addressed** and
+**513 → 305 absent from `_matrix.csv`** on no change to the kernel at
+all: that is the rename buying back 194 cells of accuracy in the report.
+
+**The masters in this repo did not follow, and cannot be made to.**
+`defs.lock` pins `defs-v2026.08.20`; the rename landed after it, mx26
+carries exactly one contract tag and it is that one, and
+`sync-from-mx26.sh --update-lock` refuses an untagged HEAD by design. So
+the tree runs on two contract vintages — wire tables at HEAD, masters at
+the pin — and that is filed as **D62**, with the bridge stated rather
+than hidden:
+
+* `tools/dsp/master_names.py` holds the rename table, and the generator,
+  the wire-contract join and the bench probes all import it. One table,
+  because three copies of a temporary translation is how a temporary
+  translation becomes permanent.
+* `gen_dsp.py` resolves each generated cell against the matrix by its
+  CURRENT name first and its LEGACY name second, and **reports the split:
+  2,064 rows reached through the legacy spelling today**. That count goes
+  to 0 the day the pin advances, which is the retirement test for the
+  whole module.
+* A rename that reaches nothing is a **hard failure**, not a silent miss.
+  Map `FxOn` to `Fx` instead of `RtgFx` and 192 rows quietly stop
+  matching — and `--force` then CLEARS the DSP columns of rows it merely
+  failed to find. The generator refuses to backfill in that case and says
+  which rename is wrong.
+
+Two more things fell out of doing it. **`_matrix.csv` carries two cells
+under BOTH spellings** — `Fx001Mute001`/`Fx001RtgMute001` and
+`Main001Mute001`/`Main001RtgMute001`, instance 001 only in both families —
+so their address is ambiguous between two rows; that is **D63**, and the
+generator now names both and states its rule (the current-spelling row
+takes the address, the legacy twin is cleared). And of the 2,109 cells the
+generator emits in a renamed family, **2,107 are documented in the wire
+table under exactly that name**; the two that are not are
+`Sub001Level001` and `Sub001Mute001`, because the masters also moved the
+category `Sub` to `MainSub` — which is D52's territory, and is named so
+that 2,107 is not read as 2,109.
+
+#### 2. `Dca` and `DcaOn` are host-managed, and they are off the DSP
+
+PW closed Q2 the same morning: the CM4 control daemon owns the fold —
+effective fader = fader dB + DCA dB, mutes OR-ed, written through the
+level TARGET the DSP already ramps — and only ramp targets cross the
+wire. So the DSP needs neither the assignment nor a master gain.
+
+**Both hooks are gone rather than dormant, which is what the ruling
+says.** `_fdr_dca_gain_` was the resolved master gain, sitting at unity
+and multiplied into the Q4.28 fader coefficient every block;
+`_fdr_dca_sel_` was D57's stored assignment, correct for a cell the
+kernel must not scale by and pointless once nothing on the DSP resolves
+it. Neither exists now, in either the fixed or the archived float
+template.
+
+**The word is RESERVED, not reclaimed.** 0x0053 keeps its place in the
+144-word channel block with a dispatch entry of 0. Compacting it would
+have moved every address after it — the whole map, the MCU ghost table
+and every stored golden — to save one word of a page that is nowhere
+near full. That restraint is the same hazard D61 is about, met once in
+this session.
+
+The fact is single-sourced in **dsp.csv**: the FADER_PAN nodes that used
+to carry the word declare `host_cells=Dca,DcaOn`, and everything else
+reads it from there — `gen_dsp.py` reserves the word and mints no cell,
+`wire_contract.py` reports the families as a class of their own, and
+`dsp4_conform.py` classifies the address from the generator's own
+dispatch comment rather than from a cell list that would go stale.
+
+What moved, all of it checkable:
+
+| | before | after |
+|---|---|---|
+| D38 inert addresses / cells | 952 / 818 | **896 / 762** — the 56 did not become less inert, they stopped being addresses |
+| dispatch entries unmapped | 420 | **476** |
+| ghost cells (the MCU's table) | 5,537 | **5,481** |
+| `_matrix.csv` rows with DSP columns | — | the 56 `RtgDca` rows are CLEARED by `--force` |
+| conform presence classes, measured on the part | 6,088 ECHO / 388 UNMAPPED / 117 CLEARED / 159 skipped | **6,032 ECHO / 388 UNMAPPED / 117 CLEARED / 159 skipped / 56 HOST_MANAGED** — the prediction, to the address |
+
+`HOST_MANAGED` is its own presence class on purpose: unmapped BY RULING
+and unmapped BY OMISSION look identical from the part, and the whole
+value of the `UNMAPPED` total is that it means "nobody has said why".
+
+#### 3. D61 — the addresses have no authority outside this spoke
+
+The dispatch asked for this as a finding with a concrete proposal, and
+not to start the migration. Stated as measured facts:
+
+* **the masters carry no addresses at all.** `src/pd/d32-mx-master.csv`
+  and `d24-mx-master.csv` have no `Dsp*` COLUMNS — not empty ones, none —
+  and `expand_matrix.py` emits `DspSpi`/`DspPage`/`DspAdd`/`DspAddHex`
+  empty into `_matrix.csv`.
+* **this repo invents them, positionally.** `AddrAlloc` in
+  `tools/dsp/gen_dsp_csv.py` is a bump counter with no anchor, so every
+  address is a consequence of the ORDER of the `add()` calls in one
+  Python file, and `gen_dsp.py` backfills the result into the hub's own
+  copy of the contract.
+* **the blast radius, measured rather than asserted:** giving the channel
+  GAIN node one extra word — the most ordinary contract change there is —
+  **moves 347 of chip 1's 348 addressed nodes and renumbers every
+  address from 4 to 4,797 — 4,794 of the 4,798 chip 1 uses**, and nothing in mx26 would see it.
+
+A fourth fact, found while checking the third and folded into D61: the
+architecture rules ONE firmware and ONE shared address map for D24 and
+D32, `gen_dsp.py` backfills only `MW/D32`, and **`MW/D24/MX/_matrix.csv`
+carries 0 of 5,125 rows with a `DspAdd`** — so `wire_contract.py
+--product d24` joins 4,946 documented cells to nothing, and D24's half of
+the shared map exists only as D32's copy of it.
+
+The proposal is in D61 in the review index: mx26's master carries
+`DspSpi`/`DspPage`/`DspAdd` as AUTHORED columns seeded once from the
+current backfill (so no address moves on adoption day), `gen_dsp_csv.py`
+stops allocating and reads them, `gen_dsp.py`'s backfill inverts into a
+check, and the contract version starts covering the address map as well
+as the cell surface — which is the property the flow is missing today.
+
+#### 4. The standing bars
+
+| bar | result |
+|---|---|
+| **contract conformance** | **`VERDICT: PASS`** — **6,032 ECHO / 388 UNMAPPED / 117 CLEARED / 159 meters skipped / 56 HOST_MANAGED**, which is the prediction above to the address; 12 declared-unit checks pass and the 16 that fail are the named D41 known mismatches, `ChanCompPar` still exact at 0/25/50/100 %; both negative controls fired (wrong-unit 4 of 4, no-verify 64 of 64 UNVERIFIED). Table at `goldens/conformance-20260830-s7.md` |
+| **inert phase** | **PASS on its own boot** — driven window at peak **`0x015E7E31`, the same word session 6 measured**, noise floor ZERO, both positive controls 32 of 32, 12 of 12 sampled classes INERT. `0x0053` is no longer among the candidates because it is no longer an address; `0x00D0 Chan002CompType001` took its place. Stored at `goldens/conformance-20260830-s7-inert.md` |
+| **bus golden** | **0 of 256 — GRAPH BIT-EXACT**, sha256 `ba3f52ec…` against `busgraph-postD59-20260830.json`, which was NOT re-taken. That is the W0 audio claim measured rather than argued: the `_fdr_dca_gain_` multiply came out of every fader and the bus did not move by one word |
+| **cell semantics** | **`VERDICT: PASS`**, with the DCA rows rewritten to measure the ruling instead of D57. **DCA-U: `SPI_ERR_COUNT` 1 → 1 across the MAPPED neighbour 0x0052 and 1 → 2 across 0x0053** — the reserved address is rejected, and the negative control in the same batch says the counter is measuring the address rather than the link. **DCA-A: 0 of 32 bus words differ across that rejected write**, bus peak `0x015E7DD7`. The D59 rows read **`0x0579F843` → `0x00444578`** on the gain-reduction control and **`0x015E7DD7` / `0x0011114D`** on the bus — the same four words session 6 measured, which is a third independent statement that the audio did not move |
+| **biquad vs model** | **0 of 16 on all three arms** (ref vs blk, ref vs model, blk vs model), negative control fires at 15 of 16 — **and the D60 fix earned itself again on the way**: the link answered `CHIP 0` three times before settling, and because `check_chip()` votes on the same `Scope` object rather than believing one read, the bar absorbed it and ran instead of reporting a dead part |
+| **dynamics** | **0 of 32 on all three arms** (COMP, GATE, BQ4); pairing 2.04× / 2.27× / 1.43× |
+| **numerics** | **57 of 57 BIT-EXACT, `NEGCTL PASSED`** — 31 of 31 boundary vectors detected, 26 of 26 non-boundary untouched, third-word cost +2.043 c/MAC. **It took two runs and the reason is not the arithmetic**: the first run's negative-control arm reported `link never usable` on three consecutive boot cycles, and on the re-run the SAME positive image (`0105a7e6`) that had passed 57/57 nine minutes earlier also failed its first cycle and passed its second. An image that is bit-exact, then unreachable, then bit-exact again on the identical hash is a LINK fault, and it is recorded as one rather than chased |
+| **meter** | **`METER_BIT_EXACT`** with both negative controls firing — wide model `pk_blk>>4 4169139 / ms_blk 16576495` at gain 0.497, narrow model correctly rejected; the same words session 6 read |
+
+#### The link fault this session ran into, recorded and not chased
+
+It cost a bar re-run and it is worth naming, because it looked twice like
+a result. `numverify`'s negative-control arm reported `link never usable`
+on three consecutive boot cycles and the bar exited non-zero. On the
+re-run, **the identical positive image — same hash, `0105a7e6` — that had
+passed 57 of 57 nine minutes earlier failed its FIRST boot cycle and
+passed its second**, and then the negative control passed cleanly. An
+image that is bit-exact, then unreachable, then bit-exact again on the
+same hash is a LINK fault and cannot be an arithmetic one.
+
+`bqst` hit the same class from the other side: the link answered `CHIP 0`
+three times before settling, and the bar ran anyway because D60's fix
+votes on the same `Scope` object instead of believing one read. That is
+the difference between the two: the instrument that votes absorbed it,
+the instrument that boots-and-hopes reported it as a failure. Recorded
+against the standing chip-ID/link intermittent, not diagnosed.
+
+#### Bench hand-back
+
+Restored to the NEW shipping baseline and verified on the part, not from
+a summary. `chip1.ldr 3f0e479a`, `chip2.ldr ab43c75b`, md5-matched on the
+Pi against the build — and that build is the FOURTH independent
+reproduction of those two hashes this session (this session's first
+build, `conform.sh`'s, `dcapar.sh`'s and the restore build all agree).
+
+Both chips read through `dsp4_audio_verdict.py`: **`BOOT_STAGE 7`,
+`FRAME_COUNT` advancing at 6000/s on chip 1 and 5999/s on chip 2** (48 kHz
+/ block 8 — the "expect ~1500" in that tool's output is the BLOCK=32 label
+of review finding D49, not a shortfall), `SPORT0_ERR_A 0x00000000` on
+both, `DMA0_STAT 0x00006201` and `0x00006200`, `SPI_ERR_COUNT 0`,
+`PRODUCT_ID 0x00540001`. GPIOs released; **`matrix-app active` with all
+three MCUs verified on the FIRST restart** (H1S1, H1S4, H1S3 at
+11:06:20, read from `/home/app/logs/log`). The CPLD was never touched and
+no JTAG operation was run this session, so its bitstream is as it was.
 
 ## HUB DISPATCH 2026-08-30 02:57Z — session 6: D57 DCA semantics, CompPar dry default, captable cache   [status: 🟢 done — **BOTH CELL-SEMANTICS DEFECTS ARE FIXED AND PROVEN ON THE PART WITH THE SAME INSTRUMENT ON BOTH SIDES OF THE CHANGE. D57: `RtgDca` now ASSIGNS — before, writing the masters' documented "off" value of 0 gave a SILENT bus (peak `0x0000000F`) with the chain witness naming `_buf_C1_FDR_01 = 0` while `_buf_C1_DLY_01` carried `0x02BCFACA`; after, RtgDca=0 gives bus peak `0x015E7DD7` and reads WORD FOR WORD identical to RtgDca=1.0, 0 of 32 differing** — the cell reaches no audio at all, which is the fix, and `conform.sh` now drives its strip with RtgDca=0 so it has a standing witness. The 56 addresses join the D38 inert list (896 → 952) and the harness confirmed `Chan001RtgDca001` INERT on the part. **D59: `CompPar`'s default was 0 and left the compressor FULLY DRY — before, the bus read `0x03FFFF74` at BOTH a −20 dB and a −55 dB threshold, 0 of 32 words differing, while `_comp_gain_` captured on the driven graph moved `0x0579F843` → `0x00444578`; after, the same two thresholds give `0x015E7DD7` and `0x0011114D`, 32 of 32 differing.** The masters rule the UNIT and document NO DEFAULT (`MxDat` is empty on the row), so 100 % is the dispatch's reading and that gap is filed as a PW question along with D57's two. **W0: the image changes and D59 changes the audio BY DESIGN — new baseline chip1.ldr `033d2921`, chip2.ldr `f8883d4c`** from `e9ac266e`/`73b4f168`, and the pre-fix tree was rebuilt in a worktree to reproduce the bench's running baseline exactly before anything was measured. **The bus golden was re-taken IN THIS SESSION** (234 of 256 words differ, then **0 of 256** against the re-take on a second independently built image), which is the rule D58 left. `captable.sh`'s scratch tree is now keyed by a digest of block size + `dsp.csv` + the codegen + every file of `src/`, so a stale reproduction is impossible rather than unlikely; the spot row was rebuilt from `src32-b4da7d1cfa5fa868` — which contains `bq_pairs.asm`, `_fdr_dca_sel_` and `_comp_parallel_ = 100.0` — and measured **654,819 cycles/pass against session 5's 657,082**, 0.34 % apart, so **32 channels at BLOCK 32 / 983.04 MHz is still ON THE LINE** (99.92 % of budget one run, 100.26 % the other) and no improvement is claimed. **ALL BARS PASS: conform `VERDICT: PASS`** (6,088 ECHO / 388 UNMAPPED / 117 CLEARED / 159 skipped, identical to sessions 4 and 5, both negative controls firing), inert phase PASS on its own boot with both positive controls at 32 of 32, busgold 0 of 256, bqst 0 of 16 on all three arms, dynst 0 of 32 on all three, numverify 57/57 with NEGCTL PASSED, mtrverify `METER_BIT_EXACT`, dcapar `VERDICT: PASS`. **TWO OF THOSE BARS HAD TO BE REPAIRED FIRST AND NEITHER FAILURE WAS THIS SESSION'S CODE**: `bqst.sh` had been reading the part through `dsp4_diag` and reported `MAGIC 0x00000000` five boots running — proven pre-existing by reproducing it from a worktree at the previous HEAD — and `numverify.sh` scored a dead link as an arithmetic failure, because **a ZERO votes as cleanly as a value**. Both now read through the paced instrument and corroborate a zero before believing it. Bench restored to the new baseline and verified on the part: both chips `BOOT_STAGE 7`, 6000 and 5999 frames/s, `DMA0_STAT 0x00006200`, `SPORT0_ERR_A 0`, `SPI_ERR_COUNT 0`, GPIOs released, `matrix-app active` with all three MCUs verified on the FIRST restart; CPLD never touched.]   [model: opus]
 

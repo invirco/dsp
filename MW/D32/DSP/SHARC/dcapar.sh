@@ -1,12 +1,17 @@
 #!/bin/bash
-# dcapar.sh — the D57/D59 cell-semantics evidence, on the part.
+# dcapar.sh — the cell-semantics evidence, on the part.
 #
 # Two contract defects were found on the bench on 2026-08-30 and fixed the
 # same day, and both change what a DEFAULT-configured strip does:
 #
 #   D57  `<Cat>[n]RtgDca[1-1]` is a DCA ASSIGNMENT and the kernel treated
 #        it as a linear gain, so writing the masters' documented "off"
-#        value of 0 silenced the channel.
+#        value of 0 silenced the channel. SUPERSEDED the same day by PW's
+#        Q2 ruling: `Dca`/`DcaOn` are HOST-MANAGED, the CM4 control daemon
+#        folds DCA into the fader target it already sends, and the address
+#        is RESERVED. The bar now measures that the cell LEFT the wire --
+#        the handler rejects the write while its mapped neighbour is
+#        accepted, and the bus does not move — which subsumes D57.
 #   D59  CompPar's power-on default left the compressor FULLY DRY, so a
 #        default strip's compressor threshold was not an audible control.
 #

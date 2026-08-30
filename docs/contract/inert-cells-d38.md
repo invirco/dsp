@@ -13,7 +13,7 @@ separately as uncertain rather than claimed dead, so everything on
 this list is provably unreferenced and the list under-reports
 rather than over-reports.
 
-**952 addresses are inert**, naming **818 master cells**. A further **70 addresses** are reachable by offset from a symbol that is used, and are not claimed either way.
+**896 addresses are inert**, naming **762 master cells**. A further **70 addresses** are reachable by offset from a symbol that is used, and are not claimed either way.
 
 
 <!-- BEGIN hand-written — preserved across regeneration -->
@@ -61,7 +61,6 @@ rather than a random draw. `INERTN=<n> ./conform.sh` raises the count.
 | NotchFreq[i] | 72 | 72 | `_afb_notch_freq_*` |
 | NotchGain[i] | 72 | 72 | `_afb_notch_gain_*` |
 | NotchQ[i] | 72 | 72 | `_afb_notch_q_*` |
-| DCA assignment | 56 | 56 | `_fdr_dca_sel_*` |
 | CompType | 42 | 41 | `_comp_type_*` |
 | CompKey | 42 | 41 | `_comp_key_src_*` |
 | CompDetSrc | 42 | 41 | `_comp_det_src_*` |
@@ -114,12 +113,6 @@ rather than a random draw. `INERTN=<n> ./conform.sh` raises the count.
 `Aux001AntiFbNotchQ001`, `Aux001AntiFbNotchQ002`, `Aux001AntiFbNotchQ003`, `Aux001AntiFbNotchQ004`, `Aux001AntiFbNotchQ005`, `Aux001AntiFbNotchQ006`, `Aux002AntiFbNotchQ001`, `Aux002AntiFbNotchQ002`, `Aux002AntiFbNotchQ003`, `Aux002AntiFbNotchQ004`, `Aux002AntiFbNotchQ005`, `Aux002AntiFbNotchQ006`, `Aux003AntiFbNotchQ001`, `Aux003AntiFbNotchQ002`, `Aux003AntiFbNotchQ003`, `Aux003AntiFbNotchQ004`, `Aux003AntiFbNotchQ005`, `Aux003AntiFbNotchQ006`, `Aux004AntiFbNotchQ001`, `Aux004AntiFbNotchQ002`, `Aux004AntiFbNotchQ003`, `Aux004AntiFbNotchQ004`, `Aux004AntiFbNotchQ005`, `Aux004AntiFbNotchQ006`, `Aux005AntiFbNotchQ001`, `Aux005AntiFbNotchQ002`, `Aux005AntiFbNotchQ003`, `Aux005AntiFbNotchQ004`, `Aux005AntiFbNotchQ005`, `Aux005AntiFbNotchQ006`, `Aux006AntiFbNotchQ001`, `Aux006AntiFbNotchQ002`, `Aux006AntiFbNotchQ003`, `Aux006AntiFbNotchQ004`, `Aux006AntiFbNotchQ005`, `Aux006AntiFbNotchQ006`, `Aux007AntiFbNotchQ001`, `Aux007AntiFbNotchQ002`, `Aux007AntiFbNotchQ003`, `Aux007AntiFbNotchQ004`
 
 ...and 32 more of the same shape (one per instance).
-
-### DCA assignment — 56 addresses, 56 cells
-
-`Aux001RtgDca001`, `Aux002RtgDca001`, `Aux003RtgDca001`, `Aux004RtgDca001`, `Aux005RtgDca001`, `Aux006RtgDca001`, `Aux007RtgDca001`, `Aux008RtgDca001`, `Aux009RtgDca001`, `Aux010RtgDca001`, `Aux011RtgDca001`, `Aux012RtgDca001`, `Chan001RtgDca001`, `Chan002RtgDca001`, `Chan003RtgDca001`, `Chan004RtgDca001`, `Chan005RtgDca001`, `Chan006RtgDca001`, `Chan007RtgDca001`, `Chan008RtgDca001`, `Chan009RtgDca001`, `Chan010RtgDca001`, `Chan011RtgDca001`, `Chan012RtgDca001`, `Chan013RtgDca001`, `Chan014RtgDca001`, `Chan015RtgDca001`, `Chan016RtgDca001`, `Chan017RtgDca001`, `Chan018RtgDca001`, `Chan019RtgDca001`, `Chan020RtgDca001`, `Chan021RtgDca001`, `Chan022RtgDca001`, `Chan023RtgDca001`, `Chan024RtgDca001`, `Chan025RtgDca001`, `Chan026RtgDca001`, `Chan027RtgDca001`, `Chan028RtgDca001`
-
-...and 16 more of the same shape (one per instance).
 
 ### CompType — 42 addresses, 41 cells
 

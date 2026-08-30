@@ -7,6 +7,8 @@ This layout mirrors the older reference style from [../D24/DSP/SHARC/dsp_diagram
 ```mermaid
 flowchart TB
     PI([Pi / Matrix App])
+    DCA([DCA masters ×8<br/>HOST-SIDE since 2026-08-30:<br/>folded into the fader target,<br/>no DSP address at all])
+    DCA -. effective fader = fader dB + DCA dB .-> PI
     MCU([H1S1 MCU<br/>STM32U575<br/>SPI control])
     PI -->|Serial| MCU
 
@@ -51,12 +53,11 @@ flowchart TB
       CP([COMPRESSOR ×32<br/>self-key default<br/>parallel / knee / type])
       TS([TUBE_SAT ×32])
       DLY([DELAY ×32<br/>20 ms local + 250 ms max])
-      FD([FADER_PAN ×32<br/>pan / mute / DCA])
+      FD([FADER_PAN ×32<br/>pan / mute])
       RT([ROUTING ×32<br/>Main / Sub / Grp switching<br/>Aux / FX pickoff select<br/>PreEQ / PostEQ / PreFdr / PostFdr])
       TX([INTERCHIP_SEND ×25])
       TALK([TALKBACK ×2])
       NOISE([NOISE_GEN ×1])
-      DCA([DCA masters ×8<br/>control only])
       TTRIM([Tap A<br/>post trim / pre-EQ])
       TEQ([Tap B<br/>post EQ])
       TPRE([Tap C<br/>pre-fader])
@@ -66,7 +67,6 @@ flowchart TB
       IN --> G --> FLT --> EQ --> GT --> CP --> TS --> DLY --> FD --> RT --> TX
       TALK --> RT
       NOISE --> RT
-      DCA -. control .-> FD
       G -. tap .-> TTRIM
       EQ -. tap .-> TEQ
       DLY -. tap .-> TPRE

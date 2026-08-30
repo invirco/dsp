@@ -243,8 +243,11 @@ names the halved form.
   on the same case); the offset form passes 0.046 dB worst-case, ~9×
   better than the shipping FP32, and the error feedback puts the LF
   rounding-noise floor below −130 dBFS.
-- Linear gains (faders, sends, pan legs, DCA products): **Q4.28**
+- Linear gains (faders, sends, pan legs): **Q4.28**
   (up to +24 dB as a single coefficient; larger boosts compose).
+  DCA products were on this list until 2026-08-30; the CM4 control
+  daemon now folds DCA into the fader TARGET it already sends, so no
+  DCA product is formed on the DSP at all.
 - One-pole envelope/ramp alphas: **Q0.31** (unsigned range [0,1)).
 - Delay crossfade / interpolation fractions: Q0.31.
 

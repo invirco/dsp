@@ -50,9 +50,18 @@
 # session's re-baseline, sha256 ba3f52ec, and the retired one is kept
 # beside it.
 #
-# (D57 landed in the same session and is NOT in those 234 words: RtgDca
-# now reaches no audio, proven separately by dcapar.sh — 0 of 32 bus words
-# differ between RtgDca 0 and RtgDca 1.0.)
+# (D57 landed in the same session and is NOT in those 234 words: the DCA
+# cell reaches no audio, proven separately by dcapar.sh — 0 of 32 bus words
+# differ between DCA 0 and DCA 1.0.)
+#
+# 2026-08-30, session 7: PW's Q2 ruling made `Dca`/`DcaOn` HOST-MANAGED, so
+# the address is reserved and `dsp4_pairgraph.py` no longer writes it, and
+# the `_fdr_dca_gain_` multiply came out of FADER_PAN. Both are predicted
+# AUDIO-NEUTRAL — the cell already reached no audio, and x * 1.0 is exactly
+# x in IEEE 754 — so `busgraph-postD59-20260830.json` was NOT re-taken. It
+# is the CHECK on that prediction rather than a record of it, which is the
+# only way a golden can carry weight across a change to the code it
+# measures.
 #
 # The harness is dsp4_pairgraph.py unchanged: it configures both strips over
 # SPI with OPPOSITE dynamics settings, so the two lanes sit in opposite arms
