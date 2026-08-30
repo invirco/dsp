@@ -1,3 +1,59 @@
+## HUB DISPATCH 2026-08-30 13:36Z — session 9: TUBE active measured + efficiency to floors   [status: 🟡 dispatched]   [model: sonnet]
+
+model: sonnet
+(reasoning: bounded, fully-specified measurement + mechanical optimization
+against known floors. ESCALATION CLAUSE: if any step turns into design work
+of unknown shape — a floor that cannot be approached without restructuring,
+a measurement that contradicts the instruction-stream arithmetic by >10%, or
+any wire-contract question — STOP that thread, mark it 🔴 with the evidence,
+and leave it for an opus session rather than improvising.)
+
+SESSION 9 — TUBE ACTIVE COST MEASURED + EFFICIENCY TO FLOORS (per the
+capacity mandate: 32 channels is the minimum, headroom is the goal; keep
+going until there is no room left).
+
+1. TUBE ACTIVE COST (the one thing session 8 left owed): teach
+   sigprofile.sh to write TubeOn=1 before profiling (and restore it
+   after), then measure the engaged TUBE body on the part. Expected
+   ~52 cyc/sample from the emitted stream; report measured vs
+   arithmetic. If they disagree >10%, escalate per the clause. Record
+   in the margin table as plugin-class cost (per PW: TUBE is a plugin
+   option, never counted in the base strip).
+
+2. EFFICIENCY TO FLOORS — work the instruction-count gaps between
+   current measured and the computed floors, in order of recoverable
+   cycles (the scoreboard queue is the order). Known fat named by
+   prior sessions: COMP call/return overhead (inline or tail-merge the
+   call fat), dynamics nodes not yet at their paired floors
+   (GATE/COMP SIMD pairing to the measured pairing factor 1.43-1.54x).
+   Discipline per function, unchanged: golden vectors before touching,
+   restructure, re-measure cycles (captable.sh digest-keyed), goldens
+   bit-exact after, negative control still fires, harness 59/59, all
+   standing bars green (conform, busgold, bqst, dynst, numverify,
+   dcapar, mtrverify, goldnode), W0 byte-identity discipline for any
+   image change (new baselines stated).
+
+3. After each function lands: update the margin-at-32 number and the
+   per-function now/floor table in docs/ (the hub redraws the
+   scoreboard from it). State cycles recovered per function honestly —
+   measured, not estimated.
+
+4. DO NOT touch: D64/D65 (parameter-boundary guards and UNDECLARED
+   units are hub/PW questions), the four harness-only BQCVT sets
+   (named, stay harness-only), anything in the wire contract, CPLD.
+
+5. Bench restore + verify at the end as always; session ends with
+   tasks.md block status updated and pushed.
+
+Rules: standing traps; ladder discipline; single trunk; no AI
+attribution. If the queue runs dry inside the session (all reachable
+floors hit), say so explicitly — that is the "no room left" signal PW
+asked to hear, not a failure.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-08-30 10:23Z — session 8: golden-coverage batch D26-D34 (TUBE plugin-class)   [status: 🟢 done — **THE GOLDEN MAP IS CLOSED AND THE FOUR HOLES IN THE MIDDLE OF THE STRIP ARE BIT-EXACT ON THE PART.** D26, D27, D28, D29, D30, D31, D32 and D34 all got models, vector families with their own negative controls, and — for the four strip nodes plus the coefficient conversion — an on-part bar that drives the SHIPPING GRAPH rather than a probe copy, which closes the honest half of D35 too. `golden_harness.py` goes **16/16 → 59/59**. **On the part, one boot per node: GATE 32 of 32 bit-exact with the no-hold control differing in 29 of 32 (predicted 29); COMP 32 of 32 with the single-rounding control at 9 of 32 (predicted 9); TUBE 32 of 32 on both stimuli, ENGAGED, plugin-class per the ruling; FDR 32 of 32 on both stimuli; BQCVT 10 of the 14 coefficient sets exact with the b1-destroying control firing on every set with a non-zero b1 and PASSING every set without one.** Every converted parameter matches its model exactly too — the gate's dB range floor (D39), the compressor's percent blend (D40), its threshold and slope, the fader's level coefficient and both pan legs — and a conversion mismatch STOPS the sample-path measurement rather than letting it run on the wrong coefficients. **W0: nothing here reaches an image.** Plain `./build.sh` reproduces `3f0e479a` / `ab43c75b`, 301,732 and 182,060 bytes, and the new bar carries NO self-test into the image at all — it builds the shipping configuration, drives the scope that is already in every image, and keeps its negative controls in the MODEL. **Four ways this produced a confident wrong answer first, all recorded in the code**: the peeked words were read UNSIGNED, so both dB thresholds came back as ~4.07e9 and the modelled gate never opened while the modelled compressor never left unity gain — where the makeup's second rounding is invisible; a zero peek is indistinguishable from a dropped answer, and two of the fader's three coefficients read 0 while the third was exactly right; **a gate's output is x·gain, so no stimulus the scope can inject reaches the close arm through the product** — the bar captures `_gate_gain_` and models the trajectory instead, which is a stronger reading of D30; and five hand-picked amplitudes are not a search, so `choose_amps` now derives the separating stimulus from the model before the part is driven. The vectors taught two more: **the tube's middle rounding is invisible on every tidy setting** (a 400k-point search put it at 1–2 LSB and only where neither operand is tidy) and **every FDR level in the first set was a power of two**, so the store's rounding could not be tested at all. **MEASURED AND NOT ASSUMED: a bypassed gate passes its input through BIT-IDENTICALLY** (221910965 → 221910965 with `GateOn` 0, → 221910944 with it on) — the zero captures that looked like a cell-semantics defect were the recorded link intermittent (D60), and the tool says so rather than implying a defect that is not there. **TWO FINDINGS OPENED. D64: the `fix` at the parameter boundary is unguarded, and `fix` here neither saturates nor two's-complement wraps** — at 2^31 the part returns `0xFFFFFFFF`, measured twice independently, so `fixed_ref.fix32` REFUSES out-of-domain input rather than inventing the rest of the overflow; `ChanCompPar` (D40) and `ChanGateRng` (D39) clamp, `ChanLevel` and `ChanPan` do not, so a fader level of exactly 8.0 produces an arbitrary coefficient rather than a clip. **D65: `ChanTubeSat` and `ChanCompMake` are D39/D40 again** — the masters document 0..100 and 0..20, the kernel reads both as linear and scales by 2^28 with no clamp, so at the documented maximum both leave the `fix` domain outright — and the wire contract records their unit as UNDECLARED, which makes it a hub question rather than a spoke fix. A GENERATED version of that claim was written and WITHDRAWN: the rule fires on 49 families including a dB threshold and a filter frequency, because the generator cannot infer the kernel's scale factor. **ALL STANDING BARS PASS**: conform `VERDICT: PASS` (6,032/388/117/56/159, wrong-unit control 4 of 4), busgold 0 of 256 `GRAPH BIT-EXACT`, bqst 0 of 16 on all three arms with its control at 15 of 16, dynst 0 of 32 on all three arms, numverify 57 of 57 with `NEGCTL PASSED` 31 of 31, dcapar `VERDICT: PASS`, mtrverify `METER_BIT_EXACT` with both controls rejected, goldnode `NODE VERIFY BIT-EXACT`, harness 59/59. `numverify` needed two boot retries and `mtrverify` one, all on the standing chip-ID/link intermittent and all passing on a later cycle of the same image with no numeric disagreement anywhere. Bench restored and verified: md5s unchanged, both chips at `BOOT_STAGE 7` / 6015 frames per second / `DMA0_STAT 0x00006200` / `SPORT0_ERR_A 0`, GPIOs released, `matrix-app` active, all three MCUs verified after the restart, CPLD never touched. **TUBE's ACTIVE COST IS THE ONE THING STILL OWED** — the bypass arm is a one-load-one-store copy consistent with the ~0 already measured, and the engaged body counts to ~52 cycles/sample from the emitted stream, but that is arithmetic on the instruction stream and not a bench reading: `sigprofile.sh` has to write `TubeOn` before it profiles, or limits 6 and 7 measure a bypassed node. It stays in NEEDS MEASUREMENT.]   [model: opus]
 
 model: opus
