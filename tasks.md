@@ -1,3 +1,50 @@
+## HUB DISPATCH 2026-08-30 14:37Z — session 10: D66 call/rts recalibration + floors restated + efficiency   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+(reasoning: D66 escalation — the cost model behind every floor is in
+question; recalibration decides the ROI ranking of all remaining
+efficiency work)
+
+SESSION 10 — D66 CALL/RTS RECALIBRATION, FLOORS RESTATED, THEN
+EFFICIENCY TO FLOORS ON THE CORRECTED MODEL.
+
+1. ISOLATE the branch cost on the part (D66's stated need): measure a
+   bare call/rts pair — no MAC, no _mrf_rns28 body — same-boot diff
+   methodology as session 9's TubeOn measurement (which stands: 829-834
+   cyc/block, 103.9 c/s, <0.6% spread). Then one calibration ladder:
+   bare pair, pair+nop body, pair+_mrf_rns28 body, so the ~17 c/s/pair
+   is decomposed into generic branch overhead vs callee-specific stalls
+   (pipeline depth, IT-buffer, L1 code locality — name the mechanism
+   with a measured number, not a guess).
+2. RESTATE the AXIS 1 floor table with the measured branch cost: every
+   row whose floor was built by one-cycle-per-instruction counting gets
+   a corrected floor AND a corrected now-vs-floor gap. Publish the
+   restated table to docs/ (dsp4-function-costs.csv + a dated note) —
+   the hub redraws the scoreboard from it. State plainly which queue
+   items' ROI changed rank.
+3. PROCEED with efficiency-to-floors on the corrected model, highest
+   measured ROI first. If the recalibration says call/rts is ~17 c/s
+   generic, inlining COMP's ~9 pairs and GATE's ~3 is worth far more
+   than previously sized — do those first, with the full discipline:
+   goldens before touching, restructure, captable re-measure, goldens
+   bit-exact, negctl fires, harness 59/59, all standing bars green, W0
+   for any image change.
+4. TUBE stays deferred per PW's ruling (plugin group): the 103.9
+   measurement is recorded, D66 is about the model, not TUBE — no
+   further TUBE work.
+5. Update margin-at-32 after each landing; session ends with tasks.md
+   status updated, review index updated, push main, bench restored and
+   verified.
+
+Rules: standing traps; ladder discipline; single trunk; no AI
+attribution. If restated floors change the strategic picture (e.g. the
+32-at-block-8 outlook moves materially either way), say so in the
+block status in plain words — that is hub/PW information.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-08-30 13:36Z — session 9: TUBE active measured + efficiency to floors   [status: 🔴 blocked — **RACED THE PW RULING BELOW: the TUBE active-cost measurement it says to skip was already done and pushed before this session saw it land.** Kept rather than discarded because it surfaced a finding that bears directly on step 2, which the ruling says to do instead — see the note under the ruling and D66. Net effect either way: efficiency-to-floors (step 2) was not attempted this session, and that is what needs picking up next.]   [model: sonnet]
 
 model: sonnet
