@@ -1,3 +1,38 @@
+## HUB DISPATCH 2026-08-30 10:23Z — session 8: golden-coverage batch D26-D34 (TUBE plugin-class)   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+SESSION 8 — the golden-coverage batch (D26-D34): close the map so every
+future optimization is guarded. Findings-era gaps become models +
+vectors + on-part bars. NOTE the fresh ruling 87ded93: TUBE is a
+PLUG-IN option — its coverage is plugin-class (active path engaged as a
+plugin would be), the base strip excludes it.
+
+1. D28 — COMP wet path: model makeup's second rounding + the parallel
+   blend in fixed_ref; vectors incl. the D59 default; on-part proof.
+2. D30 — GATE state machine: model open/hold/close ladder incl.
+   hysteresis; vectors that walk every transition; on-part.
+3. D31 — FDR pan law: model as implemented (the D42 linear-vs-constant-
+   power decision stays OPEN for PW — model what IS, flag the choice).
+4. D29 — TUBE, plugin-class: model the active path, vectors, on-part
+   with TUBE engaged; verify the bypass skip costs the base strip
+   nothing (that IS the base requirement).
+5. D33 follow-through: crossfade blend model exists — extend vectors to
+   the crossover twin if uncovered; D34 — TDM boundary conversions get
+   a minimal model + vectors; D26 — meter model exercised by
+   golden_harness (not only mtrverify); D27 — `_bq_fx_convert_N`
+   regression incl. the Q=0.10 corner vectors (ruling 060e605) and the
+   b1=0 site; D32 — bench probes import fixed_ref's rns() instead of
+   reimplementing it.
+6. Every new bar joins the standing checklist; all bars green at
+   hand-back; W0 (instrument-only changes must leave shipping
+   byte-identical — state which builds carry the new selftests);
+   push main; review index updated (coverage count restated).
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 **PW RULING 2026-08-30 (~09:45): TUBE IS A PLUG-IN OPTION, not a fixed
 strip feature.** Consequences: the BASE strip's floors, ceilings and
 margin-at-32 are computed with TUBE bypassed/absent (already the
