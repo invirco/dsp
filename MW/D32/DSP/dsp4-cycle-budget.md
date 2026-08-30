@@ -86,11 +86,16 @@ are differences of measurements rather than of models.
 **The metering cost is a per-BLOCK constant, about 220 cycles per strip
 per block, not a per-sample one** — it is nearly the same absolute number
 at both block sizes, which is why it hurts four times as much at BLOCK 8.
-That also means the pipelining fix did not do what it was built to do:
-the pre-pipelining measurement was 232,991 at BLOCK 8 and the pipelined
-one is 233,714, i.e. no better and marginally worse once the two shared
-call/rts pairs are paid. **The stall hypothesis in that commit message is
-not supported by this measurement and is corrected here.** What is known
+That also means the pipelining fix did not do what it was built to do.
+The measurement before it was 232,991 at BLOCK 8; the measurement after
+it is 233,714 — but the second image also carries the two SHARED meter
+routines that the program-memory squeeze forced, so what is measured is
+the pair of changes together, not the pipelining alone, and the pair is
++723 cycles. Either way there is no recovery of the 6,500 the metering
+costs. **The multiplier-stall hypothesis in that commit message is not
+supported by this measurement and is corrected here; the two changes were
+not separated, and that is a limitation of the measurement rather than a
+result.** What is known
 about the 220: a metered node gives up the `DSP4_STRIP_FUSED`
 two-at-a-time loop because the meter owns MRF, and the hand-over adds two
 calls per strip per block. Those do not add up to 220 and the remainder is
