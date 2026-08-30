@@ -1,9 +1,12 @@
 # DSP4 numeric specification (decision D5)
 
 Status: draft-normative, 2026-07-31; core families VALIDATED by
-tools/dsp/golden_harness.py — 16/16 as of 2026-08-29, when the
-wide-accumulator and blend boundary families were added (the long-stale
-"9/9" was review finding D36). Governs the fixed-point audio
+tools/dsp/golden_harness.py — **58/58 as of 2026-08-30**, when the NODE
+families were added (COMP's wet path, the GATE ladder, FADER_PAN, TUBE,
+the TDM boundaries, `_bq_fx_convert_N` and the meter: review findings
+D26-D34). It was 16/16 on 2026-08-29, when the wide-accumulator and
+blend boundary families were added, and the long-stale "9/9" before that
+was review finding D36. Governs the fixed-point audio
 path on BOTH targets: the SHARC DSP4 firmware (now) and the future
 FPGA mixer engine (`fpga/`). Changes here are behavioural contract
 changes — treat like the slot map (deliberate edits, noted in release
@@ -277,6 +280,74 @@ names the halved form.
   quantizes control values. Coefficient-set staging (biquads) converts
   at crossfade-swap time instead, as already implemented.
 
+## The `fix` domain at the parameter boundary (2026-08-30)
+
+`Rn = FIX Fx` is the one instruction every block-rate conversion above
+ends with, and **it neither saturates nor two's-complement wraps on this
+part.** At exactly 2^31 it was measured to return `0xFFFFFFFF`, i.e. -1
+— twice, independently: the compressor's parallel blend at 100 %
+(2026-08-23, which is why that conversion carries an explicit negative
+clamp afterwards) and the crossfade alpha at 1.0 (2026-08-29, which is
+why the alpha ramp is specified to stop one step short of unity).
+
+**One measured point is not a model of the overflow behaviour**, so
+`fixed_ref.fix32` REFUSES anything outside ±(2^31 - 1) rather than
+inventing the rest of it (the no-fallback policy). That makes the
+in-range domain a REQUIREMENT ON THE KERNEL: every host parameter that
+reaches a `fix` must be clamped into range first.
+
+Two families do clamp — `ChanCompPar` (review finding D40, percent, with
+the 100 % repair) and `ChanGateRng` (D39, dB, clamped to 0..60). Four
+cells reach a `fix` with nothing between: `ChanLevel`, `ChanPan`
+(finding D64) and `ChanTubeSat`, `ChanCompMake` (finding D65, where the
+masters' own scale law puts the documented maximum far outside the
+domain and the wire contract records the unit as UNDECLARED).
+
+## Node arithmetic (the golden-coverage batch, 2026-08-30)
+
+Everything above this point specifies PRIMITIVES. These are the
+compositions — the arithmetic between the primitives, which is where the
+last three shipped audio defects lived (the squared pan gain, the
+percent parallel blend, the dry-by-default compressor) and which had no
+reference of any kind until review findings D26-D34 were closed.
+
+- **COMPRESSOR wet path.** `wet = rns28(rns28(dry*gain) * makeup)` —
+  **two roundings**, because both operands are Q4.28 and the triple
+  product does not fit one accumulator. Then
+  `out = dry + rns31((wet - dry) * par)`, with the difference formed in
+  a 32-bit register. That difference is BOUNDED rather than lucky: gain
+  is in [0, 1] and makeup is non-negative, so wet and dry always carry
+  the same sign and |wet - dry| ≤ 2^31. The bound depends on a
+  non-negative makeup, which nothing enforces (finding D4).
+- **GATE ladder.** Per sample: follower, threshold compare in the log2
+  domain (`env == 0` counts as below), then either open (target = unity,
+  hold counter reloaded) or below (counter decremented
+  **unconditionally and never floored**; target drops to the range floor
+  only once it reaches zero), then a one-pole smoother onto the target
+  and one MAC. The follower and the smoother share the same attack and
+  release alphas. `|x|` is the ALU's ABS with ALUSAT clear, so
+  `|I32_MIN|` is `I32_MIN`.
+- **FADER_PAN.** `gq = fix(level * 2^28)`, forced to zero by mute (the
+  2026-08-25 crosspoint-coefficient fold); pan legs `1 - pan` and `pan`,
+  a **LINEAR** law whose two legs sum to unity. The level is applied by
+  the node's own MAC and the legs are ROUTING's crosspoint coefficients;
+  folding the level into the legs as well is the 2026-08-23 defect, and
+  it is exact at unity level, which is why it shipped.
+  [REVIEW: the masters document a constant-power law. Linear is what is
+  implemented and what this specifies; review finding D42 is PW's.]
+- **TUBE_SAT**, plugin-class (PW ruling 2026-08-30):
+  `y = rns28(x * (1 + rns28(sat * (1 - rns28(x*x)))))` — **three
+  chained roundings**, each saturating, with the two ALU adds wrapping.
+  A soft clip only for |x| ≤ 1; above that `1 - x²` turns the curve
+  over, and Q4.28 reaches 8.0. The BASE strip's requirement is the
+  bypass path, which is the identity and must cost nothing.
+- **TDM boundaries.** In: arithmetic `>>3`, which **truncates toward
+  -inf** — no rounding half, so up to one LSB of downward bias, accepted
+  rather than paid for per input slot per sample. Out: `<<3` with a
+  round-trip test, saturating to full scale **by the sign of the
+  source**. That is the only clip in the graph where Q4.28's headroom is
+  finally spent.
+
 ## Scope exceptions
 
 - FX engines (FX_ENGINE nodes) stay float32 (D5). Their inputs/outputs
@@ -317,3 +388,17 @@ Result 2026-08-29, on the part at 491.52 MHz: **57 of 57 bit-exact**,
 in both a per-sample and a block-kernel build. Negative control
 (`DSP4_NUM_NEGCTL=1`, the pre-fix arithmetic): **31 of 31 boundary
 vectors detected, 26 of 26 non-boundary vectors untouched.**
+
+For the NODE families the bit-exact half is
+`MW/D32/DSP/SHARC/goldnode.sh`, and it works the other way round: rather
+than emitting the vectors into the image, it DRIVES THE SHIPPING GRAPH,
+captures a node's input and output over the same stimulus from the same
+rested state, and requires `fixed_ref` to reproduce the captured output
+word for word from the node's own converted parameters. The thing under
+test is the shipping node body, not a probe copy of it — which is the
+honest half of review finding D35, since `bq_selftest.asm` and
+`dyn_selftest.asm` both compare assembly against assembly. Its negative
+controls are the deliberately-wrong twins in `fixed_ref`
+(`gate_step_nohold`, `comp_wet_1round`, `tube_2round`,
+`fdr_pan_squared`), so it needs one image and one boot; a stimulus on
+which a twin agrees is reported as unable to measure, never as a pass.

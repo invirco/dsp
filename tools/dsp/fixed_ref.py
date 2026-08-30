@@ -860,6 +860,21 @@ def fdr_apply(x, gq):
     return sat32(rns(x * gq, QS))
 
 
+def fdr_apply_trunc(x, gq):
+    """THE ROUNDING CONTROL for the sample path: the same MAC with the
+    store TRUNCATED instead of rounded to nearest.
+
+    The squared-gain form below is the right negative control for the BUS
+    FEED, which is where that defect lived -- it is a statement about
+    `level x leg`, and the node's own output has no leg in it. Comparing
+    the two against a capture of `_buf_<FDR>` compares different
+    quantities, which is a mistake the first on-part run made. For the
+    node's OWN output the meaningful control is round-versus-truncate:
+    numeric-spec.md rules round-to-nearest then saturate on every 32-bit
+    store, and this is what dropping the first half of that looks like."""
+    return sat32((x * gq) >> QS)
+
+
 def fdr_pan_squared(x, gq, leg_q):
     """THE PRE-2026-08-23 ARITHMETIC, kept as the negative control: the
     pan leg with the level folded in a second time, so the bus feed came

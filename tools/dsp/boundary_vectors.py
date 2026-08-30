@@ -371,6 +371,17 @@ FDR = [
     (1.0, 0.5, 0, 1, 'one LSB'),
     (1.0, 0.5, 0, -1, 'minus one LSB'),
     (0.5, 0.25, 0, fr.to_q(0.5), 'off-centre pan at half level'),
+    # UNTIDY LEVELS, and they are not decoration. Every level above is a
+    # power of two, so `x * gq` has no low bits at all and the store's
+    # ROUNDING is arithmetically invisible -- round-to-nearest and
+    # truncation give the identical word on all sixteen. numeric-spec.md
+    # rules round-then-saturate on every 32-bit store, and a vector set
+    # that cannot separate the two is not testing it. Same lesson the
+    # TUBE set learned from its middle rounding.
+    (0.37, 0.317, 0, fr.to_q(0.5), 'untidy level and pan: the store ROUNDS'),
+    (0.37, 0.317, 0, 12345679, 'untidy level, untidy sample'),
+    (0.37, 0.317, 0, -12345679, 'the same, negative: rounding is toward +inf'),
+    (0.8588, 0.4712, 0, 1073741721, 'untidy near half scale'),
 ]
 
 

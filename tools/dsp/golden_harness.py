@@ -473,7 +473,20 @@ def t_fdr(verbose):
     check('fdr squared-gain control is exact at unity level (why it shipped)',
           sum(bv.fdr_predicted_wrong(v) for v in unity_rows), 0, 'vectors')
 
-    # 5. THE UNCLAMPED CONVERSION (finding D64): a level of exactly 8.0 is
+    # 5. ROUND, NOT TRUNCATE, on the store -- the rule numeric-spec.md
+    #    states for every 32-bit store in the path, and the control the
+    #    on-part bar uses for this node's own output (the squared-gain
+    #    form is a statement about the BUS FEED, which has a pan leg in
+    #    it; `_buf_<FDR>` does not).
+    n_trunc = 0
+    for v in bv.FDR:
+        level, pan, mute, x = bv.fdr_expand(v)
+        gq, _, _ = fr.fdr_coeffs(level, pan, mute)
+        n_trunc += fr.fdr_apply(x, gq) != fr.fdr_apply_trunc(x, gq)
+    check('fdr vectors that separate round from truncate', n_trunc, 1,
+          'vectors', lower_is_better=False)
+
+    # 6. THE UNCLAMPED CONVERSION (finding D64): a level of exactly 8.0 is
     #    a value the cell holds and the conversion does not define.
     try:
         fr.fdr_coeffs(8.0, 0.5, 0)
