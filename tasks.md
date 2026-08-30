@@ -1,3 +1,45 @@
+## HUB DISPATCH 2026-08-30 17:13Z — session 12: cascade hang root-cause, FILT/EQ pairing   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+(reasoning: unknown-shape debugging — the cascade hang has resisted
+before, and it gates the last big capacity lever)
+
+SESSION 12 — ROOT-CAUSE THE CASCADE HANG BLOCKING FILT/EQ PAIRING.
+
+Context: session 11 exhausted the branch-cost ranking in the capacity
+configuration; FILT/EQ SIMD pairing is the remaining large lever and it
+is blocked on the cascade hang (see the review index / findings for its
+record). Block 8 stands at 121.28% for 32ch — the filter class is where
+that gap lives.
+
+1. REPRODUCE the hang minimally: shrink to the smallest cascade/config
+   that hangs (bisect biquad count, coefficient sets, buffer geometry,
+   SIMD vs scalar, block size). A hang that appears/disappears on a
+   clean bisect boundary names its own mechanism. Use the interlock;
+   one run at a time.
+2. INSTRUMENT, don't guess: same discipline as the register-clobber
+   hang (session 3's 5-word fix came from exact iteration counting).
+   Suspects worth independent tests: register/flag clobber across the
+   paired cascade loop, MRF/MSF state leakage between sections, DAG
+   modify/wrap collision on paired addressing, IT-buffer/loop-stack
+   depth, an SR-flag dependency the pair steals (conditional compute
+   takes PEx flags for both channels — the same reason dynamics went
+   branch-free).
+3. FIX only what the evidence convicts; goldens bit-exact before/after
+   (bqst all arms, busgold, harness 59/59); W0 byte-identity for the
+   shipping build.
+4. MEASURE paired FILT/EQ honestly (captable, TubeOn=0), update margins
+   at block 8 AND block 32, publish to the cost file.
+5. If the hang resists root-cause within the session: land the minimal
+   reproduction + the sharpest finding (which hypotheses were EXCLUDED
+   with numbers) and stop — do not thrash, do not ship a workaround.
+
+DO NOT touch: TUBE, D64/D65, wire contract, CPLD, shipping defaults.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-08-30 16:42Z — session 11: efficiency continued + bench interlock   [status: 🟢 done — **THE ROI RANKING RUNS DRY: every reachable taken-branch/call-pair floor in the FUSED+PAIRED capacity configuration is already hit, and this session found nothing left to land.** Checked each candidate the restated model (`dsp4-branch-cost-20260830.md`) pointed at: the dynamics pair kernels' ten call sites are inlined and branch-free by construction (session 10, re-confirmed by inspection of `dyn_simd_fx.asm`/`dyn_simd_inline.h` — every conditional in there is `if xx Rn = pass Rm`, a predicated move, never a `jump`/`rts`); the FUSED biquad's saturation (`biquad_fx.asm` `_bq_fx_cascade_blk` under `#if DSP4_STRIP_FUSED`) is ALREADY a conditional move (D21, `if ne r1 = r2; /* saturate, WITHOUT branching */`) — the taken-branch form the review's AXIS 1 table still cites at `:382` is the `#else` (unfused, non-shipping) cascade; FUSED FDR's inner loop is likewise already a hardware `do...until lce` with conditional-move saturation, not the "manual counter with a branch" the same table describes (that description is also the unfused form, and the FUSED comment says so in as many words). The only remaining branch/call waste named in the record — scalar GATE/COMP's 5 and 8 pairs, the scalar biquad saturate — lives in the SCALAR path, which is explicitly outside "the capacity configuration" this task was scoped to, and FILT/EQ pairing is still blocked on the cascade hang (`dsp4-cycle-budget.md`, unresolved, bring-up work of unknown shape — correctly not this session's to open). **A SECOND FINDING FELL OUT OF CHECKING THE FIRST ONE: `dsp4-cycle-budget.md`'s last section (2026-08-29) says the fused+paired configuration DOES NOT LINK on chip 1 — "over", program memory exhausted — and every margin figure since session 5 rests on that configuration.** Rebuilt it exactly as that section describes it (`DSP4_STRIP_FUSED=1 DSP4_SIMD_DYN=1 DSP4_BQ_GRAPH=1 DSP4_STRIPS=32`, block 8, plain `build.sh all`, all 431 chip-1 node files): **it links.** `=== Build OK ===`, chip1.ldr 393,572B, chip2.ldr 193,196B, zero errors. The section was stale, superseded by intervening landings that were never checked back against it; marked so in place rather than deleted, since which landing closed the gap is still an open question if anyone needs the mechanism. **MARGIN RE-CONFIRMED ON THE PART, NOT ASSUMED FROM THE RECORD**: `captable.sh MODE=cyc TUBEON=0` (the corrected instrument, D67) read **198,721 cycles/pass at block 8 (121.28% of 163,840) and 584,352 at block 32 (89.16% of 655,360)** — 15 and 21 cycles off session 10's published 198,706/584,331, 0.008% and 0.004%, inside the ladder's own noise floor: the same number, not a different one. Published to `dsp4-function-costs.csv`. **BENCH INTERLOCK BUILT AND PROVEN** (session 10's method failure: two `dynst.sh` runs on the bench at once, indistinguishable from a hang). `SHARC/bench_lock.sh` (new) provides `bench_lock_acquire`, an exclusive host-side `flock` acquired right after each script's own `cd "$(dirname "$0")"` and held for the process's life; wired into `dynst.sh`, `bqst.sh`, `numverify.sh`, `captable.sh`, `conform.sh`, `goldnode.sh`, `busgold.sh` and `sigprofile.sh`. `sigprofile_run.sh` — the one script in the list that runs ON the bench itself, reached by both `sigprofile.sh` and `captable.sh` — carries its own inline remote lock at `/home/app/dspboot/.bench.lock` rather than trusting every caller's host-side lock to agree, since a future caller might not. **PROVEN twice**: a unit-level test acquiring the same `bench_lock_acquire` function from two overlapping background processes, and a second run under two different script names sharing the lockfile — both times the second invocation printed `BENCH LOCKED: ... is waiting for the card`, named the holder (pid/script/host/start-time), and only proceeded after the first released; the two never overlapped. `captable.sh` itself was run twice for real (block 8 and block 32 above) through the new lock with no behavior change, which is also the end-to-end proof the wrapper doesn't break a real script. **W0**: no ASM, C, generator or contract file touched this session — only test-harness shell scripts and two tracking docs — so the shipping image is unchanged by construction; not re-verified by a redundant plain build since nothing that reaches one was edited. Bench restored: no config left on the card (both real runs completed their own script's normal teardown), CPLD never touched, TUBE never engaged (`TUBEON=0` explicit both times).**   [model: sonnet]
 
 model: sonnet
