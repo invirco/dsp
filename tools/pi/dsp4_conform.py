@@ -782,10 +782,41 @@ def bus_capture(part, inj, n, src=None):
 # dsp_address_map.md -- the same numbers dsp4_pairgraph.py uses.
 FDR_LEVEL, FDR_PAN, FDR_MUTE, FDR_DCA = 0x0050, 0x0051, 0x0052, 0x0053
 GAIN_OFF, TUBE_ON, DLY_OFF = 0x0000, 0x004C, 0x004E
+RTG_MAIN_ON = 0x0054
 GATE_ON, GATE_THR, GATE_ATT = 0x0028, 0x0029, 0x002A
 GATE_HOLD, GATE_REL = 0x002B, 0x002C
 COMP_ON, COMP_THR, COMP_RATIO = 0x0038, 0x0039, 0x003A
 COMP_ATT, COMP_REL, COMP_PAR = 0x003B, 0x003C, 0x003F
+
+
+def wr_checked(part, addr, word, ramp, sym=None, want=None, log=print,
+               tries=4):
+    """Write, and where a DM symbol names the consequence, CHECK it.
+
+    Every write on this link is fire-and-forget and roughly one boot in
+    three leaves strip 1's gain holding the CFG_COMMIT header word. A probe
+    that writes and assumes reports "nothing moved" for a write that never
+    landed, which is indistinguishable from an inert cell -- the exact
+    confusion this whole phase exists to avoid.
+    """
+    for _ in range(tries):
+        try:
+            part.write(addr, word, ramp)
+        except Exception as e:
+            log(f'  write 0x{addr:04X} failed ({e})')
+            return False
+        time.sleep(0.15)
+        if sym is None:
+            return True
+        if sym not in part.sc.sym:
+            return True
+        got = agreeing_peek(part, part.sc.sym[sym])
+        if got == want:
+            return True
+    log(f'  write 0x{addr:04X} did not reach {sym}: '
+        f'want 0x{(want or 0):08X} got '
+        f'{"unreadable" if got is None else "0x%08X" % got}')
+    return False
 
 
 def drive_strip(part, strip, log=print):
@@ -802,8 +833,22 @@ def drive_strip(part, strip, log=print):
     for addr, word, ramp in ((b + GAIN_OFF, f32(1.0), 4),
                              (b + FDR_LEVEL, f32(1.0), 4),
                              (b + FDR_PAN, f32(0.5), 4),
+                             # RtgDca IS A GAIN, whatever the masters say.
+                             # `Chan001RtgDca001` is documented with no
+                             # scale law -- a DCA ASSIGNMENT -- and the
+                             # kernel lands it in _fdr_dca_gain_*, which it
+                             # multiplies into the fader coefficient.写 0
+                             # here (the obvious "no DCA assigned") and the
+                             # fader coefficient goes to zero and the strip
+                             # goes silent, which is exactly what happened
+                             # on 2026-08-30 and cost three probe runs.
+                             # Review finding D57.
                              (b + FDR_DCA, f32(1.0), 4),
                              (b + FDR_MUTE, 0, 0),
+                             # Without this the strip reaches no bus at all
+                             # and the capture is all zeros -- which is also
+                             # what a dead strip looks like.
+                             (b + RTG_MAIN_ON, 1, 0),
                              (b + TUBE_ON, 0, 0),
                              (b + DLY_OFF, 0, 0),
                              # The dynamics have to be ON or the compressor
@@ -850,6 +895,41 @@ def drive_strip(part, strip, log=print):
             log(f'  drive_strip: 0x{addr:04X} write failed ({e})')
         time.sleep(0.02)
     time.sleep(0.5)                      # let the ramped writes arrive
+    # The gain is the one that has to be right, and it is the one that goes
+    # wrong: re-write it until the Q4.28 shadow reads unity.
+    wr_checked(part, b + GAIN_OFF, f32(1.0), 4,
+               '_gain_q_C1_GAIN_%02d' % strip, 0x10000000, log)
+
+
+# The strip in chain order. A capture of each says WHERE the signal stops,
+# which is the difference between "this cell is inert" and "this strip is
+# not carrying anything".
+_CHAIN = ('IN', 'GAIN', 'FILT', 'EQ', 'GATE', 'COMP', 'TUBE', 'DLY', 'FDR')
+
+
+def chain_witness(part, inj, strip, n=4, log=print):
+    """Walk the strip and report the first node whose output is dead.
+
+    A capture of the BUS that is merely non-zero is not a witness: measured
+    2026-08-30, a bus reading 0xFFFFFFF3 in every word -- thirteen LSBs of
+    residue, constant -- passed a non-zero test while the fader's output was
+    exactly zero and the gain control moved nothing. What the window has to
+    carry is the SIGNAL.
+    """
+    dead = None
+    for cls in _CHAIN:
+        sym = '_buf_C1_%s_%02d' % (cls, strip)
+        if sym not in part.sc.sym:
+            continue
+        w = bus_capture(part, inj, n, sym)
+        if w is None:
+            log(f'  chain witness: {sym} unreadable')
+            return None
+        pk = max(abs(w2 - (1 << 32) if w2 & 0x80000000 else w2) for w2 in w)
+        log(f'  chain witness: {sym:<22} peak 0x{pk:08X}')
+        if pk < BUS_AMP >> 6 and dead is None:
+            dead = sym
+    return dead
 
 
 def driven_inert_probe(part, entries, samples, n=32, log=print, strip=1):
@@ -876,11 +956,18 @@ def driven_inert_probe(part, entries, samples, n=32, log=print, strip=1):
     # was used is recorded next to every verdict.
     src, window = BUS_SRC, 'bus'
     base = bus_capture(part, inj, n, src)
-    if base is not None and not any(base):
+
+    def carries(words):
+        if not words:
+            return False
+        pk = max(abs(w - (1 << 32) if w & 0x80000000 else w) for w in words)
+        return pk >= (BUS_AMP >> 6)
+
+    if base is not None and not carries(base):
         alt = '_buf_C1_FDR_%02d' % strip
         if alt in part.sc.sym:
             b2 = bus_capture(part, inj, n, alt)
-            if b2 is not None and any(b2):
+            if carries(b2):
                 src, window, base = alt, 'strip', b2
                 log(f'  driven window: {BUS_SRC} is silent; falling back to '
                     f'{alt}, the strip output. That window sees every class '
@@ -891,18 +978,26 @@ def driven_inert_probe(part, entries, samples, n=32, log=print, strip=1):
                                'inert verdict is reported from this run'})
         log('  driven window: NO CAPTURE')
         return out
-    nz = sum(1 for w in base if w)
+    # PEAK, not "non-zero". A constant residue of a few LSBs is non-zero
+    # and is not a signal; see chain_witness().
+    pk = max(abs(w - (1 << 32) if w & 0x80000000 else w) for w in base)
+    nz = pk if pk >= (BUS_AMP >> 6) else 0
     log(f'  driven window: {src} through inj 0x{inj:X}, '
-        f'{nz} of {n} words non-zero')
+        f'peak 0x{pk:08X} against an injected 0x{BUS_AMP:08X}')
     out.append({'addr': None, 'class': 'WINDOW', 'cells': [],
                 'inject': inj, 'source': src, 'window': window,
                 'window_words': n, 'nonzero': nz, 'verdict': 'INFO'})
     if not nz:
         # An all-zero capture is what a dead strip, a dropped arm and a
-        # muted graph all look like. It is not a driven graph.
-        out[-1]['verdict'] = ('SILENT BUS — every cell would look inert; '
-                              'no inert verdict is reported from this run')
-        log('  driven window: SILENT BUS — nothing is reported from this run')
+        # muted graph all look like. It is not a driven graph. Say WHERE it
+        # died rather than only that it did.
+        dead = chain_witness(part, inj, strip, log=log)
+        out[-1]['verdict'] = (
+            'SILENT WINDOW — every cell would look inert; no inert verdict '
+            'is reported from this run'
+            + (f'. The signal stops at {dead}.' if dead else ''))
+        log('  driven window: SILENT — nothing is reported from this run'
+            + (f'; the signal stops at {dead}' if dead else ''))
         return out
 
     def null_noise():
@@ -927,11 +1022,12 @@ def driven_inert_probe(part, entries, samples, n=32, log=print, strip=1):
     # BOTH: the first alone would let a window that is blind to everything
     # with a time constant report inert verdicts about dynamics cells.
     SETTLE = 0.3
-    controls = ((0x0000, f32(0.5), 4, 'Chan%03dGain001' % strip, 'GAIN'),
+    controls = ((0x0000, f32(0.5), 4, 'Chan%03dGain001' % strip, 'GAIN',
+                 '_gain_q_C1_GAIN_%02d' % strip, 0x08000000),
                 (0x0039, f32(-55.0), 4, 'Chan%03dCompThr001' % strip,
-                 'CompThr'))
+                 'CompThr', None, None))
     all_ok = True
-    for off, val, ramp, cell, name in controls:
+    for off, val, ramp, cell, name, chk, chk_want in controls:
         ctl_addr = (strip - 1) * STRIDE + off
         noise, before = null_noise()
         if noise is None:
@@ -939,7 +1035,12 @@ def driven_inert_probe(part, entries, samples, n=32, log=print, strip=1):
                         'cells': [cell], 'verdict': 'NO CAPTURE'})
             return out
         orig = part.read(ctl_addr)
-        part.write(ctl_addr, val, ramp)
+        if not wr_checked(part, ctl_addr, val, ramp, chk, chk_want, log):
+            out.append({'addr': ctl_addr, 'class': 'POSITIVE CONTROL',
+                        'cells': [cell],
+                        'verdict': 'CONTROL WRITE DID NOT LAND — NO inert '
+                                   'verdict is reported from this run'})
+            return out
         time.sleep(SETTLE)
         diff, _ = moved(before)
         part.write(ctl_addr, orig, ramp)
@@ -1171,6 +1272,13 @@ def main():
         else:
             res['effect'] = effect(part, args.strip, args.negctl_unit)
 
+    # PHASE ORDER: presence, effect, THEN inert. Running inert first was
+    # tried on 2026-08-30 and is worse: it leaves the strip driven --
+    # compressor wet, fast time constants, gate open -- and the EFFECT
+    # phase then measures a differently configured strip (17 pass / 17
+    # fail against the 18 / 16 baseline). The inert probe re-establishes
+    # everything it needs in drive_strip() instead, which is where that
+    # responsibility belongs.
     if args.phase in ('inert', 'all') and args.chip == 1:
         cand = [e for e in entries if e['role'] == 'INERT' and e['cells']]
         seen, samples = set(), []
