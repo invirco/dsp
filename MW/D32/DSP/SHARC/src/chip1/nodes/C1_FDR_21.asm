@@ -38,34 +38,24 @@
         .var _fdr_pan_frames_C1_FDR_21 = 0;
         .global _fdr_mute_C1_FDR_21;
         .var _fdr_mute_C1_FDR_21 = 0;
-        /* DCA ASSIGNMENT vs DCA GAIN (review finding D57).
+        /* DCA IS HOST-MANAGED (PW ruling 2026-08-30, Q2 closed).
          *
-         * `_fdr_dca_sel_` is the CELL: `<Cat>[n]RtgDca[1-1]`, which the
-         * masters document as "DCA group assignment (1-8 or off)" with
-         * MxDatS 9 -- nine states, no scale law, no unit, the InstantCtl
-         * profile of a selector. It is STORED HERE AND MULTIPLIED BY
-         * NOTHING. Until 2026-08-30 the wire word landed in
-         * `_fdr_dca_gain_` instead and was multiplied straight into the
-         * fader coefficient, so a host writing the obvious "no DCA
-         * assigned" value of 0 SILENCED the strip with `_fdr_level_`
-         * still reading 1.0 -- found on the part when it killed the
-         * conformance probe's driven strip three runs running.
+         * The CM4 control daemon owns the fold: effective fader =
+         * fader dB + DCA dB, mutes OR-ed, written through the level
+         * TARGET this node already ramps. Only ramp targets cross the
+         * wire, so the DSP needs neither the assignment nor a master
+         * gain, and `Dca`/`DcaOn` get no SPI address at all.
          *
-         * `_fdr_dca_gain_` stays as the RESOLVED master gain the
-         * assignment selects, and is unity because nothing resolves it
-         * yet: the eight DCA masters are nodes on CHIP 2 and every
-         * channel strip is on CHIP 1, so a chip-1 fader cannot read the
-         * master it is assigned to, and whether the DSP should apply DCA
-         * gain at all (rather than the host folding it into the fader
-         * level it already sends) is a contract question, not a kernel
-         * one. Both are in the PW question filed with D57. Nothing but a
-         * ruling should write this word. */
-        .global _fdr_dca_sel_C1_FDR_21;
-        .var _fdr_dca_sel_C1_FDR_21 = 0;              /* 0 = no DCA assigned */
-        .global _fdr_dca_gain_C1_FDR_21;
-        .var _fdr_dca_gain_C1_FDR_21 = 1.0;           /* resolved master gain */
+         * Both hooks are GONE rather than dormant, which is what the
+         * ruling says. `_fdr_dca_sel_` was D57's stored assignment --
+         * correct for a cell the kernel must not scale by, and pointless
+         * once nothing on the DSP resolves it -- and `_fdr_dca_gain_`
+         * was the resolved master gain, sitting at unity and multiplied
+         * into the coefficient every block. Removing the multiply is
+         * bit-exact: x * 1.0 is exactly x in IEEE 754, and the fader
+         * coefficient it feeds is unchanged word for word. */
         .global _fdr_gq_C1_FDR_21;
-        .var _fdr_gq_C1_FDR_21 = 0x10000000;          /* Q4.28 level*dca */
+        .var _fdr_gq_C1_FDR_21 = 0x10000000;          /* Q4.28 level */
         /* 1 while either float ramp still has frames to run. ROUTING's
          * main L/R crosspoint coefficients are this node's pan legs, so it
          * has to keep re-prepping while the pan moves (review finding D22).
@@ -175,10 +165,8 @@
             f1 = dm(_fdr_pan_target_C1_FDR_21);
             dm(_fdr_pan_C1_FDR_21) = f1;
         .cvt_C1_FDR_21:
-            /* composite = level * dca; Q4.28 shadow(s) */
+            /* level -> Q4.28 shadow(s) */
             f1 = dm(_fdr_level_C1_FDR_21);
-            f2 = dm(_fdr_dca_gain_C1_FDR_21);
-            f1 = f1 * f2;
             r2 = 0x4D800000;
             f2 = r2;
             f3 = f1 * f2;

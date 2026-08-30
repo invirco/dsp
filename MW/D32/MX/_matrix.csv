@@ -770,18 +770,18 @@ Aux009PickOff001,1,9,1,,,Aux global pickoff point (pre/post EQ/fader),768,khh,4,
 Aux010PickOff001,1,10,1,,,Aux global pickoff point (pre/post EQ/fader),769,khi,4,,,,,,,,,,,,,,,,,,,,,,,,,,,
 Aux011PickOff001,1,11,1,,,Aux global pickoff point (pre/post EQ/fader),770,khj,4,,,,,,,,,,,,,,,,,,,,,,,,,,,
 Aux012PickOff001,1,12,1,,,Aux global pickoff point (pre/post EQ/fader),771,khk,4,,,,,,,,,,,,,,,,,,,,,,,,,,,
-Aux001RtgDca001,1,1,1,,,Aux master DCA assignment (1-8 or off),772,khl,9,,,,,,,,,,,,,,,2,1,3,0x0003,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Aux002RtgDca001,1,2,1,,,Aux master DCA assignment (1-8 or off),773,khm,9,,,,,,,,,,,,,,,2,1,90,0x005A,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Aux003RtgDca001,1,3,1,,,Aux master DCA assignment (1-8 or off),774,khn,9,,,,,,,,,,,,,,,2,1,177,0x00B1,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Aux004RtgDca001,1,4,1,,,Aux master DCA assignment (1-8 or off),775,kho,9,,,,,,,,,,,,,,,2,1,264,0x0108,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Aux005RtgDca001,1,5,1,,,Aux master DCA assignment (1-8 or off),776,khp,9,,,,,,,,,,,,,,,2,1,351,0x015F,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Aux006RtgDca001,1,6,1,,,Aux master DCA assignment (1-8 or off),777,khq,9,,,,,,,,,,,,,,,2,1,438,0x01B6,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Aux007RtgDca001,1,7,1,,,Aux master DCA assignment (1-8 or off),778,khr,9,,,,,,,,,,,,,,,2,1,525,0x020D,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Aux008RtgDca001,1,8,1,,,Aux master DCA assignment (1-8 or off),779,khs,9,,,,,,,,,,,,,,,2,1,612,0x0264,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Aux009RtgDca001,1,9,1,,,Aux master DCA assignment (1-8 or off),780,kht,9,,,,,,,,,,,,,,,2,1,699,0x02BB,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Aux010RtgDca001,1,10,1,,,Aux master DCA assignment (1-8 or off),781,khu,9,,,,,,,,,,,,,,,2,1,786,0x0312,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Aux011RtgDca001,1,11,1,,,Aux master DCA assignment (1-8 or off),782,khv,9,,,,,,,,,,,,,,,2,1,873,0x0369,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Aux012RtgDca001,1,12,1,,,Aux master DCA assignment (1-8 or off),783,khw,9,,,,,,,,,,,,,,,2,1,960,0x03C0,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Aux001RtgDca001,1,1,1,,,Aux master DCA assignment (1-8 or off),772,khl,9,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Aux002RtgDca001,1,2,1,,,Aux master DCA assignment (1-8 or off),773,khm,9,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Aux003RtgDca001,1,3,1,,,Aux master DCA assignment (1-8 or off),774,khn,9,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Aux004RtgDca001,1,4,1,,,Aux master DCA assignment (1-8 or off),775,kho,9,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Aux005RtgDca001,1,5,1,,,Aux master DCA assignment (1-8 or off),776,khp,9,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Aux006RtgDca001,1,6,1,,,Aux master DCA assignment (1-8 or off),777,khq,9,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Aux007RtgDca001,1,7,1,,,Aux master DCA assignment (1-8 or off),778,khr,9,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Aux008RtgDca001,1,8,1,,,Aux master DCA assignment (1-8 or off),779,khs,9,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Aux009RtgDca001,1,9,1,,,Aux master DCA assignment (1-8 or off),780,kht,9,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Aux010RtgDca001,1,10,1,,,Aux master DCA assignment (1-8 or off),781,khu,9,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Aux011RtgDca001,1,11,1,,,Aux master DCA assignment (1-8 or off),782,khv,9,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Aux012RtgDca001,1,12,1,,,Aux master DCA assignment (1-8 or off),783,khw,9,,,,,,,,,,,,,,,,,,,,,,,,,,,
 Aux001RtgLevel001,1,1,1,,,Aux master output level,784,kih,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:10,,,,,2,1,0,0x0000,,,,GainFast,Slew,3,8,Exp,Scalar
 Aux002RtgLevel001,1,2,1,,,Aux master output level,785,kii,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:10,,,,,2,1,87,0x0057,,,,GainFast,Slew,3,8,Exp,Scalar
 Aux003RtgLevel001,1,3,1,,,Aux master output level,786,kij,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:10,,,,,2,1,174,0x00AE,,,,GainFast,Slew,3,8,Exp,Scalar
@@ -4140,38 +4140,38 @@ Chan029RtgCtrOn001,1,29,1,,,Center/sub output assign on/off,4138,ihjr,2,,,,,,,,C
 Chan030RtgCtrOn001,1,30,1,,,Center/sub output assign on/off,4139,ihjs,2,,,,,,,,Chan_Rtg,,,,,,,1,1,4261,0x10A5,,,,InstantCtl,Instant,0,0,Linear,Scalar
 Chan031RtgCtrOn001,1,31,1,,,Center/sub output assign on/off,4140,ihjt,2,,,,,,,,Chan_Rtg,,,,,,,1,1,4405,0x1135,,,,InstantCtl,Instant,0,0,Linear,Scalar
 Chan032RtgCtrOn001,1,32,1,,,Center/sub output assign on/off,4141,ihju,2,,,,,,,,Chan_Rtg,,,,,,,1,1,4549,0x11C5,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Chan001RtgDca001,1,1,1,,,DCA group assignment (1-8 or off),4142,ihjv,9,,,,,,,,Chan_Rtg,,,,,,,1,1,83,0x0053,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Chan002RtgDca001,1,2,1,,,DCA group assignment (1-8 or off),4143,ihjw,9,,,,,,,,Chan_Rtg,,,,,,,1,1,227,0x00E3,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Chan003RtgDca001,1,3,1,,,DCA group assignment (1-8 or off),4144,ihkh,9,,,,,,,,Chan_Rtg,,,,,,,1,1,371,0x0173,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Chan004RtgDca001,1,4,1,,,DCA group assignment (1-8 or off),4145,ihki,9,,,,,,,,Chan_Rtg,,,,,,,1,1,515,0x0203,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Chan005RtgDca001,1,5,1,,,DCA group assignment (1-8 or off),4146,ihkj,9,,,,,,,,Chan_Rtg,,,,,,,1,1,659,0x0293,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Chan006RtgDca001,1,6,1,,,DCA group assignment (1-8 or off),4147,ihkk,9,,,,,,,,Chan_Rtg,,,,,,,1,1,803,0x0323,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Chan007RtgDca001,1,7,1,,,DCA group assignment (1-8 or off),4148,ihkl,9,,,,,,,,Chan_Rtg,,,,,,,1,1,947,0x03B3,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Chan008RtgDca001,1,8,1,,,DCA group assignment (1-8 or off),4149,ihkm,9,,,,,,,,Chan_Rtg,,,,,,,1,1,1091,0x0443,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Chan009RtgDca001,1,9,1,,,DCA group assignment (1-8 or off),4150,ihkn,9,,,,,,,,Chan_Rtg,,,,,,,1,1,1235,0x04D3,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Chan010RtgDca001,1,10,1,,,DCA group assignment (1-8 or off),4151,ihko,9,,,,,,,,Chan_Rtg,,,,,,,1,1,1379,0x0563,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Chan011RtgDca001,1,11,1,,,DCA group assignment (1-8 or off),4152,ihkp,9,,,,,,,,Chan_Rtg,,,,,,,1,1,1523,0x05F3,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Chan012RtgDca001,1,12,1,,,DCA group assignment (1-8 or off),4153,ihkq,9,,,,,,,,Chan_Rtg,,,,,,,1,1,1667,0x0683,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Chan013RtgDca001,1,13,1,,,DCA group assignment (1-8 or off),4154,ihkr,9,,,,,,,,Chan_Rtg,,,,,,,1,1,1811,0x0713,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Chan014RtgDca001,1,14,1,,,DCA group assignment (1-8 or off),4155,ihks,9,,,,,,,,Chan_Rtg,,,,,,,1,1,1955,0x07A3,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Chan015RtgDca001,1,15,1,,,DCA group assignment (1-8 or off),4156,ihkt,9,,,,,,,,Chan_Rtg,,,,,,,1,1,2099,0x0833,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Chan016RtgDca001,1,16,1,,,DCA group assignment (1-8 or off),4157,ihku,9,,,,,,,,Chan_Rtg,,,,,,,1,1,2243,0x08C3,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Chan017RtgDca001,1,17,1,,,DCA group assignment (1-8 or off),4158,ihkv,9,,,,,,,,Chan_Rtg,,,,,,,1,1,2387,0x0953,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Chan018RtgDca001,1,18,1,,,DCA group assignment (1-8 or off),4159,ihkw,9,,,,,,,,Chan_Rtg,,,,,,,1,1,2531,0x09E3,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Chan019RtgDca001,1,19,1,,,DCA group assignment (1-8 or off),4160,ihlh,9,,,,,,,,Chan_Rtg,,,,,,,1,1,2675,0x0A73,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Chan020RtgDca001,1,20,1,,,DCA group assignment (1-8 or off),4161,ihli,9,,,,,,,,Chan_Rtg,,,,,,,1,1,2819,0x0B03,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Chan021RtgDca001,1,21,1,,,DCA group assignment (1-8 or off),4162,ihlj,9,,,,,,,,Chan_Rtg,,,,,,,1,1,2963,0x0B93,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Chan022RtgDca001,1,22,1,,,DCA group assignment (1-8 or off),4163,ihlk,9,,,,,,,,Chan_Rtg,,,,,,,1,1,3107,0x0C23,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Chan023RtgDca001,1,23,1,,,DCA group assignment (1-8 or off),4164,ihll,9,,,,,,,,Chan_Rtg,,,,,,,1,1,3251,0x0CB3,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Chan024RtgDca001,1,24,1,,,DCA group assignment (1-8 or off),4165,ihlm,9,,,,,,,,Chan_Rtg,,,,,,,1,1,3395,0x0D43,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Chan025RtgDca001,1,25,1,,,DCA group assignment (1-8 or off),4166,ihln,9,,,,,,,,Chan_Rtg,,,,,,,1,1,3539,0x0DD3,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Chan026RtgDca001,1,26,1,,,DCA group assignment (1-8 or off),4167,ihlo,9,,,,,,,,Chan_Rtg,,,,,,,1,1,3683,0x0E63,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Chan027RtgDca001,1,27,1,,,DCA group assignment (1-8 or off),4168,ihlp,9,,,,,,,,Chan_Rtg,,,,,,,1,1,3827,0x0EF3,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Chan028RtgDca001,1,28,1,,,DCA group assignment (1-8 or off),4169,ihlq,9,,,,,,,,Chan_Rtg,,,,,,,1,1,3971,0x0F83,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Chan029RtgDca001,1,29,1,,,DCA group assignment (1-8 or off),4170,ihlr,9,,,,,,,,Chan_Rtg,,,,,,,1,1,4115,0x1013,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Chan030RtgDca001,1,30,1,,,DCA group assignment (1-8 or off),4171,ihls,9,,,,,,,,Chan_Rtg,,,,,,,1,1,4259,0x10A3,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Chan031RtgDca001,1,31,1,,,DCA group assignment (1-8 or off),4172,ihlt,9,,,,,,,,Chan_Rtg,,,,,,,1,1,4403,0x1133,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Chan032RtgDca001,1,32,1,,,DCA group assignment (1-8 or off),4173,ihlu,9,,,,,,,,Chan_Rtg,,,,,,,1,1,4547,0x11C3,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan001RtgDca001,1,1,1,,,DCA group assignment (1-8 or off),4142,ihjv,9,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
+Chan002RtgDca001,1,2,1,,,DCA group assignment (1-8 or off),4143,ihjw,9,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
+Chan003RtgDca001,1,3,1,,,DCA group assignment (1-8 or off),4144,ihkh,9,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
+Chan004RtgDca001,1,4,1,,,DCA group assignment (1-8 or off),4145,ihki,9,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
+Chan005RtgDca001,1,5,1,,,DCA group assignment (1-8 or off),4146,ihkj,9,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
+Chan006RtgDca001,1,6,1,,,DCA group assignment (1-8 or off),4147,ihkk,9,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
+Chan007RtgDca001,1,7,1,,,DCA group assignment (1-8 or off),4148,ihkl,9,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
+Chan008RtgDca001,1,8,1,,,DCA group assignment (1-8 or off),4149,ihkm,9,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
+Chan009RtgDca001,1,9,1,,,DCA group assignment (1-8 or off),4150,ihkn,9,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
+Chan010RtgDca001,1,10,1,,,DCA group assignment (1-8 or off),4151,ihko,9,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
+Chan011RtgDca001,1,11,1,,,DCA group assignment (1-8 or off),4152,ihkp,9,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
+Chan012RtgDca001,1,12,1,,,DCA group assignment (1-8 or off),4153,ihkq,9,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
+Chan013RtgDca001,1,13,1,,,DCA group assignment (1-8 or off),4154,ihkr,9,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
+Chan014RtgDca001,1,14,1,,,DCA group assignment (1-8 or off),4155,ihks,9,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
+Chan015RtgDca001,1,15,1,,,DCA group assignment (1-8 or off),4156,ihkt,9,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
+Chan016RtgDca001,1,16,1,,,DCA group assignment (1-8 or off),4157,ihku,9,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
+Chan017RtgDca001,1,17,1,,,DCA group assignment (1-8 or off),4158,ihkv,9,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
+Chan018RtgDca001,1,18,1,,,DCA group assignment (1-8 or off),4159,ihkw,9,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
+Chan019RtgDca001,1,19,1,,,DCA group assignment (1-8 or off),4160,ihlh,9,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
+Chan020RtgDca001,1,20,1,,,DCA group assignment (1-8 or off),4161,ihli,9,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
+Chan021RtgDca001,1,21,1,,,DCA group assignment (1-8 or off),4162,ihlj,9,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
+Chan022RtgDca001,1,22,1,,,DCA group assignment (1-8 or off),4163,ihlk,9,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
+Chan023RtgDca001,1,23,1,,,DCA group assignment (1-8 or off),4164,ihll,9,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
+Chan024RtgDca001,1,24,1,,,DCA group assignment (1-8 or off),4165,ihlm,9,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
+Chan025RtgDca001,1,25,1,,,DCA group assignment (1-8 or off),4166,ihln,9,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
+Chan026RtgDca001,1,26,1,,,DCA group assignment (1-8 or off),4167,ihlo,9,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
+Chan027RtgDca001,1,27,1,,,DCA group assignment (1-8 or off),4168,ihlp,9,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
+Chan028RtgDca001,1,28,1,,,DCA group assignment (1-8 or off),4169,ihlq,9,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
+Chan029RtgDca001,1,29,1,,,DCA group assignment (1-8 or off),4170,ihlr,9,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
+Chan030RtgDca001,1,30,1,,,DCA group assignment (1-8 or off),4171,ihls,9,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
+Chan031RtgDca001,1,31,1,,,DCA group assignment (1-8 or off),4172,ihlt,9,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
+Chan032RtgDca001,1,32,1,,,DCA group assignment (1-8 or off),4173,ihlu,9,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
 Chan001RtgFx001,1,1,1,,,FX send on/off per FX bus,4174,ihlv,1,,,,,,,,Chan_Rtg,,,,,,,1,1,126,0x007E,,,,InstantCtl,Instant,0,0,Linear,Scalar
 Chan001RtgFx002,1,1,2,,,FX send on/off per FX bus,4175,ihlw,1,,,,,,,,Chan_Rtg,,,,,,,1,1,127,0x007F,,,,InstantCtl,Instant,0,0,Linear,Scalar
 Chan001RtgFx003,1,1,3,,,FX send on/off per FX bus,4176,ihmh,1,,,,,,,,Chan_Rtg,,,,,,,1,1,128,0x0080,,,,InstantCtl,Instant,0,0,Linear,Scalar
@@ -5710,19 +5710,19 @@ Fx006RtgAuxSend009,1,6,9,,,FX return to aux send level,5708,inlt,255,,,,,,,,FxCt
 Fx006RtgAuxSend010,1,6,10,,,FX return to aux send level,5709,inlu,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
 Fx006RtgAuxSend011,1,6,11,,,FX return to aux send level,5710,inlv,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
 Fx006RtgAuxSend012,1,6,12,,,FX return to aux send level,5711,inlw,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx001RtgDca001,1,1,1,,,FX return DCA assignment (1-8 or off),5712,inmh,9,,,,,,,,FxCtrl,,,,,,,2,1,1608,0x0648,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Fx002RtgDca001,1,2,1,,,FX return DCA assignment (1-8 or off),5713,inmi,9,,,,,,,,FxCtrl,,,,,,,2,1,1636,0x0664,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Fx003RtgDca001,1,3,1,,,FX return DCA assignment (1-8 or off),5714,inmj,9,,,,,,,,FxCtrl,,,,,,,2,1,1664,0x0680,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Fx004RtgDca001,1,4,1,,,FX return DCA assignment (1-8 or off),5715,inmk,9,,,,,,,,FxCtrl,,,,,,,2,1,1692,0x069C,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Fx005RtgDca001,1,5,1,,,FX return DCA assignment (1-8 or off),5716,inml,9,,,,,,,,FxCtrl,,,,,,,2,1,1720,0x06B8,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Fx006RtgDca001,1,6,1,,,FX return DCA assignment (1-8 or off),5717,inmm,9,,,,,,,,FxCtrl,,,,,,,2,1,1748,0x06D4,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx001RtgDca001,1,1,1,,,FX return DCA assignment (1-8 or off),5712,inmh,9,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
+Fx002RtgDca001,1,2,1,,,FX return DCA assignment (1-8 or off),5713,inmi,9,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
+Fx003RtgDca001,1,3,1,,,FX return DCA assignment (1-8 or off),5714,inmj,9,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
+Fx004RtgDca001,1,4,1,,,FX return DCA assignment (1-8 or off),5715,inmk,9,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
+Fx005RtgDca001,1,5,1,,,FX return DCA assignment (1-8 or off),5716,inml,9,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
+Fx006RtgDca001,1,6,1,,,FX return DCA assignment (1-8 or off),5717,inmm,9,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
 Fx001RtgLevel001,1,1,1,,,FX return master level,5718,inmn,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:10,,,,,2,1,1605,0x0645,,,,GainFast,Slew,3,8,Exp,Scalar
 Fx002RtgLevel001,1,2,1,,,FX return master level,5719,inmo,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:10,,,,,2,1,1633,0x0661,,,,GainFast,Slew,3,8,Exp,Scalar
 Fx003RtgLevel001,1,3,1,,,FX return master level,5720,inmp,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:10,,,,,2,1,1661,0x067D,,,,GainFast,Slew,3,8,Exp,Scalar
 Fx004RtgLevel001,1,4,1,,,FX return master level,5721,inmq,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:10,,,,,2,1,1689,0x0699,,,,GainFast,Slew,3,8,Exp,Scalar
 Fx005RtgLevel001,1,5,1,,,FX return master level,5722,inmr,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:10,,,,,2,1,1717,0x06B5,,,,GainFast,Slew,3,8,Exp,Scalar
 Fx006RtgLevel001,1,6,1,,,FX return master level,5723,inms,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:10,,,,,2,1,1745,0x06D1,,,,GainFast,Slew,3,8,Exp,Scalar
-Fx001RtgMute001,1,1,1,,,FX return mute on/off,5724,inmt,2,,,,,,,,FxCtrl,,,,,,,2,1,1607,0x0647,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx001RtgMute001,1,1,1,,,FX return mute on/off,5724,inmt,2,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
 Fx002RtgMute001,1,2,1,,,FX return mute on/off,5725,inmu,2,,,,,,,,FxCtrl,,,,,,,2,1,1635,0x0663,,,,InstantCtl,Instant,0,0,Linear,Scalar
 Fx003RtgMute001,1,3,1,,,FX return mute on/off,5726,inmv,2,,,,,,,,FxCtrl,,,,,,,2,1,1663,0x067F,,,,InstantCtl,Instant,0,0,Linear,Scalar
 Fx004RtgMute001,1,4,1,,,FX return mute on/off,5727,inmw,2,,,,,,,,FxCtrl,,,,,,,2,1,1691,0x069B,,,,InstantCtl,Instant,0,0,Linear,Scalar
@@ -5734,7 +5734,7 @@ Fx003Tap001,1,3,1,,false,FX tap tempo trigger,5732,innl,2,,,,,,,,FxCtrl,,,,,,,,,
 Fx004Tap001,1,4,1,,false,FX tap tempo trigger,5733,innm,2,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
 Fx005Tap001,1,5,1,,false,FX tap tempo trigger,5734,innn,2,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
 Fx006Tap001,1,6,1,,false,FX tap tempo trigger,5735,inno,2,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx001Mute001,1,1,1,,,Global FX mute on/off,5736,innp,2,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
+Fx001Mute001,1,1,1,,,Global FX mute on/off,5736,innp,2,,,,,,,,FxCtrl,,,,,,,2,1,1607,0x0647,,,,InstantCtl,Instant,0,0,Linear,Scalar
 Fx001Type001,1,1,1,,,FX type (Echo/PingPong/Doubling/Reverb/Chorus/Flanger/Phaser),5737,innq,7,,,,,,,,FxCtrl,,,,,,,2,1,1582,0x062E,,,,InstantCtl,Instant,0,0,Linear,Scalar
 Fx002Type001,1,2,1,,,FX type (Echo/PingPong/Doubling/Reverb/Chorus/Flanger/Phaser),5738,innr,7,,,,,,,,FxCtrl,,,,,,,2,1,1610,0x064A,,,,InstantCtl,Instant,0,0,Linear,Scalar
 Fx003Type001,1,3,1,,,FX type (Echo/PingPong/Doubling/Reverb/Chorus/Flanger/Phaser),5739,inns,7,,,,,,,,FxCtrl,,,,,,,2,1,1638,0x0666,,,,InstantCtl,Instant,0,0,Linear,Scalar
@@ -5743,10 +5743,10 @@ Fx005Type001,1,5,1,,,FX type (Echo/PingPong/Doubling/Reverb/Chorus/Flanger/Phase
 Fx006Type001,1,6,1,,,FX type (Echo/PingPong/Doubling/Reverb/Chorus/Flanger/Phaser),5742,innv,7,,,,,,,,FxCtrl,,,,,,,2,1,1722,0x06BA,,,,InstantCtl,Instant,0,0,Linear,Scalar
 Main001CueSel001,1,1,1,,false,Main output cue/solo select,5743,innw,2,,,,,,,,,,,,,,,,,,,,,,,,,,,
 Main001Delay001,1,1,1,,,Main L/R output delay up to 250ms,5744,inoh,255,,,,,,,,,,0=0/127=250.0/[Log],,,,,2,1,1395,0x0573,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Main001Mute001,1,1,1,,,Main L/R master mute on/off,5745,inoi,2,,,,,,,,,,,,,,,,,,,,,,,,,,,
-Main001RtgDca001,1,1,1,,,Main L/R DCA assignment (1-8 or off),5746,inoj,9,,,,,,,,,,,,,,,2,1,1346,0x0542,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Main001Mute001,1,1,1,,,Main L/R master mute on/off,5745,inoi,2,,,,,,,,,,,,,,,2,1,1345,0x0541,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Main001RtgDca001,1,1,1,,,Main L/R DCA assignment (1-8 or off),5746,inoj,9,,,,,,,,,,,,,,,,,,,,,,,,,,,
 Main001RtgLevel001,1,1,1,,,Main L/R master fader level,5747,inok,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:10,,,,,2,1,1343,0x053F,,,,GainFast,Slew,3,8,Exp,Scalar
-Main001RtgMute001,1,1,1,,,Main L/R routing mute on/off,5748,inol,2,,,,,,,,,,,,,,,2,1,1345,0x0541,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Main001RtgMute001,1,1,1,,,Main L/R routing mute on/off,5748,inol,2,,,,,,,,,,,,,,,,,,,,,,,,,,,
 Main001Geq001,1,1,1,,,Main 28-band stereo GEQ gain per band,5749,inom,65,32,,,,,,,MainEq,,0=-12/127=12/[Lin],,,,,2,1,1347,0x0543,,,,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
 Main001Geq002,1,1,2,,,Main 28-band stereo GEQ gain per band,5750,inon,65,32,,,,,,,MainEq,,0=-12/127=12/[Lin],,,,,2,1,1348,0x0544,,,,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
 Main001Geq003,1,1,3,,,Main 28-band stereo GEQ gain per band,5751,inoo,65,32,,,,,,,MainEq,,0=-12/127=12/[Lin],,,,,2,1,1349,0x0545,,,,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
@@ -6304,10 +6304,10 @@ Grp004Geq025,1,4,25,,,Group 28-band graphic EQ gain,6302,ipqv,65,32,,,,,,,GrpEq,
 Grp004Geq026,1,4,26,,,Group 28-band graphic EQ gain,6303,ipqw,65,32,,,,,,,GrpEq,,0=-12/127=12/[Lin],,,,,2,1,1949,0x079D,,,,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
 Grp004Geq027,1,4,27,,,Group 28-band graphic EQ gain,6304,iprh,65,32,,,,,,,GrpEq,,0=-12/127=12/[Lin],,,,,2,1,1950,0x079E,,,,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
 Grp004Geq028,1,4,28,,,Group 28-band graphic EQ gain,6305,ipri,65,32,,,,,,,GrpEq,,0=-12/127=12/[Lin],,,,,2,1,1951,0x079F,,,,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-Grp001RtgDca001,1,1,1,,,Group DCA assignment (1-8 or off),6306,iprj,9,,,,,,,,,,,,,,,2,1,1047,0x0417,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Grp002RtgDca001,1,2,1,,,Group DCA assignment (1-8 or off),6307,iprk,9,,,,,,,,,,,,,,,2,1,1107,0x0453,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Grp003RtgDca001,1,3,1,,,Group DCA assignment (1-8 or off),6308,iprl,9,,,,,,,,,,,,,,,2,1,1167,0x048F,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Grp004RtgDca001,1,4,1,,,Group DCA assignment (1-8 or off),6309,iprm,9,,,,,,,,,,,,,,,2,1,1227,0x04CB,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Grp001RtgDca001,1,1,1,,,Group DCA assignment (1-8 or off),6306,iprj,9,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Grp002RtgDca001,1,2,1,,,Group DCA assignment (1-8 or off),6307,iprk,9,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Grp003RtgDca001,1,3,1,,,Group DCA assignment (1-8 or off),6308,iprl,9,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Grp004RtgDca001,1,4,1,,,Group DCA assignment (1-8 or off),6309,iprm,9,,,,,,,,,,,,,,,,,,,,,,,,,,,
 Grp001RtgLevel001,1,1,1,,,Group master fader level,6310,iprn,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:10,,,,,2,1,1044,0x0414,,,,GainFast,Slew,3,8,Exp,Scalar
 Grp002RtgLevel001,1,2,1,,,Group master fader level,6311,ipro,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:10,,,,,2,1,1104,0x0450,,,,GainFast,Slew,3,8,Exp,Scalar
 Grp003RtgLevel001,1,3,1,,,Group master fader level,6312,iprp,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:10,,,,,2,1,1164,0x048C,,,,GainFast,Slew,3,8,Exp,Scalar
@@ -6354,7 +6354,7 @@ Sub001LimiterAtt001,1,1,1,,,Subwoofer limiter attack,6352,ipuh,33,,,,,,,,SubLimi
 Sub001LimiterOn001,1,1,1,,,Subwoofer limiter on/off,6353,ipui,2,,,,,,,,SubLimiter,,,,,,,2,1,1328,0x0530,,,,InstantCtl,Instant,0,0,Linear,Scalar
 Sub001LimiterRel001,1,1,1,,,Subwoofer limiter release,6354,ipuj,33,,,,,,,,SubLimiter,,0=5/127=2000/[Log],,,,,2,1,1331,0x0533,,,,DynSafe,LinearFrames,6,20,Exp,Scalar
 Sub001LimiterThr001,1,1,1,,,Subwoofer limiter threshold,6355,ipuk,255,,,,,,,,SubLimiter,,0=-30/127=0/[Lin],,,,,2,1,1329,0x0531,,,,DynSafe,LinearFrames,6,20,Exp,Scalar
-Sub001RtgDca001,1,1,1,,,Subwoofer DCA assignment (1-8 or off),6356,ipul,9,,,,,,,,,,,,,,,2,1,1287,0x0507,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Sub001RtgDca001,1,1,1,,,Subwoofer DCA assignment (1-8 or off),6356,ipul,9,,,,,,,,,,,,,,,,,,,,,,,,,,,
 Sub001RtgLevel001,1,1,1,,,Subwoofer master output level,6357,ipum,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:10,,,,,2,1,1284,0x0504,,,,GainFast,Slew,3,8,Exp,Scalar
 Sub001RtgMute001,1,1,1,,,Subwoofer master mute on/off,6358,ipun,2,,,,,,,,,,,,,,,2,1,1286,0x0506,,,,InstantCtl,Instant,0,0,Linear,Scalar
 Sys001AuxOnFdr001,1,1,1,,false,Aux-on-faders mode toggle,6359,ipuo,2,,,,,,,,,,,,,,,,,,,,,,,,,,,

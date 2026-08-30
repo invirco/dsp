@@ -622,38 +622,6 @@
 .extern _eq_swap_pending_C1_EQ_30;
 .extern _eq_swap_pending_C1_EQ_31;
 .extern _eq_swap_pending_C1_EQ_32;
-.extern _fdr_dca_sel_C1_FDR_01;
-.extern _fdr_dca_sel_C1_FDR_02;
-.extern _fdr_dca_sel_C1_FDR_03;
-.extern _fdr_dca_sel_C1_FDR_04;
-.extern _fdr_dca_sel_C1_FDR_05;
-.extern _fdr_dca_sel_C1_FDR_06;
-.extern _fdr_dca_sel_C1_FDR_07;
-.extern _fdr_dca_sel_C1_FDR_08;
-.extern _fdr_dca_sel_C1_FDR_09;
-.extern _fdr_dca_sel_C1_FDR_10;
-.extern _fdr_dca_sel_C1_FDR_11;
-.extern _fdr_dca_sel_C1_FDR_12;
-.extern _fdr_dca_sel_C1_FDR_13;
-.extern _fdr_dca_sel_C1_FDR_14;
-.extern _fdr_dca_sel_C1_FDR_15;
-.extern _fdr_dca_sel_C1_FDR_16;
-.extern _fdr_dca_sel_C1_FDR_17;
-.extern _fdr_dca_sel_C1_FDR_18;
-.extern _fdr_dca_sel_C1_FDR_19;
-.extern _fdr_dca_sel_C1_FDR_20;
-.extern _fdr_dca_sel_C1_FDR_21;
-.extern _fdr_dca_sel_C1_FDR_22;
-.extern _fdr_dca_sel_C1_FDR_23;
-.extern _fdr_dca_sel_C1_FDR_24;
-.extern _fdr_dca_sel_C1_FDR_25;
-.extern _fdr_dca_sel_C1_FDR_26;
-.extern _fdr_dca_sel_C1_FDR_27;
-.extern _fdr_dca_sel_C1_FDR_28;
-.extern _fdr_dca_sel_C1_FDR_29;
-.extern _fdr_dca_sel_C1_FDR_30;
-.extern _fdr_dca_sel_C1_FDR_31;
-.extern _fdr_dca_sel_C1_FDR_32;
 .extern _fdr_level_C1_FDR_01;
 .extern _fdr_level_C1_FDR_02;
 .extern _fdr_level_C1_FDR_03;
@@ -1844,7 +1812,7 @@
     _fdr_level_C1_FDR_01,    /* 0x0050: C1_FDR_01 level */
     _fdr_pan_C1_FDR_01,    /* 0x0051: C1_FDR_01 pan */
     _fdr_mute_C1_FDR_01,    /* 0x0052: C1_FDR_01 mute */
-    _fdr_dca_sel_C1_FDR_01,    /* 0x0053: C1_FDR_01 DCA assignment */
+    0,  /* 0x0053: C1_FDR_01 reserved (Dca host-managed) */
     _rtg_main_on_C1_RTG_01,    /* 0x0054: C1_RTG_01 MainOn */
     _rtg_sub_on_C1_RTG_01,    /* 0x0055: C1_RTG_01 SubOn */
     _rtg_grp_on_C1_RTG_01 + 0,    /* 0x0056: C1_RTG_01 GrpOn[1] */
@@ -1988,7 +1956,7 @@
     _fdr_level_C1_FDR_02,    /* 0x00E0: C1_FDR_02 level */
     _fdr_pan_C1_FDR_02,    /* 0x00E1: C1_FDR_02 pan */
     _fdr_mute_C1_FDR_02,    /* 0x00E2: C1_FDR_02 mute */
-    _fdr_dca_sel_C1_FDR_02,    /* 0x00E3: C1_FDR_02 DCA assignment */
+    0,  /* 0x00E3: C1_FDR_02 reserved (Dca host-managed) */
     _rtg_main_on_C1_RTG_02,    /* 0x00E4: C1_RTG_02 MainOn */
     _rtg_sub_on_C1_RTG_02,    /* 0x00E5: C1_RTG_02 SubOn */
     _rtg_grp_on_C1_RTG_02 + 0,    /* 0x00E6: C1_RTG_02 GrpOn[1] */
@@ -2132,7 +2100,7 @@
     _fdr_level_C1_FDR_03,    /* 0x0170: C1_FDR_03 level */
     _fdr_pan_C1_FDR_03,    /* 0x0171: C1_FDR_03 pan */
     _fdr_mute_C1_FDR_03,    /* 0x0172: C1_FDR_03 mute */
-    _fdr_dca_sel_C1_FDR_03,    /* 0x0173: C1_FDR_03 DCA assignment */
+    0,  /* 0x0173: C1_FDR_03 reserved (Dca host-managed) */
     _rtg_main_on_C1_RTG_03,    /* 0x0174: C1_RTG_03 MainOn */
     _rtg_sub_on_C1_RTG_03,    /* 0x0175: C1_RTG_03 SubOn */
     _rtg_grp_on_C1_RTG_03 + 0,    /* 0x0176: C1_RTG_03 GrpOn[1] */
@@ -2276,7 +2244,7 @@
     _fdr_level_C1_FDR_04,    /* 0x0200: C1_FDR_04 level */
     _fdr_pan_C1_FDR_04,    /* 0x0201: C1_FDR_04 pan */
     _fdr_mute_C1_FDR_04,    /* 0x0202: C1_FDR_04 mute */
-    _fdr_dca_sel_C1_FDR_04,    /* 0x0203: C1_FDR_04 DCA assignment */
+    0,  /* 0x0203: C1_FDR_04 reserved (Dca host-managed) */
     _rtg_main_on_C1_RTG_04,    /* 0x0204: C1_RTG_04 MainOn */
     _rtg_sub_on_C1_RTG_04,    /* 0x0205: C1_RTG_04 SubOn */
     _rtg_grp_on_C1_RTG_04 + 0,    /* 0x0206: C1_RTG_04 GrpOn[1] */
@@ -2420,7 +2388,7 @@
     _fdr_level_C1_FDR_05,    /* 0x0290: C1_FDR_05 level */
     _fdr_pan_C1_FDR_05,    /* 0x0291: C1_FDR_05 pan */
     _fdr_mute_C1_FDR_05,    /* 0x0292: C1_FDR_05 mute */
-    _fdr_dca_sel_C1_FDR_05,    /* 0x0293: C1_FDR_05 DCA assignment */
+    0,  /* 0x0293: C1_FDR_05 reserved (Dca host-managed) */
     _rtg_main_on_C1_RTG_05,    /* 0x0294: C1_RTG_05 MainOn */
     _rtg_sub_on_C1_RTG_05,    /* 0x0295: C1_RTG_05 SubOn */
     _rtg_grp_on_C1_RTG_05 + 0,    /* 0x0296: C1_RTG_05 GrpOn[1] */
@@ -2564,7 +2532,7 @@
     _fdr_level_C1_FDR_06,    /* 0x0320: C1_FDR_06 level */
     _fdr_pan_C1_FDR_06,    /* 0x0321: C1_FDR_06 pan */
     _fdr_mute_C1_FDR_06,    /* 0x0322: C1_FDR_06 mute */
-    _fdr_dca_sel_C1_FDR_06,    /* 0x0323: C1_FDR_06 DCA assignment */
+    0,  /* 0x0323: C1_FDR_06 reserved (Dca host-managed) */
     _rtg_main_on_C1_RTG_06,    /* 0x0324: C1_RTG_06 MainOn */
     _rtg_sub_on_C1_RTG_06,    /* 0x0325: C1_RTG_06 SubOn */
     _rtg_grp_on_C1_RTG_06 + 0,    /* 0x0326: C1_RTG_06 GrpOn[1] */
@@ -2708,7 +2676,7 @@
     _fdr_level_C1_FDR_07,    /* 0x03B0: C1_FDR_07 level */
     _fdr_pan_C1_FDR_07,    /* 0x03B1: C1_FDR_07 pan */
     _fdr_mute_C1_FDR_07,    /* 0x03B2: C1_FDR_07 mute */
-    _fdr_dca_sel_C1_FDR_07,    /* 0x03B3: C1_FDR_07 DCA assignment */
+    0,  /* 0x03B3: C1_FDR_07 reserved (Dca host-managed) */
     _rtg_main_on_C1_RTG_07,    /* 0x03B4: C1_RTG_07 MainOn */
     _rtg_sub_on_C1_RTG_07,    /* 0x03B5: C1_RTG_07 SubOn */
     _rtg_grp_on_C1_RTG_07 + 0,    /* 0x03B6: C1_RTG_07 GrpOn[1] */
@@ -2852,7 +2820,7 @@
     _fdr_level_C1_FDR_08,    /* 0x0440: C1_FDR_08 level */
     _fdr_pan_C1_FDR_08,    /* 0x0441: C1_FDR_08 pan */
     _fdr_mute_C1_FDR_08,    /* 0x0442: C1_FDR_08 mute */
-    _fdr_dca_sel_C1_FDR_08,    /* 0x0443: C1_FDR_08 DCA assignment */
+    0,  /* 0x0443: C1_FDR_08 reserved (Dca host-managed) */
     _rtg_main_on_C1_RTG_08,    /* 0x0444: C1_RTG_08 MainOn */
     _rtg_sub_on_C1_RTG_08,    /* 0x0445: C1_RTG_08 SubOn */
     _rtg_grp_on_C1_RTG_08 + 0,    /* 0x0446: C1_RTG_08 GrpOn[1] */
@@ -2996,7 +2964,7 @@
     _fdr_level_C1_FDR_09,    /* 0x04D0: C1_FDR_09 level */
     _fdr_pan_C1_FDR_09,    /* 0x04D1: C1_FDR_09 pan */
     _fdr_mute_C1_FDR_09,    /* 0x04D2: C1_FDR_09 mute */
-    _fdr_dca_sel_C1_FDR_09,    /* 0x04D3: C1_FDR_09 DCA assignment */
+    0,  /* 0x04D3: C1_FDR_09 reserved (Dca host-managed) */
     _rtg_main_on_C1_RTG_09,    /* 0x04D4: C1_RTG_09 MainOn */
     _rtg_sub_on_C1_RTG_09,    /* 0x04D5: C1_RTG_09 SubOn */
     _rtg_grp_on_C1_RTG_09 + 0,    /* 0x04D6: C1_RTG_09 GrpOn[1] */
@@ -3140,7 +3108,7 @@
     _fdr_level_C1_FDR_10,    /* 0x0560: C1_FDR_10 level */
     _fdr_pan_C1_FDR_10,    /* 0x0561: C1_FDR_10 pan */
     _fdr_mute_C1_FDR_10,    /* 0x0562: C1_FDR_10 mute */
-    _fdr_dca_sel_C1_FDR_10,    /* 0x0563: C1_FDR_10 DCA assignment */
+    0,  /* 0x0563: C1_FDR_10 reserved (Dca host-managed) */
     _rtg_main_on_C1_RTG_10,    /* 0x0564: C1_RTG_10 MainOn */
     _rtg_sub_on_C1_RTG_10,    /* 0x0565: C1_RTG_10 SubOn */
     _rtg_grp_on_C1_RTG_10 + 0,    /* 0x0566: C1_RTG_10 GrpOn[1] */
@@ -3284,7 +3252,7 @@
     _fdr_level_C1_FDR_11,    /* 0x05F0: C1_FDR_11 level */
     _fdr_pan_C1_FDR_11,    /* 0x05F1: C1_FDR_11 pan */
     _fdr_mute_C1_FDR_11,    /* 0x05F2: C1_FDR_11 mute */
-    _fdr_dca_sel_C1_FDR_11,    /* 0x05F3: C1_FDR_11 DCA assignment */
+    0,  /* 0x05F3: C1_FDR_11 reserved (Dca host-managed) */
     _rtg_main_on_C1_RTG_11,    /* 0x05F4: C1_RTG_11 MainOn */
     _rtg_sub_on_C1_RTG_11,    /* 0x05F5: C1_RTG_11 SubOn */
     _rtg_grp_on_C1_RTG_11 + 0,    /* 0x05F6: C1_RTG_11 GrpOn[1] */
@@ -3428,7 +3396,7 @@
     _fdr_level_C1_FDR_12,    /* 0x0680: C1_FDR_12 level */
     _fdr_pan_C1_FDR_12,    /* 0x0681: C1_FDR_12 pan */
     _fdr_mute_C1_FDR_12,    /* 0x0682: C1_FDR_12 mute */
-    _fdr_dca_sel_C1_FDR_12,    /* 0x0683: C1_FDR_12 DCA assignment */
+    0,  /* 0x0683: C1_FDR_12 reserved (Dca host-managed) */
     _rtg_main_on_C1_RTG_12,    /* 0x0684: C1_RTG_12 MainOn */
     _rtg_sub_on_C1_RTG_12,    /* 0x0685: C1_RTG_12 SubOn */
     _rtg_grp_on_C1_RTG_12 + 0,    /* 0x0686: C1_RTG_12 GrpOn[1] */
@@ -3572,7 +3540,7 @@
     _fdr_level_C1_FDR_13,    /* 0x0710: C1_FDR_13 level */
     _fdr_pan_C1_FDR_13,    /* 0x0711: C1_FDR_13 pan */
     _fdr_mute_C1_FDR_13,    /* 0x0712: C1_FDR_13 mute */
-    _fdr_dca_sel_C1_FDR_13,    /* 0x0713: C1_FDR_13 DCA assignment */
+    0,  /* 0x0713: C1_FDR_13 reserved (Dca host-managed) */
     _rtg_main_on_C1_RTG_13,    /* 0x0714: C1_RTG_13 MainOn */
     _rtg_sub_on_C1_RTG_13,    /* 0x0715: C1_RTG_13 SubOn */
     _rtg_grp_on_C1_RTG_13 + 0,    /* 0x0716: C1_RTG_13 GrpOn[1] */
@@ -3716,7 +3684,7 @@
     _fdr_level_C1_FDR_14,    /* 0x07A0: C1_FDR_14 level */
     _fdr_pan_C1_FDR_14,    /* 0x07A1: C1_FDR_14 pan */
     _fdr_mute_C1_FDR_14,    /* 0x07A2: C1_FDR_14 mute */
-    _fdr_dca_sel_C1_FDR_14,    /* 0x07A3: C1_FDR_14 DCA assignment */
+    0,  /* 0x07A3: C1_FDR_14 reserved (Dca host-managed) */
     _rtg_main_on_C1_RTG_14,    /* 0x07A4: C1_RTG_14 MainOn */
     _rtg_sub_on_C1_RTG_14,    /* 0x07A5: C1_RTG_14 SubOn */
     _rtg_grp_on_C1_RTG_14 + 0,    /* 0x07A6: C1_RTG_14 GrpOn[1] */
@@ -3860,7 +3828,7 @@
     _fdr_level_C1_FDR_15,    /* 0x0830: C1_FDR_15 level */
     _fdr_pan_C1_FDR_15,    /* 0x0831: C1_FDR_15 pan */
     _fdr_mute_C1_FDR_15,    /* 0x0832: C1_FDR_15 mute */
-    _fdr_dca_sel_C1_FDR_15,    /* 0x0833: C1_FDR_15 DCA assignment */
+    0,  /* 0x0833: C1_FDR_15 reserved (Dca host-managed) */
     _rtg_main_on_C1_RTG_15,    /* 0x0834: C1_RTG_15 MainOn */
     _rtg_sub_on_C1_RTG_15,    /* 0x0835: C1_RTG_15 SubOn */
     _rtg_grp_on_C1_RTG_15 + 0,    /* 0x0836: C1_RTG_15 GrpOn[1] */
@@ -4004,7 +3972,7 @@
     _fdr_level_C1_FDR_16,    /* 0x08C0: C1_FDR_16 level */
     _fdr_pan_C1_FDR_16,    /* 0x08C1: C1_FDR_16 pan */
     _fdr_mute_C1_FDR_16,    /* 0x08C2: C1_FDR_16 mute */
-    _fdr_dca_sel_C1_FDR_16,    /* 0x08C3: C1_FDR_16 DCA assignment */
+    0,  /* 0x08C3: C1_FDR_16 reserved (Dca host-managed) */
     _rtg_main_on_C1_RTG_16,    /* 0x08C4: C1_RTG_16 MainOn */
     _rtg_sub_on_C1_RTG_16,    /* 0x08C5: C1_RTG_16 SubOn */
     _rtg_grp_on_C1_RTG_16 + 0,    /* 0x08C6: C1_RTG_16 GrpOn[1] */
@@ -4148,7 +4116,7 @@
     _fdr_level_C1_FDR_17,    /* 0x0950: C1_FDR_17 level */
     _fdr_pan_C1_FDR_17,    /* 0x0951: C1_FDR_17 pan */
     _fdr_mute_C1_FDR_17,    /* 0x0952: C1_FDR_17 mute */
-    _fdr_dca_sel_C1_FDR_17,    /* 0x0953: C1_FDR_17 DCA assignment */
+    0,  /* 0x0953: C1_FDR_17 reserved (Dca host-managed) */
     _rtg_main_on_C1_RTG_17,    /* 0x0954: C1_RTG_17 MainOn */
     _rtg_sub_on_C1_RTG_17,    /* 0x0955: C1_RTG_17 SubOn */
     _rtg_grp_on_C1_RTG_17 + 0,    /* 0x0956: C1_RTG_17 GrpOn[1] */
@@ -4292,7 +4260,7 @@
     _fdr_level_C1_FDR_18,    /* 0x09E0: C1_FDR_18 level */
     _fdr_pan_C1_FDR_18,    /* 0x09E1: C1_FDR_18 pan */
     _fdr_mute_C1_FDR_18,    /* 0x09E2: C1_FDR_18 mute */
-    _fdr_dca_sel_C1_FDR_18,    /* 0x09E3: C1_FDR_18 DCA assignment */
+    0,  /* 0x09E3: C1_FDR_18 reserved (Dca host-managed) */
     _rtg_main_on_C1_RTG_18,    /* 0x09E4: C1_RTG_18 MainOn */
     _rtg_sub_on_C1_RTG_18,    /* 0x09E5: C1_RTG_18 SubOn */
     _rtg_grp_on_C1_RTG_18 + 0,    /* 0x09E6: C1_RTG_18 GrpOn[1] */
@@ -4436,7 +4404,7 @@
     _fdr_level_C1_FDR_19,    /* 0x0A70: C1_FDR_19 level */
     _fdr_pan_C1_FDR_19,    /* 0x0A71: C1_FDR_19 pan */
     _fdr_mute_C1_FDR_19,    /* 0x0A72: C1_FDR_19 mute */
-    _fdr_dca_sel_C1_FDR_19,    /* 0x0A73: C1_FDR_19 DCA assignment */
+    0,  /* 0x0A73: C1_FDR_19 reserved (Dca host-managed) */
     _rtg_main_on_C1_RTG_19,    /* 0x0A74: C1_RTG_19 MainOn */
     _rtg_sub_on_C1_RTG_19,    /* 0x0A75: C1_RTG_19 SubOn */
     _rtg_grp_on_C1_RTG_19 + 0,    /* 0x0A76: C1_RTG_19 GrpOn[1] */
@@ -4580,7 +4548,7 @@
     _fdr_level_C1_FDR_20,    /* 0x0B00: C1_FDR_20 level */
     _fdr_pan_C1_FDR_20,    /* 0x0B01: C1_FDR_20 pan */
     _fdr_mute_C1_FDR_20,    /* 0x0B02: C1_FDR_20 mute */
-    _fdr_dca_sel_C1_FDR_20,    /* 0x0B03: C1_FDR_20 DCA assignment */
+    0,  /* 0x0B03: C1_FDR_20 reserved (Dca host-managed) */
     _rtg_main_on_C1_RTG_20,    /* 0x0B04: C1_RTG_20 MainOn */
     _rtg_sub_on_C1_RTG_20,    /* 0x0B05: C1_RTG_20 SubOn */
     _rtg_grp_on_C1_RTG_20 + 0,    /* 0x0B06: C1_RTG_20 GrpOn[1] */
@@ -4724,7 +4692,7 @@
     _fdr_level_C1_FDR_21,    /* 0x0B90: C1_FDR_21 level */
     _fdr_pan_C1_FDR_21,    /* 0x0B91: C1_FDR_21 pan */
     _fdr_mute_C1_FDR_21,    /* 0x0B92: C1_FDR_21 mute */
-    _fdr_dca_sel_C1_FDR_21,    /* 0x0B93: C1_FDR_21 DCA assignment */
+    0,  /* 0x0B93: C1_FDR_21 reserved (Dca host-managed) */
     _rtg_main_on_C1_RTG_21,    /* 0x0B94: C1_RTG_21 MainOn */
     _rtg_sub_on_C1_RTG_21,    /* 0x0B95: C1_RTG_21 SubOn */
     _rtg_grp_on_C1_RTG_21 + 0,    /* 0x0B96: C1_RTG_21 GrpOn[1] */
@@ -4868,7 +4836,7 @@
     _fdr_level_C1_FDR_22,    /* 0x0C20: C1_FDR_22 level */
     _fdr_pan_C1_FDR_22,    /* 0x0C21: C1_FDR_22 pan */
     _fdr_mute_C1_FDR_22,    /* 0x0C22: C1_FDR_22 mute */
-    _fdr_dca_sel_C1_FDR_22,    /* 0x0C23: C1_FDR_22 DCA assignment */
+    0,  /* 0x0C23: C1_FDR_22 reserved (Dca host-managed) */
     _rtg_main_on_C1_RTG_22,    /* 0x0C24: C1_RTG_22 MainOn */
     _rtg_sub_on_C1_RTG_22,    /* 0x0C25: C1_RTG_22 SubOn */
     _rtg_grp_on_C1_RTG_22 + 0,    /* 0x0C26: C1_RTG_22 GrpOn[1] */
@@ -5012,7 +4980,7 @@
     _fdr_level_C1_FDR_23,    /* 0x0CB0: C1_FDR_23 level */
     _fdr_pan_C1_FDR_23,    /* 0x0CB1: C1_FDR_23 pan */
     _fdr_mute_C1_FDR_23,    /* 0x0CB2: C1_FDR_23 mute */
-    _fdr_dca_sel_C1_FDR_23,    /* 0x0CB3: C1_FDR_23 DCA assignment */
+    0,  /* 0x0CB3: C1_FDR_23 reserved (Dca host-managed) */
     _rtg_main_on_C1_RTG_23,    /* 0x0CB4: C1_RTG_23 MainOn */
     _rtg_sub_on_C1_RTG_23,    /* 0x0CB5: C1_RTG_23 SubOn */
     _rtg_grp_on_C1_RTG_23 + 0,    /* 0x0CB6: C1_RTG_23 GrpOn[1] */
@@ -5156,7 +5124,7 @@
     _fdr_level_C1_FDR_24,    /* 0x0D40: C1_FDR_24 level */
     _fdr_pan_C1_FDR_24,    /* 0x0D41: C1_FDR_24 pan */
     _fdr_mute_C1_FDR_24,    /* 0x0D42: C1_FDR_24 mute */
-    _fdr_dca_sel_C1_FDR_24,    /* 0x0D43: C1_FDR_24 DCA assignment */
+    0,  /* 0x0D43: C1_FDR_24 reserved (Dca host-managed) */
     _rtg_main_on_C1_RTG_24,    /* 0x0D44: C1_RTG_24 MainOn */
     _rtg_sub_on_C1_RTG_24,    /* 0x0D45: C1_RTG_24 SubOn */
     _rtg_grp_on_C1_RTG_24 + 0,    /* 0x0D46: C1_RTG_24 GrpOn[1] */
@@ -5300,7 +5268,7 @@
     _fdr_level_C1_FDR_25,    /* 0x0DD0: C1_FDR_25 level */
     _fdr_pan_C1_FDR_25,    /* 0x0DD1: C1_FDR_25 pan */
     _fdr_mute_C1_FDR_25,    /* 0x0DD2: C1_FDR_25 mute */
-    _fdr_dca_sel_C1_FDR_25,    /* 0x0DD3: C1_FDR_25 DCA assignment */
+    0,  /* 0x0DD3: C1_FDR_25 reserved (Dca host-managed) */
     _rtg_main_on_C1_RTG_25,    /* 0x0DD4: C1_RTG_25 MainOn */
     _rtg_sub_on_C1_RTG_25,    /* 0x0DD5: C1_RTG_25 SubOn */
     _rtg_grp_on_C1_RTG_25 + 0,    /* 0x0DD6: C1_RTG_25 GrpOn[1] */
@@ -5444,7 +5412,7 @@
     _fdr_level_C1_FDR_26,    /* 0x0E60: C1_FDR_26 level */
     _fdr_pan_C1_FDR_26,    /* 0x0E61: C1_FDR_26 pan */
     _fdr_mute_C1_FDR_26,    /* 0x0E62: C1_FDR_26 mute */
-    _fdr_dca_sel_C1_FDR_26,    /* 0x0E63: C1_FDR_26 DCA assignment */
+    0,  /* 0x0E63: C1_FDR_26 reserved (Dca host-managed) */
     _rtg_main_on_C1_RTG_26,    /* 0x0E64: C1_RTG_26 MainOn */
     _rtg_sub_on_C1_RTG_26,    /* 0x0E65: C1_RTG_26 SubOn */
     _rtg_grp_on_C1_RTG_26 + 0,    /* 0x0E66: C1_RTG_26 GrpOn[1] */
@@ -5588,7 +5556,7 @@
     _fdr_level_C1_FDR_27,    /* 0x0EF0: C1_FDR_27 level */
     _fdr_pan_C1_FDR_27,    /* 0x0EF1: C1_FDR_27 pan */
     _fdr_mute_C1_FDR_27,    /* 0x0EF2: C1_FDR_27 mute */
-    _fdr_dca_sel_C1_FDR_27,    /* 0x0EF3: C1_FDR_27 DCA assignment */
+    0,  /* 0x0EF3: C1_FDR_27 reserved (Dca host-managed) */
     _rtg_main_on_C1_RTG_27,    /* 0x0EF4: C1_RTG_27 MainOn */
     _rtg_sub_on_C1_RTG_27,    /* 0x0EF5: C1_RTG_27 SubOn */
     _rtg_grp_on_C1_RTG_27 + 0,    /* 0x0EF6: C1_RTG_27 GrpOn[1] */
@@ -5732,7 +5700,7 @@
     _fdr_level_C1_FDR_28,    /* 0x0F80: C1_FDR_28 level */
     _fdr_pan_C1_FDR_28,    /* 0x0F81: C1_FDR_28 pan */
     _fdr_mute_C1_FDR_28,    /* 0x0F82: C1_FDR_28 mute */
-    _fdr_dca_sel_C1_FDR_28,    /* 0x0F83: C1_FDR_28 DCA assignment */
+    0,  /* 0x0F83: C1_FDR_28 reserved (Dca host-managed) */
     _rtg_main_on_C1_RTG_28,    /* 0x0F84: C1_RTG_28 MainOn */
     _rtg_sub_on_C1_RTG_28,    /* 0x0F85: C1_RTG_28 SubOn */
     _rtg_grp_on_C1_RTG_28 + 0,    /* 0x0F86: C1_RTG_28 GrpOn[1] */
@@ -5876,7 +5844,7 @@
     _fdr_level_C1_FDR_29,    /* 0x1010: C1_FDR_29 level */
     _fdr_pan_C1_FDR_29,    /* 0x1011: C1_FDR_29 pan */
     _fdr_mute_C1_FDR_29,    /* 0x1012: C1_FDR_29 mute */
-    _fdr_dca_sel_C1_FDR_29,    /* 0x1013: C1_FDR_29 DCA assignment */
+    0,  /* 0x1013: C1_FDR_29 reserved (Dca host-managed) */
     _rtg_main_on_C1_RTG_29,    /* 0x1014: C1_RTG_29 MainOn */
     _rtg_sub_on_C1_RTG_29,    /* 0x1015: C1_RTG_29 SubOn */
     _rtg_grp_on_C1_RTG_29 + 0,    /* 0x1016: C1_RTG_29 GrpOn[1] */
@@ -6020,7 +5988,7 @@
     _fdr_level_C1_FDR_30,    /* 0x10A0: C1_FDR_30 level */
     _fdr_pan_C1_FDR_30,    /* 0x10A1: C1_FDR_30 pan */
     _fdr_mute_C1_FDR_30,    /* 0x10A2: C1_FDR_30 mute */
-    _fdr_dca_sel_C1_FDR_30,    /* 0x10A3: C1_FDR_30 DCA assignment */
+    0,  /* 0x10A3: C1_FDR_30 reserved (Dca host-managed) */
     _rtg_main_on_C1_RTG_30,    /* 0x10A4: C1_RTG_30 MainOn */
     _rtg_sub_on_C1_RTG_30,    /* 0x10A5: C1_RTG_30 SubOn */
     _rtg_grp_on_C1_RTG_30 + 0,    /* 0x10A6: C1_RTG_30 GrpOn[1] */
@@ -6164,7 +6132,7 @@
     _fdr_level_C1_FDR_31,    /* 0x1130: C1_FDR_31 level */
     _fdr_pan_C1_FDR_31,    /* 0x1131: C1_FDR_31 pan */
     _fdr_mute_C1_FDR_31,    /* 0x1132: C1_FDR_31 mute */
-    _fdr_dca_sel_C1_FDR_31,    /* 0x1133: C1_FDR_31 DCA assignment */
+    0,  /* 0x1133: C1_FDR_31 reserved (Dca host-managed) */
     _rtg_main_on_C1_RTG_31,    /* 0x1134: C1_RTG_31 MainOn */
     _rtg_sub_on_C1_RTG_31,    /* 0x1135: C1_RTG_31 SubOn */
     _rtg_grp_on_C1_RTG_31 + 0,    /* 0x1136: C1_RTG_31 GrpOn[1] */
@@ -6308,7 +6276,7 @@
     _fdr_level_C1_FDR_32,    /* 0x11C0: C1_FDR_32 level */
     _fdr_pan_C1_FDR_32,    /* 0x11C1: C1_FDR_32 pan */
     _fdr_mute_C1_FDR_32,    /* 0x11C2: C1_FDR_32 mute */
-    _fdr_dca_sel_C1_FDR_32,    /* 0x11C3: C1_FDR_32 DCA assignment */
+    0,  /* 0x11C3: C1_FDR_32 reserved (Dca host-managed) */
     _rtg_main_on_C1_RTG_32,    /* 0x11C4: C1_RTG_32 MainOn */
     _rtg_sub_on_C1_RTG_32,    /* 0x11C5: C1_RTG_32 SubOn */
     _rtg_grp_on_C1_RTG_32 + 0,    /* 0x11C6: C1_RTG_32 GrpOn[1] */
@@ -6660,7 +6628,7 @@
     1,  /* 0x0050: C1_FDR_01 level */
     1,  /* 0x0051: C1_FDR_01 pan */
     0,  /* 0x0052: C1_FDR_01 mute */
-    0,  /* 0x0053: C1_FDR_01 DCA assignment */
+    0,  /* 0x0053: C1_FDR_01 reserved (Dca host-managed) */
     0,  /* 0x0054: C1_RTG_01 MainOn */
     0,  /* 0x0055: C1_RTG_01 SubOn */
     0,  /* 0x0056: C1_RTG_01 GrpOn[1] */
@@ -6804,7 +6772,7 @@
     1,  /* 0x00E0: C1_FDR_02 level */
     1,  /* 0x00E1: C1_FDR_02 pan */
     0,  /* 0x00E2: C1_FDR_02 mute */
-    0,  /* 0x00E3: C1_FDR_02 DCA assignment */
+    0,  /* 0x00E3: C1_FDR_02 reserved (Dca host-managed) */
     0,  /* 0x00E4: C1_RTG_02 MainOn */
     0,  /* 0x00E5: C1_RTG_02 SubOn */
     0,  /* 0x00E6: C1_RTG_02 GrpOn[1] */
@@ -6948,7 +6916,7 @@
     1,  /* 0x0170: C1_FDR_03 level */
     1,  /* 0x0171: C1_FDR_03 pan */
     0,  /* 0x0172: C1_FDR_03 mute */
-    0,  /* 0x0173: C1_FDR_03 DCA assignment */
+    0,  /* 0x0173: C1_FDR_03 reserved (Dca host-managed) */
     0,  /* 0x0174: C1_RTG_03 MainOn */
     0,  /* 0x0175: C1_RTG_03 SubOn */
     0,  /* 0x0176: C1_RTG_03 GrpOn[1] */
@@ -7092,7 +7060,7 @@
     1,  /* 0x0200: C1_FDR_04 level */
     1,  /* 0x0201: C1_FDR_04 pan */
     0,  /* 0x0202: C1_FDR_04 mute */
-    0,  /* 0x0203: C1_FDR_04 DCA assignment */
+    0,  /* 0x0203: C1_FDR_04 reserved (Dca host-managed) */
     0,  /* 0x0204: C1_RTG_04 MainOn */
     0,  /* 0x0205: C1_RTG_04 SubOn */
     0,  /* 0x0206: C1_RTG_04 GrpOn[1] */
@@ -7236,7 +7204,7 @@
     1,  /* 0x0290: C1_FDR_05 level */
     1,  /* 0x0291: C1_FDR_05 pan */
     0,  /* 0x0292: C1_FDR_05 mute */
-    0,  /* 0x0293: C1_FDR_05 DCA assignment */
+    0,  /* 0x0293: C1_FDR_05 reserved (Dca host-managed) */
     0,  /* 0x0294: C1_RTG_05 MainOn */
     0,  /* 0x0295: C1_RTG_05 SubOn */
     0,  /* 0x0296: C1_RTG_05 GrpOn[1] */
@@ -7380,7 +7348,7 @@
     1,  /* 0x0320: C1_FDR_06 level */
     1,  /* 0x0321: C1_FDR_06 pan */
     0,  /* 0x0322: C1_FDR_06 mute */
-    0,  /* 0x0323: C1_FDR_06 DCA assignment */
+    0,  /* 0x0323: C1_FDR_06 reserved (Dca host-managed) */
     0,  /* 0x0324: C1_RTG_06 MainOn */
     0,  /* 0x0325: C1_RTG_06 SubOn */
     0,  /* 0x0326: C1_RTG_06 GrpOn[1] */
@@ -7524,7 +7492,7 @@
     1,  /* 0x03B0: C1_FDR_07 level */
     1,  /* 0x03B1: C1_FDR_07 pan */
     0,  /* 0x03B2: C1_FDR_07 mute */
-    0,  /* 0x03B3: C1_FDR_07 DCA assignment */
+    0,  /* 0x03B3: C1_FDR_07 reserved (Dca host-managed) */
     0,  /* 0x03B4: C1_RTG_07 MainOn */
     0,  /* 0x03B5: C1_RTG_07 SubOn */
     0,  /* 0x03B6: C1_RTG_07 GrpOn[1] */
@@ -7668,7 +7636,7 @@
     1,  /* 0x0440: C1_FDR_08 level */
     1,  /* 0x0441: C1_FDR_08 pan */
     0,  /* 0x0442: C1_FDR_08 mute */
-    0,  /* 0x0443: C1_FDR_08 DCA assignment */
+    0,  /* 0x0443: C1_FDR_08 reserved (Dca host-managed) */
     0,  /* 0x0444: C1_RTG_08 MainOn */
     0,  /* 0x0445: C1_RTG_08 SubOn */
     0,  /* 0x0446: C1_RTG_08 GrpOn[1] */
@@ -7812,7 +7780,7 @@
     1,  /* 0x04D0: C1_FDR_09 level */
     1,  /* 0x04D1: C1_FDR_09 pan */
     0,  /* 0x04D2: C1_FDR_09 mute */
-    0,  /* 0x04D3: C1_FDR_09 DCA assignment */
+    0,  /* 0x04D3: C1_FDR_09 reserved (Dca host-managed) */
     0,  /* 0x04D4: C1_RTG_09 MainOn */
     0,  /* 0x04D5: C1_RTG_09 SubOn */
     0,  /* 0x04D6: C1_RTG_09 GrpOn[1] */
@@ -7956,7 +7924,7 @@
     1,  /* 0x0560: C1_FDR_10 level */
     1,  /* 0x0561: C1_FDR_10 pan */
     0,  /* 0x0562: C1_FDR_10 mute */
-    0,  /* 0x0563: C1_FDR_10 DCA assignment */
+    0,  /* 0x0563: C1_FDR_10 reserved (Dca host-managed) */
     0,  /* 0x0564: C1_RTG_10 MainOn */
     0,  /* 0x0565: C1_RTG_10 SubOn */
     0,  /* 0x0566: C1_RTG_10 GrpOn[1] */
@@ -8100,7 +8068,7 @@
     1,  /* 0x05F0: C1_FDR_11 level */
     1,  /* 0x05F1: C1_FDR_11 pan */
     0,  /* 0x05F2: C1_FDR_11 mute */
-    0,  /* 0x05F3: C1_FDR_11 DCA assignment */
+    0,  /* 0x05F3: C1_FDR_11 reserved (Dca host-managed) */
     0,  /* 0x05F4: C1_RTG_11 MainOn */
     0,  /* 0x05F5: C1_RTG_11 SubOn */
     0,  /* 0x05F6: C1_RTG_11 GrpOn[1] */
@@ -8244,7 +8212,7 @@
     1,  /* 0x0680: C1_FDR_12 level */
     1,  /* 0x0681: C1_FDR_12 pan */
     0,  /* 0x0682: C1_FDR_12 mute */
-    0,  /* 0x0683: C1_FDR_12 DCA assignment */
+    0,  /* 0x0683: C1_FDR_12 reserved (Dca host-managed) */
     0,  /* 0x0684: C1_RTG_12 MainOn */
     0,  /* 0x0685: C1_RTG_12 SubOn */
     0,  /* 0x0686: C1_RTG_12 GrpOn[1] */
@@ -8388,7 +8356,7 @@
     1,  /* 0x0710: C1_FDR_13 level */
     1,  /* 0x0711: C1_FDR_13 pan */
     0,  /* 0x0712: C1_FDR_13 mute */
-    0,  /* 0x0713: C1_FDR_13 DCA assignment */
+    0,  /* 0x0713: C1_FDR_13 reserved (Dca host-managed) */
     0,  /* 0x0714: C1_RTG_13 MainOn */
     0,  /* 0x0715: C1_RTG_13 SubOn */
     0,  /* 0x0716: C1_RTG_13 GrpOn[1] */
@@ -8532,7 +8500,7 @@
     1,  /* 0x07A0: C1_FDR_14 level */
     1,  /* 0x07A1: C1_FDR_14 pan */
     0,  /* 0x07A2: C1_FDR_14 mute */
-    0,  /* 0x07A3: C1_FDR_14 DCA assignment */
+    0,  /* 0x07A3: C1_FDR_14 reserved (Dca host-managed) */
     0,  /* 0x07A4: C1_RTG_14 MainOn */
     0,  /* 0x07A5: C1_RTG_14 SubOn */
     0,  /* 0x07A6: C1_RTG_14 GrpOn[1] */
@@ -8676,7 +8644,7 @@
     1,  /* 0x0830: C1_FDR_15 level */
     1,  /* 0x0831: C1_FDR_15 pan */
     0,  /* 0x0832: C1_FDR_15 mute */
-    0,  /* 0x0833: C1_FDR_15 DCA assignment */
+    0,  /* 0x0833: C1_FDR_15 reserved (Dca host-managed) */
     0,  /* 0x0834: C1_RTG_15 MainOn */
     0,  /* 0x0835: C1_RTG_15 SubOn */
     0,  /* 0x0836: C1_RTG_15 GrpOn[1] */
@@ -8820,7 +8788,7 @@
     1,  /* 0x08C0: C1_FDR_16 level */
     1,  /* 0x08C1: C1_FDR_16 pan */
     0,  /* 0x08C2: C1_FDR_16 mute */
-    0,  /* 0x08C3: C1_FDR_16 DCA assignment */
+    0,  /* 0x08C3: C1_FDR_16 reserved (Dca host-managed) */
     0,  /* 0x08C4: C1_RTG_16 MainOn */
     0,  /* 0x08C5: C1_RTG_16 SubOn */
     0,  /* 0x08C6: C1_RTG_16 GrpOn[1] */
@@ -8964,7 +8932,7 @@
     1,  /* 0x0950: C1_FDR_17 level */
     1,  /* 0x0951: C1_FDR_17 pan */
     0,  /* 0x0952: C1_FDR_17 mute */
-    0,  /* 0x0953: C1_FDR_17 DCA assignment */
+    0,  /* 0x0953: C1_FDR_17 reserved (Dca host-managed) */
     0,  /* 0x0954: C1_RTG_17 MainOn */
     0,  /* 0x0955: C1_RTG_17 SubOn */
     0,  /* 0x0956: C1_RTG_17 GrpOn[1] */
@@ -9108,7 +9076,7 @@
     1,  /* 0x09E0: C1_FDR_18 level */
     1,  /* 0x09E1: C1_FDR_18 pan */
     0,  /* 0x09E2: C1_FDR_18 mute */
-    0,  /* 0x09E3: C1_FDR_18 DCA assignment */
+    0,  /* 0x09E3: C1_FDR_18 reserved (Dca host-managed) */
     0,  /* 0x09E4: C1_RTG_18 MainOn */
     0,  /* 0x09E5: C1_RTG_18 SubOn */
     0,  /* 0x09E6: C1_RTG_18 GrpOn[1] */
@@ -9252,7 +9220,7 @@
     1,  /* 0x0A70: C1_FDR_19 level */
     1,  /* 0x0A71: C1_FDR_19 pan */
     0,  /* 0x0A72: C1_FDR_19 mute */
-    0,  /* 0x0A73: C1_FDR_19 DCA assignment */
+    0,  /* 0x0A73: C1_FDR_19 reserved (Dca host-managed) */
     0,  /* 0x0A74: C1_RTG_19 MainOn */
     0,  /* 0x0A75: C1_RTG_19 SubOn */
     0,  /* 0x0A76: C1_RTG_19 GrpOn[1] */
@@ -9396,7 +9364,7 @@
     1,  /* 0x0B00: C1_FDR_20 level */
     1,  /* 0x0B01: C1_FDR_20 pan */
     0,  /* 0x0B02: C1_FDR_20 mute */
-    0,  /* 0x0B03: C1_FDR_20 DCA assignment */
+    0,  /* 0x0B03: C1_FDR_20 reserved (Dca host-managed) */
     0,  /* 0x0B04: C1_RTG_20 MainOn */
     0,  /* 0x0B05: C1_RTG_20 SubOn */
     0,  /* 0x0B06: C1_RTG_20 GrpOn[1] */
@@ -9540,7 +9508,7 @@
     1,  /* 0x0B90: C1_FDR_21 level */
     1,  /* 0x0B91: C1_FDR_21 pan */
     0,  /* 0x0B92: C1_FDR_21 mute */
-    0,  /* 0x0B93: C1_FDR_21 DCA assignment */
+    0,  /* 0x0B93: C1_FDR_21 reserved (Dca host-managed) */
     0,  /* 0x0B94: C1_RTG_21 MainOn */
     0,  /* 0x0B95: C1_RTG_21 SubOn */
     0,  /* 0x0B96: C1_RTG_21 GrpOn[1] */
@@ -9684,7 +9652,7 @@
     1,  /* 0x0C20: C1_FDR_22 level */
     1,  /* 0x0C21: C1_FDR_22 pan */
     0,  /* 0x0C22: C1_FDR_22 mute */
-    0,  /* 0x0C23: C1_FDR_22 DCA assignment */
+    0,  /* 0x0C23: C1_FDR_22 reserved (Dca host-managed) */
     0,  /* 0x0C24: C1_RTG_22 MainOn */
     0,  /* 0x0C25: C1_RTG_22 SubOn */
     0,  /* 0x0C26: C1_RTG_22 GrpOn[1] */
@@ -9828,7 +9796,7 @@
     1,  /* 0x0CB0: C1_FDR_23 level */
     1,  /* 0x0CB1: C1_FDR_23 pan */
     0,  /* 0x0CB2: C1_FDR_23 mute */
-    0,  /* 0x0CB3: C1_FDR_23 DCA assignment */
+    0,  /* 0x0CB3: C1_FDR_23 reserved (Dca host-managed) */
     0,  /* 0x0CB4: C1_RTG_23 MainOn */
     0,  /* 0x0CB5: C1_RTG_23 SubOn */
     0,  /* 0x0CB6: C1_RTG_23 GrpOn[1] */
@@ -9972,7 +9940,7 @@
     1,  /* 0x0D40: C1_FDR_24 level */
     1,  /* 0x0D41: C1_FDR_24 pan */
     0,  /* 0x0D42: C1_FDR_24 mute */
-    0,  /* 0x0D43: C1_FDR_24 DCA assignment */
+    0,  /* 0x0D43: C1_FDR_24 reserved (Dca host-managed) */
     0,  /* 0x0D44: C1_RTG_24 MainOn */
     0,  /* 0x0D45: C1_RTG_24 SubOn */
     0,  /* 0x0D46: C1_RTG_24 GrpOn[1] */
@@ -10116,7 +10084,7 @@
     1,  /* 0x0DD0: C1_FDR_25 level */
     1,  /* 0x0DD1: C1_FDR_25 pan */
     0,  /* 0x0DD2: C1_FDR_25 mute */
-    0,  /* 0x0DD3: C1_FDR_25 DCA assignment */
+    0,  /* 0x0DD3: C1_FDR_25 reserved (Dca host-managed) */
     0,  /* 0x0DD4: C1_RTG_25 MainOn */
     0,  /* 0x0DD5: C1_RTG_25 SubOn */
     0,  /* 0x0DD6: C1_RTG_25 GrpOn[1] */
@@ -10260,7 +10228,7 @@
     1,  /* 0x0E60: C1_FDR_26 level */
     1,  /* 0x0E61: C1_FDR_26 pan */
     0,  /* 0x0E62: C1_FDR_26 mute */
-    0,  /* 0x0E63: C1_FDR_26 DCA assignment */
+    0,  /* 0x0E63: C1_FDR_26 reserved (Dca host-managed) */
     0,  /* 0x0E64: C1_RTG_26 MainOn */
     0,  /* 0x0E65: C1_RTG_26 SubOn */
     0,  /* 0x0E66: C1_RTG_26 GrpOn[1] */
@@ -10404,7 +10372,7 @@
     1,  /* 0x0EF0: C1_FDR_27 level */
     1,  /* 0x0EF1: C1_FDR_27 pan */
     0,  /* 0x0EF2: C1_FDR_27 mute */
-    0,  /* 0x0EF3: C1_FDR_27 DCA assignment */
+    0,  /* 0x0EF3: C1_FDR_27 reserved (Dca host-managed) */
     0,  /* 0x0EF4: C1_RTG_27 MainOn */
     0,  /* 0x0EF5: C1_RTG_27 SubOn */
     0,  /* 0x0EF6: C1_RTG_27 GrpOn[1] */
@@ -10548,7 +10516,7 @@
     1,  /* 0x0F80: C1_FDR_28 level */
     1,  /* 0x0F81: C1_FDR_28 pan */
     0,  /* 0x0F82: C1_FDR_28 mute */
-    0,  /* 0x0F83: C1_FDR_28 DCA assignment */
+    0,  /* 0x0F83: C1_FDR_28 reserved (Dca host-managed) */
     0,  /* 0x0F84: C1_RTG_28 MainOn */
     0,  /* 0x0F85: C1_RTG_28 SubOn */
     0,  /* 0x0F86: C1_RTG_28 GrpOn[1] */
@@ -10692,7 +10660,7 @@
     1,  /* 0x1010: C1_FDR_29 level */
     1,  /* 0x1011: C1_FDR_29 pan */
     0,  /* 0x1012: C1_FDR_29 mute */
-    0,  /* 0x1013: C1_FDR_29 DCA assignment */
+    0,  /* 0x1013: C1_FDR_29 reserved (Dca host-managed) */
     0,  /* 0x1014: C1_RTG_29 MainOn */
     0,  /* 0x1015: C1_RTG_29 SubOn */
     0,  /* 0x1016: C1_RTG_29 GrpOn[1] */
@@ -10836,7 +10804,7 @@
     1,  /* 0x10A0: C1_FDR_30 level */
     1,  /* 0x10A1: C1_FDR_30 pan */
     0,  /* 0x10A2: C1_FDR_30 mute */
-    0,  /* 0x10A3: C1_FDR_30 DCA assignment */
+    0,  /* 0x10A3: C1_FDR_30 reserved (Dca host-managed) */
     0,  /* 0x10A4: C1_RTG_30 MainOn */
     0,  /* 0x10A5: C1_RTG_30 SubOn */
     0,  /* 0x10A6: C1_RTG_30 GrpOn[1] */
@@ -10980,7 +10948,7 @@
     1,  /* 0x1130: C1_FDR_31 level */
     1,  /* 0x1131: C1_FDR_31 pan */
     0,  /* 0x1132: C1_FDR_31 mute */
-    0,  /* 0x1133: C1_FDR_31 DCA assignment */
+    0,  /* 0x1133: C1_FDR_31 reserved (Dca host-managed) */
     0,  /* 0x1134: C1_RTG_31 MainOn */
     0,  /* 0x1135: C1_RTG_31 SubOn */
     0,  /* 0x1136: C1_RTG_31 GrpOn[1] */
@@ -11124,7 +11092,7 @@
     1,  /* 0x11C0: C1_FDR_32 level */
     1,  /* 0x11C1: C1_FDR_32 pan */
     0,  /* 0x11C2: C1_FDR_32 mute */
-    0,  /* 0x11C3: C1_FDR_32 DCA assignment */
+    0,  /* 0x11C3: C1_FDR_32 reserved (Dca host-managed) */
     0,  /* 0x11C4: C1_RTG_32 MainOn */
     0,  /* 0x11C5: C1_RTG_32 SubOn */
     0,  /* 0x11C6: C1_RTG_32 GrpOn[1] */

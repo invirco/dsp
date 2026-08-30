@@ -24,7 +24,14 @@ sys.path.insert(0, '/home/app/dspboot')
 import dsp4_scope as S
 from dsp4_tubedly_probe import wrv, transparent_chain, f32, DLY_OFF
 
-FDR_LEVEL, FDR_PAN, FDR_MUTE, FDR_DCA = 0x0050, 0x0051, 0x0052, 0x0053
+FDR_LEVEL, FDR_PAN, FDR_MUTE = 0x0050, 0x0051, 0x0052
+# 0x0053 was the DCA cell. PW's 2026-08-30 ruling makes `Dca` and
+# `DcaOn` HOST-MANAGED -- the CM4 control daemon folds DCA into the
+# fader target it already sends -- so the address is RESERVED and
+# unmapped: a write to it is an SPI error, not a no-op. Nothing here
+# writes it, and the constant is kept so the gap in the map is named
+# rather than looking like an oversight.
+FDR_RESERVED = 0x0053
 
 
 def main():
@@ -42,7 +49,6 @@ def main():
     transparent_chain(sc)
     wrv(sc, DLY_OFF, 0)
     wrv(sc, FDR_MUTE, 0)
-    wrv(sc, FDR_DCA, f32(1.0), ramp_id=1, settle=0.05)
     wrv(sc, FDR_LEVEL, f32(a.level), ramp_id=1, settle=0.05)
     wrv(sc, FDR_PAN, f32(a.pan), ramp_id=1, settle=0.05)
     time.sleep(0.6)                       # FDR ramps at block rate, ~85 ms

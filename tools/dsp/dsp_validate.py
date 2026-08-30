@@ -90,7 +90,9 @@ EXTRA_PARAMS = {
                         'parallel', 'type'},
     'DELAY':          {'local_ms', 'pool_slot'},
     'EQ_BIQUAD':      {'coeffs'},
-    'FADER_PAN':      {'pan'},
+    # host_cells names the cell families the HOST owns outright — no DSP
+    # address, no kernel read (PW ruling 2026-08-30: Dca, DcaOn).
+    'FADER_PAN':      {'pan', 'host_cells'},
     'FX_ENGINE':      {'balance', 'damping', 'decay', 'delay_ms', 'duck_on',
                         'duck_sens', 'eq_hi', 'eq_lo', 'eq_mid', 'feedback',
                         'hpf', 'mix', 'mod_level', 'mod_rate',

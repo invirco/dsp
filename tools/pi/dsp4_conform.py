@@ -312,11 +312,31 @@ def presence(part, entries, verify=True, health_every=32, log=print):
     return results, health
 
 
+# The generator's own words for an address it deliberately left with no
+# dispatch entry. gen_dsp.py writes `<node> reserved (Dca host-managed)`
+# into the dispatch comment, so this reads the reason off the artefact
+# rather than restating a cell list that would go stale.
+HOST_MANAGED_NOTE = 'host-managed'
+
+
 def collapse(rec):
     if 'error' in rec:
         return 'ERROR'
     if not rec['verified']:
         return 'UNVERIFIED'
+    # AFTER the verified gate, never before it. The no-readback negative
+    # control requires that EVERY address it touches comes out UNVERIFIED,
+    # and a class that answers from the plan rather than from the part
+    # would satisfy itself without reading anything -- which is the exact
+    # failure the control exists to catch.
+    if HOST_MANAGED_NOTE in (rec.get('kernel_note') or ''):
+        # UNMAPPED BY RULING, not by omission. PW closed Q2 on 2026-08-30:
+        # the CM4 control daemon folds DCA into the fader target it already
+        # sends, so `Dca`/`DcaOn` get no DSP address and no line of the
+        # kernel reads them. The write is expected to raise SPI_ERR_COUNT;
+        # what the bar checks is that this is the reason, which is why it
+        # is its own class and not a line in the UNMAPPED total.
+        return 'HOST_MANAGED'
     if rec['kind'] == 'meter':
         return 'SKIPPED_METER'
     vs = [p['verdict'] for p in rec['probes']]
@@ -492,7 +512,7 @@ def effect(part, strip=1, negctl_unit=None, log=print):
 RAMP_CELLS = [
     ('Chan001Gain001', 0x0000, 1, 'GainFast', 8.0),
     ('Chan001GateThr001', 0x0029, 4, 'DynSafe', 20.0),
-    ('Chan001RtgLevel001', 0x0050, 1, 'GainFast', 8.0),
+    ('Chan001Level001', 0x0050, 1, 'GainFast', 8.0),
 ]
 
 
@@ -780,7 +800,12 @@ def bus_capture(part, inj, n, src=None):
 
 # Strip-page offsets, from dsp.csv's spi_addr column via
 # dsp_address_map.md -- the same numbers dsp4_pairgraph.py uses.
-FDR_LEVEL, FDR_PAN, FDR_MUTE, FDR_DCA = 0x0050, 0x0051, 0x0052, 0x0053
+FDR_LEVEL, FDR_PAN, FDR_MUTE = 0x0050, 0x0051, 0x0052
+# 0x0053 was the DCA cell. `Dca` and `DcaOn` are HOST-MANAGED as of
+# PW's 2026-08-30 ruling -- the CM4 control daemon folds DCA into the
+# fader target it already sends -- so the address is RESERVED and
+# unmapped. Nothing writes it; the name keeps the gap legible.
+FDR_RESERVED = 0x0053
 GAIN_OFF, TUBE_ON, DLY_OFF = 0x0000, 0x004C, 0x004E
 RTG_MAIN_ON = 0x0054
 GATE_ON, GATE_THR, GATE_ATT = 0x0028, 0x0029, 0x002A
@@ -839,23 +864,18 @@ def drive_strip(part, strip, log=print, skip=()):
     for addr, word, ramp in ((b + GAIN_OFF, f32(1.0), 4),
                              (b + FDR_LEVEL, f32(1.0), 4),
                              (b + FDR_PAN, f32(0.5), 4),
-                             # RtgDca ASSIGNS. It does not scale, and 0
-                             # is the masters' documented "no DCA
-                             # assigned" -- so this drives the strip with
-                             # the value that used to KILL it, and every
-                             # conform run is now a standing witness for
-                             # review finding D57. Until 2026-08-30 the
-                             # cell dispatched to _fdr_dca_gain_*, which
-                             # FADER_PAN multiplies into its coefficient:
-                             # writing 0 set the fader gain to zero and
-                             # the channel went silent with _fdr_level_
-                             # still reading 1.0. It cost three probe runs
-                             # that day before the chain witness found it
-                             # at _buf_C1_FDR_01 = 0 with _buf_C1_DLY_01
-                             # carrying signal. The word now lands in
-                             # _fdr_dca_sel_*, which the sample path never
-                             # reads.
-                             (b + FDR_DCA, 0, 0),
+                             # THE DCA WRITE IS GONE. Until 2026-08-30
+                             # this drove the strip with DCA = 0 -- the
+                             # masters' documented "no DCA assigned", and
+                             # the value that used to KILL the strip
+                             # (review finding D57) -- so that every
+                             # conform run stood witness to that fix. PW's
+                             # ruling the same day moved the whole family
+                             # host-side: 0x0053 is RESERVED and a write
+                             # to it is an SPI error, which this probe
+                             # counts. The standing witness moved with it
+                             # -- `dcapar.sh` now asserts the address is
+                             # unmapped and reaches no audio.
                              (b + FDR_MUTE, 0, 0),
                              # Without this the strip reaches no bus at all
                              # and the capture is all zeros -- which is also

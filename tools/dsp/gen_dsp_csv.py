@@ -270,10 +270,16 @@ for ch in range(1, NUM_CH + 1):
         ramp_profile='InstantCtl')
 
     # --- FADER + PAN ---
-    p, a = c1_alloc.next(4)  # level + pan + mute + dca_coeff
+    # level + pan + mute + one RESERVED word. The fourth word used to
+    # carry the DCA assignment cell; PW's 2026-08-30 ruling makes Dca
+    # and DcaOn HOST-MANAGED (the CM4 control daemon folds DCA into the
+    # fader target it already sends), so the word is reserved rather
+    # than reallocated -- compacting it would move every address after
+    # it in the channel block for no gain.
+    p, a = c1_alloc.next(4)  # level + pan + mute + reserved
     add(n_fader, 1, 'FADER_PAN', f'Ch {ch} Fader', 1, n_delay, n_route,
         spi_page=p, spi_addr=a,
-        params='level_db=-inf;pan=0.0;mute=0',
+        params='level_db=-inf;pan=0.0;mute=0;host_cells=Dca,DcaOn',
         ramp_profile='GainFast')
 
     # --- ROUTING (fan-out to all buses) ---
@@ -451,7 +457,7 @@ for a in range(1, NUM_AUX + 1):
     p, a2 = c2_alloc.next(4)
     add(n_fdr, 2, 'FADER_PAN', f'Aux {a} Fader', 1, recv, n_eq,
         spi_page=p, spi_addr=a2,
-        params='level_db=0.0;pan=0.0;mute=0',
+        params='level_db=0.0;pan=0.0;mute=0;host_cells=Dca,DcaOn',
         ramp_profile='GainFast')
 
     p, a2 = c2_alloc.next(24)
@@ -506,7 +512,7 @@ for g in range(1, NUM_GRP + 1):
     p, a2 = c2_alloc.next(4)
     add(n_fdr, 2, 'FADER_PAN', f'Grp {g} Fader', 1, recv, n_eq,
         spi_page=p, spi_addr=a2,
-        params='level_db=0.0;mute=0',
+        params='level_db=0.0;mute=0;host_cells=Dca,DcaOn',
         ramp_profile='GainFast')
 
     p, a2 = c2_alloc.next(24)
@@ -539,7 +545,7 @@ for r in rows:
 p, a2 = c2_alloc.next(4)
 add('C2_SUB_FDR', 2, 'FADER_PAN', 'Sub Fader', 1, recv_sub, 'C2_SUB_EQ',
     spi_page=p, spi_addr=a2,
-    params='level_db=0.0;mute=0',
+    params='level_db=0.0;mute=0;host_cells=Dca,DcaOn',
     ramp_profile='GainFast')
 
 p, a2 = c2_alloc.next(24)
@@ -603,7 +609,7 @@ add('C2_MIX_MAIN_R', 2, 'MIX_BUS', 'Main Mix R', 1, main_r_sources, 'C2_MAIN_FDR
 p, a2 = c2_alloc.next(4)
 add('C2_MAIN_FDR', 2, 'FADER_PAN', 'Main Fader', 2, 'C2_MIX_MAIN_L;C2_MIX_MAIN_R', 'C2_MAIN_GEQ',
     spi_page=p, spi_addr=a2,
-    params='level_db=0.0;mute=0',
+    params='level_db=0.0;mute=0;host_cells=Dca,DcaOn',
     ramp_profile='GainFast')
 
 p, a2 = c2_alloc.next(28)
@@ -691,7 +697,7 @@ for f in range(1, NUM_FX + 1):
     p, a2 = c2_alloc.next(4)
     add(n_fdr, 2, 'FADER_PAN', f'FX {f} Return', 1, n_eng, 'C2_MIX_MAIN_L;C2_MIX_MAIN_R',
         spi_page=p, spi_addr=a2,
-        params='level_db=-6.0;mute=0',
+        params='level_db=-6.0;mute=0;host_cells=Dca,DcaOn',
         ramp_profile='GainFast')
 
 # --- MONITOR / PHONES (Chip 2) ---

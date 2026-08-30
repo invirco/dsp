@@ -37,6 +37,7 @@ REPO_ROOT  = os.path.join(SCRIPT_DIR, '..', '..', '..')
 sys.path.insert(0, os.path.join(REPO_ROOT, 'tools', 'dsp'))
 try:
     from dsp_codegen import BLOCK as DSP_BLOCK, FRAME_MS, ms_to_frames
+    import master_names
 except ImportError as exc:                       # no-fallback policy
     raise SystemExit(
         f'gen_dsp.py: cannot import the audio block size from '
@@ -46,6 +47,19 @@ except ImportError as exc:                       # no-fallback policy
 DSP_CSV    = os.path.join(SCRIPT_DIR, 'SHARC', 'dsp.csv')
 MATRIX_CSV = os.path.join(SCRIPT_DIR, '..', 'MX', '_matrix.csv')
 MCU_ONLY_PREFIXES_FILE = os.path.join(REPO_ROOT, 'mcu-only-prefixes.txt')
+DEFS_LOCK = os.path.join(REPO_ROOT, 'defs.lock')
+
+
+def _contract_pin():
+    """The contract version defs.lock pins, for the messages that depend on
+    it. The Rtg alias table below is a statement about this pin."""
+    for line in open(DEFS_LOCK, encoding='utf-8'):
+        if line.startswith('CONTRACT_VERSION='):
+            return line.split('=', 1)[1].strip()
+    raise SystemExit('gen_dsp.py: defs.lock carries no CONTRACT_VERSION')
+
+
+CONTRACT_PIN = _contract_pin()
 
 
 def load_mcu_only_prefixes():
@@ -84,6 +98,47 @@ RAMP_PROFILES = {
 def cn(cat, inst, suffix, fun):
     """Build _Cell name, e.g. Chan001EqFreq002."""
     return f'{cat}{inst:03d}{suffix}{fun:03d}'
+
+
+# ---------------------------------------------------------------------------
+# The Rtg retirement (mx26 ruling 2026-08-25), and the pin that lags it
+# ---------------------------------------------------------------------------
+# The masters retired the `Rtg` infix from the routing cell names and this
+# generator emits the CURRENT spelling. `MW/*/MX/_matrix.csv` does not: the
+# pin (see CONTRACT_PIN) predates the rename and cannot legitimately
+# advance here, so the backfill resolves each generated cell against the
+# matrix by its current name first and its legacy name second, and says how
+# many rows it reached each way. The table lives in tools/dsp/master_names
+# because the wire-contract join and the bench probes need the same one.
+
+_CELL_SPLIT = master_names.CELL_RE
+_NO_MATCH = _CELL_SPLIT.match('Zzz000Zzz000')   # never equals a real suffix
+MASTER_RENAME_2026_08_25 = master_names.MASTER_RENAME_2026_08_25
+
+legacy_hits = set()
+
+
+def _matrix_key(cell_name, matrix_names):
+    """The _Cell the pinned _matrix.csv carries for this generated cell.
+
+    Returns the current name when the matrix has it, the legacy name when
+    the matrix is still at a pin that predates the rename, and None when
+    the matrix has neither -- which the caller reports rather than skips.
+    """
+    if cell_name in matrix_names:
+        return cell_name
+    alt = master_names.legacy_name(cell_name)
+    if alt and alt in matrix_names:
+        legacy_hits.add(cell_name)
+        return alt
+    return None
+
+
+# Cell families the HOST owns outright: the DSP is given no address for
+# them and no line of the kernel reads them. Collected from the
+# `host_cells=` param on the nodes that used to carry them, so dsp.csv is
+# the single source and this file only reports what it found.
+host_managed = {}          # family suffix -> set of node ids that declared it
 
 
 def read_dsp_csv():
@@ -359,12 +414,14 @@ def expand_delay(node, cat, inst):
 # ── FADER_PAN ─────────────────────────────────────────────────────────────
 def expand_fader_pan(node, cat, inst):
     chip, pg, base, nid, ramp = _parse_node(node)
-    # 4 SPI words: level + pan + mute + dca_coeff
+    # 4 SPI words: level + pan + mute + reserved (see below)
 
-    # Level cell naming varies by context
-    level_suffix = 'RtgLevel'
-    pan_suffix = 'RtgPan' if cat == 'Chan' else 'Pan'
-    mute_suffix = 'RtgMute'
+    # Level/Pan/Mute carry no infix in the current masters (the Rtg
+    # retirement, 2026-08-25); the pinned _matrix.csv is reached through
+    # MASTER_RENAME_2026_08_25.
+    level_suffix = 'Level'
+    pan_suffix = 'Pan'
+    mute_suffix = 'Mute'
 
     add_cell(cn(cat, inst, level_suffix, 1), chip, pg, base,
              'dB:Off:-50@31:-30@63:-10@127:10', 'GainFast')
@@ -380,15 +437,22 @@ def expand_fader_pan(node, cat, inst):
     add_cell(cn(cat, inst, mute_suffix, 1), chip, pg, base + 2, '', 'InstantCtl')
     add_dispatch(chip, base + 2, f'_fdr_mute_{nid}', f'{nid} mute')
 
-    # RtgDca ASSIGNS, it does not scale (review finding D57). The masters
-    # document "DCA group assignment (1-8 or off)", MxDatS 9, no Table and
-    # no unit; this used to dispatch to _fdr_dca_gain_, which FADER_PAN
-    # multiplies into its coefficient, so writing the documented "off"
-    # value of 0 silenced the strip. The word now lands in a selector the
-    # sample path never reads.
-    add_cell(cn(cat, inst, 'RtgDca', 1), chip, pg, base + 3, '', 'InstantCtl',
-             notes='DCA assignment (0=off, 1-8=DCA master); selector, not a gain')
-    add_dispatch(chip, base + 3, f'_fdr_dca_sel_{nid}', f'{nid} DCA assignment')
+    # Dca and DcaOn are HOST-MANAGED (PW ruling 2026-08-30, Q2 closed).
+    # The CM4 control daemon owns the DCA fold -- effective fader = fader
+    # dB + DCA dB, mutes OR-ed -- and writes the RESULT through the fader
+    # level target this node already ramps. The DSP is therefore given no
+    # address for either cell and no line of the kernel reads them: D57's
+    # `_fdr_dca_sel_` store and the `_fdr_dca_gain_` multiply are both
+    # GONE rather than left dormant, which is what the ruling says.
+    #
+    # The word is RESERVED, not reclaimed. Compacting it would move every
+    # address after it in a 144-word channel block -- the whole map, the
+    # MCU's ghost table and every stored golden -- to save one word of a
+    # page that is nowhere near full.
+    for fam in parse_params(node.get('params', '')).get('host_cells', '').split(','):
+        if fam.strip():
+            host_managed.setdefault(fam.strip(), set()).add(nid)
+    add_dispatch(chip, base + 3, None, f'{nid} reserved (Dca host-managed)')
 
 
 # ── ROUTING (channel strip fan-out) ──────────────────────────────────────
@@ -397,49 +461,49 @@ def expand_routing(node, cat, inst):
     # 60 SPI words: main_on + sub_on + grp_on×4 + aux_on×12 + aux_send×12
     # + aux_pick×12 + fx_on×6 + fx_send×6 + fx_pick×6
     off = 0
-    add_cell(cn(cat, inst, 'RtgMainOn', 1), chip, pg, base + off, '', 'InstantCtl')
+    add_cell(cn(cat, inst, 'MainOn', 1), chip, pg, base + off, '', 'InstantCtl')
     add_dispatch(chip, base + off, f'_rtg_main_on_{nid}', f'{nid} MainOn')
     off += 1
 
-    add_cell(cn(cat, inst, 'RtgCtrOn', 1), chip, pg, base + off, '', 'InstantCtl')
+    add_cell(cn(cat, inst, 'CtrOn', 1), chip, pg, base + off, '', 'InstantCtl')
     add_dispatch(chip, base + off, f'_rtg_sub_on_{nid}', f'{nid} SubOn')
     off += 1
 
     for g in range(1, 5):
-        add_cell(cn(cat, inst, 'RtgGrpOn', g), chip, pg, base + off, '', 'InstantCtl')
+        add_cell(cn(cat, inst, 'GrpOn', g), chip, pg, base + off, '', 'InstantCtl')
         add_dispatch(chip, base + off, f'_rtg_grp_on_{nid} + {g-1}', f'{nid} GrpOn[{g}]')
         off += 1
 
     for a in range(1, 13):
-        add_cell(cn(cat, inst, 'RtgAuxOn', a), chip, pg, base + off, '', 'InstantCtl')
+        add_cell(cn(cat, inst, 'AuxOn', a), chip, pg, base + off, '', 'InstantCtl')
         add_dispatch(chip, base + off, f'_rtg_aux_on_{nid} + {a-1}', f'{nid} AuxOn[{a}]')
         off += 1
 
     for a in range(1, 13):
-        add_cell(cn(cat, inst, 'RtgAuxSend', a), chip, pg, base + off,
+        add_cell(cn(cat, inst, 'AuxSend', a), chip, pg, base + off,
                  'dB:Off:-50@31:-30@63:-10@127:0', 'GainFast')
         add_dispatch(chip, base + off, f'_rtg_aux_send_{nid} + {a-1}', f'{nid} AuxSend[{a}]')
         off += 1
 
     for a in range(1, 13):
-        add_cell(cn(cat, inst, 'RtgAuxPick', a), chip, pg, base + off,
+        add_cell(cn(cat, inst, 'AuxPick', a), chip, pg, base + off,
                  '', 'InstantCtl', notes='Pickoff: 0=PreEQ 1=PostEQ 2=PreFdr 3=PostFdr')
         add_dispatch(chip, base + off, f'_rtg_aux_pick_{nid} + {a-1}', f'{nid} AuxPick[{a}]')
         off += 1
 
     for x in range(1, 7):
-        add_cell(cn(cat, inst, 'RtgFx', x), chip, pg, base + off, '', 'InstantCtl')
+        add_cell(cn(cat, inst, 'FxOn', x), chip, pg, base + off, '', 'InstantCtl')
         add_dispatch(chip, base + off, f'_rtg_fx_on_{nid} + {x-1}', f'{nid} FxOn[{x}]')
         off += 1
 
     for x in range(1, 7):
-        add_cell(cn(cat, inst, 'RtgFxSend', x), chip, pg, base + off,
+        add_cell(cn(cat, inst, 'FxSend', x), chip, pg, base + off,
                  'dB:Off:-50@31:-30@63:-10@127:0', 'GainFast')
         add_dispatch(chip, base + off, f'_rtg_fx_send_{nid} + {x-1}', f'{nid} FxSend[{x}]')
         off += 1
 
     for x in range(1, 7):
-        add_cell(cn(cat, inst, 'RtgFxPick', x), chip, pg, base + off,
+        add_cell(cn(cat, inst, 'FxPick', x), chip, pg, base + off,
                  '', 'InstantCtl', notes='Pickoff: 0=PreEQ 1=PostEQ 2=PreFdr 3=PostFdr')
         add_dispatch(chip, base + off, f'_rtg_fx_pick_{nid} + {x-1}', f'{nid} FxPick[{x}]')
         off += 1
@@ -556,7 +620,7 @@ def expand_talkback(node, cat, inst):
 
     for r in range(1, 4):
         if off < 4:
-            add_cell(cn(cat, inst, 'Rtg', r), chip, pg, base + off, '', 'InstantCtl')
+            add_cell(cn(cat, inst, 'Dest', r), chip, pg, base + off, '', 'InstantCtl')
             add_dispatch(chip, base + off, f'_talk_route_{nid} + {r-1}', f'{nid} route[{r}]')
             off += 1
 
@@ -842,10 +906,42 @@ def backfill_matrix(header, rows, *, force=False):
         if col not in header:
             header.append(col)
 
+    matrix_names = {r.get('_Cell', '') for r in rows}
+    # matrix _Cell -> the name this generator emits for it, resolved
+    # current-spelling-first. A generated cell the matrix carries under
+    # NEITHER spelling is not an error by itself -- this tree has always
+    # generated some cells the masters do not have, and validate() lists
+    # them.
+    resolved = {}
+    for gen_name in cell_map:
+        key = _matrix_key(gen_name, matrix_names)
+        if key is not None:
+            resolved[key] = gen_name
+
+    # WHAT IS an error is a rename-table row that reaches nothing. Map
+    # `FxOn` to `Fx` instead of `RtgFx` and all 192 of those cells quietly
+    # stop matching -- and --force then CLEARS the DSP columns of 192 rows
+    # it merely failed to find, which is a wrecked contract file produced
+    # by a run that printed no warning. So every rename the generator
+    # actually uses has to reach the matrix at least once.
+    for cur, legacy in sorted(MASTER_RENAME_2026_08_25.items()):
+        emitted = [c for c in cell_map
+                   if (_CELL_SPLIT.match(c) or _NO_MATCH).group(3) == cur]
+        if not emitted:
+            continue
+        if not any(_matrix_key(c, matrix_names) for c in emitted):
+            raise SystemExit(
+                f'gen_dsp.py: the rename {legacy!r} -> {cur!r} reaches no row '
+                f'of _matrix.csv under either spelling ({len(emitted)} cells '
+                f'emitted, e.g. {sorted(emitted)[0]}). MASTER_RENAME_2026_08_25 '
+                f'is wrong or the defs pin moved; refusing to backfill, because '
+                f'--force would clear every one of those rows.')
+
     matched = 0
     cleared = 0
     for row in rows:
-        cell_name = row.get('_Cell', '')
+        row_name = row.get('_Cell', '')
+        cell_name = resolved.get(row_name, row_name)
         if cell_name not in cell_map:
             # On --force, clear stale DSP columns for rows no longer in cell_map
             if force and any(row.get(c) for c in ('DspSpi', 'DspPage', 'DspAdd', 'DspAddHex')):
@@ -1403,14 +1499,55 @@ def validate(matrix_rows):
     matrix_names = {r['_Cell'] for r in matrix_rows if r.get('_Cell')}
 
     mcu_only_prefixes = load_mcu_only_prefixes()
-    in_map_not_matrix = set(cell_map.keys()) - matrix_names
+    # Alias-aware both ways: while the defs pin lags the 2026-08-25 rename,
+    # a generated `Chan001Mute001` and the matrix's `Chan001RtgMute001` are
+    # the same cell, and neither list should name it as missing.
+    reached = {_matrix_key(c, matrix_names) for c in cell_map}
+    reached.discard(None)
+    in_map_not_matrix = {c for c in cell_map
+                         if _matrix_key(c, matrix_names) is None}
+    # The matrix rows the HOST owns: no DSP address by ruling, listed as
+    # that rather than swept into "no DSP mapping (MCU-only or unmapped)",
+    # which is where an unexplained gap belongs.
+    legacy_of_host = {MASTER_RENAME_2026_08_25.get(f, f) for f in host_managed}
+    host_rows = set()
     in_matrix_no_dsp = set()
     for name in matrix_names:
+        m = _CELL_SPLIT.match(name)
+        if m and (m.group(3) in host_managed or m.group(3) in legacy_of_host):
+            host_rows.add(name)
+            continue
         # Skip known MCU-only prefixes
         if any(name.startswith(p) for p in mcu_only_prefixes):
             continue
-        if name not in cell_map:
+        if name not in reached:
             in_matrix_no_dsp.add(name)
+
+    # The pinned matrix carries two cells under BOTH spellings. Not a
+    # rename artefact of this tree -- the rows are in the synced master --
+    # but it makes an address ambiguous between two rows, so the choice is
+    # stated rather than left to dict order: the CURRENT spelling wins and
+    # --force clears the legacy twin's DSP columns.
+    both = sorted(c for c in matrix_names
+                  if (master_names.legacy_name(c) or '') in matrix_names)
+    if both:
+        print(f'  INFO: {len(both)} cells are in _matrix.csv under BOTH '
+              f'spellings ({", ".join(both)}); the current-spelling row '
+              f'takes the address and the legacy twin is cleared')
+
+    if legacy_hits:
+        print(f'  INFO: {len(legacy_hits)} cells reached _matrix.csv through '
+              f'the LEGACY (pre-2026-08-25) spelling -- the defs pin '
+              f'({CONTRACT_PIN}) predates the Rtg retirement. This count '
+              f'goes to 0 when the pin advances.')
+    if host_managed:
+        for fam, nodes in sorted(host_managed.items()):
+            legacy = MASTER_RENAME_2026_08_25.get(fam, fam)
+            n = len([c for c in host_rows
+                     if (_CELL_SPLIT.match(c).group(3) in (fam, legacy))])
+            print(f'  INFO: cell family {fam!r} is HOST-MANAGED on '
+                  f'{len(nodes)} nodes -- no DSP address, no kernel read '
+                  f'(PW ruling 2026-08-30); {n} rows in _matrix.csv')
 
     if in_map_not_matrix:
         print(f'  INFO: {len(in_map_not_matrix)} DSP cells not in _matrix.csv '

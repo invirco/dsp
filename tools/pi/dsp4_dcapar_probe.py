@@ -5,10 +5,15 @@ Both were found on the part and both are fixed in the kernel; this is the
 instrument that says so, and it is deliberately runnable against EITHER
 image, because a fix with no before is an assertion.
 
-    D57  RtgDca is a DCA ASSIGNMENT, not a gain. Writing the masters'
+    D57  `RtgDca` is a DCA ASSIGNMENT, not a gain. Writing the masters'
          documented "no DCA assigned" value of 0 used to set the strip's
          fader coefficient to zero and silence the channel with
-         _fdr_level_ still reading 1.0.
+         _fdr_level_ still reading 1.0. SUPERSEDED 2026-08-30 by PW's Q2
+         ruling: `Dca` and `DcaOn` are HOST-MANAGED, the CM4 control
+         daemon folds DCA into the fader target it already sends, and
+         the address is RESERVED. What is measured now is that the cell
+         LEFT the writable surface -- which subsumes D57, because an
+         address the handler rejects cannot scale anything.
 
     D59  CompPar's default left the compressor FULLY DRY. The blend is
          out = dry + par*(wet - dry), so at par = 0 a compressor that is
@@ -38,12 +43,17 @@ Rows, in the order they run:
              reads unity whatever the threshold is.)
     PAR-A/B  the BUS at those same two thresholds.  PASS = they DIFFER.
              Pre-fix they are identical to the word while GR-A/B move.
-    DCA-0    RtgDca = 0, the documented "off".  PASS = the bus still
-             carries the injected step.  On a pre-fix image the strip is
-             SILENT here and the chain witness names _buf_C1_FDR_01.
-    DCA-1    RtgDca = 1.0, the value the old kernel needed to stay
-             audible.  Post-fix the two captures agree word for word:
-             the cell reaches no audio at all, which is the fix.
+    DCA-U    a write to 0x0053 against the part's own SPI_ERR_COUNT.
+             PASS = the counter MOVES: the address is unmapped, which is
+             what "left the DSP-writable surface" means on the part
+             rather than in a document. Its NEGATIVE CONTROL is the
+             mapped neighbour 0x0052 (FDR_MUTE) written the same way in
+             the same batch -- the counter must not move for that one,
+             or the probe is reading an error the link caused.
+    DCA-A    the bus either side of that rejected write. PASS = 0 of n
+             words differ: the cell reaches no audio at all. On a
+             pre-2026-08-30 image the same write LANDS, and before D57
+             it silenced the strip outright.
 
 Exit status is 0 whenever the measurement is VALID, whatever the verdict
 -- a before run is supposed to fail, and re-booting five times over an
@@ -62,8 +72,8 @@ sys.path.insert(0, '/home/app/dspboot')
 
 from dsp4_conform import (Part, drive_strip, bus_capture, bus_inject_addr,
                           chain_witness, f32,
-                          BUS_AMP, BUS_SRC, STRIDE,
-                          FDR_DCA, COMP_THR, COMP_PAR)
+                          BUS_AMP, BUS_SRC, STRIDE, SPI_ERR_COUNT,
+                          FDR_MUTE, FDR_RESERVED, COMP_THR, COMP_PAR)
 
 VERBOSE = True      # print what moves when a window will not settle
 SETTLE = 1.0        # after a fader-affecting write: the GainFast ramp is
@@ -135,12 +145,12 @@ def main():
 
     # ---- D59: CompPar's POWER-ON DEFAULT --------------------------------
     # CompPar is never written, which is the whole point, so drive_strip's
-    # own write of it is skipped. RtgDca is written 1.0 and skipped too:
-    # on a PRE-fix image that is what keeps the strip audible, and on a
-    # post-fix image it is an opaque selector nothing reads, so the same
-    # script measures the compressor on both.
-    part.write(b + FDR_DCA, f32(1.0), 0)
-    drive_strip(part, strip, skip=(COMP_PAR, FDR_DCA))
+    # own write of it is skipped. The DCA word is written 1.0 first and
+    # NOT skipped-because-it-matters: on a pre-2026-08-30 image that is
+    # what keeps the strip audible, and on this one the handler rejects
+    # the write, so the same script measures the compressor on both.
+    part.write(b + FDR_RESERVED, f32(1.0), 0)
+    drive_strip(part, strip, skip=(COMP_PAR,))
     time.sleep(SETTLE)
 
     null_b, took = stable_capture(part, inj, n)
@@ -188,32 +198,45 @@ def main():
         print('  the compressor reduces gain and the bus does not notice: '
               'at its default the blend is DRY (D59)')
 
-    # ---- D57: RtgDca ASSIGNS, it does not scale --------------------------
-    # drive_strip writes RtgDca = 0 (see its comment): the documented
-    # "off", and the value that used to kill the strip.
+    # ---- Q2: the DCA cell is HOST-MANAGED, and off the wire ------------
+    # Two questions, and the second is worthless without the first: is
+    # 0x0053 rejected by the SPI handler, and does the graph notice a
+    # write to it. The error counter answers the first; the bus answers
+    # the second; and the mapped neighbour written in the same batch is
+    # what separates "this address is unmapped" from "the link dropped a
+    # write", which look identical from one counter reading.
     drive_strip(part, strip)
     time.sleep(SETTLE)
-    dca0, _ = stable_capture(part, inj, n)
-    if carries(dca0):
-        row('DCA-0', 'PASS',
-            f'RtgDca=0: bus peak 0x{peak(dca0):08X} against an injected '
-            f'0x{BUS_AMP:08X} — the assignment does not scale')
-    else:
+    dca_before, _ = stable_capture(part, inj, n)
+
+    e0 = part.read(SPI_ERR_COUNT)
+    part.write(b + FDR_MUTE, 0, 0)                   # mapped: must NOT error
+    e1 = part.read(SPI_ERR_COUNT)
+    part.write(b + FDR_RESERVED, f32(1.0), 0)        # reserved: must error
+    e2 = part.read(SPI_ERR_COUNT)
+    ctl_quiet = (e1 == e0)
+    rejected = (e2 > e1)
+    row('DCA-U', 'PASS' if (rejected and ctl_quiet) else 'FAIL',
+        f'SPI_ERR_COUNT {e0} -> {e1} across the MAPPED 0x{b + FDR_MUTE:04X} '
+        f'-> {e2} across 0x{b + FDR_RESERVED:04X}: the reserved address '
+        f'{"IS" if rejected else "is NOT"} rejected'
+        + ('' if ctl_quiet else
+           ' — AND THE CONTROL FIRED TOO, so this counter is not measuring '
+           'the address'))
+    if not (rejected and ctl_quiet):
+        ok = False
+
+    time.sleep(SETTLE)
+    dca_after, _ = stable_capture(part, inj, n)
+    d = differ(dca_before, dca_after)
+    row('DCA-A', 'PASS' if (d == 0 and carries(dca_after)) else 'FAIL',
+        f'bus peak 0x{peak(dca_after):08X}, {d} of {n} words differ across '
+        f'the rejected write — the cell reaches no audio')
+    if d != 0 or not carries(dca_after):
         ok = False
         dead = chain_witness(part, inj, strip)
-        row('DCA-0', 'FAIL',
-            f'RtgDca=0: bus peak 0x{peak(dca0):08X} — SILENT'
-            + (f', the signal stops at {dead}' if dead else ''))
-
-    part.write(b + FDR_DCA, f32(1.0), 0)
-    time.sleep(SETTLE)
-    dca1, _ = stable_capture(part, inj, n)
-    d = differ(dca0, dca1)
-    row('DCA-1', 'PASS' if (d == 0 and carries(dca1)) else 'FAIL',
-        f'RtgDca=1.0: bus peak 0x{peak(dca1):08X}, {d} of {n} words differ '
-        f'from RtgDca=0 — the cell reaches no audio either way')
-    if d != 0 or not carries(dca1):
-        ok = False
+        if dead:
+            print(f'  the signal stops at {dead}')
 
     print(f'VERDICT: {"PASS" if ok else "FAIL"}')
     return 0

@@ -45,7 +45,13 @@ DLY_OFF   = 0x004E
 FDR_LEVEL = 0x0050
 FDR_PAN   = 0x0051
 FDR_MUTE  = 0x0052
-FDR_DCA   = 0x0053
+# 0x0053 was the DCA cell. PW's 2026-08-30 ruling makes `Dca` and
+# `DcaOn` HOST-MANAGED -- the CM4 control daemon folds DCA into the
+# fader target it already sends -- so the address is RESERVED and
+# unmapped: a write to it is an SPI error, not a no-op. Nothing here
+# writes it, and the constant is kept so the gap in the map is named
+# rather than looking like an oversight.
+FDR_RESERVED = 0x0053
 
 UNITY_BIQUAD = [1.0, 0.0, 0.0, 0.0, 0.0]      # RBJ b0,b1,b2,a1,a2
 AMP = 0x08000000                               # -6 dBFS in Q4.28
@@ -76,7 +82,6 @@ def configure(sc):
     for addr in (GATE_ON, COMP_ON, TUBE_ON, FDR_MUTE):
         sc.d.write(addr, 0)
     sc.d.write(DLY_OFF, 0)
-    wrv(sc, FDR_DCA, f32(1.0), ramp_id=1, settle=0.05)
     time.sleep(0.8)                            # let the coefficient fades finish
 
 

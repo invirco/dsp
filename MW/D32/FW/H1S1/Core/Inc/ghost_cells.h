@@ -27,8 +27,8 @@ typedef struct {
     uint8_t     ramp_scope;   /* 0=Scalar,1=CoeffSetAtomic */
 } CellDef;
 
-#define GHOST_CELLS_COUNT 5537
+#define GHOST_CELLS_COUNT 5481
 
-extern const CellDef ghost_cells[5537];
+extern const CellDef ghost_cells[5481];
 
 #endif /* GHOST_CELLS_H */

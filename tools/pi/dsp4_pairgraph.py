@@ -66,7 +66,8 @@ HPF_COEFF0, HPF_SWAP = 0x0004, 0x0009
 LPF_COEFF0, LPF_SWAP = 0x000A, 0x000F
 EQ_COEFF0, EQ_SWAP = 0x0010, 0x0024
 DLY_OFF = 0x004E
-FDR_LEVEL, FDR_PAN, FDR_MUTE, FDR_DCA = 0x0050, 0x0051, 0x0052, 0x0053
+FDR_LEVEL, FDR_PAN, FDR_MUTE = 0x0050, 0x0051, 0x0052
+FDR_RESERVED = 0x0053            # was Dca; host-managed since 2026-08-30
 
 AMP = 0x08000000                       # -6 dBFS in Q4.28, the injected step
 
@@ -145,16 +146,14 @@ def configure(sc, strip, loud):
                       (b + COMP_REL, f32(p['comp_rel']))):
         sc.d.write(addr, val)
         time.sleep(S.SETTLE)
-    # FDR_DCA is written for continuity with every golden taken before
-    # 2026-08-30, when the cell was a linear GAIN and 1.0 was the value
-    # that kept the strip audible. It is now a stored ASSIGNMENT that
-    # reaches no audio (review finding D57), so this write no longer does
-    # anything to the capture -- proven on the part the same day: RtgDca 0
-    # and RtgDca 1.0 give the same 32 bus words. Left in place because
-    # changing a bar's stimulus and its golden in one session leaves
-    # nothing to compare.
-    for addr, val in ((b + FDR_LEVEL, 1.0), (b + FDR_PAN, 0.5),
-                      (b + FDR_DCA, 1.0)):
+    # The DCA write is GONE. 0x0053 was the DCA cell -- a linear gain
+    # until D57 and a stored assignment after it -- and PW's 2026-08-30
+    # ruling makes `Dca` host-managed, so the address is now RESERVED and
+    # a write to it is an SPI error rather than a no-op. Dropping it
+    # cannot move the capture: the cell reached no audio either way, which
+    # was measured on the part the same day (0 of 32 bus words differ
+    # between DCA 0 and DCA 1.0).
+    for addr, val in ((b + FDR_LEVEL, 1.0), (b + FDR_PAN, 0.5)):
         wrv(sc, addr, f32(val), ramp_id=1, settle=0.05)
 
 
