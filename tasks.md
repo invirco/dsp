@@ -114,6 +114,189 @@ STILL OPEN — assignments remain stored-and-inert until PW rules it.
 
 ---
 
+### Outcome 2026-08-30 (session 8) — the golden map closed, and the four holes in the middle of the strip
+
+Commits `2fd0017`, `889a12d` and the documentation commit carrying this
+block.
+
+#### W0, stated before any of it was built
+
+**Nothing in this session changes a line that reaches an image.** Every
+change is an instrument: `fixed_ref.py`, `boundary_vectors.py`,
+`golden_harness.py`, two bench probes, one new bench tool, one new bar
+and the documents. No generator emits differently, no `.asm` changes, no
+value in `dsp_block.h` moves.
+
+| item | expected image delta | actual |
+|---|---|---|
+| the whole session | **NONE** | plain `./build.sh` reproduces **`chip1.ldr 3f0e479a`, `chip2.ldr ab43c75b`, 301,732 and 182,060 bytes** — session 7's baseline, and what the bench was already running |
+
+**Which builds carry the new self-tests: none, and that is the design.**
+Every other in-part instrument this tree has (`num_selftest.asm`,
+`bq_selftest.asm`, `dyn_selftest.asm`) is a debug-only build flag
+carrying a COPY of the arithmetic. `goldnode.sh` builds the SHIPPING
+configuration, drives the graph through the scope that is already in
+every image, and keeps its negative controls in the MODEL. So the bar
+that proves four strip nodes bit-exact runs against the bytes the
+product ships, and the md5 it prints is the W0 check.
+
+#### 1. What the map looked like, and what it looks like now
+
+The 2026-08-28 review's Axis 4 map had eight rows reading **no / no /
+none at all**. All eight are closed:
+
+| finding | was | now |
+|---|---|---|
+| D26 meter | model existed, harness never called it | `t_meter`: float64 comparison, decay τ, the Q8.24 clamp, **and a cross-check of `DSP4_MTR_ALPHA_Q`/`DSP4_MTR_BETA_Q` in the generated `dsp_block.h`** |
+| D27 `_bq_fx_convert_N` | no regression anywhere | two models (float64 normative, float32 as the part computes it), 14 vectors, **and an on-part regression through the strip's own coefficient cells** |
+| D28 COMP wet path | unmodelled | `comp_wet` + `comp_blend`, 23 vectors, on-part bit-exact |
+| D29 TUBE | zero coverage of any kind | `tube`, 23 vectors, on-part bit-exact — PLUGIN-CLASS |
+| D30 GATE ladder | unmodelled | `gate_step`, 9 scenarios, on-part bit-exact |
+| D31 FDR pan law | unmodelled | `fdr_coeffs` + `fdr_apply`, 20 vectors, on-part bit-exact |
+| D32 probe `rns()` | two hand copies | both import the model |
+| D34 TDM boundary | no test surface at all | `tdm_in`/`tdm_out`, 20 vectors |
+
+`golden_harness.py` goes **16/16 → 59/59**. D33's crossover twin was
+checked and needs nothing: `gen_crossover_fixed` calls the same
+`_xfade_blend_core()` as every EQ and FILT node, so the twin is covered
+by construction; the graph's one instance (`C2_MAIN_XOVER`) is on chip 2,
+where no vector bar runs, and that is a coverage statement rather than a
+gap in the arithmetic.
+
+#### 2. The on-part bar, and why it is not another self-test
+
+`goldnode.sh` + `tools/pi/dsp4_node_verify.py` drive the real graph,
+capture a node's INPUT and its OUTPUT over the same stimulus from the
+same rested state, read the node's own converted parameters out of DM,
+and require `fixed_ref` to reproduce the captured output **word for
+word**. The thing under test is the emitted node body. That is the
+honest half of review finding D35 — every other in-part instrument this
+strip has compares assembly against assembly, which proves two paths
+agree, not that either is the ruled arithmetic.
+
+Measured on the part, chip 1 strip 1, one boot per node:
+
+| node | sample path | negative control |
+|---|---|---|
+| GATE | **32 of 32 bit-exact** (the `_gate_gain_` trajectory) | no-hold ladder differs in **29 of 32**, predicted 29 |
+| COMP | **32 of 32 bit-exact** | single-rounding wet path differs in **9 of 32**, predicted 9 |
+| TUBE | **32 of 32 bit-exact**, both stimuli | two-rounding form differs in **32 of 32** and **1 of 32**, predicted 32 and 1 |
+| FDR | **32 of 32 bit-exact**, both stimuli | round-vs-truncate differs in **32 of 32** and **1 of 32** |
+| BQCVT | **12 of 14 coefficient sets bit-exact** | the b1-destroying form fires on every set with a non-zero b1 and **PASSES every set without one** |
+
+The BQCVT run's fourth group of four read back unreadable and is
+reported as SKIPPED, not as a pass — it holds the `b1 = -2*b0` set and
+the Q = 0.10 / +15 dB / 20 Hz n1 corner, so those two are covered by the
+harness and not yet by the part.
+
+**The converted parameters are checked separately from the sample path,
+and that split is the point** — it is where D39's dB range and D40's
+percent blend went wrong. All of these match the model exactly on the
+part: the gate's range floor (`2684355` for 40 dB), its threshold
+(`-222930816`) and attack alpha (`107374184`); the compressor's makeup
+(`367756576`), parallel blend (`2147483647`), threshold (`-167198112`)
+and slope (`1610612736`); the fader's level coefficient (`99321120`) and
+both pan legs (`183341408` / `85094040`). A conversion mismatch stops
+the sample-path measurement rather than letting it run on the wrong
+coefficients.
+
+#### 3. Four ways this produced a confident wrong answer first
+
+Each is recorded in the code, because each one is a trap the next
+instrument will fall into.
+
+1. **The peeked words were read UNSIGNED.** Both dB thresholds came back
+   as ~4.07e9. The modelled gate never opened and the modelled
+   compressor never left unity gain — and at unity gain the makeup's
+   second rounding is arithmetically invisible. Both nodes duly reported
+   "the negative control cannot separate" on every stimulus, while the
+   fault was in the reader.
+2. **A zero peek is indistinguishable from a dropped answer.** Two of
+   the fader's three coefficients read 0 while the third was exactly
+   right; three coefficients computed from the same two floats in the
+   same six instructions cannot be two-thirds wrong. The fix is the
+   corroborated `vpeek` `numverify` already carries, with `_scope_len`
+   as the sentinel.
+3. **A gate's output is x · gain, so silence hides the whole ladder.**
+   The scope can inject an impulse or a step and nothing else, so no
+   stimulus reaches the close arm through the product. The bar captures
+   `_gate_gain_` instead and models the trajectory — a stronger reading
+   of D30 than the product would have been. The same lesson landed in
+   the vector set, whose scenario gaps had to stop being digital silence
+   before `gate_step_nohold` could fail a single one of them.
+4. **Five hand-picked amplitudes are not a search.** `choose_amps`
+   derives the separating stimulus from the model before the part is
+   driven, which also makes "no amplitude separates" a statement about
+   the arithmetic rather than about the tester's luck.
+
+And two the vectors themselves taught:
+
+* **The tube's middle rounding is invisible on every tidy setting.** A
+  400k-point search over (x, sat) put the disagreement at 1–2 LSB and
+  only where neither operand is tidy; six of those hits carry the
+  negative control. A vector set built from round numbers could not have
+  fired it.
+* **Every FDR level in the first set was a power of two**, so `x · gq`
+  had no low bits and round-to-nearest and truncation gave the identical
+  word on all sixteen vectors. `numeric-spec.md` rules round-then-
+  saturate on every 32-bit store, and the set could not test it.
+
+#### 4. Measured, not assumed: the bypassed gate
+
+Three boots in a row, a capture of `_buf_C1_GATE_01` with `GateOn = 0`
+came back at peak 0 while a chain witness minutes earlier read
+`0x07FFFF07` at that address — which looks exactly like a cell-semantics
+defect of the D57 class. **It is not one.** Driving the strip and
+writing `GateOn` 1 → 0 → 1 while capturing both `_buf_C1_EQ_01` and
+`_buf_C1_GATE_01` gives **221910965 → 221910965 with the gate off — the
+input passed through BIT-IDENTICALLY — and 221910965 → 221910944 with it
+on**, which is the settled gain. The bypassed gate carries the signal
+exactly as its emitted `.gate_bypass` arm says. The zero captures were
+the recorded link intermittent (review finding D60), and the COMP setup
+now holds the gate TRANSPARENT by its own controls (threshold at the
+documented minimum, range 0 dB so its floor is unity) rather than
+bypassing it — which exercises the gate instead of skipping it, and does
+not pretend a defect exists where the measurement says there is none.
+
+#### 5. Two findings the models made legible
+
+**D64 — the `fix` at the parameter boundary is unguarded, and `fix` on
+this part neither saturates nor wraps.** At exactly 2^31 it returns
+`0xFFFFFFFF`, measured twice independently (the 100 % parallel blend,
+2026-08-23; the crossfade alpha at 1.0, 2026-08-29), which is why both
+of those carry an explicit repair. One measured point is not a model of
+the overflow, so `fixed_ref.fix32` REFUSES out-of-domain input rather
+than inventing it — which makes the in-range domain a REQUIREMENT ON THE
+KERNEL. `ChanCompPar` (D40) and `ChanGateRng` (D39) clamp; **`ChanLevel`
+and `ChanPan` do not**, so a fader level of exactly 8.0 — a value the
+cell holds and the wire can carry — lands on the undefined point and
+produces an arbitrary coefficient rather than a clip. The harness
+asserts the refusal; the kernel-side clamp is NOT taken here, because
+where to clamp is the same question D4 has been holding open.
+
+**D65 — `ChanTubeSat` and `ChanCompMake` are the D39/D40 defect again,
+and the wire contract cannot say so.** The masters' scale laws are
+`0=0/127=100/[Lin]` and `0=0/127=20/[Lin]`; the kernel reads the first as
+a linear 0..1 multiplier and the second as a linear gain, each scaled
+straight by 2^28 with no clamp and no divide. At the documented maximum
+both leave the `fix` domain outright (100·2^28 and 20·2^28 are 2^34.6 and
+2^32.3), so a host writing what the master documents gets D64's
+undefined conversion rather than a clip. `docs/contract/d32-wire-table.csv`
+records the unit for both as **UNDECLARED**, so there is no documented
+conversion to implement: **this is a hub question, not a spoke fix.**
+
+A generated version of that claim was written and then WITHDRAWN. Adding
+a rule to `wire_contract.py` — "the master's maximum exceeds Q4.28's
+ceiling of 8.0" — fires on **49 families**, including `ChanCompThr`
+(a dB threshold converted by a dB constant, never scaled into Q4.28) and
+`ChanGateFilterHpf` (a frequency the host turns into coefficients). The
+generator cannot infer the kernel's scale factor, and a proposals file
+that flags 49 families on a crude size test is worse than one that flags
+none. The finding is stated where it can be supported: against the two
+cells whose emitted lines were read.
+
+---
+
 ### Outcome 2026-08-30 (session 7) — the Rtg retirement, and DCA leaving the DSP
 
 Commits `<C1>`, `<C2>` and the documentation commit carrying this block.
