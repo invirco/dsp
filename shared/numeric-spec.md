@@ -1,7 +1,7 @@
 # DSP4 numeric specification (decision D5)
 
 Status: draft-normative, 2026-07-31; core families VALIDATED by
-tools/dsp/golden_harness.py — **58/58 as of 2026-08-30**, when the NODE
+tools/dsp/golden_harness.py — **59/59 as of 2026-08-30**, when the NODE
 families were added (COMP's wet path, the GATE ladder, FADER_PAN, TUBE,
 the TDM boundaries, `_bq_fx_convert_N` and the meter: review findings
 D26-D34). It was 16/16 on 2026-08-29, when the wide-accumulator and

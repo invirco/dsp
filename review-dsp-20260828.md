@@ -31,7 +31,14 @@ SESSION 7 (2026-08-30) propagated the masters' `Rtg` retirement through
 the generator, the contract artefacts and every bench probe, took
 `Dca`/`DcaOn` off the DSP entirely under PW's Q2 ruling — which
 SUPERSEDES D57 and returns D38 to 896 — and opened D61, D62 and D63 on
-what it found in the contract plumbing while it was in there.
+what it found in the contract plumbing while it was in there. FIX
+SESSION 8 (2026-08-30) closed the AXIS 4 coverage map: D26, D27, D28,
+D29, D30, D31, D32 and D34 all got reference models, vector families
+with their own negative controls, and — for the four strip nodes and
+the coefficient conversion — an on-part bar that drives the SHIPPING
+GRAPH rather than a probe copy, which is the honest half of D35 as
+well. `golden_harness.py` goes **16/16 → 59/59**. It opened D64 and
+D65 on the parameter boundary the new models made legible.
 
 | # | sev | one line | effort | status (2026-08-29) |
 |---|---|---|---|---|
