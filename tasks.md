@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-08-30 10:23Z — session 8: golden-coverage batch D26-D34 (TUBE plugin-class)   [status: 🟡 dispatched]   [model: opus]
+## HUB DISPATCH 2026-08-30 10:23Z — session 8: golden-coverage batch D26-D34 (TUBE plugin-class)   [status: 🟢 done — **THE GOLDEN MAP IS CLOSED AND THE FOUR HOLES IN THE MIDDLE OF THE STRIP ARE BIT-EXACT ON THE PART.** D26, D27, D28, D29, D30, D31, D32 and D34 all got models, vector families with their own negative controls, and — for the four strip nodes plus the coefficient conversion — an on-part bar that drives the SHIPPING GRAPH rather than a probe copy, which closes the honest half of D35 too. `golden_harness.py` goes **16/16 → 59/59**. **On the part, one boot per node: GATE 32 of 32 bit-exact with the no-hold control differing in 29 of 32 (predicted 29); COMP 32 of 32 with the single-rounding control at 9 of 32 (predicted 9); TUBE 32 of 32 on both stimuli, ENGAGED, plugin-class per the ruling; FDR 32 of 32 on both stimuli; BQCVT 10 of the 14 coefficient sets exact with the b1-destroying control firing on every set with a non-zero b1 and PASSING every set without one.** Every converted parameter matches its model exactly too — the gate's dB range floor (D39), the compressor's percent blend (D40), its threshold and slope, the fader's level coefficient and both pan legs — and a conversion mismatch STOPS the sample-path measurement rather than letting it run on the wrong coefficients. **W0: nothing here reaches an image.** Plain `./build.sh` reproduces `3f0e479a` / `ab43c75b`, 301,732 and 182,060 bytes, and the new bar carries NO self-test into the image at all — it builds the shipping configuration, drives the scope that is already in every image, and keeps its negative controls in the MODEL. **Four ways this produced a confident wrong answer first, all recorded in the code**: the peeked words were read UNSIGNED, so both dB thresholds came back as ~4.07e9 and the modelled gate never opened while the modelled compressor never left unity gain — where the makeup's second rounding is invisible; a zero peek is indistinguishable from a dropped answer, and two of the fader's three coefficients read 0 while the third was exactly right; **a gate's output is x·gain, so no stimulus the scope can inject reaches the close arm through the product** — the bar captures `_gate_gain_` and models the trajectory instead, which is a stronger reading of D30; and five hand-picked amplitudes are not a search, so `choose_amps` now derives the separating stimulus from the model before the part is driven. The vectors taught two more: **the tube's middle rounding is invisible on every tidy setting** (a 400k-point search put it at 1–2 LSB and only where neither operand is tidy) and **every FDR level in the first set was a power of two**, so the store's rounding could not be tested at all. **MEASURED AND NOT ASSUMED: a bypassed gate passes its input through BIT-IDENTICALLY** (221910965 → 221910965 with `GateOn` 0, → 221910944 with it on) — the zero captures that looked like a cell-semantics defect were the recorded link intermittent (D60), and the tool says so rather than implying a defect that is not there. **TWO FINDINGS OPENED. D64: the `fix` at the parameter boundary is unguarded, and `fix` here neither saturates nor two's-complement wraps** — at 2^31 the part returns `0xFFFFFFFF`, measured twice independently, so `fixed_ref.fix32` REFUSES out-of-domain input rather than inventing the rest of the overflow; `ChanCompPar` (D40) and `ChanGateRng` (D39) clamp, `ChanLevel` and `ChanPan` do not, so a fader level of exactly 8.0 produces an arbitrary coefficient rather than a clip. **D65: `ChanTubeSat` and `ChanCompMake` are D39/D40 again** — the masters document 0..100 and 0..20, the kernel reads both as linear and scales by 2^28 with no clamp, so at the documented maximum both leave the `fix` domain outright — and the wire contract records their unit as UNDECLARED, which makes it a hub question rather than a spoke fix. A GENERATED version of that claim was written and WITHDRAWN: the rule fires on 49 families including a dB threshold and a filter frequency, because the generator cannot infer the kernel's scale factor. **ALL STANDING BARS PASS**: conform `VERDICT: PASS` (6,032/388/117/56/159, wrong-unit control 4 of 4), busgold 0 of 256 `GRAPH BIT-EXACT`, bqst 0 of 16 on all three arms with its control at 15 of 16, dynst 0 of 32 on all three arms, numverify 57 of 57 with `NEGCTL PASSED` 31 of 31, dcapar `VERDICT: PASS`, mtrverify `METER_BIT_EXACT` with both controls rejected, goldnode `NODE VERIFY BIT-EXACT`, harness 59/59. `numverify` needed two boot retries and `mtrverify` one, all on the standing chip-ID/link intermittent and all passing on a later cycle of the same image with no numeric disagreement anywhere. Bench restored and verified: md5s unchanged, both chips at `BOOT_STAGE 7` / 6015 frames per second / `DMA0_STAT 0x00006200` / `SPORT0_ERR_A 0`, GPIOs released, `matrix-app` active, all three MCUs verified after the restart, CPLD never touched. **TUBE's ACTIVE COST IS THE ONE THING STILL OWED** — the bypass arm is a one-load-one-store copy consistent with the ~0 already measured, and the engaged body counts to ~52 cycles/sample from the emitted stream, but that is arithmetic on the instruction stream and not a bench reading: `sigprofile.sh` has to write `TubeOn` before it profiles, or limits 6 and 7 measure a bypassed node. It stays in NEEDS MEASUREMENT.]   [model: opus]
 
 model: opus
 
@@ -116,8 +116,9 @@ STILL OPEN — assignments remain stored-and-inert until PW rules it.
 
 ### Outcome 2026-08-30 (session 8) — the golden map closed, and the four holes in the middle of the strip
 
-Commits `2fd0017`, `889a12d` and the documentation commit carrying this
-block.
+Commits `2fd0017` (models, vectors, harness), `889a12d` (the on-part
+bar and its results), `fad4dd2`/`e44a8db`/`05f44a7`/`8bc6d21` (the
+documents and the probe staging note) and the commit carrying this block.
 
 #### W0, stated before any of it was built
 
@@ -297,6 +298,49 @@ generator cannot infer the kernel's scale factor, and a proposals file
 that flags 49 families on a crude size test is worse than one that flags
 none. The finding is stated where it can be supported: against the two
 cells whose emitted lines were read.
+
+
+#### 6. Every standing bar, re-run
+
+| bar | verdict |
+|---|---|
+| contract conformance (`NEGCTL=1 ./conform.sh`) | **`VERDICT: PASS`** — 6,032 ECHO / 388 UNMAPPED / 117 CLEARED / 56 HOST_MANAGED / 159 SKIPPED_METER, exactly session 7's classes, with the wrong-unit negative control failing 4 of 4 as required |
+| bus golden | **0 of 256 words differ**, `GRAPH BIT-EXACT` |
+| biquad vs model (`bqst.sh`) | **0 of 16 on all three arms** (ref vs blk, ref vs MODEL, blk vs MODEL), negative control 15 of 16 |
+| dynamics (`dynst.sh`) | **0 of 32 on all three arms** (COMP, GATE, BQ4) |
+| numerics (`numverify.sh`) | **57 of 57 bit-exact**; `NEGCTL PASSED`, 31 of 31 boundary vectors detected |
+| cell semantics (`dcapar.sh`) | **`VERDICT: PASS`** — `SPI_ERR_COUNT` 1 → 1 across the mapped 0x0052 and 1 → 2 across the reserved 0x0053, 0 of 32 bus words moved across the rejected write, and the compressor's threshold moving the bus with `CompPar` untouched |
+| meter (`mtrverify.sh`) | **`METER_BIT_EXACT`** — ms64 and both pk64 words exact, both negative controls (BLOCK-32 coefficients, narrow rounded-store form) correctly rejected |
+| **golden nodes (`goldnode.sh`)** | **`NODE VERIFY BIT-EXACT`** on GATE, COMP, TUBE, FDR and BQCVT, each on its own boot — the table in §2 |
+| **model vs float64 (`golden_harness.py`)** | **59/59** |
+
+`numverify` needed boot retries on both arms ("link never usable", twice
+on the positive and once on the negative) and `mtrverify` one ("link
+answers as CHIP 0"). That is the standing chip-ID/link intermittent
+session 7 recorded, and it is recorded again rather than smoothed over:
+**every one of them passed on a later cycle of the same image, with no
+numeric disagreement anywhere.**
+
+`check-contract-drift.sh` fails against `~/mx26`'s working tree with
+`ERROR: Hash mismatch for D24_DEF_SHA256`, which is D62's operational
+trap and not this session's drift — run against a worktree pinned at
+`defs-v2026.08.20` it reports **"Contract validation and regeneration
+completed"** and leaves the tree clean. No contract or generated file is
+touched by any commit in this session.
+
+#### 7. Bench hand-back
+
+Shipping firmware restored and verified on the part: `chip1.ldr
+3f0e479aee61219e18108ce27384295d`, `chip2.ldr
+ab43c75b56706341ba85268c217ce1dc` — the same md5s the session started
+from, because nothing here changes an image. Both chips witnessed at
+**`BOOT_STAGE 7`, `FRAME_COUNT` 6015/s, `DMA0_STAT 0x00006200`,
+`SPORT0_ERR_A 0x00000000`** — chip 2 on one read and chip 1 on the next,
+because the diag link would only answer one of them at a time, which is
+the same intermittent again and not a difference between the parts. All
+eleven GPIOs released to `a0`, `matrix-app` **active**, and H1S1, H1S3
+and H1S4 all `MCU boot verified` at 14:11:46, after the restart. The
+CPLD was never touched.
 
 ---
 
