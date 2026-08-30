@@ -43,6 +43,16 @@ negative control; the absence of output is not a result.
 | cell semantics | `./dcapar.sh` | `VERDICT: PASS` — RtgDca=0 leaves the bus carrying and reads word-for-word identical to RtgDca=1.0, and the compressor's threshold moves the bus **with CompPar untouched at its default**. Two defaults that were both wrong on 2026-08-30 (D57, D59) and that nothing else in this table would notice going wrong again: every other bar writes the cells it depends on. |
 | meter | `./mtrverify.sh` | ms64 and both pk64 words exact, **and both negative controls fire** — the BLOCK-32 coefficients and the retired narrow (rounded-store) meter form. The wide-word control moves the gain off unity on purpose: at unity the two forms carry the same value and the primary comparison cannot separate them. |
 
+**Read a bar's SILENCE as a bar failure, not as a result.** On
+2026-08-30 two of these were found to have been failing on their own
+instruments rather than on the kernel: `bqst.sh` reported "this is NOT
+diag firmware" against a part that answered the paced reader perfectly,
+and `numverify.sh` reported an arithmetic mismatch on ten words that a
+dead link had settled on zero (review finding D60). Both are fixed. When
+a bar fails, the first question is whether the instrument could have
+succeeded — build the previous HEAD in a worktree and see whether it
+fails the same way, which is what settled that one in ten minutes.
+
 **The conformance run is the only bar that measures the kernel against
 the MASTERS rather than against itself**, so a session that skips it can
 still pass every other bar with a cell wired to the wrong variable. It

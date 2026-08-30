@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-08-30 02:57Z — session 6: D57 DCA semantics, CompPar dry default, captable cache   [status: 🟡 dispatched]   [model: opus]
+## HUB DISPATCH 2026-08-30 02:57Z — session 6: D57 DCA semantics, CompPar dry default, captable cache   [status: 🟢 done — **BOTH CELL-SEMANTICS DEFECTS ARE FIXED AND PROVEN ON THE PART WITH THE SAME INSTRUMENT ON BOTH SIDES OF THE CHANGE. D57: `RtgDca` now ASSIGNS — before, writing the masters' documented "off" value of 0 gave a SILENT bus (peak `0x0000000F`) with the chain witness naming `_buf_C1_FDR_01 = 0` while `_buf_C1_DLY_01` carried `0x02BCFACA`; after, RtgDca=0 gives bus peak `0x015E7DD7` and reads WORD FOR WORD identical to RtgDca=1.0, 0 of 32 differing** — the cell reaches no audio at all, which is the fix, and `conform.sh` now drives its strip with RtgDca=0 so it has a standing witness. The 56 addresses join the D38 inert list (896 → 952) and the harness confirmed `Chan001RtgDca001` INERT on the part. **D59: `CompPar`'s default was 0 and left the compressor FULLY DRY — before, the bus read `0x03FFFF74` at BOTH a −20 dB and a −55 dB threshold, 0 of 32 words differing, while `_comp_gain_` captured on the driven graph moved `0x0579F843` → `0x00444578`; after, the same two thresholds give `0x015E7DD7` and `0x0011114D`, 32 of 32 differing.** The masters rule the UNIT and document NO DEFAULT (`MxDat` is empty on the row), so 100 % is the dispatch's reading and that gap is filed as a PW question along with D57's two. **W0: the image changes and D59 changes the audio BY DESIGN — new baseline chip1.ldr `033d2921`, chip2.ldr `f8883d4c`** from `e9ac266e`/`73b4f168`, and the pre-fix tree was rebuilt in a worktree to reproduce the bench's running baseline exactly before anything was measured. **The bus golden was re-taken IN THIS SESSION** (234 of 256 words differ, then **0 of 256** against the re-take on a second independently built image), which is the rule D58 left. `captable.sh`'s scratch tree is now keyed by a digest of block size + `dsp.csv` + the codegen + every file of `src/`, so a stale reproduction is impossible rather than unlikely; the spot row was rebuilt from `src32-b4da7d1cfa5fa868` — which contains `bq_pairs.asm`, `_fdr_dca_sel_` and `_comp_parallel_ = 100.0` — and measured **654,819 cycles/pass against session 5's 657,082**, 0.34 % apart, so **32 channels at BLOCK 32 / 983.04 MHz is still ON THE LINE** (99.92 % of budget one run, 100.26 % the other) and no improvement is claimed. **ALL BARS PASS: conform `VERDICT: PASS`** (6,088 ECHO / 388 UNMAPPED / 117 CLEARED / 159 skipped, identical to sessions 4 and 5, both negative controls firing), inert phase PASS on its own boot with both positive controls at 32 of 32, busgold 0 of 256, bqst 0 of 16 on all three arms, dynst 0 of 32 on all three, numverify 57/57 with NEGCTL PASSED, mtrverify `METER_BIT_EXACT`, dcapar `VERDICT: PASS`. **TWO OF THOSE BARS HAD TO BE REPAIRED FIRST AND NEITHER FAILURE WAS THIS SESSION'S CODE**: `bqst.sh` had been reading the part through `dsp4_diag` and reported `MAGIC 0x00000000` five boots running — proven pre-existing by reproducing it from a worktree at the previous HEAD — and `numverify.sh` scored a dead link as an arithmetic failure, because **a ZERO votes as cleanly as a value**. Both now read through the paced instrument and corroborate a zero before believing it. Bench restored to the new baseline and verified on the part: both chips `BOOT_STAGE 7`, 6000 and 5999 frames/s, `DMA0_STAT 0x00006200`, `SPORT0_ERR_A 0`, `SPI_ERR_COUNT 0`, GPIOs released, `matrix-app active` with all three MCUs verified on the FIRST restart; CPLD never touched.]   [model: opus]
 
 model: opus
 
@@ -33,6 +33,271 @@ amendment (PW ruling), D38 wiring prioritization — all queued for PW.
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
 no AI attribution in commits or any work product.
+
+---
+
+### Outcome 2026-08-30 (session 6) — D57, D59, and a cache that could not go stale
+
+Commits `dfce458`, `9624d0d` and the documentation commit carrying this
+block.
+
+#### W0, stated before any of it was built
+
+| item | expected image delta | actual |
+|---|---|---|
+| D57 (`RtgDca` → `_fdr_dca_sel_`) | changes the shipping image: the dispatch table moves and every FADER_PAN grows a word. **Audio-neutral** — nothing reads the new word and `_fdr_dca_gain_` stays 1.0 | proven audio-neutral on the part (DCA-0 and DCA-1 captures agree word for word) |
+| D59 (`CompPar` default 0 → 100 %) | changes the shipping image AND THE AUDIO BY DESIGN: a default strip's compressor goes from fully dry to fully wet | **new baseline chip1.ldr `033d2921`, chip2.ldr `f8883d4c`** from `e9ac266e`/`73b4f168` |
+| `captable.sh` cache key | no image, no source change at all — a harness-side directory name | shipping build byte-identical either side |
+
+The pre-fix tree was built in a clean worktree at `83a95ee` and reproduced
+the bench's running baseline exactly — `e9ac266e` / `73b4f168` — so the
+"before" column below is the image the product was running, not an
+approximation of it. `conform.sh` then rebuilt the fixed configuration
+independently and got `033d2921` / `f8883d4c` again.
+
+#### 1. D57 — the DCA assignment that silenced the channel
+
+`<Cat>[n]RtgDca[1-1]` is documented as **"DCA group assignment (1-8 or
+off)"**, MxDatS 9, no Table, no unit, the `InstantCtl` profile of a
+selector — and the dispatch landed the written word in
+`_fdr_dca_gain_*`, which `FADER_PAN` multiplies into its Q4.28
+coefficient. Writing the documented "off" value of 0 set the strip's
+fader gain to zero.
+
+**The masters win: the cell selects, it does not scale.** It now
+dispatches to `_fdr_dca_sel_*`, a stored assignment no line of the sample
+path reads. `_fdr_dca_gain_*` remains as the RESOLVED master gain, at
+unity, and nothing but a ruling writes it.
+
+**Measured on the part, same instrument both sides** (`dcapar.sh`, new
+this session and written to run against either image — a fix with no
+before is an assertion):
+
+| row | BEFORE — `e9ac266e` | AFTER — `033d2921` |
+|---|---|---|
+| NULL | the driven bus repeats word for word after 3 captures | the same |
+| DCA-0 (`RtgDca = 0`) | **bus peak `0x0000000F` — SILENT**, chain witness: signal reaches `_buf_C1_DLY_01` at `0x02BCFACA` and stops at `_buf_C1_FDR_01 = 0` | **bus peak `0x015E7DD7`** against an injected `0x08000000` |
+| DCA-1 (`RtgDca = 1.0`) | bus peak `0x015E7DD7`, **32 of 32 words differ** from DCA-0 | bus peak `0x015E7DD7`, **0 of 32 words differ** from DCA-0 |
+
+The last row is the fix stated as a measurement: after it, the two values
+a host might write for "no DCA" produce the same 32 bus words, because
+the cell reaches no audio at all.
+
+**`conform.sh` now drives its strip with `RtgDca = 0`** — the value that
+used to kill it — so the fix has a standing witness in a bar that runs
+every session, rather than a note in a document.
+
+#### 2. D59 — the compressor that was on, working, and inaudible
+
+The blend is `out = dry + par*(wet − dry)` and the kernel's power-on
+`_comp_parallel_` was **0**, so a compressor that is ON, above threshold
+and visibly reducing gain passed the input through UNCHANGED. Session 5
+found it while driving a strip; this session measured it as a default and
+fixed it.
+
+**What the masters do and do not say, cited.** `Chan[1-32]CompPar[1-1]`
+carries Notes "Parallel compression blend (dry/wet)", MxDatS 33 and Table
+`0=0/127=100/[Lin]`. The unit is therefore ruled and is percent (that was
+D40). The DEFAULT is not: the `MxDat` column — the one that carries a
+documented default where the masters have one, `EqGain` 60 of 121,
+`EqFreq` 127 of 255 — **is empty on this row and on `Main[1-4]CompPar`**.
+So 100 % is the hub dispatch's reading rather than a citation, it is the
+only value at which a default-configured compressor behaves like a
+compressor, and **that the masters document no default at all is filed as
+a PW question** rather than buried in the kernel.
+
+The value comes from the node's own `parallel=` param
+(`gen_dsp_csv.py` → `dsp.csv` → `comp_par_default()`), not from a
+constant in a generator, so a ruled default lands by changing the graph
+source. 100 % scales to exactly 2^31, which int32 cannot hold, so the
+power-on `_comp_parq_` is `0x7FFFFFFF` — the same clamp the block-rate
+conversion applies, stated at the declaration so the first converted word
+and the power-on word are the same number.
+
+| row | BEFORE — `e9ac266e` | AFTER — `033d2921` |
+|---|---|---|
+| GR (the positive control): `_comp_gain_C1_COMP_01` captured on the DRIVEN graph, CompThr −20 dB vs −55 dB | `0x0579F843` → `0x00444578`, 32 of 32 words differ | **identical to the before run**, `0x0579F843` → `0x00444578` |
+| PAR: the BUS at those same two thresholds, CompPar UNTOUCHED | `0x03FFFF74` at BOTH, **0 of 32 words differ** | `0x015E7DD7` and `0x0011114D`, **32 of 32 differ** |
+
+The gain-reduction control reading the same numbers on both images is the
+point of having it: the compressor's arithmetic did not change, only
+whether the bus hears it.
+
+**Two probe defects were found and fixed getting there, and both would
+have produced a confident wrong answer.** The first version of the probe
+ran its DCA rows first — and `drive_strip()` writes `CompPar = 100 %`, so
+the compressor rows then measured that write instead of the power-on
+default and reported a threshold moving the bus on the PRE-fix image. A
+power-on default can only be read before anything writes the cell, and
+the probe now says so in its docstring and skips the write. The second:
+with the compressor DRY the strip runs at full scale into the fader and
+two back-to-back captures differ in 32 of 32 words — session 5's fixed
+rest interval got a zero noise floor from a graph whose compressor was
+WET and squashing the gate's residual ripple. The probe now captures
+until two consecutive captures agree and reports how many it took (three,
+on both images), so "the graph is at rest" is measured rather than
+asserted.
+
+#### 3. `captable.sh` — a cache that cannot reproduce a stale tree
+
+Session 5's `captable.sh` cached its BLOCK-32 scratch tree on the block
+size alone and rebuilt a whole half-table from a day-old tree. The repair
+it shipped was "regenerate every run", marked with a `.generated-$$`
+file — and that is weaker than it looks: `$$` is a PID, PIDs are reused,
+and two runs in the same second collide on one directory. A stale
+reproduction stayed POSSIBLE, just unlikely.
+
+**The tree is now keyed by the state of everything it is generated
+from** — block size, `dsp.csv`, `dsp_codegen.py` and every file under
+`src/`, hashed into the directory NAME. A tree built from different
+inputs is a different directory and cannot be picked up by accident;
+`.srckey` is written LAST and re-checked, so a tree left half-generated
+by a killed run is regenerated rather than built from. Cost: one sha256
+pass over `src/` per run, about 0.3 s.
+
+Proven four ways, in the tree:
+
+| check | result |
+|---|---|
+| same inputs → same tree | `src32-df51d83892f25f74` reused, and it contains `chip1/bq_pairs.asm`, the D57 fader and the D59 compressor |
+| touch `dsp_codegen.py` | key `df51d838…` → `9e0799223091c86b` |
+| touch one node `.asm` under `src/` | key → `c510c76284411b01` |
+| restore both | key returns to `df51d838…` — the key is a function of the inputs, not of time |
+| delete `.srckey` and a generated file (a killed run) | the tree is regenerated, not built from |
+
+**The spot row, on the part**: `MODE=cyc ./captable.sh 32:983:1:32` —
+the session-5 headline point — **654,819 cycles/pass** against session 5's
+**657,082**, and the scratch tree it was built from is
+`/tmp/captable/src32-b4da7d1cfa5fa868`, which contains `chip1/bq_pairs.asm`,
+`_fdr_dca_sel_C1_FDR_01` and `_comp_parallel_C1_COMP_01 = 100.0`. That is
+the check the bug asks for: the tree carries THIS session's source, so the
+number cannot be a reproduction of a previous session's.
+
+**The two numbers are 0.34 % apart and the honest reading of the pair is
+unchanged: 32 channels at BLOCK 32 and 983.04 MHz is ON THE LINE.** 654,819
+is 99.92 % of the 655,360-cycle budget and 657,082 was 100.26 %; one run
+lands just inside and one just outside, which is what "on the line" means.
+Nothing in this session changed a per-sample instruction, so the difference
+is the instrument's own spread across boots, and it is quoted as measured
+rather than claimed as an improvement.
+
+#### 4. The standing bars
+
+| bar | result |
+|---|---|
+| **contract conformance** | **`VERDICT: PASS`** — 6,088 ECHO / 388 UNMAPPED / 117 CLEARED / 159 meters skipped, **identical to sessions 4 and 5**; 18 declared-unit checks pass and the 16 that fail are the named D41 known mismatches, `ChanCompPar` among the passes at 0/25/50/100 %; both negative controls fired (wrong-unit 4 of 4, no-verify 64 of 64 UNVERIFIED). Table stored at `goldens/conformance-20260830-s6.md` |
+| **inert phase** | **PASS on its own boot** — driven window at peak `0x015E7E31`, noise floor ZERO, both positive controls 32 of 32, **12 of 12 sampled classes inert including `0x0053 Chan001RtgDca001`** — D57's fix confirmed by the harness rather than asserted. Stored at `goldens/conformance-20260830-s6-inert.md` |
+| **bus golden** | **234 of 256 differ against the postD40 golden — INTENDED (D59)** — then **0 of 256 against the re-baseline**, on a second independently built and booted image |
+| **biquad vs model** | **0 of 16 on all three arms** (ref vs blk, ref vs model, blk vs model), negative control fires at 15 of 16 — after the bar itself was repaired, see below |
+| **dynamics** | **0 of 32 on all three arms** (COMP, GATE, BQ4); pairing 1.96× / 2.20× / 1.43× |
+| **numerics** | **57 of 57 BIT-EXACT**, `NEGCTL PASSED` — 31 of 31 boundary vectors detected, 26 of 26 non-boundary untouched, third-word cost +2.016 c/MAC — after the bar itself was repaired, see below |
+| **meter** | **`METER_BIT_EXACT`** with both negative controls firing — wide model `pk_blk>>4 4169139 / ms_blk 16576495` at gain 0.497, narrow model correctly rejected |
+| **cell semantics** (new) | **`VERDICT: PASS`** — the table in §1 and §2 |
+
+**TWO OF THE STANDING BARS WERE NOT RUNNABLE, AND NEITHER FAILURE WAS THIS
+SESSION'S CODE.** Both were reading the part through an instrument that
+cannot answer it — the same defect session 5 took out of
+`pairgraph_run.sh`, still sitting in two other bars:
+
+* **`bqst.sh` had been failing on the unpaced reader.** It reported
+  `MAGIC 0x00000000 — this is NOT diag firmware` five boots running. The
+  part was fine: `dsp4_scope`'s paced read got `MAGIC 0xD5B40001`,
+  `CHIP_ID 1` and a moving `FRAME_COUNT` off the same part seconds later.
+  **Proven not to be this session's change by building the pre-fix tree
+  in a worktree and reproducing the failure identically.** Three things
+  were wrong and all three are fixed: `bqst_run.sh` gated on
+  `dsp4_diag.py`; `dsp4_bq_verify.py` read the part through `DiagLink`;
+  and its `check_chip()` was single-shot, so one dropped read ("CHIP 0")
+  killed the run. It now votes on the same `Scope` object — constructing
+  a second one takes the RDY GPIO from the first and fails with EBUSY,
+  which looks like a dead part and is not.
+* **`numverify.sh` scored a link failure as an arithmetic failure.** Its
+  peek is voted, but **a ZERO votes just as cleanly as a value**: the
+  last four vectors of one arm and six of the next settled on 0, the
+  timing block that follows them read a null loop of 0 cycles and 16,071
+  cycles/MAC, and the scorer duly reported `NUMERIC BOUNDARY DIFFERS` and
+  `NEGCTL FAILED` on arithmetic nothing had touched. A zero now has to be
+  corroborated through the SAME peek path — a sentinel word the part is
+  known to hold at 1 — before it is believed. Checking `MAGIC` with the
+  register reader was tried first and was NOT enough: the register path
+  answered perfectly while a peek settled twice on a false 0.
+
+Both fixes are the same lesson session 5 wrote down about `pairgraph_run.sh`
+and D58 wrote down about goldens: **an instrument that cannot fail, or that
+cannot tell its own silence from a result, is not an instrument.**
+
+#### 5. The PW question filed with D57 and D59
+
+Three, and they are the residue the dispatch asked to have stated with
+options rather than decided here.
+
+**Q1 — `RtgDca`'s assignment encoding.** The masters give the family nine
+states ("1-8 or off", MxDatS 9), no Table and no unit, and the kernel now
+stores the word without acting on it. Before it can act:
+
+* **(a) an integer index, 0 = off, 1..8 = DCA n.** What MxDatS 9 reads
+  as, and what every sibling `InstantCtl` cell on this wire (`RtgMute`,
+  `RtgMainOn`) already is. **Recommended.**
+* (b) a float index (`0.0`, `1.0` … `8.0`), matching the float words the
+  gain cells carry — the host would then write `f32(n)`.
+* (c) a membership bitmask, so a strip can belong to several DCAs. This
+  contradicts the row as written (a mask needs MxDatS 255), so it is
+  listed only because it is what a console usually wants.
+
+**Q2 — who applies DCA gain, and how does a chip-1 channel reach a
+chip-2 master?** The eight DCA masters (`Dca[1-8]Level/Mute`) are nodes
+on CHIP 2. All 32 channel strips are on CHIP 1. A channel fader therefore
+cannot read the master it is assigned to, whatever the encoding says.
+
+* (i) give the DCA masters an address on BOTH chips, so the host writes
+  both and each chip resolves locally — a contract change, 16 addresses
+  added to chip 1's map;
+* (ii) the host folds the DCA into the fader level it already sends, and
+  `RtgDca` is marked MCU-managed/reserved in the masters — no kernel
+  work, and 56 addresses leave the writable surface;
+* (iii) the host computes the per-strip DCA gain and writes it to a
+  dedicated cell per strip — `_fdr_dca_gain_*` is exactly that hook and
+  is sitting at unity.
+
+Until this is ruled the assignment is stored and inert, and the D38 list
+says so: **896 → 952 addresses, 762 → 818 master cells**. That growth is
+the fix being honest, not a regression.
+
+**Q3 — `CompPar`'s default.** The masters rule the unit and document no
+default: `MxDat` is empty for `Chan[1-32]CompPar[1-1]` and
+`Main[1-4]CompPar`, where the same column carries 60 of 121 for `EqGain`
+and 127 of 255 for `EqFreq`. The kernel now powers on at **100 %** — a
+normal serial compressor — because 0 shipped a compressor that did
+nothing. If the masters intend another value, put it in `MxDat`: the
+generator takes the default from the node's `parallel=` param, so it is
+a one-line change in `gen_dsp_csv.py` and a regeneration, not a kernel
+edit.
+
+The same question exists for `GateRng`, `CompThr` and every other
+dynamics cell with an empty `MxDat` — this session did not go looking,
+and only names the one it measured.
+
+#### Bench hand-back
+
+Restored to the NEW shipping baseline and verified on the part, not from a
+summary: `chip1.ldr 033d2921`, `chip2.ldr f8883d4c`, md5-matched on the Pi
+against the build. Both chips `BOOT_STAGE 7` with `FRAME_COUNT` advancing at
+**6000 and 5999 frames/s** (48 kHz / block 8), `DMA0_STAT 0x00006200`,
+`SPORT0_ERR_A 0x00000000`, `SPI_ERR_COUNT 0` and `PRODUCT_ID 1` on both;
+GPIOs released; `matrix-app active` with **all three MCUs verified on the
+FIRST restart** (H1S1, H1S4, H1S3 at 05:47:04–05, read from
+`/home/app/logs/log`, not the journal). The CPLD was never touched and no
+JTAG operation was run this session, so its bitstream is as it was.
+
+**The chip-2 CHIP_ID symptom recurred, was captured, and was not chased**,
+per the standing discipline. Read straight after a boot with NO product
+config, the CS2 link answered `CHIP_ID 1` on eight consecutive voted reads
+and `SPI_ERR_COUNT 3305`, while reporting `BOOT_STAGE 7`, 6000 frames/s and
+`DMA0_STAT 0x00006200`. One boot+config cycle later the same link answered
+`CHIP_ID 2` on the FIRST attempt with `SPI_ERR_COUNT 0`. The boot loader
+had sent the right image to the right part (183,296 bytes on CS2, 302,080
+on CS1), so what this looks like is a link state that survives a boot and
+not a mis-flashed chip — recorded, not diagnosed.
 
 ## HUB DISPATCH 2026-08-29 21:04Z — session 5: wide-word metering, FILT/EQ pairs in graph, driven inert probe   [status: 🟢 done — **32 CHANNELS ON ONE CHIP IS REACHED AT BLOCK 32 AND 983.04 MHz — 1500 OF 1500 PASSES/s WITH ALL 32 GATES OPEN AND ALL 32 COMPRESSORS ACTIVE, ON TWO SEPARATE BOOTS — AND THE CYCLE INSTRUMENT PUTS THE SAME GRAPH 0.26 % OVER BUDGET, SO IT IS ON THE LINE RATHER THAN COMFORTABLY INSIDE IT. THE RULED OPERATING POINT IS BLOCK 8, WHERE THE CEILING IS 23: block 32 is four times the block latency and the 32-channel row says what the arithmetic can be made to fit, not what the product runs today.** Session 3's best was 12.4 % over. Full table, fused + paired + biquad-paired, honest full-rate rule, every accepted point witnessed: block 8 signal **18 / 23** (was 16 / 22), block 8 silence 19 / 25, block 32 signal **24 / 32** (was 21 / 28), block 32 silence 25 / 32. **D24's 24 channels now fit one chip at 786.432 and BLOCK 32** (24 = 1500/s, 25 = 1458/s), which session 2 recorded as not fitting. Margin at 32 channels, 983.04, cycles per graph pass: 226,462 → 233,714 (wide-word metering) → **214,249 at BLOCK 8 (130.8 %)** and 736,848 → 743,884 → **657,082 at BLOCK 32 (100.26 %, 1,722 cycles over)**. **THE WIDE-WORD METER IS LANDED AND PROVEN: `METER_BIT_EXACT` with BOTH negative controls firing**, and the second one needed its own operating point because **at unity gain the wide word and the rounded store carry the same value** — the standing meter bar could not have told the ruling's arithmetic from the arithmetic it replaced. At gain 0.497 they separate and the part reads the wide model exactly (pk_blk>>4 4169139, ms_blk 16576495) against the narrow model's 4169138 / 16576493. **It costs about 220 cycles per strip per BLOCK — +3.2 % at block 8, +1.0 % at block 32 — and the pipelining fix I built for a multiplier-stall hypothesis did not help; the measurement says so and the ledger corrects the commit message rather than leaving it standing.** **D20 IS STILL BLOCKED AND THE RULING'S PREMISE IS NOT THIS GRAPH**: `BLK_TAP_TRIM` is read by ROUTING's pickoff 0 and GAIN still writes `BLK_CHAIN_B` for FILT, so "kill every tap store whose only consumer is a meter" kills nothing; what remains of D20 is the GAIN→FILT COEFFICIENT fold, a numeric-spec amendment. **THE PAIRED BIQUADS ARE BIT-EXACT WITH A FIRING NEGATIVE CONTROL**: 0 of 64 main-bus words differ against the dynamics-only build, 56 of 64 differ under `DSP4_BQ_NEGCTL` — and the comparison is only worth anything because `bqgraph.sh` writes REAL filter designs first: at bypass the paired and scalar cascades are bit-identical by construction, which is exactly why session 3's bus golden had no biquad coverage. **D55 found and fixed on the way**: FILT's and EQ's transient paths used different pool slots from their steady paths and from each other, so an EQ band written while the filters sat still made the strip's trim, HPF and LPF vanish for the 576 samples of the fade. **THE DRIVEN INERT PROBE WORKS AND SESSION 4'S GAP IS CLOSED: 64 of chip 1's 288 candidates INERT CONFIRMED, noise floor ZERO bus words, both positive controls moving 32 of 32.** Session 4's "the scope injection does not reach the chain" was the PROBE's bug, not the firmware's — it drove the input node's OUTPUT, which the node overwrites every sample. **TWO NEW CONTRACT FINDINGS FROM THE PART: D57**, `Chan001RtgDca001` is documented as a DCA ASSIGNMENT and the kernel treats it as a linear GAIN, so writing the obvious 0 silences the channel with the level word still reading 1.0; and **with `CompPar` at its default the compressor is fully DRY** — the bus read `0x03FFFFEE` at both a −20 dB and a −55 dB threshold while `_comp_gain_*` moved from `0x10000000` to `0x04FE8E90`, so a default-configured strip's compressor threshold is not an audible control at all. **D56**: the gate does not shut on silence at BLOCK 8 and does at BLOCK 32; not chased. **ALL SIX STANDING BARS PASS: conform `VERDICT: PASS`, busgold 0 of 256, bqst 0 of 16 both arms with a firing negative control, dynst 0 of 32 on all three arms, numverify 57/57, mtrverify `METER_BIT_EXACT`. **D58, found by running them: the bus golden went stale at session 4's D39/D40 unit fixes and the bar had been silently unrunnable for a session — bisected on the part to three points, re-baselined, and the last point (`a2f1a00a` on both session 4's HEAD and session 5's) is this session's own W0 proof that none of this work changed the audio.** **A FALSE CAPACITY TABLE WAS MEASURED FIRST AND CAUGHT** — `captable.sh` cached its BLOCK-32 scratch tree on the block size alone and reproduced session 3's numbers exactly from a day-old tree, which is what made it visible; the tree is regenerated every run now. Program memory is the new binding constraint on chip 1: shipping paired+fused links with 4,058 bytes free, the measurement image with 1,478, after three rounds of shrinking the drivers and sharing the meter routines. W0: metering changes the shipping image BY DESIGN — **new baseline chip1.ldr `e9ac266e`, chip2.ldr `73b4f168`**. `conform.sh` VERDICT: PASS, 6,088 ECHO / 388 UNMAPPED / 117 CLEARED / 159 meters skipped, unchanged from session 4, both negative controls firing.]   [model: opus]
 
