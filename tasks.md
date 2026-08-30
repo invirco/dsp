@@ -1,3 +1,39 @@
+## HUB DISPATCH 2026-08-30 02:57Z — session 6: D57 DCA semantics, CompPar dry default, captable cache   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+SESSION 6 — the two active contract bugs from session 5, plus harness
+hygiene. Mandate-covered (cell semantics = the masters, ruled at
+session 4); capacity levers wait for PW's morning.
+
+1. D57: Chan RtgDca is documented as a DCA ASSIGNMENT; the kernel
+   treats it as linear gain (writing 0 silences the channel while the
+   level word reads 1.0). Fix per the masters' semantics: the cell
+   selects/assigns, it does not scale. If the masters' documented
+   semantics are ambiguous about the assignment encoding, implement the
+   unambiguous part (0 must NOT silence) and file the residue as a PW
+   question with the options stated.
+2. CompPar default leaves the compressor FULLY DRY (session 5 measured:
+   bus unchanged across thresholds while comp_gain moved) — a
+   default-configured strip has a compressor that does nothing. Fix the
+   DEFAULT to the masters' documented default (100% wet unless the
+   masters say otherwise — cite the row); prove on the part with the
+   session-5 method (bus moves with threshold at default).
+3. captable.sh cache bug (session 5's false-table cause): key the cache
+   by source-tree state, not block size — a stale reproduction must be
+   impossible; state the fix and re-run one spot row to prove it.
+4. Re-run conform.sh + all standing bars after 1-2; update the
+   conformance results table; both fixes get before/after harness rows.
+5. Ledger W0 (image changes by design); bench restored verified; push
+   main; update review index (D55/D57/D58 statuses with commits).
+
+NOT in scope: capacity levers, D20's remaining coefficient-fold
+amendment (PW ruling), D38 wiring prioritization — all queued for PW.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-08-29 21:04Z — session 5: wide-word metering, FILT/EQ pairs in graph, driven inert probe   [status: 🟢 done — **32 CHANNELS ON ONE CHIP IS REACHED AT BLOCK 32 AND 983.04 MHz — 1500 OF 1500 PASSES/s WITH ALL 32 GATES OPEN AND ALL 32 COMPRESSORS ACTIVE, ON TWO SEPARATE BOOTS — AND THE CYCLE INSTRUMENT PUTS THE SAME GRAPH 0.26 % OVER BUDGET, SO IT IS ON THE LINE RATHER THAN COMFORTABLY INSIDE IT. THE RULED OPERATING POINT IS BLOCK 8, WHERE THE CEILING IS 23: block 32 is four times the block latency and the 32-channel row says what the arithmetic can be made to fit, not what the product runs today.** Session 3's best was 12.4 % over. Full table, fused + paired + biquad-paired, honest full-rate rule, every accepted point witnessed: block 8 signal **18 / 23** (was 16 / 22), block 8 silence 19 / 25, block 32 signal **24 / 32** (was 21 / 28), block 32 silence 25 / 32. **D24's 24 channels now fit one chip at 786.432 and BLOCK 32** (24 = 1500/s, 25 = 1458/s), which session 2 recorded as not fitting. Margin at 32 channels, 983.04, cycles per graph pass: 226,462 → 233,714 (wide-word metering) → **214,249 at BLOCK 8 (130.8 %)** and 736,848 → 743,884 → **657,082 at BLOCK 32 (100.26 %, 1,722 cycles over)**. **THE WIDE-WORD METER IS LANDED AND PROVEN: `METER_BIT_EXACT` with BOTH negative controls firing**, and the second one needed its own operating point because **at unity gain the wide word and the rounded store carry the same value** — the standing meter bar could not have told the ruling's arithmetic from the arithmetic it replaced. At gain 0.497 they separate and the part reads the wide model exactly (pk_blk>>4 4169139, ms_blk 16576495) against the narrow model's 4169138 / 16576493. **It costs about 220 cycles per strip per BLOCK — +3.2 % at block 8, +1.0 % at block 32 — and the pipelining fix I built for a multiplier-stall hypothesis did not help; the measurement says so and the ledger corrects the commit message rather than leaving it standing.** **D20 IS STILL BLOCKED AND THE RULING'S PREMISE IS NOT THIS GRAPH**: `BLK_TAP_TRIM` is read by ROUTING's pickoff 0 and GAIN still writes `BLK_CHAIN_B` for FILT, so "kill every tap store whose only consumer is a meter" kills nothing; what remains of D20 is the GAIN→FILT COEFFICIENT fold, a numeric-spec amendment. **THE PAIRED BIQUADS ARE BIT-EXACT WITH A FIRING NEGATIVE CONTROL**: 0 of 64 main-bus words differ against the dynamics-only build, 56 of 64 differ under `DSP4_BQ_NEGCTL` — and the comparison is only worth anything because `bqgraph.sh` writes REAL filter designs first: at bypass the paired and scalar cascades are bit-identical by construction, which is exactly why session 3's bus golden had no biquad coverage. **D55 found and fixed on the way**: FILT's and EQ's transient paths used different pool slots from their steady paths and from each other, so an EQ band written while the filters sat still made the strip's trim, HPF and LPF vanish for the 576 samples of the fade. **THE DRIVEN INERT PROBE WORKS AND SESSION 4'S GAP IS CLOSED: 64 of chip 1's 288 candidates INERT CONFIRMED, noise floor ZERO bus words, both positive controls moving 32 of 32.** Session 4's "the scope injection does not reach the chain" was the PROBE's bug, not the firmware's — it drove the input node's OUTPUT, which the node overwrites every sample. **TWO NEW CONTRACT FINDINGS FROM THE PART: D57**, `Chan001RtgDca001` is documented as a DCA ASSIGNMENT and the kernel treats it as a linear GAIN, so writing the obvious 0 silences the channel with the level word still reading 1.0; and **with `CompPar` at its default the compressor is fully DRY** — the bus read `0x03FFFFEE` at both a −20 dB and a −55 dB threshold while `_comp_gain_*` moved from `0x10000000` to `0x04FE8E90`, so a default-configured strip's compressor threshold is not an audible control at all. **D56**: the gate does not shut on silence at BLOCK 8 and does at BLOCK 32; not chased. **ALL SIX STANDING BARS PASS: conform `VERDICT: PASS`, busgold 0 of 256, bqst 0 of 16 both arms with a firing negative control, dynst 0 of 32 on all three arms, numverify 57/57, mtrverify `METER_BIT_EXACT`. **D58, found by running them: the bus golden went stale at session 4's D39/D40 unit fixes and the bar had been silently unrunnable for a session — bisected on the part to three points, re-baselined, and the last point (`a2f1a00a` on both session 4's HEAD and session 5's) is this session's own W0 proof that none of this work changed the audio.** **A FALSE CAPACITY TABLE WAS MEASURED FIRST AND CAUGHT** — `captable.sh` cached its BLOCK-32 scratch tree on the block size alone and reproduced session 3's numbers exactly from a day-old tree, which is what made it visible; the tree is regenerated every run now. Program memory is the new binding constraint on chip 1: shipping paired+fused links with 4,058 bytes free, the measurement image with 1,478, after three rounds of shrinking the drivers and sharing the meter routines. W0: metering changes the shipping image BY DESIGN — **new baseline chip1.ldr `e9ac266e`, chip2.ldr `73b4f168`**. `conform.sh` VERDICT: PASS, 6,088 ECHO / 388 UNMAPPED / 117 CLEARED / 159 meters skipped, unchanged from session 4, both negative controls firing.]   [model: opus]
 
 model: opus
