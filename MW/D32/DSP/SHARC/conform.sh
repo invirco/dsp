@@ -71,7 +71,7 @@ scp -q conform_run.sh $BENCH:/home/app/ || exit 3
 for c in $CHIPS; do
   echo "=== chip $c — $PHASE ==="
   ssh $BENCH "PHASE=$PHASE LIMIT=$LIMIT NEGCTL=${NEGCTL:-0} \
-              INERTWIN=${INERTWIN:-bus} \
+              INERTWIN=${INERTWIN:-bus} INERTN=${INERTN:-12} \
               bash /home/app/conform_run.sh $c $TAG" || exit 4
   scp -q $BENCH:/home/app/dspboot/"conform_${TAG}_c${c}*.json" $OUT/ || exit 4
 done

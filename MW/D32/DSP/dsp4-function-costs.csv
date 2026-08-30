@@ -197,3 +197,31 @@ MARGIN32_BLK32_PAIRED_FUSED_786,737126,,140.6% of the 524288-cycle budget
 # roughly 205,000-208,000, i.e. 125-127% of budget against 138.2% today,
 # BEFORE the gather/scatter overhead a driver adds (the dynamics pairs lose
 # 15-20% of their kernel factor to exactly that). It does not reach 32.
+# ============================================================
+# SESSION 5 — 2026-08-30. Wide-word metering (PW ruling) and the FILT/EQ
+# classes paired in the graph (DSP4_BQ_GRAPH). Same instruments, same
+# honest full-rate rule, same witness. BLOCK-32 points were built from a
+# source tree regenerated in the same run: the cached tree that captable.sh
+# used until today produced a whole BLOCK-32 half of a table from
+# yesterday's source, and it reproduced yesterday's numbers exactly.
+# ============================================================
+CEILING_786_SIGNAL_BQPAIRED_BLK8,18,,18 = 5999/s and 19 = 5667/s of 6000
+CEILING_983_SIGNAL_BQPAIRED_BLK8,23,,23 = 5999/s and 24 = 5918/s of 6000
+CEILING_786_SILENCE_BQPAIRED_BLK8,19,,19 = 5999/s and 20 = 5846/s
+CEILING_983_SILENCE_BQPAIRED_BLK8,25,,25 = 5999/s and 26 = 5825/s
+CEILING_786_SIGNAL_BQPAIRED_BLK32,24,,24 = 1500/s and 25 = 1458/s of 1500
+CEILING_983_SIGNAL_BQPAIRED_BLK32,32,,"32 = 1500/s on two separate boots; THE WHOLE PRODUCT -- there is no 33rd strip to reject, so this row has no first-rejected point"
+CEILING_786_SILENCE_BQPAIRED_BLK32,25,,25 = 1500/s and 26 = 1473/s
+CEILING_983_SILENCE_BQPAIRED_BLK32,32,,32 = 1500/s; the whole product again
+# --- MARGIN AT 32 CHANNELS, session 5, 983.04 MHz, signal present ---
+MARGIN32_BLK8_BQPAIRED_WIDEMTR,214249,,130.8% of the 163840-cycle budget
+MARGIN32_BLK32_BQPAIRED_WIDEMTR,657082,,"100.26% of the 655360-cycle budget -- 1,722 cycles over. The pass-rate instrument scores the same graph at 1500/1500, which cannot resolve 0.26%; 32-on-one-chip at BLOCK 32 and 983.04 is ON THE LINE, not comfortably inside it"
+MARGIN32_BLK8_WIDEMTR_NOBQ,233714,,"142.6% -- the DSP4_BQ_GRAPH=0 control, i.e. session 3's configuration plus wide-word metering"
+MARGIN32_BLK32_WIDEMTR_NOBQ,743884,,113.5% -- same control at BLOCK 32
+MARGIN32_BLK8_BQPAIRED_WIDEMTR_786,214249,,163.5% of the 131072-cycle budget (same cycle count; the budget changes)
+MARGIN32_BLK32_BQPAIRED_WIDEMTR_786,657082,,125.3% of the 524288-cycle budget
+# --- what each lever was worth, as differences of measurements ---
+LEVER_WIDEMTR_BLK8,7252,,"+3.2% against session 3's 226,462. A per-BLOCK constant of about 220 cycles per strip, NOT a per-sample cost: the BLOCK-32 delta is +7,036, nearly the same absolute number"
+LEVER_WIDEMTR_BLK32,7036,,+1.0% against session 3's 736848
+LEVER_BQPAIR_BLK8,-19465,,"-8.3%. The pre-measurement arithmetic in this file predicted 205,000-208,000 and the measurement is 214,249: the driver's gather/scatter overhead is real"
+LEVER_BQPAIR_BLK32,-86802,,-11.7%

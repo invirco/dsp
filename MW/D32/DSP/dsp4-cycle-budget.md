@@ -2,6 +2,120 @@
 
 provenance: AI-drafted 2026-08-23 — prose may carry a statistical watermark; rewrite by hand before publication, then remove this header.
 
+## THE MEASURED CAPACITY TABLE — 2026-08-30 (session 5)
+
+**This is the first table with the biquads paired in the graph as well as
+the dynamics, and with PW's wide-word metering in the image.** Every
+figure was taken on a source tree regenerated for its block size in the
+same run — see the note at the end of this section, because the previous
+attempt at this table was not.
+
+### Ceilings — channels per chip, fused + paired + biquad-paired
+
+Real time is the FULL block rate: 6000 blocks/s at BLOCK 8, 1500 at
+BLOCK 32. Every accepted point is witnessed — all N gates OPEN and all N
+compressors ACTIVE for a signal row, all N SHUT and unity for a silence
+row.
+
+| | 786.432 MHz | 983.04 MHz |
+|---|---|---|
+| BLOCK 8, signal | **18** | **23** |
+| BLOCK 8, silence | **19** | **25** |
+| BLOCK 32, signal | **24** | **32 — the whole product** |
+| BLOCK 32, silence | **25** | **32** |
+
+Against session 3's table on the same instrument: 16 / 22, 18 / 23,
+21 / 28, 22 / 28.
+
+The rejected points, so the misses read as misses. Block 8 at 983.04:
+23 = 5999/s and 24 = 5918/s; at 786.432, 18 = 5999/s and 19 = 5667/s.
+Block 8 silence at 983.04: 25 = 5999/s and 26 = 5825/s; at 786.432,
+19 = 5999/s and 20 = 5846/s. Block 32 at 786.432: 24 = 1500/s and
+25 = 1458/s; silence, 25 = 1500/s and 26 = 1473/s.
+
+**BLOCK 32 AT 983.04 HAS NO REJECTED POINT, because the graph runs out
+before the chip does.** 32 strips is the whole D32 channel count, it
+scores 1500 of 1500 passes/s with all 32 gates open and all 32
+compressors active, and it did so on two separate boots. 28 and 30 pass
+as well; there is no 33rd strip to fail.
+
+### MARGIN AT 32 CHANNELS
+
+Cycles per graph pass at 32 strips, signal present, graph decimated so it
+completes whether or not it fits, against the real-time budget.
+
+**983.04 MHz**
+
+| config | BLOCK 8 (budget 163,840) | BLOCK 32 (budget 655,360) |
+|---|---|---|
+| session 3: paired + fused | 226,462 — 138.2 % | 736,848 — 112.4 % |
+| + wide-word metering (`DSP4_BQ_GRAPH=0`) | 233,714 — 142.6 % | 743,884 — 113.5 % |
+| **+ paired biquads (`DSP4_BQ_GRAPH=1`)** | **214,249 — 130.8 %** | **657,082 — 100.26 %** |
+
+At 786.432 MHz the same cycle counts read **163.5 %** of budget at BLOCK 8
+(214,249 of 131,072) and **125.3 %** at BLOCK 32 (657,082 of 524,288).
+
+**THE TWO INSTRUMENTS DISAGREE AT ONE POINT AND IT IS THE HEADLINE ONE.**
+The rate instrument says 32 strips at BLOCK 32 and 983.04 runs at 1500 of
+1500 passes/s. The cycle instrument says the same graph is 657,082 cycles
+against a 655,360 budget — **1,722 cycles over, 0.26 %**. Those are not
+in conflict so much as beneath each other's resolution: 0.26 % of 1500
+blocks/s is under four blocks a second, which the pass-rate counter cannot
+see. **The honest statement is that 32 channels on one 21564 at BLOCK 32
+and 983.04 MHz is ON THE LINE — reached by the pass-rate instrument,
+0.26 % over by the cycle count — and it is not the comfortable fit that a
+product decision would want.** Session 3's best was 12.4 % over.
+
+Two other things the table says and the ceilings do not:
+
+* **D24's 24 channels now fit one chip at 786.432 MHz and BLOCK 32**
+  (24 = 1500/s, 25 = 1458/s), which session 2 recorded as not fitting.
+* **A two-chip D32 split has room everywhere.** 16 per chip is under
+  every ceiling in the table, including block 8 at 786.432.
+
+### What each lever was worth, measured, not attributed by argument
+
+Both rows are the same instrument at the same 32 strips, so the deltas
+are differences of measurements rather than of models.
+
+| lever | BLOCK 8 | BLOCK 32 |
+|---|---|---|
+| wide-word metering | +7,252 (+3.2 %) | +7,036 (+1.0 %) |
+| paired biquads | −19,465 (−8.3 %) | −86,802 (−11.7 %) |
+
+**The metering cost is a per-BLOCK constant, about 220 cycles per strip
+per block, not a per-sample one** — it is nearly the same absolute number
+at both block sizes, which is why it hurts four times as much at BLOCK 8.
+That also means the pipelining fix did not do what it was built to do:
+the pre-pipelining measurement was 232,991 at BLOCK 8 and the pipelined
+one is 233,714, i.e. no better and marginally worse once the two shared
+call/rts pairs are paid. **The stall hypothesis in that commit message is
+not supported by this measurement and is corrected here.** What is known
+about the 220: a metered node gives up the `DSP4_STRIP_FUSED`
+two-at-a-time loop because the meter owns MRF, and the hand-over adds two
+calls per strip per block. Those do not add up to 220 and the remainder is
+not attributed. It is carried as measured.
+
+**The paired-biquad lever came in ahead of its own arithmetic at BLOCK 32
+and behind it at BLOCK 8.** `dsp4-function-costs.csv` predicted
+205,000–208,000 at BLOCK 8 (125–127 % of budget) before driver overhead;
+the measurement is 214,249, i.e. the gather/scatter overhead is real and
+is about what the dynamics pairs lose to it. At BLOCK 32 the prediction
+had no row and the measured saving is 11.7 %.
+
+### The stale-tree trap, stated because it nearly shipped a false table
+
+`captable.sh` builds BLOCK-32 points from a scratch source tree, and it
+used to cache that tree on the BLOCK SIZE alone: "if `dsp_block.h` already
+says 32, reuse it." The tree in `/tmp` was a day old. The first BLOCK-32
+half of this table was therefore measured on a tree with **no
+`bq_pairs.asm`, no wide-word metering and no D55 fix in it** — and it
+returned 28 / 21 / 28 / 22 and 737,160 cycles, which are session 3's
+numbers to within the instrument's noise. **Reproducing the previous
+session's table exactly is what made it visible**; nothing else about the
+run looked wrong. The tree is now regenerated on every invocation and the
+generated header is checked to say the block size it was asked for.
+
 ## WIDE-WORD METERING — 2026-08-29/30 (session 5), and what it cost
 
 PW's ruling of 2026-08-29 ~17:05: every meter taps the SIGNAL'S WIDE FORM

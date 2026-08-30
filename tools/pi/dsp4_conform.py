@@ -733,20 +733,123 @@ def bus_inject_addr(part):
     return part.sc.sym['_rx_slot_C1_IN_01']
 
 
-def bus_capture(part, inj, n):
+CAPTURE_REST = 0.50        # seconds of silence before each arm
+# WHERE IN THE BUFFER THE WINDOW SITS, and it is not the start. The scope
+# records 1024 samples from the instant the step lands, and the first
+# thirty-odd of those are the graph's INSTANTANEOUS response: the gate has
+# not opened, the compressor's envelope has barely left zero, and nothing
+# with a time constant has moved at all. Measured on the part 2026-08-30:
+# with the window at sample 0, writing the compressor THRESHOLD moved zero
+# of 32 bus words -- a positive control that fails because the window is
+# blind to the whole dynamics section, not because the write did nothing.
+# 900 samples is 18.75 ms at 48 kHz, past the documented attack of both
+# dynamics classes, and 92 samples short of the buffer's end.
+CAPTURE_OFFSET = 900
+
+
+def bus_capture(part, inj, n, src=None):
     """One armed capture of the main bus with the step driving the graph.
+
+    THE REST BEFORE THE ARM IS PART OF THE MEASUREMENT. The scope only
+    drives while it is armed, so between captures the graph falls silent
+    and its envelopes, hold counters and filter state release for however
+    long the host happened to take. Two back-to-back captures then start
+    from different states and differ in EVERY word -- measured on the part
+    2026-08-30: 32 of 32 words moved over a null interval, which is a noise
+    floor no positive control can clear. Waiting for the graph to come back
+    to rest first makes each capture start from the same place, so the only
+    thing that can move a word is what was written between them.
 
     Returns None rather than a wrong answer if the scope will not arm or
     the capture stalls: a dropped capture and an inert cell look identical
     from a list of words, and that is the mistake this whole probe exists
     to avoid.
     """
+    time.sleep(CAPTURE_REST)
     try:
-        part.sc.arm(part.sc.sym[BUS_SRC], inj, BUS_AMP, 2)
+        part.sc.arm(part.sc.sym[src or BUS_SRC], inj, BUS_AMP, 2)
         part.sc.wait()
-        return part.sc.fetch(n)
+        out = []
+        for i in range(CAPTURE_OFFSET, CAPTURE_OFFSET + n):
+            part.sc.wr(S.SCOPE_RD, i)
+            out.append(part.sc.rd(S.SCOPE_DATA))
+        return out
     except (IOError, SystemExit):
         return None
+
+
+# Strip-page offsets, from dsp.csv's spi_addr column via
+# dsp_address_map.md -- the same numbers dsp4_pairgraph.py uses.
+FDR_LEVEL, FDR_PAN, FDR_MUTE, FDR_DCA = 0x0050, 0x0051, 0x0052, 0x0053
+GAIN_OFF, TUBE_ON, DLY_OFF = 0x0000, 0x004C, 0x004E
+GATE_ON, GATE_THR, GATE_ATT = 0x0028, 0x0029, 0x002A
+GATE_HOLD, GATE_REL = 0x002B, 0x002C
+COMP_ON, COMP_THR, COMP_RATIO = 0x0038, 0x0039, 0x003A
+COMP_ATT, COMP_REL, COMP_PAR = 0x003B, 0x003C, 0x003F
+
+
+def drive_strip(part, strip, log=print):
+    """Put one strip in a state where the injected step reaches the BUS.
+
+    A boot leaves the fader, its pan legs and the DCA wherever the config
+    commit left them, and ROUTING's main crosspoint coefficient is the
+    fader's pan leg times its level -- so an un-driven strip contributes
+    NOTHING to the main bus and the capture is all zeros. All zeros is
+    also what a dead strip, a dropped arm and a muted graph look like,
+    which is why this is done explicitly rather than assumed.
+    """
+    b = (strip - 1) * STRIDE
+    for addr, word, ramp in ((b + GAIN_OFF, f32(1.0), 4),
+                             (b + FDR_LEVEL, f32(1.0), 4),
+                             (b + FDR_PAN, f32(0.5), 4),
+                             (b + FDR_DCA, f32(1.0), 4),
+                             (b + FDR_MUTE, 0, 0),
+                             (b + TUBE_ON, 0, 0),
+                             (b + DLY_OFF, 0, 0),
+                             # The dynamics have to be ON or the compressor
+                             # positive control tests a bypassed node: a
+                             # threshold write then changes nothing on the
+                             # bus and the control fails for a reason that
+                             # has nothing to do with the window.
+                             (b + GATE_ON, 1, 0),
+                             (b + COMP_ON, 1, 0),
+                             # AND THE COMPRESSOR HAS TO BE WET. The
+                             # parallel blend is `out = dry + par*(wet -
+                             # dry)` and CompPar defaults to 0, so a
+                             # compressor that is ON, above threshold and
+                             # visibly reducing gain in _comp_gain_* passes
+                             # the DRY signal through unchanged. Measured
+                             # here 2026-08-30: with par at its default the
+                             # bus reads 0x03FFFFEE at BOTH a -20 dB and a
+                             # -55 dB threshold, to the word, while
+                             # _comp_gain_C1_COMP_01 moves from 0x10000000
+                             # to 0x04FE8E90. The gain reduction is computed
+                             # and then blended out.
+                             (b + COMP_PAR, f32(100.0), 4),
+                             # FAST TIME CONSTANTS, AND A SHORT HOLD,
+                             # because the probe's repeatability depends on
+                             # the graph being back at rest before each
+                             # capture. The shipping defaults include a
+                             # 2000 ms gate HOLD and a release the strip
+                             # does not finish inside the probe's rest
+                             # interval, and a graph that is still releasing
+                             # gives two consecutive captures that differ in
+                             # every word -- a noise floor no control can
+                             # clear. Measured here 2026-08-30: 32 of 32.
+                             (b + GATE_THR, f32(-40.0), 4),
+                             (b + GATE_ATT, f32(0.001), 4),
+                             (b + GATE_HOLD, f32(1.0), 4),
+                             (b + GATE_REL, f32(0.001), 4),
+                             (b + COMP_THR, f32(-20.0), 4),
+                             (b + COMP_RATIO, f32(4.0), 4),
+                             (b + COMP_ATT, f32(0.002), 4),
+                             (b + COMP_REL, f32(0.002), 4)):
+        try:
+            part.write(addr, word, ramp)
+        except Exception as e:
+            log(f'  drive_strip: 0x{addr:04X} write failed ({e})')
+        time.sleep(0.02)
+    time.sleep(0.5)                      # let the ramped writes arrive
 
 
 def driven_inert_probe(part, entries, samples, n=32, log=print, strip=1):
@@ -764,7 +867,24 @@ def driven_inert_probe(part, entries, samples, n=32, log=print, strip=1):
     """
     out = []
     inj = bus_inject_addr(part)
-    base = bus_capture(part, inj, n)
+    drive_strip(part, strip, log)
+    # THE WINDOW IS THE BUS IF THE BUS CARRIES ANYTHING, and the strip's
+    # own post-fader output otherwise. The bus is the stronger window --
+    # it sees ROUTING and the cross-strip mix as well -- but a silent one
+    # is not a window at all, and falling back SILENTLY would be the same
+    # mistake as reporting inert verdicts from an idle graph. Which window
+    # was used is recorded next to every verdict.
+    src, window = BUS_SRC, 'bus'
+    base = bus_capture(part, inj, n, src)
+    if base is not None and not any(base):
+        alt = '_buf_C1_FDR_%02d' % strip
+        if alt in part.sc.sym:
+            b2 = bus_capture(part, inj, n, alt)
+            if b2 is not None and any(b2):
+                src, window, base = alt, 'strip', b2
+                log(f'  driven window: {BUS_SRC} is silent; falling back to '
+                    f'{alt}, the strip output. That window sees every class '
+                    f'in the strip but NOT ROUTING or the mix.')
     if base is None:
         out.append({'addr': None, 'class': 'WINDOW', 'cells': [],
                     'verdict': 'NO CAPTURE — the scope would not arm; no '
@@ -772,11 +892,11 @@ def driven_inert_probe(part, entries, samples, n=32, log=print, strip=1):
         log('  driven window: NO CAPTURE')
         return out
     nz = sum(1 for w in base if w)
-    log(f'  driven window: {BUS_SRC} through inj 0x{inj:X}, '
+    log(f'  driven window: {src} through inj 0x{inj:X}, '
         f'{nz} of {n} words non-zero')
     out.append({'addr': None, 'class': 'WINDOW', 'cells': [],
-                'inject': inj, 'window_words': n, 'nonzero': nz,
-                'verdict': 'INFO'})
+                'inject': inj, 'source': src, 'window': window,
+                'window_words': n, 'nonzero': nz, 'verdict': 'INFO'})
     if not nz:
         # An all-zero capture is what a dead strip, a dropped arm and a
         # muted graph all look like. It is not a driven graph.
@@ -787,45 +907,58 @@ def driven_inert_probe(part, entries, samples, n=32, log=print, strip=1):
 
     def null_noise():
         """Which words move between two captures with nothing written."""
-        a = bus_capture(part, inj, n)
-        b = bus_capture(part, inj, n)
+        a = bus_capture(part, inj, n, src)
+        b = bus_capture(part, inj, n, src)
         if a is None or b is None:
             return None, None
         return {i for i in range(n) if a[i] != b[i]}, b
 
     def moved(before):
-        after = bus_capture(part, inj, n)
+        after = bus_capture(part, inj, n, src)
         if after is None:
             return None, None
         return [i for i in range(n) if after[i] != before[i]], after
 
+    # TWO POSITIVE CONTROLS, because they test different halves of the
+    # window. GAIN is a linear multiply the sample path reads on every
+    # sample, so it proves the window sees the STRIP at all; CompThr only
+    # moves anything once the compressor's envelope has moved, so it proves
+    # the window reaches past the transient into the dynamics. A run needs
+    # BOTH: the first alone would let a window that is blind to everything
+    # with a time constant report inert verdicts about dynamics cells.
     SETTLE = 0.3
-    ctl_addr = (strip - 1) * STRIDE + 0x0039        # CompThr, a wired cell
-    noise, before = null_noise()
-    if noise is None:
+    controls = ((0x0000, f32(0.5), 4, 'Chan%03dGain001' % strip, 'GAIN'),
+                (0x0039, f32(-55.0), 4, 'Chan%03dCompThr001' % strip,
+                 'CompThr'))
+    all_ok = True
+    for off, val, ramp, cell, name in controls:
+        ctl_addr = (strip - 1) * STRIDE + off
+        noise, before = null_noise()
+        if noise is None:
+            out.append({'addr': ctl_addr, 'class': 'POSITIVE CONTROL',
+                        'cells': [cell], 'verdict': 'NO CAPTURE'})
+            return out
+        orig = part.read(ctl_addr)
+        part.write(ctl_addr, val, ramp)
+        time.sleep(SETTLE)
+        diff, _ = moved(before)
+        part.write(ctl_addr, orig, ramp)
+        time.sleep(SETTLE)
+        diff = [i for i in (diff or []) if i not in noise]
+        ok = len(diff) > max(3, 3 * len(noise))
+        all_ok = all_ok and ok
         out.append({'addr': ctl_addr, 'class': 'POSITIVE CONTROL',
-                    'cells': [], 'verdict': 'NO CAPTURE'})
-        return out
-    orig = part.read(ctl_addr)
-    part.write(ctl_addr, f32(-55.0), 4)
-    time.sleep(SETTLE)
-    diff, _ = moved(before)
-    part.write(ctl_addr, orig, 4)
-    time.sleep(SETTLE)
-    diff = [i for i in (diff or []) if i not in noise]
-    control_ok = len(diff) > max(3, 3 * len(noise))
-    out.append({'addr': ctl_addr, 'class': 'POSITIVE CONTROL',
-                'cells': ['Chan%03dCompThr001' % strip],
-                'words_moved': len(diff), 'noise_words': len(noise),
-                'moved': control_ok,
-                'verdict': 'CONTROL OK' if control_ok
-                           else ('CONTROL DID NOT CLEAR THE NOISE FLOOR '
-                                 f'({len(diff)} moved, {len(noise)} moved '
-                                 'unwritten) — NO inert verdict is reported '
-                                 'from this run')})
-    log(f'  positive control (CompThr): {len(diff)} of {n} bus words moved '
-        f'({len(noise)} moved on their own over the same wait)')
-    if not control_ok:
+                    'cells': [cell], 'window': window, 'source': src,
+                    'words_moved': len(diff), 'noise_words': len(noise),
+                    'moved': ok,
+                    'verdict': 'CONTROL OK' if ok
+                               else ('CONTROL DID NOT CLEAR THE NOISE FLOOR '
+                                     f'({len(diff)} moved, {len(noise)} moved '
+                                     'unwritten) — NO inert verdict is '
+                                     'reported from this run')})
+        log(f'  positive control ({name}): {len(diff)} of {n} bus words '
+            f'moved ({len(noise)} moved on their own over the same wait)')
+    if not all_ok:
         return out
 
     for e in samples:
@@ -850,6 +983,7 @@ def driven_inert_probe(part, entries, samples, n=32, log=print, strip=1):
         diff = [i for i in diff if i not in noise]
         out.append({'addr': addr, 'cells': e['cells'],
                     'class': e['kernel_note'], 'wrote': words[-1],
+                    'window': window, 'source': src,
                     'words_moved': len(diff), 'noise_words': len(noise),
                     'moved': bool(diff),
                     'verdict': 'INERT CONFIRMED' if not diff else 'NOT INERT'})

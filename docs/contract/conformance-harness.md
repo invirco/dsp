@@ -52,9 +52,66 @@ test is a unit, not a rounding rule.
 point**: a capture comparison that cannot fail proves nothing, and this
 one is easy to make unable to fail — capture a silent bus, or capture
 through a graph whose control epoch never advances, and every address on
-earth looks inert. So the same procedure runs first on a cell known to be
-wired, and the inert verdicts are reported only if that control moved the
-bus.
+earth looks inert. So the same procedure runs first on cells known to be
+wired, and the inert verdicts are reported only if those controls moved
+the bus by more than three times what the same wait moves on its own.
+
+### The driven graph, and the four things it took (2026-08-30)
+
+Session 4 could not report an inert verdict at all. Its window was the
+strip's CONTROL STATE on an idle graph and it failed its own control: 2–8
+of 97 quiet words moved under a write while 0–22 moved unwritten. The
+window is now the MAIN BUS with the graph DRIVEN, which is what
+"kernel-visible" was always supposed to mean, and getting there was four
+separate corrections — each of which produced a probe that looked like it
+worked and answered the wrong question:
+
+1. **The injection address.** Session 4 drove `_buf_C1_IN_01` and
+   concluded the shipping build's scope injection "does not reach the
+   chain". It reaches it; that is the input node's OUTPUT, and the node
+   copies `_rx_slot_C1_IN_01` over it on every sample. The slot the step
+   has to go into is `_rx_slot_*` in a per-sample build and the pool in a
+   block build, and the symbol table settles which.
+2. **The strip has to be driven ON PURPOSE.** A boot leaves the fader,
+   its pan legs and the DCA wherever the config commit left them, so the
+   strip contributes nothing to the main bus and the capture is all
+   zeros — which is also what a dead strip, a dropped arm and a muted
+   graph look like. `drive_strip()` writes the gain, the fader, the mute,
+   the dynamics and their time constants before anything is captured.
+3. **The graph has to be at REST before each capture.** The scope only
+   drives while it is armed, so between captures the graph falls silent
+   and releases for however long the host happened to take; two
+   back-to-back captures then differed in **32 of 32 words**. A fixed
+   rest interval before every arm makes each capture start from the same
+   place — the noise floor is now **zero words**.
+4. **The window sits at sample 900, not sample 0.** The first thirty-odd
+   samples after the step are the graph's instantaneous response: the
+   gate has not opened and the compressor's envelope has barely left
+   zero. With the window at the start, writing the compressor THRESHOLD
+   moved **zero** words — a control that fails because the window is
+   blind to the entire dynamics section.
+
+**A fifth thing was found on the way and it is not a probe defect.** With
+`CompPar` at its default the compressor is fully DRY: the blend is
+`out = dry + par*(wet − dry)`, so a compressor that is on, above
+threshold and visibly reducing gain in `_comp_gain_*` passes the input
+through unchanged. Measured: the bus read `0x03FFFFEE` at both a −20 dB
+and a −55 dB threshold, to the word, while `_comp_gain_C1_COMP_01` moved
+from `0x10000000` to `0x04FE8E90`. The probe therefore sets `CompPar` as
+part of driving the strip, and the fact is recorded here because it means
+**a default-configured strip's compressor threshold is not an audible
+control at all**.
+
+There are now TWO positive controls and a run needs both. `Chan001Gain001`
+is a linear multiply the sample path reads on every sample and proves the
+window sees the strip; `Chan001CompThr001` moves nothing until the
+envelope has moved and proves the window reaches past the transient into
+the dynamics. The first alone would let a window that is blind to
+everything with a time constant report inert verdicts about dynamics
+cells.
+
+`--inert-window=state` puts session 4's control-state window back, so the
+two can be compared rather than asserted against each other.
 
 ## The negative controls, which are part of every run
 
@@ -80,6 +137,8 @@ PHASE=effect ./conform.sh             # the declared-unit checks only (fast)
 CHIPS=1 LIMIT=200 ./conform.sh        # pilot
 BUILD=0 ./conform.sh                  # against whatever is already on the bench
 TAG=after ./conform.sh                # name the result files
+INERTN=64 ./conform.sh                # confirm more inert candidates
+INERTWIN=state ./conform.sh           # session 4's control-state window
 ```
 
 The plan is built **in the tree, from the contract**, by
