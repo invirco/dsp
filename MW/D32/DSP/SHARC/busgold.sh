@@ -8,11 +8,32 @@
 # graph and require it to reproduce, word for word, the capture the code
 # produced before the batch.
 #
-#   goldens/busgraph-prebatch-20260829.json
-#       taken 2026-08-29 on the tree at 87fded2 (fix session 1's last
-#       commit) with DSP4_BLOCK_KERNELS=1, DSP4_STRIPS=2, strip 1 driven and
-#       strip 2 muted, 256 consecutive words of _buf_C1_BUS_MAIN_L.
-#       sha256 811af470...
+#   goldens/busgraph-postD40-20260830.json      <- THE CURRENT GOLDEN
+#       taken 2026-08-30 on the tree at 7afe947 (session 4's last commit),
+#       DSP4_BLOCK_KERNELS=1, DSP4_STRIPS=2, strip 1 driven and strip 2
+#       muted, 256 consecutive words of _buf_C1_BUS_MAIN_L.
+#       sha256 a2f1a00a...
+#
+#   goldens/busgraph-prebatch-20260829.json     <- RETIRED, kept as evidence
+#       the same capture on the tree at 87fded2. sha256 811af470...
+#
+# WHY THERE ARE TWO, AND WHY THE BAR WAS SILENTLY UNRUNNABLE FOR A SESSION
+# (review finding D58). Session 4's D39/D40 unit fixes changed the AUDIO by
+# design -- CompPar went from a word that made the compressor fully wet to
+# a percentage whose default is 0, so a default strip's compressor became
+# DRY, and GateRng went from an encoding that produced no attenuation at
+# all to real decibels. The stored golden predates both, and session 4 did
+# not re-run this bar or re-baseline it. Bisected on the part 2026-08-30,
+# three points, same instrument, same bench session:
+#
+#     241b7d2 (immediately before D39/D40)  sha256 811af470  0 of 256 differ
+#     7afe947 (session 4's HEAD)            sha256 a2f1a00a  62 of 256
+#     session 5 HEAD                        sha256 a2f1a00a  62 of 256
+#
+# The last line is the useful one: session 5's wide-word metering, its D55
+# fix and its paired biquads produce a bus capture BYTE-IDENTICAL to the
+# tree they were built on. The 62 words are D39/D40's, they are intended,
+# and the golden below is the re-baseline.
 #
 # The harness is dsp4_pairgraph.py unchanged: it configures both strips over
 # SPI with OPPOSITE dynamics settings, so the two lanes sit in opposite arms
@@ -29,7 +50,7 @@ cd "$(dirname "$0")"
 BENCH=app@192.168.1.219
 ROOT=../../../..
 STRIP="${STRIP:-1}"; N="${N:-256}"; STRIPS="${STRIPS:-2}"; TAG="${TAG:-cur}"
-GOLD="${GOLD:-goldens/busgraph-prebatch-20260829.json}"
+GOLD="${GOLD:-goldens/busgraph-postD40-20260830.json}"
 OUT=/tmp/busgold; mkdir -p $OUT
 
 DSP4_BISECT=0 DSP4_BLOCK_KERNELS=1 DSP4_STRIPS=$STRIPS \

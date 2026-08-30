@@ -233,7 +233,52 @@ names the node where the signal stops. It did, and it found D57.
   measured with the witness stated rather than as witnessed rows.
 
 
-#### 5. Item 4 — the chip-2 boot intermittent, noted and not chased
+#### 5. The standing bars — and one of them had been unrunnable for a session
+
+| bar | result |
+|---|---|
+| **contract conformance** | `VERDICT: PASS` — 6,088 ECHO / 388 UNMAPPED / 117 CLEARED / 159 meters skipped, identical to session 4, both negative controls firing |
+| **bus golden** | **0 of 256 words differ — after re-baselining, see below** |
+| **biquad vs model** | 0 of 16 on both arms; the negative control fired at 15 of 16 |
+| **dynamics** | 0 of 32 on all three arms (COMP, GATE, BQ4) |
+| **numerics** | 57/57 — 31 boundary vectors failed as required, 26 non-boundary exact |
+| **meter** | `METER_BIT_EXACT` with both negative controls firing |
+
+**D58: the bus golden went stale at `0f0b3bb` and nobody found out for a
+session.** Session 4's D39/D40 unit fixes changed the AUDIO by design — a
+default strip's compressor went from fully wet to DRY, and the gate went
+from an encoding that could not attenuate to real decibels — and session 4
+neither re-ran `busgold.sh` nor re-baselined it. The first session to run
+it got 62 of 256 words differing with no way to tell an intended change
+from a regression.
+
+**Bisected on the part, three points, one bench session, same instrument:**
+
+| tree | sha256 | vs the stored golden |
+|---|---|---|
+| `241b7d2` — immediately before D39/D40 | `811af470` | **0 of 256** |
+| `7afe947` — session 4's HEAD | `a2f1a00a` | 62 of 256 |
+| session 5 HEAD | `a2f1a00a` | 62 of 256 |
+
+**The last row is this session's own W0 proof: the wide-word metering, the
+D55 fix and the paired biquads produce a bus capture BYTE-IDENTICAL to the
+tree they were built on.** The golden is re-baselined to
+`goldens/busgraph-postD40-20260830.json`, the retired one is kept beside it
+as evidence, and the bisect is written into `busgold.sh`'s header. The rule
+it breaks is worth stating: **a golden that a ruled change invalidates has
+to be re-taken in the session that makes the change.**
+
+**And `pairgraph_run.sh` was gating on the instrument that cannot read the
+link.** `conform_run.sh` recorded on 2026-08-29 that `dsp4_diag.py` can
+fail to answer after a config while `dsp4_scope`'s paced, voted read
+returns `BOOT_STAGE 7` off the same part, first try — and `pairgraph_run.sh`
+kept the diag gate. It spent this session discarding good boots for it:
+`busgold` burned all five of its attempts twice, and every `captable` point
+that reported `BOOT_STAGE reads  — link down` was that. With the paced
+probe ported across, the very next `busgold` run booted, configured and
+captured on its FIRST attempt.
+
+#### 6. Item 4 — the chip-2 boot intermittent, noted and not chased
 
 **The specific symptom the dispatch named did not recur in a diagnosable
 form.** Chip 2 never reported `CHIP_ID 1`, and the boot ladders'
