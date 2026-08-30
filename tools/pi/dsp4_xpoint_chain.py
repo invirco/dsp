@@ -19,6 +19,15 @@ folded form rounds once at the bus instead of once per source.
 Also exercises the two folds this build introduced: FDR mute and GAIN
 polarity now live in the coefficient, not in a per-sample test.
 """
+#
+# STAGING: this probe now imports tools/dsp/fixed_ref.py (review
+# finding D32 — the round-and-saturate must not exist in two
+# places), so that file has to be in /home/app/dspboot/ before it
+# will run. Every bar script that boots this bench already puts it
+# there (bqst.sh, numverify.sh, mtrverify.sh, goldnode.sh); a probe
+# run out of scratch has to copy it by hand. There is no committed
+# driver for these two probes to hang the scp on, and inventing one
+# is a separate decision.
 import struct, sys, time
 sys.path.insert(0, '/home/app/dspboot')
 import dsp4_scope as S
