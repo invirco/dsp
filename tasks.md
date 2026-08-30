@@ -1,3 +1,56 @@
+## HUB DISPATCH 2026-08-30 18:56Z — session 13: boot+config handshake intermittent root-cause   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+(reasoning: intermittent hardware/handshake debugging of unknown shape —
+the defect has already misattributed four sessions)
+
+SESSION 13 — THE BOOT+CONFIG HANDSHAKE INTERMITTENT, AS THE SUBJECT.
+
+Context: session 12 proved the "cascade hang" was this boot failure
+aliased through retrying instruments (~2 in 8 cycles wedge at
+BOOT_STAGE 0 or 5, even with DSP4_STRIPS=2 and no self-test). It is
+the same standing chip-ID/link intermittent recorded since session 5
+(and D60's vote-don't-believe-one-read lesson). Its cost is now
+quantified: four sessions of misattribution.
+
+1. MAKE FAILURE VISIBLE EVERYWHERE FIRST: every bench script that
+   boots the part logs BOOT_STAGE + retry count on every cycle (not
+   only the last attempt). The per-cycle failure rate becomes a
+   tracked number from today.
+2. CHARACTERIZE before theorizing: N>=30 one-attempt boot cycles,
+   scripted identically; record per-cycle BOOT_STAGE, which chip(s)
+   wedge (1, 2, or both), SPI_ERR_COUNT, CHIP_ID reads, timing between
+   power/reset/first-config, and whether a wedged cycle EVER recovers
+   unaided. Rate with confidence bounds, not anecdotes.
+3. BISECT the handshake dimensions independently: reset-to-config
+   delay (sweep it), SPI clock rate during config, first-words
+   content, chip 1 vs chip 2 order, warm vs cold boot, with/without
+   the MCU restart. One variable at a time, N large enough that a
+   quarter-rate coin cannot fool the bisect (>=16 cycles per arm).
+4. INSTRUMENT the wedged state: what does the boot kernel see when
+   stuck in .wait_boot — which handshake word is missing/garbled?
+   UART witness on the part if available; SPI bus capture if the bench
+   permits. Name the failing exchange, not the symptom.
+5. FIX only what the evidence convicts (timing margin, retry-at-the-
+   right-layer, config re-send discipline) and PROVE it: >=50
+   consecutive one-attempt clean cycles on the fixed path vs the
+   measured baseline rate. W0 discipline if any image change; a pure
+   bench-script fix needs no image.
+6. If the mechanism points at hardware (signal integrity, power
+   sequencing, CPLD involvement) — STOP at the named mechanism with
+   the evidence; hardware changes are PW-level (mods PDF flow). Do
+   not touch the CPLD.
+7. Bars green at end, bench restored, cost file untouched (this
+   session changes no kernels).
+
+Rules: standing traps; interlock (one bench user); ladder discipline;
+no thrash — if the rate resists bisection, land the characterization
+and the sharpest question.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-08-30 17:13Z — session 12: cascade hang root-cause, FILT/EQ pairing   [status: 🟢 done — **THE CASCADE DOES NOT HANG, AND THE FILT/EQ LEVER WAS NEVER BLOCKED — IT HAS BEEN BANKED SINCE SESSION 5 AND IT IS WHAT PUTS 32 CHANNELS AT BLOCK 32 UNDER BUDGET AT ALL.** The premise this session was dispatched on is stale, and the stale entries are corrected in place rather than deleted. `DSP4_BQ_GRAPH` pairs FILT and EQ, has DEFAULTED ON since session 5, and every margin figure published since then already carries it — including session 11's. Measured both ways on ONE tree in one run (32 strips, signal, 983.04 MHz, `TUBEON=0` explicit): **block 8 217,745 (132.90%) unpaired vs 198,072 (120.89%) paired, −19,673 / −9.03%; block 32 673,758 (102.81%) vs 584,845 (89.24%), −88,913 / −13.20%.** Against session 5's −19,465 / −86,802 for the same lever on a much-changed tree: agrees to 1% and 2.4%. **At block 32 that lever is the entire difference between 102.81% of budget and 89.24%** — 32-on-one-chip is under budget BECAUSE FILT and EQ are paired. Published to `dsp4-function-costs.csv`; the review index's AXIS-1 caveat 1 and the budget doc's "the paired biquad cascade still hangs" section are marked corrected. **THE HANG IS AN ARTEFACT OF TWO INSTRUMENTS AND EVERY "BISECT" ON RECORD WAS SAMPLING A COIN.** Three independent measurements: (1) a phase marker at the top of `_bq_fx_cascade_simd` (`DSP4_BQ_TRACE`, new, default 0) **reads 0 in a wedged run — the routine never executed one instruction**; BOOT_STAGE 5 means the main loop is still in `.wait_boot` and the self-test has not started. (2) **The same byte-identical image (`chip1.ldr f4ce7a9a`) wedged once and ran clean twice** across three consecutive invocations. (3) **A plain `DSP4_STRIPS=2` build with no self-test and no paired cascade at all wedges too** — eight independent boot+config cycles, one attempt each, no retries: BOOT_STAGE **7 7 7 7 0 7 7 0**, six of eight. `bqst.sh` retries five times and reports only the last, so a "hang" means five failures in a row at a per-cycle rate near a quarter. **When it does run it runs exactly as designed**: wrapper phase 8, cascade phase 4, outer loop **2** iterations, inner loop **16** — stages × BLOCK exactly, which excludes the loop-stack, DAG-wrap and IT-buffer hypotheses by count rather than by argument. **THE SELF-TEST ARM COULD NOT HAVE PASSED, WHATEVER THE KERNEL DID, AND IS REWRITTEN.** The scalar arm above it is a TIMING loop running the cascade IN PLACE twice with persisting state, so `_sq_xA` never held "the scalar result"; the pair arm then ran ONE pass from ZEROED state and diffed the two. **Strip B was never compared at all** — the B half read a direct address, the same word every iteration, and did nothing with it: no subtract, no compare, no counter. And **nothing on the host ever read `_sq_pdiff`**, so a broken comparison computed a verdict inside the part and had no way out of it for four sessions. **`_sq_cB` was also not a different filter**: it was `_sq_cA`'s two sections IN THE OPPOSITE ORDER — the same transfer function to within rounding, which is why the negative control moved exactly ONE sample of sixteen. Both arms now run one pass over one stimulus from zeroed state, both strips are compared, strip B is a genuinely different design (LPF 5 kHz Q0.707 → HPF 1.5 kHz Q0.5), and `dsp4_bq_verify.py` reads the result. **THE VERDICT THE RECORD NEVER HAD: `_bq_pair_blk` is BIT-EXACT against the scalar cascade on the part, both strips, 0 of 16, with `DSP4_SIMD_NEGCTL` firing at 8 of 16 (the whole of strip B); and the paired GRAPH is bit-exact against the dynamics-only graph, `bqgraph.sh` 0 of 64 bus words, negative control 56 of 64.** **THREE FINDINGS OUT OF BUILDING THE INSTRUMENT. D68: every fault vector is silent twice over** — IMASK is zeroed at `_start` and only SECI and TMZLI are ever ORed back, so ILOPI/CB7I/IICDI/SOVFI/ILADI/RINSEQI/CB15I are MASKED, and their IVT entries are bare `rti` besides. **The 2026-08-24 "IICDI read 0" conclusion was vacuous**: the counter lived in a handler that could not run on a vector that could not be taken. `DSP4_FAULT_TRAP` (new, default 0) unmasks all seven and counts them. **D69: CB7I fires exactly once per boot in every configuration measured**, including with the pair call removed — before `C_RUNTIME_INIT` sets `l7 = 0`, so it is the boot kernel's leftovers. **D70: the ISRs run on a secondary DAG whose length registers are written NOWHERE in the tree, and the boot kernel leaves two of them non-zero** — `C_RUNTIME_INIT` zeroes `l0..l15` with SRD1/SRD2 CLEARED (the primary set) while both ISRs run with `SRD1L|SRD1H` SET. Read back at `_start` (`DSP4_DAG_PROBE`, new, default 0): **`l6 = l7 = 0x2FF`**, so every ISR-side access through i6/i7 is circular against a length nobody chose. `DSP4_DAG_SEC_INIT` (new, default 0) zeroes them in sixteen instructions. **It is NOT the boot-handshake failure and that is a measurement, not an assumption: 6 of 8 cycles with the fix, 6 of 8 without.** Kept behind a default-0 flag because it changes the shipping image; recommended for a deliberate flip. **THE REAL OPEN ITEM IS THE INTERMITTENT BOOT+CONFIG FAILURE, ~2 IN 8 CYCLES, AND IT IS NOT A DSP-SIDE HANG.** Same failure recorded at the end of session 5; every bench script carries a retry loop for it; it has now cost four sessions of misattributed debugging and deserves its own session with the handshake as the subject rather than the harness. **BARS**: bqst PASS on both arms (0 of 16 × 3, negctl 15 of 16) plus the new pair arm, busgold `GRAPH BIT-EXACT` 0 of 256, bqgraph `GRAPH BIT-EXACT` with `GRAPH DIFFERS` on the control, golden harness 59/59. Bench interlock extended to the two scripts session 11 missed (`bqgraph.sh`, `pairgraph.sh`). **W0: THE SHIPPING IMAGE IS BYTE-IDENTICAL** — `./build.sh` reproduces chip1.ldr `3f0e479a` and chip2.ldr `ab43c75b`, 301,732 and 182,060 bytes; all four new switches default to pre-existing behaviour and the self-test changes are inside `DSP4_SIMD_PROBE`. Bench restored and verified: shipping md5s on the card, `matrix-app` active with all three MCUs verified (H1S1 DSP, H1S4 SW Left, H1S3 SW Right) on the second restart. CPLD never touched, TUBE never engaged.]   [model: opus]
 
 model: opus
