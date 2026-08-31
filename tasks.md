@@ -7026,124 +7026,33 @@ block); restore SHIPPING at the end; rev A hands-off; matrix-app running +
 3 MCUs verified at every stop; single trunk; no AI attribution; numeric-spec
 changes are amendments with a date, never silent.
 
-## QUEUED — PRODUCT CONCEPT (PW 2026-08-23): low-cost 8x8 mixer on a Pi, software DSP, dual FX   [status: 🔵 concept, not scheduled — for PW/hub decision, no build work started]
+## MOVED — the low-cost 8x8 Pi mixer concept now lives in the `zero` repo   [status: 🔵 moved 2026-08-31]
 
-model: opus
+PW's 2026-08-23 product concept — 8 in / 8 out mixer, DSP in software on a
+Pi, dual FX, small screen, no buttons — was recorded here because there was
+nowhere else to put it. There is now: **`invirco/zero`**, its own spoke,
+with a Z1–Z9 ladder, a Buildroot image that boots to a shell in 91 s, and
+`docs/tdm-frame-def.md` as the Pi/CPLD wire contract.
 
-PW floated this in conversation on 2026-08-23; recorded here so it is not lost.
-NOT a dispatch. Nothing is committed to and no schedule is implied.
+The block is moved verbatim to `zero`'s `docs/concept-origin-20260823.md`,
+with a reconciliation of what the ladder has since settled. Two things in
+it point back at THIS repo and are why the pointer is worth keeping:
 
-THE CONCEPT: 8 in / 8 out mixer, DSP done in software on the Pi itself (no
-SHARC card), dual FX only, small screen, no buttons, simple and low cost.
-Candidate platform floated: Raspberry Pi Zero 2 W.
+- **Route A is proven here and the reframing Verilog already exists.**
+  2 ch x 32 bit @ 192 kHz is exactly 8 ch x 32 bit @ 48 kHz; duplex
+  measured 191999/191999 frames clean on the rev C bench, and
+  `dsp4_pcm_reframe.v` already does the reframing. `zero`'s Z8 (CPLD)
+  should read it before writing it again.
+- **The numeric spec question is open and it is a D5 question.** D5 rules
+  one numeric spec across targets, so an ARM engine should arguably be
+  Q4.28 fixed-point, keeping `tools/dsp/dsp_simulate.py` golden vectors
+  normative across SHARC, FPGA fabric and ARM. `dsp_codegen.py` could emit
+  C as well as SHARC ASM. That decision lands in `zero`'s Z4, but the
+  contract it answers to lives here.
 
-WHERE IT SITS IN THE RANGE: below everything D6/D7 govern (those start at
-32 ch). It does not conflict with the D6 platform split or the D7
-fabric-only baseline. It WOULD introduce a THIRD engine platform alongside
-SHARC (D5 fixed-point) and FPGA fabric — that is the strategic cost and it
-is a hub/PW call, not an engineering one.
-
-MEASURED (this bench, 2026-08-23):
-- matrix-app RSS = 237 MB (self-contained .NET/Avalonia, VSZ 3.6 GB) on the
-  rev-C CM4, which has 730 MB usable. That is the number any UI alternative
-  has to beat, and it is over half a 512 MB Zero 2 W before audio allocates.
-- bcm2835-i2s is hard-limited to 2 channels per direction (already recorded
-  in MW/D32/DSP/dsp4-plumbing.md). 8x8 at 48 kHz CANNOT come off the Pi PCM
-  pins directly.
-- Route A works and is proven: 2 ch x 32 bit @ 192 kHz = 12.288 Mbit/s =
-  exactly 8 ch x 32 bit @ 48 kHz. Duplex measured 191999/191999 frames clean.
-  So one stereo 192 kHz link carries all 8 channels each way — but ONLY with
-  external re-framing logic (dsp4_pcm_reframe.v already does this).
-
-ESTIMATED, NOT MEASURED — flagged as such:
-- 8 strips + 8x8 matrix + 8 output strips + 2 FX is roughly 2,700 flops per
-  sample, ~130 MFLOP/s at 48 kHz: order 10 % of ONE A53 core with NEON.
-  The DSP maths is not the constraint. Do not quote this as measured.
-- The SHARC 6.6x-over-budget finding does NOT transfer: that graph is 431
-  nodes invoked PER SAMPLE (13,792 calls/block). A block-processed software
-  design does not inherit that structure.
-- Pi Zero 2 W carries the same BCM283x PCM block as the CM4 and should take
-  the existing dsp4-pcm-slave.dts unchanged (it is compatible = "brcm,bcm2835"
-  and targets the generic &i2s_clk_consumer / &sound labels). UNVERIFIED —
-  no Zero 2 W has been on this bench.
-
-THE REAL RISKS, in order:
-1. Linux real-time behaviour, not MIPS. SDIO Wi-Fi DMA contention, non-RT
-   preemption and thermal throttling are the likely xrun sources. Needs
-   PREEMPT_RT, isolcpus, SCHED_FIFO, Wi-Fi power-save off. Which cause
-   actually dominates is MEASURABLE (cyclictest + xrun counters) and should
-   be measured before any distro or platform commitment.
-2. You still need a logic device. The CPLD does not go away; it is cheap
-   (re-framing only, far simpler than DSP4 LOGIC) but it is in the BOM.
-3. Zero 2 W is a BOARD, not a module — no castellations, no SO-DIMM, and
-   RPi guidance for products is Compute Module. Designing it in means a
-   40-pin mezzanine plus connectors you do not want. CM4 Lite costs ~$15-20
-   more on a BOM dominated by converters, 16 channels of connectors, PSU and
-   enclosure. RECOMMENDATION ON RECORD: CM4 Lite unless the price point
-   genuinely turns on that delta.
-
-OPEN DECISIONS (these gate everything else, and they are PW's):
-- (a) CONTROL SURFACE. "Small screen, no buttons" — touchscreen, or is the
-  screen status-only with control from a phone/web app? If the phone is the
-  control surface, the on-device UI becomes a few hundred lines of SDL or
-  framebuffer, .NET disappears, Buildroot becomes easy and 512 MB stops
-  mattering. This is the highest-leverage question in the whole concept and
-  it is upstream of (b) and (c).
-- (b) UI STACK. If the product stays inside the matrix ecosystem, keep
-  Avalonia and use PublishAot + trimming (the cell/MxAdd/CellRebinder
-  binding layer is the expensive part to replace, not the widgets). If it is
-  a standalone appliance, Slint is preferred over LVGL for its declarative
-  binding — but Slint is GPLv3 or paid commercial, and Qt licensing is a
-  real cost at this price point. Chromium kiosk and Flutter ruled out at
-  512 MB.
-- (c) DISTRO. Buildroot buys boot time (~2-5 s vs 20-30 s), a read-only
-  rootfs (power-fail immunity on SD — arguably the strongest argument), and
-  easy PREEMPT_RT integration. It buys NOTHING for the DSP or the PCM limit,
-  and it fights back hard if the product needs BlueZ + PipeWire for the
-  Bluetooth path or .NET for the UI. Decide AFTER (a) and (b). A pinned
-  defconfig in git would fit the defs.lock discipline and would replace the
-  current hand-applied config.txt provisioning.
-- (d) NUMERIC SPEC. D5 says one numeric spec across targets. An ARM engine
-  should therefore arguably be Q4.28 fixed-point, not float, so
-  dsp_simulate.py golden vectors stay normative across all three platforms.
-  A53 does fixed-point fine. Float would be a deliberate deviation needing
-  a D-number.
-
-USB MULTITRACK RECORD/PLAY (PW asked 2026-08-23): 8 ch to removable media.
-ESTIMATED, NOT MEASURED.
-- Bandwidth is a non-issue: 8 ch x 48 kHz x 24 bit = 1.15 MB/s, ~2.3 MB/s
-  if record and play run together, against 15-25 MB/s realistic for USB 2.0
-  HS on this part. One hour of 8-track 24/48 is ~4.15 GB.
-- THE RISK IS NOT BANDWIDTH, it is USB host overhead colliding with the
-  real-time audio thread. The Pi's DWC2 controller does much of its work in
-  software (FIQ-driven) and USB traffic causing audio dropouts is a
-  well-known Pi failure mode. This lands on top of risk 1 above and is the
-  thing to MEASURE early, not reason about.
-- Single OTG port, no onboard hub. The stick occupies the only port, and it
-  is the same port the USB 2-track audio path would want.
-- USB sticks stall for hundreds of ms during wear-levelling, which is fatal
-  for live recording. Mitigation is cheap: 30 s of 8-track ring buffer is
-  ~35 MB, affordable even in 512 MB, behind a writer thread.
-- Recommend: specify a USB SSD rather than a stick; write PER-TRACK mono
-  files (518 MB/hour each, dodges the FAT32 4 GB ceiling that an
-  interleaved 8-ch WAV hits at 57 minutes); consider an SD partition
-  instead, which skips USB host overhead entirely at the cost of swappable
-  media.
-- OPEN QUESTION for PW, changes the storage spec more than the Pi choice
-  does: are record and play SIMULTANEOUS, or separate modes? Multitrack
-  record and virtual-soundcheck playback usually are not concurrent; only
-  overdubbing needs both. Separate modes halve the load and keep the media
-  in the one-direction case where cheap flash behaves best.
-
-CHEAPEST NEXT STEP IF IT IS TAKEN FURTHER: publish a stripped Avalonia
-sample with PublishAot=true for linux-arm64 and measure RSS on the bench
-CM4. One afternoon, and it settles whether the existing stack fits a tight
-platform or whether a second UI line is genuinely needed.
-
-POSSIBLE REUSE, worth weighing against the third-platform cost:
-tools/dsp/dsp_codegen.py already generates node code from dsp.csv and could
-emit C instead of SHARC ASM; dsp_simulate.py golden vectors are normative
-per D6 and would validate an ARM build too.
+Also unchanged and still unrecorded at the hub: this is a THIRD engine
+platform alongside SHARC (D5) and FPGA fabric (D6/D7), which is a hub/PW
+call, not an engineering one.
 
 
 ## HUB DISPATCH 2026-08-22 19:05Z — SPI PARAMETER LINK — the handler runs exactly ONCE per reset (RX FIFO above watermark / ROR / host ignores RDY)   [status: 🟢 done — **the link is UP on both chips and the whole diagnostic register block now reads off a running SHARC, a first for this card.** Root cause of once-per-reset: the SEC handshake is TWO-step and `_sec_isr` only did steps 1 and 4 — it never wrote `SEC_CSID0` back to acknowledge, so the SEC never arbitrated another request. One line took SEC_COUNT from 1 to 94. Proved by bisect rung 27, which polls the SAME handler and round-tripped correctly while the interrupt build was stuck at one. Three more fixed: the RFIFO came out of boot FULL (no flush bit exists — `SPI_CTL.EN` must go low, HRM 15; now measured empty, ROR/RUWM clear); the handler drained an empty FIFO and dispatched the garbage (RFE guard added); and `dsp4_diag.py` asserted GPIO7 for chip 2 where `dsp4_boot.py` has always used GPIO24 — the whole reason chip 2 read all-zero. Chip 1 and chip 2 both return MAGIC 0xD5B40001 and their own CHIP_ID. STILL OPEN, precisely characterised: a write (or DIAG_NOP) queues no answer but still clocks two words out of the 2-deep TFIFO, leaving an odd word outstanding and slipping every later echo by one — so reads are solid but write-then-read-back is not. Real fix is DSP-side: make every accepted transaction queue exactly one two-word answer. Also open: SPI2_RDY never asserts even with the RFIFO empty, so dispatch task 2 as written is not actionable — a host honouring this RDY would wait forever]
