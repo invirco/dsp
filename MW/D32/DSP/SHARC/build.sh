@@ -283,15 +283,24 @@ ASMFLAGS="$ASMFLAGS -DDSP4_CFG_WATCH=$DSP4_CFG_WATCH"
 # config burst in flight can no longer be mistaken for a stale fragment
 # and have one of its words discarded. Fixes D71 (lost CONFIG_COMMIT
 # transaction): 0 D71 events in 350 pooled fixed-path cycles vs 2/136
-# unfixed. SESSION 14 TRIED DEFAULT-ON AND REVERTED IT THE SAME SESSION
-# (D74, new): with this flag on, busgold.sh's dsp4_scope.py read path
-# (distinct from dsp4_diag.py/bootchar's DiagLink path) fails to capture
-# 4 of 4 times (5/5 retries exhausted each time, "register 0xE001 never
-# settled: no answer" / "link answers as CHIP 0"); with the flag off,
-# busgold.sh passes cleanly 2/2 on the first attempt. Reproducible A/B on
-# the same bench, same session. Mechanism not yet root-caused — see D74.
-# Default 0 until D74 is resolved — the shipping image is unchanged.
-DSP4_SPI_PARTIAL_FIX2="${DSP4_SPI_PARTIAL_FIX2:-0}"
+# unfixed.
+#
+# SESSION 14 TRIED DEFAULT-ON AND REVERTED IT THE SAME SESSION (D74): with
+# this flag on, busgold.sh's dsp4_scope.py read path failed to capture 4 of
+# 4 times ("register 0xE001 never settled" / "link answers as CHIP 0"),
+# while the flag off passed 2 of 2.
+#
+# SESSION 15 ROOT-CAUSED D74 AND IT IS NOT IN THIS FLAG. The link answers
+# every transaction with (echo, value) and the host's 8-byte windows can
+# sit on either of two offsets in that word stream; the echo lands in word
+# 1 in BOTH, so the host's echo check passed while handing back the
+# PREVIOUS request's value — 0, after a NOP collect. That is the whole of
+# "answers as CHIP 0". The old unconditional word discard was the only
+# thing that ever moved that phase, so suppressing it left the scope path
+# stuck in the wrong one. The fix is host-side: tools/pi/dsp4_diag.py now
+# CALIBRATES the phase against DIAG_MAGIC and decodes with it. With that in
+# place this flag is safe on, and it is on: it fixes D71.
+DSP4_SPI_PARTIAL_FIX2="${DSP4_SPI_PARTIAL_FIX2:-1}"
 CFLAGS="$CFLAGS -DDSP4_SPI_PARTIAL_FIX2=$DSP4_SPI_PARTIAL_FIX2"
 ASMFLAGS="$ASMFLAGS -DDSP4_SPI_PARTIAL_FIX2=$DSP4_SPI_PARTIAL_FIX2"
 DSP4_DAG_PROBE="${DSP4_DAG_PROBE:-0}"

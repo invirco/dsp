@@ -38,4 +38,32 @@ bench_lock_acquire() {
     # the info file is cosmetic (a human-readable "who has it") and is
     # cleared on exit so a stale name is never reported as the holder.
     trap 'rm -f "$BENCH_LOCKFILE.info"' EXIT
+    bench_deploy_link_tools
+}
+
+# ---- the host half of the parameter link travels with the lock ----
+#
+# D74 (2026-08-31) landed a fix in tools/pi/dsp4_diag.py and
+# tools/pi/dsp4_scope.py — the answer-phase calibration — and NOT ONE bar
+# script deployed either file. Every one of them scp's the image, the
+# per-bar probe and its own _run.sh, and then drives whatever copy of the
+# link tools happens to be sitting on the card. A fix to the link can
+# therefore be in the repo, be green on the bench by hand, and still be
+# absent from every bar that matters.
+#
+# The lock is the one thing every bench script already sources, so the
+# deploy hangs off it. A failure here is reported and NOT fatal: a bar
+# that cannot reach the card will say so on its own terms a moment later,
+# and turning an ssh hiccup into an exit from a shared helper would be
+# worse than the stale copy this exists to prevent.
+BENCH_HOST="${BENCH_HOST:-app@192.168.1.219}"
+
+bench_deploy_link_tools() {
+    local dir
+    dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../../tools/pi" 2>/dev/null && pwd)"
+    [ -n "$dir" ] || { echo ">>> BENCH DEPLOY: no tools/pi found" >&2; return 0; }
+    scp -q "$dir/dsp4_config.py" "$dir/dsp4_diag.py" "$dir/dsp4_scope.py" \
+           "$dir/dsp4_bootlog.py" "$dir/dsp4_spiphase.py" \
+           "$BENCH_HOST:/home/app/dspboot/" 2>/dev/null \
+      || echo ">>> BENCH DEPLOY: could not refresh the link tools on $BENCH_HOST" >&2
 }

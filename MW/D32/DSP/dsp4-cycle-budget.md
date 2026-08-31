@@ -2985,3 +2985,47 @@ baseline. D71 stays fixed and proven behind the flag; shipping it as
 default needs D74 root-caused first, on the opus tier per this session's
 own escalation clause. Golden harness 59/59 throughout (model-only,
 unaffected by the bench-side finding).
+
+### Session 15 (2026-08-31): D74 root-caused — the fix was host-side, D71 ships
+
+D74 is not in `DSP4_SPI_PARTIAL_FIX2`, and the parameter link was never
+broken. Measured with three new diag registers (`SPI_PART_SEEN` 0xE021,
+`SPI_PART_SKIP` 0xE022, `SPI_REQ_WORD` 0xE023, under `DSP4_CFG_WATCH`).
+
+Session 14's hypothesis was half right. **The fix's gate really is
+suppressed by host traffic** — `SPI_PART_SKIP` tracked `SPI_PART_SEEN`
+essentially one for one in every run measured, with `SPI_PART_FIX` at 0
+throughout, so with the flag on the 2026-08-22 word discard never fires
+while the host is polling. **But there is no stranded fragment**: caught
+live in the failing state the part reads `BOOT_STAGE 7`, `SPI_ERR_COUNT 0`,
+`RESP_DROP 0`, **`RFS 0` — the RX FIFO is empty** — and `SPI_RX_COUNT`
+advancing 217 requests per retry round. The DSP answers every transaction
+correctly; the host reads the wrong word of the answer. MISO carries a
+continuous stream of two-word (echo, value) answers and the master's
+8-byte windows sit on either of two offsets in it; the echo is in word 1
+in BOTH, so the echo check passes either way and the wrong offset returns
+the PREVIOUS request's value — 0, after a NOP collect. That is the whole
+of "link answers as CHIP 0", and of every uniformly-zero register dump on
+record. The ISR's word discard is the only thing in the system that moves
+that phase, which is why suppressing it froze the wrong one in place.
+
+The fix is host-side: `DiagLink` calibrates the phase against `DIAG_MAGIC`
+and decodes with it; `dsp4_scope.py` shares the decision. Full write-up:
+`MW/D32/DSP/dsp4-boot-handshake-20260830.md` (session 15 addendum).
+
+**W0: the shipping image changes, by design — this is D71 shipping.**
+`./build.sh` reproduces chip1.ldr `23c1e662` / chip2.ldr `e45bb82a`,
+301,764 / 182,092 bytes, across two clean builds, from `3f0e479a` /
+`ab43c75b`, 301,732 / 182,060. The +32 bytes per chip are the six-
+instruction recovery gate plus its dwell branch. `DSP4_CFG_WATCH` and the
+three new registers default to 0 and are absent from that image.
+Golden harness 59/59 (model-only, unaffected).
+
+**Bars, on the flag-on tree.** `busgold.sh` **10 consecutive runs, all
+`GRAPH BIT-EXACT`, 0 of 256 words differ**, every one capturing on the
+first attempt (`gainfix: strip 1 repaired on attempt 1`) — the bar that
+failed 0 of 4 in session 14. `goldnode.sh` **3 consecutive runs, all
+`NODE VERIFY BIT-EXACT`**, byte-identical output, "every negative control
+fired (6 stimuli)"; the COMP impulse line "no amplitude produced a usable
+capture" is `dsp4_node_verify.py`'s own documented amplitude search giving
+up on that one negative control and is pre-existing, not a regression.

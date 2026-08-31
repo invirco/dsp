@@ -72,6 +72,14 @@ for attempt in 1 2 3 4 5; do
   # one word out of phase. A diag read walks it back into phase, so every
   # scope-side tool here gets one in front of it and a few goes at it.
   # Without this the run burns all five boot attempts on a link state.
+  #
+  # EXPLAINED 2026-08-31 (D74): the word of phase is real and this note had
+  # it right; what it could not know is that BOTH tools were guessing at it
+  # from the echo's position, which cannot distinguish the two
+  # arrangements. dsp4_diag.py now calibrates the phase against DIAG_MAGIC
+  # and dsp4_scope.py decodes with the same answer, so the diag read in
+  # front is no longer load-bearing. The ladder is left in place because it
+  # also covers boot and config retries, which are separate matters.
   for g in 1 2 3 4 5 6; do
     python3 dsp4_diag.py --chip 1 >/dev/null 2>&1
     python3 gainfix.py 2 > /tmp/gf.log 2>&1 && break

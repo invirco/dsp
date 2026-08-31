@@ -28,7 +28,10 @@ CCLK="${CCLK:-983}"
 # testing, and the only reason it was caught is that the diagnostic
 # registers read 0.
 CFG_WATCH="${DSP4_CFG_WATCH:-0}"
-PARTIAL_FIX2="${DSP4_SPI_PARTIAL_FIX2:-0}"
+# Tracks build.sh's default, which session 15 moved to 1 once D74 was
+# root-caused off this flag. A 0 here would have quietly measured the
+# UNFIXED path against a tree that ships the fix.
+PARTIAL_FIX2="${DSP4_SPI_PARTIAL_FIX2:-1}"
 echo "bootchar: STRIPS=$STRIPS CCLK=$CCLK DSP4_CFG_WATCH=$CFG_WATCH DSP4_SPI_PARTIAL_FIX2=$PARTIAL_FIX2 BUILD=${BUILD:-1}"
 if [ "${BUILD:-1}" != "0" ]; then
   DSP4_BISECT=0 DSP4_BLOCK_KERNELS=1 DSP4_STRIPS=$STRIPS \

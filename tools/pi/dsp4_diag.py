@@ -111,6 +111,9 @@ REGISTERS = [
     (0xE01E, 'CGU_IT4',       DEC),
     (0xE01F, 'SPI_PART_FIX',  DEC),
     (0xE020, 'SPI_PART_TICKS', DEC),
+    (0xE021, 'SPI_PART_SEEN', DEC),
+    (0xE022, 'SPI_PART_SKIP', DEC),
+    (0xE023, 'SPI_REQ_WORD',  HEX),
 ]
 
 BOOT_STAGES = {
@@ -153,9 +156,93 @@ SPI_TXCTL_EXPECT = [(0x00000001, 'TEN   transmit enabled')]
 
 
 class DiagLink:
+    """The host half of the parameter link, with an EXPLICIT answer phase.
+
+    D74 (2026-08-31). The firmware answers every accepted transaction with
+    two words, `echo` then `value`, and the master collects them on the
+    transaction after the one that asked. What the master actually sees is
+    a continuous word stream, and its 8-byte windows can sit on either of
+    two offsets in it. Measured on the part, both occur:
+
+        PRE   window = (value, echo)          <- the arrangement this file
+                                                 has always assumed
+        POST  window = (<previous value>, echo), and THIS request's value
+              is word 0 of the NEXT window
+
+    The echo lands in word 1 in BOTH, so the echo check — the only
+    integrity mechanism the link has — passes either way. In POST it
+    passes while handing back the value belonging to the PREVIOUS request,
+    which in an ask/collect loop is the NOP's, and a NOP answers 0. That
+    is the whole of "the link answers as CHIP 0", "MAGIC reads 0" and the
+    all-zero register dumps taken off parts that were running perfectly:
+    nothing was dropped and nothing was wedged, the answer was read one
+    word away from where it lay. It is also what made the 2026-08-22
+    stuck-partial recovery in `_diag_timer_isr` look load-bearing — its
+    word discard is the only thing in the system that shifts this phase,
+    which is why suppressing it (DSP4_SPI_PARTIAL_FIX2, the D71 fix) left
+    the scope path stuck in POST for good.
+
+    So the phase is CALIBRATED rather than assumed: DIAG_MAGIC is a
+    compile-time constant, so one read of it says which arrangement is
+    live, and every read after that is decoded with it. A decode that
+    stops matching re-calibrates.
+
+    RESIDUAL RISK, stated rather than hidden: a phase that flips PARTWAY
+    through a session is decoded with the stale calibration and returns
+    the previous request's value with no error, because the echo still
+    matches. The only thing known to flip it is the timer ISR's word
+    discard, which DSP4_SPI_PARTIAL_FIX2 keeps from firing while the host
+    is polling — so under the shipping configuration a flip needs an idle
+    gap. Reads that matter are still voted (Scope.rd), and a register with
+    a known constant beside them (MAGIC travels with BOOT_STAGE in
+    dump()) is what catches it. Re-calibrating per read would cost a
+    transaction per read and was not measured to be necessary.
+    """
+
     def __init__(self, link):
         self.link = link
         self.pending = None      # word0 of the request awaiting collection
+        self.phase = None        # 'pre' | 'post', see the class docstring
+
+    def calibrate(self, tries=8):
+        """Decide which arrangement this link is in, against a constant.
+
+        MAGIC is the only register whose value is known before it is read,
+        which is exactly what a phase test needs: in PRE the window that
+        carries the echo also carries 0xD5B40001, in POST the next window
+        starts with it. Anything else is a link that is not answering at
+        all, and that is reported as such rather than guessed at."""
+        want0 = int.from_bytes(frame(0xE000, 0, read=True)[0:4], 'big')
+        for _ in range(tries):
+            self._fetch(0xE000, next_read=True)
+            for _ in range(COLLECT_TRIES):
+                w0, w1 = self._fetch()
+                if w0 == want0 and w1 == MAGIC_VALUE:
+                    self.phase = 'pre'      # aligned window, same handling
+                    return self.phase
+                if w1 == want0:
+                    if w0 == MAGIC_VALUE:
+                        self.phase = 'pre'
+                        return self.phase
+                    x0, _x1 = self._fetch()
+                    if x0 == MAGIC_VALUE:
+                        self.phase = 'post'
+                        return self.phase
+                    break
+            self.link.realign()
+        raise IOError('cannot phase the parameter link: MAGIC never came '
+                      'back in either arrangement')
+
+    def _value(self, w0, w1, want0):
+        """Pull this request's value out of one collect window, or None."""
+        if w0 == want0:
+            return w1                      # (echo, value) in one window
+        if w1 == want0:
+            if self.phase == 'post':
+                x0, _x1 = self._fetch()    # value leads the NEXT window
+                return x0
+            return w0                      # PRE: (value, echo)
+        return None
 
     def _fetch(self, next_addr=None, next_read=False):
         """Clock one transaction; return the (echo, value) it collects."""
@@ -170,15 +257,20 @@ class DiagLink:
         """Read one diagnostic register, verifying the echoed request.
 
         The answer is two words, (echo, value), collected on the
-        transaction after the one that asked. On this silicon the pair
-        can arrive ROTATED - value first, then echo - because the DSP's
-        receive FIFO can be left holding a single stale word around the
-        boot handover; the firmware's timer ISR discards it, but the
-        stream stays a word out of phase afterwards. So both
-        arrangements are tried and the ECHO decides which is real. That
-        is safe: an answer is only accepted when the request word comes
-        back verbatim, so a wrong guess cannot be mistaken for data.
+        transaction after the one that asked, and the pair can arrive in
+        either of the two arrangements described on the class.
+
+        CORRECTED 2026-08-31 (D74). This used to say that trying both
+        arrangements and letting the ECHO decide was safe, because "an
+        answer is only accepted when the request word comes back
+        verbatim, so a wrong guess cannot be mistaken for data". That is
+        false, and it is the defect: the echo lands in word 1 in BOTH
+        arrangements, so the echo check cannot separate them, and picking
+        the wrong one returns the value of the PREVIOUS request. The
+        arrangement is decided by calibrate(), not by the echo.
         """
+        if self.phase is None:
+            self.calibrate()
         want = frame(addr, 0, read=True)
         want0 = int.from_bytes(want[0:4], 'big')
         w0 = w1 = 0
@@ -196,14 +288,16 @@ class DiagLink:
             # is what made a loaded but perfectly healthy card look dead.
             for _ in range(COLLECT_TRIES):
                 w0, w1 = self._fetch()             # collect (sends NOP)
-                if w0 == want0:
-                    return w1                      # (echo, value)
-                if w1 == want0:
-                    return w0                      # rotated by one word
+                v = self._value(w0, w1, want0)
+                if v is not None:
+                    return v
             # Still nothing after waiting. NOW treat it as a lost answer
             # leaving master and slave a word apart -- see
-            # SpiLink.realign -- and re-ask.
+            # SpiLink.realign -- and re-ask. The phase goes with it: a
+            # realign moves the window, so the calibration is stale.
             self.link.realign()
+            self.phase = None
+            self.calibrate()
         raise IOError(
             f'response out of step reading 0x{addr:04X} after '
             f'{REALIGN_TRIES} realign attempts of {COLLECT_TRIES} collects: '
@@ -211,9 +305,14 @@ class DiagLink:
             f'0x{want0:08X}. Check RESP_DROP.')
 
     def resync(self):
-        """Drain any answer left queued by an interrupted earlier run."""
+        """Drain any answer left queued by an interrupted earlier run, then
+        establish the answer phase (see the class docstring). Draining
+        alone was never enough: it clears the queue but says nothing about
+        which of the two arrangements the window lands on."""
         for _ in range(3):
             self._fetch()
+        self.phase = None
+        self.calibrate()
 
     def write(self, addr, value):
         self.link.write(addr, value)

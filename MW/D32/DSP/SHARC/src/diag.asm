@@ -147,6 +147,7 @@
 .extern _product_id;              /* product_config.asm */
 .extern _spi_rx_count;            /* chipN/spi_handler.asm */
 .extern _spi_err_count;           /* chipN/spi_handler.asm */
+.extern _spi_req_word;            /* chipN/spi_handler.asm */
 
 /* ---- State owned here ---- */
 
@@ -213,6 +214,13 @@
 /* Last _spi_rx_count seen by the recovery's dwell test. */
 .var _spi_partial_rxmark = 0;
 #endif
+#if DSP4_CFG_WATCH
+/* D74 instrumentation, see diag.h. */
+.global _spi_partial_seen;
+.var _spi_partial_seen = 0;
+.global _spi_partial_skip;
+.var _spi_partial_skip = 0;
+#endif
 
 .global _diag_led_mode;
 .var _diag_led_mode = DIAG_LED_AUTO;
@@ -275,7 +283,10 @@
     _cgu_it3,               /* 0xE01D CGU_IT3        */
     _cgu_it4,               /* 0xE01E CGU_IT4        */
     _spi_partial_fix,       /* 0xE01F SPI_PART_FIX   */
-    _spi_partial_ticks      /* 0xE020 SPI_PART_TICKS */
+    _spi_partial_ticks,     /* 0xE020 SPI_PART_TICKS */
+    _spi_partial_seen,      /* 0xE021 SPI_PART_SEEN  */
+    _spi_partial_skip,      /* 0xE022 SPI_PART_SKIP  */
+    _spi_req_word           /* 0xE023 SPI_REQ_WORD   */
 #endif
     ;
 #else
@@ -666,6 +677,11 @@ _diag_timer_isr:
     comp(r0, r1);
     if eq jump (pc, .spi_rx_settled);
 
+#if DSP4_CFG_WATCH
+    r0 = dm(_spi_partial_seen);   /* D74: every tick that saw part-full */
+    r0 = r0 + 1;
+    dm(_spi_partial_seen) = r0;
+#endif
 #if DSP4_SPI_PARTIAL_FIX2
     /* ARM ONLY WHILE THE LINK IS STANDING STILL — see diag.h. A config
      * burst is 51 back-to-back requests and its words are in flight for
@@ -679,7 +695,14 @@ _diag_timer_isr:
     r1 = dm(_spi_partial_rxmark);
     dm(_spi_partial_rxmark) = r0;
     comp(r0, r1);
-    if ne jump (pc, .spi_rx_settled);   /* traffic moved: not residue */
+    if eq jump (pc, .spi_rx_dwell);     /* standing still: keep counting */
+#if DSP4_CFG_WATCH
+    r0 = dm(_spi_partial_skip);   /* D74: the gate suppressed this tick */
+    r0 = r0 + 1;
+    dm(_spi_partial_skip) = r0;
+#endif
+    jump (pc, .spi_rx_settled);         /* traffic moved: not residue */
+.spi_rx_dwell:
 #endif
     r0 = dm(_spi_partial_ticks);
     r0 = r0 + 1;
@@ -1070,5 +1093,10 @@ _diag_write:
     dm(_diag_resp_drop)    = r4;
     dm(_spi_rx_count)      = r4;
     dm(_spi_err_count)     = r4;
+#if DSP4_CFG_WATCH
+    dm(_spi_partial_fix)   = r4;
+    dm(_spi_partial_seen)  = r4;
+    dm(_spi_partial_skip)  = r4;
+#endif
     rts;
 _diag_write.end:

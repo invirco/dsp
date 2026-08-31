@@ -76,7 +76,7 @@
 #endif
 
 #if DSP4_CFG_WATCH
-#define DIAG_TABLE_N         0x21    /* + the CONFIG_COMMIT watch block     */
+#define DIAG_TABLE_N         0x24    /* + the CONFIG_COMMIT watch block     */
 #elif DSP4_SIMD_STRIPS
 #define DIAG_TABLE_N         0x19    /* + IICDI_COUNT at 0xE018 */
 #else
@@ -113,6 +113,25 @@
                                         discarded a word since boot       */
 #define DIAG_SPI_PART_TICKS  0xE020  /* ticks the RX FIFO has been seen
                                         part-full, live                   */
+/* Added 2026-08-31, session 15 (D74). SPI_PART_FIX alone cannot say why
+ * the recovery did not fire: it counts only the discards. These three say
+ * what the tick actually saw. SEEN counts every tick that found the RX
+ * FIFO part-full; SKIP counts the subset where DSP4_SPI_PARTIAL_FIX2's
+ * gate restarted the dwell because _spi_rx_count had moved. REQ_WORD is
+ * the last word 0 the handler assembled, so misframing is visible
+ * directly rather than inferred from SPI_ERR_COUNT.
+ *
+ * WHAT THEY MEASURED. SKIP tracks SEEN essentially one for one under host
+ * traffic with FIX at 0, i.e. with the D71 fix on, the discard never fires
+ * while the host is polling — which was the expected half of session 14's
+ * D74 hypothesis. The other half was wrong: at the same moment RFS reads
+ * 0 (the RX FIFO is EMPTY), REQ_WORD is correctly framed, SPI_ERR_COUNT
+ * and RESP_DROP are 0 and SPI_RX_COUNT is advancing. There is no residue
+ * and no misframing. D74 is a HOST-side answer-phase error; see the
+ * DSP4_SPI_PARTIAL_FIX2 note below and tools/pi/dsp4_diag.py. */
+#define DIAG_SPI_PART_SEEN   0xE021  /* ticks that saw a part-full RX FIFO */
+#define DIAG_SPI_PART_SKIP   0xE022  /* of those, ticks FIX2's gate skipped */
+#define DIAG_SPI_REQ_WORD    0xE023  /* last assembled request word 0      */
 
 /* ---- DSP4_SPI_PARTIAL_FIX2 ----------------------------------------
  *

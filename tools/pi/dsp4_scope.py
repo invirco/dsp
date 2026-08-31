@@ -95,9 +95,15 @@ class Scope:
 
         Asking once and waiting SETTLE (three block periods) before a
         single collect measured 25/25 correct where the unpaced path
-        managed 8/25. The pair normally arrives ROTATED (value, echo) --
-        that is this silicon's steady state, not a fault -- so both
-        arrangements are accepted, with the echo deciding.
+        managed 8/25.
+
+        CORRECTED 2026-08-31 (D74). This used to say the pair "normally
+        arrives ROTATED (value, echo) -- that is this silicon's steady
+        state, not a fault -- so both arrangements are accepted, with the
+        echo deciding". There are two arrangements, they are NOT
+        interchangeable, and the echo cannot tell them apart: it is in
+        word 1 in both. Accepting either is what made a running part read
+        CHIP 0. The arrangement comes from DiagLink.calibrate().
         """
         seen = {}
         for i in range(limit):
@@ -108,6 +114,7 @@ class Scope:
                 # asking again into a stream that is still shifted.
                 if i % 3 == 2:
                     self.d.link.realign()
+                    self.d.phase = None       # a realign moves the window
                 continue
             seen[v] = seen.get(v, 0) + 1
             # A DROPPED ANSWER ON THIS LINK ALWAYS READS AS ZERO, so the
@@ -125,14 +132,19 @@ class Scope:
                       % (reg, {hex(k): n for k, n in seen.items()} or 'no answer'))
 
     def _ask(self, reg):
+        """One paced ask, one collect, decoded with the link's CALIBRATED
+        answer phase (see DiagLink, D74). Deciding the arrangement from the
+        echo's position alone is what returned the previous request's value
+        — 0, after a NOP — and called a running part a dead link."""
+        if self.d.phase is None:
+            self.d.calibrate()
         want0 = int.from_bytes(frame(reg, 0, read=True)[0:4], 'big')
         self.d._fetch(reg, next_read=True)
         time.sleep(SETTLE)
         w0, w1 = self.d._fetch()
-        if w0 == want0:
-            return w1
-        if w1 == want0:
-            return w0                     # rotated: (value, echo)
+        v = self.d._value(w0, w1, want0)
+        if v is not None:
+            return v
         time.sleep(SETTLE)
         return None
 

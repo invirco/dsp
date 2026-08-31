@@ -394,3 +394,141 @@ back to 0. The shipping image is byte-identical to the pre-session-13
 baseline, `./build.sh` reproducing chip1.ldr `3f0e479a` / chip2.ldr
 `ab43c75b`, 301,732 / 182,060 bytes. D71 remains fixed and proven at
 scale behind the flag; it is not yet safe to ship as the default.
+
+## Addendum, session 15 (2026-08-31): D74 root-caused — the link was never broken
+
+Session 14 blocked on D74: with `DSP4_SPI_PARTIAL_FIX2` default-on, every
+`dsp4_scope.py`-driven bar failed — "link answers as CHIP 0, expected 1",
+"register 0xE001 never settled", "no usable capture in 5 attempts" — while
+the same bars passed with the flag off. The leading hypothesis on record
+was that the fix's counter gate never arms under Scope traffic, leaving a
+stale RX-FIFO fragment that misaligns every later read.
+
+**The gate really never arms. The fragment does not exist, and neither
+does the misalignment.** Both halves were measured this session on an
+instrumented image (three new registers under `DSP4_CFG_WATCH`:
+`SPI_PART_SEEN` 0xE021, ticks that found the RX FIFO part-full;
+`SPI_PART_SKIP` 0xE022, the subset the fix's gate turned away;
+`SPI_REQ_WORD` 0xE023, the last request word the handler assembled).
+
+**The gate is suppressed 100 % of the time under host traffic, exactly as
+predicted** — across every run this session `SPI_PART_SKIP` tracked
+`SPI_PART_SEEN` almost word for word (5/5, 6/6, 20/20, 44/44 on quiet
+paths; 311/204 over a hammering `gainfix`/`pairgraph` ladder) and
+`SPI_PART_FIX` stayed **0**. So with the flag on, the 2026-08-22 word
+discard never fires while the host is polling. That much of session 14's
+hypothesis is confirmed.
+
+**Everything the hypothesis then blamed on it is wrong.** In a
+"failed" state, caught live inside the retry ladder, the part reads
+`BOOT_STAGE 7`, `SPI_ERR_COUNT 0`, `RESP_DROP 0`, `RFS 0` (RX FIFO
+EMPTY — there is no stranded fragment), `SPI_REQ_WORD` holding a
+correctly framed request, and `SPI_RX_COUNT` advancing 217 requests per
+ladder round. The DSP is answering every transaction correctly. What is
+wrong is **where the host looks for the answer**.
+
+### The measurement
+
+The firmware answers every accepted transaction with two words, echo then
+value, and the master collects them on the transaction after the one that
+asked (`spi_handler.asm`, `.spi_write_answer`). MISO is therefore a
+continuous stream of two-word answers, and the host's 8-byte windows can
+sit on either of two offsets in it. Both occur. Raw words, one ask of
+`DIAG_CHIP_ID` (echo `0xE0012000`, value 1) followed by NOP collects:
+
+| | word 0 | word 1 | |
+|---|---|---|---|
+| working | `0x00000001` | `0xE0012000` | value and echo in ONE window |
+| failing, collect 0 | `0x00000000` | `0xE0012000` | echo here, value is NOT |
+| failing, collect 1 | `0x00000001` | `0xE0FE0000` | the value, one window late |
+
+**The echo lands in word 1 in both.** The echo check — the link's only
+integrity mechanism, and the thing every tool trusts — passes either way.
+In the second arrangement it passes while handing back word 0, which
+belongs to the PREVIOUS request. In an ask/collect loop the previous
+request is a `DIAG_NOP`, and a write answers with value 0.
+
+So **"the link answers as CHIP 0" is a running part answering 1, read one
+word away from where the 1 lay.** So is `MAGIC 0`. So is `BOOT_STAGE 0`.
+So is the all-zero register dump: every register in the sweep returns the
+preceding NOP's zero, which is why the dumps are zero *uniformly* rather
+than plausibly. This is D72's "a dropped answer comes back as a
+well-formed (echo, 0)" with the mechanism finally named — **nothing is
+dropped**; the answer is present in the very next window.
+
+It also explains why the fault is invisible on a repeated read of a
+constant register: reading `CHIP_ID` twice in a row returns the previous
+`CHIP_ID`, which is the same number. The wrong phase only shows itself
+when the previous request was something else.
+
+### Why the D71 fix looked responsible
+
+Discarding a word from the RX FIFO shifts the DSP's request framing, and
+therefore the answer stream, by one word. **The 2026-08-22 recovery is
+the only thing in the whole system that moves this phase.** With the flag
+off it fires every few seconds and shuffles the phase until it happens to
+land right, which is why the bars pass, why `pairgraph_run.sh` carries the
+note "a diag read walks it back into phase", and why a card that had been
+sitting idle was always the one that worked. With the flag on the phase is
+whatever boot left it as, for good. D71's fix did not break the read
+path; it removed the accident that kept papering over it.
+
+### The fix, and where it belongs
+
+Host-side, because that is where the defect is. `DiagLink` now
+**calibrates** the answer phase instead of assuming it: `DIAG_MAGIC` is a
+compile-time constant, so one read of it says which of the two
+arrangements is live (`pre` — value and echo in one window; `post` — the
+value leads the next window), and every read after that is decoded with
+it. A decode that stops matching, or a `realign()` — which moves the
+window by exactly one word — invalidates the calibration and re-runs it.
+`dsp4_scope.py`'s `_ask` uses the same decision, so the two tools can no
+longer disagree about the same silicon. `resync()` calibrates rather than
+merely draining, which it never could: draining clears the queue and says
+nothing about the offset.
+
+`DSP4_SPI_PARTIAL_FIX2` is now **default-on**, and D71 ships.
+
+**And no bar script deployed either file.** Every one of them stages the
+image, its own probe and its own `_run.sh`, then drives whatever copy of
+`dsp4_diag.py`/`dsp4_scope.py` happens to be on the card — so a link fix
+can be correct in the repo, green by hand, and absent from every bar that
+matters. `bench_lock.sh` is the one file every bench script already
+sources, so the link tools now travel with the lock.
+
+### What this casts doubt on
+
+A uniformly zero register dump — every register including `MAGIC` reading
+0, off a part with no unaided recovery — is now known to be manufacturable
+by the reader alone. **That is D73's entire evidence** (section 3b above),
+and D73 is the finding this project has parked at a hardware boundary. It
+is not settled either way here: D73 was seen while chip 2 kept running on
+the same reset and bus, which a host-side phase error does not obviously
+account for, and it was seen on the flag-off arm where the ISR discard was
+still shuffling the phase every few seconds. But the next D73 event must be
+read with the calibrating reader before it is counted as a stopped core —
+`tools/pi/dsp4_spiphase.py --mode diagnose` asks the part the three
+questions that separate the cases (is it answering at all; does silence
+mend it; does one word of realign mend it). No further hardware-level
+effort on D73 is justified until that has been done once.
+
+The same caution applies backwards through the record: any conclusion drawn
+from a register that read 0 — `BOOT_CFG 0`, `CFG_PHASE 0`, "CONFIG_COMMIT
+DID NOT LAND" out of `dsp4_config.py --verify` — was taken through a reader
+that could return the previous request's value. D71's evidence is NOT of
+that kind and stands: its diagnosis rests on `SPI_RX_COUNT` reading 103 and
+107, one short of 104 and 108, and on `SPI_PART_FIX` reading 2 — specific
+non-zero numbers that a phase error cannot produce.
+
+### Instruments left behind
+
+- `tools/pi/dsp4_spiphase.py` — the link's phase, as an instrument.
+  `--mode counters` (the D74 register block), `--mode raw` (every word the
+  host clocks in, no interpretation), `--mode diagnose` (run this when a
+  bench script says the link is dead), `--mode phase` (the calibrated
+  phase plus registers read through it), `--mode inject`/`--mode pause`
+  (a deliberate one-word residue, healed by traffic or by silence).
+- Three diag registers under `DSP4_CFG_WATCH`: `SPI_PART_SEEN` 0xE021,
+  `SPI_PART_SKIP` 0xE022, `SPI_REQ_WORD` 0xE023.
+- `bench_lock.sh` now deploys the host link tools to the card, so this
+  class of fix reaches every bar without editing every bar.
