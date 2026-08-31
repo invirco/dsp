@@ -188,7 +188,13 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument('--cycles', type=int, default=30)
     ap.add_argument('--dir', default='.', help='dir holding chip1/2.ldr')
-    ap.add_argument('--csv', default='bootchar.csv')
+    # DEFAULTS TO bootchar_<tag>.csv, NOT A SINGLE SHARED FILE. Every arm
+    # used to land in one bootchar.csv, so the moment the probe's register
+    # list changed the run aborted on the header guard below — which is the
+    # guard doing its job, but it cost a full bench slot on 2026-08-31
+    # before a cycle had run. One file per arm cannot collide, and
+    # dsp4_bootstats.py pools files anyway. Pass --csv to override.
+    ap.add_argument('--csv', default=None)
     ap.add_argument('--tag', default='base', help='arm name, written to CSV')
     ap.add_argument('--product', default='d24')
     ap.add_argument('--config-chips', default='1',
@@ -238,6 +244,9 @@ def main():
             for k in PROBE_KEYS:
                 fields.append(f'{phase}{chip}_{k}')
     fields += ['cfg_ok', 'cfg_detail', 'verdict']
+
+    if args.csv is None:
+        args.csv = 'bootchar_%s.csv' % args.tag
 
     # APPEND ONLY TO A FILE WHOSE HEADER MATCHES. The probe's register list
     # grew when DSP4_CFG_WATCH landed, and appending the wider rows under

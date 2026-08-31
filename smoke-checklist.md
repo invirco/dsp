@@ -45,6 +45,22 @@ negative control; the absence of output is not a result.
 | model vs float64 | `python3 tools/dsp/golden_harness.py` | **59/59**. Costs no bench time and no boot; run it on every session that touches `fixed_ref.py`, `boundary_vectors.py` or a generator that emits arithmetic. |
 | meter | `./mtrverify.sh` | ms64 and both pk64 words exact, **and both negative controls fire** — the BLOCK-32 coefficients and the retired narrow (rounded-store) meter form. The wide-word control moves the gain off unity on purpose: at unity the two forms carry the same value and the primary comparison cannot separate them. |
 
+**A REGISTER THAT READS 0 IS NOT A MEASUREMENT UNTIL THE LINK'S PHASE HAS
+BEEN CHECKED.** Review finding D74 (2026-08-31): the parameter link
+answers every transaction with two words, echo then value, and the host's
+8-byte windows sit on either of two offsets in that stream. The echo lands
+in word 1 in BOTH, so the echo check — the link's only integrity mechanism
+— passes either way, and on the wrong offset it hands back the PREVIOUS
+request's value, which after a NOP collect is 0. A whole register dump can
+come back uniformly zero off a part that is running perfectly at
+BOOT_STAGE 7 and answering everything. `tools/pi/dsp4_diag.py` now
+calibrates the offset against `DIAG_MAGIC` instead of guessing it, so this
+should not recur; when a bar says the link is dead, the instrument that
+settles it is `python3 dsp4_spiphase.py --chip N --mode diagnose`, which
+asks whether the part is answering at all, whether silence mends it and
+whether one word of realign mends it. **Do not conclude "wedged part" from
+zeros without it.**
+
 **Read a bar's SILENCE as a bar failure, not as a result.** On
 2026-08-30 two of these were found to have been failing on their own
 instruments rather than on the kernel: `bqst.sh` reported "this is NOT
