@@ -3039,3 +3039,12 @@ rate (cycle 105: chip 1 silent after a clean pre-config probe and all 51
 config writes, chip 2 running on), and it is the first D73 event read
 through the phase-calibrating reader, so the instrument cannot be blamed
 for it. Raw cycles: `SHARC/doc/bootchar-20260831/`.
+
+**One control did not fire, on both conform runs.** `conform.sh`'s GAIN
+positive bus control moved 0 of 32 words while 32 moved on their own over
+the same wait; the CompThr control separated cleanly (32 of 32, 0 on their
+own) and the verdict logic passes the run. It is reproducible rather than a
+one-off — both of this session's conform runs did it — and earlier sessions
+recorded both positive controls at 32 of 32, so the instrument, not the
+kernel, is what changed. Recorded rather than glossed; it wants a look
+before the next session leans on that control.
