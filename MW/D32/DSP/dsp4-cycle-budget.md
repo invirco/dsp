@@ -3029,3 +3029,13 @@ failed 0 of 4 in session 14. `goldnode.sh` **3 consecutive runs, all
 fired (6 stimuli)"; the COMP impulse line "no amplitude produced a usable
 capture" is `dsp4_node_verify.py`'s own documented amplitude search giving
 up on that one negative control and is pre-existing, not a regression.
+
+**Rate, on the shipping tree.** `bootchar.sh --cycles 150` with
+`DSP4_CFG_WATCH=1 DSP4_SPI_PARTIAL_FIX2=1`: **149/150 clean on one
+attempt (99.3%), failure rate 0.67% [0.12%, 3.68%] Wilson 95%, 0
+D71-class events** — `SPI_RX_COUNT` read the full 112 on every one of the
+149 cycles that answered. The single failure is D73's signature at D73's
+rate (cycle 105: chip 1 silent after a clean pre-config probe and all 51
+config writes, chip 2 running on), and it is the first D73 event read
+through the phase-calibrating reader, so the instrument cannot be blamed
+for it. Raw cycles: `SHARC/doc/bootchar-20260831/`.

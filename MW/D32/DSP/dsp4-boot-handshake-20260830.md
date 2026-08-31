@@ -509,8 +509,20 @@ still shuffling the phase every few seconds. But the next D73 event must be
 read with the calibrating reader before it is counted as a stopped core —
 `tools/pi/dsp4_spiphase.py --mode diagnose` asks the part the three
 questions that separate the cases (is it answering at all; does silence
-mend it; does one word of realign mend it). No further hardware-level
-effort on D73 is justified until that has been done once.
+mend it; does one word of realign mend it).
+
+**One has now been read that way, and it survived.** The session-15
+150-cycle run (`SHARC/doc/bootchar-20260831/`) produced exactly one
+failure: cycle 105, chip 1 booted in 496.2 ms, answered `MAGIC`,
+`CHIP_ID`, `BOOT_STAGE 5` and `FRAME_COUNT` cleanly, took all 51 config
+writes — and then never answered again, while chip 2 ran on with
+`FRAME_COUNT` 30,130 → 48,565 → 138,932, which is session 13's D73
+capture almost cycle for cycle. That probe reads through the calibrating
+`DiagLink`: it tried both arrangements over eight realign rounds of
+twenty-four collects and `MAGIC` never came back. So D73 is not simply
+D74 wearing its clothes — on this one event, which is evidence rather
+than proof, but it is the first D73 sighting the instrument cannot be
+blamed for. It stays parked at the clock/power boundary.
 
 The same caution applies backwards through the record: any conclusion drawn
 from a register that read 0 — `BOOT_CFG 0`, `CFG_PHASE 0`, "CONFIG_COMMIT
