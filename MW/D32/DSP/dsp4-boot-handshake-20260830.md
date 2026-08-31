@@ -532,3 +532,15 @@ non-zero numbers that a phase error cannot produce.
   `SPI_PART_SKIP` 0xE022, `SPI_REQ_WORD` 0xE023.
 - `bench_lock.sh` now deploys the host link tools to the card, so this
   class of fix reaches every bar without editing every bar.
+
+### The corroboration was already in section 3, unread
+
+D72's own live capture (session 13) is the signature seen from the other
+side: a healthy part at `BOOT_STAGE 7`, with the commit demonstrably
+applied, returned 0 for a **contiguous tail of seven registers** — having
+answered `MAGIC`, `CHIP_ID` and `BOOT_STAGE` correctly earlier in the same
+sweep. A phase that flips partway through a sweep produces exactly that
+shape: correct values up to the flip, the preceding NOP's zero after it. A
+per-probe dropped answer would scatter its zeros through the sweep instead
+of ending it. That capture was read at the time as evidence of a ~1-in-50
+dropped-read rate; it is better read as one phase flip, mid-sweep.
