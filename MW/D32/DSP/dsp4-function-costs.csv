@@ -315,3 +315,89 @@ MARGIN32_BLK32_BQPAIR_ON_20260830S12,584845,,"89.24% of the 655360-cycle budget.
 # the same lever on a tree that has changed a great deal since. IT IS
 # ALSO WHAT PUTS 32 CHANNELS AT BLOCK 32 UNDER BUDGET AT ALL: 102.81%
 # without it, 89.24% with it.
+# ============================================================
+# SESSION 17 — 2026-09-01. CHIP 2, MEASURED FOR THE FIRST TIME, AT BLOCK 8,
+# 16 AND 32 (review findings D16 and D50; PW asked for all three sizes).
+#
+# EVERY CHIP-2 FIGURE IN THIS FILE BEFORE TODAY IS AN ABSENCE, NOT A NUMBER.
+# Chip 2's main loop is gated on _boot_config_received, which CONFIG_COMMIT
+# sets, and every session to date configured chip 1 only ("chip 2 is never
+# configured; BOOT_STAGE 5 is its pass mark" -- BOOT_STAGE 5 IS WAITCFG). So
+# chip 2 sat in .wait_boot answering diagnostics while its node chain never
+# executed an instruction. There was no chip-2 cost record to have.
+#
+# INSTRUMENT: SHARC/sigprofile2.sh + sigprofile2_run.sh -- sigprofile.sh's
+# twin, pointed at the other part. Same TCOUNT/_proc_cyc method, same
+# prefix-cut-and-difference discipline, DEC=32, DSP4_BLOCK_KERNELS=1,
+# DSP4_STRIP_FUSED=1, DSP4_SIMD_DYN=1, DSP4_BQ_GRAPH=1, 983.04 MHz. Two
+# things differ and both matter:
+#
+#  - THE CUT IS DSP4_NODE_LIMIT2, a new chip-2-only prefix cut. Chip 2's whole
+#    input is chip 1's mix fabric, so cutting both chains would have measured
+#    chip 2 on silence. Chip 1 runs WHOLE (32 strips, stimulus on).
+#  - THE STIMULUS IS IN CHIP 2'S OWN INTERCHIP_RECV KERNELS, because the
+#    fabric delivers nothing on this bench: measured 2026-09-01, every probed
+#    IC RX slot read 0 while chip 1's own MAIN bus buffer carried the square
+#    wave cleanly. Same +/-0.5 (-6 dBFS) alternating square as chip 1's
+#    INPUT_TDM stimulus, same rules -- production read executed and
+#    discarded, |x| constant above every threshold, word alternating.
+#
+# WITNESSED TWO-SIDED: chip 1's GAIN coefficient must read 1.0f (sigprofile's
+# own), and at least one chip-2 recv block must carry the ALTERNATING
+# stimulus, sample 0 against sample 1. Chip 2 runs on its .var initialisers
+# (nothing configures its nodes), so the cascades are at bypass coefficients
+# -- cost is coefficient-independent, same instructions either way.
+#
+# INSTRUMENT RESOLUTION, STATED BECAUSE THREE ROWS ARE INSIDE IT: repeat
+# readings of the same point agree to 0.1% (17,241 against 17,258), but
+# CROSS-BOOT differences at the 30k-60k level carry a few hundred cycles of
+# spread -- FDR, EQ and OUT read NEGATIVE at one or more block sizes, which a
+# node cannot cost. Those three are carried as "below resolution" rather than
+# as numbers. The classes that carry the budget are all far above it.
+# ============================================================
+function,c2_blk8_cycles_block,c2_blk16_cycles_block,c2_blk32_cycles_block,c2_blk32_cycles_sample,instances_on_chip2,notes
+C2_GEQ,8343,15734,30440,951.2,17,"28 bands, ALL SEVENTEEN. THE PRESSURE POINT, and it was the suspected one. 37.2 cycles per band-sample against chip 1's fused EQ at 40.5 -- the SAME kernel (_bq_fx_cascade_blk) performing consistently, which is what makes this a cost and not a conversion artefact. 17 x 28 = 476 biquad stages per sample"
+C2_EQ,756,2347,5034,157.3,21,"4 bands. blk8 and blk16 disagree by more than the instrument resolves at this ladder position (FDR read negative at blk16 and its cost lands here); the blk32 column is the reliable one"
+C2_AFB,2159,3967,6758,211.2,12,6 notches
+C2_LIM,2529,4621,9076,283.6,18,"generic block wrapper, not a hoisted kernel -- see the note below on what that costs"
+C2_COMP,4065,8776,16340,510.6,10,"generic block wrapper. Chip 1's HOISTED COMP kernel is 442.3 cycles/sample at block 8 against this 508.1, so the wrapper costs about 15% on this class"
+C2_GATE,,4542,10803,337.6,4,"blk8 point lost to a link-phase failure (the D74 calibration raised rather than returning zeros -- correct behaviour; the traceback escaping the retry ladder was not, and both run scripts are hardened)"
+C2_DLY,1211,1639,3295,103.0,15,"D50: these had no block kernel at all. Generic wrapper"
+C2_XOVER,2269,6279,12463,389.5,1,the one crossover instance
+C2_FDR,721,-243,101,,24,BELOW INSTRUMENT RESOLUTION -- read negative at block 16
+C2_OUT,-798,-425,420,13.1,20,"BELOW INSTRUMENT RESOLUTION at blk8 and blk16 (both negative). A block copy plus the meter's wide word; the blk32 reading of 13.1 c/sample is the plausible one"
+# --- THE GATE. WHOLE CHIP-2 GRAPH, DSP4_NODE_LIMIT2=0, signal present,
+# --- graph decimated so the pass completes whether or not it fits.
+C2_WHOLE_GRAPH_BLK8,342090,,,42761.2,,"208.8% of the 163840-cycle budget at 983.04 MHz; 261.0% of the 131072-cycle budget at 786.432 MHz"
+C2_WHOLE_GRAPH_BLK16,,646390,,40399.4,,"197.3% at 983.04 MHz; 246.6% at 786.432 MHz"
+C2_WHOLE_GRAPH_BLK32,,,1258101,39315.7,,"192.0% at 983.04 MHz; 240.0% at 786.432 MHz"
+# CHIP 2 DOES NOT FIT AT ANY BLOCK SIZE AND THE BLOCK SIZE IS NOT THE LEVER.
+# 8 -> 32 moves it 208.8% -> 192.0%, sixteen points of two hundred. The work
+# is per-SAMPLE and the budget scales with the block, so the ratio barely
+# moves; what 32 buys is the per-block overhead amortised over four times as
+# many samples, and that overhead was never the problem.
+#
+# SELF-CHECK: the ten class differences x their instance counts sum to 35,843
+# cycles/sample at block 32; adding the input side measured separately
+# (limit2=47 = 65,540 cycles/block = 2,048 cycles/sample) gives 37,891
+# against the 39,316 measured for the whole graph -- 3.6% apart, the
+# remainder being the mix buses, FX engines, meters and the fixed per-block
+# overhead a cut chain does not reach. The parts and the whole share no
+# arithmetic.
+# --- WHAT THE PROVEN LEVERS ARE WORTH, arithmetic on measured parts ---
+# Chip 1 has two levers measured IN THE GRAPH: biquad pairing (DSP4_BQ_GRAPH,
+# -13.2% at block 32, kernel 1.43-1.54x) and dynamics pairing (COMP 1.72x,
+# GATE 1.82x in the graph). Neither is wired on chip 2 today.
+C2_LEVER_ARITH_CASCADES,,,,1075,,"MHz at 48 kHz for GEQ+EQ+AFB+XOVER as measured; /1.4 = 768 MHz if paired"
+C2_LEVER_ARITH_DYNAMICS,,,,555,,"MHz for LIM+COMP+GATE as measured; 321 MHz at chip 1's graph-measured pairing factors"
+C2_LEVER_ARITH_TOTAL,,,,1720,,"MHz for the ten measured classes = 175% of a 983.04 MHz part. With BOTH levers applied at their graph-measured factors: 1,179 MHz = 119.9%, i.e. STILL 196 MHz OVER. GEQ alone after pairing is 554 MHz = 56% of the part"
+# --- WHAT THE CONVERSION BOUGHT, measured, same tree, same stimulus ---
+# The per-sample arm is built with DSP4_STRIP_FUSED=0, DSP4_SIMD_DYN=0 and
+# DSP4_BQ_GRAPH=0 because all three REFUSE to build without block kernels
+# ("DSP4_BQ_GRAPH is a per-BLOCK pairing"). That does not bias the comparison:
+# every one of them is a chip-1 STRIP lever and none of them touches a chip-2
+# node. Witnessed on both arms; the per-sample arm's compressor reads
+# _comp_gain 0x04C8FBF4, about -10.5 dB of gain reduction, so its dynamics are
+# genuinely engaged and not measuring a cheap branch.
+C2_WHOLE_GRAPH_BLK8_PERSAMPLE,551868,,,68983.5,,"336.8% of the 163840-cycle budget at 983.04 MHz; 421.0% at 786.432 MHz"
+C2_CONVERSION_SAVING_BLK8,-209778,,,,,"342,090 against 551,868: -38.0%. The conversion is not only the correctness fix -- it is the largest single improvement measured on chip 2 to date. It is still 208.8% of budget afterwards, which is the gate"

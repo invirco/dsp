@@ -4037,6 +4037,27 @@ def gen_interchip_recv(node):
                 nop;
             rts;
         #else
+        #if DSP4_PROFILE_SIGNAL
+            /* Per-sample twin of the block stimulus above, so that c2gold.sh's
+             * two arms drive chip 2 with the SAME sequence and a difference
+             * between them is the conversion and nothing else. Same rules: the
+             * production read is executed and discarded, |x| is constant at
+             * -6 dBFS, and the word alternates. The phase is anchored to the
+             * BLOCK, not to a free-running toggle -- _sample_idx is the sample
+             * position, so sample 0 is +0.5 in both builds and sample
+             * BLOCK-1 has the same sign in both. A free-running flip would
+             * have drifted the two arms apart on nothing but boot timing. */
+            r1 = dm(_sample_idx);
+            r2 = 1;
+            r1 = r1 and r2;
+            r0 = 0x08000000;              /* +0.5 Q4.28 = -6 dBFS */
+            r2 = -r0;
+            r3 = dm(_rx_ic_slot_{node['id']});  /* production read, still paid */
+            r3 = pass r1;
+            if ne r0 = r2;                /* odd sample: -0.5 */
+            dm(_buf_{node['id']}) = r0;
+            rts;
+        #endif
             r0 = dm(_rx_ic_slot_{node['id']});
             dm(_buf_{node['id']}) = r0;
             rts;

@@ -50,9 +50,22 @@ out = sys.argv[1]
 sys.argv = ['p']
 import dsp4_diag as D
 
-dg = D.DiagLink(D.SpiLink('0.0', 1000000, 24, rdy_gpio=12))
-dg.resync()      # CALIBRATES the answer phase (D74). A register that reads 0
-                 # is not a measurement until this has run.
+# CALIBRATES the answer phase (D74). A register that reads 0 is not a
+# measurement until this has run, and when the link cannot be phased this
+# RAISES rather than handing back zeros -- so it is retried here and an
+# exhausted retry fails the capture, rather than escaping as a traceback that
+# looks like a result (which cost one point of a ladder on 2026-09-01).
+dg = None
+for _ in range(4):
+    try:
+        dg = D.DiagLink(D.SpiLink('0.0', 1000000, 24, rdy_gpio=12))
+        dg.resync()
+        break
+    except (IOError, OSError) as e:
+        dg = None
+if dg is None:
+    print('UNPHASED: the parameter link would not phase to chip 2')
+    sys.exit(3)
 
 def sane():
     try:
@@ -74,8 +87,27 @@ def peek(a):
     return None
 
 sym = json.load(open('chip2.sym.json'))
-# One node per family per chain, plus the meters whose decimation the
-# conversion is supposed to have fixed.
+# THE METERS ARE THE BIT-EXACT COMPARISON, and the reason is read timing.
+#
+# `_buf_<id>` holds the LAST SAMPLE PROCESSED. In the block-kernel arm that is
+# always sample BLOCK-1, because the kernel finishes the whole block before it
+# returns. In the PER-SAMPLE arm it is whatever sample the chain happened to be
+# on when the host's SPI read landed -- and the stimulus alternates sign every
+# sample, so a direct comparison of that word is a coin toss on read timing and
+# would tell us nothing about the conversion.
+#
+# The meters do not have that problem. Each folds peak and true RMS over a
+# WHOLE BLOCK and latches the result at block rate, so with a constant-
+# amplitude stimulus its steady-state value is exact, deterministic, and
+# identical in both builds if and only if both builds computed the same eight
+# samples. That is precisely the claim under test -- and it is also the direct
+# evidence for the third item of the D16 dispatch, since these meters were
+# decimated to one sample per block while their sources were unconverted.
+#
+# The `_buf_` probes below are kept as a SECONDARY check, compared as SETS: the
+# per-sample arm is sampled repeatedly and the block arm's word must be one the
+# reference actually produces. That covers the two chains with no meter on them
+# (monitor, and the stereo/codec outputs).
 BUFS = [
     'C2_SNK_IN_01', 'C2_CODEC_AUX_IN', 'C2_PI_IN', 'C2_USB_IN',
     'C2_AUX_FDR_01', 'C2_AUX_EQ_01', 'C2_AUX_GEQ_01', 'C2_AUX_AFB_01',
@@ -92,19 +124,57 @@ BUFS = [
     'C2_MON', 'C2_MON_DLY', 'C2_MON_OUT',
     'C2_MAIN_ST_OUT', 'C2_CODEC_AUX_OUT',
 ]
-METERS = ['C2_MTR_AUX_01', 'C2_MTR_AUX_07', 'C2_MTR_GRP_01', 'C2_MTR_MAIN_01',
-          'C2_MTR_SUB', 'C2_MTR_FX_01']
+METERS = ['C2_MTR_AUX_01', 'C2_MTR_AUX_04', 'C2_MTR_AUX_07', 'C2_MTR_AUX_12',
+          'C2_MTR_GRP_01', 'C2_MTR_GRP_04',
+          'C2_MTR_MAIN_01', 'C2_MTR_MAIN_02', 'C2_MTR_MAIN_03',
+          'C2_MTR_MAIN_04', 'C2_MTR_SUB',
+          'C2_MTR_FX_01', 'C2_MTR_FX_06']
 
-res = {}
+# CHAIN HEALTH, WITNESSED PER CHAIN AND IN BOTH ARMS.
+#
+# Configuring chip 2 lands a stray word in a node's parameter state, the same
+# way configuring chip 1 does -- "roughly one boot in three lands the
+# CFG_COMMIT header word in _gain_coeff_C1_GAIN_01", which is what gainfix.py
+# exists to repair. Nobody had seen it on chip 2 before 2026-09-01 because
+# nobody had ever configured chip 2. Caught here on the first run of this bar:
+# _fdr_level_C2_AUX_FDR_01 read 0xE0FE0000 -- a DIAG HEADER WORD, not a float
+# -- and _fdr_gq_C2_AUX_FDR_01 read 0xFFFFFFFF, so that whole aux chain
+# carried zero while its neighbours carried the stimulus perfectly.
+#
+# A chain in that state must not be COMPARED, because what it produces is a
+# function of which word the boot happened to drop, not of the conversion. So
+# each chain's fader head is witnessed and the unhealthy ones are named and
+# excluded rather than quietly averaged in.
+FDR_OF = {
+    'C2_MTR_AUX_01': 'C2_AUX_FDR_01', 'C2_MTR_AUX_04': 'C2_AUX_FDR_04',
+    'C2_MTR_AUX_07': 'C2_AUX_FDR_07', 'C2_MTR_AUX_12': 'C2_AUX_FDR_12',
+    'C2_MTR_GRP_01': 'C2_GRP_FDR_01', 'C2_MTR_GRP_04': 'C2_GRP_FDR_04',
+    'C2_MTR_MAIN_01': 'C2_MAIN_FDR', 'C2_MTR_MAIN_02': 'C2_MAIN_FDR',
+    'C2_MTR_MAIN_03': 'C2_MAIN_FDR', 'C2_MTR_MAIN_04': 'C2_MAIN_FDR',
+    'C2_MTR_SUB': 'C2_SUB_FDR',
+    'C2_MTR_FX_01': 'C2_FX_FDR_01', 'C2_MTR_FX_06': 'C2_FX_FDR_06',
+}
+UNITY_F32 = 0x3F800000
+UNITY_Q428 = 0x10000000
+health = {}
+for mid, fid in FDR_OF.items():
+    lv = sym.get('_fdr_level_' + fid)
+    gq = sym.get('_fdr_gq_' + fid)
+    if lv is None or gq is None:
+        health[mid] = 'absent'
+        continue
+    a = peek(lv)
+    b = peek(gq)
+    if a is None or b is None:
+        health[mid] = 'unreadable'
+    elif a != UNITY_F32 or b != UNITY_Q428:
+        health[mid] = 'level=0x%08X gq=0x%08X' % (a, b)
+    else:
+        health[mid] = 'ok'
+
+res = {}      # exact probes: meters
+sets = {}     # set probes: node output words, sampled repeatedly
 missing = []
-for nid in BUFS:
-    nm = '_buf_' + nid
-    if nm not in sym:
-        missing.append(nm); continue
-    v = peek(sym[nm])
-    if v is None:
-        print('UNREADABLE ' + nm); sys.exit(2)
-    res[nm] = v
 for mid in METERS:
     for pfx in ('_mtr_peak_', '_mtr_rms_'):
         nm = pfx + mid
@@ -114,9 +184,23 @@ for mid in METERS:
         if v is None:
             print('UNREADABLE ' + nm); sys.exit(2)
         res[nm] = v
-json.dump(res, open(out, 'w'))
-print(f'{len(res)} probes captured'
+for nid in BUFS:
+    nm = '_buf_' + nid
+    if nm not in sym:
+        missing.append(nm); continue
+    seen = set()
+    for _ in range(6):
+        v = peek(sym[nm])
+        if v is None:
+            print('UNREADABLE ' + nm); sys.exit(2)
+        seen.add(v)
+    sets[nm] = sorted(seen)
+json.dump({'exact': res, 'sets': sets, 'health': health}, open(out, 'w'))
+bad = {k: v for k, v in health.items() if v != 'ok'}
+print(f'{len(res)} exact probes (meters) + {len(sets)} set probes captured'
       + (f', {len(missing)} absent from the map: {missing}' if missing else ''))
+print(f'  chain health: {len(health) - len(bad)} of {len(health)} ok'
+      + (f'; NOT ok: {bad}' if bad else ''))
 PYEOF
   RC=$?
   [ "$RC" = "0" ] && exit 0

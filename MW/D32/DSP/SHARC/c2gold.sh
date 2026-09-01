@@ -34,6 +34,14 @@
 set -u
 DWELL="${DWELL:-12}"
 BLOCK="${BLOCK:-8}"
+# DECIMATED, and it has to be. Neither arm fits a block period -- chip 1 is at
+# 121% of the block-8 budget with 32 strips and chip 2 is further over than
+# that -- and a main loop that never finishes a block never services the link
+# either, so an undecimated run would read as a dead card rather than as a
+# comparison. Both arms carry the SAME decimation, so the meters fold the same
+# blocks in both and the comparison is unaffected: decimation changes how OFTEN
+# a pass runs, never what one computes.
+DEC="${DEC:-32}"
 WORK="${WORK:-/tmp/c2gold}"
 cd "$(dirname "$0")"
 ROOT=../../../..
@@ -52,10 +60,15 @@ if [ "$BLOCK" != "8" ]; then
 fi
 
 run_arm() {   # $1 = kernels (0|1) -> writes $WORK/arm$1.json on the card
-  local K="$1" D="$WORK/k$K-b$BLOCK"
+  # Two statements, not one: bash expands every word of a `local` before it
+  # performs any of its assignments, so `local K="$1" D=".../$K"` expands an
+  # unset K -- and under `set -u` that is a hard error rather than an empty
+  # path.
+  local K="$1"
+  local D="$WORK/k$K-b$BLOCK"
   DSP_SRC_DIR="$SRC" DSP_BUILD_DIR="$D" \
   DSP4_BISECT=0 DSP4_BLOCK_KERNELS=$K DSP4_PROFILE_SIGNAL=1 \
-    DSP4_BLOCK_DECIMATE=1 ./build.sh all > "$D.log" 2>&1
+    DSP4_BLOCK_DECIMATE=$DEC ./build.sh all > "$D.log" 2>&1
   if [ "$(grep -ciE '\[Error|Build FAILED' "$D.log")" -ne 0 ]; then
     echo "ARM $K BUILD FAILED (see $D.log)" >&2; return 1; fi
   python3 $ROOT/tools/dsp/map_syms.py "$D/chip1.map.xml" > "$D/chip1.sym.json"
@@ -73,20 +86,57 @@ run_arm 1 || exit 1
 scp -q $BENCH:/home/app/dspboot/arm0.json $BENCH:/home/app/dspboot/arm1.json "$WORK/"
 python3 - "$WORK/arm0.json" "$WORK/arm1.json" <<'PYEOF'
 import json, sys
-a = json.load(open(sys.argv[1]))
-b = json.load(open(sys.argv[2]))
-names = [n for n in a if n in b]
+A = json.load(open(sys.argv[1]))
+B = json.load(open(sys.argv[2]))
+
+# ---- primary: the meters, compared EXACTLY --------------------------------
+a, b = A['exact'], B['exact']
+ha, hb = A.get('health', {}), B.get('health', {})
+# A chain whose fader head was corrupted by its own boot's config is excluded
+# from the comparison and NAMED. What it produces is a function of which word
+# that boot dropped, not of the conversion, so comparing it would be comparing
+# two lotteries.
+def healthy(probe):
+    mid = probe.split('_', 2)[2]
+    return ha.get(mid, 'ok') == 'ok' and hb.get(mid, 'ok') == 'ok'
+allnames = [n for n in a if n in b]
+excluded = [n for n in allnames if not healthy(n)]
+names = [n for n in allnames if healthy(n)]
+if excluded:
+    print('EXCLUDED (chain unhealthy in at least one arm -- stray config word):')
+    for n in sorted(set(x.split('_', 2)[2] for x in excluded)):
+        print(f'  {n:22s} arm0={ha.get(n, "?")}  arm1={hb.get(n, "?")}')
 diff = [n for n in names if a[n] != b[n]]
-print(f'\nCHIP-2 GOLD: {len(names)} probes, {len(diff)} differ '
-      f'(per-sample arm vs block-kernel arm, BIT-EXACT means 0)')
+print(f'\nCHIP-2 GOLD (exact, block-latched meters): {len(names)} probes, '
+      f'{len(diff)} differ -- BIT-EXACT means 0')
 for n in diff:
     print(f'  DIFFERS  {n:34s} per-sample=0x{a[n]:08X} block=0x{b[n]:08X}')
-# NEGATIVE CONTROL: pair each probe with its NEIGHBOUR across the two arms.
-# If the comparison above cannot fail, this will not fail either.
+
+# ---- NEGATIVE CONTROL -----------------------------------------------------
+# Pair each probe with its NEIGHBOUR across the two arms. A comparison that
+# cannot fail is not a bar, and this is the check that it can.
 shifted = names[1:] + names[:1]
 nc = sum(1 for n, m in zip(names, shifted) if a[n] != b[m])
+ncok = nc >= len(names) // 2
 print(f'NEGCTL: {nc} of {len(names)} differ under a deliberately wrong pairing '
-      f'({"PASSED" if nc >= len(names) // 2 else "FAILED — the comparison cannot fail"})')
-print('VERDICT: ' + ('CHIP-2 BIT-EXACT' if not diff else f'DIFFERS ({len(diff)})'))
-sys.exit(0 if not diff else 1)
+      f'({"PASSED" if ncok else "FAILED -- the comparison cannot fail"})')
+
+# ---- secondary: node output words, compared as SETS ------------------------
+# _buf_<id> is the last sample PROCESSED, and only the block arm reads it at a
+# defined position (BLOCK-1). So the test is membership: the block arm's word
+# must be one the per-sample reference actually produces.
+sa, sb = A['sets'], B['sets']
+snames = [n for n in sa if n in sb]
+bad = [n for n in snames if not set(sb[n]) <= set(sa[n])]
+print(f'SET PROBES: {len(snames)} node outputs, {len(bad)} produced a word the '
+      f'per-sample reference never does')
+for n in bad:
+    print(f'  OUTSIDE  {n:34s} block={[hex(x) for x in sb[n]]} '
+          f'per-sample={[hex(x) for x in sa[n]]}')
+
+ok = not diff and ncok and not bad
+print('VERDICT: ' + ('CHIP-2 BIT-EXACT' if ok else
+                     f'FAILED (exact {len(diff)}, sets {len(bad)}, '
+                     f'negctl {"ok" if ncok else "DEAD"})'))
+sys.exit(0 if ok else 1)
 PYEOF

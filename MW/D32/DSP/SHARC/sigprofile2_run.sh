@@ -75,11 +75,25 @@ sys.argv = ['p']
 import dsp4_diag as D
 
 def link_for(chip):
+    # CALIBRATES the answer phase (D74). A register that reads 0 is not a
+    # measurement until this has run -- and when it CANNOT phase the link it
+    # raises rather than handing back zeros, which is the whole point of the
+    # fix. Raising is right; letting it kill the point is not. On 2026-09-01
+    # one point of a fourteen-point ladder was lost to exactly that, because
+    # the traceback escaped the retry ladder and looked like a result. Retried
+    # here, and an exhausted retry reports WITNESS-UNPHASED so the outer loop
+    # re-boots instead of recording a number that was never taken.
     cs, rdy = (6, 8) if chip == 1 else (24, 12)
-    lk = D.SpiLink('0.0', 1000000, cs, rdy_gpio=rdy)
-    dg = D.DiagLink(lk)
-    dg.resync()          # CALIBRATES the phase (D74). A register that reads 0
-    return dg            # is not a measurement until this has run.
+    last = None
+    for _ in range(4):
+        try:
+            dg = D.DiagLink(D.SpiLink('0.0', 1000000, cs, rdy_gpio=rdy))
+            dg.resync()
+            return dg
+        except (IOError, OSError) as e:
+            last = e
+    print(f'WITNESS-UNPHASED chip {chip}: {last}')
+    sys.exit(3)
 
 d1 = link_for(1)
 d2 = link_for(2)
@@ -121,20 +135,33 @@ if g != 0x3F800000:
 # witnessed as a SQUARE WAVE, sample 0 against sample 1, because a constant
 # would survive a stuck or bypassed path and the alternation does not.
 s2 = json.load(open('chip2.sym.json'))
-probe = ['_blk_C2_RECV_MAIN_L', '_blk_C2_RECV_AUX_01', '_blk_C2_RECV_GRP_01']
+# BUILD-AWARE. The block arm publishes a whole block (`_blk_<id>`) and the
+# alternation is witnessed WITHIN it, sample 0 against sample 1. The
+# per-sample arm has no block: its recv writes the scalar `_buf_<id>`, one
+# sample at a time, so what can be witnessed there is that the word is one of
+# the two the stimulus produces. Falling back rather than failing is what lets
+# the same instrument measure the per-sample CONTROL that says what the
+# conversion bought.
+STIM = 0x08000000
 live = []
-for nm in probe:
-    if nm not in s2:
-        continue
-    v0 = peek(d2, 2, s2[nm])
-    v1 = peek(d2, 2, s2[nm] + 1)
-    if v0 is None or v1 is None:
-        print(f'WITNESS2-UNREADABLE {nm}'); sys.exit(2)
-    if v0 != 0 and v1 == ((-v0) & 0xFFFFFFFF):
-        live.append(f'{nm.replace("_blk_C2_RECV_", "")}=0x{v0:08X}/0x{v1:08X}')
+for tag in ('MAIN_L', 'AUX_01', 'GRP_01'):
+    bnm, snm = '_blk_C2_RECV_' + tag, '_buf_C2_RECV_' + tag
+    if bnm in s2:
+        v0 = peek(d2, 2, s2[bnm])
+        v1 = peek(d2, 2, s2[bnm] + 1)
+        if v0 is None or v1 is None:
+            print(f'WITNESS2-UNREADABLE {bnm}'); sys.exit(2)
+        if v0 != 0 and v1 == ((-v0) & 0xFFFFFFFF):
+            live.append(f'{tag}=0x{v0:08X}/0x{v1:08X}')
+    elif snm in s2:
+        v = peek(d2, 2, s2[snm])
+        if v is None:
+            print(f'WITNESS2-UNREADABLE {snm}'); sys.exit(2)
+        if v in (STIM, (-STIM) & 0xFFFFFFFF):
+            live.append(f'{tag}=0x{v:08X}(scalar)')
 if not live:
-    print('WITNESS2-SILENT (no probed recv block carried an alternating '
-          'stimulus)'); sys.exit(3)
+    print('WITNESS2-SILENT (no probed recv carried the stimulus)')
+    sys.exit(3)
 
 # Informational, not a gate: which dynamics nodes have left their cheap
 # branch. Only meaningful at limits that include them, so a zero here is not
