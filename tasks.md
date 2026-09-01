@@ -1,5 +1,21 @@
 ## HUB DISPATCH 2026-09-01 11:56Z — D16 chip-2 block-kernel conversion — block-8 target, costs at 8/16/32, stop-and-report gate   [status: 🟡 dispatched]   [model: opus]
 
+> **PW RULING 2026-09-01 (before the D16 gate fires) — GEQ stays; the
+> biquad primitive gets fixed instead.** PW researched contemporary
+> digital mixers: they ALL offer 31-band GEQ on ALL outputs, some on 1-2
+> SHARCs total. Arithmetic: 31 biquads x 32 outputs x 48k = ~47.6M
+> biquad-samples/s — those products are necessarily running ~2-3
+> cycles/biquad-sample (ADI's SIMD iircas reference is ~1-2). Today's
+> measurement is 37.2 cycles/band-sample (chip-1 fused EQ 40.5), i.e. the
+> shared biquad cascade is ~15x off the market rate — the 851 MHz "GEQ
+> alone" number prices OUR primitive, not the feature. Therefore the gate
+> decision space is: OPTIMIZE THE BIQUAD CASCADE to competitive cycles
+> (SIMD pairing across channels, coefficients dual-fetched from PM, delay
+> line in registers, software-pipelined cascade, transposed DF-II);
+> feature cuts / plugin demotion / chip splits are OFF the table until the
+> primitive is at market rate. Aligns with the standing #1 dsp priority
+> (capacity-fit via generated-code efficiency, no hardware change).
+
 model: opus
 
 D16 — CHIP 2 BLOCK-KERNEL CONVERSION, block-8 working target.
