@@ -105,3 +105,14 @@ second restart brings all three.
 ## Pass criteria
 
 All checks above are complete with no hash mismatch, no unexpected family additions, and no unreconciled drift for intended merge scope.
+
+## Session-tooling trap (hub, 2026-09-01 — bitten twice the same day)
+
+**`pgrep -f` self-match deadlock.** A background watcher of the form
+`until ! pgrep -f "job.sh"; do sleep; done` never exits: the watcher's own
+command line contains the pattern, so pgrep always matches the watcher
+itself. Both times the watched job had long finished and the session sat
+wedged 1–2 h behind phantom "shells still running" until the hub killed the
+waiters by hand. Wait on a **marker file** the job writes as its last act
+(`until [ -f done.marker ]`), or use `pgrep -x` on the executable name.
+Never `pgrep -f` from a shell whose own cmdline embeds the pattern.
