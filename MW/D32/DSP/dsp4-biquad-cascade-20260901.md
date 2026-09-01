@@ -502,16 +502,162 @@ its own item.
 
 ---
 
-## 8. What this session did not do
+## 8. Item 3 — dynamics pairing on chip 2
+
+Chip 1 pairs the dynamics of two channel STRIPS. Chip 2 has no strips: its
+dynamics are `C2_GRP_GATE_01`, `C2_MAIN_OCOMP_03` and friends, in four
+parallel group chains and four parallel main-output chains. The KERNELS
+(`_gate_pair_blk`, `_comp_pair_blk`) do not care — they take two parameter
+blocks, two state blocks and two signal blocks — and the per-node variable
+layout they require was already being emitted on chip 2, because the
+declaration order is guarded on `DSP4_PAIRED_GRAPH` and not on the chip.
+
+**Twelve nodes now run as six paired driver calls**: four `C2_GRP_GATE`,
+four `C2_GRP_COMP`, four `C2_MAIN_OCOMP`. `C2_SUB_COMP` and
+`C2_MAIN_COMP` are single instances in different chains and are not
+paired.
+
+Two things are easier here than on chip 1 and one is harder.
+
+* **No second pool.** Chip 1 needed `BLK_*_P1` because the strip block pool
+  is reused strip by strip, so two channels could never be live at once.
+  Every chip-2 node owns a persistent `_blk_<id>` buffer, so both channels
+  of a pair are already live and always were.
+* **The scalar fallback is just the two nodes.** Chip 1's has to square the
+  pool ping-pong up; a chip-2 node reads its producer's buffer and writes
+  its own on either path.
+* **Harder:** the paired kernel runs IN PLACE on one buffer per channel and
+  a chip-2 node's input and output buffers are DIFFERENT, so the driver
+  copies each channel's input block into its own output block first. BLOCK
+  words per channel per class, against a class costing 300-500 cycles per
+  sample.
+
+Which nodes pair is an EXPLICIT TABLE (`_C2_PAIR_FAMILIES`), adopted the way
+matrix cell families are, and the structure each family claims is CHECKED:
+a family whose run is not a contiguous block of the chain, or whose paired
+classes are not contiguous within it, raises rather than quietly pairing
+something else. Each family's run is reordered IN PLACE, which is what keeps
+every ladder position before it — the whole aux side, where §5's GEQ/EQ/AFB
+costs were taken — the same number in both builds.
+
+### Two defects, and the bar found both
+
+**D82 — a meter riding on a paired node was never called.** Under block
+kernels a meter is called immediately after its source, not at its own chain
+index, and that emit lives in `emit_chain`'s node branch. The pair branch
+`continue`d straight past it. `C2_MTR_GRP_01` taps `C2_GRP_COMP_01`; once
+that node was inside a pair entry its meter was never called at all and read
+its `.var` initialiser. `c2dyngold.sh` caught it as **two group meters
+reading exactly `0x00000000` in the paired arm** while every other meter was
+live.
+
+**D83 — the paired driver did not publish the meter's wide word.** The
+generic per-block wrapper walks `_mtr_wide_<id>` out into
+`_mtr_wblk_<id>[i]` one sample at a time; the pair kernel does not, and the
+driver replaces the wrapper. After D82 was fixed the meters were called and
+still folded an untouched array. The driver now walks the block out itself
+(`Q4.28 -> Q8.24`, the same shift the scalar body does).
+
+A third repair rides with them and was not a caught defect: on chip 2
+`_buf_<id>` IS what a host peek reads, and the paired path only writes it
+for sample 0, so the driver republishes it off the last sample of the block
+— the same repair the GEQ block kernel already makes for the same reason.
+
+### Measured — 2.3x per class, and it beats chip 1's own factors
+
+`sigprofile2.sh`, block 8, 983.04 MHz, the same ladder either side of the
+`DSP4_SIMD_DYN` switch.
+
+| | unpaired | paired | |
+|---|--:|--:|--:|
+| GATE, two channels | 2 x 2,746 = 5,492 | **2,376** | **2.31x** |
+| COMP, two channels | 2 x 4,214 = 8,428 | **3,697** | **2.28x** |
+
+Against chip 1's graph-measured 1.82x (GATE) and 1.72x (COMP), and the
+reason chip 2 does better is worth naming rather than enjoying: **chip 2's
+scalar path is the GENERIC per-block wrapper**, which session 17 measured at
+about 15% over a hoisted kernel, and the pair driver replaces the wrapper
+outright. Chip-2 pairing collects the pairing win and the wrapper win at
+once.
+
+### The headline
+
+| | cycles/block | % of the 163,840-cycle budget |
+|---|--:|--:|
+| the D16 gate (session 17) | 342,090 | 208.8% |
+| + the cascade rewrite (§5) | 281,364 | 171.7% |
+| **+ chip-2 dynamics pairing** | **257,936** | **157.4%** |
+
+**−23,848 cycles/block, −8.5%**, and **−24.6% cumulative** over the two
+pieces of work. At 786.432 MHz: 196.8%, from 261.0% at the gate.
+
+Two checks on the number, neither sharing arithmetic with it:
+
+* **the unpaired control reproduced.** Measured fresh this session at
+  281,784 against §5's 281,364 — **0.15% apart**, on a different boot;
+* **the parts predict the whole.** Four GATE and eight COMP instances
+  becoming six pair calls predicts 25,156 cycles/block saved against
+  **23,848 measured, 5.2% apart** (the residual is `C2_MAIN_OCOMP` being
+  priced at `C2_GRP_COMP`'s per-instance cost, which is an assumption and
+  not a measurement).
+
+### Verification — what the bar proves, and what it does not
+
+New bar `SHARC/c2dyngold.sh`: one tree built twice, differing only in
+`DSP4_SIMD_DYN`, driven with the identical `DSP4_PROFILE_SIGNAL` stimulus.
+
+**All 47 probed node OUTPUT BLOCKS are bit-exact**, including the paired
+nodes themselves, their channel-B partners, and everything downstream.
+
+The verdict is the output blocks and not the meters, and that was learned
+the hard way: the first cut scored the meters and they differed on 19 of 24
+probes by a few percent in both directions — **including on aux chains that
+contain no paired node at all**. The meters are per-BLOCK IIRs whose 300 ms
+RMS window is about **56 seconds of wall clock under DEC=32**, against a 12
+second dwell, so they read a point on a convergence curve and the paired arm
+reaches a different point *because it runs faster*. That is a bar measuring
+its own speedup. A node's whole output block has neither problem: it is
+recomputed from scratch every pass, and sorting it makes it independent of
+which phase of the stimulus square the block starts on.
+
+**THE GAP, NAMED.** The `DSP4_SIMD_NEGCTL` control — which makes the pair
+kernel take channel B's parameters, state and signal from channel A, so it
+computes one channel twice — **changes nothing**, and that is not a bug in
+the control. Every chip-2 chain on this bench carries the same stimulus at
+the same unity gain with the same compiled default dynamics settings, so
+channel A and channel B of a pair are numerically the SAME CHANNEL. The
+pairs are demonstrably RUNNING — the bar witnesses `_cmp_gn` live,
+`_dsim_n = BLOCK-1`, and every eligibility word on the paired path, and the
+cost table above is not what a scalar fallback produces. So the bit-exact
+result proves the PLUMBING: the chain order, the sample-0 handoff, the block
+copy, the meter block, the `_buf_` republish. **It does not prove CHANNEL
+SEPARATION.** Closing that needs distinct per-channel dynamics settings
+written over the SPI parameter plane before the dwell — exactly what
+`bqgraph.sh --bq` does for the biquads, and the same trap that record names:
+*"a comparison taken at bypass passes whatever the pairing does"*.
+
+**Containment.** Chip 1's generated files are byte-identical across this
+change — the diff is `chip2/dyn_pairs.asm` and `chip2/process_chain.asm`,
+insertions only. W0 unmoved: `23c1e662` / `e45bb82a`, 301,764 / 182,092
+bytes.
+
+---
+
+## 9. What this session did not do
 
 * **Item 2's target of <= 11.0 cycles/band-sample measured on the graph is
   NOT met.** The scalar site measures 25.31 against 37.25 — 1.47×, against
   the 3.4× the gate report's break-even asked for. The other half of it is
   cross-channel SIMD pairing, and that is not wired on chip 2.
-* **Item 3, porting the dynamics pairing to chip 2, was not started.** It
-  needs the same chip-2 chain pair-reordering that the biquad pairing needs
-  (§6), and the two should land together rather than each paying for the
-  reordering separately.
+* **Item 3 landed (§8) but its bar has a named gap**: channel separation is
+  not proven, because both channels of every chip-2 pair carry identical
+  signal and identical settings on this bench. That needs distinct
+  per-channel dynamics settings over the SPI plane.
+* **`C2_SUB_COMP` and `C2_MAIN_COMP` are not paired** — two of the ten
+  compressors. They are single instances in different chains and pairing
+  them across chains needs a DAG argument this session did not make.
+* **LIM is not paired at all** — 18 instances, ~316 cycles/sample each, and
+  there is no `_lim_pair_blk`. It is the largest remaining dynamics lever.
 * **Chip 1 was re-measured at block 8 only.** `MARGIN32_BLK8` is now
   189,602 (115.72%); the BLOCK-32 point, which is the one where chip 1
   actually fits, was not re-run and still dates from session 12.

@@ -4,7 +4,7 @@
 # node graph never runs at all), lets the graph settle, and dumps every probe
 # word to JSON.
 set -u
-DWELL="$1"; OUT="$2"
+DWELL="$1"; OUT="$2"; BLK="${3:-8}"
 cd /home/app/dspboot
 
 BENCH_LOCKFILE=/home/app/dspboot/.bench.lock
@@ -44,9 +44,10 @@ for attempt in 1 2 3; do
   done
   [ "$GOT" = "0" ] && { echo "(attempt $attempt: chips not both RUNNING)"; continue; }
   sleep "$DWELL"
-  python3 - "$OUT" <<'PYEOF'
+  python3 - "$OUT" "$BLK" <<'PYEOF'
 import json, sys
 out = sys.argv[1]
+BLOCK = int(sys.argv[2]) if len(sys.argv) > 2 else 8
 sys.argv = ['p']
 import dsp4_diag as D
 
@@ -115,6 +116,11 @@ BUFS = [
     'C2_AUX_FDR_07', 'C2_AUX_GEQ_07', 'C2_AUX_OUT_07',
     'C2_GRP_FDR_01', 'C2_GRP_EQ_01', 'C2_GRP_GEQ_01', 'C2_GRP_GATE_01',
     'C2_GRP_COMP_01',
+    # The B CHANNEL of each chip-2 dynamics pair. Under DSP4_SIMD_NEGCTL the
+    # pair kernel gives channel B channel A's parameters, state and signal,
+    # so B -- and only B -- must change. Without these in the probe list that
+    # negative control has nothing to fire on (c2dyngold.sh, 2026-09-01).
+    'C2_GRP_GATE_02', 'C2_GRP_COMP_02', 'C2_MAIN_OCOMP_02',
     'C2_SUB_FDR', 'C2_SUB_EQ', 'C2_SUB_COMP', 'C2_SUB_LIM', 'C2_SUB_DLY',
     'C2_SUB_OUT',
     'C2_MIX_MAIN_L', 'C2_MIX_MAIN_R', 'C2_MAIN_FDR', 'C2_MAIN_GEQ',
@@ -195,7 +201,50 @@ for nid in BUFS:
             print('UNREADABLE ' + nm); sys.exit(2)
         seen.add(v)
     sets[nm] = sorted(seen)
-json.dump({'exact': res, 'sets': sets, 'health': health}, open(out, 'w'))
+# THE OUTPUT BLOCK, SORTED -- phase-invariant and convergence-free.
+#
+# `_buf_<id>` is one word and the stimulus is a +/-0.5 square, so a probe of
+# it catches whichever phase the graph happened to be on; and the METERS are
+# per-BLOCK IIRs whose 300 ms RMS window is ~56 s of wall clock under DEC=32,
+# so a 12 s dwell reads a point on a convergence curve rather than a settled
+# value. Neither is a sound basis for comparing two builds that run at
+# DIFFERENT SPEEDS.
+#
+# The node's whole output block is both. Sorting it makes it independent of
+# which sample the block starts on, and a block is recomputed from scratch
+# every pass, so nothing about it depends on how many passes have run.
+blks = {}
+for nid in BUFS:
+    nm = '_blk_' + nid
+    if nm not in sym:
+        missing.append(nm); continue
+    vals = []
+    for k in range(BLOCK):
+        v = peek(sym[nm] + k)
+        if v is None:
+            print('UNREADABLE ' + nm); sys.exit(2)
+        vals.append(v)
+    blks[nm] = sorted(vals)
+# PAIR ELIGIBILITY, WITNESSED. A chip-2 dynamics pair falls back to its two
+# scalar node calls unless both channels are ON and neither has its sidechain
+# filter engaged -- and a bar comparing a paired build against an unpaired one
+# is worthless if the "paired" build quietly took the fallback. c2dyngold.sh
+# hit exactly that on 2026-09-01: 47 output blocks bit-exact AND the
+# DSP4_SIMD_NEGCTL control changing nothing, which is what a fallback looks
+# like from the outside.
+witness = {}
+for w in ('_gate_on_C2_GRP_GATE_01', '_gate_on_C2_GRP_GATE_02',
+          '_gate_filter_on_C2_GRP_GATE_01', '_gate_filter_on_C2_GRP_GATE_02',
+          '_comp_on_C2_GRP_COMP_01', '_comp_on_C2_GRP_COMP_02',
+          '_comp_on_C2_MAIN_OCOMP_01', '_comp_on_C2_MAIN_OCOMP_02',
+          '_cmp_gn', '_dsim_n'):
+    if w in sym:
+        witness[w] = peek(sym[w])
+json.dump({'exact': res, 'sets': sets, 'blks': blks, 'health': health,
+           'witness': witness}, open(out, 'w'))
+print('  pair witness: ' + ' '.join(
+    f'{k.replace("_C2_", " ")}=0x%08X' % v
+    for k, v in witness.items() if v is not None))
 bad = {k: v for k, v in health.items() if v != 'ok'}
 print(f'{len(res)} exact probes (meters) + {len(sets)} set probes captured'
       + (f', {len(missing)} absent from the map: {missing}' if missing else ''))

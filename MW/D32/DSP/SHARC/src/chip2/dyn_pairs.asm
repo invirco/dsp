@@ -15,6 +15,759 @@
 .extern _comp_pair_blk;
 .extern _cmp_gn;
 
+/* ---- chip-2 dynamics pairs (dispatch item 3, 2026-09-01) ----
+ * Same two kernels chip 1 has run since session 3, on chip 2's own
+ * per-node block buffers. Sample 0 goes through each channel's own
+ * per-sample body, which is where the block-rate parameter conversion
+ * lives, so sample 0 is bit-identical to the scalar path BY
+ * CONSTRUCTION and there is no second copy of that arithmetic to
+ * drift. Samples 1..BLOCK-1 go through the pair kernel.
+ *
+ * A pair whose two channels disagree -- one gated off, one sidechain
+ * filter on, one compressor bypassed -- cannot run paired and falls
+ * back to the two scalar node calls, which on chip 2 need no slot
+ * squaring: each node reads its producer's buffer and writes its own
+ * on either path.
+ */
+.extern _C2_GRP_COMP_01_process;
+.extern _C2_GRP_COMP_01_process_sample;
+.extern _C2_GRP_COMP_02_process;
+.extern _C2_GRP_COMP_02_process_sample;
+.extern _C2_GRP_COMP_03_process;
+.extern _C2_GRP_COMP_03_process_sample;
+.extern _C2_GRP_COMP_04_process;
+.extern _C2_GRP_COMP_04_process_sample;
+.extern _C2_GRP_GATE_01_process;
+.extern _C2_GRP_GATE_01_process_sample;
+.extern _C2_GRP_GATE_02_process;
+.extern _C2_GRP_GATE_02_process_sample;
+.extern _C2_GRP_GATE_03_process;
+.extern _C2_GRP_GATE_03_process_sample;
+.extern _C2_GRP_GATE_04_process;
+.extern _C2_GRP_GATE_04_process_sample;
+.extern _C2_MAIN_OCOMP_01_process;
+.extern _C2_MAIN_OCOMP_01_process_sample;
+.extern _C2_MAIN_OCOMP_02_process;
+.extern _C2_MAIN_OCOMP_02_process_sample;
+.extern _C2_MAIN_OCOMP_03_process;
+.extern _C2_MAIN_OCOMP_03_process_sample;
+.extern _C2_MAIN_OCOMP_04_process;
+.extern _C2_MAIN_OCOMP_04_process_sample;
+.extern _blk_C2_GRP_COMP_01;
+.extern _blk_C2_GRP_COMP_02;
+.extern _blk_C2_GRP_COMP_03;
+.extern _blk_C2_GRP_COMP_04;
+.extern _blk_C2_GRP_GATE_01;
+.extern _blk_C2_GRP_GATE_02;
+.extern _blk_C2_GRP_GATE_03;
+.extern _blk_C2_GRP_GATE_04;
+.extern _blk_C2_GRP_GEQ_01;
+.extern _blk_C2_GRP_GEQ_02;
+.extern _blk_C2_GRP_GEQ_03;
+.extern _blk_C2_GRP_GEQ_04;
+.extern _blk_C2_MAIN_OCOMP_01;
+.extern _blk_C2_MAIN_OCOMP_02;
+.extern _blk_C2_MAIN_OCOMP_03;
+.extern _blk_C2_MAIN_OCOMP_04;
+.extern _blk_C2_MAIN_OEQ_01;
+.extern _blk_C2_MAIN_OEQ_02;
+.extern _blk_C2_MAIN_OEQ_03;
+.extern _blk_C2_MAIN_OEQ_04;
+.extern _buf_C2_GRP_COMP_01;
+.extern _buf_C2_GRP_COMP_02;
+.extern _buf_C2_GRP_COMP_03;
+.extern _buf_C2_GRP_COMP_04;
+.extern _buf_C2_GRP_GATE_01;
+.extern _buf_C2_GRP_GATE_02;
+.extern _buf_C2_GRP_GATE_03;
+.extern _buf_C2_GRP_GATE_04;
+.extern _buf_C2_GRP_GEQ_01;
+.extern _buf_C2_GRP_GEQ_02;
+.extern _buf_C2_GRP_GEQ_03;
+.extern _buf_C2_GRP_GEQ_04;
+.extern _buf_C2_MAIN_OCOMP_01;
+.extern _buf_C2_MAIN_OCOMP_02;
+.extern _buf_C2_MAIN_OCOMP_03;
+.extern _buf_C2_MAIN_OCOMP_04;
+.extern _buf_C2_MAIN_OEQ_01;
+.extern _buf_C2_MAIN_OEQ_02;
+.extern _buf_C2_MAIN_OEQ_03;
+.extern _buf_C2_MAIN_OEQ_04;
+.extern _comp_attq_C2_GRP_COMP_01;
+.extern _comp_attq_C2_GRP_COMP_02;
+.extern _comp_attq_C2_GRP_COMP_03;
+.extern _comp_attq_C2_GRP_COMP_04;
+.extern _comp_attq_C2_MAIN_OCOMP_01;
+.extern _comp_attq_C2_MAIN_OCOMP_02;
+.extern _comp_attq_C2_MAIN_OCOMP_03;
+.extern _comp_attq_C2_MAIN_OCOMP_04;
+.extern _comp_envelope_C2_GRP_COMP_01;
+.extern _comp_envelope_C2_GRP_COMP_02;
+.extern _comp_envelope_C2_GRP_COMP_03;
+.extern _comp_envelope_C2_GRP_COMP_04;
+.extern _comp_envelope_C2_MAIN_OCOMP_01;
+.extern _comp_envelope_C2_MAIN_OCOMP_02;
+.extern _comp_envelope_C2_MAIN_OCOMP_03;
+.extern _comp_envelope_C2_MAIN_OCOMP_04;
+.extern _comp_gain_C2_GRP_COMP_01;
+.extern _comp_gain_C2_GRP_COMP_02;
+.extern _comp_gain_C2_GRP_COMP_03;
+.extern _comp_gain_C2_GRP_COMP_04;
+.extern _comp_gain_C2_MAIN_OCOMP_01;
+.extern _comp_gain_C2_MAIN_OCOMP_02;
+.extern _comp_gain_C2_MAIN_OCOMP_03;
+.extern _comp_gain_C2_MAIN_OCOMP_04;
+.extern _comp_on_C2_GRP_COMP_01;
+.extern _comp_on_C2_GRP_COMP_02;
+.extern _comp_on_C2_GRP_COMP_03;
+.extern _comp_on_C2_GRP_COMP_04;
+.extern _comp_on_C2_MAIN_OCOMP_01;
+.extern _comp_on_C2_MAIN_OCOMP_02;
+.extern _comp_on_C2_MAIN_OCOMP_03;
+.extern _comp_on_C2_MAIN_OCOMP_04;
+.extern _gate_attq_C2_GRP_GATE_01;
+.extern _gate_attq_C2_GRP_GATE_02;
+.extern _gate_attq_C2_GRP_GATE_03;
+.extern _gate_attq_C2_GRP_GATE_04;
+.extern _gate_envelope_C2_GRP_GATE_01;
+.extern _gate_envelope_C2_GRP_GATE_02;
+.extern _gate_envelope_C2_GRP_GATE_03;
+.extern _gate_envelope_C2_GRP_GATE_04;
+.extern _gate_filter_on_C2_GRP_GATE_01;
+.extern _gate_filter_on_C2_GRP_GATE_02;
+.extern _gate_filter_on_C2_GRP_GATE_03;
+.extern _gate_filter_on_C2_GRP_GATE_04;
+.extern _gate_on_C2_GRP_GATE_01;
+.extern _gate_on_C2_GRP_GATE_02;
+.extern _gate_on_C2_GRP_GATE_03;
+.extern _gate_on_C2_GRP_GATE_04;
+.extern _mtr_wblk_C2_GRP_COMP_01;
+.extern _mtr_wblk_C2_GRP_COMP_02;
+.extern _mtr_wblk_C2_GRP_COMP_03;
+.extern _mtr_wblk_C2_GRP_COMP_04;
+.extern _mtr_wide_C2_GRP_COMP_01;
+.extern _mtr_wide_C2_GRP_COMP_02;
+.extern _mtr_wide_C2_GRP_COMP_03;
+.extern _mtr_wide_C2_GRP_COMP_04;
+
+/* ---- C2_GRP_GATE_01 + C2_GRP_GATE_02 ---- */
+.global _C2PAIR_GRP_GATE_01_02_process;
+_C2PAIR_GRP_GATE_01_02_process:
+    /* Both channels must be on the same path or there is no pair. */
+    r0 = dm(_gate_on_C2_GRP_GATE_01);
+    r0 = pass r0;
+    if eq jump (pc, .c2s_GRP_GATE_01_02);
+    r0 = dm(_gate_on_C2_GRP_GATE_02);
+    r0 = pass r0;
+    if eq jump (pc, .c2s_GRP_GATE_01_02);
+    r0 = dm(_gate_filter_on_C2_GRP_GATE_01);
+    r0 = pass r0;
+    if ne jump (pc, .c2s_GRP_GATE_01_02);
+    r0 = dm(_gate_filter_on_C2_GRP_GATE_02);
+    r0 = pass r0;
+    if ne jump (pc, .c2s_GRP_GATE_01_02);
+
+    /* input block -> this node's own block, so the paired
+     * kernel can run in place the way chip 1's pool
+     * ping-pong does. */
+    l3 = 0; l4 = 0;
+    i3 = _blk_C2_GRP_GEQ_01;
+    i4 = _blk_C2_GRP_GATE_01;
+    lcntr = DSP4_BLOCK_SIZE, do .c2cp0_GRP_GATE_01_02 until lce;
+        r0 = dm(i3, 1);
+    .c2cp0_GRP_GATE_01_02: dm(i4, 1) = r0;
+    i3 = _blk_C2_GRP_GEQ_02;
+    i4 = _blk_C2_GRP_GATE_02;
+    lcntr = DSP4_BLOCK_SIZE, do .c2cp1_GRP_GATE_01_02 until lce;
+        r0 = dm(i3, 1);
+    .c2cp1_GRP_GATE_01_02: dm(i4, 1) = r0;
+
+    /* sample 0 through each channel's own per-sample body */
+    r5 = dm(_sample_idx);
+    dm(_dynpair_saved_idx) = r5;
+    r5 = 0;
+    dm(_sample_idx) = r5;
+    r0 = dm(_blk_C2_GRP_GATE_01);
+    dm(_buf_C2_GRP_GEQ_01) = r0;
+    call _C2_GRP_GATE_01_process_sample;
+    r0 = dm(_buf_C2_GRP_GATE_01);
+    dm(_blk_C2_GRP_GATE_01) = r0;
+    r0 = dm(_blk_C2_GRP_GATE_02);
+    dm(_buf_C2_GRP_GEQ_02) = r0;
+    call _C2_GRP_GATE_02_process_sample;
+    r0 = dm(_buf_C2_GRP_GATE_02);
+    dm(_blk_C2_GRP_GATE_02) = r0;
+    r5 = dm(_dynpair_saved_idx);
+    dm(_sample_idx) = r5;
+
+    /* samples 1..BLOCK-1, two channels, one stream */
+    r0 = DSP4_BLOCK_SIZE-1;
+    dm(_dsim_n) = r0;
+    dm(_dsim_n + 1) = r0;
+    r4 = _gate_attq_C2_GRP_GATE_01;
+    r5 = _gate_attq_C2_GRP_GATE_02;
+    r6 = _gate_envelope_C2_GRP_GATE_01;
+    r7 = _gate_envelope_C2_GRP_GATE_02;
+    r0 = _blk_C2_GRP_GATE_01;
+    r1 = 1;
+    r8 = r0 + r1;
+    r0 = _blk_C2_GRP_GATE_02;
+    r9 = r0 + r1;
+    call _gate_pair_blk;
+    /* republish the scalar _buf_ word off the LAST sample
+     * of the block. On chip 2 `_buf_<id>` IS what a host
+     * peek reads, and the paired path only writes it for
+     * sample 0 -- so without this it would report the
+     * first sample of the block while every unpaired node
+     * reports the last. Nine instructions at block rate,
+     * and the same repair the GEQ block kernel already
+     * makes for the same reason. */
+    l4 = 0;
+    m4 = DSP4_BLOCK_SIZE-1;
+    i4 = _blk_C2_GRP_GATE_01;
+    modify(i4, m4);
+    r0 = dm(i4, 0);
+    dm(_buf_C2_GRP_GATE_01) = r0;
+    i4 = _blk_C2_GRP_GATE_02;
+    modify(i4, m4);
+    r0 = dm(i4, 0);
+    dm(_buf_C2_GRP_GATE_02) = r0;
+    rts;
+
+.c2s_GRP_GATE_01_02:
+    /* scalar fallback: the two nodes, unchanged */
+    call _C2_GRP_GATE_01_process;
+    call _C2_GRP_GATE_02_process;
+    rts;
+_C2PAIR_GRP_GATE_01_02_process.end:
+
+/* ---- C2_GRP_GATE_03 + C2_GRP_GATE_04 ---- */
+.global _C2PAIR_GRP_GATE_03_04_process;
+_C2PAIR_GRP_GATE_03_04_process:
+    /* Both channels must be on the same path or there is no pair. */
+    r0 = dm(_gate_on_C2_GRP_GATE_03);
+    r0 = pass r0;
+    if eq jump (pc, .c2s_GRP_GATE_03_04);
+    r0 = dm(_gate_on_C2_GRP_GATE_04);
+    r0 = pass r0;
+    if eq jump (pc, .c2s_GRP_GATE_03_04);
+    r0 = dm(_gate_filter_on_C2_GRP_GATE_03);
+    r0 = pass r0;
+    if ne jump (pc, .c2s_GRP_GATE_03_04);
+    r0 = dm(_gate_filter_on_C2_GRP_GATE_04);
+    r0 = pass r0;
+    if ne jump (pc, .c2s_GRP_GATE_03_04);
+
+    /* input block -> this node's own block, so the paired
+     * kernel can run in place the way chip 1's pool
+     * ping-pong does. */
+    l3 = 0; l4 = 0;
+    i3 = _blk_C2_GRP_GEQ_03;
+    i4 = _blk_C2_GRP_GATE_03;
+    lcntr = DSP4_BLOCK_SIZE, do .c2cp0_GRP_GATE_03_04 until lce;
+        r0 = dm(i3, 1);
+    .c2cp0_GRP_GATE_03_04: dm(i4, 1) = r0;
+    i3 = _blk_C2_GRP_GEQ_04;
+    i4 = _blk_C2_GRP_GATE_04;
+    lcntr = DSP4_BLOCK_SIZE, do .c2cp1_GRP_GATE_03_04 until lce;
+        r0 = dm(i3, 1);
+    .c2cp1_GRP_GATE_03_04: dm(i4, 1) = r0;
+
+    /* sample 0 through each channel's own per-sample body */
+    r5 = dm(_sample_idx);
+    dm(_dynpair_saved_idx) = r5;
+    r5 = 0;
+    dm(_sample_idx) = r5;
+    r0 = dm(_blk_C2_GRP_GATE_03);
+    dm(_buf_C2_GRP_GEQ_03) = r0;
+    call _C2_GRP_GATE_03_process_sample;
+    r0 = dm(_buf_C2_GRP_GATE_03);
+    dm(_blk_C2_GRP_GATE_03) = r0;
+    r0 = dm(_blk_C2_GRP_GATE_04);
+    dm(_buf_C2_GRP_GEQ_04) = r0;
+    call _C2_GRP_GATE_04_process_sample;
+    r0 = dm(_buf_C2_GRP_GATE_04);
+    dm(_blk_C2_GRP_GATE_04) = r0;
+    r5 = dm(_dynpair_saved_idx);
+    dm(_sample_idx) = r5;
+
+    /* samples 1..BLOCK-1, two channels, one stream */
+    r0 = DSP4_BLOCK_SIZE-1;
+    dm(_dsim_n) = r0;
+    dm(_dsim_n + 1) = r0;
+    r4 = _gate_attq_C2_GRP_GATE_03;
+    r5 = _gate_attq_C2_GRP_GATE_04;
+    r6 = _gate_envelope_C2_GRP_GATE_03;
+    r7 = _gate_envelope_C2_GRP_GATE_04;
+    r0 = _blk_C2_GRP_GATE_03;
+    r1 = 1;
+    r8 = r0 + r1;
+    r0 = _blk_C2_GRP_GATE_04;
+    r9 = r0 + r1;
+    call _gate_pair_blk;
+    /* republish the scalar _buf_ word off the LAST sample
+     * of the block. On chip 2 `_buf_<id>` IS what a host
+     * peek reads, and the paired path only writes it for
+     * sample 0 -- so without this it would report the
+     * first sample of the block while every unpaired node
+     * reports the last. Nine instructions at block rate,
+     * and the same repair the GEQ block kernel already
+     * makes for the same reason. */
+    l4 = 0;
+    m4 = DSP4_BLOCK_SIZE-1;
+    i4 = _blk_C2_GRP_GATE_03;
+    modify(i4, m4);
+    r0 = dm(i4, 0);
+    dm(_buf_C2_GRP_GATE_03) = r0;
+    i4 = _blk_C2_GRP_GATE_04;
+    modify(i4, m4);
+    r0 = dm(i4, 0);
+    dm(_buf_C2_GRP_GATE_04) = r0;
+    rts;
+
+.c2s_GRP_GATE_03_04:
+    /* scalar fallback: the two nodes, unchanged */
+    call _C2_GRP_GATE_03_process;
+    call _C2_GRP_GATE_04_process;
+    rts;
+_C2PAIR_GRP_GATE_03_04_process.end:
+
+/* ---- C2_GRP_COMP_01 + C2_GRP_COMP_02 ---- */
+.global _C2PAIR_GRP_COMP_01_02_process;
+_C2PAIR_GRP_COMP_01_02_process:
+    /* Both channels must be on the same path or there is no pair. */
+    r0 = dm(_comp_on_C2_GRP_COMP_01);
+    r0 = pass r0;
+    if eq jump (pc, .c2s_GRP_COMP_01_02);
+    r0 = dm(_comp_on_C2_GRP_COMP_02);
+    r0 = pass r0;
+    if eq jump (pc, .c2s_GRP_COMP_01_02);
+
+    /* input block -> this node's own block, so the paired
+     * kernel can run in place the way chip 1's pool
+     * ping-pong does. */
+    l3 = 0; l4 = 0;
+    i3 = _blk_C2_GRP_GATE_01;
+    i4 = _blk_C2_GRP_COMP_01;
+    lcntr = DSP4_BLOCK_SIZE, do .c2cp0_GRP_COMP_01_02 until lce;
+        r0 = dm(i3, 1);
+    .c2cp0_GRP_COMP_01_02: dm(i4, 1) = r0;
+    i3 = _blk_C2_GRP_GATE_02;
+    i4 = _blk_C2_GRP_COMP_02;
+    lcntr = DSP4_BLOCK_SIZE, do .c2cp1_GRP_COMP_01_02 until lce;
+        r0 = dm(i3, 1);
+    .c2cp1_GRP_COMP_01_02: dm(i4, 1) = r0;
+
+    /* sample 0 through each channel's own per-sample body */
+    r5 = dm(_sample_idx);
+    dm(_dynpair_saved_idx) = r5;
+    r5 = 0;
+    dm(_sample_idx) = r5;
+    r0 = dm(_blk_C2_GRP_COMP_01);
+    dm(_buf_C2_GRP_GATE_01) = r0;
+    call _C2_GRP_COMP_01_process_sample;
+    r0 = dm(_buf_C2_GRP_COMP_01);
+    dm(_blk_C2_GRP_COMP_01) = r0;
+    r0 = dm(_blk_C2_GRP_COMP_02);
+    dm(_buf_C2_GRP_GATE_02) = r0;
+    call _C2_GRP_COMP_02_process_sample;
+    r0 = dm(_buf_C2_GRP_COMP_02);
+    dm(_blk_C2_GRP_COMP_02) = r0;
+    r5 = dm(_dynpair_saved_idx);
+    dm(_sample_idx) = r5;
+
+    /* samples 1..BLOCK-1, two channels, one stream */
+    r0 = DSP4_BLOCK_SIZE-1;
+    dm(_dsim_n) = r0;
+    dm(_dsim_n + 1) = r0;
+    r4 = _comp_attq_C2_GRP_COMP_01;
+    r5 = _comp_attq_C2_GRP_COMP_02;
+    r6 = _comp_envelope_C2_GRP_COMP_01;
+    r7 = _comp_envelope_C2_GRP_COMP_02;
+    r0 = _blk_C2_GRP_COMP_01;
+    r1 = 1;
+    r8 = r0 + r1;
+    r0 = _blk_C2_GRP_COMP_02;
+    r9 = r0 + r1;
+    call _comp_pair_blk;
+    /* the pair writes its gain display to the shared
+     * park; give it back to each node so a host peek
+     * still reads a live per-node compressor gain. */
+    i0 = _cmp_gn;
+    r0 = dm(i0, 1);
+    dm(_comp_gain_C2_GRP_COMP_01) = r0;
+    r0 = dm(i0, 1);
+    dm(_comp_gain_C2_GRP_COMP_02) = r0;
+    /* THE METER'S WIDE WORD, AS A BLOCK. The generic
+     * per-block wrapper walks this out one sample at a
+     * time and the pair kernel does not, so the driver
+     * does it here. Without it the meter folds an
+     * untouched array: c2dyngold.sh caught exactly that
+     * as C2_MTR_GRP_01 and _04 reading 0x00000000 in
+     * the paired arm while every other meter was live.
+     */
+    l3 = 0; l4 = 0;
+    i3 = _blk_C2_GRP_COMP_01;
+    i4 = _mtr_wblk_C2_GRP_COMP_01;
+    lcntr = DSP4_BLOCK_SIZE, do .c2mw0_GRP_COMP_01_02 until lce;
+        r0 = dm(i3, 1);
+        r0 = ashift r0 by -4;    /* Q4.28 -> Q8.24 */
+    .c2mw0_GRP_COMP_01_02: dm(i4, 1) = r0;
+    dm(_mtr_wide_C2_GRP_COMP_01) = r0;  /* the last sample, as the scalar body leaves it */
+    /* THE METER'S WIDE WORD, AS A BLOCK. The generic
+     * per-block wrapper walks this out one sample at a
+     * time and the pair kernel does not, so the driver
+     * does it here. Without it the meter folds an
+     * untouched array: c2dyngold.sh caught exactly that
+     * as C2_MTR_GRP_01 and _04 reading 0x00000000 in
+     * the paired arm while every other meter was live.
+     */
+    l3 = 0; l4 = 0;
+    i3 = _blk_C2_GRP_COMP_02;
+    i4 = _mtr_wblk_C2_GRP_COMP_02;
+    lcntr = DSP4_BLOCK_SIZE, do .c2mw1_GRP_COMP_01_02 until lce;
+        r0 = dm(i3, 1);
+        r0 = ashift r0 by -4;    /* Q4.28 -> Q8.24 */
+    .c2mw1_GRP_COMP_01_02: dm(i4, 1) = r0;
+    dm(_mtr_wide_C2_GRP_COMP_02) = r0;  /* the last sample, as the scalar body leaves it */
+    /* republish the scalar _buf_ word off the LAST sample
+     * of the block. On chip 2 `_buf_<id>` IS what a host
+     * peek reads, and the paired path only writes it for
+     * sample 0 -- so without this it would report the
+     * first sample of the block while every unpaired node
+     * reports the last. Nine instructions at block rate,
+     * and the same repair the GEQ block kernel already
+     * makes for the same reason. */
+    l4 = 0;
+    m4 = DSP4_BLOCK_SIZE-1;
+    i4 = _blk_C2_GRP_COMP_01;
+    modify(i4, m4);
+    r0 = dm(i4, 0);
+    dm(_buf_C2_GRP_COMP_01) = r0;
+    i4 = _blk_C2_GRP_COMP_02;
+    modify(i4, m4);
+    r0 = dm(i4, 0);
+    dm(_buf_C2_GRP_COMP_02) = r0;
+    rts;
+
+.c2s_GRP_COMP_01_02:
+    /* scalar fallback: the two nodes, unchanged */
+    call _C2_GRP_COMP_01_process;
+    call _C2_GRP_COMP_02_process;
+    rts;
+_C2PAIR_GRP_COMP_01_02_process.end:
+
+/* ---- C2_GRP_COMP_03 + C2_GRP_COMP_04 ---- */
+.global _C2PAIR_GRP_COMP_03_04_process;
+_C2PAIR_GRP_COMP_03_04_process:
+    /* Both channels must be on the same path or there is no pair. */
+    r0 = dm(_comp_on_C2_GRP_COMP_03);
+    r0 = pass r0;
+    if eq jump (pc, .c2s_GRP_COMP_03_04);
+    r0 = dm(_comp_on_C2_GRP_COMP_04);
+    r0 = pass r0;
+    if eq jump (pc, .c2s_GRP_COMP_03_04);
+
+    /* input block -> this node's own block, so the paired
+     * kernel can run in place the way chip 1's pool
+     * ping-pong does. */
+    l3 = 0; l4 = 0;
+    i3 = _blk_C2_GRP_GATE_03;
+    i4 = _blk_C2_GRP_COMP_03;
+    lcntr = DSP4_BLOCK_SIZE, do .c2cp0_GRP_COMP_03_04 until lce;
+        r0 = dm(i3, 1);
+    .c2cp0_GRP_COMP_03_04: dm(i4, 1) = r0;
+    i3 = _blk_C2_GRP_GATE_04;
+    i4 = _blk_C2_GRP_COMP_04;
+    lcntr = DSP4_BLOCK_SIZE, do .c2cp1_GRP_COMP_03_04 until lce;
+        r0 = dm(i3, 1);
+    .c2cp1_GRP_COMP_03_04: dm(i4, 1) = r0;
+
+    /* sample 0 through each channel's own per-sample body */
+    r5 = dm(_sample_idx);
+    dm(_dynpair_saved_idx) = r5;
+    r5 = 0;
+    dm(_sample_idx) = r5;
+    r0 = dm(_blk_C2_GRP_COMP_03);
+    dm(_buf_C2_GRP_GATE_03) = r0;
+    call _C2_GRP_COMP_03_process_sample;
+    r0 = dm(_buf_C2_GRP_COMP_03);
+    dm(_blk_C2_GRP_COMP_03) = r0;
+    r0 = dm(_blk_C2_GRP_COMP_04);
+    dm(_buf_C2_GRP_GATE_04) = r0;
+    call _C2_GRP_COMP_04_process_sample;
+    r0 = dm(_buf_C2_GRP_COMP_04);
+    dm(_blk_C2_GRP_COMP_04) = r0;
+    r5 = dm(_dynpair_saved_idx);
+    dm(_sample_idx) = r5;
+
+    /* samples 1..BLOCK-1, two channels, one stream */
+    r0 = DSP4_BLOCK_SIZE-1;
+    dm(_dsim_n) = r0;
+    dm(_dsim_n + 1) = r0;
+    r4 = _comp_attq_C2_GRP_COMP_03;
+    r5 = _comp_attq_C2_GRP_COMP_04;
+    r6 = _comp_envelope_C2_GRP_COMP_03;
+    r7 = _comp_envelope_C2_GRP_COMP_04;
+    r0 = _blk_C2_GRP_COMP_03;
+    r1 = 1;
+    r8 = r0 + r1;
+    r0 = _blk_C2_GRP_COMP_04;
+    r9 = r0 + r1;
+    call _comp_pair_blk;
+    /* the pair writes its gain display to the shared
+     * park; give it back to each node so a host peek
+     * still reads a live per-node compressor gain. */
+    i0 = _cmp_gn;
+    r0 = dm(i0, 1);
+    dm(_comp_gain_C2_GRP_COMP_03) = r0;
+    r0 = dm(i0, 1);
+    dm(_comp_gain_C2_GRP_COMP_04) = r0;
+    /* THE METER'S WIDE WORD, AS A BLOCK. The generic
+     * per-block wrapper walks this out one sample at a
+     * time and the pair kernel does not, so the driver
+     * does it here. Without it the meter folds an
+     * untouched array: c2dyngold.sh caught exactly that
+     * as C2_MTR_GRP_01 and _04 reading 0x00000000 in
+     * the paired arm while every other meter was live.
+     */
+    l3 = 0; l4 = 0;
+    i3 = _blk_C2_GRP_COMP_03;
+    i4 = _mtr_wblk_C2_GRP_COMP_03;
+    lcntr = DSP4_BLOCK_SIZE, do .c2mw0_GRP_COMP_03_04 until lce;
+        r0 = dm(i3, 1);
+        r0 = ashift r0 by -4;    /* Q4.28 -> Q8.24 */
+    .c2mw0_GRP_COMP_03_04: dm(i4, 1) = r0;
+    dm(_mtr_wide_C2_GRP_COMP_03) = r0;  /* the last sample, as the scalar body leaves it */
+    /* THE METER'S WIDE WORD, AS A BLOCK. The generic
+     * per-block wrapper walks this out one sample at a
+     * time and the pair kernel does not, so the driver
+     * does it here. Without it the meter folds an
+     * untouched array: c2dyngold.sh caught exactly that
+     * as C2_MTR_GRP_01 and _04 reading 0x00000000 in
+     * the paired arm while every other meter was live.
+     */
+    l3 = 0; l4 = 0;
+    i3 = _blk_C2_GRP_COMP_04;
+    i4 = _mtr_wblk_C2_GRP_COMP_04;
+    lcntr = DSP4_BLOCK_SIZE, do .c2mw1_GRP_COMP_03_04 until lce;
+        r0 = dm(i3, 1);
+        r0 = ashift r0 by -4;    /* Q4.28 -> Q8.24 */
+    .c2mw1_GRP_COMP_03_04: dm(i4, 1) = r0;
+    dm(_mtr_wide_C2_GRP_COMP_04) = r0;  /* the last sample, as the scalar body leaves it */
+    /* republish the scalar _buf_ word off the LAST sample
+     * of the block. On chip 2 `_buf_<id>` IS what a host
+     * peek reads, and the paired path only writes it for
+     * sample 0 -- so without this it would report the
+     * first sample of the block while every unpaired node
+     * reports the last. Nine instructions at block rate,
+     * and the same repair the GEQ block kernel already
+     * makes for the same reason. */
+    l4 = 0;
+    m4 = DSP4_BLOCK_SIZE-1;
+    i4 = _blk_C2_GRP_COMP_03;
+    modify(i4, m4);
+    r0 = dm(i4, 0);
+    dm(_buf_C2_GRP_COMP_03) = r0;
+    i4 = _blk_C2_GRP_COMP_04;
+    modify(i4, m4);
+    r0 = dm(i4, 0);
+    dm(_buf_C2_GRP_COMP_04) = r0;
+    rts;
+
+.c2s_GRP_COMP_03_04:
+    /* scalar fallback: the two nodes, unchanged */
+    call _C2_GRP_COMP_03_process;
+    call _C2_GRP_COMP_04_process;
+    rts;
+_C2PAIR_GRP_COMP_03_04_process.end:
+
+/* ---- C2_MAIN_OCOMP_01 + C2_MAIN_OCOMP_02 ---- */
+.global _C2PAIR_MOUT_OCOMP_01_02_process;
+_C2PAIR_MOUT_OCOMP_01_02_process:
+    /* Both channels must be on the same path or there is no pair. */
+    r0 = dm(_comp_on_C2_MAIN_OCOMP_01);
+    r0 = pass r0;
+    if eq jump (pc, .c2s_MOUT_OCOMP_01_02);
+    r0 = dm(_comp_on_C2_MAIN_OCOMP_02);
+    r0 = pass r0;
+    if eq jump (pc, .c2s_MOUT_OCOMP_01_02);
+
+    /* input block -> this node's own block, so the paired
+     * kernel can run in place the way chip 1's pool
+     * ping-pong does. */
+    l3 = 0; l4 = 0;
+    i3 = _blk_C2_MAIN_OEQ_01;
+    i4 = _blk_C2_MAIN_OCOMP_01;
+    lcntr = DSP4_BLOCK_SIZE, do .c2cp0_MOUT_OCOMP_01_02 until lce;
+        r0 = dm(i3, 1);
+    .c2cp0_MOUT_OCOMP_01_02: dm(i4, 1) = r0;
+    i3 = _blk_C2_MAIN_OEQ_02;
+    i4 = _blk_C2_MAIN_OCOMP_02;
+    lcntr = DSP4_BLOCK_SIZE, do .c2cp1_MOUT_OCOMP_01_02 until lce;
+        r0 = dm(i3, 1);
+    .c2cp1_MOUT_OCOMP_01_02: dm(i4, 1) = r0;
+
+    /* sample 0 through each channel's own per-sample body */
+    r5 = dm(_sample_idx);
+    dm(_dynpair_saved_idx) = r5;
+    r5 = 0;
+    dm(_sample_idx) = r5;
+    r0 = dm(_blk_C2_MAIN_OCOMP_01);
+    dm(_buf_C2_MAIN_OEQ_01) = r0;
+    call _C2_MAIN_OCOMP_01_process_sample;
+    r0 = dm(_buf_C2_MAIN_OCOMP_01);
+    dm(_blk_C2_MAIN_OCOMP_01) = r0;
+    r0 = dm(_blk_C2_MAIN_OCOMP_02);
+    dm(_buf_C2_MAIN_OEQ_02) = r0;
+    call _C2_MAIN_OCOMP_02_process_sample;
+    r0 = dm(_buf_C2_MAIN_OCOMP_02);
+    dm(_blk_C2_MAIN_OCOMP_02) = r0;
+    r5 = dm(_dynpair_saved_idx);
+    dm(_sample_idx) = r5;
+
+    /* samples 1..BLOCK-1, two channels, one stream */
+    r0 = DSP4_BLOCK_SIZE-1;
+    dm(_dsim_n) = r0;
+    dm(_dsim_n + 1) = r0;
+    r4 = _comp_attq_C2_MAIN_OCOMP_01;
+    r5 = _comp_attq_C2_MAIN_OCOMP_02;
+    r6 = _comp_envelope_C2_MAIN_OCOMP_01;
+    r7 = _comp_envelope_C2_MAIN_OCOMP_02;
+    r0 = _blk_C2_MAIN_OCOMP_01;
+    r1 = 1;
+    r8 = r0 + r1;
+    r0 = _blk_C2_MAIN_OCOMP_02;
+    r9 = r0 + r1;
+    call _comp_pair_blk;
+    /* the pair writes its gain display to the shared
+     * park; give it back to each node so a host peek
+     * still reads a live per-node compressor gain. */
+    i0 = _cmp_gn;
+    r0 = dm(i0, 1);
+    dm(_comp_gain_C2_MAIN_OCOMP_01) = r0;
+    r0 = dm(i0, 1);
+    dm(_comp_gain_C2_MAIN_OCOMP_02) = r0;
+    /* republish the scalar _buf_ word off the LAST sample
+     * of the block. On chip 2 `_buf_<id>` IS what a host
+     * peek reads, and the paired path only writes it for
+     * sample 0 -- so without this it would report the
+     * first sample of the block while every unpaired node
+     * reports the last. Nine instructions at block rate,
+     * and the same repair the GEQ block kernel already
+     * makes for the same reason. */
+    l4 = 0;
+    m4 = DSP4_BLOCK_SIZE-1;
+    i4 = _blk_C2_MAIN_OCOMP_01;
+    modify(i4, m4);
+    r0 = dm(i4, 0);
+    dm(_buf_C2_MAIN_OCOMP_01) = r0;
+    i4 = _blk_C2_MAIN_OCOMP_02;
+    modify(i4, m4);
+    r0 = dm(i4, 0);
+    dm(_buf_C2_MAIN_OCOMP_02) = r0;
+    rts;
+
+.c2s_MOUT_OCOMP_01_02:
+    /* scalar fallback: the two nodes, unchanged */
+    call _C2_MAIN_OCOMP_01_process;
+    call _C2_MAIN_OCOMP_02_process;
+    rts;
+_C2PAIR_MOUT_OCOMP_01_02_process.end:
+
+/* ---- C2_MAIN_OCOMP_03 + C2_MAIN_OCOMP_04 ---- */
+.global _C2PAIR_MOUT_OCOMP_03_04_process;
+_C2PAIR_MOUT_OCOMP_03_04_process:
+    /* Both channels must be on the same path or there is no pair. */
+    r0 = dm(_comp_on_C2_MAIN_OCOMP_03);
+    r0 = pass r0;
+    if eq jump (pc, .c2s_MOUT_OCOMP_03_04);
+    r0 = dm(_comp_on_C2_MAIN_OCOMP_04);
+    r0 = pass r0;
+    if eq jump (pc, .c2s_MOUT_OCOMP_03_04);
+
+    /* input block -> this node's own block, so the paired
+     * kernel can run in place the way chip 1's pool
+     * ping-pong does. */
+    l3 = 0; l4 = 0;
+    i3 = _blk_C2_MAIN_OEQ_03;
+    i4 = _blk_C2_MAIN_OCOMP_03;
+    lcntr = DSP4_BLOCK_SIZE, do .c2cp0_MOUT_OCOMP_03_04 until lce;
+        r0 = dm(i3, 1);
+    .c2cp0_MOUT_OCOMP_03_04: dm(i4, 1) = r0;
+    i3 = _blk_C2_MAIN_OEQ_04;
+    i4 = _blk_C2_MAIN_OCOMP_04;
+    lcntr = DSP4_BLOCK_SIZE, do .c2cp1_MOUT_OCOMP_03_04 until lce;
+        r0 = dm(i3, 1);
+    .c2cp1_MOUT_OCOMP_03_04: dm(i4, 1) = r0;
+
+    /* sample 0 through each channel's own per-sample body */
+    r5 = dm(_sample_idx);
+    dm(_dynpair_saved_idx) = r5;
+    r5 = 0;
+    dm(_sample_idx) = r5;
+    r0 = dm(_blk_C2_MAIN_OCOMP_03);
+    dm(_buf_C2_MAIN_OEQ_03) = r0;
+    call _C2_MAIN_OCOMP_03_process_sample;
+    r0 = dm(_buf_C2_MAIN_OCOMP_03);
+    dm(_blk_C2_MAIN_OCOMP_03) = r0;
+    r0 = dm(_blk_C2_MAIN_OCOMP_04);
+    dm(_buf_C2_MAIN_OEQ_04) = r0;
+    call _C2_MAIN_OCOMP_04_process_sample;
+    r0 = dm(_buf_C2_MAIN_OCOMP_04);
+    dm(_blk_C2_MAIN_OCOMP_04) = r0;
+    r5 = dm(_dynpair_saved_idx);
+    dm(_sample_idx) = r5;
+
+    /* samples 1..BLOCK-1, two channels, one stream */
+    r0 = DSP4_BLOCK_SIZE-1;
+    dm(_dsim_n) = r0;
+    dm(_dsim_n + 1) = r0;
+    r4 = _comp_attq_C2_MAIN_OCOMP_03;
+    r5 = _comp_attq_C2_MAIN_OCOMP_04;
+    r6 = _comp_envelope_C2_MAIN_OCOMP_03;
+    r7 = _comp_envelope_C2_MAIN_OCOMP_04;
+    r0 = _blk_C2_MAIN_OCOMP_03;
+    r1 = 1;
+    r8 = r0 + r1;
+    r0 = _blk_C2_MAIN_OCOMP_04;
+    r9 = r0 + r1;
+    call _comp_pair_blk;
+    /* the pair writes its gain display to the shared
+     * park; give it back to each node so a host peek
+     * still reads a live per-node compressor gain. */
+    i0 = _cmp_gn;
+    r0 = dm(i0, 1);
+    dm(_comp_gain_C2_MAIN_OCOMP_03) = r0;
+    r0 = dm(i0, 1);
+    dm(_comp_gain_C2_MAIN_OCOMP_04) = r0;
+    /* republish the scalar _buf_ word off the LAST sample
+     * of the block. On chip 2 `_buf_<id>` IS what a host
+     * peek reads, and the paired path only writes it for
+     * sample 0 -- so without this it would report the
+     * first sample of the block while every unpaired node
+     * reports the last. Nine instructions at block rate,
+     * and the same repair the GEQ block kernel already
+     * makes for the same reason. */
+    l4 = 0;
+    m4 = DSP4_BLOCK_SIZE-1;
+    i4 = _blk_C2_MAIN_OCOMP_03;
+    modify(i4, m4);
+    r0 = dm(i4, 0);
+    dm(_buf_C2_MAIN_OCOMP_03) = r0;
+    i4 = _blk_C2_MAIN_OCOMP_04;
+    modify(i4, m4);
+    r0 = dm(i4, 0);
+    dm(_buf_C2_MAIN_OCOMP_04) = r0;
+    rts;
+
+.c2s_MOUT_OCOMP_03_04:
+    /* scalar fallback: the two nodes, unchanged */
+    call _C2_MAIN_OCOMP_03_process;
+    call _C2_MAIN_OCOMP_04_process;
+    rts;
+_C2PAIR_MOUT_OCOMP_03_04_process.end:
+
 #if DSP4_GATE_LINTHR
 #error "DSP4_SIMD_DYN pairs the GATE in the log2 domain; DSP4_GATE_LINTHR converts the threshold to linear once per block and the two are different arithmetic. Build with DSP4_GATE_LINTHR=0."
 #endif

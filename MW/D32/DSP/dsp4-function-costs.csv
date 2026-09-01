@@ -434,3 +434,18 @@ C2_S18_NONCASCADE_MHZ,978,958,,"**EVERYTHING THAT IS NOT A CASCADE IS 97.4% OF A
 C2_S18_LEVERS_REPRICED,,996,,"MHz = 101.3% of the part, ARITHMETIC ON MEASURED PARTS AND NOT A MEASUREMENT: 1,688 measured, minus dynamics pairing (555 -> 321 at chip 1's graph-measured factors) = 1,454, minus NATIVE-interleave biquad pairing (730 -> 362) = 1,086, minus hoisted kernels for LIM/COMP/GATE/DLY/XOVER (~90) = 996. From 208.8% at the gate"
 BQ_GATHER_OVERHEAD,4.25,,,"cycles/band-sample that _bq_pair_blk's coefficient and state interleave costs, INDEPENDENT of the stage count: (5 coeff + 6 state in + 6 state out) x 4 instructions per stage per pair, over 2 channels x 8 samples. Against a paired inner-loop saving of 9.5 it turns a 2x lever into ~1.5x, which is the -8.3% LEVER_BQPAIR_BLK8 measured against a -13% prediction. Hoisting it (coefficients interleaved at conversion time, state owned by the pair) leaves 0.14 on a 28-band GEQ"
 MARGIN32_BLK8_BQREGROUP_20260901S18,,189602,,"CHIP 1, 32 strips, block 8, 983.04 MHz, fused + dynamics-paired + biquad-paired -- the shipping configuration. **115.72% of the 163,840-cycle budget, from session 12's 198,072 = 120.89%: -8,470 cycles/block, -4.3%**, from the cascade regrouping alone. 144.66% of the 131,072-cycle budget at 786.432 MHz (was 151.11%). THE PARTS PREDICT THE WHOLE: chip 1 runs 32 strips x (FILT 2 + EQ 4) = 192 biquad stages/sample, and its biquads are PAIRED, so the 11.94 cycles/band-sample the count saves is halved to 5.97 per band-sample of graph -- 192 x 8 x 5.97 = 9,170 predicted against 8,470 measured, 7.6% apart. Chip 1 at block 8 is still over budget, which was already the case; block 32 is where it fits and was NOT re-measured this session"
+#
+# SESSION 18, ITEM 3 — CHIP-2 DYNAMICS PAIRING. Twelve nodes (4 C2_GRP_GATE,
+# 4 C2_GRP_COMP, 4 C2_MAIN_OCOMP) run as six paired driver calls, with each
+# family's chain run reordered IN PLACE so every ladder position before it --
+# the whole aux side, where the GEQ/EQ/AFB costs above were taken -- is the
+# same number in both builds. C2_SUB_COMP and C2_MAIN_COMP are single
+# instances in different chains and are NOT paired; LIM is not paired at all.
+#
+# THE UNPAIRED CONTROL REPRODUCED: 281,784 against the 281,364 measured
+# earlier this session on a different boot, 0.15% apart.
+function,c2_blk8_unpaired,c2_blk8_paired,ratio,notes
+C2_GATE_PAIR_S18,5492,2376,2.31,"TWO channels. Scalar is 2 x 2,746. BEATS chip 1's graph-measured 1.82x, and the reason is that chip 2's scalar path is the GENERIC per-block wrapper -- ~15% over a hoisted kernel by session 17's measurement -- which the pair driver replaces outright. Chip-2 pairing collects the pairing win and the wrapper win at once"
+C2_COMP_PAIR_S18,8428,3697,2.28,"TWO channels. Scalar is 2 x 4,214. Same reason as GATE"
+C2_WHOLE_GRAPH_BLK8_S18_PAIRED,281784,257936,,"-23,848 cycles/block, -8.5%. **157.4% of the 163,840-cycle budget at 983.04 MHz** (unpaired 171.9%; 208.8% at the D16 gate). 196.8% of the 131,072-cycle budget at 786.432 MHz, from 261.0% at the gate. CUMULATIVE over the cascade rewrite AND the pairing: 342,090 -> 257,936, -24.6%"
+C2_S18_PAIR_PARTS_VS_WHOLE,25156,23848,,"predicted against measured, 5.2% apart, sharing no arithmetic: 4 GATE and 8 COMP instances becoming 6 pair calls. The residual is C2_MAIN_OCOMP being priced at C2_GRP_COMP's per-instance cost, which is an assumption and not a measurement"
