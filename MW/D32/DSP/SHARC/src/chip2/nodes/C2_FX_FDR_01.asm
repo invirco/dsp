@@ -70,6 +70,11 @@
         .var _tap_post_fader_C2_FX_FDR_01;
         .global _buf_C2_FX_FDR_01;
         .var _buf_C2_FX_FDR_01;
+        #if DSP4_BLOCK_KERNELS
+        .extern _blk_C2_FX_ENG_01;
+        .global _blk_C2_FX_FDR_01;
+        .var _blk_C2_FX_FDR_01[DSP4_BLOCK_SIZE];
+        #endif
 
         /* The Q8.24 word the PER-SAMPLE path publishes for
          * C2_MTR_FX_01. The block path never stores it -- it hands
@@ -198,8 +203,8 @@
             l1 = 0;
             l2 = 0;
             l3 = 0;
-            i0 = BLK_CHAIN_B;                 /* input  */
-            i1 = BLK_CHAIN_A;                 /* mono   */
+            i0 = _blk_C2_FX_ENG_01;                 /* input  */
+            i1 = _blk_C2_FX_FDR_01;                 /* mono   */
         #if DSP4_MTR_OFF
         #if DSP4_STRIP_FUSED
             /* FUSED (2026-08-28): two samples per iteration, interleaved,

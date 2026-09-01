@@ -15,20 +15,64 @@
 
 .section/dm seg_dmda;
 .extern _buf_C2_AUX_DLY_11;
+#if DSP4_BLOCK_KERNELS
+/* _gather_chip2 indexes the TX slot BY SAMPLE under block kernels
+ * (`r5 = r5 + r0`), so a scalar here is not merely decimated -- the
+ * gather reads BLOCK words out of a one-word variable, i.e. seven
+ * neighbouring variables per output, straight onto the TDM wire.
+ * That has been true of every chip-2 block-kernel build since the
+ * gather was taught to index, and it is review finding D16's other
+ * half. */
+.global _tx_out_slot_C2_AUX_OUT_11;
+.var _tx_out_slot_C2_AUX_OUT_11[DSP4_BLOCK_SIZE];
+.global _blk_C2_AUX_OUT_11;
+.var _blk_C2_AUX_OUT_11[DSP4_BLOCK_SIZE];
+.extern _blk_C2_AUX_DLY_11;
+#else
 .global _tx_out_slot_C2_AUX_OUT_11;
 .var _tx_out_slot_C2_AUX_OUT_11;
+#endif
 .global _buf_C2_AUX_OUT_11;
 .var _buf_C2_AUX_OUT_11;
 .global _mtr_wide_C2_AUX_OUT_11;
 .var _mtr_wide_C2_AUX_OUT_11;
+#if DSP4_BLOCK_KERNELS
+.global _mtr_wblk_C2_AUX_OUT_11;
+.var _mtr_wblk_C2_AUX_OUT_11[DSP4_BLOCK_SIZE];
+#endif
 
 .section/pm seg_pmco;
 .global _C2_AUX_OUT_11_process;
 _C2_AUX_OUT_11_process:
+#if DSP4_BLOCK_KERNELS
+    l0 = 0;
+    l1 = 0;
+    l2 = 0;
+    l3 = 0;
+    i0 = _blk_C2_AUX_DLY_11;
+    i1 = _tx_out_slot_C2_AUX_OUT_11;
+    i2 = _blk_C2_AUX_OUT_11;
+    i3 = _mtr_wblk_C2_AUX_OUT_11;
+    lcntr = DSP4_BLOCK_SIZE, do .otk_C2_AUX_OUT_11 until lce;
+        r0 = dm(i0, 1);
+        dm(i1, 1) = r0;
+        r1 = ashift r0 by -4;   /* Q4.28 -> Q8.24 */
+        dm(i2, 1) = r0;
+    .otk_C2_AUX_OUT_11: dm(i3, 1) = r1;
+    dm(_mtr_wide_C2_AUX_OUT_11) = r1;   /* last sample, for the
+                                 * per-sample readers */
+    /* _buf_ keeps the last sample: it is the scalar the
+     * per-sample build publishes and nothing under block kernels
+     * reads it, but leaving it stale would make a host peek at this
+     * node lie about which build it is looking at. */
+    dm(_buf_C2_AUX_OUT_11) = r0;
+    rts;
+#else
     r0 = dm(_buf_C2_AUX_DLY_11);
     dm(_tx_out_slot_C2_AUX_OUT_11) = r0;
     dm(_buf_C2_AUX_OUT_11) = r0;
     r1 = ashift r0 by -4;    /* Q4.28 -> Q8.24 */
     dm(_mtr_wide_C2_AUX_OUT_11) = r1;
     rts;
+#endif
 _C2_AUX_OUT_11_process.end:

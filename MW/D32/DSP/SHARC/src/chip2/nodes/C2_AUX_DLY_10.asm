@@ -19,6 +19,7 @@
 
 .section/dm seg_delay;
 .extern _buf_C2_AUX_LIM_10;
+.extern _sample_idx;
 .global _dly_buf_C2_AUX_DLY_10;
 .var _dly_buf_C2_AUX_DLY_10[12000];  /* L2 SRAM delay buffer */
 .section/dm seg_dmda;
@@ -35,9 +36,70 @@
 .global _buf_C2_AUX_DLY_10;
 .var _buf_C2_AUX_DLY_10;
 
+        #if DSP4_BLOCK_KERNELS
+        .extern _blk_C2_AUX_LIM_10;
+        #endif
+        #if DSP4_BLOCK_KERNELS
+        .global _blk_C2_AUX_DLY_10;
+        .var _blk_C2_AUX_DLY_10[DSP4_BLOCK_SIZE];
+        .global _bw_i_C2_AUX_DLY_10;
+        .var _bw_i_C2_AUX_DLY_10;        /* sample index, across the call */
+        .global _bw_k_C2_AUX_DLY_10;
+        .var _bw_k_C2_AUX_DLY_10;        /* the caller's _sample_idx */
+        .global _bw_s0_C2_AUX_DLY_10;
+        .var _bw_s0_C2_AUX_DLY_10;       /* walking source pointer */
+        .global _bw_d0_C2_AUX_DLY_10;
+        .var _bw_d0_C2_AUX_DLY_10;       /* walking sink pointer */
+        #endif
+
 .section/pm seg_pmco;
 .global _C2_AUX_DLY_10_process;
 _C2_AUX_DLY_10_process:
+        #if DSP4_BLOCK_KERNELS
+            /* ---- generic per-block wrapper (review finding D16) ----
+             * Runs the per-sample reference body BLOCK times over this
+             * node's own block buffer, staging each sample through the
+             * scalar _buf_ words the body already reads and writes. Same
+             * arithmetic, same order, same result as the per-sample
+             * build; what it removes is the chain's call/rts and the
+             * _sample_idx guard being re-evaluated from the chain.
+             */
+            i4 = _blk_C2_AUX_LIM_10;
+            r3 = i4;
+            dm(_bw_s0_C2_AUX_DLY_10) = r3;
+            i4 = _blk_C2_AUX_DLY_10;
+            r3 = i4;
+            dm(_bw_d0_C2_AUX_DLY_10) = r3;
+            r5 = dm(_sample_idx);
+            dm(_bw_k_C2_AUX_DLY_10) = r5;
+            r5 = 0;
+            dm(_bw_i_C2_AUX_DLY_10) = r5;
+            lcntr = DSP4_BLOCK_SIZE, do .bwlp_C2_AUX_DLY_10 until lce;
+                r5 = dm(_bw_i_C2_AUX_DLY_10);
+                dm(_sample_idx) = r5;
+                r3 = dm(_bw_s0_C2_AUX_DLY_10);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_AUX_LIM_10) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s0_C2_AUX_DLY_10) = r3;
+                call _C2_AUX_DLY_10_process_sample;
+                r0 = dm(_buf_C2_AUX_DLY_10);
+                r3 = dm(_bw_d0_C2_AUX_DLY_10);
+                i4 = r3;
+                dm(i4, 0) = r0;
+                r3 = r3 + 1;
+                dm(_bw_d0_C2_AUX_DLY_10) = r3;
+                r5 = dm(_bw_i_C2_AUX_DLY_10);
+                r5 = r5 + 1;
+            .bwlp_C2_AUX_DLY_10: dm(_bw_i_C2_AUX_DLY_10) = r5;
+            r5 = dm(_bw_k_C2_AUX_DLY_10);
+            dm(_sample_idx) = r5;
+            rts;
+
+        .global _C2_AUX_DLY_10_process_sample;
+        _C2_AUX_DLY_10_process_sample:
+        #endif
     r0 = dm(_buf_C2_AUX_LIM_10);
 
     /* Write to circular buffer at write pointer */

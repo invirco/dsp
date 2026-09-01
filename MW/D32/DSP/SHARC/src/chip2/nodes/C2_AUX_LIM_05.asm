@@ -37,6 +37,22 @@
 .global _buf_C2_AUX_LIM_05;
 .var _buf_C2_AUX_LIM_05;
 
+        #if DSP4_BLOCK_KERNELS
+        .extern _blk_C2_AUX_AFB_05;
+        #endif
+        #if DSP4_BLOCK_KERNELS
+        .global _blk_C2_AUX_LIM_05;
+        .var _blk_C2_AUX_LIM_05[DSP4_BLOCK_SIZE];
+        .global _bw_i_C2_AUX_LIM_05;
+        .var _bw_i_C2_AUX_LIM_05;        /* sample index, across the call */
+        .global _bw_k_C2_AUX_LIM_05;
+        .var _bw_k_C2_AUX_LIM_05;        /* the caller's _sample_idx */
+        .global _bw_s0_C2_AUX_LIM_05;
+        .var _bw_s0_C2_AUX_LIM_05;       /* walking source pointer */
+        .global _bw_d0_C2_AUX_LIM_05;
+        .var _bw_d0_C2_AUX_LIM_05;       /* walking sink pointer */
+        #endif
+
 .section/pm seg_pmco;
 .extern _sample_idx;
 .extern _envq_fx;
@@ -44,6 +60,51 @@
 .extern _mrf_rns28;
 .global _C2_AUX_LIM_05_process;
 _C2_AUX_LIM_05_process:
+        #if DSP4_BLOCK_KERNELS
+            /* ---- generic per-block wrapper (review finding D16) ----
+             * Runs the per-sample reference body BLOCK times over this
+             * node's own block buffer, staging each sample through the
+             * scalar _buf_ words the body already reads and writes. Same
+             * arithmetic, same order, same result as the per-sample
+             * build; what it removes is the chain's call/rts and the
+             * _sample_idx guard being re-evaluated from the chain.
+             */
+            i4 = _blk_C2_AUX_AFB_05;
+            r3 = i4;
+            dm(_bw_s0_C2_AUX_LIM_05) = r3;
+            i4 = _blk_C2_AUX_LIM_05;
+            r3 = i4;
+            dm(_bw_d0_C2_AUX_LIM_05) = r3;
+            r5 = dm(_sample_idx);
+            dm(_bw_k_C2_AUX_LIM_05) = r5;
+            r5 = 0;
+            dm(_bw_i_C2_AUX_LIM_05) = r5;
+            lcntr = DSP4_BLOCK_SIZE, do .bwlp_C2_AUX_LIM_05 until lce;
+                r5 = dm(_bw_i_C2_AUX_LIM_05);
+                dm(_sample_idx) = r5;
+                r3 = dm(_bw_s0_C2_AUX_LIM_05);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_AUX_AFB_05) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s0_C2_AUX_LIM_05) = r3;
+                call _C2_AUX_LIM_05_process_sample;
+                r0 = dm(_buf_C2_AUX_LIM_05);
+                r3 = dm(_bw_d0_C2_AUX_LIM_05);
+                i4 = r3;
+                dm(i4, 0) = r0;
+                r3 = r3 + 1;
+                dm(_bw_d0_C2_AUX_LIM_05) = r3;
+                r5 = dm(_bw_i_C2_AUX_LIM_05);
+                r5 = r5 + 1;
+            .bwlp_C2_AUX_LIM_05: dm(_bw_i_C2_AUX_LIM_05) = r5;
+            r5 = dm(_bw_k_C2_AUX_LIM_05);
+            dm(_sample_idx) = r5;
+            rts;
+
+        .global _C2_AUX_LIM_05_process_sample;
+        _C2_AUX_LIM_05_process_sample:
+        #endif
     r0 = dm(_buf_C2_AUX_AFB_05);
     r2 = dm(_lim_on_C2_AUX_LIM_05);
     r3 = 0;
@@ -51,18 +112,18 @@ _C2_AUX_LIM_05_process:
     if eq jump (pc, .lim_bypass_C2_AUX_LIM_05);
     r13 = r0;
 
-/* The block-rate guard exists ONLY for the per-sample build. Under
- * DSP4_BLOCK_KERNELS the node chain runs ONCE per block with
- * _sample_idx left at 31 by the scatter loop, so a surviving
- * `_sample_idx == 0` test NEVER fires and the parameters below are
- * never converted -- the node then runs on its .var initialisers.
- * Audited 2026-08-27: 132 nodes carried this dead guard. */
-#if !DSP4_BLOCK_KERNELS
+        /* LIVE IN BOTH BUILDS (review finding D16). The block wrapper
+         * below drives _sample_idx 0..BLOCK-1 before each call into this
+         * body, so the guard fires exactly ONCE per block and the
+         * block-rate work behind it -- the parameter conversion, and the
+         * float ramps that consume a BLOCK's worth of frames at a time --
+         * runs once and not BLOCK times. Removing it, which is right for
+         * a node the chain reaches once per block with the index left at
+         * BLOCK-1, would run the whole conversion on every sample. */
     r4 = dm(_sample_idx);
     r1 = 0;
     comp(r4, r1);
     if ne jump (pc, .lim_go_C2_AUX_LIM_05);
-#endif
     r2 = 0x4F000000;              /* 2^31 float */
     f2 = r2;
     f1 = dm(_lim_attack_C2_AUX_LIM_05);

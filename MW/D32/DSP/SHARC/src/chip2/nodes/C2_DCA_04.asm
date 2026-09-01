@@ -32,14 +32,37 @@
 .section/pm seg_pmco;
 .global _C2_DCA_04_process;
 _C2_DCA_04_process:
-    /* Ramp DCA level */
+    /* Ramp DCA level.
+     *
+     * ONE FRAME PER CALL, AND THE CALL RATE IS THE BLOCK SIZE'S
+     * BUSINESS (review finding D16's audit of hardcoded counts).
+     * This node has no audio path, so it gets no block kernel and no
+     * block-rate guard: the chain simply reaches it once per SAMPLE
+     * in a per-sample build and once per BLOCK under
+     * DSP4_BLOCK_KERNELS. The literal 1 below was right for the
+     * first and ran the ramp BLOCK times long in the second -- a
+     * GainSafe DCA move would have taken 240 ms at BLOCK=8 instead
+     * of 30. Frame counts are in SAMPLES (spi_handler scales every
+     * profile's count by DSP4_BLOCK_SIZE), so a call that stands for
+     * a whole block consumes a whole block's frames and applies a
+     * whole block's step. BLOCK is a power of two, so the product is
+     * exact in binary and the ramp lands on the same value. */
     r4 = dm(_dca_level_frames_C2_DCA_04);
+#if DSP4_BLOCK_KERNELS
+    r15 = DSP4_BLOCK_SIZE;
+#else
     r15 = 1;
+#endif
     r4 = r4 - r15;
     if le jump (pc, .no_dcaramp_C2_DCA_04);
     dm(_dca_level_frames_C2_DCA_04) = r4;
     f1 = dm(_dca_level_C2_DCA_04);
     f2 = dm(_dca_level_step_C2_DCA_04);
+#if DSP4_BLOCK_KERNELS
+    r15 = DSP4_BLOCK_F32;             /* BLOCK_SIZE as float */
+    f15 = r15;
+    f2 = f2 * f15;
+#endif
     f1 = f1 + f2;
     dm(_dca_level_C2_DCA_04) = f1;
     jump (pc, .dca_done_C2_DCA_04);

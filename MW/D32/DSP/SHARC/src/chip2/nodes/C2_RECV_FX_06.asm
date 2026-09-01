@@ -20,8 +20,21 @@
  * otherwise scatter writes past a scalar. */
 .global _rx_ic_slot_C2_RECV_FX_06;
 .var _rx_ic_slot_C2_RECV_FX_06[DSP4_BLOCK_SIZE];
+/* THE BLOCK IS _blk_, NOT _buf_ (review finding D16). It used to be
+ * _buf_<id>[BLOCK], which was safe only while every consumer was an
+ * unconverted per-sample node reading element 0 by accident. Now that
+ * chip 2 has block kernels the two words mean different things and
+ * must have different names: _blk_ is this node's BLOCK, read by a
+ * consumer's kernel, and _buf_ stays the SCALAR staging word the
+ * consumer's wrapper writes one sample at a time before calling the
+ * per-sample reference body. Sharing one name would have had the
+ * wrapper overwrite element 0 of the block it was still walking --
+ * correct for a single consumer and wrong the moment anything fans
+ * out, which on chip 2 is the main mix bus reading seventeen. */
+.global _blk_C2_RECV_FX_06;
+.var _blk_C2_RECV_FX_06[DSP4_BLOCK_SIZE];
 .global _buf_C2_RECV_FX_06;
-.var _buf_C2_RECV_FX_06[DSP4_BLOCK_SIZE];
+.var _buf_C2_RECV_FX_06;
 #else
 .global _rx_ic_slot_C2_RECV_FX_06;
 .var _rx_ic_slot_C2_RECV_FX_06;
@@ -36,7 +49,41 @@ _C2_RECV_FX_06_process:
     l0 = 0;
     l1 = 0;
     i0 = _rx_ic_slot_C2_RECV_FX_06;
-    i1 = _buf_C2_RECV_FX_06;
+    i1 = _blk_C2_RECV_FX_06;
+#if DSP4_PROFILE_SIGNAL
+    /* PROFILING ONLY, and it is the chip-1 INPUT_TDM stimulus moved
+     * one chip over -- same square wave, same rules, same reasons
+     * (see gen_input_tdm's note for all of them).
+     *
+     * IT IS HERE BECAUSE THE FABRIC CANNOT BE RELIED ON TO CARRY
+     * ANYTHING. Chip 2's whole input is chip 1's inter-chip mix
+     * fabric, and on the bench measured 2026-09-01 every probed
+     * IC RX slot read 0 while chip 1's own MAIN bus buffer carried
+     * the square wave cleanly -- the aux buses are down under the
+     * default config and the fabric delivered nothing at all. A
+     * chip-2 class profile taken on that would measure LIMITER,
+     * COMPRESSOR and GATE on the cheap branch they take before
+     * log2 and understate the whole chain, silently: the graph
+     * runs, the pass rate is clean and nothing says the input was
+     * zero. So the instrument stops depending on the fabric.
+     *
+     * The production read is EXECUTED AND DISCARDED, so this path
+     * cannot understate the node it stands in for, and the
+     * stimulus is not a function of anything the graph can
+     * influence -- the trap that cost chip 1 a day on 2026-08-28.
+     * |x| is constant at -6 dBFS, above every default threshold on
+     * chip 2, and the word alternates so a stuck or bypassed path
+     * does not look like a working one. */
+    r5 = DSP4_BLOCK_SIZE;
+    r7 = 0x08000000;              /* +0.5 Q4.28 = -6 dBFS */
+    lcntr = r5; do .icr_sig_C2_RECV_FX_06 until lce;
+        r0 = dm(i0, 1);           /* production read, still paid */
+        r0 = r7;                  /* DISCARD it -- see above */
+        dm(i1, 1) = r0;
+.icr_sig_C2_RECV_FX_06:
+        r7 = -r7;                 /* flip sign, |x| unchanged */
+    rts;
+#endif
     r5 = DSP4_BLOCK_SIZE;
     lcntr = r5; do .icr_lp_C2_RECV_FX_06 until lce;
         r0 = dm(i0, 1);

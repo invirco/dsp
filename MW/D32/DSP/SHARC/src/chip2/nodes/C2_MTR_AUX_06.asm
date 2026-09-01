@@ -40,22 +40,24 @@
         .extern _mtr_load_fold;
         .extern _sample_idx;
         .extern _mtr_wide_C2_AUX_OUT_06;
+        #if DSP4_BLOCK_KERNELS
+        .extern _mtr_wblk_C2_AUX_OUT_06;
+        #endif
         .global _C2_MTR_AUX_06_process;
         _C2_MTR_AUX_06_process:
         #if DSP4_MTR_OFF
             /* measurement only: what the meter costs, by removing it */
             rts;
         #elif DSP4_BLOCK_KERNELS
-/* WIDE WORD, 'scalar' shape. C2_AUX_OUT_06 has no accumulator at this
- * tap point -- it is an unconverted per-sample node -- so it
- * publishes the same value in the meter's Q8.24 format and this
- * node walks it. RECORDED LIMITATION, unchanged by the wide-word
- * work: C2_AUX_OUT_06 produces ONE word per block under
- * DSP4_BLOCK_KERNELS, so this meter still sees one sample per
- * block. Fixing that means block-converting the SOURCE. */
+/* WIDE WORD, 'scalar' shape. C2_AUX_OUT_06 has no accumulator at this tap
+ * point, so it publishes the same value in the meter's Q8.24
+ * format and this node walks it. Stride 1: on chip 2 that is
+ * the source's whole block, one word per sample; on chip 1 the
+ * source still produces one word per block and this reads it
+ * BLOCK times, which is the recorded limitation. */
 l2 = 0;
-m2 = 0;
-i2 = _mtr_wide_C2_AUX_OUT_06;
+m2 = 1;
+i2 = _mtr_wblk_C2_AUX_OUT_06;
 r8 = 0x80000000;              /* running max: most negative */
 r9 = 0x7FFFFFFF;              /* running min: most positive */
 mrf = 0;

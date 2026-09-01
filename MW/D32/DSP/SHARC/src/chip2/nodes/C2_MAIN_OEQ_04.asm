@@ -20,6 +20,7 @@
 
 .section/dm seg_dmda;
 .extern _buf_C2_MAIN_XOVER;
+.extern _sample_idx;
 
 .global _eq_coeffs_A_C2_MAIN_OEQ_04;
 .var _eq_coeffs_A_C2_MAIN_OEQ_04[20] = 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
@@ -48,6 +49,22 @@
 .global _buf_C2_MAIN_OEQ_04;
 .var _buf_C2_MAIN_OEQ_04;
 
+        #if DSP4_BLOCK_KERNELS
+        .extern _blk_C2_MAIN_XOVER;
+        #endif
+        #if DSP4_BLOCK_KERNELS
+        .global _blk_C2_MAIN_OEQ_04;
+        .var _blk_C2_MAIN_OEQ_04[DSP4_BLOCK_SIZE];
+        .global _bw_i_C2_MAIN_OEQ_04;
+        .var _bw_i_C2_MAIN_OEQ_04;        /* sample index, across the call */
+        .global _bw_k_C2_MAIN_OEQ_04;
+        .var _bw_k_C2_MAIN_OEQ_04;        /* the caller's _sample_idx */
+        .global _bw_s0_C2_MAIN_OEQ_04;
+        .var _bw_s0_C2_MAIN_OEQ_04;       /* walking source pointer */
+        .global _bw_d0_C2_MAIN_OEQ_04;
+        .var _bw_d0_C2_MAIN_OEQ_04;       /* walking sink pointer */
+        #endif
+
 .section/pm seg_pmco;
 .extern _bq_fx_cascade_N;
 #if DSP4_BLOCK_KERNELS
@@ -56,6 +73,122 @@
 .extern _bq_fx_convert_N;
 .global _C2_MAIN_OEQ_04_process;
 _C2_MAIN_OEQ_04_process:
+        #if DSP4_BLOCK_KERNELS
+    /* ---- chip-2 per-block steady state (review finding D16) ----
+     *
+     * The same fusion chip 1's EQ has had since the pool rewrite,
+     * on chip 2's own buffers: one call to _bq_fx_cascade_blk walks
+     * all 4 stages over the whole block with the state and the
+     * error feedback held in registers, instead of BLOCK calls to
+     * _bq_fx_cascade_N that tear the 80-bit accumulator apart and
+     * put it back every sample.
+     *
+     * _bq_fx_cascade_blk was proved bit-exact against
+     * _bq_fx_cascade_N on the part (DSP4_BQ_SELFTEST, 0 of 64
+     * samples differing, two stages with DIFFERENT coefficients,
+     * across a block boundary), so what is left to get right is this
+     * wrapper -- and the transient path below is the per-sample
+     * reference body itself, one sample at a time, so the alpha
+     * bookkeeping and a crossfade COMPLETING mid-block are right by
+     * construction rather than by re-derivation. A crossfade lasts
+     * 576 samples and is a transient; its cost does not matter. */
+    r4 = dm(_eq_swap_pending_C2_MAIN_OEQ_04);
+    r5 = dm(_eq_xfade_step_C2_MAIN_OEQ_04);
+    r4 = r4 or r5;
+    r4 = pass r4;
+    if ne jump (pc, .eqkb_tr_C2_MAIN_OEQ_04);
+
+    l0 = 0;
+    l1 = 0;
+    l2 = 0;
+    l3 = 0;
+    l4 = 0;
+    /* Copy in, then cascade IN PLACE. Chip 1 skips the copy because
+     * its pool slot IS the previous node's output and the strip owns
+     * it end to end; on chip 2 the input block belongs to the
+     * producer and can have more than one reader -- a meter, a tap,
+     * the main mix bus reading seventeen -- so filtering it where it
+     * stands would corrupt every other reader. Two memory operations
+     * per sample against a 4-stage cascade. */
+    i3 = _blk_C2_MAIN_XOVER;
+    i4 = _blk_C2_MAIN_OEQ_04;
+    lcntr = DSP4_BLOCK_SIZE, do .eqkb_cp_C2_MAIN_OEQ_04 until lce;
+        r0 = dm(i3, 1);
+    .eqkb_cp_C2_MAIN_OEQ_04: dm(i4, 1) = r0;
+
+    r4 = dm(_eq_active_C2_MAIN_OEQ_04);
+    r4 = pass r4;
+    if ne jump (pc, .eqkb_b_C2_MAIN_OEQ_04);
+    i0 = _eq_coeffs_A_C2_MAIN_OEQ_04;
+    i1 = _eq_state_A_C2_MAIN_OEQ_04;
+    jump (pc, .eqkb_go_C2_MAIN_OEQ_04);
+.eqkb_b_C2_MAIN_OEQ_04:
+    i0 = _eq_coeffs_B_C2_MAIN_OEQ_04;
+    i1 = _eq_state_B_C2_MAIN_OEQ_04;
+.eqkb_go_C2_MAIN_OEQ_04:
+    i2 = _blk_C2_MAIN_OEQ_04;
+    r4 = 4;
+    call _bq_fx_cascade_blk;
+    /* The scalar the per-sample build publishes, kept live off the
+     * LAST sample of the block. Nothing under block kernels reads it,
+     * but a host peek at this node must not report a word from
+     * whenever the build last ran per-sample. */
+    l4 = 0;
+    m4 = DSP4_BLOCK_SIZE-1;
+    i4 = _blk_C2_MAIN_OEQ_04;
+    modify(i4, m4);
+    r0 = dm(i4, 0);
+    dm(_tap_post_eq_C2_MAIN_OEQ_04) = r0;
+    dm(_buf_C2_MAIN_OEQ_04) = r0;
+    rts;
+
+.eqkb_tr_C2_MAIN_OEQ_04:
+#endif
+        #if DSP4_BLOCK_KERNELS
+            /* ---- generic per-block wrapper (review finding D16) ----
+             * Runs the per-sample reference body BLOCK times over this
+             * node's own block buffer, staging each sample through the
+             * scalar _buf_ words the body already reads and writes. Same
+             * arithmetic, same order, same result as the per-sample
+             * build; what it removes is the chain's call/rts and the
+             * _sample_idx guard being re-evaluated from the chain.
+             */
+            i4 = _blk_C2_MAIN_XOVER;
+            r3 = i4;
+            dm(_bw_s0_C2_MAIN_OEQ_04) = r3;
+            i4 = _blk_C2_MAIN_OEQ_04;
+            r3 = i4;
+            dm(_bw_d0_C2_MAIN_OEQ_04) = r3;
+            r5 = dm(_sample_idx);
+            dm(_bw_k_C2_MAIN_OEQ_04) = r5;
+            r5 = 0;
+            dm(_bw_i_C2_MAIN_OEQ_04) = r5;
+            lcntr = DSP4_BLOCK_SIZE, do .bwlp_C2_MAIN_OEQ_04 until lce;
+                r5 = dm(_bw_i_C2_MAIN_OEQ_04);
+                dm(_sample_idx) = r5;
+                r3 = dm(_bw_s0_C2_MAIN_OEQ_04);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_MAIN_XOVER) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s0_C2_MAIN_OEQ_04) = r3;
+                call _C2_MAIN_OEQ_04_process_sample;
+                r0 = dm(_buf_C2_MAIN_OEQ_04);
+                r3 = dm(_bw_d0_C2_MAIN_OEQ_04);
+                i4 = r3;
+                dm(i4, 0) = r0;
+                r3 = r3 + 1;
+                dm(_bw_d0_C2_MAIN_OEQ_04) = r3;
+                r5 = dm(_bw_i_C2_MAIN_OEQ_04);
+                r5 = r5 + 1;
+            .bwlp_C2_MAIN_OEQ_04: dm(_bw_i_C2_MAIN_OEQ_04) = r5;
+            r5 = dm(_bw_k_C2_MAIN_OEQ_04);
+            dm(_sample_idx) = r5;
+            rts;
+
+        .global _C2_MAIN_OEQ_04_process_sample;
+        _C2_MAIN_OEQ_04_process_sample:
+        #endif
 
 
     /* new coefficients staged? */

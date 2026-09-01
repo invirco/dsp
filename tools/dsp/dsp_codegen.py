@@ -3969,7 +3969,19 @@ def gen_interchip_recv(node):
          * be a 32-word array even before the node itself is converted --
          * otherwise scatter writes past a scalar. */
         .var _rx_ic_slot_{node['id']}[DSP4_BLOCK_SIZE];
-        .var _buf_{node['id']}[DSP4_BLOCK_SIZE];
+        /* THE BLOCK IS _blk_, NOT _buf_ (review finding D16). It used to be
+         * _buf_<id>[BLOCK], which was safe only while every consumer was an
+         * unconverted per-sample node reading element 0 by accident. Now that
+         * chip 2 has block kernels the two words mean different things and
+         * must have different names: _blk_ is this node's BLOCK, read by a
+         * consumer's kernel, and _buf_ stays the SCALAR staging word the
+         * consumer's wrapper writes one sample at a time before calling the
+         * per-sample reference body. Sharing one name would have had the
+         * wrapper overwrite element 0 of the block it was still walking --
+         * correct for a single consumer and wrong the moment anything fans
+         * out, which on chip 2 is the main mix bus reading seventeen. */
+        .var _blk_{node['id']}[DSP4_BLOCK_SIZE];
+        .var _buf_{node['id']};
         #else
         .var _rx_ic_slot_{node['id']};
         .var _buf_{node['id']};
@@ -3982,7 +3994,41 @@ def gen_interchip_recv(node):
             l0 = 0;
             l1 = 0;
             i0 = _rx_ic_slot_{node['id']};
-            i1 = _buf_{node['id']};
+            i1 = _blk_{node['id']};
+        #if DSP4_PROFILE_SIGNAL
+            /* PROFILING ONLY, and it is the chip-1 INPUT_TDM stimulus moved
+             * one chip over -- same square wave, same rules, same reasons
+             * (see gen_input_tdm's note for all of them).
+             *
+             * IT IS HERE BECAUSE THE FABRIC CANNOT BE RELIED ON TO CARRY
+             * ANYTHING. Chip 2's whole input is chip 1's inter-chip mix
+             * fabric, and on the bench measured 2026-09-01 every probed
+             * IC RX slot read 0 while chip 1's own MAIN bus buffer carried
+             * the square wave cleanly -- the aux buses are down under the
+             * default config and the fabric delivered nothing at all. A
+             * chip-2 class profile taken on that would measure LIMITER,
+             * COMPRESSOR and GATE on the cheap branch they take before
+             * log2 and understate the whole chain, silently: the graph
+             * runs, the pass rate is clean and nothing says the input was
+             * zero. So the instrument stops depending on the fabric.
+             *
+             * The production read is EXECUTED AND DISCARDED, so this path
+             * cannot understate the node it stands in for, and the
+             * stimulus is not a function of anything the graph can
+             * influence -- the trap that cost chip 1 a day on 2026-08-28.
+             * |x| is constant at -6 dBFS, above every default threshold on
+             * chip 2, and the word alternates so a stuck or bypassed path
+             * does not look like a working one. */
+            r5 = DSP4_BLOCK_SIZE;
+            r7 = 0x08000000;              /* +0.5 Q4.28 = -6 dBFS */
+            lcntr = r5; do .icr_sig_{node['id']} until lce;
+                r0 = dm(i0, 1);           /* production read, still paid */
+                r0 = r7;                  /* DISCARD it -- see above */
+                dm(i1, 1) = r0;
+        .icr_sig_{node['id']}:
+                r7 = -r7;                 /* flip sign, |x| unchanged */
+            rts;
+        #endif
             r5 = DSP4_BLOCK_SIZE;
             lcntr = r5; do .icr_lp_{node['id']} until lce;
                 r0 = dm(i0, 1);
@@ -4064,35 +4110,89 @@ def gen_mix_bus(node):
 def gen_output_tdm(node):
     p = node['params']
     nid = node['id']
-    # WIDE-WORD METERING (PW ruling 2026-08-29), 'scalar' shape. This node
-    # is a COPY: there is no accumulator at its tap point and no wider form
-    # of the signal exists here, because its producer is an unconverted
-    # per-sample node that already stored a rounded Q4.28 word. What it can
-    # honestly publish is that same value in the meter's format, which is
-    # one arithmetic shift. It costs the meters that read it four bits at
-    # the bottom (-144 dB instead of -168) and it does NOT fix their
-    # one-sample-per-block decimation -- that is the source's, and it is
-    # recorded on the meter node itself.
+    inp = node['inputs_str']
+    # WIDE-WORD METERING (PW ruling 2026-08-29). This node is a COPY: there
+    # is no accumulator at its tap point and no wider form of the signal
+    # exists here, so what it can honestly publish is the same value in the
+    # meter's format, which is one arithmetic shift. It costs the meters that
+    # read it four bits at the bottom (-144 dB instead of -168).
+    #
+    # THE ONE-SAMPLE-PER-BLOCK DECIMATION IS GONE (review finding D16). Until
+    # today this node had no block form at all, so under DSP4_BLOCK_KERNELS it
+    # ran once per block, copied sample 0, and published one word -- and every
+    # meter downstream of it measured that one word eight times over. It now
+    # walks the whole block, and _mtr_wblk_ carries the whole block to the
+    # meter.
     mtr = p.get('mtr_sink', '')
     mtr_decl = ('' if not mtr else
-                f'        .var _mtr_wide_{nid};\n')
+                f'        .var _mtr_wide_{nid};\n'
+                f'        #if DSP4_BLOCK_KERNELS\n'
+                f'        .var _mtr_wblk_{nid}[DSP4_BLOCK_SIZE];\n'
+                f'        #endif\n')
     mtr_pub = ('' if not mtr else
                f'            r1 = ashift r0 by -4;    /* Q4.28 -> Q8.24 */\n'
                f'            dm(_mtr_wide_{nid}) = r1;\n')
+    # The block loop's tail differs with and without a meter only in which
+    # store lands on the loop label, so the two are spelled out rather than
+    # spliced: the last instruction of a hardware loop is load-bearing.
+    if mtr:
+        blk_loop = (f'            i3 = _mtr_wblk_{nid};\n'
+                    f'            lcntr = DSP4_BLOCK_SIZE, do .otk_{nid} until lce;\n'
+                    f'                r0 = dm(i0, 1);\n'
+                    f'                dm(i1, 1) = r0;\n'
+                    f'                r1 = ashift r0 by -4;   /* Q4.28 -> Q8.24 */\n'
+                    f'                dm(i2, 1) = r0;\n'
+                    f'            .otk_{nid}: dm(i3, 1) = r1;\n'
+                    f'            dm(_mtr_wide_{nid}) = r1;   /* last sample, for the\n'
+                    f'                                         * per-sample readers */\n')
+    else:
+        blk_loop = (f'            lcntr = DSP4_BLOCK_SIZE, do .otk_{nid} until lce;\n'
+                    f'                r0 = dm(i0, 1);\n'
+                    f'                dm(i1, 1) = r0;\n'
+                    f'            .otk_{nid}: dm(i2, 1) = r0;\n')
     return dedent(f"""\
         /* OUTPUT_TDM: Write to SPORT{p.get('sport_id','?')} slot {p.get('slot_start','?')} */
 
         .section/dm seg_dmda;
+        #if DSP4_BLOCK_KERNELS
+        /* _gather_chip2 indexes the TX slot BY SAMPLE under block kernels
+         * (`r5 = r5 + r0`), so a scalar here is not merely decimated -- the
+         * gather reads BLOCK words out of a one-word variable, i.e. seven
+         * neighbouring variables per output, straight onto the TDM wire.
+         * That has been true of every chip-2 block-kernel build since the
+         * gather was taught to index, and it is review finding D16's other
+         * half. */
+        .var _tx_out_slot_{nid}[DSP4_BLOCK_SIZE];
+        .var _blk_{nid}[DSP4_BLOCK_SIZE];
+        .extern _blk_{inp};
+        #else
         .var _tx_out_slot_{nid};
+        #endif
         .var _buf_{nid};
 {mtr_decl}
         .section/pm seg_pmco;
         .global _{nid}_process;
         _{nid}_process:
-            r0 = dm(_buf_{node['inputs_str']});
+        #if DSP4_BLOCK_KERNELS
+            l0 = 0;
+            l1 = 0;
+            l2 = 0;
+            l3 = 0;
+            i0 = _blk_{inp};
+            i1 = _tx_out_slot_{nid};
+            i2 = _blk_{nid};
+{blk_loop}            /* _buf_ keeps the last sample: it is the scalar the
+             * per-sample build publishes and nothing under block kernels
+             * reads it, but leaving it stale would make a host peek at this
+             * node lie about which build it is looking at. */
+            dm(_buf_{nid}) = r0;
+            rts;
+        #else
+            r0 = dm(_buf_{inp});
             dm(_tx_out_slot_{nid}) = r0;
             dm(_buf_{nid}) = r0;
 {mtr_pub}            rts;
+        #endif
         _{nid}_process.end:
     """)
 
@@ -4274,6 +4374,10 @@ def gen_meter_fixed(node):
     nid = node['id']
     src = node['inputs_str']
     mode = node['params'].get('mtr_wide_mode', 'scalar')
+    _wblk_extern = (f'        #if DSP4_BLOCK_KERNELS\n'
+                    f'        .extern _mtr_wblk_{src};\n'
+                    f'        #endif\n'
+                    if node['chip'] == '2' and mode != 'acc' else '')
 
     if mode == 'acc':
         blk_body = dedent(f"""\
@@ -4296,17 +4400,28 @@ def gen_meter_fixed(node):
                    f'rounds or saturates.')
         blk_tail = ''
     else:
+        # THE DECIMATION IS FIXED FOR CHIP 2 (review finding D16). The note
+        # this replaces said "{src} produces ONE word per block under
+        # DSP4_BLOCK_KERNELS, so this meter still sees one sample per block.
+        # Fixing that means block-converting the SOURCE." The source is now
+        # block-converted, so it publishes _mtr_wblk_<src>[BLOCK] and this
+        # node walks it with a stride of one instead of reading the same word
+        # BLOCK times with a stride of zero. Chip 1 keeps the scalar form: its
+        # 'scalar'-shape meters read sources that still have no accumulator
+        # and no block, and inventing one for them is the meter ruling's
+        # business, not this finding's.
+        _wsrc = f'_mtr_wblk_{src}' if node['chip'] == '2' else f'_mtr_wide_{src}'
+        _wstep = 1 if node['chip'] == '2' else 0
         blk_body = dedent(f"""\
-            /* WIDE WORD, 'scalar' shape. {src} has no accumulator at this
-             * tap point -- it is an unconverted per-sample node -- so it
-             * publishes the same value in the meter's Q8.24 format and this
-             * node walks it. RECORDED LIMITATION, unchanged by the wide-word
-             * work: {src} produces ONE word per block under
-             * DSP4_BLOCK_KERNELS, so this meter still sees one sample per
-             * block. Fixing that means block-converting the SOURCE. */
+            /* WIDE WORD, 'scalar' shape. {src} has no accumulator at this tap
+             * point, so it publishes the same value in the meter's Q8.24
+             * format and this node walks it. Stride {_wstep}: on chip 2 that is
+             * the source's whole block, one word per sample; on chip 1 the
+             * source still produces one word per block and this reads it
+             * BLOCK times, which is the recorded limitation. */
             l2 = 0;
-            m2 = 0;
-            i2 = _mtr_wide_{src};
+            m2 = {_wstep};
+            i2 = {_wsrc};
             r8 = 0x80000000;              /* running max: most negative */
             r9 = 0x7FFFFFFF;              /* running min: most positive */
             mrf = 0;
@@ -4348,7 +4463,7 @@ def gen_meter_fixed(node):
         .extern _mtr_load_fold;
         .extern _sample_idx;
         .extern _mtr_wide_{src};
-        .global _{nid}_process;
+{_wblk_extern}        .global _{nid}_process;
         _{nid}_process:
         #if DSP4_MTR_OFF
             /* measurement only: what the meter costs, by removing it */
@@ -4440,14 +4555,37 @@ def gen_dca(node):
         .section/pm seg_pmco;
         .global _{node['id']}_process;
         _{node['id']}_process:
-            /* Ramp DCA level */
+            /* Ramp DCA level.
+             *
+             * ONE FRAME PER CALL, AND THE CALL RATE IS THE BLOCK SIZE'S
+             * BUSINESS (review finding D16's audit of hardcoded counts).
+             * This node has no audio path, so it gets no block kernel and no
+             * block-rate guard: the chain simply reaches it once per SAMPLE
+             * in a per-sample build and once per BLOCK under
+             * DSP4_BLOCK_KERNELS. The literal 1 below was right for the
+             * first and ran the ramp BLOCK times long in the second -- a
+             * GainSafe DCA move would have taken 240 ms at BLOCK=8 instead
+             * of 30. Frame counts are in SAMPLES (spi_handler scales every
+             * profile's count by DSP4_BLOCK_SIZE), so a call that stands for
+             * a whole block consumes a whole block's frames and applies a
+             * whole block's step. BLOCK is a power of two, so the product is
+             * exact in binary and the ramp lands on the same value. */
             r4 = dm(_dca_level_frames_{node['id']});
+        #if DSP4_BLOCK_KERNELS
+            r15 = DSP4_BLOCK_SIZE;
+        #else
             r15 = 1;
+        #endif
             r4 = r4 - r15;
             if le jump (pc, .no_dcaramp_{node['id']});
             dm(_dca_level_frames_{node['id']}) = r4;
             f1 = dm(_dca_level_{node['id']});
             f2 = dm(_dca_level_step_{node['id']});
+        #if DSP4_BLOCK_KERNELS
+            r15 = DSP4_BLOCK_F32;             /* BLOCK_SIZE as float */
+            f15 = r15;
+            f2 = f2 * f15;
+        #endif
             f1 = f1 + f2;
             dm(_dca_level_{node['id']}) = f1;
             jump (pc, .dca_done_{node['id']});
@@ -5523,6 +5661,14 @@ def gen_eq_biquad_fixed(node):
         blk_eq_body = _EQ_BLK_BODY.format(
             nid=node['id'], inp=node['inputs_str'],
             bands=int(node['params'].get('bands', '4')))
+    elif node['chip'] == '2':
+        # Same fusion, chip 2's own buffers instead of the strip pool
+        # (review finding D16). The tap store rides inside it so a block
+        # build publishes the same post-EQ word the per-sample build does.
+        blk_eq_body = _C2_CASCADE_BLK.format(
+            pfx='eq', nid=node['id'], inp=node['inputs_str'],
+            stages=int(node['params'].get('bands', '4')),
+            extra_store=f"            dm(_tap_post_eq_{node['id']}) = r0;\n")
     else:
         blk_eq_body = ''
 
@@ -5768,6 +5914,10 @@ def _fx_cascade_node(node, pfx, stages, extra_dm='', extra_store=''):
     bypass = _fx_bypass5(stages)
     nid = node['id']
     inp = node['inputs_str']
+    blk_body = ('' if node['chip'] != '2' else
+                _C2_CASCADE_BLK.format(pfx=pfx, nid=nid, inp=inp,
+                                       stages=stages,
+                                       extra_store=extra_store))
     return dedent(f"""\
         {rc}
 
@@ -5795,10 +5945,13 @@ def _fx_cascade_node(node, pfx, stages, extra_dm='', extra_store=''):
 
         .section/pm seg_pmco;
         .extern _bq_fx_cascade_N;
+        #if DSP4_BLOCK_KERNELS
+        .extern _bq_fx_cascade_blk;
+        #endif
         .extern _bq_fx_convert_N;
         .global _{nid}_process;
         _{nid}_process:
-
+{blk_body}
             r4 = dm(_{pfx}_swap_pending_{nid});
             r4 = pass r4;
             if ne call _{pfx}_start_xfade_{nid};
@@ -5898,6 +6051,82 @@ def _fx_cascade_node(node, pfx, stages, extra_dm='', extra_store=''):
             rts;
         _{nid}_process.end:
     """)
+
+
+
+_C2_CASCADE_BLK = """\
+        #if DSP4_BLOCK_KERNELS
+            /* ---- chip-2 per-block steady state (review finding D16) ----
+             *
+             * The same fusion chip 1's EQ has had since the pool rewrite,
+             * on chip 2's own buffers: one call to _bq_fx_cascade_blk walks
+             * all {stages} stages over the whole block with the state and the
+             * error feedback held in registers, instead of BLOCK calls to
+             * _bq_fx_cascade_N that tear the 80-bit accumulator apart and
+             * put it back every sample.
+             *
+             * _bq_fx_cascade_blk was proved bit-exact against
+             * _bq_fx_cascade_N on the part (DSP4_BQ_SELFTEST, 0 of 64
+             * samples differing, two stages with DIFFERENT coefficients,
+             * across a block boundary), so what is left to get right is this
+             * wrapper -- and the transient path below is the per-sample
+             * reference body itself, one sample at a time, so the alpha
+             * bookkeeping and a crossfade COMPLETING mid-block are right by
+             * construction rather than by re-derivation. A crossfade lasts
+             * 576 samples and is a transient; its cost does not matter. */
+            r4 = dm(_{pfx}_swap_pending_{nid});
+            r5 = dm(_{pfx}_xfade_step_{nid});
+            r4 = r4 or r5;
+            r4 = pass r4;
+            if ne jump (pc, .{pfx}kb_tr_{nid});
+
+            l0 = 0;
+            l1 = 0;
+            l2 = 0;
+            l3 = 0;
+            l4 = 0;
+            /* Copy in, then cascade IN PLACE. Chip 1 skips the copy because
+             * its pool slot IS the previous node's output and the strip owns
+             * it end to end; on chip 2 the input block belongs to the
+             * producer and can have more than one reader -- a meter, a tap,
+             * the main mix bus reading seventeen -- so filtering it where it
+             * stands would corrupt every other reader. Two memory operations
+             * per sample against a {stages}-stage cascade. */
+            i3 = _blk_{inp};
+            i4 = _blk_{nid};
+            lcntr = DSP4_BLOCK_SIZE, do .{pfx}kb_cp_{nid} until lce;
+                r0 = dm(i3, 1);
+            .{pfx}kb_cp_{nid}: dm(i4, 1) = r0;
+
+            r4 = dm(_{pfx}_active_{nid});
+            r4 = pass r4;
+            if ne jump (pc, .{pfx}kb_b_{nid});
+            i0 = _{pfx}_coeffs_A_{nid};
+            i1 = _{pfx}_state_A_{nid};
+            jump (pc, .{pfx}kb_go_{nid});
+        .{pfx}kb_b_{nid}:
+            i0 = _{pfx}_coeffs_B_{nid};
+            i1 = _{pfx}_state_B_{nid};
+        .{pfx}kb_go_{nid}:
+            i2 = _blk_{nid};
+            r4 = {stages};
+            call _bq_fx_cascade_blk;
+            /* The scalar the per-sample build publishes, kept live off the
+             * LAST sample of the block. Nothing under block kernels reads it,
+             * but a host peek at this node must not report a word from
+             * whenever the build last ran per-sample. */
+            l4 = 0;
+            m4 = DSP4_BLOCK_SIZE-1;
+            i4 = _blk_{nid};
+            modify(i4, m4);
+            r0 = dm(i4, 0);
+{extra_store}            dm(_buf_{nid}) = r0;
+            rts;
+
+        .{pfx}kb_tr_{nid}:
+        #endif
+        /* @C2BLKWRAP */
+"""
 
 
 def gen_geq_fixed(node):
@@ -6929,6 +7158,29 @@ def gen_fader_pan_fixed(node):
     # MRB and MRF carries the block's exact sum of squares. A metered fader
     # does not take the STRIP_FUSED two-at-a-time loop -- fusion wants both
     # accumulators for two audio samples and there is no third.
+    # WHERE THE BLOCK COMES FROM AND WHERE IT GOES (review finding D16).
+    #
+    # This node has had a real block kernel since the pool rewrite -- the
+    # hoisted coefficient, the inlined round-and-saturate, the STRIP_FUSED
+    # two-at-a-time loop. What it did NOT have was the right buffers on chip
+    # 2: i0/i1 were BLK_CHAIN_B/BLK_CHAIN_A unconditionally, which are POOL
+    # slots, and chip 2 has no strip pool. All twenty-four chip-2 faders
+    # therefore read and wrote the same two slots of chip 2's own _blk_pool,
+    # so in a block-kernel build every aux, group, FX and main fader carried
+    # whichever fader ran last -- twelve aux sends with one signal on them.
+    # Chip 1 keeps the pool, which is what makes its fused ping-pong free;
+    # chip 2 names its own block buffers.
+    if node['chip'] == '1':
+        blk_src, blk_dst = 'BLK_CHAIN_B', 'BLK_CHAIN_A'
+        blk_c2_decl = ''
+    else:
+        blk_src = f'_blk_{inp}'
+        blk_dst = f'_blk_{nid}'
+        blk_c2_decl = (f'        #if DSP4_BLOCK_KERNELS\n'
+                       f'        .extern _blk_{inp};\n'
+                       f'        .var _blk_{nid}[DSP4_BLOCK_SIZE];\n'
+                       f'        #endif\n')
+
     mtr = node['params'].get('mtr_sink', '')
     if mtr:
         if blk_lr_body:
@@ -7008,7 +7260,7 @@ def gen_fader_pan_fixed(node):
 
         .var _tap_post_fader_{nid};
         .var _buf_{nid};
-{lr_vars}
+{blk_c2_decl}{lr_vars}
 {mtr_decl}
         .section/pm seg_pmco;
         .extern _sample_idx;
@@ -7129,8 +7381,8 @@ def gen_fader_pan_fixed(node):
             l1 = 0;
             l2 = 0;
             l3 = 0;
-            i0 = BLK_CHAIN_B;                 /* input  */
-            i1 = BLK_CHAIN_A;                 /* mono   */
+            i0 = {blk_src};                 /* input  */
+            i1 = {blk_dst};                 /* mono   */
 {blk_lr_ptr}{blk_mtr}{blk_pair}#else
         .apply_{nid}:
             /* Pure MAC. Mute is already inside _fdr_gq; the pan legs are
@@ -9401,6 +9653,294 @@ def _blk_rate_guard(label, nid, has_block_kernel):
             '        #if !DSP4_BLOCK_KERNELS\n' + guard + '        #endif\n')
 
 
+# ---------------------------------------------------------------------------
+# CHIP-2 BLOCK PLUMBING  (review findings D16 and D50)
+#
+# Chip 1's block kernels ride the STRIP POOL (blk_pool.h). Thirty-two
+# identical strips run one after another, so eight shared slots serve all of
+# them and a node names its input and output slot by POSITION IN THE CHAIN --
+# FILT filters BLK_CHAIN_B in place, EQ continues on the same slot, the taps
+# have their own.
+#
+# Chip 2 is not that shape and the pool cannot be lifted onto it. It is a
+# heterogeneous graph of short chains -- twelve aux sends, four groups, main,
+# sub, monitor, six FX -- with fan-out (meters, taps, the main mix bus) and no
+# common chain position, so there is no ping-pong to name. Each converted
+# chip-2 node therefore publishes ITS OWN block, `_blk_<id>[DSP4_BLOCK_SIZE]`,
+# and a consumer reads its input's by name. Cost is one buffer per producer:
+# 213 blocks, so 1,704 words at BLOCK=8 and 6,816 at BLOCK=32.
+#
+# The scalar `_buf_<id>` is UNCHANGED and still carries the per-sample build.
+# Under block kernels it is the staging word the wrapper writes before each
+# call into the per-sample reference body -- exactly what chip 1's FILT and EQ
+# transient paths already do, which is why the wrapped path is bit-exact
+# against the per-sample build by construction rather than by re-derivation.
+#
+# WHAT THIS FIXES. Under DSP4_BLOCK_KERNELS main.asm calls
+# _chip2_process_all ONCE per block. Before this change not ONE chip-2 signal
+# node had a block form: every one of them processed sample 0 and ignored
+# samples 1..BLOCK-1, and _gather_chip2 -- which indexes _tx_out_slot_<id> by
+# sample under block kernels -- read BLOCK words out of a ONE-WORD variable,
+# i.e. seven neighbouring variables per output. The block-8 capacity record
+# is chip-1-only for that reason (review finding D16).
+# ---------------------------------------------------------------------------
+
+def c2_wrapped(node):
+    """True when this node takes the generic chip-2 block wrapper.
+
+    Chip 1 is untouched: its strip nodes have pool kernels already and its
+    bus/send nodes were converted with them. Anything on chip 2 that carries
+    audio gets the wrapper unless a generator gives it a better kernel of its
+    own (the biquad cascades, DELAY, OUTPUT_TDM, INTERCHIP_RECV, METER).
+    """
+    return node['chip'] == '2'
+
+
+def blk_stage_ins(node):
+    """Input ids whose BLOCK the wrapper stages, in `inputs` order.
+
+    A node whose only input is ITSELF (C2_USB_IN, C2_BT_IN -- the host writes
+    their buffer over SPI and the body reads the word back) stages nothing.
+    The host word is a block constant, so the wrapper simply runs the body
+    BLOCK times and publishes BLOCK copies, which is what the per-sample build
+    already produces for those two nodes.
+    """
+    return [i for i in node['inputs'] if i != node['id']]
+
+
+def blk_wrap_decl(node, outs, wide=False):
+    """DM declarations for the generic wrapper: the published block(s), the
+    walking pointers and the saved sample index.
+
+    THE POINTERS AND THE INDEX LIVE IN DM, not in registers, and that is
+    deliberate. The wrapper calls the node's own per-sample body, which
+    reaches library routines (_envq_fx, _compgain_fx, _bq_fx_cascade_N,
+    _dly_read/_dly_write, _mtr_fold) that between them clobber every R
+    register and, in delay.asm and meter_fx.asm, i3-i6 as well. Chip 1's
+    templates can hold i3/i4 across their call because they call ONE known
+    body; a wrapper generated for sixteen families cannot, and a pointer
+    silently clobbered by a callee is a wrong-address store, not a link
+    error. Reloading costs four instructions per sample per node and buys
+    the whole class of bug.
+    """
+    nid = node['id']
+    ins = blk_stage_ins(node)
+    lines = ['        #if DSP4_BLOCK_KERNELS']
+    for sym in outs:
+        lines.append(f'        .var {sym}[DSP4_BLOCK_SIZE];')
+    if wide:
+        lines.append(f'        .var _mtr_wblk_{nid}[DSP4_BLOCK_SIZE];')
+    lines.append(f'        .var _bw_i_{nid};        /* sample index, across the call */')
+    lines.append(f'        .var _bw_k_{nid};        /* the caller\'s _sample_idx */')
+    for j in range(len(ins)):
+        lines.append(f'        .var _bw_s{j}_{nid};       /* walking source pointer */')
+    for j in range(len(outs)):
+        lines.append(f'        .var _bw_d{j}_{nid};       /* walking sink pointer */')
+    lines.append('        #endif')
+    return '\n'.join(lines)
+
+
+def blk_wrap_body(node, outs, wide=False, note=''):
+    """The generic per-block wrapper, emitted AHEAD of the per-sample body.
+
+    _sample_idx IS DRIVEN 0..BLOCK-1 by this loop, so every block-rate guard
+    inside the body fires exactly once per block -- which is why the guards on
+    wrapped nodes are kept in BOTH builds (see _blk_rate_guard). The ramps
+    that FADER_PAN and GAIN consume a BLOCK's worth of at a time are behind
+    that same guard, so they still advance once per block and not BLOCK times.
+
+    The index is restored on the way out. Nothing downstream should depend on
+    where the chain left it, but the scatter loop's value is the caller's and
+    a kernel that eats it would be a cross-node coupling with no declaration.
+    """
+    nid = node['id']
+    ins = blk_stage_ins(node)
+    L = []
+    a = L.append
+    a('        #if DSP4_BLOCK_KERNELS')
+    a('            /* ---- generic per-block wrapper (review finding D16) ----')
+    a('             * Runs the per-sample reference body BLOCK times over this')
+    a('             * node\'s own block buffer, staging each sample through the')
+    a('             * scalar _buf_ words the body already reads and writes. Same')
+    a('             * arithmetic, same order, same result as the per-sample')
+    a('             * build; what it removes is the chain\'s call/rts and the')
+    a('             * _sample_idx guard being re-evaluated from the chain.')
+    if note:
+        for ln in note.strip().split('\n'):
+            a(f'             * {ln}')
+    a('             */')
+    for j, inp in enumerate(ins):
+        a(f'            i4 = _blk_{inp};')
+        a(f'            r3 = i4;')
+        a(f'            dm(_bw_s{j}_{nid}) = r3;')
+    for j, sym in enumerate(outs):
+        a(f'            i4 = {sym};')
+        a(f'            r3 = i4;')
+        a(f'            dm(_bw_d{j}_{nid}) = r3;')
+    a(f'            r5 = dm(_sample_idx);')
+    a(f'            dm(_bw_k_{nid}) = r5;')
+    a(f'            r5 = 0;')
+    a(f'            dm(_bw_i_{nid}) = r5;')
+    a(f'            lcntr = DSP4_BLOCK_SIZE, do .bwlp_{nid} until lce;')
+    a(f'                r5 = dm(_bw_i_{nid});')
+    a(f'                dm(_sample_idx) = r5;')
+    for j, inp in enumerate(ins):
+        a(f'                r3 = dm(_bw_s{j}_{nid});')
+        a(f'                i4 = r3;')
+        a(f'                r0 = dm(i4, 0);')
+        a(f'                dm(_buf_{inp}) = r0;')
+        a(f'                r3 = r3 + 1;')
+        a(f'                dm(_bw_s{j}_{nid}) = r3;')
+    a(f'                call _{nid}_process_sample;')
+    for j, sym in enumerate(outs):
+        scal = sym.replace('_blk_', '_buf_', 1)
+        a(f'                r0 = dm({scal});')
+        a(f'                r3 = dm(_bw_d{j}_{nid});')
+        a(f'                i4 = r3;')
+        a(f'                dm(i4, 0) = r0;')
+        a(f'                r3 = r3 + 1;')
+        a(f'                dm(_bw_d{j}_{nid}) = r3;')
+    if wide:
+        a(f'                /* the meter\'s wide word, as a BLOCK. The body wrote')
+        a(f'                 * the scalar; this walks it out so the METER node')
+        a(f'                 * sees every sample instead of one per block. */')
+        a(f'                r0 = dm(_mtr_wide_{nid});')
+        a(f'                r3 = dm(_bw_i_{nid});')
+        a(f'                i4 = _mtr_wblk_{nid};')
+        a(f'                m4 = r3;')
+        a(f'                modify(i4, m4);')
+        a(f'                dm(i4, 0) = r0;')
+    a(f'                r5 = dm(_bw_i_{nid});')
+    a(f'                r5 = r5 + 1;')
+    a(f'            .bwlp_{nid}: dm(_bw_i_{nid}) = r5;')
+    a(f'            r5 = dm(_bw_k_{nid});')
+    a(f'            dm(_sample_idx) = r5;')
+    a(f'            rts;')
+    a('')
+    a(f'        .global _{nid}_process_sample;')
+    a(f'        _{nid}_process_sample:')
+    a('        #endif')
+    return '\n'.join(L)
+
+
+def blk_wrap_extern(node):
+    """`.extern` for every input block the wrapper names.
+
+    add_extern_decls only sees dm(_sym) references and these are DAG loads,
+    so they are declared here. A chip-2 producer that is NOT converted has no
+    _blk_ symbol and the block build fails to LINK -- which is the loud
+    failure the no-fallback policy asks for, not a silent one-sample-per-block
+    read.
+    """
+    ins = blk_stage_ins(node)
+    if not ins:
+        return ''
+    body = '\n'.join(f'        .extern _blk_{i};' for i in ins)
+    return f'        #if DSP4_BLOCK_KERNELS\n{body}\n        #endif\n'
+
+
+
+# Which chip-2 families take the GENERIC wrapper. The rest of chip 2 gets a
+# kernel of its own because it can do better than running the per-sample body
+# BLOCK times: INTERCHIP_RECV copies its scatter array straight into the block,
+# OUTPUT_TDM walks the block into the TDM slot array and the meter's wide word,
+# METER walks its source's wide block, and DCA has no audio path at all (its
+# only per-block business is the ramp, which is fixed in place).
+_C2_WRAP_TYPES = {
+    'AUX_INPUT', 'ANTI_FB', 'COMPRESSOR', 'CROSSOVER', 'DELAY', 'EQ_BIQUAD',
+    'FX_ENGINE', 'GATE', 'GEQ', 'LIMITER', 'MIX_BUS', 'MONITOR',
+}
+# FADER_PAN is deliberately NOT here. It already had a block kernel -- a
+# hoisted coefficient and an inlined round/saturate, fused two-at-a-time --
+# and wrapping it would have thrown that away to call a per-sample body BLOCK
+# times. What it needed was its BUFFERS fixed, which gen_fader_pan_fixed now
+# does. Same rule for anything else that grows a real kernel later: give it
+# the kernel, take it out of this set.
+
+# The two stale comments that sit in front of a `#if !DSP4_BLOCK_KERNELS`
+# block-rate guard. Both say the guard is dead under block kernels because the
+# node has no block kernel. On chip 2 that stops being true the moment the node
+# gets one, so the comment comes out with the flip rather than being left to
+# contradict the code beside it.
+_C2_STALE_GUARD_RE = re.compile(
+    r'[ \t]*/\* (?:Per-sample builds only\. Under DSP4_BLOCK_KERNELS this node has no'
+    r'|The block-rate guard exists ONLY for the per-sample build\. Under)'
+    r'.*?\*/\n', re.S)
+
+_C2_GUARD_RE = re.compile(
+    r'[ \t]*#if !DSP4_BLOCK_KERNELS\n(.*?)[ \t]*#endif\n', re.S)
+
+_C2_GUARD_LIVE = (
+    "        /* LIVE IN BOTH BUILDS (review finding D16). The block wrapper\n"
+    "         * below drives _sample_idx 0..BLOCK-1 before each call into this\n"
+    "         * body, so the guard fires exactly ONCE per block and the\n"
+    "         * block-rate work behind it -- the parameter conversion, and the\n"
+    "         * float ramps that consume a BLOCK's worth of frames at a time --\n"
+    "         * runs once and not BLOCK times. Removing it, which is right for\n"
+    "         * a node the chain reaches once per block with the index left at\n"
+    "         * BLOCK-1, would run the whole conversion on every sample. */\n")
+
+
+def c2_block_wrap(node, body):
+    """Give a chip-2 node the generic block wrapper, post-hoc.
+
+    Done here rather than in each of thirteen generators for one reason: it
+    is the same transform every time, and thirteen hand-written copies of it
+    is thirteen places for the loop count or the index restore to drift. The
+    generators that want something better than the wrapper emit their own
+    kernel and place the marker below, which is where the wrapper then goes --
+    so a fused steady-state path can sit in front of the wrapper and use it as
+    its transient fallback, exactly as chip 1's FILT and EQ do.
+    """
+    if node['chip'] != '2' or node['type'] not in _C2_WRAP_TYPES:
+        return body
+    nid = node['id']
+    outs = [f'_blk_{nid}']
+    wide = bool(node['params'].get('mtr_sink'))
+
+    body = _C2_STALE_GUARD_RE.sub('', body)
+
+    def _live(m):
+        inner = m.group(1)
+        if 'dm(_sample_idx)' not in inner:
+            return m.group(0)
+        return _C2_GUARD_LIVE + inner
+
+    body = _C2_GUARD_RE.sub(_live, body)
+
+    decls = blk_wrap_extern(node) + blk_wrap_decl(node, outs, wide) + '\n'
+    anchor_pm = '\n        .section/pm seg_pmco;'
+    if anchor_pm in body:
+        body = body.replace(anchor_pm, '\n' + decls + anchor_pm, 1)
+    else:
+        # gen_compressor_fixed emits its sections unindented.
+        anchor_pm = '\n.section/pm seg_pmco;'
+        if anchor_pm not in body:
+            raise ValueError(
+                f'{nid}: no .section/pm anchor for the chip-2 block wrapper')
+        body = body.replace(anchor_pm, '\n' + decls + anchor_pm, 1)
+
+    wrap = blk_wrap_body(node, outs, wide) + '\n'
+    # The marker's indentation does not survive textwrap.dedent intact, so it
+    # is matched on the stripped line rather than on a fixed column.
+    marker_lines = [ln for ln in body.split('\n')
+                    if ln.strip() == '/* @C2BLKWRAP */']
+    if len(marker_lines) > 1:
+        raise ValueError(f'{nid}: more than one @C2BLKWRAP marker')
+    if marker_lines:
+        body = body.replace(marker_lines[0] + '\n', wrap, 1)
+    else:
+        anchor = f'_{nid}_process:\n'
+        if body.count(anchor) != 1:
+            raise ValueError(
+                f'{nid}: expected exactly one `_{nid}_process:` label to '
+                f'anchor the chip-2 block wrapper, found '
+                f'{body.count(anchor)}')
+        body = body.replace(anchor, anchor + wrap, 1)
+    return body
+
+
+
 def gen_compressor_fixed(node):
     import re as _re
     if _re.match(r'^C\d+_COMP_\d+$', node['id']):
@@ -10666,6 +11206,7 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
             )
 
             body = gen_fn(node)
+            body = c2_block_wrap(node, body)
             body = add_global_decls(body)
             body = add_extern_decls(body)
             if node['id'] in odd_pool_ids:
@@ -10766,6 +11307,18 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
             # and transfer node. That is what a real-time-at-1x graph
             # needs, because the strips are what the budget cannot afford
             # and the buses are what the signal still has to flow through.
+            # PER-CHIP LIMIT (review finding D16). DSP4_NODE_LIMIT cut BOTH
+            # chains, which is right for the chip-1 class profile the record
+            # was built from and useless for chip 2: chip 2's whole input is
+            # chip 1's mix fabric, so cutting chip 1's chain to N leaves chip
+            # 2 measuring its classes on SILENCE. The chip-2 chain therefore
+            # counts DSP4_NODE_LIMIT2, which build.sh defaults to
+            # DSP4_NODE_LIMIT -- so every existing invocation cuts both
+            # chains exactly as it did, and a chip-2 profile passes
+            # DSP4_NODE_LIMIT=0 DSP4_NODE_LIMIT2=N to cut only chip 2.
+            _NL = 'DSP4_NODE_LIMIT' if chip_label == 'chip1' \
+                  else 'DSP4_NODE_LIMIT2'
+
             strip_re = re.compile(
                 r'^C\d+_(IN|GAIN|FILT|EQ|GATE|COMP|TUBE|DLY|FDR|RTG)_(\d+)$')
 
@@ -10829,7 +11382,7 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                     if ent[0] == 'pair':
                         _cls, _tag, _sa, _sb = ent[1], ent[2], ent[3], ent[4]
                         _p = pos_of[('pair', _cls, _tag)]
-                        _nl = f'DSP4_NODE_LIMIT == 0 || {_p} < DSP4_NODE_LIMIT'
+                        _nl = f'{_NL} == 0 || {_p} < {_NL}'
                         # Both strips have to be in the graph for a pair to
                         # exist. With an odd DSP4_STRIPS the last strip is
                         # in on its own, and its two dynamics nodes run
@@ -10846,8 +11399,8 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                         continue
 
                     nid = ent[1]
-                    guards = [f'DSP4_NODE_LIMIT == 0 || '
-                              f'{pos_of[nid]} < DSP4_NODE_LIMIT']
+                    guards = [f'{_NL} == 0 || '
+                              f'{pos_of[nid]} < {_NL}']
                     m = strip_re.match(nid)
                     if m:
                         strip = int(m.group(2)) - 1
@@ -10868,8 +11421,8 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                         # is still live. Guarded so the shipping image is
                         # unchanged.
                         f.write('#if DSP4_BLOCK_KERNELS\n')
-                        f.write(f'#if (DSP4_NODE_LIMIT == 0 || '
-                                f'{pos_of[_m]} < DSP4_NODE_LIMIT)\n')
+                        f.write(f'#if ({_NL} == 0 || '
+                                f'{pos_of[_m]} < {_NL})\n')
                         f.write(f'    call _{_m}_process;\n')
                         f.write('#endif\n')
                         f.write('#endif\n')

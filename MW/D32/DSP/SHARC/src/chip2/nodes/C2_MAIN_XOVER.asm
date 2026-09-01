@@ -18,6 +18,7 @@
 
 .section/dm seg_dmda;
 .extern _buf_C2_MAIN_DLY;
+.extern _sample_idx;
 
 .global _xover_lp_A_C2_MAIN_XOVER;
 .var _xover_lp_A_C2_MAIN_XOVER[10] = 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
@@ -56,11 +57,72 @@
 .global _buf_hp_C2_MAIN_XOVER;
 .var _buf_hp_C2_MAIN_XOVER;
 
+        #if DSP4_BLOCK_KERNELS
+        .extern _blk_C2_MAIN_DLY;
+        #endif
+        #if DSP4_BLOCK_KERNELS
+        .global _blk_C2_MAIN_XOVER;
+        .var _blk_C2_MAIN_XOVER[DSP4_BLOCK_SIZE];
+        .global _bw_i_C2_MAIN_XOVER;
+        .var _bw_i_C2_MAIN_XOVER;        /* sample index, across the call */
+        .global _bw_k_C2_MAIN_XOVER;
+        .var _bw_k_C2_MAIN_XOVER;        /* the caller's _sample_idx */
+        .global _bw_s0_C2_MAIN_XOVER;
+        .var _bw_s0_C2_MAIN_XOVER;       /* walking source pointer */
+        .global _bw_d0_C2_MAIN_XOVER;
+        .var _bw_d0_C2_MAIN_XOVER;       /* walking sink pointer */
+        #endif
+
 .section/pm seg_pmco;
 .extern _bq_fx_cascade_N;
 .extern _bq_fx_convert_N;
 .global _C2_MAIN_XOVER_process;
 _C2_MAIN_XOVER_process:
+        #if DSP4_BLOCK_KERNELS
+            /* ---- generic per-block wrapper (review finding D16) ----
+             * Runs the per-sample reference body BLOCK times over this
+             * node's own block buffer, staging each sample through the
+             * scalar _buf_ words the body already reads and writes. Same
+             * arithmetic, same order, same result as the per-sample
+             * build; what it removes is the chain's call/rts and the
+             * _sample_idx guard being re-evaluated from the chain.
+             */
+            i4 = _blk_C2_MAIN_DLY;
+            r3 = i4;
+            dm(_bw_s0_C2_MAIN_XOVER) = r3;
+            i4 = _blk_C2_MAIN_XOVER;
+            r3 = i4;
+            dm(_bw_d0_C2_MAIN_XOVER) = r3;
+            r5 = dm(_sample_idx);
+            dm(_bw_k_C2_MAIN_XOVER) = r5;
+            r5 = 0;
+            dm(_bw_i_C2_MAIN_XOVER) = r5;
+            lcntr = DSP4_BLOCK_SIZE, do .bwlp_C2_MAIN_XOVER until lce;
+                r5 = dm(_bw_i_C2_MAIN_XOVER);
+                dm(_sample_idx) = r5;
+                r3 = dm(_bw_s0_C2_MAIN_XOVER);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_MAIN_DLY) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s0_C2_MAIN_XOVER) = r3;
+                call _C2_MAIN_XOVER_process_sample;
+                r0 = dm(_buf_C2_MAIN_XOVER);
+                r3 = dm(_bw_d0_C2_MAIN_XOVER);
+                i4 = r3;
+                dm(i4, 0) = r0;
+                r3 = r3 + 1;
+                dm(_bw_d0_C2_MAIN_XOVER) = r3;
+                r5 = dm(_bw_i_C2_MAIN_XOVER);
+                r5 = r5 + 1;
+            .bwlp_C2_MAIN_XOVER: dm(_bw_i_C2_MAIN_XOVER) = r5;
+            r5 = dm(_bw_k_C2_MAIN_XOVER);
+            dm(_sample_idx) = r5;
+            rts;
+
+        .global _C2_MAIN_XOVER_process_sample;
+        _C2_MAIN_XOVER_process_sample:
+        #endif
 
     r4 = dm(_xover_swap_pending_C2_MAIN_XOVER);
     r4 = pass r4;

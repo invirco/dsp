@@ -70,6 +70,11 @@
         .var _tap_post_fader_C2_AUX_FDR_05;
         .global _buf_C2_AUX_FDR_05;
         .var _buf_C2_AUX_FDR_05;
+        #if DSP4_BLOCK_KERNELS
+        .extern _blk_C2_RECV_AUX_05;
+        .global _blk_C2_AUX_FDR_05;
+        .var _blk_C2_AUX_FDR_05[DSP4_BLOCK_SIZE];
+        #endif
 
 
         .section/pm seg_pmco;
@@ -191,8 +196,8 @@
             l1 = 0;
             l2 = 0;
             l3 = 0;
-            i0 = BLK_CHAIN_B;                 /* input  */
-            i1 = BLK_CHAIN_A;                 /* mono   */
+            i0 = _blk_C2_RECV_AUX_05;                 /* input  */
+            i1 = _blk_C2_AUX_FDR_05;                 /* mono   */
         #if DSP4_STRIP_FUSED
             /* FUSED (2026-08-28): two samples per iteration, interleaved,
              * second accumulator in MRB -- the same treatment as GAIN.
