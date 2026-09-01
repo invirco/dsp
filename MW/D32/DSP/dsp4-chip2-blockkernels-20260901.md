@@ -197,24 +197,73 @@ wrapper with real kernels on LIM, COMP, GATE, DLY and XOVER is worth roughly
 90 MHz of the ~740 MHz shortfall. It is worth doing and it does not change
 the answer.
 
-### What this leaves for PW
+### The PW ruling, and what it costs in cycles
 
-The shortfall is structural, not a kernel-tuning gap. Stated as measurements
-rather than as a recommendation, because the choice is a product one:
+**PW ruled on this before the gate fired** (tasks.md, 2026-09-01): 31-band
+GEQ on all outputs is the market bar, contemporary mixers do it on one or two
+SHARCs, and therefore *"the 851 MHz GEQ-alone number prices OUR primitive, not
+the feature"*. Feature cuts, plugin demotion and chip splits are off the table
+until the biquad cascade is at a competitive rate.
 
-- 17 × 28-band GEQ is 45% of the measured chip-2 total. Fewer bands or fewer
-  instances is the only lever on this chip that is worth a factor rather than
-  a percentage.
-- Chip 1 is separately at 121.3% of the block-8 budget with 32 strips
-  (89.2% at block 32), so there is no headroom on chip 1 to move work onto.
-- The D6 platform split already puts 32 ch @ 96 kHz and above on the
-  single-chip FPGA engine. Whether the D32 output section belongs there is
-  the same question one level up.
+The measurement supports the ruling, and it can be made sharper than "~15x
+off". **The question is not what the market does; it is what the shared
+cascade has to reach for chip 2 to fit.** Everything below is arithmetic on
+this session's measured parts.
 
-If a recommendation is wanted: the biquad-pairing lever is the one with real
-measured evidence behind it (chip 1 has run it since session 5) and it is the
-first thing to wire on chip 2 — but it buys 55 percentage points of a 92-point
-gap, so it should be scheduled as an improvement and not as a fit.
+Chip 2 carries **642 biquad stages per sample**: GEQ 17x28 = 476, EQ 21x4 =
+84, ANTI_FB 12x6 = 72, CROSSOVER ~10. (Cross-check: 642 x 37.2 = 1,146 MHz
+against the 1,075 MHz measured for those four classes, 6.6% apart.) Everything
+on chip 2 that is *not* a biquad cascade measures **646 MHz**.
+
+| cycles/band-sample | cascades | chip-2 total | % of a 983.04 MHz part |
+|--:|--:|--:|--:|
+| 37.2 (today) | 1,146 | 1,720 | 175.0 |
+| 15 | 462 | 1,108 | 112.7 |
+| **11.0** | 339 | 984 | **100.1 — break-even** |
+| 6 | 185 | 830 | 84.5 |
+| 3 (PW's target) | 92 | 738 | 75.1 |
+| 2 | 62 | 707 | 71.9 |
+
+**Break-even for the graph as it stands today is 11.0 cycles/band-sample — a
+3.4x improvement, not 15x.** At 786.432 MHz it is 4.6, an 8.1x improvement.
+
+And the target is softer still once the *other* lever is counted. Dynamics
+pairing — which chip 1 has had since session 3 and chip 2 does not — takes the
+non-cascade 646 MHz to about 412 MHz. That leaves 571 MHz for the cascades:
+
+- for the graph as it stands, **18.5 cycles/band-sample**, a 2.0x improvement;
+- for PW's target configuration (31-band GEQ on all 20 chip-2 outputs = 786
+  stages/sample), **15.1 cycles/band-sample**, a **2.5x improvement**.
+
+So PW's ruling is arithmetically sound and its 2–3 cycles/band-sample target
+leaves real margin (75.1% of the part at 3, with the LARGER feature set at
+77.2%). But the *fit* does not require the market rate: **2.5x on the biquad,
+with the dynamics pairing chip 1 already has, carries the full 31-band-on-all-
+outputs configuration at 983.04 MHz.**
+
+One engineering caveat, recorded because it will decide how hard the target
+is. ADI's SIMD `iircas` reference at 1–2 cycles/biquad-sample does not carry
+this tree's numeric contract: our cascade is Q4.28 offset-form with **80-bit
+error feedback held across samples** (findings D2 and D5), which a plain
+`iircas` does not pay for. The record's own instruction-count floor for the
+current algorithm is ~11 per stage per sample — which is, to within the
+arithmetic above, exactly the break-even. **Reaching the current algorithm's
+own floor is sufficient to fit the graph as it stands; beating it needs the
+SIMD/PM-fetch/pipelining work the ruling names, and whether 2–3 is reachable
+without renegotiating the error-feedback contract is the first question that
+work has to answer.**
+
+Levers, in the order the measurement ranks them:
+
+1. **The biquad cascade** — 1,075 of 1,720 MHz, and the ruling's target.
+   Cross-channel SIMD pairing is the one with existing measured evidence
+   (chip 1's `DSP4_BQ_GRAPH`, 1.43–1.54x kernel, and it is not wired on chip 2
+   at all); coefficients dual-fetched from PM, state in registers across the
+   cascade, and a software-pipelined inner loop are the rest.
+2. **Dynamics pairing** — 555 -> 321 MHz, again already proven on chip 1 and
+   not wired on chip 2.
+3. **Hoisted kernels for LIM/COMP/GATE/DLY/XOVER** in place of the generic
+   wrapper — about 90 MHz.
 
 ## Verification — what is proved, and what is not
 
