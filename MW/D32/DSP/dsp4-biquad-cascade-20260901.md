@@ -307,6 +307,24 @@ predicted**, against **60,726 measured — 1.0% apart.**
 **−60,726 cycles/block, −17.8%, from one kernel, with no graph change, no
 feature change and no pairing.**
 
+### Chip 1, measured too
+
+The rewrite is a shared kernel, so chip 1 gets it as well. `captable.sh`
+at the shipping configuration — 32 strips, block 8, 983.04 MHz, fused,
+dynamics-paired and biquad-paired:
+
+| | cycles/block | % of the 163,840-cycle budget |
+|---|--:|--:|
+| session 12 | 198,072 | 120.89% |
+| **session 18** | **189,602** | **115.72%** |
+
+**−8,470, −4.3%**, and the parts predict the whole here too. Chip 1's
+biquads are PAIRED, so the 11.94 cycles/band-sample the instruction count
+saves is halved to 5.97 per band-sample of graph: 32 strips × 6 stages ×
+8 samples × 5.97 = **9,170 predicted against 8,470 measured, 7.6%
+apart.** Chip 1 at block 8 remains over budget, which it already was;
+block 32 is where it fits, and that point was not re-measured.
+
 ### And the biquad is no longer the wall
 
 This is the part that changes the ranking, and it is arithmetic on the two
@@ -494,11 +512,9 @@ its own item.
   needs the same chip-2 chain pair-reordering that the biquad pairing needs
   (§6), and the two should land together rather than each paying for the
   reordering separately.
-* **The chip-1 capacity table was not re-measured.** `busgold.sh` shows chip
-  1 is bit-exact through the new kernel, but `MARGIN32_BLK8` was not re-run,
-  so chip 1's capacity figures in `dsp4-function-costs.csv` still date from
-  session 12 and understate the part by whatever the rewrite is worth on
-  FILT and EQ.
+* **Chip 1 was re-measured at block 8 only.** `MARGIN32_BLK8` is now
+  189,602 (115.72%); the BLOCK-32 point, which is the one where chip 1
+  actually fits, was not re-run and still dates from session 12.
 * **A `gainfix.py` equivalent for chip 2 (D79) was not built** — it is
   explicitly out of scope for this dispatch, and it cost this session a
   c2gold chain.
