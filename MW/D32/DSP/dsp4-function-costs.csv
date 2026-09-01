@@ -401,3 +401,35 @@ C2_LEVER_ARITH_TOTAL,,,,1720,,"MHz for the ten measured classes = 175% of a 983.
 # genuinely engaged and not measuring a cheap branch.
 C2_WHOLE_GRAPH_BLK8_PERSAMPLE,551868,,,68983.5,,"336.8% of the 163840-cycle budget at 983.04 MHz; 421.0% at 786.432 MHz"
 C2_CONVERSION_SAVING_BLK8,-209778,,,,,"342,090 against 551,868: -38.0%. The conversion is not only the correctness fix -- it is the largest single improvement measured on chip 2 to date. It is still 208.8% of budget afterwards, which is the gate"
+#
+# SESSION 18 — 2026-09-01. THE BIQUAD CASCADE REWRITTEN, MEASURED ON THE
+# SAME CHIP-2 LADDER AS SESSION 17, BLOCK 8, 983.04 MHz.
+#
+# `_bq_fx_cascade_blk` and its SIMD twin were regrouped from the offset
+# form's twelve MACs to six (an exact integer identity on the STORED
+# coefficient words -- see MW/D32/DSP/dsp4-biquad-cascade-20260901.md and
+# tools/dsp/bound_direct.py), the rounding half was moved into the
+# accumulator where it cancels sample to sample, the sample loop was
+# unrolled by two with rotating history registers, and the signal load and
+# store were folded onto MACs. Nineteen instructions per sample per stage
+# against thirty-two. Bit-exact: bqst.sh 0 of 16 against BOTH the untouched
+# per-sample reference and fixed_ref, negative control 15 of 16; bqgraph.sh
+# GRAPH BIT-EXACT 0 of 64 with real coefficients, negative control 56 of 64.
+#
+# THE LADDER'S CONTROL POINT REPRODUCED: limit2=47 (the input side, no
+# cascades) reads 17,253 against session 17's 17,241 and 17,258 -- 0.07%.
+# The change is confined to the cascades, which is what makes the class
+# column attributable.
+#
+# The parts predict the whole with no shared arithmetic: 642 biquad stages
+# per sample x 11.94 cycles saved x 8 samples = 61,325 predicted against
+# 60,726 measured, 1.0% apart.
+function,c2_blk8_s17,c2_blk8_s18,c2_s18_cycles_band_sample,notes
+C2_GEQ_S18,8343,5669,25.31,"28 bands. 37.25 -> 25.31 cycles/band-sample, 1.47x. Predicted 24.08 from the instruction count; the 5.1% residual is stalls, against 3.5% for the old kernel"
+C2_AFB_S18,2159,1289,26.85,"6 notches. 44.98 -> 26.85, 1.68x"
+C2_FDREQ_S18,1477,1092,,"FDR and EQ TOGETHER, -26.1%. Session 17 already flagged this ladder boundary as unstable across boots (FDR read 721 there and 191 here); the pair is the only figure the instrument resolves at that position"
+C2_WHOLE_GRAPH_BLK8_S18,342090,281364,,"-60,726 cycles/block, -17.8%. 171.7% of the 163,840-cycle budget at 983.04 MHz (was 208.8%); 214.7% of the 131,072-cycle budget at 786.432 MHz (was 261.0%)"
+C2_S18_CASCADES_MHZ,1075,730,,"MHz at 48 kHz, scaled by the measured GEQ ratio. Stage-count cross-check 642 x 25.31 = 780 MHz, the same 6.6% spread session 17 recorded"
+C2_S18_NONCASCADE_MHZ,978,958,,"**EVERYTHING THAT IS NOT A CASCADE IS 97.4% OF A 983.04 MHz PART ON ITS OWN.** Whole graph 1,688 MHz minus cascades 730. Session 17's 11.0 cycles/band-sample break-even was a property of a graph in which the biquad was 52% of the cost; it is now 43%, and the same arithmetic gives a break-even of 0.10 -- i.e. the biquad can no longer close chip 2's gap at ANY rate, including PW's 2-3"
+C2_S18_LEVERS_REPRICED,,996,,"MHz = 101.3% of the part, ARITHMETIC ON MEASURED PARTS AND NOT A MEASUREMENT: 1,688 measured, minus dynamics pairing (555 -> 321 at chip 1's graph-measured factors) = 1,454, minus NATIVE-interleave biquad pairing (730 -> 362) = 1,086, minus hoisted kernels for LIM/COMP/GATE/DLY/XOVER (~90) = 996. From 208.8% at the gate"
+BQ_GATHER_OVERHEAD,4.25,,,"cycles/band-sample that _bq_pair_blk's coefficient and state interleave costs, INDEPENDENT of the stage count: (5 coeff + 6 state in + 6 state out) x 4 instructions per stage per pair, over 2 channels x 8 samples. Against a paired inner-loop saving of 9.5 it turns a 2x lever into ~1.5x, which is the -8.3% LEVER_BQPAIR_BLK8 measured against a -13% prediction. Hoisting it (coefficients interleaved at conversion time, state owned by the pair) leaves 0.14 on a 28-band GEQ"

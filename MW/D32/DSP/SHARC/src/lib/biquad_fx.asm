@@ -161,51 +161,95 @@ _bq_fx_cascade_N.end:
  * sample per stage.
  *
  * MRF is 80 bits and already holds exactly the accumulator that the error
- * feedback IS. So instead of extracting it, the rounding half is
- * subtracted back out and y*2^28 is subtracted with a MAC:
+ * feedback IS. So instead of extracting it, y*2^28 is subtracted with a
+ * MAC and MRF carries the residue straight into the next sample
+ * untouched. This is BIT-EXACT, not an approximation: the old code stored
+ * efb as two 32-bit words plus a sign extension into MR2F, which is the
+ * same 80-bit value MRF already holds.
  *
- *     mrf = mrf - r14 * r15   (remove the 2^27 rounding half)
- *     mrf = mrf - y   * r13   (r13 = 2^28, so this is y << 28)
+ * PACKED 2026-08-29 (review finding D21): branch-free saturation, the
+ * rounding half kept out of MRF, and the x history shifted before the
+ * extraction so two register moves stand between the last MAC and the
+ * first `Rn = MR0F`.
  *
- * and MRF carries the residue straight into the next sample untouched.
- * This is BIT-EXACT, not an approximation: the old code stored efb as two
- * 32-bit words plus a sign extension into MR2F, which is the same 80-bit
- * value MRF already holds.
+ * REGROUPED 2026-09-01 -- TWELVE MACs TO SIX, AND IT IS AN IDENTITY.
  *
- * PACKED 2026-08-29 (review finding D21). Three changes, all bit-exact:
+ * The normative offset form (fixed_ref.biquad) is written out term by
+ * term, and the kernel issued one MAC per term:
  *
- *   1. SATURATION IS A CONDITIONAL MOVE, not a taken branch. The SIMD twin
- *      below has always done it this way and the scalar form should have:
- *      the branch was TAKEN on every non-saturating sample -- i.e. on
- *      essentially every sample of every stage of every strip -- and a
- *      taken jump on this core is not free.
+ *     acc = efb + b0*x + b0*x2 - b0*x1 - b0*x1
+ *               + nh*x1 + nh*x1 + n2*x2 - c1*y1 + c2*y2
+ *               + y1*2^29 - y2*2^28
  *
- *   2. THE ROUNDING HALF NEVER ENTERS MRF. It used to be added with a MAC
- *      and then subtracted back out with another, purely so that the error
- *      feedback left behind was the UNROUNDED accumulator. Adding 2^27 to
- *      the extracted 64-bit pair with an add and a carry-add gives exactly
- *      the same rounded value -- the two forms differ only in where the
- *      addition happens -- and MRF is then already the unrounded
- *      accumulator the feedback wants, so the undo disappears.
+ * Twelve MACs to express five products, because the offset encoding
+ * spends the extra ones expressing b1, b2, a1 and a2 as offsets from the
+ * low-frequency limit point. The 80-bit MAC accumulator is EXACT, so
+ * collecting the terms by the variable they multiply cannot change the
+ * sum by one bit:
  *
- *   3. THE x HISTORY SHIFTS BEFORE THE EXTRACTION, not after. That is not
- *      cosmetic: it puts two register moves between the last MAC and the
- *      first `Rn = MR0F`, which is where the multiplier's result latency
- *      was being paid as a stall. It also frees a scratch register,
- *      because the incoming sample can live in one once x1 has taken it.
+ *     g1h = nh - b0            (MACed TWICE, exactly as nh is)
+ *     g2  = n2 + b0
+ *     g3  = 2^29 - c1
+ *     g4  = c2 - 2^28
+ *     acc = efb + b0*x + g1h*x1 + g1h*x1 + g2*x2 + g3*y1 + g4*y2
+ *
+ * SIX MACs, and the offset form's whole benefit survives intact: the four
+ * derived words are computed FROM THE STORED OFFSET WORDS with plain
+ * 32-bit integer adds, so the coefficient QUANTISATION is byte for byte
+ * what the offset encoding produced and only the grouping of the
+ * arithmetic changes. Nothing about the stored coefficient block, the
+ * conversion (`_bq_fx_convert_N`), the parameter path or fixed_ref moves.
+ *
+ * WHY g1h IS THE HALVED WORD AND NOT g1 = 2*(nh - b0). Because g1 is b1
+ * in Q4.28 and b1 IS NOT BOUNDED BY 8: the worst set in the product's own
+ * design space is a 20 Hz high shelf at +15 dB and Q = 3.16, where
+ * |b1| = 11.2 and a Q4.28 word would wrap. Derived halved, it is
+ * 0.7025 of int32 full scale -- the same reason n1 is stored halved, one
+ * step further down the same road. tools/dsp/bound_direct.py sweeps all
+ * 869,627 coefficient sets the DEFS ranges reach and reports the worst
+ * magnitude of each derived word; it also checks the regrouping identity
+ * itself against the normative expression on 20,000 random
+ * coefficient/state sets. Both are conditions of this kernel being
+ * correct, so they are a script and not a paragraph.
+ *
+ * THE ROUNDING HALF RIDES IN THE ACCUMULATOR (2026-09-01). y is
+ * rns(acc,28) = (acc + 2^27) >> 28, and efb is acc - (y<<28) -- so the
+ * old form had to add 2^27 to the EXTRACTED pair every sample (two more
+ * instructions) to keep MRF unrounded. Carry ACC = acc + 2^27 in MRF
+ * instead: y is then a plain arithmetic shift of ACC, and
+ *     ACC' = acc' + 2^27 = (ACC - 2^27 - y*2^28) + products + 2^27
+ *          = ACC - y*2^28 + products
+ * so the half CANCELS from sample to sample. It is added once when the
+ * stage loads efb and removed once when it stores it, and the two
+ * per-sample adds disappear.
+ *
+ * THE SAMPLE LOOP IS UNROLLED BY TWO AND THE HISTORY REGISTERS ROTATE
+ * (2026-09-01). x1/x2 and y1/y2 exchange roles on every sample, so a
+ * two-sample body needs NO history moves at all: the four
+ * `r10 = r9` / `r9 = r2` / `r12 = r11` / `r11 = r1` shuffles are gone,
+ * and the incoming sample is loaded straight into the register whose x2
+ * the MAC on the same instruction is consuming. After an even number of
+ * samples the roles are back where the epilogue expects them, which is
+ * why BLOCK must be even (checked below).
+ *
+ * Nineteen instructions per sample per stage against the thirty-two this
+ * kernel issued on 2026-08-31, when it measured 37.2 cycles per
+ * band-sample on the graph.
  *
  * Registers, all sixteen used:
- *   r0,r2,r3 scratch (r2 carries x until the history shifts)   r1 y
- *   r4 b0  r5 n1  r6 n2  r7 c1  r8 c2
- *   r9 x1  r10 x2 r11 y1 r12 y2
- *   r13 = 2^28   r14 = 2^27   r15 = 0x7FFFFFFF
- * There is still no register left for the 2^29 unity term, so it is
- * applied as two MACs of 2^28: the third scratch register the branch-free
- * saturation needs is worth more than the one MAC it would have saved.
+ *   r0,r2,r3 scratch                                          r1 y
+ *   r4 b0  r5 g1h  r6 g2  r7 g3  r8 g4
+ *   r9/r10 x1,x2 (roles alternate)  r11/r12 y1,y2 (likewise)
+ *   r13 = 2^28   r14 = 2^27 (stage prologue/epilogue only)
+ *   r15 = 0x7FFFFFFF
  *
  * In:  i0 = coeffs, i1 = state, i2 = signal block (BLOCK words, in place),
  *      r4 = number of stages.
  *----------------------------------------------------------------------*/
+
+#if (DSP4_BLOCK_SIZE & 1)
+#error "_bq_fx_cascade_blk unrolls the sample loop by two and rotates the history registers; DSP4_BLOCK_SIZE must be even."
+#endif
 
 .global _bq_fx_cascade_blk;
 _bq_fx_cascade_blk:
@@ -220,7 +264,7 @@ _bq_fx_cascade_blk:
     lcntr = r4, do .bqf_stage until lce;
 
         r4 = dm(i0, 1);        /* b0 */
-        r5 = dm(i0, 1);        /* n1 */
+        r5 = dm(i0, 1);        /* nh */
         r6 = dm(i0, 1);        /* n2 */
         r7 = dm(i0, 1);        /* c1 */
         r8 = dm(i0, 1);        /* c2, i0 -> next stage                */
@@ -232,59 +276,76 @@ _bq_fx_cascade_blk:
         r2  = dm(i1, 1);       /* efb_lo */
         r3  = dm(i1, 0);       /* efb_hi -- i1 parked at base+5       */
 
+        r13 = 0x10000000;      /* 2^28 */
+        r15 = 0x7FFFFFFF;      /* the positive saturation pattern */
+
+        /* ---- the DIRECT words, from the STORED OFFSET words ---- */
+        r5 = r5 - r4;          /* g1h = nh - b0, MACed twice like nh */
+        r6 = r6 + r4;          /* g2  = n2 + b0                      */
+        r14 = r13 + r13;       /* 2^29                               */
+        r7 = r14 - r7;         /* g3  = 2^29 - c1                    */
+        r8 = r8 - r13;         /* g4  = c2 - 2^28                    */
+
+        /* ---- MRF = efb + 2^27, sign extended 64 -> 80 ---- */
         mr0f = r2;
         mr1f = r3;
         r2 = ashift r3 by -31;
-        mr2f = r2;             /* MRF = efb, sign extended 64 -> 80   */
+        mr2f = r2;
+        r14 = 0x08000000;      /* the rounding half, added ONCE */
+        r0 = 1;
+        mrf = mrf + r14 * r0 (ssi);
 
-        r13 = 0x10000000;      /* 2^28 */
-        r14 = 0x08000000;      /* 2^27, the rounding half */
-        r15 = 0x7FFFFFFF;      /* the positive saturation pattern */
+        lcntr = DSP4_BLOCK_HALF, do .bqf_samp until lce;
 
-        lcntr = DSP4_BLOCK_SIZE, do .bqf_samp until lce;
-            r2 = dm(i2, 0);
-            mrf = mrf + r4 * r2 (ssi);      /* + b0*x   */
-            mrf = mrf + r4 * r10 (ssi);     /* + b0*x2  */
-            mrf = mrf - r4 * r9 (ssi);      /* - b0*x1  */
-            mrf = mrf - r4 * r9 (ssi);      /* - b0*x1  */
-            mrf = mrf + r5 * r9 (ssi);      /* + nh*x1  */
-            mrf = mrf + r5 * r9 (ssi);      /*   twice  = n1*x1 */
-            mrf = mrf + r6 * r10 (ssi);     /* + n2*x2  */
-            mrf = mrf - r7 * r11 (ssi);     /* - c1*y1  */
-            mrf = mrf + r8 * r12 (ssi);     /* + c2*y2  */
-            mrf = mrf + r13 * r11 (ssi);    /* + y1*2^28 */
-            mrf = mrf + r13 * r11 (ssi);    /*   twice = y1*2^29 */
-            mrf = mrf - r13 * r12 (ssi);    /* - y2*2^28 */
-
-            /* x history FIRST: it frees r2 for the extraction, and the two
-             * moves stand between the last MAC and the first MR read. */
-            r10 = r9;                       /* x2' = x1 */
-            r9 = r2;                        /* x1' = x  */
-
-            /* y = sat32(rns(acc, 28)). The rounding half goes into the
-             * EXTRACTED pair, so MRF still holds the UNROUNDED accumulator
-             * and the error feedback needs no undo. */
+            /* ---- sample A: x1 r9, x2 r10, y1 r11, y2 r12 ---- */
+            mrf = mrf + r6 * r10 (ssi), r10 = dm(i2, 0);
+                                            /* g2*x2, and x lands in the
+                                             * register the MAC has just
+                                             * finished with -- it is the
+                                             * next x1 */
+            mrf = mrf + r4 * r10 (ssi);     /* b0*x    */
+            mrf = mrf + r5 * r9  (ssi);     /* g1h*x1  */
+            mrf = mrf + r5 * r9  (ssi);     /*   twice = n1*x1 - 2*b0*x1 */
+            mrf = mrf + r7 * r11 (ssi);     /* g3*y1   */
+            mrf = mrf + r8 * r12 (ssi);     /* g4*y2   */
             r2 = mr0f;
             r3 = mr1f;
-            r2 = r2 + r14;                  /* + 2^27, low word, sets carry */
-            r3 = r3 + ci;                   /* carry into the high word     */
             r0 = lshift r2 by -28;
             r1 = lshift r3 by 4;
-            r1 = r1 or r0;                  /* candidate y                  */
-            r0 = ashift r3 by -28;          /* the bits above y             */
-            r2 = ashift r0 by -31;          /* sign of the accumulator      */
-            r2 = r15 xor r2;                /* MAX, or MIN if negative      */
-            r3 = ashift r1 by -31;          /* sign of the candidate        */
+            r1 = r1 or r0;                  /* candidate y */
+            r0 = ashift r3 by -28;          /* the bits above y */
+            r2 = ashift r0 by -31;          /* sign of the accumulator */
+            r2 = r15 xor r2;                /* MAX, or MIN if negative */
+            r3 = ashift r1 by -31;          /* sign of the candidate */
             comp(r0, r3);
-            if ne r1 = r2;                  /* saturate, WITHOUT branching  */
+            if ne r1 = r2;                  /* saturate, WITHOUT branching */
+            mrf = mrf - r1 * r13 (ssi);     /* ACC' = ACC - (y << 28) */
+            r12 = pass r1, dm(i2, 1) = r1;  /* y is the next y1 */
 
-            mrf = mrf - r1 * r13 (ssi);     /* efb = acc - (y << 28), in MRF */
-
-            r12 = r11;                      /* y2' = y1 */
-            r11 = r1;                       /* y1' = y  */
-        .bqf_samp: dm(i2, 1) = r1;
+            /* ---- sample B: x1 r10, x2 r9, y1 r12, y2 r11 ---- */
+            mrf = mrf + r6 * r9  (ssi), r9 = dm(i2, 0);
+            mrf = mrf + r4 * r9  (ssi);
+            mrf = mrf + r5 * r10 (ssi);
+            mrf = mrf + r5 * r10 (ssi);
+            mrf = mrf + r7 * r12 (ssi);
+            mrf = mrf + r8 * r11 (ssi);
+            r2 = mr0f;
+            r3 = mr1f;
+            r0 = lshift r2 by -28;
+            r1 = lshift r3 by 4;
+            r1 = r1 or r0;
+            r0 = ashift r3 by -28;
+            r2 = ashift r0 by -31;
+            r2 = r15 xor r2;
+            r3 = ashift r1 by -31;
+            comp(r0, r3);
+            if ne r1 = r2;
+            mrf = mrf - r1 * r13 (ssi);
+        .bqf_samp: r11 = pass r1, dm(i2, 1) = r1;
 
         /* ---- state back to memory, ONCE for this stage ---- */
+        r0 = 1;
+        mrf = mrf - r14 * r0 (ssi);   /* take the rounding half back out */
         r2 = mr0f;
         r3 = mr1f;
         dm(i1, -1) = r3;       /* efb_hi at +5 */
@@ -626,60 +687,85 @@ _bq_fx_cascade_simd:
         r12 = dm(i1, 2);
         r2  = dm(i1, 2);       /* efb_lo */
         r3  = dm(i1, 0);       /* efb_hi */
+
+        r13 = 0x10000000;      /* 2^28 */
+        r15 = 0x7FFFFFFF;      /* the positive saturation pattern */
+
+        /* ---- the DIRECT words, from the STORED OFFSET words ----
+         * Six MACs per sample instead of twelve; see the scalar twin's
+         * header for why this is an identity and why g1 is carried
+         * halved. Both units derive their own channel's words from their
+         * own channel's coefficients, which is what SIMD already gives. */
+        r5 = r5 - r4;          /* g1h = nh - b0, MACed twice like nh */
+        r6 = r6 + r4;          /* g2  = n2 + b0                      */
+        r14 = r13 + r13;       /* 2^29                               */
+        r7 = r14 - r7;         /* g3  = 2^29 - c1                    */
+        r8 = r8 - r13;         /* g4  = c2 - 2^28                    */
+
+        /* ---- MRF = efb + 2^27: the rounding half rides in the
+         * accumulator and cancels from sample to sample ---- */
         mr0f = r2;
         mr1f = r3;
         r2 = ashift r3 by -31;
         mr2f = r2;
-
-        r13 = 0x10000000;
         r14 = 0x08000000;
-        r15 = 1;
+        r0 = 1;
+        mrf = mrf + r14 * r0 (ssi);
 
-        lcntr = DSP4_BLOCK_SIZE, do .bqs_samp until lce;
+        lcntr = DSP4_BLOCK_HALF, do .bqs_samp until lce;
 #if DSP4_BQ_TRACE
             /* r1 is written by the saturation later in the body and holds
-             * nothing on entry. */
+             * nothing on entry. TWO per iteration: the loop is unrolled
+             * by two, so a counter of iterations is not a counter of
+             * samples and the expected value would silently halve. */
             r1 = dm(_bqs_samps);
-            r1 = r1 + 1;
+            r1 = r1 + 2;
             dm(_bqs_samps) = r1;
 #endif
-            r0 = dm(i2, 0);
-            mrf = mrf + r4 * r0 (ssi);
-            mrf = mrf + r4 * r10 (ssi);
-            mrf = mrf - r4 * r9 (ssi);
-            mrf = mrf - r4 * r9 (ssi);
-            mrf = mrf + r5 * r9 (ssi);      /* + nh*x1 */
-            mrf = mrf + r5 * r9 (ssi);      /*   twice = n1*x1 */
-            mrf = mrf + r6 * r10 (ssi);
-            mrf = mrf - r7 * r11 (ssi);
-            mrf = mrf + r8 * r12 (ssi);
-            mrf = mrf + r13 * r11 (ssi);
-            mrf = mrf + r13 * r11 (ssi);
-            mrf = mrf - r13 * r12 (ssi);
-
-            r10 = r9;                       /* x2' = x1, frees r0 */
-            r9 = r0;
-
-            mrf = mrf + r14 * r15 (ssi);    /* round */
+            /* ---- sample A: x1 r9, x2 r10, y1 r11, y2 r12 ---- */
+            mrf = mrf + r6 * r10 (ssi), r10 = dm(i2, 0);
+            mrf = mrf + r4 * r10 (ssi);     /* b0*x   */
+            mrf = mrf + r5 * r9  (ssi);     /* g1h*x1 */
+            mrf = mrf + r5 * r9  (ssi);     /*   twice */
+            mrf = mrf + r7 * r11 (ssi);     /* g3*y1  */
+            mrf = mrf + r8 * r12 (ssi);     /* g4*y2  */
             r2 = mr0f;
             r3 = mr1f;
-            r1 = lshift r2 by -28;
-            r2 = lshift r3 by 4;
-            r1 = r1 or r2;                  /* candidate y */
-            r0 = ashift r3 by -31;          /* sign of acc */
-            r2 = 0x7FFFFFFF;
-            r0 = r2 xor r0;                 /* saturated value, built FIRST */
-            r2 = ashift r3 by -28;
+            r0 = lshift r2 by -28;
+            r1 = lshift r3 by 4;
+            r1 = r1 or r0;                  /* candidate y */
+            r0 = ashift r3 by -28;          /* the bits above y */
+            r2 = ashift r3 by -31;          /* sign of acc */
+            r2 = r15 xor r2;                /* saturated value, built FIRST */
             r3 = ashift r1 by -31;
-            comp(r2, r3);
-            if ne r1 = pass r0;             /* per-PE, not a branch */
-
-            mrf = mrf - r14 * r15 (ssi);
+            comp(r0, r3);
+            if ne r1 = pass r2;             /* per-PE, not a branch */
             mrf = mrf - r1 * r13 (ssi);
-            r12 = r11;
-            r11 = r1;
-        .bqs_samp: dm(i2, 2) = r1;
+            r12 = pass r1, dm(i2, 2) = r1;
 
+            /* ---- sample B: x1 r10, x2 r9, y1 r12, y2 r11 ---- */
+            mrf = mrf + r6 * r9  (ssi), r9 = dm(i2, 0);
+            mrf = mrf + r4 * r9  (ssi);
+            mrf = mrf + r5 * r10 (ssi);
+            mrf = mrf + r5 * r10 (ssi);
+            mrf = mrf + r7 * r12 (ssi);
+            mrf = mrf + r8 * r11 (ssi);
+            r2 = mr0f;
+            r3 = mr1f;
+            r0 = lshift r2 by -28;
+            r1 = lshift r3 by 4;
+            r1 = r1 or r0;
+            r0 = ashift r3 by -28;
+            r2 = ashift r3 by -31;
+            r2 = r15 xor r2;
+            r3 = ashift r1 by -31;
+            comp(r0, r3);
+            if ne r1 = pass r2;
+            mrf = mrf - r1 * r13 (ssi);
+        .bqs_samp: r11 = pass r1, dm(i2, 2) = r1;
+
+        r0 = 1;
+        mrf = mrf - r14 * r0 (ssi);   /* take the rounding half back out */
         r2 = mr0f;
         r3 = mr1f;
         dm(i1, -2) = r3;

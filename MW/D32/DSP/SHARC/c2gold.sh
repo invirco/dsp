@@ -85,26 +85,65 @@ run_arm 0 || exit 1
 run_arm 1 || exit 1
 scp -q $BENCH:/home/app/dspboot/arm0.json $BENCH:/home/app/dspboot/arm1.json "$WORK/"
 python3 - "$WORK/arm0.json" "$WORK/arm1.json" <<'PYEOF'
-import json, sys
+import json, re, sys
 A = json.load(open(sys.argv[1]))
 B = json.load(open(sys.argv[2]))
 
 # ---- primary: the meters, compared EXACTLY --------------------------------
 a, b = A['exact'], B['exact']
 ha, hb = A.get('health', {}), B.get('health', {})
-# A chain whose fader head was corrupted by its own boot's config is excluded
-# from the comparison and NAMED. What it produces is a function of which word
-# that boot dropped, not of the conversion, so comparing it would be comparing
-# two lotteries.
+
+# A chain whose fader head was corrupted by its own boot's config (D79) is
+# excluded from the comparison and NAMED. What it produces is a function of
+# which word that boot dropped, not of the conversion, so comparing it would
+# be comparing two lotteries.
+#
+# THE EXCLUSION NEVER FIRED UNTIL 2026-09-01, AND THE REASON IS THIS FUNCTION.
+# It keyed the health map on `probe.split('_', 2)[2]`, which for
+# `_mtr_peak_C2_MTR_AUX_01` is `peak_C2_MTR_AUX_01` -- a string the health map
+# cannot contain, because that map is keyed by METER ID (`C2_MTR_AUX_01`). So
+# `ha.get(mid, 'ok')` took its default on every probe and every chain was
+# always "healthy". Session 18 is the first run where a chain WAS corrupt,
+# and the bar reported a corrupt aux-01 chain -- both its meters and all six
+# of its node-output probes -- as a conversion failure.
+#
+# It also did not cover the SET probes at all: those are named `_buf_<node>`,
+# and a corrupt chain poisons every node in it, not just its meter. Both
+# probe families are now mapped to the same CHAIN TAG and excluded together.
+def _tag(nid):
+    """(family, instance) for a chip-2 meter or node id -- the chain it is in."""
+    m = re.match(r'^C2_MTR_(AUX|GRP|FX)_(\d+)$', nid)
+    if m:
+        return (m.group(1), m.group(2))
+    if re.match(r'^C2_MTR_MAIN_\d+$', nid):
+        return ('MAIN', None)
+    if nid == 'C2_MTR_SUB':
+        return ('SUB', None)
+    m = re.match(r'^C2_(AUX|GRP|FX)_[A-Z]+_(\d+)$', nid)
+    if m:
+        return (m.group(1), m.group(2))
+    m = re.match(r'^C2_(MAIN|SUB)_', nid)
+    if m:
+        return (m.group(1), None)
+    return None
+
+def _nid(probe):
+    return re.sub(r'^_(?:mtr_peak|mtr_rms|buf)_', '', probe)
+
+_sick = {t for mid in set(ha) | set(hb)
+         for t in (_tag(mid),)
+         if t is not None
+         and (ha.get(mid, 'ok') != 'ok' or hb.get(mid, 'ok') != 'ok')}
+
 def healthy(probe):
-    mid = probe.split('_', 2)[2]
-    return ha.get(mid, 'ok') == 'ok' and hb.get(mid, 'ok') == 'ok'
+    return _tag(_nid(probe)) not in _sick
+
 allnames = [n for n in a if n in b]
 excluded = [n for n in allnames if not healthy(n)]
 names = [n for n in allnames if healthy(n)]
 if excluded:
-    print('EXCLUDED (chain unhealthy in at least one arm -- stray config word):')
-    for n in sorted(set(x.split('_', 2)[2] for x in excluded)):
+    print('EXCLUDED (chain unhealthy in at least one arm -- stray config word, D79):')
+    for n in sorted(set(_nid(x) for x in excluded)):
         print(f'  {n:22s} arm0={ha.get(n, "?")}  arm1={hb.get(n, "?")}')
 diff = [n for n in names if a[n] != b[n]]
 print(f'\nCHIP-2 GOLD (exact, block-latched meters): {len(names)} probes, '
@@ -126,7 +165,14 @@ print(f'NEGCTL: {nc} of {len(names)} differ under a deliberately wrong pairing '
 # defined position (BLOCK-1). So the test is membership: the block arm's word
 # must be one the per-sample reference actually produces.
 sa, sb = A['sets'], B['sets']
-snames = [n for n in sa if n in sb]
+# Same D79 exclusion as the meters, and for the same reason: a chain whose
+# fader head took a stray config word carries garbage through every node in
+# it, so its node-output probes are two lotteries as surely as its meters are.
+sxcl = [n for n in sa if n in sb and not healthy(n)]
+snames = [n for n in sa if n in sb and healthy(n)]
+if sxcl:
+    print('EXCLUDED (set probes on an unhealthy chain): '
+          + ', '.join(sorted(_nid(x) for x in sxcl)))
 bad = [n for n in snames if not set(sb[n]) <= set(sa[n])]
 print(f'SET PROBES: {len(snames)} node outputs, {len(bad)} produced a word the '
       f'per-sample reference never does')
