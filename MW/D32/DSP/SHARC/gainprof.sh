@@ -44,6 +44,7 @@
 #   LIMITS=0 REPS=3 ./gainprof.sh    the WHOLE graph, 32 gain nodes of
 #                                    signal instead of one
 #   BLOCK=8 ./gainprof.sh            the same at the old operating point
+#   DSP4_MTR_OFF=1 ./gainprof.sh     GAIN without its meter
 #   ARMS="1" ./gainprof.sh           SIMD arm only
 #   LIMITS="1 2" ./gainprof.sh       one strip's reading only
 set -u
@@ -56,6 +57,14 @@ BLOCK="${BLOCK:-16}"
 ARMS="${ARMS:-0 1}"
 LIMITS="${LIMITS:-1 2 3 4}"
 REPS="${REPS:-1}"
+# DSP4_MTR_OFF=1 takes the METER out, and it is named here rather than left
+# to environment inheritance so the work-directory key can carry it. The
+# class ladder otherwise BUNDLES the strip's meter NODE into GAIN, because
+# a meter takes its source's ladder position -- this is how GAIN's own cost
+# is separated from it. Note it also selects the UNMETERED kernel body, so
+# it measures "GAIN with no meter", not "the metered kernel minus the
+# meter node".
+MTROFF="${DSP4_MTR_OFF:-0}"
 WORK="${WORK:-/tmp/gainprof}"
 cd "$(dirname "$0")"
 ROOT=../../../..
@@ -94,11 +103,12 @@ SRC="$(srctree "$BLOCK")"
 
 for G in $ARMS; do
 for L in $LIMITS; do
-  D="$WORK/b$BLOCK-g$G-l$L"
+  D="$WORK/b$BLOCK-g$G-l$L-m$MTROFF"
   DSP_SRC_DIR="$SRC" DSP_BUILD_DIR="$D" \
   DSP4_BISECT=0 DSP4_BLOCK_KERNELS=1 DSP4_PROFILE_SIGNAL=$SIG \
     DSP4_STRIP_FUSED=$FUS DSP4_SIMD_DYN=$SIMD DSP4_BQ_GRAPH=$BQ \
     DSP4_GAIN_SIMD=$G DSP4_NODE_LIMIT=$L DSP4_NODE_LIMIT2=0 \
+    DSP4_MTR_OFF=$MTROFF \
     DSP4_BLOCK_DECIMATE=$DEC ./build.sh all > "$D.log" 2>&1
   if [ "$(grep -ciE '\[Error|Build FAILED' "$D.log")" -ne 0 ]; then
     echo "block=$BLOCK simd=$G limit=$L BUILD FAILED"; continue; fi
@@ -123,11 +133,11 @@ print(a('proc_cyc'), a('proc_passes'),
   for r in $(seq 1 "$REPS"); do
     R="$(ssh $BENCH "bash /home/app/sigprofile_run.sh $PT $PP $DWELL 0" 2>&1 | tr '\n' ' | ')"
     C="$(echo "$R" | grep -oE '[0-9]+ cycles/pass' | grep -oE '^[0-9]+')"
-    echo "block=$BLOCK simd=$G limit=$L rep=$r pool=$POOL  $R"
+    echo "block=$BLOCK simd=$G limit=$L mtroff=$MTROFF rep=$r pool=$POOL  $R"
     if [ -n "$C" ]; then
       if [ -z "$BEST" ] || [ "$C" -lt "$BEST" ]; then BEST="$C"; fi
     fi
   done
-  echo "block=$BLOCK simd=$G limit=$L pool=$POOL  MIN=${BEST:-none} cycles/block over $REPS boot(s)"
+  echo "block=$BLOCK simd=$G limit=$L mtroff=$MTROFF pool=$POOL  MIN=${BEST:-none} cycles/block over $REPS boot(s)"
 done
 done

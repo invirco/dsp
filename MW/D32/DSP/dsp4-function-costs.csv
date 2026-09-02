@@ -598,3 +598,56 @@ C1_GRAPH_S20_SIMD,16,292303,89.2,"silence, 32 strips, two boots 292303/293350"
 C1_GAIN_SIMD_SAVING,16,3847,1.17,"min against min. Boot-1 vs boot-1 gives the same 3,847 and boot-2 vs boot-2 gives 3,663, against within-arm spreads of 863 and 1,047 -- above the instrument's resolution. The class ladder scaled by 32 strips predicts 3,392, so the two instruments are ~10% apart and both are reported. AGAINST THE DISPATCH'S EXPECTATION OF 2-3% OF CHIP 1 THIS IS 1.12-1.17%, and that is said rather than rounded up: the 2-3% was sized off the same review row as the 1-2 c/s target, i.e. off the GAIN->FILT fold that PW's D20 ruling REJECTED"
 C1_PM_FREE_S20_SCALAR,16,3328,,"chip 1 program memory FREE, bytes, block-16 32-strip paired block-kernel build"
 C1_PM_FREE_S20_SIMD,16,1842,,"the same with DSP4_GAIN_SIMD=1: the kernel spends 1,486 bytes, 45% of what was left. 512 bytes of that were recovered in-session by loading the rounding half and the saturation mask ONCE, inside the PEYEN region, instead of once outside and once in. A further ~900 is available by sharing the PEYEN prologue the way _gsimd_flush is shared, at the price of one more call/rts per node per block = 0.94 c/s = 13% of the whole cycle win. NOT TAKEN: which of cycles and code space is chip 1's scarcer resource is a product question"
+#
+# SESSION 20b, 2026-09-02 — GAIN'S SIMD KERNEL, SHARED, AND THE TWO-POINT
+# SPLIT THAT SAYS WHERE THE COST ACTUALLY IS.
+#
+# PW ruled the program memory back (session 20 spent 1,486 bytes of chip 1's
+# last 3,328 and the DSP4_PROFILE_SIGNAL=1 image stopped linking). Taking it
+# turned out to pay on BOTH axes: nothing in the sample loop is per-node --
+# the pool addresses arrive in i0/i1/i4 and the meter's accumulator base in
+# r0 -- so the whole kernel became ONE shared routine, _gsimd_gain_blk in
+# lib/meter_fx.asm, and the node collapsed to thirteen instructions. That
+# removed a CALL as well as 32 copies of a body: the node used to pay two
+# call/rts pairs a block (open the PEYEN region, close it) and now pays one,
+# falling through into _mtr_flush instead of jumping to it.
+#
+# THE TWO-POINT FIT ACROSS BLOCKS 8 AND 16 IS THE RESULT WORTH KEEPING.
+# It splits the class into a per-sample rate and a fixed per-block cost:
+#
+#     scalar   20.00 cycles/sample   233 cycles/block
+#     SIMD      9.50 cycles/sample   276 cycles/block
+#
+# THE PER-SAMPLE PATH IS A FACTOR OF 2.11 -- better than the 2x the pairing
+# is worth, because the two extraction shifts fold into one instruction and
+# the block load rides on the meter's MAC. BUT AT BLOCK 16 THE FIXED HALF IS
+# 17.25 c/s AGAINST THE LOOP'S 9.50, so it dominates two to one and the SIMD
+# arm's fixed cost is HIGHER than the scalar arm's. Anyone sizing the next
+# lever off the sample loop is sizing the smaller half.
+function,block,cycles_per_block,cycles_per_sample,notes
+GAIN_S20B_SCALAR,8,393,49.12,"DSP4_GAIN_SIMD=0, signal present, limits 1->2, paired graph, STRIP_FUSED=1, includes the strip's METER NODE"
+GAIN_S20B_SCALAR,16,553,34.56,"the same at block 16. Fit: 20.00 c/sample + 233 c/block"
+GAIN_S20B_SIMD,8,352,44.00,"DSP4_GAIN_SIMD=1, shared kernel"
+GAIN_S20B_SIMD,16,428,26.75,"the same at block 16. Fit: 9.50 c/sample + 276 c/block. Factor 1.29 on the class, 2.11 on the per-sample path"
+#
+# GAIN ALONE. The class rows above BUNDLE the strip's meter node, which takes
+# its source's ladder position. DSP4_MTR_OFF=1 removes the meter (and selects
+# the unmetered kernel body, so this is "GAIN with no meter" rather than "the
+# metered kernel minus the meter node").
+GAIN_S20B_NOMTR_SCALAR,16,330,20.63,"DSP4_MTR_OFF=1, scalar (the FUSED two-at-a-time body under STRIP_FUSED=1)"
+GAIN_S20B_NOMTR_SIMD,16,225,14.06,"DSP4_MTR_OFF=1, SIMD. So of the 26.75 c/s the class costs, 12.7 is METERING and 14.06 is GAIN"
+#
+# WHERE IT LANDS AGAINST THE DISPATCH'S 1-2 c/s TARGET: it does not, and the
+# target was priced under the GAIN->FILT fold that PW's D20 ruling REJECTED
+# on the same day. Even with the meter deleted -- which no ruling permits --
+# GAIN is 14.06 c/s, and 9.50 of that is the per-sample path alone: one gain
+# MAC, one rounding MAC, ten instructions of Q4.28 extract-and-saturate (D5)
+# and two block stores (the second is the D20 mic-pre tap). Reaching 1-2
+# means a further factor of five to nine on arithmetic that is three standing
+# rulings, not an un-done optimisation.
+function,block,cycles_per_block,pct_of_budget,notes
+C1_GRAPH_S20B_SCALAR,16,308030,94.0,"signal present, 32 strips. Reproduces session 19's capacity figure of 307,866 to 0.05%, from another session and another script"
+C1_GRAPH_S20B_SIMD,16,304110,92.8,"the same with the SIMD kernel"
+C1_GAIN_SIMD_SAVING_S20B,16,3920,1.20,"AND THE TWO INSTRUMENTS NOW AGREE: the class ladder scaled by 32 strips predicts 4,000 against 3,920 measured, 2% apart, sharing no arithmetic. Against the dispatch's expectation of 2-3% of chip 1 this is 1.20%, and that is said rather than rounded up"
+C1_PM_FREE_S20B_SCALAR,16,3328,,"chip 1 program memory FREE, bytes, block-16 32-strip paired block-kernel build"
+C1_PM_FREE_S20B_SIMD,16,7850,,"the same with DSP4_GAIN_SIMD=1 and the kernel SHARED. +4,522 bytes AGAINST THE SCALAR CONTROL: the SIMD kernel now leaves chip 1 with MORE code space than the one it replaces. Session 20's inlined first cut left 1,842 and would not link the DSP4_PROFILE_SIGNAL=1 whole-graph image; sharing the PEYEN prologue alone took it to 3,580; sharing the whole kernel took it to 7,850 and the profiling image links again -- which is why the whole-graph figure above could be taken SIGNAL-PRESENT and compared against the capacity table"

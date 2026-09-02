@@ -36,6 +36,7 @@
 .global _gsimd_sq2;   .var _gsimd_sq2[2];    /*                 MR2F   */
 .global _gsimd_max;   .var _gsimd_max[2];    /* block max, per PE      */
 .global _gsimd_min;   .var _gsimd_min[2];    /* block min, per PE      */
+.global _gsimd_acc;   .var _gsimd_acc[2];    /* the meter base, parked */
 #endif
 
 #if DSP4_BLOCK_KERNELS

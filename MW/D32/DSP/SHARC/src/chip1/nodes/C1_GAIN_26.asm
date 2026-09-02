@@ -52,8 +52,8 @@
 .extern _mrf_rns28;
 #if DSP4_BLOCK_KERNELS && DSP4_GAIN_SIMD
 .extern _gsimd_save;
-.extern _gsimd_g;
-.extern _gsimd_flush;
+.extern _gsimd_enter;
+.extern _gsimd_gain_blk;
 #endif
 .extern _mtr_acc_C1_MTR_26;
 .extern _mtr_flush;
@@ -140,57 +140,13 @@ _C1_GAIN_26_process:
      * reads it -- pickoff 0, post-trim -- and it is the clean
      * mic-pre tap the D20 ruling keeps GAIN a separate node for. */
     i4 = BLK_TAP_TRIM;
-    /* The ONE effective gain word, once per compute unit. Written
-     * with PEYEN DOWN -- a direct store inside the region writes
-     * the PEy shadow to the next word and these two must differ
-     * from each other's shadow, not agree with it. */
-    dm(_gsimd_g) = r1;
-#if DSP4_GAIN_SIMD_NEGCTL
-    /* NEGATIVE CONTROL. PEy's gain word is ZERO, so every ODD
-     * sample of every block comes out silent. It must move the
-     * bus; if it does not, PEYEN was never up and the "SIMD"
-     * kernel has been running one unit all along -- which from
-     * outside is indistinguishable from a bit-exact result, and
-     * is exactly the silent fallback c2dyngold was caught by. */
-    r2 = 0;
-    dm(_gsimd_g + 1) = r2;
-#else
-    dm(_gsimd_g + 1) = r1;
-#endif
-    /* MODE1 saved and restored WHOLE, not bit-toggled, so a caller
-     * that had already masked interrupts stays masked. INTERRUPTS
-     * ARE NOT MASKED HERE: _sec_isr and _diag_timer_isr clear
-     * PEYEN after `push sts` and `pop sts` puts it back, which is
-     * what the paired dynamics and the paired cascade already rely
-     * on. Masking a whole block loop is what hung the part on
-     * 2026-08-28. */
-    r2 = mode1;
-    dm(_gsimd_save) = r2;
-    bit set mode1 0x00200000;         /* PEYEN */
-    nop;
-    nop;
-    r1 = dm(_gsimd_g);                /* g into BOTH units */
-    /* THE CONSTANTS ARE LOADED HERE AND NOT ABOVE, and the first
-     * cut of this kernel got it wrong. _GAIN_BLK_COMMON loads
-     * r6/r7/r10 with PEYEN still DOWN, which writes PEx's copy and
-     * leaves PEy's at whatever it held -- zero out of reset. PEy
-     * would then add a rounding half of 0*0, i.e. TRUNCATE its
-     * samples instead of rounding them, and saturate them against
-     * a mask of 0.
-     *
-     * NEITHER FAULT IS VISIBLE TO busgold. Its stimulus is a
-     * +/-0.5 square at UNITY gain, whose Q4.28 word is 2^28
-     * exactly -- every product's low 28 bits are already zero, so
-     * truncation and rounding give the same answer on every
-     * sample -- and |x| = 0.5 against a gain under 8 can never
-     * saturate. The bar returned 0 of 256 with this wrong. Found
-     * by reading the register lifetimes, not by a measurement, and
-     * recorded that way; gainsimd.sh is the bar that can see it. */
-    r6 = 0x08000000;                  /* 2^27, the rounding half */
-    r7 = 1;
-    r10 = 0x7FFFFFFF;
-    r5 = DSP4_BLOCK_HALF;
-    lcntr = r5; do .gk_lp_C1_GAIN_26 until lce;
+    /* PEYEN up, the gain word into both units, the constants
+     * loaded where both units see them. ELEVEN INSTRUCTIONS,
+     * SHARED (PW ruling 2026-09-02: chip 1's code space is the
+     * scarcer resource) -- see _gsimd_enter in lib/meter_fx.asm
+     * for what it does and what the call costs. */
+    call _gsimd_enter;
+    lcntr = DSP4_BLOCK_HALF, do .gk_lp_C1_GAIN_26 until lce;
         r0 = dm(i0, 2);               /* x[n] -> PEx, x[n+1] -> PEy */
         mrf = r0 * r1 (ssi);
         mrf = mrf + r6 * r7 (ssi);
@@ -334,20 +290,16 @@ _C1_GAIN_26_process:
 #endif
 #else
 #if DSP4_GAIN_SIMD
-    /* WIDE-WORD METER, INLINE, SIMD. What the meter measures and
-     * why it runs one sample behind is in the scalar twin; what is
-     * different here is that each unit accumulates its OWN half of
-     * the block -- PEx the even samples, PEy the odd -- and the
-     * two halves are added after PEYEN comes down. That addition
-     * is exact, so the block's sum of squares, peak and trough are
-     * bit-identical to the scalar order. */
-    /* _GAIN_BLK_COMMON's setup, MINUS the three constants: they
-     * are loaded below, INSIDE the PEYEN region, because a load
-     * with PEYEN down writes PEx's copy only. Emitting them here
-     * as well cost three instructions and about fourteen bytes in
-     * each of 32 nodes, and chip 1's program memory is the
-     * binding constraint on this part -- the SIMD kernel already
-     * spends most of what was left. */
+    /* THE WHOLE BLOCK IS ONE SHARED CALL (PW ruling 2026-09-02:
+     * chip 1's code space is the scarcer resource, and the
+     * two-point fit then showed the block-rate half is also where
+     * the cycles are). Nothing in the sample loop is per-node --
+     * the pool addresses go in i0/i1/i4 and the meter's
+     * accumulator base in r0 -- so the body lives once, in
+     * lib/meter_fx.asm, and the node pays ONE call/rts instead of
+     * the two it used to pay to open and close the PEYEN region.
+     * _gsimd_gain_blk falls through into _mtr_flush, whose `rts`
+     * returns here. */
     l0 = 0;
     l1 = 0;
     l4 = 0;
@@ -358,99 +310,14 @@ _C1_GAIN_26_process:
      * reads it -- pickoff 0, post-trim -- and it is the clean
      * mic-pre tap the D20 ruling keeps GAIN a separate node for. */
     i4 = BLK_TAP_TRIM;
-    /* The ONE effective gain word, once per compute unit. Written
-     * with PEYEN DOWN -- a direct store inside the region writes
-     * the PEy shadow to the next word and these two must differ
-     * from each other's shadow, not agree with it. */
-    dm(_gsimd_g) = r1;
-#if DSP4_GAIN_SIMD_NEGCTL
-    /* NEGATIVE CONTROL. PEy's gain word is ZERO, so every ODD
-     * sample of every block comes out silent. It must move the
-     * bus; if it does not, PEYEN was never up and the "SIMD"
-     * kernel has been running one unit all along -- which from
-     * outside is indistinguishable from a bit-exact result, and
-     * is exactly the silent fallback c2dyngold was caught by. */
-    r2 = 0;
-    dm(_gsimd_g + 1) = r2;
-#else
-    dm(_gsimd_g + 1) = r1;
-#endif
-    /* MODE1 saved and restored WHOLE, not bit-toggled, so a caller
-     * that had already masked interrupts stays masked. INTERRUPTS
-     * ARE NOT MASKED HERE: _sec_isr and _diag_timer_isr clear
-     * PEYEN after `push sts` and `pop sts` puts it back, which is
-     * what the paired dynamics and the paired cascade already rely
-     * on. Masking a whole block loop is what hung the part on
-     * 2026-08-28. */
-    r2 = mode1;
-    dm(_gsimd_save) = r2;
-    bit set mode1 0x00200000;         /* PEYEN */
-    nop;
-    nop;
-    r1 = dm(_gsimd_g);                /* g into BOTH units */
-    /* THE CONSTANTS ARE LOADED HERE AND NOT ABOVE, and the first
-     * cut of this kernel got it wrong. _GAIN_BLK_COMMON loads
-     * r6/r7/r10 with PEYEN still DOWN, which writes PEx's copy and
-     * leaves PEy's at whatever it held -- zero out of reset. PEy
-     * would then add a rounding half of 0*0, i.e. TRUNCATE its
-     * samples instead of rounding them, and saturate them against
-     * a mask of 0.
-     *
-     * NEITHER FAULT IS VISIBLE TO busgold. Its stimulus is a
-     * +/-0.5 square at UNITY gain, whose Q4.28 word is 2^28
-     * exactly -- every product's low 28 bits are already zero, so
-     * truncation and rounding give the same answer on every
-     * sample -- and |x| = 0.5 against a gain under 8 can never
-     * saturate. The bar returned 0 of 256 with this wrong. Found
-     * by reading the register lifetimes, not by a measurement, and
-     * recorded that way; gainsimd.sh is the bar that can see it. */
-    r6 = 0x08000000;                  /* 2^27, the rounding half */
-    r7 = 1;
-    r10 = 0x7FFFFFFF;
-    r13 = 0x80000000;                 /* block max: most negative */
-    r15 = 0x7FFFFFFF;                 /* block min: most positive */
-    mrf = 0;                          /* exact sum of squares     */
-    r12 = 0;                          /* exactly neutral, per the twin */
-    r5 = DSP4_BLOCK_HALF;
-    lcntr = r5; do .gk_lp_C1_GAIN_26 until lce;
-        r0 = dm(i0, 2);               /* x[n] -> PEx, x[n+1] -> PEy */
-        mrb = r0 * r1 (ssi);
-        r13 = max(r13, r12);          /* meter, one sample behind */
-        mrf = mrf + r12 * r12 (ssi);
-        r15 = min(r15, r12);
-        r12 = mr1b;                   /* WIDE post-trim, Q8.24 */
-        mrb = mrb + r6 * r7 (ssi);
-        r8 = mr0b;
-        r2 = mr1b;
-        r0 = lshift r8 by -28;
-        r0 = r0 or lshift r2 by 4;    /* two shifts and an OR, in two */
-        r8 = ashift r2 by -28;
-        r9 = ashift r0 by -31;
-        r11 = ashift r2 by -31;
-        r11 = r10 xor r11;
-        comp(r8, r9);
-        if ne r0 = pass r11;          /* per-PE, NOT a branch */
-        dm(i1, 2) = r0;
-.gk_lp_C1_GAIN_26:
-        dm(i4, 2) = r0;               /* post-trim tap block */
-    /* the last sample's meter ops, outside the loop -- one per PE */
-    r13 = max(r13, r12);
-    mrf = mrf + r12 * r12 (ssi);
-    r15 = min(r15, r12);
-    /* _gsimd_flush adds the two units' halves, drops PEYEN and
-     * falls into _mtr_flush -- ONE call, the same one the scalar
-     * body already paid for. It is shared and not inlined because
-     * thirty instructions in each of 32 gain nodes OVERFLOWED
-     * chip 1's sec_swco at link, measured, not predicted. */
     r0 = _mtr_acc_C1_MTR_26;
-    call _gsimd_flush;
+    call _gsimd_gain_blk;
     /* The linkage scalars carry the LAST sample of the block, and
      * PEy computed it. Read it back out of the block rather than
      * out of a register: a direct store with PEYEN still up would
      * have put the PEx copy here and the PEy copy in _buf_C1_GAIN_26.
-     * PEYEN is down by now -- _gsimd_flush restored MODE1 -- and a
-     * call leaves the DAGs alone, so i1 still points one past the
-     * block this kernel just wrote. */
+     * PEYEN is down by now and a call leaves the DAGs alone, so i1
+     * still points one past the block the kernel just wrote. */
     modify(i1, -1);
     r0 = dm(i1, 0);
     dm(_tap_post_trim_C1_GAIN_26) = r0;   /* linkage scalars */

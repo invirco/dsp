@@ -103,27 +103,104 @@ _mtr_block_tick:
     rts;
 _mtr_block_tick.end:
 
-/*----------------------------------------------------------------------
- * _mtr_flush — hand a block's meter accumulators to the meter node.
- *
- * SHARED, and for one reason: chip 1 has under two thousand bytes of
- * program memory left. Eight instructions inlined in each of the 38
- * metered source nodes is 1,368 bytes; two instructions and a call is
- * 304 plus this routine.
- *
- * In:  r0 = base of the meter's _mtr_acc_<meter>[5]
- *      r13 = block max, r15 = block min (Q8.24)
- *      MRF = exact sum of squares (Q16.48)
- * Clobbers r0, i4, l4.
- *----------------------------------------------------------------------*/
 #if DSP4_BLOCK_KERNELS && DSP4_GAIN_SIMD
 /*----------------------------------------------------------------------
- * _gsimd_flush — close GAIN's SIMD block and hand the meter over.
+ * _gsimd_enter — open GAIN's SIMD block.
  *
- * GAIN's block kernel runs two ADJACENT SAMPLES per instruction on the
- * PEx/PEy pair, so each compute unit carries HALF of the block's meter:
- * PEx the even samples, PEy the odd. This adds the two halves back
- * together, drops PEYEN, and falls into _mtr_flush.
+ * SHARED ON PW'S RULING (2026-09-02): the eleven instructions below were
+ * inlined in each of the 32 gain nodes and that is about 1.4 KB of a chip 1
+ * whose code section had 1,842 bytes left. One call/rts per node per block
+ * buys all of it back. THE CALL IS NOT FREE -- 15.04 cycles at the price
+ * D66 measured, 0.94 c/s at block 16 -- and it is paid for out of three
+ * savings taken in the same change: the block load folded into the meter's
+ * MAC (-8 cycles/block), the loop counter as an immediate (-1), and
+ * _gsimd_flush falling through into _mtr_flush instead of jumping (-6.02).
+ * Net at block 16 is within a cycle of zero, and the program memory is
+ * real. Both halves of that trade are recorded because neither is obvious.
+ *
+ * In:  r1 = the ONE effective gain word (polarity as sign, mute as 0.0),
+ *      i0/i1/i4 and l0/l1/l4 already set by the caller -- untouched here.
+ * Out: PEYEN set, MODE1 parked in _gsimd_save, r1 = the gain word IN BOTH
+ *      COMPUTE UNITS, r6/r7 = the rounding half, r10 = the saturation mask.
+ * Clobbers r1, r2, r6, r7, r10.
+ *----------------------------------------------------------------------*/
+.extern _gsimd_g;
+.global _gsimd_enter;
+_gsimd_enter:
+    /* The gain word, once per compute unit, written with PEYEN still DOWN:
+     * a direct store inside the region writes the PEy shadow to the next
+     * word, and these two must differ from each other's shadow rather than
+     * agree with it. */
+    dm(_gsimd_g) = r1;
+#if DSP4_GAIN_SIMD_NEGCTL
+    /* NEGATIVE CONTROL. PEy's gain word is ZERO, so every ODD sample of
+     * every block comes out silent. It must move the bus; if it does not,
+     * PEYEN was never up and the "SIMD" kernel has been running one unit
+     * all along -- which from outside is indistinguishable from a bit-exact
+     * result, and is the silent fallback c2dyngold was caught by. */
+    r2 = 0;
+    dm(_gsimd_g + 1) = r2;
+#else
+    dm(_gsimd_g + 1) = r1;
+#endif
+    /* MODE1 saved and restored WHOLE, not bit-toggled, so a caller that had
+     * already masked interrupts stays masked. INTERRUPTS ARE NOT MASKED
+     * HERE: _sec_isr and _diag_timer_isr clear PEYEN after `push sts` and
+     * `pop sts` puts it back, which is what the paired dynamics and the
+     * paired cascade already rely on. Masking a whole block loop is what
+     * hung the part on 2026-08-28. */
+    r2 = mode1;
+    dm(_gsimd_save) = r2;
+    bit set mode1 0x00200000;          /* PEYEN */
+    nop;
+    nop;
+    r1 = dm(_gsimd_g);                 /* g into BOTH units */
+    /* THE CONSTANTS ARE LOADED HERE, INSIDE THE REGION, and the first cut
+     * of this kernel got it wrong. Loaded with PEYEN down they reach PEx
+     * only and PEy keeps whatever it held -- zero out of reset -- so PEy
+     * would TRUNCATE its samples instead of rounding them and saturate
+     * them against a mask of 0. busgold cannot see either fault: its
+     * stimulus is a +/-0.5 square at UNITY gain, whose Q4.28 word is 2^28
+     * exactly, so every product's low 28 bits are already zero and
+     * truncation equals rounding on every sample -- and |x| = 0.5 against
+     * a gain under 8 can never saturate. It returned 0 of 256 with this
+     * wrong. gainsimd.sh is the bar that can see it. */
+    r6 = 0x08000000;                   /* 2^27, the rounding half */
+    r7 = 1;
+    r10 = 0x7FFFFFFF;
+    rts;                               /* returns with PEYEN up */
+_gsimd_enter.end:
+
+/*----------------------------------------------------------------------
+ * _gsimd_gain_blk — THE WHOLE METERED GAIN BLOCK, for every gain node.
+ *
+ * WHY THE KERNEL ITSELF IS SHARED, and it is the block-rate half that made
+ * it worth doing. A two-point fit across blocks 8 and 16 (2026-09-02,
+ * gainprof.sh) splits this node into a PER-SAMPLE rate and a FIXED
+ * per-block cost, and the split is not what the sample loop's prominence
+ * suggests:
+ *
+ *     scalar   18.88 cycles/sample   252 cycles/block fixed
+ *     SIMD      8.62 cycles/sample   296 cycles/block fixed
+ *
+ * The SIMD loop is a FACTOR OF 2.19 on the per-sample path -- better than
+ * the 2x the pairing is worth, because the two extraction shifts fold into
+ * one instruction and the block load rides on the meter's MAC. But at
+ * block 16 the fixed half is 18.5 c/s against the loop's 8.6, so it
+ * DOMINATES TWO TO ONE -- and the node was paying TWO call/rts pairs into
+ * this file per block, one to open the PEYEN region and one to close it,
+ * at 15.04 cycles each.
+ *
+ * Nothing in the sample loop is per-node: the pool addresses arrive in
+ * i0/i1/i4 and the meter's accumulator base in r0, and the loop touches no
+ * node symbol at all. So the whole body moves here and the node makes ONE
+ * call instead of two. That is -15.04 cycles/block on its own, and it also
+ * takes about 2.5 KB of chip 1's code section back, because the loop was
+ * being emitted 32 times.
+ *
+ * Each compute unit carries HALF of the block's meter -- PEx the even
+ * samples, PEy the odd -- so the two halves are added back together at the
+ * end, PEYEN drops, and this falls into _mtr_flush.
  *
  * THE ADDITION IS EXACT, WHICH IS WHY THE SPLIT COSTS NOTHING NUMERICALLY.
  * MRF is an 80-bit integer accumulator with no rounding and no
@@ -143,20 +220,87 @@ _mtr_block_tick.end:
  * the PEy copy at address+1, which is exactly how the second half gets
  * out. Every _gsimd_* variable is two words for that reason.
  *
- * In:  PEYEN set; r0 = base of the meter's _mtr_acc_<meter>[5];
- *      MRF = this unit's half of the sum of squares; r13/r15 = this
- *      unit's block max/min; _gsimd_save[0] = the caller's MODE1.
- * Out: PEYEN restored to what the caller had; the accumulators written.
- * Clobbers r1-r6, r13, r15, i4, l4, MRF.
+ * In:  PEYEN DOWN. i0 = the block to read, i1 = the chain slot to write,
+ *      i4 = the post-trim tap block; r1 = the ONE effective gain word
+ *      (polarity as sign, mute as 0.0); r0 = base of the meter's
+ *      _mtr_acc_<meter>[5].
+ * Out: the block gained, rounded, saturated and stored to BOTH slots; the
+ *      meter accumulators written; PEYEN back as the caller had it; i1 one
+ *      past the end of the block it wrote, which is where the caller reads
+ *      the last sample back from.
+ * Clobbers r0-r15, i4, l0, l1, l4, MRF, MRB.
  *----------------------------------------------------------------------*/
 .extern _gsimd_save;
+.extern _gsimd_g;
+.extern _gsimd_acc;
 .extern _gsimd_sq0;
 .extern _gsimd_sq1;
 .extern _gsimd_sq2;
 .extern _gsimd_max;
 .extern _gsimd_min;
-.global _gsimd_flush;
-_gsimd_flush:
+.global _gsimd_gain_blk;
+_gsimd_gain_blk:
+    /* The meter's accumulator base has to survive the sample loop, and the
+     * loop uses r0 as its sample register. One word of DM at block rate. */
+    dm(_gsimd_acc) = r0;
+    l0 = 0;
+    l1 = 0;
+    l4 = 0;
+    /* ---- open the region: the gain word into both units, the constants
+     * where both units see them. See _gsimd_enter for why the constants
+     * CANNOT be loaded before PEYEN goes up. */
+    dm(_gsimd_g) = r1;
+#if DSP4_GAIN_SIMD_NEGCTL
+    r2 = 0;
+    dm(_gsimd_g + 1) = r2;
+#else
+    dm(_gsimd_g + 1) = r1;
+#endif
+    r2 = mode1;
+    dm(_gsimd_save) = r2;
+    bit set mode1 0x00200000;          /* PEYEN */
+    nop;
+    nop;
+    r1 = dm(_gsimd_g);                 /* g into BOTH units */
+    r6 = 0x08000000;                   /* 2^27, the rounding half */
+    r7 = 1;
+    r10 = 0x7FFFFFFF;
+    /* ---- the block ---- */
+    r13 = 0x80000000;                  /* block max: most negative */
+    r15 = 0x7FFFFFFF;                  /* block min: most positive */
+    mrf = 0;                           /* exact sum of squares     */
+    r12 = 0;                           /* exactly neutral: zero adds nothing
+                                        * to a sum of squares and cannot move
+                                        * a non-negative peak */
+    /* The meter runs ONE SAMPLE BEHIND and that is what makes it free:
+     * reading mr1b in the instruction after the MAC that produced it
+     * stalls on the multiplier, and the first cut of the scalar loop
+     * measured +25.5 c/s/strip for exactly that. The block load rides on
+     * the meter's MAC, which has no dependence on the word being loaded. */
+    lcntr = DSP4_BLOCK_HALF, do .gsg_lp until lce;
+        mrf = mrf + r12 * r12 (ssi), r0 = dm(i0, 2);
+        mrb = r0 * r1 (ssi);           /* x[n] -> PEx, x[n+1] -> PEy */
+        r13 = max(r13, r12);           /* meter, one sample behind */
+        r15 = min(r15, r12);
+        r12 = mr1b;                    /* WIDE post-trim, Q8.24 */
+        mrb = mrb + r6 * r7 (ssi);
+        r8 = mr0b;
+        r2 = mr1b;
+        r0 = lshift r8 by -28;
+        r0 = r0 or lshift r2 by 4;     /* two shifts and an OR, in two */
+        r8 = ashift r2 by -28;
+        r9 = ashift r0 by -31;
+        r11 = ashift r2 by -31;
+        r11 = r10 xor r11;
+        comp(r8, r9);
+        if ne r0 = pass r11;           /* per-PE, NOT a branch */
+        dm(i1, 2) = r0;
+.gsg_lp:
+        dm(i4, 2) = r0;                /* post-trim tap block */
+    /* the last sample's meter ops, outside the loop -- one per unit */
+    r13 = max(r13, r12);
+    mrf = mrf + r12 * r12 (ssi);
+    r15 = min(r15, r12);
     r1 = mr0f;
     dm(_gsimd_sq0) = r1;               /* PEx word, then PEy word */
     r1 = mr1f;
@@ -190,12 +334,32 @@ _gsimd_flush:
     r15 = dm(_gsimd_min);
     r1 = dm(_gsimd_min + 1);
     r15 = min(r15, r1);
-    /* TAIL CALL, not a call: _mtr_flush's rts returns to OUR caller, so
-     * the node pays for one call and not two. r0 was never touched. */
-    jump _mtr_flush;
-_gsimd_flush.end:
+    r0 = dm(_gsimd_acc);               /* the meter's base, back again */
+    /* AND NOW IT FALLS THROUGH INTO _mtr_flush, WHICH MUST STAY THE NEXT
+     * THING IN THIS FILE. That adjacency is load-bearing: it used to be
+     * `jump _mtr_flush`, which is a taken unconditional branch and cost
+     * 6.02 cycles a block per node at the price D66 measured. Falling
+     * through costs nothing and _mtr_flush's `rts` returns to the GAIN
+     * NODE, which is the only caller. Do not insert anything between
+     * these two routines. */
+_gsimd_gain_blk.end:
 #endif
 
+/*----------------------------------------------------------------------
+ * _mtr_flush — hand a block's meter accumulators to the meter node.
+ *
+ * SHARED, and for one reason: chip 1 has under two thousand bytes of
+ * program memory left. Eight instructions inlined in each of the 38
+ * metered source nodes is 1,368 bytes; two instructions and a call is
+ * 304 plus this routine.
+ *
+ * In:  r0 = base of the meter's _mtr_acc_<meter>[5]
+ *      r13 = block max, r15 = block min (Q8.24)
+ *      MRF = exact sum of squares (Q16.48)
+ * Clobbers r0, i4, l4.
+ *----------------------------------------------------------------------*/
+/* REACHED BY FALL-THROUGH from _gsimd_flush as well as by call --
+ * see the note at the end of that routine. Nothing goes between them. */
 .global _mtr_flush;
 _mtr_flush:
     l4 = 0;
