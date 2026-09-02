@@ -497,3 +497,29 @@ C2_WHOLE_GRAPH_BLK8_S19_BQPAIR,240814,179556,,"-61,258 cycles/block, -25.4%. **1
 C2_S19_REPRODUCIBILITY,240814,179556,,"control 240,200 / 240,681 / 240,814 on three boots (0.26% spread); paired 179,460 / 179,556 on two (0.05%). The two ladders' shared anchor at limit2=47 -- the same 47 nodes in both arms -- read 17,247 and 17,230, 0.10% apart"
 C2_S19_PARTS_VS_WHOLE,55604,61258,,"GEQ and AFB pairs alone -- the classes above resolution -- predict 8 x 5,584 + 6 x 1,822 = 55,604 against 61,258 measured, 90.8% of it, sharing no arithmetic. The remaining 5,654 is the ten EQ pairs (~565 each), the right order for a 4-stage pair but NOT independently attributable. WEAKER than session 18's 1.0/5.2/6.7%, and the reason is the resolution caveat above"
 C2_S19_PREDICTION_CHECK,1086,1077,,"session 18 priced this lever at 1,086 MHz and it measured 1,077 -- 0.8% apart. The remaining gap (96 MHz) is almost exactly session 18's price for the last named lever, the hoisted LIM/COMP/GATE/DLY/XOVER kernels (~90 MHz), which would land chip 2 at ~100.4% of the part: a coin toss, not a fit"
+#
+# SESSION 19b, 2026-09-02 — THE SECTION MAP, THE WRAPPER TRIM, AND THE
+# DYNAMICS LATCH PRICED AND DECLINED.
+#
+# Session 18 priced "hoisted LIM/COMP/GATE/DLY/XOVER kernels" at ~90 MHz.
+# THAT PRICE IS RETIRED: it was set when chip 2's signal nodes ran under
+# the generic per-block wrapper, and the dynamics and biquad pairing has
+# since moved 76 of them onto pair drivers. Only 43 nodes still execute
+# the wrapper, so the whole lever is ~10 MHz, not 90.
+#
+# Section costs are taken at RUN boundaries, not at single nodes, so each
+# difference spans a whole chain and sits far above the point-to-point
+# spread that made the per-node ladder unusable for small nodes.
+function,c2_blk8_cycles,share_pct,notes
+C2_SECT_HEAD_S19,17234,9.6,input and fabric head (positions 0-46)
+C2_SECT_AUX_S19,80273,44.7,"12 aux chains (47-106). The largest section on the chip; the six GEQ pairs in it are 34,488 of it"
+C2_SECT_MAIN_S19,32404,18.0,"main chain + 4 main outputs (129-144). Carries C2_MAIN_GEQ (28 bands, UNPAIRED, ~5,666) and the two unpaired single-instance dynamics"
+C2_SECT_GRP_S19,26608,14.8,4 group chains (107-118)
+C2_SECT_SUB_S19,8412,4.7,sub chain (119-124)
+C2_SECT_FX_S19,6539,3.6,FX engines and faders (145-156)
+C2_SECT_USBMIX_S19,6263,3.5,USB/BT inputs and the two main mix buses (125-128)
+C2_SECT_MON_S19,1818,1.0,monitor (157-159)
+C2_SECT_TAIL_S19,214,0.1,DCA / ST_OUT / codec aux out (160-196)
+C2_SECT_TOTAL_S19,179765,100.0,"third boot of the paired arm against 179,460 and 179,556 -- 0.17% spread. THE EIGHT GEQ PAIRS ARE ~46,000 CYCLES, 26% OF THE WHOLE CHIP"
+C2_WRAPTRIM_S19,910,,"the generic wrapper's DM sample counter removed: five instructions a sample driving a guard that only asks whether the index is ZERO. Sample 0 peeled, _sample_idx set to 1 for the rest. 179,594 (mean of 3 boots) -> 178,684. PREDICTED 1,634 from 43 nodes x 38 cycles, so the accounting is 56% optimistic; the saving is outside the 305-cycle spread of the prior boots. ~10 MHz of the 96 needed. All 119 wrapped bodies audited first: all compare _sample_idx against 0 and none reads it otherwise -- the C2_RECV_* stimulus nodes DO read _sample_idx & 1 and would have broken, but they are not wrapped"
+C2_DYNLATCH_S19,360,,"NOT BUILT. The only thing a latch could remove from the dynamics pair drivers is the parameter gather: LIM 8x24 + COMP 4x32 + GATE 2x20 = 360 cycles/block, 2.2 MHz. The rest is the signal interleave, which no latch can touch. AND IT WOULD BE WRONG: the dynamics re-convert their control parameters EVERY BLOCK inside the _sample_idx==0 guard (C2_AUX_LIM_01.asm:132), so a latch would freeze threshold, ratio and attack. The biquads were latchable because _swap_pending_ is a sound invalidation signal; the dynamics have no unchanged state to latch"

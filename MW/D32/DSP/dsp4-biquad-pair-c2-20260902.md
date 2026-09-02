@@ -399,3 +399,144 @@ pay for any of it — its `.ldr` is byte-identical across the two arms.
   this kernel predicts 10.11 c/band-sample paired at BLOCK 32 is still a
   prediction.
 * **D80 stays open.** Nothing here touches it.
+
+---
+
+## 10. Where the remaining 179,556 cycles are — the section map
+
+Session 18 priced the last lever, "hoisted LIM/COMP/GATE/DLY/XOVER
+kernels", at about 90 MHz. **That price is stale, and this is the
+measurement that retires it.** It was set when chip 2's signal nodes ran
+under the generic per-block wrapper; the dynamics and biquad pairing has
+since moved 76 of them onto pair drivers, and **only 43 nodes still
+execute the wrapper at all.**
+
+Measured with the same instrument at section boundaries rather than at
+single nodes, so every difference spans a whole run of the chain and sits
+far above the point-to-point spread that made the per-node ladder
+unreliable:
+
+| section | cycles | share |
+|---|---|---|
+| input / fabric head (0–46) | 17,234 | 9.6% |
+| **12 aux chains (47–106)** | **80,273** | **44.7%** |
+| 4 group chains (107–118) | 26,608 | 14.8% |
+| main chain + 4 main outs (129–144) | 32,404 | 18.0% |
+| sub chain (119–124) | 8,412 | 4.7% |
+| FX (145–156) | 6,539 | 3.6% |
+| USB / BT / mix (125–128) | 6,263 | 3.5% |
+| monitor (157–159) | 1,818 | 1.0% |
+| DCA / ST_OUT / codec tail (160–196) | 214 | 0.1% |
+| **total** | **179,765** | 109.7% of budget |
+
+(179,765 is a third boot of the paired arm against 179,460 and 179,556 —
+0.17% spread.)
+
+**THE EIGHT GEQ PAIRS ARE ~46,000 CYCLES, 26% OF THE WHOLE CHIP.** The aux
+and group sections are 59.5% between them and the cascade is most of both.
+
+### A ladder-position defect found and fixed on the way
+
+A meter riding on a PAIRED node kept its SCALAR-chain position in the
+`DSP4_NODE_LIMIT2` guard: `C2_MTR_GRP_01` runs at position 112 and was
+guarded on 184. Harmless at `limit2 = 0` — the guard is always true and
+the whole-graph image is unchanged — and wrong for every cut in between,
+which is exactly where a cost ladder lives: a cut anywhere between the two
+ran the group pair without its meter and charged the meter to whichever
+section happened to contain 184. Fixed by giving a meter its source's
+position when the source is inside a pair entry.
+
+## 11. The wrapper trim — the hoisting lever at its real size
+
+The generic wrapper carried a sample index in DM: load it, store it to
+`_sample_idx`, reload it, increment it, store it back — **five
+instructions a sample to drive a guard that only ever asks whether the
+index is ZERO.**
+
+Sample 0 is now peeled and run with `_sample_idx = 0`, the word is set to
+1, and the remaining BLOCK−1 samples run with the guard shut. The
+block-rate conversions still fire exactly once per block, which is the
+only property the guard exists for.
+
+**EVERY ONE OF THE 119 WRAPPED BODIES WAS AUDITED BEFORE THIS WAS
+WRITTEN**, and the audit is the reason it is safe: all of them compare
+`_sample_idx` against 0 and none reads it for anything else. That check
+was not a formality — **the `C2_RECV_*` stimulus nodes read
+`_sample_idx & 1`** to alternate the profile square, and would have broken
+silently under this change. They carry their own block form and are not
+wrapped. Chip 1 has NO wrapped nodes at all, so it cannot be affected.
+
+The four nodes carrying a wide meter block used the sample index to place
+each sample; they now use a walking sink pointer like every other stream.
+
+**Measured: 179,594 (mean of three boots) → 178,684, a saving of about
+910 cycles a block.** Predicted 1,634 from 43 nodes × 38 cycles, so the
+instruction accounting is 56% optimistic and that is stated rather than
+quoted as the prediction. It is outside the 305-cycle spread of the three
+prior boots — 776 below the lowest of them — so it is real, and it is
+**about 10 MHz of the 96 that were needed.**
+
+`c2gold.sh` is the bar for this change, because it compares the
+block-kernel build against the PER-SAMPLE REFERENCE — which is what the
+wrapper implements. **49 of 49 node output words bit-identical.** Its
+meter arm reports 19 of 24 differing and that is **D80, reproduced, not a
+regression**: session 18 recorded the identical count and signature before
+this change existed — peaks LOW in the block arm (−0.50 to −0.60% here),
+RMS HIGH (+0.32 to +0.40%), opposite directions so not a gain error,
+confined to the GATE/COMP-engaged chains, worst 0.598% against session
+18's 0.896%. Had the trim broken the block-rate guard the node outputs
+would have diverged grossly rather than agreeing bit for bit.
+
+## 12. The dynamics pair latch — PRICED AND NOT BUILT
+
+The obvious next move was to give the dynamics pair drivers the latch that
+paid so well on the biquads. **It is worth 2.2 MHz, and it would also be
+wrong.**
+
+All a latch could remove is the PARAMETER gather, and it is tiny and does
+not scale with anything:
+
+| kernel | parameter words | gather/pair/block | pairs | total |
+|---|---|---|---|---|
+| `_lim_pair_blk` | 12 | 24 cycles | 8 | 192 |
+| `_comp_pair_blk` | 16 | 32 cycles | 4 | 128 |
+| `_gate_pair_blk` | 10 | 20 cycles | 2 | 40 |
+| | | | | **360** |
+
+Everything else those drivers do per block is the SIGNAL interleave (28
+words in, 28 out per pair) and the two block copies, and a latch cannot
+touch either — the signal is new every block by definition. The biquad
+latch paid 61,258 cycles because a 28-band cascade gathers **308 words**
+of coefficients and state per pair per block and the figure scales with
+the stage count; the dynamics gather 12 to 16 words, fixed.
+
+**AND IT WOULD BREAK THE CONTROL PLANE.** `C2_AUX_LIM_01.asm:132` writes
+`_lim_attq_` inside the `_sample_idx == 0` guard at line 123: the dynamics
+RE-CONVERT their control parameters every single block, by design, which is
+what makes sample 0 bit-identical to the scalar path by construction.
+Latching them would freeze threshold, ratio and attack at their
+first-block values. The biquads were latchable precisely because
+coefficients change only on an explicit swap and `_swap_pending_` is a
+sound invalidation signal. **The dynamics have no equivalent, because
+there is no unchanged state to latch.**
+
+## 13. So where would the last 96 MHz come from? Not from one lever.
+
+| candidate | worth | status |
+|---|---|---|
+| wrapper trim | ~910 cycles (~5 MHz) | **done, measured** |
+| cross-chain pairing of the 4 single-instance dynamics | ~4,500 cycles (~27 MHz) | needs the deferred DAG argument |
+| dynamics pair latch | 360 cycles (~2 MHz) | priced, declined — see §12 |
+| the rest | ~10,000 cycles | **inside the cascade** |
+
+Everything reachable without touching the D5 numeric contract comes to
+roughly 6,000 of the 15,716 cycles needed. The remainder is in the GEQ
+cascade, which is 26% of the chip and whose floor session 18 established
+at **5.94 cycles per band-sample with a zero-cost round and saturate**,
+against 12.83 today. Eleven of its nineteen inner-loop instructions ARE
+the numeric contract — the 64-bit extract, the branch-free saturate, the
+error-feedback MAC — so closing that gap is the LF-accuracy and
+noise-floor decision D5 already made, not an optimisation.
+
+**Chip 2 at 109.6% is not one lever away from fitting.** It is one product
+decision away, or one more channel of headroom away.

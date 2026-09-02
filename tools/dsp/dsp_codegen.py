@@ -9773,8 +9773,9 @@ def blk_wrap_decl(node, outs, wide=False):
         lines.append(f'        .var {sym}[DSP4_BLOCK_SIZE];')
     if wide:
         lines.append(f'        .var _mtr_wblk_{nid}[DSP4_BLOCK_SIZE];')
-    lines.append(f'        .var _bw_i_{nid};        /* sample index, across the call */')
     lines.append(f'        .var _bw_k_{nid};        /* the caller\'s _sample_idx */')
+    if wide:
+        lines.append(f'        .var _bw_w_{nid};        /* walking wide-meter sink */')
     for j in range(len(ins)):
         lines.append(f'        .var _bw_s{j}_{nid};       /* walking source pointer */')
     for j in range(len(outs)):
@@ -9808,6 +9809,26 @@ def blk_wrap_body(node, outs, wide=False, note=''):
     a('             * arithmetic, same order, same result as the per-sample')
     a('             * build; what it removes is the chain\'s call/rts and the')
     a('             * _sample_idx guard being re-evaluated from the chain.')
+    a('             *')
+    a('             * SAMPLE 0 IS PEELED AND _sample_idx IS NOT COUNTED')
+    a('             * (2026-09-02). The loop used to carry a DM sample index,')
+    a('             * loading it, storing it to _sample_idx, reloading it,')
+    a('             * incrementing it and storing it back -- five instructions')
+    a('             * a sample to drive a guard that only ever asks whether the')
+    a('             * index is ZERO. Every one of the 119 wrapped bodies was')
+    a('             * checked: all of them compare it against 0 and none reads')
+    a('             * it for anything else. So sample 0 runs once outside the')
+    a('             * loop with _sample_idx = 0, the word is then set to 1, and')
+    a('             * the remaining BLOCK-1 samples run with the guard shut.')
+    a('             * The block-rate conversions still fire exactly once per')
+    a('             * block, which is the property the guard exists for.')
+    a('             *')
+    a('             * NOT a free win to generalise: the C2_RECV_* stimulus')
+    a('             * nodes read _sample_idx & 1 to alternate the profile')
+    a('             * square, and they would break under this. They are not')
+    a('             * wrapped nodes -- they carry their own block form -- and')
+    a('             * that is why the audit is per-node and recorded here.')
+    a('             * 38 cycles a block per wrapped node.')
     if note:
         for ln in note.strip().split('\n'):
             a(f'             * {ln}')
@@ -9820,42 +9841,61 @@ def blk_wrap_body(node, outs, wide=False, note=''):
         a(f'            i4 = {sym};')
         a(f'            r3 = i4;')
         a(f'            dm(_bw_d{j}_{nid}) = r3;')
+    if wide:
+        a(f'            i4 = _mtr_wblk_{nid};')
+        a(f'            r3 = i4;')
+        a(f'            dm(_bw_w_{nid}) = r3;')
     a(f'            r5 = dm(_sample_idx);')
     a(f'            dm(_bw_k_{nid}) = r5;')
     a(f'            r5 = 0;')
-    a(f'            dm(_bw_i_{nid}) = r5;')
-    a(f'            lcntr = DSP4_BLOCK_SIZE, do .bwlp_{nid} until lce;')
-    a(f'                r5 = dm(_bw_i_{nid});')
-    a(f'                dm(_sample_idx) = r5;')
-    for j, inp in enumerate(ins):
-        a(f'                r3 = dm(_bw_s{j}_{nid});')
-        a(f'                i4 = r3;')
-        a(f'                r0 = dm(i4, 0);')
-        a(f'                dm(_buf_{inp}) = r0;')
-        a(f'                r3 = r3 + 1;')
-        a(f'                dm(_bw_s{j}_{nid}) = r3;')
-    a(f'                call _{nid}_process_sample;')
-    for j, sym in enumerate(outs):
-        scal = sym.replace('_blk_', '_buf_', 1)
-        a(f'                r0 = dm({scal});')
-        a(f'                r3 = dm(_bw_d{j}_{nid});')
-        a(f'                i4 = r3;')
-        a(f'                dm(i4, 0) = r0;')
-        a(f'                r3 = r3 + 1;')
-        a(f'                dm(_bw_d{j}_{nid}) = r3;')
-    if wide:
-        a(f'                /* the meter\'s wide word, as a BLOCK. The body wrote')
-        a(f'                 * the scalar; this walks it out so the METER node')
-        a(f'                 * sees every sample instead of one per block. */')
-        a(f'                r0 = dm(_mtr_wide_{nid});')
-        a(f'                r3 = dm(_bw_i_{nid});')
-        a(f'                i4 = _mtr_wblk_{nid};')
-        a(f'                m4 = r3;')
-        a(f'                modify(i4, m4);')
-        a(f'                dm(i4, 0) = r0;')
-    a(f'                r5 = dm(_bw_i_{nid});')
-    a(f'                r5 = r5 + 1;')
-    a(f'            .bwlp_{nid}: dm(_bw_i_{nid}) = r5;')
+    a(f'            dm(_sample_idx) = r5;')
+
+    def _stage(last_label=None):
+        """One sample: stage the inputs in, call the body, stage the
+        outputs out. Emitted twice -- once peeled for sample 0, once as
+        the loop body -- so the two cannot drift."""
+        for j, inp in enumerate(ins):
+            a(f'                r3 = dm(_bw_s{j}_{nid});')
+            a(f'                i4 = r3;')
+            a(f'                r0 = dm(i4, 0);')
+            a(f'                dm(_buf_{inp}) = r0;')
+            a(f'                r3 = r3 + 1;')
+            a(f'                dm(_bw_s{j}_{nid}) = r3;')
+        a(f'                call _{nid}_process_sample;')
+        tail = []
+        for j, sym in enumerate(outs):
+            scal = sym.replace('_blk_', '_buf_', 1)
+            tail += [f'                r0 = dm({scal});',
+                     f'                r3 = dm(_bw_d{j}_{nid});',
+                     f'                i4 = r3;',
+                     f'                dm(i4, 0) = r0;',
+                     f'                r3 = r3 + 1;',
+                     f'                dm(_bw_d{j}_{nid}) = r3;']
+        if wide:
+            tail += [f'                /* the meter\'s wide word, as a BLOCK. The',
+                     f'                 * body wrote the scalar; this walks it out',
+                     f'                 * so the METER node sees every sample',
+                     f'                 * instead of one per block. */',
+                     f'                r0 = dm(_mtr_wide_{nid});',
+                     f'                r3 = dm(_bw_w_{nid});',
+                     f'                i4 = r3;',
+                     f'                dm(i4, 0) = r0;',
+                     f'                r3 = r3 + 1;',
+                     f'                dm(_bw_w_{nid}) = r3;']
+        if last_label is not None:
+            for ln in tail[:-1]:
+                a(ln)
+            a(f'            {last_label}: {tail[-1].strip()}')
+        else:
+            for ln in tail:
+                a(ln)
+
+    a(f'            /* sample 0, peeled: the block-rate guard fires here */')
+    _stage()
+    a(f'            r5 = 1;')
+    a(f'            dm(_sample_idx) = r5;   /* guard shut for 1..BLOCK-1 */')
+    a(f'            lcntr = DSP4_BLOCK_SIZE-1, do .bwlp_{nid} until lce;')
+    _stage(f'.bwlp_{nid}')
     a(f'            r5 = dm(_bw_k_{nid});')
     a(f'            dm(_sample_idx) = r5;')
     a(f'            rts;')
@@ -12262,10 +12302,30 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                         _i += 1
                 for _i, _e in enumerate(_sq):
                     _ps[_e[1] if _e[0] == 'node' else tuple(_e)] = _i
+                # A METER TAKES ITS SOURCE'S POSITION, INCLUDING WHEN THE
+                # SOURCE IS INSIDE A PAIR ENTRY. Under block kernels a meter
+                # is called immediately after its source, so that is the
+                # position DSP4_NODE_LIMIT2 has to count -- and for a meter
+                # on a PAIRED node the source is not a key of _ps at all,
+                # so it used to keep its SCALAR-chain position instead.
+                # C2_MTR_GRP_01 runs at 112 and was guarded on 184, which
+                # meant a ladder cut anywhere between the two ran the group
+                # pair without its meter and charged the meter to whatever
+                # section happened to contain 184. Harmless at limit2 = 0 --
+                # the whole-graph image is unchanged, the guard is always
+                # true -- and wrong for every cut in between, which is
+                # exactly where a cost ladder lives.
+                _pair_pos = {}
+                for _i, _e in enumerate(_sq):
+                    if _e[0] in ('c2pair', 'c2bqp'):
+                        for _n in (_e[3], _e[4]):
+                            _pair_pos[_c2_nid[(_e[1], _e[2], _n)]] = _i
                 for _src, _ms in _mtr_after.items():
                     for _m in _ms:
                         if _src in _ps:
                             _ps[_m] = _ps[_src]
+                        elif _src in _pair_pos:
+                            _ps[_m] = _pair_pos[_src]
                 return _sq, _ps
 
             if _c2_groups:

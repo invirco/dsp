@@ -60,8 +60,6 @@
         #if DSP4_BLOCK_KERNELS
         .global _blk_C2_MIX_MAIN_L;
         .var _blk_C2_MIX_MAIN_L[DSP4_BLOCK_SIZE];
-        .global _bw_i_C2_MIX_MAIN_L;
-        .var _bw_i_C2_MIX_MAIN_L;        /* sample index, across the call */
         .global _bw_k_C2_MIX_MAIN_L;
         .var _bw_k_C2_MIX_MAIN_L;        /* the caller's _sample_idx */
         .global _bw_s0_C2_MIX_MAIN_L;
@@ -115,6 +113,26 @@ _C2_MIX_MAIN_L_process:
              * arithmetic, same order, same result as the per-sample
              * build; what it removes is the chain's call/rts and the
              * _sample_idx guard being re-evaluated from the chain.
+             *
+             * SAMPLE 0 IS PEELED AND _sample_idx IS NOT COUNTED
+             * (2026-09-02). The loop used to carry a DM sample index,
+             * loading it, storing it to _sample_idx, reloading it,
+             * incrementing it and storing it back -- five instructions
+             * a sample to drive a guard that only ever asks whether the
+             * index is ZERO. Every one of the 119 wrapped bodies was
+             * checked: all of them compare it against 0 and none reads
+             * it for anything else. So sample 0 runs once outside the
+             * loop with _sample_idx = 0, the word is then set to 1, and
+             * the remaining BLOCK-1 samples run with the guard shut.
+             * The block-rate conversions still fire exactly once per
+             * block, which is the property the guard exists for.
+             *
+             * NOT a free win to generalise: the C2_RECV_* stimulus
+             * nodes read _sample_idx & 1 to alternate the profile
+             * square, and they would break under this. They are not
+             * wrapped nodes -- they carry their own block form -- and
+             * that is why the audit is per-node and recorded here.
+             * 38 cycles a block per wrapped node.
              */
             i4 = _blk_C2_RECV_MAIN_L;
             r3 = i4;
@@ -173,10 +191,8 @@ _C2_MIX_MAIN_L_process:
             r5 = dm(_sample_idx);
             dm(_bw_k_C2_MIX_MAIN_L) = r5;
             r5 = 0;
-            dm(_bw_i_C2_MIX_MAIN_L) = r5;
-            lcntr = DSP4_BLOCK_SIZE, do .bwlp_C2_MIX_MAIN_L until lce;
-                r5 = dm(_bw_i_C2_MIX_MAIN_L);
-                dm(_sample_idx) = r5;
+            dm(_sample_idx) = r5;
+            /* sample 0, peeled: the block-rate guard fires here */
                 r3 = dm(_bw_s0_C2_MIX_MAIN_L);
                 i4 = r3;
                 r0 = dm(i4, 0);
@@ -286,9 +302,118 @@ _C2_MIX_MAIN_L_process:
                 dm(i4, 0) = r0;
                 r3 = r3 + 1;
                 dm(_bw_d0_C2_MIX_MAIN_L) = r3;
-                r5 = dm(_bw_i_C2_MIX_MAIN_L);
-                r5 = r5 + 1;
-            .bwlp_C2_MIX_MAIN_L: dm(_bw_i_C2_MIX_MAIN_L) = r5;
+            r5 = 1;
+            dm(_sample_idx) = r5;   /* guard shut for 1..BLOCK-1 */
+            lcntr = DSP4_BLOCK_SIZE-1, do .bwlp_C2_MIX_MAIN_L until lce;
+                r3 = dm(_bw_s0_C2_MIX_MAIN_L);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_RECV_MAIN_L) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s0_C2_MIX_MAIN_L) = r3;
+                r3 = dm(_bw_s1_C2_MIX_MAIN_L);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_GRP_COMP_01) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s1_C2_MIX_MAIN_L) = r3;
+                r3 = dm(_bw_s2_C2_MIX_MAIN_L);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_GRP_COMP_02) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s2_C2_MIX_MAIN_L) = r3;
+                r3 = dm(_bw_s3_C2_MIX_MAIN_L);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_GRP_COMP_03) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s3_C2_MIX_MAIN_L) = r3;
+                r3 = dm(_bw_s4_C2_MIX_MAIN_L);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_GRP_COMP_04) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s4_C2_MIX_MAIN_L) = r3;
+                r3 = dm(_bw_s5_C2_MIX_MAIN_L);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_USB_IN) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s5_C2_MIX_MAIN_L) = r3;
+                r3 = dm(_bw_s6_C2_MIX_MAIN_L);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_BT_IN) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s6_C2_MIX_MAIN_L) = r3;
+                r3 = dm(_bw_s7_C2_MIX_MAIN_L);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_CODEC_AUX_IN) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s7_C2_MIX_MAIN_L) = r3;
+                r3 = dm(_bw_s8_C2_MIX_MAIN_L);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_PI_IN) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s8_C2_MIX_MAIN_L) = r3;
+                r3 = dm(_bw_s9_C2_MIX_MAIN_L);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_SNK_IN_01) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s9_C2_MIX_MAIN_L) = r3;
+                r3 = dm(_bw_s10_C2_MIX_MAIN_L);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_SNK_IN_02) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s10_C2_MIX_MAIN_L) = r3;
+                r3 = dm(_bw_s11_C2_MIX_MAIN_L);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_SNK_IN_03) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s11_C2_MIX_MAIN_L) = r3;
+                r3 = dm(_bw_s12_C2_MIX_MAIN_L);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_SNK_IN_04) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s12_C2_MIX_MAIN_L) = r3;
+                r3 = dm(_bw_s13_C2_MIX_MAIN_L);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_SNK_IN_05) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s13_C2_MIX_MAIN_L) = r3;
+                r3 = dm(_bw_s14_C2_MIX_MAIN_L);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_SNK_IN_06) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s14_C2_MIX_MAIN_L) = r3;
+                r3 = dm(_bw_s15_C2_MIX_MAIN_L);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_SNK_IN_07) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s15_C2_MIX_MAIN_L) = r3;
+                r3 = dm(_bw_s16_C2_MIX_MAIN_L);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_SNK_IN_08) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s16_C2_MIX_MAIN_L) = r3;
+                call _C2_MIX_MAIN_L_process_sample;
+                r0 = dm(_buf_C2_MIX_MAIN_L);
+                r3 = dm(_bw_d0_C2_MIX_MAIN_L);
+                i4 = r3;
+                dm(i4, 0) = r0;
+                r3 = r3 + 1;
+            .bwlp_C2_MIX_MAIN_L: dm(_bw_d0_C2_MIX_MAIN_L) = r3;
             r5 = dm(_bw_k_C2_MIX_MAIN_L);
             dm(_sample_idx) = r5;
             rts;
