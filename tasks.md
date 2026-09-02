@@ -12,7 +12,38 @@
 > slot feeds FILT). No contract change. Queue it after the block-16
 > requal; it is margin (plugin headroom), not fit.
 
-## QUEUED DISPATCH — GAIN kernel rewrite (fire after the block-16 requal lands)   [status: 🔴 queued]   [model: opus]
+## QUEUED DISPATCH — Biquad shootout: 3-cycle core loop vs IIR accelerator, side by side (fire FIRST after the block-16 requal)   [status: 🔴 queued]   [model: opus]
+
+PW 2026-09-02: side-by-side measurements wanted, without diverting the
+flow. This is a SPIKE — standalone rigs only, no graph integration, no
+contract edit, shipping image untouched (W0), land-what's-measured.
+
+RIG A2 — core float, relaxed rounding: write the minimal inner loop
+(PW: 3 cycles/biquad is achievable on this part; round once per cascade
+output instead of per stage) as a standalone kernel; 28-band x 2ch bank
+through the existing profiling discipline; measure c/band-sample scalar
+AND SIMD-paired. Compare against today's 12.83 and the 5.94
+current-contract floor.
+
+RIG B — IIR accelerator: the SAME 28-band bank on the hardware IIR
+accelerator (fixed 1.31/5.27 per dsp.md's original guidance); DMA/TCB
+bring-up; measure END-TO-END block cost (setup + DMA in/out + completion
++ any core involvement); PROVE state continuity across blocks with a
+bit-pattern check. If bring-up exceeds the spike budget, report the cost
+and stop — that is itself decision data.
+
+BOTH: identical stimulus; decision table with effective c/band-sample,
+core cycles freed at blk8/blk16 (both chips extrapolated), latency
+structure (does B force a +1-block pipeline stage), crossfade-blend cost
+modelled for each, and the numeric delta vs the current contract stated
+as MAX ERROR IN dB ON REAL EQ CURVES (several designs incl. extreme
+boosts), not as "different". Output: an options table PW rules from.
+
+RULES: desk/bench-isolated; standing traps (marker-file waits, one tty
+reader, S15 phase rule); bars untouched; single trunk main; update this
+block's status; no AI attribution.
+
+## QUEUED DISPATCH — GAIN kernel rewrite (fire after the biquad shootout)   [status: 🔴 queued]   [model: opus]
 
 Rewrite the GAIN node to its 1-2 c/s floor per the PW ruling above
 (2026-09-02). Scope: ONE effective gain word computed at control rate
