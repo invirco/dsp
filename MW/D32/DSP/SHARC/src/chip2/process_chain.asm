@@ -741,209 +741,221 @@ _chip2_process_all:
     call _C2_SUB_EQ_process;
 #endif
 #if (DSP4_NODE_LIMIT2 == 0 || 121 < DSP4_NODE_LIMIT2)
-    call _C2_SUB_COMP_process;
+    call _C2_USB_IN_process;
 #endif
 #if (DSP4_NODE_LIMIT2 == 0 || 122 < DSP4_NODE_LIMIT2)
-    call _C2_SUB_LIM_process;
+    call _C2_BT_IN_process;
 #endif
 #if (DSP4_NODE_LIMIT2 == 0 || 123 < DSP4_NODE_LIMIT2)
-    call _C2_SUB_DLY_process;
+    call _C2_MIX_MAIN_L_process;
 #endif
 #if (DSP4_NODE_LIMIT2 == 0 || 124 < DSP4_NODE_LIMIT2)
+    call _C2_MIX_MAIN_R_process;
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 125 < DSP4_NODE_LIMIT2)
+    call _C2_MAIN_FDR_process;
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 126 < DSP4_NODE_LIMIT2)
+    call _C2_MAIN_GEQ_process;
+#endif
+#if DSP4_C2_XPAIR
+#if (DSP4_NODE_LIMIT2 == 0 || 127 < DSP4_NODE_LIMIT2)
+    call _C2PAIR_MSUB_COMP_process;
+#endif
+#else
+#if (DSP4_NODE_LIMIT2 == 0 || 127 < DSP4_NODE_LIMIT2)
+    call _C2_MAIN_COMP_process;
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 127 < DSP4_NODE_LIMIT2)
+    call _C2_SUB_COMP_process;
+#endif
+#endif
+#if DSP4_C2_XPAIR
+#if (DSP4_NODE_LIMIT2 == 0 || 128 < DSP4_NODE_LIMIT2)
+    call _C2PAIR_MSUB_LIM_process;
+#endif
+#else
+#if (DSP4_NODE_LIMIT2 == 0 || 128 < DSP4_NODE_LIMIT2)
+    call _C2_MAIN_LIM_process;
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 128 < DSP4_NODE_LIMIT2)
+    call _C2_SUB_LIM_process;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 129 < DSP4_NODE_LIMIT2)
+    call _C2_SUB_DLY_process;
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 130 < DSP4_NODE_LIMIT2)
     call _C2_SUB_OUT_process;
 #endif
 #if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 124 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 130 < DSP4_NODE_LIMIT2)
     call _C2_MTR_SUB_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 125 < DSP4_NODE_LIMIT2)
-    call _C2_USB_IN_process;
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 126 < DSP4_NODE_LIMIT2)
-    call _C2_BT_IN_process;
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 127 < DSP4_NODE_LIMIT2)
-    call _C2_MIX_MAIN_L_process;
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 128 < DSP4_NODE_LIMIT2)
-    call _C2_MIX_MAIN_R_process;
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 129 < DSP4_NODE_LIMIT2)
-    call _C2_MAIN_FDR_process;
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 130 < DSP4_NODE_LIMIT2)
-    call _C2_MAIN_GEQ_process;
-#endif
 #if (DSP4_NODE_LIMIT2 == 0 || 131 < DSP4_NODE_LIMIT2)
-    call _C2_MAIN_COMP_process;
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 132 < DSP4_NODE_LIMIT2)
-    call _C2_MAIN_LIM_process;
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 133 < DSP4_NODE_LIMIT2)
     call _C2_MAIN_DLY_process;
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 134 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 132 < DSP4_NODE_LIMIT2)
     call _C2_MAIN_XOVER_process;
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 135 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 133 < DSP4_NODE_LIMIT2)
     call _C2BQP_MOUT_OEQ_01_02_process;
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 136 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 134 < DSP4_NODE_LIMIT2)
     call _C2PAIR_MOUT_OCOMP_01_02_process;
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 137 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 135 < DSP4_NODE_LIMIT2)
     call _C2PAIR_MOUT_OLIM_01_02_process;
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 138 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 136 < DSP4_NODE_LIMIT2)
     call _C2_MAIN_OUT_01_process;
 #endif
 #if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 138 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 136 < DSP4_NODE_LIMIT2)
     call _C2_MTR_MAIN_01_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 139 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 137 < DSP4_NODE_LIMIT2)
     call _C2_MAIN_OUT_02_process;
 #endif
 #if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 139 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 137 < DSP4_NODE_LIMIT2)
     call _C2_MTR_MAIN_02_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 140 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 138 < DSP4_NODE_LIMIT2)
     call _C2BQP_MOUT_OEQ_03_04_process;
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 141 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 139 < DSP4_NODE_LIMIT2)
     call _C2PAIR_MOUT_OCOMP_03_04_process;
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 142 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 140 < DSP4_NODE_LIMIT2)
     call _C2PAIR_MOUT_OLIM_03_04_process;
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 143 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 141 < DSP4_NODE_LIMIT2)
     call _C2_MAIN_OUT_03_process;
 #endif
 #if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 143 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 141 < DSP4_NODE_LIMIT2)
     call _C2_MTR_MAIN_03_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 144 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 142 < DSP4_NODE_LIMIT2)
     call _C2_MAIN_OUT_04_process;
 #endif
 #if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 144 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 142 < DSP4_NODE_LIMIT2)
     call _C2_MTR_MAIN_04_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 145 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 143 < DSP4_NODE_LIMIT2)
     call _C2_FX_ENG_01_process;
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 146 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 144 < DSP4_NODE_LIMIT2)
     call _C2_FX_FDR_01_process;
 #endif
 #if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 146 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 144 < DSP4_NODE_LIMIT2)
     call _C2_MTR_FX_01_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 147 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 145 < DSP4_NODE_LIMIT2)
     call _C2_FX_ENG_02_process;
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 148 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 146 < DSP4_NODE_LIMIT2)
     call _C2_FX_FDR_02_process;
 #endif
 #if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 148 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 146 < DSP4_NODE_LIMIT2)
     call _C2_MTR_FX_02_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 149 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 147 < DSP4_NODE_LIMIT2)
     call _C2_FX_ENG_03_process;
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 150 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 148 < DSP4_NODE_LIMIT2)
     call _C2_FX_FDR_03_process;
 #endif
 #if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 150 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 148 < DSP4_NODE_LIMIT2)
     call _C2_MTR_FX_03_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 151 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 149 < DSP4_NODE_LIMIT2)
     call _C2_FX_ENG_04_process;
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 152 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 150 < DSP4_NODE_LIMIT2)
     call _C2_FX_FDR_04_process;
 #endif
 #if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 152 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 150 < DSP4_NODE_LIMIT2)
     call _C2_MTR_FX_04_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 153 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 151 < DSP4_NODE_LIMIT2)
     call _C2_FX_ENG_05_process;
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 154 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 152 < DSP4_NODE_LIMIT2)
     call _C2_FX_FDR_05_process;
 #endif
 #if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 154 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 152 < DSP4_NODE_LIMIT2)
     call _C2_MTR_FX_05_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 155 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 153 < DSP4_NODE_LIMIT2)
     call _C2_FX_ENG_06_process;
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 156 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 154 < DSP4_NODE_LIMIT2)
     call _C2_FX_FDR_06_process;
 #endif
 #if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 156 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 154 < DSP4_NODE_LIMIT2)
     call _C2_MTR_FX_06_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 157 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 155 < DSP4_NODE_LIMIT2)
     call _C2_MON_process;
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 158 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 156 < DSP4_NODE_LIMIT2)
     call _C2_MON_DLY_process;
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
-    /* nodes 159..159 are D24-only */
+    /* nodes 157..157 are D24-only */
     r2 = dm(_product_id);
     r3 = 1;
     comp(r2, r3);
     if ne jump (pc, .c2brun2_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 159 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 157 < DSP4_NODE_LIMIT2)
     call _C2_MON_OUT_process;
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
 .c2brun2_end:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 160 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 158 < DSP4_NODE_LIMIT2)
     call _C2_DCA_01_process;
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 161 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 159 < DSP4_NODE_LIMIT2)
     call _C2_DCA_02_process;
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 162 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 160 < DSP4_NODE_LIMIT2)
     call _C2_DCA_03_process;
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 163 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 161 < DSP4_NODE_LIMIT2)
     call _C2_DCA_04_process;
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 164 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 162 < DSP4_NODE_LIMIT2)
     call _C2_DCA_05_process;
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 165 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 163 < DSP4_NODE_LIMIT2)
     call _C2_DCA_06_process;
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 166 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 164 < DSP4_NODE_LIMIT2)
     call _C2_DCA_07_process;
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 167 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 165 < DSP4_NODE_LIMIT2)
     call _C2_DCA_08_process;
 #endif
 #if (DSP4_NODE_LIMIT2 == 0 || 54 < DSP4_NODE_LIMIT2)
@@ -1006,22 +1018,22 @@ _chip2_process_all:
     call _C2_MTR_AUX_12_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 138 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 136 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_MAIN_01_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 139 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 137 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_MAIN_02_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 143 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 141 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_MAIN_03_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 144 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 142 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_MAIN_04_process;
 #endif
@@ -1046,52 +1058,52 @@ _chip2_process_all:
     call _C2_MTR_GRP_04_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 124 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 130 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_SUB_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 146 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 144 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_FX_01_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 148 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 146 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_FX_02_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 150 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 148 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_FX_03_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 152 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 150 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_FX_04_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 154 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 152 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_FX_05_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 156 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 154 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_FX_06_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 195 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 193 < DSP4_NODE_LIMIT2)
     call _C2_MAIN_ST_OUT_process;
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
-    /* nodes 196..196 are D24-only */
+    /* nodes 194..194 are D24-only */
     r2 = dm(_product_id);
     r3 = 1;
     comp(r2, r3);
     if ne jump (pc, .c2brun3_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 196 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 194 < DSP4_NODE_LIMIT2)
     call _C2_CODEC_AUX_OUT_process;
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE

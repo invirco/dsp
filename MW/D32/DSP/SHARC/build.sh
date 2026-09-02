@@ -228,6 +228,15 @@ ASMFLAGS="$ASMFLAGS -DDSP4_BQ_GRAPH=$DSP4_BQ_GRAPH"
 DSP4_C2_BQ_GRAPH="${DSP4_C2_BQ_GRAPH:-1}"
 CFLAGS="$CFLAGS -DDSP4_C2_BQ_GRAPH=$DSP4_C2_BQ_GRAPH"
 ASMFLAGS="$ASMFLAGS -DDSP4_C2_BQ_GRAPH=$DSP4_C2_BQ_GRAPH"
+# CROSS-CHAIN DYNAMICS PAIRING ON CHIP 2 (2026-09-02). Pairs the four
+# single instances no family could pair -- C2_MAIN_COMP with C2_SUB_COMP,
+# C2_MAIN_LIM with C2_SUB_LIM -- which is licensed by the main and sub
+# chains being disjoint (see _C2_CROSS_PAIRS in dsp_codegen.py). 0 is the
+# CONTROL and it keeps the SAME chain order, calling the four nodes
+# scalar, so the measurement isolates the pairing from the reorder.
+DSP4_C2_XPAIR="${DSP4_C2_XPAIR:-1}"
+CFLAGS="$CFLAGS -DDSP4_C2_XPAIR=$DSP4_C2_XPAIR"
+ASMFLAGS="$ASMFLAGS -DDSP4_C2_XPAIR=$DSP4_C2_XPAIR"
 # THE ROUND-TRIP ARM for chip 2's biquad pairing. 1 scatters the state back
 # and drops the pair latch on EVERY block, so the engage/disengage
 # bookkeeping -- once per coefficient swap in a real build -- runs at block

@@ -41,6 +41,10 @@ BQ="${DSP4_BQ_GRAPH:-1}"
 # on, byte for byte -- verified by rebuilding it from the previous
 # commit and matching the .ldr.
 C2BQ="${DSP4_C2_BQ_GRAPH:-1}"
+# Cross-chain dynamics pairing (2026-09-02). 0 keeps the SAME
+# chain order and calls the four nodes scalar, so the arms
+# isolate the pairing from the reorder.
+XP="${DSP4_C2_XPAIR:-1}"
 BLOCK="${BLOCK:-8}"
 WORK="${WORK:-/tmp/sigprof2}"
 cd "$(dirname "$0")"
@@ -82,11 +86,11 @@ srctree() {
 SRC="$(srctree "$BLOCK")"
 
 for L in "$@"; do
-  D="$WORK/b$BLOCK-l$L-q$C2BQ"
+  D="$WORK/b$BLOCK-l$L-q$C2BQ-x$XP"
   DSP_SRC_DIR="$SRC" DSP_BUILD_DIR="$D" \
   DSP4_BISECT=0 DSP4_BLOCK_KERNELS=1 DSP4_PROFILE_SIGNAL=$SIG \
     DSP4_STRIP_FUSED=$FUS DSP4_SIMD_DYN=$SIMD DSP4_BQ_GRAPH=$BQ \
-    DSP4_C2_BQ_GRAPH=$C2BQ \
+    DSP4_C2_BQ_GRAPH=$C2BQ DSP4_C2_XPAIR=$XP \
     DSP4_NODE_LIMIT=0 DSP4_NODE_LIMIT2=$L \
     DSP4_BLOCK_DECIMATE=$DEC ./build.sh all > "$D.log" 2>&1
   if [ "$(grep -ciE '\[Error|Build FAILED' "$D.log")" -ne 0 ]; then
@@ -106,5 +110,5 @@ print(a('proc_cyc'), a('proc_passes'))")"
   scp -q $ROOT/tools/pi/dsp4_audio_verdict.py $BENCH:/home/app/dspboot/audio_verdict.py
   scp -q $ROOT/tools/pi/gainfix.py $BENCH:/home/app/dspboot/
   scp -q sigprofile2_run.sh $BENCH:/home/app/
-  echo "block=$BLOCK limit2=$L sig=$SIG c2bq=$C2BQ  $(ssh $BENCH "bash /home/app/sigprofile2_run.sh $PT $PP $DWELL" 2>&1 | tr '\n' ' | ')"
+  echo "block=$BLOCK limit2=$L sig=$SIG c2bq=$C2BQ xp=$XP  $(ssh $BENCH "bash /home/app/sigprofile2_run.sh $PT $PP $DWELL" 2>&1 | tr '\n' ' | ')"
 done

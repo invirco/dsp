@@ -1585,6 +1585,230 @@ _C2PAIR_MOUT_OLIM_03_04_process:
     rts;
 _C2PAIR_MOUT_OLIM_03_04_process.end:
 
+#if DSP4_C2_XPAIR
+/* ---- chip-2 CROSS-CHAIN dynamics pairs (2026-09-02) ----
+ * The four single instances that no family could pair:
+ * C2_MAIN_COMP with C2_SUB_COMP, C2_MAIN_LIM with C2_SUB_LIM.
+ * The main and sub chains are DISJOINT -- neither node is reachable
+ * from its partner, and C2_MIX_MAIN_L/R do not read C2_SUB_OUT -- so
+ * there is an instant at which both inputs are ready. See the table
+ * in dsp_codegen.py for the argument and the reorder it licenses.
+ */
+.extern _C2_MAIN_COMP_process;
+.extern _C2_MAIN_COMP_process_sample;
+.extern _C2_MAIN_LIM_process;
+.extern _C2_MAIN_LIM_process_sample;
+.extern _C2_SUB_COMP_process;
+.extern _C2_SUB_COMP_process_sample;
+.extern _C2_SUB_LIM_process;
+.extern _C2_SUB_LIM_process_sample;
+.extern _blk_C2_MAIN_COMP;
+.extern _blk_C2_MAIN_GEQ;
+.extern _blk_C2_MAIN_LIM;
+.extern _blk_C2_SUB_COMP;
+.extern _blk_C2_SUB_EQ;
+.extern _blk_C2_SUB_LIM;
+.extern _buf_C2_MAIN_COMP;
+.extern _buf_C2_MAIN_GEQ;
+.extern _buf_C2_MAIN_LIM;
+.extern _buf_C2_SUB_COMP;
+.extern _buf_C2_SUB_EQ;
+.extern _buf_C2_SUB_LIM;
+.extern _comp_attq_C2_MAIN_COMP;
+.extern _comp_attq_C2_SUB_COMP;
+.extern _comp_envelope_C2_MAIN_COMP;
+.extern _comp_envelope_C2_SUB_COMP;
+.extern _comp_gain_C2_MAIN_COMP;
+.extern _comp_gain_C2_SUB_COMP;
+.extern _comp_on_C2_MAIN_COMP;
+.extern _comp_on_C2_SUB_COMP;
+.extern _lim_attq_C2_MAIN_LIM;
+.extern _lim_attq_C2_SUB_LIM;
+.extern _lim_envelope_C2_MAIN_LIM;
+.extern _lim_envelope_C2_SUB_LIM;
+.extern _lim_on_C2_MAIN_LIM;
+.extern _lim_on_C2_SUB_LIM;
+
+/* ---- C2_MAIN_COMP + C2_SUB_COMP ---- */
+.global _C2PAIR_MSUB_COMP_process;
+_C2PAIR_MSUB_COMP_process:
+    /* Both channels must be on the same path or there is no pair. */
+    r0 = dm(_comp_on_C2_MAIN_COMP);
+    r0 = pass r0;
+    if eq jump (pc, .c2s_MSUB_COMP);
+    r0 = dm(_comp_on_C2_SUB_COMP);
+    r0 = pass r0;
+    if eq jump (pc, .c2s_MSUB_COMP);
+
+    /* input block -> this node's own block, so the paired
+     * kernel can run in place the way chip 1's pool
+     * ping-pong does. */
+    l3 = 0; l4 = 0;
+    i3 = _blk_C2_MAIN_GEQ;
+    i4 = _blk_C2_MAIN_COMP;
+    lcntr = DSP4_BLOCK_SIZE, do .c2cp0_MSUB_COMP until lce;
+        r0 = dm(i3, 1);
+    .c2cp0_MSUB_COMP: dm(i4, 1) = r0;
+    i3 = _blk_C2_SUB_EQ;
+    i4 = _blk_C2_SUB_COMP;
+    lcntr = DSP4_BLOCK_SIZE, do .c2cp1_MSUB_COMP until lce;
+        r0 = dm(i3, 1);
+    .c2cp1_MSUB_COMP: dm(i4, 1) = r0;
+
+    /* sample 0 through each channel's own per-sample body */
+    r5 = dm(_sample_idx);
+    dm(_dynpair_saved_idx) = r5;
+    r5 = 0;
+    dm(_sample_idx) = r5;
+    r0 = dm(_blk_C2_MAIN_COMP);
+    dm(_buf_C2_MAIN_GEQ) = r0;
+    call _C2_MAIN_COMP_process_sample;
+    r0 = dm(_buf_C2_MAIN_COMP);
+    dm(_blk_C2_MAIN_COMP) = r0;
+    r0 = dm(_blk_C2_SUB_COMP);
+    dm(_buf_C2_SUB_EQ) = r0;
+    call _C2_SUB_COMP_process_sample;
+    r0 = dm(_buf_C2_SUB_COMP);
+    dm(_blk_C2_SUB_COMP) = r0;
+    r5 = dm(_dynpair_saved_idx);
+    dm(_sample_idx) = r5;
+
+    /* samples 1..BLOCK-1, two channels, one stream */
+    r0 = DSP4_BLOCK_SIZE-1;
+    dm(_dsim_n) = r0;
+    dm(_dsim_n + 1) = r0;
+    r4 = _comp_attq_C2_MAIN_COMP;
+    r5 = _comp_attq_C2_SUB_COMP;
+    r6 = _comp_envelope_C2_MAIN_COMP;
+    r7 = _comp_envelope_C2_SUB_COMP;
+    r0 = _blk_C2_MAIN_COMP;
+    r1 = 1;
+    r8 = r0 + r1;
+    r0 = _blk_C2_SUB_COMP;
+    r9 = r0 + r1;
+    call _comp_pair_blk;
+    /* the pair writes its gain display to the shared
+     * park; give it back to each node so a host peek
+     * still reads a live per-node compressor gain. */
+    i0 = _cmp_gn;
+    r0 = dm(i0, 1);
+    dm(_comp_gain_C2_MAIN_COMP) = r0;
+    r0 = dm(i0, 1);
+    dm(_comp_gain_C2_SUB_COMP) = r0;
+    /* republish the scalar _buf_ word off the LAST sample
+     * of the block. On chip 2 `_buf_<id>` IS what a host
+     * peek reads, and the paired path only writes it for
+     * sample 0 -- so without this it would report the
+     * first sample of the block while every unpaired node
+     * reports the last. Nine instructions at block rate,
+     * and the same repair the GEQ block kernel already
+     * makes for the same reason. */
+    l4 = 0;
+    m4 = DSP4_BLOCK_SIZE-1;
+    i4 = _blk_C2_MAIN_COMP;
+    modify(i4, m4);
+    r0 = dm(i4, 0);
+    dm(_buf_C2_MAIN_COMP) = r0;
+    i4 = _blk_C2_SUB_COMP;
+    modify(i4, m4);
+    r0 = dm(i4, 0);
+    dm(_buf_C2_SUB_COMP) = r0;
+    rts;
+
+.c2s_MSUB_COMP:
+    /* scalar fallback: the two nodes, unchanged */
+    call _C2_MAIN_COMP_process;
+    call _C2_SUB_COMP_process;
+    rts;
+_C2PAIR_MSUB_COMP_process.end:
+
+/* ---- C2_MAIN_LIM + C2_SUB_LIM ---- */
+.global _C2PAIR_MSUB_LIM_process;
+_C2PAIR_MSUB_LIM_process:
+    /* Both channels must be on the same path or there is no pair. */
+    r0 = dm(_lim_on_C2_MAIN_LIM);
+    r0 = pass r0;
+    if eq jump (pc, .c2s_MSUB_LIM);
+    r0 = dm(_lim_on_C2_SUB_LIM);
+    r0 = pass r0;
+    if eq jump (pc, .c2s_MSUB_LIM);
+
+    /* input block -> this node's own block, so the paired
+     * kernel can run in place the way chip 1's pool
+     * ping-pong does. */
+    l3 = 0; l4 = 0;
+    i3 = _blk_C2_MAIN_COMP;
+    i4 = _blk_C2_MAIN_LIM;
+    lcntr = DSP4_BLOCK_SIZE, do .c2cp0_MSUB_LIM until lce;
+        r0 = dm(i3, 1);
+    .c2cp0_MSUB_LIM: dm(i4, 1) = r0;
+    i3 = _blk_C2_SUB_COMP;
+    i4 = _blk_C2_SUB_LIM;
+    lcntr = DSP4_BLOCK_SIZE, do .c2cp1_MSUB_LIM until lce;
+        r0 = dm(i3, 1);
+    .c2cp1_MSUB_LIM: dm(i4, 1) = r0;
+
+    /* sample 0 through each channel's own per-sample body */
+    r5 = dm(_sample_idx);
+    dm(_dynpair_saved_idx) = r5;
+    r5 = 0;
+    dm(_sample_idx) = r5;
+    r0 = dm(_blk_C2_MAIN_LIM);
+    dm(_buf_C2_MAIN_COMP) = r0;
+    call _C2_MAIN_LIM_process_sample;
+    r0 = dm(_buf_C2_MAIN_LIM);
+    dm(_blk_C2_MAIN_LIM) = r0;
+    r0 = dm(_blk_C2_SUB_LIM);
+    dm(_buf_C2_SUB_COMP) = r0;
+    call _C2_SUB_LIM_process_sample;
+    r0 = dm(_buf_C2_SUB_LIM);
+    dm(_blk_C2_SUB_LIM) = r0;
+    r5 = dm(_dynpair_saved_idx);
+    dm(_sample_idx) = r5;
+
+    /* samples 1..BLOCK-1, two channels, one stream */
+    r0 = DSP4_BLOCK_SIZE-1;
+    dm(_dsim_n) = r0;
+    dm(_dsim_n + 1) = r0;
+    r4 = _lim_attq_C2_MAIN_LIM;
+    r5 = _lim_attq_C2_SUB_LIM;
+    r6 = _lim_envelope_C2_MAIN_LIM;
+    r7 = _lim_envelope_C2_SUB_LIM;
+    r0 = _blk_C2_MAIN_LIM;
+    r1 = 1;
+    r8 = r0 + r1;
+    r0 = _blk_C2_SUB_LIM;
+    r9 = r0 + r1;
+    call _lim_pair_blk;
+    /* republish the scalar _buf_ word off the LAST sample
+     * of the block. On chip 2 `_buf_<id>` IS what a host
+     * peek reads, and the paired path only writes it for
+     * sample 0 -- so without this it would report the
+     * first sample of the block while every unpaired node
+     * reports the last. Nine instructions at block rate,
+     * and the same repair the GEQ block kernel already
+     * makes for the same reason. */
+    l4 = 0;
+    m4 = DSP4_BLOCK_SIZE-1;
+    i4 = _blk_C2_MAIN_LIM;
+    modify(i4, m4);
+    r0 = dm(i4, 0);
+    dm(_buf_C2_MAIN_LIM) = r0;
+    i4 = _blk_C2_SUB_LIM;
+    modify(i4, m4);
+    r0 = dm(i4, 0);
+    dm(_buf_C2_SUB_LIM) = r0;
+    rts;
+
+.c2s_MSUB_LIM:
+    /* scalar fallback: the two nodes, unchanged */
+    call _C2_MAIN_LIM_process;
+    call _C2_SUB_LIM_process;
+    rts;
+_C2PAIR_MSUB_LIM_process.end:
+
+#endif /* DSP4_C2_XPAIR */
+
 #if DSP4_GATE_LINTHR
 #error "DSP4_SIMD_DYN pairs the GATE in the log2 domain; DSP4_GATE_LINTHR converts the threshold to linear once per block and the two are different arithmetic. Build with DSP4_GATE_LINTHR=0."
 #endif

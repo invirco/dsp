@@ -10637,7 +10637,7 @@ def _strip_index(nid):
 
 
 def gen_dyn_pairs(chip_label, strips, meter_src, c2_groups=(),
-                  input_of=None, mtr_of=None):
+                  input_of=None, mtr_of=None, c2_xpairs=()):
     """chipN/dyn_pairs.asm — one driver per paired class per strip pair.
 
     A driver is a NODE as far as the chain is concerned: it is called once
@@ -10682,11 +10682,14 @@ def gen_dyn_pairs(chip_label, strips, meter_src, c2_groups=(),
     # _lim_pair_blk lives in src/lib2, which is linked into CHIP 2 ONLY --
     # so chip 1 must not even declare it. Emitted only where a family
     # actually pairs a limiter.
-    if any(k == 'lim' for g in c2_groups for k in g['paired'].values()):
+    if (any(k == 'lim' for g in c2_groups for k in g['paired'].values())
+            or any(x['kern'] == 'lim' for x in (c2_xpairs or []))):
         a('.extern _lim_pair_blk;')
     a('.extern _cmp_gn;')
 
     out += gen_dyn_pairs_c2(c2_groups, input_of or {}, mtr_of)
+    out += gen_dyn_pairs_c2_cross(c2_xpairs or [], input_of or {},
+                                  mtr_of)
 
     pairs = []
     nums = sorted(strips)
@@ -11090,6 +11093,238 @@ def c2_pair_groups(chip_label, chip_nodes, call_sequence):
     return groups
 
 
+# ---------------------------------------------------------------------------
+# CHIP-2 CROSS-CHAIN DYNAMICS PAIRS (2026-09-02)
+#
+# _C2_PAIR_FAMILIES pairs INSTANCES of one class inside one family -- twelve
+# aux limiters, four group gates. That leaves four single instances unpaired,
+# because each is the only one of its class in its chain: C2_MAIN_COMP,
+# C2_SUB_COMP, C2_MAIN_LIM and C2_SUB_LIM. Three sessions deferred them
+# pending "the cross-chain DAG argument". THIS IS THAT ARGUMENT, AND IT
+# COMES OUT YES.
+#
+# Two nodes can be paired only if neither is reachable from the other in the
+# graph -- otherwise one has to run before the other and there is no instant
+# at which both inputs are ready. Resolved from dsp.csv, not assumed:
+#
+#   C2_MIX_MAIN_L/R read RECV_MAIN, the four GRP_COMPs, USB/BT/CODEC_AUX/PI
+#   and the eight SNK_INs. THEY DO NOT READ C2_SUB_OUT. The sub is its own
+#   output bus, not a contributor to main.
+#
+#   So RECV_SUB -> SUB_FDR -> SUB_EQ -> SUB_COMP -> SUB_LIM -> SUB_DLY ->
+#   SUB_OUT and MIX_MAIN -> MAIN_FDR -> MAIN_GEQ -> MAIN_COMP -> MAIN_LIM ->
+#   MAIN_DLY -> MAIN_XOVER are DISJOINT chains. The only consumer of any
+#   sub-chain node from outside is C2_MTR_SUB, the sub's own meter.
+#   Reachability was computed both ways for both pairs and is False in all
+#   four directions.
+#
+# THE REORDER THAT FOLLOWS. Both members must run at one point, and each
+# needs its own producer done: SUB_COMP needs SUB_EQ, MAIN_COMP needs
+# MAIN_GEQ. MAIN_GEQ is the later of the two, so the sub chain's tail --
+# SUB_COMP onward -- moves to just after MAIN_GEQ:
+#
+#     ... SUB_FDR SUB_EQ | USB BT MIX_L MIX_R MAIN_FDR MAIN_GEQ
+#         COMP pair (MAIN+SUB)  LIM pair (MAIN+SUB)
+#         SUB_DLY SUB_OUT MTR_SUB  MAIN_DLY MAIN_XOVER ...
+#
+# Nothing between the old and new positions reads a sub-chain node, which is
+# what makes the move legal -- and it is not taken on trust: the emitted
+# order is re-checked against dsp.csv by process_order_violations, which
+# fails the build on a stale read.
+#
+#   (tag, kernel, node A, node B)
+_C2_CROSS_PAIRS = (
+    ('MSUB_COMP', 'comp', 'C2_MAIN_COMP', 'C2_SUB_COMP'),
+    ('MSUB_LIM',  'lim',  'C2_MAIN_LIM',  'C2_SUB_LIM'),
+)
+
+# The sub-chain run that moves, in order, and the node it must land after.
+_C2_XPAIR_MOVE = ('C2_SUB_COMP', 'C2_SUB_LIM', 'C2_SUB_DLY', 'C2_SUB_OUT')
+_C2_XPAIR_AFTER = 'C2_MAIN_GEQ'
+
+
+def c2_cross_pairs(chip_label, chip_nodes):
+    """The cross-chain pairs present in this graph, or []."""
+    if chip_label != 'chip2':
+        return []
+    have = {n['id'] for n in chip_nodes}
+    out = []
+    for tag, kern, na, nb in _C2_CROSS_PAIRS:
+        if na in have and nb in have:
+            out.append({'tag': tag, 'kern': kern, 'a': na, 'b': nb})
+        elif na in have or nb in have:
+            raise ValueError(
+                f'chip 2 cross pair {tag}: {na} and {nb} must both be in '
+                f'the graph or neither -- pairing one of them with nothing '
+                f'is not a fallback, it is a missing node')
+    return out
+
+
+def _c2_dyn_driver(a, tag, kern, da, db, sa, sb, mtr_of):
+    """One chip-2 dynamics pair driver. `a` is the emitter's append.
+
+    Shared by the FAMILY pairs (instances of one class in one family) and
+    the CROSS-CHAIN pairs (two single instances in different chains), so
+    there is one copy of the sample-0 handoff, the block copy, the meter
+    block and the `_buf_` republish rather than two that can drift.
+    """
+    lbl = f'_C2PAIR_{tag}_process'
+    a('')
+    a(f'/* ---- {da} + {db} ---- */')
+    a(f'.global {lbl};')
+    a(f'{lbl}:')
+    a('    /* Both channels must be on the same path or there is'
+      ' no pair. */')
+    _k = _C2_PAIR_KERNEL[kern]
+    for d in (da, db):
+        a(f"    r0 = dm({_k['on']}{d});")
+        a('    r0 = pass r0;')
+        a(f'    if eq jump (pc, .c2s_{tag});')
+    if _k['filter']:
+        for d in (da, db):
+            a(f"    r0 = dm({_k['filter']}{d});")
+            a('    r0 = pass r0;')
+            a(f'    if ne jump (pc, .c2s_{tag});')
+    a('')
+    a('    /* input block -> this node\'s own block, so the paired')
+    a('     * kernel can run in place the way chip 1\'s pool')
+    a('     * ping-pong does. */')
+    a('    l3 = 0; l4 = 0;')
+    for j, (d, s) in enumerate(((da, sa), (db, sb))):
+        a(f'    i3 = _blk_{s};')
+        a(f'    i4 = _blk_{d};')
+        a(f'    lcntr = DSP4_BLOCK_SIZE, do .c2cp{j}_{tag} until lce;')
+        a('        r0 = dm(i3, 1);')
+        a(f'    .c2cp{j}_{tag}: dm(i4, 1) = r0;')
+    a('')
+    a('    /* sample 0 through each channel\'s own per-sample body */')
+    a('    r5 = dm(_sample_idx);')
+    a('    dm(_dynpair_saved_idx) = r5;')
+    a('    r5 = 0;')
+    a('    dm(_sample_idx) = r5;')
+    for d, s in ((da, sa), (db, sb)):
+        a(f'    r0 = dm(_blk_{d});')
+        a(f'    dm(_buf_{s}) = r0;')
+        a(f'    call _{d}_process_sample;')
+        a(f'    r0 = dm(_buf_{d});')
+        a(f'    dm(_blk_{d}) = r0;')
+    a('    r5 = dm(_dynpair_saved_idx);')
+    a('    dm(_sample_idx) = r5;')
+    a('')
+    a('    /* samples 1..BLOCK-1, two channels, one stream */')
+    a('    r0 = DSP4_BLOCK_SIZE-1;')
+    a('    dm(_dsim_n) = r0;')
+    a('    dm(_dsim_n + 1) = r0;')
+    pfx = _C2_PAIR_KERNEL[kern]['pfx']
+    a(f'    r4 = {pfx}_attq_{da};')
+    a(f'    r5 = {pfx}_attq_{db};')
+    a(f'    r6 = {pfx}_envelope_{da};')
+    a(f'    r7 = {pfx}_envelope_{db};')
+    a(f'    r0 = _blk_{da};')
+    a('    r1 = 1;')
+    a('    r8 = r0 + r1;')
+    a(f'    r0 = _blk_{db};')
+    a('    r9 = r0 + r1;')
+    a(f'    call _{kern}_pair_blk;')
+    if kern == 'comp':
+        a('    /* the pair writes its gain display to the shared')
+        a('     * park; give it back to each node so a host peek')
+        a('     * still reads a live per-node compressor gain. */')
+        a('    i0 = _cmp_gn;')
+        a('    r0 = dm(i0, 1);')
+        a(f'    dm(_comp_gain_{da}) = r0;')
+        a('    r0 = dm(i0, 1);')
+        a(f'    dm(_comp_gain_{db}) = r0;')
+    for j, d in enumerate((da, db)):
+        if not mtr_of.get(d):
+            continue
+        a('    /* THE METER\'S WIDE WORD, AS A BLOCK. The generic')
+        a('     * per-block wrapper walks this out one sample at a')
+        a('     * time and the pair kernel does not, so the driver')
+        a('     * does it here. Without it the meter folds an')
+        a('     * untouched array: c2dyngold.sh caught exactly that')
+        a('     * as C2_MTR_GRP_01 and _04 reading 0x00000000 in')
+        a('     * the paired arm while every other meter was live.')
+        a('     */')
+        a('    l3 = 0; l4 = 0;')
+        a(f'    i3 = _blk_{d};')
+        a(f'    i4 = _mtr_wblk_{d};')
+        a(f'    lcntr = DSP4_BLOCK_SIZE, do .c2mw{j}_{tag} until lce;')
+        a('        r0 = dm(i3, 1);')
+        a('        r0 = ashift r0 by -4;    /* Q4.28 -> Q8.24 */')
+        a(f'    .c2mw{j}_{tag}: dm(i4, 1) = r0;')
+        a(f'    dm(_mtr_wide_{d}) = r0;  /* the last sample, as the'
+          ' scalar body leaves it */')
+    a('    /* republish the scalar _buf_ word off the LAST sample')
+    a('     * of the block. On chip 2 `_buf_<id>` IS what a host')
+    a('     * peek reads, and the paired path only writes it for')
+    a('     * sample 0 -- so without this it would report the')
+    a('     * first sample of the block while every unpaired node')
+    a('     * reports the last. Nine instructions at block rate,')
+    a('     * and the same repair the GEQ block kernel already')
+    a('     * makes for the same reason. */')
+    a('    l4 = 0;')
+    a('    m4 = DSP4_BLOCK_SIZE-1;')
+    for d in (da, db):
+        a(f'    i4 = _blk_{d};')
+        a('    modify(i4, m4);')
+        a('    r0 = dm(i4, 0);')
+        a(f'    dm(_buf_{d}) = r0;')
+    a('    rts;')
+    a('')
+    a(f'.c2s_{tag}:')
+    a('    /* scalar fallback: the two nodes, unchanged */')
+    a(f'    call _{da}_process;')
+    a(f'    call _{db}_process;')
+    a('    rts;')
+    a(f'{lbl}.end:')
+
+
+def gen_dyn_pairs_c2_cross(xpairs, input_of, mtr_of=None):
+    """chip2/dyn_pairs.asm — the cross-chain pair drivers.
+
+    Same driver as the family pairs, same helper, guarded separately so the
+    family-paired graph stays buildable byte for byte as the control.
+    """
+    mtr_of = mtr_of or {}
+    out = []
+    a = out.append
+    if not xpairs:
+        return out
+    a('')
+    a('#if DSP4_C2_XPAIR')
+    a('/* ---- chip-2 CROSS-CHAIN dynamics pairs (2026-09-02) ----')
+    a(' * The four single instances that no family could pair:')
+    a(' * C2_MAIN_COMP with C2_SUB_COMP, C2_MAIN_LIM with C2_SUB_LIM.')
+    a(' * The main and sub chains are DISJOINT -- neither node is reachable')
+    a(' * from its partner, and C2_MIX_MAIN_L/R do not read C2_SUB_OUT -- so')
+    a(' * there is an instant at which both inputs are ready. See the table')
+    a(' * in dsp_codegen.py for the argument and the reorder it licenses.')
+    a(' */')
+    ext = set()
+    for x in xpairs:
+        for d in (x['a'], x['b']):
+            k = _C2_PAIR_KERNEL[x['kern']]
+            ext.update((f'_{d}_process', f'_{d}_process_sample',
+                        f'_blk_{d}', f'_buf_{d}', f'_buf_{input_of[d]}',
+                        f'_blk_{input_of[d]}', k['on'] + d,
+                        f"{k['pfx']}_attq_{d}", f"{k['pfx']}_envelope_{d}"))
+            if k['filter']:
+                ext.add(k['filter'] + d)
+            if x['kern'] == 'comp':
+                ext.add(f'_comp_gain_{d}')
+            if mtr_of.get(d):
+                ext.update((f'_mtr_wblk_{d}', f'_mtr_wide_{d}'))
+    for sym in sorted(ext):
+        a(f'.extern {sym};')
+    for x in xpairs:
+        _c2_dyn_driver(a, x['tag'], x['kern'], x['a'], x['b'],
+                       input_of[x['a']], input_of[x['b']], mtr_of)
+    a('')
+    a('#endif /* DSP4_C2_XPAIR */')
+    return out
+
+
 def gen_dyn_pairs_c2(groups, input_of, mtr_of=None):
     """chip2/dyn_pairs.asm body — one driver per paired class per pair.
 
@@ -11143,118 +11378,8 @@ def gen_dyn_pairs_c2(groups, input_of, mtr_of=None):
             for k in range(0, len(g['insts']) - 1, 2):
                 na, nb = g['insts'][k], g['insts'][k + 1]
                 da, db = g['nid'][(cls, na)], g['nid'][(cls, nb)]
-                sa, sb = input_of[da], input_of[db]
-                tag = f'{g["tag"]}_{cls}_{na}_{nb}'
-                lbl = f'_C2PAIR_{tag}_process'
-                a('')
-                a(f'/* ---- {da} + {db} ---- */')
-                a(f'.global {lbl};')
-                a(f'{lbl}:')
-                a('    /* Both channels must be on the same path or there is'
-                  ' no pair. */')
-                _k = _C2_PAIR_KERNEL[kern]
-                for d in (da, db):
-                    a(f"    r0 = dm({_k['on']}{d});")
-                    a('    r0 = pass r0;')
-                    a(f'    if eq jump (pc, .c2s_{tag});')
-                if _k['filter']:
-                    for d in (da, db):
-                        a(f"    r0 = dm({_k['filter']}{d});")
-                        a('    r0 = pass r0;')
-                        a(f'    if ne jump (pc, .c2s_{tag});')
-                a('')
-                a('    /* input block -> this node\'s own block, so the paired')
-                a('     * kernel can run in place the way chip 1\'s pool')
-                a('     * ping-pong does. */')
-                a('    l3 = 0; l4 = 0;')
-                for j, (d, s) in enumerate(((da, sa), (db, sb))):
-                    a(f'    i3 = _blk_{s};')
-                    a(f'    i4 = _blk_{d};')
-                    a(f'    lcntr = DSP4_BLOCK_SIZE, do .c2cp{j}_{tag} until lce;')
-                    a('        r0 = dm(i3, 1);')
-                    a(f'    .c2cp{j}_{tag}: dm(i4, 1) = r0;')
-                a('')
-                a('    /* sample 0 through each channel\'s own per-sample body */')
-                a('    r5 = dm(_sample_idx);')
-                a('    dm(_dynpair_saved_idx) = r5;')
-                a('    r5 = 0;')
-                a('    dm(_sample_idx) = r5;')
-                for d, s in ((da, sa), (db, sb)):
-                    a(f'    r0 = dm(_blk_{d});')
-                    a(f'    dm(_buf_{s}) = r0;')
-                    a(f'    call _{d}_process_sample;')
-                    a(f'    r0 = dm(_buf_{d});')
-                    a(f'    dm(_blk_{d}) = r0;')
-                a('    r5 = dm(_dynpair_saved_idx);')
-                a('    dm(_sample_idx) = r5;')
-                a('')
-                a('    /* samples 1..BLOCK-1, two channels, one stream */')
-                a('    r0 = DSP4_BLOCK_SIZE-1;')
-                a('    dm(_dsim_n) = r0;')
-                a('    dm(_dsim_n + 1) = r0;')
-                pfx = _C2_PAIR_KERNEL[kern]['pfx']
-                a(f'    r4 = {pfx}_attq_{da};')
-                a(f'    r5 = {pfx}_attq_{db};')
-                a(f'    r6 = {pfx}_envelope_{da};')
-                a(f'    r7 = {pfx}_envelope_{db};')
-                a(f'    r0 = _blk_{da};')
-                a('    r1 = 1;')
-                a('    r8 = r0 + r1;')
-                a(f'    r0 = _blk_{db};')
-                a('    r9 = r0 + r1;')
-                a(f'    call _{kern}_pair_blk;')
-                if kern == 'comp':
-                    a('    /* the pair writes its gain display to the shared')
-                    a('     * park; give it back to each node so a host peek')
-                    a('     * still reads a live per-node compressor gain. */')
-                    a('    i0 = _cmp_gn;')
-                    a('    r0 = dm(i0, 1);')
-                    a(f'    dm(_comp_gain_{da}) = r0;')
-                    a('    r0 = dm(i0, 1);')
-                    a(f'    dm(_comp_gain_{db}) = r0;')
-                for j, d in enumerate((da, db)):
-                    if not mtr_of.get(d):
-                        continue
-                    a('    /* THE METER\'S WIDE WORD, AS A BLOCK. The generic')
-                    a('     * per-block wrapper walks this out one sample at a')
-                    a('     * time and the pair kernel does not, so the driver')
-                    a('     * does it here. Without it the meter folds an')
-                    a('     * untouched array: c2dyngold.sh caught exactly that')
-                    a('     * as C2_MTR_GRP_01 and _04 reading 0x00000000 in')
-                    a('     * the paired arm while every other meter was live.')
-                    a('     */')
-                    a('    l3 = 0; l4 = 0;')
-                    a(f'    i3 = _blk_{d};')
-                    a(f'    i4 = _mtr_wblk_{d};')
-                    a(f'    lcntr = DSP4_BLOCK_SIZE, do .c2mw{j}_{tag} until lce;')
-                    a('        r0 = dm(i3, 1);')
-                    a('        r0 = ashift r0 by -4;    /* Q4.28 -> Q8.24 */')
-                    a(f'    .c2mw{j}_{tag}: dm(i4, 1) = r0;')
-                    a(f'    dm(_mtr_wide_{d}) = r0;  /* the last sample, as the'
-                      ' scalar body leaves it */')
-                a('    /* republish the scalar _buf_ word off the LAST sample')
-                a('     * of the block. On chip 2 `_buf_<id>` IS what a host')
-                a('     * peek reads, and the paired path only writes it for')
-                a('     * sample 0 -- so without this it would report the')
-                a('     * first sample of the block while every unpaired node')
-                a('     * reports the last. Nine instructions at block rate,')
-                a('     * and the same repair the GEQ block kernel already')
-                a('     * makes for the same reason. */')
-                a('    l4 = 0;')
-                a('    m4 = DSP4_BLOCK_SIZE-1;')
-                for d in (da, db):
-                    a(f'    i4 = _blk_{d};')
-                    a('    modify(i4, m4);')
-                    a('    r0 = dm(i4, 0);')
-                    a(f'    dm(_buf_{d}) = r0;')
-                a('    rts;')
-                a('')
-                a(f'.c2s_{tag}:')
-                a('    /* scalar fallback: the two nodes, unchanged */')
-                a(f'    call _{da}_process;')
-                a(f'    call _{db}_process;')
-                a('    rts;')
-                a(f'{lbl}.end:')
+                _c2_dyn_driver(a, f'{g["tag"]}_{cls}_{na}_{nb}', kern,
+                               da, db, input_of[da], input_of[db], mtr_of)
     return out
 
 
@@ -11984,6 +12109,7 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
         # After the order repair, because the pair families' contiguity is a
         # property of the FINAL chain and not of dsp.csv's row order.
         _c2_groups = c2_pair_groups(chip_label, chip_nodes, call_sequence)
+        _c2_xpairs = c2_cross_pairs(chip_label, chip_nodes)
         if _pre_bad:
             print(f'  {chip_label}: process order repaired -- '
                   f'{len(_pre_bad)} stale-read edge(s):')
@@ -12130,6 +12256,35 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                         f.write('    comp(r2, r3);\n')
                         f.write(f'    if ne jump (pc, .{sgpfx}{_rn}_end);\n')
                         f.write('#endif\n')
+
+                    if ent[0] == 'c2xpair':
+                        _p = pos_of[tuple(ent)]
+                        f.write(f'#if DSP4_C2_XPAIR\n')
+                        f.write(f'#if ({_NL} == 0 || {_p} < {_NL})\n')
+                        f.write(f'    call _C2PAIR_{ent[1]}_process;\n')
+                        f.write('#endif\n')
+                        for _pn in (ent[2], ent[3]):
+                            for _m in _mtr_after.get(_pn, []):
+                                f.write('#if DSP4_BLOCK_KERNELS\n')
+                                f.write(f'#if ({_NL} == 0 || '
+                                        f'{pos_of[_m]} < {_NL})\n')
+                                f.write(f'    call _{_m}_process;\n')
+                                f.write('#endif\n')
+                                f.write('#endif\n')
+                        f.write('#else\n')
+                        for _pn in (ent[2], ent[3]):
+                            f.write(f'#if ({_NL} == 0 || {_p} < {_NL})\n')
+                            f.write(f'    call _{_pn}_process;\n')
+                            f.write('#endif\n')
+                            for _m in _mtr_after.get(_pn, []):
+                                f.write('#if DSP4_BLOCK_KERNELS\n')
+                                f.write(f'#if ({_NL} == 0 || '
+                                        f'{pos_of[_m]} < {_NL})\n')
+                                f.write(f'    call _{_m}_process;\n')
+                                f.write('#endif\n')
+                                f.write('#endif\n')
+                        f.write('#endif\n')
+                        continue
 
                     if ent[0] in ('c2pair', 'c2bqp'):
                         # chip 2: no DSP4_STRIPS guard, because chip 2 has
@@ -12328,9 +12483,85 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                             _ps[_m] = _pair_pos[_src]
                 return _sq, _ps
 
+            def _c2_cross(sq):
+                """Relocate the sub chain's tail so the two cross pairs can
+                form, and replace each pair's two nodes with one entry.
+
+                The move is legal because nothing between the old and new
+                positions reads a sub-chain node (see _C2_CROSS_PAIRS), and
+                it is CHECKED rather than trusted: the caller re-runs
+                process_order_violations over the result."""
+                if not _c2_xpairs:
+                    return list(sq)
+                names = [e[1] if e[0] == 'node' else None for e in sq]
+                if not all(n in names for n in _C2_XPAIR_MOVE):
+                    return list(sq)
+                if _C2_XPAIR_AFTER not in names:
+                    return list(sq)
+                moved = {n: sq[names.index(n)] for n in _C2_XPAIR_MOVE}
+                rest = [e for e in sq
+                        if not (e[0] == 'node' and e[1] in moved)]
+                out, xa = [], {x['a']: x for x in _c2_xpairs}
+                for e in rest:
+                    out.append(e)
+                    if e[0] == 'node' and e[1] == _C2_XPAIR_AFTER:
+                        # the pairs, then the sub tail that follows them
+                        placed = set()
+                        for x in _c2_xpairs:
+                            out.append(('c2xpair', x['tag'], x['a'], x['b']))
+                            placed.add(x['b'])
+                        for n in _C2_XPAIR_MOVE:
+                            if n not in placed:
+                                out.append(moved[n])
+                # the MAIN-side partners are now inside the pair entries
+                drop = {x['a'] for x in _c2_xpairs}
+                return [e for e in out
+                        if not (e[0] == 'node' and e[1] in drop)]
+
             if _c2_groups:
                 c2_seq, c2_pos = _c2_order(False)
                 c2bq_seq, c2bq_pos = _c2_order(True)
+                if _c2_xpairs:
+                    c2bq_seq = _c2_cross(c2bq_seq)
+                    c2bq_pos = {}
+                    for _i, _e in enumerate(c2bq_seq):
+                        c2bq_pos[_e[1] if _e[0] == 'node'
+                                 else tuple(_e)] = _i
+                    _xp = {}
+                    for _i, _e in enumerate(c2bq_seq):
+                        if _e[0] == 'c2xpair':
+                            _xp[_e[2]] = _i
+                            _xp[_e[3]] = _i
+                        elif _e[0] in ('c2pair', 'c2bqp'):
+                            for _n in (_e[3], _e[4]):
+                                _xp[_c2_nid[(_e[1], _e[2], _n)]] = _i
+                    for _src, _ms in _mtr_after.items():
+                        for _m in _ms:
+                            if _src in c2bq_pos:
+                                c2bq_pos[_m] = c2bq_pos[_src]
+                            elif _src in _xp:
+                                c2bq_pos[_m] = _xp[_src]
+                    # THE DAG CHECK, on the order actually emitted. The
+                    # reorder's whole licence is that nothing between the
+                    # old and new positions reads a sub-chain node; this
+                    # is what refuses to emit if that is ever untrue.
+                    _flat = []
+                    for _e in c2bq_seq:
+                        if _e[0] == 'node':
+                            _flat.append(_e[1])
+                        elif _e[0] == 'c2xpair':
+                            _flat += [_e[2], _e[3]]
+                        else:
+                            for _n in (_e[3], _e[4]):
+                                _flat.append(_c2_nid[(_e[1], _e[2], _n)])
+                    _bad = process_order_violations(
+                        _flat, {n['id']: n for n in chip_nodes})
+                    if _bad:
+                        raise ValueError(
+                            'chip 2 cross-chain pair reorder produced a '
+                            'stale read: ' + '; '.join(
+                                f'{c} reads {pp} which now runs later'
+                                for c, _i, pp, _j in _bad))
 
             # The pair-ordered chain, built only where there are pairs to
             # build (chip 1's channel strips).
@@ -12445,7 +12676,8 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
         with open(pairs_path, 'w', encoding='utf-8') as f:
             f.write(gen_dyn_pairs(chip_label, strips, _mtr_after,
                                   _c2_groups, _input_of,
-                                  {k: True for k in _mtr_after}))
+                                  {k: True for k in _mtr_after},
+                                  _c2_xpairs))
         files_written += 1
 
         # Paired biquad drivers. Same rule as dyn_pairs.asm: always
