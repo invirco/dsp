@@ -35,6 +35,15 @@ set -u
 cd "$(dirname "$0")"
 source ./bench_lock.sh; bench_lock_acquire "$0"
 BENCH=app@192.168.1.219
+# dsp4_block.py IS STAGED FROM THE TREE THIS POINT WAS BUILT FROM, not
+# from tools/pi, for captable.sh's reason: the Pi-side scorer must be told
+# the block rate the image on the part was actually built with. conform.sh
+# checks RAMP TIMINGS, and ramp frame counts are derived from the block
+# rate -- so a block-16 image scored against a block-8 dsp4_block.py
+# misjudges every ramp. Falls back to tools/pi when DSP_SRC_DIR is unset,
+# which is the shipping block-8 tree and the same file.
+BLOCKPY="${DSP_SRC_DIR:-$ROOT/MW/D32/DSP/SHARC/src}/dsp4_block.py"
+[ -f "$BLOCKPY" ] || BLOCKPY="$ROOT/tools/pi/dsp4_block.py"
 ROOT=../../../..
 TAG="${TAG:-cur}"
 PHASE="${PHASE:-all}"
@@ -65,7 +74,7 @@ chip2.ldr $(md5sum build/chip2.ldr | cut -c1-8)"
       $BENCH:/home/app/dspboot/ || exit 3
 fi
 
-scp -q $ROOT/tools/pi/dsp4_conform.py $ROOT/tools/pi/dsp4_block.py \
+scp -q $ROOT/tools/pi/dsp4_conform.py "$BLOCKPY" \
     $OUT/plan.json $BENCH:/home/app/dspboot/ || exit 3
 scp -q conform_run.sh $BENCH:/home/app/ || exit 3
 

@@ -542,3 +542,13 @@ C1_CAPACITY_S19,32,546865,83.4,chip 1 at block 32, 16.6% margin
 C2_CAPACITY_S19,8,171918,104.9,"chip 2 after every lever this campaign has; 8,078 cycles = 48.5 MHz short"
 C2_CAPACITY_S19,16,306950,93.7,CHIP 2 FITS at block 16 with 6.3% margin
 C2_CAPACITY_S19,32,577360,88.1,chip 2 at block 32, 11.9% margin
+#
+# SESSION 19d, 2026-09-02 — THE BLOCK-16 REQUAL.
+#
+# The undecimated real-time run is the one that matters: it is a direct
+# pass/fail rather than a cycle-count extrapolation, and it agrees with the
+# cycle count from an unrelated direction (block 8 achieves 5,187 of 5,997
+# passes/s = 86.5%, implying 115.6% of budget against 116.4% measured).
+function,block,result,pct_of_budget,notes
+C2_REALTIME_S19,16,REAL_TIME,93.7,"3000 passes/s of 3000, 32 strips, undecimated, gate OPEN 32/32 and comp ACTIVE 32/32 -- witnessed on the SIGNAL path, not the cheap branch"
+C2_REALTIME_S19,8,OVER_BUDGET,104.9,"transport 5997/s but only 5187 passes/s achieved. 86.5% of the required rate implies 115.6% of budget against chip 1's 116.4% by cycle count -- two instruments, no shared arithmetic, 0.8% apart"
