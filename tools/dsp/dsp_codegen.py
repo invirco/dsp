@@ -10617,6 +10617,11 @@ def gen_dyn_pairs(chip_label, strips, meter_src, c2_groups=(),
     a('.extern _dsim_n;')
     a('.extern _gate_pair_blk;')
     a('.extern _comp_pair_blk;')
+    # _lim_pair_blk lives in src/lib2, which is linked into CHIP 2 ONLY --
+    # so chip 1 must not even declare it. Emitted only where a family
+    # actually pairs a limiter.
+    if any(k == 'lim' for g in c2_groups for k in g['paired'].values()):
+        a('.extern _lim_pair_blk;')
     a('.extern _cmp_gn;')
 
     out += gen_dyn_pairs_c2(c2_groups, input_of or {}, mtr_of)
@@ -10915,13 +10920,25 @@ def _bq_pair_steady(cls, nid):
 # The classes before the first paired one are the HEAD, the ones after the
 # last are the TAIL; the paired classes must be contiguous between them.
 _C2_PAIR_FAMILIES = (
+    ('AUX', 'C2_AUX_{cls}_{n}',
+     ('FDR', 'EQ', 'GEQ', 'AFB', 'LIM', 'DLY', 'OUT'),
+     {'LIM': 'lim'}),
     ('GRP', 'C2_GRP_{cls}_{n}',
      ('FDR', 'EQ', 'GEQ', 'GATE', 'COMP'),
      {'GATE': 'gate', 'COMP': 'comp'}),
     ('MOUT', 'C2_MAIN_{cls}_{n}',
      ('OEQ', 'OCOMP', 'OLIM', 'OUT'),
-     {'OCOMP': 'comp'}),
+     {'OCOMP': 'comp', 'OLIM': 'lim'}),
 )
+
+# Per pair kernel: the node-variable prefix, how many PARAMETER words the
+# kernel gathers, and whether the node carries an `on` switch and a
+# sidechain filter the driver has to check before it can pair.
+_C2_PAIR_KERNEL = {
+    'gate': {'pfx': '_gate', 'on': '_gate_on_', 'filter': '_gate_filter_on_'},
+    'comp': {'pfx': '_comp', 'on': '_comp_on_', 'filter': None},
+    'lim':  {'pfx': '_lim',  'on': '_lim_on_',  'filter': None},
+}
 
 
 def c2_pair_groups(chip_label, chip_nodes, call_sequence):
@@ -10999,12 +11016,13 @@ def gen_dyn_pairs_c2(groups, input_of, mtr_of=None):
                                 f'_blk_{src}'))
                     if mtr_of.get(nd):
                         ext.update((f'_mtr_wblk_{nd}', f'_mtr_wide_{nd}'))
-                    if kern == 'gate':
-                        ext.update((f'_gate_on_{nd}', f'_gate_filter_on_{nd}',
-                                    f'_gate_attq_{nd}', f'_gate_envelope_{nd}'))
-                    else:
-                        ext.update((f'_comp_on_{nd}', f'_comp_attq_{nd}',
-                                    f'_comp_envelope_{nd}', f'_comp_gain_{nd}'))
+                    k = _C2_PAIR_KERNEL[kern]
+                    ext.update((k['on'] + nd, f"{k['pfx']}_attq_{nd}",
+                                f"{k['pfx']}_envelope_{nd}"))
+                    if k['filter']:
+                        ext.add(k['filter'] + nd)
+                    if kern == 'comp':
+                        ext.add(f'_comp_gain_{nd}')
     a('')
     a('/* ---- chip-2 dynamics pairs (dispatch item 3, 2026-09-01) ----')
     a(' * Same two kernels chip 1 has run since session 3, on chip 2\'s own')
@@ -11037,20 +11055,16 @@ def gen_dyn_pairs_c2(groups, input_of, mtr_of=None):
                 a(f'{lbl}:')
                 a('    /* Both channels must be on the same path or there is'
                   ' no pair. */')
-                if kern == 'gate':
+                _k = _C2_PAIR_KERNEL[kern]
+                for d in (da, db):
+                    a(f"    r0 = dm({_k['on']}{d});")
+                    a('    r0 = pass r0;')
+                    a(f'    if eq jump (pc, .c2s_{tag});')
+                if _k['filter']:
                     for d in (da, db):
-                        a(f'    r0 = dm(_gate_on_{d});')
-                        a('    r0 = pass r0;')
-                        a(f'    if eq jump (pc, .c2s_{tag});')
-                    for d in (da, db):
-                        a(f'    r0 = dm(_gate_filter_on_{d});')
+                        a(f"    r0 = dm({_k['filter']}{d});")
                         a('    r0 = pass r0;')
                         a(f'    if ne jump (pc, .c2s_{tag});')
-                else:
-                    for d in (da, db):
-                        a(f'    r0 = dm(_comp_on_{d});')
-                        a('    r0 = pass r0;')
-                        a(f'    if eq jump (pc, .c2s_{tag});')
                 a('')
                 a('    /* input block -> this node\'s own block, so the paired')
                 a('     * kernel can run in place the way chip 1\'s pool')
@@ -11081,7 +11095,7 @@ def gen_dyn_pairs_c2(groups, input_of, mtr_of=None):
                 a('    r0 = DSP4_BLOCK_SIZE-1;')
                 a('    dm(_dsim_n) = r0;')
                 a('    dm(_dsim_n + 1) = r0;')
-                pfx = '_gate' if kern == 'gate' else '_comp'
+                pfx = _C2_PAIR_KERNEL[kern]['pfx']
                 a(f'    r4 = {pfx}_attq_{da};')
                 a(f'    r5 = {pfx}_attq_{db};')
                 a(f'    r6 = {pfx}_envelope_{da};')

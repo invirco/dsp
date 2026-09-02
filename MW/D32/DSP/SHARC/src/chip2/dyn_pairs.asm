@@ -13,6 +13,7 @@
 .extern _dsim_n;
 .extern _gate_pair_blk;
 .extern _comp_pair_blk;
+.extern _lim_pair_blk;
 .extern _cmp_gn;
 
 /* ---- chip-2 dynamics pairs (dispatch item 3, 2026-09-01) ----
@@ -29,6 +30,30 @@
  * squaring: each node reads its producer's buffer and writes its own
  * on either path.
  */
+.extern _C2_AUX_LIM_01_process;
+.extern _C2_AUX_LIM_01_process_sample;
+.extern _C2_AUX_LIM_02_process;
+.extern _C2_AUX_LIM_02_process_sample;
+.extern _C2_AUX_LIM_03_process;
+.extern _C2_AUX_LIM_03_process_sample;
+.extern _C2_AUX_LIM_04_process;
+.extern _C2_AUX_LIM_04_process_sample;
+.extern _C2_AUX_LIM_05_process;
+.extern _C2_AUX_LIM_05_process_sample;
+.extern _C2_AUX_LIM_06_process;
+.extern _C2_AUX_LIM_06_process_sample;
+.extern _C2_AUX_LIM_07_process;
+.extern _C2_AUX_LIM_07_process_sample;
+.extern _C2_AUX_LIM_08_process;
+.extern _C2_AUX_LIM_08_process_sample;
+.extern _C2_AUX_LIM_09_process;
+.extern _C2_AUX_LIM_09_process_sample;
+.extern _C2_AUX_LIM_10_process;
+.extern _C2_AUX_LIM_10_process_sample;
+.extern _C2_AUX_LIM_11_process;
+.extern _C2_AUX_LIM_11_process_sample;
+.extern _C2_AUX_LIM_12_process;
+.extern _C2_AUX_LIM_12_process_sample;
 .extern _C2_GRP_COMP_01_process;
 .extern _C2_GRP_COMP_01_process_sample;
 .extern _C2_GRP_COMP_02_process;
@@ -53,6 +78,38 @@
 .extern _C2_MAIN_OCOMP_03_process_sample;
 .extern _C2_MAIN_OCOMP_04_process;
 .extern _C2_MAIN_OCOMP_04_process_sample;
+.extern _C2_MAIN_OLIM_01_process;
+.extern _C2_MAIN_OLIM_01_process_sample;
+.extern _C2_MAIN_OLIM_02_process;
+.extern _C2_MAIN_OLIM_02_process_sample;
+.extern _C2_MAIN_OLIM_03_process;
+.extern _C2_MAIN_OLIM_03_process_sample;
+.extern _C2_MAIN_OLIM_04_process;
+.extern _C2_MAIN_OLIM_04_process_sample;
+.extern _blk_C2_AUX_AFB_01;
+.extern _blk_C2_AUX_AFB_02;
+.extern _blk_C2_AUX_AFB_03;
+.extern _blk_C2_AUX_AFB_04;
+.extern _blk_C2_AUX_AFB_05;
+.extern _blk_C2_AUX_AFB_06;
+.extern _blk_C2_AUX_AFB_07;
+.extern _blk_C2_AUX_AFB_08;
+.extern _blk_C2_AUX_AFB_09;
+.extern _blk_C2_AUX_AFB_10;
+.extern _blk_C2_AUX_AFB_11;
+.extern _blk_C2_AUX_AFB_12;
+.extern _blk_C2_AUX_LIM_01;
+.extern _blk_C2_AUX_LIM_02;
+.extern _blk_C2_AUX_LIM_03;
+.extern _blk_C2_AUX_LIM_04;
+.extern _blk_C2_AUX_LIM_05;
+.extern _blk_C2_AUX_LIM_06;
+.extern _blk_C2_AUX_LIM_07;
+.extern _blk_C2_AUX_LIM_08;
+.extern _blk_C2_AUX_LIM_09;
+.extern _blk_C2_AUX_LIM_10;
+.extern _blk_C2_AUX_LIM_11;
+.extern _blk_C2_AUX_LIM_12;
 .extern _blk_C2_GRP_COMP_01;
 .extern _blk_C2_GRP_COMP_02;
 .extern _blk_C2_GRP_COMP_03;
@@ -73,6 +130,34 @@
 .extern _blk_C2_MAIN_OEQ_02;
 .extern _blk_C2_MAIN_OEQ_03;
 .extern _blk_C2_MAIN_OEQ_04;
+.extern _blk_C2_MAIN_OLIM_01;
+.extern _blk_C2_MAIN_OLIM_02;
+.extern _blk_C2_MAIN_OLIM_03;
+.extern _blk_C2_MAIN_OLIM_04;
+.extern _buf_C2_AUX_AFB_01;
+.extern _buf_C2_AUX_AFB_02;
+.extern _buf_C2_AUX_AFB_03;
+.extern _buf_C2_AUX_AFB_04;
+.extern _buf_C2_AUX_AFB_05;
+.extern _buf_C2_AUX_AFB_06;
+.extern _buf_C2_AUX_AFB_07;
+.extern _buf_C2_AUX_AFB_08;
+.extern _buf_C2_AUX_AFB_09;
+.extern _buf_C2_AUX_AFB_10;
+.extern _buf_C2_AUX_AFB_11;
+.extern _buf_C2_AUX_AFB_12;
+.extern _buf_C2_AUX_LIM_01;
+.extern _buf_C2_AUX_LIM_02;
+.extern _buf_C2_AUX_LIM_03;
+.extern _buf_C2_AUX_LIM_04;
+.extern _buf_C2_AUX_LIM_05;
+.extern _buf_C2_AUX_LIM_06;
+.extern _buf_C2_AUX_LIM_07;
+.extern _buf_C2_AUX_LIM_08;
+.extern _buf_C2_AUX_LIM_09;
+.extern _buf_C2_AUX_LIM_10;
+.extern _buf_C2_AUX_LIM_11;
+.extern _buf_C2_AUX_LIM_12;
 .extern _buf_C2_GRP_COMP_01;
 .extern _buf_C2_GRP_COMP_02;
 .extern _buf_C2_GRP_COMP_03;
@@ -93,6 +178,10 @@
 .extern _buf_C2_MAIN_OEQ_02;
 .extern _buf_C2_MAIN_OEQ_03;
 .extern _buf_C2_MAIN_OEQ_04;
+.extern _buf_C2_MAIN_OLIM_01;
+.extern _buf_C2_MAIN_OLIM_02;
+.extern _buf_C2_MAIN_OLIM_03;
+.extern _buf_C2_MAIN_OLIM_04;
 .extern _comp_attq_C2_GRP_COMP_01;
 .extern _comp_attq_C2_GRP_COMP_02;
 .extern _comp_attq_C2_GRP_COMP_03;
@@ -141,6 +230,54 @@
 .extern _gate_on_C2_GRP_GATE_02;
 .extern _gate_on_C2_GRP_GATE_03;
 .extern _gate_on_C2_GRP_GATE_04;
+.extern _lim_attq_C2_AUX_LIM_01;
+.extern _lim_attq_C2_AUX_LIM_02;
+.extern _lim_attq_C2_AUX_LIM_03;
+.extern _lim_attq_C2_AUX_LIM_04;
+.extern _lim_attq_C2_AUX_LIM_05;
+.extern _lim_attq_C2_AUX_LIM_06;
+.extern _lim_attq_C2_AUX_LIM_07;
+.extern _lim_attq_C2_AUX_LIM_08;
+.extern _lim_attq_C2_AUX_LIM_09;
+.extern _lim_attq_C2_AUX_LIM_10;
+.extern _lim_attq_C2_AUX_LIM_11;
+.extern _lim_attq_C2_AUX_LIM_12;
+.extern _lim_attq_C2_MAIN_OLIM_01;
+.extern _lim_attq_C2_MAIN_OLIM_02;
+.extern _lim_attq_C2_MAIN_OLIM_03;
+.extern _lim_attq_C2_MAIN_OLIM_04;
+.extern _lim_envelope_C2_AUX_LIM_01;
+.extern _lim_envelope_C2_AUX_LIM_02;
+.extern _lim_envelope_C2_AUX_LIM_03;
+.extern _lim_envelope_C2_AUX_LIM_04;
+.extern _lim_envelope_C2_AUX_LIM_05;
+.extern _lim_envelope_C2_AUX_LIM_06;
+.extern _lim_envelope_C2_AUX_LIM_07;
+.extern _lim_envelope_C2_AUX_LIM_08;
+.extern _lim_envelope_C2_AUX_LIM_09;
+.extern _lim_envelope_C2_AUX_LIM_10;
+.extern _lim_envelope_C2_AUX_LIM_11;
+.extern _lim_envelope_C2_AUX_LIM_12;
+.extern _lim_envelope_C2_MAIN_OLIM_01;
+.extern _lim_envelope_C2_MAIN_OLIM_02;
+.extern _lim_envelope_C2_MAIN_OLIM_03;
+.extern _lim_envelope_C2_MAIN_OLIM_04;
+.extern _lim_on_C2_AUX_LIM_01;
+.extern _lim_on_C2_AUX_LIM_02;
+.extern _lim_on_C2_AUX_LIM_03;
+.extern _lim_on_C2_AUX_LIM_04;
+.extern _lim_on_C2_AUX_LIM_05;
+.extern _lim_on_C2_AUX_LIM_06;
+.extern _lim_on_C2_AUX_LIM_07;
+.extern _lim_on_C2_AUX_LIM_08;
+.extern _lim_on_C2_AUX_LIM_09;
+.extern _lim_on_C2_AUX_LIM_10;
+.extern _lim_on_C2_AUX_LIM_11;
+.extern _lim_on_C2_AUX_LIM_12;
+.extern _lim_on_C2_MAIN_OLIM_01;
+.extern _lim_on_C2_MAIN_OLIM_02;
+.extern _lim_on_C2_MAIN_OLIM_03;
+.extern _lim_on_C2_MAIN_OLIM_04;
 .extern _mtr_wblk_C2_GRP_COMP_01;
 .extern _mtr_wblk_C2_GRP_COMP_02;
 .extern _mtr_wblk_C2_GRP_COMP_03;
@@ -149,6 +286,516 @@
 .extern _mtr_wide_C2_GRP_COMP_02;
 .extern _mtr_wide_C2_GRP_COMP_03;
 .extern _mtr_wide_C2_GRP_COMP_04;
+
+/* ---- C2_AUX_LIM_01 + C2_AUX_LIM_02 ---- */
+.global _C2PAIR_AUX_LIM_01_02_process;
+_C2PAIR_AUX_LIM_01_02_process:
+    /* Both channels must be on the same path or there is no pair. */
+    r0 = dm(_lim_on_C2_AUX_LIM_01);
+    r0 = pass r0;
+    if eq jump (pc, .c2s_AUX_LIM_01_02);
+    r0 = dm(_lim_on_C2_AUX_LIM_02);
+    r0 = pass r0;
+    if eq jump (pc, .c2s_AUX_LIM_01_02);
+
+    /* input block -> this node's own block, so the paired
+     * kernel can run in place the way chip 1's pool
+     * ping-pong does. */
+    l3 = 0; l4 = 0;
+    i3 = _blk_C2_AUX_AFB_01;
+    i4 = _blk_C2_AUX_LIM_01;
+    lcntr = DSP4_BLOCK_SIZE, do .c2cp0_AUX_LIM_01_02 until lce;
+        r0 = dm(i3, 1);
+    .c2cp0_AUX_LIM_01_02: dm(i4, 1) = r0;
+    i3 = _blk_C2_AUX_AFB_02;
+    i4 = _blk_C2_AUX_LIM_02;
+    lcntr = DSP4_BLOCK_SIZE, do .c2cp1_AUX_LIM_01_02 until lce;
+        r0 = dm(i3, 1);
+    .c2cp1_AUX_LIM_01_02: dm(i4, 1) = r0;
+
+    /* sample 0 through each channel's own per-sample body */
+    r5 = dm(_sample_idx);
+    dm(_dynpair_saved_idx) = r5;
+    r5 = 0;
+    dm(_sample_idx) = r5;
+    r0 = dm(_blk_C2_AUX_LIM_01);
+    dm(_buf_C2_AUX_AFB_01) = r0;
+    call _C2_AUX_LIM_01_process_sample;
+    r0 = dm(_buf_C2_AUX_LIM_01);
+    dm(_blk_C2_AUX_LIM_01) = r0;
+    r0 = dm(_blk_C2_AUX_LIM_02);
+    dm(_buf_C2_AUX_AFB_02) = r0;
+    call _C2_AUX_LIM_02_process_sample;
+    r0 = dm(_buf_C2_AUX_LIM_02);
+    dm(_blk_C2_AUX_LIM_02) = r0;
+    r5 = dm(_dynpair_saved_idx);
+    dm(_sample_idx) = r5;
+
+    /* samples 1..BLOCK-1, two channels, one stream */
+    r0 = DSP4_BLOCK_SIZE-1;
+    dm(_dsim_n) = r0;
+    dm(_dsim_n + 1) = r0;
+    r4 = _lim_attq_C2_AUX_LIM_01;
+    r5 = _lim_attq_C2_AUX_LIM_02;
+    r6 = _lim_envelope_C2_AUX_LIM_01;
+    r7 = _lim_envelope_C2_AUX_LIM_02;
+    r0 = _blk_C2_AUX_LIM_01;
+    r1 = 1;
+    r8 = r0 + r1;
+    r0 = _blk_C2_AUX_LIM_02;
+    r9 = r0 + r1;
+    call _lim_pair_blk;
+    /* republish the scalar _buf_ word off the LAST sample
+     * of the block. On chip 2 `_buf_<id>` IS what a host
+     * peek reads, and the paired path only writes it for
+     * sample 0 -- so without this it would report the
+     * first sample of the block while every unpaired node
+     * reports the last. Nine instructions at block rate,
+     * and the same repair the GEQ block kernel already
+     * makes for the same reason. */
+    l4 = 0;
+    m4 = DSP4_BLOCK_SIZE-1;
+    i4 = _blk_C2_AUX_LIM_01;
+    modify(i4, m4);
+    r0 = dm(i4, 0);
+    dm(_buf_C2_AUX_LIM_01) = r0;
+    i4 = _blk_C2_AUX_LIM_02;
+    modify(i4, m4);
+    r0 = dm(i4, 0);
+    dm(_buf_C2_AUX_LIM_02) = r0;
+    rts;
+
+.c2s_AUX_LIM_01_02:
+    /* scalar fallback: the two nodes, unchanged */
+    call _C2_AUX_LIM_01_process;
+    call _C2_AUX_LIM_02_process;
+    rts;
+_C2PAIR_AUX_LIM_01_02_process.end:
+
+/* ---- C2_AUX_LIM_03 + C2_AUX_LIM_04 ---- */
+.global _C2PAIR_AUX_LIM_03_04_process;
+_C2PAIR_AUX_LIM_03_04_process:
+    /* Both channels must be on the same path or there is no pair. */
+    r0 = dm(_lim_on_C2_AUX_LIM_03);
+    r0 = pass r0;
+    if eq jump (pc, .c2s_AUX_LIM_03_04);
+    r0 = dm(_lim_on_C2_AUX_LIM_04);
+    r0 = pass r0;
+    if eq jump (pc, .c2s_AUX_LIM_03_04);
+
+    /* input block -> this node's own block, so the paired
+     * kernel can run in place the way chip 1's pool
+     * ping-pong does. */
+    l3 = 0; l4 = 0;
+    i3 = _blk_C2_AUX_AFB_03;
+    i4 = _blk_C2_AUX_LIM_03;
+    lcntr = DSP4_BLOCK_SIZE, do .c2cp0_AUX_LIM_03_04 until lce;
+        r0 = dm(i3, 1);
+    .c2cp0_AUX_LIM_03_04: dm(i4, 1) = r0;
+    i3 = _blk_C2_AUX_AFB_04;
+    i4 = _blk_C2_AUX_LIM_04;
+    lcntr = DSP4_BLOCK_SIZE, do .c2cp1_AUX_LIM_03_04 until lce;
+        r0 = dm(i3, 1);
+    .c2cp1_AUX_LIM_03_04: dm(i4, 1) = r0;
+
+    /* sample 0 through each channel's own per-sample body */
+    r5 = dm(_sample_idx);
+    dm(_dynpair_saved_idx) = r5;
+    r5 = 0;
+    dm(_sample_idx) = r5;
+    r0 = dm(_blk_C2_AUX_LIM_03);
+    dm(_buf_C2_AUX_AFB_03) = r0;
+    call _C2_AUX_LIM_03_process_sample;
+    r0 = dm(_buf_C2_AUX_LIM_03);
+    dm(_blk_C2_AUX_LIM_03) = r0;
+    r0 = dm(_blk_C2_AUX_LIM_04);
+    dm(_buf_C2_AUX_AFB_04) = r0;
+    call _C2_AUX_LIM_04_process_sample;
+    r0 = dm(_buf_C2_AUX_LIM_04);
+    dm(_blk_C2_AUX_LIM_04) = r0;
+    r5 = dm(_dynpair_saved_idx);
+    dm(_sample_idx) = r5;
+
+    /* samples 1..BLOCK-1, two channels, one stream */
+    r0 = DSP4_BLOCK_SIZE-1;
+    dm(_dsim_n) = r0;
+    dm(_dsim_n + 1) = r0;
+    r4 = _lim_attq_C2_AUX_LIM_03;
+    r5 = _lim_attq_C2_AUX_LIM_04;
+    r6 = _lim_envelope_C2_AUX_LIM_03;
+    r7 = _lim_envelope_C2_AUX_LIM_04;
+    r0 = _blk_C2_AUX_LIM_03;
+    r1 = 1;
+    r8 = r0 + r1;
+    r0 = _blk_C2_AUX_LIM_04;
+    r9 = r0 + r1;
+    call _lim_pair_blk;
+    /* republish the scalar _buf_ word off the LAST sample
+     * of the block. On chip 2 `_buf_<id>` IS what a host
+     * peek reads, and the paired path only writes it for
+     * sample 0 -- so without this it would report the
+     * first sample of the block while every unpaired node
+     * reports the last. Nine instructions at block rate,
+     * and the same repair the GEQ block kernel already
+     * makes for the same reason. */
+    l4 = 0;
+    m4 = DSP4_BLOCK_SIZE-1;
+    i4 = _blk_C2_AUX_LIM_03;
+    modify(i4, m4);
+    r0 = dm(i4, 0);
+    dm(_buf_C2_AUX_LIM_03) = r0;
+    i4 = _blk_C2_AUX_LIM_04;
+    modify(i4, m4);
+    r0 = dm(i4, 0);
+    dm(_buf_C2_AUX_LIM_04) = r0;
+    rts;
+
+.c2s_AUX_LIM_03_04:
+    /* scalar fallback: the two nodes, unchanged */
+    call _C2_AUX_LIM_03_process;
+    call _C2_AUX_LIM_04_process;
+    rts;
+_C2PAIR_AUX_LIM_03_04_process.end:
+
+/* ---- C2_AUX_LIM_05 + C2_AUX_LIM_06 ---- */
+.global _C2PAIR_AUX_LIM_05_06_process;
+_C2PAIR_AUX_LIM_05_06_process:
+    /* Both channels must be on the same path or there is no pair. */
+    r0 = dm(_lim_on_C2_AUX_LIM_05);
+    r0 = pass r0;
+    if eq jump (pc, .c2s_AUX_LIM_05_06);
+    r0 = dm(_lim_on_C2_AUX_LIM_06);
+    r0 = pass r0;
+    if eq jump (pc, .c2s_AUX_LIM_05_06);
+
+    /* input block -> this node's own block, so the paired
+     * kernel can run in place the way chip 1's pool
+     * ping-pong does. */
+    l3 = 0; l4 = 0;
+    i3 = _blk_C2_AUX_AFB_05;
+    i4 = _blk_C2_AUX_LIM_05;
+    lcntr = DSP4_BLOCK_SIZE, do .c2cp0_AUX_LIM_05_06 until lce;
+        r0 = dm(i3, 1);
+    .c2cp0_AUX_LIM_05_06: dm(i4, 1) = r0;
+    i3 = _blk_C2_AUX_AFB_06;
+    i4 = _blk_C2_AUX_LIM_06;
+    lcntr = DSP4_BLOCK_SIZE, do .c2cp1_AUX_LIM_05_06 until lce;
+        r0 = dm(i3, 1);
+    .c2cp1_AUX_LIM_05_06: dm(i4, 1) = r0;
+
+    /* sample 0 through each channel's own per-sample body */
+    r5 = dm(_sample_idx);
+    dm(_dynpair_saved_idx) = r5;
+    r5 = 0;
+    dm(_sample_idx) = r5;
+    r0 = dm(_blk_C2_AUX_LIM_05);
+    dm(_buf_C2_AUX_AFB_05) = r0;
+    call _C2_AUX_LIM_05_process_sample;
+    r0 = dm(_buf_C2_AUX_LIM_05);
+    dm(_blk_C2_AUX_LIM_05) = r0;
+    r0 = dm(_blk_C2_AUX_LIM_06);
+    dm(_buf_C2_AUX_AFB_06) = r0;
+    call _C2_AUX_LIM_06_process_sample;
+    r0 = dm(_buf_C2_AUX_LIM_06);
+    dm(_blk_C2_AUX_LIM_06) = r0;
+    r5 = dm(_dynpair_saved_idx);
+    dm(_sample_idx) = r5;
+
+    /* samples 1..BLOCK-1, two channels, one stream */
+    r0 = DSP4_BLOCK_SIZE-1;
+    dm(_dsim_n) = r0;
+    dm(_dsim_n + 1) = r0;
+    r4 = _lim_attq_C2_AUX_LIM_05;
+    r5 = _lim_attq_C2_AUX_LIM_06;
+    r6 = _lim_envelope_C2_AUX_LIM_05;
+    r7 = _lim_envelope_C2_AUX_LIM_06;
+    r0 = _blk_C2_AUX_LIM_05;
+    r1 = 1;
+    r8 = r0 + r1;
+    r0 = _blk_C2_AUX_LIM_06;
+    r9 = r0 + r1;
+    call _lim_pair_blk;
+    /* republish the scalar _buf_ word off the LAST sample
+     * of the block. On chip 2 `_buf_<id>` IS what a host
+     * peek reads, and the paired path only writes it for
+     * sample 0 -- so without this it would report the
+     * first sample of the block while every unpaired node
+     * reports the last. Nine instructions at block rate,
+     * and the same repair the GEQ block kernel already
+     * makes for the same reason. */
+    l4 = 0;
+    m4 = DSP4_BLOCK_SIZE-1;
+    i4 = _blk_C2_AUX_LIM_05;
+    modify(i4, m4);
+    r0 = dm(i4, 0);
+    dm(_buf_C2_AUX_LIM_05) = r0;
+    i4 = _blk_C2_AUX_LIM_06;
+    modify(i4, m4);
+    r0 = dm(i4, 0);
+    dm(_buf_C2_AUX_LIM_06) = r0;
+    rts;
+
+.c2s_AUX_LIM_05_06:
+    /* scalar fallback: the two nodes, unchanged */
+    call _C2_AUX_LIM_05_process;
+    call _C2_AUX_LIM_06_process;
+    rts;
+_C2PAIR_AUX_LIM_05_06_process.end:
+
+/* ---- C2_AUX_LIM_07 + C2_AUX_LIM_08 ---- */
+.global _C2PAIR_AUX_LIM_07_08_process;
+_C2PAIR_AUX_LIM_07_08_process:
+    /* Both channels must be on the same path or there is no pair. */
+    r0 = dm(_lim_on_C2_AUX_LIM_07);
+    r0 = pass r0;
+    if eq jump (pc, .c2s_AUX_LIM_07_08);
+    r0 = dm(_lim_on_C2_AUX_LIM_08);
+    r0 = pass r0;
+    if eq jump (pc, .c2s_AUX_LIM_07_08);
+
+    /* input block -> this node's own block, so the paired
+     * kernel can run in place the way chip 1's pool
+     * ping-pong does. */
+    l3 = 0; l4 = 0;
+    i3 = _blk_C2_AUX_AFB_07;
+    i4 = _blk_C2_AUX_LIM_07;
+    lcntr = DSP4_BLOCK_SIZE, do .c2cp0_AUX_LIM_07_08 until lce;
+        r0 = dm(i3, 1);
+    .c2cp0_AUX_LIM_07_08: dm(i4, 1) = r0;
+    i3 = _blk_C2_AUX_AFB_08;
+    i4 = _blk_C2_AUX_LIM_08;
+    lcntr = DSP4_BLOCK_SIZE, do .c2cp1_AUX_LIM_07_08 until lce;
+        r0 = dm(i3, 1);
+    .c2cp1_AUX_LIM_07_08: dm(i4, 1) = r0;
+
+    /* sample 0 through each channel's own per-sample body */
+    r5 = dm(_sample_idx);
+    dm(_dynpair_saved_idx) = r5;
+    r5 = 0;
+    dm(_sample_idx) = r5;
+    r0 = dm(_blk_C2_AUX_LIM_07);
+    dm(_buf_C2_AUX_AFB_07) = r0;
+    call _C2_AUX_LIM_07_process_sample;
+    r0 = dm(_buf_C2_AUX_LIM_07);
+    dm(_blk_C2_AUX_LIM_07) = r0;
+    r0 = dm(_blk_C2_AUX_LIM_08);
+    dm(_buf_C2_AUX_AFB_08) = r0;
+    call _C2_AUX_LIM_08_process_sample;
+    r0 = dm(_buf_C2_AUX_LIM_08);
+    dm(_blk_C2_AUX_LIM_08) = r0;
+    r5 = dm(_dynpair_saved_idx);
+    dm(_sample_idx) = r5;
+
+    /* samples 1..BLOCK-1, two channels, one stream */
+    r0 = DSP4_BLOCK_SIZE-1;
+    dm(_dsim_n) = r0;
+    dm(_dsim_n + 1) = r0;
+    r4 = _lim_attq_C2_AUX_LIM_07;
+    r5 = _lim_attq_C2_AUX_LIM_08;
+    r6 = _lim_envelope_C2_AUX_LIM_07;
+    r7 = _lim_envelope_C2_AUX_LIM_08;
+    r0 = _blk_C2_AUX_LIM_07;
+    r1 = 1;
+    r8 = r0 + r1;
+    r0 = _blk_C2_AUX_LIM_08;
+    r9 = r0 + r1;
+    call _lim_pair_blk;
+    /* republish the scalar _buf_ word off the LAST sample
+     * of the block. On chip 2 `_buf_<id>` IS what a host
+     * peek reads, and the paired path only writes it for
+     * sample 0 -- so without this it would report the
+     * first sample of the block while every unpaired node
+     * reports the last. Nine instructions at block rate,
+     * and the same repair the GEQ block kernel already
+     * makes for the same reason. */
+    l4 = 0;
+    m4 = DSP4_BLOCK_SIZE-1;
+    i4 = _blk_C2_AUX_LIM_07;
+    modify(i4, m4);
+    r0 = dm(i4, 0);
+    dm(_buf_C2_AUX_LIM_07) = r0;
+    i4 = _blk_C2_AUX_LIM_08;
+    modify(i4, m4);
+    r0 = dm(i4, 0);
+    dm(_buf_C2_AUX_LIM_08) = r0;
+    rts;
+
+.c2s_AUX_LIM_07_08:
+    /* scalar fallback: the two nodes, unchanged */
+    call _C2_AUX_LIM_07_process;
+    call _C2_AUX_LIM_08_process;
+    rts;
+_C2PAIR_AUX_LIM_07_08_process.end:
+
+/* ---- C2_AUX_LIM_09 + C2_AUX_LIM_10 ---- */
+.global _C2PAIR_AUX_LIM_09_10_process;
+_C2PAIR_AUX_LIM_09_10_process:
+    /* Both channels must be on the same path or there is no pair. */
+    r0 = dm(_lim_on_C2_AUX_LIM_09);
+    r0 = pass r0;
+    if eq jump (pc, .c2s_AUX_LIM_09_10);
+    r0 = dm(_lim_on_C2_AUX_LIM_10);
+    r0 = pass r0;
+    if eq jump (pc, .c2s_AUX_LIM_09_10);
+
+    /* input block -> this node's own block, so the paired
+     * kernel can run in place the way chip 1's pool
+     * ping-pong does. */
+    l3 = 0; l4 = 0;
+    i3 = _blk_C2_AUX_AFB_09;
+    i4 = _blk_C2_AUX_LIM_09;
+    lcntr = DSP4_BLOCK_SIZE, do .c2cp0_AUX_LIM_09_10 until lce;
+        r0 = dm(i3, 1);
+    .c2cp0_AUX_LIM_09_10: dm(i4, 1) = r0;
+    i3 = _blk_C2_AUX_AFB_10;
+    i4 = _blk_C2_AUX_LIM_10;
+    lcntr = DSP4_BLOCK_SIZE, do .c2cp1_AUX_LIM_09_10 until lce;
+        r0 = dm(i3, 1);
+    .c2cp1_AUX_LIM_09_10: dm(i4, 1) = r0;
+
+    /* sample 0 through each channel's own per-sample body */
+    r5 = dm(_sample_idx);
+    dm(_dynpair_saved_idx) = r5;
+    r5 = 0;
+    dm(_sample_idx) = r5;
+    r0 = dm(_blk_C2_AUX_LIM_09);
+    dm(_buf_C2_AUX_AFB_09) = r0;
+    call _C2_AUX_LIM_09_process_sample;
+    r0 = dm(_buf_C2_AUX_LIM_09);
+    dm(_blk_C2_AUX_LIM_09) = r0;
+    r0 = dm(_blk_C2_AUX_LIM_10);
+    dm(_buf_C2_AUX_AFB_10) = r0;
+    call _C2_AUX_LIM_10_process_sample;
+    r0 = dm(_buf_C2_AUX_LIM_10);
+    dm(_blk_C2_AUX_LIM_10) = r0;
+    r5 = dm(_dynpair_saved_idx);
+    dm(_sample_idx) = r5;
+
+    /* samples 1..BLOCK-1, two channels, one stream */
+    r0 = DSP4_BLOCK_SIZE-1;
+    dm(_dsim_n) = r0;
+    dm(_dsim_n + 1) = r0;
+    r4 = _lim_attq_C2_AUX_LIM_09;
+    r5 = _lim_attq_C2_AUX_LIM_10;
+    r6 = _lim_envelope_C2_AUX_LIM_09;
+    r7 = _lim_envelope_C2_AUX_LIM_10;
+    r0 = _blk_C2_AUX_LIM_09;
+    r1 = 1;
+    r8 = r0 + r1;
+    r0 = _blk_C2_AUX_LIM_10;
+    r9 = r0 + r1;
+    call _lim_pair_blk;
+    /* republish the scalar _buf_ word off the LAST sample
+     * of the block. On chip 2 `_buf_<id>` IS what a host
+     * peek reads, and the paired path only writes it for
+     * sample 0 -- so without this it would report the
+     * first sample of the block while every unpaired node
+     * reports the last. Nine instructions at block rate,
+     * and the same repair the GEQ block kernel already
+     * makes for the same reason. */
+    l4 = 0;
+    m4 = DSP4_BLOCK_SIZE-1;
+    i4 = _blk_C2_AUX_LIM_09;
+    modify(i4, m4);
+    r0 = dm(i4, 0);
+    dm(_buf_C2_AUX_LIM_09) = r0;
+    i4 = _blk_C2_AUX_LIM_10;
+    modify(i4, m4);
+    r0 = dm(i4, 0);
+    dm(_buf_C2_AUX_LIM_10) = r0;
+    rts;
+
+.c2s_AUX_LIM_09_10:
+    /* scalar fallback: the two nodes, unchanged */
+    call _C2_AUX_LIM_09_process;
+    call _C2_AUX_LIM_10_process;
+    rts;
+_C2PAIR_AUX_LIM_09_10_process.end:
+
+/* ---- C2_AUX_LIM_11 + C2_AUX_LIM_12 ---- */
+.global _C2PAIR_AUX_LIM_11_12_process;
+_C2PAIR_AUX_LIM_11_12_process:
+    /* Both channels must be on the same path or there is no pair. */
+    r0 = dm(_lim_on_C2_AUX_LIM_11);
+    r0 = pass r0;
+    if eq jump (pc, .c2s_AUX_LIM_11_12);
+    r0 = dm(_lim_on_C2_AUX_LIM_12);
+    r0 = pass r0;
+    if eq jump (pc, .c2s_AUX_LIM_11_12);
+
+    /* input block -> this node's own block, so the paired
+     * kernel can run in place the way chip 1's pool
+     * ping-pong does. */
+    l3 = 0; l4 = 0;
+    i3 = _blk_C2_AUX_AFB_11;
+    i4 = _blk_C2_AUX_LIM_11;
+    lcntr = DSP4_BLOCK_SIZE, do .c2cp0_AUX_LIM_11_12 until lce;
+        r0 = dm(i3, 1);
+    .c2cp0_AUX_LIM_11_12: dm(i4, 1) = r0;
+    i3 = _blk_C2_AUX_AFB_12;
+    i4 = _blk_C2_AUX_LIM_12;
+    lcntr = DSP4_BLOCK_SIZE, do .c2cp1_AUX_LIM_11_12 until lce;
+        r0 = dm(i3, 1);
+    .c2cp1_AUX_LIM_11_12: dm(i4, 1) = r0;
+
+    /* sample 0 through each channel's own per-sample body */
+    r5 = dm(_sample_idx);
+    dm(_dynpair_saved_idx) = r5;
+    r5 = 0;
+    dm(_sample_idx) = r5;
+    r0 = dm(_blk_C2_AUX_LIM_11);
+    dm(_buf_C2_AUX_AFB_11) = r0;
+    call _C2_AUX_LIM_11_process_sample;
+    r0 = dm(_buf_C2_AUX_LIM_11);
+    dm(_blk_C2_AUX_LIM_11) = r0;
+    r0 = dm(_blk_C2_AUX_LIM_12);
+    dm(_buf_C2_AUX_AFB_12) = r0;
+    call _C2_AUX_LIM_12_process_sample;
+    r0 = dm(_buf_C2_AUX_LIM_12);
+    dm(_blk_C2_AUX_LIM_12) = r0;
+    r5 = dm(_dynpair_saved_idx);
+    dm(_sample_idx) = r5;
+
+    /* samples 1..BLOCK-1, two channels, one stream */
+    r0 = DSP4_BLOCK_SIZE-1;
+    dm(_dsim_n) = r0;
+    dm(_dsim_n + 1) = r0;
+    r4 = _lim_attq_C2_AUX_LIM_11;
+    r5 = _lim_attq_C2_AUX_LIM_12;
+    r6 = _lim_envelope_C2_AUX_LIM_11;
+    r7 = _lim_envelope_C2_AUX_LIM_12;
+    r0 = _blk_C2_AUX_LIM_11;
+    r1 = 1;
+    r8 = r0 + r1;
+    r0 = _blk_C2_AUX_LIM_12;
+    r9 = r0 + r1;
+    call _lim_pair_blk;
+    /* republish the scalar _buf_ word off the LAST sample
+     * of the block. On chip 2 `_buf_<id>` IS what a host
+     * peek reads, and the paired path only writes it for
+     * sample 0 -- so without this it would report the
+     * first sample of the block while every unpaired node
+     * reports the last. Nine instructions at block rate,
+     * and the same repair the GEQ block kernel already
+     * makes for the same reason. */
+    l4 = 0;
+    m4 = DSP4_BLOCK_SIZE-1;
+    i4 = _blk_C2_AUX_LIM_11;
+    modify(i4, m4);
+    r0 = dm(i4, 0);
+    dm(_buf_C2_AUX_LIM_11) = r0;
+    i4 = _blk_C2_AUX_LIM_12;
+    modify(i4, m4);
+    r0 = dm(i4, 0);
+    dm(_buf_C2_AUX_LIM_12) = r0;
+    rts;
+
+.c2s_AUX_LIM_11_12:
+    /* scalar fallback: the two nodes, unchanged */
+    call _C2_AUX_LIM_11_process;
+    call _C2_AUX_LIM_12_process;
+    rts;
+_C2PAIR_AUX_LIM_11_12_process.end:
 
 /* ---- C2_GRP_GATE_01 + C2_GRP_GATE_02 ---- */
 .global _C2PAIR_GRP_GATE_01_02_process;
@@ -767,6 +1414,176 @@ _C2PAIR_MOUT_OCOMP_03_04_process:
     call _C2_MAIN_OCOMP_04_process;
     rts;
 _C2PAIR_MOUT_OCOMP_03_04_process.end:
+
+/* ---- C2_MAIN_OLIM_01 + C2_MAIN_OLIM_02 ---- */
+.global _C2PAIR_MOUT_OLIM_01_02_process;
+_C2PAIR_MOUT_OLIM_01_02_process:
+    /* Both channels must be on the same path or there is no pair. */
+    r0 = dm(_lim_on_C2_MAIN_OLIM_01);
+    r0 = pass r0;
+    if eq jump (pc, .c2s_MOUT_OLIM_01_02);
+    r0 = dm(_lim_on_C2_MAIN_OLIM_02);
+    r0 = pass r0;
+    if eq jump (pc, .c2s_MOUT_OLIM_01_02);
+
+    /* input block -> this node's own block, so the paired
+     * kernel can run in place the way chip 1's pool
+     * ping-pong does. */
+    l3 = 0; l4 = 0;
+    i3 = _blk_C2_MAIN_OCOMP_01;
+    i4 = _blk_C2_MAIN_OLIM_01;
+    lcntr = DSP4_BLOCK_SIZE, do .c2cp0_MOUT_OLIM_01_02 until lce;
+        r0 = dm(i3, 1);
+    .c2cp0_MOUT_OLIM_01_02: dm(i4, 1) = r0;
+    i3 = _blk_C2_MAIN_OCOMP_02;
+    i4 = _blk_C2_MAIN_OLIM_02;
+    lcntr = DSP4_BLOCK_SIZE, do .c2cp1_MOUT_OLIM_01_02 until lce;
+        r0 = dm(i3, 1);
+    .c2cp1_MOUT_OLIM_01_02: dm(i4, 1) = r0;
+
+    /* sample 0 through each channel's own per-sample body */
+    r5 = dm(_sample_idx);
+    dm(_dynpair_saved_idx) = r5;
+    r5 = 0;
+    dm(_sample_idx) = r5;
+    r0 = dm(_blk_C2_MAIN_OLIM_01);
+    dm(_buf_C2_MAIN_OCOMP_01) = r0;
+    call _C2_MAIN_OLIM_01_process_sample;
+    r0 = dm(_buf_C2_MAIN_OLIM_01);
+    dm(_blk_C2_MAIN_OLIM_01) = r0;
+    r0 = dm(_blk_C2_MAIN_OLIM_02);
+    dm(_buf_C2_MAIN_OCOMP_02) = r0;
+    call _C2_MAIN_OLIM_02_process_sample;
+    r0 = dm(_buf_C2_MAIN_OLIM_02);
+    dm(_blk_C2_MAIN_OLIM_02) = r0;
+    r5 = dm(_dynpair_saved_idx);
+    dm(_sample_idx) = r5;
+
+    /* samples 1..BLOCK-1, two channels, one stream */
+    r0 = DSP4_BLOCK_SIZE-1;
+    dm(_dsim_n) = r0;
+    dm(_dsim_n + 1) = r0;
+    r4 = _lim_attq_C2_MAIN_OLIM_01;
+    r5 = _lim_attq_C2_MAIN_OLIM_02;
+    r6 = _lim_envelope_C2_MAIN_OLIM_01;
+    r7 = _lim_envelope_C2_MAIN_OLIM_02;
+    r0 = _blk_C2_MAIN_OLIM_01;
+    r1 = 1;
+    r8 = r0 + r1;
+    r0 = _blk_C2_MAIN_OLIM_02;
+    r9 = r0 + r1;
+    call _lim_pair_blk;
+    /* republish the scalar _buf_ word off the LAST sample
+     * of the block. On chip 2 `_buf_<id>` IS what a host
+     * peek reads, and the paired path only writes it for
+     * sample 0 -- so without this it would report the
+     * first sample of the block while every unpaired node
+     * reports the last. Nine instructions at block rate,
+     * and the same repair the GEQ block kernel already
+     * makes for the same reason. */
+    l4 = 0;
+    m4 = DSP4_BLOCK_SIZE-1;
+    i4 = _blk_C2_MAIN_OLIM_01;
+    modify(i4, m4);
+    r0 = dm(i4, 0);
+    dm(_buf_C2_MAIN_OLIM_01) = r0;
+    i4 = _blk_C2_MAIN_OLIM_02;
+    modify(i4, m4);
+    r0 = dm(i4, 0);
+    dm(_buf_C2_MAIN_OLIM_02) = r0;
+    rts;
+
+.c2s_MOUT_OLIM_01_02:
+    /* scalar fallback: the two nodes, unchanged */
+    call _C2_MAIN_OLIM_01_process;
+    call _C2_MAIN_OLIM_02_process;
+    rts;
+_C2PAIR_MOUT_OLIM_01_02_process.end:
+
+/* ---- C2_MAIN_OLIM_03 + C2_MAIN_OLIM_04 ---- */
+.global _C2PAIR_MOUT_OLIM_03_04_process;
+_C2PAIR_MOUT_OLIM_03_04_process:
+    /* Both channels must be on the same path or there is no pair. */
+    r0 = dm(_lim_on_C2_MAIN_OLIM_03);
+    r0 = pass r0;
+    if eq jump (pc, .c2s_MOUT_OLIM_03_04);
+    r0 = dm(_lim_on_C2_MAIN_OLIM_04);
+    r0 = pass r0;
+    if eq jump (pc, .c2s_MOUT_OLIM_03_04);
+
+    /* input block -> this node's own block, so the paired
+     * kernel can run in place the way chip 1's pool
+     * ping-pong does. */
+    l3 = 0; l4 = 0;
+    i3 = _blk_C2_MAIN_OCOMP_03;
+    i4 = _blk_C2_MAIN_OLIM_03;
+    lcntr = DSP4_BLOCK_SIZE, do .c2cp0_MOUT_OLIM_03_04 until lce;
+        r0 = dm(i3, 1);
+    .c2cp0_MOUT_OLIM_03_04: dm(i4, 1) = r0;
+    i3 = _blk_C2_MAIN_OCOMP_04;
+    i4 = _blk_C2_MAIN_OLIM_04;
+    lcntr = DSP4_BLOCK_SIZE, do .c2cp1_MOUT_OLIM_03_04 until lce;
+        r0 = dm(i3, 1);
+    .c2cp1_MOUT_OLIM_03_04: dm(i4, 1) = r0;
+
+    /* sample 0 through each channel's own per-sample body */
+    r5 = dm(_sample_idx);
+    dm(_dynpair_saved_idx) = r5;
+    r5 = 0;
+    dm(_sample_idx) = r5;
+    r0 = dm(_blk_C2_MAIN_OLIM_03);
+    dm(_buf_C2_MAIN_OCOMP_03) = r0;
+    call _C2_MAIN_OLIM_03_process_sample;
+    r0 = dm(_buf_C2_MAIN_OLIM_03);
+    dm(_blk_C2_MAIN_OLIM_03) = r0;
+    r0 = dm(_blk_C2_MAIN_OLIM_04);
+    dm(_buf_C2_MAIN_OCOMP_04) = r0;
+    call _C2_MAIN_OLIM_04_process_sample;
+    r0 = dm(_buf_C2_MAIN_OLIM_04);
+    dm(_blk_C2_MAIN_OLIM_04) = r0;
+    r5 = dm(_dynpair_saved_idx);
+    dm(_sample_idx) = r5;
+
+    /* samples 1..BLOCK-1, two channels, one stream */
+    r0 = DSP4_BLOCK_SIZE-1;
+    dm(_dsim_n) = r0;
+    dm(_dsim_n + 1) = r0;
+    r4 = _lim_attq_C2_MAIN_OLIM_03;
+    r5 = _lim_attq_C2_MAIN_OLIM_04;
+    r6 = _lim_envelope_C2_MAIN_OLIM_03;
+    r7 = _lim_envelope_C2_MAIN_OLIM_04;
+    r0 = _blk_C2_MAIN_OLIM_03;
+    r1 = 1;
+    r8 = r0 + r1;
+    r0 = _blk_C2_MAIN_OLIM_04;
+    r9 = r0 + r1;
+    call _lim_pair_blk;
+    /* republish the scalar _buf_ word off the LAST sample
+     * of the block. On chip 2 `_buf_<id>` IS what a host
+     * peek reads, and the paired path only writes it for
+     * sample 0 -- so without this it would report the
+     * first sample of the block while every unpaired node
+     * reports the last. Nine instructions at block rate,
+     * and the same repair the GEQ block kernel already
+     * makes for the same reason. */
+    l4 = 0;
+    m4 = DSP4_BLOCK_SIZE-1;
+    i4 = _blk_C2_MAIN_OLIM_03;
+    modify(i4, m4);
+    r0 = dm(i4, 0);
+    dm(_buf_C2_MAIN_OLIM_03) = r0;
+    i4 = _blk_C2_MAIN_OLIM_04;
+    modify(i4, m4);
+    r0 = dm(i4, 0);
+    dm(_buf_C2_MAIN_OLIM_04) = r0;
+    rts;
+
+.c2s_MOUT_OLIM_03_04:
+    /* scalar fallback: the two nodes, unchanged */
+    call _C2_MAIN_OLIM_03_process;
+    call _C2_MAIN_OLIM_04_process;
+    rts;
+_C2PAIR_MOUT_OLIM_03_04_process.end:
 
 #if DSP4_GATE_LINTHR
 #error "DSP4_SIMD_DYN pairs the GATE in the log2 domain; DSP4_GATE_LINTHR converts the threshold to linear once per block and the two are different arithmetic. Build with DSP4_GATE_LINTHR=0."

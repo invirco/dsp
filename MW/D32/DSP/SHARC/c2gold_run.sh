@@ -121,6 +121,7 @@ BUFS = [
     # so B -- and only B -- must change. Without these in the probe list that
     # negative control has nothing to fire on (c2dyngold.sh, 2026-09-01).
     'C2_GRP_GATE_02', 'C2_GRP_COMP_02', 'C2_MAIN_OCOMP_02',
+    'C2_AUX_LIM_02', 'C2_AUX_AFB_02', 'C2_AUX_OUT_02', 'C2_MAIN_OLIM_02',
     'C2_SUB_FDR', 'C2_SUB_EQ', 'C2_SUB_COMP', 'C2_SUB_LIM', 'C2_SUB_DLY',
     'C2_SUB_OUT',
     'C2_MIX_MAIN_L', 'C2_MIX_MAIN_R', 'C2_MAIN_FDR', 'C2_MAIN_GEQ',
@@ -237,6 +238,8 @@ for w in ('_gate_on_C2_GRP_GATE_01', '_gate_on_C2_GRP_GATE_02',
           '_gate_filter_on_C2_GRP_GATE_01', '_gate_filter_on_C2_GRP_GATE_02',
           '_comp_on_C2_GRP_COMP_01', '_comp_on_C2_GRP_COMP_02',
           '_comp_on_C2_MAIN_OCOMP_01', '_comp_on_C2_MAIN_OCOMP_02',
+          '_lim_on_C2_AUX_LIM_01', '_lim_on_C2_AUX_LIM_02',
+          '_lim_on_C2_MAIN_OLIM_01', '_lim_on_C2_MAIN_OLIM_02',
           '_cmp_gn', '_dsim_n'):
     if w in sym:
         witness[w] = peek(sym[w])

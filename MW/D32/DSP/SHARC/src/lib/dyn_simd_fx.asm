@@ -70,6 +70,12 @@
 /* MODE1 is saved and restored WHOLE rather than bit-toggled, so a caller
  * that had already masked interrupts stays masked. Two words because the
  * reload happens with PEYEN still set and PEy reads the word after. */
+/* GLOBAL since 2026-09-02: src/lib2's paired LIMITER saves and restores
+ * MODE1 through the same two words. The three pair kernels never run
+ * concurrently -- the chain calls them one after another -- so one park
+ * is right, and a second would be two places to get the PEYEN
+ * save/restore wrong. */
+.global _dsim_mode1;
 .var _dsim_mode1[2];
 
 /* SAMPLES PER CALL. Both pair kernels used to run exactly
@@ -535,6 +541,7 @@ _comp_pair_blk:
     dm(i1, 0) = r0;
     rts;
 _comp_pair_blk.end:
+
 
 /*----------------------------------------------------------------------
  * _gate_pair_blk — one block of GATE for two channels.

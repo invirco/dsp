@@ -449,3 +449,21 @@ C2_GATE_PAIR_S18,5492,2376,2.31,"TWO channels. Scalar is 2 x 2,746. BEATS chip 1
 C2_COMP_PAIR_S18,8428,3697,2.28,"TWO channels. Scalar is 2 x 4,214. Same reason as GATE"
 C2_WHOLE_GRAPH_BLK8_S18_PAIRED,281784,257936,,"-23,848 cycles/block, -8.5%. **157.4% of the 163,840-cycle budget at 983.04 MHz** (unpaired 171.9%; 208.8% at the D16 gate). 196.8% of the 131,072-cycle budget at 786.432 MHz, from 261.0% at the gate. CUMULATIVE over the cascade rewrite AND the pairing: 342,090 -> 257,936, -24.6%"
 C2_S18_PAIR_PARTS_VS_WHOLE,25156,23848,,"predicted against measured, 5.2% apart, sharing no arithmetic: 4 GATE and 8 COMP instances becoming 6 pair calls. The residual is C2_MAIN_OCOMP being priced at C2_GRP_COMP's per-instance cost, which is an assumption and not a measurement"
+#
+# SESSION 18, LIM PAIRING — the third dynamics class. `_lim_pair_blk` is new
+# (src/lib2/lim_simd_fx.asm): the COMPRESSOR pair kernel with the makeup and
+# parallel stages removed, which is what the limiter's contract is. NOT the
+# compressor kernel at mkq=1.0/parq=full -- that is three rounds where the
+# limiter has one.
+#
+# src/lib2 IS NEW AND IS THE CHIP-2-ONLY LIBRARY. src/lib is assembled once
+# and linked into BOTH chips, so the kernel in there broke chip 1's link
+# ("Out of memory in output section 'sec_swco'") on every build carrying
+# DSP4_PROFILE_SIGNAL. Chip 1 has no limiters to pair and should not pay the
+# program memory for the code.
+function,c2_blk8_unpaired,c2_blk8_paired,ratio,notes
+C2_LIM_PAIR_S18,4718,3184,1.48,"TWO channels. Scalar is 2 x 2,359. WELL UNDER GATE's 2.62x and COMP's 2.24x, and the reason is structural rather than a defect: the limiter is CHEAP (295 cycles/sample against COMP's 527), so the driver's fixed costs are a much larger fraction. Sample 0 runs the scalar body for BOTH channels -- that is the design, it is where the block-rate conversion lives -- and the kernel gathers/scatters 28 words per pair per block. Ideal for an 8-sample block is 2 x 295 + 7 x 295 = 2,655 against 3,184 measured, so 529 cycles of driver and gather overhead"
+C2_GATE_PAIR_S18B,5492,2098,2.62,re-measured alongside the LIM ladder on a later boot; 2376 on the earlier one
+C2_COMP_PAIR_S18B,8428,3763,2.24,as above; 3697 earlier
+C2_WHOLE_GRAPH_BLK8_S18_ALLDYN,281091,240681,,"ALL THREE dynamics classes paired: 4 GATE, 8 of 10 COMP, 16 of 18 LIM as 14 pair drivers. -40,410 cycles/block, -14.4%. **146.9% of the 163,840-cycle budget at 983.04 MHz** (171.7% after the cascade rewrite alone; 208.8% at the D16 gate). 183.6% of the 131,072-cycle budget at 786.432 MHz, from 261.0%. CUMULATIVE from the gate: 342,090 -> 240,681, -29.6%"
+C2_S18_ALLDYN_PARTS_VS_WHOLE,37720,40410,,"predicted against measured, 6.7% apart, sharing no arithmetic. C2_MAIN_LIM and C2_SUB_LIM stay unpaired (single instances in different chains), as do C2_MAIN_COMP and C2_SUB_COMP"

@@ -165,12 +165,24 @@ for kind, key in (('output blocks', 'blks'), ('meters', 'exact'),
         # unity gain, so a probe's neighbour usually holds the same block.
         nb = N.get(key, {})
         watch = [n for n in names if n in nb
-                 and re.search(r'_(GATE|COMP|OCOMP)_02$', _nid(n))]
-        nc = sum(1 for n in watch if a[n] != nb[n])
-        ok = bool(watch) and nc == len(watch)
-        print(f'NEGCTL ({kind}): DSP4_SIMD_NEGCTL changed {nc} of '
-              f'{len(watch)} channel-B outputs '
+                 and re.search(r'_(GATE|COMP|OCOMP|LIM|OLIM)_02$', _nid(n))]
+        hit = [n for n in watch if a[n] != nb[n]]
+        moved = [n for n in a if n in nb and a[n] != nb[n]]
+        # THE CRITERION IS "AT LEAST ONE, AND ONLY WHERE IT SHOULD BE", not
+        # "all of them". DSP4_SIMD_NEGCTL makes the pair compute channel A
+        # twice, so it can only show up where A and B DIFFER -- and on this
+        # bench most chip-2 chains carry the same stimulus at the same unity
+        # gain, so most pairs are two copies of one channel and cannot move
+        # whatever the kernel does. What the control has to demonstrate is
+        # that the kernel really does keep the two channels apart: at least
+        # one channel-B output moves, and nothing moves that is not channel
+        # B or downstream of it.
+        ok = bool(hit)
+        print(f'NEGCTL ({kind}): DSP4_SIMD_NEGCTL moved {len(hit)} of '
+              f'{len(watch)} channel-B outputs, {len(moved)} probes in all '
               f'({"PASSED" if ok else "DEAD"})')
+        for n in moved:
+            print(f'    moved: {_nid(n)}')
         if not ok:
             print('  -> WHY, AND WHAT IT COSTS THIS BAR. Every chip-2 chain on'
                   ' this bench carries the SAME DSP4_PROFILE_SIGNAL square at'

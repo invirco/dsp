@@ -643,7 +643,125 @@ bytes.
 
 ---
 
-## 9. What this session did not do
+## 9. LIM pairing — sixteen of eighteen limiters, and a new chip-2-only library
+
+The dispatch's dynamics lever was priced on LIM+COMP+GATE, and §8 left
+LIM untouched because **there was no `_lim_pair_blk`**. There is now.
+
+### The kernel
+
+`_lim_pair_blk` is `_comp_pair_blk` with two stages removed. The scalar
+limiter body calls `_envq_fx`, then `_compgain_fx`, then one
+`_mrf_rns28` on `dry * gain` — three routines whose SIMD twins are the
+same three the compressor kernel already inlines, and which have been
+bit-exact in the graph since session 3. Nothing new is computed; two
+stages are not computed.
+
+**Why not just run the compressor kernel with `mkq = 1.0` and `parq =
+full`.** Because that is not the same arithmetic. The makeup stage is a
+MAC and a ROUND, and `rns28(rns28(dry*gain) * 1.0)` is not identically
+`rns28(dry*gain)` — it is a second rounding of an already-rounded value,
+and the parallel stage adds a third. Reusing the compressor would have
+cost three rounds where the limiter's contract has one, on every sample
+of eighteen instances.
+
+### src/lib2 — the chip-2-only library, and why it had to exist
+
+Putting the kernel in `src/lib/dyn_simd_fx.asm` next to its two siblings
+**broke chip 1's link**: `Out of memory in output section 'sec_swco'`, on
+every build carrying `DSP4_PROFILE_SIGNAL`. `src/lib` is assembled ONCE
+and linked into BOTH chips, so a kernel only chip 2 can use still costs
+chip 1 the program memory — and chip 1's has been at 99.9% since the
+paired 32-strip build. Chip 1 has no limiters to pair: its limiting is
+per strip and per bus, not a class with sixteen pairable instances.
+
+`src/lib2` is therefore the chip-2-only library, assembled alongside
+`src/lib` and linked into chip 2 alone. The generated `.extern` for
+`_lim_pair_blk` is emitted only where a family actually pairs a limiter,
+so chip 1 does not even declare it. **Anything that lands in `lib2` must
+be something chip 1 genuinely cannot use**; a kernel both chips call
+belongs in `src/lib`.
+
+`_dsim_mode1` became `.global` with this — the three pair kernels save
+and restore MODE1 through the same two words, and they never run
+concurrently, so one park is right and a second would be two places to
+get the PEYEN save/restore wrong.
+
+### Measured
+
+`sigprofile2.sh`, block 8, 983.04 MHz, either side of `DSP4_SIMD_DYN`.
+
+| | unpaired | paired | |
+|---|--:|--:|--:|
+| LIM, two channels | 2 x 2,359 = 4,718 | **3,184** | **1.48x** |
+| GATE, two channels | 5,492 | 2,098 | 2.62x |
+| COMP, two channels | 8,428 | 3,763 | 2.24x |
+
+**LIM's 1.48x is well under GATE's and COMP's, and the reason is
+structural, not a defect.** The limiter is CHEAP — 295 cycles/sample
+against COMP's 527 — so the driver's fixed costs are a much larger
+fraction of it. Two of them dominate: **sample 0 runs the scalar body
+for BOTH channels** (that is the design — it is where the block-rate
+parameter conversion lives, and it is what makes sample 0 bit-identical
+to the scalar path by construction), and the kernel gathers and scatters
+28 words per pair per block. The ideal for an 8-sample block is
+`2 x 295 + 7 x 295 = 2,655` against 3,184 measured, so 529 cycles of
+driver and gather overhead — the same 4-5% of a block that COMP absorbs
+invisibly and a limiter cannot.
+
+**Sixteen of eighteen limiters pair.** `C2_MAIN_LIM` and `C2_SUB_LIM` are
+single instances in different chains.
+
+### The headline
+
+| | cycles/block | % of the 163,840-cycle budget |
+|---|--:|--:|
+| the D16 gate (session 17) | 342,090 | 208.8% |
+| + the cascade rewrite (§5) | 281,364 | 171.7% |
+| + GATE and COMP pairing (§8) | 257,936 | 157.4% |
+| **+ LIM pairing** | **240,681** | **146.9%** |
+
+**−40,410 against this session's own unpaired control of 281,091 (−14.4%
+for all three classes together), and −29.6% cumulative from the gate.**
+At 786.432 MHz: 183.6%, from 261.0%.
+
+The parts predict the whole with no shared arithmetic: 4 GATE, 8 COMP and
+16 LIM instances becoming 14 pair calls predicts **37,720** cycles/block
+saved against **40,410 measured, 6.7% apart**.
+
+### The negative control fires now — on the limiter
+
+§8 had to report `DSP4_SIMD_NEGCTL` changing nothing, because every
+chip-2 chain carried the same stimulus at the same unity gain and the two
+channels of a pair were numerically the same channel. With the aux
+limiters paired it **fires, and exactly where it should**: it moves
+`_blk_C2_AUX_LIM_02` and its downstream `_blk_C2_AUX_OUT_02`, and **no
+other probe of the 51**.
+
+It fires for a reason worth stating rather than banking: aux 01's fader
+head was D79-corrupted on this boot, so that chain carried zero while aux
+02 carried the stimulus — the two channels of *that* pair genuinely
+differed. So the control is live by accident rather than by design, and
+what it demonstrates is nonetheless the thing §8 could not: **the kernel
+keeps the two channels apart, and channel B's result comes from channel
+B's data and is scattered back to channel B's buffer.** The deliberate
+version — distinct per-channel settings written over the SPI plane before
+the dwell — is still worth building, and would cover the GATE and COMP
+pairs too.
+
+The bar's criterion was corrected with it: **at least one channel-B output
+moves and nothing moves that is not channel B or downstream of it**, not
+"all of them". Most pairs are two copies of one channel on this bench and
+cannot move whatever the kernel does; requiring all five would be a
+control that can only ever read DEAD.
+
+**`VERDICT: CHIP-2 DYNAMICS PAIRING BIT-EXACT`** — 51 output blocks, 0
+differ, live control. W0 unmoved, `dsp_validate.py` OK, golden 59/59, and
+chip 1's generated files byte-identical.
+
+---
+
+## 10. What this session did not do
 
 * **Item 2's target of <= 11.0 cycles/band-sample measured on the graph is
   NOT met.** The scalar site measures 25.31 against 37.25 — 1.47×, against
@@ -656,8 +774,8 @@ bytes.
 * **`C2_SUB_COMP` and `C2_MAIN_COMP` are not paired** — two of the ten
   compressors. They are single instances in different chains and pairing
   them across chains needs a DAG argument this session did not make.
-* **LIM is not paired at all** — 18 instances, ~316 cycles/sample each, and
-  there is no `_lim_pair_blk`. It is the largest remaining dynamics lever.
+* **Two limiters are still unpaired** — `C2_MAIN_LIM` and `C2_SUB_LIM`,
+  single instances in different chains.
 * **Chip 1 was re-measured at block 8 only.** `MARGIN32_BLK8` is now
   189,602 (115.72%); the BLOCK-32 point, which is the one where chip 1
   actually fits, was not re-run and still dates from session 12.

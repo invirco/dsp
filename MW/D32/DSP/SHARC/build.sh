@@ -526,6 +526,16 @@ build() {
     echo "--- Library: Assembling ---"
     assemble_dir "$SRC_DIR/lib" "$BUILD_DIR/lib" "lib" || total_errors=$((total_errors+$?))
 
+    # ---- CHIP-2-ONLY library ----
+    # src/lib is linked into BOTH chips, so a kernel only chip 2 can use
+    # still costs chip 1 the program memory -- and chip 1 has none to
+    # spare: _lim_pair_blk in src/lib overflowed sec_swco on every build
+    # carrying DSP4_PROFILE_SIGNAL (2026-09-02). src/lib2 is assembled
+    # here and linked into chip 2 ALONE.
+    echo "--- Library (chip 2 only): Assembling ---"
+    mkdir -p "$BUILD_DIR/lib2"
+    assemble_dir "$SRC_DIR/lib2" "$BUILD_DIR/lib2" "lib2" || total_errors=$((total_errors+$?))
+
     # ---- Shared infrastructure — assembled TWICE with CHIP_ID define ----
     # Files like main.asm, ivt.asm, sport_init.asm use #if CHIP_ID == N
     # to conditionally include chip-specific externs and code paths.
@@ -594,7 +604,8 @@ build() {
 
     # ---- Link Chip 2 ----
     echo "--- Chip 2: Linking ---"
-    chip2_objs=$(find "$BUILD_DIR/chip2" "$BUILD_DIR/lib" -name '*.doj' 2>/dev/null | sort)
+    chip2_objs=$(find "$BUILD_DIR/chip2" "$BUILD_DIR/lib" "$BUILD_DIR/lib2" \
+                      -name '*.doj' 2>/dev/null | sort)
     if [ -n "$chip2_objs" ]; then
         echo "  Objects: $(echo "$chip2_objs" | wc -l) files"
         $LD21K $LDFLAGS -Map "$BUILD_DIR/chip2.map.xml" -o "$BUILD_DIR/chip2.dxe" $chip2_objs || total_errors=$((total_errors+1))
