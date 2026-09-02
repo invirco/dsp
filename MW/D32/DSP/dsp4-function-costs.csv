@@ -523,3 +523,22 @@ C2_SECT_TAIL_S19,214,0.1,DCA / ST_OUT / codec aux out (160-196)
 C2_SECT_TOTAL_S19,179765,100.0,"third boot of the paired arm against 179,460 and 179,556 -- 0.17% spread. THE EIGHT GEQ PAIRS ARE ~46,000 CYCLES, 26% OF THE WHOLE CHIP"
 C2_WRAPTRIM_S19,910,,"the generic wrapper's DM sample counter removed: five instructions a sample driving a guard that only asks whether the index is ZERO. Sample 0 peeled, _sample_idx set to 1 for the rest. 179,594 (mean of 3 boots) -> 178,684. PREDICTED 1,634 from 43 nodes x 38 cycles, so the accounting is 56% optimistic; the saving is outside the 305-cycle spread of the prior boots. ~10 MHz of the 96 needed. All 119 wrapped bodies audited first: all compare _sample_idx against 0 and none reads it otherwise -- the C2_RECV_* stimulus nodes DO read _sample_idx & 1 and would have broken, but they are not wrapped"
 C2_DYNLATCH_S19,360,,"NOT BUILT. The only thing a latch could remove from the dynamics pair drivers is the parameter gather: LIM 8x24 + COMP 4x32 + GATE 2x20 = 360 cycles/block, 2.2 MHz. The rest is the signal interleave, which no latch can touch. AND IT WOULD BE WRONG: the dynamics re-convert their control parameters EVERY BLOCK inside the _sample_idx==0 guard (C2_AUX_LIM_01.asm:132), so a latch would freeze threshold, ratio and attack. The biquads were latchable because _swap_pending_ is a sound invalidation signal; the dynamics have no unchanged state to latch"
+#
+# SESSION 19c, 2026-09-02 — CROSS-CHAIN DYNAMICS PAIRING, AND THE CAPACITY
+# TABLE THAT DECIDES THE BLOCK SIZE.
+#
+# BLOCK 8 DOES NOT FIT ON EITHER CHIP AND NEVER DID ON CHIP 1. The
+# block-size decision was already required for chip 1 before chip 2's
+# optimisation campaign started; what the campaign changed is that BLOCK 16
+# is now viable for BOTH. Chip 2 at block 16 was 646,390 (197.3%) at the
+# D16 gate and is 306,950 (93.7%) now.
+function,c2_blk8_scalar,c2_blk8_paired,ratio,notes
+C2_XPAIR_S19,178672,171918,,"cross-chain dynamics pairing: C2_MAIN_COMP+C2_SUB_COMP and C2_MAIN_LIM+C2_SUB_LIM, the four single instances no family could pair. -6,754 cycles/block against 6,941 predicted (2.7% apart). 104.9% of the part, from 109.1%. The control keeps the SAME chain order and calls the four nodes scalar, so the arms isolate the pairing from the reorder; it reproduced the previous commit to 0.007%"
+C2_XPAIR_DAG_S19,,,,"THE DEFERRED DAG ARGUMENT, RESOLVED FROM dsp.csv: C2_MIX_MAIN_L/R read RECV_MAIN, the four GRP_COMPs, USB/BT/codec/Pi and the eight SNK_INs -- NOT C2_SUB_OUT. The main and sub chains are disjoint; reachability is False in all four directions; the only outside consumer of a sub-chain node is the sub's own meter. The emitted order is re-checked by process_order_violations, which raises on a stale read"
+function,block,cycles_per_block,pct_of_budget,notes
+C1_CAPACITY_S19,8,190701,116.4,"chip 1, 32 strips, fused + paired + bq-paired. 0.6% from session 18's 189,602"
+C1_CAPACITY_S19,16,307866,94.0,chip 1 FITS at block 16 with 6.0% margin
+C1_CAPACITY_S19,32,546865,83.4,chip 1 at block 32, 16.6% margin
+C2_CAPACITY_S19,8,171918,104.9,"chip 2 after every lever this campaign has; 8,078 cycles = 48.5 MHz short"
+C2_CAPACITY_S19,16,306950,93.7,CHIP 2 FITS at block 16 with 6.3% margin
+C2_CAPACITY_S19,32,577360,88.1,chip 2 at block 32, 11.9% margin
