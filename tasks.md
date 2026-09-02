@@ -1,3 +1,43 @@
+## HUB DISPATCH 2026-09-02 12:38Z — GAIN kernel rewrite — fold polarity/mute to control-rate, block+SIMD, mic-pre tap kept, 22.9->1-2 c/s   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+GAIN KERNEL REWRITE — the queued dispatch is now unblocked (block-16 requal
+PASSED, biquad shootout table delivered). Read the "QUEUED DISPATCH — GAIN
+kernel rewrite" block in this repo's tasks.md; it is the spec. Fresh session.
+
+SCOPE (PW ruling 2026-09-02, D20): GAIN stays a SEPARATE node — its output
+is the clean mic-pre recording tap — and gets optimized to its 1-2 c/s floor
+INSTEAD of being folded into FILT. Rewrite the GAIN kernel:
+- ONE effective gain word at control rate: fold polarity (as sign) and mute
+  (as 0.0) into it, so the per-sample path is a single multiply, zero
+  per-sample cost for polarity/mute.
+- Block kernel with a hardware loop; SIMD pairing across channels.
+- KEEP BOTH stores — the mic-pre tap (post-gain, pre-filter; the product
+  feature, its placement bit-identical to today's) AND the FILT chain slot.
+- No contract change.
+
+TARGET: 22.9 -> 1-2 c/s (~2-3% of chip 1 back as plugin headroom). Measure
+at BLOCK 16 (the requal held; block 16 is the working operating point).
+
+BARS/DISCIPLINE: W0 (shipping image unchanged BY DESIGN or state the delta —
+this is a code-efficiency change, expect byte-identical shipping unless a
+kernel swap moves it, in which case W0-state it); busgold bit-exact; golden
+59/59; numverify; meter bar. The mic-pre tap must read bit-identical to
+today's before and after.
+
+TRAPS (paid for): marker-file waits, NEVER `pgrep -f` from a shell that
+embeds the pattern (bit the dsp campaign THREE times); S15 phase rule (a
+register reading 0 is not a measurement until link phase is checked); one
+tty reader on /dev/ttyACM0.
+
+RULES: single trunk main — pull first, commit and push main; update the
+dispatch block status with a one-line outcome; no AI attribution anywhere.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 > **PW RULING 2026-09-02 — D20 CLOSED: the GAIN→FILT coefficient fold is
 > REJECTED, for a product reason.** GAIN's output is the CLEAN MIC-PRE tap
 > — the pickoff feeds clean recording, so gain must remain its own node
