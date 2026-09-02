@@ -116,6 +116,86 @@ _mtr_block_tick.end:
  *      MRF = exact sum of squares (Q16.48)
  * Clobbers r0, i4, l4.
  *----------------------------------------------------------------------*/
+#if DSP4_BLOCK_KERNELS && DSP4_GAIN_SIMD
+/*----------------------------------------------------------------------
+ * _gsimd_flush — close GAIN's SIMD block and hand the meter over.
+ *
+ * GAIN's block kernel runs two ADJACENT SAMPLES per instruction on the
+ * PEx/PEy pair, so each compute unit carries HALF of the block's meter:
+ * PEx the even samples, PEy the odd. This adds the two halves back
+ * together, drops PEYEN, and falls into _mtr_flush.
+ *
+ * THE ADDITION IS EXACT, WHICH IS WHY THE SPLIT COSTS NOTHING NUMERICALLY.
+ * MRF is an 80-bit integer accumulator with no rounding and no
+ * saturation; a block of 16 samples of x*x tops out around 2^66, so
+ * nothing here can overflow, and integer addition is associative. The
+ * peak and trough are max and min, which are associative too. So the
+ * accumulators this leaves are BIT-IDENTICAL to the ones the scalar loop
+ * would have left, not merely close.
+ *
+ * SHARED for _mtr_flush's reason, restated by measurement: the first cut
+ * of this had the whole sequence inlined in all 32 gain nodes and chip 1's
+ * sec_swco OVERFLOWED at link. Two instructions and a call per node
+ * against thirty inlined.
+ *
+ * ENTERED WITH PEYEN STILL SET. The five stores below are what needs it:
+ * a direct store inside the region writes the PEx copy at the address and
+ * the PEy copy at address+1, which is exactly how the second half gets
+ * out. Every _gsimd_* variable is two words for that reason.
+ *
+ * In:  PEYEN set; r0 = base of the meter's _mtr_acc_<meter>[5];
+ *      MRF = this unit's half of the sum of squares; r13/r15 = this
+ *      unit's block max/min; _gsimd_save[0] = the caller's MODE1.
+ * Out: PEYEN restored to what the caller had; the accumulators written.
+ * Clobbers r1-r6, r13, r15, i4, l4, MRF.
+ *----------------------------------------------------------------------*/
+.extern _gsimd_save;
+.extern _gsimd_sq0;
+.extern _gsimd_sq1;
+.extern _gsimd_sq2;
+.extern _gsimd_max;
+.extern _gsimd_min;
+.global _gsimd_flush;
+_gsimd_flush:
+    r1 = mr0f;
+    dm(_gsimd_sq0) = r1;               /* PEx word, then PEy word */
+    r1 = mr1f;
+    dm(_gsimd_sq1) = r1;
+    r1 = mr2f;
+    dm(_gsimd_sq2) = r1;
+    dm(_gsimd_max) = r13;
+    dm(_gsimd_min) = r15;
+    r1 = dm(_gsimd_save);
+    mode1 = r1;                        /* PEYEN down, MODE1 restored whole */
+    nop;
+    nop;
+    /* The two halves, added exactly: 96 bits, carry-propagated. Every
+     * load is taken FIRST so that nothing sets AC between the add that
+     * produces a carry and the add that consumes it. */
+    r1 = dm(_gsimd_sq0);
+    r2 = dm(_gsimd_sq0 + 1);
+    r3 = dm(_gsimd_sq1);
+    r4 = dm(_gsimd_sq1 + 1);
+    r5 = dm(_gsimd_sq2);
+    r6 = dm(_gsimd_sq2 + 1);
+    r1 = r1 + r2;
+    r3 = r3 + r4 + ci;
+    r5 = r5 + r6 + ci;
+    mr0f = r1;
+    mr1f = r3;
+    mr2f = r5;                         /* MRF = the whole block again */
+    r13 = dm(_gsimd_max);
+    r1 = dm(_gsimd_max + 1);
+    r13 = max(r13, r1);
+    r15 = dm(_gsimd_min);
+    r1 = dm(_gsimd_min + 1);
+    r15 = min(r15, r1);
+    /* TAIL CALL, not a call: _mtr_flush's rts returns to OUR caller, so
+     * the node pays for one call and not two. r0 was never touched. */
+    jump _mtr_flush;
+_gsimd_flush.end:
+#endif
+
 .global _mtr_flush;
 _mtr_flush:
     l4 = 0;

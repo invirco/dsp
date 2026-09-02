@@ -28,6 +28,16 @@
 #endif
 #endif
 
+#if DSP4_BLOCK_KERNELS && DSP4_GAIN_SIMD
+.global _gsimd_save;  .var _gsimd_save[2];   /* MODE1 across the region */
+.global _gsimd_g;     .var _gsimd_g[2];      /* the effective gain, per PE */
+.global _gsimd_sq0;   .var _gsimd_sq0[2];    /* sum of squares, MR0F   */
+.global _gsimd_sq1;   .var _gsimd_sq1[2];    /*                 MR1F   */
+.global _gsimd_sq2;   .var _gsimd_sq2[2];    /*                 MR2F   */
+.global _gsimd_max;   .var _gsimd_max[2];    /* block max, per PE      */
+.global _gsimd_min;   .var _gsimd_min[2];    /* block min, per PE      */
+#endif
+
 #if DSP4_BLOCK_KERNELS
 .global _bus_acc_main_l;   .var _bus_acc_main_l[24];
 .global _bus_acc_main_r;   .var _bus_acc_main_r[24];

@@ -14,7 +14,15 @@ host uses in service anyway. GAIN is a RAMPED parameter, so the write
 must carry ramp_id=1 or it takes the instant path and the node's own
 block-rate code clobbers it from a target that was never set.
 
-Takes an optional strip count (default 1). GAIN parameters are 144
+Takes an optional strip count (default 1) and an optional GAIN VALUE in
+linear float (default 1.0). The value argument exists for gainsimd.sh:
+busgold's stimulus is a +/-0.5 square at UNITY gain, so every product's
+low 28 bits are zero and the kernel's rounding is never exercised -- a
+bar that cannot see rounding cannot certify a kernel whose whole numeric
+contract is a rounding. Setting a NON-ROUND gain puts bits under the
+round. Every existing caller passes no value and is unaffected.
+
+GAIN parameters are 144
 apart on the SPI page, so strip n lives at (n-1)*144 -- a ceiling sweep
 can have the slip land on any of its strips, and one dead strip is a
 CHEAP strip, so it flatters the number rather than failing it.
@@ -58,7 +66,7 @@ def read_coeff(sc, addr):
     return None
 
 
-def fix_one(sc, strip):
+def fix_one(sc, strip, want=UNITY_F32):
     """strip is 1-based. Returns 0 ok, 1 still wrong, 2 unreadable."""
     sym = '_gain_coeff_C1_GAIN_%02d' % strip
     if sym not in sc.sym:
@@ -70,18 +78,19 @@ def fix_one(sc, strip):
     if v is None:
         print('gainfix: strip %d coefficient unreadable' % strip)
         return 2
-    if v == UNITY_F32:
+    if v == want:
         return 0
 
-    print('gainfix: strip %d is 0x%08X, rewriting GAIN = 1.0' % (strip, v))
+    print('gainfix: strip %d is 0x%08X, rewriting GAIN = %g'
+          % (strip, v, struct.unpack('<f', struct.pack('<I', want))[0]))
     for attempt in range(3):
         try:
-            wrv(sc, spi, UNITY_F32, ramp_id=1, settle=0.05)
+            wrv(sc, spi, want, ramp_id=1, settle=0.05)
         except Exception as e:
             print('gainfix: strip %d write failed (%s)' % (strip, e))
         time.sleep(0.4)
         v = read_coeff(sc, addr)
-        if v == UNITY_F32:
+        if v == want:
             print('gainfix: strip %d repaired on attempt %d' % (strip, attempt + 1))
             return 0
     print('gainfix: strip %d still 0x%s'
@@ -91,13 +100,16 @@ def fix_one(sc, strip):
 
 def main():
     n = int(sys.argv[1]) if len(sys.argv) > 1 else 1
+    want = UNITY_F32
+    if len(sys.argv) > 2:
+        want = struct.unpack('<I', struct.pack('<f', float(sys.argv[2])))[0]
     sc = S.Scope(1)
     sc.check_chip()
     worst = 0
     for strip in range(1, n + 1):
-        worst = max(worst, fix_one(sc, strip))
+        worst = max(worst, fix_one(sc, strip, want))
     if worst == 0:
-        print('gainfix: %d strip(s) at 0x%08X' % (n, UNITY_F32))
+        print('gainfix: %d strip(s) at 0x%08X' % (n, want))
     return worst
 
 

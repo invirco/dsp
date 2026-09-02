@@ -6840,6 +6840,240 @@ _GAIN_BLK_METERED = """\
 """
 
 
+# ---------------------------------------------------------------------------
+# GAIN, SIMD (2026-09-02, the D20 follow-on ruling).
+#
+# WHAT PAIRS HERE IS TWO SAMPLES OF ONE CHANNEL, NOT TWO CHANNELS, AND THE
+# DIFFERENCE IS THE WHOLE POINT. The dispatch specifies "SIMD pairing across
+# channels", which is what the biquads and the dynamics do -- and both of
+# them pay a GATHER for it: _bq_pair_blk interleaves two strips into a
+# scratch buffer and scatters back, ~4 cycles/sample/strip, which it can
+# afford because a 2-stage cascade costs ~51. GAIN's whole body is under 20
+# instructions; an interleave costing four of them would eat most of what
+# the pairing wins.
+#
+# It does not need one. A gain is MEMORYLESS -- y[n] = sat(rns(x[n]*g)) has
+# no dependence on y[n-1] -- so the two samples PEx and PEy need are already
+# ADJACENT IN THE BLOCK. `dm(i0, 2)` hands x[n] to PEx and x[n+1] to PEy from
+# the block the previous node already wrote, with no gather, no scratch and
+# no scatter. Channel pairing would have delivered the same 2x and paid for
+# the privilege.
+#
+# BIT-EXACT BY CONSTRUCTION, not by tolerance, on three separate grounds:
+#   * the audio path is per-sample independent -- same instructions, same
+#     order within a sample, one rounding -- so which compute unit runs a
+#     given sample cannot change its value;
+#   * the meter's sum of squares splits across the two PEs and is added back
+#     afterwards, and that is EXACT: MRF is an 80-bit integer accumulator
+#     with no rounding and no saturation, and integer addition is
+#     associative (the peak/trough are max/min, which are too);
+#   * the tap store keeps its placement -- post-gain, pre-filter, same
+#     block, same words -- which is the product feature the D20 ruling
+#     protects.
+#
+# The saturation is a per-PE CONDITIONAL MOVE and not a branch, for
+# _bq_fx_cascade_simd's reason: a jump uses PEx's condition for BOTH units,
+# so a branch here would saturate the odd samples whenever the even ones
+# clipped. `pass` is used rather than a bare conditional register move
+# because conditional COMPUTE is what SIMD evaluates independently.
+#
+# THE ONE INSTRUCTION THAT IS NOT JUST THE SCALAR BODY WIDENED: the two
+# extraction shifts and their OR fold into `r0 = r0 or lshift r2 by 4`,
+# which is the same three operations in two instructions. Worth one
+# cycle per two samples and bit-identical.
+# ---------------------------------------------------------------------------
+
+_GAIN_SIMD_COMMON = """\
+            /* _GAIN_BLK_COMMON's setup, MINUS the three constants: they
+             * are loaded below, INSIDE the PEYEN region, because a load
+             * with PEYEN down writes PEx's copy only. Emitting them here
+             * as well cost three instructions and about fourteen bytes in
+             * each of 32 nodes, and chip 1's program memory is the
+             * binding constraint on this part -- the SIMD kernel already
+             * spends most of what was left. */
+            l0 = 0;
+            l1 = 0;
+            l4 = 0;
+            i0 = BLK_CHAIN_A;
+            i1 = BLK_CHAIN_B;
+            /* The post-trim tap the router picks from, as a BLOCK. THIS
+             * STORE IS NOT THE METER'S (PW ruling 2026-08-29): the ROUTER
+             * reads it -- pickoff 0, post-trim -- and it is the clean
+             * mic-pre tap the D20 ruling keeps GAIN a separate node for. */
+            i4 = BLK_TAP_TRIM;
+"""
+
+_GAIN_SIMD_ENTER = """\
+            /* The ONE effective gain word, once per compute unit. Written
+             * with PEYEN DOWN -- a direct store inside the region writes
+             * the PEy shadow to the next word and these two must differ
+             * from each other's shadow, not agree with it. */
+            dm(_gsimd_g) = r1;
+        #if DSP4_GAIN_SIMD_NEGCTL
+            /* NEGATIVE CONTROL. PEy's gain word is ZERO, so every ODD
+             * sample of every block comes out silent. It must move the
+             * bus; if it does not, PEYEN was never up and the "SIMD"
+             * kernel has been running one unit all along -- which from
+             * outside is indistinguishable from a bit-exact result, and
+             * is exactly the silent fallback c2dyngold was caught by. */
+            r2 = 0;
+            dm(_gsimd_g + 1) = r2;
+        #else
+            dm(_gsimd_g + 1) = r1;
+        #endif
+            /* MODE1 saved and restored WHOLE, not bit-toggled, so a caller
+             * that had already masked interrupts stays masked. INTERRUPTS
+             * ARE NOT MASKED HERE: _sec_isr and _diag_timer_isr clear
+             * PEYEN after `push sts` and `pop sts` puts it back, which is
+             * what the paired dynamics and the paired cascade already rely
+             * on. Masking a whole block loop is what hung the part on
+             * 2026-08-28. */
+            r2 = mode1;
+            dm(_gsimd_save) = r2;
+            bit set mode1 0x00200000;         /* PEYEN */
+            nop;
+            nop;
+            r1 = dm(_gsimd_g);                /* g into BOTH units */
+            /* THE CONSTANTS ARE LOADED HERE AND NOT ABOVE, and the first
+             * cut of this kernel got it wrong. _GAIN_BLK_COMMON loads
+             * r6/r7/r10 with PEYEN still DOWN, which writes PEx's copy and
+             * leaves PEy's at whatever it held -- zero out of reset. PEy
+             * would then add a rounding half of 0*0, i.e. TRUNCATE its
+             * samples instead of rounding them, and saturate them against
+             * a mask of 0.
+             *
+             * NEITHER FAULT IS VISIBLE TO busgold. Its stimulus is a
+             * +/-0.5 square at UNITY gain, whose Q4.28 word is 2^28
+             * exactly -- every product's low 28 bits are already zero, so
+             * truncation and rounding give the same answer on every
+             * sample -- and |x| = 0.5 against a gain under 8 can never
+             * saturate. The bar returned 0 of 256 with this wrong. Found
+             * by reading the register lifetimes, not by a measurement, and
+             * recorded that way; gainsimd.sh is the bar that can see it. */
+            r6 = 0x08000000;                  /* 2^27, the rounding half */
+            r7 = 1;
+            r10 = 0x7FFFFFFF;
+"""
+
+_GAIN_SIMD_LEAVE = """\
+            r2 = dm(_gsimd_save);
+            mode1 = r2;                       /* PEYEN down again */
+            nop;
+            nop;
+            /* The linkage scalars carry the LAST sample of the block, and
+             * PEy computed it. Read it back out of the block rather than
+             * out of a register: a direct store with PEYEN still up would
+             * put the PEx copy here and the PEy copy in _buf_{nid}. */
+            modify(i1, -1);
+            r0 = dm(i1, 0);
+            dm(_tap_post_trim_{nid}) = r0;   /* linkage scalars */
+            dm(_buf_{nid}) = r0;
+"""
+
+_GAIN_SIMD_PLAIN = _GAIN_SIMD_COMMON + _GAIN_SIMD_ENTER + """\
+            r5 = DSP4_BLOCK_HALF;
+            lcntr = r5; do .gk_lp_{nid} until lce;
+                r0 = dm(i0, 2);               /* x[n] -> PEx, x[n+1] -> PEy */
+                mrf = r0 * r1 (ssi);
+                mrf = mrf + r6 * r7 (ssi);
+                r8 = mr0f;
+                r2 = mr1f;
+                r0 = lshift r8 by -28;
+                r0 = r0 or lshift r2 by 4;    /* two shifts and an OR, in two */
+                r8 = ashift r2 by -28;
+                r9 = ashift r0 by -31;
+                r11 = ashift r2 by -31;
+                r11 = r10 xor r11;
+                comp(r8, r9);
+                if ne r0 = pass r11;          /* per-PE, NOT a branch */
+                dm(i1, 2) = r0;
+        .gk_lp_{nid}:
+                dm(i4, 2) = r0;               /* post-trim tap block */
+""" + _GAIN_SIMD_LEAVE + """\
+            rts;
+"""
+
+_GAIN_SIMD_METERED = """\
+            /* WIDE-WORD METER, INLINE, SIMD. What the meter measures and
+             * why it runs one sample behind is in the scalar twin; what is
+             * different here is that each unit accumulates its OWN half of
+             * the block -- PEx the even samples, PEy the odd -- and the
+             * two halves are added after PEYEN comes down. That addition
+             * is exact, so the block's sum of squares, peak and trough are
+             * bit-identical to the scalar order. */
+""" + _GAIN_SIMD_COMMON + _GAIN_SIMD_ENTER + """\
+            r13 = 0x80000000;                 /* block max: most negative */
+            r15 = 0x7FFFFFFF;                 /* block min: most positive */
+            mrf = 0;                          /* exact sum of squares     */
+            r12 = 0;                          /* exactly neutral, per the twin */
+            r5 = DSP4_BLOCK_HALF;
+            lcntr = r5; do .gk_lp_{nid} until lce;
+                r0 = dm(i0, 2);               /* x[n] -> PEx, x[n+1] -> PEy */
+                mrb = r0 * r1 (ssi);
+                r13 = max(r13, r12);          /* meter, one sample behind */
+                mrf = mrf + r12 * r12 (ssi);
+                r15 = min(r15, r12);
+                r12 = mr1b;                   /* WIDE post-trim, Q8.24 */
+                mrb = mrb + r6 * r7 (ssi);
+                r8 = mr0b;
+                r2 = mr1b;
+                r0 = lshift r8 by -28;
+                r0 = r0 or lshift r2 by 4;    /* two shifts and an OR, in two */
+                r8 = ashift r2 by -28;
+                r9 = ashift r0 by -31;
+                r11 = ashift r2 by -31;
+                r11 = r10 xor r11;
+                comp(r8, r9);
+                if ne r0 = pass r11;          /* per-PE, NOT a branch */
+                dm(i1, 2) = r0;
+        .gk_lp_{nid}:
+                dm(i4, 2) = r0;               /* post-trim tap block */
+            /* the last sample's meter ops, outside the loop -- one per PE */
+            r13 = max(r13, r12);
+            mrf = mrf + r12 * r12 (ssi);
+            r15 = min(r15, r12);
+            /* _gsimd_flush adds the two units' halves, drops PEYEN and
+             * falls into _mtr_flush -- ONE call, the same one the scalar
+             * body already paid for. It is shared and not inlined because
+             * thirty instructions in each of 32 gain nodes OVERFLOWED
+             * chip 1's sec_swco at link, measured, not predicted. */
+            r0 = _mtr_acc_{mtr};
+            call _gsimd_flush;
+            /* The linkage scalars carry the LAST sample of the block, and
+             * PEy computed it. Read it back out of the block rather than
+             * out of a register: a direct store with PEYEN still up would
+             * have put the PEx copy here and the PEy copy in _buf_{nid}.
+             * PEYEN is down by now -- _gsimd_flush restored MODE1 -- and a
+             * call leaves the DAGs alone, so i1 still points one past the
+             * block this kernel just wrote. */
+            modify(i1, -1);
+            r0 = dm(i1, 0);
+            dm(_tap_post_trim_{nid}) = r0;   /* linkage scalars */
+            dm(_buf_{nid}) = r0;
+            rts;
+"""
+
+# The externs the SIMD bodies need. Emitted only where a SIMD body is.
+_GAIN_SIMD_EXTERN = """\
+        #if DSP4_BLOCK_KERNELS && DSP4_GAIN_SIMD
+        .extern _gsimd_save;
+        .extern _gsimd_g;
+        .extern _gsimd_flush;
+        #endif
+"""
+
+
+def _gain_simd_pick(simd_body, scalar_body):
+    """Both bodies, the preprocessor picks one. Carrying both costs the
+    image nothing and keeps DSP4_GAIN_SIMD=0 as the byte-for-byte control
+    the measurement is taken against."""
+    return ('        #if DSP4_GAIN_SIMD\n'
+            + simd_body
+            + '        #else\n'
+            + scalar_body
+            + '        #endif\n')
+
+
 def gen_gain_fixed(node):
     """Fixed GAIN (D5): float control plane unchanged (ramp quad stays
     float, spec revision 2026-07-31); the coefficient converts to Q4.28
@@ -6858,12 +7092,15 @@ def gen_gain_fixed(node):
         # accumulation living inside this loop, removing the meter node
         # alone would have measured nothing. The preprocessor picks one
         # body, so carrying both costs the image nothing.
-        blk_body = (_GAIN_BLK_COMMON
-                    + '        #if DSP4_MTR_OFF\n'
-                    + _GAIN_BLK_FUSED.format(nid=nid)
+        blk_body = ('        #if DSP4_MTR_OFF\n'
+                    + _gain_simd_pick(
+                        _GAIN_SIMD_PLAIN.format(nid=nid),
+                        _GAIN_BLK_COMMON + _GAIN_BLK_FUSED.format(nid=nid))
                     + '        #else\n'
-                    + _GAIN_BLK_METERED.format(
-                        nid=nid, flush=_mtr_acc_flush(mtr))
+                    + _gain_simd_pick(
+                        _GAIN_SIMD_METERED.format(nid=nid, mtr=mtr),
+                        _GAIN_BLK_COMMON + _GAIN_BLK_METERED.format(
+                            nid=nid, flush=_mtr_acc_flush(mtr)))
                     + '        #endif\n')
         mtr_decl = (
             '        /* The Q8.24 word the PER-SAMPLE path publishes for\n'
@@ -6877,7 +7114,9 @@ def gen_gain_fixed(node):
             '/* WIDE post-trim, Q8.24 */\n'
             '            dm(_mtr_wide_' + nid + ') = r12;\n')
     else:
-        blk_body = _GAIN_BLK_COMMON + _GAIN_BLK_FUSED.format(nid=nid)
+        blk_body = _gain_simd_pick(
+            _GAIN_SIMD_PLAIN.format(nid=nid),
+            _GAIN_BLK_COMMON + _GAIN_BLK_FUSED.format(nid=nid))
         mtr_decl = ''
         mtr_extern = ''
         mtr_pub = ''
@@ -6906,7 +7145,7 @@ def gen_gain_fixed(node):
         .section/pm seg_pmco;
         .extern _sample_idx;
         .extern _mrf_rns28;
-{mtr_extern}        .global _{nid}_process;
+{_GAIN_SIMD_EXTERN}{mtr_extern}        .global _{nid}_process;
         _{nid}_process:
         #if !DSP4_BLOCK_KERNELS
             /* per-sample path: the block-rate work has to be guarded,
@@ -7662,6 +7901,19 @@ def gen_block_header():
  * piece of the wiring is guarded on this one macro. */
 #ifndef DSP4_SIMD_GRAPH
 #define DSP4_SIMD_GRAPH 1
+#endif
+
+/* GAIN's SIMD block kernel (2026-09-02). Independent of every macro above
+ * it: what it pairs is two ADJACENT SAMPLES of one channel, not two
+ * channels, so it needs neither the odd pool nor the pair-ordered chain
+ * and it is on whether or not the graph is paired. DSP4_GAIN_SIMD=0 is the
+ * byte-for-byte scalar control the cost is measured against. Inert unless
+ * DSP4_BLOCK_KERNELS is on -- the per-sample path is untouched. */
+#ifndef DSP4_GAIN_SIMD
+#define DSP4_GAIN_SIMD 1
+#endif
+#ifndef DSP4_GAIN_SIMD_NEGCTL
+#define DSP4_GAIN_SIMD_NEGCTL 0
 #endif
 #if DSP4_SIMD_DYN && DSP4_SIMD_GRAPH
 #define DSP4_PAIRED_GRAPH 1
@@ -8553,6 +8805,36 @@ def gen_bus_accumulators_fixed():
     out.append(f'.var _blk_pool1[{8 * BLOCK}];   '
                f'/* the ODD strip of each pair, 8 slots x{BLOCK} */')
     out.append('#endif')
+    out.append('#endif')
+    out.append('')
+    # GAIN's SIMD scratch, SHARED by all 32 gain nodes. It is shared and
+    # not per-node because nothing here outlives one call: the block
+    # kernels run one node at a time from the block loop, and the two
+    # interrupt handlers that can preempt them clear PEYEN after `push
+    # sts` and put it back with `pop sts`, so no other code can be inside
+    # this window. Per-node copies would be 32 x 14 words of DM for state
+    # that is dead before the next node starts.
+    #
+    # EVERY ONE IS TWO WORDS AND ONLY THE FIRST IS ADDRESSED DIRECTLY.
+    # These are written from inside the PEYEN region, where a store
+    # writes the PEy shadow to the word AFTER the address -- the same
+    # padding rule biquad_fx.asm's _simd_mode1_save follows, and the
+    # reason a one-word var here would scribble on its neighbour.
+    out.append('#if DSP4_BLOCK_KERNELS && DSP4_GAIN_SIMD')
+    out.append('.global _gsimd_save;  .var _gsimd_save[2];   '
+               '/* MODE1 across the region */')
+    out.append('.global _gsimd_g;     .var _gsimd_g[2];      '
+               '/* the effective gain, per PE */')
+    out.append('.global _gsimd_sq0;   .var _gsimd_sq0[2];    '
+               '/* sum of squares, MR0F   */')
+    out.append('.global _gsimd_sq1;   .var _gsimd_sq1[2];    '
+               '/*                 MR1F   */')
+    out.append('.global _gsimd_sq2;   .var _gsimd_sq2[2];    '
+               '/*                 MR2F   */')
+    out.append('.global _gsimd_max;   .var _gsimd_max[2];    '
+               '/* block max, per PE      */')
+    out.append('.global _gsimd_min;   .var _gsimd_min[2];    '
+               '/* block min, per PE      */')
     out.append('#endif')
     out.append('')
     # Under per-block kernels every SAMPLE needs its own accumulator, so

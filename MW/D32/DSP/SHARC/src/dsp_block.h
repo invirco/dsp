@@ -64,6 +64,19 @@
 #ifndef DSP4_SIMD_GRAPH
 #define DSP4_SIMD_GRAPH 1
 #endif
+
+/* GAIN's SIMD block kernel (2026-09-02). Independent of every macro above
+ * it: what it pairs is two ADJACENT SAMPLES of one channel, not two
+ * channels, so it needs neither the odd pool nor the pair-ordered chain
+ * and it is on whether or not the graph is paired. DSP4_GAIN_SIMD=0 is the
+ * byte-for-byte scalar control the cost is measured against. Inert unless
+ * DSP4_BLOCK_KERNELS is on -- the per-sample path is untouched. */
+#ifndef DSP4_GAIN_SIMD
+#define DSP4_GAIN_SIMD 1
+#endif
+#ifndef DSP4_GAIN_SIMD_NEGCTL
+#define DSP4_GAIN_SIMD_NEGCTL 0
+#endif
 #if DSP4_SIMD_DYN && DSP4_SIMD_GRAPH
 #define DSP4_PAIRED_GRAPH 1
 #else

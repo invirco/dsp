@@ -35,6 +35,7 @@ set -u
 cd "$(dirname "$0")"
 source ./bench_lock.sh; bench_lock_acquire "$0"
 BENCH=app@192.168.1.219
+ROOT=../../../..
 # dsp4_block.py IS STAGED FROM THE TREE THIS POINT WAS BUILT FROM, not
 # from tools/pi, for captable.sh's reason: the Pi-side scorer must be told
 # the block rate the image on the part was actually built with. conform.sh
@@ -44,7 +45,6 @@ BENCH=app@192.168.1.219
 # which is the shipping block-8 tree and the same file.
 BLOCKPY="${DSP_SRC_DIR:-$ROOT/MW/D32/DSP/SHARC/src}/dsp4_block.py"
 [ -f "$BLOCKPY" ] || BLOCKPY="$ROOT/tools/pi/dsp4_block.py"
-ROOT=../../../..
 TAG="${TAG:-cur}"
 PHASE="${PHASE:-all}"
 CHIPS="${CHIPS:-1 2}"

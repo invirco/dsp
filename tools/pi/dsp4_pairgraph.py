@@ -128,13 +128,23 @@ def load_biquads(sc, strip, seed):
     time.sleep(S.SETTLE)
 
 
-def configure(sc, strip, loud):
+def configure(sc, strip, loud, gain=1.0):
     """Put one strip in a known state. Nothing is assumed: a probe that
     sets only what it thinks changed measures whatever the last boot left
-    behind, which is how a dead strip reads as a cheap one."""
+    behind, which is how a dead strip reads as a cheap one.
+
+    `gain` is the driven strip's GAIN, and it is a parameter because the
+    default of 1.0 makes this harness BLIND TO ROUNDING. GAIN computes
+    sat(rns(x*g, 28)); at g = 1.0 the Q4.28 word is 2^28 exactly, so every
+    product's low 28 bits are zero and the rounding half never changes an
+    answer. A kernel that dropped the round entirely reproduces the golden
+    word for word -- which is exactly what happened to the first cut of the
+    SIMD gain kernel on 2026-09-02. Pass a value with bits under the round
+    (gainsimd.sh uses 0.70710678, Q4.28 0x0B504F33) when the thing under
+    test IS the rounding."""
     b = (strip - 1) * STRIDE
     p = PARAMS['odd' if strip % 2 else 'even']
-    wrv(sc, b + GAIN, f32(1.0 if loud else 0.0), ramp_id=1, settle=0.05)
+    wrv(sc, b + GAIN, f32(gain if loud else 0.0), ramp_id=1, settle=0.05)
     for addr, val in ((b + GATE_ON, 1), (b + COMP_ON, 1), (b + TUBE_ON, 0),
                       (b + FDR_MUTE, 0), (b + DLY_OFF, 0),
                       (b + GATE_THR, f32(p['gate_thr'])),
@@ -195,6 +205,18 @@ def compare(a, b):
         print('  WARNING: at least one capture was taken with BYPASS '
               'biquads, which are bit-identical paired or not -- this '
               'comparison says nothing about the paired biquads')
+    # The same rule applied to the GAIN kernel's rounding. Older captures
+    # carry no 'gain' key at all and were taken at unity, so a missing key
+    # is treated as 1.0 rather than as unknown.
+    ga, gb = a.get('gain', 1.0), b.get('gain', 1.0)
+    if ga != gb:
+        print('  WARNING: the two captures were taken at DIFFERENT gains '
+              '(%r vs %r) -- they are not comparable' % (ga, gb))
+    elif ga == 1.0:
+        print('  WARNING: both captures were taken at UNITY gain, whose '
+              'Q4.28 word is 2^28 exactly -- every product\'s low 28 bits '
+              'are zero, so this comparison says nothing about GAIN\'s '
+              'rounding, and its products cannot saturate either')
     wa, wb = a['words'], b['words']
     n = min(len(wa), len(wb))
     diffs = [(i, wa[i], wb[i]) for i in range(n) if wa[i] != wb[i]]
@@ -221,6 +243,10 @@ def main():
     ap.add_argument('--bq', action='store_true',
                     help='load real FILT and EQ coefficients first -- '
                          'REQUIRED for any verdict about the paired biquads')
+    ap.add_argument('--gain', type=float, default=1.0,
+                    help='the driven strip\'s GAIN (default 1.0, which is '
+                         'EXACT in Q4.28 and therefore blind to the '
+                         'kernel\'s rounding -- see configure())')
     ap.add_argument('--compare', nargs=2, metavar='FILE',
                     help='compare two captures instead of taking one')
     args = ap.parse_args()
@@ -250,7 +276,7 @@ def main():
             time.sleep(1.0)
 
     partner = args.strip + 1 if args.strip % 2 else args.strip - 1
-    configure(sc, args.strip, True)
+    configure(sc, args.strip, True, args.gain)
     configure(sc, partner, False)
     if args.bq:
         # Both strips, not just the driven one: the pair runs paired only
@@ -273,7 +299,7 @@ def main():
         b''.join(struct.pack('<I', w & 0xFFFFFFFF) for w in words)).hexdigest()
     nz = sum(1 for w in words if w)
     json.dump({'tag': args.tag or args.out, 'strip': args.strip,
-               'partner': partner, 'block': BLOCK,
+               'partner': partner, 'block': BLOCK, 'gain': args.gain,
                'paired_build': '_blk_pool1' in sc.sym,
                'bq_paired_build': any(k.startswith('_BQPFILT_')
                                       for k in sc.sym),

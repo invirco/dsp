@@ -552,3 +552,49 @@ C2_CAPACITY_S19,32,577360,88.1,chip 2 at block 32, 11.9% margin
 function,block,result,pct_of_budget,notes
 C2_REALTIME_S19,16,REAL_TIME,93.7,"3000 passes/s of 3000, 32 strips, undecimated, gate OPEN 32/32 and comp ACTIVE 32/32 -- witnessed on the SIGNAL path, not the cheap branch"
 C2_REALTIME_S19,8,OVER_BUDGET,104.9,"transport 5997/s but only 5187 passes/s achieved. 86.5% of the required rate implies 115.6% of budget against chip 1's 116.4% by cycle count -- two instruments, no shared arithmetic, 0.8% apart"
+#
+# SESSION 20, 2026-09-02 — GAIN'S SIMD KERNEL, AT BLOCK 16.
+#
+# FIRST CHIP-1 CLASS FIGURES AT THE RULED OPERATING POINT. Every GAIN row
+# above this one is block 8 or block 32. Instrument: SHARC/gainprof.sh --
+# sigprofile.sh's ladder built from a DSP4_GEN_BLOCK=16 scratch tree,
+# sweeping DSP4_GAIN_SIMD, DEC=32, two boots a point, MINIMUM taken, the
+# GAIN-coefficient witness on every point and the block pool's address
+# parity printed with it.
+#
+# CALIBRATED THREE WAYS. (1) The scalar whole-graph point reads 308,174
+# cycles/block signal-present against the 307,866 session 19's capacity
+# measurement recorded for chip 1 at block 16 -- 0.1% apart, different
+# session, different script. (2) Points reproduce across boots to 7 cycles
+# on a 17,000-cycle baseline. (3) THE TWO ARMS READ THE SAME NUMBER AT
+# LIMIT 1, 16,521 and 16,521, where no GAIN node runs -- so a systematic
+# offset between the arms would have shown there and did not.
+#
+# What pairs is TWO ADJACENT SAMPLES OF ONE CHANNEL, not two channels: a
+# gain is memoryless, so the pair PEx and PEy need is already contiguous in
+# the block and there is no gather to pay for. Bit-exact by construction
+# and checked by busgold (0 of 256), gainsimd.sh at a non-round gain
+# (0 of 256) and mtrverify (METER_BIT_EXACT).
+#
+# BOTH GAIN ROWS INCLUDE THE STRIP'S METER NODE, as the block-8 row above
+# does: a meter takes its source's ladder position, so it falls inside the
+# same consecutive difference. It is identical in both arms and cancels
+# out of the delta.
+function,block,cycles_per_block,cycles_per_sample,notes
+GAIN_S20_SCALAR,16,552,34.5,"DSP4_GAIN_SIMD=0, signal present, limits 1->2, paired graph, STRIP_FUSED=1. Includes its METER NODE. This is the byte-for-byte previous kernel (control proved by rebuilding the previous tree: chip1.ldr e95cdfe8)"
+GAIN_S20_SIMD,16,446,27.9,"DSP4_GAIN_SIMD=1, same everything. -106 cycles/block/strip, -6.6 c/s, a factor of 1.24"
+#
+# THE WHOLE-GRAPH READING, 32 gain nodes of signal instead of one. TAKEN ON
+# THE SILENCE GRAPH AND THAT IS NOT A PREFERENCE: the SIMD kernel costs
+# 1,486 bytes of chip 1's program memory, and the DSP4_PROFILE_SIGNAL=1
+# image at DSP4_NODE_LIMIT=0 then overflows sec_swco by 736 words. It links
+# in the scalar arm. GAIN's own cost is signal-independent (no
+# data-dependent branch), so the arm-to-arm difference carries; the
+# ABSOLUTE totals below are silence totals and are NOT comparable to the
+# capacity table's 307,866.
+function,block,cycles_per_block,pct_of_budget,notes
+C1_GRAPH_S20_SCALAR,16,296150,90.4,"silence, 32 strips, two boots 296150/297013"
+C1_GRAPH_S20_SIMD,16,292303,89.2,"silence, 32 strips, two boots 292303/293350"
+C1_GAIN_SIMD_SAVING,16,3847,1.17,"min against min. Boot-1 vs boot-1 gives the same 3,847 and boot-2 vs boot-2 gives 3,663, against within-arm spreads of 863 and 1,047 -- above the instrument's resolution. The class ladder scaled by 32 strips predicts 3,392, so the two instruments are ~10% apart and both are reported. AGAINST THE DISPATCH'S EXPECTATION OF 2-3% OF CHIP 1 THIS IS 1.12-1.17%, and that is said rather than rounded up: the 2-3% was sized off the same review row as the 1-2 c/s target, i.e. off the GAIN->FILT fold that PW's D20 ruling REJECTED"
+C1_PM_FREE_S20_SCALAR,16,3328,,"chip 1 program memory FREE, bytes, block-16 32-strip paired block-kernel build"
+C1_PM_FREE_S20_SIMD,16,1842,,"the same with DSP4_GAIN_SIMD=1: the kernel spends 1,486 bytes, 45% of what was left. 512 bytes of that were recovered in-session by loading the rounding half and the saturation mask ONCE, inside the PEYEN region, instead of once outside and once in. A further ~900 is available by sharing the PEYEN prologue the way _gsimd_flush is shared, at the price of one more call/rts per node per block = 0.94 c/s = 13% of the whole cycle win. NOT TAKEN: which of cycles and code space is chip 1's scarcer resource is a product question"

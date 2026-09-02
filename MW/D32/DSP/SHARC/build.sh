@@ -127,6 +127,21 @@ DSP4_STRIP_FUSED="${DSP4_STRIP_FUSED:-0}"
 CFLAGS="$CFLAGS -DDSP4_STRIP_FUSED=$DSP4_STRIP_FUSED"
 ASMFLAGS="$ASMFLAGS -DDSP4_STRIP_FUSED=$DSP4_STRIP_FUSED"
 
+# GAIN's SIMD block kernel (2026-09-02, the D20 follow-on). Two ADJACENT
+# SAMPLES of one channel per instruction on the PEx/PEy pair -- a gain is
+# memoryless, so the pair it needs is already contiguous in the block and
+# there is no gather to pay for. Block-kernel builds only; the per-sample
+# path and therefore the SHIPPING image are untouched either way.
+# DSP4_GAIN_SIMD=0 is the byte-for-byte scalar control.
+DSP4_GAIN_SIMD="${DSP4_GAIN_SIMD:-1}"
+CFLAGS="$CFLAGS -DDSP4_GAIN_SIMD=$DSP4_GAIN_SIMD"
+ASMFLAGS="$ASMFLAGS -DDSP4_GAIN_SIMD=$DSP4_GAIN_SIMD"
+# The NEGATIVE CONTROL for it: PEy's gain word is zeroed, so every odd
+# sample of every block is silenced. A bit-exactness bar that this does
+# not break was never exercising the second compute unit.
+DSP4_GAIN_SIMD_NEGCTL="${DSP4_GAIN_SIMD_NEGCTL:-0}"
+ASMFLAGS="$ASMFLAGS -DDSP4_GAIN_SIMD_NEGCTL=$DSP4_GAIN_SIMD_NEGCTL"
+
 # DSP4_CTL_ALWAYS=1 removes the control-rate gate (review findings D22/D24):
 # every gated node runs its prep section unconditionally every block, the way
 # it did before the gate. This is the NEGATIVE CONTROL for the gate's
