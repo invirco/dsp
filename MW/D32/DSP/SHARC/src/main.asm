@@ -149,6 +149,10 @@
 .extern _cst_selftest;
 .extern _cst_done;
 #endif
+#if DSP4_BQ_SHOOTOUT
+.extern _bqsh_selftest;
+.extern _bqsh_done;
+#endif
 
 .section/pm seg_pmco;
 
@@ -716,6 +720,18 @@ _start:
     if ne jump (pc, .callst_skip);
     call _cst_selftest;
 .callst_skip:
+#endif
+#if DSP4_BQ_SHOOTOUT
+    /* Biquad shootout ladder (spike, 2026-09-02). Same placement and the
+     * same reason as the self-tests above: ordinary main-loop context,
+     * link up, nothing of the graph's state touched. Five timed loops x
+     * 400 iterations x 3 repeats; the fixed cascade alone is ~5,700
+     * cycles a call, so the whole ladder is about 40 ms, once. */
+    r0 = dm(_bqsh_done);
+    r0 = pass r0;
+    if ne jump (pc, .bqsh_skip);
+    call _bqsh_selftest;
+.bqsh_skip:
 #endif
     /* NO `idle` HERE. It used to be, as a low-power wait for the DMA
      * interrupt, and it wedged the parameter link the instant the loop

@@ -403,6 +403,12 @@ ASMFLAGS="$ASMFLAGS -DDSP4_DYN_INLINE=$DSP4_DYN_INLINE"
 # cycles/sample/pair session 9 inferred is generic branch overhead or
 # something specific to _mrf_rns28 -- which is what decides whether AXIS
 # 1's floor rows are understated. Debug only; never in a shipping image.
+# Biquad shootout ladder (spike, 2026-09-02): times today's fixed cascade
+# against a float DF-II-T one, scalar and SIMD, in a standalone rig. Never
+# in a shipping image; the whole file is inside #if DSP4_BQ_SHOOTOUT.
+DSP4_BQ_SHOOTOUT="${DSP4_BQ_SHOOTOUT:-0}"
+CFLAGS="$CFLAGS -DDSP4_BQ_SHOOTOUT=$DSP4_BQ_SHOOTOUT"
+ASMFLAGS="$ASMFLAGS -DDSP4_BQ_SHOOTOUT=$DSP4_BQ_SHOOTOUT"
 DSP4_CALL_SELFTEST="${DSP4_CALL_SELFTEST:-0}"
 CFLAGS="$CFLAGS -DDSP4_CALL_SELFTEST=$DSP4_CALL_SELFTEST"
 ASMFLAGS="$ASMFLAGS -DDSP4_CALL_SELFTEST=$DSP4_CALL_SELFTEST"
