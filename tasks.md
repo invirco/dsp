@@ -1,3 +1,57 @@
+## HUB DISPATCH 2026-09-02 17:54Z — RIG C — fixed-point round-once measured: gain + biquad cycles, noise-floor cost, biquad-state guard, three-way table   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+RIG C — ROUND-ONCE numeric architecture, MEASURED. Fresh session (the GAIN
+session that preceded this ran ~5h; rotate). Read the PW RULING at the top of
+tasks.md (round once per strip/cascade, not per stage — D5 amendment) and the
+biquad shootout doc (MW/D32/DSP/biquad-shootout-*) — RIG A2 (float, round
+once) is already measured at 5.94 c/band / 0.52 dB LF. RIG C is the
+FIXED-POINT round-once option: keep the Q-format contract but saturate/round
+ONCE per strip (gain path) and once per cascade output (biquads), via
+headroom management / block-float, instead of per stage.
+
+MEASURE AND REPORT (this is a measurement + honest-bound spike, not a
+production rewrite):
+1. GAIN round-once: with the per-stage Q4.28 extract+saturate collapsed to
+   one clamp at strip output (the 10+1 instructions the GAIN write-up
+   identified), measure c/s. Expected near the 1-2 floor now that D5 is
+   amended. Mic-pre tap (D20) still bit-identical; both stores kept.
+2. BIQUAD cascade round-once, fixed headroom: carry the wide accumulator
+   through the cascade, saturate once at output. Measure c/band-sample vs
+   today's 12.58 and A2's 5.94.
+3. THE COSTS, honestly — this is the whole point of RIG C:
+   a. DYNAMIC-RANGE / NOISE-FLOOR cost: how many bits of headroom the chain
+      actually needs (worst-case internal growth through gain+EQ+dynamics),
+      and therefore how many low bits are lost vs today's per-stage-protected
+      path. State it in dB of noise floor and effective bits.
+   b. BIQUAD RECURSIVE-STATE overflow: a high-Q filter's state can overflow
+      regardless of I/O level — headroom at entry does NOT fully protect it.
+      Characterise this explicitly: which filter designs (Q, gain, frequency)
+      can overflow the state under round-once, and what internal guard is
+      needed (state scaling? a per-cascade — not per-stage — state clamp?).
+      Do NOT wave this away; it is the known weak point of the fixed approach.
+   c. Where round-once is SAFE (feed-forward, gain, most EQ) vs where it
+      needs a guard (recursive/high-Q). 
+4. THREE-WAY comparison table, all MEASURED points: today (fixed per-stage,
+   12.58, 0 error) · RIG C (fixed headroom round-once, YOUR numbers) · RIG A2
+   (float round-once, 5.94, 0.52 dB LF). Axes: c/band-sample, chip-2 cycles
+   freed, noise-floor/effective-bits cost, response error dB, biquad-state
+   safety. This feeds the hub-built tradeoff chart for PW.
+
+BARS/W0: shipping image unchanged BY DESIGN or W0-state the delta; busgold
+bit-exact on the unchanged path; golden 59/59; the round-once path is a NEW
+build behind a flag, measured against the per-stage reference (like the
+shootout rigs). TRAPS: marker-file waits never `pgrep -f` from a self-matching
+shell (bit the campaign 3x); S15 phase rule; one tty reader.
+
+RULES: single trunk main — pull first, push on completion; update this
+dispatch block's status; no AI attribution anywhere.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 > **PW RULING 2026-09-02 — ROUND ONCE, NOT PER STAGE (D5 amendment).**
 > Rounding/saturating at every gain and biquad stage is too expensive — it
 > is the measured hog (GAIN: 11 of 18 instr are Q4.28 round+saturate, only 1
