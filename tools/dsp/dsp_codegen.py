@@ -7687,7 +7687,29 @@ def gen_block_header():
 #else
 #define DSP4_BQ_PAIRED_GRAPH 0
 #endif
-#if DSP4_BQ_PAIRED_GRAPH || DSP4_SIMD_PROBE
+/* PAIRED BIQUAD CASCADES ON CHIP 2 (2026-09-02) -- NATIVE INTERLEAVE.
+ * Chip 1's _bq_pair_blk gathers the two strips' coefficients and state
+ * into an interleaved scratch on EVERY block, which costs 4.25 cycles per
+ * band-sample whatever the stage count is and turns a 2x lever into 1.5x.
+ * Chip 2 does not gather per block: the pair OWNS the interleaved arrays
+ * and latches them, so the gather happens once when a pair engages and
+ * the per-block path is the signal interleave alone.
+ *
+ * DSP4_C2_BQ_GRAPH=0 is the CONTROL: the same tree with chip 2's biquad
+ * classes back in the chain as scalar nodes and the dynamics pairs
+ * untouched, which is what the 240,681-cycle figure was measured on. */
+#ifndef DSP4_C2_BQ_GRAPH
+#define DSP4_C2_BQ_GRAPH 1
+#endif
+#if DSP4_PAIRED_GRAPH && DSP4_C2_BQ_GRAPH
+#define DSP4_C2_BQ_PAIRED_GRAPH 1
+#else
+#define DSP4_C2_BQ_PAIRED_GRAPH 0
+#endif
+
+/* The SIMD cascade itself is shared: chip 1 reaches it through
+ * _bq_pair_blk, chip 2 points straight at its own interleaved arrays. */
+#if DSP4_BQ_PAIRED_GRAPH || DSP4_C2_BQ_PAIRED_GRAPH || DSP4_SIMD_PROBE
 #define DSP4_BQ_PAIRED 1
 #else
 #define DSP4_BQ_PAIRED 0
@@ -10916,20 +10938,40 @@ def _bq_pair_steady(cls, nid):
 # classes, raises rather than quietly pairing something else.
 #
 #   (tag, node-id template, the classes of one chain IN CHAIN ORDER,
-#    {class: which pair kernel}, )
+#    {class: which DYNAMICS pair kernel}, {class: biquad node prefix})
 # The classes before the first paired one are the HEAD, the ones after the
 # last are the TAIL; the paired classes must be contiguous between them.
+#
+# THE BIQUAD COLUMN IS SEPARATE FROM THE DYNAMICS ONE, and it is separate
+# for the same reason chip 1 keeps DSP4_BQ_GRAPH apart from
+# DSP4_SIMD_GRAPH: the dynamics-paired chain is what the 240,681-cycle
+# figure was measured on, so it has to stay buildable, byte for byte, as
+# the control for the biquad pairing (DSP4_C2_BQ_GRAPH=0).
 _C2_PAIR_FAMILIES = (
     ('AUX', 'C2_AUX_{cls}_{n}',
      ('FDR', 'EQ', 'GEQ', 'AFB', 'LIM', 'DLY', 'OUT'),
-     {'LIM': 'lim'}),
+     {'LIM': 'lim'},
+     {'EQ': 'eq', 'GEQ': 'geq', 'AFB': 'afb'}),
     ('GRP', 'C2_GRP_{cls}_{n}',
      ('FDR', 'EQ', 'GEQ', 'GATE', 'COMP'),
-     {'GATE': 'gate', 'COMP': 'comp'}),
+     {'GATE': 'gate', 'COMP': 'comp'},
+     {'EQ': 'eq', 'GEQ': 'geq'}),
     ('MOUT', 'C2_MAIN_{cls}_{n}',
      ('OEQ', 'OCOMP', 'OLIM', 'OUT'),
-     {'OCOMP': 'comp', 'OLIM': 'lim'}),
+     {'OCOMP': 'comp', 'OLIM': 'lim'},
+     {'OEQ': 'eq'}),
 )
+
+# How many biquad STAGES a cascade class has, and where its count lives in
+# the dsp.csv params. Unknown classes are not paired -- the no-fallback
+# rule: a cascade whose length this table cannot state is left scalar
+# rather than paired at a guessed length.
+_C2_BQ_STAGES = {
+    'EQ':  ('bands', 4),
+    'OEQ': ('bands', 4),
+    'GEQ': ('bands', 28),
+    'AFB': ('notch_count', 6),
+}
 
 # Per pair kernel: the node-variable prefix, how many PARAMETER words the
 # kernel gathers, and whether the node carries an `on` switch and a
@@ -10956,7 +10998,7 @@ def c2_pair_groups(chip_label, chip_nodes, call_sequence):
     have = {n['id'] for n in chip_nodes}
     pos = {nid: i for i, nid in enumerate(call_sequence)}
     groups = []
-    for tag, tmpl, classes, paired in _C2_PAIR_FAMILIES:
+    for tag, tmpl, classes, paired, bqpaired in _C2_PAIR_FAMILIES:
         # instances are whatever numbers appear for the FIRST class
         first_cls = classes[0]
         pre = tmpl.format(cls=first_cls, n='')
@@ -10982,13 +11024,28 @@ def c2_pair_groups(chip_label, chip_nodes, call_sequence):
                 f'chip 2 pair family {tag}: its {len(idx)} nodes are not a '
                 f'contiguous run of the chain ({lo}..{hi}), so the pair '
                 f'order cannot be built by reordering that run')
-        pcls = [c for c in classes if c in paired]
-        span_cls = classes[classes.index(pcls[0]):classes.index(pcls[-1]) + 1]
-        if list(span_cls) != pcls:
-            raise ValueError(
-                f'chip 2 pair family {tag}: the paired classes {pcls} are not '
-                f'contiguous in the chain order {list(classes)}')
+        # Both the dynamics-only set and the union with the biquads have
+        # to be contiguous runs of the chain: the first is the CONTROL
+        # build's order, the second is this build's, and the reorder that
+        # produces either one only ever moves nodes inside the run.
+        for which, pset in (('dynamics', paired),
+                            ('biquad+dynamics', dict(paired, **bqpaired))):
+            pcls = [c for c in classes if c in pset]
+            span = classes[classes.index(pcls[0]):classes.index(pcls[-1]) + 1]
+            if list(span) != pcls:
+                raise ValueError(
+                    f'chip 2 pair family {tag}: the {which} paired classes '
+                    f'{pcls} are not contiguous in the chain order '
+                    f'{list(classes)}')
+        for c in bqpaired:
+            if c not in _C2_BQ_STAGES:
+                raise ValueError(
+                    f'chip 2 pair family {tag}: cascade class {c} has no '
+                    f'entry in _C2_BQ_STAGES, so its stage count is not '
+                    f'stated anywhere -- adopt it there rather than '
+                    f'pairing it at a guessed length')
         groups.append({'tag': tag, 'classes': list(classes), 'paired': paired,
+                       'bq': dict(bqpaired),
                        'insts': complete, 'nid': nid, 'span': (lo, hi)})
     return groups
 
@@ -11161,7 +11218,340 @@ def gen_dyn_pairs_c2(groups, input_of, mtr_of=None):
     return out
 
 
-def gen_bq_pairs(chip_label, strips, bands_of):
+# ---------------------------------------------------------------------------
+# CHIP-2 BIQUAD PAIRING WITH NATIVE INTERLEAVE (2026-09-02)
+#
+# Chip 1's _bq_pair_blk gathers the two strips' coefficients and state into
+# an interleaved scratch on EVERY block. That gather is 5 coefficient words
+# in, 6 state words in and 6 state words out per stage per pair -- 4.25
+# cycles per band-sample INDEPENDENT OF THE STAGE COUNT -- against a paired
+# inner loop that saves 9.5. It turns a 2x lever into about 1.5x, which is
+# exactly what LEVER_BQPAIR_BLK8 measured (-8.3% against a -13% prediction).
+#
+# CHIP 2 DOES NOT GATHER PER BLOCK. The pair OWNS the interleaved arrays and
+# LATCHES them: while both channels are in steady state the interleaved
+# coefficients and state ARE the filter, and the per-block path is the
+# signal interleave alone -- 8 words per channel in and out, 0.14 cycles per
+# band-sample on a 28-band GEQ.
+#
+# WHY A LATCH AND NOT AN INTERLEAVE AT CONVERSION TIME. The session-18
+# write-up proposed emitting the coefficients interleaved from
+# _bq_fx_convert_N and giving the per-sample reference an M-register stride.
+# That reaches the same per-block cost and it rewrites the numeric contract's
+# own kernels to get there -- three entry points, every cascade node body,
+# and the crossfade path. The latch reaches it with the node bodies BYTE
+# FOR BYTE UNCHANGED, because it moves the authority rather than the layout:
+#
+#   * both channels steady, latch down -> gather once, latch up;
+#   * both channels steady, latch up   -> signal interleave + SIMD cascade;
+#   * either channel transient         -> scatter the state back to that
+#                                         node's ACTIVE instance, latch down,
+#                                         and call the two node bodies, which
+#                                         are the untouched reference path.
+#
+# A gather costs 5+6 words per stage per pair ONCE PER COEFFICIENT SWAP, not
+# once per block; a swap is a user gesture and a crossfade is 576 samples.
+# Nothing else can move the coefficients or the state: every write to either
+# goes through _<pfx>_coeffs_next_ and _<pfx>_swap_pending_, and
+# swap_pending is one of the two words the steady test reads.
+#
+# WHAT IS AUTHORITATIVE WHEN. Latched, the node's own coefficient and state
+# arrays are STALE and nothing reads them: the chain calls the driver, not
+# the nodes. Unlatched, the interleaved arrays are stale and nothing reads
+# them. The scatter on the way down is what joins the two, and it copies the
+# STATE only -- the coefficients cannot have changed while latched, because
+# a change is exactly what takes the latch down.
+_C2_BQ_SIG = '_bqi_sig'
+
+
+def _c2_bq_sel(pfx, nid, rc=None, rs=None):
+    """Pick this node's ACTIVE instance coefficient/state bases into rc/rs.
+
+    Conditional MOVES off one `pass`, the same idiom _bq_pair_ptrs uses on
+    chip 1. active == 0 selects instance A, which is what the node body's
+    own steady-state select does.
+    """
+    out = []
+    if rc:
+        out.append(f'    r2 = _{pfx}_coeffs_A_{nid};')
+    if rs:
+        out.append(f'    r3 = _{pfx}_state_A_{nid};')
+    if rc:
+        out.append(f'    {rc} = _{pfx}_coeffs_B_{nid};')
+    if rs:
+        out.append(f'    {rs} = _{pfx}_state_B_{nid};')
+    out.append(f'    r0 = dm(_{pfx}_active_{nid});')
+    out.append('    r0 = pass r0;')
+    if rc:
+        out.append(f'    if eq {rc} = r2;')
+    if rs:
+        out.append(f'    if eq {rs} = r3;')
+    return out
+
+
+def gen_bq_pairs_c2(groups, input_of, stages_of, mtr_of=None, tap_of=None):
+    """chip2/bq_pairs.asm body — one native-interleave driver per pair."""
+    mtr_of = mtr_of or {}
+    tap_of = tap_of or {}
+    out = []
+    a = out.append
+    work = []
+    for g in groups:
+        for cls, pfx in g['bq'].items():
+            for k in range(0, len(g['insts']) - 1, 2):
+                na, nb = g['insts'][k], g['insts'][k + 1]
+                da, db = g['nid'][(cls, na)], g['nid'][(cls, nb)]
+                sa_, sb_ = stages_of[da], stages_of[db]
+                if sa_ != sb_:
+                    raise ValueError(
+                        f'{da} is a {sa_}-stage cascade and {db} is {sb_}: a '
+                        f'SIMD pair is ONE instruction stream, so the two '
+                        f'channels must ask for the same cascade length')
+                work.append((f'{g["tag"]}_{cls}_{na}_{nb}', pfx, da, db, sa_))
+    if not work:
+        return out
+
+    ext = set(['_bq_fx_cascade_simd'])
+    for tag, pfx, da, db, st in work:
+        for d in (da, db):
+            ext.update((f'_{d}_process', f'_blk_{d}', f'_buf_{d}',
+                        f'_blk_{input_of[d]}',
+                        f'_{pfx}_coeffs_A_{d}', f'_{pfx}_state_A_{d}',
+                        f'_{pfx}_coeffs_B_{d}', f'_{pfx}_state_B_{d}',
+                        f'_{pfx}_active_{d}', f'_{pfx}_swap_pending_{d}',
+                        f'_{pfx}_xfade_step_{d}'))
+            if tap_of.get(d):
+                ext.add(f'_tap_post_eq_{d}')
+            if mtr_of.get(d):
+                ext.update((f'_mtr_wblk_{d}', f'_mtr_wide_{d}'))
+
+    a('')
+    a('#if DSP4_C2_BQ_PAIRED_GRAPH')
+    a('/* ---- chip-2 biquad pairs, NATIVE INTERLEAVE (2026-09-02) ----')
+    a(' *')
+    a(' * The pair owns the interleaved coefficient and state arrays and')
+    a(' * LATCHES them. While both channels are steady the per-block path is')
+    a(" * the signal interleave and _bq_fx_cascade_simd -- there is no")
+    a(' * per-block coefficient or state gather at all, which is the whole')
+    a(" * difference between this and chip 1's _bq_pair_blk (4.25 cycles per")
+    a(' * band-sample of gather, whatever the stage count).')
+    a(' *')
+    a(' * The gather runs ONCE, when the pair engages, and the state is')
+    a(' * scattered back to the two nodes when it disengages. A coefficient')
+    a(' * swap or a running crossfade takes the latch down and the two node')
+    a(' * bodies -- untouched, the reference path -- run instead.')
+    a(' */')
+    a('.section/dm seg_dmda;')
+    a('/* ONE signal scratch for every pair on the chip: it is live only')
+    a(' * between the interleave and the scatter inside a single driver')
+    a(' * call, and the drivers do not nest. */')
+    a(f'.var {_C2_BQ_SIG}[2*DSP4_BLOCK_SIZE];')
+    for tag, pfx, da, db, st in work:
+        a(f'.var _bqi_c_{tag}[{10 * st}];    /* 2 x {st} stages x 5 coeffs */')
+        a(f'.var _bqi_s_{tag}[{12 * st}];    /* 2 x {st} stages x 6 state  */')
+        a(f'.var _bqi_lat_{tag} = 0;')
+    a('')
+    a('.section/pm seg_pmco;')
+    for sym in sorted(ext):
+        a(f'.extern {sym};')
+
+    for tag, pfx, da, db, st in work:
+        lbl = f'_C2BQP_{tag}_process'
+        a('')
+        a(f'/* ---- {da} + {db}: {st} stages ---- */')
+        a(f'.global {lbl};')
+        a(f'{lbl}:')
+        a('    l0 = 0; l1 = 0; l2 = 0; l3 = 0; l4 = 0;')
+        a('    /* Both channels steady, or there is no pair: a staged')
+        a("     * coefficient set or a running crossfade goes through the")
+        a("     * node's own reference path. */")
+        a(f'    r1 = dm(_{pfx}_swap_pending_{da});')
+        a(f'    r0 = dm(_{pfx}_xfade_step_{da});')
+        a('    r1 = r1 or r0;')
+        a(f'    r0 = dm(_{pfx}_swap_pending_{db});')
+        a('    r1 = r1 or r0;')
+        a(f'    r0 = dm(_{pfx}_xfade_step_{db});')
+        a('    r1 = r1 or r0;')
+        a('    r1 = pass r1;')
+        a(f'    if ne jump (pc, .bqiS_{tag});')
+        a('')
+        a(f'    r0 = dm(_bqi_lat_{tag});')
+        a('    r0 = pass r0;')
+        a(f'    if ne jump (pc, .bqiR_{tag});')
+        a('')
+        a('    /* ---- ENGAGE: gather each channel\'s ACTIVE instance into')
+        a('     * the pair\'s interleaved arrays, once. ---- */')
+        for line in _c2_bq_sel(pfx, da, 'r8', 'r9'):
+            a(line)
+        for line in _c2_bq_sel(pfx, db, 'r11', 'r12'):
+            a(line)
+        a('    i0 = r8;')
+        a('    i1 = r11;')
+        a(f'    i2 = _bqi_c_{tag};')
+        a('#if DSP4_C2_BQ_NEGCTL')
+        a('    /* NEGATIVE CONTROL. Channel B\'s coefficients are gathered as')
+        a('     * ZERO, so B runs a dead filter while A\'s is untouched. If')
+        a('     * the kernel really keeps the two channels apart then EVERY')
+        a('     * channel-B cascade output moves and NO channel-A one does.')
+        a('     *')
+        a("     * A CROSS-FEED CONTROL -- B takes A's coefficients, which is")
+        a('     * what chip 1\'s DSP4_BQ_NEGCTL does -- CANNOT WORK HERE. Every')
+        a('     * chip-2 cascade on the bench runs on the same .var bypass')
+        a('     * initialisers, so A and B are numerically the same filter and')
+        a('     * computing A twice gives the right answer. That is the gap')
+        a('     * the 2026-09-01 record named on the dynamics pairs; zeroing')
+        a('     * one channel closes it without needing distinct per-channel')
+        a('     * settings over the SPI plane. */')
+        a(f'    lcntr = {5 * st}, do .bqiCE_{tag} until lce;')
+        a('        r0 = dm(i0, 1);')
+        a('        dm(i2, 1) = r0;')
+        a('        r0 = 0;')
+        a(f'    .bqiCE_{tag}: dm(i2, 1) = r0;')
+        a('#else')
+        a(f'    lcntr = {5 * st}, do .bqiCE_{tag} until lce;')
+        a('        r0 = dm(i0, 1);')
+        a('        dm(i2, 1) = r0;')
+        a('        r0 = dm(i1, 1);')
+        a(f'    .bqiCE_{tag}: dm(i2, 1) = r0;')
+        a('#endif')
+        a('    i0 = r9;')
+        a('    i1 = r12;')
+        a(f'    i2 = _bqi_s_{tag};')
+        a(f'    lcntr = {6 * st}, do .bqiSE_{tag} until lce;')
+        a('        r0 = dm(i0, 1);')
+        a('        dm(i2, 1) = r0;')
+        a('        r0 = dm(i1, 1);')
+        a(f'    .bqiSE_{tag}: dm(i2, 1) = r0;')
+        a('    r0 = 1;')
+        a(f'    dm(_bqi_lat_{tag}) = r0;')
+        a('')
+        a(f'.bqiR_{tag}:')
+        a('    /* the two input blocks, interleaved -- the only per-block')
+        a('     * gather left */')
+        a(f'    i3 = _blk_{input_of[da]};')
+        a(f'    i4 = _blk_{input_of[db]};')
+        a(f'    i2 = {_C2_BQ_SIG};')
+        a(f'    lcntr = DSP4_BLOCK_SIZE, do .bqiXI_{tag} until lce;')
+        a('        r0 = dm(i3, 1);')
+        a('        dm(i2, 1) = r0;')
+        a('        r0 = dm(i4, 1);')
+        a(f'    .bqiXI_{tag}: dm(i2, 1) = r0;')
+        a('')
+        a(f'    i0 = _bqi_c_{tag};')
+        a(f'    i1 = _bqi_s_{tag};')
+        a(f'    i2 = {_C2_BQ_SIG};')
+        a(f'    r4 = {st};')
+        a('    call _bq_fx_cascade_simd;')
+        a('')
+        a('    /* NOTHING is carried in a register across that call -- it')
+        a('     * writes r0-r15 and i0-i2. Every address below is a link-time')
+        a('     * constant, which is the shape the 2026-08-29 paired-cascade')
+        a('     * hang taught: _bq_pair_blk had to park five words in DM.')
+        a('     */')
+        a('    l2 = 0; l3 = 0; l4 = 0;')
+        a(f'    i2 = {_C2_BQ_SIG};')
+        a(f'    i3 = _blk_{da};')
+        a(f'    i4 = _blk_{db};')
+        a(f'    lcntr = DSP4_BLOCK_SIZE, do .bqiXO_{tag} until lce;')
+        a('        r0 = dm(i2, 1);')
+        a('        dm(i3, 1) = r0;')
+        a('        r0 = dm(i2, 1);')
+        a(f'    .bqiXO_{tag}: dm(i4, 1) = r0;')
+        a('')
+        a('    /* the scalar words a host peek reads, off the LAST sample of')
+        a('     * the block -- the same republish the GEQ block kernel makes')
+        a('     * for the same reason (D83). */')
+        a('    m4 = DSP4_BLOCK_SIZE-1;')
+        for d in (da, db):
+            a(f'    i4 = _blk_{d};')
+            a('    modify(i4, m4);')
+            a('    r0 = dm(i4, 0);')
+            a(f'    dm(_buf_{d}) = r0;')
+            if tap_of.get(d):
+                a(f'    dm(_tap_post_eq_{d}) = r0;')
+        a('#if DSP4_C2_BQ_NOLATCH')
+        a('    /* THE ROUND-TRIP ARM. Scatter the state back and drop the')
+        a('     * latch on EVERY block, so the engage/disengage bookkeeping')
+        a('     * -- which in a real build runs once per coefficient swap,')
+        a('     * i.e. once per user gesture -- runs six thousand times a')
+        a('     * second instead. It must be bit-exact against BOTH the')
+        a('     * scalar arm and the latched arm: a gather that maps the')
+        a('     * interleave wrongly in either direction cannot survive')
+        a('     * being run and undone every block. It is also the only way')
+        a('     * to price the gather on chip 2\'s own numbers -- the cost')
+        a('     * difference against the latched arm IS the per-block gather')
+        a('     * the latch removes. Debug only; default 0. */')
+        for line in _c2_bq_sel(pfx, da, None, 'r9'):
+            a(line)
+        for line in _c2_bq_sel(pfx, db, None, 'r12'):
+            a(line)
+        a(f'    i2 = _bqi_s_{tag};')
+        a('    i0 = r9;')
+        a('    i1 = r12;')
+        a(f'    lcntr = {6 * st}, do .bqiSN_{tag} until lce;')
+        a('        r0 = dm(i2, 1);')
+        a('        dm(i0, 1) = r0;')
+        a('        r0 = dm(i2, 1);')
+        a(f'    .bqiSN_{tag}: dm(i1, 1) = r0;')
+        a('    r0 = 0;')
+        a(f'    dm(_bqi_lat_{tag}) = r0;')
+        a('#endif')
+        for j, d in enumerate((da, db)):
+            if not mtr_of.get(d):
+                continue
+            a('    /* the meter\'s wide word AS A BLOCK -- the generic')
+            a('     * per-block wrapper walks it out and the pair kernel does')
+            a('     * not (D82/D83). */')
+            a(f'    i3 = _blk_{d};')
+            a(f'    i4 = _mtr_wblk_{d};')
+            a(f'    lcntr = DSP4_BLOCK_SIZE, do .bqiMW{j}_{tag} until lce;')
+            a('        r0 = dm(i3, 1);')
+            a('        r0 = ashift r0 by -4;    /* Q4.28 -> Q8.24 */')
+            a(f'    .bqiMW{j}_{tag}: dm(i4, 1) = r0;')
+            a(f'    dm(_mtr_wide_{d}) = r0;')
+        a('    rts;')
+        a('')
+        a(f'.bqiS_{tag}:')
+        a('    /* DISENGAGE. The interleaved state is authoritative while the')
+        a('     * latch is up, so give it back to each node\'s ACTIVE instance')
+        a('     * before the node bodies run on their own arrays. The')
+        a('     * COEFFICIENTS are not scattered: they cannot have changed')
+        a('     * while latched, because a change is what brings us here. */')
+        a(f'    r0 = dm(_bqi_lat_{tag});')
+        a('    r0 = pass r0;')
+        a(f'    if eq jump (pc, .bqiN_{tag});')
+        for line in _c2_bq_sel(pfx, da, None, 'r9'):
+            a(line)
+        for line in _c2_bq_sel(pfx, db, None, 'r12'):
+            a(line)
+        a(f'    i2 = _bqi_s_{tag};')
+        a('    i0 = r9;')
+        a('    i1 = r12;')
+        a(f'    lcntr = {6 * st}, do .bqiSB_{tag} until lce;')
+        a('        r0 = dm(i2, 1);')
+        a('        dm(i0, 1) = r0;')
+        a('        r0 = dm(i2, 1);')
+        a(f'    .bqiSB_{tag}: dm(i1, 1) = r0;')
+        a('    r0 = 0;')
+        a(f'    dm(_bqi_lat_{tag}) = r0;')
+        a('')
+        a(f'.bqiN_{tag}:')
+        a('    /* scalar fallback: the two nodes, unchanged */')
+        a(f'    call _{da}_process;')
+        a(f'    call _{db}_process;')
+        a('    rts;')
+        a(f'{lbl}.end:')
+    a('')
+    a('#if !DSP4_BLOCK_KERNELS')
+    a('#error "DSP4_C2_BQ_GRAPH is a per-BLOCK pairing: build with '
+      'DSP4_BLOCK_KERNELS=1."')
+    a('#endif')
+    a('#endif /* DSP4_C2_BQ_PAIRED_GRAPH */')
+    return out
+
+
+def gen_bq_pairs(chip_label, strips, bands_of, c2_groups=(), input_of=None,
+                 stages_of=None, mtr_of=None, tap_of=None):
     """chipN/bq_pairs.asm — one driver per paired biquad class per pair."""
     out = []
     a = out.append
@@ -11294,6 +11684,8 @@ def gen_bq_pairs(chip_label, strips, bands_of):
     a('#endif')
     a('')
     a('#endif /* DSP4_BQ_PAIRED_GRAPH */')
+    out += gen_bq_pairs_c2(c2_groups, input_of or {}, stages_of or {},
+                           mtr_of, tap_of)
     return '\n'.join(out) + '\n'
 
 
@@ -11699,14 +12091,16 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                         f.write(f'    if ne jump (pc, .{sgpfx}{_rn}_end);\n')
                         f.write('#endif\n')
 
-                    if ent[0] == 'c2pair':
+                    if ent[0] in ('c2pair', 'c2bqp'):
                         # chip 2: no DSP4_STRIPS guard, because chip 2 has
                         # no channel strips to cut. The fallback when the
                         # pair is not in the graph is the whole entry not
                         # being emitted, exactly as for a node.
                         _p = pos_of[tuple(ent)]
+                        _dr = ('_C2BQP_' if ent[0] == 'c2bqp'
+                               else '_C2PAIR_')
                         f.write(f'#if ({_NL} == 0 || {_p} < {_NL})\n')
-                        f.write(f'    call _C2PAIR_{ent[1]}_{ent[2]}_'
+                        f.write(f'    call {_dr}{ent[1]}_{ent[2]}_'
                                 f'{ent[3]}_{ent[4]}_process;\n')
                         f.write('#endif\n')
                         # A METER RIDING ON A PAIRED NODE HAS TO BE CALLED
@@ -11811,15 +12205,31 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
             # where GEQ, EQ and AFB are measured -- identical to the scalar
             # build's, so a cost table taken on one is comparable with the
             # other up to the first reordered run.
+            #
+            # TWO chip-2 pair orders, for the same reason chip 1 has two:
+            # the biquads pair independently of the dynamics
+            # (DSP4_C2_BQ_GRAPH), so the dynamics-only chain has to stay
+            # buildable byte for byte as the CONTROL the 240,681-cycle
+            # figure was measured on.
             c2_seq, c2_pos = [], {}
+            c2bq_seq, c2bq_pos = [], {}
             _c2_nid = {(_g['tag'], _c, _n): _g['nid'][(_c, _n)]
                        for _g in _c2_groups
                        for _c in _g['classes'] for _n in _g['insts']}
-            if _c2_groups:
+
+            def _c2_order(with_bq):
+                """The pair-ordered chip-2 chain: head A, head B, the pair
+                driver calls, tail A, tail B, each family's run reordered
+                IN PLACE so every position before the first reordered run
+                is the same number in both builds."""
                 _rep = {}
                 for _g in _c2_groups:
                     _lo, _hi = _g['span']
-                    _sub, _cs, _p = [], _g['classes'], _g['paired']
+                    _cs = _g['classes']
+                    _p = dict(_g['paired'], **_g['bq']) if with_bq \
+                        else dict(_g['paired'])
+                    _bq = _g['bq'] if with_bq else {}
+                    _sub = []
                     _fp = min(_cs.index(x) for x in _p)
                     _lp = max(_cs.index(x) for x in _p)
                     _hd = _cs[:_fp]
@@ -11832,7 +12242,8 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                             for _c in _hd:
                                 _sub.append(('node', _g['nid'][(_c, _n)]))
                         for _c in _pc:
-                            _sub.append(('c2pair', _g['tag'], _c, _na, _nb))
+                            _kind = 'c2bqp' if _c in _bq else 'c2pair'
+                            _sub.append((_kind, _g['tag'], _c, _na, _nb))
                         for _n in (_na, _nb):
                             for _c in _tl:
                                 _sub.append(('node', _g['nid'][(_c, _n)]))
@@ -11840,21 +12251,26 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                         for _c in _cs:
                             _sub.append(('node', _g['nid'][(_c, _ins[-1])]))
                     _rep[_lo] = (_hi, _sub)
-                _i = 0
+                _sq, _ps, _i = [], {}, 0
                 while _i < len(call_sequence):
                     if _i in _rep:
                         _hi, _sub = _rep[_i]
-                        c2_seq += _sub
+                        _sq += _sub
                         _i = _hi + 1
                     else:
-                        c2_seq.append(('node', call_sequence[_i]))
+                        _sq.append(('node', call_sequence[_i]))
                         _i += 1
-                for _i, _e in enumerate(c2_seq):
-                    c2_pos[_e[1] if _e[0] == 'node' else tuple(_e)] = _i
+                for _i, _e in enumerate(_sq):
+                    _ps[_e[1] if _e[0] == 'node' else tuple(_e)] = _i
                 for _src, _ms in _mtr_after.items():
                     for _m in _ms:
-                        if _src in c2_pos:
-                            c2_pos[_m] = c2_pos[_src]
+                        if _src in _ps:
+                            _ps[_m] = _ps[_src]
+                return _sq, _ps
+
+            if _c2_groups:
+                c2_seq, c2_pos = _c2_order(False)
+                c2bq_seq, c2bq_pos = _c2_order(True)
 
             # The pair-ordered chain, built only where there are pairs to
             # build (chip 1's channel strips).
@@ -11943,8 +12359,15 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                 f.write(f' * number in both builds. {len(c2_seq)} positions\n')
                 f.write(f' * against {len(scalar_seq)} scalar ones.\n')
                 f.write(' * DSP4_NODE_LIMIT2 COUNTS THESE POSITIONS here.\n')
+                f.write(' *\n')
+                f.write(' * THREE ARMS, and the middle one is the CONTROL:\n')
+                f.write(' * biquads paired too, dynamics only, scalar. The\n')
+                f.write(' * dynamics-only arm is byte for byte the chain the\n')
+                f.write(' * 240,681-cycle figure was measured on.\n')
                 f.write(' */\n')
-                f.write('#if DSP4_PAIRED_GRAPH\n')
+                f.write('#if DSP4_C2_BQ_PAIRED_GRAPH\n')
+                emit_chain(c2bq_seq, c2bq_pos, 'c2brun')
+                f.write('#elif DSP4_PAIRED_GRAPH\n')
                 emit_chain(c2_seq, c2_pos, 'c2grun')
                 f.write('#else\n')
                 emit_chain(scalar_seq, scalar_pos, 'sgrun')
@@ -11970,9 +12393,25 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
         # never carries a stale copy and the default image is untouched.
         _bands = {n['id']: int(n['params'].get('bands', '4'))
                   for n in chip_nodes}
+        # Cascade LENGTH per paired chip-2 node, taken from the class's
+        # entry in _C2_BQ_STAGES -- 'bands' for EQ/GEQ, 'notch_count' for
+        # AFB. A pair is one instruction stream, so the driver checks the
+        # two channels agree and raises if they do not.
+        _nby = {n['id']: n['params'] for n in chip_nodes}
+        _stg = {}
+        _tap = {}
+        for _g in _c2_groups:
+            for _c in _g['bq']:
+                _key, _dflt = _C2_BQ_STAGES[_c]
+                for _n in _g['insts']:
+                    _d = _g['nid'][(_c, _n)]
+                    _stg[_d] = int(_nby[_d].get(_key, str(_dflt)))
+                    _tap[_d] = (_g['bq'][_c] == 'eq')
         bqp_path = os.path.join(output_dir, chip_label, 'bq_pairs.asm')
         with open(bqp_path, 'w', encoding='utf-8') as f:
-            f.write(gen_bq_pairs(chip_label, strips, _bands))
+            f.write(gen_bq_pairs(chip_label, strips, _bands, _c2_groups,
+                                 _input_of, _stg,
+                                 {k: True for k in _mtr_after}, _tap))
         files_written += 1
 
         # Write block I/O (scatter/gather between DMA and node slot variables)

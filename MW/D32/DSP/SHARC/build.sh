@@ -217,6 +217,35 @@ ASMFLAGS="$ASMFLAGS -DDSP4_SIMD_GRAPH=$DSP4_SIMD_GRAPH"
 DSP4_BQ_GRAPH="${DSP4_BQ_GRAPH:-1}"
 CFLAGS="$CFLAGS -DDSP4_BQ_GRAPH=$DSP4_BQ_GRAPH"
 ASMFLAGS="$ASMFLAGS -DDSP4_BQ_GRAPH=$DSP4_BQ_GRAPH"
+# PAIRED BIQUAD CASCADES ON CHIP 2 (2026-09-02), NATIVE INTERLEAVE. The
+# pair OWNS the interleaved coefficient and state arrays and latches them,
+# so there is no per-block gather -- chip 1's _bq_pair_blk gathers on every
+# block, which is 4.25 cycles per band-sample whatever the stage count.
+# Only takes effect in a paired-graph build, so it defaults ON and
+# DSP4_C2_BQ_GRAPH=0 is the CONTROL: the same image with chip 2's biquad
+# classes back in the chain as scalar nodes and the dynamics pairs
+# untouched, which is what 240,681 cycles/block was measured on.
+DSP4_C2_BQ_GRAPH="${DSP4_C2_BQ_GRAPH:-1}"
+CFLAGS="$CFLAGS -DDSP4_C2_BQ_GRAPH=$DSP4_C2_BQ_GRAPH"
+ASMFLAGS="$ASMFLAGS -DDSP4_C2_BQ_GRAPH=$DSP4_C2_BQ_GRAPH"
+# THE ROUND-TRIP ARM for chip 2's biquad pairing. 1 scatters the state back
+# and drops the pair latch on EVERY block, so the engage/disengage
+# bookkeeping -- once per coefficient swap in a real build -- runs at block
+# rate. It must stay bit-exact against both the scalar and the latched arm,
+# and the cost difference against the latched arm is the per-block gather
+# the latch exists to remove. Debug and measurement only.
+DSP4_C2_BQ_NOLATCH="${DSP4_C2_BQ_NOLATCH:-0}"
+CFLAGS="$CFLAGS -DDSP4_C2_BQ_NOLATCH=$DSP4_C2_BQ_NOLATCH"
+ASMFLAGS="$ASMFLAGS -DDSP4_C2_BQ_NOLATCH=$DSP4_C2_BQ_NOLATCH"
+# NEGATIVE CONTROL for chip 2's biquad pairing: channel B's coefficients
+# are gathered as ZERO at engage, so B runs a dead filter and A does not.
+# Every channel-B cascade output must move and no channel-A one may.
+# A cross-feed control (B takes A's coefficients, which is what
+# DSP4_BQ_NEGCTL does on chip 1) is DEAD on chip 2, because every chip-2
+# cascade runs on the same .var bypass initialisers. Debug only.
+DSP4_C2_BQ_NEGCTL="${DSP4_C2_BQ_NEGCTL:-0}"
+CFLAGS="$CFLAGS -DDSP4_C2_BQ_NEGCTL=$DSP4_C2_BQ_NEGCTL"
+ASMFLAGS="$ASMFLAGS -DDSP4_C2_BQ_NEGCTL=$DSP4_C2_BQ_NEGCTL"
 # NEGATIVE CONTROL for the paired-biquad graph: the pair takes strip B's
 # coefficients and state from strip A, so it computes one channel twice.
 # The bus capture MUST differ under this, or bqgraph.sh's bit-exact verdict

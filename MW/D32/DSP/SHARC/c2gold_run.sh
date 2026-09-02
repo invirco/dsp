@@ -122,6 +122,13 @@ BUFS = [
     # negative control has nothing to fire on (c2dyngold.sh, 2026-09-01).
     'C2_GRP_GATE_02', 'C2_GRP_COMP_02', 'C2_MAIN_OCOMP_02',
     'C2_AUX_LIM_02', 'C2_AUX_AFB_02', 'C2_AUX_OUT_02', 'C2_MAIN_OLIM_02',
+    # The B CHANNEL of each chip-2 BIQUAD pair, for c2bqgold.sh's negative
+    # control: DSP4_C2_BQ_NEGCTL gathers channel B's coefficients as ZERO,
+    # so every B cascade -- and no A cascade -- must move. Without these
+    # the control has nothing to fire on (the same lesson as the dynamics
+    # channel-B probes above).
+    'C2_AUX_EQ_02', 'C2_AUX_GEQ_02',
+    'C2_GRP_EQ_02', 'C2_GRP_GEQ_02', 'C2_MAIN_OEQ_02',
     'C2_SUB_FDR', 'C2_SUB_EQ', 'C2_SUB_COMP', 'C2_SUB_LIM', 'C2_SUB_DLY',
     'C2_SUB_OUT',
     'C2_MIX_MAIN_L', 'C2_MIX_MAIN_R', 'C2_MAIN_FDR', 'C2_MAIN_GEQ',
@@ -240,7 +247,15 @@ for w in ('_gate_on_C2_GRP_GATE_01', '_gate_on_C2_GRP_GATE_02',
           '_comp_on_C2_MAIN_OCOMP_01', '_comp_on_C2_MAIN_OCOMP_02',
           '_lim_on_C2_AUX_LIM_01', '_lim_on_C2_AUX_LIM_02',
           '_lim_on_C2_MAIN_OLIM_01', '_lim_on_C2_MAIN_OLIM_02',
-          '_cmp_gn', '_dsim_n'):
+          '_cmp_gn', '_dsim_n',
+          # THE BIQUAD PAIR LATCH. A chip-2 biquad pair that never engaged
+          # is a pair that ran its two scalar node bodies all along, which
+          # from the outside looks exactly like a bit-exact result. Absent
+          # from the map in every arm that is not DSP4_C2_BQ_PAIRED_GRAPH,
+          # which is why this loop tests membership.
+          '_bqi_lat_AUX_EQ_01_02', '_bqi_lat_AUX_GEQ_01_02',
+          '_bqi_lat_AUX_AFB_01_02', '_bqi_lat_GRP_GEQ_01_02',
+          '_bqi_lat_MOUT_OEQ_01_02'):
     if w in sym:
         witness[w] = peek(sym[w])
 json.dump({'exact': res, 'sets': sets, 'blks': blks, 'health': health,

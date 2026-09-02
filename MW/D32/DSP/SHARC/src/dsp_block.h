@@ -88,7 +88,29 @@
 #else
 #define DSP4_BQ_PAIRED_GRAPH 0
 #endif
-#if DSP4_BQ_PAIRED_GRAPH || DSP4_SIMD_PROBE
+/* PAIRED BIQUAD CASCADES ON CHIP 2 (2026-09-02) -- NATIVE INTERLEAVE.
+ * Chip 1's _bq_pair_blk gathers the two strips' coefficients and state
+ * into an interleaved scratch on EVERY block, which costs 4.25 cycles per
+ * band-sample whatever the stage count is and turns a 2x lever into 1.5x.
+ * Chip 2 does not gather per block: the pair OWNS the interleaved arrays
+ * and latches them, so the gather happens once when a pair engages and
+ * the per-block path is the signal interleave alone.
+ *
+ * DSP4_C2_BQ_GRAPH=0 is the CONTROL: the same tree with chip 2's biquad
+ * classes back in the chain as scalar nodes and the dynamics pairs
+ * untouched, which is what the 240,681-cycle figure was measured on. */
+#ifndef DSP4_C2_BQ_GRAPH
+#define DSP4_C2_BQ_GRAPH 1
+#endif
+#if DSP4_PAIRED_GRAPH && DSP4_C2_BQ_GRAPH
+#define DSP4_C2_BQ_PAIRED_GRAPH 1
+#else
+#define DSP4_C2_BQ_PAIRED_GRAPH 0
+#endif
+
+/* The SIMD cascade itself is shared: chip 1 reaches it through
+ * _bq_pair_blk, chip 2 points straight at its own interleaved arrays. */
+#if DSP4_BQ_PAIRED_GRAPH || DSP4_C2_BQ_PAIRED_GRAPH || DSP4_SIMD_PROBE
 #define DSP4_BQ_PAIRED 1
 #else
 #define DSP4_BQ_PAIRED 0

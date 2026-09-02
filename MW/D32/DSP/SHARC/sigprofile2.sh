@@ -36,6 +36,11 @@ SIG="${DSP4_PROFILE_SIGNAL:-1}"
 FUS="${DSP4_STRIP_FUSED:-1}"
 SIMD="${DSP4_SIMD_DYN:-1}"
 BQ="${DSP4_BQ_GRAPH:-1}"
+# Chip-2 biquad pairing (native interleave, 2026-09-02). 0 is the
+# CONTROL: the dynamics-paired chain the 240,681 figure was measured
+# on, byte for byte -- verified by rebuilding it from the previous
+# commit and matching the .ldr.
+C2BQ="${DSP4_C2_BQ_GRAPH:-1}"
 BLOCK="${BLOCK:-8}"
 WORK="${WORK:-/tmp/sigprof2}"
 cd "$(dirname "$0")"
@@ -77,10 +82,11 @@ srctree() {
 SRC="$(srctree "$BLOCK")"
 
 for L in "$@"; do
-  D="$WORK/b$BLOCK-l$L"
+  D="$WORK/b$BLOCK-l$L-q$C2BQ"
   DSP_SRC_DIR="$SRC" DSP_BUILD_DIR="$D" \
   DSP4_BISECT=0 DSP4_BLOCK_KERNELS=1 DSP4_PROFILE_SIGNAL=$SIG \
     DSP4_STRIP_FUSED=$FUS DSP4_SIMD_DYN=$SIMD DSP4_BQ_GRAPH=$BQ \
+    DSP4_C2_BQ_GRAPH=$C2BQ \
     DSP4_NODE_LIMIT=0 DSP4_NODE_LIMIT2=$L \
     DSP4_BLOCK_DECIMATE=$DEC ./build.sh all > "$D.log" 2>&1
   if [ "$(grep -ciE '\[Error|Build FAILED' "$D.log")" -ne 0 ]; then
@@ -100,5 +106,5 @@ print(a('proc_cyc'), a('proc_passes'))")"
   scp -q $ROOT/tools/pi/dsp4_audio_verdict.py $BENCH:/home/app/dspboot/audio_verdict.py
   scp -q $ROOT/tools/pi/gainfix.py $BENCH:/home/app/dspboot/
   scp -q sigprofile2_run.sh $BENCH:/home/app/
-  echo "block=$BLOCK limit2=$L sig=$SIG  $(ssh $BENCH "bash /home/app/sigprofile2_run.sh $PT $PP $DWELL" 2>&1 | tr '\n' ' | ')"
+  echo "block=$BLOCK limit2=$L sig=$SIG c2bq=$C2BQ  $(ssh $BENCH "bash /home/app/sigprofile2_run.sh $PT $PP $DWELL" 2>&1 | tr '\n' ' | ')"
 done

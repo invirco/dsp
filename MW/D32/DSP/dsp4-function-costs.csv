@@ -467,3 +467,33 @@ C2_GATE_PAIR_S18B,5492,2098,2.62,re-measured alongside the LIM ladder on a later
 C2_COMP_PAIR_S18B,8428,3763,2.24,as above; 3697 earlier
 C2_WHOLE_GRAPH_BLK8_S18_ALLDYN,281091,240681,,"ALL THREE dynamics classes paired: 4 GATE, 8 of 10 COMP, 16 of 18 LIM as 14 pair drivers. -40,410 cycles/block, -14.4%. **146.9% of the 163,840-cycle budget at 983.04 MHz** (171.7% after the cascade rewrite alone; 208.8% at the D16 gate). 183.6% of the 131,072-cycle budget at 786.432 MHz, from 261.0%. CUMULATIVE from the gate: 342,090 -> 240,681, -29.6%"
 C2_S18_ALLDYN_PARTS_VS_WHOLE,37720,40410,,"predicted against measured, 6.7% apart, sharing no arithmetic. C2_MAIN_LIM and C2_SUB_LIM stay unpaired (single instances in different chains), as do C2_MAIN_COMP and C2_SUB_COMP"
+#
+# SESSION 19, 2026-09-02 — CHIP-2 BIQUAD PAIRING WITH NATIVE INTERLEAVE.
+#
+# The pair OWNS the interleaved coefficient and state arrays and LATCHES
+# them: the gather runs once when a pair engages, not once per block, so
+# the per-block path is the signal interleave and _bq_fx_cascade_simd. Chip
+# 1's _bq_pair_blk gathers every block, which is 4.25 cycles/band-sample
+# whatever the stage count and is why that lever measured 1.5x instead of
+# 2x. 24 pair drivers over 48 nodes carrying 600 of the 632 stages in chip
+# 2's dual-instance cascade nodes.
+#
+# THE CONTROL ARM IS PROVED, NOT ASSUMED: DSP4_C2_BQ_GRAPH=0 rebuilt from
+# the previous commit matches byte for byte (chip1.ldr 3bee918c, chip2.ldr
+# ac6668a2), so it IS the configuration 240,681 was measured on.
+#
+# RESOLUTION CAVEAT, STATED RATHER THAN AVERAGED AWAY: at a 17,000-cycle
+# baseline this instrument's point-to-point spread is several hundred
+# cycles. GEQ (5,666) and AFB (1,849) survive it; the 4-band EQ (346) does
+# not, and neither does FDR — the SAME node at the SAME ladder position
+# read 754 in one arm and 203 in the other. EQ is carried as
+# below-resolution, as session 17 carried FDR/EQ/OUT.
+function,c2_blk8_scalar,c2_blk8_paired,ratio,notes
+C2_GEQ_PAIR_S19,11332,5748,1.97,"TWO channels x 28 bands. Scalar is 2 x 5,666 measured on the same boot; 5,666 reproduces session 18's 5,669 to 0.05%. 25.29 -> 12.83 cycles/band-sample. THE DISPATCH'S <=11.0 TARGET IS NOT MET, missed by 17%"
+C2_AFB_PAIR_S19,3698,1876,1.97,"TWO channels x 6 notches. Same 1.97x from a cascade a fifth the length, which is what says the factor is the kernel and not the amortisation"
+C2_EQ_PAIR_S19,692,975,,"BELOW RESOLUTION AND NOT A RATIO. The 4-band scalar point (346) implies 10.8 c/band-sample against GEQ's 25.29 on the same kernel, which cannot be. The EQ+AFB SUM is sane (27.4). Carried as unattributable"
+C2_BQ_MARGINAL_S19,173.5,88.0,1.97,"cycles per stage per block PER CHANNEL, from the straight line through the two ladder points that reproduced. 21.69 -> 11.00 cycles/band-sample marginal; the 28-band pair carries 820/448 = 1.83 c/band-sample of driver on top, which is why the measured figure is 12.83 and not 11.00. TWO-POINT FIT, labelled as one: no residual, therefore no corroboration in the fit itself"
+C2_WHOLE_GRAPH_BLK8_S19_BQPAIR,240814,179556,,"-61,258 cycles/block, -25.4%. **109.6% of the 163,840-cycle budget at 983.04 MHz** (146.6% before). 137.0% of the 131,072-cycle budget at 786.432 MHz, from 183.6%. CUMULATIVE from the D16 gate: 342,090 -> 179,556, -47.5%, 208.8% -> 109.6%. CHIP 2 DOES NOT FIT: over by 15,716 cycles/block = 96 MHz = 9.6%"
+C2_S19_REPRODUCIBILITY,240814,179556,,"control 240,200 / 240,681 / 240,814 on three boots (0.26% spread); paired 179,460 / 179,556 on two (0.05%). The two ladders' shared anchor at limit2=47 -- the same 47 nodes in both arms -- read 17,247 and 17,230, 0.10% apart"
+C2_S19_PARTS_VS_WHOLE,55604,61258,,"GEQ and AFB pairs alone -- the classes above resolution -- predict 8 x 5,584 + 6 x 1,822 = 55,604 against 61,258 measured, 90.8% of it, sharing no arithmetic. The remaining 5,654 is the ten EQ pairs (~565 each), the right order for a 4-stage pair but NOT independently attributable. WEAKER than session 18's 1.0/5.2/6.7%, and the reason is the resolution caveat above"
+C2_S19_PREDICTION_CHECK,1086,1077,,"session 18 priced this lever at 1,086 MHz and it measured 1,077 -- 0.8% apart. The remaining gap (96 MHz) is almost exactly session 18's price for the last named lever, the hoisted LIM/COMP/GATE/DLY/XOVER kernels (~90 MHz), which would land chip 2 at ~100.4% of the part: a coin toss, not a fit"
