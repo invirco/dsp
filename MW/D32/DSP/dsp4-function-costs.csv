@@ -651,3 +651,21 @@ C1_GRAPH_S20B_SIMD,16,304110,92.8,"the same with the SIMD kernel"
 C1_GAIN_SIMD_SAVING_S20B,16,3920,1.20,"AND THE TWO INSTRUMENTS NOW AGREE: the class ladder scaled by 32 strips predicts 4,000 against 3,920 measured, 2% apart, sharing no arithmetic. Against the dispatch's expectation of 2-3% of chip 1 this is 1.20%, and that is said rather than rounded up"
 C1_PM_FREE_S20B_SCALAR,16,3328,,"chip 1 program memory FREE, bytes, block-16 32-strip paired block-kernel build"
 C1_PM_FREE_S20B_SIMD,16,7850,,"the same with DSP4_GAIN_SIMD=1 and the kernel SHARED. +4,522 bytes AGAINST THE SCALAR CONTROL: the SIMD kernel now leaves chip 1 with MORE code space than the one it replaces. Session 20's inlined first cut left 1,842 and would not link the DSP4_PROFILE_SIGNAL=1 whole-graph image; sharing the PEYEN prologue alone took it to 3,580; sharing the whole kernel took it to 7,850 and the profiling image links again -- which is why the whole-graph figure above could be taken SIGNAL-PRESENT and compared against the capacity table"
+# ---- session 21, 2026-09-02: RIG C, fixed-point round-once. STANDALONE RIG
+# (SHARC/bqshoot.sh, src/lib/bq_shootout.asm), not the graph. Every cascade
+# figure is c/band-sample PAIRED; "marginal" is the two-point fit across
+# blocks 8 and 16, i.e. the cost of one more band-sample with the per-stage
+# fixed cost removed, and it lands on half the instruction count to within
+# 0.02 cycles on every fixed arm. Write-up: dsp4-roundonce-rigc-20260902.md.
+BQ_CASCADE_TODAY_SIMD,16,,,"11.30 c/band-sample paired (12.58 at block 8); marginal 10.01 = 19 instr/sample/stage. The reference"
+BQ_CASCADE_RIGC_EFB_SIMD,16,,,"7.26 c/band-sample (8.51 @8), marginal 6.01 = 12 instr. SATURATE deleted, ERROR FEEDBACK KEPT -- bit-identical to the contract while nothing overflows. 1.56x"
+BQ_CASCADE_RIGC_RND_SIMD,16,,,"6.85 c/band-sample (7.70 @8), marginal 6.01 = 12 instr. Both deleted, rounded. 1.65x, and 16.26 dB of LF response on the D5 shelf"
+BQ_CASCADE_RIGC_TRUNC_SIMD,16,,,"6.29 c/band-sample (7.07 @8), marginal 5.51 = 11 instr. Both deleted, truncating. 1.80x"
+BQ_CASCADE_FLOAT_A2_SIMD,16,,,"5.47 c/band-sample (5.94 @8), marginal 5.01 against 8 instr -- the only arm carrying a stall. 2.06x, 0.52 dB on the LF shelf"
+C2_FREED_RIGC_EFB,16,40850,12.47,"632 stages x 16 samples; chip 2 93.7% -> 81.2%"
+C2_FREED_RIGC_TRUNC,16,50660,15.46,"chip 2 93.7% -> 78.2%"
+C2_FREED_FLOAT_A2,16,58950,17.99,"chip 2 93.7% -> 75.7%"
+GAIN_TODAY_PERSAMPLE,16,,,"9.03 c/sample/strip, +meter, two-point fit. Against the graph's 9.50 for the same loop: 5% apart, two instruments sharing no arithmetic"
+GAIN_RIGC_PERSAMPLE,16,,,"3.55 c/sample/strip, +meter, WIDE Q8.24 stores. 2.54x"
+GAIN_RIGC_D20TAP_PERSAMPLE,16,,,"9.01 c/sample/strip -- round-once chain slot with the D20 mic-pre tap kept bit-identical. THE ENTIRE SAVING IS RETURNED: the tap is a Q4.28 rounded+saturated word and MR1B cannot produce it"
+GAIN_RIGC_SAVING,16,2954,0.90,"if the D20 tap is given up: class 26.75 -> 20.98 c/s, chip 1 92.8% -> 91.9%. Still not 1-2 c/s -- the fixed 276 c/block is 17.25 c/s at block 16 against the loop's 3.73"
