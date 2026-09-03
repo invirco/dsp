@@ -1,3 +1,53 @@
+## HUB DISPATCH 2026-09-03 01:44Z — Complete the fixed option: wire the ‖h‖₁ guard for real + re-measure chip 2 with it active, price dynamics-envelope wrap   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+Follow-on from the round-once LANDING (368df3a: saturate deleted in all four
+fixed cascade kernels, validated on the ASM by bqeverify, chip 2 93.70% ->
+80.21%, chip 1 -> 88.89%, error feedback untouched, guard priced+tested). This
+session COMPLETES the fixed-option picture so PW can make the fixed-vs-float
+call on full data. Do NOT delete error feedback, do NOT touch the D5 contract
+file/version, do NOT rip out anything — this is completing analysis, not
+committing a path.
+
+Two things the landing left explicitly open:
+
+1. **WIRE THE GUARD FOR REAL (it is still a rig).** Today nothing computes
+   ‖h‖₁ at parameter-load or carries H in the coefficient block — the guard was
+   measured amplified. Make it real: compute the per-cascade ‖h‖₁ headroom at
+   PARAMETER-LOAD (control rate), carry H in the coefficient block, apply the
+   one `ashift` per sample per cascade in the kernel, then RE-MEASURE chip 2
+   with the guard ACTIVE across the DEFS space (H=0 for ~96%, up to 8 bits on
+   the 4-band-all-+15 dB worst case). Report the real chip-2 capacity WITH the
+   guard on — that is the true cost of the fixed+guard option.
+   - If the guard-exit register pressure (8 instr because only ONE free
+     register holds three loop invariants under round-once) can be relieved
+     cheaply — spilling less, re-ordering, or freeing a register — do it and
+     report the improved cost; if not, leave it and record why.
+   - Prove the guard actually PREVENTS the sign-inversion overflow on the worst
+     set (HF shelf +12 dB Q5.01, and the 4-band ‖h‖₁=1313 case) — a before/after
+     on-chip demonstration, not an assertion.
+
+2. **PRICE THE DYNAMICS ENVELOPES** — RIG C flagged they "carry the same wrap
+   argument and were not priced at all." Do the same state-bound analysis for
+   the dynamics path: where can the envelope/gain-computer state overflow under
+   round-once, what does it cost to guard, is it the same per-cascade pattern or
+   different? Analysis + measured cost; no landing required this session unless
+   it is trivial and safe.
+
+Also: bqeverify ran at block 8 — if cheap, add a block-16 pass so the
+validation matches the shipping block size; if not, note it.
+
+Bars as before (bqeverify, bqst, c2bqgold, busgold, golden, dsp_validate);
+DSP4_BQ_ROUNDONCE=0 must still rebuild W0 byte-for-byte. tasks.md + findings;
+commit + push main. This is a natural REVIEW CHECKPOINT — when the guard is
+real and dynamics priced, the fixed-vs-float decision is fully informed and
+waits for PW; do not invent further optimization beyond this scope.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-03 00:22Z — Round-once LAND: validate C·E fixed_ref diff, land saturate-deletion in the graph, price the per-cascade ||h||_1 guard   [status: 🟢 done — **ALL THREE LANDED: VALIDATED ON THE ASM, MEASURED IN THE GRAPH ON BOTH CHIPS, AND THE GUARD PRICED AND TESTED — CHIP 2 93.70% -> 80.21%, CHIP 1 92.88% -> 88.89%.** **(1) THE "TIMED, NOT VALIDATED" GAP IS CLOSED AND THE BAR PREDICTS ITS OWN EXCEPTIONS.** New `SHARC/bqeverify.sh` + `src/lib/bqe_verify.asm` + `tools/dsp/gen_bqe_vectors.py` + `tools/pi/dsp4_bqe_verify.py` run **192 four-stage cascades** — twelve named worst cases from the state-bound work plus a stratified sample of the DEFS space, **768 design points** — at three drive levels over four consecutive blocks, both kernels over byte-identical words inside the DSP, diffed on-chip, each arm's whole **18,432-word** output stream reduced to an order-sensitive hash the host recomputes from `fixed_ref`. **At `DSP4_BQ_ROUNDONCE=0` arm A hashes to `fixed_ref.biquad` (`8AD9CE2B/85A57384`) and arm B to the round-once model (`522C6AAF/C55541BB`), and they diverge on EXACTLY 848 of 18,432 words, first at index 746, max |d| 2147438683 — the model's prediction to the word and the index — over EXACTLY the 29 of 576 (cascade, level) cells the bitmap predicts.** **At `DSP4_BQ_ROUNDONCE=1` — the LANDED kernel — 0 of 18,432 words differ and both arms hash to the round-once model.** So the 0-ULP identity to the contract holds on 547 of 576 cells and the 29 that differ are the ones ||h||_1 says overflow. **A one-sided "assert zero" bar would have passed on the zeroed-bank rig; this one cannot.** **(2) LANDED IN ALL FOUR FIXED CASCADE KERNELS** — `_bq_fx_cascade_N`, the fused and unfused `_bq_fx_cascade_blk`, `_bq_fx_cascade_simd` — so scalar bodies, block kernels and the paired graph cannot disagree. Error feedback untouched everywhere. **THE CONTROL IS PROVED: `DSP4_BQ_ROUNDONCE=0` rebuilds W0 BYTE FOR BYTE, `23c1e662 / e45bb82a`, 301,764 / 182,092** — nothing outside the guarded lines moved. **W0 MOVES BY DESIGN to `2249afea / 3173acb3`, 301,732 / 182,060**, all 32 bytes of it `lib/biquad_fx` (448 -> 414). **GRAPH CAPACITY, WHOLE GRAPH, BLOCK 16, BOTH ARMS ON ONE INSTRUMENT IN ONE SESSION, two boots a point, minimum taken, witnesses clean: chip 2 307,033 -> 262,841 (44,192 freed = 13.49%, 93.70% -> 80.21%); chip 1 304,363 -> 291,264 (13,099 = 4.00%, 92.88% -> 88.89%).** **THE GRAPH BEATS THE RIG'S OWN PREDICTION** (RIG C's two-point fit said 40,850 / 12.5% off chip 2), and **the instrument reproduces session 19 to 0.03%** (307,033 against 306,950). **AND THE LADDER CONFIRMS THE LANDING BY COLLAPSING**: rung 2 `_bq_fx_cascade_simd` and rung 15 `_bqe_cascade_simd` now both read **7.26**, rungs 1 and 14 both **14.49** — the shipping kernels and RIG C's arms became the same number because they became the same arithmetic. **BARS: `bqeverify` PASS both arms; `bqst` 0 of 16 against `fixed_ref` with its negative control firing 15 of 16; `busgold` GRAPH BIT-EXACT 0 of 256 (`ba3f52ec`); `c2bqgold` BIT-EXACT with NEGCTL 6 of 6 channel-B / 0 of 2 channel-A and round-trip 0 of 49; golden 59/59; `dsp_validate` OK; no contract file touched, no contract version moves.** `busgold` is reported WITH its own warning: its capture is bypass-coefficient and unity-gain, so it cannot see a biquad numeric change at all — it is evidence the rest of the graph did not move, and the cascade's evidence is `bqeverify`, `bqst` and `c2bqgold`. **(3) THE GUARD IS BUILT, MEASURED AND TESTED, AND IT IS AFFORDABLE.** Rungs 16/17 measure it AMPLIFIED (the scale on every stage, since once per 28-stage cascade is below the instrument's resolution) and divide: **entry +477.6 c/call = +0.533 c/band-sample for ONE instruction** — half a cycle per band-sample paired, the instrument agreeing with itself — **exit +4074.4 = +4.547 for EIGHT**, and the eight is REGISTER PRESSURE: three loop invariants (+H, -H, the saturation pattern) meet **exactly one free register** under round-once, so two are re-read every sample; six if they could be held. **162.6 cycles per cascade per block per SIMD pair. Per band-sample that is 5.08/n: 1.270 at n=4 (8.53 total, 1.32x today's 11.30), 0.181 at n=28 (7.44, 1.52x) — AND 5.080 AT n=1, WHERE THE GUARD COSTS MORE THAN THE PER-STAGE CLAMP IT REPLACES**, because the per-stage clamp IS the per-cascade clamp when there is one stage and FILT calls the cascade once per section. A wired guard must skip H=0, which is free to decide and is what 96% of the space wants. **CHIP-2 ESTIMATE (not a whole-graph measurement — the guard is a rig): 38 cascade instances (21 EQ_BIQUAD + 17 GEQ), 24 paired as 12 calls per `c2bqgold`, so 3,100-4,200 cycles/block = 0.9-1.3% of budget against the 13.5% freed — chip 2 would land at ~81.2-81.5% instead of 80.21%, against 93.70% today.** **AND PER-CASCADE SIZING CHANGES THE ANSWER RIG C REACHED.** `tools/dsp/bq_headroom_guard.py` sizes H on the worst PARTIAL cascade's ||h||_1 over the DE-QUANTISED words with the tail bounded and added (an upper bound, never a truncation that flatters the guard), and counts wraps under MATCHED-SIGN drive at 0 dBFS. **Every named worst case: ZERO internal wraps guarded, worst response error 0.0105 dB against the 0.046 dB bar.** The four-band all-+15 dB coherent EQ — ||h||_1 = 1285, H = 8 — **wraps 4,666 of 8,000 samples UNGUARDED and 0 guarded, at a guarded error of 0.0011 dB**; the 28-band GEQ at +6 dB wraps 2,989 unguarded and 0 guarded; the HF shelf +12 dB Q5.01 comes out at ||h||_1 = 93.9 (the state-bound work's 97.3, arrived at independently from the quantised words). **RIG C priced a FIXED H and found H=8 costs 5.74 dB on the LF shelf, worse than float on the axis D5 was decided on. Sized PER CASCADE only the cascade needing H=8 pays it, and its own error there is 0.0011 dB, because its signal is +62 dB. The fixed-H and per-cascade results are not the same measurement and should never have been quoted as one.** Over the full 869,627-set grid **H=0 for 96.37%**, H=1 3.00%, H=2 0.52%, above that 0.12%; worst single stage ||h||_1 = 378.3 (+51.6 dB, an LF shelf 20 Hz +10.5 dB Q6.31) where the analytic tail is 11% of the sum, so that bound is genuine and loose — and loose in the safe direction. **THE BAR FOUND TWO DEFECTS IN ITSELF BEFORE IT FOUND NONE IN THE KERNEL**: the first run scored a correct part as a mismatch because the model took Python `abs(a-b)` while the part does a 32-bit WRAPPING subtract, `Rn = ABS Rx` with ALUSAT clear, and a SIGNED compare — a true |difference| does not fit in 32 bits once an arm has wrapped, so the metric must be defined by the instruction; the second read the landed arm as a dead link because `_bqev_first` is -1 when nothing differs and 0xFFFFFFFF is how this link answers a dropped transaction, which every reader in the tree discards. Both fixed in the instrument, not worked around in the score. **STILL OPEN**: (a) the guard is a RIG — nothing computes H at parameter-load in the firmware, nothing carries it in the coefficient block, no node calls the guarded kernel; (b) dynamics envelopes carry the same wrap argument and are still unpriced; (c) `bqeverify` ran at block 8 (the repo tree's size) — the arithmetic is block-size independent bar the unroll count, but no bit-exactness bar was run at block 16 this session. Write-up: `MW/D32/DSP/dsp4-roundonce-land-20260903.md`; costs in `dsp4-function-costs.csv` session 22.]   [model: opus]
 
 model: opus
