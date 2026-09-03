@@ -22,12 +22,22 @@
 .extern _buf_C2_AUX_FDR_06;
 .extern _sample_idx;
 
+#if DSP4_BQ_GUARD
+.global _eq_coeffs_A_C2_AUX_EQ_06;
+.var _eq_coeffs_A_C2_AUX_EQ_06[20 + 1] = 0, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
+#else
 .global _eq_coeffs_A_C2_AUX_EQ_06;
 .var _eq_coeffs_A_C2_AUX_EQ_06[20] = 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
+#endif
 .global _eq_state_A_C2_AUX_EQ_06;
 .var _eq_state_A_C2_AUX_EQ_06[24];
+#if DSP4_BQ_GUARD
+.global _eq_coeffs_B_C2_AUX_EQ_06;
+.var _eq_coeffs_B_C2_AUX_EQ_06[20 + 1] = 0, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
+#else
 .global _eq_coeffs_B_C2_AUX_EQ_06;
 .var _eq_coeffs_B_C2_AUX_EQ_06[20] = 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
+#endif
 .global _eq_state_B_C2_AUX_EQ_06;
 .var _eq_state_B_C2_AUX_EQ_06[24];
 
@@ -36,6 +46,12 @@
 .var _eq_coeffs_next_C2_AUX_EQ_06[20];
 .global _eq_swap_pending_C2_AUX_EQ_06;
 .var _eq_swap_pending_C2_AUX_EQ_06 = 0;
+#if DSP4_BQ_GUARD
+.global _eq_hrw_C2_AUX_EQ_06;
+.var _eq_hrw_C2_AUX_EQ_06 = 0;        /* 0 idle, 1 asked, 2 re-ask */
+.global _eq_hrl_C2_AUX_EQ_06;
+.var _eq_hrl_C2_AUX_EQ_06[2];       /* (block, stages) pairs */
+#endif
 
 .global _eq_active_C2_AUX_EQ_06;
 .var _eq_active_C2_AUX_EQ_06 = 0;            /* 0 = A active, 1 = B */
@@ -69,6 +85,9 @@
 .extern _bq_fx_cascade_blk;
 #endif
 .extern _bq_fx_convert_N;
+#if DSP4_BQ_GUARD
+.extern _bq_hr_node1;
+#endif
 .global _C2_AUX_EQ_06_process;
 _C2_AUX_EQ_06_process:
         #if DSP4_BLOCK_KERNELS
@@ -93,6 +112,10 @@ _C2_AUX_EQ_06_process:
     r4 = dm(_eq_swap_pending_C2_AUX_EQ_06);
     r5 = dm(_eq_xfade_step_C2_AUX_EQ_06);
     r4 = r4 or r5;
+#if DSP4_BQ_GUARD
+    r5 = dm(_eq_hrw_C2_AUX_EQ_06);
+    r4 = r4 or r5;      /* a sizing in flight is a transient too */
+#endif
     r4 = pass r4;
     if ne jump (pc, .eqkb_tr_C2_AUX_EQ_06);
 
@@ -222,6 +245,10 @@ _C2_AUX_EQ_06_process:
 
     /* new coefficients staged? */
     r4 = dm(_eq_swap_pending_C2_AUX_EQ_06);
+    #if DSP4_BQ_GUARD
+    r5 = dm(_eq_hrw_C2_AUX_EQ_06);
+    r4 = r4 or r5;
+    #endif
     r4 = pass r4;
     if ne call _eq_start_xfade_C2_AUX_EQ_06;
 
@@ -329,6 +356,24 @@ _C2_AUX_EQ_06_process:
 
     /* ===== stage new coeffs into the dormant instance ===== */
 _eq_start_xfade_C2_AUX_EQ_06:
+    #if DSP4_BQ_GUARD
+    /* Convert, size, and hold the fade until H is written. */
+    r0 = _eq_hrw_C2_AUX_EQ_06;
+    r1 = _eq_hrl_C2_AUX_EQ_06;
+    r2 = _eq_active_C2_AUX_EQ_06;
+    r3 = _eq_coeffs_A_C2_AUX_EQ_06;
+    r4 = _eq_coeffs_B_C2_AUX_EQ_06;
+    r5 = _eq_state_A_C2_AUX_EQ_06;
+    r6 = _eq_state_B_C2_AUX_EQ_06;
+    r7 = _eq_coeffs_next_C2_AUX_EQ_06;
+    r8 = 4;
+    call _bq_hr_node1;      /* i2 = dormant state on success */
+    r0 = pass r0;
+    if eq rts;              /* not sized yet; back next block */
+    r4 = 0;
+    dm(_eq_swap_pending_C2_AUX_EQ_06) = r4;
+    #endif
+#if !DSP4_BQ_GUARD
     r4 = 0;
     dm(_eq_swap_pending_C2_AUX_EQ_06) = r4;
     i0 = _eq_coeffs_next_C2_AUX_EQ_06;    /* float staged */
@@ -344,6 +389,7 @@ _eq_start_xfade_C2_AUX_EQ_06:
 .eq_st_go_C2_AUX_EQ_06:
     r4 = 4;
     call _bq_fx_convert_N;
+#endif
     /* zero dormant state (24 words) */
     r4 = 0;
     r5 = 24;

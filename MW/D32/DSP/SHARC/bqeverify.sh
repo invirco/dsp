@@ -36,6 +36,16 @@
 # never drove anything hard enough to saturate -- which is exactly what the
 # zeroed-bank ladder did -- so the divergence bitmap is checked cell by
 # cell, not just counted.
+#
+# BOTH ARMS ARE BUILT WITH DSP4_BQ_GUARD=0, and that is deliberate rather
+# than incidental. This bar's question is whether the round-once
+# ARITHMETIC is the round-once model, and the guard is a separate
+# question with its own bar (bqguard.sh) -- which checks the guarded
+# kernel word for word against the same model, over its own vectors, and
+# with H sized by the part. Building the guard in here would also not
+# fit: the shootout ladder, the verify rig and the guard together
+# overflow sec_swco on chip 1, and a debug instrument is the wrong place
+# to spend the last of chip 1's PM.
 set -u
 cd "$(dirname "$0")"
 source ./bench_lock.sh; bench_lock_acquire "$0"
@@ -86,6 +96,7 @@ run_arm() {   # $1 = DSP4_BQ_ROUNDONCE
     echo "=== DSP4_BQ_ROUNDONCE=$ro"
     DSP_SRC_DIR="$SRC" DSP_BUILD_DIR="$D" \
     DSP4_BISECT=0 DSP4_BQ_SHOOTOUT=1 DSP4_BQE_VERIFY=1 DSP4_BQ_ROUNDONCE=$ro \
+    DSP4_BQ_GUARD=0 \
     DSP4_STRIP_FUSED=1 DSP4_SIMD_DYN=1 DSP4_STRIPS=2 DSP4_BLOCK_KERNELS=1 \
       ./build.sh > "$D.log" 2>&1
     if [ "$(grep -ciE '\[Error|Build FAILED' "$D.log")" -ne 0 ]; then

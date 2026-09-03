@@ -141,7 +141,15 @@ if done != 1:
     print('SELF-TEST DID NOT COMPLETE -- nothing to verify')
     sys.exit(2)
 
-coeffs = block(SYMS['_bqst_coeffs'], 10)
+# PAST THE HEADER. The guard (2026-09-03) puts H in front of every
+# cascade's coefficients, and the kernel steps over it before it reads
+# b0. A host model built from the block base would take H as b0 and score
+# a correct part as wrong -- which is exactly what happened the first
+# time this bar met a guard build. _bqst_hdrw is the image telling the
+# host how many words to skip, so the two cannot disagree.
+_hdr = SYMS.get('_bqst_hdrw')
+HDRW = 0 if _hdr is None else (peek(_hdr) or 0)
+coeffs = block(SYMS['_bqst_coeffs'] + HDRW, 10)
 x = block(SYMS['_bqst_x'], N)
 ref = block(SYMS['_bqst_ref'], N)
 blk = block(SYMS['_bqst_blk'], N)

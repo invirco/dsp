@@ -163,12 +163,18 @@
  * everything. Stage 1/3 are a 1 kHz LPF Q0.707, stage 2/4 a 300 Hz HPF
  * Q2, swapped between the channels.
  */
-.global _dst_bcA;  .var _dst_bcA[20] =
+.global _dst_bcA;  .var _dst_bcA[20 + DSP4_BQ_HDR] =
+#if DSP4_BQ_GUARD
+    0,
+#endif
     0x00100A4E, 0x00402937, 0x00000000, 0x02F47534, 0x02B44BFC,
     0x0FD6A007, 0x00000000, 0x00000000, 0x0055E080, 0x004F9F63,
     0x00100A4E, 0x00402937, 0x00000000, 0x02F47534, 0x02B44BFC,
     0x0FD6A007, 0x00000000, 0x00000000, 0x0055E080, 0x004F9F63;
-.global _dst_bcB;  .var _dst_bcB[20] =
+.global _dst_bcB;  .var _dst_bcB[20 + DSP4_BQ_HDR] =
+#if DSP4_BQ_GUARD
+    0,
+#endif
     0x0FD6A007, 0x00000000, 0x00000000, 0x0055E080, 0x004F9F63,
     0x00100A4E, 0x00402937, 0x00000000, 0x02F47534, 0x02B44BFC,
     0x0FD6A007, 0x00000000, 0x00000000, 0x0055E080, 0x004F9F63,

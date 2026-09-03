@@ -21,12 +21,22 @@
 .section/dm seg_dmda;
 .extern _buf_C1_FILT_19;
 
+#if DSP4_BQ_GUARD
+.global _eq_coeffs_A_C1_EQ_19;
+.var _eq_coeffs_A_C1_EQ_19[20 + 1] = 0, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
+#else
 .global _eq_coeffs_A_C1_EQ_19;
 .var _eq_coeffs_A_C1_EQ_19[20] = 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
+#endif
 .global _eq_state_A_C1_EQ_19;
 .var _eq_state_A_C1_EQ_19[24];
+#if DSP4_BQ_GUARD
+.global _eq_coeffs_B_C1_EQ_19;
+.var _eq_coeffs_B_C1_EQ_19[20 + 1] = 0, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
+#else
 .global _eq_coeffs_B_C1_EQ_19;
 .var _eq_coeffs_B_C1_EQ_19[20] = 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
+#endif
 .global _eq_state_B_C1_EQ_19;
 .var _eq_state_B_C1_EQ_19[24];
 
@@ -35,6 +45,12 @@
 .var _eq_coeffs_next_C1_EQ_19[20];
 .global _eq_swap_pending_C1_EQ_19;
 .var _eq_swap_pending_C1_EQ_19 = 0;
+#if DSP4_BQ_GUARD
+.global _eq_hrw_C1_EQ_19;
+.var _eq_hrw_C1_EQ_19 = 0;        /* 0 idle, 1 asked, 2 re-ask */
+.global _eq_hrl_C1_EQ_19;
+.var _eq_hrl_C1_EQ_19[2];       /* (block, stages) pairs */
+#endif
 
 .global _eq_active_C1_EQ_19;
 .var _eq_active_C1_EQ_19 = 0;            /* 0 = A active, 1 = B */
@@ -54,6 +70,9 @@
 .extern _bq_fx_cascade_blk;
 #endif
 .extern _bq_fx_convert_N;
+#if DSP4_BQ_GUARD
+.extern _bq_hr_node1;
+#endif
 .global _C1_EQ_19_process;
 _C1_EQ_19_process:
 
@@ -62,6 +81,10 @@ _C1_EQ_19_process:
     r4 = dm(_eq_swap_pending_C1_EQ_19);
     r5 = dm(_eq_xfade_step_C1_EQ_19);
     r4 = r4 or r5;
+#if DSP4_BQ_GUARD
+    r5 = dm(_eq_hrw_C1_EQ_19);
+    r4 = r4 or r5;      /* a sizing in flight is a transient too */
+#endif
     r4 = pass r4;
     if eq jump (pc, .ekb_ss_C1_EQ_19);
 
@@ -133,6 +156,10 @@ _C1_EQ_19_process_sample:
 
     /* new coefficients staged? */
     r4 = dm(_eq_swap_pending_C1_EQ_19);
+    #if DSP4_BQ_GUARD
+    r5 = dm(_eq_hrw_C1_EQ_19);
+    r4 = r4 or r5;
+    #endif
     r4 = pass r4;
     if ne call _eq_start_xfade_C1_EQ_19;
 
@@ -240,6 +267,24 @@ _C1_EQ_19_process_sample:
 
     /* ===== stage new coeffs into the dormant instance ===== */
 _eq_start_xfade_C1_EQ_19:
+    #if DSP4_BQ_GUARD
+    /* Convert, size, and hold the fade until H is written. */
+    r0 = _eq_hrw_C1_EQ_19;
+    r1 = _eq_hrl_C1_EQ_19;
+    r2 = _eq_active_C1_EQ_19;
+    r3 = _eq_coeffs_A_C1_EQ_19;
+    r4 = _eq_coeffs_B_C1_EQ_19;
+    r5 = _eq_state_A_C1_EQ_19;
+    r6 = _eq_state_B_C1_EQ_19;
+    r7 = _eq_coeffs_next_C1_EQ_19;
+    r8 = 4;
+    call _bq_hr_node1;      /* i2 = dormant state on success */
+    r0 = pass r0;
+    if eq rts;              /* not sized yet; back next block */
+    r4 = 0;
+    dm(_eq_swap_pending_C1_EQ_19) = r4;
+    #endif
+#if !DSP4_BQ_GUARD
     r4 = 0;
     dm(_eq_swap_pending_C1_EQ_19) = r4;
     i0 = _eq_coeffs_next_C1_EQ_19;    /* float staged */
@@ -255,6 +300,7 @@ _eq_start_xfade_C1_EQ_19:
 .eq_st_go_C1_EQ_19:
     r4 = 4;
     call _bq_fx_convert_N;
+#endif
     /* zero dormant state (24 words) */
     r4 = 0;
     r5 = 24;

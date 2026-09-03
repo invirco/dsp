@@ -153,10 +153,61 @@
 #define DSP4_BQ_ROUNDONCE 1
 #endif
 
+/* THE PER-CASCADE HEADROOM GUARD (2026-09-03), which is what buys the
+ * overflow guarantee back.
+ *
+ * H = ceil(log2(|h|_1 / 8)) bits, sized over the worst PARTIAL cascade
+ * at PARAMETER-LOAD time (lib/bq_headroom.asm; model
+ * tools/dsp/bq_h_load.py) and carried as the FIRST WORD of the cascade's
+ * coefficient block. The kernels shift the cascade input down H on entry
+ * and the output back up and saturate ONCE on exit; the recursion runs
+ * at the scaled level where |h|_1 * x fits Q4.28 and only the word
+ * handed on comes back up.
+ *
+ * H = 0 FOR 94% OF THE DEFS SPACE, and there both scaling passes are
+ * jumped over whole -- the sample loop is byte for byte the unguarded
+ * one. It is inseparable from round-once and is defined to follow it:
+ * with the per-stage saturate in place there is nothing to guard, and
+ * DSP4_BQ_ROUNDONCE=0 must stay the byte-for-byte contract control that
+ * every bar is run against.
+ *
+ * DSP4_BQ_GUARD_FORCE > 0 overrides the sized H on EVERY cascade, which
+ * is how the guard's worst-case cost is measured in the graph rather
+ * than estimated from a rig. It is a measurement, not a mode. */
+#if DSP4_BQ_ROUNDONCE
+#ifndef DSP4_BQ_GUARD
+#define DSP4_BQ_GUARD 1
+#endif
+#else
+#undef DSP4_BQ_GUARD
+#define DSP4_BQ_GUARD 0
+#endif
+#ifndef DSP4_BQ_GUARD_FORCE
+#define DSP4_BQ_GUARD_FORCE 0
+#endif
+
+/* Header words in front of a cascade's coefficients: 1 with the guard,
+ * 0 without. The interleaved pair blocks carry two, one per strip. */
+#define DSP4_BQ_HDR DSP4_BQ_GUARD
+
+/* Samples of the load-time impulse run per main-loop pass. The sizing
+ * is spent out of the idle spin between blocks and never out of block
+ * work; this is what bounds how much of one pass it can take. */
+#ifndef DSP4_BQHR_BUDGET
+#define DSP4_BQHR_BUDGET 128
+#endif
+
 /* The round-once kernel against fixed_ref on the DEFS curve set, on the
  * part (lib/bqe_verify.asm). Debug only; never in a shipping image. */
 #ifndef DSP4_BQE_VERIFY
 #define DSP4_BQE_VERIFY 0
+#endif
+
+/* The headroom guard on the part: the sizer against its model, and the
+ * sign inversions the guard exists to prevent, counted both ways in one
+ * image (lib/bq_guard_test.asm, SHARC/bqguard.sh). Debug only. */
+#ifndef DSP4_BQG_VERIFY
+#define DSP4_BQG_VERIFY 0
 #endif
 
 #endif /* DSP4_BLOCK_H */

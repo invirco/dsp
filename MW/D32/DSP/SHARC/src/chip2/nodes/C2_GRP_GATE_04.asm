@@ -46,8 +46,21 @@
 .var _gate_filter_hpf_C2_GRP_GATE_04[5] = 1.0, 0.0, 0.0, 0.0, 0.0;
 .global _gate_filter_lpf_C2_GRP_GATE_04;
 .var _gate_filter_lpf_C2_GRP_GATE_04[5] = 1.0, 0.0, 0.0, 0.0, 0.0;
+/* The gate's sidechain HPF+LPF, run as one two-stage cascade.
+ * Header word for shape; H stays 0, and that is a MEASURED GAP:
+ * dyn_state_bound.py finds the cascade reaching |h|_1 = 150.7
+ * (H = 5) at HPF 8 kHz / LPF 8 kHz / Q 10, a setting the
+ * parameter string allows and a recalled preset can contain.
+ * Unsized for the same reason as the talkback HPF -- this node
+ * converts on EVERY invocation, so there is no parameter-load
+ * moment to size at. See the write-up. */
+#if DSP4_BQ_GUARD
+.global _gate_filter_cq_C2_GRP_GATE_04;
+.var _gate_filter_cq_C2_GRP_GATE_04[11];
+#else
 .global _gate_filter_cq_C2_GRP_GATE_04;
 .var _gate_filter_cq_C2_GRP_GATE_04[10];
+#endif
 .global _gate_filter_state_C2_GRP_GATE_04;
 .var _gate_filter_state_C2_GRP_GATE_04[12];
 /* DECLARATION ORDER IS THE PAIR INTERFACE. _gate_pair_blk gathers
@@ -272,6 +285,10 @@ _C2_GRP_GATE_04_process:
     if eq jump (pc, .gate_go_C2_GRP_GATE_04);
     i0 = _gate_filter_hpf_C2_GRP_GATE_04;
     i1 = _gate_filter_cq_C2_GRP_GATE_04;
+#if DSP4_BQ_GUARD
+    l1 = 0;
+    modify(i1, 1);            /* past the headroom header */
+#endif
     r4 = 1;
     call _bq_fx_convert_N;
     i0 = _gate_filter_lpf_C2_GRP_GATE_04;

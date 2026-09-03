@@ -262,10 +262,35 @@ ASMFLAGS="$ASMFLAGS -DDSP4_C2_XPAIR=$DSP4_C2_XPAIR"
 DSP4_BQ_ROUNDONCE="${DSP4_BQ_ROUNDONCE:-1}"
 CFLAGS="$CFLAGS -DDSP4_BQ_ROUNDONCE=$DSP4_BQ_ROUNDONCE"
 ASMFLAGS="$ASMFLAGS -DDSP4_BQ_ROUNDONCE=$DSP4_BQ_ROUNDONCE"
+# THE PER-CASCADE HEADROOM GUARD (2026-09-03). Sized at parameter-load by
+# lib/bq_headroom.asm, carried as a header word in every cascade's
+# coefficient block, applied as one shift on the way into the cascade and
+# one shift and one clamp on the way out. Defaults ON with round-once and
+# is forced OFF without it, so DSP4_BQ_ROUNDONCE=0 stays the byte-for-byte
+# contract control. DSP4_BQ_GUARD=0 with round-once ON is the arm the
+# guard's cost is measured against.
+DSP4_BQ_GUARD="${DSP4_BQ_GUARD:-1}"
+CFLAGS="$CFLAGS -DDSP4_BQ_GUARD=$DSP4_BQ_GUARD"
+ASMFLAGS="$ASMFLAGS -DDSP4_BQ_GUARD=$DSP4_BQ_GUARD"
+# THE MEASUREMENT OVERRIDE. Non-zero makes every cascade run at that H
+# whatever its coefficients say, so the guard's WORST-CASE cost can be
+# measured in the graph instead of estimated from a rig -- on this bench
+# chip 2 is never configured, so nothing would ever swap coefficients and
+# nothing would ever be sized. Audio is wrong by design while it is on;
+# it is a measurement, not a mode.
+DSP4_BQ_GUARD_FORCE="${DSP4_BQ_GUARD_FORCE:-0}"
+CFLAGS="$CFLAGS -DDSP4_BQ_GUARD_FORCE=$DSP4_BQ_GUARD_FORCE"
+ASMFLAGS="$ASMFLAGS -DDSP4_BQ_GUARD_FORCE=$DSP4_BQ_GUARD_FORCE"
 # The round-once cascade against fixed_ref over the DEFS curve set, on the
 # part (lib/bqe_verify.asm, SHARC/bqeverify.sh). Debug instrument; never in
 # a shipping image, and it needs DSP4_BQ_SHOOTOUT=1 for the round-once arm
 # it diffs against.
+# The headroom guard on the part (lib/bq_guard_test.asm, bqguard.sh):
+# the sizer against its model, and the sign inversions the guard prevents,
+# both arms in one image. Debug instrument; never in a shipping image.
+DSP4_BQG_VERIFY="${DSP4_BQG_VERIFY:-0}"
+CFLAGS="$CFLAGS -DDSP4_BQG_VERIFY=$DSP4_BQG_VERIFY"
+ASMFLAGS="$ASMFLAGS -DDSP4_BQG_VERIFY=$DSP4_BQG_VERIFY"
 DSP4_BQE_VERIFY="${DSP4_BQE_VERIFY:-0}"
 CFLAGS="$CFLAGS -DDSP4_BQE_VERIFY=$DSP4_BQE_VERIFY"
 ASMFLAGS="$ASMFLAGS -DDSP4_BQE_VERIFY=$DSP4_BQE_VERIFY"

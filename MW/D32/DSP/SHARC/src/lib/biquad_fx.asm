@@ -26,11 +26,28 @@
  * arbitrary bounded input can reach, and 4.0% of the DEFS design space
  * exceeds Q4.28's ceiling of 8.0 on worst-case drive. There the extract
  * WRAPS, and in a recursive path a wrap is a sign inversion fed back
- * into the poles, not a clipped sample. The guard is headroom sized per
- * CASCADE on |h|_1 at parameter-load time, which is H = 0 for 96% of the
- * space; it is designed and priced in
- * MW/D32/DSP/dsp4-roundonce-land-20260903.md and is NOT in this kernel
- * yet.
+ * into the poles, not a clipped sample.
+ *
+ * THE GUARD IS WIRED (DSP4_BQ_GUARD, default on with round-once,
+ * 2026-09-03). Headroom H is sized per CASCADE on |h|_1 at
+ * PARAMETER-LOAD time by lib/bq_headroom.asm (model:
+ * tools/dsp/bq_h_load.py) and is carried as the FIRST WORD of the
+ * cascade's coefficient block -- one header word per block, two
+ * interleaved for a SIMD pair. The kernels shift the cascade INPUT down
+ * H bits on entry and the cascade OUTPUT back up and saturate ONCE on
+ * exit; y stays UNSCALED in the history registers, so the recursion runs
+ * at the level where |h|_1 * x fits Q4.28 and only the word handed to
+ * the next node comes back up. That is why a per-cascade CLAMP does not
+ * work and a per-cascade SCALE does.
+ *
+ * H = 0 IS THE 94% CASE AND IT COSTS A LOAD AND A TEST. Both scaling
+ * passes are jumped over whole, so the sample loop is byte for byte the
+ * unguarded one -- which is also why the scaling is a PASS OVER THE
+ * BLOCK and not two instructions inside the loop. The in-loop form was
+ * measured first (bq_shootout rungs 16/17) and cost eight instructions
+ * on the exit, because three loop invariants met exactly one free
+ * register under round-once and two were re-read every sample. A
+ * dedicated pass has the whole register file.
  *
  * DSP4_BQ_ROUNDONCE=0 rebuilds the per-stage-saturating contract kernel
  * byte for byte and is the control every bar is run against.
@@ -41,7 +58,8 @@
  * as a 64-bit pair. rns() = add 2^27 then arithmetic >>28 (matches
  * fixed_ref.rns for the value ranges reachable here).
  *
- * Coefficient block per stage (5 words):  [b0, nh, n2, c1, c2]
+ * Coefficient block: one HEADER word H (DSP4_BQ_GUARD only), then per
+ * stage (5 words):  [b0, nh, n2, c1, c2]
  *   n1 = b1 + 2*b0,  n2 = b2 - b0,  c1 = 2 + a1,  c2 = 1 - a2
  *   b0/n2/c1/c2 are Q4.28; nh is n1 HALVED, stored Q5.27.
  *
@@ -81,10 +99,31 @@
 
 #include "dsp_block.h"
 
+#if DSP4_BQ_GUARD
+.section/dm seg_dmda;
+/* H parked across the stage loop. The loop clobbers r1-r12 and PRESERVES
+ * r13-r15 for the node crossfade bodies, so there is no register to hold
+ * it in -- and this is the per-SAMPLE path, which is already the slow
+ * one. */
+.var _bqfx_h;
+#endif
+
 .section/pm seg_pmco;
 
 .global _bq_fx_cascade_N;
 _bq_fx_cascade_N:
+#if DSP4_BQ_GUARD
+    r11 = dm(i0, 1);       /* H, and i0 steps past the header */
+#if DSP4_BQ_GUARD_FORCE
+    r11 = DSP4_BQ_GUARD_FORCE;      /* the measurement override */
+#endif
+    dm(_bqfx_h) = r11;
+    r11 = pass r11;
+    if eq jump (pc, .bqfx_noent);
+    r12 = -r11;
+    r0 = ashift r0 by r12;          /* x >> H, the entry scale */
+.bqfx_noent:
+#endif
     lcntr = r4, do .bqfx_stage until lce;
 
         /* ---- load state ---- */
@@ -173,6 +212,25 @@ _bq_fx_cascade_N:
     .bqfx_stage:
         r0 = r11;
 
+#if DSP4_BQ_GUARD
+    /* ---- the exit scale and the SINGLE clamp: y_out = sat32(y << H).
+     * The saturated value is built BEFORE the compare, because the ALU
+     * ops that build it would otherwise overwrite the flags it is
+     * conditioned on. The test is "did the shift lose bits", i.e. does
+     * shifting back down give what went in. ---- */
+    r11 = dm(_bqfx_h);
+    r11 = pass r11;
+    if eq rts;
+    r1 = 0x7FFFFFFF;
+    r2 = ashift r0 by -31;          /* sign of y                    */
+    r1 = r1 xor r2;                 /* MAX, or MIN                  */
+    r2 = ashift r0 by r11;          /* candidate = y << H           */
+    r12 = -r11;
+    r3 = ashift r2 by r12;          /* candidate >> H               */
+    comp(r3, r0);
+    if ne r2 = pass r1;
+    r0 = r2;
+#endif
     rts;
 _bq_fx_cascade_N.end:
 
@@ -286,6 +344,26 @@ _bq_fx_cascade_blk:
     l2 = 0;
     r15 = -DSP4_BLOCK_SIZE;
     m2 = r15;                  /* rewind the signal block per stage */
+#if DSP4_BQ_GUARD
+    /* ---- THE ENTRY SCALE, as a pass over the block. H is a
+     * control-rate word and the pass is jumped over whole when it is
+     * zero, so the 94% case pays one load, one test and one branch for
+     * the whole cascade. ---- */
+    r13 = dm(i0, 1);           /* H, and i0 steps past the header */
+#if DSP4_BQ_GUARD_FORCE
+    r13 = DSP4_BQ_GUARD_FORCE;      /* the measurement override */
+#endif
+    dm(_bqfx_h) = r13;
+    r13 = pass r13;
+    if eq jump (pc, .bqf_noent);
+    r14 = -r13;
+    lcntr = DSP4_BLOCK_SIZE, do .bqf_ent until lce;
+        r0 = dm(i2, 0);
+        r0 = ashift r0 by r14;
+    .bqf_ent: dm(i2, 1) = r0;
+    modify(i2, m2);            /* rewind: the stage loop starts at the top */
+.bqf_noent:
+#endif
     r15 = 5;
     m3 = r15;                  /* state base+1 -> next stage's base   */
 
@@ -408,6 +486,26 @@ _bq_fx_cascade_blk:
         modify(i2, m2);        /* rewind the block for the next stage */
     .bqf_stage:
         nop;
+
+#if DSP4_BQ_GUARD
+    /* ---- THE EXIT SCALE AND THE SINGLE CLAMP, once per cascade, over
+     * the block the last stage just wrote. i2 was rewound by the stage
+     * epilogue, so it is already at the top. ---- */
+    r13 = dm(_bqfx_h);
+    r13 = pass r13;
+    if eq rts;
+    r14 = -r13;
+    r15 = 0x7FFFFFFF;
+    lcntr = DSP4_BLOCK_SIZE, do .bqf_exi until lce;
+        r0 = dm(i2, 0);
+        r1 = ashift r0 by -31;      /* sign of y            */
+        r1 = r15 xor r1;            /* MAX, or MIN          */
+        r2 = ashift r0 by r13;      /* candidate = y << H   */
+        r3 = ashift r2 by r14;      /* candidate >> H       */
+        comp(r3, r0);
+        if ne r2 = pass r1;
+    .bqf_exi: dm(i2, 1) = r2;
+#endif
     rts;
 _bq_fx_cascade_blk.end:
 
@@ -438,6 +536,22 @@ _bq_fx_cascade_blk:
     m1 = r15;                  /* rewind coeffs by one sample's worth */
     r15 = -DSP4_BLOCK_SIZE;
     m2 = r15;                  /* rewind the signal block per stage    */
+#if DSP4_BQ_GUARD
+    r13 = dm(i0, 1);           /* H, and i0 steps past the header */
+#if DSP4_BQ_GUARD_FORCE
+    r13 = DSP4_BQ_GUARD_FORCE;      /* the measurement override */
+#endif
+    dm(_bqfx_h) = r13;
+    r13 = pass r13;
+    if eq jump (pc, .bqb_noent);
+    r14 = -r13;
+    lcntr = DSP4_BLOCK_SIZE, do .bqb_ent until lce;
+        r0 = dm(i2, 0);
+        r0 = ashift r0 by r14;
+    .bqb_ent: dm(i2, 1) = r0;
+    modify(i2, m2);
+.bqb_noent:
+#endif
     r15 = 5;
     m3 = r15;                  /* state base+1 -> next stage's base    */
 
@@ -533,6 +647,23 @@ _bq_fx_cascade_blk:
         m1 = r15;              /* restore the per-sample rewind */
     .bqb_stage:
         nop;
+
+#if DSP4_BQ_GUARD
+    r13 = dm(_bqfx_h);
+    r13 = pass r13;
+    if eq rts;
+    r14 = -r13;
+    r15 = 0x7FFFFFFF;
+    lcntr = DSP4_BLOCK_SIZE, do .bqb_exi until lce;
+        r0 = dm(i2, 0);
+        r1 = ashift r0 by -31;
+        r1 = r15 xor r1;
+        r2 = ashift r0 by r13;
+        r3 = ashift r2 by r14;
+        comp(r3, r0);
+        if ne r2 = pass r1;
+    .bqb_exi: dm(i2, 1) = r2;
+#endif
     rts;
 _bq_fx_cascade_blk.end:
 #endif
@@ -648,6 +779,21 @@ _bq_fx_convert_N.end:
  * a pair. */
 .var _simd_mode1_save[2];
 
+#if DSP4_BQ_GUARD
+/* THE GUARD'S THREE PAIRS. Every one is TWO words and read with PEYEN
+ * SET, which is what makes them per-PE: a direct-address access in SIMD
+ * mode gives PEx the word at the address and PEy the word after. That is
+ * the same mechanism _simd_mode1_save is a pair for, and it is why the
+ * two strips of a pair can carry DIFFERENT headroom -- the shift amount
+ * is a register, and each unit shifts by its own.
+ *
+ * _bqs_gd holds the OR of the two, twice, so the skip decision is one
+ * branch on PEx's flags that is right for both units. */
+.var _bqs_hp[2] = 0, 0;        /* +H per strip */
+.var _bqs_hm[2] = 0, 0;        /* -H per strip */
+.var _bqs_gd[2] = 0, 0;        /* (Ha | Hb), in both halves */
+#endif
+
 #if DSP4_BQ_TRACE
 /* EXACT ITERATION COUNTING (2026-08-30). Every counter is TWO words and
  * only the first is read: these are written from inside the PEYEN region,
@@ -686,6 +832,25 @@ _bq_fx_cascade_simd:
     r15 = 10;
     m3 = r15;                  /* state base+2 -> next stage's base      */
 
+#if DSP4_BQ_GUARD
+    /* ---- the header pair, read SCALAR, before PEYEN goes up ---- */
+    r0 = dm(i0, 1);            /* Ha */
+    r1 = dm(i0, 1);            /* Hb; i0 -> stage 0 */
+#if DSP4_BQ_GUARD_FORCE
+    r0 = DSP4_BQ_GUARD_FORCE;       /* the measurement override */
+    r1 = DSP4_BQ_GUARD_FORCE;
+#endif
+    dm(_bqs_hp) = r0;
+    dm(_bqs_hp + 1) = r1;
+    r2 = -r0;
+    r3 = -r1;
+    dm(_bqs_hm) = r2;
+    dm(_bqs_hm + 1) = r3;
+    r0 = r0 or r1;
+    dm(_bqs_gd) = r0;
+    dm(_bqs_gd + 1) = r0;
+#endif
+
     /* PEYEN ONLY -- INTERRUPTS ARE **NOT** MASKED HERE ANY MORE.
      *
      * The hazard is real: an interrupt taken while PEYEN is set runs the
@@ -717,6 +882,22 @@ _bq_fx_cascade_simd:
     nop;
 #if DSP4_BQ_TRACE
     r0 = 2; dm(_bqs_phase) = r0;
+#endif
+
+#if DSP4_BQ_GUARD
+    /* ---- THE ENTRY SCALE, one pass over the interleaved block, both
+     * strips at once. Jumped over whole when neither strip carries
+     * headroom, which is the 94% case. ---- */
+    r0 = dm(_bqs_gd);
+    r0 = pass r0;
+    if eq jump (pc, .bqs_noent);
+    r15 = dm(_bqs_hm);         /* -H, per PE */
+    lcntr = DSP4_BLOCK_SIZE, do .bqs_ent until lce;
+        r0 = dm(i2, 0);
+        r0 = ashift r0 by r15;
+    .bqs_ent: dm(i2, 2) = r0;
+    modify(i2, m2);            /* rewind: the stage loop starts at the top */
+.bqs_noent:
 #endif
 
     lcntr = r4, do .bqs_stage until lce;
@@ -847,6 +1028,31 @@ _bq_fx_cascade_simd:
     .bqs_stage:
         nop;
 
+#if DSP4_BQ_GUARD
+    /* ---- THE EXIT SCALE AND THE SINGLE CLAMP, still in SIMD, over the
+     * block the last stage wrote. The saturated value is built BEFORE
+     * the compare -- the ALU ops that build it would overwrite the flags
+     * it is conditioned on -- and the move is a per-PE CONDITIONAL
+     * COMPUTE, not a branch, because a branch would take PEx's condition
+     * for both strips. ---- */
+    r0 = dm(_bqs_gd);
+    r0 = pass r0;
+    if eq jump (pc, .bqs_noexi);
+    r13 = dm(_bqs_hp);         /* +H, per PE */
+    r14 = dm(_bqs_hm);         /* -H, per PE */
+    r15 = 0x7FFFFFFF;
+    lcntr = DSP4_BLOCK_SIZE, do .bqs_exi until lce;
+        r0 = dm(i2, 0);
+        r1 = ashift r0 by -31;      /* sign of y            */
+        r1 = r15 xor r1;            /* MAX, or MIN          */
+        r2 = ashift r0 by r13;      /* candidate = y << H   */
+        r3 = ashift r2 by r14;      /* candidate >> H       */
+        comp(r3, r0);
+        if ne r2 = pass r1;
+    .bqs_exi: dm(i2, 2) = r2;
+.bqs_noexi:
+#endif
+
 #if DSP4_BQ_TRACE
     r0 = 3; dm(_bqs_phase) = r0;
 #endif
@@ -880,7 +1086,11 @@ _bq_fx_cascade_simd.end:
  * Clobbers freely -- callers treat this as a block-rate call.
  *--------------------------------------------------------------------*/
 .section/dm seg_dmda;
+#if DSP4_BQ_GUARD
+.var _bqp_coeff[42];        /* 2 strips x (1 header + 4 stages x 5)   */
+#else
 .var _bqp_coeff[40];        /* 2 strips x 4 stages x 5                */
+#endif
 .var _bqp_state[48];        /* 2 strips x 4 stages x 6                */
 .var _bqp_sig[2*DSP4_BLOCK_SIZE];  /* 2 strips x BLOCK samples        */
 /* THE SCATTER-BACK POINTERS, PARKED ACROSS THE SIMD CALL. See the note
@@ -947,9 +1157,13 @@ _bq_pair_blk:
     dm(i2, 1) = r13;
     dm(i2, 1) = r14;
 
-    /* ---- interleave coefficients: 5 per stage from each strip ---- */
+    /* ---- interleave coefficients: 5 per stage from each strip, plus
+     * the one HEADER word each carries in front of them ---- */
     r0 = lshift r14 by 2;
     r0 = r0 + r14;              /* 5 coefficients per stage */
+#if DSP4_BQ_GUARD
+    r0 = r0 + 1;                /* + the headroom header */
+#endif
     i0 = r8;
     i1 = r11;
     i2 = _bqp_coeff;

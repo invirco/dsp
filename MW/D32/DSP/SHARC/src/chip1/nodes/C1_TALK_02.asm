@@ -32,8 +32,24 @@
 .var _talk_hpf_on_C1_TALK_02 = 1;
 .global _talk_hpf_coeffs_C1_TALK_02;
 .var _talk_hpf_coeffs_C1_TALK_02[5] = 1.0, 0.0, 0.0, 0.0, 0.0;
+/* A single unity-gain sidechain HPF. It carries the guard's
+ * header word so every cascade block in the tree has the same
+ * shape, but nothing SIZES it: H stays 0.
+ *
+ * THAT IS A MEASURED GAP AND NOT AN INSPECTION.
+ * tools/dsp/dyn_state_bound.py sweeps the sidechain parameter
+ * range and finds |h|_1 = 13.8 on a 20 Hz HPF at Q 10 -- one
+ * headroom bit -- so "it cannot reach the ceiling" is FALSE at
+ * the corner. It is unsized because this node converts on every
+ * invocation rather than at a parameter-load moment, so there is
+ * nothing control-rate to hang a sizing off. See the write-up. */
+#if DSP4_BQ_GUARD
+.global _talk_hpf_cq_C1_TALK_02;
+.var _talk_hpf_cq_C1_TALK_02[6] = 0, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
+#else
 .global _talk_hpf_cq_C1_TALK_02;
 .var _talk_hpf_cq_C1_TALK_02[5] = 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
+#endif
 .global _talk_hpf_state_C1_TALK_02;
 .var _talk_hpf_state_C1_TALK_02[6];
 .global _talk_route_C1_TALK_02;
@@ -67,6 +83,10 @@ _C1_TALK_02_process:
 #endif
     i0 = _talk_hpf_coeffs_C1_TALK_02;
     i1 = _talk_hpf_cq_C1_TALK_02;
+#if DSP4_BQ_GUARD
+    l1 = 0;
+    modify(i1, 1);            /* past the headroom header */
+#endif
     r4 = 1;
     call _bq_fx_convert_N;
 .tk_ramp_C1_TALK_02:

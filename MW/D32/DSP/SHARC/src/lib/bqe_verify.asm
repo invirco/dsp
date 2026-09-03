@@ -88,7 +88,13 @@
 /* Working buffers. The coefficients are gathered into an INTERLEAVED
  * pair copy because that is the layout both SIMD kernels consume; the
  * two arms share it and hold their own state and their own signal. */
-.var _bqev_ci[BQEV_NSTAGE * 10];
+/* + 2 with the guard: one header word per strip, in front of the
+ * interleaved coefficients. Both arms consume it -- the graph's kernel
+ * because that is its contract, _bqe_cascade_simd because the rig skips
+ * it -- so the two arms still read byte-identical coefficients, which is
+ * the whole point of a shared buffer. H is zero here: the bar's job is
+ * the ARITHMETIC, and the guard's own numbers are bq_h_load.py's. */
+.var _bqev_ci[BQEV_NSTAGE * 10 + 2 * DSP4_BQ_HDR];
 .var _bqev_sa[BQEV_NSTAGE * 12];
 .var _bqev_sb[BQEV_NSTAGE * 12];
 .var _bqev_ga[2 * DSP4_BLOCK_SIZE];
@@ -141,6 +147,11 @@ _bqev_selftest:
     r0 = r0 + r1;
     i5 = r0;                                /* cascade 2p+1 */
     i6 = _bqev_ci;
+#if DSP4_BQ_GUARD
+    r0 = 0;
+    dm(i6, 1) = r0;                         /* H, strip A */
+    dm(i6, 1) = r0;                         /* H, strip B */
+#endif
     lcntr = BQEV_NSTAGE * 5, do .bqev_gc until lce;
         r0 = dm(i4, 1);
         dm(i6, 1) = r0;

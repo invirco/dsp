@@ -31,12 +31,22 @@
 .global _afb_notch_q_C2_AUX_AFB_05;
 .var _afb_notch_q_C2_AUX_AFB_05[6];
 
+#if DSP4_BQ_GUARD
+.global _afb_coeffs_A_C2_AUX_AFB_05;
+.var _afb_coeffs_A_C2_AUX_AFB_05[30 + 1] = 0, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
+#else
 .global _afb_coeffs_A_C2_AUX_AFB_05;
 .var _afb_coeffs_A_C2_AUX_AFB_05[30] = 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
+#endif
 .global _afb_state_A_C2_AUX_AFB_05;
 .var _afb_state_A_C2_AUX_AFB_05[36];
+#if DSP4_BQ_GUARD
+.global _afb_coeffs_B_C2_AUX_AFB_05;
+.var _afb_coeffs_B_C2_AUX_AFB_05[30 + 1] = 0, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
+#else
 .global _afb_coeffs_B_C2_AUX_AFB_05;
 .var _afb_coeffs_B_C2_AUX_AFB_05[30] = 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
+#endif
 .global _afb_state_B_C2_AUX_AFB_05;
 .var _afb_state_B_C2_AUX_AFB_05[36];
 
@@ -45,6 +55,12 @@
 .var _afb_coeffs_next_C2_AUX_AFB_05[30];
 .global _afb_swap_pending_C2_AUX_AFB_05;
 .var _afb_swap_pending_C2_AUX_AFB_05 = 0;
+#if DSP4_BQ_GUARD
+.global _afb_hrw_C2_AUX_AFB_05;
+.var _afb_hrw_C2_AUX_AFB_05 = 0;        /* 0 idle, 1 asked, 2 re-ask */
+.global _afb_hrl_C2_AUX_AFB_05;
+.var _afb_hrl_C2_AUX_AFB_05[2];       /* (block, stages) pairs */
+#endif
 
 .global _afb_active_C2_AUX_AFB_05;
 .var _afb_active_C2_AUX_AFB_05 = 0;
@@ -77,6 +93,9 @@
 .extern _bq_fx_cascade_blk;
 #endif
 .extern _bq_fx_convert_N;
+#if DSP4_BQ_GUARD
+.extern _bq_hr_node1;
+#endif
 .global _C2_AUX_AFB_05_process;
 _C2_AUX_AFB_05_process:
 #if DSP4_BLOCK_KERNELS
@@ -101,6 +120,10 @@ _C2_AUX_AFB_05_process:
     r4 = dm(_afb_swap_pending_C2_AUX_AFB_05);
     r5 = dm(_afb_xfade_step_C2_AUX_AFB_05);
     r4 = r4 or r5;
+#if DSP4_BQ_GUARD
+    r5 = dm(_afb_hrw_C2_AUX_AFB_05);
+    r4 = r4 or r5;      /* a sizing in flight is a transient too */
+#endif
     r4 = pass r4;
     if ne jump (pc, .afbkb_tr_C2_AUX_AFB_05);
 
@@ -227,6 +250,10 @@ _C2_AUX_AFB_05_process:
         #endif
 
     r4 = dm(_afb_swap_pending_C2_AUX_AFB_05);
+    #if DSP4_BQ_GUARD
+    r5 = dm(_afb_hrw_C2_AUX_AFB_05);
+    r4 = r4 or r5;
+    #endif
     r4 = pass r4;
     if ne call _afb_start_xfade_C2_AUX_AFB_05;
 
@@ -331,6 +358,24 @@ _C2_AUX_AFB_05_process:
 
     /* ===== stage new coeffs into dormant ===== */
 _afb_start_xfade_C2_AUX_AFB_05:
+    #if DSP4_BQ_GUARD
+    /* Convert, size, and hold the fade until H is written. */
+    r0 = _afb_hrw_C2_AUX_AFB_05;
+    r1 = _afb_hrl_C2_AUX_AFB_05;
+    r2 = _afb_active_C2_AUX_AFB_05;
+    r3 = _afb_coeffs_A_C2_AUX_AFB_05;
+    r4 = _afb_coeffs_B_C2_AUX_AFB_05;
+    r5 = _afb_state_A_C2_AUX_AFB_05;
+    r6 = _afb_state_B_C2_AUX_AFB_05;
+    r7 = _afb_coeffs_next_C2_AUX_AFB_05;
+    r8 = 6;
+    call _bq_hr_node1;      /* i2 = dormant state on success */
+    r0 = pass r0;
+    if eq rts;              /* not sized yet; back next block */
+    r4 = 0;
+    dm(_afb_swap_pending_C2_AUX_AFB_05) = r4;
+    #endif
+#if !DSP4_BQ_GUARD
     r4 = 0;
     dm(_afb_swap_pending_C2_AUX_AFB_05) = r4;
     i0 = _afb_coeffs_next_C2_AUX_AFB_05;
@@ -346,6 +391,7 @@ _afb_start_xfade_C2_AUX_AFB_05:
 .afb_st_go_C2_AUX_AFB_05:
     r4 = 6;
     call _bq_fx_convert_N;
+#endif
     r4 = 0;
     r5 = 36;
     lcntr = r5, do .afb_zst_C2_AUX_AFB_05 until lce;

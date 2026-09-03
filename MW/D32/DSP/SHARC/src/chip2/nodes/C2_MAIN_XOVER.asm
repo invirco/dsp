@@ -20,18 +20,38 @@
 .extern _buf_C2_MAIN_DLY;
 .extern _sample_idx;
 
+#if DSP4_BQ_GUARD
+.global _xover_lp_A_C2_MAIN_XOVER;
+.var _xover_lp_A_C2_MAIN_XOVER[10 + 1] = 0, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
+#else
 .global _xover_lp_A_C2_MAIN_XOVER;
 .var _xover_lp_A_C2_MAIN_XOVER[10] = 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
+#endif
+#if DSP4_BQ_GUARD
+.global _xover_hp_A_C2_MAIN_XOVER;
+.var _xover_hp_A_C2_MAIN_XOVER[10 + 1] = 0, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
+#else
 .global _xover_hp_A_C2_MAIN_XOVER;
 .var _xover_hp_A_C2_MAIN_XOVER[10] = 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
+#endif
 .global _xover_lp_state_A_C2_MAIN_XOVER;
 .var _xover_lp_state_A_C2_MAIN_XOVER[12];
 .global _xover_hp_state_A_C2_MAIN_XOVER;
 .var _xover_hp_state_A_C2_MAIN_XOVER[12];
+#if DSP4_BQ_GUARD
+.global _xover_lp_B_C2_MAIN_XOVER;
+.var _xover_lp_B_C2_MAIN_XOVER[10 + 1] = 0, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
+#else
 .global _xover_lp_B_C2_MAIN_XOVER;
 .var _xover_lp_B_C2_MAIN_XOVER[10] = 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
+#endif
+#if DSP4_BQ_GUARD
+.global _xover_hp_B_C2_MAIN_XOVER;
+.var _xover_hp_B_C2_MAIN_XOVER[10 + 1] = 0, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
+#else
 .global _xover_hp_B_C2_MAIN_XOVER;
 .var _xover_hp_B_C2_MAIN_XOVER[10] = 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
+#endif
 .global _xover_lp_state_B_C2_MAIN_XOVER;
 .var _xover_lp_state_B_C2_MAIN_XOVER[12];
 .global _xover_hp_state_B_C2_MAIN_XOVER;
@@ -49,6 +69,12 @@
 .var _xover_xfade_alpha_C2_MAIN_XOVER = 0.0;
 .global _xover_xfade_step_C2_MAIN_XOVER;
 .var _xover_xfade_step_C2_MAIN_XOVER = 0.0;
+#if DSP4_BQ_GUARD
+.global _xover_hrw_C2_MAIN_XOVER;
+.var _xover_hrw_C2_MAIN_XOVER = 0;        /* 0 idle, 1 asked, 2 re-ask */
+.global _xover_hrl_C2_MAIN_XOVER;
+.var _xover_hrl_C2_MAIN_XOVER[4];       /* (block, stages) pairs */
+#endif
 
 .global _buf_lp_C2_MAIN_XOVER;
 .var _buf_lp_C2_MAIN_XOVER;
@@ -74,6 +100,9 @@
 .section/pm seg_pmco;
 .extern _bq_fx_cascade_N;
 .extern _bq_fx_convert_N;
+#if DSP4_BQ_GUARD
+.extern _bq_hr_node1;
+#endif
 .global _C2_MAIN_XOVER_process;
 _C2_MAIN_XOVER_process:
         #if DSP4_BLOCK_KERNELS
@@ -154,6 +183,10 @@ _C2_MAIN_XOVER_process:
         #endif
 
     r4 = dm(_xover_swap_pending_C2_MAIN_XOVER);
+    #if DSP4_BQ_GUARD
+    r5 = dm(_xover_hrw_C2_MAIN_XOVER);
+    r4 = r4 or r5;
+    #endif
     r4 = pass r4;
     if ne call _xover_start_xfade_C2_MAIN_XOVER;
 
@@ -328,6 +361,11 @@ _C2_MAIN_XOVER_process:
 
     /* ===== stage into dormant ===== */
 _xover_start_xfade_C2_MAIN_XOVER:
+#if DSP4_BQ_GUARD
+    r4 = dm(_xover_hrw_C2_MAIN_XOVER);
+    r4 = pass r4;
+    if ne jump (pc, .xover_hrp_C2_MAIN_XOVER);   /* already converted */
+#endif
     r4 = 0;
     dm(_xover_swap_pending_C2_MAIN_XOVER) = r4;
     i0 = _xover_coeffs_next_C2_MAIN_XOVER;
@@ -339,6 +377,10 @@ _xover_start_xfade_C2_MAIN_XOVER:
 .xo_st_a_C2_MAIN_XOVER:
     i1 = _xover_lp_A_C2_MAIN_XOVER;
 .xo_st_go_C2_MAIN_XOVER:
+    #if DSP4_BQ_GUARD
+l1 = 0;
+modify(i1, 1);            /* past the headroom header */
+#endif
     r4 = 2;
     call _bq_fx_convert_N;        /* LP stages; i0 -> HP staging */
     r4 = dm(_xover_active_C2_MAIN_XOVER);
@@ -349,8 +391,27 @@ _xover_start_xfade_C2_MAIN_XOVER:
 .xo_st2a_C2_MAIN_XOVER:
     i1 = _xover_hp_A_C2_MAIN_XOVER;
 .xo_st2go_C2_MAIN_XOVER:
+    #if DSP4_BQ_GUARD
+l1 = 0;
+modify(i1, 1);            /* past the headroom header */
+#endif
     r4 = 2;
     call _bq_fx_convert_N;
+    #if DSP4_BQ_GUARD
+    .xover_hrp_C2_MAIN_XOVER:      /* re-entry: converted, still asking */
+    r0 = _xover_hrw_C2_MAIN_XOVER;
+    r1 = _xover_hrl_C2_MAIN_XOVER;
+    r2 = _xover_active_C2_MAIN_XOVER;
+    r3 = _xover_lp_A_C2_MAIN_XOVER;
+    r4 = _xover_lp_B_C2_MAIN_XOVER;
+    r5 = 2;
+    r6 = _xover_hp_A_C2_MAIN_XOVER;
+    r7 = _xover_hp_B_C2_MAIN_XOVER;
+    r8 = 2;
+    call _bq_hr_ask2;
+    r0 = pass r0;
+    if eq rts;              /* not sized yet; back next block */
+    #endif
     /* zero dormant states (lp 12 + hp 12) */
     r4 = dm(_xover_active_C2_MAIN_XOVER);
     r4 = pass r4;

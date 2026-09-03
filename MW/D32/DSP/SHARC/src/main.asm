@@ -134,6 +134,13 @@
 .var _sample_idx = 0;
 
 
+#if DSP4_BQ_GUARD
+.extern _bq_hr_service;
+#endif
+#if DSP4_BQG_VERIFY
+.extern _bqg_selftest;
+.extern _bqg_done;
+#endif
 #if DSP4_BQ_SELFTEST
 .extern _bq_selftest;
 #endif
@@ -737,6 +744,19 @@ _start:
     call _bqsh_selftest;
 .bqsh_skip:
 #endif
+#if DSP4_BQG_VERIFY
+    /* The headroom guard against its model, on the part
+     * (lib/bq_guard_test.asm). Same placement and the same reason as the
+     * self-tests above: ordinary main-loop context, link up, nothing of
+     * the graph's state touched. It DRIVES the sizer itself -- request,
+     * service, poll -- so it also exercises the engine's main-loop
+     * service path, which is where it runs in a real build. Runs once. */
+    r0 = dm(_bqg_done);
+    r0 = pass r0;
+    if ne jump (pc, .bqg_skip);
+    call _bqg_selftest;
+.bqg_skip:
+#endif
 #if DSP4_BQE_VERIFY
     /* The round-once cascade against fixed_ref over the DEFS curve set
      * (lib/bqe_verify.asm). Same placement and the same reason as the
@@ -789,6 +809,17 @@ _start:
      * interrupt-driven. sec_init() no longer routes SPI2_STAT. */
 #if !DSP4_POLL_ISR_ONLY
     call _spi_poll;
+#endif
+
+#if DSP4_BQ_GUARD
+    /* THE HEADROOM SIZER, out of the idle spin and never out of block
+     * work. It runs DSP4_BQHR_BUDGET samples of one cascade's impulse
+     * response per pass and returns at once when there is no job, which
+     * is every pass but the handful after a coefficient swap. Placed
+     * here for the same reason the parameter link is: this is ordinary
+     * main-loop context with the graph between blocks, and the only
+     * thing a long sizing job can delay is itself. */
+    call _bq_hr_service;
 #endif
 
 #if DSP4_BISECT >= 30 && DSP4_BISECT <= 32

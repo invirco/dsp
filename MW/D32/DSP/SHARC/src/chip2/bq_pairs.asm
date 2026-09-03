@@ -55,76 +55,172 @@ _bqp_tap_eq.end:
  * between the interleave and the scatter inside a single driver
  * call, and the drivers do not nest. */
 .var _bqi_sig[2*DSP4_BLOCK_SIZE];
+#if DSP4_BQ_GUARD
+.var _bqi_c_AUX_EQ_01_02[42];    /* 2 x (1 hdr + 4 x 5) */
+#else
 .var _bqi_c_AUX_EQ_01_02[40];    /* 2 x 4 stages x 5 coeffs */
+#endif
 .var _bqi_s_AUX_EQ_01_02[48];    /* 2 x 4 stages x 6 state  */
 .var _bqi_lat_AUX_EQ_01_02 = 0;
+#if DSP4_BQ_GUARD
+.var _bqi_c_AUX_EQ_03_04[42];    /* 2 x (1 hdr + 4 x 5) */
+#else
 .var _bqi_c_AUX_EQ_03_04[40];    /* 2 x 4 stages x 5 coeffs */
+#endif
 .var _bqi_s_AUX_EQ_03_04[48];    /* 2 x 4 stages x 6 state  */
 .var _bqi_lat_AUX_EQ_03_04 = 0;
+#if DSP4_BQ_GUARD
+.var _bqi_c_AUX_EQ_05_06[42];    /* 2 x (1 hdr + 4 x 5) */
+#else
 .var _bqi_c_AUX_EQ_05_06[40];    /* 2 x 4 stages x 5 coeffs */
+#endif
 .var _bqi_s_AUX_EQ_05_06[48];    /* 2 x 4 stages x 6 state  */
 .var _bqi_lat_AUX_EQ_05_06 = 0;
+#if DSP4_BQ_GUARD
+.var _bqi_c_AUX_EQ_07_08[42];    /* 2 x (1 hdr + 4 x 5) */
+#else
 .var _bqi_c_AUX_EQ_07_08[40];    /* 2 x 4 stages x 5 coeffs */
+#endif
 .var _bqi_s_AUX_EQ_07_08[48];    /* 2 x 4 stages x 6 state  */
 .var _bqi_lat_AUX_EQ_07_08 = 0;
+#if DSP4_BQ_GUARD
+.var _bqi_c_AUX_EQ_09_10[42];    /* 2 x (1 hdr + 4 x 5) */
+#else
 .var _bqi_c_AUX_EQ_09_10[40];    /* 2 x 4 stages x 5 coeffs */
+#endif
 .var _bqi_s_AUX_EQ_09_10[48];    /* 2 x 4 stages x 6 state  */
 .var _bqi_lat_AUX_EQ_09_10 = 0;
+#if DSP4_BQ_GUARD
+.var _bqi_c_AUX_EQ_11_12[42];    /* 2 x (1 hdr + 4 x 5) */
+#else
 .var _bqi_c_AUX_EQ_11_12[40];    /* 2 x 4 stages x 5 coeffs */
+#endif
 .var _bqi_s_AUX_EQ_11_12[48];    /* 2 x 4 stages x 6 state  */
 .var _bqi_lat_AUX_EQ_11_12 = 0;
+#if DSP4_BQ_GUARD
+.var _bqi_c_AUX_GEQ_01_02[282];    /* 2 x (1 hdr + 28 x 5) */
+#else
 .var _bqi_c_AUX_GEQ_01_02[280];    /* 2 x 28 stages x 5 coeffs */
+#endif
 .var _bqi_s_AUX_GEQ_01_02[336];    /* 2 x 28 stages x 6 state  */
 .var _bqi_lat_AUX_GEQ_01_02 = 0;
+#if DSP4_BQ_GUARD
+.var _bqi_c_AUX_GEQ_03_04[282];    /* 2 x (1 hdr + 28 x 5) */
+#else
 .var _bqi_c_AUX_GEQ_03_04[280];    /* 2 x 28 stages x 5 coeffs */
+#endif
 .var _bqi_s_AUX_GEQ_03_04[336];    /* 2 x 28 stages x 6 state  */
 .var _bqi_lat_AUX_GEQ_03_04 = 0;
+#if DSP4_BQ_GUARD
+.var _bqi_c_AUX_GEQ_05_06[282];    /* 2 x (1 hdr + 28 x 5) */
+#else
 .var _bqi_c_AUX_GEQ_05_06[280];    /* 2 x 28 stages x 5 coeffs */
+#endif
 .var _bqi_s_AUX_GEQ_05_06[336];    /* 2 x 28 stages x 6 state  */
 .var _bqi_lat_AUX_GEQ_05_06 = 0;
+#if DSP4_BQ_GUARD
+.var _bqi_c_AUX_GEQ_07_08[282];    /* 2 x (1 hdr + 28 x 5) */
+#else
 .var _bqi_c_AUX_GEQ_07_08[280];    /* 2 x 28 stages x 5 coeffs */
+#endif
 .var _bqi_s_AUX_GEQ_07_08[336];    /* 2 x 28 stages x 6 state  */
 .var _bqi_lat_AUX_GEQ_07_08 = 0;
+#if DSP4_BQ_GUARD
+.var _bqi_c_AUX_GEQ_09_10[282];    /* 2 x (1 hdr + 28 x 5) */
+#else
 .var _bqi_c_AUX_GEQ_09_10[280];    /* 2 x 28 stages x 5 coeffs */
+#endif
 .var _bqi_s_AUX_GEQ_09_10[336];    /* 2 x 28 stages x 6 state  */
 .var _bqi_lat_AUX_GEQ_09_10 = 0;
+#if DSP4_BQ_GUARD
+.var _bqi_c_AUX_GEQ_11_12[282];    /* 2 x (1 hdr + 28 x 5) */
+#else
 .var _bqi_c_AUX_GEQ_11_12[280];    /* 2 x 28 stages x 5 coeffs */
+#endif
 .var _bqi_s_AUX_GEQ_11_12[336];    /* 2 x 28 stages x 6 state  */
 .var _bqi_lat_AUX_GEQ_11_12 = 0;
+#if DSP4_BQ_GUARD
+.var _bqi_c_AUX_AFB_01_02[62];    /* 2 x (1 hdr + 6 x 5) */
+#else
 .var _bqi_c_AUX_AFB_01_02[60];    /* 2 x 6 stages x 5 coeffs */
+#endif
 .var _bqi_s_AUX_AFB_01_02[72];    /* 2 x 6 stages x 6 state  */
 .var _bqi_lat_AUX_AFB_01_02 = 0;
+#if DSP4_BQ_GUARD
+.var _bqi_c_AUX_AFB_03_04[62];    /* 2 x (1 hdr + 6 x 5) */
+#else
 .var _bqi_c_AUX_AFB_03_04[60];    /* 2 x 6 stages x 5 coeffs */
+#endif
 .var _bqi_s_AUX_AFB_03_04[72];    /* 2 x 6 stages x 6 state  */
 .var _bqi_lat_AUX_AFB_03_04 = 0;
+#if DSP4_BQ_GUARD
+.var _bqi_c_AUX_AFB_05_06[62];    /* 2 x (1 hdr + 6 x 5) */
+#else
 .var _bqi_c_AUX_AFB_05_06[60];    /* 2 x 6 stages x 5 coeffs */
+#endif
 .var _bqi_s_AUX_AFB_05_06[72];    /* 2 x 6 stages x 6 state  */
 .var _bqi_lat_AUX_AFB_05_06 = 0;
+#if DSP4_BQ_GUARD
+.var _bqi_c_AUX_AFB_07_08[62];    /* 2 x (1 hdr + 6 x 5) */
+#else
 .var _bqi_c_AUX_AFB_07_08[60];    /* 2 x 6 stages x 5 coeffs */
+#endif
 .var _bqi_s_AUX_AFB_07_08[72];    /* 2 x 6 stages x 6 state  */
 .var _bqi_lat_AUX_AFB_07_08 = 0;
+#if DSP4_BQ_GUARD
+.var _bqi_c_AUX_AFB_09_10[62];    /* 2 x (1 hdr + 6 x 5) */
+#else
 .var _bqi_c_AUX_AFB_09_10[60];    /* 2 x 6 stages x 5 coeffs */
+#endif
 .var _bqi_s_AUX_AFB_09_10[72];    /* 2 x 6 stages x 6 state  */
 .var _bqi_lat_AUX_AFB_09_10 = 0;
+#if DSP4_BQ_GUARD
+.var _bqi_c_AUX_AFB_11_12[62];    /* 2 x (1 hdr + 6 x 5) */
+#else
 .var _bqi_c_AUX_AFB_11_12[60];    /* 2 x 6 stages x 5 coeffs */
+#endif
 .var _bqi_s_AUX_AFB_11_12[72];    /* 2 x 6 stages x 6 state  */
 .var _bqi_lat_AUX_AFB_11_12 = 0;
+#if DSP4_BQ_GUARD
+.var _bqi_c_GRP_EQ_01_02[42];    /* 2 x (1 hdr + 4 x 5) */
+#else
 .var _bqi_c_GRP_EQ_01_02[40];    /* 2 x 4 stages x 5 coeffs */
+#endif
 .var _bqi_s_GRP_EQ_01_02[48];    /* 2 x 4 stages x 6 state  */
 .var _bqi_lat_GRP_EQ_01_02 = 0;
+#if DSP4_BQ_GUARD
+.var _bqi_c_GRP_EQ_03_04[42];    /* 2 x (1 hdr + 4 x 5) */
+#else
 .var _bqi_c_GRP_EQ_03_04[40];    /* 2 x 4 stages x 5 coeffs */
+#endif
 .var _bqi_s_GRP_EQ_03_04[48];    /* 2 x 4 stages x 6 state  */
 .var _bqi_lat_GRP_EQ_03_04 = 0;
+#if DSP4_BQ_GUARD
+.var _bqi_c_GRP_GEQ_01_02[282];    /* 2 x (1 hdr + 28 x 5) */
+#else
 .var _bqi_c_GRP_GEQ_01_02[280];    /* 2 x 28 stages x 5 coeffs */
+#endif
 .var _bqi_s_GRP_GEQ_01_02[336];    /* 2 x 28 stages x 6 state  */
 .var _bqi_lat_GRP_GEQ_01_02 = 0;
+#if DSP4_BQ_GUARD
+.var _bqi_c_GRP_GEQ_03_04[282];    /* 2 x (1 hdr + 28 x 5) */
+#else
 .var _bqi_c_GRP_GEQ_03_04[280];    /* 2 x 28 stages x 5 coeffs */
+#endif
 .var _bqi_s_GRP_GEQ_03_04[336];    /* 2 x 28 stages x 6 state  */
 .var _bqi_lat_GRP_GEQ_03_04 = 0;
+#if DSP4_BQ_GUARD
+.var _bqi_c_MOUT_OEQ_01_02[42];    /* 2 x (1 hdr + 4 x 5) */
+#else
 .var _bqi_c_MOUT_OEQ_01_02[40];    /* 2 x 4 stages x 5 coeffs */
+#endif
 .var _bqi_s_MOUT_OEQ_01_02[48];    /* 2 x 4 stages x 6 state  */
 .var _bqi_lat_MOUT_OEQ_01_02 = 0;
+#if DSP4_BQ_GUARD
+.var _bqi_c_MOUT_OEQ_03_04[42];    /* 2 x (1 hdr + 4 x 5) */
+#else
 .var _bqi_c_MOUT_OEQ_03_04[40];    /* 2 x 4 stages x 5 coeffs */
+#endif
 .var _bqi_s_MOUT_OEQ_03_04[48];    /* 2 x 4 stages x 6 state  */
 .var _bqi_lat_MOUT_OEQ_03_04 = 0;
 
@@ -647,6 +743,56 @@ _bqp_tap_eq.end:
 .extern _tap_post_eq_C2_MAIN_OEQ_02;
 .extern _tap_post_eq_C2_MAIN_OEQ_03;
 .extern _tap_post_eq_C2_MAIN_OEQ_04;
+#if DSP4_BQ_GUARD
+.extern _afb_hrw_C2_AUX_AFB_01;
+.extern _afb_hrw_C2_AUX_AFB_02;
+.extern _afb_hrw_C2_AUX_AFB_03;
+.extern _afb_hrw_C2_AUX_AFB_04;
+.extern _afb_hrw_C2_AUX_AFB_05;
+.extern _afb_hrw_C2_AUX_AFB_06;
+.extern _afb_hrw_C2_AUX_AFB_07;
+.extern _afb_hrw_C2_AUX_AFB_08;
+.extern _afb_hrw_C2_AUX_AFB_09;
+.extern _afb_hrw_C2_AUX_AFB_10;
+.extern _afb_hrw_C2_AUX_AFB_11;
+.extern _afb_hrw_C2_AUX_AFB_12;
+.extern _eq_hrw_C2_AUX_EQ_01;
+.extern _eq_hrw_C2_AUX_EQ_02;
+.extern _eq_hrw_C2_AUX_EQ_03;
+.extern _eq_hrw_C2_AUX_EQ_04;
+.extern _eq_hrw_C2_AUX_EQ_05;
+.extern _eq_hrw_C2_AUX_EQ_06;
+.extern _eq_hrw_C2_AUX_EQ_07;
+.extern _eq_hrw_C2_AUX_EQ_08;
+.extern _eq_hrw_C2_AUX_EQ_09;
+.extern _eq_hrw_C2_AUX_EQ_10;
+.extern _eq_hrw_C2_AUX_EQ_11;
+.extern _eq_hrw_C2_AUX_EQ_12;
+.extern _eq_hrw_C2_GRP_EQ_01;
+.extern _eq_hrw_C2_GRP_EQ_02;
+.extern _eq_hrw_C2_GRP_EQ_03;
+.extern _eq_hrw_C2_GRP_EQ_04;
+.extern _eq_hrw_C2_MAIN_OEQ_01;
+.extern _eq_hrw_C2_MAIN_OEQ_02;
+.extern _eq_hrw_C2_MAIN_OEQ_03;
+.extern _eq_hrw_C2_MAIN_OEQ_04;
+.extern _geq_hrw_C2_AUX_GEQ_01;
+.extern _geq_hrw_C2_AUX_GEQ_02;
+.extern _geq_hrw_C2_AUX_GEQ_03;
+.extern _geq_hrw_C2_AUX_GEQ_04;
+.extern _geq_hrw_C2_AUX_GEQ_05;
+.extern _geq_hrw_C2_AUX_GEQ_06;
+.extern _geq_hrw_C2_AUX_GEQ_07;
+.extern _geq_hrw_C2_AUX_GEQ_08;
+.extern _geq_hrw_C2_AUX_GEQ_09;
+.extern _geq_hrw_C2_AUX_GEQ_10;
+.extern _geq_hrw_C2_AUX_GEQ_11;
+.extern _geq_hrw_C2_AUX_GEQ_12;
+.extern _geq_hrw_C2_GRP_GEQ_01;
+.extern _geq_hrw_C2_GRP_GEQ_02;
+.extern _geq_hrw_C2_GRP_GEQ_03;
+.extern _geq_hrw_C2_GRP_GEQ_04;
+#endif
 
 /* ---- C2_AUX_EQ_01 + C2_AUX_EQ_02: 4 stages ---- */
 .global _C2BQP_AUX_EQ_01_02_process;
@@ -662,6 +808,15 @@ _C2BQP_AUX_EQ_01_02_process:
     r1 = r1 or r0;
     r0 = dm(_eq_xfade_step_C2_AUX_EQ_02);
     r1 = r1 or r0;
+#if DSP4_BQ_GUARD
+    /* A sizing in flight is a transient like any other: the
+     * node's H is about to change, and the interleaved block
+     * the pair latched carries a copy of it. */
+    r0 = dm(_eq_hrw_C2_AUX_EQ_01);
+    r1 = r1 or r0;
+    r0 = dm(_eq_hrw_C2_AUX_EQ_02);
+    r1 = r1 or r0;
+#endif
     r1 = pass r1;
     if ne jump (pc, .bqiS_AUX_EQ_01_02);
 
@@ -704,13 +859,13 @@ _C2BQP_AUX_EQ_01_02_process:
      * the 2026-09-01 record named on the dynamics pairs; zeroing
      * one channel closes it without needing distinct per-channel
      * settings over the SPI plane. */
-    lcntr = 20, do .bqiCE_AUX_EQ_01_02 until lce;
+    lcntr = 20 + DSP4_BQ_HDR, do .bqiCE_AUX_EQ_01_02 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = 0;
     .bqiCE_AUX_EQ_01_02: dm(i2, 1) = r0;
 #else
-    lcntr = 20, do .bqiCE_AUX_EQ_01_02 until lce;
+    lcntr = 20 + DSP4_BQ_HDR, do .bqiCE_AUX_EQ_01_02 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -860,6 +1015,15 @@ _C2BQP_AUX_EQ_03_04_process:
     r1 = r1 or r0;
     r0 = dm(_eq_xfade_step_C2_AUX_EQ_04);
     r1 = r1 or r0;
+#if DSP4_BQ_GUARD
+    /* A sizing in flight is a transient like any other: the
+     * node's H is about to change, and the interleaved block
+     * the pair latched carries a copy of it. */
+    r0 = dm(_eq_hrw_C2_AUX_EQ_03);
+    r1 = r1 or r0;
+    r0 = dm(_eq_hrw_C2_AUX_EQ_04);
+    r1 = r1 or r0;
+#endif
     r1 = pass r1;
     if ne jump (pc, .bqiS_AUX_EQ_03_04);
 
@@ -902,13 +1066,13 @@ _C2BQP_AUX_EQ_03_04_process:
      * the 2026-09-01 record named on the dynamics pairs; zeroing
      * one channel closes it without needing distinct per-channel
      * settings over the SPI plane. */
-    lcntr = 20, do .bqiCE_AUX_EQ_03_04 until lce;
+    lcntr = 20 + DSP4_BQ_HDR, do .bqiCE_AUX_EQ_03_04 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = 0;
     .bqiCE_AUX_EQ_03_04: dm(i2, 1) = r0;
 #else
-    lcntr = 20, do .bqiCE_AUX_EQ_03_04 until lce;
+    lcntr = 20 + DSP4_BQ_HDR, do .bqiCE_AUX_EQ_03_04 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -1058,6 +1222,15 @@ _C2BQP_AUX_EQ_05_06_process:
     r1 = r1 or r0;
     r0 = dm(_eq_xfade_step_C2_AUX_EQ_06);
     r1 = r1 or r0;
+#if DSP4_BQ_GUARD
+    /* A sizing in flight is a transient like any other: the
+     * node's H is about to change, and the interleaved block
+     * the pair latched carries a copy of it. */
+    r0 = dm(_eq_hrw_C2_AUX_EQ_05);
+    r1 = r1 or r0;
+    r0 = dm(_eq_hrw_C2_AUX_EQ_06);
+    r1 = r1 or r0;
+#endif
     r1 = pass r1;
     if ne jump (pc, .bqiS_AUX_EQ_05_06);
 
@@ -1100,13 +1273,13 @@ _C2BQP_AUX_EQ_05_06_process:
      * the 2026-09-01 record named on the dynamics pairs; zeroing
      * one channel closes it without needing distinct per-channel
      * settings over the SPI plane. */
-    lcntr = 20, do .bqiCE_AUX_EQ_05_06 until lce;
+    lcntr = 20 + DSP4_BQ_HDR, do .bqiCE_AUX_EQ_05_06 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = 0;
     .bqiCE_AUX_EQ_05_06: dm(i2, 1) = r0;
 #else
-    lcntr = 20, do .bqiCE_AUX_EQ_05_06 until lce;
+    lcntr = 20 + DSP4_BQ_HDR, do .bqiCE_AUX_EQ_05_06 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -1256,6 +1429,15 @@ _C2BQP_AUX_EQ_07_08_process:
     r1 = r1 or r0;
     r0 = dm(_eq_xfade_step_C2_AUX_EQ_08);
     r1 = r1 or r0;
+#if DSP4_BQ_GUARD
+    /* A sizing in flight is a transient like any other: the
+     * node's H is about to change, and the interleaved block
+     * the pair latched carries a copy of it. */
+    r0 = dm(_eq_hrw_C2_AUX_EQ_07);
+    r1 = r1 or r0;
+    r0 = dm(_eq_hrw_C2_AUX_EQ_08);
+    r1 = r1 or r0;
+#endif
     r1 = pass r1;
     if ne jump (pc, .bqiS_AUX_EQ_07_08);
 
@@ -1298,13 +1480,13 @@ _C2BQP_AUX_EQ_07_08_process:
      * the 2026-09-01 record named on the dynamics pairs; zeroing
      * one channel closes it without needing distinct per-channel
      * settings over the SPI plane. */
-    lcntr = 20, do .bqiCE_AUX_EQ_07_08 until lce;
+    lcntr = 20 + DSP4_BQ_HDR, do .bqiCE_AUX_EQ_07_08 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = 0;
     .bqiCE_AUX_EQ_07_08: dm(i2, 1) = r0;
 #else
-    lcntr = 20, do .bqiCE_AUX_EQ_07_08 until lce;
+    lcntr = 20 + DSP4_BQ_HDR, do .bqiCE_AUX_EQ_07_08 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -1454,6 +1636,15 @@ _C2BQP_AUX_EQ_09_10_process:
     r1 = r1 or r0;
     r0 = dm(_eq_xfade_step_C2_AUX_EQ_10);
     r1 = r1 or r0;
+#if DSP4_BQ_GUARD
+    /* A sizing in flight is a transient like any other: the
+     * node's H is about to change, and the interleaved block
+     * the pair latched carries a copy of it. */
+    r0 = dm(_eq_hrw_C2_AUX_EQ_09);
+    r1 = r1 or r0;
+    r0 = dm(_eq_hrw_C2_AUX_EQ_10);
+    r1 = r1 or r0;
+#endif
     r1 = pass r1;
     if ne jump (pc, .bqiS_AUX_EQ_09_10);
 
@@ -1496,13 +1687,13 @@ _C2BQP_AUX_EQ_09_10_process:
      * the 2026-09-01 record named on the dynamics pairs; zeroing
      * one channel closes it without needing distinct per-channel
      * settings over the SPI plane. */
-    lcntr = 20, do .bqiCE_AUX_EQ_09_10 until lce;
+    lcntr = 20 + DSP4_BQ_HDR, do .bqiCE_AUX_EQ_09_10 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = 0;
     .bqiCE_AUX_EQ_09_10: dm(i2, 1) = r0;
 #else
-    lcntr = 20, do .bqiCE_AUX_EQ_09_10 until lce;
+    lcntr = 20 + DSP4_BQ_HDR, do .bqiCE_AUX_EQ_09_10 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -1652,6 +1843,15 @@ _C2BQP_AUX_EQ_11_12_process:
     r1 = r1 or r0;
     r0 = dm(_eq_xfade_step_C2_AUX_EQ_12);
     r1 = r1 or r0;
+#if DSP4_BQ_GUARD
+    /* A sizing in flight is a transient like any other: the
+     * node's H is about to change, and the interleaved block
+     * the pair latched carries a copy of it. */
+    r0 = dm(_eq_hrw_C2_AUX_EQ_11);
+    r1 = r1 or r0;
+    r0 = dm(_eq_hrw_C2_AUX_EQ_12);
+    r1 = r1 or r0;
+#endif
     r1 = pass r1;
     if ne jump (pc, .bqiS_AUX_EQ_11_12);
 
@@ -1694,13 +1894,13 @@ _C2BQP_AUX_EQ_11_12_process:
      * the 2026-09-01 record named on the dynamics pairs; zeroing
      * one channel closes it without needing distinct per-channel
      * settings over the SPI plane. */
-    lcntr = 20, do .bqiCE_AUX_EQ_11_12 until lce;
+    lcntr = 20 + DSP4_BQ_HDR, do .bqiCE_AUX_EQ_11_12 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = 0;
     .bqiCE_AUX_EQ_11_12: dm(i2, 1) = r0;
 #else
-    lcntr = 20, do .bqiCE_AUX_EQ_11_12 until lce;
+    lcntr = 20 + DSP4_BQ_HDR, do .bqiCE_AUX_EQ_11_12 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -1850,6 +2050,15 @@ _C2BQP_AUX_GEQ_01_02_process:
     r1 = r1 or r0;
     r0 = dm(_geq_xfade_step_C2_AUX_GEQ_02);
     r1 = r1 or r0;
+#if DSP4_BQ_GUARD
+    /* A sizing in flight is a transient like any other: the
+     * node's H is about to change, and the interleaved block
+     * the pair latched carries a copy of it. */
+    r0 = dm(_geq_hrw_C2_AUX_GEQ_01);
+    r1 = r1 or r0;
+    r0 = dm(_geq_hrw_C2_AUX_GEQ_02);
+    r1 = r1 or r0;
+#endif
     r1 = pass r1;
     if ne jump (pc, .bqiS_AUX_GEQ_01_02);
 
@@ -1892,13 +2101,13 @@ _C2BQP_AUX_GEQ_01_02_process:
      * the 2026-09-01 record named on the dynamics pairs; zeroing
      * one channel closes it without needing distinct per-channel
      * settings over the SPI plane. */
-    lcntr = 140, do .bqiCE_AUX_GEQ_01_02 until lce;
+    lcntr = 140 + DSP4_BQ_HDR, do .bqiCE_AUX_GEQ_01_02 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = 0;
     .bqiCE_AUX_GEQ_01_02: dm(i2, 1) = r0;
 #else
-    lcntr = 140, do .bqiCE_AUX_GEQ_01_02 until lce;
+    lcntr = 140 + DSP4_BQ_HDR, do .bqiCE_AUX_GEQ_01_02 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -2046,6 +2255,15 @@ _C2BQP_AUX_GEQ_03_04_process:
     r1 = r1 or r0;
     r0 = dm(_geq_xfade_step_C2_AUX_GEQ_04);
     r1 = r1 or r0;
+#if DSP4_BQ_GUARD
+    /* A sizing in flight is a transient like any other: the
+     * node's H is about to change, and the interleaved block
+     * the pair latched carries a copy of it. */
+    r0 = dm(_geq_hrw_C2_AUX_GEQ_03);
+    r1 = r1 or r0;
+    r0 = dm(_geq_hrw_C2_AUX_GEQ_04);
+    r1 = r1 or r0;
+#endif
     r1 = pass r1;
     if ne jump (pc, .bqiS_AUX_GEQ_03_04);
 
@@ -2088,13 +2306,13 @@ _C2BQP_AUX_GEQ_03_04_process:
      * the 2026-09-01 record named on the dynamics pairs; zeroing
      * one channel closes it without needing distinct per-channel
      * settings over the SPI plane. */
-    lcntr = 140, do .bqiCE_AUX_GEQ_03_04 until lce;
+    lcntr = 140 + DSP4_BQ_HDR, do .bqiCE_AUX_GEQ_03_04 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = 0;
     .bqiCE_AUX_GEQ_03_04: dm(i2, 1) = r0;
 #else
-    lcntr = 140, do .bqiCE_AUX_GEQ_03_04 until lce;
+    lcntr = 140 + DSP4_BQ_HDR, do .bqiCE_AUX_GEQ_03_04 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -2242,6 +2460,15 @@ _C2BQP_AUX_GEQ_05_06_process:
     r1 = r1 or r0;
     r0 = dm(_geq_xfade_step_C2_AUX_GEQ_06);
     r1 = r1 or r0;
+#if DSP4_BQ_GUARD
+    /* A sizing in flight is a transient like any other: the
+     * node's H is about to change, and the interleaved block
+     * the pair latched carries a copy of it. */
+    r0 = dm(_geq_hrw_C2_AUX_GEQ_05);
+    r1 = r1 or r0;
+    r0 = dm(_geq_hrw_C2_AUX_GEQ_06);
+    r1 = r1 or r0;
+#endif
     r1 = pass r1;
     if ne jump (pc, .bqiS_AUX_GEQ_05_06);
 
@@ -2284,13 +2511,13 @@ _C2BQP_AUX_GEQ_05_06_process:
      * the 2026-09-01 record named on the dynamics pairs; zeroing
      * one channel closes it without needing distinct per-channel
      * settings over the SPI plane. */
-    lcntr = 140, do .bqiCE_AUX_GEQ_05_06 until lce;
+    lcntr = 140 + DSP4_BQ_HDR, do .bqiCE_AUX_GEQ_05_06 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = 0;
     .bqiCE_AUX_GEQ_05_06: dm(i2, 1) = r0;
 #else
-    lcntr = 140, do .bqiCE_AUX_GEQ_05_06 until lce;
+    lcntr = 140 + DSP4_BQ_HDR, do .bqiCE_AUX_GEQ_05_06 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -2438,6 +2665,15 @@ _C2BQP_AUX_GEQ_07_08_process:
     r1 = r1 or r0;
     r0 = dm(_geq_xfade_step_C2_AUX_GEQ_08);
     r1 = r1 or r0;
+#if DSP4_BQ_GUARD
+    /* A sizing in flight is a transient like any other: the
+     * node's H is about to change, and the interleaved block
+     * the pair latched carries a copy of it. */
+    r0 = dm(_geq_hrw_C2_AUX_GEQ_07);
+    r1 = r1 or r0;
+    r0 = dm(_geq_hrw_C2_AUX_GEQ_08);
+    r1 = r1 or r0;
+#endif
     r1 = pass r1;
     if ne jump (pc, .bqiS_AUX_GEQ_07_08);
 
@@ -2480,13 +2716,13 @@ _C2BQP_AUX_GEQ_07_08_process:
      * the 2026-09-01 record named on the dynamics pairs; zeroing
      * one channel closes it without needing distinct per-channel
      * settings over the SPI plane. */
-    lcntr = 140, do .bqiCE_AUX_GEQ_07_08 until lce;
+    lcntr = 140 + DSP4_BQ_HDR, do .bqiCE_AUX_GEQ_07_08 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = 0;
     .bqiCE_AUX_GEQ_07_08: dm(i2, 1) = r0;
 #else
-    lcntr = 140, do .bqiCE_AUX_GEQ_07_08 until lce;
+    lcntr = 140 + DSP4_BQ_HDR, do .bqiCE_AUX_GEQ_07_08 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -2634,6 +2870,15 @@ _C2BQP_AUX_GEQ_09_10_process:
     r1 = r1 or r0;
     r0 = dm(_geq_xfade_step_C2_AUX_GEQ_10);
     r1 = r1 or r0;
+#if DSP4_BQ_GUARD
+    /* A sizing in flight is a transient like any other: the
+     * node's H is about to change, and the interleaved block
+     * the pair latched carries a copy of it. */
+    r0 = dm(_geq_hrw_C2_AUX_GEQ_09);
+    r1 = r1 or r0;
+    r0 = dm(_geq_hrw_C2_AUX_GEQ_10);
+    r1 = r1 or r0;
+#endif
     r1 = pass r1;
     if ne jump (pc, .bqiS_AUX_GEQ_09_10);
 
@@ -2676,13 +2921,13 @@ _C2BQP_AUX_GEQ_09_10_process:
      * the 2026-09-01 record named on the dynamics pairs; zeroing
      * one channel closes it without needing distinct per-channel
      * settings over the SPI plane. */
-    lcntr = 140, do .bqiCE_AUX_GEQ_09_10 until lce;
+    lcntr = 140 + DSP4_BQ_HDR, do .bqiCE_AUX_GEQ_09_10 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = 0;
     .bqiCE_AUX_GEQ_09_10: dm(i2, 1) = r0;
 #else
-    lcntr = 140, do .bqiCE_AUX_GEQ_09_10 until lce;
+    lcntr = 140 + DSP4_BQ_HDR, do .bqiCE_AUX_GEQ_09_10 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -2830,6 +3075,15 @@ _C2BQP_AUX_GEQ_11_12_process:
     r1 = r1 or r0;
     r0 = dm(_geq_xfade_step_C2_AUX_GEQ_12);
     r1 = r1 or r0;
+#if DSP4_BQ_GUARD
+    /* A sizing in flight is a transient like any other: the
+     * node's H is about to change, and the interleaved block
+     * the pair latched carries a copy of it. */
+    r0 = dm(_geq_hrw_C2_AUX_GEQ_11);
+    r1 = r1 or r0;
+    r0 = dm(_geq_hrw_C2_AUX_GEQ_12);
+    r1 = r1 or r0;
+#endif
     r1 = pass r1;
     if ne jump (pc, .bqiS_AUX_GEQ_11_12);
 
@@ -2872,13 +3126,13 @@ _C2BQP_AUX_GEQ_11_12_process:
      * the 2026-09-01 record named on the dynamics pairs; zeroing
      * one channel closes it without needing distinct per-channel
      * settings over the SPI plane. */
-    lcntr = 140, do .bqiCE_AUX_GEQ_11_12 until lce;
+    lcntr = 140 + DSP4_BQ_HDR, do .bqiCE_AUX_GEQ_11_12 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = 0;
     .bqiCE_AUX_GEQ_11_12: dm(i2, 1) = r0;
 #else
-    lcntr = 140, do .bqiCE_AUX_GEQ_11_12 until lce;
+    lcntr = 140 + DSP4_BQ_HDR, do .bqiCE_AUX_GEQ_11_12 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -3026,6 +3280,15 @@ _C2BQP_AUX_AFB_01_02_process:
     r1 = r1 or r0;
     r0 = dm(_afb_xfade_step_C2_AUX_AFB_02);
     r1 = r1 or r0;
+#if DSP4_BQ_GUARD
+    /* A sizing in flight is a transient like any other: the
+     * node's H is about to change, and the interleaved block
+     * the pair latched carries a copy of it. */
+    r0 = dm(_afb_hrw_C2_AUX_AFB_01);
+    r1 = r1 or r0;
+    r0 = dm(_afb_hrw_C2_AUX_AFB_02);
+    r1 = r1 or r0;
+#endif
     r1 = pass r1;
     if ne jump (pc, .bqiS_AUX_AFB_01_02);
 
@@ -3068,13 +3331,13 @@ _C2BQP_AUX_AFB_01_02_process:
      * the 2026-09-01 record named on the dynamics pairs; zeroing
      * one channel closes it without needing distinct per-channel
      * settings over the SPI plane. */
-    lcntr = 30, do .bqiCE_AUX_AFB_01_02 until lce;
+    lcntr = 30 + DSP4_BQ_HDR, do .bqiCE_AUX_AFB_01_02 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = 0;
     .bqiCE_AUX_AFB_01_02: dm(i2, 1) = r0;
 #else
-    lcntr = 30, do .bqiCE_AUX_AFB_01_02 until lce;
+    lcntr = 30 + DSP4_BQ_HDR, do .bqiCE_AUX_AFB_01_02 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -3222,6 +3485,15 @@ _C2BQP_AUX_AFB_03_04_process:
     r1 = r1 or r0;
     r0 = dm(_afb_xfade_step_C2_AUX_AFB_04);
     r1 = r1 or r0;
+#if DSP4_BQ_GUARD
+    /* A sizing in flight is a transient like any other: the
+     * node's H is about to change, and the interleaved block
+     * the pair latched carries a copy of it. */
+    r0 = dm(_afb_hrw_C2_AUX_AFB_03);
+    r1 = r1 or r0;
+    r0 = dm(_afb_hrw_C2_AUX_AFB_04);
+    r1 = r1 or r0;
+#endif
     r1 = pass r1;
     if ne jump (pc, .bqiS_AUX_AFB_03_04);
 
@@ -3264,13 +3536,13 @@ _C2BQP_AUX_AFB_03_04_process:
      * the 2026-09-01 record named on the dynamics pairs; zeroing
      * one channel closes it without needing distinct per-channel
      * settings over the SPI plane. */
-    lcntr = 30, do .bqiCE_AUX_AFB_03_04 until lce;
+    lcntr = 30 + DSP4_BQ_HDR, do .bqiCE_AUX_AFB_03_04 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = 0;
     .bqiCE_AUX_AFB_03_04: dm(i2, 1) = r0;
 #else
-    lcntr = 30, do .bqiCE_AUX_AFB_03_04 until lce;
+    lcntr = 30 + DSP4_BQ_HDR, do .bqiCE_AUX_AFB_03_04 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -3418,6 +3690,15 @@ _C2BQP_AUX_AFB_05_06_process:
     r1 = r1 or r0;
     r0 = dm(_afb_xfade_step_C2_AUX_AFB_06);
     r1 = r1 or r0;
+#if DSP4_BQ_GUARD
+    /* A sizing in flight is a transient like any other: the
+     * node's H is about to change, and the interleaved block
+     * the pair latched carries a copy of it. */
+    r0 = dm(_afb_hrw_C2_AUX_AFB_05);
+    r1 = r1 or r0;
+    r0 = dm(_afb_hrw_C2_AUX_AFB_06);
+    r1 = r1 or r0;
+#endif
     r1 = pass r1;
     if ne jump (pc, .bqiS_AUX_AFB_05_06);
 
@@ -3460,13 +3741,13 @@ _C2BQP_AUX_AFB_05_06_process:
      * the 2026-09-01 record named on the dynamics pairs; zeroing
      * one channel closes it without needing distinct per-channel
      * settings over the SPI plane. */
-    lcntr = 30, do .bqiCE_AUX_AFB_05_06 until lce;
+    lcntr = 30 + DSP4_BQ_HDR, do .bqiCE_AUX_AFB_05_06 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = 0;
     .bqiCE_AUX_AFB_05_06: dm(i2, 1) = r0;
 #else
-    lcntr = 30, do .bqiCE_AUX_AFB_05_06 until lce;
+    lcntr = 30 + DSP4_BQ_HDR, do .bqiCE_AUX_AFB_05_06 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -3614,6 +3895,15 @@ _C2BQP_AUX_AFB_07_08_process:
     r1 = r1 or r0;
     r0 = dm(_afb_xfade_step_C2_AUX_AFB_08);
     r1 = r1 or r0;
+#if DSP4_BQ_GUARD
+    /* A sizing in flight is a transient like any other: the
+     * node's H is about to change, and the interleaved block
+     * the pair latched carries a copy of it. */
+    r0 = dm(_afb_hrw_C2_AUX_AFB_07);
+    r1 = r1 or r0;
+    r0 = dm(_afb_hrw_C2_AUX_AFB_08);
+    r1 = r1 or r0;
+#endif
     r1 = pass r1;
     if ne jump (pc, .bqiS_AUX_AFB_07_08);
 
@@ -3656,13 +3946,13 @@ _C2BQP_AUX_AFB_07_08_process:
      * the 2026-09-01 record named on the dynamics pairs; zeroing
      * one channel closes it without needing distinct per-channel
      * settings over the SPI plane. */
-    lcntr = 30, do .bqiCE_AUX_AFB_07_08 until lce;
+    lcntr = 30 + DSP4_BQ_HDR, do .bqiCE_AUX_AFB_07_08 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = 0;
     .bqiCE_AUX_AFB_07_08: dm(i2, 1) = r0;
 #else
-    lcntr = 30, do .bqiCE_AUX_AFB_07_08 until lce;
+    lcntr = 30 + DSP4_BQ_HDR, do .bqiCE_AUX_AFB_07_08 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -3810,6 +4100,15 @@ _C2BQP_AUX_AFB_09_10_process:
     r1 = r1 or r0;
     r0 = dm(_afb_xfade_step_C2_AUX_AFB_10);
     r1 = r1 or r0;
+#if DSP4_BQ_GUARD
+    /* A sizing in flight is a transient like any other: the
+     * node's H is about to change, and the interleaved block
+     * the pair latched carries a copy of it. */
+    r0 = dm(_afb_hrw_C2_AUX_AFB_09);
+    r1 = r1 or r0;
+    r0 = dm(_afb_hrw_C2_AUX_AFB_10);
+    r1 = r1 or r0;
+#endif
     r1 = pass r1;
     if ne jump (pc, .bqiS_AUX_AFB_09_10);
 
@@ -3852,13 +4151,13 @@ _C2BQP_AUX_AFB_09_10_process:
      * the 2026-09-01 record named on the dynamics pairs; zeroing
      * one channel closes it without needing distinct per-channel
      * settings over the SPI plane. */
-    lcntr = 30, do .bqiCE_AUX_AFB_09_10 until lce;
+    lcntr = 30 + DSP4_BQ_HDR, do .bqiCE_AUX_AFB_09_10 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = 0;
     .bqiCE_AUX_AFB_09_10: dm(i2, 1) = r0;
 #else
-    lcntr = 30, do .bqiCE_AUX_AFB_09_10 until lce;
+    lcntr = 30 + DSP4_BQ_HDR, do .bqiCE_AUX_AFB_09_10 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -4006,6 +4305,15 @@ _C2BQP_AUX_AFB_11_12_process:
     r1 = r1 or r0;
     r0 = dm(_afb_xfade_step_C2_AUX_AFB_12);
     r1 = r1 or r0;
+#if DSP4_BQ_GUARD
+    /* A sizing in flight is a transient like any other: the
+     * node's H is about to change, and the interleaved block
+     * the pair latched carries a copy of it. */
+    r0 = dm(_afb_hrw_C2_AUX_AFB_11);
+    r1 = r1 or r0;
+    r0 = dm(_afb_hrw_C2_AUX_AFB_12);
+    r1 = r1 or r0;
+#endif
     r1 = pass r1;
     if ne jump (pc, .bqiS_AUX_AFB_11_12);
 
@@ -4048,13 +4356,13 @@ _C2BQP_AUX_AFB_11_12_process:
      * the 2026-09-01 record named on the dynamics pairs; zeroing
      * one channel closes it without needing distinct per-channel
      * settings over the SPI plane. */
-    lcntr = 30, do .bqiCE_AUX_AFB_11_12 until lce;
+    lcntr = 30 + DSP4_BQ_HDR, do .bqiCE_AUX_AFB_11_12 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = 0;
     .bqiCE_AUX_AFB_11_12: dm(i2, 1) = r0;
 #else
-    lcntr = 30, do .bqiCE_AUX_AFB_11_12 until lce;
+    lcntr = 30 + DSP4_BQ_HDR, do .bqiCE_AUX_AFB_11_12 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -4202,6 +4510,15 @@ _C2BQP_GRP_EQ_01_02_process:
     r1 = r1 or r0;
     r0 = dm(_eq_xfade_step_C2_GRP_EQ_02);
     r1 = r1 or r0;
+#if DSP4_BQ_GUARD
+    /* A sizing in flight is a transient like any other: the
+     * node's H is about to change, and the interleaved block
+     * the pair latched carries a copy of it. */
+    r0 = dm(_eq_hrw_C2_GRP_EQ_01);
+    r1 = r1 or r0;
+    r0 = dm(_eq_hrw_C2_GRP_EQ_02);
+    r1 = r1 or r0;
+#endif
     r1 = pass r1;
     if ne jump (pc, .bqiS_GRP_EQ_01_02);
 
@@ -4244,13 +4561,13 @@ _C2BQP_GRP_EQ_01_02_process:
      * the 2026-09-01 record named on the dynamics pairs; zeroing
      * one channel closes it without needing distinct per-channel
      * settings over the SPI plane. */
-    lcntr = 20, do .bqiCE_GRP_EQ_01_02 until lce;
+    lcntr = 20 + DSP4_BQ_HDR, do .bqiCE_GRP_EQ_01_02 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = 0;
     .bqiCE_GRP_EQ_01_02: dm(i2, 1) = r0;
 #else
-    lcntr = 20, do .bqiCE_GRP_EQ_01_02 until lce;
+    lcntr = 20 + DSP4_BQ_HDR, do .bqiCE_GRP_EQ_01_02 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -4400,6 +4717,15 @@ _C2BQP_GRP_EQ_03_04_process:
     r1 = r1 or r0;
     r0 = dm(_eq_xfade_step_C2_GRP_EQ_04);
     r1 = r1 or r0;
+#if DSP4_BQ_GUARD
+    /* A sizing in flight is a transient like any other: the
+     * node's H is about to change, and the interleaved block
+     * the pair latched carries a copy of it. */
+    r0 = dm(_eq_hrw_C2_GRP_EQ_03);
+    r1 = r1 or r0;
+    r0 = dm(_eq_hrw_C2_GRP_EQ_04);
+    r1 = r1 or r0;
+#endif
     r1 = pass r1;
     if ne jump (pc, .bqiS_GRP_EQ_03_04);
 
@@ -4442,13 +4768,13 @@ _C2BQP_GRP_EQ_03_04_process:
      * the 2026-09-01 record named on the dynamics pairs; zeroing
      * one channel closes it without needing distinct per-channel
      * settings over the SPI plane. */
-    lcntr = 20, do .bqiCE_GRP_EQ_03_04 until lce;
+    lcntr = 20 + DSP4_BQ_HDR, do .bqiCE_GRP_EQ_03_04 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = 0;
     .bqiCE_GRP_EQ_03_04: dm(i2, 1) = r0;
 #else
-    lcntr = 20, do .bqiCE_GRP_EQ_03_04 until lce;
+    lcntr = 20 + DSP4_BQ_HDR, do .bqiCE_GRP_EQ_03_04 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -4598,6 +4924,15 @@ _C2BQP_GRP_GEQ_01_02_process:
     r1 = r1 or r0;
     r0 = dm(_geq_xfade_step_C2_GRP_GEQ_02);
     r1 = r1 or r0;
+#if DSP4_BQ_GUARD
+    /* A sizing in flight is a transient like any other: the
+     * node's H is about to change, and the interleaved block
+     * the pair latched carries a copy of it. */
+    r0 = dm(_geq_hrw_C2_GRP_GEQ_01);
+    r1 = r1 or r0;
+    r0 = dm(_geq_hrw_C2_GRP_GEQ_02);
+    r1 = r1 or r0;
+#endif
     r1 = pass r1;
     if ne jump (pc, .bqiS_GRP_GEQ_01_02);
 
@@ -4640,13 +4975,13 @@ _C2BQP_GRP_GEQ_01_02_process:
      * the 2026-09-01 record named on the dynamics pairs; zeroing
      * one channel closes it without needing distinct per-channel
      * settings over the SPI plane. */
-    lcntr = 140, do .bqiCE_GRP_GEQ_01_02 until lce;
+    lcntr = 140 + DSP4_BQ_HDR, do .bqiCE_GRP_GEQ_01_02 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = 0;
     .bqiCE_GRP_GEQ_01_02: dm(i2, 1) = r0;
 #else
-    lcntr = 140, do .bqiCE_GRP_GEQ_01_02 until lce;
+    lcntr = 140 + DSP4_BQ_HDR, do .bqiCE_GRP_GEQ_01_02 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -4794,6 +5129,15 @@ _C2BQP_GRP_GEQ_03_04_process:
     r1 = r1 or r0;
     r0 = dm(_geq_xfade_step_C2_GRP_GEQ_04);
     r1 = r1 or r0;
+#if DSP4_BQ_GUARD
+    /* A sizing in flight is a transient like any other: the
+     * node's H is about to change, and the interleaved block
+     * the pair latched carries a copy of it. */
+    r0 = dm(_geq_hrw_C2_GRP_GEQ_03);
+    r1 = r1 or r0;
+    r0 = dm(_geq_hrw_C2_GRP_GEQ_04);
+    r1 = r1 or r0;
+#endif
     r1 = pass r1;
     if ne jump (pc, .bqiS_GRP_GEQ_03_04);
 
@@ -4836,13 +5180,13 @@ _C2BQP_GRP_GEQ_03_04_process:
      * the 2026-09-01 record named on the dynamics pairs; zeroing
      * one channel closes it without needing distinct per-channel
      * settings over the SPI plane. */
-    lcntr = 140, do .bqiCE_GRP_GEQ_03_04 until lce;
+    lcntr = 140 + DSP4_BQ_HDR, do .bqiCE_GRP_GEQ_03_04 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = 0;
     .bqiCE_GRP_GEQ_03_04: dm(i2, 1) = r0;
 #else
-    lcntr = 140, do .bqiCE_GRP_GEQ_03_04 until lce;
+    lcntr = 140 + DSP4_BQ_HDR, do .bqiCE_GRP_GEQ_03_04 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -4990,6 +5334,15 @@ _C2BQP_MOUT_OEQ_01_02_process:
     r1 = r1 or r0;
     r0 = dm(_eq_xfade_step_C2_MAIN_OEQ_02);
     r1 = r1 or r0;
+#if DSP4_BQ_GUARD
+    /* A sizing in flight is a transient like any other: the
+     * node's H is about to change, and the interleaved block
+     * the pair latched carries a copy of it. */
+    r0 = dm(_eq_hrw_C2_MAIN_OEQ_01);
+    r1 = r1 or r0;
+    r0 = dm(_eq_hrw_C2_MAIN_OEQ_02);
+    r1 = r1 or r0;
+#endif
     r1 = pass r1;
     if ne jump (pc, .bqiS_MOUT_OEQ_01_02);
 
@@ -5032,13 +5385,13 @@ _C2BQP_MOUT_OEQ_01_02_process:
      * the 2026-09-01 record named on the dynamics pairs; zeroing
      * one channel closes it without needing distinct per-channel
      * settings over the SPI plane. */
-    lcntr = 20, do .bqiCE_MOUT_OEQ_01_02 until lce;
+    lcntr = 20 + DSP4_BQ_HDR, do .bqiCE_MOUT_OEQ_01_02 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = 0;
     .bqiCE_MOUT_OEQ_01_02: dm(i2, 1) = r0;
 #else
-    lcntr = 20, do .bqiCE_MOUT_OEQ_01_02 until lce;
+    lcntr = 20 + DSP4_BQ_HDR, do .bqiCE_MOUT_OEQ_01_02 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -5188,6 +5541,15 @@ _C2BQP_MOUT_OEQ_03_04_process:
     r1 = r1 or r0;
     r0 = dm(_eq_xfade_step_C2_MAIN_OEQ_04);
     r1 = r1 or r0;
+#if DSP4_BQ_GUARD
+    /* A sizing in flight is a transient like any other: the
+     * node's H is about to change, and the interleaved block
+     * the pair latched carries a copy of it. */
+    r0 = dm(_eq_hrw_C2_MAIN_OEQ_03);
+    r1 = r1 or r0;
+    r0 = dm(_eq_hrw_C2_MAIN_OEQ_04);
+    r1 = r1 or r0;
+#endif
     r1 = pass r1;
     if ne jump (pc, .bqiS_MOUT_OEQ_03_04);
 
@@ -5230,13 +5592,13 @@ _C2BQP_MOUT_OEQ_03_04_process:
      * the 2026-09-01 record named on the dynamics pairs; zeroing
      * one channel closes it without needing distinct per-channel
      * settings over the SPI plane. */
-    lcntr = 20, do .bqiCE_MOUT_OEQ_03_04 until lce;
+    lcntr = 20 + DSP4_BQ_HDR, do .bqiCE_MOUT_OEQ_03_04 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = 0;
     .bqiCE_MOUT_OEQ_03_04: dm(i2, 1) = r0;
 #else
-    lcntr = 20, do .bqiCE_MOUT_OEQ_03_04 until lce;
+    lcntr = 20 + DSP4_BQ_HDR, do .bqiCE_MOUT_OEQ_03_04 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);

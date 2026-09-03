@@ -88,7 +88,17 @@ def l1_norm(cf, nmax=NMAX):
     is an upper bound and never a truncation that flatters RIG C."""
     n = len(cf)
     arr = np.asarray(cf, dtype=np.float64)
-    r = np.sqrt(np.minimum(np.abs(arr[:, 4]), 1.0 - 1e-15))
+    # The LARGER pole radius, not sqrt|a2|. sqrt|a2| is the GEOMETRIC MEAN
+    # of the two roots and equals the radius only for a conjugate pair;
+    # for REAL roots -- every low-Q design -- it under-reads the slow one,
+    # which shortens the run AND shrinks the tail term. Both errors are in
+    # the unsafe direction for a bound whose whole job is to be an upper
+    # one (found 2026-09-03 while validating the load-time sizer against
+    # this function: 1,140 of 37,105 sets came out under it).
+    disc = arr[:, 3] ** 2 - 4.0 * arr[:, 4]
+    r = np.where(disc <= 0.0,
+                 np.sqrt(np.abs(arr[:, 4])),
+                 0.5 * (np.abs(arr[:, 3]) + np.sqrt(np.maximum(disc, 0.0))))
     r = np.minimum(r, 1 - 1e-12)
     want = np.minimum(nmax, np.ceil(25.0 / (1.0 - r)) + 4).astype(np.int64)
     order = np.argsort(want)
@@ -111,7 +121,7 @@ def l1_norm(cf, nmax=NMAX):
             h = -a1 * h1 - a2 * h2
             acc += np.abs(h)
             h2, h1 = h1, h
-        rr = np.minimum(np.sqrt(np.maximum(np.abs(a2), 1e-300)), 1 - 1e-12)
+        rr = r[idx]
         tail = (np.abs(h1) + np.abs(h2)) * rr / (1.0 - rr)
         out[idx] = acc + tail
         tfr[idx] = tail / np.maximum(acc, 1e-300)

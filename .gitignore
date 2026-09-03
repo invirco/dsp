@@ -29,3 +29,5 @@ docs/**/*.pdf
 
 # Generated test fixture (tools/dsp/gen_bqe_vectors.py, run by bqeverify.sh)
 MW/D32/DSP/SHARC/src/lib/bqe_vectors.h
+# Generated test fixture (tools/dsp/gen_bqg_vectors.py, run by bqguard.sh)
+MW/D32/DSP/SHARC/src/lib/bqg_vectors.h

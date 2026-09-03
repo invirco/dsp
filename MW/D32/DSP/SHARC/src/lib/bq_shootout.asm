@@ -90,10 +90,10 @@
  * The cascade's cost is coefficient-independent by construction -- the
  * instruction stream does not vary with the loaded words -- so a zeroed
  * bank measures the same path a configured filter would. */
-.global _bqsh_fxc;   .var _bqsh_fxc[BQS_STAGES * 5];
+.global _bqsh_fxc;   .var _bqsh_fxc[BQS_STAGES * 5 + DSP4_BQ_HDR];
 .global _bqsh_fxs;   .var _bqsh_fxs[BQS_STAGES * 6];
 .global _bqsh_fxsig; .var _bqsh_fxsig[DSP4_BLOCK_SIZE];
-.global _bqsh_fxci;  .var _bqsh_fxci[BQS_STAGES * 10];
+.global _bqsh_fxci;  .var _bqsh_fxci[BQS_STAGES * 10 + 2 * DSP4_BQ_HDR];
 .global _bqsh_fxsi;  .var _bqsh_fxsi[BQS_STAGES * 12];
 .global _bqsh_fxsigi;.var _bqsh_fxsigi[2 * DSP4_BLOCK_SIZE];
 
@@ -338,6 +338,10 @@ _bqf_cascade_simd.end:
  *----------------------------------------------------------------------*/
 .global _bqc_cascade_blk;
 _bqc_cascade_blk:
+#if DSP4_BQ_GUARD
+    l0 = 0;
+    modify(i0, 1);         /* past the guard header */
+#endif
     l0 = 0; l1 = 0; l2 = 0;
     r15 = -DSP4_BLOCK_SIZE;
     m2 = r15;
@@ -411,6 +415,10 @@ _bqc_cascade_blk.end:
  *----------------------------------------------------------------------*/
 .global _bqt_cascade_blk;
 _bqt_cascade_blk:
+#if DSP4_BQ_GUARD
+    l0 = 0;
+    modify(i0, 1);         /* past the guard header */
+#endif
     l0 = 0; l1 = 0; l2 = 0;
     r15 = -DSP4_BLOCK_SIZE;
     m2 = r15;
@@ -478,6 +486,10 @@ _bqt_cascade_blk.end:
  *----------------------------------------------------------------------*/
 .global _bqc_cascade_simd;
 _bqc_cascade_simd:
+#if DSP4_BQ_GUARD
+    l0 = 0;
+    modify(i0, 2);         /* past the guard header */
+#endif
     l0 = 0; l1 = 0; l2 = 0;
     r15 = -2*DSP4_BLOCK_SIZE;
     m2 = r15;
@@ -554,6 +566,10 @@ _bqc_cascade_simd.end:
 
 .global _bqt_cascade_simd;
 _bqt_cascade_simd:
+#if DSP4_BQ_GUARD
+    l0 = 0;
+    modify(i0, 2);         /* past the guard header */
+#endif
     l0 = 0; l1 = 0; l2 = 0;
     r15 = -2*DSP4_BLOCK_SIZE;
     m2 = r15;
@@ -667,6 +683,10 @@ _bqt_cascade_simd.end:
  *----------------------------------------------------------------------*/
 .global _bqe_cascade_blk;
 _bqe_cascade_blk:
+#if DSP4_BQ_GUARD
+    l0 = 0;
+    modify(i0, 1);         /* past the guard header */
+#endif
     l0 = 0; l1 = 0; l2 = 0;
     r15 = -DSP4_BLOCK_SIZE;
     m2 = r15;
@@ -745,6 +765,10 @@ _bqe_cascade_blk.end:
 
 .global _bqe_cascade_simd;
 _bqe_cascade_simd:
+#if DSP4_BQ_GUARD
+    l0 = 0;
+    modify(i0, 2);         /* past the guard header */
+#endif
     l0 = 0; l1 = 0; l2 = 0;
     r15 = -2*DSP4_BLOCK_SIZE;
     m2 = r15;
@@ -855,6 +879,10 @@ _bqe_cascade_simd.end:
  *--------------------------------------------------------------------*/
 .global _bqh_cascade_ent;
 _bqh_cascade_ent:
+#if DSP4_BQ_GUARD
+    l0 = 0;
+    modify(i0, 2);         /* past the guard header */
+#endif
     l0 = 0; l1 = 0; l2 = 0;
     r15 = -2*DSP4_BLOCK_SIZE;
     m2 = r15;
@@ -964,6 +992,10 @@ _bqh_cascade_ent.end:
  *--------------------------------------------------------------------*/
 .global _bqh_cascade_exi;
 _bqh_cascade_exi:
+#if DSP4_BQ_GUARD
+    l0 = 0;
+    modify(i0, 2);         /* past the guard header */
+#endif
     l0 = 0; l1 = 0; l2 = 0;
     r15 = -2*DSP4_BLOCK_SIZE;
     m2 = r15;

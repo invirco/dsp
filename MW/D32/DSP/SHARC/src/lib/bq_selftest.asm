@@ -28,8 +28,19 @@
 .section/dm seg_dmda;
 
 /* [b0, n1, n2, c1, c2] per stage, Q4.28 offset form */
+/* How many words of HEADER stand in front of the coefficients, exported
+ * so the HOST can read the same block the kernel reads. The guard puts
+ * H in front of every cascade's coefficients; a reader that does not
+ * know that builds its model out of [0, b0, nh, ...] and then reports a
+ * correct part as wrong, which is what the first guard build did to this
+ * bar. */
+.global _bqst_hdrw;
+.var _bqst_hdrw = DSP4_BQ_HDR;
 .global _bqst_coeffs;
-.var _bqst_coeffs[10] =
+.var _bqst_coeffs[10 + DSP4_BQ_HDR] =
+#if DSP4_BQ_GUARD
+    0,
+#endif
     0x00100A4E, 0x00402937, 0x00000000, 0x02F47534, 0x02B44BFC,  /* LPF 1k   */
     0x0FD6A007, 0x00000000, 0x00000000, 0x0055E080, 0x004F9F63;  /* HPF 300  */
 
@@ -68,7 +79,10 @@
  * SIMD cascade consumes. Coefficients DIFFER between the two strips --
  * identical strips would hide a PEy that was quietly reading PEx's
  * operands, which is precisely what this has to rule out. */
-.global _sq_cA;   .var _sq_cA[10] =
+.global _sq_cA;   .var _sq_cA[10 + DSP4_BQ_HDR] =
+#if DSP4_BQ_GUARD
+    0,
+#endif
     0x00100A4E, 0x00402937, 0x00000000, 0x02F47534, 0x02B44BFC,
     0x0FD6A007, 0x00000000, 0x00000000, 0x0055E080, 0x004F9F63;
 /* A GENUINELY DIFFERENT FILTER, and that is a correction.
@@ -82,7 +96,10 @@
  * old sets the pair-arm negative control moved exactly ONE sample of
  * sixteen. B is now LPF 5 kHz Q0.707 then HPF 1.5 kHz Q0.5 against A's
  * LPF 1 kHz Q0.707 then HPF 300 Hz Q2. */
-.global _sq_cB;   .var _sq_cB[10] =
+.global _sq_cB;   .var _sq_cB[10 + DSP4_BQ_HDR] =
+#if DSP4_BQ_GUARD
+    0,
+#endif
     0x0127DB90, 0x024FB720, 0x00000000, 0x0E40994F, 0x09A12B10,
     0x0D426D9D, 0x00000000, 0x00000000, 0x05BCFFD5, 0x053949B9;
 .global _sq_sA;   .var _sq_sA[12];

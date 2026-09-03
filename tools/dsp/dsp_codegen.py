@@ -495,6 +495,10 @@ _EQ_BLK_BODY = """
             r4 = dm(_eq_swap_pending_{nid});
             r5 = dm(_eq_xfade_step_{nid});
             r4 = r4 or r5;
+        #if DSP4_BQ_GUARD
+            r5 = dm(_eq_hrw_{nid});
+            r4 = r4 or r5;      /* a sizing in flight is a transient too */
+        #endif
             r4 = pass r4;
             if eq jump (pc, .ekb_ss_{nid});
 
@@ -573,6 +577,10 @@ _FILT_BLK_BODY = """
             r4 = r4 or r5;
             r5 = dm(_filt_xfade_step_{nid});
             r4 = r4 or r5;
+        #if DSP4_BQ_GUARD
+            r5 = dm(_filt_hrw_{nid});
+            r4 = r4 or r5;      /* a sizing in flight is a transient too */
+        #endif
             r4 = pass r4;
             if eq jump (pc, .fkb_ss_{nid});
 
@@ -5714,6 +5722,13 @@ def gen_eq_biquad_fixed(node):
     bypass = ', '.join(['0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000'] * bands)
     nid = node['id']
     inp = node['inputs_str']
+    hdrA = _bq_hdr_var(f'_eq_coeffs_A_{nid}', n5, bypass)
+    hdrB = _bq_hdr_var(f'_eq_coeffs_B_{nid}', n5, bypass)
+    hrvars = _bq_hr_vars('eq', nid, 1)
+    hrpend = _bq_hr_pending('eq', nid)
+    hrseq = _bq_hr_seq('eq', nid,
+                       [(f'_eq_coeffs_A_{nid}', f'_eq_coeffs_B_{nid}', bands)],
+                       [])
     return dedent(f"""\
         {rc}
 
@@ -5724,14 +5739,15 @@ def gen_eq_biquad_fixed(node):
 
         .section/dm seg_dmda;
 
-        .var _eq_coeffs_A_{nid}[{n5}] = {bypass};
+        {hdrA}
         .var _eq_state_A_{nid}[{n6}];
-        .var _eq_coeffs_B_{nid}[{n5}] = {bypass};
+        {hdrB}
         .var _eq_state_B_{nid}[{n6}];
 
         /* SPI staging (FLOAT RBJ words — wire format unchanged) */
         .var _eq_coeffs_next_{nid}[{n5}];
         .var _eq_swap_pending_{nid} = 0;
+        {hrvars}
 
         .var _eq_active_{nid} = 0;            /* 0 = A active, 1 = B */
         .var _eq_xfade_alpha_{nid} = 0.0;     /* float control */
@@ -5746,12 +5762,16 @@ def gen_eq_biquad_fixed(node):
         .extern _bq_fx_cascade_blk;
         #endif
         .extern _bq_fx_convert_N;
+        #if DSP4_BQ_GUARD
+        .extern _bq_hr_node1;
+        #endif
         .global _{nid}_process;
         _{nid}_process:
         {blk_eq_body}
 
             /* new coefficients staged? */
             r4 = dm(_eq_swap_pending_{nid});
+            {hrpend}
             r4 = pass r4;
             if ne call _eq_start_xfade_{nid};
 
@@ -5826,6 +5846,8 @@ def gen_eq_biquad_fixed(node):
 
             /* ===== stage new coeffs into the dormant instance ===== */
         _eq_start_xfade_{nid}:
+            {hrseq}
+        #if !DSP4_BQ_GUARD
             r4 = 0;
             dm(_eq_swap_pending_{nid}) = r4;
             i0 = _eq_coeffs_next_{nid};    /* float staged */
@@ -5841,6 +5863,7 @@ def gen_eq_biquad_fixed(node):
         .eq_st_go_{nid}:
             r4 = {bands};
             call _bq_fx_convert_N;
+        #endif
             /* zero dormant state ({n6} words) */
             r4 = 0;
             r5 = {n6};
@@ -5856,6 +5879,140 @@ def gen_eq_biquad_fixed(node):
         _{nid}_process.end:
     """)
 
+
+
+# ---------------------------------------------------------------------------
+# THE PER-CASCADE HEADROOM GUARD (2026-09-03), in the generated nodes.
+#
+# Three things go into every node that owns a fixed biquad cascade:
+#
+#   1. a HEADER WORD in front of each coefficient block, which is where
+#      lib/bq_headroom.asm writes H and where the kernels read it;
+#   2. the converter told to write past that header;
+#   3. the swap deferred until the sizer has run -- the crossfade cannot
+#      start before H is known, because the dormant instance's recursion
+#      runs at the scaled level from its first sample.
+#
+# EVERY LINE OF IT IS INSIDE #if DSP4_BQ_GUARD. That is not tidiness: the
+# bar the round-once landing is held to is that DSP4_BQ_ROUNDONCE=0
+# rebuilds W0 byte for byte, and the guard is defined to follow
+# round-once, so a guard-off build must be the same instructions it was.
+# ---------------------------------------------------------------------------
+
+def _bq_hdr_var(name, n, bypass, ind=8):
+    """A cascade coefficient block, with the guard's header word."""
+    sp = ' ' * ind
+    return (f'#if DSP4_BQ_GUARD\n'
+            f'{sp}.var {name}[{n} + 1] = 0, {bypass};\n'
+            f'{sp}#else\n'
+            f'{sp}.var {name}[{n}] = {bypass};\n'
+            f'{sp}#endif')
+
+
+def _bq_hdr_skip(reg, ind=8, why='the headroom header'):
+    """Step a converter's write pointer past the header word."""
+    sp = ' ' * ind
+    n = reg[1:]
+    return (f'#if DSP4_BQ_GUARD\n'
+            f'{sp}l{n} = 0;\n'
+            f'{sp}modify({reg}, 1);            /* past {why} */\n'
+            f'{sp}#endif')
+
+
+def _bq_hr_vars(pfx, nid, nsec, ind=8):
+    """The two words a node needs to run a sizing job."""
+    sp = ' ' * ind
+    return (f'#if DSP4_BQ_GUARD\n'
+            f'{sp}.var _{pfx}_hrw_{nid} = 0;        /* 0 idle, 1 asked, 2 re-ask */\n'
+            f'{sp}.var _{pfx}_hrl_{nid}[{2 * nsec}];       /* (block, stages) pairs */\n'
+            f'{sp}#endif')
+
+
+def _bq_hr_pending(pfx, nid, reg='r5', ind=12):
+    """Fold "a sizing is in flight" into a node's transient test."""
+    sp = ' ' * ind
+    return (f'#if DSP4_BQ_GUARD\n'
+            f'{sp}{reg} = dm(_{pfx}_hrw_{nid});\n'
+            f'{sp}r4 = r4 or {reg};\n'
+            f'{sp}#endif')
+
+
+def _bq_hr_seq(pfx, nid, secs, state_sel, ind=12):
+    """The sizing hand-off, for a node whose cascade is ONE converted
+    block: the whole of it is lib/bq_headroom.asm's _bq_hr_node1, called
+    with the node's own symbols.
+
+    IT IS A CALL AND NOT FORTY INLINE INSTRUCTIONS because inline it
+    OVERFLOWED sec_swco on chip 1 in the profiling build -- a hundred and
+    sixty nodes each carrying its own copy of a sequence that has to be
+    identical in all of them. The helper also does the CONVERSION, so the
+    node's own convert block is compiled out under the guard rather than
+    duplicated.
+    """
+    sp = ' ' * ind
+    a_sym, b_sym, stages = secs[0]
+    L = ['#if DSP4_BQ_GUARD',
+         f'{sp}/* Convert, size, and hold the fade until H is written. */',
+         f'{sp}r0 = _{pfx}_hrw_{nid};',
+         f'{sp}r1 = _{pfx}_hrl_{nid};',
+         f'{sp}r2 = _{pfx}_active_{nid};',
+         f'{sp}r3 = {a_sym};',
+         f'{sp}r4 = {b_sym};',
+         f'{sp}r5 = _{pfx}_state_A_{nid};',
+         f'{sp}r6 = _{pfx}_state_B_{nid};',
+         f'{sp}r7 = _{pfx}_coeffs_next_{nid};',
+         f'{sp}r8 = {stages};',
+         f'{sp}call _bq_hr_node1;      /* i2 = dormant state on success */',
+         f'{sp}r0 = pass r0;',
+         f'{sp}if eq rts;              /* not sized yet; back next block */',
+         f'{sp}r4 = 0;',
+         f'{sp}dm(_{pfx}_swap_pending_{nid}) = r4;',
+         f'{sp}#endif']
+    return ('\n' + sp).join(x[len(sp):] if x.startswith(sp) else x
+                            for x in L)
+
+
+def _bq_hr_ask(pfx, nid, a_sym, b_sym, stages, ind=12):
+    """The bookkeeping half alone, for a node that converts its own
+    sections (FILT: a copy of the active instance, then one or both
+    sections overwritten, conditionally)."""
+    sp = ' ' * ind
+    L = ['#if DSP4_BQ_GUARD',
+         f'.{pfx}_hrp_{nid}:      /* re-entry: converted, still asking */',
+         f'{sp}r0 = _{pfx}_hrw_{nid};',
+         f'{sp}r1 = _{pfx}_hrl_{nid};',
+         f'{sp}r2 = _{pfx}_active_{nid};',
+         f'{sp}r3 = {a_sym};',
+         f'{sp}r4 = {b_sym};',
+         f'{sp}r5 = {stages};',
+         f'{sp}call _bq_hr_ask;',
+         f'{sp}r0 = pass r0;',
+         f'{sp}if eq rts;              /* not sized yet; back next block */',
+         f'{sp}#endif']
+    return ('\n' + sp).join(x[len(sp):] if x.startswith(sp) else x
+                            for x in L)
+
+
+def _bq_hr_ask2(pfx, nid, a1, b1, st1, a2, b2, st2, ind=12):
+    """Two independent cascades, one sizing job (CROSSOVER)."""
+    sp = ' ' * ind
+    L = ['#if DSP4_BQ_GUARD',
+         f'.{pfx}_hrp_{nid}:      /* re-entry: converted, still asking */',
+         f'{sp}r0 = _{pfx}_hrw_{nid};',
+         f'{sp}r1 = _{pfx}_hrl_{nid};',
+         f'{sp}r2 = _{pfx}_active_{nid};',
+         f'{sp}r3 = {a1};',
+         f'{sp}r4 = {b1};',
+         f'{sp}r5 = {st1};',
+         f'{sp}r6 = {a2};',
+         f'{sp}r7 = {b2};',
+         f'{sp}r8 = {st2};',
+         f'{sp}call _bq_hr_ask2;',
+         f'{sp}r0 = pass r0;',
+         f'{sp}if eq rts;              /* not sized yet; back next block */',
+         f'{sp}#endif']
+    return ('\n' + sp).join(x[len(sp):] if x.startswith(sp) else x
+                            for x in L)
 
 
 def _fx_bypass5(stages):
@@ -5939,6 +6096,14 @@ def _fx_cascade_node(node, pfx, stages, extra_dm='', extra_store=''):
                 _C2_CASCADE_BLK.format(pfx=pfx, nid=nid, inp=inp,
                                        stages=stages,
                                        extra_store=extra_store))
+    hdrA = _bq_hdr_var(f'_{pfx}_coeffs_A_{nid}', n5, bypass)
+    hdrB = _bq_hdr_var(f'_{pfx}_coeffs_B_{nid}', n5, bypass)
+    hrvars = _bq_hr_vars(pfx, nid, 1)
+    hrpend = _bq_hr_pending(pfx, nid)
+    hrseq = _bq_hr_seq(pfx, nid,
+                       [(f'_{pfx}_coeffs_A_{nid}', f'_{pfx}_coeffs_B_{nid}',
+                         stages)],
+                       [])
     return dedent(f"""\
         {rc}
 
@@ -5948,14 +6113,15 @@ def _fx_cascade_node(node, pfx, stages, extra_dm='', extra_store=''):
 
         .section/dm seg_dmda;
 {extra_dm}
-        .var _{pfx}_coeffs_A_{nid}[{n5}] = {bypass};
+        {hdrA}
         .var _{pfx}_state_A_{nid}[{n6}];
-        .var _{pfx}_coeffs_B_{nid}[{n5}] = {bypass};
+        {hdrB}
         .var _{pfx}_state_B_{nid}[{n6}];
 
         /* SPI staging (FLOAT RBJ words — wire format unchanged) */
         .var _{pfx}_coeffs_next_{nid}[{n5}];
         .var _{pfx}_swap_pending_{nid} = 0;
+        {hrvars}
 
         .var _{pfx}_active_{nid} = 0;
         .var _{pfx}_xfade_alpha_{nid} = 0.0;
@@ -5970,10 +6136,14 @@ def _fx_cascade_node(node, pfx, stages, extra_dm='', extra_store=''):
         .extern _bq_fx_cascade_blk;
         #endif
         .extern _bq_fx_convert_N;
+        #if DSP4_BQ_GUARD
+        .extern _bq_hr_node1;
+        #endif
         .global _{nid}_process;
         _{nid}_process:
 {blk_body}
             r4 = dm(_{pfx}_swap_pending_{nid});
+            {hrpend}
             r4 = pass r4;
             if ne call _{pfx}_start_xfade_{nid};
 
@@ -6045,6 +6215,8 @@ def _fx_cascade_node(node, pfx, stages, extra_dm='', extra_store=''):
 
             /* ===== stage new coeffs into dormant ===== */
         _{pfx}_start_xfade_{nid}:
+            {hrseq}
+        #if !DSP4_BQ_GUARD
             r4 = 0;
             dm(_{pfx}_swap_pending_{nid}) = r4;
             i0 = _{pfx}_coeffs_next_{nid};
@@ -6060,6 +6232,7 @@ def _fx_cascade_node(node, pfx, stages, extra_dm='', extra_store=''):
         .{pfx}_st_go_{nid}:
             r4 = {stages};
             call _bq_fx_convert_N;
+        #endif
             r4 = 0;
             r5 = {n6};
             lcntr = r5, do .{pfx}_zst_{nid} until lce;
@@ -6098,6 +6271,10 @@ _C2_CASCADE_BLK = """\
             r4 = dm(_{pfx}_swap_pending_{nid});
             r5 = dm(_{pfx}_xfade_step_{nid});
             r4 = r4 or r5;
+        #if DSP4_BQ_GUARD
+            r5 = dm(_{pfx}_hrw_{nid});
+            r4 = r4 or r5;      /* a sizing in flight is a transient too */
+        #endif
             r4 = pass r4;
             if ne jump (pc, .{pfx}kb_tr_{nid});
 
@@ -6220,6 +6397,23 @@ def gen_hpf_lpf_fixed(node):
     inp = node['inputs_str']
     byp = '0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000'
     fbyp = '1.0, 0.0, 0.0, 0.0, 0.0'
+    # ONE header for the pair, in front of the HPF, because HPF and LPF
+    # are ONE cascade: the block kernel already runs them as a single
+    # two-stage call on the strength of the two arrays being adjacent
+    # (see _FILT_BLK_BODY), and a header in front of the LPF would sit in
+    # the middle of that cascade's coefficients. With the guard on, the
+    # per-sample path makes the same single call, so both paths agree
+    # about where the cascade begins and ends -- which is also where the
+    # entry and exit scaling belong.
+    hdrHA = _bq_hdr_var(f'_filt_hpf_A_{nid}', 5, byp)
+    hdrLA = f'.var _filt_lpf_A_{nid}[5] = {byp};'
+    hdrHB = _bq_hdr_var(f'_filt_hpf_B_{nid}', 5, byp)
+    hdrLB = f'.var _filt_lpf_B_{nid}[5] = {byp};'
+    hrvars = _bq_hr_vars('filt', nid, 1)
+    hrpend = _bq_hr_pending('filt', nid, reg='r6')
+    hdrskip = _bq_hdr_skip('i1')
+    hrseq = _bq_hr_ask('filt', nid,
+                       f'_filt_hpf_A_{nid}', f'_filt_hpf_B_{nid}', 2)
     return dedent(f"""\
         {rc}
 
@@ -6231,11 +6425,11 @@ def gen_hpf_lpf_fixed(node):
 
         .section/dm seg_dmda;
 
-        .var _filt_hpf_A_{nid}[5] = {byp};
-        .var _filt_lpf_A_{nid}[5] = {byp};
+        {hdrHA}
+        {hdrLA}
         .var _filt_state_A_{nid}[12];
-        .var _filt_hpf_B_{nid}[5] = {byp};
-        .var _filt_lpf_B_{nid}[5] = {byp};
+        {hdrHB}
+        {hdrLB}
         .var _filt_state_B_{nid}[12];
 
         /* float staging (wire unchanged) */
@@ -6247,6 +6441,7 @@ def gen_hpf_lpf_fixed(node):
         .var _filt_active_{nid} = 0;
         .var _filt_xfade_alpha_{nid} = 0.0;
         .var _filt_xfade_step_{nid} = 0.0;
+        {hrvars}
 
         .var _buf_{nid};
 
@@ -6256,6 +6451,9 @@ def gen_hpf_lpf_fixed(node):
         #if DSP4_BLOCK_KERNELS
         .extern _bq_fx_cascade_blk;
         #endif
+        #if DSP4_BQ_GUARD
+        .extern _bq_hr_node1;
+        #endif
         .global _{nid}_process;
         _{nid}_process:
         {blk_filt_body}
@@ -6263,6 +6461,7 @@ def gen_hpf_lpf_fixed(node):
             r4 = dm(_hpf_swap_pending_{nid});
             r5 = dm(_lpf_swap_pending_{nid});
             r4 = r4 or r5;
+            {hrpend}
             r4 = pass r4;
             if ne call _filt_start_xfade_{nid};
 
@@ -6277,21 +6476,36 @@ def gen_hpf_lpf_fixed(node):
             if ne jump (pc, .filt_ss_b_{nid});
             i0 = _filt_hpf_A_{nid};
             i1 = _filt_state_A_{nid};
+        #if DSP4_BQ_GUARD
+            /* HPF and LPF in ONE call, which is what the block kernel has
+             * always done: the two coefficient arrays are adjacent and the
+             * state is 2 x 6. Under the guard it is not an optimisation
+             * but a requirement -- the headroom is a property of the
+             * CASCADE, and this is where the cascade begins and ends. */
+            r4 = 2;
+            call _bq_fx_cascade_N;
+        #else
             r4 = 1;
             call _bq_fx_cascade_N;
             i0 = _filt_lpf_A_{nid};
             r4 = 1;
             call _bq_fx_cascade_N;      /* i1 continued to LPF state */
+        #endif
             dm(_buf_{nid}) = r0;
             rts;
         .filt_ss_b_{nid}:
             i0 = _filt_hpf_B_{nid};
             i1 = _filt_state_B_{nid};
+        #if DSP4_BQ_GUARD
+            r4 = 2;
+            call _bq_fx_cascade_N;
+        #else
             r4 = 1;
             call _bq_fx_cascade_N;
             i0 = _filt_lpf_B_{nid};
             r4 = 1;
             call _bq_fx_cascade_N;
+        #endif
             dm(_buf_{nid}) = r0;
             rts;
 
@@ -6301,20 +6515,30 @@ def gen_hpf_lpf_fixed(node):
             r13 = r0;
             i0 = _filt_hpf_A_{nid};
             i1 = _filt_state_A_{nid};
+        #if DSP4_BQ_GUARD
+            r4 = 2;
+            call _bq_fx_cascade_N;
+        #else
             r4 = 1;
             call _bq_fx_cascade_N;
             i0 = _filt_lpf_A_{nid};
             r4 = 1;
             call _bq_fx_cascade_N;
+        #endif
             r14 = r0;                     /* ya */
             r0 = r13;
             i0 = _filt_hpf_B_{nid};
             i1 = _filt_state_B_{nid};
+        #if DSP4_BQ_GUARD
+            r4 = 2;
+            call _bq_fx_cascade_N;        /* r0 = yb */
+        #else
             r4 = 1;
             call _bq_fx_cascade_N;
             i0 = _filt_lpf_B_{nid};
             r4 = 1;
             call _bq_fx_cascade_N;        /* r0 = yb */
+        #endif
 
             r4 = dm(_filt_active_{nid});
             r4 = pass r4;
@@ -6345,6 +6569,11 @@ def gen_hpf_lpf_fixed(node):
 
             /* ===== stage into dormant ===== */
         _filt_start_xfade_{nid}:
+        #if DSP4_BQ_GUARD
+            r4 = dm(_filt_hrw_{nid});
+            r4 = pass r4;
+            if ne jump (pc, .filt_hrp_{nid});   /* already converted */
+        #endif
             /* dormant pointers (i1 = coeff base, i2 = state base) and
              * active coeff base (i0) */
             r4 = dm(_filt_active_{nid});
@@ -6359,8 +6588,12 @@ def gen_hpf_lpf_fixed(node):
             i1 = _filt_hpf_A_{nid};
             i2 = _filt_state_A_{nid};
         .filt_st_go_{nid}:
-            /* baseline: copy active fixed hpf[5] to dormant hpf */
-            r5 = 5;
+            /* baseline: copy active fixed hpf[5] to dormant hpf. With the
+             * guard the block carries a header word in front of it, and
+             * the copy carries it too -- the sizer overwrites it a
+             * millisecond later, but a stale H is never a wrong H here
+             * because the coefficients it belonged to came with it. */
+            r5 = 5 + DSP4_BQ_HDR;
             lcntr = r5, do .filt_cph_{nid} until lce;
                 r4 = dm(i0, 1);
         .filt_cph_{nid}:
@@ -6398,6 +6631,7 @@ def gen_hpf_lpf_fixed(node):
         .filt_cvha_{nid}:
             i1 = _filt_hpf_A_{nid};
         .filt_cvhgo_{nid}:
+            {hdrskip}
             r4 = 1;
             call _bq_fx_convert_N;
         .filt_nohpf_{nid}:
@@ -6418,6 +6652,7 @@ def gen_hpf_lpf_fixed(node):
             r4 = 1;
             call _bq_fx_convert_N;
         .filt_nolpf_{nid}:
+            {hrseq}
 
             /* zero dormant state + start ramp */
             r4 = dm(_filt_active_{nid});
@@ -6452,6 +6687,18 @@ def gen_crossover_fixed(node):
     byp10 = ('0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, '
              '0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000')
     fbyp20 = ', '.join(['1.0, 0.0, 0.0, 0.0, 0.0'] * 4)
+    hdrLA = _bq_hdr_var(f'_xover_lp_A_{nid}', 10, byp10)
+    hdrHA = _bq_hdr_var(f'_xover_hp_A_{nid}', 10, byp10)
+    hdrLB = _bq_hdr_var(f'_xover_lp_B_{nid}', 10, byp10)
+    hdrHB = _bq_hdr_var(f'_xover_hp_B_{nid}', 10, byp10)
+    hrvars = _bq_hr_vars('xover', nid, 2)
+    hrpend = _bq_hr_pending('xover', nid)
+    hdrskip = _bq_hdr_skip('i1')
+    # LP and HP are two SEPARATE cascades on the same input, so they are
+    # two entries in one sizing job and each gets its own headroom.
+    hrseq = _bq_hr_ask2('xover', nid,
+                        f'_xover_lp_A_{nid}', f'_xover_lp_B_{nid}', 2,
+                        f'_xover_hp_A_{nid}', f'_xover_hp_B_{nid}', 2)
     return dedent(f"""\
         {rc}
 
@@ -6460,12 +6707,12 @@ def gen_crossover_fixed(node):
 
         .section/dm seg_dmda;
 
-        .var _xover_lp_A_{nid}[10] = {byp10};
-        .var _xover_hp_A_{nid}[10] = {byp10};
+        {hdrLA}
+        {hdrHA}
         .var _xover_lp_state_A_{nid}[12];
         .var _xover_hp_state_A_{nid}[12];
-        .var _xover_lp_B_{nid}[10] = {byp10};
-        .var _xover_hp_B_{nid}[10] = {byp10};
+        {hdrLB}
+        {hdrHB}
         .var _xover_lp_state_B_{nid}[12];
         .var _xover_hp_state_B_{nid}[12];
 
@@ -6476,6 +6723,7 @@ def gen_crossover_fixed(node):
         .var _xover_active_{nid} = 0;
         .var _xover_xfade_alpha_{nid} = 0.0;
         .var _xover_xfade_step_{nid} = 0.0;
+        {hrvars}
 
         .var _buf_lp_{nid};
         .var _buf_{nid};
@@ -6484,10 +6732,14 @@ def gen_crossover_fixed(node):
         .section/pm seg_pmco;
         .extern _bq_fx_cascade_N;
         .extern _bq_fx_convert_N;
+        #if DSP4_BQ_GUARD
+        .extern _bq_hr_node1;
+        #endif
         .global _{nid}_process;
         _{nid}_process:
 
             r4 = dm(_xover_swap_pending_{nid});
+            {hrpend}
             r4 = pass r4;
             if ne call _xover_start_xfade_{nid};
 
@@ -6596,6 +6848,11 @@ def gen_crossover_fixed(node):
 
             /* ===== stage into dormant ===== */
         _xover_start_xfade_{nid}:
+        #if DSP4_BQ_GUARD
+            r4 = dm(_xover_hrw_{nid});
+            r4 = pass r4;
+            if ne jump (pc, .xover_hrp_{nid});   /* already converted */
+        #endif
             r4 = 0;
             dm(_xover_swap_pending_{nid}) = r4;
             i0 = _xover_coeffs_next_{nid};
@@ -6607,6 +6864,7 @@ def gen_crossover_fixed(node):
         .xo_st_a_{nid}:
             i1 = _xover_lp_A_{nid};
         .xo_st_go_{nid}:
+            {hdrskip}
             r4 = 2;
             call _bq_fx_convert_N;        /* LP stages; i0 -> HP staging */
             r4 = dm(_xover_active_{nid});
@@ -6617,8 +6875,10 @@ def gen_crossover_fixed(node):
         .xo_st2a_{nid}:
             i1 = _xover_hp_A_{nid};
         .xo_st2go_{nid}:
+            {hdrskip}
             r4 = 2;
             call _bq_fx_convert_N;
+            {hrseq}
             /* zero dormant states (lp 12 + hp 12) */
             r4 = dm(_xover_active_{nid});
             r4 = pass r4;
@@ -7923,10 +8183,61 @@ def gen_block_header():
 #define DSP4_BQ_ROUNDONCE 1
 #endif
 
+/* THE PER-CASCADE HEADROOM GUARD (2026-09-03), which is what buys the
+ * overflow guarantee back.
+ *
+ * H = ceil(log2(|h|_1 / 8)) bits, sized over the worst PARTIAL cascade
+ * at PARAMETER-LOAD time (lib/bq_headroom.asm; model
+ * tools/dsp/bq_h_load.py) and carried as the FIRST WORD of the cascade's
+ * coefficient block. The kernels shift the cascade input down H on entry
+ * and the output back up and saturate ONCE on exit; the recursion runs
+ * at the scaled level where |h|_1 * x fits Q4.28 and only the word
+ * handed on comes back up.
+ *
+ * H = 0 FOR 94% OF THE DEFS SPACE, and there both scaling passes are
+ * jumped over whole -- the sample loop is byte for byte the unguarded
+ * one. It is inseparable from round-once and is defined to follow it:
+ * with the per-stage saturate in place there is nothing to guard, and
+ * DSP4_BQ_ROUNDONCE=0 must stay the byte-for-byte contract control that
+ * every bar is run against.
+ *
+ * DSP4_BQ_GUARD_FORCE > 0 overrides the sized H on EVERY cascade, which
+ * is how the guard's worst-case cost is measured in the graph rather
+ * than estimated from a rig. It is a measurement, not a mode. */
+#if DSP4_BQ_ROUNDONCE
+#ifndef DSP4_BQ_GUARD
+#define DSP4_BQ_GUARD 1
+#endif
+#else
+#undef DSP4_BQ_GUARD
+#define DSP4_BQ_GUARD 0
+#endif
+#ifndef DSP4_BQ_GUARD_FORCE
+#define DSP4_BQ_GUARD_FORCE 0
+#endif
+
+/* Header words in front of a cascade's coefficients: 1 with the guard,
+ * 0 without. The interleaved pair blocks carry two, one per strip. */
+#define DSP4_BQ_HDR DSP4_BQ_GUARD
+
+/* Samples of the load-time impulse run per main-loop pass. The sizing
+ * is spent out of the idle spin between blocks and never out of block
+ * work; this is what bounds how much of one pass it can take. */
+#ifndef DSP4_BQHR_BUDGET
+#define DSP4_BQHR_BUDGET 128
+#endif
+
 /* The round-once kernel against fixed_ref on the DEFS curve set, on the
  * part (lib/bqe_verify.asm). Debug only; never in a shipping image. */
 #ifndef DSP4_BQE_VERIFY
 #define DSP4_BQE_VERIFY 0
+#endif
+
+/* The headroom guard on the part: the sizer against its model, and the
+ * sign inversions the guard exists to prevent, counted both ways in one
+ * image (lib/bq_guard_test.asm, SHARC/bqguard.sh). Debug only. */
+#ifndef DSP4_BQG_VERIFY
+#define DSP4_BQG_VERIFY 0
 #endif
 
 #endif /* DSP4_BLOCK_H */
@@ -9666,7 +9977,22 @@ def gen_talkback_fixed(node):
         .var _talk_gain_frames_{nid} = 0;
         .var _talk_hpf_on_{nid} = 1;
         .var _talk_hpf_coeffs_{nid}[5] = 1.0, 0.0, 0.0, 0.0, 0.0;
+        /* A single unity-gain sidechain HPF. It carries the guard's
+         * header word so every cascade block in the tree has the same
+         * shape, but nothing SIZES it: H stays 0.
+         *
+         * THAT IS A MEASURED GAP AND NOT AN INSPECTION.
+         * tools/dsp/dyn_state_bound.py sweeps the sidechain parameter
+         * range and finds |h|_1 = 13.8 on a 20 Hz HPF at Q 10 -- one
+         * headroom bit -- so "it cannot reach the ceiling" is FALSE at
+         * the corner. It is unsized because this node converts on every
+         * invocation rather than at a parameter-load moment, so there is
+         * nothing control-rate to hang a sizing off. See the write-up. */
+        #if DSP4_BQ_GUARD
+        .var _talk_hpf_cq_{nid}[6] = 0, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
+        #else
         .var _talk_hpf_cq_{nid}[5] = 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
+        #endif
         .var _talk_hpf_state_{nid}[6];
         .var _talk_route_{nid}[3];
         .var _buf_{nid};
@@ -9697,6 +10023,10 @@ def gen_talkback_fixed(node):
         #endif
             i0 = _talk_hpf_coeffs_{nid};
             i1 = _talk_hpf_cq_{nid};
+        #if DSP4_BQ_GUARD
+            l1 = 0;
+            modify(i1, 1);            /* past the headroom header */
+        #endif
             r4 = 1;
             call _bq_fx_convert_N;
         .tk_ramp_{nid}:
@@ -10584,7 +10914,19 @@ def gen_gate_fixed(node):
         .var _gate_filter_on_{nid} = 0;
         .var _gate_filter_hpf_{nid}[5] = 1.0, 0.0, 0.0, 0.0, 0.0;
         .var _gate_filter_lpf_{nid}[5] = 1.0, 0.0, 0.0, 0.0, 0.0;
+        /* The gate's sidechain HPF+LPF, run as one two-stage cascade.
+         * Header word for shape; H stays 0, and that is a MEASURED GAP:
+         * dyn_state_bound.py finds the cascade reaching |h|_1 = 150.7
+         * (H = 5) at HPF 8 kHz / LPF 8 kHz / Q 10, a setting the
+         * parameter string allows and a recalled preset can contain.
+         * Unsized for the same reason as the talkback HPF -- this node
+         * converts on EVERY invocation, so there is no parameter-load
+         * moment to size at. See the write-up. */
+        #if DSP4_BQ_GUARD
+        .var _gate_filter_cq_{nid}[11];
+        #else
         .var _gate_filter_cq_{nid}[10];
+        #endif
         .var _gate_filter_state_{nid}[12];
         /* DECLARATION ORDER IS THE PAIR INTERFACE. _gate_pair_blk gathers
          * and scatters the gate STATE as four consecutive words
@@ -10695,6 +11037,10 @@ def gen_gate_fixed(node):
             if eq jump (pc, .gate_go_{nid});
             i0 = _gate_filter_hpf_{nid};
             i1 = _gate_filter_cq_{nid};
+        #if DSP4_BQ_GUARD
+            l1 = 0;
+            modify(i1, 1);            /* past the headroom header */
+        #endif
             r4 = 1;
             call _bq_fx_convert_N;
             i0 = _gate_filter_lpf_{nid};
@@ -11758,13 +12104,28 @@ def gen_bq_pairs_c2(groups, input_of, stages_of, mtr_of=None, tap_of=None):
     a(' * call, and the drivers do not nest. */')
     a(f'.var {_C2_BQ_SIG}[2*DSP4_BLOCK_SIZE];')
     for tag, pfx, da, db, st in work:
+        # + 2 with the guard: the interleaved block carries a header word
+        # PER STRIP, so the two strips of a pair can run different
+        # headroom -- the shift amount is a register and each PE shifts
+        # by its own.
+        a(f'#if DSP4_BQ_GUARD')
+        a(f'.var _bqi_c_{tag}[{10 * st + 2}];    /* 2 x (1 hdr + {st} x 5) */')
+        a(f'#else')
         a(f'.var _bqi_c_{tag}[{10 * st}];    /* 2 x {st} stages x 5 coeffs */')
+        a(f'#endif')
         a(f'.var _bqi_s_{tag}[{12 * st}];    /* 2 x {st} stages x 6 state  */')
         a(f'.var _bqi_lat_{tag} = 0;')
     a('')
     a('.section/pm seg_pmco;')
     for sym in sorted(ext):
         a(f'.extern {sym};')
+    # The sizing flag exists only in a guard build, so its extern does too
+    # -- an .extern of a symbol nothing defines is a warning per node.
+    a('#if DSP4_BQ_GUARD')
+    for sym in sorted({f'_{pfx}_hrw_{d}'
+                       for tag, pfx, da, db, st in work for d in (da, db)}):
+        a(f'.extern {sym};')
+    a('#endif')
 
     for tag, pfx, da, db, st in work:
         lbl = f'_C2BQP_{tag}_process'
@@ -11783,6 +12144,15 @@ def gen_bq_pairs_c2(groups, input_of, stages_of, mtr_of=None, tap_of=None):
         a('    r1 = r1 or r0;')
         a(f'    r0 = dm(_{pfx}_xfade_step_{db});')
         a('    r1 = r1 or r0;')
+        a('#if DSP4_BQ_GUARD')
+        a('    /* A sizing in flight is a transient like any other: the')
+        a("     * node's H is about to change, and the interleaved block")
+        a('     * the pair latched carries a copy of it. */')
+        a(f'    r0 = dm(_{pfx}_hrw_{da});')
+        a('    r1 = r1 or r0;')
+        a(f'    r0 = dm(_{pfx}_hrw_{db});')
+        a('    r1 = r1 or r0;')
+        a('#endif')
         a('    r1 = pass r1;')
         a(f'    if ne jump (pc, .bqiS_{tag});')
         a('')
@@ -11813,13 +12183,13 @@ def gen_bq_pairs_c2(groups, input_of, stages_of, mtr_of=None, tap_of=None):
         a('     * the 2026-09-01 record named on the dynamics pairs; zeroing')
         a('     * one channel closes it without needing distinct per-channel')
         a('     * settings over the SPI plane. */')
-        a(f'    lcntr = {5 * st}, do .bqiCE_{tag} until lce;')
+        a(f'    lcntr = {5 * st} + DSP4_BQ_HDR, do .bqiCE_{tag} until lce;')
         a('        r0 = dm(i0, 1);')
         a('        dm(i2, 1) = r0;')
         a('        r0 = 0;')
         a(f'    .bqiCE_{tag}: dm(i2, 1) = r0;')
         a('#else')
-        a(f'    lcntr = {5 * st}, do .bqiCE_{tag} until lce;')
+        a(f'    lcntr = {5 * st} + DSP4_BQ_HDR, do .bqiCE_{tag} until lce;')
         a('        r0 = dm(i0, 1);')
         a('        dm(i2, 1) = r0;')
         a('        r0 = dm(i1, 1);')

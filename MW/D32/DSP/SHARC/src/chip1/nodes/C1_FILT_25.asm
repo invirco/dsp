@@ -22,14 +22,24 @@
 .section/dm seg_dmda;
 .extern _buf_C1_GAIN_25;
 
+#if DSP4_BQ_GUARD
+.global _filt_hpf_A_C1_FILT_25;
+.var _filt_hpf_A_C1_FILT_25[5 + 1] = 0, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
+#else
 .global _filt_hpf_A_C1_FILT_25;
 .var _filt_hpf_A_C1_FILT_25[5] = 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
+#endif
 .global _filt_lpf_A_C1_FILT_25;
 .var _filt_lpf_A_C1_FILT_25[5] = 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
 .global _filt_state_A_C1_FILT_25;
 .var _filt_state_A_C1_FILT_25[12];
+#if DSP4_BQ_GUARD
+.global _filt_hpf_B_C1_FILT_25;
+.var _filt_hpf_B_C1_FILT_25[5 + 1] = 0, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
+#else
 .global _filt_hpf_B_C1_FILT_25;
 .var _filt_hpf_B_C1_FILT_25[5] = 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
+#endif
 .global _filt_lpf_B_C1_FILT_25;
 .var _filt_lpf_B_C1_FILT_25[5] = 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
 .global _filt_state_B_C1_FILT_25;
@@ -51,6 +61,12 @@
 .var _filt_xfade_alpha_C1_FILT_25 = 0.0;
 .global _filt_xfade_step_C1_FILT_25;
 .var _filt_xfade_step_C1_FILT_25 = 0.0;
+#if DSP4_BQ_GUARD
+.global _filt_hrw_C1_FILT_25;
+.var _filt_hrw_C1_FILT_25 = 0;        /* 0 idle, 1 asked, 2 re-ask */
+.global _filt_hrl_C1_FILT_25;
+.var _filt_hrl_C1_FILT_25[2];       /* (block, stages) pairs */
+#endif
 
 .global _buf_C1_FILT_25;
 .var _buf_C1_FILT_25;
@@ -60,6 +76,9 @@
 .extern _bq_fx_convert_N;
 #if DSP4_BLOCK_KERNELS
 .extern _bq_fx_cascade_blk;
+#endif
+#if DSP4_BQ_GUARD
+.extern _bq_hr_node1;
 #endif
 .global _C1_FILT_25_process;
 _C1_FILT_25_process:
@@ -71,6 +90,10 @@ _C1_FILT_25_process:
     r4 = r4 or r5;
     r5 = dm(_filt_xfade_step_C1_FILT_25);
     r4 = r4 or r5;
+#if DSP4_BQ_GUARD
+    r5 = dm(_filt_hrw_C1_FILT_25);
+    r4 = r4 or r5;      /* a sizing in flight is a transient too */
+#endif
     r4 = pass r4;
     if eq jump (pc, .fkb_ss_C1_FILT_25);
 
@@ -139,6 +162,10 @@ _C1_FILT_25_process_sample:
     r4 = dm(_hpf_swap_pending_C1_FILT_25);
     r5 = dm(_lpf_swap_pending_C1_FILT_25);
     r4 = r4 or r5;
+    #if DSP4_BQ_GUARD
+    r6 = dm(_filt_hrw_C1_FILT_25);
+    r4 = r4 or r6;
+    #endif
     r4 = pass r4;
     if ne call _filt_start_xfade_C1_FILT_25;
 
@@ -153,21 +180,36 @@ _C1_FILT_25_process_sample:
     if ne jump (pc, .filt_ss_b_C1_FILT_25);
     i0 = _filt_hpf_A_C1_FILT_25;
     i1 = _filt_state_A_C1_FILT_25;
+#if DSP4_BQ_GUARD
+    /* HPF and LPF in ONE call, which is what the block kernel has
+     * always done: the two coefficient arrays are adjacent and the
+     * state is 2 x 6. Under the guard it is not an optimisation
+     * but a requirement -- the headroom is a property of the
+     * CASCADE, and this is where the cascade begins and ends. */
+    r4 = 2;
+    call _bq_fx_cascade_N;
+#else
     r4 = 1;
     call _bq_fx_cascade_N;
     i0 = _filt_lpf_A_C1_FILT_25;
     r4 = 1;
     call _bq_fx_cascade_N;      /* i1 continued to LPF state */
+#endif
     dm(_buf_C1_FILT_25) = r0;
     rts;
 .filt_ss_b_C1_FILT_25:
     i0 = _filt_hpf_B_C1_FILT_25;
     i1 = _filt_state_B_C1_FILT_25;
+#if DSP4_BQ_GUARD
+    r4 = 2;
+    call _bq_fx_cascade_N;
+#else
     r4 = 1;
     call _bq_fx_cascade_N;
     i0 = _filt_lpf_B_C1_FILT_25;
     r4 = 1;
     call _bq_fx_cascade_N;
+#endif
     dm(_buf_C1_FILT_25) = r0;
     rts;
 
@@ -177,20 +219,30 @@ _C1_FILT_25_process_sample:
     r13 = r0;
     i0 = _filt_hpf_A_C1_FILT_25;
     i1 = _filt_state_A_C1_FILT_25;
+#if DSP4_BQ_GUARD
+    r4 = 2;
+    call _bq_fx_cascade_N;
+#else
     r4 = 1;
     call _bq_fx_cascade_N;
     i0 = _filt_lpf_A_C1_FILT_25;
     r4 = 1;
     call _bq_fx_cascade_N;
+#endif
     r14 = r0;                     /* ya */
     r0 = r13;
     i0 = _filt_hpf_B_C1_FILT_25;
     i1 = _filt_state_B_C1_FILT_25;
+#if DSP4_BQ_GUARD
+    r4 = 2;
+    call _bq_fx_cascade_N;        /* r0 = yb */
+#else
     r4 = 1;
     call _bq_fx_cascade_N;
     i0 = _filt_lpf_B_C1_FILT_25;
     r4 = 1;
     call _bq_fx_cascade_N;        /* r0 = yb */
+#endif
 
     r4 = dm(_filt_active_C1_FILT_25);
     r4 = pass r4;
@@ -254,6 +306,11 @@ _C1_FILT_25_process_sample:
 
     /* ===== stage into dormant ===== */
 _filt_start_xfade_C1_FILT_25:
+#if DSP4_BQ_GUARD
+    r4 = dm(_filt_hrw_C1_FILT_25);
+    r4 = pass r4;
+    if ne jump (pc, .filt_hrp_C1_FILT_25);   /* already converted */
+#endif
     /* dormant pointers (i1 = coeff base, i2 = state base) and
      * active coeff base (i0) */
     r4 = dm(_filt_active_C1_FILT_25);
@@ -268,8 +325,12 @@ _filt_start_xfade_C1_FILT_25:
     i1 = _filt_hpf_A_C1_FILT_25;
     i2 = _filt_state_A_C1_FILT_25;
 .filt_st_go_C1_FILT_25:
-    /* baseline: copy active fixed hpf[5] to dormant hpf */
-    r5 = 5;
+    /* baseline: copy active fixed hpf[5] to dormant hpf. With the
+     * guard the block carries a header word in front of it, and
+     * the copy carries it too -- the sizer overwrites it a
+     * millisecond later, but a stale H is never a wrong H here
+     * because the coefficients it belonged to came with it. */
+    r5 = 5 + DSP4_BQ_HDR;
     lcntr = r5, do .filt_cph_C1_FILT_25 until lce;
         r4 = dm(i0, 1);
 .filt_cph_C1_FILT_25:
@@ -307,6 +368,10 @@ _filt_start_xfade_C1_FILT_25:
 .filt_cvha_C1_FILT_25:
     i1 = _filt_hpf_A_C1_FILT_25;
 .filt_cvhgo_C1_FILT_25:
+    #if DSP4_BQ_GUARD
+l1 = 0;
+modify(i1, 1);            /* past the headroom header */
+#endif
     r4 = 1;
     call _bq_fx_convert_N;
 .filt_nohpf_C1_FILT_25:
@@ -327,6 +392,18 @@ _filt_start_xfade_C1_FILT_25:
     r4 = 1;
     call _bq_fx_convert_N;
 .filt_nolpf_C1_FILT_25:
+    #if DSP4_BQ_GUARD
+    .filt_hrp_C1_FILT_25:      /* re-entry: converted, still asking */
+    r0 = _filt_hrw_C1_FILT_25;
+    r1 = _filt_hrl_C1_FILT_25;
+    r2 = _filt_active_C1_FILT_25;
+    r3 = _filt_hpf_A_C1_FILT_25;
+    r4 = _filt_hpf_B_C1_FILT_25;
+    r5 = 2;
+    call _bq_hr_ask;
+    r0 = pass r0;
+    if eq rts;              /* not sized yet; back next block */
+    #endif
 
     /* zero dormant state + start ramp */
     r4 = dm(_filt_active_C1_FILT_25);
