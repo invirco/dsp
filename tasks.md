@@ -1,3 +1,62 @@
+## HUB DISPATCH 2026-09-03 07:45Z — LAND FLOAT (ruled) — DSP4_BQ_FLOAT default, offset-form coefficients, on-part bqeverify float arm, GAIN float, update dsp numeric spec   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+PW RULED 2026-09-03: SHARC DSP is 40-bit float. The mx26 mandate, Bible ch.11,
+and memories are updated (mx26 commit 98ddb9d). This session LANDS float as the
+shipping path AND updates the dsp repo's own numeric spec so code and docs agree.
+
+Do:
+
+1. **Make float the DEFAULT build.** DSP4_BQ_FLOAT defaults ON; the biquad
+   cascade ships 40-bit-float DF-II-T (the A2 arm you already integrated,
+   whole-graph chip 2 75.24%). The fixed round-once path + the ‖h‖₁ guard stay
+   in the tree behind a flag (DSP4_BQ_FLOAT=0 / the existing guard flag) as the
+   reference model a future FPGA fixed path follows — do NOT delete them.
+
+2. **Land the OFFSET-FORM float32 coefficients — the accuracy fix.** Carry the
+   coefficients as D5's offset encoding (c1 = 2+a1, c2 = 1−a2) in float32 on
+   the wire and in the coefficient block, per the measurement that took float
+   from 0.37 dB (raw float32 coeff) to **0.0042 dB** — better than the shipping
+   fixed contract. This is ~5 stage-rate prologue instructions + the host-side
+   coefficient wire change you modelled; build it for real and re-confirm the
+   response error on the DEFS worst set is at/under the 0.0042 dB you modelled.
+
+3. **Close the on-part validation gap: the bqeverify FLOAT arm.** The fixed
+   arm is validated 0-ULP on silicon; the float arm's bit-identity to
+   `bq_float_ref.py` (40-bit rounded once per op) is so far modelled, not run
+   on the part. Build the on-chip float verify (same shape as the fixed
+   bqeverify) and prove the kernel computes the float reference's words on the
+   part, both block 8 and 16.
+
+4. **GAIN float** — land the float GAIN path too (the ~6 c/strip saving), and
+   record honestly that most of that saving is the round-once CONTRACT not the
+   format (it matched RIG C's fixed figure). Keep the D20 mic-pre tap decision
+   as previously ruled (tap stays); note the tap's interaction with the float
+   path.
+
+5. **Update the dsp repo's OWN numeric spec/docs** (sot.md §2.1 bit-exactness
+   and wherever the D5/Q4.28 contract is written) to state 40-bit float,
+   offset-form coefficients, single output clamp, and the C-wire cross-node
+   model (fixed-PCM interchange, not internal-format identity; no ASRC still
+   holds). tasks.md + findings updated to reflect float is now the shipping
+   path, not a measurement arm.
+
+Bars: golden 59/59, dsp_validate OK, busgold graph bit-exact, bqeverify float
+arm PASS both blocks, response error ≤ golden bar on the DEFS worst set. The
+DSP4_BQ_FLOAT=0 fixed build must STILL rebuild the recorded fixed W0 witnesses
+byte-for-byte (the reference model must stay intact). Re-measure and report
+whole-graph capacity both chips with float as default. Update the 21564 Kernel
+Scoreboard artifact. Commit + push main.
+
+DO NOT run check-contract-drift.sh as a bar (it silently syncs ~12k lines of
+contract diff into the working tree — a known hazard, saved as a memory; revert
+if it fires).
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-03 06:41Z — Float-on-SHARC whole-graph measurement — A2 float biquad + 40-bit state, both chips, guard-free, numeric cost (decision input, behind a flag)   [status: 🟢 done — **FLOAT LANDS CHIP 2 AT 75.24% AND CHIP 1 AT 88.76%, GUARD-FREE — AND THE NUMERIC PRICE IS NOT IN THE ARITHMETIC, IT IS IN THE COEFFICIENT WORD.** **(1) THE A2 KERNEL IS IN THE SHIPPING GRAPH CASCADE PATH, BEHIND `DSP4_BQ_FLOAT`.** All four cascade kernels in `lib/biquad_fx.asm` become software float DF-II-T with 40-bit extended-precision state held in REGISTERS across the block (MODE1.RND32 is **bit 16**, and this firmware has never written it — the part has been in 40-bit mode all along); `_bq_fx_convert_N` becomes a COPY, because the coefficient block now carries the RBJ float words the SPI wire already delivers, five a stage, so **no generated array changes size and no node's state layout moves**. `DSP4_BQ_GUARD` is FORCED to 0 with it and the float image contains **zero `_bq_hr_*` symbols against twelve in the default** — no sizer, no impulse run, no header word, no entry scale, no exit rescale, no per-stage saturate. **The overflow claim is proved rather than asserted: over the DEFS worst set the 4-band-all-+15 dB cascade (‖h‖₁ = 1285, the one that costs the fixed path H = 8) peaks at 1285.0 against float32's 3.4e38 — 2.6e35× of headroom, 3.8e-36 of the exponent range.** What float still needs is ONE clamp, and the distinction is the finding: the inter-node bus is still Q4.28, so the word handed on gets one `CLIP` before the `FIX` — an output clamp, not a sizing, and the guarded fixed arm clamps there too. The domain crossing (`FLOAT BY -28` in, `FIX BY 28` out, as passes over the block) is a cost of float-in-a-fixed-graph, not of float, and it is inside every number below. **(2) CAPACITY, WHOLE GRAPH, BOTH CHIPS, BLOCK 16, two boots a point, minimum taken, witnesses clean: chip 2 264,702 (80.78%) fixed+guard → 246,534 (75.24%) float, 18,168 cycles = 5.54% of budget freed, and 60,405 = 18.43% against the contract's 306,939; chip 1 292,863 (89.38%) → 290,861 (88.76%), 2,002 cycles = 0.61%.** **The instrument reproduces itself to 0.015%** — the chip-2 fixed+guard control reads 264,702 against session 23's 264,741, and both boots of the float arm returned the identical 246,534. **Chip 1's small win is arithmetic, not disappointment**: 256 biquad stages against chip 2's 632, in a graph dominated by GAIN, its meter and the dynamics — the shootout predicted exactly this and the graph now says it with a number. **Two chip-1 controls that did not exist before: the guard costs chip 1 1,117 cycles / 0.34% (it had only ever been measured on chip 2, at 1,771 / 0.54%), and the guard-off arm reproduces session 22's 291,264 to 0.17%.** **The 40 bits cost NOTHING**: 246,534 against 247,290 on chip 2 and 290,861 against 290,829 on chip 1 — opposite signs, both inside the spread, and the mode is one `bit clr` against one `bit set` in the same place. **(3) THE NUMERIC COST, AND IT INVERTS RIG A2's HEADLINE.** New normative model `tools/dsp/bq_float_ref.py` (40-bit rounded ONCE per operation in `numpy.longdouble`, its 24-bit reduction checked against `numpy.float32` on 20,000 values). Response error against the filter the design ASKED for, worst over the DEFS set: **fixed D5 0.0265 dB, float-40 on today's RBJ float32 wire word 0.3715 dB (8× the 0.046 dB golden bar), float-32 0.5346 — but float-40 on UNQUANTISED coefficients is 0.0107 dB, a quarter of the bar.** **Thirty-five of the thirty-six parts of that error are the COEFFICIENT WORD, not the arithmetic**: a 20 Hz biquad has a1 = -1.9948, where a float32 ulp is 2.4e-7 and a Q4.28 ulp is 3.7e-9 — **six bits on the number that places the pole**, because fixed-point precision is absolute, float's is relative, and pole placement error is an absolute error. **Carry D5's own OFFSET encoding (n1, n2, c1 = 2+a1, c2 = 1-a2) as float32 and the built arm would come out at 0.0042 dB — eleven times UNDER the bar and better than the shipping fixed contract.** Modelled, not built; it is five stage-rate instructions in the kernel prologue and a host-side wire change, and it would not move the capacity figures. **(4) NOISE FLOOR, arithmetic only, against each arm's own coefficients: the 40 bits are worth 33-48 dB over float32 at zero cycle cost (-107.1 vs -74.1 dBFS on the LF shelf, -114.0 vs -66.3 on the 28-band GEQ) — there is no reason to run this kernel at 32 bits. And FIXED IS STILL 8-22 dB QUIETER THAN FLOAT AT 40 BITS**, because the fixed path carries the first-order ERROR FEEDBACK the round-once ruling deliberately kept and float has no residual to carry. **A 40-bit state that never passes through a 32-bit DM word is worth a further 14.3 dB on the LF shelf and NOTHING in the response table** — in DM it would cost ~2.7% of chip 2, in PM no cycles and PM chip 1 has not got. Priced, not built. **(5) GAIN: partly, and much less.** The ten instructions of Q4.28 extract-and-saturate become one clip plus two crossings, ~6 c/sample/strip off the per-sample path — **almost exactly RIG C's 5.95 for the FIXED round-once version of the same idea, which is the tell that the saving is the rounding contract and not the number format** — and the D20 mic-pre tap takes it back the same way it did there. Same 0.90%-of-chip-1 estimate, same condition. Not converted. **BARS: golden 59/59; `dsp_validate` OK (666 nodes); `busgold` GRAPH BIT-EXACT 0 of 256, sha256 `ba3f52ec`; and ALL THREE recorded W0 witnesses rebuild BYTE FOR BYTE — default `4e89e062`/`4d1d314c`, `DSP4_BQ_ROUNDONCE=0` `23c1e662`/`e45bb82a`, `DSP4_BQ_GUARD=0` `2249afea`/`3173acb3`.** The float build is `591a0b08`/`e7abb98e`, 301,528/181,872 — SMALLER than the shipping default, because the sizer, the header handling and the whole Q4.28 conversion go with the guard. No contract file touched and no contract version moved. **STILL OPEN, and named rather than glossed: (a) THE FLOAT KERNELS' NUMERICS ARE MODELLED, NOT VALIDATED ON THE PART** — the same gap RIG C had before `bqeverify.sh`, and the vehicle needs no assembly change at all (`bqe_verify.asm`'s arm A *is* `_bq_fx_cascade_simd`; it wants `gen_bqe_vectors.py --float` and a float scorer); **(b) the 0.0042 dB offset-wire result is the most decision-relevant number here and no instruction has been written for it; (c) the crossfade path is not bit-identical to steady state under float and cannot be** — `_bq_fx_cascade_N` stores state every sample at 32 bits while the block kernel holds 40 in registers. **One line for the mandate call: the cycles say float, the noise floor says fixed, and the response error says neither — it says fix the wire format, which is worth doing in either arm.** Write-up `MW/D32/DSP/dsp4-float-wholegraph-20260903.md`; costs in `dsp4-function-costs.csv` session 24.]   [model: opus]
 
 model: opus
