@@ -1,3 +1,59 @@
+## HUB DISPATCH 2026-09-03 06:41Z — Float-on-SHARC whole-graph measurement — A2 float biquad + 40-bit state, both chips, guard-free, numeric cost (decision input, behind a flag)   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+MEASUREMENT ONLY — this produces the float-on-SHARC decision number for PW's
+fixed-vs-float mandate call. Do NOT change the D5 contract, do NOT make float
+the default, do NOT remove the fixed/round-once/guard path. Float goes behind
+its own flag (e.g. DSP4_BQ_FLOAT) exactly as round-once/guard did; the default
+build and both existing W0 controls must rebuild byte-for-byte.
+
+CONTEXT: RIG C measured the software-float biquad arm (A2) at 5.47 c/band-sample
+block 16 — FASTER than fixed round-once (7.26) — because float has no per-sample
+extract, and float needs NONE of the guard machinery (no per-stage saturate, no
+‖h‖₁ headroom guard: float's exponent absorbs the ‖h‖₁=1313/+62 dB worst case
+that forces the guard in fixed). The question PW needs answered: what does float
+land WHOLE-GRAPH on both chips, guard-free, and at what numeric cost.
+
+Do this:
+
+1. **Integrate the A2 float biquad into the SHIPPING graph cascade path**
+   (behind DSP4_BQ_FLOAT), using the SHARC's 40-bit EXTENDED-PRECISION float
+   for the recursive state (y1/y2) — 40-bit in registers/accumulator, not
+   32-bit stored — since the extra mantissa bits are exactly what steadies a
+   high-Q low-frequency biquad state. NO saturate, NO extract, NO ‖h‖₁ guard
+   in this path — prove they are unnecessary (nothing overflows in float over
+   the worst DEFS set, including the 4-band-all-+15 dB ‖h‖₁=1313 case that
+   needed 8 fixed bits).
+
+2. **Measure WHOLE-GRAPH capacity on BOTH chips, block 16**, the same
+   instrument/discipline as the guard session (two boots a point, minimum
+   taken, witnesses clean): report chip 1 % and chip 2 % for float, side by
+   side with the numbers already in hand — contract 93.67% (chip 2) / 92.88%
+   (chip 1), fixed round-once+guard 80.79% / 88.89%. The headline is "float-on-
+   SHARC lands chip 2 at X%, guard-free."
+
+3. **Measure the NUMERIC cost whole-graph**: the LF-shelf response error (RIG
+   A2 saw 0.52 dB on the +15 dB/20 Hz shelf) and the residual noise floor,
+   with the 40-bit extended state vs a 32-bit-stored-state variant, so PW can
+   see what the 40 bits buy on the high-Q LF case. State it against the 0.046
+   dB golden bar and the fixed path's figures.
+
+4. **Note GAIN briefly** — does the same float argument delete the GAIN
+   round/saturate machinery too (the 11-of-18 instr Q4.28 overhead)? A one-
+   paragraph estimate is enough; no need to convert GAIN this session.
+
+Bars: golden 59/59, dsp_validate OK, busgold graph bit-exact, DSP4_BQ_FLOAT=0
+AND the round-once/guard controls all rebuild W0 byte-for-byte. Contract file
+and version untouched. Write-up MW/D32/DSP/dsp4-float-wholegraph-*.md; costs in
+dsp4-function-costs.csv. tasks.md + findings; commit + push main. This is a
+DECISION-INPUT measurement — bound it here, report the numbers, do not land
+float as the shipping path (PW's mandate call).
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-03 01:44Z — Complete the fixed option: wire the ‖h‖₁ guard for real + re-measure chip 2 with it active, price dynamics-envelope wrap   [status: 🟢 done — **THE GUARD IS WIRED END TO END, SIZED ON THE PART, AND MEASURED IN THE GRAPH: CHIP 2 IS 80.79% OF BUDGET TYPICAL AND 82.21% WORST CASE AGAINST 93.67% FOR THE CONTRACT.** **(1) H IS COMPUTED ON THE PART AT PARAMETER-LOAD AND IT AGREES WITH ITS MODEL.** `lib/bq_headroom.asm` sizes the worst PARTIAL cascade's ‖h‖₁ from a BOUNDED impulse run -- N = clamp(ceil(6/(1-r_max)), 128, 1024), a per-prefix sum, a DECAYING PEAK-HOLD envelope warmed up at N/2, tail = env*r/(1-r), safety 1.125 -- carries H as the FIRST WORD of every cascade's coefficient block (two interleaved for a SIMD pair, so the two strips can differ), and the four fixed kernels shift the cascade INPUT down H on entry and the OUTPUT back up with ONE clamp on exit. Model: new `tools/dsp/bq_h_load.py`, normative for the asm the way `fixed_ref.py` is for `biquad_fx.asm`. **Over 37,105 quantised DEFS stages the load-time bound is NEVER below the converged ‖h‖₁, 97.79% of the space gets the SAME H the offline sizer picks and 2.21% pays one extra bit; H = 0 still covers 94.2%.** Two things had to be right and each is worth a factor: holding the peak from sample zero lets h[0] dominate at r~1 and sizes a 20 Hz Q10 peak at **H = 12 against a true H = 0** (2331x), and **sqrt|a2| is the GEOMETRIC MEAN of the roots, not the radius** -- for real poles it under-reads the slow one, which shortened the run AND shrank the tail, both in the UNSAFE direction; 8,669 of 37,105 sets came out under the bound until it was fixed, and the same defect is fixed in `bq_state_bound.py`. **IT RUNS IN THE MAIN LOOP, ONE JOB AT A TIME, out of the idle spin -- a 28-band GEQ is 28,672 stage-samples and inline that would drop audio on a snapshot recall, with the size of the hit a function of how many nodes the operator moved at once. The graph's per-block cost of the sizing is ZERO; what it spends is about 1.5 ms of latency before the crossfade starts.** No race is possible: the node graph runs from the main loop too. **(2) THE COST, MEASURED WHOLE-GRAPH ON CHIP 2 AT BLOCK 16, FOUR ARMS IN ONE BENCH SESSION, two boots a point, minimum taken, witnesses clean: contract 306,939 (93.67%) - round-once no guard 262,970 (80.25%) - guard ON with H = 0, the 94% case, 264,741 (80.79%, +1,771 = +0.54%) - guard FORCED on every cascade 269,397 (82.21%, +6,427 = +1.96%).** **The instrument reproduces itself across sessions to 0.03% and 0.05%**, and the guard-off arm matching 262,841 is also the proof that everything added is inert when the guard is off. **Session 22's rig-based estimate said 0.9-1.3%; the graph says 1.96%, so the estimate was optimistic by about half again.** **THE REGISTER PRESSURE IS RELIEVED BY NOT BEING IN THE LOOP: the scaling is a PASS over the block, which has the whole register file (six instructions on the exit, no spill, against the rig's eight) and -- the part that matters more -- is SKIPPABLE, which is what makes H = 0 cost one load, one test and one branch.** FILT's per-sample path became ONE two-stage call, matching what its block kernel has always done, because the headroom is a property of the CASCADE and a header in front of the LPF would sit in the middle of one. **(3) THE OVERFLOW IS PREVENTED ON THE PART, DEMONSTRATED BOTH WAYS FROM ONE IMAGE.** New `bqguard.sh` + `src/lib/bq_guard_test.asm` + `tools/dsp/gen_bqg_vectors.py` + `tools/pi/dsp4_bqg_verify.py`: seven worst-case cascades x 128 samples of MATCHED-SIGN drive at 0 dBFS, the part running the sizer for real and then running each cascade twice -- once with the header the sizer wrote and once with it forced to zero, which is the kernel that landed. **The part sizes exactly the model's H on all seven (3, 8, 3, 5, 3, 1, 0), including the 28-stage GEQ; the GUARDED arm inverts sign against float on ZERO of 896 words; the UNGUARDED arm inverts on 72, on exactly the 3 of 7 cascades the model names (47, 12, 13).** Both streams hash to their models (`AB14B806`/`4E4813B7` and `F0A2389A`/`C782FC68`), so the guarded kernel does not merely avoid the wrap, it computes the guarded model's words. **AND THE REFERENCE HAD TO BE FLOAT, NOT THE CONTRACT: the first run scored against the per-stage-saturating contract and read the cancelling cascade as '19 inversions guarded and 19 unguarded', which is the CONTRACT clipping internally at +33 dB of partial gain. Scored against float the arms separate -- clipping preserves SIGN, wrapping inverts it -- and the finding that falls out is that ON HOT-PREFIX SETTINGS THE GUARDED ROUND-ONCE KERNEL IS MORE CORRECT THAN THE KERNEL SHIPPING TODAY (contract 19 and 14 inversions where the guarded arm has none).** **(4) THE DYNAMICS ENVELOPES DO NOT CARRY THE SAME ARGUMENT, AND IT IS A PROOF.** env' = (1-alpha)*env + alpha*x with alpha a Q0.31 word, so 0 <= alpha < 1 BY FORMAT and |env'| <= max(|env|,|x|) every sample -- the attack/release switch does not break it because the bound holds for whichever alpha was chosen. Equivalently the smoother's impulse response is non-negative, so **‖h‖₁ = 1 EXACTLY, against 378 for the worst biquad in the same space**. New `tools/dsp/dyn_state_bound.py` exercises it over attack 0.05-500 ms x release 1-5000 ms x four adversarial drives: **worst |env|/max|x| = 1.000000, headroom needed 0.** Every gain-computer intermediate has 2.3x-16x of its format left. `_envq_fx` has no saturate and correctly so (the model's sat32 provably never fires); `_exp2q_fx`'s single saturate is feed-forward and deleting it would invert the polarity of a strip for one instruction; `_mrf_rns28` is the GAIN path's question, already priced. **THE ONE PLACE IT DOES TRANSFER IS UNWIRED AND MEASURED: the gate/talkback SIDECHAIN filters are biquads and reach ‖h‖₁ = 150.7 (H = 5) at HPF 8k / LPF 8k / Q 10, a setting the parameter string allows -- they carry the header word for shape and NOTHING SIZES THEM. The reason is not the guard: those nodes convert on EVERY invocation rather than at a parameter-load moment, so there is nothing control-rate to size at.** **BARS: `bqguard` PASS; `bqeverify` PASS both arms at BLOCK 8 AND BLOCK 16 (the landing's last open item -- RO=0 gives 1,797 of 36,864 words over 30 of 576 cells, first at 1,366, the model's prediction to the word; RO=1 gives 0 of 36,864); `bqst` 0 of 16 with its negative control firing 15 of 16; `c2bqgold` BIT-EXACT, round-trip 0 of 49; `busgold` GRAPH BIT-EXACT 0 of 256 (`ba3f52ec`); golden 59/59; `dsp_validate` OK; `bq_h_load --check` PASS. THREE W0 WITNESSES: `DSP4_BQ_ROUNDONCE=0` rebuilds 23c1e662/e45bb82a and `DSP4_BQ_GUARD=0` rebuilds 2249afea/3173acb3, BOTH BYTE FOR BYTE; the guard's own image is 4e89e062/4d1d314c, 312,196/191,476 (+10,464/+9,416 by design). No contract file touched, no contract version moved.** The per-node hand-off is a CALL to `_bq_hr_node1` and not forty inline instructions -- inline it OVERFLOWED sec_swco on chip 1 in the profiling build. **STILL OPEN**: (a) the sidechain conversion above; (b) the load-time cap costs the 28-band GEQ one headroom bit the offline sizer would not spend; (c) the graph has been measured for CYCLES with the guard live but never run with a non-zero H from a REAL coefficient swap -- chip 2 is not configured on this bench, so the forced-H arm is the closest thing and it is a cost measurement, not an audio one. Write-up: `MW/D32/DSP/dsp4-guard-wired-20260903.md`; costs in `dsp4-function-costs.csv` session 23.]   [model: opus]
 
 model: opus
