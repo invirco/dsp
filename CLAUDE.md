@@ -12,7 +12,11 @@ has the layout; `tasks.md` has current work state — read both first.
 - **Generated files are regenerated, not edited:** `MW/D32/DSP/ghost_cells.h`,
   `MW/D32/DSP/dsp_address_map.md`, `SHARC/src/*/dsp_params.asm`, node ASM
   skeletons under `SHARC/src/chip*/nodes/`, and `_matrix.csv` DSP-backfill
-  columns. Change the generators (`MW/D32/DSP/gen_dsp.py`, `tools/dsp/*.py`)
+  columns. **`SHARC/src/dsp_block.h` and `SHARC/src/bus_accumulators.asm`
+  are generated too** (`dsp_codegen.py::gen_block_header` /
+  `gen_bus_accumulators_fixed`) — they do not look it, they carry every
+  build flag's default, and a hand edit survives until the next codegen run
+  and then silently disappears. Change the generators (`MW/D32/DSP/gen_dsp.py`, `tools/dsp/*.py`)
   or the source `dsp.csv` instead.
 - **Unknown matrix cell families must fail loudly** (no-fallback policy).
   New families are adopted intentionally via `matrix-families-allowlist.txt`.
