@@ -1,3 +1,41 @@
+## HUB DISPATCH 2026-09-03 16:16Z — Chip-1 capacity frontier — reduce D22 routing (15-29x over floor), price D25 delay + D20 GAIN→FILT fold, re-measure chip 1 (product already fits; buying headroom)   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+CHIP-1 CAPACITY FRONTIER — cycle measurement only, no audio (works as-is on
+the DSP card). Context: the full market config now FITS both chips (chip 2
+83.16%, chip 1 88.46%), so the capacity fight is WON — this is buying future
+headroom, not fixing a fit. The market-bar load is entirely output-side (all
+on chip 2); chip 1 did not move and is now the TIGHTER part by 5.3 points.
+So chip 1 is the binding constraint going forward.
+
+Do NOT change the shipping default config (adopting the market bar as default
+is a separate PW decision, held). Do NOT touch D5/contract. Float is the
+shipping cascade. W0 controls stay byte-exact.
+
+Investigate and REDUCE chip 1's biggest costs, measured:
+1. **D22 routing — the headline lever** (dsp named it 15–29× over floor).
+   Profile the chip-1 routing/bus-fabric cost, find why it's that far over
+   floor, and reduce it (generated-code efficiency — the same fusion/fabric
+   levers used on the strip path, not a PCB or block-size change). Report the
+   before/after chip-1 % and what the routing floor actually is.
+2. **D25 delay** and **the D20 GAIN→FILT fold** — the other two chip-1 levers
+   dsp named. Price them; fold/land the ones that are clean wins at chip-1
+   cost, report the ones that need a ruling.
+3. Re-measure whole-graph chip 1 (and confirm chip 2 unmoved) after each
+   landed change, two boots a point, minimum taken. Headline = new chip-1 %
+   and margin-remaining, with the market config active.
+
+Bars as always: golden 59/59, dsp_validate OK, busgold graph bit-exact, W0
+controls byte-for-byte. Update the scoreboard. tasks.md + findings; commit +
+push main. Do NOT run check-contract-drift.sh as a bar (known ~12k-line sync
+hazard). Report honestly if a lever needs a numeric/routing ruling rather than
+forcing it.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-03 14:19Z — Full market-config capacity fit — 31-band GEQ on ALL outputs + full product graph, whole-graph cycles both chips (float, no audio)   [status: 🟢 done — **THE COMPLETE PRODUCT FITS BOTH CHIPS WITH MARGIN, AND THE WHOLE COST OF THE MARKET BAR LANDS ON THE CHIP FLOAT HAD FREED.** **CHIP 2 272,505 c/blk = 83.16% of 327,680, 55,175 cycles (16.84%) CLEAR; CHIP 1 289,847 = 88.46%, 37,833 (11.54%) clear** — block 16, 983.04 MHz, two boots a point, minimum taken, witnesses clean on every point. **(1) THE CONFIG IS A GENERATOR PARAMETER, NOT A FORK.** `gen_dsp_csv.py` takes `--geq-bands` and `--geq-outputs {aux,grp,main,sub,mainout,mon}`, and **its defaults regenerate the shipping `dsp.csv` BYTE FOR BYTE** — which is what makes the two arms a paired measurement on one instrument in one session rather than a comparison against a figure from another. The market bar is `--geq-bands 31 --geq-outputs aux,grp,main,sub,mainout`: 31 bands on the twelve auxes, four groups and the main bus (were 28) plus **NEW instances on the sub and the four post-crossover main outs** — `C2_SUB_GEQ`, `C2_MAIN_OGEQ_01..04`. Chip-2 biquad stages 632 → 841. Bus and output COUNTS are deliberately NOT parameters: NUM_AUX=12, NUM_GRP=4, NUM_FX=6 and the four main outs are pinned by the single-sourced TDM slot map, and a count invented in the generator would disagree with the slot map rather than change the product. **(2) THE COST, SPLIT BY MEASUREMENT RATHER THAN MODEL — three arms, three subtractions.** 28→31 bands on the seventeen instances that already existed: **+4,940 c/blk, 1.51%, 54 stages, 91.5 c/blk per stage.** The five new instances: **+17,828, 5.44%, 155 stages, 115.0 per stage** — a quarter more, and the difference is per-NODE work a longer cascade never pays again (crossfade and staged-coefficient checks, the paired driver's block copy, the call): ~14,183 is stages and ~3,645 is the five nodes at 729 c/blk each. **The monitor feed was NOT silently trimmed — it is priced: +6,044 c/blk, 1.84%, 85.01% total, and it fits too.** It is excluded from the headline because it is a listening path off the main fader rather than a program output; PW's call, measured either way. The main stereo out and codec aux out are already covered — both sit downstream of the main bus GEQ. **(3) CHIP 1 DID NOT MOVE AND THAT WAS THE PREDICTION: 289,727 → 289,847, +120 cycles, 0.04% of budget, where the two baseline boots are 0.82% apart.** The graphic EQ is an output-side feature and every instance of it lives on chip 2. **So the split answers the dispatch's question directly: 100% of the market-bar load lands on chip 2, which started at 76.21% with 23.79% free — and chip 1 is now the TIGHTER part by 5.3 points**, having been 12.2 points looser. The next capacity question is chip 1's: D22 routing at 15–29× over floor, D25 delay, the D20 GAIN→FILT fold. **(4) THE INSTRUMENT VALIDATED ITSELF BEFORE ANY DIFFERENCE WAS BELIEVED**: chip 2's shipping arm re-measured at 249,737 against session 25's 249,751 (**0.006%**) and chip 1's at 289,727 against 290,193 (0.16%). Nothing was carried; every figure above is a difference between two points taken hours apart on one bench. **(5) ONE REAL HAZARD FOUND BY BUILDING IT (D81, fixed).** `_C2_PAIR_FAMILIES` states each chip-2 pair family as a fixed chain of classes and drops any instance missing one, so **adding `OGEQ` to the MOUT family dropped all four instances of the SHIPPING graph — four output compressors and limiters would have silently gone from paired to scalar, and no bar in this tree catches that**, because the shipping graph still builds and is still bit-exact. Fixed with `_c2_family_classes()`: a class absent from the graph entirely is dropped from the TEMPLATE, not from the family. Verified the only way that matters — **the shipping `src/` regenerates FILE-FOR-FILE identical**. **(6) THE FEATURE IS IN THE IMAGE, NOT JUST IN THE CSV** — a cycle measurement of something that did not get emitted measures nothing, so the tree was read: `process_chain.asm` calls `_C2_SUB_GEQ_process` and both `_C2BQP_MOUT_OGEQ_*_process` drivers, and the OGEQ pair drivers load `r4 = 31`. **Memory fits and is not close**: chip-2 DM 62.6% → 70.9% (71.9% with the monitor), code 52.1% → 54.2%, delay lines unchanged, all pools under 90% with 109,108 DM words left. **(7) INSTRUMENTS ARE NOW GRAPH-AWARE**: `captable.sh` and `sigprofile2.sh` take `DSP_CSV`, and BOTH the scratch source tree and the build directory carry a digest of the csv they were made from — without the second half the two arms would have shared a build directory and the second point would have booted the first one's image, which is the 2026-08-30 stale-tree defect one level down. `captable.sh` also gained `REPS`. **BARS: golden 59/59; `dsp_validate` OK (666 shipping, 671 full config, 672 with the monitor); `busgold` GRAPH BIT-EXACT, 0 of 256, sha256 `ba3f52ec`; all three W0 witnesses byte for byte — `4e89e062`/`4d1d314c`, `23c1e662`/`e45bb82a`, `2249afea`/`3173acb3` — and the float default rebuilds to the sizes session 25 recorded, 301,580/181,908.** No contract file touched, no contract version moved, no D5 change; `check-contract-drift.sh` deliberately not run. NO AUDIO: chip 2 is not audio-configured on this bench and every cascade runs at bypass, which is cost-identical — this is a cycle result, not a listening one. Write-up `MW/D32/DSP/dsp4-fullconfig-capacity-20260903.md`; costs in `dsp4-function-costs.csv` session 26; scoreboard artifact updated. **STILL OPEN:** (a) the full config has never been through a coefficient swap — the five new instances' crossfade path is unexercised, the same gap session 25 left; (b) adopting the market bar as the DEFAULT moves ~200 chip-2 SPI addresses and needs the contract flow re-run and a version recorded, which is a PW decision and not a measurement; (c) chip 1 at 88.46% is now where the margin work is.]   [model: opus]
 
 model: opus
