@@ -58,6 +58,14 @@ RO="${DSP4_BQ_ROUNDONCE:-1}"
 # swaps coefficients and nothing would ever be sized.
 GD="${DSP4_BQ_GUARD:-1}"
 GDF="${DSP4_BQ_GUARD_FORCE:-0}"
+# THE FLOAT ARM (2026-09-03). FL=1 swaps the four cascade kernels for
+# software float DF-II-T -- 40-bit extended-precision state, no |h|_1
+# guard, no per-stage saturate, no 64-bit extract -- and FL32=1 is its
+# 32-bit control (MODE1.RND32 set), which is RIG A2 exactly. FL=0 is
+# every existing point byte for byte, so the float and fixed arms are
+# a PAIRED measurement on one instrument in one session.
+FL="${DSP4_BQ_FLOAT:-0}"
+FL32="${DSP4_BQ_FLOAT32:-0}"
 BLOCK="${BLOCK:-8}"
 WORK="${WORK:-/tmp/sigprof2}"
 cd "$(dirname "$0")"
@@ -99,12 +107,13 @@ srctree() {
 SRC="$(srctree "$BLOCK")"
 
 for L in "$@"; do
-  D="$WORK/b$BLOCK-l$L-q$C2BQ-x$XP-r$RO-g$GD-f$GDF"
+  D="$WORK/b$BLOCK-l$L-q$C2BQ-x$XP-r$RO-g$GD-f$GDF-t$FL$FL32"
   DSP_SRC_DIR="$SRC" DSP_BUILD_DIR="$D" \
   DSP4_BISECT=0 DSP4_BLOCK_KERNELS=1 DSP4_PROFILE_SIGNAL=$SIG \
     DSP4_STRIP_FUSED=$FUS DSP4_SIMD_DYN=$SIMD DSP4_BQ_GRAPH=$BQ \
     DSP4_C2_BQ_GRAPH=$C2BQ DSP4_C2_XPAIR=$XP \
     DSP4_BQ_ROUNDONCE=$RO DSP4_BQ_GUARD=$GD DSP4_BQ_GUARD_FORCE=$GDF \
+    DSP4_BQ_FLOAT=$FL DSP4_BQ_FLOAT32=$FL32 \
     DSP4_NODE_LIMIT=0 DSP4_NODE_LIMIT2=$L \
     DSP4_BLOCK_DECIMATE=$DEC ./build.sh all > "$D.log" 2>&1
   if [ "$(grep -ciE '\[Error|Build FAILED' "$D.log")" -ne 0 ]; then
@@ -132,10 +141,10 @@ print(a('proc_cyc'), a('proc_passes'))")"
   for r in $(seq 1 "${REPS:-1}"); do
     R="$(ssh $BENCH "bash /home/app/sigprofile2_run.sh $PT $PP $DWELL" 2>&1 | tr '\n' ' | ')"
     C="$(echo "$R" | grep -oE '[0-9]+ cycles/pass' | grep -oE '^[0-9]+')"
-    echo "block=$BLOCK limit2=$L sig=$SIG c2bq=$C2BQ xp=$XP ro=$RO gd=$GD gf=$GDF rep=$r  $R"
+    echo "block=$BLOCK limit2=$L sig=$SIG c2bq=$C2BQ xp=$XP ro=$RO gd=$GD gf=$GDF fl=$FL$FL32 rep=$r  $R"
     if [ -n "$C" ]; then
       if [ -z "$BEST" ] || [ "$C" -lt "$BEST" ]; then BEST="$C"; fi
     fi
   done
-  echo "block=$BLOCK limit2=$L c2bq=$C2BQ xp=$XP ro=$RO gd=$GD gf=$GDF  MIN=${BEST:-none} cycles/block over ${REPS:-1} boot(s)"
+  echo "block=$BLOCK limit2=$L c2bq=$C2BQ xp=$XP ro=$RO gd=$GD gf=$GDF fl=$FL$FL32  MIN=${BEST:-none} cycles/block over ${REPS:-1} boot(s)"
 done

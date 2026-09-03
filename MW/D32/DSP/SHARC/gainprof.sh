@@ -69,6 +69,19 @@ REPS="${REPS:-1}"
 # two arms cannot share a build directory. 0 is the CONTROL and rebuilds
 # the per-stage-saturating cascade kernels byte for byte.
 RO="${DSP4_BQ_ROUNDONCE:-1}"
+# The per-cascade headroom guard, passed through so chip 1 can be
+# measured on the SAME arm chip 2 was. The round-once landing measured
+# chip 1 with GD unset (i.e. the guard ON by default) but recorded the
+# figure as "round-once"; the guard session only ever measured chip 2,
+# so GD=0 here is what makes chip 1 a like-for-like pair with it.
+GD="${DSP4_BQ_GUARD:-1}"
+# THE FLOAT ARM (2026-09-03). FL=1 swaps the four cascade kernels for
+# software float DF-II-T and forces the guard off with them; FL32=1 is
+# its 32-bit control (MODE1.RND32 set). FL=0 is every existing point
+# byte for byte, so the float arms and the fixed ones are a PAIRED
+# measurement on one instrument in one session.
+FL="${DSP4_BQ_FLOAT:-0}"
+FL32="${DSP4_BQ_FLOAT32:-0}"
 MTROFF="${DSP4_MTR_OFF:-0}"
 WORK="${WORK:-/tmp/gainprof}"
 cd "$(dirname "$0")"
@@ -108,12 +121,13 @@ SRC="$(srctree "$BLOCK")"
 
 for G in $ARMS; do
 for L in $LIMITS; do
-  D="$WORK/b$BLOCK-g$G-l$L-m$MTROFF-r$RO"
+  D="$WORK/b$BLOCK-g$G-l$L-m$MTROFF-r$RO-d$GD-f$FL$FL32"
   DSP_SRC_DIR="$SRC" DSP_BUILD_DIR="$D" \
   DSP4_BISECT=0 DSP4_BLOCK_KERNELS=1 DSP4_PROFILE_SIGNAL=$SIG \
     DSP4_STRIP_FUSED=$FUS DSP4_SIMD_DYN=$SIMD DSP4_BQ_GRAPH=$BQ \
     DSP4_GAIN_SIMD=$G DSP4_NODE_LIMIT=$L DSP4_NODE_LIMIT2=0 \
-    DSP4_MTR_OFF=$MTROFF DSP4_BQ_ROUNDONCE=$RO \
+    DSP4_MTR_OFF=$MTROFF DSP4_BQ_ROUNDONCE=$RO DSP4_BQ_GUARD=$GD \
+    DSP4_BQ_FLOAT=$FL DSP4_BQ_FLOAT32=$FL32 \
     DSP4_BLOCK_DECIMATE=$DEC ./build.sh all > "$D.log" 2>&1
   if [ "$(grep -ciE '\[Error|Build FAILED' "$D.log")" -ne 0 ]; then
     echo "block=$BLOCK simd=$G limit=$L BUILD FAILED"; continue; fi
@@ -138,11 +152,11 @@ print(a('proc_cyc'), a('proc_passes'),
   for r in $(seq 1 "$REPS"); do
     R="$(ssh $BENCH "bash /home/app/sigprofile_run.sh $PT $PP $DWELL 0" 2>&1 | tr '\n' ' | ')"
     C="$(echo "$R" | grep -oE '[0-9]+ cycles/pass' | grep -oE '^[0-9]+')"
-    echo "block=$BLOCK simd=$G limit=$L mtroff=$MTROFF ro=$RO rep=$r pool=$POOL  $R"
+    echo "block=$BLOCK simd=$G limit=$L mtroff=$MTROFF ro=$RO gd=$GD fl=$FL$FL32 rep=$r pool=$POOL  $R"
     if [ -n "$C" ]; then
       if [ -z "$BEST" ] || [ "$C" -lt "$BEST" ]; then BEST="$C"; fi
     fi
   done
-  echo "block=$BLOCK simd=$G limit=$L mtroff=$MTROFF ro=$RO pool=$POOL  MIN=${BEST:-none} cycles/block over $REPS boot(s)"
+  echo "block=$BLOCK simd=$G limit=$L mtroff=$MTROFF ro=$RO gd=$GD fl=$FL$FL32 pool=$POOL  MIN=${BEST:-none} cycles/block over $REPS boot(s)"
 done
 done

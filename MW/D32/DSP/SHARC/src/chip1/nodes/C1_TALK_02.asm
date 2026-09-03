@@ -43,7 +43,10 @@
  * the corner. It is unsized because this node converts on every
  * invocation rather than at a parameter-load moment, so there is
  * nothing control-rate to hang a sizing off. See the write-up. */
-#if DSP4_BQ_GUARD
+#if DSP4_BQ_FLOAT
+.global _talk_hpf_cq_C1_TALK_02;
+.var _talk_hpf_cq_C1_TALK_02[5] = 0x3F800000, 0, 0, 0, 0;
+#elif DSP4_BQ_GUARD
 .global _talk_hpf_cq_C1_TALK_02;
 .var _talk_hpf_cq_C1_TALK_02[6] = 0, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
 #else

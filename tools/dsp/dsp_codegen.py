@@ -5899,10 +5899,29 @@ def gen_eq_biquad_fixed(node):
 # round-once, so a guard-off build must be the same instructions it was.
 # ---------------------------------------------------------------------------
 
+# The float measurement arm's bypass words. Every bypass initialiser in
+# the tree is the IDENTITY filter, so it is derivable from the word count
+# and does not have to be threaded through each caller: RBJ b0 = 1.0,
+# b1 = b2 = a1 = a2 = 0, as IEEE-754 singles, five words a stage. The
+# Q4.28 offset words the fixed path uses are a different encoding of the
+# same filter and would read as denormals in float, which is silence and
+# not bypass -- so this cannot be left alone under DSP4_BQ_FLOAT.
+_BQ_FLOAT_BYPASS_STAGE = '0x3F800000, 0, 0, 0, 0'
+
+
+def _bq_float_bypass(n):
+    if n % 5:
+        raise SystemExit(f'_bq_hdr_var: {n} coefficient words is not a whole '
+                         'number of 5-word stages')
+    return ', '.join([_BQ_FLOAT_BYPASS_STAGE] * (n // 5))
+
+
 def _bq_hdr_var(name, n, bypass, ind=8):
     """A cascade coefficient block, with the guard's header word."""
     sp = ' ' * ind
-    return (f'#if DSP4_BQ_GUARD\n'
+    return (f'#if DSP4_BQ_FLOAT\n'
+            f'{sp}.var {name}[{n}] = {_bq_float_bypass(n)};\n'
+            f'{sp}#elif DSP4_BQ_GUARD\n'
             f'{sp}.var {name}[{n} + 1] = 0, {bypass};\n'
             f'{sp}#else\n'
             f'{sp}.var {name}[{n}] = {bypass};\n'
@@ -8204,7 +8223,44 @@ def gen_block_header():
  * DSP4_BQ_GUARD_FORCE > 0 overrides the sized H on EVERY cascade, which
  * is how the guard's worst-case cost is measured in the graph rather
  * than estimated from a rig. It is a measurement, not a mode. */
-#if DSP4_BQ_ROUNDONCE
+/* FLOAT ON SHARC (2026-09-03), MEASUREMENT ARM -- DSP4_BQ_FLOAT.
+ *
+ * The four cascade kernels become software FLOAT DF-II-T (the shootout's
+ * RIG A2 arithmetic) instead of the Q4.28 offset form, and the cascade's
+ * coefficient block carries the RBJ float words the host already writes
+ * -- so `_bq_fx_convert_N` becomes a copy and the quantisation step
+ * disappears with it. The signal buffers stay Q4.28: the conversion is
+ * ONE instruction per sample on the way into a cascade
+ * (`Fn = FLOAT Rx BY -28`) and one on the way out (`Rn = FIX Fx BY 28`,
+ * with ALUSAT set so the one word handed to the next node clamps).
+ *
+ * IT NEEDS NONE OF THE GUARD MACHINERY, and that is the point of the
+ * measurement: no per-stage saturate, no 64-bit extract, no |h|_1
+ * headroom guard and no load-time sizer, because an 8-bit exponent
+ * absorbs the |h|_1 = 1313 (+62 dB) worst case that costs the fixed path
+ * eight bits of mantissa. DSP4_BQ_GUARD is therefore FORCED OFF here
+ * (and DSP4_BQ_HDR with it) rather than merely defaulting off.
+ *
+ * THE STATE IS 40-BIT. MODE1.RND32 is CLEARED, so the register file
+ * carries the SHARC's extended-precision float -- eight more mantissa
+ * bits -- through the whole recursion, and the block kernels hold w1/w2
+ * in registers across all DSP4_BLOCK_SIZE samples, which is where a
+ * high-Q low-frequency biquad's state error accumulates.
+ * DSP4_BQ_FLOAT32=1 is the CONTROL: RND32 set, so every result rounds at
+ * the 32-bit boundary and the arm is IEEE single throughout -- RIG A2
+ * exactly. The difference between the two is what the 40 bits buy.
+ *
+ * MEASUREMENT ONLY (PW's fixed-vs-float mandate call is open). The D5
+ * contract is untouched, the fixed/round-once/guard path is untouched,
+ * and DSP4_BQ_FLOAT=0 is every existing build byte for byte. */
+#ifndef DSP4_BQ_FLOAT
+#define DSP4_BQ_FLOAT 0
+#endif
+#ifndef DSP4_BQ_FLOAT32
+#define DSP4_BQ_FLOAT32 0
+#endif
+
+#if DSP4_BQ_ROUNDONCE && !DSP4_BQ_FLOAT
 #ifndef DSP4_BQ_GUARD
 #define DSP4_BQ_GUARD 1
 #endif
@@ -9988,7 +10044,9 @@ def gen_talkback_fixed(node):
          * the corner. It is unsized because this node converts on every
          * invocation rather than at a parameter-load moment, so there is
          * nothing control-rate to hang a sizing off. See the write-up. */
-        #if DSP4_BQ_GUARD
+        #if DSP4_BQ_FLOAT
+        .var _talk_hpf_cq_{nid}[5] = 0x3F800000, 0, 0, 0, 0;
+        #elif DSP4_BQ_GUARD
         .var _talk_hpf_cq_{nid}[6] = 0, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
         #else
         .var _talk_hpf_cq_{nid}[5] = 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;

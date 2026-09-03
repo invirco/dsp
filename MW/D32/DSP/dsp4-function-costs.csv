@@ -709,3 +709,37 @@ BQ_GUARD_C2_H0,16,1771,0.54,"MEASURED, whole graph: 262970 (guard off) -> 264741
 BQ_GUARD_C2_FORCED,16,6427,1.96,"MEASURED, whole graph, DSP4_BQ_GUARD_FORCE=4: 262970 -> 269397 with BOTH scaling passes live on EVERY cascade. The guard's WORST case, 80.25% -> 82.21%. Session 22's rig-based estimate said 0.9-1.3%; the graph says 1.96%, so the estimate was optimistic by about half again"
 BQ_GUARD_C2_VS_CONTRACT,16,42198,12.88,"The whole fixed+guard option against today: contract 306939 (93.67%) -> guarded round-once 264741 (80.79%) typical, 269397 (82.21%) worst case. The contract arm re-measured in THIS session reproduces session 22's 307033 to 0.03%"
 BQ_GUARD_SIZE_C1,,10464,,"PM: chip1.ldr 301732 -> 312196 bytes with the guard wired (chip 2 182060 -> 191476). The per-node hand-off is a CALL to _bq_hr_node1 and not forty inline instructions -- inline it overflowed sec_swco on chip 1 in the profiling build"
+#
+# ---- session 24, 2026-09-03: FLOAT ON SHARC, WHOLE GRAPH, BOTH CHIPS.
+# DSP4_BQ_FLOAT swaps the four cascade kernels for software float DF-II-T
+# (RIG A2's arithmetic) with 40-bit extended-precision state, forces the |h|_1
+# guard OFF with them, and turns _bq_fx_convert_N into a copy. MEASUREMENT
+# ONLY: the D5 contract is untouched, DSP4_BQ_FLOAT=0 rebuilds all three
+# recorded W0 witnesses byte for byte, and float is NOT the shipping path.
+# Graph figures, block 16, two boots a point, minimum taken, witnesses clean.
+# Numerics are MODELLED (tools/dsp/bq_float_ref.py), not yet validated on the
+# part. Write-up: dsp4-float-wholegraph-20260903.md.
+BQ_FLOAT_C2_GRAPH_FL40,16,246534,75.23,"chip 2 whole graph, FLOAT 40-bit state, guard-free. 18,168 cycles/block below the fixed round-once+guard arm (5.54% of budget) and 60,405 below the contract (18.43%)"
+BQ_FLOAT_C2_GRAPH_FL32,16,247290,75.47,"chip 2, DSP4_BQ_FLOAT32 -- MODE1.RND32 set, IEEE single throughout, RIG A2 exactly. 756 cycles ABOVE the 40-bit arm, i.e. inside the instrument's spread: the 40 bits cost nothing"
+BQ_FLOAT_C2_GRAPH_GUARD,16,264702,80.78,"chip 2, fixed round-once + guard, THIS session's paired control. Reproduces session 23's 264,741 to 0.015%"
+BQ_FLOAT_C1_GRAPH_FL40,16,290861,88.76,"chip 1 whole graph, FLOAT 40-bit. Only 2,002 cycles (0.61%) below the guarded fixed arm -- chip 1 carries 256 biquad stages against chip 2's 632 and is dominated by GAIN, its meter and the dynamics"
+BQ_FLOAT_C1_GRAPH_FL32,16,290829,88.75,"chip 1, 32-bit control. 32 cycles BELOW the 40-bit arm, the opposite sign to chip 2's reading and the same conclusion: the difference is instrument spread"
+BQ_FLOAT_C1_GRAPH_GUARD,16,292863,89.38,"chip 1, fixed round-once + guard -- A NEW POINT: the guard had only ever been measured on chip 2"
+BQ_FLOAT_C1_GRAPH_RO_NOGUARD,16,291746,89.03,"chip 1, fixed round-once with the guard OFF. Reproduces session 22's 291,264 to 0.17%, which is the chip-1 instrument validating itself across sessions"
+BQ_GUARD_C1_COST,16,1117,0.34,"THE GUARD ON CHIP 1, measured rather than estimated: 292,863 - 291,746. Against chip 2's 1,771 / 0.54% -- the same shape scaled by the stage count"
+BQ_FLOAT_W0,16,,,"DSP4_BQ_FLOAT=1 default build 591a0b08 / e7abb98e, 301,528 / 181,872 bytes -- SMALLER than the shipping default's 312,196 / 191,476 because the sizer, the header handling and the Q4.28 conversion arithmetic all go with the guard"
+#
+# ---- the NUMERIC cost, MODELLED (tools/dsp/bq_float_ref.py). Response error
+# is against the filter the design ASKED for -- unquantised float64 -- so it
+# is "how wrong is this filter", not "how far apart are two implementations".
+# The 40-bit arm is rounded ONCE per operation in numpy.longdouble (64-bit
+# significand), not double-rounded through float64.
+BQ_FLOAT_RESP_FL40_WIRE,16,,,"0.3715 dB worst over the DEFS set (LF shelf +15 dB Q3.16 @20 Hz), 8x the 0.046 dB golden bar. Against the fixed contract's 0.0265 dB"
+BQ_FLOAT_RESP_FL32_WIRE,16,,,"0.5346 dB worst, same design. Reproduces the shootout's 0.520 dB from a different reference, which is the model agreeing with a figure it was not fitted to"
+BQ_FLOAT_RESP_FL40_EXACT,16,,,"0.0107 dB worst with UNQUANTISED coefficients -- the float ARITHMETIC's own error is a quarter of the golden bar. Everything between this and 0.3715 is the float32 coefficient WORD"
+BQ_FLOAT_RESP_FL40_OFFSET,16,,,"0.0042 dB worst if the wire carries D5's OFFSET encoding (n1, n2, c1=2+a1, c2=1-a2) as float32 and the kernel reconstructs -- 11x UNDER the bar and better than the shipping fixed contract. NOT BUILT; modelled. A 20 Hz biquad has a1 = -1.9948 where a float32 ulp is 2.4e-7 against Q4.28's 3.7e-9: six bits on the word that places the pole"
+BQ_FLOAT_NOISE_FL40,16,,,"residual arithmetic noise floor -107.1 dBFS (LF shelf) to -142.8 (4-band), against the fixed path's -151.7 to -159.7. Fixed is 8-22 dB quieter and the reason is the first-order ERROR FEEDBACK, which float has no residual to carry"
+BQ_FLOAT_NOISE_FL32,16,,,"-74.1 to -101.5 dBFS. The 40 bits are worth 33-48 dB of noise floor at zero cycle cost; there is no reason to run this kernel at 32 bits"
+BQ_FLOAT_NOISE_PMSTATE,16,,,"a 40-bit state that never passes through a 32-bit DM word is worth a further 14.3 dB on the LF shelf, 6.4 on the 4-band, 1.6 on the GEQ -- and NOTHING in the response table (0.3715 vs 0.3721). In DM it would cost ~14 instructions/stage/block, about 2.7% of chip 2; in PM it costs no cycles and PM chip 1 has not got. Priced, not built"
+BQ_FLOAT_OVERFLOW,16,,,"the worst DEFS cascade (4-band all +15 dB, |h|_1 = 1285, the one that costs the fixed path H = 8) peaks at 1285.0 against float32's 3.4e38 -- 2.6e35x of headroom, 3.8e-36 of the exponent range. Nothing in the float cascade can overflow. The ONE thing that still clamps is the cascade OUTPUT, because the inter-node bus is still Q4.28, and the guarded fixed arm clamps there too"
+BQ_FLOAT_GAIN_ESTIMATE,16,2954,0.90,"GAIN in float: the ten instructions of Q4.28 extract-and-saturate become ONE clip plus two domain crossings, ~6 c/sample/strip off the per-sample path -- almost exactly RIG C's 5.95 for the FIXED round-once version of the same idea, which is the tell that the saving is the ROUNDING CONTRACT and not the number format. Same 0.90%-of-chip-1 estimate and the same condition: only if the D20 mic-pre tap is given up"

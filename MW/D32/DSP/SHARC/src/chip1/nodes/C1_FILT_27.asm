@@ -22,7 +22,10 @@
 .section/dm seg_dmda;
 .extern _buf_C1_GAIN_27;
 
-#if DSP4_BQ_GUARD
+#if DSP4_BQ_FLOAT
+.global _filt_hpf_A_C1_FILT_27;
+.var _filt_hpf_A_C1_FILT_27[5] = 0x3F800000, 0, 0, 0, 0;
+#elif DSP4_BQ_GUARD
 .global _filt_hpf_A_C1_FILT_27;
 .var _filt_hpf_A_C1_FILT_27[5 + 1] = 0, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
 #else
@@ -33,7 +36,10 @@
 .var _filt_lpf_A_C1_FILT_27[5] = 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
 .global _filt_state_A_C1_FILT_27;
 .var _filt_state_A_C1_FILT_27[12];
-#if DSP4_BQ_GUARD
+#if DSP4_BQ_FLOAT
+.global _filt_hpf_B_C1_FILT_27;
+.var _filt_hpf_B_C1_FILT_27[5] = 0x3F800000, 0, 0, 0, 0;
+#elif DSP4_BQ_GUARD
 .global _filt_hpf_B_C1_FILT_27;
 .var _filt_hpf_B_C1_FILT_27[5 + 1] = 0, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
 #else
