@@ -44,7 +44,43 @@ parser.add_argument('--out', default=os.path.join(
     REPO_ROOT, 'MW', 'D32', 'DSP', 'SHARC', 'dsp.csv'))
 parser.add_argument('--sport-map', default=os.path.join(
     REPO_ROOT, 'shared', 'dsp4-logic', 'generated', 'sport_map.json'))
+# --- GEQ FEATURE PARAMETERS (2026-09-03) -----------------------------------
+# The graphic EQ is the one feature whose EXTENT is a market decision rather
+# than a hardware one, so it is a parameter of this generator instead of a
+# constant: PW's market bar is "31-band GEQ on ALL outputs", and the cost of
+# that bar has to be measurable against the shipping graph on one instrument.
+#
+# Defaults REPRODUCE THE SHIPPING dsp.csv BYTE FOR BYTE -- 28 bands on the
+# twelve aux buses, the four groups and the main bus, and nowhere else. Any
+# other value is a different product configuration and is asked for
+# explicitly.
+#
+# Bus/output COUNTS are deliberately NOT parameters here: NUM_AUX=12,
+# NUM_GRP=4, NUM_FX=6 and the four main outputs are pinned by the TDM mix
+# fabric's single-sourced slot map (shared/dsp4-logic/generated/
+# sport_map.json), and a count this script invented would disagree with the
+# slot map rather than change the product.
+parser.add_argument('--geq-bands', type=int, default=28,
+                    help='bands per graphic EQ instance (default 28; the '
+                         '1/3-octave market bar is 31)')
+parser.add_argument('--geq-outputs', default='aux,grp,main',
+                    help='comma-separated output classes that carry a GEQ: '
+                         'aux,grp,main,sub,mainout,mon. Default '
+                         '"aux,grp,main" is the shipping graph.')
 args = parser.parse_args()
+
+GEQ_BANDS = args.geq_bands
+if not 1 <= GEQ_BANDS <= 64:
+    raise ValueError(f'--geq-bands {GEQ_BANDS} out of range 1..64')
+GEQ_CLASSES = ('aux', 'grp', 'main', 'sub', 'mainout', 'mon')
+GEQ_ON = tuple(c.strip() for c in args.geq_outputs.split(',') if c.strip())
+# No-fallback policy: an unrecognised class is a typo that would silently
+# generate a graph with a feature missing.
+for _c in GEQ_ON:
+    if _c not in GEQ_CLASSES:
+        raise ValueError(
+            f'--geq-outputs: unknown class {_c!r}; known classes are '
+            f'{", ".join(GEQ_CLASSES)}')
 
 with open(args.sport_map, encoding='utf-8') as f:
     SPORT_MAP = json.load(f)
@@ -461,19 +497,22 @@ for a in range(1, NUM_AUX + 1):
         ramp_profile='GainFast')
 
     p, a2 = c2_alloc.next(24)
-    add(n_eq, 2, 'EQ_BIQUAD', f'Aux {a} EQ', 1, n_fdr, n_geq,
+    add(n_eq, 2, 'EQ_BIQUAD', f'Aux {a} EQ', 1, n_fdr,
+        n_geq if 'aux' in GEQ_ON else n_afb,
         spi_page=p, spi_addr=a2,
         params='bands=4;coeffs=default',
         ramp_profile='EqSafe')
 
-    p, a2 = c2_alloc.next(28)  # 28-band GEQ
-    add(n_geq, 2, 'GEQ', f'Aux {a} GEQ', 1, n_eq, n_afb,
-        spi_page=p, spi_addr=a2,
-        params='bands=28',
-        ramp_profile='EqSafe')
+    if 'aux' in GEQ_ON:
+        p, a2 = c2_alloc.next(GEQ_BANDS)
+        add(n_geq, 2, 'GEQ', f'Aux {a} GEQ', 1, n_eq, n_afb,
+            spi_page=p, spi_addr=a2,
+            params=f'bands={GEQ_BANDS}',
+            ramp_profile='EqSafe')
 
     p, a2 = c2_alloc.next(24)  # 6 notches × (freq + gain + Q + biquad coeffs)
-    add(n_afb, 2, 'ANTI_FB', f'Aux {a} AntiFB', 1, n_geq, n_lim,
+    add(n_afb, 2, 'ANTI_FB', f'Aux {a} AntiFB', 1,
+        n_geq if 'aux' in GEQ_ON else n_eq, n_lim,
         spi_page=p, spi_addr=a2,
         params='notch_count=6',
         ramp_profile='EqSafe')
@@ -607,19 +646,22 @@ add('C2_MIX_MAIN_R', 2, 'MIX_BUS', 'Main Mix R', 1, main_r_sources, 'C2_MAIN_FDR
     params='bus_id=1')
 
 p, a2 = c2_alloc.next(4)
-add('C2_MAIN_FDR', 2, 'FADER_PAN', 'Main Fader', 2, 'C2_MIX_MAIN_L;C2_MIX_MAIN_R', 'C2_MAIN_GEQ',
+add('C2_MAIN_FDR', 2, 'FADER_PAN', 'Main Fader', 2, 'C2_MIX_MAIN_L;C2_MIX_MAIN_R',
+    'C2_MAIN_GEQ' if 'main' in GEQ_ON else 'C2_MAIN_COMP',
     spi_page=p, spi_addr=a2,
     params='level_db=0.0;mute=0;host_cells=Dca,DcaOn',
     ramp_profile='GainFast')
 
-p, a2 = c2_alloc.next(28)
-add('C2_MAIN_GEQ', 2, 'GEQ', 'Main GEQ', 2, 'C2_MAIN_FDR', 'C2_MAIN_COMP',
-    spi_page=p, spi_addr=a2,
-    params='bands=28',
-    ramp_profile='EqSafe')
+if 'main' in GEQ_ON:
+    p, a2 = c2_alloc.next(GEQ_BANDS)
+    add('C2_MAIN_GEQ', 2, 'GEQ', 'Main GEQ', 2, 'C2_MAIN_FDR', 'C2_MAIN_COMP',
+        spi_page=p, spi_addr=a2,
+        params=f'bands={GEQ_BANDS}',
+        ramp_profile='EqSafe')
 
 p, a2 = c2_alloc.next(16)
-add('C2_MAIN_COMP', 2, 'COMPRESSOR', 'Main Comp', 2, 'C2_MAIN_GEQ', 'C2_MAIN_LIM',
+add('C2_MAIN_COMP', 2, 'COMPRESSOR', 'Main Comp', 2,
+    'C2_MAIN_GEQ' if 'main' in GEQ_ON else 'C2_MAIN_FDR', 'C2_MAIN_LIM',
     spi_page=p, spi_addr=a2,
     params='threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA',
     ramp_profile='DynSafe')
@@ -849,13 +891,13 @@ rows[last_bus_recv_idx:last_bus_recv_idx] = superset_rows
 # Chain becomes RECV → FDR → EQ → GEQ → GATE → COMP. SPI addresses are
 # allocated after all earlier chip-2 nodes (address stability); rows are
 # spliced in after each group's EQ so process order matches the chain.
-for g in range(1, NUM_GRP + 1):
+for g in range(1, NUM_GRP + 1) if 'grp' in GEQ_ON else ():
     gg = f'{g:02d}'
     n_eq, n_geq, n_gate = f'C2_GRP_EQ_{gg}', f'C2_GRP_GEQ_{gg}', f'C2_GRP_GATE_{gg}'
-    p, a2 = c2_alloc.next(28)
+    p, a2 = c2_alloc.next(GEQ_BANDS)
     add(n_geq, 2, 'GEQ', f'Grp {g} GEQ', 1, n_eq, n_gate,
         spi_page=p, spi_addr=a2,
-        params='bands=28',
+        params=f'bands={GEQ_BANDS}',
         ramp_profile='EqSafe')
     geq_row = rows.pop()
     for r in rows:
@@ -870,6 +912,63 @@ for g in range(1, NUM_GRP + 1):
             f'GEQ insertion: no row with id {n_eq!r} found; graph is out '
             f'of sync with the expected EQ/GEQ/gate chain')
     rows.insert(idx, geq_row)
+
+# ===========================================================================
+# CHIP 2 — GEQ on the remaining OUTPUTS (2026-09-03, --geq-outputs)
+# ===========================================================================
+# The market bar is a 31-band graphic EQ on EVERY output, and the shipping
+# graph carries one on the aux buses, the groups and the main bus only. The
+# outputs still without one are the sub, the four post-crossover main
+# outputs and the monitor feed; each is opted in by name, and each is
+# spliced into its chain the same way the group GEQ is — SPI words
+# allocated after every earlier chip-2 node, so turning a class on never
+# moves an address that was already allocated.
+#
+# The monitor is listed separately from the program outputs on purpose: it
+# is a listening feed off the main fader, not a program output, so "all
+# outputs" does not obviously include it and its cost is 2 channels' worth.
+
+
+def splice_geq(nid, label, ch_count, after, before, bands):
+    """Insert a GEQ node between `after` and `before`, in chain order."""
+    pg, ad = c2_alloc.next(bands)
+    add(nid, 2, 'GEQ', label, ch_count, after, before,
+        spi_page=pg, spi_addr=ad,
+        params=f'bands={bands}',
+        ramp_profile='EqSafe')
+    row = rows.pop()
+    seen_after = seen_before = False
+    for r in rows:
+        if r['id'] == after:
+            r['outputs'] = ';'.join(
+                nid if o == before else o for o in r['outputs'].split(';'))
+            seen_after = True
+        elif r['id'] == before:
+            r['inputs'] = ';'.join(
+                nid if i == after else i for i in r['inputs'].split(';'))
+            seen_before = True
+    if not (seen_after and seen_before):
+        raise ValueError(
+            f'GEQ splice {nid}: expected both {after!r} and {before!r} in '
+            f'the graph (found after={seen_after}, before={seen_before}); '
+            f'the chain this GEQ is being inserted into has changed')
+    idx = next(i for i, r in enumerate(rows) if r['id'] == after) + 1
+    rows.insert(idx, row)
+
+
+if 'sub' in GEQ_ON:
+    splice_geq('C2_SUB_GEQ', 'Sub GEQ', 1,
+               'C2_SUB_EQ', 'C2_SUB_COMP', GEQ_BANDS)
+
+if 'mainout' in GEQ_ON:
+    for out_n in range(1, 5):
+        oo = f'{out_n:02d}'
+        splice_geq(f'C2_MAIN_OGEQ_{oo}', f'Main Out {out_n} GEQ', 1,
+                   f'C2_MAIN_OEQ_{oo}', f'C2_MAIN_OCOMP_{oo}', GEQ_BANDS)
+
+if 'mon' in GEQ_ON:
+    splice_geq('C2_MON_GEQ', 'Monitor GEQ', 2,
+               'C2_MON', 'C2_MON_DLY', GEQ_BANDS)
 
 # ===========================================================================
 # Write CSV

@@ -11781,20 +11781,33 @@ _C2_PAIR_FAMILIES = (
      {'GATE': 'gate', 'COMP': 'comp'},
      {'EQ': 'eq', 'GEQ': 'geq'}),
     ('MOUT', 'C2_MAIN_{cls}_{n}',
-     ('OEQ', 'OCOMP', 'OLIM', 'OUT'),
+     ('OEQ', 'OGEQ', 'OCOMP', 'OLIM', 'OUT'),
      {'OCOMP': 'comp', 'OLIM': 'lim'},
-     {'OEQ': 'eq'}),
+     {'OEQ': 'eq', 'OGEQ': 'geq'}),
 )
+
+# A CLASS THE GRAPH DOES NOT HAVE IS DROPPED FROM THE TEMPLATE, NOT FROM
+# THE FAMILY. OGEQ above is the per-output graphic EQ, which exists only
+# when dsp.csv was generated with --geq-outputs mainout; without that
+# filter the MOUT family's instances would all count as incomplete and the
+# family would vanish, silently un-pairing the four output compressors and
+# limiters that the shipping image pairs today. The rule is all-or-nothing
+# per class: a class present on SOME instances still drops those instances,
+# which is the existing incomplete-instance behaviour.
+def _c2_family_classes(classes, tmpl, insts, have):
+    return tuple(c for c in classes
+                 if any(tmpl.format(cls=c, n=n) in have for n in insts))
 
 # How many biquad STAGES a cascade class has, and where its count lives in
 # the dsp.csv params. Unknown classes are not paired -- the no-fallback
 # rule: a cascade whose length this table cannot state is left scalar
 # rather than paired at a guessed length.
 _C2_BQ_STAGES = {
-    'EQ':  ('bands', 4),
-    'OEQ': ('bands', 4),
-    'GEQ': ('bands', 28),
-    'AFB': ('notch_count', 6),
+    'EQ':   ('bands', 4),
+    'OEQ':  ('bands', 4),
+    'GEQ':  ('bands', 28),
+    'OGEQ': ('bands', 31),
+    'AFB':  ('notch_count', 6),
 }
 
 # Per pair kernel: the node-variable prefix, how many PARAMETER words the
@@ -11830,6 +11843,9 @@ def c2_pair_groups(chip_label, chip_nodes, call_sequence):
                        if nid.startswith(pre) and nid[len(pre):].isdigit())
         if not insts:
             continue
+        classes = _c2_family_classes(classes, tmpl, insts, have)
+        paired = {c: v for c, v in paired.items() if c in classes}
+        bqpaired = {c: v for c, v in bqpaired.items() if c in classes}
         nid = {}
         complete = []
         for n in insts:
@@ -11855,6 +11871,8 @@ def c2_pair_groups(chip_label, chip_nodes, call_sequence):
         for which, pset in (('dynamics', paired),
                             ('biquad+dynamics', dict(paired, **bqpaired))):
             pcls = [c for c in classes if c in pset]
+            if not pcls:
+                continue
             span = classes[classes.index(pcls[0]):classes.index(pcls[-1]) + 1]
             if list(span) != pcls:
                 raise ValueError(

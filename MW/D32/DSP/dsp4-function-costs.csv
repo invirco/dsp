@@ -768,3 +768,24 @@ BQ_FLOAT_RESP_INLOOP,16,,,"running the OFFSET form through the recursion instead
 BQ_FLOAT_SIG_DM,16,0,0.00,"the block kernel's inter-stage signal crosses a 32-bit DM word (stage-outer/sample-inner: a stage writes its whole block of y and the next stage reads it back), so the FORWARD path is 32-bit float even in the 40-bit arm. bq_float_ref did not carry that until this session. Worth NOTHING on the response table -- 0.0080 dB either way -- and the 40 bits keep what they were bought for, which is the RECURSION"
 BQ_FLOAT_ONPART,16,,,"bqeverify.sh float: arm A (shipping kernel, offset wire) and arm B (same kernel without the reconstruction, direct wire) both hash to bq_float_ref, 0 ULP, at block 8 (18,432 words, 566 of 576 cells diverging) and block 16 (36,864 words, 567 of 576). The bypass cascades AGREE to the bit and everything with a pole away from the origin DIFFERS, which is what makes it two-sided: a reconstruction that quietly did nothing would show as universal agreement"
 BQ_FLOAT_SIZE,,-10616,,"PM: chip1.ldr 312196 (fixed+guard) -> 301580 bytes float, chip 2 191476 -> 181908. SMALLER than the fixed shipping image, because the sizer, the header handling and the whole Q4.28 conversion go with the guard"
+#
+# ---- session 26, 2026-09-03: THE FULL MARKET CONFIG. 31-band GEQ on every
+# program output (PW's market bar) on top of the shipping graph, whole graph,
+# both chips, block 16, two boots a point, minimum taken, witnesses clean.
+# The graph is a PARAMETER of gen_dsp_csv.py (--geq-bands / --geq-outputs)
+# whose defaults regenerate the shipping dsp.csv byte for byte, so the arms
+# are a PAIRED measurement on one instrument in one session. No audio: chip 2
+# is not configured on this bench and every cascade runs at bypass, which is
+# cost-identical. Write-up: dsp4-fullconfig-capacity-20260903.md.
+function,block,cycles_per_block,pct_of_budget,notes
+FULLCFG_C2_SHIPPING,16,249737,76.21,"chip 2, shipping graph, THIS session's paired baseline. Reproduces session 25's 249,751 to 0.006% -- the instrument validating itself before any difference is believed"
+FULLCFG_C2_BANDS31,16,254677,77.72,"chip 2, 28 -> 31 bands on the 17 GEQ instances that already existed (aux x12, grp x4, main stereo). +4,940 cycles/block, +1.51% of budget, 54 stages added"
+FULLCFG_C2_MARKETBAR,16,272505,83.16,"chip 2, THE FULL MARKET CONFIG: 31-band GEQ on every program output -- the 17 existing instances plus NEW ones on the sub and the four post-crossover main outputs. +22,768 cycles/block over shipping = 6.95% of budget. FITS, 55,175 cycles (16.84%) clear"
+FULLCFG_C2_WITH_MONITOR,16,278549,85.01,"chip 2, the same plus a 31-band GEQ on the monitor/phones feed (2 ch). +6,044 cycles/block, +1.84%. Also fits. The monitor is a listening path off the main fader rather than a program output, so it is PW's call and is priced rather than assumed either way"
+FULLCFG_C1_SHIPPING,16,289727,88.42,"chip 1, shipping graph, this session's paired baseline. Session 25 read 290,193; 0.16% apart, and the two boots of this point are 0.82% apart"
+FULLCFG_C1_MARKETBAR,16,289847,88.46,"chip 1, full market config: +120 cycles = 0.04% of budget, inside the instrument's own spread. PREDICTED and confirmed -- the graphic EQ is an output-side feature and every instance lives on chip 2. Chip 1 is now the TIGHTER part, by 5.3 points"
+FULLCFG_GEQ_BAND_EXISTING,16,91.5,,"cycles/block per biquad stage ADDED TO AN EXISTING cascade: 4,940 / 54 stages = 5.72 cycles/sample/stage. The cheapest kind of GEQ there is -- no new node, no new crossfade check, no new block copy"
+FULLCFG_GEQ_STAGE_NEWNODE,16,115.0,,"cycles/block per stage of a NEW instance: 17,828 / 155 stages = 7.19 cycles/sample/stage, a quarter more than a stage added to an existing cascade. Split out: ~14,183 is stages at the existing-cascade rate and ~3,645 is the five NODES themselves, 729 cycles/block each -- crossfade and staged-coefficient checks, the paired driver's block copy, and the call"
+FULLCFG_GEQ_MON_STAGE,16,97.5,,"the monitor GEQ, 6,044 / 62 stages = 6.09 cycles/sample/stage. Between the two rates above: one node's overhead spread over two channels' worth of stages"
+FULLCFG_C2_STAGES,16,841,,"chip 2 biquad stages in the full market config, against 632 shipping: +54 from the band count and +155 from the five new instances. 903 with the monitor. Chip 1 is unchanged at 256, which is the whole reason its number did not move"
+FULLCFG_C2_MEM_DM,16,,70.9,"chip 2 DM data + stack in the full config, against 62.6% shipping (71.9% with the monitor); code 54.2% against 52.1%; delay lines unchanged at 82.4%. dsp_memreport.py: all pools below 90% on every arm, 109,108 DM words left. Profiling builds, so upper bounds on the shipping image"

@@ -84,22 +84,38 @@ mkdir -p "$WORK"
 # gets built from. The directory name carries a digest of everything the tree
 # is generated from, so a tree made from different inputs is a different
 # directory and cannot be picked up by accident.
+# THE GRAPH ITSELF IS A PARAMETER NOW (2026-09-03). DSP_CSV points the
+# scratch tree at a dsp.csv other than the repo's shipping one -- e.g. the
+# full market config generated with
+#   gen_dsp_csv.py --geq-bands 31 --geq-outputs aux,grp,main,sub,mainout
+# -- so the shipping graph and a feature-complete one are measured by ONE
+# instrument in ONE session rather than against a figure from another. The
+# csv's CONTENT is already inside srckey, so a different graph is a
+# different directory; what has to be handled explicitly is block 8, which
+# otherwise short-circuits to the repo's own src/ and would quietly measure
+# the shipping graph.
+CSV="${DSP_CSV:-$PWD/dsp.csv}"
+# The BUILD directory carries the graph too, for srckey's reason one
+# level down: two graphs measured in one session must not share a
+# build directory, or the second point silently boots the first's image.
+CSVTAG="$(sha256sum "$CSV" | cut -c1-6)"
 srckey() {
     {   echo "block=$1"
-        sha256sum "$PWD/dsp.csv" "$ROOT/tools/dsp/dsp_codegen.py"
+        sha256sum "$CSV" "$ROOT/tools/dsp/dsp_codegen.py"
         find "$PWD/src" -type f ! -name .srckey -print0 \
             | LC_ALL=C sort -z | xargs -0 sha256sum
     } | sha256sum | cut -c1-16
 }
 srctree() {
-    if [ "$1" = "8" ]; then echo "$PWD/src"; return; fi
+    if [ "$1" = "8" ] && [ "$CSV" = "$PWD/dsp.csv" ]; then
+        echo "$PWD/src"; return; fi
     local k t
     k="$(srckey "$1")"
     t="$WORK/src$1-$k"
     if [ "$(cat "$t/.srckey" 2>/dev/null)" != "$k" ]; then
         rm -rf "$t"; cp -r "$PWD/src" "$t"; rm -f "$t/.srckey"
         DSP4_GEN_BLOCK=$1 python3 $ROOT/tools/dsp/dsp_codegen.py \
-            "$PWD/dsp.csv" "$t" --force >/dev/null 2>&1
+            "$CSV" "$t" --force >/dev/null 2>&1
         if ! grep -q "define DSP4_BLOCK_SIZE   $1\$" "$t/dsp_block.h"; then
             echo "srctree: generated tree for block $1 does not say so" >&2
             exit 5
@@ -111,7 +127,7 @@ srctree() {
 SRC="$(srctree "$BLOCK")"
 
 for L in "$@"; do
-  D="$WORK/b$BLOCK-l$L-q$C2BQ-x$XP-r$RO-g$GD-f$GDF-t$FL$FL32"
+  D="$WORK/b$BLOCK-c$CSVTAG-l$L-q$C2BQ-x$XP-r$RO-g$GD-f$GDF-t$FL$FL32"
   DSP_SRC_DIR="$SRC" DSP_BUILD_DIR="$D" \
   DSP4_BISECT=0 DSP4_BLOCK_KERNELS=1 DSP4_PROFILE_SIGNAL=$SIG \
     DSP4_STRIP_FUSED=$FUS DSP4_SIMD_DYN=$SIMD DSP4_BQ_GRAPH=$BQ \
