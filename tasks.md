@@ -1,3 +1,50 @@
+## HUB DISPATCH 2026-09-03 00:22Z — Round-once LAND: validate C·E fixed_ref diff, land saturate-deletion in the graph, price the per-cascade ||h||_1 guard   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+Follow-on from RIG C (dsp4-roundonce-rigc-20260902.md, session 21). PW's
+standing ruling: TAKE the per-stage SATURATE deletion (free — 1.56x, ~40,850
+c/block off chip 2, bit-identical), KEEP the error feedback, adopt NO arm that
+deletes error feedback, treat headroom as a separate per-cascade control-rate
+design. This dispatch VALIDATES then LANDS that, and prices the unbuilt guard.
+
+RIG C left three things explicitly open; close them in order, stop-and-report
+if any gate fails:
+
+1. **VALIDATE C·E — the "timed, not validated" gap.** RIG C's bit-identity
+   claim is measured on the PYTHON model, not on `_bqe_cascade_simd`. Build the
+   **fixed_ref diff bar**: run the actual kernel against the reference on the
+   full DEFS curve set and prove 0-ULP identity to the contract with error
+   feedback kept + saturate deleted. This is the gate for everything below — if
+   the kernel is NOT bit-identical where the model said it would be, STOP and
+   report (the model or the kernel is wrong).
+
+2. **LAND the saturate deletion in the SHIPPING graph path** (not just the
+   `#if DSP4_BQ_SHOOTOUT` rig): apply it to the real biquad-cascade kernel the
+   graph uses, then re-measure capacity IN THE GRAPH (busgold + the kernel
+   summary), confirming the chip-2 93.7% -> ~81% and chip-1 headroom hold in
+   the real build, not only in the rig's two-point fit. W0 must stay
+   bit-exact on any path that did not intend to change; golden 59/59;
+   dsp_validate OK; do NOT move the contract version.
+
+3. **PRICE the per-cascade headroom guard — the honest next spike.** The guard
+   is headroom sized on ||h||_1 PER CASCADE at parameter-load (control-rate),
+   one `ashift` per sample per cascade (~+0.13 c/band-sample paired), H=0 for
+   96% of the DEFS space. Build it far enough to MEASURE its real per-sample
+   cost and confirm it holds the worst set (HF shelf +12 dB Q5.01, and the
+   4-band-all-+15 dB ||h||_1=1313 / 8-bit case) inside the golden bar. This is
+   what lets fixed round-once keep the D5 contract without float; if it prices
+   out clean it changes the fixed-vs-float picture, so it is worth the spike.
+
+Do NOT delete error feedback anywhere. Do NOT touch the D5 contract file or
+version. Update tasks.md status + findings; commit + push main. If the
+per-cascade guard turns out larger than a session, land 1+2 and report 3 with
+its measured partial cost.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-02 17:54Z — RIG C — fixed-point round-once measured: gain + biquad cycles, noise-floor cost, biquad-state guard, three-way table   [status: 🟢 done — **RIG C MEASURED, AND THE FINDING IS THAT "ROUND ONCE" IS TWO DELETIONS THAT PRICE COMPLETELY DIFFERENTLY — THIS DISPATCH, THE RULING AND THE SHOOTOUT ALL TREAT THEM AS ONE.** Deleting the per-stage **SATURATE** costs six instructions and, while nothing overflows, costs **NOTHING NUMERICALLY** — the arm that deletes only it (`_bqe_cascade_simd`, rungs 14/15) measures **7.26 c/band-sample paired at block 16 against today's 11.30, 1.56x, 40,850 cycles/block off chip 2 = 93.7% -> 81.2%**, on twelve instructions against nineteen, and its Python model is **0.0000 dB and BIT-IDENTICAL to the contract on every curve**. Deleting the **ERROR FEEDBACK** costs ONE instruction and is worth **16.26 dB of LF response on the +15 dB Q3.16 20 Hz shelf D5 was decided on** — thirty times RIG A2's entire numeric price — for **0.41 c/band-sample more** at block 16 and **NOTHING at all in marginal cost** (6.01 both). **The rounded and truncating RIG C arms are therefore priced and REJECTED, not recommended**: 6.85 and 6.29 c/band-sample (1.65x, 1.80x) bought with the LF axis D5 exists to protect. **THE FULL LADDER, all sixteen rungs, one instrument, blocks 8 AND 16**: today 12.58/11.30 · RIG C efb 8.51/7.26 · RIG C rounded 7.70/6.85 · RIG C truncating 7.07/6.29 · float A2 5.94/5.47. **THE RIG REPRODUCES SESSION 20 TO THE LAST DIGIT** on rungs 1-4 (25.10 / 12.58 / 11.81 / 5.94 at block 8), so the new arms are measured against a validated instrument. **AND THE TWO-POINT FIT ACROSS BLOCKS 8 AND 16 LANDS ON HALF THE INSTRUCTION COUNT TO WITHIN 0.02 CYCLES ON EVERY FIXED ARM** — 19 instr -> 10.01, 12 -> 6.01, 12 -> 6.01, 11 -> 5.51 — which is what "paired" means and is the strongest evidence the rig times the loop and not the harness; the float arm is the lone exception at 5.01 against 8 instructions, so it carries a stall the fixed arms do not. **FIXED ROUND-ONCE CANNOT REACH FLOAT AND THE REASON IS STRUCTURAL.** A stage output feeds the next multiplier and its own y1/y2, so the 80-bit accumulator must be EXTRACTED every sample whatever the rounding policy is, and at a 28-bit shift that is four instructions; a one-instruction extract (`Rn = MR1F`) exists only at a shift of exactly 32, i.e. Q0.32 coefficients bounded by one, and g1h is b1/2 with |b1| reaching 11.2. **Float's advantage is not the saturate — it is that float has no extract at all.** **GAIN: 9.03 -> 3.55 c/sample/strip (2.54x), 2.51 with the meter out (2.97x) — AND 9.01 WITH THE D20 MIC-PRE TAP KEPT, WHICH IS TO SAY THE TAP RETURNS THE ENTIRE SAVING.** The dispatch asks for round-once GAIN *and* a bit-identical tap; those are not compatible and the rig measures the incompatibility rather than choosing. Round-once hands the chain MR1B — the top 32 bits of the Q8.56 product, exactly Q8.24, ONE instruction and no shifter, and already the word the meter reads — but MR1B has dropped the four bits a Q4.28 rounding would have seen, so the narrow tap word must still be computed. Giving the tap up: graph per-sample 9.50 -> 3.73, GAIN class **26.75 -> 20.98 c/s**, chip 1 **2,954 cycles/block = 0.90%, 92.8% -> 91.9%**. **It does not reach 1-2 c/s and round-once is not why**: at block 16 the fixed 276 c/block is 17.25 c/s against the loop's 3.73 — the sample loop is now the smaller half by four to one. (9.03 against the graph's independent 9.50 for the same loop is a 5% cross-check between instruments sharing no arithmetic.) **THE RECURSIVE STATE, NOT WAVED AT.** In the normative offset-form DIRECT FORM I the state IS x1 x2 y1 y2 — past inputs and past OUTPUTS — so "the state overflows" and "the stage output overflows" are the SAME event; today's per-stage clamp is what keeps the recursion representable, and round-once replaces a graceful clip with a **full-scale SIGN INVERSION fed back into the poles**. The bound that matters is **||h||_1, NOT max|H|** — over the full 114,253-set DEFS design space (`tools/dsp/bq_state_bound.py`) the worst single stage is **||h||_1 = 97.3 (+39.8 dB, four bits) against max|H| = 73.3**, 4.0% of the space exceeds Q4.28's 8.0 ceiling on worst-case drive against 1.3% on a sine, and **"a high-Q filter" names the wrong hazard**: for PEAKS the worst Q is the LOWEST (0.1) and none needs more than one bit; SHELVES are an order worse at moderate Q ~5, and CASCADES are an order worse again. **DEMONSTRATED, NOT ASSERTED**: the worst set (HF shelf +12 dB Q5.01 @20 Hz) under matched-sign drive at 0 dBFS puts **18,433 of 40,000 samples at the OPPOSITE SIGN** to the contract, while the worst *peaking* set flips exactly ONE in forty thousand — rare and catastrophic, the hardest kind of defect to qualify against. **AND THE HEADROOM THAT WOULD GUARD IT IS WHAT KILLS THE FIXED OPTION.** A **four-band EQ with all four bands at +15 dB on one frequency — a setting the DEFS ranges allow and an operator can dial — has a worst partial cascade of ||h||_1 = 1313 (+62.4 dB) and needs EIGHT BITS**; at H=8 the same measured curves give **5.74 dB on the LF shelf, a hundred and twenty-five times the 0.046 dB golden bar and eleven times float's 0.520**. H<=3 stays inside the bar (0.0105 dB at H=2), H=6 costs what float costs. Noise floor moves 6.02 dB/bit: measured residual on the LF shelf -149.2 dBFS (contract and E H=0 alike) -> -139.2 (H=2) -> -104.3 (H=8); the gain path's wide Q8.24 store is -179.4 -> -149.3 dBFS with a one-sided DC bias, because MR1B is a shift and not a round. **THE GUARD THAT KEEPS THE CYCLES** is headroom sized on ||h||_1 **per cascade at PARAMETER-LOAD time** — one `ashift` per sample per CASCADE (not per stage), ~+0.13 c/band-sample paired, H=0 for 96% of the space — **and that variant was priced by instruction count and NEVER BUILT; it is the honest next spike.** A per-cascade CLAMP does not work: the wrap happens inside, in y1/y2, before the cascade output exists. **BARS: W0 UNMOVED, 23c1e662 / e45bb82a, 301,764 / 182,092 bytes — byte-for-byte the recorded witness, and by construction, the whole rig being inside `#if DSP4_BQ_SHOOTOUT` (default 0); `busgold` GRAPH BIT-EXACT 0 of 256; golden 59/59; `dsp_validate` OK, no contract file touched, no contract version moves.** **STILL OPEN**: (a) **C·E IS TIMED, NOT VALIDATED** — the ladder runs zeroed banks, and the bit-identity claim is measured on the PYTHON model, not on `_bqe_cascade_simd`; a diff of the kernel against `fixed_ref` is the next bar and does not exist; (b) the per-cascade control-rate headroom is unassembled; (c) dynamics envelopes carry the same wrap argument and were not priced at all; (d) nothing here ran in the graph. **RECOMMENDATION TO PW: take the SATURATE deletion with the ERROR FEEDBACK KEPT (1.56x, 40,850 c/block off chip 2, bit-identical), treat headroom as a separate per-cascade control-rate design, and adopt NO arm that deletes the error feedback. If the overflow guarantee must be absolute at a fixed headroom, RIG C is WORSE than float on the very axis D5 was decided on and float (A2) is the better trade. RIG B (IIR accelerator, 40-bit float) is still the one option nobody has priced.** Write-up: `MW/D32/DSP/dsp4-roundonce-rigc-20260902.md`; costs in `dsp4-function-costs.csv` session 21.]   [model: opus]
 
 model: opus
