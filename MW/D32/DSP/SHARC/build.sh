@@ -252,6 +252,23 @@ ASMFLAGS="$ASMFLAGS -DDSP4_C2_BQ_GRAPH=$DSP4_C2_BQ_GRAPH"
 DSP4_C2_XPAIR="${DSP4_C2_XPAIR:-1}"
 CFLAGS="$CFLAGS -DDSP4_C2_XPAIR=$DSP4_C2_XPAIR"
 ASMFLAGS="$ASMFLAGS -DDSP4_C2_XPAIR=$DSP4_C2_XPAIR"
+# ROUND ONCE PER CASCADE (PW ruling 2026-09-02, D5 amendment; landed
+# 2026-09-03). The per-stage SATURATE is deleted from every fixed cascade
+# kernel; the per-stage ERROR FEEDBACK is KEPT. Defaults ON, and
+# DSP4_BQ_ROUNDONCE=0 is the CONTROL -- it rebuilds the
+# per-stage-saturating contract kernel byte for byte, which is what W0
+# (23c1e662 / e45bb82a) was built from and what every earlier capacity
+# figure was measured on.
+DSP4_BQ_ROUNDONCE="${DSP4_BQ_ROUNDONCE:-1}"
+CFLAGS="$CFLAGS -DDSP4_BQ_ROUNDONCE=$DSP4_BQ_ROUNDONCE"
+ASMFLAGS="$ASMFLAGS -DDSP4_BQ_ROUNDONCE=$DSP4_BQ_ROUNDONCE"
+# The round-once cascade against fixed_ref over the DEFS curve set, on the
+# part (lib/bqe_verify.asm, SHARC/bqeverify.sh). Debug instrument; never in
+# a shipping image, and it needs DSP4_BQ_SHOOTOUT=1 for the round-once arm
+# it diffs against.
+DSP4_BQE_VERIFY="${DSP4_BQE_VERIFY:-0}"
+CFLAGS="$CFLAGS -DDSP4_BQE_VERIFY=$DSP4_BQE_VERIFY"
+ASMFLAGS="$ASMFLAGS -DDSP4_BQE_VERIFY=$DSP4_BQE_VERIFY"
 # THE ROUND-TRIP ARM for chip 2's biquad pairing. 1 scatters the state back
 # and drops the pair latch on EVERY block, so the engage/disengage
 # bookkeeping -- once per coefficient swap in a real build -- runs at block

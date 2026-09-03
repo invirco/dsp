@@ -64,6 +64,11 @@ REPS="${REPS:-1}"
 # is separated from it. Note it also selects the UNMETERED kernel body, so
 # it measures "GAIN with no meter", not "the metered kernel minus the
 # meter node".
+# ROUND ONCE PER CASCADE (landed 2026-09-03). Named here rather than left
+# to environment inheritance so the work-directory key carries it and the
+# two arms cannot share a build directory. 0 is the CONTROL and rebuilds
+# the per-stage-saturating cascade kernels byte for byte.
+RO="${DSP4_BQ_ROUNDONCE:-1}"
 MTROFF="${DSP4_MTR_OFF:-0}"
 WORK="${WORK:-/tmp/gainprof}"
 cd "$(dirname "$0")"
@@ -103,12 +108,12 @@ SRC="$(srctree "$BLOCK")"
 
 for G in $ARMS; do
 for L in $LIMITS; do
-  D="$WORK/b$BLOCK-g$G-l$L-m$MTROFF"
+  D="$WORK/b$BLOCK-g$G-l$L-m$MTROFF-r$RO"
   DSP_SRC_DIR="$SRC" DSP_BUILD_DIR="$D" \
   DSP4_BISECT=0 DSP4_BLOCK_KERNELS=1 DSP4_PROFILE_SIGNAL=$SIG \
     DSP4_STRIP_FUSED=$FUS DSP4_SIMD_DYN=$SIMD DSP4_BQ_GRAPH=$BQ \
     DSP4_GAIN_SIMD=$G DSP4_NODE_LIMIT=$L DSP4_NODE_LIMIT2=0 \
-    DSP4_MTR_OFF=$MTROFF \
+    DSP4_MTR_OFF=$MTROFF DSP4_BQ_ROUNDONCE=$RO \
     DSP4_BLOCK_DECIMATE=$DEC ./build.sh all > "$D.log" 2>&1
   if [ "$(grep -ciE '\[Error|Build FAILED' "$D.log")" -ne 0 ]; then
     echo "block=$BLOCK simd=$G limit=$L BUILD FAILED"; continue; fi
@@ -133,11 +138,11 @@ print(a('proc_cyc'), a('proc_passes'),
   for r in $(seq 1 "$REPS"); do
     R="$(ssh $BENCH "bash /home/app/sigprofile_run.sh $PT $PP $DWELL 0" 2>&1 | tr '\n' ' | ')"
     C="$(echo "$R" | grep -oE '[0-9]+ cycles/pass' | grep -oE '^[0-9]+')"
-    echo "block=$BLOCK simd=$G limit=$L mtroff=$MTROFF rep=$r pool=$POOL  $R"
+    echo "block=$BLOCK simd=$G limit=$L mtroff=$MTROFF ro=$RO rep=$r pool=$POOL  $R"
     if [ -n "$C" ]; then
       if [ -z "$BEST" ] || [ "$C" -lt "$BEST" ]; then BEST="$C"; fi
     fi
   done
-  echo "block=$BLOCK simd=$G limit=$L mtroff=$MTROFF pool=$POOL  MIN=${BEST:-none} cycles/block over $REPS boot(s)"
+  echo "block=$BLOCK simd=$G limit=$L mtroff=$MTROFF ro=$RO pool=$POOL  MIN=${BEST:-none} cycles/block over $REPS boot(s)"
 done
 done

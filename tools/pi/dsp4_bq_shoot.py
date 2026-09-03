@@ -47,6 +47,8 @@ RUNGS = [
     ('13 G_R1_NM    gain round1  -meter',       1, 'gain',  'g'),
     ('14 E_SCALAR   _bqe_cascade_blk  efb',     1, 'rigc',  'bq'),
     ('15 E_SIMD     _bqe_cascade_simd efb',     2, 'rigc',  'bq'),
+    ('16 H_ENT      guard entry scale /stage',  2, 'rigc',  'bq'),
+    ('17 H_EXI      guard exit+clamp  /stage',  2, 'rigc',  'bq'),
 ]
 
 

@@ -153,6 +153,10 @@
 .extern _bqsh_selftest;
 .extern _bqsh_done;
 #endif
+#if DSP4_BQE_VERIFY
+.extern _bqev_selftest;
+.extern _bqev_done;
+#endif
 
 .section/pm seg_pmco;
 
@@ -732,6 +736,19 @@ _start:
     if ne jump (pc, .bqsh_skip);
     call _bqsh_selftest;
 .bqsh_skip:
+#endif
+#if DSP4_BQE_VERIFY
+    /* The round-once cascade against fixed_ref over the DEFS curve set
+     * (lib/bqe_verify.asm). Same placement and the same reason as the
+     * self-tests above: ordinary main-loop context, link up, nothing of
+     * the graph's state touched. Both kernels over 192 four-stage
+     * cascades x 3 drive levels x 4 blocks is well under a millisecond,
+     * once. */
+    r0 = dm(_bqev_done);
+    r0 = pass r0;
+    if ne jump (pc, .bqev_skip);
+    call _bqev_selftest;
+.bqev_skip:
 #endif
     /* NO `idle` HERE. It used to be, as a low-power wait for the DMA
      * interrupt, and it wedged the parameter link the instant the loop

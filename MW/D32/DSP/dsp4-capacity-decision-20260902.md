@@ -2,6 +2,15 @@ provenance: AI-drafted 2026-09-02 — prose may carry a statistical watermark; r
 
 # D32 DSP capacity — the decision package
 
+> **SUPERSEDED IN PART, 2026-09-03.** The block-16 row below is the
+> per-stage-saturating measurement. Round-once landed on 2026-09-03
+> (`dsp4-roundonce-land-20260903.md`) and the whole-graph figures at
+> block 16 are now **chip 1 291,264 = 88.89%** and **chip 2 262,841 =
+> 80.21%**, both re-measured against their own controls in one session
+> (307,033 / 304,363), the chip-2 control reproducing the 306,950 below
+> to 0.03%. **The decision this package took — block 16 — is unchanged;
+> the margin is larger.**
+
 For PW. Session 19, 2026-09-02. Everything below is measured on the part
 unless it says otherwise.
 

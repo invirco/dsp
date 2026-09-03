@@ -669,3 +669,27 @@ GAIN_TODAY_PERSAMPLE,16,,,"9.03 c/sample/strip, +meter, two-point fit. Against t
 GAIN_RIGC_PERSAMPLE,16,,,"3.55 c/sample/strip, +meter, WIDE Q8.24 stores. 2.54x"
 GAIN_RIGC_D20TAP_PERSAMPLE,16,,,"9.01 c/sample/strip -- round-once chain slot with the D20 mic-pre tap kept bit-identical. THE ENTIRE SAVING IS RETURNED: the tap is a Q4.28 rounded+saturated word and MR1B cannot produce it"
 GAIN_RIGC_SAVING,16,2954,0.90,"if the D20 tap is given up: class 26.75 -> 20.98 c/s, chip 1 92.8% -> 91.9%. Still not 1-2 c/s -- the fixed 276 c/block is 17.25 c/s at block 16 against the loop's 3.73"
+#
+# ---- session 22, 2026-09-03: ROUND-ONCE LANDED. The per-stage SATURATE is
+# deleted from all four fixed cascade kernels (DSP4_BQ_ROUNDONCE, default 1);
+# the per-stage ERROR FEEDBACK is KEPT. DSP4_BQ_ROUNDONCE=0 rebuilds W0
+# (23c1e662 / e45bb82a) BYTE FOR BYTE. Unlike session 21 these are GRAPH
+# figures, whole-graph at block 16, both arms on one instrument in one bench
+# session, two boots a point, minimum taken. Write-up:
+# dsp4-roundonce-land-20260903.md.
+BQ_ROUNDONCE_C2_GRAPH_RO0,16,307033,93.70,"chip 2 whole graph, per-stage saturating contract. Reproduces session 19's 306,950 to 0.03% from another session"
+BQ_ROUNDONCE_C2_GRAPH_RO1,16,262841,80.21,"chip 2 whole graph, round-once LANDED. 44,192 cycles/block freed = 13.49% of budget, against RIG C's two-point-fit prediction of 40,850 / 12.5%"
+BQ_ROUNDONCE_C1_GRAPH_RO0,16,304363,92.88,"chip 1 whole graph, contract kernels"
+BQ_ROUNDONCE_C1_GRAPH_RO1,16,291264,88.89,"chip 1 whole graph, round-once LANDED. 13,099 cycles/block = 4.00% of budget -- the FILT and EQ classes of 32 strips"
+BQ_ROUNDONCE_LADDER_FXSIMD,16,,,"7.26 c/band-sample -- rung 2 (_bq_fx_cascade_simd) has COLLAPSED ONTO rung 15 (_bqe_cascade_simd, also 7.26) and rung 1 onto rung 14 (14.49 both), because they are now the same arithmetic. Independent confirmation of the landing"
+#
+# ---- the per-cascade ||h||_1 HEADROOM GUARD, priced (rungs 16/17). The real
+# guard shifts once per CASCADE; on a 28-stage bank that is below the
+# instrument's resolution, so it is measured AMPLIFIED with the scale on every
+# stage and divided. NOT wired into the graph: these are rig figures and the
+# chip-2 line is an ESTIMATE from the measured per-cascade cost times the
+# graph's 38 cascade instances. Numerics: tools/dsp/bq_headroom_guard.py.
+BQ_GUARD_ENTRY_PERSTAGE,16,,,"+477.6 c/call = +0.533 c/band-sample with the entry ashift on every stage. ONE instruction; half a cycle per band-sample paired is the instrument agreeing with itself"
+BQ_GUARD_EXIT_PERSTAGE,16,,,"+4074.4 c/call = +4.547 c/band-sample with the exit shift + single clamp on every stage. EIGHT instructions, because three loop invariants (+H, -H, the saturation pattern) meet exactly ONE free register under round-once, so two are re-read every sample. Six if they could be held"
+BQ_GUARD_PER_CASCADE,16,163,,"162.6 cycles per CASCADE per block per SIMD pair (17.1 entry + 145.5 exit). Per band-sample: 5.08/n for an n-stage cascade -- 1.270 at n=4 (8.53 total, 1.32x today), 0.181 at n=28 (7.44, 1.52x), and 5.080 at n=1 where the guard costs MORE than the per-stage clamp it replaces"
+BQ_GUARD_C2_ESTIMATE,16,4227,1.29,"ESTIMATE: 38 cascade instances (21 EQ_BIQUAD + 17 GEQ), 24 of them paired as 12 calls per c2bqgold. 0.9-1.3% of budget against the 13.5% the deletion freed -- chip 2 would land at ~81.2-81.5% instead of 80.21%"

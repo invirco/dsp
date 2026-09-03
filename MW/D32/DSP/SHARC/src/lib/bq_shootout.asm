@@ -56,7 +56,7 @@
 #if DSP4_BQ_SHOOTOUT
 
 #define BQS_STAGES  28
-#define BQS_RUNGS   16
+#define BQS_RUNGS   18
 #define BQS_REPS    3
 #define BQS_ITERS   400
 
@@ -118,6 +118,19 @@
 .global _bqsh_cfsigi;.var _bqsh_cfsigi[2 * DSP4_BLOCK_SIZE];
 
 .var _bqc_mode1_save[2];
+
+/* ---- RIG C, THE GUARD: per-cascade headroom sized on |h|_1 ----
+ * H is a CONTROL-RATE word -- computed once per coefficient swap from
+ * the l1 norm of the cascade actually loaded (tools/dsp/bq_headroom_guard.py)
+ * -- so nothing here is per-sample arithmetic. Both signs and the
+ * saturation pattern are stored because under round-once exactly ONE
+ * register (r15) is free in the sample loop, and the exit body needs
+ * three invariants. Each is a PAIR: they are read from inside the PEYEN
+ * region, where a direct-address access takes the word after the address
+ * for PEy. */
+.global _bqh_hm;    .var _bqh_hm[2]  = -2, -2;         /* -H */
+.global _bqh_hp;    .var _bqh_hp[2]  =  2,  2;         /* +H */
+.global _bqh_sat;   .var _bqh_sat[2] = 0x7FFFFFFF, 0x7FFFFFFF;
 
 /* ---- RIG C gain arm. Every _gsh_* scratch word is a PAIR: it is
  * written from inside the PEYEN region, where a direct-address store
@@ -819,6 +832,252 @@ _bqe_cascade_simd:
     rts;
 _bqe_cascade_simd.end:
 
+/*----------------------------------------------------------------------
+ * _bqh_cascade_ent — RIG C's GUARD, the ENTRY half, measured with the
+ * scale on EVERY stage.
+ *
+ * The real guard shifts the cascade INPUT down H bits once and the
+ * cascade OUTPUT back up once -- two instructions per sample per
+ * CASCADE, not per stage. On a 28-stage bank that is 1/28 of a cycle and
+ * the rig cannot see it. So the cost is measured AMPLIFIED: every stage
+ * pays the entry scale, the delta against rung 15 is the cost of ONE
+ * entry scale times 28, and the guard's real per-band-sample cost for an
+ * n-stage cascade is that delta divided by 28 and again by n.
+ *
+ * Measuring the amplified form and dividing is the only way to resolve a
+ * one-instruction change against an instrument whose spread is a few
+ * hundredths of a cycle -- and it is the same reason the ladder times
+ * 400 iterations of a 28-stage cascade instead of one biquad.
+ *
+ * -H is a CONTROL-RATE word, loaded once per stage. Under round-once r15
+ * is free -- it used to hold the saturation pattern -- so the entry
+ * scale needs no spill and no extra load in the sample loop.
+ *--------------------------------------------------------------------*/
+.global _bqh_cascade_ent;
+_bqh_cascade_ent:
+    l0 = 0; l1 = 0; l2 = 0;
+    r15 = -2*DSP4_BLOCK_SIZE;
+    m2 = r15;
+    r15 = 10;
+    m3 = r15;
+
+    r0 = mode1;
+    dm(_bqc_mode1_save) = r0;
+    bit set mode1 0x00200000;
+    nop;
+    nop;
+
+    lcntr = r4, do .bqhe_stage until lce;
+        r4 = dm(i0, 2);
+        r5 = dm(i0, 2);
+        r6 = dm(i0, 2);
+        r7 = dm(i0, 2);
+        r8 = dm(i0, 2);
+        r9  = dm(i1, 2);
+        r10 = dm(i1, 2);
+        r11 = dm(i1, 2);
+        r12 = dm(i1, 2);
+        r2  = dm(i1, 2);
+        r3  = dm(i1, 0);
+        r13 = 0x10000000;
+        r5 = r5 - r4;
+        r6 = r6 + r4;
+        r14 = r13 + r13;
+        r7 = r14 - r7;
+        r8 = r8 - r13;
+        mr0f = r2;
+        mr1f = r3;
+        r2 = ashift r3 by -31;
+        mr2f = r2;
+        r14 = 0x08000000;
+        r0 = 1;
+        mrf = mrf + r14 * r0 (ssi);
+        r15 = dm(_bqh_hm);     /* -H, control-rate, once per stage */
+
+        lcntr = DSP4_BLOCK_HALF, do .bqhe_samp until lce;
+            mrf = mrf + r6 * r10 (ssi), r10 = dm(i2, 0);
+            r10 = ashift r10 by r15;        /* THE ENTRY SCALE */
+            mrf = mrf + r4 * r10 (ssi);
+            mrf = mrf + r5 * r9  (ssi);
+            mrf = mrf + r5 * r9  (ssi);
+            mrf = mrf + r7 * r11 (ssi);
+            mrf = mrf + r8 * r12 (ssi);
+            r2 = mr0f;
+            r3 = mr1f;
+            r0 = lshift r2 by -28;
+            r0 = r0 or lshift r3 by 4;
+            mrf = mrf - r0 * r13 (ssi);
+            r12 = pass r0, dm(i2, 2) = r0;
+
+            mrf = mrf + r6 * r9  (ssi), r9 = dm(i2, 0);
+            r9 = ashift r9 by r15;          /* THE ENTRY SCALE */
+            mrf = mrf + r4 * r9  (ssi);
+            mrf = mrf + r5 * r10 (ssi);
+            mrf = mrf + r5 * r10 (ssi);
+            mrf = mrf + r7 * r12 (ssi);
+            mrf = mrf + r8 * r11 (ssi);
+            r2 = mr0f;
+            r3 = mr1f;
+            r0 = lshift r2 by -28;
+            r0 = r0 or lshift r3 by 4;
+            mrf = mrf - r0 * r13 (ssi);
+        .bqhe_samp: r11 = pass r0, dm(i2, 2) = r0;
+
+        r0 = 1;
+        mrf = mrf - r14 * r0 (ssi);
+        r2 = mr0f;
+        r3 = mr1f;
+        dm(i1, -2) = r3;
+        dm(i1, -2) = r2;
+        dm(i1, -2) = r12;
+        dm(i1, -2) = r11;
+        dm(i1, -2) = r10;
+        dm(i1, 2) = r9;
+        modify(i1, m3);
+        modify(i2, m2);
+    .bqhe_stage:
+        nop;
+
+    r0 = dm(_bqc_mode1_save);
+    mode1 = r0;
+    nop;
+    nop;
+    rts;
+_bqh_cascade_ent.end:
+
+/*----------------------------------------------------------------------
+ * _bqh_cascade_exi — RIG C's GUARD, the EXIT half, measured with the
+ * clamp on EVERY stage, for _bqh_cascade_ent's reason.
+ *
+ * This is the SINGLE round-and-saturate the D5 amendment rules for --
+ * once per cascade output, not once per stage -- with the exit scale
+ * folded into it. It is EIGHT instructions where the entry is one, and
+ * the reason is register pressure: three loop invariants (+H, -H and the
+ * saturation pattern) and exactly one free register, so two of them are
+ * re-read from memory every sample. A kernel that could hold all three
+ * would be six.
+ *
+ * y stays UNSCALED in r12/r11. That is the whole design: the recursion
+ * lives at the scaled level where |h|_1 * x fits Q4.28, and only the
+ * word handed to the next node comes back up -- which is why a
+ * per-cascade CLAMP alone does not work and a per-cascade SCALE does.
+ *--------------------------------------------------------------------*/
+.global _bqh_cascade_exi;
+_bqh_cascade_exi:
+    l0 = 0; l1 = 0; l2 = 0;
+    r15 = -2*DSP4_BLOCK_SIZE;
+    m2 = r15;
+    r15 = 10;
+    m3 = r15;
+
+    r0 = mode1;
+    dm(_bqc_mode1_save) = r0;
+    bit set mode1 0x00200000;
+    nop;
+    nop;
+
+    lcntr = r4, do .bqhx_stage until lce;
+        r4 = dm(i0, 2);
+        r5 = dm(i0, 2);
+        r6 = dm(i0, 2);
+        r7 = dm(i0, 2);
+        r8 = dm(i0, 2);
+        r9  = dm(i1, 2);
+        r10 = dm(i1, 2);
+        r11 = dm(i1, 2);
+        r12 = dm(i1, 2);
+        r2  = dm(i1, 2);
+        r3  = dm(i1, 0);
+        r13 = 0x10000000;
+        r5 = r5 - r4;
+        r6 = r6 + r4;
+        r14 = r13 + r13;
+        r7 = r14 - r7;
+        r8 = r8 - r13;
+        mr0f = r2;
+        mr1f = r3;
+        r2 = ashift r3 by -31;
+        mr2f = r2;
+        r14 = 0x08000000;
+        r0 = 1;
+        mrf = mrf + r14 * r0 (ssi);
+        r15 = dm(_bqh_hp);     /* +H, control-rate, once per stage */
+
+        lcntr = DSP4_BLOCK_HALF, do .bqhx_samp until lce;
+            mrf = mrf + r6 * r10 (ssi), r10 = dm(i2, 0);
+            mrf = mrf + r4 * r10 (ssi);
+            mrf = mrf + r5 * r9  (ssi);
+            mrf = mrf + r5 * r9  (ssi);
+            mrf = mrf + r7 * r11 (ssi);
+            mrf = mrf + r8 * r12 (ssi);
+            r2 = mr0f;
+            r3 = mr1f;
+            r0 = lshift r2 by -28;
+            r0 = r0 or lshift r3 by 4;
+            mrf = mrf - r0 * r13 (ssi);
+            /* ---- THE EXIT SCALE AND THE SINGLE CLAMP ----
+             * y_out = sat32(y << H), and y itself stays UNSCALED in the
+             * history register: the recursion runs at the scaled level
+             * that keeps it representable, and only the word handed on
+             * comes back up. The saturated value is built BEFORE the
+             * compare, because the ALU ops that build it would otherwise
+             * overwrite the flags it is conditioned on -- the shipping
+             * kernel's own idiom. */
+            r2 = dm(_bqh_sat);
+            r3 = ashift r0 by -31;          /* sign of y            */
+            r2 = r2 xor r3;                 /* MAX, or MIN          */
+            r1 = ashift r0 by r15;          /* candidate = y << H   */
+            r3 = dm(_bqh_hm);
+            r3 = ashift r1 by r3;           /* candidate >> H       */
+            comp(r3, r0);                   /* did the shift lose bits? */
+            if ne r1 = pass r2;             /* per-PE, not a branch */
+            dm(i2, 2) = r1;
+            r12 = pass r0;
+
+            mrf = mrf + r6 * r9  (ssi), r9 = dm(i2, 0);
+            mrf = mrf + r4 * r9  (ssi);
+            mrf = mrf + r5 * r10 (ssi);
+            mrf = mrf + r5 * r10 (ssi);
+            mrf = mrf + r7 * r12 (ssi);
+            mrf = mrf + r8 * r11 (ssi);
+            r2 = mr0f;
+            r3 = mr1f;
+            r0 = lshift r2 by -28;
+            r0 = r0 or lshift r3 by 4;
+            mrf = mrf - r0 * r13 (ssi);
+            r2 = dm(_bqh_sat);
+            r3 = ashift r0 by -31;
+            r2 = r2 xor r3;
+            r1 = ashift r0 by r15;
+            r3 = dm(_bqh_hm);
+            r3 = ashift r1 by r3;
+            comp(r3, r0);
+            if ne r1 = pass r2;
+            dm(i2, 2) = r1;
+        .bqhx_samp: r11 = pass r0;
+
+        r0 = 1;
+        mrf = mrf - r14 * r0 (ssi);
+        r2 = mr0f;
+        r3 = mr1f;
+        dm(i1, -2) = r3;
+        dm(i1, -2) = r2;
+        dm(i1, -2) = r12;
+        dm(i1, -2) = r11;
+        dm(i1, -2) = r10;
+        dm(i1, 2) = r9;
+        modify(i1, m3);
+        modify(i2, m2);
+    .bqhx_stage:
+        nop;
+
+    r0 = dm(_bqc_mode1_save);
+    mode1 = r0;
+    nop;
+    nop;
+    rts;
+_bqh_cascade_exi.end:
+
 /*======================================================================
  * RIG C — GAIN, ROUND ONCE PER STRIP (2026-09-02).
  *
@@ -1188,6 +1447,28 @@ _bqsh_selftest:
         call _bqe_cascade_simd;
         nop;
     .bqsh_r15: nop;
+    BQS_T
+
+    /* ---- rung 16: the GUARD's entry scale, on every stage ---- */
+    BQS_T
+    r10 = dm(_bqsh_iters);
+    lcntr = r10, do .bqsh_r16 until lce;
+        i0 = _bqsh_fxci; i1 = _bqsh_fxsi; i2 = _bqsh_fxsigi;
+        r4 = BQS_STAGES;
+        call _bqh_cascade_ent;
+        nop;
+    .bqsh_r16: nop;
+    BQS_T
+
+    /* ---- rung 17: the GUARD's exit scale + single clamp, every stage ---- */
+    BQS_T
+    r10 = dm(_bqsh_iters);
+    lcntr = r10, do .bqsh_r17 until lce;
+        i0 = _bqsh_fxci; i1 = _bqsh_fxsi; i2 = _bqsh_fxsigi;
+        r4 = BQS_STAGES;
+        call _bqh_cascade_exi;
+        nop;
+    .bqsh_r17: nop;
     BQS_T
 
     r0 = dm(_bqsh_rep);

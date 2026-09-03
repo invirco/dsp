@@ -11,6 +11,32 @@
  *   y    = sat32(rns(acc, 28))
  *   efb' = acc - (y << 28)
  *
+ * ROUND ONCE PER CASCADE (PW ruling 2026-09-02, D5 amendment; landed
+ * 2026-09-03, DSP4_BQ_ROUNDONCE, default on). The per-stage SATURATE is
+ * DELETED: y is the plain 32-bit extract of rns(acc, 28) and wraps
+ * instead of clamping. The per-stage ERROR FEEDBACK is KEPT, and that
+ * distinction is the whole of the ruling -- RIG C measured the two
+ * deletions separately and they price nothing alike. The saturate is six
+ * instructions and, while nothing overflows, is the IDENTITY, so
+ * fixed_ref stays the reference and nothing in the numeric spec moves;
+ * the error feedback is one instruction and is worth 16 dB of LF
+ * response on the shelf D5 was decided on.
+ *
+ * WHERE IT IS NOT THE IDENTITY. |h|_1 -- not max|H| -- is what an
+ * arbitrary bounded input can reach, and 4.0% of the DEFS design space
+ * exceeds Q4.28's ceiling of 8.0 on worst-case drive. There the extract
+ * WRAPS, and in a recursive path a wrap is a sign inversion fed back
+ * into the poles, not a clipped sample. The guard is headroom sized per
+ * CASCADE on |h|_1 at parameter-load time, which is H = 0 for 96% of the
+ * space; it is designed and priced in
+ * MW/D32/DSP/dsp4-roundonce-land-20260903.md and is NOT in this kernel
+ * yet.
+ *
+ * DSP4_BQ_ROUNDONCE=0 rebuilds the per-stage-saturating contract kernel
+ * byte for byte and is the control every bar is run against.
+ * SHARC/bqeverify.sh is the acceptance: both arms over the DEFS curve
+ * set, on the part, hashed against fixed_ref.
+ *
  * Formats: samples/coeffs Q4.28; acc exact in the 80-bit MRF; efb kept
  * as a 64-bit pair. rns() = add 2^27 then arithmetic >>28 (matches
  * fixed_ref.rns for the value ranges reachable here).
@@ -112,6 +138,7 @@ _bq_fx_cascade_N:
         r11 = lshift r11 by -28;        /* logical: low 4 bits of y   */
         r1 = lshift r12 by 4;           /* high 28 bits of y          */
         r11 = r11 or r1;                /* candidate y                */
+#if !DSP4_BQ_ROUNDONCE
         /* saturation check: acc>>28 must fit in 32 bits:
          * ashift(acc_hi, -28) must equal ashift(y, -31) */
         r1 = ashift r12 by -28;
@@ -123,6 +150,7 @@ _bq_fx_cascade_N:
         r1 = ashift r3 by -31;          /* -1 if negative              */
         r11 = r11 xor r1;               /* MAX or MIN pattern          */
     .bqfx_nosat:
+#endif
 
         /* ---- efb' = acc - (y << 28) (64-bit subtract) ---- */
         r1 = lshift r11 by 28;          /* (y<<28) low word            */
@@ -277,7 +305,9 @@ _bq_fx_cascade_blk:
         r3  = dm(i1, 0);       /* efb_hi -- i1 parked at base+5       */
 
         r13 = 0x10000000;      /* 2^28 */
+#if !DSP4_BQ_ROUNDONCE
         r15 = 0x7FFFFFFF;      /* the positive saturation pattern */
+#endif
 
         /* ---- the DIRECT words, from the STORED OFFSET words ---- */
         r5 = r5 - r4;          /* g1h = nh - b0, MACed twice like nh */
@@ -310,6 +340,18 @@ _bq_fx_cascade_blk:
             mrf = mrf + r8 * r12 (ssi);     /* g4*y2   */
             r2 = mr0f;
             r3 = mr1f;
+#if DSP4_BQ_ROUNDONCE
+            /* ROUND ONCE: the extract, and nothing after it. The combine
+             * carries y in r0 and not r1 because
+             * `Rn = Rn OR LSHIFT Rx BY <data8>` needs its destination to
+             * be the shifted-LOW operand -- `r1 = r0 or lshift r3 by 4`
+             * is rejected by the assembler. Four instructions instead of
+             * five, and the six that clamped are gone. */
+            r0 = lshift r2 by -28;
+            r0 = r0 or lshift r3 by 4;
+            mrf = mrf - r0 * r13 (ssi);     /* ACC' = ACC - (y << 28) */
+            r12 = pass r0, dm(i2, 1) = r0;  /* y is the next y1 */
+#else
             r0 = lshift r2 by -28;
             r1 = lshift r3 by 4;
             r1 = r1 or r0;                  /* candidate y */
@@ -321,6 +363,7 @@ _bq_fx_cascade_blk:
             if ne r1 = r2;                  /* saturate, WITHOUT branching */
             mrf = mrf - r1 * r13 (ssi);     /* ACC' = ACC - (y << 28) */
             r12 = pass r1, dm(i2, 1) = r1;  /* y is the next y1 */
+#endif
 
             /* ---- sample B: x1 r10, x2 r9, y1 r12, y2 r11 ---- */
             mrf = mrf + r6 * r9  (ssi), r9 = dm(i2, 0);
@@ -331,6 +374,12 @@ _bq_fx_cascade_blk:
             mrf = mrf + r8 * r11 (ssi);
             r2 = mr0f;
             r3 = mr1f;
+#if DSP4_BQ_ROUNDONCE
+            r0 = lshift r2 by -28;
+            r0 = r0 or lshift r3 by 4;
+            mrf = mrf - r0 * r13 (ssi);
+        .bqf_samp: r11 = pass r0, dm(i2, 1) = r0;
+#else
             r0 = lshift r2 by -28;
             r1 = lshift r3 by 4;
             r1 = r1 or r0;
@@ -342,6 +391,7 @@ _bq_fx_cascade_blk:
             if ne r1 = r2;
             mrf = mrf - r1 * r13 (ssi);
         .bqf_samp: r11 = pass r1, dm(i2, 1) = r1;
+#endif
 
         /* ---- state back to memory, ONCE for this stage ---- */
         r0 = 1;
@@ -437,6 +487,7 @@ _bq_fx_cascade_blk:
             r11 = lshift r11 by -28;
             r1 = lshift r12 by 4;
             r11 = r11 or r1;
+#if !DSP4_BQ_ROUNDONCE
             r1 = ashift r12 by -28;
             r12 = ashift r11 by -31;
             comp(r1, r12);
@@ -445,6 +496,7 @@ _bq_fx_cascade_blk:
             r1 = ashift r3 by -31;
             r11 = r11 xor r1;
         .bqb_nosat:
+#endif
             r1 = lshift r11 by 28;
             r12 = ashift r11 by -4;
             r2 = r2 - r1;
@@ -689,7 +741,9 @@ _bq_fx_cascade_simd:
         r3  = dm(i1, 0);       /* efb_hi */
 
         r13 = 0x10000000;      /* 2^28 */
+#if !DSP4_BQ_ROUNDONCE
         r15 = 0x7FFFFFFF;      /* the positive saturation pattern */
+#endif
 
         /* ---- the DIRECT words, from the STORED OFFSET words ----
          * Six MACs per sample instead of twelve; see the scalar twin's
@@ -731,6 +785,12 @@ _bq_fx_cascade_simd:
             mrf = mrf + r8 * r12 (ssi);     /* g4*y2  */
             r2 = mr0f;
             r3 = mr1f;
+#if DSP4_BQ_ROUNDONCE
+            r0 = lshift r2 by -28;
+            r0 = r0 or lshift r3 by 4;
+            mrf = mrf - r0 * r13 (ssi);
+            r12 = pass r0, dm(i2, 2) = r0;
+#else
             r0 = lshift r2 by -28;
             r1 = lshift r3 by 4;
             r1 = r1 or r0;                  /* candidate y */
@@ -742,6 +802,7 @@ _bq_fx_cascade_simd:
             if ne r1 = pass r2;             /* per-PE, not a branch */
             mrf = mrf - r1 * r13 (ssi);
             r12 = pass r1, dm(i2, 2) = r1;
+#endif
 
             /* ---- sample B: x1 r10, x2 r9, y1 r12, y2 r11 ---- */
             mrf = mrf + r6 * r9  (ssi), r9 = dm(i2, 0);
@@ -752,6 +813,12 @@ _bq_fx_cascade_simd:
             mrf = mrf + r8 * r11 (ssi);
             r2 = mr0f;
             r3 = mr1f;
+#if DSP4_BQ_ROUNDONCE
+            r0 = lshift r2 by -28;
+            r0 = r0 or lshift r3 by 4;
+            mrf = mrf - r0 * r13 (ssi);
+        .bqs_samp: r11 = pass r0, dm(i2, 2) = r0;
+#else
             r0 = lshift r2 by -28;
             r1 = lshift r3 by 4;
             r1 = r1 or r0;
@@ -763,6 +830,7 @@ _bq_fx_cascade_simd:
             if ne r1 = pass r2;
             mrf = mrf - r1 * r13 (ssi);
         .bqs_samp: r11 = pass r1, dm(i2, 2) = r1;
+#endif
 
         r0 = 1;
         mrf = mrf - r14 * r0 (ssi);   /* take the rounding half back out */

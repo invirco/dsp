@@ -45,6 +45,11 @@ C2BQ="${DSP4_C2_BQ_GRAPH:-1}"
 # chain order and calls the four nodes scalar, so the arms
 # isolate the pairing from the reorder.
 XP="${DSP4_C2_XPAIR:-1}"
+# ROUND ONCE PER CASCADE (landed 2026-09-03). 0 is the CONTROL and
+# rebuilds the per-stage-saturating cascade kernels byte for byte, so
+# the two arms are a PAIRED measurement on one instrument in one
+# session rather than a comparison against a figure from another.
+RO="${DSP4_BQ_ROUNDONCE:-1}"
 BLOCK="${BLOCK:-8}"
 WORK="${WORK:-/tmp/sigprof2}"
 cd "$(dirname "$0")"
@@ -86,12 +91,12 @@ srctree() {
 SRC="$(srctree "$BLOCK")"
 
 for L in "$@"; do
-  D="$WORK/b$BLOCK-l$L-q$C2BQ-x$XP"
+  D="$WORK/b$BLOCK-l$L-q$C2BQ-x$XP-r$RO"
   DSP_SRC_DIR="$SRC" DSP_BUILD_DIR="$D" \
   DSP4_BISECT=0 DSP4_BLOCK_KERNELS=1 DSP4_PROFILE_SIGNAL=$SIG \
     DSP4_STRIP_FUSED=$FUS DSP4_SIMD_DYN=$SIMD DSP4_BQ_GRAPH=$BQ \
     DSP4_C2_BQ_GRAPH=$C2BQ DSP4_C2_XPAIR=$XP \
-    DSP4_NODE_LIMIT=0 DSP4_NODE_LIMIT2=$L \
+    DSP4_BQ_ROUNDONCE=$RO DSP4_NODE_LIMIT=0 DSP4_NODE_LIMIT2=$L \
     DSP4_BLOCK_DECIMATE=$DEC ./build.sh all > "$D.log" 2>&1
   if [ "$(grep -ciE '\[Error|Build FAILED' "$D.log")" -ne 0 ]; then
     echo "block=$BLOCK limit2=$L BUILD FAILED"; continue; fi
@@ -110,5 +115,18 @@ print(a('proc_cyc'), a('proc_passes'))")"
   scp -q $ROOT/tools/pi/dsp4_audio_verdict.py $BENCH:/home/app/dspboot/audio_verdict.py
   scp -q $ROOT/tools/pi/gainfix.py $BENCH:/home/app/dspboot/
   scp -q sigprofile2_run.sh $BENCH:/home/app/
-  echo "block=$BLOCK limit2=$L sig=$SIG c2bq=$C2BQ xp=$XP  $(ssh $BENCH "bash /home/app/sigprofile2_run.sh $PT $PP $DWELL" 2>&1 | tr '\n' ' | ')"
+  # REPEATS, MINIMUM TAKEN. gainprof.sh's rule and bqshoot.sh's before it:
+  # a point is one BOOT, boots differ, and the ways a boot can cost MORE are
+  # many while the ways it can cost less are none. One boot is not a
+  # measurement when the arms differ by a few percent.
+  BEST=""
+  for r in $(seq 1 "${REPS:-1}"); do
+    R="$(ssh $BENCH "bash /home/app/sigprofile2_run.sh $PT $PP $DWELL" 2>&1 | tr '\n' ' | ')"
+    C="$(echo "$R" | grep -oE '[0-9]+ cycles/pass' | grep -oE '^[0-9]+')"
+    echo "block=$BLOCK limit2=$L sig=$SIG c2bq=$C2BQ xp=$XP ro=$RO rep=$r  $R"
+    if [ -n "$C" ]; then
+      if [ -z "$BEST" ] || [ "$C" -lt "$BEST" ]; then BEST="$C"; fi
+    fi
+  done
+  echo "block=$BLOCK limit2=$L c2bq=$C2BQ xp=$XP ro=$RO  MIN=${BEST:-none} cycles/block over ${REPS:-1} boot(s)"
 done

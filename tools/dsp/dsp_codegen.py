@@ -7899,6 +7899,36 @@ def gen_block_header():
 #define DSP4_BQ_PAIRED 0
 #endif
 
+/* ROUND ONCE PER CASCADE, NOT PER STAGE (PW ruling 2026-09-02, D5
+ * amendment; landed 2026-09-03).
+ *
+ * The per-stage SATURATE is deleted from the fixed cascade kernels. The
+ * per-stage ERROR FEEDBACK is NOT -- they are two separate deletions and
+ * RIG C measured them as costing wildly different things: the saturate
+ * is six instructions and, while nothing overflows, costs nothing
+ * numerically at all, because a saturate that never fires is the
+ * identity; the error feedback is ONE instruction and is worth 16 dB of
+ * LF response on the +15 dB Q3.16 20 Hz shelf D5 was decided on.
+ *
+ * DSP4_BQ_ROUNDONCE=0 is the CONTROL and it is the per-stage-saturating
+ * contract kernel byte for byte. bqeverify.sh needs both: built at 0 it
+ * diffs the contract against the round-once arm and the divergences must
+ * be exactly the ones fixed_ref predicts; built at 1 the two arms must
+ * agree on every word of every vector.
+ *
+ * What this gives up is the overflow GUARANTEE, and only that. Headroom
+ * sized per cascade on |h|_1 at parameter-load time is the guard that
+ * keeps the cycles; see MW/D32/DSP/dsp4-roundonce-land-20260903.md. */
+#ifndef DSP4_BQ_ROUNDONCE
+#define DSP4_BQ_ROUNDONCE 1
+#endif
+
+/* The round-once kernel against fixed_ref on the DEFS curve set, on the
+ * part (lib/bqe_verify.asm). Debug only; never in a shipping image. */
+#ifndef DSP4_BQE_VERIFY
+#define DSP4_BQE_VERIFY 0
+#endif
+
 #endif /* DSP4_BLOCK_H */
 """
 

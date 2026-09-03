@@ -26,3 +26,6 @@ docs/**/*.pdf
 # macOS metadata
 ._*
 .DS_Store
+
+# Generated test fixture (tools/dsp/gen_bqe_vectors.py, run by bqeverify.sh)
+MW/D32/DSP/SHARC/src/lib/bqe_vectors.h
