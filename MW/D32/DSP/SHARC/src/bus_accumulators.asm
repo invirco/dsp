@@ -37,6 +37,10 @@
 .global _gsimd_max;   .var _gsimd_max[2];    /* block max, per PE      */
 .global _gsimd_min;   .var _gsimd_min[2];    /* block min, per PE      */
 .global _gsimd_acc;   .var _gsimd_acc[2];    /* the meter base, parked */
+#if DSP4_GAIN_FLOAT
+.global _gsimd_clipf;
+.var _gsimd_clipf[2] = 0x40FFFFFF, 0x40FFFFFF; /* Q4.28 ceiling, largest float32 below 8.0 */
+#endif
 #endif
 
 #if DSP4_BLOCK_KERNELS

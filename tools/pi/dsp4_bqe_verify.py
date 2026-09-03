@@ -24,8 +24,22 @@ and the two arms must agree on every word. A bar that could only pass one
 of those two ways would not be able to tell a kernel that wrapped
 everywhere from one that never saturated at all.
 
+THE FLOAT ARM (2026-09-03). With float the shipping cascade the same rig
+asks the same question of `lib/biquad_fx.asm`'s float kernels, and the
+reference is `tools/dsp/bq_float_ref.py` rather than fixed_ref:
+
+    ARM A vs bq_float_ref on the float32 OFFSET wire   (the shipping one)
+    ARM B vs bq_float_ref on the DIRECT-form wire      (the control)
+    A vs B, count and WHICH cells
+
+The bitmap is still the two-sided control and it is not degenerate: the
+bypass cascades must AGREE to the bit and everything with a pole away
+from the origin must DIFFER, so a reconstruction that quietly did nothing
+fails as loudly as one that corrupted the identity filter.
+
 Usage (staged by bqeverify.sh):
     dsp4_bqe_verify.py <chip1.sym.json> <bqe_vectors.json> <0|1 expected ro>
+    dsp4_bqe_verify.py <chip1.sym.json> <bqe_vectors.json> float
 """
 
 import json
@@ -34,7 +48,8 @@ import time
 
 SYMS = json.load(open(sys.argv[1]))
 REF = json.load(open(sys.argv[2]))
-WANT_RO = int(sys.argv[3])
+FLOAT_ARM = (sys.argv[3] == 'float')
+WANT_RO = None if FLOAT_ARM else int(sys.argv[3])
 
 sys.argv = ['p']
 # The PACED, VOTED reader. dsp4_bq_verify.py's header carries the measured
@@ -107,6 +122,7 @@ if done != 1:
     sys.exit(3)
 
 ro = rd('_bqev_ro')
+is_float = rd('_bqev_float')
 ncas = rd('_bqev_ncas')
 nlvl = rd('_bqev_nlvl')
 nblk = rd('_bqev_nblk')
@@ -119,24 +135,45 @@ maxdiff = rd('_bqev_maxdiff')
 first = sg(rd('_bqev_first', allow_ff=True))
 ha, sa = rd('_bqev_hash_a'), rd('_bqev_sum_a')
 hb, sb = rd('_bqev_hash_b'), rd('_bqev_sum_b')
+# THE BITMAP IS READ WITH allow_ff, and it is the same trap _bqev_first
+# fell into: a bitmap word is 32 divergence bits, so an all-diverging word
+# IS 0xFFFFFFFF, which is also how this link answers a dropped
+# transaction. The fixed arm never came near it (29 of 576 cells); the
+# float arm diverges on 566 of 576, so most of its words are 0xFFFFFFFF
+# and the two-agreeing-reads vote threw every one of them away and read a
+# healthy part as a dead link. Three agreeing reads instead.
 base = SYMS['_bqev_bmap']
 bmap = []
 for i in range(bmw):
-    v = peek(base + i)
+    v = peek(base + i, allow_ff=True)
     if v is None:
         print(f'  LINK FAILED reading _bqev_bmap[{i}]')
         sys.exit(2)
     bmap.append(v)
 
-print(f'  image: DSP4_BQ_ROUNDONCE = {ro}   (arm A is '
-      f'{"round-once" if ro else "the per-stage-saturating contract"})')
+if FLOAT_ARM:
+    print(f'  image: DSP4_BQ_FLOAT = {is_float}   (arm A is the shipping '
+          f'float cascade on the OFFSET wire)')
+else:
+    print(f'  image: DSP4_BQ_ROUNDONCE = {ro}   (arm A is '
+          f'{"round-once" if ro else "the per-stage-saturating contract"})')
 print(f'  vectors: {ncas} cascades x {nstage} stages, {nlvl} levels x '
       f'{nblk} blocks x {blk} samples = {nwords} words/arm')
 
 fail = []
-if ro != WANT_RO:
-    fail.append(f'image is DSP4_BQ_ROUNDONCE={ro}, the bar was staged for '
-                f'{WANT_RO}')
+if FLOAT_ARM:
+    if not is_float:
+        fail.append('image is DSP4_BQ_FLOAT=0, the bar was staged for the '
+                    'FLOAT arm')
+    if not REF.get('float'):
+        fail.append('the vector set was not generated with --float')
+else:
+    if is_float:
+        fail.append('image is DSP4_BQ_FLOAT=1, the bar was staged for the '
+                    'FIXED arm')
+    if ro != WANT_RO:
+        fail.append(f'image is DSP4_BQ_ROUNDONCE={ro}, the bar was staged '
+                    f'for {WANT_RO}')
 for k, got, want in (('ncas', ncas, REF['ncas']), ('nstage', nstage,
                      REF['nstage']), ('nlvl', nlvl, REF['nlvl']),
                      ('nblk', nblk, REF['nblk']), ('block', blk,
@@ -150,23 +187,35 @@ if fail:
     sys.exit(1)
 
 # ---- arm A against its model -------------------------------------------
-want_a = ('roundonce', REF['hash_b'], REF['sum_b']) if ro else \
-         ('contract', REF['hash_a'], REF['sum_a'])
+MODEL = 'bq_float_ref' if FLOAT_ARM else 'fixed_ref'
+if FLOAT_ARM:
+    want_a = ('offset wire', REF['hash_a'], REF['sum_a'])
+    want_b = ('direct wire', REF['hash_b'], REF['sum_b'])
+    name_b = '_bqfd_cascade_simd'
+else:
+    want_a = ('roundonce', REF['hash_b'], REF['sum_b']) if ro else \
+             ('contract', REF['hash_a'], REF['sum_a'])
+    want_b = ('round-once', REF['hash_b'], REF['sum_b'])
+    name_b = '_bqe_cascade_simd'
 okA = (ha == want_a[1] and sa == want_a[2])
 print(f'  ARM A  _bq_fx_cascade_simd  hash 0x{ha:08X} sum 0x{sa:08X}   '
-      f'vs fixed_ref {want_a[0]} 0x{want_a[1]:08X}/0x{want_a[2]:08X}   '
+      f'vs {MODEL} {want_a[0]} 0x{want_a[1]:08X}/0x{want_a[2]:08X}   '
       f'{"MATCH" if okA else "MISMATCH"}')
 
-okB = (hb == REF['hash_b'] and sb == REF['sum_b'])
-print(f'  ARM B  _bqe_cascade_simd    hash 0x{hb:08X} sum 0x{sb:08X}   '
-      f'vs fixed_ref round-once 0x{REF["hash_b"]:08X}/0x{REF["sum_b"]:08X}   '
+okB = (hb == want_b[1] and sb == want_b[2])
+print(f'  ARM B  {name_b:20s}hash 0x{hb:08X} sum 0x{sb:08X}   '
+      f'vs {MODEL} {want_b[0]} 0x{want_b[1]:08X}/0x{want_b[2]:08X}   '
       f'{"MATCH" if okB else "MISMATCH"}')
 
 # ---- A vs B ------------------------------------------------------------
-exp_ndiff = 0 if ro else REF['ndiff']
-exp_first = -1 if ro else REF['first']
-exp_max = 0 if ro else REF['maxdiff']
-exp_bmap = [0] * bmw if ro else REF['bmap']
+if FLOAT_ARM:
+    exp_ndiff, exp_first = REF['ndiff'], REF['first']
+    exp_max, exp_bmap = REF['maxdiff'], REF['bmap']
+else:
+    exp_ndiff = 0 if ro else REF['ndiff']
+    exp_first = -1 if ro else REF['first']
+    exp_max = 0 if ro else REF['maxdiff']
+    exp_bmap = [0] * bmw if ro else REF['bmap']
 okD = (ndiff == exp_ndiff and first == exp_first)
 okM = (maxdiff == exp_max)
 okBM = (bmap == exp_bmap)
@@ -188,14 +237,23 @@ if not okBM:
 ok = okA and okB and okD and okM and okBM
 print()
 if ok:
-    print('  BQE_VERIFY PASS — the round-once cascade kernel IS the '
-          'round-once model, over the whole vector set')
-    if ro:
-        print('  and the landed kernel is bit-identical to the validated '
-              'round-once arm on every word')
+    if FLOAT_ARM:
+        print('  BQE_VERIFY PASS — the SHIPPING FLOAT cascade kernel computes '
+              'bq_float_ref\'s words on')
+        print('  the part, 0 ULP over the whole vector set, and the offset '
+              'reconstruction is live:')
+        print(f'  it agrees with the direct wire on the bypass cascades and '
+              f'differs on {nexp} of {ncas * nlvl} cells, exactly the ones '
+              f'the model names')
     else:
-        print('  and it is 0-ULP identical to the CONTRACT except on the '
-              f'{nexp} (cascade, level) cells fixed_ref says overflow')
+        print('  BQE_VERIFY PASS — the round-once cascade kernel IS the '
+              'round-once model, over the whole vector set')
+        if ro:
+            print('  and the landed kernel is bit-identical to the validated '
+                  'round-once arm on every word')
+        else:
+            print('  and it is 0-ULP identical to the CONTRACT except on the '
+                  f'{nexp} (cascade, level) cells fixed_ref says overflow')
 else:
     print('  BQE_VERIFY FAIL')
 sys.exit(0 if ok else 1)

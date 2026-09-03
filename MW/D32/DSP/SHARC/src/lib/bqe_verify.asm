@@ -21,6 +21,25 @@
  *
  * and the two output blocks are diffed on-chip.
  *
+ * THE FLOAT ARM (BQEV_FLOAT, 2026-09-03), which is the same rig asking
+ * the same question of the kernel that now ships. With float the default
+ * the arms become
+ *
+ *   arm A   _bq_fx_cascade_simd   the shipping float kernel on the
+ *                                 float32 OFFSET wire
+ *   arm B   _bqfd_cascade_simd    the same kernel WITHOUT the offset
+ *                                 reconstruction, on the direct-form
+ *                                 wire it carried before this landing
+ *
+ * and the host scores both streams against `tools/dsp/bq_float_ref.py`
+ * rather than fixed_ref. The bitmap stays the two-sided control and it
+ * is not degenerate: the BYPASS cascades must agree to the bit, because
+ * offset unity and direct unity are the same filter and the
+ * reconstruction of it is exact, while everything with a pole away from
+ * the origin must differ. Universal agreement would mean a
+ * reconstruction that did nothing; disagreement on bypass would mean one
+ * that corrupted the identity.
+ *
  * THREE VERDICTS, AND THE THIRD IS WHY THIS IS NOT AN ASM-VS-ASM BAR.
  * Two asm arms agreeing proves they agree; it does not prove either one
  * is the ruled arithmetic -- the same gap dsp4_bq_verify.py was written
@@ -72,8 +91,11 @@
 .global _bqev_bmw;      .var _bqev_bmw    = BQEV_BMWORDS;
 /* Which arithmetic arm A actually IS in this image -- read back, not
  * assumed, so a bar run against the wrong build cannot be scored as the
- * right one. */
+ * right one. Under the FLOAT arm _bqev_ro is meaningless and _bqev_float
+ * is the one that matters; both are published so the host can refuse to
+ * score an image the vectors were not generated for. */
 .global _bqev_ro;       .var _bqev_ro     = DSP4_BQ_ROUNDONCE;
+.global _bqev_float;    .var _bqev_float  = DSP4_BQ_FLOAT;
 
 .global _bqev_nwords;   .var _bqev_nwords = 0;
 .global _bqev_ndiff;    .var _bqev_ndiff  = 0;
@@ -95,6 +117,14 @@
  * the whole point of a shared buffer. H is zero here: the bar's job is
  * the ARITHMETIC, and the guard's own numbers are bq_h_load.py's. */
 .var _bqev_ci[BQEV_NSTAGE * 10 + 2 * DSP4_BQ_HDR];
+#if BQEV_FLOAT
+/* THE SECOND WIRE. Under the float arm the two arms do not share a
+ * coefficient buffer, because the whole question is what the two WIRE
+ * ENCODINGS of the same filter do: arm A eats the offset words the
+ * shipping host writes, arm B the direct-form words it wrote before
+ * 2026-09-03. Same designs, same stimulus, same state layout. */
+.var _bqev_cid[BQEV_NSTAGE * 10];
+#endif
 .var _bqev_sa[BQEV_NSTAGE * 12];
 .var _bqev_sb[BQEV_NSTAGE * 12];
 .var _bqev_ga[2 * DSP4_BLOCK_SIZE];
@@ -112,7 +142,11 @@
 
 .section/pm seg_pmco;
 .extern _bq_fx_cascade_simd;
+#if BQEV_FLOAT
+.extern _bqfd_cascade_simd;
+#else
 .extern _bqe_cascade_simd;
+#endif
 
 .global _bqev_selftest;
 _bqev_selftest:
@@ -157,6 +191,26 @@ _bqev_selftest:
         dm(i6, 1) = r0;
         r0 = dm(i5, 1);
     .bqev_gc: dm(i6, 1) = r0;
+
+#if BQEV_FLOAT
+    /* the direct-wire copy of the same pair, at the same offset in the
+     * parallel table */
+    r0 = dm(_bqev_ctp);
+    r1 = _bqev_ctab;
+    r0 = r0 - r1;
+    r1 = _bqev_ctab_d;
+    r0 = r0 + r1;
+    i4 = r0;
+    r1 = BQEV_NSTAGE * 5;
+    r0 = r0 + r1;
+    i5 = r0;
+    i6 = _bqev_cid;
+    lcntr = BQEV_NSTAGE * 5, do .bqev_gcd until lce;
+        r0 = dm(i4, 1);
+        dm(i6, 1) = r0;
+        r0 = dm(i5, 1);
+    .bqev_gcd: dm(i6, 1) = r0;
+#endif
 
     r0 = 0;
     dm(_bqev_l) = r0;
@@ -210,12 +264,21 @@ _bqev_selftest:
     r4 = BQEV_NSTAGE;
     call _bq_fx_cascade_simd;
 
+#if BQEV_FLOAT
+    /* ---- arm B: the same float kernel on the DIRECT-form wire ---- */
+    i0 = _bqev_cid;
+    i1 = _bqev_sb;
+    i2 = _bqev_gb;
+    r4 = BQEV_NSTAGE;
+    call _bqfd_cascade_simd;
+#else
     /* ---- arm B: round-once, saturate deleted, feedback kept ---- */
     i0 = _bqev_ci;
     i1 = _bqev_sb;
     i2 = _bqev_gb;
     r4 = BQEV_NSTAGE;
     call _bqe_cascade_simd;
+#endif
 
     /*------------------------------------------------------------------
      * diff, BACKWARDS. bq_selftest.asm's reason: a conditional move that

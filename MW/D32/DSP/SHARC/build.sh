@@ -281,25 +281,35 @@ ASMFLAGS="$ASMFLAGS -DDSP4_BQ_GUARD=$DSP4_BQ_GUARD"
 DSP4_BQ_GUARD_FORCE="${DSP4_BQ_GUARD_FORCE:-0}"
 CFLAGS="$CFLAGS -DDSP4_BQ_GUARD_FORCE=$DSP4_BQ_GUARD_FORCE"
 ASMFLAGS="$ASMFLAGS -DDSP4_BQ_GUARD_FORCE=$DSP4_BQ_GUARD_FORCE"
-# FLOAT ON SHARC (2026-09-03) -- the MEASUREMENT arm for PW's fixed-vs-float
-# mandate call. The four cascade kernels become software float DF-II-T (the
-# shootout's RIG A2 arithmetic) with the SHARC's 40-bit extended-precision
-# float carrying the recursive state, the coefficient block carries the RBJ
-# float words the host already writes, and _bq_fx_convert_N becomes a copy.
-# The |h|_1 headroom guard is FORCED OFF with it -- an 8-bit exponent absorbs
-# the |h|_1 = 1313 case the fixed path needs eight mantissa bits for -- and
-# the only clamp left is the one on the word handed to the next node, because
-# the inter-node bus is still Q4.28.
-# DSP4_BQ_FLOAT=0 is every existing build BYTE FOR BYTE; nothing about the D5
-# contract, the round-once landing or the guard moves. It is a decision input,
-# not a shipping path.
-DSP4_BQ_FLOAT="${DSP4_BQ_FLOAT:-0}"
+# FLOAT ON SHARC -- THE SHIPPING CASCADE (PW ruling 2026-09-03: the SHARC
+# DSP is 40-bit float). DEFAULTS ON. The four cascade kernels are software
+# float DF-II-T with the SHARC's 40-bit extended-precision float carrying the
+# recursive state, the coefficient block carries five float32 words a stage in
+# D5's OFFSET encoding (b0, n1 = b1+2*b0, n2 = b2-b0, c1 = 2+a1, c2 = 1-a2)
+# which the kernel reconstructs in registers per stage per block, and
+# _bq_fx_convert_N is a copy. The |h|_1 headroom guard is FORCED OFF with it
+# -- an 8-bit exponent absorbs the |h|_1 = 1313 case the fixed path needs
+# eight mantissa bits for -- and the only clamp left is the one on the word
+# handed to the next node, because the inter-node bus is still Q4.28.
+# DSP4_BQ_FLOAT=0 IS THE FIXED REFERENCE MODEL and it stays: the round-once
+# path plus its guard, byte for byte the recorded W0 witnesses, which is what
+# a future FPGA fixed engine follows. Do not delete it.
+DSP4_BQ_FLOAT="${DSP4_BQ_FLOAT:-1}"
 CFLAGS="$CFLAGS -DDSP4_BQ_FLOAT=$DSP4_BQ_FLOAT"
 ASMFLAGS="$ASMFLAGS -DDSP4_BQ_FLOAT=$DSP4_BQ_FLOAT"
 # The 32-BIT CONTROL for it: MODE1.RND32 set, so every float result rounds at
 # the 32-bit boundary and the arm is IEEE single throughout -- RIG A2 exactly.
 # The difference between this and the default 40-bit arm is what the extra
 # eight mantissa bits buy on the high-Q LF case D5 was decided on.
+# GAIN ON THE FLOAT PATH. `_gsimd_gain_blk`'s AUDIO word becomes one float
+# multiply, one CLIP and one FIX instead of the 64-bit extract and the
+# branch-free saturate; the METER's wide MAC and its exact 80-bit sum of
+# squares stay fixed, because that is what a meter wants and float would
+# make both approximate. Follows DSP4_BQ_FLOAT unless set explicitly, so
+# DSP4_BQ_FLOAT=0 is still the whole fixed reference model in one flag.
+DSP4_GAIN_FLOAT="${DSP4_GAIN_FLOAT:-$DSP4_BQ_FLOAT}"
+CFLAGS="$CFLAGS -DDSP4_GAIN_FLOAT=$DSP4_GAIN_FLOAT"
+ASMFLAGS="$ASMFLAGS -DDSP4_GAIN_FLOAT=$DSP4_GAIN_FLOAT"
 DSP4_BQ_FLOAT32="${DSP4_BQ_FLOAT32:-0}"
 CFLAGS="$CFLAGS -DDSP4_BQ_FLOAT32=$DSP4_BQ_FLOAT32"
 ASMFLAGS="$ASMFLAGS -DDSP4_BQ_FLOAT32=$DSP4_BQ_FLOAT32"

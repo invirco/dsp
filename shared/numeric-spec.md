@@ -1,5 +1,27 @@
 # DSP4 numeric specification (decision D5)
 
+> ## 2026-09-03 — THE SHARC AUDIO PATH IS 40-BIT FLOAT (PW ruling)
+>
+> **The biquad cascades and GAIN's audio word ship as 40-bit float on
+> SHARC.** `DSP4_BQ_FLOAT` and `DSP4_GAIN_FLOAT` default ON; the whole
+> of D5's fixed path below — offset-form Q4.28 direct-form I, round once
+> per cascade, first-order error feedback, the ‖h‖₁ headroom guard —
+> **stays in the tree behind `DSP4_BQ_FLOAT=0` and remains normative for
+> the FPGA engine** (`fpga/`), which is fixed-point and always was. It is
+> a reference model, not dead code: the fixed build must keep rebuilding
+> its recorded W0 witnesses byte for byte, and that bar is what proves it
+> intact.
+>
+> What is unchanged, and it is most of this document: **the sample format
+> is still Q4.28**. The float is INSIDE a cascade, not on the bus. Every
+> word crossing between nodes, every bus accumulator, every TDM slot,
+> every meter and every dynamics envelope is exactly what it was.
+>
+> The four sections this ruling actually moves are marked **[FLOAT]**
+> below: *Coefficient formats*, *Accumulators and rounding*, *Scope
+> exceptions*, and *Acceptance tolerances*. Read them with §"The float
+> cascade" at the end, which states the whole of it in one place.
+
 Status: draft-normative, 2026-07-31; core families VALIDATED by
 tools/dsp/golden_harness.py — **59/59 as of 2026-08-30**, when the NODE
 families were added (COMP's wet path, the GATE ladder, FADER_PAN, TUBE,
@@ -24,9 +46,17 @@ sign-off; everything else follows from them.
   converts Q1.31→Q4.28 (arithmetic >>3); gather saturates Q4.28→Q1.31
   (<<3 with clip). SNR at the converter boundary is unchanged.
 
-## Accumulators and rounding
+## Accumulators and rounding **[FLOAT]**
 
-- Biquads, mix summing, MACs: accumulate in **≥64 bits**
+- **The SHARC biquad cascades do not use a wide accumulator any more.**
+  Under `DSP4_BQ_FLOAT` a stage is five float multiplies and four float
+  adds in the register file, each rounded ONCE at the float boundary;
+  there is no 64-bit extract, no per-stage saturate and no error-feedback
+  word, because in float the rounding IS the format and there is no
+  remainder to carry. The rest of this section — bus summing, MACs, the
+  meter — is unchanged and still wide and exact.
+
+- Biquads (FIXED arm), mix summing, MACs: accumulate in **≥64 bits**
   (SHARC: 80-bit MRF; FPGA: 64-bit). Mix summing is therefore EXACT
   and order-independent — a deliberate improvement over FP32.
 - Store-back to 32-bit state/output: **round-to-nearest** (convergent
@@ -234,9 +264,59 @@ the 22 saturating sets would change. It costs one DM word per stage
 trade on the numbers above; it is not taken here because the ruling
 names the halved form.
 
-## Coefficient formats
+## Coefficient formats **[FLOAT]**
 
-- Biquad topology (NORMATIVE): **offset-coefficient direct-form I with
+- **SHARC, since 2026-09-03 — the biquad wire is FIVE float32 words a
+  stage in D5's OWN OFFSET ENCODING**, and that encoding is the reason
+  float is accurate enough to ship:
+
+      b0,   n1 = b1 + 2·b0,   n2 = b2 − b0,   c1 = 2 + a1,   c2 = 1 − a2
+
+  a0 normalised to 1. `_bq_fx_convert_N` becomes a COPY — the wire word
+  IS the stored word — and the kernel reconstructs the direct
+  coefficients in REGISTERS once per stage per block, five arithmetic
+  instructions and two constant reads.
+
+  **Why the offset form survives the move to float, when its original
+  reason (headroom) does not.** Carried directly, a1 = −1.9948 for a
+  20 Hz biquad, where one float32 ulp is 2.4e−7 against Q4.28's 3.7e−9:
+  **six bits worse on the number that places the pole**, because
+  fixed-point precision is ABSOLUTE and float's is RELATIVE, and pole
+  placement error is an absolute error. 2 + a1 = 0.0052 puts them back.
+  Measured worst response error over the DEFS set:
+
+  | coefficient wire | worst error |
+  |---|---|
+  | float32 DIRECT (what the arm carried before this landing) | 0.3715 dB |
+  | Q4.28 offset — the fixed contract | 0.0265 dB |
+  | **float32 OFFSET — the shipping wire** | **0.0080 dB** |
+  | golden bar | 0.046 dB |
+
+  The reconstruction ROUNDS ONCE, at the register file's 32 significand
+  bits: `c1 − 2.0` is exact only while c1's lowest set bit is at or above
+  2⁻³¹. That rounding is the difference between the **0.0042 dB this was
+  modelled at** and the **0.0080 dB it is built at** — the model had
+  reconstructed in longdouble and so credited the wire with precision the
+  part has not got. Running the offset form THROUGH the recursion instead
+  (w1′ = 2·w1 + w2 + n1·x − c1·y, w2′ = n2·x − w1 + c2·y) would avoid the
+  rounding entirely at seven ALU ops against four pairable multiplies —
+  one more instruction per sample per stage, ~3% of chip 2, for ~0.003 dB.
+  **Priced and not taken.**
+
+  **The identity filter is not b0 = 1 and four zeros.** Under this
+  encoding bypass is (1.0, 2.0, −1.0, 2.0, 1.0); five zeros after b0
+  reconstruct to a1 = −2, a2 = 1 — a double pole at z = 1, an integrator
+  squared, not silence. Every bypass initialiser and every host-wire
+  staging buffer in the generated tree carries the offset words under
+  `DSP4_BQ_FLOAT` (`dsp_codegen.py::_BQ_FLOAT_BYPASS_STAGE`).
+
+- **The FIXED wire is unchanged and is still direct-form RBJ float32**
+  under `DSP4_BQ_FLOAT=0`, because that arm converts and this one copies.
+  The wire format is therefore a property of the arm, not a constant, and
+  the two must not be mixed.
+
+- Biquad topology, FIXED ARM (NORMATIVE for `DSP4_BQ_FLOAT=0` and for the
+  FPGA engine): **offset-coefficient direct-form I with
   first-order error feedback** (fixed_ref.biquad). Stored coefficients:
   b0, n2 = b2−b0, c1 = 2+a1, c2 = 1−a2 in **Q4.28**, and **n1 = b1+2·b0
   stored HALVED in Q5.27**, its product accumulated twice (see *Minimum
@@ -269,7 +349,11 @@ names the halved form.
 ## Parameter boundary (contract preservation)
 
 - The SPI wire continues to carry float32 words (spi_handler protocol
-  unchanged; host and mx26 untouched).
+  unchanged; host and mx26 untouched). **The biquad coefficient words'
+  MEANING changed on 2026-09-03** — five float32 words a stage, D5's
+  offset encoding, under `DSP4_BQ_FLOAT`; direct-form RBJ under
+  `DSP4_BQ_FLOAT=0`. Same protocol, same word count, same addresses, same
+  type; a different encoding, per arm. See *Coefficient formats*.
 - REVISED 2026-07-31 (during kernel conversion): the ENTIRE parameter
   plane — dispatch tables, ramp engine, target/step/current scalars —
   stays FLOAT and byte-identical to the archived float firmware. Each
@@ -348,16 +432,183 @@ reference of any kind until review findings D26-D34 were closed.
   source**. That is the only clip in the graph where Q4.28's headroom is
   finally spent.
 
-## Scope exceptions
+---
 
+## The float cascade (PW ruling 2026-09-03) **[FLOAT]**
+
+The whole of the SHARC float path, stated once. `DSP4_BQ_FLOAT` and
+`DSP4_GAIN_FLOAT` default ON; `DSP4_BQ_FLOAT=0` restores every word of
+the fixed reference model.
+
+### The arithmetic
+
+Direct form II TRANSPOSED, which is right for float the way the offset
+DF-I form is right for Q4.28:
+
+    y   = w1 + b0·x
+    w1' = w2 + b1·x − a1·y
+    w2' =      b2·x − a2·y
+
+Five products, no 64-bit extract, no per-stage round, no per-stage
+saturate, no error-feedback word.
+
+### Where the bits are, and where they are not
+
+**The state is 40-bit.** MODE1.RND32 (bit 16) is CLEARED, so the register
+file carries 32 significand bits against IEEE single's 24, and the block
+kernels hold w1/w2 in REGISTERS across all `DSP4_BLOCK_SIZE` samples of a
+stage. It costs nothing — one `bit clr` against one `bit set` — and it is
+worth 33–48 dB of noise floor over float32.
+
+**Two places the signal leaves the register file, and both are 32-bit DM
+words.** `_bq_fx_cascade_blk` runs stage-outer / sample-inner, so a stage
+writes its whole block of y to the block buffer and the next stage reads
+it back: **the forward path between stages is 32-bit float even in the
+40-bit arm**, and so is the entry pass's `FLOAT Rx BY -28`, which
+quantises a 32-significant-bit Q4.28 word to 24 bits on its way in. The
+state crosses each BLOCK boundary the same way. What stays at 40 bits is
+the RECURSION — w1/w2, and the full-precision y that feeds them, not the
+truncated copy handed on — which is where a high-Q LF biquad's state
+error lives, so the 40 bits keep what they were bought for. Measured on
+the response table, the forward path's 32 bits are worth **nothing**
+(0.0080 dB either way). All three crossings are in `bq_float_ref.py` and
+all three are proved on the part by `bqeverify.sh float`.
+
+**The per-sample kernel is different and cannot be made the same.**
+`_bq_fx_cascade_N` holds the cascade value in a register across stages,
+so the CROSSFADE path is not bit-identical to steady state under float.
+Known, and it is a property of the loop shape, not a defect.
+
+### Overflow: no guard, one clamp
+
+`DSP4_BQ_GUARD` is FORCED off, not merely defaulted off. An 8-bit
+exponent absorbs the ‖h‖₁ = 1285 (+62 dB) worst case in the DEFS set that
+costs the fixed path eight mantissa bits — **proved, not asserted: the
+4-band-all-+15 dB cascade peaks at 1285.0 against float32's 3.4e38, 2.6e35×
+of headroom** (`bq_float_ref.py --overflow`). So there is no sizer, no
+load-time impulse run, no header word, no entry scale, no exit rescale
+and no per-stage saturate.
+
+**What remains is ONE clamp, and it is an output clamp, not a sizing.**
+The inter-node bus is still Q4.28, so the word a cascade hands on must
+fit ±8 whatever the cascade did internally: one `CLIP Fx BY 7.99999952`
+(0x40FFFFFF, the largest float32 below 8.0, so the following `FIX BY 28`
+gives 0x7FFFFF80 and cannot wrap) per sample on the cascade output. The
+guarded fixed arm clamps in the same place. **Clipping preserves sign;
+the wrap the guard exists to prevent inverts it.**
+
+### The C-wire, and what cross-node equivalence now means
+
+**Nodes interchange FIXED PCM, not internal format.** Q4.28 on the
+inter-node bus, on every bus accumulator, in every TDM slot and across
+the inter-chip link — unchanged. What a node does INSIDE is its own
+business, and after this ruling the SHARC does biquads in float while the
+FPGA engine will do them in fixed from `fixed_ref.py`.
+
+So **the equivalence between the two targets is at the fixed-PCM
+interchange, not at bit-identity of the internal arithmetic**, and the
+two-step equivalence stated under *Acceptance tolerances* now reads:
+SHARC ≡ `bq_float_ref` (bit-exact, on the part), FPGA ≡ `fixed_ref`
+(bit-exact), and both ≈ float64 within the tolerances. A sample handed
+across the C-wire is the same format from either; the two will not
+produce the same word from the same filter, and are not required to.
+
+**No ASRC. That still holds** — one clock domain, one sample rate, no
+rate conversion anywhere in the interchange — and it is what makes a
+fixed-PCM interchange sufficient.
+
+### GAIN
+
+`_gsimd_gain_blk`'s AUDIO word is one FLOAT, one multiply, one CLIP and
+one FIX in place of the 64-bit extract and the branch-free saturate:
+eighteen instructions per two samples become eleven. The METER's wide MAC
+and its exact 80-bit sum of squares stay fixed beside it (see *Scope
+exceptions*). The meter's three ops are INTERLEAVED into the float chain,
+because FLOAT→multiply→CLIP→FIX is a four-deep serial dependency: written
+as four consecutive instructions the loop returned 1.49 of the 3.5
+cycles/sample/strip its instruction count had deleted, and interleaved it
+returns **2.76**. The scalar body, the `DSP4_GAIN_SIMD=0` body and the
+`DSP4_MTR_OFF` body stay fixed and are the byte-for-byte controls they
+always were.
+
+The D20 mic-pre tap decision is unchanged: **the tap stays.** Its store is
+the ROUTER's, not the meter's (pickoff 0, post-trim), and under float it
+publishes the post-clip Q4.28 word exactly as before — the same word, in
+the same place, in the same block. Float does not touch it, and the
+GAIN→FILT coefficient fold that D20's −17 c/s/strip is blocked on is
+still the thing that would.
+
+### What it costs and what it buys, measured whole-graph
+
+Block 16, both chips, two boots a point, minimum taken, witnesses clean.
+The instrument reproduces itself to 0.007% on chip 2 and exactly on
+chip 1.
+
+| arm | chip 2 | % of 327,680 | chip 1 | % |
+|---|---|---|---|---|
+| contract, per-stage saturate | 306,939 † | 93.67% | 304,363 † | 92.88% |
+| fixed round-once + guard | 264,683 | 80.77% | 292,863 | 89.38% |
+| **float, offset wire + float GAIN** | **249,751** | **76.22%** | **290,193** | **88.56%** |
+
+† carried from sessions 22–23, same scripts on the same bench.
+
+Chip 2 frees **14,932 cycles/block, 4.56% of budget**, and 57,188 against
+the contract (17.45%). Chip 1 frees 2,670, 0.81%. Chip 1's smaller win is
+arithmetic, not disappointment: 256 biquad stages against chip 2's 632,
+in a graph dominated by GAIN, its meter and the dynamics.
+
+The offset reconstruction is the one thing float gives back: **3,217
+cycles/block on chip 2, 0.98% of budget**, for the 46× accuracy it buys.
+
+### Noise floor: the one place fixed is still better, and why
+
+Arithmetic only, against each arm's own coefficients: **fixed is 8–22 dB
+quieter than float at 40 bits** (−151.7 dBFS against −109.6 on the LF
+shelf), because the fixed path carries the first-order ERROR FEEDBACK the
+round-once ruling deliberately kept and float has no residual to carry.
+Float at 40 bits is 33–48 dB quieter than float32, at zero cycle cost —
+there is no reason to run this kernel at 32 bits. A 40-bit state that
+never passed through a 32-bit DM word would be worth a further ~12 dB on
+the LF shelf and nothing in the response table; in DM it would cost ~2.7%
+of chip 2, in PM no cycles, and chip 1 has no PM to spare. Priced, not
+built.
+
+---
+
+## Scope exceptions **[FLOAT]**
+
+- **The SHARC biquad cascades and GAIN's audio word are 40-bit float**
+  (PW ruling 2026-09-03) — see *The float cascade* below. They convert at
+  the cascade boundary, `FLOAT Rx BY -28` in and `CLIP` then
+  `FIX Fx BY 28` out, because the inter-node bus is still Q4.28.
+- **GAIN's METER is NOT in that exception and stays fixed.** A meter
+  wants the PRE-CLIP wide word and an exact sum of squares across the
+  block: `mrb = x·g (ssi)` gives the full Q8.24 over-range a 32-bit store
+  cannot hold, and MRF accumulates 80 bits with no rounding and no
+  saturation, which is order-independent and is what makes the SIMD split
+  exact. Float would make both approximate. So the wide MAC stays beside
+  the float audio path, and the gain the audio applies is FLOATed from
+  the same Q4.28 word the meter's MAC uses — polarity and mute already
+  folded in — so the two cannot disagree about what gain was applied.
 - FX engines (FX_ENGINE nodes) stay float32 (D5). Their inputs/outputs
   convert at the node boundary (Q4.28 ↔ float32, one instruction each
   way on SHARC).
 - Meters store linear Q4.28 peaks; dB conversion remains host-side.
 
-## Acceptance tolerances (golden harness)
+## Acceptance tolerances (golden harness) **[FLOAT]**
 
-Per kernel family, fixed-reference vs float64-reference on the
+**Two models, two bit-exact bars, one tolerance bar.** `fixed_ref.py` is
+normative for the fixed arm and for the FPGA engine; **`bq_float_ref.py`
+is normative for the SHARC float cascade kernels**, and it is exact
+rather than approximate — every 40-bit operation is computed in
+`numpy.longdouble` (a 64-bit significand, which holds the product of two
+32-bit significands) and rounded ONCE. Both are held to the part:
+`bqeverify.sh` for the fixed arm and `bqeverify.sh float` for the float
+arm, each 0 ULP over 192 loaded cascades × 3 drive levels × 4 blocks, at
+block 8 and block 16. The tolerances below are then measured on the
+models.
+
+Per kernel family, reference model vs float64-reference on the
 standard vector set:
 - Biquad family: magnitude response within **±0.01 dB** for f0 ≥
   50 Hz and **±0.05 dB** including the 20 Hz extreme (both beat the
@@ -369,10 +620,19 @@ standard vector set:
 - End-to-end strip: null test vs float64 better than **−90 dBFS**
   RMS on program-like material. [REVIEW]
 
-The SHARC asm and the FPGA RTL both implement the *fixed reference
-model* (`tools/dsp/fixed_ref.py`) bit-exactly; the reference model is
-what gets tolerance-tested against float64. Two-step equivalence:
-target ≡ fixed_ref (bit-exact), fixed_ref ≈ float64 (tolerances).
+Two-step equivalence, per target and per arm:
+
+- **SHARC float cascade** ≡ `bq_float_ref` (bit-exact, proved on the part
+  by `bqeverify.sh float`), and `bq_float_ref` ≈ float64 within the
+  tolerances above.
+- **SHARC fixed arm and the FPGA RTL** ≡ `fixed_ref` (bit-exact), and
+  `fixed_ref` ≈ float64 within the same tolerances.
+
+The two targets meet at the FIXED-PCM INTERCHANGE and not at bit-identity
+of the internal arithmetic — see *The float cascade → The C-wire*. They
+will not produce the same word from the same filter, and are not required
+to; both are held to the same response and noise-floor bars against
+float64, which is what the tolerances are for.
 
 ### Boundary vectors, and where the bit-exact half is checked
 

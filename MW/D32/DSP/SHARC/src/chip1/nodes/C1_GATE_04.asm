@@ -42,10 +42,20 @@
 .var _gate_det_src_C1_GATE_04 = 0;
 .global _gate_filter_on_C1_GATE_04;
 .var _gate_filter_on_C1_GATE_04 = 0;
+#if DSP4_BQ_FLOAT
+.global _gate_filter_hpf_C1_GATE_04;
+.var _gate_filter_hpf_C1_GATE_04[5] = 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000;
+#else
 .global _gate_filter_hpf_C1_GATE_04;
 .var _gate_filter_hpf_C1_GATE_04[5] = 1.0, 0.0, 0.0, 0.0, 0.0;
+#endif
+#if DSP4_BQ_FLOAT
+.global _gate_filter_lpf_C1_GATE_04;
+.var _gate_filter_lpf_C1_GATE_04[5] = 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000;
+#else
 .global _gate_filter_lpf_C1_GATE_04;
 .var _gate_filter_lpf_C1_GATE_04[5] = 1.0, 0.0, 0.0, 0.0, 0.0;
+#endif
 /* The gate's sidechain HPF+LPF, run as one two-stage cascade.
  * Header word for shape; H stays 0, and that is a MEASURED GAP:
  * dyn_state_bound.py finds the cascade reaching |h|_1 = 150.7

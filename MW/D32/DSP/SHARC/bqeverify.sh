@@ -15,10 +15,21 @@
 # kernels over the same words inside the DSP, diffs them on-chip, and
 # hashes each arm's whole output stream.
 #
-#   ./bqeverify.sh           both arms (the default question)
+#   ./bqeverify.sh           both FIXED arms (the round-once question)
 #   ./bqeverify.sh 0         CONTROL only: arm A is the saturating contract
 #   ./bqeverify.sh 1         LANDED only: arm A is the round-once kernel
+#   ./bqeverify.sh float     THE FLOAT ARM -- the shipping cascade
 #   BLOCK=16 ./bqeverify.sh  at the working operating point
+#
+# THE FLOAT ARM (2026-09-03), and it is the bar float landed without. With
+# DSP4_BQ_FLOAT the default, arm A is the shipping float cascade on the
+# float32 OFFSET wire and arm B is the same kernel WITHOUT the offset
+# reconstruction on the direct-form wire; both are scored against
+# tools/dsp/bq_float_ref.py, and the divergence bitmap has to show the
+# BYPASS cascades agreeing to the bit and every cascade with a pole away
+# from the origin differing. It is built WITHOUT DSP4_BQ_SHOOTOUT: the
+# fixed rig ladder has nothing to say about the float kernels and its PM
+# is what nearly overflowed sec_swco on chip 1.
 #
 # TWO BUILDS, AND BOTH ARE THE BAR.
 #
@@ -55,6 +66,8 @@ BLOCK="${BLOCK:-8}"
 NCAS="${NCAS:-192}"
 WORK="${WORK:-/tmp/bqeverify}"
 MODE="${1:-both}"
+FLOAT=0
+[ "$MODE" = float ] && FLOAT=1
 mkdir -p "$WORK"
 
 # BLOCK != 8 is built from a SCRATCH TREE generated with DSP4_GEN_BLOCK,
@@ -88,17 +101,28 @@ SRC="$(srctree "$BLOCK")"
 
 # The vectors and the reference come out of ONE generator run, so the table
 # the part holds and the results the host scores against cannot drift apart.
-python3 $ROOT/tools/dsp/gen_bqe_vectors.py --block "$BLOCK" --ncas "$NCAS" \
+GENFLAG=""
+[ "$FLOAT" = 1 ] && GENFLAG="--float"
+python3 $ROOT/tools/dsp/gen_bqe_vectors.py $GENFLAG \
+    --block "$BLOCK" --ncas "$NCAS" \
     --out "$SRC/lib/bqe_vectors.h" --json "$WORK/bqe_vectors.json" || exit 4
 
-run_arm() {   # $1 = DSP4_BQ_ROUNDONCE
+run_arm() {   # $1 = DSP4_BQ_ROUNDONCE, or "float"
     local ro="$1" D="$WORK/b$BLOCK-ro$1"
-    echo "=== DSP4_BQ_ROUNDONCE=$ro"
-    DSP_SRC_DIR="$SRC" DSP_BUILD_DIR="$D" \
-    DSP4_BISECT=0 DSP4_BQ_SHOOTOUT=1 DSP4_BQE_VERIFY=1 DSP4_BQ_ROUNDONCE=$ro \
-    DSP4_BQ_GUARD=0 \
-    DSP4_STRIP_FUSED=1 DSP4_SIMD_DYN=1 DSP4_STRIPS=2 DSP4_BLOCK_KERNELS=1 \
-      ./build.sh > "$D.log" 2>&1
+    if [ "$ro" = float ]; then
+      echo "=== DSP4_BQ_FLOAT=1  (the shipping cascade, offset wire)"
+      DSP_SRC_DIR="$SRC" DSP_BUILD_DIR="$D" \
+      DSP4_BISECT=0 DSP4_BQ_SHOOTOUT=0 DSP4_BQE_VERIFY=1 DSP4_BQ_FLOAT=1 \
+      DSP4_STRIP_FUSED=1 DSP4_SIMD_DYN=1 DSP4_STRIPS=2 DSP4_BLOCK_KERNELS=1 \
+        ./build.sh > "$D.log" 2>&1
+    else
+      echo "=== DSP4_BQ_ROUNDONCE=$ro"
+      DSP_SRC_DIR="$SRC" DSP_BUILD_DIR="$D" \
+      DSP4_BISECT=0 DSP4_BQ_SHOOTOUT=1 DSP4_BQE_VERIFY=1 DSP4_BQ_FLOAT=0 \
+      DSP4_BQ_ROUNDONCE=$ro DSP4_BQ_GUARD=0 \
+      DSP4_STRIP_FUSED=1 DSP4_SIMD_DYN=1 DSP4_STRIPS=2 DSP4_BLOCK_KERNELS=1 \
+        ./build.sh > "$D.log" 2>&1
+    fi
     if [ "$(grep -ciE '\[Error|Build FAILED' "$D.log")" -ne 0 ]; then
       echo "BUILD FAILED"; grep -iE '\[Error' "$D.log" | head -20; return 1; fi
     echo "  block $BLOCK  image: chip1.ldr $(md5sum $D/chip1.ldr | cut -c1-8) \
@@ -112,6 +136,10 @@ chip2.ldr $(md5sum $D/chip2.ldr | cut -c1-8)"
 }
 
 rc=0
-if [ "$MODE" = both ] || [ "$MODE" = 0 ]; then run_arm 0 || rc=1; fi
-if [ "$MODE" = both ] || [ "$MODE" = 1 ]; then echo; run_arm 1 || rc=1; fi
+if [ "$MODE" = float ]; then
+  run_arm float || rc=1
+else
+  if [ "$MODE" = both ] || [ "$MODE" = 0 ]; then run_arm 0 || rc=1; fi
+  if [ "$MODE" = both ] || [ "$MODE" = 1 ]; then echo; run_arm 1 || rc=1; fi
+fi
 exit $rc

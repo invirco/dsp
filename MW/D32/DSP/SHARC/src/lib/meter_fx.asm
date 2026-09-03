@@ -238,6 +238,10 @@ _gsimd_enter.end:
 .extern _gsimd_sq2;
 .extern _gsimd_max;
 .extern _gsimd_min;
+#if DSP4_GAIN_FLOAT
+.extern _gsimd_clipf;
+#define GSGF_RND32 DSP4_RND32_BIT
+#endif
 .global _gsimd_gain_blk;
 _gsimd_gain_blk:
     /* The meter's accumulator base has to survive the sample loop, and the
@@ -259,12 +263,33 @@ _gsimd_gain_blk:
     r2 = mode1;
     dm(_gsimd_save) = r2;
     bit set mode1 0x00200000;          /* PEYEN */
+#if DSP4_GAIN_FLOAT
+#if DSP4_BQ_FLOAT32
+    bit set mode1 GSGF_RND32;          /* IEEE single: the 32-bit control */
+#else
+    bit clr mode1 GSGF_RND32;          /* 40-bit extended: the arm itself */
+#endif
+#endif
     nop;
     nop;
     r1 = dm(_gsimd_g);                 /* g into BOTH units */
+#if DSP4_GAIN_FLOAT
+    /* THE AUDIO GAIN IS FLOATED FROM THE METER'S OWN WORD, not read
+     * separately from _gain_coeff. r1 already has polarity and mute
+     * folded in at control rate (the crosspoint-coefficient fold), and a
+     * 32-bit integer is exact in a 40-bit float, so the two paths cannot
+     * disagree about what gain was applied -- which they would if the
+     * audio took the unquantised float and the meter kept the Q4.28
+     * word. One instruction, at block rate. */
+    r14 = -28;
+    f4 = float r1 by r14;              /* g, both units */
+    r9 = 28;
+    f3 = dm(_gsimd_clipf);             /* the ONE clamp, both units */
+#else
     r6 = 0x08000000;                   /* 2^27, the rounding half */
     r7 = 1;
     r10 = 0x7FFFFFFF;
+#endif
     /* ---- the block ---- */
     r13 = 0x80000000;                  /* block max: most negative */
     r15 = 0x7FFFFFFF;                  /* block min: most positive */
@@ -277,6 +302,37 @@ _gsimd_gain_blk:
      * stalls on the multiplier, and the first cut of the scalar loop
      * measured +25.5 c/s/strip for exactly that. The block load rides on
      * the meter's MAC, which has no dependence on the word being loaded. */
+#if DSP4_GAIN_FLOAT
+    /* THE FLOAT AUDIO PATH, AND THE FIXED METER BESIDE IT. The wide MAC
+     * stays exactly where it was -- same instruction, same two-instruction
+     * gap before mr1b is read, same 80-bit MRF sum of squares -- because
+     * a meter wants the PRE-CLIP over-range word and an exact,
+     * order-independent accumulation, and float gives neither. What goes
+     * is the ten instructions of extract-and-saturate on the AUDIO word:
+     * one FLOAT, one multiply, one CLIP and one FIX replace them.
+     * ELEVEN instructions per two samples against eighteen. */
+    /* THE METER'S OPS ARE INTERLEAVED INTO THE FLOAT CHAIN, and that is
+     * not tidiness. FLOAT -> multiply -> CLIP -> FIX is a four-deep
+     * SERIAL dependency and each link waits on the last: written as four
+     * consecutive instructions the loop gave back only 1.49 of the 3.5
+     * cycles/sample/strip its instruction count had deleted. The meter's
+     * max, min and mr1b read have no dependence on the audio word, so
+     * they are the cover. `r12 = mr1b` moves from two instructions after
+     * its MAC to three, which is further away and therefore still safe. */
+    lcntr = DSP4_BLOCK_HALF, do .gsg_lp until lce;
+        mrf = mrf + r12 * r12 (ssi), r0 = dm(i0, 2);
+        mrb = r0 * r1 (ssi);           /* the METER's wide MAC, unchanged */
+        f2 = float r0 by r14;          /* x[n] -> PEx, x[n+1] -> PEy */
+        r13 = max(r13, r12);           /* meter, one sample behind */
+        f0 = f2 * f4;
+        r15 = min(r15, r12);
+        r12 = mr1b;                    /* WIDE post-trim, Q8.24 */
+        f0 = clip f0 by f3;            /* per-PE compute, NOT a branch */
+        r0 = fix f0 by r9;
+        dm(i1, 2) = r0;
+.gsg_lp:
+        dm(i4, 2) = r0;                /* post-trim tap block */
+#else
     lcntr = DSP4_BLOCK_HALF, do .gsg_lp until lce;
         mrf = mrf + r12 * r12 (ssi), r0 = dm(i0, 2);
         mrb = r0 * r1 (ssi);           /* x[n] -> PEx, x[n+1] -> PEy */
@@ -297,6 +353,7 @@ _gsimd_gain_blk:
         dm(i1, 2) = r0;
 .gsg_lp:
         dm(i4, 2) = r0;                /* post-trim tap block */
+#endif
     /* the last sample's meter ops, outside the loop -- one per unit */
     r13 = max(r13, r12);
     mrf = mrf + r12 * r12 (ssi);

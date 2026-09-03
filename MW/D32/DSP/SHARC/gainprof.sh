@@ -80,8 +80,12 @@ GD="${DSP4_BQ_GUARD:-1}"
 # its 32-bit control (MODE1.RND32 set). FL=0 is every existing point
 # byte for byte, so the float arms and the fixed ones are a PAIRED
 # measurement on one instrument in one session.
-FL="${DSP4_BQ_FLOAT:-0}"
+# Float is the SHIPPING cascade since 2026-09-03, so this instrument
+# defaults to it; DSP4_BQ_FLOAT=0 is the fixed reference arm.
+FL="${DSP4_BQ_FLOAT:-1}"
 FL32="${DSP4_BQ_FLOAT32:-0}"
+# GAIN follows the cascade unless asked otherwise.
+GFL="${DSP4_GAIN_FLOAT:-$FL}"
 MTROFF="${DSP4_MTR_OFF:-0}"
 WORK="${WORK:-/tmp/gainprof}"
 cd "$(dirname "$0")"
@@ -127,7 +131,7 @@ for L in $LIMITS; do
     DSP4_STRIP_FUSED=$FUS DSP4_SIMD_DYN=$SIMD DSP4_BQ_GRAPH=$BQ \
     DSP4_GAIN_SIMD=$G DSP4_NODE_LIMIT=$L DSP4_NODE_LIMIT2=0 \
     DSP4_MTR_OFF=$MTROFF DSP4_BQ_ROUNDONCE=$RO DSP4_BQ_GUARD=$GD \
-    DSP4_BQ_FLOAT=$FL DSP4_BQ_FLOAT32=$FL32 \
+    DSP4_BQ_FLOAT=$FL DSP4_BQ_FLOAT32=$FL32 DSP4_GAIN_FLOAT=$GFL \
     DSP4_BLOCK_DECIMATE=$DEC ./build.sh all > "$D.log" 2>&1
   if [ "$(grep -ciE '\[Error|Build FAILED' "$D.log")" -ne 0 ]; then
     echo "block=$BLOCK simd=$G limit=$L BUILD FAILED"; continue; fi

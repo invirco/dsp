@@ -22,7 +22,7 @@
 
 #if DSP4_BQ_FLOAT
 .global _xover_lp_A_C2_MAIN_XOVER;
-.var _xover_lp_A_C2_MAIN_XOVER[10] = 0x3F800000, 0, 0, 0, 0, 0x3F800000, 0, 0, 0, 0;
+.var _xover_lp_A_C2_MAIN_XOVER[10] = 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000, 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000;
 #elif DSP4_BQ_GUARD
 .global _xover_lp_A_C2_MAIN_XOVER;
 .var _xover_lp_A_C2_MAIN_XOVER[10 + 1] = 0, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
@@ -32,7 +32,7 @@
 #endif
 #if DSP4_BQ_FLOAT
 .global _xover_hp_A_C2_MAIN_XOVER;
-.var _xover_hp_A_C2_MAIN_XOVER[10] = 0x3F800000, 0, 0, 0, 0, 0x3F800000, 0, 0, 0, 0;
+.var _xover_hp_A_C2_MAIN_XOVER[10] = 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000, 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000;
 #elif DSP4_BQ_GUARD
 .global _xover_hp_A_C2_MAIN_XOVER;
 .var _xover_hp_A_C2_MAIN_XOVER[10 + 1] = 0, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
@@ -46,7 +46,7 @@
 .var _xover_hp_state_A_C2_MAIN_XOVER[12];
 #if DSP4_BQ_FLOAT
 .global _xover_lp_B_C2_MAIN_XOVER;
-.var _xover_lp_B_C2_MAIN_XOVER[10] = 0x3F800000, 0, 0, 0, 0, 0x3F800000, 0, 0, 0, 0;
+.var _xover_lp_B_C2_MAIN_XOVER[10] = 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000, 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000;
 #elif DSP4_BQ_GUARD
 .global _xover_lp_B_C2_MAIN_XOVER;
 .var _xover_lp_B_C2_MAIN_XOVER[10 + 1] = 0, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
@@ -56,7 +56,7 @@
 #endif
 #if DSP4_BQ_FLOAT
 .global _xover_hp_B_C2_MAIN_XOVER;
-.var _xover_hp_B_C2_MAIN_XOVER[10] = 0x3F800000, 0, 0, 0, 0, 0x3F800000, 0, 0, 0, 0;
+.var _xover_hp_B_C2_MAIN_XOVER[10] = 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000, 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000;
 #elif DSP4_BQ_GUARD
 .global _xover_hp_B_C2_MAIN_XOVER;
 .var _xover_hp_B_C2_MAIN_XOVER[10 + 1] = 0, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
@@ -69,9 +69,16 @@
 .global _xover_hp_state_B_C2_MAIN_XOVER;
 .var _xover_hp_state_B_C2_MAIN_XOVER[12];
 
-/* float staging: [LP 2 stages, HP 2 stages] */
+/* SPI staging: [LP 2 stages, HP 2 stages]. The WIRE -- direct
+ * form under the fixed arm, D5's offset encoding as float32
+ * under the float arm. */
+#if DSP4_BQ_FLOAT
+.global _xover_coeffs_next_C2_MAIN_XOVER;
+.var _xover_coeffs_next_C2_MAIN_XOVER[20] = 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000, 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000, 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000, 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000;
+#else
 .global _xover_coeffs_next_C2_MAIN_XOVER;
 .var _xover_coeffs_next_C2_MAIN_XOVER[20] = 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0;
+#endif
 .global _xover_swap_pending_C2_MAIN_XOVER;
 .var _xover_swap_pending_C2_MAIN_XOVER = 0;
 

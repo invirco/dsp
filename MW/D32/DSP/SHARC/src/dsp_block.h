@@ -174,38 +174,53 @@
  * DSP4_BQ_GUARD_FORCE > 0 overrides the sized H on EVERY cascade, which
  * is how the guard's worst-case cost is measured in the graph rather
  * than estimated from a rig. It is a measurement, not a mode. */
-/* FLOAT ON SHARC (2026-09-03), MEASUREMENT ARM -- DSP4_BQ_FLOAT.
+/* FLOAT ON SHARC -- DSP4_BQ_FLOAT, THE SHIPPING CASCADE (PW ruling
+ * 2026-09-03: the SHARC DSP is 40-bit float). DEFAULTS ON.
  *
- * The four cascade kernels become software FLOAT DF-II-T (the shootout's
- * RIG A2 arithmetic) instead of the Q4.28 offset form, and the cascade's
- * coefficient block carries the RBJ float words the host already writes
- * -- so `_bq_fx_convert_N` becomes a copy and the quantisation step
- * disappears with it. The signal buffers stay Q4.28: the conversion is
- * ONE instruction per sample on the way into a cascade
- * (`Fn = FLOAT Rx BY -28`) and one on the way out (`Rn = FIX Fx BY 28`,
- * with ALUSAT set so the one word handed to the next node clamps).
+ * The four cascade kernels are software FLOAT DF-II-T instead of the
+ * Q4.28 offset form, and the cascade's coefficient block carries FIVE
+ * float32 words a stage in D5's OWN OFFSET ENCODING -- b0, n1 = b1+2*b0,
+ * n2 = b2-b0, c1 = 2+a1, c2 = 1-a2 -- which the kernel reconstructs in
+ * registers once per stage per block. `_bq_fx_convert_N` is a COPY: the
+ * wire word IS the stored word, and the Q4.28 quantisation step is gone.
+ * The signal buffers stay Q4.28: the conversion is ONE instruction per
+ * sample on the way into a cascade (`Fn = FLOAT Rx BY -28`) and one on
+ * the way out (`Rn = FIX Fx BY 28`, after the one CLIP, because the
+ * inter-node bus is still Q4.28).
  *
- * IT NEEDS NONE OF THE GUARD MACHINERY, and that is the point of the
- * measurement: no per-stage saturate, no 64-bit extract, no |h|_1
- * headroom guard and no load-time sizer, because an 8-bit exponent
- * absorbs the |h|_1 = 1313 (+62 dB) worst case that costs the fixed path
- * eight bits of mantissa. DSP4_BQ_GUARD is therefore FORCED OFF here
- * (and DSP4_BQ_HDR with it) rather than merely defaulting off.
+ * THE OFFSET WIRE IS THE ACCURACY, NOT A DETAIL. Direct float32
+ * coefficients cost 0.3715 dB on the DEFS worst set -- eight times the
+ * 0.046 dB golden bar -- because a1 = -1.9948 has a 2.4e-7 ulp in
+ * float32 against Q4.28's 3.7e-9, six bits on the number that places
+ * the pole. On the offset wire the same arithmetic reads 0.0080 dB,
+ * better than the fixed contract's 0.0265.
+ *
+ * IT NEEDS NONE OF THE GUARD MACHINERY: no per-stage saturate, no
+ * 64-bit extract, no |h|_1 headroom guard and no load-time sizer,
+ * because an 8-bit exponent absorbs the |h|_1 = 1313 (+62 dB) worst
+ * case that costs the fixed path eight bits of mantissa (proved, not
+ * asserted: peak 1285.0 against 3.4e38). DSP4_BQ_GUARD is therefore
+ * FORCED OFF here (and DSP4_BQ_HDR with it) rather than merely
+ * defaulting off.
  *
  * THE STATE IS 40-BIT. MODE1.RND32 is CLEARED, so the register file
  * carries the SHARC's extended-precision float -- eight more mantissa
  * bits -- through the whole recursion, and the block kernels hold w1/w2
  * in registers across all DSP4_BLOCK_SIZE samples, which is where a
- * high-Q low-frequency biquad's state error accumulates.
+ * high-Q low-frequency biquad's state error accumulates. It costs
+ * nothing: one `bit clr` against one `bit set` in the same place.
  * DSP4_BQ_FLOAT32=1 is the CONTROL: RND32 set, so every result rounds at
  * the 32-bit boundary and the arm is IEEE single throughout -- RIG A2
- * exactly. The difference between the two is what the 40 bits buy.
+ * exactly. The difference between the two is what the 40 bits buy
+ * (33-48 dB of noise floor at zero cycle cost).
  *
- * MEASUREMENT ONLY (PW's fixed-vs-float mandate call is open). The D5
- * contract is untouched, the fixed/round-once/guard path is untouched,
- * and DSP4_BQ_FLOAT=0 is every existing build byte for byte. */
+ * DSP4_BQ_FLOAT=0 IS THE FIXED REFERENCE MODEL AND IT STAYS. The
+ * round-once path and its guard are what a future FPGA fixed engine
+ * follows; the fixed build must keep rebuilding its recorded W0
+ * witnesses byte for byte, and that is the bar that proves it intact.
+ * Do not delete them. */
 #ifndef DSP4_BQ_FLOAT
-#define DSP4_BQ_FLOAT 0
+#define DSP4_BQ_FLOAT 1
 #endif
 #ifndef DSP4_BQ_FLOAT32
 #define DSP4_BQ_FLOAT32 0
@@ -225,6 +240,41 @@
 
 /* Header words in front of a cascade's coefficients: 1 with the guard,
  * 0 without. The interleaved pair blocks carry two, one per strip. */
+/* GAIN ON THE FLOAT PATH -- DSP4_GAIN_FLOAT, and it follows the cascade.
+ *
+ * `_gsimd_gain_blk` (lib/meter_fx.asm) is the block kernel every one of
+ * the 32 metered GAIN nodes runs, and it is where all of the graph's
+ * GAIN cycles are. Under this flag its AUDIO path becomes one float
+ * multiply, one CLIP and one FIX in place of the 64-bit extract and the
+ * branch-free saturate -- eighteen instructions per two samples become
+ * eleven.
+ *
+ * THE METER STAYS FIXED, AND THAT IS NOT A COMPROMISE. The meter wants
+ * the PRE-CLIP wide word and an EXACT sum of squares across the block:
+ * `mrb = x*g (ssi)` gives it the full Q8.24 over-range the 32-bit store
+ * cannot hold, and MRF accumulates 80 bits with no rounding and no
+ * saturation, which is order-independent and is what makes the SIMD
+ * split exact. Float would make both approximate to buy back two
+ * instructions. So the wide MAC stays and only the audio word changes,
+ * and the gain the audio uses is FLOATed from the same Q4.28 word the
+ * meter's MAC uses -- polarity and mute already folded in -- so the two
+ * cannot disagree about what gain was applied.
+ *
+ * The scalar body, the DSP4_GAIN_SIMD=0 body and the DSP4_MTR_OFF body
+ * stay FIXED and are the byte-for-byte controls they always were.
+ *
+ * Defaults to DSP4_BQ_FLOAT, so DSP4_BQ_FLOAT=0 is still the whole fixed
+ * reference model in one flag. */
+#ifndef DSP4_GAIN_FLOAT
+#define DSP4_GAIN_FLOAT DSP4_BQ_FLOAT
+#endif
+
+/* MODE1.RND32, bit 16: set = every float result rounds at the 32-bit
+ * boundary (IEEE single), clear = the register file's 40-bit extended
+ * format. This firmware has never written it, so the part boots in
+ * 40-bit mode; every kernel that touches it saves and restores MODE1. */
+#define DSP4_RND32_BIT 0x00010000
+
 #define DSP4_BQ_HDR DSP4_BQ_GUARD
 
 /* Samples of the load-time impulse run per main-loop pass. The sizing

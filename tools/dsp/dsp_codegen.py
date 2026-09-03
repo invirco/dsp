@@ -5724,6 +5724,7 @@ def gen_eq_biquad_fixed(node):
     inp = node['inputs_str']
     hdrA = _bq_hdr_var(f'_eq_coeffs_A_{nid}', n5, bypass)
     hdrB = _bq_hdr_var(f'_eq_coeffs_B_{nid}', n5, bypass)
+    wireEQ = _bq_wire_var_uninit(f'_eq_coeffs_next_{nid}', n5)
     hrvars = _bq_hr_vars('eq', nid, 1)
     hrpend = _bq_hr_pending('eq', nid)
     hrseq = _bq_hr_seq('eq', nid,
@@ -5744,8 +5745,10 @@ def gen_eq_biquad_fixed(node):
         {hdrB}
         .var _eq_state_B_{nid}[{n6}];
 
-        /* SPI staging (FLOAT RBJ words — wire format unchanged) */
-        .var _eq_coeffs_next_{nid}[{n5}];
+        /* SPI staging -- the WIRE. Direct-form RBJ float32 under the
+         * fixed arm, D5's OFFSET encoding as float32 under the float
+         * arm, which stores the wire word unchanged. */
+        {wireEQ}
         .var _eq_swap_pending_{nid} = 0;
         {hrvars}
 
@@ -5899,14 +5902,26 @@ def gen_eq_biquad_fixed(node):
 # round-once, so a guard-off build must be the same instructions it was.
 # ---------------------------------------------------------------------------
 
-# The float measurement arm's bypass words. Every bypass initialiser in
-# the tree is the IDENTITY filter, so it is derivable from the word count
-# and does not have to be threaded through each caller: RBJ b0 = 1.0,
-# b1 = b2 = a1 = a2 = 0, as IEEE-754 singles, five words a stage. The
-# Q4.28 offset words the fixed path uses are a different encoding of the
-# same filter and would read as denormals in float, which is silence and
-# not bypass -- so this cannot be left alone under DSP4_BQ_FLOAT.
-_BQ_FLOAT_BYPASS_STAGE = '0x3F800000, 0, 0, 0, 0'
+# The float arm's bypass words. Every bypass initialiser in the tree is
+# the IDENTITY filter, so it is derivable from the word count and does
+# not have to be threaded through each caller. The Q4.28 offset words the
+# fixed path uses are a different encoding of the same filter and would
+# read as denormals in float, which is silence and not bypass -- so this
+# cannot be left alone under DSP4_BQ_FLOAT.
+#
+# IT IS NOT b0 = 1 AND FOUR ZEROS, and that is the whole of the offset
+# wire in one constant. The float arm carries D5's OFFSET encoding as
+# float32 -- b0, n1 = b1 + 2*b0, n2 = b2 - b0, c1 = 2 + a1, c2 = 1 - a2
+# -- so the identity filter (b0 = 1, b1 = b2 = a1 = a2 = 0) is
+#
+#     b0 = 1.0   n1 = 2.0   n2 = -1.0   c1 = 2.0   c2 = 1.0
+#
+# and five zeros after b0 would reconstruct to a1 = -2, a2 = 1: a DOUBLE
+# POLE AT z = 1, which is not silence, it is an integrator squared. An
+# uninitialised staging buffer is the same hazard, which is why the wire
+# buffers below are initialised under the float arm and were not before.
+_BQ_FLOAT_BYPASS_STAGE = ('0x3F800000, 0x40000000, 0xBF800000, '
+                          '0x40000000, 0x3F800000')
 
 
 def _bq_float_bypass(n):
@@ -5925,6 +5940,55 @@ def _bq_hdr_var(name, n, bypass, ind=8):
             f'{sp}.var {name}[{n} + 1] = 0, {bypass};\n'
             f'{sp}#else\n'
             f'{sp}.var {name}[{n}] = {bypass};\n'
+            f'{sp}#endif')
+
+
+def _bq_plain_var(name, n, bypass, ind=8):
+    """A cascade coefficient block with NO guard header -- the second
+    half of a two-stage cascade, whose header sits in front of the first.
+
+    It still needs the float arm: _filt_lpf_A/B did not have one, so
+    under DSP4_BQ_FLOAT the LPF bank held Q4.28 words read as floats
+    (0x10000000 is 2.5e-29) and every strip FILT's low-pass stage was
+    silent. That did not show in a cycle measurement, because the
+    instruction count is the same either way."""
+    sp = ' ' * ind
+    return (f'#if DSP4_BQ_FLOAT\n'
+            f'{sp}.var {name}[{n}] = {_bq_float_bypass(n)};\n'
+            f'{sp}#else\n'
+            f'{sp}.var {name}[{n}] = {bypass};\n'
+            f'{sp}#endif')
+
+
+def _bq_wire_var(name, n, ind=8):
+    """A HOST-WIRE staging buffer: what SPI writes and the node's
+    converter reads. THE WIRE FORMAT IS THE ARM'S FORMAT -- direct-form
+    RBJ float32 under the fixed arm (which converts), OFFSET float32
+    under the float arm (which copies) -- so the bypass initialiser
+    differs and the two cannot share one literal.
+
+    The fixed arm's initialiser is left exactly as it was, because
+    DSP4_BQ_FLOAT=0 has to rebuild its recorded W0 witnesses byte for
+    byte."""
+    sp = ' ' * ind
+    fixed = ', '.join(['1.0, 0.0, 0.0, 0.0, 0.0'] * (n // 5))
+    return (f'#if DSP4_BQ_FLOAT\n'
+            f'{sp}.var {name}[{n}] = {_bq_float_bypass(n)};\n'
+            f'{sp}#else\n'
+            f'{sp}.var {name}[{n}] = {fixed};\n'
+            f'{sp}#endif')
+
+
+def _bq_wire_var_uninit(name, n, ind=8):
+    """The same, for a staging buffer the fixed arm leaves uninitialised.
+    Under the float arm it MUST be initialised: zeros reconstruct to a
+    double pole at z = 1, so a swap that carried an unwritten band would
+    hand a strip an integrator rather than silence."""
+    sp = ' ' * ind
+    return (f'#if DSP4_BQ_FLOAT\n'
+            f'{sp}.var {name}[{n}] = {_bq_float_bypass(n)};\n'
+            f'{sp}#else\n'
+            f'{sp}.var {name}[{n}];\n'
             f'{sp}#endif')
 
 
@@ -6117,6 +6181,7 @@ def _fx_cascade_node(node, pfx, stages, extra_dm='', extra_store=''):
                                        extra_store=extra_store))
     hdrA = _bq_hdr_var(f'_{pfx}_coeffs_A_{nid}', n5, bypass)
     hdrB = _bq_hdr_var(f'_{pfx}_coeffs_B_{nid}', n5, bypass)
+    wirePFX = _bq_wire_var_uninit(f'_{pfx}_coeffs_next_{nid}', n5)
     hrvars = _bq_hr_vars(pfx, nid, 1)
     hrpend = _bq_hr_pending(pfx, nid)
     hrseq = _bq_hr_seq(pfx, nid,
@@ -6138,7 +6203,7 @@ def _fx_cascade_node(node, pfx, stages, extra_dm='', extra_store=''):
         .var _{pfx}_state_B_{nid}[{n6}];
 
         /* SPI staging (FLOAT RBJ words — wire format unchanged) */
-        .var _{pfx}_coeffs_next_{nid}[{n5}];
+        {wirePFX}
         .var _{pfx}_swap_pending_{nid} = 0;
         {hrvars}
 
@@ -6415,7 +6480,8 @@ def gen_hpf_lpf_fixed(node):
     nid = node['id']
     inp = node['inputs_str']
     byp = '0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000'
-    fbyp = '1.0, 0.0, 0.0, 0.0, 0.0'
+    wireHPF = _bq_wire_var(f'_hpf_coeffs_next_{nid}', 5)
+    wireLPF = _bq_wire_var(f'_lpf_coeffs_next_{nid}', 5)
     # ONE header for the pair, in front of the HPF, because HPF and LPF
     # are ONE cascade: the block kernel already runs them as a single
     # two-stage call on the strength of the two arrays being adjacent
@@ -6425,9 +6491,9 @@ def gen_hpf_lpf_fixed(node):
     # about where the cascade begins and ends -- which is also where the
     # entry and exit scaling belong.
     hdrHA = _bq_hdr_var(f'_filt_hpf_A_{nid}', 5, byp)
-    hdrLA = f'.var _filt_lpf_A_{nid}[5] = {byp};'
+    hdrLA = _bq_plain_var(f'_filt_lpf_A_{nid}', 5, byp)
     hdrHB = _bq_hdr_var(f'_filt_hpf_B_{nid}', 5, byp)
-    hdrLB = f'.var _filt_lpf_B_{nid}[5] = {byp};'
+    hdrLB = _bq_plain_var(f'_filt_lpf_B_{nid}', 5, byp)
     hrvars = _bq_hr_vars('filt', nid, 1)
     hrpend = _bq_hr_pending('filt', nid, reg='r6')
     hdrskip = _bq_hdr_skip('i1')
@@ -6451,10 +6517,12 @@ def gen_hpf_lpf_fixed(node):
         {hdrLB}
         .var _filt_state_B_{nid}[12];
 
-        /* float staging (wire unchanged) */
-        .var _hpf_coeffs_next_{nid}[5] = {fbyp};
+        /* SPI staging -- the WIRE. Direct-form RBJ float32 under the
+         * fixed arm, D5's OFFSET encoding as float32 under the float
+         * arm, which stores the wire word unchanged. */
+        {wireHPF}
         .var _hpf_swap_pending_{nid} = 0;
-        .var _lpf_coeffs_next_{nid}[5] = {fbyp};
+        {wireLPF}
         .var _lpf_swap_pending_{nid} = 0;
 
         .var _filt_active_{nid} = 0;
@@ -6705,8 +6773,8 @@ def gen_crossover_fixed(node):
     inp = node['inputs_str']
     byp10 = ('0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, '
              '0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000')
-    fbyp20 = ', '.join(['1.0, 0.0, 0.0, 0.0, 0.0'] * 4)
     hdrLA = _bq_hdr_var(f'_xover_lp_A_{nid}', 10, byp10)
+    wireXO = _bq_wire_var(f'_xover_coeffs_next_{nid}', 20)
     hdrHA = _bq_hdr_var(f'_xover_hp_A_{nid}', 10, byp10)
     hdrLB = _bq_hdr_var(f'_xover_lp_B_{nid}', 10, byp10)
     hdrHB = _bq_hdr_var(f'_xover_hp_B_{nid}', 10, byp10)
@@ -6735,8 +6803,10 @@ def gen_crossover_fixed(node):
         .var _xover_lp_state_B_{nid}[12];
         .var _xover_hp_state_B_{nid}[12];
 
-        /* float staging: [LP 2 stages, HP 2 stages] */
-        .var _xover_coeffs_next_{nid}[20] = {fbyp20};
+        /* SPI staging: [LP 2 stages, HP 2 stages]. The WIRE -- direct
+         * form under the fixed arm, D5's offset encoding as float32
+         * under the float arm. */
+        {wireXO}
         .var _xover_swap_pending_{nid} = 0;
 
         .var _xover_active_{nid} = 0;
@@ -8223,38 +8293,53 @@ def gen_block_header():
  * DSP4_BQ_GUARD_FORCE > 0 overrides the sized H on EVERY cascade, which
  * is how the guard's worst-case cost is measured in the graph rather
  * than estimated from a rig. It is a measurement, not a mode. */
-/* FLOAT ON SHARC (2026-09-03), MEASUREMENT ARM -- DSP4_BQ_FLOAT.
+/* FLOAT ON SHARC -- DSP4_BQ_FLOAT, THE SHIPPING CASCADE (PW ruling
+ * 2026-09-03: the SHARC DSP is 40-bit float). DEFAULTS ON.
  *
- * The four cascade kernels become software FLOAT DF-II-T (the shootout's
- * RIG A2 arithmetic) instead of the Q4.28 offset form, and the cascade's
- * coefficient block carries the RBJ float words the host already writes
- * -- so `_bq_fx_convert_N` becomes a copy and the quantisation step
- * disappears with it. The signal buffers stay Q4.28: the conversion is
- * ONE instruction per sample on the way into a cascade
- * (`Fn = FLOAT Rx BY -28`) and one on the way out (`Rn = FIX Fx BY 28`,
- * with ALUSAT set so the one word handed to the next node clamps).
+ * The four cascade kernels are software FLOAT DF-II-T instead of the
+ * Q4.28 offset form, and the cascade's coefficient block carries FIVE
+ * float32 words a stage in D5's OWN OFFSET ENCODING -- b0, n1 = b1+2*b0,
+ * n2 = b2-b0, c1 = 2+a1, c2 = 1-a2 -- which the kernel reconstructs in
+ * registers once per stage per block. `_bq_fx_convert_N` is a COPY: the
+ * wire word IS the stored word, and the Q4.28 quantisation step is gone.
+ * The signal buffers stay Q4.28: the conversion is ONE instruction per
+ * sample on the way into a cascade (`Fn = FLOAT Rx BY -28`) and one on
+ * the way out (`Rn = FIX Fx BY 28`, after the one CLIP, because the
+ * inter-node bus is still Q4.28).
  *
- * IT NEEDS NONE OF THE GUARD MACHINERY, and that is the point of the
- * measurement: no per-stage saturate, no 64-bit extract, no |h|_1
- * headroom guard and no load-time sizer, because an 8-bit exponent
- * absorbs the |h|_1 = 1313 (+62 dB) worst case that costs the fixed path
- * eight bits of mantissa. DSP4_BQ_GUARD is therefore FORCED OFF here
- * (and DSP4_BQ_HDR with it) rather than merely defaulting off.
+ * THE OFFSET WIRE IS THE ACCURACY, NOT A DETAIL. Direct float32
+ * coefficients cost 0.3715 dB on the DEFS worst set -- eight times the
+ * 0.046 dB golden bar -- because a1 = -1.9948 has a 2.4e-7 ulp in
+ * float32 against Q4.28's 3.7e-9, six bits on the number that places
+ * the pole. On the offset wire the same arithmetic reads 0.0080 dB,
+ * better than the fixed contract's 0.0265.
+ *
+ * IT NEEDS NONE OF THE GUARD MACHINERY: no per-stage saturate, no
+ * 64-bit extract, no |h|_1 headroom guard and no load-time sizer,
+ * because an 8-bit exponent absorbs the |h|_1 = 1313 (+62 dB) worst
+ * case that costs the fixed path eight bits of mantissa (proved, not
+ * asserted: peak 1285.0 against 3.4e38). DSP4_BQ_GUARD is therefore
+ * FORCED OFF here (and DSP4_BQ_HDR with it) rather than merely
+ * defaulting off.
  *
  * THE STATE IS 40-BIT. MODE1.RND32 is CLEARED, so the register file
  * carries the SHARC's extended-precision float -- eight more mantissa
  * bits -- through the whole recursion, and the block kernels hold w1/w2
  * in registers across all DSP4_BLOCK_SIZE samples, which is where a
- * high-Q low-frequency biquad's state error accumulates.
+ * high-Q low-frequency biquad's state error accumulates. It costs
+ * nothing: one `bit clr` against one `bit set` in the same place.
  * DSP4_BQ_FLOAT32=1 is the CONTROL: RND32 set, so every result rounds at
  * the 32-bit boundary and the arm is IEEE single throughout -- RIG A2
- * exactly. The difference between the two is what the 40 bits buy.
+ * exactly. The difference between the two is what the 40 bits buy
+ * (33-48 dB of noise floor at zero cycle cost).
  *
- * MEASUREMENT ONLY (PW's fixed-vs-float mandate call is open). The D5
- * contract is untouched, the fixed/round-once/guard path is untouched,
- * and DSP4_BQ_FLOAT=0 is every existing build byte for byte. */
+ * DSP4_BQ_FLOAT=0 IS THE FIXED REFERENCE MODEL AND IT STAYS. The
+ * round-once path and its guard are what a future FPGA fixed engine
+ * follows; the fixed build must keep rebuilding its recorded W0
+ * witnesses byte for byte, and that is the bar that proves it intact.
+ * Do not delete them. */
 #ifndef DSP4_BQ_FLOAT
-#define DSP4_BQ_FLOAT 0
+#define DSP4_BQ_FLOAT 1
 #endif
 #ifndef DSP4_BQ_FLOAT32
 #define DSP4_BQ_FLOAT32 0
@@ -8274,6 +8359,41 @@ def gen_block_header():
 
 /* Header words in front of a cascade's coefficients: 1 with the guard,
  * 0 without. The interleaved pair blocks carry two, one per strip. */
+/* GAIN ON THE FLOAT PATH -- DSP4_GAIN_FLOAT, and it follows the cascade.
+ *
+ * `_gsimd_gain_blk` (lib/meter_fx.asm) is the block kernel every one of
+ * the 32 metered GAIN nodes runs, and it is where all of the graph's
+ * GAIN cycles are. Under this flag its AUDIO path becomes one float
+ * multiply, one CLIP and one FIX in place of the 64-bit extract and the
+ * branch-free saturate -- eighteen instructions per two samples become
+ * eleven.
+ *
+ * THE METER STAYS FIXED, AND THAT IS NOT A COMPROMISE. The meter wants
+ * the PRE-CLIP wide word and an EXACT sum of squares across the block:
+ * `mrb = x*g (ssi)` gives it the full Q8.24 over-range the 32-bit store
+ * cannot hold, and MRF accumulates 80 bits with no rounding and no
+ * saturation, which is order-independent and is what makes the SIMD
+ * split exact. Float would make both approximate to buy back two
+ * instructions. So the wide MAC stays and only the audio word changes,
+ * and the gain the audio uses is FLOATed from the same Q4.28 word the
+ * meter's MAC uses -- polarity and mute already folded in -- so the two
+ * cannot disagree about what gain was applied.
+ *
+ * The scalar body, the DSP4_GAIN_SIMD=0 body and the DSP4_MTR_OFF body
+ * stay FIXED and are the byte-for-byte controls they always were.
+ *
+ * Defaults to DSP4_BQ_FLOAT, so DSP4_BQ_FLOAT=0 is still the whole fixed
+ * reference model in one flag. */
+#ifndef DSP4_GAIN_FLOAT
+#define DSP4_GAIN_FLOAT DSP4_BQ_FLOAT
+#endif
+
+/* MODE1.RND32, bit 16: set = every float result rounds at the 32-bit
+ * boundary (IEEE single), clear = the register file's 40-bit extended
+ * format. This firmware has never written it, so the part boots in
+ * 40-bit mode; every kernel that touches it saves and restores MODE1. */
+#define DSP4_RND32_BIT 0x00010000
+
 #define DSP4_BQ_HDR DSP4_BQ_GUARD
 
 /* Samples of the load-time impulse run per main-loop pass. The sizing
@@ -9166,6 +9286,14 @@ def gen_bus_accumulators_fixed():
                '/* block min, per PE      */')
     out.append('.global _gsimd_acc;   .var _gsimd_acc[2];    '
                '/* the meter base, parked */')
+    # The float arm's clip bound. Two words for the same reason every var
+    # above is: the SIMD kernel reads it with a direct address, where PEy
+    # takes the word AFTER PEx's.
+    out.append('#if DSP4_GAIN_FLOAT')
+    out.append('.global _gsimd_clipf;')
+    out.append('.var _gsimd_clipf[2] = 0x40FFFFFF, 0x40FFFFFF;'
+               ' /* Q4.28 ceiling, largest float32 below 8.0 */')
+    out.append('#endif')
     out.append('#endif')
     out.append('')
     # Under per-block kernels every SAMPLE needs its own accumulator, so
@@ -10018,6 +10146,7 @@ def gen_talkback_fixed(node):
     the host-written float set)."""
     rc = ramp_comment(node['ramp_profile'])
     nid = node['id']
+    wireTALK = _bq_wire_var(f'_talk_hpf_coeffs_{nid}', 5)
     inp = node['inputs_str']
     return dedent(f"""\
         {rc}
@@ -10032,7 +10161,7 @@ def gen_talkback_fixed(node):
         .var _talk_gain_step_{nid} = 0.0;
         .var _talk_gain_frames_{nid} = 0;
         .var _talk_hpf_on_{nid} = 1;
-        .var _talk_hpf_coeffs_{nid}[5] = 1.0, 0.0, 0.0, 0.0, 0.0;
+        {wireTALK}
         /* A single unity-gain sidechain HPF. It carries the guard's
          * header word so every cascade block in the tree has the same
          * shape, but nothing SIZES it: H stays 0.
@@ -10948,6 +11077,8 @@ def gen_gate_fixed(node):
     block-rate coefficient conversion."""
     rc = ramp_comment(node['ramp_profile'])
     nid = node['id']
+    wireGHPF = _bq_wire_var(f'_gate_filter_hpf_{nid}', 5)
+    wireGLPF = _bq_wire_var(f'_gate_filter_lpf_{nid}', 5)
     inp = node['inputs_str']
     return dedent(f"""\
         {rc}
@@ -10970,8 +11101,8 @@ def gen_gate_fixed(node):
         .var _gate_key_src_{nid} = 0;
         .var _gate_det_src_{nid} = 0;
         .var _gate_filter_on_{nid} = 0;
-        .var _gate_filter_hpf_{nid}[5] = 1.0, 0.0, 0.0, 0.0, 0.0;
-        .var _gate_filter_lpf_{nid}[5] = 1.0, 0.0, 0.0, 0.0, 0.0;
+        {wireGHPF}
+        {wireGLPF}
         /* The gate's sidechain HPF+LPF, run as one two-stage cascade.
          * Header word for shape; H stays 0, and that is a MEASURED GAP:
          * dyn_state_bound.py finds the cascade reaching |h|_1 = 150.7

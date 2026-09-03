@@ -30,14 +30,18 @@ difference between the second and the third is exactly what a PM-resident
 (48-bit) state array would buy and it should be priced before it is
 built.
 
-COEFFICIENTS ARE float32 IN BOTH ARMS AND THAT IS NOT AN APPROXIMATION:
-the host writes IEEE-754 single RBJ words over SPI, the float arm stores
-them unchanged (`_bq_fx_convert_N` is a copy under DSP4_BQ_FLOAT), and a
-32-bit DM load into a 40-bit register zero-fills the extra mantissa bits.
-So the float arm's coefficients are the wire words, NOT the Q4.28
-quantisation of them -- which is a real difference from RIG A2's
-isolate-the-arithmetic comparison, where both arms deliberately took the
-same quantised words.
+COEFFICIENTS ARE float32 IN THE OFFSET FORM (2026-09-03, and it is the
+accuracy fix, not a detail): the host writes b0, n1 = b1 + 2*b0,
+n2 = b2 - b0, c1 = 2 + a1, c2 = 1 - a2 as IEEE-754 singles over SPI, the
+float arm stores them unchanged (`_bq_fx_convert_N` is a copy under
+DSP4_BQ_FLOAT) and the kernel reconstructs the direct words in REGISTERS
+once per stage per block. Carrying a1 = -1.9948 directly costs six bits
+of pole placement -- a float32 ulp there is 2.4e-7 against Q4.28's
+3.7e-9, because fixed-point precision is absolute and float's is
+relative -- and 2 + a1 = 0.0052 gets them back. Worst response error
+over the DEFS set: 0.3715 dB on the direct wire, 0.0042 dB on the
+offset one, against a fixed contract at 0.0265 and a golden bar of
+0.046.
 
 EXACT ROUNDING, NOT float64 STANDING IN FOR IT. A product of two 32-bit
 significands needs 64 bits before it is rounded, and float64 has 53 --
@@ -191,10 +195,11 @@ def exact_coeffs(designs):
     return [tuple(LD(v) for v in d) for d in designs]
 
 
-def offset_wire_coeffs(designs):
-    """What a float port of D5's OFFSET encoding would deliver: the wire
-    carries n1 = b1 + 2*b0, n2 = b2 - b0, c1 = 2 + a1, c2 = 1 - a2 as
-    float32, and the kernel reconstructs the direct words at 40 bits.
+def offset_wire_coeffs(designs, recon_mant=32):
+    """D5's OFFSET encoding carried as float32 -- THE SHIPPING WIRE since
+    2026-09-03. The wire carries b0, n1 = b1 + 2*b0, n2 = b2 - b0,
+    c1 = 2 + a1, c2 = 1 - a2 as float32 and the kernel reconstructs the
+    direct words in REGISTERS, once per stage per block.
 
     The point of the offset form in Q4.28 was headroom. In FLOAT it buys
     something else and something larger: a1 sits at -1.9948 for a 20 Hz
@@ -202,7 +207,16 @@ def offset_wire_coeffs(designs):
     ulp of 3.7e-10 -- so the same 32-bit word places the pole nearly
     three decimal orders more accurately. Fixed-point precision is
     ABSOLUTE and float's is RELATIVE, and pole placement error is an
-    absolute error."""
+    absolute error.
+
+    recon_mant IS THE RECONSTRUCTION, NOT AN APPROXIMATION OF IT. The
+    five prologue instructions run in the register file at the float
+    boundary the kernel is in -- 32 significand bits in the 40-bit arm,
+    24 with DSP4_BQ_FLOAT32 -- so `c1 - 2.0` is EXACT wherever c1's
+    lowest set bit is at or above 2**-31 and rounds once where it is not.
+    Modelling it in longdouble would credit the wire with precision the
+    part does not have; None asks for that control deliberately."""
+    R = (lambda v: v) if recon_mant is None else (lambda v: rnd_p(v, recon_mant))
     out = []
     for b0, b1, b2, a1, a2 in designs:
         b0f = LD(np.float32(b0))
@@ -210,7 +224,24 @@ def offset_wire_coeffs(designs):
         n2 = LD(np.float32(b2 - b0))
         c1 = LD(np.float32(2.0 + a1))
         c2 = LD(np.float32(1.0 - a2))
-        out.append((b0f, n1 - 2 * b0f, n2 + b0f, c1 - LD(2.0), LD(1.0) - c2))
+        out.append((b0f,
+                    R(n1 - R(b0f + b0f)),
+                    R(n2 + b0f),
+                    R(c1 - LD(2.0)),
+                    R(LD(1.0) - c2)))
+    return out
+
+
+def offset_wire_words(designs):
+    """The five float32 words per stage the HOST puts on the SPI wire
+    under the float arm, in the order the coefficient block holds them.
+    This is the wire contract itself; offset_wire_coeffs is what the
+    kernel makes of it."""
+    out = []
+    for b0, b1, b2, a1, a2 in designs:
+        out.append((np.float32(b0), np.float32(b1 + 2 * b0),
+                    np.float32(b2 - b0), np.float32(2.0 + a1),
+                    np.float32(1.0 - a2)))
     return out
 
 
@@ -230,8 +261,8 @@ def q428_coeffs_as_float(designs):
 
 
 def run_float_cascade(x_q, coeffs, mant=32, store_mant=24, block=16,
-                      clamp=True, track=None):
-    """The float cascade kernel, whole blocks, exactly as the part runs it.
+                      clamp=True, track=None, sig_mant=24):
+    """The float cascade BLOCK kernel, exactly as the part runs it.
 
     x_q       int32 Q4.28 words in, int32 Q4.28 words out
     mant      significand bits of the float boundary (32 = the 40-bit arm,
@@ -239,8 +270,30 @@ def run_float_cascade(x_q, coeffs, mant=32, store_mant=24, block=16,
     store_mant  significand bits the state survives a BLOCK boundary with
               (24 = a 32-bit DM word, the firmware; 32 = a hypothetical
               48-bit PM-resident state; None = never stored)
+    sig_mant  significand bits the signal survives ONE STAGE with (24 = the
+              32-bit DM block buffer, the firmware; None = the per-sample
+              kernel, which passes y to the next stage in a register)
     track     if a dict, records the largest magnitude any internal value
               reached -- the overflow proof
+
+    THE SIGNAL CROSSES A 32-BIT DM WORD BETWEEN STAGES and it is not the
+    same crossing as the state's. `_bq_fx_cascade_blk` runs stage-outer /
+    sample-inner, so a stage writes its whole block of y back to the
+    buffer (`dm(i2, 1) = f1`) and the next stage reads it (`f0 =
+    dm(i2, 0)`): the forward path is 32-bit float even in the 40-bit arm,
+    and so is the entry pass's `FLOAT Rx BY -28`, which quantises a
+    32-significant-bit Q4.28 word to 24 bits on its way into the buffer.
+    What stays at 40 bits is the RECURSION -- w1/w2 in registers across
+    the whole block, and the full-precision y that feeds them, not the
+    truncated copy handed on. That is where a high-Q LF biquad's state
+    error lives, so the 40 bits keep what they were bought for; but a
+    model that carried the forward path in longdouble would be claiming
+    a precision the kernel does not have. Measured, both ways, on the
+    response table: it is worth nothing there (0.0042 dB either way).
+
+    sig_mant=None IS the per-sample kernel `_bq_fx_cascade_N`, which
+    holds the cascade value in f0 across stages -- which is why the
+    crossfade path cannot be bit-identical to steady state under float.
     """
     ns = len(coeffs)
     w1 = [LD(0)] * ns
@@ -249,11 +302,13 @@ def run_float_cascade(x_q, coeffs, mant=32, store_mant=24, block=16,
     R = rnd32 if mant == 32 else (rnd24 if mant == 24 else
                                  (LD if mant >= 64 else
                                   (lambda v: rnd_p(v, mant))))
+    T = (lambda v: v) if sig_mant is None else (lambda v: trunc_p(v, sig_mant))
     peak = LD(0)
     for base in range(0, len(x_q), block):
         blk = x_q[base:base + block]
-        # the domain crossing IN: FLOAT Rx BY -28, rounded at the boundary
-        v = [R(LD(int(w)) / LD(2) ** QS) for w in blk]
+        # the domain crossing IN: FLOAT Rx BY -28, rounded at the boundary,
+        # then STORED to the 32-bit block buffer
+        v = [T(R(LD(int(w)) / LD(2) ** QS)) for w in blk]
         for k in range(ns):
             b0, b1, b2, a1, a2 = coeffs[k]
             s1, s2 = w1[k], w2[k]
@@ -263,7 +318,7 @@ def run_float_cascade(x_q, coeffs, mant=32, store_mant=24, block=16,
                 t = R(s2 + R(b1 * xv))
                 s1 = R(t - R(a1 * y))
                 s2 = R(R(b2 * xv) - R(a2 * y))
-                nv.append(y)
+                nv.append(T(y))          # the block buffer is 32-bit
                 if abs(y) > peak: peak = abs(y)
                 if abs(s1) > peak: peak = abs(s1)
                 if abs(s2) > peak: peak = abs(s2)
@@ -388,18 +443,19 @@ def main():
         print('RESPONSE ERROR vs THE FILTER THE DESIGN ASKED FOR '
               '(unquantised float64), 20 Hz - 20 kHz, impulse at -6 dBFS')
         print('=' * 108)
-        print(f"{'design':36s} {'fixed D5':>10s} {'flt40 wire':>11s} "
-              f"{'flt32 wire':>11s} {'flt40 offs':>11s} {'flt40 exact':>12s}")
+        print(f"{'design':36s} {'fixed D5':>10s} {'flt40 OFFS':>11s} "
+              f"{'flt32 offs':>11s} {'flt40 raw':>11s} {'flt40 exact':>12s}")
         print('-' * 108)
         rows = []
         for name, d in ref_designs.items():
-            wire = wire_coeffs(d)
+            raw = wire_coeffs(d)
             offs = offset_wire_coeffs(d)
+            offs24 = offset_wire_coeffs(d, recon_mant=24)
             exct = exact_coeffs(d)
             y_ref = run_exact_cascade(imp, d)
             y_fx = run_fixed_cascade(imp, d).astype(np.float64) / (1 << QS)
             ys = [y_fx]
-            for co, mant in ((wire, 32), (wire, 24), (offs, 32), (exct, 32)):
+            for co, mant in ((offs, 32), (offs24, 24), (raw, 32), (exct, 32)):
                 ys.append(run_float_cascade(imp, co, mant, 24, BLOCK).astype(np.float64)
                           / (1 << QS))
             e = [response_err(y, y_ref, N)[0] for y in ys]
@@ -412,13 +468,13 @@ def main():
               f"{w[3]:11.4f} {w[4]:12.4f}")
         print(f"{'golden_harness response bar':36s} {0.046:10.4f}")
         print()
-        print('  fixed D5     the shipping contract: Q4.28 OFFSET coefficient words,')
-        print('               per-stage round with first-order ERROR FEEDBACK (fixed_ref)')
-        print('  flt40 wire   DSP4_BQ_FLOAT as built: 40-bit arithmetic on the RBJ float32')
-        print('               words the SPI wire carries today')
-        print('  flt32 wire   DSP4_BQ_FLOAT32, the 32-bit control -- RIG A2 arithmetic')
-        print('  flt40 offs   the same 40-bit arithmetic on a float32 OFFSET wire word')
-        print('               (n1, n2, c1, c2), i.e. a float port of D5\'s encoding')
+        print('  fixed D5     the reference model, kept behind DSP4_BQ_FLOAT=0: Q4.28')
+        print('               OFFSET words, per-stage round with ERROR FEEDBACK (fixed_ref)')
+        print('  flt40 OFFS   THE SHIPPING PATH -- 40-bit arithmetic on the float32 OFFSET')
+        print('               wire (b0, n1, n2, c1, c2), reconstructed in registers')
+        print('  flt32 offs   DSP4_BQ_FLOAT32, the 32-bit control on the same wire')
+        print('  flt40 raw    the DIRECT-form float32 wire the arm carried before')
+        print('               2026-09-03: the same arithmetic, the coefficient word alone')
         print('  flt40 exact  40-bit arithmetic on unquantised coefficients: the control')
         print('               that separates the ARITHMETIC from the COEFFICIENT WORD')
         print()
@@ -436,21 +492,22 @@ def main():
         nn = 32768
         drive = np.clip(rng.standard_normal(nn) * 0.1, -0.999, 0.999)
         xq = np.round(drive * (1 << QS)).astype(np.int64)
-        print(f"{'design':36s} {'fixed D5':>10s} {'flt40 wire':>11s} "
-              f"{'flt32 wire':>11s} {'flt40 no-store':>15s}")
+        print(f"{'design':36s} {'fixed D5':>10s} {'flt40 OFFS':>11s} "
+              f"{'flt32 offs':>11s} {'flt40 no-store':>15s}")
         print('-' * 108)
         for name in ('LF shelf +15 dB Q3.16 @20 Hz', 'EXTREME +15 dB Q10 @20 Hz',
                      '4-band EQ, mixed', '28-band GEQ all +6 dB'):
             d = CASES[name]
-            wire = wire_coeffs(d)
-            wire_f = [tuple(float(c) for c in st) for st in wire]
+            offs = offset_wire_coeffs(d)
+            offs24 = offset_wire_coeffs(d, recon_mant=24)
+            offs_f = [tuple(float(c) for c in st) for st in offs]
             dq = [tuple(x) for x in _dequantised_fixed(d)]
             y_fx = run_fixed_cascade(xq, d).astype(np.float64) / (1 << QS)
             r_fx = run_exact_cascade(xq, dq)
-            r_fl = run_exact_cascade(xq, wire_f)
-            y_40 = run_float_cascade(xq, wire, 32, 24, BLOCK).astype(np.float64) / (1 << QS)
-            y_32 = run_float_cascade(xq, wire, 24, 24, BLOCK).astype(np.float64) / (1 << QS)
-            y_4n = run_float_cascade(xq, wire, 32, None, BLOCK).astype(np.float64) / (1 << QS)
+            r_fl = run_exact_cascade(xq, offs_f)
+            y_40 = run_float_cascade(xq, offs, 32, 24, BLOCK).astype(np.float64) / (1 << QS)
+            y_32 = run_float_cascade(xq, offs24, 24, 24, BLOCK).astype(np.float64) / (1 << QS)
+            y_4n = run_float_cascade(xq, offs, 32, None, BLOCK).astype(np.float64) / (1 << QS)
             print(f'{name:36s} '
                   f'{noise_floor_db(y_fx, r_fx):10.1f} {noise_floor_db(y_40, r_fl):11.1f} '
                   f'{noise_floor_db(y_32, r_fl):11.1f} {noise_floor_db(y_4n, r_fl):15.1f}')
@@ -475,7 +532,7 @@ def main():
         drive[drive == 0] = 1
         xq = np.tile(np.round(drive * (1 << QS)).astype(np.int64), 4)
         tr = {}
-        run_float_cascade(xq, wire_coeffs(d), 32, 24, BLOCK, track=tr)
+        run_float_cascade(xq, offset_wire_coeffs(d), 32, 24, BLOCK, track=tr)
         ratio = tr['peak'] / 3.4028235e38
         worst_ratio = max(worst_ratio, ratio)
         print(f'{name:36s} {h1:12.1f} {H:8d} {tr["peak"]:14.1f} '

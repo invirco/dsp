@@ -24,7 +24,7 @@
 
 #if DSP4_BQ_FLOAT
 .global _filt_hpf_A_C1_FILT_19;
-.var _filt_hpf_A_C1_FILT_19[5] = 0x3F800000, 0, 0, 0, 0;
+.var _filt_hpf_A_C1_FILT_19[5] = 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000;
 #elif DSP4_BQ_GUARD
 .global _filt_hpf_A_C1_FILT_19;
 .var _filt_hpf_A_C1_FILT_19[5 + 1] = 0, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
@@ -32,13 +32,18 @@
 .global _filt_hpf_A_C1_FILT_19;
 .var _filt_hpf_A_C1_FILT_19[5] = 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
 #endif
+#if DSP4_BQ_FLOAT
+.global _filt_lpf_A_C1_FILT_19;
+.var _filt_lpf_A_C1_FILT_19[5] = 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000;
+#else
 .global _filt_lpf_A_C1_FILT_19;
 .var _filt_lpf_A_C1_FILT_19[5] = 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
+#endif
 .global _filt_state_A_C1_FILT_19;
 .var _filt_state_A_C1_FILT_19[12];
 #if DSP4_BQ_FLOAT
 .global _filt_hpf_B_C1_FILT_19;
-.var _filt_hpf_B_C1_FILT_19[5] = 0x3F800000, 0, 0, 0, 0;
+.var _filt_hpf_B_C1_FILT_19[5] = 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000;
 #elif DSP4_BQ_GUARD
 .global _filt_hpf_B_C1_FILT_19;
 .var _filt_hpf_B_C1_FILT_19[5 + 1] = 0, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
@@ -46,18 +51,35 @@
 .global _filt_hpf_B_C1_FILT_19;
 .var _filt_hpf_B_C1_FILT_19[5] = 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
 #endif
+#if DSP4_BQ_FLOAT
+.global _filt_lpf_B_C1_FILT_19;
+.var _filt_lpf_B_C1_FILT_19[5] = 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000;
+#else
 .global _filt_lpf_B_C1_FILT_19;
 .var _filt_lpf_B_C1_FILT_19[5] = 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
+#endif
 .global _filt_state_B_C1_FILT_19;
 .var _filt_state_B_C1_FILT_19[12];
 
-/* float staging (wire unchanged) */
+/* SPI staging -- the WIRE. Direct-form RBJ float32 under the
+ * fixed arm, D5's OFFSET encoding as float32 under the float
+ * arm, which stores the wire word unchanged. */
+#if DSP4_BQ_FLOAT
+.global _hpf_coeffs_next_C1_FILT_19;
+.var _hpf_coeffs_next_C1_FILT_19[5] = 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000;
+#else
 .global _hpf_coeffs_next_C1_FILT_19;
 .var _hpf_coeffs_next_C1_FILT_19[5] = 1.0, 0.0, 0.0, 0.0, 0.0;
+#endif
 .global _hpf_swap_pending_C1_FILT_19;
 .var _hpf_swap_pending_C1_FILT_19 = 0;
+#if DSP4_BQ_FLOAT
+.global _lpf_coeffs_next_C1_FILT_19;
+.var _lpf_coeffs_next_C1_FILT_19[5] = 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000;
+#else
 .global _lpf_coeffs_next_C1_FILT_19;
 .var _lpf_coeffs_next_C1_FILT_19[5] = 1.0, 0.0, 0.0, 0.0, 0.0;
+#endif
 .global _lpf_swap_pending_C1_FILT_19;
 .var _lpf_swap_pending_C1_FILT_19 = 0;
 

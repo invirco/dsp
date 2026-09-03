@@ -30,8 +30,13 @@
 .var _talk_gain_frames_C1_TALK_01 = 0;
 .global _talk_hpf_on_C1_TALK_01;
 .var _talk_hpf_on_C1_TALK_01 = 1;
+#if DSP4_BQ_FLOAT
+.global _talk_hpf_coeffs_C1_TALK_01;
+.var _talk_hpf_coeffs_C1_TALK_01[5] = 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000;
+#else
 .global _talk_hpf_coeffs_C1_TALK_01;
 .var _talk_hpf_coeffs_C1_TALK_01[5] = 1.0, 0.0, 0.0, 0.0, 0.0;
+#endif
 /* A single unity-gain sidechain HPF. It carries the guard's
  * header word so every cascade block in the tree has the same
  * shape, but nothing SIZES it: H stays 0.

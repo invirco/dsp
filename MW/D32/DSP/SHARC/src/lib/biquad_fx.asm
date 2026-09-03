@@ -1278,14 +1278,15 @@ _bq_pair_blk.end:
 #endif
 
 /*======================================================================
- * THE FLOAT ARM (DSP4_BQ_FLOAT, 2026-09-03) — MEASUREMENT ONLY.
+ * THE FLOAT ARM (DSP4_BQ_FLOAT, 2026-09-03) — THE SHIPPING CASCADE.
  *
- * PW's fixed-vs-float mandate call is open and this is the input to it:
- * the shootout's RIG A2 arithmetic, wired into the SHIPPING graph
- * cascade path so the answer is a whole-graph capacity number on both
- * parts and not a rig extrapolation. The D5 contract does not move, the
- * fixed/round-once/guard path does not move, and DSP4_BQ_FLOAT=0 is
- * every existing build byte for byte -- every line below is inside the
+ * PW RULED 2026-09-03: the SHARC DSP is 40-bit float, and this is the
+ * kernel that ships. DSP4_BQ_FLOAT DEFAULTS ON. The fixed round-once
+ * path and its |h|_1 guard stay in the tree behind DSP4_BQ_FLOAT=0 as
+ * the REFERENCE MODEL a future FPGA fixed path follows -- they are not
+ * dead code and they are not to be deleted; the fixed build must keep
+ * rebuilding its recorded W0 witnesses byte for byte, which is what
+ * proves the reference is still intact. Every line below is inside the
  * macro and the fixed kernels above are inside its negation.
  *
  * THE ARITHMETIC is DIRECT FORM II TRANSPOSED, which is the right form
@@ -1338,16 +1339,44 @@ _bq_pair_blk.end:
  * plane); an arm that silently re-rounded all of it would not be a
  * measurement of the biquads.
  *
- * FORMATS. Coefficients are the RBJ float words the host already writes
- * over SPI, five per stage [b0, b1, b2, a1, a2], a0 normalised to 1 --
- * so `_bq_fx_convert_N` becomes a COPY and the Q4.28 quantisation step
- * disappears with it. State is w1, w2 in the first two words of the
- * node's existing 6-word-per-stage state block; the other four are left
- * zero, so no generated array changes size and no node's state layout
- * moves.
+ * FORMATS, AND THE OFFSET WIRE IS THE ACCURACY FIX. Coefficients are
+ * five float32 words per stage in D5's OWN OFFSET ENCODING:
+ *
+ *     b0,  n1 = b1 + 2*b0,  n2 = b2 - b0,  c1 = 2 + a1,  c2 = 1 - a2
+ *
+ * a0 normalised to 1, and the kernel reconstructs the direct words in
+ * REGISTERS in its per-stage prologue -- five arithmetic instructions
+ * and two constant reads, once per stage per BLOCK, not per sample.
+ * `_bq_fx_convert_N` stays a COPY: the wire word IS the stored word.
+ *
+ * WHY, and it is the whole numeric case for float. Carried directly, a1
+ * sits at -1.9948 for a 20 Hz biquad, where one float32 ulp is 2.4e-7
+ * against Q4.28's 3.7e-9 -- SIX BITS WORSE ON THE NUMBER THAT PLACES
+ * THE POLE, because fixed-point precision is ABSOLUTE and float's is
+ * RELATIVE, and pole placement error is an absolute error. 2 + a1 =
+ * 0.0052 puts those bits back. Worst response error over the DEFS set:
+ * 0.3715 dB on the direct wire, 0.0080 dB on this one, against the
+ * fixed contract's 0.0265 and a golden bar of 0.046.
+ *
+ * The reconstruction ROUNDS ONCE, at the register file's 32 significand
+ * bits, and that is the difference between the 0.0042 dB this was
+ * modelled at and the 0.0080 dB it is built at: `c1 - 2.0` is exact
+ * only while c1's lowest set bit is at or above 2**-31. Running the
+ * offset form THROUGH the recursion instead would avoid the rounding
+ * entirely (w1' = 2*w1 + w2 + n1*x - c1*y, w2' = n2*x - w1 + c2*y) at
+ * SEVEN ALU ops against four pairable multiplies -- one more
+ * instruction per sample per stage, about 3% of chip 2, for about
+ * 0.003 dB. Priced and not taken.
+ *
+ * State is w1, w2 in the first two words of the node's existing
+ * 6-word-per-stage state block; the other four are left zero, so no
+ * generated array changes size and no node's state layout moves.
  *
  * Model: tools/dsp/bq_float_ref.py, normative for these kernels the way
- * fixed_ref.py is for the fixed ones.
+ * fixed_ref.py is for the fixed ones -- including the two places the
+ * signal leaves the register file, which the model did not carry until
+ * this landing: the block buffer between stages and the state at a
+ * block boundary are both 32-bit DM words.
  *======================================================================*/
 #if DSP4_BQ_FLOAT
 
@@ -1360,6 +1389,12 @@ _bq_pair_blk.end:
  * 8.0, so FIX BY 28 of it is 0x7FFFFF80 and cannot wrap. Two words for
  * the SIMD read. */
 .var _bqfl_clip[2] = 0x40FFFFFF, 0x40FFFFFF;
+/* The offset-form reconstruction constants. TWO WORDS EACH for the same
+ * reason _bqfl_clip is a pair: a direct-address DM read in SIMD gives
+ * PEy the word AFTER the one PEx gets, so a scalar constant read in the
+ * SIMD kernel would hand strip B whatever followed it in memory. */
+.var _bqfl_two[2] = 2.0, 2.0;
+.var _bqfl_one[2] = 1.0, 1.0;
 
 #define BQFL_RND32 0x00010000       /* MODE1.RND32, bit 16 */
 
@@ -1395,10 +1430,19 @@ _bq_fx_cascade_N:
 
     lcntr = r4, do .bqfl_stage until lce;
         f4 = dm(i0, 1);             /* b0 */
-        f5 = dm(i0, 1);             /* b1 */
-        f6 = dm(i0, 1);             /* b2 */
-        f7 = dm(i0, 1);             /* a1 */
-        f8 = dm(i0, 1);             /* a2, i0 -> next stage */
+        f5 = dm(i0, 1);             /* n1 = b1 + 2*b0 */
+        f6 = dm(i0, 1);             /* n2 = b2 - b0   */
+        f7 = dm(i0, 1);             /* c1 = 2 + a1    */
+        f8 = dm(i0, 1);             /* c2 = 1 - a2, i0 -> next stage */
+        /* THE OFFSET-FORM RECONSTRUCTION, in registers, once per stage.
+         * f2 is the only scratch free here; the body claims it back. */
+        f2 = f4 + f4;               /* 2*b0            */
+        f5 = f5 - f2;               /* b1 = n1 - 2*b0  */
+        f6 = f6 + f4;               /* b2 = n2 + b0    */
+        f2 = dm(_bqfl_two);
+        f7 = f7 - f2;               /* a1 = c1 - 2     */
+        f2 = dm(_bqfl_one);
+        f8 = f2 - f8;               /* a2 = 1 - c2     */
         f9  = dm(i1, 1);            /* w1, i1 -> base+1 */
         f10 = dm(i1, 0);            /* w2, i1 parked at base+1 */
 
@@ -1484,10 +1528,22 @@ _bq_fx_cascade_blk:
 
     lcntr = r4, do .bqfl_bstage until lce;
         f4 = dm(i0, 1);             /* b0 */
-        f5 = dm(i0, 1);             /* b1 */
-        f6 = dm(i0, 1);             /* b2 */
-        f7 = dm(i0, 1);             /* a1 */
-        f2 = dm(i0, 1);             /* a2 -- the plain-multiply operand */
+        f5 = dm(i0, 1);             /* n1 = b1 + 2*b0 */
+        f6 = dm(i0, 1);             /* n2 = b2 - b0   */
+        f7 = dm(i0, 1);             /* c1 = 2 + a1    */
+        f2 = dm(i0, 1);             /* c2 = 1 - a2    */
+        /* THE OFFSET-FORM RECONSTRUCTION -- five arithmetic instructions
+         * and two constant reads, once per stage per BLOCK, so it is
+         * DSP4_BLOCK_SIZE times cheaper than anything in the sample loop.
+         * f3 is free until the exit pass loads the clip bound into it. */
+        f3 = f4 + f4;               /* 2*b0            */
+        f5 = f5 - f3;               /* b1 = n1 - 2*b0  */
+        f6 = f6 + f4;               /* b2 = n2 + b0    */
+        f3 = dm(_bqfl_two);
+        f7 = f7 - f3;               /* a1 = c1 - 2     */
+        f3 = dm(_bqfl_one);
+        f2 = f3 - f2;               /* a2 = 1 - c2, the plain-multiply
+                                     * operand                          */
         f8  = dm(i1, 1);            /* w1, i1 -> base+1 */
         f10 = dm(i1, 0);            /* w2, i1 parked at base+1 */
 
@@ -1529,16 +1585,20 @@ _bq_fx_cascade_blk.end:
 /*----------------------------------------------------------------------
  * _bq_fx_convert_N — under the float arm this is a COPY.
  *
- * The host writes RBJ float words over SPI and the float cascade eats
- * RBJ float words, so the whole Q4.28 offset conversion -- five
+ * The host writes float32 OFFSET words over SPI and the float cascade
+ * eats float32 offset words, so the whole Q4.28 conversion -- five
  * multiplies, five FIXes and the halved-n1 encoding that exists because
  * b1 escapes Q4.28 at Q <= 0.12 -- has nothing left to do. That
  * disappearance is part of what float costs and is reported with the
  * rest of it: it is control-rate work, so it moves no per-block cycles,
- * but it removes the coefficient quantisation from the numeric chain and
- * that IS visible in the response error.
+ * but it removes the coefficient QUANTISATION from the numeric chain,
+ * and that is visible in the response error.
  *
- * In: i0 -> staged float [b0,b1,b2,a1,a2] per stage, i1 -> destination,
+ * The offset ENCODING does not disappear with it -- it moves onto the
+ * wire and into the kernel prologue, where it is worth 46x on the DEFS
+ * worst case (0.3715 dB -> 0.0080 dB).
+ *
+ * In: i0 -> staged float [b0,n1,n2,c1,c2] per stage, i1 -> destination,
  *     r4 = stages. Clobbers r0-r2, r9.
  *----------------------------------------------------------------------*/
 .global _bq_fx_convert_N;
@@ -1598,11 +1658,21 @@ _bq_fx_cascade_simd:
     modify(i2, m2);
 
     lcntr = r4, do .bqfl_sstage until lce;
-        f4 = dm(i0, 2);
-        f5 = dm(i0, 2);
-        f6 = dm(i0, 2);
-        f7 = dm(i0, 2);
-        f2 = dm(i0, 2);
+        f4 = dm(i0, 2);             /* b0 pair */
+        f5 = dm(i0, 2);             /* n1 pair */
+        f6 = dm(i0, 2);             /* n2 pair */
+        f7 = dm(i0, 2);             /* c1 pair */
+        f2 = dm(i0, 2);             /* c2 pair */
+        /* The reconstruction, both strips at once. The two constants are
+         * read as PAIRS -- see _bqfl_two/_bqfl_one -- because PEy takes
+         * the word after PEx's on a direct-address read. */
+        f3 = f4 + f4;
+        f5 = f5 - f3;               /* b1 = n1 - 2*b0 */
+        f6 = f6 + f4;               /* b2 = n2 + b0   */
+        f3 = dm(_bqfl_two);
+        f7 = f7 - f3;               /* a1 = c1 - 2    */
+        f3 = dm(_bqfl_one);
+        f2 = f3 - f2;               /* a2 = 1 - c2    */
         f8  = dm(i1, 2);            /* w1 pair, i1 -> base+2 */
         f10 = dm(i1, 0);            /* w2 pair, i1 parked    */
 
@@ -1638,6 +1708,96 @@ _bq_fx_cascade_simd:
     nop;
     rts;
 _bq_fx_cascade_simd.end:
+
+#if DSP4_BQE_VERIFY
+/*----------------------------------------------------------------------
+ * _bqfd_cascade_simd — THE CONTROL ARM for bqeverify's float bar: the
+ * same float kernel WITHOUT the offset reconstruction, eating the
+ * DIRECT-form float32 wire the arm carried before 2026-09-03.
+ *
+ * It exists so the on-part bar is TWO-SIDED. Scoring the shipping kernel
+ * against bq_float_ref alone would pass on an image whose reconstruction
+ * silently did nothing, provided the reference had the same defect; with
+ * this beside it the part has to produce TWO different streams, each
+ * matching its own model, and diverge on exactly the cascades where the
+ * two coefficient words differ -- which is every cascade with a pole
+ * away from the origin, and NOT the bypass cascades, where the offset
+ * words describe the same filter exactly and the two arms must agree to
+ * the bit. A reconstruction that was a no-op would show up as bypass
+ * agreeing and everything else agreeing too.
+ *
+ * Instruction for instruction the sample loop is _bq_fx_cascade_simd's;
+ * only the stage prologue differs. Debug only: DSP4_BQE_VERIFY.
+ *--------------------------------------------------------------------*/
+.global _bqfd_cascade_simd;
+_bqfd_cascade_simd:
+    l0 = 0; l1 = 0; l2 = 0;
+    r15 = -2*DSP4_BLOCK_SIZE;
+    m2 = r15;
+    r15 = 10;
+    m3 = r15;
+
+    r15 = mode1;
+    dm(_bqfl_m1) = r15;
+    dm(_bqfl_m1 + 1) = r15;
+#if DSP4_BQ_FLOAT32
+    bit set mode1 BQFL_RND32;
+#else
+    bit clr mode1 BQFL_RND32;
+#endif
+    bit set mode1 0x00200000;       /* PEYEN */
+    nop;
+    nop;
+
+    r14 = -28;
+    lcntr = DSP4_BLOCK_SIZE, do .bqfd_sent until lce;
+        r0 = dm(i2, 0);
+        f0 = float r0 by r14;
+    .bqfd_sent: dm(i2, 2) = f0;
+    modify(i2, m2);
+
+    lcntr = r4, do .bqfd_sstage until lce;
+        f4 = dm(i0, 2);             /* b0 */
+        f5 = dm(i0, 2);             /* b1 -- DIRECT, not reconstructed */
+        f6 = dm(i0, 2);             /* b2 */
+        f7 = dm(i0, 2);             /* a1 */
+        f2 = dm(i0, 2);             /* a2 */
+        f8  = dm(i1, 2);
+        f10 = dm(i1, 0);
+
+        lcntr = DSP4_BLOCK_SIZE, do .bqfd_ssamp until lce;
+            f0 = dm(i2, 0);
+            f12 = f0 * f4;
+            f13 = f0 * f5, f1 = f8 + f12;
+            f9  = f0 * f6, f11 = f10 + f13;
+            f14 = f1 * f7;
+            f15 = f2 * f1;
+            f8 = f11 - f14;
+        .bqfd_ssamp: f10 = f9 - f15, dm(i2, 2) = f1;
+
+        dm(i1, -2) = f10;
+        dm(i1, 2)  = f8;
+        modify(i1, m3);
+        modify(i2, m2);
+    .bqfd_sstage:
+        nop;
+
+    f3 = dm(_bqfl_clip);
+    r14 = 28;
+    lcntr = DSP4_BLOCK_SIZE, do .bqfd_sexi until lce;
+        f0 = dm(i2, 0);
+        f0 = clip f0 by f3;
+        r0 = fix f0 by r14;
+    .bqfd_sexi: dm(i2, 2) = r0;
+
+    r15 = dm(_bqfl_m1);
+    mode1 = r15;
+    nop;
+    nop;
+    rts;
+_bqfd_cascade_simd.end:
+#endif  /* DSP4_BQE_VERIFY */
+
 #endif  /* DSP4_BQ_PAIRED */
 
 #endif  /* DSP4_BQ_FLOAT */
