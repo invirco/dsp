@@ -1,0 +1,765 @@
+{
+ "contract": {
+  "pin": "defs-v2026.09.08.2",
+  "sha256": "42b3817ed2f9d2304cffe06a5e2d0229d00cf4ef3f90700b2fdf1006f981d330",
+  "product": "d24"
+ },
+ "families": [
+  {
+   "family": "GEQ",
+   "node": "C2_AUX_GEQ_01",
+   "note": "28-band graphic EQ, band gain in dB",
+   "spi_err_delta": 0,
+   "wrote": [
+    {
+     "cell": "Aux001Geq001",
+     "addr": 28,
+     "word": 1094713344
+    },
+    {
+     "cell": "Aux001Geq002",
+     "addr": 29,
+     "word": 3242196992
+    },
+    {
+     "cell": "Aux001Geq003",
+     "addr": 30,
+     "word": 1094713344
+    },
+    {
+     "cell": "Aux001Geq004",
+     "addr": 31,
+     "word": 3242196992
+    },
+    {
+     "cell": "Aux001Geq005",
+     "addr": 32,
+     "word": 1094713344
+    },
+    {
+     "cell": "Aux001Geq006",
+     "addr": 33,
+     "word": 3242196992
+    },
+    {
+     "cell": "Aux001Geq007",
+     "addr": 34,
+     "word": 1094713344
+    },
+    {
+     "cell": "Aux001Geq008",
+     "addr": 35,
+     "word": 3242196992
+    },
+    {
+     "cell": "Aux001Geq009",
+     "addr": 36,
+     "word": 1094713344
+    },
+    {
+     "cell": "Aux001Geq010",
+     "addr": 37,
+     "word": 3242196992
+    },
+    {
+     "cell": "Aux001Geq011",
+     "addr": 38,
+     "word": 1094713344
+    },
+    {
+     "cell": "Aux001Geq012",
+     "addr": 39,
+     "word": 3242196992
+    },
+    {
+     "cell": "Aux001Geq013",
+     "addr": 40,
+     "word": 1094713344
+    },
+    {
+     "cell": "Aux001Geq014",
+     "addr": 41,
+     "word": 3242196992
+    },
+    {
+     "cell": "Aux001Geq015",
+     "addr": 42,
+     "word": 1094713344
+    },
+    {
+     "cell": "Aux001Geq016",
+     "addr": 43,
+     "word": 3242196992
+    },
+    {
+     "cell": "Aux001Geq017",
+     "addr": 44,
+     "word": 1094713344
+    },
+    {
+     "cell": "Aux001Geq018",
+     "addr": 45,
+     "word": 3242196992
+    },
+    {
+     "cell": "Aux001Geq019",
+     "addr": 46,
+     "word": 1094713344
+    },
+    {
+     "cell": "Aux001Geq020",
+     "addr": 47,
+     "word": 3242196992
+    },
+    {
+     "cell": "Aux001Geq021",
+     "addr": 48,
+     "word": 1094713344
+    },
+    {
+     "cell": "Aux001Geq022",
+     "addr": 49,
+     "word": 3242196992
+    },
+    {
+     "cell": "Aux001Geq023",
+     "addr": 50,
+     "word": 1094713344
+    },
+    {
+     "cell": "Aux001Geq024",
+     "addr": 51,
+     "word": 3242196992
+    },
+    {
+     "cell": "Aux001Geq025",
+     "addr": 52,
+     "word": 1094713344
+    },
+    {
+     "cell": "Aux001Geq026",
+     "addr": 53,
+     "word": 3242196992
+    },
+    {
+     "cell": "Aux001Geq027",
+     "addr": 54,
+     "word": 1094713344
+    },
+    {
+     "cell": "Aux001Geq028",
+     "addr": 55,
+     "word": 3242196992
+    }
+   ],
+   "stage": {
+    "_geq_gains_C2_AUX_GEQ_01": {
+     "before": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "after": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ]
+    },
+    "_geq_coeffs_next_C2_AUX_GEQ_01": {
+     "before": [
+      1065353216,
+      1073741824,
+      3212836864,
+      1073741824,
+      1065353216,
+      1065353216,
+      1073741824,
+      3212836864,
+      1073741824,
+      1065353216
+     ],
+     "after": [
+      1094713344,
+      3242196992,
+      1094713344,
+      3242196992,
+      1094713344,
+      3242196992,
+      1094713344,
+      3242196992,
+      1094713344,
+      3242196992
+     ]
+    }
+   },
+   "active": {
+    "_geq_coeffs_A_C2_AUX_GEQ_01": {
+     "before": [
+      1065353216,
+      1073741824,
+      3212836864,
+      1073741824,
+      1065353216,
+      1065353216,
+      1073741824,
+      3212836864,
+      1073741824,
+      1065353216
+     ],
+     "after": [
+      1065353216,
+      1073741824,
+      3212836864,
+      1073741824,
+      1065353216,
+      1065353216,
+      1073741824,
+      3212836864,
+      1073741824,
+      1065353216
+     ]
+    },
+    "_geq_coeffs_B_C2_AUX_GEQ_01": {
+     "before": [
+      1065353216,
+      1073741824,
+      3212836864,
+      1073741824,
+      1065353216
+     ],
+     "after": [
+      1065353216,
+      1073741824,
+      3212836864,
+      1073741824,
+      1065353216
+     ]
+    }
+   },
+   "flags": {
+    "_geq_active_C2_AUX_GEQ_01": {
+     "before": [
+      0
+     ],
+     "after": [
+      0
+     ]
+    },
+    "_geq_swap_pending_C2_AUX_GEQ_01": {
+     "before": [
+      0
+     ],
+     "after": [
+      0
+     ]
+    },
+    "_geq_xfade_step_C2_AUX_GEQ_01": {
+     "before": [
+      0
+     ],
+     "after": [
+      0
+     ]
+    }
+   },
+   "audio": {
+    "witness": "_buf_C2_AUX_GEQ_01",
+    "upstream": "_buf_C2_AUX_EQ_01",
+    "moved_by_write": 0,
+    "upstream_moved": 0,
+    "words": 32,
+    "equal_to_upstream": 32,
+    "peak": 134217728,
+    "verdict": "PASS_THROUGH"
+   }
+  },
+  {
+   "family": "ANTI_FB",
+   "node": "C2_AUX_AFB_01",
+   "note": "six notches per aux",
+   "spi_err_delta": 0,
+   "wrote": [
+    {
+     "cell": "Aux001AntiFbOn001",
+     "addr": 56,
+     "word": 1
+    },
+    {
+     "cell": "Aux001AntiFbCtrlOn001",
+     "addr": 57,
+     "word": 1
+    },
+    {
+     "cell": "Aux001AntiFbNotchFreq001",
+     "addr": 58,
+     "word": 1148846080
+    },
+    {
+     "cell": "Aux001AntiFbNotchQ001",
+     "addr": 70,
+     "word": 1082130432
+    },
+    {
+     "cell": "Aux001AntiFbNotchGain001",
+     "addr": 64,
+     "word": 3247439872
+    }
+   ],
+   "stage": {
+    "_afb_notch_freq_C2_AUX_AFB_01": {
+     "before": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "after": [
+      1148846080,
+      0,
+      0,
+      0,
+      0,
+      0
+     ]
+    },
+    "_afb_notch_gain_C2_AUX_AFB_01": {
+     "before": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "after": [
+      3247439872,
+      0,
+      0,
+      0,
+      0,
+      0
+     ]
+    },
+    "_afb_notch_q_C2_AUX_AFB_01": {
+     "before": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "after": [
+      1082130432,
+      0,
+      0,
+      0,
+      0,
+      0
+     ]
+    },
+    "_afb_coeffs_next_C2_AUX_AFB_01": {
+     "before": [
+      1065353216,
+      1073741824,
+      3212836864,
+      1073741824,
+      1065353216,
+      1065353216,
+      1073741824,
+      3212836864,
+      1073741824,
+      1065353216
+     ],
+     "after": [
+      1065353216,
+      1073741824,
+      3212836864,
+      1073741824,
+      1065353216,
+      1065353216,
+      1073741824,
+      3212836864,
+      1073741824,
+      1065353216
+     ]
+    }
+   },
+   "active": {
+    "_afb_coeffs_A_C2_AUX_AFB_01": {
+     "before": [
+      1065353216,
+      1073741824,
+      3212836864,
+      1073741824,
+      1065353216,
+      1065353216,
+      1073741824,
+      3212836864,
+      1073741824,
+      1065353216
+     ],
+     "after": [
+      1065353216,
+      1073741824,
+      3212836864,
+      1073741824,
+      1065353216,
+      1065353216,
+      1073741824,
+      3212836864,
+      1073741824,
+      1065353216
+     ]
+    },
+    "_afb_coeffs_B_C2_AUX_AFB_01": {
+     "before": [
+      1065353216,
+      1073741824,
+      3212836864,
+      1073741824,
+      1065353216
+     ],
+     "after": [
+      1065353216,
+      1073741824,
+      3212836864,
+      1073741824,
+      1065353216
+     ]
+    }
+   },
+   "flags": {
+    "_afb_active_C2_AUX_AFB_01": {
+     "before": [
+      0
+     ],
+     "after": [
+      0
+     ]
+    },
+    "_afb_swap_pending_C2_AUX_AFB_01": {
+     "before": [
+      0
+     ],
+     "after": [
+      0
+     ]
+    },
+    "_afb_xfade_step_C2_AUX_AFB_01": {
+     "before": [
+      0
+     ],
+     "after": [
+      0
+     ]
+    }
+   },
+   "audio": {
+    "witness": "_buf_C2_AUX_AFB_01",
+    "upstream": "_buf_C2_AUX_GEQ_01",
+    "moved_by_write": 0,
+    "upstream_moved": 0,
+    "words": 32,
+    "equal_to_upstream": 32,
+    "peak": 134217728,
+    "verdict": "PASS_THROUGH"
+   }
+  },
+  {
+   "family": "CROSSOVER",
+   "node": "C2_MAIN_XOVER",
+   "note": "one node, LP/HP split, four output chains",
+   "spi_err_delta": 0,
+   "wrote": [
+    {
+     "cell": "MainL001CrossoverFreq001",
+     "addr": 1397,
+     "word": 1140457472
+    },
+    {
+     "cell": "MainL001CrossoverSlope001",
+     "addr": 1397,
+     "word": 24
+    }
+   ],
+   "stage": {
+    "_xover_coeffs_next_C2_MAIN_XOVER": {
+     "before": [
+      1065353216,
+      1073741824,
+      3212836864,
+      1073741824,
+      1065353216,
+      1065353216,
+      1073741824,
+      3212836864,
+      1073741824,
+      1065353216
+     ],
+     "after": [
+      24,
+      1073741824,
+      3212836864,
+      1073741824,
+      1065353216,
+      1065353216,
+      1073741824,
+      3212836864,
+      1073741824,
+      1065353216
+     ]
+    }
+   },
+   "active": {
+    "_xover_lp_A_C2_MAIN_XOVER": {
+     "before": [
+      1065353216,
+      1073741824,
+      3212836864,
+      1073741824,
+      1065353216,
+      1065353216,
+      1073741824,
+      3212836864,
+      1073741824,
+      1065353216
+     ],
+     "after": [
+      1065353216,
+      1073741824,
+      3212836864,
+      1073741824,
+      1065353216,
+      1065353216,
+      1073741824,
+      3212836864,
+      1073741824,
+      1065353216
+     ]
+    },
+    "_xover_hp_A_C2_MAIN_XOVER": {
+     "before": [
+      1065353216,
+      1073741824,
+      3212836864,
+      1073741824,
+      1065353216,
+      1065353216,
+      1073741824,
+      3212836864,
+      1073741824,
+      1065353216
+     ],
+     "after": [
+      1065353216,
+      1073741824,
+      3212836864,
+      1073741824,
+      1065353216,
+      1065353216,
+      1073741824,
+      3212836864,
+      1073741824,
+      1065353216
+     ]
+    }
+   },
+   "flags": {
+    "_xover_active_C2_MAIN_XOVER": {
+     "before": [
+      0
+     ],
+     "after": [
+      0
+     ]
+    },
+    "_xover_swap_pending_C2_MAIN_XOVER": {
+     "before": [
+      0
+     ],
+     "after": [
+      0
+     ]
+    },
+    "_xover_xfade_step_C2_MAIN_XOVER": {
+     "before": [
+      0
+     ],
+     "after": [
+      0
+     ]
+    }
+   },
+   "audio": {
+    "witness": "_buf_C2_MAIN_XOVER",
+    "upstream": "_buf_C2_MAIN_DLY",
+    "moved_by_write": 0,
+    "upstream_moved": 0,
+    "words": 32,
+    "equal_to_upstream": 32,
+    "peak": 134217728,
+    "verdict": "PASS_THROUGH"
+   }
+  },
+  {
+   "family": "FX_ENGINE",
+   "node": "C2_FX_ENG_01",
+   "note": "FX send engine; Type selects the algorithm",
+   "spi_err_delta": 0,
+   "wrote": [
+    {
+     "cell": "Fx001On001",
+     "addr": 1581,
+     "word": 1
+    },
+    {
+     "cell": "Fx001Mix001",
+     "addr": 1601,
+     "word": 1065353216
+    },
+    {
+     "cell": "Fx001Decay001",
+     "addr": 1583,
+     "word": 1073741824
+    },
+    {
+     "cell": "Fx001Feedback001",
+     "addr": 1586,
+     "word": 1061997773
+    },
+    {
+     "cell": "Fx001Damp001",
+     "addr": 1588,
+     "word": 1045220557
+    }
+   ],
+   "stage": {
+    "_fx_type_C2_FX_ENG_01": {
+     "before": [
+      0
+     ],
+     "after": [
+      0
+     ]
+    },
+    "_fx_mix_C2_FX_ENG_01": {
+     "before": [
+      0
+     ],
+     "after": [
+      1065353216
+     ]
+    },
+    "_fx_mix_target_C2_FX_ENG_01": {
+     "before": [
+      0
+     ],
+     "after": [
+      1065353216
+     ]
+    },
+    "_fx_decay_C2_FX_ENG_01": {
+     "before": [
+      0
+     ],
+     "after": [
+      1073741824
+     ]
+    },
+    "_fx_feedback_C2_FX_ENG_01": {
+     "before": [
+      0
+     ],
+     "after": [
+      1061997773
+     ]
+    },
+    "_fx_damp_C2_FX_ENG_01": {
+     "before": [
+      0
+     ],
+     "after": [
+      1045220557
+     ]
+    }
+   },
+   "active": {},
+   "flags": {
+    "_fx_on_C2_FX_ENG_01": {
+     "before": [
+      1
+     ],
+     "after": [
+      1
+     ]
+    },
+    "_fx_type_C2_FX_ENG_01": {
+     "before": [
+      0
+     ],
+     "after": [
+      0
+     ]
+    }
+   },
+   "audio": {
+    "witness": "_buf_C2_FX_ENG_01",
+    "upstream": "_buf_C2_RECV_FX_01",
+    "moved_by_write": 0,
+    "upstream_moved": 0,
+    "words": 32,
+    "equal_to_upstream": 32,
+    "peak": 134217728,
+    "verdict": "PASS_THROUGH"
+   }
+  }
+ ],
+ "capacity": {
+  "baseline_cycles": 324409,
+  "baseline_passes": 15396,
+  "after_params_cycles": 329535,
+  "fx_type": 3,
+  "fx_forced_cells": [
+   "Fx001Type001",
+   "Fx002Type001",
+   "Fx003Type001",
+   "Fx004Type001",
+   "Fx005Type001",
+   "Fx006Type001"
+  ],
+  "fx_active_cycles": 357402,
+  "fx_type_readback": [
+   [
+    3
+   ],
+   [
+    3
+   ],
+   [
+    3
+   ],
+   [
+    3
+   ],
+   [
+    3
+   ],
+   [
+    3
+   ]
+  ]
+ }
+}
