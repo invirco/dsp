@@ -6,6 +6,285 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## the four inert families (2026-09-08, later)
+
+Session: the queued INERT-families block. Write-up:
+`MW/D32/DSP/dsp4-inert-families-20260908.md`. Images: shipping float
+configuration, chip1 `a6db2a8b` / chip2 `8e42f2b0`.
+
+### S3-1 — GEQ: the 28 band cells were dispatched to a coefficient array, and nothing designed them
+
+**Severity: major (PW's market bar). Status: FIXED and verified on the
+part.**
+
+`defs/products/d24/dsp.csv` gives a GEQ node one address per band
+carrying a gain in dB (`Aux001Geq001..028`, Table `0=-12/127=12/[Lin]`).
+`gen_dsp.py:579` pointed those 28 addresses at `_geq_coeffs_next` — a
+140-word staging array, one word per band, with no swap trigger. The
+comment on the same loop has said `gains[28]` since it was written.
+`_geq_gains_<nid>[]` was declared, written by nothing and read by
+nothing.
+
+Measured 2026-09-08: writing ±12 dB to all 28 cells moved
+`_geq_coeffs_next[0..4]` to `41400000 C1400000 41400000 …` — 12.0f and
+−12.0f as raw dB floats — while `_geq_coeffs_A/B` stayed at the compiled
+identity `3F800000 40000000 BF800000 40000000 3F800000` and
+`_geq_swap_pending` stayed 0. Every graphic EQ in the product passed its
+input through: 32 of 32 captured words equal to the upstream node.
+
+**28 addresses cannot carry 140 coefficients plus a trigger**, so the
+design belongs on the DSP. `tools/dsp/geq_ref.py` is the normative model
+(ISO R.40 third-octave centres, exact constant-Q 4.3185, RBJ peaking,
+checked against `bq_float_ref.rbj_peak` to 2.2e-16);
+`src/lib/geq_design_fx.asm` is the kernel; `src/geq_tables.asm` is
+generated from the model; `_spi_dispatch_cN_dirty[]` is the trigger the
+contract has no address for.
+
+On the part: coefficients within **3 ulp** of the model over five gain
+vectors, response within **0.00014 dB** of it, and band 17 at +12 dB
+measures **+11.997 dB** at 1 kHz against a model of +12.000. A flat GEQ
+designs the compiled identity and passes 64/64 samples unchanged.
+
+### S3-2 — the offset coefficients cannot be designed the readable way
+
+**Severity: major (would have shipped a wrong filter). Status: avoided by
+construction; recorded because the wrong route is the obvious one.**
+
+The natural implementation designs `b0..a2` and then converts:
+`c1 = 2 + a1`. At 20 Hz `a1` is −1.99999 and `c1` is 6.8e-6, so forming
+`a1` in float32 first carries about 1.2e-7 of absolute error into a
+subtraction of two near-equal numbers — `c1` comes out about two percent
+wrong. **That is exactly the error the offset encoding exists to remove,
+thrown away in the step that computes it.**
+
+Both new design kernels compute the offset words directly from
+cancellation-free expressions, with the small quantity held as a
+generation-time constant: `k2 = 2(1 − cos ω₀)` for the GEQ, and a series
+for `1 − cos x` in the crossover (over 50–500 Hz `cos x` is
+0.9979–0.99998). `geq_ref.check()` and `xover_ref.check()` both assert
+the rearrangement is the same filter.
+
+### S3-3 — a SHARC register alias produced a perfect coefficient set in the wrong bank
+
+**Severity: major. Status: FIXED. Recorded because the symptom names none
+of the cause.**
+
+`_geq_design_N` held the band counter in `r12` and the reciprocal in
+`f12`. On SHARC those are the same register, so after the first band the
+count became the float bits of `1/(1+ia)` — about 1.07e9 — and the loop
+walked past the end of `_geq_coeffs_next`, writing designed coefficients
+into whatever followed until a band read out of the tables produced a
+negative `inv` and `if gt` fell through.
+
+**It did not look like corruption.** All 140 designed words were correct
+to 1–3 ulp and the part stayed up, because everything the overrun touched
+is rewritten every block — **except `_geq_active`**, which is not. That
+word took `n1 = 2.0f`; `pass` reads any non-zero as bank B; the design
+had been staged into A. The bench read `+0.000 dB` at every probe
+frequency with every coefficient correct in memory.
+
+The rule that follows: in a routine that mixes integer bookkeeping with
+float arithmetic on SHARC, the bookkeeping goes in a register whose float
+twin the routine never touches. Both new kernels state their clobber list
+including that, and both keep `r13-r15` clear of floats.
+
+### S3-4 — CROSSOVER: one address carries two parameters, in the landed contract
+
+**Severity: major, and it is a `defs` defect this repo cannot fix.
+Status: worked around; the ask is one row.**
+
+`MainCtr001`, `MainL001`, `MainR001` and `MainSub001` each carry a
+`CrossoverFreq001` AND a `CrossoverSlope001`, and **all eight resolve to
+address 0x0575** — the contract's own Notes column says "shared crossover
+word". Measured on the part: writing 500.0 then a slope left
+`0x00000018` (the integer 24) in `_xover_coeffs_next[0]`.
+
+The crossover design (S3-5) therefore **IGNORES a word outside the
+frequency table's 50–500 Hz rather than clamping it**. Clamping a slope
+into the frequency would move the crossover to 50 Hz every time the host
+set a slope; ignoring it leaves the split where the last legal frequency
+put it. The bar carries the negative control: writing slope 24 and then 3
+leaves the staged set unmoved word for word.
+
+**Until the row is split, the slope is not settable and the split is
+LR4** — 24 dB/octave, the top of the slope cell's own table.
+
+### S3-5 — CROSSOVER: a real LR4 split, made real
+
+**Severity: major. Status: FIXED and verified on the part.**
+
+Same defect shape as S3-1: a real pair of two-stage cascades, the landed
+cell dispatched to `_xover_coeffs_next[0]`, no trigger, both banks at the
+compiled identity, the node copying its input to all four main outputs.
+
+`tools/dsp/xover_ref.py` (normative: Linkwitz-Riley 4, checked against
+RBJ written out and against the two properties that make it a crossover
+— each path 6.02 dB down at the corner, the two summing flat) and
+`src/lib/xover_design_fx.asm`. On the part at 50/80/120/250/500 Hz:
+staged coefficients within **3 ulp**, the live bank equal to the staged
+one word for word, every corner reading **LP −6.021 dB / HP −6.021 dB**,
+and LP+HP summing flat to **0.00013 dB** over ±4 octaves. Audio at
+f0 = 120 Hz: LP −0.04 / −6.02 / −48.24 dB at 30 / 120 / 480 Hz against a
+model of −0.03 / −6.02 / −48.21.
+
+### S3-6 — ANTI_FB: the parameters land, the kernel is real, nothing joins them
+
+**Severity: major. Status: DIAGNOSED, not implemented (the dispatch
+scoped this family to diagnose and cost).**
+
+`_afb_notch_freq/gain/q` take the write correctly — measured 1000.0,
+−18.0 and 4.0 at their landed addresses — and are read by no emitted
+line. `_afb_on` and `_afb_ctrl_on` are read by nothing either, so the On
+switch does nothing. `_afb_coeffs_next` never moves and both banks hold
+the compiled identity. The cascade underneath is real: six stages, its
+own crossfade, the same `_fx_cascade_node` idiom the GEQ uses.
+
+The work is a `_afb_design_N` beside `_geq_design_N` — RBJ from (freq,
+gain, Q), the same dirty flag, the same swap — plus a product decision
+about whether `AntiFbCtrlOn` implies an automatic detector.
+
+### S3-7 — FX_ENGINE: the default algorithm is not implemented, and the reverb path takes the sample with it
+
+**Severity: major. Status: DIAGNOSED, not implemented.**
+
+Every FX parameter reaches the kernel; `_fx_type` selects the algorithm
+and **defaults to 0 = Echo**, which the dispatch does not implement —
+only 2 (Doubling) and 3 (Reverb) have cases and everything else falls
+through to a dry pass-through. `_fx_on` is written 1 and read by nothing.
+
+Three defects underneath:
+
+1. The Doubling path reads a 15 ms (720-sample) delay out of
+   `_fx_echo_buf[8]`, an **eight-word** buffer, with a wrap constant of
+   8. It cannot work as written.
+2. **`_C2_FX_ENG_01_process` sets no L register** and then uses
+   `modify(i0, m0)` four times on its comb and delay buffers — every
+   other kernel in this tree guards that with `l0 = 0`. Setting
+   `Type = 3` in the family walk turned the FX chain from carrying the
+   impulse to **peak zero on both arms**: the reverb path does not merely
+   fail to reverberate, it takes the sample with it. This is the first
+   thing to check, and it is why the family-walk spec was left at the
+   default `Type`.
+3. `Fx001Mix001`'s Table domain is `0=0/127=100` (percent) and the kernel
+   uses the word directly as a 0..1 blend coefficient, so the documented
+   100 gives `100·wet − 99·dry`. `wire-units.csv` carries no row for any
+   FX cell.
+
+Its cost is measured and it is large — see S3-9.
+
+### S3-8 — the capacity numbers already carried the cascade families, and now that is tested rather than argued
+
+**Severity: informational, and it answers the hub's question. Status:
+measured.**
+
+`_bq_fx_cascade_blk` issues the same instruction stream whatever its
+coefficients hold. Until the GEQ design landed that could not be tested,
+because no GEQ had ever held a coefficient other than the identity.
+Paired on one boot, chip 2, block 8:
+
+| arm | cycles/block |
+|---|---:|
+| every GEQ flat | 330,658 |
+| every GEQ non-flat (364 band cells at ±12 dB) | 331,250 |
+| difference | **+592, 0.18 %** |
+
+Like-for-like at the operating point the fit numbers were taken at —
+`sigprofile2.sh`, whole chip-2 graph, block 16, two boots, minimum:
+**250,480 cycles/block (76.44 % of 327,680)** against the 09-03 record of
+**249,737 (76.21 %)**. +743 cycles, 0.23 % of budget, against two boots
+of this run that are 1,516 cycles apart. **The 09-03 fit numbers stand
+and the designs cost nothing measurable.**
+
+### S3-9 — the FX reverb has never been in a capacity number, and it is worth 17 % of chip 2
+
+**Severity: major (capacity). Status: measured at block 8; projected to
+block 16.**
+
+`FX_ENGINE` is the one family whose instruction stream depends on its
+parameters, and its `Type` has always defaulted to the unimplemented
+Echo. Chip 2, block 8, paired on one boot:
+
+| arm | cycles/block |
+|---|---:|
+| Type 0 on all six engines (the default) | 330,635 |
+| Type 3 = Reverb on all six | 358,806 |
+| difference | **+28,171** |
+
+Reproduced over three boots: +27,861 / +27,867 / +28,171. That is 3,521
+cycles per sample across six engines, **587 per sample per engine**.
+Scaled to block 16 the same per-sample cost is **≈ +56,300 cycles/block,
+17.2 % of chip 2's budget** — 76.4 % → ≈ 93.6 %, margin 23.6 % → ≈ 6.4 %.
+**That is a projection from a measured per-sample cost, not a measurement
+at block 16**, and it is the largest uncosted item in the capacity
+picture. One arm of `sigprofile2` would settle it.
+
+### S3-10 — the sample-order result was taken through unidentified logic, and is withdrawn
+
+**Severity: major (it invalidates a recorded finding). Status: the cause
+is fixed; the measurement must be re-taken.**
+
+The recorded "the loop does not preserve sample order — 40.4 % of
+transitions monotonic, dominant step −576 Pi frames" cannot be
+interpreted, for three independently measured reasons.
+
+**The Pi link runs at 48 kHz whatever ALSA is told.** Measured on the
+bench, `arecord -d 5` on `hw:dsp4pcm,0`: 48,000 → 5.01 s wall; 96,000 →
+10.01 s; 192,000 → **20.15 s**. Effective frame rate 47,917 / 47,955 /
+47,645 Hz. LOGIC masters BCK and LRCLK, the Pi is a slave, and
+`invirco,dsp4-pcm-dummy` declares `SNDRV_PCM_RATE_8000_192000` so it does
+not refuse a rate the link cannot honour. The loop test ran at 192,000,
+so **every frame count in that result is four times the truth**.
+
+**The flashed bitstream predates the regrouping it was blamed on.** The
+bench runs `dsp4_logic.a1f6672af6c3`, built 2026-08-21. `PI_TDM8` first
+appears in `rtl/dsp4_pcm_reframe.v` on 2026-08-23 (`2bb0b49`).
+
+**That bitstream has no Pi capture path at all**: in the RTL as of the
+commit that shipped it, `assign pcm_din = 1'b0; // capture path to the
+Pi: future work`. Confirmed on the bench today — with the DSP booted,
+configured and in the documented pass-through state, a played counter
+returned **0 carrying frames** at both 48 kHz and 192 kHz.
+
+So the loop measurements were taken on a **different, unrecorded**
+bitstream and the bench was then left on one that cannot loop. See S3-11
+for why nothing recorded which.
+
+### S3-11 — a bitstream could not name its own configuration
+
+**Severity: major (it is the root cause of S3-10). Status: FIXED.**
+
+`shared/dsp4-logic/build.sh` derived the artifact name from a hash over
+the slot-map hash, `loopback=`, the RTL, the QSF and the SDC — and
+**nothing else**. `PI_TDM8`, `PI_SELFTEST` and `PI_MAINCAP` are Verilog
+macros passed to `quartus_map`; none of them entered the hash and none
+was recorded in the manifest. A build that regroups four Pi frames per
+DSP frame and one that does not therefore produced **the same filename
+and an identical manifest**.
+
+The flashed bitstream's recorded `slot_map` hash (`efd8d555…`) is also
+two generations stale against the current `slot-map.csv` (`4ecc4aa2…`),
+whose A_I6 rows declare the regrouping PW decided on 2026-08-23.
+
+Fixed: every macro now enters the hash and the manifest records both the
+config line and a plain-English `pi_link:` description of what the Pi
+side does. Re-taking the order test needs a `PI_TDM8` bitstream built
+from the current slot map with the fixed script, flashed at the bench.
+**Not done here**: with the defect unfixed there was no way to be sure
+which existing artifact is the TDM8 build, and flashing shared hardware
+on a guess is not a measurement.
+
+### S3-12 — the GEQ family probe was blind to a working graphic EQ
+
+**Severity: medium (instrument). Status: FIXED.**
+
+`dsp4_family_verify.py` probed `GEQ` with `Aux001Geq001` — band 1 of the
+ISO third-octave set, **19.95 Hz**. Its impulse response takes 2,400
+samples to ring once, so over the 32-sample capture window a +12 dB boost
+moves `b0` by about 4e-4 and the family would read INERT for a graphic EQ
+working perfectly. The probe is now band 18 (1 kHz), which the window
+resolves. The numeric verdict lives in `geqverify.sh`, which scores the
+whole band set against the model rather than one band against a window.
+
 ## hardware families through the landed contract (2026-09-08)
 
 Session: the queued VIRTUAL AUDIO block, steps 2–4 — every D24 kernel family

@@ -58,9 +58,28 @@ if [ "${PI_TDM8:-0}" = "1" ]; then
     echo "*** PI_TDM8 EVALUATION BUILD (CM4 link at 4x rate, 8 channels) ***" >&2
 fi
 
+# THE ARTIFACT HASH COVERS EVERY MACRO, AND IT DID NOT.
+#
+# It covered `loopback=` and nothing else, so a PI_TDM8 build and a plain
+# build of the SAME RTL produced the same filename and a manifest that
+# recorded neither. Two functionally different bitstreams -- one that
+# regroups four Pi frames per DSP frame and one that does not -- were
+# therefore indistinguishable once flashed, and that is not hypothetical:
+# on 2026-09-08 a loop measurement was taken through some bitstream, the
+# bench was then left on `dsp4_logic.a1f6672af6c3` (2026-08-21, which
+# ties pcm_din to 1'b0 and has no Pi capture path at all), and nothing
+# recorded anywhere could say which logic the measurement had run on. The
+# sample-order result taken from it had to be discarded rather than
+# explained.
+#
+# A bitstream must name its own configuration. Every macro goes into the
+# hash AND into the manifest.
+CFG_LINE="loopback=${LOOPBACK:-0} pi_selftest=${PI_SELFTEST:-0}"
+CFG_LINE="$CFG_LINE pi_maincap=${PI_MAINCAP:-0} pi_tdm8=${PI_TDM8:-0}"
+
 SRC_HASH=$(cat \
     <(grep -o 'sha256:[0-9a-f]*' generated/dsp4_slot_map.vh | head -1) \
-    <(echo "loopback=${LOOPBACK:-0}") \
+    <(echo "$CFG_LINE") \
     rtl/*.v quartus/dsp4_logic.qsf quartus/dsp4_logic.sdc \
     | sha256sum | cut -c1-12)
 
@@ -91,6 +110,10 @@ cp output_files/dsp4_logic.svf "../bitstream/$NAME.$SRC_HASH.svf"
         echo "SHIPPING: yes"
     fi
     echo "built: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    echo "config: $CFG_LINE"
+    echo "pi_link: $([ "${PI_TDM8:-0}" = "1" ] \
+          && echo "2 ch x 32 bits at 192 kHz, 4 Pi frames per DSP frame, all 8 slots" \
+          || echo "2 ch x 32 bits at 48 kHz, no regrouping, TDM slots 0/1 only")"
     echo "slot_map: $(grep -o 'sha256:[0-9a-f]*' ../generated/dsp4_slot_map.vh | head -1)"
     echo "sim_gate: $([ "${SKIP_SIM:-0}" = "1" ] && echo SKIPPED || echo PASS)"
     echo "device: 5M1270ZT144C4"

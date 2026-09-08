@@ -297,11 +297,18 @@ FAMILIES = {
                           'return rather than the strip input'),
     # ---- chip 2: the aux chain is RECV_AUX -> FDR -> EQ -> GEQ -> AFB ->
     # LIM -> DLY -> OUT, so one injection point walks six families.
+    # THE PROBED BAND IS 18, NOT 1, AND THE REASON IS THE WINDOW. Band 1
+    # of the ISO third-octave set is 19.95 Hz: its impulse response takes
+    # 2,400 samples to ring once, so over the 32-sample capture a +12 dB
+    # boost moves b0 by 4e-4 and the family would read INERT for a
+    # graphic EQ that is working perfectly. Band 18 is 1 kHz, which the
+    # window resolves; dsp4_geq_verify.py scores the whole band set
+    # against the model and is where the numeric verdict lives.
     'GEQ': dict(chip=2, node='C2_AUX_GEQ_01', inject=C2_AUX_INJ,
                 witness='_buf_C2_AUX_GEQ_01', stim='impulse', offset=0,
-                probe=('Aux001Geq001', f32(0.0), f32(12.0)),
+                probe=('Aux001Geq018', f32(0.0), f32(12.0)),
                 setup=[('Aux001Level001', f32(1.0)), ('Aux001Mute001', 0)],
-                note='28-band graphic EQ'),
+                note='28-band graphic EQ, one gain in dB per band'),
     'ANTI_FB': dict(chip=2, node='C2_AUX_AFB_01', inject=C2_AUX_INJ,
                     witness='_buf_C2_AUX_AFB_01', stim='impulse', offset=0,
                     probe=('Aux001AntiFbNotchGain001', f32(0.0), f32(-18.0)),
@@ -319,13 +326,30 @@ FAMILIES = {
                            ('Aux001Mute001', 0),
                            ('Aux001LimiterOn001', 1)],
                     note='output-side limiter'),
+    # TYPE IS LEFT AT ITS DEFAULT HERE, DELIBERATELY, AND THAT IS WHY
+    # THIS FAMILY READS INERT.
+    #
+    # `_fx_type` defaults to 0 = Echo and the algorithm dispatch has cases
+    # only for 2 (Doubling) and 3 (Reverb); everything else falls through
+    # to a dry pass-through, so the inert verdict is true of the shipping
+    # configuration and not of the kernel. Setting Type = 3 was tried on
+    # 2026-09-08 and made the whole FX chain read SILENT -- peak zero on
+    # both arms, where the default Type carries the impulse -- so the
+    # reverb path does not merely fail to reverberate, it takes the
+    # sample with it. `_C2_FX_ENG_01_process` sets NO L register and then
+    # uses `modify(i0, m0)` four times on its comb and delay buffers,
+    # which every other kernel in this tree guards with `l0 = 0`; that is
+    # the first thing to check. Until it is, driving Type from a bar that
+    # runs against the whole graph risks scribbling through a circular
+    # buffer of whatever length the previous node left behind.
     'FX_ENGINE': dict(chip=2, node='C2_FX_ENG_01', inject=C2_FX_INJ,
                       witness='_buf_C2_FX_ENG_01', stim='impulse', offset=0,
                       probe=('Fx001Mix001', f32(0.0), f32(100.0)),
                       setup=[('Fx001On001', 1),
                              ('Fx001Level001', f32(1.0)),
                              ('Fx001Mute001', 0)],
-                      note='FX send engine'),
+                      note='FX send engine; Type defaults to 0 = Echo, '
+                           'which the dispatch does not implement'),
     'DCA': dict(chip=2, node='C2_DCA_01', inject=None, witness=None,
                 probe=None,
                 note='HOST-MANAGED since the 2026-08-30 ruling (D57) — the '
@@ -340,7 +364,7 @@ FAMILIES = {
     'CROSSOVER': dict(chip=2, node='C2_MAIN_XOVER', inject=C2_MAIN_INJ,
                       witness='_buf_C2_MAIN_OEQ_01', stim='impulse',
                       offset=0,
-                      probe=('MainL001CrossoverFreq001', f32(50.0),
+                      probe=('MainL001CrossoverFreq001', f32(60.0),
                              f32(500.0)),
                       setup=[('Main001Level001', f32(1.0)),
                              ('Main001Mute001', 0)],

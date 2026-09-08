@@ -93,6 +93,59 @@ never acts on, or `wire_contract.py`'s "reachable by offset" class (70
 addresses, not claimed either way) is hiding them. Resolving which is what
 would let the generated number move; until then this section is the record
 and the generated table above is unchanged.
+
+## CORRECTED — 2026-09-08, later the same day
+
+**Two of those four families were never inert in the D38 sense, and the
+section above is wrong about what it found.** D38's question is "does any
+emitted line read this address" — an address nothing references. The
+answer for `GEQ` and `CROSSOVER` was always YES, which is exactly why the
+static test did not list them, and the static test was RIGHT. What the
+impulse walk actually found was a different defect wearing the same
+symptom: the kernel read the address, and what the host wrote there was
+not what the kernel needed.
+
+| family | what the address was | what the kernel needed |
+|---|---|---|
+| `GEQ` | 28 cells dispatched to `_geq_coeffs_next[0..27]` | 140 coefficient words plus a swap trigger; the cells carry ONE GAIN IN dB PER BAND and nothing designed them |
+| `CROSSOVER` | 1 cell dispatched to `_xover_coeffs_next[0]` | 20 coefficient words plus a trigger; the cell carries a corner FREQUENCY and nothing designed it |
+
+Both are now designed ON THE DSP (`src/lib/geq_design_fx.asm`,
+`src/lib/xover_design_fx.asm`, modelled by `tools/dsp/geq_ref.py` and
+`tools/dsp/xover_ref.py`) and both PASS the family walk on the part:
+`GEQ` moves 64 of 64 captured words over a floor of 0, `CROSSOVER` the
+same, and each is scored against its model to within 3 float32 ulps.
+**372 addressed cells came off the "reaches no sample" list by being
+implemented, not by being re-counted**, and the generated 896 was never
+in question.
+
+**The other two are still inert and for two DIFFERENT reasons, neither of
+which is "nothing references the address" either:**
+
+- **`ANTI_FB`, 160 cells.** `_afb_notch_freq/gain/q`, `_afb_on` and
+  `_afb_ctrl_on` are declared, written correctly by the SPI dispatch —
+  measured on the part: 1000.0, −18.0 and 4.0 land exactly where they
+  should — and read by NOTHING. This one IS the D38 shape, and the
+  static list has it. The cascade underneath is real (6 stages, its own
+  crossfade, the same `_fx_cascade_node` idiom the GEQ uses); what is
+  missing is the notch design and a trigger, which is the GEQ's fix
+  applied to a different filter.
+- **`FX_ENGINE`, 114 cells.** Its parameters are read: `_fx_mix`,
+  `_fx_type`, `_fx_feedback`, `_fx_damp` all reach the kernel. The engine
+  is inert because `_fx_type` DEFAULTS TO 0 = Echo and the algorithm
+  dispatch implements only 2 (Doubling) and 3 (Reverb) — everything else
+  falls through to a dry pass-through. Forcing Type = 3 on the six
+  engines costs **+28,171 cycles/block**, measured, which is a kernel
+  that runs. It is not an unreferenced address and it does not belong on
+  a list of them.
+
+**So D38's static 896 stands, and the claim that it "under-reports by at
+least 372" is withdrawn.** What the part found was not more inert
+addresses; it was three different failure modes — a missing design step
+(GEQ, CROSSOVER: fixed), an unread parameter block (ANTI_FB: the D38
+shape, already listed), and an unimplemented default (FX_ENGINE). Calling
+all four "inert" hid the difference between them and made two of them
+look unfixable.
 <!-- END hand-written -->
 
 | kernel class | addresses | master cells | symbol |
