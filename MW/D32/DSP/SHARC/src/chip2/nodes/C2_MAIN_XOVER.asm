@@ -68,6 +68,19 @@
 .var _xover_lp_state_B_C2_MAIN_XOVER[12];
 .global _xover_hp_state_B_C2_MAIN_XOVER;
 .var _xover_hp_state_B_C2_MAIN_XOVER[12];
+#if DSP4_XOVER_DESIGN
+/* THE LANDED CELL, and the flag the SPI handler raises on it.
+ * The eight CrossoverFreq/CrossoverSlope cells of the four main
+ * sections all resolve to this one address; only a word inside
+ * the frequency table's 50-500 Hz is taken as a frequency, and
+ * anything else leaves the split where it was. 0 means "never
+ * set", which is why the banks stay at their compiled identity
+ * until a host writes a real corner. */
+.global _xover_freq_C2_MAIN_XOVER;
+.var _xover_freq_C2_MAIN_XOVER = 0.0;
+.global _xover_dirty_C2_MAIN_XOVER;
+.var _xover_dirty_C2_MAIN_XOVER = 0;
+#endif
 
 /* SPI staging: [LP 2 stages, HP 2 stages]. The WIRE -- direct
  * form under the fixed arm, D5's offset encoding as float32
@@ -121,6 +134,9 @@
 .extern _bq_fx_convert_N;
 #if DSP4_BQ_GUARD
 .extern _bq_hr_node1;
+#endif
+#if DSP4_XOVER_DESIGN
+.extern _xover_design_LR4;
 #endif
 .global _C2_MAIN_XOVER_process;
 _C2_MAIN_XOVER_process:
@@ -200,6 +216,12 @@ _C2_MAIN_XOVER_process:
         .global _C2_MAIN_XOVER_process_sample;
         _C2_MAIN_XOVER_process_sample:
         #endif
+#if DSP4_XOVER_DESIGN
+    /* ---- LR4 design (control rate; lib/xover_design_fx.asm) ---- */
+    r4 = dm(_xover_dirty_C2_MAIN_XOVER);
+    r4 = pass r4;
+    if ne call _xover_redesign_C2_MAIN_XOVER;
+#endif
 
     r4 = dm(_xover_swap_pending_C2_MAIN_XOVER);
     #if DSP4_BQ_GUARD
@@ -456,4 +478,21 @@ modify(i1, 1);            /* past the headroom header */
     r4 = 0;
     dm(_xover_xfade_alpha_C2_MAIN_XOVER) = r4;
     rts;
+#if DSP4_XOVER_DESIGN
+_xover_redesign_C2_MAIN_XOVER:
+    /* Cleared FIRST, for the reason the GEQ's is: a write that
+     * lands while the design runs must leave the flag set for
+     * the next block rather than be cleared by the run that did
+     * not see it. */
+    r4 = 0;
+    dm(_xover_dirty_C2_MAIN_XOVER) = r4;
+    f0 = dm(_xover_freq_C2_MAIN_XOVER);
+    i2 = _xover_coeffs_next_C2_MAIN_XOVER;
+    call _xover_design_LR4;
+    r4 = pass r0;
+    if eq rts;          /* outside 50-500 Hz: nothing was written */
+    r4 = 1;
+    dm(_xover_swap_pending_C2_MAIN_XOVER) = r4;
+    rts;
+#endif
 _C2_MAIN_XOVER_process.end:

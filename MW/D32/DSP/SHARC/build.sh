@@ -572,7 +572,14 @@ DSP4_COMP_NOCVT="${DSP4_COMP_NOCVT:-0}"
 # table whatever this flag says, so 0 is NOT a byte-for-byte rebuild of
 # the inert image. What the two arms isolate is the DESIGN's cycles.
 DSP4_GEQ_DESIGN="${DSP4_GEQ_DESIGN:-1}"
-ASMFLAGS="$ASMFLAGS -DDSP4_GEQ_DESIGN=$DSP4_GEQ_DESIGN"
+# THE MAIN CROSSOVER'S DESIGN (2026-09-08). Same shape and same
+# history as the GEQ's: a real pair of two-stage cascades that had
+# never been given coefficients. src/lib/xover_design_fx.asm,
+# modelled by tools/dsp/xover_ref.py. LR4 only -- CrossoverSlope
+# shares its address with CrossoverFreq in the landed contract, so
+# the slope cannot be set until that row is split in `defs`.
+DSP4_XOVER_DESIGN="${DSP4_XOVER_DESIGN:-1}"
+ASMFLAGS="$ASMFLAGS -DDSP4_GEQ_DESIGN=$DSP4_GEQ_DESIGN -DDSP4_XOVER_DESIGN=$DSP4_XOVER_DESIGN"
 # Run the node graph only every Nth block (measurement, not a mode).
 DSP4_BLOCK_DECIMATE="${DSP4_BLOCK_DECIMATE:-1}"
 # Keep only the first N channel strips (0 = all). Unlike DSP4_NODE_LIMIT

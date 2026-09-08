@@ -6912,6 +6912,17 @@ def gen_crossover_fixed(node):
         {hdrHB}
         .var _xover_lp_state_B_{nid}[12];
         .var _xover_hp_state_B_{nid}[12];
+        #if DSP4_XOVER_DESIGN
+        /* THE LANDED CELL, and the flag the SPI handler raises on it.
+         * The eight CrossoverFreq/CrossoverSlope cells of the four main
+         * sections all resolve to this one address; only a word inside
+         * the frequency table's 50-500 Hz is taken as a frequency, and
+         * anything else leaves the split where it was. 0 means "never
+         * set", which is why the banks stay at their compiled identity
+         * until a host writes a real corner. */
+        .var _xover_freq_{nid} = 0.0;
+        .var _xover_dirty_{nid} = 0;
+        #endif
 
         /* SPI staging: [LP 2 stages, HP 2 stages]. The WIRE -- direct
          * form under the fixed arm, D5's offset encoding as float32
@@ -6934,8 +6945,17 @@ def gen_crossover_fixed(node):
         #if DSP4_BQ_GUARD
         .extern _bq_hr_node1;
         #endif
+        #if DSP4_XOVER_DESIGN
+        .extern _xover_design_LR4;
+        #endif
         .global _{nid}_process;
         _{nid}_process:
+        #if DSP4_XOVER_DESIGN
+            /* ---- LR4 design (control rate; lib/xover_design_fx.asm) ---- */
+            r4 = dm(_xover_dirty_{nid});
+            r4 = pass r4;
+            if ne call _xover_redesign_{nid};
+        #endif
 
             r4 = dm(_xover_swap_pending_{nid});
             {hrpend}
@@ -7103,6 +7123,23 @@ def gen_crossover_fixed(node):
             r4 = 0;
             dm(_xover_xfade_alpha_{nid}) = r4;
             rts;
+        #if DSP4_XOVER_DESIGN
+        _xover_redesign_{nid}:
+            /* Cleared FIRST, for the reason the GEQ's is: a write that
+             * lands while the design runs must leave the flag set for
+             * the next block rather than be cleared by the run that did
+             * not see it. */
+            r4 = 0;
+            dm(_xover_dirty_{nid}) = r4;
+            f0 = dm(_xover_freq_{nid});
+            i2 = _xover_coeffs_next_{nid};
+            call _xover_design_LR4;
+            r4 = pass r0;
+            if eq rts;          /* outside 50-500 Hz: nothing was written */
+            r4 = 1;
+            dm(_xover_swap_pending_{nid}) = r4;
+            rts;
+        #endif
         _{nid}_process.end:
     """)
 

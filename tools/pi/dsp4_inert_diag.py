@@ -113,6 +113,7 @@ FAMS = {
         onflag=None,
         writes=[('Aux001Geq%03d' % (i + 1), f32(12.0 if i % 2 == 0 else -12.0))
                 for i in range(28)],
+        restore=[('Aux001Geq%03d' % (i + 1), f32(0.0)) for i in range(28)],
         setup=[('Aux001Level001', f32(1.0)), ('Aux001Mute001', 0)],
         note='28-band graphic EQ, band gain in dB'),
 
@@ -132,6 +133,8 @@ FAMS = {
                 ('Aux001AntiFbNotchFreq001', f32(1000.0)),
                 ('Aux001AntiFbNotchQ001', f32(4.0)),
                 ('Aux001AntiFbNotchGain001', f32(-18.0))],
+        restore=[('Aux001AntiFbOn001', 0), ('Aux001AntiFbCtrlOn001', 0),
+                 ('Aux001AntiFbNotchGain001', f32(0.0))],
         setup=[('Aux001Level001', f32(1.0)), ('Aux001Mute001', 0)],
         note='six notches per aux'),
 
@@ -147,6 +150,7 @@ FAMS = {
         onflag=None,
         writes=[('MainL001CrossoverFreq001', f32(500.0)),
                 ('MainL001CrossoverSlope001', 24)],
+        restore=[('MainL001CrossoverFreq001', f32(50.0))],
         setup=[('Main001Level001', f32(1.0)), ('Main001Mute001', 0)],
         note='one node, LP/HP split, four output chains'),
 
@@ -164,6 +168,7 @@ FAMS = {
         writes=[('Fx001On001', 1), ('Fx001Mix001', f32(1.0)),
                 ('Fx001Decay001', f32(2.0)), ('Fx001Feedback001', f32(0.8)),
                 ('Fx001Damp001', f32(0.2))],
+        restore=[('Fx001Mix001', f32(0.0)), ('Fx001On001', 0)],
         setup=[('Fx001Level001', f32(1.0)), ('Fx001Mute001', 0)],
         note='FX send engine; Type selects the algorithm'),
 }
@@ -247,6 +252,15 @@ def diagnose(part, L, fam, spec, n=32, log=print):
     flag_before = {s: peekn(part, s, 1) for s in spec['flags']}
 
     inj = part.sc.sym[spec['inject']]
+    # THE NULL INTERVAL IS THE FLOOR, and this tool needed one the moment
+    # a family upstream started processing. `_buf_<nid>` is the LAST
+    # sample of a block, so once the GEQ RINGS, two captures of the same
+    # steady graph differ wherever the impulse lands at a different phase
+    # of the block -- and 32 of 32 words then "move" over an interval in
+    # which nothing was written. The first run after the GEQ design
+    # landed read ANTI_FB as LIVE on exactly that. Same rule
+    # dsp4_family_verify.py's audio phase carries.
+    cap_null = capture(part, inj, spec['witness'], n)
     cap_before = capture(part, inj, spec['witness'], n)
     up_before = capture(part, inj, spec['upstream'], n)
 
@@ -303,7 +317,9 @@ def diagnose(part, L, fam, spec, n=32, log=print):
     same_as_upstream = None
     if cap_after is not None and up_after is not None:
         same_as_upstream = sum(1 for x, y in zip(cap_after, up_after) if x == y)
+    floor = moved(cap_null, cap_before)
     rec['audio'] = {
+        'floor': floor,
         'witness': spec['witness'], 'upstream': spec['upstream'],
         'moved_by_write': moved(cap_before, cap_after),
         'upstream_moved': moved(up_before, up_after),
@@ -315,19 +331,29 @@ def diagnose(part, L, fam, spec, n=32, log=print):
     # cannot separate an inert node from a chain the stimulus never
     # reached, so it is reported as SILENT rather than as "reaches no
     # sample" -- the same rule dsp4_family_verify.py's audio phase carries.
+    mv = rec['audio']['moved_by_write']
     if rec['audio']['peak'] == 0:
         rec['audio']['verdict'] = 'SILENT'
-    elif rec['audio']['moved_by_write']:
+    elif floor is not None and floor >= n:
+        rec['audio']['verdict'] = 'NO_FLOOR'
+    elif mv is not None and floor is not None and mv > floor:
         rec['audio']['verdict'] = 'LIVE'
     elif same_as_upstream == n:
         rec['audio']['verdict'] = 'PASS_THROUGH'
     else:
         rec['audio']['verdict'] = 'UNCHANGED_BY_WRITE'
-    log('  audio  %-38s moved %s/%s by the write; %s/%s words equal to %s; '
-        'peak 0x%08X -> %s'
-        % (spec['witness'], rec['audio']['moved_by_write'], n,
+    log('  audio  %-38s floor %s/%s, moved %s/%s by the write; %s/%s words '
+        'equal to %s; peak 0x%08X -> %s'
+        % (spec['witness'], floor, n, mv, n,
            same_as_upstream, n, spec['upstream'], rec['audio']['peak'],
            rec['audio']['verdict']))
+
+    # LEAVE THE FAMILY AS FOUND, so the next family is not diagnosed
+    # through this one's tail. Also part of leaving the unit as found.
+    for cell, val in spec.get('restore', ()):
+        if L.has(cell):
+            part.write(L.addr(cell), val, 0)
+    time.sleep(0.3)
     return rec
 
 
@@ -380,6 +406,33 @@ def main():
     print('')
     print('capacity: with every landed parameter written  %s cycles/block' % c1)
 
+    # ---- CAPACITY with every GEQ in the graph designed NON-FLAT.
+    # This is the measurement that settles whether the 09-03 fit numbers
+    # already carry the cost of the graphic EQ. The cascade issues the
+    # same instruction stream whatever its coefficients hold -- but that
+    # is an argument, and until the design landed there was no way to
+    # test it on the part, because no GEQ had ever held a coefficient
+    # other than the identity.
+    geq_nodes = (['Aux%03dGeq%%03d' % i for i in range(1, 13)]
+                 + ['Grp%03dGeq%%03d' % i for i in range(1, 5)]
+                 + ['Main001Geq%03d'])
+    wrote_geq = 0
+    for fmt in geq_nodes:
+        for b in range(1, 29):
+            cell = fmt % b
+            if L.has(cell):
+                part.write(L.addr(cell), f32(12.0 if b % 2 else -12.0), 0)
+                wrote_geq += 1
+    time.sleep(1.0)
+    c_geq, _ = proc_cycles(part)
+    out['capacity']['geq_cells_written'] = wrote_geq
+    out['capacity']['geq_active_cycles'] = c_geq
+    print('capacity: every GEQ non-flat (%d cells)          %s cycles/block'
+          % (wrote_geq, c_geq))
+    if c0 and c_geq:
+        print('capacity: GEQ-active delta vs baseline       %+d cycles/block'
+              % (c_geq - c0))
+
     fx_nodes = ['C2_FX_ENG_%02d' % i for i in range(1, 7)]
     fx_cells = ['Fx%03dType001' % i for i in range(1, 7)]
     forced = []
@@ -400,9 +453,19 @@ def main():
         print('capacity: FX reverb delta                    %+d cycles/block'
               % (c2 - c1))
 
-    # leave the engines as found
+    # leave the unit as found: engines back to Type 0, every GEQ flat
     for cell in forced:
         part.write(L.addr(cell), 0, 0)
+    for fmt in geq_nodes:
+        for b in range(1, 29):
+            cell = fmt % b
+            if L.has(cell):
+                part.write(L.addr(cell), f32(0.0), 0)
+    time.sleep(0.5)
+    c_end, _ = proc_cycles(part)
+    out['capacity']['restored_cycles'] = c_end
+    print('capacity: restored (every GEQ flat, FX Type 0)  %s cycles/block'
+          % c_end)
 
     if args.json:
         with open(args.json, 'w') as fh:

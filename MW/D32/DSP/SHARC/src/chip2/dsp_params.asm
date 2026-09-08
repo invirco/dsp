@@ -672,6 +672,7 @@
 .extern _mtr_rms_C2_MTR_MAIN_03;
 .extern _mtr_rms_C2_MTR_MAIN_04;
 .extern _xover_coeffs_next_C2_MAIN_XOVER;
+.extern _xover_freq_C2_MAIN_XOVER;
 
 /* ---- Table size for the SPI handler bounds check ---- */
 .global _spi_dispatch_c2_size;
@@ -2077,7 +2078,7 @@
     _lim_release_C2_MAIN_LIM,    /* 0x0572: C2_MAIN_LIM LimiterRel */
     _dly_read_offset_C2_MAIN_DLY,    /* 0x0573: C2_MAIN_DLY delay offset */
     _dly_pool_slot_C2_MAIN_DLY,    /* 0x0574: C2_MAIN_DLY pool_slot */
-    _xover_coeffs_next_C2_MAIN_XOVER,    /* 0x0575: C2_MAIN_XOVER XOVER coeff[0] */
+    _xover_freq_C2_MAIN_XOVER,    /* 0x0575: C2_MAIN_XOVER crossover frequency */
     _xover_coeffs_next_C2_MAIN_XOVER + 1,    /* 0x0576: C2_MAIN_XOVER XOVER coeff[1] */
     _xover_coeffs_next_C2_MAIN_XOVER + 2,    /* 0x0577: C2_MAIN_XOVER XOVER coeff[2] */
     _xover_coeffs_next_C2_MAIN_XOVER + 3,    /* 0x0578: C2_MAIN_XOVER XOVER coeff[3] */
@@ -4045,7 +4046,7 @@
     0,  /* 0x0572: C2_MAIN_LIM LimiterRel */
     0,  /* 0x0573: C2_MAIN_DLY delay offset */
     0,  /* 0x0574: C2_MAIN_DLY pool_slot */
-    0,  /* 0x0575: C2_MAIN_XOVER XOVER coeff[0] */
+    0,  /* 0x0575: C2_MAIN_XOVER crossover frequency */
     0,  /* 0x0576: C2_MAIN_XOVER XOVER coeff[1] */
     0,  /* 0x0577: C2_MAIN_XOVER XOVER coeff[2] */
     0,  /* 0x0578: C2_MAIN_XOVER XOVER coeff[3] */
@@ -6020,7 +6021,7 @@
     0,  /* 0x0572: C2_MAIN_LIM LimiterRel */
     0,  /* 0x0573: C2_MAIN_DLY delay offset */
     0,  /* 0x0574: C2_MAIN_DLY pool_slot */
-    0,  /* 0x0575: C2_MAIN_XOVER XOVER coeff[0] */
+    0,  /* 0x0575: C2_MAIN_XOVER crossover frequency */
     0,  /* 0x0576: C2_MAIN_XOVER XOVER coeff[1] */
     0,  /* 0x0577: C2_MAIN_XOVER XOVER coeff[2] */
     0,  /* 0x0578: C2_MAIN_XOVER XOVER coeff[3] */
@@ -6592,7 +6593,7 @@
  * gain arrived, instead of comparing every band against a
  * shadow on every block of every node.
  *
- * 476 of 1952 addresses raise a flag; 17 distinct flags.
+ * 477 of 1952 addresses raise a flag; 18 distinct flags.
  */
 .global _spi_dispatch_c2_dirty;
 .var _spi_dispatch_c2_dirty[1952] =
@@ -7993,7 +7994,7 @@
     0,  /* 0x0572: C2_MAIN_LIM LimiterRel */
     0,  /* 0x0573: C2_MAIN_DLY delay offset */
     0,  /* 0x0574: C2_MAIN_DLY pool_slot */
-    0,  /* 0x0575: C2_MAIN_XOVER XOVER coeff[0] */
+    _xover_dirty_C2_MAIN_XOVER,  /* 0x0575: C2_MAIN_XOVER crossover frequency */
     0,  /* 0x0576: C2_MAIN_XOVER XOVER coeff[1] */
     0,  /* 0x0577: C2_MAIN_XOVER XOVER coeff[2] */
     0,  /* 0x0578: C2_MAIN_XOVER XOVER coeff[3] */

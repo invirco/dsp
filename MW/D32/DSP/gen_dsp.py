@@ -884,8 +884,25 @@ def expand_crossover(node, cat, inst):
                  '0=6/3=24/[Lin]', 'InstantCtl',
                  notes='MCU-computed, shares base; shared crossover word')
 
-    # Dispatch: coefficient staging (20 words for LP+HP biquads)
-    add_dispatch_block(chip, base, f'_xover_coeffs_next_{nid}', 20, f'{nid} XOVER coeff')
+    # THE FIRST WORD IS THE CORNER FREQUENCY, NOT COEFFICIENT 0.
+    #
+    # It used to be dispatched to `_xover_coeffs_next[0]` -- one word of a
+    # twenty-word staging array, with no trigger to swap it in -- so the
+    # main crossover took the write and copied its input to all four
+    # outputs. Measured on the part 2026-09-08: writing 500 Hz then a
+    # slope left 0x00000018 sitting in coefficient 0 and both banks at
+    # their compiled identity.
+    #
+    # The remaining nineteen words stay pointed at the staging array.
+    # Nothing in the contract names them, nothing swaps them in, and
+    # unmapping them would turn a write nobody makes into an SPI error;
+    # the design overwrites all twenty whenever a legal frequency
+    # arrives.
+    add_dispatch(chip, base, f'_xover_freq_{nid}', f'{nid} crossover frequency')
+    add_dirty_block(chip, base, 1, f'_xover_dirty_{nid}')
+    for i in range(1, 20):
+        add_dispatch(chip, base + i, f'_xover_coeffs_next_{nid} + {i}',
+                     f'{nid} XOVER coeff[{i}]')
     # swap_pending and crossfade control
     # Remaining words...
     for off in range(20, 24):
