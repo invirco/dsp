@@ -162,6 +162,26 @@ Hardware ground truth: [MW/D24/HW/hardware-map.md](MW/D24/HW/hardware-map.md)
   - **NOT EXERCISED — DCA** (host-managed since the 2026-08-30 ruling, so
     there is nothing on the part to probe) and **AUX_INPUT** (its samples
     arrive on a TDM slot this bench cannot drive).
+- **`busgold` re-run after the image moved, 2026-09-08: GRAPH BIT-EXACT**,
+  0 of 256 bus words differ against `goldens/busgraph-postD59-20260830.json`
+  (sha256 `ba3f52ec`, the golden's own hash). The wire-unit conversion is
+  audio-neutral for that harness by construction — it writes `DlyOff` as a
+  raw 0 and never writes `GateHold` — and this is the measurement rather
+  than the argument.
+- **The Pi loop is a PASS-THROUGH with no pedestal, and it is not yet a
+  per-sample measurement channel** (2026-09-08). Sixteen of the seventeen
+  sources summing into `C2_MIX_MAIN_L` are silenced by cell name out of the
+  landed map (60 cells, all present in the contract); with them silenced
+  the whole main chain reads zero at the scope and the captured channel
+  idles at 8 LSB (−168 dBFS). A known DC word returns at **ratio 1.0000**
+  (`0x00001000`) and 0.9999 for larger words — amplitude-accurate to about
+  1.2e-4, NOT bit-exact. The apparent ×2 was `Pi001Level001`, not a
+  scatter/gather shift: at 0.5 the loop is unity and `_auxin_q` reads Q4.28
+  0.5 exactly. **NO LATENCY FIGURE**: the loop does not preserve sample
+  order — a counter held 64 Pi frames per value returns only 40.4 % of its
+  transitions monotonic, dominant step ≈ −9 values — so a latency measured
+  through it would not be one. The next probe is the CPLD reframe against
+  the DSP's Pi-input DMA; the ALSA layer is now known good (finding S2-11).
 - **A UNIT CONVERSION NOW EXISTS AT THE SPI BOUNDARY, generated from the
   landed `defs/common/wire/wire-units.csv`** (2026-09-08). D5 says the wire
   keeps carrying float32 words and a single on-target conversion feeds the

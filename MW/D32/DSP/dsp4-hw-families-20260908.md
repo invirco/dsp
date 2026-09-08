@@ -269,7 +269,7 @@ an output peak of `0x20000000` = 2.0 — a factor of four, not the 1.585 that
 in the kernel first; without one, the documented 0 dB would silence the
 strip.
 
-## The CM4 duplex loop
+## The CM4 loop: a pass-through with no pedestal, and no latency yet
 
 The queued block's step 1 recorded the Pi audio path as unusable: two PCM
 devices sharing one `bcm2835-i2s` CPU DAI, so opening both re-programs the
@@ -284,43 +284,80 @@ them, before writing one:
 | `asahi-kasei,ak4554` | ONE dai-link, a REAL duplex device — and **S16_LE only** |
 | `google,voicehat` | both directions, S32_LE — and **48 kHz only** |
 
-The hub's pin ruling (CM4 GPIO17 = CS6 as `sdmode-gpios`, mx26
-`src/hw/d24-hw-pins.csv`) cleared voicehat's mandatory-GPIO probe failure
-exactly as ruled and the card came up. It is voicehat's RATE that
-disqualifies it, and the rate is not negotiable:
-`shared/dsp4-logic/slot-map.csv` lane A_I6 says LOGIC "regroups 4 Pi frames
-per DSP frame", so the Pi frame is 2 slots × 32 bits at **192 kHz**.
-
-`invirco,dsp4-pcm-dummy` (`shared/dsp4-logic/pi/dsp4-pcm-dummy/`) is forty
-lines of DAI declaration — playback and capture, 8–192 kHz, S32_LE, no
-registers, no control bus, no clocks, **no GPIO**, so CS6 stays free:
+The hub's pin ruling (CM4 GPIO17 = CS6 as `sdmode-gpios`) cleared
+voicehat's mandatory-GPIO probe failure exactly as ruled and the card came
+up; it is voicehat's RATE that disqualifies it, and the rate is not
+negotiable — `slot-map.csv` lane A_I6 says LOGIC "regroups 4 Pi frames per
+DSP frame", so the Pi frame is 2 slots × 32 bits at **192 kHz**.
+`invirco,dsp4-pcm-dummy` is forty lines of DAI declaration — both
+directions, 8–192 kHz, S32_LE, no registers, no control bus, **no GPIO**,
+so CS6 stays free:
 
 ```
 00-00: bcm2835-i2s-dsp4-dummy-hifi ... : playback 1 : capture 1
 arecord -D hw:dsp4pcm,0 -f S32_LE -c 2 -r 192000  ->  192000 Hz, Stereo
 ```
 
-One device, both directions, no rate clamp, no over/underrun across a
-96,000-word duplex run. The exact module, overlay and `config.txt` lines
-for `cm4-setup-pi.sh` are in findings S2-7.
+### The pass-through, addressed from the contract
 
-**It is not a measurement channel yet, and the reason is no longer the
-overlay.** A known word comes back riding a DC pedestal of about
-`0x11E7E000` (0.28 in Q4.28) and moves only slightly with the input: the
-main chain sums seventeen sources into `MIX_MAIN_L` and none of its nodes
-was set to bypass. That is step 1's "pass-through strip, all nodes
-unity/bypass", and it is the only thing between here and a latency figure.
+Seventeen sources sum into `C2_MIX_MAIN_L`. `passthru_setup.py` silences
+sixteen by CELL NAME out of the landed map — 24 strips taken off the main
+bus *and* muted (two independent ways, so one inert cell cannot leave the
+bus live and look like a pedestal), the three auxiliary inputs switched
+off, the four groups muted, main fader unity, main delay zero. **All 60
+cells were present in the contract.** The eight snake returns have no cell
+at all and could not be silenced from it; nothing is connected to them here
+and the measurement shows they contribute nothing.
+
+**No pedestal.** Nothing played: `_buf_C2_MIX_MAIN_L`, `_buf_C2_MAIN_FDR`,
+`_buf_C2_MAIN_DLY` and `_buf_C2_MAIN_ST_OUT` all read `0x00000000`, and the
+captured measurement channel idles at 8 LSB (−168 dBFS) — the residue on
+the slot nothing drives. The `0x11E7E000` pedestal is gone.
+
+| played | returned | ratio |
+|---|---|---|
+| `0x00001000` | `0x00001000` | **1.0000**, `in << 0` |
+| `0x00010000` | `0x0000FFF8` | 0.9999 |
+| `0x00100000` | `0x000FFF88` | 0.9999 |
+
+The apparent ×2 was `Pi001Level001` and not a scatter/gather shift: at 0.5
+the loop is unity, with `_auxin_q_C2_PI_IN` reading Q4.28 0.5 exactly,
+target matched and frames 0. Played into L only the word returns; into R
+only, nothing; into both, the same as L alone — no L+R summing, and
+`C2_MAIN_ST_OUT` drives one slot, confirmed on the part.
+
+### Why there is still no latency figure
+
+**The loop does not preserve sample order.** A counter whose every value
+was held for 64 Pi frames — 16 DSP frames, four times the regrouping ratio
+— returns with only **40.4 % of its transitions monotonic** over 59,498
+carrying frames, the dominant index step about **−9 values ≈ 576 Pi frames
+backwards**. DC returns perfectly and a ramp does not, which is a reader
+sampling the wrong one of the four regrouped Pi frames and periodically
+re-reading a stale region, not a gain or a clock error. A latency measured
+through a path that reorders is not a latency, so none is recorded. The
+next probe is the CPLD reframe (`rtl/dsp4_pcm_reframe.v`) against the DSP's
+Pi-input DMA — the ALSA layer is now known good.
+
+**No family verdict in the table above depended on the loop.** Every one was
+measured through `src/scope.asm`, inside the DSP, so the coverage fraction
+stands as it is.
 
 ## What this run did NOT do
 
-- **No latency figure**, and none is quoted: the loop carries a DC pedestal
-  until the main chain is set to unity/bypass, and a latency taken through a
-  path that is not unity measures the path.
+- **No latency figure**, and the reason is measured rather than assumed:
+  the loop reorders samples (above).
+- **The loop is not bit-exact**: a known word returns at 1.0000 for
+  `0x00001000` and 0.9999 for larger ones, an amplitude error of about
+  1.2e-4 that is NOT the Pi input coefficient (measured exact) and is not
+  yet attributed.
 - Families are exercised on ONE representative node each, not on all 375.
   The address arithmetic is the same for every instance of a family (the
-  landed map carries the stride), so a family verdict is a verdict about the
-  kernel and the contract, not about every strip.
-- `LIMITER`, `GEQ`, `ANTI_FB`, `FX_ENGINE`, `CROSSOVER`, `MONITOR` and
-  `AUX_INPUT` live on chip 2 and are only as good as chip 2's boot; where
-  chip 2 did not come up as chip 2 the run says NOT MEASURED rather than
-  scoring silence.
+  landed map carries the stride), so a family verdict is a verdict about
+  the kernel and the contract, not about every strip.
+- The eight `C2_SNK_IN_*` snake returns have no cell in the landed map, so
+  the pass-through could not silence them from the contract. Nothing is
+  connected to them on this bench.
+- `conform.sh` was not run. `busgold` WAS (0 of 256 words differ,
+  GRAPH BIT-EXACT), because the audio image moved this session and the
+  byte-identity argument that used to cover it no longer applies.

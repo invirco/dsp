@@ -1,0 +1,111 @@
+{
+ "gain": [
+  {
+   "chan": "LR",
+   "frames": 374824,
+   "in": 4096,
+   "out": 4096,
+   "peaks": {
+    "L": "0x00001000",
+    "R": "0x00000000"
+   },
+   "ratio": 1.0,
+   "returned_on": "L",
+   "total": 768000
+  },
+  {
+   "chan": "LR",
+   "frames": 370576,
+   "in": 65536,
+   "out": 65528,
+   "peaks": {
+    "L": "0x0000FFF8",
+    "R": "0x00000000"
+   },
+   "ratio": 0.9998779296875,
+   "returned_on": "L",
+   "total": 768000
+  },
+  {
+   "chan": "LR",
+   "frames": 366528,
+   "in": 1048576,
+   "out": 1048456,
+   "peaks": {
+    "L": "0x000FFF88",
+    "R": "0x00000000"
+   },
+   "ratio": 0.9998855590820312,
+   "returned_on": "L",
+   "total": 768000
+  }
+ ],
+ "latency": {
+  "consecutive_steps": 6,
+  "first_non_zero": 22647,
+  "offset_agreement": 0.003303964757709251,
+  "offset_frames": 22856,
+  "returned_on": "L",
+  "steps": 3631,
+  "verdict": "RAGGED"
+ },
+ "measured_gain": 1.0,
+ "pedestal": {
+  "L": {
+   "non_zero": 384000,
+   "peak": 8,
+   "words": 384000
+  },
+  "R": {
+   "non_zero": 0,
+   "peak": 0,
+   "words": 384000
+  },
+  "clean": true,
+  "xrun": false
+ },
+ "play_dev": "hw:dsp4pcm,0",
+ "rate": 192000,
+ "rec_dev": "hw:dsp4pcm,0",
+ "summing": [
+  {
+   "chan": "L",
+   "frames": 364021,
+   "in": 1048576,
+   "out": 1048456,
+   "peaks": {
+    "L": "0x000FFF88",
+    "R": "0x00000000"
+   },
+   "ratio": 0.9998855590820312,
+   "returned_on": "L",
+   "total": 768000
+  },
+  {
+   "chan": "R",
+   "frames": 0,
+   "in": 1048576,
+   "out": null,
+   "peaks": {
+    "L": "0x00000008",
+    "R": "0x00000000"
+   },
+   "ratio": null,
+   "returned_on": "L",
+   "total": 768000
+  },
+  {
+   "chan": "LR",
+   "frames": 365010,
+   "in": 1048576,
+   "out": 1048456,
+   "peaks": {
+    "L": "0x000FFF88",
+    "R": "0x00000000"
+   },
+   "ratio": 0.9998855590820312,
+   "returned_on": "L",
+   "total": 768000
+  }
+ ]
+}

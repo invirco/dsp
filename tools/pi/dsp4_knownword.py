@@ -9,8 +9,11 @@ from collections import Counter
 
 RATE = int(os.environ.get('RATE', 48000)); SECS = 2
 # One device under `dsp4-pcm-duplex`, two under `dsp4-pcm-slave`.
-REC_DEV  = os.environ.get('REC_DEV',  'hw:0,0')
-PLAY_DEV = os.environ.get('PLAY_DEV', 'hw:0,0')
+# BY CARD NAME, NOT INDEX. The card index moves with what else probed
+# first -- dsp4pcm came up as card 0 on one boot and card 1 on the next,
+# and `hw:0,0` then addressed the HDMI device and captured nothing.
+REC_DEV  = os.environ.get('REC_DEV',  'hw:dsp4pcm,0')
+PLAY_DEV = os.environ.get('PLAY_DEV', 'hw:dsp4pcm,0')
 words = [0x00001000, 0x00010000, 0x00100000]   # single bits, well clear of clipping
 
 for w in words:

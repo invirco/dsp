@@ -386,6 +386,107 @@ family's real bar rather than scoring a number it cannot interpret, and
 `hw_coverage.py` scores a family by a dedicated bar's verdict — with the
 bar and the image recorded — where one has been run.
 
+### S2-11 — the loop is a PASS-THROUGH with no pedestal, and it does not preserve sample order
+
+**Severity: major (bring-up). Status: the pedestal is CLOSED, the ordering
+is OPEN and characterised.**
+
+Step 1 asks for a pass-through that is bit-exact end to end. Three of its
+four parts are now measured; the fourth says the loop cannot carry a
+latency figure yet.
+
+**THE PASS-THROUGH, from the contract.** Seventeen sources sum into
+`C2_MIX_MAIN_L` — `C2_RECV_MAIN_L` (chip 1's whole 24-strip bus), the four
+`C2_GRP_COMP_*`, `C2_USB_IN`, `C2_BT_IN`, `C2_CODEC_AUX_IN`, `C2_PI_IN` and
+the eight `C2_SNK_IN_*`. `passthru_setup.py` silences sixteen of them by
+CELL NAME out of the landed map: 24 strips taken off the main bus AND muted
+(48 cells, two independent ways, because one inert cell would otherwise
+leave the bus live and look like a pedestal), `Usb001On001` /
+`Bt001On001` / `CodecAux001On001` cleared, the four `Grp*Mute001` set, the
+main fader at unity and `Main001Delay001` zero. **Every one of those 60
+cells is in the contract** — the run reports which are not, and none were.
+The eight snake returns have NO cell in the landed map at all and could not
+be silenced from the contract; on this bench nothing is connected to them,
+and the measurement below shows they contribute nothing.
+
+**NO PEDESTAL.** With the setup applied and nothing played, the whole main
+chain reads zero at the scope — `_buf_C2_MIX_MAIN_L`, `_buf_C2_MAIN_FDR`,
+`_buf_C2_MAIN_DLY` and `_buf_C2_MAIN_ST_OUT` all `0x00000000` — and the
+captured measurement channel idles at **8 LSB, about −168 dBFS**, which is
+the residue on the TDM slot nothing drives. The `0x11E7E000` pedestal
+(0.28 in Q4.28) that made the earlier capture unreadable is gone.
+
+**THE ×2 WAS A LEVEL, NOT A SHIFT.** At `Pi001Level001 = 1.0` a known word
+returned doubled, which reads like a one-bit scatter/gather asymmetry. It
+is not: at **0.5** the loop returns unity, and `_auxin_q_C2_PI_IN` reads
+`0x08000000` — Q4.28 0.5 exactly, target matched, frames 0, so the
+coefficient is settled and exact. The node carries a factor of two the cell
+value does not describe. Same class as S2-5 and a question for the unit
+rows, not a defect in the path.
+
+| played | returned | ratio |
+|---|---|---|
+| `0x00001000` | `0x00001000` | **1.0000**, `in << 0` |
+| `0x00010000` | `0x0000FFF8` | 0.9999 |
+| `0x00100000` | `0x000FFF88` | 0.9999 |
+
+So the loop is amplitude-accurate to about 1.2e-4 (−78 dB) and **not
+bit-exact**; the residual is not the Pi coefficient and is not yet
+attributed.
+
+**NO L+R SUMMING, AND THE RETURN IS MONO.** Played into L only the word
+returns; into R only, nothing returns; into both, the same as L alone. That
+settles a question the ×2 had made ambiguous. It also confirms on the part
+the standing note that `C2_MAIN_ST_OUT` drives TDM slot 0 only.
+
+**THE CAPTURED CHANNEL IS NOT FIXED.** The same stimulus came back on L in
+one capture and on R in the next: the Pi is an I2S slave and LOGIC regroups
+four Pi frames into one DSP frame, so the word a stream starts on is not
+determined. `dsp4_loopcal.py` phases every capture before reading it and
+reports which channel carried the return. Reading a fixed channel is what
+made one run print `ratio 0.0000` for a loop that was working.
+
+**AND THE LOOP DOES NOT PRESERVE SAMPLE ORDER — so no latency is quoted.**
+A counter whose every value was held for **64 Pi frames (16 DSP frames)**
+still comes back with only **40.4 % of transitions monotonic** (59,498
+carrying frames), the dominant index step being about **−9 values ≈ 576 Pi
+frames** backwards. Holding each value for 4 frames — the regrouping ratio —
+is not enough either. DC returns perfectly and a ramp does not, which is
+the signature of a reader sampling the wrong one of the four regrouped Pi
+frames and periodically re-reading a stale region, rather than of a gain or
+a clock error.
+
+**A latency measured through a path that reorders is not a latency**, so
+none is recorded. What the loop supports today is amplitude measurement on
+slowly-varying or DC stimuli; a per-sample vector set needs the ordering
+closed first. The next probe is the CPLD reframe (`rtl/dsp4_pcm_reframe.v`)
+against the DSP's Pi-input DMA, not the ALSA layer — that part is now known
+good.
+
+### S2-12 — busgold: the graph is bit-exact across the wire-unit conversion
+
+**Severity: none — a bar owed and paid.**
+
+The audio image changed this session (S2-8), so the standing "the image is
+byte-identical, therefore the capture cannot have moved" argument that had
+covered `busgold` no longer applied. Run on the part:
+
+```
+strip 1 driven, 2 muted: 256/256 non-zero, sha256 ba3f52ecb83f9a60
+postD59 vs cur: 0 of 256 words differ
+GRAPH BIT-EXACT
+```
+
+`ba3f52ec` is the stored golden's own hash, so the capture reproduces
+`goldens/busgraph-postD59-20260830.json` word for word. That is the
+predicted result and it is now a measurement: `dsp4_pairgraph.py` writes
+`DlyOff` as a raw `0`, which the new conversion maps to 0 ms → 0 samples,
+and it never writes `GateHold` at all — so the conversion is audio-neutral
+for this harness by construction, and the bar confirms it rather than
+assuming it. The harness's two standing caveats still apply and are printed
+by it: the biquads are in bypass and the gain is unity, so this comparison
+says nothing about paired biquads or about GAIN's rounding.
+
 ## dsp.csv proposal (2026-09-08)
 
 Session: propose `defs/products/{d24,d32}/dsp.csv` against `defs-v2026.09.08`.
