@@ -594,6 +594,17 @@ def expand_routing(node, cat, inst):
 
 
 # ── GEQ ──────────────────────────────────────────────────────────────────
+# HOW MANY BANDS THE ADDRESS MAP CARRIES, IN ONE PLACE. The DSP4 node
+# graph gives every GEQ node `bands=28` and the address block is exactly
+# that long -- `C2_AUX_GEQ_01` runs 28..55 and `C2_AUX_AFB_01` starts at
+# 56, with no slack anywhere on chip 2. defs-v2026.09.08.3 lands
+# `Geq[1-31]` in the CELL MASTER, so bands 29-31 are defined cells with
+# no address; `_unmapped_reason` says so per cell rather than per family,
+# and the proposal for closing it is in
+# MW/D32/DSP/dsp4-dspcsv-proposal-20260908.md §B.
+GEQ_BANDS = 28
+
+
 def expand_geq(node, cat, inst):
     chip, pg, base, nid, ramp = _parse_node(node)
     # 28 SPI words: ONE GAIN IN dB PER BAND.
@@ -611,12 +622,13 @@ def expand_geq(node, cat, inst):
     # design belongs on the DSP (src/lib/geq_design_fx.asm, modelled by
     # tools/dsp/geq_ref.py) and these cells carry what the contract says
     # they carry.
-    for b in range(1, 29):
+    for b in range(1, GEQ_BANDS + 1):
         add_cell(cn(cat, inst, 'Geq', b), chip, pg, base + (b - 1),
                  '0=-12/127=12/[Lin]', 'EqSafe')
 
-    add_dispatch_block(chip, base, f'_geq_gains_{nid}', 28, f'{nid} GEQ band gain')
-    add_dirty_block(chip, base, 28, f'_geq_dirty_{nid}')
+    add_dispatch_block(chip, base, f'_geq_gains_{nid}', GEQ_BANDS,
+                       f'{nid} GEQ band gain')
+    add_dirty_block(chip, base, GEQ_BANDS, f'_geq_dirty_{nid}')
 
 
 # ── ANTI_FB ──────────────────────────────────────────────────────────────
@@ -626,6 +638,12 @@ def expand_anti_fb(node, cat, inst):
     off = 0
     add_cell(cn(cat, inst, 'AntiFbOn', 1), chip, pg, base + off, '', 'InstantCtl')
     add_dispatch(chip, base + off, f'_afb_on_{nid}', f'{nid} AntiFbOn')
+    # THE ON SWITCH RAISES THE DESIGN, because it is what the design
+    # reads: off writes the compiled identity into every stage, so a node
+    # the host has not switched on passes its input word for word. Before
+    # 2026-09-08 this address took its write and was read by NO emitted
+    # line anywhere in the tree.
+    add_dirty_block(chip, base + off, 1, f'_afb_dirty_{nid}')
     off += 1
 
     add_cell(cn(cat, inst, 'AntiFbCtrlOn', 1), chip, pg, base + off, '', 'InstantCtl')
@@ -649,6 +667,22 @@ def expand_anti_fb(node, cat, inst):
                  '0=1/127=20/[Log]', 'InstantCtl')
         add_dispatch(chip, base + off, f'_afb_notch_q_{nid} + {n-1}', f'{nid} NotchQ[{n}]')
         off += 1
+
+    # THE EIGHTEEN DESIGN PARAMETERS RAISE THE RECOMPUTE FLAG. They have
+    # always dispatched to the right symbols -- the 2026-09-08 family walk
+    # read 1000.0 Hz, -18.0 dB and Q 4.0 back off the part at these very
+    # addresses -- and nothing turned one into a coefficient, because
+    # eighteen addresses cannot also carry thirty coefficient words and a
+    # swap trigger. The design is on the DSP (src/lib/afb_design_fx.asm,
+    # modelled by tools/dsp/afb_ref.py) and this is what tells it a word
+    # arrived. The GEQ's arrangement, for the GEQ's reason.
+    #
+    # `AntiFbCtrlOn` (base + 1) IS DELIBERATELY NOT IN THIS RUN. It
+    # enables an AUTOMATIC feedback detector, and no detector exists in
+    # this firmware; wiring it to the notch design would make an empty
+    # switch look implemented. It lands at its address, unread, and both
+    # the kernel and the write-up say so.
+    add_dirty_block(chip, base + 2, 18, f'_afb_dirty_{nid}')
 
     # Remaining words → coefficient staging
     while off < 24:
@@ -2120,10 +2154,27 @@ for _s in _MAIN_OUT:
         'main.geq); no node carries a parametric gain bank — Q7')
 
 
+_GEQ_BAND_CELL = re.compile(r'^[A-Za-z]+\d+Geq(\d+)$')
+
+
 def _unmapped_reason(cell, mcu_prefixes):
     """(class, reason) for a defined cell with no DSP address. No-fallback."""
     if cell in unbacked_meter_cells:
         return ('unbacked-meter', unbacked_meter_cells[cell])
+    # A GEQ BAND ABOVE THE ADDRESS BLOCK, AND ONLY THOSE. The test is on
+    # the band NUMBER, not on the family, so a band inside 1..GEQ_BANDS
+    # that stopped reaching an address would still stop the generator --
+    # which a family-wide ('Aux', 'Geq') entry would have hidden.
+    gm = _GEQ_BAND_CELL.match(cell)
+    if gm is not None and int(gm.group(1)) > GEQ_BANDS:
+        return ('geq-band-beyond-block',
+                f'GEQ band {int(gm.group(1))}: the cell master carries 31 '
+                f'bands (defs-v2026.09.08.3) and the DSP address block is '
+                f'{GEQ_BANDS} words, packed end to end against the node that '
+                f'follows it. Giving bands 29-31 addresses re-lays the whole '
+                f'chip-2 map (+51 words on seventeen nodes) and costs three '
+                f'more cascade stages a node; the sequence for landing it is '
+                f'in MW/D32/DSP/dsp4-dspcsv-proposal-20260908.md section B')
     m = _CELL_SPLIT.match(cell)
     if m is None:
         return ('label', 'not a cell-shaped name; carries no DSP parameter')

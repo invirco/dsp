@@ -23,8 +23,36 @@
 .extern _sample_idx;
 .global _fx_on_C2_FX_ENG_05;
 .var _fx_on_C2_FX_ENG_05 = 1;
+/* THE BOOT TYPE, AND WHY IT IS NOT THE GRAPH'S DECLARED ONE.
+ *
+ * The graph declares `type=Reverb` for this node -- the
+ * header comment four lines up has always said so -- and this
+ * .var was hardcoded to 0 whatever it said. Type 0 is Echo, and
+ * before 2026-09-08 the reverb class emitted no Echo case, so
+ * the landed default fell through to a DRY PASS and FX_ENGINE
+ * had never run in any capacity measurement. Echo is a real
+ * algorithm now, so the default processes.
+ *
+ * DSP4_FX_TYPE_DECLARED=1 boots at the declared Type instead.
+ * It is a flag and not simply the default BECAUSE OF WHAT IT
+ * COSTS: measured on the part 2026-09-08, whole chip-2 graph at
+ * block 16, six engines from Type 0 to Type 3 is +58,845
+ * cycles/block, which takes chip 2 from 76.06 % of budget to
+ * 94.02 % and its margin from 23.94 % to 5.98 %. Which Type the
+ * product boots at is a capacity decision, and capacity
+ * decisions are PW's. */
+#if DSP4_FX_TYPE_DECLARED
+.global _fx_type_C2_FX_ENG_05;
+.var _fx_type_C2_FX_ENG_05 = 3;  /* the graph's `type=Reverb` */
+#else
 .global _fx_type_C2_FX_ENG_05;
 .var _fx_type_C2_FX_ENG_05 = 0;           /* 0=Echo,1=PingPong,2=Doubling,3=Reverb,4=Chorus,5=Flanger,6=Phaser */
+#endif
+/* An unimplemented Type parks its number here and the node
+ * passes the sample through. Read by the family walk; nothing
+ * on the part reads it. 0 = an algorithm ran. */
+.global _fx_bypassed_C2_FX_ENG_05;
+.var _fx_bypassed_C2_FX_ENG_05 = 0;
 .global _fx_decay_C2_FX_ENG_05;
 .var _fx_decay_C2_FX_ENG_05;
 .global _fx_predelay_C2_FX_ENG_05;
@@ -72,16 +100,23 @@
 .global _fx_scratch_C2_FX_ENG_05;
 .var _fx_scratch_C2_FX_ENG_05;
 
-/* Reverb buffers (seg_delay for large arrays) */
+/* Reverb buffers (seg_delay for large arrays).
+ *
+ * THE REVERB IS MONO AND THE _R HALVES ARE GONE (2026-09-08).
+ * `_fx_comb_buf_R` and `_fx_allpass_buf_R` were allocated at
+ * full size -- 12,587 words an engine, 75,522 across the six --
+ * and NOT ONE EMITTED INSTRUCTION READ OR WROTE EITHER OF THEM.
+ * The Freeverb body runs one comb bank and one allpass chain,
+ * reads _L, writes _L, and publishes one word. Removing them
+ * pays for the 12,000-word delay line above with 595 words an
+ * engine to spare. Making the engine genuinely stereo is a
+ * design change with its own cycle cost, and it is not made by
+ * leaving two arrays lying about in case it happens. */
 .section/dm seg_delay;
 .global _fx_comb_buf_L_C2_FX_ENG_05;
 .var _fx_comb_buf_L_C2_FX_ENG_05[11024];
-.global _fx_comb_buf_R_C2_FX_ENG_05;
-.var _fx_comb_buf_R_C2_FX_ENG_05[11024];
 .global _fx_allpass_buf_L_C2_FX_ENG_05;
 .var _fx_allpass_buf_L_C2_FX_ENG_05[1563];
-.global _fx_allpass_buf_R_C2_FX_ENG_05;
-.var _fx_allpass_buf_R_C2_FX_ENG_05[1563];
 .section/dm seg_dmda;
 .global _fx_rv_comb_wptrs_C2_FX_ENG_05;
 .var _fx_rv_comb_wptrs_C2_FX_ENG_05[8];
@@ -97,9 +132,11 @@
 .var _fx_rv_ap_lens_C2_FX_ENG_05[4] = 556, 441, 341, 225;
 .global _fx_rv_ap_ofs_C2_FX_ENG_05;
 .var _fx_rv_ap_ofs_C2_FX_ENG_05[4] = 0, 556, 997, 1338;
-/* Tiny state buf for phaser fallback */
+/* Echo / doubling delay line, 12000 words = 250 ms */
+.section/dm seg_delay;
 .global _fx_echo_buf_C2_FX_ENG_05;
-.var _fx_echo_buf_C2_FX_ENG_05[8];
+.var _fx_echo_buf_C2_FX_ENG_05[12000];
+.section/dm seg_dmda;
 .global _fx_echo_wptr_C2_FX_ENG_05;
 .var _fx_echo_wptr_C2_FX_ENG_05 = 0;
 
@@ -203,10 +240,33 @@ _C2_FX_ENG_05_process:
         .global _C2_FX_ENG_05_process_sample;
         _C2_FX_ENG_05_process_sample:
         #endif
+    /* ---- THE L REGISTERS, WHICH THIS KERNEL NEVER SET -------
+     * Every `modify(iN, mN)` below is a LINEAR pointer add, and
+     * on SHARC that is only true while lN is zero: a non-zero
+     * length register turns the same instruction into circular
+     * addressing against a modulus nobody chose. This node used
+     * i0 four times for its comb, allpass and delay buffers and
+     * i3-i6 for the reverb's four table walks, and set no L
+     * register at all -- alone among every kernel in this tree
+     * (lib/biquad_fx.asm, lib/bq_headroom.asm, the DLY nodes and
+     * the block wrappers all open with l0 = 0).
+     *
+     * It survived because C_RUNTIME_INIT zeroes l0..l15 at boot
+     * and nothing on chip 2 writes one -- but the CHIP-1 delay
+     * nodes DO (they set l0 and l2 to the delay-line length and
+     * do not restore them), review finding D70 measured the
+     * boot kernel leaving l6 and l7 at 0x2FF, and both ISRs run
+     * on the secondary DAG. The kernel was one graph change away
+     * from writing its comb feedback into somebody else's state.
+     * Five instructions a block. */
+    l0 = 0;
+    l3 = 0;
+    l4 = 0;
+    l5 = 0;
+    l6 = 0;
     /* Ramp mix level */
     r4 = dm(_fx_mix_frames_C2_FX_ENG_05);
-    r15 = 1;
-    r4 = r4 - r15;
+    r4 = r4 - 1;
     if le jump (pc, .no_fxramp_C2_FX_ENG_05);
     dm(_fx_mix_frames_C2_FX_ENG_05) = r4;
     f1 = dm(_fx_mix_C2_FX_ENG_05);
@@ -224,22 +284,108 @@ _C2_FX_ENG_05_process:
     /* float island entry: Q4.28 -> float32 (D5) */
     r1 = -28;
     f0 = float r0 by r1;
+    /* THE DRY INPUT LIVES IN f15, AND UNTIL 2026-09-08 EVERY
+     * ALGORITHM DESTROYED IT. rN and fN are the same register on
+     * SHARC, and every one of these bodies advanced its write
+     * pointer as `r15 = 1; r1 = r1 + r15;` -- so the moment a
+     * delay line stepped, the saved dry signal became the integer
+     * 1, which as a float32 is 1.4e-45. The mix epilogue's
+     * `f1 = f15 * f8` then multiplied the dry path by zero, and
+     * the reverb's comb loop, which adds f15 into all eight
+     * combs, fed the input to the FIRST comb and denormal noise
+     * to the other seven.
+     *
+     * That is why the FX chain read PEAK ZERO on both arms of the
+     * 2026-09-08 family walk at Type 3, and why it looked like a
+     * pass-through at the default: Type 0 fell through to
+     * `.fx_passthru_`, which is the one path that touches no
+     * integer scratch, so the dry survived there and NOWHERE
+     * else. Every increment is `r1 = r1 + 1` now -- one
+     * instruction rather than two, and it does not alias a float.
+     */
     f15 = f0;                   /* dry input saved in f15 */
 
     /* Dispatch on algorithm type */
     r0 = dm(_fx_type_C2_FX_ENG_05);
 
+/* Types 1 (PingPong), 4 (Chorus), 5 (Flanger) and 6 (Phaser)
+ * are NOT IMPLEMENTED for this class and fall to an EXPLICIT
+ * bypass that parks the Type in _fx_bypassed_C2_FX_ENG_05. Before
+ * 2026-09-08 they fell through silently and so did Type 0,
+ * the landed default, which is why the FX engine had never
+ * run in a capacity measurement. Ping-pong is left out on
+ * purpose rather than half-built: it produces a stereo pair
+ * and this node publishes ONE word (see the mix epilogue). */
 r1 = 3; comp(r0, r1); if eq jump (pc, .fx_reverb_C2_FX_ENG_05);
 r1 = 2; comp(r0, r1); if eq jump (pc, .fx_doubling_C2_FX_ENG_05);
-jump (pc, .fx_passthru_C2_FX_ENG_05);
+r1 = 0; comp(r0, r1); if eq jump (pc, .fx_echo_C2_FX_ENG_05);
+jump (pc, .fx_bypass_C2_FX_ENG_05);
+
+/* ===================== ECHO ===================== */
+.fx_echo_C2_FX_ENG_05:
+    r1 = dm(_fx_echo_wptr_C2_FX_ENG_05);
+    r2 = dm(_fx_delay_ms_C2_FX_ENG_05);  /* delay in samples (MCU converts) */
+    /* THE DELAY IS BOUNDED INTO THE BUFFER. `Fx001DelayTime001`
+     * runs to 1000 ms = 48,000 samples and this line is
+     * 12000 words; an unclamped index walked off the
+     * array. At least 1 as well -- an unwritten _fx_delay_ms is
+     * 0, and a zero-sample "delay" reads the word being written
+     * this sample. */
+    r5 = 1;
+    r2 = max(r2, r5);
+    r5 = 12000-1;
+    r2 = min(r2, r5);
+    /* Read delayed tap */
+    r3 = r1 - r2;
+    r4 = 12000;
+    if lt r3 = r3 + r4;
+    i0 = _fx_echo_buf_C2_FX_ENG_05;
+    m0 = r3;
+    modify(i0, m0);
+    f13 = dm(i0, 0);             /* delayed sample (wet) */
+    /* Write: input + feedback * delayed.
+     *
+     * THE FEEDBACK GOES IN f5, NOT f1, AND THAT IS THE WHOLE
+     * REASON THE ECHO NEVER ECHOED. r1 holds the write pointer
+     * and f1 IS r1: loading the feedback here turned the
+     * pointer into the float bits of the feedback, so `m0 = r1`
+     * three lines down wrote at an address that had nothing to
+     * do with the cursor. With the landed feedback of 0.0 those
+     * bits are 0x00000000, so every sample was written to
+     * buf[0], the pointer advanced to 1 and stuck, and the tap
+     * read a part of the line nothing had ever written --
+     * silence, out of a path that reads as correct. Measured on
+     * the part 2026-09-08: Type 0, Mix 1.0, delay 240, peak
+     * 0.000000 over 1024 samples. r5-r7 are dead here. */
+    f5 = dm(_fx_feedback_C2_FX_ENG_05);
+    f6 = f13 * f5;
+    f7 = f15 + f6;
+    i0 = _fx_echo_buf_C2_FX_ENG_05;
+    m0 = r1;
+    modify(i0, m0);
+    dm(i0, 0) = f7;
+    /* Advance wptr */
+    r1 = r1 + 1;
+    comp(r1, r4);
+    if ge r1 = r1 - r4;
+    dm(_fx_echo_wptr_C2_FX_ENG_05) = r1;
+    /* Wet signal = delayed tap */
+    f0 = f13;
+    jump (pc, .fx_mix_C2_FX_ENG_05);
 
 /* ===================== DOUBLING ===================== */
 .fx_doubling_C2_FX_ENG_05:
-    /* Short fixed delay for thickening (15ms = 720 samples) */
+    /* Short fixed delay for thickening (720
+     * samples = 15 ms). THE WRAP AND THE DELAY NOW COME FROM
+     * ONE PLACE. Until 2026-09-08 the reverb class allocated
+     * eight words here and this path read 720
+     * back from them with a wrap of 8, landing 711 words BEFORE
+     * the array; the buffer is 12000 words now and
+     * the generator asserts the delay fits it. */
     r1 = dm(_fx_echo_wptr_C2_FX_ENG_05);
     r5 = 720;
     r3 = r1 - r5;
-    r4 = 8;
+    r4 = 12000;
     if lt r3 = r3 + r4;
     i0 = _fx_echo_buf_C2_FX_ENG_05;
     m0 = r3;
@@ -250,8 +396,7 @@ jump (pc, .fx_passthru_C2_FX_ENG_05);
     m0 = r1;
     modify(i0, m0);
     dm(i0, 0) = f15;
-    r15 = 1;
-    r1 = r1 + r15;
+    r1 = r1 + 1;
     comp(r1, r4);
     if ge r1 = r1 - r4;
     dm(_fx_echo_wptr_C2_FX_ENG_05) = r1;
@@ -280,10 +425,30 @@ jump (pc, .fx_passthru_C2_FX_ENG_05);
         i0 = _fx_comb_buf_L_C2_FX_ENG_05;
         m0 = r4;
         modify(i0, m0);
-        f1 = dm(i0, 0);           /* delayed sample */
+        /* THE DELAYED SAMPLE GOES IN f9, NOT f1, AND THIS IS THE
+         * DEFECT THAT WEDGED THE PART. r1 is this comb's write
+         * pointer and f1 IS r1, so reading the delay line here
+         * replaced the pointer with the FLOAT BITS of the sample
+         * -- around 1e9 for anything audible -- and the loop
+         * then stored that back into `_fx_rv_comb_wptrs` and
+         * used it as an offset on the next block. Every comb
+         * wrote at `comb_buf + 1e9` and the SPI link stopped
+         * answering.
+         *
+         * IT HID BEHIND ANOTHER BUG FOR FOUR SESSIONS. While the
+         * dry input was being destroyed in f15 (see the note at
+         * the top of this body) the comb lines only ever held
+         * zeros, whose float bits are 0x00000000 -- a pointer of
+         * zero, in range, every block. The reverb could not
+         * crash because it could not carry a sample. Fixing f15
+         * made it carry one, and it wedged the bench on the
+         * first capture. Measured 2026-09-08. r5-r9 are dead
+         * inside this loop; r2 and r3 are NOT (length and
+         * offset), which is why f2/f3 are not used either. */
+        f9 = dm(i0, 0);           /* delayed sample */
         /* LPF: filt = damp1*delayed + damp2*prev */
-        f4 = dm(i6, 0);           /* prev LP state */
-        f5 = f11 * f1;
+        f4 = dm(i6, 0);           /* prev LP state (r4 is spent) */
+        f5 = f11 * f9;
         f6 = f12 * f4;
         f5 = f5 + f6;
         dm(i6, 1) = f5;           /* store LP, advance i6 */
@@ -292,13 +457,12 @@ jump (pc, .fx_passthru_C2_FX_ENG_05);
         f8 = f15 + f7;
         dm(i0, 0) = f8;           /* i0 still at same position */
         /* Advance wptr with wrap */
-        r15 = 1;
-        r1 = r1 + r15;
+        r1 = r1 + 1;
         comp(r1, r2);
         if ge r1 = r1 - r2;
         dm(i3, 1) = r1;           /* store, advance i3 */
         /* Accumulate */
-        f14 = f14 + f1;
+        f14 = f14 + f9;
     .rv_comb_C2_FX_ENG_05:
 
     /* Scale comb sum */
@@ -320,24 +484,40 @@ jump (pc, .fx_passthru_C2_FX_ENG_05);
         i0 = _fx_allpass_buf_L_C2_FX_ENG_05;
         m0 = r4;
         modify(i0, m0);
-        f1 = dm(i0, 0);           /* buf_out */
+        /* f9/f5/f6, not f1/f2/f3: r1 is the write pointer and
+         * r2/r3 are the length and the offset, all three live
+         * across this. The comb loop above carries the whole
+         * story. */
+        f9 = dm(i0, 0);           /* buf_out */
         /* Write: in + fb * buf_out */
-        f2 = f10 * f1;
-        f3 = f0 + f2;
-        dm(i0, 0) = f3;
+        f5 = f10 * f9;
+        f6 = f0 + f5;
+        dm(i0, 0) = f6;
         /* Advance wptr */
-        r15 = 1;
-        r1 = r1 + r15;
+        r1 = r1 + 1;
         comp(r1, r2);
         if ge r1 = r1 - r2;
         dm(i3, 1) = r1;
         /* Output: buf_out - input */
-        f0 = f1 - f0;
+        f0 = f9 - f0;
     .rv_ap_C2_FX_ENG_05:
         nop;
 
     /* f0 = reverb output */
     jump (pc, .fx_mix_C2_FX_ENG_05);
+
+/* ============ EXPLICIT BYPASS (unimplemented Type) ======= */
+.fx_bypass_C2_FX_ENG_05:
+    /* The Type is PARKED so the bypass is visible from the host.
+     * It used to be a silent fall-through, which is
+     * indistinguishable on a capture from an engine that ran and
+     * had nothing to do -- and it is how Type 0 = Echo, the
+     * landed default, went four sessions without anyone noticing
+     * it was not an algorithm. */
+    r1 = dm(_fx_type_C2_FX_ENG_05);
+    dm(_fx_bypassed_C2_FX_ENG_05) = r1;
+    f0 = f15;                    /* dry pass-through */
+    jump (pc, .fx_mixed_C2_FX_ENG_05);
 
 /* ===================== PASSTHROUGH ===================== */
 .fx_passthru_C2_FX_ENG_05:
@@ -345,6 +525,9 @@ jump (pc, .fx_passthru_C2_FX_ENG_05);
 
 /* ===================== DRY/WET MIX ===================== */
 .fx_mix_C2_FX_ENG_05:
+    r1 = 0;
+    dm(_fx_bypassed_C2_FX_ENG_05) = r1;  /* an algorithm ran */
+.fx_mixed_C2_FX_ENG_05:
     /* f0 = wet, f15 = dry */
     f7 = dm(_fx_mix_C2_FX_ENG_05);
     r8 = 0x3F800000;  /* 1.0 IEEE 754 */
@@ -352,12 +535,20 @@ jump (pc, .fx_passthru_C2_FX_ENG_05);
     f0 = f0 * f7;               /* wet * mix */
     f1 = f15 * f8;              /* dry * (1-mix) */
     f0 = f0 + f1;
-    dm(_buf_L_C2_FX_ENG_05) = r0;
+    /* THE PUBLISHED WORD FIRST, then the L/R pair FROM IT.
+     * The store to _buf_L used to run BEFORE the conversion, so
+     * that word carried float32 bits while _buf_ carried Q4.28 --
+     * two different formats in two words of the same node.
+     * Nothing reads either L or R (checked across the tree), and
+     * the engine is mono end to end, so both now carry exactly
+     * what the node publishes. */
     /* float island exit: float32 -> Q4.28 (D5) */
     r1 = 0x4D800000;
     f1 = r1;
     f0 = f0 * f1;
     r0 = fix f0;
     dm(_buf_C2_FX_ENG_05) = r0;
+    dm(_buf_L_C2_FX_ENG_05) = r0;
+    dm(_buf_R_C2_FX_ENG_05) = r0;
     rts;
 _C2_FX_ENG_05_process.end:

@@ -1,0 +1,107 @@
+{
+ "node": "C2_FX_ENG_01",
+ "n": 1024,
+ "contract": {
+  "pin": "defs-v2026.09.08.2",
+  "sha256": "42b3817ed2f9d2304cffe06a5e2d0229d00cf4ef3f90700b2fdf1006f981d330"
+ },
+ "arms": [],
+ "input": {
+  "peak": 0.5,
+  "peak_at": 0
+ },
+ "dry": [
+  {
+   "type": 0,
+   "equal": 64
+  },
+  {
+   "type": 3,
+   "equal": 64
+  }
+ ],
+ "echo": {
+  "delay": 240,
+  "tap_at": 240,
+  "tap": 0.5,
+  "between": 0.0,
+  "ok": true,
+  "bypassed": 0
+ },
+ "doubling": {
+  "delay": 720,
+  "tap_at": 720,
+  "tap": 0.5,
+  "between": 0.0,
+  "ok": true,
+  "bypassed": 0
+ },
+ "reverb": {
+  "comb_lens": [
+   1557,
+   1617,
+   1491,
+   1422,
+   1277,
+   1356,
+   1188,
+   1116
+  ],
+  "comb_wptrs": [
+   798,
+   679,
+   926,
+   853,
+   908,
+   1291,
+   357,
+   1055
+  ],
+  "ptr_in_range": true,
+  "comb_line_peaks": [
+   8.7780181684106e-25,
+   6.773557318123839e-24,
+   6.826180429522192e-26,
+   8.29343760059037e-28,
+   4.159593401232171e-30,
+   1.6128167077417554e-28,
+   2.491972792104797e-32,
+   2.530761965914872e-34
+  ],
+  "state_ok": true,
+  "tail_peak": 1.3724626302719116,
+  "tail_peak_at": 1023,
+  "tail_nonzero": 1024,
+  "tail_energy": 465.58517170791157,
+  "ok": true,
+  "bypassed": 0
+ },
+ "bypass": [
+  {
+   "type": 1,
+   "bypassed": 1,
+   "equal": 64,
+   "ok": true
+  },
+  {
+   "type": 4,
+   "bypassed": 4,
+   "equal": 64,
+   "ok": true
+  },
+  {
+   "type": 5,
+   "bypassed": 5,
+   "equal": 64,
+   "ok": true
+  },
+  {
+   "type": 6,
+   "bypassed": 6,
+   "equal": 64,
+   "ok": true
+  }
+ ],
+ "spi_err_delta": 0,
+ "verdict": "FX_VERIFY_OK"
+}

@@ -61,6 +61,19 @@ XOVER_F_MIN = 50.0                    # Table 0=50/127=500/[Log]
 XOVER_F_MAX = 500.0
 XOVER_STAGES = 2                      # per path
 
+# THE SLOPE, a real word since 2026-09-08 (0x0576; the proposal is in
+# MW/D32/DSP/dsp4-dspcsv-proposal-20260908.md). Two of the four values in
+# the cell's table are HONOURED and two are IGNORED, and the split is not
+# arbitrary: 24 and 12 are the even-order Linkwitz-Riley alignments a
+# node with two stages per path can hold, each path 6 dB down at the
+# corner and the two summing flat. 6 dB/oct is a 1st-order pair -- it
+# sums flat but each path is 3 dB down, a different acoustic contract --
+# and 18 dB/oct is 3rd-order, not a Linkwitz-Riley alignment at all.
+# An unsupported slope leaves the split where it was, which is the rule
+# an out-of-domain FREQUENCY already gets.
+XOVER_SLOPES = {24: (1.0 / math.sqrt(2.0), True),   # LR4: Q, second stage is a copy
+                12: (0.5, False)}                   # LR2: Q, second stage is the identity
+
 
 def sin_series(x):
     """sin x on |x| <= 0.3, the kernel's polynomial."""
@@ -78,15 +91,21 @@ def in_domain(f0):
     return XOVER_F_MIN <= f0 <= XOVER_F_MAX
 
 
-def design(f0, fs=FS, series=True):
+def design(f0, fs=FS, series=True, slope=24):
     """(lp5, hp5) in the float arm's offset encoding, one stage each.
 
-    Both stages of a path are identical -- that IS Linkwitz-Riley 4 --
-    so the staging array is lp5 twice then hp5 twice.
+    At 24 dB/oct both stages of a path are identical -- that IS
+    Linkwitz-Riley 4 -- so the staging array is lp5 twice then hp5
+    twice. At 12 the second stage of each path is the compiled identity;
+    `design_set` is what assembles either.
     """
     if not in_domain(f0):
         raise ValueError('crossover %.3f Hz is outside the contract domain '
                          '%.0f..%.0f Hz' % (f0, XOVER_F_MIN, XOVER_F_MAX))
+    if slope not in XOVER_SLOPES:
+        raise ValueError('crossover slope %r is not a Linkwitz-Riley '
+                         'alignment this node can hold (12 or 24)' % (slope,))
+    q, _ = XOVER_SLOPES[slope]
     x = 2.0 * math.pi * f0 / fs
     if series:
         s = sin_series(x)
@@ -94,7 +113,7 @@ def design(f0, fs=FS, series=True):
     else:
         s = math.sin(x)
         u = 1.0 - math.cos(x)
-    al = s / (2.0 * XOVER_Q)
+    al = s / (2.0 * q)
     inv = 1.0 / (1.0 + al)
     c1 = (2.0 * u + 2.0 * al) * inv
     c2 = (2.0 * al) * inv
@@ -103,13 +122,16 @@ def design(f0, fs=FS, series=True):
     return lp, hp
 
 
-def design_set(f0, fs=FS, series=True):
-    """The 20 words `_xover_coeffs_next` must hold: LP, LP, HP, HP."""
-    lp, hp = design(f0, fs, series)
-    return list(lp) + list(lp) + list(hp) + list(hp)
-
-
 IDENTITY = (1.0, 2.0, -1.0, 2.0, 1.0)
+
+
+def design_set(f0, fs=FS, series=True, slope=24):
+    """The 20 words `_xover_coeffs_next` must hold: LP, LP, HP, HP."""
+    lp, hp = design(f0, fs, series, slope)
+    _, two = XOVER_SLOPES[slope]
+    second_lp = list(lp) if two else list(IDENTITY)
+    second_hp = list(hp) if two else list(IDENTITY)
+    return list(lp) + second_lp + list(hp) + second_hp
 
 
 def direct(c):

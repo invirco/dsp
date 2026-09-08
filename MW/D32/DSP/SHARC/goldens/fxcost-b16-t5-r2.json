@@ -1,0 +1,67 @@
+{
+ "contract": {
+  "pin": "defs-v2026.09.08.2",
+  "sha256": "42b3817ed2f9d2304cffe06a5e2d0229d00cf4ef3f90700b2fdf1006f981d330",
+  "product": "d24"
+ },
+ "budget": 327680,
+ "type": 5,
+ "witness": "_blk_C2_RECV_FX_01=0x08000000/0xF8000000",
+ "witness_ok": true,
+ "type_landed": [
+  0
+ ],
+ "arm_default": {
+  "cycles": 256363,
+  "passes": 952,
+  "fx_type": 0
+ },
+ "forced_cells": [
+  "Fx001Type001",
+  "Fx002Type001",
+  "Fx003Type001",
+  "Fx004Type001",
+  "Fx005Type001",
+  "Fx006Type001"
+ ],
+ "type_readback": [
+  5,
+  5,
+  5,
+  5,
+  5,
+  5
+ ],
+ "arm_loaded": {
+  "cycles": 251323,
+  "passes": 1563,
+  "fx_type": [
+   5,
+   5,
+   5,
+   5,
+   5,
+   5
+  ]
+ },
+ "arm_restored": {
+  "cycles": 256363,
+  "passes": 2175,
+  "fx_type": [
+   0,
+   0,
+   0,
+   0,
+   0,
+   0
+  ]
+ },
+ "spi_err": [
+  0,
+  0
+ ],
+ "delta": -5040,
+ "drift": 0,
+ "pct_default": 78.23577880859375,
+ "pct_loaded": 76.69769287109375
+}

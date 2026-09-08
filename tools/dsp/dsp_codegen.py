@@ -3001,6 +3001,12 @@ def gen_fx_engine(node):
     nid = node['id']
     inp = node['inputs_str']
     fx_class = p.get('fx_class', 'reverb')  # reverb | echo | modulation
+    # The Type the GRAPH declares, as a number. The header comment has
+    # always printed the name; nothing ever turned it into the .var.
+    decl_name = p.get('type', 'Reverb')
+    decl_num = {'echo': 0, 'pingpong': 1, 'ping-pong': 1, 'doubling': 2,
+                'reverb': 3, 'chorus': 4, 'flanger': 5,
+                'phaser': 6}.get(decl_name.strip().lower(), 0)
 
     # Freeverb constants (48 kHz) — only used for reverb class
     comb_lens = [1557, 1617, 1491, 1422, 1277, 1356, 1188, 1116]
@@ -3018,13 +3024,35 @@ def gen_fx_engine(node):
     total_comb = sum(comb_lens)
     total_ap   = sum(ap_lens)
 
-    # Echo buffer size depends on class
+    # THE DELAY BUFFER, SIZED FROM THE DESIGN (2026-09-08).
+    #
+    # The reverb class used to allocate EIGHT WORDS here, commented "for
+    # phaser fallback", and the Doubling path then read a 720-sample
+    # delay out of it with a wrap constant of 8: an index 711 words
+    # BEFORE the array. That path could not work as written, and the
+    # Echo path -- Type 0, the landed default -- was not emitted for
+    # this class at all, so the default fell through to a dry pass.
+    #
+    # Doubling wants a fixed 15 ms (720 samples). Echo wants
+    # `Fx001DelayTime001`, whose Table domain is 1..1000 ms = up to
+    # 48,000 samples. Six engines x 48,000 words is 1.15 MB and there
+    # are 364 kB free in the delay pool, so THE DELAY IS BOUNDED rather
+    # than the buffer sized to the contract's top: 12,000 words = 250 ms,
+    # the same length every aux delay line in the product already
+    # carries, and the kernel CLAMPS the requested delay into it. A host
+    # asking for 800 ms gets 250, which is a bounded, audible, stated
+    # limit rather than a read off the end of an array.
+    #
+    # It costs nothing net, because it is paid for out of the SAME
+    # node's dead allocation: see the reverb buffers below.
     if fx_class == 'echo':
         echo_buf_size = 48000       # 1 second @ 48kHz
     elif fx_class == 'modulation':
         echo_buf_size = 2400        # 50ms @ 48kHz (chorus/flanger/phaser)
     else:
-        echo_buf_size = 8           # reverb class: 8 words for phaser state only
+        echo_buf_size = 12000       # reverb class: 250 ms of echo/doubling
+    fx_double_delay = 720           # 15 ms thickening, both classes
+    assert fx_double_delay < echo_buf_size or fx_class == 'modulation'
 
     # ----- DM variables (common to all classes) -----
     lines = []
@@ -3038,7 +3066,33 @@ def gen_fx_engine(node):
 
         .section/dm seg_dmda;
         .var _fx_on_{nid} = 1;
+        /* THE BOOT TYPE, AND WHY IT IS NOT THE GRAPH'S DECLARED ONE.
+         *
+         * The graph declares `type={decl_name}` for this node -- the
+         * header comment four lines up has always said so -- and this
+         * .var was hardcoded to 0 whatever it said. Type 0 is Echo, and
+         * before 2026-09-08 the reverb class emitted no Echo case, so
+         * the landed default fell through to a DRY PASS and FX_ENGINE
+         * had never run in any capacity measurement. Echo is a real
+         * algorithm now, so the default processes.
+         *
+         * DSP4_FX_TYPE_DECLARED=1 boots at the declared Type instead.
+         * It is a flag and not simply the default BECAUSE OF WHAT IT
+         * COSTS: measured on the part 2026-09-08, whole chip-2 graph at
+         * block 16, six engines from Type 0 to Type 3 is +58,845
+         * cycles/block, which takes chip 2 from 76.06 % of budget to
+         * 94.02 % and its margin from 23.94 % to 5.98 %. Which Type the
+         * product boots at is a capacity decision, and capacity
+         * decisions are PW's. */
+        #if DSP4_FX_TYPE_DECLARED
+        .var _fx_type_{nid} = {decl_num};  /* the graph's `type={decl_name}` */
+        #else
         .var _fx_type_{nid} = 0;           /* 0=Echo,1=PingPong,2=Doubling,3=Reverb,4=Chorus,5=Flanger,6=Phaser */
+        #endif
+        /* An unimplemented Type parks its number here and the node
+         * passes the sample through. Read by the family walk; nothing
+         * on the part reads it. 0 = an algorithm ran. */
+        .var _fx_bypassed_{nid} = 0;
         .var _fx_decay_{nid};
         .var _fx_predelay_{nid};
         .var _fx_delay_ms_{nid};
@@ -3068,12 +3122,21 @@ def gen_fx_engine(node):
     # ----- Class-specific buffers -----
     if fx_class == 'reverb':
         lines.append(dedent(f"""\
-        /* Reverb buffers (seg_delay for large arrays) */
+        /* Reverb buffers (seg_delay for large arrays).
+         *
+         * THE REVERB IS MONO AND THE _R HALVES ARE GONE (2026-09-08).
+         * `_fx_comb_buf_R` and `_fx_allpass_buf_R` were allocated at
+         * full size -- 12,587 words an engine, 75,522 across the six --
+         * and NOT ONE EMITTED INSTRUCTION READ OR WROTE EITHER OF THEM.
+         * The Freeverb body runs one comb bank and one allpass chain,
+         * reads _L, writes _L, and publishes one word. Removing them
+         * pays for the 12,000-word delay line above with 595 words an
+         * engine to spare. Making the engine genuinely stereo is a
+         * design change with its own cycle cost, and it is not made by
+         * leaving two arrays lying about in case it happens. */
         .section/dm seg_delay;
         .var _fx_comb_buf_L_{nid}[{total_comb}];
-        .var _fx_comb_buf_R_{nid}[{total_comb}];
         .var _fx_allpass_buf_L_{nid}[{total_ap}];
-        .var _fx_allpass_buf_R_{nid}[{total_ap}];
         .section/dm seg_dmda;
         .var _fx_rv_comb_wptrs_{nid}[8];
         .var _fx_rv_comb_lpfs_{nid}[8];
@@ -3082,8 +3145,10 @@ def gen_fx_engine(node):
         .var _fx_rv_ap_wptrs_{nid}[4];
         .var _fx_rv_ap_lens_{nid}[4] = {ap_lens_s};
         .var _fx_rv_ap_ofs_{nid}[4] = {ap_ofs_s};
-        /* Tiny state buf for phaser fallback */
+        /* Echo / doubling delay line, {echo_buf_size} words = 250 ms */
+        .section/dm seg_delay;
         .var _fx_echo_buf_{nid}[{echo_buf_size}];
+        .section/dm seg_dmda;
         .var _fx_echo_wptr_{nid} = 0;
         """))
     elif fx_class == 'echo':
@@ -3110,10 +3175,33 @@ def gen_fx_engine(node):
         .section/pm seg_pmco;
         .global _{nid}_process;
         _{nid}_process:
+            /* ---- THE L REGISTERS, WHICH THIS KERNEL NEVER SET -------
+             * Every `modify(iN, mN)` below is a LINEAR pointer add, and
+             * on SHARC that is only true while lN is zero: a non-zero
+             * length register turns the same instruction into circular
+             * addressing against a modulus nobody chose. This node used
+             * i0 four times for its comb, allpass and delay buffers and
+             * i3-i6 for the reverb's four table walks, and set no L
+             * register at all -- alone among every kernel in this tree
+             * (lib/biquad_fx.asm, lib/bq_headroom.asm, the DLY nodes and
+             * the block wrappers all open with l0 = 0).
+             *
+             * It survived because C_RUNTIME_INIT zeroes l0..l15 at boot
+             * and nothing on chip 2 writes one -- but the CHIP-1 delay
+             * nodes DO (they set l0 and l2 to the delay-line length and
+             * do not restore them), review finding D70 measured the
+             * boot kernel leaving l6 and l7 at 0x2FF, and both ISRs run
+             * on the secondary DAG. The kernel was one graph change away
+             * from writing its comb feedback into somebody else's state.
+             * Five instructions a block. */
+            l0 = 0;
+            l3 = 0;
+            l4 = 0;
+            l5 = 0;
+            l6 = 0;
             /* Ramp mix level */
             r4 = dm(_fx_mix_frames_{nid});
-            r15 = 1;
-            r4 = r4 - r15;
+            r4 = r4 - 1;
             if le jump (pc, .no_fxramp_{nid});
             dm(_fx_mix_frames_{nid}) = r4;
             f1 = dm(_fx_mix_{nid});
@@ -3128,6 +3216,25 @@ def gen_fx_engine(node):
 
             /* Load input */
             r0 = dm(_buf_{inp});
+            /* THE DRY INPUT LIVES IN f15, AND UNTIL 2026-09-08 EVERY
+             * ALGORITHM DESTROYED IT. rN and fN are the same register on
+             * SHARC, and every one of these bodies advanced its write
+             * pointer as `r15 = 1; r1 = r1 + r15;` -- so the moment a
+             * delay line stepped, the saved dry signal became the integer
+             * 1, which as a float32 is 1.4e-45. The mix epilogue's
+             * `f1 = f15 * f8` then multiplied the dry path by zero, and
+             * the reverb's comb loop, which adds f15 into all eight
+             * combs, fed the input to the FIRST comb and denormal noise
+             * to the other seven.
+             *
+             * That is why the FX chain read PEAK ZERO on both arms of the
+             * 2026-09-08 family walk at Type 3, and why it looked like a
+             * pass-through at the default: Type 0 fell through to
+             * `.fx_passthru_`, which is the one path that touches no
+             * integer scratch, so the dry survived there and NOWHERE
+             * else. Every increment is `r1 = r1 + 1` now -- one
+             * instruction rather than two, and it does not alias a float.
+             */
             f15 = f0;                   /* dry input saved in f15 */
 
             /* Dispatch on algorithm type */
@@ -3137,34 +3244,55 @@ def gen_fx_engine(node):
     # ----- Dispatch table (class-filtered) -----
     if fx_class == 'reverb':
         lines.append(dedent(f"""\
+            /* Types 1 (PingPong), 4 (Chorus), 5 (Flanger) and 6 (Phaser)
+             * are NOT IMPLEMENTED for this class and fall to an EXPLICIT
+             * bypass that parks the Type in _fx_bypassed_{nid}. Before
+             * 2026-09-08 they fell through silently and so did Type 0,
+             * the landed default, which is why the FX engine had never
+             * run in a capacity measurement. Ping-pong is left out on
+             * purpose rather than half-built: it produces a stereo pair
+             * and this node publishes ONE word (see the mix epilogue). */
             r1 = 3; comp(r0, r1); if eq jump (pc, .fx_reverb_{nid});
             r1 = 2; comp(r0, r1); if eq jump (pc, .fx_doubling_{nid});
-            jump (pc, .fx_passthru_{nid});
+            r1 = 0; comp(r0, r1); if eq jump (pc, .fx_echo_{nid});
+            jump (pc, .fx_bypass_{nid});
         """))
     elif fx_class == 'echo':
         lines.append(dedent(f"""\
             r1 = 0; comp(r0, r1); if eq jump (pc, .fx_echo_{nid});
             r1 = 1; comp(r0, r1); if eq jump (pc, .fx_pingpong_{nid});
             r1 = 2; comp(r0, r1); if eq jump (pc, .fx_doubling_{nid});
-            jump (pc, .fx_passthru_{nid});
+            jump (pc, .fx_bypass_{nid});
         """))
     else:  # modulation
         lines.append(dedent(f"""\
             r1 = 4; comp(r0, r1); if eq jump (pc, .fx_chorus_{nid});
             r1 = 5; comp(r0, r1); if eq jump (pc, .fx_flanger_{nid});
             r1 = 6; comp(r0, r1); if eq jump (pc, .fx_phaser_{nid});
-            jump (pc, .fx_passthru_{nid});
+            jump (pc, .fx_bypass_{nid});
         """))
 
     # ----- Algorithm code: only emit what the class supports -----
 
-    # Echo (echo class only)
-    if fx_class == 'echo':
+    # Echo — the LANDED DEFAULT (Type 0). Emitted for the reverb class
+    # too since 2026-09-08: it used not to be, so the default fell
+    # through dry and FX_ENGINE had never run in a capacity measurement.
+    if fx_class in ('echo', 'reverb'):
         lines.append(dedent(f"""\
         /* ===================== ECHO ===================== */
         .fx_echo_{nid}:
             r1 = dm(_fx_echo_wptr_{nid});
             r2 = dm(_fx_delay_ms_{nid});  /* delay in samples (MCU converts) */
+            /* THE DELAY IS BOUNDED INTO THE BUFFER. `Fx001DelayTime001`
+             * runs to 1000 ms = 48,000 samples and this line is
+             * {echo_buf_size} words; an unclamped index walked off the
+             * array. At least 1 as well -- an unwritten _fx_delay_ms is
+             * 0, and a zero-sample "delay" reads the word being written
+             * this sample. */
+            r5 = 1;
+            r2 = max(r2, r5);
+            r5 = {echo_buf_size}-1;
+            r2 = min(r2, r5);
             /* Read delayed tap */
             r3 = r1 - r2;
             r4 = {echo_buf_size};
@@ -3173,17 +3301,29 @@ def gen_fx_engine(node):
             m0 = r3;
             modify(i0, m0);
             f13 = dm(i0, 0);             /* delayed sample (wet) */
-            /* Write: input + feedback * delayed */
-            f1 = dm(_fx_feedback_{nid});
-            f2 = f13 * f1;
-            f3 = f15 + f2;
+            /* Write: input + feedback * delayed.
+             *
+             * THE FEEDBACK GOES IN f5, NOT f1, AND THAT IS THE WHOLE
+             * REASON THE ECHO NEVER ECHOED. r1 holds the write pointer
+             * and f1 IS r1: loading the feedback here turned the
+             * pointer into the float bits of the feedback, so `m0 = r1`
+             * three lines down wrote at an address that had nothing to
+             * do with the cursor. With the landed feedback of 0.0 those
+             * bits are 0x00000000, so every sample was written to
+             * buf[0], the pointer advanced to 1 and stuck, and the tap
+             * read a part of the line nothing had ever written --
+             * silence, out of a path that reads as correct. Measured on
+             * the part 2026-09-08: Type 0, Mix 1.0, delay 240, peak
+             * 0.000000 over 1024 samples. r5-r7 are dead here. */
+            f5 = dm(_fx_feedback_{nid});
+            f6 = f13 * f5;
+            f7 = f15 + f6;
             i0 = _fx_echo_buf_{nid};
             m0 = r1;
             modify(i0, m0);
-            dm(i0, 0) = f3;
+            dm(i0, 0) = f7;
             /* Advance wptr */
-            r15 = 1;
-            r1 = r1 + r15;
+            r1 = r1 + 1;
             comp(r1, r4);
             if ge r1 = r1 - r4;
             dm(_fx_echo_wptr_{nid}) = r1;
@@ -3219,31 +3359,37 @@ def gen_fx_engine(node):
             m0 = r3;
             modify(i0, m0);
             f14 = dm(i0, 0);             /* R delayed */
-            /* Write L: input + fb * R_delayed (cross-feed) */
-            f1 = dm(_fx_feedback_{nid});
-            f2 = f14 * f1;
-            f3 = f15 + f2;
+            /* Write L: input + fb * R_delayed (cross-feed).
+             * f6/f7/f8, not f1/f2/f3: f1 IS r1, the write pointer, and
+             * f2/f3 ARE r2/r3, the delay and the tap index. See the note
+             * in the ECHO path. */
+            f6 = dm(_fx_feedback_{nid});
+            f7 = f14 * f6;
+            f8 = f15 + f7;
             i0 = _fx_echo_buf_{nid};
             m0 = r1;
             modify(i0, m0);
-            dm(i0, 0) = f3;
+            dm(i0, 0) = f8;
             /* Write R: fb * L_delayed (no direct input → ping-pong) */
-            f2 = f13 * f1;
+            f7 = f13 * f6;
             r5 = {half_buf};
             r3 = r1 + r5;
             i0 = _fx_echo_buf_{nid};
             m0 = r3;
             modify(i0, m0);
-            dm(i0, 0) = f2;
+            dm(i0, 0) = f7;
             /* Advance wptr */
-            r15 = 1;
-            r1 = r1 + r15;
+            r1 = r1 + 1;
             comp(r1, r4);
             if ge r1 = r1 - r4;
             dm(_fx_echo_wptr_{nid}) = r1;
-            /* Stereo out */
+            /* Stereo out — BUT THE NODE PUBLISHES ONE WORD. f14 is the
+             * R tap and there is no stereo path out of this node; the
+             * mix epilogue overwrites _buf_R with the published word.
+             * Left computed rather than deleted because the cross-feed
+             * above needs it; recorded here so the next reader does not
+             * take _buf_R for a right channel. */
             f0 = f13;
-            dm(_buf_R_{nid}) = f14;
             jump (pc, .fx_mix_{nid});
         """))
 
@@ -3252,9 +3398,15 @@ def gen_fx_engine(node):
         lines.append(dedent(f"""\
         /* ===================== DOUBLING ===================== */
         .fx_doubling_{nid}:
-            /* Short fixed delay for thickening (15ms = 720 samples) */
+            /* Short fixed delay for thickening ({fx_double_delay}
+             * samples = 15 ms). THE WRAP AND THE DELAY NOW COME FROM
+             * ONE PLACE. Until 2026-09-08 the reverb class allocated
+             * eight words here and this path read {fx_double_delay}
+             * back from them with a wrap of 8, landing 711 words BEFORE
+             * the array; the buffer is {echo_buf_size} words now and
+             * the generator asserts the delay fits it. */
             r1 = dm(_fx_echo_wptr_{nid});
-            r5 = 720;
+            r5 = {fx_double_delay};
             r3 = r1 - r5;
             r4 = {echo_buf_size};
             if lt r3 = r3 + r4;
@@ -3267,8 +3419,7 @@ def gen_fx_engine(node):
             m0 = r1;
             modify(i0, m0);
             dm(i0, 0) = f15;
-            r15 = 1;
-            r1 = r1 + r15;
+            r1 = r1 + 1;
             comp(r1, r4);
             if ge r1 = r1 - r4;
             dm(_fx_echo_wptr_{nid}) = r1;
@@ -3301,10 +3452,30 @@ def gen_fx_engine(node):
                 i0 = _fx_comb_buf_L_{nid};
                 m0 = r4;
                 modify(i0, m0);
-                f1 = dm(i0, 0);           /* delayed sample */
+                /* THE DELAYED SAMPLE GOES IN f9, NOT f1, AND THIS IS THE
+                 * DEFECT THAT WEDGED THE PART. r1 is this comb's write
+                 * pointer and f1 IS r1, so reading the delay line here
+                 * replaced the pointer with the FLOAT BITS of the sample
+                 * -- around 1e9 for anything audible -- and the loop
+                 * then stored that back into `_fx_rv_comb_wptrs` and
+                 * used it as an offset on the next block. Every comb
+                 * wrote at `comb_buf + 1e9` and the SPI link stopped
+                 * answering.
+                 *
+                 * IT HID BEHIND ANOTHER BUG FOR FOUR SESSIONS. While the
+                 * dry input was being destroyed in f15 (see the note at
+                 * the top of this body) the comb lines only ever held
+                 * zeros, whose float bits are 0x00000000 -- a pointer of
+                 * zero, in range, every block. The reverb could not
+                 * crash because it could not carry a sample. Fixing f15
+                 * made it carry one, and it wedged the bench on the
+                 * first capture. Measured 2026-09-08. r5-r9 are dead
+                 * inside this loop; r2 and r3 are NOT (length and
+                 * offset), which is why f2/f3 are not used either. */
+                f9 = dm(i0, 0);           /* delayed sample */
                 /* LPF: filt = damp1*delayed + damp2*prev */
-                f4 = dm(i6, 0);           /* prev LP state */
-                f5 = f11 * f1;
+                f4 = dm(i6, 0);           /* prev LP state (r4 is spent) */
+                f5 = f11 * f9;
                 f6 = f12 * f4;
                 f5 = f5 + f6;
                 dm(i6, 1) = f5;           /* store LP, advance i6 */
@@ -3313,13 +3484,12 @@ def gen_fx_engine(node):
                 f8 = f15 + f7;
                 dm(i0, 0) = f8;           /* i0 still at same position */
                 /* Advance wptr with wrap */
-                r15 = 1;
-                r1 = r1 + r15;
+                r1 = r1 + 1;
                 comp(r1, r2);
                 if ge r1 = r1 - r2;
                 dm(i3, 1) = r1;           /* store, advance i3 */
                 /* Accumulate */
-                f14 = f14 + f1;
+                f14 = f14 + f9;
             .rv_comb_{nid}:
 
             /* Scale comb sum */
@@ -3341,19 +3511,22 @@ def gen_fx_engine(node):
                 i0 = _fx_allpass_buf_L_{nid};
                 m0 = r4;
                 modify(i0, m0);
-                f1 = dm(i0, 0);           /* buf_out */
+                /* f9/f5/f6, not f1/f2/f3: r1 is the write pointer and
+                 * r2/r3 are the length and the offset, all three live
+                 * across this. The comb loop above carries the whole
+                 * story. */
+                f9 = dm(i0, 0);           /* buf_out */
                 /* Write: in + fb * buf_out */
-                f2 = f10 * f1;
-                f3 = f0 + f2;
-                dm(i0, 0) = f3;
+                f5 = f10 * f9;
+                f6 = f0 + f5;
+                dm(i0, 0) = f6;
                 /* Advance wptr */
-                r15 = 1;
-                r1 = r1 + r15;
+                r1 = r1 + 1;
                 comp(r1, r2);
                 if ge r1 = r1 - r2;
                 dm(i3, 1) = r1;
                 /* Output: buf_out - input */
-                f0 = f1 - f0;
+                f0 = f9 - f0;
             .rv_ap_{nid}:
                 nop;
 
@@ -3401,8 +3574,7 @@ def gen_fx_engine(node):
             modify(i0, m0);
             f8 = dm(i0, 0);
             /* Read sample[n+1] */
-            r15 = 1;
-            r3 = r3 - r15;
+            r3 = r3 - 1;
             if lt r3 = r3 + r4;
             i0 = _fx_echo_buf_{nid};
             m0 = r3;
@@ -3420,8 +3592,7 @@ def gen_fx_engine(node):
             m0 = r1;
             modify(i0, m0);
             dm(i0, 0) = f15;
-            r15 = 1;
-            r1 = r1 + r15;
+            r1 = r1 + 1;
             comp(r1, r4);
             if ge r1 = r1 - r4;
             dm(_fx_echo_wptr_{nid}) = r1;
@@ -3459,16 +3630,16 @@ def gen_fx_engine(node):
             m0 = r3;
             modify(i0, m0);
             f13 = dm(i0, 0);             /* delayed tap */
-            /* Write: input + feedback * delayed */
-            f1 = dm(_fx_feedback_{nid});
-            f2 = f13 * f1;
-            f3 = f15 + f2;
+            /* Write: input + feedback * delayed. f5/f6/f7 — f1 IS r1,
+             * the write pointer. See the note in the ECHO path. */
+            f5 = dm(_fx_feedback_{nid});
+            f6 = f13 * f5;
+            f7 = f15 + f6;
             i0 = _fx_echo_buf_{nid};
             m0 = r1;
             modify(i0, m0);
-            dm(i0, 0) = f3;
-            r15 = 1;
-            r1 = r1 + r15;
+            dm(i0, 0) = f7;
+            r1 = r1 + 1;
             comp(r1, r4);
             if ge r1 = r1 - r4;
             dm(_fx_echo_wptr_{nid}) = r1;
@@ -3521,12 +3692,28 @@ def gen_fx_engine(node):
 
     # ----- Passthrough + Mix (always present) -----
     lines.append(dedent(f"""\
+        /* ============ EXPLICIT BYPASS (unimplemented Type) ======= */
+        .fx_bypass_{nid}:
+            /* The Type is PARKED so the bypass is visible from the host.
+             * It used to be a silent fall-through, which is
+             * indistinguishable on a capture from an engine that ran and
+             * had nothing to do -- and it is how Type 0 = Echo, the
+             * landed default, went four sessions without anyone noticing
+             * it was not an algorithm. */
+            r1 = dm(_fx_type_{nid});
+            dm(_fx_bypassed_{nid}) = r1;
+            f0 = f15;                    /* dry pass-through */
+            jump (pc, .fx_mixed_{nid});
+
         /* ===================== PASSTHROUGH ===================== */
         .fx_passthru_{nid}:
             f0 = f15;                    /* dry pass-through */
 
         /* ===================== DRY/WET MIX ===================== */
         .fx_mix_{nid}:
+            r1 = 0;
+            dm(_fx_bypassed_{nid}) = r1;  /* an algorithm ran */
+        .fx_mixed_{nid}:
             /* f0 = wet, f15 = dry */
             f7 = dm(_fx_mix_{nid});
             r8 = 0x3F800000;  /* 1.0 IEEE 754 */
@@ -3534,8 +3721,16 @@ def gen_fx_engine(node):
             f0 = f0 * f7;               /* wet * mix */
             f1 = f15 * f8;              /* dry * (1-mix) */
             f0 = f0 + f1;
-            dm(_buf_L_{nid}) = r0;
+            /* THE PUBLISHED WORD FIRST, then the L/R pair FROM IT.
+             * The store to _buf_L used to run BEFORE the conversion, so
+             * that word carried float32 bits while _buf_ carried Q4.28 --
+             * two different formats in two words of the same node.
+             * Nothing reads either L or R (checked across the tree), and
+             * the engine is mono end to end, so both now carry exactly
+             * what the node publishes. */
             dm(_buf_{nid}) = r0;
+            dm(_buf_L_{nid}) = r0;
+            dm(_buf_R_{nid}) = r0;
             rts;
         _{nid}_process.end:
     """))
@@ -6517,6 +6712,70 @@ def _geq_design_hook(nid, bands):
     return (ext, pro, sub)
 
 
+def _afb_design_hook(nid, notches):
+    """The notch design, called at control rate from the node.
+
+    _afb_notch_freq/_gain/_q ARE THE LANDED CONTRACT'S CELLS and always
+    were: `Aux001AntiFbNotchFreq001..006` and their gain and Q dispatch
+    straight to these arrays, and the 2026-09-08 family walk read 1000.0
+    Hz, -18.0 dB and Q 4.0 back off the part at those very symbols. What
+    did not exist was anything that turned them into coefficients --
+    `_afb_coeffs_next` never moved, both banks stayed at their compiled
+    identity, and every anti-feedback node in the product passed its
+    input through untouched.
+
+    THE TRIGGER IS THE GENERATED DIRTY TABLE, the GEQ's arrangement for
+    the GEQ's reason: eighteen parameter addresses plus an On switch and
+    no address to spare for a swap trigger, and comparing nineteen words
+    against a shadow every block on seventeen nodes would cost more than
+    the design it is looking for. `AntiFbCtrlOn` is deliberately NOT in
+    the dirty run -- see the note beside it in MW/D32/DSP/gen_dsp.py.
+
+    _afb_on IS PASSED IN r13 AND READ ONLY BY THE DESIGN. Off designs
+    the compiled identity into every stage, so a node the host has not
+    switched on passes its input word for word; the cascade issues the
+    same instruction stream either way, so the switch costs nothing at
+    the block rate.
+
+    The design runs BEFORE the block kernel and before the swap check,
+    so the swap it raises is honoured on the same block, not the next.
+    """
+    ext = f"""\
+        #if DSP4_AFB_DESIGN
+        .extern _afb_design_N;
+        #endif
+"""
+    pro = f"""\
+        #if DSP4_AFB_DESIGN
+            /* ---- notch design (control rate; lib/afb_design_fx.asm) ---- */
+            r4 = dm(_afb_dirty_{nid});
+            r4 = pass r4;
+            if ne call _afb_redesign_{nid};
+        #endif
+"""
+    sub = f"""\
+        #if DSP4_AFB_DESIGN
+        _afb_redesign_{nid}:
+            /* Cleared FIRST: a write that lands while the design is
+             * running must leave the flag set for the next block, not be
+             * cleared by the run that did not see it. */
+            r4 = 0;
+            dm(_afb_dirty_{nid}) = r4;
+            i0 = _afb_notch_freq_{nid};
+            i1 = _afb_notch_gain_{nid};
+            i4 = _afb_notch_q_{nid};
+            i2 = _afb_coeffs_next_{nid};
+            r13 = dm(_afb_on_{nid});
+            r4 = {notches};
+            call _afb_design_N;
+            r4 = 1;
+            dm(_afb_swap_pending_{nid}) = r4;
+            rts;
+        #endif
+"""
+    return (ext, pro, sub)
+
+
 def gen_geq_fixed(node):
     bands = int(node['params'].get('bands', '28'))
     nid = node['id']
@@ -6533,14 +6792,18 @@ def gen_anti_fb_fixed(node):
     nid = node['id']
     extra = dedent(f"""\
         .var _afb_on_{nid} = 0;
-        .var _afb_ctrl_on_{nid} = 0;
+        .var _afb_ctrl_on_{nid} = 0;   /* the AUTOMATIC detector's switch — no
+                                        * detector exists; read by nothing, and
+                                        * that is deliberate (afb_design_fx.asm) */
         .var _afb_notch_freq_{nid}[{notches}];
         .var _afb_notch_gain_{nid}[{notches}];
         .var _afb_notch_q_{nid}[{notches}];
+        .var _afb_dirty_{nid} = 0;     /* set by the SPI handler; cleared by the design */
 """)
     extra = '\n'.join('        ' + l if l and not l.startswith('        ') else l
                        for l in extra.split('\n'))
-    return _fx_cascade_node(node, 'afb', notches, extra_dm=extra)
+    return _fx_cascade_node(node, 'afb', notches, extra_dm=extra,
+                            design=_afb_design_hook(nid, notches))
 
 
 
@@ -8313,6 +8576,75 @@ def gen_geq_tables(band_counts):
             a('    %s, %s%s   /* band %2d  %9.3f Hz */'
               % (vals[2 * i], vals[2 * i + 1], end, i, _gr.centre(i)))
         a('')
+    return '\n'.join(out) + '\n'
+
+
+def gen_afb_tables():
+    """afb_tables.asm — the constants the ANTI_FB notch design reads.
+
+    Three tables, all computed here in double precision and emitted as
+    float32 words, all NORMATIVE-BY-DERIVATION from tools/dsp/afb_ref.py
+    rather than transcribed:
+
+      _afb_sin_poly[6]    sin(x)/x as a degree-5 fit in x*x, over
+                          x in [0, pi/2] -- 40 Hz to 12 kHz, the whole
+                          contract domain of AntiFbNotchFreq. Worst
+                          relative error 5.9e-11.
+
+      _afb_vers_poly[6]   (1 - cos x)/(x*x/2), the same shape. It has
+                          its OWN fit because `1 - cos x` must never be
+                          formed by subtracting: at 40 Hz cos x is
+                          0.9999863 and the difference is 1.4e-5, so a
+                          float32 subtraction keeps four significant
+                          digits of the quantity the pole placement
+                          rests on. Worst relative error 8.9e-12.
+
+      _afb_exp2_poly[9]   2**x on [-1, 1], geq_ref's polynomial. ONE
+                          literal for it exists in this repo
+                          (geq_ref.EXP2_POLY); afb_ref imports it rather
+                          than copying it, and each family gets its own
+                          symbol so a tree can carry one design without
+                          the other. The notch domain needs 2**v with
+                          |v| up to 1.4949, which the design gets by
+                          evaluating 2**(v/2) and squaring.
+
+    Unlike the GEQ there are NO per-notch constants: an anti-feedback
+    notch's frequency and Q are both host-settable, so sin(w0) and
+    1 - cos(w0) are computed on the part every time a notch moves.
+    """
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import afb_ref as _ar
+    out = []
+    a = out.append
+    a('/* afb_tables.asm — ANTI_FB notch-design constants */')
+    a('/* AUTO-GENERATED by tools/dsp/dsp_codegen.py from afb_ref.py '
+      '— do not edit. */')
+    a('/*')
+    a(' * Contract domains: freq %g..%g Hz, gain %g..%g dB, Q %g..%g.'
+      % (_ar.AFB_FREQ_MIN, _ar.AFB_FREQ_MAX, _ar.AFB_GAIN_MIN,
+         _ar.AFB_GAIN_MAX, _ar.AFB_Q_MIN, _ar.AFB_Q_MAX))
+    a(' * Sample rate %g Hz, so x = 2*pi*f/fs runs to pi/2.' % _ar.FS)
+    a(' * Each notch is RBJ peaking at negative gain: the contract carries')
+    a(' * a DEPTH, and a textbook notch has no depth parameter.')
+    a(' */')
+    a('')
+    a('.section/dm seg_dmda;')
+    a('')
+    a('/* sin(x)/x in t = x*x, ascending powers; worst relative 5.9e-11 */')
+    a('.global _afb_sin_poly;')
+    a('.var _afb_sin_poly[%d] = %s;'
+      % (len(_ar.SIN_POLY), ', '.join(_f32hex(c) for c in _ar.SIN_POLY)))
+    a('')
+    a('/* (1-cos x)/(x*x/2) in t = x*x, ascending; worst relative 8.9e-12 */')
+    a('.global _afb_vers_poly;')
+    a('.var _afb_vers_poly[%d] = %s;'
+      % (len(_ar.VERS_POLY), ', '.join(_f32hex(c) for c in _ar.VERS_POLY)))
+    a('')
+    a('/* 2**x on [-1,1], ascending powers; worst relative 2.1e-9 */')
+    a('.global _afb_exp2_poly;')
+    a('.var _afb_exp2_poly[%d] = %s;'
+      % (len(_ar.EXP2_POLY), ', '.join(_f32hex(c) for c in _ar.EXP2_POLY)))
+    a('')
     return '\n'.join(out) + '\n'
 
 
@@ -14279,6 +14611,17 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
         with open(os.path.join(output_dir, 'geq_tables.asm'), 'w',
                   encoding='utf-8') as f:
             f.write(gen_geq_tables(_geq_counts))
+        files_written += 1
+
+    # afb_tables.asm — the ANTI_FB notch-design constants. Written on the
+    # same terms as geq_tables.asm: only when the graph has an ANTI_FB
+    # node, so a tree cannot carry a table for a family it no longer
+    # instantiates. Everything in it is referenced only from inside
+    # #if DSP4_AFB_DESIGN.
+    if any(n['type'] == 'ANTI_FB' for n in nodes):
+        with open(os.path.join(output_dir, 'afb_tables.asm'), 'w',
+                  encoding='utf-8') as f:
+            f.write(gen_afb_tables())
         files_written += 1
 
     # dsp_block.h is NOT fixed-mode-only: it is the block-size contract the

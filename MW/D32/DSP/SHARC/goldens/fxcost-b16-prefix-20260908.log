@@ -1,0 +1,22 @@
+  image: chip1.ldr 17f01013 chip2.ldr 827f3790  block=16 budget=327680
+/tmp/landed-d24.json  3698 cells  sha256 42b3817ed2f9  pin defs-v2026.09.08.2
+--- boot 1 ---
+witness: LIVE  _blk_C2_RECV_FX_01=0x08000000/0xF8000000
+arm A  engines at the landed default (Type 0)   249231 cycles/block
+arm B  Type 3 on 6 engines                      308076 cycles/block
+arm C  restored to Type 0 (the CONTROL)          249324 cycles/block
+
+delta  Type 3 - default                        +58845 cycles/block
+drift  control - default                        +93 cycles/block
+budget 327680 cycles/block: default 76.06 %  loaded 94.02 %  margin 5.98 %
+wrote fxcost-b16-t3-r1.json
+--- boot 2 ---
+witness: LIVE  _blk_C2_RECV_FX_01=0x08000000/0xF8000000
+arm A  engines at the landed default (Type 0)   249247 cycles/block
+arm B  Type 3 on 6 engines                      308366 cycles/block
+arm C  restored to Type 0 (the CONTROL)          249257 cycles/block
+
+delta  Type 3 - default                        +59119 cycles/block
+drift  control - default                        +10 cycles/block
+budget 327680 cycles/block: default 76.06 %  loaded 94.11 %  margin 5.89 %
+wrote fxcost-b16-t3-r2.json

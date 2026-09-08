@@ -579,7 +579,32 @@ DSP4_GEQ_DESIGN="${DSP4_GEQ_DESIGN:-1}"
 # shares its address with CrossoverFreq in the landed contract, so
 # the slope cannot be set until that row is split in `defs`.
 DSP4_XOVER_DESIGN="${DSP4_XOVER_DESIGN:-1}"
-ASMFLAGS="$ASMFLAGS -DDSP4_GEQ_DESIGN=$DSP4_GEQ_DESIGN -DDSP4_XOVER_DESIGN=$DSP4_XOVER_DESIGN"
+# THE ANTI-FEEDBACK NOTCH DESIGN (2026-09-08). The third node of the same
+# shape and the same history: a real six-stage cascade whose freq/gain/Q
+# cells landed correctly at their symbols and were read by nothing, so
+# every ANTI_FB node in the product passed its input through.
+# src/lib/afb_design_fx.asm, tables from src/afb_tables.asm, modelled by
+# tools/dsp/afb_ref.py. `_afb_on` is read HERE and only here.
+#
+# 0 removes the design and its cost, not the whole change: the dispatch
+# and the recompute table are emitted whatever this flag says, so 0 is
+# not a byte-for-byte rebuild of the inert image. The GEQ flag's note.
+DSP4_AFB_DESIGN="${DSP4_AFB_DESIGN:-1}"
+# WHICH FX ALGORITHM THE PRODUCT BOOTS AT (2026-09-08). The graph
+# declares `type=Reverb` on all six engines and the generator hardcoded
+# _fx_type to 0 whatever it said; Type 0 is Echo, and until this session
+# the reverb class emitted no Echo case, so the landed default fell
+# through to a dry pass and FX_ENGINE had never run in ANY capacity
+# measurement. Echo is real now, so 0 processes.
+#
+# 1 boots at the DECLARED Type instead, and it is a flag rather than the
+# default because of what it costs. Measured on the part 2026-09-08,
+# whole chip-2 graph, block 16, two boots, minimum: six engines from
+# Type 0 to Type 3 is +58,845 cycles/block -- chip 2 from 76.06 % of
+# budget to 94.02 %, margin 23.94 % -> 5.98 %. Which Type ships is a
+# capacity decision and capacity decisions are PW's.
+DSP4_FX_TYPE_DECLARED="${DSP4_FX_TYPE_DECLARED:-0}"
+ASMFLAGS="$ASMFLAGS -DDSP4_GEQ_DESIGN=$DSP4_GEQ_DESIGN -DDSP4_XOVER_DESIGN=$DSP4_XOVER_DESIGN -DDSP4_AFB_DESIGN=$DSP4_AFB_DESIGN -DDSP4_FX_TYPE_DECLARED=$DSP4_FX_TYPE_DECLARED"
 # Run the node graph only every Nth block (measurement, not a mode).
 DSP4_BLOCK_DECIMATE="${DSP4_BLOCK_DECIMATE:-1}"
 # Keep only the first N channel strips (0 = all). Unlike DSP4_NODE_LIMIT

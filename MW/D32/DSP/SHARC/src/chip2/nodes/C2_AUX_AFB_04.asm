@@ -23,13 +23,17 @@
 .global _afb_on_C2_AUX_AFB_04;
 .var _afb_on_C2_AUX_AFB_04 = 0;
 .global _afb_ctrl_on_C2_AUX_AFB_04;
-.var _afb_ctrl_on_C2_AUX_AFB_04 = 0;
+.var _afb_ctrl_on_C2_AUX_AFB_04 = 0;   /* the AUTOMATIC detector's switch — no
+                        * detector exists; read by nothing, and
+                        * that is deliberate (afb_design_fx.asm) */
 .global _afb_notch_freq_C2_AUX_AFB_04;
 .var _afb_notch_freq_C2_AUX_AFB_04[6];
 .global _afb_notch_gain_C2_AUX_AFB_04;
 .var _afb_notch_gain_C2_AUX_AFB_04[6];
 .global _afb_notch_q_C2_AUX_AFB_04;
 .var _afb_notch_q_C2_AUX_AFB_04[6];
+.global _afb_dirty_C2_AUX_AFB_04;
+.var _afb_dirty_C2_AUX_AFB_04 = 0;     /* set by the SPI handler; cleared by the design */
 
 #if DSP4_BQ_FLOAT
 .global _afb_coeffs_A_C2_AUX_AFB_04;
@@ -107,8 +111,17 @@
 #if DSP4_BQ_GUARD
 .extern _bq_hr_node1;
 #endif
+#if DSP4_AFB_DESIGN
+.extern _afb_design_N;
+#endif
 .global _C2_AUX_AFB_04_process;
 _C2_AUX_AFB_04_process:
+#if DSP4_AFB_DESIGN
+    /* ---- notch design (control rate; lib/afb_design_fx.asm) ---- */
+    r4 = dm(_afb_dirty_C2_AUX_AFB_04);
+    r4 = pass r4;
+    if ne call _afb_redesign_C2_AUX_AFB_04;
+#endif
 #if DSP4_BLOCK_KERNELS
     /* ---- chip-2 per-block steady state (review finding D16) ----
      *
@@ -413,4 +426,22 @@ _afb_start_xfade_C2_AUX_AFB_04:
     r4 = 0;
     dm(_afb_xfade_alpha_C2_AUX_AFB_04) = r4;
     rts;
+#if DSP4_AFB_DESIGN
+_afb_redesign_C2_AUX_AFB_04:
+    /* Cleared FIRST: a write that lands while the design is
+     * running must leave the flag set for the next block, not be
+     * cleared by the run that did not see it. */
+    r4 = 0;
+    dm(_afb_dirty_C2_AUX_AFB_04) = r4;
+    i0 = _afb_notch_freq_C2_AUX_AFB_04;
+    i1 = _afb_notch_gain_C2_AUX_AFB_04;
+    i4 = _afb_notch_q_C2_AUX_AFB_04;
+    i2 = _afb_coeffs_next_C2_AUX_AFB_04;
+    r13 = dm(_afb_on_C2_AUX_AFB_04);
+    r4 = 6;
+    call _afb_design_N;
+    r4 = 1;
+    dm(_afb_swap_pending_C2_AUX_AFB_04) = r4;
+    rts;
+#endif
 _C2_AUX_AFB_04_process.end:

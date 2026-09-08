@@ -6593,7 +6593,7 @@
  * gain arrived, instead of comparing every band against a
  * shadow on every block of every node.
  *
- * 477 of 1952 addresses raise a flag; 18 distinct flags.
+ * 705 of 1952 addresses raise a flag; 30 distinct flags.
  */
 .global _spi_dispatch_c2_dirty;
 .var _spi_dispatch_c2_dirty[1952] =
@@ -6653,26 +6653,26 @@
     _geq_dirty_C2_AUX_GEQ_01,  /* 0x0035: C2_AUX_GEQ_01 GEQ band gain[25] */
     _geq_dirty_C2_AUX_GEQ_01,  /* 0x0036: C2_AUX_GEQ_01 GEQ band gain[26] */
     _geq_dirty_C2_AUX_GEQ_01,  /* 0x0037: C2_AUX_GEQ_01 GEQ band gain[27] */
-    0,  /* 0x0038: C2_AUX_AFB_01 AntiFbOn */
+    _afb_dirty_C2_AUX_AFB_01,  /* 0x0038: C2_AUX_AFB_01 AntiFbOn */
     0,  /* 0x0039: C2_AUX_AFB_01 AntiFbCtrlOn */
-    0,  /* 0x003A: C2_AUX_AFB_01 NotchFreq[1] */
-    0,  /* 0x003B: C2_AUX_AFB_01 NotchFreq[2] */
-    0,  /* 0x003C: C2_AUX_AFB_01 NotchFreq[3] */
-    0,  /* 0x003D: C2_AUX_AFB_01 NotchFreq[4] */
-    0,  /* 0x003E: C2_AUX_AFB_01 NotchFreq[5] */
-    0,  /* 0x003F: C2_AUX_AFB_01 NotchFreq[6] */
-    0,  /* 0x0040: C2_AUX_AFB_01 NotchGain[1] */
-    0,  /* 0x0041: C2_AUX_AFB_01 NotchGain[2] */
-    0,  /* 0x0042: C2_AUX_AFB_01 NotchGain[3] */
-    0,  /* 0x0043: C2_AUX_AFB_01 NotchGain[4] */
-    0,  /* 0x0044: C2_AUX_AFB_01 NotchGain[5] */
-    0,  /* 0x0045: C2_AUX_AFB_01 NotchGain[6] */
-    0,  /* 0x0046: C2_AUX_AFB_01 NotchQ[1] */
-    0,  /* 0x0047: C2_AUX_AFB_01 NotchQ[2] */
-    0,  /* 0x0048: C2_AUX_AFB_01 NotchQ[3] */
-    0,  /* 0x0049: C2_AUX_AFB_01 NotchQ[4] */
-    0,  /* 0x004A: C2_AUX_AFB_01 NotchQ[5] */
-    0,  /* 0x004B: C2_AUX_AFB_01 NotchQ[6] */
+    _afb_dirty_C2_AUX_AFB_01,  /* 0x003A: C2_AUX_AFB_01 NotchFreq[1] */
+    _afb_dirty_C2_AUX_AFB_01,  /* 0x003B: C2_AUX_AFB_01 NotchFreq[2] */
+    _afb_dirty_C2_AUX_AFB_01,  /* 0x003C: C2_AUX_AFB_01 NotchFreq[3] */
+    _afb_dirty_C2_AUX_AFB_01,  /* 0x003D: C2_AUX_AFB_01 NotchFreq[4] */
+    _afb_dirty_C2_AUX_AFB_01,  /* 0x003E: C2_AUX_AFB_01 NotchFreq[5] */
+    _afb_dirty_C2_AUX_AFB_01,  /* 0x003F: C2_AUX_AFB_01 NotchFreq[6] */
+    _afb_dirty_C2_AUX_AFB_01,  /* 0x0040: C2_AUX_AFB_01 NotchGain[1] */
+    _afb_dirty_C2_AUX_AFB_01,  /* 0x0041: C2_AUX_AFB_01 NotchGain[2] */
+    _afb_dirty_C2_AUX_AFB_01,  /* 0x0042: C2_AUX_AFB_01 NotchGain[3] */
+    _afb_dirty_C2_AUX_AFB_01,  /* 0x0043: C2_AUX_AFB_01 NotchGain[4] */
+    _afb_dirty_C2_AUX_AFB_01,  /* 0x0044: C2_AUX_AFB_01 NotchGain[5] */
+    _afb_dirty_C2_AUX_AFB_01,  /* 0x0045: C2_AUX_AFB_01 NotchGain[6] */
+    _afb_dirty_C2_AUX_AFB_01,  /* 0x0046: C2_AUX_AFB_01 NotchQ[1] */
+    _afb_dirty_C2_AUX_AFB_01,  /* 0x0047: C2_AUX_AFB_01 NotchQ[2] */
+    _afb_dirty_C2_AUX_AFB_01,  /* 0x0048: C2_AUX_AFB_01 NotchQ[3] */
+    _afb_dirty_C2_AUX_AFB_01,  /* 0x0049: C2_AUX_AFB_01 NotchQ[4] */
+    _afb_dirty_C2_AUX_AFB_01,  /* 0x004A: C2_AUX_AFB_01 NotchQ[5] */
+    _afb_dirty_C2_AUX_AFB_01,  /* 0x004B: C2_AUX_AFB_01 NotchQ[6] */
     0,  /* 0x004C: C2_AUX_AFB_01 spare coeff [20] */
     0,  /* 0x004D: C2_AUX_AFB_01 spare coeff [21] */
     0,  /* 0x004E: C2_AUX_AFB_01 spare coeff [22] */
@@ -6740,26 +6740,26 @@
     _geq_dirty_C2_AUX_GEQ_02,  /* 0x008C: C2_AUX_GEQ_02 GEQ band gain[25] */
     _geq_dirty_C2_AUX_GEQ_02,  /* 0x008D: C2_AUX_GEQ_02 GEQ band gain[26] */
     _geq_dirty_C2_AUX_GEQ_02,  /* 0x008E: C2_AUX_GEQ_02 GEQ band gain[27] */
-    0,  /* 0x008F: C2_AUX_AFB_02 AntiFbOn */
+    _afb_dirty_C2_AUX_AFB_02,  /* 0x008F: C2_AUX_AFB_02 AntiFbOn */
     0,  /* 0x0090: C2_AUX_AFB_02 AntiFbCtrlOn */
-    0,  /* 0x0091: C2_AUX_AFB_02 NotchFreq[1] */
-    0,  /* 0x0092: C2_AUX_AFB_02 NotchFreq[2] */
-    0,  /* 0x0093: C2_AUX_AFB_02 NotchFreq[3] */
-    0,  /* 0x0094: C2_AUX_AFB_02 NotchFreq[4] */
-    0,  /* 0x0095: C2_AUX_AFB_02 NotchFreq[5] */
-    0,  /* 0x0096: C2_AUX_AFB_02 NotchFreq[6] */
-    0,  /* 0x0097: C2_AUX_AFB_02 NotchGain[1] */
-    0,  /* 0x0098: C2_AUX_AFB_02 NotchGain[2] */
-    0,  /* 0x0099: C2_AUX_AFB_02 NotchGain[3] */
-    0,  /* 0x009A: C2_AUX_AFB_02 NotchGain[4] */
-    0,  /* 0x009B: C2_AUX_AFB_02 NotchGain[5] */
-    0,  /* 0x009C: C2_AUX_AFB_02 NotchGain[6] */
-    0,  /* 0x009D: C2_AUX_AFB_02 NotchQ[1] */
-    0,  /* 0x009E: C2_AUX_AFB_02 NotchQ[2] */
-    0,  /* 0x009F: C2_AUX_AFB_02 NotchQ[3] */
-    0,  /* 0x00A0: C2_AUX_AFB_02 NotchQ[4] */
-    0,  /* 0x00A1: C2_AUX_AFB_02 NotchQ[5] */
-    0,  /* 0x00A2: C2_AUX_AFB_02 NotchQ[6] */
+    _afb_dirty_C2_AUX_AFB_02,  /* 0x0091: C2_AUX_AFB_02 NotchFreq[1] */
+    _afb_dirty_C2_AUX_AFB_02,  /* 0x0092: C2_AUX_AFB_02 NotchFreq[2] */
+    _afb_dirty_C2_AUX_AFB_02,  /* 0x0093: C2_AUX_AFB_02 NotchFreq[3] */
+    _afb_dirty_C2_AUX_AFB_02,  /* 0x0094: C2_AUX_AFB_02 NotchFreq[4] */
+    _afb_dirty_C2_AUX_AFB_02,  /* 0x0095: C2_AUX_AFB_02 NotchFreq[5] */
+    _afb_dirty_C2_AUX_AFB_02,  /* 0x0096: C2_AUX_AFB_02 NotchFreq[6] */
+    _afb_dirty_C2_AUX_AFB_02,  /* 0x0097: C2_AUX_AFB_02 NotchGain[1] */
+    _afb_dirty_C2_AUX_AFB_02,  /* 0x0098: C2_AUX_AFB_02 NotchGain[2] */
+    _afb_dirty_C2_AUX_AFB_02,  /* 0x0099: C2_AUX_AFB_02 NotchGain[3] */
+    _afb_dirty_C2_AUX_AFB_02,  /* 0x009A: C2_AUX_AFB_02 NotchGain[4] */
+    _afb_dirty_C2_AUX_AFB_02,  /* 0x009B: C2_AUX_AFB_02 NotchGain[5] */
+    _afb_dirty_C2_AUX_AFB_02,  /* 0x009C: C2_AUX_AFB_02 NotchGain[6] */
+    _afb_dirty_C2_AUX_AFB_02,  /* 0x009D: C2_AUX_AFB_02 NotchQ[1] */
+    _afb_dirty_C2_AUX_AFB_02,  /* 0x009E: C2_AUX_AFB_02 NotchQ[2] */
+    _afb_dirty_C2_AUX_AFB_02,  /* 0x009F: C2_AUX_AFB_02 NotchQ[3] */
+    _afb_dirty_C2_AUX_AFB_02,  /* 0x00A0: C2_AUX_AFB_02 NotchQ[4] */
+    _afb_dirty_C2_AUX_AFB_02,  /* 0x00A1: C2_AUX_AFB_02 NotchQ[5] */
+    _afb_dirty_C2_AUX_AFB_02,  /* 0x00A2: C2_AUX_AFB_02 NotchQ[6] */
     0,  /* 0x00A3: C2_AUX_AFB_02 spare coeff [20] */
     0,  /* 0x00A4: C2_AUX_AFB_02 spare coeff [21] */
     0,  /* 0x00A5: C2_AUX_AFB_02 spare coeff [22] */
@@ -6827,26 +6827,26 @@
     _geq_dirty_C2_AUX_GEQ_03,  /* 0x00E3: C2_AUX_GEQ_03 GEQ band gain[25] */
     _geq_dirty_C2_AUX_GEQ_03,  /* 0x00E4: C2_AUX_GEQ_03 GEQ band gain[26] */
     _geq_dirty_C2_AUX_GEQ_03,  /* 0x00E5: C2_AUX_GEQ_03 GEQ band gain[27] */
-    0,  /* 0x00E6: C2_AUX_AFB_03 AntiFbOn */
+    _afb_dirty_C2_AUX_AFB_03,  /* 0x00E6: C2_AUX_AFB_03 AntiFbOn */
     0,  /* 0x00E7: C2_AUX_AFB_03 AntiFbCtrlOn */
-    0,  /* 0x00E8: C2_AUX_AFB_03 NotchFreq[1] */
-    0,  /* 0x00E9: C2_AUX_AFB_03 NotchFreq[2] */
-    0,  /* 0x00EA: C2_AUX_AFB_03 NotchFreq[3] */
-    0,  /* 0x00EB: C2_AUX_AFB_03 NotchFreq[4] */
-    0,  /* 0x00EC: C2_AUX_AFB_03 NotchFreq[5] */
-    0,  /* 0x00ED: C2_AUX_AFB_03 NotchFreq[6] */
-    0,  /* 0x00EE: C2_AUX_AFB_03 NotchGain[1] */
-    0,  /* 0x00EF: C2_AUX_AFB_03 NotchGain[2] */
-    0,  /* 0x00F0: C2_AUX_AFB_03 NotchGain[3] */
-    0,  /* 0x00F1: C2_AUX_AFB_03 NotchGain[4] */
-    0,  /* 0x00F2: C2_AUX_AFB_03 NotchGain[5] */
-    0,  /* 0x00F3: C2_AUX_AFB_03 NotchGain[6] */
-    0,  /* 0x00F4: C2_AUX_AFB_03 NotchQ[1] */
-    0,  /* 0x00F5: C2_AUX_AFB_03 NotchQ[2] */
-    0,  /* 0x00F6: C2_AUX_AFB_03 NotchQ[3] */
-    0,  /* 0x00F7: C2_AUX_AFB_03 NotchQ[4] */
-    0,  /* 0x00F8: C2_AUX_AFB_03 NotchQ[5] */
-    0,  /* 0x00F9: C2_AUX_AFB_03 NotchQ[6] */
+    _afb_dirty_C2_AUX_AFB_03,  /* 0x00E8: C2_AUX_AFB_03 NotchFreq[1] */
+    _afb_dirty_C2_AUX_AFB_03,  /* 0x00E9: C2_AUX_AFB_03 NotchFreq[2] */
+    _afb_dirty_C2_AUX_AFB_03,  /* 0x00EA: C2_AUX_AFB_03 NotchFreq[3] */
+    _afb_dirty_C2_AUX_AFB_03,  /* 0x00EB: C2_AUX_AFB_03 NotchFreq[4] */
+    _afb_dirty_C2_AUX_AFB_03,  /* 0x00EC: C2_AUX_AFB_03 NotchFreq[5] */
+    _afb_dirty_C2_AUX_AFB_03,  /* 0x00ED: C2_AUX_AFB_03 NotchFreq[6] */
+    _afb_dirty_C2_AUX_AFB_03,  /* 0x00EE: C2_AUX_AFB_03 NotchGain[1] */
+    _afb_dirty_C2_AUX_AFB_03,  /* 0x00EF: C2_AUX_AFB_03 NotchGain[2] */
+    _afb_dirty_C2_AUX_AFB_03,  /* 0x00F0: C2_AUX_AFB_03 NotchGain[3] */
+    _afb_dirty_C2_AUX_AFB_03,  /* 0x00F1: C2_AUX_AFB_03 NotchGain[4] */
+    _afb_dirty_C2_AUX_AFB_03,  /* 0x00F2: C2_AUX_AFB_03 NotchGain[5] */
+    _afb_dirty_C2_AUX_AFB_03,  /* 0x00F3: C2_AUX_AFB_03 NotchGain[6] */
+    _afb_dirty_C2_AUX_AFB_03,  /* 0x00F4: C2_AUX_AFB_03 NotchQ[1] */
+    _afb_dirty_C2_AUX_AFB_03,  /* 0x00F5: C2_AUX_AFB_03 NotchQ[2] */
+    _afb_dirty_C2_AUX_AFB_03,  /* 0x00F6: C2_AUX_AFB_03 NotchQ[3] */
+    _afb_dirty_C2_AUX_AFB_03,  /* 0x00F7: C2_AUX_AFB_03 NotchQ[4] */
+    _afb_dirty_C2_AUX_AFB_03,  /* 0x00F8: C2_AUX_AFB_03 NotchQ[5] */
+    _afb_dirty_C2_AUX_AFB_03,  /* 0x00F9: C2_AUX_AFB_03 NotchQ[6] */
     0,  /* 0x00FA: C2_AUX_AFB_03 spare coeff [20] */
     0,  /* 0x00FB: C2_AUX_AFB_03 spare coeff [21] */
     0,  /* 0x00FC: C2_AUX_AFB_03 spare coeff [22] */
@@ -6914,26 +6914,26 @@
     _geq_dirty_C2_AUX_GEQ_04,  /* 0x013A: C2_AUX_GEQ_04 GEQ band gain[25] */
     _geq_dirty_C2_AUX_GEQ_04,  /* 0x013B: C2_AUX_GEQ_04 GEQ band gain[26] */
     _geq_dirty_C2_AUX_GEQ_04,  /* 0x013C: C2_AUX_GEQ_04 GEQ band gain[27] */
-    0,  /* 0x013D: C2_AUX_AFB_04 AntiFbOn */
+    _afb_dirty_C2_AUX_AFB_04,  /* 0x013D: C2_AUX_AFB_04 AntiFbOn */
     0,  /* 0x013E: C2_AUX_AFB_04 AntiFbCtrlOn */
-    0,  /* 0x013F: C2_AUX_AFB_04 NotchFreq[1] */
-    0,  /* 0x0140: C2_AUX_AFB_04 NotchFreq[2] */
-    0,  /* 0x0141: C2_AUX_AFB_04 NotchFreq[3] */
-    0,  /* 0x0142: C2_AUX_AFB_04 NotchFreq[4] */
-    0,  /* 0x0143: C2_AUX_AFB_04 NotchFreq[5] */
-    0,  /* 0x0144: C2_AUX_AFB_04 NotchFreq[6] */
-    0,  /* 0x0145: C2_AUX_AFB_04 NotchGain[1] */
-    0,  /* 0x0146: C2_AUX_AFB_04 NotchGain[2] */
-    0,  /* 0x0147: C2_AUX_AFB_04 NotchGain[3] */
-    0,  /* 0x0148: C2_AUX_AFB_04 NotchGain[4] */
-    0,  /* 0x0149: C2_AUX_AFB_04 NotchGain[5] */
-    0,  /* 0x014A: C2_AUX_AFB_04 NotchGain[6] */
-    0,  /* 0x014B: C2_AUX_AFB_04 NotchQ[1] */
-    0,  /* 0x014C: C2_AUX_AFB_04 NotchQ[2] */
-    0,  /* 0x014D: C2_AUX_AFB_04 NotchQ[3] */
-    0,  /* 0x014E: C2_AUX_AFB_04 NotchQ[4] */
-    0,  /* 0x014F: C2_AUX_AFB_04 NotchQ[5] */
-    0,  /* 0x0150: C2_AUX_AFB_04 NotchQ[6] */
+    _afb_dirty_C2_AUX_AFB_04,  /* 0x013F: C2_AUX_AFB_04 NotchFreq[1] */
+    _afb_dirty_C2_AUX_AFB_04,  /* 0x0140: C2_AUX_AFB_04 NotchFreq[2] */
+    _afb_dirty_C2_AUX_AFB_04,  /* 0x0141: C2_AUX_AFB_04 NotchFreq[3] */
+    _afb_dirty_C2_AUX_AFB_04,  /* 0x0142: C2_AUX_AFB_04 NotchFreq[4] */
+    _afb_dirty_C2_AUX_AFB_04,  /* 0x0143: C2_AUX_AFB_04 NotchFreq[5] */
+    _afb_dirty_C2_AUX_AFB_04,  /* 0x0144: C2_AUX_AFB_04 NotchFreq[6] */
+    _afb_dirty_C2_AUX_AFB_04,  /* 0x0145: C2_AUX_AFB_04 NotchGain[1] */
+    _afb_dirty_C2_AUX_AFB_04,  /* 0x0146: C2_AUX_AFB_04 NotchGain[2] */
+    _afb_dirty_C2_AUX_AFB_04,  /* 0x0147: C2_AUX_AFB_04 NotchGain[3] */
+    _afb_dirty_C2_AUX_AFB_04,  /* 0x0148: C2_AUX_AFB_04 NotchGain[4] */
+    _afb_dirty_C2_AUX_AFB_04,  /* 0x0149: C2_AUX_AFB_04 NotchGain[5] */
+    _afb_dirty_C2_AUX_AFB_04,  /* 0x014A: C2_AUX_AFB_04 NotchGain[6] */
+    _afb_dirty_C2_AUX_AFB_04,  /* 0x014B: C2_AUX_AFB_04 NotchQ[1] */
+    _afb_dirty_C2_AUX_AFB_04,  /* 0x014C: C2_AUX_AFB_04 NotchQ[2] */
+    _afb_dirty_C2_AUX_AFB_04,  /* 0x014D: C2_AUX_AFB_04 NotchQ[3] */
+    _afb_dirty_C2_AUX_AFB_04,  /* 0x014E: C2_AUX_AFB_04 NotchQ[4] */
+    _afb_dirty_C2_AUX_AFB_04,  /* 0x014F: C2_AUX_AFB_04 NotchQ[5] */
+    _afb_dirty_C2_AUX_AFB_04,  /* 0x0150: C2_AUX_AFB_04 NotchQ[6] */
     0,  /* 0x0151: C2_AUX_AFB_04 spare coeff [20] */
     0,  /* 0x0152: C2_AUX_AFB_04 spare coeff [21] */
     0,  /* 0x0153: C2_AUX_AFB_04 spare coeff [22] */
@@ -7001,26 +7001,26 @@
     _geq_dirty_C2_AUX_GEQ_05,  /* 0x0191: C2_AUX_GEQ_05 GEQ band gain[25] */
     _geq_dirty_C2_AUX_GEQ_05,  /* 0x0192: C2_AUX_GEQ_05 GEQ band gain[26] */
     _geq_dirty_C2_AUX_GEQ_05,  /* 0x0193: C2_AUX_GEQ_05 GEQ band gain[27] */
-    0,  /* 0x0194: C2_AUX_AFB_05 AntiFbOn */
+    _afb_dirty_C2_AUX_AFB_05,  /* 0x0194: C2_AUX_AFB_05 AntiFbOn */
     0,  /* 0x0195: C2_AUX_AFB_05 AntiFbCtrlOn */
-    0,  /* 0x0196: C2_AUX_AFB_05 NotchFreq[1] */
-    0,  /* 0x0197: C2_AUX_AFB_05 NotchFreq[2] */
-    0,  /* 0x0198: C2_AUX_AFB_05 NotchFreq[3] */
-    0,  /* 0x0199: C2_AUX_AFB_05 NotchFreq[4] */
-    0,  /* 0x019A: C2_AUX_AFB_05 NotchFreq[5] */
-    0,  /* 0x019B: C2_AUX_AFB_05 NotchFreq[6] */
-    0,  /* 0x019C: C2_AUX_AFB_05 NotchGain[1] */
-    0,  /* 0x019D: C2_AUX_AFB_05 NotchGain[2] */
-    0,  /* 0x019E: C2_AUX_AFB_05 NotchGain[3] */
-    0,  /* 0x019F: C2_AUX_AFB_05 NotchGain[4] */
-    0,  /* 0x01A0: C2_AUX_AFB_05 NotchGain[5] */
-    0,  /* 0x01A1: C2_AUX_AFB_05 NotchGain[6] */
-    0,  /* 0x01A2: C2_AUX_AFB_05 NotchQ[1] */
-    0,  /* 0x01A3: C2_AUX_AFB_05 NotchQ[2] */
-    0,  /* 0x01A4: C2_AUX_AFB_05 NotchQ[3] */
-    0,  /* 0x01A5: C2_AUX_AFB_05 NotchQ[4] */
-    0,  /* 0x01A6: C2_AUX_AFB_05 NotchQ[5] */
-    0,  /* 0x01A7: C2_AUX_AFB_05 NotchQ[6] */
+    _afb_dirty_C2_AUX_AFB_05,  /* 0x0196: C2_AUX_AFB_05 NotchFreq[1] */
+    _afb_dirty_C2_AUX_AFB_05,  /* 0x0197: C2_AUX_AFB_05 NotchFreq[2] */
+    _afb_dirty_C2_AUX_AFB_05,  /* 0x0198: C2_AUX_AFB_05 NotchFreq[3] */
+    _afb_dirty_C2_AUX_AFB_05,  /* 0x0199: C2_AUX_AFB_05 NotchFreq[4] */
+    _afb_dirty_C2_AUX_AFB_05,  /* 0x019A: C2_AUX_AFB_05 NotchFreq[5] */
+    _afb_dirty_C2_AUX_AFB_05,  /* 0x019B: C2_AUX_AFB_05 NotchFreq[6] */
+    _afb_dirty_C2_AUX_AFB_05,  /* 0x019C: C2_AUX_AFB_05 NotchGain[1] */
+    _afb_dirty_C2_AUX_AFB_05,  /* 0x019D: C2_AUX_AFB_05 NotchGain[2] */
+    _afb_dirty_C2_AUX_AFB_05,  /* 0x019E: C2_AUX_AFB_05 NotchGain[3] */
+    _afb_dirty_C2_AUX_AFB_05,  /* 0x019F: C2_AUX_AFB_05 NotchGain[4] */
+    _afb_dirty_C2_AUX_AFB_05,  /* 0x01A0: C2_AUX_AFB_05 NotchGain[5] */
+    _afb_dirty_C2_AUX_AFB_05,  /* 0x01A1: C2_AUX_AFB_05 NotchGain[6] */
+    _afb_dirty_C2_AUX_AFB_05,  /* 0x01A2: C2_AUX_AFB_05 NotchQ[1] */
+    _afb_dirty_C2_AUX_AFB_05,  /* 0x01A3: C2_AUX_AFB_05 NotchQ[2] */
+    _afb_dirty_C2_AUX_AFB_05,  /* 0x01A4: C2_AUX_AFB_05 NotchQ[3] */
+    _afb_dirty_C2_AUX_AFB_05,  /* 0x01A5: C2_AUX_AFB_05 NotchQ[4] */
+    _afb_dirty_C2_AUX_AFB_05,  /* 0x01A6: C2_AUX_AFB_05 NotchQ[5] */
+    _afb_dirty_C2_AUX_AFB_05,  /* 0x01A7: C2_AUX_AFB_05 NotchQ[6] */
     0,  /* 0x01A8: C2_AUX_AFB_05 spare coeff [20] */
     0,  /* 0x01A9: C2_AUX_AFB_05 spare coeff [21] */
     0,  /* 0x01AA: C2_AUX_AFB_05 spare coeff [22] */
@@ -7088,26 +7088,26 @@
     _geq_dirty_C2_AUX_GEQ_06,  /* 0x01E8: C2_AUX_GEQ_06 GEQ band gain[25] */
     _geq_dirty_C2_AUX_GEQ_06,  /* 0x01E9: C2_AUX_GEQ_06 GEQ band gain[26] */
     _geq_dirty_C2_AUX_GEQ_06,  /* 0x01EA: C2_AUX_GEQ_06 GEQ band gain[27] */
-    0,  /* 0x01EB: C2_AUX_AFB_06 AntiFbOn */
+    _afb_dirty_C2_AUX_AFB_06,  /* 0x01EB: C2_AUX_AFB_06 AntiFbOn */
     0,  /* 0x01EC: C2_AUX_AFB_06 AntiFbCtrlOn */
-    0,  /* 0x01ED: C2_AUX_AFB_06 NotchFreq[1] */
-    0,  /* 0x01EE: C2_AUX_AFB_06 NotchFreq[2] */
-    0,  /* 0x01EF: C2_AUX_AFB_06 NotchFreq[3] */
-    0,  /* 0x01F0: C2_AUX_AFB_06 NotchFreq[4] */
-    0,  /* 0x01F1: C2_AUX_AFB_06 NotchFreq[5] */
-    0,  /* 0x01F2: C2_AUX_AFB_06 NotchFreq[6] */
-    0,  /* 0x01F3: C2_AUX_AFB_06 NotchGain[1] */
-    0,  /* 0x01F4: C2_AUX_AFB_06 NotchGain[2] */
-    0,  /* 0x01F5: C2_AUX_AFB_06 NotchGain[3] */
-    0,  /* 0x01F6: C2_AUX_AFB_06 NotchGain[4] */
-    0,  /* 0x01F7: C2_AUX_AFB_06 NotchGain[5] */
-    0,  /* 0x01F8: C2_AUX_AFB_06 NotchGain[6] */
-    0,  /* 0x01F9: C2_AUX_AFB_06 NotchQ[1] */
-    0,  /* 0x01FA: C2_AUX_AFB_06 NotchQ[2] */
-    0,  /* 0x01FB: C2_AUX_AFB_06 NotchQ[3] */
-    0,  /* 0x01FC: C2_AUX_AFB_06 NotchQ[4] */
-    0,  /* 0x01FD: C2_AUX_AFB_06 NotchQ[5] */
-    0,  /* 0x01FE: C2_AUX_AFB_06 NotchQ[6] */
+    _afb_dirty_C2_AUX_AFB_06,  /* 0x01ED: C2_AUX_AFB_06 NotchFreq[1] */
+    _afb_dirty_C2_AUX_AFB_06,  /* 0x01EE: C2_AUX_AFB_06 NotchFreq[2] */
+    _afb_dirty_C2_AUX_AFB_06,  /* 0x01EF: C2_AUX_AFB_06 NotchFreq[3] */
+    _afb_dirty_C2_AUX_AFB_06,  /* 0x01F0: C2_AUX_AFB_06 NotchFreq[4] */
+    _afb_dirty_C2_AUX_AFB_06,  /* 0x01F1: C2_AUX_AFB_06 NotchFreq[5] */
+    _afb_dirty_C2_AUX_AFB_06,  /* 0x01F2: C2_AUX_AFB_06 NotchFreq[6] */
+    _afb_dirty_C2_AUX_AFB_06,  /* 0x01F3: C2_AUX_AFB_06 NotchGain[1] */
+    _afb_dirty_C2_AUX_AFB_06,  /* 0x01F4: C2_AUX_AFB_06 NotchGain[2] */
+    _afb_dirty_C2_AUX_AFB_06,  /* 0x01F5: C2_AUX_AFB_06 NotchGain[3] */
+    _afb_dirty_C2_AUX_AFB_06,  /* 0x01F6: C2_AUX_AFB_06 NotchGain[4] */
+    _afb_dirty_C2_AUX_AFB_06,  /* 0x01F7: C2_AUX_AFB_06 NotchGain[5] */
+    _afb_dirty_C2_AUX_AFB_06,  /* 0x01F8: C2_AUX_AFB_06 NotchGain[6] */
+    _afb_dirty_C2_AUX_AFB_06,  /* 0x01F9: C2_AUX_AFB_06 NotchQ[1] */
+    _afb_dirty_C2_AUX_AFB_06,  /* 0x01FA: C2_AUX_AFB_06 NotchQ[2] */
+    _afb_dirty_C2_AUX_AFB_06,  /* 0x01FB: C2_AUX_AFB_06 NotchQ[3] */
+    _afb_dirty_C2_AUX_AFB_06,  /* 0x01FC: C2_AUX_AFB_06 NotchQ[4] */
+    _afb_dirty_C2_AUX_AFB_06,  /* 0x01FD: C2_AUX_AFB_06 NotchQ[5] */
+    _afb_dirty_C2_AUX_AFB_06,  /* 0x01FE: C2_AUX_AFB_06 NotchQ[6] */
     0,  /* 0x01FF: C2_AUX_AFB_06 spare coeff [20] */
     0,  /* 0x0200: C2_AUX_AFB_06 spare coeff [21] */
     0,  /* 0x0201: C2_AUX_AFB_06 spare coeff [22] */
@@ -7175,26 +7175,26 @@
     _geq_dirty_C2_AUX_GEQ_07,  /* 0x023F: C2_AUX_GEQ_07 GEQ band gain[25] */
     _geq_dirty_C2_AUX_GEQ_07,  /* 0x0240: C2_AUX_GEQ_07 GEQ band gain[26] */
     _geq_dirty_C2_AUX_GEQ_07,  /* 0x0241: C2_AUX_GEQ_07 GEQ band gain[27] */
-    0,  /* 0x0242: C2_AUX_AFB_07 AntiFbOn */
+    _afb_dirty_C2_AUX_AFB_07,  /* 0x0242: C2_AUX_AFB_07 AntiFbOn */
     0,  /* 0x0243: C2_AUX_AFB_07 AntiFbCtrlOn */
-    0,  /* 0x0244: C2_AUX_AFB_07 NotchFreq[1] */
-    0,  /* 0x0245: C2_AUX_AFB_07 NotchFreq[2] */
-    0,  /* 0x0246: C2_AUX_AFB_07 NotchFreq[3] */
-    0,  /* 0x0247: C2_AUX_AFB_07 NotchFreq[4] */
-    0,  /* 0x0248: C2_AUX_AFB_07 NotchFreq[5] */
-    0,  /* 0x0249: C2_AUX_AFB_07 NotchFreq[6] */
-    0,  /* 0x024A: C2_AUX_AFB_07 NotchGain[1] */
-    0,  /* 0x024B: C2_AUX_AFB_07 NotchGain[2] */
-    0,  /* 0x024C: C2_AUX_AFB_07 NotchGain[3] */
-    0,  /* 0x024D: C2_AUX_AFB_07 NotchGain[4] */
-    0,  /* 0x024E: C2_AUX_AFB_07 NotchGain[5] */
-    0,  /* 0x024F: C2_AUX_AFB_07 NotchGain[6] */
-    0,  /* 0x0250: C2_AUX_AFB_07 NotchQ[1] */
-    0,  /* 0x0251: C2_AUX_AFB_07 NotchQ[2] */
-    0,  /* 0x0252: C2_AUX_AFB_07 NotchQ[3] */
-    0,  /* 0x0253: C2_AUX_AFB_07 NotchQ[4] */
-    0,  /* 0x0254: C2_AUX_AFB_07 NotchQ[5] */
-    0,  /* 0x0255: C2_AUX_AFB_07 NotchQ[6] */
+    _afb_dirty_C2_AUX_AFB_07,  /* 0x0244: C2_AUX_AFB_07 NotchFreq[1] */
+    _afb_dirty_C2_AUX_AFB_07,  /* 0x0245: C2_AUX_AFB_07 NotchFreq[2] */
+    _afb_dirty_C2_AUX_AFB_07,  /* 0x0246: C2_AUX_AFB_07 NotchFreq[3] */
+    _afb_dirty_C2_AUX_AFB_07,  /* 0x0247: C2_AUX_AFB_07 NotchFreq[4] */
+    _afb_dirty_C2_AUX_AFB_07,  /* 0x0248: C2_AUX_AFB_07 NotchFreq[5] */
+    _afb_dirty_C2_AUX_AFB_07,  /* 0x0249: C2_AUX_AFB_07 NotchFreq[6] */
+    _afb_dirty_C2_AUX_AFB_07,  /* 0x024A: C2_AUX_AFB_07 NotchGain[1] */
+    _afb_dirty_C2_AUX_AFB_07,  /* 0x024B: C2_AUX_AFB_07 NotchGain[2] */
+    _afb_dirty_C2_AUX_AFB_07,  /* 0x024C: C2_AUX_AFB_07 NotchGain[3] */
+    _afb_dirty_C2_AUX_AFB_07,  /* 0x024D: C2_AUX_AFB_07 NotchGain[4] */
+    _afb_dirty_C2_AUX_AFB_07,  /* 0x024E: C2_AUX_AFB_07 NotchGain[5] */
+    _afb_dirty_C2_AUX_AFB_07,  /* 0x024F: C2_AUX_AFB_07 NotchGain[6] */
+    _afb_dirty_C2_AUX_AFB_07,  /* 0x0250: C2_AUX_AFB_07 NotchQ[1] */
+    _afb_dirty_C2_AUX_AFB_07,  /* 0x0251: C2_AUX_AFB_07 NotchQ[2] */
+    _afb_dirty_C2_AUX_AFB_07,  /* 0x0252: C2_AUX_AFB_07 NotchQ[3] */
+    _afb_dirty_C2_AUX_AFB_07,  /* 0x0253: C2_AUX_AFB_07 NotchQ[4] */
+    _afb_dirty_C2_AUX_AFB_07,  /* 0x0254: C2_AUX_AFB_07 NotchQ[5] */
+    _afb_dirty_C2_AUX_AFB_07,  /* 0x0255: C2_AUX_AFB_07 NotchQ[6] */
     0,  /* 0x0256: C2_AUX_AFB_07 spare coeff [20] */
     0,  /* 0x0257: C2_AUX_AFB_07 spare coeff [21] */
     0,  /* 0x0258: C2_AUX_AFB_07 spare coeff [22] */
@@ -7262,26 +7262,26 @@
     _geq_dirty_C2_AUX_GEQ_08,  /* 0x0296: C2_AUX_GEQ_08 GEQ band gain[25] */
     _geq_dirty_C2_AUX_GEQ_08,  /* 0x0297: C2_AUX_GEQ_08 GEQ band gain[26] */
     _geq_dirty_C2_AUX_GEQ_08,  /* 0x0298: C2_AUX_GEQ_08 GEQ band gain[27] */
-    0,  /* 0x0299: C2_AUX_AFB_08 AntiFbOn */
+    _afb_dirty_C2_AUX_AFB_08,  /* 0x0299: C2_AUX_AFB_08 AntiFbOn */
     0,  /* 0x029A: C2_AUX_AFB_08 AntiFbCtrlOn */
-    0,  /* 0x029B: C2_AUX_AFB_08 NotchFreq[1] */
-    0,  /* 0x029C: C2_AUX_AFB_08 NotchFreq[2] */
-    0,  /* 0x029D: C2_AUX_AFB_08 NotchFreq[3] */
-    0,  /* 0x029E: C2_AUX_AFB_08 NotchFreq[4] */
-    0,  /* 0x029F: C2_AUX_AFB_08 NotchFreq[5] */
-    0,  /* 0x02A0: C2_AUX_AFB_08 NotchFreq[6] */
-    0,  /* 0x02A1: C2_AUX_AFB_08 NotchGain[1] */
-    0,  /* 0x02A2: C2_AUX_AFB_08 NotchGain[2] */
-    0,  /* 0x02A3: C2_AUX_AFB_08 NotchGain[3] */
-    0,  /* 0x02A4: C2_AUX_AFB_08 NotchGain[4] */
-    0,  /* 0x02A5: C2_AUX_AFB_08 NotchGain[5] */
-    0,  /* 0x02A6: C2_AUX_AFB_08 NotchGain[6] */
-    0,  /* 0x02A7: C2_AUX_AFB_08 NotchQ[1] */
-    0,  /* 0x02A8: C2_AUX_AFB_08 NotchQ[2] */
-    0,  /* 0x02A9: C2_AUX_AFB_08 NotchQ[3] */
-    0,  /* 0x02AA: C2_AUX_AFB_08 NotchQ[4] */
-    0,  /* 0x02AB: C2_AUX_AFB_08 NotchQ[5] */
-    0,  /* 0x02AC: C2_AUX_AFB_08 NotchQ[6] */
+    _afb_dirty_C2_AUX_AFB_08,  /* 0x029B: C2_AUX_AFB_08 NotchFreq[1] */
+    _afb_dirty_C2_AUX_AFB_08,  /* 0x029C: C2_AUX_AFB_08 NotchFreq[2] */
+    _afb_dirty_C2_AUX_AFB_08,  /* 0x029D: C2_AUX_AFB_08 NotchFreq[3] */
+    _afb_dirty_C2_AUX_AFB_08,  /* 0x029E: C2_AUX_AFB_08 NotchFreq[4] */
+    _afb_dirty_C2_AUX_AFB_08,  /* 0x029F: C2_AUX_AFB_08 NotchFreq[5] */
+    _afb_dirty_C2_AUX_AFB_08,  /* 0x02A0: C2_AUX_AFB_08 NotchFreq[6] */
+    _afb_dirty_C2_AUX_AFB_08,  /* 0x02A1: C2_AUX_AFB_08 NotchGain[1] */
+    _afb_dirty_C2_AUX_AFB_08,  /* 0x02A2: C2_AUX_AFB_08 NotchGain[2] */
+    _afb_dirty_C2_AUX_AFB_08,  /* 0x02A3: C2_AUX_AFB_08 NotchGain[3] */
+    _afb_dirty_C2_AUX_AFB_08,  /* 0x02A4: C2_AUX_AFB_08 NotchGain[4] */
+    _afb_dirty_C2_AUX_AFB_08,  /* 0x02A5: C2_AUX_AFB_08 NotchGain[5] */
+    _afb_dirty_C2_AUX_AFB_08,  /* 0x02A6: C2_AUX_AFB_08 NotchGain[6] */
+    _afb_dirty_C2_AUX_AFB_08,  /* 0x02A7: C2_AUX_AFB_08 NotchQ[1] */
+    _afb_dirty_C2_AUX_AFB_08,  /* 0x02A8: C2_AUX_AFB_08 NotchQ[2] */
+    _afb_dirty_C2_AUX_AFB_08,  /* 0x02A9: C2_AUX_AFB_08 NotchQ[3] */
+    _afb_dirty_C2_AUX_AFB_08,  /* 0x02AA: C2_AUX_AFB_08 NotchQ[4] */
+    _afb_dirty_C2_AUX_AFB_08,  /* 0x02AB: C2_AUX_AFB_08 NotchQ[5] */
+    _afb_dirty_C2_AUX_AFB_08,  /* 0x02AC: C2_AUX_AFB_08 NotchQ[6] */
     0,  /* 0x02AD: C2_AUX_AFB_08 spare coeff [20] */
     0,  /* 0x02AE: C2_AUX_AFB_08 spare coeff [21] */
     0,  /* 0x02AF: C2_AUX_AFB_08 spare coeff [22] */
@@ -7349,26 +7349,26 @@
     _geq_dirty_C2_AUX_GEQ_09,  /* 0x02ED: C2_AUX_GEQ_09 GEQ band gain[25] */
     _geq_dirty_C2_AUX_GEQ_09,  /* 0x02EE: C2_AUX_GEQ_09 GEQ band gain[26] */
     _geq_dirty_C2_AUX_GEQ_09,  /* 0x02EF: C2_AUX_GEQ_09 GEQ band gain[27] */
-    0,  /* 0x02F0: C2_AUX_AFB_09 AntiFbOn */
+    _afb_dirty_C2_AUX_AFB_09,  /* 0x02F0: C2_AUX_AFB_09 AntiFbOn */
     0,  /* 0x02F1: C2_AUX_AFB_09 AntiFbCtrlOn */
-    0,  /* 0x02F2: C2_AUX_AFB_09 NotchFreq[1] */
-    0,  /* 0x02F3: C2_AUX_AFB_09 NotchFreq[2] */
-    0,  /* 0x02F4: C2_AUX_AFB_09 NotchFreq[3] */
-    0,  /* 0x02F5: C2_AUX_AFB_09 NotchFreq[4] */
-    0,  /* 0x02F6: C2_AUX_AFB_09 NotchFreq[5] */
-    0,  /* 0x02F7: C2_AUX_AFB_09 NotchFreq[6] */
-    0,  /* 0x02F8: C2_AUX_AFB_09 NotchGain[1] */
-    0,  /* 0x02F9: C2_AUX_AFB_09 NotchGain[2] */
-    0,  /* 0x02FA: C2_AUX_AFB_09 NotchGain[3] */
-    0,  /* 0x02FB: C2_AUX_AFB_09 NotchGain[4] */
-    0,  /* 0x02FC: C2_AUX_AFB_09 NotchGain[5] */
-    0,  /* 0x02FD: C2_AUX_AFB_09 NotchGain[6] */
-    0,  /* 0x02FE: C2_AUX_AFB_09 NotchQ[1] */
-    0,  /* 0x02FF: C2_AUX_AFB_09 NotchQ[2] */
-    0,  /* 0x0300: C2_AUX_AFB_09 NotchQ[3] */
-    0,  /* 0x0301: C2_AUX_AFB_09 NotchQ[4] */
-    0,  /* 0x0302: C2_AUX_AFB_09 NotchQ[5] */
-    0,  /* 0x0303: C2_AUX_AFB_09 NotchQ[6] */
+    _afb_dirty_C2_AUX_AFB_09,  /* 0x02F2: C2_AUX_AFB_09 NotchFreq[1] */
+    _afb_dirty_C2_AUX_AFB_09,  /* 0x02F3: C2_AUX_AFB_09 NotchFreq[2] */
+    _afb_dirty_C2_AUX_AFB_09,  /* 0x02F4: C2_AUX_AFB_09 NotchFreq[3] */
+    _afb_dirty_C2_AUX_AFB_09,  /* 0x02F5: C2_AUX_AFB_09 NotchFreq[4] */
+    _afb_dirty_C2_AUX_AFB_09,  /* 0x02F6: C2_AUX_AFB_09 NotchFreq[5] */
+    _afb_dirty_C2_AUX_AFB_09,  /* 0x02F7: C2_AUX_AFB_09 NotchFreq[6] */
+    _afb_dirty_C2_AUX_AFB_09,  /* 0x02F8: C2_AUX_AFB_09 NotchGain[1] */
+    _afb_dirty_C2_AUX_AFB_09,  /* 0x02F9: C2_AUX_AFB_09 NotchGain[2] */
+    _afb_dirty_C2_AUX_AFB_09,  /* 0x02FA: C2_AUX_AFB_09 NotchGain[3] */
+    _afb_dirty_C2_AUX_AFB_09,  /* 0x02FB: C2_AUX_AFB_09 NotchGain[4] */
+    _afb_dirty_C2_AUX_AFB_09,  /* 0x02FC: C2_AUX_AFB_09 NotchGain[5] */
+    _afb_dirty_C2_AUX_AFB_09,  /* 0x02FD: C2_AUX_AFB_09 NotchGain[6] */
+    _afb_dirty_C2_AUX_AFB_09,  /* 0x02FE: C2_AUX_AFB_09 NotchQ[1] */
+    _afb_dirty_C2_AUX_AFB_09,  /* 0x02FF: C2_AUX_AFB_09 NotchQ[2] */
+    _afb_dirty_C2_AUX_AFB_09,  /* 0x0300: C2_AUX_AFB_09 NotchQ[3] */
+    _afb_dirty_C2_AUX_AFB_09,  /* 0x0301: C2_AUX_AFB_09 NotchQ[4] */
+    _afb_dirty_C2_AUX_AFB_09,  /* 0x0302: C2_AUX_AFB_09 NotchQ[5] */
+    _afb_dirty_C2_AUX_AFB_09,  /* 0x0303: C2_AUX_AFB_09 NotchQ[6] */
     0,  /* 0x0304: C2_AUX_AFB_09 spare coeff [20] */
     0,  /* 0x0305: C2_AUX_AFB_09 spare coeff [21] */
     0,  /* 0x0306: C2_AUX_AFB_09 spare coeff [22] */
@@ -7436,26 +7436,26 @@
     _geq_dirty_C2_AUX_GEQ_10,  /* 0x0344: C2_AUX_GEQ_10 GEQ band gain[25] */
     _geq_dirty_C2_AUX_GEQ_10,  /* 0x0345: C2_AUX_GEQ_10 GEQ band gain[26] */
     _geq_dirty_C2_AUX_GEQ_10,  /* 0x0346: C2_AUX_GEQ_10 GEQ band gain[27] */
-    0,  /* 0x0347: C2_AUX_AFB_10 AntiFbOn */
+    _afb_dirty_C2_AUX_AFB_10,  /* 0x0347: C2_AUX_AFB_10 AntiFbOn */
     0,  /* 0x0348: C2_AUX_AFB_10 AntiFbCtrlOn */
-    0,  /* 0x0349: C2_AUX_AFB_10 NotchFreq[1] */
-    0,  /* 0x034A: C2_AUX_AFB_10 NotchFreq[2] */
-    0,  /* 0x034B: C2_AUX_AFB_10 NotchFreq[3] */
-    0,  /* 0x034C: C2_AUX_AFB_10 NotchFreq[4] */
-    0,  /* 0x034D: C2_AUX_AFB_10 NotchFreq[5] */
-    0,  /* 0x034E: C2_AUX_AFB_10 NotchFreq[6] */
-    0,  /* 0x034F: C2_AUX_AFB_10 NotchGain[1] */
-    0,  /* 0x0350: C2_AUX_AFB_10 NotchGain[2] */
-    0,  /* 0x0351: C2_AUX_AFB_10 NotchGain[3] */
-    0,  /* 0x0352: C2_AUX_AFB_10 NotchGain[4] */
-    0,  /* 0x0353: C2_AUX_AFB_10 NotchGain[5] */
-    0,  /* 0x0354: C2_AUX_AFB_10 NotchGain[6] */
-    0,  /* 0x0355: C2_AUX_AFB_10 NotchQ[1] */
-    0,  /* 0x0356: C2_AUX_AFB_10 NotchQ[2] */
-    0,  /* 0x0357: C2_AUX_AFB_10 NotchQ[3] */
-    0,  /* 0x0358: C2_AUX_AFB_10 NotchQ[4] */
-    0,  /* 0x0359: C2_AUX_AFB_10 NotchQ[5] */
-    0,  /* 0x035A: C2_AUX_AFB_10 NotchQ[6] */
+    _afb_dirty_C2_AUX_AFB_10,  /* 0x0349: C2_AUX_AFB_10 NotchFreq[1] */
+    _afb_dirty_C2_AUX_AFB_10,  /* 0x034A: C2_AUX_AFB_10 NotchFreq[2] */
+    _afb_dirty_C2_AUX_AFB_10,  /* 0x034B: C2_AUX_AFB_10 NotchFreq[3] */
+    _afb_dirty_C2_AUX_AFB_10,  /* 0x034C: C2_AUX_AFB_10 NotchFreq[4] */
+    _afb_dirty_C2_AUX_AFB_10,  /* 0x034D: C2_AUX_AFB_10 NotchFreq[5] */
+    _afb_dirty_C2_AUX_AFB_10,  /* 0x034E: C2_AUX_AFB_10 NotchFreq[6] */
+    _afb_dirty_C2_AUX_AFB_10,  /* 0x034F: C2_AUX_AFB_10 NotchGain[1] */
+    _afb_dirty_C2_AUX_AFB_10,  /* 0x0350: C2_AUX_AFB_10 NotchGain[2] */
+    _afb_dirty_C2_AUX_AFB_10,  /* 0x0351: C2_AUX_AFB_10 NotchGain[3] */
+    _afb_dirty_C2_AUX_AFB_10,  /* 0x0352: C2_AUX_AFB_10 NotchGain[4] */
+    _afb_dirty_C2_AUX_AFB_10,  /* 0x0353: C2_AUX_AFB_10 NotchGain[5] */
+    _afb_dirty_C2_AUX_AFB_10,  /* 0x0354: C2_AUX_AFB_10 NotchGain[6] */
+    _afb_dirty_C2_AUX_AFB_10,  /* 0x0355: C2_AUX_AFB_10 NotchQ[1] */
+    _afb_dirty_C2_AUX_AFB_10,  /* 0x0356: C2_AUX_AFB_10 NotchQ[2] */
+    _afb_dirty_C2_AUX_AFB_10,  /* 0x0357: C2_AUX_AFB_10 NotchQ[3] */
+    _afb_dirty_C2_AUX_AFB_10,  /* 0x0358: C2_AUX_AFB_10 NotchQ[4] */
+    _afb_dirty_C2_AUX_AFB_10,  /* 0x0359: C2_AUX_AFB_10 NotchQ[5] */
+    _afb_dirty_C2_AUX_AFB_10,  /* 0x035A: C2_AUX_AFB_10 NotchQ[6] */
     0,  /* 0x035B: C2_AUX_AFB_10 spare coeff [20] */
     0,  /* 0x035C: C2_AUX_AFB_10 spare coeff [21] */
     0,  /* 0x035D: C2_AUX_AFB_10 spare coeff [22] */
@@ -7523,26 +7523,26 @@
     _geq_dirty_C2_AUX_GEQ_11,  /* 0x039B: C2_AUX_GEQ_11 GEQ band gain[25] */
     _geq_dirty_C2_AUX_GEQ_11,  /* 0x039C: C2_AUX_GEQ_11 GEQ band gain[26] */
     _geq_dirty_C2_AUX_GEQ_11,  /* 0x039D: C2_AUX_GEQ_11 GEQ band gain[27] */
-    0,  /* 0x039E: C2_AUX_AFB_11 AntiFbOn */
+    _afb_dirty_C2_AUX_AFB_11,  /* 0x039E: C2_AUX_AFB_11 AntiFbOn */
     0,  /* 0x039F: C2_AUX_AFB_11 AntiFbCtrlOn */
-    0,  /* 0x03A0: C2_AUX_AFB_11 NotchFreq[1] */
-    0,  /* 0x03A1: C2_AUX_AFB_11 NotchFreq[2] */
-    0,  /* 0x03A2: C2_AUX_AFB_11 NotchFreq[3] */
-    0,  /* 0x03A3: C2_AUX_AFB_11 NotchFreq[4] */
-    0,  /* 0x03A4: C2_AUX_AFB_11 NotchFreq[5] */
-    0,  /* 0x03A5: C2_AUX_AFB_11 NotchFreq[6] */
-    0,  /* 0x03A6: C2_AUX_AFB_11 NotchGain[1] */
-    0,  /* 0x03A7: C2_AUX_AFB_11 NotchGain[2] */
-    0,  /* 0x03A8: C2_AUX_AFB_11 NotchGain[3] */
-    0,  /* 0x03A9: C2_AUX_AFB_11 NotchGain[4] */
-    0,  /* 0x03AA: C2_AUX_AFB_11 NotchGain[5] */
-    0,  /* 0x03AB: C2_AUX_AFB_11 NotchGain[6] */
-    0,  /* 0x03AC: C2_AUX_AFB_11 NotchQ[1] */
-    0,  /* 0x03AD: C2_AUX_AFB_11 NotchQ[2] */
-    0,  /* 0x03AE: C2_AUX_AFB_11 NotchQ[3] */
-    0,  /* 0x03AF: C2_AUX_AFB_11 NotchQ[4] */
-    0,  /* 0x03B0: C2_AUX_AFB_11 NotchQ[5] */
-    0,  /* 0x03B1: C2_AUX_AFB_11 NotchQ[6] */
+    _afb_dirty_C2_AUX_AFB_11,  /* 0x03A0: C2_AUX_AFB_11 NotchFreq[1] */
+    _afb_dirty_C2_AUX_AFB_11,  /* 0x03A1: C2_AUX_AFB_11 NotchFreq[2] */
+    _afb_dirty_C2_AUX_AFB_11,  /* 0x03A2: C2_AUX_AFB_11 NotchFreq[3] */
+    _afb_dirty_C2_AUX_AFB_11,  /* 0x03A3: C2_AUX_AFB_11 NotchFreq[4] */
+    _afb_dirty_C2_AUX_AFB_11,  /* 0x03A4: C2_AUX_AFB_11 NotchFreq[5] */
+    _afb_dirty_C2_AUX_AFB_11,  /* 0x03A5: C2_AUX_AFB_11 NotchFreq[6] */
+    _afb_dirty_C2_AUX_AFB_11,  /* 0x03A6: C2_AUX_AFB_11 NotchGain[1] */
+    _afb_dirty_C2_AUX_AFB_11,  /* 0x03A7: C2_AUX_AFB_11 NotchGain[2] */
+    _afb_dirty_C2_AUX_AFB_11,  /* 0x03A8: C2_AUX_AFB_11 NotchGain[3] */
+    _afb_dirty_C2_AUX_AFB_11,  /* 0x03A9: C2_AUX_AFB_11 NotchGain[4] */
+    _afb_dirty_C2_AUX_AFB_11,  /* 0x03AA: C2_AUX_AFB_11 NotchGain[5] */
+    _afb_dirty_C2_AUX_AFB_11,  /* 0x03AB: C2_AUX_AFB_11 NotchGain[6] */
+    _afb_dirty_C2_AUX_AFB_11,  /* 0x03AC: C2_AUX_AFB_11 NotchQ[1] */
+    _afb_dirty_C2_AUX_AFB_11,  /* 0x03AD: C2_AUX_AFB_11 NotchQ[2] */
+    _afb_dirty_C2_AUX_AFB_11,  /* 0x03AE: C2_AUX_AFB_11 NotchQ[3] */
+    _afb_dirty_C2_AUX_AFB_11,  /* 0x03AF: C2_AUX_AFB_11 NotchQ[4] */
+    _afb_dirty_C2_AUX_AFB_11,  /* 0x03B0: C2_AUX_AFB_11 NotchQ[5] */
+    _afb_dirty_C2_AUX_AFB_11,  /* 0x03B1: C2_AUX_AFB_11 NotchQ[6] */
     0,  /* 0x03B2: C2_AUX_AFB_11 spare coeff [20] */
     0,  /* 0x03B3: C2_AUX_AFB_11 spare coeff [21] */
     0,  /* 0x03B4: C2_AUX_AFB_11 spare coeff [22] */
@@ -7610,26 +7610,26 @@
     _geq_dirty_C2_AUX_GEQ_12,  /* 0x03F2: C2_AUX_GEQ_12 GEQ band gain[25] */
     _geq_dirty_C2_AUX_GEQ_12,  /* 0x03F3: C2_AUX_GEQ_12 GEQ band gain[26] */
     _geq_dirty_C2_AUX_GEQ_12,  /* 0x03F4: C2_AUX_GEQ_12 GEQ band gain[27] */
-    0,  /* 0x03F5: C2_AUX_AFB_12 AntiFbOn */
+    _afb_dirty_C2_AUX_AFB_12,  /* 0x03F5: C2_AUX_AFB_12 AntiFbOn */
     0,  /* 0x03F6: C2_AUX_AFB_12 AntiFbCtrlOn */
-    0,  /* 0x03F7: C2_AUX_AFB_12 NotchFreq[1] */
-    0,  /* 0x03F8: C2_AUX_AFB_12 NotchFreq[2] */
-    0,  /* 0x03F9: C2_AUX_AFB_12 NotchFreq[3] */
-    0,  /* 0x03FA: C2_AUX_AFB_12 NotchFreq[4] */
-    0,  /* 0x03FB: C2_AUX_AFB_12 NotchFreq[5] */
-    0,  /* 0x03FC: C2_AUX_AFB_12 NotchFreq[6] */
-    0,  /* 0x03FD: C2_AUX_AFB_12 NotchGain[1] */
-    0,  /* 0x03FE: C2_AUX_AFB_12 NotchGain[2] */
-    0,  /* 0x03FF: C2_AUX_AFB_12 NotchGain[3] */
-    0,  /* 0x0400: C2_AUX_AFB_12 NotchGain[4] */
-    0,  /* 0x0401: C2_AUX_AFB_12 NotchGain[5] */
-    0,  /* 0x0402: C2_AUX_AFB_12 NotchGain[6] */
-    0,  /* 0x0403: C2_AUX_AFB_12 NotchQ[1] */
-    0,  /* 0x0404: C2_AUX_AFB_12 NotchQ[2] */
-    0,  /* 0x0405: C2_AUX_AFB_12 NotchQ[3] */
-    0,  /* 0x0406: C2_AUX_AFB_12 NotchQ[4] */
-    0,  /* 0x0407: C2_AUX_AFB_12 NotchQ[5] */
-    0,  /* 0x0408: C2_AUX_AFB_12 NotchQ[6] */
+    _afb_dirty_C2_AUX_AFB_12,  /* 0x03F7: C2_AUX_AFB_12 NotchFreq[1] */
+    _afb_dirty_C2_AUX_AFB_12,  /* 0x03F8: C2_AUX_AFB_12 NotchFreq[2] */
+    _afb_dirty_C2_AUX_AFB_12,  /* 0x03F9: C2_AUX_AFB_12 NotchFreq[3] */
+    _afb_dirty_C2_AUX_AFB_12,  /* 0x03FA: C2_AUX_AFB_12 NotchFreq[4] */
+    _afb_dirty_C2_AUX_AFB_12,  /* 0x03FB: C2_AUX_AFB_12 NotchFreq[5] */
+    _afb_dirty_C2_AUX_AFB_12,  /* 0x03FC: C2_AUX_AFB_12 NotchFreq[6] */
+    _afb_dirty_C2_AUX_AFB_12,  /* 0x03FD: C2_AUX_AFB_12 NotchGain[1] */
+    _afb_dirty_C2_AUX_AFB_12,  /* 0x03FE: C2_AUX_AFB_12 NotchGain[2] */
+    _afb_dirty_C2_AUX_AFB_12,  /* 0x03FF: C2_AUX_AFB_12 NotchGain[3] */
+    _afb_dirty_C2_AUX_AFB_12,  /* 0x0400: C2_AUX_AFB_12 NotchGain[4] */
+    _afb_dirty_C2_AUX_AFB_12,  /* 0x0401: C2_AUX_AFB_12 NotchGain[5] */
+    _afb_dirty_C2_AUX_AFB_12,  /* 0x0402: C2_AUX_AFB_12 NotchGain[6] */
+    _afb_dirty_C2_AUX_AFB_12,  /* 0x0403: C2_AUX_AFB_12 NotchQ[1] */
+    _afb_dirty_C2_AUX_AFB_12,  /* 0x0404: C2_AUX_AFB_12 NotchQ[2] */
+    _afb_dirty_C2_AUX_AFB_12,  /* 0x0405: C2_AUX_AFB_12 NotchQ[3] */
+    _afb_dirty_C2_AUX_AFB_12,  /* 0x0406: C2_AUX_AFB_12 NotchQ[4] */
+    _afb_dirty_C2_AUX_AFB_12,  /* 0x0407: C2_AUX_AFB_12 NotchQ[5] */
+    _afb_dirty_C2_AUX_AFB_12,  /* 0x0408: C2_AUX_AFB_12 NotchQ[6] */
     0,  /* 0x0409: C2_AUX_AFB_12 spare coeff [20] */
     0,  /* 0x040A: C2_AUX_AFB_12 spare coeff [21] */
     0,  /* 0x040B: C2_AUX_AFB_12 spare coeff [22] */

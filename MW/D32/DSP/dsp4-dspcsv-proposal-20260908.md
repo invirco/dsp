@@ -263,3 +263,112 @@ No bench, by dispatch. `busgold` and `conform` were not run. `MW/D24/MX/_matrix.
 was **not** backfilled with DSP columns — D24's addresses live in the proposal
 only, and backfilling them belongs with the hub landing the file (S2), not
 ahead of it.
+
+---
+
+# Amendment, 2026-09-08 (session 29): `CrossoverSlope`, and the 31-band GEQ
+
+Two rows came out of the inert-families pass. This section is the
+proposal for both; `MW/D32/DSP/gen_dsp.py` is what changes, and the
+regenerated `proposals/defs/products/{d24,d32}/dsp.csv` is the artifact
+the hub lands.
+
+## A. `CrossoverSlope` — one word, and it is free
+
+**The defect.** `MainCtr`, `MainL`, `MainR` and `MainSub` each carry a
+`CrossoverFreq` AND a `CrossoverSlope`, and **all eight resolve to
+0x0575**. The contract's own note says "shared crossover word". Measured
+on the part 2026-09-08: writing 500 Hz and then a slope left
+`0x00000018` — the integer 24 — sitting where a frequency belongs. The
+kernel ignores an out-of-domain word rather than clamping it, so the
+split stays where the last legal frequency put it and **the slope is not
+settable at all**.
+
+**ONE SHARED WORD, NOT ONE PER STRIP, and the crossover design is why.**
+There is a single `CROSSOVER` node in this graph — `C2_MAIN_XOVER` —
+feeding all four main outputs from one LP/HP split. The four
+`CrossoverFreq` cells already alias one word for exactly that reason. A
+slope that differed per strip would ask one filter pair to have two
+orders at once; the four `CrossoverSlope` cells alias the one slope word
+the same way, and the notes column should say so in the same words.
+
+**THE ADDRESS IS `base + 1` = 0x0576, AND NOTHING ELSE MOVES.** The
+crossover node's dispatch block is *nominally* twenty-four words but the
+node only owns **four**: `C2_MAIN_XOVER` sits at 1397 and
+`C2_MAIN_OEQ_01` at 1401, so the expander's `base+4 .. base+23` are
+overwritten by the EQ that follows (that overlap is real and is filed as
+S4-9). What the crossover actually holds is 0x0575–0x0578, of which
+0x0576, 0x0577 and 0x0578 dispatch to nothing today — a write to one
+raises an SPI error. The slope takes 0x0576. No address in either
+product moves; the row count does not change; both files' round-trip and
+the `rows(dsp.csv) + rows(dsp-unmapped.csv) == cells()` invariant hold as
+they stand.
+
+```
+MainCtr001CrossoverSlope001,C2_MAIN_XOVER,CROSSOVER,2,1,1398,0x0576,rw,
+    InstantCtl,Instant,0,0,Linear,Scalar,0=6/3=24/[Lin],shared crossover slope
+                                    (and the same for MainL / MainR / MainSub)
+```
+
+**LAND IT WITH THE DESIGN, NOT BEFORE IT.** An address that the DSP does
+not read is the disease this whole session has been unpicking — three
+families whose parameters landed perfectly at symbols nothing consumed.
+The DSP side is small and is specified here so the two can land
+together:
+
+| slope | what it is | what the node can do |
+|---:|---|---|
+| 24 | LR4 — two cascaded Butterworth sections, Q = 1/√2 | **shipping today**; both stages of a path identical |
+| 12 | LR2 — one 2nd-order section, Q = 0.5 | the SAME five offset formulas with `1/(2Q)` at 1.0 instead of 0.7071, and the second stage of each path written as the compiled identity |
+| 6 | 1st-order | expressible, but it is not a Linkwitz-Riley alignment: each path is 3 dB down at the corner, not 6, which is a different acoustic contract from the one the product ships |
+| 18 | 3rd-order | not a Linkwitz-Riley alignment at any order; the LP+HP sum is not flat |
+
+So 12 and 24 are honoured and 6 and 18 are **ignored, not clamped** —
+the rule the frequency domain already uses, for the same reason. The
+whole DSP change is a choice of one constant and whether the second
+stage of each path is a copy or the identity; `xover_ref.py` gains the
+same switch and `xoververify.sh` scores both slopes at every corner.
+
+## B. The 31-band GEQ — the cells exist, the address space does not
+
+`defs-v2026.09.08.3` lands `Geq[1-31]` for Aux/Main/Grp in the cell
+master (D24 4,946 → 4,985 cells, fingerprint `3d41d5850df3`). **It does
+not add DSP addresses, and it could not have.**
+
+`defs/products/<p>/dsp.csv` is generated from the DSP4 node graph, and
+in that graph **a GEQ node's address block is exactly its band count**:
+
+```
+   28  C2_AUX_GEQ_01   GEQ        <- 28 words
+   56  C2_AUX_AFB_01   ANTI_FB    <- starts immediately after
+   80  C2_AUX_LIM_01   LIMITER
+```
+
+There is no slack. Three more bands per GEQ node is **+3 words on
+seventeen nodes = +51 words on chip 2**, and because the blocks are
+packed end to end, **every chip-2 address above 28 moves.** That is not
+a row; it is a re-layout of the chip-2 map, and it invalidates every
+cached address in every host that has one.
+
+It is also not free in cycles. Each GEQ node gains three biquad stages
+in a cascade that runs unconditionally every block, on seventeen nodes —
+and chip 2's margin with the FX reverb running is now measured at
+**5.98 %** (`dsp4-fx-afb-20260908.md` §0). The 31-band graph can be
+generated today (`gen_dsp_csv.py --geq-bands 31`) and measured by
+`sigprofile2.sh` through `DSP_CSV`; **that measurement is the gate on
+this change, and it was not taken in this session.**
+
+What this repo can say now:
+
+* the design is already band-count generic and is checked at all 31 ISO
+  bands in `geq_ref` (`f_i = 1000·10^((i−17)/10)`, 19.95 Hz – 19,953 Hz);
+* `dsp_codegen.py` emits `_geq_band_<N>` for whatever band counts the
+  graph instantiates, so the tables follow the graph with no edit;
+* nothing else in the DSP needs to change.
+
+**The proposal is therefore a sequence, not a row**: (1) measure the
+31-band graph at block 16 against the shipping one on one instrument in
+one session; (2) if it fits, regenerate the graph at `--geq-bands 31`
+and let `gen_dsp.py` re-lay the chip-2 map; (3) land the resulting
+`dsp.csv` at a gate, with the address move called out, because it is the
+first time this contract has moved an address rather than added one.

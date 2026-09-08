@@ -6,6 +6,286 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## FX engine and anti-feedback (2026-09-08, session 29)
+
+Session: the queued FX/ANTI_FB block. Write-up:
+`MW/D32/DSP/dsp4-fx-afb-20260908.md`. Images: shipping float
+configuration, chip1 `85af9dce` / chip2 `bcdbe1f0`; the block-16
+measurement tree is chip1 `160d8863` / chip2 `02e38fa8`.
+
+### S4-1 — chip 2's margin with the FX reverb running is 5.98 %, measured
+
+**Severity: major (capacity, PW's #1 priority). Status: measured, and it
+replaces the projection.**
+
+`fxcost.sh`, whole chip-2 graph, block 16, two boots, minimum, paired on
+one boot with a restore-and-re-read control:
+
+| arm | cycles/block | % of 327,680 |
+|---|---:|---:|
+| six engines at the landed default (Type 0, unimplemented, dry) | 249,231 | 76.06 % |
+| six engines at Type 3 = Reverb | 308,076 | **94.02 %** |
+| difference | **+58,845** | +17.96 % |
+
+Control (restore − default): **+93** and **+10** cycles on the two
+boots, against a delta of 58,845. The 09-08 projection was ≈ +56,300 and
+≈ 93.6 %: **sound and 4.5 % optimistic.** On the FIXED tree, where the
+default is a real Echo, the same measurement is **305,259 = 93.16 %,
+margin 6.84 %** — see S4-6. **Either way it is under ten per cent, which
+is the sentence the dispatch asked for.**
+
+### S4-2 — the FX engine destroyed its own dry input, in every algorithm
+
+**Severity: major. Status: FIXED and verified on the part.**
+
+`f15` holds the dry sample; every algorithm advanced its delay-line
+cursor with `r15 = 1; r1 = r1 + r15`, and `r15` IS `f15`. The saved dry
+signal became the integer 1 — as float32, 1.4e-45 — so the mix
+epilogue's `f1 = f15 * f8` multiplied the dry path by zero, and the
+reverb's comb loop fed the input to the FIRST comb and denormal noise to
+the other seven.
+
+**It looked like a working pass-through** because Type 0, the landed
+default, fell through to `.fx_passthru_` — the one path in the node that
+touches no integer scratch, so the dry survived there and nowhere else.
+Every increment is `r1 = r1 + 1` now: one instruction instead of two,
+and it does not alias a float.
+
+### S4-3 — and its write pointer, with the sample it had just read
+
+**Severity: critical (it wedges the part). Status: FIXED and verified.**
+
+`f1 = dm(_fx_feedback_)` in ECHO / PING-PONG / FLANGER, and
+`f1 = dm(i0, 0)` in the reverb's comb and allpass loops, both overwrite
+`r1` — the write pointer — with a float.
+
+* In ECHO the pointer became the feedback coefficient's bits. At the
+  landed feedback of 0.0 that is `0x00000000`, so **every sample was
+  written to `buf[0]`, the cursor stuck at 1, and the tap read a part of
+  the line nothing had ever written**. Measured: Type 0, Mix 1.0, delay
+  240 — peak **0.000000** over 1024 samples.
+* In the REVERB the clobbering value is AUDIO. A float32 sample's bits
+  are about 1e9, and the loop stores that back into
+  `_fx_rv_comb_wptrs` and uses it as an offset next block: **every comb
+  wrote at `comb_buf + 1e9` and the SPI link stopped answering.**
+
+**S4-2 HID IT.** While the dry input was being destroyed the comb lines
+held only zeros, whose bits are `0x00000000` — a pointer of zero, in
+range, every block. **The reverb could not crash because it could not
+carry a sample.** Fixing S4-2 made it carry one and it wedged the bench
+on the first capture. The delayed sample lives in `f9` now, and the bar
+reads all eight write pointers off the part and checks they are inside
+their own lines.
+
+### S4-4 — three more FX defects, all in the generator
+
+**Severity: major. Status: all FIXED.**
+
+1. **No L register.** `_C2_FX_ENG_NN_process` used `modify(i0, m0)` on
+   four buffers and post-modify on four table walks and set no length
+   register — alone among every kernel in this tree. It survived only
+   because `C_RUNTIME_INIT` zeroes `l0..l15` and nothing on chip 2
+   writes one; the chip-1 DLY nodes DO, D70 measured the boot kernel
+   leaving `l6 = l7 = 0x2FF`, and both ISRs run on the secondary DAG.
+2. **Doubling read 720 samples out of an eight-word buffer** with a wrap
+   of 8 — 711 words before the array. The line is 12,000 words (250 ms)
+   now and the Echo delay is CLAMPED into it: the contract's 1000 ms is
+   48,000 samples, six engines of that is 1.15 MB, and 364 kB were free.
+   **It costs nothing net** — `_fx_comb_buf_R` and `_fx_allpass_buf_R`
+   were allocated at full size (12,587 words an engine, 75,522 across
+   the six) and **no emitted instruction read or wrote either**. The
+   delay pool goes 1,708,216 → **1,694,112 bytes**.
+3. **`_buf_L` carried float32 while `_buf_` carried Q4.28** — the store
+   ran before the fixed-point conversion. Nothing reads either (checked
+   across all 724 assembly files); both now carry the published word.
+
+### S4-5 — the landed default was not an algorithm, and the fall-through was silent
+
+**Severity: major. Status: FIXED and verified.**
+
+`_fx_type` boots at 0 = Echo and the reverb class emitted no Echo case,
+so the default fell through dry — **which is the state every capacity
+number since 09-03 was measured in**. Echo is implemented; Types 1, 4, 5
+and 6 now take an EXPLICIT bypass that parks the Type in
+`_fx_bypassed_<nid>`, because a silent fall-through is
+indistinguishable on a capture from an engine that ran and had nothing
+to do, and that is how this went four sessions unnoticed.
+
+The node header has always printed `/* Default type: Reverb */` — the
+graph declares `type=Reverb` — while the `.var` was hardcoded to 0.
+`DSP4_FX_TYPE_DECLARED=1` boots at the declared Type. **It is a flag and
+not the default because of what it costs (S4-1), and which Type ships is
+a capacity decision.**
+
+### S4-6 — what each FX algorithm costs at block 16
+
+**Severity: informational (capacity). Status: measured.**
+
+Same instrument, on the fixed tree, against the explicit bypass:
+
+| six engines at | cycles/block | % of 327,680 | over the bypass |
+|---|---:|---:|---:|
+| explicit bypass | 251,322 | 76.70 % | — |
+| Echo (the landed default) | 256,359 | 78.23 % | +5,037 |
+| Doubling | 254,833 | 77.77 % | +3,511 |
+| Reverb | 305,259 | **93.16 %** | +53,937 |
+
+**Making the engine honest costs the shipping image +7,128 cycles/block,
+2.18 % of budget** — 76.06 % → 78.23 %, margin 23.94 % → 21.77 %. About
+5,000 of that is Echo running and about 2,100 is the L-register
+initialisation and the bypass book-keeping.
+
+### S4-7 — a 32-sample window cannot see a reverb, and that is half of "peak zero"
+
+**Severity: minor (instrument). Status: fixed in the bar.**
+
+The Freeverb comb lengths are 1116–1617 samples and there is no direct
+path from input to output — the wet signal IS the comb read — so the
+first reverberant sample arrives 1116 samples after the impulse. The
+2026-09-08 family walk scored `FX_ENGINE` over a **32-sample** window
+and the scope buffer is 1024. **A window thirty-five times too short
+cannot see a reverb even when the reverb is perfect.** `fxverify.sh`
+drives a step and arms twice a handshake apart, fetching only the second
+window: the fetch is the slow part, and half a second of rest is 24,000
+samples, by which time a comb with 0.6 of feedback has been round its
+line fifteen times.
+
+### S4-8 — ANTI_FB: the parameters landed, the switch was unread, nothing designed
+
+**Severity: major (it was the family walk's only FAIL). Status: FIXED
+and verified on the part.**
+
+The GEQ's disease on a third node. Eighteen parameter addresses always
+dispatched to the right symbols — 1000.0 Hz, −18.0 dB and Q 4.0 read
+back off the part — and nothing turned them into coefficients;
+`_afb_on` took its write and was read by no emitted line.
+
+The design is on the DSP (`src/lib/afb_design_fx.asm`, modelled by
+`tools/dsp/afb_ref.py`), because eighteen addresses cannot also carry
+thirty coefficient words and a swap trigger. **A notch here is RBJ
+PEAKING at negative gain**: `AntiFbNotchGain`'s domain is
+`0=-18/127=0`, so the depth IS the parameter, and a textbook notch has
+no depth parameter. Nothing is a per-notch constant — frequency and Q
+both move — so `sin w0` and `1 − cos w0` are computed on the part over
+x ∈ [0.00524, π/2], the versine from its own degree-5 fit in x² because
+at 40 Hz `1 − cos x` is 1.4e-5 against a cosine of 0.9999863.
+
+`afbverify.sh`: worst **4 ulp** over five parameter vectors, response
+worst **0.00009 dB** against a 0.05 bar, 1 kHz Q 8 at −18 dB measured
+**−18.000 dB** against a model of −18.000, and both negative controls —
+`AntiFbOn = 0` with six real notches written, and On with every gain at
+0 dB — **64/64 samples equal to the input**. **`ANTI_FB` moves from the
+family walk's only FAIL to PASS.**
+
+**`AntiFbCtrlOn` is still read by nothing, deliberately.** It enables an
+automatic feedback detector and no detector exists in this firmware;
+wiring it to the design would make an empty switch look implemented. It
+is not in the recompute run, and the kernel and the write-up both say
+so.
+
+### S4-12 — the family walk's own stimulus stops reaching its own captures
+
+**Severity: major (it is the coverage instrument). Status: OPEN, with a
+named next step.**
+
+`famverify.sh` on this image reads `audio SILENT` for `GEQ`,
+`CROSSOVER`, `ANTI_FB`, `FX_ENGINE`, `ROUTING`, `LIMITER` and
+`TUBE_SAT`. Scored by `hw_coverage.py` with the four dedicated bars
+given as external verdicts, the previous session's golden is **17 of 20
+families / 3,580 of 3,698 cells** and this session is **7 of 20 / 753**.
+
+**It is reproducible and it is not the graph.** Two independent runs,
+each with its own boot and config ladder, produced family-for-family
+identical verdicts. On the SAME image: `afbverify.sh` drives the SAME
+injection symbol (`_rx_ic_slot_C2_RECV_AUX_01`) into the SAME aux chain
+and reads 64/64 samples equal to the input plus a −18.000 dB notch;
+`fxverify.sh` reads a 0.500000 impulse through the FX chain; `busgold.sh`
+is **bit-exact over 256 bus words**. A capture that carries no stimulus
+is not a verdict about a node, so **this session's family count is not
+restated as progress and is not usable as a regression either.**
+
+Next step: diff the walk's inject/arm/capture ordering and its setup
+writes against `dsp4_afb_verify.py`, which reaches the same nodes
+through the same symbol on the same image and does not go silent. The
+strip-1 `CFG_COMMIT` repair (`gainfix.py`) is the first suspect — a
+chain whose input gain is 0 is silent all the way down, and `busgold.sh`
+logged strip 1 at `0x00000000` and repaired it in this same session.
+
+### S4-9 — the CROSSOVER node's dispatch block overlaps the EQ that follows it
+
+**Severity: minor, and it is what makes the slope proposal free. Status:
+recorded, not changed.**
+
+`expand_crossover` claims `base+0 .. base+23` — twenty-four words — but
+`C2_MAIN_XOVER` sits at 1397 and `C2_MAIN_OEQ_01` at **1401**. Because
+`expand_eq_biquad` runs later and `add_dispatch` is a dict assignment,
+the EQ silently wins from `base+4` on. The crossover actually owns
+**four** words, of which 0x0576–0x0578 dispatch to nothing.
+
+Nothing is broken by it today — a write to an unmapped address raises an
+SPI error, which is the correct answer — and it is what lets
+`CrossoverSlope` take 0x0576 with no address anywhere moving. It is
+recorded because a node whose expander claims six times the space it has
+is a trap for the next person who adds a parameter to it.
+
+### S4-10 — `defs-v2026.09.08.3` cannot be consumed: the cells landed without their unmapped rows
+
+**Severity: major (it blocks the 31-band GEQ). Status: OPEN, and it is
+the hub's.**
+
+The tag lands `Geq[1-31]` in the cell master (D24 4,946 → 4,985,
+fingerprint `3d41d5850df3`) and **touches `products/<p>/` not at all**.
+The pin was advanced here and reverted, for two errors in sequence:
+
+```
+ERROR: cell 'Aux001Geq029' (Aux/Geq) reaches no DSP address and
+       _UNMAPPED_REASONS in gen_dsp.py does not say why.
+ERROR: d24/dsp-unmapped.csv cell set disagrees with the graph —
+       39 the graph proposes and the landed file lacks
+```
+
+**The first is this repo's and is fixed here**: `GEQ_BANDS` is one
+constant that both the expander and the reason read, and the reason
+matches on the BAND NUMBER rather than the family, so a band inside
+1–28 that ever stopped reaching an address would still stop the
+generator — which a family-wide `('Aux', 'Geq')` entry would have
+hidden.
+
+**The second is not.** `products/<p>/dsp-unmapped.csv` is a landed file;
+39 D24 cells (51 on D32) were added to the master without the rows that
+account for them, and this repo cannot write them — `check_proposal()`
+runs BEFORE `--propose`, so once the graph and the landed file disagree
+the generator will not emit the proposal that would close the gap
+either. **`defs-v2026.09.08.3` needs `products/{d24,d32}/
+dsp-unmapped.csv` regenerated and landed with it.** Until then the pin
+stays at `.2` and `Aux001Geq029..031` cannot be proved on the part
+because they have no address to write.
+
+### S4-11 — `CrossoverSlope` has an address to go to, and it is free
+
+**Severity: major (a product control that does nothing). Status:
+PROPOSED; prototyped and reverted at the contract boundary.**
+
+Eight cells resolve to 0x0575. The proposal is **0x0576** — a word the
+crossover node already owns and nothing dispatches to (S4-9) — so **no
+address in either product moves and no row count changes**. **ONE shared
+slope word, not one per strip**: there is a single `CROSSOVER` node
+feeding all four main outputs from one LP/HP split, which is why the
+four `CrossoverFreq` cells already share one word.
+
+The DSP side is specified with it rather than after it: **12 (LR2) and
+24 (LR4) are honoured** — the same five offset expressions with `1/(2Q)`
+at 1.0 instead of 0.70711 and the second stage of each path written as
+the compiled identity — and **6 and 18 are ignored, not clamped**,
+because a 1st-order pair is 3 dB down at the corner rather than 6 and a
+3rd-order pair does not sum flat, so neither is a Linkwitz-Riley
+alignment this node can hold. `xover_ref.py` carries and checks both
+(each path 6.0206 dB down at either slope).
+
+It was implemented and then reverted **because `check_proposal()`
+refused it**, which is the propose/land boundary working exactly as
+designed: the address and the design land together, at a gate.
+
 ## the four inert families (2026-09-08, later)
 
 Session: the queued INERT-families block. Write-up:
