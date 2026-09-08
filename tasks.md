@@ -1,3 +1,88 @@
+## HUB DISPATCH 2026-09-08 21:06Z — FX_ENGINE cost measured at block 16, its L-register/buffer defects fixed and the default Type made real; ANTI_FB made real; CrossoverSlope dsp.csv proposal; 31-band GEQ consumed from defs; PI_TDM8 bitstream + latency figure   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+FX_ENGINE cost MEASURED at block 16 (the 93.6 % projection settled), its L-register and buffer defects fixed and the default Type made real; ANTI_FB made real the way the GEQ was; the CrossoverSlope dsp.csv defect proposed; 31-band GEQ consumed from defs; then the PI_TDM8 bitstream and the latency figure
+
+WHY. The inert-families pass (dsp 303d6a9) made the GEQ and the main
+crossover process on the part and confirmed the 09-03 capacity numbers for
+every family EXCEPT one: FX_ENGINE has never run in any measurement (its
+default Type 0 = Echo is unimplemented and falls through dry). Type 3 on six
+engines measured +28,171 cycles/block at block 8, which PROJECTS to ≈ +56,300
+at block 16 = chip 2 at ≈ 93.6 %, margin ≈ 6.4 %. PW's #1 priority is
+capacity-fit in one 21564 per chip with no PCB change; a projection is not a
+number. Two defs asks came out of the pass: the four CrossoverSlope cells
+share the word with their CrossoverFreq (all eight at 0x0575) — that is a
+dsp.csv row, dsp proposes and the hub lands; and the market-bar 31-band GEQ
+needs three more cells per GEQ node — the hub is landing `Geq[1-31]` for
+Aux/Main/Grp in the defs cell master today (tag defs-v2026.09.08.3 when it
+appears; the D24 fingerprint changes and that is expected — it lands in the
+rev C reconciliation window, PW-gated).
+
+BENCH. Rev C unit (MW-D24-2, app@192.168.1.219) as the last session left
+it: matrix-app active, `dtoverlay=dsp4-pcm-slave` untouched, shipping
+bitstream `dsp4_logic.a1f6672af6c3` (which has NO Pi capture path), scratch
+probes removed. Leave the unit as found at the end of every gate that
+touches it, state both image hashes at start and end. Rev A show model is
+never touched. No AI attribution in commits or any work product.
+
+GATES, in order, each witnessed:
+1. **FX_ENGINE at block 16, measured.** One `sigprofile2` arm exactly as
+   the 09-03 fit numbers were taken (whole chip-2 graph, block 16, two
+   boots, minimum) with Type 3 on all six engines, against the same arm with
+   the engines at their landed default. Report cycles/block and % of budget
+   for both, the delta, and the resulting chip-2 margin. This number
+   replaces the projection in the write-up and in the capacity record. If
+   the margin is under 10 %, say so in the status line's first sentence.
+2. **FX_ENGINE made honest.** (a) `_C2_FX_ENG_01_process` sets no L
+   register before its `modify(i0, m0)` on the comb buffers — fix as every
+   other kernel does (`l0 = 0`), then prove the FX chain carries the impulse
+   at Type 3 (pass 4's family walk read peak zero on both arms). (b)
+   Doubling reads a 720-sample delay from an eight-word buffer — size the
+   buffer from the design or bound the delay, and say which and why. (c)
+   Types 0/1/4/5/6 fall through dry: implement Echo (the landed DEFAULT must
+   process, not fall through) and Doubling with real buffers; for the rest,
+   either implement or make the fall-through an EXPLICIT bypass that the
+   family walk can see, and list which Types remain unimplemented. Cost
+   each implemented Type at block 16 the same way as gate 1.
+3. **ANTI_FB made real** — the GEQ's fix applied to the notch bank: notch
+   freq/gain/Q and `_afb_on`/`_afb_ctrl_on` land correctly and are read by
+   nothing. Reference model in `tools/dsp/` (RBJ notch, checked against
+   `bq_float_ref` as the GEQ was), design on the DSP with cancellation-free
+   offset words, generated tables, generated dirty trigger; verify on the
+   part (coefficients within 4 ulp of the model, response at the notch
+   within 0.05 dB, the negative control that a notch OFF passes its input
+   word for word), then the family walk must move ANTI_FB from FAIL to
+   PASS. Cost at block 16.
+4. **dsp.csv proposal — CrossoverSlope.** Propose, in the proposal path the
+   09-08 ruling set (dsp proposes, hub lands in defs), a distinct DspAdd for
+   the slope so that MainCtr/L/R/Sub CrossoverSlope is a real word. State
+   whether one shared slope word or one per strip, and why, from the
+   crossover design (LR4 today; the cell's table says 6/12/18/24 dB/oct).
+   Then, when defs-v2026.09.08.3 is visible (`git -C defs fetch --tags`),
+   advance the submodule, consume the 31-band rows, and prove
+   `Aux001Geq029..031` on the part with the same instrument as bands 1–28.
+   If the tag is not there when you reach this gate, propose the three rows
+   per node in dsp.csv from the cell names and continue.
+5. **The latency figure.** Build a PI_TDM8 bitstream from the current slot
+   map with the FIXED `shared/dsp4-logic/build.sh` (every macro in the
+   hash, manifest records the config line and `pi_link:`), flash it, and
+   run the duplex loop at 48 kHz ONLY (the Pi link is 48 kHz whatever ALSA
+   is told — refuse other rates in the harness). Report the round-trip
+   latency in samples and ms, the sample-order check re-run on this known
+   bitstream, and the bitstream hash + manifest line. Reflash the shipping
+   bitstream before finishing unless the TDM8 build is strictly a superset
+   and you say so.
+6. Write-up `MW/D32/DSP/dsp4-fx-afb-20260908.md`, findings S4-*, famverify
+   count restated, tasks.md, this block's status; commit + push main.
+
+Bounded: gates 1–3 are the session; 4–5 if time remains, else stated as
+not done with the reason.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-08 18:54Z — the four INERT families (ANTI_FB, GEQ, CROSSOVER, FX_ENGINE — 646 cells answer every address and process NOTHING): stub, bypass, or empty tables? — and what that does to the capacity numbers; GEQ first (market bar); then the sample-order probe for a latency figure   [status: 🟡 partial — **THE GRAPHIC EQ AND THE MAIN CROSSOVER NOW PROCESS, THE 09-03 CAPACITY NUMBERS STAND, AND THE SAMPLE-ORDER FINDING IS WITHDRAWN RATHER THAN EXPLAINED.** Image chip1 **a6db2a8b** / chip2 **8e42f2b0**. Write-up `MW/D32/DSP/dsp4-inert-families-20260908.md`; findings S3-1..S3-12. **THE FOUR FAMILIES HAD FOUR DIFFERENT DISEASES and calling them all inert hid that.** Each answered mechanically, not from source: every one is ENTERED and WRITES its buffer (each copies its input block before filtering, and all four read 32/32 words equal to their upstream node at peak 0x08000000 — a routine that never ran could not do that), and FX_ENGINE's entry is proved by cycles instead (+28,171 cycles/block when Type goes 0→3 on six engines). **GEQ — FIXED AND VERIFIED ON THE PART.** The contract gives one address per band carrying a GAIN IN dB (`Aux001Geq001..028`, Table 0=-12/127=12); `gen_dsp.py:579` pointed all 28 at `_geq_coeffs_next`, a 140-word coefficient array, one word per band, with no swap trigger — the comment on that same loop has said `gains[28]` since it was written. `_geq_gains[]` was written by nothing and read by nothing; the ACTIVE bank never moved off its compiled identity. **28 addresses cannot carry 140 coefficients plus a trigger, so the design belongs on the DSP**: `tools/dsp/geq_ref.py` (NORMATIVE — ISO R.40 third-octave centres anchored at 1 kHz, so 31 bands are the 20 Hz–20 kHz market bar; exact constant-Q 4.3185; RBJ peaking; checked against `bq_float_ref.rbj_peak` to 2.2e-16), `src/lib/geq_design_fx.asm`, `src/geq_tables.asm` GENERATED from the model, and a GENERATED `_spi_dispatch_cN_dirty[]` — the trigger the contract has no address for. **On the part: coefficients within 3 ulp of the model over five gain vectors, response within 0.00014 dB against a 0.01 dB bar, and band 17 at +12 dB measures +11.997 dB at 1 kHz against a model of +12.000** (250 Hz +0.060 vs +0.061; 4 kHz +0.058 vs +0.058). A flat GEQ designs the TRIVIAL identity, not the cancelling one, so an untouched graphic EQ still passes its input word for word — 64/64 samples. **THE READABLE DESIGN ROUTE IS WRONG AND WOULD NOT LOOK IT**: `c1 = 2 + a1` at 20 Hz subtracts two near-equal float32 numbers and comes out two percent wrong, which is exactly the error the offset encoding exists to remove; both kernels compute the offset words from cancellation-free expressions with the small quantity as a generation-time constant. **A REGISTER ALIAS COST A BENCH ROUND AND IS RECORDED**: the band counter in r12 and the reciprocal in f12 are the SAME SHARC register, so the loop walked off the array — and it did not look like corruption, because all 140 words were perfect and everything the overrun touched is rewritten every block EXCEPT `_geq_active`, which took n1 = 2.0f and made the cascade run the bank the design had not gone into. A correct coefficient set in the wrong bank is indistinguishable from no design at all. **CROSSOVER — FIXED AND VERIFIED.** Same shape. `tools/dsp/xover_ref.py` (Linkwitz-Riley 4, checked against RBJ written out AND against the two properties that make it a crossover) + `src/lib/xover_design_fx.asm`, with `1 - cos x` from its own series because over 50–500 Hz cos x is 0.9979–0.99998. **At 50/80/120/250/500 Hz: staged coefficients within 3 ulp, the live bank equal to the staged one WORD FOR WORD, every corner reading LP −6.021 dB / HP −6.021 dB, and LP+HP summing flat to 0.00013 dB over ±4 octaves**; audio at f0 120 Hz reads −0.04/−6.02/−48.24 against a model of −0.03/−6.02/−48.21, and the split MOVES with the corner. **THE SLOPE IS NOT SETTABLE AND THAT IS A `defs` DEFECT (S3-4)**: MainCtr/L/R/Sub each carry a CrossoverFreq AND a CrossoverSlope and **ALL EIGHT resolve to 0x0575** — eight cells, one word. A word outside 50–500 Hz is therefore IGNORED, not clamped (clamping a slope into the frequency would move the crossover to 50 Hz every time the host set one); the bar's negative control writes slope 24 then 3 and requires the split to stay unmoved word for word. **The ask is one `defs` row.** **CAPACITY TRUTH: THE 09-03 NUMBERS STAND.** The cascade families issue the same instruction stream whatever their coefficients hold — always the argument, never testable until a GEQ could hold a real coefficient. Paired on ONE boot, chip 2 block 8: every GEQ flat 330,658 vs every GEQ non-flat (364 cells at ±12 dB) 331,250 = **+592 cycles, 0.18 %**. Like-for-like at the operating point the fit numbers were taken at (`sigprofile2`, whole chip-2 graph, block 16, two boots, minimum): **250,480 cycles/block = 76.44 % against the 09-03 record of 249,737 = 76.21 %** — +743 cycles, 0.23 % of budget, against two boots of this run that are 1,516 apart. **BUT ONE FAMILY'S COST HAS NEVER BEEN IN ANY NUMBER: FX_ENGINE.** Its `_fx_type` defaults to 0 = Echo, which the dispatch does not implement, so the reverb has never run in a capacity measurement. Type 3 on all six engines costs **+28,171 cycles/block** (three boots: +27,861/+27,867/+28,171) = 587 cycles per sample per engine, which scaled to block 16 is **≈ +56,300 = 17.2 % of chip 2's budget, taking it from 76.4 % to ≈ 93.6 % and the margin from 23.6 % to ≈ 6.4 %.** That is a PROJECTION from a measured per-sample cost, stated as one; one `sigprofile2` arm would settle it. **ANTI_FB and FX_ENGINE diagnosed, not implemented (as scoped).** ANTI_FB: notch freq/gain/Q land correctly (1000.0, −18.0, 4.0 measured at their landed addresses) and are read by NOTHING; `_afb_on`/`_afb_ctrl_on` too; the six-stage cascade is real. It is the GEQ's fix applied to a notch bank. FX_ENGINE: three defects — Types 0/1/4/5/6 fall through to a dry pass-through; Doubling reads a 720-sample delay out of an **eight-word** buffer; and **`_C2_FX_ENG_01_process` sets NO L register** before four `modify(i0, m0)` on its comb buffers, which every other kernel here guards with `l0 = 0` — setting Type=3 in the family walk turned the FX chain from carrying the impulse to **peak zero on both arms**, so the reverb path takes the sample with it. **THE SAMPLE-ORDER FINDING IS WITHDRAWN, AND THE ROOT CAUSE IS FIXED HERE (S3-10/S3-11).** Three independent measurements: (a) **the Pi link runs at 48 kHz whatever ALSA is told** — `arecord -d 5` takes 5.01 s at 48,000, 10.01 s at 96,000 and **20.15 s at 192,000**, effective 47,917/47,955/47,645 Hz, because LOGIC masters the clocks and the dummy codec declares 8–192 kHz and does not refuse; the loop test ran at 192,000, so **every frame count in the 40.4 %-monotonic result is four times the truth**; (b) the flashed bitstream `dsp4_logic.a1f6672af6c3` was built **2026-08-21** and `PI_TDM8` first appears in the RTL **2026-08-23**, so the 4:1 regrouping the reorder was blamed on is not in the logic on the bench; (c) that bitstream has **`assign pcm_din = 1'b0; // capture path to the Pi: future work`** — no Pi capture path at all, confirmed today with 0 carrying frames at both rates through a booted, configured, pass-through DSP. So the loop measurements were taken on a DIFFERENT, UNRECORDED bitstream and the bench was left on one that cannot loop. **WHY NOTHING RECORDED WHICH, AND IT IS FIXED**: `shared/dsp4-logic/build.sh` hashed `loopback=` and nothing else, so a PI_TDM8 build and a plain build of the same RTL produced the SAME FILENAME and an identical manifest; every macro now enters the hash and the manifest records the config line and a plain-English `pi_link:` description. **NO LATENCY FIGURE, and the next step is specific**: build a PI_TDM8 bitstream from the current slot map with the fixed script and flash it. Deliberately not done — with the manifest defect unfixed there was no way to be sure which existing artifact is the TDM8 build, and flashing shared hardware on a guess is not a measurement. **COVERAGE, both rows scored by the SAME instrument on the two JSONs rather than carried forward: 13 of 20 families / 2,934 of 3,698 cells (79 %) → 15 of 20 / 3,306 (89 %), failures 5 → 1.** GEQ (+364) and CROSSOVER (+8) move to PASS; METER and FX_ENGINE move FAIL → NOT EXERCISED (a peak-hold the walk cannot interpret, and a silent window — neither is a verdict). ANTI_FB is the only remaining FAIL. The strict count is unchanged at 4 (1,046 cells, 28 %), and the previous block's '82 %, seven strict' headline does NOT reproduce under this scorer. **AN INSTRUMENT DEFECT FOUND (S3-12)**: the GEQ family probe was `Aux001Geq001` — band 1 is **19.95 Hz**, whose impulse response takes 2,400 samples to ring once, so a +12 dB boost moves b0 by 4e-4 over a 32-sample window and the family would read INERT for a graphic EQ working perfectly. Probe moved to band 18 (1 kHz). **D38 CORRECTED**: the claim that the static 896 'under-reports by at least 372' is WITHDRAWN. GEQ and CROSSOVER were never inert in D38's sense — their addresses WERE read, and the static test was right; what the impulse walk found was a missing DESIGN step wearing the same symptom. ANTI_FB is the genuine D38 shape and is already listed; FX_ENGINE is an unimplemented default and does not belong on a list of unreferenced addresses. **BARS: golden 59/59; dsp_validate OK; busgold GRAPH BIT-EXACT 0 of 256; bqeverify float BQE_VERIFY PASS 0 ULP; geqverify GEQ_DESIGN_OK; xoververify XOVER_DESIGN_OK; famverify 15/20.** **NOT DONE, and why: no 31-band GEQ ON THE PART** — the design is band-count-generic and is checked at all 31 ISO bands in the model, but the landed `dsp.csv` carries 28 cells per GEQ node, so the top three bands have no address to write; **the market bar needs three more rows per GEQ node in `defs`, and this repo is a consumer**. No crossover slope (one `defs` row). No ANTI_FB or FX_ENGINE implementation (scoped to diagnose + cost). No latency figure. No block-16 measurement of the FX reverb cost. The GEQ design is NOT bit-exact against the model and is not claimed to be — 40-bit registers stored as float32, bar 4 ulps, measured 3. **BENCH AS FOUND**: matrix-app active, `dtoverlay=dsp4-pcm-slave` untouched, bitstream NOT reflashed, scratch probes removed.]   [model: opus]
 
 WHY. The virtual-audio pass (dsp fdf278a) proved 14 of 20 families on the
