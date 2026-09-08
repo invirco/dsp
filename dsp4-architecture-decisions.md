@@ -103,6 +103,53 @@ Hardware ground truth: [MW/D24/HW/hardware-map.md](MW/D24/HW/hardware-map.md)
   overflow: `parallel = 1.0` converted to −1 and bypassed the compressor
   entirely, so the maximum setting behaved as the minimum. GATE and LIM not
   yet covered.
+- **hardware-verified 2026-09-08 — EVERY D24 FAMILY THE LANDED CONTRACT
+  ADDRESSES, on the shipping FLOAT image** (`DSP4_BQ_FLOAT=1`,
+  `DSP4_GAIN_FLOAT=1`), build **chip1 `906a70f7` / chip2 `3a2d930c`** at
+  defs-v2026.09.08.2. Parameters addressed by CELL NAME out of
+  `defs/products/d24/dsp.csv` — the contract's first live use — not by
+  stride arithmetic; every landed address written ANSWERED (no SPI error on
+  any family, both chips), and the 25 constants the bench harness had
+  transcribed all agree with the landed address for their cell. Report:
+  `MW/D32/DSP/dsp4-hw-families-20260908.md`; raw
+  `MW/D32/DSP/SHARC/goldens/famverify-20260908.json`; scorer
+  `tools/dsp/golden_harness.py --target hw`.
+  **Of the 20 families `dsp.csv` addresses (3,698 cells), 13 PASSED
+  (65 %), covering 2,934 cells (79 %); 4 of those on the strict bar —
+  the part's own samples reproduced word for word by the reference model,
+  negative controls firing — covering 1,046 cells (28 %).**
+  - **GATE** — bit-exact vs `fixed_ref` (fixed arm); 12/12 landed addresses
+    answer; drives the audio. Found S2-1: `ChanGateHold` reaches
+    `_gate_hold_*` — an integer sample count — unconverted, so the
+    documented 1.0 ms lands 1,065,353,216 samples and the gate never closes
+    after its first signal.
+  - **COMPRESSOR** — bit-exact vs `fixed_ref`; 17/17; drives the audio.
+  - **TUBE_SAT** — bit-exact vs `fixed_ref`; 2/2; drives the audio.
+  - **FADER_PAN** — bit-exact vs `fixed_ref`; 3/3; drives the audio.
+  - **GAIN** — 2/2; drives the audio. Float arm under `DSP4_GAIN_FLOAT`
+    (the meter's wide MAC stays fixed), so its bit-exact reference is
+    `bq_float_ref`, not `fixed_ref`.
+  - **EQ_BIQUAD / HPF_LPF** — 14/14 and 3/3; a written coefficient set
+    changes the impulse response. Float cascade: the bit-exact bar is
+    `bqeverify.sh float` against `bq_float_ref`, NOT `BQCVT`/`fixed_ref`
+    (S2-3), and it was not re-run this session.
+  - **DELAY** — 1/1; sample-exact offset visible at capture offset 0.
+  - **ROUTING** — 42/42; a crosspoint send moves the bus.
+  - **LIMITER**, **MONITOR** (chip 2), **NOISE_GEN**, **TALKBACK** —
+    all landed addresses answer and all drive the audio; no reference model
+    is declared for them yet.
+  - **FAILED — ANTI_FB, GEQ, CROSSOVER, FX_ENGINE** (646 addressed cells):
+    every landed address answers and NONE of them reaches a sample, proved
+    by an impulse walked down the chain with 0 of 32 words differing at each
+    node. `ANTI_FB` and `FX_ENGINE` are corroborated by the D38 inert list;
+    **`GEQ` and `CROSSOVER` are not on it** (S2-6).
+  - **FAILED — METER**: `_mtr_peak_C1_MTR_01` read `0x40E1AFA1` against a
+    captured post-trim peak of exactly 0.5 — 7.0527 read as float32,
+    4.0551 read as Q4.28, neither of them the peak. `mtrverify.sh` is the
+    family's own bar and was not run this session.
+  - **NOT EXERCISED — DCA** (host-managed since the 2026-08-30 ruling, so
+    there is nothing on the part to probe) and **AUX_INPUT** (its samples
+    arrive on a TDM slot this bench cannot drive).
 - **OPEN against this decision, raised 2026-08-23**: the on-target
   conversion named above is performed in **float32**, whose 24-bit
   mantissa cannot represent Q4.28 exactly, so coefficients land 1–3 LSB

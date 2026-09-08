@@ -5,8 +5,23 @@ so every word carries its own index and the captured stream must climb by
 exactly +1 per word. Each run of 8 consecutive words is one 48 kHz frame
 across slots 0..7, so a clean climb proves all eight slots in BOTH
 directions at once -- de-framing on the way in, re-framing on the way out.
+
+ONE DEVICE, NOT TWO. Under the old `dsp4-pcm-slave` overlay the card
+exposed a capture-only device 0 and a playback-only device 1, because its
+two dummy codecs were single-direction and no single dai-link could carry
+both ways. Opening both at once re-programmed one bcm2835-i2s block
+twice, and the counter came back scrambled -- values under ~200 across
+20,000 frames, dominant step -191, with ALSA reporting no under/overrun
+(2026-09-08). `dsp4-pcm-duplex` gives ONE device with `playback 1 :
+capture 1`, so both directions share one hw_params.
+
+    PLAY_DEV / REC_DEV override the defaults for a bench still on the old
+    overlay: PLAY_DEV=hw:dsp4pcm,1 REC_DEV=hw:dsp4pcm,0
 """
-import struct, subprocess, sys, time
+import os, struct, subprocess, sys, time
+
+REC_DEV  = os.environ.get('REC_DEV',  'hw:dsp4pcm,0')
+PLAY_DEV = os.environ.get('PLAY_DEV', 'hw:dsp4pcm,0')
 
 RATE = 192000
 N    = int(sys.argv[1]) if len(sys.argv) > 1 else 192000   # words
@@ -16,11 +31,11 @@ stim = [0]*GUARD + [((i+1) << 8) for i in range(N)]
 open('/tmp/d8.raw','wb').write(b''.join(struct.pack('<i', v) for v in stim))
 
 secs = int(len(stim)/RATE) + 2
-rec = subprocess.Popen(['arecord','-D','hw:dsp4pcm,0','-f','S32_LE','-c','2',
+rec = subprocess.Popen(['arecord','-D',REC_DEV,'-f','S32_LE','-c','2',
                         '-r',str(RATE),'-d',str(secs),'--buffer-size=16384',
                         '-t','raw','-q','/tmp/d8cap.raw'], stderr=subprocess.PIPE)
 time.sleep(0.3)
-pl = subprocess.run(['aplay','-D','hw:dsp4pcm,1','-f','S32_LE','-c','2',
+pl = subprocess.run(['aplay','-D',PLAY_DEV,'-f','S32_LE','-c','2',
                      '-r',str(RATE),'--buffer-size=16384','-t','raw','-q',
                      '/tmp/d8.raw'], capture_output=True)
 _, rerr = rec.communicate()

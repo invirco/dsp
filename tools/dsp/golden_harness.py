@@ -711,6 +711,21 @@ def t_meter(verbose):
 
 
 def main():
+    # --target hw scores a BENCH run rather than the models. The two are
+    # the two halves of the same equivalence and they are deliberately not
+    # the same program: this file holds `reference model vs float64`, and
+    # `--target hw` holds `the part vs its reference model`, which only a
+    # bench run can answer. numeric-spec.md states both.
+    if '--target' in sys.argv:
+        i = sys.argv.index('--target')
+        target = sys.argv[i + 1] if len(sys.argv) > i + 1 else ''
+        if target != 'hw':
+            print('unknown target %r (only "hw" is scored here; omit '
+                  '--target for the model bar)' % target)
+            return 3
+        import hw_coverage
+        return hw_coverage.main(sys.argv[i + 2:])
+
     verbose = '-v' in sys.argv
     for t in (t_biquad, t_gain_sum, t_log_exp, t_dynamics,
               t_mix_boundary, t_blend_boundary,

@@ -6,6 +6,204 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## hardware families through the landed contract (2026-09-08)
+
+Session: the queued VIRTUAL AUDIO block, steps 2–4 — every D24 kernel family
+exercised on the part with its parameters addressed out of the LANDED
+`defs/products/d24/dsp.csv`. Write-up:
+`MW/D32/DSP/dsp4-hw-families-20260908.md`. Image: the shipping FLOAT
+configuration at defs-v2026.09.08.2, chip1 `906a70f7` / chip2 `3a2d930c`,
+byte for byte the session's starting baseline.
+
+### S2-1 — `ChanGateHold` reaches the kernel unconverted, and a gate that has opened never closes again
+
+**Severity: major. Status: open — the fix is a conversion, and which side
+converts is an mx26 call.**
+
+`_gate_hold_<nid>` is an integer SAMPLE COUNT — the generator's own
+initialiser is `2400`, which is 50 ms at 48 kHz — and the SPI dispatch
+stores the host's IEEE-754 float32 word into it with no conversion. A host
+writing the documented 1.0 ms therefore lands `0x3F800000` =
+**1,065,353,216 samples, about 6.2 hours of hold**.
+
+Measured on the part 2026-09-08. With hold written as `f32(1.0)` and the
+gate threshold raised to 0 dBFS over a −6 dBFS step,
+`_gate_gain_target_q_C1_GATE_01` stayed at unity (268,435,456) and
+`_buf_C1_GATE_01` stayed at `0x07FFFF07` — the gate did not shut. Writing
+the same cell as a RAW `48` (1 ms as the variable actually means it)
+restores the behaviour completely:
+
+| threshold | `_gate_gain_target_q` | capture peak |
+|---|---|---|
+| −80 dB | 268435456 (unity) | `0x07FFFF07` |
+| 0 dB | 2684355 (the range floor) | `0x00147BDB` |
+
+**The ladder is not the fault.** `dsp4_node_verify` scores GATE bit-exact
+against `fixed_ref` on this same image, converted parameters and all, and
+the threshold conversion is exact (`_gate_thrq` = −222,930,816 for −40 dB,
+which is `fixed_ref.gate_thr_q(-40.0)` to the word). The missing conversion
+is the whole defect.
+
+`defs/common/wire/wire-units.csv` already carries the row — `ChanGateHold,
+ms, hold samples — conversion to declare` — so the gap was known. This is
+the first measurement of what it costs, and the cost is that the gate stops
+gating after its first signal.
+
+### S2-2 — a parameter that genuinely holds ZERO reads as unreadable, and it cost COMPRESSOR its verdict twice
+
+**Severity: medium (instrument). Status: fixed in
+`tools/pi/dsp4_family_verify.py`.**
+
+`dsp4_node_verify.vpeek()` will only accept a value of 0 when a known
+non-zero register still reads correctly — a dropped answer on this link
+always reads as zero, so zero has to out-vote its own absence. That
+corroborating register lives in `dsp4_node_verify.SENTINEL`, and `SENTINEL`
+is populated in `dsp4_node_verify.main()`. **Any tool that calls
+`run_node()` directly leaves it empty**, and every genuinely-zero parameter
+word then returns `None`.
+
+The compressor's hard-knee words `_comp_cgp_+2` and `_comp_cgp_+3` are zero
+by default, so COMPRESSOR reported `parameters unreadable — no verdict` on
+two consecutive bench runs while every other node passed. The other six
+words read fine, which is exactly why it looked like a link fault:
+
+```
+_comp_attq   4294968        _comp_cgp_+0  4183501888
+_comp_relq   4294968        _comp_cgp_+1  1610612736
+_comp_mkq    367756576      _comp_cgp_+2  None      <- genuinely 0
+_comp_parq   2147483647     _comp_cgp_+3  None      <- genuinely 0
+```
+
+`numeric_phase()` now arms the sentinel from `_scope_len` before the first
+node and says so in the log when it cannot.
+
+### S2-3 — BQCVT is the FIXED arm's converter and reports a false FAILURE on the shipping float image
+
+**Severity: medium (instrument). Status: fixed.**
+
+`run_bqcvt` compares the node's stored coefficients against
+`fixed_ref.biquad_coeffs_q`, which is Q4.28. Under `DSP4_BQ_FLOAT` — the
+shipping default — the node stores IEEE float32, so every set mismatches
+and the run prints `MISMATCH b1 control fires` for all of them:
+
+```
+part  (1065353216, ...)   = 0x3F800000, float 1.0
+model (268435456,  ...)   = Q4.28 1.0
+```
+
+That is the harness quoting the wrong model for the arm it was pointed at,
+not a firmware defect. `shared/numeric-spec.md` is explicit: the SHARC float
+cascade's bit-exact reference is `bq_float_ref` and its bar is
+`bqeverify.sh float`. `dsp4_family_verify.py` now takes `--bq-arm` from the
+build and skips BQCVT on a float image with the reason in the log.
+
+### S2-4 — a DC step cannot see a filter whose gain at DC does not move
+
+**Severity: medium (method). Status: fixed — the frequency-shaped families
+are probed with an impulse.**
+
+`dsp4_conform.bus_capture()` drives a STEP and reads a window at sample 900.
+For a gain, a delay or a dynamics stage that is the right stimulus. For a
+filter it is DC, and a peaking section has unity gain at DC — so a 28-band
+GEQ's band 1 (near 25 Hz), an anti-feedback notch and a crossover all change
+nothing that a step can show. The second run of this bar duly reported GEQ,
+ANTI_FB and CROSSOVER as INERT, which would have been a wrong answer about
+the firmware drawn from a property of the instrument.
+
+An impulse response is frequency-complete. `dsp4_family_verify.capture()`
+takes the stimulus mode per family, and the biquad-shaped families are armed
+with an impulse read from sample 0.
+
+### S2-5 — `ChanGain` and `TalkGain` are applied as LINEAR coefficients while the masters declare dB
+
+**Severity: medium. Status: open — an mx26 unit call, corroborated on the
+part.**
+
+`docs/contract/wire-units-proposals.md` lists both families as unit
+UNDECLARED with the Table domain proposed as the wire unit
+(`ChanGain 0=0/127=60/[Lin]`, `TalkGain 0=0/127=40/[Lin]` — both dB).
+Measured on the part, the kernel takes them as linear:
+
+| cell | written | input peak | output peak | linear reading | dB reading |
+|---|---|---|---|---|---|
+| `Chan001Gain001` | 4.0 | `0x08000000` (0.5) | `0x20000000` (2.0) | ×4 ✓ | ×1.585 ✗ |
+| `Talk001Gain001` | 4.0 | `0x08000000` (0.5) | `0x20000000` (2.0) | ×4 ✓ | ×1.585 ✗ |
+
+The proposal as written ("declare the Table domain as the wire unit") cannot
+be adopted without a dB→linear conversion appearing in the kernel; adopting
+it as-is would silence the strip at the documented 0 dB, exactly as review
+finding D57's `RtgDca` did.
+
+### S2-6 — four families answer every landed address and reach no sample
+
+**Severity: major. Status: reported — WIRE-vs-RESERVE is PW's call, and two
+of the four were not on the list that was supposed to hold them.**
+
+`ANTI_FB`, `GEQ`, `CROSSOVER` and `FX_ENGINE` — **646 of the 3,698 addressed
+D24 cells** — take every write at their landed address, raise no SPI error,
+and change nothing. Measured the strongest way available: walk the chain
+with an IMPULSE (frequency-complete, unlike the step) and diff consecutive
+node buffers word for word.
+
+```
+aux 1, GEQ bands driven +12/-12 dB, notch armed 1 kHz Q4 at -18 dB
+  _buf_C2_AUX_FDR_01   0x08000000 0 0 0
+  _buf_C2_AUX_EQ_01    0 of 32 samples differ from the previous node
+  _buf_C2_AUX_GEQ_01   0 of 32
+  _buf_C2_AUX_AFB_01   0 of 32
+  _buf_C2_AUX_LIM_01   0 of 32
+
+main, crossover frequency written 500 Hz
+  _buf_C2_MAIN_DLY     0x08000000 0 0 0
+  _buf_C2_MAIN_XOVER   0 of 32      <- the crossover does not split
+  _buf_C2_MAIN_OEQ_01  0 of 32
+  _buf_C2_MAIN_OEQ_02  0 of 32
+
+FX 1, On=1, Mix=100, Decay=2.0
+  _buf_C2_FX_ENG_01    0x08000000 0 0 0
+  _buf_C2_FX_FDR_01    0 of 32
+```
+
+`ANTI_FB` and `FX_ENGINE` are **corroborated by the D38 static list** —
+`docs/contract/inert-cells-d38.md` already names every notch cell and every
+FX parameter as unreferenced by any emitted line — so this is the live
+confirmation that list was waiting for, on families session 6's sampled
+probe did not reach.
+
+**`GEQ` and `CROSSOVER` are NOT on that list, and that is the new part.**
+372 addressed cells that static analysis believed something reads, and the
+part says nothing does. Either the generator emits a reference the kernel
+never acts on, or `wire_contract.py`'s "reachable by offset" class is
+hiding them; either way the D38 count of 896 is low by at least these.
+
+### S2-7 — the CM4 duplex overlay: the fix direction is right, the codec is missing
+
+**Severity: medium. Status: open — and the remaining question is a carrier
+pin, not a DSP one.**
+
+The queued block's recorded blocker was that `dsp4-pcm-slave.dts` exposes
+TWO PCM devices sharing one `bcm2835-i2s` CPU DAI (playback-only `spdif-dit`
+and capture-only `spdif-dir`), so opening both re-programs the same block
+twice and the counter comes back scrambled. Its stated fix direction — one
+dai-link with a codec declaring both directions — is **confirmed correct**
+and still blocked, for a reason worth writing down. Three candidates, all
+already in the Pi kernel tree, all tried on the bench 2026-09-08:
+
+| codec | result |
+|---|---|
+| `asahi-kasei,ak4554` | ONE dai-link, and `/proc/asound/pcm` reports `00-00 … playback 1 : capture 1` — **a real duplex device**. But its DAI declares **S16_LE only** (`arecord -f S32_LE` → "Sample format non available / Available formats: - S16_LE"), and the DSP4 lanes are 32-bit words. |
+| `google,voicehat` | Exactly the right DAI — 2 ch, 48 kHz, **S32_LE**, playback and capture — and it refuses to probe: `sdmode-gpios` is mandatory. `voicehat-codec dsp4-duplex-codec: Unable to allocate GPIO pin`, ASoC −2, card never instantiates. |
+| `dit` + `dir` as two codecs on ONE `simple-audio-card` link | Instantiates, and comes out **capture only** (`00-01 bcm2835-i2s-dir-hifi … capture 1`) — the playback-only codec loses. |
+
+So one dai-link IS one duplex PCM device; the bench simply has no 32-bit
+bidirectional dummy to put in it. Two ways out, neither of them a DSP
+question: **name a free CM4 GPIO for `google,voicehat`'s `sdmode`** — with a
+pin this becomes a three-line overlay — or carry a dummy codec of our own
+that declares both directions. The overlay and all three results are in
+`shared/dsp4-logic/pi/dsp4-pcm-duplex.dts`. The bench was left on the
+original `dsp4-pcm-slave` overlay.
+
+
 ## dsp.csv proposal (2026-09-08)
 
 Session: propose `defs/products/{d24,d32}/dsp.csv` against `defs-v2026.09.08`.

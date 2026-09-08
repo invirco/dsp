@@ -2,6 +2,18 @@
 
 provenance: AI-drafted 2026-08-23 — prose may carry a statistical watermark; rewrite by hand before publication, then remove this header.
 
+> **SUPERSEDED FOR COVERAGE, 2026-09-08.** The table below is the
+> 2026-08-23 run on the FIXED-point kernels, with its parameters reached by
+> stride arithmetic. The current run is
+> `MW/D32/DSP/dsp4-hw-families-20260908.md`: every family the LANDED
+> `defs/products/d24/dsp.csv` addresses, on the SHIPPING FLOAT image, with
+> every address resolved by cell name out of the contract — **13 of 20
+> families passed, 2,934 of 3,698 addressed cells (79 %)**. Raw report
+> `MW/D32/DSP/SHARC/goldens/famverify-20260908.json`; scorer
+> `python3 tools/dsp/golden_harness.py --target hw <report.json>`. The rows
+> below stay as the record of what the fixed arm measured and of the
+> defects that run found.
+
 One table for the D5 acceptance run: every kernel family measured on the
 bench against `tools/dsp/fixed_ref.py`, which is normative. Bench is the
 rev-C CM4 (`app@192.168.1.219`), `DSP4_STRIPS=1`, matrix-app stopped.

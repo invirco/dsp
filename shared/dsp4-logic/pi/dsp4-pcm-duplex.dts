@@ -1,0 +1,107 @@
+// dsp4-pcm-duplex.dts — TRUE DUPLEX I2S soundcard for the DSP4 bench CM4.
+//
+// Replaces dsp4-pcm-slave.dts, which works one direction at a time and
+// scrambles when both run. Measured 2026-09-08 with that overlay loaded:
+// /proc/asound/pcm shows TWO devices sharing one CPU DAI --
+//     00-00 bcm2835-i2s-dir-hifi ... capture 1
+//     00-01 bcm2835-i2s-dit-hifi ... playback 1
+// -- capture alone is stable and playback alone reaches the DSP, but a
+// per-sample counter played and captured together comes back with values
+// under ~200 across 20,000 frames instead of climbing to 48,000, dominant
+// step -191, with ALSA reporting no under/overrun once period and buffer
+// are pinned. Two PCM devices are not a duplex device: each open programs
+// the same bcm2835-i2s block independently, and the second one to start
+// re-programs the first's frame phase.
+//
+// WHY THE OLD OVERLAY HAD TO DO THAT. `linux,spdif-dit` declares a
+// PLAYBACK-only DAI and `linux,spdif-dir` a CAPTURE-only one, so no single
+// dai-link built from them can carry both directions -- simple-audio-card
+// takes the intersection of what the CPU and CODEC DAIs declare.
+//
+// THE FIX DIRECTION IS CONFIRMED AND THE CODEC IS NOT. Measured on the
+// bench 2026-09-08, three candidates, all present in the Pi kernel tree:
+//
+//   asahi-kasei,ak4554   ONE dai-link, and /proc/asound/pcm reports
+//                        "00-00 ... playback 1 : capture 1" -- a REAL
+//                        duplex device, which is what this whole change
+//                        is for. But its DAI declares S16_LE only:
+//                        `arecord -f S32_LE` answers "Sample format non
+//                        available / Available formats: - S16_LE". The
+//                        DSP4 lanes are 32-bit words and the rung-2 check
+//                        is bit-exact across all 32, so 16 bits in a
+//                        32-bit slot is not a link, it is a truncation.
+//                        THIS FILE IS THAT ATTEMPT, kept because it is
+//                        the proof that one dai-link gives one duplex
+//                        PCM device.
+//
+//   google,voicehat      EXACTLY the right DAI -- 2 channels, 48 kHz,
+//                        S32_LE, playback AND capture -- and it refuses
+//                        to probe: `sdmode-gpios` is mandatory.
+//                        "voicehat-codec dsp4-duplex-codec: Unable to
+//                        allocate GPIO pin", ASoC -2, card never
+//                        instantiates. Handing it a pin means driving a
+//                        GPIO on a live product carrier whose free pins
+//                        are not documented in this repo, next to the
+//                        eleven the DSP4 card owns. Not done blind.
+//
+//   dit + dir on ONE     simple-audio-card multi-codec, both dummies on a
+//   dai-link             single link. It instantiates, and the link comes
+//                        out CAPTURE ONLY ("00-01 bcm2835-i2s-dir-hifi
+//                        ... capture 1"): the playback-only codec loses.
+//
+// SO: one dai-link is the right shape and the bench has no 32-bit
+// bidirectional dummy to put in it. Two ways out, neither a DSP question:
+// declare a free CM4 GPIO for `google,voicehat`'s sdmode (a carrier
+// question -- name the pin and this file becomes three lines), or carry a
+// two-DAI-direction dummy codec of our own.
+//
+// Everything else is unchanged from the overlay it replaces, and it has
+// to be: the LOGIC CPLD masters pcm_clk (3.072 MHz) and pcm_fs (48 kHz),
+// so the Pi is an I2S SLAVE and bitclock-master/frame-master point at the
+// CODEC side of the link, not the cpu side. 32-bit slots, 2 per frame,
+// because the DSP4 lanes carry 32-bit words and the rung-2 check is
+// bit-exact across all 32.
+/dts-v1/;
+/plugin/;
+
+/ {
+    compatible = "brcm,bcm2835";
+
+    fragment@0 {
+        target = <&i2s_clk_consumer>;
+        __overlay__ { status = "okay"; };
+    };
+
+    fragment@1 {
+        target-path = "/";
+        __overlay__ {
+            dsp4_codec: dsp4-duplex-codec {
+                compatible = "asahi-kasei,ak4554";
+                #sound-dai-cells = <0>;
+                status = "okay";
+            };
+        };
+    };
+
+    fragment@2 {
+        target = <&sound>;
+        __overlay__ {
+            compatible = "simple-audio-card";
+            simple-audio-card,name = "dsp4pcm";
+            status = "okay";
+
+            simple-audio-card,format = "i2s";
+            simple-audio-card,bitclock-master = <&dsp4_link_codec>;
+            simple-audio-card,frame-master = <&dsp4_link_codec>;
+
+            simple-audio-card,cpu {
+                sound-dai = <&i2s_clk_consumer>;
+                dai-tdm-slot-num = <2>;
+                dai-tdm-slot-width = <32>;
+            };
+            dsp4_link_codec: simple-audio-card,codec {
+                sound-dai = <&dsp4_codec>;
+            };
+        };
+    };
+};
