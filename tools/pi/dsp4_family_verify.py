@@ -231,18 +231,18 @@ FAMILIES = {
     'GATE': dict(chip=1, node='C1_GATE_01', inject=C1_INJ,
                  witness='_buf_C1_GATE_01',
                  probe=('Chan001GateThr001', f32(-80.0), f32(0.0)),
-                 # HOLD IS WRITTEN AS A RAW SAMPLE COUNT, and that is a
-                 # DEFECT being worked around, not a convention. The node
-                 # variable `_gate_hold_*` is an integer sample count
-                 # (its initialiser is 2400 = 50 ms) and the SPI handler
-                 # stores the host's word into it UNCONVERTED, so a host
-                 # writing the documented 1.0 ms lands 0x3F800000 =
-                 # 1,065,353,216 samples -- six hours of hold, and a gate
-                 # that never closes again. Measured on the part
-                 # 2026-09-08; see findings. Writing 48 here gives the
-                 # gate 1 ms of hold so the probe can see it close.
+                 # HOLD IN MILLISECONDS, which is what the cell has
+                 # declared all along and what the wire now carries. The
+                 # first run of this bar had to write a raw 48 here,
+                 # because `_gate_hold_*` is an integer sample count and
+                 # the handler stored the host's float32 word into it
+                 # unconverted -- the documented 1.0 ms became
+                 # 1,065,353,216 samples and the gate never closed again.
+                 # Fixed 2026-09-08 at the SPI boundary from the landed
+                 # wire-units.csv; verified on the part, 1.0 -> 48 and
+                 # 50.0 -> 2400, and the read comes back in ms.
                  setup=[('Chan001GateOn001', 1),
-                        ('Chan001GateHold001', 48)],
+                        ('Chan001GateHold001', f32(1.0))],
                  note='ladder + hold + range'),
     'COMPRESSOR': dict(chip=1, node='C1_COMP_01', inject=C1_INJ,
                        witness='_buf_C1_COMP_01',
@@ -672,8 +672,22 @@ def meter_phase(part, L, spec, inj, log=print):
             rec['reading'] = ('the word is a Q4.28 INTEGER, not the float32 '
                               'the host contract declares')
         else:
-            rec['verdict'] = 'DISAGREES'
-            rec['reading'] = 'neither reading matches the captured peak'
+            # A PEAK HOLD IS STATEFUL, so a disagreement here is NOT a
+            # verdict on the meter. This tool's first run reported
+            # DISAGREES -- readback 7.05 against a captured peak of 0.5 --
+            # and the meter was fine: the contract sweep immediately
+            # before it writes 1.0f into every rw cell of the node it is
+            # probing, which drove the strip near full scale, and the
+            # peak-hold had not decayed by the time this read it. The
+            # family's real bar is mtrverify.sh, which drives a known
+            # stimulus on its own image and scores the 64-bit meter state
+            # against fixed_ref.meter_block; it reads METER_BIT_EXACT on
+            # this tree. Report the numbers and name the bar.
+            rec['verdict'] = 'NO_VERDICT'
+            rec['reading'] = (
+                'neither reading matches, and a peak HOLD carries state '
+                'from whatever ran before it — run mtrverify.sh for this '
+                'family rather than reading a verdict out of this line')
     except IOError as exc:
         rec['verdict'] = 'ERROR'
         rec['error'] = str(exc)

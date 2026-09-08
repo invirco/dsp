@@ -193,16 +193,19 @@ def inject_addr(part, strip):
 
 def _gate_setup(strip):
     """GATE ON, everything after it BYPASSED so the capture is the gate's
-    own output and nothing downstream can move it. A SHORT HOLD in RAW
-    SAMPLES: the kernel reads `_gate_hold_` as an integer sample count
-    while the masters document milliseconds (the standing KNOWN_MISMATCH
-    conform.sh reports), so a float write here would set a hold of a
-    billion samples and the hold arm would never be reached inside a
-    capture."""
+    own output and nothing downstream can move it. A SHORT HOLD, and it is
+    now written in MILLISECONDS like every other time on this wire.
+
+    It used to be a raw sample count with a comment explaining why: the
+    kernel read `_gate_hold_` as an integer sample count while the masters
+    documented milliseconds, so a float write set a hold of a billion
+    samples. That mismatch is FIXED as of 2026-09-08 -- the SPI handler
+    converts ms to samples from the landed wire-units.csv -- so the raw
+    write is the one that would now be wrong."""
     return [(GATE_ON, 1, 0), (COMP_ON, 0, 0), (TUBE_ON, 0, 0),
             (GATE_THR, f32(-40.0), 0), (GATE_ATT, f32(0.05), 0),
             (GATE_REL, f32(0.5), 0), (GATE_RNG, f32(40.0), 0),
-            (GATE_HOLD, 8, 0)]
+            (GATE_HOLD, f32(0.2), 0)]
 
 
 def _gate_model(xs, p, st0, twin=False):
@@ -255,7 +258,7 @@ def _comp_setup(strip):
     skipped."""
     return [(GATE_ON, 1, 0), (GATE_THR, f32(-80.0), 0),
             (GATE_RNG, f32(0.0), 0), (GATE_ATT, f32(0.5), 0),
-            (GATE_REL, f32(0.5), 0), (GATE_HOLD, 8, 0),
+            (GATE_REL, f32(0.5), 0), (GATE_HOLD, f32(0.2), 0),
             (COMP_ON, 1, 0), (TUBE_ON, 0, 0),
             (COMP_THR, f32(-30.0), 0), (COMP_RATIO, f32(4.0), 0),
             (COMP_ATT, f32(0.05), 0), (COMP_REL, f32(0.01), 0),

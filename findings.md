@@ -17,8 +17,8 @@ byte for byte the session's starting baseline.
 
 ### S2-1 — `ChanGateHold` reaches the kernel unconverted, and a gate that has opened never closes again
 
-**Severity: major. Status: open — the fix is a conversion, and which side
-converts is an mx26 call.**
+**Severity: major. Status: FIXED the same day — see S2-8 for the fix, which
+is generic over `wire-units.csv` rather than a patch for this cell.**
 
 `_gate_hold_<nid>` is an integer SAMPLE COUNT — the generator's own
 initialiser is `2400`, which is 50 ms at 48 kHz — and the SPI dispatch
@@ -176,33 +176,215 @@ part says nothing does. Either the generator emits a reference the kernel
 never acts on, or `wire_contract.py`'s "reachable by offset" class is
 hiding them; either way the D38 count of 896 is low by at least these.
 
-### S2-7 — the CM4 duplex overlay: the fix direction is right, the codec is missing
+### S2-7 — the CM4 duplex loop is up: one PCM device, S32_LE, 192 kHz
 
-**Severity: medium. Status: open — and the remaining question is a carrier
-pin, not a DSP one.**
-
-The queued block's recorded blocker was that `dsp4-pcm-slave.dts` exposes
-TWO PCM devices sharing one `bcm2835-i2s` CPU DAI (playback-only `spdif-dit`
-and capture-only `spdif-dir`), so opening both re-programs the same block
-twice and the counter comes back scrambled. Its stated fix direction — one
-dai-link with a codec declaring both directions — is **confirmed correct**
-and still blocked, for a reason worth writing down. Three candidates, all
-already in the Pi kernel tree, all tried on the bench 2026-09-08:
+**Severity: medium. Status: CLOSED at the ALSA layer.** The recorded
+blocker was that `dsp4-pcm-slave.dts` exposes TWO PCM devices sharing one
+`bcm2835-i2s` CPU DAI (playback-only `spdif-dit`, capture-only
+`spdif-dir`), so opening both re-programs the same block twice and the
+counter comes back scrambled. Its stated fix direction — ONE dai-link with
+a codec declaring both directions — is right, and the obstacle was that no
+codec in the Pi tree fits this link. Four were measured on the bench
+2026-09-08 before one was written:
 
 | codec | result |
 |---|---|
-| `asahi-kasei,ak4554` | ONE dai-link, and `/proc/asound/pcm` reports `00-00 … playback 1 : capture 1` — **a real duplex device**. But its DAI declares **S16_LE only** (`arecord -f S32_LE` → "Sample format non available / Available formats: - S16_LE"), and the DSP4 lanes are 32-bit words. |
-| `google,voicehat` | Exactly the right DAI — 2 ch, 48 kHz, **S32_LE**, playback and capture — and it refuses to probe: `sdmode-gpios` is mandatory. `voicehat-codec dsp4-duplex-codec: Unable to allocate GPIO pin`, ASoC −2, card never instantiates. |
-| `dit` + `dir` as two codecs on ONE `simple-audio-card` link | Instantiates, and comes out **capture only** (`00-01 bcm2835-i2s-dir-hifi … capture 1`) — the playback-only codec loses. |
+| `linux,spdif-dit` + `linux,spdif-dir`, two links | the overlay being replaced. Right rate, right format, one direction each. |
+| the same two as multi-codec on ONE link | instantiates **capture only** (`00-01 bcm2835-i2s-dir-hifi … capture 1`) — the playback-only codec loses. |
+| `asahi-kasei,ak4554` | ONE dai-link and a REAL duplex device (`00-00 … playback 1 : capture 1`) — this is what proved the shape is right — but its DAI declares **S16_LE only** (`arecord -f S32_LE` → "Available formats: - S16_LE"). |
+| `google,voicehat` | both directions, **S32_LE** — and **48 kHz only**. With the hub's pin ruling it probes and the card comes up; then ALSA clamps 192 kHz to 48 kHz, the capture overruns by ~1.6 s, and a known word played as `0x00001000` / `0x00010000` / `0x00100000` comes back as the same unrelated constant. |
 
-So one dai-link IS one duplex PCM device; the bench simply has no 32-bit
-bidirectional dummy to put in it. Two ways out, neither of them a DSP
-question: **name a free CM4 GPIO for `google,voicehat`'s `sdmode`** — with a
-pin this becomes a three-line overlay — or carry a dummy codec of our own
-that declares both directions. The overlay and all three results are in
-`shared/dsp4-logic/pi/dsp4-pcm-duplex.dts`. The bench was left on the
-original `dsp4-pcm-slave` overlay.
+**THE HUB'S PIN RULING WAS APPLIED AND IT WORKED.** CM4 GPIO17 = CS6 as
+`sdmode-gpios` (mx26 `src/hw/d24-hw-pins.csv`) cleared voicehat's
+mandatory-GPIO probe failure exactly as ruled — `voicehat-codec
+dsp4-duplex-codec: property 'voicehat_sdmode_delay' found delay= 5 mS` and
+the card instantiated. It is voicehat's RATE, not its pin, that
+disqualifies it. **The rate is not negotiable**:
+`shared/dsp4-logic/slot-map.csv` lane A_I6 says LOGIC "regroups 4 Pi frames
+per DSP frame", so the Pi frame is 2 slots × 32 bits at **192 kHz**.
 
+**THE FIX IS FORTY LINES OF DAI DECLARATION**, `invirco,dsp4-pcm-dummy`
+(`shared/dsp4-logic/pi/dsp4-pcm-dummy/`): playback and capture,
+`SNDRV_PCM_RATE_8000_192000`, `SNDRV_PCM_FMTBIT_S32_LE`, no registers, no
+control bus, no clocks, no GPIO — so CS6 stays free and the pin ruling is
+recorded rather than consumed. Measured after it:
+
+```
+/proc/asound/pcm
+00-00: bcm2835-i2s-dsp4-dummy-hifi dsp4-dummy-hifi-0 : ... : playback 1 : capture 1
+arecord -D hw:dsp4pcm,0 -f S32_LE -c 2 -r 192000
+    Recording raw data : Signed 32 bit Little Endian, Rate 192000 Hz, Stereo
+```
+
+One device, both directions, no rate clamp, and no over/underrun reported
+by either `aplay` or `arecord` across a 96,000-word duplex run.
+
+**FOR `cm4-setup-pi.sh`, UNDER A BENCH FLAG — the exact lines** (this repo
+did not edit that script, per the dispatch):
+
+```sh
+# 1. the codec module (needs linux-headers; present on the bench image)
+cd shared/dsp4-logic/pi/dsp4-pcm-dummy && make
+sudo install -D -m 644 dsp4-pcm-dummy.ko \
+     /lib/modules/$(uname -r)/kernel/sound/soc/codecs/dsp4-pcm-dummy.ko
+sudo depmod -a
+
+# 2. the overlay
+dtc -@ -H epapr -O dtb -o dsp4-pcm-duplex.dtbo \
+    -Wno-unit_address_vs_reg shared/dsp4-logic/pi/dsp4-pcm-duplex.dts
+sudo cp dsp4-pcm-duplex.dtbo /boot/firmware/overlays/
+
+# 3. /boot/firmware/config.txt — one line changes
+-dtoverlay=dsp4-pcm-slave
++dtoverlay=dsp4-pcm-duplex
+```
+
+Nothing else in `config.txt` changes. The bench was left on the SHIPPING
+`dsp4-pcm-slave` line with a backup at `config.txt.pre-duplex-20260908`;
+both `.dtbo`s and the module are installed, so the flag is a one-line flip.
+
+**WHAT IS STILL NOT A MEASUREMENT CHANNEL, and it is no longer the
+overlay.** With the loop up, a known word played through it comes back
+riding a large DC pedestal (~`0x11E7E000`, about 0.28 in Q4.28) and moving
+only slightly with the input, so the path is not yet unity: the main chain
+(`MIX_MAIN_L → MAIN_FDR → GEQ → COMP → LIM → DLY → ST_OUT`) sums seventeen
+sources and none of its nodes was set to bypass. That is step 1 of the
+queued block — "pass-through strip, all nodes unity/bypass" — and it is now
+the only thing between here and a latency figure.
+
+### S2-8 — `ChanGateHold` and `ChanDelay` FIXED: a wire-unit conversion at the SPI boundary
+
+**Severity: major. Status: FIXED and verified on the part.**
+
+S2-1 recorded the defect; this is the fix, and it is deliberately not a fix
+for `Hold`. `defs/common/wire/wire-units.csv` is the LANDED declaration of
+what each family carries on the wire and what its kernel word expects, and
+`gen_dsp.py` now builds a conversion table from it: any family whose
+declared unit differs from its kernel word gets a conversion id, and every
+SPI address that family reaches carries it. `_spi_dispatch_cN_convert[]`
+sits beside the dispatch and stride tables with the same indexing, and
+`spi_handler.asm` applies it. Written as a one-off for Hold, `ChanDelay`
+would have stayed broken in exactly the same way — which is how it was
+found:
+
+```
+  wire-unit conversions applied at the SPI boundary:
+    ChanDelay          ms -> samples    32 addresses
+    ChanGateHold       ms -> samples    32 addresses
+```
+
+**AT THE WIRE, NOT IN THE NODE'S CONTROL-RATE PREP**, and the reason is the
+ramp engine: it reads the CURRENT word and interpolates towards the new
+one, so a current word in samples and an incoming one in milliseconds makes
+every value the ramp passes through meaningless — and the handler's own
+up/down test compares the two as floats before that. A unit change belongs
+at the boundary where the unit changes.
+
+**BOTH DIRECTIONS.** The read path converts back, so a host reads the unit
+it wrote. Without that, save-and-restore — what every probe on this bench
+does around a write — would read samples and write them back as
+milliseconds. Measured on the part, 2026-09-08:
+
+| cell | written | kernel word | read back |
+|---|---|---|---|
+| `Chan001GateHold001` | 1.0 ms | `_gate_hold` = **48** | 1.0000 ms |
+| `Chan001GateHold001` | 50.0 ms | `_gate_hold` = **2400** | 50.0000 ms |
+| `Chan001GateHold001` | 0.0 ms | `_gate_hold` = 0 | 0.0000 ms |
+| `Chan001Delay001` | 20.0 ms | `_dly_read_offset` = **960** | 20.0000 ms |
+| `Chan001Delay001` | 0.0 ms | `_dly_read_offset` = 0 | 0.0000 ms |
+
+2400 is the generator's own initialiser for `_gate_hold_<nid>` (50 ms at
+48 kHz), so the conversion reproduces the value the kernel was written
+around. The samples-per-millisecond constant is GENERATED from
+`dsp_codegen.SAMPLE_RATE_HZ` into `_spi_dispatch_cN_spms` rather than typed
+into the assembler — a conversion that names the sample rate twice can
+disagree with itself.
+
+**WHAT IS DECLARED-BUT-NOT-CONVERTED IS REPORTED, NOT SKIPPED**, every
+generation:
+
+```
+  wire-unit mismatches DECLARED but NOT converted
+  (the contract states the mismatch, not the conversion):
+    ChanCompAtt   wire 'ms (log table)' -> kernel 'alpha coefficient — needs conversion declared'
+    ChanCompRel   ...    ChanGateAtt    ...    ChanGateRel   ...
+    ChanMute      wire 'bool 0/1'  -> kernel 'coefficient fold to exact 0'
+    ChanPol       wire 'bool 0/1'  -> kernel 'coefficient sign fold'
+    Chan_Mtr      wire 'dBFS readback' -> kernel 'Q4.28 fixed via float mirror'
+    ChanName      wire 'text' -> kernel 'n/a — host-side only'
+    MainComp      wire 'mixed — see per-cell rows' -> kernel 'per-parameter'
+```
+
+The four ms→alpha rows say "needs conversion declared" in as many words:
+the contract states the mismatch and not the conversion, and inventing one
+here would be this spoke declaring cell semantics it does not own. **They
+are the next thing the hub can land**, and the mechanism is now waiting for
+them — a row plus a rule, no per-cell code. `ChanGateRng` (dB→linear, D39)
+and `ChanCompPar` (percent→fraction, D40) are excluded deliberately: the
+node's control-rate prep already converts them, and a second conversion at
+the wire would apply it twice.
+
+**AUX AND GROUP DELAYS ARE NOT COVERED, and that is the contract's gap
+rather than the mechanism's.** `AuxDelay`, `GrpGateHold` and the rest reach
+the same class of kernel word and have no row in `wire-units.csv`, so
+nothing here converts them. Landing those rows is all it takes.
+
+### S2-9 — the float cascade IS `bq_float_ref` on the part, 0 ULP
+
+**Severity: none — this is the bar the numeric target names, run.**
+
+`shared/numeric-spec.md` states the float arm's bit-exact bar as "SHARC
+float cascade ≡ `bq_float_ref`, proved on the part by `bqeverify.sh
+float`". It was run on this tree (block 8, image chip1 `adeb3f0c` / chip2
+`3c48d892`):
+
+```
+ARM A  _bq_fx_cascade_simd  hash 0x7136AFED sum 0xD1246B11
+       vs bq_float_ref offset wire 0x7136AFED/0xD1246B11   MATCH
+ARM B  _bqfd_cascade_simd   hash 0x3E4B7636 sum 0xD11DDA0E
+       vs bq_float_ref direct wire 0x3E4B7636/0xD11DDA0E   MATCH
+A vs B: 14810 of 18432 words differ, first at 3, max |d| 22784
+        model predicts 14810, first at 3, max |d| 22784     MATCH
+        divergence bitmap: part 566 of 576 cells, model 566 MATCH
+
+BQE_VERIFY PASS — 0 ULP over the whole vector set, and the offset
+reconstruction is live
+```
+
+192 cascades x 4 stages x 3 drive levels x 4 blocks = 18,432 output words
+per arm. The bar is two-sided by construction: a one-sided "assert zero
+differences" would pass on a rig that never drove anything hard enough to
+saturate, so the divergence bitmap is checked cell by cell and the two arms
+have to disagree on exactly the 566 cells the model names.
+
+So `EQ_BIQUAD`, `HPF_LPF`, `GEQ`, `CROSSOVER` and `ANTI_FB` have their
+KERNEL verified against its normative reference — separately from whether
+the graph node runs it, which for the last three it does not (S2-6).
+
+### S2-10 — METER is bit-exact; the family walk's own verdict on it was wrong
+
+**Severity: medium (instrument). Status: fixed, and the earlier verdict
+retracted.**
+
+`mtrverify.sh` reads **METER_BIT_EXACT**: the 64-bit meter state reproduces
+`fixed_ref.meter_block` exactly, the float readback is peak 0.5 / rms 0.5
+at 0.000e+00 relative error, the BLOCK=32 negative control is correctly
+rejected and the wide-word control rejects the narrow model.
+
+`dsp4_family_verify.py` had reported `DISAGREES` for METER: `_mtr_peak_
+C1_MTR_01` read `0x40E1AFA1` (7.05 as float32) against a captured
+post-trim peak of exactly 0.5. **A peak HOLD carries state**, and the
+contract sweep that runs immediately before it writes `1.0f` into every rw
+cell of the node under probe, which drives the strip close to full scale;
+the hold had not decayed by the time the meter was read. 7.05 sitting just
+below the Q8.24 ceiling of 8.0 was the tell, and it was not followed.
+
+The lesson is the one this bench keeps relearning in new clothes: a
+stateful readback is not a measurement unless the state is controlled.
+`meter_phase()` now reports `NO_VERDICT` with the reason and names the
+family's real bar rather than scoring a number it cannot interpret, and
+`hw_coverage.py` scores a family by a dedicated bar's verdict — with the
+bar and the image recorded — where one has been run.
 
 ## dsp.csv proposal (2026-09-08)
 

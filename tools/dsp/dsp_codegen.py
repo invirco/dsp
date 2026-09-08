@@ -746,7 +746,12 @@ BLOCK_SHIFT = BLOCK.bit_length() - 1
 assert BLOCK == (1 << BLOCK_SHIFT) and BLOCK >= 2, \
     f'BLOCK must be a power of two >= 2, got {BLOCK}'
 BLOCK_HALF = BLOCK // 2
-BLOCKS_PER_SEC = 48000.0 / BLOCK
+# THE SAMPLE RATE, in one place. Anything that converts a wire unit into
+# samples quotes it from here: a conversion that names the rate in two
+# places is a conversion that can disagree with itself.
+SAMPLE_RATE_HZ = 48000.0
+
+BLOCKS_PER_SEC = SAMPLE_RATE_HZ / BLOCK
 
 # How often the meters convert their fixed-point state to the float the
 # host reads. The MEASUREMENT is every sample of every block; only the

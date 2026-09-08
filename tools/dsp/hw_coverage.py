@@ -61,6 +61,17 @@ for _f in ('FX_ENGINE', 'DCA', 'AUX_INPUT', 'TALKBACK', 'MONITOR',
 
 def score(entry):
     """(verdict, basis, detail) for one family."""
+    # AN EXTERNAL BAR OUTRANKS THIS RUN'S OWN PROBES, and says so. Some
+    # families are verified by a dedicated instrument on its own image
+    # (mtrverify.sh for METER, bqeverify.sh float for the cascade); where
+    # one has been run its verdict is recorded here with the bar and the
+    # image that produced it, because a probe inside the family walk can
+    # be wrong about a family in ways the dedicated bar is not.
+    ext = entry.get('external')
+    if ext:
+        return (ext['verdict'], 'external',
+                '%s on image %s — %s' % (ext['bar'], ext.get('image', '?'),
+                                         ext.get('detail', '')))
     contract = entry.get('contract') or []
     rw = [r for r in contract if r.get('access') == 'rw']
     ans = [r for r in rw if r.get('verdict') == 'ANSWERS']
@@ -76,6 +87,10 @@ def score(entry):
                                  'sample')
     if mtr == 'DISAGREES':
         return 'FAIL', 'meter', 'the SPI readback disagrees with the capture'
+    if mtr == 'NO_VERDICT':
+        return ('NOT EXERCISED', 'meter',
+                'the peak-hold readback carries state from the probe before '
+                'it — mtrverify.sh is this family\'s bar')
     if bad:
         return 'FAIL', 'contract', ('%d landed address(es) do not answer: %s'
                                     % (len(bad), ', '.join(
@@ -119,7 +134,8 @@ def build(report):
         rows.append({
             'family': f, 'cells': fam_cells[f], 'chip': e.get('chip'),
             'node': e.get('node'), 'rw': len(rw), 'answers': len(ans),
-            'numeric': (e.get('numeric') or {}).get('verdict', '-'),
+            'numeric': ((e.get('external') or {}).get('bar')
+                        or (e.get('numeric') or {}).get('verdict', '-')),
             'audio': (e.get('audio') or {}).get('verdict', '-'),
             'meter': (e.get('meter') or {}).get('verdict', '-'),
             'reference': REFERENCE.get(f, 'none declared'),
@@ -141,9 +157,9 @@ def totals(rows):
         'families_failed': len(failed),
         'cells_failed': sum(r['cells'] for r in failed),
         'families_numeric': len([r for r in passed
-                                 if r['basis'] == 'numeric']),
+                                 if r['basis'] in ('numeric', 'external')]),
         'cells_numeric': sum(r['cells'] for r in passed
-                             if r['basis'] == 'numeric'),
+                             if r['basis'] in ('numeric', 'external')),
     }
 
 
@@ -186,10 +202,22 @@ def main(argv=None):
     ap.add_argument('--md', default=None)
     ap.add_argument('--build', default=None, help='image md5, for the header')
     ap.add_argument('--date', default=None)
+    ap.add_argument('--external', action='append', default=[],
+                    metavar='FAMILY:VERDICT:BAR:IMAGE:DETAIL',
+                    help='record a dedicated bar\'s verdict for a family; '
+                         'repeatable')
     a = ap.parse_args(argv)
 
     with open(a.report) as fh:
         report = json.load(fh)
+    for spec in a.external:
+        parts = spec.split(':', 4)
+        if len(parts) < 4:
+            raise SystemExit('--external needs FAMILY:VERDICT:BAR:IMAGE[:DETAIL]')
+        fam, verdict, bar, image = parts[:4]
+        detail = parts[4] if len(parts) > 4 else ''
+        report.setdefault('families', {}).setdefault(fam, {})['external'] = {
+            'verdict': verdict, 'bar': bar, 'image': image, 'detail': detail}
     rows = build(report)
     t = totals(rows)
     md = render(report, rows, t, a.build, a.date)

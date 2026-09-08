@@ -19,6 +19,7 @@ import argparse
 import csv
 import os
 import re
+import struct
 import sys
 from collections import OrderedDict
 
@@ -36,7 +37,8 @@ REPO_ROOT  = os.path.join(SCRIPT_DIR, '..', '..', '..')
 # ramp table is exactly what this finding was.
 sys.path.insert(0, os.path.join(REPO_ROOT, 'tools', 'dsp'))
 try:
-    from dsp_codegen import BLOCK as DSP_BLOCK, FRAME_MS, ms_to_frames
+    from dsp_codegen import (BLOCK as DSP_BLOCK, FRAME_MS, ms_to_frames,
+                             SAMPLE_RATE_HZ)
     import master_names
 except ImportError as exc:                       # no-fallback policy
     raise SystemExit(
@@ -1208,6 +1210,114 @@ def backfill_matrix(header, rows, *, force=False):
 
 
 # ---------------------------------------------------------------------------
+# Wire-unit conversions at the SPI boundary
+#
+# THE DEFECT THIS EXISTS FOR, measured on the part 2026-09-08:
+# `_gate_hold_<nid>` is an integer SAMPLE COUNT (its initialiser is 2400 =
+# 50 ms at 48 kHz) and the SPI handler stored the host's IEEE-754 float32
+# word into it unconverted, so a host writing the documented 1.0 ms landed
+# 0x3F800000 = 1,065,353,216 samples -- about six hours -- and the gate
+# never closed again after its first signal. `_dly_read_offset_<nid>` has
+# the same shape: 250.0 ms lands 0x437A0000 and is clamped to the buffer
+# length, so every delay setting above about 1 ms saturates.
+#
+# IT IS NOT FIXED FOR HOLD. `defs/common/wire/wire-units.csv` is the LANDED
+# declaration of what each family carries on the wire and what the kernel
+# word expects, and this builds the conversion table FROM it: a family whose
+# declared unit differs from the kernel word gets a conversion id, and every
+# SPI address that family reaches carries it. A one-off for Hold would have
+# left `ChanDelay` broken in exactly the same way, which is how it was found.
+#
+# WHAT IS NOT CONVERTED, AND WHY, is reported rather than skipped:
+#   * the ms -> alpha rows (ChanCompAtt/Rel, ChanGateAtt/Rel) declare
+#     "needs conversion declared" -- the contract states the mismatch and
+#     not the conversion, and inventing one here would be this spoke
+#     declaring cell semantics it does not own;
+#   * ChanGateRng (dB -> linear, review D39) and ChanCompPar (percent ->
+#     fraction, D40) are ALREADY converted in the node's control-rate prep,
+#     so a second conversion at the wire would apply it twice;
+#   * the bool folds and the readback rows are not wire conversions at all.
+# ---------------------------------------------------------------------------
+
+WIRE_CVT_NONE = 0
+WIRE_CVT_MS_SAMPLES = 1
+
+# (id, name, predicate over the wire-units row). Add a rule here and every
+# address of every family the rule matches picks it up.
+_WIRE_CVT_RULES = [
+    (WIRE_CVT_MS_SAMPLES, 'ms -> samples',
+     lambda unit, kernel: unit.strip().lower().startswith('ms')
+     and 'samples' in kernel.lower()),
+]
+
+# Families whose declared mismatch the kernel already resolves in its
+# control-rate prep. Converting at the wire as well would apply it twice.
+_WIRE_CVT_ALREADY_IN_KERNEL = {'ChanGateRng', 'ChanCompPar'}
+
+
+def _wire_units_rows():
+    """The landed wire-units declaration, or {} if it cannot be read."""
+    try:
+        import wire_contract
+        return wire_contract.load_units()
+    except Exception as exc:                      # noqa: BLE001
+        print(f'  WARNING: wire-units.csv unreadable ({exc}) — no wire-unit '
+              f'conversions will be generated')
+        return {}
+
+
+def _family_keys(cell):
+    """The keys wire-units.csv may be holding this cell under."""
+    return [re.sub(r'\d+', '', cell)]            # Chan001GateHold001 -> ChanGateHold
+
+
+def build_wire_convert_map():
+    """{(chip, addr): conversion_id} plus a report of what was NOT converted.
+
+    Driven entirely by the landed wire-units.csv and the landed address map;
+    nothing about a specific cell is typed here.
+    """
+    units = _wire_units_rows()
+    convert = {}
+    applied = {}
+    unresolved = []
+    for family, row in sorted(units.items()):
+        unit = (row.get('unit') or '').strip()
+        kernel = (row.get('kernel_expects') or '').strip()
+        if not unit or not kernel or unit == kernel:
+            continue
+        cvt = WIRE_CVT_NONE
+        name = None
+        for cid, cname, pred in _WIRE_CVT_RULES:
+            if pred(unit, kernel):
+                cvt, name = cid, cname
+                break
+        if cvt == WIRE_CVT_NONE:
+            if family not in _WIRE_CVT_ALREADY_IN_KERNEL:
+                unresolved.append((family, unit, kernel))
+            continue
+        hits = 0
+        for cell, entry in cell_map.items():
+            if family in _family_keys(cell):
+                convert[(entry['chip'], entry['spi_addr'])] = cvt
+                hits += 1
+        applied[family] = (name, hits)
+    return convert, applied, unresolved
+
+
+def report_wire_conversions(applied, unresolved):
+    if applied:
+        print('  wire-unit conversions applied at the SPI boundary:')
+        for family, (name, hits) in sorted(applied.items()):
+            print(f'    {family:<18} {name:<16} {hits} addresses')
+    if unresolved:
+        print('  wire-unit mismatches DECLARED but NOT converted '
+              '(the contract states the mismatch, not the conversion):')
+        for family, unit, kernel in unresolved:
+            print(f'    {family:<18} wire {unit!r} -> kernel {kernel!r}')
+
+
+# ---------------------------------------------------------------------------
 # Output: dsp_params.asm (per-chip split)
 # ---------------------------------------------------------------------------
 # ---------------------------------------------------------------------------
@@ -1366,12 +1476,14 @@ def _entry_stride(sym, strides):
     return strides.get(sym.split('+')[0].strip(), 0)
 
 
-def _build_chip_params(chip_num, table_name, out_path, strides=None):
+def _build_chip_params(chip_num, table_name, out_path, strides=None,
+                       convert=None):
     """Build dsp_params.asm content for one chip."""
     chip_entries = {a: v for (c, a), v in dispatch.items() if c == chip_num}
     if not chip_entries:
         return None, 0
     strides = strides or {}
+    convert = convert or {}
 
     max_addr = max(chip_entries.keys())
     size = ((max_addr + 4) // 4) * 4  # align to 4
@@ -1464,19 +1576,68 @@ def _build_chip_params(chip_num, table_name, out_path, strides=None):
         lines.append(f'    {v}{comma}{cmt}')
     lines.append('')
 
+    # ---- Parallel wire-unit conversion table ----
+    cvt_vals = [convert.get((chip_num, addr), WIRE_CVT_NONE)
+                for addr in range(size)]
+    cvt_n = sum(1 for v in cvt_vals if v)
+    lines.append(f'/* ---- Chip {chip_num} wire-unit conversion table '
+                 f'({size} entries) ---- */')
+    lines.append('/*')
+    lines.append(' * Companion to the dispatch table above, same indexing.')
+    lines.append(' * The SPI handler applies this to the incoming word BEFORE')
+    lines.append(' * the ramp/instant dispatch, because it is a UNIT change on')
+    lines.append(' * the wire and everything downstream -- the ramp engine')
+    lines.append(' * included -- has to see the word in the kernel\'s own unit.')
+    lines.append(' *')
+    lines.append(f'   *   {WIRE_CVT_NONE} -- no conversion')
+    lines.append(f'   *   {WIRE_CVT_MS_SAMPLES} -- milliseconds (float32) -> '
+                 'samples (integer, floored at 0)')
+    lines.append(' *')
+    lines.append(' * Generated from defs/common/wire/wire-units.csv, which is')
+    lines.append(' * the landed declaration of what each family carries on the')
+    lines.append(' * wire and what its kernel word expects. Nothing here names')
+    lines.append(' * a cell: a family whose declared unit differs from its')
+    lines.append(' * kernel word gets a conversion, and every address that')
+    lines.append(' * family reaches carries it.')
+    lines.append(' *')
+    lines.append(f' * {cvt_n} of {size} addresses carry a conversion.')
+    lines.append(' */')
+    lines.append(f'.global {table_name}_convert;')
+    lines.append(f'.var {table_name}_convert[{size}] =')
+    for addr in range(size):
+        entry = chip_entries.get(addr)
+        comment = entry[1] if entry else ''
+        comma = ',' if addr < size - 1 else ';'
+        cmt = f'  /* 0x{addr:04X}: {comment} */' if comment else f'  /* 0x{addr:04X} */'
+        lines.append(f'    {cvt_vals[addr]}{comma}{cmt}')
+    lines.append('')
+
+    # The samples-per-millisecond constant the handler multiplies by, as
+    # IEEE-754 float32 bits. GENERATED, not typed into the assembler: the
+    # sample rate is a property of the build, and a conversion that quotes
+    # it from two places is a conversion that can disagree with itself.
+    spms = struct.unpack('<I', struct.pack('<f', SAMPLE_RATE_HZ / 1000.0))[0]
+    lines.append('/* Samples per millisecond, IEEE-754 float32 bits '
+                 f'({SAMPLE_RATE_HZ / 1000.0:g} at {SAMPLE_RATE_HZ:g} Hz). */')
+    lines.append(f'.global {table_name}_spms;')
+    lines.append(f'.var {table_name}_spms = 0x{spms:08X};')
+    lines.append('')
+
     content = '\n'.join(lines) + '\n'
     return content, len(lines)
 
 
 def write_dsp_params_asm(dry_run=False):
     """Generate per-chip SPI dispatch tables."""
+    convert, applied, unresolved = build_wire_convert_map()
+    report_wire_conversions(applied, unresolved)
     for chip_num, table_name, out_path, nodes_dir in [
         (1, '_spi_dispatch_c1', OUT_PARAMS_C1, NODES_DIR_C1),
         (2, '_spi_dispatch_c2', OUT_PARAMS_C2, NODES_DIR_C2),
     ]:
         strides = build_ramp_stride_map(nodes_dir)
         content, line_count = _build_chip_params(chip_num, table_name, out_path,
-                                                 strides)
+                                                 strides, convert)
         if content is None:
             continue
         if dry_run:

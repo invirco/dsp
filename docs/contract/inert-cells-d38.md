@@ -53,6 +53,46 @@ roughly nine seconds each — three armed captures, one of them the
 per-candidate null interval — the full 896 is about two hours of bench
 time, and the sample is one address per kernel class in dispatch order
 rather than a random draw. `INERTN=<n> ./conform.sh` raises the count.
+
+## The list UNDER-REPORTS, and by how much is now measured — 2026-09-08
+
+The 896 is a STATIC count: an address is on it when its dispatch target is
+named by no emitted line. `dsp4_family_verify.py` asked the PART instead —
+inject an impulse, capture consecutive node buffers down the chain, diff
+them word for word — and four families answer every landed address and
+reach no sample:
+
+| family | node walked | addressed D24 cells | on the static list? |
+|---|---|---:|---|
+| `ANTI_FB` | `C2_AUX_AFB_01` | 160 | **yes** — NotchFreq/Gain/Q, AntiFbOn, AntiFbCtrlOn |
+| `FX_ENGINE` | `C2_FX_ENG_01` | 114 | **yes** — On, Decay, PreDelay, DelayTime, EqLo/Mid/Presence, ModRate, ModLevel, LfoShape, StereoWidth |
+| `GEQ` | `C2_AUX_GEQ_01` | 364 | **NO** |
+| `CROSSOVER` | `C2_MAIN_XOVER` | 8 | **NO** |
+
+The first two are this list confirmed on the part, on families session 6's
+sampled probe never reached. **`GEQ` and `CROSSOVER` are the finding**: 372
+addressed cells that static analysis believed something reads, and the part
+says nothing does. The captures, with the bands and the crossover driven:
+
+```
+aux 1, GEQ bands at +12/-12 dB, notch armed 1 kHz Q4 at -18 dB
+  _buf_C2_AUX_FDR_01 -> _AUX_EQ_ -> _AUX_GEQ_ -> _AUX_AFB_ -> _AUX_LIM_
+  0 of 32 samples differ at EVERY stage
+
+main, crossover frequency written 500 Hz
+  _buf_C2_MAIN_DLY -> _MAIN_XOVER -> _MAIN_OEQ_01 -> _MAIN_OEQ_02
+  0 of 32 at every stage — the crossover does not split
+
+FX 1, On=1, Mix=100, Decay=2.0
+  _buf_C2_FX_ENG_01 -> _buf_C2_FX_FDR_01   0 of 32
+```
+
+So the honest count against D38 is **896 statically, plus at least 372 the
+static test misses** — either the generator emits a reference the kernel
+never acts on, or `wire_contract.py`'s "reachable by offset" class (70
+addresses, not claimed either way) is hiding them. Resolving which is what
+would let the generated number move; until then this section is the record
+and the generated table above is unchanged.
 <!-- END hand-written -->
 
 | kernel class | addresses | master cells | symbol |

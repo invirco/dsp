@@ -105,51 +105,74 @@ Hardware ground truth: [MW/D24/HW/hardware-map.md](MW/D24/HW/hardware-map.md)
   yet covered.
 - **hardware-verified 2026-09-08 — EVERY D24 FAMILY THE LANDED CONTRACT
   ADDRESSES, on the shipping FLOAT image** (`DSP4_BQ_FLOAT=1`,
-  `DSP4_GAIN_FLOAT=1`), build **chip1 `906a70f7` / chip2 `3a2d930c`** at
-  defs-v2026.09.08.2. Parameters addressed by CELL NAME out of
+  `DSP4_GAIN_FLOAT=1`), build **chip1 `a07d3865` / chip2 `073d80ef`** at
+  defs-v2026.09.08.2 — the pre-session baseline `906a70f7`/`3a2d930c` plus
+  the wire-unit conversion below. Parameters addressed by CELL NAME out of
   `defs/products/d24/dsp.csv` — the contract's first live use — not by
   stride arithmetic; every landed address written ANSWERED (no SPI error on
   any family, both chips), and the 25 constants the bench harness had
   transcribed all agree with the landed address for their cell. Report:
   `MW/D32/DSP/dsp4-hw-families-20260908.md`; raw
-  `MW/D32/DSP/SHARC/goldens/famverify-20260908.json`; scorer
+  `MW/D32/DSP/SHARC/goldens/famverify-20260908b.json`; scorer
   `tools/dsp/golden_harness.py --target hw`.
-  **Of the 20 families `dsp.csv` addresses (3,698 cells), 13 PASSED
-  (65 %), covering 2,934 cells (79 %); 4 of those on the strict bar —
+  **Of the 20 families `dsp.csv` addresses (3,698 cells), 14 PASSED
+  (70 %), covering 3,028 cells (82 %); 7 of those on the strict bar —
   the part's own samples reproduced word for word by the reference model,
-  negative controls firing — covering 1,046 cells (28 %).**
+  negative controls firing — covering 1,828 cells (49 %). 4 FAILED.**
   - **GATE** — bit-exact vs `fixed_ref` (fixed arm); 12/12 landed addresses
-    answer; drives the audio. Found S2-1: `ChanGateHold` reaches
-    `_gate_hold_*` — an integer sample count — unconverted, so the
-    documented 1.0 ms lands 1,065,353,216 samples and the gate never closes
-    after its first signal.
+    answer; drives the audio at the DOCUMENTED 1.0 ms hold. It did not
+    before: `ChanGateHold` reached `_gate_hold_*` — an integer sample count
+    — unconverted, so 1.0 ms landed 1,065,353,216 samples and the gate
+    never closed after its first signal. FIXED the same day, generically
+    (below).
   - **COMPRESSOR** — bit-exact vs `fixed_ref`; 17/17; drives the audio.
-  - **TUBE_SAT** — bit-exact vs `fixed_ref`; 2/2; drives the audio.
+  - **TUBE_SAT** — bit-exact vs `fixed_ref`; 2/2.
   - **FADER_PAN** — bit-exact vs `fixed_ref`; 3/3; drives the audio.
   - **GAIN** — 2/2; drives the audio. Float arm under `DSP4_GAIN_FLOAT`
     (the meter's wide MAC stays fixed), so its bit-exact reference is
     `bq_float_ref`, not `fixed_ref`.
   - **EQ_BIQUAD / HPF_LPF** — 14/14 and 3/3; a written coefficient set
-    changes the impulse response. Float cascade: the bit-exact bar is
+    changes the impulse response. Float cascade, so the bit-exact bar is
     `bqeverify.sh float` against `bq_float_ref`, NOT `BQCVT`/`fixed_ref`
-    (S2-3), and it was not re-run this session.
-  - **DELAY** — 1/1; sample-exact offset visible at capture offset 0.
+    (finding S2-3) — and that bar was RUN on this tree: **BQE_VERIFY PASS,
+    0 ULP over 192 cascades x 4 stages x 3 levels x 4 blocks (18,432 words
+    per arm), with the offset reconstruction live and the divergence
+    bitmap matching the model cell for cell, 566 of 576.**
+  - **DELAY** — 1/1; sample-exact offset. `ChanDelay` carried the same
+    unconverted-unit defect as `ChanGateHold` and is fixed with it: 20.0 ms
+    now lands 960 samples.
   - **ROUTING** — 42/42; a crosspoint send moves the bus.
-  - **LIMITER**, **MONITOR** (chip 2), **NOISE_GEN**, **TALKBACK** —
-    all landed addresses answer and all drive the audio; no reference model
-    is declared for them yet.
+  - **LIMITER**, **MONITOR** (chip 2), **NOISE_GEN**, **TALKBACK** — all
+    landed addresses answer and all drive the audio; no reference model is
+    declared for them yet.
   - **FAILED — ANTI_FB, GEQ, CROSSOVER, FX_ENGINE** (646 addressed cells):
-    every landed address answers and NONE of them reaches a sample, proved
-    by an impulse walked down the chain with 0 of 32 words differing at each
-    node. `ANTI_FB` and `FX_ENGINE` are corroborated by the D38 inert list;
-    **`GEQ` and `CROSSOVER` are not on it** (S2-6).
-  - **FAILED — METER**: `_mtr_peak_C1_MTR_01` read `0x40E1AFA1` against a
-    captured post-trim peak of exactly 0.5 — 7.0527 read as float32,
-    4.0551 read as Q4.28, neither of them the peak. `mtrverify.sh` is the
-    family's own bar and was not run this session.
+    every landed address answers and NONE reaches a sample, proved by an
+    impulse walked down the chain with 0 of 32 words differing at each
+    node. `ANTI_FB` and `FX_ENGINE` corroborate the D38 inert list;
+    **`GEQ` and `CROSSOVER` are not on it**, so that list under-reports by
+    at least 372 cells (finding S2-6, recorded in
+    `docs/contract/inert-cells-d38.md`).
+  - **METER — BIT-EXACT**, on its own bar: `mtrverify.sh` reads
+    METER_BIT_EXACT (ms64 exact, both pk64 words exact, float readback
+    peak 0.5 / rms 0.5 at 0.000e+00 relative error, BLOCK=32 negative
+    control correctly rejected, wide-word control rejects the narrow
+    model). The family walk's own DISAGREES was the instrument: a peak
+    HOLD carries state, and the contract sweep before it had driven the
+    strip near full scale (finding S2-10).
   - **NOT EXERCISED — DCA** (host-managed since the 2026-08-30 ruling, so
     there is nothing on the part to probe) and **AUX_INPUT** (its samples
     arrive on a TDM slot this bench cannot drive).
+- **A UNIT CONVERSION NOW EXISTS AT THE SPI BOUNDARY, generated from the
+  landed `defs/common/wire/wire-units.csv`** (2026-09-08). D5 says the wire
+  keeps carrying float32 words and a single on-target conversion feeds the
+  fixed kernels; for two families that conversion was simply absent.
+  `gen_dsp.py` emits `_spi_dispatch_cN_convert[]` beside the dispatch and
+  stride tables and `spi_handler.asm` applies it, in BOTH directions, so a
+  host reads back the unit it wrote. Table-driven, never per-cell: the same
+  rule that fixed `ChanGateHold` fixed `ChanDelay`, which a one-off would
+  have left broken. The nine declared mismatches the contract does NOT yet
+  state a conversion for — the four ms→alpha rows above all — are printed
+  on every generation rather than skipped, and are a row plus a rule away.
 - **OPEN against this decision, raised 2026-08-23**: the on-target
   conversion named above is performed in **float32**, whose 24-bit
   mantissa cannot represent Q4.28 exactly, so coefficients land 1–3 LSB

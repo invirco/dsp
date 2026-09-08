@@ -22,8 +22,14 @@ import os, struct, subprocess, sys, time
 
 REC_DEV  = os.environ.get('REC_DEV',  'hw:dsp4pcm,0')
 PLAY_DEV = os.environ.get('PLAY_DEV', 'hw:dsp4pcm,0')
+# THE PI FRAME IS 192 kHz, NOT 48 kHz. `shared/dsp4-logic/slot-map.csv`
+# (lane A_I6) says LOGIC "regroups 4 Pi frames per DSP frame": the Pi runs
+# a 2-slot 32-bit I2S frame and four of them make one 8-slot 48 kHz DSP
+# frame. RATE is overridable because a codec that constrains the rate
+# (google,voicehat declares 48 kHz only) will make ALSA clamp it, and the
+# clamp is worth measuring rather than arguing about.
 
-RATE = 192000
+RATE = int(os.environ.get('RATE', 192000))
 N    = int(sys.argv[1]) if len(sys.argv) > 1 else 192000   # words
 GUARD = 8192
 

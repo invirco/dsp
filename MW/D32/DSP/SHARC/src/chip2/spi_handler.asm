@@ -91,6 +91,38 @@
  * PARALLEL ARRAYS, so their stride is the array width (12 AuxSend,
  * 6 FxSend) and +1/+2/+3 would land on the next crosspoint. */
 .extern _spi_dispatch_c2_stride;
+.extern _spi_dispatch_c2_convert;
+.extern _spi_dispatch_c2_spms;
+
+/* ---- WIRE-UNIT CONVERSION AT THE SPI BOUNDARY ------------------------
+ *
+ * Some cells carry a unit on the wire that is not the unit of the kernel
+ * word they land in, and `defs/common/wire/wire-units.csv` is the landed
+ * declaration of which. `_spi_dispatch_cN_convert` is generated from it
+ * by gen_dsp.py, indexed exactly like the dispatch table, and this is
+ * where it is applied.
+ *
+ * WHY HERE AND NOT IN THE NODE'S CONTROL-RATE PREP: the ramp engine reads
+ * the CURRENT word and interpolates towards the new one. If the current
+ * word is a sample count and the incoming one is milliseconds, the
+ * interpolation is between two different quantities and every value it
+ * passes through is meaningless -- and the handler's own up/down test
+ * compares them as floats before that. A unit change belongs at the wire.
+ *
+ * THE DEFECT IT FIXES, measured 2026-09-08: `_gate_hold_<nid>` is an
+ * integer SAMPLE COUNT and the host's IEEE-754 float32 word landed in it
+ * raw, so the documented 1.0 ms became 0x3F800000 = 1,065,353,216 samples
+ * -- six hours -- and the gate never closed again after its first signal.
+ * `_dly_read_offset_<nid>` had the same shape.
+ *
+ * BOTH DIRECTIONS. The read path converts back, so a host that reads a
+ * parameter gets the unit it wrote. Without that, save-and-restore -- what
+ * every probe on this bench does around a write -- would read samples and
+ * write them back as milliseconds.
+ */
+#define WIRE_CVT_NONE        0   /* keep in step with gen_dsp.py */
+#define WIRE_CVT_MS_SAMPLES  1
+
 
 /* SPI stats — exposed read-only as DIAG_SPI_RX_COUNT /
  * DIAG_SPI_ERR_COUNT, and zeroed by a write to DIAG_CLEAR. */
@@ -214,6 +246,22 @@ _spi2_rx_work:
     r4 = dm(_spi_dispatch_c2_size);
     comp(r2, r4);
     if ge jump (pc, .spi_error);
+
+    /* Wire-unit conversion, before the ramp/instant dispatch. */
+    i0 = _spi_dispatch_c2_convert;
+    m0 = r2;
+    modify(i0, m0);
+    r4 = dm(i0, 0);
+    r5 = WIRE_CVT_MS_SAMPLES;
+    comp(r4, r5);
+    if ne jump (pc, .spi_cvt_done);
+    f4 = r1;                          /* the wire word: milliseconds, float32 */
+    r5 = dm(_spi_dispatch_c2_spms);   /* samples per millisecond, float32 */
+    f4 = f4 * f5;
+    r4 = fix f4;                      /* -> integer sample count */
+    r5 = 0;
+    r1 = max(r4, r5);                 /* a negative time is not a time */
+.spi_cvt_done:
 
     /* Dispatch on ramp profile */
     r5 = RAMP_INSTANT;
@@ -405,6 +453,30 @@ _spi2_rx_work:
     if eq jump (pc, .spi_read_zero);     /* unmapped → return 0 */
     i1 = r4;
     r4 = dm(i1, 0);                      /* read value from DM */
+
+    /* Wire-unit conversion on the way back, so a read returns the unit the
+     * host writes. r4 holds the kernel word; r2 is still the address. */
+    i0 = _spi_dispatch_c2_convert;
+    m0 = r2;
+    modify(i0, m0);
+    r5 = dm(i0, 0);
+    r6 = WIRE_CVT_MS_SAMPLES;
+    comp(r5, r6);
+    if ne jump (pc, .spi_read_cvt_done);
+    f5 = float r4;                    /* sample count -> float */
+    r6 = dm(_spi_dispatch_c2_spms);
+    f6 = RECIPS f6;                   /* seed 1/spms */
+    r7 = dm(_spi_dispatch_c2_spms);
+    f8 = f7 * f6;
+    r9 = 0x40000000;                  /* 2.0f */
+    f8 = f9 - f8;
+    f6 = f6 * f8;                     /* ~16-bit */
+    f8 = f7 * f6;
+    f8 = f9 - f8;
+    f6 = f6 * f8;                     /* ~32-bit 1/spms */
+    f5 = f5 * f6;                     /* -> milliseconds */
+    r4 = f5;
+.spi_read_cvt_done:
     jump (pc, .spi_read_respond);
 .spi_read_diag:
     call _diag_read;                     /* r4 = value; r0 preserved */
