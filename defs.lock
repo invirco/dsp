@@ -1,20 +1,32 @@
-# mx26 definitions lock for mx-dsp
-# Generated/updated by sync-from-mx26.sh --update-lock
+# definitions lock for the dsp spoke.
+#
+# The definitions are the `defs` submodule; this file pins WHICH
+# commit of it, and records the hashes of everything read out of it.
+# Generated/updated by ./sync-defs.sh --update-lock — never by hand.
 
-SOURCE_REPO=invirco/mx26
-SOURCE_REF=main
-SOURCE_COMMIT=345470ac001c0941258b37e69c4ae1401b7512b2
-CONTRACT_VERSION=defs-v2026.08.20
+DEFS_REPO=invirco/defs
+DEFS_PATH=defs
+DEFS_COMMIT=b0e4b487fdca25d6e4558dc953d7400aef13d686
+CONTRACT_VERSION=defs-v2026.09.08
+DEFS_MANIFEST_SHA256=7a6525da000c971bb52df6f1ef53a812aa82c89913fd6aca179b8d35c9880d17
 
-D24_DEF_SHA256=8c5c9ea10698f2cbba25c8033988d0e2f8e63d97aa500f3fadb0ad36c6cdf1bc
+# Declarations consumed by this repo (paths relative to defs/).
+D24_DEF_SHA256=397588274f49b9a78e3938e126b17dc4089808e3aee525e556afd94320051722
 D24_FW_SHA256=8d3f6bfaabde0f99f8ef5be50fcbf35f1d2ced70bcc58ccde2778d419c87f42a
-D24_MASTER_SHA256=641902726d028289e5d5fcb8e328984de6352b55f2a87fba9a4e14b21ca6f96c
-D24_MATRIX_SHA256=fc25b8af1170c3e35513a1d0fc889de507517950dcc847204abf42e95c9552e7
-
+D24_MASTER_SHA256=2fa1ed8f4112d209225295007b16dc1fd265dcba239f47fb9c2dd30d660f377f
+D24_WIRE_TABLE_SHA256=60666a1be75b82b7143dc87d4bce386db210ecff15469013dbd90126b69ca50f
 D32_DEF_SHA256=0261974209e1d09e6953f1616fb6bafddd7b1bfa3d562932ee716fc4e5f5ab73
 D32_FW_SHA256=15364f130dd39245b73bc6836ebc3a0acf1f3fd1fa9911e28306079501b09294
-D32_MASTER_SHA256=f530f1b175bf0f92cabb7d887f41c1540e2dfbec2602e01858b11921ba27038e
-D32_MATRIX_SHA256=32e5aa929038c349f649daf5f9d68b30aa2fd01999d7b5069ef67994b077bb13
+D32_MASTER_SHA256=a528bc7d977ecdfd8294d78473fb9d4fc50c29c9d7804fa50ea1a31c64df17c3
+D32_WIRE_TABLE_SHA256=7ca78dc645bc4870cb9b54cc479b30479cc55906a15a54423eb7d7e1d58dc6d9
+MX_CELL_MASTER_SHA256=3f8260491ea136981bbab14f69b1b50c1d81cab1c4d24dcd5256b77de39eebc5
+WIRE_UNITS_SHA256=e4c244acf372001ea2ba00e966b755876c55ad92300f75fb55024dacdee147cc
 
-D24_DSP_CFG_SHA256=ABSENT
-D32_DSP_CFG_SHA256=ABSENT
+# MW/<P>/MX/_matrix.csv as defs/tools/expand_matrix.py writes it,
+# BEFORE gen_dsp.py backfills the DSP address columns. _GEN is the
+# matrix generation id (defs/tools/matrix_gen_id.py base-id) — the
+# one number that is comparable against the console and the app.
+D24_MATRIX_SHA256=80a3b4073eae629e606d1b77bf2961dd0456bb85939429ac14f36c1bf7d09ec0
+D24_MATRIX_GEN=7322e9a88b18
+D32_MATRIX_SHA256=61762dcb5d3941bd82226c6803aa2376450c40b2c42b43547679543107f4b8b6
+D32_MATRIX_GEN=f09af9c2cd1e

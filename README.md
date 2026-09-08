@@ -1,23 +1,34 @@
 # mx-dsp
 
 DSP implementation repo for Invirco matrix-based products. Matrix *definitions*
-live in the **mx26** repo (the hub); this repo consumes a versioned CSV contract
-from mx26 and turns it into DSP firmware artifacts (the spoke). See
+live in the **`invirco/defs`** repo, carried here as the `defs/` submodule and
+pinned by `defs.lock` to a `defs-v*` tag; this repo consumes them and turns them
+into DSP firmware artifacts (the spoke). mx26 remains the hub for decisions and
+dispatch, and consumes the same submodule. See
 [mx26-mx-dsp-integration.md](mx26-mx-dsp-integration.md) for the full model.
 
-For source documents and bulky source assets, use the mx26-owned Dropbox
-`_Matrix` store as the working location. Keep generated DSP artifacts,
-contract files, and repo-local implementation notes here in the repo; the
-contract sync path still comes from the mx26 checkout unless mx26 changes that
-flow.
+**This repo is a consumer, not a second source.** Nothing here copies a
+definition CSV into the tree, and nothing here rewrites an expansion after
+`defs/tools/expand_matrix.py` produced it — both were how this repo grew a
+matrix generation of its own (`b4592dfb639e`, which matched neither the tag it
+pinned nor the hub). The only DSP-side derived table is the address backfill
+gen_dsp.py writes into `_matrix.csv`.
+
+For source documents and bulky source assets, use the Dropbox `_Matrix` store as
+the working location. Keep generated DSP artifacts and repo-local implementation
+notes here in the repo.
 
 ## Layout
 
 ```
-defs.lock                     # pins the exact mx26 contract state (authoritative)
+defs/                         # SUBMODULE: invirco/defs — every product def, the
+                              #   cell master, the wire declaration, and the ONLY
+                              #   matrix expander. Pinned to a defs-v* tag.
+defs.lock                     # pins which defs commit + tag, and the hashes of
+                              #   everything read out of it (authoritative)
+sync-defs.sh                  # verify the pin, re-expand MW/<P>/MX/_matrix.csv
 tasks.md                      # active task tracker — update on every contract bump
 scaffold-product.sh           # creates a new MW/<PRODUCT> tree + integration checklist
-shared/mx_master.csv          # matrix cell-library compatibility baseline
 tools/dsp/                    # shared DSP codegen package (all products)
     dsp_codegen.py            #   dsp.csv -> SHARC ASM (nodes, ramp engine, block_io)
     gen_dsp_csv.py            #   matrix -> dsp.csv graph source
@@ -26,14 +37,13 @@ tools/dsp/                    # shared DSP codegen package (all products)
     dsp_diagram.py            #   dsp.csv -> Graphviz diagram
     wire_contract.py          #   the SPI wire contract, assembled from
                               #   _matrix.csv + the dispatch tables +
-                              #   wire-units.csv; feeds the conformance
-                              #   harness and emits the D38 inert list
+                              #   defs/common/wire/wire-units.csv; feeds the
+                              #   conformance harness and the D38 inert list
 MW/<PRODUCT>/                 # one tree per product (D24, D32, ...)
-    DEFS/  dNN.csv            # feature definition        (synced from mx26)
-    FW/    fw.csv             # hardware config           (synced from mx26)
-    MX/    dNN-mx-master.csv  # expanded product master   (synced from mx26)
-           _matrix.csv        # runtime matrix snapshot   (synced + DSP backfill)
-    DSPCFG/                   # tier-2 dsp.csv when mx26 provides it (currently absent)
+    MX/    _matrix.csv        # GENERATED: defs/tools/expand_matrix.py output
+                              #   + the DSP address backfill from gen_dsp.py.
+                              #   The product def, fw.csv and the mx-master it
+                              #   came from live in defs/, not here.
     DSP/                      # DSP implementation
         SHARC/                # ADSP-21564 source, codegen tools, build.sh
 attic/                        # retired material (D24 ADAU1466/SigmaStudio era, Pi bootloader)
@@ -48,18 +58,19 @@ Root-level scripts and docs form the contract toolchain (see workflow below).
 | D32 | 2× ADSP-21564 SHARC | Active — flagship; full codegen + contract flow |
 | D24 | 2× ADSP-21564 SHARC | SHARC skeleton mirroring D32; earlier ADAU1466 era archived in `attic/` |
 
-New matrix products get a new `MW/<PRODUCT>/` tree following the same
-DEFS/FW/MX/DSPCFG/DSP shape, driven by the same contract flow.
+New matrix products get a new `MW/<PRODUCT>/` tree following the same MX/DSP
+shape, driven by the same contract flow; their definitions are added to `defs`.
 
 ## Daily workflow
 
 | Command | Purpose |
 |---|---|
-| `./regenerate-dsp-contract.sh` | Sync from mx26 + validate + regenerate DSP artifacts |
-| `./regenerate-dsp-contract.sh --update-lock` | Same, but bump defs.lock hashes (intentional contract bump) |
+| `./sync-defs.sh` | Verify the `defs` pin and re-expand `MW/<P>/MX/_matrix.csv` |
+| `./regenerate-dsp-contract.sh` | sync-defs + validate + regenerate DSP artifacts |
+| `./regenerate-dsp-contract.sh --update-lock` | Same, but re-pin defs.lock (intentional contract bump — move the submodule to the new tag first) |
 | `./check-contract-drift.sh [--strict]` | Pre-merge drift gate |
 | `python3 validate-matrix-contract.py` | MxAdd continuity + family allowlist check |
-| `python3 audit-compat-aliases.py` | Refresh alias-audit.md |
+| `python3 audit-compat-aliases.py` | Refresh alias-audit.md — proves the expansion in this tree is untouched |
 | `python3 tools/dsp/dsp_codegen.py MW/<P>/DSP/SHARC/dsp.csv MW/<P>/DSP/SHARC/src` | Regenerate a product's SHARC source |
 | `python3 tools/dsp/dsp_validate.py MW/<P>/DSP/SHARC/dsp.csv` | Validate a product's DSP graph |
 | `python3 tools/dsp/dsp_memreport.py MW/<P>/DSP/SHARC/build/chip*.map.xml` | Memory headroom per primary+overflow pool (exit 1 above 90%) |

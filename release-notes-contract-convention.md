@@ -1,7 +1,7 @@
 # release notes contract convention
 
 Status: active
-Date: 2026-07-15
+Date: 2026-09-08
 Scope: required notes whenever matrix contract changes are introduced.
 
 ## Rule
@@ -11,7 +11,7 @@ Any change that modifies matrix definition contract inputs or generated contract
 ## Required fields
 
 - Contract version: defs-vYYYY.MM.DD or equivalent
-- Source repo/ref: invirco/mx26 + branch/tag
+- Source repo/ref: invirco/defs + tag (the `defs/` submodule)
 - Source commit: full or short sha
 - Changed products: D24, D32, or both
 - Change class: schema, counts/capability, behavior profile, mapping-only
@@ -32,23 +32,23 @@ Contract bump:
 ## Merge commit footer format
 
 Contract-Version: defs-vYYYY.MM.DD
-Contract-Source: invirco/mx26@<sha>
+Contract-Source: invirco/defs@<sha>
 Contract-Products: D24,D32
 Contract-Change-Class: schema|counts|behavior|mapping
 
 ## Example
 
 Contract bump:
-- version: defs-v2026.07.15
-- source repo/ref: invirco/mx26 main
-- source commit: 96c54d0632a43bfcd53a3ae3012393949bfbdc3c
+- version: defs-v2026.09.08
+- source repo/ref: invirco/defs, tag defs-v2026.09.08 (the `defs/` submodule)
+- source commit: b0e4b487fdca25d6e4558dc953d7400aef13d686
 - products affected: D24,D32
-- change class: mapping
+- change class: schema
 - risk: medium
 - validation run: ./regenerate-dsp-contract.sh
 
 Merge footer:
-- Contract-Version: defs-v2026.07.15
-- Contract-Source: invirco/mx26@96c54d0632a43bfcd53a3ae3012393949bfbdc3c
+- Contract-Version: defs-v2026.09.08
+- Contract-Source: invirco/defs@b0e4b487fdca25d6e4558dc953d7400aef13d686
 - Contract-Products: D24,D32
-- Contract-Change-Class: mapping
+- Contract-Change-Class: schema

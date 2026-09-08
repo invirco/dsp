@@ -1,3 +1,11 @@
+> **SUPERSEDED IN PART, 2026-09-08 (defs S1).** The hub/spoke model below
+> still holds, but the definitions no longer travel as copied CSVs from an
+> mx26 checkout. They live in the standalone `invirco/defs` repo, which
+> mx26, this repo and the app each carry as a submodule pinned to a
+> `defs-v*` tag. `sync-from-app.sh` and `sync-from-mx26.sh` are both gone;
+> `sync-defs.sh` verifies the pin and re-expands. Read this for the model,
+> `README.md` and `workflow-quickstart.md` for the mechanism.
+
 # mx26 <-> mx-dsp integration guide
 
 Status: draft

@@ -23,7 +23,7 @@ On this machine the Dropbox folder is named differently:
 ~/Stonepower Dropbox/Peter Watts/_Matrix
 ```
 
-Resolve it the way `sync-from-mx26.sh` and the mx26 launch scripts already do —
+Resolve it the way the mx26 launch scripts already do —
 probe `$HOME/Dropbox-Stonepower/Peter Watts`, `$HOME/Stonepower Dropbox/Peter
 Watts`, `$HOME/Dropbox/Peter Watts` — never hard-code one spelling in tooling.
 
@@ -68,8 +68,10 @@ Per-domain intent for a product folder (from `Products/D24/readme.md`):
 
 ## What this means for mx-dsp
 
-- **The contract flow is unchanged.** `defs.lock` + `sync-from-mx26.sh` still
-  read the mx26 checkout (`$MX26_REPO`, `~/mx26`, or the Dropbox `mx26/`
+- **The contract flow does not read this store.** `defs.lock` + `sync-defs.sh`
+  read the `defs` submodule (the store is a distribution point for the
+  console, not a build input; formerly the mx26 checkout at `$MX26_REPO`,
+  `~/mx26`, or the Dropbox `mx26/`
   mirror). `_Matrix` is *not* wired into the contract path today; mx26's
   `matrix_direction.md` names it as the eventual concrete home for the
   "Dropbox mirror" a spoke pins from, but that has not happened yet. Do not

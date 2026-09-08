@@ -1,3 +1,11 @@
+> **CLOSED, 2026-09-08 (defs S1).** The retirement is done and the
+> machinery it planned is gone: `prune-compat-aliases.py` and
+> `alias-retire-families.txt` deleted families out of the expansion and
+> renumbered `MxAdd` behind them, which made this repo a second source of
+> truth. `defs` is the one source and one expander; a family it carries is
+> a definition, not an alias. `audit-compat-aliases.py` now proves the
+> expansion in this tree is untouched. See `alias-audit.md`.
+
 # alias retirement plan
 
 Status: active

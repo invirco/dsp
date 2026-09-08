@@ -195,7 +195,7 @@ W0 check as well as the setup.
 | `MW/D32/DSP/SHARC/dcapar.sh` | the D57/D59 cell-semantics evidence: runs against either image, so the fixes have a before |
 | `tools/pi/dsp4_dcapar_probe.py` | its bench half — shares `drive_strip()` and the capture window with the harness |
 | `docs/contract/inert-cells-d38.md` | generated: the authoritative inert list |
-| `docs/contract/wire-units-proposals.md` | generated: unit proposals for mx26, adopted nowhere here |
+| `docs/contract/wire-units-proposals.md` | generated: unit proposals for defs, adopted nowhere here |
 
 ## Reading a verdict
 

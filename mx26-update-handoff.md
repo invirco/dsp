@@ -1,3 +1,9 @@
+> **HISTORICAL, 2026-07-31.** The flow it describes
+> (`sync-from-mx26.sh` copying `d2x-mx-master.csv` out of an mx26 checkout)
+> was retired on 2026-09-08: definitions come from the `defs` submodule and
+> `defs/tools/expand_matrix.py` is the only expander. Kept for the cell
+> definitions it proposed and their rationale.
+
 # mx26 update handoff — superset cells + GrpPeq→GrpGeq rename
 
 Prepared 2026-07-31 for the mx26-side edit. Everything below is

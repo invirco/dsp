@@ -21,18 +21,19 @@ if [[ -d "$BASE" ]]; then
   exit 1
 fi
 
-mkdir -p "$BASE"/{DEFS,FW,MX,DSPCFG,DSP/SHARC/src}
+mkdir -p "$BASE"/{MX,DSP/SHARC/src}
 
 cat > "$BASE/README.md" <<EOF
 # $P
 
-Standard product tree — populated by the mx26 contract flow.
+Standard product tree — populated by the defs contract flow.
 
-- DEFS/$LOWER.csv          — feature definition        (synced from mx26)
-- FW/fw.csv           — hardware config           (synced from mx26)
-- MX/$LOWER-mx-master.csv  — expanded product master   (synced from mx26)
-- MX/_matrix.csv      — runtime matrix snapshot   (synced + DSP backfill)
-- DSPCFG/             — tier-2 dsp.csv when mx26 provides it
+The definitions are NOT here. \`$LOWER.csv\`, \`fw.csv\` and
+\`$LOWER-mx-master.csv\` live in the \`defs\` submodule
+(\`defs/products/$LOWER/\`, \`defs/gen/matrix/\`); this tree carries only
+what is generated from them.
+
+- MX/_matrix.csv      — GENERATED: defs/tools/expand_matrix.py + DSP backfill
 - DSP/SHARC/          — DSP graph (dsp.csv) + generated source (src/)
 
 Codegen lives in the shared package: tools/dsp/ (see repo README).
@@ -44,11 +45,12 @@ find "$BASE" | sed "s|$ROOT/||"
 cat <<EOF
 
 Next steps to integrate $P:
-  1. mx26: publish src/pd/$LOWER.csv, src/pd/$LOWER/fw.csv, $LOWER-mx-master.csv.
-  2. Add $P source/dest paths + hash keys to sync-from-mx26.sh
-     (mirror the existing D24/D32 blocks) and to check-contract-drift.sh.
+  1. defs: publish products/$LOWER/$LOWER.csv, products/$LOWER/fw.csv and
+     gen/matrix/$LOWER-mx-master.csv, and tag a new defs-vYYYY.MM.DD.
+  2. Move the defs submodule to that tag; add $P to PRODUCTS in sync-defs.sh
+     and to the CONTRACT_FILES list in check-contract-drift.sh.
   3. Add expected families to matrix-families-allowlist.txt (intentionally).
-  4. ./regenerate-dsp-contract.sh --update-lock   # pins $P in defs.lock
+  4. ./regenerate-dsp-contract.sh --update-lock   # re-pins defs.lock
   5. Author the DSP graph: MW/$P/DSP/SHARC/dsp.csv
      (generate from matrix via: python3 tools/dsp/gen_dsp_csv.py, adapted)
   6. Generate source: python3 tools/dsp/dsp_codegen.py \\

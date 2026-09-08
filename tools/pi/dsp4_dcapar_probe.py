@@ -5,7 +5,8 @@ Both were found on the part and both are fixed in the kernel; this is the
 instrument that says so, and it is deliberately runnable against EITHER
 image, because a fix with no before is an assertion.
 
-    D57  `RtgDca` is a DCA ASSIGNMENT, not a gain. Writing the masters'
+    D57  `Dca` (`RtgDca` before the 2026-08-25 rename) is a DCA
+         ASSIGNMENT, not a gain. Writing the masters'
          documented "no DCA assigned" value of 0 used to set the strip's
          fader coefficient to zero and silence the channel with
          _fdr_level_ still reading 1.0. SUPERSEDED 2026-08-30 by PW's Q2

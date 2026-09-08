@@ -8,15 +8,17 @@ body ever reads it. No single file holds that. This assembles it from
 the four that do, and refuses to guess when they disagree.
 
     MW/<P>/MX/_matrix.csv          master cell -> chip/page/addr, Table,
-                                   RampProfile, Type (contract-synced)
+                                   RampProfile, Type (expanded from defs/,
+                                   DSP columns backfilled by gen_dsp.py)
     SHARC/src/chip<N>/dsp_params.asm
                                    the DISPATCH TABLE the handler indexes:
                                    address -> DM symbol (or 0 = unmapped),
                                    with the generator's own comment saying
                                    what the kernel keeps there
-    docs/contract/wire-units.csv   family -> documented unit + what the
-                                   kernel expects (mx26 is SOT)
-    docs/contract/<p>-wire-table.csv
+    defs/common/wire/wire-units.csv
+                                   family -> documented unit + what the
+                                   kernel expects (defs is SOT)
+    defs/gen/matrix/<p>-wire-table.csv
                                    the master's cell surface, for the
                                    coverage cross-check: which documented
                                    cells reach the DSP at all
@@ -47,9 +49,11 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-# The Rtg retirement and the host-managed families, in one place for the
-# generator, this join and the bench probes alike.
-from master_names import (current_name, host_managed_families,   # noqa: E402
+# Cell-name shape and the host-managed families, in one place for the
+# generator, this join and the bench probes alike. There is no rename
+# table any more: since defs-v2026.09.08 the matrix and the wire table
+# spell every cell the same way.
+from master_names import (host_managed_families,                 # noqa: E402
                           suffix as cell_suffix)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -66,7 +70,8 @@ NODES_DIR = {
     2: os.path.join(ROOT, 'MW/D32/DSP/SHARC/src/chip2'),
 }
 SHARED_SRC = os.path.join(ROOT, 'MW/D32/DSP/SHARC/src')
-WIRE_UNITS = os.path.join(ROOT, 'docs/contract/wire-units.csv')
+DEFS = os.path.join(ROOT, 'defs')
+WIRE_UNITS = os.path.join(DEFS, 'common/wire/wire-units.csv')
 
 
 # ---------------------------------------------------------------------------
@@ -262,10 +267,6 @@ def cell_family(cell, shfunction):
     """
     name = re.sub(r'\d+', '', cell)          # Chan001GateRng001 -> ChanGateRng
     keys = [name]
-    if 'Rtg' in name:
-        # Chan001RtgMute001 is the master's Chan[1-32]Mute[1-1]: the Rtg
-        # infix is the generator's, not the master's.
-        keys.append(name.replace('Rtg', '', 1))
     if shfunction:
         keys.append(shfunction)
     return keys
@@ -295,7 +296,7 @@ def expand_pattern(cell):
 
 
 def load_wire_table(product):
-    path = os.path.join(ROOT, 'docs/contract', f'{product.lower()}-wire-table.csv')
+    path = os.path.join(DEFS, 'gen/matrix', f'{product.lower()}-wire-table.csv')
     if not os.path.exists(path):
         return []
     return list(csv.DictReader(open(path)))
@@ -382,15 +383,13 @@ def build(product):
         addr = int(r['DspAdd'])
         e = plan.get((chip, addr))
         if e is None:
-            orphan_cells.append((current_name(r['_Cell']), chip, addr))
+            orphan_cells.append((r['_Cell'], chip, addr))
             continue
-        # The harness speaks the CURRENT master spelling everywhere: the
-        # wire table is the authority for it, and a plan that mixed the
-        # matrix's pinned `Chan001RtgMute001` with the wire table's
-        # `Chan001Mute001` would need every consumer to know which was
-        # which. cell_family() still keys off the matrix row, because
-        # wire-units.csv is keyed on the family, not the cell.
-        e['cells'].append(current_name(r['_Cell']))
+        # Matrix and wire table are one spelling since defs-v2026.09.08,
+        # so the cell name goes through as written. cell_family() still
+        # derives its key from the name, because wire-units.csv is keyed
+        # on the family rather than on the cell.
+        e['cells'].append(r['_Cell'])
         keys = cell_family(r['_Cell'], r['ShFunction'])
         e['families'].append(keys[0])
         if r['Table']:
@@ -453,7 +452,7 @@ def coverage(product, plan, orphans):
     rows = load_wire_table(product)
     # Both sides in the current spelling: `addressed` is normalised in
     # build(), so the matrix side is normalised here.
-    matrix_cells = {current_name(r['_Cell']) for r in load_matrix(product)}
+    matrix_cells = {r['_Cell'] for r in load_matrix(product)}
     doc_total = doc_addressed = doc_nomatrix = 0
     by_family = {}
     for r in rows:
@@ -462,14 +461,10 @@ def coverage(product, plan, orphans):
             f = by_family.setdefault(r['family'],
                                      {'total': 0, 'addressed': 0, 'nomatrix': 0})
             f['total'] += 1
-            # One naming difference is left after normalisation: meter
-            # cells carry an 'Aa' prefix in the matrix and none in the
-            # masters. Try both rather than call a renamed cell missing.
-            cands = [name, 'Aa' + name]
-            if any(c in addressed for c in cands):
+            if name in addressed:
                 doc_addressed += 1
                 f['addressed'] += 1
-            elif not any(c in matrix_cells for c in cands):
+            elif name not in matrix_cells:
                 doc_nomatrix += 1
                 f['nomatrix'] += 1
     return {'documented': doc_total, 'addressed': doc_addressed,
@@ -660,15 +655,14 @@ def unaddressed_section(entries, product='d32'):
         prefixes = [l.strip() for l in open(path)
                     if l.strip() and not l.startswith('#')]
     addressed = {c for e in entries for c in e['cells']}
-    matrix = {current_name(r['_Cell']) for r in load_matrix(product)}
+    matrix = {r['_Cell'] for r in load_matrix(product)}
     rows = load_wire_table(product)
     host_fams = host_managed_families()
     fams = {}
     host = {}
     for r in rows:
         for name in expand_pattern(r['cell']):
-            cands = [name, 'Aa' + name]
-            if any(c in addressed for c in cands):
+            if name in addressed:
                 continue
             # Host-managed families are counted separately and BEFORE the
             # mcu-only prefixes, so the ruling shows up as its own line
@@ -679,7 +673,7 @@ def unaddressed_section(entries, product='d32'):
                 h = host.setdefault(suf, {'n': 0, 'in_matrix': 0,
                                           'example': name})
                 h['n'] += 1
-                if any(c in matrix for c in cands):
+                if name in matrix:
                     h['in_matrix'] += 1
                 continue
             if any(r['family'].startswith(p) or name.startswith(p)
@@ -688,7 +682,7 @@ def unaddressed_section(entries, product='d32'):
             g = fams.setdefault(r['family'], {'n': 0, 'in_matrix': 0,
                                               'example': name})
             g['n'] += 1
-            if any(c in matrix for c in cands):
+            if name in matrix:
                 g['in_matrix'] += 1
     L = ['', '## host-managed cells (no DSP address, by ruling)', '',
          'Declared by `host_cells=` on the nodes that used to carry them in',

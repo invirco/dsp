@@ -4,7 +4,8 @@
 # Two contract defects were found on the bench on 2026-08-30 and fixed the
 # same day, and both change what a DEFAULT-configured strip does:
 #
-#   D57  `<Cat>[n]RtgDca[1-1]` is a DCA ASSIGNMENT and the kernel treated
+#   D57  `<Cat>[n]Dca[1-1]` (spelled `RtgDca` before the 2026-08-25 rename)
+#        is a DCA ASSIGNMENT and the kernel treated
 #        it as a linear gain, so writing the masters' documented "off"
 #        value of 0 silenced the channel. SUPERSEDED the same day by PW's
 #        Q2 ruling: `Dca`/`DcaOn` are HOST-MANAGED, the CM4 control daemon

@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-09-08 15:33Z — defs S1 for dsp — adopt the `invirco/defs` submodule at defs-v2026.09.08, retire the dsp-side expander/back-fill, regenerate everything, rebuild both chips, golden 59/59 (desk; no bench)   [status: 🔴 dispatched]   [model: opus]
+## HUB DISPATCH 2026-09-08 15:33Z — defs S1 for dsp — adopt the `invirco/defs` submodule at defs-v2026.09.08, retire the dsp-side expander/back-fill, regenerate everything, rebuild both chips, golden 59/59 (desk; no bench)   [status: 🟢 done — **THIS REPO IS A CONSUMER AND THE D24 GENERATION IS THE HUB'S: `matrix_gen_id.py --compare` reads ALIGNED `7322e9a88b18`, D32 `f09af9c2cd1e`.** `defs/` is a submodule pinned to `defs-v2026.09.08` (`b0e4b487`); `sync-defs.sh` verifies the gitlink, requires a real `defs-v*` tag, hashes the whole defs content manifest plus each declaration read, re-expands both `_matrix.csv` with `defs/tools/expand_matrix.py` and verifies the expansion hash AND the generation id. **THE SECOND SOURCE OF TRUTH IS DELETED, NOT DEPRECATED**: `sync-from-mx26.sh`, `prune-compat-aliases.py` and `alias-retire-families.txt` are gone — the prune step DELETED whole cell families and RENUMBERED `MxAdd` behind them, which is exactly how generation `b4592dfb639e` came to match neither the tag it pinned nor the hub — along with every copied definition (`MW/*/DEFS/*.csv`, `MW/*/FW/fw.csv`, `MW/*/MX/*-mx-master.csv`, `docs/contract/{d24,d32}-wire-table.csv`, `docs/contract/wire-units.csv`, and `shared/mx_master.csv`, a 287-row copy of the 508-row cell master that still spelled `Aa` and was read by nothing). `audit-compat-aliases.py` was rewritten around the question that replaced it and now PROVES the guarantee: it re-expands from defs and diffs every non-backfill column — **both products UNTOUCHED**. **THE RENAME TABLE IS GONE BY CONSTRUCTION.** `master_names.MASTER_RENAME_2026_08_25` — the module's own header said it retires the day the pin advances — is deleted with `current_name`, `legacy_name` and every two-spelling lookup in `gen_dsp.py` and `wire_contract.py`; a generated cell now resolves by the master's own name or is reported. What broke and how it was fixed, all of it: meters lost the `Aa` prefix so they map to the strip's own category and **`expand_meter` now branches on the node's `taps=` declaration instead of on the category**, which is what actually decided the layout (the category no longer can — a channel meter and a channel strip share `Chan`); `wire_contract.py` lost its `'Aa' + name` candidates at three sites and its `'Rtg' in name` family key; `mcu-only-prefixes.txt` lost `Zz` and `Another`, which now match nothing; the `--force` guard that protected against a rename reaching nothing SURVIVES in a form with nothing to do with renames (a generated cell FAMILY reaching no matrix row is reported, because `--force` would otherwise clear the DSP columns of rows it merely failed to find); and `master_names.CELL_RE`'s letters-only suffix class was widened to `[A-Za-z][A-Za-z0-9]*` because D24's `Main001Out3Mode001` was silently classified as not-cell-shaped. **THE MAIN SECTION IS THE REAL CHANGE AND IT IS REPORTED, NOT PAPERED OVER (S1-1 = review D52).** The masters model one L/R bus strip plus THREE post-crossover output strips (`MainL`/`MainR`/`MainSub`); the graph builds FOUR chains off `C2_MAIN_XOVER` plus a separate `C2_SUB_*` bus strip. Mapped what is defensible — `C2_SUB_*` → `MainSub` (the row notes came across verbatim, 'Subwoofer compressor attack'), outputs 1 and 2 → `MainL`/`MainR`, the one crossover node emits its two cells for all three strips at the one address it has — and **named the rest**: 8 graph nodes hold SPI addresses no master cell reaches (`C2_MAIN_O{EQ,COMP,LIM}_{03,04}`, `C2_MTR_MAIN_{03,04}`) and 23 generated cells have no matrix row (the main BUS comp and limiter, which moved onto the output strips, plus the L;R meter taps on what is now a mono strip). `gen_dsp.py` lists every one by id and type. **Resolving it is dsp.csv's job and the dispatch bounds this session out of it.** **A MAJOR DEFECT FELL OUT AND IS CLOSED (S1-3): the H1S1 dispatch map was missing 2,064 cells and nothing said so.** `mx_dsp_map.h` keys matrix rows to `ghost_cells[]` BY NAME; the ghost table spelled `Chan001Mute001` and the pinned matrix spelled `Chan001RtgMute001`, so **3,417 entries against 5,481 ghost cells — `DspDispatch()` could not reach a routing cell at all**, and the generator reported it as an INFO line about legacy-spelling hits, which is true and does not read as 'the MCU cannot dispatch to a third of the table'. One spelling closes it: **5,393 entries**. H1S1 was NOT rebuilt — the fix is proven in the generated header, not on an MCU. **S1-2: two families the July prune called aliases are definitions again** — `FxDuckThr` (6 rows, alongside `FxDuckSens`) and `PeqGain` (12 rows each on `MainL` and `MainR`). Neither reaches a DSP address; reported rather than pruned again, because pruning is what caused this. **BARS: `matrix_gen_id --compare` ALIGNED both products; golden 59/59; `dsp_validate` OK on the D32 shipping csv, 666 nodes; `validate-matrix-contract` MxAdd contiguous 1..4946 / 1..6948 with the family allowlist regenerated intentionally (114 out, 165 in, 361 total); `audit-compat-aliases` UNTOUCHED both products; the shipping `src/` regenerates FILE-FOR-FILE IDENTICAL (0 files differ); `regenerate-dsp-contract.sh` run twice is byte-identical in every artefact; and ALL FOUR IMAGES REBUILD BYTE FOR BYTE — float default `906a70f7`/`3a2d930c` 301,580/181,908, `DSP4_BQ_FLOAT=0` `4e89e062`/`4d1d314c`, `+DSP4_BQ_ROUNDONCE=0` `23c1e662`/`e45bb82a`, `+DSP4_BQ_GUARD=0` `2249afea`/`3173acb3`.** `SHARC/src/` did not change at all: the dispatch tables key on `dsp.csv` node ids, not on cell names. The D38 inert list regenerates at **896**, unmoved. **NOT CLAIMED: no bench, by dispatch.** `busgold` and `conform` were not run; for `busgold` the result cannot have moved, because the audio image is byte-identical on both chips in all four arms and there is no build for a capture to disagree with — the others are simply not evidence this session has. `check-contract-drift.sh --strict` passes only on the committed tree (it compares against `git status`). `MW/D24/DSP/SHARC/dsp.csv` still fails `dsp_validate` with three PRE-EXISTING parameter errors, untouched here. Write-up `MW/D32/DSP/dsp4-defs-s1-20260908.md`; findings `findings.md` (S1-1/S1-2/S1-3); baseline `contract-baseline.md`.]   [model: opus]
 
 WHY. PW rulings 2026-09-08 (mx26 docs/decision-mx26-mandates.md, the four
 2026-09-08 sections; design in mx26 docs/spec-defs-repo.md): ONE source of
@@ -10224,12 +10224,16 @@ other CubeIDE projects before reuse).
 as `matrix-shared-store.md`); mx26 checkout at `~/mx26` for contract
 syncs (`git -C ~/mx26 pull` first).
 
-## P3 — contract evolution (waiting on mx26)
+## P3 — contract evolution
 
-- Tier-2 slots staged in `defs.lock` (`D24_DSP_CFG_SHA256`,
-  `D32_DSP_CFG_SHA256`, ABSENT until mx26 provides dsp.csv files).
-  Resume: when mx26 adds `src/pd/d24/dsp.csv` or `src/pd/d32/dsp.csv`,
-  run `./regenerate-dsp-contract.sh --update-lock`.
+- **CLOSED 2026-09-08 as superseded (defs S1).** The tier-2 `*_DSP_CFG_SHA256`
+  slots waited on mx26 publishing `src/pd/d2x/dsp.csv`. That whole intake path
+  is gone: definitions come from the `invirco/defs` submodule, `defs.lock`
+  pins a commit + tag + content-manifest hash, and there are no ABSENT slots
+  to fill. Authoring `dsp.csv` against the new definitions is the NEXT
+  dispatch — dsp proposes, hub lands it at the gate — and the open questions
+  for it are in `findings.md` (S1-1: the graph's four main outputs against the
+  masters' three strips).
 - FPGA mixer engine for larger products — idea folder seeded
   (`fpga/README.md`, `fpga/node-portability.md`); activation gate:
   becomes a numbered architecture decision first.
@@ -10254,17 +10258,22 @@ syncs (`git -C ~/mx26 pull` first).
 
 | Command | Purpose |
 |---|---|
+| ./sync-defs.sh | Verify the defs pin; re-expand MW/<P>/MX/_matrix.csv |
 | ./regenerate-dsp-contract.sh | Full sync + validate + generate |
-| ./regenerate-dsp-contract.sh --update-lock | Same but bumps defs.lock hashes |
+| ./regenerate-dsp-contract.sh --update-lock | Same but re-pins defs.lock (move the submodule to the new tag first) |
 | ./check-contract-drift.sh | Pre-merge check |
-| ./check-contract-drift.sh --strict | Strict gate — fails on any unintended drift |
-| python3 audit-compat-aliases.py | Refresh alias-audit.md |
+| ./check-contract-drift.sh --strict | Strict gate — fails on any unintended drift, submodule gitlink included |
+| python3 audit-compat-aliases.py | Refresh alias-audit.md — proves the expansion in this tree is untouched |
 | python3 validate-matrix-contract.py | MxAdd continuity + family allowlist check |
+| python3 defs/tools/matrix_gen_id.py MW/D32/MX/_matrix.csv | The matrix generation id, comparable against the console and the app |
 
-## State snapshot (2026-08-20)
+## State snapshot (2026-09-08)
 
-- Contract: defs-v2026.08.20 (mx26 `345470a`) — first pin on the clean
-  5161-cell post-naming-pass D24 master; D24 _matrix 5125 rows, D32 6940.
+- Contract: **defs-v2026.09.08 via the `defs` submodule** (`invirco/defs`
+  at `b0e4b487`). This repo is a CONSUMER: no definition CSV is copied
+  here and no expansion is rewritten after `defs/tools/expand_matrix.py`
+  produced it. D24 _matrix 4946 rows, generation `7322e9a88b18` — ALIGNED
+  with the hub; D32 6948 rows, generation `f09af9c2cd1e`.
 - Firmware: unified DSP4 per dsp4-architecture-decisions.md; ~75-80%
   written, hardware-verified fraction low — bring-up is the work.
 - Hardware: rev-C card live; SHARCs boot; dma_cfg_init wedge = the one

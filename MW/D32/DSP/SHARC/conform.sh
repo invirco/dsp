@@ -2,7 +2,7 @@
 # conform.sh — the CONTRACT CONFORMANCE HARNESS (protocol goldens).
 #
 # Every other bar in this tree measures the kernel against itself. This one
-# measures it against the MASTERS: the wire tables in docs/contract/ say
+# measures it against the MASTERS: the wire tables in defs/gen/matrix/ say
 # what each cell is and what unit it carries, and this writes them over the
 # live SPI plane and requires the documented consequence.
 #

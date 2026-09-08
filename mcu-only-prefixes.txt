@@ -1,10 +1,13 @@
 # Matrix cell-name prefixes that are MCU-only (no DSP mapping expected).
 # Read by MW/D32/DSP/gen_dsp.py's validate() to skip these when reporting
 # _matrix.csv cells with no DSP mapping. Add a prefix here when a new
-# MCU-only family is adopted from mx26 — no code edit needed.
+# MCU-only family is adopted from defs — no code edit needed.
+#
+# `Zz` and `Another` were dropped at defs-v2026.09.08: the Aa*/Zz* sort
+# prefixes were purged upstream and `Another` was never a category. A
+# prefix that matches nothing hides nothing, but it also reads as though
+# something is being covered.
 Sys
 Fdr
-Zz
-Another
 Mute
 Rec

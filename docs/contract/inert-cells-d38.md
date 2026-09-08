@@ -13,7 +13,7 @@ separately as uncertain rather than claimed dead, so everything on
 this list is provably unreferenced and the list under-reports
 rather than over-reports.
 
-**896 addresses are inert**, naming **762 master cells**. A further **70 addresses** are reachable by offset from a symbol that is used, and are not claimed either way.
+**896 addresses are inert**, naming **744 master cells**. A further **70 addresses** are reachable by offset from a symbol that is used, and are not claimed either way.
 
 
 <!-- BEGIN hand-written — preserved across regeneration -->
@@ -57,16 +57,16 @@ rather than a random draw. `INERTN=<n> ./conform.sh` raises the count.
 
 | kernel class | addresses | master cells | symbol |
 |---|---|---|---|
-| CompFilter HPF[i] | 180 | 123 | `_comp_filter_coeffs_*` |
+| CompFilter HPF[i] | 180 | 117 | `_comp_filter_coeffs_*` |
 | NotchFreq[i] | 72 | 72 | `_afb_notch_freq_*` |
 | NotchGain[i] | 72 | 72 | `_afb_notch_gain_*` |
 | NotchQ[i] | 72 | 72 | `_afb_notch_q_*` |
-| CompType | 42 | 41 | `_comp_type_*` |
-| CompKey | 42 | 41 | `_comp_key_src_*` |
-| CompDetSrc | 42 | 41 | `_comp_det_src_*` |
-| CompLimMode | 42 | 41 | `_comp_lim_mode_*` |
-| CompEqPos | 42 | 41 | `_comp_eq_pos_*` |
-| CompFilterOn | 42 | 41 | `_comp_filter_on_*` |
+| CompType | 42 | 39 | `_comp_type_*` |
+| CompKey | 42 | 39 | `_comp_key_src_*` |
+| CompDetSrc | 42 | 39 | `_comp_det_src_*` |
+| CompLimMode | 42 | 39 | `_comp_lim_mode_*` |
+| CompEqPos | 42 | 39 | `_comp_eq_pos_*` |
+| CompFilterOn | 42 | 39 | `_comp_filter_on_*` |
 | GateKey | 36 | 36 | `_gate_key_src_*` |
 | GateDetSrc | 36 | 36 | `_gate_det_src_*` |
 | CompFilter LPF[i] | 32 | 0 | `_comp_filter_coeffs_*` |
@@ -90,11 +90,11 @@ rather than a random draw. `INERTN=<n> ./conform.sh` raises the count.
 
 ## the cells, by class
 
-### CompFilter HPF[i] — 180 addresses, 123 cells
+### CompFilter HPF[i] — 180 addresses, 117 cells
 
 `Chan001CompFilterHpf001`, `Chan001CompFilterLpf001`, `Chan001CompFilterQ001`, `Chan002CompFilterHpf001`, `Chan002CompFilterLpf001`, `Chan002CompFilterQ001`, `Chan003CompFilterHpf001`, `Chan003CompFilterLpf001`, `Chan003CompFilterQ001`, `Chan004CompFilterHpf001`, `Chan004CompFilterLpf001`, `Chan004CompFilterQ001`, `Chan005CompFilterHpf001`, `Chan005CompFilterLpf001`, `Chan005CompFilterQ001`, `Chan006CompFilterHpf001`, `Chan006CompFilterLpf001`, `Chan006CompFilterQ001`, `Chan007CompFilterHpf001`, `Chan007CompFilterLpf001`, `Chan007CompFilterQ001`, `Chan008CompFilterHpf001`, `Chan008CompFilterLpf001`, `Chan008CompFilterQ001`, `Chan009CompFilterHpf001`, `Chan009CompFilterLpf001`, `Chan009CompFilterQ001`, `Chan010CompFilterHpf001`, `Chan010CompFilterLpf001`, `Chan010CompFilterQ001`, `Chan011CompFilterHpf001`, `Chan011CompFilterLpf001`, `Chan011CompFilterQ001`, `Chan012CompFilterHpf001`, `Chan012CompFilterLpf001`, `Chan012CompFilterQ001`, `Chan013CompFilterHpf001`, `Chan013CompFilterLpf001`, `Chan013CompFilterQ001`, `Chan014CompFilterHpf001`
 
-...and 83 more of the same shape (one per instance).
+...and 77 more of the same shape (one per instance).
 
 ### NotchFreq[i] — 72 addresses, 72 cells
 
@@ -114,41 +114,29 @@ rather than a random draw. `INERTN=<n> ./conform.sh` raises the count.
 
 ...and 32 more of the same shape (one per instance).
 
-### CompType — 42 addresses, 41 cells
+### CompType — 42 addresses, 39 cells
 
-`Chan001CompType001`, `Chan002CompType001`, `Chan003CompType001`, `Chan004CompType001`, `Chan005CompType001`, `Chan006CompType001`, `Chan007CompType001`, `Chan008CompType001`, `Chan009CompType001`, `Chan010CompType001`, `Chan011CompType001`, `Chan012CompType001`, `Chan013CompType001`, `Chan014CompType001`, `Chan015CompType001`, `Chan016CompType001`, `Chan017CompType001`, `Chan018CompType001`, `Chan019CompType001`, `Chan020CompType001`, `Chan021CompType001`, `Chan022CompType001`, `Chan023CompType001`, `Chan024CompType001`, `Chan025CompType001`, `Chan026CompType001`, `Chan027CompType001`, `Chan028CompType001`, `Chan029CompType001`, `Chan030CompType001`, `Chan031CompType001`, `Chan032CompType001`, `Grp001CompType001`, `Grp002CompType001`, `Grp003CompType001`, `Grp004CompType001`, `Main001CompType001`, `Main002CompType001`, `Main003CompType001`, `Main004CompType001`
+`Chan001CompType001`, `Chan002CompType001`, `Chan003CompType001`, `Chan004CompType001`, `Chan005CompType001`, `Chan006CompType001`, `Chan007CompType001`, `Chan008CompType001`, `Chan009CompType001`, `Chan010CompType001`, `Chan011CompType001`, `Chan012CompType001`, `Chan013CompType001`, `Chan014CompType001`, `Chan015CompType001`, `Chan016CompType001`, `Chan017CompType001`, `Chan018CompType001`, `Chan019CompType001`, `Chan020CompType001`, `Chan021CompType001`, `Chan022CompType001`, `Chan023CompType001`, `Chan024CompType001`, `Chan025CompType001`, `Chan026CompType001`, `Chan027CompType001`, `Chan028CompType001`, `Chan029CompType001`, `Chan030CompType001`, `Chan031CompType001`, `Chan032CompType001`, `Grp001CompType001`, `Grp002CompType001`, `Grp003CompType001`, `Grp004CompType001`, `MainL001CompType001`, `MainR001CompType001`, `MainSub001CompType001`
 
-...and 1 more of the same shape (one per instance).
+### CompKey — 42 addresses, 39 cells
 
-### CompKey — 42 addresses, 41 cells
+`Chan001CompKey001`, `Chan002CompKey001`, `Chan003CompKey001`, `Chan004CompKey001`, `Chan005CompKey001`, `Chan006CompKey001`, `Chan007CompKey001`, `Chan008CompKey001`, `Chan009CompKey001`, `Chan010CompKey001`, `Chan011CompKey001`, `Chan012CompKey001`, `Chan013CompKey001`, `Chan014CompKey001`, `Chan015CompKey001`, `Chan016CompKey001`, `Chan017CompKey001`, `Chan018CompKey001`, `Chan019CompKey001`, `Chan020CompKey001`, `Chan021CompKey001`, `Chan022CompKey001`, `Chan023CompKey001`, `Chan024CompKey001`, `Chan025CompKey001`, `Chan026CompKey001`, `Chan027CompKey001`, `Chan028CompKey001`, `Chan029CompKey001`, `Chan030CompKey001`, `Chan031CompKey001`, `Chan032CompKey001`, `Grp001CompKey001`, `Grp002CompKey001`, `Grp003CompKey001`, `Grp004CompKey001`, `MainL001CompKey001`, `MainR001CompKey001`, `MainSub001CompKey001`
 
-`Chan001CompKey001`, `Chan002CompKey001`, `Chan003CompKey001`, `Chan004CompKey001`, `Chan005CompKey001`, `Chan006CompKey001`, `Chan007CompKey001`, `Chan008CompKey001`, `Chan009CompKey001`, `Chan010CompKey001`, `Chan011CompKey001`, `Chan012CompKey001`, `Chan013CompKey001`, `Chan014CompKey001`, `Chan015CompKey001`, `Chan016CompKey001`, `Chan017CompKey001`, `Chan018CompKey001`, `Chan019CompKey001`, `Chan020CompKey001`, `Chan021CompKey001`, `Chan022CompKey001`, `Chan023CompKey001`, `Chan024CompKey001`, `Chan025CompKey001`, `Chan026CompKey001`, `Chan027CompKey001`, `Chan028CompKey001`, `Chan029CompKey001`, `Chan030CompKey001`, `Chan031CompKey001`, `Chan032CompKey001`, `Grp001CompKey001`, `Grp002CompKey001`, `Grp003CompKey001`, `Grp004CompKey001`, `Main001CompKey001`, `Main002CompKey001`, `Main003CompKey001`, `Main004CompKey001`
+### CompDetSrc — 42 addresses, 39 cells
 
-...and 1 more of the same shape (one per instance).
+`Chan001CompDetSrc001`, `Chan002CompDetSrc001`, `Chan003CompDetSrc001`, `Chan004CompDetSrc001`, `Chan005CompDetSrc001`, `Chan006CompDetSrc001`, `Chan007CompDetSrc001`, `Chan008CompDetSrc001`, `Chan009CompDetSrc001`, `Chan010CompDetSrc001`, `Chan011CompDetSrc001`, `Chan012CompDetSrc001`, `Chan013CompDetSrc001`, `Chan014CompDetSrc001`, `Chan015CompDetSrc001`, `Chan016CompDetSrc001`, `Chan017CompDetSrc001`, `Chan018CompDetSrc001`, `Chan019CompDetSrc001`, `Chan020CompDetSrc001`, `Chan021CompDetSrc001`, `Chan022CompDetSrc001`, `Chan023CompDetSrc001`, `Chan024CompDetSrc001`, `Chan025CompDetSrc001`, `Chan026CompDetSrc001`, `Chan027CompDetSrc001`, `Chan028CompDetSrc001`, `Chan029CompDetSrc001`, `Chan030CompDetSrc001`, `Chan031CompDetSrc001`, `Chan032CompDetSrc001`, `Grp001CompDetSrc001`, `Grp002CompDetSrc001`, `Grp003CompDetSrc001`, `Grp004CompDetSrc001`, `MainL001CompDetSrc001`, `MainR001CompDetSrc001`, `MainSub001CompDetSrc001`
 
-### CompDetSrc — 42 addresses, 41 cells
+### CompLimMode — 42 addresses, 39 cells
 
-`Chan001CompDetSrc001`, `Chan002CompDetSrc001`, `Chan003CompDetSrc001`, `Chan004CompDetSrc001`, `Chan005CompDetSrc001`, `Chan006CompDetSrc001`, `Chan007CompDetSrc001`, `Chan008CompDetSrc001`, `Chan009CompDetSrc001`, `Chan010CompDetSrc001`, `Chan011CompDetSrc001`, `Chan012CompDetSrc001`, `Chan013CompDetSrc001`, `Chan014CompDetSrc001`, `Chan015CompDetSrc001`, `Chan016CompDetSrc001`, `Chan017CompDetSrc001`, `Chan018CompDetSrc001`, `Chan019CompDetSrc001`, `Chan020CompDetSrc001`, `Chan021CompDetSrc001`, `Chan022CompDetSrc001`, `Chan023CompDetSrc001`, `Chan024CompDetSrc001`, `Chan025CompDetSrc001`, `Chan026CompDetSrc001`, `Chan027CompDetSrc001`, `Chan028CompDetSrc001`, `Chan029CompDetSrc001`, `Chan030CompDetSrc001`, `Chan031CompDetSrc001`, `Chan032CompDetSrc001`, `Grp001CompDetSrc001`, `Grp002CompDetSrc001`, `Grp003CompDetSrc001`, `Grp004CompDetSrc001`, `Main001CompDetSrc001`, `Main002CompDetSrc001`, `Main003CompDetSrc001`, `Main004CompDetSrc001`
+`Chan001CompLimMode001`, `Chan002CompLimMode001`, `Chan003CompLimMode001`, `Chan004CompLimMode001`, `Chan005CompLimMode001`, `Chan006CompLimMode001`, `Chan007CompLimMode001`, `Chan008CompLimMode001`, `Chan009CompLimMode001`, `Chan010CompLimMode001`, `Chan011CompLimMode001`, `Chan012CompLimMode001`, `Chan013CompLimMode001`, `Chan014CompLimMode001`, `Chan015CompLimMode001`, `Chan016CompLimMode001`, `Chan017CompLimMode001`, `Chan018CompLimMode001`, `Chan019CompLimMode001`, `Chan020CompLimMode001`, `Chan021CompLimMode001`, `Chan022CompLimMode001`, `Chan023CompLimMode001`, `Chan024CompLimMode001`, `Chan025CompLimMode001`, `Chan026CompLimMode001`, `Chan027CompLimMode001`, `Chan028CompLimMode001`, `Chan029CompLimMode001`, `Chan030CompLimMode001`, `Chan031CompLimMode001`, `Chan032CompLimMode001`, `Grp001CompLimMode001`, `Grp002CompLimMode001`, `Grp003CompLimMode001`, `Grp004CompLimMode001`, `MainL001CompLimMode001`, `MainR001CompLimMode001`, `MainSub001CompLimMode001`
 
-...and 1 more of the same shape (one per instance).
+### CompEqPos — 42 addresses, 39 cells
 
-### CompLimMode — 42 addresses, 41 cells
+`Chan001CompEqPos001`, `Chan002CompEqPos001`, `Chan003CompEqPos001`, `Chan004CompEqPos001`, `Chan005CompEqPos001`, `Chan006CompEqPos001`, `Chan007CompEqPos001`, `Chan008CompEqPos001`, `Chan009CompEqPos001`, `Chan010CompEqPos001`, `Chan011CompEqPos001`, `Chan012CompEqPos001`, `Chan013CompEqPos001`, `Chan014CompEqPos001`, `Chan015CompEqPos001`, `Chan016CompEqPos001`, `Chan017CompEqPos001`, `Chan018CompEqPos001`, `Chan019CompEqPos001`, `Chan020CompEqPos001`, `Chan021CompEqPos001`, `Chan022CompEqPos001`, `Chan023CompEqPos001`, `Chan024CompEqPos001`, `Chan025CompEqPos001`, `Chan026CompEqPos001`, `Chan027CompEqPos001`, `Chan028CompEqPos001`, `Chan029CompEqPos001`, `Chan030CompEqPos001`, `Chan031CompEqPos001`, `Chan032CompEqPos001`, `Grp001CompEqPos001`, `Grp002CompEqPos001`, `Grp003CompEqPos001`, `Grp004CompEqPos001`, `MainL001CompEqPos001`, `MainR001CompEqPos001`, `MainSub001CompEqPos001`
 
-`Chan001CompLimMode001`, `Chan002CompLimMode001`, `Chan003CompLimMode001`, `Chan004CompLimMode001`, `Chan005CompLimMode001`, `Chan006CompLimMode001`, `Chan007CompLimMode001`, `Chan008CompLimMode001`, `Chan009CompLimMode001`, `Chan010CompLimMode001`, `Chan011CompLimMode001`, `Chan012CompLimMode001`, `Chan013CompLimMode001`, `Chan014CompLimMode001`, `Chan015CompLimMode001`, `Chan016CompLimMode001`, `Chan017CompLimMode001`, `Chan018CompLimMode001`, `Chan019CompLimMode001`, `Chan020CompLimMode001`, `Chan021CompLimMode001`, `Chan022CompLimMode001`, `Chan023CompLimMode001`, `Chan024CompLimMode001`, `Chan025CompLimMode001`, `Chan026CompLimMode001`, `Chan027CompLimMode001`, `Chan028CompLimMode001`, `Chan029CompLimMode001`, `Chan030CompLimMode001`, `Chan031CompLimMode001`, `Chan032CompLimMode001`, `Grp001CompLimMode001`, `Grp002CompLimMode001`, `Grp003CompLimMode001`, `Grp004CompLimMode001`, `Main001CompLimMode001`, `Main002CompLimMode001`, `Main003CompLimMode001`, `Main004CompLimMode001`
+### CompFilterOn — 42 addresses, 39 cells
 
-...and 1 more of the same shape (one per instance).
-
-### CompEqPos — 42 addresses, 41 cells
-
-`Chan001CompEqPos001`, `Chan002CompEqPos001`, `Chan003CompEqPos001`, `Chan004CompEqPos001`, `Chan005CompEqPos001`, `Chan006CompEqPos001`, `Chan007CompEqPos001`, `Chan008CompEqPos001`, `Chan009CompEqPos001`, `Chan010CompEqPos001`, `Chan011CompEqPos001`, `Chan012CompEqPos001`, `Chan013CompEqPos001`, `Chan014CompEqPos001`, `Chan015CompEqPos001`, `Chan016CompEqPos001`, `Chan017CompEqPos001`, `Chan018CompEqPos001`, `Chan019CompEqPos001`, `Chan020CompEqPos001`, `Chan021CompEqPos001`, `Chan022CompEqPos001`, `Chan023CompEqPos001`, `Chan024CompEqPos001`, `Chan025CompEqPos001`, `Chan026CompEqPos001`, `Chan027CompEqPos001`, `Chan028CompEqPos001`, `Chan029CompEqPos001`, `Chan030CompEqPos001`, `Chan031CompEqPos001`, `Chan032CompEqPos001`, `Grp001CompEqPos001`, `Grp002CompEqPos001`, `Grp003CompEqPos001`, `Grp004CompEqPos001`, `Main001CompEqPos001`, `Main002CompEqPos001`, `Main003CompEqPos001`, `Main004CompEqPos001`
-
-...and 1 more of the same shape (one per instance).
-
-### CompFilterOn — 42 addresses, 41 cells
-
-`Chan001CompFilterOn001`, `Chan002CompFilterOn001`, `Chan003CompFilterOn001`, `Chan004CompFilterOn001`, `Chan005CompFilterOn001`, `Chan006CompFilterOn001`, `Chan007CompFilterOn001`, `Chan008CompFilterOn001`, `Chan009CompFilterOn001`, `Chan010CompFilterOn001`, `Chan011CompFilterOn001`, `Chan012CompFilterOn001`, `Chan013CompFilterOn001`, `Chan014CompFilterOn001`, `Chan015CompFilterOn001`, `Chan016CompFilterOn001`, `Chan017CompFilterOn001`, `Chan018CompFilterOn001`, `Chan019CompFilterOn001`, `Chan020CompFilterOn001`, `Chan021CompFilterOn001`, `Chan022CompFilterOn001`, `Chan023CompFilterOn001`, `Chan024CompFilterOn001`, `Chan025CompFilterOn001`, `Chan026CompFilterOn001`, `Chan027CompFilterOn001`, `Chan028CompFilterOn001`, `Chan029CompFilterOn001`, `Chan030CompFilterOn001`, `Chan031CompFilterOn001`, `Chan032CompFilterOn001`, `Grp001CompFilterOn001`, `Grp002CompFilterOn001`, `Grp003CompFilterOn001`, `Grp004CompFilterOn001`, `Main001CompFilterOn001`, `Main002CompFilterOn001`, `Main003CompFilterOn001`, `Main004CompFilterOn001`
-
-...and 1 more of the same shape (one per instance).
+`Chan001CompFilterOn001`, `Chan002CompFilterOn001`, `Chan003CompFilterOn001`, `Chan004CompFilterOn001`, `Chan005CompFilterOn001`, `Chan006CompFilterOn001`, `Chan007CompFilterOn001`, `Chan008CompFilterOn001`, `Chan009CompFilterOn001`, `Chan010CompFilterOn001`, `Chan011CompFilterOn001`, `Chan012CompFilterOn001`, `Chan013CompFilterOn001`, `Chan014CompFilterOn001`, `Chan015CompFilterOn001`, `Chan016CompFilterOn001`, `Chan017CompFilterOn001`, `Chan018CompFilterOn001`, `Chan019CompFilterOn001`, `Chan020CompFilterOn001`, `Chan021CompFilterOn001`, `Chan022CompFilterOn001`, `Chan023CompFilterOn001`, `Chan024CompFilterOn001`, `Chan025CompFilterOn001`, `Chan026CompFilterOn001`, `Chan027CompFilterOn001`, `Chan028CompFilterOn001`, `Chan029CompFilterOn001`, `Chan030CompFilterOn001`, `Chan031CompFilterOn001`, `Chan032CompFilterOn001`, `Grp001CompFilterOn001`, `Grp002CompFilterOn001`, `Grp003CompFilterOn001`, `Grp004CompFilterOn001`, `MainL001CompFilterOn001`, `MainR001CompFilterOn001`, `MainSub001CompFilterOn001`
 
 ### GateKey — 36 addresses, 36 cells
 

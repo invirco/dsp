@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-# Pre-merge contract drift check for mx26 -> mx-dsp workflow.
+# Pre-merge contract drift check for the defs -> dsp workflow.
 #
-# Default mode validates contract sync and regeneration determinism.
-# Strict mode additionally requires zero git-status changes in contract files.
+# Default mode verifies the defs pin and re-runs the whole generation.
+# Strict mode additionally requires zero git-status changes in the files
+# that generation produces, INCLUDING the submodule gitlink: a moved
+# `defs/` is a contract change and has to be committed as one.
 #
 # Usage:
 #   ./check-contract-drift.sh
@@ -19,22 +21,17 @@ fi
 
 cd "$ROOT_DIR"
 
-./sync-from-mx26.sh
+./sync-defs.sh
 python3 validate-matrix-contract.py
 python3 MW/D32/DSP/gen_dsp.py --force >/dev/null
 
 echo "Contract validation and regeneration completed"
 
 if [[ $STRICT -eq 1 ]]; then
-  mapfile -t CONTRACT_FILES <<'EOF'
+  mapfile -t CONTRACT_FILES <<'LIST'
+defs
 defs.lock
-MW/D24/DEFS/d24.csv
-MW/D24/FW/fw.csv
-MW/D24/MX/d24-mx-master.csv
 MW/D24/MX/_matrix.csv
-MW/D32/DEFS/d32.csv
-MW/D32/FW/fw.csv
-MW/D32/MX/d32-mx-master.csv
 MW/D32/MX/_matrix.csv
 MW/D32/DSP/ghost_cells.h
 MW/D32/DSP/SHARC/src/chip1/dsp_params.asm
@@ -43,7 +40,7 @@ MW/D32/DSP/dsp_address_map.md
 MW/D32/FW/H1S1/Core/Inc/ghost_cells.h
 MW/D32/FW/H1S1/Core/Src/ghost_cells.c
 MW/D32/FW/H1S1/Core/Inc/mx_dsp_map.h
-EOF
+LIST
 
   drift="$(git status --porcelain -- "${CONTRACT_FILES[@]}")"
   if [[ -n "$drift" ]]; then

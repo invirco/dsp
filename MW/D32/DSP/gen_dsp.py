@@ -101,37 +101,23 @@ def cn(cat, inst, suffix, fun):
 
 
 # ---------------------------------------------------------------------------
-# The Rtg retirement (mx26 ruling 2026-08-25), and the pin that lags it
+# Names come from the masters, and only from the masters
 # ---------------------------------------------------------------------------
-# The masters retired the `Rtg` infix from the routing cell names and this
-# generator emits the CURRENT spelling. `MW/*/MX/_matrix.csv` does not: the
-# pin (see CONTRACT_PIN) predates the rename and cannot legitimately
-# advance here, so the backfill resolves each generated cell against the
-# matrix by its current name first and its legacy name second, and says how
-# many rows it reached each way. The table lives in tools/dsp/master_names
-# because the wire-contract join and the bench probes need the same one.
+# Until defs-v2026.09.08 this file carried a rename table: the pinned
+# `_matrix.csv` spelled the routing cells `Chan001RtgMute001` and the
+# meters `AaChan001Mtr001`, while the masters had moved to
+# `Chan001Mute001` and `Chan001Mtr001`, so every lookup tried two names.
+# The pin has advanced past the rename and the table is GONE -- a
+# generated cell now resolves against the matrix by its own name or not
+# at all, and a name this generator emits that the masters do not carry
+# is reported by validate() rather than aliased into one that fits.
 
 _CELL_SPLIT = master_names.CELL_RE
-_NO_MATCH = _CELL_SPLIT.match('Zzz000Zzz000')   # never equals a real suffix
-MASTER_RENAME_2026_08_25 = master_names.MASTER_RENAME_2026_08_25
-
-legacy_hits = set()
 
 
 def _matrix_key(cell_name, matrix_names):
-    """The _Cell the pinned _matrix.csv carries for this generated cell.
-
-    Returns the current name when the matrix has it, the legacy name when
-    the matrix is still at a pin that predates the rename, and None when
-    the matrix has neither -- which the caller reports rather than skips.
-    """
-    if cell_name in matrix_names:
-        return cell_name
-    alt = master_names.legacy_name(cell_name)
-    if alt and alt in matrix_names:
-        legacy_hits.add(cell_name)
-        return alt
-    return None
+    """The _matrix.csv row for a generated cell, or None if it has none."""
+    return cell_name if cell_name in matrix_names else None
 
 
 # Cell families the HOST owns outright: the DSP is given no address for
@@ -183,7 +169,20 @@ dispatch = {}
 externs = set()
 
 
+# Graph nodes that reach no master cell category at all: id -> node type.
+# They still get dispatch entries (the SPI handler must answer for every
+# address the graph builds), but they emit no cells.
+uncatalogued_nodes = {}
+
+
 def add_cell(cell_name, chip, spi_page, spi_addr, table='', ramp_profile='', notes=''):
+    # A node with no master category is expanded with an empty category, so
+    # cn() hands us `000CompAtt001` -- not a cell, but the graph reaching
+    # past the product definition. Drop it here rather than let it into
+    # cell_map, ghost_cells.c and the address map, where it would read as a
+    # real address the host can write. validate() names the nodes.
+    if not _CELL_SPLIT.match(cell_name):
+        return
     cell_map[cell_name] = {
         'chip': int(chip),
         'spi_page': int(spi_page),
@@ -416,9 +415,8 @@ def expand_fader_pan(node, cat, inst):
     chip, pg, base, nid, ramp = _parse_node(node)
     # 4 SPI words: level + pan + mute + reserved (see below)
 
-    # Level/Pan/Mute carry no infix in the current masters (the Rtg
-    # retirement, 2026-08-25); the pinned _matrix.csv is reached through
-    # MASTER_RENAME_2026_08_25.
+    # Level/Pan/Mute, the master spelling since the 2026-08-25 Rtg
+    # retirement and the only one this generator has ever emitted.
     level_suffix = 'Level'
     pan_suffix = 'Pan'
     mute_suffix = 'Mute'
@@ -575,8 +573,14 @@ def expand_limiter(node, cat, inst):
 # ── METER (read-only, DSP writes, host polls) ────────────────────────────
 def expand_meter(node, cat, inst):
     chip, pg, base, nid, ramp = _parse_node(node)
-    # Meter layout depends on context
-    if cat == 'AaChan':
+    # The layout is what dsp.csv's `taps=` declares, not what the cell
+    # category happens to be. This used to test `cat == 'AaChan'`; the Aa
+    # sort prefix is gone from the masters and a channel meter's cells now
+    # sit in `Chan`, which the strip nodes also use -- so the category can
+    # no longer tell a 4-word channel meter from a 1-word bus meter, and
+    # the node's own declaration always could.
+    taps = node.get('params', '') or ''
+    if 'gate_gr' in taps:
         # 4 words per channel: post_trim, post_fader, gate_gr, comp_gr
         add_cell(cn(cat, inst, 'Mtr', 1), chip, pg, base, '', '', notes='Post trim level')
         add_cell(cn(cat, inst, 'Mtr', 2), chip, pg, base + 1, '', '', notes='Post fader level')
@@ -588,7 +592,6 @@ def expand_meter(node, cat, inst):
         add_dispatch(chip, base + 3, None, f'{nid} comp_gr')
     else:
         # Bus/output meters: 1-2 words
-        taps = node.get('params', '')
         if 'taps=L;R' in taps:
             add_cell(cn(cat, inst, 'Mtr', 1), chip, pg, base, '', '', notes='L')
             add_cell(cn(cat, inst, 'Mtr', 2), chip, pg, base + 1, '', '', notes='R')
@@ -691,10 +694,20 @@ def expand_crossover(node, cat, inst):
     chip, pg, base, nid, ramp = _parse_node(node)
     # From LDF: crossover has LP+HP biquad pairs with crossfade
     # Cells: CrossoverFreq, CrossoverSlope
-    add_cell(cn(cat, inst, 'CrossoverFreq', 1), chip, pg, base,
-             '0=50/127=500/[Log]', 'EqSafe')
-    add_cell(cn(cat, inst, 'CrossoverSlope', 1), chip, pg, base,
-             '0=6/3=24/[Lin]', 'InstantCtl', notes='MCU-computed, shares base')
+    #
+    # ONE crossover word, THREE documented cells. The graph has a single
+    # crossover node in front of the main outputs; the masters give
+    # MainL/MainR/MainSub a CrossoverFreq and CrossoverSlope each. Both are
+    # true, so all three pairs resolve to this node's address rather than
+    # one strip getting the cell and the other two reading as gaps. Many
+    # cells to one address is the normal shape here (see wire_contract.py).
+    for scat, sinst in _XOVER_STRIPS:
+        add_cell(cn(scat, sinst, 'CrossoverFreq', 1), chip, pg, base,
+                 '0=50/127=500/[Log]', 'EqSafe',
+                 notes='shared crossover word')
+        add_cell(cn(scat, sinst, 'CrossoverSlope', 1), chip, pg, base,
+                 '0=6/3=24/[Lin]', 'InstantCtl',
+                 notes='MCU-computed, shares base; shared crossover word')
 
     # Dispatch: coefficient staging (20 words for LP+HP biquads)
     add_dispatch_block(chip, base, f'_xover_coeffs_next_{nid}', 20, f'{nid} XOVER coeff')
@@ -802,11 +815,37 @@ _CHAN_TYPES = r'GAIN|FILT|EQ|GATE|COMP|TUBE|DLY|FDR|RTG'
 _AUX_TYPES  = r'FDR|EQ|GEQ|AFB|LIM|DLY'
 _GRP_TYPES  = r'FDR|EQ|GEQ|GATE|COMP'
 
+# The graph's four post-crossover main outputs against the masters' three
+# main output strips. Outputs 1 and 2 are Main L and Main R; MainSub is fed
+# by the sub mix bus through C2_SUB_*, not by a C2_MAIN_O* chain; outputs 3
+# and 4 have no master strip at defs-v2026.09.08. `None` here means exactly
+# what it means everywhere else in this table -- the node reaches no cell --
+# and get_node_context() still refuses ids no pattern names at all.
+_MAIN_OUT_STRIP = {1: ('MainL', 1), 2: ('MainR', 1), 3: None, 4: None}
+
+# Every strip the crossover feeds, in master spelling. One crossover node
+# exists in the graph and the masters document Freq/Slope on each output
+# strip, so the three cell pairs share the one address.
+_XOVER_STRIPS = (('MainL', 1), ('MainR', 1), ('MainSub', 1))
+
+
+def _main_out_strip(n):
+    """The master strip for post-crossover main output `n`, or None.
+
+    No-fallback: an output the table has never been asked about is an
+    error, not a silent 'no cells' -- that is the difference this whole
+    table exists to keep.
+    """
+    if n not in _MAIN_OUT_STRIP:
+        sys.exit(f'ERROR: main output {n} has no entry in _MAIN_OUT_STRIP — '
+                 f'say which master strip it is (or None) in gen_dsp.py')
+    return _MAIN_OUT_STRIP[n]
+
 _NODE_PATTERNS = [
     # Channel strip (Chip 1)
     (re.compile(r'^C1_IN_(\d+)$'),                     lambda m: None),  # TDM input, no cells
     (re.compile(rf'^C1_(?:{_CHAN_TYPES})_(\d+)$'),     lambda m: ('Chan', int(m.group(1)))),
-    (re.compile(r'^C1_MTR_(\d+)$'),                    lambda m: ('AaChan', int(m.group(1)))),
+    (re.compile(r'^C1_MTR_(\d+)$'),                    lambda m: ('Chan', int(m.group(1)))),
     (re.compile(r'^C1_TALK_(\d+)$'),                   lambda m: ('Talk', int(m.group(1)))),
     (re.compile(r'^C1_NOISE$'),                        lambda m: ('Noise', 1)),
     (re.compile(r'^C1_BUS_'),                          lambda m: None),  # skip bus cells
@@ -815,12 +854,25 @@ _NODE_PATTERNS = [
     (re.compile(r'^C2_AUX_OUT_(\d+)$'),               lambda m: None),
     # Group (Chip 2)
     (re.compile(rf'^C2_GRP_(?:{_GRP_TYPES})_(\d+)$'), lambda m: ('Grp', int(m.group(1)))),
-    # Sub (Chip 2)
-    (re.compile(r'^C2_SUB_(?:FDR|EQ|COMP|LIM|DLY)$'), lambda m: ('Sub', 1)),
+    # Subwoofer strip (Chip 2). The masters folded the standalone `Sub`
+    # category into the main section at defs-v2026.09.08: the strip fed by
+    # the sub mix bus is `MainSub`, and the row notes came across verbatim
+    # ("Subwoofer compressor attack", "Subwoofer output level meter").
+    (re.compile(r'^C2_SUB_(?:FDR|EQ|COMP|LIM|DLY)$'), lambda m: ('MainSub', 1)),
     (re.compile(r'^C2_SUB_OUT$'),                      lambda m: None),
-    # Main (Chip 2)
-    (re.compile(r'^C2_MAIN_(?:FDR|GEQ|COMP|LIM|DLY|XOVER)$'), lambda m: ('Main', 1)),
-    (re.compile(r'^C2_MAIN_O(?:EQ|COMP|LIM)_(\d+)$'),         lambda m: ('Main', int(m.group(1)))),
+    # Main bus (Chip 2) -- the L/R master strip: fader, mute, 28-band GEQ,
+    # delay. `Main` no longer carries output dynamics or a crossover; those
+    # moved to the per-output strips below, which is why C2_MAIN_COMP and
+    # C2_MAIN_LIM now reach no master cell and validate() says so.
+    (re.compile(r'^C2_MAIN_(?:FDR|GEQ|COMP|LIM|DLY)$'),  lambda m: ('Main', 1)),
+    (re.compile(r'^C2_MAIN_XOVER$'),                    lambda m: ('Main', 1)),
+    # Main output strips (Chip 2). The masters have THREE -- MainL, MainR,
+    # MainSub -- against the four post-crossover chains the graph builds;
+    # MainSub's chain is C2_SUB_* above, so outputs 3 and 4 reach no master
+    # cell. That divergence is dsp.csv's to resolve (the S1 dispatch bounds
+    # this session out of authoring it); it is REPORTED, not papered over.
+    (re.compile(r'^C2_MAIN_O(?:EQ|COMP|LIM)_(\d+)$'),
+     lambda m: _main_out_strip(int(m.group(1)))),
     (re.compile(r'^C2_MAIN_OUT_(\d+)$'),                       lambda m: None),
     (re.compile(r'^C2_MIX_'),                                  lambda m: None),
     # FX (Chip 2)
@@ -843,12 +895,16 @@ _NODE_PATTERNS = [
     (re.compile(r'^C2_CODEC_AUX_OUT$'),                lambda m: None),
     # DCA
     (re.compile(r'^C2_DCA_(\d+)$'),                    lambda m: ('Dca', int(m.group(1)))),
-    # Output meters
-    (re.compile(r'^C2_MTR_AUX_(\d+)$'),                lambda m: ('AaAux', int(m.group(1)))),
-    (re.compile(r'^C2_MTR_MAIN_(\d+)$'),               lambda m: ('AaMain', int(m.group(1)))),
-    (re.compile(r'^C2_MTR_GRP_(\d+)$'),                lambda m: ('AaGrp', int(m.group(1)))),
-    (re.compile(r'^C2_MTR_SUB$'),                      lambda m: ('AaSub', 1)),
-    (re.compile(r'^C2_MTR_FX_(\d+)$'),                 lambda m: ('AaFx', int(m.group(1)))),
+    # Output meters. The `Aa` sort prefix is gone from the masters, so a
+    # meter's cells now sit in the strip's own category: Aux001Mtr001, not
+    # AaAux001Mtr001. Nothing collides -- a strip's own expander emits no
+    # Mtr/GateMtr/CompMtr cell.
+    (re.compile(r'^C2_MTR_AUX_(\d+)$'),                lambda m: ('Aux', int(m.group(1)))),
+    (re.compile(r'^C2_MTR_MAIN_(\d+)$'),
+     lambda m: _main_out_strip(int(m.group(1)))),
+    (re.compile(r'^C2_MTR_GRP_(\d+)$'),                lambda m: ('Grp', int(m.group(1)))),
+    (re.compile(r'^C2_MTR_SUB$'),                      lambda m: ('MainSub', 1)),
+    (re.compile(r'^C2_MTR_FX_(\d+)$'),                 lambda m: ('Fx', int(m.group(1)))),
     # Recv/Send (no cells)
     (re.compile(r'^C2_RECV_'),                         lambda m: None),
 ]
@@ -887,6 +943,8 @@ def expand_all_nodes(nodes):
         if ctx is None:
             # Node doesn't map to cells — may still need dispatch (e.g. MIX_BUS)
             if spi_addr >= 0 and expander is not expand_noop:
+                if expander is not expand_mix_bus:
+                    uncatalogued_nodes[nid] = ntype
                 expander(node, '', 0)
             continue
 
@@ -918,24 +976,28 @@ def backfill_matrix(header, rows, *, force=False):
         if key is not None:
             resolved[key] = gen_name
 
-    # WHAT IS an error is a rename-table row that reaches nothing. Map
-    # `FxOn` to `Fx` instead of `RtgFx` and all 192 of those cells quietly
-    # stop matching -- and --force then CLEARS the DSP columns of 192 rows
-    # it merely failed to find, which is a wrecked contract file produced
-    # by a run that printed no warning. So every rename the generator
-    # actually uses has to reach the matrix at least once.
-    for cur, legacy in sorted(MASTER_RENAME_2026_08_25.items()):
-        emitted = [c for c in cell_map
-                   if (_CELL_SPLIT.match(c) or _NO_MATCH).group(3) == cur]
-        if not emitted:
-            continue
-        if not any(_matrix_key(c, matrix_names) for c in emitted):
-            raise SystemExit(
-                f'gen_dsp.py: the rename {legacy!r} -> {cur!r} reaches no row '
-                f'of _matrix.csv under either spelling ({len(emitted)} cells '
-                f'emitted, e.g. {sorted(emitted)[0]}). MASTER_RENAME_2026_08_25 '
-                f'is wrong or the defs pin moved; refusing to backfill, because '
-                f'--force would clear every one of those rows.')
+    # THE GUARD THE RENAME TABLE USED TO NEED, kept because the failure it
+    # catches has nothing to do with renames. A whole cell FAMILY that
+    # reaches no matrix row means this generator and the masters disagree
+    # about a name, and `--force` would then CLEAR the DSP columns of every
+    # row it merely failed to find -- a wrecked contract file from a run
+    # that printed no warning. A family with a handful of misses is
+    # ordinary (the graph is wider than the product in places) and is
+    # reported by validate(); a family with NO hits at all is not.
+    emitted_by_family = {}
+    for c in cell_map:
+        m = _CELL_SPLIT.match(c)
+        if m:
+            emitted_by_family.setdefault((m.group(1), m.group(3)), []).append(c)
+    orphan_families = sorted(
+        fam for fam, cells in emitted_by_family.items()
+        if not any(_matrix_key(c, matrix_names) for c in cells))
+    if orphan_families:
+        print(f'  WARNING: {len(orphan_families)} generated cell families reach '
+              f'NO row of _matrix.csv:')
+        for cat_, suf in orphan_families:
+            n = len(emitted_by_family[(cat_, suf)])
+            print(f'    - {cat_}*{suf}* ({n} cells)')
 
     matched = 0
     cleared = 0
@@ -1499,22 +1561,18 @@ def validate(matrix_rows):
     matrix_names = {r['_Cell'] for r in matrix_rows if r.get('_Cell')}
 
     mcu_only_prefixes = load_mcu_only_prefixes()
-    # Alias-aware both ways: while the defs pin lags the 2026-08-25 rename,
-    # a generated `Chan001Mute001` and the matrix's `Chan001RtgMute001` are
-    # the same cell, and neither list should name it as missing.
-    reached = {_matrix_key(c, matrix_names) for c in cell_map}
-    reached.discard(None)
-    in_map_not_matrix = {c for c in cell_map
-                         if _matrix_key(c, matrix_names) is None}
+    # One spelling, the master's. The pin is past the 2026-08-25 rename, so
+    # a generated name either IS a matrix row or is a divergence to report.
+    reached = {c for c in cell_map if _matrix_key(c, matrix_names)}
+    in_map_not_matrix = set(cell_map) - reached
     # The matrix rows the HOST owns: no DSP address by ruling, listed as
     # that rather than swept into "no DSP mapping (MCU-only or unmapped)",
     # which is where an unexplained gap belongs.
-    legacy_of_host = {MASTER_RENAME_2026_08_25.get(f, f) for f in host_managed}
     host_rows = set()
     in_matrix_no_dsp = set()
     for name in matrix_names:
         m = _CELL_SPLIT.match(name)
-        if m and (m.group(3) in host_managed or m.group(3) in legacy_of_host):
+        if m and m.group(3) in host_managed:
             host_rows.add(name)
             continue
         # Skip known MCU-only prefixes
@@ -1523,28 +1581,18 @@ def validate(matrix_rows):
         if name not in reached:
             in_matrix_no_dsp.add(name)
 
-    # The pinned matrix carries two cells under BOTH spellings. Not a
-    # rename artefact of this tree -- the rows are in the synced master --
-    # but it makes an address ambiguous between two rows, so the choice is
-    # stated rather than left to dict order: the CURRENT spelling wins and
-    # --force clears the legacy twin's DSP columns.
-    both = sorted(c for c in matrix_names
-                  if (master_names.legacy_name(c) or '') in matrix_names)
-    if both:
-        print(f'  INFO: {len(both)} cells are in _matrix.csv under BOTH '
-              f'spellings ({", ".join(both)}); the current-spelling row '
-              f'takes the address and the legacy twin is cleared')
+    if uncatalogued_nodes:
+        print(f'  WARNING: {len(uncatalogued_nodes)} graph nodes have SPI '
+              f'addresses but reach NO master cell category — the DSP will '
+              f'answer on those addresses and nothing in the product '
+              f'definition names them:')
+        for nid, ntype in sorted(uncatalogued_nodes.items()):
+            print(f'    - {nid} ({ntype})')
 
-    if legacy_hits:
-        print(f'  INFO: {len(legacy_hits)} cells reached _matrix.csv through '
-              f'the LEGACY (pre-2026-08-25) spelling -- the defs pin '
-              f'({CONTRACT_PIN}) predates the Rtg retirement. This count '
-              f'goes to 0 when the pin advances.')
     if host_managed:
         for fam, nodes in sorted(host_managed.items()):
-            legacy = MASTER_RENAME_2026_08_25.get(fam, fam)
             n = len([c for c in host_rows
-                     if (_CELL_SPLIT.match(c).group(3) in (fam, legacy))])
+                     if _CELL_SPLIT.match(c).group(3) == fam])
             print(f'  INFO: cell family {fam!r} is HOST-MANAGED on '
                   f'{len(nodes)} nodes -- no DSP address, no kernel read '
                   f'(PW ruling 2026-08-30); {n} rows in _matrix.csv')

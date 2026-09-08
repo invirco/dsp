@@ -1,14 +1,24 @@
 # CLAUDE.md
 
 DSP implementation repo (spoke) for Invirco matrix products. Matrix definitions
-come from the **mx26** repo (hub) via a hash-pinned CSV contract. `README.md`
-has the layout; `tasks.md` has current work state — read both first.
+come from the **`invirco/defs`** repo, carried as the `defs/` submodule and
+pinned by `defs.lock` to a `defs-v*` tag; mx26 is the hub for decisions and
+dispatch and consumes the same submodule. `README.md` has the layout;
+`tasks.md` has current work state — read both first.
 
 ## Hard rules
 
-- **defs.lock is authoritative.** Never hand-edit synced contract files
-  (`MW/*/DEFS/*.csv`, `MW/*/FW/fw.csv`, `MW/*/MX/*.csv`). They come from mx26 via
-  `./sync-from-mx26.sh`; local edits are drift and will fail `check-contract-drift.sh`.
+- **defs.lock is authoritative, and this repo is a CONSUMER of the
+  definitions.** Product defs, `fw.csv`, the mx-master files, the cell
+  master, the wire tables and the ONLY matrix expander live in `defs/`.
+  Never copy one into this tree, and never rewrite an expansion after
+  `defs/tools/expand_matrix.py` produced it — that is how this repo grew a
+  matrix generation of its own (`b4592dfb639e`) that matched neither the tag
+  it pinned nor the hub. `MW/*/MX/_matrix.csv` is GENERATED
+  (`./sync-defs.sh` expands it, `gen_dsp.py --force` backfills the DSP
+  address columns); local edits are drift and will fail
+  `check-contract-drift.sh`. Advancing the contract means moving the
+  submodule to a new `defs-v*` tag, not editing anything here.
 - **Generated files are regenerated, not edited:** `MW/D32/DSP/ghost_cells.h`,
   `MW/D32/DSP/dsp_address_map.md`, `SHARC/src/*/dsp_params.asm`, node ASM
   skeletons under `SHARC/src/chip*/nodes/`, and `_matrix.csv` DSP-backfill
@@ -41,17 +51,17 @@ has the layout; `tasks.md` has current work state — read both first.
   redefines its layout, adds top-level folders, or bulk-migrates legacy
   material into it. Use `_Matrix` for product-source docs and bulky reference
   material; keep generated DSP artifacts and contract files in this repo.
-  Nothing there is a build input, and the contract path still comes from the
-  mx26 checkout. Rules and current contents: `matrix-shared-store.md`.
+  Nothing there is a build input; the definitions come from the `defs`
+  submodule. Rules and current contents: `matrix-shared-store.md`.
 - After any contract or generator change, run `./regenerate-dsp-contract.sh`
   and record contract version per `release-notes-contract-convention.md`.
 - Update `tasks.md` on every contract bump.
 
 ## Where things happen
 
-- Contract intake/validation: root scripts (`sync-from-mx26.sh`,
+- Contract intake/validation: root scripts (`sync-defs.sh`,
   `validate-matrix-contract.py`, `check-contract-drift.sh`,
-  `regenerate-dsp-contract.sh`).
+  `regenerate-dsp-contract.sh`, `audit-compat-aliases.py`).
 - Shared DSP codegen: `tools/dsp/` — used by ALL products
   (`gen_dsp_csv.py` → `dsp.csv` → `dsp_codegen.py` → node ASM;
   `dsp_validate.py`, `dsp_simulate.py`, `dsp_diagram.py`). Do not create
@@ -70,8 +80,10 @@ has the layout; `tasks.md` has current work state — read both first.
 
 - Node IDs: `C<chip>_<TYPE>_<NN>` (e.g. `C1_EQ_07`, `C2_AUX_LIM_12`); one ASM
   file per node instance.
-- Product trees are uniform: `MW/<PRODUCT>/{DEFS,FW,MX,DSPCFG,DSP}`. New
-  products replicate this shape and join the same contract flow.
+- Product trees are uniform: `MW/<PRODUCT>/{MX,DSP}` (plus `HW/`, `FW/`
+  where a product has firmware or hardware material of its own). New
+  products replicate this shape and join the same contract flow; their
+  definitions are added to `defs`, never to this tree.
 - D24's SHARC tree lags D32; D32 tooling is the superset/reference. Both
   converge on the unified DSP4 firmware (see `dsp4-architecture-decisions.md`);
   D24 hardware ground truth is `MW/D24/HW/hardware-map.md`.

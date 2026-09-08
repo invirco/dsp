@@ -1,44 +1,65 @@
 #!/usr/bin/env python3
-"""Audit compatibility alias usage in D32 matrix.
+"""Audit compatibility aliases in the matrices this repo consumes.
 
-Outputs a markdown report with counts for known alias families and their
-canonical replacements to guide safe retirement.
+The alias regime this used to audit is gone. Until defs-v2026.09.08 the
+sync step ran `prune-compat-aliases.py`, which DELETED whole cell families
+out of the expansion and RENUMBERED MxAdd behind them — so this repo's
+`_matrix.csv` was a matrix generation of its own, agreeing with neither the
+tag it pinned nor the hub. `defs/` is now the one source and the one
+expander: what it emits is what this tree carries, byte for byte.
+
+So the question this tool answers changed. It is no longer "which alias
+families are still present"; it is:
+
+  1. is MW/<P>/MX/_matrix.csv still exactly what defs/tools/expand_matrix.py
+     produces, apart from the DSP columns gen_dsp.py backfills? Any other
+     difference is this repo growing a second source of truth again.
+  2. what did the retired prune list actually cover, and what does defs
+     carry for those families now?
+
+Writes alias-audit.md.
 """
 
 from __future__ import annotations
 
 import csv
 import re
+import subprocess
+import sys
+import tempfile
 from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-MATRIX = ROOT / "MW" / "D32" / "MX" / "_matrix.csv"
+DEFS = ROOT / "defs"
 REPORT = ROOT / "alias-audit.md"
+PRODUCTS = ("d24", "d32")
 
-CELL_RE = re.compile(r"^([A-Za-z]+)(\d{3})([A-Za-z0-9]+)(\d{3})$")
+CELL_RE = re.compile(r"^([A-Za-z]+)(\d{3})([A-Za-z][A-Za-z0-9]*)(\d{3})$")
 
-# alias family, canonical family, rationale
-PAIRS: list[tuple[str, str, str]] = []
-
-# Families confirmed retired (alias rows absent in current generated matrix)
-RETIRED = [
+# The families `alias-retire-families.txt` deleted from every expansion up
+# to defs-v2026.08.20, with the canonical family each was said to alias.
+# Retired with the prune step itself on 2026-09-08; kept here because "the
+# rows are back" and "the rows were never gone" are different statements
+# and only this list can tell them apart.
+FORMERLY_PRUNED = [
     ("FxDuckThr", "FxDuckSens", "Legacy threshold alias of DuckSens"),
-    ("MainPeqGain", "MainGeq", "Compatibility alias for main GEQ gains"),
-    ("MainMtr", "AaMainMtr", "Unprefixed main meter alias"),
+    ("MainPeqGain", "MainLPeqGain", "Compatibility alias for main GEQ gains"),
+    ("MainMtr", "MainMtr", "Unprefixed main meter alias (the Aa prefix is gone)"),
     ("FxEqHi", "FxEqPresence", "Legacy FX high EQ alias"),
     ("AuxPeq", "AuxGeq", "Compatibility alias for GEQ gains"),
-    ("SubMtr", "AaSubMtr", "Unprefixed sub meter alias"),
-    ("AaChanDynMtr", "AaChanCompMtr", "DynMtr renamed to CompMtr for compressor GR"),
+    ("SubMtr", "MainSubMtr", "Unprefixed sub meter alias (the Aa prefix is gone)"),
+    ("AaChanDynMtr", "ChanCompMtr", "DynMtr renamed to CompMtr for compressor GR"),
     ("FxLfoMode", "FxLfoShape", "LfoMode renamed to LfoShape"),
 ]
 
-
-def family(cell: str) -> str:
-    m = CELL_RE.match(cell)
-    if not m:
-        raise ValueError(f"Unparseable _Cell: {cell}")
-    return f"{m.group(1)}{m.group(3)}"
+# The columns gen_dsp.py backfills. They are this repo's derived table and
+# are legitimately absent from the expander's output.
+BACKFILL_COLS = {
+    "DspSpi", "DspPage", "DspAdd", "DspAddHex", "Table",
+    "RampProfile", "RampMode", "RampUpMs", "RampDownMs",
+    "RampCurve", "RampScope",
+}
 
 
 def read_rows(path: Path) -> list[dict[str, str]]:
@@ -46,78 +67,116 @@ def read_rows(path: Path) -> list[dict[str, str]]:
         return list(csv.DictReader(f))
 
 
-def counts(rows: list[dict[str, str]]) -> tuple[dict[str, int], dict[str, int]]:
-    total: dict[str, int] = {}
-    mapped: dict[str, int] = {}
-    for r in rows:
-        fam = family((r.get("_Cell") or "").strip())
-        total[fam] = total.get(fam, 0) + 1
-        if (r.get("DspAdd") or "").strip():
-            mapped[fam] = mapped.get(fam, 0) + 1
-    return total, mapped
+def family(cell: str) -> str | None:
+    m = CELL_RE.match(cell)
+    return f"{m.group(1)}{m.group(3)}" if m else None
 
 
-def status(alias_total: int, canonical_total: int, alias_mapped: int) -> str:
-    if alias_total == 0:
-        return "ready (alias absent)"
-    if canonical_total == 0:
-        return "blocked (no canonical family present)"
-    if alias_mapped > 0:
-        return "in progress (alias still DSP-mapped)"
-    return "in progress (alias still present)"
+def expand(product: str, out: Path) -> None:
+    subprocess.run(
+        [sys.executable, str(DEFS / "tools" / "expand_matrix.py"),
+         str(DEFS / "gen" / "matrix" / f"{product}-mx-master.csv"), "-o", str(out)],
+        check=True, stdout=subprocess.DEVNULL)
+
+
+def compare(product: str, tmp: Path) -> tuple[list[str], int]:
+    """(differences, row count) between the tree's matrix and a fresh expansion."""
+    here = ROOT / "MW" / product.upper() / "MX" / "_matrix.csv"
+    fresh = tmp / f"{product}-_matrix.csv"
+    expand(product, fresh)
+    a, b = read_rows(here), read_rows(fresh)
+    diffs: list[str] = []
+    if len(a) != len(b):
+        diffs.append(f"row count {len(a)} in tree vs {len(b)} from the expander")
+    for i, (ra, rb) in enumerate(zip(a, b), start=2):
+        for col, want in rb.items():
+            # csv.DictReader's restkey: the expander writes a few rows with
+            # trailing empty fields past the header. They carry nothing and
+            # gen_dsp.py's DictWriter normalises them away.
+            if col is None or col in BACKFILL_COLS:
+                continue
+            got = ra.get(col, "")
+            if (got or "") != (want or ""):
+                diffs.append(
+                    f"line {i}: {rb.get('_Cell')} column {col!r} is "
+                    f"{got!r} in the tree, {want!r} from the expander")
+                if len(diffs) >= 25:
+                    diffs.append("... (truncated)")
+                    return diffs, len(a)
+    return diffs, len(a)
 
 
 def main() -> int:
-    rows = read_rows(MATRIX)
-    total, mapped = counts(rows)
     today = date.today().isoformat()
-
     lines = [
         "# alias audit",
         "",
         "Status: active",
         f"Date: {today}",
-        "Scope: compatibility alias usage in MW/D32/MX/_matrix.csv.",
+        "Scope: the matrices this repo consumes, against the `defs` expander.",
         "",
-        "| Alias family | Canonical family | Alias rows | Alias DSP-mapped | Canonical rows | Status | Notes |",
-        "|---|---|---:|---:|---:|---|---|",
+        "Generated by `python3 audit-compat-aliases.py` — do not edit by hand.",
+        "",
+        "## 1. Is the expansion untouched?",
+        "",
+        "This repo must not add, drop, rename or renumber a matrix row. Only",
+        "the DSP address columns (`DspSpi`, `DspPage`, `DspAdd`, `DspAddHex`,",
+        "`Table`, `Ramp*`) are this repo's, backfilled by `gen_dsp.py`.",
+        "",
+        "| Product | Rows | Verdict |",
+        "|---|---:|---|",
     ]
+    problems = 0
+    details: list[str] = []
+    with tempfile.TemporaryDirectory() as td:
+        for p in PRODUCTS:
+            diffs, n = compare(p, Path(td))
+            verdict = "UNTOUCHED" if not diffs else f"**DRIFT — {len(diffs)} difference(s)**"
+            if diffs:
+                problems += 1
+                details.append(f"### {p.upper()}")
+                details.append("")
+                details.extend(f"- {d}" for d in diffs)
+                details.append("")
+            lines.append(f"| {p.upper()} | {n} | {verdict} |")
+    if details:
+        lines += ["", "### Differences", ""] + details
 
-    if not PAIRS:
-        lines.append("| (none) | (none) | 0 | 0 | 0 | n/a | No active transitional alias families |")
-    else:
-        for alias, canonical, note in PAIRS:
-            alias_total = total.get(alias, 0)
-            alias_mapped = mapped.get(alias, 0)
-            canonical_total = total.get(canonical, 0)
-            s = status(alias_total, canonical_total, alias_mapped)
-            lines.append(
-                f"| {alias} | {canonical} | {alias_total} | {alias_mapped} | {canonical_total} | {s} | {note} |"
-            )
+    total: dict[str, int] = {}
+    mapped: dict[str, int] = {}
+    for r in read_rows(ROOT / "MW" / "D32" / "MX" / "_matrix.csv"):
+        fam = family((r.get("_Cell") or "").strip())
+        if not fam:
+            continue
+        total[fam] = total.get(fam, 0) + 1
+        if (r.get("DspAdd") or "").strip():
+            mapped[fam] = mapped.get(fam, 0) + 1
 
-    lines.extend(
-        [
-            "",
-            "## Gate for retirement",
-            "",
-            "A family can be removed when:",
-            "- alias rows are 0 in generated matrix,",
-            "- canonical family rows are non-zero,",
-            "- strict drift and smoke checks pass.",
-            "",
-            "## Retired families",
-            "",
-            "| Alias family | Canonical family | Notes |",
-            "|---|---|---|",
-        ]
-        + [
-            f"| {alias} | {canonical} | {note} |"
-            for alias, canonical, note in RETIRED
-        ]
-    )
+    lines += [
+        "",
+        "## 2. The families the retired prune step used to delete",
+        "",
+        "`prune-compat-aliases.py` and `alias-retire-families.txt` were",
+        "removed on 2026-09-08 (defs S1): deleting rows from the expansion",
+        "and renumbering MxAdd behind them was how this repo grew a matrix",
+        "generation of its own. A family below with rows present is not an",
+        "alias any more — it is a definition, and belongs to `defs`.",
+        "",
+        "| Formerly pruned | D32 rows | DSP-mapped | Canonical family | its D32 rows |",
+        "|---|---:|---:|---|---:|",
+    ]
+    for alias, canonical, _note in FORMERLY_PRUNED:
+        lines.append(f"| {alias} | {total.get(alias, 0)} | "
+                     f"{mapped.get(alias, 0)} | {canonical} | "
+                     f"{total.get(canonical, 0)} |")
+    lines.append("")
 
     REPORT.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"Wrote {REPORT}")
+    if problems:
+        print(f"ERROR: {problems} product matrix/matrices differ from the "
+              f"defs expansion — see {REPORT}", file=sys.stderr)
+        return 1
     return 0
 
 
