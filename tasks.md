@@ -1,3 +1,39 @@
+## HUB DISPATCH 2026-09-08 16:48Z — VIRTUAL AUDIO over the CPLD loop, continued: the golden harness gets its hardware target (steps 2–4 of the queued block), on the float image at defs-v2026.09.08.2 — every kernel family exercised through the real SHARC path, per-family hardware-verified lines, and the coverage fraction reported   [status: 🔴 dispatched]   [model: opus]
+
+WHY (PW 2026-09-08): "converters verify the hardware, but the SPORT link
+back through the CPLD should be able to verify all of the code." Yes — and
+this is that step. The queued block "VIRTUAL AUDIO TESTS over the CPLD
+feedback loop" is 🟡: step 1 (pass-through unity, bit-exact, latency
+recorded) is DONE; steps 2–4 are not. Continue it from there, exactly as
+written in that block (read it in full), with these updates:
+
+- Image = the shipping FLOAT path (`DSP4_BQ_FLOAT`/`DSP4_GAIN_FLOAT` default
+  on), built from the tree at defs-v2026.09.08.2 (the pin you just landed).
+  The harness's targets: hw ≡ fixed_ref (bit-exact) where the fixed path is
+  the reference, hw ≈ float64 within `shared/numeric-spec.md` tolerances
+  for the float cascade — say per family which comparison applies.
+- Bench: rev C unit MW-D24-2 (app@192.168.1.219, reachable from this
+  machine) with the DSP card and the CPLD loopback bitstream. The unit is
+  the dsp machine's for this window (hub note). Do not touch the unit's
+  app, matrix or panel MCU firmware — audio path only; leave the unit as
+  you found it (bitstream, DSP image) at the end.
+- Parameters over the SPI link use the LANDED address map:
+  `defs/products/d24/dsp.csv` (never the graph directly) — that is the
+  first live use of the contract; report any address that does not answer.
+- Add the number PW asked for: of the D24 cell families that `dsp.csv`
+  addresses, the fraction exercised and PASSED on hardware after this
+  session, by family, as a table in findings — and write the per-family
+  "hardware-verified <date> <build md5>" lines into
+  dsp4-architecture-decisions.md D5 as the block specifies.
+- Bars unchanged: golden 59/59, dsp_validate OK, busgold bit-exact; a
+  failing family is a firmware bug or a spec [REVIEW] — report, never
+  loosen a tolerance. Bound the session: if a family needs a rig the bench
+  lacks (e.g. a spectral check needs a tool not present), say so and move
+  on; end with the table and what remains.
+- tasks.md (this block's status + the queued block's status line),
+  findings; commit + push main. No AI attribution in commits or any work
+  product.
+
 ## HUB DISPATCH 2026-09-08 16:35Z — advance the defs pin to defs-v2026.09.08.2 (your dsp.csv proposal LANDED at the gate), consume `defs/products/<p>/dsp.csv` as the address map, retire `proposals/`, rebuild, golden 59/59 (desk; no bench)   [status: 🟢 done — **PIN ADVANCED, LANDED `dsp.csv`/`dsp-unmapped.csv` NOW CONSUMED, `proposals/` RETIRED, ALL BARS GREEN.** `defs` submodule at `defs-v2026.09.08.2` (`5696210`); `defs.lock` re-pinned via `./sync-defs.sh --update-lock`; D24/D32 `_matrix.csv` generation ids unchanged (`7322e9a88b18`/`f09af9c2cd1e` — dsp.csv does not touch MxAdd, confirmed by `matrix_gen_id.py`). `gen_dsp.py` restructured so the graph is no longer what generation reads: it still expands the DSP4 graph into a `cell_map` proposal, but only to run the new `check_proposal()` (`--check-proposal`) — every row of the graph's proposed `dsp.csv`/`dsp-unmapped.csv` diffed field-for-field against the LANDED `defs/products/<p>/dsp.csv`/`dsp-unmapped.csv` for both products, no-fallback (exits loudly on any drift; the fix is a new proposal to the hub gate, never a local edit) — **5,398 cells checked, zero drift.** Only once that passes does `load_landed_address_map()` (merges both products' landed files, asserting decision D3's one-shared-map invariant) become the source `_matrix.csv` backfill, `ghost_cells.h`, `dsp_params.asm`, `mx_dsp_map.h` and `dsp_address_map.md` read; authoring a new proposal is now the explicit, off-by-default `--propose` flag. `proposals/` deleted (`git rm -r`) — the landed copy is the record. **EVERY GENERATED ARTIFACT IS BYTE-IDENTICAL TO THE PRE-DISPATCH TREE** (`git status` shows only `gen_dsp.py`, `defs` gitlink, `defs.lock` changed — no diff in `_matrix.csv`, `ghost_cells.h`, `dsp_params.asm`, `mx_dsp_map.h`, or `dsp_address_map.md`), which is the point: the landed file and the graph already agreed. **BARS: `dsp_validate` OK on both `SHARC/dsp.csv` graphs (D32 666 nodes, D24 201 nodes); golden 59/59; `validate-matrix-contract` MxAdd contiguous 1..4946/1..6948, 361 families = allowlist; `audit-compat-aliases` UNTOUCHED (`alias-audit.md` unchanged); both chips rebuild BYTE FOR BYTE against the S1/dsp.csv baseline — chip1 `906a70f7` 301,580 bytes, chip2 `3a2d930c` 181,908 bytes, exactly as predicted (images should not and did not move).** tasks.md State snapshot updated for the new contract. NOT CLAIMED: no bench, by dispatch; no graph changes (`C2_SUB_*` retirement untouched); no capacity work.]   [model: sonnet]
 
 model: sonnet
