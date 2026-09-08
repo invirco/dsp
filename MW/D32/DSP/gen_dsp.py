@@ -2043,6 +2043,133 @@ def verify_proposal_roundtrip(path, expected_cells):
 
 
 # ---------------------------------------------------------------------------
+# Consuming the LANDED contract  (defs/products/<p>/{dsp.csv,dsp-unmapped.csv})
+# ---------------------------------------------------------------------------
+# This repo PROPOSES dsp.csv from the graph; the hub LANDS it into defs at
+# the gate (PW ruling 2026-09-08 #5). Past that point the graph is no longer
+# what generation reads: `cell_map` above stays the source of the facts a
+# NEW proposal would carry (and the input to the drift check below), but
+# _matrix.csv backfill, ghost_cells.h, dsp_params.asm, mx_dsp_map.h and
+# dsp_address_map.md all read the LANDED file, same as any other consumer of
+# defs. `check_proposal()` is what keeps that safe: if the graph and the
+# landed file ever disagree, that is the "proposal drifted from the
+# contract" signal, and the fix is a new proposal to the hub gate, never a
+# local edit to defs/products/<p>/dsp.csv or a silent re-derive from here.
+DEFS_PRODUCTS_DIR = os.path.join(REPO_ROOT, 'defs', 'products')
+
+
+def landed_dsp_csv_path(product):
+    return os.path.join(DEFS_PRODUCTS_DIR, product, 'dsp.csv')
+
+
+def landed_unmapped_csv_path(product):
+    return os.path.join(DEFS_PRODUCTS_DIR, product, 'dsp-unmapped.csv')
+
+
+def _read_landed_csv(path):
+    if not os.path.isfile(path):
+        sys.exit(f'ERROR: {path} is missing — the defs pin does not carry '
+                 f'the landed DSP address map this repo consumes.')
+    with open(path, newline='', encoding='utf-8') as f:
+        rows = list(csv.DictReader(
+            line for line in f if not line.startswith('#')))
+    return {r['_Cell']: r for r in rows}
+
+
+def build_proposal_rows(product, matrix_path, mcu_prefixes):
+    """The dsp.csv / dsp-unmapped.csv rows the graph proposes for `product`,
+    keyed by cell, without writing anything. Shared by write_proposals()
+    (which lands them on disk) and check_proposal() (which only compares)."""
+    with open(matrix_path, newline='', encoding='utf-8') as f:
+        defined = [r['_Cell'] for r in csv.DictReader(f) if r.get('_Cell')]
+    mapped = [n for n in defined if n in cell_map]
+    unmapped = [n for n in defined if n not in cell_map]
+    if len(mapped) + len(unmapped) != len(defined):
+        sys.exit(f'ERROR: {product} coverage split does not add up')
+    rows = {n: _dsp_csv_row(n, cell_map[n]) for n in mapped}
+    un_rows = {}
+    for n in unmapped:
+        klass, reason = _unmapped_reason(n, mcu_prefixes)
+        un_rows[n] = {'_Cell': n, 'Class': klass, 'Reason': reason}
+    return rows, un_rows
+
+
+def check_proposal():
+    """Prove the graph reproduces the LANDED dsp.csv/dsp-unmapped.csv for
+    both products, row for row (every column dsp.csv declares — the header
+    comment's pin stamp is proposal-authoring metadata and not compared).
+    Fails loudly and exits nonzero on any drift."""
+    mcu_prefixes = load_mcu_only_prefixes()
+    ok = True
+    for product, matrix_path in PROPOSAL_PRODUCTS:
+        rows, un_rows = build_proposal_rows(product, matrix_path, mcu_prefixes)
+        landed_rows = _read_landed_csv(landed_dsp_csv_path(product))
+        landed_un = _read_landed_csv(landed_unmapped_csv_path(product))
+
+        for label, got, want in (
+            ('dsp.csv', rows, landed_rows),
+            ('dsp-unmapped.csv', un_rows, landed_un),
+        ):
+            if set(got) != set(want):
+                missing = sorted(set(got) - set(want))
+                extra = sorted(set(want) - set(got))
+                print(f'ERROR: {product}/{label} cell set disagrees with the '
+                      f'graph — {len(missing)} the graph proposes and the '
+                      f'landed file lacks, {len(extra)} the landed file has '
+                      f'and the graph does not propose.', file=sys.stderr)
+                for c in (missing + extra)[:10]:
+                    print(f'    - {c}', file=sys.stderr)
+                ok = False
+                continue
+            mismatched = [c for c in got if got[c] != want[c]]
+            if mismatched:
+                print(f'ERROR: {product}/{label} disagrees with the graph on '
+                      f'{len(mismatched)} cells (first 5 shown):', file=sys.stderr)
+                for c in mismatched[:5]:
+                    print(f'    - {c}: graph={got[c]} landed={want[c]}', file=sys.stderr)
+                ok = False
+
+    if not ok:
+        sys.exit('ERROR: the graph has drifted from the landed dsp.csv / '
+                 'dsp-unmapped.csv contract in defs/products/<p>/. Fix: '
+                 'propose a new dsp.csv to the hub gate — never hand-edit '
+                 'the landed file, and never let generation quietly fall '
+                 'back to the graph when it disagrees with what is landed.')
+    print('  check-proposal OK — the graph reproduces the landed dsp.csv / '
+          'dsp-unmapped.csv exactly for both products')
+
+
+def load_landed_address_map():
+    """The DSP cell address map as LANDED in defs/products/<p>/dsp.csv,
+    merged across both products (decision D3: one shared address map, so a
+    cell either product carries has the same chip/page/address in both
+    files — checked here, not just assumed). This, not the graph's
+    `cell_map`, is what _matrix.csv backfill and every generated firmware
+    artifact reads once check_proposal() has proven the two agree."""
+    merged = {}
+    for product, _ in PROPOSAL_PRODUCTS:
+        for cell, r in _read_landed_csv(landed_dsp_csv_path(product)).items():
+            entry = {
+                'chip': int(r['DspSpi']),
+                'spi_page': int(r['DspPage']),
+                'spi_addr': int(r['DspAdd']),
+                'table': r['Table'],
+                'ramp_profile': r['RampProfile'],
+                'notes': r['Notes'],
+                'node': r['Node'],
+                'node_type': r['NodeType'],
+            }
+            prior = merged.get(cell)
+            if prior is not None and prior != entry:
+                sys.exit(f'ERROR: {cell!r} disagrees between the landed '
+                         f'products/<p>/dsp.csv files — decision D3 requires '
+                         f'one shared address map. {prior} vs {entry} '
+                         f'({product})')
+            merged[cell] = entry
+    return merged
+
+
+# ---------------------------------------------------------------------------
 # Cross-reference validation
 # ---------------------------------------------------------------------------
 def validate(matrix_rows):
@@ -2128,35 +2255,71 @@ def main():
                         help='Print planned assignments without writing files')
     parser.add_argument('--force', action='store_true',
                         help='Overwrite existing non-empty fields in _matrix.csv')
+    parser.add_argument('--check-proposal', action='store_true',
+                        help='Only check the graph reproduces the landed '
+                             'defs/products/<p>/dsp.csv + dsp-unmapped.csv '
+                             'exactly; generate nothing.')
+    parser.add_argument('--propose', action='store_true',
+                        help='Also write a fresh proposal to proposals/ for '
+                             'the hub gate (only needed when the graph has '
+                             'changed and a new dsp.csv must be proposed).')
     args = parser.parse_args()
 
     print('gen_dsp.py — §17 D32 DSP build tool')
     print()
 
-    # 1. Read dsp.csv
+    # 1. Read dsp.csv (the graph)
     print('Reading dsp.csv...')
     nodes = read_dsp_csv()
     print(f'  {len(nodes)} nodes')
 
-    # 2. Expand all nodes
+    # 2. Expand all nodes -- cell_map here is the graph's PROPOSAL. It is
+    # used ONLY to check for drift against the landed contract (and, with
+    # --propose, to author a new one) -- never directly to generate.
     print('Expanding node parameters...')
     expand_all_nodes(nodes)
-    print(f'  {len(cell_map)} cell mappings')
+    print(f'  {len(cell_map)} cell mappings (graph)')
     print(f'  {len(dispatch)} dispatch entries')
 
-    # 3. Read _matrix.csv
+    # 3. The graph must reproduce the landed contract byte-for-byte, or
+    # everything downstream would be generating from a second source of
+    # truth again (the exact failure defs S1 retired). No-fallback: this
+    # exits nonzero on any disagreement.
+    print()
+    print('Checking graph against landed defs/products/<p>/dsp.csv...')
+    check_proposal()
+
+    if args.check_proposal:
+        print()
+        print('Done (--check-proposal: nothing generated).')
+        return
+
+    if args.propose:
+        print()
+        print('Proposing dsp.csv...')
+        proposals = write_proposals(dry_run=args.dry_run)
+        report_proposals(proposals)
+
+    # 4. From here on, generation reads the LANDED address map -- the
+    # contract everything but a new proposal consumes -- not the graph.
+    address_map = load_landed_address_map()
+    cell_map.clear()
+    cell_map.update(address_map)
+    print(f'  {len(cell_map)} cell mappings (landed, both products merged)')
+
+    # 5. Read _matrix.csv
     print('Reading _matrix.csv...')
     header, matrix_rows = read_matrix_csv()
     print(f'  {len(matrix_rows)} rows')
 
-    # 4. Backfill _matrix.csv
+    # 6. Backfill _matrix.csv
     print('Backfilling _matrix.csv...')
     matched, cleared = backfill_matrix(header, matrix_rows, force=args.force)
     print(f'  {matched} cells matched and backfilled')
     if cleared:
         print(f'  {cleared} stale DSP column entries cleared')
 
-    # 5. Write outputs
+    # 7. Write outputs
     print('Writing outputs...')
 
     if not args.dry_run:
@@ -2171,16 +2334,10 @@ def main():
     write_mx_dsp_map_h(matrix_rows, dry_run=args.dry_run)
     write_address_map(dry_run=args.dry_run)
 
-    # 6. The proposed dsp.csv per product (PW ruling 2026-09-08 #5)
-    print()
-    print('Proposing dsp.csv...')
-    proposals = write_proposals(dry_run=args.dry_run)
-
-    # 7. Validation
+    # 8. Validation
     print()
     print('Validation:')
     validate(matrix_rows)
-    report_proposals(proposals)
 
     print()
     print('Done.')
