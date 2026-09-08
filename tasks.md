@@ -1,3 +1,88 @@
+## HUB DISPATCH 2026-09-08 22:55Z — CONFIRM THE DSP CODE AGAINST defs-v2026.09.08.3 — pin .3, propose the dsp.csv + dsp-unmapped.csv pair for the 39/51 new GEQ cells + CrossoverSlope 0x0576 (hub lands .4 tonight), both chips rebuilt, whole addressed set verified on the part by name, capacity restated, window-readiness note; no panel-MCU/app deploy   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+CONFIRM THE DSP CODE AGAINST THE LATEST KNOWN MATRIX — defs-v2026.09.08.3 (D24 fingerprint 3d41d5850df3, 4985 cells): pin advanced, dsp.csv proposed for the 39 new GEQ cells + CrossoverSlope, both chips rebuilt from it, the WHOLE addressed set verified on the part by name, coverage stated against .3 — the dsp leg of the rev C reconciliation window, done ahead of the window
+
+WHY. PW asked 2026-09-08 22:45: "can dsp start on confirming code to latest
+known matrix?" Four generations of matrix are in play (rev C unit
+e80ccab5d6d8 / Aug 18; dsp's old b4592dfb639e; the 08-20 tag 85102bd3097d;
+defs-v2026.09.08.3 = 3d41d5850df3 landed tonight with the 31-band GEQ
+rows). The reconciliation window (dsp firmware + panel MCU headers H1S3/H1S4
++ app + matrix deployed TOGETHER to the rev C unit) is PW-gated and NOT this
+session; this session makes the dsp leg READY and PROVEN so the window is a
+deploy, not a debug. The panel MCU is not rebuilt or reflashed here. The
+app is not touched. The unit is left as found.
+
+BENCH. Rev C unit (MW-D24-2, app@192.168.1.219), matrix-app active, duplex
+CPLD loop installable by one flag (dummy codec, no GPIO), shipping
+bitstream unless the FX session left the PI_TDM8 build flashed and said so.
+State both image hashes at start and end. Rev A show model never touched.
+No AI attribution in commits or any work product.
+
+GATES, in order, each witnessed:
+1. **Pin .3 knowing what it lacks.** `defs` submodule → `defs-v2026.09.08.3`
+   (`git -C defs fetch --tags`). Your FX session established that .3 lands
+   `Geq[1-31]` in the cell master but `products/{d24,d32}/dsp.csv` and
+   `dsp-unmapped.csv` were NOT regenerated with it — 39 D24 / 51 D32 cells
+   have no row. That is expected at this gate, not a stop: the propose/land
+   boundary is exactly where those rows come from (ruling 5). Do NOT
+   revert to .2. Quote the fingerprint the expanded D24 matrix produces
+   from the submodule (tools/expand_matrix.py + matrix_gen_id.py) — it must
+   read **3d41d5850df3 / 4985 cells**; if not, STOP: the pin is wrong.
+2. **Propose the .3 pair.** With the generator's `GEQ_BANDS` fix from your
+   FX session, propose `dsp.csv` + `dsp-unmapped.csv` for D24 AND D32
+   against .3 in the ruled proposal path: rows for `Aux0xxGeq029..031`,
+   `Main001Geq029..031`, `Grp00xGeq029..031` with the same
+   Node/Table/Ramp columns as bands 1–28; the **CrossoverSlope at 0x0576**
+   exactly as your FX session proposed and reverted (one shared word, a
+   word the node already owns and nothing dispatches, no address moves) —
+   this time it lands, because address and design land together here;
+   every other row byte-identical to the .2 pair (diff and quote the
+   count). `dsp-unmapped.csv` re-derived — its count must fall or stay,
+   never rise, and each remaining unmapped cell is one the DSP does not own
+   (say so per family). Commit + push the proposal and put its commit hash
+   in this block's status line AS SOON AS IT EXISTS — the hub is awake and
+   lands it as **defs-v2026.09.08.4** within minutes; then `git -C defs
+   fetch --tags`, pin .4, `sync-defs.sh`, `defs-verify` green,
+   `check_proposal()` satisfied. If .4 has not appeared after 30 minutes,
+   BUILD FROM THE PROPOSAL and say so (same bytes, different provenance).
+3. **Both chips rebuilt from the landed/proposed csv**, generated headers
+   + dispatch maps regenerated (the MCU dispatch-map defect of 09-08 — 2064
+   cells missing by spelling — must NOT recur: prove the generated map
+   covers every DSP-owned cell in .3 by a count that equals the csv's row
+   count), golden 59/59, dsp_validate OK, busgold bit-exact, bqeverify 0
+   ULP, geqverify/xoververify OK — all restated on the new image.
+4. **The whole addressed set verified on the part BY NAME.** The
+   virtual-audio family walk over the CPLD loop against .3: every cell
+   dsp.csv addresses is written by cell name and read back / exercised;
+   31 GEQ bands per node proven (band 29–31 with the 1 kHz-anchored
+   instrument — remember band 1 at 19.95 Hz reads inert in a 32-sample
+   window); CrossoverSlope changes the slope and the negative control (slope
+   written, frequency unmoved) holds. Coverage line in the same form as
+   before: families PASS / cells PASS / strict — and the cells that FAIL or
+   are NOT EXERCISED listed by family with one line each on why. **This
+   coverage number is the dsp readiness statement for the window.**
+5. **Capacity restated on the .3 image** at the operating point
+   (`sigprofile2`, whole chip-2 graph, block 16, two boots, minimum; chip 1
+   likewise), against the 09-03 record and against whatever the FX session
+   measured: the extra 39 GEQ bands cost what? If chip 2's margin is under
+   10 % the status line's first sentence says so.
+6. **Window readiness note** — `MW/D32/DSP/dsp4-window-readiness-<date>.md`:
+   the exact artifacts the window deploys from dsp (image hashes, csv
+   commit, tag), what the panel MCU and app must be built against
+   (defs-v2026.09.08.3 or .4), the rollback path (previous images kept,
+   how to reflash), and the one-line acceptance the hub runs on the unit
+   after the window. findings, tasks.md, this block's status; commit +
+   push main.
+
+Bounded: gates 1–4 are the session; 5–6 if time remains, else 🔴 with the
+reason. No deploy to the panel MCU or app — the window does that.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-08 21:06Z — FX_ENGINE cost measured at block 16, its L-register/buffer defects fixed and the default Type made real; ANTI_FB made real; CrossoverSlope dsp.csv proposal; 31-band GEQ consumed from defs; PI_TDM8 bitstream + latency figure   [status: 🟢 done — **CHIP 2'S MARGIN WITH THE FX REVERB RUNNING IS 5.98 %, MEASURED, AND THAT IS UNDER TEN.** `fxcost.sh`, whole chip-2 graph, block 16, two boots, minimum, paired on one boot against a restore-and-re-read CONTROL that came back to within **+93 and +10 cycles** of a delta of 58,845: six engines at the landed default **249,231 = 76.06 %**, at Type 3 = Reverb **308,076 = 94.02 %**, **+58,845 = +17.96 % of budget**. The 09-08 projection of +56,300 / 93.6 % / 6.4 % was sound and 4.5 % optimistic. **AND THE LEFT-HAND ARM OF THAT NUMBER WAS NOT AN ALGORITHM** — `_fx_type` boots at 0 = Echo and the reverb class emitted no Echo case, so the state every capacity number since 09-03 was measured in is six engines falling through dry. **THE FX ENGINE HAD SIX DEFECTS AND ONE OF THEM HAD BEEN HIDING THE REST.** (1) `f15` holds the dry sample and every algorithm advanced its delay cursor with `r15 = 1` — the same register — so the dry path was multiplied by 1.4e-45 and the reverb fed its input to the FIRST comb and denormal noise to the other seven; Type 0 looked like a working pass-through only because `.fx_passthru_` is the one path that touches no integer scratch. (2) Under it, `f1 = dm(...)` overwrote **r1, the write pointer**, in Echo/PingPong/Flanger and in the reverb's comb and allpass loops: at the landed feedback of 0.0 the Echo wrote every sample to `buf[0]` and read silence (measured: peak **0.000000** over 1024 samples at Mix 1.0), and in the reverb the clobbering value is AUDIO — about 1e9 as a pointer — so **every comb wrote at `comb_buf + 1e9` and the SPI link stopped answering.** It could not crash while it could not carry a sample: fixing (1) exposed (2) and wedged the bench on the first capture. (3) No L register anywhere in the node, alone in this tree. (4) Doubling read 720 samples out of an EIGHT-word buffer with a wrap of 8 — now a 12,000-word line with the Echo delay clamped into it, **paid for by deleting `_fx_comb_buf_R`/`_fx_allpass_buf_R`, 75,522 words that no emitted instruction touched** (delay pool 1,708,216 → **1,694,112 bytes**). (5) `_buf_L` carried float32 while `_buf_` carried Q4.28. (6) Types 1/4/5/6 fell through silently — now an EXPLICIT bypass parking the Type in `_fx_bypassed_<nid>`. **ON THE PART (`fxverify.sh`, chip1 `85af9dce` / chip2 `bcdbe1f0`): FX_VERIFY_OK** — dry control 64/64 at Type 0 and Type 3, **Echo tap at sample 240 exactly at 0.500000**, **Doubling at 720 exactly at 0.500000**, reverb peak 1.372463 with **1024/1024 samples non-zero** and all eight comb pointers inside their own lines, bypass 64/64 at every unimplemented Type, 0 SPI errors. **PER-TYPE COST AT BLOCK 16** against the explicit bypass (251,322 = 76.70 %): Echo **256,359 = 78.23 %** (+5,037), Doubling 254,833 = 77.77 % (+3,511), **Reverb 305,259 = 93.16 %, margin 6.84 %** (+53,937); controls −9/+0/+218/−9/+78/+0. **Making the engine honest costs the shipping image +7,128 cycles/block, 2.18 % of budget** — 76.06 % → 78.23 %, margin 23.94 % → 21.77 %. **ANTI_FB IS REAL AND VERIFIED**: `afb_ref.py` (RBJ peaking at negative gain — the contract carries a DEPTH and a textbook notch has none), `afb_design_fx.asm` with `1 − cos x` from its own degree-5 fit in x² and 2^v by squaring the half-argument, generated `afb_tables.asm` and a generated dirty trigger. **AFB_DESIGN_OK: worst 4 ulp, response worst 0.00009 dB against a 0.05 bar, 1 kHz Q 8 at −18 dB measured −18.000 dB against a model of −18.000, and BOTH negative controls (On = 0 with six real notches; On = 1 at 0 dB) 64/64 samples equal to the input.** `_afb_on` is read there and only there; `_afb_ctrl_on` is left unread ON PURPOSE — it enables an automatic detector that does not exist. **CROSSOVERSLOPE: PROPOSED at 0x0576**, a word the node already owns and nothing dispatches (its expander claims 24 words and `C2_MAIN_OEQ_01` takes all but four — S4-9), so **no address moves**; ONE shared word, not one per strip, because one node feeds all four outputs. Implemented (LR2 at 12, LR4 at 24, 6 and 18 ignored not clamped) and then **REVERTED because `check_proposal()` refused it** — the propose/land boundary working: address and design land together at a gate. **THE 31-BAND GEQ IS BLOCKED ON THE TAG ITSELF.** `defs-v2026.09.08.3` lands `Geq[1-31]` in the cell master and touches `products/` NOT AT ALL, so 39 D24 cells (51 D32) have no `dsp-unmapped.csv` row; the pin was advanced, regenerated, and reverted to `.2`. The first error is fixed here (`GEQ_BANDS`, one constant, and a reason matched on the BAND NUMBER so a band inside 1–28 that stopped mapping would still stop the generator); the second is the hub's — **`.3` needs `products/{d24,d32}/dsp-unmapped.csv` regenerated and landed with it**, and until then `Aux001Geq029..031` have no address to write and cannot be proved on the part. **NOT DONE: gate 5, the PI_TDM8 bitstream and the latency figure** — it needs Quartus and a JTAG flash of shared hardware and the session's time went to gates 1–3 and to the two register-aliasing defects that were not in gate 2's brief; the bench is left on `dsp4_logic.a1f6672af6c3`, untouched. **BARS**: golden_harness 59/59, dsp_validate OK, busgold **GRAPH BIT-EXACT 0 of 256**, afbverify AFB_DESIGN_OK, fxverify FX_VERIFY_OK, check-contract-drift clean at `defs-v2026.09.08.2`. **famverify's captures were largely SILENT in this run and its count is NOT restated as progress** — scored by the same scorer, the previous session's golden is 17 of 20 / 3,580 cells and this run is 7 of 20 / 753, on better firmware and a bit-exact graph; a silent window is not a verdict, and the four families this session touches are scored by their own dedicated bars. Bench left as found: `matrix-app` restarted, bitstream NOT reflashed, scratch probes removed.]   [model: opus]
 
 model: opus
