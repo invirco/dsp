@@ -3753,131 +3753,99 @@
 | 4608 | 0x1200 | `Chan001Mtr001` |  |  |
 | 4609 | 0x1201 | `Chan001Mtr002` |  |  |
 | 4610 | 0x1202 | `Chan001GateMtr001` |  |  |
-| 4611 | 0x1203 | `Chan001CompMtr001` |  |  |
 | 4612 | 0x1204 | `Chan002Mtr001` |  |  |
 | 4613 | 0x1205 | `Chan002Mtr002` |  |  |
 | 4614 | 0x1206 | `Chan002GateMtr001` |  |  |
-| 4615 | 0x1207 | `Chan002CompMtr001` |  |  |
 | 4616 | 0x1208 | `Chan003Mtr001` |  |  |
 | 4617 | 0x1209 | `Chan003Mtr002` |  |  |
 | 4618 | 0x120A | `Chan003GateMtr001` |  |  |
-| 4619 | 0x120B | `Chan003CompMtr001` |  |  |
 | 4620 | 0x120C | `Chan004Mtr001` |  |  |
 | 4621 | 0x120D | `Chan004Mtr002` |  |  |
 | 4622 | 0x120E | `Chan004GateMtr001` |  |  |
-| 4623 | 0x120F | `Chan004CompMtr001` |  |  |
 | 4624 | 0x1210 | `Chan005Mtr001` |  |  |
 | 4625 | 0x1211 | `Chan005Mtr002` |  |  |
 | 4626 | 0x1212 | `Chan005GateMtr001` |  |  |
-| 4627 | 0x1213 | `Chan005CompMtr001` |  |  |
 | 4628 | 0x1214 | `Chan006Mtr001` |  |  |
 | 4629 | 0x1215 | `Chan006Mtr002` |  |  |
 | 4630 | 0x1216 | `Chan006GateMtr001` |  |  |
-| 4631 | 0x1217 | `Chan006CompMtr001` |  |  |
 | 4632 | 0x1218 | `Chan007Mtr001` |  |  |
 | 4633 | 0x1219 | `Chan007Mtr002` |  |  |
 | 4634 | 0x121A | `Chan007GateMtr001` |  |  |
-| 4635 | 0x121B | `Chan007CompMtr001` |  |  |
 | 4636 | 0x121C | `Chan008Mtr001` |  |  |
 | 4637 | 0x121D | `Chan008Mtr002` |  |  |
 | 4638 | 0x121E | `Chan008GateMtr001` |  |  |
-| 4639 | 0x121F | `Chan008CompMtr001` |  |  |
 | 4640 | 0x1220 | `Chan009Mtr001` |  |  |
 | 4641 | 0x1221 | `Chan009Mtr002` |  |  |
 | 4642 | 0x1222 | `Chan009GateMtr001` |  |  |
-| 4643 | 0x1223 | `Chan009CompMtr001` |  |  |
 | 4644 | 0x1224 | `Chan010Mtr001` |  |  |
 | 4645 | 0x1225 | `Chan010Mtr002` |  |  |
 | 4646 | 0x1226 | `Chan010GateMtr001` |  |  |
-| 4647 | 0x1227 | `Chan010CompMtr001` |  |  |
 | 4648 | 0x1228 | `Chan011Mtr001` |  |  |
 | 4649 | 0x1229 | `Chan011Mtr002` |  |  |
 | 4650 | 0x122A | `Chan011GateMtr001` |  |  |
-| 4651 | 0x122B | `Chan011CompMtr001` |  |  |
 | 4652 | 0x122C | `Chan012Mtr001` |  |  |
 | 4653 | 0x122D | `Chan012Mtr002` |  |  |
 | 4654 | 0x122E | `Chan012GateMtr001` |  |  |
-| 4655 | 0x122F | `Chan012CompMtr001` |  |  |
 | 4656 | 0x1230 | `Chan013Mtr001` |  |  |
 | 4657 | 0x1231 | `Chan013Mtr002` |  |  |
 | 4658 | 0x1232 | `Chan013GateMtr001` |  |  |
-| 4659 | 0x1233 | `Chan013CompMtr001` |  |  |
 | 4660 | 0x1234 | `Chan014Mtr001` |  |  |
 | 4661 | 0x1235 | `Chan014Mtr002` |  |  |
 | 4662 | 0x1236 | `Chan014GateMtr001` |  |  |
-| 4663 | 0x1237 | `Chan014CompMtr001` |  |  |
 | 4664 | 0x1238 | `Chan015Mtr001` |  |  |
 | 4665 | 0x1239 | `Chan015Mtr002` |  |  |
 | 4666 | 0x123A | `Chan015GateMtr001` |  |  |
-| 4667 | 0x123B | `Chan015CompMtr001` |  |  |
 | 4668 | 0x123C | `Chan016Mtr001` |  |  |
 | 4669 | 0x123D | `Chan016Mtr002` |  |  |
 | 4670 | 0x123E | `Chan016GateMtr001` |  |  |
-| 4671 | 0x123F | `Chan016CompMtr001` |  |  |
 | 4672 | 0x1240 | `Chan017Mtr001` |  |  |
 | 4673 | 0x1241 | `Chan017Mtr002` |  |  |
 | 4674 | 0x1242 | `Chan017GateMtr001` |  |  |
-| 4675 | 0x1243 | `Chan017CompMtr001` |  |  |
 | 4676 | 0x1244 | `Chan018Mtr001` |  |  |
 | 4677 | 0x1245 | `Chan018Mtr002` |  |  |
 | 4678 | 0x1246 | `Chan018GateMtr001` |  |  |
-| 4679 | 0x1247 | `Chan018CompMtr001` |  |  |
 | 4680 | 0x1248 | `Chan019Mtr001` |  |  |
 | 4681 | 0x1249 | `Chan019Mtr002` |  |  |
 | 4682 | 0x124A | `Chan019GateMtr001` |  |  |
-| 4683 | 0x124B | `Chan019CompMtr001` |  |  |
 | 4684 | 0x124C | `Chan020Mtr001` |  |  |
 | 4685 | 0x124D | `Chan020Mtr002` |  |  |
 | 4686 | 0x124E | `Chan020GateMtr001` |  |  |
-| 4687 | 0x124F | `Chan020CompMtr001` |  |  |
 | 4688 | 0x1250 | `Chan021Mtr001` |  |  |
 | 4689 | 0x1251 | `Chan021Mtr002` |  |  |
 | 4690 | 0x1252 | `Chan021GateMtr001` |  |  |
-| 4691 | 0x1253 | `Chan021CompMtr001` |  |  |
 | 4692 | 0x1254 | `Chan022Mtr001` |  |  |
 | 4693 | 0x1255 | `Chan022Mtr002` |  |  |
 | 4694 | 0x1256 | `Chan022GateMtr001` |  |  |
-| 4695 | 0x1257 | `Chan022CompMtr001` |  |  |
 | 4696 | 0x1258 | `Chan023Mtr001` |  |  |
 | 4697 | 0x1259 | `Chan023Mtr002` |  |  |
 | 4698 | 0x125A | `Chan023GateMtr001` |  |  |
-| 4699 | 0x125B | `Chan023CompMtr001` |  |  |
 | 4700 | 0x125C | `Chan024Mtr001` |  |  |
 | 4701 | 0x125D | `Chan024Mtr002` |  |  |
 | 4702 | 0x125E | `Chan024GateMtr001` |  |  |
-| 4703 | 0x125F | `Chan024CompMtr001` |  |  |
 | 4704 | 0x1260 | `Chan025Mtr001` |  |  |
 | 4705 | 0x1261 | `Chan025Mtr002` |  |  |
 | 4706 | 0x1262 | `Chan025GateMtr001` |  |  |
-| 4707 | 0x1263 | `Chan025CompMtr001` |  |  |
 | 4708 | 0x1264 | `Chan026Mtr001` |  |  |
 | 4709 | 0x1265 | `Chan026Mtr002` |  |  |
 | 4710 | 0x1266 | `Chan026GateMtr001` |  |  |
-| 4711 | 0x1267 | `Chan026CompMtr001` |  |  |
 | 4712 | 0x1268 | `Chan027Mtr001` |  |  |
 | 4713 | 0x1269 | `Chan027Mtr002` |  |  |
 | 4714 | 0x126A | `Chan027GateMtr001` |  |  |
-| 4715 | 0x126B | `Chan027CompMtr001` |  |  |
 | 4716 | 0x126C | `Chan028Mtr001` |  |  |
 | 4717 | 0x126D | `Chan028Mtr002` |  |  |
 | 4718 | 0x126E | `Chan028GateMtr001` |  |  |
-| 4719 | 0x126F | `Chan028CompMtr001` |  |  |
 | 4720 | 0x1270 | `Chan029Mtr001` |  |  |
 | 4721 | 0x1271 | `Chan029Mtr002` |  |  |
 | 4722 | 0x1272 | `Chan029GateMtr001` |  |  |
-| 4723 | 0x1273 | `Chan029CompMtr001` |  |  |
 | 4724 | 0x1274 | `Chan030Mtr001` |  |  |
 | 4725 | 0x1275 | `Chan030Mtr002` |  |  |
 | 4726 | 0x1276 | `Chan030GateMtr001` |  |  |
-| 4727 | 0x1277 | `Chan030CompMtr001` |  |  |
 | 4728 | 0x1278 | `Chan031Mtr001` |  |  |
 | 4729 | 0x1279 | `Chan031Mtr002` |  |  |
 | 4730 | 0x127A | `Chan031GateMtr001` |  |  |
-| 4731 | 0x127B | `Chan031CompMtr001` |  |  |
 | 4732 | 0x127C | `Chan032Mtr001` |  |  |
 | 4733 | 0x127D | `Chan032Mtr002` |  |  |
 | 4734 | 0x127E | `Chan032GateMtr001` |  |  |
-| 4735 | 0x127F | `Chan032CompMtr001` |  |  |
 | 4736 | 0x1280 | `Talk001On001` |  | InstantCtl |
 | 4737 | 0x1281 | `Talk001Gain001` | 0=0/127=40/[Lin] | GainFast |
 | 4738 | 0x1282 | `Talk001Hpf001` |  | InstantCtl |
@@ -3890,7 +3858,7 @@
 | 4745 | 0x1289 | `Noise001Level001` | 0=-40/127=0/[Lin] | GainFast |
 | 4746 | 0x128A | `Noise001Hpf001` |  | InstantCtl |
 
-**Total Chip 1 cells:** 3883
+**Total Chip 1 cells:** 3851
 
 ## Chip 2
 
@@ -4948,46 +4916,6 @@
 | 1282 | 0x0502 | `Grp004CompFilterHpf001` | 0=20/64=1000/[Log] | InstantCtl |
 | 1282 | 0x0502 | `Grp004CompFilterLpf001` | 0=500/127=20000/[Log] | InstantCtl |
 | 1282 | 0x0502 | `Grp004CompFilterQ001` | 0=0.1/14=10/[Log] | InstantCtl |
-| 1284 | 0x0504 | `MainSub001Level001` | dB:Off:-50@31:-30@63:-10@127:1 | GainFast |
-| 1286 | 0x0506 | `MainSub001Mute001` |  | InstantCtl |
-| 1288 | 0x0508 | `MainSub001EqFreq001` | 0=20/254=200/[Log] | EqSafe |
-| 1288 | 0x0508 | `MainSub001EqGain001` | 0=-15/60=15/[Lin] | EqSafe |
-| 1288 | 0x0508 | `MainSub001EqHpf001` | 0=20/64=1000/[Log] | EqSafe |
-| 1288 | 0x0508 | `MainSub001EqQ001` | 0=0.1/14=10/[Log] | EqSafe |
-| 1288 | 0x0508 | `MainSub001EqShelf001` |  | InstantCtl |
-| 1293 | 0x050D | `MainSub001EqFreq002` | 0=100/254=1000/[Log] | EqSafe |
-| 1293 | 0x050D | `MainSub001EqGain002` | 0=-15/60=15/[Lin] | EqSafe |
-| 1293 | 0x050D | `MainSub001EqQ002` | 0=0.1/14=10/[Log] | EqSafe |
-| 1298 | 0x0512 | `MainSub001EqFreq003` | 0=800/254=5000/[Log] | EqSafe |
-| 1298 | 0x0512 | `MainSub001EqGain003` | 0=-15/60=15/[Lin] | EqSafe |
-| 1298 | 0x0512 | `MainSub001EqQ003` | 0=0.1/14=10/[Log] | EqSafe |
-| 1303 | 0x0517 | `MainSub001EqFreq004` | 0=3000/254=20000/[Log] | EqSafe |
-| 1303 | 0x0517 | `MainSub001EqGain004` | 0=-15/60=15/[Lin] | EqSafe |
-| 1303 | 0x0517 | `MainSub001EqQ004` | 0=0.1/14=10/[Log] | EqSafe |
-| 1303 | 0x0517 | `MainSub001EqShelf002` |  | InstantCtl |
-| 1309 | 0x051D | `MainSub001EqOn001` |  | InstantCtl |
-| 1312 | 0x0520 | `MainSub001CompOn001` |  | InstantCtl |
-| 1313 | 0x0521 | `MainSub001CompThr001` | 0=-60/140=10/[Lin] | DynSafe |
-| 1314 | 0x0522 | `MainSub001CompRat001` | 0=1/127=30/[Log] | DynSafe |
-| 1315 | 0x0523 | `MainSub001CompAtt001` | 0=0/254=250/[Log] | DynSafe |
-| 1316 | 0x0524 | `MainSub001CompRel001` | 0=5/254=5000/[Log] | DynSafe |
-| 1317 | 0x0525 | `MainSub001CompMake001` | 0=0/127=20/[Lin] | GainFast |
-| 1318 | 0x0526 | `MainSub001CompKnee001` |  | InstantCtl |
-| 1319 | 0x0527 | `MainSub001CompPar001` | 0=0/127=100/[Lin] | GainFast |
-| 1320 | 0x0528 | `MainSub001CompType001` |  | InstantCtl |
-| 1321 | 0x0529 | `MainSub001CompKey001` |  | InstantCtl |
-| 1322 | 0x052A | `MainSub001CompDetSrc001` |  | InstantCtl |
-| 1323 | 0x052B | `MainSub001CompLimMode001` |  | InstantCtl |
-| 1324 | 0x052C | `MainSub001CompEqPos001` |  | InstantCtl |
-| 1325 | 0x052D | `MainSub001CompFilterOn001` |  | InstantCtl |
-| 1326 | 0x052E | `MainSub001CompFilterHpf001` | 0=20/64=1000/[Log] | InstantCtl |
-| 1326 | 0x052E | `MainSub001CompFilterLpf001` | 0=500/127=20000/[Log] | InstantCtl |
-| 1326 | 0x052E | `MainSub001CompFilterQ001` | 0=0.1/14=10/[Log] | InstantCtl |
-| 1328 | 0x0530 | `MainSub001LimiterOn001` |  | InstantCtl |
-| 1329 | 0x0531 | `MainSub001LimiterThr001` | 0=-30/127=0/[Lin] | DynSafe |
-| 1330 | 0x0532 | `MainSub001LimiterAtt001` | 0=0.1/127=100/[Log] | DynSafe |
-| 1331 | 0x0533 | `MainSub001LimiterRel001` | 0=5/127=2000/[Log] | DynSafe |
-| 1332 | 0x0534 | `MainSub001Delay001` | 0=0/127=250.0/[Log] | InstantCtl |
 | 1343 | 0x053F | `Main001Level001` | dB:Off:-50@31:-30@63:-10@127:1 | GainFast |
 | 1345 | 0x0541 | `Main001Mute001` |  | InstantCtl |
 | 1347 | 0x0543 | `Main001Geq001` | 0=-12/127=12/[Lin] | EqSafe |
@@ -5018,28 +4946,9 @@
 | 1372 | 0x055C | `Main001Geq026` | 0=-12/127=12/[Lin] | EqSafe |
 | 1373 | 0x055D | `Main001Geq027` | 0=-12/127=12/[Lin] | EqSafe |
 | 1374 | 0x055E | `Main001Geq028` | 0=-12/127=12/[Lin] | EqSafe |
-| 1375 | 0x055F | `Main001CompOn001` |  | InstantCtl |
-| 1376 | 0x0560 | `Main001CompThr001` | 0=-60/140=10/[Lin] | DynSafe |
-| 1377 | 0x0561 | `Main001CompRat001` | 0=1/127=30/[Log] | DynSafe |
-| 1378 | 0x0562 | `Main001CompAtt001` | 0=0/254=250/[Log] | DynSafe |
-| 1379 | 0x0563 | `Main001CompRel001` | 0=5/254=5000/[Log] | DynSafe |
-| 1380 | 0x0564 | `Main001CompMake001` | 0=0/127=20/[Lin] | GainFast |
-| 1381 | 0x0565 | `Main001CompKnee001` |  | InstantCtl |
-| 1382 | 0x0566 | `Main001CompPar001` | 0=0/127=100/[Lin] | GainFast |
-| 1383 | 0x0567 | `Main001CompType001` |  | InstantCtl |
-| 1384 | 0x0568 | `Main001CompKey001` |  | InstantCtl |
-| 1385 | 0x0569 | `Main001CompDetSrc001` |  | InstantCtl |
-| 1386 | 0x056A | `Main001CompLimMode001` |  | InstantCtl |
-| 1387 | 0x056B | `Main001CompEqPos001` |  | InstantCtl |
-| 1388 | 0x056C | `Main001CompFilterOn001` |  | InstantCtl |
-| 1389 | 0x056D | `Main001CompFilterHpf001` | 0=20/64=1000/[Log] | InstantCtl |
-| 1389 | 0x056D | `Main001CompFilterLpf001` | 0=500/127=20000/[Log] | InstantCtl |
-| 1389 | 0x056D | `Main001CompFilterQ001` | 0=0.1/14=10/[Log] | InstantCtl |
-| 1391 | 0x056F | `Main001LimiterOn001` |  | InstantCtl |
-| 1392 | 0x0570 | `Main001LimiterThr001` | 0=-30/127=0/[Lin] | DynSafe |
-| 1393 | 0x0571 | `Main001LimiterAtt001` | 0=0.1/127=100/[Log] | DynSafe |
-| 1394 | 0x0572 | `Main001LimiterRel001` | 0=5/127=2000/[Log] | DynSafe |
 | 1395 | 0x0573 | `Main001Delay001` | 0=0/127=250.0/[Log] | InstantCtl |
+| 1397 | 0x0575 | `MainCtr001CrossoverFreq001` | 0=50/127=500/[Log] | EqSafe |
+| 1397 | 0x0575 | `MainCtr001CrossoverSlope001` | 0=6/3=24/[Lin] | InstantCtl |
 | 1397 | 0x0575 | `MainL001CrossoverFreq001` | 0=50/127=500/[Log] | EqSafe |
 | 1397 | 0x0575 | `MainL001CrossoverSlope001` | 0=6/3=24/[Lin] | InstantCtl |
 | 1397 | 0x0575 | `MainR001CrossoverFreq001` | 0=50/127=500/[Log] | EqSafe |
@@ -5120,6 +5029,80 @@
 | 1487 | 0x05CF | `MainR001LimiterThr001` | 0=-30/127=0/[Lin] | DynSafe |
 | 1488 | 0x05D0 | `MainR001LimiterAtt001` | 0=0.1/127=100/[Log] | DynSafe |
 | 1489 | 0x05D1 | `MainR001LimiterRel001` | 0=5/127=2000/[Log] | DynSafe |
+| 1491 | 0x05D3 | `MainCtr001EqFreq001` | 0=20/254=200/[Log] | EqSafe |
+| 1491 | 0x05D3 | `MainCtr001EqGain001` | 0=-15/60=15/[Lin] | EqSafe |
+| 1491 | 0x05D3 | `MainCtr001EqHpf001` | 0=20/64=1000/[Log] | EqSafe |
+| 1491 | 0x05D3 | `MainCtr001EqQ001` | 0=0.1/14=10/[Log] | EqSafe |
+| 1491 | 0x05D3 | `MainCtr001EqShelf001` |  | InstantCtl |
+| 1496 | 0x05D8 | `MainCtr001EqFreq002` | 0=100/254=1000/[Log] | EqSafe |
+| 1496 | 0x05D8 | `MainCtr001EqGain002` | 0=-15/60=15/[Lin] | EqSafe |
+| 1496 | 0x05D8 | `MainCtr001EqQ002` | 0=0.1/14=10/[Log] | EqSafe |
+| 1501 | 0x05DD | `MainCtr001EqFreq003` | 0=800/254=5000/[Log] | EqSafe |
+| 1501 | 0x05DD | `MainCtr001EqGain003` | 0=-15/60=15/[Lin] | EqSafe |
+| 1501 | 0x05DD | `MainCtr001EqQ003` | 0=0.1/14=10/[Log] | EqSafe |
+| 1506 | 0x05E2 | `MainCtr001EqFreq004` | 0=3000/254=20000/[Log] | EqSafe |
+| 1506 | 0x05E2 | `MainCtr001EqGain004` | 0=-15/60=15/[Lin] | EqSafe |
+| 1506 | 0x05E2 | `MainCtr001EqQ004` | 0=0.1/14=10/[Log] | EqSafe |
+| 1506 | 0x05E2 | `MainCtr001EqShelf002` |  | InstantCtl |
+| 1512 | 0x05E8 | `MainCtr001EqOn001` |  | InstantCtl |
+| 1515 | 0x05EB | `MainCtr001CompOn001` |  | InstantCtl |
+| 1516 | 0x05EC | `MainCtr001CompThr001` | 0=-60/140=10/[Lin] | DynSafe |
+| 1517 | 0x05ED | `MainCtr001CompRat001` | 0=1/127=30/[Log] | DynSafe |
+| 1518 | 0x05EE | `MainCtr001CompAtt001` | 0=0/254=250/[Log] | DynSafe |
+| 1519 | 0x05EF | `MainCtr001CompRel001` | 0=5/254=5000/[Log] | DynSafe |
+| 1520 | 0x05F0 | `MainCtr001CompMake001` | 0=0/127=20/[Lin] | GainFast |
+| 1521 | 0x05F1 | `MainCtr001CompKnee001` |  | InstantCtl |
+| 1522 | 0x05F2 | `MainCtr001CompPar001` | 0=0/127=100/[Lin] | GainFast |
+| 1523 | 0x05F3 | `MainCtr001CompType001` |  | InstantCtl |
+| 1524 | 0x05F4 | `MainCtr001CompKey001` |  | InstantCtl |
+| 1525 | 0x05F5 | `MainCtr001CompDetSrc001` |  | InstantCtl |
+| 1526 | 0x05F6 | `MainCtr001CompLimMode001` |  | InstantCtl |
+| 1527 | 0x05F7 | `MainCtr001CompEqPos001` |  | InstantCtl |
+| 1528 | 0x05F8 | `MainCtr001CompFilterOn001` |  | InstantCtl |
+| 1529 | 0x05F9 | `MainCtr001CompFilterHpf001` | 0=20/64=1000/[Log] | InstantCtl |
+| 1529 | 0x05F9 | `MainCtr001CompFilterLpf001` | 0=500/127=20000/[Log] | InstantCtl |
+| 1529 | 0x05F9 | `MainCtr001CompFilterQ001` | 0=0.1/14=10/[Log] | InstantCtl |
+| 1531 | 0x05FB | `MainCtr001LimiterOn001` |  | InstantCtl |
+| 1532 | 0x05FC | `MainCtr001LimiterThr001` | 0=-30/127=0/[Lin] | DynSafe |
+| 1533 | 0x05FD | `MainCtr001LimiterAtt001` | 0=0.1/127=100/[Log] | DynSafe |
+| 1534 | 0x05FE | `MainCtr001LimiterRel001` | 0=5/127=2000/[Log] | DynSafe |
+| 1536 | 0x0600 | `MainSub001EqFreq001` | 0=20/254=200/[Log] | EqSafe |
+| 1536 | 0x0600 | `MainSub001EqGain001` | 0=-15/60=15/[Lin] | EqSafe |
+| 1536 | 0x0600 | `MainSub001EqHpf001` | 0=20/64=1000/[Log] | EqSafe |
+| 1536 | 0x0600 | `MainSub001EqQ001` | 0=0.1/14=10/[Log] | EqSafe |
+| 1536 | 0x0600 | `MainSub001EqShelf001` |  | InstantCtl |
+| 1541 | 0x0605 | `MainSub001EqFreq002` | 0=100/254=1000/[Log] | EqSafe |
+| 1541 | 0x0605 | `MainSub001EqGain002` | 0=-15/60=15/[Lin] | EqSafe |
+| 1541 | 0x0605 | `MainSub001EqQ002` | 0=0.1/14=10/[Log] | EqSafe |
+| 1546 | 0x060A | `MainSub001EqFreq003` | 0=800/254=5000/[Log] | EqSafe |
+| 1546 | 0x060A | `MainSub001EqGain003` | 0=-15/60=15/[Lin] | EqSafe |
+| 1546 | 0x060A | `MainSub001EqQ003` | 0=0.1/14=10/[Log] | EqSafe |
+| 1551 | 0x060F | `MainSub001EqFreq004` | 0=3000/254=20000/[Log] | EqSafe |
+| 1551 | 0x060F | `MainSub001EqGain004` | 0=-15/60=15/[Lin] | EqSafe |
+| 1551 | 0x060F | `MainSub001EqQ004` | 0=0.1/14=10/[Log] | EqSafe |
+| 1551 | 0x060F | `MainSub001EqShelf002` |  | InstantCtl |
+| 1557 | 0x0615 | `MainSub001EqOn001` |  | InstantCtl |
+| 1560 | 0x0618 | `MainSub001CompOn001` |  | InstantCtl |
+| 1561 | 0x0619 | `MainSub001CompThr001` | 0=-60/140=10/[Lin] | DynSafe |
+| 1562 | 0x061A | `MainSub001CompRat001` | 0=1/127=30/[Log] | DynSafe |
+| 1563 | 0x061B | `MainSub001CompAtt001` | 0=0/254=250/[Log] | DynSafe |
+| 1564 | 0x061C | `MainSub001CompRel001` | 0=5/254=5000/[Log] | DynSafe |
+| 1565 | 0x061D | `MainSub001CompMake001` | 0=0/127=20/[Lin] | GainFast |
+| 1566 | 0x061E | `MainSub001CompKnee001` |  | InstantCtl |
+| 1567 | 0x061F | `MainSub001CompPar001` | 0=0/127=100/[Lin] | GainFast |
+| 1568 | 0x0620 | `MainSub001CompType001` |  | InstantCtl |
+| 1569 | 0x0621 | `MainSub001CompKey001` |  | InstantCtl |
+| 1570 | 0x0622 | `MainSub001CompDetSrc001` |  | InstantCtl |
+| 1571 | 0x0623 | `MainSub001CompLimMode001` |  | InstantCtl |
+| 1572 | 0x0624 | `MainSub001CompEqPos001` |  | InstantCtl |
+| 1573 | 0x0625 | `MainSub001CompFilterOn001` |  | InstantCtl |
+| 1574 | 0x0626 | `MainSub001CompFilterHpf001` | 0=20/64=1000/[Log] | InstantCtl |
+| 1574 | 0x0626 | `MainSub001CompFilterLpf001` | 0=500/127=20000/[Log] | InstantCtl |
+| 1574 | 0x0626 | `MainSub001CompFilterQ001` | 0=0.1/14=10/[Log] | InstantCtl |
+| 1576 | 0x0628 | `MainSub001LimiterOn001` |  | InstantCtl |
+| 1577 | 0x0629 | `MainSub001LimiterThr001` | 0=-30/127=0/[Lin] | DynSafe |
+| 1578 | 0x062A | `MainSub001LimiterAtt001` | 0=0.1/127=100/[Log] | DynSafe |
+| 1579 | 0x062B | `MainSub001LimiterRel001` | 0=5/127=2000/[Log] | DynSafe |
 | 1581 | 0x062D | `Fx001On001` |  | InstantCtl |
 | 1582 | 0x062E | `Fx001Type001` |  | InstantCtl |
 | 1583 | 0x062F | `Fx001Decay001` | 0=0.1/127=10/[Log] | GainSafe |
@@ -5283,14 +5266,13 @@
 | 1788 | 0x06FC | `Aux011Mtr001` |  |  |
 | 1789 | 0x06FD | `Aux012Mtr001` |  |  |
 | 1790 | 0x06FE | `MainL001Mtr001` |  |  |
-| 1791 | 0x06FF | `MainL001Mtr002` |  |  |
 | 1792 | 0x0700 | `MainR001Mtr001` |  |  |
-| 1793 | 0x0701 | `MainR001Mtr002` |  |  |
+| 1794 | 0x0702 | `MainCtr001Mtr001` |  |  |
+| 1796 | 0x0704 | `MainSub001Mtr001` |  |  |
 | 1798 | 0x0706 | `Grp001Mtr001` |  |  |
 | 1799 | 0x0707 | `Grp002Mtr001` |  |  |
 | 1800 | 0x0708 | `Grp003Mtr001` |  |  |
 | 1801 | 0x0709 | `Grp004Mtr001` |  |  |
-| 1802 | 0x070A | `MainSub001Mtr001` |  |  |
 | 1803 | 0x070B | `Fx001Mtr001` |  |  |
 | 1804 | 0x070C | `Fx002Mtr001` |  |  |
 | 1805 | 0x070D | `Fx003Mtr001` |  |  |
@@ -5430,5 +5412,5 @@
 | 1950 | 0x079E | `Grp004Geq027` | 0=-12/127=12/[Lin] | EqSafe |
 | 1951 | 0x079F | `Grp004Geq028` | 0=-12/127=12/[Lin] | EqSafe |
 
-**Total Chip 2 cells:** 1533
+**Total Chip 2 cells:** 1547
 

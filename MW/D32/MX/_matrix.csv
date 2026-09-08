@@ -75,38 +75,38 @@ Chan031Mtr001,1,31,1,,false,Channel input level meter (pre/post),73,lq,80,,,,,,,
 Chan031Mtr002,1,31,2,,false,Channel input level meter (pre/post),74,lr,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4729,0x1279,,,,,Instant,0,0,Linear,Scalar
 Chan032Mtr001,1,32,1,,false,Channel input level meter (pre/post),75,ls,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4732,0x127C,,,,,Instant,0,0,Linear,Scalar
 Chan032Mtr002,1,32,2,,false,Channel input level meter (pre/post),76,lt,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4733,0x127D,,,,,Instant,0,0,Linear,Scalar
-Chan001CompMtr001,1,1,1,,false,Channel compressor gain-reduction meter (comp-only),77,lu,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4611,0x1203,,,,,Instant,0,0,Linear,Scalar
-Chan002CompMtr001,1,2,1,,false,Channel compressor gain-reduction meter (comp-only),78,lv,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4615,0x1207,,,,,Instant,0,0,Linear,Scalar
-Chan003CompMtr001,1,3,1,,false,Channel compressor gain-reduction meter (comp-only),79,lw,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4619,0x120B,,,,,Instant,0,0,Linear,Scalar
-Chan004CompMtr001,1,4,1,,false,Channel compressor gain-reduction meter (comp-only),80,mh,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4623,0x120F,,,,,Instant,0,0,Linear,Scalar
-Chan005CompMtr001,1,5,1,,false,Channel compressor gain-reduction meter (comp-only),81,mi,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4627,0x1213,,,,,Instant,0,0,Linear,Scalar
-Chan006CompMtr001,1,6,1,,false,Channel compressor gain-reduction meter (comp-only),82,mj,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4631,0x1217,,,,,Instant,0,0,Linear,Scalar
-Chan007CompMtr001,1,7,1,,false,Channel compressor gain-reduction meter (comp-only),83,mk,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4635,0x121B,,,,,Instant,0,0,Linear,Scalar
-Chan008CompMtr001,1,8,1,,false,Channel compressor gain-reduction meter (comp-only),84,ml,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4639,0x121F,,,,,Instant,0,0,Linear,Scalar
-Chan009CompMtr001,1,9,1,,false,Channel compressor gain-reduction meter (comp-only),85,mm,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4643,0x1223,,,,,Instant,0,0,Linear,Scalar
-Chan010CompMtr001,1,10,1,,false,Channel compressor gain-reduction meter (comp-only),86,mn,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4647,0x1227,,,,,Instant,0,0,Linear,Scalar
-Chan011CompMtr001,1,11,1,,false,Channel compressor gain-reduction meter (comp-only),87,mo,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4651,0x122B,,,,,Instant,0,0,Linear,Scalar
-Chan012CompMtr001,1,12,1,,false,Channel compressor gain-reduction meter (comp-only),88,mp,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4655,0x122F,,,,,Instant,0,0,Linear,Scalar
-Chan013CompMtr001,1,13,1,,false,Channel compressor gain-reduction meter (comp-only),89,mq,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4659,0x1233,,,,,Instant,0,0,Linear,Scalar
-Chan014CompMtr001,1,14,1,,false,Channel compressor gain-reduction meter (comp-only),90,mr,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4663,0x1237,,,,,Instant,0,0,Linear,Scalar
-Chan015CompMtr001,1,15,1,,false,Channel compressor gain-reduction meter (comp-only),91,ms,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4667,0x123B,,,,,Instant,0,0,Linear,Scalar
-Chan016CompMtr001,1,16,1,,false,Channel compressor gain-reduction meter (comp-only),92,mt,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4671,0x123F,,,,,Instant,0,0,Linear,Scalar
-Chan017CompMtr001,1,17,1,,false,Channel compressor gain-reduction meter (comp-only),93,mu,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4675,0x1243,,,,,Instant,0,0,Linear,Scalar
-Chan018CompMtr001,1,18,1,,false,Channel compressor gain-reduction meter (comp-only),94,mv,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4679,0x1247,,,,,Instant,0,0,Linear,Scalar
-Chan019CompMtr001,1,19,1,,false,Channel compressor gain-reduction meter (comp-only),95,mw,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4683,0x124B,,,,,Instant,0,0,Linear,Scalar
-Chan020CompMtr001,1,20,1,,false,Channel compressor gain-reduction meter (comp-only),96,nh,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4687,0x124F,,,,,Instant,0,0,Linear,Scalar
-Chan021CompMtr001,1,21,1,,false,Channel compressor gain-reduction meter (comp-only),97,ni,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4691,0x1253,,,,,Instant,0,0,Linear,Scalar
-Chan022CompMtr001,1,22,1,,false,Channel compressor gain-reduction meter (comp-only),98,nj,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4695,0x1257,,,,,Instant,0,0,Linear,Scalar
-Chan023CompMtr001,1,23,1,,false,Channel compressor gain-reduction meter (comp-only),99,nk,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4699,0x125B,,,,,Instant,0,0,Linear,Scalar
-Chan024CompMtr001,1,24,1,,false,Channel compressor gain-reduction meter (comp-only),100,nl,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4703,0x125F,,,,,Instant,0,0,Linear,Scalar
-Chan025CompMtr001,1,25,1,,false,Channel compressor gain-reduction meter (comp-only),101,nm,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4707,0x1263,,,,,Instant,0,0,Linear,Scalar
-Chan026CompMtr001,1,26,1,,false,Channel compressor gain-reduction meter (comp-only),102,nn,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4711,0x1267,,,,,Instant,0,0,Linear,Scalar
-Chan027CompMtr001,1,27,1,,false,Channel compressor gain-reduction meter (comp-only),103,no,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4715,0x126B,,,,,Instant,0,0,Linear,Scalar
-Chan028CompMtr001,1,28,1,,false,Channel compressor gain-reduction meter (comp-only),104,np,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4719,0x126F,,,,,Instant,0,0,Linear,Scalar
-Chan029CompMtr001,1,29,1,,false,Channel compressor gain-reduction meter (comp-only),105,nq,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4723,0x1273,,,,,Instant,0,0,Linear,Scalar
-Chan030CompMtr001,1,30,1,,false,Channel compressor gain-reduction meter (comp-only),106,nr,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4727,0x1277,,,,,Instant,0,0,Linear,Scalar
-Chan031CompMtr001,1,31,1,,false,Channel compressor gain-reduction meter (comp-only),107,ns,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4731,0x127B,,,,,Instant,0,0,Linear,Scalar
-Chan032CompMtr001,1,32,1,,false,Channel compressor gain-reduction meter (comp-only),108,nt,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4735,0x127F,,,,,Instant,0,0,Linear,Scalar
+Chan001CompMtr001,1,1,1,,false,Channel compressor gain-reduction meter (comp-only),77,lu,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
+Chan002CompMtr001,1,2,1,,false,Channel compressor gain-reduction meter (comp-only),78,lv,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
+Chan003CompMtr001,1,3,1,,false,Channel compressor gain-reduction meter (comp-only),79,lw,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
+Chan004CompMtr001,1,4,1,,false,Channel compressor gain-reduction meter (comp-only),80,mh,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
+Chan005CompMtr001,1,5,1,,false,Channel compressor gain-reduction meter (comp-only),81,mi,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
+Chan006CompMtr001,1,6,1,,false,Channel compressor gain-reduction meter (comp-only),82,mj,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
+Chan007CompMtr001,1,7,1,,false,Channel compressor gain-reduction meter (comp-only),83,mk,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
+Chan008CompMtr001,1,8,1,,false,Channel compressor gain-reduction meter (comp-only),84,ml,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
+Chan009CompMtr001,1,9,1,,false,Channel compressor gain-reduction meter (comp-only),85,mm,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
+Chan010CompMtr001,1,10,1,,false,Channel compressor gain-reduction meter (comp-only),86,mn,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
+Chan011CompMtr001,1,11,1,,false,Channel compressor gain-reduction meter (comp-only),87,mo,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
+Chan012CompMtr001,1,12,1,,false,Channel compressor gain-reduction meter (comp-only),88,mp,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
+Chan013CompMtr001,1,13,1,,false,Channel compressor gain-reduction meter (comp-only),89,mq,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
+Chan014CompMtr001,1,14,1,,false,Channel compressor gain-reduction meter (comp-only),90,mr,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
+Chan015CompMtr001,1,15,1,,false,Channel compressor gain-reduction meter (comp-only),91,ms,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
+Chan016CompMtr001,1,16,1,,false,Channel compressor gain-reduction meter (comp-only),92,mt,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
+Chan017CompMtr001,1,17,1,,false,Channel compressor gain-reduction meter (comp-only),93,mu,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
+Chan018CompMtr001,1,18,1,,false,Channel compressor gain-reduction meter (comp-only),94,mv,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
+Chan019CompMtr001,1,19,1,,false,Channel compressor gain-reduction meter (comp-only),95,mw,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
+Chan020CompMtr001,1,20,1,,false,Channel compressor gain-reduction meter (comp-only),96,nh,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
+Chan021CompMtr001,1,21,1,,false,Channel compressor gain-reduction meter (comp-only),97,ni,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
+Chan022CompMtr001,1,22,1,,false,Channel compressor gain-reduction meter (comp-only),98,nj,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
+Chan023CompMtr001,1,23,1,,false,Channel compressor gain-reduction meter (comp-only),99,nk,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
+Chan024CompMtr001,1,24,1,,false,Channel compressor gain-reduction meter (comp-only),100,nl,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
+Chan025CompMtr001,1,25,1,,false,Channel compressor gain-reduction meter (comp-only),101,nm,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
+Chan026CompMtr001,1,26,1,,false,Channel compressor gain-reduction meter (comp-only),102,nn,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
+Chan027CompMtr001,1,27,1,,false,Channel compressor gain-reduction meter (comp-only),103,no,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
+Chan028CompMtr001,1,28,1,,false,Channel compressor gain-reduction meter (comp-only),104,np,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
+Chan029CompMtr001,1,29,1,,false,Channel compressor gain-reduction meter (comp-only),105,nq,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
+Chan030CompMtr001,1,30,1,,false,Channel compressor gain-reduction meter (comp-only),106,nr,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
+Chan031CompMtr001,1,31,1,,false,Channel compressor gain-reduction meter (comp-only),107,ns,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
+Chan032CompMtr001,1,32,1,,false,Channel compressor gain-reduction meter (comp-only),108,nt,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
 Chan001GateMtr001,1,1,1,,false,Channel gate gain-reduction meter (gate-only),109,nu,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4610,0x1202,,,,,Instant,0,0,Linear,Scalar
 Chan002GateMtr001,1,2,1,,false,Channel gate gain-reduction meter (gate-only),110,nv,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4614,0x1206,,,,,Instant,0,0,Linear,Scalar
 Chan003GateMtr001,1,3,1,,false,Channel gate gain-reduction meter (gate-only),111,nw,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4618,0x120A,,,,,Instant,0,0,Linear,Scalar
@@ -273,7 +273,7 @@ MainR001Mute001,1,1,1,,,Main R output mute on/off,271,ihw,2,,,,,,,,,,,,,,,,,,,,,
 MainR001Delay001,1,1,1,,,Main R output delay up to 250ms,272,iih,255,,,,,,,,,,,,,,,,,,,,,,,,,,,
 MainR001Mtr001,1,1,1,,false,Main R output level meter,273,iii,80,,,,,,,,,,,,,,,2,1,1792,0x0700,,,,,Instant,0,0,Linear,Scalar
 MainR001Name001,1,1,1,,,Main R output name,274,iij,255,,,,,,,,,,,,,,,,,,,,,,,,,,,
-MainSub001Mtr001,1,1,1,,false,Subwoofer output level meter,275,iik,80,,,,,,,,Chan_Mtr,,,,,,,2,1,1802,0x070A,,,,,Instant,0,0,Linear,Scalar
+MainSub001Mtr001,1,1,1,,false,Subwoofer output level meter,275,iik,80,,,,,,,,Chan_Mtr,,,,,,,2,1,1796,0x0704,,,,,Instant,0,0,Linear,Scalar
 Aux001Delay001,1,1,1,,,Aux output delay up to 250ms,276,iil,255,,,,,,,,,,0=0/127=250.0/[Log],,,,,2,1,84,0x0054,,,,InstantCtl,Instant,0,0,Linear,Scalar
 Aux002Delay001,1,2,1,,,Aux output delay up to 250ms,277,iim,255,,,,,,,,,,0=0/127=250.0/[Log],,,,,2,1,171,0x00AB,,,,InstantCtl,Instant,0,0,Linear,Scalar
 Aux003Delay001,1,3,1,,,Aux output delay up to 250ms,278,iin,255,,,,,,,,,,0=0/127=250.0/[Log],,,,,2,1,258,0x0102,,,,InstantCtl,Instant,0,0,Linear,Scalar
@@ -6320,48 +6320,48 @@ Grp001Mute001,1,1,1,,,Group master mute on/off,6318,iprv,2,,,,,,,,,,,,,,,2,1,104
 Grp002Mute001,1,2,1,,,Group master mute on/off,6319,iprw,2,,,,,,,,,,,,,,,2,1,1106,0x0452,,,,InstantCtl,Instant,0,0,Linear,Scalar
 Grp003Mute001,1,3,1,,,Group master mute on/off,6320,ipsh,2,,,,,,,,,,,,,,,2,1,1166,0x048E,,,,InstantCtl,Instant,0,0,Linear,Scalar
 Grp004Mute001,1,4,1,,,Group master mute on/off,6321,ipsi,2,,,,,,,,,,,,,,,2,1,1226,0x04CA,,,,InstantCtl,Instant,0,0,Linear,Scalar
-MainSub001CompAtt001,1,1,1,,,Subwoofer compressor attack,6322,ipsj,255,,,,,,,,SubComp,,0=0/254=250/[Log],,,,,2,1,1315,0x0523,,,,DynSafe,LinearFrames,6,20,Exp,Scalar
-MainSub001CompKnee001,1,1,1,,,Subwoofer compressor soft/hard knee,6323,ipsk,2,,,,,,,,SubComp,,,,,,,2,1,1318,0x0526,,,,InstantCtl,Instant,0,0,Linear,Scalar
-MainSub001CompMake001,1,1,1,,,Subwoofer compressor makeup gain,6324,ipsl,33,,,,,,,,SubComp,,0=0/127=20/[Lin],,,,,2,1,1317,0x0525,,,,GainFast,Slew,3,8,Exp,Scalar
-MainSub001CompOn001,1,1,1,,,Subwoofer compressor on/off,6325,ipsm,2,,,,,,,,SubComp,,,,,,,2,1,1312,0x0520,,,,InstantCtl,Instant,0,0,Linear,Scalar
-MainSub001CompPar001,1,1,1,,,Subwoofer parallel compression blend,6326,ipsn,33,,,,,,,,SubComp,,0=0/127=100/[Lin],,,,,2,1,1319,0x0527,,,,GainFast,Slew,3,8,Exp,Scalar
-MainSub001CompRat001,1,1,1,,,Subwoofer compressor ratio,6327,ipso,128,,,,,,,,SubComp,,0=1/127=30/[Log],,,,,2,1,1314,0x0522,,,,DynSafe,LinearFrames,6,20,Exp,Scalar
-MainSub001CompRel001,1,1,1,,,Subwoofer compressor release,6328,ipsp,255,,,,,,,,SubComp,,0=5/254=5000/[Log],,,,,2,1,1316,0x0524,,,,DynSafe,LinearFrames,6,20,Exp,Scalar
-MainSub001CompDetSrc001,1,1,1,,,Subwoofer compressor self-key tap source (PreEQ/PostEQ),6329,ipsq,2,,,,,,,,SubComp,,,,,,,2,1,1322,0x052A,,,,InstantCtl,Instant,0,0,Linear,Scalar
-MainSub001CompEqPos001,1,1,1,,,Subwoofer compressor EQ position (Pre/Post),6330,ipsr,2,,,,,,,,SubComp,,,,,,,2,1,1324,0x052C,,,,InstantCtl,Instant,0,0,Linear,Scalar
-MainSub001CompFilterHpf001,1,1,1,,,Subwoofer compressor sidechain HPF frequency,6331,ipss,65,32,,,,,,,SubComp,,0=20/64=1000/[Log],,,,,2,1,1326,0x052E,,,,InstantCtl,Instant,0,0,Linear,Scalar
-MainSub001CompFilterLpf001,1,1,1,,,Subwoofer compressor sidechain LPF frequency,6332,ipst,255,127,,,,,,,SubComp,,0=500/127=20000/[Log],,,,,2,1,1326,0x052E,,,,InstantCtl,Instant,0,0,Linear,Scalar
-MainSub001CompFilterOn001,1,1,1,,,Subwoofer compressor sidechain filter on/off,6333,ipsu,2,,,,,,,,SubComp,,,,,,,2,1,1325,0x052D,,,,InstantCtl,Instant,0,0,Linear,Scalar
-MainSub001CompFilterQ001,1,1,1,,,Subwoofer compressor sidechain filter Q,6334,ipsv,15,7,,,,,,,SubComp,,0=0.1/14=10/[Log],,,,,2,1,1326,0x052E,,,,InstantCtl,Instant,0,0,Linear,Scalar
-MainSub001CompKey001,1,1,1,,,Subwoofer compressor sidechain key source,6335,ipsw,33,,,,,,,,SubComp,,,,,,,2,1,1321,0x0529,,,,InstantCtl,Instant,0,0,Linear,Scalar
-MainSub001CompLimMode001,1,1,1,,,Subwoofer compressor/limiter mode toggle,6336,ipth,2,,,,,,,,SubComp,,,,,,,2,1,1323,0x052B,,,,InstantCtl,Instant,0,0,Linear,Scalar
-MainSub001CompThr001,1,1,1,,,Subwoofer compressor threshold,6337,ipti,141,,,,,,,,SubComp,,0=-60/140=10/[Lin],,,,,2,1,1313,0x0521,,,,DynSafe,LinearFrames,6,20,Exp,Scalar
-MainSub001CompType001,1,1,1,,,Subwoofer compressor type (Tube/FET/VCA/Optical),6338,iptj,4,,,,,,,,SubComp,,,,,,,2,1,1320,0x0528,,,,InstantCtl,Instant,0,0,Linear,Scalar
-MainSub001Delay001,1,1,1,,,Subwoofer output delay up to 250ms,6339,iptk,255,,,,,,,,,,0=0/127=250.0/[Log],,,,,2,1,1332,0x0534,,,,InstantCtl,Instant,0,0,Linear,Scalar
-MainSub001EqFreq001,1,1,1,,,Subwoofer 4-band parametric EQ frequency,6340,iptl,255,127,,,,,,,SubEq,,0=20/254=200/[Log],,,,,2,1,1288,0x0508,,,,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainSub001EqFreq002,1,1,2,,,Subwoofer 4-band parametric EQ frequency,6341,iptm,255,127,,,,,,,SubEq,,0=100/254=1000/[Log],,,,,2,1,1293,0x050D,,,,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainSub001EqFreq003,1,1,3,,,Subwoofer 4-band parametric EQ frequency,6342,iptn,255,127,,,,,,,SubEq,,0=800/254=5000/[Log],,,,,2,1,1298,0x0512,,,,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainSub001EqFreq004,1,1,4,,,Subwoofer 4-band parametric EQ frequency,6343,ipto,255,127,,,,,,,SubEq,,0=3000/254=20000/[Log],,,,,2,1,1303,0x0517,,,,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainSub001EqGain001,1,1,1,,,Subwoofer 4-band parametric EQ gain ±15dB,6344,iptp,121,60,,,,,,,SubEq,,0=-15/60=15/[Lin],,,,,2,1,1288,0x0508,,,,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainSub001EqGain002,1,1,2,,,Subwoofer 4-band parametric EQ gain ±15dB,6345,iptq,121,60,,,,,,,SubEq,,0=-15/60=15/[Lin],,,,,2,1,1293,0x050D,,,,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainSub001EqGain003,1,1,3,,,Subwoofer 4-band parametric EQ gain ±15dB,6346,iptr,121,60,,,,,,,SubEq,,0=-15/60=15/[Lin],,,,,2,1,1298,0x0512,,,,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainSub001EqGain004,1,1,4,,,Subwoofer 4-band parametric EQ gain ±15dB,6347,ipts,121,60,,,,,,,SubEq,,0=-15/60=15/[Lin],,,,,2,1,1303,0x0517,,,,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainSub001EqHpf001,1,1,1,,,Subwoofer high-pass filter frequency,6348,iptt,65,32,,,,,,,SubEq,,0=20/64=1000/[Log],,,,,2,1,1288,0x0508,,,,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainSub001EqOn001,1,1,1,,,Subwoofer EQ on/off,6349,iptu,2,,,,,,,,SubEq,,,,,,,2,1,1309,0x051D,,,,InstantCtl,Instant,0,0,Linear,Scalar
-MainSub001EqQ001,1,1,1,,,Subwoofer 4-band parametric EQ Q/bandwidth,6350,iptv,121,60,,,,,,,SubEq,,0=0.1/14=10/[Log],,,,,2,1,1288,0x0508,,,,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainSub001EqQ002,1,1,2,,,Subwoofer 4-band parametric EQ Q/bandwidth,6351,iptw,121,60,,,,,,,SubEq,,0=0.1/14=10/[Log],,,,,2,1,1293,0x050D,,,,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainSub001EqQ003,1,1,3,,,Subwoofer 4-band parametric EQ Q/bandwidth,6352,ipuh,121,60,,,,,,,SubEq,,0=0.1/14=10/[Log],,,,,2,1,1298,0x0512,,,,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainSub001EqQ004,1,1,4,,,Subwoofer 4-band parametric EQ Q/bandwidth,6353,ipui,121,60,,,,,,,SubEq,,0=0.1/14=10/[Log],,,,,2,1,1303,0x0517,,,,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainSub001EqShelf001,1,1,1,,,Subwoofer EQ shelf mode on/off for bands 1/4,6354,ipuj,2,,,,,,,,SubEq,,,,,,,2,1,1288,0x0508,,,,InstantCtl,Instant,0,0,Linear,Scalar
-MainSub001EqShelf002,1,1,2,,,Subwoofer EQ shelf mode on/off for bands 1/4,6355,ipuk,2,,,,,,,,SubEq,,,,,,,2,1,1303,0x0517,,,,InstantCtl,Instant,0,0,Linear,Scalar
-MainSub001LimiterAtt001,1,1,1,,,Subwoofer limiter attack,6356,ipul,33,,,,,,,,SubLimiter,,0=0.1/127=100/[Log],,,,,2,1,1330,0x0532,,,,DynSafe,LinearFrames,6,20,Exp,Scalar
-MainSub001LimiterOn001,1,1,1,,,Subwoofer limiter on/off,6357,ipum,2,,,,,,,,SubLimiter,,,,,,,2,1,1328,0x0530,,,,InstantCtl,Instant,0,0,Linear,Scalar
-MainSub001LimiterRel001,1,1,1,,,Subwoofer limiter release,6358,ipun,33,,,,,,,,SubLimiter,,0=5/127=2000/[Log],,,,,2,1,1331,0x0533,,,,DynSafe,LinearFrames,6,20,Exp,Scalar
-MainSub001LimiterThr001,1,1,1,,,Subwoofer limiter threshold,6359,ipuo,255,,,,,,,,SubLimiter,,0=-30/127=0/[Lin],,,,,2,1,1329,0x0531,,,,DynSafe,LinearFrames,6,20,Exp,Scalar
+MainSub001CompAtt001,1,1,1,,,Subwoofer compressor attack,6322,ipsj,255,,,,,,,,SubComp,,0=0/254=250/[Log],,,,,2,1,1563,0x061B,,,,DynSafe,LinearFrames,6,20,Exp,Scalar
+MainSub001CompKnee001,1,1,1,,,Subwoofer compressor soft/hard knee,6323,ipsk,2,,,,,,,,SubComp,,,,,,,2,1,1566,0x061E,,,,InstantCtl,Instant,0,0,Linear,Scalar
+MainSub001CompMake001,1,1,1,,,Subwoofer compressor makeup gain,6324,ipsl,33,,,,,,,,SubComp,,0=0/127=20/[Lin],,,,,2,1,1565,0x061D,,,,GainFast,Slew,3,8,Exp,Scalar
+MainSub001CompOn001,1,1,1,,,Subwoofer compressor on/off,6325,ipsm,2,,,,,,,,SubComp,,,,,,,2,1,1560,0x0618,,,,InstantCtl,Instant,0,0,Linear,Scalar
+MainSub001CompPar001,1,1,1,,,Subwoofer parallel compression blend,6326,ipsn,33,,,,,,,,SubComp,,0=0/127=100/[Lin],,,,,2,1,1567,0x061F,,,,GainFast,Slew,3,8,Exp,Scalar
+MainSub001CompRat001,1,1,1,,,Subwoofer compressor ratio,6327,ipso,128,,,,,,,,SubComp,,0=1/127=30/[Log],,,,,2,1,1562,0x061A,,,,DynSafe,LinearFrames,6,20,Exp,Scalar
+MainSub001CompRel001,1,1,1,,,Subwoofer compressor release,6328,ipsp,255,,,,,,,,SubComp,,0=5/254=5000/[Log],,,,,2,1,1564,0x061C,,,,DynSafe,LinearFrames,6,20,Exp,Scalar
+MainSub001CompDetSrc001,1,1,1,,,Subwoofer compressor self-key tap source (PreEQ/PostEQ),6329,ipsq,2,,,,,,,,SubComp,,,,,,,2,1,1570,0x0622,,,,InstantCtl,Instant,0,0,Linear,Scalar
+MainSub001CompEqPos001,1,1,1,,,Subwoofer compressor EQ position (Pre/Post),6330,ipsr,2,,,,,,,,SubComp,,,,,,,2,1,1572,0x0624,,,,InstantCtl,Instant,0,0,Linear,Scalar
+MainSub001CompFilterHpf001,1,1,1,,,Subwoofer compressor sidechain HPF frequency,6331,ipss,65,32,,,,,,,SubComp,,0=20/64=1000/[Log],,,,,2,1,1574,0x0626,,,,InstantCtl,Instant,0,0,Linear,Scalar
+MainSub001CompFilterLpf001,1,1,1,,,Subwoofer compressor sidechain LPF frequency,6332,ipst,255,127,,,,,,,SubComp,,0=500/127=20000/[Log],,,,,2,1,1574,0x0626,,,,InstantCtl,Instant,0,0,Linear,Scalar
+MainSub001CompFilterOn001,1,1,1,,,Subwoofer compressor sidechain filter on/off,6333,ipsu,2,,,,,,,,SubComp,,,,,,,2,1,1573,0x0625,,,,InstantCtl,Instant,0,0,Linear,Scalar
+MainSub001CompFilterQ001,1,1,1,,,Subwoofer compressor sidechain filter Q,6334,ipsv,15,7,,,,,,,SubComp,,0=0.1/14=10/[Log],,,,,2,1,1574,0x0626,,,,InstantCtl,Instant,0,0,Linear,Scalar
+MainSub001CompKey001,1,1,1,,,Subwoofer compressor sidechain key source,6335,ipsw,33,,,,,,,,SubComp,,,,,,,2,1,1569,0x0621,,,,InstantCtl,Instant,0,0,Linear,Scalar
+MainSub001CompLimMode001,1,1,1,,,Subwoofer compressor/limiter mode toggle,6336,ipth,2,,,,,,,,SubComp,,,,,,,2,1,1571,0x0623,,,,InstantCtl,Instant,0,0,Linear,Scalar
+MainSub001CompThr001,1,1,1,,,Subwoofer compressor threshold,6337,ipti,141,,,,,,,,SubComp,,0=-60/140=10/[Lin],,,,,2,1,1561,0x0619,,,,DynSafe,LinearFrames,6,20,Exp,Scalar
+MainSub001CompType001,1,1,1,,,Subwoofer compressor type (Tube/FET/VCA/Optical),6338,iptj,4,,,,,,,,SubComp,,,,,,,2,1,1568,0x0620,,,,InstantCtl,Instant,0,0,Linear,Scalar
+MainSub001Delay001,1,1,1,,,Subwoofer output delay up to 250ms,6339,iptk,255,,,,,,,,,,0=0/127=250/[Log],,,,,,,,,,,,,,,,,
+MainSub001EqFreq001,1,1,1,,,Subwoofer 4-band parametric EQ frequency,6340,iptl,255,127,,,,,,,SubEq,,0=20/254=200/[Log],,,,,2,1,1536,0x0600,,,,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainSub001EqFreq002,1,1,2,,,Subwoofer 4-band parametric EQ frequency,6341,iptm,255,127,,,,,,,SubEq,,0=100/254=1000/[Log],,,,,2,1,1541,0x0605,,,,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainSub001EqFreq003,1,1,3,,,Subwoofer 4-band parametric EQ frequency,6342,iptn,255,127,,,,,,,SubEq,,0=800/254=5000/[Log],,,,,2,1,1546,0x060A,,,,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainSub001EqFreq004,1,1,4,,,Subwoofer 4-band parametric EQ frequency,6343,ipto,255,127,,,,,,,SubEq,,0=3000/254=20000/[Log],,,,,2,1,1551,0x060F,,,,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainSub001EqGain001,1,1,1,,,Subwoofer 4-band parametric EQ gain ±15dB,6344,iptp,121,60,,,,,,,SubEq,,0=-15/60=15/[Lin],,,,,2,1,1536,0x0600,,,,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainSub001EqGain002,1,1,2,,,Subwoofer 4-band parametric EQ gain ±15dB,6345,iptq,121,60,,,,,,,SubEq,,0=-15/60=15/[Lin],,,,,2,1,1541,0x0605,,,,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainSub001EqGain003,1,1,3,,,Subwoofer 4-band parametric EQ gain ±15dB,6346,iptr,121,60,,,,,,,SubEq,,0=-15/60=15/[Lin],,,,,2,1,1546,0x060A,,,,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainSub001EqGain004,1,1,4,,,Subwoofer 4-band parametric EQ gain ±15dB,6347,ipts,121,60,,,,,,,SubEq,,0=-15/60=15/[Lin],,,,,2,1,1551,0x060F,,,,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainSub001EqHpf001,1,1,1,,,Subwoofer high-pass filter frequency,6348,iptt,65,32,,,,,,,SubEq,,0=20/64=1000/[Log],,,,,2,1,1536,0x0600,,,,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainSub001EqOn001,1,1,1,,,Subwoofer EQ on/off,6349,iptu,2,,,,,,,,SubEq,,,,,,,2,1,1557,0x0615,,,,InstantCtl,Instant,0,0,Linear,Scalar
+MainSub001EqQ001,1,1,1,,,Subwoofer 4-band parametric EQ Q/bandwidth,6350,iptv,121,60,,,,,,,SubEq,,0=0.1/14=10/[Log],,,,,2,1,1536,0x0600,,,,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainSub001EqQ002,1,1,2,,,Subwoofer 4-band parametric EQ Q/bandwidth,6351,iptw,121,60,,,,,,,SubEq,,0=0.1/14=10/[Log],,,,,2,1,1541,0x0605,,,,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainSub001EqQ003,1,1,3,,,Subwoofer 4-band parametric EQ Q/bandwidth,6352,ipuh,121,60,,,,,,,SubEq,,0=0.1/14=10/[Log],,,,,2,1,1546,0x060A,,,,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainSub001EqQ004,1,1,4,,,Subwoofer 4-band parametric EQ Q/bandwidth,6353,ipui,121,60,,,,,,,SubEq,,0=0.1/14=10/[Log],,,,,2,1,1551,0x060F,,,,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainSub001EqShelf001,1,1,1,,,Subwoofer EQ shelf mode on/off for bands 1/4,6354,ipuj,2,,,,,,,,SubEq,,,,,,,2,1,1536,0x0600,,,,InstantCtl,Instant,0,0,Linear,Scalar
+MainSub001EqShelf002,1,1,2,,,Subwoofer EQ shelf mode on/off for bands 1/4,6355,ipuk,2,,,,,,,,SubEq,,,,,,,2,1,1551,0x060F,,,,InstantCtl,Instant,0,0,Linear,Scalar
+MainSub001LimiterAtt001,1,1,1,,,Subwoofer limiter attack,6356,ipul,33,,,,,,,,SubLimiter,,0=0.1/127=100/[Log],,,,,2,1,1578,0x062A,,,,DynSafe,LinearFrames,6,20,Exp,Scalar
+MainSub001LimiterOn001,1,1,1,,,Subwoofer limiter on/off,6357,ipum,2,,,,,,,,SubLimiter,,,,,,,2,1,1576,0x0628,,,,InstantCtl,Instant,0,0,Linear,Scalar
+MainSub001LimiterRel001,1,1,1,,,Subwoofer limiter release,6358,ipun,33,,,,,,,,SubLimiter,,0=5/127=2000/[Log],,,,,2,1,1579,0x062B,,,,DynSafe,LinearFrames,6,20,Exp,Scalar
+MainSub001LimiterThr001,1,1,1,,,Subwoofer limiter threshold,6359,ipuo,255,,,,,,,,SubLimiter,,0=-30/127=0/[Lin],,,,,2,1,1577,0x0629,,,,DynSafe,LinearFrames,6,20,Exp,Scalar
 MainSub001Dca001,1,1,1,,,Subwoofer DCA assignment (1-8 or off),6360,ipup,9,,,,,,,,,,,,,,,,,,,,,,,,,,,
 MainSub001DcaOn001,1,1,1,,,DCA follow on/off (assignment kept while off),6361,ipuq,2,,,,,,,,,,,,,,,,,,,,,,,,,,,
-MainSub001Level001,1,1,1,,,Subwoofer master output level,6362,ipur,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:10,,,,,2,1,1284,0x0504,,,,GainFast,Slew,3,8,Exp,Scalar
-MainSub001Mute001,1,1,1,,,Subwoofer master mute on/off,6363,ipus,2,,,,,,,,,,,,,,,2,1,1286,0x0506,,,,InstantCtl,Instant,0,0,Linear,Scalar
+MainSub001Level001,1,1,1,,,Subwoofer master output level,6362,ipur,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:10,,,,,,,,,,,,,,,,,
+MainSub001Mute001,1,1,1,,,Subwoofer master mute on/off,6363,ipus,2,,,,,,,,,,,,,,,,,,,,,,,,,,,
 Sys001AuxOnFdr001,1,1,1,,false,Aux-on-faders mode toggle,6364,iput,2,,,,,,,,,,,,,,,,,,,,,,,,,,,
 Sys001BtnBright001,1,1,1,,false,Physical button LED brightness,6365,ipuu,32,,,,,,,,,,,,,,,,,,,,,,,,,,,
 Sys001Cue001,1,1,1,,false,Cue/solo state per channel,6366,ipuv,2,,,,,,,,,,,,,,,,,,,,,,,,,,,

@@ -169,10 +169,67 @@ dispatch = {}
 externs = set()
 
 
-# Graph nodes that reach no master cell category at all: id -> node type.
+# Graph nodes that reach no master cell category at all:
+#   id -> (node type, reason)
 # They still get dispatch entries (the SPI handler must answer for every
 # address the graph builds), but they emit no cells.
+#
+# A NODE THAT HOLDS AN SPI ADDRESS AND REACHES NO CELL MUST SAY WHY. The
+# S1 session could only report eight such nodes as a count and a list; the
+# dispatch that produced this file asks for the reason next to each one,
+# and the way to keep a reason honest is to make the generator refuse to
+# run without it. `_UNREACHED_REASONS` is matched in order against the
+# node id; the first hit wins; no hit is an error, not a blank cell.
 uncatalogued_nodes = {}
+
+_UNREACHED_REASONS = [
+    # RETIRED BY RULING (PW confirmed 2026-09-08, S1-1). The sub is a
+    # post-crossover OUTPUT strip of the main mix and there is no separate
+    # sub mix bus, so the whole C2_SUB_* chain -- fed from BUS_SUB, out on
+    # NET_OUT_01 -- is the old model. The nodes stay in the graph and keep
+    # their addresses this session; each says what replaces it.
+    (re.compile(r'^C2_SUB_FDR$'),
+     'retired by ruling (S1-1): sub bus fader. Chain 4 has NO fader node, '
+     'so MainSub001Level001/Mute001 reach no address — open question Q1.'),
+    (re.compile(r'^C2_SUB_EQ$'),
+     'retired by ruling (S1-1): replaced by C2_MAIN_OEQ_04.'),
+    (re.compile(r'^C2_SUB_COMP$'),
+     'retired by ruling (S1-1): replaced by C2_MAIN_OCOMP_04.'),
+    (re.compile(r'^C2_SUB_LIM$'),
+     'retired by ruling (S1-1): replaced by C2_MAIN_OLIM_04.'),
+    (re.compile(r'^C2_SUB_DLY$'),
+     'retired by ruling (S1-1): sub bus delay. Chain 4 has NO delay node, '
+     'so MainSub001Delay001 reaches no address — open question Q1.'),
+    (re.compile(r'^C2_MTR_SUB$'),
+     'retired by ruling (S1-1): replaced by C2_MTR_MAIN_04.'),
+    # OLD MODEL, not named by the ruling but the same change. The masters
+    # give `Main[1-1]` no dynamics at all: `main.comp` and `main.lim` gate
+    # Comp/Limiter on the four OUTPUT strips (defs/tools/def_master.py
+    # FUNC_GATES["main"]), which the per-output chains serve.
+    (re.compile(r'^C2_MAIN_COMP$'),
+     'old model: dynamics on the stereo mix bus; replaced by '
+     'C2_MAIN_OCOMP_01..04, one per output strip.'),
+    (re.compile(r'^C2_MAIN_LIM$'),
+     'old model: dynamics on the stereo mix bus; replaced by '
+     'C2_MAIN_OLIM_01..04, one per output strip.'),
+]
+
+
+def unreached_reason(nid):
+    """Why this node holds an address no master cell reaches. No-fallback."""
+    for pattern, reason in _UNREACHED_REASONS:
+        if pattern.match(nid):
+            return reason
+    sys.exit(f'ERROR: node {nid!r} holds an SPI address and reaches no '
+             f'master cell, and _UNREACHED_REASONS in gen_dsp.py does not '
+             f'say why. Add the reason (or map the node to a strip).')
+
+
+# The node currently being expanded, so add_cell() can record WHICH graph
+# node owns a cell's address without threading it through sixty call
+# sites. dsp.csv is a proposal the hub lands into defs; a row that cannot
+# say where its address came from cannot be checked against the graph.
+_current_node = {'id': '', 'type': ''}
 
 
 def add_cell(cell_name, chip, spi_page, spi_addr, table='', ramp_profile='', notes=''):
@@ -190,6 +247,8 @@ def add_cell(cell_name, chip, spi_page, spi_addr, table='', ramp_profile='', not
         'table': table,
         'ramp_profile': ramp_profile,
         'notes': notes,
+        'node': _current_node['id'],
+        'node_type': _current_node['type'],
     }
 
 
@@ -571,35 +630,109 @@ def expand_limiter(node, cat, inst):
 
 
 # ── METER (read-only, DSP writes, host polls) ────────────────────────────
+# WHAT A METER NODE ACTUALLY WRITES, which is not what `taps=` used to be
+# read as. Every meter node meters ONE tap point and lays three float words
+# at its base address (tools/dsp/dsp_codegen.py::gen_meter_fixed, and the
+# node ASM's own comment "the host reaches the rest by offset"):
+#
+#     +0  _mtr_peak_<nid>   linear peak, the host contract
+#     +1  _mtr_rms_<nid>    linear TRUE rms
+#     +2  _mtr_gr_<nid>     gain reduction -- DECLARED AND NEVER WRITTEN
+#     +3  _mtr_st_<nid>[4]  the meter's OWN state (pk_lo pk_hi ms_lo ms_hi)
+#
+# So `taps=` names METER WORDS, not tap points, and the two facts that
+# follow are the reason this expander is a vocabulary rather than a pair of
+# `in` tests:
+#
+#   * `taps=L;R` on the four post-crossover main-output meters claimed a
+#     stereo pair. The nodes are ch_count=1 mono outputs and the masters
+#     give MainL/MainR/MainCtr/MainSub one `Mtr[1-1]` each; the second
+#     cell was the RMS word wearing an `R` label, and it is one of the 23
+#     generated cells S1 found with no matrix row.
+#   * `comp_gr` has NO WORD. The channel meter's fourth cell was being
+#     given base+3, which is `_mtr_st[0]` -- the meter's internal peak-hold
+#     state, not a compressor's gain reduction. A cell pointed at another
+#     variable's scratch is not "reaching a DSP address"; CompMtr is
+#     reported as unbacked instead, next to the gate_gr word that IS
+#     declared and still is not written (recorded defect 4).
+#
+# The map is (cell suffix, fun, word offset, asm symbol suffix, note).
+#
+#   offset None    the word does not exist -- the tap is reported unbacked.
+#   suffix None    the word EXISTS and is dispatched, and no product cell
+#                  names it. This is the same shape FADER_PAN already uses
+#                  for the pan word on a non-Chan/Aux strip: an address the
+#                  SPI handler answers on with nothing in the masters
+#                  pointing at it. Dropping the dispatch instead would take
+#                  a real measurement away from the host to fix a labelling
+#                  mistake, which is the wrong trade.
+_METER_TAPS = {
+    'peak':        ('Mtr',     1,    0, '_mtr_peak_', 'meter word +0: linear peak'),
+    'post_trim':   ('Mtr',     1,    0, '_mtr_peak_', 'meter word +0: linear peak'),
+    'post_fader':  ('Mtr',     2,    1, '_mtr_rms_',  'meter word +1: linear true RMS'),
+    'rms':         (None,   None,    1, '_mtr_rms_',  'meter word +1: linear true RMS — dispatched; no cell names it'),
+    'gate_gr':     ('GateMtr', 1,    2, '_mtr_gr_',   'meter word +2: gain reduction — declared, never written (defect 4)'),
+    'comp_gr':     ('CompMtr', 1, None, None,         'no meter word exists; base+3 is the meter\'s own state array'),
+}
+
+# Meter taps a node declares that reach no DSP word: cell name -> reason.
+unbacked_meter_cells = {}
+
+
+def _parse_taps(raw):
+    """The tap names a METER node declares.
+
+    NOT parse_params(): `;` separates the taps as well as the key=value
+    pairs, so parse_params('taps=post_trim;post_fader;gate_gr;comp_gr')
+    returns {'taps': 'post_trim'} and three of the four words vanish
+    without a word being said. The tap list runs to the end of the params
+    or to the next `key=` token, whichever comes first.
+    """
+    raw = (raw or '').strip().strip('"')
+    if 'taps=' not in raw:
+        return []
+    names = []
+    for tok in raw.split('taps=', 1)[1].split(';'):
+        tok = tok.strip()
+        if not tok:
+            continue
+        if '=' in tok:              # the next key ends the tap list
+            break
+        names.append(tok)
+    return names
+
+
 def expand_meter(node, cat, inst):
     chip, pg, base, nid, ramp = _parse_node(node)
-    # The layout is what dsp.csv's `taps=` declares, not what the cell
-    # category happens to be. This used to test `cat == 'AaChan'`; the Aa
-    # sort prefix is gone from the masters and a channel meter's cells now
-    # sit in `Chan`, which the strip nodes also use -- so the category can
-    # no longer tell a 4-word channel meter from a 1-word bus meter, and
-    # the node's own declaration always could.
-    taps = node.get('params', '') or ''
-    if 'gate_gr' in taps:
-        # 4 words per channel: post_trim, post_fader, gate_gr, comp_gr
-        add_cell(cn(cat, inst, 'Mtr', 1), chip, pg, base, '', '', notes='Post trim level')
-        add_cell(cn(cat, inst, 'Mtr', 2), chip, pg, base + 1, '', '', notes='Post fader level')
-        add_cell(cn(cat, inst, 'GateMtr', 1), chip, pg, base + 2, '', '', notes='Gate GR')
-        add_cell(cn(cat, inst, 'CompMtr', 1), chip, pg, base + 3, '', '', notes='Comp GR')
-        add_dispatch(chip, base, f'_mtr_peak_{nid}', f'{nid} post_trim')
-        add_dispatch(chip, base + 1, f'_mtr_rms_{nid}', f'{nid} post_fader')
-        add_dispatch(chip, base + 2, f'_mtr_gr_{nid}', f'{nid} gate_gr')
-        add_dispatch(chip, base + 3, None, f'{nid} comp_gr')
-    else:
-        # Bus/output meters: 1-2 words
-        if 'taps=L;R' in taps:
-            add_cell(cn(cat, inst, 'Mtr', 1), chip, pg, base, '', '', notes='L')
-            add_cell(cn(cat, inst, 'Mtr', 2), chip, pg, base + 1, '', '', notes='R')
-            add_dispatch(chip, base, f'_mtr_peak_{nid}', f'{nid} L')
-            add_dispatch(chip, base + 1, f'_mtr_rms_{nid}', f'{nid} R')
-        else:
-            add_cell(cn(cat, inst, 'Mtr', 1), chip, pg, base, '', '')
-            add_dispatch(chip, base, f'_mtr_peak_{nid}', f'{nid}')
+    # The layout is what dsp.csv's `taps=` declares, and ONLY that. This
+    # used to test `cat == 'AaChan'`; the Aa sort prefix is gone from the
+    # masters and a channel meter's cells now sit in `Chan`, which the
+    # strip nodes also use -- so the category can no longer tell a
+    # multi-word channel meter from a one-word bus meter, and the node's
+    # own declaration always could. A METER that declares nothing is an
+    # error rather than a guessed one-word default.
+    names = _parse_taps(node.get('params', ''))
+    if not names:
+        sys.exit(f'ERROR: METER node {nid} declares no `taps=` — say which '
+                 f'meter words it exposes (see _METER_TAPS in gen_dsp.py); '
+                 f'refusing to guess a layout.')
+
+    for tap in names:
+        if tap not in _METER_TAPS:
+            sys.exit(f'ERROR: METER node {nid} declares tap {tap!r}, which '
+                     f'is not in _METER_TAPS — add it with the word it '
+                     f'names, or fix the declaration.')
+        suffix, fun, off, sym, note = _METER_TAPS[tap]
+        if off is None:
+            name = cn(cat, inst, suffix, fun)
+            if _CELL_SPLIT.match(name):
+                unbacked_meter_cells[name] = f'{nid} declares tap {tap!r}: {note}'
+            continue
+        if suffix is not None:
+            add_cell(cn(cat, inst, suffix, fun), chip, pg, base + off,
+                     '', '', notes=note)
+        add_dispatch(chip, base + off, f'{sym}{nid}' if sym else None,
+                     f'{nid} {tap}')
 
 
 # ── TALKBACK ─────────────────────────────────────────────────────────────
@@ -815,18 +948,37 @@ _CHAN_TYPES = r'GAIN|FILT|EQ|GATE|COMP|TUBE|DLY|FDR|RTG'
 _AUX_TYPES  = r'FDR|EQ|GEQ|AFB|LIM|DLY'
 _GRP_TYPES  = r'FDR|EQ|GEQ|GATE|COMP'
 
-# The graph's four post-crossover main outputs against the masters' three
-# main output strips. Outputs 1 and 2 are Main L and Main R; MainSub is fed
-# by the sub mix bus through C2_SUB_*, not by a C2_MAIN_O* chain; outputs 3
-# and 4 have no master strip at defs-v2026.09.08. `None` here means exactly
-# what it means everywhere else in this table -- the node reaches no cell --
-# and get_node_context() still refuses ids no pattern names at all.
-_MAIN_OUT_STRIP = {1: ('MainL', 1), 2: ('MainR', 1), 3: None, 4: None}
+# THE MAIN SECTION, per PW ruling 2026-08-25 ("main section model") as the
+# hub relayed it on 2026-09-08. `Main[1-1]` is the STEREO MIX BUS strip --
+# fader, mute, 28-band GEQ, delay, cue -- and L / R / Ctr / Sub are each a
+# POST-CROSSOVER OUTPUT STRIP. So the four chains the graph builds off
+# C2_MAIN_XOVER are the four output strips, in DAC order (DAC_13..DAC_16),
+# and there is no separate sub mix bus.
+#
+# THIS IS A WORKING ASSUMPTION AWAITING PW'S CONFIRMATION, and it is not
+# only the hub's word: `defs/tools/def_master.py` says the same thing
+# independently. Its PREFIX_RULES gate `MainL`/`MainR` on the `main`
+# scope, `MainCtr` on `main` + `main.ctr`, and `MainSub` on `sub`; its
+# FUNC_GATES put Comp on `main.comp`, Limiter on `main.lim` and Crossover
+# on `sub.xover` for every one of those strips; and the D24-only cell
+# `Main001Out3Mode001` is gated on `main.ctr` -- an OUT 3 MODE cell that
+# exists exactly when the centre output does. Output 3 is the centre.
+#
+# The superset graph is expanded ONCE and each product's dsp.csv is the
+# intersection of that expansion with its own masters (decision D3: ONE
+# stable DSP address map shared by both products). So MainCtr is emitted
+# here unconditionally: D24's def carries `main.ctr,1` and reaches it,
+# D32's does not and lists it as out of product scope -- at the SAME
+# address. `None` means exactly what it means everywhere else in this
+# table -- the node reaches no cell -- and get_node_context() still
+# refuses ids no pattern names at all.
+_MAIN_OUT_STRIP = {1: ('MainL', 1), 2: ('MainR', 1),
+                   3: ('MainCtr', 1), 4: ('MainSub', 1)}
 
 # Every strip the crossover feeds, in master spelling. One crossover node
 # exists in the graph and the masters document Freq/Slope on each output
-# strip, so the three cell pairs share the one address.
-_XOVER_STRIPS = (('MainL', 1), ('MainR', 1), ('MainSub', 1))
+# strip, so the four cell pairs share the one address.
+_XOVER_STRIPS = (('MainL', 1), ('MainR', 1), ('MainCtr', 1), ('MainSub', 1))
 
 
 def _main_out_strip(n):
@@ -854,23 +1006,26 @@ _NODE_PATTERNS = [
     (re.compile(r'^C2_AUX_OUT_(\d+)$'),               lambda m: None),
     # Group (Chip 2)
     (re.compile(rf'^C2_GRP_(?:{_GRP_TYPES})_(\d+)$'), lambda m: ('Grp', int(m.group(1)))),
-    # Subwoofer strip (Chip 2). The masters folded the standalone `Sub`
-    # category into the main section at defs-v2026.09.08: the strip fed by
-    # the sub mix bus is `MainSub`, and the row notes came across verbatim
-    # ("Subwoofer compressor attack", "Subwoofer output level meter").
-    (re.compile(r'^C2_SUB_(?:FDR|EQ|COMP|LIM|DLY)$'), lambda m: ('MainSub', 1)),
+    # Subwoofer strip (Chip 2) -- THE OLD MODEL. Under the 08-25 main
+    # section model the sub is a post-crossover OUTPUT (chain 4 below) and
+    # there is no separate sub mix bus, so this whole chain -- fed from
+    # BUS_SUB and landing on NET_OUT_01 -- reaches no master cell. It is
+    # FLAGGED FOR RETIREMENT AND NOT DELETED: the nodes stay in the graph,
+    # keep their addresses, and are listed by validate() with that reason.
+    (re.compile(r'^C2_SUB_(?:FDR|EQ|COMP|LIM|DLY)$'), lambda m: None),
     (re.compile(r'^C2_SUB_OUT$'),                      lambda m: None),
-    # Main bus (Chip 2) -- the L/R master strip: fader, mute, 28-band GEQ,
-    # delay. `Main` no longer carries output dynamics or a crossover; those
-    # moved to the per-output strips below, which is why C2_MAIN_COMP and
-    # C2_MAIN_LIM now reach no master cell and validate() says so.
-    (re.compile(r'^C2_MAIN_(?:FDR|GEQ|COMP|LIM|DLY)$'),  lambda m: ('Main', 1)),
+    # Main bus (Chip 2) -- the stereo mix-bus strip: fader, mute, 28-band
+    # GEQ, delay. The masters give `Main[1-1]` exactly CueSel, Dca, DcaOn,
+    # Delay, Geq[1-28], Level, Mute, Name (plus Out3Mode on D24) and no
+    # dynamics at all, so the bus-level comp and limiter are the old model
+    # too: `main.comp` and `main.lim` gate Comp/Limiter on the four OUTPUT
+    # strips, which C2_MAIN_O{COMP,LIM}_0[1-4] serve. Same treatment as
+    # C2_SUB_*: reported, not deleted.
+    (re.compile(r'^C2_MAIN_(?:FDR|GEQ|DLY)$'),          lambda m: ('Main', 1)),
+    (re.compile(r'^C2_MAIN_(?:COMP|LIM)$'),             lambda m: None),
     (re.compile(r'^C2_MAIN_XOVER$'),                    lambda m: ('Main', 1)),
-    # Main output strips (Chip 2). The masters have THREE -- MainL, MainR,
-    # MainSub -- against the four post-crossover chains the graph builds;
-    # MainSub's chain is C2_SUB_* above, so outputs 3 and 4 reach no master
-    # cell. That divergence is dsp.csv's to resolve (the S1 dispatch bounds
-    # this session out of authoring it); it is REPORTED, not papered over.
+    # Main output strips (Chip 2): the four post-crossover chains ARE
+    # MainL / MainR / MainCtr / MainSub, in DAC_13..DAC_16 order.
     (re.compile(r'^C2_MAIN_O(?:EQ|COMP|LIM)_(\d+)$'),
      lambda m: _main_out_strip(int(m.group(1)))),
     (re.compile(r'^C2_MAIN_OUT_(\d+)$'),                       lambda m: None),
@@ -903,7 +1058,9 @@ _NODE_PATTERNS = [
     (re.compile(r'^C2_MTR_MAIN_(\d+)$'),
      lambda m: _main_out_strip(int(m.group(1)))),
     (re.compile(r'^C2_MTR_GRP_(\d+)$'),                lambda m: ('Grp', int(m.group(1)))),
-    (re.compile(r'^C2_MTR_SUB$'),                      lambda m: ('MainSub', 1)),
+    # The sub BUS meter goes with the sub bus strip -- retired, not deleted.
+    # MainSub's meter is C2_MTR_MAIN_04 on output chain 4.
+    (re.compile(r'^C2_MTR_SUB$'),                      lambda m: None),
     (re.compile(r'^C2_MTR_FX_(\d+)$'),                 lambda m: ('Fx', int(m.group(1)))),
     # Recv/Send (no cells)
     (re.compile(r'^C2_RECV_'),                         lambda m: None),
@@ -934,6 +1091,7 @@ def expand_all_nodes(nodes):
 
         # Skip nodes with no SPI address (inputs, sends, recvs)
         ctx = get_node_context(nid)
+        _current_node['id'], _current_node['type'] = nid, ntype
 
         expander = NODE_EXPANDERS.get(ntype)
         if expander is None:
@@ -944,7 +1102,7 @@ def expand_all_nodes(nodes):
             # Node doesn't map to cells — may still need dispatch (e.g. MIX_BUS)
             if spi_addr >= 0 and expander is not expand_noop:
                 if expander is not expand_mix_bus:
-                    uncatalogued_nodes[nid] = ntype
+                    uncatalogued_nodes[nid] = (ntype, unreached_reason(nid))
                 expander(node, '', 0)
             continue
 
@@ -1554,6 +1712,337 @@ def write_address_map(dry_run=False):
 
 
 # ---------------------------------------------------------------------------
+# Output: the proposed `dsp.csv` per product  (PW ruling 2026-09-08 #5)
+# ---------------------------------------------------------------------------
+# THIS REPO PROPOSES, THE HUB LANDS. The DSP address file is a DEFINITION --
+# it belongs in `defs/products/<p>/dsp.csv` next to the product def that
+# decides which cells exist -- but it can only be DERIVED here, from the
+# graph this tree owns. So it is written to `proposals/defs/products/<p>/`
+# and the hub copies it in at the gate.
+#
+# ONE ADDRESS MAP, TWO PRODUCTS (decision D3). The superset graph is
+# expanded ONCE and each product's file is the intersection of that
+# expansion with its own `_matrix.csv`. A cell that both products carry
+# gets the SAME chip, page and address in both files by construction --
+# there is no per-product allocation step that could drift.
+#
+# COVERAGE IS AN INVARIANT, NOT A HOPE. For each product,
+#
+#     rows(dsp.csv) + rows(dsp-unmapped.csv) == cells(_matrix.csv)
+#
+# is asserted before either file is written. Every cell the product
+# defines either reaches a DSP address or is named with the reason it does
+# not, and there is no third bucket for the ones nobody looked at.
+
+PROPOSAL_ROOT = os.path.join(REPO_ROOT, 'proposals', 'defs', 'products')
+PROPOSAL_PRODUCTS = (
+    ('d32', os.path.join(REPO_ROOT, 'MW', 'D32', 'MX', '_matrix.csv')),
+    ('d24', os.path.join(REPO_ROOT, 'MW', 'D24', 'MX', '_matrix.csv')),
+)
+
+# Column semantics. `defs/common/schema/` declares no dsp.csv schema at
+# defs-v2026.09.08, so this is the proposal for one, restated in the file
+# header the hub lands.
+DSP_CSV_COLUMNS = [
+    ('_Cell',       'cell name, as spelled by defs/gen/matrix/<p>-mx-master.csv'),
+    ('Node',        'graph node that owns the address (MW/D32/DSP/SHARC/dsp.csv id)'),
+    ('NodeType',    'that node\'s type'),
+    ('DspSpi',      'DSP the cell lives on: 1 = DSPA (chip 1), 2 = DSPB (chip 2)'),
+    ('DspPage',     'SPI page'),
+    ('DspAdd',      'SPI word address within the page, decimal'),
+    ('DspAddHex',   'the same address, 0xNNNN'),
+    ('Access',      'rw = host writes it | ro = DSP writes it, host polls | '
+                    'mcu = the word carries no DSP symbol (MCU/host hardware control)'),
+    ('RampProfile', 'named ramp preset, or empty for an un-ramped word'),
+    ('RampMode',    'Instant | Slew | LinearFrames'),
+    ('RampUpMs',    'ramp-up time, ms'),
+    ('RampDownMs',  'ramp-down time, ms'),
+    ('RampCurve',   'Linear | Exp'),
+    ('RampScope',   'Scalar = one word ramps on its own | CoeffSetAtomic = '
+                    'the whole coefficient set swaps together'),
+    ('Table',       'host scaling table for the control range, where one applies'),
+    ('Notes',       'what the word is'),
+]
+
+UNMAPPED_CSV_COLUMNS = ['_Cell', 'Class', 'Reason']
+
+# ---------------------------------------------------------------------------
+# Why a defined cell reaches no DSP address.
+#
+# NO-FALLBACK: a cell family that is in neither the address map nor this
+# table stops the generator. "Unmapped" without a reason is the state S1
+# reported 1,011 cells in, and it is indistinguishable from "nobody looked".
+#
+# Classes:
+#   host-managed        PW ruling: the host owns the value outright.
+#   mcu-only            matches mcu-only-prefixes.txt.
+#   label               text the host stores; no DSP parameter.
+#   surface-state       console surface state; no audio parameter.
+#   hardware-control    the MCU drives hardware, not a DSP word.
+#   control-plane       a real audio effect the HOST folds onto DSP words
+#                       it already has (mute groups, tap tempo).
+#   no-graph-node       a DSP function the product defines and the graph
+#                       does NOT build. These are the ones that cost work.
+#   unbacked-meter      a meter tap the kernel writes no word for.
+#   s1-2-no-behaviour   S1-2 families that became definitions again at
+#                       defs-v2026.09.08 with no DSP behaviour yet.
+# ---------------------------------------------------------------------------
+_MAIN_OUT = ('MainL', 'MainR', 'MainCtr', 'MainSub')
+
+_UNMAPPED_REASONS = {
+    ('*', 'Name'): ('label', 'text label; the host stores it, the DSP has no word for it'),
+    ('Aux', 'PickOff'): ('no-graph-node',
+        'aux-master send pickoff; the DSP pickoff is per crosspoint '
+        '(Chan*AuxPick*) and there is no aux-master word — open question Q4'),
+    ('Bt', 'Src'): ('hardware-control', 'Bluetooth receiver source select — MCU hardware control'),
+    ('Card', 'Type'): ('hardware-control', 'option-card type, reported by the MCU'),
+    ('Chan', 'AntiClip'): ('no-graph-node', 'per-channel anti-clip; no node in the graph implements it'),
+    ('Chan', 'Color'): ('surface-state', 'strip colour on the surface'),
+    ('Chan', 'CompMtr'): ('unbacked-meter',
+        'the channel meter declares a comp_gr tap and the kernel writes no '
+        'word for it; base+3 is the meter\'s own state array (defect 4)'),
+    ('Chan', 'CueSel'): ('control-plane',
+        'PFL/cue select; the DSP has one monitor source word '
+        '(Mon001InputSel001) that the host writes — open question Q5'),
+    ('Chan', 'InsertOn'): ('hardware-control', 'analogue insert relay'),
+    ('Chan', 'Instr'): ('hardware-control', 'instrument / Hi-Z input mode'),
+    ('Chan', 'LcrOn'): ('no-graph-node',
+        'LCR pan law; the router has MainOn and CtrOn and no LCR divergence '
+        '— open question Q6'),
+    ('Chan', 'Link'): ('surface-state', 'stereo link of adjacent strips; the host writes both strips'),
+    ('Chan', 'MatrixOn'): ('no-graph-node', 'matrix mixer (def key mtx); the graph builds no matrix node'),
+    ('Chan', 'MatrixSend'): ('no-graph-node', 'matrix mixer (def key mtx); the graph builds no matrix node'),
+    ('Chan', 'MuteGrp'): ('control-plane',
+        'mute-group membership; folded by the host onto the strip mute, the '
+        'same shape as Dca (PW ruling 2026-08-30)'),
+    ('Chan', 'PadOn'): ('hardware-control', 'input pad relay'),
+    ('Fx', 'AuxOn'): ('no-graph-node',
+        'FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node'),
+    ('Fx', 'AuxSend'): ('no-graph-node',
+        'FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node'),
+    ('Fx', 'DuckThr'): ('s1-2-no-behaviour',
+        'S1-2: FxDuckThr is a definition again at defs-v2026.09.08. The FX '
+        'engine has DuckOn and DuckSens words and no threshold word — Q7'),
+    ('Fx', 'MuteAll'): ('control-plane', 'mute all FX returns; host fold onto the six return mutes'),
+    ('Fx', 'MuteGrp'): ('control-plane', 'mute-group membership; host fold onto the return mute'),
+    ('Fx', 'PedAssign'): ('surface-state', 'footswitch assignment'),
+    ('Fx', 'PingPongStart'): ('no-graph-node', 'ping-pong start side; the FX engine has no such word'),
+    ('Fx', 'ReturnWetLock'): ('surface-state', 'UI lock on the return wet control'),
+    ('Fx', 'Tap'): ('control-plane', 'tap tempo; the host computes and writes Fx*DelayTime*'),
+    ('Main', 'CueSel'): ('control-plane', 'cue select; see Q5'),
+    ('Main', 'Out3Mode'): ('no-graph-node',
+        'D24 centre-output mode (def key main.ctr); C2_MAIN_XOVER feeds all '
+        'four outputs unconditionally and no word selects output 3\'s source '
+        '— open question Q2'),
+    ('Matrix', 'Level'): ('no-graph-node', 'matrix mixer output (def key mtx); no matrix node in the graph'),
+    ('Matrix', 'Mute'): ('no-graph-node', 'matrix mixer output (def key mtx); no matrix node in the graph'),
+    ('Noise', 'Dest'): ('no-graph-node',
+        'generator destination; the NOISE_GEN node reserves base+3 as a route '
+        'bitmask with no symbol behind it'),
+    ('Phones', 'Level'): ('hardware-control', 'headphone amplifier'),
+    ('Phones', 'Src'): ('hardware-control', 'headphone source select'),
+    ('Rta', 'On'): ('no-graph-node', 'RTA analyser; no node in the graph'),
+    ('Rta', 'Src'): ('no-graph-node', 'RTA analyser; no node in the graph'),
+    ('Talk', 'Dest'): ('no-graph-node',
+        'talkback destinations 2 and 3; the TALKBACK node has four SPI words '
+        '(On, Gain, Hpf, Dest1) and the graph gives it no more'),
+}
+for _s in _MAIN_OUT:
+    _q1 = ('no-graph-node',
+           'post-crossover output chain {} has EQ + COMP + LIM and no '
+           'FADER_PAN or DELAY node, so the strip\'s own level, mute and '
+           'delay reach no word — open question Q1'.format(_s))
+    _UNMAPPED_REASONS[(_s, 'Level')] = _q1
+    _UNMAPPED_REASONS[(_s, 'Mute')] = _q1
+    _UNMAPPED_REASONS[(_s, 'Delay')] = _q1
+    _UNMAPPED_REASONS[(_s, 'LimiterRng')] = ('no-graph-node',
+        'limiter range; the LIMITER node carries On, Thr, Att and Rel and no '
+        'range word')
+    _UNMAPPED_REASONS[(_s, 'EqHpf')] = ('no-graph-node',
+        'HPF on EQ bands 2-4; the generator gives a non-Main strip one HPF '
+        '(band 1) and the masters give the output strips four — open '
+        'question Q8')
+    _UNMAPPED_REASONS[(_s, 'PeqGain')] = ('s1-2-no-behaviour',
+        'S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key '
+        'main.geq); no node carries a parametric gain bank — Q7')
+
+
+def _unmapped_reason(cell, mcu_prefixes):
+    """(class, reason) for a defined cell with no DSP address. No-fallback."""
+    if cell in unbacked_meter_cells:
+        return ('unbacked-meter', unbacked_meter_cells[cell])
+    m = _CELL_SPLIT.match(cell)
+    if m is None:
+        return ('label', 'not a cell-shaped name; carries no DSP parameter')
+    cat, fam = m.group(1), m.group(3)
+    if fam in host_managed:
+        return ('host-managed',
+                'the host owns the value outright — no DSP address, no kernel '
+                'read (PW ruling 2026-08-30)')
+    for key in ((cat, fam), ('*', fam)):
+        if key in _UNMAPPED_REASONS:
+            return _UNMAPPED_REASONS[key]
+    if any(cell.startswith(p) for p in mcu_prefixes):
+        return ('mcu-only',
+                'MCU-only cell family (mcu-only-prefixes.txt); no DSP address '
+                'expected')
+    sys.exit(f'ERROR: cell {cell!r} ({cat}/{fam}) reaches no DSP address and '
+             f'_UNMAPPED_REASONS in gen_dsp.py does not say why. Give the '
+             f'family a reason, or map it to a graph node.')
+
+
+def _dsp_csv_row(name, cm):
+    rp = RAMP_PROFILES.get(cm['ramp_profile'], RAMP_PROFILES[''])
+    sym = dispatch.get((cm['chip'], cm['spi_addr']), (None, ''))[0]
+    if cm['node_type'] == 'METER':
+        access = 'ro'
+    elif sym is None:
+        access = 'mcu'
+    else:
+        access = 'rw'
+    return {
+        '_Cell': name,
+        'Node': cm['node'],
+        'NodeType': cm['node_type'],
+        'DspSpi': str(cm['chip']),
+        'DspPage': str(cm['spi_page']),
+        'DspAdd': str(cm['spi_addr']),
+        'DspAddHex': f'0x{cm["spi_addr"]:04X}',
+        'Access': access,
+        'RampProfile': cm['ramp_profile'],
+        'RampMode': rp['mode'],
+        'RampUpMs': str(rp['up_ms']),
+        'RampDownMs': str(rp['down_ms']),
+        'RampCurve': rp['curve'],
+        'RampScope': rp['scope'],
+        'Table': cm['table'],
+        'Notes': cm['notes'],
+    }
+
+
+def _write_csv(path, header, rows, preamble):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, 'w', newline='', encoding='utf-8') as f:
+        for line in preamble:
+            f.write(f'# {line}\n' if line else '#\n')
+        w = csv.DictWriter(f, fieldnames=header, extrasaction='raise')
+        w.writeheader()
+        w.writerows(rows)
+
+
+def write_proposals(dry_run=False):
+    """Write the proposed dsp.csv + its unmapped companion, per product."""
+    mcu_prefixes = load_mcu_only_prefixes()
+    cols = [c for c, _ in DSP_CSV_COLUMNS]
+    summary = []
+
+    for product, matrix_path in PROPOSAL_PRODUCTS:
+        with open(matrix_path, newline='', encoding='utf-8') as f:
+            defined = [r['_Cell'] for r in csv.DictReader(f) if r.get('_Cell')]
+        defined_set = set(defined)
+
+        mapped = [n for n in defined if n in cell_map]
+        unmapped = [n for n in defined if n not in cell_map]
+        # The invariant, checked before anything is written.
+        if len(mapped) + len(unmapped) != len(defined):
+            sys.exit(f'ERROR: {product} coverage split does not add up')
+
+        rows = [_dsp_csv_row(n, cell_map[n]) for n in sorted(mapped)]
+        un_rows = []
+        for n in sorted(unmapped):
+            klass, reason = _unmapped_reason(n, mcu_prefixes)
+            un_rows.append({'_Cell': n, 'Class': klass, 'Reason': reason})
+
+        # Cells the superset graph builds that this product does not define.
+        # Not a gap: the address is reserved in the one shared map and the
+        # other product reaches it (decision D3).
+        out_of_scope = sorted(set(cell_map) - defined_set)
+
+        pin = f'defs-v* pin: {CONTRACT_PIN}'
+        head = [
+            f'{product}/dsp.csv — PROPOSED DSP address map for {product.upper()}.',
+            '',
+            'GENERATED by MW/D32/DSP/gen_dsp.py in the invirco/dsp repo from the',
+            'DSP4 node graph (MW/D32/DSP/SHARC/dsp.csv). Do not hand-edit: an',
+            'address typed here is an address no kernel answers on.',
+            '',
+            'Proposed by dsp, landed by the hub at the gate (PW ruling',
+            f'2026-09-08 #5). {pin}.',
+            '',
+            'ONE ADDRESS MAP FOR BOTH PRODUCTS (decision D3): the superset graph',
+            'is expanded once and this file is the intersection of that',
+            "expansion with this product's cell set, so a cell both products",
+            'carry has the same chip, page and address in both files.',
+            '',
+            f'{len(rows)} of {len(defined)} defined cells reach a DSP address.',
+            f'The other {len(un_rows)} are named in dsp-unmapped.csv with the',
+            'reason — every defined cell is in exactly one of the two files.',
+            '',
+            'Columns:',
+        ]
+        head += [f'  {c:<12} {d}' for c, d in DSP_CSV_COLUMNS]
+
+        un_head = [
+            f'{product}/dsp-unmapped.csv — defined cells with NO DSP address.',
+            '',
+            'GENERATED alongside dsp.csv by MW/D32/DSP/gen_dsp.py. The companion',
+            'to it: dsp.csv says where a cell lives, this says why it lives',
+            'nowhere. A family in neither file stops the generator.',
+            '',
+            'Class:  host-managed | mcu-only | label | surface-state |',
+            '        hardware-control | control-plane | no-graph-node |',
+            '        unbacked-meter | s1-2-no-behaviour',
+            '',
+            'no-graph-node is the list that costs work: a DSP function this',
+            'product defines and the graph does not build.',
+            '',
+        ]
+
+        out_dir = os.path.join(PROPOSAL_ROOT, product)
+        dsp_path = os.path.join(out_dir, 'dsp.csv')
+        un_path = os.path.join(out_dir, 'dsp-unmapped.csv')
+
+        if dry_run:
+            print(f'[DRY-RUN] Would write {dsp_path} ({len(rows)} cells)')
+            print(f'[DRY-RUN] Would write {un_path} ({len(un_rows)} cells)')
+        else:
+            _write_csv(dsp_path, cols, rows, head)
+            _write_csv(un_path, UNMAPPED_CSV_COLUMNS, un_rows, un_head)
+            print(f'  Wrote {dsp_path} ({len(rows)} cells)')
+            print(f'  Wrote {un_path} ({len(un_rows)} cells)')
+            verify_proposal_roundtrip(dsp_path, mapped)
+
+        summary.append((product, len(defined), len(rows), len(un_rows),
+                        len(out_of_scope), un_rows, out_of_scope))
+    return summary
+
+
+def verify_proposal_roundtrip(path, expected_cells):
+    """Read the written file back and prove it carries the address map.
+
+    The point of the file is that the hub can land it in defs and everything
+    downstream reads THAT rather than this generator. A file that cannot be
+    read back into the same table is a report, not a definition.
+    """
+    with open(path, newline='', encoding='utf-8') as f:
+        rows = list(csv.DictReader(
+            line for line in f if not line.startswith('#')))
+    got = {r['_Cell']: (int(r['DspSpi']), int(r['DspPage']), int(r['DspAdd']),
+                        r['RampProfile'], r['Table'], r['Notes'])
+           for r in rows}
+    want = {n: (cell_map[n]['chip'], cell_map[n]['spi_page'],
+                cell_map[n]['spi_addr'], cell_map[n]['ramp_profile'],
+                cell_map[n]['table'], cell_map[n]['notes'])
+            for n in expected_cells}
+    if got != want:
+        diff = sorted(set(got) ^ set(want)) or \
+            sorted(k for k in want if got.get(k) != want[k])
+        sys.exit(f'ERROR: {path} does not read back as the address map it '
+                 f'was written from; first differences: {diff[:5]}')
+    print(f'    round-trip OK — {len(got)} rows read back identical')
+
+
+# ---------------------------------------------------------------------------
 # Cross-reference validation
 # ---------------------------------------------------------------------------
 def validate(matrix_rows):
@@ -1586,8 +2075,8 @@ def validate(matrix_rows):
               f'addresses but reach NO master cell category — the DSP will '
               f'answer on those addresses and nothing in the product '
               f'definition names them:')
-        for nid, ntype in sorted(uncatalogued_nodes.items()):
-            print(f'    - {nid} ({ntype})')
+        for nid, (ntype, reason) in sorted(uncatalogued_nodes.items()):
+            print(f'    - {nid} ({ntype}): {reason}')
 
     if host_managed:
         for fam, nodes in sorted(host_managed.items()):
@@ -1612,6 +2101,22 @@ def validate(matrix_rows):
             print(f'    - {name}')
         if len(in_matrix_no_dsp) > 10:
             print(f'    ... and {len(in_matrix_no_dsp) - 10} more')
+
+
+def report_proposals(summary):
+    """Per-product coverage of the proposed dsp.csv, said out loud."""
+    from collections import Counter
+    for product, defined, mapped, unmapped, oos, un_rows, oos_cells in summary:
+        print(f'  {product}: {mapped}/{defined} defined cells reach a DSP '
+              f'address; {unmapped} named as unmapped')
+        by_class = Counter(r['Class'] for r in un_rows)
+        for klass, n in sorted(by_class.items(), key=lambda kv: -kv[1]):
+            print(f'      {n:5d}  {klass}')
+        if oos:
+            fams = sorted({_CELL_SPLIT.match(c).group(1) for c in oos_cells
+                           if _CELL_SPLIT.match(c)})
+            print(f'      {oos:5d}  out-of-product-scope: the graph builds '
+                  f'them, {product} does not define them ({", ".join(fams)})')
 
 
 # ---------------------------------------------------------------------------
@@ -1666,10 +2171,16 @@ def main():
     write_mx_dsp_map_h(matrix_rows, dry_run=args.dry_run)
     write_address_map(dry_run=args.dry_run)
 
-    # 6. Validation
+    # 6. The proposed dsp.csv per product (PW ruling 2026-09-08 #5)
+    print()
+    print('Proposing dsp.csv...')
+    proposals = write_proposals(dry_run=args.dry_run)
+
+    # 7. Validation
     print()
     print('Validation:')
     validate(matrix_rows)
+    report_proposals(proposals)
 
     print()
     print('Done.')

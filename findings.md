@@ -6,6 +6,90 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## dsp.csv proposal (2026-09-08)
+
+Session: propose `defs/products/{d24,d32}/dsp.csv` against `defs-v2026.09.08`.
+Write-up: `MW/D32/DSP/dsp4-dspcsv-proposal-20260908.md`.
+
+### S1-1 — CLOSED by ruling; four outputs, four strips
+
+PW confirmed the 2026-08-25 main section model mid-session: `Main[1-1]` is the
+stereo mix-bus strip and L / R / Ctr / Sub are each a post-crossover OUTPUT
+strip. The four chains off `C2_MAIN_XOVER` map to `MainL` / `MainR` /
+`MainCtr` / `MainSub` in DAC_13..16 order, `C2_SUB_*` is retired, and the
+eight graph nodes that S1 could only report as unnamed now either reach a
+strip or say what replaces them. `defs/tools/def_master.py` corroborates the
+ruling independently: `MainCtr` is gated on `main.ctr` and the D24-only cell
+`Main001Out3Mode001` — an OUT 3 MODE cell — is gated on the same key.
+
+`MainCtr` is emitted for BOTH products at one address; D24 reaches it and D32
+lists it out of product scope. That is decision D3's one shared address map
+made structural rather than promised: 3,658 cells appear in both proposals
+with **zero** address disagreements.
+
+### S1-4 — the meter `taps=` declaration was wrong about what the DSP writes
+
+**Severity: major. Status: fixed.**
+
+A meter node meters ONE tap point and lays `peak` at +0, `rms` at +1, `gr` at
++2 and its own state array at +3. `taps=` therefore names meter WORDS, and
+reading it as tap points produced two wrong cells:
+
+- `taps=L;R` on the four mono main-output meters made the RMS word into an
+  `R` channel, giving each output strip an `Mtr002` no master defines (two of
+  the 23 orphans S1 found). The word keeps its dispatch entry — the host can
+  still read it — and loses only the cell.
+- `Chan*CompMtr001` (32 cells) was addressed at base+3, which is
+  `_mtr_st[0]`, the meter's internal peak-hold state. A cell pointed at
+  another variable's scratch is not reaching a DSP address; CompMtr is now
+  listed as `unbacked-meter`. This is the read side of recorded defect 4:
+  `gate_gr` is declared and never written, `comp_gr` has no word at all.
+
+### S1-5 — `_parse_taps`: `parse_params()` splits on the tap separator
+
+**Severity: major (would have been silent). Status: fixed in the same change.**
+
+The first rewrite of `expand_meter` read the declaration with
+`parse_params()`, which splits on `;` — the character that also separates the
+taps. `taps=post_trim;post_fader;gate_gr;comp_gr` came back as
+`{'taps': 'post_trim'}` and three of the four channel-meter words vanished
+without a warning. Caught by the cell counts, not by a test. `_parse_taps()`
+reads to the end of the params or the next `key=`.
+
+### S1-6 — the post-crossover output strips have no fader, mute or delay
+
+**Severity: major. Owner: PW / capacity. Status: open (Q1).**
+
+All four output strips define `Level`, `Mute` and `Delay`; chain N in the
+graph is EQ + COMP + LIM only. Twelve cells across the four strips reach no
+word. Retiring `C2_SUB_*` makes this visible on `MainSub`, which had those
+addresses through the sub bus strip; `MainL`, `MainR` and `MainCtr` never had
+them. Closing it is four `FADER_PAN` and four `DELAY` nodes on chip 2, which
+is the tighter part at 83.16% — a capacity decision, not a desk one.
+
+### S1-7 — `CtrOn` and the retired sub bus cannot both be right
+
+**Severity: major. Owner: PW. Status: open (Q3).**
+
+Every channel defines `CtrOn[1-1]` — on D32 too, which has no `MainCtr` — and
+its DSP word is `_rtg_sub_on_<nid>`, a per-channel assign to the `BUS_SUB`
+mix bus that feeds the strip the ruling retires. If there is no centre/sub
+mix bus, `CtrOn` has no destination; if `CtrOn` is real, that bus is real and
+outputs 3 and 4 are not simply crossover taps. The cell keeps its address in
+the proposal; one of the two has to give.
+
+### S1-8 — D24's legacy SHARC graph is not a second address map
+
+**Severity: minor (a trap avoided). Status: recorded.**
+
+`MW/D24/DSP/SHARC/dsp.csv` is 201 nodes with no faders, routing, aux, groups,
+meters or crossover. Deriving D24's addresses from it would have produced
+exactly the second address map D3 forbids. D24's proposal is derived from the
+superset DSP4 graph and filtered by D24's own cell set. The legacy file's
+three `dsp_validate` parameter errors were fixed in place
+(`source_gains` → `source_count`, `wet`/`dry`/`width` → `mix`); both product
+files now validate clean.
+
 ## defs S1 (2026-09-08)
 
 Session: adopt the `invirco/defs` submodule at `defs-v2026.09.08`, retire the

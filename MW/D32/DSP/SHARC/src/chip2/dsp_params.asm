@@ -2458,37 +2458,37 @@
     _dca_mute_C2_DCA_07,    /* 0x06EF: C2_DCA_07 mute */
     _dca_level_C2_DCA_08,    /* 0x06F0: C2_DCA_08 level */
     _dca_mute_C2_DCA_08,    /* 0x06F1: C2_DCA_08 mute */
-    _mtr_peak_C2_MTR_AUX_01,    /* 0x06F2: C2_MTR_AUX_01 */
-    _mtr_peak_C2_MTR_AUX_02,    /* 0x06F3: C2_MTR_AUX_02 */
-    _mtr_peak_C2_MTR_AUX_03,    /* 0x06F4: C2_MTR_AUX_03 */
-    _mtr_peak_C2_MTR_AUX_04,    /* 0x06F5: C2_MTR_AUX_04 */
-    _mtr_peak_C2_MTR_AUX_05,    /* 0x06F6: C2_MTR_AUX_05 */
-    _mtr_peak_C2_MTR_AUX_06,    /* 0x06F7: C2_MTR_AUX_06 */
-    _mtr_peak_C2_MTR_AUX_07,    /* 0x06F8: C2_MTR_AUX_07 */
-    _mtr_peak_C2_MTR_AUX_08,    /* 0x06F9: C2_MTR_AUX_08 */
-    _mtr_peak_C2_MTR_AUX_09,    /* 0x06FA: C2_MTR_AUX_09 */
-    _mtr_peak_C2_MTR_AUX_10,    /* 0x06FB: C2_MTR_AUX_10 */
-    _mtr_peak_C2_MTR_AUX_11,    /* 0x06FC: C2_MTR_AUX_11 */
-    _mtr_peak_C2_MTR_AUX_12,    /* 0x06FD: C2_MTR_AUX_12 */
-    _mtr_peak_C2_MTR_MAIN_01,    /* 0x06FE: C2_MTR_MAIN_01 L */
-    _mtr_rms_C2_MTR_MAIN_01,    /* 0x06FF: C2_MTR_MAIN_01 R */
-    _mtr_peak_C2_MTR_MAIN_02,    /* 0x0700: C2_MTR_MAIN_02 L */
-    _mtr_rms_C2_MTR_MAIN_02,    /* 0x0701: C2_MTR_MAIN_02 R */
-    _mtr_peak_C2_MTR_MAIN_03,    /* 0x0702: C2_MTR_MAIN_03 L */
-    _mtr_rms_C2_MTR_MAIN_03,    /* 0x0703: C2_MTR_MAIN_03 R */
-    _mtr_peak_C2_MTR_MAIN_04,    /* 0x0704: C2_MTR_MAIN_04 L */
-    _mtr_rms_C2_MTR_MAIN_04,    /* 0x0705: C2_MTR_MAIN_04 R */
-    _mtr_peak_C2_MTR_GRP_01,    /* 0x0706: C2_MTR_GRP_01 */
-    _mtr_peak_C2_MTR_GRP_02,    /* 0x0707: C2_MTR_GRP_02 */
-    _mtr_peak_C2_MTR_GRP_03,    /* 0x0708: C2_MTR_GRP_03 */
-    _mtr_peak_C2_MTR_GRP_04,    /* 0x0709: C2_MTR_GRP_04 */
-    _mtr_peak_C2_MTR_SUB,    /* 0x070A: C2_MTR_SUB */
-    _mtr_peak_C2_MTR_FX_01,    /* 0x070B: C2_MTR_FX_01 */
-    _mtr_peak_C2_MTR_FX_02,    /* 0x070C: C2_MTR_FX_02 */
-    _mtr_peak_C2_MTR_FX_03,    /* 0x070D: C2_MTR_FX_03 */
-    _mtr_peak_C2_MTR_FX_04,    /* 0x070E: C2_MTR_FX_04 */
-    _mtr_peak_C2_MTR_FX_05,    /* 0x070F: C2_MTR_FX_05 */
-    _mtr_peak_C2_MTR_FX_06,    /* 0x0710: C2_MTR_FX_06 */
+    _mtr_peak_C2_MTR_AUX_01,    /* 0x06F2: C2_MTR_AUX_01 peak */
+    _mtr_peak_C2_MTR_AUX_02,    /* 0x06F3: C2_MTR_AUX_02 peak */
+    _mtr_peak_C2_MTR_AUX_03,    /* 0x06F4: C2_MTR_AUX_03 peak */
+    _mtr_peak_C2_MTR_AUX_04,    /* 0x06F5: C2_MTR_AUX_04 peak */
+    _mtr_peak_C2_MTR_AUX_05,    /* 0x06F6: C2_MTR_AUX_05 peak */
+    _mtr_peak_C2_MTR_AUX_06,    /* 0x06F7: C2_MTR_AUX_06 peak */
+    _mtr_peak_C2_MTR_AUX_07,    /* 0x06F8: C2_MTR_AUX_07 peak */
+    _mtr_peak_C2_MTR_AUX_08,    /* 0x06F9: C2_MTR_AUX_08 peak */
+    _mtr_peak_C2_MTR_AUX_09,    /* 0x06FA: C2_MTR_AUX_09 peak */
+    _mtr_peak_C2_MTR_AUX_10,    /* 0x06FB: C2_MTR_AUX_10 peak */
+    _mtr_peak_C2_MTR_AUX_11,    /* 0x06FC: C2_MTR_AUX_11 peak */
+    _mtr_peak_C2_MTR_AUX_12,    /* 0x06FD: C2_MTR_AUX_12 peak */
+    _mtr_peak_C2_MTR_MAIN_01,    /* 0x06FE: C2_MTR_MAIN_01 peak */
+    _mtr_rms_C2_MTR_MAIN_01,    /* 0x06FF: C2_MTR_MAIN_01 rms */
+    _mtr_peak_C2_MTR_MAIN_02,    /* 0x0700: C2_MTR_MAIN_02 peak */
+    _mtr_rms_C2_MTR_MAIN_02,    /* 0x0701: C2_MTR_MAIN_02 rms */
+    _mtr_peak_C2_MTR_MAIN_03,    /* 0x0702: C2_MTR_MAIN_03 peak */
+    _mtr_rms_C2_MTR_MAIN_03,    /* 0x0703: C2_MTR_MAIN_03 rms */
+    _mtr_peak_C2_MTR_MAIN_04,    /* 0x0704: C2_MTR_MAIN_04 peak */
+    _mtr_rms_C2_MTR_MAIN_04,    /* 0x0705: C2_MTR_MAIN_04 rms */
+    _mtr_peak_C2_MTR_GRP_01,    /* 0x0706: C2_MTR_GRP_01 peak */
+    _mtr_peak_C2_MTR_GRP_02,    /* 0x0707: C2_MTR_GRP_02 peak */
+    _mtr_peak_C2_MTR_GRP_03,    /* 0x0708: C2_MTR_GRP_03 peak */
+    _mtr_peak_C2_MTR_GRP_04,    /* 0x0709: C2_MTR_GRP_04 peak */
+    _mtr_peak_C2_MTR_SUB,    /* 0x070A: C2_MTR_SUB peak */
+    _mtr_peak_C2_MTR_FX_01,    /* 0x070B: C2_MTR_FX_01 peak */
+    _mtr_peak_C2_MTR_FX_02,    /* 0x070C: C2_MTR_FX_02 peak */
+    _mtr_peak_C2_MTR_FX_03,    /* 0x070D: C2_MTR_FX_03 peak */
+    _mtr_peak_C2_MTR_FX_04,    /* 0x070E: C2_MTR_FX_04 peak */
+    _mtr_peak_C2_MTR_FX_05,    /* 0x070F: C2_MTR_FX_05 peak */
+    _mtr_peak_C2_MTR_FX_06,    /* 0x0710: C2_MTR_FX_06 peak */
     0,  /* 0x0711 */
     0,  /* 0x0712 */
     0,  /* 0x0713 */
@@ -4426,37 +4426,37 @@
     0,  /* 0x06EF: C2_DCA_07 mute */
     1,  /* 0x06F0: C2_DCA_08 level */
     0,  /* 0x06F1: C2_DCA_08 mute */
-    0,  /* 0x06F2: C2_MTR_AUX_01 */
-    0,  /* 0x06F3: C2_MTR_AUX_02 */
-    0,  /* 0x06F4: C2_MTR_AUX_03 */
-    0,  /* 0x06F5: C2_MTR_AUX_04 */
-    0,  /* 0x06F6: C2_MTR_AUX_05 */
-    0,  /* 0x06F7: C2_MTR_AUX_06 */
-    0,  /* 0x06F8: C2_MTR_AUX_07 */
-    0,  /* 0x06F9: C2_MTR_AUX_08 */
-    0,  /* 0x06FA: C2_MTR_AUX_09 */
-    0,  /* 0x06FB: C2_MTR_AUX_10 */
-    0,  /* 0x06FC: C2_MTR_AUX_11 */
-    0,  /* 0x06FD: C2_MTR_AUX_12 */
-    0,  /* 0x06FE: C2_MTR_MAIN_01 L */
-    0,  /* 0x06FF: C2_MTR_MAIN_01 R */
-    0,  /* 0x0700: C2_MTR_MAIN_02 L */
-    0,  /* 0x0701: C2_MTR_MAIN_02 R */
-    0,  /* 0x0702: C2_MTR_MAIN_03 L */
-    0,  /* 0x0703: C2_MTR_MAIN_03 R */
-    0,  /* 0x0704: C2_MTR_MAIN_04 L */
-    0,  /* 0x0705: C2_MTR_MAIN_04 R */
-    0,  /* 0x0706: C2_MTR_GRP_01 */
-    0,  /* 0x0707: C2_MTR_GRP_02 */
-    0,  /* 0x0708: C2_MTR_GRP_03 */
-    0,  /* 0x0709: C2_MTR_GRP_04 */
-    0,  /* 0x070A: C2_MTR_SUB */
-    0,  /* 0x070B: C2_MTR_FX_01 */
-    0,  /* 0x070C: C2_MTR_FX_02 */
-    0,  /* 0x070D: C2_MTR_FX_03 */
-    0,  /* 0x070E: C2_MTR_FX_04 */
-    0,  /* 0x070F: C2_MTR_FX_05 */
-    0,  /* 0x0710: C2_MTR_FX_06 */
+    0,  /* 0x06F2: C2_MTR_AUX_01 peak */
+    0,  /* 0x06F3: C2_MTR_AUX_02 peak */
+    0,  /* 0x06F4: C2_MTR_AUX_03 peak */
+    0,  /* 0x06F5: C2_MTR_AUX_04 peak */
+    0,  /* 0x06F6: C2_MTR_AUX_05 peak */
+    0,  /* 0x06F7: C2_MTR_AUX_06 peak */
+    0,  /* 0x06F8: C2_MTR_AUX_07 peak */
+    0,  /* 0x06F9: C2_MTR_AUX_08 peak */
+    0,  /* 0x06FA: C2_MTR_AUX_09 peak */
+    0,  /* 0x06FB: C2_MTR_AUX_10 peak */
+    0,  /* 0x06FC: C2_MTR_AUX_11 peak */
+    0,  /* 0x06FD: C2_MTR_AUX_12 peak */
+    0,  /* 0x06FE: C2_MTR_MAIN_01 peak */
+    0,  /* 0x06FF: C2_MTR_MAIN_01 rms */
+    0,  /* 0x0700: C2_MTR_MAIN_02 peak */
+    0,  /* 0x0701: C2_MTR_MAIN_02 rms */
+    0,  /* 0x0702: C2_MTR_MAIN_03 peak */
+    0,  /* 0x0703: C2_MTR_MAIN_03 rms */
+    0,  /* 0x0704: C2_MTR_MAIN_04 peak */
+    0,  /* 0x0705: C2_MTR_MAIN_04 rms */
+    0,  /* 0x0706: C2_MTR_GRP_01 peak */
+    0,  /* 0x0707: C2_MTR_GRP_02 peak */
+    0,  /* 0x0708: C2_MTR_GRP_03 peak */
+    0,  /* 0x0709: C2_MTR_GRP_04 peak */
+    0,  /* 0x070A: C2_MTR_SUB peak */
+    0,  /* 0x070B: C2_MTR_FX_01 peak */
+    0,  /* 0x070C: C2_MTR_FX_02 peak */
+    0,  /* 0x070D: C2_MTR_FX_03 peak */
+    0,  /* 0x070E: C2_MTR_FX_04 peak */
+    0,  /* 0x070F: C2_MTR_FX_05 peak */
+    0,  /* 0x0710: C2_MTR_FX_06 peak */
     0,  /* 0x0711 */
     0,  /* 0x0712 */
     0,  /* 0x0713 */

@@ -785,30 +785,43 @@ for d in range(1, 9):
         ramp_profile='GainFast')
 
 # --- OUTPUT METERS (Chip 2, read-only) ---
+# Every METER declares its `taps=` explicitly: gen_dsp.py reads that
+# declaration and only that (a category can no longer tell a multi-word
+# channel meter from a one-word output meter), and it refuses to guess.
+# `peak` is meter word +0, `rms` is word +1. The main-output meters used to
+# declare `taps=L;R`, which claimed a stereo pair on four ch_count=1 mono
+# outputs whose masters give one Mtr[1-1] each; the second word is the RMS,
+# not an R channel. They keep their *2 stride and declare `peak;rms`: the
+# RMS word stays DISPATCHED so the host can still read it, and gen_dsp.py
+# emits no cell for it, because no product names one.
 p_mtr, a_mtr = c2_alloc.next(40)  # aux×12 + main×8 + grp×4 + sub×1 + fx×6 = 31+
 for a in range(1, NUM_AUX + 1):
     add(f'C2_MTR_AUX_{a:02d}', 2, 'METER', f'Aux {a} Meter', 1,
         f'C2_AUX_OUT_{a:02d}', '',
-        spi_page=p_mtr, spi_addr=a_mtr + (a-1))
+        spi_page=p_mtr, spi_addr=a_mtr + (a-1),
+        params='taps=peak')
 
 for m in range(1, 5):
     add(f'C2_MTR_MAIN_{m:02d}', 2, 'METER', f'Main {m} Meter', 1,
         f'C2_MAIN_OUT_{m:02d}', '',
         spi_page=p_mtr, spi_addr=a_mtr + 12 + (m-1)*2,
-        params='taps=L;R')
+        params='taps=peak;rms')
 
 for g in range(1, NUM_GRP + 1):
     add(f'C2_MTR_GRP_{g:02d}', 2, 'METER', f'Grp {g} Meter', 1,
         f'C2_GRP_COMP_{g:02d}', '',
-        spi_page=p_mtr, spi_addr=a_mtr + 20 + (g-1))
+        spi_page=p_mtr, spi_addr=a_mtr + 20 + (g-1),
+        params='taps=peak')
 
 add('C2_MTR_SUB', 2, 'METER', 'Sub Meter', 1, 'C2_SUB_OUT', '',
-    spi_page=p_mtr, spi_addr=a_mtr + 24)
+    spi_page=p_mtr, spi_addr=a_mtr + 24,
+    params='taps=peak')
 
 for f in range(1, NUM_FX + 1):
     add(f'C2_MTR_FX_{f:02d}', 2, 'METER', f'FX {f} Meter', 1,
         f'C2_FX_FDR_{f:02d}', '',
-        spi_page=p_mtr, spi_addr=a_mtr + 25 + (f-1))
+        spi_page=p_mtr, spi_addr=a_mtr + 25 + (f-1),
+        params='taps=peak')
 
 # ===========================================================================
 # CHIP 2 — Superset receives + aux inputs + extra outputs (D3)
