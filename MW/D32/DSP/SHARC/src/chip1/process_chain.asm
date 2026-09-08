@@ -14,6 +14,9 @@
 
 .section/pm seg_pmco;
 .extern _bus_clear_all;
+#if DSP4_RTG_FABRIC
+.extern _rtg_fabric;
+#endif
 .extern _C1_IN_01_process;
 .extern _C1_GAIN_01_process;
 .extern _C1_FILT_01_process;
@@ -1619,6 +1622,9 @@ _chip1_process_all:
 #if (DSP4_NODE_LIMIT == 0 || 255 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 31 < DSP4_STRIPS)
     call _C1_RTG_32_process;
 #endif
+#if DSP4_RTG_FABRIC
+    call _rtg_fabric;   /* bus-major crosspoint accumulate */
+#endif
 #if (DSP4_NODE_LIMIT == 0 || 1 < DSP4_NODE_LIMIT)
 #if !DSP4_BLOCK_KERNELS
     call _C1_MTR_01_process;
@@ -3127,6 +3133,9 @@ _chip1_process_all:
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 287 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 31 < DSP4_STRIPS)
     call _C1_RTG_32_process;
+#endif
+#if DSP4_RTG_FABRIC
+    call _rtg_fabric;   /* bus-major crosspoint accumulate */
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 1 < DSP4_NODE_LIMIT)
 #if !DSP4_BLOCK_KERNELS
@@ -4668,6 +4677,9 @@ _chip1_process_all:
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 319 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 31 < DSP4_STRIPS)
     call _C1_RTG_32_process;
+#endif
+#if DSP4_RTG_FABRIC
+    call _rtg_fabric;   /* bus-major crosspoint accumulate */
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 320 < DSP4_NODE_LIMIT)
 #if !DSP4_BLOCK_KERNELS

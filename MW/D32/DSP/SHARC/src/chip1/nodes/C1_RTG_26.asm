@@ -122,6 +122,11 @@
 .extern _bus_acc_aux_ptrs;
 .extern _bus_acc_fx_ptrs;
 .extern _acc64_mac;
+#if DSP4_RTG_FABRIC
+.extern _xpc;
+.extern _xp_dirty;
+.extern _rtg_src;
+#endif
 .global _C1_RTG_26_process;
 _C1_RTG_26_process:
 
@@ -524,6 +529,94 @@ _C1_RTG_26_process:
         nop;
 #endif
 
+#if DSP4_RTG_FABRIC
+    /* ===== publish this strip's COLUMN of the crosspoint matrix =====
+     * 25 coefficients at stride 32 into _xpc, in the order of
+     * _bus_acc_all_ptrs: main L, main R, sub, grp 1-4, aux 1-12, fx 1-6.
+     * rtg_fabric.asm does the accumulate, with each bus loaded ONCE per
+     * sample instead of once per crosspoint per sample.
+     *
+     * The main/sub stores and the group loop are unconditional -- those
+     * crosspoints always read the post-fader block, so they are always
+     * dense -- and the aux and fx loops split: dense when the resolved
+     * source IS the parked post-fader block, the old sparse list entry
+     * when it is a tap. */
+    r12 = BLK_CHAIN_A;                /* the parked source     */
+    l0 = 0;
+    l1 = 0;
+    l3 = 0;
+    l4 = 0;
+    l5 = 0;
+    /* i1/m4 AND NOT i7/m7. i7 is the C STACK POINTER and m7 is the C ABI's
+     * frame stride: C_RUNTIME_INIT sets m7 = -1 exactly once at boot and
+     * every CCALL and C_RETURN in the tree reads it without setting it
+     * (c_abi.h). No node had ever written i7 before this pass. Clobbering
+     * them is survivable only for as long as nothing after boot uses the C
+     * stack -- the three C functions are all called from the init path --
+     * which makes it a trap for whoever adds the first C call or C ISR to
+     * the run loop, not a bug you would see. m4 is ordinary node scratch
+     * (91 sites set it before use) and i1 is free in this section. */
+    m4 = 32;                          /* one bus, in _xpc      */
+    i1 = _xpc + 25;                  /* this strip's column   */
+    r1 = dm(_rtg_mlq_C1_RTG_26);
+    dm(i1, m4) = r1;
+    r1 = dm(_rtg_mrq_C1_RTG_26);
+    dm(i1, m4) = r1;
+    r1 = dm(_rtg_subq_C1_RTG_26);
+    dm(i1, m4) = r1;
+    i4 = _rtg_grpq_C1_RTG_26;
+    lcntr = 4, do .xc_grp_C1_RTG_26 until lce;
+        r1 = dm(i4, 1);
+    .xc_grp_C1_RTG_26:
+        dm(i1, m4) = r1;
+    i0 = _rtg_list_C1_RTG_26;
+    r10 = 0;                          /* residual crosspoints  */
+    i4 = _rtg_aux_sq_C1_RTG_26;
+    i5 = _rtg_aux_src_C1_RTG_26;
+    i3 = _bus_acc_aux_ptrs;
+    lcntr = 12, do .xc_aux_C1_RTG_26 until lce;
+        r1 = dm(i4, 1);               /* coefficient       */
+        r2 = dm(i5, 1);               /* resolved source   */
+        r3 = dm(i3, 1);               /* bus accumulator   */
+        comp(r2, r12);
+        if eq jump (pc, .xc_auxd_C1_RTG_26);
+        r1 = pass r1;
+        if eq jump (pc, .xc_auxz_C1_RTG_26);
+        dm(i0, 1) = r2;               /* a tap, not the parked  */
+        dm(i0, 1) = r3;               /* block: keep it sparse  */
+        dm(i0, 1) = r1;
+        r10 = r10 + 1;
+    .xc_auxz_C1_RTG_26:
+        r1 = 0;
+    .xc_auxd_C1_RTG_26:
+        dm(i1, m4) = r1;
+    .xc_aux_C1_RTG_26:
+        nop;
+    i4 = _rtg_fx_sq_C1_RTG_26;
+    i5 = _rtg_fx_src_C1_RTG_26;
+    i3 = _bus_acc_fx_ptrs;
+    lcntr = 6, do .xc_fx_C1_RTG_26 until lce;
+        r1 = dm(i4, 1);               /* coefficient       */
+        r2 = dm(i5, 1);               /* resolved source   */
+        r3 = dm(i3, 1);               /* bus accumulator   */
+        comp(r2, r12);
+        if eq jump (pc, .xc_fxd_C1_RTG_26);
+        r1 = pass r1;
+        if eq jump (pc, .xc_fxz_C1_RTG_26);
+        dm(i0, 1) = r2;               /* a tap, not the parked  */
+        dm(i0, 1) = r3;               /* block: keep it sparse  */
+        dm(i0, 1) = r1;
+        r10 = r10 + 1;
+    .xc_fxz_C1_RTG_26:
+        r1 = 0;
+    .xc_fxd_C1_RTG_26:
+        dm(i1, m4) = r1;
+    .xc_fx_C1_RTG_26:
+        nop;
+    dm(_rtg_n_C1_RTG_26) = r10;
+    r1 = 1;
+    dm(_xp_dirty) = r1;               /* a bus range needs rebuilding */
+#else
     /* ===== compact the LIVE crosspoints into one list =====
      * The fold above left the accumulate path reading coefficients
      * only, but it still WALKED all 25 crosspoints every sample to
@@ -630,6 +723,7 @@ _C1_RTG_26_process:
         nop;
 
     dm(_rtg_n_C1_RTG_26) = r10;
+#endif
 
 #if DSP4_BLOCK_KERNELS && !DSP4_CTL_ALWAYS
     /* Ramps are not SPI writes, so the epoch never sees them: while
@@ -645,10 +739,38 @@ _C1_RTG_26_process:
 #endif
 
 .rtg_acc_C1_RTG_26:
+#if DSP4_RTG_FABRIC
+    /* PARK the post-fader block where the fabric can still find it. The
+     * strip pool is REUSED by the next strip, so a pass that runs after
+     * all 32 of them cannot read BLK_CHAIN_A -- this copy is the whole
+     * price of deferring the accumulate, BLOCK words at two instructions
+     * each against the 16.3 cycles a MAC was costing. Unrolled by two so
+     * no load is read by the instruction after it. */
+    l0 = 0;
+    l1 = 0;
+    i0 = BLK_CHAIN_A;
+    i1 = _rtg_src + 25 * DSP4_BLOCK_SIZE;
+    lcntr = DSP4_BLOCK_HALF, do .rtg_cp_C1_RTG_26 until lce;
+        r0 = dm(i0, 1);
+        r2 = dm(i0, 1);
+        dm(i1, 1) = r0;
+    .rtg_cp_C1_RTG_26:
+        dm(i1, 1) = r2;
+#endif
+
     /* ===== crosspoint accumulate =====
      * Nothing here reads control state and nothing here branches on
      * it. Every iteration is a live crosspoint: fetch its source,
      * its bus and its coefficient, and MAC. */
+#if DSP4_RTG_NOACC
+    /* MEASUREMENT ARM ONLY (2026-09-03). Deletes the accumulate and
+     * leaves everything else -- the ramps, the pickoff resolution,
+     * the list build and the gate -- exactly where it is, so the
+     * whole-graph difference against the default IS the crosspoint
+     * accumulate's cost. The buses stay at zero, so the audio is
+     * silence by construction: this is a price tag, not a mode. */
+    jump (pc, .rtg_tail_C1_RTG_26);
+#endif
     r5 = dm(_rtg_n_C1_RTG_26);
     r5 = pass r5;
     if eq jump (pc, .rtg_tail_C1_RTG_26);

@@ -73,6 +73,15 @@
 #   ./busgold.sh                 current tree vs the golden
 #   GOLD=<file> ./busgold.sh     against a different stored capture
 #   TAG=x ./busgold.sh           name the capture (default: cur)
+#   DLYOFF=n ./busgold.sh        set DlyOff on both strips (default 0)
+#
+# DLYOFF EXISTS BECAUSE THE STORED GOLDEN IS TAKEN AT DELAY ZERO, and that
+# is the ONE offset at which the delay line's read index equals its write
+# index. The two-pass delay kernel (DSP4_DLY_SPLIT, 2026-09-03) is exact
+# for every offset, but the interesting case is 0 < DlyOff < BLOCK, where
+# a block's reads land PARTIALLY inside its own writes -- which the stored
+# golden cannot reach. Take a control capture with DSP4_DLY_SPLIT=0 at the
+# same DLYOFF and compare the two, in one bench session.
 set -u
 cd "$(dirname "$0")"
 source ./bench_lock.sh; bench_lock_acquire "$0"
@@ -104,7 +113,7 @@ scp -q build/chip1.ldr build/chip2.ldr /tmp/chip1.sym.json \
     "$BLOCKPY" $ROOT/tools/pi/dsp4_pairgraph.py \
     $BENCH:/home/app/dspboot/
 scp -q pairgraph_run.sh $BENCH:/home/app/
-ssh $BENCH "bash /home/app/pairgraph_run.sh $STRIP $N $TAG" || exit 4
+ssh $BENCH "bash /home/app/pairgraph_run.sh $STRIP $N $TAG '' ${DLYOFF:-0}" || exit 4
 scp -q $BENCH:/home/app/dspboot/pairgraph_$TAG.json $OUT/ || exit 4
 echo "=== vs $GOLD ==="
 python3 $ROOT/tools/pi/dsp4_pairgraph.py --compare "$GOLD" $OUT/pairgraph_$TAG.json

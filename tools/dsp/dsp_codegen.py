@@ -254,12 +254,52 @@ _DLY_BLK_BODY = """
             i4 = BLK_CHAIN_B;
             i5 = BLK_TAP_PREFDR;
 
+        #if DSP4_DLY_SPLIT
+            /* SPLIT INTO TWO PASSES (2026-09-03, review finding D25's
+             * remainder). The interleaved loop below alternates a WRITE to
+             * the delay line with a READ from a different address in it,
+             * and the delay lines live in L2: session 3 measured that only
+             * 8.4 of DLY's 63 cycles/sample was address arithmetic and
+             * about 55 was that memory, and a per-sample write-then-read
+             * turnaround is the shape that costs it.
+             *
+             * BIT-EXACT, and the reason is worth writing down rather than
+             * asserting. Sample k writes index (w + k) and reads index
+             * (w - off + k). A read that lands inside THIS block's writes
+             * is one with k >= off, and the sample it wants was written at
+             * j = k - off, which is strictly earlier than k -- so it has
+             * already been written in the interleaved order too, and
+             * writing the whole block first cannot change what any read
+             * sees. Reads with k < off see the previous block, untouched
+             * either way. off = 0 is the same argument with j = k, where
+             * the interleaved loop also writes before it reads.
+             *
+             * Both cursors still advance by one per sample with the same
+             * L, so the DAG wrap and the write pointer handed back are
+             * unchanged. */
+            lcntr = DSP4_BLOCK_SIZE, do .dkb_wr_{nid} until lce;
+                r0 = dm(i3, 1);
+            .dkb_wr_{nid}: dm(i0, m0) = r0;
+
+            lcntr = DSP4_BLOCK_HALF, do .dkb_rd_{nid} until lce;
+                r0 = dm(i2, m2);        /* read;  the DAG wraps it */
+                r6 = dm(i2, m2);
+                dm(i5, 1) = r0;         /* pre-fader tap */
+                dm(i4, 1) = r0;
+                dm(i5, 1) = r6;
+            .dkb_rd_{nid}: dm(i4, 1) = r6;
+        #else
             lcntr = DSP4_BLOCK_SIZE, do .dkb_lp_{nid} until lce;
                 r0 = dm(i3, 1);
                 dm(i0, m0) = r0;        /* write; the DAG wraps it */
+        #if DSP4_DLY_NOMEM
+                r0 = pass r0;           /* MEASUREMENT ARM: no L2 read */
+        #else
                 r0 = dm(i2, m2);        /* read;  the DAG wraps it */
+        #endif
                 dm(i5, 1) = r0;         /* pre-fader tap */
             .dkb_lp_{nid}: dm(i4, 1) = r0;
+        #endif
 
             /* the cursor back to an offset, and the DAGs back to LINEAR --
              * a non-zero L left behind would silently make the next node's
@@ -7291,7 +7331,11 @@ _GAIN_SIMD_PLAIN = _GAIN_SIMD_COMMON + _GAIN_SIMD_ENTER + """\
                 r11 = r10 xor r11;
                 comp(r8, r9);
                 if ne r0 = pass r11;          /* per-PE, NOT a branch */
+        #if !DSP4_GAIN_NOCHAIN
                 dm(i1, 2) = r0;
+        #else
+                nop;                          /* MEASUREMENT ARM: see below */
+        #endif
         .gk_lp_{nid}:
                 dm(i4, 2) = r0;               /* post-trim tap block */
 """ + _GAIN_SIMD_LEAVE + """\
@@ -8357,6 +8401,71 @@ def gen_block_header():
 #define DSP4_BQ_GUARD_FORCE 0
 #endif
 
+/* THE ROUTING CROSSPOINT ACCUMULATE -- MEASUREMENT ARM ONLY.
+ * DSP4_RTG_NOACC=1 deletes the per-strip crosspoint accumulate and leaves
+ * every other part of ROUTING in place, so the whole-graph difference
+ * against the default is that accumulate's cost and nothing else. The bus
+ * accumulators stay at zero under it, so the audio is silence by
+ * construction -- a price tag, not a mode. */
+#ifndef DSP4_RTG_NOACC
+#define DSP4_RTG_NOACC 0
+#endif
+
+/* THE BUS-MAJOR CROSSPOINT FABRIC (2026-09-03, review finding D22).
+ * ROUTING stops walking its own crosspoints sample by sample and publishes
+ * a COLUMN of a bus-major coefficient matrix instead; one shared pass
+ * (rtg_fabric.asm) then loads each bus accumulator ONCE per sample and MACs
+ * every strip that feeds it into the live MRF. Exact, not approximate: the
+ * accumulate is 80-bit integer with no rounding before readout, so the sum
+ * is order-independent (busgold.sh is the proof, not this comment).
+ *
+ * FORCED OFF without block kernels, which is what keeps the shipping
+ * per-sample image -- every recorded W0 witness -- byte for byte. There is
+ * no per-sample form of this: the whole point is amortising a per-BLOCK
+ * accumulator load over the strips that share it.
+ *
+ * DSP4_RTG_FABRIC=0 is the CONTROL and rebuilds the per-strip accumulate
+ * byte for byte. */
+#ifndef DSP4_RTG_FABRIC
+#define DSP4_RTG_FABRIC 1
+#endif
+#if !DSP4_BLOCK_KERNELS
+#undef DSP4_RTG_FABRIC
+#define DSP4_RTG_FABRIC 0
+#endif
+
+/* THE DELAY LINE'S TWO PASSES (2026-09-03, review finding D25's remainder).
+ * The block kernel wrote one sample to the delay line and then read another
+ * from it, per sample, and the delay lines are in L2 -- session 3 measured
+ * DLY at 63 cycles/sample of which only 8.4 was address arithmetic. Writing
+ * the whole block and then reading the whole block is the same arithmetic in
+ * two sequential bursts; it is bit-exact for the reason written out at the
+ * loop. DSP4_DLY_SPLIT=0 is the CONTROL and rebuilds the interleaved loop
+ * byte for byte.
+ *
+ * DSP4_DLY_NOMEM is a MEASUREMENT ARM on the control loop: it deletes the
+ * delay line's READ and keeps everything else, so the whole-graph difference
+ * prices the L2 traffic. The audio is wrong by design under it. */
+#ifndef DSP4_DLY_SPLIT
+#define DSP4_DLY_SPLIT 1
+#endif
+#ifndef DSP4_DLY_NOMEM
+#define DSP4_DLY_NOMEM 0
+#endif
+
+/* D20's REMAINING FOLD, PRICED (2026-09-03). Folding GAIN into FILT deletes
+ * GAIN's store into the chain ping-pong and NOTHING ELSE: the round and the
+ * saturate feed the post-trim TAP, which PW ruled stays (2026-08-29, and
+ * again with the float landing) because the ROUTER reads it as pickoff 0.
+ * DSP4_GAIN_NOCHAIN=1 replaces that store with a nop -- the same instruction
+ * count the fold would reach, without building the fold -- so the whole-graph
+ * difference is the fold's CEILING, measured rather than counted. FILT then
+ * reads a stale block, which costs the same cycles (a biquad's cost is
+ * data-independent) and is wrong by design: a price tag, not a mode. */
+#ifndef DSP4_GAIN_NOCHAIN
+#define DSP4_GAIN_NOCHAIN 0
+#endif
+
 /* Header words in front of a cascade's coefficients: 1 with the guard,
  * 0 without. The interleaved pair blocks carry two, one per strip. */
 /* GAIN ON THE FLOAT PATH -- DSP4_GAIN_FLOAT, and it follows the cascade.
@@ -9213,6 +9322,240 @@ def ctl_gate_var(nid, tag):
             '        #endif\n')
 
 
+RTG_FABRIC_BUSES = 25
+RTG_FABRIC_STRIPS = 32
+
+
+def gen_rtg_fabric():
+    """rtg_fabric.asm -- the BUS-MAJOR crosspoint accumulate (chip 1).
+
+    WHY THIS EXISTS, in one measurement. On 2026-09-03 the whole-graph
+    chip-1 figure with the per-strip crosspoint accumulate deleted
+    (DSP4_RTG_NOACC=1) read 273,170 cycles/block against 289,859 with it:
+    16,689 cycles/block, 5.09% of the part's budget, for 64 crosspoints x
+    16 samples = 1,024 MACs. That is 16.3 CYCLES PER MAC against a floor of
+    about one, which is review finding D22's "15-29x over floor" still
+    standing after the control-rate gate closed the other half of it.
+
+    The gap is not arithmetic, it is the ACCUMULATOR'S ADDRESS. The
+    per-strip form is crosspoint-major: for each of a strip's live
+    crosspoints it walks the block, and for EVERY SAMPLE it loads the
+    bus's whole 80-bit [lo, hi, ex] triple into MRF, does one MAC, and
+    writes all three words back. Fourteen instructions and about two
+    stall cycles to move one number into a sum.
+
+    Bus-major amortises that. A bus accumulator is loaded ONCE per sample,
+    every strip that feeds it MACs into the live MRF, and it is stored
+    ONCE. The per-sample cost stops being 16 x (crosspoints) and becomes
+    (12 + 3 x strips) per LIVE BUS -- so it is bounded by the number of
+    buses rather than by how densely the console is patched, which is the
+    property that matters for a real mix rather than for this bench's
+    two-crosspoint default.
+
+    REORDERING THE SUM IS EXACT, NOT APPROXIMATE. The accumulator is an
+    80-bit MRF integer accumulate with no rounding until _acc64_rns28 at
+    readout (review finding D1), so partial sums cannot round and the sum
+    is order-independent. busgold.sh is what proves it rather than this
+    paragraph.
+
+    THE POOL IS WHY THERE IS A COPY. A strip's post-fader block lives in
+    the shared 8-slot pool and is dead the moment the next strip runs, so
+    a pass that runs after all 32 strips cannot read it. Each ROUTING node
+    parks its own block in _rtg_src[strip] on the way past -- BLOCK words,
+    two instructions each -- and the fabric reads that. It is the whole
+    price of deferring, and it is about 1,024 cycles/block at BLOCK=16
+    against the 16,689 being bought.
+
+    WHAT STAYS SPARSE. A send with a non-default pickoff reads a TAP
+    (post-trim, post-EQ, pre-fader) and not the post-fader block, and
+    those blocks are not parked. Those crosspoints keep the old per-strip
+    list and the old _acc64_mac_blk, exactly as they are; the dense matrix
+    carries a zero for them. In the shipping default every pickoff is
+    PostFdr, so the list is empty and the sparse path is skipped
+    altogether -- but it is CORRECT and not merely unused, which is what
+    lets the dense path assume one source per strip.
+
+    THE MATRIX. _xpc is the crosspoint coefficient matrix, bus-major:
+    _xpc[bus * 32 + strip], in the order of _bus_acc_all_ptrs (main L,
+    main R, sub, grp 1-4, aux 1-12, fx 1-6). Each ROUTING node writes its
+    own COLUMN at control rate -- 25 words at stride 32 -- and owns it, so
+    two strips can never race. A strip that is not in the graph
+    (DSP4_STRIPS) never writes, and its column stays at the zeros this
+    file initialises it to; zero times whatever _rtg_src holds is exactly
+    zero, so an unwritten source block cannot contribute.
+
+    _xp_lo / _xp_hi are the first and last strip with a non-zero
+    coefficient on each bus, so a bus fed by four adjacent strips costs
+    four MACs and not thirty-two. They are rebuilt only when a ROUTING
+    node has re-prepped (_xp_dirty), which the control-rate gate already
+    makes rare.
+    """
+    B = RTG_FABRIC_BUSES
+    S = RTG_FABRIC_STRIPS
+    N = B * S
+    zeros = ', '.join(['0'] * 16)
+    out = []
+    a = out.append
+    a('/* rtg_fabric.asm - bus-major crosspoint accumulate (chip 1) */')
+    a('/* AUTO-GENERATED by tools/dsp/dsp_codegen.py - do not edit. */')
+    a('/*')
+    for line in gen_rtg_fabric.__doc__.strip().splitlines():
+        a(' * ' + line.strip() if line.strip() else ' *')
+    a(' */')
+    a('#include "dsp_block.h"')
+    a('')
+    a('/* CHIP 1 ONLY, and block kernels only. Chip 2 assembles this file')
+    a(' * too -- everything under src/ is assembled once per chip -- but it')
+    a(' * has no channel strips and no crosspoint matrix, and the per-sample')
+    a(' * image is byte-identical either side of this file. */')
+    a('#if DSP4_BLOCK_KERNELS && DSP4_RTG_FABRIC && CHIP_ID == 1')
+    a('')
+    a('.section/dm seg_dmda;')
+    a('')
+    a('/* Each strip\'s post-fader block, parked out of the shared pool.')
+    a(' * One BLOCK of padding at the end. The accumulate as written stays')
+    a(' * inside the array -- the last strip it reads is _xp_hi and the DAG')
+    a(' * post-modifies past it without reading -- so the pad is a guard')
+    a(' * against an off-by-one in a future pipelined form, not a')
+    a(' * requirement of this one. 16 words at BLOCK=16. */')
+    a('.global _rtg_src;')
+    a(f'.var _rtg_src[{S + 1}*DSP4_BLOCK_SIZE];')
+    a('')
+    a(f'/* The crosspoint coefficient matrix, bus-major: _xpc[bus*{S} + strip].')
+    a(' * ZEROED HERE and not left to the loader: a strip outside DSP4_STRIPS')
+    a(' * never writes its column, and the dense accumulate reads it anyway. */')
+    a('.global _xpc;')
+    a(f'.var _xpc[{N}] =')
+    for i in range(0, N, 16):
+        a('    ' + zeros + (',' if i + 16 < N else ';'))
+    a('')
+    a('/* Set by every ROUTING node that re-preps; cleared by the rebuild. */')
+    a('.global _xp_dirty;')
+    a('.var _xp_dirty = 1;')
+    a('/* First and last strip with a live coefficient, per bus. Initialised')
+    a(' * EMPTY (lo > hi) so the first block accumulates nothing rather than')
+    a(' * something, whatever order the rebuild and the first prep run in. */')
+    a('.var _xp_lo[%d] = %s;' % (B, ', '.join([str(S)] * B)))
+    a('.var _xp_hi[%d] = %s;' % (B, ', '.join(['-1'] * B)))
+    a('')
+    a('.section/pm seg_pmco;')
+    a('.extern _bus_acc_all_ptrs;')
+    a('')
+    a('/*--------------------------------------------------------------')
+    a(' * _rtg_fabric - accumulate every dense crosspoint into its bus.')
+    a(' *')
+    a(' * Runs ONCE per block, after the last channel strip and before the')
+    a(' * first bus node. Clobbers r0-r9, r11-r13, i0-i5, m1, l0-l5.')
+    a(' *-------------------------------------------------------------*/')
+    a('.global _rtg_fabric;')
+    a('_rtg_fabric:')
+    a('    l0 = 0;')
+    a('    l1 = 0;')
+    a('    l2 = 0;')
+    a('    l3 = 0;')
+    a('    l4 = 0;')
+    a('    l5 = 0;')
+    a('')
+    a('    r0 = dm(_xp_dirty);')
+    a('    r0 = pass r0;')
+    a('    if eq jump (pc, .fb_run);')
+    a('    r0 = 0;')
+    a('    dm(_xp_dirty) = r0;')
+    a('')
+    a('    /* ---- rebuild each bus\'s live strip range ----')
+    a('     * Forward for the LAST live strip, backward for the FIRST. Two')
+    a('     * scans rather than a bit mask and a leading-zero count, because')
+    a('     * this runs only when a ROUTING node has re-prepped and the')
+    a('     * simple form is the one that is obviously right. */')
+    a(f'    r11 = {S};                        /* one bus, in _xpc */')
+    a('    r12 = _xpc;')
+    a(f'    r13 = _xpc + {S - 1};             /* ...and its last strip */')
+    a('    i4 = _xp_lo;')
+    a('    i5 = _xp_hi;')
+    a(f'    lcntr = {B}, do .fb_scan until lce;')
+    a('        i0 = r12;')
+    a('        r3 = -1;')
+    a('        r6 = 0;')
+    a(f'        lcntr = {S}, do .fb_fwd until lce;')
+    a('            r7 = dm(i0, 1);')
+    a('            r7 = pass r7;')
+    a('            if ne r3 = r6;')
+    a('        .fb_fwd:')
+    a('            r6 = r6 + 1;')
+    a('        i0 = r13;')
+    a(f'        r2 = {S};')
+    a(f'        r6 = {S - 1};')
+    a(f'        lcntr = {S}, do .fb_bwd until lce;')
+    a('            r7 = dm(i0, -1);')
+    a('            r7 = pass r7;')
+    a('            if ne r2 = r6;')
+    a('        .fb_bwd:')
+    a('            r6 = r6 - 1;')
+    a('        dm(i4, 1) = r2;')
+    a('        dm(i5, 1) = r3;')
+    a('        r12 = r12 + r11;')
+    a('        r13 = r13 + r11;')
+    a('    .fb_scan:')
+    a('        nop;')
+    a('')
+    a('.fb_run:')
+    a('    m1 = DSP4_BLOCK_SIZE;             /* one strip, in _rtg_src */')
+    a('    i3 = _bus_acc_all_ptrs;')
+    a('    i4 = _xp_lo;')
+    a('    i5 = _xp_hi;')
+    a(f'    r11 = {S};                        /* one bus, in _xpc */')
+    a('    r12 = _xpc;')
+    a(f'    lcntr = {B}, do .fb_bus until lce;')
+    a('        r1 = dm(i3, 1);               /* the bus accumulator      */')
+    a('        r2 = dm(i4, 1);               /* first live strip         */')
+    a('        r3 = dm(i5, 1);               /* last live strip          */')
+    a('        r5 = r3 - r2;')
+    a('        r5 = r5 + 1;                  /* crosspoints on this bus  */')
+    a('        r5 = pass r5;')
+    a('        if le jump (pc, .fb_bnext);')
+    a('        r6 = r12;')
+    a('        r6 = r6 + r2;                 /* &_xpc[bus][lo]           */')
+    a('        r7 = lshift r2 by DSP4_BLOCK_SHIFT;')
+    a('        r8 = _rtg_src;')
+    a('        r8 = r8 + r7;                 /* &_rtg_src[lo][0]         */')
+    a('        i2 = r1;')
+    a('        lcntr = DSP4_BLOCK_SIZE, do .fb_smp until lce;')
+    a('            i0 = r8;')
+    a('            i1 = r6;')
+    a('            r9 = dm(i2, 1);           /* lo; i2 -> hi             */')
+    a('            mr0f = r9;')
+    a('            r9 = dm(i2, 1);           /* hi; i2 -> ex             */')
+    a('            mr1f = r9;')
+    a('            r9 = dm(i2, 0);           /* ex                       */')
+    a('            mr2f = r9;')
+    a('            /* r0 from R0-R3 and r4 from R4-R7: the multiplier\'s own')
+    a('             * operand halves, so this body stays a multifunction')
+    a('             * candidate if it is ever folded further. */')
+    a('            lcntr = r5, do .fb_xp until lce;')
+    a('                r0 = dm(i0, m1);      /* strip\'s sample          */')
+    a('                r4 = dm(i1, 1);       /* its coefficient          */')
+    a('            .fb_xp:')
+    a('                mrf = mrf + r0 * r4 (ssi);')
+    a('            r9 = mr2f;')
+    a('            dm(i2, -1) = r9;          /* ex; i2 -> hi             */')
+    a('            r9 = mr1f;')
+    a('            dm(i2, -1) = r9;          /* hi; i2 -> lo             */')
+    a('            r9 = mr0f;')
+    a('            dm(i2, 3) = r9;           /* lo; i2 -> next triple    */')
+    a('            r8 = r8 + 1;              /* next sample, every strip */')
+    a('        .fb_smp:')
+    a('            nop;')
+    a('    .fb_bnext:')
+    a('        r12 = r12 + r11;')
+    a('    .fb_bus:')
+    a('        nop;')
+    a('    rts;')
+    a('_rtg_fabric.end:')
+    a('')
+    a('#endif')
+    a('')
+    return '\n'.join(out)
+
 def gen_bus_accumulators_fixed():
     """Fixed bus_accumulators.asm: 64-bit pairs per bus + clear."""
     names = (['main_l', 'main_r', 'sub']
@@ -9350,6 +9693,7 @@ def gen_bus_accumulators_fixed():
     out.append('.global _bus_acc_fx_ptrs;')
     out.append('.var _bus_acc_fx_ptrs[6] = ' +
                ', '.join(f'_bus_acc_fx_{x:02d}' for x in range(1, 7)) + ';')
+    out.append('.global _bus_acc_all_ptrs;')
     out.append('.var _bus_acc_all_ptrs[25] = ' + ', '.join(f'_bus_acc_{n}' for n in names) + ';')
     out.append('')
     out.append('.section/pm seg_pmco;')
@@ -9584,6 +9928,137 @@ def gen_routing_fixed(node):
                 + _fx_send_ramp_asm(nid, kind, count, scalar_srcs)
                 + f'        #endif\n')
 
+    # ---- THE BUS-MAJOR FABRIC ARM (2026-09-03, review finding D22) -------
+    #
+    # Measured on the part the same day: the per-strip crosspoint accumulate
+    # costs 16,689 cycles/block on chip 1 at BLOCK=16 -- 5.09 % of the part's
+    # budget for 1,024 MACs, 16.3 cycles each against a floor of about one.
+    # The cost is the ACCUMULATOR'S ADDRESS, not the arithmetic: every MAC
+    # loads a bus's 80-bit [lo, hi, ex] triple, adds one product and writes
+    # all three words back.
+    #
+    # Under DSP4_RTG_FABRIC this node stops accumulating and starts
+    # PUBLISHING. Its 25 crosspoint coefficients become one COLUMN of the
+    # bus-major matrix _xpc[bus * 32 + strip] -- 25 stores at stride 32, in
+    # the order of _bus_acc_all_ptrs -- and one shared pass over the buses
+    # (rtg_fabric.asm) does the arithmetic with each accumulator loaded once
+    # per sample instead of once per crosspoint per sample.
+    #
+    # A node OWNS its column, so 32 strips writing 32 different words of each
+    # bus's row cannot race, and a strip outside DSP4_STRIPS simply never
+    # writes and keeps the zeros rtg_fabric.asm initialises.
+    #
+    # WHAT STAYS ON THE OLD PATH. The dense form has one source per strip --
+    # the post-fader block, parked in _rtg_src below -- so a send with a
+    # non-default PICKOFF, which reads a tap that is not parked, keeps its
+    # entry in _rtg_list and its _acc64_mac_blk call, and its column entry is
+    # zero. In the shipping default every pickoff is PostFdr and the list is
+    # empty, but the path is CORRECT rather than merely unused: that is what
+    # licenses the dense half to assume one source.
+    def _ind(block):
+        return ''.join(('        ' + ln).rstrip() + '\n'
+                       for ln in block.strip('\n').split('\n'))
+
+    if strip_idx is None:
+        dense, dense_end, park = '', '', ''
+    else:
+        k = strip_idx
+
+        def _dense_send(kind, count, ptrs):
+            return f"""\
+i4 = _rtg_{kind}_sq_{nid};
+    i5 = _rtg_{kind}_src_{nid};
+    i3 = {ptrs};
+    lcntr = {count}, do .xc_{kind}_{nid} until lce;
+        r1 = dm(i4, 1);               /* coefficient       */
+        r2 = dm(i5, 1);               /* resolved source   */
+        r3 = dm(i3, 1);               /* bus accumulator   */
+        comp(r2, r12);
+        if eq jump (pc, .xc_{kind}d_{nid});
+        r1 = pass r1;
+        if eq jump (pc, .xc_{kind}z_{nid});
+        dm(i0, 1) = r2;               /* a tap, not the parked  */
+        dm(i0, 1) = r3;               /* block: keep it sparse  */
+        dm(i0, 1) = r1;
+        r10 = r10 + 1;
+    .xc_{kind}z_{nid}:
+        r1 = 0;
+    .xc_{kind}d_{nid}:
+        dm(i1, m4) = r1;
+    .xc_{kind}_{nid}:
+        nop;
+"""
+
+        dense = _ind(f"""\
+#if DSP4_RTG_FABRIC
+    /* ===== publish this strip's COLUMN of the crosspoint matrix =====
+     * 25 coefficients at stride 32 into _xpc, in the order of
+     * _bus_acc_all_ptrs: main L, main R, sub, grp 1-4, aux 1-12, fx 1-6.
+     * rtg_fabric.asm does the accumulate, with each bus loaded ONCE per
+     * sample instead of once per crosspoint per sample.
+     *
+     * The main/sub stores and the group loop are unconditional -- those
+     * crosspoints always read the post-fader block, so they are always
+     * dense -- and the aux and fx loops split: dense when the resolved
+     * source IS the parked post-fader block, the old sparse list entry
+     * when it is a tap. */
+    r12 = BLK_CHAIN_A;                /* the parked source     */
+    l0 = 0;
+    l1 = 0;
+    l3 = 0;
+    l4 = 0;
+    l5 = 0;
+    /* i1/m4 AND NOT i7/m7. i7 is the C STACK POINTER and m7 is the C ABI's
+     * frame stride: C_RUNTIME_INIT sets m7 = -1 exactly once at boot and
+     * every CCALL and C_RETURN in the tree reads it without setting it
+     * (c_abi.h). No node had ever written i7 before this pass. Clobbering
+     * them is survivable only for as long as nothing after boot uses the C
+     * stack -- the three C functions are all called from the init path --
+     * which makes it a trap for whoever adds the first C call or C ISR to
+     * the run loop, not a bug you would see. m4 is ordinary node scratch
+     * (91 sites set it before use) and i1 is free in this section. */
+    m4 = 32;                          /* one bus, in _xpc      */
+    i1 = _xpc + {k};                  /* this strip's column   */
+    r1 = dm(_rtg_mlq_{nid});
+    dm(i1, m4) = r1;
+    r1 = dm(_rtg_mrq_{nid});
+    dm(i1, m4) = r1;
+    r1 = dm(_rtg_subq_{nid});
+    dm(i1, m4) = r1;
+    i4 = _rtg_grpq_{nid};
+    lcntr = 4, do .xc_grp_{nid} until lce;
+        r1 = dm(i4, 1);
+    .xc_grp_{nid}:
+        dm(i1, m4) = r1;
+    i0 = _rtg_list_{nid};
+    r10 = 0;                          /* residual crosspoints  */
+    """ + _dense_send('aux', 12, '_bus_acc_aux_ptrs') + """\
+    """ + _dense_send('fx', 6, '_bus_acc_fx_ptrs') + f"""\
+    dm(_rtg_n_{nid}) = r10;
+    r1 = 1;
+    dm(_xp_dirty) = r1;               /* a bus range needs rebuilding */
+#else""")
+        dense_end = _ind('#endif')
+        park = _ind(f"""\
+#if DSP4_RTG_FABRIC
+    /* PARK the post-fader block where the fabric can still find it. The
+     * strip pool is REUSED by the next strip, so a pass that runs after
+     * all 32 of them cannot read BLK_CHAIN_A -- this copy is the whole
+     * price of deferring the accumulate, BLOCK words at two instructions
+     * each against the 16.3 cycles a MAC was costing. Unrolled by two so
+     * no load is read by the instruction after it. */
+    l0 = 0;
+    l1 = 0;
+    i0 = BLK_CHAIN_A;
+    i1 = _rtg_src + {k} * DSP4_BLOCK_SIZE;
+    lcntr = DSP4_BLOCK_HALF, do .rtg_cp_{nid} until lce;
+        r0 = dm(i0, 1);
+        r2 = dm(i0, 1);
+        dm(i1, 1) = r0;
+    .rtg_cp_{nid}:
+        dm(i1, 1) = r2;
+#endif""")
+
     return dedent(f"""\
         {rc}
 
@@ -9666,6 +10141,11 @@ def gen_routing_fixed(node):
         .extern _bus_acc_aux_ptrs;
         .extern _bus_acc_fx_ptrs;
         .extern _acc64_mac;
+        #if DSP4_RTG_FABRIC
+        .extern _xpc;
+        .extern _xp_dirty;
+        .extern _rtg_src;
+        #endif
         .global _{nid}_process;
         _{nid}_process:
 
@@ -9721,7 +10201,7 @@ def gen_routing_fixed(node):
                 dm(i6, 1) = r1;
 
 {send_prep('aux', 12)}{send_prep('fx', 6)}
-            /* ===== compact the LIVE crosspoints into one list =====
+{dense}            /* ===== compact the LIVE crosspoints into one list =====
              * The fold above left the accumulate path reading coefficients
              * only, but it still WALKED all 25 crosspoints every sample to
              * find the two or three that are live. That walk is control
@@ -9827,7 +10307,7 @@ def gen_routing_fixed(node):
                 nop;
 
             dm(_rtg_n_{nid}) = r10;
-
+{dense_end}
         #if DSP4_BLOCK_KERNELS && !DSP4_CTL_ALWAYS
             /* Ramps are not SPI writes, so the epoch never sees them: while
              * any send ramp still has frames its coefficient changes every
@@ -9842,10 +10322,20 @@ def gen_routing_fixed(node):
         #endif
 
         .rtg_acc_{nid}:
+{park}
             /* ===== crosspoint accumulate =====
              * Nothing here reads control state and nothing here branches on
              * it. Every iteration is a live crosspoint: fetch its source,
              * its bus and its coefficient, and MAC. */
+        #if DSP4_RTG_NOACC
+            /* MEASUREMENT ARM ONLY (2026-09-03). Deletes the accumulate and
+             * leaves everything else -- the ramps, the pickoff resolution,
+             * the list build and the gate -- exactly where it is, so the
+             * whole-graph difference against the default IS the crosspoint
+             * accumulate's cost. The buses stay at zero, so the audio is
+             * silence by construction: this is a price tag, not a mode. */
+            jump (pc, .rtg_tail_{nid});
+        #endif
             r5 = dm(_rtg_n_{nid});
             r5 = pass r5;
             if eq jump (pc, .rtg_tail_{nid});
@@ -12970,6 +13460,9 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
             f.write(f'.section/pm seg_pmco;\n')
             if chip_label == 'chip1':
                 f.write(f'.extern _bus_clear_all;\n')
+                f.write('#if DSP4_RTG_FABRIC\n')
+                f.write('.extern _rtg_fabric;\n')
+                f.write('#endif\n')
             for nid in call_sequence:
                 f.write(f'.extern _{nid}_process;\n')
             if strips:
@@ -13067,6 +13560,21 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                     _r += 1
                     _i = _j + 1
                 ends = {v[0]: v[2] for v in runs.values()}
+
+                # THE BUS-MAJOR CROSSPOINT FABRIC runs ONCE, after the
+                # last channel strip and before the first bus node -- the
+                # only window in which every strip has published its column
+                # and parked its block, and nothing has read a bus yet. It
+                # is deliberately NOT under a DSP4_NODE_LIMIT guard: a
+                # prefix cut removes strips, and the strips that remain
+                # still have to reach their buses. With no strips at all
+                # every column is zero, every bus range is empty and the
+                # pass costs one walk of 25 words.
+                _last_strip = -1
+                for _i, _e in enumerate(seq):
+                    if _e[0] == 'pair' or (_e[0] == 'node'
+                                           and strip_re.match(_e[1])):
+                        _last_strip = _i
 
                 for idx, ent in enumerate(seq):
                     if idx in runs:
@@ -13188,6 +13696,11 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                                 f'{pos_of[_m]} < {_NL})\n')
                         f.write(f'    call _{_m}_process;\n')
                         f.write('#endif\n')
+                        f.write('#endif\n')
+                    if idx == _last_strip:
+                        f.write('#if DSP4_RTG_FABRIC\n')
+                        f.write('    call _rtg_fabric;   '
+                                '/* bus-major crosspoint accumulate */\n')
                         f.write('#endif\n')
                     if idx in ends:
                         f.write('#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE\n')
@@ -13571,6 +14084,10 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
         with open(os.path.join(output_dir, 'ctl_epoch.asm'), 'w',
                   encoding='utf-8') as f:
             f.write(gen_ctl_epoch())
+        files_written += 1
+        with open(os.path.join(output_dir, 'rtg_fabric.asm'), 'w',
+                  encoding='utf-8') as f:
+            f.write(gen_rtg_fabric())
         files_written += 1
 
     # dsp_block.h is NOT fixed-mode-only: it is the block-size contract the

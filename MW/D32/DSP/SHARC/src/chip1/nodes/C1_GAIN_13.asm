@@ -160,7 +160,11 @@ _C1_GAIN_13_process:
         r11 = r10 xor r11;
         comp(r8, r9);
         if ne r0 = pass r11;          /* per-PE, NOT a branch */
+#if !DSP4_GAIN_NOCHAIN
         dm(i1, 2) = r0;
+#else
+        nop;                          /* MEASUREMENT ARM: see below */
+#endif
 .gk_lp_C1_GAIN_13:
         dm(i4, 2) = r0;               /* post-trim tap block */
     r2 = dm(_gsimd_save);

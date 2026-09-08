@@ -103,6 +103,7 @@
 .var _bus_acc_aux_ptrs[12] = _bus_acc_aux_01, _bus_acc_aux_02, _bus_acc_aux_03, _bus_acc_aux_04, _bus_acc_aux_05, _bus_acc_aux_06, _bus_acc_aux_07, _bus_acc_aux_08, _bus_acc_aux_09, _bus_acc_aux_10, _bus_acc_aux_11, _bus_acc_aux_12;
 .global _bus_acc_fx_ptrs;
 .var _bus_acc_fx_ptrs[6] = _bus_acc_fx_01, _bus_acc_fx_02, _bus_acc_fx_03, _bus_acc_fx_04, _bus_acc_fx_05, _bus_acc_fx_06;
+.global _bus_acc_all_ptrs;
 .var _bus_acc_all_ptrs[25] = _bus_acc_main_l, _bus_acc_main_r, _bus_acc_sub, _bus_acc_grp_01, _bus_acc_grp_02, _bus_acc_grp_03, _bus_acc_grp_04, _bus_acc_aux_01, _bus_acc_aux_02, _bus_acc_aux_03, _bus_acc_aux_04, _bus_acc_aux_05, _bus_acc_aux_06, _bus_acc_aux_07, _bus_acc_aux_08, _bus_acc_aux_09, _bus_acc_aux_10, _bus_acc_aux_11, _bus_acc_aux_12, _bus_acc_fx_01, _bus_acc_fx_02, _bus_acc_fx_03, _bus_acc_fx_04, _bus_acc_fx_05, _bus_acc_fx_06;
 
 .section/pm seg_pmco;

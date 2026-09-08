@@ -35,6 +35,9 @@
 #
 #   ./captable.sh 8:983:1:16 8:983:1:18 8:983:1:20
 #   FUSED=0 SIMD=0 ./captable.sh ...      the scalar-unfused control
+#   XFLAGS='DSP4_RTG_FABRIC=0' ./captable.sh ...   one ARM's build flags,
+#                                         carried into the build AND into
+#                                         the build directory's name
 set -u
 cd "$(dirname "$0")"
 source ./bench_lock.sh; bench_lock_acquire "$0"
@@ -93,6 +96,20 @@ CSV="${DSP_CSV:-$PWD/dsp.csv}"
 # level down: two graphs measured in one session must not share a
 # build directory, or the second point silently boots the first's image.
 CSVTAG="$(sha256sum "$CSV" | cut -c1-6)"
+# AN ARM IS A SET OF BUILD FLAGS, AND IT BELONGS IN THE DIRECTORY NAME
+# (2026-09-08). XFLAGS carries per-arm build variables -- the routing
+# fabric, the delay split, a measurement arm's deletion -- into the build
+# and into the build directory's name, for the reason srckey and CSVTAG
+# already exist: two arms measured in one session must not share a build
+# directory, or the second point boots the first one's image and reports
+# the first one's number as a difference. An empty XFLAGS adds NOTHING to
+# the name, so it is the directory every earlier session used and nothing
+# already measured moves.
+XFLAGS="${XFLAGS:-}"
+XTAG=""
+if [ -n "$XFLAGS" ]; then
+    XTAG="-$(printf %s "$XFLAGS" | sha256sum | cut -c1-6)"
+fi
 srckey() {    # $1 = block size -> digest of every input the tree is made from
     {   echo "block=$1"
         sha256sum "$CSV" "$ROOT/tools/dsp/dsp_codegen.py"
@@ -123,9 +140,10 @@ srctree() {   # $1 = block size -> echoes the src dir to build from
 build_one() {   # $1 = point
     IFS=: read -r B C S N L <<<"$1"
     L="${L:-0}"
-    local d="$WORK/$MODE-$B-$C-$S-$N-$L-$FUSED$SIMD$BQ-$CSVTAG"
+    local d="$WORK/$MODE-$B-$C-$S-$N-$L-$FUSED$SIMD$BQ-$CSVTAG$XTAG"
     local dec=1
     [ "$MODE" = cyc ] && dec=$DEC
+    env $XFLAGS \
     DSP_SRC_DIR="$(srctree "$B")" DSP_BUILD_DIR="$d" \
     DSP4_BISECT=0 DSP4_BLOCK_KERNELS=1 DSP4_PROFILE_SIGNAL=$S \
     DSP4_STRIP_FUSED=$FUSED DSP4_SIMD_DYN=$SIMD DSP4_BQ_GRAPH=$BQ \
@@ -143,7 +161,7 @@ build_one() {   # $1 = point
 # builds start, or four of them race to generate the same one.
 for p in "$@"; do IFS=: read -r B _ _ _ <<<"$p"; srctree "$B" >/dev/null; done
 
-echo "=== building $# points (fused=$FUSED paired=$SIMD bq=$BQ)"
+echo "=== building $# points (fused=$FUSED paired=$SIMD bq=$BQ xflags=${XFLAGS:-none})"
 i=0
 for p in "$@"; do
     build_one "$p" &
@@ -158,7 +176,7 @@ echo "=== measuring"
 for p in "$@"; do
     IFS=: read -r B C S N L <<<"$p"
     L="${L:-0}"
-    d="$WORK/$MODE-$B-$C-$S-$N-$L-$FUSED$SIMD$BQ-$CSVTAG"
+    d="$WORK/$MODE-$B-$C-$S-$N-$L-$FUSED$SIMD$BQ-$CSVTAG$XTAG"
     if [ "$(cat "$d.status" 2>/dev/null)" != "ok" ]; then
         echo "block=$B clk=$C sig=$S strips=$N limit=$L  BUILD FAILED"; continue; fi
     read -r PT PP <<<"$(python3 -c "
@@ -184,7 +202,7 @@ print(a('proc_cyc'), a('proc_passes'))")"
     else
         R=$(ssh $BENCH "bash /home/app/sigstrips_run.sh $PP $N" 2>&1)
     fi
-    echo "block=$B clk=$C sig=$S strips=$N limit=$L fused=$FUSED paired=$SIMD bq=$BQ rep=$r  $(echo "$R" | tr '\n' ' | ')"
+    echo "block=$B clk=$C sig=$S strips=$N limit=$L fused=$FUSED paired=$SIMD bq=$BQ xflags=${XFLAGS:-none} rep=$r  $(echo "$R" | tr '\n' ' | ')"
     C1=$(echo "$R" | grep -oE '[0-9]+ cycles/pass' | grep -oE '^[0-9]+')
     if [ -n "$C1" ]; then
         if [ -z "$BEST" ] || [ "$C1" -lt "$BEST" ]; then BEST="$C1"; fi

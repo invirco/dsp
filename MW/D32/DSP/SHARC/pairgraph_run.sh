@@ -5,7 +5,7 @@
 # to three boot attempts and three config attempts on a bad day, and a
 # capture taken through a half-configured graph is fiction.
 set -u
-STRIP="$1"; N="$2"; TAG="$3"; BQ="${4:-}"
+STRIP="$1"; N="$2"; TAG="$3"; BQ="${4:-}"; DLY="${5:-0}"
 cd /home/app/dspboot
 sudo systemctl stop matrix-app >/dev/null 2>&1
 sudo pinctrl set 6,7,8,9,10,11,12,22,23,24,25 a0 >/dev/null 2>&1
@@ -89,7 +89,7 @@ for attempt in 1 2 3 4 5; do
   for g in 1 2 3 4; do
     python3 dsp4_diag.py --chip 1 >/dev/null 2>&1
     if python3 dsp4_pairgraph.py --strip "$STRIP" -n "$N" --tag "$TAG" $BQ \
-         --out "pairgraph_$TAG.json"; then
+         --dly "$DLY" --out "pairgraph_$TAG.json"; then
       exit 0
     fi
     sleep 2

@@ -128,7 +128,7 @@ def load_biquads(sc, strip, seed):
     time.sleep(S.SETTLE)
 
 
-def configure(sc, strip, loud, gain=1.0):
+def configure(sc, strip, loud, gain=1.0, dly=0):
     """Put one strip in a known state. Nothing is assumed: a probe that
     sets only what it thinks changed measures whatever the last boot left
     behind, which is how a dead strip reads as a cheap one.
@@ -146,7 +146,7 @@ def configure(sc, strip, loud, gain=1.0):
     p = PARAMS['odd' if strip % 2 else 'even']
     wrv(sc, b + GAIN, f32(gain if loud else 0.0), ramp_id=1, settle=0.05)
     for addr, val in ((b + GATE_ON, 1), (b + COMP_ON, 1), (b + TUBE_ON, 0),
-                      (b + FDR_MUTE, 0), (b + DLY_OFF, 0),
+                      (b + FDR_MUTE, 0), (b + DLY_OFF, dly),
                       (b + GATE_THR, f32(p['gate_thr'])),
                       (b + GATE_ATT, f32(p['gate_att'])),
                       (b + GATE_REL, f32(p['gate_rel'])),
@@ -247,6 +247,13 @@ def main():
                     help='the driven strip\'s GAIN (default 1.0, which is '
                          'EXACT in Q4.28 and therefore blind to the '
                          'kernel\'s rounding -- see configure())')
+    ap.add_argument('--dly', type=int, default=0,
+                    help='DlyOff (samples) on BOTH strips. Default 0, which '
+                         'is what every stored golden was taken with. A '
+                         'non-zero value under BLOCK is the case the delay '
+                         'line\'s two-pass form (DSP4_DLY_SPLIT) has to be '
+                         'proved on: the block\'s reads then land INSIDE '
+                         'the block\'s own writes, partially.')
     ap.add_argument('--compare', nargs=2, metavar='FILE',
                     help='compare two captures instead of taking one')
     args = ap.parse_args()
@@ -276,8 +283,8 @@ def main():
             time.sleep(1.0)
 
     partner = args.strip + 1 if args.strip % 2 else args.strip - 1
-    configure(sc, args.strip, True, args.gain)
-    configure(sc, partner, False)
+    configure(sc, args.strip, True, args.gain, args.dly)
+    configure(sc, partner, False, 1.0, args.dly)
     if args.bq:
         # Both strips, not just the driven one: the pair runs paired only
         # when BOTH are in steady state, and a silent lane still has to be

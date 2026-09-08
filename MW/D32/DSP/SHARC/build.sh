@@ -281,6 +281,50 @@ ASMFLAGS="$ASMFLAGS -DDSP4_BQ_GUARD=$DSP4_BQ_GUARD"
 DSP4_BQ_GUARD_FORCE="${DSP4_BQ_GUARD_FORCE:-0}"
 CFLAGS="$CFLAGS -DDSP4_BQ_GUARD_FORCE=$DSP4_BQ_GUARD_FORCE"
 ASMFLAGS="$ASMFLAGS -DDSP4_BQ_GUARD_FORCE=$DSP4_BQ_GUARD_FORCE"
+# THE ROUTING ACCUMULATE'S PRICE TAG (2026-09-03). DSP4_RTG_NOACC=1 removes
+# the per-strip crosspoint accumulate and nothing else, so the whole-graph
+# difference against the default is what that accumulate costs. It leaves the
+# buses at zero, so it is a measurement arm and never a shipping image.
+DSP4_RTG_NOACC="${DSP4_RTG_NOACC:-0}"
+CFLAGS="$CFLAGS -DDSP4_RTG_NOACC=$DSP4_RTG_NOACC"
+ASMFLAGS="$ASMFLAGS -DDSP4_RTG_NOACC=$DSP4_RTG_NOACC"
+# THE BUS-MAJOR CROSSPOINT FABRIC (2026-09-03, review finding D22). ROUTING
+# publishes a COLUMN of a bus-major coefficient matrix instead of walking its
+# own crosspoints sample by sample, and one shared pass (src/rtg_fabric.asm)
+# loads each bus accumulator ONCE per sample and MACs every strip that feeds
+# it. Exact rather than approximate -- the accumulate is 80-bit integer with
+# no rounding before readout, so the sum is order-independent -- and busgold
+# is the bar that says so. Defaults ON; DSP4_RTG_FABRIC=0 is the CONTROL and
+# rebuilds the per-strip accumulate byte for byte. Forced OFF without block
+# kernels (dsp_block.h), which is what keeps the shipping per-sample image
+# and every recorded W0 witness untouched.
+DSP4_RTG_FABRIC="${DSP4_RTG_FABRIC:-1}"
+CFLAGS="$CFLAGS -DDSP4_RTG_FABRIC=$DSP4_RTG_FABRIC"
+ASMFLAGS="$ASMFLAGS -DDSP4_RTG_FABRIC=$DSP4_RTG_FABRIC"
+# THE DELAY LINE IN TWO PASSES (2026-09-03, review finding D25's remainder).
+# The block kernel alternated a write into the delay line with a read from it,
+# per sample, and the delay lines are in L2. Writing the whole block and then
+# reading the whole block is the same arithmetic in two sequential bursts and
+# is bit-exact (the argument is at the loop in dsp_codegen.py). 0 is the
+# CONTROL and rebuilds the interleaved loop byte for byte. DSP4_DLY_NOMEM=1
+# deletes the delay line's READ from that control loop and is a MEASUREMENT
+# ARM that prices the L2 traffic; the audio is wrong by design under it.
+DSP4_DLY_SPLIT="${DSP4_DLY_SPLIT:-1}"
+CFLAGS="$CFLAGS -DDSP4_DLY_SPLIT=$DSP4_DLY_SPLIT"
+ASMFLAGS="$ASMFLAGS -DDSP4_DLY_SPLIT=$DSP4_DLY_SPLIT"
+DSP4_DLY_NOMEM="${DSP4_DLY_NOMEM:-0}"
+CFLAGS="$CFLAGS -DDSP4_DLY_NOMEM=$DSP4_DLY_NOMEM"
+ASMFLAGS="$ASMFLAGS -DDSP4_DLY_NOMEM=$DSP4_DLY_NOMEM"
+# D20's REMAINING FOLD, PRICED (2026-09-03). Folding GAIN into FILT deletes
+# GAIN's store into the chain ping-pong and nothing else -- the round and the
+# saturate feed the post-trim tap, which PW ruled stays. DSP4_GAIN_NOCHAIN=1
+# replaces that store with a nop, which is the instruction count the fold
+# would reach, so the whole-graph difference prices the fold without building
+# it. FILT then reads a stale block: wrong by design, cost-identical, a
+# measurement arm and never a shipping image.
+DSP4_GAIN_NOCHAIN="${DSP4_GAIN_NOCHAIN:-0}"
+CFLAGS="$CFLAGS -DDSP4_GAIN_NOCHAIN=$DSP4_GAIN_NOCHAIN"
+ASMFLAGS="$ASMFLAGS -DDSP4_GAIN_NOCHAIN=$DSP4_GAIN_NOCHAIN"
 # FLOAT ON SHARC -- THE SHIPPING CASCADE (PW ruling 2026-09-03: the SHARC
 # DSP is 40-bit float). DEFAULTS ON. The four cascade kernels are software
 # float DF-II-T with the SHARC's 40-bit extended-precision float carrying the

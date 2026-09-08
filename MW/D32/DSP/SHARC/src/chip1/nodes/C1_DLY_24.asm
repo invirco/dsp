@@ -153,12 +153,52 @@
             i4 = BLK_CHAIN_B;
             i5 = BLK_TAP_PREFDR;
 
+        #if DSP4_DLY_SPLIT
+            /* SPLIT INTO TWO PASSES (2026-09-03, review finding D25's
+             * remainder). The interleaved loop below alternates a WRITE to
+             * the delay line with a READ from a different address in it,
+             * and the delay lines live in L2: session 3 measured that only
+             * 8.4 of DLY's 63 cycles/sample was address arithmetic and
+             * about 55 was that memory, and a per-sample write-then-read
+             * turnaround is the shape that costs it.
+             *
+             * BIT-EXACT, and the reason is worth writing down rather than
+             * asserting. Sample k writes index (w + k) and reads index
+             * (w - off + k). A read that lands inside THIS block's writes
+             * is one with k >= off, and the sample it wants was written at
+             * j = k - off, which is strictly earlier than k -- so it has
+             * already been written in the interleaved order too, and
+             * writing the whole block first cannot change what any read
+             * sees. Reads with k < off see the previous block, untouched
+             * either way. off = 0 is the same argument with j = k, where
+             * the interleaved loop also writes before it reads.
+             *
+             * Both cursors still advance by one per sample with the same
+             * L, so the DAG wrap and the write pointer handed back are
+             * unchanged. */
+            lcntr = DSP4_BLOCK_SIZE, do .dkb_wr_C1_DLY_24 until lce;
+                r0 = dm(i3, 1);
+            .dkb_wr_C1_DLY_24: dm(i0, m0) = r0;
+
+            lcntr = DSP4_BLOCK_HALF, do .dkb_rd_C1_DLY_24 until lce;
+                r0 = dm(i2, m2);        /* read;  the DAG wraps it */
+                r6 = dm(i2, m2);
+                dm(i5, 1) = r0;         /* pre-fader tap */
+                dm(i4, 1) = r0;
+                dm(i5, 1) = r6;
+            .dkb_rd_C1_DLY_24: dm(i4, 1) = r6;
+        #else
             lcntr = DSP4_BLOCK_SIZE, do .dkb_lp_C1_DLY_24 until lce;
                 r0 = dm(i3, 1);
                 dm(i0, m0) = r0;        /* write; the DAG wraps it */
+        #if DSP4_DLY_NOMEM
+                r0 = pass r0;           /* MEASUREMENT ARM: no L2 read */
+        #else
                 r0 = dm(i2, m2);        /* read;  the DAG wraps it */
+        #endif
                 dm(i5, 1) = r0;         /* pre-fader tap */
             .dkb_lp_C1_DLY_24: dm(i4, 1) = r0;
+        #endif
 
             /* the cursor back to an offset, and the DAGs back to LINEAR --
              * a non-zero L left behind would silently make the next node's

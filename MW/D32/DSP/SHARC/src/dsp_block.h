@@ -238,6 +238,71 @@
 #define DSP4_BQ_GUARD_FORCE 0
 #endif
 
+/* THE ROUTING CROSSPOINT ACCUMULATE -- MEASUREMENT ARM ONLY.
+ * DSP4_RTG_NOACC=1 deletes the per-strip crosspoint accumulate and leaves
+ * every other part of ROUTING in place, so the whole-graph difference
+ * against the default is that accumulate's cost and nothing else. The bus
+ * accumulators stay at zero under it, so the audio is silence by
+ * construction -- a price tag, not a mode. */
+#ifndef DSP4_RTG_NOACC
+#define DSP4_RTG_NOACC 0
+#endif
+
+/* THE BUS-MAJOR CROSSPOINT FABRIC (2026-09-03, review finding D22).
+ * ROUTING stops walking its own crosspoints sample by sample and publishes
+ * a COLUMN of a bus-major coefficient matrix instead; one shared pass
+ * (rtg_fabric.asm) then loads each bus accumulator ONCE per sample and MACs
+ * every strip that feeds it into the live MRF. Exact, not approximate: the
+ * accumulate is 80-bit integer with no rounding before readout, so the sum
+ * is order-independent (busgold.sh is the proof, not this comment).
+ *
+ * FORCED OFF without block kernels, which is what keeps the shipping
+ * per-sample image -- every recorded W0 witness -- byte for byte. There is
+ * no per-sample form of this: the whole point is amortising a per-BLOCK
+ * accumulator load over the strips that share it.
+ *
+ * DSP4_RTG_FABRIC=0 is the CONTROL and rebuilds the per-strip accumulate
+ * byte for byte. */
+#ifndef DSP4_RTG_FABRIC
+#define DSP4_RTG_FABRIC 1
+#endif
+#if !DSP4_BLOCK_KERNELS
+#undef DSP4_RTG_FABRIC
+#define DSP4_RTG_FABRIC 0
+#endif
+
+/* THE DELAY LINE'S TWO PASSES (2026-09-03, review finding D25's remainder).
+ * The block kernel wrote one sample to the delay line and then read another
+ * from it, per sample, and the delay lines are in L2 -- session 3 measured
+ * DLY at 63 cycles/sample of which only 8.4 was address arithmetic. Writing
+ * the whole block and then reading the whole block is the same arithmetic in
+ * two sequential bursts; it is bit-exact for the reason written out at the
+ * loop. DSP4_DLY_SPLIT=0 is the CONTROL and rebuilds the interleaved loop
+ * byte for byte.
+ *
+ * DSP4_DLY_NOMEM is a MEASUREMENT ARM on the control loop: it deletes the
+ * delay line's READ and keeps everything else, so the whole-graph difference
+ * prices the L2 traffic. The audio is wrong by design under it. */
+#ifndef DSP4_DLY_SPLIT
+#define DSP4_DLY_SPLIT 1
+#endif
+#ifndef DSP4_DLY_NOMEM
+#define DSP4_DLY_NOMEM 0
+#endif
+
+/* D20's REMAINING FOLD, PRICED (2026-09-03). Folding GAIN into FILT deletes
+ * GAIN's store into the chain ping-pong and NOTHING ELSE: the round and the
+ * saturate feed the post-trim TAP, which PW ruled stays (2026-08-29, and
+ * again with the float landing) because the ROUTER reads it as pickoff 0.
+ * DSP4_GAIN_NOCHAIN=1 replaces that store with a nop -- the same instruction
+ * count the fold would reach, without building the fold -- so the whole-graph
+ * difference is the fold's CEILING, measured rather than counted. FILT then
+ * reads a stale block, which costs the same cycles (a biquad's cost is
+ * data-independent) and is wrong by design: a price tag, not a mode. */
+#ifndef DSP4_GAIN_NOCHAIN
+#define DSP4_GAIN_NOCHAIN 0
+#endif
+
 /* Header words in front of a cascade's coefficients: 1 with the guard,
  * 0 without. The interleaved pair blocks carry two, one per strip. */
 /* GAIN ON THE FLOAT PATH -- DSP4_GAIN_FLOAT, and it follows the cascade.
