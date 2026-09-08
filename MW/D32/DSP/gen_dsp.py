@@ -132,7 +132,41 @@ host_managed = {}          # family suffix -> set of node ids that declared it
 def read_dsp_csv():
     """Read dsp.csv and return list of dicts."""
     with open(DSP_CSV, newline='', encoding='utf-8') as f:
-        return list(csv.DictReader(f))
+        nodes = list(csv.DictReader(f))
+    resolve_geq_bands(nodes)
+    return nodes
+
+
+def resolve_geq_bands(nodes):
+    """Set GEQ_BANDS from the GRAPH, not from a constant kept by hand.
+
+    Until 2026-09-08 this file carried `GEQ_BANDS = 28` and dsp.csv carried
+    `bands=28`, and the two agreed because someone remembered. The band
+    count is a market parameter (`gen_dsp_csv.py --geq-bands`), so the
+    moment it moved the constant here would have gone on addressing 28
+    words of a 31-word block and the three bands past the end would have
+    been silently unmapped -- which is exactly the failure this session
+    was dispatched to close. Read it off the graph, and refuse a graph
+    whose GEQ nodes do not agree with each other.
+    """
+    global GEQ_BANDS
+    counts = {}
+    for node in nodes:
+        if node.get('type') != 'GEQ':
+            continue
+        params = parse_params(node.get('params'))
+        if 'bands' not in params:
+            sys.exit(f"ERROR: GEQ node {node['id']} carries no bands= param; "
+                     f"the address block length is not guessable.")
+        counts.setdefault(int(params['bands']), []).append(node['id'])
+    if not counts:
+        return
+    if len(counts) > 1:
+        detail = '; '.join(f'{n} bands: {len(ids)} nodes ({ids[0]}...)'
+                           for n, ids in sorted(counts.items()))
+        sys.exit(f'ERROR: dsp.csv GEQ nodes disagree on band count -- '
+                 f'{detail}. One address map, one band count.')
+    GEQ_BANDS = next(iter(counts))
 
 
 def read_matrix_csv():
@@ -594,20 +628,20 @@ def expand_routing(node, cat, inst):
 
 
 # ── GEQ ──────────────────────────────────────────────────────────────────
-# HOW MANY BANDS THE ADDRESS MAP CARRIES, IN ONE PLACE. The DSP4 node
-# graph gives every GEQ node `bands=28` and the address block is exactly
-# that long -- `C2_AUX_GEQ_01` runs 28..55 and `C2_AUX_AFB_01` starts at
-# 56, with no slack anywhere on chip 2. defs-v2026.09.08.3 lands
-# `Geq[1-31]` in the CELL MASTER, so bands 29-31 are defined cells with
-# no address; `_unmapped_reason` says so per cell rather than per family,
-# and the proposal for closing it is in
-# MW/D32/DSP/dsp4-dspcsv-proposal-20260908.md §B.
+# HOW MANY BANDS THE ADDRESS MAP CARRIES -- READ OFF THE GRAPH by
+# resolve_geq_bands(), never set here. This value is only the fallback for
+# a graph with no GEQ node at all; every real run overwrites it from
+# dsp.csv's `bands=` param. defs-v2026.09.08.3 lands `Geq[1-31]` in the
+# cell master and the graph was regenerated at `--geq-bands 31` to match,
+# which re-laid chip 2 (+51 words) -- see
+# MW/D32/DSP/dsp4-dspcsv-proposal-20260908.md §B and
+# MW/D32/DSP/dsp4-geq31-relayout-20260909.md.
 GEQ_BANDS = 28
 
 
 def expand_geq(node, cat, inst):
     chip, pg, base, nid, ramp = _parse_node(node)
-    # 28 SPI words: ONE GAIN IN dB PER BAND.
+    # GEQ_BANDS SPI words: ONE GAIN IN dB PER BAND.
     #
     # These used to be dispatched to `_geq_coeffs_next_<nid>` -- 28 words
     # of a 140-word coefficient array, one fifth of a five-word stage
@@ -618,7 +652,8 @@ def expand_geq(node, cat, inst):
     # the active bank stayed at its compiled identity, and every graphic
     # EQ in the product passed its input through untouched.
     #
-    # 28 addresses cannot carry 140 coefficients plus a trigger, so the
+    # The band gains cannot carry the cascade's coefficients plus a
+    # trigger, so the
     # design belongs on the DSP (src/lib/geq_design_fx.asm, modelled by
     # tools/dsp/geq_ref.py) and these cells carry what the contract says
     # they carry.
@@ -913,10 +948,27 @@ def expand_crossover(node, cat, inst):
     for scat, sinst in _XOVER_STRIPS:
         add_cell(cn(scat, sinst, 'CrossoverFreq', 1), chip, pg, base,
                  '0=50/127=500/[Log]', 'EqSafe',
-                 notes='shared crossover word')
-        add_cell(cn(scat, sinst, 'CrossoverSlope', 1), chip, pg, base,
+                 notes='shared crossover frequency word')
+        add_cell(cn(scat, sinst, 'CrossoverSlope', 1), chip, pg, base + 1,
                  '0=6/3=24/[Lin]', 'InstantCtl',
-                 notes='MCU-computed, shares base; shared crossover word')
+                 notes='shared crossover slope word')
+
+    # THE SLOPE GETS ITS OWN WORD, base + 1, AND IT IS STILL ONE WORD FOR
+    # ALL FOUR STRIPS. Until 2026-09-09 all EIGHT crossover cells resolved
+    # to `base`, so writing a slope put the integer 24 where a frequency
+    # belongs; the design ignored it (an out-of-domain word is not
+    # clamped) and the slope was not settable at all. Measured on the part
+    # 2026-09-08. It stays ONE shared word because there is ONE
+    # `C2_MAIN_XOVER` node feeding all four main outputs from a single
+    # LP/HP split -- a per-strip slope would ask one filter pair to have
+    # two orders at once, which is why the four frequency cells already
+    # alias one word.
+    #
+    # base + 1 was `_xover_coeffs_next[1]`: one word of a twenty-word
+    # staging array that nothing in the contract names and no host writes,
+    # and which the design overwrites in full whenever a legal frequency
+    # or slope arrives. Taking it costs nothing and moves no other
+    # address.
 
     # THE FIRST WORD IS THE CORNER FREQUENCY, NOT COEFFICIENT 0.
     #
@@ -934,7 +986,9 @@ def expand_crossover(node, cat, inst):
     # arrives.
     add_dispatch(chip, base, f'_xover_freq_{nid}', f'{nid} crossover frequency')
     add_dirty_block(chip, base, 1, f'_xover_dirty_{nid}')
-    for i in range(1, 20):
+    add_dispatch(chip, base + 1, f'_xover_slope_{nid}', f'{nid} crossover slope')
+    add_dirty_block(chip, base + 1, 1, f'_xover_dirty_{nid}')
+    for i in range(2, 20):
         add_dispatch(chip, base + i, f'_xover_coeffs_next_{nid} + {i}',
                      f'{nid} XOVER coeff[{i}]')
     # swap_pending and crossfade control
@@ -2168,13 +2222,13 @@ def _unmapped_reason(cell, mcu_prefixes):
     gm = _GEQ_BAND_CELL.match(cell)
     if gm is not None and int(gm.group(1)) > GEQ_BANDS:
         return ('geq-band-beyond-block',
-                f'GEQ band {int(gm.group(1))}: the cell master carries 31 '
-                f'bands (defs-v2026.09.08.3) and the DSP address block is '
-                f'{GEQ_BANDS} words, packed end to end against the node that '
-                f'follows it. Giving bands 29-31 addresses re-lays the whole '
-                f'chip-2 map (+51 words on seventeen nodes) and costs three '
-                f'more cascade stages a node; the sequence for landing it is '
-                f'in MW/D32/DSP/dsp4-dspcsv-proposal-20260908.md section B')
+                f'GEQ band {int(gm.group(1))}: the cell master defines it and '
+                f'the DSP address block is {GEQ_BANDS} words, packed end to '
+                f'end against the node that follows it. Closing this needs '
+                f'the graph regenerated at gen_dsp_csv.py --geq-bands N, '
+                f'which re-lays every chip-2 address above the first GEQ '
+                f'node; the sequence is in '
+                f'MW/D32/DSP/dsp4-dspcsv-proposal-20260908.md section B')
     m = _CELL_SPLIT.match(cell)
     if m is None:
         return ('label', 'not a cell-shaped name; carries no DSP parameter')
@@ -2398,11 +2452,16 @@ def build_proposal_rows(product, matrix_path, mcu_prefixes):
     return rows, un_rows
 
 
-def check_proposal():
+def check_proposal(fatal=True):
     """Prove the graph reproduces the LANDED dsp.csv/dsp-unmapped.csv for
     both products, row for row (every column dsp.csv declares — the header
     comment's pin stamp is proposal-authoring metadata and not compared).
-    Fails loudly and exits nonzero on any drift."""
+    Fails loudly and exits nonzero on any drift.
+
+    `fatal=False` returns the verdict instead of exiting, for the ONE
+    caller entitled to a No: `--propose`, where the graph being ahead of
+    the landed file is the whole reason a proposal is being written. Every
+    other path keeps the no-fallback exit."""
     mcu_prefixes = load_mcu_only_prefixes()
     ok = True
     for product, matrix_path in PROPOSAL_PRODUCTS:
@@ -2434,6 +2493,8 @@ def check_proposal():
                 ok = False
 
     if not ok:
+        if not fatal:
+            return False
         sys.exit('ERROR: the graph has drifted from the landed dsp.csv / '
                  'dsp-unmapped.csv contract in defs/products/<p>/. Fix: '
                  'propose a new dsp.csv to the hub gate — never hand-edit '
@@ -2441,6 +2502,7 @@ def check_proposal():
                  'back to the graph when it disagrees with what is landed.')
     print('  check-proposal OK — the graph reproduces the landed dsp.csv / '
           'dsp-unmapped.csv exactly for both products')
+    return True
 
 
 def load_landed_address_map():
@@ -2585,24 +2647,46 @@ def main():
     print(f'  {len(cell_map)} cell mappings (graph)')
     print(f'  {len(dispatch)} dispatch entries')
 
-    # 3. The graph must reproduce the landed contract byte-for-byte, or
-    # everything downstream would be generating from a second source of
-    # truth again (the exact failure defs S1 retired). No-fallback: this
-    # exits nonzero on any disagreement.
-    print()
-    print('Checking graph against landed defs/products/<p>/dsp.csv...')
-    check_proposal()
-
-    if args.check_proposal:
-        print()
-        print('Done (--check-proposal: nothing generated).')
-        return
-
+    # 3. AUTHOR THE PROPOSAL BEFORE JUDGING THE DRIFT, and only under
+    # --propose. A proposal is written precisely when the graph is AHEAD
+    # of the landed contract, so ordering the fatal drift check first made
+    # --propose unreachable in the one situation it exists for: the flag
+    # was added with the check above it and every run that needed it died
+    # before reaching it. The propose path therefore takes the verdict as
+    # a value and stops cleanly when the graph is ahead — it generates
+    # NOTHING, because generation reads the landed file and the landed
+    # file is the thing that has not caught up yet.
     if args.propose:
         print()
         print('Proposing dsp.csv...')
         proposals = write_proposals(dry_run=args.dry_run)
         report_proposals(proposals)
+        print()
+        print('Checking graph against landed defs/products/<p>/dsp.csv...')
+        if not check_proposal(fatal=False):
+            print()
+            print('The graph is AHEAD of the landed contract — that is what '
+                  'the proposal above is for.')
+            print('Nothing generated: generation reads the LANDED '
+                  'defs/products/<p>/dsp.csv, not the graph. Land the '
+                  'proposal at the hub gate, advance the defs pin, then '
+                  'run without --propose.')
+            return
+        print()
+        print('The proposal matches what is already landed; nothing to gate.')
+    else:
+        # The graph must reproduce the landed contract byte-for-byte, or
+        # everything downstream would be generating from a second source of
+        # truth again (the exact failure defs S1 retired). No-fallback: this
+        # exits nonzero on any disagreement.
+        print()
+        print('Checking graph against landed defs/products/<p>/dsp.csv...')
+        check_proposal()
+
+    if args.check_proposal:
+        print()
+        print('Done (--check-proposal: nothing generated).')
+        return
 
     # 4. From here on, generation reads the LANDED address map -- the
     # contract everything but a new proposal consumes -- not the graph.

@@ -50,19 +50,30 @@ parser.add_argument('--sport-map', default=os.path.join(
 # constant: PW's market bar is "31-band GEQ on ALL outputs", and the cost of
 # that bar has to be measurable against the shipping graph on one instrument.
 #
-# Defaults REPRODUCE THE SHIPPING dsp.csv BYTE FOR BYTE -- 28 bands on the
-# twelve aux buses, the four groups and the main bus, and nowhere else. Any
-# other value is a different product configuration and is asked for
-# explicitly.
+# Defaults REPRODUCE THE SHIPPING dsp.csv BYTE FOR BYTE -- since
+# 2026-09-09, 31 bands on the twelve aux buses, the four groups and the
+# main bus, and nowhere else. Any other value is a different product
+# configuration and is asked for explicitly.
+#
+# THE DEFAULT MOVED 28 -> 31 AT defs-v2026.09.08.3, and it moved every
+# chip-2 address above the first GEQ node with it. The cell master now
+# defines `Geq[1-31]` on every output (PW ruling: the 1/3-octave bar is
+# the market bar), the address allocator below packs blocks end to end,
+# and a GEQ block is exactly its band count -- so +3 words on seventeen
+# nodes is +51 words on chip 2 and 195 of its 235 nodes take a new
+# address. That re-layout is the change, not the three rows; it is
+# recorded in MW/D32/DSP/dsp4-geq31-relayout-20260909.md. Passing
+# --geq-bands 28 reproduces the pre-.3 map exactly, which is how the two
+# were diffed.
 #
 # Bus/output COUNTS are deliberately NOT parameters here: NUM_AUX=12,
 # NUM_GRP=4, NUM_FX=6 and the four main outputs are pinned by the TDM mix
 # fabric's single-sourced slot map (shared/dsp4-logic/generated/
 # sport_map.json), and a count this script invented would disagree with the
 # slot map rather than change the product.
-parser.add_argument('--geq-bands', type=int, default=28,
-                    help='bands per graphic EQ instance (default 28; the '
-                         '1/3-octave market bar is 31)')
+parser.add_argument('--geq-bands', type=int, default=31,
+                    help='bands per graphic EQ instance (default 31, the '
+                         '1/3-octave market bar; 28 is the pre-.3 map)')
 parser.add_argument('--geq-outputs', default='aux,grp,main',
                     help='comma-separated output classes that carry a GEQ: '
                          'aux,grp,main,sub,mainout,mon. Default '

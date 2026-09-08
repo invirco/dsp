@@ -40,17 +40,19 @@ depends on. u = x^2/2 - x^4/24 + x^6/720 has no cancellation in it at
 all. Same reason `geq_ref` carries k2 as a constant rather than k + 2.
 
 THE DOMAIN IS THE CONTRACT'S, 50-500 Hz (Table `0=50/127=500/[Log]`),
-AND A WORD OUTSIDE IT IS IGNORED RATHER THAN CLAMPED. That is not
-caution, it is the only safe reading of a defect in the landed contract:
+AND A WORD OUTSIDE IT IS IGNORED RATHER THAN CLAMPED -- and so is a
+slope that is not 12 or 24. Ignoring leaves the split where the last
+legal pair put it.
+
+That rule was written for a defect and outlived it. Until 2026-09-09
 `MainL001CrossoverFreq001` and `MainL001CrossoverSlope001` -- and the
-Ctr, R and Sub triples with them -- ALL RESOLVE TO THE SAME ADDRESS,
-0x0575. Eight cells, one word. A slope, whatever its encoding, is a
-small number; clamping it into the frequency would silently move the
-crossover to 50 Hz every time the host set a slope. Ignoring it leaves
-the crossover where the last legal frequency put it, and the collision
-is reported as what it is -- a `defs` row that has to split, which this
-repo cannot do. Until it does, THE SLOPE IS NOT SETTABLE and the split
-is LR4.
+Ctr, R and Sub pairs with them -- ALL RESOLVED TO ONE ADDRESS: eight
+cells, one word. A slope is a small number whatever its encoding, so
+clamping it into the frequency would have moved the crossover to 50 Hz
+every time the host set a slope, and THE SLOPE WAS NOT SETTABLE AT ALL.
+The slope now has its own word (the node's second), proposed with the
+31-band GEQ re-layout; the ignore-don't-clamp rule stays because it is
+the right answer for 6 and 18 dB/oct too.
 """
 
 import math
@@ -61,8 +63,10 @@ XOVER_F_MIN = 50.0                    # Table 0=50/127=500/[Log]
 XOVER_F_MAX = 500.0
 XOVER_STAGES = 2                      # per path
 
-# THE SLOPE, a real word since 2026-09-08 (0x0576; the proposal is in
-# MW/D32/DSP/dsp4-dspcsv-proposal-20260908.md). Two of the four values in
+# THE SLOPE, a real word since 2026-09-09 -- the crossover node's second
+# word, which the 31-band re-layout puts at 0x059D
+# (MW/D32/DSP/dsp4-geq31-relayout-20260909.md; the design argument is in
+# MW/D32/DSP/dsp4-dspcsv-proposal-20260908.md §A). Two of the four values in
 # the cell's table are HONOURED and two are IGNORED, and the split is not
 # arbitrary: 24 and 12 are the even-order Linkwitz-Riley alignments a
 # node with two stages per path can hold, each path 6 dB down at the

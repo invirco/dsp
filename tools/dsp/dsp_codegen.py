@@ -7176,14 +7176,18 @@ def gen_crossover_fixed(node):
         .var _xover_lp_state_B_{nid}[12];
         .var _xover_hp_state_B_{nid}[12];
         #if DSP4_XOVER_DESIGN
-        /* THE LANDED CELL, and the flag the SPI handler raises on it.
-         * The eight CrossoverFreq/CrossoverSlope cells of the four main
-         * sections all resolve to this one address; only a word inside
-         * the frequency table's 50-500 Hz is taken as a frequency, and
-         * anything else leaves the split where it was. 0 means "never
-         * set", which is why the banks stay at their compiled identity
-         * until a host writes a real corner. */
+        /* THE TWO LANDED CELLS, and the one flag the SPI handler raises
+         * on either. The four sections' CrossoverFreq cells all resolve
+         * to the first word and their four CrossoverSlope cells all
+         * resolve to the second -- ONE crossover node, one split, one
+         * order. Only a word inside the frequency table's 50-500 Hz is
+         * taken as a frequency and only 12 or 24 is taken as a slope;
+         * anything else leaves the split where it was. freq 0 means
+         * "never set", which is why the banks stay at their compiled
+         * identity until a host writes a real corner. The slope boots at
+         * 24 = LR4, the order this node has always run. */
         .var _xover_freq_{nid} = 0.0;
+        .var _xover_slope_{nid} = 24;
         .var _xover_dirty_{nid} = 0;
         #endif
 
@@ -7209,12 +7213,12 @@ def gen_crossover_fixed(node):
         .extern _bq_hr_node1;
         #endif
         #if DSP4_XOVER_DESIGN
-        .extern _xover_design_LR4;
+        .extern _xover_design_LR;
         #endif
         .global _{nid}_process;
         _{nid}_process:
         #if DSP4_XOVER_DESIGN
-            /* ---- LR4 design (control rate; lib/xover_design_fx.asm) ---- */
+            /* ---- LR design (control rate; lib/xover_design_fx.asm) ---- */
             r4 = dm(_xover_dirty_{nid});
             r4 = pass r4;
             if ne call _xover_redesign_{nid};
@@ -7395,10 +7399,11 @@ def gen_crossover_fixed(node):
             r4 = 0;
             dm(_xover_dirty_{nid}) = r4;
             f0 = dm(_xover_freq_{nid});
+            r8 = dm(_xover_slope_{nid});
             i2 = _xover_coeffs_next_{nid};
-            call _xover_design_LR4;
+            call _xover_design_LR;
             r4 = pass r0;
-            if eq rts;          /* outside 50-500 Hz: nothing was written */
+            if eq rts;          /* out-of-domain freq or slope: untouched */
             r4 = 1;
             dm(_xover_swap_pending_{nid}) = r4;
             rts;

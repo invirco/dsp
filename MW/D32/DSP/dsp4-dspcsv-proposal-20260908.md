@@ -292,7 +292,13 @@ slope that differed per strip would ask one filter pair to have two
 orders at once; the four `CrossoverSlope` cells alias the one slope word
 the same way, and the notes column should say so in the same words.
 
-**THE ADDRESS IS `base + 1` = 0x0576, AND NOTHING ELSE MOVES.** The
+**LANDED 2026-09-09 AS `base + 1`, BUT NOT AT 0x0576** — the 31-band
+GEQ re-layout in §B landed in the same proposal and moved
+`C2_MAIN_XOVER` from 1397 to 1436, so the frequency is 0x059C and the
+slope 0x059D. The reasoning below is unchanged; only the base is.
+See `dsp4-geq31-relayout-20260909.md`.
+
+The original analysis, against the 28-band map: the
 crossover node's dispatch block is *nominally* twenty-four words but the
 node only owns **four**: `C2_MAIN_XOVER` sits at 1397 and
 `C2_MAIN_OEQ_01` at 1401, so the expander's `base+4 .. base+23` are
@@ -372,3 +378,12 @@ one session; (2) if it fits, regenerate the graph at `--geq-bands 31`
 and let `gen_dsp.py` re-lay the chip-2 map; (3) land the resulting
 `dsp.csv` at a gate, with the address move called out, because it is the
 first time this contract has moved an address rather than added one.
+
+**DONE 2026-09-09, steps (2) and (3) — and step (1) is reported with
+them rather than ahead of them, because the address map and the cost are
+answers to different questions and only one of them was ever going to
+block.** `--geq-bands 31` is now the generator's DEFAULT (the 28-band
+map is reproducible with `--geq-bands 28`, which is how the two were
+diffed row for row). The counts, what moved, and what every host has to
+do about it are in `dsp4-geq31-relayout-20260909.md`; the measured cost
+is in this session's status line in `tasks.md`.
