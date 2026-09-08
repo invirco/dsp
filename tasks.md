@@ -1,3 +1,59 @@
+## HUB DISPATCH 2026-09-08 18:54Z — the four INERT families (ANTI_FB, GEQ, CROSSOVER, FX_ENGINE — 646 cells answer every address and process NOTHING): stub, bypass, or empty tables? — and what that does to the capacity numbers; GEQ first (market bar); then the sample-order probe for a latency figure   [status: 🔴 dispatched]   [model: opus]
+
+WHY. The virtual-audio pass (dsp fdf278a) proved 14 of 20 families on the
+part (82 % of addressed cells) and found that FOUR families answer every
+landed address yet change no sample: an impulse walked down the chain shows
+0 of 32 words differing at ANTI_FB, GEQ, CROSSOVER and FX_ENGINE. GEQ and
+CROSSOVER were NOT on the D38 inert list — the static analysis believed
+something read them. Two consequences the hub must have answered:
+(a) **31-band GEQ on every output is a market bar (PW ruling)** and it is
+apparently not processing; (b) **every capacity number since 09-03 ("full
+market config fits both chips", chip 1 79.87 %, chip 2 83.16 %) was
+measured with those nodes in the graph** — if they are stubs or early-outs,
+their real cost is not in those numbers. Bench: rev C unit as the last
+session left it (duplex loop installable by one flag; shipping bitstream;
+matrix-app active); rules as before; leave the unit as found.
+
+GATES, in order, each witnessed:
+1. **Diagnose each of the four, mechanically, not by reading the source
+   alone**: for each node type, at runtime on the part — is the process
+   routine entered per block (cycle counter / scope hook)? does it early-
+   out on an On/bypass flag whose landed default is OFF? are its
+   coefficient/state tables zero (never loaded: no host write path, no
+   dsp.csv row for the load, or a generator that emits the cells but no
+   coefficient computation)? does it write its output buffer at all? Give
+   one line per family: entered? / bypassed? / tables? / writes? — and the
+   fix class (host must load coefficients / generator must emit the
+   kernel call / flag default / genuinely unimplemented).
+2. **Capacity truth**: measure the whole-graph cycles on both chips with
+   the four families (i) as they are and (ii) forced ACTIVE with realistic
+   parameters (GEQ 31 bands all non-flat, crossover at a real frequency,
+   AFB notches engaged, FX engine reverb on). Report the delta against the
+   09-03 fit numbers honestly — if the product no longer fits with the
+   market bar active, that is the headline, not a footnote. Use the
+   existing whole-graph measurement recipe (busgold/capacity harness),
+   two boots a point, minimum taken.
+3. **GEQ made real first** (market bar): whatever gate 1 says is missing —
+   coefficient computation + load path via the landed cells, the kernel
+   call in the node, or the bypass default — implement it so a 31-band
+   setting produces the expected magnitude response on the part
+   (golden harness --target hw, EQ/GEQ tolerances from the numeric spec);
+   then CROSSOVER (a real split at the set frequency, the main-section
+   ruling's four outputs). ANTI_FB and FX_ENGINE: diagnose + cost only;
+   implementation is a later dispatch unless it is a one-line flag.
+4. **Sample order / latency**: probe the CPLD reframe against the Pi-input
+   DMA (your own next-step): why a counter holds 64 Pi frames per value —
+   scatter/gather stride, TDM slot map, or the CPLD's reframing contract
+   (docs/tdm-frame-def.md in the zero repo is the same class of contract;
+   the DSP card's is in this repo) — and either make the loop order-
+   preserving or state exactly which stage reorders and by what rule, so a
+   latency figure follows.
+5. Bars: golden 59/59, dsp_validate OK, busgold bit-exact (image will
+   change), bqeverify float 0 ULP; family table + D5 lines + coverage
+   fraction refreshed; the inert list corrected (D38); findings; tasks.md
+   status; commit + push main. No AI attribution in commits or any work
+   product. Leave the unit as found.
+
 ## HUB DISPATCH 2026-09-08 16:48Z — VIRTUAL AUDIO over the CPLD loop, continued: the golden harness gets its hardware target (steps 2–4 of the queued block), on the float image at defs-v2026.09.08.2 — every kernel family exercised through the real SHARC path, per-family hardware-verified lines, and the coverage fraction reported   [status: 🟢 done — **14 OF 20 D24 FAMILIES PASS ON HARDWARE: 3,028 OF 3,698 ADDRESSED CELLS, 82 %; SEVEN on the STRICT bar (1,828 cells, 49 %).** Every parameter resolved BY CELL NAME out of the landed `defs/products/d24/dsp.csv` — the contract's first live use; all 25 transcribed bench constants agree with it and **every landed address written ANSWERED** on both chips. Image chip1 **a07d3865** / chip2 **073d80ef**. **A MAJOR DEFECT FOUND AND FIXED GENERICALLY.** `ChanGateHold` reached `_gate_hold_*` — an integer SAMPLE COUNT — unconverted, so the documented 1.0 ms landed 1,065,353,216 samples and **a gate that had opened never closed again**; `ChanDelay` had the identical shape, which is exactly why a one-off was refused. `gen_dsp.py` now builds `_spi_dispatch_cN_convert[]` FROM the landed `wire-units.csv` and `spi_handler.asm` applies it **at the wire, BOTH directions** (at the wire because the ramp engine interpolates between current and target; both directions because save-and-restore would otherwise read samples and write ms). Verified: 1.0 ms→48, 50.0 ms→**2400** (the generator's own initialiser), 20.0 ms→960, all reading back in ms. The nine declared-but-unconvertible rows are PRINTED every generation — the four ms→alpha ones say 'needs conversion declared', so nothing was invented here. **`busgold` RE-RUN — the bar the changed image owed: GRAPH BIT-EXACT, 0 of 256 words differ, sha256 ba3f52ec = the golden's own hash.** **THE LOOP: PASS-THROUGH ACHIEVED, NO PEDESTAL, NO LATENCY.** 16 of the 17 sources into `C2_MIX_MAIN_L` silenced by cell name (60 cells, ALL present in the contract; the 8 snake returns have no cell at all); with them off the whole main chain reads 0x00000000 at the scope and the captured channel idles at 8 LSB (−168 dBFS) — the 0x11E7E000 pedestal is GONE. A known word returns at **ratio 1.0000 (`in << 0`)** for 0x00001000 and 0.9999 for larger, so amplitude-accurate to ~1.2e-4 and NOT bit-exact. The apparent ×2 was `Pi001Level001`, not a scatter/gather shift — at 0.5 the loop is unity with `_auxin_q` reading Q4.28 0.5 exactly. No L+R summing; `C2_MAIN_ST_OUT` drives one slot, confirmed. **NO LATENCY FIGURE, and the reason is measured: the loop does not preserve SAMPLE ORDER** — a counter held 64 Pi frames per value (4x the regrouping ratio) returns only 40.4 % of transitions monotonic over 59,498 frames, dominant step ≈ −9 values ≈ 576 Pi frames backwards. DC returns perfectly and a ramp does not, which is a reader taking the wrong one of the four regrouped Pi frames, not a gain or clock error. Next probe is `rtl/dsp4_pcm_reframe.v` against the Pi-input DMA — **the ALSA layer is now known good.** **THE DUPLEX DEVICE IS SOLVED.** The hub's GPIO17/CS6 ruling WORKED (voicehat probed) and voicehat is still unusable at 48 kHz-only against a 192 kHz link; `invirco,dsp4-pcm-dummy` — 40 lines, both directions, 8–192 kHz, S32_LE, NO GPIO — gives one device with no clamp and no xrun, so CS6 stays free. Exact module/overlay/config.txt lines in findings S2-7; `cm4-setup-pi.sh` NOT edited. **FOUR FAMILIES ANSWER EVERY LANDED ADDRESS AND REACH NO SAMPLE — 646 cells: ANTI_FB, GEQ, CROSSOVER, FX_ENGINE**, proved with an IMPULSE walked down the chain, 0 of 32 words differing at every node. ANTI_FB and FX_ENGINE corroborate D38; **GEQ and CROSSOVER are NOT on it**, so D38's 896 under-reports by ≥372 — recorded in `inert-cells-d38.md`, generated table deliberately unmoved. **FIVE INSTRUMENT FAULTS FOUND AND FIXED, each of which had already produced a wrong answer about the firmware**: BQCVT scoring the FLOAT image against the FIXED reference; `vpeek`'s zero sentinel unarmed, so genuinely-ZERO parameters read as unreadable (COMPRESSOR lost its verdict twice); a DC step used to probe filters; **METER reported FAILED and actually BIT-EXACT** (`mtrverify.sh` METER_BIT_EXACT — the 7.05 readback was a peak HOLD still carrying the contract sweep before it); and the loop capture read on a FIXED channel when the L/R phase is not deterministic across stream starts. **BARS: golden 59/59; `dsp_validate` OK both graphs; `validate-matrix-contract` compatibility passed; `busgold` GRAPH BIT-EXACT; `bqeverify.sh float` BQE_VERIFY PASS 0 ULP (18,432 words/arm, bitmap 566 of 576 matching); `mtrverify.sh` METER_BIT_EXACT.** **NOT CLAIMED: no latency; the loop is not bit-exact (~1.2e-4, unattributed); `conform.sh` not run; AuxDelay/GrpGateHold and the rest have no `wire-units.csv` row so nothing converts them — the contract's gap, not the mechanism's; no family verdict depended on the loop (all measured through `src/scope.asm`), so the coverage fraction is unaffected by its state.** **BENCH AS FOUND: shipping bitstream `dsp4_logic.a1f6672af6c3.svf` reflashed, IDCODE 0x020a30dd confirmed; `dtoverlay=dsp4-pcm-slave` restored and verified after reboot; the duplex overlay and codec module left INSTALLED so the bench flag is a one-line flip; fixed shipping images staged; matrix-app ACTIVE.** Write-up `MW/D32/DSP/dsp4-hw-families-20260908.md`; raw `goldens/famverify-20260908b.json` + `goldens/loopcal-20260908.json`; scorer `golden_harness.py --target hw`; findings S2-1..S2-12; D5 lines rewritten.]   [model: opus]
 
 WHY (PW 2026-09-08): "converters verify the hardware, but the SPORT link
