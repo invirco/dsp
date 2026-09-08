@@ -21,7 +21,9 @@
 .extern _buf_C2_AUX_EQ_05;
 .extern _sample_idx;
 .global _geq_gains_C2_AUX_GEQ_05;
-.var _geq_gains_C2_AUX_GEQ_05[28];              /* per-band gain (display) */
+.var _geq_gains_C2_AUX_GEQ_05[28];              /* per-band gain, dB — the landed contract's cell */
+.global _geq_dirty_C2_AUX_GEQ_05;
+.var _geq_dirty_C2_AUX_GEQ_05 = 0;                   /* set by the SPI handler; cleared by the design */
 
 #if DSP4_BQ_FLOAT
 .global _geq_coeffs_A_C2_AUX_GEQ_05;
@@ -99,8 +101,18 @@
 #if DSP4_BQ_GUARD
 .extern _bq_hr_node1;
 #endif
+#if DSP4_GEQ_DESIGN
+.extern _geq_design_N;
+.extern _geq_band_28;
+#endif
 .global _C2_AUX_GEQ_05_process;
 _C2_AUX_GEQ_05_process:
+#if DSP4_GEQ_DESIGN
+    /* ---- band design (control rate; lib/geq_design_fx.asm) ---- */
+    r4 = dm(_geq_dirty_C2_AUX_GEQ_05);
+    r4 = pass r4;
+    if ne call _geq_redesign_C2_AUX_GEQ_05;
+#endif
 #if DSP4_BLOCK_KERNELS
     /* ---- chip-2 per-block steady state (review finding D16) ----
      *
@@ -405,4 +417,20 @@ _geq_start_xfade_C2_AUX_GEQ_05:
     r4 = 0;
     dm(_geq_xfade_alpha_C2_AUX_GEQ_05) = r4;
     rts;
+#if DSP4_GEQ_DESIGN
+_geq_redesign_C2_AUX_GEQ_05:
+    /* Cleared FIRST: a write that lands while the design is
+     * running must leave the flag set for the next block, not be
+     * cleared by the run that did not see it. */
+    r4 = 0;
+    dm(_geq_dirty_C2_AUX_GEQ_05) = r4;
+    i0 = _geq_gains_C2_AUX_GEQ_05;
+    i1 = _geq_band_28;
+    i2 = _geq_coeffs_next_C2_AUX_GEQ_05;
+    r4 = 28;
+    call _geq_design_N;
+    r4 = 1;
+    dm(_geq_swap_pending_C2_AUX_GEQ_05) = r4;
+    rts;
+#endif
 _C2_AUX_GEQ_05_process.end:

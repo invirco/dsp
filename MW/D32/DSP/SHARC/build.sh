@@ -558,6 +558,21 @@ DSP4_MTR_OFF="${DSP4_MTR_OFF:-0}"
 ASMFLAGS="$ASMFLAGS -DDSP4_MTR_NOFOLD=$DSP4_MTR_NOFOLD -DDSP4_MTR_NOCVT=$DSP4_MTR_NOCVT -DDSP4_MTR_NOSQRT=$DSP4_MTR_NOSQRT -DDSP4_MTR_OFF=$DSP4_MTR_OFF"
 
 DSP4_COMP_NOCVT="${DSP4_COMP_NOCVT:-0}"
+# THE GRAPHIC EQ'S BAND DESIGN (2026-09-08). The GEQ kernel has always
+# been a real N-stage cascade; what did not exist was the step from the
+# contract's ONE GAIN PER BAND to five coefficients, so every GEQ in the
+# product passed its input through (measured on the part: the active bank
+# never moved off its compiled identity). 1 turns the design on --
+# src/lib/geq_design_fx.asm, tables from src/geq_tables.asm, modelled by
+# tools/dsp/geq_ref.py.
+#
+# 0 REMOVES THE DESIGN AND ITS COST, NOT THE WHOLE CHANGE, and that is
+# said here rather than left to be discovered: the dispatch points the
+# band cells at _geq_gains_<nid> and the handler carries the recompute
+# table whatever this flag says, so 0 is NOT a byte-for-byte rebuild of
+# the inert image. What the two arms isolate is the DESIGN's cycles.
+DSP4_GEQ_DESIGN="${DSP4_GEQ_DESIGN:-1}"
+ASMFLAGS="$ASMFLAGS -DDSP4_GEQ_DESIGN=$DSP4_GEQ_DESIGN"
 # Run the node graph only every Nth block (measurement, not a mode).
 DSP4_BLOCK_DECIMATE="${DSP4_BLOCK_DECIMATE:-1}"
 # Keep only the first N channel strips (0 = all). Unlike DSP4_NODE_LIMIT

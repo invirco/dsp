@@ -92,6 +92,7 @@
  * 6 FxSend) and +1/+2/+3 would land on the next crosspoint. */
 .extern _spi_dispatch_c2_stride;
 .extern _spi_dispatch_c2_convert;
+.extern _spi_dispatch_c2_dirty;
 .extern _spi_dispatch_c2_spms;
 
 /* ---- WIRE-UNIT CONVERSION AT THE SPI BOUNDARY ------------------------
@@ -335,7 +336,7 @@ _spi2_rx_work:
     if eq jump (pc, .spi_instant);
 
     call _ramp_set_target;
-    jump (pc, .spi_write_answer);
+    jump (pc, .spi_mark_dirty);
 
 .spi_instant:
     /* Profile-0 write. Look the address up again from scratch: this label is
@@ -368,11 +369,45 @@ _spi2_rx_work:
     r3 = 0;                      /* frames */
     r4 = r5;                     /* stride */
     call _ramp_set_target;
-    jump (pc, .spi_write_answer);
+    jump (pc, .spi_mark_dirty);
 
 .spi_instant_plain:
     i1 = r4;
     dm(i1, 0) = r1;              /* write coefficient to target */
+
+.spi_mark_dirty:
+    /* ---- RECOMPUTE FLAG (generated side table) ----
+     *
+     * Most addresses carry the kernel's own word and there is nothing
+     * left to do once it is stored. Some carry a DESIGN PARAMETER: a
+     * GEQ band's gain in dB is one number standing for five coefficient
+     * words, and the kernel has to be told it arrived. EQ_BIQUAD gets a
+     * swap-trigger cell of its own for this; a GEQ node has none,
+     * because the contract spends all 28 of its addresses on bands.
+     *
+     * _spi_dispatch_c2_dirty has the same length and indexing as the
+     * dispatch table: 0 for an address with nothing to recompute, and
+     * otherwise the DM address of a flag to raise. The node clears it
+     * when it has redesigned. Two loads and a compare on every
+     * parameter write; nothing at all on a block that has no writes,
+     * which is the alternative this replaces (28 gains compared against
+     * a shadow, on seventeen nodes, every block).
+     *
+     * ONLY THE THREE PARAMETER PATHS REACH HERE. .spi_error,
+     * .spi_config and .spi_diag_write still jump straight to the
+     * answer: their r2 is not an index into this table.
+     */
+    r2 = dm(_spi_req_addr);
+    i0 = _spi_dispatch_c2_dirty;
+    m0 = r2;
+    modify(i0, m0);
+    r4 = dm(i0, 0);
+    r5 = 0;
+    comp(r4, r5);
+    if eq jump (pc, .spi_write_answer);
+    i1 = r4;
+    r5 = 1;
+    dm(i1, 0) = r5;
     jump (pc, .spi_write_answer);
 
 .spi_config:

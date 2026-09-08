@@ -709,6 +709,7 @@ Extends the D24 codegen with:
 
 import csv
 import re
+import struct
 import sys
 import os
 from textwrap import dedent
@@ -6206,7 +6207,8 @@ def _fx_blend_asm(pfx, nid):
 {_xfade_blend_core(pfx, nid)}"""
 
 
-def _fx_cascade_node(node, pfx, stages, extra_dm='', extra_store=''):
+def _fx_cascade_node(node, pfx, stages, extra_dm='', extra_store='',
+                     design=''):
     """Fixed-point single-cascade crossfade node body (EQ/GEQ/AFB idiom).
 
     Mirrors the float dual-instance contract exactly: float RBJ staging
@@ -6233,6 +6235,7 @@ def _fx_cascade_node(node, pfx, stages, extra_dm='', extra_store=''):
                        [(f'_{pfx}_coeffs_A_{nid}', f'_{pfx}_coeffs_B_{nid}',
                          stages)],
                        [])
+    dext, dpro, dsub = (design if design else ('', '', ''))
     return dedent(f"""\
         {rc}
 
@@ -6268,9 +6271,9 @@ def _fx_cascade_node(node, pfx, stages, extra_dm='', extra_store=''):
         #if DSP4_BQ_GUARD
         .extern _bq_hr_node1;
         #endif
-        .global _{nid}_process;
+{dext}        .global _{nid}_process;
         _{nid}_process:
-{blk_body}
+{dpro}{blk_body}
             r4 = dm(_{pfx}_swap_pending_{nid});
             {hrpend}
             r4 = pass r4;
@@ -6372,7 +6375,7 @@ def _fx_cascade_node(node, pfx, stages, extra_dm='', extra_store=''):
             r4 = 0;
             dm(_{pfx}_xfade_alpha_{nid}) = r4;
             rts;
-        _{nid}_process.end:
+{dsub}        _{nid}_process.end:
     """)
 
 
@@ -6456,11 +6459,73 @@ _C2_CASCADE_BLK = """\
 """
 
 
+def _geq_design_hook(nid, bands):
+    """The band design, called at control rate from the node.
+
+    _geq_gains_<nid> IS THE LANDED CONTRACT'S CELL. `Aux001Geq001..028`
+    carry one gain in dB each (Table `0=-12/127=12/[Lin]`), and the SPI
+    dispatch now points them here instead of at _geq_coeffs_next, where
+    28 words of a 140-word coefficient array used to be overwritten with
+    raw dB floats that nothing ever swapped in (measured on the part
+    2026-09-08: every GEQ in the product passed its input through).
+
+    THE TRIGGER IS THE GENERATED DIRTY TABLE, not a poll. A GEQ has no
+    swap-trigger cell in the contract the way EQ_BIQUAD does -- the
+    contract spends all 28 of its addresses on bands -- so the SPI
+    handler raises _geq_dirty_<nid> from _spi_dispatch_cN_dirty[] on a
+    write to any of them, and the node redesigns on its next block. The
+    alternative, comparing 28 gains against a shadow every block on
+    seventeen nodes, is about a thousand cycles a block spent finding
+    out that nothing changed.
+
+    The design runs BEFORE the block kernel and before the swap check,
+    so the swap it raises is honoured on the same block rather than the
+    next one.
+    """
+    ext = f"""\
+        #if DSP4_GEQ_DESIGN
+        .extern _geq_design_N;
+        .extern _geq_band_{bands};
+        #endif
+"""
+    pro = f"""\
+        #if DSP4_GEQ_DESIGN
+            /* ---- band design (control rate; lib/geq_design_fx.asm) ---- */
+            r4 = dm(_geq_dirty_{nid});
+            r4 = pass r4;
+            if ne call _geq_redesign_{nid};
+        #endif
+"""
+    sub = f"""\
+        #if DSP4_GEQ_DESIGN
+        _geq_redesign_{nid}:
+            /* Cleared FIRST: a write that lands while the design is
+             * running must leave the flag set for the next block, not be
+             * cleared by the run that did not see it. */
+            r4 = 0;
+            dm(_geq_dirty_{nid}) = r4;
+            i0 = _geq_gains_{nid};
+            i1 = _geq_band_{bands};
+            i2 = _geq_coeffs_next_{nid};
+            r4 = {bands};
+            call _geq_design_N;
+            r4 = 1;
+            dm(_geq_swap_pending_{nid}) = r4;
+            rts;
+        #endif
+"""
+    return (ext, pro, sub)
+
+
 def gen_geq_fixed(node):
     bands = int(node['params'].get('bands', '28'))
     nid = node['id']
-    extra = f"        .var _geq_gains_{nid}[{bands}];              /* per-band gain (display) */\n"
-    return _fx_cascade_node(node, 'geq', bands, extra_dm=extra)
+    extra = (f"        .var _geq_gains_{nid}[{bands}];              "
+             f"/* per-band gain, dB — the landed contract's cell */\n"
+             f"        .var _geq_dirty_{nid} = 0;                   "
+             f"/* set by the SPI handler; cleared by the design */\n")
+    return _fx_cascade_node(node, 'geq', bands, extra_dm=extra,
+                            design=_geq_design_hook(nid, bands))
 
 
 def gen_anti_fb_fixed(node):
@@ -8145,6 +8210,77 @@ def gen_mix_bus_fixed(node):
             rts;
         _{nid}_process.end:
     """)
+
+
+def gen_geq_tables(band_counts):
+    """geq_tables.asm — the constants the GEQ band design reads.
+
+    Two tables, both computed here in double precision and emitted as
+    float32 words, both NORMATIVE-BY-DERIVATION from tools/dsp/geq_ref.py
+    rather than transcribed:
+
+      _geq_exp2_poly[9]   degree-8 Chebyshev fit of 2**x on [-1, 1],
+                          ascending powers. The design's only
+                          transcendental: A = 10**(g/40) is
+                          2**(g*log2(10)/40) and the contract's +/-12 dB
+                          keeps the exponent inside +/-0.9966, so one
+                          polynomial covers the whole domain with no
+                          range reduction and no branch.
+
+      _geq_band_<N>[2N]   (alpha, k2) per band, for each band count the
+                          graph actually instantiates. alpha =
+                          sin(w0)/(2Q); k2 = 2*(1 - cos w0), which is
+                          k + 2 computed WITHOUT the cancellation that
+                          would destroy it in float32 -- at 20 Hz k2 is
+                          6.8e-6 against a k of -1.99999.
+
+    Q is the exact constant-Q third-octave value and the centres are the
+    ISO R.40 series anchored at 1 kHz; geq_ref carries both, with the
+    check that says the resulting filter is bq_float_ref.rbj_peak.
+    """
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import geq_ref as _gr
+    out = []
+    a = out.append
+    a('/* geq_tables.asm — GEQ band-design constants */')
+    a('/* AUTO-GENERATED by tools/dsp/dsp_codegen.py from geq_ref.py '
+      '— do not edit. */')
+    a('/*')
+    a(' * Band set: ISO R.40 third-octave, f_i = 1000 * 10**((i-17)/10),')
+    a(' * so 31 bands are 19.95 Hz .. 19,953 Hz (PW\'s market bar) and a')
+    a(' * smaller count is the LOWEST bands of that same series.')
+    a(' * Q = 1/(2**(1/6) - 2**(-1/6)) = %.6f, exact constant-Q third'
+      % _gr.GEQ_Q)
+    a(' * octave. Sample rate %g Hz.' % _gr.FS)
+    a(' */')
+    a('')
+    a('.section/dm seg_dmda;')
+    a('')
+    a('/* 2**x on [-1,1], ascending powers; worst relative error 2.1e-9 */')
+    a('.global _geq_exp2_poly;')
+    a('.var _geq_exp2_poly[%d] = %s;'
+      % (len(_gr.EXP2_POLY), ', '.join(_f32hex(c) for c in _gr.EXP2_POLY)))
+    a('')
+    for n in sorted(set(band_counts)):
+        vals = []
+        for i in range(n):
+            alpha, k2 = _gr.band_consts2(i)
+            vals.append(_f32hex(alpha))
+            vals.append(_f32hex(k2))
+        a('/* %d bands: %.2f Hz .. %.0f Hz, (alpha, k2) pairs */'
+          % (n, _gr.centre(0), _gr.centre(n - 1)))
+        a('.global _geq_band_%d;' % n)
+        a('.var _geq_band_%d[%d] =' % (n, 2 * n))
+        for i in range(n):
+            end = ';' if i == n - 1 else ','
+            a('    %s, %s%s   /* band %2d  %9.3f Hz */'
+              % (vals[2 * i], vals[2 * i + 1], end, i, _gr.centre(i)))
+        a('')
+    return '\n'.join(out) + '\n'
+
+
+def _f32hex(x):
+    return '0x%08X' % struct.unpack('<I', struct.pack('<f', float(x)))[0]
 
 
 def gen_block_header():
@@ -14093,6 +14229,19 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
         with open(os.path.join(output_dir, 'rtg_fabric.asm'), 'w',
                   encoding='utf-8') as f:
             f.write(gen_rtg_fabric())
+        files_written += 1
+
+    # geq_tables.asm — the GEQ band-design constants, for every band count
+    # the graph instantiates. Written unconditionally: the file is small,
+    # every symbol in it is referenced only from inside #if DSP4_GEQ_DESIGN,
+    # and a tree that carries a table for a band count it no longer has is
+    # exactly the stale-generated-file failure this repo has had before.
+    _geq_counts = sorted({int(n['params'].get('bands', '28'))
+                          for n in nodes if n['type'] == 'GEQ'})
+    if _geq_counts:
+        with open(os.path.join(output_dir, 'geq_tables.asm'), 'w',
+                  encoding='utf-8') as f:
+            f.write(gen_geq_tables(_geq_counts))
         files_written += 1
 
     # dsp_block.h is NOT fixed-mode-only: it is the block-size contract the

@@ -167,6 +167,10 @@ cell_map = {}
 # dispatch:  (chip, spi_addr) -> (asm_symbol, comment)
 dispatch = {}
 
+# dirty:  (chip, spi_addr) -> asm symbol of a flag the SPI handler raises
+# when this address is written. See add_dirty_block().
+dirty = {}
+
 # extern set: all unique ASM symbols needed in dsp_params.asm
 externs = set()
 
@@ -261,6 +265,27 @@ def add_dispatch(chip, spi_addr, asm_symbol, comment=''):
         # Extract the base symbol (before any + offset)
         base = asm_symbol.split('+')[0].strip().lstrip('_')
         externs.add('_' + base if not asm_symbol.startswith('_') else asm_symbol.split('+')[0].strip())
+
+
+def add_dirty_block(chip, base_addr, count, flag_sym):
+    """Mark a run of addresses as needing a kernel-side RECOMPUTE.
+
+    Some families carry a DESIGN PARAMETER on the wire rather than a
+    coefficient -- a GEQ band's gain in dB is one number that stands for
+    five coefficient words -- and the kernel has to be told the word
+    arrived. EQ_BIQUAD solves this with a swap-trigger cell of its own;
+    a GEQ node has no address to spare for one, because the contract
+    spends all of them on bands.
+
+    So the flag is raised by the SPI handler, off a table with the same
+    length and indexing as the dispatch table: a write to any of these
+    addresses stores 1 at `flag_sym`, and the node clears it when it has
+    redesigned. Nothing polls, and an address with no entry costs the
+    handler one load and one compare.
+    """
+    for i in range(count):
+        dirty[(int(chip), base_addr + i)] = flag_sym
+    externs.add(flag_sym)
 
 
 def add_dispatch_block(chip, base_addr, asm_array_sym, count, comment_prefix=''):
@@ -571,12 +596,27 @@ def expand_routing(node, cat, inst):
 # ── GEQ ──────────────────────────────────────────────────────────────────
 def expand_geq(node, cat, inst):
     chip, pg, base, nid, ramp = _parse_node(node)
-    # 28 SPI words: gains[28] staging buffer → crossfade swap
+    # 28 SPI words: ONE GAIN IN dB PER BAND.
+    #
+    # These used to be dispatched to `_geq_coeffs_next_<nid>` -- 28 words
+    # of a 140-word coefficient array, one fifth of a five-word stage
+    # each, with no trigger to swap them in. The comment on this loop has
+    # said "gains[28]" since it was written; the dispatch line said
+    # something else, and the part settled it on 2026-09-08: writing
+    # +/-12 dB to all 28 landed as raw dB floats in coeffs_next[0..27],
+    # the active bank stayed at its compiled identity, and every graphic
+    # EQ in the product passed its input through untouched.
+    #
+    # 28 addresses cannot carry 140 coefficients plus a trigger, so the
+    # design belongs on the DSP (src/lib/geq_design_fx.asm, modelled by
+    # tools/dsp/geq_ref.py) and these cells carry what the contract says
+    # they carry.
     for b in range(1, 29):
         add_cell(cn(cat, inst, 'Geq', b), chip, pg, base + (b - 1),
                  '0=-12/127=12/[Lin]', 'EqSafe')
 
-    add_dispatch_block(chip, base, f'_geq_coeffs_next_{nid}', 28, f'{nid} GEQ coeff')
+    add_dispatch_block(chip, base, f'_geq_gains_{nid}', 28, f'{nid} GEQ band gain')
+    add_dirty_block(chip, base, 28, f'_geq_dirty_{nid}')
 
 
 # ── ANTI_FB ──────────────────────────────────────────────────────────────
@@ -1610,6 +1650,41 @@ def _build_chip_params(chip_num, table_name, out_path, strides=None,
         comma = ',' if addr < size - 1 else ';'
         cmt = f'  /* 0x{addr:04X}: {comment} */' if comment else f'  /* 0x{addr:04X} */'
         lines.append(f'    {cvt_vals[addr]}{comma}{cmt}')
+    lines.append('')
+
+    # ---- Parallel RECOMPUTE (dirty) table ----
+    dirty_vals = [dirty.get((chip_num, addr), 0) for addr in range(size)]
+    dirty_n = sum(1 for v in dirty_vals if v)
+    dirty_syms = sorted({v for v in dirty_vals if v})
+    lines.append(f'/* ---- Chip {chip_num} recompute (dirty) table '
+                 f'({size} entries) ---- */')
+    lines.append('/*')
+    lines.append(' * Companion to the dispatch table above, same indexing.')
+    lines.append(' *   0   -- the written word IS the kernel word; nothing more')
+    lines.append(' *          to do')
+    lines.append(' *   sym -- the word is a DESIGN PARAMETER: the handler stores')
+    lines.append(' *          1 at `sym` and the node recomputes on its next')
+    lines.append(' *          block, then clears it')
+    lines.append(' *')
+    lines.append(' * A GEQ band gain is one number standing for five coefficient')
+    lines.append(' * words, and a GEQ node has no address left for a swap trigger')
+    lines.append(' * of the kind EQ_BIQUAD carries -- the contract spends all 28')
+    lines.append(' * of its addresses on bands. This is how the kernel is told a')
+    lines.append(' * gain arrived, instead of comparing every band against a')
+    lines.append(' * shadow on every block of every node.')
+    lines.append(' *')
+    lines.append(f' * {dirty_n} of {size} addresses raise a flag; '
+                 f'{len(dirty_syms)} distinct flags.')
+    lines.append(' */')
+    lines.append(f'.global {table_name}_dirty;')
+    lines.append(f'.var {table_name}_dirty[{size}] =')
+    for addr in range(size):
+        entry = chip_entries.get(addr)
+        comment = entry[1] if entry else ''
+        comma = ',' if addr < size - 1 else ';'
+        v = dirty_vals[addr] or '0'
+        cmt = f'  /* 0x{addr:04X}: {comment} */' if comment else f'  /* 0x{addr:04X} */'
+        lines.append(f'    {v}{comma}{cmt}')
     lines.append('')
 
     # The samples-per-millisecond constant the handler multiplies by, as
