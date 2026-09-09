@@ -1,3 +1,73 @@
+## HUB DISPATCH 2026-09-09 01:22Z — PI_TDM8 bitstream from the current slot map (fixed build.sh), flashed via JTAG, the CPLD duplex loop's LATENCY FIGURE at 48 kHz on a known bitstream; sample order re-run; shipping bitstream restored unless a proven superset   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+PI_TDM8 bitstream built from the current slot map with the fixed build.sh, flashed, and the duplex CPLD loop's LATENCY FIGURE measured at 48 kHz — the item two sessions have left undone; shipping bitstream restored unless the TDM8 build is a proven superset
+
+WHY. The virtual-audio and inert-families passes established that the
+bench's flashed bitstream `dsp4_logic.a1f6672af6c3` (built 2026-08-21)
+has NO Pi capture path (`assign pcm_din = 1'b0; // capture path to the
+Pi: future work`), that the loop measurements of 09-08 were taken on a
+different, unrecorded bitstream, and that the Pi link runs at 48 kHz
+whatever ALSA is told. `shared/dsp4-logic/build.sh` now hashes every macro
+and its manifest records the config line and `pi_link:`. The round-trip
+latency of the CPLD loop — the number the SPORT/CPLD verification story
+needs (PW 09-08: "the sport link back through CPLD should be able to
+verify all of the code") — has never been measured on a KNOWN bitstream.
+The FX and conformance sessions both ran out of time before this gate.
+
+BENCH. Rev C unit (MW-D24-2, app@192.168.1.219): matrix-app active,
+duplex loop installable by one flag (dummy codec, no GPIO), CPLD on
+`a1f6672af6c3`, ~/dspboot staged with the conformance images chip1
+602a0feb / chip2 b1325022 (the window's artifacts — do NOT replace them;
+if you need a different image for this work, stage it elsewhere and say
+so). State CPLD hash, both DSP image hashes and the overlay state at start
+and end. Rev A show model never touched. Quartus + the JTAG cable are on
+the dsp machine (state which cable/port; if the JTAG path is not usable
+from this machine tonight, STOP at gate 2 with the exact ask). No AI
+attribution in commits or any work product.
+
+GATES, in order, each witnessed:
+1. **Build.** PI_TDM8 bitstream from the CURRENT slot map with the fixed
+   `build.sh`; manifest line quoted (`pi_link:` description, every macro,
+   hash). Compare the slot map against what the DSP images and the panel
+   MCU expect — a TDM8 build that changes the DSP-facing slots is not a
+   bench convenience, it is a contract change: say whether the DSP side
+   is untouched.
+2. **Flash** via JTAG; prove the running hash from the part (readback or
+   the design's own ID register), not from the file you sent. If the flash
+   path needs hands (cable, power, a jumper), STOP with the exact ask.
+3. **Loop at 48 kHz ONLY.** The harness refuses any other rate. Duplex
+   overlay installed (one flag), dummy codec, matrix-app running. Inject a
+   known pattern (impulse and a ramp with an embedded counter) through
+   the Pi → CPLD → DSP pass-through → CPLD → Pi path; report **round-trip
+   latency in samples and ms** (mean, min, max over ≥ 20 trials and across
+   two boots), the fixed part vs the boot-to-boot part, and where it
+   sits: CPLD TDM framing, SPORT DMA block size, the DSP block (16), the
+   Pi ALSA period. A latency that changes between boots is a finding
+   about the alignment contract (net N2a) — say so.
+4. **Sample order** re-run on this known bitstream: the 09-08
+   "reorders samples" finding was withdrawn as a 192 k artefact; confirm
+   in-order delivery at 48 k with the counter pattern (0 reorders, 0
+   drops over ≥ 10 minutes).
+5. **Bitstream policy.** Reflash the shipping bitstream `a1f6672af6c3`
+   before finishing UNLESS the TDM8 build is strictly a superset (same DSP
+   slots, same panel behaviour, capture path added) AND you have proven
+   it on the part (matrix-app audio path unchanged; the golden harness's
+   hardware target green) — in which case leave it, record the new hash
+   as the bench bitstream in findings and tasks.md, and say in the status
+   line's first sentence that the bench bitstream changed.
+6. `docs/` or `MW/D32/DSP/dsp4-loop-latency-20260909.md` (the number, the
+   method, the pattern, the two-boot table), findings S5-*, tasks.md, this
+   block's status; commit + push main.
+
+Bounded: one session; gates 1–3 are the deliverable; 4–5 expected; the
+bench is left as found except as gate 5 states.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-09 00:53Z — R3–R6 review hardening as one mechanical pass (gen_dsp_csv errors, dsp_validate tightening, fixed_ref sentinel + knee test, cleanups on touched files) — NO BENCH, generated output byte-identical   [status: 🟢 done — **MOST OF R3–R5 WAS ALREADY LANDED 2026-08-27** (commits `3a3e249`/`7e6d680`/`e54bc0b`/`e0ac481`/`5d8a73f`), same night as R2, but tasks.md's status lines were never updated to say so — this session's real job turned out to be verifying that against current HEAD, closing the two genuine gaps (R3's and R4's missing tests), and doing R6's one still-queued cleanup on a touched file. **R3**: gen_dsp_csv.py's GEQ-insertion StopIteration and sport_map pre-flight were already fixed; added the owed test (`test_geq_splice.py`, 5/5) by extracting the splice-then-relink logic into `geq_splice.relink_and_insert()` — which is also R6's "single-pass GEQ insertion" (was pop+relink-loop+next()-lookup+insert per call site, now one pass), and as a side effect now verifies BOTH chain ends before relinking (the group-GEQ call site previously only checked the upstream id). **R4**: dsp_validate.py's duplicate-ID rejection and param/reference cross-checks were already landed; added the owed test (`test_dsp_validate.py`, 13/13 — one malformed row per failure class: empty/duplicate id, bad chip, unknown type, unknown ramp_profile, bad ch_count, non-integer SPI addr, SPI collision, missing/unrecognized param, dangling reference, same-chip cycle). **Gate 2's "run against defs/products/{d24,d32}/dsp.csv" instruction rests on a mistaken premise, not a finding about the landed file**: those are `MW/D32/DSP/gen_dsp.py`'s matrix-cell→address maps (`_Cell,_Chip,_Page,_Addr,...`), a different schema from the node-graph `dsp.csv` (`id,chip,type,...`) that `tools/dsp/dsp_validate.py` checks — pointed at them it FATALs on "missing required columns" for every column, which is the validator correctly refusing a file that isn't its input, not a defect in either file. **R5**: fixed_ref.py's sentinel fix (raises on x<0, x==0 sentinel proven collision-free and documented) and the soft-knee `over==±half_knee` boundary test were already in `golden_harness.py`; re-verified green, nothing to change. **R6**: the two items on already-touched files (dedupe dsp_validate.py/dsp_simulate.py parse helpers, hardcode fixed_ref.py's fit coefficients) were already done 2026-08-27; single-pass GEQ insertion done this session (above). **Per R6's own rule, everything else stays queued because its file was not touched by gates 1–3**: gen_dsp.py's MCU-only-prefixes-from-config + makedirs guards (gen_dsp.py untouched), and dsp_codegen.py's marker-based template rewrites (dsp_codegen.py untouched). **Bars, before and after**: `golden_harness.py` 59/59, `dsp_validate.py` OK on the regenerated `MW/D32/DSP/SHARC/dsp.csv` (666 nodes, only the four known/expected USB/BT process-order notes, no errors). **Generated output byte-identical**: `dsp.csv` diffed byte-for-byte before/after the gen_dsp_csv.py refactor; `MW/D32/DSP/gen_dsp.py --force` re-run afterward and `git status` shows zero diff on any of its outputs (ghost_cells.h, dsp_address_map.md, dsp_params.asm, mx_dsp_map.h). No bench touched, no image built. Three commits: `92f01fe` (gen_dsp_csv.py single-pass splice + test), `da5dc33` (dsp_validate.py test).]   [model: sonnet]
 
 model: sonnet
