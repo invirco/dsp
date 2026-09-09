@@ -1872,7 +1872,8 @@ def write_ghost_cells_h(dry_run=False):
     h_lines.append(f' * frame is one audio BLOCK. Generated for DSP4_BLOCK_SIZE ='
                    f' {DSP_BLOCK}')
     h_lines.append(f' * ({FRAME_MS:.4f} ms/frame at 48 kHz). Change the block size in')
-    h_lines.append(f' * tools/dsp/dsp_codegen.py and REGENERATE: these counts move with it.')
+    h_lines.append(f' * MW/D32/DSP/SHARC/shipping.config and REGENERATE: these counts')
+    h_lines.append(f' * move with it, and so does the panel MCU copy of this file.')
     h_lines.append(' */')
     h_lines.append('#ifndef GHOST_CELLS_H')
     h_lines.append('#define GHOST_CELLS_H')

@@ -28,7 +28,7 @@
  *
  *     bits 31..8  block counter, incremented once per block
  *     bit  4      0 = the active TX buffer is ping, 1 = pong
- *     bits 2..0   sample index within the block
+ *     bits 3..0   sample index within the block (BLOCK <= 16)
  *
  * The stamp is in order BY CONSTRUCTION. So the capture decides it:
  *   - stamps arrive monotonic  => the buffer->wire path is in order and
@@ -40,22 +40,37 @@
  * It costs the audio nothing: slot 1 carries no product signal.
  *======================================================================*/
 
+#include "dsp_block.h"      /* DSP4_BLOCK_SIZE */
+
 #ifndef DSP4_TXPROBE
 #define DSP4_TXPROBE 0
 #endif
 
 #if DSP4_TXPROBE && CHIP_ID == 2
 
-/* Region word offset and per-sample stride of chip 2's TX lane 3 slot 1.
- * Slot 0 is _c2_tx_off[18] = 192 / _c2_tx_stride[18] = 8 in the
- * generated chip2/block_io.asm; slot 1 is the next word of the same
- * window. Overridable so a different lane can be stamped without
- * editing this file. */
-#ifndef DSP4_TXPROBE_OFF
-#define DSP4_TXPROBE_OFF 193
+/* WHICH LANE IS STAMPED — READ FROM THE GENERATED TABLES, NOT TYPED.
+ *
+ * Slot 0 of chip 2's TX lane 3 is _c2_tx_ptrs[18] = _tx_out_slot_
+ * C2_MAIN_ST_OUT, at _c2_tx_off[18] with per-sample stride
+ * _c2_tx_stride[18]; slot 1 is the next word of the same window. This
+ * file used to carry the offset as the literal 193, which was
+ * _c2_tx_off[18] + 1 read off a BLOCK=8 tree. The TX region holds BLOCK
+ * frames, so the offset MOVED to 385 the moment the tree was generated
+ * at block 16 (2026-09-09) and the instrument would have stamped a word
+ * belonging to another lane while still looking like it worked. The
+ * index is the only thing named here.
+ */
+#ifndef DSP4_TXPROBE_LANE
+#define DSP4_TXPROBE_LANE 18
 #endif
-#ifndef DSP4_TXPROBE_STRIDE
-#define DSP4_TXPROBE_STRIDE 8
+
+.extern _c2_tx_off;
+.extern _c2_tx_stride;
+
+/* The stamp packs the sample index into the low bits and the ping/pong
+ * marker at bit 4, so a block bigger than 16 samples would overlap them. */
+#if DSP4_BLOCK_SIZE > 16
+#error "tx_probe.asm: the stamp's sample field is 4 bits; BLOCK > 16 needs a new layout"
 #endif
 
 .section/dm seg_dmda;
@@ -80,7 +95,7 @@ _tx_probe_tick:
 _tx_probe_tick.end:
 
 /*----------------------------------------------------------------------
- * _tx_probe_stamp — r0 = sample index (0..7). Call AFTER _gather_chip2
+ * _tx_probe_stamp — r0 = sample index (0..BLOCK-1). Call AFTER _gather_chip2
  * for the same sample, so the stamp and the audio word land in the same
  * frame of the same buffer half. Clobbers r1-r5 and i4; the chip-2
  * sample loop reloads r5/r6 from _sample_idx/BLOCK_SIZE after the
@@ -89,18 +104,26 @@ _tx_probe_tick.end:
 .global _tx_probe_stamp;
 _tx_probe_stamp:
     r1 = dm(_tx_active_buf);        /* the half the gather just wrote */
-    r2 = DSP4_TXPROBE_STRIDE;
+    /* Address arithmetic in the data registers rather than through a
+     * modifier: the sample loop owns the M registers and this is called
+     * from inside it. Same pattern as diag.asm's _scope_buf indexing. */
+    r2 = _c2_tx_stride + DSP4_TXPROBE_LANE;
+    i4 = r2;
+    r2 = dm(i4, 0);                 /* per-sample stride of the lane */
     r2 = r0 * r2 (SSI);
-    r3 = DSP4_TXPROBE_OFF;
+    r3 = _c2_tx_off + DSP4_TXPROBE_LANE;
+    i4 = r3;
+    r3 = dm(i4, 0);                 /* slot 0 of the lane */
+    r3 = r3 + 1;                    /* slot 1: driven, written by no node */
     r2 = r2 + r3;
     r2 = r1 + r2;
     i4 = r2;
 
     r3 = dm(_tx_blk_ctr);
     r3 = lshift r3 by 8;
-    r4 = 7;
+    r4 = DSP4_BLOCK_SIZE-1;
     r4 = r0 and r4;
-    r3 = r3 or r4;                  /* sample index, bits 2..0 */
+    r3 = r3 or r4;                  /* sample index, bits 3..0 */
 
     r5 = dm(_tx_ping_w);
     comp(r1, r5);

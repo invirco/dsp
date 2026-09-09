@@ -19,7 +19,7 @@ instrument writes into slot 1 of the SAME frame of the SAME buffer half:
 
     bits 31..8  N        the block counter, incremented once per block
     bit  4      half     0 = the active TX buffer is ping, 1 = pong
-    bits 2..0   s        the sample index inside the block
+    bits 3..0   s        the sample index inside the block (BLOCK <= 16)
 
 The _maincap LOGIC build presents slot 0 as the capture's LEFT channel and
 slot 1 as its RIGHT, latched together from ONE DSP frame (S7-1), so a
@@ -46,7 +46,15 @@ from collections import Counter
 
 DEV = "hw:dsp4pcm,0"
 RATE = 48000
-BLOCK = 8
+# BLOCK is a build parameter and this tool decodes a field whose width
+# follows it. It was the literal 8 until 2026-09-09, which would have
+# silently mis-decoded every block-16 stamp -- the same class of mistake as
+# the defect it exists to measure (findings S8-2). dsp4_block.py is generated
+# beside the image and staged with it.
+try:
+    from dsp4_block import BLOCK
+except ImportError:                       # off-target
+    BLOCK = 16
 
 
 def s32(v):
@@ -102,7 +110,8 @@ def main():
             print("    " + "  ".join("%08x/%08x" % (L[j], R[j])
                                      for j in range(i, min(i + BLOCK, m))))
 
-    blk = [(R[i] >> 8, (R[i] >> 4) & 1, R[i] & 7) for i in range(r0, r1 + 1)]
+    blk = [(R[i] >> 8, (R[i] >> 4) & 1, R[i] & (BLOCK - 1))
+           for i in range(r0, r1 + 1)]
     # A stamp is well-formed if its sample field matches its position in
     # the recorded stream once the stream is aligned to a block boundary.
     phase = None

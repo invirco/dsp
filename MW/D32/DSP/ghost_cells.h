@@ -6,9 +6,10 @@
  * The actual array is defined in ghost_cells.c (one translation unit).
  *
  * ramp_up_frames / ramp_down_frames are RAMP-ENGINE FRAMES, and a
- * frame is one audio BLOCK. Generated for DSP4_BLOCK_SIZE = 8
- * (0.1667 ms/frame at 48 kHz). Change the block size in
- * tools/dsp/dsp_codegen.py and REGENERATE: these counts move with it.
+ * frame is one audio BLOCK. Generated for DSP4_BLOCK_SIZE = 16
+ * (0.3333 ms/frame at 48 kHz). Change the block size in
+ * MW/D32/DSP/SHARC/shipping.config and REGENERATE: these counts
+ * move with it, and so does the panel MCU copy of this file.
  */
 #ifndef GHOST_CELLS_H
 #define GHOST_CELLS_H
