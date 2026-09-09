@@ -105,7 +105,7 @@
 #define PRB_INNER   (DSP4_BLOCK_SIZE - 1)
 #define PRB_LSTAGES 7
 #define PRB_LINNER  60
-#define PRB_RUNGS   22
+#define PRB_RUNGS   24
 #define PRB_REPS    5
 #define PRB_ITERS   32
 #define PRB_BUF     128
@@ -152,11 +152,13 @@
 .var _prb_a1[2] = 0.5,   0.5;
 .var _prb_a2[2] = 0.25,  0.25;
 
-.section/dm seg_pmda;
-/* The PM-resident store target for rung 11. seg_pmda maps into
- * mem_block2_bw, a DIFFERENT block from seg_dmda's block 0/1 -- which is
- * the whole point of the rung. */
-.global _prb_pdst;  .var _prb_pdst[PRB_BUF];
+/* Rung 11's store target, reached over the PM BUS but resident in ORDINARY
+ * DM. L1 blocks are addressable from both buses on this core, so what the
+ * rung isolates is the bus and not the memory: same array, same block,
+ * same everything except which bus the store rides. seg_pmda was the first
+ * home and is not usable -- it shares memory block 2 with the seg_pmco
+ * code overflow, and adding the six-slot rungs filled the last of it. */
+.global _prb_pdst;  .var _prb_pdst[32];
 
 .section/pm seg_pmco;
 .extern _diag_ticks;
@@ -382,6 +384,22 @@ _prb_selftest:
         call _prb_p5_stage;
         nop;
     .prb_r21: nop;
+    PRB_T
+
+    PRB_T
+    r10 = dm(_prb_iters);
+    lcntr = r10, do .prb_r22 until lce;
+        call _prb_q6;
+        nop;
+    .prb_r22: nop;
+    PRB_T
+
+    PRB_T
+    r10 = dm(_prb_iters);
+    lcntr = r10, do .prb_r23 until lce;
+        call _prb_q6_stage;
+        nop;
+    .prb_r23: nop;
     PRB_T
 
     r0 = dm(_prb_rep);
@@ -654,6 +672,80 @@ _prb_p5_stage:
     .prb_pgo: nop;
     PRB_EPILOGUE
 _prb_p5_stage.end:
+
+/* ---- rungs 22-23: THE SIX-SLOT SCHEDULE (S14-3), the same eleven
+ * operations in six instructions with every dependence at least two slots
+ * deep, and the same body plus the real per-stage code. Rung 22 against
+ * rung 8 is the whole finding: SIX instructions that do not stall beat
+ * FIVE that do. ---- */
+.global _prb_q6;
+_prb_q6:
+    PRB_PROLOGUE
+    f3 = pass f2;                   /* a2 into the standalone slot's X */
+    lcntr = PRB_STAGES, do .prb_q6o until lce;
+        PRB_PTRS
+        lcntr = PRB_INNER, do .prb_q6i until lce;
+            f14 = f0 * f4, f10 = f8 - f12;
+            f15 = f0 * f5, f11 = f9 - f13;
+            f9  = f0 * f6, f1  = f10 + f14;
+            f8  = f11 + f15, f0 = dm(i2, 2);
+            f12 = f1 * f7, dm(i3, 2) = f1;
+        .prb_q6i: f13 = f3 * f1;
+    .prb_q6o: nop;
+    PRB_EPILOGUE
+_prb_q6.end:
+
+.global _prb_q6_stage;
+_prb_q6_stage:
+    PRB_PROLOGUE
+    r15 = 10;
+    m3 = r15;
+    i0 = _prb_coef;
+    i1 = _prb_st;
+    lcntr = PRB_STAGES, do .prb_qso until lce;
+        PRB_PTRS
+        f4 = dm(i0, 2);
+        f5 = dm(i0, 2);
+        f6 = dm(i0, 2);
+        f7 = dm(i0, 2);
+        f2 = dm(i0, 2);
+        f3 = f4 + f4;
+        f5 = f5 - f3;
+        f6 = f6 + f4;
+        f3 = dm(_prb_two);
+        f7 = f7 - f3;
+        f3 = dm(_prb_one);
+        f2 = f3 - f2;
+        f8  = dm(i1, 2);
+        f10 = dm(i1, 0);
+        i3 = i2;
+        f8 = pass f8;
+        f9 = pass f10;
+        r12 = 0;
+        r13 = 0;
+        f3 = pass f2;
+        f0 = dm(i2, 2);
+        lcntr = PRB_INNER, do .prb_qsi until lce;
+            f14 = f0 * f4, f10 = f8 - f12;
+            f15 = f0 * f5, f11 = f9 - f13;
+            f9  = f0 * f6, f1  = f10 + f14;
+            f8  = f11 + f15, f0 = dm(i2, 2);
+            f12 = f1 * f7, dm(i3, 2) = f1;
+        .prb_qsi: f13 = f3 * f1;
+        f14 = f0 * f4, f10 = f8 - f12;
+        f15 = f0 * f5, f11 = f9 - f13;
+        f9  = f0 * f6, f1  = f10 + f14;
+        f8  = f11 + f15;
+        f12 = f1 * f7, dm(i3, 2) = f1;
+        f13 = f3 * f1;
+        f8  = f8 - f12;
+        f10 = f9 - f13;
+        dm(i1, -2) = f10;
+        dm(i1, 2)  = f8;
+        modify(i1, m3);
+    .prb_qso: nop;
+    PRB_EPILOGUE
+_prb_q6_stage.end:
 
 /* ---- rung 9: THE SAME FIVE INSTRUCTION FORMS, EVERY DEPENDENCE
  * BROKEN. Multiplier X from R0-R3 and Y from R4-R7, ALU X from R8-R11

@@ -1630,8 +1630,8 @@ _bq_fx_convert_N.end:
  * is what hung the part on 2026-08-28.
  *
  * CLOBBERS r0-r15 and i0-i2, and i3 as well when DSP4_BQ_SIMD_PIPE is on
- * (the pipelined loop's store pointer runs one pair behind its read
- * pointer, so it needs a second index register). Both callers already
+ * (both pipelined schedules' store pointer runs behind their read
+ * pointer, so they need a second index register). Both callers already
  * reload every index register they use after the call -- chip 1's
  * `_bq_pair_blk` restores i0/i1/i2 from `_bqp_save` and the block bases,
  * and chip 2's pair drivers reload i2/i3/i4 as link-time constants --
@@ -1641,7 +1641,7 @@ _bq_fx_convert_N.end:
 _bq_fx_cascade_simd:
     l0 = 0; l1 = 0; l2 = 0;
 #if DSP4_BQ_SIMD_PIPE
-    l3 = 0;                         /* the pipelined loop's store pointer */
+    l3 = 0;                         /* the pipelined loops' store pointer */
 #endif
     r15 = -2*DSP4_BLOCK_SIZE;
     m2 = r15;                       /* rewind the interleaved block */
@@ -1687,7 +1687,113 @@ _bq_fx_cascade_simd:
         f8  = dm(i1, 2);            /* w1 pair, i1 -> base+2 */
         f10 = dm(i1, 0);            /* w2 pair, i1 parked    */
 
-#if DSP4_BQ_SIMD_PIPE
+#if DSP4_BQ_SIMD_PIPE == 2
+        /* ---- THE SIX-SLOT SAMPLE LOOP (S14-3, 2026-09-09) ----
+         *
+         * Same eleven operations per sample per stage, same operands, same
+         * order of the ADDITIONS as both loops below -- so it is bit-exact
+         * against them by construction, not by measurement -- scheduled so
+         * that NOTHING STALLS.
+         *
+         * WHY SIX INSTRUCTIONS ARE FASTER THAN FIVE. bq_probe.asm measured
+         * the rule this part's Hardware Reference does not state anywhere
+         * (it has no core chapter at all: no pipeline depth, no compute
+         * latency, and every "stall" in its 101,300 lines is peripheral
+         * flow control). On the part, minimum of five repeats:
+         *
+         *   instructions issue at exactly 1.000 cycles each;
+         *   a COMPUTE result is NOT readable by the next instruction --
+         *   every producer->consumer edge between ADJACENT instructions
+         *   costs exactly one extra cycle, and the cost is identical for
+         *   mul->mul, ALU->ALU and mul<->ALU (0.984, three ways);
+         *   a memory LOAD's result IS readable next instruction, free;
+         *   the DM bus is not the constraint (the two moves cost 0.009)
+         *   and neither is the SIMD pair (PEYEN on vs off, 0.026).
+         *
+         * Under that rule the five-instruction loop below costs 5 issue +
+         * 4 stalls = 9, and the eight-instruction one 8 + 2 = 10 -- which
+         * is the whole of why S13-5's 8->5 rewrite bought 5.5 % where the
+         * instruction count predicted 25 %. Instruction count was never
+         * the binding resource.
+         *
+         * WHAT IS. The LOOP-CARRIED DEPENDENCE CHAIN. For this arithmetic
+         * it is y -> q1 -> w1' -> y: three dependent operations, two
+         * cycles an edge, SIX cycles per sample, against five
+         * instructions to issue. Six slots is therefore the exact floor
+         * for a schedule that keeps the arithmetic, and this is a
+         * schedule that reaches it -- every dependence at least two slots
+         * deep, nothing adjacent, no stall anywhere:
+         *
+         *   S1  p0 = x*b0    w1  = t  - q1
+         *   S2  p1 = x*b1    w2  = p2 - q2
+         *   S3  p2 = x*b2    y   = w1 + p0
+         *   S4                t  = w2 + p1     load  x(n+1)
+         *   S5  q1 = y*a1                      store y(n)
+         *   S6  q2 = a2*y
+         *
+         * GOING BELOW SIX MEANS CHANGING THE ARITHMETIC. Folding
+         * B1 = b1 - a1*b0 and B2 = b2 - a2*b0 at design time shortens the
+         * recurrence to two operations -- w1 -> a1*w1 -> w1' -- for a
+         * four-cycle floor against the same five instructions, so five
+         * would then be issue-bound and reachable. It is NOT bit-exact
+         * (different rounding sequence) and is not taken here; it is the
+         * next lever, and it needs a ULP bound and a ruling first.
+         *
+         * REGISTERS are placed for the dual-compute operand quadrants --
+         * the multiplier takes X from R0-R3 and Y from R4-R7, the ALU
+         * takes X from R8-R11 and Y from R12-R15 -- with a2 in f3, R0-R3,
+         * because S6 is the one multiply with no ALU partner and a
+         * standalone multiply is unrestricted. That is the same
+         * constraint, and the same answer to it, as the loop below.
+         *
+         *   f0 x    f1 y    f3 a2   f4 b0  f5 b1  f6 b2  f7 a1
+         *   f8 t    f9 p2   f10 w1  f11 w2        (the ALU's X quadrant)
+         *   f12 q1  f13 q2  f14 p0  f15 p1        (the ALU's Y quadrant)
+         *
+         * PASS 0 seeds the two ALU ops that read the previous sample:
+         * t(-1) = w1 and p2(-1) = w2 with q1(-1) = q2(-1) = +0.0, so S1
+         * and S2 recover the incoming state exactly -- x - 0.0 == x for
+         * every finite float, -0.0 included. That is the same seeding
+         * trick the five-slot loop already uses for w2, which bqeverify
+         * has certified at 0 ULP on the part.
+         *
+         * THE LAST PASS IS PEELED so S4's read-ahead never runs off the
+         * end of the caller's block, and the state the next block starts
+         * from is finished in the epilogue -- w1' = t - q1 and
+         * w2' = p2 - q2 of the peeled sample.
+         *
+         * Checked off the part by tools/dsp/bq_simd_pipe_check.py, which
+         * executes all THREE schedules register by register over 4,000
+         * random cascades x 4 consecutive blocks x 16 samples: zero
+         * mismatches in the outputs and in both final state words, and
+         * the pointer advance is exactly BLOCK on i2 and i3, which is
+         * what the -2*BLOCK rewind assumes.
+         */
+        i3 = i2;                    /* the store pointer, one pair behind */
+        f8 = pass f8;               /* t(-1)  = w1, already in f8 */
+        f9 = pass f10;              /* p2(-1) = w2 */
+        r12 = 0;                    /* q1(-1) = +0.0 */
+        r13 = 0;                    /* q2(-1) = +0.0 */
+        f3 = pass f2;               /* a2 into the standalone slot's X */
+        f0 = dm(i2, 2);             /* x(0), i2 -> x(1) */
+        lcntr = DSP4_BLOCK_SIZE-1, do .bqfl_qsamp until lce;
+            f14 = f0 * f4, f10 = f8 - f12;
+            f15 = f0 * f5, f11 = f9 - f13;
+            f9  = f0 * f6, f1  = f10 + f14;
+            f8  = f11 + f15, f0 = dm(i2, 2);
+            f12 = f1 * f7, dm(i3, 2) = f1;
+        .bqfl_qsamp: f13 = f3 * f1;
+        /* the peeled last sample: the same six, without the read-ahead */
+        f14 = f0 * f4, f10 = f8 - f12;
+        f15 = f0 * f5, f11 = f9 - f13;
+        f9  = f0 * f6, f1  = f10 + f14;
+        f8  = f11 + f15;
+        f12 = f1 * f7, dm(i3, 2) = f1;
+        f13 = f3 * f1;
+        /* the state the next block starts from */
+        f8  = f8 - f12;             /* w1' */
+        f10 = f9 - f13;             /* w2' */
+#elif DSP4_BQ_SIMD_PIPE == 1
         /* ---- THE PIPELINED SAMPLE LOOP (S13-5, 2026-09-09) ----
          *
          * Same eleven operations per sample per stage, same operands, same

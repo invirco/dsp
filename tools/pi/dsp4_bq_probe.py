@@ -58,6 +58,8 @@ RUNGS = [
     ('19 OLD8_FREE  the same 8 forms, deps broken',        8, 'old'),
     ('20 PIPE5_LONG the body in a 60-trip loop',           5, 'struct'),
     ('21 PIPE5_STG  the body + the real per-stage code',   5, 'struct'),
+    ('22 SIX6       THE SIX-SLOT BODY, no stall anywhere', 6, 'six'),
+    ('23 SIX6_STG   the six-slot body + per-stage code',   6, 'six'),
 ]
 
 # The deltas that carry the finding, as (label, rung_b, rung_a, divisor,
@@ -81,6 +83,9 @@ DELTAS = [
     ('old body vs new body',                  18,  8, 1),
     ('a 15-trip loop vs a 60-trip loop',       8, 20, 1),
     ('the real per-stage prologue+epilogue',  21,  8, 1),
+    ('SIX SLOTS vs FIVE, the inner loop',      8, 22, 1),
+    ('SIX SLOTS vs FIVE, body + per-stage',   21, 23, 1),
+    ('SIX SLOTS vs the OLD eight',            18, 22, 1),
 ]
 
 
