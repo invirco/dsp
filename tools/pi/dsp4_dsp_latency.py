@@ -1,0 +1,142 @@
+#!/usr/bin/env python3
+"""dsp4_dsp_latency.py -- loop latency through a path that is NOT bit-transparent.
+
+`dsp4_loop_latency.py` recovers latency by having every captured word vote
+for an offset, which needs the loop to return the stimulus unchanged. That
+holds for the LOGIC-only loop (_pisel) and NOT for the through-DSP arm: the
+DSP delivers each sample at the right position inside its 8-sample block
+but from the wrong block (findings 2026-09-09), so only about a third of
+the words are where they belong and a per-word vote finds spurious modes --
+which is exactly how the 14,550 figure in the 2026-09-08 note was produced.
+
+The fix is not a better decoder but an honest statistic. A staircase is
+played, every candidate offset is SCORED by the fraction of captured frames
+that carry the exact expected value, and the answer is reported only with
+its margin over the runner-up. A coherent fraction of a third still puts a
+sharp peak at the true offset; a spurious mode does not have one, and the
+margin says which happened.
+
+    python3 dsp4_dsp_latency.py --reps 20
+    python3 dsp4_dsp_latency.py --reps 20 --tag pisel
+
+The absolute number carries the ALSA start offset (arecord is deliberately
+started PRE seconds early), so quote DIFFERENCES between arms measured the
+same way, not the raw figure.
+"""
+import argparse
+import struct
+import subprocess
+import sys
+import time
+
+DEV = "hw:dsp4pcm,0"
+RATE = 48000
+PRE = 0.30              # arecord head start, seconds
+HOLD = 64
+STEPS = 1500
+
+
+def build_stim(path, hold=None, steps=None):
+    global HOLD, STEPS
+    if hold:
+        HOLD = hold
+    if steps:
+        STEPS = steps
+    vals = []
+    for k in range(STEPS):
+        vals += [(k + 1) << 8] * HOLD
+    open(path, "wb").write(b"".join(struct.pack("<ii", v, v) for v in vals))
+    return vals
+
+
+def one_rep(seconds):
+    rec = subprocess.Popen(
+        ["arecord", "-D", DEV, "-f", "S32_LE", "-c", "2", "-r", str(RATE),
+         "-d", str(seconds), "--period-size=1024", "--buffer-size=8192",
+         "-t", "raw", "-q", "/tmp/dsp4_lat_cap.raw"], stderr=subprocess.DEVNULL)
+    time.sleep(PRE)
+    subprocess.run(["aplay", "-D", DEV, "-f", "S32_LE", "-c", "2", "-r",
+                    str(RATE), "--period-size=1024", "--buffer-size=8192",
+                    "-t", "raw", "-q", "/tmp/dsp4_lat.raw"], capture_output=True)
+    rec.wait()
+    cap = open("/tmp/dsp4_lat_cap.raw", "rb").read()
+    n = len(cap) // 8
+    f = struct.unpack("<%di" % (n * 2), cap[:n * 8])
+    return [x & 0xFFFFFFFF for x in f[0::2]]
+
+
+def score(left, lo, hi, stride=4):
+    """Exact-match fraction for every candidate offset. Returns sorted list."""
+    n = len(left)
+    out = []
+    for off in range(lo, hi):
+        hit = 0
+        tot = 0
+        i = off
+        while i < min(off + STEPS * HOLD, n):
+            k = (i - off) // HOLD
+            if left[i] == ((k + 1) << 8):
+                hit += 1
+            tot += 1
+            i += stride
+        if tot:
+            out.append((hit / tot, off))
+    out.sort(reverse=True)
+    return out
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--reps", type=int, default=20)
+    ap.add_argument("--tag", default="arm")
+    ap.add_argument("--lo", type=int, default=14380)
+    ap.add_argument("--hi", type=int, default=14780)
+    ap.add_argument("--hold", type=int, default=HOLD)
+    ap.add_argument("--steps", type=int, default=STEPS)
+    args = ap.parse_args()
+
+    build_stim("/tmp/dsp4_lat.raw", args.hold, args.steps)
+    seconds = int(STEPS * HOLD / RATE + PRE + 1.5)
+
+    results = []
+    for r in range(args.reps):
+        left = one_rep(seconds)
+        rank = score(left, args.lo, args.hi)
+        if not rank:
+            print("rep %2d: no candidate offsets scored" % r)
+            continue
+        best_f, best_off = rank[0]
+        # runner-up at least 16 samples away, so the peak's own shoulder
+        # is not mistaken for a competitor
+        # The score is flat across one plateau of the staircase, so the
+        # runner-up has to be a genuinely different alignment: at least two
+        # plateaus away, or it is the peak's own shoulder.
+        second = next((f for f, o in rank[1:] if abs(o - best_off) >= 2 * HOLD),
+                      0.0)
+        # Peak WIDTH: how many offsets score within 2% of the best. A real
+        # alignment gives about one plateau; a spurious mode gives a smear.
+        width = sum(1 for f, o in rank if f >= best_f - 0.02)
+        results.append((best_off, best_f, second))
+        print("rep %2d: offset %6d  coherent %5.1f%%  runner-up %5.1f%%  "
+              "margin x%.1f  peak width %d"
+              % (r, best_off, 100 * best_f, 100 * second,
+                 best_f / second if second else float("inf"), width))
+
+    if not results:
+        return 1
+    offs = sorted(o for o, _, _ in results)
+    print("\n%s: %d reps" % (args.tag, len(results)))
+    print("  offset  min %d  median %d  max %d  spread %d"
+          % (offs[0], offs[len(offs) // 2], offs[-1], offs[-1] - offs[0]))
+    print("  coherent fraction  min %.1f%%  max %.1f%%"
+          % (100 * min(f for _, f, _ in results),
+             100 * max(f for _, f, _ in results)))
+    worst = min((f / s if s else float("inf")) for _, f, s in results)
+    print("  worst margin over the runner-up: x%.1f" % worst)
+    if worst < 2.0:
+        print("  WARNING: a margin under 2x is not a measurement -- do not quote it")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -91,6 +91,26 @@ SRC_HASH=$(cat \
     rtl/*.v quartus/dsp4_logic.qsf quartus/dsp4_logic.sdc \
     | sha256sum | cut -c1-12)
 
+# DESIGN ID: the low 32 bits of the artifact hash, stamped into the
+# bitstream as a read-only register (S5-9). It is DERIVED here and never
+# typed, so "read the register, compare to the manifest" is a real check
+# and not a transcription. It deliberately does NOT feed SRC_HASH -- it is
+# a function of it -- so adding the stamp does not change any label.
+#
+# CFG_BITS records the same configuration the manifest's `config:` line
+# does, in one word, so a part can say what it is without a manifest to
+# hand: bit 0 loopback, 1 pi_selftest, 2 pi_maincap, 3 pi_tdm8, 4 shipping
+# (set when no non-shipping switch is set). Bits 5-15 reserved, zero.
+DESIGN_ID="32'h${SRC_HASH:4:8}"
+CFG_BITS_N=$(( (${LOOPBACK:-0} ? 1 : 0) \
+             | (${PI_SELFTEST:-0} ? 2 : 0) \
+             | (${PI_MAINCAP:-0} ? 4 : 0) \
+             | (${PI_TDM8:-0} ? 8 : 0) \
+             | ( ${#NONSHIP[@]} == 0 ? 16 : 0 ) ))
+CFG_BITS=$(printf "16'h%04X" "$CFG_BITS_N")
+MACRO_ARG+=(--verilog_macro="DSP4_DESIGN_ID=$DESIGN_ID")
+MACRO_ARG+=(--verilog_macro="DSP4_CFG_BITS=$CFG_BITS")
+
 cd quartus
 "$Q/quartus_map" dsp4_logic "${MACRO_ARG[@]}"
 "$Q/quartus_fit" dsp4_logic
@@ -120,6 +140,10 @@ cp output_files/dsp4_logic.svf "../bitstream/$NAME.$SRC_HASH.svf"
     fi
     echo "built: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
     echo "config: $CFG_LINE"
+    echo "design_id: $DESIGN_ID"
+    echo "cfg_bits: $CFG_BITS"
+    echo "id_readback: play {L=0xD5D51D1D, R=0x2A2AE2E2} on hw:dsp4pcm and"
+    echo "  record: L = design_id, R = 0xD594<cfg_bits> for 128 frames"
     echo "pi_link: $([ "${PI_TDM8:-0}" = "1" ] \
           && echo "2 ch x 32 bits at 192 kHz, 4 Pi frames per DSP frame, all 8 slots" \
           || echo "2 ch x 32 bits at 48 kHz, no regrouping, TDM slots 0/1 only")"

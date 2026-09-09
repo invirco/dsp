@@ -21,12 +21,12 @@ command -v "$IV" >/dev/null || { echo "ERROR: iverilog not found" >&2; exit 2; }
 WORK="$HERE/work"
 mkdir -p "$WORK"
 
-ALL_TBS=(tb_clkgen tb_pcm_reframe tb_logic_top)
+ALL_TBS=(tb_clkgen tb_pcm_reframe tb_pcm_capture tb_logic_top)
 TBS=("${@:-}")
 [ -z "${TBS[0]:-}" ] && TBS=("${ALL_TBS[@]}")
 
 RTL=(../rtl/dsp4_clkgen.v ../rtl/dsp4_pcm_reframe.v ../rtl/dsp4_logic_top.v)
-MODELS=(model_tdm_rx.v model_pi_i2s_tx.v)
+MODELS=(model_tdm_rx.v model_tdm_tx.v model_pi_i2s_tx.v model_pi_i2s_rx.v)
 
 fails=0
 for tb in "${TBS[@]}"; do
