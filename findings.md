@@ -2463,6 +2463,156 @@ active.
 card as two chip 1s). It is not in this tree, so `check_bench_pins.sh`
 cannot see it. Left as found and recorded.
 
+## Session 13 — 2026-09-09
+
+Write-up `MW/D32/DSP/dsp4-geq-floor-20260909.md`. Contract
+`defs-v2026.09.08.4`, unchanged. `blk_*` and `cand_*` byte-identical at the
+end of the session; the audio-correct paired pair staged BESIDE them as
+`~/dspboot/geq_chip1.ldr` `df6b847d` / `geq_chip2.ldr` `cb9bc58e`.
+
+### S13-1 — the paired chip-2 biquad graph dropped the write UPSTREAM of the latch, not at it
+
+**Severity: high (audio). Status: CLOSED.**
+
+`DSP4_C2_BQ_GRAPH=1` lost every GEQ, ANTI_FB and crossover parameter
+change because the pair driver's steady test never read the pending-DESIGN
+flag. The generator's own note asserted that "every write to the
+coefficients goes through `_<pfx>_coeffs_next_` and
+`_<pfx>_swap_pending_`", which holds only for the classes the host writes
+COEFFICIENTS to. A GEQ takes 31 band gains, an AFB six notches, a
+crossover a corner frequency: the host writes those and sets
+`_<pfx>_dirty_`, and the design that turns them into coefficients — and
+only then raises `swap_pending` — runs at the top of the NODE BODY, which
+is the body the latch exists to skip. Latched, the design never ran, so
+`swap_pending` never rose, so the latch never came down, and the pair ran
+the `.var` bypass initialisers for ever.
+
+18 of the 24 chip-2 pairs were affected (12 GEQ, 6 AFB); the 6 EQ/OEQ
+pairs and the whole of chip 1's `DSP4_BQ_GRAPH` were always correct,
+because chip 1 has no design-driven class at all. That is why the S12
+candidate read clean and only the arm that fits D32 did not.
+
+FIX: the steady test reads `_<pfx>_dirty_` for any class that has one,
+guarded on that class's `DSP4_<CLS>_DESIGN` macro (a DESIGN=0 build has
+nothing that clears dirty). Two DM reads and an OR per pair per block, in
+`tools/dsp/dsp_codegen.py::gen_bq_pairs_c2`.
+
+WITNESS: geqverify and afbverify design AND live-bank arms at 1–4 ulp with
+the switch ON, against IDENTITY and 50.9 M / 83.9 M ulp before; famverify
+GEQ and ANTI_FB both LIVE paired, moved 64/64; bqeverify PASS, 0 ulp over
+36,864 words. famverify 17/20 LIVE, contract 20/20, three BIT_EXACT.
+
+### S13-2 — D32 fits on an audio-correct image, with 17.5 % of chip 2 spare
+
+**Severity: n/a (measurement). Status: CLOSED.**
+
+`capacity.sh`, two boots per arm, ~135,040 blocks each, `cfg2 0xC201024F`
+read back on the part. D32 all-ones on the audio-correct paired pair: chip
+2 **82.06 / 82.49 %**, chip 1 76.73 / 76.96 %, **zero overruns**. D24 mask:
+chip 1 59.2 %, chip 2 67.6–67.9 %, zero overruns. Against S12's candidate
+at D32 chip 2 102.5–102.7 % with 2.37 % of blocks missed.
+
+`_proc_cyc_max` IS NOT TRUSTWORTHY ACROSS BOOTS and its definition says
+why: "the worst block pass seen since reset", and nothing resets it after
+the boot and config ladder, so it latches a one-off configuration-block
+transient. The same image read 71.29 % on one boot and 367.58 % on the
+next with zero overruns on both. `DIAG_BLK_OVERRUN` is the arbiter.
+Resetting the counter after config would make the column mean what its
+name says; not done.
+
+### S13-3 — S12-9 was the instrument: `mode 1` was an impulse TRAIN on every block-kernel image
+
+**Severity: high (instrument). Status: CLOSED.**
+
+afbverify's −18 dB notch measured −4.799 dB and geqverify's +12 dB band
++8.451 dB on EVERY block-kernel image, scalar and paired alike, where the
+same bars read −17.99989 dB on the per-sample block-8 image of 2026-09-08.
+
+`_scope_inject_blk` runs once per BLOCK and drove the amplitude into
+sample 0 every time it ran, so `mode 1` was not an impulse but an impulse
+TRAIN at one per block — 3 kHz at block 16 — and the audio arms measured
+that train's periodic steady state. The raw capture shows exactly 64
+non-zero words in 1024, at indices 0, 16, 32, … Modelling the train
+through the same designed cascade reproduces all three of geqverify's
+points to three decimals: +0.219 / +8.451 / −0.305 measured, +0.219 /
++8.451 / −0.305 modelled. **The audio was never in question.**
+
+The per-sample injector has always had the gate (`_scope_go == 0` is the
+first sample of the run). The block injector cannot borrow it: under block
+kernels BOTH injectors run in every block and the per-sample one raises
+`_scope_go` first, so gating on it silences the block injector completely
+(measured — an all-zero capture). It gets `_scope_fired`, cleared by the
+same arm write.
+
+AFTER: geqverify **+11.997 dB** against a +12.000 model and afbverify
+**−18.000** against −18.000 — GEQ_DESIGN_OK and AFB_DESIGN_OK on the
+shipping configuration AND on the paired arm. famverify unchanged.
+
+OPEN, recorded not fixed: geqverify's flat negative control prints
+"64/64 samples equal to the input" when both captures are all zeros. It
+did not mislead (the verdict also requires `peak > 0`), but the line is
+not evidence on its own.
+
+### S13-4 — S12-8: the crossover's LP/HP legs were registered with no witness
+
+**Severity: medium (instrument). Status: CLOSED for the stall; the audio arm is declared NOT SCORABLE.**
+
+`_buf_lp_<nid>` and `_buf_hp_<nid>` are ONE-WORD variables — under block
+kernels the crossover runs its per-sample body BLOCK times through them
+and there is no `_blk_lp_` array — and nothing registered them with the
+block-aware witness, so xoververify armed on an address no tap answered
+for and waited for a buffer that never filled. They now get
+`_scope_tap1`, the one-word-per-block witness TALKBACK and NOISE_GEN use.
+
+The bar reaches a verdict and its design arms pass: 1–4 ulp staged, live
+== staged, LP and HP both −6.021 dB at the corner, response error
+≤ 0.00013 dB, LP+HP flat to 0.00013 dB, across BOTH LR alignments and all
+five corners, with the non-LR slopes correctly leaving the coefficients
+unmoved.
+
+Its AUDIO arm is declared NOT SCORABLE rather than scored wrong: a
+one-word-per-block witness samples at 3000 Hz and a single impulse falls
+in the fifteen samples of sixteen it does not keep, so the reference reads
+zero. Scoring it needs a `_blk_lp_`/`_blk_hp_` array in the crossover's
+block kernel — a change to the SHIPPING image for a bench instrument, not
+taken.
+
+### S13-5 — the GEQ primitive's floor is reachable by SCHEDULING ONE cascade, not by interleaving two
+
+**Severity: n/a (design). Status: OPEN — analysed, not built, not measured.**
+
+The float SIMD inner loop is 8 instructions per sample per stage for 2
+channels, carrying 11 operations: 5 multiplies, 4 ALU, one load, one
+store. `easm21k -proc ADSP-21564` accepts `mult + ALU + one memory move`
+in ONE instruction (verified by assembling the four candidate forms, with
+a two-move negative control correctly rejected), so the per-instruction
+budget is 1 multiply + 1 ALU + 1 move and the floor for one cascade is
+`max(5, 4, 2) = 5` instructions per sample per stage = **2.5
+c/band-sample** in the inner loop, against 5.94 measured today.
+
+**The dispatch's plan — two independent cascades interleaved, four
+channels in flight — does not fit and is not needed.** One cascade needs 5
+coefficients + 2 state + ~5 products + a temp live at once; two is upwards
+of 22 registers against the 16 a PE has, and the alternate register file
+is a MODE1 write with latency, not a per-instruction resource. The
+recurrence does not bound a 5-instruction schedule either: the
+loop-carried chain is y → a1·y → w1′ → y, three dependent operations
+against five instructions of slack. A steady-state software pipeline over
+ONE cascade, offset by one sample, covers it — the schedule is in
+`MW/D32/DSP/dsp4-geq-floor-20260909.md` §5. What is left is the register
+allocation and prologue/epilogue, then the shootout rig for bit-exactness
+against `bq_float_ref` and the measurement. Nothing about the pair latch,
+the gather or the chip-2 interleaved arrays has to move.
+
+### S13-6 — RIG B not reached
+
+**Severity: n/a. Status: OPEN.**
+
+The 2156x IIR accelerator was not brought up. The precision test that
+decides it is unchanged: band 1 (19.95 Hz, Q 4.3185) and band 2 at ±12 dB
+in the accelerator's float32 against `bq_float_ref`, inside the 0.01 dB
+bar or not.
+
 ## Session 12 — 2026-09-09
 
 ### S12-1 — the certifying witness now links beside the paired kernels, in a second code overflow region
