@@ -159,6 +159,9 @@
 #if DSP4_BQ_PROBE
 .extern _prb_selftest;
 #endif
+#if DSP4_DYN_SHOOTOUT
+.extern _dsh_selftest;
+#endif
 #if DSP4_BQ_SHOOTOUT
 .extern _bqsh_selftest;
 .extern _bqsh_done;
@@ -741,6 +744,16 @@ _start:
     if ne jump (pc, .callst_skip);
     call _cst_selftest;
 .callst_skip:
+#endif
+#if DSP4_DYN_SHOOTOUT
+    /* Dynamics gain-computer shootout (S14, 2026-09-09). Same placement
+     * and the same reason as the self-tests above: ordinary main-loop
+     * context, link up, nothing of the graph's state touched. */
+    r0 = dm(_dsh_done);
+    r0 = pass r0;
+    if ne jump (pc, .dsh_skip);
+    call _dsh_selftest;
+.dsh_skip:
 #endif
 #if DSP4_BQ_PROBE
     /* Per-instruction cycle probe (S14, 2026-09-09). Same placement and

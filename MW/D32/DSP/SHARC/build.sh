@@ -711,6 +711,19 @@ ASMFLAGS="$ASMFLAGS -DDSP4_BQ_SHOOTOUT=$DSP4_BQ_SHOOTOUT"
 DSP4_BQ_PROBE="${DSP4_BQ_PROBE:-0}"
 CFLAGS="$CFLAGS -DDSP4_BQ_PROBE=$DSP4_BQ_PROBE"
 ASMFLAGS="$ASMFLAGS -DDSP4_BQ_PROBE=$DSP4_BQ_PROBE"
+
+# Dynamics gain-computer shootout (S14, 2026-09-09). PW: dynamics is the
+# hog and "the compressor and gate cycles could be improved a lot, using
+# LUTs with interpolation, and still fit the SIMD structure", against a
+# 0.1 dB worst-case accuracy ruling. Fourteen rungs time today's 6-term
+# polynomial gain computer, a 3-term one, and ONE level->gain table with
+# the whole static curve baked in, three ways round the shared-DAG gather
+# problem; plus the whole COMP and GATE per-sample bodies each way. Never
+# in a shipping image; the whole of src/lib/dyn_shootout.asm is inside
+# #if DSP4_DYN_SHOOTOUT.
+DSP4_DYN_SHOOTOUT="${DSP4_DYN_SHOOTOUT:-0}"
+CFLAGS="$CFLAGS -DDSP4_DYN_SHOOTOUT=$DSP4_DYN_SHOOTOUT"
+ASMFLAGS="$ASMFLAGS -DDSP4_DYN_SHOOTOUT=$DSP4_DYN_SHOOTOUT"
 DSP4_CALL_SELFTEST="${DSP4_CALL_SELFTEST:-0}"
 CFLAGS="$CFLAGS -DDSP4_CALL_SELFTEST=$DSP4_CALL_SELFTEST"
 ASMFLAGS="$ASMFLAGS -DDSP4_CALL_SELFTEST=$DSP4_CALL_SELFTEST"
