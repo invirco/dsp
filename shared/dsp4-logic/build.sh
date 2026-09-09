@@ -27,34 +27,42 @@ else
     exit 1
 fi
 
-# LOOPBACK=1 builds the NON-SHIPPING bring-up variant: every DSPA input
-# lane fed from the matching DSPB output lane (rtl/dsp4_logic_top.v,
-# `ifdef DSP4_LOOPBACK). It is labelled dsp4_logic_loopback.<hash> so it
-# can never be confused with a shipping artifact, and the define is part
-# of the hash input so the two never collide.
-# PI_TDM8=1 adds the eight-channel CM4 link evaluation mode (4x frame
-# rate). Combines with LOOPBACK; both are non-shipping.
-if [ "${LOOPBACK:-0}" = "1" ]; then
-    MACRO_ARG=(--verilog_macro=DSP4_LOOPBACK=1)
-    NAME="dsp4_logic_loopback"
-    echo "*** NON-SHIPPING LOOPBACK BUILD (i_dspa = o_dspb) ***" >&2
-else
-    MACRO_ARG=()
-    NAME="dsp4_logic"
-fi
+# NON-SHIPPING BUILD SWITCHES. Each one appends to the artifact NAME and
+# to NONSHIP[], so the filename and the manifest both say what the
+# bitstream is. The hash already distinguishes them (below); the NAME is
+# what a human reads at the bench, and it must not read "shipping".
+#
+#   LOOPBACK     every DSPA input lane fed from the matching DSPB output
+#                lane (rtl/dsp4_logic_top.v, `ifdef DSP4_LOOPBACK)
+#   PI_SELFTEST  Pi playback looped back to Pi capture inside LOGIC
+#   PI_MAINCAP   capture B_O3 slot 0 (MAIN_ST_OUT) instead of slots 2/3
+#   PI_TDM8      CM4 link at 4x frame rate, 8 channels each way
+NAME="dsp4_logic"
+MACRO_ARG=()
+NONSHIP=()
 
-# PI_TDM8=1 adds the eight-channel CM4 link evaluation mode (4x frame
-# rate on the Pi side). Non-shipping; combines with LOOPBACK.
+if [ "${LOOPBACK:-0}" = "1" ]; then
+    MACRO_ARG+=(--verilog_macro=DSP4_LOOPBACK=1)
+    NAME="${NAME}_loopback"
+    NONSHIP+=("loopback: i_dspa = o_dspb, no converters in the path")
+    echo "*** NON-SHIPPING LOOPBACK BUILD (i_dspa = o_dspb) ***" >&2
+fi
 if [ "${PI_SELFTEST:-0}" = "1" ]; then
     MACRO_ARG+=(--verilog_macro=DSP4_PI_SELFTEST=1)
+    NAME="${NAME}_pisel"
+    NONSHIP+=("pi_selftest: Pi capture fed from Pi playback, DSP not in the path")
     echo "*** PI_SELFTEST BUILD (Pi playback looped back to Pi capture) ***" >&2
 fi
 if [ "${PI_MAINCAP:-0}" = "1" ]; then
     MACRO_ARG+=(--verilog_macro=DSP4_PI_MAINCAP=1)
+    NAME="${NAME}_maincap"
+    NONSHIP+=("pi_maincap: capture B_O3 slot 0, not the product slots 2/3")
     echo "*** PI_MAINCAP BUILD (capture B_O3 slot 0 = MAIN_ST_OUT) ***" >&2
 fi
 if [ "${PI_TDM8:-0}" = "1" ]; then
     MACRO_ARG+=(--verilog_macro=DSP4_PI_TDM8=1)
+    NAME="${NAME}_tdm8"
+    NONSHIP+=("pi_tdm8: CM4 link at 4x frame rate (192 kHz), 8 channels each way")
     echo "*** PI_TDM8 EVALUATION BUILD (CM4 link at 4x rate, 8 channels) ***" >&2
 fi
 
@@ -102,10 +110,11 @@ cp output_files/dsp4_logic.pof "../bitstream/$NAME.$SRC_HASH.pof"
 cp output_files/dsp4_logic.svf "../bitstream/$NAME.$SRC_HASH.svf"
 {
     echo "artifact: $NAME.$SRC_HASH.{pof,svf}"
-    if [ "${LOOPBACK:-0}" = "1" ]; then
-        echo "SHIPPING: NO — bring-up loopback build, i_dspa = o_dspb."
-        echo "  Differs from shipping by that one assign only; the sim gate"
-        echo "  below ran on the SHIPPING path, which is everything else."
+    if [ ${#NONSHIP[@]} -gt 0 ]; then
+        echo "SHIPPING: NO — ${#NONSHIP[@]} non-shipping switch(es) set:"
+        for n in "${NONSHIP[@]}"; do echo "  - $n"; done
+        echo "  Everything not listed is the shipping path, and the sim gate"
+        echo "  below ran on it."
     else
         echo "SHIPPING: yes"
     fi

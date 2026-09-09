@@ -1,0 +1,13 @@
+artifact: dsp4_logic_pisel_tdm8.c2f1457b5388.{pof,svf}
+SHIPPING: NO — 2 non-shipping switch(es) set:
+  - pi_selftest: Pi capture fed from Pi playback, DSP not in the path
+  - pi_tdm8: CM4 link at 4x frame rate (192 kHz), 8 channels each way
+  Everything not listed is the shipping path, and the sim gate
+  below ran on it.
+built: 2026-09-09T02:15:25Z
+config: loopback=0 pi_selftest=1 pi_maincap=0 pi_tdm8=1
+pi_link: 2 ch x 32 bits at 192 kHz, 4 Pi frames per DSP frame, all 8 slots
+slot_map: sha256:4ecc4aa221a0787e924c8546839d01344c8de16a9a521e915e8d06c1676c3c96
+sim_gate: PASS
+device: 5M1270ZT144C4
+fmax: 64.04 MHz
