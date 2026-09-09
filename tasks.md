@@ -1,5 +1,8 @@
 ## HUB DISPATCH 2026-09-09 13:36Z — S12 — the 29.6 % lever settled: DSP4_SIMD_DYN (+STRIP_FUSED) proven or disproven as audio on the part (witness made to link, famverify three arms), the six design bars STAGE-safe and run on blk_* and the candidate, capacity + latency on the candidate, decision table for PW; the two switches named in shipping.config   [status: 🟡 dispatched]   [model: opus]
 
+**HUB ADDENDUM 2026-09-09 14:3x (PW RULING, applies to S12 and every session after): S9-2 Option A is ADOPTED on chip 2 — `DSP4_TX_EARLY` chip-2 mask ships ON.** Fold it into the candidate unconditionally (not "if gate 2 passed"), name it in `shipping.config`, and carry the through-DSP figure as 82 samples / 1.708 ms at block 16 in the window note and findings. `DSP4_GATHER_FIRST` stays on beside it. Block 16 is ruled the shipping block size; no latency-for-cycles trade without PW.
+
+
 model: opus
 
 S12 — THE 29.6 % LEVER SETTLED: `DSP4_SIMD_DYN` (+ `DSP4_STRIP_FUSED`) proven or disproven as audio on the part — the certifying witness made to link beside it, famverify's audio arm on the fused+SIMD image, the six design bars given STAGE support and run on BOTH the staged `blk_*` pair and the candidate — so the "D32 FITS" pair is either the shipping candidate with every bar on record, or the reason it cannot be; S9-2 Option A (chip-2 mask) carried on the candidate
