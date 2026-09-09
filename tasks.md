@@ -1,3 +1,107 @@
+## HUB DISPATCH 2026-09-09 20:06Z — S15 — the dynamics integration: CCLK settled independently first (S14-7), the level→gain table's home (L2 vs DM) measured, the LUT into the generator behind DSP4_DYN_LUT with the design step and two-table blend, GATE on the paired linear threshold, famverify + bars + capacity both chips, dyn_* and flr_* (both levers) staged for PW's window table   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+S15 — THE DYNAMICS INTEGRATION (PW's priority: dynamics is the hog): the one level→gain table into the generator behind a switch — design step with anchored knots, the table's HOME settled by measurement (L2 vs DM per-sample gather) before anything else, two-table blend while ramping, GATE on the paired linear-domain threshold (never tabled), famverify GATE/COMPRESSOR/LIMITER verdict-for-verdict, dyn_state_bound re-run, capacity both chips at D24/D32 — plus a CCLK cross-check (S14-7) and the six-slot primitive staged beside the others for PW's window decision
+
+WHY. S14 (dsp 0be7b33) measured the dynamics gain computer three ways on
+`dyn_shootout.asm`, paired, c/sample/CHANNEL: **gain computer 107.6 → one
+level→gain table 24.5 (−77 %); whole COMPRESSOR body 142.2 → 59.1
+(−58.5 %); whole GATE body 71.1 → 32.5 via the linear-domain threshold
+(−54 %).** The 3-term polynomial (no gather) loses outright (−31 %). The
+gather does NOT break the pairing: both indices leave SIMD in one store,
+four words come back in two paired reads, PEy's registers survive;
+unpairing costs +18.0 c, DM+PM dual gather +6.0 c (PM data is a
+pessimisation on this part, S14-1). **S14-3: the GATE must NOT be tabled**
+— its curve is a step and interpolation smears it 52–60 dB; the paired
+port of `DSP4_GATE_LINTHR` (scalar since S8) is the gate's lever, and its
+0.0002 dB threshold shift is inside PW's 0.1 dB ruling — the
+`dsp_codegen.py` #error that blocks it is now wrong. Table design
+(host-side): index = leftz exponent + top m mantissa bits; anchoring a
+knot at the threshold and both knee corners gives 0.030 dB at m=3, 19–101
+words/node (49 COMP, 20 LIMITER at shipped defaults). Design step ~211
+instr/point → blend two tables while ramping, do not rebuild per block.
+**OPEN RISK named by S14: 96 dynamics nodes × own table ≈ 2,420 words at
+defaults / ~5,000 worst, where 1,024 words already overflowed `sec_stak`
+once; the rig measured a DM-RESIDENT table and an L2 per-sample gather is
+UNMEASURED and could move the 24.5.** S14-4: the LIMITER's 251
+instr/sample-pair is 65 % log2+exp2 because the paired kernel is
+conditional compute — the same table fixes it. Also from S14: the biquad
+primitive at SIX slots that never stall = 6.409 c/sample/stage, bit-exact
+(0 ULP, same hash), `DSP4_BQ_SIMD_PIPE=2`, **D32 chip 2 76.44/76.63 %,
+chip 1 75.4/75.1 %, zero overruns — 23.4 % spare** (default still 0; PW's
+call). S14-6: RIG B answered and parked (32-bit fails the 0.01 dB bar at
+band 1, 40-bit passes, but only 288 biquads device-wide vs chip 2's 372).
+**S14-7: `capacity.sh` decodes CCLK as 983.04 MHz where P2.2 measured
+491.52** — every comparison holds (same decode on every arm) and the fit
+rests on DIAG_BLK_OVERRUN, but the ABSOLUTE percentages want re-deriving
+and PW closed 983.04 for shipping on 08-24 with CCLK verified: this must
+be settled by an independent measurement, not by a decode.
+
+BENCH. Rev C unit as S14 left it (shipping pair booted, CHIP_ID 1 and 2
+verified, matrix-app active, all six staged `~/dspboot` pairs
+byte-identical — NEVER replace any; new candidates as `dyn_*` and
+`flr_*`). Every image from its own staging path with copy-and-restore;
+`dsp4_checkchip.py`, `dsp4_buildcfg.py`, CGU read-back, fresh sym.json
+per boot; `SHARC/capacity.sh`, DIAG_BLK_OVERRUN the arbiter; famverify
+tap on; the six bars take STAGE; `dyn_shootout.asm` is the dynamics rig.
+No AI attribution in commits or any work product.
+
+GATES, in order, each witnessed:
+0. **CCLK settled (S14-7).** Two independent measurements on the part:
+   (a) the CGU/PLL registers read back and decoded by hand from the HRM
+   formulas, (b) a timed loop of known instruction count against a wall
+   clock (the Pi's, over SPI handshakes, or the block ISR count over a
+   measured audio interval at 48 kHz — 16 samples/block gives blocks per
+   second exactly). State CCLK to three figures, whether `capacity.sh`'s
+   decode is right, and if not, re-derive every percentage in the record
+   that this session quotes (say which ones move and by how much). First
+   sentence of the status line: **CCLK is N MHz, the budget is
+   327,680 × (N/983.04) cycles/block, and the D32 fit does / does not
+   survive it.**
+1. **The table's home.** On the rig: the level→gain table placed in L2
+   (the only place 2,420–5,000 words can live) vs DM, per-sample gather
+   cost paired — if L2 moves 24.5 upward, the options measured: a per-node
+   DM slot reused (tables paged from L2 by the design step — the active
+   node's table only), or the table shrunk to what DM holds (m=2 with
+   anchored knots: dB error stated), or an L2 prefetch. The number that
+   goes into the generator is the measured one, not the rig's DM figure.
+2. **Into the generator, behind `DSP4_DYN_LUT`** (default 0): the DESIGN
+   step (parameters → table with knots anchored at threshold and both
+   knee corners; runs on the pending-DESIGN flag — S13-1's lesson, the
+   paired steady test must read it), two-table blend while a parameter
+   ramps, the per-sample paired gain computer for COMP and LIMITER, and
+   the GATE on the paired `DSP4_GATE_LINTHR` port (the #error lifted with
+   the 0.1 dB ruling cited). Verdict file: `dyn_state_bound.py` re-run
+   for the table form (ceilings, saturation once), the table's dB error
+   vs exact for the shipped defaults and the worst parameter set, and
+   ramping proven click-free by a captured gain trajectory across a
+   threshold sweep (the blend's own error stated).
+3. **Proven on the part.** famverify GATE / COMPRESSOR / LIMITER (and
+   TUBE_SAT/FADER_PAN unchanged) verdict-for-verdict against the shipping
+   pair, tap on; `dsp4_comp_gr.py` proving the compressor is REDUCING gain
+   (its own rule: a comparison that cannot fail is not evidence);
+   golden 59/59; the six bars. Then `capacity.sh` both chips, D24 mask +
+   D32 all-ones, two boots, avg + overrun: **c/sample/channel before →
+   after for GATE, COMP, LIMITER in the graph** (rig said 71→32, 142→59,
+   251→?), and chip 1's margin at D32 (32 strips of GATE+COMP is its
+   largest line). Stage as `dyn_*` if the bars pass.
+4. **The six-slot primitive staged for PW.** Build the audio-correct pair
+   with `DSP4_BQ_SIMD_PIPE=2` (and, if gate 3 passed, `DSP4_DYN_LUT=1` as
+   a second pair `flr_*` = both levers), bars on each, staged beside the
+   others, the window note's decision table extended — blk_* / cand_* /
+   geq_* / pipe / flr — with D24 and D32 numbers, latency (82, unchanged),
+   what the app and H1S3/H1S4 rebuild against (nothing), rollback.
+5. findings S15-*, `MW/D32/DSP/dsp4-dynlut-20260910.md`, tasks.md, this
+   block's status; commit + push main. Scoreboard numbers per function
+   now→floor in the write-up.
+
+Bounded: gates 0–3 are the session; 4 expected; 5 always. No deploy.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-09 18:52Z — S14 — the floor MEASURED, not estimated: per-instruction cycle probe names the ~1.47 cycles/instruction in the float SIMD biquad loop, the primitive re-derived against the measured floor; RIG B's 20 Hz precision test first; the LIMITER pair's 4,775 c/blk explained; D32 re-priced on the audio-correct pair   [status: 🟢 done — **THE "1.47 CYCLES PER INSTRUCTION" WAS NEVER A RATE: IT IS FOUR AVOIDABLE STALLS, AND REMOVING THEM TAKES D32's CHIP 2 FROM 82.06 % TO 76.44 %.** **S14-1: the part is the only document** — the ADSP-2156x Hardware Reference has NO core chapter at all (zero occurrences of "pipeline stage" or "Instruction Pipeline" in 101,300 lines; every "stall" in it is peripheral flow control), so `bq_probe.asm` asked the part: 24 rungs of one loop nest, one instruction at a time, min of 5 repeats. **Instructions issue at exactly 1.000 c. A COMPUTE result is NOT readable by the next instruction — every adjacent producer→consumer edge costs exactly one extra cycle, identically for mul→mul 0.984, ALU→ALU 0.984, mul↔ALU 0.984. A LOAD's result IS readable next instruction, free.** The DM bus is 0.009 c, the SIMD pair 0.000 c, and **PM costs +1.068 c** — PM data is a pessimisation, not a lever. So the 5-instruction body is 5 issue + 4 stalls and the old 8-instruction one 8 + 2, which is the whole of why S13-5's 8→5 rewrite bought 5.5 %. **S14-5: THE PRIMITIVE RE-DERIVED — SIX INSTRUCTIONS THAT DO NOT STALL BEAT FIVE THAT DO.** The binding resource is the loop-carried chain y→q1→w1′→y: 3 dependent ops × 2 cycles = a SIX-cycle floor against 5 instructions to issue. `DSP4_BQ_SIMD_PIPE=2` reaches it exactly: **old 10.415, five-slot 9.343, SIX-SLOT 6.409 c/sample/stage (1.068 c/instr, no stall anywhere)** against a predicted 6.402. **BIT-EXACT TWICE: 4,000 cascades × 4 blocks × 16 samples register-by-register with zero mismatches off the part, and `bqeverify` PASS 0 ULP over 36,864 words on the part with hash `0xC607BA6B` — the same hash the other two schedules produce.** **D32 RE-PRICED: chip 2 76.44/76.63 %, chip 1 75.36/75.12 %, ZERO overruns over 270,080 blocks/chip — D32 fits with 23.4 % of chip 2 spare against S13's 17.5 %.** Control inert: at PIPE=0 the pair is `df6b847d`/`cb9bc58e`, byte for byte the staged `geq_*`; default stays 0 pending PW. **DYNAMICS (PW's 21:2x priority reorder) — MEASURED AND DESIGNED, NOT YET IN THE GENERATOR, and that is the honest state.** `dyn_shootout.asm`, 14 rungs, same envelope and same gain application throughout, c/sample/CHANNEL paired: **gain computer today 107.6 → ONE level→gain table 24.5 (77 % off); the WHOLE COMPRESSOR body 142.2 → 59.1 (58.5 % off); the WHOLE GATE body 71.1 → 32.5 via the LINEAR-domain threshold (54 % off).** A 3-term polynomial — the contender with no gather — is only 31 % and loses outright, so PW's 0.1 dB ruling buys the FASTEST option rather than trading against it. **THE GATHER DOES NOT BREAK THE PAIRING: both indices leave SIMD in ONE store and the four words come back in two paired reads (a direct-address access inside a PEYEN region takes PEy's word next), and PEy's registers survive the excursion so the fraction needs no spill. Unpairing costs 18.0 c MORE; the DM+PM dual gather costs 6.0 c MORE than it saves — S14-1's PM penalty again.** **S14-3: THE GATE MUST NOT BE TABLED — its curve is a STEP and linear interpolation smears it by 52–60 dB at EVERY point count from 2 to 64 per octave; tabling it measures WORSE than today (114.1 vs 142.1 c/s-pair) where the linear threshold gives 65.0. `DSP4_GATE_LINTHR` already does this scalar since S8 and `dsp_codegen.py` #errors on it for a 0.0002 dB threshold shift — arguable against a 0.0001 dB polynomial, not against 0.1 dB.** Table design, host-side: index = `leftz` exponent + top m mantissa bits (log-spaced WITHOUT a logarithm); uniform needs m=5 for 0.1 dB, but **anchoring a knot at the threshold and both knee corners buys two levels of m → 0.030 dB at m=3, 19–101 words/node (49 COMP, 20 LIMITER at shipped defaults — inside PW's 50–75 band with 3× margin).** Quadratic does NOT help (the knee is a kink). The design step is ~211 instr/point = 3–6 % of a whole block for one node, so **blend two tables while ramping, do not rebuild per block.** **OPEN RISK: 96 dynamics nodes × their own table is ~2,420 words at defaults / ~5,000 worst case, where 1,024 already overflowed `sec_stak` once — the tables would have to go to L2, and the rig measured a DM-RESIDENT table, so an L2 per-sample gather is UNMEASURED and could move the 24.5. Settle that first.** **S14-4: the LIMITER's 4,775 c/blk explained — log2 (73) + exp2 (89) = 162 of 251 instr/sample-pair, ~65 %, because the paired kernel is CONDITIONAL COMPUTE: the scalar kernel branches around exp2 below threshold and the SIMD one cannot, so both transcendentals always run.** ADI publishes nothing current with source on SHARC dynamics (1998 ADSP-21065L EZ-KIT assembly; SigmaStudio modules are binary) — checked. **S14-6: RIG B ANSWERED AND PARKED — the accelerator is transposed DF-II (the form we already use) in 32- or 40-bit float with pre-negated denominators; band 1 at ±12 dB is 0.19–0.21 dB in 32-BIT (FAILS the 0.01 dB bar) and 0.0004–0.0014 dB in 40-BIT (PASSES). And it is too small anyway: 288 biquads DEVICE-WIDE against chip 2's 372, so at most 9 of 12 GEQ channels.** **S14-7 open: `_proc_cyc_max` still latches (376 % with zero missed blocks), and `capacity.sh` decodes CCLK as 983.04 MHz where P2.2 measured 491.52 — same decode on every arm so the comparisons hold and the fit rests on DIAG_BLK_OVERRUN, but the absolute % wants re-deriving.** BARS: golden 59/59, dsp_validate OK, pipe-check BIT-IDENTICAL on all three schedules, bqeverify PASS 0 ULP, check-contract-drift clean at `defs-v2026.09.08.4` leaving no diff, check_shipping_config consistent; `shipping.config` UNCHANGED. **BENCH RESTORED: shipping pair booted, CHIP_ID verified 1 and 2, matrix-app active, all six staged pairs byte-identical; nothing new staged.** **NOT REACHED, and named: the dynamics integration (switch, design step, L2-vs-DM, ramping blend, the GATE_LINTHR paired port, famverify, dyn_state_bound, capacity) is one coherent next session and everything it needs is in the write-up §2.** Write-up `MW/D32/DSP/dsp4-floor-20260909.md`, findings S14-1..S14-7.]   [model: opus]
 
 **HUB ADDENDUM 20:4x BST (PW): "I would like to see a table-based dynamics
