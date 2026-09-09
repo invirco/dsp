@@ -87,3 +87,44 @@ running was measured at 5.98 % on 2026-09-08. The measurement against the
 28-band image is in this session's status line and in
 `dsp4-fx-afb-20260908.md` §0's terms; **that number, not this table, is
 what says whether the 31-band product ships as configured.**
+
+---
+
+## Measured: what the three bands cost
+
+Block 16, 983.04 MHz, budget **327,680 cycles/block**, `DEC=32`,
+`DSP4_PROFILE_SIGNAL=1`, fused + paired + biquad-paired, **two boots a
+point, minimum taken**, every point witnessed (strip 1's GAIN coefficient
+reads 1.0f; chip 2's inter-chip RX slots carry signal) before its number
+was accepted. **Both arms measured in one session on one instrument** —
+the 28-band control is `gen_dsp_csv.py --geq-bands 28` through
+`sigprofile2.sh`'s / `captable.sh`'s `DSP_CSV`, so this is a paired
+measurement and not a comparison against a figure from another day.
+
+| arm | cycles/block | % of budget | margin |
+|---|---:|---:|---:|
+| chip 2, 28-band control | 256,919 | 78.41 % | 21.59 % |
+| **chip 2, 31-band** | **261,848** | **79.91 %** | **20.09 %** |
+| chip 2, 31-band, six FX engines at Type 3 = Reverb | **310,185** | **94.66 %** | **5.34 %** |
+| chip 1, 28-band control | 262,349 | 80.06 % | 19.94 % |
+| **chip 1, 31-band** | **261,879** | **79.92 %** | **20.08 %** |
+
+**The 39 D24 / 51 D32 bands cost chip 2 +4,929 cycles/block — 1.50 % of
+budget.** The 09-03 projection for exactly this step
+(`dsp4-fullconfig-capacity-20260903.md` §0: 249,737 → 254,677) was
++4,940. It held to eleven cycles.
+
+**Chip 1 does not move**, as the address table said it would not: 470
+cycles *below* the control, which is the instrument's own noise
+(0.14 % of budget) and not a saving. Every GEQ instance is on chip 2.
+
+**THE REVERB ARM IS THE NUMBER THAT MATTERS AND IT IS UNDER TEN.** With
+all six FX engines at Type 3, chip 2 runs at 94.66 % and has **5.34 %
+margin** — measured with `fxcost.sh` at block 16 over two boots, delta
++49,096 / +48,879 cycles against a restore-and-re-read control that came
+back within −82 and −19. The 28-band equivalent measured 2026-09-08 was
+93.16 % / 6.84 % margin, so the 31-band GEQ takes 1.50 points off a
+figure that was already inside the 10 % bar. **This is a product
+decision, not a defect**: six simultaneous reverbs is the worst case the
+graph can be put in, the shipping default (Type 0 = Echo) leaves 20.26 %,
+and the alternative to spending it is not shipping the market bar.

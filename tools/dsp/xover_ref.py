@@ -75,8 +75,22 @@ XOVER_STAGES = 2                      # per path
 # and 18 dB/oct is 3rd-order, not a Linkwitz-Riley alignment at all.
 # An unsupported slope leaves the split where it was, which is the rule
 # an out-of-domain FREQUENCY already gets.
-XOVER_SLOPES = {24: (1.0 / math.sqrt(2.0), True),   # LR4: Q, second stage is a copy
-                12: (0.5, False)}                   # LR2: Q, second stage is the identity
+# (Q, second stage is a copy of the first, highpass polarity)
+XOVER_SLOPES = {24: (1.0 / math.sqrt(2.0), True,  +1.0),   # LR4
+                12: (0.5,                  False, -1.0)}   # LR2
+
+# THE LR2 HIGHPASS IS INVERTED, AND WITHOUT THAT IT IS NOT A CROSSOVER.
+# At an even order the two paths are n*90 degrees apart at the corner: at
+# 4th order that is 360 and the sum is flat with both paths as designed,
+# at 2nd order it is 180 and LP + HP NULLS at the corner -- measured on
+# the model at -242 dB before this line existed. Every 2nd-order
+# Linkwitz-Riley is specified with one path reversed for exactly this
+# reason. Inverting the highpass costs one negation and nothing else: in
+# the offset encoding the HP numerator is (b0, -2*b0, b0), so n1 and n2
+# are zero and stay zero, and only b0 changes sign. It is done HERE, in
+# the coefficients, and not left to an output polarity switch, because a
+# split that only sums flat when a host remembers to flip something is
+# not a crossover the product can ship.
 
 
 def sin_series(x):
@@ -109,7 +123,7 @@ def design(f0, fs=FS, series=True, slope=24):
     if slope not in XOVER_SLOPES:
         raise ValueError('crossover slope %r is not a Linkwitz-Riley '
                          'alignment this node can hold (12 or 24)' % (slope,))
-    q, _ = XOVER_SLOPES[slope]
+    q, _, hp_sign = XOVER_SLOPES[slope]
     x = 2.0 * math.pi * f0 / fs
     if series:
         s = sin_series(x)
@@ -122,7 +136,7 @@ def design(f0, fs=FS, series=True, slope=24):
     c1 = (2.0 * u + 2.0 * al) * inv
     c2 = (2.0 * al) * inv
     lp = ((u / 2.0) * inv, (2.0 * u) * inv, 0.0, c1, c2)
-    hp = (((2.0 - u) / 2.0) * inv, 0.0, 0.0, c1, c2)
+    hp = (hp_sign * ((2.0 - u) / 2.0) * inv, 0.0, 0.0, c1, c2)
     return lp, hp
 
 
@@ -132,7 +146,7 @@ IDENTITY = (1.0, 2.0, -1.0, 2.0, 1.0)
 def design_set(f0, fs=FS, series=True, slope=24):
     """The 20 words `_xover_coeffs_next` must hold: LP, LP, HP, HP."""
     lp, hp = design(f0, fs, series, slope)
-    _, two = XOVER_SLOPES[slope]
+    _, two, _ = XOVER_SLOPES[slope]
     second_lp = list(lp) if two else list(IDENTITY)
     second_hp = list(hp) if two else list(IDENTITY)
     return list(lp) + second_lp + list(hp) + second_hp
@@ -156,10 +170,11 @@ def check(verbose=False):
                       abs(sin_series(x) - math.sin(x)) / abs(math.sin(x)),
                       abs(vercos_series(x) - (1.0 - math.cos(x)))
                       / abs(1.0 - math.cos(x)))
-        a = design_set(f0, series=True)
-        b = design_set(f0, series=False)
-        for p, q in zip(a, b):
-            worst_d = max(worst_d, abs(p - q) / max(abs(q), 1e-12))
+        for slope in sorted(XOVER_SLOPES):
+            a = design_set(f0, series=True, slope=slope)
+            b = design_set(f0, series=False, slope=slope)
+            for p, q in zip(a, b):
+                worst_d = max(worst_d, abs(p - q) / max(abs(q), 1e-12))
 
     # RBJ, written out plainly, must give the same filter.
     worst_r = 0.0
@@ -177,30 +192,44 @@ def check(verbose=False):
             for p, q in zip(got, want):
                 worst_r = max(worst_r, abs(p - q) / max(abs(q), 1e-12))
 
-    # LR4: each path is 6 dB down at the corner, and the two sum flat.
+    # THE LINKWITZ-RILEY PROPERTIES, AT BOTH SLOPES: each path is 6 dB
+    # down at the corner, and the two sum flat. Checking only 24 would
+    # have passed an LR2 that nulls at the corner, which is what an
+    # un-inverted 2nd-order highpass does.
     worst_c = worst_sum = 0.0
-    for f0 in (50.0, 120.0, 500.0):
-        cs = design_set(f0)
-        lp = _resp(cs[:10], f0)
-        hp = _resp(cs[10:], f0)
-        worst_c = max(worst_c, abs(20 * math.log10(abs(lp)) + 6.0206),
-                      abs(20 * math.log10(abs(hp)) + 6.0206))
-        for k in range(-24, 25):
-            f = f0 * 2.0 ** (k / 4.0)
-            if not 10.0 < f < FS / 2:
-                continue
-            tot = abs(_resp(cs[:10], f) + _resp(cs[10:], f))
-            worst_sum = max(worst_sum, abs(20 * math.log10(tot)))
+    for slope in sorted(XOVER_SLOPES):
+        for f0 in (50.0, 120.0, 500.0):
+            cs = design_set(f0, slope=slope)
+            lp = _resp(cs[:10], f0)
+            hp = _resp(cs[10:], f0)
+            worst_c = max(worst_c, abs(20 * math.log10(abs(lp)) + 6.0206),
+                          abs(20 * math.log10(abs(hp)) + 6.0206))
+            for k in range(-24, 25):
+                f = f0 * 2.0 ** (k / 4.0)
+                if not 10.0 < f < FS / 2:
+                    continue
+                tot = abs(_resp(cs[:10], f) + _resp(cs[10:], f))
+                worst_sum = max(worst_sum, abs(20 * math.log10(tot)))
     if verbose:
         print('sin/vercos series vs libm, worst relative:   %.3e' % worst_s)
         print('series design vs libm design, worst:         %.3e' % worst_d)
         print('design vs RBJ written out, worst:            %.3e' % worst_r)
-        print('each path at the corner, worst |dB + 6.02|:  %.3e' % worst_c)
-        print('LP + HP magnitude sum, worst |dB|:           %.3e' % worst_sum)
+        print('each path at the corner, worst |dB + 6.02|:  %.3e  '
+              '(both slopes)' % worst_c)
+        print('LP + HP magnitude sum, worst |dB|:           %.3e  '
+              '(both slopes)' % worst_sum)
     assert worst_s < 1e-10 and worst_d < 1e-9, 'series too coarse'
     assert worst_r < 1e-12, 'not the RBJ filter'
     assert worst_c < 1e-6, 'not 6 dB down at the corner'
     assert worst_sum < 1e-6, 'the two paths do not sum flat'
+    # A slope the node does not hold must be REFUSED, not silently
+    # designed as something else.
+    for bad in (6, 18, 0, 25):
+        try:
+            design_set(120.0, slope=bad)
+        except ValueError:
+            continue
+        raise AssertionError('slope %r was designed and should not be' % bad)
     return worst_d
 
 

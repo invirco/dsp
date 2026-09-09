@@ -44,11 +44,20 @@ for cycle in 1 2 3; do
   [ "$(ready)" = "1" ] || { echo "cycle $cycle: chip 2 link never usable"; continue; }
   python3 dsp4_diag.py --chip 2 >/dev/null 2>&1
   python3 gainfix.py >/dev/null 2>&1
-  ARGS="--landed landed-$PRODUCT.json --n ${N:-1024} --json ${OUT:-geqverify.json}"
-  ARGS="$ARGS --node ${NODE:-C2_AUX_GEQ_01} --cell-fmt ${CELLFMT:-Aux001Geq%03d}"
-  ARGS="$ARGS --bands ${BANDS:-28} --band ${BAND:-17}"
-  python3 dsp4_geq_verify.py $ARGS
-  exit $?
+  # BAND may be a COMMA LIST, scored inside ONE boot. The audio bar picks
+  # one band to excite and the design bars write all of them, so proving
+  # the bands the market bar added (29-31, 1-based) used to cost a boot
+  # each. Every band gets its own report file.
+  RC=0
+  for B in $(echo "${BAND:-17}" | tr ',' ' '); do
+    J="${OUT:-geqverify.json}"
+    case "$(echo "${BAND:-17}" | tr ',' ' ')" in *\ *) J="${J%.json}-b$B.json";; esac
+    ARGS="--landed landed-$PRODUCT.json --n ${N:-1024} --json $J"
+    ARGS="$ARGS --node ${NODE:-C2_AUX_GEQ_01} --cell-fmt ${CELLFMT:-Aux001Geq%03d}"
+    ARGS="$ARGS --bands ${BANDS:-0} --band $B"   # 0 = count them in the landed map
+    python3 dsp4_geq_verify.py $ARGS || RC=1
+  done
+  exit $RC
 done
 echo "no usable boot in 3 cycles"
 exit 4

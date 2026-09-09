@@ -98,46 +98,46 @@ _bqp_tap_eq.end:
 .var _bqi_s_AUX_EQ_11_12[48];    /* 2 x 4 stages x 6 state  */
 .var _bqi_lat_AUX_EQ_11_12 = 0;
 #if DSP4_BQ_GUARD
-.var _bqi_c_AUX_GEQ_01_02[282];    /* 2 x (1 hdr + 28 x 5) */
+.var _bqi_c_AUX_GEQ_01_02[312];    /* 2 x (1 hdr + 31 x 5) */
 #else
-.var _bqi_c_AUX_GEQ_01_02[280];    /* 2 x 28 stages x 5 coeffs */
+.var _bqi_c_AUX_GEQ_01_02[310];    /* 2 x 31 stages x 5 coeffs */
 #endif
-.var _bqi_s_AUX_GEQ_01_02[336];    /* 2 x 28 stages x 6 state  */
+.var _bqi_s_AUX_GEQ_01_02[372];    /* 2 x 31 stages x 6 state  */
 .var _bqi_lat_AUX_GEQ_01_02 = 0;
 #if DSP4_BQ_GUARD
-.var _bqi_c_AUX_GEQ_03_04[282];    /* 2 x (1 hdr + 28 x 5) */
+.var _bqi_c_AUX_GEQ_03_04[312];    /* 2 x (1 hdr + 31 x 5) */
 #else
-.var _bqi_c_AUX_GEQ_03_04[280];    /* 2 x 28 stages x 5 coeffs */
+.var _bqi_c_AUX_GEQ_03_04[310];    /* 2 x 31 stages x 5 coeffs */
 #endif
-.var _bqi_s_AUX_GEQ_03_04[336];    /* 2 x 28 stages x 6 state  */
+.var _bqi_s_AUX_GEQ_03_04[372];    /* 2 x 31 stages x 6 state  */
 .var _bqi_lat_AUX_GEQ_03_04 = 0;
 #if DSP4_BQ_GUARD
-.var _bqi_c_AUX_GEQ_05_06[282];    /* 2 x (1 hdr + 28 x 5) */
+.var _bqi_c_AUX_GEQ_05_06[312];    /* 2 x (1 hdr + 31 x 5) */
 #else
-.var _bqi_c_AUX_GEQ_05_06[280];    /* 2 x 28 stages x 5 coeffs */
+.var _bqi_c_AUX_GEQ_05_06[310];    /* 2 x 31 stages x 5 coeffs */
 #endif
-.var _bqi_s_AUX_GEQ_05_06[336];    /* 2 x 28 stages x 6 state  */
+.var _bqi_s_AUX_GEQ_05_06[372];    /* 2 x 31 stages x 6 state  */
 .var _bqi_lat_AUX_GEQ_05_06 = 0;
 #if DSP4_BQ_GUARD
-.var _bqi_c_AUX_GEQ_07_08[282];    /* 2 x (1 hdr + 28 x 5) */
+.var _bqi_c_AUX_GEQ_07_08[312];    /* 2 x (1 hdr + 31 x 5) */
 #else
-.var _bqi_c_AUX_GEQ_07_08[280];    /* 2 x 28 stages x 5 coeffs */
+.var _bqi_c_AUX_GEQ_07_08[310];    /* 2 x 31 stages x 5 coeffs */
 #endif
-.var _bqi_s_AUX_GEQ_07_08[336];    /* 2 x 28 stages x 6 state  */
+.var _bqi_s_AUX_GEQ_07_08[372];    /* 2 x 31 stages x 6 state  */
 .var _bqi_lat_AUX_GEQ_07_08 = 0;
 #if DSP4_BQ_GUARD
-.var _bqi_c_AUX_GEQ_09_10[282];    /* 2 x (1 hdr + 28 x 5) */
+.var _bqi_c_AUX_GEQ_09_10[312];    /* 2 x (1 hdr + 31 x 5) */
 #else
-.var _bqi_c_AUX_GEQ_09_10[280];    /* 2 x 28 stages x 5 coeffs */
+.var _bqi_c_AUX_GEQ_09_10[310];    /* 2 x 31 stages x 5 coeffs */
 #endif
-.var _bqi_s_AUX_GEQ_09_10[336];    /* 2 x 28 stages x 6 state  */
+.var _bqi_s_AUX_GEQ_09_10[372];    /* 2 x 31 stages x 6 state  */
 .var _bqi_lat_AUX_GEQ_09_10 = 0;
 #if DSP4_BQ_GUARD
-.var _bqi_c_AUX_GEQ_11_12[282];    /* 2 x (1 hdr + 28 x 5) */
+.var _bqi_c_AUX_GEQ_11_12[312];    /* 2 x (1 hdr + 31 x 5) */
 #else
-.var _bqi_c_AUX_GEQ_11_12[280];    /* 2 x 28 stages x 5 coeffs */
+.var _bqi_c_AUX_GEQ_11_12[310];    /* 2 x 31 stages x 5 coeffs */
 #endif
-.var _bqi_s_AUX_GEQ_11_12[336];    /* 2 x 28 stages x 6 state  */
+.var _bqi_s_AUX_GEQ_11_12[372];    /* 2 x 31 stages x 6 state  */
 .var _bqi_lat_AUX_GEQ_11_12 = 0;
 #if DSP4_BQ_GUARD
 .var _bqi_c_AUX_AFB_01_02[62];    /* 2 x (1 hdr + 6 x 5) */
@@ -196,18 +196,18 @@ _bqp_tap_eq.end:
 .var _bqi_s_GRP_EQ_03_04[48];    /* 2 x 4 stages x 6 state  */
 .var _bqi_lat_GRP_EQ_03_04 = 0;
 #if DSP4_BQ_GUARD
-.var _bqi_c_GRP_GEQ_01_02[282];    /* 2 x (1 hdr + 28 x 5) */
+.var _bqi_c_GRP_GEQ_01_02[312];    /* 2 x (1 hdr + 31 x 5) */
 #else
-.var _bqi_c_GRP_GEQ_01_02[280];    /* 2 x 28 stages x 5 coeffs */
+.var _bqi_c_GRP_GEQ_01_02[310];    /* 2 x 31 stages x 5 coeffs */
 #endif
-.var _bqi_s_GRP_GEQ_01_02[336];    /* 2 x 28 stages x 6 state  */
+.var _bqi_s_GRP_GEQ_01_02[372];    /* 2 x 31 stages x 6 state  */
 .var _bqi_lat_GRP_GEQ_01_02 = 0;
 #if DSP4_BQ_GUARD
-.var _bqi_c_GRP_GEQ_03_04[282];    /* 2 x (1 hdr + 28 x 5) */
+.var _bqi_c_GRP_GEQ_03_04[312];    /* 2 x (1 hdr + 31 x 5) */
 #else
-.var _bqi_c_GRP_GEQ_03_04[280];    /* 2 x 28 stages x 5 coeffs */
+.var _bqi_c_GRP_GEQ_03_04[310];    /* 2 x 31 stages x 5 coeffs */
 #endif
-.var _bqi_s_GRP_GEQ_03_04[336];    /* 2 x 28 stages x 6 state  */
+.var _bqi_s_GRP_GEQ_03_04[372];    /* 2 x 31 stages x 6 state  */
 .var _bqi_lat_GRP_GEQ_03_04 = 0;
 #if DSP4_BQ_GUARD
 .var _bqi_c_MOUT_OEQ_01_02[42];    /* 2 x (1 hdr + 4 x 5) */
@@ -2036,7 +2036,7 @@ _C2BQP_AUX_EQ_11_12_process:
     rts;
 _C2BQP_AUX_EQ_11_12_process.end:
 
-/* ---- C2_AUX_GEQ_01 + C2_AUX_GEQ_02: 28 stages ---- */
+/* ---- C2_AUX_GEQ_01 + C2_AUX_GEQ_02: 31 stages ---- */
 .global _C2BQP_AUX_GEQ_01_02_process;
 _C2BQP_AUX_GEQ_01_02_process:
     l0 = 0; l1 = 0; l2 = 0; l3 = 0; l4 = 0;
@@ -2101,13 +2101,13 @@ _C2BQP_AUX_GEQ_01_02_process:
      * the 2026-09-01 record named on the dynamics pairs; zeroing
      * one channel closes it without needing distinct per-channel
      * settings over the SPI plane. */
-    lcntr = 140 + DSP4_BQ_HDR, do .bqiCE_AUX_GEQ_01_02 until lce;
+    lcntr = 155 + DSP4_BQ_HDR, do .bqiCE_AUX_GEQ_01_02 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = 0;
     .bqiCE_AUX_GEQ_01_02: dm(i2, 1) = r0;
 #else
-    lcntr = 140 + DSP4_BQ_HDR, do .bqiCE_AUX_GEQ_01_02 until lce;
+    lcntr = 155 + DSP4_BQ_HDR, do .bqiCE_AUX_GEQ_01_02 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -2116,7 +2116,7 @@ _C2BQP_AUX_GEQ_01_02_process:
     i0 = r9;
     i1 = r12;
     i2 = _bqi_s_AUX_GEQ_01_02;
-    lcntr = 168, do .bqiSE_AUX_GEQ_01_02 until lce;
+    lcntr = 186, do .bqiSE_AUX_GEQ_01_02 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -2139,7 +2139,7 @@ _C2BQP_AUX_GEQ_01_02_process:
     i0 = _bqi_c_AUX_GEQ_01_02;
     i1 = _bqi_s_AUX_GEQ_01_02;
     i2 = _bqi_sig;
-    r4 = 28;
+    r4 = 31;
     call _bq_fx_cascade_simd;
 
     /* NOTHING is carried in a register across that call -- it
@@ -2194,7 +2194,7 @@ _C2BQP_AUX_GEQ_01_02_process:
     i2 = _bqi_s_AUX_GEQ_01_02;
     i0 = r9;
     i1 = r12;
-    lcntr = 168, do .bqiSN_AUX_GEQ_01_02 until lce;
+    lcntr = 186, do .bqiSN_AUX_GEQ_01_02 until lce;
         r0 = dm(i2, 1);
         dm(i0, 1) = r0;
         r0 = dm(i2, 1);
@@ -2226,7 +2226,7 @@ _C2BQP_AUX_GEQ_01_02_process:
     i2 = _bqi_s_AUX_GEQ_01_02;
     i0 = r9;
     i1 = r12;
-    lcntr = 168, do .bqiSB_AUX_GEQ_01_02 until lce;
+    lcntr = 186, do .bqiSB_AUX_GEQ_01_02 until lce;
         r0 = dm(i2, 1);
         dm(i0, 1) = r0;
         r0 = dm(i2, 1);
@@ -2241,7 +2241,7 @@ _C2BQP_AUX_GEQ_01_02_process:
     rts;
 _C2BQP_AUX_GEQ_01_02_process.end:
 
-/* ---- C2_AUX_GEQ_03 + C2_AUX_GEQ_04: 28 stages ---- */
+/* ---- C2_AUX_GEQ_03 + C2_AUX_GEQ_04: 31 stages ---- */
 .global _C2BQP_AUX_GEQ_03_04_process;
 _C2BQP_AUX_GEQ_03_04_process:
     l0 = 0; l1 = 0; l2 = 0; l3 = 0; l4 = 0;
@@ -2306,13 +2306,13 @@ _C2BQP_AUX_GEQ_03_04_process:
      * the 2026-09-01 record named on the dynamics pairs; zeroing
      * one channel closes it without needing distinct per-channel
      * settings over the SPI plane. */
-    lcntr = 140 + DSP4_BQ_HDR, do .bqiCE_AUX_GEQ_03_04 until lce;
+    lcntr = 155 + DSP4_BQ_HDR, do .bqiCE_AUX_GEQ_03_04 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = 0;
     .bqiCE_AUX_GEQ_03_04: dm(i2, 1) = r0;
 #else
-    lcntr = 140 + DSP4_BQ_HDR, do .bqiCE_AUX_GEQ_03_04 until lce;
+    lcntr = 155 + DSP4_BQ_HDR, do .bqiCE_AUX_GEQ_03_04 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -2321,7 +2321,7 @@ _C2BQP_AUX_GEQ_03_04_process:
     i0 = r9;
     i1 = r12;
     i2 = _bqi_s_AUX_GEQ_03_04;
-    lcntr = 168, do .bqiSE_AUX_GEQ_03_04 until lce;
+    lcntr = 186, do .bqiSE_AUX_GEQ_03_04 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -2344,7 +2344,7 @@ _C2BQP_AUX_GEQ_03_04_process:
     i0 = _bqi_c_AUX_GEQ_03_04;
     i1 = _bqi_s_AUX_GEQ_03_04;
     i2 = _bqi_sig;
-    r4 = 28;
+    r4 = 31;
     call _bq_fx_cascade_simd;
 
     /* NOTHING is carried in a register across that call -- it
@@ -2399,7 +2399,7 @@ _C2BQP_AUX_GEQ_03_04_process:
     i2 = _bqi_s_AUX_GEQ_03_04;
     i0 = r9;
     i1 = r12;
-    lcntr = 168, do .bqiSN_AUX_GEQ_03_04 until lce;
+    lcntr = 186, do .bqiSN_AUX_GEQ_03_04 until lce;
         r0 = dm(i2, 1);
         dm(i0, 1) = r0;
         r0 = dm(i2, 1);
@@ -2431,7 +2431,7 @@ _C2BQP_AUX_GEQ_03_04_process:
     i2 = _bqi_s_AUX_GEQ_03_04;
     i0 = r9;
     i1 = r12;
-    lcntr = 168, do .bqiSB_AUX_GEQ_03_04 until lce;
+    lcntr = 186, do .bqiSB_AUX_GEQ_03_04 until lce;
         r0 = dm(i2, 1);
         dm(i0, 1) = r0;
         r0 = dm(i2, 1);
@@ -2446,7 +2446,7 @@ _C2BQP_AUX_GEQ_03_04_process:
     rts;
 _C2BQP_AUX_GEQ_03_04_process.end:
 
-/* ---- C2_AUX_GEQ_05 + C2_AUX_GEQ_06: 28 stages ---- */
+/* ---- C2_AUX_GEQ_05 + C2_AUX_GEQ_06: 31 stages ---- */
 .global _C2BQP_AUX_GEQ_05_06_process;
 _C2BQP_AUX_GEQ_05_06_process:
     l0 = 0; l1 = 0; l2 = 0; l3 = 0; l4 = 0;
@@ -2511,13 +2511,13 @@ _C2BQP_AUX_GEQ_05_06_process:
      * the 2026-09-01 record named on the dynamics pairs; zeroing
      * one channel closes it without needing distinct per-channel
      * settings over the SPI plane. */
-    lcntr = 140 + DSP4_BQ_HDR, do .bqiCE_AUX_GEQ_05_06 until lce;
+    lcntr = 155 + DSP4_BQ_HDR, do .bqiCE_AUX_GEQ_05_06 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = 0;
     .bqiCE_AUX_GEQ_05_06: dm(i2, 1) = r0;
 #else
-    lcntr = 140 + DSP4_BQ_HDR, do .bqiCE_AUX_GEQ_05_06 until lce;
+    lcntr = 155 + DSP4_BQ_HDR, do .bqiCE_AUX_GEQ_05_06 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -2526,7 +2526,7 @@ _C2BQP_AUX_GEQ_05_06_process:
     i0 = r9;
     i1 = r12;
     i2 = _bqi_s_AUX_GEQ_05_06;
-    lcntr = 168, do .bqiSE_AUX_GEQ_05_06 until lce;
+    lcntr = 186, do .bqiSE_AUX_GEQ_05_06 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -2549,7 +2549,7 @@ _C2BQP_AUX_GEQ_05_06_process:
     i0 = _bqi_c_AUX_GEQ_05_06;
     i1 = _bqi_s_AUX_GEQ_05_06;
     i2 = _bqi_sig;
-    r4 = 28;
+    r4 = 31;
     call _bq_fx_cascade_simd;
 
     /* NOTHING is carried in a register across that call -- it
@@ -2604,7 +2604,7 @@ _C2BQP_AUX_GEQ_05_06_process:
     i2 = _bqi_s_AUX_GEQ_05_06;
     i0 = r9;
     i1 = r12;
-    lcntr = 168, do .bqiSN_AUX_GEQ_05_06 until lce;
+    lcntr = 186, do .bqiSN_AUX_GEQ_05_06 until lce;
         r0 = dm(i2, 1);
         dm(i0, 1) = r0;
         r0 = dm(i2, 1);
@@ -2636,7 +2636,7 @@ _C2BQP_AUX_GEQ_05_06_process:
     i2 = _bqi_s_AUX_GEQ_05_06;
     i0 = r9;
     i1 = r12;
-    lcntr = 168, do .bqiSB_AUX_GEQ_05_06 until lce;
+    lcntr = 186, do .bqiSB_AUX_GEQ_05_06 until lce;
         r0 = dm(i2, 1);
         dm(i0, 1) = r0;
         r0 = dm(i2, 1);
@@ -2651,7 +2651,7 @@ _C2BQP_AUX_GEQ_05_06_process:
     rts;
 _C2BQP_AUX_GEQ_05_06_process.end:
 
-/* ---- C2_AUX_GEQ_07 + C2_AUX_GEQ_08: 28 stages ---- */
+/* ---- C2_AUX_GEQ_07 + C2_AUX_GEQ_08: 31 stages ---- */
 .global _C2BQP_AUX_GEQ_07_08_process;
 _C2BQP_AUX_GEQ_07_08_process:
     l0 = 0; l1 = 0; l2 = 0; l3 = 0; l4 = 0;
@@ -2716,13 +2716,13 @@ _C2BQP_AUX_GEQ_07_08_process:
      * the 2026-09-01 record named on the dynamics pairs; zeroing
      * one channel closes it without needing distinct per-channel
      * settings over the SPI plane. */
-    lcntr = 140 + DSP4_BQ_HDR, do .bqiCE_AUX_GEQ_07_08 until lce;
+    lcntr = 155 + DSP4_BQ_HDR, do .bqiCE_AUX_GEQ_07_08 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = 0;
     .bqiCE_AUX_GEQ_07_08: dm(i2, 1) = r0;
 #else
-    lcntr = 140 + DSP4_BQ_HDR, do .bqiCE_AUX_GEQ_07_08 until lce;
+    lcntr = 155 + DSP4_BQ_HDR, do .bqiCE_AUX_GEQ_07_08 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -2731,7 +2731,7 @@ _C2BQP_AUX_GEQ_07_08_process:
     i0 = r9;
     i1 = r12;
     i2 = _bqi_s_AUX_GEQ_07_08;
-    lcntr = 168, do .bqiSE_AUX_GEQ_07_08 until lce;
+    lcntr = 186, do .bqiSE_AUX_GEQ_07_08 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -2754,7 +2754,7 @@ _C2BQP_AUX_GEQ_07_08_process:
     i0 = _bqi_c_AUX_GEQ_07_08;
     i1 = _bqi_s_AUX_GEQ_07_08;
     i2 = _bqi_sig;
-    r4 = 28;
+    r4 = 31;
     call _bq_fx_cascade_simd;
 
     /* NOTHING is carried in a register across that call -- it
@@ -2809,7 +2809,7 @@ _C2BQP_AUX_GEQ_07_08_process:
     i2 = _bqi_s_AUX_GEQ_07_08;
     i0 = r9;
     i1 = r12;
-    lcntr = 168, do .bqiSN_AUX_GEQ_07_08 until lce;
+    lcntr = 186, do .bqiSN_AUX_GEQ_07_08 until lce;
         r0 = dm(i2, 1);
         dm(i0, 1) = r0;
         r0 = dm(i2, 1);
@@ -2841,7 +2841,7 @@ _C2BQP_AUX_GEQ_07_08_process:
     i2 = _bqi_s_AUX_GEQ_07_08;
     i0 = r9;
     i1 = r12;
-    lcntr = 168, do .bqiSB_AUX_GEQ_07_08 until lce;
+    lcntr = 186, do .bqiSB_AUX_GEQ_07_08 until lce;
         r0 = dm(i2, 1);
         dm(i0, 1) = r0;
         r0 = dm(i2, 1);
@@ -2856,7 +2856,7 @@ _C2BQP_AUX_GEQ_07_08_process:
     rts;
 _C2BQP_AUX_GEQ_07_08_process.end:
 
-/* ---- C2_AUX_GEQ_09 + C2_AUX_GEQ_10: 28 stages ---- */
+/* ---- C2_AUX_GEQ_09 + C2_AUX_GEQ_10: 31 stages ---- */
 .global _C2BQP_AUX_GEQ_09_10_process;
 _C2BQP_AUX_GEQ_09_10_process:
     l0 = 0; l1 = 0; l2 = 0; l3 = 0; l4 = 0;
@@ -2921,13 +2921,13 @@ _C2BQP_AUX_GEQ_09_10_process:
      * the 2026-09-01 record named on the dynamics pairs; zeroing
      * one channel closes it without needing distinct per-channel
      * settings over the SPI plane. */
-    lcntr = 140 + DSP4_BQ_HDR, do .bqiCE_AUX_GEQ_09_10 until lce;
+    lcntr = 155 + DSP4_BQ_HDR, do .bqiCE_AUX_GEQ_09_10 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = 0;
     .bqiCE_AUX_GEQ_09_10: dm(i2, 1) = r0;
 #else
-    lcntr = 140 + DSP4_BQ_HDR, do .bqiCE_AUX_GEQ_09_10 until lce;
+    lcntr = 155 + DSP4_BQ_HDR, do .bqiCE_AUX_GEQ_09_10 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -2936,7 +2936,7 @@ _C2BQP_AUX_GEQ_09_10_process:
     i0 = r9;
     i1 = r12;
     i2 = _bqi_s_AUX_GEQ_09_10;
-    lcntr = 168, do .bqiSE_AUX_GEQ_09_10 until lce;
+    lcntr = 186, do .bqiSE_AUX_GEQ_09_10 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -2959,7 +2959,7 @@ _C2BQP_AUX_GEQ_09_10_process:
     i0 = _bqi_c_AUX_GEQ_09_10;
     i1 = _bqi_s_AUX_GEQ_09_10;
     i2 = _bqi_sig;
-    r4 = 28;
+    r4 = 31;
     call _bq_fx_cascade_simd;
 
     /* NOTHING is carried in a register across that call -- it
@@ -3014,7 +3014,7 @@ _C2BQP_AUX_GEQ_09_10_process:
     i2 = _bqi_s_AUX_GEQ_09_10;
     i0 = r9;
     i1 = r12;
-    lcntr = 168, do .bqiSN_AUX_GEQ_09_10 until lce;
+    lcntr = 186, do .bqiSN_AUX_GEQ_09_10 until lce;
         r0 = dm(i2, 1);
         dm(i0, 1) = r0;
         r0 = dm(i2, 1);
@@ -3046,7 +3046,7 @@ _C2BQP_AUX_GEQ_09_10_process:
     i2 = _bqi_s_AUX_GEQ_09_10;
     i0 = r9;
     i1 = r12;
-    lcntr = 168, do .bqiSB_AUX_GEQ_09_10 until lce;
+    lcntr = 186, do .bqiSB_AUX_GEQ_09_10 until lce;
         r0 = dm(i2, 1);
         dm(i0, 1) = r0;
         r0 = dm(i2, 1);
@@ -3061,7 +3061,7 @@ _C2BQP_AUX_GEQ_09_10_process:
     rts;
 _C2BQP_AUX_GEQ_09_10_process.end:
 
-/* ---- C2_AUX_GEQ_11 + C2_AUX_GEQ_12: 28 stages ---- */
+/* ---- C2_AUX_GEQ_11 + C2_AUX_GEQ_12: 31 stages ---- */
 .global _C2BQP_AUX_GEQ_11_12_process;
 _C2BQP_AUX_GEQ_11_12_process:
     l0 = 0; l1 = 0; l2 = 0; l3 = 0; l4 = 0;
@@ -3126,13 +3126,13 @@ _C2BQP_AUX_GEQ_11_12_process:
      * the 2026-09-01 record named on the dynamics pairs; zeroing
      * one channel closes it without needing distinct per-channel
      * settings over the SPI plane. */
-    lcntr = 140 + DSP4_BQ_HDR, do .bqiCE_AUX_GEQ_11_12 until lce;
+    lcntr = 155 + DSP4_BQ_HDR, do .bqiCE_AUX_GEQ_11_12 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = 0;
     .bqiCE_AUX_GEQ_11_12: dm(i2, 1) = r0;
 #else
-    lcntr = 140 + DSP4_BQ_HDR, do .bqiCE_AUX_GEQ_11_12 until lce;
+    lcntr = 155 + DSP4_BQ_HDR, do .bqiCE_AUX_GEQ_11_12 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -3141,7 +3141,7 @@ _C2BQP_AUX_GEQ_11_12_process:
     i0 = r9;
     i1 = r12;
     i2 = _bqi_s_AUX_GEQ_11_12;
-    lcntr = 168, do .bqiSE_AUX_GEQ_11_12 until lce;
+    lcntr = 186, do .bqiSE_AUX_GEQ_11_12 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -3164,7 +3164,7 @@ _C2BQP_AUX_GEQ_11_12_process:
     i0 = _bqi_c_AUX_GEQ_11_12;
     i1 = _bqi_s_AUX_GEQ_11_12;
     i2 = _bqi_sig;
-    r4 = 28;
+    r4 = 31;
     call _bq_fx_cascade_simd;
 
     /* NOTHING is carried in a register across that call -- it
@@ -3219,7 +3219,7 @@ _C2BQP_AUX_GEQ_11_12_process:
     i2 = _bqi_s_AUX_GEQ_11_12;
     i0 = r9;
     i1 = r12;
-    lcntr = 168, do .bqiSN_AUX_GEQ_11_12 until lce;
+    lcntr = 186, do .bqiSN_AUX_GEQ_11_12 until lce;
         r0 = dm(i2, 1);
         dm(i0, 1) = r0;
         r0 = dm(i2, 1);
@@ -3251,7 +3251,7 @@ _C2BQP_AUX_GEQ_11_12_process:
     i2 = _bqi_s_AUX_GEQ_11_12;
     i0 = r9;
     i1 = r12;
-    lcntr = 168, do .bqiSB_AUX_GEQ_11_12 until lce;
+    lcntr = 186, do .bqiSB_AUX_GEQ_11_12 until lce;
         r0 = dm(i2, 1);
         dm(i0, 1) = r0;
         r0 = dm(i2, 1);
@@ -4910,7 +4910,7 @@ _C2BQP_GRP_EQ_03_04_process:
     rts;
 _C2BQP_GRP_EQ_03_04_process.end:
 
-/* ---- C2_GRP_GEQ_01 + C2_GRP_GEQ_02: 28 stages ---- */
+/* ---- C2_GRP_GEQ_01 + C2_GRP_GEQ_02: 31 stages ---- */
 .global _C2BQP_GRP_GEQ_01_02_process;
 _C2BQP_GRP_GEQ_01_02_process:
     l0 = 0; l1 = 0; l2 = 0; l3 = 0; l4 = 0;
@@ -4975,13 +4975,13 @@ _C2BQP_GRP_GEQ_01_02_process:
      * the 2026-09-01 record named on the dynamics pairs; zeroing
      * one channel closes it without needing distinct per-channel
      * settings over the SPI plane. */
-    lcntr = 140 + DSP4_BQ_HDR, do .bqiCE_GRP_GEQ_01_02 until lce;
+    lcntr = 155 + DSP4_BQ_HDR, do .bqiCE_GRP_GEQ_01_02 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = 0;
     .bqiCE_GRP_GEQ_01_02: dm(i2, 1) = r0;
 #else
-    lcntr = 140 + DSP4_BQ_HDR, do .bqiCE_GRP_GEQ_01_02 until lce;
+    lcntr = 155 + DSP4_BQ_HDR, do .bqiCE_GRP_GEQ_01_02 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -4990,7 +4990,7 @@ _C2BQP_GRP_GEQ_01_02_process:
     i0 = r9;
     i1 = r12;
     i2 = _bqi_s_GRP_GEQ_01_02;
-    lcntr = 168, do .bqiSE_GRP_GEQ_01_02 until lce;
+    lcntr = 186, do .bqiSE_GRP_GEQ_01_02 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -5013,7 +5013,7 @@ _C2BQP_GRP_GEQ_01_02_process:
     i0 = _bqi_c_GRP_GEQ_01_02;
     i1 = _bqi_s_GRP_GEQ_01_02;
     i2 = _bqi_sig;
-    r4 = 28;
+    r4 = 31;
     call _bq_fx_cascade_simd;
 
     /* NOTHING is carried in a register across that call -- it
@@ -5068,7 +5068,7 @@ _C2BQP_GRP_GEQ_01_02_process:
     i2 = _bqi_s_GRP_GEQ_01_02;
     i0 = r9;
     i1 = r12;
-    lcntr = 168, do .bqiSN_GRP_GEQ_01_02 until lce;
+    lcntr = 186, do .bqiSN_GRP_GEQ_01_02 until lce;
         r0 = dm(i2, 1);
         dm(i0, 1) = r0;
         r0 = dm(i2, 1);
@@ -5100,7 +5100,7 @@ _C2BQP_GRP_GEQ_01_02_process:
     i2 = _bqi_s_GRP_GEQ_01_02;
     i0 = r9;
     i1 = r12;
-    lcntr = 168, do .bqiSB_GRP_GEQ_01_02 until lce;
+    lcntr = 186, do .bqiSB_GRP_GEQ_01_02 until lce;
         r0 = dm(i2, 1);
         dm(i0, 1) = r0;
         r0 = dm(i2, 1);
@@ -5115,7 +5115,7 @@ _C2BQP_GRP_GEQ_01_02_process:
     rts;
 _C2BQP_GRP_GEQ_01_02_process.end:
 
-/* ---- C2_GRP_GEQ_03 + C2_GRP_GEQ_04: 28 stages ---- */
+/* ---- C2_GRP_GEQ_03 + C2_GRP_GEQ_04: 31 stages ---- */
 .global _C2BQP_GRP_GEQ_03_04_process;
 _C2BQP_GRP_GEQ_03_04_process:
     l0 = 0; l1 = 0; l2 = 0; l3 = 0; l4 = 0;
@@ -5180,13 +5180,13 @@ _C2BQP_GRP_GEQ_03_04_process:
      * the 2026-09-01 record named on the dynamics pairs; zeroing
      * one channel closes it without needing distinct per-channel
      * settings over the SPI plane. */
-    lcntr = 140 + DSP4_BQ_HDR, do .bqiCE_GRP_GEQ_03_04 until lce;
+    lcntr = 155 + DSP4_BQ_HDR, do .bqiCE_GRP_GEQ_03_04 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = 0;
     .bqiCE_GRP_GEQ_03_04: dm(i2, 1) = r0;
 #else
-    lcntr = 140 + DSP4_BQ_HDR, do .bqiCE_GRP_GEQ_03_04 until lce;
+    lcntr = 155 + DSP4_BQ_HDR, do .bqiCE_GRP_GEQ_03_04 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -5195,7 +5195,7 @@ _C2BQP_GRP_GEQ_03_04_process:
     i0 = r9;
     i1 = r12;
     i2 = _bqi_s_GRP_GEQ_03_04;
-    lcntr = 168, do .bqiSE_GRP_GEQ_03_04 until lce;
+    lcntr = 186, do .bqiSE_GRP_GEQ_03_04 until lce;
         r0 = dm(i0, 1);
         dm(i2, 1) = r0;
         r0 = dm(i1, 1);
@@ -5218,7 +5218,7 @@ _C2BQP_GRP_GEQ_03_04_process:
     i0 = _bqi_c_GRP_GEQ_03_04;
     i1 = _bqi_s_GRP_GEQ_03_04;
     i2 = _bqi_sig;
-    r4 = 28;
+    r4 = 31;
     call _bq_fx_cascade_simd;
 
     /* NOTHING is carried in a register across that call -- it
@@ -5273,7 +5273,7 @@ _C2BQP_GRP_GEQ_03_04_process:
     i2 = _bqi_s_GRP_GEQ_03_04;
     i0 = r9;
     i1 = r12;
-    lcntr = 168, do .bqiSN_GRP_GEQ_03_04 until lce;
+    lcntr = 186, do .bqiSN_GRP_GEQ_03_04 until lce;
         r0 = dm(i2, 1);
         dm(i0, 1) = r0;
         r0 = dm(i2, 1);
@@ -5305,7 +5305,7 @@ _C2BQP_GRP_GEQ_03_04_process:
     i2 = _bqi_s_GRP_GEQ_03_04;
     i0 = r9;
     i1 = r12;
-    lcntr = 168, do .bqiSB_GRP_GEQ_03_04 until lce;
+    lcntr = 186, do .bqiSB_GRP_GEQ_03_04 until lce;
         r0 = dm(i2, 1);
         dm(i0, 1) = r0;
         r0 = dm(i2, 1);

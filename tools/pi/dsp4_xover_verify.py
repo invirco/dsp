@@ -142,6 +142,10 @@ def main():
         part.write(L.addr(args.cell), f32(v), 0)
         time.sleep(SETTLE)
 
+    def setslope(v):
+        part.write(L.addr(args.slope_cell), int(v), 0)
+        time.sleep(SETTLE)
+
     for cell, val in (('Main001Level001', f32(1.0)), ('Main001Mute001', 0)):
         if L.has(cell):
             part.write(L.addr(cell), val, 0)
@@ -180,11 +184,16 @@ def main():
 
     ok = ident and eq == 64 and out['never_set']['peak'] > 0
 
-    # ---- the corners --------------------------------------------------
+    # ---- the corners, AT EVERY SLOPE THE NODE HOLDS --------------------
+    # The slope has its own word since 2026-09-09; before that all eight
+    # crossover cells shared one address and only LR4 was reachable.
     print('')
-    for f0 in (80.0, 120.0, 250.0, 500.0, 50.0):
+    for slope in sorted(X.XOVER_SLOPES):
+      setslope(slope)
+      print('  slope %d dB/oct' % slope)
+      for f0 in (80.0, 120.0, 250.0, 500.0, 50.0):
         setfreq(f0)
-        want = X.design_set(f0)
+        want = X.design_set(f0, slope=slope)
         got = staged()
         wu = max(ulps(a, b) for a, b in zip(got, want))
         suf, lv = live()
@@ -204,7 +213,8 @@ def main():
             if not 10.0 < f < FS / 2:
                 continue
             serr = max(serr, abs(db(resp(wl, f) + resp(wh, f))))
-        rec = {'f0': f0, 'staged_ulps': wu, 'live_vs_staged_ulps': lvu,
+        rec = {'slope': slope, 'f0': f0, 'staged_ulps': wu,
+               'live_vs_staged_ulps': lvu,
                'lp_at_corner_db': cl, 'hp_at_corner_db': ch,
                'resp_err_db': rerr, 'sum_err_db': serr, 'bank': suf}
         rec['ok'] = (wu <= COEFF_ULPS and lvu == 0
@@ -213,27 +223,45 @@ def main():
                      and rerr <= RESP_BAR_DB and serr <= SUM_BAR_DB)
         ok = ok and rec['ok']
         out['points'].append(rec)
-        print('  %6.1f Hz  staged %d ulp, live==staged %s  LP %+.3f dB / '
+        print('    %6.1f Hz  staged %d ulp, live==staged %s  LP %+.3f dB / '
               'HP %+.3f dB at the corner  resp %.5f dB  LP+HP %.5f dB  -> %s'
               % (f0, wu, 'yes' if lvu == 0 else 'NO (%d ulp)' % lvu, cl, ch,
                  rerr, serr, 'PASS' if rec['ok'] else 'FAIL'))
 
-    # ---- OUT OF DOMAIN: a slope write must not move the split ----------
+    # ---- THE SLOPE'S TWO NEGATIVE CONTROLS -----------------------------
+    # (1) A SLOPE THE NODE DOES NOT HOLD is ignored, not clamped: 6 and
+    #     18 are not Linkwitz-Riley alignments and 3 is not a slope at
+    #     all, so the coefficients must not move a word.
+    # (2) WRITING A SLOPE MUST NOT MOVE THE FREQUENCY. That is the whole
+    #     defect this word was cut to fix -- until 2026-09-09 both cells
+    #     resolved to one address and a slope write landed the integer 24
+    #     where a corner belongs.
+    print('')
+    setslope(24)
     setfreq(250.0)
     before = staged()
-    part.write(L.addr(args.slope_cell), 24, 0)
-    time.sleep(SETTLE)
-    part.write(L.addr(args.slope_cell), 3, 0)
-    time.sleep(SETTLE)
-    after = staged()
-    frozen = before == after
-    print('')
-    print('slope written to the SHARED address (24, then 3) — the split '
-          'must not move: %s' % ('unmoved' if frozen else 'MOVED'))
-    out['shared_address'] = {'frozen': frozen,
-                             'freq_readback': from_f32w(
-                                 part.sc.peek(sym['_xover_freq_' + nid]))}
-    ok = ok and frozen
+    freq_before = from_f32w(part.sc.peek(sym['_xover_freq_' + nid]))
+    bad_frozen = True
+    for bad in (6, 18, 3):
+        setslope(bad)
+        if staged() != before:
+            bad_frozen = False
+        print('  slope %2d (not an LR alignment) — coefficients %s'
+              % (bad, 'unmoved' if staged() == before else 'MOVED'))
+    setslope(12)
+    freq_after = from_f32w(part.sc.peek(sym['_xover_freq_' + nid]))
+    moved_at_12 = staged() != before
+    freq_held = freq_after == freq_before == 250.0
+    print('  slope 12 (LR2) — coefficients %s, frequency %.1f -> %.1f Hz %s'
+          % ('MOVED (as they must)' if moved_at_12 else 'DID NOT MOVE',
+             freq_before, freq_after, 'held' if freq_held else 'DISTURBED'))
+    out['slope_controls'] = {'ignored_not_clamped': bad_frozen,
+                             'slope_moves_design': moved_at_12,
+                             'freq_before': freq_before,
+                             'freq_after': freq_after,
+                             'freq_held': freq_held}
+    ok = ok and bad_frozen and moved_at_12 and freq_held
+    setslope(24)
 
     # ---- AUDIO: the split, and that it moves with the corner -----------
     print('')

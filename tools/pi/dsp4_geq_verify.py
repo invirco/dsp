@@ -235,7 +235,12 @@ def main():
     ap.add_argument('--landed', default='landed-d24.json')
     ap.add_argument('--node', default='C2_AUX_GEQ_01')
     ap.add_argument('--cell-fmt', default='Aux001Geq%03d')
-    ap.add_argument('--bands', type=int, default=28)
+    ap.add_argument('--bands', type=int, default=0,
+                    help='0 = COUNT THEM IN THE LANDED MAP (the default). '
+                         'The band count is a market parameter, not a '
+                         'constant: it went 28 -> 31 at defs-v2026.09.08.3 '
+                         'and a hard 28 here silently scored 28 of 31 '
+                         'bands as a pass.')
     ap.add_argument('--band', type=int, default=17, help='band for the audio bar')
     ap.add_argument('--gain', type=float, default=12.0)
     ap.add_argument('--n', type=int, default=1024)
@@ -250,13 +255,26 @@ def main():
     part.sc.check_chip()
     print('chip 2 ready; contract %s sha %s' % (L.pin, L.sha256[:12]))
 
-    geq = Geq(part, L, args.node, args.cell_fmt, args.bands)
+    bands = args.bands
+    if not bands:
+        # However many `<node>Geq<NN>` cells the landed map addresses,
+        # counted by walking up from 1 so a HOLE stops the run instead of
+        # being scored as a shorter GEQ.
+        bands = 0
+        while (args.cell_fmt % (bands + 1)) in L.cells:
+            bands += 1
+        if not bands:
+            print('MISSING: %s addresses no band 1' % (args.cell_fmt % 1))
+            return 2
+        print('  bands: %d, counted in the landed map' % bands)
+
+    geq = Geq(part, L, args.node, args.cell_fmt, bands)
     miss = geq.missing()
     if miss:
         print('MISSING: %s' % ', '.join(miss[:6]))
         return 2
 
-    out = {'node': args.node, 'bands': args.bands,
+    out = {'node': args.node, 'bands': bands,
            'contract': {'pin': L.pin, 'sha256': L.sha256}, 'sets': [],
            'bar': {'coeff_ulps': COEFF_ULPS, 'resp_db': RESP_BAR_DB,
                    'resp_db_lf': RESP_BAR_DB_LF, 'audio_db': AUDIO_BAR_DB}}
@@ -272,7 +290,7 @@ def main():
     # ---- NEGATIVE CONTROL 1: flat designs the compiled identity --------
     print('')
     print('flat (every band 0 dB) — must design the COMPILED identity')
-    geq.write([0.0] * args.bands)
+    geq.write([0.0] * bands)
     flat = geq.designed()
     ident_ok = all(abs(v - G.IDENTITY[i % 5]) < 1e-12 for i, v in enumerate(flat))
     sym, livebank = geq.live()
@@ -293,14 +311,14 @@ def main():
     vectors = [
         ('one band +%.0f dB (band %d, %.0f Hz)'
          % (args.gain, b, G.centre(b)),
-         [args.gain if i == b else 0.0 for i in range(args.bands)]),
+         [args.gain if i == b else 0.0 for i in range(bands)]),
         ('one band -%.0f dB (band %d)' % (args.gain, b),
-         [-args.gain if i == b else 0.0 for i in range(args.bands)]),
+         [-args.gain if i == b else 0.0 for i in range(bands)]),
         ('alternating +/-%.0f dB' % args.gain,
-         [args.gain * (-1) ** i for i in range(args.bands)]),
-        ('every band +%.0f dB' % args.gain, [args.gain] * args.bands),
+         [args.gain * (-1) ** i for i in range(bands)]),
+        ('every band +%.0f dB' % args.gain, [args.gain] * bands),
         ('ramp -12..+12 dB',
-         [-12.0 + 24.0 * i / (args.bands - 1) for i in range(args.bands)]),
+         [-12.0 + 24.0 * i / (bands - 1) for i in range(bands)]),
     ]
     print('')
     for name, gains in vectors:
@@ -312,12 +330,12 @@ def main():
 
     # ---- AUDIO: the impulse response of one boosted band ---------------
     print('')
-    gains = [args.gain if i == b else 0.0 for i in range(args.bands)]
+    gains = [args.gain if i == b else 0.0 for i in range(bands)]
     geq.write(gains)
     f0 = G.centre(b)
     ir_flat = None
     ir = capture(part, inj, geq.buf, args.n)
-    geq.write([0.0] * args.bands)
+    geq.write([0.0] * bands)
     ir_flat = capture(part, inj, geq.buf, args.n)
     xs = [q428(w) for w in ir]
     xf = [q428(w) for w in ir_flat]

@@ -14,9 +14,9 @@
 .global _geq_exp2_poly;
 .var _geq_exp2_poly[9] = 0x3F800000, 0x3F317218, 0x3E75FDF0, 0x3D635851, 0x3C1D9560, 0x3AAEBEE4, 0x392180D1, 0x3781C4CC, 0x35B3A17C;
 
-/* 28 bands: 19.95 Hz .. 10000 Hz, (alpha, k2) pairs */
-.global _geq_band_28;
-.var _geq_band_28[56] =
+/* 31 bands: 19.95 Hz .. 19953 Hz, (alpha, k2) pairs */
+.global _geq_band_31;
+.var _geq_band_31[62] =
     0x399E8B15, 0x36E4E3DA,   /* band  0     19.953 Hz */
     0x39C79813, 0x37356211,   /* band  1     25.119 Hz */
     0x39FB4614, 0x378FBC80,   /* band  2     31.623 Hz */
@@ -44,5 +44,8 @@
     0x3D90A468, 0x3ED49370,   /* band 24   5011.872 Hz */
     0x3DAE5323, 0x3F24ECEA,   /* band 25   6309.573 Hz */
     0x3DCC7780, 0x3F7CB711,   /* band 26   7943.282 Hz */
-    0x3DE50A89, 0x3FBDBE09;   /* band 27  10000.000 Hz */
+    0x3DE50A89, 0x3FBDBE09,   /* band 27  10000.000 Hz */
+    0x3DEC6A73, 0x4009DCFF,   /* band 28  12589.254 Hz */
+    0x3DCFA829, 0x403DCBAB,   /* band 29  15848.932 Hz */
+    0x3D6FA9CF, 0x406E73C5;   /* band 30  19952.623 Hz */
 

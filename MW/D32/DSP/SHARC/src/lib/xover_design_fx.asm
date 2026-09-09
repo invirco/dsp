@@ -59,8 +59,9 @@
  *   24  LR4 -- two cascaded Butterworth sections, Q = 1/sqrt2. Both
  *       stages of a path are the same five words. Shipping behaviour.
  *   12  LR2 -- ONE 2nd-order section at Q = 0.5, the second stage of
- *       each path written as the compiled identity. Same five offset
- *       formulas with 1/(2Q) at 1.0 instead of 0.7071.
+ *       each path written as the compiled identity, AND THE HIGHPASS
+ *       INVERTED (see .xod_hp). Same five offset formulas with 1/(2Q)
+ *       at 1.0 instead of 0.7071.
  *    6  1st-order. Expressible, but each path is then 3 dB down at the
  *       corner rather than 6 -- not a Linkwitz-Riley alignment, and a
  *       different acoustic contract from the one the product ships.
@@ -274,6 +275,23 @@ _xover_design_LR:
     f12 = r12;
     f2 = f2 * f12;
     f2 = f2 * f8;                /* b0 = ((2-u)/2)*inv */
+
+    /* THE LR2 HIGHPASS IS INVERTED, and without that this is not a
+     * crossover. At 4th order the paths are 360 degrees apart at the
+     * corner and sum flat as designed; at 2nd order they are 180 apart
+     * and LP + HP NULLS at the corner -- -242 dB on the model before
+     * this branch existed. Every 2nd-order Linkwitz-Riley is specified
+     * with one path reversed. It costs one negation: the HP numerator
+     * is (b0, -2*b0, b0), so in the offset encoding n1 = b1 + 2*b0 and
+     * n2 = b2 - b0 are zero and STAY zero under a sign flip, and only
+     * b0 changes. Done here rather than left to an output polarity
+     * switch, because a split that sums flat only when a host remembers
+     * to flip something is not one the product can ship. */
+    r7 = dm(_xod_second);
+    r7 = pass r7;
+    if ne jump (pc, .xod_hp_b0);
+    f2 = -f2;
+.xod_hp_b0:
     dm(i2, 1) = f2;
     dm(i2, 1) = r0;              /* n1 = 0, exactly */
     dm(i2, 1) = r0;              /* n2 = 0, exactly */

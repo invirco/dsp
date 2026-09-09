@@ -54,7 +54,21 @@ class LandedMap:
 
     def __init__(self, product, path=None):
         self.product = product
-        self.path = path or os.path.join(DEFS, 'products', product, 'dsp.csv')
+        # DSP_LANDED_DIR points at a products/ directory that is NOT
+        # defs/products -- the pair this repo has proposed but the hub has
+        # not gated yet. Same env var, same meaning, same loud warning as
+        # MW/D32/DSP/gen_dsp.py: a bench run staged from it is scoring an
+        # address map with no tag behind it, and the JSON it stages says
+        # so in `source` and `pin` so a report cannot quietly claim
+        # otherwise.
+        override = os.environ.get('DSP_LANDED_DIR')
+        if path:
+            self.path = path
+        elif override:
+            self.path = os.path.abspath(
+                os.path.join(ROOT, override, product, 'dsp.csv'))
+        else:
+            self.path = os.path.join(DEFS, 'products', product, 'dsp.csv')
         with open(self.path, 'rb') as fh:
             raw = fh.read()
         self.sha256 = hashlib.sha256(raw).hexdigest()
@@ -66,6 +80,14 @@ class LandedMap:
             raise SystemExit('%s: duplicate cell names in the landed map'
                              % self.path)
         self.pin = _lockpin()
+        self.gated = os.path.abspath(self.path).startswith(
+            os.path.abspath(DEFS) + os.sep)
+        if not self.gated:
+            self.pin = '%s + UNGATED PROPOSAL (%s)' % (
+                self.pin, os.path.relpath(self.path, ROOT))
+            sys.stderr.write(
+                'landed_map: %s is NOT under defs/ -- these rows have not '
+                'passed the hub gate.\n' % os.path.relpath(self.path, ROOT))
 
     # -- lookups ---------------------------------------------------------
     def row(self, cell):
@@ -124,7 +146,8 @@ class LandedMap:
         return {
             'product': self.product,
             'pin': self.pin,
-            'source': 'defs/products/%s/dsp.csv' % self.product,
+            'source': os.path.relpath(self.path, ROOT),
+            'gated': self.gated,
             'sha256': self.sha256,
             'cells': {r['_Cell']: [int(r['DspSpi']), int(r['DspPage']),
                                    int(r['DspAdd']), r['Node'],

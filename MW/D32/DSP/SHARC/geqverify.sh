@@ -46,10 +46,10 @@ scp -q $ROOT/tools/pi/dsp4_geq_verify.py $ROOT/tools/pi/dsp4_conform.py \
 scp -q geqverify_run.sh $BENCH:/home/app/ || exit 3
 
 ssh $BENCH "PRODUCT=$PRODUCT NODE='${NODE:-C2_AUX_GEQ_01}' \
-            CELLFMT='${CELLFMT:-Aux001Geq%03d}' BANDS='${BANDS:-28}' \
+            CELLFMT='${CELLFMT:-Aux001Geq%03d}' BANDS='${BANDS:-0}' \
             BAND='${BAND:-17}' N='${N:-1024}' \
             OUT='$OUT' bash /home/app/geqverify_run.sh"
 RC=$?
-scp -q $BENCH:/home/app/dspboot/$OUT ./goldens/$OUT 2>/dev/null \
+scp -q "$BENCH:/home/app/dspboot/${OUT%.json}*.json" ./goldens/ 2>/dev/null \
   && echo "  report: goldens/$OUT"
 exit $RC

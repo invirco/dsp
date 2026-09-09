@@ -6,6 +6,85 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## The 31-band GEQ, the crossover slope, and the chip-2 re-layout (2026-09-09, session 30)
+
+Session: confirming the DSP code against the latest known matrix. Write-ups:
+`MW/D32/DSP/dsp4-geq31-relayout-20260909.md` and
+`MW/D32/DSP/dsp4-window-readiness-20260909.md`. Contract
+`defs-v2026.09.08.4`. Images: shipping float configuration, chip1
+`602a0feb` / chip2 `b1325022`.
+
+### S5-1 — the 31-band GEQ moves 1,192 D24 / 1,460 D32 addresses, and every host cache with it
+
+**Severity: major (contract). Status: landed as `defs-v2026.09.08.4`.**
+
+A GEQ node's SPI block is exactly its band count and chip 2's allocator
+packs blocks end to end, so the three bands `.3` added to seventeen nodes
+are +51 words and every chip-2 block above the first GEQ slides. Chip 1
+does not move. This is the first time this contract has MOVED an address
+rather than added one, and a host on the old map writes an aux limiter
+threshold into an anti-feedback notch with every address answering. The
+panel MCU headers and the app must be rebuilt against `.4` in the same
+window as the firmware.
+
+### S5-2 — `gen_dsp.py` kept the GEQ band count as a hand-maintained constant
+
+**Severity: major (generator). Status: fixed — `resolve_geq_bands()`.**
+
+`MW/D32/DSP/gen_dsp.py` carried `GEQ_BANDS = 28` beside a graph whose
+nodes said `bands=28`, and the two agreed because someone remembered. The
+band count is a market parameter (`gen_dsp_csv.py --geq-bands`), so the
+moment the graph moved to 31 the constant would have addressed 28 words
+of a 31-word block and the three bands past the end would have been
+silently unmapped. It is now READ OFF THE GRAPH, and a graph whose GEQ
+nodes disagree with each other stops the generator.
+
+### S5-3 — `gen_dsp.py --propose` was unreachable in the one case it exists for
+
+**Severity: major (process). Status: fixed.**
+
+The fatal drift check sat ABOVE the `--propose` branch in `main()`, so
+every run that had a new `dsp.csv` to propose — which is exactly a run
+where the graph disagrees with the landed file — died before reaching the
+flag. The propose path now authors first and takes the drift verdict as a
+value, generating nothing while the graph is ahead.
+
+### S5-4 — the LR2 crossover does not sum flat without inverting the highpass
+
+**Severity: major (design). Status: fixed in `xover_ref.py` and
+`xover_design_fx.asm`, verified on the part.**
+
+The 09-08 proposal specified slope 12 as "the same five offset formulas
+with 1/(2Q) at 1.0 and the second stage written as the identity". That
+designs a correct pair of 2nd-order sections, each 6.02 dB down at the
+corner — and their sum NULLS there, measured at −242 dB on the model,
+because at 2nd order the two paths are 180 degrees apart. Every 2nd-order
+Linkwitz-Riley is specified with one path reversed. The highpass is now
+inverted at slope 12, which in the offset encoding is a sign flip on `b0`
+alone (`n1` and `n2` are zero and stay zero). `xover_ref.check()` scores
+the corner and sum properties at BOTH slopes now; scoring only 24 is what
+let this through.
+
+### S5-5 — `dsp4_geq_verify.py` hard-coded 28 bands and scored 28 of 31 as a pass
+
+**Severity: minor (instrument). Status: fixed — the band count is
+counted in the landed map, and a hole in the numbering stops the run.**
+
+The first run against the 31-band contract reported `GEQ_DESIGN_OK` with
+`bands: 28` in its report. Bands 29–31 were addressed, answering, and
+never written.
+
+### S5-6 — `bqeverify`'s fixed/shootout arms do not link, and it pre-dates this session
+
+**Severity: minor (instrument). Status: filed, not fixed.**
+
+Under `DSP4_BQ_SHOOTOUT=1 DSP4_BQE_VERIFY=1` chip 1's `sec_swco`
+overflows by 604 words. Rebuilt at the previous commit (`e278667`) the
+same arm overflows by 386, so it was already broken; this session's
+crossover work accounts for the 218-word difference. The shipping image
+is unaffected and links with 85,330 words of chip-1 code free. The FLOAT
+arm — the shipping cascade — builds and passes at 0 ULP.
+
 ## FX engine and anti-feedback (2026-09-08, session 29)
 
 Session: the queued FX/ANTI_FB block. Write-up:

@@ -2415,6 +2415,27 @@ def verify_proposal_roundtrip(path, expected_cells):
 # local edit to defs/products/<p>/dsp.csv or a silent re-derive from here.
 DEFS_PRODUCTS_DIR = os.path.join(REPO_ROOT, 'defs', 'products')
 
+# BUILDING FROM THE PROPOSAL, BEFORE THE HUB HAS LANDED IT. The gate is a
+# handoff between two repos, and the dsp side of a release window cannot
+# always wait on the far side of it: `DSP_LANDED_DIR=proposals/defs/products`
+# points generation at the pair this repo just proposed instead of the pair
+# defs carries. SAME BYTES, DIFFERENT PROVENANCE, and the difference is
+# real -- nothing has gated these rows and the defs pin does not describe
+# the image that comes out. So it says so, loudly, on every run, and the
+# session that uses it says so in its status line. It is NOT a fallback:
+# unset, generation reads defs and only defs, and the drift check is fatal
+# exactly as before.
+_LANDED_DIR_OVERRIDE = os.environ.get('DSP_LANDED_DIR')
+if _LANDED_DIR_OVERRIDE:
+    DEFS_PRODUCTS_DIR = os.path.abspath(
+        os.path.join(REPO_ROOT, _LANDED_DIR_OVERRIDE))
+    print('*' * 74)
+    print('*  DSP_LANDED_DIR IS SET. The address map being generated from is')
+    print(f'*  {DEFS_PRODUCTS_DIR}')
+    print('*  -- NOT defs/products/. These rows have not passed the hub gate')
+    print('*  and the defs pin in defs.lock does not describe this build.')
+    print('*' * 74)
+
 
 def landed_dsp_csv_path(product):
     return os.path.join(DEFS_PRODUCTS_DIR, product, 'dsp.csv')
