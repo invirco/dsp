@@ -44,7 +44,29 @@ cycles per sample per channel in the paired kernel for each form against
 today's (GATE 259.8 c/s, pair 143/ch; COMP 433.1 c/s, pair 251/ch; floors
 60–75 / 110–135) and say what fraction of each kernel is the gain
 computer at all — if the envelope/knee/crossfade plumbing is the larger
-part, say so and name its lever. Also state in
+part, say so and name its lever. **PW 21:1x: "and the envelope and knee become
+part of the LUT graph."** So the target form is ONE lookup from level to
+gain: the static curve — threshold, ratio, knee (and for GATE: range,
+its open/closed gains; for LIMITER: its ceiling) — is BAKED INTO the
+table by a DESIGN step when parameters change (the same parameter-written
+pattern as the GEQ, with the pending-DESIGN flag S13-1 taught us to read
+in the paired steady test), and the per-sample gain computer collapses to:
+envelope → index (exponent from leftz + top mantissa bits, so the table is
+log-spaced WITHOUT computing log2) → two adjacent table words →
+interpolate → gain. No log2, no knee arithmetic, no exp2 per sample.
+Attack/release stay as the envelope one-pole (time constants are not a
+curve); gate hold/hysteresis stays as the state machine, reading the
+table's gain. Design questions the rig must answer: point count and
+spacing that hold 0.1 dB INCLUDING at the knee corner (a table rebuilt
+per parameter set can place a knot exactly at the threshold — non-uniform
+spacing is allowed); table words per node × 24/32 strips + chip-2
+dynamics; the DESIGN step's cost (64 entries × log2/knee/exp2 in the
+existing polynomial code, spread over blocks, ONLY on change) and how a
+ramped parameter is handled (rebuild per block while ramping, or
+interpolate between two tables — cost of each). Then the paired-kernel
+cycle count per sample per channel for GATE, COMP, LIMITER in this form,
+against today's 143 / 251. This supersedes the "log2 table + exp2 table"
+framing above where the two conflict: one table, level → gain. Also state in
 findings what ADI publishes on SHARC dynamics (the hub's answer: nothing
 current with source — the 1998 ADSP-21065L "Digital Audio Effects" EZ-KIT
 code had assembly compressor/expander/limiter; SigmaStudio(+) dynamics
