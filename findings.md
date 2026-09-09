@@ -2577,47 +2577,75 @@ zero. Scoring it needs a `_blk_lp_`/`_blk_hp_` array in the crossover's
 block kernel — a change to the SHIPPING image for a bench instrument, not
 taken.
 
-### S13-5 — the GEQ primitive pipelined 8 instructions to 5; the binding constraint is the dual-compute operand map, not the recurrence
+### S13-5 — GEQ is the wall on chip 2: 6.03 c/band-sample, 11.0 % of budget in the aux GEQs alone
 
-**Severity: n/a (design). Status: BUILT AND PROVEN OFF THE PART; NOT MEASURED ON IT.**
+**Severity: n/a (measurement). Status: CLOSED.**
 
-Landed behind `DSP4_BQ_SIMD_PIPE`, default 0. The float SIMD inner loop was
-8 instructions per sample per stage for 2 channels carrying 11 operations;
-it is now 5.
+`sigprofile2.sh`, D32 all-ones graph, paired arm, two boots per point,
+minimum taken, one whole aux strip pair stepped node by node:
 
-The dispatch's plan — two independent cascades interleaved, four channels in
-flight — does not fit (one cascade needs ~13 live registers, two is upwards
-of 22 against the 16 a PE has) and is not needed: the loop-carried chain is
-y → a1·y → w1′ → y, three dependent operations against five instructions of
-slack, so the recurrence never bounded a five-instruction schedule.
+| node | cycles/block | % budget | c/band-sample |
+|---|--:|--:|--:|
+| AUX_FDR x2 | 323 + 317 | 0.20 % | — |
+| PAIR_AUX_EQ (2 x 4-stage) | 1,111 | 0.34 % | 8.68 |
+| **PAIR_AUX_GEQ (2 x 31-band)** | **5,983** | **1.83 %** | **6.03** |
+| PAIR_AUX_AFB (2 x 6-notch) | 1,468 | 0.45 % | 7.65 |
+| PAIR_AUX_LIM | 4,775 | 1.46 % | — |
+| AUX_DLY | 2,251 | 0.69 % | — |
+| AUX_OUT + MTR_AUX | 242 | 0.07 % | — |
 
-**What bounds it is the dual-compute form's OPERAND MAP** — multiplier X
-from R0–R3 and Y from R4–R7, ALU X from R8–R11 and Y from R12–R15 — read off
-`easm21k -proc ADSP-21564`, which rejects `f15 = f2 * f1, f8 = f11 - f14,
-dm(i3,2) = f1` with "Semantic Error in type 4 instruction". Five products
-need x and y both in R0–R3 and would need five coefficients in the four
-registers R4–R7, so one multiply can never pair. That is why the old loop's
-two standalone multiplies were there, and why its register assignment is
-already the right one. A standalone multiply still carries a memory move, so
-the read-ahead rides on it.
+The graph and the shootout rig agree on the primitive to 1.5 % (6.03 against
+5.94), which is what makes the table believable. Six aux pairs are 113,778
+cycles/block = 34.7 % of budget and 42.3 % of chip 2's 268,893; the six aux
+GEQ pairs alone are 35,898 = 11.0 % of budget.
 
-PROVEN OFF THE PART, two ways: (a) built at PIPE=0 the pair is `df6b847d` /
-`cb9bc58e`, byte for byte the staged `geq_*` pair, so the new code is inert
-in the default image; (b) both instruction sequences simulated register by
-register over 4,000 random cascades × 4 consecutive blocks × 16 samples —
-exercising the block-to-block state hand-off, the pass-0 seeding and the
-peeled last pass — with ZERO mismatches in the output words and both final
-state words, and the pointer advance exactly BLOCK on i2 and i3 as the
-`−2*BLOCK` rewind assumes.
+UNEXPECTED, not chased: PAIR_AUX_LIM at 4,775 cycles/block is bigger than
+the EQ and AFB pairs together — 8.7 % of budget over six pairs, for a class
+with no cascade in it. The obvious next question after the primitive.
 
-NOT DONE, and next: `bqeverify` on the pipelined arm, the shootout rig for
-the c/band-sample number against 5.94, then geqverify / famverify / busgold
-and capacity on both chips at D32. One hazard to retire on the part first:
-`dm(i3,2) = f1` in I4 reads f1 two instructions after the ALU wrote it, a
-distance the unpipelined loop never exercises; if it needs three, I3 and
-I4's ALU ops swap.
+CAVEAT from the instrument's own header: chip 2 is never configured under
+`sigprofile2.sh`, so cascades run at bypass coefficients (cost is
+coefficient-independent) and dynamics at compiled defaults, which makes the
+LIMITER figure the branch this graph takes rather than a worst case.
 
-### S13-6 — RIG B not reached
+### S13-6 — the biquad primitive is NOT instruction-count-bound, and that invalidates the 3.75 target
+
+**Severity: high (it redirects the whole GEQ programme). Status: OPEN — the cause is unmeasured.**
+
+The float SIMD inner loop was pipelined 8 instructions per sample per stage
+to 5, behind `DSP4_BQ_SIMD_PIPE` (default 0; built at 0 the pair is
+`df6b847d` / `cb9bc58e`, byte for byte the staged `geq_*` pair). The
+schedule fits the dual-compute operand map — multiplier X from R0-R3 and Y
+from R4-R7, ALU X from R8-R11 and Y from R12-R15, read off `easm21k`, which
+rejects `f15 = f2 * f1, f8 = f11 - f14, dm(i3,2) = f1` with "Semantic Error
+in type 4 instruction". Five products need x and y both in R0-R3 and would
+need five coefficients in the four registers R4-R7, so one multiply can
+never pair; that is why the old loop had two standalone multiplies.
+
+**It is bit-exact and it does not buy what the instruction count says.**
+`bqeverify` PASSES on the pipelined arm at 0 ULP over 36,864 words with
+hash `0xC607BA6B` — the same hash the unpipelined kernel produces. But on
+the same ladder point the GEQ pair goes 5,983 -> 5,655 cycles/block, 6.031
+-> 5.701 c/band-sample: **5.5 %, where 8 -> 5 instructions predicts 25 %.**
+A stall-free five-instruction loop would be 4,495 cycles. Capacity at D32
+moves chip 2 from 82.06 / 82.49 % to 80.79 / 80.98 %, zero overruns.
+
+**The loop is running at ~1.47 cycles per instruction, and the same
+arithmetic gives ~1.4 for the unpipelined loop.** Instruction count is
+therefore not the binding resource on this kernel, and the `max(5 multiplies,
+4 ALU, 2 moves) = 5` floor that both the 2026-09-02 3.75 estimate and this
+session's schedule were built on is wrong. Candidates not yet
+distinguished: float result latency the old loop's slack was absorbing, a DM
+bus conflict between the three index registers walking DM at once, or PM
+fetch.
+
+NEXT, and it is not more scheduling: a per-instruction cycle probe on the
+shootout rig — one instruction added at a time to an empty loop — until the
+1.4-1.5 shows up and names itself. The kernel stays in the tree at default
+0: bit-exact, a real 5.5 %, not worth adopting ahead of knowing why it is
+not 25 %.
+
+### S13-7 — RIG B not reached
 
 **Severity: n/a. Status: OPEN.**
 

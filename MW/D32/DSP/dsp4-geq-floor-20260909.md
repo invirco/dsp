@@ -174,7 +174,50 @@ printing `nan`, and drops any point above the block-rate Nyquist. Scoring
 this arm needs a `_blk_lp_`/`_blk_hp_` array in the crossover's block
 kernel — a change to the SHIPPING image for a bench instrument, not taken.
 
-## 5. The GEQ primitive, pipelined — 8 instructions to 5, proven bit-identical off the part
+## 5. The ladder — GEQ is the wall on chip 2, and by how much
+
+`sigprofile2.sh`, `DSP4_CHAN_MASK=0` (the D32 all-ones graph), the paired
+arm, two boots per point, minimum taken. A cut at `limit2 = L` keeps chain
+positions 0..L-1, so the node at position L costs cyc(L+1) - cyc(L). One
+whole aux strip PAIR, stepped node by node:
+
+| node stepped over | cycles/block | % of budget | c/band-sample |
+|---|--:|--:|--:|
+| AUX_FDR (1st) | 323 | 0.10 % | — |
+| AUX_FDR (2nd) | 317 | 0.10 % | — |
+| PAIR_AUX_EQ — 2 x 4-stage | 1,111 | 0.34 % | 8.68 |
+| **PAIR_AUX_GEQ — 2 x 31-band** | **5,983** | **1.83 %** | **6.03** |
+| PAIR_AUX_AFB — 2 x 6-notch | 1,468 | 0.45 % | 7.65 |
+| PAIR_AUX_LIM — 2 x LIMITER | 4,775 | 1.46 % | — |
+| AUX_DLY | 2,251 | 0.69 % | — |
+| AUX_OUT + MTR_AUX | 242 | 0.07 % | — |
+
+Raw: limit2 47→55 = 33,051 / 33,374 / 33,691 / 34,802 / 40,785 / 42,253 /
+47,028 / 49,279 / 49,521 cycles/block.
+
+**GEQ is the wall, and the shootout rig was right about the primitive.** At
+6.03 c/band-sample in the graph against the rig's 5.94 in isolation — 1.5 %
+apart — the two instruments agree, which is what makes the class table
+believable. One aux pair is 18,963 cycles/block; the six aux pairs are
+113,778 = **34.7 % of budget and 42.3 % of chip 2's measured 268,893.** The
+six aux GEQ pairs alone are **35,898 cycles/block, 11.0 % of budget and
+13.4 % of chip 2.**
+
+**The second-biggest line is a surprise: PAIR_AUX_LIM at 4,775 cycles/block
+is larger than the EQ and AFB pairs together**, 8.7 % of budget over six
+pairs, for a class with no cascade in it at all. Nothing was done about it
+this session; it is the obvious next question after the primitive.
+
+CAVEATS, both from the instrument's own header. Chip 2 is never configured
+under `sigprofile2.sh`, so the cascades run at their `.var` bypass
+coefficients — cost is coefficient-independent, the same instructions
+either way — and the dynamics run at compiled defaults, which is why the
+LIMITER figure is a branch this graph happens to take rather than a worst
+case. One `WITNESS-UNPHASED` transient at limit2=47 rep 2; the script
+re-ran boot+config and produced a valid reading, and the point is a
+two-boot minimum.
+
+## 6. The GEQ primitive, pipelined — 8 instructions to 5, proven bit-identical off the part
 
 Landed behind `DSP4_BQ_SIMD_PIPE`, **default 0**, which is the loop byte for
 byte as the 5.94 c/band-sample figure was measured on. **Not measured on the
@@ -236,17 +279,52 @@ read-ahead never runs off the end of the caller's block.
    identical by construction — same operands, same order of additions — and
    this is what checks that the new prologue and epilogue do not change it.
 
-**What is left is the part**: `bqeverify` on the pipelined arm (0 ulp
-against `bq_float_ref` over 36,864 words, as the control reads today), the
-shootout rig for the c/band-sample number against 5.94, then geqverify /
-famverify / busgold and capacity re-measured on both chips at D32. The
-kernel is written and builds; none of that was run.
+### Measured on the part — and the target is NOT met, for a reason worth having
 
-One hazard to retire on the part first: `dm(i3,2) = f1` in I4 reads f1 two
-instructions after the ALU wrote it, a distance the unpipelined loop never
-exercises. If it needs three, I3 and I4's ALU ops swap.
+`bqeverify` on the pipelined arm: **BQE_VERIFY PASS, 0 ULP against
+`bq_float_ref` over 36,864 words, hash `0xC607BA6B` sum `0xE67685E7` — the
+same hash the unpipelined kernel produced.** The kernel is bit-exact on the
+part, and the `dm(i3,2) = f1` store-distance hazard is retired.
 
-## 6. RIG B — not reached
+The same ladder point, pipelined:
+
+| | cycles/block, one GEQ pair | c/band-sample |
+|---|--:|--:|
+| unpipelined, 8 instructions | 5,983 | 6.031 |
+| **pipelined, 5 instructions** | **5,655** | **5.701** |
+| a stall-free 8 → 5 would give | 4,495 | 4.531 |
+| the dispatch's target | | **≤ 3.75** |
+
+Capacity at D32 on the pipelined arm, two boots: chip 2 **80.79 / 80.98 %**
+against 82.06 / 82.49 %, chip 1 76.47 / 76.41 % against 76.73 / 76.96 %,
+zero overruns throughout.
+
+**So the loop is five instructions and costs 5,655 cycles where five
+instructions would cost 4,495: it is running at about 1.47 cycles per
+instruction, and the target is missed by a wide margin.** Working the same
+arithmetic backwards on the unpipelined loop gives ~1.4 cycles per
+instruction there too. **Instruction count is therefore NOT the binding
+resource on this kernel, and the whole 8 → 5 exercise bought 5.5 % where
+the instruction count predicted 25 %.**
+
+That is the finding, and it invalidates the premise both the 3.75 estimate
+and this session's schedule were built on. The floor is not
+`max(multiplies, ALU, moves)`; something else — float result latency that
+the old loop's slack was absorbing, a DM bus conflict between the three
+index registers walking DM at once, or PM fetch — is setting the rate.
+
+**The next step is not more scheduling.** It is to measure where the cycles
+actually go: a per-instruction cycle probe on the shootout rig, one
+instruction added at a time to an empty loop, until the 1.4–1.5 shows up
+and names itself. Scheduling against an unmeasured floor is what produced
+this result.
+
+The kernel stays in the tree behind `DSP4_BQ_SIMD_PIPE`, default 0. It is
+bit-exact and it is a 5.5 % win on the GEQ, worth about 1.3 % of chip 2's
+budget — real, but far from what was asked and not worth adopting ahead of
+knowing why.
+
+## 7. RIG B — not reached
 
 The 2156x IIR accelerator was not brought up. The precision test that
 decides it is unchanged and still the first thing to run: band 1
