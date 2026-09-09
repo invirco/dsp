@@ -174,52 +174,77 @@ printing `nan`, and drops any point above the block-rate Nyquist. Scoring
 this arm needs a `_blk_lp_`/`_blk_hp_` array in the crossover's block
 kernel — a change to the SHIPPING image for a bench instrument, not taken.
 
-## 5. The GEQ primitive — the floor is reachable by SCHEDULING ONE cascade
+## 5. The GEQ primitive, pipelined — 8 instructions to 5, proven bit-identical off the part
 
-Not built, not measured. What was established, and what it changes about
-the plan:
+Landed behind `DSP4_BQ_SIMD_PIPE`, **default 0**, which is the loop byte for
+byte as the 5.94 c/band-sample figure was measured on. **Not measured on the
+part**: the bench was on the ladder for the whole window the kernel existed
+in.
 
-The float SIMD inner loop `.bqfl_ssamp` is **8 instructions per sample per
+The float SIMD inner loop `.bqfl_ssamp` was **8 instructions per sample per
 stage for 2 channels**, carrying 11 operations — 5 multiplies (b0·x, b1·x,
-b2·x, a1·y, a2·y), 4 ALU, one load, one store. Measured 5.94
-c/band-sample including the per-stage preamble and the two domain
-crossings.
+b2·x, a1·y, a2·y), 4 ALU, one load, one store.
 
-**The assembler is the authority on packing, and it accepts
-`mult + ALU + one memory move` in one instruction** — verified by
-assembling all four candidate forms against `easm21k -proc ADSP-21564`,
-with a negative control (two memory moves) correctly rejected. So the
-per-instruction budget is 1 multiply + 1 ALU + 1 move, and the floor for
-one cascade is `max(5 mult, 4 ALU, 2 moves) = 5 instructions per sample
-per stage` = **2.5 c/band-sample** in the inner loop.
+**The dispatch's plan — two independent cascades interleaved, four channels
+in flight — does not fit and is not needed.** One cascade already needs 5
+coefficients + 2 state + 5 products + a temp live at once; two is upwards of
+22 registers against the 16 a PE has, and the alternate register file is a
+MODE1 write with latency, not a per-instruction resource. It is also
+unnecessary: the loop-carried chain is y → a1·y → w1′ → y, three dependent
+operations against five instructions of slack, so the recurrence never
+bounds a five-instruction schedule.
 
-**The dispatch's plan — two independent cascades interleaved, four
-channels in flight — is not the way to get there, and does not fit.** One
-cascade already needs 5 coefficients + 2 state + ~5 products + a temp live
-at once; two cascades is upwards of 22 registers against the 16 a PE has,
-and the alternate register file is a MODE1 write with latency, not a
-per-instruction resource.
+**What DOES bound it is the dual-compute form's operand constraint**, read
+off the assembler rather than assumed: the multiplier takes X from R0–R3 and
+Y from R4–R7, the ALU takes X from R8–R11 and Y from R12–R15.
+`easm21k -proc ADSP-21564` rejects `f15 = f2 * f1, f8 = f11 - f14,
+dm(i3,2) = f1` with *"Semantic Error in type 4 instruction"*. The five
+products need x and y both in R0–R3 and would need five coefficients in the
+four registers R4–R7, so **one multiply can never pair** — which is exactly
+why the old loop's `f14` and `f15` stood alone, and why the register
+assignment it already used is the right one. A standalone multiply still
+carries a memory move, so the read-ahead rides on it.
 
-It does not need to. The recurrence does not bound a 5-instruction
-schedule: the loop-carried chain is y → a1·y → w1′ → y, three
-dependent operations against five instructions of slack. A steady-state
-software pipeline over ONE cascade, offset by one sample, covers it:
+The steady state, one sample per pass, x(n) already in f0:
 
-    I1:  p2  = x·b2       | w2' = p2ᵖ − q2ᵖ    | load x(n+1)
-    I2:  p1  = x·b1       | y   = w1ᵖ + p0     | store y(n−1)
-    I3:  q1  = y·a1       | t   = w2ᵖ + p1
-    I4:  q2  = y·a2       | w1  = t − q1
-    I5:  p0ⁿ = x(n+1)·b0  |
+|  | multiplier | ALU | memory |
+|---|---|---|---|
+| I1 | p0 = x·b0 | w2′ = p2ᵖ − q2ᵖ | |
+| I2 | p1 = x·b1 | y = w1 + p0 | |
+| I3 | q1 = y·a1 | t = w2 + p1 | |
+| I4 | p2 = x·b2 | w1′ = t − q1 | store y(n) |
+| I5 | q2 = a2·y | | load x(n+1) |
 
-5 multiplies, 4 ALU ops, 2 moves, five instructions, every dependence
-one instruction deep or more. Superscripts mark the value carried from the
-previous sample.
+Five multiplies, four ALU ops, two memory moves, every dependence at least
+one instruction deep, every operand inside the constraint. Superscript ᵖ is
+the value carried from the previous sample. Pass 0 seeds `f9 = w2` and
+`f15 = +0.0` so I1 recovers w2 exactly; the last pass is peeled so I5's
+read-ahead never runs off the end of the caller's block.
 
-**What is left is the register allocation and the prologue/epilogue, then
-the shootout rig for bit-exactness against `bq_float_ref` and the
-measurement.** Nothing about the pair latch, the gather or the chip-2
-interleaved arrays has to move, which is the other reason to prefer this
-over the four-channel plan.
+**Two proofs, both off the part:**
+
+1. **The control is inert.** Built at `DSP4_BQ_SIMD_PIPE=0` the pair is
+   `df6b847d…` / `cb9bc58e…` — byte for byte the staged `geq_*` pair. The
+   new code costs the default image nothing.
+2. **The schedule is bit-identical.** Both instruction sequences were
+   simulated register by register, in order, over **4,000 random cascades ×
+   4 consecutive blocks × 16 samples** — so the block-to-block state
+   hand-off, the pass-0 seeding and the peeled last pass are all exercised,
+   not just the steady state. **Zero mismatches** in the output words and in
+   both final state words, and the pointer advance is exactly BLOCK on both
+   i2 and i3, which is what the `−2*BLOCK` rewind assumes. The arithmetic is
+   identical by construction — same operands, same order of additions — and
+   this is what checks that the new prologue and epilogue do not change it.
+
+**What is left is the part**: `bqeverify` on the pipelined arm (0 ulp
+against `bq_float_ref` over 36,864 words, as the control reads today), the
+shootout rig for the c/band-sample number against 5.94, then geqverify /
+famverify / busgold and capacity re-measured on both chips at D32. The
+kernel is written and builds; none of that was run.
+
+One hazard to retire on the part first: `dm(i3,2) = f1` in I4 reads f1 two
+instructions after the ALU wrote it, a distance the unpipelined loop never
+exercises. If it needs three, I3 and I4's ALU ops swap.
 
 ## 6. RIG B — not reached
 

@@ -2577,32 +2577,45 @@ zero. Scoring it needs a `_blk_lp_`/`_blk_hp_` array in the crossover's
 block kernel — a change to the SHIPPING image for a bench instrument, not
 taken.
 
-### S13-5 — the GEQ primitive's floor is reachable by SCHEDULING ONE cascade, not by interleaving two
+### S13-5 — the GEQ primitive pipelined 8 instructions to 5; the binding constraint is the dual-compute operand map, not the recurrence
 
-**Severity: n/a (design). Status: OPEN — analysed, not built, not measured.**
+**Severity: n/a (design). Status: BUILT AND PROVEN OFF THE PART; NOT MEASURED ON IT.**
 
-The float SIMD inner loop is 8 instructions per sample per stage for 2
-channels, carrying 11 operations: 5 multiplies, 4 ALU, one load, one
-store. `easm21k -proc ADSP-21564` accepts `mult + ALU + one memory move`
-in ONE instruction (verified by assembling the four candidate forms, with
-a two-move negative control correctly rejected), so the per-instruction
-budget is 1 multiply + 1 ALU + 1 move and the floor for one cascade is
-`max(5, 4, 2) = 5` instructions per sample per stage = **2.5
-c/band-sample** in the inner loop, against 5.94 measured today.
+Landed behind `DSP4_BQ_SIMD_PIPE`, default 0. The float SIMD inner loop was
+8 instructions per sample per stage for 2 channels carrying 11 operations;
+it is now 5.
 
-**The dispatch's plan — two independent cascades interleaved, four
-channels in flight — does not fit and is not needed.** One cascade needs 5
-coefficients + 2 state + ~5 products + a temp live at once; two is upwards
-of 22 registers against the 16 a PE has, and the alternate register file
-is a MODE1 write with latency, not a per-instruction resource. The
-recurrence does not bound a 5-instruction schedule either: the
-loop-carried chain is y → a1·y → w1′ → y, three dependent operations
-against five instructions of slack. A steady-state software pipeline over
-ONE cascade, offset by one sample, covers it — the schedule is in
-`MW/D32/DSP/dsp4-geq-floor-20260909.md` §5. What is left is the register
-allocation and prologue/epilogue, then the shootout rig for bit-exactness
-against `bq_float_ref` and the measurement. Nothing about the pair latch,
-the gather or the chip-2 interleaved arrays has to move.
+The dispatch's plan — two independent cascades interleaved, four channels in
+flight — does not fit (one cascade needs ~13 live registers, two is upwards
+of 22 against the 16 a PE has) and is not needed: the loop-carried chain is
+y → a1·y → w1′ → y, three dependent operations against five instructions of
+slack, so the recurrence never bounded a five-instruction schedule.
+
+**What bounds it is the dual-compute form's OPERAND MAP** — multiplier X
+from R0–R3 and Y from R4–R7, ALU X from R8–R11 and Y from R12–R15 — read off
+`easm21k -proc ADSP-21564`, which rejects `f15 = f2 * f1, f8 = f11 - f14,
+dm(i3,2) = f1` with "Semantic Error in type 4 instruction". Five products
+need x and y both in R0–R3 and would need five coefficients in the four
+registers R4–R7, so one multiply can never pair. That is why the old loop's
+two standalone multiplies were there, and why its register assignment is
+already the right one. A standalone multiply still carries a memory move, so
+the read-ahead rides on it.
+
+PROVEN OFF THE PART, two ways: (a) built at PIPE=0 the pair is `df6b847d` /
+`cb9bc58e`, byte for byte the staged `geq_*` pair, so the new code is inert
+in the default image; (b) both instruction sequences simulated register by
+register over 4,000 random cascades × 4 consecutive blocks × 16 samples —
+exercising the block-to-block state hand-off, the pass-0 seeding and the
+peeled last pass — with ZERO mismatches in the output words and both final
+state words, and the pointer advance exactly BLOCK on i2 and i3 as the
+`−2*BLOCK` rewind assumes.
+
+NOT DONE, and next: `bqeverify` on the pipelined arm, the shootout rig for
+the c/band-sample number against 5.94, then geqverify / famverify / busgold
+and capacity on both chips at D32. One hazard to retire on the part first:
+`dm(i3,2) = f1` in I4 reads f1 two instructions after the ALU wrote it, a
+distance the unpipelined loop never exercises; if it needs three, I3 and
+I4's ALU ops swap.
 
 ### S13-6 — RIG B not reached
 
