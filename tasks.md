@@ -19,7 +19,12 @@ runs unpaired while the envelope stays paired, or the table is
 interleaved so one address serves both PEs — whichever measures best,
 with `dyn_state_bound.py`'s ceiling analysis re-run for the table form.
 Land the small-table form behind `DSP4_DYN_TABLES=2` (default unchanged);
-recommendation to PW in the status line with the numbers. Also state in
+recommendation to PW in the status line with the numbers. **PW RULING 20:5x: the
+dynamics accuracy target is 0.1 dB worst case over 0 to −100 dBFS** ("I
+don't mind giving up some processing resolution") — design the small
+table to THAT bar, not to the polynomial's 0.0001 dB: pick the point
+count and interpolation order that meet 0.1 dB at the fewest cycles;
+report the error the chosen form actually achieves. Also state in
 findings what ADI publishes on SHARC dynamics (the hub's answer: nothing
 current with source — the 1998 ADSP-21065L "Digital Audio Effects" EZ-KIT
 code had assembly compressor/expander/limiter; SigmaStudio(+) dynamics
