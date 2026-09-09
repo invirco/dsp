@@ -58,6 +58,38 @@
 .var _tx_ping_w;
 .var _tx_pong_w;
 
+#if DSP4_BLK_LATCH
+/* THE HALF THE NEXT BLOCK GOES INTO, held apart from the half the
+ * scatter/gather are currently walking.
+ *
+ * _scatter_chipN and _gather_chipN reload the active-buffer pointer from
+ * DM on EVERY SAMPLE (see the generated chipN/block_io.asm), and the
+ * block ISR used to retarget that same word. So when the interrupt
+ * landed part-way through a block's sample loop -- which it does, every
+ * block, at whatever point the loop had reached -- the block's remaining
+ * samples were scattered from, or gathered into, the OTHER half at the
+ * same sample offsets. Each transmitted 8-sample window then carried two
+ * or three consecutive blocks spliced together at the sample the
+ * interrupt happened to fall on: measured on the part 2026-09-09 with a
+ * block counter stamped into TX lane 3 slot 1, samples 0-1 from block B,
+ * samples 3-7 from B+1 and sample 2 from B+2, on a build with ZERO block
+ * overruns. That is the ORDER DEFECT (S8-1).
+ *
+ * The ISR now advances these instead, and _blk_latch_bufs copies them
+ * into the active pointers ONCE per block, before the sample loop runs.
+ * The phase is unchanged -- the same halves in the same order -- and the
+ * pointers simply stop moving under the loop's feet. */
+.var _rx_pend_buf;
+.var _tx_pend_buf;
+#endif
+
+#if DSP4_TXPROBE
+/* The transmit-path order instrument reads this to record which half
+ * the gather wrote into (src/tx_probe.asm). Exported only for that
+ * build, so a default image cannot depend on it. */
+.global _tx_ping_w;
+#endif
+
 /* Boot-time product config from the Pi/CM4 host (D1: Pi masters DSP SPI;
  * the S MCU is not in the parameter path) */
 .global _chan_mask;
@@ -108,10 +140,22 @@ _set_rx_bufs:
     r8 = lshift r8 by -2;
     dm(_rx_ping_w) = r4;
     dm(_rx_pong_w) = r8;
+#if DSP4_BLK_LATCH
+    /* PONG, not ping -- see the phase note in _set_tx_bufs. The DDE
+     * starts on the ping row, so the half the core may touch is the
+     * other one. */
+    dm(_rx_pend_buf) = r8;
+#if CHIP_ID == 1
+    dm(_rx_active_buf) = r8;
+#elif CHIP_ID == 2
+    dm(_ic_rx_active_buf) = r8;
+#endif
+#else
 #if CHIP_ID == 1
     dm(_rx_active_buf) = r4;
 #elif CHIP_ID == 2
     dm(_ic_rx_active_buf) = r4;
+#endif
 #endif
     C_RETURN
 _set_rx_bufs.end:
@@ -122,10 +166,36 @@ _set_tx_bufs:
     r8 = lshift r8 by -2;
     dm(_tx_ping_w) = r4;
     dm(_tx_pong_w) = r8;
+#if DSP4_BLK_LATCH
+    /* THE PHASE, AND IT WAS OFF BY ONE HALF.
+     *
+     * The DDE starts each region on its PING row and moves to pong at
+     * the first row boundary -- which is the same edge that raises the
+     * block interrupt. Starting the core on ping too, and toggling it in
+     * that interrupt, put the core on exactly the half the channel was
+     * working on: the gather wrote block N into the half being clocked
+     * onto the wire, so the wire carried block N for the slots the DDE
+     * had not reached yet and the two-blocks-old contents of that same
+     * half for the ones it had already passed. Measured 2026-09-09 on a
+     * build with ZERO block overruns: each transmitted 8-sample window
+     * carried three consecutive blocks, the split at a fixed sample.
+     *
+     * Starting on PONG puts the core one half behind the channel for
+     * good: it fills the row the DDE has just finished with, and that
+     * row goes out on the next block. Costs nothing and adds no latency
+     * the ping-pong did not already have. */
+    dm(_tx_pend_buf) = r8;
+#if CHIP_ID == 1
+    dm(_ic_tx_active_buf) = r8;
+#elif CHIP_ID == 2
+    dm(_tx_active_buf) = r8;
+#endif
+#else
 #if CHIP_ID == 1
     dm(_ic_tx_active_buf) = r4;
 #elif CHIP_ID == 2
     dm(_tx_active_buf) = r4;
+#endif
 #endif
     C_RETURN
 _set_tx_bufs.end:
@@ -237,7 +307,9 @@ _sport_dma_work:
     dm(REG_DMA0_STAT) = r2;
 
     /* Toggle inbound pointer */
-#if CHIP_ID == 1
+#if DSP4_BLK_LATCH
+    r2 = dm(_rx_pend_buf);
+#elif CHIP_ID == 1
     r2 = dm(_rx_active_buf);
 #elif CHIP_ID == 2
     r2 = dm(_ic_rx_active_buf);
@@ -247,14 +319,18 @@ _sport_dma_work:
     if ne jump (pc, .rx_use_ping); /* active was pong -> back to ping */
     r3 = dm(_rx_pong_w);          /* active was ping -> pong */
 .rx_use_ping:
-#if CHIP_ID == 1
+#if DSP4_BLK_LATCH
+    dm(_rx_pend_buf) = r3;
+#elif CHIP_ID == 1
     dm(_rx_active_buf) = r3;
 #elif CHIP_ID == 2
     dm(_ic_rx_active_buf) = r3;
 #endif
 
     /* Toggle outbound pointer */
-#if CHIP_ID == 1
+#if DSP4_BLK_LATCH
+    r2 = dm(_tx_pend_buf);
+#elif CHIP_ID == 1
     r2 = dm(_ic_tx_active_buf);
 #elif CHIP_ID == 2
     r2 = dm(_tx_active_buf);
@@ -264,7 +340,9 @@ _sport_dma_work:
     if ne jump (pc, .tx_use_ping);
     r3 = dm(_tx_pong_w);
 .tx_use_ping:
-#if CHIP_ID == 1
+#if DSP4_BLK_LATCH
+    dm(_tx_pend_buf) = r3;
+#elif CHIP_ID == 1
     dm(_ic_tx_active_buf) = r3;
 #elif CHIP_ID == 2
     dm(_tx_active_buf) = r3;
@@ -293,3 +371,30 @@ _sport_dma_work:
 
     rts;
 _sport_dma_work.end:
+
+#if DSP4_BLK_LATCH
+/*----------------------------------------------------------------------
+ * _blk_latch_bufs — called from the main loop once per block, after
+ * _block_ready has been consumed and before the sample loop runs. Moves
+ * the pending halves into the pointers the generated scatter/gather
+ * walk, so a block's eight samples all come from, and all go to, ONE
+ * buffer half. Clobbers r0 (main-loop bank; the caller is between
+ * blocks).
+ *----------------------------------------------------------------------*/
+.global _blk_latch_bufs;
+_blk_latch_bufs:
+    r0 = dm(_rx_pend_buf);
+#if CHIP_ID == 1
+    dm(_rx_active_buf) = r0;
+#elif CHIP_ID == 2
+    dm(_ic_rx_active_buf) = r0;
+#endif
+    r0 = dm(_tx_pend_buf);
+#if CHIP_ID == 1
+    dm(_ic_tx_active_buf) = r0;
+#elif CHIP_ID == 2
+    dm(_tx_active_buf) = r0;
+#endif
+    rts;
+_blk_latch_bufs.end:
+#endif

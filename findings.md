@@ -6,6 +6,182 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE ORDER DEFECT: root-caused in the transmit path and fixed, and a capacity defect underneath it (2026-09-09, session 34)
+
+Session: the chip-2 transmit path instrumented with a block counter on
+the wire, the ORDER DEFECT root-caused to a ping/pong PHASE error and
+fixed (100.0000 % ordered on the part), and a second, independent defect
+uncovered by the same instrument — the block loop does not fit its
+budget. Write-up `MW/D32/DSP/dsp4-order-defect-20260909.md`. Contract
+`defs-v2026.09.08.4`, unchanged. New pair staged BESIDE the window pair
+as `~/dspboot/tx_chip1.ldr` `21f9fdc1` / `tx_chip2.ldr` `de14981f`; the
+window pair `093c609f` / `2ba0e464` is byte-identical to as-found and
+`DSP4_BLK_LATCH=0` rebuilds it exactly. Bench restored to the shipping
+bitstream `a1f6672af6c3` and the `dsp4-pcm-slave` overlay.
+
+### S8-1 — the ORDER DEFECT is a ping/pong PHASE error, and it is FIXED
+
+**Severity: MAJOR (firmware, every chip-2 output lane). Status: FIXED and
+proven on the part.**
+
+S7-5 localised the defect to the chip-2 transmit path and left three
+candidates: the DMA ring indexing, the block hand-off, and the TX slot
+tables. The hand-off is the one, and the mechanism is not an indexing
+bug — it is the PHASE of the ping/pong itself.
+
+`_set_tx_bufs` started the core on the PING half and `_sport_dma_work`
+toggled it at each block interrupt. The DDE also starts each region on
+its ping row and moves to pong at the first row boundary — the same edge
+that raises that interrupt. So the core was always writing the half the
+channel was clocking onto the wire. The slots the DDE had not reached
+yet went out carrying the block the gather had just written; the slots
+it had already passed went out carrying whatever that half held from two
+blocks earlier. Every transmitted 8-sample window was assembled from up
+to three consecutive blocks, split at a fixed sample.
+
+**The instrument, not an inference.** `SHARC/src/tx_probe.asm`
+(`DSP4_TXPROBE=1`) stamps chip 2's TX lane 3 slot 1 — driven onto the
+wire, written by no node — with `(block counter << 8) | (half << 4) |
+sample index`, immediately after the gather has written slot 0 of the
+same frame. `_maincap` presents slot 0 as the Pi capture's LEFT channel
+and slot 1 as its RIGHT, latched from ONE DSP frame (S7-1), so a recorded
+stereo frame is a coherent (audio, stamp) pair. The stamp is in order by
+construction, so what comes back off the wire settles it without any
+appeal to the audio. Decoded, with the node graph out of the way
+(`DSP4_BLOCK_MASK=5`) so that ZERO blocks were missed:
+
+| build | blocks missed | stamp transitions +1 |
+|---|---|---|
+| pre-fix | 0.0 % | 143,999 of 191,999 = **75.0000 %** |
+| pointer latched only | 0.0 % | 143,999 of 191,999 = 75.0000 % |
+| phase corrected | 0.0 % | 191,999 of 191,999 = **100.0000 %** |
+
+The pre-fix delta histogram has exactly three entries — `+1` ×143,999,
+`-15` ×24,000, `+17` ×24,000 — one of each jump per 8-sample window over
+24,000 windows, which is what "a fixed split point" means quantitatively.
+The fixed histogram has ONE entry. The sample-index field is 24,000 of
+each of 0–7 in every build, so the position inside the window was never
+in doubt; only the block was.
+
+The fix is `DSP4_BLK_LATCH=1` (default), in `src/sport_init.asm`:
+
+* the block ISR advances a PENDING pair of half-pointers and
+  `_blk_latch_bufs` moves them into the active pair once per block,
+  before the sample loop — the generated `_scatter_chipN`/`_gather_chipN`
+  reload the active pointer on EVERY sample, so the ISR used to retarget
+  them mid-block. On the part this alone changed nothing (row 2 above);
+  it is a real hazard closed, not the defect;
+* the core starts on PONG, so it fills the row the DDE has just finished
+  with and that row goes out on the next block. That is the defect, and
+  row 3 is the fix.
+
+`DSP4_BLK_LATCH=0` rebuilds `093c609f` / `2ba0e464` byte for byte, so the
+control column is measured rather than quoted.
+
+**It is not one lane.** The lane the instrument measured, `o_dspb[3]`, is
+the CPLD's `dac_main` — a converter lane, not a measurement lane, and
+slot 0 of it is `C2_MAIN_ST_OUT`. `_gather_chip2` writes all twenty
+chip-2 outputs from the same half in the same loop through one pointer,
+so the other four output lanes (AUX_OUT 01–12, MAIN_OUT 01–04, MON_OUT,
+CODEC_AUX_OUT, SUB_OUT) carried the identical splice and are fixed by the
+identical pointer. They cannot be witnessed directly on this bench —
+LOGIC captures only `o_dspb[3]` and no analogue loopback is wired — and
+what would settle them is a `_maincap`-style build capturing a slot of
+`o_dspb[0..2]`. Chip 1's inter-chip TX and both chips' RX regions carry
+the same off-by-one-half and get the same fix; the RX side is not
+separately witnessed, because the only observable that could witness it
+is the audio through the loop, and that is dominated by S8-2.
+
+Cost: two DM words and one call per block. On-part `_proc_cyc` reads
+286,757 before and 282,308 after on chip 2 — the instrument reports the
+LAST pass and its pass-to-pass spread is wider than the change.
+
+### S8-2 — underneath it: the block loop does not fit the block, and misses three blocks in four
+
+**Severity: MAJOR (firmware/capacity, open). Status: measured, NOT fixed
+— needs its own dispatch.**
+
+The same instrument found a second defect that the first was hiding. With
+the phase fixed, the staircase is still only 33 % exact through the full
+D24 graph, because the core is not writing most of the blocks at all:
+
+| what | chip 1 | chip 2 |
+|---|---|---|
+| blocks missed (`DIAG_BLK_OVERRUN` / `FRAME_COUNT`, 8 s) | **75.1 %** | **70.9 %** |
+| `_proc_cyc`, shipping per-sample build | 330,389 | 286,757 |
+| `_proc_cyc`, `DSP4_BLOCK_KERNELS=1` | 134,325 | 170,622 |
+| `_proc_cyc`, plumbing only (`DSP4_BLOCK_MASK=5`) | — | 13,964 |
+| budget, BLOCK=8 at 982.98 MHz | 163,830 | 163,830 |
+
+The two instruments agree to a tenth of a percent: chip 2 misses 71.4 %
+of blocks and the block counter on the wire advances at 28.7 % of the
+frame rate. A half that is not rewritten is transmitted again, so the
+wire carries stale whole blocks — which is the ±225-block tail S7-5
+measured, and it is why the staircase does not come back exact even with
+the transmit path proven in order.
+
+**Every capacity number on record was taken in a configuration that does
+not ship.** The `.4` record (chip 1 202,786 / chip 2 226,442 against
+327,680) is a BLOCK=16 `DSP4_BLOCK_KERNELS=1` build. The shipping default
+is BLOCK=8 per-sample, and that costs 2.0x (chip 1) and 1.75x (chip 2) of
+the block-8 budget. Block kernels alone do not close it: chip 2 still
+reads 170,622 against 163,830 and misses 51.9 % of blocks — and a loop
+that takes 1.04 block periods misses every second block, not 4 % of them,
+because `_block_ready` is a flag and not a queue.
+
+The causal chain is closed by reducing the load until the loop nearly
+fits. With `DSP4_BLOCK_KERNELS=1`, the phase fix, and the runtime masks
+poked down to one strip and one aux, chip 1 misses 0.0 % and chip 2 misses
+30.3 %, and the staircase through the whole chip-2 graph goes from
+**32.87 % to 91.92 % exact** over 96,000 frames. The residual is the
+residual overrun; nothing else moved.
+
+CCLK is not the reason: 982.98 MHz measured against the 983.04 target, and
+the block rate is 5,999.9/s against 6,000.
+
+### S8-3 — the bench recipe was booting chip 2 with chip 1's firmware
+
+**Severity: MAJOR (bench procedure, invalidates measurements). Status:
+FIXED in the session's own scripts; the shared run scripts still carry
+it.**
+
+`sudo pinctrl set 6,7,8,9,10,11,12,22,23,24,25 a0` — the line every run
+script executes after an OpenOCD flash, to hand the JTAG pins back — puts
+GPIO24 into ALT0, which on this part is `SD0_DAT2`, not a deasserted chip
+select. Chip 2's CS then sits asserted while chip 1's boot stream is
+clocked out, chip 2 loads `chip1.ldr`, and the card comes up as two chip
+1s. Six consecutive boots did this before the pins were read back;
+holding GPIO 6 and 24 as outputs driven HIGH (`pinctrl set 6,24 op dh`)
+and giving only 7, 9, 10, 11, 22, 23, 25 to `a0` booted chip 2 correctly
+first time, every time after.
+
+`dsp4_scope.check_chip` catches it — "link answers as CHIP 1, expected 2"
+— and that is the only reason it was ever caught; `dsp4_diag.py` reports
+it as a healthy part with a wrong CHIP_ID, and any measurement taken
+through the diag link alone would have been fiction. `lat_run.sh`,
+`famverify_run.sh` and `profile_run.sh` retry the boot until
+`dsp4_diag.py --chip 2` answers 2, which recovers from it by accident;
+they should hold the CS lines instead.
+
+Two smaller traps found with it: `dsp4_diag.py --help` documents chip 2's
+CS as GPIO 7 while the code (and `dsp4_scope.CS_GPIO`) uses 24; and
+`dsp4_diag.py --chip 2` without `--rdy-gpio 12` uses chip 1's ready line
+and cannot phase the link at all.
+
+### S8-4 — the through-DSP latency did not move
+
+**Severity: n/a (result). Status: measured.**
+
+Re-measured on the fixed pair with the same instrument
+(`dsp4_dsp_latency.py`, 10 reps x 2 boots): minimum 14,508 and 14,509,
+medians 14,512 / 14,517, spread 13 and 15, worst margin over the runner-up
+x16.8. The pre-fix session read a minimum of 14,504 on both boots. The
++4 samples is inside the instrument's own spread on either arm, so the
+72-sample / 1.500 ms figure of S7-6 stands, and the boot-to-boot part is
+again zero (14,508 against 14,509, one sample).
+
+Coherent fraction 33.1–33.7 %, which is S8-2 and not the transmit path.
+
 ## The capture path made frame-locked, and the design given an ID (2026-09-09, session 33)
 
 Session: a frame-locked CM4 capture and a readable design-ID register in

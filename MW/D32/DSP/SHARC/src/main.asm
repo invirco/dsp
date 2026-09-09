@@ -186,6 +186,9 @@
 .extern ldf_stack_space, ldf_stack_length;
 .extern _block_ready;
 .extern _rx_active_buf, _tx_active_buf;
+#if DSP4_BLK_LATCH
+.extern _blk_latch_bufs;
+#endif
 .extern _ic_rx_active_buf, _ic_tx_active_buf;
 .extern _meter_decay_block;
 .extern _mtr_block_tick;
@@ -202,6 +205,10 @@
 .extern _chip2_process_all;
 .extern _scope_inject, _scope_record;
 .extern _scatter_chip2, _gather_chip2;
+#if DSP4_TXPROBE && CHIP_ID == 2
+/* Transmit-path order instrument — src/tx_probe.asm. */
+.extern _tx_probe_tick, _tx_probe_stamp;
+#endif
 #else
 #error "CHIP_ID must be defined as 1 or 2"
 #endif
@@ -839,6 +846,15 @@ _start:
     r0 = 0;
     dm(_block_ready) = r0;
 
+#if DSP4_BLK_LATCH
+    /* Take this block's DMA halves BEFORE the sample loop starts. The
+     * generated scatter/gather reload the active-buffer pointer on every
+     * sample, so while the ISR moved that pointer the block's samples
+     * were split across both halves at the instant the interrupt landed
+     * -- the ORDER DEFECT (see sport_init.asm). */
+    call _blk_latch_bufs;
+#endif
+
 #if DSP4_BLOCK_DECIMATE > 1
     /* Process only every Nth block, to buy the node graph N times the
      * per-block cycle budget without changing WHAT it computes. This
@@ -1037,6 +1053,9 @@ _start:
 
     /* ========== Chip 2 block loop ========== */
 .block_chip2:
+#if DSP4_TXPROBE
+    call _tx_probe_tick;
+#endif
 #if DSP4_BLOCK_KERNELS
     /* Per-BLOCK kernels. Scatter the WHOLE block into the BLOCK_SIZE-word
      * input arrays, run each node exactly once, then gather the whole
@@ -1077,6 +1096,10 @@ _start:
     r0 = dm(_sample_idx);
 #if DSP4_BLOCK_MASK & 4
     call _gather_chip2;
+#endif
+#if DSP4_TXPROBE
+    r0 = dm(_sample_idx);
+    call _tx_probe_stamp;
 #endif
     r5 = dm(_sample_idx);
     r5 = r5 + 1;
@@ -1141,6 +1164,10 @@ _start:
     r0 = dm(_sample_idx);
 #if DSP4_BLOCK_MASK & 4
     call _gather_chip2;
+#endif
+#if DSP4_TXPROBE
+    r0 = dm(_sample_idx);
+    call _tx_probe_stamp;
 #endif
 
     r5 = dm(_sample_idx);

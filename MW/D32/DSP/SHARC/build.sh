@@ -86,6 +86,34 @@ DSP4_POLL_ISR_ONLY="${DSP4_POLL_ISR_ONLY:-0}"
 # Block-loop bisect bitmask: 1 = scatter, 2 = node graph, 4 = gather.
 # 7 = production. 0 = consume the block and do nothing with it.
 DSP4_BLOCK_MASK="${DSP4_BLOCK_MASK:-7}"
+
+# TRANSMIT-PATH ORDER INSTRUMENT (2026-09-09, bench only; see
+# src/tx_probe.asm). 1 = chip 2 stamps a block counter + sample index
+# into TX lane 3 slot 1 -- a driven but otherwise unused output slot
+# that the _maincap LOGIC build presents as the Pi capture's RIGHT
+# channel, latched from the same DSP frame as the MAIN_ST_OUT audio on
+# the LEFT. The stamp is in order by construction, so the capture says
+# whether the buffer->wire path reorders blocks or is handed them
+# already out of order. 0 = production, and the image is byte-identical
+# to a tree without the file.
+# THE ORDER DEFECT (2026-09-09). 1 = the fix: the block ISR advances a
+# PENDING pair of DMA half-pointers and the main loop latches them into
+# the active pair once per block, so a block's eight samples all come
+# from and all go to one half. 0 is the BYTE-FOR-BYTE CONTROL -- the
+# pre-fix image, same md5 -- and it is the defect, not a mode: with 0 the
+# generated scatter/gather reload the active pointer per sample and the
+# ISR moves it mid-loop, so every transmitted 8-sample window is spliced
+# from two or three consecutive blocks. See src/sport_init.asm.
+DSP4_BLK_LATCH="${DSP4_BLK_LATCH:-1}"
+CFLAGS="$CFLAGS -DDSP4_BLK_LATCH=$DSP4_BLK_LATCH"
+ASMFLAGS="$ASMFLAGS -DDSP4_BLK_LATCH=$DSP4_BLK_LATCH"
+
+DSP4_TXPROBE="${DSP4_TXPROBE:-0}"
+CFLAGS="$CFLAGS -DDSP4_TXPROBE=$DSP4_TXPROBE"
+ASMFLAGS="$ASMFLAGS -DDSP4_TXPROBE=$DSP4_TXPROBE"
+if [ "$DSP4_TXPROBE" != "0" ]; then
+    echo "  *** INSTRUMENT BUILD: DSP4_TXPROBE=$DSP4_TXPROBE stamps chip-2 TX lane 3 slot 1 ***"
+fi
 # CFG_CHAN_MASK / CFG_AUX_MASK GET READERS (2026-09-09). 1 = the fix:
 # the process chain tests the live masks and SKIPS a masked strip or aux
 # outright, and _mask_apply latches them at CONFIG_COMMIT. 0 is the
