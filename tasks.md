@@ -1,3 +1,100 @@
+## HUB DISPATCH 2026-09-09 21:52Z — S16 — the last link and the new wall: chip 1's code pool opened by the link map so the audio witness fits beside the LUT arm; the audio-domain verdict on DSP4_DYN_LUT (famverify + comp_gr with a signal source); the LIMITER on the table (chip 2's prize); S15-10 script hygiene; both levers re-priced and the decision table finished for PW   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+S16 — THE LAST LINK AND THE NEW WALL: chip 1's code pool (228–292 bytes free with both dynamics switches on, 98.2 % before them) opened up by measurement so that the audio witness FITS beside the LUT arm; the audio-domain verdict on `DSP4_DYN_LUT` obtained (famverify + comp_gr with a signal source — "the gain the table produces reaches the audio unchanged"); the LIMITER put on the table (chip 2's prize: 162 of its 251 instr/sample-pair are log2+exp2); S15-10's ten scripts stopped clobbering the window pair; both levers re-priced and the decision table finished for PW
+
+WHY. S15 (dsp f7bd5a8) landed the level→gain table in the generator
+(`DSP4_DYN_LUT`, K=4 / 337 words / 0.095 dB over 81 parameter sets, DM-
+resident, polynomial-until-design-catches-up instead of a blend) and the
+paired `DSP4_GATE_LINTHR`; on the part with the clock measured on every
+row: chip 1 D32 75.4 → 71.0 → **60.3 %**, D24 58.1 → **46.8 %**, zero
+overruns, staged as `dyn_*` (2fa3897a/a89d19cf) and `flr_*`
+(8fa4b914/a9078aeb, + the six-slot biquad). Two things it named as NOT
+done: **(a) the audio-domain verdict was not obtained** — `dsp4_comp_gr.py`
+returned its own refusal (a capacity arm has no signal source), famverify
+was not run, and famverify's `_scope_tap` witness does not fit on chip 1
+beside STRIP_FUSED+SIMD_DYN at all, let alone with the LUT's 228 bytes
+left; **(b) the LIMITER is not on the table**, which is why chip 2 sat at
+76.6 % — `_lim_pair_blk` and the LIMITER template still run the
+polynomial (S14-4: 65 % of the kernel), and chip 2 has 54.6 % of its code
+pool and 73 % of its DM free. **THE WALL IS CHIP 1's CODE POOL**: 98.2 %
+before S15, 99.9 % after (the table costs 4,098 bytes of code); factoring
+the design step into one shared routine bought 178 bytes; inlined per
+node it linked with 66. Also S15-10: ten measurement scripts still scp
+over `~/dspboot/chip{1,2}.ldr` while famverify's header calls that "the
+window pair" — both cannot be true. And `dyn_state_bound` section 3
+(sidechain H=5) FAILs at HEAD, pre-existing.
+
+BENCH. Rev C unit as S15 left it (matrix-app active, BOOT_STAGE 7, CCLK
+983.0 measured; `~/dspboot` pairs `blk_*` ships, `cand_*`, `geq_*`,
+`dyn_*`, `flr_*` and the older ones — NEVER replace any; new candidates
+as `s16_*`). Every image from its own staging path with copy-and-restore;
+`dsp4_checkchip.py`, `dsp4_buildcfg.py` (CFG2 now carries the four
+switches), CGU read-back and CCLK measured, fresh sym.json per boot;
+`SHARC/capacity.sh` (clock per row), DIAG_BLK_OVERRUN the arbiter; the six
+bars take STAGE, tap ON; `dyn_shootout.asm` and `dyn_lut_design.py` /
+`dsp4_dyn_lut_check.py` are the dynamics instruments. No AI attribution
+in commits or any work product.
+
+GATES, in order, each witnessed:
+1. **Chip 1's code pool, by the link map.** Per section and per symbol:
+   what the pool holds, in bytes, sorted; what is instrument-only
+   (scope/tap/diag paths that a shipping image does not need — but say
+   which of them the BARS need, because a witness that cannot link is
+   S12's lesson); what is per-node inlined that could be one shared
+   routine (S15's design step bought 178 bytes that way — the per-node
+   kernels' prologues/epilogues, the ramp/crossfade bookkeeping, the
+   design steps of the parameter-written classes); the polynomial
+   dynamics path that the LUT arm still carries for the ramp window
+   (needed — but is it duplicated per node?); dead paths behind switches
+   that are off; the LDF's tiers and whether Block 1's remaining bytes
+   are reachable for code. One table, one recommendation: **the bytes
+   that can leave without changing audio, and the bytes a witness needs.**
+   Land the safe ones (bit-identical audio proven by the bars; image
+   bytes WILL change — record before/after md5 and the reason).
+2. **The audio-domain verdict on `DSP4_DYN_LUT`.** With gate 1's room:
+   famverify with the tap on the LUT arm (STRIP_FUSED+SIMD_DYN+DYN_LUT+
+   GATE_LINTHR, C2_BQ_GRAPH=0 as `dyn_*`) — COMPRESSOR and GATE verdicts
+   against the shipping pair, verdict for verdict; `dsp4_comp_gr.py` on an
+   arm WITH a signal source (`DSP4_PROFILE_SIGNAL=1` or the matrix-app
+   feeding it) proving the compressor is REDUCING gain under the LUT and
+   the reduction matches `bq_float_ref`-style prediction (its header: a
+   comparison that cannot fail is not evidence); the gate's threshold
+   behaviour across the linear-domain threshold at the documented
+   0.0002 dB shift. First sentence of the status line: **the LUT's gain
+   reaches the audio unchanged — YES / NO, and the witness that says so.**
+   If the witness still cannot fit even after gate 1, the fallback is a
+   chip-1 graph SUBSET that keeps every dynamics node and says so.
+3. **The LIMITER on the table.** `_lim_pair_blk` and the LIMITER template
+   onto the same `dyn_lut.h` machinery (its own key/design step, its
+   curve's knots at the ceiling/knee), `dyn_lut_design.py` error over the
+   LIMITER's parameter sweep against 0.1 dB, `dsp4_dyn_lut_check.py`
+   bit-identical, `dyn_state_bound` section for it, then chip 2 at D32:
+   before/after in the graph (18 limiters), c/sample-pair via the capacity
+   delta. Chip 2's new figure is the headline of the session's second
+   sentence.
+4. **Hygiene, cheap:** S15-10 — the ten scripts that scp over
+   `~/dspboot/chip{1,2}.ldr` made STAGE-aware (S10-7's rule) or the
+   "window pair" claim in famverify's header corrected, whichever is
+   true; `dyn_state_bound` section 3's pre-existing FAIL attributed (is
+   the sidechain's H really 5, or is the bound wrong?) — fix or file.
+5. **Re-priced and staged.** `capacity.sh` both chips D24 + D32, two
+   boots, clock measured: `s16_*` = both dynamics levers + LIMITER table
+   (+ the six-slot biquad as a second pair if the code pool allows), the
+   window note's decision table completed for PW — blk_* / cand_* /
+   geq_* / dyn_* / flr_* / s16_* — with D24 and D32 both chips, code-pool
+   and DM headroom per pair, latency (82), what the app and H1S3/H1S4
+   rebuild against (nothing), rollback; and a one-line recommendation.
+6. findings S16-*, `MW/D32/DSP/dsp4-s16-20260910.md`, tasks.md, this
+   block's status; commit + push main. Scoreboard numbers per function.
+
+Bounded: gates 1–3 are the session; 4 cheap; 5–6 always. No deploy.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-09 20:06Z — S15 — the dynamics integration: CCLK settled independently first (S14-7), the level→gain table's home (L2 vs DM) measured, the LUT into the generator behind DSP4_DYN_LUT with the design step and two-table blend, GATE on the paired linear threshold, famverify + bars + capacity both chips, dyn_* and flr_* (both levers) staged for PW's window table   [status: 🟢 done — **CCLK IS 983 MHz, THE BUDGET IS 327,680 CYCLES/BLOCK, AND THE D32 FIT SURVIVES IT.** Settled two ways that share nothing: the CGU registers decoded by hand (`CGU0_CTL 0x00005000` -> MSEL 80, DF 0, CSEL 1 -> fPLLCLK 24.576 x 80/2 = 983.040 MHz; the same three lines reproduce all three of `cgu_init.asm`'s rows), and the core timer -- `DIAG_TICKS` x `DIAG_TPERIOD` -- against TWO wall clocks that are not the DSP's: the Pi's crystal (983.03/983.01) and the CPLD's 48 kHz transport (983.04/983.02). On the capacity arms themselves the instrument now reads 983.025-983.090 MHz against a decode of 983.040, 66 ppm worst. **`capacity.sh`'s decode was RIGHT and no percentage in the record moves.** **S15-1, and it closes S14-7: the 491.52 MHz reading is what an UNCONFIGURED part does.** The pair found on the bench at session start read `CGU0_CTL 0x00002800`, a 499.995/s diag tick and `BLK_OVERRUN` tracking `FRAME_COUNT` one for one -- and `BOOT_STAGE 5`, `DIAG_STAGE_WAITCFG`. `_cgu_raise_cclk` is called from CONFIG_COMMIT and nowhere else, so a part nobody configured runs on the CGU reset divisors at half its budget's clock. The same `blk_*` images booted through `dsp4_boot.py`+`dsp4_config.py` came up at 983.04 on both chips, and so did `systemctl restart matrix-app`. "Booted" is not "running", and the fix is in the instrument: `dsp4_capacity.py` now MEASURES CCLK on every row, DERIVES THE BUDGET FROM THE MEASUREMENT, and prints a disagreement line -- a capacity figure can no longer be quoted against a clock nobody measured. **GATE 1, THE TABLE'S HOME: DM, AND S14'S PREMISE WAS WRONG.** S14 recorded that 96 nodes x their own table "would have to go to L2"; the linker map says DM has **123,852 free bytes on chip 1 and 145,788 on chip 2** against 43,136 for 32 tables, and the built arm lands at 79.6 % DM with 76,438 free. The 1,024-word overflow `dyn_tables_fx.asm` records was `sec_stak`, a DIFFERENT POOL. And the rig measured L2 anyway, four new rungs: the same gather from L2 is **+22.1 c/sample-pair (+40.9 %)** and the whole COMP body 123.1 -> 146.2; **PAGING a table L2->DM is WORSE than gathering from L2 for any table over 32 words** (11.5 c/word, so a 337-word page is 3,876 c/block against the direct gather's 354). **S15-4, AND IT CHANGES S14's NUMBERS: THE S14 RIG'S INTERPOLATION FRACTION WAS SIGN-EXTENDED.** `lshift r3 by K` on a Q0.31 mantissa pushes the remainder INTO BIT 31 and the interpolation multiply is signed, so a fraction of 0.75 arrives as -0.25. Measured by the new `tools/dsp/dyn_lut_design.py`, which computes the index bit for bit the way the kernel does: **0.389 dB with the fault, 0.005 dB with the mask.** The tell was the SHAPE -- the error halved with each doubling of the point count, first order, where linear interpolation of a smooth function is second order. **It could not have shown in S14 and the rig's own header says why: the table's contents do not change the instruction stream, so a cycle rig is blind to arithmetic.** Corrected (mask + high clamp, 4 instructions), the paired gain computer is **54.1 c/sample-pair, not 49.1**, and the whole COMP body 284.3 -> **123.1** (142.2 -> **61.6** per sample per channel, **56.7 %**). **THE POINT COUNT IS MEASURED, NOT MODELLED: K = 4, 337 words.** Over the full documented parameter sweep (81 sets, thresholds to -60 dB, ratios to 100:1, knees 0/6/18) **K = 3 FAILS at 0.135 dB** and **K = 4 PASSES at 0.0950 dB** against PW's 0.1 dB ruling; at the shipped defaults it is 0.004 dB (COMP) and 0.025 dB (LIMITER). S14's 0.030 dB at K=3 with anchored knots is not supported. K = 5 (673 words) halves it again and still fits DM. **The GATE reproduces S14-3 from an independent instrument: 41-65 dB at EVERY mesh from 4 to 64 points/octave.** **THE TWO-TABLE BLEND DOES NOT WORK, and S14's proposal is withdrawn:** a -20 -> -10 dB threshold ramp reads **1.13 dB**, -40 -> -20 **3.12**, -60 -> -3 **20.20**, against 0.011 for a table designed at the intermediate threshold -- two gain curves whose KNEES sit at different levels do not interpolate into the curve whose knee is between them. **What ships instead is exact and free: a node whose converted parameters moved runs the POLYNOMIAL until its design step catches up** (16 points/block, ~3,400 cycles = 1.0 % of a block, 22 blocks = 7.3 ms for a whole table), so the table is the steady-state path and the ramp path is unchanged. **LANDED IN THE GENERATOR, both behind switches that default to 0, and INERTNESS PROVED BY BUILD: at the shipping defaults the tree produces `6ebd0807`/`a3582da1`, byte for byte what the pre-S15 tree produces.** `DSP4_GATE_LINTHR` now builds beside `DSP4_SIMD_DYN` where `dsp_codegen.py` used to `#error`: the objection was real (different arithmetic) and is answered rather than obeyed -- the difference is a **0.0002 dB threshold shift**, 1/500th of PW's ruling, and what makes it safe is that **`_gate_thrq_<nid>` holds 2^thr in Q4.28 in EVERY path**, so no reader can pick up a log value. The paired GATE loses the whole of `LOG2Q_SIMD`: **142.1 -> 65.0 c/sample-pair, 71.1 -> 32.5 per channel, 54.2 %.** `DSP4_DYN_LUT` lands the level->gain table for the COMPRESSOR: per-node 337-word DM tables, `_dyn_lut_step` (the block-rate design step, ONE shared routine -- inlined per node it linked chip 1 with 66 bytes free), `_dyn_lut_fill` baking the curve from the existing `_compgain_fx`, `_dyn_lut_gain` and the paired `LUTGAIN_SIMD` in `src/lib/dyn_lut.h` so the design step, both lookups and the host tool cannot disagree about the grid, and a SECOND sample loop in `_comp_pair_blk` chosen once per block on `_dlut_live`. `dyn_state_bound.py` gains a section 5 for the table form and it PASSES: every table word is in [0,1] Q4.28 by construction, the interpolation is a CONVEX COMBINATION of two of them so it cannot wrap, and **the table form DELETES a saturate from the per-sample path and adds none** -- `_exp2q_fx`'s runs once per table POINT in the design step. **And `DIAG_BUILD_CFG2` now carries the four switches it could not see (closes S12-7): `C2_BQ_GRAPH` -- the one that made two S12 images read back the same word and differ in AUDIO -- plus `BQ_SIMD_PIPE`, `DYN_LUT`, `GATE_LINTHR`.** **IN THE GRAPH, ON THE PART.** `capacity.sh`, two boots per arm, ~135,041 blocks per boot per chip, the clock MEASURED on every row, `DIAG_BLK_OVERRUN` the arbiter and **ZERO on every arm, every boot, both products**. **D32 all-ones, chip 1: S14's row 75.45/75.36 % -> `GATE_LINTHR` 70.96/70.78 % -> `+DYN_LUT` 60.26/60.49 %. FIFTEEN POINTS OF CHIP 1 FROM TWO SWITCHES**, 4.5 of them the gate and 10.6 the table. D24 mask, chip 1: 58.13 -> 54.66 -> **46.77/47.00 %**. Chip 2 barely moves (76.55 %) and that is the LIMITER's fault, not a defect: chip 2 carries 10 compressors against chip 1's 32 and its 18 limiters are not on the table yet. **THE CAPACITY DELTA IS ITSELF THE PROOF THAT THE LUT LOOP RUNS**: `_comp_pair_blk` branches on `_dlut_live` once per block, so a driver that never set it would read 70.9 % and not 60.3 % -- and the gap checks out, 34,374 c/blk / 16 pairs / 15 samples = **143.2 c/sample-pair against the rig's 161.2, 89 %**, the missing 11 % being sample 0 running scalar and the design step's residual. **THE TABLE READ OFF THE PART IS BIT-IDENTICAL TO THE MODEL: `dsp4_dyn_lut_check.py` (new) diffs the node's designed table against `dyn_lut_design.py` built from the node's OWN key -- 337 of 337 words. And the FIRST run of that instrument found S15-11:** 336 of 337, the mismatch at the top GUARD entry, whose grid point is octave 31 = `1 << 31`, NEGATIVE in an int32, so `_compgain_fx` returned unity and the top cell would have interpolated back UP to unity at +17.8 dBFS. Both sides clamped now. **Nothing else in the tree could have found it** -- the cycle rig is blind to contents, the error sweep never looks above full scale, and famverify asks whether a family is live. **S15-12, THE DESIGN STEP'S PEAK, which a capacity AVERAGE cannot see:** every node's key starts unmatched, so at the first CONFIG_COMMIT all 32 compressors design at once -- at `DYN_LUT_CHUNK=16` that is 33 % of a block on top of the graph and `_proc_cyc_max` latched **124.06 %, over budget**, where `capacity.sh`'s overrun DELTA starts after the config ladder and cannot see it. At CHUNK=4 the average is unchanged (60.26/60.49) and the worst block is **96.93/97.04 %**, under budget; 85 blocks / 28 ms of the exact polynomial after a parameter move. **THE WALL IS CHIP 1's CODE POOL, NOT DM AND NOT CYCLES, and it was already at 98.2 % before this session:** S14's row 4,822 bytes free, +`GATE_LINTHR` 4,342 (it costs 480), +`DYN_LUT` **228-292 free (99.9 %)** -- the table costs 4,098 bytes of code and 45,718 of DM and LINKS, but that is not shippable margin and the LDF's overflow tier is the last one. Factoring the design step into one shared routine bought 178 bytes back; inlined per node it linked with SIXTY-SIX. Chip 2 is untroubled (54.6 % code, 73.0 % DM). BARS: **golden 59/59**, `dsp_validate` OK, `dyn_simd_inline_check` 5/5 identical, `bq_simd_pipe_check` BIT-IDENTICAL, `check-contract-drift` clean at `defs-v2026.09.08.4` leaving no diff, `check_shipping_config` consistent, new `dyn_lut_design.py --selftest` PASS (the three properties S15-4 violated), new `dyn_state_bound.py` section 5 PASS; `dyn_state_bound` overall still FAILs on section 3's sidechain H=5, **pre-existing and unrelated -- the same script at HEAD returns the same FAIL**. `shipping.config` UNCHANGED. **STAGED: `dyn_*` `2fa3897a`/`a89d19cf` (both dynamics levers, `C2_BQ_GRAPH=0`) and `flr_*` `8fa4b914`/`a9078aeb` (those plus the six-slot biquad).** BENCH RESTORED and BETTER THAN FOUND: `matrix-app` active, CHIP_ID verified, **BOOT_STAGE 7**, `CGU0_CTL 0x00005000`, CCLK 983.0 MHz measured, **zero overruns over 45,015 blocks**; the six pre-existing staged pairs byte-identical. **NOT DONE, AND NAMED RATHER THAN IMPLIED: (a) the LIMITER is not on the table** -- `_lim_pair_blk` and the LIMITER node template still run the polynomial, which is the largest remaining prize (S14-4: 162 of its 251 instr/sample-pair are log2+exp2), is why chip 2 barely moved, and is the EASY one, because chip 2 has 54.6 % of its code pool and 73.0 % of its DM free and every shared part is already in the tree; **(b) THE AUDIO-DOMAIN VERDICT ON `DSP4_DYN_LUT` WAS NOT OBTAINED.** `dsp4_comp_gr.py` was run against the LUT arm and returned its OWN REFUSAL -- "NOT COMPRESSING, this capture proves nothing" -- with a settled value of 0, i.e. the capture path returned nothing rather than the compressor failing to compress: a capacity arm has `DSP4_PROFILE_SIGNAL=0` and `matrix-app` stopped, so there is no signal for an envelope to follow. `famverify` was not run against it either, and `famverify.sh`'s own header says why that is awkward -- its `_scope_tap` witness does not fit alongside `STRIP_FUSED`+`SIMD_DYN` on chip 1 at all, and the LUT leaves 228 bytes. **What IS proved on the part: the design step's table is bit-identical to the model 337/337; the pair kernel demonstrably takes the LUT loop (the capacity delta is 89 % of the rig's figure and would be zero otherwise); 270,082 blocks per chip with zero overruns; and byte-for-byte inertness at the default. What is NOT proved is the last link -- that the gain the table produces reaches the audio unchanged -- and closing it needs an arm with a signal source, which is a build. That is the first thing the next session should do.** Also S15-10: ten measurement scripts (`dynshoot.sh` among them) still scp over `~/dspboot/chip{1,2}.ldr` while `famverify.sh`'s header calls that "the window pair" -- both cannot be true. Write-up `MW/D32/DSP/dsp4-dynlut-20260910.md`, findings S15-1..S15-12, new tools `tools/dsp/dyn_lut_design.py` and `tools/pi/dsp4_dyn_lut_check.py`.]   [model: opus]
 
 model: opus
