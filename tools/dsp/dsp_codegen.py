@@ -13609,9 +13609,25 @@ def gen_dyn_pairs_c2(groups, input_of, mtr_of=None):
 #
 # A gather costs 5+6 words per stage per pair ONCE PER COEFFICIENT SWAP, not
 # once per block; a swap is a user gesture and a crossfade is 576 samples.
-# Nothing else can move the coefficients or the state: every write to either
-# goes through _<pfx>_coeffs_next_ and _<pfx>_swap_pending_, and
-# swap_pending is one of the two words the steady test reads.
+#
+# WHAT THE STEADY TEST HAS TO READ (S13-1, 2026-09-09). It is NOT true that
+# "every write to the coefficients goes through _<pfx>_coeffs_next_ and
+# _<pfx>_swap_pending_" -- that holds for the classes the host writes
+# COEFFICIENTS to (eq, and the oeq/grp cascades that share its prefix), and
+# it is false for every class the host writes PARAMETERS to. A GEQ takes 31
+# band gains, an AFB takes six (freq, gain, Q) notches, a crossover takes
+# corner frequencies; the host writes those and sets _<pfx>_dirty_, and the
+# DESIGN that turns them into coefficients runs at the TOP OF THE NODE BODY
+# (`if ne call _<pfx>_redesign_<nid>`) -- the very body the latch exists to
+# skip. Latched, the design never runs, so swap_pending is never raised, so
+# the steady test never fires, so the latch never comes down: the pair sits
+# on the .var bypass initialisers for ever and the whole designed filter is
+# lost. The write is not dropped at the latch, it is dropped UPSTREAM of it,
+# by never being turned into coefficients at all.
+#
+# So the pending-DESIGN flag is a transient exactly like a pending swap, and
+# the test reads it for any class that has one. It costs two DM reads and an
+# OR per pair per block, and it is what makes the pairing audio-correct.
 #
 # WHAT IS AUTHORITATIVE WHEN. Latched, the node's own coefficient and state
 # arrays are STALE and nothing reads them: the chain calls the driver, not
@@ -13620,6 +13636,18 @@ def gen_dyn_pairs_c2(groups, input_of, mtr_of=None):
 # STATE only -- the coefficients cannot have changed while latched, because
 # a change is exactly what takes the latch down.
 _C2_BQ_SIG = '_bqi_sig'
+
+# Coefficient-class prefix -> the build macro its DESIGN stage is guarded on.
+# A class in this map raises _<pfx>_dirty_<nid> when the host writes its
+# PARAMETERS and designs coefficients from them inside the node body; a class
+# not in it is written coefficients directly over the wire. Guarded because a
+# DESIGN=0 build has nothing that clears dirty, and an uncleared dirty would
+# pin the pair to the scalar path for ever.
+_C2_BQ_DESIGN = {
+    'geq': 'DSP4_GEQ_DESIGN',
+    'afb': 'DSP4_AFB_DESIGN',
+    'xover': 'DSP4_XOVER_DESIGN',
+}
 
 
 def _c2_bq_sel(pfx, nid, rc=None, rs=None):
@@ -13727,6 +13755,17 @@ def gen_bq_pairs_c2(groups, input_of, stages_of, mtr_of=None, tap_of=None):
                        for tag, pfx, da, db, st in work for d in (da, db)}):
         a(f'.extern {sym};')
     a('#endif')
+    # The pending-DESIGN flag, per class that has one (S13-1).
+    for mac in sorted({_C2_BQ_DESIGN[pfx]
+                       for tag, pfx, da, db, st in work
+                       if pfx in _C2_BQ_DESIGN}):
+        a(f'#if {mac}')
+        for sym in sorted({f'_{pfx}_dirty_{d}'
+                           for tag, pfx, da, db, st in work
+                           for d in (da, db)
+                           if _C2_BQ_DESIGN.get(pfx) == mac}):
+            a(f'.extern {sym};')
+        a('#endif')
 
     for tag, pfx, da, db, st in work:
         lbl = f'_C2BQP_{tag}_process'
@@ -13745,6 +13784,21 @@ def gen_bq_pairs_c2(groups, input_of, stages_of, mtr_of=None, tap_of=None):
         a('    r1 = r1 or r0;')
         a(f'    r0 = dm(_{pfx}_xfade_step_{db});')
         a('    r1 = r1 or r0;')
+        if pfx in _C2_BQ_DESIGN:
+            a(f'#if {_C2_BQ_DESIGN[pfx]}')
+            a('    /* A pending DESIGN is a transient too, and it is the one')
+            a('     * the latch cannot see any other way: this class is')
+            a('     * written PARAMETERS, not coefficients, and the design')
+            a('     * that turns them into coefficients -- and only then')
+            a('     * raises swap_pending -- runs at the top of the node')
+            a('     * body the latch skips. Without this read a latched pair')
+            a('     * never designs, never swaps, and never comes down: it')
+            a("     * runs the .var bypass filter for ever (S13-1).*/")
+            a(f'    r0 = dm(_{pfx}_dirty_{da});')
+            a('    r1 = r1 or r0;')
+            a(f'    r0 = dm(_{pfx}_dirty_{db});')
+            a('    r1 = r1 or r0;')
+            a('#endif')
         a('#if DSP4_BQ_GUARD')
         a('    /* A sizing in flight is a transient like any other: the')
         a("     * node's H is about to change, and the interleaved block")
@@ -14257,6 +14311,7 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
         # Where each node leaves its output block, filled in as the bodies
         # are generated and used by the block-aware scope tap below.
         blk_out = {}
+        blk_extra = {}
         rx_redirect = {}
         # WHICH NODES A PAIR DRIVER COVERS, recorded WHERE THE CALL IS
         # EMITTED rather than recovered from the chain text afterwards.
@@ -14337,6 +14392,22 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                 # this assembles to the bytes it did before pairing existed.
                 body = _odd_pool(body)
             _nid_ = node['id']
+            # EXTRA SCALAR WITNESSES (S13-4, 2026-09-09). A node may
+            # publish more than one output word. CROSSOVER writes
+            # `_buf_lp_<nid>` and `_buf_hp_<nid>` beside `_buf_<nid>`, and
+            # under block kernels those two are ONE-WORD variables holding
+            # the last sample of the block -- there is no `_blk_lp_` array
+            # for the tap to copy. Nothing registered them, so arming the
+            # scope on `_buf_lp_<nid>` armed on an address no witness
+            # answers for and xoververify STALLED waiting for a buffer that
+            # never filled (S12-8). They get `_scope_tap1`, the same
+            # one-word-per-block witness TALKBACK and NOISE_GEN use: the
+            # capture is REAL samples at the BLOCK rate, and the bar is
+            # told so rather than left to assume fs.
+            for _leg_ in ('lp', 'hp'):
+                if f"dm(_buf_{_leg_}_{_nid_}) =" in body:
+                    blk_extra.setdefault(_nid_, []).append(
+                        f'_buf_{_leg_}_{_nid_}')
             blk_out[_nid_] = _blk_out_of(
                 _nid_, body, _nid_ in odd_pool_ids)
             # A node whose RX SLOT survives only as a ONE-WORD variable while
@@ -15241,6 +15312,15 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                 if _t:
                     _out_lines.extend(_t)
                     _tapped.add(_sym)
+            for _extra in blk_extra.get(_sym, ()):
+                _ind = m.group(1)
+                _out_lines.extend([
+                    '#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP',
+                    f'{_ind}r0 = {_extra};',
+                    f'{_ind}r1 = {_extra};',
+                    f'{_ind}call _scope_tap1;',
+                    '#endif'])
+                _decl_rx.add(_extra)
         if _tapped:
             # The tap needs the pool macros and every tapped node's _buf_
             # symbol. Both go in behind the same guard as the taps.

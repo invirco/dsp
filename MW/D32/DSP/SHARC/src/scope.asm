@@ -16,7 +16,8 @@
  *      poke _scope_inj  <- word address of the input slot to drive
  *      poke _scope_src  <- word address of the node buffer to record
  *      poke _scope_amp  <- the value to inject
- *      poke _scope_mode <- 1 impulse (sample 0 only), 2 step (every sample)
+ *      poke _scope_mode <- 1 impulse (sample 0 OF THE RUN only -- see
+ *                          _scope_inject_blk, S13-3), 2 step (every sample)
  *      poke _scope_idx  <- 0
  *      poke _scope_arm  <- 1
  *  ... wait SCOPE_LEN samples ...
@@ -57,6 +58,19 @@
  * and the whole capture read as zeros (bench 2026-08-23). */
 .global _scope_go;
 .var _scope_go   = 0;
+/* HAS THE BLOCK INJECTOR DRIVEN ITS IMPULSE YET (S13-3, 2026-09-09)?
+ *
+ * _scope_go cannot answer that question for _scope_inject_blk, because
+ * under DSP4_BLOCK_KERNELS BOTH injectors run in every block: the scatter
+ * loop calls _scope_inject once per sample (and it raises _scope_go on the
+ * first of them, which is correct for itself), and the node chain then
+ * calls _scope_inject_blk, which rewrites the whole block and is the write
+ * the chain actually reads. Gating the block injector on _scope_go
+ * therefore silences it completely -- it never runs while _scope_go is
+ * still 0 -- so it gets a flag of its own, cleared by the same arm write.
+ */
+.global _scope_fired;
+.var _scope_fired = 0;
 /* Incremented every time the host arms. The arm write is fire-and-forget
  * like every write on this link, and when it was dropped wait() saw the
  * PREVIOUS run's finished state and fetch() returned that run's buffer --
@@ -246,11 +260,47 @@ _scope_inject_blk:
     r4 = 2;
     comp(r3, r4);
     if eq jump (pc, .sib_step);
-    /* impulse: amp in sample 0, silence after */
+    /* IMPULSE: amp in sample 0 OF THE RUN, silence for the rest of the
+     * run -- which means the rest of THIS block and the whole of every
+     * block after it (S13-3, 2026-09-09).
+     *
+     * This routine runs once per BLOCK, and it used to write the
+     * amplitude into sample 0 every time it ran, so `mode 1` on a
+     * block-kernel image was not an impulse at all: it was an IMPULSE
+     * TRAIN at one per block -- 3 kHz at block 16 -- and what the audio
+     * arms measured was that train's periodic steady state, not an
+     * impulse response. The per-sample injector above has always had the
+     * gate (`_scope_go` == 0 is the first sample of the run); the block
+     * injector was written without it.
+     *
+     * What it cost: geqverify's +12 dB band read +8.451 dB and
+     * afbverify's -18 dB notch read -4.799 dB on EVERY block-kernel
+     * image, scalar and paired alike, while the same bars read
+     * -17.99989 dB on the per-sample block-8 image of 2026-09-08. The
+     * train's response reproduces all three of geqverify's points to
+     * three decimals (+0.219 / +8.451 / -0.305 measured, +0.219 /
+     * +8.451 / -0.305 modelled), so the defect was wholly the stimulus
+     * and the audio was never in question. A narrow null fills far more
+     * than a broad boost flattens, which is why the notch missed by
+     * 13 dB and the boost by 3.5. */
+    r2 = dm(_scope_fired);
+    r4 = 0;
+    comp(r2, r4);
+    if ne jump (pc, .sib_quiet);
+    r2 = 1;
+    dm(_scope_fired) = r2;
     dm(i4, 1) = r5;
     r2 = DSP4_BLOCK_SIZE - 1;
     lcntr = r2, do .sib_z until lce;
     .sib_z:
+        dm(i4, 1) = r1;
+    jump (pc, .sib_go);
+.sib_quiet:
+    /* every block after the first: silence, so the run carries ONE
+     * impulse and the capture is an impulse response. */
+    r2 = DSP4_BLOCK_SIZE;
+    lcntr = r2, do .sib_q until lce;
+    .sib_q:
         dm(i4, 1) = r1;
     jump (pc, .sib_go);
 .sib_step:

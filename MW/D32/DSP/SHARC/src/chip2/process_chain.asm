@@ -219,6 +219,8 @@
 .extern _buf_C2_XR_SNAKE_06;
 .extern _buf_C2_XR_SNAKE_07;
 .extern _buf_C2_XR_SNAKE_08;
+.extern _buf_hp_C2_MAIN_XOVER;
+.extern _buf_lp_C2_MAIN_XOVER;
 #endif
 
 #if DSP4_CHAN_MASK
@@ -2242,6 +2244,16 @@ _chip2_process_all:
     r0 = _buf_C2_MAIN_XOVER;
     r1 = _blk_C2_MAIN_XOVER;
     call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_lp_C2_MAIN_XOVER;
+    r1 = _buf_lp_C2_MAIN_XOVER;
+    call _scope_tap1;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_hp_C2_MAIN_XOVER;
+    r1 = _buf_hp_C2_MAIN_XOVER;
+    call _scope_tap1;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT2 == 0 || 133 < DSP4_NODE_LIMIT2)
@@ -4622,6 +4634,16 @@ _chip2_process_all:
     r1 = _blk_C2_MAIN_XOVER;
     call _scope_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_lp_C2_MAIN_XOVER;
+    r1 = _buf_lp_C2_MAIN_XOVER;
+    call _scope_tap1;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_hp_C2_MAIN_XOVER;
+    r1 = _buf_hp_C2_MAIN_XOVER;
+    call _scope_tap1;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT2 == 0 || 157 < DSP4_NODE_LIMIT2)
     call _C2_MAIN_OEQ_01_process;
@@ -6874,6 +6896,16 @@ _chip2_process_all:
     r0 = _buf_C2_MAIN_XOVER;
     r1 = _blk_C2_MAIN_XOVER;
     call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_lp_C2_MAIN_XOVER;
+    r1 = _buf_lp_C2_MAIN_XOVER;
+    call _scope_tap1;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_hp_C2_MAIN_XOVER;
+    r1 = _buf_hp_C2_MAIN_XOVER;
+    call _scope_tap1;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT2 == 0 || 167 < DSP4_NODE_LIMIT2)

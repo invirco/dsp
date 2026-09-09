@@ -354,9 +354,21 @@ def main():
               'err %+.3f dB  -> %s'
               % (tag, f, got, want, got - want,
                  'PASS' if abs(got - want) <= AUDIO_BAR_DB else 'FAIL'))
+    # THE RAW CAPTURE GOES IN THE REPORT (S13-3, 2026-09-09). The audio
+    # arm scores a DFT of these words and nothing else, so when it
+    # disagrees with the design arm -- which passes at 1-3 ulp on the same
+    # image -- the only place the disagreement can live is the words. It
+    # is diagnostic; it scores nothing.
     out['audio'] = {'band': b, 'centre': f0, 'gain': args.gain,
                     'n': args.n, 'points': audio,
-                    'peak': max((abs(v) for v in xs), default=0.0)}
+                    'peak': max((abs(v) for v in xs), default=0.0),
+                    'ir': xs, 'ir_flat': xf,
+                    'nz': sum(1 for v in xs if v != 0.0),
+                    'nz_flat': sum(1 for v in xf if v != 0.0),
+                    'last_nz': max((i for i, v in enumerate(xs) if v != 0.0),
+                                   default=-1),
+                    'last_nz_flat': max((i for i, v in enumerate(xf)
+                                         if v != 0.0), default=-1)}
 
     out['spi_err_delta'] = (part.sc.rd(SPI_ERR_COUNT) - err0) & 0xFFFFFFFF
 

@@ -793,6 +793,38 @@ _bqp_tap_eq.end:
 .extern _geq_hrw_C2_GRP_GEQ_03;
 .extern _geq_hrw_C2_GRP_GEQ_04;
 #endif
+#if DSP4_AFB_DESIGN
+.extern _afb_dirty_C2_AUX_AFB_01;
+.extern _afb_dirty_C2_AUX_AFB_02;
+.extern _afb_dirty_C2_AUX_AFB_03;
+.extern _afb_dirty_C2_AUX_AFB_04;
+.extern _afb_dirty_C2_AUX_AFB_05;
+.extern _afb_dirty_C2_AUX_AFB_06;
+.extern _afb_dirty_C2_AUX_AFB_07;
+.extern _afb_dirty_C2_AUX_AFB_08;
+.extern _afb_dirty_C2_AUX_AFB_09;
+.extern _afb_dirty_C2_AUX_AFB_10;
+.extern _afb_dirty_C2_AUX_AFB_11;
+.extern _afb_dirty_C2_AUX_AFB_12;
+#endif
+#if DSP4_GEQ_DESIGN
+.extern _geq_dirty_C2_AUX_GEQ_01;
+.extern _geq_dirty_C2_AUX_GEQ_02;
+.extern _geq_dirty_C2_AUX_GEQ_03;
+.extern _geq_dirty_C2_AUX_GEQ_04;
+.extern _geq_dirty_C2_AUX_GEQ_05;
+.extern _geq_dirty_C2_AUX_GEQ_06;
+.extern _geq_dirty_C2_AUX_GEQ_07;
+.extern _geq_dirty_C2_AUX_GEQ_08;
+.extern _geq_dirty_C2_AUX_GEQ_09;
+.extern _geq_dirty_C2_AUX_GEQ_10;
+.extern _geq_dirty_C2_AUX_GEQ_11;
+.extern _geq_dirty_C2_AUX_GEQ_12;
+.extern _geq_dirty_C2_GRP_GEQ_01;
+.extern _geq_dirty_C2_GRP_GEQ_02;
+.extern _geq_dirty_C2_GRP_GEQ_03;
+.extern _geq_dirty_C2_GRP_GEQ_04;
+#endif
 
 /* ---- C2_AUX_EQ_01 + C2_AUX_EQ_02: 4 stages ---- */
 .global _C2BQP_AUX_EQ_01_02_process;
@@ -2050,6 +2082,20 @@ _C2BQP_AUX_GEQ_01_02_process:
     r1 = r1 or r0;
     r0 = dm(_geq_xfade_step_C2_AUX_GEQ_02);
     r1 = r1 or r0;
+#if DSP4_GEQ_DESIGN
+    /* A pending DESIGN is a transient too, and it is the one
+     * the latch cannot see any other way: this class is
+     * written PARAMETERS, not coefficients, and the design
+     * that turns them into coefficients -- and only then
+     * raises swap_pending -- runs at the top of the node
+     * body the latch skips. Without this read a latched pair
+     * never designs, never swaps, and never comes down: it
+     * runs the .var bypass filter for ever (S13-1).*/
+    r0 = dm(_geq_dirty_C2_AUX_GEQ_01);
+    r1 = r1 or r0;
+    r0 = dm(_geq_dirty_C2_AUX_GEQ_02);
+    r1 = r1 or r0;
+#endif
 #if DSP4_BQ_GUARD
     /* A sizing in flight is a transient like any other: the
      * node's H is about to change, and the interleaved block
@@ -2255,6 +2301,20 @@ _C2BQP_AUX_GEQ_03_04_process:
     r1 = r1 or r0;
     r0 = dm(_geq_xfade_step_C2_AUX_GEQ_04);
     r1 = r1 or r0;
+#if DSP4_GEQ_DESIGN
+    /* A pending DESIGN is a transient too, and it is the one
+     * the latch cannot see any other way: this class is
+     * written PARAMETERS, not coefficients, and the design
+     * that turns them into coefficients -- and only then
+     * raises swap_pending -- runs at the top of the node
+     * body the latch skips. Without this read a latched pair
+     * never designs, never swaps, and never comes down: it
+     * runs the .var bypass filter for ever (S13-1).*/
+    r0 = dm(_geq_dirty_C2_AUX_GEQ_03);
+    r1 = r1 or r0;
+    r0 = dm(_geq_dirty_C2_AUX_GEQ_04);
+    r1 = r1 or r0;
+#endif
 #if DSP4_BQ_GUARD
     /* A sizing in flight is a transient like any other: the
      * node's H is about to change, and the interleaved block
@@ -2460,6 +2520,20 @@ _C2BQP_AUX_GEQ_05_06_process:
     r1 = r1 or r0;
     r0 = dm(_geq_xfade_step_C2_AUX_GEQ_06);
     r1 = r1 or r0;
+#if DSP4_GEQ_DESIGN
+    /* A pending DESIGN is a transient too, and it is the one
+     * the latch cannot see any other way: this class is
+     * written PARAMETERS, not coefficients, and the design
+     * that turns them into coefficients -- and only then
+     * raises swap_pending -- runs at the top of the node
+     * body the latch skips. Without this read a latched pair
+     * never designs, never swaps, and never comes down: it
+     * runs the .var bypass filter for ever (S13-1).*/
+    r0 = dm(_geq_dirty_C2_AUX_GEQ_05);
+    r1 = r1 or r0;
+    r0 = dm(_geq_dirty_C2_AUX_GEQ_06);
+    r1 = r1 or r0;
+#endif
 #if DSP4_BQ_GUARD
     /* A sizing in flight is a transient like any other: the
      * node's H is about to change, and the interleaved block
@@ -2665,6 +2739,20 @@ _C2BQP_AUX_GEQ_07_08_process:
     r1 = r1 or r0;
     r0 = dm(_geq_xfade_step_C2_AUX_GEQ_08);
     r1 = r1 or r0;
+#if DSP4_GEQ_DESIGN
+    /* A pending DESIGN is a transient too, and it is the one
+     * the latch cannot see any other way: this class is
+     * written PARAMETERS, not coefficients, and the design
+     * that turns them into coefficients -- and only then
+     * raises swap_pending -- runs at the top of the node
+     * body the latch skips. Without this read a latched pair
+     * never designs, never swaps, and never comes down: it
+     * runs the .var bypass filter for ever (S13-1).*/
+    r0 = dm(_geq_dirty_C2_AUX_GEQ_07);
+    r1 = r1 or r0;
+    r0 = dm(_geq_dirty_C2_AUX_GEQ_08);
+    r1 = r1 or r0;
+#endif
 #if DSP4_BQ_GUARD
     /* A sizing in flight is a transient like any other: the
      * node's H is about to change, and the interleaved block
@@ -2870,6 +2958,20 @@ _C2BQP_AUX_GEQ_09_10_process:
     r1 = r1 or r0;
     r0 = dm(_geq_xfade_step_C2_AUX_GEQ_10);
     r1 = r1 or r0;
+#if DSP4_GEQ_DESIGN
+    /* A pending DESIGN is a transient too, and it is the one
+     * the latch cannot see any other way: this class is
+     * written PARAMETERS, not coefficients, and the design
+     * that turns them into coefficients -- and only then
+     * raises swap_pending -- runs at the top of the node
+     * body the latch skips. Without this read a latched pair
+     * never designs, never swaps, and never comes down: it
+     * runs the .var bypass filter for ever (S13-1).*/
+    r0 = dm(_geq_dirty_C2_AUX_GEQ_09);
+    r1 = r1 or r0;
+    r0 = dm(_geq_dirty_C2_AUX_GEQ_10);
+    r1 = r1 or r0;
+#endif
 #if DSP4_BQ_GUARD
     /* A sizing in flight is a transient like any other: the
      * node's H is about to change, and the interleaved block
@@ -3075,6 +3177,20 @@ _C2BQP_AUX_GEQ_11_12_process:
     r1 = r1 or r0;
     r0 = dm(_geq_xfade_step_C2_AUX_GEQ_12);
     r1 = r1 or r0;
+#if DSP4_GEQ_DESIGN
+    /* A pending DESIGN is a transient too, and it is the one
+     * the latch cannot see any other way: this class is
+     * written PARAMETERS, not coefficients, and the design
+     * that turns them into coefficients -- and only then
+     * raises swap_pending -- runs at the top of the node
+     * body the latch skips. Without this read a latched pair
+     * never designs, never swaps, and never comes down: it
+     * runs the .var bypass filter for ever (S13-1).*/
+    r0 = dm(_geq_dirty_C2_AUX_GEQ_11);
+    r1 = r1 or r0;
+    r0 = dm(_geq_dirty_C2_AUX_GEQ_12);
+    r1 = r1 or r0;
+#endif
 #if DSP4_BQ_GUARD
     /* A sizing in flight is a transient like any other: the
      * node's H is about to change, and the interleaved block
@@ -3280,6 +3396,20 @@ _C2BQP_AUX_AFB_01_02_process:
     r1 = r1 or r0;
     r0 = dm(_afb_xfade_step_C2_AUX_AFB_02);
     r1 = r1 or r0;
+#if DSP4_AFB_DESIGN
+    /* A pending DESIGN is a transient too, and it is the one
+     * the latch cannot see any other way: this class is
+     * written PARAMETERS, not coefficients, and the design
+     * that turns them into coefficients -- and only then
+     * raises swap_pending -- runs at the top of the node
+     * body the latch skips. Without this read a latched pair
+     * never designs, never swaps, and never comes down: it
+     * runs the .var bypass filter for ever (S13-1).*/
+    r0 = dm(_afb_dirty_C2_AUX_AFB_01);
+    r1 = r1 or r0;
+    r0 = dm(_afb_dirty_C2_AUX_AFB_02);
+    r1 = r1 or r0;
+#endif
 #if DSP4_BQ_GUARD
     /* A sizing in flight is a transient like any other: the
      * node's H is about to change, and the interleaved block
@@ -3485,6 +3615,20 @@ _C2BQP_AUX_AFB_03_04_process:
     r1 = r1 or r0;
     r0 = dm(_afb_xfade_step_C2_AUX_AFB_04);
     r1 = r1 or r0;
+#if DSP4_AFB_DESIGN
+    /* A pending DESIGN is a transient too, and it is the one
+     * the latch cannot see any other way: this class is
+     * written PARAMETERS, not coefficients, and the design
+     * that turns them into coefficients -- and only then
+     * raises swap_pending -- runs at the top of the node
+     * body the latch skips. Without this read a latched pair
+     * never designs, never swaps, and never comes down: it
+     * runs the .var bypass filter for ever (S13-1).*/
+    r0 = dm(_afb_dirty_C2_AUX_AFB_03);
+    r1 = r1 or r0;
+    r0 = dm(_afb_dirty_C2_AUX_AFB_04);
+    r1 = r1 or r0;
+#endif
 #if DSP4_BQ_GUARD
     /* A sizing in flight is a transient like any other: the
      * node's H is about to change, and the interleaved block
@@ -3690,6 +3834,20 @@ _C2BQP_AUX_AFB_05_06_process:
     r1 = r1 or r0;
     r0 = dm(_afb_xfade_step_C2_AUX_AFB_06);
     r1 = r1 or r0;
+#if DSP4_AFB_DESIGN
+    /* A pending DESIGN is a transient too, and it is the one
+     * the latch cannot see any other way: this class is
+     * written PARAMETERS, not coefficients, and the design
+     * that turns them into coefficients -- and only then
+     * raises swap_pending -- runs at the top of the node
+     * body the latch skips. Without this read a latched pair
+     * never designs, never swaps, and never comes down: it
+     * runs the .var bypass filter for ever (S13-1).*/
+    r0 = dm(_afb_dirty_C2_AUX_AFB_05);
+    r1 = r1 or r0;
+    r0 = dm(_afb_dirty_C2_AUX_AFB_06);
+    r1 = r1 or r0;
+#endif
 #if DSP4_BQ_GUARD
     /* A sizing in flight is a transient like any other: the
      * node's H is about to change, and the interleaved block
@@ -3895,6 +4053,20 @@ _C2BQP_AUX_AFB_07_08_process:
     r1 = r1 or r0;
     r0 = dm(_afb_xfade_step_C2_AUX_AFB_08);
     r1 = r1 or r0;
+#if DSP4_AFB_DESIGN
+    /* A pending DESIGN is a transient too, and it is the one
+     * the latch cannot see any other way: this class is
+     * written PARAMETERS, not coefficients, and the design
+     * that turns them into coefficients -- and only then
+     * raises swap_pending -- runs at the top of the node
+     * body the latch skips. Without this read a latched pair
+     * never designs, never swaps, and never comes down: it
+     * runs the .var bypass filter for ever (S13-1).*/
+    r0 = dm(_afb_dirty_C2_AUX_AFB_07);
+    r1 = r1 or r0;
+    r0 = dm(_afb_dirty_C2_AUX_AFB_08);
+    r1 = r1 or r0;
+#endif
 #if DSP4_BQ_GUARD
     /* A sizing in flight is a transient like any other: the
      * node's H is about to change, and the interleaved block
@@ -4100,6 +4272,20 @@ _C2BQP_AUX_AFB_09_10_process:
     r1 = r1 or r0;
     r0 = dm(_afb_xfade_step_C2_AUX_AFB_10);
     r1 = r1 or r0;
+#if DSP4_AFB_DESIGN
+    /* A pending DESIGN is a transient too, and it is the one
+     * the latch cannot see any other way: this class is
+     * written PARAMETERS, not coefficients, and the design
+     * that turns them into coefficients -- and only then
+     * raises swap_pending -- runs at the top of the node
+     * body the latch skips. Without this read a latched pair
+     * never designs, never swaps, and never comes down: it
+     * runs the .var bypass filter for ever (S13-1).*/
+    r0 = dm(_afb_dirty_C2_AUX_AFB_09);
+    r1 = r1 or r0;
+    r0 = dm(_afb_dirty_C2_AUX_AFB_10);
+    r1 = r1 or r0;
+#endif
 #if DSP4_BQ_GUARD
     /* A sizing in flight is a transient like any other: the
      * node's H is about to change, and the interleaved block
@@ -4305,6 +4491,20 @@ _C2BQP_AUX_AFB_11_12_process:
     r1 = r1 or r0;
     r0 = dm(_afb_xfade_step_C2_AUX_AFB_12);
     r1 = r1 or r0;
+#if DSP4_AFB_DESIGN
+    /* A pending DESIGN is a transient too, and it is the one
+     * the latch cannot see any other way: this class is
+     * written PARAMETERS, not coefficients, and the design
+     * that turns them into coefficients -- and only then
+     * raises swap_pending -- runs at the top of the node
+     * body the latch skips. Without this read a latched pair
+     * never designs, never swaps, and never comes down: it
+     * runs the .var bypass filter for ever (S13-1).*/
+    r0 = dm(_afb_dirty_C2_AUX_AFB_11);
+    r1 = r1 or r0;
+    r0 = dm(_afb_dirty_C2_AUX_AFB_12);
+    r1 = r1 or r0;
+#endif
 #if DSP4_BQ_GUARD
     /* A sizing in flight is a transient like any other: the
      * node's H is about to change, and the interleaved block
@@ -4924,6 +5124,20 @@ _C2BQP_GRP_GEQ_01_02_process:
     r1 = r1 or r0;
     r0 = dm(_geq_xfade_step_C2_GRP_GEQ_02);
     r1 = r1 or r0;
+#if DSP4_GEQ_DESIGN
+    /* A pending DESIGN is a transient too, and it is the one
+     * the latch cannot see any other way: this class is
+     * written PARAMETERS, not coefficients, and the design
+     * that turns them into coefficients -- and only then
+     * raises swap_pending -- runs at the top of the node
+     * body the latch skips. Without this read a latched pair
+     * never designs, never swaps, and never comes down: it
+     * runs the .var bypass filter for ever (S13-1).*/
+    r0 = dm(_geq_dirty_C2_GRP_GEQ_01);
+    r1 = r1 or r0;
+    r0 = dm(_geq_dirty_C2_GRP_GEQ_02);
+    r1 = r1 or r0;
+#endif
 #if DSP4_BQ_GUARD
     /* A sizing in flight is a transient like any other: the
      * node's H is about to change, and the interleaved block
@@ -5129,6 +5343,20 @@ _C2BQP_GRP_GEQ_03_04_process:
     r1 = r1 or r0;
     r0 = dm(_geq_xfade_step_C2_GRP_GEQ_04);
     r1 = r1 or r0;
+#if DSP4_GEQ_DESIGN
+    /* A pending DESIGN is a transient too, and it is the one
+     * the latch cannot see any other way: this class is
+     * written PARAMETERS, not coefficients, and the design
+     * that turns them into coefficients -- and only then
+     * raises swap_pending -- runs at the top of the node
+     * body the latch skips. Without this read a latched pair
+     * never designs, never swaps, and never comes down: it
+     * runs the .var bypass filter for ever (S13-1).*/
+    r0 = dm(_geq_dirty_C2_GRP_GEQ_03);
+    r1 = r1 or r0;
+    r0 = dm(_geq_dirty_C2_GRP_GEQ_04);
+    r1 = r1 or r0;
+#endif
 #if DSP4_BQ_GUARD
     /* A sizing in flight is a transient like any other: the
      * node's H is about to change, and the interleaved block

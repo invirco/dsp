@@ -62,6 +62,7 @@
 
 .extern _scope_buf, _scope_src, _scope_inj, _scope_amp;
 .extern _scope_mode, _scope_idx, _scope_arm, _scope_len, _scope_rd, _scope_go;
+.extern _scope_fired;
 .extern _scope_runs;
 
 /* PA_12 = BLINK_LED */
@@ -1094,6 +1095,10 @@ _diag_write:
     r4 = 0;
     dm(_scope_idx) = r4;
     dm(_scope_go)  = r4;
+    dm(_scope_fired) = r4;        /* the block injector's own once-per-run
+                                   * gate, S13-3 -- cleared with _scope_go
+                                   * or the second run of a session would
+                                   * capture silence. */
     dm(_scope_arm) = r1;
     r4 = pass r1;
     if eq rts;                    /* disarm: not a run */

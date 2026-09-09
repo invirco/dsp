@@ -40,6 +40,7 @@ import time
 
 sys.path.insert(0, '/home/app/dspboot')
 
+import dsp4_block as B
 import dsp4_scope as S
 import xover_ref as X
 from dsp4_conform import Part, SPI_ERR_COUNT, f32
@@ -91,8 +92,8 @@ def db(x):
     return 20 * math.log10(abs(x)) if abs(x) > 0 else -999.0
 
 
-def dft(samples, f):
-    w = -2j * math.pi * f / FS
+def dft(samples, f, fs=FS):
+    w = -2j * math.pi * f / fs
     return sum(x * cmath.exp(w * n) for n, x in enumerate(samples))
 
 
@@ -172,7 +173,10 @@ def main():
     # ---- NEVER SET: identity, and the node passes through -------------
     suf, lv = live()
     ident = all(abs(v - X.IDENTITY[i % 5]) < 1e-12 for i, v in enumerate(lv))
-    up = capture('_buf_C2_MAIN_DLY', 64)
+    # The LP leg is witnessed one word per BLOCK (S13-4), so the reference
+    # is decimated to the same instants -- the last sample of each block --
+    # before the two are compared word for word.
+    up = capture('_buf_C2_MAIN_DLY', 64 * B.BLOCK)[B.BLOCK - 1::B.BLOCK]
     lpc = capture('_buf_lp_' + nid, 64)
     eq = sum(1 for a, b in zip(up, lpc) if a == b)
     print('')
@@ -266,19 +270,67 @@ def main():
     # ---- AUDIO: the split, and that it moves with the corner -----------
     print('')
     audio = []
+    # THE LP AND HP LEGS ARE WITNESSED AT THE BLOCK RATE (S13-4, 2026-09-09).
+    #
+    # `_buf_lp_<nid>` and `_buf_hp_<nid>` are ONE-WORD variables: under block
+    # kernels the crossover runs its per-sample body BLOCK times through
+    # them, so each holds the LAST sample of the block and there is no
+    # `_blk_lp_` array. The chain now registers both with `_scope_tap1`, the
+    # one-word-per-block witness -- before that nothing answered for the
+    # address and this bar STALLED waiting for a buffer that never filled
+    # (S12-8).
+    #
+    # What comes back is therefore REAL samples at BLOCK_RATE, not at FS, so
+    # this arm works at fs/BLOCK on all three captures: the reference is
+    # decimated the same way (its last sample per block), and a probe point
+    # at or above the decimated Nyquist is DROPPED and said so rather than
+    # scored against a frequency the capture cannot carry.
+    FS_TAP = FS / float(B.BLOCK)
+    out['tap'] = {'legs_decimated_by': B.BLOCK, 'leg_fs': FS_TAP,
+                  'leg_nyquist': FS_TAP / 2.0}
+    print('  LP/HP legs are witnessed one word per block: %.1f Hz sample '
+          'rate, %.1f Hz Nyquist' % (FS_TAP, FS_TAP / 2.0))
     for f0 in (120.0, 400.0):
         setfreq(f0)
         lp = capture('_buf_lp_' + nid, args.n)
         hp = capture('_buf_hp_' + nid, args.n)
-        ref = capture('_buf_C2_MAIN_DLY', args.n)
-        row = {'f0': f0, 'points': []}
+        ref_full = capture('_buf_C2_MAIN_DLY', args.n)
+        # the same word the legs' witness keeps: the last of each block
+        ref = ref_full[B.BLOCK - 1::B.BLOCK]
+        lp = lp[:len(ref)]
+        hp = hp[:len(ref)]
+        row = {'f0': f0, 'points': [], 'skipped': []}
         for f, tag in ((f0 / 4.0, 'two oct below'), (f0, 'corner'),
                        (f0 * 4.0, 'two oct above')):
-            if not 10.0 < f < FS / 2:
+            if not 10.0 < f < FS_TAP / 2:
+                row['skipped'].append({'f': f, 'tag': tag,
+                                       'why': 'above the block-rate Nyquist'})
+                print('  f0 %5.1f  %-14s %8.1f Hz  NOT SCORED — above the '
+                      '%.1f Hz Nyquist of a block-rate witness'
+                      % (f0, tag, f, FS_TAP / 2.0))
                 continue
-            r = abs(dft(ref, f))
-            gl = db(dft(lp, f) / r) if r else float('nan')
-            gh = db(dft(hp, f) / r) if r else float('nan')
+            r = abs(dft(ref, f, FS_TAP))
+            if not r:
+                # A ONE-WORD-PER-BLOCK WITNESS CANNOT CARRY AN IMPULSE
+                # RESPONSE (S13-4). The stimulus is a single impulse and the
+                # reference is decimated to one word per block, so fifteen
+                # samples out of every sixteen -- the impulse among them --
+                # are not in the capture at all and the reference reads
+                # zero. The arm is therefore NOT SCORABLE on a block-kernel
+                # image, and says so; it is not counted as a design failure
+                # and it is not counted as a pass either. Scoring it needs a
+                # `_blk_lp_`/`_blk_hp_` array in the crossover's block
+                # kernel, which is a change to the SHIPPING image for a
+                # bench instrument and was not taken.
+                row['skipped'].append({'f': f, 'tag': tag,
+                                       'why': 'block-rate witness carries no '
+                                              'impulse response'})
+                print('  f0 %5.1f  %-14s %8.1f Hz  NOT SCORABLE — the LP/HP '
+                      'witness is one word per block and the stimulus is an '
+                      'impulse' % (f0, tag, f))
+                continue
+            gl = db(dft(lp, f, FS_TAP) / r)
+            gh = db(dft(hp, f, FS_TAP) / r)
             ml = db(resp(X.design_set(f0)[:10], f))
             mh = db(resp(X.design_set(f0)[10:], f))
             row['points'].append({'f': f, 'tag': tag, 'lp_db': gl,
@@ -292,11 +344,19 @@ def main():
                   % (f0, tag, f, gl, ml, gh, mh, 'PASS' if good else 'FAIL'))
         audio.append(row)
     out['audio'] = audio
+    out['audio_scorable'] = any(r['points'] for r in audio)
+    if not out['audio_scorable']:
+        print('')
+        print('  AUDIO ARM NOT SCORABLE on this image — every probe point was '
+              'dropped. The design arms above stand on their own; the split '
+              'is NOT proven in audio here.')
 
     part.write(L.addr(args.cell), f32(0.0), 0)
     out['spi_err_delta'] = (part.sc.rd(SPI_ERR_COUNT) - err0) & 0xFFFFFFFF
     ok = ok and out['spi_err_delta'] == 0
-    out['verdict'] = 'XOVER_DESIGN_OK' if ok else 'XOVER_DESIGN_FAIL'
+    out['verdict'] = ('XOVER_DESIGN_OK' if ok else 'XOVER_DESIGN_FAIL')
+    if ok and not out['audio_scorable']:
+        out['verdict'] = 'XOVER_DESIGN_OK_AUDIO_NOT_SCORABLE'
     print('')
     print(out['verdict'])
     if args.json:
