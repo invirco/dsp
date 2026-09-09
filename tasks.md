@@ -66,7 +66,20 @@ ramped parameter is handled (rebuild per block while ramping, or
 interpolate between two tables — cost of each). Then the paired-kernel
 cycle count per sample per channel for GATE, COMP, LIMITER in this form,
 against today's 143 / 251. This supersedes the "log2 table + exp2 table"
-framing above where the two conflict: one table, level → gain. Also state in
+framing above where the two conflict: one table, level → gain. **PW 21:2x, PRIORITY
+RULING: "other processing progress is leaving dynamics processing as a
+hog, so it's a priority to address." REORDER S14: the dynamics gain
+computer (this LUT form, paired, measured on the rig and then in the
+graph) is GATE 1 NOW — before the biquad cycle probe, before RIG B.**
+Chip 1 is 32 strips of GATE + COMP at ~143 + ~251 c/sample/channel paired;
+that is the largest single line on the part and the one PW wants moved
+first. Order: (1) the LUT gain computer for COMP and GATE on the rig →
+into the generator behind a switch → famverify GATE/COMPRESSOR verdict-
+for-verdict, `dyn_state_bound.py` re-run, capacity both chips at D24 and
+D32, cycles per sample per channel before/after; (2) LIMITER on the same
+form; (3) then the biquad probe; (4) RIG B; (5) D32 re-priced; (6)
+write-up + status. If the session cannot reach (3)–(4), say so — the
+dynamics result is the deliverable. Also state in
 findings what ADI publishes on SHARC dynamics (the hub's answer: nothing
 current with source — the 1998 ADSP-21065L "Digital Audio Effects" EZ-KIT
 code had assembly compressor/expander/limiter; SigmaStudio(+) dynamics
