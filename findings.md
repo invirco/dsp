@@ -2463,6 +2463,175 @@ active.
 card as two chip 1s). It is not in this tree, so `check_bench_pins.sh`
 cannot see it. Left as found and recorded.
 
+## Session 14 — 2026-09-09
+
+Write-up `MW/D32/DSP/dsp4-floor-20260909.md`. Contract `defs-v2026.09.08.4`,
+unchanged. `shipping.config` unchanged. All six staged `~/dspboot` pairs
+byte-identical at the end; nothing new staged.
+
+### S14-1 — the core's stall rule, measured, because no document states it
+
+**Severity: informational (it decides every scheduling question on this
+part). Status: CLOSED.**
+
+The ADSP-2156x SHARC+ Hardware Reference (Rev 1.0, Dec 2020) has **no core
+chapter at all**: zero occurrences of "pipeline stage" or "Instruction
+Pipeline" in 101,300 lines, every "stall" in it peripheral flow control,
+every "latency" near "compute" a memory or bus latency. It states neither
+the pipeline depth nor how many cycles a compute result takes before a
+dependent instruction may read it. `src/lib/bq_probe.asm` + `bqprobe.sh`
+ask the part instead — 24 rungs of one loop nest whose inner body is the
+only thing that differs. Minimum of five repeats:
+
+- instructions issue at **exactly 1.000 cycles** each; a 15-trip hardware
+  loop costs **0.402 c/iteration** on top of its body;
+- **a COMPUTE result is not readable by the next instruction** — every
+  producer→consumer edge between ADJACENT instructions costs exactly one
+  extra cycle, identical for mul→mul (0.984), ALU→ALU (0.984) and
+  mul↔ALU (0.984);
+- **a memory LOAD's result IS readable next instruction, free**;
+- the DM bus is not a constraint (two memory moves = 0.009 cycles) and
+  neither is the SIMD pair (PEYEN on vs off = 0.000);
+- **the PM bus costs +1.068 cycles** against the same access over DM — PM
+  data is a pessimisation on this kernel, not a lever;
+- a 15-trip loop against a 60-trip one carrying the same iterations:
+  0.148 c/iteration.
+
+So S13-5's "~1.47 cycles per instruction" was never a rate: the five-
+instruction body is **5 issue + 4 stalls** and the old eight-instruction
+one **8 issue + 2 stalls**, which is exactly why removing three
+instructions bought 1.073 cycles instead of three.
+
+### S14-2 — the dynamics gain computer: ONE level→gain table is 77 % of it
+
+**Severity: high (cycles). Status: MEASURED, NOT INTEGRATED.**
+
+`src/lib/dyn_shootout.asm` + `dynshoot.sh`, 14 rungs, same envelope and
+same gain application throughout. Cycles per sample per channel, paired:
+
+- the gain computer today (6-term polynomial log2 / knee / exp2) **107.6**;
+- a 3-term polynomial **74.6**; **one level→gain table 24.5**;
+- the whole COMPRESSOR body **142.2 → 59.1** with the table (58.5 % off);
+- the whole GATE body **71.1 → 32.5** with a LINEAR-domain threshold.
+
+The gather does not break the pairing: both channels' indices leave SIMD
+in ONE store (a direct-address store inside a PEYEN region writes PEy's
+word after PEx's) and the four words come back in two paired reads; PEy's
+registers survive the excursion, so the interpolation fraction needs no
+spill. Dropping the pairing costs **18.0 cycles more**; routing the second
+channel over PM costs **6.0 more** rather than saving the two instructions
+it removes (S14-1's PM penalty again).
+
+Host-side modelling: index = `leftz` exponent + top *m* mantissa bits, so
+the table is log-spaced without computing a logarithm. Uniform spacing
+needs *m* = 5 for 0.1 dB; **anchoring a knot at the threshold and both
+knee corners buys two levels of *m***, giving 0.030 dB at *m* = 3 with
+19–101 words per node (49 for COMP and 20 for LIMITER at shipped
+defaults). Quadratic interpolation does not help — the knee corner is a
+kink, not a smooth function. The design step is ~211 instructions per
+point, so a rebuild is 3–6 % of a whole block for one node: **blend two
+tables while a parameter ramps, do not rebuild per block.**
+
+**OPEN RISK:** 96 dynamics nodes × their own table is ~2,420 words at
+shipped defaults and ~5,000 at worst case, where a 1,024-word pair already
+overflowed `sec_stak` once. The tables would have to live in L2, and the
+rig measured a **DM-resident** table — an L2-resident per-sample gather is
+unmeasured and could move the 24.5.
+
+### S14-3 — the GATE's static curve cannot be tabled, and does not need to be
+
+**Severity: medium. Status: OPEN (the port is designed, not landed).**
+
+Tabling the gate's curve measures **worse than today** (114.1 against
+142.1 c/sample-pair) where the linear-domain threshold gives **65.0**.
+The gate's curve is a STEP — unity above threshold, `range` below — and
+linear interpolation smears a discontinuity across a whole cell whatever
+the mesh: modelled worst error stays at **52–60 dB at every point count
+from 2 to 64 per octave**. `log2(env) ≥ thr` is `env ≥ 2^thr`;
+`DSP4_GATE_LINTHR` has done that conversion once per block in the SCALAR
+kernel since S8. `dsp_codegen.py`'s paired-graph header `#error`s on it
+because the two are different arithmetic — by **at most 0.0002 dB of
+threshold shift**, a fixed offset, which was worth arguing about against a
+0.0001 dB polynomial and is not against the 0.1 dB ruling.
+
+### S14-4 — the paired LIMITER's 4,775 c/blk is conditional compute, not a mystery
+
+**Severity: informational. Status: CLOSED.**
+
+`_lim_pair_blk`'s per-sample body is ≈251 instructions for the pair, of
+which **log2 (73) + exp2 (89) = 162, about 65 %**. The scalar kernel
+branches around `exp2` on any sample below threshold; the SIMD kernel
+cannot, because two channels may want different arms, so `COMPGAIN_SIMD`
+computes both transcendentals unconditionally and selects afterwards. That
+is why a class with no cascade in it costs more than the EQ and AFB pairs
+together. The level→gain table removes the branch problem along with the
+polynomials. The GATE's linear-domain trick does not transfer to COMP or
+LIMITER — they need the log VALUE for the knee, not just a comparison.
+
+ADI publishes nothing current with source on SHARC dynamics: the 1998
+ADSP-21065L "Digital Audio Effects" EZ-KIT had assembly
+compressor/expander/limiter; SigmaStudio(+) modules are binaries.
+
+### S14-5 — the biquad primitive: six instructions that do not stall beat five that do
+
+**Severity: high (cycles). Status: LANDED behind `DSP4_BQ_SIMD_PIPE=2`,
+default 0.**
+
+Under S14-1's rule the binding resource is the loop-carried dependence
+chain y → q1 → w1′ → y: three dependent operations at two cycles an edge =
+**six cycles per sample per stage**, against five instructions to issue.
+Six slots is the exact floor for a bit-exact schedule and the new one
+reaches it. Measured on the part: the old 8-instruction loop **10.415**,
+the 5-instruction loop **9.343**, **the six-slot loop 6.409** (1.068
+c/instruction — no stall anywhere), against a predicted 6.402.
+
+Bit-exact twice over: `tools/dsp/bq_simd_pipe_check.py` runs all three
+schedules register by register over 4,000 cascades × 4 blocks × 16 samples
+with zero mismatches; `bqeverify float` on the part is **BQE_VERIFY PASS,
+0 ULP over 36,864 words, hash `0xC607BA6B`** — the same hash the other two
+schedules produce. At `DSP4_BQ_SIMD_PIPE=0` the pair is `df6b847d` /
+`cb9bc58e`, byte for byte the staged `geq_*`.
+
+Below six needs different arithmetic (fold B1 = b1 − a1·b0, B2 = b2 −
+a2·b0 at design time for a two-operation recurrence and a four-cycle
+floor). Not bit-exact; named, not built.
+
+### S14-6 — RIG B: the IIR accelerator fails at 32 bits, passes at 40, and is too small
+
+**Severity: informational. Status: CLOSED for now.**
+
+The accelerator is a **transposed direct form II** biquad — the same form
+this tree already uses — in 32-bit or 40-bit IEEE float, coefficients
+stored pre-negated (Ak = b, Bk = −a), no saturation (MAC exceptions
+instead). Modelled against the repo's own band design: band 1 (19.95 Hz,
+Q 4.3185) at ±12 dB has worst error **0.19–0.21 dB in 32-bit mode** and
+**0.0004–0.0014 dB in 40-bit mode**, so it **FAILS the 0.01 dB bar at 32
+bits and PASSES at 40**. The cause is stated as an inequality: 1 − r is
+1.5e−4 to 7.6e−4 against ε₃₂ = 1.19e−7, and the accelerator stores a1 ≈
+−1.9997 **directly** (no offset encoding to dodge the cancellation), so a
+2.4e−7 coefficient ulp compounds through 30k–140k samples of ring-down.
+Round-to-nearest is required; truncation shows no limit cycle but is
+biased with no accuracy benefit.
+
+**Capacity is the harder limit:** coefficient memory is 1440 × 40 bits =
+**288 biquads device-wide** (the per-channel 64 and the 32 channels are
+not simultaneously achievable). Chip 2's twelve GEQ channels need
+**372**, so at most **9 of 12** could run on it at full 31 bands.
+
+### S14-7 — `_proc_cyc_max` still latches, and the instrument's CCLK decode wants checking
+
+**Severity: low. Status: OPEN.**
+
+S13-2 stands unchanged: `_proc_cyc_max` read 376 % on chip 2 on both boots
+of an arm with **zero** missed blocks, because nothing resets it after the
+config ladder. `DIAG_BLK_OVERRUN` is the arbiter. Separately, `capacity.sh`
+decodes the running CGU as **CCLK 983.04 MHz** (budget 327,680
+cycles/block) where the P2.2 record of 2026-08-21 measured 491.52 MHz off
+the core timer. Every arm in the record is taken with the same decode, so
+comparisons between arms are sound either way and the D32 fit verdict
+rests on the overrun count — but the absolute percentages are only as good
+as the decode, and that has not been re-derived since P2.2.
+
 ## Session 13 — 2026-09-09
 
 Write-up `MW/D32/DSP/dsp4-geq-floor-20260909.md`. Contract
