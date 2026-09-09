@@ -411,6 +411,15 @@ ASMFLAGS="$ASMFLAGS -DDSP4_C2_XPAIR=$DSP4_C2_XPAIR"
 DSP4_BQ_ROUNDONCE="${DSP4_BQ_ROUNDONCE:-1}"
 CFLAGS="$CFLAGS -DDSP4_BQ_ROUNDONCE=$DSP4_BQ_ROUNDONCE"
 ASMFLAGS="$ASMFLAGS -DDSP4_BQ_ROUNDONCE=$DSP4_BQ_ROUNDONCE"
+# THE PIPELINED SIMD SAMPLE LOOP (S13-5, 2026-09-09). Eight instructions
+# per sample per stage become five, same operations and same order of
+# additions. Defaults OFF: DSP4_BQ_SIMD_PIPE=0 is the loop byte for byte as
+# the 5.94 c/band-sample figure was measured on, and stays the control until
+# the shootout rig has scored the pipelined arm bit-exact against
+# bq_float_ref on the part.
+DSP4_BQ_SIMD_PIPE="${DSP4_BQ_SIMD_PIPE:-0}"
+CFLAGS="$CFLAGS -DDSP4_BQ_SIMD_PIPE=$DSP4_BQ_SIMD_PIPE"
+ASMFLAGS="$ASMFLAGS -DDSP4_BQ_SIMD_PIPE=$DSP4_BQ_SIMD_PIPE"
 # THE PER-CASCADE HEADROOM GUARD (2026-09-03). Sized at parameter-load by
 # lib/bq_headroom.asm, carried as a header word in every cascade's
 # coefficient block, applied as one shift on the way into the cascade and

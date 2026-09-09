@@ -9057,6 +9057,22 @@ def gen_block_header():
 #define DSP4_C2_BQ_PAIRED_GRAPH 0
 #endif
 
+/* THE PIPELINED SIMD SAMPLE LOOP (S13-5, 2026-09-09). The same eleven
+ * operations per sample per stage, the same operands and the same order of
+ * additions -- so it is bit-exact against the unpipelined loop by
+ * construction -- software pipelined over one sample so that every
+ * instruction issues a multiply AND an ALU op. Eight instructions per
+ * sample per stage become five; the arithmetic's floor for one cascade is
+ * max(5 multiplies, 4 ALU, 2 moves) = 5.
+ *
+ * DSP4_BQ_SIMD_PIPE=0 is the CONTROL and is the loop byte for byte as it
+ * was measured at 5.94 c/band-sample. Default 0 until the shootout rig has
+ * scored the pipelined arm bit-exact against bq_float_ref on the part.
+ */
+#ifndef DSP4_BQ_SIMD_PIPE
+#define DSP4_BQ_SIMD_PIPE 0
+#endif
+
 /* The SIMD cascade itself is shared: chip 1 reaches it through
  * _bq_pair_blk, chip 2 points straight at its own interleaved arrays. */
 #if DSP4_BQ_PAIRED_GRAPH || DSP4_C2_BQ_PAIRED_GRAPH || DSP4_SIMD_PROBE

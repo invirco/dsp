@@ -1632,6 +1632,9 @@ _bq_fx_convert_N.end:
 .global _bq_fx_cascade_simd;
 _bq_fx_cascade_simd:
     l0 = 0; l1 = 0; l2 = 0;
+#if DSP4_BQ_SIMD_PIPE
+    l3 = 0;                         /* the pipelined loop's store pointer */
+#endif
     r15 = -2*DSP4_BLOCK_SIZE;
     m2 = r15;                       /* rewind the interleaved block */
     r15 = 10;
@@ -1676,6 +1679,90 @@ _bq_fx_cascade_simd:
         f8  = dm(i1, 2);            /* w1 pair, i1 -> base+2 */
         f10 = dm(i1, 0);            /* w2 pair, i1 parked    */
 
+#if DSP4_BQ_SIMD_PIPE
+        /* ---- THE PIPELINED SAMPLE LOOP (S13-5, 2026-09-09) ----
+         *
+         * Same eleven operations per sample per stage, same operands, same
+         * order of the ADDITIONS -- so it is bit-exact against the loop
+         * below by construction, not by measurement -- SOFTWARE PIPELINED
+         * over one sample so that every instruction issues a multiply and
+         * an ALU op.
+         *
+         * WHY ONE CASCADE AND NOT TWO. The obvious way to fill the slots is
+         * to interleave two independent cascades, four channels in flight.
+         * It does not fit: one cascade already needs five coefficients, two
+         * state words, five products and a temp live at once, and two of
+         * those is upwards of twenty-two registers against the sixteen a PE
+         * has. The alternate register file is a MODE1 write with latency,
+         * not a per-instruction resource. It also is not necessary. The
+         * loop-carried chain is y -> a1*y -> w1' -> y, three dependent
+         * operations against five instructions of slack, so the recurrence
+         * never bounds a five-instruction schedule; the old loop's eight
+         * instructions were a scheduling deficiency, not a fundamental one.
+         *
+         * THE STEADY STATE, one sample per pass, x(n) already in f0:
+         *
+         *   I1  p0 = x*b0    w2' = p2p - q2p
+         *   I2  p1 = x*b1    y   = w1 + p0
+         *   I3  q1 = y*a1    t   = w2 + p1
+         *   I4  p2 = x*b2    w1' = t - q1      store y(n)
+         *   I5  q2 = a2*y                      load  x(n+1)
+         *
+         * Superscript p is the value carried from the previous sample.
+         * Five multiplies, four ALU ops, two memory moves, every
+         * dependence at least one instruction deep.
+         *
+         * WHY q2 IS THE ONE THAT RUNS ALONE, and why five is the floor
+         * rather than four. The dual-compute form constrains its
+         * OPERANDS: the multiplier takes X from R0-R3 and Y from R4-R7,
+         * the ALU takes X from R8-R11 and Y from R12-R15. The five
+         * products are x*b0, x*b1, x*b2, y*a1 and a2*y, so x and y must
+         * both sit in R0-R3 and FIVE coefficients would have to sit in
+         * the four registers R4-R7. One multiply therefore cannot pair,
+         * and a2 is the coefficient that moves out (to f2, R0-R3) --
+         * which is exactly the register assignment the unpipelined loop
+         * already used, for exactly this reason. A standalone multiply
+         * still carries a memory move, so the load rides on it.
+         *
+         * That constraint is also why the old loop was eight and not
+         * five: it is real, and it was read off the assembler --
+         * `easm21k -proc ADSP-21564` rejects `f15 = f2 * f1, f8 = f11 -
+         * f14, dm(i3,2) = f1` with "Semantic Error in type 4
+         * instruction" and accepts every line below.
+         *
+         * TWO POINTERS, because the load runs one sample ahead of the
+         * store: i2 reads and i3 writes, both stride 2, i3 one pair
+         * behind. i3 is added to this kernel's clobber list.
+         *
+         * THE FIRST PASS. I1's ALU computes w2' from the previous
+         * sample's p2 and q2, which do not exist on pass 0, so the
+         * preamble seeds f9 = w2 and f15 = +0.0 and pass 0's I1 recovers
+         * w2 exactly (w2 - 0.0). `r15 = 0` IS +0.0f: the bit pattern is
+         * the float.
+         *
+         * THE LAST PASS is peeled, so I5's read-ahead never runs off the
+         * end of the caller's block. Five instructions once per stage,
+         * amortised over the block; no caller's buffer grows a guard
+         * word.
+         */
+        i3 = i2;                    /* the store pointer, one pair behind */
+        f0 = dm(i2, 2);             /* x(0), i2 -> x(1) */
+        f9 = pass f10;              /* seed: pass 0's I1 gives w2 - 0.0 */
+        r15 = 0;                    /* +0.0f, the seeded q2 */
+        lcntr = DSP4_BLOCK_SIZE-1, do .bqfl_psamp until lce;
+            f12 = f0 * f4, f10 = f9 - f15;
+            f13 = f0 * f5, f1 = f8 + f12;
+            f14 = f1 * f7, f11 = f10 + f13;
+            f9  = f0 * f6, f8 = f11 - f14, dm(i3, 2) = f1;
+        .bqfl_psamp: f15 = f2 * f1, f0 = dm(i2, 2);
+        /* the peeled last sample: the same five, without the read-ahead */
+        f12 = f0 * f4, f10 = f9 - f15;
+        f13 = f0 * f5, f1 = f8 + f12;
+        f14 = f1 * f7, f11 = f10 + f13;
+        f9  = f0 * f6, f8 = f11 - f14, dm(i3, 2) = f1;
+        f15 = f2 * f1;
+        f10 = f9 - f15;             /* w2' of the last sample */
+#else
         lcntr = DSP4_BLOCK_SIZE, do .bqfl_ssamp until lce;
             f0 = dm(i2, 0);
             f12 = f0 * f4;
@@ -1685,6 +1772,7 @@ _bq_fx_cascade_simd:
             f15 = f2 * f1;
             f8 = f11 - f14;
         .bqfl_ssamp: f10 = f9 - f15, dm(i2, 2) = f1;
+#endif
 
         dm(i1, -2) = f10;           /* w2' pair, i1 -> base+0 */
         dm(i1, 2)  = f8;            /* w1' pair, i1 -> base+2 */
