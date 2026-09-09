@@ -1,3 +1,112 @@
+## HUB DISPATCH 2026-09-09 16:56Z — S13 — the half that fits D32 made audio-correct (S12-5: the paired chip-2 biquad graph drops coefficient writes — which side of the latch), D32 re-measured on an audio-correct pair, S12-9 attributed, then the GEQ to the floor (ladder, pipelined primitive ≤ 3.75, RIG B IIR accelerator with the 20 Hz band)   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+S13 — THE HALF THAT FITS D32 MADE AUDIO-CORRECT, then the GEQ to the floor: S12-5 settled first (the paired chip-2 biquad graph `DSP4_C2_BQ_GRAPH` loses coefficient DELIVERY — which side of the latch drops the write — fixed and proven by geqverify/afbverify reading the live bank, famverify GEQ/ANTI_FB LIVE paired, capacity at D32 re-measured on the audio-correct pair); S12-9 attributed on the pair that ships; then PW's "do it" (09-09): fresh per-kernel ladder of both chips, the biquad primitive pipelined 5.94 → ≤ 3.75 c/band-sample, RIG B the 2156x IIR accelerator with the 20 Hz band, D32 re-priced
+
+WHY. S12 (dsp 223e9e1) split the 29.6 % lever: `DSP4_STRIP_FUSED=1
+DSP4_SIMD_DYN=1` with `DSP4_C2_BQ_GRAPH=0` IS audio-correct on the part
+(17/20 LIVE, 20/20 contract, 3 BIT_EXACT — verdict for verdict the
+shipping pair) and is staged as `~/dspboot/cand_chip1/2.ldr`
+(fcebc2e1…/86662b92…, cfg2 0xC201024F, Option A on chip 2 per PW). It
+buys D24 margin (chip 1 worst 84.8 → 72.4 %, chip 2 92.7 → 83–87 %) but
+**D32 STILL DOES NOT FIT on it: chip 2 102.5–102.7 %, 2.37 % of blocks
+missed.** The arm that fits D32 (chip 2 82.1/82.6 %, zero overruns) is
+`DSP4_C2_BQ_GRAPH=1`, chip 2's paired AUX biquads — **20.3 % of budget
+at D32, 16.3 % at D24** — and that one loses parameter changes: geqverify
+and afbverify read the node's live coefficient bank still at IDENTITY
+after the host wrote (error = the whole designed filter, −12.00000 dB /
++18.00000 dB, 50.9 M / 83.9 M ulp vs 1–3 ulp with the switch off);
+bqeverify PASSES on the paired cascade kernel over 36,864 words, so the
+SIMD arithmetic is right and the fault is coefficient DELIVERY (S12-5:
+"which side of the latch drops the write"). Also open from S12: **S12-9**
+— on the pair that SHIPS, afbverify's −18 dB notch measures −4.799 dB
+and geqverify's +12 dB band +8.451 dB where the same bar read
+−17.99989 dB on 2026-09-08 (a per-sample block-8 image); passband drift
+0.15–0.36 dB; identical to every digit on the candidate; capture leakage
+fits the ordering but is unmeasured. **S12-8** xoververify stalls (arms
+on `_buf_lp_<nid>`, outside the tap). **S12-10** latency instrument
+returns a null on every image (needs a duplex PCM overlay + a reboot
+with the card known-good); the ruled 82 samples is carried from S11.
+PW's rule: fix the primitive, never cut bands; both D24 and D32 fit the
+current card; block 16 ships; latency is not traded for cycles. The GEQ
+primitive at 5.94 c/band-sample SIMD-paired has a 3.75 floor by packing
+(8 instructions carrying 11 operations → 5) and RIG B, the IIR
+accelerator, was never brought up.
+
+BENCH. Rev C unit as S12 left it (shipping CPLD `a1f6672af6c3`,
+`dsp4-pcm-slave`, matrix-app active, all staged `~/dspboot` pairs
+byte-identical — `blk_*` ships, `cand_*` beside it; NEVER replace either;
+new candidates staged as `geq_*`). Every image from its own staging path
+with copy-and-restore; `dsp4_checkchip.py`, `dsp4_buildcfg.py` (both
+words), CGU read-back, fresh sym.json per boot; `SHARC/capacity.sh` is
+the capacity instrument; the six bars take STAGE and default the tap ON
+(S12-8); famverify tap on. Shootout rig `SHARC/bqshoot.sh` +
+`src/lib/bq_shootout.asm` for the primitive. No AI attribution in
+commits or any work product.
+
+GATES, in order, each witnessed:
+1. **S12-5 SETTLED.** On the `DSP4_C2_BQ_GRAPH=1` image: trace ONE
+   coefficient write from the SPI/host side to the paired node's live
+   bank — the mapped address, the parameter-state word, the crossfade/
+   latch stage that copies designed coefficients into the live bank,
+   and where the paired graph's node ID / bank pointer / pair-member
+   index diverges from the scalar graph's (S12-3's shape: a pair driver
+   does not always publish where the scalar kernel does — the same is
+   likely true of where it READS its coefficients). Name the side of the
+   latch that drops the write and the line. Fix it; prove it three ways
+   on one image: geqverify + afbverify design AND live-bank arms at
+   1–4 ulp with the switch ON, famverify GEQ and ANTI_FB LIVE paired
+   (moved 64/64), bqeverify still PASS. First sentence of the status
+   line: **`DSP4_C2_BQ_GRAPH` IS / IS NOT audio-correct now, and why it
+   wasn't.**
+2. **D32 on the audio-correct pair.** `capacity.sh` D24 mask + D32
+   all-ones, both chips, two boots, avg + worst + overrun, with
+   `DSP4_STRIP_FUSED=1 DSP4_SIMD_DYN=1 DSP4_C2_BQ_GRAPH=1` and Option A.
+   Then famverify three arms and the six bars on it. Stage as `geq_*`
+   if gate 1 passed. **Does D32 fit on an audio-correct image, with what
+   margin?** — the decision table in the window note updated (blk_* /
+   cand_* / geq_*).
+3. **S12-9 attributed** on the pair that ships: measure the capture-
+   leakage hypothesis (the bar's capture tap vs the 09-08 per-sample
+   image — is the tap block the post-filter block or the pre-filter one
+   for AFB/GEQ, the same class as S12-3), or whatever the evidence names;
+   the bar fixed if it is the bar, the audio if it is the audio. S12-8:
+   xoververify's arm moved inside the tap (cheap).
+4. **The ladder, fresh, on the pair that ships and on gate 2's pair.**
+   Per-kernel cycles per block for EVERY kernel class on chip 2 at D32
+   and chip 1 at D32, by the mechanism S10 built, two boots, min and
+   max; one table against the 09-01 class table. **Which class is the
+   wall on each chip.**
+5. **The primitive, pipelined.** On the shootout rig: (a) TDF2 restated
+   for the offset-form coefficients (bit-exact vs `bq_float_ref`), (b)
+   two independent cascades interleaved on top of SIMD (four channels in
+   flight) so every instruction issues a multiply with the ALU op and
+   both data moves. Target **≤ 3.75 c/band-sample per channel** measured
+   the shootout way, against 5.94. Then into the generator for node
+   PAIRS (which nodes pair, the odd one out); geqverify unchanged,
+   famverify GEQ 31/31, busgold bit-exact or the ulp bound stated;
+   capacity re-measured both chips at D32.
+6. **RIG B, the IIR accelerator.** One engine on one GEQ node:
+   descriptor/DMA, block latency added (samples), core cycles left, the
+   per-engine limits and engine count; **the precision test that decides
+   it: band 1 (19.95 Hz, Q 4.3185) and band 2 at ±12 dB in the
+   accelerator's float32 against `bq_float_ref` — inside the 0.01 dB bar
+   or not.** If yes: nodes it can take at D32, cycles back, latency paid
+   (block 16 ruled; latency is not traded — report, do not adopt). If
+   no: which upper bands could still go to it.
+7. findings S13-*, `MW/D32/DSP/dsp4-geq-floor-20260909.md`, the window
+   note's decision table, tasks.md, this block's status; commit + push
+   main. Kernel-scoreboard numbers in the write-up (per-function
+   now→floor) so the hub can republish.
+
+Bounded: gates 1–3 are the session; 4–5 expected; 6 if the rig comes up;
+7 always. No deploy; `blk_*` and `cand_*` byte-identical at the end.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-09 13:36Z — S12 — the 29.6 % lever settled: DSP4_SIMD_DYN (+STRIP_FUSED) proven or disproven as audio on the part (witness made to link, famverify three arms), the six design bars STAGE-safe and run on blk_* and the candidate, capacity + latency on the candidate, decision table for PW; the two switches named in shipping.config   [status: 🟢 done — **`DSP4_SIMD_DYN` IS AUDIO-CORRECT ON THE PART, AND THE LEVER SPLITS: the half that ships is proven, the half that fits D32 is not.** With the witness made to link and three instrument defects fixed, `DSP4_STRIP_FUSED=1 DSP4_SIMD_DYN=1 DSP4_C2_BQ_GRAPH=0` reads **17 of 20 families LIVE, contract 20/20 with 0 FAILED, COMPRESSOR/FADER_PAN/TUBE_SAT BIT_EXACT** — verdict for verdict what the shipping pair reads, GATE's numeric NO_STIMULUS included. **S11's four NO_CAPTURE families, the INERT GATE and the three NO_STIMULUS numeric arms were THREE SEPARATE DEFECTS IN THE INSTRUMENT, not the audio.** (a) **S12-2: the tap found pair drivers with a REGEX over chip 1's four names**, so chip 2's `_C2PAIR_*`/`_C2BQP_*` pairs were never tapped — 124 taps in the paired chip-2 chain against 200 scalar — and the scope timed out on untapped nodes; the four call emitters now register their own members, so a driver that is called is one the witness knows. (b) **S12-3: a pair driver does not always publish where its class's scalar kernel does** — `_DYNGATE` leaves channel A in `BLK_CHAIN_B_P1`, the scalar GATE in `BLK_CHAIN_A_P1`, so the tap copied the block the gate had READ (moved 0/64, peak exactly the injected 0x08000000); COMP/FILT/EQ hid it because for them the two coincide. (c) **S12-4: the numeric arm injected into `_blk_pool` on a build where strip 1, being odd, runs on `_blk_pool1`** — nothing on the strip moved (`_buf_C1_IN_01`..`_buf_C1_FDR_01` all peak 0x00000001). All three fixes are INERT for unpaired builds, proven by md5. **GATE 1 DONE: the witness links beside the paired kernels.** Chip 1 filled Block 3 to within 2 bytes and Block 2 to within 0x134c; the tap costs +2,976 words in the chain and +155 in scope.asm, leaving 799 words unmapped while Block 1 had 0x193f8 bytes free the LDF never let code reach. `ADSP-21564.ldf` gains `sec_swco_ovf2 > mem_block1_bw`, declared after the DM overflow and the DMA buffers so code takes only the leftover (0x31f words on chip 1; chip 2 never reaches it). **`DSP4_C2_BQ_GRAPH` IS NOT AUDIO-CORRECT, AND THE MECHANISM IS NAMED BY TWO INSTRUMENTS THAT NEVER LOOK AT THE AUDIO (S12-5).** On the paired arm `geqverify` and `afbverify` both read the node's own live coefficient bank still at **IDENTITY** after the host wrote the parameters, with a modelled response error equal to the whole designed filter — **−12.00000 dB** for the GEQ band, **+18.00000 dB** for the AFB notch, 50,965,640 and 83,887,018 ulp — against **1–3 ulp** on the same image with the switch off; live tone **+0.000 dB** at every point against +8.451/−4.799. `bqeverify` PASSES on the paired cascade kernel over 36,864 words (both round-once arms, divergence reproducing the model to the first index and the same 30/576 overflow cells), **so the SIMD arithmetic is right and the fault is coefficient DELIVERY.** famverify's controlled A/B on one image: GEQ and ANTI_FB INERT paired (moved 0/64, peak 0x08000000→0x08000000), LIVE scalar (→0x082DE520 / →0x07FB92D0, 64/64). **CAPACITY, `capacity.sh`, two boots per arm, ~135,040 blocks each: the audio-clean candidate DOES NOT FIT D32 (chip 2 102.5–102.7 %, 2.37 % of blocks missed) and the arm that FITS D32 (chip 2 82.1/82.6 %, ZERO overruns, S11 reproduced) is the one that loses parameter changes.** Chip 2's biquad pairing alone is **20.3 % of budget at D32 and 16.3 % at D24**. **D24 fits with more room than the pair that ships: chip 1 59.3 % avg / 72.4 % worst against 71.5/84.8, chip 2 **83.2–83.5 % with ZERO overruns** against 92.7 %.** **PW'S RULING FOLDED IN: S9-2 Option A ADOPTED on chip 2** — `DSP4_TX_EARLY=2` named in `shipping.config` unconditionally, contract latency **82 samples / 1.708 ms**, `DSP4_GATHER_FIRST` on beside it; measured free on the part (chip 2 102.69 % with it against 102.48 % without). **The tree's default pair changes bytes by ruling: `a95fd8eb…`/`fb1eee67…` → `0f8add1f…`/`96ea49bf…`, `DIAG_BUILD_CFG2` `0xC2010044` → `0xC2010244`.** Candidate staged as `~/dspboot/cand_chip1.ldr`/`cand_chip2.ldr` = **`fcebc2e1…`/`86662b92…`**, reading back `cfg2 0xC201024F tx_early 2` on the part. **GATE 3: all six bars take STAGE (S10-7 closed) — and running them found that FOUR OF THE SIX CANNOT CERTIFY A BLOCK-KERNEL IMAGE (S12-8): none of them set `DSP4_SCOPE_BLK_TAP`, so on the staged shipping pair `fxverify` reported the FX input SILENT and refused a verdict; with the tap it runs to FX_VERIFY_OK. The four now DEFAULT THE TAP ON, the way famverify.sh has since S11-5.** On tap-enabled images: `fxverify` OK on both, `busgold` GRAPH BIT-EXACT on both (capture sha256 `ba3f52ecb83f9a60`, `paired_build` False and True — but the bar's own warnings stand: bypass biquads and unity gain), `bqeverify` PASS; **`xoververify` STALLS on both** (arms on `_buf_lp_<nid>`, an address the tap does not cover — S12-2's class in a bar); `afbverify`/`geqverify` design arms PASS at 1–4 ulp and their LIVE TONE arms FAIL identically on `blk_*` and the candidate, **to every digit**. **S12-9, OPEN AND NOT ATTRIBUTED: on the pair that SHIPS, a −18 dB notch measures −4.799 dB and a +12 dB band +8.451 dB, where the same bar read −17.99989 dB on 2026-09-08** (a per-sample block-8 image); passband points drift 0.15–0.36 dB, which no filter change explains. The arm is demonstrably sensitive (+0.000 dB on the paired arm), so it is not insensitivity; capture leakage fits the ordering (a narrow null fills far more than a broad boost flattens) but that is not measured. **LATENCY NOT MEASURED, AND THE CONTROL SAYS WHY (S12-10): both candidate arms returned S11-6's null signature — offset 14779, coherent 0.0 %, spread 0 on all 20 reps of both boots — AND SO DID THE SAME ARM ON THE STAGED SHIPPING PAIR.** The instrument is at fault, the candidate is uninvolved, and S11's 66 samples is not overwritten with a null; the ruled 82 samples is carried from S11's measurement of the same switch. Cause: the through-DSP arm needs `_maincap` AND a duplex PCM overlay, and the bench lives on `dsp4-pcm-slave`; the flip is a `config.txt` line and a REBOOT, not taken. **`dsp4_dsp_latency.py`'s margin guard had a hole — with a runner-up of 0.0 the margin is INFINITE so `worst < 2.0` never fired** — it now refuses the verdict when the coherent fraction is 0 on every rep and exits 2. **GATE 5: `shipping.config` names `DSP4_STRIP_FUSED=0`, `DSP4_SIMD_DYN=0`, `DSP4_C2_BQ_GRAPH=0` (at 0 so turning SIMD_DYN on cannot silently ship the defect) and `DSP4_TX_EARLY=2`; `check_shipping_config.sh` reads both words and caught the mirror drift the moment Option A landed.** **S12-7 OPEN: `DIAG_BUILD_CFG2` carries no bit for `DSP4_BQ_GRAPH`/`DSP4_C2_BQ_GRAPH`, so the two candidate images — one of which loses parameter changes — read back the SAME `0xC201004F`; bits 5 and 10 are free.** **S12-6 OPEN: `_C2_CODEC_AUX_OUT` and `_C2_MAIN_ST_OUT` are not called AT ALL in the dynamics-only paired chain** (198 tapped nodes against 200), the arm the 240,681-cycle chip-2 figure was measured on. BARS: golden 59/59, dsp_validate OK, test_geq_splice 5/5, test_dsp_validate 13/13, check-contract-drift clean at `defs-v2026.09.08.4` leaving no diff, check_shipping_config consistent. **BENCH RESTORED: all ten staged pairs byte-identical, shipping CPLD `a1f6672af6c3` re-verified by openocd IDCODE, `dsp4-pcm-slave` overlay, matrix-app active; `cand_*` added beside them and nothing boots it unless asked.** Write-up `MW/D32/DSP/dsp4-simd-dyn-s12-20260909.md`, window note §8 with the decision table, findings S12-1..S12-10.]   [model: opus]
 
 **HUB ADDENDUM 2026-09-09 14:3x (PW RULING, applies to S12 and every session after): S9-2 Option A is ADOPTED on chip 2 — `DSP4_TX_EARLY` chip-2 mask ships ON.** Fold it into the candidate unconditionally (not "if gate 2 passed"), name it in `shipping.config`, and carry the through-DSP figure as 82 samples / 1.708 ms at block 16 in the window note and findings. `DSP4_GATHER_FIRST` stays on beside it. Block 16 is ruled the shipping block size; no latency-for-cycles trade without PW.
