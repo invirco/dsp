@@ -1928,3 +1928,159 @@ DSP image changes (the dispatch tables key on `dsp.csv` node ids, not on cell
 names, and all four W0 witnesses rebuild byte for byte), and **H1S1 was not
 rebuilt in this session** — the fix is proven in the generated header, not on
 an MCU.
+
+### S9-1 — the build that shipped was not the build that was measured, in three parameters
+
+**Severity: MAJOR (shipping configuration). Status: FIXED.**
+
+Block size, block kernels and the core clock were all set one way in the
+measurement scripts and another way in the build the images come from,
+and no instrument could see it because every instrument was reading the
+same wrong build.
+
+* **BLOCK.** PW ruled 2026-09-03 that block 16 is the configuration that
+  fits both chips. The ruling was applied only inside the measurement
+  scripts, which generate a scratch tree with `DSP4_GEN_BLOCK` and build
+  it through `DSP_SRC_DIR`. `dsp_codegen.py` carried `BLOCK = 8` as a
+  literal from 2026-08-28 until 2026-09-09, so the committed tree — and
+  therefore `./build.sh` — was never generated at anything but 8. Nothing
+  drifted back; the ruling never reached the tree.
+* **BLOCK KERNELS.** Every capacity figure since 2026-09-01, the `.4`
+  record included, is a `DSP4_BLOCK_KERNELS=1` build. The default was 0.
+* **CORE CLOCK, and this one had never been noticed at all.** Every cycle
+  budget since 2026-08-24 is quoted at 983.040 MHz on the strength of
+  PW's U5/U6 reading (`ADSP-21564KSWZ10`). `DSP4_CCLK_TARGET` defaulted
+  to 0, which leaves the CGU on its reset divisors at 491.52 MHz. Read
+  off the running window pair: `CGU0_CTL 0x00002800`, `CGU0_DIV
+  0x05144281` on BOTH chips — exactly the "today" row of
+  `src/cgu_init.asm`, not the 983.040 row (`0x00005000`). So the
+  block-8 shipping image was over an 81,920-cycle budget, and its
+  overrun was **4.03x on chip 1 and 3.50x on chip 2**, not the 2.02x and
+  1.75x S8-2 scored against a clock the image did not have.
+
+Fixed by naming the configuration in one file — `MW/D32/DSP/SHARC/
+shipping.config`, sourced by `build.sh` and read by `dsp_codegen.py`
+through `tools/dsp/build_config.py` — regenerating the tree at block 16
+so `./build.sh` with no overrides IS the shipping configuration, and
+making `build.sh` refuse a tree whose `dsp_block.h` disagrees with
+`DSP4_GEN_BLOCK`. The image carries `DIAG_BUILD_CFG` (0xE0EA) so a
+mismeasured configuration can never be silent again; the shipping word is
+`0xCF45FF10`. On the fixed configuration, D24 mask: chip 1 234,594
+cycles/block (71.6 % of 327,680), chip 2 303,894 (92.7 %),
+`DIAG_BLK_OVERRUN` 0 on both over 600 s.
+
+### S9-2 — the first frame of each DMA half has an earlier deadline than the block does
+
+**Severity: MAJOR (product audio). Status: OPEN — mechanism named and
+measured, margin improved, structural fix needs PW.**
+
+With the block loop fitting the block and `DIAG_BLK_OVERRUN` at zero, the
+chip-2 transmit path is still not exact at the D24 mask. The whole gather
+runs at the END of the block period, after the node graph has spent
+92.7 % of it, and the DDE clocks frame 0 of the half out FIRST. Those
+frames lose the race and leave the part carrying what that half held TWO
+BLOCKS earlier.
+
+The count of late frames per block tracks the LOAD, not the block, which
+is what makes it a race and not an indexing error. Transmit stamp,
+192,000 frames, `_maincap` `d903ae1ac4a9`:
+
+| arm | stamp order | late frames/block |
+|---|---|---|
+| node graph out of the way (`DSP4_BLOCK_MASK=5`) | 100.0000 % | 0 |
+| load cut to one strip and one aux | 100.0000 % | 0 |
+| full D24 graph | 87.4999 % | 1 |
+| full D24 graph, `DSP4_GATHER_FIRST=1` | 100.0000 % | 0 |
+| full D24 graph + the Pi playback input | 81.2499 % | 2 |
+
+The two 100 % rows are also what confirms the 2026-09-09 ping/pong phase
+fix (`DSP4_BLK_LATCH`) still holds at block 16.
+
+`DSP4_GATHER_FIRST=1` moves the gather to the head of the loop body, in
+front of `_scope_record` and the parameter-link poll, neither of which it
+depends on. Worth about one frame of margin; at the heavier load both
+orders measure 81.2499 % repeatably. **Margin, not a fix.**
+
+The lever: give the gather a whole block period of slack — write block
+N-1's outputs at the top of period N, or a third TX buffer. Both cost one
+more block of output latency (16 samples, 0.333 ms) and both are
+architecture decisions. Reducing chip 2's 92.7 % is the other half of the
+same lever.
+
+### S9-5 — famverify's audio arm moves 17/20 -> 8/20, and BLOCK KERNELS are the reason
+
+**Severity: MAJOR (bar, and possibly product audio). Status: OPEN —
+attributed, not explained.**
+
+Three arms, one variable at a time, same bench, same contract
+(`landed-d24.json`, 3,737 cells, sha256 `4aa3c343cedf`, pin
+`defs-v2026.09.08.4`), same day:
+
+| arm | BLOCK | kernels | CCLK | audio LIVE |
+|---|---|---|---|---|
+| the `.4` configuration, rebuilt | 8 | 0 | 491.52 | **17 of 20** |
+| the discriminator | 8 | **1** | 491.52 | **8 of 20** |
+| shipping | 16 | 1 | 983.04 | **8 of 20** |
+
+The block-8 per-sample arm reproduces the `.4` line exactly, so the move
+is not the bench or the day; block 8 WITH kernels gives the same 8 of 20
+as block 16, family for family, so it is not the block size or the clock
+either. **It is `DSP4_BLOCK_KERNELS`.**
+
+The eight families that move are all chip-1 strip-chain nodes witnessed
+at `_buf_C1_*` — COMPRESSOR, DELAY, EQ_BIQUAD, FADER_PAN, GATE and
+HPF_LPF go INERT, ROUTING and TUBE_SAT go SILENT, COMPRESSOR's numeric
+arm goes BIT_EXACT -> FAILED. The chip-2 families witnessed with an
+impulse are unaffected, and **every family's contract arm is unmoved in
+all three arms**: GEQ 31/31, CROSSOVER 8/8, ROUTING 42/42, COMPRESSOR
+17/17, 0 failed.
+
+Not settled: whether this is an audio defect or a witness that does not
+hold in the block-kernel arm. The mechanism that would explain it with no
+audio wrong is that `_scope_record` runs in the GATHER loop, after
+`_chipN_process_all` has processed the whole block, so `_buf_<node>`
+holds only the last sample of the block when the scope samples it and the
+recorded window is one word repeated; a step settles, so a parameter
+change that alters the waveform but not its settled value reads INERT.
+Against a real regression: `c2gold.sh`'s D80 record has the block-kernel
+arm bit-exact against per-sample except in the meters.
+
+Settled by a block-aware witness — record `_blk_<node>` where the class
+publishes one, or move `_scope_record` inside the kernel — and re-running
+the three arms. **Block kernels have been in every capacity measurement
+since 2026-09-01 and had never been through famverify once**; making them
+the shipping configuration is what exposed that.
+
+### S9-3 — D32's all-ones mask does not fit at block 16
+
+**Severity: MAJOR (product scope). Status: OPEN.**
+
+The same shipping configuration that fits D24 with 7.3 % of margin does
+NOT fit D32: with all 32 strips and 12 aux buses active, chip 2 missed
+**11.3 %** of blocks in a loaded run (1,552 overruns in 13,773 blocks).
+D24 in the same script and the same session missed zero. D32 at block 16
+is not a shipping configuration on this firmware, and the capacity work
+that would make it one is chip 2's, not chip 1's — chip 1 sits at 71.6 %.
+
+### S9-4 — the Pi playback input is off by default, and the loop is not bit-transparent
+
+**Severity: MINOR (bench procedure). Status: RECORDED.**
+
+Two things have to be done before the through-DSP staircase measures
+anything, and neither is in any script:
+
+1. `C2_PI_IN` is an `AUX_INPUT` with `on=0` and `level_db=-6.0` in
+   `dsp.csv`. The stimulus crosses the fabric intact — `_blk_C2_XR_PI_L`
+   reads `0x04000000` for a `0x20000000` stimulus, the documented 8x
+   round-trip attenuation — and the node publishes zero, so the capture
+   is a constant and every scorer reports 0 % exact on a loop that may be
+   perfectly ordered. Write `0x0744 = 1` and `0x0743 = 1.0f` on chip 2.
+2. The rest of the chip-2 graph sums a constant into MAIN, so the loop
+   carries the staircase PLUS a DC offset. `dsp4_order_stair.py` and
+   `dsp4_tx_order.py` both test for the exact stimulus value and score
+   0 % on a capture that only differs by that constant. Score against the
+   step index with the DC removed.
+
+With both done, the audio and the transmit stamp agree to a tenth of a
+percent on the same capture (82.3458 % against 81.2499 %), which is what
+establishes that the staircase's disorder IS the transmit-path disorder.

@@ -43,8 +43,14 @@ fi
 python3 $ROOT/tools/dsp/landed_map.py --product "$PRODUCT" \
         --json /tmp/landed-$PRODUCT.json || exit 3
 
+# THE BLOCK FILE COMES FROM THE TREE THAT WAS BUILT, not from tools/pi
+# (review D49, and conform.sh/busgold.sh already do this). With the block
+# size a build parameter, staging the repo copy labels a bench run with a
+# block size the image on the part may not have.
+BLOCKPY="${DSP_SRC_DIR:-$PWD/src}/dsp4_block.py"
+[ -f "$BLOCKPY" ] || BLOCKPY="$ROOT/tools/pi/dsp4_block.py"
 scp -q $ROOT/tools/pi/dsp4_family_verify.py $ROOT/tools/pi/dsp4_node_verify.py \
-    $ROOT/tools/pi/dsp4_conform.py $ROOT/tools/pi/dsp4_block.py \
+    $ROOT/tools/pi/dsp4_conform.py "$BLOCKPY" \
     $ROOT/tools/dsp/fixed_ref.py $ROOT/tools/dsp/boundary_vectors.py \
     /tmp/landed-$PRODUCT.json \
     $BENCH:/home/app/dspboot/ || exit 3
