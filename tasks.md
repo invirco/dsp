@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-09-09 16:56Z — S13 — the half that fits D32 made audio-correct (S12-5: the paired chip-2 biquad graph drops coefficient writes — which side of the latch), D32 re-measured on an audio-correct pair, S12-9 attributed, then the GEQ to the floor (ladder, pipelined primitive ≤ 3.75, RIG B IIR accelerator with the 20 Hz band)   [status: 🟡 dispatched]   [model: opus]
+## HUB DISPATCH 2026-09-09 16:56Z — S13 — the half that fits D32 made audio-correct (S12-5: the paired chip-2 biquad graph drops coefficient writes — which side of the latch), D32 re-measured on an audio-correct pair, S12-9 attributed, then the GEQ to the floor (ladder, pipelined primitive ≤ 3.75, RIG B IIR accelerator with the 20 Hz band)   [status: __STATUS__]   [model: opus]
 
 model: opus
 

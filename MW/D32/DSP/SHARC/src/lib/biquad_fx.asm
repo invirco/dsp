@@ -1628,6 +1628,14 @@ _bq_fx_convert_N.end:
  * systemic per-ISR PEYEN clear is what makes that safe, and it is the
  * same discipline the fixed SIMD cascade relies on. Masking IRPTEN here
  * is what hung the part on 2026-08-28.
+ *
+ * CLOBBERS r0-r15 and i0-i2, and i3 as well when DSP4_BQ_SIMD_PIPE is on
+ * (the pipelined loop's store pointer runs one pair behind its read
+ * pointer, so it needs a second index register). Both callers already
+ * reload every index register they use after the call -- chip 1's
+ * `_bq_pair_blk` restores i0/i1/i2 from `_bqp_save` and the block bases,
+ * and chip 2's pair drivers reload i2/i3/i4 as link-time constants --
+ * so nothing changes for either.
  *----------------------------------------------------------------------*/
 .global _bq_fx_cascade_simd;
 _bq_fx_cascade_simd:
