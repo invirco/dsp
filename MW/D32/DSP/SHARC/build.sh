@@ -339,6 +339,30 @@ DSP4_GATE_LINTHR="${DSP4_GATE_LINTHR:-0}"
 CFLAGS="$CFLAGS -DDSP4_GATE_LINTHR=$DSP4_GATE_LINTHR"
 ASMFLAGS="$ASMFLAGS -DDSP4_GATE_LINTHR=$DSP4_GATE_LINTHR"
 
+# THE LEVEL -> GAIN TABLE (S15). The COMPRESSOR's and LIMITER's whole
+# static curve -- threshold, ratio, knee, ceiling -- baked into one
+# per-node table by a DESIGN step that runs only when a parameter moves,
+# so the per-sample gain computer is an index, two words and an
+# interpolation instead of a polynomial log2, the knee arithmetic and a
+# polynomial exp2.
+#
+# WHAT IT IS WORTH, measured on the part (dyn_shootout.asm): the gain
+# computer 215.2 -> 54.1 cycles per sample-pair (74.9 %), the whole
+# compressor per-sample body 284.3 -> 123.1, i.e. 142.2 -> 61.6 per
+# sample per channel (56.7 %).
+#
+# WHAT IT COSTS: DYN_LUT_N words of DM per COMPRESSOR and LIMITER node
+# (337 at the shipped K = 4), and an accuracy of 0.0950 dB worst case
+# over the whole documented parameter sweep against PW's 0.1 dB ruling
+# of 2026-09-09 -- see tools/dsp/dyn_lut_design.py, which is where that
+# number is produced rather than remembered.
+#
+# 0 is the default and at 0 the tree builds byte for byte what it built
+# before the switch existed.
+DSP4_DYN_LUT="${DSP4_DYN_LUT:-0}"
+CFLAGS="$CFLAGS -DDSP4_DYN_LUT=$DSP4_DYN_LUT"
+ASMFLAGS="$ASMFLAGS -DDSP4_DYN_LUT=$DSP4_DYN_LUT"
+
 # log2/exp2 by interpolated table instead of a 6-term polynomial. MORE
 # accurate than what it replaces (0.000016 / 0.000008 dB against 0.0001 dB)
 # but still a deviation from the current fixed_ref, so it needs a

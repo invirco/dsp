@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """dsp4_dyn_shoot.py — the dynamics gain-computer shootout, off the part.
 
-src/lib/dyn_shootout.asm times fourteen rungs of ONE loop nest -- 28 x 15,
+src/lib/dyn_shootout.asm times eighteen rungs of ONE loop nest -- 28 x 15,
 bq_probe.asm's harness -- against the same envelope and the same gain
 application, so what differs between them is the GAIN COMPUTER.
 
@@ -10,6 +10,17 @@ cycles could be improved a lot, using LUTs with interpolation, and still
 fit the SIMD structure" -- with "the envelope and knee become part of the
 LUT graph", against a ruling that the dynamics accuracy target is 0.1 dB
 worst case over 0 to -100 dBFS rather than the polynomial's 0.0001 dB.
+
+S15 GATE 1 — THE TABLE'S HOME. S14 measured a DM-resident table and
+named the risk itself: 96 dynamics nodes x their own table is ~2,420
+words at shipped defaults, ~5,000 worst case. Rungs 14-15 are the SAME
+gather and the SAME whole-compressor body with the table declared in
+seg_delay, which the LDF maps to L2 SRAM CTL0 -- so the delta is the
+home and nothing else. Rung 17 is the fallback if L2 is expensive: four
+words copied L2 -> DM per sample slot, a 64-word page per 16-sample
+block, i.e. one node's table paged into DM once per block. Rung 16 is
+the two-table blend a RAMPING parameter needs, since the design step is
+~211 instructions per point and cannot run per block.
 
 THE THREE CONTENDERS: today's 6-term polynomial log2/knee/exp2; a 3-term
 one; and ONE level->gain table with the whole static curve baked in by a
@@ -58,6 +69,10 @@ RUNGS = [
     ('11 GATE_TODAY the whole GATE per-sample body',    'body'),
     ('12 GATE_LIN   the same, LINEAR-domain threshold', 'body'),
     ('13 GATE_LUT   the same, level->gain LUT',         'body'),
+    ('14 CG_LUT_L2  level->gain LUT, table in L2',      'gain'),
+    ('15 COMP_L2    the whole COMP body, table in L2',  'body'),
+    ('16 CG_BLEND   two DM tables blended (ramping)',   'gain'),
+    ('17 L2PAGE     4 words L2->DM per sample slot',    'part'),
 ]
 
 # (label, rung_b, rung_a) -- b minus a, in cycles per sample-pair.
@@ -69,6 +84,9 @@ DELTAS = [
     ('COMP body: today - LUT',                   9, 10),
     ('GATE body: today - linear threshold',     11, 12),
     ('GATE body: today - LUT',                  11, 13),
+    ('THE HOME: L2 gather - DM gather',           14, 4),
+    ('THE HOME: COMP body, L2 - DM',              15, 10),
+    ('the ramping blend over one DM table',       16, 4),
 ]
 
 def _sentinel(sc):

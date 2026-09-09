@@ -49,6 +49,7 @@ CGU0_CTL = 0x3108D000
 CGU0_DIV = 0x3108D00C
 
 DIAG_FRAME_COUNT = 0xE004
+DIAG_TICKS = 0xE005
 DIAG_BLK_OVERRUN = 0xE00A
 DIAG_BUILD_CFG = 0xE0EA
 # The cost switches (S11-1). Read on every capacity row, because the first
@@ -64,6 +65,42 @@ CTL_CCLK = {
     0x00004000: 786_432_000,
     0x00005000: 983_040_000,
 }
+
+# DIAG_BUILD_CFG bits 18:17 (diag.h, DIAG_CFG_CCLK) -> the core-timer
+# reload DIAG_TPERIOD this image was BUILT with, in CCLK cycles.
+CFG_TPERIOD = {0: 491_520, 1: 786_432, 2: 983_040}
+
+
+def measure_cclk(sc, tperiod, dwell):
+    """CCLK MEASURED, not decoded -- S15 gate 0.
+
+    S14-7 left the record with a decode and no measurement, and the two
+    are not the same claim: the decode says what the CGU was ASKED for,
+    and on 2026-09-10 the shipping pair was found asking for 983.04 MHz
+    with CGU0_CTL still on the reset row.  A decode cannot see that.
+
+    The core timer decrements TCOUNT once per CCLK cycle by construction
+    and reloads from TPERIOD, so DIAG_TICKS advances at exactly
+    CCLK / TPERIOD Hz and NOTHING in that chain reads the CGU.  Timed
+    against the host's clock it is an absolute measurement of CCLK.
+
+    Each reading is bracketed by time.monotonic() either side and the
+    MIDPOINT is used, so the SPI round trip cannot bias the rate; the
+    ticks register is free-running and never cleared, so it needs no
+    voting, only monotonicity, which `moving` already enforces.
+    """
+    a0 = time.monotonic()
+    t0 = moving(sc, DIAG_TICKS)
+    b0 = time.monotonic()
+    time.sleep(dwell)
+    a1 = time.monotonic()
+    t1 = moving(sc, DIAG_TICKS)
+    b1 = time.monotonic()
+    el = ((a1 + b1) / 2.0) - ((a0 + b0) / 2.0)
+    if el <= 0:
+        return None, None
+    rate = ((t1 - t0) & 0xFFFFFFFF) / el
+    return rate, rate * tperiod
 
 
 def moving(sc, reg, tries=16):
@@ -165,8 +202,28 @@ def read_chip(chip, dwell, symfile=None):
     div = peek(sc, CGU0_DIV)
     out['cgu0_ctl'] = '0x%08X' % ctl
     out['cgu0_div'] = '0x%08X' % div
-    cclk = CTL_CCLK.get(ctl)
+    out['cclk_decoded_hz'] = CTL_CCLK.get(ctl)
+
+    # THE CLOCK IS MEASURED, AND THE MEASUREMENT IS WHAT THE BUDGET USES.
+    # The decode stays beside it so a disagreement is visible rather than
+    # averaged away (S15-1: the shipping pair asks for 983.04 and runs at
+    # 491.52, and only the measurement can say so).
+    out['cfg_cclk'] = (cfg >> 17) & 3
+    tper = CFG_TPERIOD.get(out['cfg_cclk'])
+    out['tperiod'] = tper
+    rate, meas = (None, None)
+    if tper:
+        rate, meas = measure_cclk(sc, tper, min(dwell, 20.0))
+    out['tick_rate'] = round(rate, 3) if rate else None
+    out['cclk_measured_hz'] = int(meas) if meas else None
+    cclk = out['cclk_measured_hz'] or out['cclk_decoded_hz']
     out['cclk_hz'] = cclk
+    out['cclk_source'] = ('measured' if out['cclk_measured_hz'] else 'decoded')
+    if (out['cclk_measured_hz'] and out['cclk_decoded_hz']
+            and abs(out['cclk_measured_hz'] - out['cclk_decoded_hz'])
+            > 0.02 * out['cclk_decoded_hz']):
+        out['cclk_disagree'] = True
+
     # The BUDGET is a fact about the clock and the block, and nothing else:
     # BLOCK samples at 48 kHz is BLOCK/48000 s of core time.
     out['budget'] = int(cclk * out['block'] / 48000) if cclk else None
@@ -215,8 +272,8 @@ def main():
             rows.append({'chip': c, 'error': str(exc)})
             continue
         rows.append(r)
-        clk = ('%.2f MHz' % (r['cclk_hz'] / 1e6)) if r['cclk_hz'] else \
-              'UNKNOWN (CGU0_CTL %s)' % r['cgu0_ctl']
+        clk = ('%.2f MHz (%s)' % (r['cclk_hz'] / 1e6, r.get('cclk_source'))) \
+              if r['cclk_hz'] else 'UNKNOWN (CGU0_CTL %s)' % r['cgu0_ctl']
         print('chip %d  build_cfg %s  block %d  kernels %d  CCLK %s'
               % (c, r['build_cfg'], r['block'], r['block_kernels'], clk))
         print('        cfg2 %s  decimate %s  fused %s  simd_dyn %s  '
@@ -225,6 +282,14 @@ def main():
                  r['simd_dyn'], r['tx_early'], r['gather_first']))
         print('        CGU0_CTL %s  CGU0_DIV %s  budget %s cycles/block'
               % (r['cgu0_ctl'], r['cgu0_div'], r['budget']))
+        print('        CCLK decoded %s  MEASURED %s (tick %s /s, TPERIOD %s)'
+              % (r['cclk_decoded_hz'], r['cclk_measured_hz'],
+                 r['tick_rate'], r['tperiod']))
+        if r.get('cclk_disagree'):
+            print('        *** THE CGU DECODE AND THE MEASURED CLOCK '
+                  'DISAGREE: the image asked for %s and the core timer '
+                  'says %s. The budget above uses the MEASURED clock.'
+                  % (r['cclk_decoded_hz'], r['cclk_measured_hz']))
         print('        _proc_cyc     %8s  %s%%'
               % (r['proc_cyc'], r.get('proc_cyc_pct')))
         print('        _proc_cyc_max %8s  %s%%   <-- the block the budget has to cover'

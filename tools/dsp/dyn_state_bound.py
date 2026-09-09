@@ -265,6 +265,116 @@ def sidechain_sweep(quick):
     return h2 == 0
 
 
+
+def lut_form(quick):
+    """5. THE LEVEL -> GAIN TABLE FORM (DSP4_DYN_LUT, S15).
+
+    The dispatch asked for this analysis re-run "for the table form
+    (ceilings, saturation once)", and the answer is that the table form
+    is the EASIER of the two, for a reason that can be stated as a bound
+    rather than as a sweep.
+
+    WHAT THE PER-SAMPLE PATH BECOMES.  Today it is log2 -> knee -> exp2,
+    and exp2 carries the one saturate in the gain computer.  Under the
+    table it is: an index (shifts and a mask, no arithmetic on the
+    value), two table reads, one multiply-and-round, one add.
+
+    THE CEILING IS STRUCTURAL.  Every word in the table is the output of
+    _compgain_fx, whose range is [0, 1<<QS]: comp_gain returns exactly
+    unity below the knee and exp2_q(-gr) with gr >= 0 above it, and
+    makeup is applied separately and afterwards.  So T[i] and T[i+1] are
+    both in [0, 2^28], and the interpolation
+
+        g = T[i] + rns((T[i+1] - T[i]) * frac, 31),   0 <= frac < 1
+
+    is a CONVEX COMBINATION of two values in that interval and is
+    therefore in that interval.  It cannot overflow, for the same kind
+    of reason the envelope one-pole cannot: not because the inputs are
+    gentle, but because the operator is an average.
+
+    THE INTERMEDIATE CANNOT OVERFLOW EITHER.  |T[i+1] - T[i]| <= 2^28
+    and frac < 2^31, so the product is under 2^59 in an 80-bit MR --
+    two orders of magnitude of headroom -- and rns(.,31) brings it back
+    to at most 2^28.
+
+    SO THE TABLE FORM DELETES A SATURATE AND ADDS NONE.  _exp2q_fx's
+    saturate still runs, once per table point, in the DESIGN step, where
+    it is a block-rate cost on a value that is about to be stored rather
+    than a per-sample cost on a value that is about to be heard.  That
+    is the "saturation once" the dispatch asks about, and it is once per
+    DESIGN rather than once per sample.
+
+    The only new numeric question the table raises is INTERPOLATION
+    ERROR, which is not a state bound and is not this tool's instrument:
+    tools/dsp/dyn_lut_design.py measures it against fixed_ref directly.
+    """
+    print('5. THE LEVEL -> GAIN TABLE FORM (DSP4_DYN_LUT), ceilings and')
+    print('   saturation')
+    print()
+    qs = 28
+    unity = 1 << qs
+    # The bound, checked rather than asserted, over the corners of the
+    # documented parameter space and the whole of the table's index range.
+    worst = 0
+    for thr in (-60.0, -20.0, -0.5):
+        for ratio in (1.5, 4.0, 100.0):
+            for knee in (0.0, 6.0, 18.0):
+                thrq, slope, halfk, k2 = _lut_params(thr, ratio, knee)
+                for e in _lut_grid(quick):
+                    g = fr.comp_gain(e, thrq, slope, halfk, k2)
+                    if g < 0 or g > unity:
+                        print('   *** a table word is OUTSIDE [0, 1] in '
+                              'Q4.28: %d at thr %.1f ratio %.1f knee %.1f'
+                              % (g, thr, ratio, knee))
+                        return False
+                    worst = max(worst, g)
+    print('   every table word over the documented parameter corners is')
+    print('   inside [0, 1] in Q4.28; the largest seen is %d = %.6f'
+          % (worst, worst / float(unity)))
+    print('   the per-sample interpolation is a CONVEX COMBINATION of two')
+    print('   such words, so its output is inside the same interval and')
+    print('   cannot wrap. No guard word, no saturate, nothing to size.')
+    print('   the multiply-and-round intermediate is under 2^59 in an')
+    print('   80-bit MR, so it cannot overflow either.')
+    print('   _exp2q_fx\'s saturate still runs -- ONCE PER TABLE POINT in')
+    print('   the DESIGN step, not once per sample in the audio path.')
+    print('   THE TABLE FORM DELETES A SATURATE FROM THE PER-SAMPLE PATH')
+    print('   AND ADDS NONE.')
+    print()
+    print('   Interpolation ERROR is a different instrument and is not')
+    print('   here: tools/dsp/dyn_lut_design.py measures it against')
+    print('   fixed_ref directly (0.0950 dB worst over the documented')
+    print('   sweep at K = 4, against PW\'s 0.1 dB bar).')
+    print()
+    return True
+
+
+_LUT_K = 4
+_LUT_OCTLO = 10
+_LUT_OCTHI = 30
+
+
+def _lut_params(thr_db, ratio, knee_db):
+    kdb = 20.0 * math.log10(2.0)
+    thrq = int(round(thr_db / kdb * (1 << 25)))
+    slope = int(round((1.0 - 1.0 / ratio) * (1 << 31)))
+    halfk = int(round((knee_db / 2.0) / kdb * (1 << 25)))
+    k2 = (int(round((1.0 - 1.0 / ratio) / (2.0 * knee_db / kdb) * (1 << 25)))
+          if knee_db > 0 else 0)
+    return thrq, slope, halfk, k2
+
+
+def _lut_grid(quick):
+    """Every grid point the design step will ever write, computed the
+    way dyn_lut_fx.asm computes it."""
+    step = 4 if quick else 1
+    n = ((_LUT_OCTHI - _LUT_OCTLO + 1) << _LUT_K) + 1
+    for i in range(0, n, step):
+        oct_ = (i >> _LUT_K) + _LUT_OCTLO
+        sub = i & ((1 << _LUT_K) - 1)
+        yield (((1 << _LUT_K) + sub) << oct_) >> _LUT_K
+
+
 def main():
     quick = '--quick' in sys.argv
     print('dyn_state_bound — the dynamics path\'s state under round-once\n')
@@ -302,6 +412,7 @@ def main():
     print('   The per-cascade headroom pattern does not transfer because')
     print('   the hazard does not.')
     print()
+    ok = lut_form(quick) and ok
     print('PASS' if ok else 'FAIL')
     return 0 if ok else 1
 

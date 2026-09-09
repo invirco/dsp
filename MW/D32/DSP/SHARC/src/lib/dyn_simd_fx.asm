@@ -60,6 +60,7 @@
 
 #include "dsp_block.h"
 #include "dyn_simd_inline.h"
+#include "lib/dyn_lut.h"
 
 #if DSP4_SIMD_DYN
 
@@ -437,6 +438,84 @@ _comp_pair_blk:
     i2 = _cmp_sig;
     i4 = _cmp_sig;
     r5 = dm(_dsim_n);              /* PEYEN is set: reads both words */
+
+#if DSP4_DYN_LUT
+    /* THE LEVEL -> GAIN TABLE, CHOSEN ONCE PER BLOCK (S15).
+     *
+     * The whole sample loop is duplicated rather than the gain computer
+     * being selected inside it, because the choice is a property of the
+     * BLOCK -- both channels' tables are either designed or they are not
+     * -- and a per-sample test would pay for a decision that cannot
+     * change during the loop. The two loops are otherwise
+     * instruction-for-instruction identical; only the gain computer
+     * differs, which is the same discipline dyn_shootout.asm's rungs
+     * are built on.
+     *
+     * _dlut_live is written by the pair driver and is 1 only when BOTH
+     * channels have a finished table for their CURRENT parameters. A
+     * node whose parameters have just moved runs the exact polynomial
+     * until its design step catches up, which is what makes a ramp
+     * correct rather than approximately correct -- see the note on the
+     * two-table blend in dyn_lut_fx.asm's header. */
+    r0 = dm(_dlut_live);
+    r0 = pass r0;
+    if eq jump (pc, .cpb_poly);
+    i6 = _dyn_lutp;
+    l6 = 0;
+    lcntr = r5, do .cpb_lut_lp until lce;
+        r13 = dm(i2, 2);           /* dry */
+
+        /* envelope: env += rns(alpha * (|x| - env), 31) */
+        r0 = abs r13;
+        r4 = r0 - r14;
+        r5 = 0;
+        r2 = r6;
+        r3 = dm(i3, 0);
+        comp(r4, r5);
+        if le r2 = pass r3;
+        mrf = r2 * r4 (ssi);
+        r2 = 0x40000000;
+        r3 = 1;
+        mrf = mrf + r2 * r3 (ssi);
+        r2 = mr0f;
+        r3 = mr1f;
+        r2 = lshift r2 by -31;
+        r3 = lshift r3 by 1;
+        r5 = r2 or r3;
+        r14 = r14 + r5;
+
+        r0 = r14;
+        LUTGAIN_SIMD
+        dm(i5, 0) = r0;            /* display/witness */
+
+        r1 = r0;
+        r0 = r13;
+        mrf = r0 * r1 (ssi);
+        MRF_RNS28_SIMD
+        r1 = r12;
+        mrf = r0 * r1 (ssi);
+        MRF_RNS28_SIMD
+
+        r5 = r0 - r13;
+        r4 = r15;
+        mrf = r5 * r4 (ssi);
+        r1 = 0x40000000;
+        r2 = 1;
+        mrf = mrf + r1 * r2 (ssi);
+        r1 = mr0f;
+        r2 = mr1f;
+        r1 = lshift r1 by -31;
+        r2 = lshift r2 by 1;
+        r1 = r1 or r2;
+        r0 = r13 + r1;
+        nop;
+        nop;
+    .cpb_lut_lp: dm(i4, 2) = r0;
+    jump (pc, .cpb_done);
+
+.cpb_poly:
+    r5 = dm(_dsim_n);
+#endif
     lcntr = r5, do .cpb_lp until lce;
         r13 = dm(i2, 2);           /* dry */
 
@@ -508,6 +587,9 @@ _comp_pair_blk:
         nop;
     .cpb_lp: dm(i4, 2) = r0;
 
+#if DSP4_DYN_LUT
+.cpb_done:
+#endif
     i1 = _cmp_st;
     dm(i1, 2) = r14;               /* envelope back to the park */
 
@@ -644,6 +726,28 @@ _gate_pair_blk:
         r5 = r2 or r3;
         r10 = r10 + r5;
 
+#if DSP4_GATE_LINTHR
+        /* THE GATE'S LEVER (S15). The whole of log2 is gone: r8 holds
+         * 2^thr in Q4.28 -- the block-rate conversion in the node's own
+         * body wrote it there -- and the three predicated arms below
+         * compare the ENVELOPE against it directly. `log2(env) >= thr`
+         * is `env >= 2^thr`, so the ladder is unchanged.
+         *
+         * The log2(0) guard goes with it and is not missed: a zero
+         * envelope is below every expressible threshold in the linear
+         * domain by inspection, where in the log domain log2(0) had to
+         * be forced to INT_MIN before it could be compared at all.
+         *
+         * MEASURED, dyn_shootout.asm rung 11 vs 12: the whole paired
+         * GATE body 142.2 -> 65.0 cycles per sample-pair, 71.1 -> 32.5
+         * per sample per channel, 54 % off, which is exactly the 73
+         * instructions of LOG2Q_SIMD plus its guard.
+         *
+         * NUMERICALLY it is a threshold shift of at most 0.0002 dB (the
+         * two polynomials' 0.0001 dB each), a fixed offset and not
+         * per-sample noise, against PW's 0.1 dB ruling of 2026-09-09. */
+        r0 = r10;
+#else
         /* level, guarded against log2(0) -- INLINED with its nested
          * _polyq_simd (review finding D66): two call/rts pairs, 30.1
          * cycles per SIMD sample of pipeline refill. */
@@ -657,6 +761,7 @@ _gate_pair_blk:
         r2 = 0;
         comp(r10, r2);
         if le r0 = pass r1;
+#endif
 
         /* open / hold / close, all three arms predicated */
         r1 = r14 - 1;

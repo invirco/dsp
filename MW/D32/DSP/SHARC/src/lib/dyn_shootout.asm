@@ -86,7 +86,7 @@
 
 #define DSH_STAGES  28
 #define DSH_INNER   (DSP4_BLOCK_SIZE - 1)
-#define DSH_RUNGS   14
+#define DSH_RUNGS   18
 #define DSH_REPS    5
 #define DSH_ITERS   8
 
@@ -97,9 +97,25 @@
  * interpolation guard, which is PW's "50-75 points" band once the octaves
  * below -100 dBFS are dropped by the DESIGN step; K is a #define here
  * because the CYCLE cost does not depend on it and the ERROR does. */
-#define DSH_K       2
+/* K = 3, THE MEASURED CHOICE (S15). tools/dsp/dyn_lut_design.py builds
+ * the table on exactly this grid and sweeps the error against the exact
+ * fixed-point curve: at K = 3 the COMPRESSOR is 0.011 dB and the
+ * LIMITER 0.028 dB over 0 to -100 dBFS, against PW's 0.1 dB bar. K = 2
+ * is 85 words and holds for the compressor (0.045 dB) but NOT for the
+ * limiter (0.247 dB), whose infinite ratio and hard knee is the sharpest
+ * corner any of these curves has. */
+#define DSH_K       3
 #define DSH_FSH     (31 - DSH_K)
-#define DSH_TBLN    ((32 << DSH_K) + 2)
+
+/* THE OCTAVES THE TABLE ACTUALLY COVERS. -100 dBFS is 1e-5 of full
+ * scale, whose leading 1 sits at bit 11 of a Q4.28 word, so octave 10 is
+ * one below the bottom of the bar and octave 30 is the top of Q4.28's
+ * positive range. Below OCT_LO every one of these curves is exactly
+ * flat, so the clamp to the floor entry is correct and not an
+ * approximation. It saves 10 octaves = 80 words a node at K = 3. */
+#define DSH_OCTLO   10
+#define DSH_OCTHI   30
+#define DSH_TBLN    (((DSH_OCTHI - DSH_OCTLO + 1) << DSH_K) + 1)
 
 .section/dm seg_dmda;
 
@@ -131,6 +147,42 @@
 
 .global _dsh_gtbl;  .var _dsh_gtbl[DSH_TBLN];
 .global _dsh_sig;   .var _dsh_sig[2 * DSP4_BLOCK_SIZE];
+
+/* S15 gate 1. The SECOND table, in DM, for the two-table blend a ramping
+ * parameter needs (S14: the design step is ~211 instr/point, 3-6 % of a
+ * whole block for ONE node, so a ramp blends between two tables instead
+ * of rebuilding per block). */
+.global _dsh_gtbl_b; .var _dsh_gtbl_b[DSH_TBLN];
+
+/* The DM PAGE a table is copied into if the tables live in L2 and only
+ * the ACTIVE node's is wanted in DM. One page, DSH_PAGE words. */
+#define DSH_PAGE  64
+.global _dsh_page;  .var _dsh_page[DSH_PAGE];
+
+/* Scratch pairs for the blend's second gather. */
+.var _dsh_u0[2];
+.var _dsh_u1[2];
+
+/*----------------------------------------------------------------------
+ * S15 GATE 1 — THE TABLE'S HOME.
+ *
+ * S14 measured a DM-RESIDENT table and named the open risk itself: 96
+ * dynamics nodes x their own table is ~2,420 words at shipped defaults
+ * and ~5,000 worst case, and the write-up assumed that could only live
+ * in L2. An L2-resident table is a DIFFERENT INSTRUMENT — L2 is off the
+ * core's L1 crossbar and every gathered word crosses the system bus —
+ * so the 24.5 c/sample/channel the LUT bought is not transferable until
+ * the gather is measured where the table would actually sit.
+ *
+ * The same table declared in seg_delay, which the LDF maps to
+ * mem_L2_bw (L2 SRAM CTL0 at 0x20000000, overflowing to CTL1). Nothing
+ * else about the rung changes, so the delta IS the cost of the home.
+ *--------------------------------------------------------------------*/
+.section/dm seg_delay;
+.global _dsh_gtbl_l2;  .var _dsh_gtbl_l2[DSH_TBLN];
+.global _dsh_page_src; .var _dsh_page_src[DSH_PAGE];
+
+.section/dm seg_dmda;
 
 .section/pm seg_pmco;
 .extern _diag_ticks;
@@ -300,8 +352,8 @@
  *--------------------------------------------------------------------*/
 #define LUT_INDEX_SIMD \
     r1 = leftz r0; \
-    r2 = 31; \
-    r2 = r2 - r1;                  /* the octave */ \
+    r2 = 31 - DSH_OCTLO; \
+    r2 = r2 - r1;                  /* the octave, biased by OCT_LO */ \
     r3 = ashift r0 by r1;          /* leading 1 to bit 31 */ \
     r4 = 0x7FFFFFFF; \
     r3 = r3 and r4;                /* mantissa fraction, Q0.31 */ \
@@ -310,8 +362,28 @@
     r2 = r2 + r4;                  /* index */ \
     r4 = 0; \
     comp(r2, r4); \
-    if lt r2 = pass r4;            /* env == 0 -> the floor entry */ \
-    r4 = lshift r3 by DSH_K;       /* the interpolation fraction, Q0.31 */
+    if lt r2 = pass r4;            /* below the table -> the floor entry */ \
+    r4 = DSH_TBLN - 2; \
+    comp(r2, r4); \
+    if gt r2 = pass r4;            /* above it -> the last cell */ \
+    r4 = lshift r3 by DSH_K; \
+    r5 = 0x7FFFFFFF; \
+    r4 = r4 and r5;                /* the interpolation fraction, Q0.31 */
+
+/* THE MASK IS NOT OPTIONAL, and S14's rig did not have it (S15-4).
+ * `r3` is the mantissa fraction in Q0.31; shifting it left by K to
+ * discard the K bits already spent on the sub-index pushes what is left
+ * up INTO BIT 31, and LUT_INTERP_SIMD's `mrf = r5 * r4 (ssi)` is a
+ * SIGNED multiply -- so an interpolation fraction of 0.75 arrives as
+ * -0.25 and the interpolation runs backwards out of the cell.
+ *
+ * It could not show in S14: the table's contents do not change the
+ * instruction stream, so the shootout measured the right cycles for the
+ * wrong arithmetic, and the error was a host-side model that assumed the
+ * kernel did what the comment said. tools/dsp/dyn_lut_design.py computes
+ * the index bit for bit the way this macro does and measures the error
+ * that results: 0.389 dB at K=4 with the sign-extended fraction, 0.005 dB
+ * with the mask. Two instructions. */
 
 #define LUT_INTERP_SIMD \
     r5 = r3 - r2;                  /* T[i+1] - T[i] */ \
@@ -383,6 +455,93 @@
     r3 = dm(_dsh_t1); \
     LUT_INTERP_SIMD
 
+/* rung 14: THE SAME GATHER, the table in L2. Byte for byte LUTGAIN_DM
+ * but for the base address, so the delta is the home and nothing else. */
+#define LUTGAIN_L2 \
+    LUT_INDEX_SIMD \
+    r5 = _dsh_gtbl_l2; \
+    r2 = r2 + r5; \
+    dm(_dsh_ix) = r2; \
+    bit clr mode1 0x00200000; \
+    nop; \
+    nop; \
+    r2 = dm(_dsh_ix); \
+    i0 = r2; \
+    r3 = dm(_dsh_ix + 1); \
+    i1 = r3; \
+    r2 = dm(i0, 1); \
+    r3 = dm(i0, 0); \
+    r5 = dm(i1, 1); \
+    r7 = dm(i1, 0); \
+    dm(_dsh_t0) = r2; \
+    dm(_dsh_t0 + 1) = r5; \
+    dm(_dsh_t1) = r3; \
+    dm(_dsh_t1 + 1) = r7; \
+    bit set mode1 0x00200000; \
+    nop; \
+    nop; \
+    r2 = dm(_dsh_t0); \
+    r3 = dm(_dsh_t1); \
+    LUT_INTERP_SIMD
+
+/* rung 16: THE TWO-TABLE BLEND, which is what a RAMPING parameter costs
+ * if the design step is not run per block. One index serves both tables
+ * -- they are the same shape -- so the index arithmetic is paid once and
+ * the second table costs one more pair of gathers and one crossfade.
+ *
+ * The LUT form FREES r8-r11 (threshold, slope, half-knee, k2 are baked
+ * into the table), so the blend fraction and the second base live in
+ * registers exactly as they would in the graph: r9 = fraction Q4.28,
+ * r8 = the parked gain from table A. */
+#define LUTGAIN_BLEND \
+    LUT_INDEX_SIMD \
+    dm(_dsh_ix) = r2; \
+    bit clr mode1 0x00200000; \
+    nop; \
+    nop; \
+    r2 = dm(_dsh_ix); \
+    r3 = dm(_dsh_ix + 1); \
+    r5 = _dsh_gtbl; \
+    r7 = r2 + r5; \
+    i0 = r7; \
+    r7 = r3 + r5; \
+    i1 = r7; \
+    r5 = dm(i0, 1); \
+    dm(_dsh_t0) = r5; \
+    r5 = dm(i0, 0); \
+    dm(_dsh_t1) = r5; \
+    r5 = dm(i1, 1); \
+    dm(_dsh_t0 + 1) = r5; \
+    r5 = dm(i1, 0); \
+    dm(_dsh_t1 + 1) = r5; \
+    r5 = _dsh_gtbl_b; \
+    r7 = r2 + r5; \
+    i0 = r7; \
+    r7 = r3 + r5; \
+    i1 = r7; \
+    r5 = dm(i0, 1); \
+    dm(_dsh_u0) = r5; \
+    r5 = dm(i0, 0); \
+    dm(_dsh_u1) = r5; \
+    r5 = dm(i1, 1); \
+    dm(_dsh_u0 + 1) = r5; \
+    r5 = dm(i1, 0); \
+    dm(_dsh_u1 + 1) = r5; \
+    bit set mode1 0x00200000; \
+    nop; \
+    nop; \
+    r2 = dm(_dsh_t0); \
+    r3 = dm(_dsh_t1); \
+    LUT_INTERP_SIMD \
+    r8 = r0; \
+    r2 = dm(_dsh_u0); \
+    r3 = dm(_dsh_u1); \
+    LUT_INTERP_SIMD \
+    r5 = r0 - r8; \
+    mrf = r5 * r9 (ssi); \
+    MRF_RNS28_SIMD \
+    r0 = r0 + r8;
+
 /*----------------------------------------------------------------------
  * The ladder.
  *--------------------------------------------------------------------*/
@@ -418,6 +577,10 @@ _dsh_selftest:
     DSH_RUNG(.dsh_r11, _dsh_gate_today)
     DSH_RUNG(.dsh_r12, _dsh_gate_lin)
     DSH_RUNG(.dsh_r13, _dsh_gate_lut)
+    DSH_RUNG(.dsh_r14, _dsh_cg_lut_l2)
+    DSH_RUNG(.dsh_r15, _dsh_comp_lut_l2)
+    DSH_RUNG(.dsh_r16, _dsh_cg_lut_blend)
+    DSH_RUNG(.dsh_r17, _dsh_l2page)
 
     r0 = dm(_dsh_rep);
     r1 = 1;
@@ -818,5 +981,85 @@ _dsh_gate_lut:
     DSH_NEST_CLOSE(.dsh_m_o, .dsh_m_i)
     DSH_EPILOGUE
 _dsh_gate_lut.end:
+
+/*----------------------------------------------------------------------
+ * S15 GATE 1 — the four rungs that settle the table's home.
+ *--------------------------------------------------------------------*/
+
+/* rung 14: the gain computer, table in L2. */
+.global _dsh_cg_lut_l2;
+_dsh_cg_lut_l2:
+    DSH_PROLOGUE
+    DSH_NEST_OPEN(.dsh_p_o, .dsh_p_i)
+ r0 = r14; LUTGAIN_L2
+    DSH_NEST_CLOSE(.dsh_p_o, .dsh_p_i)
+    DSH_EPILOGUE
+_dsh_cg_lut_l2.end:
+
+/* rung 15: the WHOLE compressor body with the table in L2 — the number
+ * that goes into the generator if L2 is where the tables have to live. */
+.global _dsh_comp_lut_l2;
+_dsh_comp_lut_l2:
+    DSH_PROLOGUE
+    r15 = 0x10000000;
+    DSH_NEST_OPEN(.dsh_q_o, .dsh_q_i)
+
+        r13 = dm(i2, 2);
+        DSH_ENV_BODY
+        r0 = r14;
+        LUTGAIN_L2
+        dm(i5, 0) = r0;
+        DSH_APPLY_BODY
+        DSH_COMP_TAIL
+        dm(i4, 2) = r0;
+    DSH_NEST_CLOSE(.dsh_q_o, .dsh_q_i)
+    DSH_EPILOGUE
+_dsh_comp_lut_l2.end:
+
+/* rung 16: the two-table blend, both tables in DM — what a RAMPING
+ * parameter costs per sample against rebuilding the table per block. */
+.global _dsh_cg_lut_blend;
+_dsh_cg_lut_blend:
+    DSH_PROLOGUE
+    r9 = 0x08000000;               /* blend fraction, half way */
+    DSH_NEST_OPEN(.dsh_s_o, .dsh_s_i)
+ r0 = r14; LUTGAIN_BLEND
+    DSH_NEST_CLOSE(.dsh_s_o, .dsh_s_i)
+    DSH_EPILOGUE
+_dsh_cg_lut_blend.end:
+
+/* rung 17: THE PAGING COST. Four words copied L2 -> DM per sample slot,
+ * which over a 16-sample block is a 64-word page — one dynamics node's
+ * table at the shipped defaults with room to spare. If the L2 gather is
+ * expensive and this is cheap, the answer is a per-node DM page filled
+ * once per block; if this is expensive too, it is not.
+ *
+ * Scalar and sequential, because that is what a page copy is. */
+.global _dsh_l2page;
+_dsh_l2page:
+    DSH_PROLOGUE
+    bit clr mode1 0x00200000;
+    nop;
+    nop;
+    b0 = _dsh_page_src;
+    l0 = DSH_PAGE;                 /* circular: the wrap is free, so what */
+    b1 = _dsh_page;                /* is timed is the COPY and not a test */
+    l1 = DSH_PAGE;
+    m1 = 1;
+    DSH_NEST_OPEN(.dsh_t_o, .dsh_t_i)
+
+        r0 = dm(i0, m1);
+        dm(i1, m1) = r0;
+        r0 = dm(i0, m1);
+        dm(i1, m1) = r0;
+        r0 = dm(i0, m1);
+        dm(i1, m1) = r0;
+        r0 = dm(i0, m1);
+        dm(i1, m1) = r0;
+    DSH_NEST_CLOSE(.dsh_t_o, .dsh_t_i)
+    l0 = 0;
+    l1 = 0;
+    DSH_EPILOGUE
+_dsh_l2page.end:
 
 #endif /* DSP4_DYN_SHOOTOUT */

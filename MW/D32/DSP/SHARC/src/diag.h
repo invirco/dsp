@@ -351,8 +351,39 @@
 #define DIAG_CFG2_BLK_TAP 0
 #endif
 
+/* THE THREE SWITCHES THIS WORD COULD NOT SEE (S12-7, closed S15).
+ *
+ * DIAG_BUILD_CFG2 exists because DIAG_BUILD_CFG could not tell three
+ * arms 81,299 cycles/block apart from one another (S11-1). It then had
+ * the same hole of its own: DSP4_C2_BQ_GRAPH was NOT in it, so the two
+ * S12 candidate images read back the same word and differed in AUDIO --
+ * one of them silently inert on paired AUX GEQ and AFB. S14 added
+ * DSP4_BQ_SIMD_PIPE, worth 5.6 points of chip 2, and it was not in it
+ * either. S15 adds DSP4_DYN_LUT and DSP4_GATE_LINTHR, which change the
+ * dynamics arithmetic.
+ *
+ * All four are here now. The rule this word exists for is that an image
+ * says what it is in its own words, and a switch that changes cost or
+ * audio and cannot be read back is a gap the next session pays for. */
+#ifndef DSP4_C2_BQ_GRAPH
+#define DSP4_C2_BQ_GRAPH 0
+#endif
+#ifndef DSP4_BQ_SIMD_PIPE
+#define DSP4_BQ_SIMD_PIPE 0
+#endif
+#ifndef DSP4_DYN_LUT
+#define DSP4_DYN_LUT 0
+#endif
+#ifndef DSP4_GATE_LINTHR
+#define DSP4_GATE_LINTHR 0
+#endif
+
 #define DIAG_BUILD_CFG2_VALUE ( 0xC2000000                              \
     | ((DSP4_BLOCK_DECIMATE   & 0xFF) << 16)                            \
+    | ((DSP4_BQ_SIMD_PIPE     & 3) << 13)                               \
+    | ((DSP4_C2_BQ_GRAPH      & 1) << 12)                               \
+    | ((DSP4_GATE_LINTHR      & 1) << 11)                               \
+    | ((DSP4_DYN_LUT          & 1) << 10)                               \
     | ((DSP4_FX_TYPE_DECLARED & 1) <<  7)                               \
     | ((DSP4_GATHER_FIRST     & 1) <<  6)                               \
     | ((DSP4_TX_EARLY         & 3) <<  8)                               \

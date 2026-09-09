@@ -6,6 +6,367 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE DYNAMICS INTEGRATION: the clock settled by measurement, the table's home settled by measurement, and the level→gain table in the generator (2026-09-10, session S15)
+
+Session: CCLK settled independently of the decode that quoted it (S14-7
+closed), the level→gain table's home measured L2 against DM, the table
+and its design step landed in the generator behind `DSP4_DYN_LUT`, the
+paired `DSP4_GATE_LINTHR` port landed behind its own switch with the
+`#error` lifted, and two of S14's design conclusions overturned by
+measurement. Write-up `MW/D32/DSP/dsp4-dynlut-20260910.md`. Contract
+`defs-v2026.09.08.4`, unchanged; `shipping.config` unchanged. **Built at
+the shipping defaults the tree produces `6ebd0807` / `a3582da1`, byte for
+byte what the pre-S15 tree produces — every switch in this session is
+inert at its default and that is proved by a build, not argued.**
+
+### S15-1 — the pair on the part was running at HALF CLOCK, because it had never been configured
+
+**Severity: HIGH (bench state, and the instrument). Status: CLOSED. Closes S14-7.**
+
+At the start of the session the shipping pair on the bench, with
+`matrix-app` active and having been up seven hours, read **CGU0_CTL
+0x00002800 — the CGU RESET row — and a diag tick of 499.995/s against a
+`DIAG_TPERIOD` of 983,040, i.e. CCLK 491.52 MHz, exactly half** the clock
+its own budget is quoted at. `DIAG_BLK_OVERRUN` was advancing one for one
+with `DIAG_FRAME_COUNT`: it was missing essentially every block.
+
+`DIAG_BUILD_CFG` read `0xCF45FF10`, whose bits 18:17 say the image was
+*built* with `DSP4_CCLK_TARGET=983`. So the image asked and the part did
+not do it.
+
+**The cause is in the same register block that reported it: `BOOT_STAGE`
+read 5 — `DIAG_STAGE_WAITCFG`, "interrupts on, waiting for host config".**
+`_cgu_raise_cclk` is called from `_product_config_commit` and nowhere
+else, deliberately (D10's objection was to relocking the PLL with the
+boot kernel's SPI transfer still in flight). **A part that was never
+configured runs on the CGU reset divisors**, at half the clock, with a
+graph that cannot fit in half a budget.
+
+Neither the firmware nor the app is at fault. The same staged `blk_*`
+images (`ac65ad38` / `e5dce9e4`) booted through `dsp4_boot.py` +
+`dsp4_config.py` came up at `0x00005000` and 983.04 MHz on both chips,
+and so did `systemctl restart matrix-app` — after which chip 1 read
+**0.00 % overruns over 60,014 blocks**. (Chip 2 read 2.49 % on the same
+arm; that is a separate question, recorded and not chased here.)
+
+**"Bench restored: shipping pair booted" does not distinguish a booted
+part from a running one**, and this is the second time in this project's
+record that a number was taken against a clock nobody had measured
+(S9-1 was the first).
+
+**The instrument is fixed, permanently.** `tools/pi/dsp4_capacity.py` now
+measures CCLK on **every** capacity row: `DIAG_TICKS` across its own
+dwell, with the TPERIOD the image was built with read out of
+`DIAG_BUILD_CFG`'s bits 18:17, timed against the host clock with each
+read bracketed and mid-pointed. It reports the measurement beside the
+decode, **derives the budget from the measurement**, and prints an
+explicit disagreement line when the two differ by more than 2 %.
+
+### S15-2 — CCLK is 983 MHz, settled two ways, and every percentage in the record stands
+
+**Severity: MEDIUM (the record). Status: CLOSED.**
+
+Two measurements that share nothing, on a booted and configured pair.
+
+**(a) The CGU registers decoded by hand** from the HRM's formula, with
+SYS_CLKIN0 = 24.576 MHz: `CGU0_CTL 0x00005000` → MSEL = 80 (bits 14:8),
+DF = 0; `CGU0_DIV 0x451442C1` → CSEL = 1;
+fPLLCLK = CLKIN × MSEL / (2 × (DF+1)) = **983.040 MHz**, fCCLK = fPLLCLK
+/ CSEL = **983.040 MHz**. The decode is checked rather than trusted: the
+same three lines reproduce all three rows of `cgu_init.asm`'s own table
+(`0x2800` → 491.520, `0x4000` → 786.432, `0x5000` → 983.040), which is
+what fixes MSEL at bits 14:8 and puts the PLL's fixed /2 *inside*
+fPLLCLK.
+
+**(b) The core timer against two wall clocks that are not the DSP's.**
+TCOUNT decrements once per CCLK by construction and reloads from TPERIOD,
+so `DIAG_TICKS` advances at CCLK / TPERIOD Hz with nothing in the chain
+reading the CGU. Against the Pi's crystal: **983.03 / 983.01 MHz**.
+Against the CPLD's 48 kHz audio transport (ticks per block × 3000
+blocks/s): **983.04 / 983.02 MHz**. On the capacity arms themselves the
+instrument reads **983,037,269 Hz on chip 1 (3 ppm) and 983,025,072 on
+chip 2 (15 ppm)** against a decode of 983,040,000.
+
+**`capacity.sh`'s decode is right. The budget is 327,680 cycles per
+block. No percentage in the record moves and the D32 fit survives.**
+
+### S15-3 — the level→gain table's HOME is DM, and S14's premise that only L2 could hold it was wrong
+
+**Severity: MEDIUM (design). Status: CLOSED.**
+
+S14 recorded that 96 dynamics nodes × their own table "would have to go
+to L2" and that an L2 gather was therefore the first thing to settle.
+Both halves were tested and the first half is wrong.
+
+**The linker map says DM.** At the shipping configuration
+`dsp_memreport.py` reports **123,852 free bytes of DM on chip 1 and
+145,788 on chip 2**, against 337 words × 32 nodes = 43,136 bytes on chip
+1 and × 28 = 37,744 on chip 2. Measured on the built arm, DM lands at
+**79.6 % with 76,438 free** on chip 1. The 1,024-word overflow
+`dyn_tables_fx.asm` records was **`sec_stak`**, a different pool from
+`sec_dmda` and its overflow tier; reading it as a DM-wide limit is what
+put L2 in the design.
+
+**And the rig measured what L2 would have cost anyway** (four new rungs
+on `dyn_shootout.asm`, cycles per sample for a pair of channels):
+
+| | c/s-pair | c/s/chan |
+|---|--:|--:|
+| the gain computer today, 6-term polynomials | 215.2 | 107.6 |
+| **the level→gain LUT, table in DM** | **54.1** | **27.0** |
+| the same, table in L2 | 76.1 | 38.1 |
+| the whole COMPRESSOR body, today | 284.3 | 142.2 |
+| **the same, LUT with a DM table** | **123.1** | **61.6** |
+| the same, LUT with an L2 table | 146.2 | 73.1 |
+
+**L2 costs +22.1 c/sample-pair on the gain computer (+40.9 %) and +23.0
+on the whole compressor body (+18.7 %)** — not prohibitive, but not free.
+**And PAGING a table from L2 into a DM slot is worse than gathering from
+L2 directly for any table over 32 words**: the copy measures 11.5 cycles
+a word, so a 337-word page is 3,876 cycles a block against the 354 the
+direct L2 gather costs over the same block. The break-even is 32 words
+and the smallest table that clears the accuracy bar is ten times that.
+
+### S15-4 — the S14 rig's interpolation fraction was SIGN-EXTENDED, and a cycle rig is blind to that by construction
+
+**Severity: HIGH (arithmetic). Status: FIXED.**
+
+`LUT_INDEX_SIMD` took the interpolation fraction as `r4 = lshift r3 by K`
+where r3 is the mantissa fraction in Q0.31. Shifting left by K to discard
+the K bits already spent on the sub-index pushes what is left **into bit
+31**, and the interpolation multiply is `mrf = r5 * r4 (ssi)` — signed.
+**A fraction of 0.75 arrives as −0.25 and the interpolation runs
+backwards out of its cell.**
+
+Measured by `tools/dsp/dyn_lut_design.py`, which computes the index bit
+for bit the way the kernel does, at K = 4 on the shipped compressor
+defaults: **0.389 dB with the fault, 0.005 dB with the mask.**
+
+The tell was the shape, not the size: **the error halved with each
+doubling of the point count — first order — where linear interpolation of
+a smooth function is second order. An error that improves at the wrong
+rate is an arithmetic fault, not a mesh that is too coarse.**
+
+**It could not have shown in S14, and the rig's own header says why:**
+*the table's contents do not change the instruction stream*. A cycle
+measurement is blind to what the table returns, so S14 measured the right
+cycles for the wrong arithmetic and modelled the error separately against
+what the comment said the kernel did. **The lesson is general: a rig that
+measures cycles for a data-driven kernel must have its arithmetic checked
+by a second instrument, or its cycles are for a kernel that was never
+run.**
+
+The fix is two instructions. With the high clamp a table that no longer
+spans all 32 octaves also needs, the corrected paired gain computer is
+**54.1 c/sample-pair against S14's 49.1** — four instructions, and that
+is the whole of the difference.
+
+### S15-5 — the point count is K = 4 / 337 words, and the GATE is confirmed untabelable independently
+
+**Severity: MEDIUM (design). Status: CLOSED.**
+
+`dyn_lut_design.py` builds the table on the kernel's own grid and sweeps
+the result against `fixed_ref.comp_gain`. At the shipped defaults, worst
+error over 0 to −100 dBFS: K = 2 (85 words) COMP 0.045 / LIM 0.247 dB;
+K = 3 (169) 0.011 / 0.028; **K = 4 (337) 0.004 / 0.025**; K = 5 (673)
+0.001 / 0.018.
+
+**The defaults are not the bar.** Over the full documented parameter
+sweep — 81 sets, thresholds to −60 dB, ratios to 100:1, knees 0/6/18 dB —
+**K = 3 FAILS at 0.135 dB** (the limiter at a −3 dB threshold, whose
+infinite ratio and hard knee is the sharpest corner in the family) and
+**K = 4 PASSES at 0.0950 dB** against PW's 0.1 dB ruling. S14's model
+predicted 0.030 dB at K = 3 with anchored knots; the measurement does
+not support it. **K = 4 is the shipped value and the margin is 5 %**;
+K = 5 halves the error again for 673 words and still fits DM.
+
+**The GATE reproduces S14-3 from an independent instrument: 41–65 dB of
+error at every mesh from 4 to 64 points per octave.** A step
+interpolates to a ramp whatever the mesh. Its lever is the linear-domain
+threshold and not a table.
+
+### S15-6 — the two-table blend does not work, and the ramp path is the polynomial
+
+**Severity: MEDIUM (design). Status: CLOSED, S14's proposal withdrawn.**
+
+S14 proposed blending two designed tables while a parameter ramps,
+because the design step is ~211 instructions per point and cannot run per
+block. The rig priced the blend at **+49.1 c/sample-pair**, which looks
+affordable. `dyn_lut_design.py --blend` priced its **error**, against a
+0.1 dB bar: a −20 → −10 dB threshold ramp reads **1.13 dB**, −40 → −20
+**3.12 dB**, −60 → −3 **20.20 dB**, where the same table designed at the
+intermediate threshold reads 0.011 dB.
+
+The reason is structural and is the same one that kills the gate: **two
+gain curves whose KNEES sit at different levels do not interpolate into
+the curve whose knee is between them.** The blend is exact at both ends
+and wrong in the middle — which is what every plausible-looking
+interpolation of a family of kinked curves does.
+
+**What ships instead costs nothing and is exact.** A node whose converted
+parameters have moved restarts its design and **runs the polynomial gain
+computer — the path that ships today — until the table is finished**, 16
+points a block (~3,400 cycles, 1.0 % of a block), 22 blocks / 7.3 ms for
+a whole table. The table is the steady-state path; the ramp path is
+unchanged and exactly correct; there is no second table. The changeover
+is at a block boundary between two curves that agree to 0.004 dB.
+
+### S15-7 — the paired GATE runs on the linear threshold: the `#error` lifted, 54 % of the gate body
+
+**Severity: MEDIUM (capacity). Status: LANDED behind `DSP4_GATE_LINTHR`.**
+
+`dsp_codegen.py` emitted an `#error` refusing `DSP4_GATE_LINTHR` beside
+`DSP4_SIMD_DYN`, because the two are different arithmetic. The objection
+was real; **the difference is a threshold shift of at most 0.0002 dB** —
+both directions go through polynomials whose worst error over 0 to
+−100 dBFS is 0.0001 dB — which was worth refusing against a 0.0001 dB
+spec and is **1/500th of PW's 0.1 dB ruling of 2026-09-09**.
+
+**What makes it safe is that one word means one thing.** Under the
+switch, `_gate_thrq_<nid>` holds **2^thr in Q4.28 — linear — in every
+path**: the per-sample body, the block kernel and the pair kernel all
+convert it from the float parameter once per block and all compare the
+envelope against it directly. There is no path in which one of them reads
+a log value out of that word, which was the only way the two arithmetics
+could have met.
+
+The paired GATE then loses the whole of `LOG2Q_SIMD` and its log2(0)
+guard — 73 instructions to produce a number used for one comparison:
+**142.1 → 65.0 cycles per sample-pair, 71.1 → 32.5 per sample per
+channel, 54.2 %.** It costs **480 bytes** of chip-1 code.
+
+### S15-8 — chip 1's CODE POOL, not DM and not cycles, is the binding resource for the dynamics integration
+
+**Severity: HIGH (feasibility). Status: OPEN, named for PW.**
+
+Chip 1, `dsp_memreport.py`, the same arm plus one switch at a time:
+
+| arm | code (VISA SW) | free | DM free |
+|---|--:|--:|--:|
+| S14's row (`STRIP_FUSED`+`SIMD_DYN`+`C2_BQ_GRAPH`+`PIPE=2`) | 257,322 | **4,822** | 122,156 |
+| + `DSP4_GATE_LINTHR=1` | 257,802 | 4,342 | 122,156 |
+| + `DSP4_DYN_LUT=1` | 261,900 | **244** | 76,438 |
+
+**Chip 1's code pool was already at 98.2 % before this session touched
+it** — the pairing and fusion arm is what fills it — and the LDF's
+overflow tier is the last one; there is nothing behind it. The
+level→gain table costs **4,098 bytes of code and 45,718 of DM** and
+**links with 244 bytes to spare, which is not shippable margin.** Chip 2
+is untroubled either way (54.6 % code, 73.0 % DM).
+
+Factoring the design step into one shared routine was worth 178 bytes;
+the first build, with it inlined per node, linked with **66 bytes** free.
+The remainder is the per-node call sites, and the lever is the same
+per-node inlining that S13 and S14 bought cycles with. **The LUT cannot
+ship on chip 1 until the code pool has relief.**
+
+### S15-9 — `DIAG_BUILD_CFG2` now carries the four switches it could not see
+
+**Severity: MEDIUM (instrument). Status: FIXED. Closes S12-7.**
+
+S12-7 recorded that `DSP4_C2_BQ_GRAPH` was not in `DIAG_BUILD_CFG2`, so
+the two S12 candidate images **read back the same word and differed in
+audio** — one of them silently inert on paired AUX GEQ and AFB. S14 added
+`DSP4_BQ_SIMD_PIPE`, worth 5.6 points of chip 2, and it was not in the
+word either.
+
+All four are in it now — `DSP4_BQ_SIMD_PIPE` (bits 14:13),
+`DSP4_C2_BQ_GRAPH` (12), `DSP4_GATE_LINTHR` (11), `DSP4_DYN_LUT` (10) —
+and at the shipping defaults all four are zero, so the word is unchanged
+and `check_shipping_config.sh` still reads `0xC2010244`.
+
+### S15-10 — ten measurement scripts still write over `~/dspboot/chip{1,2}.ldr`, which one script's header calls a staged pair
+
+**Severity: LOW (bench hygiene). Status: OPEN, recorded not fixed.**
+
+S10-7 established that a measurement arm runs from its OWN staging path
+and never `~/dspboot`, because that directory holds the pairs the window
+rolls back to. `capacity.sh` obeys it (`/home/app/dspcap/$ARM`) and
+`famverify.sh` was fixed to obey it, its header saying why: *"this script
+used to scp its build straight over chip1.ldr and chip2.ldr, which are
+two of them. A measurement bar must not be able to destroy the artifact
+the product ships."*
+
+**Ten scripts still do exactly that**, `dynshoot.sh` among them —
+`bisect.sh`, `bootchar.sh`, `cfgstress.sh`, `strips.sh`, `dynst.sh`,
+`profile.sh`, `readvote.sh`, `sigprofile.sh`, `sigstrips.sh`. Running
+`dynshoot.sh` this session (as S14 did) left `~/dspboot/chip1.ldr` /
+`chip2.ldr` holding the `dyn_shootout` rig image `08d0b9a4` / `6a349c13`.
+
+The three NAMED pairs are untouched and byte-identical to the S14 record
+(`blk_*` `ac65ad38`/`e5dce9e4`, `cand_*` `fcebc2e1`/`86662b92`, `geq_*`
+`df6b847d`/`cb9bc58e`), so nothing that matters was lost. But
+`famverify.sh`'s header still lists `chip*` as *"the window pair"* among
+the staged artifacts, and ten scripts treat it as scratch. **Both cannot
+be true**, and the record should say which — either `chip*.ldr` is
+scratch and that header line is wrong, or it is a staged pair and ten
+scripts need `capacity.sh`'s `STAGE` treatment.
+
+
+### S15-11 — the table's top GUARD entry overflowed to unity, and the instrument built to look for it found it
+
+**Severity: MEDIUM (arithmetic). Status: FIXED, in the kernel and in the model.**
+
+`tools/pi/dsp4_dyn_lut_check.py` reads a node's designed table off the
+part and diffs it word for word against `dyn_lut_design.py`'s model. On
+`C1_COMP_01` at the shipped defaults it read **336 of 337 words
+identical** — the design step, the grid and the curve agree exactly — and
+**one mismatch, at index 336**, which is the table's last word.
+
+That word is the GUARD the interpolation reads as `T[i+1]` for the last
+real cell. Its grid point is octave `DYN_LUT_OCTHI + 1 = 31`, whose
+envelope is `1 << 31` — **outside a signed 32-bit word**. On the part it
+arrives NEGATIVE, `_compgain_fx` takes its `x_abs <= 0` path and returns
+**unity**, so the top cell would interpolate from a heavily reduced gain
+back UP to unity between +17.8 and +18.1 dBFS. The host model, in
+Python's unbounded integers, computed the honest gain for 8.0 and so
+disagreed.
+
+Both are now clamped to Q4.28's largest positive value, which is the
+right value in both places: four instructions once per table point in
+`_dyn_lut_fill`, and a `min()` in `grid_env`.
+
+**The point is not the size of the defect — it is above full scale and
+would be reached only by an envelope 18 dB over 0 dBFS — it is that
+nothing else in the tree could have found it.** The cycle rig is blind to
+table contents (S15-4), the error sweep runs over 0 to −100 dBFS and
+never looks above full scale, and `famverify` asks whether a family is
+live and not what its curve does at +18 dBFS. **A word-for-word diff
+between the part and the model is a different instrument from all three,
+and this is what it is for.**
+
+
+### S15-12 — the design step's PEAK is invisible to a capacity average, and at CHUNK=16 it went over budget
+
+**Severity: MEDIUM (capacity). Status: FIXED (`DYN_LUT_CHUNK` 16 -> 4).**
+
+Every node's design key starts unmatched, so **at the first
+`CONFIG_COMMIT` all thirty-two of chip 1's compressors restart their
+design in the same block.** One point is a whole `_compgain_fx`, about
+211 instructions, so at `DYN_LUT_CHUNK = 16` the burst is
+32 x 16 x 211 = ~108,000 cycles on top of the graph — **a third of a
+block** — for the 22 blocks it takes to fill.
+
+**`capacity.sh` cannot see it.** Its overrun figure is a DELTA across a
+dwell that begins *after* the boot and config ladder, and the burst is
+inside that ladder. `_proc_cyc_max` can, because nothing resets it:
+
+| `DYN_LUT_CHUNK` | chip 1 avg | chip 1 `_proc_cyc_max` | blocks to fill |
+|---|--:|--:|--:|
+| 16 | 60.27 / 60.45 % | **124.06 %** — over budget | 22 (7.3 ms) |
+| **4** | 60.26 / 60.49 % | **96.93 / 97.04 %** | 85 (28 ms) |
+
+The average is unchanged and the worst block drops below budget. 28 ms
+of the exact polynomial after a parameter move is inaudible and is the
+arithmetic that ships today.
+
+**This is the one place where `_proc_cyc_max` — which S13-2 correctly
+distrusts, because it latches configuration transients and read 376 % on
+arms with zero missed blocks — is measuring exactly the transient it is
+being asked about.** A register is not trustworthy or untrustworthy in
+the abstract; it depends what the question is.
+
+
 ## THE ORDER DEFECT: root-caused in the transmit path and fixed, and a capacity defect underneath it (2026-09-09, session 34)
 
 Session: the chip-2 transmit path instrumented with a block counter on
