@@ -1,3 +1,80 @@
+## HUB DISPATCH 2026-09-09 02:44Z — CFG_CHAN_MASK / CFG_AUX_MASK given readers — a D24 runs 24 strips not 32; D24 capacity restated on the masked image; the through-DSP loop arm closed and the true through-DSP latency measured; window note updated (window item found by the latency session)   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+CFG_CHAN_MASK and CFG_AUX_MASK given readers — a D24 runs 24 strips, not 32; D24 capacity restated on the masked image; the through-DSP loop arm closed and the TRUE through-DSP latency measured; the window-readiness note updated — a WINDOW ITEM found by the latency session
+
+WHY. The latency session (dsp c747542) found that `CFG_CHAN_MASK` is
+stored by `product_config.asm` and READ BY NOTHING (four references, three
+of them declarations), so a D24 — a 24-channel product whose matrix has
+zero `Chan025` cells and whose `d24/dsp.csv` correctly carries none — runs
+all 32 strips on the part. Measured: with everything the D24 contract can
+silence silenced and the Pi input off, `C2_MAIN_ST_OUT` sits at positive
+full scale for 48,000 of 48,000 frames; silencing strips 25–32 through
+D32's rows takes it to zero. This is what the 09-08 note called "a DC
+pedestal until the main chain is set to unity" — it was neither. `_aux_mask`
+has the same shape; of the four product-config words only `_product_id`
+has a reader. Consequences: (a) the through-DSP loop arm cannot close, so
+there is no through-DSP latency figure (the CPLD-loop bound is ≤ 31
+samples / 0.65 ms, boot-to-boot ZERO); (b) every D24 capacity number was
+measured with eight strips the product does not have — D24's real load is
+LOWER, and chip 1 (the tighter chip, 79.87 %) gets margin back; (c) the
+contract is not at fault — this is a firmware fix, and it is a WINDOW item
+because the rev C unit is a D24 running the unmasked image today.
+
+BENCH. Rev C unit as the latency session left it: CPLD `a1f6672af6c3`
+positively identified, duplex overlay state as documented, ~/dspboot
+staged with chip1 602a0feb / chip2 b1325022 (the window's artifacts — if
+this session produces the images the window should deploy instead, stage
+them THERE and say so in the status line's first sentence; keep the
+previous pair alongside). State hashes and overlay at start and end. Rev
+A never touched. No AI attribution in commits or any work product.
+
+GATES, in order, each witnessed:
+1. **The readers.** `_chan_mask` and `_aux_mask` consumed where the strip
+   and aux loops are built — design choice stated and measured: SKIP the
+   masked strips entirely (cycles saved; the strip's nodes never run;
+   downstream sums must not read stale buffers — zero them once at mask
+   time) versus RUN-AND-SILENCE (cycles unchanged; simpler). PW's #1
+   priority is capacity-fit, so SKIP is the expected answer unless the
+   graph's static schedule makes it unsafe — say which and why. The mask
+   is applied at product-config time, before audio starts, and a
+   mid-life mask change is either supported (state the atomicity) or
+   explicitly refused. `_product_id`'s existing reader is the pattern.
+2. **Prove it on the part.** D24 config (`0x00FFFFFF`): `C2_MAIN_ST_OUT`
+   reads ZERO for 48,000 of 48,000 frames with the D24 contract silenced
+   and the Pi input off (the measurement that failed); strips 1–24 still
+   pass the family walk (`famverify` at pin .4 — the 17/20 / 3,619 line
+   must not move down); D32 config unchanged in behaviour (all 32 strips,
+   the same bars). The aux mask likewise (D24's aux count vs D32's, from
+   the product definitions in `defs/products/`).
+3. **D24 capacity on the masked image**, same instrument as before
+   (`sigprofile2`, block 16, two boots, minimum, both chips): the new
+   D24 numbers against the .4 conformance record (chip 2 261,848 /
+   chip 1 261,879) and the six-reverb worst case — this is the number the
+   product ships against. State chip 1's margin explicitly; it was the
+   tighter chip.
+4. **The through-DSP arm closed.** With the graph now the product's, the
+   loop through Pi → CPLD → DSP pass-through → CPLD → Pi returns the
+   counter pattern: through-DSP latency in samples and ms (20 reps × 2
+   boots, boot-to-boot part stated), decomposed against the CPLD-loop
+   bound — the DSP block (16), SPORT DMA, and whatever remains. If it
+   still does not close, the reason is the finding and no figure is
+   quoted (as the last session did).
+5. **Window note updated** (`dsp4-window-readiness-20260909.md`): the
+   masked images are the artifacts; a one-line explanation of why the
+   unit's output was at full scale before and is not after; rollback
+   unchanged.
+6. findings S6-*, tasks.md, this block's status; commit + push main.
+
+Bounded: gates 1–3 are the session; 4–5 expected. S5-9 (a readable
+design-ID register in the CPLD) and S5-10 stay queued unless gate 4
+needs S5-10's DSP4_STRIPS=1 image to close — then say so.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-09 01:22Z — PI_TDM8 bitstream from the current slot map (fixed build.sh), flashed via JTAG, the CPLD duplex loop's LATENCY FIGURE at 48 kHz on a known bitstream; sample order re-run; shipping bitstream restored unless a proven superset   [status: 🟢 done — **THE BENCH BITSTREAM DID NOT CHANGE: `dsp4_logic.a1f6672af6c3` was restored and positively identified, not merely assumed.** **THE FIGURE, on `dsp4_logic_pisel.bd9c100db7c2` (48 kHz, duplex overlay, 20 reps x 2 boots): min 14,431 samples / 300.646 ms ON BOTH BOOTS, medians 14,438 and 14,437, within-boot spread 9 samples (boot 2) — so the BOOT-TO-BOOT PART IS ZERO to the sample and the run-to-run part is <= 9 samples. That is the answer about the alignment contract (net N2a): it does not move.** The harness stages arecord 0.3 s = 14,400 samples ahead of aplay, so **31 samples / 0.65 ms is an UPPER BOUND** on the CPLD loop — a bound, not the path, because the residual also holds the ALSA stream-start setup difference, which is additive and cannot be separated without a second bitstream to difference against. **Counter agreement was 100.0000 % on all 40 reps (48,000 of 48,000 ramp words at ONE offset).** **THE THROUGH-DSP ARM DOES NOT CLOSE AND NO FIGURE IS QUOTED FOR IT** — it returns mostly zeros with sparse out-of-order indices; the harness's 14,550 for that arm is a SPURIOUS MODE (2,878 of 48,014 candidate words agreeing across 44 distinct offsets, impulse never found) and is recorded in the write-up only so it is not mistaken later for a measurement. **THE HEADLINE FINDING IS WHY IT DOES NOT CLOSE, AND IT IS A WINDOW ITEM: `CFG_CHAN_MASK` IS STORED AND NEVER READ, SO A D24 RUNS ALL 32 STRIPS.** `dsp4_config.py` sends D24 `0x00FFFFFF`; `product_config.asm:121` writes `_chan_mask`; nothing reads it — four references in the tree, three of them declarations. Measured: with everything the D24 contract can silence silenced AND the Pi input off, `C2_MAIN_ST_OUT` sits at positive full scale `0x7FFFFFE0` for 48,000 frames of 48,000; silencing exactly strips 25-32 (through D32's rows for the same cells, the map being shared per D3) takes it to `0x00000000` for 48,000 of 48,000. **The contract is NOT at fault** — D24 is a 24-channel product, its matrix has zero `Chan025` cells and `d24/dsp.csv` correctly carries none; the firmware is running eight strips the product does not have. This is what made the 09-08 note "the loop still carries a DC pedestal until the main chain is set to unity" — it is not a pedestal and not the main chain. `_aux_mask` has the same shape; of the four product-config words only `_product_id` has a reader. **GATE 1**: `dsp4_logic_tdm8.83778a06f954`, `config: loopback=0 pi_selftest=0 pi_maincap=0 pi_tdm8=1`, `pi_link: 2 ch x 32 bits at 192 kHz, 4 Pi frames per DSP frame, all 8 slots`, slot map `sha256:4ecc4aa221a0787e...`, sim gate PASS, fmax 63.61 MHz — the first bitstream ever built from this slot map (flashed `a1f6672af6c3` is on `efd8d555...`, newest committed `dfe9b246f0fc` on `4868ae9d...`). **THE DSP SIDE IS UNTOUCHED, so the TDM8 build is NOT a contract change**: the map adds ten previously-unassigned slots (`A_I6` 2-7, `B_O3` 4-7) and MOVES NONE, every pre-existing (line,slot)->signal pair byte-identical, and the generated lane tables still read chip-1 RX lane 6 `CS 0x0003`/2 words and chip-2 TX lane 3 `CS 0x0003`. Panel MCU is an SPI parameter host and sees no TDM slots. **A DEFECT FOUND AND FIXED IN build.sh**: the 09-08 fix put every macro in the HASH but left the artifact NAMED `dsp4_logic.<hash>` with `SHIPPING: yes` on a PI_TDM8 build — the one line a human reads at the bench said the opposite of the truth. Every non-shipping switch now folds into both the name and the `SHIPPING:` line with its reason; proven to change the label and not the bits (build.sh is not a hash input, same hash `83778a06f954`, identical pof md5 `1c556d38ed76c1cdd1190513c5447de4` over two builds). **GATE 2**: **there is NO USB-Blaster on the dsp machine** (`jtagconfig`: "No JTAG hardware available"); all five flashes went through the documented hands-off path — OpenOCD `linuxgpiod` on the bench CM4's GPIOs (TCK 7 TDI 23 TDO 22 TMS 25), IDCODE `0x020a30dd` before and after each, `pinctrl ... a0` after every one. **The design has NO ID register**, so identity was proved by behavioural discriminant instead (`a1f6672af6c3` capture ERRORS OUT — `pcm_read: Input/output error`, 0 bytes; `_pisel` returns the Pi's playback bit-exact; `_maincap` tracks `MAIN_ST_OUT` under mute and level) — sound but indirect, and a few bits of readable design ID would replace it (S5-9). **GATE 4 PASS: 29,759,999 words over 620.0 s — 0 drops, 0 reorders, 0 stalls, 0 dropouts, 0 non-counter words**, no ALSA under/over-run either direction. The 09-08 "reorders samples" claim is now negatively confirmed at 48 kHz on a named bitstream. **TDM8 PROVEN ON THE PART** via `dsp4_logic_pisel_tdm8.c2f1457b5388`: **191,999/191,999 = 100.00 %, DUPLEX 8-CHANNEL PASS** — the 08-23 result reproduced on a bitstream whose configuration is recorded rather than inferred. (`dsp4_logic_tdm8` itself was flashed but cannot be scored on the conformance image: PI_TDM8 moves capture to `o_dspb[0]`, which only `DSP4_PATTERN` drives on all eight slots.) **GATE 5**: shipping restored per policy — the TDM8 build is not a superset (it re-rates the Pi link to 192 kHz) and was not proven against matrix-app. Verified by IDCODE, both DSPs booting (DSP_CLK survived) and PCM_CLK/PCM_FS TOGGLING on `dsp4_netprobe.py` (clkgen intact). **BENCH LEFT AS FOUND**: CPLD `a1f6672af6c3`, `~/dspboot/chip1.ldr` `602a0feb` / `chip2.ldr` `b1325022` never replaced, `config.txt` switched to the duplex overlay for the measurement and switched back (diffs clean against `/home/app/config.txt.asfound-20260909`; the duplex `.dtbo` and dummy-codec module stay installed, one line away), matrix-app active. Rev A show model never touched. **Note for the next CPLD session: the bench's shipping bitstream is 19 days old and has NO Pi capture path, so the CM4 stereo return does not exist on the bench today**; a shipping build from the current slot map would have it, and none was committed tonight on purpose — an unverified `SHIPPING: yes` artifact is the very thing this session's build.sh fix was about. Write-up `MW/D32/DSP/dsp4-loop-latency-20260909.md`; findings S5-7..S5-12; tools `dsp4_loop_latency.py`, `dsp4_order_soak.py`, `dsp4_silence_2532.py`.]   [model: opus]
 
 model: opus
