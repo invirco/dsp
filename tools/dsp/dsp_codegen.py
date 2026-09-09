@@ -11559,7 +11559,13 @@ def gen_noise_gen_fixed(node):
     f0 = f0 * f1;
     r0 = fix f0;
     dm(_buf_{nid}) = r0;"""
-    assert old in body, 'noise tail pattern moved'
+    if old not in body:
+        raise RuntimeError(
+            f'gen_noise_gen_fixed: expected noise-tail pattern not found '
+            f'in generated body for node {nid!r} (gen_noise_gen output). '
+            f'The template gen_noise_gen() emits for .noise_out_{nid} has '
+            f'moved; update the `old` pattern in gen_noise_gen_fixed() to '
+            f'match it.')
     return body.replace(old, new)
 
 
@@ -12586,7 +12592,13 @@ def gen_fx_engine_fixed(node):
               f"    /* float island entry: Q4.28 -> float32 (D5) */\n"
               f"    r1 = -28;\n"
               f"    f0 = float r0 by r1;")
-    assert body.count(old_in) == 1, 'fx input pattern moved'
+    if body.count(old_in) != 1:
+        raise RuntimeError(
+            f'gen_fx_engine_fixed: expected exactly one FX input pattern '
+            f'{old_in!r} for node {nid!r} (input {inp!r}) in generated '
+            f'body from gen_fx_engine(), found {body.count(old_in)}. '
+            f'The template gen_fx_engine() emits for its input read has '
+            f'moved; update `old_in` in gen_fx_engine_fixed() to match it.')
     body = body.replace(old_in, new_in)
     old_out = f"    dm(_buf_{nid}) = r0;"
     new_out = (f"    /* float island exit: float32 -> Q4.28 (D5) */\n"
@@ -12595,7 +12607,13 @@ def gen_fx_engine_fixed(node):
                f"    f0 = f0 * f1;\n"
                f"    r0 = fix f0;\n"
                f"    dm(_buf_{nid}) = r0;")
-    assert body.count(old_out) == 1, 'fx output pattern moved'
+    if body.count(old_out) != 1:
+        raise RuntimeError(
+            f'gen_fx_engine_fixed: expected exactly one FX output pattern '
+            f'{old_out!r} for node {nid!r} in generated body from '
+            f'gen_fx_engine(), found {body.count(old_out)}. The template '
+            f'gen_fx_engine() emits for its output store has moved; '
+            f'update `old_out` in gen_fx_engine_fixed() to match it.')
     return body.replace(old_out, new_out)
 
 
@@ -13896,7 +13914,14 @@ def gen_bq_pairs(chip_label, strips, bands_of, c2_groups=(), input_of=None,
             for n in (na, nb):
                 _st += _bq_pair_steady(cls, n)
             # The first OR has nothing to OR with, so start from the load.
-            assert _st[1] == '    r1 = r1 or r0;'
+            if _st[1] != '    r1 = r1 or r0;':
+                raise RuntimeError(
+                    f'gen_bq_pair steady-state rewrite for strips {sa}+{sb} '
+                    f'({cls}, nodes {na}/{nb}, tag {tag!r}): expected line '
+                    f'1 of _bq_pair_steady() output to be the OR-in '
+                    f"'    r1 = r1 or r0;', found {_st[1]!r}. The template "
+                    f'_bq_pair_steady() emits has moved; update this '
+                    f'rewrite to match its new shape.')
             _st[0] = _st[0].replace('    r0 = dm(', '    r1 = dm(')
             del _st[1]
             for line in _st:

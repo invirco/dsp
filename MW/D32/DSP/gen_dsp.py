@@ -64,10 +64,21 @@ def _contract_pin():
 CONTRACT_PIN = _contract_pin()
 
 
+_MCU_ONLY_PREFIXES_CACHE = None
+
+
 def load_mcu_only_prefixes():
-    with open(MCU_ONLY_PREFIXES_FILE, encoding='utf-8') as f:
-        return tuple(line.split('#', 1)[0].strip() for line in f
-                     if line.split('#', 1)[0].strip())
+    """Single registration point for the MCU-only prefix list.
+
+    Parsed from disk once per process and cached; every call site shares
+    the same tuple instead of re-reading mcu-only-prefixes.txt."""
+    global _MCU_ONLY_PREFIXES_CACHE
+    if _MCU_ONLY_PREFIXES_CACHE is None:
+        with open(MCU_ONLY_PREFIXES_FILE, encoding='utf-8') as f:
+            _MCU_ONLY_PREFIXES_CACHE = tuple(
+                line.split('#', 1)[0].strip() for line in f
+                if line.split('#', 1)[0].strip())
+    return _MCU_ONLY_PREFIXES_CACHE
 
 NODES_DIR_C1       = os.path.join(SCRIPT_DIR, 'SHARC', 'src', 'chip1', 'nodes')
 NODES_DIR_C2       = os.path.join(SCRIPT_DIR, 'SHARC', 'src', 'chip2', 'nodes')
@@ -2732,6 +2743,9 @@ def main():
     print('Writing outputs...')
 
     if not args.dry_run:
+        matrix_csv_dir = os.path.dirname(MATRIX_CSV)
+        if matrix_csv_dir:
+            os.makedirs(matrix_csv_dir, exist_ok=True)
         with open(MATRIX_CSV, 'w', newline='', encoding='utf-8') as f:
             writer = csv.DictWriter(f, fieldnames=header, extrasaction='ignore')
             writer.writeheader()
