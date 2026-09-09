@@ -101,7 +101,12 @@ SHIPPING2 = {
     'DSP4_SIMD_GRAPH': 1,
     'DSP4_SIMD_STRIPS': 0,
     'DSP4_SCOPE_BLK_TAP': 0,
-    'DSP4_TX_EARLY': 0,          # a MASK: 0 = neither chip
+    # S9-2 Option A, ADOPTED on CHIP 2 by PW 2026-09-09. A MASK:
+    # 1 = chip 1's inter-chip TX, 2 = chip 2's converter TX, 3 = both.
+    # Costs +16 samples of output latency on the chip that has it, so
+    # the through-DSP contract figure is 82 samples / 1.708 ms at
+    # block 16.
+    'DSP4_TX_EARLY': 2,
     'DSP4_GATHER_FIRST': 1,
     'DSP4_FX_TYPE_DECLARED': 0,
 }

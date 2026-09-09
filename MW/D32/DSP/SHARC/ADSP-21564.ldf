@@ -25,6 +25,7 @@
  * Section layout (each chip 1 / chip 2 DXE):
  *   seg_rth   (IVT, NW code)  → mem_iv_code   (PM NW address space)
  *   seg_pmco  (VISA code, SW) → mem_block3_bw + mem_block2_bw overflow
+ *                               (+ mem_block1_bw leftover, instrument builds)
  *   seg_pmda  (PM data)       → mem_block2_bw
  *   seg_dmda  (DM data)       → mem_block0_bw + mem_block1_bw overflow
  *   seg_dma   (DMA buffers)   → mem_block1_bw
@@ -189,6 +190,43 @@ SECTIONS
     {
         INPUT_SECTION_ALIGN(32)
         INPUT_SECTIONS( $COMMAND_LINE_OBJECTS(seg_dma) )
+    } > mem_block1_bw
+
+    /*------------------------------------------------------------------
+     * SECOND code overflow — Block 1's leftover, and ONLY its leftover.
+     *
+     * Code fills Block 3 (sec_swco) and then Block 2 (sec_swco_ovf), and
+     * on 2026-09-09 the two together stopped being enough: the chip-1
+     * candidate (DSP4_STRIP_FUSED=1 + DSP4_SIMD_DYN=1) fills Block 3 to
+     * within 2 bytes and Block 2 to within 0x134c, and adding the
+     * block-aware scope witness (DSP4_SCOPE_BLK_TAP, +2,976 words in the
+     * generated chain and +155 in scope.asm) left 0x63e words unmapped.
+     * The witness is the instrument that settles whether the paired graph
+     * is an audio defect, so it has to link BESIDE the thing it witnesses,
+     * not instead of it.
+     *
+     * This section is declared LAST of the Block 1 claimants on purpose.
+     * Output sections mapped to one region are filled in declaration
+     * order (that is the sec_stak lesson above, the other way round), so
+     * sec_dmda_ovf, sec_dmda_c_bw_ovf and the DMA ping-pong buffers take
+     * what they need first and code gets only what is left — 0x193f8
+     * bytes in the candidate, against the 0xc7c the witness needs.
+     *
+     * INERT WHEN NOT NEEDED, and that is checked rather than asserted:
+     * an image whose code fits Blocks 3+2 maps nothing here, and the
+     * default pair rebuilt across this change is byte-identical
+     * (a95fd8eb… / fb1eee67…, 2026-09-09).
+     *
+     * The cost, stated: instruction fetch from Block 1 shares a block
+     * with the DM overflow and the DMA buffers, so the few hundred words
+     * that land here fetch against DDE traffic. That is a TIMING price on
+     * an instrument build, not an arithmetic one — no capacity number is
+     * taken from a build that reaches this section.
+     *------------------------------------------------------------------*/
+    sec_swco_ovf2 SW
+    {
+        INPUT_SECTION_ALIGN(2)
+        INPUT_SECTIONS( $COMMAND_LINE_OBJECTS(seg_swco seg_pmco) )
     } > mem_block1_bw
 
     /*------------------------------------------------------------------

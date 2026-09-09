@@ -6,7 +6,11 @@
 # capture taken through a half-configured graph is fiction.
 set -u
 STRIP="$1"; N="$2"; TAG="$3"; BQ="${4:-}"; DLY="${5:-0}"
-cd /home/app/dspboot
+# STAGE (S10-7): busgold.sh stages its build away from ~/dspboot so a
+# measurement cannot land on the pair the window rolls back to, and this
+# is its bench half. pairgraph.sh/bqgraph.sh/ctlgate.sh also call this
+# script and never set STAGE, so they keep landing here unchanged.
+cd "${STAGE:-/home/app/dspboot}"
 sudo systemctl stop matrix-app >/dev/null 2>&1
 # BENCH PIN HAND-BACK — the corrected sequence (S8-3, 2026-09-09).
 # The line that used to be here, `pinctrl set 6,7,8,9,10,11,12,22,23,24,25

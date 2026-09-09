@@ -1002,12 +1002,12 @@ _chip1_process_all:
     call _DYNGATE_01_02_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_01;
-    r1 = BLK_CHAIN_A_P1;
+    r1 = BLK_CHAIN_B_P1;
     call _scope_tap;
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_02;
-    r1 = BLK_CHAIN_A;
+    r1 = BLK_CHAIN_B;
     call _scope_tap;
 #endif
 #elif (DSP4_NODE_LIMIT == 0 || 6 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 0 < DSP4_STRIPS)
@@ -1205,12 +1205,12 @@ _chip1_process_all:
     call _DYNGATE_03_04_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_03;
-    r1 = BLK_CHAIN_A_P1;
+    r1 = BLK_CHAIN_B_P1;
     call _scope_tap;
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_04;
-    r1 = BLK_CHAIN_A;
+    r1 = BLK_CHAIN_B;
     call _scope_tap;
 #endif
 #elif (DSP4_NODE_LIMIT == 0 || 22 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 2 < DSP4_STRIPS)
@@ -1408,12 +1408,12 @@ _chip1_process_all:
     call _DYNGATE_05_06_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_05;
-    r1 = BLK_CHAIN_A_P1;
+    r1 = BLK_CHAIN_B_P1;
     call _scope_tap;
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_06;
-    r1 = BLK_CHAIN_A;
+    r1 = BLK_CHAIN_B;
     call _scope_tap;
 #endif
 #elif (DSP4_NODE_LIMIT == 0 || 38 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 4 < DSP4_STRIPS)
@@ -1611,12 +1611,12 @@ _chip1_process_all:
     call _DYNGATE_07_08_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_07;
-    r1 = BLK_CHAIN_A_P1;
+    r1 = BLK_CHAIN_B_P1;
     call _scope_tap;
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_08;
-    r1 = BLK_CHAIN_A;
+    r1 = BLK_CHAIN_B;
     call _scope_tap;
 #endif
 #elif (DSP4_NODE_LIMIT == 0 || 54 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 6 < DSP4_STRIPS)
@@ -1814,12 +1814,12 @@ _chip1_process_all:
     call _DYNGATE_09_10_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_09;
-    r1 = BLK_CHAIN_A_P1;
+    r1 = BLK_CHAIN_B_P1;
     call _scope_tap;
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_10;
-    r1 = BLK_CHAIN_A;
+    r1 = BLK_CHAIN_B;
     call _scope_tap;
 #endif
 #elif (DSP4_NODE_LIMIT == 0 || 70 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 8 < DSP4_STRIPS)
@@ -2017,12 +2017,12 @@ _chip1_process_all:
     call _DYNGATE_11_12_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_11;
-    r1 = BLK_CHAIN_A_P1;
+    r1 = BLK_CHAIN_B_P1;
     call _scope_tap;
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_12;
-    r1 = BLK_CHAIN_A;
+    r1 = BLK_CHAIN_B;
     call _scope_tap;
 #endif
 #elif (DSP4_NODE_LIMIT == 0 || 86 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 10 < DSP4_STRIPS)
@@ -2220,12 +2220,12 @@ _chip1_process_all:
     call _DYNGATE_13_14_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_13;
-    r1 = BLK_CHAIN_A_P1;
+    r1 = BLK_CHAIN_B_P1;
     call _scope_tap;
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_14;
-    r1 = BLK_CHAIN_A;
+    r1 = BLK_CHAIN_B;
     call _scope_tap;
 #endif
 #elif (DSP4_NODE_LIMIT == 0 || 102 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 12 < DSP4_STRIPS)
@@ -2423,12 +2423,12 @@ _chip1_process_all:
     call _DYNGATE_15_16_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_15;
-    r1 = BLK_CHAIN_A_P1;
+    r1 = BLK_CHAIN_B_P1;
     call _scope_tap;
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_16;
-    r1 = BLK_CHAIN_A;
+    r1 = BLK_CHAIN_B;
     call _scope_tap;
 #endif
 #elif (DSP4_NODE_LIMIT == 0 || 118 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 14 < DSP4_STRIPS)
@@ -2626,12 +2626,12 @@ _chip1_process_all:
     call _DYNGATE_17_18_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_17;
-    r1 = BLK_CHAIN_A_P1;
+    r1 = BLK_CHAIN_B_P1;
     call _scope_tap;
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_18;
-    r1 = BLK_CHAIN_A;
+    r1 = BLK_CHAIN_B;
     call _scope_tap;
 #endif
 #elif (DSP4_NODE_LIMIT == 0 || 134 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 16 < DSP4_STRIPS)
@@ -2829,12 +2829,12 @@ _chip1_process_all:
     call _DYNGATE_19_20_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_19;
-    r1 = BLK_CHAIN_A_P1;
+    r1 = BLK_CHAIN_B_P1;
     call _scope_tap;
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_20;
-    r1 = BLK_CHAIN_A;
+    r1 = BLK_CHAIN_B;
     call _scope_tap;
 #endif
 #elif (DSP4_NODE_LIMIT == 0 || 150 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 18 < DSP4_STRIPS)
@@ -3032,12 +3032,12 @@ _chip1_process_all:
     call _DYNGATE_21_22_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_21;
-    r1 = BLK_CHAIN_A_P1;
+    r1 = BLK_CHAIN_B_P1;
     call _scope_tap;
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_22;
-    r1 = BLK_CHAIN_A;
+    r1 = BLK_CHAIN_B;
     call _scope_tap;
 #endif
 #elif (DSP4_NODE_LIMIT == 0 || 166 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 20 < DSP4_STRIPS)
@@ -3235,12 +3235,12 @@ _chip1_process_all:
     call _DYNGATE_23_24_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_23;
-    r1 = BLK_CHAIN_A_P1;
+    r1 = BLK_CHAIN_B_P1;
     call _scope_tap;
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_24;
-    r1 = BLK_CHAIN_A;
+    r1 = BLK_CHAIN_B;
     call _scope_tap;
 #endif
 #elif (DSP4_NODE_LIMIT == 0 || 182 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 22 < DSP4_STRIPS)
@@ -3438,12 +3438,12 @@ _chip1_process_all:
     call _DYNGATE_25_26_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_25;
-    r1 = BLK_CHAIN_A_P1;
+    r1 = BLK_CHAIN_B_P1;
     call _scope_tap;
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_26;
-    r1 = BLK_CHAIN_A;
+    r1 = BLK_CHAIN_B;
     call _scope_tap;
 #endif
 #elif (DSP4_NODE_LIMIT == 0 || 198 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 24 < DSP4_STRIPS)
@@ -3641,12 +3641,12 @@ _chip1_process_all:
     call _DYNGATE_27_28_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_27;
-    r1 = BLK_CHAIN_A_P1;
+    r1 = BLK_CHAIN_B_P1;
     call _scope_tap;
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_28;
-    r1 = BLK_CHAIN_A;
+    r1 = BLK_CHAIN_B;
     call _scope_tap;
 #endif
 #elif (DSP4_NODE_LIMIT == 0 || 214 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 26 < DSP4_STRIPS)
@@ -3844,12 +3844,12 @@ _chip1_process_all:
     call _DYNGATE_29_30_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_29;
-    r1 = BLK_CHAIN_A_P1;
+    r1 = BLK_CHAIN_B_P1;
     call _scope_tap;
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_30;
-    r1 = BLK_CHAIN_A;
+    r1 = BLK_CHAIN_B;
     call _scope_tap;
 #endif
 #elif (DSP4_NODE_LIMIT == 0 || 230 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 28 < DSP4_STRIPS)
@@ -4047,12 +4047,12 @@ _chip1_process_all:
     call _DYNGATE_31_32_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_31;
-    r1 = BLK_CHAIN_A_P1;
+    r1 = BLK_CHAIN_B_P1;
     call _scope_tap;
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_32;
-    r1 = BLK_CHAIN_A;
+    r1 = BLK_CHAIN_B;
     call _scope_tap;
 #endif
 #elif (DSP4_NODE_LIMIT == 0 || 246 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 30 < DSP4_STRIPS)
@@ -4997,12 +4997,12 @@ _chip1_process_all:
     call _DYNGATE_01_02_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_01;
-    r1 = BLK_CHAIN_A_P1;
+    r1 = BLK_CHAIN_B_P1;
     call _scope_tap;
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_02;
-    r1 = BLK_CHAIN_A;
+    r1 = BLK_CHAIN_B;
     call _scope_tap;
 #endif
 #elif (DSP4_NODE_LIMIT == 0 || 8 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 0 < DSP4_STRIPS)
@@ -5192,12 +5192,12 @@ _chip1_process_all:
     call _DYNGATE_03_04_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_03;
-    r1 = BLK_CHAIN_A_P1;
+    r1 = BLK_CHAIN_B_P1;
     call _scope_tap;
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_04;
-    r1 = BLK_CHAIN_A;
+    r1 = BLK_CHAIN_B;
     call _scope_tap;
 #endif
 #elif (DSP4_NODE_LIMIT == 0 || 26 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 2 < DSP4_STRIPS)
@@ -5387,12 +5387,12 @@ _chip1_process_all:
     call _DYNGATE_05_06_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_05;
-    r1 = BLK_CHAIN_A_P1;
+    r1 = BLK_CHAIN_B_P1;
     call _scope_tap;
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_06;
-    r1 = BLK_CHAIN_A;
+    r1 = BLK_CHAIN_B;
     call _scope_tap;
 #endif
 #elif (DSP4_NODE_LIMIT == 0 || 44 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 4 < DSP4_STRIPS)
@@ -5582,12 +5582,12 @@ _chip1_process_all:
     call _DYNGATE_07_08_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_07;
-    r1 = BLK_CHAIN_A_P1;
+    r1 = BLK_CHAIN_B_P1;
     call _scope_tap;
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_08;
-    r1 = BLK_CHAIN_A;
+    r1 = BLK_CHAIN_B;
     call _scope_tap;
 #endif
 #elif (DSP4_NODE_LIMIT == 0 || 62 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 6 < DSP4_STRIPS)
@@ -5777,12 +5777,12 @@ _chip1_process_all:
     call _DYNGATE_09_10_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_09;
-    r1 = BLK_CHAIN_A_P1;
+    r1 = BLK_CHAIN_B_P1;
     call _scope_tap;
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_10;
-    r1 = BLK_CHAIN_A;
+    r1 = BLK_CHAIN_B;
     call _scope_tap;
 #endif
 #elif (DSP4_NODE_LIMIT == 0 || 80 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 8 < DSP4_STRIPS)
@@ -5972,12 +5972,12 @@ _chip1_process_all:
     call _DYNGATE_11_12_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_11;
-    r1 = BLK_CHAIN_A_P1;
+    r1 = BLK_CHAIN_B_P1;
     call _scope_tap;
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_12;
-    r1 = BLK_CHAIN_A;
+    r1 = BLK_CHAIN_B;
     call _scope_tap;
 #endif
 #elif (DSP4_NODE_LIMIT == 0 || 98 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 10 < DSP4_STRIPS)
@@ -6167,12 +6167,12 @@ _chip1_process_all:
     call _DYNGATE_13_14_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_13;
-    r1 = BLK_CHAIN_A_P1;
+    r1 = BLK_CHAIN_B_P1;
     call _scope_tap;
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_14;
-    r1 = BLK_CHAIN_A;
+    r1 = BLK_CHAIN_B;
     call _scope_tap;
 #endif
 #elif (DSP4_NODE_LIMIT == 0 || 116 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 12 < DSP4_STRIPS)
@@ -6362,12 +6362,12 @@ _chip1_process_all:
     call _DYNGATE_15_16_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_15;
-    r1 = BLK_CHAIN_A_P1;
+    r1 = BLK_CHAIN_B_P1;
     call _scope_tap;
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_16;
-    r1 = BLK_CHAIN_A;
+    r1 = BLK_CHAIN_B;
     call _scope_tap;
 #endif
 #elif (DSP4_NODE_LIMIT == 0 || 134 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 14 < DSP4_STRIPS)
@@ -6557,12 +6557,12 @@ _chip1_process_all:
     call _DYNGATE_17_18_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_17;
-    r1 = BLK_CHAIN_A_P1;
+    r1 = BLK_CHAIN_B_P1;
     call _scope_tap;
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_18;
-    r1 = BLK_CHAIN_A;
+    r1 = BLK_CHAIN_B;
     call _scope_tap;
 #endif
 #elif (DSP4_NODE_LIMIT == 0 || 152 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 16 < DSP4_STRIPS)
@@ -6752,12 +6752,12 @@ _chip1_process_all:
     call _DYNGATE_19_20_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_19;
-    r1 = BLK_CHAIN_A_P1;
+    r1 = BLK_CHAIN_B_P1;
     call _scope_tap;
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_20;
-    r1 = BLK_CHAIN_A;
+    r1 = BLK_CHAIN_B;
     call _scope_tap;
 #endif
 #elif (DSP4_NODE_LIMIT == 0 || 170 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 18 < DSP4_STRIPS)
@@ -6947,12 +6947,12 @@ _chip1_process_all:
     call _DYNGATE_21_22_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_21;
-    r1 = BLK_CHAIN_A_P1;
+    r1 = BLK_CHAIN_B_P1;
     call _scope_tap;
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_22;
-    r1 = BLK_CHAIN_A;
+    r1 = BLK_CHAIN_B;
     call _scope_tap;
 #endif
 #elif (DSP4_NODE_LIMIT == 0 || 188 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 20 < DSP4_STRIPS)
@@ -7142,12 +7142,12 @@ _chip1_process_all:
     call _DYNGATE_23_24_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_23;
-    r1 = BLK_CHAIN_A_P1;
+    r1 = BLK_CHAIN_B_P1;
     call _scope_tap;
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_24;
-    r1 = BLK_CHAIN_A;
+    r1 = BLK_CHAIN_B;
     call _scope_tap;
 #endif
 #elif (DSP4_NODE_LIMIT == 0 || 206 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 22 < DSP4_STRIPS)
@@ -7337,12 +7337,12 @@ _chip1_process_all:
     call _DYNGATE_25_26_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_25;
-    r1 = BLK_CHAIN_A_P1;
+    r1 = BLK_CHAIN_B_P1;
     call _scope_tap;
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_26;
-    r1 = BLK_CHAIN_A;
+    r1 = BLK_CHAIN_B;
     call _scope_tap;
 #endif
 #elif (DSP4_NODE_LIMIT == 0 || 224 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 24 < DSP4_STRIPS)
@@ -7532,12 +7532,12 @@ _chip1_process_all:
     call _DYNGATE_27_28_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_27;
-    r1 = BLK_CHAIN_A_P1;
+    r1 = BLK_CHAIN_B_P1;
     call _scope_tap;
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_28;
-    r1 = BLK_CHAIN_A;
+    r1 = BLK_CHAIN_B;
     call _scope_tap;
 #endif
 #elif (DSP4_NODE_LIMIT == 0 || 242 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 26 < DSP4_STRIPS)
@@ -7727,12 +7727,12 @@ _chip1_process_all:
     call _DYNGATE_29_30_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_29;
-    r1 = BLK_CHAIN_A_P1;
+    r1 = BLK_CHAIN_B_P1;
     call _scope_tap;
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_30;
-    r1 = BLK_CHAIN_A;
+    r1 = BLK_CHAIN_B;
     call _scope_tap;
 #endif
 #elif (DSP4_NODE_LIMIT == 0 || 260 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 28 < DSP4_STRIPS)
@@ -7922,12 +7922,12 @@ _chip1_process_all:
     call _DYNGATE_31_32_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_31;
-    r1 = BLK_CHAIN_A_P1;
+    r1 = BLK_CHAIN_B_P1;
     call _scope_tap;
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C1_GATE_32;
-    r1 = BLK_CHAIN_A;
+    r1 = BLK_CHAIN_B;
     call _scope_tap;
 #endif
 #elif (DSP4_NODE_LIMIT == 0 || 278 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 30 < DSP4_STRIPS)

@@ -1,0 +1,107 @@
+{
+ "node": "C2_FX_ENG_01",
+ "n": 1024,
+ "contract": {
+  "pin": "defs-v2026.09.08.4",
+  "sha256": "4aa3c343cedf286e6e74157cbb1265ea589f7b92b3de01a4da5fad7baac477e3"
+ },
+ "arms": [],
+ "input": {
+  "peak": 0.5,
+  "peak_at": 0
+ },
+ "dry": [
+  {
+   "type": 0,
+   "equal": 64
+  },
+  {
+   "type": 3,
+   "equal": 64
+  }
+ ],
+ "echo": {
+  "delay": 240,
+  "tap_at": 240,
+  "tap": 0.5,
+  "between": 0.0,
+  "ok": true,
+  "bypassed": 0
+ },
+ "doubling": {
+  "delay": 720,
+  "tap_at": 720,
+  "tap": 0.5,
+  "between": 0.0,
+  "ok": true,
+  "bypassed": 0
+ },
+ "reverb": {
+  "comb_lens": [
+   1557,
+   1617,
+   1491,
+   1422,
+   1277,
+   1356,
+   1188,
+   1116
+  ],
+  "comb_wptrs": [
+   1187,
+   698,
+   1376,
+   566,
+   404,
+   380,
+   80,
+   272
+  ],
+  "ptr_in_range": true,
+  "comb_line_peaks": [
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "state_ok": false,
+  "tail_peak": 1.4226562976837158,
+  "tail_peak_at": 0,
+  "tail_nonzero": 1024,
+  "tail_energy": 548.7831087086943,
+  "ok": true,
+  "bypassed": 0
+ },
+ "bypass": [
+  {
+   "type": 1,
+   "bypassed": 1,
+   "equal": 64,
+   "ok": true
+  },
+  {
+   "type": 4,
+   "bypassed": 4,
+   "equal": 64,
+   "ok": true
+  },
+  {
+   "type": 5,
+   "bypassed": 5,
+   "equal": 64,
+   "ok": true
+  },
+  {
+   "type": 6,
+   "bypassed": 6,
+   "equal": 64,
+   "ok": true
+  }
+ ],
+ "spi_err_delta": 0,
+ "verdict": "FX_VERIFY_OK"
+}

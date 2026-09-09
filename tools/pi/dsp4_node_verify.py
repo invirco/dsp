@@ -182,6 +182,20 @@ def inject_addr(part, strip):
     overwrites every sample -- the mistake that made the shipping image
     look undrivable for a whole session)."""
     if '_blk_pool' in part.sc.sym:
+        # THE ODD POOL, and this is S9-5's second half in the paired graph.
+        #
+        # A paired build (DSP4_SIMD_DYN) gives the ODD strip of each pair a
+        # whole second pool -- `_blk_pool1`, blk_pool.h -- because both
+        # strips of a pair have to hold live chain blocks at once. Strip 1
+        # is odd, so `_blk_pool` is a slot it never reads: measured on the
+        # part 2026-09-09, every stimulus this tool injected on the paired
+        # candidate reached NOTHING (`_buf_C1_IN_01` through `_buf_C1_FDR_01`
+        # all captured peak 0x00000001) and COMPRESSOR, FADER_PAN and
+        # TUBE_SAT reported NO_STIMULUS on an image whose audio arm read
+        # every one of them LIVE. The symbol only exists in a paired build,
+        # so an unpaired image resolves exactly as it always did.
+        if strip % 2 and '_blk_pool1' in part.sc.sym:
+            return part.sc.sym['_blk_pool1']
         return part.sc.sym['_blk_pool']
     return part.sc.sym['_rx_slot_C1_IN_%02d' % strip]
 

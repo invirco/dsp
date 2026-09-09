@@ -1,7 +1,7 @@
 #!/bin/bash
 # bqeverify_run.sh — boot the staged image and read the round-once verdict.
 set -u
-cd /home/app/dspboot
+cd "${STAGE:-/home/app/dspboot}"
 sudo systemctl stop matrix-app >/dev/null 2>&1
 # BENCH PIN HAND-BACK — the corrected sequence (S8-3, 2026-09-09).
 # The line that used to be here, `pinctrl set 6,7,8,9,10,11,12,22,23,24,25
@@ -76,8 +76,8 @@ python3 dsp4_diag.py --chip 1 2>&1 | grep -E "BOOT_STAGE|MAGIC" \
 # another go.
 for g in 1 2 3 4 5 6; do
   python3 dsp4_diag.py --chip 1 >/dev/null 2>&1
-  python3 dsp4_bqe_verify.py /home/app/dspboot/chip1.sym.json \
-      /home/app/dspboot/bqe_vectors.json "$1"
+  python3 dsp4_bqe_verify.py chip1.sym.json \
+      bqe_vectors.json "$1"
   rc=$?
   [ $rc -eq 0 ] && exit 0
   [ $rc -eq 1 ] && exit 1

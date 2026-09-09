@@ -2462,3 +2462,275 @@ active.
 (`pinctrl set 6,7,8,9,10,11,12,22,23,24,25 a0`, the S8-3 line that boots the
 card as two chip 1s). It is not in this tree, so `check_bench_pins.sh`
 cannot see it. Left as found and recorded.
+
+## Session 12 — 2026-09-09
+
+### S12-1 — the certifying witness now links beside the paired kernels, in a second code overflow region
+
+**Severity: medium (instrument). Status: CLOSED.**
+
+`DSP4_SCOPE_BLK_TAP=1` with `DSP4_STRIP_FUSED=1 DSP4_SIMD_DYN=1` would not
+link: chip 1's code fills Block 3 to within **2 bytes** and Block 2 to
+within **0x134c**, and the witness costs **+2,976 words** in the generated
+chain plus **+155** in `scope.asm`, leaving **0x63e words unmapped** — the
+linker reports the same remainder once for `sec_swco` and once for
+`sec_swco_ovf`, so the real shortfall is **799 words / 1,598 bytes**.
+
+Read out of the link map rather than guessed: at the point of failure Block
+1 had **0x193f8 bytes free** and nothing was allowed to reach it, because
+the LDF gave code exactly two regions. `ADSP-21564.ldf` gains
+`sec_swco_ovf2 > mem_block1_bw`, declared **after** `sec_dmda_ovf`,
+`sec_dmda_c_bw_ovf` and `sec_dma`, so the DM overflow and the DMA
+ping-pong buffers take what they need first and code gets only the
+leftover. The chip-1 candidate places **0x31f words** there; chip 2 never
+reaches it.
+
+Inert when not needed, and checked rather than asserted: the default pair
+rebuilt across the change is byte-identical — `a95fd8eb…` / `fb1eee67…`,
+the same pair the tree built before it. The cost is stated where it lands:
+instruction fetch from Block 1 runs against DDE traffic, which is a TIMING
+price on an instrument build. **No capacity number in this session is taken
+from a build that reaches `sec_swco_ovf2`.**
+
+### S12-2 — the scope tap found pair drivers with a regex, and chip 2's pairs are not called what chip 1's are
+
+**Severity: HIGH (instrument). Status: CLOSED.**
+
+The tap pass matched
+`_(DYNGATE|DYNCOMP|BQPFILT|BQPEQ)_nn_mm_process` — chip 1's four driver
+names. Chip 2's drivers are `_C2PAIR_AUX_LIM_01_02_process`,
+`_C2BQP_MOUT_OEQ_01_02_process`, `_C2PAIR_MSUB_LIM_process` and their
+kind, so **the pass matched none of them** and every chip-2 node run by a
+pair went untapped: in the `DSP4_C2_BQ_PAIRED_GRAPH` chain the tap count
+was **124** against the scalar chain's **200**.
+
+Measured on the part: the paired candidate read **ANTI_FB, CROSSOVER, GEQ
+and LIMITER as NO_CAPTURE** — the scope was armed on a node with no tap in
+that chain, so the capture never completed and the read timed out — while
+every *unpaired* chip-2 family (FX_ENGINE, MONITOR) on the same image read
+LIVE. That is S9-5's shape a third time: an instrument silent about
+exactly the thing it was built to watch.
+
+The fix is not a better regex. `pair_members` is now filled in by the four
+call emitters themselves, so a driver that is called is a driver the
+witness knows the members of, whatever it is named, and adding a fifth
+kind of pair cannot silently drop off. With it, the same image reads 204
+taps in the paired chain and the four families capture.
+
+### S12-3 — a pair driver does not always publish where its class's scalar kernel does
+
+**Severity: HIGH (instrument). Status: CLOSED.**
+
+`_STRIP_BLK_OUT` is a fact about the SCALAR body, and the tap was using it
+for paired call sites too. The chip-1 pair drivers are squared up to one
+convention — channel A out in `BLK_CHAIN_B_P1`, channel B out in
+`BLK_CHAIN_B`. For COMP, FILT and EQ that is the same slot the scalar
+kernel uses, so the difference was invisible. **GATE is the exception:**
+its scalar kernel publishes into `BLK_CHAIN_A` (`A_P1` on the odd strip)
+and `_DYNGATE_nn_mm_process` publishes into `B_P1`/`B`.
+
+On the part the GATE family therefore read **INERT on the paired
+candidate — moved 0 of 64, peak exactly the injected `0x08000000` both
+sides of the step**, because the tap was copying the block the gate had
+READ, while COMPRESSOR, HPF_LPF and EQ_BIQUAD read LIVE on the same image.
+A `_PAIR_BLK_OUT` table now answers for paired call sites, and the tap
+raises rather than guesses if a paired node is witnessed at something that
+is not a pool slot. GATE reads **LIVE** with it.
+
+### S12-4 — the numeric arm injected into the pool the odd strip does not read
+
+**Severity: HIGH (instrument). Status: CLOSED.**
+
+`dsp4_node_verify.inject_addr()` returns `_blk_pool` for any block build.
+A paired build gives the ODD strip of each pair a whole second pool
+(`_blk_pool1`, blk_pool.h) because both strips of a pair must hold live
+chain blocks at once — and the bar drives **strip 1**, which is odd. So
+every stimulus the numeric arm injected on the paired candidate went into
+a slot that strip never reads: `_buf_C1_IN_01` through `_buf_C1_FDR_01`
+all captured **peak 0x00000001**, and COMPRESSOR, FADER_PAN and TUBE_SAT
+reported **NO_STIMULUS** on an image whose audio arm read every one of
+them LIVE. S9-5's second half, restated for the paired graph.
+
+`inject_addr` resolves `_blk_pool1` for an odd strip when the symbol
+exists; it only exists in a paired build, so an unpaired image resolves
+exactly as it always did. With it the three families read **BIT_EXACT**.
+
+### S12-5 — SIMD_DYN is audio-correct; `DSP4_C2_BQ_GRAPH` is not
+
+**Severity: HIGH (audio). Status: OPEN — the chip-2 aux biquad pair.**
+
+With the three instrument defects above fixed, `DSP4_STRIP_FUSED=1
+DSP4_SIMD_DYN=1 DSP4_C2_BQ_GRAPH=0` reads **verdict-for-verdict identical
+to the shipping configuration**: 17 of 20 families LIVE, contract 20/20
+with 0 FAILED, COMPRESSOR / FADER_PAN / TUBE_SAT **BIT_EXACT**, GATE's
+numeric arm NO_STIMULUS exactly as the shipping arm reports it. The
+paired dynamics, the pair-ordered chain, the odd pool, chip 1's paired
+biquads and chip 2's paired *dynamics* are all clean.
+
+**`DSP4_C2_BQ_PAIRED_GRAPH` — chip 2's paired AUX biquads — is not.** With
+it on, on the same image, in the same session, on the same bench:
+
+| family | witness | C2 biquads PAIRED | C2 biquads SCALAR |
+|---|---|---|---|
+| GEQ | `_buf_C2_AUX_GEQ_01` | peak `0x08000000` -> `0x08000000`, **moved 0/64** — INERT | peak `0x08000000` -> `0x082DE520`, moved 64/64 — LIVE |
+| ANTI_FB | `_buf_C2_AUX_AFB_01` | peak `0x08000000` -> `0x08000000`, **moved 0/64** — INERT | peak `0x08000000` -> `0x07FB92D0`, moved 64/64 — LIVE |
+| CROSSOVER | `_buf_C2_MAIN_OEQ_01` | peak `0x07E960D0` -> `0x074AF178`, moved 64/64 — LIVE | LIVE, identical numbers |
+
+It is not the witness: the address is the node's own `_blk_<nid>` array in
+both arms, the unpaired arm proves that address is right, and
+`_C2BQP_MOUT_OEQ_01_02` moves its block on the same image.
+
+**THE MECHANISM IS NAMED, by two independent bars that read the
+COEFFICIENT BANK rather than the audio.** On candA, `geqverify` and
+`afbverify` both report the node's own live bank still at IDENTITY after
+the host has written the parameters:
+
+| bar | live bank | worst coefficient error | modelled response error | live tone |
+|---|---|---|---|---|
+| `geqverify` | `_geq_coeffs_A_C2_AUX_GEQ_01` | 50,965,640 ulp (word 89) | **-12.00000 dB** — the whole designed band gain | +0.000 dB at every point |
+| `afbverify` | `_afb_coeffs_A_C2_AUX_AFB_01` | 83,887,018 ulp (word 1) | **+18.00000 dB** — the whole designed notch | +0.000 dB at every point |
+
+The same two bars on the same image with `DSP4_C2_BQ_GRAPH=0` read those
+banks correct to **1-3 ulp**. So on a paired chip-2 build **a GEQ band gain
+and an AFB notch gain never become coefficients at all**; the node is
+called, it runs, and it has nothing to apply. That rules out the
+alternative this finding first left open — that the node is simply not in
+the paired chain — and it locates the fault in the parameter-to-coefficient
+path under `DSP4_C2_BQ_PAIRED_GRAPH`, not in the pair kernel's arithmetic.
+Which side of the latch drops the write (the node's own design step never
+running, or running into the interleaved copy) is the one thing still to
+settle, and it is now a one-arm question.
+
+### S12-6 — two chip-2 nodes are not called at all in the dynamics-only paired chain
+
+**Severity: medium (audio, control arm). Status: OPEN.**
+
+`_C2_CODEC_AUX_OUT_process` and `_C2_MAIN_ST_OUT_process` are called in the
+scalar chip-2 chain and in the `DSP4_C2_BQ_PAIRED_GRAPH` chain, and **not
+at all** in the `DSP4_PAIRED_GRAPH`-only chain (`c2grun`) — 198 tapped
+nodes there against 200 in the other two. That arm is the one the
+240,681-cycle chip-2 figure was measured on, so the figure is missing two
+nodes of work as well as being an arm nothing ships. Found by counting
+taps per chain variant, not by a bench run; not chased this session.
+
+### S12-7 — `DIAG_BUILD_CFG2` does not carry the graph switches, and two images that differ in AUDIO read the same word
+
+**Severity: medium (record). Status: OPEN.**
+
+`DIAG_BUILD_CFG2` carries the decimation factor, `DSP4_STRIP_FUSED`,
+`DSP4_SIMD_DYN`, `DSP4_SIMD_GRAPH`, `DSP4_SIMD_STRIPS`,
+`DSP4_SCOPE_BLK_TAP`, `DSP4_TX_EARLY`, `DSP4_GATHER_FIRST` and
+`DSP4_FX_TYPE_DECLARED`. It does **not** carry `DSP4_BQ_GRAPH` or
+`DSP4_C2_BQ_GRAPH`.
+
+So the two candidate images of this session — one of which loses parameter
+changes on chip 2's aux biquads (S12-5) and one of which does not — both
+read back **`0xC201004F`**, and a bench holding one of them cannot tell
+which it has. That is S8-2's shape in the word that was added to end
+S8-2's shape. Bits 5 and 10 of the second word are free.
+
+Not fixed here: adding them changes the value a shipping image reads back
+and therefore the default pair's bytes for the third time this week, and
+the two switches are named in `shipping.config` in the meantime.
+
+### S12-8 — four of the six design bars were reading a block-kernel image through the pre-block witness
+
+**Severity: HIGH (instrument). Status: CLOSED for the bars run here, OPEN as a default.**
+
+`fxverify.sh`, `afbverify.sh`, `geqverify.sh` and `xoververify.sh` arm the
+scope on `_buf_<node>` and none of them sets `DSP4_SCOPE_BLK_TAP`. S11-5
+found and fixed exactly this in `famverify.sh` and the fix was not carried
+to the others.
+
+Measured this session, same configuration, one variable: on the staged
+shipping pair `ac65ad38…`/`e5dce9e4…` — no tap — `fxverify` reports
+
+    input at _buf_C2_RECV_FX_01: peak 0.000000 at sample -1
+    INPUT SILENT — no verdict is possible from this run
+
+and exits 1. On the same configuration rebuilt with the tap
+(`25f0a532…`/`9d713603…`) the same bar runs to **FX_VERIFY_OK**, every
+sub-check PASS. The bar was not failing; it was reading a one-word `.var`
+the chip-2 block kernels never write, and reporting that as silence.
+
+All six bars in this session were run on tap-enabled images, and the four
+scripts now **default the tap ON**, the way `famverify.sh` has since S11-5:
+`export DSP4_SCOPE_BLK_TAP="${DSP4_SCOPE_BLK_TAP:-1}"`, with
+`DSP4_SCOPE_BLK_TAP=0` left as the control that reproduces the old reading.
+Leaving a default that is known to produce a confident wrong answer is the
+thing this session spent most of its time undoing.
+
+It does NOT rescue `xoververify`, which stalls for a different reason — it
+arms on `_buf_lp_<nid>`, an address the tap does not cover at all (S12-2's
+class, in a bar). That one is still open.
+
+### S12-9 — `afbverify`'s live tone arm fails on the pair that ships, and it passed on 2026-09-08
+
+**Severity: HIGH if it is the audio, medium if it is the capture. Status: OPEN, not attributed.**
+
+Run on the staged shipping pair (`blk_*`, rebuilt with the tap), the
+anti-feedback bar's DESIGN arms all pass — five parameter sets, worst
+4 ulp on the coefficients, worst response error 0.00009 dB against a
+0.050 dB bar. Its LIVE tone arm does not:
+
+| point | 2026-09-08 | this session, `blk_*` | model |
+|---|---|---|---|
+| 250 Hz, two below | −0.0374 dB | −0.1927 dB | −0.0374 |
+| **1 kHz, notch centre** | **−17.99989 dB** | **−4.7987 dB** | **−18.000** |
+| 4 kHz, two above | −0.0358 dB | +0.2386 dB | −0.0358 |
+
+`AFB_DESIGN_OK` then, `AFB_DESIGN_FAIL` now, same bar, same node, same
+contract pin. The 09-08 image is a PER-SAMPLE, block-8, 491.52 MHz build;
+`blk_*` is the block-kernel, block-16, 983.04 MHz pair. Nothing between
+them was an AFB change.
+
+Two readings fit and this session did not separate them:
+
+* **The audio.** The notch is genuinely reaching about a quarter of its
+  designed depth in the pair that ships.
+* **The capture.** The 1024-sample window is assembled from 64 consecutive
+  `_scope_tap` block copies. If those copies are not consecutive IN TIME,
+  the tone's phase jumps between blocks, which spreads energy and raises
+  the measured level at the notch — and would also account for the
+  0.15–0.27 dB error at the two passband points, which no filter change
+  explains.
+
+The passband drift is the tell and it points at the capture, but "points
+at" is not a measurement. **Separating them is one arm**: the same bar on
+the same image with a stimulus that is coherent block-to-block, or a
+capture that verifies its own block continuity. It is not
+candidate-specific — it is the shipping pair.
+
+### S12-10 — the latency tool's margin guard has a hole, and it swallowed a whole arm
+
+**Severity: HIGH (instrument). Status: CLOSED.**
+
+`dsp4_dsp_latency.py` warns when the winning offset's margin over the
+runner-up is under 2x. When the runner-up is **0.0** the margin computes as
+**infinite**, so `worst < 2.0` is false and a run in which NOTHING
+correlated with the stimulus prints a clean-looking summary. S11-6 fixed
+the CAUSE of that signature — the missing `dsp4_passthru_setup.py` — and
+left the reporting hole open.
+
+It returned on 2026-09-09. Both candidate arms, with and without
+`DSP4_TX_EARLY=2`, read **offset 14779 on all 20 reps of both boots,
+spread 0, coherent fraction 0.0 %** — S11-6's signature exactly, with the
+pass-through setup demonstrably running (`chip2: 12 cells written, all
+present in the contract`, main-bus sources at `0x0`).
+
+**The control is what settles it: the same arm on the staged shipping pair
+`blk_*` reads the identical 14779 / 0.0 %.** The instrument is at fault and
+the candidate is uninvolved — so no latency figure was taken this session
+and S11's 66 samples / 1.375 ms at block 16 is not overwritten with a null.
+
+Cause, from the bench state: the through-DSP arm needs the `_maincap`
+bitstream AND a duplex PCM overlay. The bench lives on `dsp4-pcm-slave`,
+where the capture device exists and returns audio that is not the DSP's
+output — a well-formed capture with nothing in it. S11 measured
+successfully because it flipped to the duplex overlay and restored
+afterwards (`config.txt.s11bak`); that flip is a `config.txt` line and a
+REBOOT and was not taken here.
+
+`dsp4_dsp_latency.py` now refuses the verdict when the coherent fraction is
+0.0 % on every rep, exits 2, and names the capture-path requirement in the
+message.

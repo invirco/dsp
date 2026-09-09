@@ -311,3 +311,76 @@ three numeric arms BIT_EXACT** on the shipping configuration.
 `fxverify`, `afbverify`, `geqverify`, `xoververify`. They build and scp over
 `~/dspboot/chip[12].ldr` and have no `STAGE`; `famverify.sh` has one and was
 the only family bar run from a staged path this session.
+
+## 8. Addendum, 2026-09-09 latest — S12: the 29.6 % lever settled, Option A adopted, and what the candidate is
+
+**Three things in §7 are now answered or superseded.**
+
+1. **"The other 29.6 % is `DSP4_SIMD_DYN`, whose audio arm does not pass" —
+   it does pass.** The four families that read NO_CAPTURE, the GATE that
+   read INERT and the three numeric arms that read NO_STIMULUS were
+   **three separate defects in the INSTRUMENT**, not in the audio
+   (findings S12-2, S12-3, S12-4). With them fixed, `DSP4_STRIP_FUSED=1
+   DSP4_SIMD_DYN=1 DSP4_C2_BQ_GRAPH=0` reads **17 of 20 families LIVE,
+   contract 20/20 with 0 FAILED, COMPRESSOR / FADER_PAN / TUBE_SAT
+   BIT_EXACT** — verdict for verdict what the shipping pair reads, GATE's
+   numeric NO_STIMULUS included.
+2. **"The certifying witness does not fit alongside it" — it does now.**
+   `ADSP-21564.ldf` gains a second code overflow region into Block 1's
+   leftover (S12-1). The default pair is byte-identical across that change;
+   it is inert unless code actually overflows Blocks 3 and 2.
+3. **S9-2 Option A is RULED AND ADOPTED on chip 2** (PW, 14:3x).
+   `DSP4_TX_EARLY=2` is in `shipping.config` unconditionally,
+   `DSP4_GATHER_FIRST` stays on beside it, block 16 is ruled the shipping
+   block size, and **the through-DSP contract figure is 82 samples /
+   1.708 ms**. §7's 66 samples was the `TX_EARLY=0` figure and is
+   superseded by the ruling, not by a new measurement.
+
+**And there is one thing §7 did not know: the lever splits, and only half
+of it can ship.**
+
+`DSP4_C2_BQ_GRAPH` — chip 2's paired AUX and MAIN biquads, derived from
+`DSP4_SIMD_DYN` — **loses parameter changes** (S12-5). A band gain written
+into a paired AUX GEQ and a notch gain written into a paired AUX AFB never
+become coefficients at all: `geqverify` and `afbverify` both read the
+node's own live bank still at **identity** after the host wrote the
+parameters, with a modelled response error equal to the whole designed
+filter (−12.00000 dB and +18.00000 dB), against **1–3 ulp** on the same
+image with the switch off. `bqeverify` passes on the paired cascade kernel
+over 36,864 words, so the SIMD arithmetic is right — the fault is
+coefficient DELIVERY. It is off in `shipping.config` and PW's ruling on it
+is not needed to ship; settling it is one arm's work and it is worth 20 %
+of chip 2's budget.
+
+### The decision table
+
+| | shipping `blk_*` | **candidate** (`cand_*`) |
+|---|---|---|
+| chip 1 / chip 2 md5 | `ac65ad38…` / `e5dce9e4…` | **`fcebc2e1…` / `86662b92…`** |
+| switches beyond the file | none | `DSP4_STRIP_FUSED=1 DSP4_SIMD_DYN=1` |
+| `DIAG_BUILD_CFG` / `CFG2` | `0xCF45FF10` / **no second word** — `blk_*` predates it (S11) | `0xCF45FF10` / `0xC201024F`, read back on the part |
+| **D24 chip 1** | 71.5 % avg, 84.8 % worst | **59.1 – 59.3 % avg, 72.4 – 72.5 % worst** |
+| **D24 chip 2** | 92.7 % avg | **83.2 – 83.5 % avg**, zero overruns |
+| **D32 verdict** | DOES NOT FIT (chip 2 112.7 %, 11.26 % missed) | **STILL DOES NOT FIT** — chip 2 102.5 – 102.7 %, 2.37 % missed on both boots |
+| through-DSP latency | 82 samples / 1.708 ms (Option A, ruled) | 82 samples / 1.708 ms |
+| family walk | 17/20 LIVE, 20/20 contract, 3 BIT_EXACT | **17/20 LIVE, 20/20 contract, 3 BIT_EXACT** |
+| `fxverify` / `busgold` / `bqeverify` | OK / BIT-EXACT / PASS | **OK / BIT-EXACT / PASS** |
+| `afbverify` / `geqverify` live tone | FAIL, unattributed (S12-9) | identical, to every digit |
+| `xoververify` | stalls (S12-8/S12-2 class) | stalls, identically |
+
+**What H1S3/H1S4 and the app must rebuild against: NOTHING NEW.** The
+contract is still `defs-v2026.09.08.4`, the address map is unchanged, block
+16 is unchanged, and no cell moved. §2 stands exactly as written. The only
+host-visible change is the alignment figure, which moves to **82 samples /
+1.708 ms** with Option A — and that moves for the SHIPPING pair too,
+because the ruling applies to `shipping.config`, not to the candidate.
+
+**Rollback is unchanged** — §3 stands. `~/dspboot/ship_*` and `blk_*` are
+untouched and byte-identical; the candidate is staged BESIDE them as
+`cand_chip1.ldr` / `cand_chip2.ldr` and nothing boots it unless asked.
+
+**What adopting the candidate buys and costs.** It buys D24 margin — chip 1
+from 84.8 % to 72.4 % on the worst block, chip 2 from 92.7 % to 83–87 % —
+for no contract change, no PCB change and no host rebuild. It does not buy
+D32 on its own: that needs `DSP4_C2_BQ_GRAPH`, and that switch is not
+audio-correct yet.

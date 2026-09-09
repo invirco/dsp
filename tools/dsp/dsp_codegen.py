@@ -12731,6 +12731,28 @@ _STRIP_BLK_OUT = {
 }
 
 
+# WHERE A PAIR DRIVER LEAVES ITS TWO OUTPUT BLOCKS, which is NOT always
+# where the scalar kernel of the same class leaves one.
+#
+# `_STRIP_BLK_OUT` above is a fact about the SCALAR body. The chip-1 pair
+# drivers are squared up to one convention -- channel A out in
+# BLK_CHAIN_B_P1, channel B out in BLK_CHAIN_B -- and for three of the four
+# classes that is the same slot the scalar kernel uses, so the difference
+# was invisible. GATE is the exception: its scalar kernel publishes into
+# BLK_CHAIN_A (A_P1 on the odd strip) and `_DYNGATE_nn_mm_process` publishes
+# into B_P1/B. Measured on the part 2026-09-09: with the scalar address the
+# GATE family read INERT on the paired candidate -- moved 0 of 64, peak
+# exactly the injected 0x08000000 -- because the tap was copying the block
+# the gate had READ, not the one it wrote, while COMPRESSOR, HPF_LPF and
+# EQ_BIQUAD (whose two addresses coincide) read LIVE on the same image.
+#
+# So the tap asks the DRIVER's table for a paired node, not the kernel's.
+_PAIR_BLK_OUT = {'GATE': ('BLK_CHAIN_B_P1', 'BLK_CHAIN_B'),
+                 'COMP': ('BLK_CHAIN_B_P1', 'BLK_CHAIN_B'),
+                 'FILT': ('BLK_CHAIN_B_P1', 'BLK_CHAIN_B'),
+                 'EQ':   ('BLK_CHAIN_B_P1', 'BLK_CHAIN_B')}
+
+
 def _blk_out_of(nid, body, odd):
     """Where node `nid`'s output block lives at the instant its kernel
     returns, or None if it publishes no single block.
@@ -14236,6 +14258,26 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
         # are generated and used by the block-aware scope tap below.
         blk_out = {}
         rx_redirect = {}
+        # WHICH NODES A PAIR DRIVER COVERS, recorded WHERE THE CALL IS
+        # EMITTED rather than recovered from the chain text afterwards.
+        #
+        # The scope tap used to find pair drivers with a regex over the
+        # finished chain -- `_(DYNGATE|DYNCOMP|BQPFILT|BQPEQ)_nn_mm_process`,
+        # chip 1's four names. Chip 2's drivers are called `_C2PAIR_*` and
+        # `_C2BQP_*` and carry a class tag rather than a strip number, so
+        # the pass matched none of them and every chip-2 node that a pair
+        # runs went UNTAPPED: measured 2026-09-09, the paired candidate
+        # read ANTI_FB, CROSSOVER, GEQ and LIMITER as NO_CAPTURE -- the
+        # scope never completed, because the node it was armed on has no
+        # tap in that chain -- while the same image read every unpaired
+        # chip-2 family LIVE. That is the S9-5 failure a third time: an
+        # instrument that is silent about the thing it was built to watch.
+        #
+        # So the mapping is built by the emitters themselves. A driver
+        # that is called is a driver that is in here, whatever it is
+        # named, and adding a fifth kind of pair cannot silently drop it
+        # off the witness.
+        pair_members = {}
         odd_pool_ids = set()
         for sn, cls in strips.items():
             if sn % 2:
@@ -14678,6 +14720,11 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                         _p = pos_of[tuple(ent)]
                         f.write(f'#if DSP4_C2_XPAIR\n')
                         f.write(f'#if ({_NL} == 0 || {_p} < {_NL})\n')
+                        # chip 2's drivers publish into the node's own
+                        # `_blk_<nid>`, the same array the scalar body
+                        # writes, so the kernel's table is already right.
+                        pair_members[f'C2PAIR_{ent[1]}'] = [(ent[2], None),
+                                                            (ent[3], None)]
                         f.write(f'    call _C2PAIR_{ent[1]}_process;\n')
                         f.write('#endif\n')
                         for _pn in (ent[2], ent[3]):
@@ -14712,6 +14759,10 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                         _p = pos_of[tuple(ent)]
                         _dr = ('_C2BQP_' if ent[0] == 'c2bqp'
                                else '_C2PAIR_')
+                        pair_members[
+                            f'{_dr[1:]}{ent[1]}_{ent[2]}_{ent[3]}_{ent[4]}'] = [
+                                (_c2_nid[(ent[1], ent[2], ent[3])], None),
+                                (_c2_nid[(ent[1], ent[2], ent[4])], None)]
                         f.write(f'#if ({_NL} == 0 || {_p} < {_NL})\n')
                         f.write(f'    call {_dr}{ent[1]}_{ent[2]}_'
                                 f'{ent[3]}_{ent[4]}_process;\n')
@@ -14750,6 +14801,10 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                         f.write(f'#if ({_nl}) && (DSP4_STRIPS == 0 || '
                                 f'{_sb - 1} < DSP4_STRIPS)\n')
                         _pfx = ('DYN' if _cls in _STRIP_DYN else 'BQP')
+                        _po = _PAIR_BLK_OUT[_cls]
+                        pair_members[f'{_pfx}{_cls}_{_tag}'] = [
+                            (strips[_sa][_cls], _po[0]),
+                            (strips[_sb][_cls], _po[1])]
                         f.write(f'    call _{_pfx}{_cls}_{_tag}_process;\n')
                         f.write(f'#elif ({_nl}) && (DSP4_STRIPS == 0 || '
                                 f'{_sa - 1} < DSP4_STRIPS)\n')
@@ -15104,25 +15159,38 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
         # of them would witness some families and silently not others --
         # which is the exact failure this instrument exists to end.
         #
-        # A pair DRIVER call covers two strips, so it gets two taps: the
+        # A pair DRIVER call covers two nodes, so it gets two taps: the
         # driver leaves each channel where that channel's own node would
         # have left it, so the addresses are the members' and not the
-        # driver's. The tap is inside #if DSP4_SCOPE_BLK_TAP, so a default
-        # build emits nothing -- verified by rebuilding the shipping pair
-        # and comparing the md5, not by reading this comment.
-        _PAIR_CALL_RE = re.compile(
-            r'^(\s*)call _(DYNGATE|DYNCOMP|BQPFILT|BQPEQ)_(\d+)_(\d+)_process;$')
+        # driver's. WHICH nodes comes from `pair_members`, which the call
+        # emitters fill in as they write -- not from the driver's name.
+        # The old pass read the name with a regex over chip 1's four
+        # prefixes and therefore tapped none of chip 2's pairs; see the
+        # note at `pair_members` for what that cost. The tap is inside
+        # #if DSP4_SCOPE_BLK_TAP, so a default build emits nothing --
+        # verified by rebuilding the shipping pair and comparing the md5,
+        # not by reading this comment.
         _NODE_CALL_RE = re.compile(r'^(\s*)call _([A-Za-z0-9_]+)_process;$')
-        _PAIR_NODE = {'DYNGATE': 'GATE', 'DYNCOMP': 'COMP',
-                      'BQPFILT': 'FILT', 'BQPEQ': 'EQ'}
         _decl_rx = set()
-        _cnum = chip_label[-1]
 
-        def _tap_lines(indent, nid):
+        def _tap_lines(indent, nid, pair_slot=None):
             out = blk_out.get(nid)
             if not out:
                 return []
             _kind, out = out
+            if pair_slot is not None:
+                # A PAIRED CALL SITE. The driver's slot replaces the scalar
+                # kernel's, and the node must be a pooled one for that to
+                # mean anything -- a node witnessed at its own block array
+                # has no pool slot to override and would be silently
+                # mis-addressed here.
+                if _kind != 'blk' or not out.startswith('BLK_'):
+                    raise SystemExit(
+                        f'{nid} is witnessed at {out!r}, which is not a pool '
+                        f'slot, but it is a member of a pair whose driver '
+                        f'publishes into {pair_slot}. The tap cannot choose '
+                        f'between them -- fix _PAIR_BLK_OUT.')
+                out = pair_slot
             _fn = '_scope_tap' if _kind == 'blk' else '_scope_tap1'
             # Directives at column 0 like every other guard in this file;
             # only the instructions take the call site's indent.
@@ -15156,23 +15224,23 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                     _out_lines.append(f'{_ind}r0 = 0;')
                 _out_lines.append('#endif')
             _out_lines.append(_ln)
-            m = _PAIR_CALL_RE.match(_ln)
-            if m:
-                for _sn in (m.group(3), m.group(4)):
-                    _nid = f'C{_cnum}_{_PAIR_NODE[m.group(2)]}_{_sn}'
-                    _t = _tap_lines(m.group(1), _nid)
+            m = _NODE_CALL_RE.match(_ln)
+            if not m:
+                continue
+            _sym = m.group(2)
+            if _sym in pair_members:
+                for _nid, _slot in pair_members[_sym]:
+                    _t = _tap_lines(m.group(1), _nid, _slot)
                     if _t:
                         _out_lines.extend(_t)
                         _tapped.add(_nid)
                 continue
-            m = _NODE_CALL_RE.match(_ln)
-            if m:
-                _last_node = m.group(2)
-                if m.group(2) in blk_out:
-                    _t = _tap_lines(m.group(1), m.group(2))
-                    if _t:
-                        _out_lines.extend(_t)
-                        _tapped.add(m.group(2))
+            _last_node = _sym
+            if _sym in blk_out:
+                _t = _tap_lines(m.group(1), _sym)
+                if _t:
+                    _out_lines.extend(_t)
+                    _tapped.add(_sym)
         if _tapped:
             # The tap needs the pool macros and every tapped node's _buf_
             # symbol. Both go in behind the same guard as the taps.

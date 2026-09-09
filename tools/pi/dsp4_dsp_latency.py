@@ -135,6 +135,28 @@ def main():
     print("  worst margin over the runner-up: x%.1f" % worst)
     if worst < 2.0:
         print("  WARNING: a margin under 2x is not a measurement -- do not quote it")
+    # THE MARGIN GUARD ABOVE HAS A HOLE AND IT SWALLOWED A WHOLE ARM (S12-10).
+    #
+    # When the runner-up is 0.0 the margin is INFINITE, so `worst < 2.0` is
+    # false and a run in which NOTHING correlated printed a clean-looking
+    # summary. That is exactly S11-6's signature -- offset 14779 on every
+    # rep, spread 0, coherent 0.0 % -- and S11-6 fixed the CAUSE (the
+    # missing pass-through setup) without closing the reporting hole, so
+    # 2026-09-09 it returned the same confident wrong answer on both the
+    # candidate and, in the control, on the shipping pair.
+    #
+    # An offset whose coherent fraction is zero is the best of a flat
+    # field. It is not a latency and this tool now refuses to be quoted
+    # for one.
+    best_coherent = max(f for _, f, _ in results)
+    if best_coherent <= 0.0:
+        print("  NO VERDICT: the coherent fraction is 0.0%% on every rep -- "
+              "nothing in the capture correlates with the stimulus, so the "
+              "offset is the best of a flat field and is NOT a latency. "
+              "Check the capture path (the through-DSP arm needs the "
+              "_maincap bitstream AND a duplex PCM overlay) before "
+              "re-running.")
+        return 2
     return 0
 
 

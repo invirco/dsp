@@ -62,6 +62,21 @@ cd "$(dirname "$0")"
 source ./bench_lock.sh; bench_lock_acquire "$0"
 BENCH=app@192.168.1.219
 ROOT=../../../..
+# WHERE THIS RUN'S IMAGES LIVE ON THE BENCH (S10-7). ~/dspboot holds the
+# staged pairs the window rolls back to (blk_*, chip*, conf_*, ship_*,
+# tx_*, cand_*), and this script used to scp its build straight over
+# chip1.ldr and chip2.ldr, two of them. A measurement bar must not be
+# able to destroy the artifact the product ships. Default stays
+# /home/app/dspboot so nothing that calls this changes behaviour; set
+# STAGE to run from anywhere else.
+STAGE="${STAGE:-/home/app/dspboot}"
+# A staging path other than ~/dspboot needs the shared bench helpers the run
+# script imports (dsp4_scope/dsp4_diag/dsp4_config/gainfix). Symlinked, not
+# copied, so there is one working set and a staged run cannot drift from it.
+if [ "$STAGE" != "/home/app/dspboot" ]; then
+  ssh $BENCH "mkdir -p '$STAGE' && for f in /home/app/dspboot/*.py; do \
+      ln -sfn \"\$f\" '$STAGE'/\$(basename \"\$f\"); done" || exit 3
+fi
 # Default to the SHIPPING block size rather than a literal. shipping.config
 # is the one place it is named; a literal here is how a measurement ends up
 # taken at a block size the product does not run (findings S8-2).
@@ -141,14 +156,14 @@ chip2.ldr $(md5sum $D/chip2.ldr | cut -c1-8)"
     python3 $ROOT/tools/dsp/map_syms.py "$D/chip1.map.xml" > /tmp/chip1.sym.json
     scp -q "$D/chip1.ldr" "$D/chip2.ldr" /tmp/chip1.sym.json \
         "$WORK/bqe_vectors.json" \
-        $ROOT/tools/pi/dsp4_bqe_verify.py $BENCH:/home/app/dspboot/
+        $ROOT/tools/pi/dsp4_bqe_verify.py $BENCH:$STAGE/
     # BENCH PROCEDURE (S8-3): the boot tool and the chip-identity gate go
     # with every run, so a bench cannot be left on a stale dsp4_boot.py that
     # still hands GPIO 6/24 to a0. Path is script-relative, not $ROOT: not
     # every script in here defines one.
-    scp -q "$(dirname "$0")/../../../../tools/pi/dsp4_checkchip.py" "$(dirname "$0")/../../../../tools/pi/dsp4_boot.py" $BENCH:/home/app/dspboot/
+    scp -q "$(dirname "$0")/../../../../tools/pi/dsp4_checkchip.py" "$(dirname "$0")/../../../../tools/pi/dsp4_boot.py" $BENCH:$STAGE/
     scp -q bqeverify_run.sh $BENCH:/home/app/
-    ssh $BENCH "bash /home/app/bqeverify_run.sh $ro"
+    ssh $BENCH "STAGE='$STAGE' bash /home/app/bqeverify_run.sh $ro"
 }
 
 rc=0

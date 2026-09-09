@@ -87,6 +87,14 @@ cd "$(dirname "$0")"
 source ./bench_lock.sh; bench_lock_acquire "$0"
 BENCH=app@192.168.1.219
 ROOT=../../../..
+# WHERE THIS RUN'S IMAGES LIVE ON THE BENCH (S10-7). ~/dspboot holds the
+# staged pairs the window rolls back to (blk_*, chip*, conf_*, ship_*,
+# tx_*, cand_*), and this script used to scp its build straight over
+# chip1.ldr and chip2.ldr, two of them. A measurement bar must not be
+# able to destroy the artifact the product ships. Default stays
+# /home/app/dspboot so nothing that calls this changes behaviour; set
+# STAGE to run from anywhere else.
+STAGE="${STAGE:-/home/app/dspboot}"
 # dsp4_block.py IS STAGED FROM THE TREE THIS POINT WAS BUILT FROM, not
 # from tools/pi, for captable.sh's reason: the Pi-side scorer must be told
 # the block rate the image on the part was actually built with. conform.sh
@@ -100,6 +108,14 @@ STRIP="${STRIP:-1}"; N="${N:-256}"; STRIPS="${STRIPS:-2}"; TAG="${TAG:-cur}"
 GOLD="${GOLD:-goldens/busgraph-postD59-20260830.json}"
 OUT=/tmp/busgold; mkdir -p $OUT
 
+# A staging path other than ~/dspboot needs the shared bench helpers the run
+# script imports (dsp4_scope/dsp4_diag/dsp4_config/gainfix). Symlinked, not
+# copied, so there is one working set and a staged run cannot drift from it.
+if [ "$STAGE" != "/home/app/dspboot" ]; then
+  ssh $BENCH "mkdir -p '$STAGE' && for f in /home/app/dspboot/*.py; do \
+      ln -sfn \"\$f\" '$STAGE'/\$(basename \"\$f\"); done" || exit 3
+fi
+
 DSP4_BISECT=0 DSP4_BLOCK_KERNELS=1 DSP4_STRIPS=$STRIPS \
   DSP4_CTL_ALWAYS=${CTL_ALWAYS:-0} DSP4_CTL_NEGCTL=${CTL_NEGCTL:-0} \
   DSP4_SIMD_DYN=${SIMD:-0} DSP4_STRIP_FUSED=${FUSED:-0} \
@@ -111,14 +127,14 @@ chip2.ldr $(md5sum build/chip2.ldr | cut -c1-8)"
 python3 $ROOT/tools/dsp/map_syms.py build/chip1.map.xml > /tmp/chip1.sym.json
 scp -q build/chip1.ldr build/chip2.ldr /tmp/chip1.sym.json \
     "$BLOCKPY" $ROOT/tools/pi/dsp4_pairgraph.py \
-    $BENCH:/home/app/dspboot/
+    $BENCH:$STAGE/
 # BENCH PROCEDURE (S8-3): the boot tool and the chip-identity gate go
 # with every run, so a bench cannot be left on a stale dsp4_boot.py that
 # still hands GPIO 6/24 to a0. Path is script-relative, not $ROOT: not
 # every script in here defines one.
-scp -q "$(dirname "$0")/../../../../tools/pi/dsp4_checkchip.py" "$(dirname "$0")/../../../../tools/pi/dsp4_boot.py" $BENCH:/home/app/dspboot/
+scp -q "$(dirname "$0")/../../../../tools/pi/dsp4_checkchip.py" "$(dirname "$0")/../../../../tools/pi/dsp4_boot.py" $BENCH:$STAGE/
 scp -q pairgraph_run.sh $BENCH:/home/app/
-ssh $BENCH "bash /home/app/pairgraph_run.sh $STRIP $N $TAG '' ${DLYOFF:-0}" || exit 4
-scp -q $BENCH:/home/app/dspboot/pairgraph_$TAG.json $OUT/ || exit 4
+ssh $BENCH "STAGE='$STAGE' bash /home/app/pairgraph_run.sh $STRIP $N $TAG '' ${DLYOFF:-0}" || exit 4
+scp -q $BENCH:$STAGE/pairgraph_$TAG.json $OUT/ || exit 4
 echo "=== vs $GOLD ==="
 python3 $ROOT/tools/pi/dsp4_pairgraph.py --compare "$GOLD" $OUT/pairgraph_$TAG.json
