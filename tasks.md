@@ -1,3 +1,85 @@
+## HUB DISPATCH 2026-09-09 04:04Z — Through-DSP loop arm CLOSED — frame-locked capture instrument in LOGIC + readable design-ID register (S5-9) in one bitstream; true through-DSP latency measured; R6 leftovers folded in; window pair in ~/dspboot untouched   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+The through-DSP loop arm CLOSED — a frame-locked capture instrument in LOGIC (S5-10 mechanism named: `_maincap` is not frame-locked to the CM4 capture DMA) and a readable design-ID register (S5-9) in the same bitstream; the true through-DSP latency measured; R6's two untouched-file leftovers folded in
+
+WHY. Three sessions have measured the CPLD-loop bound (≤ 31 samples /
+0.65 ms, boot-to-boot ZERO) and none could close the arm through the
+DSPs. The mask session (dsp 77674fb) named the mechanism: a constant
+through Pi → CPLD → DSPA → fabric → DSPB → CPLD → Pi returns BIT-EXACT, a
+1,500-step staircase returns EVERY value — but as 82,042 runs where a
+clean loop gives 1,500, 86 % of them one frame long. The `_maincap`
+capture (`o_dspb[3]` slot 0) is NOT frame-locked to the CM4 capture DMA;
+`_pisel`, which closes the same loop inside LOGIC, returns 48,000 of
+48,000 at one offset. So the DSP carries the audio and the INSTRUMENT
+scrambles the order. Closing it needs a frame-locked capture; the same
+session found the design has no ID register (identity was proved
+behaviourally, five flashes running). Neither blocks the window, but the
+through-DSP latency is the number that completes the SPORT/CPLD
+verification story PW asked about on 09-08, and the ID register makes
+every future flash self-identifying.
+
+BENCH. Rev C unit: CPLD `a1f6672af6c3` (shipping, positively identified),
+~/dspboot staged with the WINDOW pair chip1 093c609f / chip2 2ba0e464 +
+`conf_*` (602a0feb / b1325022) + `ship_*` untouched — DO NOT REPLACE OR
+REORDER THESE; if this session needs a DSP image, run it from a separate
+staging path and say so. Flash path is OpenOCD linuxgpiod on the bench
+CM4's GPIOs (TCK 7 TDI 23 TDO 22 TMS 25), IDCODE before/after, `pinctrl
+… a0` after each — as the latency session documented. matrix-app active;
+leave the unit as found (shipping bitstream restored unless gate 5 says
+otherwise). No AI attribution in commits or any work product.
+
+GATES, in order, each witnessed:
+1. **Design-ID register (S5-9).** A read-only word in the LOGIC register
+   space carrying the build hash's low 32 bits (from build.sh, so the
+   value is generated, never typed) plus a config-bit field (pi_tdm8,
+   pi_selftest, pi_maincap, loopback, shipping) — readable from the DSP
+   side over the existing parameter path and from the Pi side if a path
+   exists. Sim gate PASS; fmax not below 63.6 MHz; build.sh emits the
+   expected value into the manifest so identity = "read register, compare
+   to manifest". This is the last bitstream that has to be identified
+   behaviourally: prove it on the part by reading the register after the
+   flash.
+2. **Frame-locked capture.** Make `_maincap` (or a new `_dspcap` mode)
+   frame-locked to the Pi capture DMA the way `_pisel` evidently is:
+   state the mechanism (which clock domain / FIFO / frame-sync crossing
+   loses lock), fix it in LOGIC, and prove it with the staircase:
+   1,500 runs for 1,500 steps, every transition +1 except the wrap. This
+   mode must NOT change the DSP-facing slots (the DSP side untouched, as
+   the TDM8 build proved for its map); state that from the generated
+   lane tables.
+3. **The through-DSP latency.** With the instrument frame-locked:
+   impulse + counter through Pi → CPLD → DSPA → fabric → DSPB → CPLD →
+   Pi on the WINDOW images (from their own staging path), 20 reps × 2
+   boots, in samples and ms; decomposed against the CPLD-loop bound (≤ 31
+   samples) into the DSP block (16), SPORT DMA, fabric crossing, and the
+   remainder; boot-to-boot part stated (N2a needs it). If it still does
+   not close, the reason is the finding and no figure is quoted.
+4. **R6 leftovers** (repo-only, sonnet-grade, done here because the
+   files are now touched or adjacent): gen_dsp.py's MCU-only prefixes
+   from config with a single registration point + makedirs guards;
+   dsp_codegen.py's assert-guarded template rewrites → marker-based with
+   node/file context. Generated output byte-identical (diff), golden
+   59/59, dsp_validate OK.
+5. **Bitstream policy.** If the new bitstream is a strict superset of
+   shipping (same DSP slots, same panel behaviour, ID register + capture
+   mode added) AND proven against matrix-app (audio path unchanged;
+   famverify's 17/20 / 3,619 line does not move), leave it flashed,
+   record the hash as the bench bitstream and say so in the status
+   line's first sentence; otherwise restore `a1f6672af6c3` and prove it
+   by the new register if present, else behaviourally.
+6. findings S6-*/S7-*, `MW/D32/DSP/dsp4-loop-latency-*.md` updated with
+   the through-DSP figure, tasks.md, this block's status; commit + push
+   main.
+
+Bounded: gates 1–3 are the session; 4–5 expected. The window pair in
+~/dspboot is not touched.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-09 02:44Z — CFG_CHAN_MASK / CFG_AUX_MASK given readers — a D24 runs 24 strips not 32; D24 capacity restated on the masked image; the through-DSP loop arm closed and the true through-DSP latency measured; window note updated (window item found by the latency session)   [status: 🟢 done — **THE BENCH'S STAGED DSP IMAGES CHANGED AND THEY ARE WHAT THE WINDOW SHOULD DEPLOY: `~/dspboot/chip1.ldr` `093c609f622cf805e7f675f1e2497a19` / `chip2.ldr` `2ba0e464e9679bd2e1b1c3c2a6f08744`, with the previous pair kept alongside as `conf_chip1.ldr` `602a0feb` / `conf_chip2.ldr` `b1325022` and the rollback pair `ship_*` untouched.** **GATE 1: BOTH WORDS NOW HAVE READERS AND THE ANSWER IS SKIP, NOT RUN-AND-SILENCE.** `_chan_mask`/`_aux_mask` stay the STAGED words the host may write at any moment from the SPI RX ISR; `_chan_mask_live`/`_aux_mask_live` are what the chain reads and only `_mask_apply` -- called from CONFIG_COMMIT -- moves one to the other, so "applied at product-config time" is a property of the firmware and not a convention of the host. **A MID-LIFE MASK CHANGE IS SUPPORTED and its atomicity is stated: it takes effect on the next CONFIG_COMMIT, which arrives on the ISR and can land inside a block, so ONE BLOCK (8 samples, 0.17 ms) can run with the strips of the old mask and the buffers of the new one** -- nothing is torn beyond that. Gating is per RUN, one compare and one branch, on the pattern `_product_id`'s scope gate already set (a per-node table was measured a net loss 2026-08-24). **A SIMD PAIR RUNS IF EITHER HALF IS LIVE** -- the paired kernels are one instruction stream over two strips and there is no runtime way to half-issue them -- and the masked half is made inaudible instead by its own ROUTING gate and a ZEROED CROSSPOINT COLUMN, which is the stale-buffer answer: the bus-major fabric MACs `_xpc[bus][s] * _rtg_src[s]` for every s in a bus's live range whether or not strip s ran, so `_mask_apply` zeroes the column (and `_buf_C1_BUS_AUX_nn`, `_tx_slot_C1_BUS_AUX_nn_SEND`, `_tx_out_slot_C2_AUX_OUT_nn`) and sets `_xp_dirty`. For D24's 0x00FFFFFF and D32's all-ones every pair is whole, so nothing extra ever runs. **GATE 2, THREE CONFIGURATIONS ON ONE BITSTREAM IN ONE NIGHT, NOTHING PLAYING, `C2_MAIN_ST_OUT` OVER 48,000 FRAMES: the pre-fix pair under D24 reads `0x7FFFFF88` on 48,000 of 48,000; the fixed pair under D24 reads `0x00000000` on 48,000 of 48,000 -- WITH NOTHING SILENCED AT ALL, and again with all 48 silenceable D24 cells written; the fixed pair under D32 reads `0x7FFFFF80` on 48,000 of 48,000, i.e. D32 BEHAVIOUR IS UNCHANGED.** That third row is the positive control and it is why the claim is the mask and not something else. `_chan_mask_live`/`_aux_mask_live` read back `0x00FFFFFF`/`0x000000FF` on BOTH chips under d24 and `0xFFFFFFFF`/`0x00000FFF` under d32 -- the LIVE words, because the staged ones read back fine even when nothing consumes them, which is exactly how this went unnoticed. **`famverify` on the fixed image is the `.4` line to the cell and did NOT move down: 17 of 20 families, 3,619 of 3,737 addressed cells, GEQ 31/31, CROSSOVER 8/8, 0 FAILED, pin `defs-v2026.09.08.4`.** **THE HOST'S D24 AUX MASK WAS ALSO WRONG AND INERTLY SO**: `dsp4_config.py` sent `0x0FFF` (twelve) where `defs/products/d24/dsp.csv` addresses Aux001-Aux008; now `0x000000FF`. **GATE 3, BLOCK 16, 983.04 MHz, BUDGET 327,680, TWO BOOTS, MINIMUM, BOTH ARMS IN ONE SESSION ON ONE INSTRUMENT: chip 1 262,033 -> 202,786 (margin 20.03 % -> 38.11 %, -18.08 % of budget) and chip 2 261,856 -> 226,442 (20.09 % -> 30.90 %, -10.81 %).** THE CONTROLS REPRODUCE THE `.4` RECORD -- chip 2 to 8 cycles of 261,848, chip 1 to 154 of 261,879 -- so the differences are the fix and not the day. **CHIP 1, THE TIGHTER CHIP, GAINS THE MOST because it carries the strips.** **AND THE SIX-REVERB WORST CASE, WHICH IS THE NUMBER THE PRODUCT SHIPS AGAINST, GOES FROM 94.66 % / 5.34 % MARGIN TO 83.93 % / 16.07 % -- OUTSIDE THE 10 % BAR.** It was inside the bar only because the part was running four aux chains and eight strips a D24 does not have; the reverb's own cost did not move (+49,187 against +49,096 on 09-08). **GATE 4: THE ARM STILL DOES NOT CLOSE, NO FIGURE IS QUOTED, AND THE MASK WAS NOT THE REASON -- but the mechanism is now NAMED instead of the symptom.** A CONSTANT through Pi -> CPLD -> DSPA -> fabric -> DSPB -> CPLD -> Pi returns BIT-EXACT (`0x00123400` on 143,400 of 144,000 frames played), so the DSP carries the audio. A STAIRCASE (1,500 values, 64 frames a step, new `tools/pi/dsp4_order_stair.py`) returns EVERY value -- index range 1..1500 complete, 96,040 non-zero words for 96,000 played -- as **82,042 runs where a clean loop gives 1,500**, 86 % of them one frame long, only 8,141 of 81,351 transitions +1. That is a capture path NOT FRAME-LOCKED to the CM4 capture DMA, and it is a property of the `_maincap` instrument (`o_dspb[3]` slot 0), not of the DSP: `_pisel` closes the same loop inside LOGIC and returns 48,000 of 48,000 at ONE offset. `dsp4_loop_latency.py`'s 14,494-14,509 for this arm has 5.67 % counter agreement across ~2,780 distinct offsets with the impulse never found -- a spurious mode, recorded so it is not mistaken for a measurement. Closing it needs a frame-locked capture (CPLD-side, or a DSP-side buffer read over the parameter link); neither blocks the window. **A DEFECT FOUND IN THE FIX ITSELF AND FIXED: the first cut overflowed chip 1's `sec_swco` BY 622 WORDS in the block-16 paired build** -- the configuration every capacity number is taken in. The shipping per-sample image linked either way so the window was never blocked, but a fix that does not fit the operating point is not a fix. Brought to ~230 words by making `_mask_apply` table-driven, reducing the chain's gate from four instructions to three (one word per gate group resolved into `_mask_on[]` at commit), and merging adjacent runs where neither side needs an exact gate -- chip 1 from 124 gates to 61 -- none of which changes what is skipped for any mask a product sends. **Chip 1's program memory is the binding constraint on that chip and this is the third time it has bitten; worth its own dispatch.** **THE CONTROL IS BYTE-FOR-BYTE, NOT MERELY BEHAVIOURAL: `DSP4_CHAN_MASK=0` rebuilds `602a0feb`/`b1325022` -- the window's own conformance images -- exactly**, proven twice from this tree (before and after the size rewrite), which is what makes every cycle figure recorded before tonight reproducible and the control column of the capacity table measured rather than quoted. **BENCH LEFT AS FOUND EXCEPT THE IMAGES**: CPLD `dsp4_logic.a1f6672af6c3` restored and verified (IDCODE `0x020a30dd`, PCM_CLK and PCM_FS both TOGGLING on `dsp4_netprobe.py`, so clkgen is intact); `dsp4_logic_maincap.1216e35175cb` was flashed twice for the captures through the documented OpenOCD/linuxgpiod path with `pinctrl ... a0` after every one; `config.txt` switched to the duplex overlay twice and back, diffing CLEAN against `/home/app/config.txt.asfound-20260909-mask`; matrix-app active. Rev A never touched. Bars: golden_harness 59/59, dsp_validate OK on 666 nodes, test_geq_splice 5/5, test_dsp_validate 13/13, check-contract-drift clean at `defs-v2026.09.08.4`. **GATE 5 done** -- `dsp4-window-readiness-20260909.md` now names the new pair, says in one line why the output was at full scale before and is not after, and adds `conf_*` as an intermediate rollback that keeps the `.4` map. Write-up `MW/D32/DSP/dsp4-chan-mask-20260909.md`; findings S6-1..S6-5 (S5-7 closed, S5-10 narrowed); new tools `tools/pi/dsp4_mask_witness.py`, `tools/pi/dsp4_order_stair.py`; `tools/pi/dsp4_silence_2532.py` DELETED per its own docstring. S5-9 and S5-10 stay queued; S5-10's DSP4_STRIPS=1 image was not needed.]   [model: opus]
 
 model: opus
