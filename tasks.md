@@ -1,3 +1,107 @@
+## HUB DISPATCH 2026-09-09 10:43Z — S11 — the numbers PW's rulings need, on the part: S10-6 settled first (one capacity instrument), S9-2 Option A built and proven 100 % ordered at full load with its real cost, Lever 1 BLOCK 32 built/booted/measured for D32, block-16 latency, the design bars on the shipping pair, decision table   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+S11 — the numbers PW's two rulings need, measured on the part: (1) S9-2 Option A built behind a switch and proven — 100 % ordered at FULL load with the Pi input, its real cycle and latency cost; (2) Lever 1, BLOCK 32 — does it link, does D32 fit, what it costs; (3) S10-6 settled — ONE capacity instrument, with the profile tool's 24–33 % gap explained or the tool retired; (4) block-16 through-DSP latency and the design bars on the shipping pair
+
+WHY. S10 (dsp dcb7d1f) settled S9-5 (block kernels are not an audio
+defect; the shipping pair reads 17/20 LIVE verdict-for-verdict with the
+block-8 control) and restated capacity on the pair that ships: D24 FITS
+(chip 1 71.5 % avg / 84.8 % worst block → margin 15.2 %, chip 2 92.7 %,
+zero overruns over 270,000 blocks); D32 DOES NOT (chip 2 112.7 %, missing
+11.26 %, cycle count and miss rate closing arithmetically; chip 1 93.5 %
+avg / 110.3 % worst at D32, so no spare chip 1). Two rulings now sit with
+PW and both need numbers from the part, not estimates:
+- **S9-2** (late first frame of each DMA half): Option A (write block N−1
+  at the top of period N) costed at ~640 cycles/block, 320 DM words,
+  +0.333 ms of output latency; Option B (third TX buffer) ~0 cycles but
+  re-derives the ping/pong phase and desynchronises RX from TX.
+  Recommendation A. It has not been BUILT.
+- **D32's 12.74 %**: Lever 1 BLOCK 32, est. 5–10 % from the 09-01 trend,
+  +0.333 ms, pool and DMA halves doubled, ramp frame counts halved again
+  (H1S3/H1S4 rebuild); "one build says whether it links, one boot says
+  whether it fits". Lever 2 fewer GEQ bands (1,643 cycles/band; product
+  decision); Lever 3 half-rate reverb tail (sound change). PW's #1
+  priority is capacity-fit by generated-code efficiency, no PCB change.
+Also open and in the way of trusting any number: **S10-6** — sigprofile2 /
+fxcost read chip 2 24 % (D24) and 33 % (D32) of budget LOW against the
+shipping pair's own `_proc_cyc` (225,646 vs 303,891; 261,093 vs 369,424),
+in a direction the signal/silence split cannot produce; the `.4` figures
+reproduce on the instrument, so the record has two instruments that
+disagree about the shipping image. `DSP4_BLOCK_DECIMATE=32` is the
+candidate. And S10 did not re-measure the block-16 through-DSP latency
+(the contract still carries a block-8 72-sample figure) nor re-run
+busgold/bqeverify/fxverify/afbverify/geqverify/xoververify on the pair.
+
+BENCH. Rev C unit: shipping CPLD `a1f6672af6c3` + `dsp4-pcm-slave`
+overlay, matrix-app active; `~/dspboot` holds `blk_*` (the shipping pair,
+ac65ad38 / e5dce9e4) and the other four pairs — NOT replaced; every
+experimental image runs from its own staging path and is restored by
+copy-and-restore (S10-7's lesson: the profile scripts scp over
+`chip[12].ldr`). `dsp4_checkchip.py` on every boot; `dsp4_buildcfg.py
+--expect-shipping` before any measurement is trusted; CGU words read back
+(983.04 MHz) on every boot; fresh `chipN.sym.json` per image (S10-9).
+`dsp4_capacity.py` (two boots per arm, ≥135,000 blocks, CGU + build-cfg
+witnessed, `_proc_cyc` AND `_proc_cyc_max`) is the instrument of record
+for this session. No AI attribution in commits or any work product.
+
+GATES, in order, each witnessed:
+1. **S10-6 first, because every later number depends on it.** Explain
+   the 24–33 % gap between the profile instrument and `_proc_cyc` on the
+   shipping image: test `DSP4_BLOCK_DECIMATE=32` (does the profile build
+   process every block?), the profile build's own `DIAG_BUILD_CFG` word
+   against shipping's, and whether the profile arm ever ran the shipping
+   configuration at all. Outcome: EITHER the profile tool is corrected so
+   it reads the shipping image to within the pass-to-pass spread of
+   `dsp4_capacity.py` (then both stay), OR it is RETIRED for capacity
+   claims and the `.4`/09-03/09-08 rows in the capacity record are
+   re-annotated as "profile instrument, not the shipping image". One
+   table: every prior record row, the instrument, the BLOCK, the clock,
+   and the shipping-pair number beside it.
+2. **S9-2 Option A, built and measured.** `DSP4_TX_EARLY=1` (or the
+   switch name you choose): block N−1's outputs written at the top of
+   period N. Prove at FULL load: D24 mask, full graph, Pi playback input
+   ON — the transmit stamp 192,000 frames **100.0000 %** ordered (the
+   arm that reads 81.25 % today), and again with the graph out of the
+   way (control). Measure the real cost with `dsp4_capacity.py`
+   (`_proc_cyc` and `_proc_cyc_max`, both chips, both masks) and the
+   through-DSP latency at block 16 WITHOUT and WITH the switch (20 × 2
+   boots, LOGIC-only loop as reference) — the +16 samples must be seen,
+   not asserted. Keep it behind the switch, default OFF; stage the ON
+   pair beside the others as `txe_*`. State whether `DSP4_GATHER_FIRST`
+   is still needed with it.
+3. **Lever 1, BLOCK 32.** Build it (`shipping.config` is the one place;
+   a BLOCK=32 variant config, not an edit of shipping): does it link
+   (DM/PM/pool sizes quoted against the 08-24 overflow), does it boot,
+   `dsp4_capacity.py` at D32 all-ones and D24 mask on both chips — the
+   headline is "D32 chip 2 at block 32 = N % avg / M % worst, overrun
+   X %", against 112.7 % / 11.26 % today. Then the price: through-DSP
+   latency at block 32 (measured), the ramp frame counts (generated
+   ghost_cells.h diff → H1S3/H1S4), the transmit-stamp order at full
+   load (does the late-first-frame effect grow with the block?), and
+   famverify's 17/20 line. Stage as `b32_*`. If it does not link or fit,
+   say by how much and move to costing Lever 2 more precisely (GEQ at
+   28 / 24 / 21 bands: measured, not the 1,643-per-band linear estimate,
+   on ONE build each if time allows).
+4. **The design bars on the shipping pair**: busgold (graph bit-exact),
+   bqeverify (0 ULP), fxverify, afbverify, geqverify, xoververify,
+   golden 59/59, dsp_validate, famverify 17/20 — restated on `blk_*`
+   exactly as staged, so the window note's artifact has every bar on
+   record, not inherited.
+5. **Window note + capacity record updated**: the one instrument, the
+   D24 margins with `_proc_cyc_max` (chip 1 15.2 %), the D32 verdict and
+   the lever numbers, the two PW rulings as a decision table (option,
+   what it costs in cycles / latency / sound / addresses / MCU rebuild,
+   what it buys). findings S11-*, tasks.md, this block's status; commit
+   + push main.
+
+Bounded: gates 1–3 are the session, in that order; 4–5 expected. No
+deploy; the window pair in `~/dspboot` is byte-identical at the end.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-09 08:41Z — S9-5 SETTLED FIRST (block-aware witness, famverify's three arms — are block kernels an audio defect?), then capacity/latency/bars restated on the shipping pair at the clock the image runs; D32's 11.3 % decomposed to the kernels that would close it; S9-2 structural options costed for PW   [status: 🟢 done — **BLOCK KERNELS ARE NOT AN AUDIO DEFECT: S9-5 WAS THE WITNESS AND THE STIMULUS, BOTH ON CHIP 1, BOTH IN THE BENCH INSTRUMENT — the shipping configuration reads 17 of 20 FAMILIES LIVE and AGREES WITH THE BLOCK-8 PER-SAMPLE CONTROL ON ALL TWENTY, VERDICT FOR VERDICT**, contract arm identical on every family (GEQ 31/31, CROSSOVER 8/8, ROUTING 42/42, COMPRESSOR 17/17, ANTI_FB 20/20, 0 FAILED) and numeric BIT_EXACT on COMPRESSOR/FADER_PAN/TUBE_SAT. **DEFECT ONE: under block kernels a chip-1 strip node writes a SHARED POOL SLOT and its `_buf_<node>` is a one-word `.var` nothing writes, while `_scope_record` reads `_scope_src + _sample_idx` — a sixteen-word walk off a one-word variable into the next node's parameters.** Named in the link map, not inferred: `_buf_C1_GAIN_01 + 4 = _gain_coeff_C1_GAIN_02` (read back as 1.0f), `_buf_C1_EQ_01 + 3 = _eq_coeffs_A_C1_EQ_02` (4.0f), `_buf_C1_DLY_01 + 6 = _dly_max_C1_DLY_02` (12000) — every anomalous 'peak' in the old arm is a parameter word with a name, and **GAIN and TALKBACK's apparent LIVE was the witness watching the very parameter class the test was stepping**; for the nodes whose `_buf_` IS written once per block, `moved` was exactly N/BLOCK. **DEFECT TWO: `_scope_inject_blk` fills BLOCK words at the RX-slot symbol the host names — right for chip 2 (`_rx_ic_slot_<node>[BLOCK]` is a real array the chain reads, which is why every chip-2 family was unaffected throughout) and wrong twice on chip 1, where INPUT_TDM reads DMA straight into a pool slot and `_rx_slot_C1_IN_01` is ONE WORD nothing reads: the stimulus went nowhere AND fifteen words landed past the end of it.** The two are separable and were separated — fixing the witness alone leaves 9/20 with the peaks now honest (0/1/4, real Q4.28) and the verdict SILENT. **THE WITNESS PROVED ITSELF BEFORE THE ARMS WERE BELIEVED**: NOISE_GEN generates its own signal and in that arm read peak 268,365,104 against the per-sample control's 267,776,416 while every stimulus-driven family correctly read silence. **INSTRUMENT: `DSP4_SCOPE_BLK_TAP` (default 0), a `_scope_tap` call emitted after every node in the generated chain carrying that node's identity and where its block ACTUALLY is — because the pool is REUSED and there is no later point at which a pooled node's block still exists (S10-2). The slot per class is `_STRIP_BLK_OUT` in dsp_codegen.py and `_blk_out_of()` CHECKS it against the body it just generated. THE SHIPPING PAIR IS BYTE-IDENTICAL AFTER EVERY CHANGE: `./build.sh` reproduces `ac65ad38…`/`e5dce9e4…`, and `~/dspboot` ends the session byte-for-byte as found (all ten staged .ldr files).** **CAPACITY IS RESTATED ON THE PAIR THAT SHIPS, not on the profile instrument, and TWO NUMBERS THE WINDOW WAS CARRYING ARE WRONG.** New tool `tools/pi/dsp4_capacity.py`, two boots per arm, 45 s and ~135,040 blocks each, CGU read back `0x00005000`/`0x451442C1` = 983.040 MHz and `DIAG_BUILD_CFG 0xCF45FF10` on every boot. **D24 FITS: chip 1 234,267 (71.5 %) / chip 2 303,891 (92.7 %), OVERRUN ZERO on both chips over 270,000 blocks — and chip 2 reproduces S9's 303,894 TO THREE CYCLES.** **D32 DOES NOT: chip 2 at 369,424 = 112.7 % of budget, missing 11.26 % of blocks — S9-3's 11.3 % reproduced, and the cycle count and the miss rate CLOSE ARITHMETICALLY (a pass of 1.1274 periods loses 0.1274/1.1274 = 11.30 %; measured 11.261 % and 11.264 %), two instruments sharing no arithmetic.** **(1) THE MARGIN WAS BEING QUOTED OFF AN AVERAGE, ON CHIP 1 ONLY: `_proc_cyc_max` is 18 % above `_proc_cyc` on chip 1 at both masks on every boot (234,267 → 277,752 = 84.8 %) and 0.4 % above on chip 2 — so CHIP 1'S D24 MARGIN IS 15.2 %, NOT 28.5 %, and every chip-1 margin on record is 18 % of its own value too generous** (S10-8; chip 1 carries the 38 METER nodes and the ramp engine). Also: **OVERRUN 0 does not mean every block fitted** — chip 1 at D32 is 110.3 % on its worst block with zero overruns, because `_block_ready` is a flag. **(2) S9-3's 'chip 1 sits at 71.6 %' IS A D24 STATEMENT: at D32 all-ones chip 1 is 93.5 % average / 110.3 % worst, so there is no spare chip 1 to move D32 work onto.** **THE RECORD'S INSTRUMENT IS NOT MEASURING THE SHIPPING IMAGE AND CHIP 2'S GAP IS UNEXPLAINED (S10-6): sigprofile2/fxcost read chip 2 at 225,646 (D24) and 261,093 (D32) against the shipping pair's 303,891 and 369,424 — 24 % and 33 % of budget LOW, in the direction the documented signal/silence split cannot produce** (chip 1's +174,672 the other way IS that split, `DSP4_PROFILE_SIGNAL` + `TUBEON=1`). `DSP4_BLOCK_DECIMATE=32` is the remaining candidate. Same disagreement in the D24 mask's value: 35,447 cycles on the instrument, 65,533 on the part. **On the instrument the `.4` figures DO reproduce** — fxcost, block 16, two boots, paired restore control: D32 all-ones 261,093 default / 310,006 six-reverb (94.61 %, margin 5.39 %) against `.4`'s 261,848 / 310,185 (94.66 %, 5.34 %); D24 225,646 / 274,547 (83.79 %, margin 16.21 %); the six-reverb worst case costs +48,901 cycles and is mask-independent to twelve. **D32's 11.3 % DECOMPOSED TO A TARGET AND THREE COSTED LEVERS (a plan, not a rewrite): chip 2 must lose 41,744 cycles/block = 12.74 % of budget.** GEQ is the wall (17 instances × 31 bands = 527 biquad stages/sample, 776 MHz of a 983.04 MHz part at the 09-01 class profile, and the cascade is already fused at 37.2 cycles/band-sample against chip 1's 40.5 — no inefficiency left inside it). **Lever 1 BLOCK 32, est. 5–10 % (16k–33k cycles)** from the 09-01 measured trend across three block sizes (GEQ −3.3 %, COMP −6.9 %, AFB −14.8 %); costs +0.333 ms, doubles the pool and both DMA halves (the 08-24 DM overflow was BEFORE `blk_pool.h` existed), halves every ramp frame count again so H1S3/H1S4 rebuild; **one build says whether it links, one boot says whether it fits — RECOMMENDED FIRST because it costs neither product scope nor sound.** **Lever 2 fewer GEQ bands, 1,643 cycles/block per band measured** (31→28 recovers 4,929 = 1.5 %; 31→21 about 16,400 = 5.0 %) — a product decision and a second address relayout. **Lever 3 half-rate reverb tail, up to 24,450 cycles** — closes it alone but changes what the product sounds like. NOT levers: the float path (guard already derived 0) and chip 1 (93.5 %/110.3 % at D32). **S9-2 COSTED FOR PW (`dsp4-s92-options-20260909.md`): both structural options cost the SAME 0.333 ms (16 samples) of output latency. Option A (write block N−1 at the top of period N) costs ~640 cycles/block = 0.20 % of budget, 320 words of DM, and stays inside a DMA topology just proven at 100.0000 % ordered. Option B (third TX buffer) costs essentially zero cycles but re-derives the ping/pong phase the 09-09 fix just established and desynchronises RX from TX. RECOMMENDATION: OPTION A.** Neither changes the SPI contract — but BOTH grow the published through-DSP latency by 0.333 ms, so the alignment contract and the window note reissue with it; say that rather than 'no impact'. What ships until PW rules is `DSP4_GATHER_FIRST=1`, restated as one frame of margin and not a fix (87.4999 % → 100.0000 % without the Pi input; 81.2499 % both orders with it). **BARS: famverify 17/20 LIVE + contract identical on all 20 families (above), golden_harness 59/59, dsp_validate OK, test_geq_splice 5/5, test_dsp_validate 13/13, check-contract-drift clean at `defs-v2026.09.08.4` leaving no diff, check_shipping_config.sh consistent (`DIAG_BUILD_CFG` must read 0xCF45FF10, and it did on every boot).** **NOT DONE, STATED AS SUCH: gate 4 — through-DSP latency at block 16 NOT re-measured, so the alignment contract still carries the 72-sample BLOCK-8 figure; and `busgold`/`bqeverify`/`fxverify`/`afbverify`/`geqverify`/`xoververify` NOT re-run on the shipping pair. Gate 3 is built on the 09-01 class table plus this session's totals, not a fresh per-kernel ladder.** **FOUR THINGS LEFT OPEN AND RECORDED RATHER THAN SWEPT UP: S10-3** the shipping image's `_scope_inject_blk` still overruns `_rx_slot_C1_IN_01` by fifteen words when a host arms the scope (inert in the field, but fixing it means a new pair — PW's call); **S10-4** GATE's numeric arm reads NO_STIMULUS in a block build where the control reads BIT_EXACT (audio LIVE, contract 12/12 — it is `dsp4_node_verify`'s stimulus search, not the family); **S10-5** `DIAG_BUILD_CFG` has no spare bit for the tap flag (bits 8..23 all allocated, 31..24 is the signature), so an instrument build can still be silent to the part — partially mitigated by famverify now recording `build_cfg` per chip, after five same-day reports recorded none; **S10-7** every profile script scp's over `~/dspboot/chip[12].ldr`, two of the staged pairs the window rolls back to — `famverify.sh` now takes `STAGE`, the profile scripts do not, and this session protected the pair by copy-and-restore. **S10-9, and it nearly cost the session: a stale `chipN.sym.json` peeks `_proc_cyc`'s address in a DIFFERENT build and whatever lives there answers** — it returned `_proc_passes` once and, on one run, a number close enough to the expected `_proc_cyc` to be believed. Two attempted fixes made it worse and are recorded so they are not retried: reading the peek DATA half with the paced voted reader returns DIAG_FRAME_COUNT's value, and wrapping the handshake in a retry loop returns `_proc_passes`. **The peek window tolerates exactly one handshake at a time under load.** Write-ups `MW/D32/DSP/dsp4-block-witness-20260909.md`, `dsp4-capacity-20260909.md`, `dsp4-s92-options-20260909.md`; window note §6 addendum; findings S10-1..S10-9; new `tools/pi/dsp4_capacity.py`.]   [model: opus]
 
 model: opus
