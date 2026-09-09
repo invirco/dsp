@@ -863,6 +863,19 @@ def main():
             continue
         healthy = part.healthy()
         report['chips'][chip] = {'ready': True, 'healthy': healthy}
+        # WHICH BUILD THIS ARM WAS TAKEN ON (2026-09-09, findings S9-5).
+        # Five famverify reports were taken on 2026-09-09 in five different
+        # configurations and not one of them recorded which -- so telling the
+        # block-8 per-sample control from the block-16 block-kernel arm meant
+        # trusting a filename. DIAG_BUILD_CFG is one transaction and the part
+        # answers it; there is no reason for a report not to carry it.
+        try:
+            cfg = part.sc.rd(0xE0EA)
+            report['chips'][chip]['build_cfg'] = '0x%08X' % cfg
+            print('  chip %d build_cfg 0x%08X' % (chip, cfg))
+        except (IOError, SystemExit) as exc:
+            report['chips'][chip]['build_cfg'] = None
+            print('  chip %d build_cfg unreadable: %s' % (chip, exc))
         print('  chip %d ready, healthy=%s' % (chip, healthy))
         if not healthy:
             print('  the block loop is not turning — CONTRACT only, no audio')

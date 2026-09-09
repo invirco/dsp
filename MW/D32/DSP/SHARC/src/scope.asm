@@ -64,6 +64,22 @@
  * this advanced before believing any data. */
 .global _scope_runs;
 .var _scope_runs = 0;
+#if DSP4_SCOPE_BLK_TAP
+/* Set by the chain right before _scope_inject_blk when the named injection
+ * slot is a chip-1 RX slot that no block kernel reads; 0 otherwise. */
+.global _scope_inj_blk;
+.var _scope_inj_blk = 0;
+#endif
+
+/* BLOCK-AWARE WITNESS (DSP4_SCOPE_BLK_TAP, 2026-09-09, findings S9-5).
+ *
+ * Not a host-settable mode -- there is no memory POKE on the diag link,
+ * only PEEK, and inventing a register for this would put a bench
+ * instrument in the shipping register map. In a DSP4_SCOPE_BLK_TAP build
+ * the tap IS the witness and _scope_record stands down; in every other
+ * build the tap does not exist. One variable, decided at build time, and
+ * DIAG_BUILD_CFG already says which build is on the part.
+ */
 
 .section/pm seg_pmco;
 .extern _sample_idx;
@@ -126,6 +142,13 @@ _scope_record:
     r1 = 0;
     comp(r0, r1);
     if eq rts;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    /* _scope_tap owns the capture in this build. Recording here as well
+     * would interleave a garbage sample of an unwritten scalar into every
+     * block of a good capture -- which is the defect, not a second view
+     * of it. */
+    rts;
+#endif
     r0 = dm(_scope_go);
     comp(r0, r1);
     if eq rts;                            /* stimulus not driven yet */
@@ -171,6 +194,36 @@ _scope_record.end:
  *----------------------------------------------------------------------*/
 .global _scope_inject_blk;
 _scope_inject_blk:
+#if DSP4_SCOPE_BLK_TAP
+    /* THE CHIP-1 REDIRECT (2026-09-09, findings S9-5).
+     *
+     * The host names the injection point by its RX SLOT symbol, which is
+     * right for chip 2 -- an INTERCHIP_RECV's `_rx_ic_slot_<node>` is a
+     * BLOCK-word array under block kernels and the chain reads it. It is
+     * WRONG for chip 1: INPUT_TDM's block kernel reads the DMA buffer
+     * straight into a pool slot, and `_rx_slot_<node>` survives as a ONE-WORD
+     * variable that nothing reads -- so this routine used to fill sixteen
+     * words over a one-word variable (fifteen of them into whatever DM
+     * follows it) and drive a stimulus into a slot with no reader. Every
+     * chip-1 strip family then measured SILENCE and read INERT.
+     *
+     * The chain hands the address in: r0 = the slot symbol the host names,
+     * r1 = where that node's block actually is. r0 = 0 means "no redirect",
+     * which is chip 2 and is this routine's behaviour byte for byte.
+     */
+    r2 = 0;
+    comp(r0, r2);
+    if eq jump (pc, .sib_noredir);
+    r2 = dm(_scope_inj);
+    comp(r0, r2);
+    if ne jump (pc, .sib_noredir);
+    dm(_scope_inj_blk) = r1;
+    jump (pc, .sib_armchk);
+.sib_noredir:
+    r2 = 0;
+    dm(_scope_inj_blk) = r2;
+.sib_armchk:
+#endif
     r0 = dm(_scope_arm);
     r1 = 0;
     comp(r0, r1);
@@ -178,6 +231,14 @@ _scope_inject_blk:
     r0 = dm(_scope_inj);
     comp(r0, r1);
     if eq jump (pc, .sib_nostim);
+#if DSP4_SCOPE_BLK_TAP
+    r2 = dm(_scope_inj_blk);
+    r3 = 0;
+    comp(r2, r3);
+    if eq jump (pc, .sib_dest);
+    r0 = r2;                              /* the pool slot, not the slot var */
+.sib_dest:
+#endif
     l4 = 0;
     i4 = r0;
     r5 = dm(_scope_amp);
@@ -206,4 +267,121 @@ _scope_inject_blk:
     dm(_scope_go) = r2;
     rts;
 _scope_inject_blk.end:
+#endif
+
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+/*----------------------------------------------------------------------
+ * _scope_tap — THE BLOCK-AWARE WITNESS (2026-09-09, findings S9-5).
+ *
+ * Called from the generated chain immediately after every node, with
+ *      r0 = the node's IDENTITY  -- its `_buf_<node>` address, which is
+ *           already what the host pokes into _scope_src, so the host side
+ *           of the family walk does not change at all;
+ *      r1 = where that node's output block IS at this instant -- a
+ *           blk_pool.h slot for a chip-1 strip node, `_blk_<node>` for a
+ *           chip-2 node, `_buf_<node>` for the few that own a block array.
+ *
+ * WHY IT IS HERE AND NOT IN THE GATHER LOOP. The pool is REUSED: strip N's
+ * BLK_CHAIN_B is strip N+1's the moment strip N+1's GAIN runs, and by the
+ * end of the block every slot holds the last strip that touched it. There
+ * is no later point at which a given node's block still exists. The only
+ * correct place to read a node's block is where the node just left it,
+ * which is here.
+ *
+ * Cost when the node is not the watched one: two immediate loads at the
+ * call site, a call, two loads, a compare and an rts -- about eight cycles
+ * per node per block, ~3.4k cycles on chip 1's ~430 positions, 1.0 % of
+ * the 327,680-cycle budget. That is why the whole thing is behind
+ * DSP4_SCOPE_BLK_TAP and never ships.
+ *
+ * Clobbers r0-r6, i4, i5, l4, l5 -- the same contract _scope_inject_blk
+ * already has at the same call sites. Nothing in the chain is live in a
+ * register across a node call.
+ *----------------------------------------------------------------------*/
+.global _scope_tap;
+_scope_tap:
+    r2 = dm(_scope_arm);
+    r3 = 0;
+    comp(r2, r3);
+    if eq rts;                            /* not armed */
+    r2 = dm(_scope_go);
+    comp(r2, r3);
+    if eq rts;                            /* stimulus not driven yet */
+    r2 = dm(_scope_src);
+    comp(r0, r2);
+    if ne rts;                            /* not the watched node */
+    r2 = dm(_scope_idx);
+    r4 = SCOPE_LEN;
+    comp(r2, r4);
+    if ge jump (pc, .scope_tap_full);
+    /* Copy min(BLOCK, SCOPE_LEN - idx) words. The clamp is not decoration:
+     * SCOPE_LEN is not required to be a multiple of the block size, and a
+     * run that ends mid-block would otherwise write past _scope_buf. */
+    r5 = r4 - r2;                         /* room left */
+    r6 = DSP4_BLOCK_SIZE;
+    comp(r5, r6);
+    if lt jump (pc, .scope_tap_go);
+    r5 = r6;
+.scope_tap_go:
+    l4 = 0;
+    l5 = 0;
+    i4 = r1;                              /* the node's block, right now */
+    r6 = _scope_buf;
+    r6 = r6 + r2;
+    i5 = r6;
+    lcntr = r5, do .scope_tap_cp until lce;
+        r6 = dm(i4, 1);
+.scope_tap_cp:
+        dm(i5, 1) = r6;
+    r2 = r2 + r5;
+    dm(_scope_idx) = r2;
+    rts;
+.scope_tap_full:
+    dm(_scope_arm) = r3;                  /* run complete, host may fetch */
+    rts;
+_scope_tap.end:
+
+/*----------------------------------------------------------------------
+ * _scope_tap1 — the same witness for a node that has NO block kernel.
+ *
+ * TALKBACK and NOISE_GEN are not block-converted: under DSP4_BLOCK_KERNELS
+ * the chain calls them once per block and they write ONE word to
+ * `_buf_<node>`, so one word per block is their whole output and there is
+ * no block to copy. This records that word and advances by one, which
+ * decimates the capture to the block rate -- REAL samples, a block apart,
+ * rather than a block of a value that was only ever written once.
+ *
+ * Same entry contract as _scope_tap; r1 is the scalar's address.
+ *----------------------------------------------------------------------*/
+.global _scope_tap1;
+_scope_tap1:
+    r2 = dm(_scope_arm);
+    r3 = 0;
+    comp(r2, r3);
+    if eq rts;
+    r2 = dm(_scope_go);
+    comp(r2, r3);
+    if eq rts;
+    r2 = dm(_scope_src);
+    comp(r0, r2);
+    if ne rts;
+    r2 = dm(_scope_idx);
+    r4 = SCOPE_LEN;
+    comp(r2, r4);
+    if ge jump (pc, .scope_tap1_full);
+    l4 = 0;
+    l5 = 0;
+    i4 = r1;
+    r6 = _scope_buf;
+    r6 = r6 + r2;
+    i5 = r6;
+    r6 = dm(i4, 0);
+    dm(i5, 0) = r6;
+    r2 = r2 + 1;
+    dm(_scope_idx) = r2;
+    rts;
+.scope_tap1_full:
+    dm(_scope_arm) = r3;
+    rts;
+_scope_tap1.end:
 #endif

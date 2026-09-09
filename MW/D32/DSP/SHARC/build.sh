@@ -217,6 +217,32 @@ DSP4_SCOPE_GATE="${DSP4_SCOPE_GATE:-1}"
 CFLAGS="$CFLAGS -DDSP4_SCOPE_GATE=$DSP4_SCOPE_GATE"
 ASMFLAGS="$ASMFLAGS -DDSP4_SCOPE_GATE=$DSP4_SCOPE_GATE"
 
+# BLOCK-AWARE SCOPE WITNESS (DSP4_SCOPE_BLK_TAP, 2026-09-09, findings S9-5).
+# MEASUREMENT BUILD ONLY -- never in a shipping image, and the default 0
+# emits not one byte, which is checked by rebuilding the shipping pair and
+# comparing the md5.
+#
+# Under block kernels a chip-1 strip node leaves its output block in a POOL
+# SLOT (blk_pool.h) and its `_buf_<node>` scalar is never written at all,
+# while `_scope_record` -- which the family walk points at `_buf_<node>` --
+# reads `_buf_<node> + _sample_idx`, i.e. walks off a ONE-WORD variable into
+# whatever DM follows it. That is why famverify's audio arm read 8/20 with
+# block kernels and 17/20 per-sample: the eight that "moved" are the eight
+# whose _buf_ is a scalar the kernel does not write, and the values it read
+# back were the node's own PARAMETERS (1.0f, 4.0f, 100.0f, a delay length).
+#
+# With this on, the generated chain calls `_scope_tap` after every node with
+# that node's identity (its `_buf_` address, which is what the host already
+# pokes into `_scope_src`) and the address its block ACTUALLY lives at right
+# then -- a pool slot that the next node is about to reuse. The tap copies
+# the whole block, so a parameter step shows inside the block it lands in.
+DSP4_SCOPE_BLK_TAP="${DSP4_SCOPE_BLK_TAP:-0}"
+CFLAGS="$CFLAGS -DDSP4_SCOPE_BLK_TAP=$DSP4_SCOPE_BLK_TAP"
+ASMFLAGS="$ASMFLAGS -DDSP4_SCOPE_BLK_TAP=$DSP4_SCOPE_BLK_TAP"
+if [ "$DSP4_SCOPE_BLK_TAP" != "0" ]; then
+    echo "  *** INSTRUMENT BUILD: DSP4_SCOPE_BLK_TAP=$DSP4_SCOPE_BLK_TAP taps every node's output block ***"
+fi
+
 # Biquad block-cascade self-test (debug only, never in a shipping image):
 # runs _bq_fx_cascade_blk and _bq_fx_cascade_N on identical data inside the
 # part and diffs them, to separate the routine from the node wrapper.

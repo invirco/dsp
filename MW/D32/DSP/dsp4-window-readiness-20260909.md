@@ -166,3 +166,61 @@ exactly how this went unnoticed.
   commit (`e278667`) overflows by 386 — and it does not touch the
   shipping image, which links with 85,330 words of code free on chip 1.
   This session's work accounts for 218 of the 604.
+
+---
+
+## 6. Addendum, 2026-09-09 later — S9-5 closed, and the two numbers that changed
+
+**The shipping pair `blk_chip1.ldr` `ac65ad386fb910b7bed7736872abae43` /
+`blk_chip2.ldr` `e5dce9e43c2c72290c115726ca31976c` is unchanged and is
+still the artifact. Nothing in this addendum changes an image.** Every
+change of the session is behind `DSP4_SCOPE_BLK_TAP` (default 0) and a
+default `./build.sh` reproduces both md5s byte for byte.
+
+**S9-5 is CLOSED and the answer is that block kernels are not an audio
+defect.** famverify's audio arm reads **17 of 20 LIVE on the shipping
+configuration** and agrees with the block-8 per-sample control on all
+twenty families, verdict for verdict; the contract arm is identical on
+every family (GEQ 31/31, CROSSOVER 8/8, ROUTING 42/42, COMPRESSOR 17/17,
+ANTI_FB 20/20, 0 FAILED) and the numeric arm is BIT_EXACT on COMPRESSOR,
+FADER_PAN and TUBE_SAT. The 8-of-20 that blocked the window was the bench
+witness reading a variable the block kernels never write, and the bench
+stimulus being written into a slot nothing reads — both on chip 1, both in
+the instrument. `MW/D32/DSP/dsp4-block-witness-20260909.md`, findings
+S10-1..S10-5. **So the DSP's readiness line for the window is 17 of 20
+families LIVE and 3,737 of 3,737 addressed cells answering, measured on the
+pair that ships.**
+
+**Two capacity numbers the window was carrying are wrong and the corrected
+ones are in `MW/D32/DSP/dsp4-capacity-20260909.md`:**
+
+1. **Chip 1's D24 margin is 15.2 %, not 28.5 %.** Margins have been quoted
+   off `_proc_cyc`, the last block pass; chip 1's *worst* block is
+   consistently 18 % higher (234,267 → 277,752 = 84.8 % of budget). Chip 2
+   is flat to 0.4 % and is unaffected. Findings S10-8.
+2. **"Chip 1 sits at 71.6 %" is a D24 statement and was being read as a
+   D32 one.** At D32 all-ones chip 1 is at **93.5 % average, 110.3 %
+   worst**. There is no spare chip 1 to move D32 work onto.
+
+**D24 still fits and D32 still does not**, both now measured on the pair
+that ships rather than on the profile instrument: D24 **zero missed blocks
+on both chips over 270,000 blocks**; D32 chip 2 at **112.7 % of budget,
+missing 11.26 %** of blocks, which reproduces S9-3's 11.3 % and closes
+arithmetically against the cycle count to four decimal places. The levers
+that would close it are costed in §6 of the capacity note; **block 32 is
+the recommended first try** because it costs neither product scope nor
+sound, and one build plus one boot settles it.
+
+**S9-2 is costed for a ruling** in `MW/D32/DSP/dsp4-s92-options-20260909.md`
+— both structural options cost the same 0.333 ms of output latency, Option
+A costs 0.20 % of budget and stays inside the DMA topology, Option B costs
+nothing and re-opens the ping/pong phase. Recommendation: **Option A**.
+What ships until PW rules is `DSP4_GATHER_FIRST=1`, which is one frame of
+margin and not a fix. **If either option lands, the published through-DSP
+latency grows by 16 samples / 0.333 ms and this note and the alignment
+contract must be reissued with it.**
+
+**Still not restated on the shipping pair, and the window should know:**
+through-DSP latency at block 16 (the 72-sample figure is a block-8 number),
+`busgold`, `bqeverify`, `fxverify`, `afbverify`, `geqverify`,
+`xoververify`.

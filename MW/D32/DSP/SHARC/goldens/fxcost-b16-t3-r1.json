@@ -12,8 +12,8 @@
   0
  ],
  "arm_default": {
-  "cycles": 225858,
-  "passes": 951,
+  "cycles": 261105,
+  "passes": 950,
   "fx_type": 0
  },
  "forced_cells": [
@@ -33,7 +33,7 @@
   3
  ],
  "arm_loaded": {
-  "cycles": 275031,
+  "cycles": 310008,
   "passes": 1562,
   "fx_type": [
    3,
@@ -45,7 +45,7 @@
   ]
  },
  "arm_restored": {
-  "cycles": 225853,
+  "cycles": 261117,
   "passes": 2174,
   "fx_type": [
    0,
@@ -60,8 +60,8 @@
   0,
   0
  ],
- "delta": 49173,
- "drift": -5,
- "pct_default": 68.9263916015625,
- "pct_loaded": 83.93280029296875
+ "delta": 48903,
+ "drift": 12,
+ "pct_default": 79.68292236328125,
+ "pct_loaded": 94.60693359375
 }

@@ -2084,3 +2084,211 @@ anything, and neither is in any script:
 With both done, the audio and the transmit stamp agree to a tenth of a
 percent on the same capture (82.3458 % against 81.2499 %), which is what
 establishes that the staircase's disorder IS the transmit-path disorder.
+
+### S10-1 — S9-5 SETTLED: block kernels are NOT an audio defect; the witness and the stimulus were
+
+**Severity: MAJOR (closes S9-5). Status: CLOSED.**
+
+S9-5's 17/20 → 8/20 was **entirely the bench instrument**, and it was two
+independent defects on chip 1, not one. With both fixed, the shipping
+configuration — block 16, block kernels, 983.04 MHz — reads **17 of 20
+LIVE and agrees with the block-8 per-sample control on all twenty
+families, verdict for verdict**; the contract arm is identical on every
+family and the numeric arm is BIT_EXACT on COMPRESSOR, FADER_PAN and
+TUBE_SAT.
+
+**Defect one — the witness read a variable the kernel never writes.**
+Under block kernels a chip-1 strip node writes a *shared pool slot*
+(`blk_pool.h`), and `_buf_<node>` survives as a one-word `.var` that
+nothing writes. `_scope_record`'s `#if DSP4_BLOCK_KERNELS` arm reads
+`_scope_src + _sample_idx` — right for chip 2, whose kernels really do
+publish `_blk_<node>[BLOCK]`, and on chip 1 a sixteen-word walk off a
+one-word variable into the next node's parameters. Named in the link map:
+`_buf_C1_GAIN_01 + 4 = _gain_coeff_C1_GAIN_02` (read back as 1.0f),
+`_buf_C1_EQ_01 + 3 = _eq_coeffs_A_C1_EQ_02` (4.0f), `_buf_C1_DLY_01 + 6 =
+_dly_max_C1_DLY_02` (12000). So GAIN and TALKBACK's arm-B "LIVE" was the
+witness watching the parameter class the test was stepping. For the nodes
+whose `_buf_` *is* written once per block, `moved` was exactly `N/BLOCK`.
+
+**Defect two — the stimulus went into a slot with no reader.**
+`_scope_inject_blk` fills `BLOCK` words at the RX-slot symbol the host
+names. On chip 2, `_rx_ic_slot_<node>[BLOCK]` is a real array the chain
+reads. On chip 1, `INPUT_TDM`'s kernel reads DMA straight into a pool slot
+and `_rx_slot_<node>` is a one-word variable nothing reads — so the
+stimulus went nowhere **and** fifteen words landed past the end of it.
+
+The two are separable and were separated: fixing the witness alone
+(arm C) leaves 9/20, with the peaks now honest (`0`, `1`, `4` — real
+Q4.28 magnitudes) and the verdict SILENT. Both halves were needed.
+
+**The witness proved itself first.** NOISE_GEN generates its own signal;
+in arm C it read peak **268,365,104** against the per-sample control's
+**267,776,416** while every stimulus-driven family correctly read silence.
+
+**Consequence for the record: every block-kernel famverify run since
+2026-09-01 was measuring its own instrument on chip 1**, and no chip-1
+audio conclusion from those runs should be quoted.
+
+Instrument: `DSP4_SCOPE_BLK_TAP` (default 0, never ships — a default
+`./build.sh` reproduces `ac65ad38`/`e5dce9e4` byte for byte after every
+change in this session). Write-up
+`MW/D32/DSP/dsp4-block-witness-20260909.md`.
+
+### S10-2 — a pooled buffer cannot be witnessed after the block, and the table that fixes it
+
+**Severity: MINOR (method). Status: RECORDED.**
+
+The pool is reused: strip N's `BLK_CHAIN_B` is strip N+1's the moment
+strip N+1's GAIN runs, and by the end of a block every slot holds the last
+strip that touched it. **There is no later point at which a given node's
+block still exists**, so no witness that runs in the gather loop can ever
+be correct for a pooled node — this is not a bug in `_scope_record`'s
+timing, it is a property of the pool.
+
+The tap therefore runs *at* the node, from the generated chain, and is
+handed the address by the generator. Which slot each strip class publishes
+into lives in `_STRIP_BLK_OUT` (`tools/dsp/dsp_codegen.py`), the same kind
+of table as `_METER_SRC_BLOCK` and under the same rule: `_blk_out_of()`
+**checks the table against the body it just generated** and fails the run
+if a kernel has moved onto a different slot. A table of facts about
+generated code that nothing checks is a table of facts about code that
+used to exist.
+
+### S10-3 — `_scope_inject_blk` overruns `_rx_slot_C1_IN_01` by fifteen words in the SHIPPING image
+
+**Severity: MINOR (latent; bench-triggered only). Status: OPEN — needs PW.**
+
+The overrun described in S10-1 is in the shipping image too, not only in
+the instrument: `_scope_inject_blk` is compiled under `DSP4_BLOCK_KERNELS`,
+not under the tap flag. It is inert in the field — `_scope_inj` is 0 until
+a host arms the scope and nothing in the product does — but it is a real
+out-of-bounds write and it should not stay. **Not fixed here**, because
+fixing it changes `ac65ad38`/`e5dce9e4` and a new pair is a window
+decision.
+
+### S10-4 — GATE's NUMERIC arm reads NO_STIMULUS in a block build
+
+**Severity: MINOR (bar coverage). Status: OPEN.**
+
+With the block-aware witness, GATE's **audio** arm is LIVE and its
+contract arm is 12/12, but its NUMERIC arm reads `NO_STIMULUS` where the
+block-8 per-sample control reads `BIT_EXACT`: `dsp4_node_verify`'s own
+stimulus search found no usable point in a block build. COMPRESSOR,
+FADER_PAN and TUBE_SAT are BIT_EXACT in both arms, so this is specific to
+GATE and to the second instrument, not to the family.
+
+### S10-5 — `DIAG_BUILD_CFG` has no spare bit, so an instrument build can still be silent
+
+**Severity: MINOR (method). Status: OPEN.**
+
+Bits 8..23 of `DIAG_BUILD_CFG` are all allocated and 31..24 is the 0xCF
+signature, so `DSP4_SCOPE_BLK_TAP` could not be added to the word that
+exists to stop exactly this. The tap build is identified by its build
+banner and by `_scope_tap` in its map — neither of which the *part* can be
+asked. Widening the word means moving the signature and every check built
+on `0xCF45FF10`, which is not a thing to do on the last day before a
+window.
+
+Partial mitigation landed: `dsp4_family_verify.py` now records
+`build_cfg` per chip in its JSON. Five famverify reports were taken on
+2026-09-09 in five different configurations and not one recorded which, so
+telling the control from the arm meant trusting a filename.
+
+### S10-6 — the capacity record's instrument and the shipping image disagree, and chip 2's gap is unexplained
+
+**Severity: MAJOR (the capacity record). Status: PART OPEN.**
+
+`sigprofile.sh` / `sigprofile2.sh` / `fxcost.sh` build an INSTRUMENT:
+`DSP4_PROFILE_SIGNAL=1` (so the dynamics cannot be measured on their cheap
+branch) and `DSP4_BLOCK_DECIMATE=32` (so a graph that does not fit still
+completes). Right for attributing cost to a class; not the image that has
+to fit. Measured both ways in one session, block 16, 983.04 MHz read back:
+
+| | the record's instrument | the shipping pair | gap |
+|---|--:|--:|--:|
+| chip 1, D24 | 408,939 (124.8 %) | 234,267 (71.5 %) | +174,672 |
+| chip 2, D24 | 225,646 (68.9 %) | 303,891 (92.7 %) | **−78,245** |
+| chip 2, D32 | 261,093 (79.7 %) | 369,424 (112.7 %) | **−108,331** |
+
+Chip 1's is EXPLAINED: `DSP4_PROFILE_SIGNAL` + `TUBEON=1` put all 32 strips
+on their expensive branch, so 408,939 is the honest signal-present worst
+case and 234,267 is the same graph on a silent bench.
+
+Chip 2's is NOT. It is 24 % of budget at D24 and 33 % at D32, in the
+direction the signal/silence split cannot produce. `DSP4_BLOCK_DECIMATE=32`
+is the remaining candidate — it gives the graph thirty-two block periods,
+so nothing in the block loop ever contends. **Until this is resolved a
+chip-2 margin quoted from `sigprofile2`/`fxcost` is a margin for the
+instrument.** The same disagreement shows up in the D24 mask's value:
+35,447 cycles on the instrument, 65,533 on the shipping pair.
+
+`tools/pi/dsp4_capacity.py` reads the shipping pair directly and is the
+arbiter: `_proc_cyc`, `_proc_cyc_max`, `DIAG_BLK_OVERRUN`, and the CGU
+words so the budget comes from the clock the part is running.
+
+### S10-7 — a measurement bar could destroy the artifact the product ships
+
+**Severity: MINOR (bench procedure). Status: PART FIXED.**
+
+`famverify.sh`, `sigprofile.sh`, `sigprofile2.sh` and `fxcost.sh` all
+`scp build/chip1.ldr build/chip2.ldr` into `/home/app/dspboot/` — which is
+where `chip1.ldr` / `chip2.ldr`, two of the staged pairs the window rolls
+back to, live. Running a bar overwrites them.
+
+`famverify.sh` now takes `STAGE` (default `/home/app/dspboot`, so nothing
+that calls it changes) and symlinks the shared bench helpers into it, so a
+run can be staged anywhere. The three profile scripts still do not, and
+this session protected the window pair by copying it to
+`~/dspboot/.window/` and restoring it. Extending `STAGE` to the profile
+scripts is the durable fix.
+
+### S10-8 — the margin was being quoted off an average, and only on chip 1
+
+**Severity: MAJOR (every chip-1 margin on record). Status: RECORDED.**
+
+`_proc_cyc` is the last block pass; `_proc_cyc_max` is the worst since
+reset. On the shipping pair, block 16, two boots per arm:
+
+| | mean | worst | worst/mean |
+|---|--:|--:|--:|
+| chip 1, D24 | 234,267 | 277,752 | **1.186** |
+| chip 1, D32 | 306,190 | 361,246 | **1.180** |
+| chip 2, D24 | 303,891 | 304,874 | 1.003 |
+| chip 2, D32 | 369,424 | 370,832 | 1.004 |
+
+**Chip 2's block cost is flat to 0.4 %; chip 1's worst block is 18 % above
+its mean at both masks on every boot** — stable enough to be structural,
+not jitter. Chip 1 carries the 38 METER nodes and the ramp engine, and the
+meter fold is an explicit per-block gate (`_mtr_block_tick`).
+
+So **chip 1's D24 margin is 15.2 %, not 28.5 %**, and every chip-1 margin
+ever quoted on this project is 18 % of its own value too generous.
+
+Two riders. **OVERRUN 0 does not mean every block fitted** — chip 1 at D32
+exceeds budget on its worst block (110.3 %) and still reports zero
+overruns, because `_block_ready` is a flag and a long block is absorbed by
+the next block's slack. And **`_proc_cyc_max` is never reset**, so it
+catches the one-time work in the first pass after CONFIG_COMMIT: one boot
+read 1,351,877 (412.6 %) against 370,832 on its twin. It needs a reset
+before it can be a production margin figure.
+
+### S10-9 — a stale `chipN.sym.json` gives well-formed wrong cycle counts
+
+**Severity: MAJOR (bench procedure). Status: FIXED in dsp4_capacity.py.**
+
+The symbol map moves on every build. A bench tool that reads
+`/home/app/dspboot/chipN.sym.json` while booting an image staged elsewhere
+peeks `_proc_cyc`'s address **in a different build**, and whatever lives
+there answers. On 2026-09-09 that returned values increasing by three per
+read (it was `_proc_passes`) and, on one run, a number that matched the
+expected `_proc_cyc` closely enough to be believed.
+
+Two "fixes" tried on the way made it worse and are recorded so they are not
+tried again: reading the peek DATA half with the paced voted reader `rd()`
+returned DIAG_FRAME_COUNT's value (it fires twelve pipelined asks of its
+own into a two-transaction handshake), and wrapping the handshake in a
+24-try agreement loop returned `_proc_passes`. **The peek window tolerates
+exactly one handshake at a time under load.**
+
+`dsp4_capacity.py` now prefers the map staged beside the `.ldr` that was
+booted. Every bench tool that peeks by symbol has the same exposure.

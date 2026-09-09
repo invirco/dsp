@@ -12701,6 +12701,73 @@ _STRIP_DYN  = ('GATE', 'COMP')
 _STRIP_TAIL = ('TUBE', 'DLY', 'FDR', 'RTG')
 _STRIP_TYPES = _STRIP_HEAD + _STRIP_DYN + _STRIP_TAIL
 
+# WHERE A CHIP-1 STRIP NODE LEAVES ITS OUTPUT BLOCK (findings S9-5).
+#
+# Same kind of table as _METER_SRC_BLOCK and the same rule: this is a FACT
+# about the generated block kernel, not a guess, and _blk_out_of() below
+# CHECKS it against the body it just generated, so a kernel that is
+# rewritten onto a different slot fails the run instead of quietly
+# mis-witnessing.
+#
+# It exists because the pool is REUSED. `_buf_<node>` is a one-word variable
+# that a strip node's block kernel never writes -- the kernel's output is a
+# blk_pool.h slot that the next strip overwrites -- so there is no point
+# after the block at which a given strip node's block still exists. This
+# table is what lets the chain hand _scope_tap the right address AT the node.
+#
+# RTG is deliberately absent: it publishes no single output block (it writes
+# the aux send frames and accumulates into the buses), so it gets no tap and
+# the family walk reports that rather than inventing a witness.
+_STRIP_BLK_OUT = {
+    'IN':   'BLK_CHAIN_A',
+    'GAIN': 'BLK_CHAIN_B',
+    'FILT': 'BLK_CHAIN_B',
+    'EQ':   'BLK_CHAIN_B',
+    'GATE': 'BLK_CHAIN_A',
+    'COMP': 'BLK_CHAIN_B',
+    'TUBE': 'BLK_CHAIN_A',
+    'DLY':  'BLK_CHAIN_B',
+    'FDR':  'BLK_CHAIN_A',
+}
+
+
+def _blk_out_of(nid, body, odd):
+    """Where node `nid`'s output block lives at the instant its kernel
+    returns, or None if it publishes no single block.
+
+    Three shapes, in the order they are checked, because a node that owns a
+    block array is witnessed at the array and never at a pool slot:
+      1. `_blk_<nid>[BLOCK]`  -- chip 2's block kernels;
+      2. `_buf_<nid>[BLOCK]`  -- the few (MIX_BUS) whose _buf_ IS the block;
+      3. a blk_pool.h slot    -- every chip-1 strip node, from the table.
+    """
+    if f'.var _blk_{nid}[' in body:
+        return ('blk', f'_blk_{nid}')
+    if f'.var _buf_{nid}[' in body:
+        return ('blk', f'_buf_{nid}')
+    m = _STRIP_NODE_RE.match(nid)
+    if not m:
+        # Not a strip node and it owns no block array. If it publishes a
+        # scalar _buf_ it is a node with NO block kernel at all (TALKBACK,
+        # NOISE_GEN): the chain calls it once per block and one word per
+        # block is its entire output. Witnessed one word at a time.
+        if f'dm(_buf_{nid}) =' in body:
+            return ('scalar', f'_buf_{nid}')
+        return None
+    slot = _STRIP_BLK_OUT.get(m.group(2))
+    if slot is None:
+        return None
+    if odd:
+        slot += '_P1'
+    # The check that makes the table a fact. The kernel must actually point
+    # an index register at the slot this table claims it writes.
+    if f'= {slot};' not in body:
+        raise SystemExit(
+            f"_STRIP_BLK_OUT says {nid} publishes its block into {slot}, but "
+            f"the generated kernel never loads that slot. The kernel moved; "
+            f"fix the table in tools/dsp/dsp_codegen.py -- do not guess.")
+    return ('blk', slot)
+
 _STRIP_NODE_RE = re.compile(
     r'^C(\d+)_(' + '|'.join(_STRIP_TYPES) + r')_(\d+)$')
 
@@ -14165,6 +14232,10 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
         _input_of = {n['id']: (n['inputs'][0] if n.get('inputs') else None)
                      for n in chip_nodes}
 
+        # Where each node leaves its output block, filled in as the bodies
+        # are generated and used by the block-aware scope tap below.
+        blk_out = {}
+        rx_redirect = {}
         odd_pool_ids = set()
         for sn, cls in strips.items():
             if sn % 2:
@@ -14223,6 +14294,19 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                 # DSP4_SIMD_DYN off every _P1 macro aliases its original, so
                 # this assembles to the bytes it did before pairing existed.
                 body = _odd_pool(body)
+            _nid_ = node['id']
+            blk_out[_nid_] = _blk_out_of(
+                _nid_, body, _nid_ in odd_pool_ids)
+            # A node whose RX SLOT survives only as a ONE-WORD variable while
+            # its block kernel reads the DMA buffer straight into a pool slot:
+            # the host names the slot, and the stimulus has to go where the
+            # chain will actually read it. Chip 2's INTERCHIP_RECV declares
+            # `_rx_ic_slot_<node>[BLOCK]` and needs no redirect, which is why
+            # this is read off the generated body rather than guessed from
+            # the node's name.
+            if (f'.var _rx_slot_{_nid_};' in body
+                    and blk_out[_nid_] and blk_out[_nid_][0] == 'blk'):
+                rx_redirect[_nid_] = (f'_rx_slot_{_nid_}', blk_out[_nid_][1])
             content = header + '\n' + body
 
             asm_path = os.path.join(nodes_dir, f"{node['id']}.asm")
@@ -15010,6 +15094,102 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
             f.write(f'    rts;\n')
             f.write(f'_{chip_label}_process_all.end:\n')
         files_written += 1
+
+        # ---- THE BLOCK-AWARE SCOPE TAP (DSP4_SCOPE_BLK_TAP, S9-5) ------
+        #
+        # One pass over the finished chain, inserting a tap after every node
+        # call, rather than a hook inside each of the eight places that emit
+        # a call: the chain is written in four orders (scalar, paired,
+        # bq-paired, chip-2 pair-ordered) and a hook that reached only some
+        # of them would witness some families and silently not others --
+        # which is the exact failure this instrument exists to end.
+        #
+        # A pair DRIVER call covers two strips, so it gets two taps: the
+        # driver leaves each channel where that channel's own node would
+        # have left it, so the addresses are the members' and not the
+        # driver's. The tap is inside #if DSP4_SCOPE_BLK_TAP, so a default
+        # build emits nothing -- verified by rebuilding the shipping pair
+        # and comparing the md5, not by reading this comment.
+        _PAIR_CALL_RE = re.compile(
+            r'^(\s*)call _(DYNGATE|DYNCOMP|BQPFILT|BQPEQ)_(\d+)_(\d+)_process;$')
+        _NODE_CALL_RE = re.compile(r'^(\s*)call _([A-Za-z0-9_]+)_process;$')
+        _PAIR_NODE = {'DYNGATE': 'GATE', 'DYNCOMP': 'COMP',
+                      'BQPFILT': 'FILT', 'BQPEQ': 'EQ'}
+        _decl_rx = set()
+        _cnum = chip_label[-1]
+
+        def _tap_lines(indent, nid):
+            out = blk_out.get(nid)
+            if not out:
+                return []
+            _kind, out = out
+            _fn = '_scope_tap' if _kind == 'blk' else '_scope_tap1'
+            # Directives at column 0 like every other guard in this file;
+            # only the instructions take the call site's indent.
+            return ['#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP',
+                    f'{indent}r0 = _buf_{nid};',
+                    f'{indent}r1 = {out};',
+                    f'{indent}call {_fn};',
+                    '#endif']
+
+        with open(chain_path, encoding='utf-8') as f:
+            _chain_lines = f.read().split('\n')
+        _out_lines, _tapped = [], set()
+        _last_node = None
+        for _ln in _chain_lines:
+            # THE STIMULUS NEEDS THE SAME ADDRESS THE WITNESS DOES.
+            # _scope_inject_blk is handed the slot symbol the host names and
+            # where that node's block actually is; on chip 1 they are not the
+            # same place (the RX slot variable has no reader under block
+            # kernels), and passing 0 means "no redirect", which is chip 2's
+            # case and leaves it byte for byte as it was.
+            if _ln.strip() == 'call _scope_inject_blk;':
+                _ind = _ln[:len(_ln) - len(_ln.lstrip())]
+                _rx = rx_redirect.get(_last_node)
+                _out_lines.append(
+                    '#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP')
+                if _rx:
+                    _out_lines.append(f'{_ind}r0 = {_rx[0]};')
+                    _out_lines.append(f'{_ind}r1 = {_rx[1]};')
+                    _decl_rx.add(_rx[0])
+                else:
+                    _out_lines.append(f'{_ind}r0 = 0;')
+                _out_lines.append('#endif')
+            _out_lines.append(_ln)
+            m = _PAIR_CALL_RE.match(_ln)
+            if m:
+                for _sn in (m.group(3), m.group(4)):
+                    _nid = f'C{_cnum}_{_PAIR_NODE[m.group(2)]}_{_sn}'
+                    _t = _tap_lines(m.group(1), _nid)
+                    if _t:
+                        _out_lines.extend(_t)
+                        _tapped.add(_nid)
+                continue
+            m = _NODE_CALL_RE.match(_ln)
+            if m:
+                _last_node = m.group(2)
+                if m.group(2) in blk_out:
+                    _t = _tap_lines(m.group(1), m.group(2))
+                    if _t:
+                        _out_lines.extend(_t)
+                        _tapped.add(m.group(2))
+        if _tapped:
+            # The tap needs the pool macros and every tapped node's _buf_
+            # symbol. Both go in behind the same guard as the taps.
+            _decl = ['#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP',
+                     '#include "blk_pool.h"',
+                     '.extern _scope_tap;',
+                     '.extern _scope_tap1;']
+            _decl += [f'.extern _buf_{n};' for n in sorted(_tapped)]
+            _decl += [f'.extern {n};' for n in sorted(_decl_rx)]
+            _decl += ['#endif', '']
+            _anchor = '.section/pm seg_pmco;'
+            _i = _out_lines.index(_anchor) + 1
+            _out_lines[_i:_i] = _decl
+            with open(chain_path, 'w', encoding='utf-8') as f:
+                f.write('\n'.join(_out_lines))
+            print(f'  {chain_path}: block-aware scope tap on '
+                  f'{len(_tapped)} nodes (DSP4_SCOPE_BLK_TAP)')
 
         # Write the SIMD strip-pair dynamics drivers. Always written --
         # the whole file is inside #if DSP4_SIMD_DYN, so it costs the
