@@ -100,7 +100,9 @@ on the same `.4` address map, so a problem traced to the mask can be
 backed out without also rolling the contract back.
 
 To reflash: `sudo systemctl stop matrix-app`,
-`sudo pinctrl set 6,7,8,9,10,11,12,22,23,24,25 a0`, copy the two `ship_*`
+`sudo pinctrl set 6,24 op dh; sudo pinctrl set 8,12 ip; sudo pinctrl set
+7,9,10,11,22,23,25 a0` (NOT one `a0` line over all eleven pins — that is
+the S8-3 defect and it boots chip 2 with chip 1's firmware), copy the two `ship_*`
 files over `chip1.ldr`/`chip2.ldr`, then `python3 dsp4_boot.py --dir .`
 and `dsp4_config.py --product d24 --chip 1|2` — **twice**, the config
 commit desyncs the parameter link on the first cycle every time. Verify

@@ -60,6 +60,11 @@ EXPECT2=$(( DSP4_STRIPS & 0x3F ))
 
 scp -q build/chip1.ldr build/chip2.ldr ../../../../tools/pi/dsp4_block.py $BENCH:/home/app/dspboot/
 scp -q ../../../../tools/pi/dsp4_audio_verdict.py $BENCH:/home/app/dspboot/audio_verdict.py
+# BENCH PROCEDURE (S8-3): the boot tool and the chip-identity gate go
+# with every run, so a bench cannot be left on a stale dsp4_boot.py that
+# still hands GPIO 6/24 to a0. Path is script-relative, not $ROOT: not
+# every script in here defines one.
+scp -q "$(dirname "$0")/../../../../tools/pi/dsp4_checkchip.py" "$(dirname "$0")/../../../../tools/pi/dsp4_boot.py" $BENCH:/home/app/dspboot/
 scp -q bisect_run.sh $BENCH:/home/app/
 printf 'mask=%d limit=%d commit=%d noidle=%d stub_cg=%d nocvt=%d  md5=%s  stamp@%s expect=0x%08X\n' \
   "$DSP4_BLOCK_MASK" "$DSP4_NODE_LIMIT" "$DSP4_COMMIT_STAGE" "$DSP4_NO_IDLE_OVERRIDE" \

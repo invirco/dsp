@@ -36,6 +36,27 @@ SETTLE = 0.002     # three audio block periods; see Scope.rd
 SCOPE_MAX = 1024   # buffer capacity; the REGISTER is SCOPE_LEN above
 
 
+def check_chip_id(got, want):
+    """THE chip-identity gate. Refuse to measure the wrong part.
+
+    dsp4_boot.py can silently leave chip 2 running chip 1's firmware -- the
+    S8-3 pin defect, GPIO24 muxed to SD0_DAT2 instead of held high, which
+    left chip 2's chip select asserted through chip 1's boot stream -- and a
+    mis-addressed link answers as chip 1 regardless. Either way every symbol
+    address is then wrong and the capture is fiction, while dsp4_diag.py
+    reports a completely healthy card.
+
+    Kept module-level so dsp4_checkchip.py and dsp4_boot.py apply THE SAME
+    test as the scope does, rather than three spellings of it.
+    """
+    if got != want:
+        raise SystemExit('link answers as CHIP %s, expected %d — wrong '
+                         'CS/RDY, or chip 2 is running chip 1 firmware '
+                         '(hold GPIO 6 and 24 high; do NOT give them to a0)'
+                         % (got, want))
+    return True
+
+
 class Scope:
     def __init__(self, chip, symfile=None):
         self.chip = chip
@@ -50,15 +71,8 @@ class Scope:
         self.d.resync()
 
     def check_chip(self):
-        """Refuse to measure the wrong part. dsp4_boot.py can silently leave
-        chip 2 running chip 1's firmware, and a mis-addressed link answers
-        as chip 1 regardless -- either way every symbol address is then
-        wrong and the capture is fiction."""
-        got = self.rd(0xE001)
-        if got != self.chip:
-            raise SystemExit('link answers as CHIP %d, expected %d — '
-                             'wrong CS/RDY or chip 2 is running chip 1 firmware'
-                             % (got, self.chip))
+        """Refuse to measure the wrong part. See check_chip_id()."""
+        check_chip_id(self.rd(0xE001), self.chip)
 
     def addr(self, name):
         if name.startswith('0x'):

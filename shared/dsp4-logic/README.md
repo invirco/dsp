@@ -87,11 +87,19 @@ on the bench Pi (TCK=7, TDI=23, TDO=22, TMS=25), device IDCODE
 sudo systemctl stop matrix-app
 sudo openocd -f cpld-jtag.cfg -c "init; svf -tap cpld.tap <file>.svf; shutdown"
 sudo openocd -f cpld-jtag.cfg -c "init; scan_chain; shutdown"   # IDCODE check
-pinctrl set 6,7,8,9,10,11,12,22,23,24,25 a0                     # SEE BELOW
+pinctrl set 6,24 op dh                                          # SEE BELOW
+pinctrl set 8,12 ip
+pinctrl set 7,9,10,11,22,23,25 a0
 sudo systemctl start matrix-app
 ```
 
-**The `pinctrl` line is not optional.** OpenOCD's `linuxgpiod` adapter
+**The three `pinctrl` lines are not optional, and they are not one
+`a0` line.** Giving GPIO 6 and 24 to `a0` is the S8-3 defect: ALT0 on
+GPIO24 is `SD0_DAT2`, not a deasserted chip select, so chip 2's CS sits
+asserted through chip 1's boot stream and the card comes up as two chip 1s
+with no other symptom (`dsp4_checkchip.py` is the only thing that sees it).
+The chip selects are DRIVEN HIGH; only the SPI and JTAG pins go back to
+`a0`. `MW/D32/DSP/SHARC/check_bench_pins.sh` enforces the text. OpenOCD's `linuxgpiod` adapter
 leaves its GPIOs claimed on exit and does not return them to their ALT
 functions, which kills the DSP SPI link until they are restored. The
 failure looks exactly like a bricked card — reads return nothing at all,

@@ -86,6 +86,84 @@ RDY_GPIO = {1: 8, 2: 12}
 RST_GPIO = 16
 SCK_GPIO = 11           # Pi SPI0 SCLK; also H1S1's SCK — see sync_to_gap()
 
+# BENCH PIN HAND-BACK — THE CANONICAL SEQUENCE (S8-3, 2026-09-09).
+#
+# Every run and flash script in this tree hands the SPI/JTAG pins back after
+# an OpenOCD flash. The line they all carried until 2026-09-09 was
+#
+#     pinctrl set 6,7,8,... ,24,25 a0
+#
+# and it is WRONG in one place that matters: GPIO24 in ALT0 is SD0_DAT2, not
+# a deasserted chip select. Chip 2's CS then sits ASSERTED while chip 1's
+# boot stream is clocked out, chip 2 loads chip1.ldr, and the card comes up
+# as TWO CHIP 1s. Six consecutive boots did exactly that, and only a CHIP_ID
+# read caught it — dsp4_diag.py reports a perfectly healthy part, so every
+# number taken through it is fiction.
+#
+# The chip selects are held as OUTPUTS DRIVEN HIGH; the two SPI_RDY lines are
+# plain inputs, which is what gpiod claims them as anyway (spidev runs with
+# no_cs, so GPIO8 is not a chip select here); only the SPI data/clock and the
+# four JTAG pins go back to a0.
+PIN_HANDBACK = (
+    ('6,24', 'op dh'),          # CS1 / CS2 — DEASSERTED, and driven, not muxed
+    ('8,12', 'ip'),             # SPI_RDY chip 1 / chip 2
+    ('7,9,10,11,22,23,25', 'a0'),   # SPI0 + the OpenOCD JTAG four
+)
+
+
+def restore_pins(verbose=True):
+    """Put the bench GPIOs back the way a boot needs them. See PIN_HANDBACK."""
+    import subprocess
+    sudo = [] if os.geteuid() == 0 else ['sudo']
+    for pins, mode in PIN_HANDBACK:
+        subprocess.run(sudo + ['pinctrl', 'set'] + pins.split() + mode.split(),
+                       check=False, capture_output=True)
+    if verbose:
+        print('pins: ' + ', '.join(f'{p} {m}' for p, m in PIN_HANDBACK))
+
+
+def verify_chips(chips, timeout=15.0, verbose=True):
+    """Refuse to hand back a card that booted as the wrong part.
+
+    This is dsp4_scope.check_chip's test, run on EVERY boot rather than only
+    when something happens to open a scope: the failure it catches (chip 2
+    running chip 1's firmware, see PIN_HANDBACK) is invisible to every other
+    observable on this bench. Returns True, or raises SystemExit.
+    """
+    from dsp4_diag import DiagLink
+    from dsp4_config import SpiLink
+
+    deadline = time.monotonic() + timeout
+    got = {}
+    while True:
+        for c in chips:
+            if got.get(c) == c:
+                continue
+            try:
+                d = DiagLink(SpiLink('0.0', 1_000_000, CS_GPIO[c],
+                                     rdy_gpio=RDY_GPIO[c]))
+                d.resync()
+                got[c] = d.read(0xE001)
+            except (IOError, OSError) as e:
+                got[c] = f'link: {e}'
+        if all(got.get(c) == c for c in chips):
+            if verbose:
+                print('CHIP_ID verified: ' + ', '.join(f'chip {c} = {c}'
+                                                       for c in chips))
+            return True
+        if time.monotonic() >= deadline:
+            break
+        time.sleep(1.0)
+    bad = ', '.join(f'chip {c} answers {got.get(c)!r}' for c in chips
+                    if got.get(c) != c)
+    raise SystemExit(
+        'BOOT VERIFY FAILED: %s (expected each chip to answer its own '
+        'CHIP_ID). A chip answering the OTHER chip\'s id is the S8-3 pin '
+        'defect — the chip selects must be held high, not muxed to a0; see '
+        'PIN_HANDBACK. Refusing to proceed: every measurement taken through '
+        'this boot would be fiction.' % bad)
+
+
 BOOT_UNIT = 1024        # HRM: slave-boot hosts send multiples of 1024 B
 CHUNK = 0               # 0 = one writebytes2 for the whole stream (see --chunk)
 RESET_LOW_S = 0.050     # !RST_D pulse width
@@ -197,6 +275,23 @@ class Gpio:
     def inp(self, num):
         return self._claim(num,
                            self._gpiod.LineSettings(direction=self._D.INPUT))
+
+    def release_all(self):
+        """Drop every claimed line.
+
+        The kernel refuses a second request for a line this process still
+        holds, so anything that opens the parameter link after a boot -- the
+        CHIP_ID verify below, most obviously -- gets EBUSY on the chip selects
+        until the boot's own claims are gone. Nothing here relies on the
+        lines' resting state: CS is pulled and driven high by the pin
+        hand-back, and RDY is an input.
+        """
+        while self.lines:
+            _, line = self.lines.popitem()
+            try:
+                line.release()
+            except Exception:
+                pass
 
 
 def wait_ready(line, what, timeout=RDY_TIMEOUT_S, active_low=RDY_ACTIVE_LOW):
@@ -467,6 +562,16 @@ def main():
                          f'single-bit mode, HRM Table 36-18). "none" sends no '
                          f'command byte — the pre-2026-08-21 behaviour.')
     ap.add_argument('--dry-run', action='store_true')
+    ap.add_argument('--no-pin-setup', action='store_true',
+                    help='do NOT apply the canonical pin hand-back first '
+                         '(PIN_HANDBACK); for a caller that has already '
+                         'done it or is driving the pins itself')
+    ap.add_argument('--no-verify-chips', action='store_true',
+                    help='do NOT read CHIP_ID back from each booted chip. '
+                         'Only for a boot that cannot reach the parameter '
+                         'link at all (e.g. a bisect park build).')
+    ap.add_argument('--verify-timeout', type=float, default=15.0,
+                    help='seconds to wait for both chips to answer CHIP_ID')
     args = ap.parse_args()
 
     if args.ldr:
@@ -502,6 +607,9 @@ def main():
         print(f'({len(streams)} chip(s), {args.speed} Hz, SPI mode '
               f'{args.spi_mode}, {args.attempts} attempt(s) per chip)')
         return
+
+    if not args.no_pin_setup:
+        restore_pins()
 
     import spidev
     bus, dev = (int(x) for x in args.dev.split('.'))
@@ -548,6 +656,14 @@ def main():
           + (f', {args.unit_delay * 1e3:.1f} ms unit delay'
              if args.unit_delay else '')
           + ('' if spicmd is None else f', SPICMD {spicmd:#04x}'))
+
+    if not args.no_verify_chips:
+        # The verify opens the parameter link, so the boot's own CS/RDY
+        # claims have to go first or every read is EBUSY.
+        gpio.release_all()
+        restore_pins(verbose=False)
+        verify_chips([c for c, _, _, _ in streams],
+                     timeout=args.verify_timeout)
 
 
 if __name__ == '__main__':

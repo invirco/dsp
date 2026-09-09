@@ -9,6 +9,12 @@ for r in $(seq 1 "$N"); do
   ok=0
   for t in 1 2 3; do
     python3 dsp4_boot.py --dir . >/dev/null 2>&1; sleep 5
+    # CHIP-IDENTITY GATE (S8-3). dsp4_boot.py now applies the canonical
+    # pin hand-back and reads CHIP_ID back itself, so this is the second
+    # of two; it is here as well because this loop's own retry is what
+    # decides whether a measurement is taken, and a boot that came up as
+    # two chip 1s must NOT be one of the tries that counts as success.
+    python3 dsp4_checkchip.py --quiet || continue
     ID=$(python3 dsp4_diag.py --chip 2 2>&1 | grep CHIP_ID | awk '{print $2}')
     [ "$ID" = "2" ] && { ok=1; break; }
   done

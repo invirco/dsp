@@ -87,7 +87,8 @@ another and read the absence of output as a result.
 | shipping DSP firmware restored | `md5sum /home/app/dspboot/chip{1,2}.ldr` | matches the md5 recorded at the start of the session |
 | DSPs running on it | `bash run1.sh /home/app/dspboot` (boot+config+verdict) | `BOOT_STAGE 7`, `FRAME_COUNT ~6000/s` (48 kHz / block 8), `DMA0_STAT 0x00006200`, `SPORT0_ERR_A 0x00000000` |
 | shipping CPLD bitstream | `openocd -f cpld-jtag.cfg -c "init; scan_chain; shutdown"` | IDCODE `0x020a30dd` |
-| GPIOs released | `pinctrl set 6,7,8,9,10,11,12,22,23,24,25 a0` | mandatory after any openocd or dsp4_boot run — a claimed line looks exactly like a bricked card |
+| GPIOs released | `pinctrl set 6,24 op dh` then `pinctrl set 8,12 ip` then `pinctrl set 7,9,10,11,22,23,25 a0` | mandatory after any openocd or dsp4_boot run — a claimed line looks exactly like a bricked card. NOT one `a0` line over all eleven pins: that gives GPIO24 to `SD0_DAT2` and boots chip 2 with chip 1's firmware (S8-3) |
+| right firmware on the right part | `python3 dsp4_checkchip.py` | `chip check OK` — both chips answer their own CHIP_ID. A wrong CHIP_ID is invisible to every other check on this page |
 | matrix-app up | `systemctl is-active matrix-app` | `active` |
 | **all three MCUs verified** | **`grep -aE "MCU (boot )?verified" /home/app/logs/log \| tail -6`** | H1S1, H1S3 and H1S4 all present, timestamped after the restart |
 

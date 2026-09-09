@@ -21,6 +21,7 @@ tell a wrong answer from a right one.
 
 Usage:
   dsp4_diag.py --chip 1 --cs-gpio 6 --rdy-gpio 8        # dump everything
+  dsp4_diag.py --chip 2                                 # CS 24, RDY 12 by default
   dsp4_diag.py --chip 1 --cs-gpio 6 --watch             # live, 1 Hz
   dsp4_diag.py --chip 1 --cs-gpio 6 --peek 0x31030040   # any MMR
   dsp4_diag.py --chip 1 --cs-gpio 6 --led on|off|auto
@@ -457,9 +458,14 @@ def main():
     ap.add_argument('--dev', default='0.0', help='spidev bus.device')
     ap.add_argument('--speed', type=int, default=1_000_000)
     ap.add_argument('--cs-gpio', type=int,
-                    help='BCM GPIO driving CS (chip 1 = 6, chip 2 = 7)')
+                    help='BCM GPIO driving CS (default: chip 1 = 6, '
+                         'chip 2 = 24 -- this help said 7 until 2026-09-09 '
+                         'and the code never did; DSPB does not listen '
+                         'on GPIO7)')
     ap.add_argument('--rdy-gpio', type=int,
-                    help='BCM GPIO carrying SPI_RDY (chip 1 = 8, chip 2 = 12)')
+                    help='BCM GPIO carrying SPI_RDY (chip 1 = 8, chip 2 = 12). '
+                         'Defaulted for --chip 2, which cannot phase the '
+                         'link without it.')
     ap.add_argument('--rdy-active-low', action='store_true')
     ap.add_argument('--resync', action='store_true',
                     help='drain stale responses before reading')
@@ -482,6 +488,16 @@ def main():
         # right map all along (CS_GPIO = {1: 6, 2: 24}); these two
         # tools disagreed with it.
         args.cs_gpio = 6 if args.chip == 1 else 24
+
+    if args.rdy_gpio is None and args.chip == 2:
+        # `--chip 2` IMPLIES `--rdy-gpio 12` (2026-09-09). Without it SpiLink
+        # falls back to chip 1's ready line, the answer phase can never be
+        # calibrated, and the tool reports a dead part -- which is how the
+        # chip-2 half of a boot check silently stopped being a check. Chip 1
+        # is left alone: it has always worked with no ready line, and every
+        # existing `--chip 1` invocation must keep the behaviour it was
+        # measured with.
+        args.rdy_gpio = 12
 
     link = SpiLink(args.dev, args.speed, args.cs_gpio,
                    rdy_gpio=args.rdy_gpio,

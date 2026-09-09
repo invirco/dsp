@@ -49,6 +49,11 @@ fi
 
 scp -q $ROOT/tools/pi/dsp4_dcapar_probe.py $ROOT/tools/pi/dsp4_conform.py \
     $ROOT/tools/pi/dsp4_block.py $BENCH:/home/app/dspboot/ || exit 3
+# BENCH PROCEDURE (S8-3): the boot tool and the chip-identity gate go
+# with every run, so a bench cannot be left on a stale dsp4_boot.py that
+# still hands GPIO 6/24 to a0. Path is script-relative, not $ROOT: not
+# every script in here defines one.
+scp -q "$(dirname "$0")/../../../../tools/pi/dsp4_checkchip.py" "$(dirname "$0")/../../../../tools/pi/dsp4_boot.py" $BENCH:/home/app/dspboot/
 scp -q dcapar_run.sh $BENCH:/home/app/ || exit 3
 ssh $BENCH "STRIP=${STRIP:-1} WORDS=${WORDS:-32} ATTEMPTS=${ATTEMPTS:-5} \
               bash /home/app/dcapar_run.sh"

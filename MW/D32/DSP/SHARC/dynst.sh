@@ -27,5 +27,10 @@ if [ "$(grep -ciE '\[Error|Build FAILED' /tmp/dynst_build.log)" -ne 0 ]; then
 python3 ../../../../tools/dsp/map_syms.py build/chip1.map.xml > /tmp/chip1.sym.json
 scp -q build/chip1.ldr build/chip2.ldr /tmp/chip1.sym.json dynst_read.py ../../../../tools/pi/dsp4_block.py $BENCH:/home/app/dspboot/
 scp -q ../../../../tools/pi/dsp4_audio_verdict.py $BENCH:/home/app/dspboot/audio_verdict.py
+# BENCH PROCEDURE (S8-3): the boot tool and the chip-identity gate go
+# with every run, so a bench cannot be left on a stale dsp4_boot.py that
+# still hands GPIO 6/24 to a0. Path is script-relative, not $ROOT: not
+# every script in here defines one.
+scp -q "$(dirname "$0")/../../../../tools/pi/dsp4_checkchip.py" "$(dirname "$0")/../../../../tools/pi/dsp4_boot.py" $BENCH:/home/app/dspboot/
 scp -q dynst_run.sh $BENCH:/home/app/
 ssh $BENCH "bash /home/app/dynst_run.sh $HZ"

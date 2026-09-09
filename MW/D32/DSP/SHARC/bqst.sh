@@ -37,5 +37,10 @@ scp -q build/chip1.ldr build/chip2.ldr /tmp/chip1.sym.json \
     $ROOT/tools/pi/dsp4_block.py \
     $ROOT/tools/pi/dsp4_bq_verify.py \
     $ROOT/tools/dsp/fixed_ref.py $BENCH:/home/app/dspboot/
+# BENCH PROCEDURE (S8-3): the boot tool and the chip-identity gate go
+# with every run, so a bench cannot be left on a stale dsp4_boot.py that
+# still hands GPIO 6/24 to a0. Path is script-relative, not $ROOT: not
+# every script in here defines one.
+scp -q "$(dirname "$0")/../../../../tools/pi/dsp4_checkchip.py" "$(dirname "$0")/../../../../tools/pi/dsp4_boot.py" $BENCH:/home/app/dspboot/
 scp -q bqst_run.sh $BENCH:/home/app/
 ssh $BENCH "bash /home/app/bqst_run.sh $BLOCK"

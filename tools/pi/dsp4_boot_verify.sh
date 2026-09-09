@@ -22,9 +22,15 @@ DIR="${1:-/home/app/dspboot}"
 sudo systemctl stop matrix-app >/dev/null 2>&1
 # linuxgpiod and dsp4_boot leave GPIOs claimed; without this the SPI link is
 # dead on both chips with a known-good image and it looks like a dead card.
-pinctrl set 9 a0; pinctrl set 10 a0; pinctrl set 11 a0
+# The canonical hand-back (S8-3): CHIP SELECTS DRIVEN HIGH, ready lines as
+# inputs, only the SPI and JTAG pins to a0. Giving 6 and 24 to a0 boots chip
+# 2 with chip 1's firmware. check_bench_pins.sh enforces this text.
+sudo pinctrl set 6,24 op dh >/dev/null 2>&1
+sudo pinctrl set 8,12 ip >/dev/null 2>&1
+sudo pinctrl set 7,9,10,11,22,23,25 a0 >/dev/null 2>&1
 sleep 0.3
 python3 dsp4_boot.py --dir "$DIR" 2>&1 | grep -E "chip [12]:|booted"
+python3 dsp4_checkchip.py || exit 3   # a wrong CHIP_ID makes everything below fiction
 sleep 0.6
 echo "--- pre-config diag ---"
 python3 dsp4_diag.py --chip 1 2>&1 | grep -E "MAGIC|BOOT_STAGE|FRAME_COUNT|TICKS" \

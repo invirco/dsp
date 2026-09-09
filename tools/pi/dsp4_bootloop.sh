@@ -31,7 +31,10 @@ start)
     echo "already running (pid $(cat "$PID")); stop it first"; exit 1
   fi
   sudo systemctl stop matrix-app
-  pinctrl set 9 a0; pinctrl set 10 a0; pinctrl set 11 a0
+  # Canonical hand-back (S8-3): chip selects driven HIGH, not muxed to a0.
+  sudo pinctrl set 6,24 op dh >/dev/null 2>&1
+  sudo pinctrl set 8,12 ip >/dev/null 2>&1
+  sudo pinctrl set 7,9,10,11,22,23,25 a0 >/dev/null 2>&1
   cd "$DIR" || exit 1
   nohup bash -c "while true; do
       echo \"--- \$(date -Is) boot chip $CHIP ---\"

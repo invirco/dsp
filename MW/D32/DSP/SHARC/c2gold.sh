@@ -75,6 +75,11 @@ run_arm() {   # $1 = kernels (0|1) -> writes $WORK/arm$1.json on the card
   python3 $ROOT/tools/dsp/map_syms.py "$D/chip2.map.xml" > "$D/chip2.sym.json"
   scp -q "$D/chip1.ldr" "$D/chip2.ldr" "$D/chip1.sym.json" "$D/chip2.sym.json" \
          $BENCH:/home/app/dspboot/
+  # BENCH PROCEDURE (S8-3): the boot tool and the chip-identity gate go
+  # with every run, so a bench cannot be left on a stale dsp4_boot.py that
+  # still hands GPIO 6/24 to a0. Path is script-relative, not $ROOT: not
+  # every script in here defines one.
+  scp -q "$(dirname "$0")/../../../../tools/pi/dsp4_checkchip.py" "$(dirname "$0")/../../../../tools/pi/dsp4_boot.py" $BENCH:/home/app/dspboot/
   scp -q c2gold_run.sh $BENCH:/home/app/
   ssh $BENCH "bash /home/app/c2gold_run.sh $DWELL /home/app/dspboot/arm$K.json" \
     2>&1 | sed "s/^/  arm$K: /"

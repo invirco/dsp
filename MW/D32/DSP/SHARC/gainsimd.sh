@@ -66,6 +66,11 @@ chip2.ldr $(md5sum build/chip2.ldr | cut -c1-8)  gain=$GVAL"
   scp -q build/chip1.ldr build/chip2.ldr /tmp/chip1.sym.json \
       $ROOT/tools/pi/dsp4_block.py $ROOT/tools/pi/dsp4_pairgraph.py \
       $ROOT/tools/pi/gainfix.py $BENCH:/home/app/dspboot/ || return 1
+  # BENCH PROCEDURE (S8-3): the boot tool and the chip-identity gate go
+  # with every run, so a bench cannot be left on a stale dsp4_boot.py that
+  # still hands GPIO 6/24 to a0. Path is script-relative, not $ROOT: not
+  # every script in here defines one.
+  scp -q "$(dirname "$0")/../../../../tools/pi/dsp4_checkchip.py" "$(dirname "$0")/../../../../tools/pi/dsp4_boot.py" $BENCH:/home/app/dspboot/
   scp -q gainsimd_run.sh $BENCH:/home/app/ || return 1
   ssh $BENCH "bash /home/app/gainsimd_run.sh $STRIP $N $tag '' $GVAL" || return 1
   scp -q $BENCH:/home/app/dspboot/pairgraph_$tag.json $OUT/ || return 1

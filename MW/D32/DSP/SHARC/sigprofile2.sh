@@ -162,6 +162,11 @@ print(a('proc_cyc'), a('proc_passes'))")"
               $ROOT/tools/pi/dsp4_block.py $BENCH:/home/app/dspboot/
   scp -q $ROOT/tools/pi/dsp4_audio_verdict.py $BENCH:/home/app/dspboot/audio_verdict.py
   scp -q $ROOT/tools/pi/gainfix.py $BENCH:/home/app/dspboot/
+  # BENCH PROCEDURE (S8-3): the boot tool and the chip-identity gate go
+  # with every run, so a bench cannot be left on a stale dsp4_boot.py that
+  # still hands GPIO 6/24 to a0. Path is script-relative, not $ROOT: not
+  # every script in here defines one.
+  scp -q "$(dirname "$0")/../../../../tools/pi/dsp4_checkchip.py" "$(dirname "$0")/../../../../tools/pi/dsp4_boot.py" $BENCH:/home/app/dspboot/
   scp -q sigprofile2_run.sh $BENCH:/home/app/
   # REPEATS, MINIMUM TAKEN. gainprof.sh's rule and bqshoot.sh's before it:
   # a point is one BOOT, boots differ, and the ways a boot can cost MORE are

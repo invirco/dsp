@@ -171,6 +171,11 @@ wait
 
 # ---- phase 2: one pass over the bench ----
 scp -q $ROOT/tools/pi/dsp4_audio_verdict.py $BENCH:/home/app/dspboot/audio_verdict.py
+# BENCH PROCEDURE (S8-3): the boot tool and the chip-identity gate go
+# with every run, so a bench cannot be left on a stale dsp4_boot.py that
+# still hands GPIO 6/24 to a0. Path is script-relative, not $ROOT: not
+# every script in here defines one.
+scp -q "$(dirname "$0")/../../../../tools/pi/dsp4_checkchip.py" "$(dirname "$0")/../../../../tools/pi/dsp4_boot.py" $BENCH:/home/app/dspboot/
 scp -q sigstrips_run.sh sigprofile_run.sh $BENCH:/home/app/
 echo "=== measuring"
 for p in "$@"; do
