@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-09-09 00:53Z — R3–R6 review hardening as one mechanical pass (gen_dsp_csv errors, dsp_validate tightening, fixed_ref sentinel + knee test, cleanups on touched files) — NO BENCH, generated output byte-identical   [status: 🟡 dispatched]   [model: sonnet]
+## HUB DISPATCH 2026-09-09 00:53Z — R3–R6 review hardening as one mechanical pass (gen_dsp_csv errors, dsp_validate tightening, fixed_ref sentinel + knee test, cleanups on touched files) — NO BENCH, generated output byte-identical   [status: 🟢 done — **MOST OF R3–R5 WAS ALREADY LANDED 2026-08-27** (commits `3a3e249`/`7e6d680`/`e54bc0b`/`e0ac481`/`5d8a73f`), same night as R2, but tasks.md's status lines were never updated to say so — this session's real job turned out to be verifying that against current HEAD, closing the two genuine gaps (R3's and R4's missing tests), and doing R6's one still-queued cleanup on a touched file. **R3**: gen_dsp_csv.py's GEQ-insertion StopIteration and sport_map pre-flight were already fixed; added the owed test (`test_geq_splice.py`, 5/5) by extracting the splice-then-relink logic into `geq_splice.relink_and_insert()` — which is also R6's "single-pass GEQ insertion" (was pop+relink-loop+next()-lookup+insert per call site, now one pass), and as a side effect now verifies BOTH chain ends before relinking (the group-GEQ call site previously only checked the upstream id). **R4**: dsp_validate.py's duplicate-ID rejection and param/reference cross-checks were already landed; added the owed test (`test_dsp_validate.py`, 13/13 — one malformed row per failure class: empty/duplicate id, bad chip, unknown type, unknown ramp_profile, bad ch_count, non-integer SPI addr, SPI collision, missing/unrecognized param, dangling reference, same-chip cycle). **Gate 2's "run against defs/products/{d24,d32}/dsp.csv" instruction rests on a mistaken premise, not a finding about the landed file**: those are `MW/D32/DSP/gen_dsp.py`'s matrix-cell→address maps (`_Cell,_Chip,_Page,_Addr,...`), a different schema from the node-graph `dsp.csv` (`id,chip,type,...`) that `tools/dsp/dsp_validate.py` checks — pointed at them it FATALs on "missing required columns" for every column, which is the validator correctly refusing a file that isn't its input, not a defect in either file. **R5**: fixed_ref.py's sentinel fix (raises on x<0, x==0 sentinel proven collision-free and documented) and the soft-knee `over==±half_knee` boundary test were already in `golden_harness.py`; re-verified green, nothing to change. **R6**: the two items on already-touched files (dedupe dsp_validate.py/dsp_simulate.py parse helpers, hardcode fixed_ref.py's fit coefficients) were already done 2026-08-27; single-pass GEQ insertion done this session (above). **Per R6's own rule, everything else stays queued because its file was not touched by gates 1–3**: gen_dsp.py's MCU-only-prefixes-from-config + makedirs guards (gen_dsp.py untouched), and dsp_codegen.py's marker-based template rewrites (dsp_codegen.py untouched). **Bars, before and after**: `golden_harness.py` 59/59, `dsp_validate.py` OK on the regenerated `MW/D32/DSP/SHARC/dsp.csv` (666 nodes, only the four known/expected USB/BT process-order notes, no errors). **Generated output byte-identical**: `dsp.csv` diffed byte-for-byte before/after the gen_dsp_csv.py refactor; `MW/D32/DSP/gen_dsp.py --force` re-run afterward and `git status` shows zero diff on any of its outputs (ghost_cells.h, dsp_address_map.md, dsp_params.asm, mx_dsp_map.h). No bench touched, no image built. Three commits: `92f01fe` (gen_dsp_csv.py single-pass splice + test), `da5dc33` (dsp_validate.py test).]   [model: sonnet]
 
 model: sonnet
 
@@ -6928,31 +6928,37 @@ suggestions only, NONE applied; land each as its own small change:
   make it explicit opt-in. **DONE 2026-08-27** — raises with type/id/chip/
   label, `gen_generic` deleted, regenerated image byte-identical
   (manifest md5 `2703989f…` unchanged).
-- 🔴 **R3 — gen_dsp_csv.py error hardening (review §2.4, patch §5.2):** the
-  GEQ-insertion `next(...)` raises bare StopIteration when the graph is out
-  of sync → contextual ValueError; sport_map.json pre-flight-validated once
-  at load (collect all inconsistent entries) instead of asserted per use.
-- 🔴 **R4 — dsp_validate.py tightening (review §2.5, patch §5.3):**
-  duplicate node IDs must be rejected, not reported once and re-processed;
-  `parse_id_list()`/`parse_params()` cross-checked against the known
-  node-id set and a per-type expected-param-keys table so malformed dsp.csv
-  rows cannot flow through to codegen.
-- 🔴 **R5 — fixed_ref.py: silent sentinel + knee boundary (review §2.6,
-  patch §5.5):** `log2_q()` returns a fixed sentinel for `x <= 0` — raise
-  instead, or prove the sentinel unreachable by legitimate values and
-  document it; add a soft-knee boundary test at `over == ±half_knee`. This
-  file is the SHARC/FPGA bit-exactness reference — silent behaviour here is
-  contract risk.
-- 🔴 **R6 — opportunistic cleanups (review §2.3, §2.7, §3.2–3.5, patch
-  §5.4), do when touching each file, not as their own dispatch:**
-  gen_dsp.py's MCU-only prefixes from config (single registration point
-  with the allowlist) instead of a hardcoded tuple, plus makedirs guards on
-  the generated-file writes; dedupe the parse helpers between
-  dsp_validate.py and dsp_simulate.py (and drop dsp_simulate's second
-  DSPSimulator instantiation / per-stage block.copy()); hardcode
-  fixed_ref.py's fitted polynomial coefficients (fit script kept for
-  regeneration); single-pass GEQ insertion; assert-guarded template
-  rewrites → marker-based with node/file context in the error.
+- 🟢 **R3 — gen_dsp_csv.py error hardening (review §2.4, patch §5.2).** The
+  contextual-ValueError + sport_map pre-flight fix landed 2026-08-27
+  (`3a3e249`) — this tasks.md bullet was just never flipped. **Closed
+  2026-09-09**: the owed test (`tools/dsp/test_geq_splice.py`, 5/5) feeds
+  the splice logic graphs missing the expected chain and asserts a
+  contextual ValueError, not StopIteration. See the dispatch block above.
+- 🟢 **R4 — dsp_validate.py tightening (review §2.5, patch §5.3).**
+  Duplicate-ID rejection + param/reference cross-checks landed 2026-08-27
+  (`7e6d680`) — same stale-bullet situation. **Closed 2026-09-09**: the
+  owed test (`tools/dsp/test_dsp_validate.py`, 13/13, one malformed row per
+  failure class) added. Gate 2's "run against defs/products/{d24,d32}/
+  dsp.csv" instruction was based on a mistaken premise — see the dispatch
+  block above.
+- 🟢 **R5 — fixed_ref.py: silent sentinel + knee boundary (review §2.6,
+  patch §5.5).** Landed 2026-08-27 (`e54bc0b`): `log2_q()` raises on
+  `x < 0`, the `x == 0` sentinel is proven collision-free and documented
+  at the definition, and `golden_harness.py` carries the soft-knee
+  `over == ±half_knee` boundary check. Re-verified green 2026-09-09,
+  nothing to change.
+- 🟡 **R6 — opportunistic cleanups (review §2.3, §2.7, §3.2–3.5, patch
+  §5.4), do when touching each file, not as their own dispatch.** Done:
+  dedupe dsp_validate.py/dsp_simulate.py parse helpers + drop the second
+  DSPSimulator instance and the redundant `block.copy()` (2026-08-27,
+  `e0ac481`); hardcode fixed_ref.py's fitted polynomial coefficients
+  (2026-08-27, `5d8a73f`); single-pass GEQ insertion (2026-09-09, this
+  dispatch). **Still queued — file not touched by any R3–R5 gate**:
+  gen_dsp.py's MCU-only prefixes from config + makedirs guards
+  (`MW/D32/DSP/gen_dsp.py` untouched); assert-guarded template rewrites →
+  marker-based with node/file context (`tools/dsp/dsp_codegen.py`
+  untouched). Land these when either file is next touched for its own
+  reason, per the item's own rule.
 
 ## HUB MANDATE 2026-08-25 — crosspoint-coefficient mixing is Bible doctrine; dsp code must follow it   [status: 🟢 ENFORCED 2026-08-27 — audit clean, folds landed, proven on the part. No MAC path in either build now reads control state: fader/DCA/mute, pan leg, bus assign, send level and input assign are all folded into one Q4.28 coefficient per crosspoint at control rate, and the pickoff enum is resolved to a source ADDRESS at control rate too. Out of scope and left as graph structure, as the mandate directs: GATE filter enable, TUBE on, NOISE on, TALKBACK HPF enable. Findings, deltas and what is NOT done are in the TWO outcomes dated 2026-08-27 (evening, then late) at the bottom of this file. The late one closes the doctrine properly: the audio path no longer even WALKS dead crosspoints — which are live is resolved at control rate into a compact list — and that is worth ROUTING 589.2 → 202.3 cycles/sample and a shipping ceiling of 3 strips against 2]
 
