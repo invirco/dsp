@@ -389,6 +389,19 @@ def dump(diag, verbose=True):
         except ValueError:
             print('  %-14s 0x%08X   (no DIAG_BUILD_CFG: image predates '
                   '2026-09-09)' % ('BUILD_CFG', w))
+        # The cost switches (S11-1): three images 81,299 cycles/block apart
+        # on chip 2 all read the same BUILD_CFG.
+        w2 = diag.read(dsp4_buildcfg.DIAG_BUILD_CFG2)
+        try:
+            d2 = dsp4_buildcfg.decode2(w2)
+            print('  %-14s 0x%08X' % ('BUILD_CFG2', w2))
+            for line in dsp4_buildcfg.describe2(d2)[1:]:
+                print('  %-14s %s' % ('', line))
+            for bad in dsp4_buildcfg.diff_shipping2(d2):
+                print('  %-14s NOT SHIPPING: %s' % ('', bad))
+        except ValueError:
+            print('  %-14s 0x%08X   (no DIAG_BUILD_CFG2: image cannot say '
+                  'which kernels it carries)' % ('BUILD_CFG2', w2))
     except ImportError:
         pass
 

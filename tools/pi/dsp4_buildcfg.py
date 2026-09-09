@@ -24,6 +24,15 @@ sys.path.insert(0, '/home/app/dspboot')
 
 DIAG_BUILD_CFG = 0xE0EA
 SIGNATURE = 0xCF000000
+# THE SECOND WORD (2026-09-09, findings S11-1). DIAG_BUILD_CFG has no spare
+# bit, and on 2026-09-09 that stopped being theoretical: shipping,
+# shipping+DSP4_BLOCK_DECIMATE=32 and shipping+DSP4_STRIP_FUSED=1
+# +DSP4_SIMD_DYN=1 -- three images 81,299 cycles/block apart on chip 2 --
+# all read 0xCF45FF10. The switches that change what the kernels COST live
+# here. An image built before this word exists reads 0 and is reported as
+# such, not decoded.
+DIAG_BUILD_CFG2 = 0xE0EB
+SIGNATURE2 = 0xC2000000
 CCLK_MHZ = {0: 491.52, 1: 786.432, 2: 983.040, 3: None}
 
 # The switches the word carries, LSB-first after the block size.
@@ -43,6 +52,20 @@ FLAGS = [
 # Anything true here means the image is an instrument or a debug build and
 # must never be mistaken for one that ships.
 NEVER_SHIPPING = ('DSP4_BISECT', 'DSP4_TXPROBE', 'DSP4_PROFILE_SIGNAL')
+
+# DIAG_BUILD_CFG2's switches, LSB-first.
+FLAGS2 = [
+    (0, 'DSP4_STRIP_FUSED'),
+    (1, 'DSP4_SIMD_DYN'),
+    (2, 'DSP4_SIMD_GRAPH'),
+    (3, 'DSP4_SIMD_STRIPS'),
+    (4, 'DSP4_SCOPE_BLK_TAP'),
+    (6, 'DSP4_GATHER_FIRST'),
+    (7, 'DSP4_FX_TYPE_DECLARED'),
+]
+# DSP4_BLOCK_DECIMATE != 1 means the graph runs on one block in N: the audio
+# is wrong and the cycle count is an instrument's, not the product's.
+NEVER_SHIPPING2 = ('DSP4_SCOPE_BLK_TAP',)
 
 # The shipping configuration, mirrored from MW/D32/DSP/SHARC/shipping.config.
 # Kept here rather than read from the repo because this tool runs on the bench,
@@ -66,6 +89,23 @@ SHIPPING = {
     'DSP4_PROFILE_SIGNAL': 0,
 }
 
+# The same mirror for the second word. DSP4_SIMD_GRAPH and DSP4_SIMD_STRIPS
+# are DERIVED in build.sh -- SIMD_GRAPH defaults on and SIMD_STRIPS follows
+# DSP4_SIMD_DYN -- so what a shipping image reads for them is whatever the
+# kernels flag makes them, and they are listed at the value the current
+# shipping.config produces rather than as independent choices.
+SHIPPING2 = {
+    'decimate': 1,
+    'DSP4_STRIP_FUSED': 0,
+    'DSP4_SIMD_DYN': 0,
+    'DSP4_SIMD_GRAPH': 1,
+    'DSP4_SIMD_STRIPS': 0,
+    'DSP4_SCOPE_BLK_TAP': 0,
+    'DSP4_TX_EARLY': 0,          # a MASK: 0 = neither chip
+    'DSP4_GATHER_FIRST': 1,
+    'DSP4_FX_TYPE_DECLARED': 0,
+}
+
 
 def decode(word):
     """Return a dict, or raise ValueError if the word is not a config word."""
@@ -79,6 +119,54 @@ def decode(word):
     for bit, name in FLAGS:
         d[name] = (word >> bit) & 1
     return d
+
+
+def decode2(word):
+    """Decode DIAG_BUILD_CFG2, or raise ValueError."""
+    if word is None or (word & 0xFF000000) != SIGNATURE2:
+        raise ValueError('0x%s is not a DIAG_BUILD_CFG2 word (signature 0xC2)'
+                         % ('%08X' % word if word is not None else '????????'))
+    d = {'raw': word, 'decimate': (word >> 16) & 0xFF,
+         # A PER-CHIP MASK, not a flag: 1 = chip 1's inter-chip TX,
+         # 2 = chip 2's converter TX, 3 = both. Each chip that has it on
+         # adds a block of output latency, so the value is the cost.
+         'DSP4_TX_EARLY': (word >> 8) & 3}
+    for bit, name in FLAGS2:
+        d[name] = (word >> bit) & 1
+    return d
+
+
+def describe2(d):
+    lines = ['raw2 0x%08X' % d['raw']]
+    if d['decimate'] != 1:
+        lines.append('DSP4_BLOCK_DECIMATE %d — THE GRAPH RUNS ON ONE BLOCK IN '
+                     '%d: this is an instrument, the audio is wrong and the '
+                     'cycle count is not the product\'s'
+                     % (d['decimate'], d['decimate']))
+    if d['DSP4_TX_EARLY']:
+        lines.append('DSP4_TX_EARLY %d (%s) — outputs written a half ahead; '
+                     '+1 block of output latency per chip'
+                     % (d['DSP4_TX_EARLY'],
+                        {1: 'chip 1 IC TX', 2: 'chip 2 TX',
+                         3: 'both chips'}[d['DSP4_TX_EARLY']]))
+    on = [n for _, n in FLAGS2 if d[n]]
+    off = [n for _, n in FLAGS2 if not d[n]]
+    lines.append('on2:  ' + (', '.join(on) or '-'))
+    lines.append('off2: ' + (', '.join(off) or '-'))
+    return lines
+
+
+def diff_shipping2(d):
+    out = []
+    for k, want in SHIPPING2.items():
+        got = d.get(k)
+        if got != want:
+            out.append('%s = %s, shipping is %s' % (k, got, want))
+    for k in NEVER_SHIPPING2:
+        if d.get(k):
+            out.append('%s is SET — this is an instrument build, not a '
+                       'shipping one' % k)
+    return sorted(set(out))
 
 
 def describe(d):
@@ -123,7 +211,7 @@ def read_word(chip):
                          rdy_gpio=RDY_GPIO[chip]))
     d.resync()
     check_chip_id(d.read(0xE001), chip)
-    return d.read(DIAG_BUILD_CFG)
+    return d.read(DIAG_BUILD_CFG), d.read(DIAG_BUILD_CFG2)
 
 
 def main():
@@ -135,12 +223,13 @@ def main():
     args = ap.parse_args()
 
     if args.word:
-        chips = [(None, int(args.word, 0))]
+        w = [int(x, 0) for x in args.word.split(',')]
+        chips = [(None, (w[0], w[1] if len(w) > 1 else None))]
     else:
         chips = [(c, read_word(c)) for c in (args.chip or [1, 2])]
 
     rc = 0
-    for chip, word in chips:
+    for chip, (word, word2) in chips:
         tag = '' if chip is None else 'chip %d: ' % chip
         try:
             d = decode(word)
@@ -161,6 +250,31 @@ def main():
                 rc = 4
         else:
             print('%s  == the shipping configuration' % (' ' * len(tag)))
+
+        # THE SECOND WORD. Absent on any image built before 2026-09-09, and
+        # said so rather than decoded as zeros -- a 0 here used to be
+        # indistinguishable from "every cost switch off", which is exactly
+        # the silence this word exists to end.
+        pad = ' ' * len(tag)
+        try:
+            d2 = decode2(word2)
+        except ValueError as e:
+            print('%s  %s' % (pad, e))
+            print('%s  no DIAG_BUILD_CFG2: this image cannot say whether it '
+                  'carries the fused/SIMD kernels or a decimated graph'
+                  % pad)
+            if args.expect_shipping:
+                rc = 4
+            continue
+        for line in describe2(d2):
+            print('%s  %s' % (pad, line))
+        bad2 = diff_shipping2(d2)
+        if bad2:
+            print('%s  NOT THE SHIPPING KERNEL CONFIGURATION:' % pad)
+            for b in bad2:
+                print('%s    %s' % (pad, b))
+            if args.expect_shipping:
+                rc = 4
     return rc
 
 

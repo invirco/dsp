@@ -157,6 +157,10 @@
 /* The image's own account of how it was built -- read in ONE transaction at
  * DIAG_BUILD_CFG. See diag.h for the bit layout and for why it exists. */
 .var _diag_build_cfg = DIAG_BUILD_CFG_VALUE;
+/* The second config word: the switches that change what the kernels COST.
+ * DIAG_BUILD_CFG had no spare bit and three arms 81,299 cycles/block apart
+ * all read the same word (S11-1). See diag.h. */
+.var _diag_build_cfg2 = DIAG_BUILD_CFG2_VALUE;
 
 .global _diag_boot_stage;
 .var _diag_boot_stage = DIAG_STAGE_INIT;
@@ -930,6 +934,9 @@ _diag_read:
     r4 = DIAG_BUILD_CFG;
     comp(r2, r4);
     if eq jump (pc, .diag_rd_build_cfg);
+    r4 = DIAG_BUILD_CFG2;
+    comp(r2, r4);
+    if eq jump (pc, .diag_rd_build_cfg2);
 
     r4 = DIAG_BASE;
     r4 = r2 - r4;                 /* table index */
@@ -1008,6 +1015,10 @@ _diag_read:
      * dependent, so a table slot for this would move with the thing it
      * exists to report. */
     r4 = dm(_diag_build_cfg);
+    rts;
+
+.diag_rd_build_cfg2:
+    r4 = dm(_diag_build_cfg2);
     rts;
 
 .diag_rd_zero:

@@ -224,3 +224,90 @@ contract must be reissued with it.**
 through-DSP latency at block 16 (the 72-sample figure is a block-8 number),
 `busgold`, `bqeverify`, `fxverify`, `afbverify`, `geqverify`,
 `xoververify`.
+
+## 7. Addendum, 2026-09-09 latest — S11: one instrument, two rulings with numbers, and a lever nobody had costed
+
+**Four things in §6 are now wrong or superseded. They are listed first.**
+
+1. **"Block 32 is the recommended first try" — it is answered and the
+   answer is no.** It links and boots; D32 chip 2 goes from 112.7 % to
+   **117.51 %** of budget and from 11.26 % to **14.86 %** of blocks missed,
+   because chip 2's per-sample cost RISES 4.2 % while chip 1's falls 7.7 %.
+   Its latency price is **+65 samples / 1.354 ms**, not 0.333 ms.
+2. **The through-DSP latency at block 16 is measured: 66 samples /
+   1.375 ms**, against the CPLD loop reference, 20 reps. The 72-sample
+   figure this note has been carrying is a **block-8** number from an image
+   missing 70 % of its blocks; it is superseded, not corrected.
+3. **S9-2 Option A is BUILT and PROVEN at 100.0000 % ordered on the part**,
+   and it costs **zero cycles and zero DM**, not the 640 cycles and 320
+   words it was costed at. Its latency cost is **+16 samples per chip**, and
+   the switch is a per-chip mask so the ruling can buy one block or two.
+4. **The capacity record's instrument was a different, faster build.**
+   Every `sigprofile2` / `fxcost` chip-2 figure — the `.4` record included —
+   was taken with `DSP4_STRIP_FUSED=1` and `DSP4_SIMD_DYN=1`, which are not
+   in `shipping.config` and default to 0. `DSP4_BLOCK_DECIMATE` was
+   innocent.
+
+**And that fourth item is a capacity lever nobody had costed.** Those two
+switches together take D32 chip 2 from 112.7 % to **82.0 % of budget, worst
+block 86.75 %, ZERO missed blocks over 270,082**. **D32 fits.** The catch:
+`DSP4_STRIP_FUSED` alone is worth 1.1 % and is proven verdict-for-verdict
+against the shipping image on all twenty families; **the other 29.6 % is
+`DSP4_SIMD_DYN`, whose audio arm does not pass and whose certifying witness
+does not currently fit in the image alongside it** (chip 1 `sec_swco`
+overflow). That is the next session, and it is now the shortest path to a
+D32 that fits with no PCB change — PW's stated first priority.
+
+### The two rulings, as a decision table
+
+**S9-2 — the late first frame of each DMA half.** Instrument: transmit
+stamp, full D24 graph, Pi staircase, 192,000 frames.
+
+| option | ordered | cycles | DM | through-DSP latency | residual risk |
+|---|---|--:|--:|--:|---|
+| do nothing (`DSP4_GATHER_FIRST=1` only) | 87.4999 % | — | — | 66 samples | one frame in sixteen carries a two-block-old sample on every converter lane |
+| **`DSP4_TX_EARLY=2`** (chip 2) | **100.0000 %** | **0** | **0** | 82 samples, **+0.333 ms** | chip 1's inter-chip TX keeps the defect; this bench cannot witness it |
+| **`DSP4_TX_EARLY=3`** (both) | **100.0000 %** | **0** | **0** | 99 samples, **+0.667 ms** | none known |
+| Option B, third TX buffer | not built | ~0 | +1 half | the same | re-derives the ping/pong phase, desynchronises RX from TX |
+
+Recommendation **`=3`**; `=2` if 0.333 ms is the whole budget.
+`DSP4_GATHER_FIRST` stays on either way — measured, not assumed.
+
+**D32 capacity — chip 2 must lose 41,744 cycles/block.**
+
+| lever | chip 2 at D32 | overrun | latency | sound / scope | proven? |
+|---|--:|--:|--:|---|---|
+| nothing | 112.7 % | 11.26 % | 66 | — | — |
+| **BLOCK 32** | **117.51 %** | 14.86 % | 131 (**+1.354 ms**) | ramp counts halve again; H1S3/H1S4 rebuild | **built, booted, measured — it does not work** |
+| `DSP4_STRIP_FUSED` | 111.66 % | 10.32 % | 66 | none | **yes** — famverify identical to shipping |
+| **`+ DSP4_SIMD_DYN`** | **82.03 %**, worst **86.75 %** | **0** | 66 | none expected | **NO** — 4 families NO_CAPTURE, and the witness will not link with it |
+| GEQ bands 31→28 / →21 | −1.5 % / −5.0 % (estimate) | — | 66 | product scope, second address relayout | not measured this session |
+| half-rate reverb tail | −7.5 % (estimate) | — | 66 | **changes what the product sounds like** | not measured |
+
+### What the window's artifacts are now
+
+`~/dspboot/blk_chip1.ldr` `ac65ad38…` / `blk_chip2.ldr` `e5dce9e4…` are
+**unchanged and remain the artifacts**, and all ten staged `.ldr` files were
+verified byte-identical at the end of the session. **But the tree no longer
+reproduces them**: `DIAG_BUILD_CFG2` had to be added, because three images
+81,299 cycles/block apart all read the same `DIAG_BUILD_CFG` and the bench
+could not tell the shipping image from the instrument that had been standing
+in for it. `./build.sh` now produces `a95fd8eb…` / `fb1eee67…`.
+
+**Adopting that successor is a decision, not a formality**: it needs the
+design bars re-run on it, and it is the natural pair to carry whatever PW
+rules on `DSP4_TX_EARLY`. Until then the window deploys `blk_*` and the
+tree is one word ahead of it.
+
+### Bars restated this session
+
+`golden_harness` **59/59**, `dsp_validate` **OK**, `check-contract-drift.sh`
+clean at `defs-v2026.09.08.4` leaving no diff, `check_shipping_config.sh`
+consistent (`DIAG_BUILD_CFG` 0xCF45FF10, `DIAG_BUILD_CFG2` 0xC2010044),
+`famverify` **17/20 LIVE, contract 20/20 on all twenty families, 0 FAILED,
+three numeric arms BIT_EXACT** on the shipping configuration.
+
+**Not run, and the window should still know**: `busgold`, `bqeverify`,
+`fxverify`, `afbverify`, `geqverify`, `xoververify`. They build and scp over
+`~/dspboot/chip[12].ldr` and have no `STAGE`; `famverify.sh` has one and was
+the only family bar run from a staged path this session.

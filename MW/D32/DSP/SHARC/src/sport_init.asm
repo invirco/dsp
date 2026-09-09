@@ -378,9 +378,55 @@ _sport_dma_work.end:
  * _block_ready has been consumed and before the sample loop runs. Moves
  * the pending halves into the pointers the generated scatter/gather
  * walk, so a block's eight samples all come from, and all go to, ONE
- * buffer half. Clobbers r0 (main-loop bank; the caller is between
- * blocks).
+ * buffer half. Clobbers r0, and r1 under DSP4_TX_EARLY (main-loop bank;
+ * the caller is between blocks).
+ *
+ * DSP4_TX_EARLY (S9-2 Option A, 2026-09-09) — WHY THIS IS A POINTER AND
+ * NOT A STAGING COPY.
+ *
+ * With zero blocks missed, the first frame of each DMA half still went out
+ * carrying what that half held two blocks earlier: 87.4999 % of transmitted
+ * frames ordered at the full D24 graph, 81.2499 % with the Pi playback input
+ * added, 100.0000 % with the load cut. The gather finishes at the END of a
+ * period the graph has spent 92.7 % of, and the DDE clocks frame 0 of that
+ * same half at the TOP of it. Frame 0's deadline is a whole block period
+ * earlier than the block's own, and under load the core loses that race
+ * every block. It is a deadline, not an indexing error: the count of late
+ * frames tracks the LOAD, not the block size.
+ *
+ * The 2026-09-09 costing proposed a STAGING BLOCK -- gather into scratch,
+ * copy it into the DMA half at the top of the next period -- at ~640
+ * cycles/block and 320 words of DM. That copy is not needed, and it would
+ * not even have worked: a copy at the top of period N is still racing frame
+ * 0 of period N, just with 640 cycles of head start instead of 300,000.
+ *
+ * There are TWO halves and the DDE touches each one every OTHER period, so
+ * the half the DDE is not clocking is idle for a whole period and the core
+ * can simply write THAT one. Period N: the DDE clocks half A while the core
+ * fills half B; period N+1: the DDE clocks B -- complete before the period
+ * began -- while the core fills A. No third buffer, no copy, no change to
+ * the DMA topology or to the one-interrupt-one-half mapping the phase fix
+ * and the diagnostics rest on. It costs one block of OUTPUT LATENCY and
+ * nothing else, and the latency is measured on the part, not asserted.
+ *
+ * It is the OPPOSITE of _tx_pend_buf, so it is derived from the same toggle
+ * the ISR uses and cannot drift from it.
+ *
+ * IT IS A PER-CHIP MASK, because the cost is per chip and it was measured
+ * that way: 1 = chip 1's inter-chip TX, 2 = chip 2's converter TX, 3 = both.
+ * The 2026-09-09 costing said "+16 samples"; with both chips on, the part
+ * says +32 (through-DSP offset min 14,496 -> 14,526, median 14,501 ->
+ * 14,535, 20 reps each). It has to: the signal crosses TWO outbound
+ * regions, chip 1 -> fabric -> chip 2 -> converters, and each one that
+ * moves a half ahead adds its own block. So the mask exists to let the
+ * ruling buy one block or two; the arm that decides is whether chip-2-only
+ * still reads 100.0000 % ordered on the wire.
  *----------------------------------------------------------------------*/
+#define DSP4_TX_EARLY_HERE (((DSP4_TX_EARLY) >> (CHIP_ID - 1)) & 1)
+#if DSP4_TX_EARLY && !DSP4_BLK_LATCH
+#error "DSP4_TX_EARLY needs DSP4_BLK_LATCH: without the latch the buffer \
+pointer moves under the sample loop and 'one half ahead' has no meaning."
+#endif
 .global _blk_latch_bufs;
 _blk_latch_bufs:
     r0 = dm(_rx_pend_buf);
@@ -390,6 +436,16 @@ _blk_latch_bufs:
     dm(_ic_rx_active_buf) = r0;
 #endif
     r0 = dm(_tx_pend_buf);
+#if DSP4_TX_EARLY_HERE
+    /* One half further on than the ISR's pending half. Same two rows, same
+     * order; the core is simply a period ahead of the wire. */
+    r1 = dm(_tx_ping_w);
+    comp(r0, r1);
+    if ne jump (pc, .txe_have);   /* pend was pong -> write ping */
+    r1 = dm(_tx_pong_w);          /* pend was ping -> write pong */
+.txe_have:
+    r0 = r1;
+#endif
 #if CHIP_ID == 1
     dm(_ic_tx_active_buf) = r0;
 #elif CHIP_ID == 2

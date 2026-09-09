@@ -18,6 +18,7 @@
 #   CHIPS=1 ./famverify.sh                chip 1 only
 #   BUILD=0 ./famverify.sh                reuse whatever is already staged
 #   N=32 ./famverify.sh                   shorter captures
+#   DSP4_SCOPE_BLK_TAP=0 ./famverify.sh   the pre-S10 witness (see below)
 set -u
 cd "$(dirname "$0")"
 source ./bench_lock.sh; bench_lock_acquire "$0"
@@ -42,6 +43,28 @@ if [ "$STAGE" != "/home/app/dspboot" ]; then
   ssh $BENCH "mkdir -p '$STAGE' && for f in /home/app/dspboot/*.py; do \
       ln -sfn \"\$f\" '$STAGE'/\$(basename \"\$f\"); done" || exit 3
 fi
+
+# THE BLOCK-AWARE WITNESS IS PART OF THIS BAR (S11-5, 2026-09-09).
+#
+# S10 settled S9-5 with `DSP4_SCOPE_BLK_TAP=1` -- a `_scope_tap` call emitted
+# after every node in the generated chain, carrying that node's identity and
+# where its block ACTUALLY is, because under block kernels a pooled node's
+# `_buf_<node>` is a one-word `.var` nothing writes. It recorded the shipping
+# configuration at 17 of 20 families LIVE. This script never set the switch,
+# so the BAR read the same image at NINE, with COMPRESSOR/FADER_PAN/TUBE_SAT
+# reading INERT and COMPRESSOR's numeric arm FAILED -- measured both ways on
+# 2026-09-09, same tree, one variable. A bar that scores the shipping image
+# eight families below the record is not a bar.
+#
+# So it defaults ON. This script already builds its own image and stages it
+# away from ~/dspboot; the tap is an instrument in a measurement build, and
+# `DSP4_SCOPE_BLK_TAP=0` is the control that reproduces the old reading.
+#
+# It does NOT fit alongside the paired kernels: DSP4_SCOPE_BLK_TAP=1 with
+# both DSP4_STRIP_FUSED=1 and DSP4_SIMD_DYN=1 overflows chip 1's `sec_swco`.
+# Either one alone links. That is why the fused/SIMD lever is certified one
+# half at a time (S11-4).
+export DSP4_SCOPE_BLK_TAP="${DSP4_SCOPE_BLK_TAP:-1}"
 
 if [ "${BUILD:-1}" = "1" ]; then
   ./build.sh > /tmp/famverify_build.log 2>&1

@@ -90,7 +90,7 @@ def main():
         try:
             import dsp4_buildcfg
             for c in chips:
-                w = dsp4_buildcfg.read_word(c)
+                w, w2 = dsp4_buildcfg.read_word(c)
                 try:
                     d = dsp4_buildcfg.decode(w)
                     print('chip %d build: BLOCK %d, CCLK %s MHz, %s'
@@ -102,6 +102,20 @@ def main():
                 except ValueError:
                     print('chip %d build: no DIAG_BUILD_CFG (pre-2026-09-09 '
                           'image)' % c)
+                # THE COST SWITCHES (S11-1). Printed on every boot beside the
+                # first word, because three images 81,299 cycles/block apart
+                # read the same first word and the bench could not tell them
+                # apart.
+                try:
+                    d2 = dsp4_buildcfg.decode2(w2)
+                    on2 = [n for _, n in dsp4_buildcfg.FLAGS2 if d2[n]]
+                    print('chip %d kernels: decimate %d, on: %s%s'
+                          % (c, d2['decimate'], ', '.join(on2) or '-',
+                             '' if not dsp4_buildcfg.diff_shipping2(d2)
+                             else '  <-- NOT the shipping kernel set'))
+                except ValueError:
+                    print('chip %d kernels: no DIAG_BUILD_CFG2 — this image '
+                          'cannot say which kernels it carries' % c)
         except (ImportError, IOError, OSError):
             pass
     return 0

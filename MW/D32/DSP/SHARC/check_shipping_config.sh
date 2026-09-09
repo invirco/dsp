@@ -46,6 +46,45 @@ for k, v in cfg.items():
         bad.append('%s: shipping.config %s, dsp4_buildcfg.SHIPPING %s'
                    % (k, v, mirror[mk]))
 
+# THE SECOND WORD'S MIRROR, checked the same way. shipping.config does not
+# name DSP4_STRIP_FUSED / DSP4_SIMD_DYN / DSP4_TX_EARLY -- they take
+# build.sh's defaults -- and that is exactly how the capacity record spent a
+# fortnight quoting an image with two of them ON (S11-1). So the defaults are
+# READ OUT OF build.sh here and diffed against the bench mirror, rather than
+# being a third place the same fact is written down.
+import re
+bsh = open('MW/D32/DSP/SHARC/build.sh').read()
+def bdefault(key, fallback):
+    m = re.search(r'^%s="\$\{%s:-([^}]*)\}"' % (key, key), bsh, re.M)
+    if not m:
+        return fallback
+    v = m.group(1)
+    return int(v) if v.lstrip('-').isdigit() else v
+
+mirror2 = ns['SHIPPING2']
+want2 = {
+    'decimate':               bdefault('DSP4_BLOCK_DECIMATE', 1),
+    'DSP4_STRIP_FUSED':       bdefault('DSP4_STRIP_FUSED', 0),
+    'DSP4_SIMD_DYN':          bdefault('DSP4_SIMD_DYN', 0),
+    'DSP4_SIMD_GRAPH':        bdefault('DSP4_SIMD_GRAPH', 1),
+    'DSP4_SCOPE_BLK_TAP':     bdefault('DSP4_SCOPE_BLK_TAP', 0),
+    'DSP4_TX_EARLY':          bdefault('DSP4_TX_EARLY', 0),
+    'DSP4_GATHER_FIRST':      bdefault('DSP4_GATHER_FIRST', 1),
+    'DSP4_FX_TYPE_DECLARED':  bdefault('DSP4_FX_TYPE_DECLARED', 0),
+}
+# DSP4_SIMD_STRIPS is derived: build.sh defaults it to 1 whenever
+# DSP4_SIMD_DYN is on. Derived, so computed here rather than read.
+want2['DSP4_SIMD_STRIPS'] = 1 if want2['DSP4_SIMD_DYN'] else 0
+# shipping.config may still override any of them.
+for k, v in cfg.items():
+    kk = 'decimate' if k == 'DSP4_BLOCK_DECIMATE' else k
+    if kk in want2:
+        want2[kk] = v
+for k, v in want2.items():
+    if mirror2.get(k) != v:
+        bad.append('%s: the build says %s, dsp4_buildcfg.SHIPPING2 says %s'
+                   % (k, v, mirror2.get(k)))
+
 for b in bad:
     print('SHIPPING CONFIG DRIFT: ' + b)
 if bad:
@@ -61,5 +100,16 @@ w = (0xCF000000
      | (mirror['DSP4_SCOPE_GATE'] << 11) | (mirror['DSP4_CHAN_MASK'] << 10)
      | (mirror['DSP4_BLK_LATCH'] << 9) | (mirror['DSP4_BLOCK_KERNELS'] << 8)
      | mirror['block'])
-print('shipping config: consistent; DIAG_BUILD_CFG must read 0x%08X' % w)
+w2 = (0xC2000000
+      | ((mirror2['decimate'] & 0xFF) << 16)
+      | (mirror2['DSP4_FX_TYPE_DECLARED'] << 7)
+      | (mirror2['DSP4_GATHER_FIRST'] << 6)
+      | ((mirror2['DSP4_TX_EARLY'] & 3) << 8)
+      | ((1 if mirror2['DSP4_SCOPE_BLK_TAP'] else 0) << 4)
+      | (mirror2['DSP4_SIMD_STRIPS'] << 3)
+      | (mirror2['DSP4_SIMD_GRAPH'] << 2)
+      | (mirror2['DSP4_SIMD_DYN'] << 1)
+      | mirror2['DSP4_STRIP_FUSED'])
+print('shipping config: consistent; DIAG_BUILD_CFG must read 0x%08X '
+      'and DIAG_BUILD_CFG2 0x%08X' % (w, w2))
 PY

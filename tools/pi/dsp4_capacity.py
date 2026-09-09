@@ -51,6 +51,10 @@ CGU0_DIV = 0x3108D00C
 DIAG_FRAME_COUNT = 0xE004
 DIAG_BLK_OVERRUN = 0xE00A
 DIAG_BUILD_CFG = 0xE0EA
+# The cost switches (S11-1). Read on every capacity row, because the first
+# word cannot tell the shipping image from the fused/SIMD one and those two
+# are 81,299 cycles/block apart on chip 2.
+DIAG_BUILD_CFG2 = 0xE0EB
 
 # CGU0_CTL MSEL -> CCLK in Hz. The rows are cgu_init.asm's own table; a
 # value not in it is reported as the raw word rather than guessed at,
@@ -139,6 +143,24 @@ def read_chip(chip, dwell, symfile=None):
     out['block'] = cfg & 0xFF
     out['block_kernels'] = (cfg >> 8) & 1
 
+    cfg2 = sc.rd(DIAG_BUILD_CFG2)
+    out['build_cfg2'] = '0x%08X' % cfg2
+    if (cfg2 & 0xFF000000) == 0xC2000000:
+        out['decimate'] = (cfg2 >> 16) & 0xFF
+        out['strip_fused'] = cfg2 & 1
+        out['simd_dyn'] = (cfg2 >> 1) & 1
+        # A PER-CHIP MASK in bits 9..8, not a flag: 1 = chip 1 IC TX,
+        # 2 = chip 2 TX, 3 = both. Each chip costs a block of output latency.
+        out['tx_early'] = (cfg2 >> 8) & 3
+        out['gather_first'] = (cfg2 >> 6) & 1
+    else:
+        # Not an error: every image built before 2026-09-09 reads 0 here.
+        # Recorded as unknown rather than as "all switches off", which is the
+        # silence the word exists to end.
+        out['decimate'] = None
+        for k in ('strip_fused', 'simd_dyn', 'tx_early', 'gather_first'):
+            out[k] = None
+
     ctl = peek(sc, CGU0_CTL)
     div = peek(sc, CGU0_DIV)
     out['cgu0_ctl'] = '0x%08X' % ctl
@@ -197,6 +219,10 @@ def main():
               'UNKNOWN (CGU0_CTL %s)' % r['cgu0_ctl']
         print('chip %d  build_cfg %s  block %d  kernels %d  CCLK %s'
               % (c, r['build_cfg'], r['block'], r['block_kernels'], clk))
+        print('        cfg2 %s  decimate %s  fused %s  simd_dyn %s  '
+              'tx_early %s  gather_first %s'
+              % (r['build_cfg2'], r['decimate'], r['strip_fused'],
+                 r['simd_dyn'], r['tx_early'], r['gather_first']))
         print('        CGU0_CTL %s  CGU0_DIV %s  budget %s cycles/block'
               % (r['cgu0_ctl'], r['cgu0_div'], r['budget']))
         print('        _proc_cyc     %8s  %s%%'

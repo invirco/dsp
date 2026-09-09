@@ -282,6 +282,86 @@
     | ((DSP4_BLOCK_KERNELS   & 1) <<  8)                                \
     | ( DSP4_BLOCK_SIZE      & 0xFF) )
 
+/* DIAG_BUILD_CFG2 — THE SECOND CONFIG WORD, and why one was not enough.
+ *
+ * DIAG_BUILD_CFG has no spare bit: 31..24 is the signature and 23..8 are all
+ * allocated (S10-5). That was recorded on 2026-09-09 as "an instrument build
+ * can still be silent to the part", and on 2026-09-09 it BIT. Three arms were
+ * measured in one session -- shipping, shipping+DSP4_BLOCK_DECIMATE=32, and
+ * shipping+DSP4_STRIP_FUSED=1+DSP4_SIMD_DYN=1, which differ by 81,299
+ * cycles/block on chip 2 -- and ALL THREE read DIAG_BUILD_CFG 0xCF45FF10.
+ * The word that exists so a mismeasured configuration is never silent could
+ * not tell the shipping image from the instrument that had been standing in
+ * for it in the capacity record for a fortnight (S11-1).
+ *
+ * So the switches that change what the kernels COST, as opposed to what the
+ * loop IS, get their own word. Same rules as the first: one compile-time
+ * constant, one transaction, readable at BOOT_STAGE 1.
+ *
+ *   31..24  0xC2        signature -- distinct from 0xCF, so a host that
+ *                       reads the wrong address gets a mismatch, not a decode
+ *   23..16  DSP4_BLOCK_DECIMATE   1 = every block; anything else is a
+ *                                 MEASUREMENT and the audio is wrong
+ *   15..10  reserved (0)
+ *    9..8   DSP4_TX_EARLY   per-chip mask, outputs written a half ahead
+ *                           (S9-2 Option A): 1 = chip 1's inter-chip TX,
+ *                           2 = chip 2's converter TX, 3 = both
+ *    7      DSP4_FX_TYPE_DECLARED
+ *    6      DSP4_GATHER_FIRST
+ *    5      reserved (0)
+ *    4      DSP4_SCOPE_BLK_TAP != 0   instrument, never shipping
+ *    3      DSP4_SIMD_STRIPS
+ *    2      DSP4_SIMD_GRAPH
+ *    1      DSP4_SIMD_DYN
+ *    0      DSP4_STRIP_FUSED
+ */
+#define DIAG_BUILD_CFG2      0xE0EB  /* R  packed kernel/cost configuration */
+
+#ifndef DSP4_STRIP_FUSED
+#define DSP4_STRIP_FUSED 0
+#endif
+#ifndef DSP4_SIMD_DYN
+#define DSP4_SIMD_DYN 0
+#endif
+#ifndef DSP4_SIMD_GRAPH
+#define DSP4_SIMD_GRAPH 0
+#endif
+#ifndef DSP4_SIMD_STRIPS
+#define DSP4_SIMD_STRIPS 0
+#endif
+#ifndef DSP4_SCOPE_BLK_TAP
+#define DSP4_SCOPE_BLK_TAP 0
+#endif
+#ifndef DSP4_BLOCK_DECIMATE
+#define DSP4_BLOCK_DECIMATE 1
+#endif
+#ifndef DSP4_GATHER_FIRST
+#define DSP4_GATHER_FIRST 0
+#endif
+#ifndef DSP4_TX_EARLY
+#define DSP4_TX_EARLY 0
+#endif
+#ifndef DSP4_FX_TYPE_DECLARED
+#define DSP4_FX_TYPE_DECLARED 0
+#endif
+
+#if DSP4_SCOPE_BLK_TAP != 0
+#define DIAG_CFG2_BLK_TAP 1
+#else
+#define DIAG_CFG2_BLK_TAP 0
+#endif
+
+#define DIAG_BUILD_CFG2_VALUE ( 0xC2000000                              \
+    | ((DSP4_BLOCK_DECIMATE   & 0xFF) << 16)                            \
+    | ((DSP4_FX_TYPE_DECLARED & 1) <<  7)                               \
+    | ((DSP4_GATHER_FIRST     & 1) <<  6)                               \
+    | ((DSP4_TX_EARLY         & 3) <<  8)                               \
+    | ((DIAG_CFG2_BLK_TAP     & 1) <<  4)                               \
+    | ((DSP4_SIMD_STRIPS      & 1) <<  3)                               \
+    | ((DSP4_SIMD_GRAPH       & 1) <<  2)                               \
+    | ((DSP4_SIMD_DYN         & 1) <<  1)                               \
+    | ( DSP4_STRIP_FUSED      & 1) )
+
 /* NOP — accepted and ignored. The host sends this as the second half of
  * a read (see diag.asm); it must not itself generate a response. */
 #define DIAG_NOP             0xE0FE  /* W */

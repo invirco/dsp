@@ -206,6 +206,24 @@ DSP4_BLOCK_KERNELS="${DSP4_BLOCK_KERNELS:-0}"
 DSP4_GATHER_FIRST="${DSP4_GATHER_FIRST:-1}"
 CFLAGS="$CFLAGS -DDSP4_GATHER_FIRST=$DSP4_GATHER_FIRST"
 ASMFLAGS="$ASMFLAGS -DDSP4_GATHER_FIRST=$DSP4_GATHER_FIRST"
+# TRANSMIT A HALF EARLY (2026-09-09, findings S9-2 Option A). The core
+# fills the DMA half the DDE is NOT clocking, so a block's outputs are
+# complete a whole period before frame 0 of that half goes on the wire.
+# DSP4_GATHER_FIRST buys one frame of margin and is not a fix; this removes
+# the deadline. It costs one block of OUTPUT LATENCY -- +16 samples,
+# 0.333 ms at 48 kHz, per chip that has it on -- and, because there are two
+# halves and the DDE touches each every other period, no cycles and no DM.
+# Needs DSP4_BLK_LATCH (src/sport_init.asm says so at assembly time).
+#
+# A PER-CHIP MASK: 1 = chip 1's inter-chip TX, 2 = chip 2's converter TX,
+# 3 = both. Measured on the part 2026-09-09, and the costing's "+16 samples"
+# was for one chip: with BOTH on, the through-DSP offset moves 14,496 ->
+# 14,526 (min) and 14,501 -> 14,535 (median), i.e. +32 samples / 0.667 ms,
+# because the signal crosses two outbound regions. Default 0: this is PW's
+# ruling, not the build's.
+DSP4_TX_EARLY="${DSP4_TX_EARLY:-0}"
+CFLAGS="$CFLAGS -DDSP4_TX_EARLY=$DSP4_TX_EARLY"
+ASMFLAGS="$ASMFLAGS -DDSP4_TX_EARLY=$DSP4_TX_EARLY"
 CFLAGS="$CFLAGS -DDSP4_BLOCK_KERNELS=$DSP4_BLOCK_KERNELS"
 ASMFLAGS="$ASMFLAGS -DDSP4_BLOCK_KERNELS=$DSP4_BLOCK_KERNELS"
 

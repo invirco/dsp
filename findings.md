@@ -2292,3 +2292,173 @@ exactly one handshake at a time under load.**
 
 `dsp4_capacity.py` now prefers the map staged beside the `.ldr` that was
 booted. Every bench tool that peeks by symbol has the same exposure.
+
+### S11-1 — S10-6 SETTLED: the capacity record's instrument was a DIFFERENT, FASTER BUILD, and it was not decimation
+
+**Severity: MAJOR (the capacity record). Status: CLOSED.**
+
+`sigprofile2.sh` / `fxcost.sh` read chip 2 78,245 cycles/block low at D24
+and 108,331 low at D32 against the shipping image — 24 % and 33 % of budget
+— in the direction the signal/silence split cannot produce.
+`DSP4_BLOCK_DECIMATE=32` was the standing candidate. **It is not the cause:
+decimation is worth 554 cycles on chip 1 and −920 on chip 2, both inside
+the pass-to-pass spread** (`capacity.sh`, one variable, D24 mask).
+
+The cause is **two build switches that `shipping.config` does not name and
+`build.sh` defaults to 0, and that both profile scripts have always forced
+to 1**: `DSP4_STRIP_FUSED` and `DSP4_SIMD_DYN`. With them on, chip 2 reads
+222,314 at D24 against the instrument's 225,646, and 268,790 at D32 against
+261,093 — 1.0 % and 2.3 % of budget apart, i.e. the whole disagreement plus
+what `DSP4_PROFILE_SIGNAL` accounts for.
+
+**This is S8-2's shape a third time: a number quoted for a build that is
+not the one running.** `DSP4_PROFILE_SIGNAL` was declared; these two were
+declared nowhere. Every `.4` / 09-03 / 09-08 chip-2 capacity row is
+re-annotated in `MW/D32/DSP/dsp4-capacity-s11-20260909.md` §5 as an
+instrument figure. The profile scripts are **retired for capacity claims
+about the shipping image** and remain valid for attributing cost to a class
+inside their own arm.
+
+### S11-2 — `DIAG_BUILD_CFG` could not tell three images 81,299 cycles apart from each other (S10-5 came true)
+
+**Severity: MAJOR. Status: CLOSED by a second word.**
+
+S10-5 recorded that `DIAG_BUILD_CFG` has no spare bit — 31..24 signature,
+23..8 all allocated — so "an instrument build can still be silent to the
+part". On 2026-09-09 three arms were measured in one session: shipping,
+shipping + `DSP4_BLOCK_DECIMATE=32`, and shipping + `DSP4_STRIP_FUSED=1` +
+`DSP4_SIMD_DYN=1`, which differ by **81,299 cycles/block on chip 2**. **All
+three read `DIAG_BUILD_CFG 0xCF45FF10.**
+
+`DIAG_BUILD_CFG2` (0xE0EB) is added: signature `0xC2`, `DSP4_BLOCK_DECIMATE`
+in 23..16, `DSP4_TX_EARLY`'s per-chip mask in 9..8, and the cost switches in
+the low byte. Shipping reads **`0xC2010044`**, the fused/SIMD arm
+**`0xC201004F`**. `dsp4_buildcfg.py` decodes it and `--expect-shipping`
+scores it; `dsp4_diag.py`, `dsp4_checkchip.py` and `dsp4_capacity.py` print
+it on every dump, boot and capacity row; `check_shipping_config.sh` computes
+both words and **reads `build.sh`'s own defaults** for the switches
+`shipping.config` does not name, so the mirror is not a third copy.
+
+**Consequence, stated rather than buried: the tree no longer builds
+`ac65ad38…` / `e5dce9e4…`.** It builds `a95fd8eb…` / `fb1eee67…`. The staged
+window pair is untouched; adopting the successor is PW's call, and it needs
+the design bars re-run on it.
+
+### S11-3 — Lever 1 (BLOCK 32) is answered and it is NO: D32 gets worse, and the latency price is 4× the estimate
+
+**Severity: n/a (a ruling input). Status: CLOSED.**
+
+It links (`chip1.ldr` 444,704 B, `chip2.ldr` 313,268 B) and it boots.
+
+| D32 all-ones | chip 1 | chip 2 |
+|---|--:|--:|
+| block 16 | 93.4 %, worst 110.3 %, OVERRUN 0 | 112.7 %, worst 113.2 %, **11.26 %** |
+| block 32 | **86.22 %**, worst 94.63 %, OVERRUN 0 | **117.51 %**, worst 121.7 %, **14.86 %** |
+
+Per sample, chip 2 goes from 23,089 to 24,067 cycles (**+4.2 %**) while
+chip 1 goes from 19,137 to 17,658 (**−7.7 %**). **The 2026-09-01 trend that
+predicted 5–10 % was a chip-1 and per-class trend and does not transfer to
+chip 2's graph** — chip 2 carries the six FX engines, and doubling the block
+doubles every kernel's working set.
+
+The price is also four times what was assumed: measured through-DSP latency
+is **66 samples at block 16 and 131 at block 32**, i.e. **+65 samples /
+1.354 ms**, not +16 / 0.333 ms. The signal crosses four block-buffered
+stages, not one.
+
+D24 *improves* at block 32 (chip 1 worst 84.8 % → 72.7 %, chip 2 93.0 % →
+89.0 %), so the lever is not worthless — it is not a D32 lever.
+
+### S11-4 — the lever that DOES close D32 is `DSP4_SIMD_DYN`, and it is the half that is not proven
+
+**Severity: MAJOR (it is the D32 decision). Status: OPEN — needs a session.**
+
+| D32 all-ones | chip 1 worst | chip 2 `_proc_cyc` | chip 2 worst | OVERRUN |
+|---|--:|--:|--:|--:|
+| shipping | 361,246 110.3 % | 369,424 112.7 % | 370,832 113.2 % | 11.26 % |
+| `DSP4_STRIP_FUSED=1` | 354,816 108.28 % | 365,882 111.66 % | 366,699 111.91 % | 10.32 % |
+| + `DSP4_SIMD_DYN=1` | **307,247 93.76 %** | **268,790 82.03 %** | **284,249 86.75 %** | **0** |
+
+**D32 FITS with both on — zero missed blocks on both chips over 270,082
+blocks.** The target was 41,744 cycles on chip 2; this delivers 100,634.
+But `DSP4_STRIP_FUSED` alone is worth only 3,542 cycles (1.08 %) and does
+NOT close it: **97,092 cycles/block, 29.6 % of budget, is `DSP4_SIMD_DYN`
+alone.**
+
+`famverify.sh` with the block-aware witness, one variable per arm:
+
+* **shipping**: 17/20 LIVE, contract 20/20 with 0 FAILED, COMPRESSOR /
+  FADER_PAN / TUBE_SAT numeric **BIT_EXACT**
+* **`DSP4_STRIP_FUSED=1`**: **verdict for verdict identical** to shipping —
+  proven, and worth 1.1 %
+* **`DSP4_SIMD_DYN=1`**: contract still 20/20, **0 FAILED**, but ANTI_FB /
+  CROSSOVER / GEQ / LIMITER read **NO_CAPTURE**, GATE reads INERT, and the
+  three numeric arms lose their stimulus
+* **both**: **DOES NOT LINK** — chip 1 overflows `sec_swco` with the witness
+  in the image
+
+**This is NOT recorded as an audio defect.** It is the shape of S9-5: the
+paired graph adds a pool slot and reorders the chain into pairs, so where a
+node's block lives moves and the witness reads a symbol chosen before it
+moved (S10-2). What makes it a session rather than a re-run is the link
+wall: **the witness and the paired kernels do not currently fit on chip 1 at
+the same time**, so the arm that would certify the lever cannot presently be
+built. Getting round that (tap chip 2 only, tap a subset of the chain, or
+shrink the paired path) is the first gate.
+
+### S11-5 — the family bar was scoring the SHIPPING image eight families below the record
+
+**Severity: MAJOR (a bar that does not bar). Status: CLOSED.**
+
+S10 settled S9-5 with `DSP4_SCOPE_BLK_TAP=1` and recorded the shipping
+configuration at **17 of 20 families LIVE** with three numeric arms
+BIT_EXACT. `famverify.sh` never set the switch. Measured both ways this
+session on the same tree, one variable:
+
+| `DSP4_SCOPE_BLK_TAP` | audio LIVE | COMPRESSOR numeric |
+|---|--:|---|
+| 0 (what the script did) | **9/20** | **FAILED** |
+| 1 | **17/20** | **BIT_EXACT** |
+
+A bar that reads the image it certifies at 9/20 and calls a BIT_EXACT
+family FAILED is not a bar. `famverify.sh` now defaults the tap ON, with
+`DSP4_SCOPE_BLK_TAP=0` as the control that reproduces the old reading, and
+records why the paired-kernel arm cannot have it.
+
+### S11-6 — a latency arm without the pass-through setup reports a confident wrong offset
+
+**Severity: medium (instrument). Status: CLOSED.**
+
+The first through-DSP latency arm of the session returned offset **14,779
+on all 20 reps, spread 0** — and a **coherent fraction of 0.0 %** with a
+peak width of 400. Seventeen sources sum into `C2_MIX_MAIN_L` and the main
+chain comes up at its landed values, so the Pi's stimulus never comes back;
+`dsp4_dsp_latency.py` reports the best of a flat field. **An offset with a
+zero coherent fraction is not a latency**, and the summary line prints the
+offset first. `latency_run.sh` now runs `dsp4_passthru_setup.py` before the
+probe and says why. Every arm quoted in S11 reads 100.0 % coherent.
+
+### S11-7 — the transmit-stamp arm needs a bitstream AND an overlay the bench does not live on
+
+**Severity: low (procedure). Status: RECORDED.**
+
+The bench lives on the shipping CPLD `a1f6672af6c3` with the
+`dsp4-pcm-slave` overlay. `dsp4_tx_order.py` needs **both** the `_maincap`
+bitstream and the `dsp4-pcm-duplex` overlay: on the shipping bitstream
+`arecord` returns "Input/output error" and zero frames, and on the slave
+overlay the duplex device does not exist. The tool reports both as "NO
+STAMP: the right channel is all zero", which reads as a firmware result and
+is not one.
+
+`SHARC/loadlogic.sh` is added — `maincap` / `pisel` / `shipping` / `--id`,
+with the canonical pin hand-back after every load, because openocd's
+linuxgpiod leaves its GPIOs claimed and that looks exactly like a bricked
+card. The overlay is still a `config.txt` line and a reboot; it was flipped
+and restored byte-identically this session (`config.txt.s11bak`), and the
+bench ends on `dsp4-pcm-slave`, the shipping bitstream and matrix-app
+active.
+
+**The bench's own `restore_bench.sh` still carries the WRONG pin sequence**
+(`pinctrl set 6,7,8,9,10,11,12,22,23,24,25 a0`, the S8-3 line that boots the
+card as two chip 1s). It is not in this tree, so `check_bench_pins.sh`
+cannot see it. Left as found and recorded.

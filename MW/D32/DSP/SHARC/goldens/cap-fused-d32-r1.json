@@ -1,0 +1,44 @@
+{
+ "chips": [
+  {
+   "block": 16,
+   "block_kernels": 1,
+   "block_rate": 2999.9,
+   "budget": 327680,
+   "build_cfg": "0xCF45FF10",
+   "cclk_hz": 983040000,
+   "cgu0_ctl": "0x00005000",
+   "cgu0_div": "0x451442C1",
+   "chip": 1,
+   "frames": 90039,
+   "overrun_pct": 0.0,
+   "overruns": 0,
+   "proc_cyc": 251435,
+   "proc_cyc_max": 307201,
+   "proc_cyc_max_pct": 93.75,
+   "proc_cyc_pct": 76.73,
+   "proc_passes": 111970,
+   "seconds": 30.0
+  },
+  {
+   "block": 16,
+   "block_kernels": 1,
+   "block_rate": 3000.0,
+   "budget": 327680,
+   "build_cfg": "0xCF45FF10",
+   "cclk_hz": 983040000,
+   "cgu0_ctl": "0x00005000",
+   "cgu0_div": "0x451442C1",
+   "chip": 2,
+   "frames": 90041,
+   "overrun_pct": 0.0,
+   "overruns": 0,
+   "proc_cyc": 268241,
+   "proc_cyc_max": 1251278,
+   "proc_cyc_max_pct": 381.86,
+   "proc_cyc_pct": 81.86,
+   "proc_passes": 192518,
+   "seconds": 30.0
+  }
+ ]
+}
