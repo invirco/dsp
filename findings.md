@@ -6,6 +6,127 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## The CM4 loop at 48 kHz, and the product-config word nothing reads (2026-09-09, session 31)
+
+Session: PI_TDM8 bitstream from the current slot map, flashed via JTAG,
+the CPLD duplex loop's latency at 48 kHz. Write-up:
+`MW/D32/DSP/dsp4-loop-latency-20260909.md`. Contract
+`defs-v2026.09.08.4`. Images unchanged: chip1 `602a0feb` / chip2
+`b1325022`. Bitstreams built tonight from slot map
+`sha256:4ecc4aa221a0787e…`.
+
+### S5-7 — `CFG_CHAN_MASK` is stored and never read, so a D24 runs 32 strips
+
+**Severity: MAJOR (firmware, window item). Status: found and measured, not fixed.**
+
+`tools/pi/dsp4_config.py` sends D24 `CFG_CHAN_MASK = 0x00FFFFFF`
+("strips 25-32 NET-only"). `product_config.asm:121` stores it in
+`_chan_mask`. Nothing reads `_chan_mask` — four references in the whole
+tree: `.global`, the `.var` initialiser, `.extern`, and that one write.
+All 32 strips therefore run on D24 and all 32 sum into `C2_RECV_MAIN_L`.
+
+Measured on the part, block 8, conformance images. With everything the
+D24 contract can silence silenced (32 strips attempted, the four groups,
+USB, BT, CodecAux) AND the Pi input off, `C2_MAIN_ST_OUT` sits at
+positive full scale `0x7FFFFFE0` for 48,000 frames of 48,000, with
+nothing playing. Writing `MainOn=0`/`Mute=1` to exactly strips 25–32 —
+through D32's rows for the same cells, the address map being shared per
+decision D3 — takes it to `0x00000000` for 48,000 of 48,000.
+
+The contract is NOT at fault: D24 is a 24-channel product, its matrix
+has zero `Chan025` cells and `d24/dsp.csv` correctly carries none. The
+firmware is running eight strips the product does not have.
+
+This is what made every previous attempt at the loop measurement
+unusable, including the 2026-09-08 note that "the loop still carries a
+DC pedestal until the main chain is set to unity" — it is not a pedestal
+and it is not the main chain.
+
+`_aux_mask` has the identical shape (`product_config.asm:124`, no
+reader). `_out_mux` likewise, and that one is already acknowledged in
+the host tool. Of the four product-config words only `_product_id` has a
+reader.
+
+### S5-8 — the artifact hash covered every macro; the artifact NAME did not
+
+**Severity: moderate (build hygiene). Status: FIXED this session.**
+
+The 2026-09-08 fix put every macro into the bitstream hash and the
+manifest's `config:` line, which stopped two different builds colliding
+on one filename. It left the label wrong: a `PI_TDM8=1` build still came
+out named `dsp4_logic.<hash>` — indistinguishable at a glance from a
+shipping artifact — with `SHIPPING: yes` in its manifest, even though
+`build.sh`'s own comments call PI_TDM8 non-shipping. The one line a
+human reads at the bench said the opposite of the truth.
+
+`build.sh` now folds every non-shipping switch into BOTH the artifact
+name and the `SHIPPING:` line, each with its reason. Proof it changed
+the label and not the bits: `build.sh` is not an input to `SRC_HASH`
+(slot map + config line + RTL + qsf + sdc are), the rebuild produced the
+same hash `83778a06f954`, and two consecutive builds gave the identical
+pof md5 `1c556d38ed76c1cdd1190513c5447de4`.
+
+### S5-9 — the LOGIC design has no ID register, so "which bitstream is running" costs a measurement
+
+**Severity: minor (verifiability). Status: recommendation, not done.**
+
+Gate 2 asked for the running hash off the part. There is nothing in
+`rtl/` to read back and MAX V configuration readback is not available
+over the SVF path, so identity had to be established behaviourally:
+`a1f6672af6c3` captures all zeros (`pcm_din` tied to `1'b0`), `_pisel`
+returns the Pi's own playback bit-exact, `_maincap` tracks
+`MAIN_ST_OUT` under mute and level. That is sound but indirect and costs
+a capture per flash. A few bits of design ID on the TEST pins or over
+the parameter link would replace it with one read. Not done tonight:
+adding it changes the RTL and therefore every bitstream hash.
+
+### S5-10 — the Pi → DSP → Pi pass-through does not deliver a coherent stream
+
+**Severity: major (open). Status: narrowed, not root-caused.**
+
+With S5-7 worked around and the main bus proven silent, the through-DSP
+arm still returns mostly zeros with sparse out-of-order counter indices
+(5, 5, 16, 18, 35 over 40 consecutive frames). **No latency figure is
+quoted for it.** The harness's 14,550-sample offset for this arm is a
+spurious mode — 2,878 of 48,014 candidate words agreeing, across 44
+distinct offsets, impulse never found — and is recorded only so it is
+not mistaken later for a measurement.
+
+Excluded so far: the capture path (it tracks `MAIN_ST_OUT` under mute
+and level); the graph being stopped (`_dly_write_ptr_C2_MAIN_DLY`
+advances, `FRAME_COUNT` 5,999/s against 6,000/s expected for block 8,
+`BOOT_STAGE 7`, `SPORT0_ERR_A 0`); the new slot map (chip 1 RX lane 6 is
+still `CS 0x0003`/2 words, chip 2 TX lane 3 still `CS 0x0003`); and the
+main bus not being silent. `dsp4_audio_verdict.py` cannot settle whether
+the block loop keeps up because `_proc_passes` is absent from these
+images — "no pass rate available" — which is the next thing to fix, since
+it is the one instrument that would answer it directly.
+
+### S5-12 — the order soak reported a pass criterion it had quietly missed
+
+**Severity: minor (instrument). Status: FIXED this session.**
+
+`dsp4_order_soak.py`'s stimulus generator paced itself at
+`RATE // CHUNK` chunks per nominal second. `48000 // 4096` truncates to
+11, so it delivered 45,056 samples per second: a 630 s request ran 591 s
+while every line of the report still said 630. Zero defects either way,
+but a ten-minute gate would have been missed by nine seconds and the
+output would not have said so. Fixed to count in samples, and the pass
+criterion now checks the word count against the requested total.
+
+### S5-11 — the current slot map adds ten slots and moves none, and the DSP never sees them
+
+**Severity: informational (contract question answered). Status: closed.**
+
+Gate 1 asked whether a TDM8 build from the current slot map is a contract
+change. It is not. Against the previous map the 2026-08-23 CM4
+allocation adds `A_I6` slots 2–7 and `B_O3` slots 4–7, all previously
+unassigned, and every pre-existing (line, slot) → signal pair is
+byte-identical. The generated lane tables confirm the DSP side is
+untouched: masks come from where nodes exist, and only `PI_PCM_L/R` and
+`PI_RET_L/R` have them. The panel MCU is an SPI parameter host and does
+not see TDM slots at all.
+
 ## The 31-band GEQ, the crossover slope, and the chip-2 re-layout (2026-09-09, session 30)
 
 Session: confirming the DSP code against the latest known matrix. Write-ups:
