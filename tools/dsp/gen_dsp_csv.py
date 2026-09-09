@@ -93,6 +93,9 @@ for _c in GEQ_ON:
             f'--geq-outputs: unknown class {_c!r}; known classes are '
             f'{", ".join(GEQ_CLASSES)}')
 
+sys.path.insert(0, SCRIPT_DIR)
+from geq_splice import relink_and_insert as _relink_and_insert
+
 with open(args.sport_map, encoding='utf-8') as f:
     SPORT_MAP = json.load(f)
 
@@ -924,18 +927,8 @@ for g in range(1, NUM_GRP + 1) if 'grp' in GEQ_ON else ():
         params=f'bands={GEQ_BANDS}',
         ramp_profile='EqSafe')
     geq_row = rows.pop()
-    for r in rows:
-        if r['id'] == n_eq:
-            r['outputs'] = n_geq
-        elif r['id'] == n_gate:
-            r['inputs'] = n_geq
-    try:
-        idx = next(i for i, r in enumerate(rows) if r['id'] == n_eq) + 1
-    except StopIteration:
-        raise ValueError(
-            f'GEQ insertion: no row with id {n_eq!r} found; graph is out '
-            f'of sync with the expected EQ/GEQ/gate chain')
-    rows.insert(idx, geq_row)
+    _relink_and_insert(rows, n_eq, n_gate, geq_row,
+                        f'GEQ insertion {n_geq}')
 
 # ===========================================================================
 # CHIP 2 — GEQ on the remaining OUTPUTS (2026-09-03, --geq-outputs)
@@ -961,23 +954,7 @@ def splice_geq(nid, label, ch_count, after, before, bands):
         params=f'bands={bands}',
         ramp_profile='EqSafe')
     row = rows.pop()
-    seen_after = seen_before = False
-    for r in rows:
-        if r['id'] == after:
-            r['outputs'] = ';'.join(
-                nid if o == before else o for o in r['outputs'].split(';'))
-            seen_after = True
-        elif r['id'] == before:
-            r['inputs'] = ';'.join(
-                nid if i == after else i for i in r['inputs'].split(';'))
-            seen_before = True
-    if not (seen_after and seen_before):
-        raise ValueError(
-            f'GEQ splice {nid}: expected both {after!r} and {before!r} in '
-            f'the graph (found after={seen_after}, before={seen_before}); '
-            f'the chain this GEQ is being inserted into has changed')
-    idx = next(i for i, r in enumerate(rows) if r['id'] == after) + 1
-    rows.insert(idx, row)
+    _relink_and_insert(rows, after, before, row, f'GEQ splice {nid}')
 
 
 if 'sub' in GEQ_ON:
