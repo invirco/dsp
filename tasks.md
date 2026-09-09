@@ -24,7 +24,27 @@ dynamics accuracy target is 0.1 dB worst case over 0 to −100 dBFS** ("I
 don't mind giving up some processing resolution") — design the small
 table to THAT bar, not to the polynomial's 0.0001 dB: pick the point
 count and interpolation order that meet 0.1 dB at the fewest cycles;
-report the error the chosen form actually achieves. Also state in
+report the error the chosen form actually achieves. **PW 21:0x, direction, not
+a question: "the compressor and gate cycles could be improved a lot,
+using LUTs with interpolation, and still fit the SIMD structure."** So
+the deliverable is the PAIRED gain computer, and the LUT form is made to
+fit it rather than declared incompatible: (i) exit SIMD for the gather
+only — each PE's index computed in SIMD (leftz exponent split, mantissa
+shift), then the two channels' VAL[i]/VAL[i+1] pairs loaded in scalar
+mode into rN/sN (explicit PEy register moves are legal outside SIMD) or
+one channel over DM and the other over PM in the same instruction, then
+back to SIMD for the interpolation, knee and exp2 — cost of the PEYEN
+toggles stated; (ii) or the whole gain computer unpaired while the
+envelope stays paired. And because the bar is now 0.1 dB, a THIRD
+contender with no gather at all must be on the same table: a low-order
+polynomial (quadratic or cubic in the mantissa after the exponent split,
+in the float path or fixed) that meets 0.1 dB in ~4–6 SIMD instructions —
+PW's LUT may or may not beat it; the rig decides. Report GATE and COMP
+cycles per sample per channel in the paired kernel for each form against
+today's (GATE 259.8 c/s, pair 143/ch; COMP 433.1 c/s, pair 251/ch; floors
+60–75 / 110–135) and say what fraction of each kernel is the gain
+computer at all — if the envelope/knee/crossfade plumbing is the larger
+part, say so and name its lever. Also state in
 findings what ADI publishes on SHARC dynamics (the hub's answer: nothing
 current with source — the 1998 ADSP-21065L "Digital Audio Effects" EZ-KIT
 code had assembly compressor/expander/limiter; SigmaStudio(+) dynamics
