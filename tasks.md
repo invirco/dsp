@@ -1,5 +1,30 @@
 ## HUB DISPATCH 2026-09-09 18:52Z — S14 — the floor MEASURED, not estimated: per-instruction cycle probe names the ~1.47 cycles/instruction in the float SIMD biquad loop, the primitive re-derived against the measured floor; RIG B's 20 Hz precision test first; the LIMITER pair's 4,775 c/blk explained; D32 re-priced on the audio-correct pair   [status: 🟡 dispatched]   [model: opus]
 
+**HUB ADDENDUM 20:4x BST (PW): "I would like to see a table-based dynamics
+processor, maybe using a smaller number of points (50–75), with
+interpolation."** Gate 4 (the LIMITER accounting) is EXTENDED into a
+measured comparison on the shootout rig, the same method as the biquad
+shootout: (a) the polynomial log2/exp2 that ships, (b) the existing
+256-entry `DSP4_DYN_TABLES` form, (c) a NEW small-table form — 64 entries
+(anything in 50–75 that keeps the index arithmetic to a shift) with
+linear interpolation, and, if linear cannot hold the bar at 64 points,
+quadratic or a non-uniform (log-spaced) table — for BOTH log2 and exp2:
+cycles per call, worst error in dB over 0 to −100 dBFS against exact,
+table words. Then the whole gain computer (envelope → log2 → knee → exp2)
+per sample for GATE, COMP and LIMITER on each form. The SIMD conflict
+must be answered, not avoided: the table gather has two indices under a
+shared DAG in paired mode, so either the two channels' lookups are
+sequenced inside the paired kernel (cost stated), or the gain computer
+runs unpaired while the envelope stays paired, or the table is
+interleaved so one address serves both PEs — whichever measures best,
+with `dyn_state_bound.py`'s ceiling analysis re-run for the table form.
+Land the small-table form behind `DSP4_DYN_TABLES=2` (default unchanged);
+recommendation to PW in the status line with the numbers. Also state in
+findings what ADI publishes on SHARC dynamics (the hub's answer: nothing
+current with source — the 1998 ADSP-21065L "Digital Audio Effects" EZ-KIT
+code had assembly compressor/expander/limiter; SigmaStudio(+) dynamics
+modules are binary) so the record shows it was checked.
+
 model: opus
 
 S14 — THE FLOOR MEASURED, NOT ESTIMATED: a per-instruction cycle probe on the shootout rig names what makes the float SIMD biquad loop run at ~1.47 cycles per instruction (S13-5), the primitive is re-derived against the MEASURED floor and re-scheduled if the probe says it can be; RIG B's 20 Hz precision test run at last; the LIMITER pair's 4,775 cycles/block explained; D32 re-priced on the audio-correct pair — PW's rule stands: fix the primitive, never cut bands, both D24 and D32 on this card
