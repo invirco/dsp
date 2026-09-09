@@ -1,3 +1,83 @@
+## HUB DISPATCH 2026-09-09 13:36Z — S12 — the 29.6 % lever settled: DSP4_SIMD_DYN (+STRIP_FUSED) proven or disproven as audio on the part (witness made to link, famverify three arms), the six design bars STAGE-safe and run on blk_* and the candidate, capacity + latency on the candidate, decision table for PW; the two switches named in shipping.config   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+S12 — THE 29.6 % LEVER SETTLED: `DSP4_SIMD_DYN` (+ `DSP4_STRIP_FUSED`) proven or disproven as audio on the part — the certifying witness made to link beside it, famverify's audio arm on the fused+SIMD image, the six design bars given STAGE support and run on BOTH the staged `blk_*` pair and the candidate — so the "D32 FITS" pair is either the shipping candidate with every bar on record, or the reason it cannot be; S9-2 Option A (chip-2 mask) carried on the candidate
+
+WHY. S11 (dsp ed056f7) found that the capacity record's instrument was a
+faster BUILD: `DSP4_STRIP_FUSED=1` + `DSP4_SIMD_DYN=1`, two switches
+`shipping.config` never named, `build.sh` defaults to 0 and the profile
+scripts always forced to 1. With both on, **D32 FITS on the part: chip 2
+82.03 % avg / 86.75 % worst, chip 1 worst 93.76 %, zero missed blocks
+over 270,082** — against 112.7 % without. STRIP_FUSED alone is 1.08 % and
+PROVEN (famverify verdict-for-verdict, three numeric arms BIT_EXACT).
+SIMD_DYN is the other 97,092 cycles = 29.6 % of budget, and its audio arm
+reads 4 families NO_CAPTURE + GATE INERT while the certifying witness
+(`DSP4_SCOPE_BLK_TAP`) WILL NOT LINK beside it — chip 1 `sec_swco`
+overflow. Contract arm 20/20, 0 FAILED on every arm, so this is S9-5's
+shape again (the paired graph moves where a node's block lives), NOT
+recorded as an audio defect. Settling it is the shortest path to a
+no-PCB-change D32, ahead of any GEQ work (S13, queued: the primitive to
+the floor + the IIR accelerator, PW "do it"). Also from S11: BLOCK 32 is
+NO for D32 (chip 2 worse, +65 samples); S9-2 Option A is proven at
+100.0000 % at full load for ZERO cycles, per-chip mask, chip-2-only
++16 samples; through-DSP latency at block 16 is 66 samples / 1.375 ms
+(the contract's 72 is superseded); `DIAG_BUILD_CFG2` now carries the
+cost switches; the tree builds a successor pair (a95fd8eb / fb1eee67),
+the staged `blk_*` untouched — adopting a successor is PW's call and
+needs the bars; the six design bars were NOT re-run (no STAGE support).
+
+BENCH. Rev C unit as S11 left it (shipping CPLD `a1f6672af6c3`,
+`dsp4-pcm-slave`, matrix-app active, all ten `~/dspboot` `.ldr` files
+byte-identical to the record). Every image from its own staging path;
+copy-and-restore; `dsp4_checkchip.py`, `dsp4_buildcfg.py` (both words),
+CGU read-back, fresh sym.json per image; `SHARC/capacity.sh` is the one
+capacity instrument; `famverify.sh` with the tap ON (S11-5). No AI
+attribution in commits or any work product.
+
+GATES, in order, each witnessed:
+1. **The witness links beside SIMD_DYN.** Chip 1's `sec_swco` overflow:
+   how many words over, what the tap costs, what else is in that section
+   that need not be (S10-9's stale-sym lesson applies: read the link map,
+   not the belief). Make it link — a lighter tap (per-class rather than
+   per-node, or the tap's bookkeeping moved to DM), or a build that
+   drops an instrument-only block — WITHOUT changing the audio path
+   under test. If it cannot link with the FULL graph, link it with a
+   documented subset that keeps every family that read NO_CAPTURE/INERT,
+   and say so.
+2. **The audio arm on the fused+SIMD image.** famverify, tap on, three
+   arms on the same bench and day: shipping (`blk_*` bytes), STRIP_FUSED
+   only, STRIP_FUSED + SIMD_DYN. First sentence of the status line: **SIMD_DYN
+   IS / IS NOT audio-correct** — 17/20 LIVE with the contract 20/20 and
+   COMPRESSOR/FADER_PAN/TUBE_SAT BIT_EXACT on the candidate, or the
+   families that differ, what the paired graph does to their blocks, and
+   whether it is the witness (S9-5's shape, where the block lives) or the
+   audio (a sample that differs from the per-strip arm, quoted).
+3. **The six design bars, STAGE-safe.** busgold, bqeverify, fxverify,
+   afbverify, geqverify, xoververify: each takes STAGE (never scp over
+   `~/dspboot/chip[12].ldr` again — S10-7), then run on (a) the staged
+   `blk_*` bytes exactly, (b) the candidate (fused + SIMD_DYN, and Option
+   A on chip 2 if gate 2 passed). One table, bar by bar, both images.
+4. **Capacity and latency on the candidate**, `capacity.sh` D24 mask +
+   D32 all-ones, both chips, avg + worst block, overrun; `latency.sh` at
+   block 16 with and without `DSP4_TX_EARLY` chip-2. If gate 2 passed,
+   stage the candidate as `cand_chip1/2.ldr` beside the others, name it
+   in the status line's first sentence, and update the window note with
+   a decision table for PW: shipping `blk_*` vs candidate — D24 margins,
+   D32 verdict, latency, bars, what H1S3/H1S4 and the app must rebuild
+   against (nothing new expected — say so), rollback.
+5. `shipping.config` gains the two switches EXPLICITLY (whatever their
+   values end up), so a configuration can never again differ from what
+   the record measured; `check_shipping_config.sh` reads both words.
+   findings S12-*, tasks.md, this block's status; commit + push main.
+
+Bounded: gates 1–2 are the session; 3–4 expected; 5 cheap. No deploy;
+`blk_*` and the other staged pairs byte-identical at the end.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-09 10:43Z — S11 — the numbers PW's rulings need, on the part: S10-6 settled first (one capacity instrument), S9-2 Option A built and proven 100 % ordered at full load with its real cost, Lever 1 BLOCK 32 built/booted/measured for D32, block-16 latency, the design bars on the shipping pair, decision table   [status: 🟢 done — **S10-6 SETTLED AND IT WAS NOT DECIMATION: the capacity record's instrument was a DIFFERENT, FASTER BUILD.** `DSP4_BLOCK_DECIMATE=32` costs 554 cycles on chip 1 and −920 on chip 2, inside the spread; the whole 24–33 % gap is **`DSP4_STRIP_FUSED=1` + `DSP4_SIMD_DYN=1`, two switches `shipping.config` does not name, `build.sh` defaults to 0, and both profile scripts have always forced to 1** — with them on chip 2 reads 222,314 at D24 against fxcost's 225,646 (1.0 % of budget) and 268,790 at D32 against 261,093 (2.3 %). S8-2's shape a third time. Profile scripts RETIRED for capacity claims about the shipping image; every `.4`/09-03/09-08 chip-2 row re-annotated. **AND THAT IS A CAPACITY LEVER NOBODY HAD COSTED: those two switches take D32 chip 2 from 112.7 % to 82.03 % of budget, worst block 86.75 %, chip 1 worst 93.76 %, ZERO MISSED BLOCKS OVER 270,082 — D32 FITS.** The catch is the split: **`DSP4_STRIP_FUSED` alone is worth 3,542 cycles (1.08 %) and IS PROVEN — famverify verdict-for-verdict identical to shipping on all 20 families, three numeric arms BIT_EXACT — while the other 97,092 cycles (29.6 % of budget) is `DSP4_SIMD_DYN`, whose audio arm reads 4 families NO_CAPTURE + GATE INERT, and whose certifying witness WILL NOT LINK alongside it (chip 1 `sec_swco` overflow).** Contract arm 20/20 with 0 FAILED on every arm, so this is S9-5's shape (the paired graph moves where a node's block lives), NOT recorded as an audio defect — settling it is the next session and it is the shortest path to a no-PCB-change D32. **LEVER 1 IS ANSWERED AND IT IS NO: BLOCK 32 links (444,704 / 313,268 B), boots, and makes D32 WORSE — chip 2 112.7 % → 117.51 %, 11.26 % → 14.86 % missed** (per sample chip 2 +4.2 %, chip 1 −7.7 %: the 09-01 trend was a chip-1/per-class trend and does not transfer to chip 2's FX graph), **and its latency price is +65 samples / 1.354 ms, not 0.333** (the path crosses four block-buffered stages). D24 does improve at block 32 (chip 1 worst 84.8 → 72.7 %, chip 2 93.0 → 89.0 %). **S9-2 OPTION A IS BUILT AND PROVEN AT 100.0000 % ORDERED AT FULL LOAD WITH THE Pi STAIRCASE — one entry in the histogram — AND IT COSTS ZERO CYCLES AND ZERO DM, not the 640 cycles and 320 words it was costed at.** There is no staging block: there are two halves and the DDE touches each every other period, so the core writes the half it is NOT clocking — four instructions in `_blk_latch_bufs`, no third buffer, no change to the DMA topology. Control 87.4999 % with histogram [(1,167999),(−31,12000),(33,12000)] — exactly one displaced frame per DMA half. **`DSP4_TX_EARLY` is a PER-CHIP MASK because the cost is per chip: chip-2-only also reads 100.0000 % and costs +16 samples; both chips costs +32.** **`DSP4_GATHER_FIRST` IS STILL NEEDED** — with it off the same arm reads 98.2156 % and chip 2 misses 2.7 % of blocks. **THROUGH-DSP LATENCY AT BLOCK 16 IS MEASURED: 66 samples / 1.375 ms** against the `_pisel` CPLD loop (min 14,429, reproducing 14,431/14,432 on a third run); TX_EARLY=2 → 82, =3 → 99, BLOCK 32 → 131. The contract's 72 is a block-8 figure from an image missing 70 % of its blocks and is SUPERSEDED. **S10-5 CAME TRUE AND IS CLOSED: three images 81,299 cycles/block apart ALL READ `DIAG_BUILD_CFG 0xCF45FF10`.** New `DIAG_BUILD_CFG2` (0xE0EB, signature 0xC2) carries the decimation factor, the TX_EARLY mask and the cost switches; shipping reads 0xC2010044, the fused arm 0xC201004F. `check_shipping_config.sh` computes both and reads build.sh's own defaults so the mirror is not a third copy. **CONSEQUENCE STATED RATHER THAN BURIED: the tree no longer builds `ac65ad38…`/`e5dce9e4…` — it builds `a95fd8eb…`/`fb1eee67…`. The staged pair is UNTOUCHED and all ten `~/dspboot` `.ldr` files were verified byte-identical at the end; adopting the successor is PW's call and needs the bars re-run.** **S11-5: THE FAMILY BAR WAS SCORING THE SHIPPING IMAGE AT 9/20 — `famverify.sh` never set `DSP4_SCOPE_BLK_TAP`, the witness S10 built to settle S9-5.** Same tree, one variable: tap off → 9/20 LIVE and COMPRESSOR numeric FAILED; tap on → **17/20 LIVE, COMPRESSOR/FADER_PAN/TUBE_SAT BIT_EXACT**. Now defaults ON. **S11-6: a latency arm without `dsp4_passthru_setup.py` returns offset 14,779 on all 20 reps with a COHERENT FRACTION OF 0.0 %** — a confident wrong answer; `latency_run.sh` now runs the setup and every S11 arm reads 100.0 % coherent. NEW TOOLS, all STAGE-safe (S10-7): `SHARC/capacity.sh`+`capacity_run.sh` (the one capacity instrument), `txorder.sh`, `latency.sh`+`latency_run.sh`, `loadlogic.sh` (maincap/pisel/shipping + the canonical pin hand-back). BENCH RESTORED AS FOUND: shipping CPLD `a1f6672af6c3`, `dsp4-pcm-slave` overlay (config.txt byte-identical to backup), matrix-app active, all ten staged pairs byte-identical. BARS: golden 59/59, dsp_validate OK, check-contract-drift clean at `defs-v2026.09.08.4` leaving no diff, check_shipping_config consistent, famverify 17/20 + 20/20 contract + 0 FAILED. **NOT DONE, STATED AS SUCH: `busgold`/`bqeverify`/`fxverify`/`afbverify`/`geqverify`/`xoververify` NOT re-run — they build and scp over `~/dspboot/chip[12].ldr` and have no STAGE, and giving them one was not in this session; and the bars were restated on the TREE's shipping configuration, not on the staged `blk_*` bytes.** Write-ups `MW/D32/DSP/dsp4-capacity-s11-20260909.md`, `dsp4-s92-optionA-20260909.md`; window note §7; findings S11-1..S11-7.]   [model: opus]
 
 model: opus
