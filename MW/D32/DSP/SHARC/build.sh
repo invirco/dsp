@@ -86,6 +86,15 @@ DSP4_POLL_ISR_ONLY="${DSP4_POLL_ISR_ONLY:-0}"
 # Block-loop bisect bitmask: 1 = scatter, 2 = node graph, 4 = gather.
 # 7 = production. 0 = consume the block and do nothing with it.
 DSP4_BLOCK_MASK="${DSP4_BLOCK_MASK:-7}"
+# CFG_CHAN_MASK / CFG_AUX_MASK GET READERS (2026-09-09). 1 = the fix:
+# the process chain tests the live masks and SKIPS a masked strip or aux
+# outright, and _mask_apply latches them at CONFIG_COMMIT. 0 is the
+# BYTE-FOR-BYTE CONTROL -- the pre-fix image, same md5 -- and it is the
+# defect, not a mode: a D24 built with 0 runs all 32 strips.
+DSP4_CHAN_MASK="${DSP4_CHAN_MASK:-1}"
+CFLAGS="$CFLAGS -DDSP4_CHAN_MASK=$DSP4_CHAN_MASK"
+ASMFLAGS="$ASMFLAGS -DDSP4_CHAN_MASK=$DSP4_CHAN_MASK"
+
 # Node-chain bisect: 0 = every node (production), N = only the first N.
 DSP4_NODE_LIMIT="${DSP4_NODE_LIMIT:-0}"
 # Chip 2's own prefix cut (review finding D16). Defaults to

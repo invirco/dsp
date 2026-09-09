@@ -12,8 +12,13 @@
  *
  *   0xF000  PRODUCT_ID   0 = D32 (default), 1 = D24
  *   0xF001  CHAN_MASK    active input strips (bit n = strip n+1);
- *                        D24 boots 0x00FFFFFF (strips 25-32 NET-only)
- *   0xF002  AUX_MASK     active aux buses
+ *                        D24 boots 0x00FFFFFF (strips 25-32 NET-only).
+ *                        READ by the process chain since 2026-09-09 --
+ *                        a masked strip is SKIPPED, not silenced. Until
+ *                        then this word was stored and never read, and a
+ *                        D24 ran all 32 strips.
+ *   0xF002  AUX_MASK     active aux buses (bit n = aux n+1), same
+ *                        treatment: D24 has 8, D32 has 12
  *   0xF003  OUT_MUX      bit 0: B_O2 content select, 0 = D24 codec,
  *                        1 = D32 snake. Stored only for now — the D32
  *                        snake output patch is not generated yet; the
@@ -48,6 +53,38 @@
 
 .extern _chan_mask;
 .extern _aux_mask;
+/* THE WORDS THE PROCESS CHAIN ACTUALLY READS (2026-09-09).
+ *
+ * `_chan_mask` and `_aux_mask` above are the STAGED words: the host may
+ * write them at any moment, from the SPI RX ISR, with a block half
+ * processed. These are the LIVE ones, and only _mask_apply (called from
+ * CONFIG_COMMIT, below) ever moves one to the other. That is what makes
+ * "the mask is applied at product-config time, before audio starts" a
+ * property of the firmware rather than a convention of the host.
+ *
+ * A MID-LIFE MASK CHANGE IS SUPPORTED, and its atomicity is exactly
+ * this: the change takes effect on the next CONFIG_COMMIT, and a commit
+ * arrives on the SPI RX ISR, so it can land inside a block. One block --
+ * 8 samples, 0.17 ms at 48 kHz -- can therefore run with the strips of
+ * the old mask and the buffers of the new one. Nothing is torn beyond
+ * that: the masks are single words, the process chain re-reads them per
+ * run, and the buffers _mask_apply zeroes are re-derived every block by
+ * whichever nodes still run.
+ *
+ * They default to the same values as the staged words, so a chip that is
+ * never configured -- chip 2 on the profile bench, and any part between
+ * reset and the host's first commit -- runs the whole graph.
+ *
+ * DSP4_CHAN_MASK=0 IS THE BYTE-FOR-BYTE CONTROL: no live words, no call,
+ * no gate, so the image is the pre-fix one down to its md5 and every
+ * cycle figure recorded before 2026-09-09 is reproducible. */
+#include "dsp_block.h"
+#if DSP4_CHAN_MASK
+.global _chan_mask_live;
+.var _chan_mask_live = 0xFFFFFFFF;
+.global _aux_mask_live;
+.var _aux_mask_live = 0x0FFF;
+#endif
 .extern _boot_config_received;
 .extern _diag_boot_stage;
 
@@ -62,6 +99,9 @@
 .extern _cfg_phase;
 #endif
 .extern _scope_gates_apply;
+#if DSP4_CHAN_MASK
+.extern _mask_apply;
+#endif
 #if DSP4_CCLK_TARGET != 0
 .extern _cgu_raise_cclk;
 #endif
@@ -179,6 +219,16 @@ _product_config_commit:
 #if DSP4_COMMIT_STAGE >= 2
     r0 = dm(_product_id);
     call _scope_gates_apply;      /* force-off wrong-product enables */
+    /* THE CHANNEL AND AUX MASKS GET APPLIED HERE, and until 2026-09-09
+     * they were never applied anywhere: CFG_CHAN_MASK was stored by
+     * .cfg_chan above and read by nothing, so a D24 -- which the host
+     * configures with 0x00FFFFFF -- ran all 32 strips and summed all 32
+     * into the main bus. Measured on the part as C2_MAIN_ST_OUT at
+     * positive full scale with the whole D24 contract silenced.
+     * See MW/D32/DSP/dsp4-loop-latency-20260909.md section 3. */
+#if DSP4_CHAN_MASK
+    call _mask_apply;
+#endif
 #endif
 #if DSP4_CFG_WATCH
     r0 = 4;

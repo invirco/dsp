@@ -13,16 +13,57 @@ debug. **It is PW-gated; nothing here was deployed.**
 |---|---|
 | contract | **`defs-v2026.09.08.4`** (defs `48745eae5418`), D24 matrix generation `3d41d5850df3`, 4,985 cells |
 | dsp.csv commit | proposed **`54f2924`**, landed by the hub as `.4` **byte-identical** (row bytes diffed) |
-| chip 1 image | `build/chip1.ldr` **md5 `602a0febbd1947d288c2ac36c3d3f4c7`**, 342,268 bytes, 9 blocks |
-| chip 2 image | `build/chip2.ldr` **md5 `b1325022df2013821c357a22d8a054f7`**, 209,380 bytes, 7 blocks |
-| build | `MW/D32/DSP/SHARC/build.sh` with no overrides — the shipping float configuration (`DSP4_BQ_FLOAT=1`, `DSP4_GAIN_FLOAT=1`, `DSP4_GEQ_DESIGN=1`, `DSP4_XOVER_DESIGN=1`, `DSP4_AFB_DESIGN=1`, `DSP4_BISECT=0`) |
-| CPLD | unchanged — `dsp4_logic.a1f6672af6c3`, not reflashed in this session |
-| staged on the bench | `app@192.168.1.219:~/dspboot/chip1.ldr` and `chip2.ldr` now hold exactly these two images |
+| chip 1 image | `build/chip1.ldr` **md5 `093c609f622cf805e7f675f1e2497a19`**, 344,112 bytes |
+| chip 2 image | `build/chip2.ldr` **md5 `2ba0e464e9679bd2e1b1c3c2a6f08744`**, 210,368 bytes |
+| build | `MW/D32/DSP/SHARC/build.sh` with no overrides — the shipping float configuration (`DSP4_BQ_FLOAT=1`, `DSP4_GAIN_FLOAT=1`, `DSP4_GEQ_DESIGN=1`, `DSP4_XOVER_DESIGN=1`, `DSP4_AFB_DESIGN=1`, `DSP4_BISECT=0`) and now `DSP4_CHAN_MASK=1` |
+| CPLD | unchanged — `dsp4_logic.a1f6672af6c3`, flashed twice for the mask captures and restored, IDCODE `0x020a30dd` re-read |
+| staged on the bench | `app@192.168.1.219:~/dspboot/chip1.ldr` and `chip2.ldr` hold exactly these two images; the 09-09 00:xx pair `602a0feb` / `b1325022` is kept alongside as `conf_chip1.ldr` / `conf_chip2.ldr` |
+
+**THE IMAGES CHANGED ON 2026-09-09 AND THIS IS WHY.** The pair this note
+first named — `602a0feb` / `b1325022` — stored `CFG_CHAN_MASK` and
+`CFG_AUX_MASK` and read neither, so **the rev C unit, which is a D24, ran
+all 32 channel strips and all 12 aux buses.** Its main output sat at
+positive full scale with nothing playing, driven by eight strips the
+product does not have and cannot silence from its own contract. The pair
+above is the same build with those two words given readers; a masked
+strip or aux is SKIPPED. `MW/D32/DSP/dsp4-chan-mask-20260909.md` is the
+measurement, and `DSP4_CHAN_MASK=0` rebuilds `602a0feb` / `b1325022` byte
+for byte, which is what makes the two comparable.
+
+The window's other artifacts are unchanged: same contract, same address
+map, same panel-MCU and app requirement. Nothing in §2 moves.
 
 The images were built twice: once from `proposals/defs/products/` before
 the hub gate and once from `defs/products/` after `.4` landed. **Both
 builds produced the same two md5s**, which is the proof that "built from
-the proposal" and "built from the tag" are the same firmware.
+the proposal" and "built from the tag" are the same firmware. That
+argument is unaffected by the channel-mask fix: the fix touches the
+firmware, not the contract, and `DSP4_CHAN_MASK=0` reproduces the images
+those two builds agreed on.
+
+### What the unit does before and after
+
+On the bench, D24 config, nothing playing, `C2_MAIN_ST_OUT` over 48,000
+frames: **`0x7FFFFF88` on every frame before, `0x00000000` on every frame
+after.** Under a D32 config the fixed image reads `0x7FFFFF80` on every
+frame — unchanged from before, because all 32 strips are live and this
+board has nothing driving 25-32. The mask is the only difference and the
+product config is the only thing that selects it.
+
+### What it is worth
+
+Block 16, 983.04 MHz, budget 327,680 cycles/block, two boots, minimum,
+both arms measured in one session on one instrument:
+
+| | control | masked | margin |
+|---|---:|---:|---|
+| chip 1 | 262,033 | **202,786** | 20.03 % → **38.11 %** |
+| chip 2 | 261,856 | **226,442** | 20.09 % → **30.90 %** |
+| chip 2, six reverbs | 310,185 (09-08) | **275,035** | 5.34 % → **16.07 %** |
+
+The six-reverb worst case is the number the product ships against, and it
+was inside the 10 % bar only because the part was running four aux chains
+and eight strips a D24 does not have.
 
 ## 2. What the panel MCU and the app must be built against
 
@@ -48,6 +89,12 @@ Regenerate, do not hand-edit:
 The previous shipping images are on the bench and untouched:
 `~/dspboot/ship_chip1.ldr` md5 `3f0e479aee61219e18108ce27384295d`,
 `~/dspboot/ship_chip2.ldr` md5 `ab43c75b56706341ba85268c217ce1dc`.
+**Rollback is unchanged by the channel-mask fix.** There is also an
+intermediate step now: `~/dspboot/conf_chip1.ldr` / `conf_chip2.ldr`
+(`602a0feb` / `b1325022`) is the same firmware WITHOUT the mask readers,
+on the same `.4` address map, so a problem traced to the mask can be
+backed out without also rolling the contract back.
+
 To reflash: `sudo systemctl stop matrix-app`,
 `sudo pinctrl set 6,7,8,9,10,11,12,22,23,24,25 a0`, copy the two `ship_*`
 files over `chip1.ldr`/`chip2.ldr`, then `python3 dsp4_boot.py --dir .`
@@ -69,7 +116,21 @@ cd MW/D32/DSP/SHARC && BUILD=0 ./famverify.sh && \
 Pass is **17 of 20 families / 3,619 of 3,737 addressed cells**, GEQ at
 **31/31** and CROSSOVER at **8/8**, with the report's `pin` reading
 `defs-v2026.09.08.4`. Anything less means the host and the firmware are
-not on the same map.
+not on the same map. **Re-run on the masked image 2026-09-09 and it is
+that line to the cell**, 0 FAILED — the mask removes strips 25-32, which
+a D24 has no cells for, so nothing the walk addresses moved.
+
+Worth running with it, since it is one line and it is the thing that went
+wrong:
+
+```
+python3 tools/pi/dsp4_mask_witness.py --no-silence
+```
+
+with the duplex overlay and a capture-path bitstream. `_chan_mask_live`
+must read `0x00FFFFFF` and `_aux_mask_live` `0x000000FF` on BOTH chips —
+the STAGED words read back fine even when nothing consumes them, which is
+exactly how this went unnoticed.
 
 ## 5. What the DSP is NOT bringing to the window
 

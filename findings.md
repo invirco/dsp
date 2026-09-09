@@ -6,6 +6,133 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## The channel and aux masks get readers (2026-09-09, session 32)
+
+Session: `CFG_CHAN_MASK` / `CFG_AUX_MASK` given readers, D24 capacity
+restated on the masked image, the through-DSP arm attempted again.
+Write-up: `MW/D32/DSP/dsp4-chan-mask-20260909.md`. Contract
+`defs-v2026.09.08.4`, unchanged. New images: chip1
+`093c609f622cf805e7f675f1e2497a19` / chip2
+`2ba0e464e9679bd2e1b1c3c2a6f08744`; `DSP4_CHAN_MASK=0` rebuilds the
+previous pair `602a0feb` / `b1325022` byte for byte.
+
+### S6-1 — S5-7 fixed: the masks are read, and a masked strip is SKIPPED
+
+**Severity: MAJOR (firmware, window item). Status: FIXED and measured.**
+
+`_chan_mask` and `_aux_mask` are latched into `_chan_mask_live` /
+`_aux_mask_live` at CONFIG_COMMIT and read by the process chain, which
+skips a masked strip's or aux's nodes rather than running and silencing
+them. Gating is per RUN (one compare, one branch) on the pattern
+`_product_id`'s scope gate already set; a SIMD pair runs if either half
+is live, and the masked half is made inaudible by its own ROUTING gate
+and a zeroed crosspoint column instead.
+
+Measured on the part, one bitstream (`_maincap`), one night, nothing
+playing, `C2_MAIN_ST_OUT` over 48,000 frames:
+
+| image | config | result |
+|---|---|---|
+| `602a0feb`/`b1325022` (= `DSP4_CHAN_MASK=0`) | D24 | `0x7FFFFF88` on 48,000 of 48,000 |
+| `093c609f`/`2ba0e464` | D24 | **`0x00000000` on 48,000 of 48,000** |
+| `093c609f`/`2ba0e464` | D32 | `0x7FFFFF80` on 48,000 of 48,000 |
+
+The D24 row holds with NOTHING silenced and with all 48 silenceable D24
+cells written. The D32 row is the positive control: D32 behaviour is
+unchanged. `famverify` on the fixed image is the `.4` line unmoved —
+17/20 families, 3,619 of 3,737 cells, GEQ 31/31, CROSSOVER 8/8, 0 FAILED.
+
+`tools/pi/dsp4_silence_2532.py`, the workaround that silenced strips
+25-32 through D32's rows, is deleted per its own docstring.
+
+### S6-2 — the D24 aux mask the host sent was wrong, and inertly so
+
+**Severity: minor (host). Status: FIXED.**
+
+`dsp4_config.py` sent D24 `CFG_AUX_MASK = 0x0FFF` — twelve aux buses.
+`defs/products/d24/dsp.csv` addresses `Aux001`–`Aux008`; D32's addresses
+`Aux001`–`Aux012`. Harmless while nothing read the word; four live aux
+chains the moment something did. Now `0x000000FF`. **A word no reader
+consumes is not checked by anything**, which is the general form of both
+this and S5-7.
+
+### S6-3 — the D24 load was never a D24 load, and the reverb margin was never 5.34 %
+
+**Severity: MAJOR (capacity). Status: measured.**
+
+Block 16, 983.04 MHz, budget 327,680, two boots, minimum, both arms in
+one session on one instrument:
+
+| arm | cycles/block | margin |
+|---|---:|---:|
+| chip 1 control / **masked** | 262,033 / **202,786** | 20.03 % / **38.11 %** |
+| chip 2 control / **masked** | 261,856 / **226,442** | 20.09 % / **30.90 %** |
+| chip 2 masked, six reverbs | **275,035** | **16.07 %** |
+
+The controls reproduce the `.4` record to 8 cycles (chip 2) and 154
+(chip 1), so the differences are the fix and not the day. **Chip 1 — the
+tighter chip — gains 18.08 % of its budget**, because it carries the
+strips. Chip 2 gains 10.81 % from four aux chains.
+
+The consequence for the product: the six-reverb worst case, which the
+2026-09-08 record put at 94.66 % / **5.34 % margin** and which was
+written up as a product decision inside the 10 % bar, is **83.93 % /
+16.07 %**. It was 5.34 % because the part was running four aux chains and
+eight strips the product does not have. The reverb's own cost did not
+change (+49,187 here against +49,096 on 09-08).
+
+### S6-4 — S5-10 narrowed: the DSP carries the audio, the CAPTURE PATH loses the order
+
+**Severity: major (instrument, CPLD-side). Status: mechanism named, not fixed.**
+
+The through-DSP arm still does not close and **no latency figure is
+quoted**, but the mask was not the reason and the symptom is now named.
+
+A CONSTANT through Pi → CPLD → DSPA → fabric → DSPB → CPLD → Pi returns
+**bit-exact** (`0x00123400` on 143,400 of 144,000 frames played). A
+STAIRCASE (1,500 values, 64 frames a step, `tools/pi/dsp4_order_stair.py`)
+returns every value — index range 1..1500 complete, 96,040 non-zero words
+for 96,000 played — as **82,042 runs where a clean loop gives 1,500**:
+86 % of runs are one frame long and only 8,141 of 81,351 transitions are
++1. Interleaved values sit within a window of hundreds to thousands of
+steps and the window width is not fixed.
+
+That is a capture path not frame-locked to the CM4 capture DMA. It is a
+property of the `_maincap` instrument (`o_dspb[3]` slot 0), not of the
+DSP: `_pisel` closes the same loop inside LOGIC and returns 48,000 of
+48,000 counter words at ONE offset. `dsp4_loop_latency.py`'s
+14,494–14,509 for this arm has **5.67 % counter agreement** across ~2,780
+distinct offsets with the impulse never found — a spurious mode, recorded
+so it is not mistaken for a measurement.
+
+Closing it needs a frame-locked capture: a CPLD-side change to the
+`_maincap` re-framer, or a DSP-side capture buffer read over the
+parameter link, which sidesteps ALSA. Neither blocks the window.
+
+### S6-5 — the first cut of the fix did not fit chip 1
+
+**Severity: major (program memory). Status: FIXED.**
+
+Gating every run exactly, with `_mask_apply` unrolled per strip and per
+aux, overflowed chip 1's `sec_swco` by **622 words** in the block-16
+paired build — the configuration every capacity number is taken in. The
+shipping per-sample image linked either way, so the window was never
+blocked, but a fix that does not fit the operating point is not a fix.
+
+Brought to about 230 words by three changes, none of which alters what is
+skipped for any mask a product sends: `_mask_apply` made table-driven
+(one loop over strips, one over a (pointer, bit) table for the aux
+buffers); the chain's gate reduced from four instructions to three by
+resolving one word per gate group into `_mask_on[]` at commit; and
+adjacent runs merged where neither side has to be gated exactly, with
+standalone METER runs — which emit nothing under block kernels — not
+gated there at all. Chip 1: **124 gates to 61**.
+
+**Chip 1's program memory is the binding constraint on this chip**, and
+it is the third time it has bitten (S5-6's `bqeverify` arms, the
+`dyn_selftest` in every paired build, this). Worth a dispatch of its own
+before the next feature lands in the chain.
+
 ## The CM4 loop at 48 kHz, and the product-config word nothing reads (2026-09-09, session 31)
 
 Session: PI_TDM8 bitstream from the current slot map, flashed via JTAG,
@@ -17,7 +144,7 @@ the CPLD duplex loop's latency at 48 kHz. Write-up:
 
 ### S5-7 — `CFG_CHAN_MASK` is stored and never read, so a D24 runs 32 strips
 
-**Severity: MAJOR (firmware, window item). Status: found and measured, not fixed.**
+**Severity: MAJOR (firmware, window item). Status: FIXED 2026-09-09 — see S6-1.**
 
 `tools/pi/dsp4_config.py` sends D24 `CFG_CHAN_MASK = 0x00FFFFFF`
 ("strips 25-32 NET-only"). `product_config.asm:121` stores it in
@@ -82,7 +209,8 @@ adding it changes the RTL and therefore every bitstream hash.
 
 ### S5-10 — the Pi → DSP → Pi pass-through does not deliver a coherent stream
 
-**Severity: major (open). Status: narrowed, not root-caused.**
+**Severity: major (open). Status: narrowed further 2026-09-09 — see S6-4. The
+mask (S5-7) was NOT the reason; the capture path is.**
 
 With S5-7 worked around and the main bus proven silent, the through-DSP
 arm still returns mostly zeros with sparse out-of-order counter indices

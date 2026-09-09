@@ -70,6 +70,15 @@ FL="${DSP4_BQ_FLOAT:-1}"
 FL32="${DSP4_BQ_FLOAT32:-0}"
 # GAIN follows the cascade unless asked otherwise.
 GFL="${DSP4_GAIN_FLOAT:-$FL}"
+# THE RUNTIME CHANNEL/AUX MASK (2026-09-09). 1 is the product's own
+# graph: with --product d24 the chain skips strips 25-32 and aux 9-12.
+# 0 is the CONTROL and rebuilds the pre-fix image byte for byte, which is
+# what every capacity figure before 2026-09-09 was measured on -- so the
+# masked and unmasked arms are a PAIRED measurement on one instrument in
+# one session. It is IN THE DIRECTORY NAME below for the reason CSVTAG is:
+# two arms measured in one session must not share a build directory, or
+# the second point boots the first one's image.
+CM="${DSP4_CHAN_MASK:-1}"
 BLOCK="${BLOCK:-8}"
 WORK="${WORK:-/tmp/sigprof2}"
 cd "$(dirname "$0")"
@@ -127,13 +136,14 @@ srctree() {
 SRC="$(srctree "$BLOCK")"
 
 for L in "$@"; do
-  D="$WORK/b$BLOCK-c$CSVTAG-l$L-q$C2BQ-x$XP-r$RO-g$GD-f$GDF-t$FL$FL32"
+  D="$WORK/b$BLOCK-c$CSVTAG-l$L-q$C2BQ-x$XP-r$RO-g$GD-f$GDF-t$FL$FL32-m$CM"
   DSP_SRC_DIR="$SRC" DSP_BUILD_DIR="$D" \
   DSP4_BISECT=0 DSP4_BLOCK_KERNELS=1 DSP4_PROFILE_SIGNAL=$SIG \
     DSP4_STRIP_FUSED=$FUS DSP4_SIMD_DYN=$SIMD DSP4_BQ_GRAPH=$BQ \
     DSP4_C2_BQ_GRAPH=$C2BQ DSP4_C2_XPAIR=$XP \
     DSP4_BQ_ROUNDONCE=$RO DSP4_BQ_GUARD=$GD DSP4_BQ_GUARD_FORCE=$GDF \
     DSP4_BQ_FLOAT=$FL DSP4_BQ_FLOAT32=$FL32 DSP4_GAIN_FLOAT=$GFL \
+    DSP4_CHAN_MASK=$CM \
     DSP4_NODE_LIMIT=0 DSP4_NODE_LIMIT2=$L \
     DSP4_BLOCK_DECIMATE=$DEC ./build.sh all > "$D.log" 2>&1
   if [ "$(grep -ciE '\[Error|Build FAILED' "$D.log")" -ne 0 ]; then
@@ -161,10 +171,10 @@ print(a('proc_cyc'), a('proc_passes'))")"
   for r in $(seq 1 "${REPS:-1}"); do
     R="$(ssh $BENCH "bash /home/app/sigprofile2_run.sh $PT $PP $DWELL" 2>&1 | tr '\n' ' | ')"
     C="$(echo "$R" | grep -oE '[0-9]+ cycles/pass' | grep -oE '^[0-9]+')"
-    echo "block=$BLOCK limit2=$L sig=$SIG c2bq=$C2BQ xp=$XP ro=$RO gd=$GD gf=$GDF fl=$FL$FL32 rep=$r  $R"
+    echo "block=$BLOCK limit2=$L sig=$SIG c2bq=$C2BQ xp=$XP ro=$RO gd=$GD gf=$GDF fl=$FL$FL32 cm=$CM rep=$r  $R"
     if [ -n "$C" ]; then
       if [ -z "$BEST" ] || [ "$C" -lt "$BEST" ]; then BEST="$C"; fi
     fi
   done
-  echo "block=$BLOCK limit2=$L c2bq=$C2BQ xp=$XP ro=$RO gd=$GD gf=$GDF fl=$FL$FL32  MIN=${BEST:-none} cycles/block over ${REPS:-1} boot(s)"
+  echo "block=$BLOCK limit2=$L c2bq=$C2BQ xp=$XP ro=$RO gd=$GD gf=$GDF fl=$FL$FL32 cm=$CM  MIN=${BEST:-none} cycles/block over ${REPS:-1} boot(s)"
 done

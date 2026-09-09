@@ -57,6 +57,13 @@ block is 8 (measured: `FRAME_COUNT` advances 5,999/s, and 48,000/8 =
 
 ## 2. The through-DSP arm does not close, and no figure is quoted for it
 
+> **2026-09-09, next session.** §3's defect is fixed and the main bus is
+> now silent to 48,000 frames of 48,000 — and **this arm still does not
+> close**, so the mask was not why. A constant returns through the DSP
+> bit-exact; a staircase returns complete but with its sample order
+> destroyed inside a window. It is the `_maincap` capture path, not the
+> DSP. See `MW/D32/DSP/dsp4-chan-mask-20260909.md` §6 and finding S6-4.
+
 `dsp4_logic_maincap.1216e35175cb` captures B_O3 slot 0 = `C2_MAIN_ST_OUT`,
 which is where a Pi → DSPA → fabric → DSPB → Pi pass-through lands. It
 returns a stream that is **mostly zeros with sparse, out-of-order counter
@@ -182,6 +189,11 @@ the four product-config words only `_product_id` has a reader.
 **This is a window item.** A D24 whose main output is saturated by eight
 strips it does not have is not shippable, and the fix is in the
 firmware, not in the contract and not in the app.
+
+> **FIXED 2026-09-09**, the session after this one:
+> `MW/D32/DSP/dsp4-chan-mask-20260909.md`. Both masks now have readers
+> and a masked strip or aux is SKIPPED. `tools/pi/dsp4_silence_2532.py`,
+> the workaround this section describes, is deleted.
 
 ## 4. The slot map moved; the DSP side did not
 

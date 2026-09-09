@@ -362,4 +362,28 @@
 #define DSP4_BQG_VERIFY 0
 #endif
 
+/* CFG_CHAN_MASK / CFG_AUX_MASK GET READERS (2026-09-09).
+ *
+ * The host has always sent D24 a CHAN_MASK of 0x00FFFFFF ("strips 25-32
+ * NET-only") and an AUX_MASK, product_config.asm has always stored both,
+ * and until this flag NOTHING READ EITHER. A D24 therefore ran all 32
+ * channel strips and summed all 32 into the main bus -- measured on the
+ * part 2026-09-09 as C2_MAIN_ST_OUT sitting at positive full scale for
+ * 48,000 frames of 48,000 with every cell the D24 contract can reach
+ * already silenced (MW/D32/DSP/dsp4-loop-latency-20260909.md section 3).
+ *
+ * The mask is applied by SKIPPING, not by silencing: a masked strip's
+ * nodes are never called, so the cycles come back as well as the audio.
+ * That is the whole point -- a D24 is a 24-channel product and its load
+ * must be a 24-channel load.
+ *
+ * DSP4_CHAN_MASK=0 IS THE CONTROL and rebuilds the pre-fix chain byte
+ * for byte: no gate is emitted, _mask_apply latches the live words and
+ * silences nothing, and every recorded cycle figure taken before this
+ * flag existed is reproducible. It is not a mode -- a 0 build is the
+ * defect. */
+#ifndef DSP4_CHAN_MASK
+#define DSP4_CHAN_MASK 1
+#endif
+
 #endif /* DSP4_BLOCK_H */

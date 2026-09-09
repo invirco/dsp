@@ -1,6 +1,6 @@
 {
  "contract": {
-  "pin": "defs-v2026.09.08.3 + UNGATED PROPOSAL (proposals/defs/products/d24/dsp.csv)",
+  "pin": "defs-v2026.09.08.4",
   "sha256": "4aa3c343cedf286e6e74157cbb1265ea589f7b92b3de01a4da5fad7baac477e3",
   "product": "d24"
  },
@@ -12,7 +12,7 @@
   0
  ],
  "arm_default": {
-  "cycles": 261369,
+  "cycles": 225858,
   "passes": 951,
   "fx_type": 0
  },
@@ -33,8 +33,8 @@
   3
  ],
  "arm_loaded": {
-  "cycles": 310465,
-  "passes": 1563,
+  "cycles": 275031,
+  "passes": 1562,
   "fx_type": [
    3,
    3,
@@ -45,8 +45,8 @@
   ]
  },
  "arm_restored": {
-  "cycles": 261287,
-  "passes": 2175,
+  "cycles": 225853,
+  "passes": 2174,
   "fx_type": [
    0,
    0,
@@ -60,8 +60,8 @@
   0,
   0
  ],
- "delta": 49096,
- "drift": -82,
- "pct_default": 79.76348876953125,
- "pct_loaded": 94.74639892578125
+ "delta": 49173,
+ "drift": -5,
+ "pct_default": 68.9263916015625,
+ "pct_loaded": 83.93280029296875
 }

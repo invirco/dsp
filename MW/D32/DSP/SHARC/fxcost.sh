@@ -32,6 +32,10 @@ GDF="${DSP4_BQ_GUARD_FORCE:-0}"
 FL="${DSP4_BQ_FLOAT:-1}"
 FL32="${DSP4_BQ_FLOAT32:-0}"
 GFL="${DSP4_GAIN_FLOAT:-$FL}"
+# THE RUNTIME CHANNEL/AUX MASK (2026-09-09). Carried into the build AND
+# into the build directory's name, for sigprofile2.sh's reason: the two
+# arms must not share a directory, or the second boots the first's image.
+CM="${DSP4_CHAN_MASK:-1}"
 BLOCK="${BLOCK:-16}"
 FXTYPE="${FXTYPE:-3}"
 PRODUCT="${PRODUCT:-d24}"
@@ -77,13 +81,14 @@ srctree() {
 }
 SRC="$(srctree "$BLOCK")"
 
-D="$WORK/b$BLOCK-c$CSVTAG-l0-q$C2BQ-x$XP-r$RO-g$GD-f$GDF-t$FL$FL32"
+D="$WORK/b$BLOCK-c$CSVTAG-l0-q$C2BQ-x$XP-r$RO-g$GD-f$GDF-t$FL$FL32-m$CM"
 DSP_SRC_DIR="$SRC" DSP_BUILD_DIR="$D" \
 DSP4_BISECT=0 DSP4_BLOCK_KERNELS=1 DSP4_PROFILE_SIGNAL=$SIG \
   DSP4_STRIP_FUSED=$FUS DSP4_SIMD_DYN=$SIMD DSP4_BQ_GRAPH=$BQ \
   DSP4_C2_BQ_GRAPH=$C2BQ DSP4_C2_XPAIR=$XP \
   DSP4_BQ_ROUNDONCE=$RO DSP4_BQ_GUARD=$GD DSP4_BQ_GUARD_FORCE=$GDF \
   DSP4_BQ_FLOAT=$FL DSP4_BQ_FLOAT32=$FL32 DSP4_GAIN_FLOAT=$GFL \
+  DSP4_CHAN_MASK=$CM \
   DSP4_NODE_LIMIT=0 DSP4_NODE_LIMIT2=0 \
   DSP4_BLOCK_DECIMATE=$DEC ./build.sh all > "$D.log" 2>&1
 if [ "$(grep -ciE '\[Error|Build FAILED' "$D.log")" -ne 0 ]; then

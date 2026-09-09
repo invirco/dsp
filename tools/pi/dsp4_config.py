@@ -58,18 +58,30 @@ D24_INPUT_PATCH = (
     + list(range(32, 46))               # superset sources, identity
 )
 
+# BOTH MASKS NOW HAVE READERS IN THE FIRMWARE (2026-09-09). Until then
+# product_config.asm stored CHAN_MASK and AUX_MASK and nothing consumed
+# either, so these words were documentation; a D24 ran all 32 strips and
+# all 12 aux buses whatever was sent. They are now the live channel and
+# aux counts of the product, and getting one wrong silences a bus that
+# should run.
+#
+# The aux counts come from the product definitions, not from a habit:
+# defs/products/d24/dsp.csv addresses Aux001..Aux008 and d32's addresses
+# Aux001..Aux012. D24 was being sent 0x0FFF -- twelve -- which was
+# harmless while nothing read it and would have run four aux chains the
+# product does not have the moment something did.
 PRODUCT_CONFIG = {
     'd32': {
         CFG_PRODUCT_ID: 0,
-        CFG_CHAN_MASK: 0xFFFFFFFF,
-        CFG_AUX_MASK: 0x0FFF,
+        CFG_CHAN_MASK: 0xFFFFFFFF,   # 32 strips
+        CFG_AUX_MASK: 0x00000FFF,    # 12 aux buses
         CFG_OUT_MUX: 1,          # B_O2 = snake (stored; gather TBD)
         # identity input patch — no patch writes needed
     },
     'd24': {
         CFG_PRODUCT_ID: 1,
-        CFG_CHAN_MASK: 0x00FFFFFF,   # strips 25-32 NET-only
-        CFG_AUX_MASK: 0x0FFF,
+        CFG_CHAN_MASK: 0x00FFFFFF,   # 24 strips; 25-32 NET-only
+        CFG_AUX_MASK: 0x000000FF,    # 8 aux buses
         CFG_OUT_MUX: 0,          # B_O2 = codec
         'input_patch': D24_INPUT_PATCH,   # chip 1 only
     },
