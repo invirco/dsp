@@ -700,6 +700,17 @@ ASMFLAGS="$ASMFLAGS -DDSP4_DYN_INLINE=$DSP4_DYN_INLINE"
 DSP4_BQ_SHOOTOUT="${DSP4_BQ_SHOOTOUT:-0}"
 CFLAGS="$CFLAGS -DDSP4_BQ_SHOOTOUT=$DSP4_BQ_SHOOTOUT"
 ASMFLAGS="$ASMFLAGS -DDSP4_BQ_SHOOTOUT=$DSP4_BQ_SHOOTOUT"
+# Per-instruction cycle probe (S14, 2026-09-09): the same ladder pattern,
+# 22 rungs of ONE loop nest whose body is built up an instruction at a
+# time, so the marginal cost of each instruction in the float SIMD biquad
+# loop is measured rather than inferred. It exists because the ADSP-2156x
+# Hardware Reference has no core chapter -- no pipeline depth, no
+# compute-result latency, no stall rule anywhere in its 101,300 lines --
+# so the part is the only document. Never in a shipping image; the whole
+# of src/lib/bq_probe.asm is inside #if DSP4_BQ_PROBE.
+DSP4_BQ_PROBE="${DSP4_BQ_PROBE:-0}"
+CFLAGS="$CFLAGS -DDSP4_BQ_PROBE=$DSP4_BQ_PROBE"
+ASMFLAGS="$ASMFLAGS -DDSP4_BQ_PROBE=$DSP4_BQ_PROBE"
 DSP4_CALL_SELFTEST="${DSP4_CALL_SELFTEST:-0}"
 CFLAGS="$CFLAGS -DDSP4_CALL_SELFTEST=$DSP4_CALL_SELFTEST"
 ASMFLAGS="$ASMFLAGS -DDSP4_CALL_SELFTEST=$DSP4_CALL_SELFTEST"

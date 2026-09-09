@@ -156,6 +156,9 @@
 .extern _cst_selftest;
 .extern _cst_done;
 #endif
+#if DSP4_BQ_PROBE
+.extern _prb_selftest;
+#endif
 #if DSP4_BQ_SHOOTOUT
 .extern _bqsh_selftest;
 .extern _bqsh_done;
@@ -738,6 +741,17 @@ _start:
     if ne jump (pc, .callst_skip);
     call _cst_selftest;
 .callst_skip:
+#endif
+#if DSP4_BQ_PROBE
+    /* Per-instruction cycle probe (S14, 2026-09-09). Same placement and
+     * the same reason as the self-tests above: ordinary main-loop
+     * context, link up, nothing of the graph's state touched. Twenty-two
+     * timed loop nests x 32 iterations x 5 repeats is about 40 ms, once. */
+    r0 = dm(_prb_done);
+    r0 = pass r0;
+    if ne jump (pc, .prb_skip);
+    call _prb_selftest;
+.prb_skip:
 #endif
 #if DSP4_BQ_SHOOTOUT
     /* Biquad shootout ladder (spike, 2026-09-02). Same placement and the
