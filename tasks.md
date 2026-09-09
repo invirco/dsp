@@ -1,3 +1,92 @@
+## HUB DISPATCH 2026-09-09 06:58Z — ONE SHIPPING CONFIGURATION (S8-2: the block loop must fit the block) — BLOCK=16 + block kernels + phase fix named in one place, zero missed blocks on both chips on the wire at the D24 mask, staircase 100 % exact through the whole graph, capacity/latency/famverify restated on that pair → window pair; S8-3 pinctrl bench defect folded into every run script   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+ONE SHIPPING CONFIGURATION — the block loop must fit the block (S8-2): the build that ships is the build that was measured (BLOCK=16 + block kernels, per PW's 09-03 ruling that block 16 is the fit), zero missed blocks on both chips proven on the wire at the D24 mask, the staircase 100 % exact through the WHOLE chip-2 graph, and capacity + latency + famverify restated on THAT pair, which becomes the window pair; the S8-3 bench-procedure defect folded into every run script
+
+WHY. The order-defect session (dsp 24783d0) fixed the ping/pong phase
+error (100.0000 % ordered on the part with the graph out of the way) and
+then found what it had been hiding: **the shipping per-sample BLOCK=8
+build's block loop does not fit the block** — chip 1 330,389 and chip 2
+286,757 cycles against a 163,830 budget (2.02× / 1.75×), chip 1 missing
+75.1 % of blocks and chip 2 70.9 %, and a half that is not rewritten is
+transmitted AGAIN, which is the ±225-block stale tail seen since 09-08.
+Every capacity number on record — including the .4 figures 202,786 /
+226,442 of 327,680 — was taken on a BLOCK=16 `DSP4_BLOCK_KERNELS=1` build
+that is NOT what `ship_*.ldr` or the staged pairs carry. Block kernels
+alone at BLOCK=8 do not close it (chip 2 170,622 vs 163,830 misses every
+second block: `_block_ready` is a flag, not a queue). The chain closes on
+reduced load (block kernels + phase fix + one strip/one aux → chip 1
+0.0 % missed, chip 2 30.3 %, staircase 32.87 → 91.92 % exact). PW ruled
+2026-09-03 that block 16 is the configuration that fits both chips; the
+build default drifted back to per-sample BLOCK=8 somewhere and nothing
+measured the thing that ships. This session ends that: one
+configuration, built, measured and staged as one artifact.
+
+Also found (S8-3): `pinctrl set 6,7,8,9,10,11,12,22,23,24,25 a0` after an
+OpenOCD flash puts GPIO24 into ALT0 = SD0_DAT2, so chip 2's CS sits
+asserted while chip 1's boot stream clocks out and the card comes up as
+TWO CHIP 1s — six consecutive boots did this; only `dsp4_scope.check_chip`
+catches it. Fixed by holding 6 and 24 as outputs driven HIGH and giving
+only 7,9,10,11,22,23,25 to a0. `dsp4_diag.py --help` says chip 2's CS is
+GPIO 7 while the code uses 24; `--chip 2` without `--rdy-gpio 12` cannot
+phase the link.
+
+BENCH. Rev C unit: shipping CPLD `a1f6672af6c3`, `dsp4-pcm-slave` overlay,
+matrix-app active. `~/dspboot`: window pair chip1 093c609f / chip2
+2ba0e464, `tx_*` 21f9fdc1 / de14981f (phase fix), `conf_*`, `ship_*` —
+NONE replaced or reordered; this session stages its result as
+`blk_chip1.ldr` / `blk_chip2.ldr` beside them and names it in the status
+line's first sentence. Every boot from a separate staging path. The
+D24 mask is applied (`dsp4_config.py` 0x00FFFFFF / 0x000000FF). Rev A
+never touched. No AI attribution in commits or any work product.
+
+GATES, in order, each witnessed:
+0. **The bench procedure first (S8-3).** Every run/flash script in the
+   tree (`fxcost.sh`, `famverify`, `sigprofile2`, the loop harness, the
+   OpenOCD post-flash line) uses the corrected pinctrl sequence; every
+   boot in this session and after is followed by `dsp4_scope.check_chip`
+   on BOTH chips and refuses to proceed on a wrong CHIP_ID; `dsp4_diag.py
+   --help` corrected; `--chip 2` implies `--rdy-gpio 12`. One commit.
+1. **Name the shipping configuration in ONE place.** `BLOCK=16`,
+   `DSP4_BLOCK_KERNELS=1`, `DSP4_BLK_LATCH=1` (the phase fix), the D24/D32
+   masks from defs, `DSP4_BLOCK_MASK` full — a single build-config file or
+   make target that `ship_*`, the window pair and every measurement
+   script consume; the image prints its own configuration in its boot
+   banner / a readable word so a mismeasured configuration can never be
+   silent again. State what the 09-03 block-16 ruling's build actually
+   was (git archaeology, one paragraph) and where the default drifted.
+2. **The block loop fits.** On that build, D24 mask: `_proc_cyc` per
+   block on both chips against the BLOCK=16 budget (327,680 at 983.04
+   MHz), `DIAG_BLK_OVERRUN` = 0 over ≥ 10 minutes on BOTH chips, the
+   block counter on the wire (the tx_probe stamp) advancing +1 for
+   ≥ 191,999 of 191,999 transitions, delta histogram ONE entry. If chip 2
+   still misses blocks at the D24 mask, the status line's first sentence
+   says so with the percentage, and the next lever (which kernels, what
+   they cost) is named — do not hide it behind reduced load.
+3. **The staircase through the whole chip-2 graph: 100 % exact** over
+   ≥ 96,000 frames on two boots (the 91.92 % under reduced load must
+   become 100 % at full load, or gate 2 is not met).
+4. **Everything restated on this ONE pair**: capacity (`sigprofile2`,
+   block 16, two boots, minimum, both chips; shipping default and the
+   six-reverb worst case; D24 mask and D32 all-ones) — expect the .4/mask
+   numbers to REPRODUCE, and say whether they do; through-DSP latency
+   (the 72-sample figure was measured on which configuration? re-measure
+   on this one, 20 × 2 boots, boot-to-boot part); famverify (17/20 /
+   3,619 must not move down; GEQ 31/31; CROSSOVER 8/8); golden / busgold /
+   bqeverify / fxverify / afbverify / geqverify / xoververify.
+5. **Window note rewritten** for this pair: `blk_*` are the artifacts;
+   what the panel MCU and app build against (.4); rollback; the one-line
+   acceptance; the bench-procedure fix as a precondition.
+6. findings S9-*, tasks.md, this block's status; commit + push main.
+
+Bounded: gates 0–3 are the session; 4–5 expected; gate 2's honest
+percentage beats a green gate 3 on reduced load.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-09 05:31Z — THE ORDER DEFECT — two-thirds of every chip-2 output block from the wrong block (≤37 ms stale): localised in the transmit path with an instrument, root-caused, fixed, staircase 100 % exact; converter lanes checked the same way; new pair staged beside the window pair if firmware changes   [status: 🟢 done — **A NEW PAIR IS STAGED BESIDE THE WINDOW PAIR: `~/dspboot/tx_chip1.ldr` `21f9fdc1ebd3afe4709869f5884da1f5` / `tx_chip2.ldr` `de14981fe9165e3047e45dd60a00bb6b`; the window pair `093c609f` / `2ba0e464`, `conf_*` and `ship_*` are BYTE-IDENTICAL TO AS-FOUND and `DSP4_BLK_LATCH=0` rebuilds the window pair exactly; bench back on the shipping bitstream `a1f6672af6c3` and the `dsp4-pcm-slave` overlay, matrix-app active.** **GATE 1: THE ORDER DEFECT IS A PING/PONG PHASE ERROR, NOT AN INDEXING ONE, AND IT IS FIXED — 100.0000 % ORDERED ON THE PART (191,999 of 191,999 transitions +1, ONE entry in the delta histogram).** Chip 2's TX lane 3 is a full-window lane and slot 1 of it is driven onto the wire but written by no node, so `SHARC/src/tx_probe.asm` (`DSP4_TXPROBE=1`) stamps it with `(block counter << 8) | (half << 4) | sample index` right after the gather writes slot 0 of the same frame; `_maincap` presents the two slots as the capture's L and R latched from ONE DSP frame (S7-1), so a recorded stereo frame is a coherent (audio, stamp) pair and the stamp is in order BY CONSTRUCTION. With the node graph out of the way (`DSP4_BLOCK_MASK=5`, ZERO blocks missed) the pre-fix stamp came back scrambled in a PERFECTLY PERIODIC way — deltas `+1` x143,999, `-15` x24,000, `+17` x24,000, i.e. exactly one jump of each per 8-sample window over 24,000 windows, at a FIXED sample, with the sample-index field 24,000 of each of 0-7. **`_set_tx_bufs` started the core on PING and the block ISR toggled it — but the DDE also starts on its ping row and moves to pong at the same edge that raises that interrupt, so the core was writing the half the channel was clocking out**: the slots the DDE had not reached carried the block just gathered, the ones it had passed carried that half's contents from two blocks earlier. Fix `DSP4_BLK_LATCH=1` (default), `src/sport_init.asm`: the ISR advances a PENDING pair and `_blk_latch_bufs` latches them once per block (the generated scatter/gather reload the pointer per SAMPLE, so the ISR used to retarget them mid-block — a real hazard, but on the part this alone changed NOTHING, same three-value histogram), and **the core starts on PONG**, which is the defect. Costs two DM words and one call per block. **GATE 2: the lane measured IS a converter lane** — `o_dspb[3]` is the CPLD's `dac_main` and slot 0 of it is `C2_MAIN_ST_OUT`; `_gather_chip2` writes all twenty chip-2 outputs from the same half in the same loop through the one pointer, so AUX_OUT 01-12, MAIN_OUT 01-04, MON_OUT, CODEC_AUX_OUT and SUB_OUT carried the identical splice and take the identical fix. They cannot be witnessed directly here — LOGIC captures only `o_dspb[3]` and no analogue loopback is wired — and what would settle them is a `_maincap`-style build capturing a slot of `o_dspb[0..2]`; chip 1's IC TX and both chips' RX regions carry the same off-by-one-half and get the same fix, the RX side not separately witnessed because the only observable that could witness it is dominated by S8-2. **GATE 3 NOT MET, AND THE REASON IS A SECOND, INDEPENDENT DEFECT THE FIRST WAS HIDING (S8-2, open, needs its own dispatch): THE BLOCK LOOP DOES NOT FIT THE BLOCK — chip 1 misses 75.1 % of blocks and chip 2 70.9 %.** `_proc_cyc` on the part, shipping per-sample BLOCK=8: chip 1 330,389 / chip 2 286,757 against a 163,830-cycle budget (2.02x and 1.75x); with `DSP4_BLOCK_KERNELS=1` 134,325 / 170,622; plumbing alone 13,964. `DIAG_BLK_OVERRUN` and the block counter on the wire agree to a tenth of a percent (71.4 % missed / 28.7 % of the frame rate). A half that is not rewritten is transmitted again, which is the +-225-block tail of S7-5. **Every capacity number on record was taken in a configuration that does not ship**: the `.4` figures (chip 1 202,786 / chip 2 226,442 of 327,680) are a BLOCK=16 `DSP4_BLOCK_KERNELS=1` build. Block kernels alone do not close it — chip 2 reads 170,622 against 163,830 and misses 51.9 %, because a pass of 1.04 block periods misses every SECOND block, not 4 % of them (`_block_ready` is a flag, not a queue). **The causal chain closes on reduced load: block kernels + the phase fix + the runtime masks poked to one strip and one aux gives chip 1 0.0 % missed, chip 2 30.3 %, and the staircase through the whole chip-2 graph goes from 32.87 % to 91.92 % EXACT over 96,000 frames** — the residual is the residual overrun. CCLK is not the reason: 982.98 MHz against the 983.04 target, block rate 5,999.9/s against 6,000. **GATE 4: the fix costs nothing measurable** — `_proc_cyc` 286,757 before / 282,308 after on chip 2, and the instrument's pass-to-pass spread is wider than the change; by inspection it is one call and four DM accesses per block. **A BENCH-PROCEDURE DEFECT FOUND ON THE WAY AND IT INVALIDATES MEASUREMENTS (S8-3): `pinctrl set 6,7,8,9,10,11,12,22,23,24,25 a0` — the line every run script executes after an OpenOCD flash — puts GPIO24 into ALT0 = `SD0_DAT2`, NOT a deasserted chip select, so chip 2's CS sits asserted while chip 1's boot stream is clocked out and the card comes up as TWO CHIP 1s.** Six consecutive boots did this; holding 6 and 24 as outputs driven HIGH and giving only 7,9,10,11,22,23,25 to `a0` booted chip 2 first time, every time after. `dsp4_scope.check_chip` is the only thing that catches it — through `dsp4_diag.py` the card looks healthy with a wrong CHIP_ID. Also: `dsp4_diag.py --help` documents chip 2's CS as GPIO 7 while the code uses 24, and `--chip 2` without `--rdy-gpio 12` cannot phase the link at all. **GATE 5 / BARS: famverify on the fixed pair is the `.4` line and did NOT move down** — pin `defs-v2026.09.08.4`, both chips healthy, 3,737 cells, 17 of 20 families LIVE (AUX_INPUT NO_STIMULUS_PATH, DCA and METER NO_PROBE), GEQ 31/31, CROSSOVER 8/8, 0 FAILED; golden harness 59/59, `dsp_validate` OK, `test_geq_splice` 5/5, `test_dsp_validate` 13/13, `check-contract-drift.sh` clean. **Through-DSP latency did not move (S8-4)**: 10 reps x 2 boots, min 14,508 / 14,509, spread 13 and 15, worst margin x16.8, against 14,504 pre-fix — inside the instrument's own spread, so 72 samples / 1.500 ms stands and the boot-to-boot part is again one sample. Write-up `MW/D32/DSP/dsp4-order-defect-20260909.md`; findings S8-1..S8-4; new tools `tools/pi/dsp4_tx_order.py` and `SHARC/src/tx_probe.asm`.]   [model: opus]
 
 model: opus
