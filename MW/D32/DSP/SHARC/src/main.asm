@@ -926,6 +926,17 @@ _start:
     r5 = 0;
 .c1_gath_loop:
     dm(_sample_idx) = r5;
+#if DSP4_GATHER_FIRST
+    /* See the chip-2 loop below for the measurement this comes from.
+     * Chip 1's gather feeds the INTER-CHIP transmit region, which has
+     * the same first-frame deadline; it cannot be witnessed on this
+     * bench (nothing captures chip 1's IC TX), so it takes the fix by
+     * symmetry rather than on its own evidence. */
+    r0 = dm(_sample_idx);
+#if DSP4_BLOCK_MASK & 4
+    call _gather_chip1;
+#endif
+#endif /* DSP4_GATHER_FIRST */
     call _scope_record;
 #if !DSP4_POLL_ISR_ONLY
     r0 = dm(_sample_idx);
@@ -937,10 +948,12 @@ _start:
     call _spi_poll;
 .skip_poll_bk1:
 #endif
+#if !DSP4_GATHER_FIRST
     r0 = dm(_sample_idx);
 #if DSP4_BLOCK_MASK & 4
     call _gather_chip1;
 #endif
+#endif /* !DSP4_GATHER_FIRST */
     r5 = dm(_sample_idx);
     r5 = r5 + 1;
     r6 = BLOCK_SIZE;
@@ -1082,6 +1095,40 @@ _start:
     r5 = 0;
 .c2_gath_loop:
     dm(_sample_idx) = r5;
+#if DSP4_GATHER_FIRST
+    /* GATHER FIRST (DSP4_GATHER_FIRST, 2026-09-09, findings S9-2).
+     *
+     * The block-kernel loop used to call _scope_record and, on every
+     * eighth sample, _spi_poll BEFORE the gather for that sample. That
+     * put the parameter-link poll directly in front of the gather for
+     * SAMPLE 0 -- the one word of the block with the earliest deadline,
+     * because the DDE clocks frame 0 of the half out first and the whole
+     * gather runs at the END of the block period, after the node graph
+     * has spent 92.7 % of it.
+     *
+     * Measured on the part at the D24 mask, block 16, with the transmit
+     * stamp: sample 0 of every block left the part carrying the value
+     * that half held TWO BLOCKS earlier, and samples 1..15 were current
+     * -- 87.4999 % of transitions in order, with one -31 and one +33 per
+     * 16-sample window. With the node graph out of the way, or with the
+     * load cut to one strip and one aux, the same image is 100.0000 %.
+     * A race, not an indexing error: the write simply lost to the read.
+     *
+     * The gather now runs FIRST in the loop body. It costs nothing --
+     * _scope_record only records, _spi_poll is asynchronous, and neither
+     * feeds the gather -- and it buys sample 0 the whole of both.
+     * DSP4_GATHER_FIRST=0 is the byte-for-byte control that reproduces
+     * the losing order.
+     */
+    r0 = dm(_sample_idx);
+#if DSP4_BLOCK_MASK & 4
+    call _gather_chip2;
+#endif
+#if DSP4_TXPROBE
+    r0 = dm(_sample_idx);
+    call _tx_probe_stamp;
+#endif
+#endif /* DSP4_GATHER_FIRST */
     call _scope_record;
 #if !DSP4_POLL_ISR_ONLY
     r0 = dm(_sample_idx);
@@ -1093,6 +1140,7 @@ _start:
     call _spi_poll;
 .skip_poll_bk2:
 #endif
+#if !DSP4_GATHER_FIRST
     r0 = dm(_sample_idx);
 #if DSP4_BLOCK_MASK & 4
     call _gather_chip2;
@@ -1101,6 +1149,7 @@ _start:
     r0 = dm(_sample_idx);
     call _tx_probe_stamp;
 #endif
+#endif /* !DSP4_GATHER_FIRST */
     r5 = dm(_sample_idx);
     r5 = r5 + 1;
     r6 = BLOCK_SIZE;

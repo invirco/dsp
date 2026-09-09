@@ -196,6 +196,16 @@ DSP4_NODE_LIMIT2="${DSP4_NODE_LIMIT2:-$DSP4_NODE_LIMIT}"
 # classes already converted are affected, so intermediate values are only
 # meaningful up to the converted prefix of the chain.
 DSP4_BLOCK_KERNELS="${DSP4_BLOCK_KERNELS:-0}"
+# GATHER FIRST IN THE BLOCK-KERNEL LOOP (2026-09-09, findings S9-2). The
+# gather for SAMPLE 0 has the earliest deadline in the block -- the DDE clocks
+# frame 0 of the half out first, and the whole gather runs at the end of the
+# block period -- and it used to sit behind _scope_record and the
+# parameter-link poll. On the part it lost the race every block: sample 0 of
+# every 16-sample block went out carrying what that half held TWO BLOCKS
+# earlier. DSP4_GATHER_FIRST=0 is the byte-for-byte control that reproduces it.
+DSP4_GATHER_FIRST="${DSP4_GATHER_FIRST:-1}"
+CFLAGS="$CFLAGS -DDSP4_GATHER_FIRST=$DSP4_GATHER_FIRST"
+ASMFLAGS="$ASMFLAGS -DDSP4_GATHER_FIRST=$DSP4_GATHER_FIRST"
 CFLAGS="$CFLAGS -DDSP4_BLOCK_KERNELS=$DSP4_BLOCK_KERNELS"
 ASMFLAGS="$ASMFLAGS -DDSP4_BLOCK_KERNELS=$DSP4_BLOCK_KERNELS"
 
