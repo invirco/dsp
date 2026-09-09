@@ -57,6 +57,15 @@ block is 8 (measured: `FRAME_COUNT` advances 5,999/s, and 48,000/8 =
 
 ## 2. The through-DSP arm does not close, and no figure is quoted for it
 
+> **CLOSED 2026-09-09, session 33 — see §7.** The arm is measured: the
+> DSP's contribution is **72 samples / 1.500 ms**, boot-to-boot zero.
+> This section's diagnosis was half right and half wrong, and both halves
+> are worth keeping: the capture path DID have a real defect (it spliced
+> every word out of two DSP frames, S7-1) and fixing it did NOT change
+> the order result at all. The order defect is in the chip-2 transmit
+> path — whole 8-sample blocks arrive from the wrong place — and it is
+> still open (S7-5). Read §7 before quoting anything below.
+
 > **2026-09-09, next session.** §3's defect is fixed and the main bus is
 > now silent to 48,000 frames of 48,000 — and **this arm still does not
 > close**, so the mask was not why. A constant returns through the DSP
@@ -304,3 +313,172 @@ OpenOCD `linuxgpiod` bit-banging the bench CM4's own GPIOs (TCK 7,
 TDI 23, TDO 22, TMS 25, `/home/app/cpld-jtag.cfg`), IDCODE `0x020a30dd`
 read back before and after each one, and `pinctrl set
 6,7,8,9,10,11,12,22,23,24,25 a0` after every one.
+
+---
+
+## 7. The through-DSP arm CLOSED (2026-09-09, session 33)
+
+§2 said the DSP's contribution to loop latency "was not measured this
+session" and that the `_maincap` capture was the thing scrambling the
+order. The first half is now answered. The second half was the wrong
+suspect, and both halves needed a different instrument to see.
+
+Bitstreams, both built from the current slot map with the corrected RTL,
+and both **identified by reading a register off the part** rather than by
+inference (§7.4):
+
+| arm | artifact | design id | cfg |
+|---|---|---|---|
+| LOGIC loop | `dsp4_logic_pisel.2c1355bbc69b` | `ae`→`55bbc69b` | pi_selftest |
+| through DSP | `dsp4_logic_maincap.d903ae1ac4a9` | `ae1ac4a9` | pi_maincap |
+
+DSP images: the WINDOW pair, chip1 `093c609f` / chip2 `2ba0e464`, run
+from `~/s32` so `~/dspboot` was never touched.
+
+### 7.1 The instrument had to change first
+
+`dsp4_loop_latency.py` recovers latency by having every captured word
+vote for an offset. That needs the loop to return the stimulus unchanged.
+It does for the LOGIC-only arm and it does **not** for the through-DSP
+arm — only about a third of the words come back where they belong (§7.3)
+— so a per-word vote finds spurious modes. That is exactly how the
+2026-09-08 figure of 14,550 was produced, and why §2 refused to quote it.
+
+`tools/pi/dsp4_dsp_latency.py` scores every candidate offset by the
+fraction of frames carrying the exact expected value and reports the
+answer **only with its margin over the runner-up two plateaus away**. A
+coherent third still puts a sharp peak at the true offset; a spurious
+mode does not have one, and the margin says which happened.
+
+### 7.2 The answer
+
+20 reps per arm, `arecord` started 0.3 s (14,400 samples) before `aplay`
+as in §1, so these are directly comparable with §1's numbers.
+
+| arm | min | median | max | spread | coherent | worst margin |
+|---|---|---|---|---|---|---|
+| LOGIC loop (`_pisel`) | **14,432** | 14,438 | 14,451 | 19 | 100.0 % | ∞ |
+| through DSP, boot 1 | **14,504** | 14,514 | 14,520 | 16 | 33.1–33.5 % | ×16.0 |
+| through DSP, boot 2 | **14,504** | 14,511 | 14,519 | 15 | 33.1–33.5 % | ×16.2 |
+
+The LOGIC-loop minimum reproduces §1's 14,431 to one sample, on a
+different bitstream and a different instrument. That is the cross-check
+that makes the rest of the table worth reading.
+
+**The DSP's contribution is 72 samples, 1.500 ms.** Minimum to minimum,
+14,504 − 14,432; median to median it is 76 and 73 on the two boots. Both
+arms carry the identical ALSA start offset and the identical 0.3 s
+pre-roll, so the difference is the only figure here that is free of them.
+The absolute through-DSP residual over the pre-roll is 104 samples /
+2.167 ms, and that remains an **upper bound**, not a path, for the reason
+§1 gives: it still contains the capture-vs-playback ALSA start
+difference.
+
+**The boot-to-boot part is zero.** The minima are identical across the
+two boots (14,504 and 14,504) and the medians are 3 samples apart, on 20
+reps each. That is the same answer §1 gave for the CPLD loop, now with
+the DSPs in the path — net N2a has no boot-to-boot term to attribute at
+either level.
+
+### 7.3 What the 72 samples is, and what cannot be separated
+
+72 is exactly 9 × 8, and `BLOCK = 8` on these images. Six of those nine
+block times are accounted for by buffering that has to be there — RX
+DMA, processing, TX DMA on each of the two chips — leaving three for the
+inter-chip fabric crossing, the TDM8 re-framing and the one frame the
+frame-locked capture snapshot now costs (§7.4).
+
+That decomposition is **arithmetic consistency, not four measurements**.
+Separating the terms needs bitstreams that tap the path at intermediate
+points, and none exist; the honest statement is that the total is 72
+samples with a run-to-run spread of ≤ 16 and no boot-to-boot term.
+
+### 7.4 Two LOGIC defects found and fixed on the way
+
+Full evidence in findings S7-1 and S7-2. In short:
+
+* **The capture read-out walked the live register file.** `cap_flat` is
+  rewritten slot by slot while the Pi's read-out of one word spans nearly
+  the whole frame, so every recorded word was **spliced from two
+  consecutive DSP frames** at a fixed bit — bit 25 for the `_maincap`
+  slots, **bit 9 for the SHIPPING CM4 return**. Proven by alternating two
+  known words: the old bitstream returned `0x03F7CA48` / `0x1786C9A8`,
+  the new one returns `0x17F7CA48` / `0x0386C9A8`, and the old pair is
+  the bit-25 splice of the new pair in both phases, over 100,000 settled
+  frames each. Fixed with a coherent snapshot of both presented slots.
+* **The period decode was one BCK early**, and `CAP_EXTRA_DELAY = 1` had
+  been added in August to cancel it. The two errors hid each other in
+  every bit except the top one, which came from the other slot. Both are
+  now right on their own terms.
+
+Neither was ever simulated: `tb_pcm_reframe` leaves `tdm_in` dangling.
+`sim/tb_pcm_capture.v` now covers the direction and fails on the old RTL.
+
+### 7.5 The design now says what it is
+
+S5-9 is closed. `build.sh` derives a 32-bit design ID from the artifact
+hash and a 5-bit config field, stamps both into the bitstream as Verilog
+macros, and records them in the manifest. They are read back over the one
+path off the part that needs no hands — the CM4 PCM link — by knocking:
+
+```
+$ python3 dsp4_logic_id.py --expect ae1ac4a9
+design_id: 32'hae1ac4a9   cfg_bits: 16'h0004   pi_maincap
+  reply frames 2175 of 144000 captured, 1 distinct reply word
+  MATCHES --expect ae1ac4a9
+```
+
+It discriminates: the `_pisel` build answers `55bbc69b` / `pi_selftest`
+on the same command, and the restored shipping `a1f6672af6c3` answers
+nothing at all — which is now itself a positive identification ("this
+bitstream predates the ID register") rather than an absence of evidence.
+
+### 7.6 The order defect is real, and it is NOT the capture path
+
+The frame-lock fix does not move the staircase result by one percent —
+32.87 % exact before, 32.87 % after. The arm's remaining defect is
+elsewhere and it is now measured rather than described (finding S7-5):
+
+| stimulus period | runs observed | runs if clean |
+|---|---|---|
+| 2, 4, 8 frames | 90,000 / 45,001 / 22,500 | 90,001 / 45,001 / 22,501 |
+| 16, 32, 128 frames | 40,211 / 42,396 / 42,867 | 11,251 / 5,626 / 1,407 |
+
+**Any pattern whose period divides 8 survives exactly; anything longer is
+scrambled.** Every sample arrives at the right position inside its
+8-sample block, from the wrong block — about a third of blocks in the
+right place, the rest drawn from roughly the last 225 blocks (≈ 37 ms).
+The chain is bit-transparent throughout (only ever the exact stimulus
+values, never an intermediate), and the displacement is independent of
+signal magnitude, so nothing is filtering and nothing is arithmetically
+wrong.
+
+It is not the CM4 (`_pisel` returns 96,000 of 96,000 on the identical
+staircase through the identical ALSA path), not the CPLD capture (one
+frame deep, and now proven coherent), and not the chip-2 node graph
+(every `_buf_*` tap on the MAIN chain reads non-decreasing while the
+staircase plays). That leaves the chip-2 transmit path. **It is the next
+dispatch**, and it is not cosmetic.
+
+### 7.7 Bench state
+
+| | at start | at end |
+|---|---|---|
+| CPLD | `dsp4_logic.a1f6672af6c3` | **`dsp4_logic.a1f6672af6c3`** (restored) |
+| chip 1 | `~/dspboot/chip1.ldr` `093c609f` | unchanged, `093c609f` |
+| chip 2 | `~/dspboot/chip2.ldr` `2ba0e464` | unchanged, `2ba0e464` |
+| Pi overlay | `dsp4-pcm-slave` | `dsp4-pcm-slave` (restored, diffs clean) |
+| matrix-app | active | active |
+
+Nothing in `~/dspboot` was replaced, reordered or booted from: the window
+pair was copied to `~/s32` and every boot this session ran from there.
+The shipping bitstream was restored and verified four ways — IDCODE
+`0x020a30dd`, both DSPs boot (so `DSP_CLK` survived), `PCM_CLK` and
+`PCM_FS` both TOGGLING on `dsp4_netprobe.py` (so clkgen is intact), and
+the ID register silent (so it is not one of tonight's builds).
+
+**No shipping bitstream was built or committed**, deliberately and for
+the reason §6 gives: the S7-1/S7-2 fixes land in the shipping capture
+path the moment one is built, and a `SHIPPING: yes` artifact that nothing
+has verified is what S5-8 was about. The next shipping build gets both
+fixes and must be proven against matrix-app before it is committed.

@@ -6,6 +6,218 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## The capture path made frame-locked, and the design given an ID (2026-09-09, session 33)
+
+Session: a frame-locked CM4 capture and a readable design-ID register in
+one bitstream, and the through-DSP arm re-diagnosed from measurement
+rather than from the symptom. Write-up:
+`MW/D32/DSP/dsp4-loop-latency-20260909.md` §7. Contract
+`defs-v2026.09.08.4`, unchanged. Images unchanged: the window pair
+chip1 `093c609f` / chip2 `2ba0e464`, run from a separate staging path
+(`~/s32`) so `~/dspboot` was not touched. New bitstream
+`dsp4_logic_maincap.d903ae1ac4a9`, design ID `32'hae1ac4a9`, 404/1270 LE,
+Fmax 68.66 MHz.
+
+### S7-1 — the CM4 capture spliced every word out of TWO DSP frames
+
+**Severity: MAJOR (LOGIC, shipping path). Status: FIXED and proven on the part.**
+
+`cap_flat` is rewritten slot by slot as the DSP frame arrives — slot `s`
+completes at `frame_pos = (s+1)*128` — while the Pi's read-out of one
+32-bit word spans nearly the whole frame (bit 31 launches around
+`frame_pos` 32, bit 0 around 536). The read-out was walking the LIVE
+register file, so for most `CAP_SLOT` choices the register was
+overwritten part-way through and **the word the CM4 recorded was spliced
+from two consecutive DSP frames at a fixed bit position**.
+
+Measured, not inferred. With the DSP alternating two known words
+A = `0x12345670` and B = `0x7BCDEF80` every frame, the old bitstream
+(`dsp4_logic_maincap.1216e35175cb`) returned, over 100,000 settled
+frames, exactly two values: `0x03F7CA48` and `0x1786C9A8` — **neither of
+them A or B**. The new bitstream on the same stimulus returns
+`0x17F7CA48` and `0x0386C9A8`, also two values, 50,000 each.
+
+The two are related by the splice model exactly, in both phases:
+
+```
+old[n] = { true[n-1][31:25], true[n][24:0] }
+  {0x1786C9A8[31:25], 0x03F7CA48[24:0]} = 0x17F7CA48   <- new, phase 1
+  {0x03F7CA48[31:25], 0x1786C9A8[24:0]} = 0x0386C9A8   <- new, phase 2
+```
+
+Bit 25 is where the arithmetic says it should be: slot 0 completes at
+`frame_pos` 128, which is `out_word_pos` 6, which is bit 25. The same
+arithmetic puts the SHIPPING return (slot 2, complete at `frame_pos`
+384) at **bit 9** — so the product's CM4 return had the defect too, three
+bits into the audio, and would have shipped with it.
+
+Fixed by reading a snapshot instead of the live file: both presented
+slots are latched together one Pi word before the left read-out starts,
+so a recorded stereo frame is a coherent pair from ONE DSP frame. Cost:
+one extra frame of constant latency, 64 flip-flops. `PI_SELFTEST` is
+bit-identical before and after — its source words are written outside the
+read-out window — which is what makes the fix testable: `_pisel` must not
+move, and it does not.
+
+### S7-2 — and the period decode was one BCK early, hidden by a constant that cancelled it
+
+**Severity: major (LOGIC). Status: FIXED.**
+
+`in_period = frame_pos[9:2] - 8'd1` named the incoming bit by the period
+BEFORE the one in which it is sampled. Period indices name the SAMPLING
+period on the transmit side (`out_period` adds 1 because the launch is
+one period earlier); MFD=1 puts slot 0 bit 31 on the rising edge after
+the one that reads FS high, and FS is high through period 255, so slot 0
+bit 31 is sampled at period 0. No offset belongs there.
+
+The consequence was that `cap_flat[s]` held `{slot_s[30:0], slot_s+1[31]}`
+— every word one bit left, with the NEXT slot's MSB in its LSB. That is
+precisely the symptom recorded on 2026-08-23 ("the expected words shifted
+LEFT exactly one bit, 100% stable over 96,000 frames"), and it was
+answered by adding `CAP_EXTRA_DELAY = 1` to the read-out, which slid the
+read back over the error. **The two errors cancelled in every bit except
+the top one, which came from the other slot** — invisible on every word
+the bench ever sent, because all of them had bit 31 clear.
+
+Both are now correct on their own terms: `in_period = frame_pos[9:2]`,
+`CAP_EXTRA_DELAY = 0`, plain Philips I2S on the link. Proven on the part
+by the ID readback, which recovers a 32-bit constant exactly — 2,175
+reply frames, ONE distinct reply word.
+
+### S7-3 — nothing had ever simulated the capture direction
+
+**Severity: moderate (process). Status: FIXED.**
+
+`sim/tb_pcm_reframe.v` instantiates the re-framer with `tdm_in` and
+`bck8_sample` **dangling** — it tests the Pi → DSP direction only. The
+sim gate was therefore green through both defects above, and both are of
+the kind a testbench catches on the first run.
+
+Added `sim/tb_pcm_capture.v` with two new models
+(`model_tdm_tx.v`, `model_pi_i2s_rx.v`). The DSP transmits a different
+word in every slot on every frame, so a read-out that walks a live
+register file cannot pass: the check is not "the value looks plausible"
+but "L and R are both exactly the words of ONE frame, the same frame, at
+a constant lag", over both slot configurations (0/1 and the shipping
+2/3). It fails on the old RTL and passes on the new. The sim gate is now
+4 testbenches.
+
+Writing it also cost two model bugs worth recording, because both are
+traps for the next person: an I2S receiver that resets its bit counter on
+the WS edge loses the last bit of every word (the word runs ACROSS the
+boundary), and a TDM transmitter that samples FS on the same falling edge
+it launches data on races the clkgen's own NBA update and starts its
+frame one BCK early. FS is sampled on the rising edge, data launched on
+the falling one, in the model as on the part.
+
+### S7-4 — S5-9 closed: the design carries an ID, and it is readable with no hands
+
+**Severity: minor (verifiability). Status: DONE, proven on the part.**
+
+`build.sh` derives `DSP4_DESIGN_ID` as the low 32 bits of the artifact
+hash and `DSP4_CFG_BITS` as a five-bit configuration field (loopback,
+pi_selftest, pi_maincap, pi_tdm8, shipping) and passes both in as Verilog
+macros. They are GENERATED, never typed, and they do not feed the hash —
+so "read the register, compare to the manifest" is a real check.
+
+MAX V has no configuration readback over SVF, the DSPs have no link into
+this CPLD, and the TEST pins land on a DNP header, so the one path off
+the part that needs no hands is the CM4's PCM capture. The register is
+therefore read by KNOCKING: the Pi plays `{L = 0xD5D51D1D,
+R = 0x2A2AE2E2}` (R the exact bit-inverse of L) and LOGIC answers
+`{L = design_id, R = 0xD594<cfg_bits>}` for 128 frames. Reader:
+`tools/pi/dsp4_logic_id.py`.
+
+On the part, after the flash:
+
+```
+design_id: 32'hae1ac4a9   cfg_bits: 16'h0004   pi_maincap
+  reply frames 2175 of 144000 captured, 1 distinct reply word
+  MATCHES --expect ae1ac4a9
+```
+
+It is built in EVERY configuration, which is the point: every future
+flash answers "what are you?" in one `aplay` plus one `arecord`. It is
+shipping-safe by scope — a false trigger needs a specific 64-bit pair and
+costs 128 frames (2.7 ms) of the CM4's own return stream, and touches
+nothing on the DSP-facing side, the DAC lanes, the NET lanes or the
+panel.
+
+### S7-5 — the through-DSP arm is NOT a capture problem: whole 8-sample BLOCKS arrive from the wrong place
+
+**Severity: MAJOR (firmware, open). Status: mechanism measured and localised, NOT fixed.**
+
+S6-4 named the `_maincap` capture path as the thing that "scrambles the
+order". That was the wrong suspect, and the frame-lock fix (S7-1) — which
+is a real defect and a real fix — does not change this result by one
+percent: the staircase scores 32.87 % exact before the fix and 32.87 %
+after it.
+
+What the arm actually does, measured with a two-level stimulus at
+different periods (`steptest.py`, 90,000 settled frames each):
+
+| stimulus period | runs observed | runs if clean | verdict |
+|---|---|---|---|
+| 2 frames (HOLD 1) | 90,000 | 90,001 | **exact** |
+| 4 frames (HOLD 2) | 45,001 | 45,001 | **exact** |
+| 8 frames (HOLD 4) | 22,500 | 22,501 | **exact** |
+| 16 frames (HOLD 8) | 40,211 | 11,251 | scrambled |
+| 32 frames (HOLD 16) | 42,396 | 5,626 | scrambled |
+| 128 frames (HOLD 64) | 42,867 | 1,407 | scrambled |
+
+**Any pattern whose period divides 8 survives exactly; anything longer is
+scrambled.** So the displacement is a non-zero multiple of 8: every
+sample arrives at the RIGHT position inside its 8-sample block, from the
+WRONG block. `BLOCK = 8` on these images.
+
+Two more measurements pin it down. The chain is **bit-transparent** —
+across every one of those runs the capture contained ONLY the two exact
+stimulus values and zero, never an intermediate, so nothing is filtering
+and nothing is arithmetically wrong. And the displacement histogram is
+**independent of signal magnitude** (mean −10.1 steps in every one of six
+250-step buckets from index 0 to 1500, min −28 max +1 in all of them),
+so it is a time offset and not a gain or rounding error. About a third of
+blocks are in the right place; the rest are drawn from roughly the last
+225 blocks (≈1,800 frames, ≈37 ms).
+
+Where it is NOT: the CM4 (`_pisel` returns 96,000 of 96,000 exact on the
+identical staircase through the identical ALSA path, 100.00 %); the CPLD
+capture (`cap_flat` is one frame deep and cannot deliver a sample from
+1,800 frames ago, and is now proven coherent by S7-1); the chip-2 node
+graph (`_buf_C2_PI_IN`, `_buf_C2_MIX_MAIN_L`, `_buf_C2_MAIN_FDR`,
+`_buf_C2_MAIN_DLY`, `_buf_C2_MAIN_ST_OUT` read non-decreasing on 36 of 38
+consecutive samples while the staircase plays, advancing at 48,000
+frames/s — a ±1,800-frame scramble on the compute side could not do
+that).
+
+That leaves the chip-2 transmit path — the SPORT3 TX DMA and whatever
+fills its buffer — as where a block-granular buffer is being read at an
+index that is not locked to the frame. **That is the next dispatch**, and
+it is not cosmetic: if the same machinery serves the converter lanes,
+two-thirds of every output block is coming from a random point in the
+last 37 ms.
+
+Also retired by this: the 2026-09-09 note that a constant returns
+"bit-exact" and a staircase does not, offered as evidence about the
+capture. Both are explained by the block model — a constant is
+period-1 — and neither says anything about the capture path.
+
+### S7-6 — the through-DSP loop latency, measured, with the DSP block term visible
+
+**Severity: n/a (result). Status: measured.**
+
+A per-word offset vote cannot be used on this arm — with a third of the
+words coherent it finds spurious modes, which is exactly how the
+2026-09-08 figure of 14,550 was produced. `tools/pi/dsp4_dsp_latency.py`
+scores every candidate offset by the fraction of frames carrying the
+exact expected value and reports the answer only with its margin over the
+runner-up two plateaus away. The coherent third puts a sharp peak at the
+true offset; a spurious mode has no peak.
+
+See `MW/D32/DSP/dsp4-loop-latency-20260909.md` §7 for the table. The
+margin was never below x16 on any rep, so the figure is quotable in a way
+the 2026-09-08 one was not.
+
 ## The channel and aux masks get readers (2026-09-09, session 32)
 
 Session: `CFG_CHAN_MASK` / `CFG_AUX_MASK` given readers, D24 capacity
