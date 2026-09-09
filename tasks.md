@@ -1,3 +1,86 @@
+## HUB DISPATCH 2026-09-09 05:31Z — THE ORDER DEFECT — two-thirds of every chip-2 output block from the wrong block (≤37 ms stale): localised in the transmit path with an instrument, root-caused, fixed, staircase 100 % exact; converter lanes checked the same way; new pair staged beside the window pair if firmware changes   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+THE ORDER DEFECT — two-thirds of every 8-sample output block on chip 2 comes from the wrong block (up to ~37 ms stale): localised to the chip-2 TRANSMIT path, root-caused, fixed, and proven through the loop with the staircase 100 % exact; the converter lanes checked the same way; a new window pair if the fix lands in firmware
+
+WHY. The capture/ID session (dsp 05d2492) closed the through-DSP latency
+(72 samples / 1.500 ms, boot-to-boot zero) and, doing so, isolated a
+defect that is not an instrument artefact: any stimulus whose period
+divides 8 returns EXACT; anything longer is scrambled — every sample
+arrives at the right position INSIDE its 8-sample block but FROM THE
+WRONG BLOCK, about a third of blocks in place, the rest drawn from
+roughly the last 225 blocks (~37 ms). The chain is bit-transparent (only
+ever exact stimulus values) and the displacement is magnitude-independent,
+so nothing filters and nothing is arithmetically wrong. Excluded by
+measurement: the CM4 path (`_pisel` 96,000/96,000 on the identical
+staircase), the CPLD capture (one frame deep, now proven coherent after
+the bit-9 splice fix), and the chip-2 node graph (every MAIN-chain
+`_buf_*` tap reads non-decreasing while the staircase plays). What is
+left is the chip-2 TRANSMIT path (SPORT TX DMA / TCB chain / the TX slot
+tables / the block hand-off from the graph to the TX buffer). **If the
+same machinery serves the converter lanes, every D24 output is delivering
+two-thirds of each block from a random point in the last 37 ms** — an
+audible product defect that no capacity number or family walk can see,
+because the family walk reads buffers, not the wire. This is the most
+important open item on the DSP and it goes before the window.
+
+BENCH. Rev C unit: shipping CPLD `a1f6672af6c3` (its bit-9 splice on the
+CM4 return is a KNOWN, SEPARATE LOGIC defect — do not confuse the two; if
+you need the coherent capture, flash the `_maincap` build `ae1ac4a9` from
+its staging and restore shipping at the end, proven by the knock/no-knock
+identification). `~/dspboot` holds the window pair 093c609f / 2ba0e464 +
+`conf_*` + `ship_*` — NOT to be touched; run every image of this session
+from `~/s32` or another separate path. State hashes and bitstream at
+start and end. Rev A never touched. No AI attribution in commits or any
+work product.
+
+GATES, in order, each witnessed:
+1. **Localise inside the transmit path.** Instrument, do not guess: put a
+   known block counter into the TX buffer at the graph→TX hand-off (the
+   last point the session proved in order) and read what leaves the
+   SPORT — three candidates to falsify one at a time: (a) the TX DMA TCB
+   chain / ring indexing (a ring of ~225 blocks is 37 ms — does a ring
+   that size exist, and is the read index decoupled from the write
+   index?), (b) the double/multi-buffer hand-off between the block
+   scheduler and the DMA (is the graph writing block N while DMA sends
+   from a slot chosen by something other than N?), (c) the TX slot table
+   / `_tx_slot_*` generation (is the per-slot source pointer walking a
+   different buffer than the per-block one?). The staircase + a
+   period-divides-8 control decide each in one measurement. Name the
+   mechanism with the instrument that proved it.
+2. **The converter lanes.** The same block-counter stimulus through
+   the real output lanes — measured at the converter side if any
+   loopback exists (the analogue loop, the CPLD's converter-lane capture
+   if there is one, or an oscilloscope-free digital tap the session can
+   justify); if the lanes cannot be observed on this bench, say exactly
+   why and what observation would settle it, and do NOT infer them clean
+   from the Pi path.
+3. **Fix.** In firmware (or in the generator if the tables are wrong —
+   then it is a generated-code fix and the defs/gen provenance rules
+   apply): the staircase returns 1,500 runs for 1,500 steps through the
+   full chip-2 path, 100 % exact over ≥ 96,000 frames on two boots; the
+   through-DSP latency re-measured (it should stay 72 samples or move by
+   a stated, explained amount); famverify's 17/20 / 3,619 line does not
+   move down; golden/busgold/bqeverify bars restated. If the fix changes
+   the shipping images, stage the new pair BESIDE the window pair in
+   `~/dspboot` as `tx_chip1.ldr`/`tx_chip2.ldr`, say so in the status
+   line's first sentence, and update the window note — the hub decides
+   which pair the window deploys.
+4. **Capacity delta** of the fix at block 16 (both chips, two boots,
+   minimum) against the mask session's record (chip 1 202,786 / chip 2
+   226,442) — a transmit-path fix should cost ~nothing; if it does not,
+   say what.
+5. findings S8-*, tasks.md, this block's status; commit + push main.
+
+Bounded: gates 1–3 are the session. If gate 1 cannot name the mechanism,
+STOP with the three falsifications and their evidence — a half-guess is
+worse than the open item.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-09 04:04Z — Through-DSP loop arm CLOSED — frame-locked capture instrument in LOGIC + readable design-ID register (S5-9) in one bitstream; true through-DSP latency measured; R6 leftovers folded in; window pair in ~/dspboot untouched   [status: 🟢 done — **THE BENCH IS BACK ON THE SHIPPING BITSTREAM `a1f6672af6c3` (gate 5: restore, not leave-flashed) AND THE WINDOW PAIR IN `~/dspboot` IS BYTE-IDENTICAL TO AS-FOUND — all six images, `chip1` `093c609f` / `chip2` `2ba0e464` / `conf_*` / `ship_*`; every boot this session ran from a separate staging path `~/s32`.** **GATE 3, THE NUMBER: the DSP's contribution to loop latency is 72 SAMPLES / 1.500 ms, and the boot-to-boot part is ZERO.** 20 reps x 2 boots through the DSP (min 14,504 both boots, medians 14,514 / 14,511, spread <= 16) differenced against 20 reps of the LOGIC-only loop measured identically (min 14,432, 100.0 % coherent on every rep). That LOGIC figure reproduces the 2026-09-09 `14,431` to ONE SAMPLE on a different bitstream with a different instrument, which is what makes the difference quotable. 72 = 9 x the 8-sample block; six of those nine are RX/process/TX buffering on each of the two chips and the other three are the fabric crossing plus re-framing -- stated as arithmetic consistency, NOT as four separate measurements, because no bitstream taps the intermediate points. **The instrument had to be replaced first**: a per-word offset vote needs a bit-transparent loop, and this arm returns only a third of its words in place, which is exactly how 2026-09-08's spurious `14,550` was produced. `tools/pi/dsp4_dsp_latency.py` scores offsets by exact-match fraction and refuses to report without a margin over the runner-up; the margin was never below x16. **GATE 1 CLOSED, S5-9 with it.** `build.sh` derives a 32-bit design ID from the artifact hash plus a 5-bit config field, stamps both in as Verilog macros (generated, never typed, and NOT fed back into the hash) and records them in the manifest. Read back over the only hands-off path off a MAX V -- the CM4 PCM link -- by KNOCKING: the Pi plays `{0xD5D51D1D, 0x2A2AE2E2}`, LOGIC answers `{design_id, 0xD594<cfg>}` for 128 frames. On the part: `_maincap` answers `ae1ac4a9`/`pi_maincap`, `_pisel` answers `55bbc69b`/`pi_selftest`, and the restored shipping `a1f6672af6c3` answers NOTHING -- which is now itself a positive identification. 2,175 reply frames, ONE distinct reply word, so it also proves the bit alignment exactly. Fmax 68.66 MHz (bar was 63.6); 404/1270 LE, up from 156 -- **that is 71 % of the rev-D 570Z part and its STA gate must be re-run before anyone assumes this still fits there.** **GATE 2: THE FRAME-LOCK DEFECT WAS REAL, IS FIXED AND IS PROVEN -- AND IT WAS NOT THE ORDER DEFECT.** The capture read-out walked the LIVE register file while `cap_flat` was being rewritten slot by slot, so every recorded word was SPLICED FROM TWO CONSECUTIVE DSP FRAMES at a fixed bit: bit 25 for the `_maincap` slots and **BIT 9 FOR THE SHIPPING CM4 RETURN**, which would have shipped. Proven quantitatively: with the DSP alternating two known words the old bitstream returned `0x03F7CA48`/`0x1786C9A8` and the new one returns `0x17F7CA48`/`0x0386C9A8`, and the old pair is the bit-25 splice of the new pair IN BOTH PHASES over 100,000 settled frames each (S7-1). A second defect fell out with it: `in_period` decoded the incoming TDM one BCK early and `CAP_EXTRA_DELAY = 1` had been cancelling it since August, the two hiding each other in every bit except the top one, which came from the other slot (S7-2). **Neither had ever been simulated -- `tb_pcm_reframe` leaves `tdm_in` DANGLING** -- so `sim/tb_pcm_capture.v` plus two new models now cover the direction and fail on the old RTL; sim gate is 4 testbenches (S7-3). **BUT THE ORDER DEFECT IS SOMEWHERE ELSE, AND S6-4 NAMED THE WRONG SUSPECT.** The fix does not move the staircase by one percent (32.87 % exact before, 32.87 % after). Measured with two-level stimuli at six periods: **any pattern whose period divides 8 comes back EXACT (90,000/90,001, 45,001/45,001, 22,500/22,501 runs) and anything longer is scrambled.** Every sample arrives at the right position inside its 8-sample block, FROM THE WRONG BLOCK -- about a third of blocks in place, the rest drawn from roughly the last 225 blocks (~37 ms). The chain is bit-transparent throughout (only ever the exact stimulus values, never an intermediate) and the displacement is independent of signal magnitude, so nothing is filtering and nothing is arithmetically wrong. Excluded by measurement: the CM4 (`_pisel` 96,000/96,000 on the identical staircase through the identical ALSA path), the CPLD capture (one frame deep, and now proven coherent), and the chip-2 node graph (every `_buf_*` tap on the MAIN chain reads non-decreasing while the staircase plays). **That leaves the chip-2 TRANSMIT path and it needs its own dispatch -- if the same machinery serves the converter lanes, two-thirds of every output block is coming from a random point in the last 37 ms** (S7-5). **GATE 4 done and verified against the artifacts, not the summary**: gen_dsp.py's MCU-only prefixes now have a single cached registration point and the `MATRIX_CSV` write got its makedirs guard; dsp_codegen.py's four assert-guarded template rewrites are marker-based `RuntimeError`s naming node/strip/file and what moved. Generated output **byte-identical** (gen_dsp.py --force + dsp_codegen.py --force re-run independently, `git status` clean on every generated file), golden harness 59/59, `dsp_validate` OK on 666 nodes with only the four known USB/BT notes. **GATE 5: restored, not left flashed** -- `_maincap` changes CAP_SLOT to 0/1 so it is not a superset of shipping, and the bench's `a1f6672af6c3` is on a different slot map with no capture path at all, so no honest superset claim exists. Restore verified FOUR ways: IDCODE `0x020a30dd`, both DSPs boot, PCM_CLK/PCM_FS toggling, ID register silent. **No shipping bitstream was built or committed** -- the S7-1/S7-2 fixes land in the shipping capture path the moment one is, and a `SHIPPING: yes` artifact nothing has verified is what S5-8 was about; the next shipping build gets both fixes and must be proven against matrix-app first. Write-up `MW/D32/DSP/dsp4-loop-latency-20260909.md` §7; findings S7-1..S7-6.]   [model: opus]
 
 model: opus
