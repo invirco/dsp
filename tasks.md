@@ -1,3 +1,102 @@
+## HUB DISPATCH 2026-09-09 18:52Z — S14 — the floor MEASURED, not estimated: per-instruction cycle probe names the ~1.47 cycles/instruction in the float SIMD biquad loop, the primitive re-derived against the measured floor; RIG B's 20 Hz precision test first; the LIMITER pair's 4,775 c/blk explained; D32 re-priced on the audio-correct pair   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+S14 — THE FLOOR MEASURED, NOT ESTIMATED: a per-instruction cycle probe on the shootout rig names what makes the float SIMD biquad loop run at ~1.47 cycles per instruction (S13-5), the primitive is re-derived against the MEASURED floor and re-scheduled if the probe says it can be; RIG B's 20 Hz precision test run at last; the LIMITER pair's 4,775 cycles/block explained; D32 re-priced on the audio-correct pair — PW's rule stands: fix the primitive, never cut bands, both D24 and D32 on this card
+
+WHY. S13 (dsp c9f6277) landed D32 FITTING on an audio-correct image
+(chip 2 82.06/82.49 %, 17.5 % spare, `geq_*` staged) and then measured
+the ladder honestly: GEQ IS THE WALL on chip 2 — six aux GEQ pairs
+35,898 c/blk = 11.0 % of budget at 6.03 c/band-sample in the graph (the
+shootout rig's 5.94 agrees to 1.5 %); the aux strip pairs are 34.7 % of
+budget; and PAIR_AUX_LIM is the surprise second line at 4,775 c/blk per
+pair, more than EQ + AFB together, 8.7 % of budget over six pairs, with
+no cascade in it. The pipelined loop (8 → 5 instructions, bit-exact,
+0 ULP on the part) returned 6.03 → 5.70 c/band-sample where a stall-free
+five would give 4.53: **~1.47 cycles per instruction on both the old and
+new loops. Instruction count is NOT the binding resource, the 3.75
+target's premise is invalid, and the next step is to measure where the
+cycles go — not to schedule against an unmeasured floor again.** RIG B
+(the 2156x IIR accelerator) was not reached for the third time; its 20 Hz
+precision test is the first thing that decides it.
+
+BENCH. Rev C unit as S13 left it (shipping CPLD `a1f6672af6c3`,
+`dsp4-pcm-slave`, matrix-app active; `~/dspboot` pairs `blk_*` (ships),
+`cand_*`, `geq_*` (audio-correct, D32 fits) all byte-identical — NEVER
+replace any; new candidates as `flr_*`). Every image from its own staging
+path with copy-and-restore; `dsp4_checkchip.py`, `dsp4_buildcfg.py` (both
+words), CGU read-back, fresh sym.json per boot; `SHARC/capacity.sh` is the
+capacity instrument, `DIAG_BLK_OVERRUN` the arbiter (S13-2:
+`_proc_cyc_max` latches a config transient — reset it after config if you
+want the column to mean its name, and say so); the six bars take STAGE,
+tap ON; `bqeverify` is the bit-exactness bar. The shootout rig
+(`SHARC/bqshoot.sh`, `src/lib/bq_shootout.asm`) is the primitive
+instrument. No AI attribution in commits or any work product.
+
+GATES, in order, each witnessed:
+1. **The probe.** On the shootout rig, an empty hardware loop timed the
+   shootout way (five timed loops, three repeats, minimum, empty loop
+   subtracted), then the five-instruction pipelined body added ONE
+   INSTRUCTION AT A TIME, in schedule order and then in every order that
+   isolates a suspect: (a) float multiply/ALU result latency into the
+   next instruction (the 2156x pipeline's data-dependency stalls — quote
+   the HRM's stall rules), (b) the DM bus with three index registers
+   walking DM in one instruction (dm(i1) coefficient + dm(i2) state +
+   dm(i3) store), (c) PM fetch / instruction alignment for the loop body,
+   (d) the SIMD-paired second PE's bank conflict. One table: instruction
+   added, cycles per iteration, delta. First sentence of the status line:
+   **the 1.47 is <named cause>, and the primitive's MEASURED floor is
+   N c/band-sample.** Then the same probe on the OLD 8-instruction loop
+   (~1.4) to check the cause is the same.
+2. **The primitive against the measured floor.** If the cause is
+   removable by data layout (split the three DM streams across DM/PM —
+   coefficients from PM is the classic SHARC answer — or realign the
+   state array, or reorder to hide the latency), do it in the shootout
+   kernel, re-measure, then into the generator behind
+   `DSP4_BQ_SIMD_PIPE` (kept default 0 until the bars pass):
+   `bqeverify` 0 ULP, `geqverify` GEQ_DESIGN_OK, famverify GEQ 31/31 and
+   ANTI_FB, busgold bit-exact or the ulp bound stated; capacity at D32
+   both chips, two boots, overrun = arbiter. If the cause is NOT removable
+   (a hardware floor), say so with the arithmetic, and the primitive's
+   floor becomes the number in the record — PW's rule then routes the
+   remaining margin question to RIG B and the LIMITER, not to cutting
+   bands.
+3. **RIG B, the 20 Hz precision test FIRST.** Before any DMA/descriptor
+   work: compute band 1 (19.95 Hz, constant-Q 4.3185) and band 2 at
+   ±12 dB through the accelerator's arithmetic model (32-bit float,
+   its coefficient format — read the HRM: is it direct-form I/II, what
+   precision are its state words) against `bq_float_ref` — inside the
+   0.01 dB bar or not. If it fails, RIG B is closed for the low bands and
+   the status line says which bands could still go to it; if it passes,
+   bring one engine up on one GEQ node: descriptor/DMA setup, block
+   latency added (samples — block 16 is ruled, latency is not traded:
+   report, do not adopt), core cycles left per node, per-engine limits
+   and engine count, and how many GEQ nodes it could take at D32.
+4. **The LIMITER pair explained.** PAIR_AUX_LIM at 4,775 c/blk per pair
+   (298 c/sample-pair) for a class with no cascade: the ladder's own
+   caveat says the dynamics run at compiled defaults, so first say which
+   branch the graph took; then the per-instruction accounting of the
+   limiter kernel (envelope, log2/exp2 — table or polynomial, which ships
+   and what each costs — the gain computer, the crossfade); the floor for
+   the same maths under the ruled numeric spec; the lever if there is one
+   (the GATE's linear-domain threshold trick, S8's ~95 c/sample, is the
+   precedent). Measured on landing, not estimated.
+5. **D32 re-priced** on the audio-correct pair with whatever gates 2–4
+   returned, both chips, avg + overrun; the window note's decision table
+   updated (blk_* / cand_* / geq_* / flr_* if staged). What the app and
+   H1S3/H1S4 must rebuild against (nothing new expected — say so).
+6. findings S14-*, `MW/D32/DSP/dsp4-floor-20260909.md` (the probe table,
+   the named cause, the primitive's before/after, RIG B's verdict, the
+   LIMITER accounting, the D32 table; scoreboard numbers per function
+   now→floor), tasks.md, this block's status; commit + push main.
+
+Bounded: gates 1–2 are the session; 3 expected (the precision test is
+cheap, the bring-up only if it passes); 4 if time; 5–6 always. No deploy.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-09 16:56Z — S13 — the half that fits D32 made audio-correct (S12-5: the paired chip-2 biquad graph drops coefficient writes — which side of the latch), D32 re-measured on an audio-correct pair, S12-9 attributed, then the GEQ to the floor (ladder, pipelined primitive ≤ 3.75, RIG B IIR accelerator with the 20 Hz band)   [status: 🟢 done — **`DSP4_C2_BQ_GRAPH` IS AUDIO-CORRECT NOW, D32 FITS ON IT WITH 17.5 % OF CHIP 2 SPARE, AND S12-9 WAS THE INSTRUMENT.** **S13-1: the write was dropped UPSTREAM of the latch, not at it.** GEQ, ANTI_FB and crossover are written PARAMETERS, not coefficients: the host sets `_<pfx>_dirty_` and the DESIGN that turns them into coefficients — and only then raises `swap_pending` — runs at the top of the NODE BODY, which is the body the latch exists to skip. Latched, the design never ran, so swap_pending never rose, so the latch never came down and the pair ran the `.var` bypass filter for ever. The steady test now reads the dirty flag for any class that has one (18 of the 24 pairs; the 6 EQ/OEQ pairs and ALL of chip 1 were always correct — chip 1 has no design-driven class at all, which is why the S12 candidate read clean). Two DM reads and an OR per pair per block, in the generator. **PROVEN THREE WAYS on one image: geqverify and afbverify design AND live-bank arms at 1–4 ulp (against IDENTITY and 50.9 M / 83.9 M ulp before), famverify GEQ and ANTI_FB both LIVE paired moved 64/64, bqeverify PASS 0 ulp over 36,864 words — 17/20 LIVE, contract 20/20, three BIT_EXACT, verdict for verdict what the shipping pair reads.** **GATE 2: D32 FITS — chip 2 82.06 / 82.49 %, chip 1 76.73 / 76.96 %, ZERO overruns over 135,040 blocks x 2 boots x 2 chips; D24 chip 1 59.2 %, chip 2 67.6–67.9 %.** Staged as `geq_chip1.ldr` `df6b847d` / `geq_chip2.ldr` `cb9bc58e`; decision table in the write-up §2. **`_proc_cyc_max` IS NOT TRUSTWORTHY ACROSS BOOTS and its definition says why — nothing resets it after the config ladder, so it latches a configuration-block transient; the same image read 71.29 % on one boot and 367.58 % on the next with zero overruns on both.** **GATE 3 — S12-9 ATTRIBUTED AND FIXED, AND THE AUDIO WAS NEVER IN QUESTION: `_scope_inject_blk` runs once per BLOCK and drove the amplitude into sample 0 every time, so `mode 1` on a block-kernel image was an IMPULSE TRAIN at 3 kHz, not an impulse.** The train's response reproduces all three of geqverify's points to three decimals (+0.219 / +8.451 / −0.305). The block injector cannot borrow `_scope_go` — both injectors run under block kernels and the per-sample one raises it first — so it gets `_scope_fired`. After: geqverify **+11.997 dB** against +12.000 and afbverify **−18.000** against −18.000, GEQ_DESIGN_OK and AFB_DESIGN_OK on the shipping configuration AND the paired arm, famverify unchanged. **S12-8 closed: xoververify no longer stalls** (`_buf_lp_`/`_buf_hp_` had no witness registered); design arms pass at 1–4 ulp on both LR alignments, and its AUDIO arm is declared NOT SCORABLE rather than scored wrong — a one-word-per-block witness cannot carry an impulse response. **GATE 4 — GEQ IS THE WALL: 5,983 cycles/block per pair = 6.03 c/band-sample, against the shootout rig's 5.94 in isolation (1.5 % apart).** Six aux pairs are 34.7 % of budget and 42.3 % of chip 2; the six aux GEQ pairs alone are 11.0 % of budget. Unexpected: PAIR_AUX_LIM at 4,775 cycles/block is bigger than the EQ and AFB pairs together, for a class with no cascade in it — not chased. **GATE 5 — THE PRIMITIVE IS NOT INSTRUCTION-COUNT-BOUND, AND THAT INVALIDATES THE 3.75 TARGET (S13-6).** The inner loop was pipelined 8 instructions to 5 behind `DSP4_BQ_SIMD_PIPE` (default 0; at 0 the pair is byte for byte the staged `geq_*`), inside the dual-compute operand map the assembler enforces; the dispatch's four-channel plan does not fit (22 registers against 16) and is not needed, the recurrence never bound five. `bqeverify` PASSES on it at 0 ULP with the SAME hash `0xC607BA6B` as the control. **But the GEQ pair goes 5,983 → 5,655 cycles, 6.031 → 5.701 c/band-sample: 5.5 %, where 8 → 5 predicts 25 %; a stall-free five would be 4,495.** The loop runs at ~1.47 cycles per instruction and the unpipelined one at ~1.4, so the `max(5 mult, 4 ALU, 2 moves)` floor both the 09-02 estimate and this schedule were built on is WRONG. Capacity at D32 moves chip 2 to 80.79 / 80.98 %. **Next is not more scheduling: a per-instruction cycle probe on the shootout rig until the 1.4–1.5 names itself.** **GATE 6 — RIG B NOT REACHED**; the 20 Hz precision test is unchanged and still first. BARS: golden 59/59, dsp_validate OK, test_geq_splice 5/5, test_dsp_validate 13/13, check-contract-drift clean at `defs-v2026.09.08.4` leaving no diff, check_shipping_config consistent; `shipping.config` UNCHANGED (the three cost switches stay 0). **BENCH RESTORED: `blk_*` and `cand_*` byte-identical, `dsp4-pcm-slave`, matrix-app active.** Write-up `MW/D32/DSP/dsp4-geq-floor-20260909.md`, findings S13-1..S13-7.]   [model: opus]
 
 model: opus
