@@ -39,7 +39,10 @@
 # of the probes. A bar that cannot fail is not a bar.
 set -u
 DWELL="${DWELL:-12}"
-BLOCK="${BLOCK:-8}"
+# Default to the SHIPPING block size rather than a literal. shipping.config
+# is the one place it is named; a literal here is how a measurement ends up
+# taken at a block size the product does not run (findings S8-2).
+BLOCK="${BLOCK:-$(python3 "$(dirname "$0")/../../../../tools/dsp/build_config.py" DSP4_GEN_BLOCK)}"
 # Decimated for c2gold's reason: neither arm fits a block period, and a main
 # loop that never finishes a block never services the link either. Both arms
 # carry the SAME decimation, so both fold the same blocks.

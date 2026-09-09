@@ -11,7 +11,7 @@
  *----------------------------------------------------------------------*/
 #include "dsp_block.h"
 
-/* RampProfile: EqSafe | Mode: LinearFrames | Up: 12ms (72f) Down: 12ms (72f) | Curve: Linear | Scope: CoeffSetAtomic */
+/* RampProfile: EqSafe | Mode: LinearFrames | Up: 12ms (36f) Down: 12ms (36f) | Curve: Linear | Scope: CoeffSetAtomic */
 
 /* EQ_BIQUAD (FIXED Q4.28, D5): 4-band, dual-instance crossfade */
 #include "blk_pool.h" 

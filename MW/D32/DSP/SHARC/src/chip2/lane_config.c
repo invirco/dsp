@@ -7,11 +7,11 @@
 /* GENERATION-TIME BLOCK SIZE GUARD (review finding D12).
  * The lane region_off values below (count * BLOCK) and the
  * region_words / DMA ping-pong buffer extents (lane total * BLOCK)
- * are baked here at GENERATION time from BLOCK=8. What walks
+ * are baked here at GENERATION time from BLOCK=16. What walks
  * them resolves DSP4_BLOCK_SIZE at BUILD time. This makes the two
  * disagreeing a build failure instead of an out-of-bounds write. */
-#if DSP4_BLOCK_SIZE != 8
-#error "STALE GENERATED FILE: baked for DSP4_BLOCK_SIZE=8, built against a different one. Regenerate: python3 tools/dsp/dsp_codegen.py <dsp.csv> <src> --force"
+#if DSP4_BLOCK_SIZE != 16
+#error "STALE GENERATED FILE: baked for DSP4_BLOCK_SIZE=16, built against a different one. Regenerate: python3 tools/dsp/dsp_codegen.py <dsp.csv> <src> --force"
 #endif
 
 const int c2_ic_lanes_count = 3;
@@ -20,13 +20,13 @@ const int c2_ic_lanes_mcpde = 1;
 const int c2_ic_lanes_wsize = 15;
 const int c2_ic_lanes[12] = {
     0, 0xFFFF, 16, 0,
-    1, 0xFFFF, 16, 128,
-    2, 0x001F, 5, 256
+    1, 0xFFFF, 16, 256,
+    2, 0x001F, 5, 512
 };
 
-const int c2_ic_region_words = 296;
+const int c2_ic_region_words = 592;
 #pragma align 32
-unsigned int c2_ic_buf_ping[2 * 296];  /* [0..296) ping, [296..2*296) pong */
+unsigned int c2_ic_buf_ping[2 * 592];  /* [0..592) ping, [592..2*592) pong */
 
 const int c2_tx_lanes_count = 5;
 const int c2_tx_lanes_dir = 1;    /* 0 = RX (half A), 1 = TX (half B) */
@@ -34,12 +34,12 @@ const int c2_tx_lanes_mcpde = 0;
 const int c2_tx_lanes_wsize = 7;
 const int c2_tx_lanes[20] = {
     0, 0x00FF, 8, 0,
-    1, 0x00FF, 8, 64,
-    2, 0x000F, 8, 128,
-    3, 0x0003, 8, 192,
-    4, 0x0001, 8, 256
+    1, 0x00FF, 8, 128,
+    2, 0x000F, 8, 256,
+    3, 0x0003, 8, 384,
+    4, 0x0001, 8, 512
 };
 
-const int c2_tx_region_words = 320;
+const int c2_tx_region_words = 640;
 #pragma align 32
-unsigned int c2_tx_buf_ping[2 * 320];  /* [0..320) ping, [320..2*320) pong */
+unsigned int c2_tx_buf_ping[2 * 640];  /* [0..640) ping, [640..2*640) pong */

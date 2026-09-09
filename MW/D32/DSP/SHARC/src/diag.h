@@ -18,6 +18,9 @@
 #ifndef _DSP4_DIAG_H
 #define _DSP4_DIAG_H
 
+/* DSP4_BLOCK_SIZE, for DIAG_BUILD_CFG_VALUE below. Generated. */
+#include "dsp_block.h"
+
 /* ---------------------------------------------------------------------
  * Boot stages — the value in DIAG_BOOT_STAGE, and the number of LED
  * flashes when the firmware is stuck. A stage means "this step
@@ -176,6 +179,108 @@
 #define DIAG_SCOPE_LEN       0xE0E7  /* R  capacity in samples             */
 #define DIAG_SCOPE_RUNS      0xE0E8  /* R  arm count -- proves a run happened */
 #define DIAG_SCOPE_IDX       0xE0E9  /* R  samples recorded this run       */
+
+/* ---- DIAG_BUILD_CFG — THE IMAGE SAYS WHAT IT IS ---------------------
+ *
+ * A mismeasured configuration must never be silent again (findings S8-2,
+ * S9-1). Until 2026-09-09 nothing on a running part said which block size,
+ * which kernels or which core clock it had been built with, so a bench could
+ * measure a BLOCK=16 block-kernel 983.04 MHz build for a week while shipping
+ * a BLOCK=8 per-sample 491.52 MHz one, and every instrument agreed with
+ * itself throughout.
+ *
+ * One 32-bit word, read in ONE transaction (not through the peek window:
+ * peek is a two-transaction handshake and the second half can be answered
+ * from a different request under audio load). It is a compile-time constant,
+ * so it is readable at BOOT_STAGE 1, before the graph, the config or the
+ * audio clocks exist.
+ *
+ *   31..24  0xCF        signature -- a 0 or a garbage read is not a config
+ *   23      DSP4_BQ_GUARD
+ *   22      DSP4_BQ_ROUNDONCE
+ *   21      DSP4_PROFILE_SIGNAL     measurement arm, never shipping
+ *   20      DSP4_TXPROBE            bench instrument, never shipping
+ *   19      DSP4_BISECT != 0        PARKED debug build, never shipping
+ *   18..17  CCLK: 0 = 491.52 (CGU reset), 1 = 786.432, 2 = 983.040
+ *   16..14  DSP4_BLOCK_MASK         7 = the whole block loop
+ *   13      DSP4_GAIN_FLOAT
+ *   12      DSP4_BQ_FLOAT
+ *   11      DSP4_SCOPE_GATE
+ *   10      DSP4_CHAN_MASK
+ *    9      DSP4_BLK_LATCH          the ping/pong phase fix
+ *    8      DSP4_BLOCK_KERNELS
+ *   7..0    DSP4_BLOCK_SIZE         samples per block
+ *
+ * tools/pi/dsp4_buildcfg.py decodes it; dsp4_diag.py prints the decode in
+ * its dump and dsp4_checkchip.py prints it after every boot.
+ */
+#define DIAG_BUILD_CFG       0xE0EA  /* R  packed build configuration */
+
+#ifndef DSP4_BLOCK_KERNELS
+#define DSP4_BLOCK_KERNELS 0
+#endif
+#ifndef DSP4_BLK_LATCH
+#define DSP4_BLK_LATCH 0
+#endif
+#ifndef DSP4_CHAN_MASK
+#define DSP4_CHAN_MASK 0
+#endif
+#ifndef DSP4_SCOPE_GATE
+#define DSP4_SCOPE_GATE 0
+#endif
+#ifndef DSP4_BQ_FLOAT
+#define DSP4_BQ_FLOAT 0
+#endif
+#ifndef DSP4_GAIN_FLOAT
+#define DSP4_GAIN_FLOAT 0
+#endif
+#ifndef DSP4_BLOCK_MASK
+#define DSP4_BLOCK_MASK 7
+#endif
+#ifndef DSP4_BISECT
+#define DSP4_BISECT 0
+#endif
+#ifndef DSP4_TXPROBE
+#define DSP4_TXPROBE 0
+#endif
+#ifndef DSP4_PROFILE_SIGNAL
+#define DSP4_PROFILE_SIGNAL 0
+#endif
+#ifndef DSP4_BQ_ROUNDONCE
+#define DSP4_BQ_ROUNDONCE 0
+#endif
+#ifndef DSP4_BQ_GUARD
+#define DSP4_BQ_GUARD 0
+#endif
+
+#if DSP4_CCLK_TARGET == 786
+#define DIAG_CFG_CCLK 1
+#elif DSP4_CCLK_TARGET == 983
+#define DIAG_CFG_CCLK 2
+#else
+#define DIAG_CFG_CCLK 0
+#endif
+#if DSP4_BISECT != 0
+#define DIAG_CFG_BISECT 1
+#else
+#define DIAG_CFG_BISECT 0
+#endif
+
+#define DIAG_BUILD_CFG_VALUE  ( 0xCF000000                              \
+    | ((DSP4_BQ_GUARD        & 1) << 23)                                \
+    | ((DSP4_BQ_ROUNDONCE    & 1) << 22)                                \
+    | ((DSP4_PROFILE_SIGNAL  & 1) << 21)                                \
+    | ((DSP4_TXPROBE         & 1) << 20)                                \
+    | ((DIAG_CFG_BISECT      & 1) << 19)                                \
+    | ((DIAG_CFG_CCLK        & 3) << 17)                                \
+    | ((DSP4_BLOCK_MASK      & 7) << 14)                                \
+    | ((DSP4_GAIN_FLOAT      & 1) << 13)                                \
+    | ((DSP4_BQ_FLOAT        & 1) << 12)                                \
+    | ((DSP4_SCOPE_GATE      & 1) << 11)                                \
+    | ((DSP4_CHAN_MASK       & 1) << 10)                                \
+    | ((DSP4_BLK_LATCH       & 1) <<  9)                                \
+    | ((DSP4_BLOCK_KERNELS   & 1) <<  8)                                \
+    | ( DSP4_BLOCK_SIZE      & 0xFF) )
 
 /* NOP — accepted and ignored. The host sends this as the second half of
  * a read (see diag.asm); it must not itself generate a response. */

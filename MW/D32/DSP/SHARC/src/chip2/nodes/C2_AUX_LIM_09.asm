@@ -11,7 +11,7 @@
  *----------------------------------------------------------------------*/
 #include "dsp_block.h"
 
-/* RampProfile: DynSafe | Mode: LinearFrames | Up: 6ms (36f) Down: 20ms (120f) | Curve: Exp | Scope: Scalar */
+/* RampProfile: DynSafe | Mode: LinearFrames | Up: 6ms (18f) Down: 20ms (60f) | Curve: Exp | Scope: Scalar */
 
 /* LIMITER (FIXED Q4.28, D5) */
 /* SPI page=1 addr=803 */

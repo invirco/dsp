@@ -62,7 +62,15 @@ srckey() {
     } | sha256sum | cut -c1-16
 }
 srctree() {
-    if [ "$1" = "8" ] && [ "$CSV" = "$PWD/dsp.csv" ]; then
+    # THE REPO TREE IS THE SHIPPING CONFIGURATION, whatever that is today.
+    # This used to read `if [ "$1" = "8" ]`, which was a literal copy of the
+    # then-current block size; when the tree moved to block 16 on 2026-09-09
+    # it would have handed back a block-16 tree for a block-8 measurement.
+    # Ask the tree what it is (dsp_block.h is generated and carries it).
+    local _treeblk
+    _treeblk="$(sed -n 's/^#define DSP4_BLOCK_SIZE  *\([0-9][0-9]*\).*/\1/p' \
+                    "$PWD/src/dsp_block.h" | head -1)"
+    if [ "$1" = "$_treeblk" ] && [ "$CSV" = "$PWD/dsp.csv" ]; then
         echo "$PWD/src"; return; fi
     local k t
     k="$(srckey "$1")"

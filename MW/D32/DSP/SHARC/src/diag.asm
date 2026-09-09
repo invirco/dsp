@@ -154,6 +154,9 @@
 /* Constants, held in DM so the table below can point at them uniformly. */
 .var _diag_magic    = DIAG_MAGIC_VALUE;
 .var _diag_build_id = DIAG_BUILD_VALUE;
+/* The image's own account of how it was built -- read in ONE transaction at
+ * DIAG_BUILD_CFG. See diag.h for the bit layout and for why it exists. */
+.var _diag_build_cfg = DIAG_BUILD_CFG_VALUE;
 
 .global _diag_boot_stage;
 .var _diag_boot_stage = DIAG_STAGE_INIT;
@@ -924,6 +927,9 @@ _diag_read:
     r4 = DIAG_SCOPE_IDX;
     comp(r2, r4);
     if eq jump (pc, .diag_rd_scope_idx);
+    r4 = DIAG_BUILD_CFG;
+    comp(r2, r4);
+    if eq jump (pc, .diag_rd_build_cfg);
 
     r4 = DIAG_BASE;
     r4 = r2 - r4;                 /* table index */
@@ -995,6 +1001,13 @@ _diag_read:
     rts;
 .diag_rd_scope_idx:
     r4 = dm(_scope_idx);
+    rts;
+
+.diag_rd_build_cfg:
+    /* Named, not table-indexed: DIAG_TABLE_N is itself configuration
+     * dependent, so a table slot for this would move with the thing it
+     * exists to report. */
+    r4 = dm(_diag_build_cfg);
     rts;
 
 .diag_rd_zero:

@@ -11,7 +11,7 @@
  *----------------------------------------------------------------------*/
 #include "dsp_block.h"
 
-/* RampProfile: GainSafe | Mode: Slew | Up: 10ms (60f) Down: 30ms (180f) | Curve: Exp | Scope: Scalar */
+/* RampProfile: GainSafe | Mode: Slew | Up: 10ms (30f) Down: 30ms (90f) | Curve: Exp | Scope: Scalar */
 
 /* FX_ENGINE [reverb]: effects processor */
 /* SPI page=1 addr=1648 */

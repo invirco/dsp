@@ -62,7 +62,10 @@ cd "$(dirname "$0")"
 source ./bench_lock.sh; bench_lock_acquire "$0"
 BENCH=app@192.168.1.219
 ROOT=../../../..
-BLOCK="${BLOCK:-8}"
+# Default to the SHIPPING block size rather than a literal. shipping.config
+# is the one place it is named; a literal here is how a measurement ends up
+# taken at a block size the product does not run (findings S8-2).
+BLOCK="${BLOCK:-$(python3 "$(dirname "$0")/../../../../tools/dsp/build_config.py" DSP4_GEN_BLOCK)}"
 NCAS="${NCAS:-192}"
 WORK="${WORK:-/tmp/bqeverify}"
 MODE="${1:-both}"
@@ -81,7 +84,15 @@ srckey() {
     } | sha256sum | cut -c1-16
 }
 srctree() {
-    if [ "$1" = "8" ]; then echo "$PWD/src"; return; fi
+    # THE REPO TREE IS THE SHIPPING CONFIGURATION, whatever that is today.
+    # This used to read `if [ "$1" = "8" ]`, which was a literal copy of the
+    # then-current block size; when the tree moved to block 16 on 2026-09-09
+    # it would have handed back a block-16 tree for a block-8 measurement.
+    # Ask the tree what it is (dsp_block.h is generated and carries it).
+    local _treeblk
+    _treeblk="$(sed -n 's/^#define DSP4_BLOCK_SIZE  *\([0-9][0-9]*\).*/\1/p' \
+                    "$PWD/src/dsp_block.h" | head -1)"
+    if [ "$1" = "$_treeblk" ]; then echo "$PWD/src"; return; fi
     local k t
     k="$(srckey "$1")"
     t="$WORK/src$1-$k"

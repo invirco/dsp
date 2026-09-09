@@ -743,14 +743,26 @@ STRIP_MTR_RE = re.compile(r'^C(\d+)_MTR_(\d+)$')
 # counts to samples with a shift, and the DMA 2D geometry wants the ring
 # halves aligned.
 #
-# THE SHIPPING BLOCK SIZE IS 8 (PW ruling 2026-08-28) -- the default in
-# the line below, and the only value the repo tree is ever generated at.
-# DSP4_GEN_BLOCK overrides it for a SCRATCH tree only (2026-08-29): the
-# capacity table has to report ceilings at BLOCK = 8 AND 32, and the block
-# size is baked into every generated file, so the 32 tree is generated
-# beside the repo's and built with DSP_SRC_DIR rather than by editing this
-# constant and regenerating back.
-BLOCK = int(__import__('os').environ.get('DSP4_GEN_BLOCK', 8))
+# THE SHIPPING BLOCK SIZE IS 16 (PW ruling 2026-09-03) AND IT IS NAMED IN
+# ONE PLACE: MW/D32/DSP/SHARC/shipping.config, which build.sh reads too.
+#
+# It was 8 here, hard-coded, from 2026-08-28 until 2026-09-09 -- and the
+# 09-03 ruling that block 16 is the configuration that FITS both chips was
+# applied only inside the measurement scripts, which generate a scratch
+# tree with DSP4_GEN_BLOCK set. So every capacity number on record was a
+# block-16 number and every image that shipped was a block-8 one, which is
+# findings S8-2: the block loop does not fit the block, chip 1 missing
+# 75.1 % of blocks and chip 2 70.9 %. Do not re-introduce a literal here.
+#
+# DSP4_GEN_BLOCK still overrides, for the scratch trees that measure the
+# other block sizes (2026-08-29): the block size is baked into every
+# generated file, so a tree at another size is generated BESIDE the repo's
+# and built with DSP_SRC_DIR rather than by editing a constant and
+# regenerating back.
+import sys as _sys, os as _os
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+import build_config as _build_config
+BLOCK = _build_config.get('DSP4_GEN_BLOCK', 16)
 
 BLOCK_SHIFT = BLOCK.bit_length() - 1
 assert BLOCK == (1 << BLOCK_SHIFT) and BLOCK >= 2, \

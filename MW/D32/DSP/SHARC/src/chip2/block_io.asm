@@ -64,27 +64,27 @@
     13,
     14,
     15,
-    128,
-    129,
-    130,
-    131,
-    132,
-    133,
-    134,
-    135,
-    136,
-    137,
-    138,
-    139,
-    140,
-    141,
-    142,
-    143,
     256,
     257,
     258,
     259,
-    260;
+    260,
+    261,
+    262,
+    263,
+    264,
+    265,
+    266,
+    267,
+    268,
+    269,
+    270,
+    271,
+    512,
+    513,
+    514,
+    515,
+    516;
 .var _c2_ic_rx_stride[37] =
     16,
     16,
@@ -196,18 +196,18 @@
     5,
     6,
     7,
-    64,
-    65,
-    66,
-    67,
-    68,
-    69,
-    70,
-    71,
     128,
+    129,
     130,
-    192,
-    256;
+    131,
+    132,
+    133,
+    134,
+    135,
+    256,
+    258,
+    384,
+    512;
 .var _c2_tx_stride[20] =
     8,
     8,
@@ -262,7 +262,7 @@
 /* Scatter 37 inter-chip recvs (lane-major packed) */
 .global _scatter_chip2;
 _scatter_chip2:
-    /* r0 = sample index (0..7) */
+    /* r0 = sample index (0..15) */
     r6 = dm(_ic_rx_active_buf);
     i1 = _c2_ic_rx_off;
     i2 = _c2_ic_rx_stride;
@@ -290,7 +290,7 @@ _scatter_chip2.end:
 /* Gather 20 outputs (lane-major full-window) */
 .global _gather_chip2;
 _gather_chip2:
-    /* r0 = sample index (0..7) */
+    /* r0 = sample index (0..15) */
     r6 = dm(_tx_active_buf);
     i1 = _c2_tx_off;
     i2 = _c2_tx_stride;

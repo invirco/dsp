@@ -5,7 +5,7 @@
  * and regenerate; every loop count, slot array, DMA ring, ramp step and
  * verdict rate in the tree follows from these macros.
  *
- * 2026-08-28 (PW ruling): the working operating point is 8.
+ * 2026-08-28 (PW ruling): the working operating point is 16.
  * Predicted digital latency ~23 samples = 0.48 ms at 48 kHz, from the
  * 93-samples-at-BLOCK-32 pipeline measured on the part. Any figure in
  * the ledger or the options paper that predates this header is a
@@ -20,11 +20,11 @@
 #ifndef DSP4_BLOCK_H
 #define DSP4_BLOCK_H
 
-#define DSP4_BLOCK_SIZE   8
-#define DSP4_BLOCK_HALF   4
-#define DSP4_BLOCK_SHIFT  3
-#define DSP4_BLOCK_F32    0x41000000
-#define DSP4_BLOCK_RATE   6000
+#define DSP4_BLOCK_SIZE   16
+#define DSP4_BLOCK_HALF   8
+#define DSP4_BLOCK_SHIFT  4
+#define DSP4_BLOCK_F32    0x41800000
+#define DSP4_BLOCK_RATE   3000
 
 /* METER coefficients. They live here because they are functions of the
  * BLOCK RATE, not of the meter: the time constants are fixed properties
@@ -37,23 +37,23 @@
  * tools/dsp/fixed_ref.py::meter_coeffs.
  *
  * DSP4_MTR_CVT_DIV rate-limits only the float CONVERSION for the host
- * (750 Hz); the measurement itself is
+ * (375 Hz); the measurement itself is
  * every sample of every block. */
-#define DSP4_MTR_ALPHA_Q  149089
-#define DSP4_MTR_BETA_Q   33561
+#define DSP4_MTR_ALPHA_Q  298096
+#define DSP4_MTR_BETA_Q   67117
 #define DSP4_MTR_CVT_DIV  8
 
 /* LEGACY float meter (src/lib/meter.asm), IEEE-754 single. The peak
  * array decays by this factor once per BLOCK, so it is the same
  * 1.333 s time constant expressed as a survivor:
- * exp(-1 / (rate * tau)) = 0.999874977 at 6000 blocks/s.
+ * exp(-1 / (rate * tau)) = 0.999749969 at 3000 blocks/s.
  * It used to be a hand constant, 0.99950, derived for 1500 blocks/s and
- * left unchanged when the operating point moved to BLOCK=8 -- so it
+ * left unchanged when the operating point moved to BLOCK=16 -- so it
  * decayed in 0.333 s, FOUR TIMES FAST, in the shipping image (review
  * finding D6). It is the same recorded meter-defect class as
  * DSP4_MTR_BETA_Q above, in the one meter path the 08-28 rebuild did not
  * replace, and it is derived here for the same reason. */
-#define DSP4_MTR_DECAY_F32 0x3F7FF7CE
+#define DSP4_MTR_DECAY_F32 0x3F7FEF9D
 
 /* PAIRED GRAPH. DSP4_SIMD_DYN says the paired dynamics KERNELS are in the
  * image; DSP4_SIMD_GRAPH says the graph is WIRED for them -- the odd pool,

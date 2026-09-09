@@ -11,7 +11,7 @@
  *----------------------------------------------------------------------*/
 #include "dsp_block.h"
 
-/* RampProfile: GainFast | Mode: Slew | Up: 3ms (18f) Down: 8ms (48f) | Curve: Exp | Scope: Scalar */
+/* RampProfile: GainFast | Mode: Slew | Up: 3ms (9f) Down: 8ms (24f) | Curve: Exp | Scope: Scalar */
 
 /* ROUTING (FIXED Q4.28, D5): crosspoint-coefficient matrix mixing */
 /* SPI page=1 addr=516 */

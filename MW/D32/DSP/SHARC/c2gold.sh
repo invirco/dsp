@@ -33,7 +33,10 @@
 # cannot fail is not a bar.
 set -u
 DWELL="${DWELL:-12}"
-BLOCK="${BLOCK:-8}"
+# Default to the SHIPPING block size rather than a literal. shipping.config
+# is the one place it is named; a literal here is how a measurement ends up
+# taken at a block size the product does not run (findings S8-2).
+BLOCK="${BLOCK:-$(python3 "$(dirname "$0")/../../../../tools/dsp/build_config.py" DSP4_GEN_BLOCK)}"
 # DECIMATED, and it has to be. Neither arm fits a block period -- chip 1 is at
 # 121% of the block-8 budget with 32 strips and chip 2 is further over than
 # that -- and a main loop that never finishes a block never services the link

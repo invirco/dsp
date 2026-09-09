@@ -79,7 +79,10 @@ GFL="${DSP4_GAIN_FLOAT:-$FL}"
 # two arms measured in one session must not share a build directory, or
 # the second point boots the first one's image.
 CM="${DSP4_CHAN_MASK:-1}"
-BLOCK="${BLOCK:-8}"
+# Default to the SHIPPING block size rather than a literal. shipping.config
+# is the one place it is named; a literal here is how a measurement ends up
+# taken at a block size the product does not run (findings S8-2).
+BLOCK="${BLOCK:-$(python3 "$(dirname "$0")/../../../../tools/dsp/build_config.py" DSP4_GEN_BLOCK)}"
 WORK="${WORK:-/tmp/sigprof2}"
 cd "$(dirname "$0")"
 ROOT=../../../..
@@ -116,7 +119,15 @@ srckey() {
     } | sha256sum | cut -c1-16
 }
 srctree() {
-    if [ "$1" = "8" ] && [ "$CSV" = "$PWD/dsp.csv" ]; then
+    # THE REPO TREE IS THE SHIPPING CONFIGURATION, whatever that is today.
+    # This used to read `if [ "$1" = "8" ]`, which was a literal copy of the
+    # then-current block size; when the tree moved to block 16 on 2026-09-09
+    # it would have handed back a block-16 tree for a block-8 measurement.
+    # Ask the tree what it is (dsp_block.h is generated and carries it).
+    local _treeblk
+    _treeblk="$(sed -n 's/^#define DSP4_BLOCK_SIZE  *\([0-9][0-9]*\).*/\1/p' \
+                    "$PWD/src/dsp_block.h" | head -1)"
+    if [ "$1" = "$_treeblk" ] && [ "$CSV" = "$PWD/dsp.csv" ]; then
         echo "$PWD/src"; return; fi
     local k t
     k="$(srckey "$1")"

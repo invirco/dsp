@@ -372,6 +372,26 @@ def dump(diag, verbose=True):
             note = '   (DSPA/U6)' if v == 1 else '   (DSPB/U5)' if v == 2 else '   (?)'
         print(f'  {name:<14} {shown}{note}')
 
+    # THE IMAGE'S OWN ACCOUNT OF HOW IT WAS BUILT (findings S8-2/S9-1).
+    # Printed with every dump because the whole point is that a build cannot
+    # be silently the wrong one; an image from before 2026-09-09 has no such
+    # register and reads 0, which is itself a useful answer.
+    try:
+        import dsp4_buildcfg
+        w = diag.read(dsp4_buildcfg.DIAG_BUILD_CFG)
+        try:
+            d = dsp4_buildcfg.decode(w)
+            print('  %-14s 0x%08X' % ('BUILD_CFG', w))
+            for line in dsp4_buildcfg.describe(d)[1:]:
+                print('  %-14s %s' % ('', line))
+            for bad in dsp4_buildcfg.diff_shipping(d):
+                print('  %-14s NOT SHIPPING: %s' % ('', bad))
+        except ValueError:
+            print('  %-14s 0x%08X   (no DIAG_BUILD_CFG: image predates '
+                  '2026-09-09)' % ('BUILD_CFG', w))
+    except ImportError:
+        pass
+
     if not verbose:
         return vals
 

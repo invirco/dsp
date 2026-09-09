@@ -20,6 +20,64 @@ SRC_DIR="${DSP_SRC_DIR:-$SCRIPT_DIR/src}"
 BUILD_DIR="${DSP_BUILD_DIR:-$SCRIPT_DIR/build}"
 LDF="$SCRIPT_DIR/ADSP-21564.ldf"
 
+# ----------------------------------------------------------------------
+# THE SHIPPING CONFIGURATION COMES FROM ONE FILE.
+#
+# shipping.config carries the parameters that decide whether the block loop
+# fits the block -- BLOCK, block kernels, the ping/pong phase fix and the core
+# clock -- plus the rest of the shipping switch positions, stated rather than
+# implicit. Read its header for what went wrong without it (findings S8-2/S9-1:
+# every capacity number on record was a BLOCK=16, block-kernel, 983.04 MHz
+# number and every image that shipped was BLOCK=8, per-sample, 491.52 MHz).
+#
+# Sourced into the environment ONLY where the environment does not already say
+# otherwise, so an explicit `DSP4_X=... ./build.sh` still builds the control
+# arm it always did -- and the override then shows up in the image's own
+# DIAG_BUILD_CFG word, which is the other half of the fix.
+SHIPPING_CONFIG="${SHIPPING_CONFIG:-$SCRIPT_DIR/shipping.config}"
+if [ -r "$SHIPPING_CONFIG" ]; then
+    while IFS= read -r _line; do
+        _line="${_line%%#*}"
+        _line="$(printf '%s' "$_line" | tr -d '[:space:]')"
+        [ -z "$_line" ] && continue
+        _k="${_line%%=*}"; _v="${_line#*=}"
+        case "$_k" in
+            *[!A-Z0-9_]*|'') echo "shipping.config: bad key '$_k'" >&2; exit 2;;
+        esac
+        # Environment wins; an empty variable counts as unset.
+        eval "_cur=\${$_k:-}"
+        [ -n "$_cur" ] || eval "$_k=\$_v"
+        eval "export $_k"
+    done < "$SHIPPING_CONFIG"
+else
+    echo "build.sh: $SHIPPING_CONFIG is missing — refusing to build a"  >&2
+    echo "  configuration nothing names. See MW/D32/DSP/SHARC/shipping.config." >&2
+    exit 2
+fi
+
+# THE TREE MUST BE THE CONFIGURATION. dsp_block.h is generated, it carries the
+# block size, and it is what every loop count in the tree was generated from --
+# so a build.sh that compiles a block-8 tree with block-16 flags produces an
+# image nobody can reason about, and that is exactly what shipped. Refuse it.
+_want_block="${DSP4_GEN_BLOCK:-16}"
+_have_block="$(sed -n 's/^#define DSP4_BLOCK_SIZE  *\([0-9][0-9]*\).*/\1/p' \
+                   "$SRC_DIR/dsp_block.h" 2>/dev/null | head -1)"
+if [ -z "$_have_block" ]; then
+    echo "build.sh: no DSP4_BLOCK_SIZE in $SRC_DIR/dsp_block.h" >&2; exit 2
+fi
+if [ "$_have_block" != "$_want_block" ]; then
+    echo "build.sh: SOURCE TREE / CONFIGURATION MISMATCH." >&2
+    echo "  $SRC_DIR/dsp_block.h says DSP4_BLOCK_SIZE $_have_block" >&2
+    echo "  DSP4_GEN_BLOCK says $_want_block" >&2
+    echo "  Generate the tree at the block size you mean to build:" >&2
+    echo "    DSP4_GEN_BLOCK=$_want_block python3 tools/dsp/dsp_codegen.py \\" >&2
+    echo "        MW/D32/DSP/SHARC/dsp.csv <tree> --force" >&2
+    echo "  Building a block-$_have_block tree with block-$_want_block flags is" >&2
+    echo "  findings S8-2 and it does not fit the block." >&2
+    exit 2
+fi
+echo "  (block $_have_block, tree $SRC_DIR)"
+
 # Native Linux CCES tool paths
 CCES_DIR="/opt/analog/cces/3.0.3"
 export ANALOGD_LICENSE_FILE="$HOME/.analog/cces/license.dat"

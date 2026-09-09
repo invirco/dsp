@@ -84,6 +84,26 @@ def main():
         return 3
     if not args.quiet:
         print('chip check OK')
+        # And say WHAT is on each part, not only that it is the right part.
+        # A right-chip / wrong-build boot is the other half of the same class
+        # of mistake (findings S8-2).
+        try:
+            import dsp4_buildcfg
+            for c in chips:
+                w = dsp4_buildcfg.read_word(c)
+                try:
+                    d = dsp4_buildcfg.decode(w)
+                    print('chip %d build: BLOCK %d, CCLK %s MHz, %s'
+                          % (c, d['block'],
+                             dsp4_buildcfg.CCLK_MHZ[d['cclk']],
+                             'shipping configuration'
+                             if not dsp4_buildcfg.diff_shipping(d)
+                             else 'NOT the shipping configuration'))
+                except ValueError:
+                    print('chip %d build: no DIAG_BUILD_CFG (pre-2026-09-09 '
+                          'image)' % c)
+        except (ImportError, IOError, OSError):
+            pass
     return 0
 
 

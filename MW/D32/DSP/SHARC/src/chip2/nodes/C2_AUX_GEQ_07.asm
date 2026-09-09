@@ -11,7 +11,7 @@
  *----------------------------------------------------------------------*/
 #include "dsp_block.h"
 
-/* RampProfile: EqSafe | Mode: LinearFrames | Up: 12ms (72f) Down: 12ms (72f) | Curve: Linear | Scope: CoeffSetAtomic */
+/* RampProfile: EqSafe | Mode: LinearFrames | Up: 12ms (36f) Down: 12ms (36f) | Curve: Linear | Scope: CoeffSetAtomic */
 
 /* GEQ (FIXED Q4.28, D5): 31-stage cascade, dual-instance crossfade */
 /* SPI page=1 addr=568 */

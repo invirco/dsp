@@ -6,11 +6,11 @@
 
 /* GENERATION-TIME BLOCK SIZE GUARD (review finding D12).
  * The block pool extents and every bus accumulator extent below
- * are baked here at GENERATION time from BLOCK=8. What walks
+ * are baked here at GENERATION time from BLOCK=16. What walks
  * them resolves DSP4_BLOCK_SIZE at BUILD time. This makes the two
  * disagreeing a build failure instead of an out-of-bounds write. */
-#if DSP4_BLOCK_SIZE != 8
-#error "STALE GENERATED FILE: baked for DSP4_BLOCK_SIZE=8, built against a different one. Regenerate: python3 tools/dsp/dsp_codegen.py <dsp.csv> <src> --force"
+#if DSP4_BLOCK_SIZE != 16
+#error "STALE GENERATED FILE: baked for DSP4_BLOCK_SIZE=16, built against a different one. Regenerate: python3 tools/dsp/dsp_codegen.py <dsp.csv> <src> --force"
 #endif
 
 .section/dm seg_dmda;
@@ -18,13 +18,13 @@
 #if DSP4_BLOCK_KERNELS
 .global _blk_pool;
 #if DSP4_SIMD_STRIPS
-.var _blk_pool[72];    /* 8 slots + the strip-pair park, x8 */
+.var _blk_pool[144];    /* 8 slots + the strip-pair park, x16 */
 #else
-.var _blk_pool[64];    /* 8 slots x8 */
+.var _blk_pool[128];    /* 8 slots x16 */
 #endif
 #if DSP4_PAIRED_GRAPH
 .global _blk_pool1;
-.var _blk_pool1[64];   /* the ODD strip of each pair, 8 slots x8 */
+.var _blk_pool1[128];   /* the ODD strip of each pair, 8 slots x16 */
 #endif
 #endif
 
@@ -44,31 +44,31 @@
 #endif
 
 #if DSP4_BLOCK_KERNELS
-.global _bus_acc_main_l;   .var _bus_acc_main_l[24];
-.global _bus_acc_main_r;   .var _bus_acc_main_r[24];
-.global _bus_acc_sub;   .var _bus_acc_sub[24];
-.global _bus_acc_grp_01;   .var _bus_acc_grp_01[24];
-.global _bus_acc_grp_02;   .var _bus_acc_grp_02[24];
-.global _bus_acc_grp_03;   .var _bus_acc_grp_03[24];
-.global _bus_acc_grp_04;   .var _bus_acc_grp_04[24];
-.global _bus_acc_aux_01;   .var _bus_acc_aux_01[24];
-.global _bus_acc_aux_02;   .var _bus_acc_aux_02[24];
-.global _bus_acc_aux_03;   .var _bus_acc_aux_03[24];
-.global _bus_acc_aux_04;   .var _bus_acc_aux_04[24];
-.global _bus_acc_aux_05;   .var _bus_acc_aux_05[24];
-.global _bus_acc_aux_06;   .var _bus_acc_aux_06[24];
-.global _bus_acc_aux_07;   .var _bus_acc_aux_07[24];
-.global _bus_acc_aux_08;   .var _bus_acc_aux_08[24];
-.global _bus_acc_aux_09;   .var _bus_acc_aux_09[24];
-.global _bus_acc_aux_10;   .var _bus_acc_aux_10[24];
-.global _bus_acc_aux_11;   .var _bus_acc_aux_11[24];
-.global _bus_acc_aux_12;   .var _bus_acc_aux_12[24];
-.global _bus_acc_fx_01;   .var _bus_acc_fx_01[24];
-.global _bus_acc_fx_02;   .var _bus_acc_fx_02[24];
-.global _bus_acc_fx_03;   .var _bus_acc_fx_03[24];
-.global _bus_acc_fx_04;   .var _bus_acc_fx_04[24];
-.global _bus_acc_fx_05;   .var _bus_acc_fx_05[24];
-.global _bus_acc_fx_06;   .var _bus_acc_fx_06[24];
+.global _bus_acc_main_l;   .var _bus_acc_main_l[48];
+.global _bus_acc_main_r;   .var _bus_acc_main_r[48];
+.global _bus_acc_sub;   .var _bus_acc_sub[48];
+.global _bus_acc_grp_01;   .var _bus_acc_grp_01[48];
+.global _bus_acc_grp_02;   .var _bus_acc_grp_02[48];
+.global _bus_acc_grp_03;   .var _bus_acc_grp_03[48];
+.global _bus_acc_grp_04;   .var _bus_acc_grp_04[48];
+.global _bus_acc_aux_01;   .var _bus_acc_aux_01[48];
+.global _bus_acc_aux_02;   .var _bus_acc_aux_02[48];
+.global _bus_acc_aux_03;   .var _bus_acc_aux_03[48];
+.global _bus_acc_aux_04;   .var _bus_acc_aux_04[48];
+.global _bus_acc_aux_05;   .var _bus_acc_aux_05[48];
+.global _bus_acc_aux_06;   .var _bus_acc_aux_06[48];
+.global _bus_acc_aux_07;   .var _bus_acc_aux_07[48];
+.global _bus_acc_aux_08;   .var _bus_acc_aux_08[48];
+.global _bus_acc_aux_09;   .var _bus_acc_aux_09[48];
+.global _bus_acc_aux_10;   .var _bus_acc_aux_10[48];
+.global _bus_acc_aux_11;   .var _bus_acc_aux_11[48];
+.global _bus_acc_aux_12;   .var _bus_acc_aux_12[48];
+.global _bus_acc_fx_01;   .var _bus_acc_fx_01[48];
+.global _bus_acc_fx_02;   .var _bus_acc_fx_02[48];
+.global _bus_acc_fx_03;   .var _bus_acc_fx_03[48];
+.global _bus_acc_fx_04;   .var _bus_acc_fx_04[48];
+.global _bus_acc_fx_05;   .var _bus_acc_fx_05[48];
+.global _bus_acc_fx_06;   .var _bus_acc_fx_06[48];
 #else
 .global _bus_acc_main_l;   .var _bus_acc_main_l[3];
 .global _bus_acc_main_r;   .var _bus_acc_main_r[3];

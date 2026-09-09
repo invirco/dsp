@@ -11,7 +11,7 @@
  *----------------------------------------------------------------------*/
 #include "dsp_block.h"
 
-/* RampProfile: EqSafe | Mode: LinearFrames | Up: 12ms (72f) Down: 12ms (72f) | Curve: Linear | Scope: CoeffSetAtomic */
+/* RampProfile: EqSafe | Mode: LinearFrames | Up: 12ms (36f) Down: 12ms (36f) | Curve: Linear | Scope: CoeffSetAtomic */
 
 /* CROSSOVER (FIXED Q4.28, D5): LP/HP split, dual-instance crossfade */
 /* SPI page=1 addr=1436 freq=120.0 slope=24 */
