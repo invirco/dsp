@@ -1,3 +1,92 @@
+## HUB DISPATCH 2026-09-10 08:50Z — S21 — the headroom PW asked for, measured driven on s20_*: six reverbs and the other FX types at D24/D32; shared kernels made to coexist with SIMD_DYN (or why not) so chip 1's 380 bytes become margin; goldnode fixed; the window note final   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+S21 — THE HEADROOM PW ASKED FOR, MEASURED DRIVEN ON THE PAIR THAT SHIPS: the FX engines (six reverbs, the worst plugin load) driven on `s20_*` at D24 and D32; the code pool's 380 bytes made real margin by letting shared kernels coexist with SIMD_DYN (or the reason they cannot, measured); `goldnode` fixed; the window note final
+
+WHY. S20 (dsp c1bbfc5) built the pair from one named configuration
+(`shipping.config.s20`: fusion + SIMD_DYN + C2_BQ_GRAPH + GATE_LINTHR +
+DYN_LUT + TX_EARLY=2 + GATHER_FIRST), proved it audio-correct on every
+bar the tree has (famverify 1/20 differs and it is the compressor at
+0.005 dB; bqeverify 0 ULP; geq/afb/xover design OK with live tones to
+0.003 dB; golden 59/59; busgold 0.039 dB attributed to the table, and
+BIT-EXACT to the 08-30 golden with the table off — fusion, SIMD, the
+paired graph and Option A move no bus word), and priced it DRIVEN with
+16/16 regime snapshots proven and zero overruns: **D24 53.8 / 59.0 %,
+D32 71.6 / 72.6 % — the signal is free on it (±0.3 points).** `s20f_*`
+(six-slot biquad) buys 1.4–4.1 points more. Latency measured 80/83
+samples (the 82 contract stands). PW's requirement (08-28): 32 strips is
+the MINIMUM — the fit must carry headroom for plugins. The FX engines
+(reverb Type 3 on six engines) were priced at SILENCE at ~6–7 % of chip
+2 a week ago and never driven; S19's driven residue was measured with
+the FX engines OFF. **The costs that are not cycles (S20-3): chip 1's
+code pool is 261,764 of 262,144 — 380 bytes free — with ~7 KB of cold
+code still in the hot blocks before a per-block kernel spills to the
+DM/DMA block; and S18's −38.6 KB shared-kernel lever is unavailable
+because `build.sh` REFUSES `SHARED_KERNELS` with `SIMD_DYN`.** That is a
+real constraint on every future feature on chip 1. Also open:
+`goldnode` fails identically on every pair (S19-7: it reads scalars the
+block-kernel graph never writes — the bar is wrong).
+
+BENCH. Rev C unit as S20 left it (shipping CPLD `a1f6672af6c3` re-flashed
+and IDCODE-verified, `blk_*` booted, BOOT_STAGE 7, matrix-app active;
+staged pairs through `s20_*`/`s20f_*` with symbol maps — NEVER replace
+any; new candidates as `s21_*`). `build.sh` reads `SHIPPING_CONFIG`;
+`cfgverify.sh` matches CFG/CFG2 to the file; every image from its own
+staging path with copy-and-restore; `capacity.sh` driven rows with the
+regime proven, the driven bitstream flashed for the rows and the
+shipping CPLD restored after, DIAG_BLK_OVERRUN the arbiter; the bars
+default from the configuration file (S20-4). No deploy;
+`shipping.config` unchanged until PW rules. No AI attribution in commits
+or any work product.
+
+GATES, in order, each witnessed:
+1. **The FX engines, driven, on `s20_*`.** The plugin load PW's headroom
+   rule means: six reverbs (Type 3) on chip 2's engines at D24 and D32,
+   with every dynamics node engaged as before AND the reverbs fed
+   (their inputs live — the driven bitstream broadcasts to every lane;
+   confirm the engines' input meters move), two boots, both chips, avg +
+   worst + overrun, regime proven. Then the other FX types the product
+   offers (echo/delay, chorus/modulation — whatever `gen_fx_engine`
+   implements) at their worst settings, one row each. First sentence of
+   the status line: **six reverbs driven on `s20_*` cost N points of
+   chip 2 at D32 (M at D24), leaving X % headroom — and the worst FX
+   type is <T>.** If any row overruns: the per-engine driven cost from
+   the ladder and the lever (the FX kernels have never been through the
+   fusion/pairing/LUT treatment — say what applies).
+2. **Shared kernels with SIMD_DYN.** Why `build.sh` refuses the pair
+   (the paired dynamics kernels take their pair's two record bases in
+   DAG registers, and one shared body must take both — or the refusal
+   is a conservative guard): make it work for COMP and TUBE under
+   SIMD_DYN (the per-strip prologue loads both bases; `shared_kernel_
+   check.py` extended to the pair layout), bit-exact vs the inlined
+   pair (`shkstrip.sh` on the paired image, famverify 0/20 differ),
+   bytes returned and cycles paid DRIVEN at D24/D32, `s21_*` staged if
+   the bars pass. Second sentence: **chip 1's code pool on `s21_*` has
+   N bytes free, or the reason shared kernels and SIMD_DYN cannot
+   coexist.** If they cannot: the next-cheapest bytes (the cold design
+   steps out of the hot blocks — S20-3 says 7 KB is available by
+   ordering alone; then GATE/FILT shared where they are not paired).
+3. **`goldnode` fixed** (S19-7): the four arms pointed at the words the
+   block-kernel graph actually writes (`_buf_C1_GAIN_01`, `_gate_gain`,
+   `_comp_gain`, `_tap_post_fader` per S19), PASS on the shipping pair
+   and on `s20_*`, and the bar's own header saying what it witnesses.
+4. **The window note, final:** the decision table on driven numbers
+   with the FX rows added (blk_* / s16_* / s20_* / s20f_* / s21_* if
+   staged), latency, code-pool and DM headroom per pair, what the app
+   and H1S3/H1S4 rebuild against (nothing), rollback, and a one-line
+   recommendation for PW's window — `shipping.config.s20` (or `.s21`)
+   as the shipped configuration.
+5. findings S21-*, `MW/D32/DSP/dsp4-s21-20260910.md`, tasks.md, this
+   block's status; commit + push main. Scoreboard: the compact board's
+   fit table gains the FX-driven rows; the per-function table's FX row.
+
+Bounded: gates 1–2 are the session; 3 cheap; 4–5 always. No deploy.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-10 06:51Z — S20 — the pair that fits both products under load, built from ONE named configuration (shipping.config.s20: fusion + SIMD_DYN + C2_BQ_GRAPH + LUT + LINTHR + LIMITER table + Option A) as s20_* (+ s20f_*), every bar and famverify on THAT image, driven capacity both chips both products, the decision table on driven numbers only, the shipping.config proposal for PW's window; the SIMD_DYN audio question settled by the record or named to the word   [status: 🟢 done — **`s20_*` IS AUDIO-CORRECT ON EVERY BAR THE TREE HAS, AND THE "SIMD_DYN AUDIO QUESTION" WAS CLOSED BY THE RECORD A DAY BEFORE S19 CITED IT.** famverify 20 families both chips against the shipping pair: **1 of 20 verdicts differs and it is the one that has to — COMPRESSOR's numeric arm at 0.00518 dB** against the table's 0.0950 dB bound and PW's 0.1 dB ruling, with all six converted parameters bit-exact (17/20 audio LIVE, contract 20/20 answering, FADER_PAN and TUBE_SAT BIT_EXACT, every `moved` count identical family for family — diffed mechanically by the new `tools/dsp/famdiff.py`). `bqeverify float` **PASS, 0 ULP over 36,864 words**; `geqverify` **GEQ_DESIGN_OK** with the live tone at **+11.997 dB against +12.000 modelled**; `afbverify` **AFB_DESIGN_OK** with **−18.000 dB against −18.000**, both negative controls identity — those are the two families S12-5 found INERT, LIVE here with `DSP4_C2_BQ_GRAPH=1` and producing the scalar arm's words to the bit; `xoververify` design arms PASS at ≤0.00013 dB (its audio arm is S13-4's declared NOT SCORABLE, figures reproducing S13-4 to the digit); `golden_harness` **59/59**; `dsp_validate` OK. **S19's "what stands against it is S12-5/S12-7, unchanged" was wrong on both counts and the cost was 21 points of chip 2**: S12-5's own title is *"SIMD_DYN is audio-correct; DSP4_C2_BQ_GRAPH is not"* and its second half was closed by **S13-1** (mechanism named — the pair driver's steady test never read the pending-DESIGN flag, so the design step at the top of the node body never ran for any class the host writes PARAMETERS to; fixed in `gen_bq_pairs_c2`, witnessed three ways), while **S12-7 was closed by S15-9**. S12-5's status line still read OPEN — corrected (S20-1) — and `shipping.config`'s comment on the switch was two closed findings out of date, corrected in place with the value left at 0 for PW (S20-2). **BUILT AS ONE NAMED CONFIGURATION: `MW/D32/DSP/SHARC/shipping.config.s20`** (`shipping.config` + STRIP_FUSED + SIMD_DYN + C2_BQ_GRAPH + GATE_LINTHR + DYN_LUT, every switch with its evidence; TX_EARLY=2 + GATHER_FIRST carried; BQ_SIMD_PIPE named at 0 and measured beside as `s20f_*`; **SHARED_KERNELS=0 is not a preference — `build.sh` REFUSES it with SIMD_DYN**). `build.sh` reads `SHIPPING_CONFIG`, so there is no environment soup behind any number. **Both chips read back `DIAG_BUILD_CFG 0xCF45FF10` and `DIAG_BUILD_CFG2 0xC2011E4F`, matching the FILE TO THE BIT** (new `cfgverify.sh` + `tools/dsp/cfg_words.py`, which reproduces `check_shipping_config.sh`'s words for `shipping.config` independently); `s20f_*` reads `0xC2015E4F`, differing in exactly the one bit its named override sets. Staged **`s20_*` `32dc1ea1`/`29d00a5e`** and **`s20f_*` `20f04ffe`/`7802f1f2`**, each WITH its symbol map. **DRIVEN CAPACITY, TWO BOOTS, BOTH CHIPS, BOTH PRODUCTS, 16 OF 16 REGIME SNAPSHOTS PROVEN, ZERO OVERRUNS ON EVERY ROW: D24 fits on `s20_*` at 53.83/53.79 % (chip 1) and 58.99/59.16 % (chip 2); D32 at 71.57/71.22 % and 72.55/72.56 %.** The shipping default is 118.9/119.2 % and 158.2/142.8 % with one block in six and one in three dropped; `s16_*` fits D24 and misses 8.7 %/13.3 % at D32. **The signal is FREE on this configuration** — driven minus silent-loaded is +0.05/−0.29 points at D24 and +0.08/+0.26 at D32, against +42.5/+29.3 on the shipping default, which is the LUT's whole claim now holding on chip 2's output chains too. **`DSP4_C2_BQ_GRAPH` alone is worth ~21 points of chip 2 at D32 and ~17 at D24** (S19's `s16sd` is exactly `s20` minus that switch: 93.90/76.42 %), so the switch withheld on a closed finding was most of the margin. `s20f_*` buys 1.4–4.1 more points for nothing measurable. **LATENCY MEASURED, NOT CARRIED: 80/83 samples through-DSP** against a LOGIC-only reference **re-taken this session at 14,433** (100.0 % coherent, reproducing S17 to the sample) — the contract's 82 stands. **AND THE COST THAT IS NOT CYCLES (S20-3): chip 1's code pool is 261,764/262,144 with 380 bytes free**, 1,692 bytes of code in Block 1 — and those 1,692 are exactly `afb_design_fx`/`xover_design_fx`/`geq_design_fx`, all on `DSP4_COLD_OBJS`, none per-block, so S16-1's ordering chose what pays; 6,666 bytes of cold code remain in Blocks 3+2, i.e. **~7,046 bytes of growth before a HOT kernel is fetched from the DM/DMA block**, and S18's −38,634-byte lever is unavailable here because `build.sh` refuses it with SIMD_DYN. **`busgold` is the one bar that is not bit-exact, and that is the correct result, attributed three ways**: its harness leaves the compressor WET and the table is what replaces its gain computer, so bit-exact would prove the table unreachable — measured at **0.03934 dB worst word** (new `tools/dsp/busdev.py`, because the bar reported LSBs and an LSB count reads the same for a 0.04 dB table and a dead node) against the 0.0950 dB bound, with **not one word zero in one capture and non-zero in the other**; the same image with `DSP4_DYN_LUT=0 GATE_LINTHR=0` reproduces the 2026-08-30 golden **BIT FOR BIT (0 of 256)**, so **fusion, the SIMD pairing, chip 2's paired biquad graph and Option A move NO bus word** (S20-6). Also S20-4: **`busgold.sh` pinned `DSP4_SIMD_DYN`/`DSP4_STRIP_FUSED` to 0 on `build.sh`'s command line**, so run against `shipping.config.s20` it silently scored an arm with both off (`paired_build=False` in its own capture) — a bar cannot witness a configuration whose defining switches it overrides; fixed to default from the configuration file, with `build_config.py` taught to read `SHIPPING_CONFIG` (the same variable `build.sh` reads) and `check_shipping_config.sh` naming its own file. `goldnode` still FAILS identically to the shipping default (S19-7's attribution stands). **BENCH RESTORED AND PROVEN**: shipping CPLD `a1f6672af6c3` re-flashed and IDCODE re-read (`0x020a30dd`) after the `maincap`, `driveall` and `pisel` instrument bitstreams; `blk_*` (`ac65ad38`/`e5dce9e4`) booted from a scratch copy, `MAGIC`/`CHIP_ID` 1 and 2/`BOOT_STAGE 7`, **zero `DIAG_BLK_OVERRUN` over 90,006 and 90,005 blocks after `DIAG_CLEAR`**, `matrix-app` active; 22 staged `.ldr` intact plus the four new ones. **No file under `SHARC/src/` changed** — the default build is `302d6142`/`3b3a6f8e`, byte for byte S17/S18/S19's — and `shipping.config`'s VALUES are unchanged. **PROPOSAL FOR PW: adopt `shipping.config.s20`, deploy `s20_*`; two of the five switches (DYN_LUT, GATE_LINTHR) are numeric-spec deviations needing sign-off, the other three carry none; the FX engines' driven cost is the biggest thing still unmeasured and should be the next session's gate 1.** Write-up `MW/D32/DSP/dsp4-s20-20260910.md`, findings S20-1..S20-7, window note §0.]   [model: opus]
 
 model: opus
