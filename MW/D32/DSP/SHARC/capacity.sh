@@ -60,6 +60,31 @@
 #                                              ... and a rung per algorithm on
 #                                              the same boot, so the FX cost is
 #                                              a within-boot difference (S21)
+#   USELEVELS="0:0 1:0 6:0 0:1 0:32 6:32" ./capacity.sh --driven
+#                                              the USE ladder (S24): the two
+#                                              costs proportional to use, which
+#                                              S23's rows deliberately do not
+#                                              include -- an aux sum that has
+#                                              lost its block-level bypass and
+#                                              a matrix bus row the fabric can
+#                                              no longer skip. `f:m` = FX
+#                                              returns opened into EVERY aux
+#                                              bus : strips opened into EVERY
+#                                              matrix bus. Needs a landed map
+#                                              that HAS those cells, i.e.
+#                                              DSP_LANDED_DIR=proposals/defs/products
+#   USELEVELS="1/0:0 1/4:0 1/8:0 1/12:0" ./capacity.sh --driven
+#                                              the BUS axis: `sources/buses`.
+#                                              The first ladder measured 9.77
+#                                              points for one FX return into
+#                                              all twelve aux buses and 0.11
+#                                              more for all six into all
+#                                              twelve, so the price is a bus
+#                                              LOSING ITS BYPASS, not a
+#                                              crosspoint doing a MAC -- and
+#                                              how many aux buses D32 can
+#                                              afford is the product question
+#                                              that follows from it.
 #
 # Every DSP4_* in the environment is passed to build.sh, so an arm is one
 # command and the command is the arm's definition.
@@ -196,7 +221,8 @@ for r in $(seq 1 "$REPS"); do
     echo "--- boot $r ---"
     ssh $BENCH "STAGE='$STAGE' PRODUCT=$PRODUCT DWELL=$DWELL DRIVEN=$DRIVEN \
                 SETUP_MODE='${SETUP_MODE:-load}' FXTYPE='${FXTYPE:-3}' \
-                FXTYPES='${FXTYPES:-}' PREFIX=cap-$ARM-$PRODUCT-r$r \
+                FXTYPES='${FXTYPES:-}' USELEVELS='${USELEVELS:-}' \
+                PREFIX=cap-$ARM-$PRODUCT-r$r \
                 OUT=cap-$ARM-$PRODUCT-r$r.json bash /home/app/capacity_run.sh" || exit 4
     scp -q "$BENCH:$STAGE/cap-$ARM-$PRODUCT-r$r*.json" ./goldens/ 2>/dev/null
 done

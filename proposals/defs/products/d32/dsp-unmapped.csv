@@ -15,51 +15,51 @@ _Cell,Class,Reason
 Aux001Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux001DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux001Name001,label,"text label; the host stores it, the DSP has no word for it"
-Aux001PickOff001,no-graph-node,aux-master send pickoff; the DSP pickoff is per crosspoint (Chan*AuxPick*) and there is no aux-master word — open question Q4
+Aux001PickOff001,host-managed,"app batch control, not a DSP word: it writes every channel's Chan*AuxPick* for that aux, which is the only DSP truth (PW ruling R4, 2026-09-10 — was open question Q4)"
 Aux002Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux002DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux002Name001,label,"text label; the host stores it, the DSP has no word for it"
-Aux002PickOff001,no-graph-node,aux-master send pickoff; the DSP pickoff is per crosspoint (Chan*AuxPick*) and there is no aux-master word — open question Q4
+Aux002PickOff001,host-managed,"app batch control, not a DSP word: it writes every channel's Chan*AuxPick* for that aux, which is the only DSP truth (PW ruling R4, 2026-09-10 — was open question Q4)"
 Aux003Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux003DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux003Name001,label,"text label; the host stores it, the DSP has no word for it"
-Aux003PickOff001,no-graph-node,aux-master send pickoff; the DSP pickoff is per crosspoint (Chan*AuxPick*) and there is no aux-master word — open question Q4
+Aux003PickOff001,host-managed,"app batch control, not a DSP word: it writes every channel's Chan*AuxPick* for that aux, which is the only DSP truth (PW ruling R4, 2026-09-10 — was open question Q4)"
 Aux004Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux004DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux004Name001,label,"text label; the host stores it, the DSP has no word for it"
-Aux004PickOff001,no-graph-node,aux-master send pickoff; the DSP pickoff is per crosspoint (Chan*AuxPick*) and there is no aux-master word — open question Q4
+Aux004PickOff001,host-managed,"app batch control, not a DSP word: it writes every channel's Chan*AuxPick* for that aux, which is the only DSP truth (PW ruling R4, 2026-09-10 — was open question Q4)"
 Aux005Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux005DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux005Name001,label,"text label; the host stores it, the DSP has no word for it"
-Aux005PickOff001,no-graph-node,aux-master send pickoff; the DSP pickoff is per crosspoint (Chan*AuxPick*) and there is no aux-master word — open question Q4
+Aux005PickOff001,host-managed,"app batch control, not a DSP word: it writes every channel's Chan*AuxPick* for that aux, which is the only DSP truth (PW ruling R4, 2026-09-10 — was open question Q4)"
 Aux006Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux006DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux006Name001,label,"text label; the host stores it, the DSP has no word for it"
-Aux006PickOff001,no-graph-node,aux-master send pickoff; the DSP pickoff is per crosspoint (Chan*AuxPick*) and there is no aux-master word — open question Q4
+Aux006PickOff001,host-managed,"app batch control, not a DSP word: it writes every channel's Chan*AuxPick* for that aux, which is the only DSP truth (PW ruling R4, 2026-09-10 — was open question Q4)"
 Aux007Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux007DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux007Name001,label,"text label; the host stores it, the DSP has no word for it"
-Aux007PickOff001,no-graph-node,aux-master send pickoff; the DSP pickoff is per crosspoint (Chan*AuxPick*) and there is no aux-master word — open question Q4
+Aux007PickOff001,host-managed,"app batch control, not a DSP word: it writes every channel's Chan*AuxPick* for that aux, which is the only DSP truth (PW ruling R4, 2026-09-10 — was open question Q4)"
 Aux008Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux008DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux008Name001,label,"text label; the host stores it, the DSP has no word for it"
-Aux008PickOff001,no-graph-node,aux-master send pickoff; the DSP pickoff is per crosspoint (Chan*AuxPick*) and there is no aux-master word — open question Q4
+Aux008PickOff001,host-managed,"app batch control, not a DSP word: it writes every channel's Chan*AuxPick* for that aux, which is the only DSP truth (PW ruling R4, 2026-09-10 — was open question Q4)"
 Aux009Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux009DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux009Name001,label,"text label; the host stores it, the DSP has no word for it"
-Aux009PickOff001,no-graph-node,aux-master send pickoff; the DSP pickoff is per crosspoint (Chan*AuxPick*) and there is no aux-master word — open question Q4
+Aux009PickOff001,host-managed,"app batch control, not a DSP word: it writes every channel's Chan*AuxPick* for that aux, which is the only DSP truth (PW ruling R4, 2026-09-10 — was open question Q4)"
 Aux010Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux010DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux010Name001,label,"text label; the host stores it, the DSP has no word for it"
-Aux010PickOff001,no-graph-node,aux-master send pickoff; the DSP pickoff is per crosspoint (Chan*AuxPick*) and there is no aux-master word — open question Q4
+Aux010PickOff001,host-managed,"app batch control, not a DSP word: it writes every channel's Chan*AuxPick* for that aux, which is the only DSP truth (PW ruling R4, 2026-09-10 — was open question Q4)"
 Aux011Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux011DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux011Name001,label,"text label; the host stores it, the DSP has no word for it"
-Aux011PickOff001,no-graph-node,aux-master send pickoff; the DSP pickoff is per crosspoint (Chan*AuxPick*) and there is no aux-master word — open question Q4
+Aux011PickOff001,host-managed,"app batch control, not a DSP word: it writes every channel's Chan*AuxPick* for that aux, which is the only DSP truth (PW ruling R4, 2026-09-10 — was open question Q4)"
 Aux012Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux012DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux012Name001,label,"text label; the host stores it, the DSP has no word for it"
-Aux012PickOff001,no-graph-node,aux-master send pickoff; the DSP pickoff is per crosspoint (Chan*AuxPick*) and there is no aux-master word — open question Q4
+Aux012PickOff001,host-managed,"app batch control, not a DSP word: it writes every channel's Chan*AuxPick* for that aux, which is the only DSP truth (PW ruling R4, 2026-09-10 — was open question Q4)"
 Bt001Src001,hardware-control,Bluetooth receiver source select — MCU hardware control
 Card001Type001,hardware-control,"option-card type, reported by the MCU"
 Chan001AntiClip001,no-graph-node,per-channel anti-clip; no node in the graph implements it
@@ -69,7 +69,7 @@ Chan001Dca001,host-managed,"the host owns the value outright — no DSP address,
 Chan001DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan001InsertOn001,hardware-control,analogue insert relay
 Chan001Instr001,hardware-control,instrument / Hi-Z input mode
-Chan001LcrOn001,no-graph-node,LCR pan law; the router has MainOn and CtrOn and no LCR divergence — open question Q6
+Chan001LcrOn001,no-graph-node,"LCR per channel. The LAW is ruled (PW R5: one 127 x (gL,gC,gR) table, Sys[1]LcrLaw[1] selects it, Pan indexes it) and the cell that selects it has not landed in defs yet. Not built in S24 for a second reason worth stating: R5 amended puts NON-LCR channels on the same table too, so it changes the pan law of every strip on a chip whose code pool is at 90.7% — it needs its own gate and a pan-law witness, not a tail-end addition (S24)"
 Chan001Link001,surface-state,stereo link of adjacent strips; the host writes both strips
 Chan001MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
 Chan001MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
@@ -88,7 +88,7 @@ Chan002Dca001,host-managed,"the host owns the value outright — no DSP address,
 Chan002DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan002InsertOn001,hardware-control,analogue insert relay
 Chan002Instr001,hardware-control,instrument / Hi-Z input mode
-Chan002LcrOn001,no-graph-node,LCR pan law; the router has MainOn and CtrOn and no LCR divergence — open question Q6
+Chan002LcrOn001,no-graph-node,"LCR per channel. The LAW is ruled (PW R5: one 127 x (gL,gC,gR) table, Sys[1]LcrLaw[1] selects it, Pan indexes it) and the cell that selects it has not landed in defs yet. Not built in S24 for a second reason worth stating: R5 amended puts NON-LCR channels on the same table too, so it changes the pan law of every strip on a chip whose code pool is at 90.7% — it needs its own gate and a pan-law witness, not a tail-end addition (S24)"
 Chan002Link001,surface-state,stereo link of adjacent strips; the host writes both strips
 Chan002MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
 Chan002MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
@@ -106,7 +106,7 @@ Chan003CueSel001,control-plane,PFL/cue select; the DSP has one monitor source wo
 Chan003Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan003DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan003InsertOn001,hardware-control,analogue insert relay
-Chan003LcrOn001,no-graph-node,LCR pan law; the router has MainOn and CtrOn and no LCR divergence — open question Q6
+Chan003LcrOn001,no-graph-node,"LCR per channel. The LAW is ruled (PW R5: one 127 x (gL,gC,gR) table, Sys[1]LcrLaw[1] selects it, Pan indexes it) and the cell that selects it has not landed in defs yet. Not built in S24 for a second reason worth stating: R5 amended puts NON-LCR channels on the same table too, so it changes the pan law of every strip on a chip whose code pool is at 90.7% — it needs its own gate and a pan-law witness, not a tail-end addition (S24)"
 Chan003Link001,surface-state,stereo link of adjacent strips; the host writes both strips
 Chan003MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
 Chan003MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
@@ -124,7 +124,7 @@ Chan004CueSel001,control-plane,PFL/cue select; the DSP has one monitor source wo
 Chan004Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan004DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan004InsertOn001,hardware-control,analogue insert relay
-Chan004LcrOn001,no-graph-node,LCR pan law; the router has MainOn and CtrOn and no LCR divergence — open question Q6
+Chan004LcrOn001,no-graph-node,"LCR per channel. The LAW is ruled (PW R5: one 127 x (gL,gC,gR) table, Sys[1]LcrLaw[1] selects it, Pan indexes it) and the cell that selects it has not landed in defs yet. Not built in S24 for a second reason worth stating: R5 amended puts NON-LCR channels on the same table too, so it changes the pan law of every strip on a chip whose code pool is at 90.7% — it needs its own gate and a pan-law witness, not a tail-end addition (S24)"
 Chan004Link001,surface-state,stereo link of adjacent strips; the host writes both strips
 Chan004MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
 Chan004MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
@@ -142,7 +142,7 @@ Chan005CueSel001,control-plane,PFL/cue select; the DSP has one monitor source wo
 Chan005Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan005DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan005InsertOn001,hardware-control,analogue insert relay
-Chan005LcrOn001,no-graph-node,LCR pan law; the router has MainOn and CtrOn and no LCR divergence — open question Q6
+Chan005LcrOn001,no-graph-node,"LCR per channel. The LAW is ruled (PW R5: one 127 x (gL,gC,gR) table, Sys[1]LcrLaw[1] selects it, Pan indexes it) and the cell that selects it has not landed in defs yet. Not built in S24 for a second reason worth stating: R5 amended puts NON-LCR channels on the same table too, so it changes the pan law of every strip on a chip whose code pool is at 90.7% — it needs its own gate and a pan-law witness, not a tail-end addition (S24)"
 Chan005Link001,surface-state,stereo link of adjacent strips; the host writes both strips
 Chan005MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
 Chan005MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
@@ -160,7 +160,7 @@ Chan006CueSel001,control-plane,PFL/cue select; the DSP has one monitor source wo
 Chan006Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan006DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan006InsertOn001,hardware-control,analogue insert relay
-Chan006LcrOn001,no-graph-node,LCR pan law; the router has MainOn and CtrOn and no LCR divergence — open question Q6
+Chan006LcrOn001,no-graph-node,"LCR per channel. The LAW is ruled (PW R5: one 127 x (gL,gC,gR) table, Sys[1]LcrLaw[1] selects it, Pan indexes it) and the cell that selects it has not landed in defs yet. Not built in S24 for a second reason worth stating: R5 amended puts NON-LCR channels on the same table too, so it changes the pan law of every strip on a chip whose code pool is at 90.7% — it needs its own gate and a pan-law witness, not a tail-end addition (S24)"
 Chan006Link001,surface-state,stereo link of adjacent strips; the host writes both strips
 Chan006MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
 Chan006MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
@@ -178,7 +178,7 @@ Chan007CueSel001,control-plane,PFL/cue select; the DSP has one monitor source wo
 Chan007Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan007DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan007InsertOn001,hardware-control,analogue insert relay
-Chan007LcrOn001,no-graph-node,LCR pan law; the router has MainOn and CtrOn and no LCR divergence — open question Q6
+Chan007LcrOn001,no-graph-node,"LCR per channel. The LAW is ruled (PW R5: one 127 x (gL,gC,gR) table, Sys[1]LcrLaw[1] selects it, Pan indexes it) and the cell that selects it has not landed in defs yet. Not built in S24 for a second reason worth stating: R5 amended puts NON-LCR channels on the same table too, so it changes the pan law of every strip on a chip whose code pool is at 90.7% — it needs its own gate and a pan-law witness, not a tail-end addition (S24)"
 Chan007Link001,surface-state,stereo link of adjacent strips; the host writes both strips
 Chan007MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
 Chan007MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
@@ -196,7 +196,7 @@ Chan008CueSel001,control-plane,PFL/cue select; the DSP has one monitor source wo
 Chan008Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan008DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan008InsertOn001,hardware-control,analogue insert relay
-Chan008LcrOn001,no-graph-node,LCR pan law; the router has MainOn and CtrOn and no LCR divergence — open question Q6
+Chan008LcrOn001,no-graph-node,"LCR per channel. The LAW is ruled (PW R5: one 127 x (gL,gC,gR) table, Sys[1]LcrLaw[1] selects it, Pan indexes it) and the cell that selects it has not landed in defs yet. Not built in S24 for a second reason worth stating: R5 amended puts NON-LCR channels on the same table too, so it changes the pan law of every strip on a chip whose code pool is at 90.7% — it needs its own gate and a pan-law witness, not a tail-end addition (S24)"
 Chan008Link001,surface-state,stereo link of adjacent strips; the host writes both strips
 Chan008MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
 Chan008MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
@@ -214,7 +214,7 @@ Chan009CueSel001,control-plane,PFL/cue select; the DSP has one monitor source wo
 Chan009Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan009DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan009InsertOn001,hardware-control,analogue insert relay
-Chan009LcrOn001,no-graph-node,LCR pan law; the router has MainOn and CtrOn and no LCR divergence — open question Q6
+Chan009LcrOn001,no-graph-node,"LCR per channel. The LAW is ruled (PW R5: one 127 x (gL,gC,gR) table, Sys[1]LcrLaw[1] selects it, Pan indexes it) and the cell that selects it has not landed in defs yet. Not built in S24 for a second reason worth stating: R5 amended puts NON-LCR channels on the same table too, so it changes the pan law of every strip on a chip whose code pool is at 90.7% — it needs its own gate and a pan-law witness, not a tail-end addition (S24)"
 Chan009Link001,surface-state,stereo link of adjacent strips; the host writes both strips
 Chan009MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
 Chan009MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
@@ -232,7 +232,7 @@ Chan010CueSel001,control-plane,PFL/cue select; the DSP has one monitor source wo
 Chan010Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan010DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan010InsertOn001,hardware-control,analogue insert relay
-Chan010LcrOn001,no-graph-node,LCR pan law; the router has MainOn and CtrOn and no LCR divergence — open question Q6
+Chan010LcrOn001,no-graph-node,"LCR per channel. The LAW is ruled (PW R5: one 127 x (gL,gC,gR) table, Sys[1]LcrLaw[1] selects it, Pan indexes it) and the cell that selects it has not landed in defs yet. Not built in S24 for a second reason worth stating: R5 amended puts NON-LCR channels on the same table too, so it changes the pan law of every strip on a chip whose code pool is at 90.7% — it needs its own gate and a pan-law witness, not a tail-end addition (S24)"
 Chan010Link001,surface-state,stereo link of adjacent strips; the host writes both strips
 Chan010MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
 Chan010MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
@@ -250,7 +250,7 @@ Chan011CueSel001,control-plane,PFL/cue select; the DSP has one monitor source wo
 Chan011Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan011DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan011InsertOn001,hardware-control,analogue insert relay
-Chan011LcrOn001,no-graph-node,LCR pan law; the router has MainOn and CtrOn and no LCR divergence — open question Q6
+Chan011LcrOn001,no-graph-node,"LCR per channel. The LAW is ruled (PW R5: one 127 x (gL,gC,gR) table, Sys[1]LcrLaw[1] selects it, Pan indexes it) and the cell that selects it has not landed in defs yet. Not built in S24 for a second reason worth stating: R5 amended puts NON-LCR channels on the same table too, so it changes the pan law of every strip on a chip whose code pool is at 90.7% — it needs its own gate and a pan-law witness, not a tail-end addition (S24)"
 Chan011Link001,surface-state,stereo link of adjacent strips; the host writes both strips
 Chan011MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
 Chan011MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
@@ -268,7 +268,7 @@ Chan012CueSel001,control-plane,PFL/cue select; the DSP has one monitor source wo
 Chan012Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan012DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan012InsertOn001,hardware-control,analogue insert relay
-Chan012LcrOn001,no-graph-node,LCR pan law; the router has MainOn and CtrOn and no LCR divergence — open question Q6
+Chan012LcrOn001,no-graph-node,"LCR per channel. The LAW is ruled (PW R5: one 127 x (gL,gC,gR) table, Sys[1]LcrLaw[1] selects it, Pan indexes it) and the cell that selects it has not landed in defs yet. Not built in S24 for a second reason worth stating: R5 amended puts NON-LCR channels on the same table too, so it changes the pan law of every strip on a chip whose code pool is at 90.7% — it needs its own gate and a pan-law witness, not a tail-end addition (S24)"
 Chan012Link001,surface-state,stereo link of adjacent strips; the host writes both strips
 Chan012MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
 Chan012MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
@@ -286,7 +286,7 @@ Chan013CueSel001,control-plane,PFL/cue select; the DSP has one monitor source wo
 Chan013Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan013DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan013InsertOn001,hardware-control,analogue insert relay
-Chan013LcrOn001,no-graph-node,LCR pan law; the router has MainOn and CtrOn and no LCR divergence — open question Q6
+Chan013LcrOn001,no-graph-node,"LCR per channel. The LAW is ruled (PW R5: one 127 x (gL,gC,gR) table, Sys[1]LcrLaw[1] selects it, Pan indexes it) and the cell that selects it has not landed in defs yet. Not built in S24 for a second reason worth stating: R5 amended puts NON-LCR channels on the same table too, so it changes the pan law of every strip on a chip whose code pool is at 90.7% — it needs its own gate and a pan-law witness, not a tail-end addition (S24)"
 Chan013Link001,surface-state,stereo link of adjacent strips; the host writes both strips
 Chan013MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
 Chan013MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
@@ -304,7 +304,7 @@ Chan014CueSel001,control-plane,PFL/cue select; the DSP has one monitor source wo
 Chan014Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan014DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan014InsertOn001,hardware-control,analogue insert relay
-Chan014LcrOn001,no-graph-node,LCR pan law; the router has MainOn and CtrOn and no LCR divergence — open question Q6
+Chan014LcrOn001,no-graph-node,"LCR per channel. The LAW is ruled (PW R5: one 127 x (gL,gC,gR) table, Sys[1]LcrLaw[1] selects it, Pan indexes it) and the cell that selects it has not landed in defs yet. Not built in S24 for a second reason worth stating: R5 amended puts NON-LCR channels on the same table too, so it changes the pan law of every strip on a chip whose code pool is at 90.7% — it needs its own gate and a pan-law witness, not a tail-end addition (S24)"
 Chan014Link001,surface-state,stereo link of adjacent strips; the host writes both strips
 Chan014MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
 Chan014MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
@@ -322,7 +322,7 @@ Chan015CueSel001,control-plane,PFL/cue select; the DSP has one monitor source wo
 Chan015Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan015DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan015InsertOn001,hardware-control,analogue insert relay
-Chan015LcrOn001,no-graph-node,LCR pan law; the router has MainOn and CtrOn and no LCR divergence — open question Q6
+Chan015LcrOn001,no-graph-node,"LCR per channel. The LAW is ruled (PW R5: one 127 x (gL,gC,gR) table, Sys[1]LcrLaw[1] selects it, Pan indexes it) and the cell that selects it has not landed in defs yet. Not built in S24 for a second reason worth stating: R5 amended puts NON-LCR channels on the same table too, so it changes the pan law of every strip on a chip whose code pool is at 90.7% — it needs its own gate and a pan-law witness, not a tail-end addition (S24)"
 Chan015Link001,surface-state,stereo link of adjacent strips; the host writes both strips
 Chan015MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
 Chan015MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
@@ -340,7 +340,7 @@ Chan016CueSel001,control-plane,PFL/cue select; the DSP has one monitor source wo
 Chan016Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan016DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan016InsertOn001,hardware-control,analogue insert relay
-Chan016LcrOn001,no-graph-node,LCR pan law; the router has MainOn and CtrOn and no LCR divergence — open question Q6
+Chan016LcrOn001,no-graph-node,"LCR per channel. The LAW is ruled (PW R5: one 127 x (gL,gC,gR) table, Sys[1]LcrLaw[1] selects it, Pan indexes it) and the cell that selects it has not landed in defs yet. Not built in S24 for a second reason worth stating: R5 amended puts NON-LCR channels on the same table too, so it changes the pan law of every strip on a chip whose code pool is at 90.7% — it needs its own gate and a pan-law witness, not a tail-end addition (S24)"
 Chan016Link001,surface-state,stereo link of adjacent strips; the host writes both strips
 Chan016MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
 Chan016MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
@@ -358,7 +358,7 @@ Chan017CueSel001,control-plane,PFL/cue select; the DSP has one monitor source wo
 Chan017Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan017DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan017InsertOn001,hardware-control,analogue insert relay
-Chan017LcrOn001,no-graph-node,LCR pan law; the router has MainOn and CtrOn and no LCR divergence — open question Q6
+Chan017LcrOn001,no-graph-node,"LCR per channel. The LAW is ruled (PW R5: one 127 x (gL,gC,gR) table, Sys[1]LcrLaw[1] selects it, Pan indexes it) and the cell that selects it has not landed in defs yet. Not built in S24 for a second reason worth stating: R5 amended puts NON-LCR channels on the same table too, so it changes the pan law of every strip on a chip whose code pool is at 90.7% — it needs its own gate and a pan-law witness, not a tail-end addition (S24)"
 Chan017Link001,surface-state,stereo link of adjacent strips; the host writes both strips
 Chan017MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
 Chan017MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
@@ -376,7 +376,7 @@ Chan018CueSel001,control-plane,PFL/cue select; the DSP has one monitor source wo
 Chan018Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan018DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan018InsertOn001,hardware-control,analogue insert relay
-Chan018LcrOn001,no-graph-node,LCR pan law; the router has MainOn and CtrOn and no LCR divergence — open question Q6
+Chan018LcrOn001,no-graph-node,"LCR per channel. The LAW is ruled (PW R5: one 127 x (gL,gC,gR) table, Sys[1]LcrLaw[1] selects it, Pan indexes it) and the cell that selects it has not landed in defs yet. Not built in S24 for a second reason worth stating: R5 amended puts NON-LCR channels on the same table too, so it changes the pan law of every strip on a chip whose code pool is at 90.7% — it needs its own gate and a pan-law witness, not a tail-end addition (S24)"
 Chan018Link001,surface-state,stereo link of adjacent strips; the host writes both strips
 Chan018MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
 Chan018MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
@@ -394,7 +394,7 @@ Chan019CueSel001,control-plane,PFL/cue select; the DSP has one monitor source wo
 Chan019Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan019DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan019InsertOn001,hardware-control,analogue insert relay
-Chan019LcrOn001,no-graph-node,LCR pan law; the router has MainOn and CtrOn and no LCR divergence — open question Q6
+Chan019LcrOn001,no-graph-node,"LCR per channel. The LAW is ruled (PW R5: one 127 x (gL,gC,gR) table, Sys[1]LcrLaw[1] selects it, Pan indexes it) and the cell that selects it has not landed in defs yet. Not built in S24 for a second reason worth stating: R5 amended puts NON-LCR channels on the same table too, so it changes the pan law of every strip on a chip whose code pool is at 90.7% — it needs its own gate and a pan-law witness, not a tail-end addition (S24)"
 Chan019Link001,surface-state,stereo link of adjacent strips; the host writes both strips
 Chan019MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
 Chan019MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
@@ -412,7 +412,7 @@ Chan020CueSel001,control-plane,PFL/cue select; the DSP has one monitor source wo
 Chan020Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan020DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan020InsertOn001,hardware-control,analogue insert relay
-Chan020LcrOn001,no-graph-node,LCR pan law; the router has MainOn and CtrOn and no LCR divergence — open question Q6
+Chan020LcrOn001,no-graph-node,"LCR per channel. The LAW is ruled (PW R5: one 127 x (gL,gC,gR) table, Sys[1]LcrLaw[1] selects it, Pan indexes it) and the cell that selects it has not landed in defs yet. Not built in S24 for a second reason worth stating: R5 amended puts NON-LCR channels on the same table too, so it changes the pan law of every strip on a chip whose code pool is at 90.7% — it needs its own gate and a pan-law witness, not a tail-end addition (S24)"
 Chan020Link001,surface-state,stereo link of adjacent strips; the host writes both strips
 Chan020MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
 Chan020MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
@@ -430,7 +430,7 @@ Chan021CueSel001,control-plane,PFL/cue select; the DSP has one monitor source wo
 Chan021Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan021DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan021InsertOn001,hardware-control,analogue insert relay
-Chan021LcrOn001,no-graph-node,LCR pan law; the router has MainOn and CtrOn and no LCR divergence — open question Q6
+Chan021LcrOn001,no-graph-node,"LCR per channel. The LAW is ruled (PW R5: one 127 x (gL,gC,gR) table, Sys[1]LcrLaw[1] selects it, Pan indexes it) and the cell that selects it has not landed in defs yet. Not built in S24 for a second reason worth stating: R5 amended puts NON-LCR channels on the same table too, so it changes the pan law of every strip on a chip whose code pool is at 90.7% — it needs its own gate and a pan-law witness, not a tail-end addition (S24)"
 Chan021Link001,surface-state,stereo link of adjacent strips; the host writes both strips
 Chan021MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
 Chan021MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
@@ -448,7 +448,7 @@ Chan022CueSel001,control-plane,PFL/cue select; the DSP has one monitor source wo
 Chan022Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan022DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan022InsertOn001,hardware-control,analogue insert relay
-Chan022LcrOn001,no-graph-node,LCR pan law; the router has MainOn and CtrOn and no LCR divergence — open question Q6
+Chan022LcrOn001,no-graph-node,"LCR per channel. The LAW is ruled (PW R5: one 127 x (gL,gC,gR) table, Sys[1]LcrLaw[1] selects it, Pan indexes it) and the cell that selects it has not landed in defs yet. Not built in S24 for a second reason worth stating: R5 amended puts NON-LCR channels on the same table too, so it changes the pan law of every strip on a chip whose code pool is at 90.7% — it needs its own gate and a pan-law witness, not a tail-end addition (S24)"
 Chan022Link001,surface-state,stereo link of adjacent strips; the host writes both strips
 Chan022MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
 Chan022MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
@@ -466,7 +466,7 @@ Chan023CueSel001,control-plane,PFL/cue select; the DSP has one monitor source wo
 Chan023Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan023DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan023InsertOn001,hardware-control,analogue insert relay
-Chan023LcrOn001,no-graph-node,LCR pan law; the router has MainOn and CtrOn and no LCR divergence — open question Q6
+Chan023LcrOn001,no-graph-node,"LCR per channel. The LAW is ruled (PW R5: one 127 x (gL,gC,gR) table, Sys[1]LcrLaw[1] selects it, Pan indexes it) and the cell that selects it has not landed in defs yet. Not built in S24 for a second reason worth stating: R5 amended puts NON-LCR channels on the same table too, so it changes the pan law of every strip on a chip whose code pool is at 90.7% — it needs its own gate and a pan-law witness, not a tail-end addition (S24)"
 Chan023Link001,surface-state,stereo link of adjacent strips; the host writes both strips
 Chan023MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
 Chan023MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
@@ -484,7 +484,7 @@ Chan024CueSel001,control-plane,PFL/cue select; the DSP has one monitor source wo
 Chan024Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan024DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan024InsertOn001,hardware-control,analogue insert relay
-Chan024LcrOn001,no-graph-node,LCR pan law; the router has MainOn and CtrOn and no LCR divergence — open question Q6
+Chan024LcrOn001,no-graph-node,"LCR per channel. The LAW is ruled (PW R5: one 127 x (gL,gC,gR) table, Sys[1]LcrLaw[1] selects it, Pan indexes it) and the cell that selects it has not landed in defs yet. Not built in S24 for a second reason worth stating: R5 amended puts NON-LCR channels on the same table too, so it changes the pan law of every strip on a chip whose code pool is at 90.7% — it needs its own gate and a pan-law witness, not a tail-end addition (S24)"
 Chan024Link001,surface-state,stereo link of adjacent strips; the host writes both strips
 Chan024MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
 Chan024MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
@@ -502,7 +502,7 @@ Chan025CueSel001,control-plane,PFL/cue select; the DSP has one monitor source wo
 Chan025Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan025DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan025InsertOn001,hardware-control,analogue insert relay
-Chan025LcrOn001,no-graph-node,LCR pan law; the router has MainOn and CtrOn and no LCR divergence — open question Q6
+Chan025LcrOn001,no-graph-node,"LCR per channel. The LAW is ruled (PW R5: one 127 x (gL,gC,gR) table, Sys[1]LcrLaw[1] selects it, Pan indexes it) and the cell that selects it has not landed in defs yet. Not built in S24 for a second reason worth stating: R5 amended puts NON-LCR channels on the same table too, so it changes the pan law of every strip on a chip whose code pool is at 90.7% — it needs its own gate and a pan-law witness, not a tail-end addition (S24)"
 Chan025Link001,surface-state,stereo link of adjacent strips; the host writes both strips
 Chan025MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
 Chan025MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
@@ -520,7 +520,7 @@ Chan026CueSel001,control-plane,PFL/cue select; the DSP has one monitor source wo
 Chan026Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan026DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan026InsertOn001,hardware-control,analogue insert relay
-Chan026LcrOn001,no-graph-node,LCR pan law; the router has MainOn and CtrOn and no LCR divergence — open question Q6
+Chan026LcrOn001,no-graph-node,"LCR per channel. The LAW is ruled (PW R5: one 127 x (gL,gC,gR) table, Sys[1]LcrLaw[1] selects it, Pan indexes it) and the cell that selects it has not landed in defs yet. Not built in S24 for a second reason worth stating: R5 amended puts NON-LCR channels on the same table too, so it changes the pan law of every strip on a chip whose code pool is at 90.7% — it needs its own gate and a pan-law witness, not a tail-end addition (S24)"
 Chan026Link001,surface-state,stereo link of adjacent strips; the host writes both strips
 Chan026MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
 Chan026MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
@@ -538,7 +538,7 @@ Chan027CueSel001,control-plane,PFL/cue select; the DSP has one monitor source wo
 Chan027Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan027DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan027InsertOn001,hardware-control,analogue insert relay
-Chan027LcrOn001,no-graph-node,LCR pan law; the router has MainOn and CtrOn and no LCR divergence — open question Q6
+Chan027LcrOn001,no-graph-node,"LCR per channel. The LAW is ruled (PW R5: one 127 x (gL,gC,gR) table, Sys[1]LcrLaw[1] selects it, Pan indexes it) and the cell that selects it has not landed in defs yet. Not built in S24 for a second reason worth stating: R5 amended puts NON-LCR channels on the same table too, so it changes the pan law of every strip on a chip whose code pool is at 90.7% — it needs its own gate and a pan-law witness, not a tail-end addition (S24)"
 Chan027Link001,surface-state,stereo link of adjacent strips; the host writes both strips
 Chan027MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
 Chan027MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
@@ -556,7 +556,7 @@ Chan028CueSel001,control-plane,PFL/cue select; the DSP has one monitor source wo
 Chan028Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan028DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan028InsertOn001,hardware-control,analogue insert relay
-Chan028LcrOn001,no-graph-node,LCR pan law; the router has MainOn and CtrOn and no LCR divergence — open question Q6
+Chan028LcrOn001,no-graph-node,"LCR per channel. The LAW is ruled (PW R5: one 127 x (gL,gC,gR) table, Sys[1]LcrLaw[1] selects it, Pan indexes it) and the cell that selects it has not landed in defs yet. Not built in S24 for a second reason worth stating: R5 amended puts NON-LCR channels on the same table too, so it changes the pan law of every strip on a chip whose code pool is at 90.7% — it needs its own gate and a pan-law witness, not a tail-end addition (S24)"
 Chan028Link001,surface-state,stereo link of adjacent strips; the host writes both strips
 Chan028MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
 Chan028MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
@@ -574,7 +574,7 @@ Chan029CueSel001,control-plane,PFL/cue select; the DSP has one monitor source wo
 Chan029Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan029DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan029InsertOn001,hardware-control,analogue insert relay
-Chan029LcrOn001,no-graph-node,LCR pan law; the router has MainOn and CtrOn and no LCR divergence — open question Q6
+Chan029LcrOn001,no-graph-node,"LCR per channel. The LAW is ruled (PW R5: one 127 x (gL,gC,gR) table, Sys[1]LcrLaw[1] selects it, Pan indexes it) and the cell that selects it has not landed in defs yet. Not built in S24 for a second reason worth stating: R5 amended puts NON-LCR channels on the same table too, so it changes the pan law of every strip on a chip whose code pool is at 90.7% — it needs its own gate and a pan-law witness, not a tail-end addition (S24)"
 Chan029Link001,surface-state,stereo link of adjacent strips; the host writes both strips
 Chan029MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
 Chan029MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
@@ -592,7 +592,7 @@ Chan030CueSel001,control-plane,PFL/cue select; the DSP has one monitor source wo
 Chan030Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan030DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan030InsertOn001,hardware-control,analogue insert relay
-Chan030LcrOn001,no-graph-node,LCR pan law; the router has MainOn and CtrOn and no LCR divergence — open question Q6
+Chan030LcrOn001,no-graph-node,"LCR per channel. The LAW is ruled (PW R5: one 127 x (gL,gC,gR) table, Sys[1]LcrLaw[1] selects it, Pan indexes it) and the cell that selects it has not landed in defs yet. Not built in S24 for a second reason worth stating: R5 amended puts NON-LCR channels on the same table too, so it changes the pan law of every strip on a chip whose code pool is at 90.7% — it needs its own gate and a pan-law witness, not a tail-end addition (S24)"
 Chan030Link001,surface-state,stereo link of adjacent strips; the host writes both strips
 Chan030MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
 Chan030MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
@@ -610,7 +610,7 @@ Chan031CueSel001,control-plane,PFL/cue select; the DSP has one monitor source wo
 Chan031Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan031DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan031InsertOn001,hardware-control,analogue insert relay
-Chan031LcrOn001,no-graph-node,LCR pan law; the router has MainOn and CtrOn and no LCR divergence — open question Q6
+Chan031LcrOn001,no-graph-node,"LCR per channel. The LAW is ruled (PW R5: one 127 x (gL,gC,gR) table, Sys[1]LcrLaw[1] selects it, Pan indexes it) and the cell that selects it has not landed in defs yet. Not built in S24 for a second reason worth stating: R5 amended puts NON-LCR channels on the same table too, so it changes the pan law of every strip on a chip whose code pool is at 90.7% — it needs its own gate and a pan-law witness, not a tail-end addition (S24)"
 Chan031Link001,surface-state,stereo link of adjacent strips; the host writes both strips
 Chan031MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
 Chan031MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
@@ -628,7 +628,7 @@ Chan032CueSel001,control-plane,PFL/cue select; the DSP has one monitor source wo
 Chan032Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan032DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan032InsertOn001,hardware-control,analogue insert relay
-Chan032LcrOn001,no-graph-node,LCR pan law; the router has MainOn and CtrOn and no LCR divergence — open question Q6
+Chan032LcrOn001,no-graph-node,"LCR per channel. The LAW is ruled (PW R5: one 127 x (gL,gC,gR) table, Sys[1]LcrLaw[1] selects it, Pan indexes it) and the cell that selects it has not landed in defs yet. Not built in S24 for a second reason worth stating: R5 amended puts NON-LCR channels on the same table too, so it changes the pan law of every strip on a chip whose code pool is at 90.7% — it needs its own gate and a pan-law witness, not a tail-end addition (S24)"
 Chan032Link001,surface-state,stereo link of adjacent strips; the host writes both strips
 Chan032MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
 Chan032MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
@@ -810,7 +810,7 @@ Fdr005Grp031,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP addre
 Fdr005Grp032,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
 Fx001Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Fx001DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
-Fx001DuckThr001,s1-2-no-behaviour,S1-2: FxDuckThr is a definition again at defs-v2026.09.08. The FX engine has DuckOn and DuckSens words and no threshold word — Q7
+Fx001DuckThr001,no-graph-node,"FX ducker threshold — the dry level in dB above which the return is pulled down, -60..0 (PW ruling R1, 2026-09-10; was Q7). The FX engine has DuckOn and DuckSens and no threshold word, and the ducking sidechain itself is unbuilt (S24)"
 Fx001MuteAll001,control-plane,mute all FX returns; host fold onto the six return mutes
 Fx001MuteGrp001,control-plane,mute-group membership; host fold onto the return mute
 Fx001MuteGrp002,control-plane,mute-group membership; host fold onto the return mute
@@ -830,7 +830,7 @@ Fx001ReturnWetLock001,surface-state,UI lock on the return wet control
 Fx001Tap001,control-plane,tap tempo; the host computes and writes Fx*DelayTime*
 Fx002Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Fx002DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
-Fx002DuckThr001,s1-2-no-behaviour,S1-2: FxDuckThr is a definition again at defs-v2026.09.08. The FX engine has DuckOn and DuckSens words and no threshold word — Q7
+Fx002DuckThr001,no-graph-node,"FX ducker threshold — the dry level in dB above which the return is pulled down, -60..0 (PW ruling R1, 2026-09-10; was Q7). The FX engine has DuckOn and DuckSens and no threshold word, and the ducking sidechain itself is unbuilt (S24)"
 Fx002MuteGrp001,control-plane,mute-group membership; host fold onto the return mute
 Fx002MuteGrp002,control-plane,mute-group membership; host fold onto the return mute
 Fx002MuteGrp003,control-plane,mute-group membership; host fold onto the return mute
@@ -849,7 +849,7 @@ Fx002ReturnWetLock001,surface-state,UI lock on the return wet control
 Fx002Tap001,control-plane,tap tempo; the host computes and writes Fx*DelayTime*
 Fx003Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Fx003DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
-Fx003DuckThr001,s1-2-no-behaviour,S1-2: FxDuckThr is a definition again at defs-v2026.09.08. The FX engine has DuckOn and DuckSens words and no threshold word — Q7
+Fx003DuckThr001,no-graph-node,"FX ducker threshold — the dry level in dB above which the return is pulled down, -60..0 (PW ruling R1, 2026-09-10; was Q7). The FX engine has DuckOn and DuckSens and no threshold word, and the ducking sidechain itself is unbuilt (S24)"
 Fx003MuteGrp001,control-plane,mute-group membership; host fold onto the return mute
 Fx003MuteGrp002,control-plane,mute-group membership; host fold onto the return mute
 Fx003MuteGrp003,control-plane,mute-group membership; host fold onto the return mute
@@ -868,7 +868,7 @@ Fx003ReturnWetLock001,surface-state,UI lock on the return wet control
 Fx003Tap001,control-plane,tap tempo; the host computes and writes Fx*DelayTime*
 Fx004Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Fx004DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
-Fx004DuckThr001,s1-2-no-behaviour,S1-2: FxDuckThr is a definition again at defs-v2026.09.08. The FX engine has DuckOn and DuckSens words and no threshold word — Q7
+Fx004DuckThr001,no-graph-node,"FX ducker threshold — the dry level in dB above which the return is pulled down, -60..0 (PW ruling R1, 2026-09-10; was Q7). The FX engine has DuckOn and DuckSens and no threshold word, and the ducking sidechain itself is unbuilt (S24)"
 Fx004MuteGrp001,control-plane,mute-group membership; host fold onto the return mute
 Fx004MuteGrp002,control-plane,mute-group membership; host fold onto the return mute
 Fx004MuteGrp003,control-plane,mute-group membership; host fold onto the return mute
@@ -887,7 +887,7 @@ Fx004ReturnWetLock001,surface-state,UI lock on the return wet control
 Fx004Tap001,control-plane,tap tempo; the host computes and writes Fx*DelayTime*
 Fx005Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Fx005DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
-Fx005DuckThr001,s1-2-no-behaviour,S1-2: FxDuckThr is a definition again at defs-v2026.09.08. The FX engine has DuckOn and DuckSens words and no threshold word — Q7
+Fx005DuckThr001,no-graph-node,"FX ducker threshold — the dry level in dB above which the return is pulled down, -60..0 (PW ruling R1, 2026-09-10; was Q7). The FX engine has DuckOn and DuckSens and no threshold word, and the ducking sidechain itself is unbuilt (S24)"
 Fx005MuteGrp001,control-plane,mute-group membership; host fold onto the return mute
 Fx005MuteGrp002,control-plane,mute-group membership; host fold onto the return mute
 Fx005MuteGrp003,control-plane,mute-group membership; host fold onto the return mute
@@ -906,7 +906,7 @@ Fx005ReturnWetLock001,surface-state,UI lock on the return wet control
 Fx005Tap001,control-plane,tap tempo; the host computes and writes Fx*DelayTime*
 Fx006Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Fx006DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
-Fx006DuckThr001,s1-2-no-behaviour,S1-2: FxDuckThr is a definition again at defs-v2026.09.08. The FX engine has DuckOn and DuckSens words and no threshold word — Q7
+Fx006DuckThr001,no-graph-node,"FX ducker threshold — the dry level in dB above which the return is pulled down, -60..0 (PW ruling R1, 2026-09-10; was Q7). The FX engine has DuckOn and DuckSens and no threshold word, and the ducking sidechain itself is unbuilt (S24)"
 Fx006MuteGrp001,control-plane,mute-group membership; host fold onto the return mute
 Fx006MuteGrp002,control-plane,mute-group membership; host fold onto the return mute
 Fx006MuteGrp003,control-plane,mute-group membership; host fold onto the return mute
@@ -941,13 +941,8 @@ Main001DcaOn001,host-managed,"the host owns the value outright — no DSP addres
 Main001Name001,label,"text label; the host stores it, the DSP has no word for it"
 MainL001Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 MainL001DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
-MainL001Delay001,no-graph-node,"post-crossover output chain MainL has EQ + COMP + LIM and no FADER_PAN or DELAY node, so the strip's own level, mute and delay reach no word — open question Q1"
-MainL001EqHpf002,no-graph-node,HPF on EQ bands 2-4; the generator gives a non-Main strip one HPF (band 1) and the masters give the output strips four — open question Q8
-MainL001EqHpf003,no-graph-node,HPF on EQ bands 2-4; the generator gives a non-Main strip one HPF (band 1) and the masters give the output strips four — open question Q8
-MainL001EqHpf004,no-graph-node,HPF on EQ bands 2-4; the generator gives a non-Main strip one HPF (band 1) and the masters give the output strips four — open question Q8
-MainL001Level001,no-graph-node,"post-crossover output chain MainL has EQ + COMP + LIM and no FADER_PAN or DELAY node, so the strip's own level, mute and delay reach no word — open question Q1"
+MainL001Delay001,no-graph-node,"post-crossover output chain MainL has EQ + COMP + LIM + OUTPUT_TDM and no delay line. Level and Mute are built (S24); Delay is not, and the reason is memory rather than cells: the master asks for 250 ms, which is 12,000 words = 48,000 bytes of chip-2 L2 per output, 192,000 for all four against 378,464 free on the S24 candidate (51%). It FITS and it is still PW's call, because it is half the delay headroom left on a chip whose worst-use row already overruns — measured, S24"
 MainL001LimiterRng001,no-graph-node,"limiter range; the LIMITER node carries On, Thr, Att and Rel and no range word"
-MainL001Mute001,no-graph-node,"post-crossover output chain MainL has EQ + COMP + LIM and no FADER_PAN or DELAY node, so the strip's own level, mute and delay reach no word — open question Q1"
 MainL001Name001,label,"text label; the host stores it, the DSP has no word for it"
 MainL001PeqGain001,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
 MainL001PeqGain002,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
@@ -963,13 +958,8 @@ MainL001PeqGain011,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs
 MainL001PeqGain012,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
 MainR001Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 MainR001DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
-MainR001Delay001,no-graph-node,"post-crossover output chain MainR has EQ + COMP + LIM and no FADER_PAN or DELAY node, so the strip's own level, mute and delay reach no word — open question Q1"
-MainR001EqHpf002,no-graph-node,HPF on EQ bands 2-4; the generator gives a non-Main strip one HPF (band 1) and the masters give the output strips four — open question Q8
-MainR001EqHpf003,no-graph-node,HPF on EQ bands 2-4; the generator gives a non-Main strip one HPF (band 1) and the masters give the output strips four — open question Q8
-MainR001EqHpf004,no-graph-node,HPF on EQ bands 2-4; the generator gives a non-Main strip one HPF (band 1) and the masters give the output strips four — open question Q8
-MainR001Level001,no-graph-node,"post-crossover output chain MainR has EQ + COMP + LIM and no FADER_PAN or DELAY node, so the strip's own level, mute and delay reach no word — open question Q1"
+MainR001Delay001,no-graph-node,"post-crossover output chain MainR has EQ + COMP + LIM + OUTPUT_TDM and no delay line. Level and Mute are built (S24); Delay is not, and the reason is memory rather than cells: the master asks for 250 ms, which is 12,000 words = 48,000 bytes of chip-2 L2 per output, 192,000 for all four against 378,464 free on the S24 candidate (51%). It FITS and it is still PW's call, because it is half the delay headroom left on a chip whose worst-use row already overruns — measured, S24"
 MainR001LimiterRng001,no-graph-node,"limiter range; the LIMITER node carries On, Thr, Att and Rel and no range word"
-MainR001Mute001,no-graph-node,"post-crossover output chain MainR has EQ + COMP + LIM and no FADER_PAN or DELAY node, so the strip's own level, mute and delay reach no word — open question Q1"
 MainR001Name001,label,"text label; the host stores it, the DSP has no word for it"
 MainR001PeqGain001,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
 MainR001PeqGain002,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
@@ -985,10 +975,8 @@ MainR001PeqGain011,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs
 MainR001PeqGain012,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
 MainSub001Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 MainSub001DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
-MainSub001Delay001,no-graph-node,"post-crossover output chain MainSub has EQ + COMP + LIM and no FADER_PAN or DELAY node, so the strip's own level, mute and delay reach no word — open question Q1"
-MainSub001Level001,no-graph-node,"post-crossover output chain MainSub has EQ + COMP + LIM and no FADER_PAN or DELAY node, so the strip's own level, mute and delay reach no word — open question Q1"
+MainSub001Delay001,no-graph-node,"post-crossover output chain MainSub has EQ + COMP + LIM + OUTPUT_TDM and no delay line. Level and Mute are built (S24); Delay is not, and the reason is memory rather than cells: the master asks for 250 ms, which is 12,000 words = 48,000 bytes of chip-2 L2 per output, 192,000 for all four against 378,464 free on the S24 candidate (51%). It FITS and it is still PW's call, because it is half the delay headroom left on a chip whose worst-use row already overruns — measured, S24"
 MainSub001LimiterRng001,no-graph-node,"limiter range; the LIMITER node carries On, Thr, Att and Rel and no range word"
-MainSub001Mute001,no-graph-node,"post-crossover output chain MainSub has EQ + COMP + LIM and no FADER_PAN or DELAY node, so the strip's own level, mute and delay reach no word — open question Q1"
 MainSub001Name001,label,"text label; the host stores it, the DSP has no word for it"
 Matrix001Name001,label,"text label; the host stores it, the DSP has no word for it"
 Matrix002Name001,label,"text label; the host stores it, the DSP has no word for it"

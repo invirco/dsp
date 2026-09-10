@@ -116,7 +116,15 @@ EXTRA_PARAMS = {
     'MIX_BUS':        {'source_count', 'fx_sends', 'aux'},
     'MONITOR':        {'level_l_db', 'level_r_db'},
     'NOISE_GEN':      {'hpf_on'},
-    'OUTPUT_TDM':     {'scope', 'signal', 'sport_slots'},
+    # `mo_page`/`mo_addr` (S24): the main output strip's own Level and Mute.
+    # A SECOND address block, for the same reason ROUTING's `mtx_*` is one --
+    # the node has a single word of its own and growing it would have moved
+    # every chip-2 address above it. Present on the four post-crossover main
+    # outputs and on no other OUTPUT_TDM node, which is exactly the marker
+    # gen_dsp.py::expand_output_tdm and dsp_codegen.py::gen_output_tdm key
+    # on: no `mo_page`, no cells, no arithmetic, byte-identical emitted text.
+    'OUTPUT_TDM':     {'scope', 'signal', 'sport_slots',
+                       'mo_page', 'mo_addr'},
     # `mtx_*` (S22 gate 1): the matrix sends and the SPI block they live in.
     # `mtx_page`/`mtx_addr` are a SECOND address block for one node -- the
     # only one in the graph -- because growing the 60-word routing block

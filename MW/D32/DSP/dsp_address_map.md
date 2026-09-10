@@ -5161,12 +5161,15 @@
 | 1440 | 0x05A0 | `MainL001EqShelf001` |  | InstantCtl |
 | 1445 | 0x05A5 | `MainL001EqFreq002` | 0=100/254=1000/[Log] | EqSafe |
 | 1445 | 0x05A5 | `MainL001EqGain002` | 0=-15/60=15/[Lin] | EqSafe |
+| 1445 | 0x05A5 | `MainL001EqHpf002` | 0=20/64=1000/[Log] | EqSafe |
 | 1445 | 0x05A5 | `MainL001EqQ002` | 0=0.1/14=10/[Log] | EqSafe |
 | 1450 | 0x05AA | `MainL001EqFreq003` | 0=800/254=5000/[Log] | EqSafe |
 | 1450 | 0x05AA | `MainL001EqGain003` | 0=-15/60=15/[Lin] | EqSafe |
+| 1450 | 0x05AA | `MainL001EqHpf003` | 0=20/64=1000/[Log] | EqSafe |
 | 1450 | 0x05AA | `MainL001EqQ003` | 0=0.1/14=10/[Log] | EqSafe |
 | 1455 | 0x05AF | `MainL001EqFreq004` | 0=3000/254=20000/[Log] | EqSafe |
 | 1455 | 0x05AF | `MainL001EqGain004` | 0=-15/60=15/[Lin] | EqSafe |
+| 1455 | 0x05AF | `MainL001EqHpf004` | 0=20/64=1000/[Log] | EqSafe |
 | 1455 | 0x05AF | `MainL001EqQ004` | 0=0.1/14=10/[Log] | EqSafe |
 | 1455 | 0x05AF | `MainL001EqShelf002` |  | InstantCtl |
 | 1461 | 0x05B5 | `MainL001EqOn001` |  | InstantCtl |
@@ -5198,12 +5201,15 @@
 | 1485 | 0x05CD | `MainR001EqShelf001` |  | InstantCtl |
 | 1490 | 0x05D2 | `MainR001EqFreq002` | 0=100/254=1000/[Log] | EqSafe |
 | 1490 | 0x05D2 | `MainR001EqGain002` | 0=-15/60=15/[Lin] | EqSafe |
+| 1490 | 0x05D2 | `MainR001EqHpf002` | 0=20/64=1000/[Log] | EqSafe |
 | 1490 | 0x05D2 | `MainR001EqQ002` | 0=0.1/14=10/[Log] | EqSafe |
 | 1495 | 0x05D7 | `MainR001EqFreq003` | 0=800/254=5000/[Log] | EqSafe |
 | 1495 | 0x05D7 | `MainR001EqGain003` | 0=-15/60=15/[Lin] | EqSafe |
+| 1495 | 0x05D7 | `MainR001EqHpf003` | 0=20/64=1000/[Log] | EqSafe |
 | 1495 | 0x05D7 | `MainR001EqQ003` | 0=0.1/14=10/[Log] | EqSafe |
 | 1500 | 0x05DC | `MainR001EqFreq004` | 0=3000/254=20000/[Log] | EqSafe |
 | 1500 | 0x05DC | `MainR001EqGain004` | 0=-15/60=15/[Lin] | EqSafe |
+| 1500 | 0x05DC | `MainR001EqHpf004` | 0=20/64=1000/[Log] | EqSafe |
 | 1500 | 0x05DC | `MainR001EqQ004` | 0=0.1/14=10/[Log] | EqSafe |
 | 1500 | 0x05DC | `MainR001EqShelf002` |  | InstantCtl |
 | 1506 | 0x05E2 | `MainR001EqOn001` |  | InstantCtl |
@@ -5235,12 +5241,15 @@
 | 1530 | 0x05FA | `MainCtr001EqShelf001` |  | InstantCtl |
 | 1535 | 0x05FF | `MainCtr001EqFreq002` | 0=100/254=1000/[Log] | EqSafe |
 | 1535 | 0x05FF | `MainCtr001EqGain002` | 0=-15/60=15/[Lin] | EqSafe |
+| 1535 | 0x05FF | `MainCtr001EqHpf002` | 0=20/64=1000/[Log] | EqSafe |
 | 1535 | 0x05FF | `MainCtr001EqQ002` | 0=0.1/14=10/[Log] | EqSafe |
 | 1540 | 0x0604 | `MainCtr001EqFreq003` | 0=800/254=5000/[Log] | EqSafe |
 | 1540 | 0x0604 | `MainCtr001EqGain003` | 0=-15/60=15/[Lin] | EqSafe |
+| 1540 | 0x0604 | `MainCtr001EqHpf003` | 0=20/64=1000/[Log] | EqSafe |
 | 1540 | 0x0604 | `MainCtr001EqQ003` | 0=0.1/14=10/[Log] | EqSafe |
 | 1545 | 0x0609 | `MainCtr001EqFreq004` | 0=3000/254=20000/[Log] | EqSafe |
 | 1545 | 0x0609 | `MainCtr001EqGain004` | 0=-15/60=15/[Lin] | EqSafe |
+| 1545 | 0x0609 | `MainCtr001EqHpf004` | 0=20/64=1000/[Log] | EqSafe |
 | 1545 | 0x0609 | `MainCtr001EqQ004` | 0=0.1/14=10/[Log] | EqSafe |
 | 1545 | 0x0609 | `MainCtr001EqShelf002` |  | InstantCtl |
 | 1551 | 0x060F | `MainCtr001EqOn001` |  | InstantCtl |
@@ -5774,6 +5783,14 @@
 | 2164 | 0x0874 | `Fx004AuxSend012` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
 | 2165 | 0x0875 | `Fx005AuxSend012` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
 | 2166 | 0x0876 | `Fx006AuxSend012` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2167 | 0x0877 | `MainL001Level001` | dB:Off:-50@31:-30@63:-10@127:1 | GainFast |
+| 2168 | 0x0878 | `MainL001Mute001` |  | InstantCtl |
+| 2169 | 0x0879 | `MainR001Level001` | dB:Off:-50@31:-30@63:-10@127:1 | GainFast |
+| 2170 | 0x087A | `MainR001Mute001` |  | InstantCtl |
+| 2171 | 0x087B | `MainCtr001Level001` | dB:Off:-50@31:-30@63:-10@127:1 | GainFast |
+| 2172 | 0x087C | `MainCtr001Mute001` |  | InstantCtl |
+| 2173 | 0x087D | `MainSub001Level001` | dB:Off:-50@31:-30@63:-10@127:1 | GainFast |
+| 2174 | 0x087E | `MainSub001Mute001` |  | InstantCtl |
 
-**Total Chip 2 cells:** 1750
+**Total Chip 2 cells:** 1767
 

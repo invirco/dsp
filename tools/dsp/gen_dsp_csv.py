@@ -1195,6 +1195,42 @@ for a in range(1, NUM_AUX + 1):
             assert r['inputs'] == recv_ids[f'aux_{a}'], r['inputs']
             r['inputs'] = mix_aux_ids[a]
 
+# ===========================================================================
+# THE MAIN OUTPUT STRIPS' OWN LEVEL AND MUTE (S24, completeness leg 2)
+# ===========================================================================
+#
+# `Main{L,R,Ctr,Sub}[1-1]Level[1-1]` and `...Mute[1-1]` are cells the master
+# has always defined and the graph has never had a word for. The reason is
+# in dsp-unmapped.csv in as many words: the post-crossover output chain is
+# EQ -> COMP -> LIM -> OUTPUT_TDM and there is no FADER_PAN in it, so the
+# strip's own level and mute reached no address (open question Q1).
+#
+# WHAT IS BUILT, AND WHERE. Not a fader node -- the OUTPUT_TDM node itself.
+# It is already a per-block copy from the limiter's block onto the TX slot
+# array, so a level is one multiply on a word it already loads and a mute
+# is that level folded to zero. A FADER_PAN would add a node, a block
+# buffer, a pan the master does not define and a place in the chain for the
+# ordering repair to move; this adds an arithmetic step to a node that is
+# already there. `Delay` is NOT built here and is not guessed at: it needs a
+# delay LINE, which is L2 and not cycles, and committing that on a chip
+# whose worst-use row is already over budget is PW's call -- see the S24
+# write-up.
+#
+# THE FOLD AND THE BYPASS ARE S23'S, DELIBERATELY. Level and mute are
+# folded into ONE Q4.28 coefficient at block rate with the mute bit
+# multiplied in, and where that coefficient is exactly 2^28 the node takes
+# its old copy path unchanged -- so the SHIPPING DEFAULT (unity, unmuted)
+# emits and executes exactly what it did before this feature existed.
+#
+# SPI addresses are allocated HERE, after every other chip-2 allocation
+# including the aux FX sums, and written back onto the four output rows.
+# Two words per output, Level then Mute, in the order gen_dsp.py::
+# expand_output_tdm emits them. The bump ADDS rows and moves NONE.
+_mo_rows = {r['id']: r for r in rows}
+for out_n in range(1, 5):
+    p, a2 = c2_alloc.next(2)
+    _mo_rows[f'C2_MAIN_OUT_{out_n:02d}']['params'] += f';mo_page={p};mo_addr={a2}'
+
 # --- Splice the FX chain and the aux FX sums ahead of the aux chain -----
 #
 # The FX engines and returns are ADDED late (their SPI addresses are

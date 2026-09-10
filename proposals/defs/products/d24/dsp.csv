@@ -12,8 +12,8 @@
 # expansion with this product's cell set, so a cell both products
 # carry has the same chip, page and address in both files.
 #
-# 3957 of 4985 defined cells reach a DSP address.
-# The other 1028 are named in dsp-unmapped.csv with the
+# 3974 of 4985 defined cells reach a DSP address.
+# The other 1011 are named in dsp-unmapped.csv with the
 # reason — every defined cell is in exactly one of the two files.
 #
 # Columns:
@@ -679,7 +679,7 @@ Chan001CompKey001,C1_COMP_01,COMPRESSOR,1,1,65,0x0041,rw,InstantCtl,Instant,0,0,
 Chan001CompKnee001,C1_COMP_01,COMPRESSOR,1,1,62,0x003E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan001CompLimMode001,C1_COMP_01,COMPRESSOR,1,1,67,0x0043,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan001CompMake001,C1_COMP_01,COMPRESSOR,1,1,61,0x003D,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=20/[Lin],
-Chan001CompMtr001,C1_MTR_01,METER,1,1,4611,0x1203,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-40, 0]"
+Chan001CompMtr001,C1_MTR_01,METER,1,1,4611,0x1203,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-80, 0] (PW R3)"
 Chan001CompOn001,C1_COMP_01,COMPRESSOR,1,1,56,0x0038,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan001CompPar001,C1_COMP_01,COMPRESSOR,1,1,63,0x003F,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=100/[Lin],
 Chan001CompRat001,C1_COMP_01,COMPRESSOR,1,1,58,0x003A,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=1/127=30/[Log],
@@ -786,7 +786,7 @@ Chan002CompKey001,C1_COMP_02,COMPRESSOR,1,1,209,0x00D1,rw,InstantCtl,Instant,0,0
 Chan002CompKnee001,C1_COMP_02,COMPRESSOR,1,1,206,0x00CE,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan002CompLimMode001,C1_COMP_02,COMPRESSOR,1,1,211,0x00D3,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan002CompMake001,C1_COMP_02,COMPRESSOR,1,1,205,0x00CD,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=20/[Lin],
-Chan002CompMtr001,C1_MTR_02,METER,1,1,4615,0x1207,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-40, 0]"
+Chan002CompMtr001,C1_MTR_02,METER,1,1,4615,0x1207,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-80, 0] (PW R3)"
 Chan002CompOn001,C1_COMP_02,COMPRESSOR,1,1,200,0x00C8,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan002CompPar001,C1_COMP_02,COMPRESSOR,1,1,207,0x00CF,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=100/[Lin],
 Chan002CompRat001,C1_COMP_02,COMPRESSOR,1,1,202,0x00CA,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=1/127=30/[Log],
@@ -893,7 +893,7 @@ Chan003CompKey001,C1_COMP_03,COMPRESSOR,1,1,353,0x0161,rw,InstantCtl,Instant,0,0
 Chan003CompKnee001,C1_COMP_03,COMPRESSOR,1,1,350,0x015E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan003CompLimMode001,C1_COMP_03,COMPRESSOR,1,1,355,0x0163,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan003CompMake001,C1_COMP_03,COMPRESSOR,1,1,349,0x015D,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=20/[Lin],
-Chan003CompMtr001,C1_MTR_03,METER,1,1,4619,0x120B,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-40, 0]"
+Chan003CompMtr001,C1_MTR_03,METER,1,1,4619,0x120B,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-80, 0] (PW R3)"
 Chan003CompOn001,C1_COMP_03,COMPRESSOR,1,1,344,0x0158,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan003CompPar001,C1_COMP_03,COMPRESSOR,1,1,351,0x015F,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=100/[Lin],
 Chan003CompRat001,C1_COMP_03,COMPRESSOR,1,1,346,0x015A,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=1/127=30/[Log],
@@ -1000,7 +1000,7 @@ Chan004CompKey001,C1_COMP_04,COMPRESSOR,1,1,497,0x01F1,rw,InstantCtl,Instant,0,0
 Chan004CompKnee001,C1_COMP_04,COMPRESSOR,1,1,494,0x01EE,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan004CompLimMode001,C1_COMP_04,COMPRESSOR,1,1,499,0x01F3,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan004CompMake001,C1_COMP_04,COMPRESSOR,1,1,493,0x01ED,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=20/[Lin],
-Chan004CompMtr001,C1_MTR_04,METER,1,1,4623,0x120F,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-40, 0]"
+Chan004CompMtr001,C1_MTR_04,METER,1,1,4623,0x120F,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-80, 0] (PW R3)"
 Chan004CompOn001,C1_COMP_04,COMPRESSOR,1,1,488,0x01E8,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan004CompPar001,C1_COMP_04,COMPRESSOR,1,1,495,0x01EF,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=100/[Lin],
 Chan004CompRat001,C1_COMP_04,COMPRESSOR,1,1,490,0x01EA,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=1/127=30/[Log],
@@ -1107,7 +1107,7 @@ Chan005CompKey001,C1_COMP_05,COMPRESSOR,1,1,641,0x0281,rw,InstantCtl,Instant,0,0
 Chan005CompKnee001,C1_COMP_05,COMPRESSOR,1,1,638,0x027E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan005CompLimMode001,C1_COMP_05,COMPRESSOR,1,1,643,0x0283,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan005CompMake001,C1_COMP_05,COMPRESSOR,1,1,637,0x027D,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=20/[Lin],
-Chan005CompMtr001,C1_MTR_05,METER,1,1,4627,0x1213,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-40, 0]"
+Chan005CompMtr001,C1_MTR_05,METER,1,1,4627,0x1213,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-80, 0] (PW R3)"
 Chan005CompOn001,C1_COMP_05,COMPRESSOR,1,1,632,0x0278,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan005CompPar001,C1_COMP_05,COMPRESSOR,1,1,639,0x027F,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=100/[Lin],
 Chan005CompRat001,C1_COMP_05,COMPRESSOR,1,1,634,0x027A,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=1/127=30/[Log],
@@ -1214,7 +1214,7 @@ Chan006CompKey001,C1_COMP_06,COMPRESSOR,1,1,785,0x0311,rw,InstantCtl,Instant,0,0
 Chan006CompKnee001,C1_COMP_06,COMPRESSOR,1,1,782,0x030E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan006CompLimMode001,C1_COMP_06,COMPRESSOR,1,1,787,0x0313,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan006CompMake001,C1_COMP_06,COMPRESSOR,1,1,781,0x030D,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=20/[Lin],
-Chan006CompMtr001,C1_MTR_06,METER,1,1,4631,0x1217,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-40, 0]"
+Chan006CompMtr001,C1_MTR_06,METER,1,1,4631,0x1217,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-80, 0] (PW R3)"
 Chan006CompOn001,C1_COMP_06,COMPRESSOR,1,1,776,0x0308,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan006CompPar001,C1_COMP_06,COMPRESSOR,1,1,783,0x030F,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=100/[Lin],
 Chan006CompRat001,C1_COMP_06,COMPRESSOR,1,1,778,0x030A,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=1/127=30/[Log],
@@ -1321,7 +1321,7 @@ Chan007CompKey001,C1_COMP_07,COMPRESSOR,1,1,929,0x03A1,rw,InstantCtl,Instant,0,0
 Chan007CompKnee001,C1_COMP_07,COMPRESSOR,1,1,926,0x039E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan007CompLimMode001,C1_COMP_07,COMPRESSOR,1,1,931,0x03A3,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan007CompMake001,C1_COMP_07,COMPRESSOR,1,1,925,0x039D,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=20/[Lin],
-Chan007CompMtr001,C1_MTR_07,METER,1,1,4635,0x121B,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-40, 0]"
+Chan007CompMtr001,C1_MTR_07,METER,1,1,4635,0x121B,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-80, 0] (PW R3)"
 Chan007CompOn001,C1_COMP_07,COMPRESSOR,1,1,920,0x0398,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan007CompPar001,C1_COMP_07,COMPRESSOR,1,1,927,0x039F,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=100/[Lin],
 Chan007CompRat001,C1_COMP_07,COMPRESSOR,1,1,922,0x039A,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=1/127=30/[Log],
@@ -1428,7 +1428,7 @@ Chan008CompKey001,C1_COMP_08,COMPRESSOR,1,1,1073,0x0431,rw,InstantCtl,Instant,0,
 Chan008CompKnee001,C1_COMP_08,COMPRESSOR,1,1,1070,0x042E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan008CompLimMode001,C1_COMP_08,COMPRESSOR,1,1,1075,0x0433,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan008CompMake001,C1_COMP_08,COMPRESSOR,1,1,1069,0x042D,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=20/[Lin],
-Chan008CompMtr001,C1_MTR_08,METER,1,1,4639,0x121F,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-40, 0]"
+Chan008CompMtr001,C1_MTR_08,METER,1,1,4639,0x121F,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-80, 0] (PW R3)"
 Chan008CompOn001,C1_COMP_08,COMPRESSOR,1,1,1064,0x0428,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan008CompPar001,C1_COMP_08,COMPRESSOR,1,1,1071,0x042F,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=100/[Lin],
 Chan008CompRat001,C1_COMP_08,COMPRESSOR,1,1,1066,0x042A,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=1/127=30/[Log],
@@ -1535,7 +1535,7 @@ Chan009CompKey001,C1_COMP_09,COMPRESSOR,1,1,1217,0x04C1,rw,InstantCtl,Instant,0,
 Chan009CompKnee001,C1_COMP_09,COMPRESSOR,1,1,1214,0x04BE,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan009CompLimMode001,C1_COMP_09,COMPRESSOR,1,1,1219,0x04C3,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan009CompMake001,C1_COMP_09,COMPRESSOR,1,1,1213,0x04BD,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=20/[Lin],
-Chan009CompMtr001,C1_MTR_09,METER,1,1,4643,0x1223,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-40, 0]"
+Chan009CompMtr001,C1_MTR_09,METER,1,1,4643,0x1223,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-80, 0] (PW R3)"
 Chan009CompOn001,C1_COMP_09,COMPRESSOR,1,1,1208,0x04B8,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan009CompPar001,C1_COMP_09,COMPRESSOR,1,1,1215,0x04BF,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=100/[Lin],
 Chan009CompRat001,C1_COMP_09,COMPRESSOR,1,1,1210,0x04BA,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=1/127=30/[Log],
@@ -1642,7 +1642,7 @@ Chan010CompKey001,C1_COMP_10,COMPRESSOR,1,1,1361,0x0551,rw,InstantCtl,Instant,0,
 Chan010CompKnee001,C1_COMP_10,COMPRESSOR,1,1,1358,0x054E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan010CompLimMode001,C1_COMP_10,COMPRESSOR,1,1,1363,0x0553,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan010CompMake001,C1_COMP_10,COMPRESSOR,1,1,1357,0x054D,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=20/[Lin],
-Chan010CompMtr001,C1_MTR_10,METER,1,1,4647,0x1227,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-40, 0]"
+Chan010CompMtr001,C1_MTR_10,METER,1,1,4647,0x1227,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-80, 0] (PW R3)"
 Chan010CompOn001,C1_COMP_10,COMPRESSOR,1,1,1352,0x0548,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan010CompPar001,C1_COMP_10,COMPRESSOR,1,1,1359,0x054F,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=100/[Lin],
 Chan010CompRat001,C1_COMP_10,COMPRESSOR,1,1,1354,0x054A,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=1/127=30/[Log],
@@ -1749,7 +1749,7 @@ Chan011CompKey001,C1_COMP_11,COMPRESSOR,1,1,1505,0x05E1,rw,InstantCtl,Instant,0,
 Chan011CompKnee001,C1_COMP_11,COMPRESSOR,1,1,1502,0x05DE,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan011CompLimMode001,C1_COMP_11,COMPRESSOR,1,1,1507,0x05E3,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan011CompMake001,C1_COMP_11,COMPRESSOR,1,1,1501,0x05DD,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=20/[Lin],
-Chan011CompMtr001,C1_MTR_11,METER,1,1,4651,0x122B,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-40, 0]"
+Chan011CompMtr001,C1_MTR_11,METER,1,1,4651,0x122B,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-80, 0] (PW R3)"
 Chan011CompOn001,C1_COMP_11,COMPRESSOR,1,1,1496,0x05D8,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan011CompPar001,C1_COMP_11,COMPRESSOR,1,1,1503,0x05DF,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=100/[Lin],
 Chan011CompRat001,C1_COMP_11,COMPRESSOR,1,1,1498,0x05DA,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=1/127=30/[Log],
@@ -1856,7 +1856,7 @@ Chan012CompKey001,C1_COMP_12,COMPRESSOR,1,1,1649,0x0671,rw,InstantCtl,Instant,0,
 Chan012CompKnee001,C1_COMP_12,COMPRESSOR,1,1,1646,0x066E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan012CompLimMode001,C1_COMP_12,COMPRESSOR,1,1,1651,0x0673,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan012CompMake001,C1_COMP_12,COMPRESSOR,1,1,1645,0x066D,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=20/[Lin],
-Chan012CompMtr001,C1_MTR_12,METER,1,1,4655,0x122F,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-40, 0]"
+Chan012CompMtr001,C1_MTR_12,METER,1,1,4655,0x122F,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-80, 0] (PW R3)"
 Chan012CompOn001,C1_COMP_12,COMPRESSOR,1,1,1640,0x0668,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan012CompPar001,C1_COMP_12,COMPRESSOR,1,1,1647,0x066F,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=100/[Lin],
 Chan012CompRat001,C1_COMP_12,COMPRESSOR,1,1,1642,0x066A,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=1/127=30/[Log],
@@ -1963,7 +1963,7 @@ Chan013CompKey001,C1_COMP_13,COMPRESSOR,1,1,1793,0x0701,rw,InstantCtl,Instant,0,
 Chan013CompKnee001,C1_COMP_13,COMPRESSOR,1,1,1790,0x06FE,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan013CompLimMode001,C1_COMP_13,COMPRESSOR,1,1,1795,0x0703,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan013CompMake001,C1_COMP_13,COMPRESSOR,1,1,1789,0x06FD,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=20/[Lin],
-Chan013CompMtr001,C1_MTR_13,METER,1,1,4659,0x1233,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-40, 0]"
+Chan013CompMtr001,C1_MTR_13,METER,1,1,4659,0x1233,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-80, 0] (PW R3)"
 Chan013CompOn001,C1_COMP_13,COMPRESSOR,1,1,1784,0x06F8,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan013CompPar001,C1_COMP_13,COMPRESSOR,1,1,1791,0x06FF,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=100/[Lin],
 Chan013CompRat001,C1_COMP_13,COMPRESSOR,1,1,1786,0x06FA,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=1/127=30/[Log],
@@ -2070,7 +2070,7 @@ Chan014CompKey001,C1_COMP_14,COMPRESSOR,1,1,1937,0x0791,rw,InstantCtl,Instant,0,
 Chan014CompKnee001,C1_COMP_14,COMPRESSOR,1,1,1934,0x078E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan014CompLimMode001,C1_COMP_14,COMPRESSOR,1,1,1939,0x0793,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan014CompMake001,C1_COMP_14,COMPRESSOR,1,1,1933,0x078D,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=20/[Lin],
-Chan014CompMtr001,C1_MTR_14,METER,1,1,4663,0x1237,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-40, 0]"
+Chan014CompMtr001,C1_MTR_14,METER,1,1,4663,0x1237,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-80, 0] (PW R3)"
 Chan014CompOn001,C1_COMP_14,COMPRESSOR,1,1,1928,0x0788,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan014CompPar001,C1_COMP_14,COMPRESSOR,1,1,1935,0x078F,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=100/[Lin],
 Chan014CompRat001,C1_COMP_14,COMPRESSOR,1,1,1930,0x078A,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=1/127=30/[Log],
@@ -2177,7 +2177,7 @@ Chan015CompKey001,C1_COMP_15,COMPRESSOR,1,1,2081,0x0821,rw,InstantCtl,Instant,0,
 Chan015CompKnee001,C1_COMP_15,COMPRESSOR,1,1,2078,0x081E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan015CompLimMode001,C1_COMP_15,COMPRESSOR,1,1,2083,0x0823,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan015CompMake001,C1_COMP_15,COMPRESSOR,1,1,2077,0x081D,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=20/[Lin],
-Chan015CompMtr001,C1_MTR_15,METER,1,1,4667,0x123B,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-40, 0]"
+Chan015CompMtr001,C1_MTR_15,METER,1,1,4667,0x123B,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-80, 0] (PW R3)"
 Chan015CompOn001,C1_COMP_15,COMPRESSOR,1,1,2072,0x0818,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan015CompPar001,C1_COMP_15,COMPRESSOR,1,1,2079,0x081F,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=100/[Lin],
 Chan015CompRat001,C1_COMP_15,COMPRESSOR,1,1,2074,0x081A,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=1/127=30/[Log],
@@ -2284,7 +2284,7 @@ Chan016CompKey001,C1_COMP_16,COMPRESSOR,1,1,2225,0x08B1,rw,InstantCtl,Instant,0,
 Chan016CompKnee001,C1_COMP_16,COMPRESSOR,1,1,2222,0x08AE,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan016CompLimMode001,C1_COMP_16,COMPRESSOR,1,1,2227,0x08B3,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan016CompMake001,C1_COMP_16,COMPRESSOR,1,1,2221,0x08AD,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=20/[Lin],
-Chan016CompMtr001,C1_MTR_16,METER,1,1,4671,0x123F,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-40, 0]"
+Chan016CompMtr001,C1_MTR_16,METER,1,1,4671,0x123F,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-80, 0] (PW R3)"
 Chan016CompOn001,C1_COMP_16,COMPRESSOR,1,1,2216,0x08A8,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan016CompPar001,C1_COMP_16,COMPRESSOR,1,1,2223,0x08AF,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=100/[Lin],
 Chan016CompRat001,C1_COMP_16,COMPRESSOR,1,1,2218,0x08AA,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=1/127=30/[Log],
@@ -2391,7 +2391,7 @@ Chan017CompKey001,C1_COMP_17,COMPRESSOR,1,1,2369,0x0941,rw,InstantCtl,Instant,0,
 Chan017CompKnee001,C1_COMP_17,COMPRESSOR,1,1,2366,0x093E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan017CompLimMode001,C1_COMP_17,COMPRESSOR,1,1,2371,0x0943,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan017CompMake001,C1_COMP_17,COMPRESSOR,1,1,2365,0x093D,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=20/[Lin],
-Chan017CompMtr001,C1_MTR_17,METER,1,1,4675,0x1243,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-40, 0]"
+Chan017CompMtr001,C1_MTR_17,METER,1,1,4675,0x1243,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-80, 0] (PW R3)"
 Chan017CompOn001,C1_COMP_17,COMPRESSOR,1,1,2360,0x0938,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan017CompPar001,C1_COMP_17,COMPRESSOR,1,1,2367,0x093F,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=100/[Lin],
 Chan017CompRat001,C1_COMP_17,COMPRESSOR,1,1,2362,0x093A,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=1/127=30/[Log],
@@ -2498,7 +2498,7 @@ Chan018CompKey001,C1_COMP_18,COMPRESSOR,1,1,2513,0x09D1,rw,InstantCtl,Instant,0,
 Chan018CompKnee001,C1_COMP_18,COMPRESSOR,1,1,2510,0x09CE,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan018CompLimMode001,C1_COMP_18,COMPRESSOR,1,1,2515,0x09D3,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan018CompMake001,C1_COMP_18,COMPRESSOR,1,1,2509,0x09CD,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=20/[Lin],
-Chan018CompMtr001,C1_MTR_18,METER,1,1,4679,0x1247,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-40, 0]"
+Chan018CompMtr001,C1_MTR_18,METER,1,1,4679,0x1247,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-80, 0] (PW R3)"
 Chan018CompOn001,C1_COMP_18,COMPRESSOR,1,1,2504,0x09C8,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan018CompPar001,C1_COMP_18,COMPRESSOR,1,1,2511,0x09CF,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=100/[Lin],
 Chan018CompRat001,C1_COMP_18,COMPRESSOR,1,1,2506,0x09CA,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=1/127=30/[Log],
@@ -2605,7 +2605,7 @@ Chan019CompKey001,C1_COMP_19,COMPRESSOR,1,1,2657,0x0A61,rw,InstantCtl,Instant,0,
 Chan019CompKnee001,C1_COMP_19,COMPRESSOR,1,1,2654,0x0A5E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan019CompLimMode001,C1_COMP_19,COMPRESSOR,1,1,2659,0x0A63,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan019CompMake001,C1_COMP_19,COMPRESSOR,1,1,2653,0x0A5D,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=20/[Lin],
-Chan019CompMtr001,C1_MTR_19,METER,1,1,4683,0x124B,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-40, 0]"
+Chan019CompMtr001,C1_MTR_19,METER,1,1,4683,0x124B,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-80, 0] (PW R3)"
 Chan019CompOn001,C1_COMP_19,COMPRESSOR,1,1,2648,0x0A58,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan019CompPar001,C1_COMP_19,COMPRESSOR,1,1,2655,0x0A5F,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=100/[Lin],
 Chan019CompRat001,C1_COMP_19,COMPRESSOR,1,1,2650,0x0A5A,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=1/127=30/[Log],
@@ -2712,7 +2712,7 @@ Chan020CompKey001,C1_COMP_20,COMPRESSOR,1,1,2801,0x0AF1,rw,InstantCtl,Instant,0,
 Chan020CompKnee001,C1_COMP_20,COMPRESSOR,1,1,2798,0x0AEE,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan020CompLimMode001,C1_COMP_20,COMPRESSOR,1,1,2803,0x0AF3,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan020CompMake001,C1_COMP_20,COMPRESSOR,1,1,2797,0x0AED,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=20/[Lin],
-Chan020CompMtr001,C1_MTR_20,METER,1,1,4687,0x124F,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-40, 0]"
+Chan020CompMtr001,C1_MTR_20,METER,1,1,4687,0x124F,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-80, 0] (PW R3)"
 Chan020CompOn001,C1_COMP_20,COMPRESSOR,1,1,2792,0x0AE8,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan020CompPar001,C1_COMP_20,COMPRESSOR,1,1,2799,0x0AEF,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=100/[Lin],
 Chan020CompRat001,C1_COMP_20,COMPRESSOR,1,1,2794,0x0AEA,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=1/127=30/[Log],
@@ -2819,7 +2819,7 @@ Chan021CompKey001,C1_COMP_21,COMPRESSOR,1,1,2945,0x0B81,rw,InstantCtl,Instant,0,
 Chan021CompKnee001,C1_COMP_21,COMPRESSOR,1,1,2942,0x0B7E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan021CompLimMode001,C1_COMP_21,COMPRESSOR,1,1,2947,0x0B83,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan021CompMake001,C1_COMP_21,COMPRESSOR,1,1,2941,0x0B7D,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=20/[Lin],
-Chan021CompMtr001,C1_MTR_21,METER,1,1,4691,0x1253,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-40, 0]"
+Chan021CompMtr001,C1_MTR_21,METER,1,1,4691,0x1253,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-80, 0] (PW R3)"
 Chan021CompOn001,C1_COMP_21,COMPRESSOR,1,1,2936,0x0B78,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan021CompPar001,C1_COMP_21,COMPRESSOR,1,1,2943,0x0B7F,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=100/[Lin],
 Chan021CompRat001,C1_COMP_21,COMPRESSOR,1,1,2938,0x0B7A,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=1/127=30/[Log],
@@ -2926,7 +2926,7 @@ Chan022CompKey001,C1_COMP_22,COMPRESSOR,1,1,3089,0x0C11,rw,InstantCtl,Instant,0,
 Chan022CompKnee001,C1_COMP_22,COMPRESSOR,1,1,3086,0x0C0E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan022CompLimMode001,C1_COMP_22,COMPRESSOR,1,1,3091,0x0C13,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan022CompMake001,C1_COMP_22,COMPRESSOR,1,1,3085,0x0C0D,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=20/[Lin],
-Chan022CompMtr001,C1_MTR_22,METER,1,1,4695,0x1257,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-40, 0]"
+Chan022CompMtr001,C1_MTR_22,METER,1,1,4695,0x1257,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-80, 0] (PW R3)"
 Chan022CompOn001,C1_COMP_22,COMPRESSOR,1,1,3080,0x0C08,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan022CompPar001,C1_COMP_22,COMPRESSOR,1,1,3087,0x0C0F,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=100/[Lin],
 Chan022CompRat001,C1_COMP_22,COMPRESSOR,1,1,3082,0x0C0A,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=1/127=30/[Log],
@@ -3033,7 +3033,7 @@ Chan023CompKey001,C1_COMP_23,COMPRESSOR,1,1,3233,0x0CA1,rw,InstantCtl,Instant,0,
 Chan023CompKnee001,C1_COMP_23,COMPRESSOR,1,1,3230,0x0C9E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan023CompLimMode001,C1_COMP_23,COMPRESSOR,1,1,3235,0x0CA3,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan023CompMake001,C1_COMP_23,COMPRESSOR,1,1,3229,0x0C9D,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=20/[Lin],
-Chan023CompMtr001,C1_MTR_23,METER,1,1,4699,0x125B,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-40, 0]"
+Chan023CompMtr001,C1_MTR_23,METER,1,1,4699,0x125B,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-80, 0] (PW R3)"
 Chan023CompOn001,C1_COMP_23,COMPRESSOR,1,1,3224,0x0C98,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan023CompPar001,C1_COMP_23,COMPRESSOR,1,1,3231,0x0C9F,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=100/[Lin],
 Chan023CompRat001,C1_COMP_23,COMPRESSOR,1,1,3226,0x0C9A,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=1/127=30/[Log],
@@ -3140,7 +3140,7 @@ Chan024CompKey001,C1_COMP_24,COMPRESSOR,1,1,3377,0x0D31,rw,InstantCtl,Instant,0,
 Chan024CompKnee001,C1_COMP_24,COMPRESSOR,1,1,3374,0x0D2E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan024CompLimMode001,C1_COMP_24,COMPRESSOR,1,1,3379,0x0D33,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan024CompMake001,C1_COMP_24,COMPRESSOR,1,1,3373,0x0D2D,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=20/[Lin],
-Chan024CompMtr001,C1_MTR_24,METER,1,1,4703,0x125F,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-40, 0]"
+Chan024CompMtr001,C1_MTR_24,METER,1,1,4703,0x125F,ro,,Instant,0,0,Linear,Scalar,,"meter word +3: compressor gain reduction, dB, clamped to [-80, 0] (PW R3)"
 Chan024CompOn001,C1_COMP_24,COMPRESSOR,1,1,3368,0x0D28,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan024CompPar001,C1_COMP_24,COMPRESSOR,1,1,3375,0x0D2F,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=100/[Lin],
 Chan024CompRat001,C1_COMP_24,COMPRESSOR,1,1,3370,0x0D2A,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=1/127=30/[Log],
@@ -3836,6 +3836,9 @@ MainCtr001EqGain002,C2_MAIN_OEQ_03,EQ_BIQUAD,2,1,1535,0x05FF,rw,EqSafe,LinearFra
 MainCtr001EqGain003,C2_MAIN_OEQ_03,EQ_BIQUAD,2,1,1540,0x0604,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,0=-15/60=15/[Lin],Band 3 (same base)
 MainCtr001EqGain004,C2_MAIN_OEQ_03,EQ_BIQUAD,2,1,1545,0x0609,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,0=-15/60=15/[Lin],Band 4 (same base)
 MainCtr001EqHpf001,C2_MAIN_OEQ_03,EQ_BIQUAD,2,1,1530,0x05FA,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,0=20/64=1000/[Log],HPF via EQ band 1
+MainCtr001EqHpf002,C2_MAIN_OEQ_03,EQ_BIQUAD,2,1,1535,0x05FF,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,0=20/64=1000/[Log],HPF via EQ band 2
+MainCtr001EqHpf003,C2_MAIN_OEQ_03,EQ_BIQUAD,2,1,1540,0x0604,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,0=20/64=1000/[Log],HPF via EQ band 3
+MainCtr001EqHpf004,C2_MAIN_OEQ_03,EQ_BIQUAD,2,1,1545,0x0609,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,0=20/64=1000/[Log],HPF via EQ band 4
 MainCtr001EqOn001,C2_MAIN_OEQ_03,EQ_BIQUAD,2,1,1551,0x060F,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,
 MainCtr001EqQ001,C2_MAIN_OEQ_03,EQ_BIQUAD,2,1,1530,0x05FA,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,0=0.1/14=10/[Log],Band 1 (same base)
 MainCtr001EqQ002,C2_MAIN_OEQ_03,EQ_BIQUAD,2,1,1535,0x05FF,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,0=0.1/14=10/[Log],Band 2 (same base)
@@ -3843,11 +3846,13 @@ MainCtr001EqQ003,C2_MAIN_OEQ_03,EQ_BIQUAD,2,1,1540,0x0604,rw,EqSafe,LinearFrames
 MainCtr001EqQ004,C2_MAIN_OEQ_03,EQ_BIQUAD,2,1,1545,0x0609,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,0=0.1/14=10/[Log],Band 4 (same base)
 MainCtr001EqShelf001,C2_MAIN_OEQ_03,EQ_BIQUAD,2,1,1530,0x05FA,rw,InstantCtl,Instant,0,0,Linear,Scalar,,Shelf mode band 1
 MainCtr001EqShelf002,C2_MAIN_OEQ_03,EQ_BIQUAD,2,1,1545,0x0609,rw,InstantCtl,Instant,0,0,Linear,Scalar,,Shelf mode band 4
+MainCtr001Level001,C2_MAIN_OUT_03,OUTPUT_TDM,2,1,2171,0x087B,rw,GainFast,Slew,3,8,Exp,Scalar,dB:Off:-50@31:-30@63:-10@127:10,
 MainCtr001LimiterAtt001,C2_MAIN_OLIM_03,LIMITER,2,1,1572,0x0624,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=0.1/127=100/[Log],
 MainCtr001LimiterOn001,C2_MAIN_OLIM_03,LIMITER,2,1,1570,0x0622,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 MainCtr001LimiterRel001,C2_MAIN_OLIM_03,LIMITER,2,1,1573,0x0625,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=5/127=2000/[Log],
 MainCtr001LimiterThr001,C2_MAIN_OLIM_03,LIMITER,2,1,1571,0x0623,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=-30/127=0/[Lin],
 MainCtr001Mtr001,C2_MTR_MAIN_03,METER,2,1,1833,0x0729,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
+MainCtr001Mute001,C2_MAIN_OUT_03,OUTPUT_TDM,2,1,2172,0x087C,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 MainL001CompAtt001,C2_MAIN_OCOMP_01,COMPRESSOR,2,1,1467,0x05BB,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=0/254=250/[Log],
 MainL001CompDetSrc001,C2_MAIN_OCOMP_01,COMPRESSOR,2,1,1474,0x05C2,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 MainL001CompEqPos001,C2_MAIN_OCOMP_01,COMPRESSOR,2,1,1476,0x05C4,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -3876,6 +3881,9 @@ MainL001EqGain002,C2_MAIN_OEQ_01,EQ_BIQUAD,2,1,1445,0x05A5,rw,EqSafe,LinearFrame
 MainL001EqGain003,C2_MAIN_OEQ_01,EQ_BIQUAD,2,1,1450,0x05AA,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,0=-15/60=15/[Lin],Band 3 (same base)
 MainL001EqGain004,C2_MAIN_OEQ_01,EQ_BIQUAD,2,1,1455,0x05AF,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,0=-15/60=15/[Lin],Band 4 (same base)
 MainL001EqHpf001,C2_MAIN_OEQ_01,EQ_BIQUAD,2,1,1440,0x05A0,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,0=20/64=1000/[Log],HPF via EQ band 1
+MainL001EqHpf002,C2_MAIN_OEQ_01,EQ_BIQUAD,2,1,1445,0x05A5,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,0=20/64=1000/[Log],HPF via EQ band 2
+MainL001EqHpf003,C2_MAIN_OEQ_01,EQ_BIQUAD,2,1,1450,0x05AA,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,0=20/64=1000/[Log],HPF via EQ band 3
+MainL001EqHpf004,C2_MAIN_OEQ_01,EQ_BIQUAD,2,1,1455,0x05AF,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,0=20/64=1000/[Log],HPF via EQ band 4
 MainL001EqOn001,C2_MAIN_OEQ_01,EQ_BIQUAD,2,1,1461,0x05B5,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,
 MainL001EqQ001,C2_MAIN_OEQ_01,EQ_BIQUAD,2,1,1440,0x05A0,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,0=0.1/14=10/[Log],Band 1 (same base)
 MainL001EqQ002,C2_MAIN_OEQ_01,EQ_BIQUAD,2,1,1445,0x05A5,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,0=0.1/14=10/[Log],Band 2 (same base)
@@ -3883,11 +3891,13 @@ MainL001EqQ003,C2_MAIN_OEQ_01,EQ_BIQUAD,2,1,1450,0x05AA,rw,EqSafe,LinearFrames,1
 MainL001EqQ004,C2_MAIN_OEQ_01,EQ_BIQUAD,2,1,1455,0x05AF,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,0=0.1/14=10/[Log],Band 4 (same base)
 MainL001EqShelf001,C2_MAIN_OEQ_01,EQ_BIQUAD,2,1,1440,0x05A0,rw,InstantCtl,Instant,0,0,Linear,Scalar,,Shelf mode band 1
 MainL001EqShelf002,C2_MAIN_OEQ_01,EQ_BIQUAD,2,1,1455,0x05AF,rw,InstantCtl,Instant,0,0,Linear,Scalar,,Shelf mode band 4
+MainL001Level001,C2_MAIN_OUT_01,OUTPUT_TDM,2,1,2167,0x0877,rw,GainFast,Slew,3,8,Exp,Scalar,dB:Off:-50@31:-30@63:-10@127:10,
 MainL001LimiterAtt001,C2_MAIN_OLIM_01,LIMITER,2,1,1482,0x05CA,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=0.1/127=100/[Log],
 MainL001LimiterOn001,C2_MAIN_OLIM_01,LIMITER,2,1,1480,0x05C8,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 MainL001LimiterRel001,C2_MAIN_OLIM_01,LIMITER,2,1,1483,0x05CB,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=5/127=2000/[Log],
 MainL001LimiterThr001,C2_MAIN_OLIM_01,LIMITER,2,1,1481,0x05C9,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=-30/127=0/[Lin],
 MainL001Mtr001,C2_MTR_MAIN_01,METER,2,1,1829,0x0725,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
+MainL001Mute001,C2_MAIN_OUT_01,OUTPUT_TDM,2,1,2168,0x0878,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 MainR001CompAtt001,C2_MAIN_OCOMP_02,COMPRESSOR,2,1,1512,0x05E8,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=0/254=250/[Log],
 MainR001CompDetSrc001,C2_MAIN_OCOMP_02,COMPRESSOR,2,1,1519,0x05EF,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 MainR001CompEqPos001,C2_MAIN_OCOMP_02,COMPRESSOR,2,1,1521,0x05F1,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -3916,6 +3926,9 @@ MainR001EqGain002,C2_MAIN_OEQ_02,EQ_BIQUAD,2,1,1490,0x05D2,rw,EqSafe,LinearFrame
 MainR001EqGain003,C2_MAIN_OEQ_02,EQ_BIQUAD,2,1,1495,0x05D7,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,0=-15/60=15/[Lin],Band 3 (same base)
 MainR001EqGain004,C2_MAIN_OEQ_02,EQ_BIQUAD,2,1,1500,0x05DC,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,0=-15/60=15/[Lin],Band 4 (same base)
 MainR001EqHpf001,C2_MAIN_OEQ_02,EQ_BIQUAD,2,1,1485,0x05CD,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,0=20/64=1000/[Log],HPF via EQ band 1
+MainR001EqHpf002,C2_MAIN_OEQ_02,EQ_BIQUAD,2,1,1490,0x05D2,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,0=20/64=1000/[Log],HPF via EQ band 2
+MainR001EqHpf003,C2_MAIN_OEQ_02,EQ_BIQUAD,2,1,1495,0x05D7,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,0=20/64=1000/[Log],HPF via EQ band 3
+MainR001EqHpf004,C2_MAIN_OEQ_02,EQ_BIQUAD,2,1,1500,0x05DC,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,0=20/64=1000/[Log],HPF via EQ band 4
 MainR001EqOn001,C2_MAIN_OEQ_02,EQ_BIQUAD,2,1,1506,0x05E2,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,
 MainR001EqQ001,C2_MAIN_OEQ_02,EQ_BIQUAD,2,1,1485,0x05CD,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,0=0.1/14=10/[Log],Band 1 (same base)
 MainR001EqQ002,C2_MAIN_OEQ_02,EQ_BIQUAD,2,1,1490,0x05D2,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,0=0.1/14=10/[Log],Band 2 (same base)
@@ -3923,11 +3936,13 @@ MainR001EqQ003,C2_MAIN_OEQ_02,EQ_BIQUAD,2,1,1495,0x05D7,rw,EqSafe,LinearFrames,1
 MainR001EqQ004,C2_MAIN_OEQ_02,EQ_BIQUAD,2,1,1500,0x05DC,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,0=0.1/14=10/[Log],Band 4 (same base)
 MainR001EqShelf001,C2_MAIN_OEQ_02,EQ_BIQUAD,2,1,1485,0x05CD,rw,InstantCtl,Instant,0,0,Linear,Scalar,,Shelf mode band 1
 MainR001EqShelf002,C2_MAIN_OEQ_02,EQ_BIQUAD,2,1,1500,0x05DC,rw,InstantCtl,Instant,0,0,Linear,Scalar,,Shelf mode band 4
+MainR001Level001,C2_MAIN_OUT_02,OUTPUT_TDM,2,1,2169,0x0879,rw,GainFast,Slew,3,8,Exp,Scalar,dB:Off:-50@31:-30@63:-10@127:10,
 MainR001LimiterAtt001,C2_MAIN_OLIM_02,LIMITER,2,1,1527,0x05F7,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=0.1/127=100/[Log],
 MainR001LimiterOn001,C2_MAIN_OLIM_02,LIMITER,2,1,1525,0x05F5,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 MainR001LimiterRel001,C2_MAIN_OLIM_02,LIMITER,2,1,1528,0x05F8,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=5/127=2000/[Log],
 MainR001LimiterThr001,C2_MAIN_OLIM_02,LIMITER,2,1,1526,0x05F6,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=-30/127=0/[Lin],
 MainR001Mtr001,C2_MTR_MAIN_02,METER,2,1,1831,0x0727,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
+MainR001Mute001,C2_MAIN_OUT_02,OUTPUT_TDM,2,1,2170,0x087A,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 MainSub001CompAtt001,C2_MAIN_OCOMP_04,COMPRESSOR,2,1,1602,0x0642,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=0/254=250/[Log],
 MainSub001CompDetSrc001,C2_MAIN_OCOMP_04,COMPRESSOR,2,1,1609,0x0649,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 MainSub001CompEqPos001,C2_MAIN_OCOMP_04,COMPRESSOR,2,1,1611,0x064B,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -3963,11 +3978,13 @@ MainSub001EqQ003,C2_MAIN_OEQ_04,EQ_BIQUAD,2,1,1585,0x0631,rw,EqSafe,LinearFrames
 MainSub001EqQ004,C2_MAIN_OEQ_04,EQ_BIQUAD,2,1,1590,0x0636,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,0=0.1/14=10/[Log],Band 4 (same base)
 MainSub001EqShelf001,C2_MAIN_OEQ_04,EQ_BIQUAD,2,1,1575,0x0627,rw,InstantCtl,Instant,0,0,Linear,Scalar,,Shelf mode band 1
 MainSub001EqShelf002,C2_MAIN_OEQ_04,EQ_BIQUAD,2,1,1590,0x0636,rw,InstantCtl,Instant,0,0,Linear,Scalar,,Shelf mode band 4
+MainSub001Level001,C2_MAIN_OUT_04,OUTPUT_TDM,2,1,2173,0x087D,rw,GainFast,Slew,3,8,Exp,Scalar,dB:Off:-50@31:-30@63:-10@127:10,
 MainSub001LimiterAtt001,C2_MAIN_OLIM_04,LIMITER,2,1,1617,0x0651,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=0.1/127=100/[Log],
 MainSub001LimiterOn001,C2_MAIN_OLIM_04,LIMITER,2,1,1615,0x064F,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 MainSub001LimiterRel001,C2_MAIN_OLIM_04,LIMITER,2,1,1618,0x0652,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=5/127=2000/[Log],
 MainSub001LimiterThr001,C2_MAIN_OLIM_04,LIMITER,2,1,1616,0x0650,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,0=-30/127=0/[Lin],
 MainSub001Mtr001,C2_MTR_MAIN_04,METER,2,1,1835,0x072B,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
+MainSub001Mute001,C2_MAIN_OUT_04,OUTPUT_TDM,2,1,2174,0x087E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Matrix001Level001,C2_MTX_FDR_01,FADER_PAN,2,1,2003,0x07D3,rw,GainFast,Slew,3,8,Exp,Scalar,dB:Off:-50@31:-30@63:-10@127:10,
 Matrix001Mute001,C2_MTX_FDR_01,FADER_PAN,2,1,2005,0x07D5,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Matrix002Level001,C2_MTX_FDR_02,FADER_PAN,2,1,2008,0x07D8,rw,GainFast,Slew,3,8,Exp,Scalar,dB:Off:-50@31:-30@63:-10@127:10,

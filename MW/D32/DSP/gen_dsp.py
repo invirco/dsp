@@ -416,8 +416,33 @@ def expand_eq_biquad(node, cat, inst):
     # HPF cell — for non-channel contexts (Aux/Grp/Sub/Main) where there's
     # no separate HPF_LPF node, HPF is band-1 of the EQ biquad.
     # Main output zones allow any band as HPF (fun 1-4); others only band 1.
+    #
+    # S24: THE MAIN OUTPUT STRIPS ARE MAIN OUTPUT ZONES AND THIS TEST DID
+    # NOT SAY SO. `cat == 'Main'` is the main BUS strip (C2_MAIN_FDR/GEQ/DLY
+    # /XOVER); the four POST-CROSSOVER output EQs carry cat MainL / MainR /
+    # MainCtr / MainSub (see _MAIN_OUT_STRIP), so they took the `else` and
+    # got one HPF each while the masters declare `Main{L,R,Ctr,Sub}[1-1]
+    # EqHpf[1-4]` -- which is exactly the "any band as HPF" this comment
+    # already claims. Bands 2-4 therefore appeared in dsp-unmapped.csv as
+    # no-graph-node when the graph already had the node and the words.
+    #
+    # It costs NO ARITHMETIC AND NO ADDRESS: every EqHpf cell aliases the
+    # band's own coefficient base, exactly as band 1 always did, so the
+    # design step that turns a frequency into biquad coefficients is the one
+    # already there and the only thing that changes is that three more cells
+    # can reach it.
+    #
+    # THE BAND COUNT IS THE MASTER'S, NOT THIS LOOP'S. add_cell() emits only
+    # what the product's cell set actually defines, so `MainSub[1-1]
+    # EqHpf[1-1]` gets ONE and `MainL[1-1]EqHpf[1-4]` gets four off the same
+    # four iterations -- which is also why this survives PW ruling R2 either
+    # way it lands. R2 says the mains carry the aux EQ complement and lists
+    # `EqHpf` without a multiplicity; if the hub lands that as `EqHpf[1-1]`
+    # on the mains, bands 2-4 simply stop being defined and stop being
+    # emitted, with no change here. R2's multiplicity is worth confirming
+    # rather than reading off a list.
     if cat not in ('Chan', ''):
-        if cat == 'Main':
+        if cat == 'Main' or cat in _MAIN_OUT:
             for b in range(1, bands + 1):
                 band_base = base + (b - 1) * 5
                 add_cell(cn(cat, inst, 'EqHpf', b), chip, pg, band_base,
@@ -840,8 +865,9 @@ _METER_TAPS = {
     # address and NOT ONE existing address moves; what would have moved
     # every meter on both chips is inserting the word at DM offset +3,
     # which is the mistake dsp_codegen.py::_mtr_comp_gr() is written not
-    # to make. The word is dB of gain reduction, clamped to [-40, 0].
-    'comp_gr':     ('CompMtr', 1,    3, '_mtr_cgr_', 'meter word +3: compressor gain reduction, dB, clamped to [-40, 0]'),
+    # to make. The word is dB of gain reduction, clamped to [-80, 0]
+    # (PW ruling R3, 2026-09-10; S23 built it at [-40, 0]).
+    'comp_gr':     ('CompMtr', 1,    3, '_mtr_cgr_', 'meter word +3: compressor gain reduction, dB, clamped to [-80, 0] (PW R3)'),
 }
 
 # Meter taps a node declares that reach no DSP word: cell name -> reason.
@@ -1076,6 +1102,40 @@ def expand_monitor(node, cat, inst):
         add_dispatch(chip, base + off, None, f'{nid} spare')
 
 
+# ── OUTPUT_TDM ──────────────────────────────────────────────────────────
+def expand_output_tdm(node, cat, inst):
+    """The output strip's own level and mute (S24).
+
+    Only the nodes that carry an `mo_page`/`mo_addr` param have them --
+    gen_dsp_csv.py puts that pair on the four post-crossover main outputs
+    and on nothing else, so every other OUTPUT_TDM node in the graph is
+    still a no-op and its rows are untouched.
+
+    The pair is a SECOND SPI block, allocated after every other chip-2
+    address, so these two cells move nothing. `Delay` is deliberately NOT
+    emitted: the master defines it, the node has no delay line, and giving
+    it one is an L2 commitment rather than a cell -- it stays in
+    dsp-unmapped.csv with its own reason.
+    """
+    chip, pg, base, nid, ramp = _parse_node(node)
+    prm = parse_params(node.get('params', ''))
+    if 'mo_page' not in prm:
+        return
+    mo_pg = int(prm['mo_page'])
+    mo_base = int(prm['mo_addr'])
+
+    # The dB table is the master's own for these four strips
+    # (`dB:Off:-50@31:-30@63:-10@127:10`), the same one every other output
+    # level in this generator carries.
+    add_cell(cn(cat, inst, 'Level', 1), chip, mo_pg, mo_base,
+             'dB:Off:-50@31:-30@63:-10@127:10', 'GainFast')
+    add_dispatch(chip, mo_base, f'_out_level_{nid}', f'{nid} output level')
+
+    add_cell(cn(cat, inst, 'Mute', 1), chip, mo_pg, mo_base + 1,
+             '', 'InstantCtl')
+    add_dispatch(chip, mo_base + 1, f'_out_mute_{nid}', f'{nid} output mute')
+
+
 # ── AUX_INPUT (USB/BT) ──────────────────────────────────────────────────
 def expand_aux_input(node, cat, inst):
     chip, pg, base, nid, ramp = _parse_node(node)
@@ -1177,7 +1237,7 @@ NODE_EXPANDERS = {
     'DCA':            expand_dca,
     'MIX_BUS':        expand_mix_bus,
     'INPUT_TDM':      expand_noop,
-    'OUTPUT_TDM':     expand_noop,
+    'OUTPUT_TDM':     expand_output_tdm,
     'INTERCHIP_SEND': expand_noop,
     'INTERCHIP_RECV': expand_noop,
 }
@@ -1213,6 +1273,11 @@ _GRP_TYPES  = r'FDR|EQ|GEQ|GATE|COMP'
 # address. `None` means exactly what it means everywhere else in this
 # table -- the node reaches no cell -- and get_node_context() still
 # refuses ids no pattern names at all.
+# The four post-crossover output strips in master spelling. Declared HERE,
+# above every use of it: the EQ expansion needs it (S24, EqHpf bands 2-4)
+# and that runs long before the unmapped-reason table this used to sit in.
+_MAIN_OUT = ('MainL', 'MainR', 'MainCtr', 'MainSub')
+
 _MAIN_OUT_STRIP = {1: ('MainL', 1), 2: ('MainR', 1),
                    3: ('MainCtr', 1), 4: ('MainSub', 1)}
 
@@ -1269,7 +1334,14 @@ _NODE_PATTERNS = [
     # MainL / MainR / MainCtr / MainSub, in DAC_13..DAC_16 order.
     (re.compile(r'^C2_MAIN_O(?:EQ|COMP|LIM)_(\d+)$'),
      lambda m: _main_out_strip(int(m.group(1)))),
-    (re.compile(r'^C2_MAIN_OUT_(\d+)$'),                       lambda m: None),
+    # S24: THE OUTPUT NODE REACHES CELLS NOW. It used to be `None` because
+    # the post-crossover chain had no word for the strip's own Level/Mute
+    # (the Q1 reason in _UNMAPPED_REASONS); the OUTPUT_TDM node carries them
+    # itself since S24, in a second SPI block allocated after every other
+    # chip-2 address (`mo_page`/`mo_addr`), so it maps to the same master
+    # strip its EQ/COMP/LIM already do.
+    (re.compile(r'^C2_MAIN_OUT_(\d+)$'),
+     lambda m: _main_out_strip(int(m.group(1)))),
     (re.compile(r'^C2_MIX_'),                                  lambda m: None),
     # Matrix outputs (Chip 2). The master gives Matrix[1-4] exactly Level,
     # Mute and Name -- no EQ, no delay, no limiter, no meter -- so the strip
@@ -1348,7 +1420,19 @@ def expand_all_nodes(nodes):
 
         if ctx is None:
             # Node doesn't map to cells — may still need dispatch (e.g. MIX_BUS)
-            if spi_addr >= 0 and expander is not expand_noop:
+            #
+            # OUTPUT_TDM is a NO-OP EXCEPT ON THE FOUR MAIN OUTPUTS (S24).
+            # It stopped being expand_noop when the main outputs got their
+            # own Level/Mute, and without this the aux/matrix/monitor/codec
+            # output nodes -- which map to no master cell and never did --
+            # would all start demanding an _UNREACHED_REASONS entry for a
+            # state that has not changed. The marker is the same one the
+            # expander itself keys on, so the two cannot drift: no
+            # `mo_page`, no cells, nothing to explain.
+            _out_noop = (expander is expand_output_tdm
+                         and 'mo_page' not in parse_params(
+                             node.get('params', '')))
+            if spi_addr >= 0 and expander is not expand_noop and not _out_noop:
                 if expander is not expand_mix_bus:
                     uncatalogued_nodes[nid] = (ntype, unreached_reason(nid))
                 expander(node, '', 0)
@@ -2230,13 +2314,18 @@ UNMAPPED_CSV_COLUMNS = ['_Cell', 'Class', 'Reason']
 #   s1-2-no-behaviour   S1-2 families that became definitions again at
 #                       defs-v2026.09.08 with no DSP behaviour yet.
 # ---------------------------------------------------------------------------
-_MAIN_OUT = ('MainL', 'MainR', 'MainCtr', 'MainSub')
-
 _UNMAPPED_REASONS = {
     ('*', 'Name'): ('label', 'text label; the host stores it, the DSP has no word for it'),
-    ('Aux', 'PickOff'): ('no-graph-node',
-        'aux-master send pickoff; the DSP pickoff is per crosspoint '
-        '(Chan*AuxPick*) and there is no aux-master word — open question Q4'),
+    # PW RULING R4 (2026-09-10) — this is NOT a missing DSP function.
+    # `Chan*AuxPick*` (four positions: PreEQ / PostEQ / PreFdr / PostFdr) is
+    # the ONLY DSP truth and every channel is independent; `Aux*PickOff` is
+    # an APP BATCH BUTTON that writes all channels for that aux, with no
+    # word of its own and nothing for a kernel to read. So it stops being a
+    # DSP function the graph has failed to build and becomes what it is.
+    ('Aux', 'PickOff'): ('host-managed',
+        'app batch control, not a DSP word: it writes every channel\'s '
+        'Chan*AuxPick* for that aux, which is the only DSP truth '
+        '(PW ruling R4, 2026-09-10 — was open question Q4)'),
     ('Bt', 'Src'): ('hardware-control', 'Bluetooth receiver source select — MCU hardware control'),
     ('Card', 'Type'): ('hardware-control', 'option-card type, reported by the MCU'),
     ('Chan', 'AntiClip'): ('no-graph-node', 'per-channel anti-clip; no node in the graph implements it'),
@@ -2249,9 +2338,19 @@ _UNMAPPED_REASONS = {
         '(Mon001InputSel001) that the host writes — open question Q5'),
     ('Chan', 'InsertOn'): ('hardware-control', 'analogue insert relay'),
     ('Chan', 'Instr'): ('hardware-control', 'instrument / Hi-Z input mode'),
+    # PW RULING R5 (2026-09-10) — SPECIFIED, NOT BUILT, and the reason is
+    # named rather than left as "no node". ONE pan table for the mixer:
+    # 127 positions x (gL, gC, gR) in DM, `Sys[1-1]LcrLaw[1-1]` (a new defs
+    # cell the hub lands) selects which law is loaded, every channel's Pan
+    # is an INDEX into it, and `Chan*CtrOn` still gates the centre leg.
     ('Chan', 'LcrOn'): ('no-graph-node',
-        'LCR pan law; the router has MainOn and CtrOn and no LCR divergence '
-        '— open question Q6'),
+        'LCR per channel. The LAW is ruled (PW R5: one 127 x (gL,gC,gR) '
+        'table, Sys[1]LcrLaw[1] selects it, Pan indexes it) and the cell '
+        'that selects it has not landed in defs yet. Not built in S24 for '
+        'a second reason worth stating: R5 amended puts NON-LCR channels on '
+        'the same table too, so it changes the pan law of every strip on a '
+        'chip whose code pool is at 90.7% — it needs its own gate and a '
+        'pan-law witness, not a tail-end addition (S24)'),
     ('Chan', 'Link'): ('surface-state', 'stereo link of adjacent strips; the host writes both strips'),
     ('Chan', 'MatrixOn'): ('no-graph-node', 'matrix mixer (def key mtx); the graph builds no matrix node'),
     ('Chan', 'MatrixSend'): ('no-graph-node', 'matrix mixer (def key mtx); the graph builds no matrix node'),
@@ -2263,9 +2362,19 @@ _UNMAPPED_REASONS = {
         'FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node'),
     ('Fx', 'AuxSend'): ('no-graph-node',
         'FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node'),
-    ('Fx', 'DuckThr'): ('s1-2-no-behaviour',
-        'S1-2: FxDuckThr is a definition again at defs-v2026.09.08. The FX '
-        'engine has DuckOn and DuckSens words and no threshold word — Q7'),
+    # PW RULING R1 (2026-09-10) — the cell is REAL and its meaning is
+    # settled: ducking is a sidechain compressor on the return keyed from
+    # the dry signal, `DuckThr` is the dry level in dB above which the
+    # return is pulled down (-60..0) and `DuckSens` is the DEPTH of that
+    # pull (0..-40), with attack/release fixed constants (~10 ms / 300 ms)
+    # and no cells. Not built in S24: it is a new sidechain per return on
+    # the chip whose worst-use row already overruns, so it is priced and
+    # gated like any other chip-2 addition, not appended.
+    ('Fx', 'DuckThr'): ('no-graph-node',
+        'FX ducker threshold — the dry level in dB above which the return '
+        'is pulled down, -60..0 (PW ruling R1, 2026-09-10; was Q7). The FX '
+        'engine has DuckOn and DuckSens and no threshold word, and the '
+        'ducking sidechain itself is unbuilt (S24)'),
     ('Fx', 'MuteAll'): ('control-plane', 'mute all FX returns; host fold onto the six return mutes'),
     ('Fx', 'MuteGrp'): ('control-plane', 'mute-group membership; host fold onto the return mute'),
     ('Fx', 'PedAssign'): ('surface-state', 'footswitch assignment'),
@@ -2291,13 +2400,20 @@ _UNMAPPED_REASONS = {
         '(On, Gain, Hpf, Dest1) and the graph gives it no more'),
 }
 for _s in _MAIN_OUT:
-    _q1 = ('no-graph-node',
-           'post-crossover output chain {} has EQ + COMP + LIM and no '
-           'FADER_PAN or DELAY node, so the strip\'s own level, mute and '
-           'delay reach no word — open question Q1'.format(_s))
-    _UNMAPPED_REASONS[(_s, 'Level')] = _q1
-    _UNMAPPED_REASONS[(_s, 'Mute')] = _q1
-    _UNMAPPED_REASONS[(_s, 'Delay')] = _q1
+    # S24: Level and Mute ARE built now -- the OUTPUT_TDM node carries them
+    # in a second SPI block (expand_output_tdm), so they are no longer
+    # unmapped and their Q1 entries are gone. DELAY is not, and its reason
+    # is now the honest one: it is not a missing cell, it is a missing
+    # delay LINE.
+    _UNMAPPED_REASONS[(_s, 'Delay')] = ('no-graph-node',
+        'post-crossover output chain {} has EQ + COMP + LIM + OUTPUT_TDM '
+        'and no delay line. Level and Mute are built (S24); Delay is not, '
+        'and the reason is memory rather than cells: the master asks for '
+        '250 ms, which is 12,000 words = 48,000 bytes of chip-2 L2 per '
+        'output, 192,000 for all four against 378,464 free on the S24 '
+        'candidate (51%). It FITS and it is still PW\'s call, because it '
+        'is half the delay headroom left on a chip whose worst-use row '
+        'already overruns — measured, S24'.format(_s))
     _UNMAPPED_REASONS[(_s, 'LimiterRng')] = ('no-graph-node',
         'limiter range; the LIMITER node carries On, Thr, Att and Rel and no '
         'range word')

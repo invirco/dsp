@@ -15,35 +15,35 @@ _Cell,Class,Reason
 Aux001Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux001DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux001Name001,label,"text label; the host stores it, the DSP has no word for it"
-Aux001PickOff001,no-graph-node,aux-master send pickoff; the DSP pickoff is per crosspoint (Chan*AuxPick*) and there is no aux-master word — open question Q4
+Aux001PickOff001,host-managed,"app batch control, not a DSP word: it writes every channel's Chan*AuxPick* for that aux, which is the only DSP truth (PW ruling R4, 2026-09-10 — was open question Q4)"
 Aux002Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux002DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux002Name001,label,"text label; the host stores it, the DSP has no word for it"
-Aux002PickOff001,no-graph-node,aux-master send pickoff; the DSP pickoff is per crosspoint (Chan*AuxPick*) and there is no aux-master word — open question Q4
+Aux002PickOff001,host-managed,"app batch control, not a DSP word: it writes every channel's Chan*AuxPick* for that aux, which is the only DSP truth (PW ruling R4, 2026-09-10 — was open question Q4)"
 Aux003Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux003DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux003Name001,label,"text label; the host stores it, the DSP has no word for it"
-Aux003PickOff001,no-graph-node,aux-master send pickoff; the DSP pickoff is per crosspoint (Chan*AuxPick*) and there is no aux-master word — open question Q4
+Aux003PickOff001,host-managed,"app batch control, not a DSP word: it writes every channel's Chan*AuxPick* for that aux, which is the only DSP truth (PW ruling R4, 2026-09-10 — was open question Q4)"
 Aux004Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux004DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux004Name001,label,"text label; the host stores it, the DSP has no word for it"
-Aux004PickOff001,no-graph-node,aux-master send pickoff; the DSP pickoff is per crosspoint (Chan*AuxPick*) and there is no aux-master word — open question Q4
+Aux004PickOff001,host-managed,"app batch control, not a DSP word: it writes every channel's Chan*AuxPick* for that aux, which is the only DSP truth (PW ruling R4, 2026-09-10 — was open question Q4)"
 Aux005Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux005DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux005Name001,label,"text label; the host stores it, the DSP has no word for it"
-Aux005PickOff001,no-graph-node,aux-master send pickoff; the DSP pickoff is per crosspoint (Chan*AuxPick*) and there is no aux-master word — open question Q4
+Aux005PickOff001,host-managed,"app batch control, not a DSP word: it writes every channel's Chan*AuxPick* for that aux, which is the only DSP truth (PW ruling R4, 2026-09-10 — was open question Q4)"
 Aux006Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux006DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux006Name001,label,"text label; the host stores it, the DSP has no word for it"
-Aux006PickOff001,no-graph-node,aux-master send pickoff; the DSP pickoff is per crosspoint (Chan*AuxPick*) and there is no aux-master word — open question Q4
+Aux006PickOff001,host-managed,"app batch control, not a DSP word: it writes every channel's Chan*AuxPick* for that aux, which is the only DSP truth (PW ruling R4, 2026-09-10 — was open question Q4)"
 Aux007Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux007DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux007Name001,label,"text label; the host stores it, the DSP has no word for it"
-Aux007PickOff001,no-graph-node,aux-master send pickoff; the DSP pickoff is per crosspoint (Chan*AuxPick*) and there is no aux-master word — open question Q4
+Aux007PickOff001,host-managed,"app batch control, not a DSP word: it writes every channel's Chan*AuxPick* for that aux, which is the only DSP truth (PW ruling R4, 2026-09-10 — was open question Q4)"
 Aux008Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux008DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Aux008Name001,label,"text label; the host stores it, the DSP has no word for it"
-Aux008PickOff001,no-graph-node,aux-master send pickoff; the DSP pickoff is per crosspoint (Chan*AuxPick*) and there is no aux-master word — open question Q4
+Aux008PickOff001,host-managed,"app batch control, not a DSP word: it writes every channel's Chan*AuxPick* for that aux, which is the only DSP truth (PW ruling R4, 2026-09-10 — was open question Q4)"
 Bt001Src001,hardware-control,Bluetooth receiver source select — MCU hardware control
 Chan001AntiClip001,no-graph-node,per-channel anti-clip; no node in the graph implements it
 Chan001Color001,surface-state,strip colour on the surface
@@ -561,7 +561,7 @@ Fdr005Grp023,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP addre
 Fdr005Grp024,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
 Fx001Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Fx001DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
-Fx001DuckThr001,s1-2-no-behaviour,S1-2: FxDuckThr is a definition again at defs-v2026.09.08. The FX engine has DuckOn and DuckSens words and no threshold word — Q7
+Fx001DuckThr001,no-graph-node,"FX ducker threshold — the dry level in dB above which the return is pulled down, -60..0 (PW ruling R1, 2026-09-10; was Q7). The FX engine has DuckOn and DuckSens and no threshold word, and the ducking sidechain itself is unbuilt (S24)"
 Fx001MuteAll001,control-plane,mute all FX returns; host fold onto the six return mutes
 Fx001MuteGrp001,control-plane,mute-group membership; host fold onto the return mute
 Fx001MuteGrp002,control-plane,mute-group membership; host fold onto the return mute
@@ -581,7 +581,7 @@ Fx001ReturnWetLock001,surface-state,UI lock on the return wet control
 Fx001Tap001,control-plane,tap tempo; the host computes and writes Fx*DelayTime*
 Fx002Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Fx002DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
-Fx002DuckThr001,s1-2-no-behaviour,S1-2: FxDuckThr is a definition again at defs-v2026.09.08. The FX engine has DuckOn and DuckSens words and no threshold word — Q7
+Fx002DuckThr001,no-graph-node,"FX ducker threshold — the dry level in dB above which the return is pulled down, -60..0 (PW ruling R1, 2026-09-10; was Q7). The FX engine has DuckOn and DuckSens and no threshold word, and the ducking sidechain itself is unbuilt (S24)"
 Fx002MuteGrp001,control-plane,mute-group membership; host fold onto the return mute
 Fx002MuteGrp002,control-plane,mute-group membership; host fold onto the return mute
 Fx002MuteGrp003,control-plane,mute-group membership; host fold onto the return mute
@@ -600,7 +600,7 @@ Fx002ReturnWetLock001,surface-state,UI lock on the return wet control
 Fx002Tap001,control-plane,tap tempo; the host computes and writes Fx*DelayTime*
 Fx003Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Fx003DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
-Fx003DuckThr001,s1-2-no-behaviour,S1-2: FxDuckThr is a definition again at defs-v2026.09.08. The FX engine has DuckOn and DuckSens words and no threshold word — Q7
+Fx003DuckThr001,no-graph-node,"FX ducker threshold — the dry level in dB above which the return is pulled down, -60..0 (PW ruling R1, 2026-09-10; was Q7). The FX engine has DuckOn and DuckSens and no threshold word, and the ducking sidechain itself is unbuilt (S24)"
 Fx003MuteGrp001,control-plane,mute-group membership; host fold onto the return mute
 Fx003MuteGrp002,control-plane,mute-group membership; host fold onto the return mute
 Fx003MuteGrp003,control-plane,mute-group membership; host fold onto the return mute
@@ -619,7 +619,7 @@ Fx003ReturnWetLock001,surface-state,UI lock on the return wet control
 Fx003Tap001,control-plane,tap tempo; the host computes and writes Fx*DelayTime*
 Fx004Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Fx004DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
-Fx004DuckThr001,s1-2-no-behaviour,S1-2: FxDuckThr is a definition again at defs-v2026.09.08. The FX engine has DuckOn and DuckSens words and no threshold word — Q7
+Fx004DuckThr001,no-graph-node,"FX ducker threshold — the dry level in dB above which the return is pulled down, -60..0 (PW ruling R1, 2026-09-10; was Q7). The FX engine has DuckOn and DuckSens and no threshold word, and the ducking sidechain itself is unbuilt (S24)"
 Fx004MuteGrp001,control-plane,mute-group membership; host fold onto the return mute
 Fx004MuteGrp002,control-plane,mute-group membership; host fold onto the return mute
 Fx004MuteGrp003,control-plane,mute-group membership; host fold onto the return mute
@@ -638,7 +638,7 @@ Fx004ReturnWetLock001,surface-state,UI lock on the return wet control
 Fx004Tap001,control-plane,tap tempo; the host computes and writes Fx*DelayTime*
 Fx005Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Fx005DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
-Fx005DuckThr001,s1-2-no-behaviour,S1-2: FxDuckThr is a definition again at defs-v2026.09.08. The FX engine has DuckOn and DuckSens words and no threshold word — Q7
+Fx005DuckThr001,no-graph-node,"FX ducker threshold — the dry level in dB above which the return is pulled down, -60..0 (PW ruling R1, 2026-09-10; was Q7). The FX engine has DuckOn and DuckSens and no threshold word, and the ducking sidechain itself is unbuilt (S24)"
 Fx005MuteGrp001,control-plane,mute-group membership; host fold onto the return mute
 Fx005MuteGrp002,control-plane,mute-group membership; host fold onto the return mute
 Fx005MuteGrp003,control-plane,mute-group membership; host fold onto the return mute
@@ -657,7 +657,7 @@ Fx005ReturnWetLock001,surface-state,UI lock on the return wet control
 Fx005Tap001,control-plane,tap tempo; the host computes and writes Fx*DelayTime*
 Fx006Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Fx006DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
-Fx006DuckThr001,s1-2-no-behaviour,S1-2: FxDuckThr is a definition again at defs-v2026.09.08. The FX engine has DuckOn and DuckSens words and no threshold word — Q7
+Fx006DuckThr001,no-graph-node,"FX ducker threshold — the dry level in dB above which the return is pulled down, -60..0 (PW ruling R1, 2026-09-10; was Q7). The FX engine has DuckOn and DuckSens and no threshold word, and the ducking sidechain itself is unbuilt (S24)"
 Fx006MuteGrp001,control-plane,mute-group membership; host fold onto the return mute
 Fx006MuteGrp002,control-plane,mute-group membership; host fold onto the return mute
 Fx006MuteGrp003,control-plane,mute-group membership; host fold onto the return mute
@@ -693,13 +693,8 @@ Main001Name001,label,"text label; the host stores it, the DSP has no word for it
 Main001Out3Mode001,no-graph-node,D24 centre-output mode (def key main.ctr); C2_MAIN_XOVER feeds all four outputs unconditionally and no word selects output 3's source — open question Q2
 MainCtr001Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 MainCtr001DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
-MainCtr001Delay001,no-graph-node,"post-crossover output chain MainCtr has EQ + COMP + LIM and no FADER_PAN or DELAY node, so the strip's own level, mute and delay reach no word — open question Q1"
-MainCtr001EqHpf002,no-graph-node,HPF on EQ bands 2-4; the generator gives a non-Main strip one HPF (band 1) and the masters give the output strips four — open question Q8
-MainCtr001EqHpf003,no-graph-node,HPF on EQ bands 2-4; the generator gives a non-Main strip one HPF (band 1) and the masters give the output strips four — open question Q8
-MainCtr001EqHpf004,no-graph-node,HPF on EQ bands 2-4; the generator gives a non-Main strip one HPF (band 1) and the masters give the output strips four — open question Q8
-MainCtr001Level001,no-graph-node,"post-crossover output chain MainCtr has EQ + COMP + LIM and no FADER_PAN or DELAY node, so the strip's own level, mute and delay reach no word — open question Q1"
+MainCtr001Delay001,no-graph-node,"post-crossover output chain MainCtr has EQ + COMP + LIM + OUTPUT_TDM and no delay line. Level and Mute are built (S24); Delay is not, and the reason is memory rather than cells: the master asks for 250 ms, which is 12,000 words = 48,000 bytes of chip-2 L2 per output, 192,000 for all four against 378,464 free on the S24 candidate (51%). It FITS and it is still PW's call, because it is half the delay headroom left on a chip whose worst-use row already overruns — measured, S24"
 MainCtr001LimiterRng001,no-graph-node,"limiter range; the LIMITER node carries On, Thr, Att and Rel and no range word"
-MainCtr001Mute001,no-graph-node,"post-crossover output chain MainCtr has EQ + COMP + LIM and no FADER_PAN or DELAY node, so the strip's own level, mute and delay reach no word — open question Q1"
 MainCtr001Name001,label,"text label; the host stores it, the DSP has no word for it"
 MainCtr001PeqGain001,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
 MainCtr001PeqGain002,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
@@ -715,13 +710,8 @@ MainCtr001PeqGain011,s1-2-no-behaviour,S1-2: PeqGain is a definition again at de
 MainCtr001PeqGain012,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
 MainL001Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 MainL001DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
-MainL001Delay001,no-graph-node,"post-crossover output chain MainL has EQ + COMP + LIM and no FADER_PAN or DELAY node, so the strip's own level, mute and delay reach no word — open question Q1"
-MainL001EqHpf002,no-graph-node,HPF on EQ bands 2-4; the generator gives a non-Main strip one HPF (band 1) and the masters give the output strips four — open question Q8
-MainL001EqHpf003,no-graph-node,HPF on EQ bands 2-4; the generator gives a non-Main strip one HPF (band 1) and the masters give the output strips four — open question Q8
-MainL001EqHpf004,no-graph-node,HPF on EQ bands 2-4; the generator gives a non-Main strip one HPF (band 1) and the masters give the output strips four — open question Q8
-MainL001Level001,no-graph-node,"post-crossover output chain MainL has EQ + COMP + LIM and no FADER_PAN or DELAY node, so the strip's own level, mute and delay reach no word — open question Q1"
+MainL001Delay001,no-graph-node,"post-crossover output chain MainL has EQ + COMP + LIM + OUTPUT_TDM and no delay line. Level and Mute are built (S24); Delay is not, and the reason is memory rather than cells: the master asks for 250 ms, which is 12,000 words = 48,000 bytes of chip-2 L2 per output, 192,000 for all four against 378,464 free on the S24 candidate (51%). It FITS and it is still PW's call, because it is half the delay headroom left on a chip whose worst-use row already overruns — measured, S24"
 MainL001LimiterRng001,no-graph-node,"limiter range; the LIMITER node carries On, Thr, Att and Rel and no range word"
-MainL001Mute001,no-graph-node,"post-crossover output chain MainL has EQ + COMP + LIM and no FADER_PAN or DELAY node, so the strip's own level, mute and delay reach no word — open question Q1"
 MainL001Name001,label,"text label; the host stores it, the DSP has no word for it"
 MainL001PeqGain001,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
 MainL001PeqGain002,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
@@ -737,13 +727,8 @@ MainL001PeqGain011,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs
 MainL001PeqGain012,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
 MainR001Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 MainR001DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
-MainR001Delay001,no-graph-node,"post-crossover output chain MainR has EQ + COMP + LIM and no FADER_PAN or DELAY node, so the strip's own level, mute and delay reach no word — open question Q1"
-MainR001EqHpf002,no-graph-node,HPF on EQ bands 2-4; the generator gives a non-Main strip one HPF (band 1) and the masters give the output strips four — open question Q8
-MainR001EqHpf003,no-graph-node,HPF on EQ bands 2-4; the generator gives a non-Main strip one HPF (band 1) and the masters give the output strips four — open question Q8
-MainR001EqHpf004,no-graph-node,HPF on EQ bands 2-4; the generator gives a non-Main strip one HPF (band 1) and the masters give the output strips four — open question Q8
-MainR001Level001,no-graph-node,"post-crossover output chain MainR has EQ + COMP + LIM and no FADER_PAN or DELAY node, so the strip's own level, mute and delay reach no word — open question Q1"
+MainR001Delay001,no-graph-node,"post-crossover output chain MainR has EQ + COMP + LIM + OUTPUT_TDM and no delay line. Level and Mute are built (S24); Delay is not, and the reason is memory rather than cells: the master asks for 250 ms, which is 12,000 words = 48,000 bytes of chip-2 L2 per output, 192,000 for all four against 378,464 free on the S24 candidate (51%). It FITS and it is still PW's call, because it is half the delay headroom left on a chip whose worst-use row already overruns — measured, S24"
 MainR001LimiterRng001,no-graph-node,"limiter range; the LIMITER node carries On, Thr, Att and Rel and no range word"
-MainR001Mute001,no-graph-node,"post-crossover output chain MainR has EQ + COMP + LIM and no FADER_PAN or DELAY node, so the strip's own level, mute and delay reach no word — open question Q1"
 MainR001Name001,label,"text label; the host stores it, the DSP has no word for it"
 MainR001PeqGain001,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
 MainR001PeqGain002,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
@@ -759,10 +744,8 @@ MainR001PeqGain011,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs
 MainR001PeqGain012,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
 MainSub001Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 MainSub001DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
-MainSub001Delay001,no-graph-node,"post-crossover output chain MainSub has EQ + COMP + LIM and no FADER_PAN or DELAY node, so the strip's own level, mute and delay reach no word — open question Q1"
-MainSub001Level001,no-graph-node,"post-crossover output chain MainSub has EQ + COMP + LIM and no FADER_PAN or DELAY node, so the strip's own level, mute and delay reach no word — open question Q1"
+MainSub001Delay001,no-graph-node,"post-crossover output chain MainSub has EQ + COMP + LIM + OUTPUT_TDM and no delay line. Level and Mute are built (S24); Delay is not, and the reason is memory rather than cells: the master asks for 250 ms, which is 12,000 words = 48,000 bytes of chip-2 L2 per output, 192,000 for all four against 378,464 free on the S24 candidate (51%). It FITS and it is still PW's call, because it is half the delay headroom left on a chip whose worst-use row already overruns — measured, S24"
 MainSub001LimiterRng001,no-graph-node,"limiter range; the LIMITER node carries On, Thr, Att and Rel and no range word"
-MainSub001Mute001,no-graph-node,"post-crossover output chain MainSub has EQ + COMP + LIM and no FADER_PAN or DELAY node, so the strip's own level, mute and delay reach no word — open question Q1"
 MainSub001Name001,label,"text label; the host stores it, the DSP has no word for it"
 Matrix001Name001,label,"text label; the host stores it, the DSP has no word for it"
 Matrix002Name001,label,"text label; the host stores it, the DSP has no word for it"

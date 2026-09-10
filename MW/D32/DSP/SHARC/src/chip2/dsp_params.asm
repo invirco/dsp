@@ -8,7 +8,7 @@
  * indexes this table to route parameter writes directly to node
  * coefficient variables.
  *
- * 2168 entries (SPI addresses 0x0000–0x0876)
+ * 2176 entries (SPI addresses 0x0000–0x087E)
  *======================================================================*/
 
 .section/dm seg_dmda;
@@ -707,17 +707,25 @@
 .extern _mtr_rms_C2_MTR_MAIN_02;
 .extern _mtr_rms_C2_MTR_MAIN_03;
 .extern _mtr_rms_C2_MTR_MAIN_04;
+.extern _out_level_C2_MAIN_OUT_01;
+.extern _out_level_C2_MAIN_OUT_02;
+.extern _out_level_C2_MAIN_OUT_03;
+.extern _out_level_C2_MAIN_OUT_04;
+.extern _out_mute_C2_MAIN_OUT_01;
+.extern _out_mute_C2_MAIN_OUT_02;
+.extern _out_mute_C2_MAIN_OUT_03;
+.extern _out_mute_C2_MAIN_OUT_04;
 .extern _xover_coeffs_next_C2_MAIN_XOVER;
 .extern _xover_freq_C2_MAIN_XOVER;
 .extern _xover_slope_C2_MAIN_XOVER;
 
 /* ---- Table size for the SPI handler bounds check ---- */
 .global _spi_dispatch_c2_size;
-.var _spi_dispatch_c2_size = 2168;
+.var _spi_dispatch_c2_size = 2176;
 
-/* ---- Chip 2 SPI dispatch table (2168 entries) ---- */
+/* ---- Chip 2 SPI dispatch table (2176 entries) ---- */
 .global _spi_dispatch_c2;
-.var _spi_dispatch_c2[2168] =
+.var _spi_dispatch_c2[2176] =
     _fdr_level_C2_AUX_FDR_01,    /* 0x0000: C2_AUX_FDR_01 level */
     _fdr_pan_C2_AUX_FDR_01,    /* 0x0001: C2_AUX_FDR_01 pan */
     _fdr_mute_C2_AUX_FDR_01,    /* 0x0002: C2_AUX_FDR_01 mute */
@@ -2885,9 +2893,17 @@
     _mix_send_C2_MIX_AUX_12 + 3,    /* 0x0874: C2_MIX_AUX_12 Fx4 AuxSend */
     _mix_send_C2_MIX_AUX_12 + 4,    /* 0x0875: C2_MIX_AUX_12 Fx5 AuxSend */
     _mix_send_C2_MIX_AUX_12 + 5,    /* 0x0876: C2_MIX_AUX_12 Fx6 AuxSend */
-    0;  /* 0x0877 */
+    _out_level_C2_MAIN_OUT_01,    /* 0x0877: C2_MAIN_OUT_01 output level */
+    _out_mute_C2_MAIN_OUT_01,    /* 0x0878: C2_MAIN_OUT_01 output mute */
+    _out_level_C2_MAIN_OUT_02,    /* 0x0879: C2_MAIN_OUT_02 output level */
+    _out_mute_C2_MAIN_OUT_02,    /* 0x087A: C2_MAIN_OUT_02 output mute */
+    _out_level_C2_MAIN_OUT_03,    /* 0x087B: C2_MAIN_OUT_03 output level */
+    _out_mute_C2_MAIN_OUT_03,    /* 0x087C: C2_MAIN_OUT_03 output mute */
+    _out_level_C2_MAIN_OUT_04,    /* 0x087D: C2_MAIN_OUT_04 output level */
+    _out_mute_C2_MAIN_OUT_04,    /* 0x087E: C2_MAIN_OUT_04 output mute */
+    0;  /* 0x087F */
 
-/* ---- Chip 2 ramp-stride table (2168 entries) ---- */
+/* ---- Chip 2 ramp-stride table (2176 entries) ---- */
 /*
  * Companion to the dispatch table above, same indexing.
  *   0      -- no ramp state; the SPI handler writes the word directly
@@ -2898,10 +2914,10 @@
  * length -- 12 for AuxSend, 6 for FxSend. Writing those at +1/+2/+3
  * lands on the NEIGHBOURING crosspoint's level instead.
  *
- * 166 ramped entries; strides {1: 94, 6: 72}
+ * 170 ramped entries; strides {1: 98, 6: 72}
  */
 .global _spi_dispatch_c2_stride;
-.var _spi_dispatch_c2_stride[2168] =
+.var _spi_dispatch_c2_stride[2176] =
     1,  /* 0x0000: C2_AUX_FDR_01 level */
     1,  /* 0x0001: C2_AUX_FDR_01 pan */
     0,  /* 0x0002: C2_AUX_FDR_01 mute */
@@ -5069,9 +5085,17 @@
     6,  /* 0x0874: C2_MIX_AUX_12 Fx4 AuxSend */
     6,  /* 0x0875: C2_MIX_AUX_12 Fx5 AuxSend */
     6,  /* 0x0876: C2_MIX_AUX_12 Fx6 AuxSend */
-    0;  /* 0x0877 */
+    1,  /* 0x0877: C2_MAIN_OUT_01 output level */
+    0,  /* 0x0878: C2_MAIN_OUT_01 output mute */
+    1,  /* 0x0879: C2_MAIN_OUT_02 output level */
+    0,  /* 0x087A: C2_MAIN_OUT_02 output mute */
+    1,  /* 0x087B: C2_MAIN_OUT_03 output level */
+    0,  /* 0x087C: C2_MAIN_OUT_03 output mute */
+    1,  /* 0x087D: C2_MAIN_OUT_04 output level */
+    0,  /* 0x087E: C2_MAIN_OUT_04 output mute */
+    0;  /* 0x087F */
 
-/* ---- Chip 2 wire-unit conversion table (2168 entries) ---- */
+/* ---- Chip 2 wire-unit conversion table (2176 entries) ---- */
 /*
  * Companion to the dispatch table above, same indexing.
  * The SPI handler applies this to the incoming word BEFORE
@@ -5089,10 +5113,10 @@
  * kernel word gets a conversion, and every address that
  * family reaches carries it.
  *
- * 0 of 2168 addresses carry a conversion.
+ * 0 of 2176 addresses carry a conversion.
  */
 .global _spi_dispatch_c2_convert;
-.var _spi_dispatch_c2_convert[2168] =
+.var _spi_dispatch_c2_convert[2176] =
     0,  /* 0x0000: C2_AUX_FDR_01 level */
     0,  /* 0x0001: C2_AUX_FDR_01 pan */
     0,  /* 0x0002: C2_AUX_FDR_01 mute */
@@ -7260,9 +7284,17 @@
     0,  /* 0x0874: C2_MIX_AUX_12 Fx4 AuxSend */
     0,  /* 0x0875: C2_MIX_AUX_12 Fx5 AuxSend */
     0,  /* 0x0876: C2_MIX_AUX_12 Fx6 AuxSend */
-    0;  /* 0x0877 */
+    0,  /* 0x0877: C2_MAIN_OUT_01 output level */
+    0,  /* 0x0878: C2_MAIN_OUT_01 output mute */
+    0,  /* 0x0879: C2_MAIN_OUT_02 output level */
+    0,  /* 0x087A: C2_MAIN_OUT_02 output mute */
+    0,  /* 0x087B: C2_MAIN_OUT_03 output level */
+    0,  /* 0x087C: C2_MAIN_OUT_03 output mute */
+    0,  /* 0x087D: C2_MAIN_OUT_04 output level */
+    0,  /* 0x087E: C2_MAIN_OUT_04 output mute */
+    0;  /* 0x087F */
 
-/* ---- Chip 2 recompute (dirty) table (2168 entries) ---- */
+/* ---- Chip 2 recompute (dirty) table (2176 entries) ---- */
 /*
  * Companion to the dispatch table above, same indexing.
  *   0   -- the written word IS the kernel word; nothing more
@@ -7278,10 +7310,10 @@
  * gain arrived, instead of comparing every band against a
  * shadow on every block of every node.
  *
- * 757 of 2168 addresses raise a flag; 30 distinct flags.
+ * 757 of 2176 addresses raise a flag; 30 distinct flags.
  */
 .global _spi_dispatch_c2_dirty;
-.var _spi_dispatch_c2_dirty[2168] =
+.var _spi_dispatch_c2_dirty[2176] =
     0,  /* 0x0000: C2_AUX_FDR_01 level */
     0,  /* 0x0001: C2_AUX_FDR_01 pan */
     0,  /* 0x0002: C2_AUX_FDR_01 mute */
@@ -9449,7 +9481,15 @@
     0,  /* 0x0874: C2_MIX_AUX_12 Fx4 AuxSend */
     0,  /* 0x0875: C2_MIX_AUX_12 Fx5 AuxSend */
     0,  /* 0x0876: C2_MIX_AUX_12 Fx6 AuxSend */
-    0;  /* 0x0877 */
+    0,  /* 0x0877: C2_MAIN_OUT_01 output level */
+    0,  /* 0x0878: C2_MAIN_OUT_01 output mute */
+    0,  /* 0x0879: C2_MAIN_OUT_02 output level */
+    0,  /* 0x087A: C2_MAIN_OUT_02 output mute */
+    0,  /* 0x087B: C2_MAIN_OUT_03 output level */
+    0,  /* 0x087C: C2_MAIN_OUT_03 output mute */
+    0,  /* 0x087D: C2_MAIN_OUT_04 output level */
+    0,  /* 0x087E: C2_MAIN_OUT_04 output mute */
+    0;  /* 0x087F */
 
 /* Samples per millisecond, IEEE-754 float32 bits (48 at 48000 Hz). */
 .global _spi_dispatch_c2_spms;

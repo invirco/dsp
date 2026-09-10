@@ -41,10 +41,46 @@
 .global _mtr_wblk_C2_MAIN_OUT_02;
 .var _mtr_wblk_C2_MAIN_OUT_02[DSP4_BLOCK_SIZE];
 #endif
+.global _out_level_C2_MAIN_OUT_02;
+.var _out_level_C2_MAIN_OUT_02 = 1.0;      /* FLOAT, ramped */
+.global _out_level_target_C2_MAIN_OUT_02;
+.var _out_level_target_C2_MAIN_OUT_02 = 1.0;
+.global _out_level_step_C2_MAIN_OUT_02;
+.var _out_level_step_C2_MAIN_OUT_02 = 0.0;
+.global _out_level_frames_C2_MAIN_OUT_02;
+.var _out_level_frames_C2_MAIN_OUT_02 = 0;
+.global _out_mute_C2_MAIN_OUT_02;
+.var _out_mute_C2_MAIN_OUT_02 = 0;
+.global _out_coeff_C2_MAIN_OUT_02;
+.var _out_coeff_C2_MAIN_OUT_02 = 0x10000000;  /* Q4.28 fold */
 
 .section/pm seg_pmco;
 .global _C2_MAIN_OUT_02_process;
 _C2_MAIN_OUT_02_process:
+    /* ---- level ramp + mute, folded once per BLOCK ---- */
+    r4 = dm(_out_level_frames_C2_MAIN_OUT_02);
+    r15 = 1;
+    r4 = r4 - r15;
+    if le jump (pc, .osnap_C2_MAIN_OUT_02);
+    dm(_out_level_frames_C2_MAIN_OUT_02) = r4;
+    f1 = dm(_out_level_C2_MAIN_OUT_02);
+    f2 = dm(_out_level_step_C2_MAIN_OUT_02);
+    f1 = f1 + f2;
+    dm(_out_level_C2_MAIN_OUT_02) = f1;
+    jump (pc, .ocvt_C2_MAIN_OUT_02);
+.osnap_C2_MAIN_OUT_02:
+    f1 = dm(_out_level_target_C2_MAIN_OUT_02);
+    dm(_out_level_C2_MAIN_OUT_02) = f1;
+.ocvt_C2_MAIN_OUT_02:
+    r4 = 0x4D800000;              /* 2^28 as a float */
+    f2 = r4;
+    f1 = f1 * f2;
+    r4 = fix f1;
+    r6 = 0;                       /* mute -> coefficient 0 */
+    r7 = dm(_out_mute_C2_MAIN_OUT_02);
+    r7 = pass r7;
+    if ne r4 = r6;
+    dm(_out_coeff_C2_MAIN_OUT_02) = r4;
 #if DSP4_BLOCK_KERNELS
     l0 = 0;
     l1 = 0;
@@ -54,6 +90,37 @@ _C2_MAIN_OUT_02_process:
     i1 = _tx_out_slot_C2_MAIN_OUT_02;
     i2 = _blk_C2_MAIN_OUT_02;
     i3 = _mtr_wblk_C2_MAIN_OUT_02;
+    /* unity and unmuted -> the copy path, unchanged */
+    r12 = dm(_out_coeff_C2_MAIN_OUT_02);
+    r13 = 0x10000000;
+    comp(r12, r13);
+    if eq jump (pc, .ocopy_C2_MAIN_OUT_02);
+    r7 = 0x08000000;              /* 2^27, the round half */
+    r13 = 1;
+    r10 = 0x7FFFFFFF;
+    lcntr = DSP4_BLOCK_SIZE, do .otm_C2_MAIN_OUT_02 until lce;
+        r0 = dm(i0, 1);
+        mrf = r0 * r12 (ssi);
+        mrf = mrf + r7 * r13 (ssi);
+        r8 = mr0f;
+        r2 = mr1f;
+        r8 = lshift r8 by -28;
+        r9 = lshift r2 by 4;
+        r0 = r8 or r9;
+        r8 = ashift r2 by -28;
+        r9 = ashift r0 by -31;
+        r11 = ashift r2 by -31;
+        r11 = r10 xor r11;
+        comp(r8, r9);
+        if ne r0 = r11;
+        dm(i1, 1) = r0;
+        r1 = ashift r0 by -4;   /* Q4.28 -> Q8.24 */
+        dm(i3, 1) = r1;
+    .otm_C2_MAIN_OUT_02: dm(i2, 1) = r0;
+    dm(_mtr_wide_C2_MAIN_OUT_02) = r1;
+    jump (pc, .odone_C2_MAIN_OUT_02);
+.ocopy_C2_MAIN_OUT_02:
+    i3 = _mtr_wblk_C2_MAIN_OUT_02;
     lcntr = DSP4_BLOCK_SIZE, do .otk_C2_MAIN_OUT_02 until lce;
         r0 = dm(i0, 1);
         dm(i1, 1) = r0;
@@ -62,6 +129,7 @@ _C2_MAIN_OUT_02_process:
     .otk_C2_MAIN_OUT_02: dm(i3, 1) = r1;
     dm(_mtr_wide_C2_MAIN_OUT_02) = r1;   /* last sample, for the
                                  * per-sample readers */
+.odone_C2_MAIN_OUT_02:
     /* _buf_ keeps the last sample: it is the scalar the
      * per-sample build publishes and nothing under block kernels
      * reads it, but leaving it stale would make a host peek at this
@@ -70,6 +138,13 @@ _C2_MAIN_OUT_02_process:
     rts;
 #else
     r0 = dm(_buf_C2_MAIN_OLIM_02);
+        r12 = dm(_out_coeff_C2_MAIN_OUT_02);
+        r13 = 0x10000000;
+        comp(r12, r13);
+        if eq jump (pc, .oscopy_C2_MAIN_OUT_02);
+        mrf = r0 * r12 (ssi);
+        call _mrf_rns28;
+    .oscopy_C2_MAIN_OUT_02:
     dm(_tx_out_slot_C2_MAIN_OUT_02) = r0;
     dm(_buf_C2_MAIN_OUT_02) = r0;
     r1 = ashift r0 by -4;    /* Q4.28 -> Q8.24 */

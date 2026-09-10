@@ -202,6 +202,68 @@ for cycle in 1 2 3; do
               --json "$P-D-fx$T.json" || RC=$?
   done
 
+  # ------------------------------------------------------------------
+  # THE USE LADDER (S24), OPTIONAL, ON THE SAME BOOT AS ROW C.
+  #
+  # S23's rows price every new node RUNNING and its write-up says in as
+  # many words what they do not price: the two costs proportional to USE.
+  # An aux sum whose six coefficients are all zero takes the block-level
+  # bypass; a matrix bus row whose thirty-two are all zero is skipped by
+  # the fabric for one compare per block. So a desk that actually sends an
+  # FX return to an aux, or a channel to a matrix, pays more than those
+  # rows show -- and by how much was the one capacity question S23 left
+  # open.
+  #
+  # Each rung is `fxaux:mtx` -- FX returns opened into EVERY aux bus, and
+  # strips opened into EVERY matrix bus. Every rung writes the WHOLE
+  # family, sources above the count explicitly off, so a rung is a
+  # complete state and the ladder can be read in any order:
+  #
+  #   USELEVELS="0:0 1:0 6:0 0:1 0:32 6:32"
+  #     0:0    the crosspoints closed -- the CONTROL, and it must
+  #            reproduce row C on this same boot or the ladder is not
+  #            measuring what it claims to
+  #     1:0    one FX return into each of the twelve aux buses: what a bus
+  #            costs when it stops being empty
+  #     6:0    all six: the per-crosspoint slope, (6:0 - 1:0) / 12 / 5
+  #     0:1    one strip into each of the four matrix buses
+  #     0:32   all thirty-two
+  #     6:32   WORST USE -- everything the desk can send, at once
+  #
+  # The FX-return aux crosspoints are chip 2's and the matrix sends are
+  # chip 1's, so both chips are written at every rung.
+  # ------------------------------------------------------------------
+  # A rung is `fxaux:mtx` or `fxaux/buses:mtx/buses` -- the second form
+  # is the BUS axis, which the first ladder said is the one that matters:
+  # 1:0 cost chip 2 9.77 points and 6:0 cost 0.11 more, so almost the
+  # whole price is a bus losing its bypass rather than a crosspoint doing
+  # a MAC. `1/4:0` = one FX return into aux buses 1-4 and nothing else.
+  for U in ${USELEVELS:-}; do
+      UF="${U%%:*}"; UM="${U##*:}"
+      UFB=0; UMB=0
+      case "$UF" in */*) UFB="${UF##*/}"; UF="${UF%%/*}" ;; esac
+      case "$UM" in */*) UMB="${UM##*/}"; UM="${UM%%/*}" ;; esac
+      T="$UF-$UFB-$UM-$UMB"
+      echo "--- rung use=$UF/${UFB:-all} aux : $UM/${UMB:-all} matrix" \
+           "(sources per bus / buses)"
+      for C in 1 2; do
+          python3 dsp4_driven_setup.py --chip $C --mode use \
+                  --use-fxaux "$UF" --use-fxaux-buses "$UFB" \
+                  --use-mtx "$UM" --use-mtx-buses "$UMB" \
+                  --landed "$LANDED" > "$P-use$T-c$C.log" 2>&1
+          echo "    chip $C: $(tail -1 "$P-use$T-c$C.log")"
+      done
+      python3 dsp4_c2regime.py --chip 2 --tag "use-$T" \
+              --json "$P-use$T-regime.json" \
+              > "$P-use$T-regime.log" 2>&1
+      RU=$?
+      grep -h "DRIVEN REGIME" "$P-use$T-regime.log" 2>/dev/null
+      [ "$RU" = "0" ] || echo "    REGIME NOT PROVEN (rc=$RU) -- the rung is"\
+          "taken anyway and labelled; see $P-use$T-regime.log"
+      python3 dsp4_capacity.py --dwell "${DWELL:-45}" --tag "use-$T" \
+              --json "$P-E-use$T.json" || RC=$?
+  done
+
   bash /home/app/drive_audio.sh stop >/dev/null 2>&1
   exit $RC
 done

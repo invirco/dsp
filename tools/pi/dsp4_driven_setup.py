@@ -233,6 +233,115 @@ FAM_CLASS = {
     'Mix': 'FX_ENGINE',
 }
 
+# ---------------------------------------------------------------------------
+# `--mode use`: THE USE-PROPORTIONAL COST (S24)
+# ---------------------------------------------------------------------------
+#
+# S23 priced every new node RUNNING and said so in as many words: its rows do
+# NOT include the two costs proportional to USE. An aux sum whose six
+# coefficients are all zero takes the block-level bypass, and a matrix bus row
+# whose thirty-two are all zero is skipped by the fabric for one compare per
+# block. `--mode load` writes both families wide open, which gives the WORST
+# use and no way to price one crosspoint; this mode writes them to a NAMED
+# COUNT so a ladder of rungs on one boot prices the two slopes separately:
+#
+#   * how much a BUS costs when it stops being empty (bypass/skip lost), and
+#   * how much each ADDITIONAL live source on that bus costs (one MAC).
+#
+# The count is the SOURCE instance, and every BUS is written at every rung --
+# so `--use-fxaux 1` means "one FX return into each of the twelve aux buses",
+# not "one crosspoint in the whole graph". That is what makes the difference
+# between two rungs divide by a bus count.
+#
+# EVERY RUNG WRITES THE WHOLE FAMILY, the sources above the count explicitly
+# OFF. A rung is therefore a complete state and not an increment on the rung
+# before it, so the ladder can be run in any order and a rung that fails
+# cannot silently contaminate the next one.
+#
+# The families are matched on the cell name's PREFIX as well as its suffix:
+# `AuxOn`/`AuxSend` is the same family suffix on `Chan<nn>AuxSend<m>` (a strip
+# into an aux, chip 1) and on `Fx<n>AuxSend<m>` (an FX return into an aux,
+# chip 2), and only the second is the S23 aux-sum crosspoint being priced
+# here. The first is opened by `--mode load` and stays where the load put it.
+USE_FAMS = {
+    'fxaux': ('Fx',   'AuxOn',    'AuxSend'),
+    'mtx':   ('Chan', 'MatrixOn', 'MatrixSend'),
+}
+
+
+def apply_use(sc, fams, counts, buses=None, verify=True):
+    """Write the use-proportional crosspoint families to a named count.
+
+    counts: {'fxaux': N, 'mtx': M} -- sources 1..N opened on each bus.
+    buses:  {'fxaux': B, 'mtx': C} -- and only on buses 1..B; None or 0
+            means every bus.
+
+    THE BUS AXIS EXISTS BECAUSE THE FIRST LADDER SAID IT WAS THE ONE THAT
+    MATTERS (S24). Opening one FX return into all twelve aux buses cost
+    chip 2 9.77 points; opening all six into all twelve cost 0.11 more.
+    Almost the whole price is a BUS losing its block-level bypass, not a
+    crosspoint doing a MAC -- so 'how many sources' is the cheap axis and
+    'how many buses' is the expensive one, and a ladder that cannot vary
+    the second cannot say how many aux buses a product can afford.
+
+    Opened cells get assign 1 and send 1.0 (linear, ramped); everything
+    else is closed (assign 0, send 0.0). Returns (written, failed, live)."""
+    buses = buses or {}
+    done = failed = live = 0
+    for key, n in sorted(counts.items()):
+        nb = buses.get(key) or 0
+        prefix, on_fam, send_fam = USE_FAMS[key]
+        for fam, (on_val, off_val, ramp) in (
+                (on_fam,   (1, 0, 0)),
+                (send_fam, (f32(1.0), f32(0.0), 1))):
+            cells = fams.get(fam, [])
+            sel = []
+            for cell, addr in cells:
+                m = CELL.match(cell)
+                if not m or m.group(1) != prefix:
+                    continue
+                # group 2 is the SOURCE instance (which FX return, which
+                # strip); group 4 is the BUS (which aux, which matrix).
+                sel.append((int(m.group(2) or 0), int(m.group(4) or 0),
+                            cell, addr))
+            if not sel:
+                print('  %-12s no %s* cell for this product' % (fam, prefix))
+                continue
+            ok = bad = opened = 0
+            for src, bus, cell, addr in sorted(sel):
+                live_here = n and src <= n and (not nb or bus <= nb)
+                val = on_val if live_here else off_val
+                try:
+                    sc.d.link.write(addr, val, ramp)
+                    time.sleep(S.SETTLE)
+                    if verify:
+                        got = None
+                        for _ in range(12 if ramp else 4):
+                            try:
+                                got = sc.rd(addr)
+                            except IOError:
+                                got = None
+                            if got == val:
+                                break
+                            time.sleep(0.03)
+                        if got != val:
+                            bad += 1
+                            continue
+                    ok += 1
+                    if val == on_val:
+                        opened += 1
+                except (IOError, OSError):
+                    bad += 1
+            done += ok
+            failed += bad
+            if fam == on_fam:
+                live += opened
+            print('  %-12s %3d/%-3d written, %d open '
+                  '(%s sources 1..%d on buses 1..%s)'
+                  % (fam, ok, len(sel), opened, prefix, n,
+                     nb if nb else 'all'))
+    return done, failed, live
+
 
 def families(cells, chip):
     """{family_suffix: [(cellname, addr), ...]} for one chip, rw only."""
@@ -322,7 +431,7 @@ def main():
     ap.add_argument('--mode', default='load',
                     choices=('load', 'loadfx', 'fxtype', 'fxoff',
                              'fxsendon', 'fxsendoff',
-                             'bypass', 'bypassfx', 'probe'))
+                             'bypass', 'bypassfx', 'probe', 'use'))
     ap.add_argument('--fx-type', type=int, default=3,
                     help='loadfx: the algorithm every FX engine runs. '
                          '0=Echo 1=PingPong 2=Doubling 3=Reverb 4=Chorus '
@@ -347,6 +456,22 @@ def main():
                          'each class costs ON ITS EXPENSIVE BRANCH, on the '
                          'shipping image rather than on a DSP4_NODE_LIMIT '
                          'instrument built for the purpose.')
+    ap.add_argument('--use-fxaux', type=int, default=0,
+                    help='use: FX returns opened into EVERY aux bus (0..6). '
+                         'The S23 aux sum takes its block-level bypass at 0 '
+                         'and pays the full seven-source fold above it.')
+    ap.add_argument('--use-mtx', type=int, default=0,
+                    help='use: strips opened into EVERY matrix bus (0..32). '
+                         'A matrix bus row with no live send is skipped by '
+                         'the fabric for one compare per block.')
+    ap.add_argument('--use-fxaux-buses', type=int, default=0,
+                    help='use: restrict the FX-return aux sends to aux '
+                         'buses 1..N (0 = every bus). THE EXPENSIVE AXIS: '
+                         'a bus that has any live send loses its '
+                         'block-level bypass and pays the full fold.')
+    ap.add_argument('--use-mtx-buses', type=int, default=0,
+                    help='use: restrict the channel matrix sends to matrix '
+                         'buses 1..N (0 = every bus).')
     ap.add_argument('--no-verify', action='store_true')
     a = ap.parse_args()
 
@@ -386,6 +511,22 @@ def main():
                          'LimiterThr', 'MainOn', 'AuxOn', 'FxOn', 'FxSend',
                          'Type', 'Mix'))
         return 0
+
+    if a.mode == 'use':
+        # The classed view is NOT used: `AuxOn`/`MatrixOn` are unambiguous
+        # families and the prefix filter inside apply_use is what separates
+        # the strip crosspoints from the FX-return ones.
+        counts = {'fxaux': a.use_fxaux, 'mtx': a.use_mtx}
+        buses = {'fxaux': a.use_fxaux_buses, 'mtx': a.use_mtx_buses}
+        print('chip %d  mode use  fxaux=%d/%s bus  mtx=%d/%s bus'
+              % (a.chip, a.use_fxaux, a.use_fxaux_buses or 'all',
+                 a.use_mtx, a.use_mtx_buses or 'all'))
+        t0 = time.time()
+        done, failed, liveon = apply_use(sc, fams, counts, buses,
+                                         verify=not a.no_verify)
+        print('chip %d use: %d written, %d FAILED, %d assigns OPEN, %.0f s'
+              % (a.chip, done, failed, liveon, time.time() - t0))
+        return 1 if failed else 0
 
     spec = {}
     if a.mode == 'fxtype':

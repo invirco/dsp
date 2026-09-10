@@ -4490,6 +4490,90 @@ def gen_output_tdm(node):
     # The block loop's tail differs with and without a meter only in which
     # store lands on the loop label, so the two are spelled out rather than
     # spliced: the last instruction of a hardware loop is load-bearing.
+    # --- THE STRIP'S OWN LEVEL AND MUTE (S24) -----------------------------
+    #
+    # `mo_page`/`mo_addr` is gen_dsp_csv.py's marker that this output node
+    # carries `Main{L,R,Ctr,Sub}Level/Mute`. It is on the four post-crossover
+    # main outputs and on NOTHING else, so every other OUTPUT_TDM node in
+    # the graph emits exactly the text it emitted before this existed --
+    # which is what lets the default image stay byte-identical outside these
+    # four nodes.
+    #
+    # THE FOLD IS S23'S, AND SO IS THE BYPASS. Level (a ramped float) and
+    # mute (a flag) become ONE Q4.28 coefficient once per BLOCK with the
+    # mute multiplied in, and where that coefficient is exactly 2^28 the
+    # node runs its old copy loop untouched. That is not an approximation:
+    # with the coefficient at exactly 2^28, `mrf = x * 2^28` then
+    # `_mrf_rns28` gives (x*2^28 + 2^27) >> 28 = x, so the bypass and the
+    # multiply agree word for word -- the same identity the aux sums'
+    # bypass rests on, and it was measured on the part there before it was
+    # argued here.
+    #
+    # THE SHIPPING DEFAULT IS UNITY AND UNMUTED, so the default image takes
+    # the copy path on every block and pays one compare for it. A desk that
+    # pulls a main output down pays the multiply on that output alone --
+    # a cost proportional to USE, priced like the others.
+    has_mo = 'mo_page' in p
+    if has_mo:
+        mo_vars = (
+            # ORDER IS THE RUNTIME CONTRACT (S23): value, _target_, _step_,
+            # _frames_ in consecutive .var declarations of equal width, so
+            # build_ramp_stride_map() reads the stride out of this adjacency
+            # and _ramp_set_target writes the companions at +s/+2s/+3s.
+            f'        .var _out_level_{nid} = 1.0;      /* FLOAT, ramped */\n'
+            f'        .var _out_level_target_{nid} = 1.0;\n'
+            f'        .var _out_level_step_{nid} = 0.0;\n'
+            f'        .var _out_level_frames_{nid} = 0;\n'
+            f'        .var _out_mute_{nid} = 0;\n'
+            f'        .var _out_coeff_{nid} = 0x10000000;  /* Q4.28 fold */\n')
+        mo_fold = f"""\
+            /* ---- level ramp + mute, folded once per BLOCK ---- */
+            r4 = dm(_out_level_frames_{nid});
+            r15 = 1;
+            r4 = r4 - r15;
+            if le jump (pc, .osnap_{nid});
+            dm(_out_level_frames_{nid}) = r4;
+            f1 = dm(_out_level_{nid});
+            f2 = dm(_out_level_step_{nid});
+            f1 = f1 + f2;
+            dm(_out_level_{nid}) = f1;
+            jump (pc, .ocvt_{nid});
+        .osnap_{nid}:
+            f1 = dm(_out_level_target_{nid});
+            dm(_out_level_{nid}) = f1;
+        .ocvt_{nid}:
+            r4 = 0x4D800000;              /* 2^28 as a float */
+            f2 = r4;
+            f1 = f1 * f2;
+            r4 = fix f1;
+            r6 = 0;                       /* mute -> coefficient 0 */
+            r7 = dm(_out_mute_{nid});
+            r7 = pass r7;
+            if ne r4 = r6;
+            dm(_out_coeff_{nid}) = r4;
+"""
+
+        # THE PER-SAMPLE BUILD GETS IT TOO. `DSP4_BLOCK_KERNELS=0` is the
+        # scalar control every audio bar in this tree scores the block form
+        # against, so a feature that exists only in the block form would
+        # make the control a different product. Same coefficient, same
+        # bypass, one sample.
+        mo_scalar = dedent(f"""\
+            r12 = dm(_out_coeff_{nid});
+            r13 = 0x10000000;
+            comp(r12, r13);
+            if eq jump (pc, .oscopy_{nid});
+            mrf = r0 * r12 (ssi);
+            call _mrf_rns28;
+        .oscopy_{nid}:
+""")
+        mo_scalar = ''.join('            ' + ln + '\n'
+                            for ln in mo_scalar.splitlines())
+    else:
+        mo_vars = ''
+        mo_fold = ''
+        mo_scalar = ''
+
     if mtr:
         blk_loop = (f'            i3 = _mtr_wblk_{nid};\n'
                     f'            lcntr = DSP4_BLOCK_SIZE, do .otk_{nid} until lce;\n'
@@ -4505,6 +4589,67 @@ def gen_output_tdm(node):
                     f'                r0 = dm(i0, 1);\n'
                     f'                dm(i1, 1) = r0;\n'
                     f'            .otk_{nid}: dm(i2, 1) = r0;\n')
+
+    if has_mo:
+        # THE ROUND AND SATURATE IS INLINED, NOT CALLED. Every block-kernel
+        # path in this generator inlines it (see the FADER_PAN loop) and
+        # this one does the same: `call _mrf_rns28` inside a hardware loop
+        # would be the one shape the rest of the tree deliberately avoids.
+        # The arithmetic is _mrf_rns28's, instruction for instruction --
+        # add 2^27, take the 64-bit result, shift right 28, and saturate on
+        # a top-word disagreement -- so the multiplied path and the library
+        # round the same way and `fixed_ref` scores both.
+        #
+        # r7/r10/r12/r13 are loaded once per block and survive the loop;
+        # r0/r1/r2/r8/r9/r11 are the scratch.
+        mtr_tail = ('' if not mtr else
+                    f'                r1 = ashift r0 by -4;   /* Q4.28 -> Q8.24 */\n')
+        mtr_store = ('' if not mtr else
+                     f'                dm(i3, 1) = r1;\n')
+        mtr_last = ('' if not mtr else
+                    f'            dm(_mtr_wide_{nid}) = r1;\n')
+        mul_loop = (
+            f'            r7 = 0x08000000;              /* 2^27, the round half */\n'
+            f'            r13 = 1;\n'
+            f'            r10 = 0x7FFFFFFF;\n'
+            f'            lcntr = DSP4_BLOCK_SIZE, do .otm_{nid} until lce;\n'
+            f'                r0 = dm(i0, 1);\n'
+            f'                mrf = r0 * r12 (ssi);\n'
+            f'                mrf = mrf + r7 * r13 (ssi);\n'
+            f'                r8 = mr0f;\n'
+            f'                r2 = mr1f;\n'
+            f'                r8 = lshift r8 by -28;\n'
+            f'                r9 = lshift r2 by 4;\n'
+            f'                r0 = r8 or r9;\n'
+            f'                r8 = ashift r2 by -28;\n'
+            f'                r9 = ashift r0 by -31;\n'
+            f'                r11 = ashift r2 by -31;\n'
+            f'                r11 = r10 xor r11;\n'
+            f'                comp(r8, r9);\n'
+            f'                if ne r0 = r11;\n'
+            f'                dm(i1, 1) = r0;\n'
+            f'{mtr_tail}'
+            f'{mtr_store}'
+            f'            .otm_{nid}: dm(i2, 1) = r0;\n'
+            f'{mtr_last}')
+        # i3 IS SET HERE AND NOT IN THE COPY LOOP. The meter's block array
+        # pointer used to be loaded inside blk_loop, which is the COPY path
+        # only -- so the multiplied path would have stored the whole block
+        # through whatever i3 last held. Both paths write _mtr_wblk_, so
+        # both need it, and it is loaded once above the branch.
+        mo_i3 = ('' if not mtr else f'            i3 = _mtr_wblk_{nid};\n')
+        blk_loop = (
+            f'{mo_i3}'
+            f'            /* unity and unmuted -> the copy path, unchanged */\n'
+            f'            r12 = dm(_out_coeff_{nid});\n'
+            f'            r13 = 0x10000000;\n'
+            f'            comp(r12, r13);\n'
+            f'            if eq jump (pc, .ocopy_{nid});\n'
+            f'{mul_loop}'
+            f'            jump (pc, .odone_{nid});\n'
+            f'        .ocopy_{nid}:\n'
+            f'{blk_loop}'
+            f'        .odone_{nid}:\n')
     return dedent(f"""\
         /* OUTPUT_TDM: Write to SPORT{p.get('sport_id','?')} slot {p.get('slot_start','?')} */
 
@@ -4524,11 +4669,11 @@ def gen_output_tdm(node):
         .var _tx_out_slot_{nid};
         #endif
         .var _buf_{nid};
-{mtr_decl}
+{mtr_decl}{mo_vars}
         .section/pm seg_pmco;
         .global _{nid}_process;
         _{nid}_process:
-        #if DSP4_BLOCK_KERNELS
+{mo_fold}        #if DSP4_BLOCK_KERNELS
             l0 = 0;
             l1 = 0;
             l2 = 0;
@@ -4544,7 +4689,7 @@ def gen_output_tdm(node):
             rts;
         #else
             r0 = dm(_buf_{inp});
-            dm(_tx_out_slot_{nid}) = r0;
+{mo_scalar}            dm(_tx_out_slot_{nid}) = r0;
             dm(_buf_{nid}) = r0;
 {mtr_pub}            rts;
         #endif
@@ -4744,11 +4889,21 @@ def _mtr_comp_gr(node):
 
     via `_log2q_fx` (Q4.28 -> log2 Q6.25), which both the table and the
     polynomial arm of dyn_fx.asm export under the same name and the same
-    register contract. CLAMPED TO [-40, 0] dB, which is the range the
-    dispatch names; a gain word of exactly zero comes out of `_log2q_fx`
-    at about -175 dB and lands on the floor rather than on an infinity.
-    The clamp is the one thing here that is a DECISION and not a
-    derivation, and it is PW's to change.
+    register contract. CLAMPED TO [-80, 0] dB (PW ruling R3, 2026-09-10 --
+    it was [-40, 0] as S23 built it, which is the range S23's dispatch
+    named and PW has now raised); a gain word of exactly zero comes out of
+    `_log2q_fx` at about -175 dB and lands on the floor rather than on an
+    infinity. The clamp is the one thing here that is a DECISION and not a
+    derivation, and it is PW's -- which is why it moved.
+
+    R3 ALSO ASKS A QUESTION THIS CHANGE DOES NOT ANSWER. Raising the meter's
+    floor raises what the meter can REPORT; it does not raise what the
+    compressor can DO. -80 dB of reduction is a gain word of 26,844 counts
+    at 2^28, so the resolution is fine, but whether the level->gain table's
+    input span reaches that far is a property of `dyn_lut_design.py` and
+    has NOT been measured. Until it is, a reading between -40 and -80 is
+    the meter's arithmetic on the gain word and is only as true as the
+    table behind it.
     """
     if 'comp_gr' not in _parse_taps_cg(node.get('params_raw', '')):
         return '', '', '', ''
@@ -4782,7 +4937,7 @@ def _mtr_comp_gr(node):
             r1 = 0x00000000;             /* 0.0f  -- no reduction   */
             comp(f0, f1);
             if gt r0 = r1;
-            r1 = 0xC2200000;             /* -40.0f -- the stated floor */
+            r1 = 0xC2A00000;             /* -80.0f -- PW ruling R3 */
             comp(f0, f1);
             if lt r0 = r1;
             dm(_mtr_cgr_{nid}) = r0;""")

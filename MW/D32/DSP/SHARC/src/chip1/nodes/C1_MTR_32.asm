@@ -68,7 +68,7 @@
             r1 = 0x00000000;             /* 0.0f  -- no reduction   */
             comp(f0, f1);
             if gt r0 = r1;
-            r1 = 0xC2200000;             /* -40.0f -- the stated floor */
+            r1 = 0xC2A00000;             /* -80.0f -- PW ruling R3 */
             comp(f0, f1);
             if lt r0 = r1;
             dm(_mtr_cgr_C1_MTR_32) = r0;
@@ -119,7 +119,7 @@ rts;
             r1 = 0x00000000;             /* 0.0f  -- no reduction   */
             comp(f0, f1);
             if gt r0 = r1;
-            r1 = 0xC2200000;             /* -40.0f -- the stated floor */
+            r1 = 0xC2A00000;             /* -80.0f -- PW ruling R3 */
             comp(f0, f1);
             if lt r0 = r1;
             dm(_mtr_cgr_C1_MTR_32) = r0;

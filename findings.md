@@ -6,6 +6,242 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE NET CONTRACT ANSWERED, AND THE USE-PROPORTIONAL COST IS THE BYPASS (2026-09-10, session 24)
+
+Session: the three MW-Net answers the wire declaration needed, the cost S23
+could not price, and the first half of completeness leg 2.
+
+### S24-1 — the cost proportional to USE is a BUS losing its bypass, not a crosspoint doing a MAC, and it is 450x
+
+**Severity: HIGH — it decides whether D32 fits. Status: measured on the
+part 2026-09-10, two boots, D32.**
+
+S23 built the block-level bypass (S23-5) and measured it as worth 9.89
+points of chip 2 when it was introduced. This session measures the same
+thing from the other side — by switching it off one desk operation at a
+time — and the shape is not what the record assumed.
+
+Every rung driven, plugin load, one boot, S23's candidate image, the only
+difference between two rungs being how many crosspoints are live. `f:m` =
+FX returns opened into EVERY aux bus : strips opened into EVERY matrix bus.
+
+Both boots, chip 1 / chip 2 average % of budget, chip 2 overruns:
+
+| rung | boot 1 | boot 2 | chip 2 overruns |
+|---|---|---|--:|
+| 0:0 — every crosspoint closed (**the control**) | 77.07 / **90.93** | 77.06 / **90.78** | 0 |
+| 1:0 — ONE FX return into each of the 12 aux buses | 77.07 / **100.70** | 77.40 / **100.80** | **600** |
+| 6:0 — all six into each of the 12 | 77.06 / **100.81** | 77.23 / **100.78** | **600** |
+| 0:1 — one strip into each of the 2 matrix buses | 77.39 / 91.05 | 77.64 / 90.78 | 0 |
+| 0:32 — all 32 strips into each of the 2 | 78.20 / 90.77 | 78.30 / 91.26 | 0 |
+| 6:32 — **worst use** | **78.46 / 100.72** | **78.36 / 100.71** | **601** |
+
+**The control is what makes it readable**: rung 0:0 reads 90.93 / 90.78 %
+against S23's driven row of 90.95 % on the same image and instrument, so
+the ladder is measuring the crosspoints and nothing else.
+
+- **0:0 -> 1:0 is +9.77 and +10.02 points of chip 2** — twelve aux buses
+  leaving the bypass, with ONE live send each.
+- **1:0 -> 6:0 is +0.11 and −0.02** — five more live crosspoints on each of
+  those twelve buses.
+
+**A bus that stops being empty costs 0.81–0.84 points of chip 2. Opening
+the other five sends on it costs NOTHING THIS INSTRUMENT CAN RESOLVE** —
+the two boots disagree in sign and both figures are inside the ±0.3-point
+boot-to-boot spread S20 measured. The first boot alone would have supported
+"about 0.002 points a crosspoint"; the second says that number is noise,
+and the honest statement is an upper bound, not a slope.
+
+That inverts the natural reading of "cost proportional to use": it is
+proportional to how many BUSES are used and, to the limit of this
+instrument, independent of how much each is used.
+
+The matrix is chip 1's and it is cheap: 0:0 -> 0:32 is **+1.13 and +1.24
+points of chip 1** for 64 live crosspoints on two buses. Chip 2 does not
+move with the matrix — its four readings scatter from −0.16 to +0.48 about
+zero — which is what the graph predicts, the matrix output strips being a
+fader and an output that do not care whether the bus carries signal. The
+two effects are additive: 90.93 + 9.77 = 100.70 against a measured worst
+use of 100.72.
+
+### S24-2 — D32 chip 2 does not fit at worst use, and it stops fitting at ONE send per aux bus
+
+**Severity: HIGH, product-visible. Status: measured, two boots.**
+
+**100.72 % and 100.71 % with 600–601 of 90,049 blocks missed (0.67 %)** on
+the two boots. It is not the six returns that break it: **rung 1:0 already
+overruns** — one FX return sent to each of the twelve aux buses.
+
+At 0.82 points a bus, chip 2's ~9.1 points of margin at rung 0:0 buy about
+eleven of the twelve aux buses.
+
+This is a capacity fact and not a defect: nothing in the graph is wrong,
+and the fix — if PW wants all twelve aux buses usable at once — is a
+cheaper aux sum, not a smaller feature set. It is stated here because
+S23's fit table said "90.95 % with 9.05 % free" and that figure describes
+a desk with no FX return sent anywhere.
+
+### S24-7 — the S24 gate-3 probe returned INCONCLUSIVE, and the control is what says so
+
+**Severity: LOW (instrument/procedure). Status: the feature is unwitnessed
+on the part; the probe is written and staged.**
+
+`dsp4_s24_probe.py` reads the main output strips' folded coefficient back
+and checks it against `round(level * 2^28)`, then demands an exactly-zero
+output block for mute = 1 and for level = 0.0. Its first run reported
+`_out_coeff_C2_MAIN_OUT_01 = 0x00000000` at every level, which reads like a
+broken feature.
+
+**It was not the feature, and the control is what established that.** On
+the same boot `_fdr_level_C2_MAIN_FDR` and `_fdr_level_C2_AUX_FDR_01` —
+`.var = 1.0` words S23 measured working — ALSO read `0x00000000`, and so
+did every other word the probe touched. A bar that reports the same failure
+for the thing under test and for a known-good control is not measuring the
+thing under test.
+
+**The cause was the read window, and it is S22-4's shape one level along.**
+DM symbols are read with `Scope.peek(Scope.addr(name))`; `Scope.rd()` reads
+the SPI diagnostic/cell window. A DM word address (731019) handed to `rd()`
+lands outside the dispatch table and **answers zero**, which is exactly
+what a feature that does not work would answer. Both probes in this tree
+that read DM words use `peek`; this one used `rd`.
+
+Fixed, and the probe now takes its control FIRST and refuses a verdict when
+the control reads zero — the same guard `dsp4_dsp_latency.py` was given
+after S11-6. On the re-run the control reads `0x3F800000` and **all five
+fold cases are exact** (see S24-8).
+
+The lesson is the one S23 recorded about its own negative control, one gate
+along: **the sentence "the word read zero" is produced by a real defect and
+by a wrong instrument alike, and only a control that can fail separates
+them.**
+
+### S24-8 — the main output fold is exact on the part
+
+**Severity: n/a (the gate 3 witness). Status: measured 2026-09-10 on the
+S24 tap arm (`17cc5a0e` / `e94dc5a3`), D32.**
+
+`Main{L}001Level/Mute` written through the contract, `_out_coeff_
+C2_MAIN_OUT_01` read back off the part, against `round(level * 2^28)`
+computed on the desk:
+
+| level | mute | `_out_coeff` | want | |
+|--:|--:|---|---|---|
+| 1.0 | 0 | `0x10000000` | `0x10000000` | **OK — exactly 2^28, so the node takes the copy path** |
+| 0.5 | 0 | `0x08000000` | `0x08000000` | OK |
+| 0.25 | 0 | `0x04000000` | `0x04000000` | OK |
+| 1.0 | **1** | `0x00000000` | `0x00000000` | **OK — mute folds to exactly zero, not small** |
+| **0.0** | 0 | `0x00000000` | `0x00000000` | **OK — the independent control: the level alone, with the mute bit at 0** |
+
+Five of five exact, with the probe's own control (`_fdr_level_
+C2_MAIN_FDR` = `0x3F800000`) proving the graph was running.
+
+**What this does and does not establish.** It establishes that the cell
+reaches the arithmetic, that the fold is the arithmetic claimed, that unity
+lands on exactly the value the bypass compares against, and that mute and
+level zero each reach exactly zero independently. It does NOT establish the
+audio: the probe's capture bars (an exactly-zero output block under mute,
+and a peak passthrough at unity) returned `capture stalled at 0 of 1024
+samples` on every attempt and **no audio claim is made from them**. The
+injection point this probe passes (`_rx_ic_slot_C2_RECV_MAIN_L`) is not one
+the chain's scope gate injects into; the S23 probe uses
+`_rx_ic_slot_C2_RECV_FX_01`. That is one line to change and one boot to
+re-run.
+
+### S24-3 — a ramped send written to 0.0 does not verify inside the instrument's window, and the state is right anyway
+
+**Severity: LOW (instrument). Status: reproduced on both boots.**
+
+`dsp4_driven_setup.py --mode use` writes the send families to a named count
+and verifies each write by reading it back. The FIRST rung after the load
+config — the one that takes 64 `Chan*MatrixSend` cells from 1.0 down to
+0.0 — reports **64 of 64 FAILED**, identically on both boots; every later
+rung, where the cells are already at 0.0, reports 0 failed. So it is the
+1.0 -> 0.0 transition that the readback cannot confirm, not the write.
+
+**The measurement is unaffected and the reason is the design**: the on/off
+bit is folded INTO the Q4.28 crosspoint coefficient at block rate (S23), so
+`MatrixOn = 0` zeroes the coefficient whatever the send level holds — and
+`MatrixOn` writes and verifies cleanly, 64 of 64, on every rung. Rung 0:0
+reproducing S23's driven row to 0.02 points is the evidence that the rung
+state was what it claimed.
+
+Not root-caused: the profile is 24 frames / 8 ms and the verify window is
+12 x 30 ms, so ramp duration does not explain it. Reading the word back
+after a settled ramp is one bench command and it was not spent this
+session.
+
+### S24-4 — three HPF bands per main output strip were listed as "no node in the graph" when the graph already had the node and the words
+
+**Severity: MEDIUM (contract completeness). Status: fixed, 15 cells.**
+
+`Main{L,R,Ctr}[1-1]EqHpf[1-4]` is what the masters declare and
+`dsp-unmapped.csv` carried bands 2-4 as `no-graph-node`, "the generator
+gives a non-Main strip one HPF (band 1) and the masters give the output
+strips four". The EQ expander already handled it — `if cat == 'Main': for b
+in range(1, bands+1)` with the comment "Main output zones allow any band as
+HPF" — and the four post-crossover output EQs do not carry cat `Main`. They
+carry `MainL` / `MainR` / `MainCtr` / `MainSub`, because that is what the
+output strips ARE (`_MAIN_OUT_STRIP`). So the test named the main BUS strip
+and missed the main OUTPUT strips, and a product feature that was fully
+built reported as unbuilt for as long as the table has existed.
+
+The fix is one condition. It costs **no arithmetic and no address**: every
+`EqHpf` cell aliases its band's own coefficient base exactly as band 1
+always did. D32 +6 cells, D24 +9.
+
+The general shape is worth keeping beside S23-4 (the family walk keyed on
+`NodeType` could not give the matrix a family at all): **a completeness
+list is only as good as the category test behind it, and both of this
+week's blind spots were a name that matched a sibling rather than the
+thing.**
+
+### S24-5 — the block pool's 8-byte alignment is luck, not a declaration
+
+**Severity: MEDIUM (latent build fragility). Status: identified, not
+settled on the part.**
+
+The block kernels open a `PEYEN` region and read the pool with
+`dm(i0, 2)` — one access feeding both processing elements from two
+consecutive words, which needs an even (8-byte-aligned) address. Nothing
+declares that alignment. **The linker does not supply it either: of 5,452
+DM symbols in the chip-1 map of the S23 pair, 2,204 sit at ODD word
+addresses**, so a `.var` gets word alignment and no more. Both pools happen
+to be even (`_blk_pool` 590640, `_blk_pool1` 590784) and every slot with
+them, because `BLOCK` is 16.
+
+If the part force-aligns, nothing is wrong and the alignment answer for
+MW-Net is 4 rather than 8. If it does not, this build works by luck and one
+word of DM moving in front of `_blk_pool` would break every SIMD kernel on
+chip 1 in a way no bar names. **Settling it costs one build with a one-word
+pad and one run of the existing audio bars**, and it is worth doing for the
+build-fragility reason whether or not MW-Net ever terminates on a SHARC.
+
+### S24-6 — 96 kHz is stopped by the PART before it is stopped by the cycle budget
+
+**Severity: INFORMATIONAL (it confirms D6). Status: argued from the data
+sheet and the RTL.**
+
+The obvious objection to DSP4 at 96 kHz is cycles, and that objection is
+real — CCLK is already at the part's ceiling (983.04 MHz, the KSWZ10-only
+row) so utilisation doubles whatever the block size, and S23's worst driven
+row becomes about 182 %. But it is the third reason, not the first.
+
+**First**: the data sheet caps `fSPTCLKEXT` at 31.25 MHz when transmitting
+data or frame sync. A TDM16 lane needs 24.576 MHz at 48 kHz and 49.152 MHz
+at 96 kHz, and TDM16 is every line of the INTER-CHIP MIX FABRIC — not an
+edge lane that could be re-cut.
+
+**Second**: the CPLD cannot generate those clocks. `dsp4_clkgen.v` derives
+every clock role from one 49.152 MHz XO on a 1024-sysclk frame; at 96 kHz
+TDM8's BCK is sysclk/2 (producible) and TDM16's is the sysclk itself, which
+this design cannot emit as a registered divided clock.
+
+So D6's 32 ch / 48 kHz line is not a preference with a cycle argument
+behind it — it is where two independent pieces of hardware run out, and a
+"deliberate DSP4-at-96k exception" would need a different XO and a
+different SPORT topology before it needed a faster core.
+
 ## COMPLETENESS LEG 1 FINISHED (2026-09-10, session 23)
 
 Session: the matrix's three remaining witnesses, the FX returns given a bus

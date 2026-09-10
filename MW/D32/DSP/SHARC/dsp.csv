@@ -630,19 +630,19 @@ C2_MAIN_XOVER,2,CROSSOVER,Main Xover,2,C2_MAIN_DLY,C2_MAIN_OUT_01;C2_MAIN_OUT_02
 C2_MAIN_OEQ_01,2,EQ_BIQUAD,Main Out 1 EQ,1,C2_MAIN_XOVER,C2_MAIN_OCOMP_01,1,1440,bands=4;coeffs=default,EqSafe
 C2_MAIN_OCOMP_01,2,COMPRESSOR,Main Out 1 Comp,1,C2_MAIN_OEQ_01,C2_MAIN_OLIM_01,1,1464,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;type=VCA,DynSafe
 C2_MAIN_OLIM_01,2,LIMITER,Main Out 1 Lim,1,C2_MAIN_OCOMP_01,C2_MAIN_OUT_01,1,1480,threshold_db=-0.5;attack_ms=0.1;release_ms=50.0,DynSafe
-C2_MAIN_OUT_01,2,OUTPUT_TDM,Main Out 1,1,C2_MAIN_OLIM_01,,1,1484,sport_id=1;slot_start=4;slot_count=1;sport_slots=8;signal=DAC_13,
+C2_MAIN_OUT_01,2,OUTPUT_TDM,Main Out 1,1,C2_MAIN_OLIM_01,,1,1484,sport_id=1;slot_start=4;slot_count=1;sport_slots=8;signal=DAC_13;mo_page=1;mo_addr=2167,
 C2_MAIN_OEQ_02,2,EQ_BIQUAD,Main Out 2 EQ,1,C2_MAIN_XOVER,C2_MAIN_OCOMP_02,1,1485,bands=4;coeffs=default,EqSafe
 C2_MAIN_OCOMP_02,2,COMPRESSOR,Main Out 2 Comp,1,C2_MAIN_OEQ_02,C2_MAIN_OLIM_02,1,1509,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;type=VCA,DynSafe
 C2_MAIN_OLIM_02,2,LIMITER,Main Out 2 Lim,1,C2_MAIN_OCOMP_02,C2_MAIN_OUT_02,1,1525,threshold_db=-0.5;attack_ms=0.1;release_ms=50.0,DynSafe
-C2_MAIN_OUT_02,2,OUTPUT_TDM,Main Out 2,1,C2_MAIN_OLIM_02,,1,1529,sport_id=1;slot_start=5;slot_count=1;sport_slots=8;signal=DAC_14,
+C2_MAIN_OUT_02,2,OUTPUT_TDM,Main Out 2,1,C2_MAIN_OLIM_02,,1,1529,sport_id=1;slot_start=5;slot_count=1;sport_slots=8;signal=DAC_14;mo_page=1;mo_addr=2169,
 C2_MAIN_OEQ_03,2,EQ_BIQUAD,Main Out 3 EQ,1,C2_MAIN_XOVER,C2_MAIN_OCOMP_03,1,1530,bands=4;coeffs=default,EqSafe
 C2_MAIN_OCOMP_03,2,COMPRESSOR,Main Out 3 Comp,1,C2_MAIN_OEQ_03,C2_MAIN_OLIM_03,1,1554,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;type=VCA,DynSafe
 C2_MAIN_OLIM_03,2,LIMITER,Main Out 3 Lim,1,C2_MAIN_OCOMP_03,C2_MAIN_OUT_03,1,1570,threshold_db=-0.5;attack_ms=0.1;release_ms=50.0,DynSafe
-C2_MAIN_OUT_03,2,OUTPUT_TDM,Main Out 3,1,C2_MAIN_OLIM_03,,1,1574,sport_id=1;slot_start=6;slot_count=1;sport_slots=8;signal=DAC_15,
+C2_MAIN_OUT_03,2,OUTPUT_TDM,Main Out 3,1,C2_MAIN_OLIM_03,,1,1574,sport_id=1;slot_start=6;slot_count=1;sport_slots=8;signal=DAC_15;mo_page=1;mo_addr=2171,
 C2_MAIN_OEQ_04,2,EQ_BIQUAD,Main Out 4 EQ,1,C2_MAIN_XOVER,C2_MAIN_OCOMP_04,1,1575,bands=4;coeffs=default,EqSafe
 C2_MAIN_OCOMP_04,2,COMPRESSOR,Main Out 4 Comp,1,C2_MAIN_OEQ_04,C2_MAIN_OLIM_04,1,1599,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;type=VCA,DynSafe
 C2_MAIN_OLIM_04,2,LIMITER,Main Out 4 Lim,1,C2_MAIN_OCOMP_04,C2_MAIN_OUT_04,1,1615,threshold_db=-0.5;attack_ms=0.1;release_ms=50.0,DynSafe
-C2_MAIN_OUT_04,2,OUTPUT_TDM,Main Out 4,1,C2_MAIN_OLIM_04,,1,1619,sport_id=1;slot_start=7;slot_count=1;sport_slots=8;signal=DAC_16,
+C2_MAIN_OUT_04,2,OUTPUT_TDM,Main Out 4,1,C2_MAIN_OLIM_04,,1,1619,sport_id=1;slot_start=7;slot_count=1;sport_slots=8;signal=DAC_16;mo_page=1;mo_addr=2173,
 C2_MON,2,MONITOR,Monitor,2,C2_MAIN_FDR,C2_MON_DLY,1,1788,level_l_db=0.0;level_r_db=0.0;source=main,GainFast
 C2_MON_DLY,2,DELAY,Monitor Delay,2,C2_MON,C2_MON_OUT,1,1794,delay_ms=0.0;max_ms=250.0,InstantCtl
 C2_MON_OUT,2,OUTPUT_TDM,Monitor Out,2,C2_MON_DLY,,1,1796,sport_id=2;slot_start=0;slot_count=2;sport_slots=8;signal=CODEC_OUT_1;scope=D24,
