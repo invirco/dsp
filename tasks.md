@@ -1,3 +1,96 @@
+## HUB DISPATCH 2026-09-10 13:49Z — S23 — completeness leg 1 finished: the matrix witnessed three ways (famverify family, busgold vector, driven row); the FX returns given the MAIN mix (S22-2: they reach no bus) with Fx<n>On parking the engine; FX returns to aux; the comp GR meter bound at base+3; everything priced driven with the plugin load on shipping.config.s21; the matrix definition questions carried to PW, nothing invented   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+S23 — COMPLETENESS LEG 1, FINISHED: the matrix mixer's three remaining witnesses (a MATRIX family in the walk, a `busgold` matrix vector, a driven row); the FX RETURNS given a bus at all — S22-2 found the six `C2_FX_FDR_*` return strips reach NO mix node on either chip, so the engines have been inaudible on every image this tree has built — the MAIN leg first, then the aux sends the definition names; the compressor GR meter bound the cheap way S22 wrote down; everything priced DRIVEN with the plugin load on `shipping.config.s21`; the three matrix definition questions carried to PW without inventing an answer
+
+WHY. S22 (dsp 9231694) settled S21-7 as an INSTRUMENT artefact (the scope's
+step injection never disarmed on paired images; the gate state was never
+frozen; `s21_*` unchanged, `goldnode` now scores the SIMD gate bit-exact
+on both strips of a pair) and built the matrix mixer: four buses on chip
+1 beside the other 25 (`RTG_FABRIC_BUSES` 29, bus order single-sourced),
+crossing at global slots 37–40, four chip-2 output strips on
+`NET_OUT_02..05`, no CPLD change, D32 −136 / D24 −100 unmapped with NOT
+ONE existing address moved (the send cells take a second SPI block after
+every other chip-1 address), proven at the crosspoint on the part to the
+word — after S22-4: a cell outside the 144-word channel page reached no
+strip node (`spi_handler.asm` clamped everything ≥ 4608 into a catch-all;
+fixed with a second per-strip range emitted from the graph). Cost:
++14,320 bytes of chip-1 code (26,238 free, thanks to S21's shared
+kernels). **S22-2, product-visible: the six FX returns reach no bus at
+all** — `C2_FX_FDR_nn` declares outputs onto the main mix but neither
+mix node lists them as inputs and `gen_mix_bus_fixed` MACs over inputs
+only; with S21-4 (`Fx<n>On` has no reader) the engines cost their full
+price and are never heard. Gate 3's cheap route is known: bind the GR
+meter to the meter's already-allocated `base+3`, NOT to DM offset +3
+(which would move `_mtr_st_` and rewrite the shared fold). The graph is
+now AHEAD of the landed contract: the new dsp.csv pair sits in
+`proposals/defs/products/` for the hub gate and the tree builds from it
+via `DSP_LANDED_DIR` (`check-contract-drift.sh` reports ahead until the
+hub lands it — the designed state). Three definition questions from the
+matrix are PW's (in `dsp-definitions-needed.md` on his desktop): `d32.csv`
+says `mtx,12` while the master caps `Matrix[1-4]`; `Chan[1-64]
+MatrixSend[1-2]` does not track the `mtx` count (D32's buses 3 and 4 have
+masters and no defined source); the topology master names `bus.main→
+bus.mtx` and `bus.grp→bus.mtx` for which no cell exists. Build what the
+cell master names; invent nothing.
+
+BENCH. Rev C unit as S22 left it (`blk_*` booted, shipping CPLD, matrix-
+app active; staged pairs through `s21_*` — NEVER replace any; new
+candidates as `s23_*`). `SHIPPING_CONFIG=shipping.config.s21`;
+`DSP_LANDED_DIR` = the proposal pair; every image from its own staging
+path with copy-and-restore; `cfgverify.sh`; CCLK measured; `capacity.sh`
+driven rows with the regime proved and the plugin load (`--mode loadfx`,
+`--require-fx`), the driven bitstream flashed for the rows and the
+shipping CPLD restored after; the bars default from the configuration
+file; famverify with the tap. `dsp-unmapped.csv` shrinks by exactly the
+cells built (conserved rows + unmapped); no new cell names. No deploy.
+No AI attribution in commits or any work product.
+
+GATES, in order, each witnessed:
+1. **The matrix, witnessed three ways.** famverify gains a MATRIX family
+   (LIVE, contract answering — the four sends and the output strip's
+   level/mute); `busgold` gains a matrix-bus vector (bit-exact by the
+   D22 argument, or the ulp bound stated); a driven row on
+   `shipping.config.s21` + matrix at D24 and D32, both chips, two boots,
+   with and without the plugin load: the matrix's cost as a delta
+   against S21's rows.
+2. **The FX returns reach the MAIN mix (S22-2).** `gen_mix_bus_fixed`'s
+   inputs on the main mix node gain the six `C2_FX_FDR_*` outputs (the
+   return strip's fader/pan is already there); proven on the part: a
+   reverb return at a known level reads at the main output within the
+   bar, and at zero with `Fx<n>On` off — which means S21-4 (`Fx<n>On` has
+   no reader) is fixed HERE: the on/off gates the return into the mix
+   AND parks the engine so a switched-off engine costs nothing (measured:
+   the driven delta with all six off must fall to the parked figure).
+3. **FX returns to aux** (`Fx*AuxSend`/`AuxOn`, 144 cells): a ROUTING
+   node on each return strip feeding the twelve aux buses through the
+   fabric, on/off + level per cell, post-fader on the return (say what
+   the definition says); `dsp-unmapped.csv` −144; famverify family, bus
+   vector, live-tone arm, as gate 1.
+4. **The compressor GR meter** bound to the meter's allocated `base+3`
+   (S22's route), dB of gain reduction 0 to −40 unless PW's answer says
+   otherwise, `dsp-unmapped.csv` −32, a probe proving the meter follows
+   the gain the comp_gr bar measures.
+5. **Priced driven, with the load:** `capacity.sh` on the shipping
+   configuration + matrix + FX returns + GR meter, D24 and D32, both
+   chips, two boots, plain driven and with six reverbs; zero overruns or
+   the overrun stated; code pool and DM before/after (chip 1 has 26,238
+   bytes; the routing nodes cost 13.5 KB — say what is left). First
+   sentence of the status line: **matrix + FX returns (main + aux) + GR
+   meter cost N/M points at D32 driven with the load; D32 now P/Q %, D24
+   R/S %, zero overruns; chip 1 code pool K bytes free.**
+6. findings S23-*, `MW/D32/DSP/dsp4-s23-20260910.md`, the proposal pair
+   in `proposals/defs/products/` regenerated (the hub lands it into defs
+   as a tagged step), the window note if anything moved, tasks.md, this
+   block's status; commit + push main. Stage `s23_*` if the bars pass.
+
+Bounded: gates 1–2 are the session; 3 expected; 4 cheap; 5–6 always.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-10 12:38Z — S22 — completeness leg 1 (PW: every product-defined function coded, product-visible order, priced driven on shipping.config.s21): the matrix buses (channel→matrix sends + on/off, matrix output level + mute) and the FX returns to aux built into the graph, proven by the family walk and a bus vector, the compressor GR meter published from the table's gain word, dsp-unmapped.csv shrinking by exactly the cells built   [status: 🔴 blocked — needs a follow-on dispatch for gates 2-4 — **S21-7: THE AUDIO WAS *NOT* AFFECTED, AND THE GATE STATE WAS NEVER FROZEN — fixed by emitting the block-rate `_scope_tap1` witness on the PAIRED branch of the generated call chain, which is all `DSP4_SIMD_DYN` ever selected** (S22-1). The four "frozen" words belong to a gate held OPEN by a `mode 2` STEP injection that nothing disarmed: `goldnode`'s GATE arm must arm on `_gate_gain_<nid>` (the node's own output is `x*gain`, zero wherever the stimulus is), `dsp_codegen.py`'s tap pass emits those one-word-per-block witnesses from a per-node list, and the branch handling a PAIR DRIVER call returned before ever reading it — so on a paired image NO call site presented the armed address, `_scope_idx` never advanced, `_scope_arm` was never cleared (the tap owns disarming in a `SCOPE_BLK_TAP` build and `_scope_record` stands down by design), and `_scope_inject_blk` drove the strip for ever. Every "frozen" word is what an open, driven gate holds: the envelope **14 counts** under the injected step 0x0D3A17B5 — the attack ladder's own quantisation stall point, which is exactly why it reproduced TO THE DIGIT across four builds and several boots — the target at **exactly** unity, the gain 9 counts under and still climbing, and the hold count pinned at its reload value by the open arm of the ladder; the partner strip, which the tool never injects, closes and lets its counter run. **Settled on ONE image and ONE boot with the switch ON**: armed with `idx=0 of 1024` (the capture never took a single sample), and clearing `_scope_arm` BY HAND drops strip 1 to `[2, 2684356, 2684355]` — the exact rest state S21 could obtain only with SIMD_DYN OFF. S21's bisect was measuring which chain branch carries the witness, which is why the other three switches all reproduced it. **Two corrections to S21-7**: `_gate_pair_blk` DOES scatter all four state words back to both members (S21 read the `_DYNGATE` wrapper, not the kernel, and the gate's write-back is *more* complete than `_comp_pair_blk`'s), and on the SHIPPED pairs the freeze cannot occur at all — `s20_*` and `s21_*` both put strips 1 AND 2 at rest with BOTH hold counters decrementing. **`goldnode` now scores the SIMD gate: BOTH strips of a pair read NODE VERIFY BIT-EXACT**, 64 of 64 against `fixed_ref`, negative control firing 2 of 64 as predicted, same phase profile (phase 15 = 64 of 64), same rest state. **W0 HELD THROUGH EVERY CHANGE — the default build rebuilds to `302d6142`/`3b3a6f8e` and `shipping.config.s21` to `81f799f9`/`11366344`, byte for byte, so `s21_*` DOES NOT CHANGE and needs no re-staging**; all of it is inside `#if DSP4_SCOPE_BLK_TAP` or in host tools. **S22-3, found on the way: the chain carried exactly ONE `_scope_inject_blk` call site, wired to `C1_IN_01`, so the scope could drive STRIP 1 AND NO OTHER STRIP on any chip-1 block-kernel image** — and strip 1 worked BY LUCK, because `inject_addr()` handed back a pool base that happens to be strip 1's own first slot. One site per strip now, each naming its own RX slot, with the injector returning at a site the host did not arm on. **GATE 1, THE MATRIX MIXER: BUILT, ADDRESSED, PROPOSED AND AUDIO-PROVEN AT THE CROSSPOINT.** Four matrix buses accumulating on chip 1 beside the other 25 (`RTG_FABRIC_BUSES` 25→29, the bus order now single-sourced), crossing on the fabric at **global slots 37-40 (MIX_2 slots 5-8, previously reserved)**, into four chip-2 strips (Level+Mute) on `NET_OUT_02..05`. **NO CPLD CHANGE**: the MIX lines are DSPA O<n>→DSPB I<n> direct and no `MIXSLOT_*` constant appears in any RTL. Exactly what the cell master names and nothing more — **and the definition disagrees with itself, which is three questions for PW**: `d32.csv` says `mtx,12` while the master caps `Matrix[1-4]`; `Chan[1-64]MatrixSend[1-2]` does not track the `mtx` count, so D32's buses 3 and 4 have masters and NO defined source; and the topology master names `bus.main→bus.mtx` and `bus.grp→bus.mtx` for which NO cell exists. No `Chan*MatrixPick` cell exists either, so the send is post-fader and not selectable. **Proof of scope: D32 −136 / D24 −100 unmapped, rows+unmapped conserved, no matrix cell left unmapped — and NOT ONE EXISTING ADDRESS MOVES** (5,409 D32 and 3,737 D24 cells keep their address to the word), because the send cells take a SECOND SPI block allocated after every other chip-1 address rather than growing the 60-word routing block. **ON THE PART: the matrix bus carries the strip's post-fader block TO THE WORD — `0x0D39B767` in, `0x0D39B767` out at unity — and EXACTLY ZERO with the send off**, positive and negative control both firing; chip 2's `Matrix001Level/Mute` read back to the bit. That took **S22-4**, which is the finding future sessions need: **a cell OUTSIDE the 144-word channel page reaches no strip node.** `spi_handler.asm` bumps `_ctl_epoch[addr/144]` and clamps everything ≥4608 into a catch-all no strip node watches; the matrix block starts at 4806, so every matrix write missed the ROUTING node's control gate and the crosspoint coefficient stayed at zero while the cell read back correctly over SPI the whole time. Fixed with a second per-strip range whose extent is EMITTED INTO `dsp_block.h` from the graph, never typed. Builds clean for **+14,320 bytes of chip 1's code pool (13,568 of them the 32 routing nodes), leaving 26,238 free** — affordable only because of S21's shared kernels. `golden_harness` 59/59, `dsp_validate` OK. Also **S22-2, and it is product-visible: THE SIX FX RETURNS REACH NO BUS AT ALL** — `C2_FX_FDR_nn` declares outputs onto the main mix but neither mix node lists it among its inputs and `gen_mix_bus_fixed` MACs over `inputs` only; no `_buf_C2_FX_FDR_*` is read by any mix node on either chip, so the engines have been inaudible on every image this tree has built and (with S21-4) cost their full price switched off. **NOT DONE: gate 1's remaining three witnesses (a MATRIX family in the walk, a `busgold` matrix vector, a driven row), gate 2 (FX→aux, whose scope now has to include the missing MAIN leg), gate 3 (the comp GR meter — the cheap route is known and written down: bind it to the meter's already-allocated `base+3`, NOT to DM offset +3, which would move `_mtr_st_` and rewrite the shared fold), and gate 4 (priced driven).** The graph is AHEAD of the landed contract, so the new pair is in `proposals/defs/products/` for the hub gate and this tree builds from it with `DSP_LANDED_DIR` — `check-contract-drift.sh` reports the graph ahead until the hub lands it, which is the designed state for this window. `defs.lock` and `shipping.config*` unchanged; no deploy. Write-up `MW/D32/DSP/dsp4-s22-20260910.md`, findings S22-1..S22-4.]   [model: opus]
 
 **HUB ADDENDUM 14:5x BST — GATE 0 BEFORE THE MATRIX: SETTLE S21-7.** S21 found
