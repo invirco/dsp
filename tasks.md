@@ -1,3 +1,89 @@
+## HUB DISPATCH 2026-09-10 04:21Z — S19 — every capacity figure was a silence figure: the DRIVEN capacity instrument made the standard (stimulus the part does not pay for, every dynamics node engaged, regime proven), every staged pair re-priced under load on both chips and both products, the decision table rebuilt on driven numbers, the lever if s16_* does not fit chip 2 driven, S18-7 goldnode attributed   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+S19 — EVERY CAPACITY FIGURE IN THE RECORD IS A SILENCE FIGURE (S18): the DRIVEN capacity instrument made the standard — every dynamics node above threshold on both chips, with a stimulus the part does not pay for — and every staged pair re-priced under load (blk_* / s16_* / s18_* / s16f_*, D24 and D32, both chips): does chip 2 fit UNDER LOAD with the dynamics table, by how much, and what ships; the decision table rebuilt on driven numbers; S18-7 goldnode attributed
+
+WHY. S18 (dsp 4ea4825) explained chip 2's "boot dependence": it was the
+bench being silent on some boots. Of 347 chip-2 words, fifteen differ
+across boots and every one is a dynamics ENVELOPE on the MAIN/SUB/
+OCOMP/OLIM chain — chip 2's dynamics have a cheap branch below threshold,
+so 5 live limiters read 92.7 %, 7 lim + 7 comp + 1 gate read 103.1 % with
+3 % of blocks missed, and **driven deliberately (three boots, ±0.03):
+112.3 % on the SHIPPING default at D24, 10.9 % of blocks missed — D24
+DOES NOT FIT under load on `blk_*`.** Chip 1's cost is signal-INDEPENDENT
+(measured: a near-full-scale signal through its strips, 71.69 % either
+way); chip 1's 113 % in the driven arm was the instrument's own square
+synthesis, not a product number. **Every `capacity.sh` figure in the tree
+is a silence figure.** S18 also landed the shared-kernel lever (COMP and
+TUBE one body each, −38,634 bytes, +0.69 points, bit-exact, famverify
+0/20 differ, `shkstrip.sh` proving five strips read five words) — the
+code pool is no longer what stops anything; and its recommendation is
+explicit: **the LIMITER on the dynamics table is more urgent than any
+byte, because chip 2 is the chip that does not fit.** S16 landed that
+table (`s16_*`: COMP + LIMITER on the LUT, 253 → 92 c/sample-pair for the
+limiter, chip 2 66.7 % at D32 — AT SILENCE). The LUT's whole point is
+that the above-threshold path costs no more than the below-threshold
+one (no exp2 per sample), so `s16_*` under load SHOULD fit — but "should"
+is what S18 just retired. S18-7: `goldnode` FAILS identically on the
+shipping default, every word the same on both arms — pre-existing,
+unattributed.
+
+BENCH. Rev C unit as S18 left it (`blk_*` booted, BOOT_STAGE 7, matrix-
+app active; staged pairs `blk_*` ships, `cand_*`, `geq_*`, `dyn_*`,
+`flr_*`, `s16_*`, `s16f_*`, `s18_*` — NEVER replace any; new candidates as
+`s19_*`). Every image from its own staging path with copy-and-restore;
+`dsp4_checkchip.py`, `dsp4_buildcfg.py` (now reads all switches), CCLK
+measured per row, fresh sym.json per boot; `capacity.sh` with the clock
+per row and `_proc_cyc_max` reset, DIAG_BLK_OVERRUN the arbiter;
+`dsp4_c2regime.py` (new, S18) reads the envelope words. No deploy. No AI
+attribution in commits or any work product.
+
+GATES, in order, each witnessed:
+1. **The driven instrument, made standard.** `capacity.sh --driven`: a
+   stimulus that the PART DOES NOT PAY FOR — the host/CPLD side feeding
+   full-scale signal into the TDM inputs (the matrix-app's own test tone,
+   the CPLD's pattern, or a captured take replayed from the CM4 into the
+   PCM path), NOT a synthesis on chip 1 — with every dynamics node
+   configured so it is ABOVE threshold and engaged (thresholds at
+   −60 dB, ratios high, gates open on signal, limiters below the
+   ceiling), and `dsp4_c2regime.py` proving the regime (every envelope
+   word live) before a row is taken. The instrument's own cost on each
+   chip measured by its silence/driven delta on an image with NO
+   dynamics (or the D24 mask with dynamics bypassed) and stated. Both
+   regimes reported per row from now on: SILENCE and DRIVEN, the driven
+   figure being the product number. First sentence of the status line:
+   **the driven instrument costs N points and the stimulus is <source>.**
+2. **Every staged pair re-priced under load.** `blk_*`, `s16_*`, `s18_*`
+   (and `s16f_*`), D24 mask and D32 all-ones, both chips, two boots,
+   avg + worst + overrun, clock measured, driven AND silence. One table —
+   the new decision table. Second sentence: **chip 2 at D24 driven on
+   `s16_*` is N % (fits / does not), and on D32 M %.** If `s16_*` does not
+   fit driven: the per-kernel ladder (`sigprofile2.sh`) on chip 2 DRIVEN
+   — which class is above its silence cost and by how much (the LUT
+   nodes should be flat; anything that is not is the lever), and the
+   remaining levers priced (GATE_LINTHR on chip 2's gates; the OGEQ/
+   AFB design steps; the FX engines' above-threshold paths).
+3. **What ships.** If a staged pair fits both products driven with
+   margin: that pair is the recommendation, with the table. If none
+   does: the lever from gate 2 built behind a switch, measured driven,
+   staged as `s19_*`, and the table rebuilt. Either way the window note
+   is rewritten on driven numbers, and every earlier silence figure in
+   it is labelled as such.
+4. **S18-7 attributed:** `goldnode` fails identically on the shipping
+   default — which node, which word, since when (bisect by staged pair:
+   `ship_*`, `tx_*`, `blk_*`), and whether the bar or the audio is wrong;
+   fixed or filed with the mechanism.
+5. findings S19-*, `MW/D32/DSP/dsp4-driven-20260910.md`, the window
+   note, tasks.md, this block's status; commit + push main. Scoreboard
+   numbers: driven and silence per chip per product.
+
+Bounded: gates 1–2 are the session; 3 expected; 4 if time; 5 always.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-10 02:41Z — S18 — the code pool's real lever measured: S17-6 explained (chip 2 D24 boot-dependent by ten points), one of the nine 32-copy kernels made SHARED on the rig and in the graph (call cost per block vs bytes returned, bit-exact, behind a switch), the decision table for PW on the other eight   [status: 🟢 done — **CHIP 2'S TEN POINTS ARE SIGNAL, NOT BOOT, AND THE D24 FIGURE TO QUOTE IS 112.3 % — NOT 92.8 %.** Of 347 chip-2 words read on every boot (`dsp4_c2regime.py`, new), **fifteen differ across six boots and every one is a dynamics ENVELOPE** on the MAIN/SUB/OCOMP/OLIM chain: 5 live limiters → 92.67–92.84 % with zero overruns, 6 lim + 5 comp → 95.84 %, 7 lim + 7 comp + 1 gate → **103.14 % with 2.999 % of blocks missed**. Chip 2's dynamics have a cheap branch below threshold; the "boot dependence" was the bench being silent on some boots. Driven deliberately, three boots, reproducible to 0.03 points: chip 2 **112.32 / 112.29 / 112.32 %, 10.92 % of blocks missed** — less 0.18 points for its own stimulus, **~112.1 %**, and **D24 DOES NOT FIT on the shipping default under load**. **Chip 1's cost is signal-INDEPENDENT and that is measured** (on the hot boot a near-full-scale signal reached chip 2's main bus through chip 1's strips and chip 1 still read 71.69 %), so chip 1's 113 % in the driven arm is the instrument's own square synthesis, not a product number. **EVERY `capacity.sh` FIGURE IN THE TREE IS A SILENCE FIGURE.** THE LEVER: 85 % of chip 1's pool is 32 copies of 9 kernels and for eight of the nine the copies are literally ONE BODY — the generator proves it on every run before it shares anything. **COMP and TUBE are now one body each behind `DSP4_SHARED_KERNELS` (default 0; at 0 the image is `302d6142`/`3b3a6f8e`, byte for byte S17's pair).** Entered per strip with the record base in i7 and the predecessor buffer in i5; every `dm(_comp_relq_C1_COMP_07)` becomes `dm(OFF, i7)`, **one instruction as before**, because a node's `.var`s are a contiguous record (COMP 44 words apart to the word) — and that layout is **CHECKED against the linker map by `shared_kernel_check.py`, which `build.sh` runs and which FAILS THE BUILD on a mismatch**. **It is a JUMP, not a call: the graph has paid a call per node per block since block kernels landed**, so the dispatch's premise was wrong and the change pays +6.02 and not +15.04 (D66). **BYTES: COMP −28,800, TUBE −9,834, together −38,634 — chip 1's code section 235,064 → 196,366 of 262,144, free 27,080 → 65,778.** CYCLES: chip 1 D24 71.71 → 72.35 %, D32 93.54 → 94.43 %, **zero overruns on every row of both arms — +0.64 / +0.89 points, ~89 cycles per node per block.** BARS with the switch on: **famverify 20 families verdict for verdict identical to S16's shipping-pair run — 0 of 20 differ**, COMPRESSOR LIVE/BIT_EXACT and TUBE_SAT LIVE/BIT_EXACT; `bqeverify` PASS both arms; `busgold` GRAPH BIT-EXACT; golden 59/59; `dsp_validate` OK. And the bar this change needed and the tree did not have (S18-7): **famverify structurally cannot witness it** — it drives `C1_COMP_01`, and a kernel stuck on strip 1's record is right for strip 1 — so `shkstrip.sh` writes a different threshold per strip and reads each strip's own converted word back: **five strips, five distinct words, each the model's to the bit and each identical to the switch-off control's.** Its own control caught its own two defects first (float64 where the part is float32; strips the D24 mask never calls). **`goldnode` FAILS — and fails IDENTICALLY on the shipping default, every part word the same on both arms**, filed as S18-7 not passed over. TUBE landed too as the second measured point: **−9,834 bytes for +0.04 points**, and the two classes are additive in both currencies (−38,634 bytes, +0.69 points against a predicted +0.68). Staged **`s18_*` `37ce203c`/`ffbf0ab6`** with symbol maps. Bench restored: `blk_*` booted, BOOT_STAGE 7, zero overruns on both chips after `DIAG_CLEAR`, matrix-app active, 223 staged files. DECISION TABLE for the other eight generated by `shared_kernel_survey.py` from the map, the source and the libraries: GATE 29,564 / FILT 27,704 / EQ 18,280 / FDR 11,460 all shareable (**125,642 bytes, 53 % of the section, if all six are done**); **RTG is the biggest at 36,694 and is NOT shareable as it stands** — its 32 copies differ in the strip index and its body uses all eight DAG index registers; DLY (9 bodies) and GAIN (32 bodies) likewise. Recommendation: **GATE then FILT next — and, more urgently than any of it, the LIMITER onto the dynamics table, because chip 2 is the chip that does not fit and the code pool is no longer what is stopping it.** Also S18-4: `dsp4_buildcfg.py` had never learned the four switches S12/S14/S15 put in `DIAG_BUILD_CFG2` and reported them as off — fixed, with `DSP4_SHARED_KERNELS` added to the word. Write-up `MW/D32/DSP/dsp4-s18-20260910.md`, findings S18-1..S18-7.]   [model: opus]
 
 model: opus
