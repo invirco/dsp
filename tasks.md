@@ -1,5 +1,25 @@
 ## HUB DISPATCH 2026-09-10 12:38Z — S22 — completeness leg 1 (PW: every product-defined function coded, product-visible order, priced driven on shipping.config.s21): the matrix buses (channel→matrix sends + on/off, matrix output level + mute) and the FX returns to aux built into the graph, proven by the family walk and a bus vector, the compressor GR meter published from the table's gain word, dsp-unmapped.csv shrinking by exactly the cells built   [status: 🟡 dispatched]   [model: opus]
 
+**HUB ADDENDUM 14:5x BST — GATE 0 BEFORE THE MATRIX: SETTLE S21-7.** S21 found
+that under `DSP4_SIMD_DYN` the ODD strip of every gate pair has four FROZEN
+state words (envelope, gain, target, hold count) — `_DYNGATE_nn_mm_process`
+has no write-back where `_DYNCOMP` has one — bisected to that one switch and
+reproduced to the digit, with the AUDIO question OPEN. PW is being asked to
+sign `shipping.config.s21`, and SIMD_DYN is one of its switches, so this comes
+first: (a) does the audio differ? — the per-sample gate body reads
+`_gate_gain_<nid>` as its starting state, so say whether the odd strip's GATE
+ever acts on the audio under SIMD_DYN (a step through the gate on strip 1 vs
+strip 2, captured through the tap the S21-5 goldnode arm now has, and the
+gain word per block on both strips); (b) the mechanism from the source (the
+pair driver's missing epilogue, or the per-node words simply being display
+copies the pair never needs); (c) the fix — the write-back added to
+`_DYNGATE` the way `_DYNCOMP` has it, or the words made honest display
+copies — bit-exact on the bars, famverify GATE LIVE on both strips of a pair,
+`goldnode` GATE verdict on `s21_*`; (d) `shipping.config.s21` rebuilt, CFG2
+read back, `s21_*` re-staged (it may change bytes — say so). First sentence
+of the status line: **S21-7: the audio WAS / WAS NOT affected, fixed by <X>.**
+Then gates 1–5 as written.
+
 model: opus
 
 S22 — COMPLETENESS, FIRST LEG (PW 2026-09-10 "go with this": every function the product definition names is coded, product-visible order, each priced DRIVEN on `shipping.config.s20`): the MATRIX BUSES (channel→matrix sends + on/off, matrix output level + mute) and the FX RETURNS TO AUX (Fx*AuxSend/AuxOn — a ROUTING node on each FX return strip) built into the graph on both chips, audio-proven by the family walk, capacity re-measured driven at D24 and D32 on the shipping configuration; plus the compressor gain-reduction meter published from the table's gain word
