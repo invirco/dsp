@@ -1,0 +1,201 @@
+{
+ "node": "C2_MAIN_XOVER",
+ "contract": {
+  "pin": "defs-v2026.09.08.4",
+  "sha256": "4aa3c343cedf286e6e74157cbb1265ea589f7b92b3de01a4da5fad7baac477e3"
+ },
+ "bar": {
+  "coeff_ulps": 4,
+  "resp_db": 0.01,
+  "corner_db": 0.05,
+  "sum_db": 0.05,
+  "audio_db": 0.6
+ },
+ "points": [
+  {
+   "slope": 12,
+   "f0": 80.0,
+   "staged_ulps": 1,
+   "live_vs_staged_ulps": 0,
+   "lp_at_corner_db": -6.020598884759752,
+   "hp_at_corner_db": -6.020599093576223,
+   "resp_err_db": 2.5199896207084294e-05,
+   "sum_err_db": 2.499550279650794e-05,
+   "bank": "B",
+   "ok": true
+  },
+  {
+   "slope": 12,
+   "f0": 120.0,
+   "staged_ulps": 4,
+   "live_vs_staged_ulps": 0,
+   "lp_at_corner_db": -6.020600340326058,
+   "hp_at_corner_db": -6.020599102512689,
+   "resp_err_db": 2.3603850031861384e-05,
+   "sum_err_db": 2.237597221363513e-05,
+   "bank": "A",
+   "ok": true
+  },
+  {
+   "slope": 12,
+   "f0": 250.0,
+   "staged_ulps": 3,
+   "live_vs_staged_ulps": 0,
+   "lp_at_corner_db": -6.0206015447050065,
+   "hp_at_corner_db": -6.020599057135303,
+   "resp_err_db": 1.1147179847625921e-05,
+   "sum_err_db": 8.669549291003685e-06,
+   "bank": "B",
+   "ok": true
+  },
+  {
+   "slope": 12,
+   "f0": 500.0,
+   "staged_ulps": 1,
+   "live_vs_staged_ulps": 0,
+   "lp_at_corner_db": -6.020601289920293,
+   "hp_at_corner_db": -6.020599382907575,
+   "resp_err_db": 2.67556374140554e-05,
+   "sum_err_db": 2.4855920071390114e-05,
+   "bank": "A",
+   "ok": true
+  },
+  {
+   "slope": 12,
+   "f0": 50.0,
+   "staged_ulps": 1,
+   "live_vs_staged_ulps": 0,
+   "lp_at_corner_db": -6.020599880231703,
+   "hp_at_corner_db": -6.020599417719562,
+   "resp_err_db": 9.303835105300973e-05,
+   "sum_err_db": 9.30187602813479e-05,
+   "bank": "B",
+   "ok": true
+  },
+  {
+   "slope": 24,
+   "f0": 80.0,
+   "staged_ulps": 3,
+   "live_vs_staged_ulps": 0,
+   "lp_at_corner_db": -6.020597251136669,
+   "hp_at_corner_db": -6.020598950025649,
+   "resp_err_db": 8.66964706744966e-05,
+   "sum_err_db": 8.499835835860958e-05,
+   "bank": "B",
+   "ok": true
+  },
+  {
+   "slope": 24,
+   "f0": 120.0,
+   "staged_ulps": 3,
+   "live_vs_staged_ulps": 0,
+   "lp_at_corner_db": -6.020599878446325,
+   "hp_at_corner_db": -6.020598135306453,
+   "resp_err_db": 3.286608722058914e-05,
+   "sum_err_db": 3.286599538642727e-05,
+   "bank": "A",
+   "ok": true
+  },
+  {
+   "slope": 24,
+   "f0": 250.0,
+   "staged_ulps": 3,
+   "live_vs_staged_ulps": 0,
+   "lp_at_corner_db": -6.020600295523836,
+   "hp_at_corner_db": -6.020595839677476,
+   "resp_err_db": 2.7566102744458476e-05,
+   "sum_err_db": 2.3110001178760957e-05,
+   "bank": "B",
+   "ok": true
+  },
+  {
+   "slope": 24,
+   "f0": 500.0,
+   "staged_ulps": 2,
+   "live_vs_staged_ulps": 0,
+   "lp_at_corner_db": -6.020601867095515,
+   "hp_at_corner_db": -6.0205999690099885,
+   "resp_err_db": 9.84640075591813e-06,
+   "sum_err_db": 9.846374099899364e-06,
+   "bank": "A",
+   "ok": true
+  },
+  {
+   "slope": 24,
+   "f0": 50.0,
+   "staged_ulps": 1,
+   "live_vs_staged_ulps": 0,
+   "lp_at_corner_db": -6.0205985688474275,
+   "hp_at_corner_db": -6.020597888919104,
+   "resp_err_db": 0.00012995714386265442,
+   "sum_err_db": 0.00012995579438548611,
+   "bank": "B",
+   "ok": true
+  }
+ ],
+ "never_set": {
+  "bank": "A",
+  "identity": true,
+  "passthrough": 64,
+  "peak": 0.0
+ },
+ "slope_controls": {
+  "ignored_not_clamped": true,
+  "slope_moves_design": true,
+  "freq_before": 250.0,
+  "freq_after": 250.0,
+  "freq_held": true
+ },
+ "tap": {
+  "legs_decimated_by": 16,
+  "leg_fs": 3000.0,
+  "leg_nyquist": 1500.0
+ },
+ "audio": [
+  {
+   "f0": 120.0,
+   "points": [],
+   "skipped": [
+    {
+     "f": 30.0,
+     "tag": "two oct below",
+     "why": "block-rate witness carries no impulse response"
+    },
+    {
+     "f": 120.0,
+     "tag": "corner",
+     "why": "block-rate witness carries no impulse response"
+    },
+    {
+     "f": 480.0,
+     "tag": "two oct above",
+     "why": "block-rate witness carries no impulse response"
+    }
+   ]
+  },
+  {
+   "f0": 400.0,
+   "points": [],
+   "skipped": [
+    {
+     "f": 100.0,
+     "tag": "two oct below",
+     "why": "block-rate witness carries no impulse response"
+    },
+    {
+     "f": 400.0,
+     "tag": "corner",
+     "why": "block-rate witness carries no impulse response"
+    },
+    {
+     "f": 1600.0,
+     "tag": "two oct above",
+     "why": "above the block-rate Nyquist"
+    }
+   ]
+  }
+ ],
+ "audio_scorable": false,
+ "spi_err_delta": 0,
+ "verdict": "XOVER_DESIGN_FAIL"
+}

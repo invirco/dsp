@@ -6,6 +6,275 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE PAIR THAT FITS BOTH PRODUCTS UNDER LOAD — one named configuration, every bar on that image (2026-09-10, session 20)
+
+Session: `shipping.config.s20` built as one named configuration
+(`STRIP_FUSED` + `SIMD_DYN` + `C2_BQ_GRAPH` + `DYN_LUT` + `GATE_LINTHR` +
+Option A), read back off the part to the bit, every audio bar taken on THAT
+image, driven capacity on both chips and both products, and the decision table
+rebuilt on driven numbers only. Write-up `MW/D32/DSP/dsp4-s20-20260910.md`.
+Contract `defs-v2026.09.08.4`, unchanged. `shipping.config`'s VALUES unchanged
+(one stale COMMENT corrected — S20-2). **No file under
+`MW/D32/DSP/SHARC/src/` changed: the default build is `302d6142` /
+`3b3a6f8e`, byte for byte the pair S17, S18 and S19 left.**
+
+### S20-1 — S12-5 read OPEN for a day after S13-1 closed it, and that is what withheld the recommendation
+
+**Severity: MEDIUM (record). Status: FIXED — S12-5's status line corrected.**
+
+S19's §4 declined to recommend the only configuration it had measured that
+fits D32 under load, on the grounds that *"what stands against it is
+S12-5/S12-7, unchanged"*. Neither was unchanged:
+
+* **S12-5** is titled *"SIMD_DYN is audio-correct; `DSP4_C2_BQ_GRAPH` is
+  not"*. Its first clause is a RESULT — 17/20 LIVE, contract 20/20 with 0
+  FAILED, three arms BIT_EXACT, verdict for verdict the shipping pair. Its
+  second clause was closed the next day by **S13-1** (severity high, status
+  CLOSED), which named the mechanism (the pair driver's steady test never read
+  the pending-DESIGN flag, so for any class the host writes PARAMETERS to the
+  design step at the top of the node body never ran and `swap_pending` never
+  rose), fixed it in `gen_bq_pairs_c2`, and witnessed it three ways.
+* **S12-7** — `DIAG_BUILD_CFG2` not carrying the switch — was closed by
+  **S15-9** (bit 12) and the bench decoder learned it in **S18-4**.
+
+S12-5's status line still read `OPEN — the chip-2 aux biquad pair`. A session
+that trusts the status lines rather than reading the successor findings gets
+the opposite answer to the one the record supports, and that is exactly what
+happened. The line is corrected, pointing at S13-1.
+
+**The lesson is mechanical, not editorial:** when a finding is closed by a
+LATER finding rather than by its own session, the closing session must go back
+and edit the earlier status line. Three of the four findings involved here
+(S12-5, S12-7, S18-7) were closed or attributed by a different session than
+raised them.
+
+### S20-2 — `shipping.config`'s comment on `DSP4_C2_BQ_GRAPH` was two closed findings out of date
+
+**Severity: MEDIUM (record). Status: FIXED — the comment rewritten; the value
+is untouched.**
+
+`shipping.config` exists because the build that shipped was not the build that
+was measured, and its whole claim is that the shipping configuration is named
+in ONE place. Its comment on `DSP4_C2_BQ_GRAPH` said, on 2026-09-10:
+
+> NAMED HERE AT 0 BECAUSE IT IS NOT AUDIO-CORRECT, measured on the part
+> 2026-09-09 (findings S12-5) … NOTE, and it is the same shape as the fault
+> this file exists for: DIAG_BUILD_CFG2 does NOT carry this bit, so the two
+> candidate images read back the same word and differ in audio. Recorded as
+> S12-7.
+
+Both sentences were true when written. Neither has been true since S13-1
+(the defect is fixed) and S15-9 (the bit is in the word) respectively. So the
+file that exists to prevent a stale fact about the shipping build was carrying
+two, in prose rather than in values — which is the same failure one layer up
+from the one it was built for.
+
+The comment now states what the 0 is: **a PW ruling, not a defect**, with
+`shipping.config.s20` named as the proposal to move it and the driven table
+named as the case. The value stays 0; moving it is PW's.
+
+### S20-3 — the configuration that fits both products leaves chip 1's code pool 380 bytes, and S18's byte lever CANNOT be combined with it
+
+**Severity: MEDIUM (resource, no defect). Status: MEASURED and recorded.**
+
+The cycle numbers are only half the cost of this configuration. From the
+linker map, chip 1:
+
+| arm | code, Blocks 3+2 | free | code in Block 1 | DM |
+|---|--:|--:|--:|--:|
+| default (`shipping.config`) | 235,064 / 262,144 (89.7 %) | **27,080** | none | 251,412 (67.0 %) |
+| `s20_*` | 261,764 / 262,144 (99.9 %) | **380** | **1,692** | 298,922 (79.7 %) |
+| `s20f_*` | 261,828 / 262,144 (99.9 %) | **316** | 1,692 | 298,922 (79.7 %) |
+| `s20` + scope tap (the bar image) | 262,004 / 262,144 (99.9 %) | 140 | 7,708 | 304,942 (81.3 %) |
+
+**The 1,692 bytes in Block 1 are `afb_design_fx` (666), `xover_design_fx`
+(622) and `geq_design_fx` (404), and nothing else.** All three are on
+`DSP4_COLD_OBJS` and all three run once per parameter move, never per block.
+So S16-1's ordering did precisely the job it was built for: an image that does
+not fit Blocks 3+2 gets to CHOOSE what pays the contended fetch, and what pays
+is cold code. **No per-block kernel is fetched from Block 1 on either arm.**
+The tap image spills 7,708 bytes and all eleven objects are on the same list.
+
+**The margin, stated properly: 380 bytes of free pool plus 6,666 bytes of cold
+code still in Blocks 3+2 — about 7,046 bytes of growth before a HOT kernel is
+fetched from the DM/DMA block.**
+
+And the obvious lever is closed: **`build.sh` REFUSES
+`DSP4_SHARED_KERNELS` with `DSP4_SIMD_DYN`** (exit 2), because the SIMD pair
+drivers call `_C1_COMP_nn_process_sample` directly and a shared body reached
+that way would run on whatever record base the last strip left in the
+register. S18's −38,634 bytes are therefore not available in this
+configuration until the pair drivers learn the shared calling convention.
+S15-8 named chip 1's code pool as the binding resource for the dynamics
+integration; this is that constraint, measured on the configuration that
+integrates them.
+
+Not a defect and nothing here changes an instruction. It is the sentence that
+belongs beside the cycle numbers when PW decides what else goes on chip 1.
+
+### S20-4 — `busgold.sh` overrode the two switches the configuration is about, and defaulted them to 0
+
+**Severity: MEDIUM (bar). Status: FIXED.**
+
+`busgold.sh` pins `DSP4_SIMD_DYN=${SIMD:-0} DSP4_STRIP_FUSED=${FUSED:-0}` on
+`build.sh`'s command line. `build.sh`'s rule is that the ENVIRONMENT WINS over
+the configuration file — which is the right rule and is how every control arm
+in this tree is built — so run with `SHIPPING_CONFIG=shipping.config.s20`, a
+file that names both switches at 1, the bar quietly built and scored an arm
+with both at 0. Its own capture said so and nobody was reading it:
+`paired_build=False bq_paired_build=False`.
+
+**A bar cannot witness a configuration whose defining switches it overrides,
+and the override is invisible precisely because it is the bar's own default.**
+That is findings S11-1 — the capacity record quoting an image with two
+switches on that no file named — one layer inside the bars.
+
+FIX: `SIMD` and `FUSED` still exist (they are how the pairing is A/B'd against
+the stored golden) but they now DEFAULT to what the configuration file says,
+read through `tools/dsp/build_config.py`, and the arm is printed in the log
+line beside the md5.
+
+Two related gaps closed with it:
+
+* **`tools/dsp/build_config.py` read only `DSP4_SHIPPING_CONFIG`**, while
+  `build.sh` reads `SHIPPING_CONFIG`. With two configuration files in the tree
+  that means the shell half of a script builds one configuration and the Python
+  half reads another. `SHIPPING_CONFIG` is authoritative now, with the old name
+  kept as an alias.
+* **`check_shipping_config.sh` is about `shipping.config` specifically** — it
+  diffs that file against the bench mirror — so it now names the path instead
+  of following `SHIPPING_CONFIG` to some other file and reporting that the
+  mirror disagrees with it.
+
+**`bqeverify.sh` pins the same two switches at 1 unconditionally**, which
+happens to be what `shipping.config.s20` says, so its result stands. It is
+worth recording that it has therefore always measured the PAIRED cascade
+whatever `shipping.config` said — for that bar it is the right arm (the SIMD
+cascade is what `bq_float_ref` is being checked against) but it is another
+place where the image under test is not the configuration named.
+
+### S20-5 — `s20_*` is audio-correct on every bar the tree has, and the one bar that is not bit-exact is 0.03934 dB
+
+**Severity: N/A (a result). Status: MEASURED on the part.**
+
+The whole configuration on one image (`065693ca` / `4cfa4763`, the `s20`
+configuration plus the block-aware scope tap), one bench session, both chips:
+
+| bar | verdict |
+|---|---|
+| `golden_harness` | **59/59** |
+| `dsp_validate` | **OK** |
+| `famverify`, 20 families, both chips | **1 of 20 verdicts differs from the shipping pair, and it is the one that has to: COMPRESSOR numeric.** 17/20 audio LIVE, contract 20/20 with every rw cell answering at its landed address, FADER_PAN and TUBE_SAT numeric BIT_EXACT, every `moved` count identical family for family (`tools/dsp/famdiff.py`) |
+| `COMPRESSOR` numeric, in dB | **0.00518 dB** worst deviation against the table's 0.0950 dB design bound and PW's 0.1 dB ruling; all six converted parameters bit-exact. S16's figure to the digit, on an image that also carries fusion, SIMD and the chip-2 pairing |
+| `bqeverify float` | **PASS, 0 ULP over 36,864 words** against `bq_float_ref` on the part; both arm hashes MATCH and the A-vs-B divergence bitmap is 567 of 576 cells exactly where the model names them |
+| `geqverify` design + live | **GEQ_DESIGN_OK** — 1–3 ulp, ≤0.00014 dB modelled; live tone **+11.997 dB at 1 kHz against +12.000 modelled** |
+| `afbverify` design + live | **AFB_DESIGN_OK** — 2–4 ulp, ≤0.00009 dB modelled; live tone **−18.000 dB against −18.000 modelled**; both negative controls read identity |
+| `busgold` | **NOT bit-exact, and it cannot be** — see below |
+| `goldnode` | FAILS, identically to the shipping default; S19-7's attribution stands (the bar reads `_buf_<nid>` scalars the block-kernel graph never writes) |
+
+**The three families S12-5 found INERT under `DSP4_C2_BQ_GRAPH=1` are LIVE with
+that switch ON, and they produce the SCALAR arm's words to the bit:** GEQ
+`0x08000000 → 0x082DE520` moved 64/64, ANTI_FB `0x08000000 → 0x07B14CA0` moved
+64/64, CROSSOVER `0x07E960D0 → 0x074AF178` moved 64/64. The live-tone arms are
+the stronger witness: a paired AUX GEQ delivers its designed +12 dB to within
+0.003 dB and a paired AUX AFB its −18 dB notch to within 0.000 dB. S12-5
+measured `+0.000 dB at every point` for both.
+
+**`busgold` and why NOT bit-exact is the right answer.** The harness leaves
+`CompPar` at its power-on 100 %, so the strip's compressor is FULLY WET in the
+capture — that is what review finding D59 changed and why the golden was
+re-baselined on 2026-08-30. The compressor's gain computer is precisely what
+`DSP4_DYN_LUT` replaces, so a bit-exact capture would prove the table was NOT
+reaching the audio. Measured with `tools/dsp/busdev.py` (new — the bar reported
+LSBs, and a maxdiff in LSBs reads the same for a 0.04 dB table and a dead node,
+which is S16-4's criticism of counting):
+
+```
+postD59 vs s20:  235 of 256 words differ
+                 0 of them zero in one capture and not the other
+                 worst level difference 0.03934 dB at word 21
+                 bound 0.0950 dB: PASS
+```
+
+**0.03934 dB worst word.** Not one word is zero in one capture and non-zero in
+the other, which is the signature a dead node leaves. For scale, D59's real
+audio change to this same capture was 151 times larger in LSBs.
+
+### S20-6 — fusion, the SIMD pairing and chip 2's paired biquad graph change NOT ONE BUS WORD, and the whole busgold difference is the two declared deviations
+
+**Severity: N/A (a result). Status: MEASURED on the part, three arms, one bench
+session.**
+
+`busgold.sh` captures 256 consecutive words of `_buf_C1_BUS_MAIN_L` out of a
+running graph with both strips configured in opposite arms of every predicated
+branch and the compressor left FULLY WET. Against
+`goldens/busgraph-postD59-20260830.json`:
+
+| arm | capture sha256 | vs the golden |
+|---|---|---|
+| `s20` with `SIMD=0 FUSED=0` (what the bar built before S20-4 was fixed) | `4126c00730a31f5f` | 235 of 256 differ, worst **0.03934 dB** |
+| `s20`, the real configuration — `paired_build=True bq_paired_build=True` | **`4126c00730a31f5f`, the same capture byte for byte** | 235 of 256, worst 0.03934 dB |
+| `s20` with `DSP4_DYN_LUT=0 DSP4_GATE_LINTHR=0`, everything else on | **`ba3f52ecb83f9a60` — the golden's own sha256** | **0 of 256. GRAPH BIT-EXACT** |
+
+* **`DSP4_STRIP_FUSED`, `DSP4_SIMD_DYN`, `DSP4_C2_BQ_GRAPH` and
+  `DSP4_TX_EARLY=2` together reproduce a golden taken on 2026-08-30 BIT FOR
+  BIT.** Rows 1 and 2 are the same capture (`busdev.py`: 0 of 256 words, 0.0000
+  dB), so the pairing is bus-word-identical to the scalar graph.
+* **The entire difference is `DSP4_DYN_LUT` + `DSP4_GATE_LINTHR`** — precisely
+  the two switches that are declared numeric-spec deviations — **at 0.03934 dB
+  worst word against the table's 0.0950 dB bound**, with not one word zero in
+  one capture and non-zero in the other.
+
+A bar that goes from BIT-EXACT to 235 words differing when exactly the two
+switches with dB bounds on them are turned on, by an amount inside those
+bounds, is the bar working. `tools/dsp/busdev.py` is what turns its LSB count
+into that sentence.
+
+### S20-7 — `s20_*` fits BOTH products under load with 27 points of margin, and the switch S19 left off is most of it
+
+**Severity: N/A (the result). Status: MEASURED, two boots, both products, both
+chips, 16 of 16 regime snapshots proven.**
+
+Instrument unchanged from S19: the `driveall` bitstream broadcasting the CM4's
+400 Hz full-scale square onto every DSPA input lane, three rows on one boot,
+`dsp4_c2regime.py --require-driven` proving every envelope live before row C,
+`DIAG_BLK_OVERRUN` the arbiter. Row C is the product number.
+
+| arm | D24 chip 1 | D24 chip 2 | D32 chip 1 | D32 chip 2 | overruns |
+|---|--:|--:|--:|--:|---|
+| `blk_*` (shipping default, S19) | 118.9 | 119.2 | 158.2 | 142.8 | **one block in six / one in three** |
+| `s16_*` (S19) | 82.4 | 94.6 | 109.5 | 115.8 | zero at D24, 8.7 % / 13.3 % at D32 |
+| `s18_*` (S19) | 119.6 | 119.3 | 159.3 | 144.3 | one in six |
+| **`s20_*`** | **53.83 / 53.79** | **58.99 / 59.16** | **71.57 / 71.22** | **72.55 / 72.56** | **ZERO, every row, both boots, both products** |
+| **`s20f_*`** | **52.43** | **54.93 / 55.09** | **69.75 / 69.61** | **66.73 / 66.72** | **ZERO** |
+
+**Three things this table settles.**
+
+1. **The signal is free on this configuration, on both chips and both
+   products.** Driven minus silent-loaded is +0.05 / −0.29 points at D24 and
+   +0.08 / +0.26 at D32. On the shipping default that column is +42.5 and
+   +29.3. The LUT's claim — that the above-threshold path costs what the
+   below-threshold one does — now holds on chip 2's output chains as well as
+   chip 1's strips.
+2. **`DSP4_C2_BQ_GRAPH` is worth ~21 points of chip 2 at D32 and ~17 at D24.**
+   S19's `s16sd` arm is exactly `s20` minus that switch and it read 93.90 % /
+   76.42 % where `s20` reads 72.55 % / 58.99 %. The switch S19 held at 0 on the
+   strength of a finding closed a day earlier is most of the margin, and that
+   is the practical cost of S20-1.
+3. **`s20f_*` is worth 1.4–4.1 points for nothing measurable**, as S13-5
+   predicted for the pipelined loop. Neither product needs it to fit, which is
+   why the proposal names it at 0 and measures it beside.
+
+Latency, MEASURED not carried: `s20_*` 14,513 / 14,516 median offset against a
+**re-taken** LOGIC-only reference of **14,433** (100.0 % coherent, reproducing
+S17's figure to the sample) — **80 / 83 samples through-DSP against the
+contract's 82**, inside the instrument's ±2-sample spread.
+
+**The worst-block column is still not a decision number** (S19-5): two entries
+of 353 % and 366 % sit beside a full pass count and zero overruns, which a real
+block cannot. Every other worst-block figure is within 0.7 points of its
+average.
+
 ## EVERY CAPACITY FIGURE WAS A SILENCE FIGURE — the DRIVEN instrument, and what the staged pairs cost under load (2026-09-10, session 19)
 
 Session: the driven capacity instrument made the standard — a stimulus the
@@ -4323,7 +4592,11 @@ exactly as it always did. With it the three families read **BIT_EXACT**.
 
 ### S12-5 — SIMD_DYN is audio-correct; `DSP4_C2_BQ_GRAPH` is not
 
-**Severity: HIGH (audio). Status: OPEN — the chip-2 aux biquad pair.**
+**Severity: HIGH (audio). Status: CLOSED by S13-1 (2026-09-09) — the chip-2
+aux biquad pair was fixed, with the mechanism named and three witnesses.
+Status corrected 2026-09-10, S20-1: this line read OPEN for a day after the
+defect it describes was closed, and S19 read it and withheld the
+recommendation its own measurements supported.**
 
 With the three instrument defects above fixed, `DSP4_STRIP_FUSED=1
 DSP4_SIMD_DYN=1 DSP4_C2_BQ_GRAPH=0` reads **verdict-for-verdict identical

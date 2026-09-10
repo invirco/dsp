@@ -7,7 +7,88 @@ the app and the matrix to the rev C unit TOGETHER. This is the DSP leg,
 made ready and proven ahead of it so the window is a deploy and not a
 debug. **It is PW-gated; nothing here was deployed.**
 
-## 0. EVERY CAPACITY FIGURE BELOW THIS LINE IS A SILENCE FIGURE (added 2026-09-10, S19)
+## 0. THE CONFIGURATION TO SHIP IS `shipping.config.s20`, AND IT IS MEASURED (added 2026-09-10, S20)
+
+**Read this first; §0a below is S19's warning and it still applies to every
+percentage further down.**
+
+S19 measured, under load, that **the configuration `shipping.config` names
+fits neither product**: D24 118.9 % / 119.2 % of budget with one block in six
+dropped, D32 158.2 % / 142.8 % with one in three. S20 built the successor as
+ONE named configuration file, proved the part reads it back to the bit, took
+every audio bar the tree has on that image, and re-measured driven capacity on
+both chips and both products.
+
+### The proposal
+
+**`MW/D32/DSP/SHARC/shipping.config.s20`** — `shipping.config` plus five
+switches and nothing else: `DSP4_STRIP_FUSED=1` (S11), `DSP4_SIMD_DYN=1`
+(S12), `DSP4_C2_BQ_GRAPH=1` (S13-1), `DSP4_GATE_LINTHR=1` (S15-7),
+`DSP4_DYN_LUT=1` (S15/S16-6). `shipping.config` itself is **unchanged**; the
+proposal is PW's to adopt. Write-up `MW/D32/DSP/dsp4-s20-20260910.md`.
+
+**Staged pair: `s20_*` `32dc1ea1` / `29d00a5e`**, with symbol maps beside it.
+Both chips read back `DIAG_BUILD_CFG 0xCF45FF10` and
+`DIAG_BUILD_CFG2 0xC2011E4F`, matching the file to the bit (`cfgverify.sh`).
+`s20f_*` `20f04ffe` / `7802f1f2` is the same file plus `DSP4_BQ_SIMD_PIPE=2`.
+
+### It fits both products under load, with margin
+
+Driven, two boots, both chips, every regime snapshot proven,
+`DIAG_BLK_OVERRUN` the arbiter:
+
+| pair | D24 chip 1 / chip 2 | D32 chip 1 / chip 2 | overruns |
+|---|--:|--:|---|
+| the shipping default (`blk_*`) | 118.9 / 119.2 | 158.2 / 142.8 | **one block in six, one in three** |
+| `s16_*` | 82.4 / 94.6 | 109.5 / 115.8 | zero at D24; **8.7 % / 13.3 % at D32** |
+| **`s20_*`** | **53.8 / 59.0** | **71.6 / 72.6** | **ZERO on every row of both boots of both products** |
+| `s20f_*` | 52.4 / 55.0 | 69.8 / 66.7 | zero |
+
+**Latency MEASURED on `s20_*`: 80 / 83 samples through-DSP** against a
+LOGIC-only reference re-taken the same session (14,433, 100.0 % coherent).
+**The contract figure stands at 82 samples / 1.708 ms.** Option A stays chip 2
+only.
+
+### Audio: one verdict of twenty moves, and it is the one that has to
+
+`famverify` 20 families both chips against the shipping pair: **1 of 20
+verdicts differs — COMPRESSOR's numeric arm, at 0.00518 dB** against the
+table's 0.0950 dB bound and PW's 0.1 dB ruling. 17/20 audio LIVE, contract
+20/20 answering, FADER_PAN and TUBE_SAT BIT_EXACT. `bqeverify` **0 ULP over
+36,864 words**. `geqverify` and `afbverify` deliver +12.000 dB and −18.000 dB
+through the PAIRED chip-2 GEQ and AFB to within 0.003 dB — the two families
+S12-5 found inert. `golden_harness` 59/59. `busgold` is not bit-exact **and
+cannot be** (its harness leaves the compressor wet and the table is what
+replaces its gain computer): **0.03934 dB worst word**, and with
+`DSP4_DYN_LUT`/`DSP4_GATE_LINTHR` off, the same image reproduces the
+2026-08-30 golden **bit for bit** — so fusion, SIMD and the chip-2 pairing move
+no bus word at all.
+
+### What PW is being asked to rule
+
+Two of the five switches are numeric-spec deviations and need sign-off:
+**`DSP4_DYN_LUT`** (0.0950 dB worst case over the documented sweep; 0.00518 dB
+and 0.03934 dB measured on the part) and **`DSP4_GATE_LINTHR`** (≤0.0002 dB
+threshold shift). The other three carry no deviation to sign off.
+
+### What is left open, and one resource number
+
+* **The FX engines' driven cost is NOT measured.** Every driven figure above,
+  `s20_*`'s included, is taken with the six FX engines idle — S19's load
+  configuration leaves them alone deliberately. This is the biggest remaining
+  unknown in the D32 budget.
+* **Chip 1's code pool has 380 bytes free on `s20_*`**, with 1,692 bytes of
+  cold design-step code in Block 1 and 6,666 bytes of cold code left in Blocks
+  3+2 — about 7,046 bytes of growth before a per-block kernel is fetched from
+  the contended block. **S18's −38,634-byte lever cannot be combined with this
+  configuration** (`build.sh` refuses `DSP4_SHARED_KERNELS` with
+  `DSP4_SIMD_DYN`).
+* Nothing rebuilds against this: no contract change, no address moves, defs
+  pin `defs-v2026.09.08.4` throughout. Rollback is `blk_*`, untouched.
+
+---
+
+## 0a. EVERY CAPACITY FIGURE BELOW THIS LINE IS A SILENCE FIGURE (added 2026-09-10, S19)
 
 **Read this before any percentage in this note.** Every capacity number in
 sections 1 onward — and every capacity number the window has been shown to

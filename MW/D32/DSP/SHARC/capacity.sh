@@ -88,7 +88,13 @@ OVR=""
 for v in $(env | sed -n 's/^\(DSP4_[A-Z0-9_]*\)=.*/\1/p' | sort); do
     OVR="$OVR $v=${!v}"
 done
-echo "=== capacity arm '$ARM'  product=$PRODUCT  block=${BLOCK:-tree}  overrides:${OVR:- none}"
+# WHICH CONFIGURATION FILE. build.sh sources whatever SHIPPING_CONFIG names,
+# and S20 introduced a second named configuration (shipping.config.s20), so an
+# arm's definition is the FILE plus the overrides -- printing only the
+# overrides would make two different arms look identical in the log, which is
+# S11-1's shape.
+echo "=== capacity arm '$ARM'  product=$PRODUCT  block=${BLOCK:-tree}" \
+     " config=$(basename "${SHIPPING_CONFIG:-shipping.config}")  overrides:${OVR:- none}"
 
 if [ "${BUILD:-1}" = "1" ]; then
     SRC="$PWD/src"

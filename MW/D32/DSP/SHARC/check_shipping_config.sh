@@ -20,7 +20,11 @@ import sys
 sys.path.insert(0, 'tools/dsp')
 import build_config
 
-cfg = build_config.load()
+# THE FILE, NAMED. This script is about `shipping.config` specifically --
+# it diffs it against the bench mirror -- so it must not follow a
+# SHIPPING_CONFIG in the environment to some other configuration and then
+# report that the mirror disagrees with it (S20).
+cfg = build_config.load('MW/D32/DSP/SHARC/shipping.config')
 ns = {}
 src = open('tools/pi/dsp4_buildcfg.py').read()
 exec(compile(src.split('def decode')[0], 'dsp4_buildcfg.py', 'exec'), ns)

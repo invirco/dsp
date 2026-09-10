@@ -18,7 +18,14 @@ CONFIG_PATH = os.path.normpath(
 
 def load(path=None):
     """Return {KEY: int} from shipping.config. Missing file -> {}."""
-    path = path or os.environ.get('DSP4_SHIPPING_CONFIG', CONFIG_PATH)
+    # ONE NAME FOR ONE FACT. build.sh reads the configuration file's path out
+    # of SHIPPING_CONFIG; this used to read only DSP4_SHIPPING_CONFIG, so a
+    # `SHIPPING_CONFIG=... ./anything.sh` built one configuration and every
+    # Python half of the same script read another. S20 hit it the moment there
+    # were two configuration files (shipping.config.s20). SHIPPING_CONFIG is
+    # authoritative; DSP4_SHIPPING_CONFIG is kept as an alias.
+    path = (path or os.environ.get('SHIPPING_CONFIG')
+            or os.environ.get('DSP4_SHIPPING_CONFIG') or CONFIG_PATH)
     out = {}
     try:
         fh = open(path)

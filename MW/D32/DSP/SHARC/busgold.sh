@@ -105,6 +105,21 @@ STAGE="${STAGE:-/home/app/dspboot}"
 BLOCKPY="${DSP_SRC_DIR:-$ROOT/MW/D32/DSP/SHARC/src}/dsp4_block.py"
 [ -f "$BLOCKPY" ] || BLOCKPY="$ROOT/tools/pi/dsp4_block.py"
 STRIP="${STRIP:-1}"; N="${N:-256}"; STRIPS="${STRIPS:-2}"; TAG="${TAG:-cur}"
+# SIMD / FUSED DEFAULT FROM THE CONFIGURATION BEING BUILT, NOT FROM 0 (S20-4).
+#
+# This script pins DSP4_SIMD_DYN and DSP4_STRIP_FUSED on build.sh's command
+# line, and build.sh's rule is that the ENVIRONMENT WINS over the
+# configuration file. So run against `shipping.config.s20` -- which names both
+# at 1 -- it silently built and scored an arm with both at 0: a bar cannot
+# witness the configuration whose defining switches it overrides, and the
+# override does not show up as an override because it is the bar's own
+# default. That is findings S11-1's shape one layer inside the bars.
+#
+# They stay overridable (SIMD=/FUSED= are how the pairing is A/B'd against
+# the golden), but the DEFAULT is now what the configuration file says.
+_cfg() { python3 "$ROOT/tools/dsp/build_config.py" "$1"; }
+SIMD="${SIMD:-$(_cfg DSP4_SIMD_DYN)}";  SIMD="${SIMD:-0}"
+FUSED="${FUSED:-$(_cfg DSP4_STRIP_FUSED)}"; FUSED="${FUSED:-0}"
 GOLD="${GOLD:-goldens/busgraph-postD59-20260830.json}"
 OUT=/tmp/busgold; mkdir -p $OUT
 
@@ -118,12 +133,13 @@ fi
 
 DSP4_BISECT=0 DSP4_BLOCK_KERNELS=1 DSP4_STRIPS=$STRIPS \
   DSP4_CTL_ALWAYS=${CTL_ALWAYS:-0} DSP4_CTL_NEGCTL=${CTL_NEGCTL:-0} \
-  DSP4_SIMD_DYN=${SIMD:-0} DSP4_STRIP_FUSED=${FUSED:-0} \
+  DSP4_SIMD_DYN=$SIMD DSP4_STRIP_FUSED=$FUSED \
   ./build.sh > $OUT/build.log 2>&1
 if [ "$(grep -ciE '\[Error|Build FAILED' $OUT/build.log)" -ne 0 ]; then
   echo "BUILD FAILED"; grep -iE '\[Error' $OUT/build.log | head; exit 1; fi
 echo "  $TAG: chip1.ldr $(md5sum build/chip1.ldr | cut -c1-8) \
-chip2.ldr $(md5sum build/chip2.ldr | cut -c1-8)"
+chip2.ldr $(md5sum build/chip2.ldr | cut -c1-8) \
+[$(basename "${SHIPPING_CONFIG:-shipping.config}") SIMD=$SIMD FUSED=$FUSED]"
 python3 $ROOT/tools/dsp/map_syms.py build/chip1.map.xml > /tmp/chip1.sym.json
 scp -q build/chip1.ldr build/chip2.ldr /tmp/chip1.sym.json \
     "$BLOCKPY" $ROOT/tools/pi/dsp4_pairgraph.py \

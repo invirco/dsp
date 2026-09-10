@@ -1,0 +1,73 @@
+/tmp/landed-d24.json  3737 cells  sha256 4aa3c343cedf  pin defs-v2026.09.08.4
+--- boot 1 ---
+  boot: chip1 stage=7 chip2 stage=7
+  gainfix: strip 1 is 0x00000000, rewriting GAIN = 1
+  gainfix: strip 1 repaired on attempt 1
+  gainfix: 1 strip(s) at 0x3F800000
+  chip1: 48 strip cells written
+  chip2: 12 cells written, all present in the contract
+    _buf_C2_MIX_MAIN_L       0x0
+    _buf_C2_MAIN_FDR         0x0
+    _buf_C2_MAIN_DLY         0x0
+    _buf_C2_MAIN_ST_OUT      0x0
+rep  0: offset  14443  coherent  93.8%  runner-up   0.0%  margin xinf  peak width 4
+rep  1: offset  14513  coherent  93.8%  runner-up   0.0%  margin xinf  peak width 3
+rep  2: offset  14507  coherent  93.8%  runner-up   0.0%  margin xinf  peak width 3
+rep  3: offset  14517  coherent  87.5%  runner-up   0.0%  margin xinf  peak width 5
+rep  4: offset  14518  coherent  87.5%  runner-up   0.0%  margin xinf  peak width 5
+rep  5: offset  14512  coherent  93.8%  runner-up   0.0%  margin xinf  peak width 1
+rep  6: offset  14513  coherent  87.5%  runner-up   0.0%  margin xinf  peak width 4
+rep  7: offset  14516  coherent  87.5%  runner-up   0.0%  margin xinf  peak width 7
+rep  8: offset  14512  coherent  93.8%  runner-up   0.0%  margin xinf  peak width 2
+rep  9: offset  14516  coherent  87.5%  runner-up   0.0%  margin xinf  peak width 5
+rep 10: offset  14508  coherent  93.8%  runner-up   0.0%  margin xinf  peak width 2
+rep 11: offset  14506  coherent  93.8%  runner-up   0.0%  margin xinf  peak width 2
+rep 12: offset  14511  coherent  93.8%  runner-up   0.0%  margin xinf  peak width 2
+rep 13: offset  14512  coherent  87.5%  runner-up   0.0%  margin xinf  peak width 4
+rep 14: offset  14509  coherent  93.8%  runner-up   0.0%  margin xinf  peak width 3
+rep 15: offset  14517  coherent  87.5%  runner-up   0.0%  margin xinf  peak width 5
+rep 16: offset  14516  coherent  87.5%  runner-up   0.0%  margin xinf  peak width 4
+rep 17: offset  14516  coherent  87.5%  runner-up   0.0%  margin xinf  peak width 8
+rep 18: offset  14517  coherent  87.5%  runner-up   0.0%  margin xinf  peak width 4
+rep 19: offset  14504  coherent  93.8%  runner-up   0.0%  margin xinf  peak width 2
+
+arm: 20 reps
+  offset  min 14443  median 14513  max 14518  spread 75
+  coherent fraction  min 87.5%  max 93.8%
+  worst margin over the runner-up: xinf
+--- boot 2 ---
+  boot: chip1 stage=7 chip2 stage=7
+  gainfix: strip 1 is 0x00000000, rewriting GAIN = 1
+  gainfix: strip 1 repaired on attempt 1
+  gainfix: 1 strip(s) at 0x3F800000
+  chip1: 48 strip cells written
+  chip2: 12 cells written, all present in the contract
+    _buf_C2_MIX_MAIN_L       0x0
+    _buf_C2_MAIN_FDR         0x0
+    _buf_C2_MAIN_DLY         0x0
+    _buf_C2_MAIN_ST_OUT      0x0
+rep  0: offset  14527  coherent  87.5%  runner-up   0.0%  margin xinf  peak width 4
+rep  1: offset  14501  coherent  93.8%  runner-up   0.0%  margin xinf  peak width 3
+rep  2: offset  14515  coherent  87.5%  runner-up   0.0%  margin xinf  peak width 4
+rep  3: offset  14516  coherent  87.5%  runner-up   0.0%  margin xinf  peak width 4
+rep  4: offset  14509  coherent  93.8%  runner-up   0.0%  margin xinf  peak width 3
+rep  5: offset  14513  coherent  93.8%  runner-up   0.0%  margin xinf  peak width 4
+rep  6: offset  14515  coherent  93.8%  runner-up   0.0%  margin xinf  peak width 1
+rep  7: offset  14518  coherent  87.5%  runner-up   0.0%  margin xinf  peak width 7
+rep  8: offset  14519  coherent  87.5%  runner-up   0.0%  margin xinf  peak width 4
+rep  9: offset  14509  coherent  93.8%  runner-up   0.0%  margin xinf  peak width 2
+rep 10: offset  14511  coherent  93.8%  runner-up   0.0%  margin xinf  peak width 2
+rep 11: offset  14516  coherent  93.8%  runner-up   0.0%  margin xinf  peak width 4
+rep 12: offset  14514  coherent  93.8%  runner-up   0.0%  margin xinf  peak width 3
+rep 13: offset  14513  coherent  93.8%  runner-up   0.0%  margin xinf  peak width 1
+rep 14: offset  14516  coherent  93.8%  runner-up   0.0%  margin xinf  peak width 4
+rep 15: offset  14518  coherent  87.5%  runner-up   0.0%  margin xinf  peak width 4
+rep 16: offset  14519  coherent  87.5%  runner-up   0.0%  margin xinf  peak width 4
+rep 17: offset  14519  coherent  87.5%  runner-up   0.0%  margin xinf  peak width 4
+rep 18: offset  14509  coherent  93.8%  runner-up   0.0%  margin xinf  peak width 1
+rep 19: offset  14516  coherent  87.5%  runner-up   0.0%  margin xinf  peak width 4
+
+arm: 20 reps
+  offset  min 14501  median 14516  max 14527  spread 26
+  coherent fraction  min 87.5%  max 93.8%
+  worst margin over the runner-up: xinf
