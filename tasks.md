@@ -1,3 +1,98 @@
+## HUB DISPATCH 2026-09-10 06:51Z — S20 — the pair that fits both products under load, built from ONE named configuration (shipping.config.s20: fusion + SIMD_DYN + C2_BQ_GRAPH + LUT + LINTHR + LIMITER table + Option A) as s20_* (+ s20f_*), every bar and famverify on THAT image, driven capacity both chips both products, the decision table on driven numbers only, the shipping.config proposal for PW's window; the SIMD_DYN audio question settled by the record or named to the word   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+S20 — THE PAIR THAT FITS BOTH PRODUCTS UNDER LOAD, BUILT FROM ONE NAMED CONFIGURATION AND PROVEN END TO END: `STRIP_FUSED` + `SIMD_DYN` + `C2_BQ_GRAPH` + `DYN_LUT` + `GATE_LINTHR` (+ the LIMITER table) as `s20_*`, every switch in `shipping.config`'s proposed successor, the six bars + famverify + golden + latency on THAT image, driven capacity both chips both products — and the "SIMD_DYN audio question" S19 cites settled by the record (S12 proved SIMD_DYN audio-correct; S13-1 proved C2_BQ_GRAPH audio-correct) or, if something real remains, named to the word
+
+WHY. S19 (dsp a096c58) made the driven measurement the standard (the
+CM4's playback broadcast onto every DSPA input lane by a 9-line LOGIC
+bitstream; the DSP executes nothing for it; regime proven on both chips;
+silence and driven now the same image/boot/clock). Results: **the
+shipping default fits NEITHER chip under load** (D24 118.9 % / 119.2 %
+with one block in six dropped; D32 158 % / 143 %); chip 1 IS
+signal-dependent (S18's sentence withdrawn — +42.5 points driven on
+`blk_*`, +1.0 on `s16_*`); **`s16_*` driven: D24 82.4 % / 94.56 % FITS
+(zero overruns), D32 115.8 % does not**; the silence table had ranked the
+pairs the wrong way round. **The only configuration measured that fits
+D32 driven is `s16_*` + `STRIP_FUSED` + `SIMD_DYN` (+ `C2_BQ_GRAPH` for
+chip 2): 71.3 % / 93.9 %, zero overruns** — which is the arm S16's
+decision table actually described, while the STAGED `s16_*` was rebuilt
+from `shipping.config` and therefore carries neither `STRIP_FUSED` nor
+`SIMD_DYN` (both default 0 there). S19 says "what stands against it is
+S12-5/S12-7, unchanged" — but the record says: S12 proved `SIMD_DYN`
+audio-correct (17/20 LIVE, 20/20 contract, 3 BIT_EXACT, verdict for
+verdict the shipping pair); S13-1 proved `C2_BQ_GRAPH` audio-correct
+(the write was dropped upstream of the latch — fixed, three ways);
+S12-7 was closed by S15 (CFG2 carries the switches). If S19 knows of
+something still open on those switches, it has not been written down.
+PW's mandate: the measured configuration is the shipped configuration —
+`shipping.config` names every switch. Today it names a configuration
+that does not fit either product under load. Also from S19: the
+record's "silence" was the converters' noise floor (true silence 1–3
+points lower); the arbiter could not be read while arbitrating (fixed);
+`DIAG_CLEAR` read a strobe back (fixed); `capacity.sh BUILD=0` staged
+nothing (fixed); S18-7 attributed — `goldnode` reads `_buf_` scalars the
+block-kernel graph never writes, the bar is wrong, the audio is not.
+
+BENCH. Rev C unit as S19 left it (`blk_*` booted, shipping CPLD
+`a1f6672af6c3`, BOOT_STAGE 7, matrix-app active; 22 staged `.ldr` —
+NEVER replace any; the driven bitstream `dsp4_logic_driveall.e13b5dec84e0`
+is an INSTRUMENT bitstream: flash it for the driven rows, restore the
+shipping CPLD after, IDCODE re-read each time). Every image from its own
+staging path with copy-and-restore; `dsp4_checkchip.py`,
+`dsp4_buildcfg.py`, CCLK measured per row, fresh sym.json per boot;
+`capacity.sh` driven rows with the regime proved (`dsp4_c2regime.py` on
+both chips), DIAG_BLK_OVERRUN the arbiter; the six bars take STAGE, tap
+on. No deploy. No AI attribution in commits or any work product.
+
+GATES, in order, each witnessed:
+1. **The configuration, named once.** `shipping.config.s20` (a proposed
+   successor, NOT replacing `shipping.config`): every switch with its
+   value and the session that proved it — `STRIP_FUSED=1` (S11),
+   `SIMD_DYN=1` (S12), `C2_BQ_GRAPH=1` (S13), `DYN_LUT=1` + the LIMITER
+   table (S15/S16), `GATE_LINTHR=1` (S15), `TX_EARLY=2` + `GATHER_FIRST`
+   (PW), `BQ_SIMD_PIPE` and `SHARED_KERNELS` stated as 0 or 1 with the
+   reason (PIPE=2 buys 5 points at 0 audio cost — include it as
+   `s20f_*` if the bars pass; SHARED_KERNELS costs 0.7 points for bytes
+   — leave 0 unless the pool needs it). Built, `DIAG_BUILD_CFG`/`CFG2`
+   read back on the part matching the file to the bit, staged as
+   `s20_*` (and `s20f_*`).
+2. **The audio question, settled by the record or named to the word.**
+   On `s20_*` with the tap: famverify all 20 families verdict for verdict
+   against the shipping pair (S12's and S13's results are the
+   expectation — COMPRESSOR/LIMITER differ by the table as S16 showed,
+   everything else identical); `bqeverify` 0 ULP; `busgold` bit-exact;
+   `geqverify`/`afbverify`/`xoververify` design + live arms; golden
+   59/59; `node_verify` on the LUT nodes (0.0950 bound); `shkstrip.sh`
+   if SHARED_KERNELS is on. First sentence of the status line: **`s20_*`
+   is audio-correct on every bar the tree has — YES, or the ONE thing
+   that fails, quoted.** If S19's "S12-5/S12-7 unchanged" refers to
+   something real, this is where it shows and it gets a finding number.
+3. **Driven capacity, both chips, both products, two boots, regime
+   proven:** `s20_*` (and `s20f_*`), avg + worst + overrun, clock per
+   row, silent and driven on the same boot. The decision table
+   REBUILT with driven numbers only, one column per real staged pair
+   (`blk_*`, `s16_*`, `s18_*`, `s20_*`, `s20f_*`), D24 and D32 both chips,
+   latency (measured: `latency.sh` on `s20_*` — 82 expected), what the
+   app/H1S3/H1S4 rebuild against (nothing), rollback. Second sentence:
+   **D24 fits on `s20_*` at N/M %, D32 at P/Q %, zero overruns — or the
+   gap.**
+4. **The proposal for PW** in the window note: `shipping.config` →
+   `shipping.config.s20` as the shipped configuration for the window
+   (every switch's evidence cited), the pair to deploy, and what is
+   left open on chip 2 at D32 if anything (the FX engines' driven cost,
+   the GEQ wall at 11 %, the six-slot primitive's 5 points).
+5. findings S20-*, `MW/D32/DSP/dsp4-s20-20260910.md`, the window note,
+   tasks.md, this block's status; commit + push main. Scoreboard numbers:
+   driven per chip per product per pair.
+
+Bounded: gates 1–3 are the session; 4–5 always. No deploy;
+`shipping.config` itself unchanged until PW rules.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-10 04:21Z — S19 — every capacity figure was a silence figure: the DRIVEN capacity instrument made the standard (stimulus the part does not pay for, every dynamics node engaged, regime proven), every staged pair re-priced under load on both chips and both products, the decision table rebuilt on driven numbers, the lever if s16_* does not fit chip 2 driven, S18-7 goldnode attributed   [status: 🟢 done — **THE DRIVEN INSTRUMENT COSTS 0.28 POINTS ON CHIP 1 AND 0.53 ON CHIP 2, AND THE STIMULUS IS THE CM4's PLAYBACK BROADCAST ONTO EVERY DSPA INPUT LANE BY A NEW LOGIC BITSTREAM (`dsp4_logic_driveall.e13b5dec84e0`, sim-gated, 9 lines of RTL) — the DSP executes not one instruction for it, so nothing has to be netted off; the 0.28/0.53 is the residue measured on a graph with every dynamics node and every FX engine switched off, and it is not the FX engines.** **CHIP 2 AT D24 DRIVEN ON `s16_*` IS 94.56 % AND IT FITS (zero overruns over 90,049 blocks per chip on each of two boots), AND ON D32 IT IS 115.78 % AND IT DOES NOT.** Silent and driven are now the SAME image, boot and clock — three rows per boot (silent/default, silent/loaded, driven/loaded), the regime PROVED on both chips before the driven row is taken, and **all 36 regime snapshots proven**. **S18's chip-1 sentence is withdrawn: chip 1's cost IS signal-dependent and the 113 % was the product, not the instrument** — driven externally, chip 1 reads **113.23 % at D24 on the shipping default with 11.6 % of blocks missed**, within 0.2 points of what S18 wrote off as its own square synthesis; the hot boot S18 reasoned from carried the CM4 transfer, which crosses chip 1 touching no strip, no GATE and no COMPRESSOR. **THE SHIPPING DEFAULT FITS NEITHER CHIP UNDER LOAD**: D24 118.9 % / 119.2 % with 15.8 % / 16.0 % of blocks missed, D32 158.2 % / 142.8 % with 36.8 % / 30.0 %. **THE SILENCE TABLE RANKED THE PAIRS THE WRONG WAY ROUND** — at silence `blk` is the cheapest arm (70.5 %) and `s16` looks like a 5-point regression (75.9 %); driven, `blk` is 118.9 % and drops one block in six while `s16` is 82.4 % and drops none. The signal costs the shipping default **+42.5 points on chip 1 and +29.3 on chip 2**; on `s16_*` the same column is **+1.0 and 0.0**, which is the LUT's whole claim measured in the graph. **RECOMMENDATION: `s16_*` (or `s16f_*`, within its own boot-to-boot spread and it buys the six-slot biquad) for D24 now; D32 is blocked on the `DSP4_SIMD_DYN` AUDIO question and not on capacity** — `s16_*` + `STRIP_FUSED` + `SIMD_DYN` is the only configuration measured that fits D32 driven (**71.3 % / 93.9 %, zero overruns**), and what stands against it is S12-5/S12-7, unchanged. `s18_*` is orthogonal: a bytes lever costing 0.7 points driven exactly as silent. **AND THE S16 DECISION TABLE IS NOT DESCRIBING THE STAGED PAIR** — its 46.8 %/55.2 % and 60.3 %/66.7 % belong to an arm carrying `STRIP_FUSED` + `SIMD_DYN` (+ `C2_BQ_GRAPH=1` for chip 2's remainder, which S16's own footnote names); the staged `s16_*` rebuilt from `shipping.config` reads 75.9 %/94.7 % and 99.0 %/115.3 % at silence. Also: **the record's 'silence' was the converters' noise floor** (true silence is 70.5 %/89.8 % at D24, ~1–3 points below the record's band); **the arbiter could not be read while it was arbitrating** (S19-4, fixed — the voted reader never settles on a counting register and lost the first driven row); **`DIAG_CLEAR` was confirmed by reading a STROBE back**, so every row reported `cleared:false` while the latch had usually dropped (S19-5, fixed and validated on the part: 77.29→77.17 %); **`capacity.sh BUILD=0` staged nothing** (S19-9, fixed). **S18-7 ATTRIBUTED: three of `goldnode`'s four arms read `_buf_` scalars the block-kernel graph never writes** — GATE's input, TUBE's output and FDR's input all read exactly zero with full scale demonstrably on the strip, COMP's two are live, and that is precisely the pattern S18 reported; the bar is wrong and the audio is not, since `_buf_C1_GAIN_01`, `_gate_gain`, `_comp_gain` and `_tap_post_fader` all carry the signal. Bench restored: shipping CPLD `a1f6672af6c3` re-flashed and IDCODE re-read, `blk_*` (`ac65ad38`/`e5dce9e4`) booted, BOOT_STAGE 7, CHIP_ID 1 and 2 verified, **zero overruns over 60,049 blocks per chip** after DIAG_CLEAR, 22 staged `.ldr` intact, matrix-app active with all three MCUs. No file under `SHARC/src/` changed; the default build is `302d6142`/`3b3a6f8e`, byte for byte S18's. Write-up `MW/D32/DSP/dsp4-driven-20260910.md`, findings S19-1..S19-9, window note §0.]   [model: opus]
 
 model: opus
