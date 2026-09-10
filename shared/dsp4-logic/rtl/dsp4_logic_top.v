@@ -133,6 +133,9 @@ module dsp4_logic_top (
 
     // ---- Pi PCM re-framer -> DSPA I6 ----
     wire pcm_tdm;
+    // The broadcast copy of the Pi stream (all eight TDM8 slots), used
+    // only by the DRIVE_ALL capacity-stimulus build below.
+    wire pcm_drive;
     // DSP4_PI_TDM8 runs the CM4 link at 4x rate so it carries eight
     // channels each way instead of two -- see dsp4_pcm_reframe.v. It is a
     // build-time evaluation switch, not a shipping default, until the
@@ -184,7 +187,8 @@ module dsp4_logic_top (
 `else
         .tdm_in      (o_dspb[3]),
 `endif
-        .tdm_out     (pcm_tdm)
+        .tdm_out     (pcm_tdm),
+        .tdm_drive   (pcm_drive)
     );
 
     // ---- Input-lane sources (fixed per product) ----
@@ -192,7 +196,35 @@ module dsp4_logic_top (
     // D32: personality TBD with the D32 board work.
     wire [3:0] net_sel = strap_d32 ? 4'b1000 : 4'b1000;
 
-`ifdef DSP4_LOOPBACK
+`ifdef DSP4_DRIVE_ALL
+    // ---- NON-SHIPPING MEASUREMENT BUILD: the driven-capacity stimulus ----
+    //
+    // Every DSPA input lane carries the Pi's playback, broadcast across
+    // all eight TDM8 slots, so a single stereo stream played by the CM4
+    // puts full-scale signal on all 46 of chip 1's input kernels at once.
+    //
+    // WHY IT IS IN THE CPLD AND NOT IN THE FIRMWARE. Until S19 the only
+    // way to measure the graph with its dynamics engaged was
+    // DSP4_PROFILE_SIGNAL, which synthesises a square INSIDE the 46 input
+    // kernels. The part then pays for its own stimulus, so every driven
+    // figure has to be netted against a cost nobody could measure
+    // independently -- and S18 mis-attributed chip 1's whole 113 % to that
+    // synthesis on exactly that reasoning. Driven from here the DSP
+    // executes not one instruction for the stimulus, and the 113 % turned
+    // out to be the product. What is left is measured per session on a
+    // graph with the dynamics switched off and stated beside the number
+    // (S19: 0.28 points on chip 1, 0.53 on chip 2).
+    //
+    // It is also RUNTIME-SWITCHED, which is the point of using the Pi's
+    // stream rather than a counter in the CPLD: the silent row and the
+    // driven row are taken on ONE bitstream and one boot, and the only
+    // difference between them is whether `aplay` is running.
+    //
+    // NOTHING else changes: same clkgen, same reframer, same DSPB output
+    // routing, same pinout. Never set for a shipping build; build.sh
+    // labels the artifact dsp4_logic_driveall.<hash>.
+    assign i_dspa = {8{pcm_drive}};
+`elsif DSP4_LOOPBACK
     // ---- NON-SHIPPING BRING-UP BUILD: fabric feedback loop ----
     //
     // Every DSPA input lane is fed from the matching DSPB output lane,

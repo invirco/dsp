@@ -6,6 +6,234 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## EVERY CAPACITY FIGURE WAS A SILENCE FIGURE — the DRIVEN instrument, and what the staged pairs cost under load (2026-09-10, session 19)
+
+Session: the driven capacity instrument made the standard — a stimulus the
+part does not pay for, every dynamics node engaged, the regime proved before
+the row is taken — and every staged pair re-priced under load on both chips
+and both products. Write-up `MW/D32/DSP/dsp4-driven-20260910.md`. Contract
+`defs-v2026.09.08.4`, unchanged; `shipping.config` unchanged. **No file under
+`MW/D32/DSP/SHARC/src/` changed: the default build is `302d6142` /
+`3b3a6f8e`, byte for byte the pair S17 and S18 left.** What changed is the
+instrument.
+
+### S19-1 — the driven instrument: the stimulus is in the CPLD, and it costs the part 0.28 / 0.53 points
+
+**Severity: N/A (an instrument). Status: LANDED and measured.**
+
+`shared/dsp4-logic` gains `DRIVE_ALL=1`, artifact
+**`dsp4_logic_driveall.e13b5dec84e0`** (design_id `5dec84e0`, cfg_bits
+`0x0020`, fmax 68.13 MHz, sim gate PASS with a new self-checking testbench
+`tb_pcm_drive`): the Pi re-framer gains a second launch register that reads
+the same de-framed stereo with the slot index forced to `slot[0]`, so all
+eight TDM8 slots carry audio, and the top level assigns
+`i_dspa = {8{pcm_drive}}`. One stereo stream played by the CM4 therefore
+drives all 46 of chip 1's input kernels.
+
+Three properties, and they are the reason it was worth a bitstream:
+
+* **the DSP pays nothing** — the stimulus arrives on the wire, so there is
+  no synthesis to net off on either chip;
+* **it is runtime-switched** — the silent row and the driven row are the
+  same image, the same boot, the same measured clock and the same parameter
+  state, and the only difference between them is whether `aplay` is running;
+* **every input lane at once**, including codec, MEMS and snake, so all 32
+  strips carry full scale and the fabric can be opened up to reach chip 2.
+
+Measured on the part with the stimulus playing: `_buf_C1_XIN_PI_L`,
+`_buf_C1_XIN_MEMS` and `_buf_C1_GAIN_01` all `0x0FFFFFFF` (Q4.28 full
+scale), `_gate_envelope_C1_GATE_01` `0x0FFFFFF6`.
+
+**Its own cost, measured the way gate 1 asks — the driven-minus-silent delta
+on a graph with every dynamics node switched off:**
+
+| arm | chip 1 silent | chip 1 driven | Δ | chip 2 silent | chip 2 driven | Δ |
+|---|--:|--:|--:|--:|--:|--:|
+| dynamics bypassed | 33.55 % | 33.53 % | **−0.02** | 73.99 % | 74.70 % | **+0.71** |
+| dynamics + FX bypassed | 33.27 % | 33.55 % | **+0.28** | 74.17 % | 74.70 % | **+0.53** |
+
+The instrument executes no DSP instruction, so what this measures is the
+residue: the graph's remaining signal dependence once every branchy audio
+class is off. It is 0.28 points on chip 1 and 0.53 on chip 2 against the
+~40 points the dynamics turn out to be worth. It is not the FX engines
+(switching them off moves chip 2's driven figure by 0.00); the peak-update
+branch in the meters is the open candidate and is not attributed here.
+
+Files: `shared/dsp4-logic/rtl/dsp4_pcm_reframe.v`,
+`rtl/dsp4_logic_top.v`, `build.sh`, `sim/tb_pcm_drive.v`;
+`MW/D32/DSP/SHARC/drive_audio.sh`, `loadlogic.sh driveall`;
+`tools/pi/dsp4_driven_setup.py`.
+
+### S19-2 — chip 1's cost IS signal-dependent, S18-1's chip-1 sentence is withdrawn, and the 113 % was the product
+
+**Severity: HIGH (it changes which chip the window has to fix).
+Status: MEASURED. Corrects S18-1.**
+
+S18 wrote that chip 1's cost is signal-independent and that its 113 % in the
+driven arm was `DSP4_PROFILE_SIGNAL`'s own square synthesis. Driven from
+outside the part, with a stimulus the DSP executes not one instruction for,
+**chip 1 reads 113.23 % of budget at D24 on the shipping default with the
+shipping routing, and misses 11.6 % of its blocks** — within 0.2 points of
+the figure S18 wrote off as instrument.
+
+The evidence S18 reasoned from was real and the inference from it was not.
+On its hot boot the signal that reached chip 2's main bus came in over
+`XIN_PI → XS_XFER_PI → C2_XR_PI → C2_PI_IN → C2_MIX_MAIN` — the CM4's
+playback transfer, which crosses chip 1 as an INPUT_TDM node and an
+INTERCHIP_SEND node and touches **no strip, no GATE and no COMPRESSOR**.
+Chip 1 was silent on that boot in the only sense that costs it anything, and
+`DSP4_PROFILE_SIGNAL`'s synthesis costs it about 0.2 points, not 41.
+
+### S19-3 — the shipping default fits NEITHER chip at D24 under load
+
+**Severity: HIGH. Status: MEASURED, two boots, regime proved on both chips.**
+
+The three-row ladder on one boot (`capacity_run.sh DRIVEN=1`), D24, clock
+measured on every row:
+
+| product | chip | A silent, default cfg | B silent, loaded cfg | **C DRIVEN** | blocks missed |
+|---|---|--:|--:|--:|--:|
+| D24 | 1 | 70.51 / 70.61 % | 76.38 / 76.29 % | **118.89 / 118.92 %** | **15.85 %** |
+| D24 | 2 | 89.76 / 89.94 % | 89.94 % | **119.24 / 119.25 %** | **16.05 %** |
+| D32 | 1 | 91.68 % | 101.32 / 101.33 % | **158.18 / 158.13 %** | **36.79 %** |
+| D32 | 2 | 109.94 / 110.05 % | 110.15 / 109.94 % | **142.80 / 144.16 %** | **30.00 %** |
+
+The signal is worth **+42.5 points on chip 1 and +29.3 on chip 2** at D24
+(+56.9 and +32.7 at D32); the configuration — opening every bus assign and
+send — is worth +5.9 on chip 1 and +0.2 on chip 2. With the shipping
+ROUTING as well as the shipping thresholds (MAIN only, one row, D24) chip 1
+still reads **113.23 % with 11.6 % of blocks missed**, so this is not an
+artefact of the −60 dB thresholds.
+
+`DIAG_BLK_OVERRUN` is the arbiter and it agrees with the cycles.
+
+### S19-4 — the arbiter could not be read while it was arbitrating
+
+**Severity: MEDIUM (it lost rows, and it lost exactly the rows that matter).
+Status: FIXED.**
+
+`dsp4_capacity.py` read `DIAG_BLK_OVERRUN` with `Scope.rd`, the VOTED reader,
+which returns only when one value has been seen twice. On an arm that is over
+budget the register counts several hundred a second and never repeats, so the
+first driven row on chip 1 came back
+`register 0xE00A never settled: {0x7: 1, 0x8: 1, … 0x12: 1}` and the row was
+lost — for the one reason the row exists to record. `moving()` is no help
+either: it discards a zero as a dropped answer, and a healthy arm's overrun
+count IS zero. `counter()` accepts three consecutive NON-DECREASING single
+asks, which covers a register that is standing still and one that is running.
+
+### S19-5 — `dsp4_capacity.py` could not tell whether it had reset the worst-block latch, because it confirmed a STROBE by reading it back
+
+**Severity: MEDIUM (the worst-block column is the one the budget is quoted
+against). Status: FIXED in the tool; the S19 matrix rows were taken before
+the fix and their worst-block column is annotated accordingly.**
+
+`Scope.wr` writes a register and then requires it to read back the value
+written — correct for a parameter, impossible for `DIAG_CLEAR`, which is a
+strobe and does not hold 1. So `wr` raised after eight attempts on every
+row of this session and every row recorded `cleared: false`, while the
+latch had in fact dropped on most of them (`_proc_cyc_max` came back
+smaller than the raw latch read moments before). The flag was wrong in both
+directions, which is worse than not having one: the rows where the clear
+really WAS dropped — chip 2 holding a 419 %-of-budget pass left over from
+the parameter burst, with zero overruns and a full pass count beside it —
+looked exactly like the rows where it worked.
+
+The clear is now confirmed by the thing it is for: write the strobe,
+ignore the read-back, and require `_proc_cyc_max` to come back smaller than
+the latch just read; retried, because a write on this link is dropped under
+load exactly as a read is. `proc_cyc_max_after_clear` goes into the JSON.
+
+**For the S19 table this means the decision numbers are `_proc_cyc` and
+`DIAG_BLK_OVERRUN`, not the worst block.** They agree with each other to a
+tenth of a point: at 118.92 % of budget the loop must miss
+1 − 1/1.1892 = 15.9 % of its blocks, and the arbiter counted 15.847 %.
+
+### S19-6 — the record's "silence" was the converters' noise floor
+
+**Severity: LOW (it moves the silent baseline by 1–3 points).
+Status: MEASURED.**
+
+On the shipping bitstream the ADC lanes are connected and an open converter
+input is not zero: the "silent" boots in the record read five of chip 2's
+eighteen limiter envelopes live at `0x0000000C`. On the drive bitstream with
+nothing playing, chip 2 reads **0 of 10 compressor, 0 of 4 gate and 0 of 18
+limiter envelopes** — actually nothing.
+
+| | chip 1 D24 | chip 2 D24 |
+|---|--:|--:|
+| the record's "silence" (S17/S18) | 71.65–71.84 % | 92.67–92.84 % |
+| TRUE silence | **70.51 %** | **89.76 %** |
+
+### S19-7 — the decision table on driven numbers: the silence table ranked the pairs the wrong way round, and it was not describing the staged pair either
+
+**Severity: HIGH (it is the table PW is holding). Status: REBUILT on driven
+numbers — five arms, two products, both chips, two boots, 36 regime
+snapshots all PROVEN. Full table in the write-up §3.**
+
+Ranked at silence, the shipping default is the cheapest arm on the board
+and `s16_*` looks like a five-point regression. Driven, it is the other way
+round and it is not close:
+
+| D24, chip 1 | silent | driven |
+|---|--:|--:|
+| `blk` (shipping default) | **70.5 %** | 118.9 %, 15.8 % of blocks missed |
+| `s16` (dynamics table) | 75.9 % | **82.4 %, zero** |
+
+`s16_*` fits D24 driven on both chips (82.4 % / 94.6 %, zero overruns over
+90,049 blocks per chip on each of two boots); `s16f_*` is within 0.7 points of it —
+the spread between its own two boots — and buys the six-slot biquad for
+nothing measurable; `s18_*` is a bytes lever
+and costs 0.7 points driven exactly as silent. **At D32 nothing that was
+staged before today fits** — `s16_*` is 109.5 % / 115.5 % driven and misses
+blocks at silence too, so D32's problem is static cost, not dynamics. The
+one configuration measured that fits D32 under load is `s16_*` plus
+`DSP4_STRIP_FUSED=1 DSP4_SIMD_DYN=1` (**71.3 % / 93.9 %, zero overruns**),
+and that is blocked on S12-5/S12-7, not on capacity.
+
+**And the S16 table's numbers are not the staged pair's.** S16 records
+`s16_*` at 46.8 % / 55.2 % (D24) and 60.3 % / 66.7 % (D32). Rebuilt from
+`shipping.config` plus its two switches — which is what the staged pair
+carries — it reads 75.9 % / 94.7 % and 99.0 % / 115.3 % at silence. Those
+S16 figures belong to an arm that also carries `DSP4_STRIP_FUSED` and
+`DSP4_SIMD_DYN` (measured here as `s16sd`: 48.1 % / 62.2 % on chip 1
+against S16's 46.8 % / 60.3 %) plus `DSP4_C2_BQ_GRAPH=1` for chip 2's
+remainder — the last of which S16's own footnote names.
+
+### S19-8 — S18-7 attributed: three of `goldnode`'s four arms read words the block-kernel graph never writes
+
+**Severity: MEDIUM (a bar that FAILS on the shipping image and cannot say
+why is worse than no bar). Status: ATTRIBUTED with the mechanism; not
+fixed. Closes the open half of S18-7.**
+
+With a known full-scale signal on strip 1 and the image's own symbol map,
+seven of fifteen capture points a strip bar might use read exactly zero:
+`_buf_C1_IN_01`, `_buf_C1_FILT_01`, `_buf_C1_EQ_01`, `_buf_C1_TUBE_01`,
+`_buf_C1_DLY_01`, `_tap_post_eq_C1_EQ_01`, `_tap_pre_fader_C1_DLY_01`.
+The rest carry the signal. Against `dsp4_node_verify.py`'s four arms:
+GATE's INPUT is `_buf_C1_EQ_01` (zero), TUBE's OUTPUT is `_buf_C1_TUBE_01`
+(zero), FDR's INPUT is `_buf_C1_DLY_01` (zero) — and COMP's two are both
+live, which is why COMP is the arm that got far enough to disagree on 70 of
+96 samples while the other three could not obtain a usable capture at all.
+
+**The bar is wrong, not the audio**: the signal is demonstrably present at
+`_buf_C1_GAIN_01`, `_gate_gain`, `_comp_gain` and `_tap_post_fader`. The
+classes whose block kernels keep intermediates in the block pool never
+write their per-node one-word scalar — since `DSP4_BLOCK_KERNELS` landed,
+which is S12-2's class of defect appearing in a bar for the third time. The
+fix is to move the capture layer onto the taps and the pooled buffers.
+
+### S19-9 — `capacity.sh BUILD=0` staged nothing, so it booted whatever the bench happened to have
+
+**Severity: LOW. Status: FIXED.**
+
+The staging block sat entirely inside `if [ "$BUILD" = "1" ]`, so `BUILD=0`
+— the mode a re-measurement uses — booted whatever was already at `$STAGE`
+under that arm name, with whatever symbol map was beside it. That is the
+S10-9 trap with the image and the map free to disagree silently. A build
+directory that exists is now staged, image and map together; only a missing
+one falls through to what is there, and it says so.
+
 ## THE CODE POOL'S REAL LEVER, MEASURED — and chip 2's ten points were never boot-dependent (2026-09-10, session 18)
 
 Session: S17-6 explained; one of the nine 32-copy per-strip kernels made

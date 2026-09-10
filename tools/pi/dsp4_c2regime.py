@@ -66,6 +66,14 @@ def main():
     ap.add_argument('--chip', type=int, default=2)
     ap.add_argument('--json')
     ap.add_argument('--tag', default='')
+    ap.add_argument('--require-driven', action='store_true',
+                    help='exit 1 unless EVERY dynamics envelope on this chip '
+                         'is live. S19: a driven capacity row that was not '
+                         'preceded by this check is a claim, not a '
+                         'measurement -- the regime has to be proved on the '
+                         'part before the row is taken, because the whole '
+                         'reason the record needed redoing is that nobody '
+                         'was checking which branch the graph was on.')
     a = ap.parse_args()
 
     sc = S.Scope(a.chip)
@@ -123,6 +131,52 @@ def main():
         json.dump(rec, open(a.json, 'w'), indent=1)
         print('  -> %s' % a.json)
 
+    if a.require_driven:
+        # A MASKED NODE IS NOT A FAILED REGIME. On D24 the channel mask
+        # skips strips 25-32 and the aux mask skips aux 9-12, so sixteen
+        # chip-1 envelopes and four chip-2 ones are zero because the nodes
+        # never ran -- which is the product being a D24, not the stimulus
+        # failing to arrive. The masks are read off the part
+        # (`_chan_mask_live` / `_aux_mask_live`, the words the graph itself
+        # gates on) rather than inferred from the product name.
+        chan_mask = out.get('_chan_mask_live')
+        aux_mask = out.get('_aux_mask_live')
+
+        def masked(name):
+            m = re.search(r'_C\d_(?:AUX_)?[A-Z]+_?[A-Z]*_(\d+)$', name)
+            if not m:
+                return False
+            n = int(m.group(1))
+            if '_AUX_' in name:
+                return aux_mask is not None and not (aux_mask >> (n - 1)) & 1
+            if re.search(r'_C1_(GATE|COMP)_\d+$', name):
+                return chan_mask is not None and not (chan_mask >> (n - 1)) & 1
+            return False
+
+        dead, skipped = [], []
+        for fam in ('_comp_envelope', '_gate_envelope', '_lim_envelope'):
+            for k, v in sorted(out.items()):
+                if NODE_SUF.sub('', k) == fam and not v:
+                    (skipped if masked(k) else dead).append(k)
+        if skipped:
+            print('  %d envelope(s) zero on MASKED nodes, not counted'
+                  % len(skipped))
+        live = sum(rec['summary'][f] for f in
+                   ('_comp_envelope', '_gate_envelope', '_lim_envelope'))
+        tot = live + len(dead)
+        rec['regime'] = {'live': live, 'dead': dead, 'masked': skipped}
+        if a.json:
+            json.dump(rec, open(a.json, 'w'), indent=1)
+        print('  DRIVEN REGIME: %d of %d dynamics envelopes live on chip %d'
+              % (live, tot, a.chip))
+        if dead:
+            for k in dead[:12]:
+                print('    SILENT: %s' % k)
+            if len(dead) > 12:
+                print('    ... and %d more' % (len(dead) - 12))
+            return 1
+    return 0
+
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main() or 0)

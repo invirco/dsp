@@ -75,8 +75,83 @@ for cycle in 1 2 3; do
   [ "$(ready)" = "1" ] || { echo "cycle $cycle: chip 2 link never usable"; continue; }
   python3 dsp4_diag.py --chip 2 >/dev/null 2>&1
   python3 gainfix.py >/dev/null 2>&1
-  python3 dsp4_capacity.py --dwell "${DWELL:-45}" --json "${OUT:-capacity.json}"
-  exit $?
+
+  if [ "${DRIVEN:-0}" = "0" ]; then
+      python3 dsp4_capacity.py --dwell "${DWELL:-45}" \
+              --tag "${TAG:-silence}" --json "${OUT:-capacity.json}"
+      exit $?
+  fi
+
+  # ------------------------------------------------------------------
+  # THE DRIVEN LADDER (S19). THREE ROWS ON ONE BOOT, ONE CLOCK, ONE IMAGE.
+  #
+  # Until S19 every capacity row in this tree was row A, and nobody said
+  # so. S18 then measured what row A is worth on chip 2 -- 92.7 % silent
+  # against 112.3 % with the dynamics engaged, same image, same product --
+  # and the record had no number a budget could use. Taking all three on
+  # ONE boot is what makes them subtractable: the same measured clock, the
+  # same DMA phase, the same parameter state except for the one thing each
+  # step changes.
+  #
+  #   A  sil-default   silent, the config the product boots with.
+  #                    Comparable with every figure already in the record,
+  #                    which is the only reason it is still taken.
+  #   B  sil-load      silent, with the LOAD config applied: every bus
+  #                    assign and send open, every dynamics node on with a
+  #                    -60 dB threshold. B - A is what the CONFIGURATION
+  #                    costs (more crosspoints accumulate), with no signal
+  #                    anywhere.
+  #   C  driven        the same config with the stimulus playing. C - B is
+  #                    what the SIGNAL costs, which is the whole of the
+  #                    dynamics' expensive branch and nothing else.
+  #
+  # C is the product number. The regime is PROVED on both chips before C
+  # is taken (`--require-driven`: every envelope word live), because a
+  # driven row whose graph was quietly still on the cheap branch is the
+  # error this whole instrument exists to end.
+  # ------------------------------------------------------------------
+  P="${PREFIX:-cap}"
+  LANDED="landed-$PRODUCT.json"
+  bash /home/app/drive_audio.sh stop >/dev/null 2>&1
+
+  echo "--- row A: silent, default config"
+  python3 dsp4_capacity.py --dwell "${DWELL:-45}" --tag sil-default \
+          --json "$P-A-sil-default.json" || exit 5
+
+  echo "--- load config"
+  MODE="${SETUP_MODE:-load}"
+  python3 dsp4_driven_setup.py --chip 1 --mode "$MODE" --landed "$LANDED" \
+      > "$P-setup-c1.log" 2>&1; echo "    chip 1: $(tail -1 "$P-setup-c1.log")"
+  python3 dsp4_driven_setup.py --chip 2 --mode "$MODE" --landed "$LANDED" \
+      > "$P-setup-c2.log" 2>&1; echo "    chip 2: $(tail -1 "$P-setup-c2.log")"
+
+  echo "--- row B: silent, load config"
+  python3 dsp4_capacity.py --dwell "${DWELL:-45}" --tag sil-load \
+          --json "$P-B-sil-load.json" || exit 5
+
+  echo "--- stimulus on"
+  bash /home/app/drive_audio.sh start || exit 6
+  sleep 3
+  RQ=""; [ "$MODE" = "load" ] && RQ="--require-driven"
+  python3 dsp4_c2regime.py --chip 1 --tag driven $RQ \
+          --json "$P-regime-c1.json" > "$P-regime-c1.log" 2>&1
+  R1=$?
+  python3 dsp4_c2regime.py --chip 2 --tag driven $RQ \
+          --json "$P-regime-c2.json" > "$P-regime-c2.log" 2>&1
+  R2=$?
+  grep -h "DRIVEN REGIME" "$P-regime-c1.log" "$P-regime-c2.log" 2>/dev/null
+  if [ "$R1" != "0" ] || [ "$R2" != "0" ]; then
+      echo "    REGIME NOT PROVEN (chip1 rc=$R1 chip2 rc=$R2) -- row C is taken"
+      echo "    anyway and is labelled, because a partial regime is a"
+      echo "    measurement of a partial regime and not nothing; see the logs."
+  fi
+
+  echo "--- row C: DRIVEN"
+  python3 dsp4_capacity.py --dwell "${DWELL:-45}" --tag driven \
+          --json "$P-C-driven.json"
+  RC=$?
+  bash /home/app/drive_audio.sh stop >/dev/null 2>&1
+  exit $RC
 done
 echo "no usable boot in 3 cycles"
 exit 4

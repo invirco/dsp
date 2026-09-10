@@ -11,8 +11,15 @@
 #
 #   ./loadlogic.sh maincap        d903ae1ac4a9, the transmit-stamp capture
 #   ./loadlogic.sh pisel          bd9c100db7c2, the CPLD-only loop reference
+#   ./loadlogic.sh driveall       e13b5dec84e0, the DRIVEN-CAPACITY stimulus
+#                                 (S19: every DSPA input lane carries the
+#                                 Pi's playback, so the graph can be
+#                                 measured under load for zero DSP cycles)
 #   ./loadlogic.sh shipping       a1f6672af6c3, THE STATE THE BENCH LIVES IN
 #   ./loadlogic.sh --id           what is on it now
+#
+# The SVF is copied from the repo's bitstream/ if the bench does not have
+# it, so a build made on the desk needs no second command to reach the part.
 #
 # openocd's linuxgpiod driver leaves its GPIOs claimed, which kills the DSP
 # SPI link and looks exactly like a bricked card, so the pins are handed back
@@ -23,10 +30,17 @@ BENCH=app@192.168.1.219
 case "${1:-}" in
   maincap)  SVF=dsp4_logic_maincap.d903ae1ac4a9.svf ;;
   pisel)    SVF=dsp4_logic_pisel.bd9c100db7c2.svf ;;
+  driveall) SVF=dsp4_logic_driveall.e13b5dec84e0.svf ;;
   shipping) SVF=dsp4_logic.a1f6672af6c3.svf ;;
   --id)     ssh $BENCH "cd /home/app/dspboot && python3 dsp4_logic_id.py"; exit $? ;;
   *) echo "usage: $0 maincap|pisel|shipping|--id" >&2; exit 2 ;;
 esac
+SRC=../../../../shared/dsp4-logic/bitstream/$SVF
+if ! ssh $BENCH "test -f /home/app/$SVF"; then
+    [ -f "$SRC" ] || { echo "no $SVF here or on the bench" >&2; exit 2; }
+    echo "== staging $SVF ($(md5sum "$SRC" | cut -c1-8))"
+    scp -q "$SRC" $BENCH:/home/app/ || exit 3
+fi
 ssh $BENCH "set -u; cd /home/app
   echo '== loading $SVF =='
   md5sum $SVF

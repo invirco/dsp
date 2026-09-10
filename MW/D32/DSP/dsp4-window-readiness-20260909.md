@@ -7,6 +7,55 @@ the app and the matrix to the rev C unit TOGETHER. This is the DSP leg,
 made ready and proven ahead of it so the window is a deploy and not a
 debug. **It is PW-gated; nothing here was deployed.**
 
+## 0. EVERY CAPACITY FIGURE BELOW THIS LINE IS A SILENCE FIGURE (added 2026-09-10, S19)
+
+**Read this before any percentage in this note.** Every capacity number in
+sections 1 onward — and every capacity number the window has been shown to
+date — was taken on a bench with no signal on the converters, and the graph
+is 30 to 57 points cheaper in that state than it is with its dynamics
+engaged. They are not wrong about the arm they describe; they are
+answering a question the product does not ask. Treat each of them as
+carrying an implicit **(silence)**.
+
+The driven measurement is `MW/D32/DSP/dsp4-driven-20260910.md`. The
+instrument is a LOGIC bitstream that broadcasts the CM4's playback onto
+every DSPA input lane, so the DSP executes no instruction on the
+stimulus's behalf (its residue is 0.28 points on chip 1 and 0.53 on
+chip 2, measured); the regime — every dynamics envelope live — is proved
+on both chips before a row is taken.
+
+**The numbers the window should carry, D24 mask, clock measured, two boots,
+`DIAG_BLK_OVERRUN` the arbiter:**
+
+| pair | chip 1 driven | chip 2 driven | fits? |
+|---|--:|--:|---|
+| the shipping default (`blk_*`) | **118.9 %**, 15.8 % of blocks missed | **119.2 %**, 16.0 % missed | **NO** |
+| `s16_*` (COMP/LIMITER on the LUT, linear-threshold GATE) | **82.4 %** | **94.6 %** | **YES, zero overruns** |
+| `s16f_*` (the same + six-slot biquad) | 82.2 % | 94.6 % | YES, zero overruns |
+| `s18_*` (shared COMP/TUBE kernels) | 119.6 %, 16.4 % missed | 119.3 %, 16.1 % missed | NO — a bytes lever, not a cycles one |
+
+**At D32 all-ones nothing that was staged before today fits.** The
+shipping default is 158.2 % / 142.8 % driven; `s16_*` is 109.5 % / 115.5 %
+and misses blocks at silence as well, so D32's shortfall is static cost
+rather than dynamics. The only configuration measured that fits D32 under
+load is `s16_*` plus `DSP4_STRIP_FUSED=1 DSP4_SIMD_DYN=1` — **71.3 % /
+93.9 %, zero overruns** — which is blocked on the audio findings S12-5 and
+S12-7, not on capacity.
+
+Two consequences for what this note says further down:
+
+* **§7's "D32 fits with STRIP_FUSED + SIMD_DYN at 82.0 % of budget" is a
+  silence figure.** Driven, that configuration reads 93.9 % on chip 2. It
+  still fits; the margin is 6 points, not 18.
+* **The chip-1 margins quoted throughout are silence margins.** Chip 1's
+  cost is signal-DEPENDENT — S18 said otherwise and S19 measured it — so
+  a chip-1 margin taken silent is not a margin.
+
+Latency, the contract's 82 samples at block 16, is unchanged: nothing in
+S19 touches the transmit path.
+
+---
+
 ## 1. The artifacts the window deploys
 
 | | |

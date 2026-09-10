@@ -37,6 +37,9 @@ fi
 #   PI_SELFTEST  Pi playback looped back to Pi capture inside LOGIC
 #   PI_MAINCAP   capture B_O3 slot 0 (MAIN_ST_OUT) instead of slots 2/3
 #   PI_TDM8      CM4 link at 4x frame rate, 8 channels each way
+#   DRIVE_ALL    every DSPA input lane driven from the Pi's playback,
+#                broadcast across all eight TDM8 slots -- the driven-
+#                capacity stimulus (S19), which costs the DSP nothing
 NAME="dsp4_logic"
 MACRO_ARG=()
 NONSHIP=()
@@ -58,6 +61,12 @@ if [ "${PI_MAINCAP:-0}" = "1" ]; then
     NAME="${NAME}_maincap"
     NONSHIP+=("pi_maincap: capture B_O3 slot 0, not the product slots 2/3")
     echo "*** PI_MAINCAP BUILD (capture B_O3 slot 0 = MAIN_ST_OUT) ***" >&2
+fi
+if [ "${DRIVE_ALL:-0}" = "1" ]; then
+    MACRO_ARG+=(--verilog_macro=DSP4_DRIVE_ALL=1)
+    NAME="${NAME}_driveall"
+    NONSHIP+=("drive_all: every DSPA input lane fed from the Pi playback, all 8 slots")
+    echo "*** DRIVE_ALL BUILD (i_dspa = Pi playback on every slot) ***" >&2
 fi
 if [ "${PI_TDM8:-0}" = "1" ]; then
     MACRO_ARG+=(--verilog_macro=DSP4_PI_TDM8=1)
@@ -84,6 +93,7 @@ fi
 # hash AND into the manifest.
 CFG_LINE="loopback=${LOOPBACK:-0} pi_selftest=${PI_SELFTEST:-0}"
 CFG_LINE="$CFG_LINE pi_maincap=${PI_MAINCAP:-0} pi_tdm8=${PI_TDM8:-0}"
+CFG_LINE="$CFG_LINE drive_all=${DRIVE_ALL:-0}"
 
 SRC_HASH=$(cat \
     <(grep -o 'sha256:[0-9a-f]*' generated/dsp4_slot_map.vh | head -1) \
@@ -100,12 +110,14 @@ SRC_HASH=$(cat \
 # CFG_BITS records the same configuration the manifest's `config:` line
 # does, in one word, so a part can say what it is without a manifest to
 # hand: bit 0 loopback, 1 pi_selftest, 2 pi_maincap, 3 pi_tdm8, 4 shipping
-# (set when no non-shipping switch is set). Bits 5-15 reserved, zero.
+# (set when no non-shipping switch is set), 5 drive_all. Bits 6-15
+# reserved, zero.
 DESIGN_ID="32'h${SRC_HASH:4:8}"
 CFG_BITS_N=$(( (${LOOPBACK:-0} ? 1 : 0) \
              | (${PI_SELFTEST:-0} ? 2 : 0) \
              | (${PI_MAINCAP:-0} ? 4 : 0) \
              | (${PI_TDM8:-0} ? 8 : 0) \
+             | (${DRIVE_ALL:-0} ? 32 : 0) \
              | ( ${#NONSHIP[@]} == 0 ? 16 : 0 ) ))
 CFG_BITS=$(printf "16'h%04X" "$CFG_BITS_N")
 MACRO_ARG+=(--verilog_macro="DSP4_DESIGN_ID=$DESIGN_ID")

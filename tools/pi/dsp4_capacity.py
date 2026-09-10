@@ -134,6 +134,40 @@ def moving(sc, reg, tries=16):
     raise IOError('register 0x%04X never gave three increasing asks' % reg)
 
 
+def counter(sc, reg, tries=24):
+    """Read a register that may be STANDING STILL or COUNTING FAST.
+
+    `moving` needs three INCREASING asks and `Scope.rd` needs two EQUAL
+    ones, and DIAG_BLK_OVERRUN is the one register that can be either. It
+    stands at zero on a healthy arm — which `moving` never returns, since
+    it discards a zero as a dropped answer — and it counts several hundred
+    a second on an arm that is over budget, which `rd` never settles on.
+    S19 hit the second half: the first driven capacity row on chip 1 came
+    back "register 0xE00A never settled: {0x7: 1, 0x8: 1, ... 0x12: 1}",
+    i.e. the arbiter could not be read BECAUSE it was arbitrating, and the
+    row was lost for the one reason the row exists to record.
+
+    So: single unvoted asks, accepted on three consecutive NON-DECREASING
+    answers. A dropped answer reads zero on this link and breaks the run;
+    an answer belonging to another request is out of order and breaks it
+    too; a register that is genuinely still gives three equal answers and
+    is accepted.
+    """
+    seen = []
+    for _ in range(tries):
+        v = sc._ask(reg)
+        if v is None:
+            seen = []
+            continue
+        seen.append(v)
+        if len(seen) >= 3:
+            a, b, c = seen[-3:]
+            if a <= b <= c:
+                return c
+            seen = []
+    raise IOError('register 0x%04X never gave three ordered asks' % reg)
+
+
 def peek(sc, addr):
     """ONE patient handshake. Not a retry ladder — that is the trap.
 
@@ -244,22 +278,52 @@ def read_chip(chip, dwell, symfile=None):
     # baseline is read AFTER it: the arbiter counts the dwell, not the boot.
     out['proc_cyc_max_raw'] = (peek(sc, sc.sym['_proc_cyc_max'])
                                if '_proc_cyc_max' in sc.sym else None)
-    try:
-        sc.wr(DIAG_CLEAR, 1)
-        out['cleared'] = True
-    except (IOError, OSError):
-        # Not fatal and not silent: an image built before 2026-09-10 has a
-        # DIAG_CLEAR that does not touch the latch, and the two figures below
-        # will simply agree. What must never happen is the tool claiming a
-        # reset it did not get.
-        out['cleared'] = False
+
+    # THE CLEAR IS CONFIRMED BY THE LATCH DROPPING, NOT BY READING THE
+    # STROBE BACK (S19-5).
+    #
+    # `Scope.wr` writes and then requires the register to read back the
+    # value written. DIAG_CLEAR is a STROBE: it does not hold 1, so that
+    # confirmation cannot succeed, `wr` raises after eight attempts and
+    # every row in the S19 matrix came back `cleared: false` — while the
+    # latch had in fact dropped on most of them. The flag was therefore
+    # meaningless in both directions, and the caveat printed beside it was
+    # wrong, which is worse than having no flag: the one row where the
+    # clear really was dropped (chip 2 holding a 419 %-of-budget pass from
+    # the parameter burst) looked exactly like the rows where it worked.
+    #
+    # So the strobe is written and its read-back failure ignored, and the
+    # confirmation is the thing the clear is FOR: `_proc_cyc_max` must come
+    # back smaller than the latch just read. Retried, because a write on
+    # this link is dropped under audio load exactly as a read is.
+    out['cleared'] = False
+    out['proc_cyc_max_after_clear'] = None
+    if '_proc_cyc_max' in sc.sym:
+        for _ in range(4):
+            try:
+                sc.wr(DIAG_CLEAR, 1)
+            except (IOError, OSError):
+                pass
+            try:
+                after = peek(sc, sc.sym['_proc_cyc_max'])
+            except IOError:
+                continue
+            out['proc_cyc_max_after_clear'] = after
+            if out['proc_cyc_max_raw'] is None or after < out['proc_cyc_max_raw']:
+                out['cleared'] = True
+                break
+    else:
+        try:
+            sc.wr(DIAG_CLEAR, 1)
+        except (IOError, OSError):
+            pass
 
     f0 = moving(sc, DIAG_FRAME_COUNT)
-    o0 = sc.rd(DIAG_BLK_OVERRUN)
+    o0 = counter(sc, DIAG_BLK_OVERRUN)
     t0 = time.time()
     time.sleep(dwell)
     f1 = moving(sc, DIAG_FRAME_COUNT)
-    o1 = sc.rd(DIAG_BLK_OVERRUN)
+    o1 = counter(sc, DIAG_BLK_OVERRUN)
     el = time.time() - t0
 
     out['frames'] = (f1 - f0) & 0xFFFFFFFF
@@ -286,6 +350,10 @@ def main():
     ap.add_argument('--chip', type=int, action='append')
     ap.add_argument('--dwell', type=float, default=30.0)
     ap.add_argument('--json')
+    ap.add_argument('--tag', default='',
+                    help='regime label carried into the JSON (S19: a row '
+                         'that does not say whether it was driven is not a '
+                         'capacity row)')
     a = ap.parse_args()
     chips = a.chip or [1, 2]
 
@@ -295,8 +363,9 @@ def main():
             r = read_chip(c, a.dwell)
         except (IOError, SystemExit, KeyError) as exc:
             print('chip %d: UNREADABLE (%s)' % (c, exc))
-            rows.append({'chip': c, 'error': str(exc)})
+            rows.append({'chip': c, 'error': str(exc), 'tag': a.tag})
             continue
+        r['tag'] = a.tag
         rows.append(r)
         clk = ('%.2f MHz (%s)' % (r['cclk_hz'] / 1e6, r.get('cclk_source'))) \
               if r['cclk_hz'] else 'UNKNOWN (CGU0_CTL %s)' % r['cgu0_ctl']
@@ -325,15 +394,16 @@ def main():
         print('          (raw latch, incl. the config ladder: %s  %s%%%s)'
               % (r.get('proc_cyc_max_raw'), r.get('proc_cyc_max_raw_pct'),
                  '' if r.get('cleared') else
-                 ' -- NOT RESET: this image predates the S13-2 fix, so the '
-                 'two figures are the same latch'))
+                 ' -- THE LATCH DID NOT DROP: the worst-block figure above '
+                 'is this same latch and is NOT a block from the dwell'))
         print('        _proc_passes  %8s' % r['proc_passes'])
         print('        %d blocks in %.1f s (%.1f/s), OVERRUN %d (%s%%)'
               % (r['frames'], r['seconds'], r['block_rate'] or 0,
                  r['overruns'], r['overrun_pct']))
     if a.json:
         with open(a.json, 'w') as fh:
-            json.dump({'chips': rows}, fh, indent=1, sort_keys=True)
+            json.dump({'tag': a.tag, 'chips': rows}, fh,
+                      indent=1, sort_keys=True)
         print('wrote %s' % a.json)
     return 0
 

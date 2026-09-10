@@ -111,7 +111,14 @@ module dsp4_pcm_reframe #(
     input  wire        bck8_launch,  // sysclk strobe of BCK8 falling edge
     input  wire        bck8_sample,  // sysclk strobe of BCK8 rising edge
     input  wire        tdm_in,       // TDM8 line to de-frame toward the Pi
-    output reg         tdm_out
+    output reg         tdm_out,
+    // DRIVEN-CAPACITY STIMULUS. The same de-framed Pi words, but with the
+    // Pi's L and R alternating across all EIGHT TDM8 slots instead of
+    // sitting in slots 0/1. `dsp4_logic_top` drives every DSPA input lane
+    // from this in the DRIVE_ALL build, so one stereo stream played by the
+    // CM4 reaches all 46 of chip 1's input kernels and the DSP pays
+    // nothing for the stimulus. Unused (and pruned) in every other build.
+    output reg         tdm_drive
 );
 
     // ---- PCM clock generation: BCK = sysclk/16, LRCLK = frame ----
@@ -360,6 +367,18 @@ module dsp4_pcm_reframe #(
             else
                 tdm_out <= 1'b0;
         end
+    end
+
+    // ---- Broadcast copy of the same stream, every slot (DRIVE_ALL) ----
+    // Slot s takes the Pi's LEFT word on even s and its RIGHT word on odd
+    // s, so the eight slots of a lane are not eight copies of one sample
+    // and a per-slot mix-up cannot hide. Same launch edge, same framing;
+    // only the slot index differs.
+    wire [7:0] drive_idx = {2'b00, slot[0], tdm_bit};
+
+    always @(posedge sysclk) begin
+        if (bck8_launch)
+            tdm_drive <= pw_flat[drive_idx];
     end
 
 endmodule

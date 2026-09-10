@@ -21,7 +21,7 @@ command -v "$IV" >/dev/null || { echo "ERROR: iverilog not found" >&2; exit 2; }
 WORK="$HERE/work"
 mkdir -p "$WORK"
 
-ALL_TBS=(tb_clkgen tb_pcm_reframe tb_pcm_capture tb_logic_top)
+ALL_TBS=(tb_clkgen tb_pcm_reframe tb_pcm_drive tb_pcm_capture tb_logic_top)
 TBS=("${@:-}")
 [ -z "${TBS[0]:-}" ] && TBS=("${ALL_TBS[@]}")
 
