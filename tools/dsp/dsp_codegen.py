@@ -8943,7 +8943,44 @@ def _f32hex(x):
     return '0x%08X' % struct.unpack('<I', struct.pack('<f', float(x)))[0]
 
 
-def gen_block_header():
+def _mtx_ctl_block(nodes):
+    """(base, words_per_strip) of the channel MATRIX SEND SPI block, or None.
+
+    THE CONTROL-EPOCH GATE HAS TO KNOW ABOUT THIS BLOCK (S22-4). The SPI
+    handler bumps `_ctl_epoch[addr / 144]` so a strip node re-preps when the
+    host writes into that strip's page, and it clamps everything at or above
+    4608 into slot 32, "a catch-all no strip node watches". The matrix send
+    cells are deliberately NOT in the 144-word page -- putting them there
+    would have moved every chip-1 address above channel 1's routing node --
+    so every matrix write landed in the catch-all, the ROUTING node never
+    re-prepped, and its matrix crosspoint coefficient stayed at zero. The
+    bench said so plainly: strip driven to 0x0D39B767 post-fader, matrix bus
+    exactly zero with the send both ON and OFF.
+
+    So the block's extent is emitted into dsp_block.h and the handler tests
+    for it. Reading it off the graph rather than typing it is the point:
+    a hand-kept copy of an allocated address is the drift this tree has been
+    bitten by before.
+    """
+    base, per = None, None
+    for n in nodes:
+        if n['type'] != 'ROUTING' or n['chip'] != '1':
+            continue
+        p = n['params']
+        if 'mtx_addr' not in p:
+            continue
+        a = int(p['mtx_addr'])
+        w = 2 * int(p['mtx_sends'])
+        base = a if base is None else min(base, a)
+        if per is None:
+            per = w
+        elif per != w:
+            raise SystemExit('ROUTING nodes disagree on mtx_sends; the '
+                             'control-epoch range would be ambiguous')
+    return None if base is None else (base, per)
+
+
+def gen_block_header(mtx_ctl=None):
     """dsp_block.h — the block size, as preprocessor macros.
 
     THE contract between the generator and the hand-maintained sources.
@@ -8955,6 +8992,39 @@ def gen_block_header():
     import fixed_ref
     import math
     _mtr_alpha_q, _mtr_beta_q = fixed_ref.meter_coeffs(BLOCK)
+    # THE CHANNEL MATRIX SEND SPI BLOCK'S EXTENT (S22-4), for the control-
+    # epoch gate in spi_handler.asm. Emitted only when the graph has one, so
+    # a dsp.csv without matrix sends produces the header it always did.
+    if mtx_ctl:
+        _mb, _mw = mtx_ctl
+        mtx_block = (
+            "\n/* THE CHANNEL MATRIX SEND SPI BLOCK (S22-4).\n"
+            " *\n"
+            " * spi_handler.asm bumps _ctl_epoch[addr / 144] so a strip node\n"
+            " * re-preps when the host writes into that strip's page, and it\n"
+            " * clamps everything at or above 4608 into slot 32 -- a catch-all\n"
+            " * no strip node watches. The matrix send cells are deliberately\n"
+            " * OUTSIDE the 144-word page: putting them inside would have moved\n"
+            " * every chip-1 address above channel 1's routing node, the whole\n"
+            " * map, the MCU's ghost table and every stored golden, for four\n"
+            " * words. Without this range every matrix write landed in the\n"
+            " * catch-all, the ROUTING node never re-prepped, and its matrix\n"
+            " * crosspoint coefficient stayed at zero -- measured on the part,\n"
+            " * a strip driven to 0x0D39B767 post-fader against a matrix bus of\n"
+            " * exactly zero with the send both ON and OFF.\n"
+            " *\n"
+            " * READ OFF THE GRAPH, never typed. The block is contiguous and\n"
+            " * strip-ordered, so the strip index is (addr - BASE) >> SHIFT. */\n"
+            f"#define DSP4_CTL_MTX_BASE   {_mb}\n"
+            f"#define DSP4_CTL_MTX_WORDS  {_mw}\n"
+            f"#define DSP4_CTL_MTX_SHIFT  {_mw.bit_length() - 1}\n"
+            f"#define DSP4_CTL_MTX_SPAN   {_mw * CTL_EPOCH_SLOTS_STRIPS}\n")
+        if _mw & (_mw - 1):
+            raise SystemExit(
+                f'matrix send block is {_mw} words per strip, which is not a '
+                f'power of two -- the handler indexes it with a shift')
+    else:
+        mtx_block = ''
     # LEGACY (float) meter peak decay, applied once per block by
     # main.asm -> _meter_decay_block. Same time constant as the new
     # meter's peak hold, expressed as the multiplicative per-block
@@ -9365,7 +9435,7 @@ def gen_block_header():
 #ifndef DSP4_CHAN_MASK
 #define DSP4_CHAN_MASK 1
 #endif
-
+{mtx_block}
 #endif /* DSP4_BLOCK_H */
 """
 
@@ -9991,6 +10061,7 @@ def gen_num_selftest():
 # DSP4_CTL_ALWAYS=1 puts the unconditional prep back in the same image, and
 # the two builds must agree sample for sample.
 CTL_EPOCH_SLOTS = 33          # 32 chip-1 strips + one catch-all
+CTL_EPOCH_SLOTS_STRIPS = 32   # ...of which this many are strips
 CTL_ADDR_STRIDE = 144         # SPI addresses per channel page
 CTL_RECIP_M = 7282            # ceil(2^20 / 144); (a*M)>>20 == a/144 for a < 4608
 CTL_RECIP_SH = 20
@@ -16502,7 +16573,7 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
     # whole tree reads, including the C DMA configuration.
     with open(os.path.join(output_dir, 'dsp_block.h'), 'w',
               encoding='utf-8') as f:
-        f.write(gen_block_header())
+        f.write(gen_block_header(_mtx_ctl_block(nodes)))
     files_written += 1
 
     # ...and the same number for the BENCH tools, which score a pass rate

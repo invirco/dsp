@@ -480,12 +480,44 @@ _spi2_rx_work:
      * makes it fail. */
 #if DSP4_BLOCK_KERNELS && !DSP4_CTL_NEGCTL
     r2 = dm(_spi_req_addr);
+#ifdef DSP4_CTL_MTX_BASE
+    /* THE MATRIX SEND BLOCK IS A SECOND PER-STRIP RANGE (S22-4).
+     *
+     * The channel matrix sends sit OUTSIDE the 144-word channel page --
+     * putting them inside would have moved every chip-1 address above
+     * channel 1's routing node -- so the divide below sends them straight
+     * into the catch-all slot no strip node watches, and the ROUTING node
+     * never re-preps. Measured on the part before this test existed: a
+     * strip driven to 0x0D39B767 post-fader and a matrix bus of exactly
+     * zero with the send both ON and OFF, because the crosspoint
+     * coefficient was never built.
+     *
+     * The block is contiguous and strip-ordered at DSP4_CTL_MTX_WORDS per
+     * strip, so the index is a subtract and a shift and there is no second
+     * multiply in this ISR. The extent comes from dsp_block.h, which the
+     * generator writes from the graph -- a hand-kept copy of an allocated
+     * address is exactly the drift this tree keeps being bitten by. */
+    r4 = DSP4_CTL_MTX_BASE;
+    r4 = r2 - r4;
+    r5 = 0;
+    comp(r4, r5);
+    if lt jump (pc, .spi_ctl_page);
+    r5 = DSP4_CTL_MTX_SPAN;         /* the whole block, all strips */
+    comp(r4, r5);
+    if ge jump (pc, .spi_ctl_page);
+    r2 = lshift r4 by -DSP4_CTL_MTX_SHIFT;
+    jump (pc, .spi_ctl_bump);
+.spi_ctl_page:
+#endif
     r3 = 7282;                      /* ceil(2^20 / 144) */
     r2 = r2 * r3 (SSI);
     r2 = lshift r2 by -20;
     r3 = CTL_EPOCH_CATCHALL;
     comp(r2, r3);
     if gt r2 = r3;
+#ifdef DSP4_CTL_MTX_BASE
+.spi_ctl_bump:
+#endif
     l1 = 0;                         /* linear: this is an array index */
     i1 = _ctl_epoch;
     m1 = r2;

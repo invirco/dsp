@@ -12,6 +12,74 @@ Session: gate 0 was inserted ahead of the matrix work by hub addendum, because
 PW is being asked to sign `shipping.config.s21` and `DSP4_SIMD_DYN` is one of
 its five switches.
 
+### S22-4 — a cell outside the 144-word channel page reaches no strip node: the matrix crosspoint was built and stayed at zero
+
+**Severity: HIGH for any future cell that lives outside a strip's page.
+Status: found on the part 2026-09-10 and fixed the same session.**
+
+The matrix send cells are deliberately NOT inside the channel's 144-word SPI
+page — putting them there would have grown the routing block from 60 words
+to 64 and moved every chip-1 address above channel 1's routing node. They
+are allocated after every other chip-1 address instead, which is what keeps
+the contract bump additive (5,409 D32 cells keep their address to the word).
+
+**That is also what stopped them working.** `spi_handler.asm` bumps
+`_ctl_epoch[addr / 144]` on every accepted write, and clamps *everything at
+or above 4608* into slot 32 — "a catch-all no strip node watches". The
+matrix block starts at 4806. So every matrix write landed in the catch-all,
+the ROUTING node's control-rate gate never fired, its prep never ran, and
+the matrix crosspoint coefficient stayed at the zero it initialises to.
+
+**Measured, and only because the probe carried both controls:**
+
+```
+  chain witness: _buf_C1_FDR_01         peak 0x02BD1D96
+  strip 1 post-fader peak = 0x0D39B767   <- the positive control
+  send ON : [0, 0, 0, 0, 0, 0]
+  send OFF: [0, 0, 0, 0, 0, 0]           <- the negative control
+```
+
+A silent bus with the send ON and a silent bus with the send OFF is not a
+result; with the POSITIVE control showing the strip driven to 0x0D39B767 it
+becomes one. Two earlier runs of the same probe were thrown away for exactly
+this reason — the first wrote the send as `f32(0.0)` (the send word is a
+LINEAR gain, not dB, so 0.0 is silence) and the second had not called
+`drive_strip()`, so the channel fader sat at its `level_db=-inf` default.
+Neither would have been distinguishable from this defect without the
+control.
+
+**Fixed by giving the handler a second per-strip range.** The block is
+contiguous and strip-ordered, so the index is a subtract and a shift and
+there is no second multiply in the ISR. Its extent is EMITTED INTO
+`dsp_block.h` from the graph (`DSP4_CTL_MTX_BASE` / `_WORDS` / `_SHIFT` /
+`_SPAN`) rather than typed — a hand-kept copy of an allocated address is the
+drift this tree has been bitten by repeatedly — and the whole test is behind
+`#ifdef DSP4_CTL_MTX_BASE`, so a graph without matrix sends builds the
+handler it always did.
+
+**The general lesson, which outlives the matrix:** the control-epoch gate
+makes "this cell is inside a strip's 144-word page" a load-bearing property
+of the address map. Any future family allocated outside those pages that a
+GATED node must read needs its own range here, and the failure mode is
+silent — the node simply never re-preps, and the cell reads back correctly
+over SPI the whole time.
+
+**Passes on the part with the fix** (chip 1 `20df0711`; chip 2 `e9c28846`
+UNCHANGED, which is the check that the fix is chip-1 only):
+
+```
+  strip 1 post-fader peak = 0x0D39B767   <- the positive control
+  send ON : [221885815, 221885815, 221885815, ...]
+  send OFF: [0, 0, 0, ...]
+  peak with the send ON  = 0x0D39B767
+  peak with the send OFF = 0x00000000   <- the negative control
+  PASS: the channel reaches matrix 1, and only when sent
+```
+
+The matrix bus carries the strip's post-fader block to the word at a unity
+send, and exactly zero with the send off — the bus-assign bit folded into
+the coefficient as the 08-25 crosspoint mandate requires.
+
 ### S22-3 — the scope could drive STRIP 1 and no other strip on any chip-1 block-kernel image
 
 **Severity: MEDIUM, and it silently bounded every per-strip bar this tree

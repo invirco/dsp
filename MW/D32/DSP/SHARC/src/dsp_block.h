@@ -402,4 +402,26 @@
 #define DSP4_CHAN_MASK 1
 #endif
 
+/* THE CHANNEL MATRIX SEND SPI BLOCK (S22-4).
+ *
+ * spi_handler.asm bumps _ctl_epoch[addr / 144] so a strip node
+ * re-preps when the host writes into that strip's page, and it
+ * clamps everything at or above 4608 into slot 32 -- a catch-all
+ * no strip node watches. The matrix send cells are deliberately
+ * OUTSIDE the 144-word page: putting them inside would have moved
+ * every chip-1 address above channel 1's routing node, the whole
+ * map, the MCU's ghost table and every stored golden, for four
+ * words. Without this range every matrix write landed in the
+ * catch-all, the ROUTING node never re-prepped, and its matrix
+ * crosspoint coefficient stayed at zero -- measured on the part,
+ * a strip driven to 0x0D39B767 post-fader against a matrix bus of
+ * exactly zero with the send both ON and OFF.
+ *
+ * READ OFF THE GRAPH, never typed. The block is contiguous and
+ * strip-ordered, so the strip index is (addr - BASE) >> SHIFT. */
+#define DSP4_CTL_MTX_BASE   4806
+#define DSP4_CTL_MTX_WORDS  4
+#define DSP4_CTL_MTX_SHIFT  2
+#define DSP4_CTL_MTX_SPAN   128
+
 #endif /* DSP4_BLOCK_H */
