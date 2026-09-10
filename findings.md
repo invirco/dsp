@@ -153,6 +153,43 @@ index 107 — inside Q4.28's headroom, nothing saturates, reported by
 **What a non-LCR channel should read under the constant-power law is PW's,
 and it is carried, not guessed.**
 
+### S25-6 — R5 makes `fixed_ref`'s continuous pan law the wrong model, and famverify says so
+
+**Severity: MEDIUM — a bar is now reporting a mismatch that is the
+specified behaviour. Status: measured on the part 2026-09-10, D24, on the
+S25 candidate.**
+
+`famverify` D24 on the R5 image reports FADER_PAN numeric FAILED:
+
+    cvt fdr LEFT pan leg    183217856 / 183341408  <-- MISMATCH
+    cvt fdr RIGHT pan leg    85217608 /  85094040  <-- MISMATCH
+
+The part's two legs are **table index 40's stored columns, bit for bit**
+(`0x0AEBAEC0` / `0x05145148`). The walk writes `Pan = 0.317`; index 40 is
+40/126 = 0.317460. The table quantised the write to the nearest of its 127
+positions, which is precisely what R5 asks for — "every channel's `Pan`
+value is an INDEX into that table". The deviation is **0.058 of one table
+step, −0.0059 dB on the left leg and +0.0126 dB on the right.**
+
+So the part is right and the model is stale: `fixed_ref`'s pan conversion
+is the continuous linear law, and by PW ruling this graph's pan law is a
+127-entry table. Until the bar's model becomes `tools/dsp/pan_table.py`,
+FADER_PAN's numeric arm will read MISMATCH for any `Pan` that is not
+exactly a table index — which is most of them.
+
+**The model was deliberately NOT changed in the session that changed the
+part.** A bar rewritten to agree with the thing it is measuring, in the
+same change, is not a bar. The right shape is for `fixed_ref` to consult
+`pan_table` when the image carries the table — detectable from the symbol
+map (`_pan_tab_lcr`) — and to say in its own output which model it used.
+Named, carried, and the honest state today is "MISMATCH, attributed,
+0.0126 dB, and it is the specified behaviour".
+
+The pan law is held to account meanwhile by `s25pan.sh`, which scores the
+part against the table rather than against the law the table replaced (20
+of 20 bit-exact), and by `busgold`, which reproduces the pre-R5 capture
+byte for byte.
+
 ### S25-5 — the talkback mics and the noise generator reach no bus at all
 
 **Severity: MEDIUM — it re-attributes two unmapped families. Status: read
