@@ -2359,7 +2359,21 @@ _UNMAPPED_REASONS = {
         '(PW ruling R4, 2026-09-10 — was open question Q4)'),
     ('Bt', 'Src'): ('hardware-control', 'Bluetooth receiver source select — MCU hardware control'),
     ('Card', 'Type'): ('hardware-control', 'option-card type, reported by the MCU'),
-    ('Chan', 'AntiClip'): ('no-graph-node', 'per-channel anti-clip; no node in the graph implements it'),
+    ('Chan', 'AntiClip'): ('no-graph-node',
+        'per-channel anti-clip — the master calls it "Auto gain reduction '
+        'on/off (M&W exclusive)". No node implements it, and S25 gate 4 '
+        'says what it would take rather than leaving it at that. The '
+        'ARITHMETIC is already here twice over: the COMPRESSOR node carries '
+        'a `lim_mode` parameter and the whole level->gain LUT path '
+        '(DSP4_DYN_LUT), so a brickwall at a fixed near-full-scale '
+        'threshold is a table and a multiply this graph already runs 32 '
+        'times. What is NOT here is the DECISION, and it is the kind that '
+        'must not be guessed: an anti-clip that reuses the channel '
+        'compressor fights the desk\'s own settings, and one that does not '
+        'is a second dynamics node per strip on the chip whose worst-use '
+        'row S24 measured at 100.72 %. Where it sits in the strip '
+        '(post-fader, before the bus?) and whether it is a limiter or a '
+        'gain-ride are both PW\'s, and neither is ruled'),
     ('Chan', 'Color'): ('surface-state', 'strip colour on the surface'),
     ('Chan', 'CompMtr'): ('unbacked-meter',
         'the channel meter declares a comp_gr tap and the kernel writes no '
@@ -2420,15 +2434,56 @@ _UNMAPPED_REASONS = {
     ('Matrix', 'Level'): ('no-graph-node', 'matrix mixer output (def key mtx); no matrix node in the graph'),
     ('Matrix', 'Mute'): ('no-graph-node', 'matrix mixer output (def key mtx); no matrix node in the graph'),
     ('Noise', 'Dest'): ('no-graph-node',
-        'generator destination; the NOISE_GEN node reserves base+3 as a route '
-        'bitmask with no symbol behind it'),
+        'generator destination, and the deficiency is a FAN-OUT and not an '
+        'address (S25 gate 4). `C1_NOISE` has an EMPTY outputs column: the '
+        'generator runs, and its signal reaches no bus, no crosspoint and no '
+        'output. Giving these ten cells addresses would give the host ten '
+        'words nothing reads, which is worse than leaving them named here. '
+        'What they need is ten crosspoints out of the node into named buses, '
+        'and WHICH ten is a product question the master does not answer — it '
+        'says only "aux/main outputs". Priced by construction against the '
+        'measured fabric: a live crosspoint on a bus that already carries '
+        'signal is below this instrument\'s resolution (S24: five more on a '
+        'bus cost < 0.1 points), so the cost is the ten SPI words, the '
+        'fan-out code and nothing measurable in cycles'),
     ('Phones', 'Level'): ('hardware-control', 'headphone amplifier'),
     ('Phones', 'Src'): ('hardware-control', 'headphone source select'),
-    ('Rta', 'On'): ('no-graph-node', 'RTA analyser; no node in the graph'),
-    ('Rta', 'Src'): ('no-graph-node', 'RTA analyser; no node in the graph'),
+    # RTA — priced rather than merely refused (S25 gate 4). It is a
+    # read-only METER family and a new node class: a 1/3-octave analyser
+    # is 31 band-passes and 31 detectors on one selected source. The graph
+    # already runs exactly that arithmetic thirty-one times in the GEQ, so
+    # the cost is not a guess: chip 2's GEQ nodes are the measured
+    # reference and the RTA is one instance of the same cascade plus a
+    # detector per band, on ONE source rather than on every aux.
+    ('Rta', 'On'): ('no-graph-node',
+        'RTA analyser; no node in the graph. It is a read-only meter family '
+        'and a NEW NODE CLASS — 31 band-passes plus 31 detectors on one '
+        'selected source — so it is priced before it is built rather than '
+        'after. BY CONSTRUCTION against the measured GEQ (the same 31-band '
+        'cascade, already in this graph): one RTA instance is one GEQ '
+        'cascade plus a per-band detector, on ONE source instead of per '
+        'aux. It is not built: the source select below has no ruling behind '
+        'it, and a meter family that reads the wrong point is worse than '
+        'none'),
+    ('Rta', 'Src'): ('no-graph-node',
+        'RTA input source select (main/aux/cue). No node in the graph, and '
+        'the cell cannot be bound before the analyser exists. The master '
+        'names three source kinds and not which instances, so the pick list '
+        'is a product question and is carried, not guessed'),
     ('Talk', 'Dest'): ('no-graph-node',
-        'talkback destinations 2 and 3; the TALKBACK node has four SPI words '
-        '(On, Gain, Hpf, Dest1) and the graph gives it no more'),
+        'talkback destinations 2 and 3 — and the reason this file gave until '
+        'S25 named the wrong deficiency. It said the TALKBACK node has four '
+        'SPI words (On, Gain, Hpf, Dest1) and the graph gives it no more, '
+        'which is true and is not the problem: the node ALREADY declares '
+        '`_talk_route_<nid>[3]`, so the words are there. What is missing is '
+        'the FAN-OUT. `C1_TALK_01` and `C1_TALK_02` have EMPTY outputs '
+        'columns, nothing in the tree reads `_talk_route` beyond the SPI '
+        'dispatch of Dest1, and the talkback mics reach no bus at all. '
+        'Dest1 is therefore a cell that reaches a WORD and not the '
+        'arithmetic — S24-7\'s shape one family along. Two more addresses '
+        'would add two more of those; three crosspoints out of each node is '
+        'what the family actually needs, and which three is the master\'s '
+        '"aux/main" to resolve'),
 }
 for _s in _MAIN_OUT:
     # S24: Level and Mute ARE built now -- the OUTPUT_TDM node carries them

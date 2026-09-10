@@ -6,6 +6,178 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE POOL ALIGNMENT WAS NEVER REQUIRED, AND THE ONE PAN TABLE (2026-09-10, session 25)
+
+Session: S24-5 settled with one build and the existing bars, R5 built and
+witnessed, the D24 rows S24 said it had not taken.
+
+### S25-1 — the block pool's 8-byte alignment was never a requirement, and the net answer is 4 bytes
+
+**Severity: HIGH — it retires the only actionable caveat the DSP spoke gave
+the net spoke. Status: measured on the part 2026-09-10, both chips, D32.**
+
+S24 answered the MW-Net alignment question with **8 bytes, set by the SHARC
+core's SIMD dual-data access**, and filed the pools' even placement as
+"luck, not a declaration" — a latent build fragility to be settled with one
+pad and one run of the bars. It is neither luck nor a requirement.
+
+`DSP4_POOL_PAD` emits N words of `.var` immediately in front of
+`_blk_pool`, from the generator, in the same section and object. A slot is
+`base + n x BLOCK` and BLOCK is 16, so an odd N moves the whole pool:
+
+| | control | pad arm |
+|---|---|---|
+| chip 1 `_blk_pool` / `_blk_pool1` | `0x90330` / `0x903C0` EVEN | `0x90331` / `0x903C1` **ODD** |
+| chip 2 `_blk_pool` / `_blk_pool1` | `0x91E74` / `0x91F04` EVEN | `0x91E75` / `0x91F05` **ODD** |
+
+**Every bar reproduces bit for bit.** `busgold`'s 256-word main-bus capture
+is sha256 `4126c00730a31f5f` on both arms. `goldnode` reads word for word
+the same on all four nodes — including the COMP arm's pre-existing 0.00518
+dB LUT-vs-`fixed_ref` deviation, which is a property of
+`shipping.config.s21` and not of the pad. `famverify`'s two 26-family
+reports differ, after stripping run metadata, in exactly ONE field: METER's
+free-running live `meter_word`. Golden 59/59 and `dsp_validate` OK on 698
+nodes on both.
+
+**And the mechanism agrees.** `src/lib/dyn_simd_fx.asm` says in its own
+header what the SIMD access does — *"a data access reads two consecutive
+words -- PEx the addressed one, PEy the next"* — the addressed one,
+whatever its parity. The access class that WOULD require an even address is
+the long word, and **`LW(` appears zero times in every `.asm` in the source
+tree**; there is not one `.align` directive either.
+
+The control arm matters and passed: `DSP4_POOL_PAD=0` rebuilt
+`2fdd9f95` / `9222c2ee`, byte for byte the staged `s24_*` pair.
+
+**Consequence for the net spoke:** the requirement is **4 bytes, set by the
+DMA** (`MSIZE04` / `XMOD 4`). `MWN_AUDIO_PAYLOAD_OFF` stays at 40 either
+way — but the 802.1Q caveat is GONE. An 8-byte requirement was flipped by a
+single VLAN tag shifting the header 4 bytes; a 4-byte requirement survives
+it. No receiver-side placement rule, no tagged-frame copy.
+`docs/net-contract-answers.md` is corrected, with the old §2.2/§2.3 left in
+place and marked rather than deleted — the net spoke was told 8 bytes on
+2026-09-10 and the withdrawal has to be visible.
+
+### S25-2 — `fix` on this core ROUNDS to nearest, and this tree has said it truncates
+
+**Severity: MEDIUM, and wide — it is a shared belief, not one bug. Status:
+measured on the part 2026-09-10.**
+
+The pan probe's first run failed and the failure is the finding. Pan
+indices 31, 63 and 94 were written to a node computing
+`fix(pan * 126 + 0.5)`, and the part came back with **32, 64 and 94**.
+
+The three float32 products are EXACTLY 31.0, 63.0 and 94.0, so the sums are
+exactly 31.5, 63.5 and 94.5. Truncation gives 31/63/94; round-half-away
+gives 32/64/95; **only round-half-to-even gives 32/64/94, and it gives all
+three.** MODE1's truncate bit is set nowhere in the tree.
+
+The `+0.5` was written on the belief that `fix` truncates — a belief stated
+in this tree's own comments, in `dsp4_s24_probe.py::q28()` ("which
+truncates toward zero on this core") and in the first draft of
+`tools/dsp/pan_table.py`. It made every exact index land on a tie and round
+up to the next one.
+
+**S24's probe could not have caught this and does not claim to**: its five
+levels were 1.0, 0.5, 0.25, 0.0 and a mute, every one an exact power of two
+at Q4.28, so no rounding was ever exercised and its five-of-five result
+stands. But the comment is wrong, and **anything in this tree that converts
+a non-dyadic constant with `fix` is up to one LSB from what its comment
+says it does.** Worth a sweep in a later session; nothing measured so far
+depends on it, because the places that have been witnessed on the part were
+witnessed against the part.
+
+The fix is one instruction deleted. `pan_table.py` models `fix` the
+measured way and gained a `Pan -> index` round-trip bar over all 127
+indices that would have caught this on the desk.
+
+### S25-3 — LCR needs no new bus, because the sub bus IS the centre bus
+
+**Severity: MEDIUM — it turns R5 from a fabric change into a coefficient
+change. Status: read off the graph and the master, witnessed on the part.**
+
+The obvious objection to R5 is that a centre leg needs a centre bus, and
+chip 1's fabric has none: Main L, Main R, Sub, 4 groups, 12 aux, 6 FX and
+the matrix rows. The four "main outputs" are the CROSSOVER's four outputs,
+not four buses. An LCR centre would then have meant a 33rd fabric row, an
+inter-chip lane, a TDM slot out of the single-sourced slot map and a chip-2
+chain — on the chip S24 measured at 100.72 % at worst use, and against
+R6-R11's hold on fabric growth. That would have been a refusal.
+
+**`Chan*CtrOn` is already dispatched to `_rtg_sub_on`, and the master's own
+name for the cell is "Center/sub output assign on/off".** The sub bus has a
+complete chain behind it — `C1_BUS_SUB` -> send -> `C2_RECV_SUB` -> fader
+-> EQ -> comp -> limiter -> delay -> its own TDM output. R5's "`Chan*CtrOn`
+still GATES the centre leg" is a description of a crosspoint that has been
+in the graph since the graph existed.
+
+So R5 costs no fabric row, no inter-chip lane and no TDM slot. Witnessed at
+pan index 31 (**not** at centre, where the hard-LCR centre leg is unity and
+the bar could not tell LCR from a plain sub send): `_rtg_subq` reads
+`0x07DF7DF8` with LcrOn=1/CtrOn=1, `0x10000000` with LcrOn=0/CtrOn=1, and
+exactly zero with CtrOn=0.
+
+### S25-4 — R5-amended as written silences a centre-panned stereo channel
+
+**Severity: MEDIUM — a definition defect, for PW. Status: arithmetic, and
+the build works around it in the one way that is provably free.**
+
+R5-amended says a non-LCR channel "uses the same table's L/R columns
+(centre column ignored)". Under hard LCR the centre position is *centre bus
+only*, so its L and R legs are BOTH ZERO: read literally, a stereo channel
+panned to the middle disappears. The same is true of the constant-power
+law, so it is not a quirk of one law.
+
+What the table stores instead satisfies R5 literally and fixes it: the L/R
+columns ARE what a non-LCR channel reads, and an LCR channel's legs are
+`(L - C/2, C, R - C/2)` — the centre bus takes what the two sides carried
+between them.
+
+**For hard LCR that is an identity.** Folding hard LCR's centre back at
+half gives `(1-p, p)` at every position, which is the linear law this graph
+has always run; and in the integer form the table stores, the centre column
+is exactly twice the smaller side, so `C >> 1` returns it and the recovered
+legs are exact with NO rounding — near side `L - R`, far side exactly zero,
+at all 127 positions.
+
+**And a second thing R5 cannot have: three columns cannot hold both a
+two-bus constant-power law and a three-bus one.** Found by trying —
+defining law 1's L/R as `cos(p*pi/2) / sin(p*pi/2)` makes the recovered LCR
+legs miss constant power by up to 0.238 in sum-of-squares. So law 1's
+primary definition is its LCR legs (which is all R5 specifies) and its
+stereo projection is the -6 dB fold, peaking **+0.9687 dB** above unity at
+index 107 — inside Q4.28's headroom, nothing saturates, reported by
+`pan_table.fold_peak_db()` rather than remembered. Under law 0 the peak is
++0.0000 dB.
+
+**What a non-LCR channel should read under the constant-power law is PW's,
+and it is carried, not guessed.**
+
+### S25-5 — the talkback mics and the noise generator reach no bus at all
+
+**Severity: MEDIUM — it re-attributes two unmapped families. Status: read
+off `dsp.csv`, 2026-09-10.**
+
+`Talk*Dest[2-3]` and `Noise*Dest[1-10]` were recorded as unmapped because
+the SPI blocks are too small — "the TALKBACK node has four SPI words (On,
+Gain, Hpf, Dest1) and the graph gives it no more". True, and the wrong
+deficiency.
+
+`C1_TALK_01`, `C1_TALK_02` and `C1_NOISE` all have an **EMPTY outputs
+column**. The talkback node already declares `_talk_route_<nid>[3]` — the
+words are there — and **nothing in the tree reads it beyond the SPI
+dispatch of Dest1**. The mics are gained, high-passed and delivered
+nowhere.
+
+So `Talk001Dest001`, which DOES reach an address, is a cell that reaches a
+WORD and not the arithmetic — S24-7's shape one family along, and a
+famverify "contract 4/4, audio LIVE" does not see it, because the family's
+own node does run.
+
+Two more addresses would add two more such cells. What the family needs is
+crosspoints out of each node into named buses, and **which** buses is the
+master's "aux/main" to resolve. The unmapped reasons now say that.
+
 ## THE NET CONTRACT ANSWERED, AND THE USE-PROPORTIONAL COST IS THE BYPASS (2026-09-10, session 24)
 
 Session: the three MW-Net answers the wire declaration needed, the cost S23

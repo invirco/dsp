@@ -7,23 +7,28 @@ For the net spoke's N4/N6 questions, filed against the `defs` wire sets
 bench day. `MWN_AUDIO_PAYLOAD_OFF` is the field one of these answers moves,
 and it is cheap now and expensive after the declaration lands.
 
+**CORRECTED 2026-09-10 (S25 gate 1). The alignment answer was 8 bytes and
+it is 4.** The correction is a MEASUREMENT, not a re-reading: see §2.4. It
+does not move `MWN_AUDIO_PAYLOAD_OFF`, which stays at 40 either way — but
+it **retires the caveat in §2.3 entirely**, and that caveat was the only
+thing in this document the net spoke had to act on.
+
 **One-line answer.** 96 k through-DSP = **82 samples / 854 µs, BY
 CONSTRUCTION** (the DSP cannot be clocked at 96 kHz on this platform and
-three independent things stop it); the block interface needs **8-byte
-alignment, set by the SHARC CORE's SIMD dual-data access** — not by its DMA
-(4 B) and not by the framework (which asks for nothing) — so
-**`MWN_AUDIO_PAYLOAD_OFF` STAYS AT 40**; in-place = **yes** for the read,
-because a DSP node already reads its samples straight out of the DMA
-receive ring every block with no staging copy — but on the DSP product the
-question does not arise at all, because the MW-Net endpoint is the RT1180
-option card and what crosses the option slot is **TDM8, not packets**.
+three independent things stop it); the block interface needs **4-byte
+alignment — one 32-bit word — set by the DMA**, and neither the core nor
+the framework asks for more, so **`MWN_AUDIO_PAYLOAD_OFF` STAYS AT 40**;
+in-place = **yes** for the read, because a DSP node already reads its
+samples straight out of the DMA receive ring every block with no staging
+copy — but on the DSP product the question does not arise at all, because
+the MW-Net endpoint is the RT1180 option card and what crosses the option
+slot is **TDM8, not packets**.
 
-Read the alignment answer with §2.3 attached: 40 is 8-byte aligned
-*relative to the MW-Net header*, and the requirement is on the ABSOLUTE
-address of sample 0. A customer switch inserting one 802.1Q tag shifts the
-header by 4 bytes and **flips** that alignment. The offsets in the message
-table are unaffected — the header is found by EtherType scan, as
-`mwnet-wire-v0-messages.csv` says — but in-place consumption is not.
+**And the 802.1Q caveat is GONE.** With an 8-byte requirement, one VLAN tag
+inserted by a customer switch moved the header 4 bytes and FLIPPED the
+alignment; with a 4-byte requirement a 4-byte shift preserves it. Any
+Ethernet frame whose payload starts on a word boundary satisfies the DSP,
+tagged or not.
 
 ---
 
@@ -123,11 +128,14 @@ but that build does not fit either, for the reason in §1.1 item 3.
 
 ---
 
-## 2. The alignment the block interface requires — 8 bytes, set by the core
+## 2. The alignment the block interface requires — 4 bytes, set by the DMA
 
 The question is put as three candidates — the SHARC core, its DMA, or the
 framework's block buffers. They give three different numbers and the
-binding one is the core's.
+binding one is the DMA's. §2.1 and §2.2 are the argument as it stood on
+2026-09-10; **§2.4 is the experiment that overturned §2.2's half of it**,
+and it is left in that order deliberately, because the reasoning that was
+wrong is worth reading beside the measurement that settled it.
 
 ### 2.1 The DMA needs 4 bytes
 
@@ -137,7 +145,7 @@ The audio rings are DDE descriptor-list channels configured
 be aligned to that transfer size and to nothing wider. Nothing in the audio
 path asks the DDE for a burst wider than a word. **4 bytes.**
 
-### 2.2 The framework asks for nothing, and the core asks for 8
+### 2.2 The framework asks for nothing, and the core was argued to ask for 8 — WRONG, see §2.4
 
 The framework's block buffers are the two `_blk_pool` slot pools
 (`src/blk_pool.h`), addressed as `pool + n × BLOCK` words. The pool declares
@@ -162,11 +170,18 @@ by declaration** — the linker was free to place either pool one word along —
 and that is a latent build fragility worth its own line in the findings
 independent of the net question.
 
-**So: 8 bytes, set by the SHARC CORE's SIMD dual-data access. Not the DMA
-(4), not the framework (0).** 40 is a multiple of 8, so
-**`MWN_AUDIO_PAYLOAD_OFF` STAYS AT 40** and the payload does not move to 48.
+**So the argument was: 8 bytes, set by the SHARC CORE's SIMD dual-data
+access.** 40 is a multiple of 8, so `MWN_AUDIO_PAYLOAD_OFF` stays at 40 and
+the payload does not move to 48 — the right answer to the question the net
+spoke asked, reached through a claim about the core that §2.4 shows is
+false.
 
-### 2.3 The sentence the net spoke should act on, and its caveat
+### 2.3 The sentence the net spoke should act on, and its caveat — RETIRED by §2.4
+
+**This whole subsection describes a consequence of the 8-byte requirement
+and the requirement is 4 bytes. It is kept because it is what the net
+spoke was told on 2026-09-10 and it must be visibly withdrawn rather than
+quietly deleted. The sentence to act on is now §2.4's.**
 
 > Keep `MWN_AUDIO_PAYLOAD_OFF` at 40: the binding DSP-side requirement is
 > 8-byte alignment and 40 satisfies it — but the requirement is on the
@@ -188,6 +203,54 @@ Moving `MWN_AUDIO_PAYLOAD_OFF` to 48 does **not** fix that, because it
 changes the offset and not the base. The two ways to fix it are to declare
 the placement requirement on the receiver, or to accept a copy on any frame
 that arrives tagged.
+
+### 2.4 THE MEASUREMENT: the pools were moved, and nothing moved with them
+
+§2.2 called the pools' even placement "even by luck, not by declaration"
+and filed it as a latent build fragility. It is neither: **the alignment
+was never required.**
+
+`DSP4_POOL_PAD` emits N words of `.var` immediately in front of
+`_blk_pool`, in the same section and the same object, so an odd N puts the
+pool — and every slot in it, since a slot is `base + n × BLOCK` and BLOCK
+is even — on an ODD word address. The generator emits it; `bus_accumulators.asm`
+carries it; 0 is the byte-for-byte control and the shipping image does not
+name it.
+
+Built at `DSP4_POOL_PAD=1` on `shipping.config.s21`, both chips:
+
+| | control | pad arm |
+|---|---|---|
+| chip 1 `_blk_pool` / `_blk_pool1` | `0x90330` / `0x903C0` — both EVEN | `0x90331` / `0x903C1` — both **ODD** |
+| chip 2 `_blk_pool` / `_blk_pool1` | `0x91E74` / `0x91F04` — both EVEN | `0x91E75` / `0x91F05` — both **ODD** |
+
+Every bar, run on the part on the same bench session:
+
+| bar | control | pad arm |
+|---|---|---|
+| `busgold` bus capture, 256 words | sha256 `4126c00730a31f5f` | sha256 `4126c00730a31f5f` — **identical** |
+| `goldnode` (GATE / COMP / TUBE / FDR) | — | **word-for-word identical to the control**, including the COMP arm's pre-existing 0.00518 dB LUT deviation |
+| `famverify` D32, 26 families | 21 LIVE, 3 numeric BIT_EXACT | **verdict-for-verdict and value-for-value identical**, the only difference in the whole report being one free-running live METER word |
+| golden harness | 59/59 | 59/59 |
+| `dsp_validate` | OK, 698 nodes | OK, 698 nodes |
+
+**And the mechanism agrees with the measurement.** SIMD dual-data access
+on this core reads *the addressed word and the next one*, which is what
+`src/lib/dyn_simd_fx.asm` says in its own header — it places no
+requirement on the base. The access class that WOULD require an even
+address is the long word, and **this tree contains none: `LW(` appears
+zero times in every `.asm` in the source tree.** Nor is there a single
+`.align` directive anywhere, which is consistent — nothing has ever needed
+one.
+
+**The sentence the net spoke should act on:**
+
+> The DSP block interface requires **4-byte (one 32-bit word) alignment**
+> of sample 0, set by the DDE's `MSIZE04`/`XMOD 4` audio rings. Keep
+> `MWN_AUDIO_PAYLOAD_OFF` at 40. There is **no 802.1Q hazard**: a VLAN tag
+> shifts the header by 4 bytes and a 4-byte requirement survives that, so
+> in-place consumption is available on tagged and untagged frames alike,
+> and no receiver-side placement rule is needed.
 
 ---
 
@@ -256,13 +319,12 @@ shift folded into the load rather than avoided.**
 ## 4. What this does NOT answer
 
 - Whether the RT1180's own eDMA or its TDM transmitter imposes a wider
-  alignment than the SHARC's 8 bytes. That is the net spoke's measurement on
+  alignment than the SHARC's 4 bytes. That is the net spoke's measurement on
   its own part; nothing here constrains it.
 - The net spoke's M7-on-EVK latency figures are **not inheritable** by the
   DSP product, and nothing above should be read as validating them.
-- Whether the SIMD dual access on this part *actually* faults or silently
-  force-aligns at an odd word address. §2.2 argues 8 bytes from what the
-  kernels do; every pool in the shipped images happens to be even, so the
-  part has never been asked. Settling it costs one build with a one-word
-  pad in front of `_blk_pool` and one run of the existing audio bars — worth
-  doing for the build-fragility reason regardless of MW-Net.
+- ~~Whether the SIMD dual access on this part actually faults or silently
+  force-aligns at an odd word address.~~ **ANSWERED 2026-09-10, §2.4: it
+  does neither, because it never required an even address.** Both pools
+  were moved onto odd word addresses on both chips and every audio bar
+  reproduced bit for bit.
