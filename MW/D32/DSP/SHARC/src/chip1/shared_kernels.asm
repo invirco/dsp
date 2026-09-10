@@ -11,6 +11,7 @@
  * build by tools/dsp/shared_kernel_check.py. Do not assume it.
  */
 #include "dsp_block.h"
+#include "lib/dyn_lut.h"
 #include "blk_pool.h"
 
 #if !DSP4_BLOCK_KERNELS && DSP4_SHARED_KERNELS
@@ -385,14 +386,18 @@
              *
              * r13 holds the live sample and both _dyn_lut_fill and
              * _compgain_fx under it clobber r0-r12 only. */
-            r0 = i7;
-            r0 = r0 + SHK_COMP_OFF_comp_cgp;
-            r1 = i7;
-            r1 = r1 + SHK_COMP_OFF_comp_lutk;
-            r2 = i7;
-            r2 = r2 + SHK_COMP_OFF_comp_lut;
-            r3 = i7;
-            r3 = r3 + SHK_COMP_OFF_comp_lutc;
+            r11 = i7;
+            r0 = SHK_COMP_OFF_comp_cgp;
+            r0 = r0 + r11;
+            r11 = i7;
+            r1 = SHK_COMP_OFF_comp_lutk;
+            r1 = r1 + r11;
+            r11 = i7;
+            r2 = SHK_COMP_OFF_comp_lut;
+            r2 = r2 + r11;
+            r11 = i7;
+            r3 = SHK_COMP_OFF_comp_lutc;
+            r3 = r3 + r11;
             call _dyn_lut_step;
 #endif
         .comp_go_shkcomp:

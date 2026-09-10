@@ -50,8 +50,40 @@ FAMILIES = [
     '_gate_on', '_gate_filter_on', '_gate_envelope',
     '_lim_on', '_lim_envelope',
     '_fx_on', '_fx_bypassed', '_fx_duck_on',
-    '_fdr_busy',
+    # THE FX ENGINES' OWN STATE (S21). `_fx_on` says the engine is enabled
+    # and `_fx_bypassed` says whether the Type it was given is one the class
+    # implements -- neither says a sample ever reached it. These do:
+    #   _fx_type          which algorithm, as the host left it
+    #   _fx_rv_comb_wptrs the eight comb write pointers. They advance on
+    #                     every sample the reverb runs, signal or not, so a
+    #                     wptr away from zero proves the KERNEL RAN.
+    #   _fx_rv_comb_lpfs  the comb bank's one-pole damping states. REPORTED,
+    #                     NOT REQUIRED: `filt = damp*delayed + (1-damp)*prev`
+    #                     is identically `prev` when `damp` is 0, and `damp`
+    #                     is 0 at boot -- `_fx_damp_<nid>` is a `.var` with
+    #                     no initialiser and no host had ever written
+    #                     `Fx<n>Damp`. All eight stay at zero on a reverb
+    #                     that is carrying full scale, which is why they are
+    #                     not the signal witness (measured 2026-09-10).
+    #   _fx_echo_wptr     the delay line's write pointer, which advances on
+    #                     Types 0 and 2 whether or not there is signal, so it
+    #                     proves the KERNEL RAN and not that it had input.
+    #   _buf_             the word the engine publishes into the FX return.
+    '_fx_type', '_fx_rv_comb_lpfs', '_fx_rv_comb_wptrs', '_fx_echo_wptr',
+    '_fx_mix',
 ]
+# THE REVERB'S OWN DELAY LINE, which is where the proof actually is: with
+# audio playing, the Freeverb body writes `input + feedback*filtered` into
+# every one of its eight comb lines on every sample, so the buffer fills with
+# signal whatever the parameters are. Sampled at a spread of offsets rather
+# than read whole -- it is 11,024 words an engine and every word is a paced
+# read.
+FX_COMB_BUF = '_fx_comb_buf_L_C2_FX_ENG_'
+FX_COMB_PROBES = (0, 137, 401, 1013, 1557, 3175, 4666, 6088, 7365, 8721, 9909)
+# The FX engines' published output. Named as a prefix of its own because
+# `_buf_` is every node's output on both chips and reading all of them would
+# make this tool a full graph dump.
+FX_BUF = '_buf_C2_FX_ENG_'
 SINGLES = ['_aux_mask_live', '_chan_mask_live', '_fdr_level_C2_AUX_FDR_01']
 
 DIAG_FRAME_COUNT = 0xE004
@@ -66,6 +98,17 @@ def main():
     ap.add_argument('--chip', type=int, default=2)
     ap.add_argument('--json')
     ap.add_argument('--tag', default='')
+    ap.add_argument('--require-fx', action='store_true',
+                    help='ALSO require the FX engines to be in the regime '
+                         '(S21): every engine enabled, at the Type asked '
+                         'for, not parked in the unimplemented-Type bypass, '
+                         'and -- for the reverb -- with its comb bank live, '
+                         'which is the only word that proves a sample '
+                         'actually reached the plugin. --fx-type says which '
+                         'algorithm the row is for.')
+    ap.add_argument('--fx-type', type=int, default=None,
+                    help='the Type --require-fx expects to find on all six '
+                         'engines')
     ap.add_argument('--require-driven', action='store_true',
                     help='exit 1 unless EVERY dynamics envelope on this chip '
                          'is live. S19: a driven capacity row that was not '
@@ -83,13 +126,24 @@ def main():
     for fam in FAMILIES:
         names += sorted(k for k in sc.sym
                         if k.startswith(fam) and NODE_SUF.sub('', k) == fam)
+    # The comb-filter states are an ARRAY per engine; the family walk above
+    # matches only the base symbol, so the other seven words are added here.
+    # One live word is enough to prove the bank ran, but reading all eight
+    # separates "the reverb ran" from "one word happens to be non-zero".
+    for fam in ('_fx_rv_comb_lpfs', '_fx_rv_comb_wptrs'):
+        for k in sorted(k for k in sc.sym if NODE_SUF.sub('', k) == fam):
+            names += ['%s+%d' % (k, i) for i in range(1, 8)]
+    names += sorted(k for k in sc.sym if k.startswith(FX_BUF))
+    for k in sorted(k for k in sc.sym if k.startswith(FX_COMB_BUF)):
+        names += ['%s+%d' % (k, i) for i in FX_COMB_PROBES]
     names += [n for n in SINGLES if n in sc.sym]
 
     out, bad = {}, []
     t0 = time.time()
     for n in names:
+        base, _, off = n.partition('+')
         try:
-            out[n] = sc.peek(sc.addr(n))
+            out[n] = sc.peek(sc.addr(base) + (int(off) if off else 0))
         except IOError:
             bad.append(n)
     rec = {
@@ -175,6 +229,102 @@ def main():
             if len(dead) > 12:
                 print('    ... and %d more' % (len(dead) - 12))
             return 1
+
+    if a.require_fx:
+        # WHICH TYPES ARE ALGORITHMS. The shipped graph declares
+        # `type=Reverb` on all six engines, so every one of them is the
+        # generator's `reverb` CLASS, which implements Types 0 (Echo),
+        # 2 (Doubling) and 3 (Reverb) and parks 1, 4, 5 and 6 in an explicit
+        # bypass. A row at a parked Type is a row for the bypass branch and
+        # is reported as one -- it is not a failure of the instrument, and it
+        # is not a measurement of that algorithm either.
+        IMPLEMENTED = (0, 2, 3)
+        eng = sorted(k for k in out if NODE_SUF.sub('', k) == '_fx_on')
+        n_on = sum(1 for k in eng if out[k])
+        types = {k.replace('_fx_on', '_fx_type'): None for k in eng}
+        for k in list(types):
+            types[k] = out.get(k)
+        byp = {k: out[k] for k in out
+               if NODE_SUF.sub('', k) == '_fx_bypassed' and out[k]}
+        combs = {}
+        for k, v in out.items():
+            if k.startswith(FX_COMB_BUF):
+                combs.setdefault(re.sub(r'\+\d+$', '', k), []).append(v)
+        live_combs = sum(1 for v in combs.values() if any(v))
+        lpfs = {}
+        for k, v in out.items():
+            if k.startswith('_fx_rv_comb_lpfs'):
+                lpfs.setdefault(re.sub(r'\+\d+$', '', k), []).append(v)
+        live_lpfs = sum(1 for v in lpfs.values() if any(v))
+        wptrs = {}
+        for k, v in out.items():
+            if k.startswith('_fx_rv_comb_wptrs'):
+                wptrs.setdefault(re.sub(r'\+\d+$', '', k), []).append(v)
+        live_wptrs = sum(1 for v in wptrs.values() if any(v))
+        pub = {k: v for k, v in out.items() if k.startswith(FX_BUF)}
+        want = a.fx_type
+        wrong = sorted(k for k, v in types.items()
+                       if want is not None and v != want)
+        rec['fx'] = {'engines': len(eng), 'on': n_on,
+                     'types': types, 'bypassed': byp,
+                     'comb_lines_live': live_combs,
+                     'comb_lines': len(combs),
+                     'comb_lpfs_live': live_lpfs, 'comb_lpfs': len(lpfs),
+                     'comb_wptrs_live': live_wptrs, 'comb_wptrs': len(wptrs),
+                     'published_nonzero': sum(1 for v in pub.values() if v),
+                     'published': len(pub),
+                     'want_type': want}
+        if a.json:
+            json.dump(rec, open(a.json, 'w'), indent=1)
+        print('  FX REGIME: %d of %d engines on, Type %s, %d parked in the '
+              'unimplemented-Type bypass, %d of %d comb delay lines carrying '
+              'signal (%d of %d wptrs advanced, %d of %d damping states '
+              'non-zero), %d of %d engines publishing non-zero'
+              % (n_on, len(eng),
+                 sorted(set(v for v in types.values() if v is not None)) or '?',
+                 len(byp), live_combs, len(combs),
+                 live_wptrs, len(wptrs), live_lpfs, len(lpfs),
+                 rec['fx']['published_nonzero'], len(pub)))
+        rc = 0
+        if not eng:
+            print('    NO FX ENGINES on chip %d -- --require-fx is a chip-2 '
+                  'check' % a.chip)
+        elif n_on != len(eng):
+            print('    NOT ENGAGED: %d engine(s) have _fx_on = 0'
+                  % (len(eng) - n_on))
+            rc = 1
+        if wrong:
+            for k in wrong[:6]:
+                print('    WRONG TYPE: %s = %s, wanted %s'
+                      % (k, types[k], want))
+            rc = 1
+        if want in IMPLEMENTED and byp:
+            for k in sorted(byp)[:6]:
+                print('    PARKED: %s = %s (the dispatch found no algorithm '
+                      'for that Type)' % (k, byp[k]))
+            rc = 1
+        if want == 3 and combs and live_combs != len(combs):
+            print('    NO SIGNAL IN THE PLUGIN: %d of %d comb delay lines '
+                  'read zero at every probe, so the reverb ran over silence'
+                  % (len(combs) - live_combs, len(combs)))
+            rc = 1
+        if want == 3 and wptrs and live_wptrs != len(wptrs):
+            print('    KERNEL DID NOT RUN: %d of %d comb write-pointer banks '
+                  'are still at their initialisers'
+                  % (len(wptrs) - live_wptrs, len(wptrs)))
+            rc = 1
+        if want == 3 and lpfs and not live_lpfs:
+            print('    (all %d damping states zero -- Fx<n>Damp has never '
+                  'been written on this boot, so damp = 0 makes the one-pole '
+                  'an identity on its own state. Reported, not required.)'
+                  % len(lpfs))
+        if want is not None and want not in IMPLEMENTED:
+            print('    Type %d is NOT IMPLEMENTED for the reverb class the '
+                  'graph declares: %d of %d engines are parked in the '
+                  'explicit bypass and this row prices the BYPASS.'
+                  % (want, len(byp), len(eng)))
+        if rc:
+            return rc
     return 0
 
 

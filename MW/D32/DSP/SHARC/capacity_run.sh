@@ -120,9 +120,12 @@ for cycle in 1 2 3; do
 
   echo "--- load config"
   MODE="${SETUP_MODE:-load}"
-  python3 dsp4_driven_setup.py --chip 1 --mode "$MODE" --landed "$LANDED" \
+  FXTYPE="${FXTYPE:-3}"
+  python3 dsp4_driven_setup.py --chip 1 --mode "$MODE" --fx-type "$FXTYPE" \
+      --landed "$LANDED" \
       > "$P-setup-c1.log" 2>&1; echo "    chip 1: $(tail -1 "$P-setup-c1.log")"
-  python3 dsp4_driven_setup.py --chip 2 --mode "$MODE" --landed "$LANDED" \
+  python3 dsp4_driven_setup.py --chip 2 --mode "$MODE" --fx-type "$FXTYPE" \
+      --landed "$LANDED" \
       > "$P-setup-c2.log" 2>&1; echo "    chip 2: $(tail -1 "$P-setup-c2.log")"
 
   echo "--- row B: silent, load config"
@@ -132,14 +135,19 @@ for cycle in 1 2 3; do
   echo "--- stimulus on"
   bash /home/app/drive_audio.sh start || exit 6
   sleep 3
-  RQ=""; [ "$MODE" = "load" ] && RQ="--require-driven"
+  RQ=""
+  case "$MODE" in
+      load)   RQ="--require-driven" ;;
+      loadfx) RQ="--require-driven --require-fx --fx-type $FXTYPE" ;;
+  esac
   python3 dsp4_c2regime.py --chip 1 --tag driven $RQ \
           --json "$P-regime-c1.json" > "$P-regime-c1.log" 2>&1
   R1=$?
   python3 dsp4_c2regime.py --chip 2 --tag driven $RQ \
           --json "$P-regime-c2.json" > "$P-regime-c2.log" 2>&1
   R2=$?
-  grep -h "DRIVEN REGIME" "$P-regime-c1.log" "$P-regime-c2.log" 2>/dev/null
+  grep -h "DRIVEN REGIME\|FX REGIME" "$P-regime-c1.log" "$P-regime-c2.log" \
+      2>/dev/null
   if [ "$R1" != "0" ] || [ "$R2" != "0" ]; then
       echo "    REGIME NOT PROVEN (chip1 rc=$R1 chip2 rc=$R2) -- row C is taken"
       echo "    anyway and is labelled, because a partial regime is a"
@@ -150,6 +158,50 @@ for cycle in 1 2 3; do
   python3 dsp4_capacity.py --dwell "${DWELL:-45}" --tag driven \
           --json "$P-C-driven.json"
   RC=$?
+
+  # ------------------------------------------------------------------
+  # THE FX LADDER (S21), OPTIONAL, ON THE SAME BOOT AS ROW C.
+  #
+  # PW's headroom rule needs the FX engines' cost, and a cost is a
+  # DIFFERENCE. Taking the difference across boots would put the
+  # instrument's own boot-to-boot spread (±0.3 points, S20) into a number
+  # that is itself only a few points, so every rung is taken here: same
+  # image, same measured clock, same DMA phase, same routes and dynamics,
+  # and the ONLY thing that changes between two rungs is the six engines'
+  # `Type` cell (or their `On` cell for the `off` rung).
+  #
+  #   FXTYPES="off 3 0 2"   the baseline, the reverb, echo, doubling
+  #
+  # The regime is proved before every rung, and a rung whose regime does
+  # not prove is labelled rather than dropped -- a partial regime is a
+  # measurement of a partial regime.
+  # ------------------------------------------------------------------
+  for T in ${FXTYPES:-}; do
+      echo "--- rung fx=$T"
+      if [ "$T" = "off" ]; then
+          M="fxoff"; FT=""
+      else
+          M="fxtype"; FT="--fx-type $T"
+      fi
+      python3 dsp4_driven_setup.py --chip 2 --mode "$M" $FT \
+              --landed "$LANDED" > "$P-fx$T-setup.log" 2>&1
+      echo "    setup: $(tail -1 "$P-fx$T-setup.log")"
+      if [ "$T" = "off" ]; then
+          python3 dsp4_c2regime.py --chip 2 --tag "fx-$T" \
+                  --json "$P-fx$T-regime.json" > "$P-fx$T-regime.log" 2>&1
+      else
+          python3 dsp4_c2regime.py --chip 2 --tag "fx-$T" --require-fx \
+                  --fx-type "$T" --json "$P-fx$T-regime.json" \
+                  > "$P-fx$T-regime.log" 2>&1
+      fi
+      RF=$?
+      grep -h "FX REGIME" "$P-fx$T-regime.log" 2>/dev/null
+      [ "$RF" = "0" ] || echo "    FX REGIME NOT PROVEN (rc=$RF) -- the rung is"\
+          "taken anyway and labelled; see $P-fx$T-regime.log"
+      python3 dsp4_capacity.py --dwell "${DWELL:-45}" --tag "fx-$T" \
+              --json "$P-D-fx$T.json" || RC=$?
+  done
+
   bash /home/app/drive_audio.sh stop >/dev/null 2>&1
   exit $RC
 done

@@ -23,15 +23,39 @@
 # captured samples. A stimulus that cannot separate them is reported as
 # such and another amplitude is tried; it is never read as a pass.
 #
-# THE SHIPPING CONFIGURATION, like conform.sh: plain ./build.sh, which
-# reproduces the bench's baseline byte for byte. That makes the build its
-# own W0 check -- this bar changes no source that reaches an image, so
-# the md5 printed below must equal the one the session started from.
+# THE CONFIGURATION, AND THE ONE SWITCH THAT IS NOT THE SHIPPING ONE
+# (S19-7, fixed S21-5).
+#
+# This used to be plain `./build.sh` -- the shipping configuration, so that
+# the build was its own W0 check. It was also the reason the bar FAILED
+# IDENTICALLY ON EVERY STAGED PAIR for four sessions: with
+# DSP4_BLOCK_KERNELS on, a strip node's per-node `_buf_<nid>` scalar is not
+# in the signal path (the kernels pass blocks through a shared pool), and
+# `_scope_record` reads sixteen consecutive words from whatever address it
+# is given. Three of the four arms were therefore reading a stale word and
+# fifteen of the next variable, and they read zero. S19-7 attributed it;
+# the bar was wrong and the audio was not.
+#
+# So the arm carries `DSP4_SCOPE_BLK_TAP=1`, the BLOCK-AWARE witness S9-5
+# built for exactly this and famverify has used since S10: the host names
+# the node by its `_buf_<nid>` identity and the tap copies that node's
+# whole block out of the pool slot its kernel just wrote. Everything else
+# is the named configuration, and `SHIPPING_CONFIG` selects which one --
+# so this bar can be run against `shipping.config`, `shipping.config.s20`
+# or `shipping.config.s21` and says which it ran.
+#
+# THE CONTROL IS PRINTED, NOT ASSUMED: the run below builds the tap arm and
+# also reports the same configuration with the tap OFF, whose md5 must be
+# the staged pair's. The tap costs ~8 cycles per node per block and
+# DIAG_BUILD_CFG2 bit 4 says it is on, so no capacity number is ever taken
+# off this image.
 #
 #   ./goldnode.sh                 all four nodes
 #   NODES=GATE,COMP ./goldnode.sh just those
 #   N=48 ./goldnode.sh            shorter captures (each word is a paced read)
 #   BUILD=0 ./goldnode.sh         reuse whatever is already staged
+#   SHIPPING_CONFIG=$PWD/shipping.config.s20 ./goldnode.sh
+#   TAP=0 ./goldnode.sh           the pre-S21 arm, for reproducing S19-7
 set -u
 cd "$(dirname "$0")"
 source ./bench_lock.sh; bench_lock_acquire "$0"
@@ -54,12 +78,27 @@ if [ "$STAGE" != "/home/app/dspboot" ]; then
 fi
 ROOT=../../../..
 
+TAP="${TAP:-1}"
+CFGNAME="$(basename "${SHIPPING_CONFIG:-shipping.config}")"
 if [ "${BUILD:-1}" = "1" ]; then
-  ./build.sh > /tmp/goldnode_build.log 2>&1
+  # THE CONTROL FIRST, so the log carries the staged pair's md5 beside the
+  # witness arm's and a reader can see that the only difference is the tap.
+  DSP4_SCOPE_BLK_TAP=0 DSP_BUILD_DIR=/tmp/goldnode_ctl ./build.sh all \
+      > /tmp/goldnode_ctl.log 2>&1
+  if [ "$(grep -ciE '\[Error|Build FAILED' /tmp/goldnode_ctl.log)" -ne 0 ]; then
+    echo "CONTROL BUILD FAILED"; grep -iE '\[Error' /tmp/goldnode_ctl.log | head
+    exit 1; fi
+  echo "  control (tap OFF, $CFGNAME): chip1.ldr \
+$(md5sum /tmp/goldnode_ctl/chip1.ldr | cut -c1-8)  chip2.ldr \
+$(md5sum /tmp/goldnode_ctl/chip2.ldr | cut -c1-8)  <-- must be the staged pair"
+
+  DSP4_SCOPE_BLK_TAP=$TAP ./build.sh > /tmp/goldnode_build.log 2>&1
   if [ "$(grep -ciE '\[Error|Build FAILED' /tmp/goldnode_build.log)" -ne 0 ]; then
     echo "BUILD FAILED"; grep -iE '\[Error' /tmp/goldnode_build.log | head; exit 1; fi
-  echo "  image: chip1.ldr $(md5sum build/chip1.ldr | cut -c1-8) \
-chip2.ldr $(md5sum build/chip2.ldr | cut -c1-8)  (shipping configuration)"
+  echo "  witness (tap=$TAP, $CFGNAME): chip1.ldr \
+$(md5sum build/chip1.ldr | cut -c1-8)  chip2.ldr \
+$(md5sum build/chip2.ldr | cut -c1-8)"
+  grep -c "block-aware scope tap on" /tmp/goldnode_build.log >/dev/null 2>&1
   python3 $ROOT/tools/dsp/map_syms.py build/chip1.map.xml > /tmp/chip1.sym.json
   scp -q build/chip1.ldr build/chip2.ldr /tmp/chip1.sym.json \
       $BENCH:$STAGE/ || exit 3

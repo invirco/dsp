@@ -6,6 +6,331 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE HEADROOM, MEASURED DRIVEN — and chip 1's 380 bytes made 40,572 (2026-09-10, session 21)
+
+Session: the FX engines (the plugin load PW's headroom rule is about) driven
+on `s20_*` at both products with a per-algorithm ladder taken on one boot;
+`DSP4_SHARED_KERNELS` made to coexist with `DSP4_SIMD_DYN`; `goldnode` fixed;
+and the worst-block column of every capacity table in the record corrected.
+Write-up `MW/D32/DSP/dsp4-s21-20260910.md`. Contract `defs-v2026.09.08.4`,
+unchanged. `shipping.config` and `shipping.config.s20` unchanged. **The only
+file under `MW/D32/DSP/SHARC/src/` that changed is the GENERATED
+`chip1/shared_kernels.asm`, which is behind `#if DSP4_SHARED_KERNELS` and is
+in neither shipped image: the default build still reads `302d6142` /
+`3b3a6f8e` and `shipping.config.s20` still reads `32dc1ea1` / `29d00a5e`,
+byte for byte, rebuilt after every change below.**
+
+### S21-1 — the plugin load, measured driven: six reverbs cost 16 points of chip 2, and BOTH products still fit
+
+**Severity: none (measurement). Status: MEASURED, two boots per product,
+zero missed blocks on every row.**
+
+PW's requirement of 2026-08-28 is that 32 strips is the MINIMUM and the fit
+must carry headroom for plugins. The FX engines ARE that plugin load and they
+had never been driven: `--mode load` leaves every `Chan<nn>FxSend` at 0.0, so
+`BUS_FX_01..06` carried silence however loud the inputs were and the six
+engines ran their algorithm over zeros. The record's last figure for them was
+a silence estimate of 6–7 % of chip 2 scaled from block 8.
+
+`--mode loadfx` opens all six sends on all 32 strips and puts the engines on,
+all wet, at a named Type, with the engine parameters written to the patch
+`dsp.csv` declares; `FXTYPES="4 3 0 2"` takes a rung per algorithm **on one
+boot**, so the FX cost is a within-boot difference and not a difference of
+two boots. The regime is proved before every rung: six engines enabled, all
+at the Type asked for, none parked in the unimplemented-Type bypass when the
+Type is an implemented one, all six Freeverb comb delay lines carrying signal
+at eleven probe offsets, all six engines publishing non-zero.
+
+**Chip 2, driven, both boots, against a Type-4 rung where the dispatch parks
+the engines in its explicit bypass:**
+
+| rung | D32 | vs Type 4 | D24 | vs Type 4 |
+|---|--:|--:|--:|--:|
+| Type 4, parked | 71.00 / 70.62 | — | 57.62 / 57.63 | — |
+| Type 2, Doubling | 71.69 / 71.66 | +0.86 | 58.70 / 58.78 | +1.12 |
+| Type 0, Echo | 71.99 / 72.30 | +1.33 | 59.16 / 59.15 | +1.53 |
+| **Type 3, Reverb** | **87.10 / 87.08** | **+16.28** | **73.89 / 74.23** | **+16.44** |
+
+**Six reverbs driven on `s20_*` cost 16.28 points of chip 2 at D32 and 16.44
+at D24, leaving 12.9 % of chip 2 free at D32 and 25.8 % at D24, with zero
+missed blocks on every row of both boots of both products — and the worst FX
+type is Reverb, by about nineteen times.** The six engines are fixed
+instances and do not scale with the channel count, which is why the two
+products pay the same for them. `s21_*` reproduces it: +16.56 at D32 and
++16.74 at D24.
+
+Chip 1 does not move with the algorithm — the engines are chip 2's — but it
+does pay for the SENDS: **+3.0 points at D32 and +2.5 at D24** of crosspoint
+accumulate for six more sends on 32 strips (71.6 → 74.6 % and 53.8 →
+56.3 %). Chip 2 pays nothing for the sends: its Type 0 rung reproduces S20's
+sends-closed row to within the boot spread, because chip 2's FX receive,
+return-fader and meter chain runs whether the bus carries signal or not.
+
+**The reverb's cost does not depend on its settings, and that is measured.**
+The D32 rungs ran at `damp = 0` and `feedback = 0` (every `_fx_*` word but
+the Type and the mix is a `.var` with no initialiser and no host had written
+one); the D24 rungs ran with the graph's declared patch written, and the
+regime line proves it — 6 of 6 damping states non-zero against 0 of 6 at
+D32. The deltas are 16.28 and 16.44. S21-4 says why that had to be so.
+
+### S21-2 — `build.sh` refused SHARED_KERNELS with SIMD_DYN for two sessions, and the reason did not hold
+
+**Severity: MEDIUM (a lever withheld on a wrong argument). Status: FIXED —
+the refusal is replaced by a per-build CHECK.**
+
+From S18 until 2026-09-10 `build.sh` exited 2 on `DSP4_SHARED_KERNELS`
+together with `DSP4_SIMD_DYN`, saying: *"The SIMD pair drivers call
+`_C1_COMP_nn_process_sample` directly; a shared body reached that way would
+run on whatever record base the last strip left in the register."* S20-3
+recorded that as the reason chip 1's 380 free bytes could not be improved,
+and the window note carried it to PW.
+
+**The premise is true and the conclusion does not follow.**
+`_C1_COMP_nn_process_sample` is not the shared body — it is that NODE's own
+stub. `dsp_codegen.py::gen_shared_kernels` emits `_process` and
+`_process_sample` entry points **per node**, and each sets `i7` to that node's
+record base and `i5` to that node's predecessor buffer before jumping to
+`_shk_comp_smp`. A pair driver that calls that label gets the right strip for
+exactly the reason `process_chain` does. The pair KERNELS never call a node
+body at all: `_comp_pair_blk` and `_gate_pair_blk` take both channels' record
+bases in r4–r7 and run their own loop, so the pairing and the sharing act on
+different code.
+
+The refusal is gone from `build.sh` and from `tools/dsp/cfg_words.py`, which
+mirrored it. In its place, `shared_kernel_check.py --entries` runs on every
+`SHARED_KERNELS` build and fails it if any `_shk_<cls>_*` entry point is named
+by anything but one of that class's per-node stubs, if a stub jumps without
+loading its own record base, or if a stub loads more than one base or more
+than one predecessor buffer. On the s21 arm: **64 stubs per class, each
+loading its own record base**, for COMP and for TUBE.
+
+### S21-3 — what actually did not build was SHARED_KERNELS + DYN_LUT, and there were three faults, all latent since S18
+
+**Severity: MEDIUM (three generator/checker defects in one place). Status:
+FIXED, all three, and the arm builds and links.**
+
+Removing S21-2's guard produced three failures in a row, none of them about
+SIMD, all of them in the shared COMP body's LUT design step — the arm S18
+never assembled because S18 built from `shipping.config`, where
+`DSP4_DYN_LUT` is 0.
+
+1. **`Rn = Rn + <const>` is not an instruction on this core.** The LUT design
+   step passes four record ADDRESSES in r0–r3, and `_shk_rewrite` emitted
+   `r0 = i7; r0 = r0 + SHK_COMP_OFF_comp_cgp;`. easm21k: *"Semantic Error in
+   type 2 instruction / Operands don't fit instruction template 'REG EQUAL REG
+   PLUS_OP REG'"*, four times. FIX: load the OFFSET as the immediate and add
+   the base AS A REGISTER, which needs one scratch data register.
+   `SHARED_KERNEL_CLASSES` now names it (`r11`) and the generator CHECKS the
+   choice — a class whose body mentions its scratch register fails codegen
+   rather than clobbering a live value. `r11` is already clobbered at those
+   sites in the inline arm (`_dyn_lut_step` and `_compgain_fx` clobber
+   r0–r12), so the shared arm's write to it changes nothing that was live.
+2. **`shared_kernels.asm` did not inherit `#include "lib/dyn_lut.h"`.** The
+   include is emitted in a node file's HEADER, not in the body the shared pass
+   splits, so the generated file referenced `DYN_LUT_N` and defined it
+   nowhere. A LINK error, and only with DYN_LUT on.
+3. **`shared_kernel_check.py` could not evaluate `DYN_LUT_N`.**
+   `defines_from()` matched only `#define NAME <integer>` and `DYN_LUT_N` is
+   `(((DYN_LUT_OCTHI - DYN_LUT_OCTLO + 1) << DYN_LUT_K) + 1)`. An absent name
+   resolved to 0, so `.var _comp_lut_<nid>[DYN_LUT_N]` scored as a ZERO-word
+   field, every COMP field after the table looked 337 words out of place, and
+   **the check reported the LINKER as wrong about a layout that was correct**.
+   Expressions are evaluated now, in two passes, and an unresolvable length is
+   a hard error rather than a zero.
+
+The lesson is narrow and worth keeping: a switch pair was refused for two
+sessions on a mechanism that was fine, while the pair that was actually broken
+(`SHARED_KERNELS` + `DYN_LUT`) was never named because no arm had ever
+assembled it.
+
+### S21-4 — `Fx<n>On` has no reader, and eleven more FX_ENGINE host cells do not reach the audio
+
+**Severity: MEDIUM (host cells with no effect; not a regression). Status:
+MEASURED and attributed; no fix attempted this session.**
+
+The FX ladder's first draft used `Fx<n>On = 0` as its baseline and the row
+came back identical to the rung before it. `_fx_on_<nid>` is named by exactly
+one thing in the tree — the SPI dispatch table in `chip2/dsp_params.asm`,
+which is what lets the host WRITE it — and by no instruction in any kernel.
+**The FX_ENGINE body has no on/off branch.** A host that switches an engine
+off gets neither silence nor a saved cycle.
+
+Auditing all 34 of the node's per-node words against every instruction in the
+tree (excluding the dispatch table, which is the writer): **sixteen are named
+by no kernel instruction, and eleven of those are host-writable SPI cells.**
+Five cells reach the arithmetic — `Type`, `Mix`, `Damp`, `Feedback`,
+`DelayTime`. `On`, `Decay`, `PreDelay`, `EqLo`, `EqMid`, `EqPresence`, the
+five `FX HPF` coefficient words, `ModRate`, `ModLevel`, `LfoShape` and
+`StereoWidth` land in words nothing reads; `Balance`, `DuckOn` and `DuckSens`
+are dispatched to address 0 and go nowhere at all.
+
+Two consequences, one of them useful:
+
+* The reverb is, today, a Freeverb whose **room size and decay do nothing**,
+  and whose EQ, modulation and width sections do not exist. That is a
+  feature-completeness item for PW, not a defect in anything that was
+  claimed.
+* "The other FX types at their **worst settings**" has no worst setting to
+  find: none of the five live cells is a branch, and the Freeverb body
+  executes the same instructions for every value of every one of them. **The
+  cycle figure for each Type is THE figure**, which is why the reverb rung
+  reproduces to 0.05 points across boots.
+
+### S21-5 — `goldnode` was reading words the block-kernel graph does not write, and the fix is the witness the tree already had
+
+**Severity: MEDIUM (a bar that could not pass). Status: FIXED. Closes
+S18-7 / S19-7.**
+
+S19-7 attributed the failure and stopped there: three of the four arms read
+`_buf_` scalars the block-kernel graph never writes. Stated completely: under
+`DSP4_BLOCK_KERNELS` a strip node's `_buf_<nid>` is not the signal path — a
+block kernel reads its predecessor's block from a shared pool slot through
+`i3` and writes its own through `i4`. FADER_PAN leaves the block's last
+sample in `_buf_<nid>` as a linkage scalar (which is why FDR's OUTPUT arm read
+live); most classes never touch it. `_scope_record` then reads
+`_scope_src + _sample_idx`, i.e. sixteen consecutive words from the named
+address, so an arm pointed at a one-word scalar captures one possibly-stale
+word and fifteen belonging to the next variable in the map. GATE's arm was
+worse: its OUTPUT was `_gate_gain_<nid>`, a word the block kernel writes ONCE
+per block, so the gain trajectory the model computed could not be captured
+there under any stimulus.
+
+FIX, and it introduces no instrument: `goldnode.sh` builds its arm with
+`DSP4_SCOPE_BLK_TAP=1` — the block-aware witness S9-5 built for this and
+famverify has used since S10 — under whatever `SHIPPING_CONFIG` names, and
+prints the tap-OFF control's md5 first so the log carries the staged pair's
+bytes beside the witness arm's. The GATE arm's output moves to
+`_buf_C1_GATE_nn` and `_gate_model` returns the node's output
+`sat32(rns(x * gain))` instead of the gain: the same state machine, the same
+hold-less twin, one multiply further along.
+
+### S21-6 — the worst-block column has been ONE DIAG TICK too big on about one row in six, and the true worst block is half a point above the mean
+
+**Severity: MEDIUM (instrument; it inflated a column PW reads). Status:
+ATTRIBUTED with the mechanism, corrected in the REPORTING, fix in `main.asm`
+named and deliberately not made this session.**
+
+About one capacity row in six carries a worst-block figure between 350 % and
+390 % of budget **with zero missed blocks over 135,000** — which cannot both
+be true. The caveat printed beside it since S13-2 was "the raw latch,
+including the config ladder", and that is not the explanation: several
+affected rows are row A, taken before any parameter is written, and the figure
+is the POST-clear latch over the dwell.
+
+**The mechanism is two instructions wide.** `main.asm` closes each block pass
+with `r2 = tcount;` then `r0 = dm(_diag_ticks);`, and computes
+`cycles = (ticks - t0) * DIAG_TPERIOD + (c0 - tcount)`. If the tick ISR fires
+BETWEEN those two reads, the tick it just counted is included in `ticks` while
+the matching timer wrap is not reflected in the `tcount` already in r2, and
+the pass is credited with one whole `DIAG_TPERIOD` — 983,040 cycles, 300 % of
+a block-16 budget, exactly the size of the anomaly.
+
+**Measured across the record: every row in the S20 and S21 goldens whose
+worst figure exceeds 150 % of budget lands within HALF A POINT of its own
+average once one TPERIOD is subtracted** — eleven rows, both chips, both
+products, three arms, 353.59 % → 53.59 % against an average of 53.78 %,
+386.89 % → 86.90 % against 87.30 %, and so on. So the true worst block on this
+configuration is about half a point above the average, and the graph is
+steadier than the record has been able to say.
+
+**AND THE "CONFIG LADDER TRANSIENT" DOES NOT EXIST.** S13-2 introduced the
+caveat printed beside every capacity row since — that the PRE-clear latch is
+"a one-off burst of parameter conversions and cascade sizings that no
+per-block budget has to cover", which "read 376 % on chip 2 on an arm with
+zero missed blocks". Of the **104** pre-clear latches in this tree's goldens
+that exceed 150 % of budget, **92 sit exactly one TPERIOD above an ordinary
+pass of their own row and the other twelve sit exactly one TPERIOD above an
+ordinary pass of the PREVIOUS row of the ladder** — which is what a pre-clear
+latch holds, and it lands within 0.45 points every time. All 104 are
+accounted for; not one is a configuration transient. **There was never a
+376 % block on this part.** The caveat text is corrected.
+
+`dsp4_capacity.py` reports the raw latch unchanged and the de-ticked value
+beside it, only where the raw figure exceeds 150 % of budget AND the arbiter
+counted zero missed blocks AND `raw − TPERIOD` is still at or above the
+last pass, and the reported figure is `max(raw − TPERIOD, _proc_cyc)` and a
+FLOOR on the true worst block — a pass credited with a spurious TPERIOD
+destroys the latch's information about every pass after it. `cap_table.py`
+marks such a figure `*` and prints the reason.
+Nothing is silently corrected. **The fix is four instructions in `main.asm` at
+two call sites — read `_diag_ticks`, read `tcount`, read `_diag_ticks` again,
+retry the pair if it moved — and it is not made in the session that found it,
+so every figure in `dsp4-s21-20260910.md` comes from the images S20 staged.**
+
+### S21-7 — under `DSP4_SIMD_DYN` the ODD strip of every gate pair has FROZEN per-node state words, and whether the audio is affected is NOT settled
+
+**Severity: MEDIUM, and it bears on a switch PW is being asked to adopt.
+Status: MEASURED and bisected to one switch; the MECHANISM is not attributed
+and the audio question is OPEN. Found while closing S21-5.**
+
+`goldnode`'s GATE arm declines a verdict on `shipping.config.s20` — "the gate
+is NOT closed at rest (target 268435456, range floor 2684355)" — with
+`state at rest: [221910951, 268435447, 268435456]` reproduced **to the digit
+across four builds and several boots**. 221,910,951 is the injected
+amplitude: the envelope is holding the last driven level.
+
+**A four-way bisect puts it on `DSP4_SIMD_DYN` and nothing else.** Each switch
+turned off in turn, everything else in `shipping.config.s20` unchanged, GATE
+arm only:
+
+| arm | gate state at rest | verdict |
+|---|---|---|
+| `s20` minus `DSP4_SIMD_DYN` | `[2, 2684356, 2684355]` — closed | **64 of 64 bit-exact, control fired 2 of 64 (predicted 2)** |
+| `s20` minus `DSP4_GATE_LINTHR` | `[221910951, 268435447, 268435456]` | no verdict |
+| `s20` minus `DSP4_DYN_LUT` | `[221910951, 268435447, 268435456]` | no verdict |
+| `s20` minus `DSP4_STRIP_FUSED` | `[221910951, 268435447, 268435456]` | no verdict |
+
+**Then asked of the PAIR rather than of one strip** (`gatelatch.py`, new): the
+same gate parameters written to strips 1 AND 2, the strip driven by the
+scope's step injection, then twelve seconds of watching both strips' four
+words with nothing driving:
+
+| word | strip 1 (channel A) | strip 2 (channel B) |
+|---|---|---|
+| `_gate_envelope` | 221,910,951 — **unchanged for 12 s** | 0 |
+| `_gate_gain` | 268,435,447 — unchanged | 2,684,356 |
+| `_gate_gain_target_q` | 268,435,456 (unity) — unchanged | 2,684,355 (the range floor: CLOSED) |
+| `_gate_hold_count` | 10 — unchanged | −6,732,352 → −7,554,848, **decrementing every sample** |
+
+Strip 2's hold counter is decremented by the ladder on every sample below
+threshold, so strip 2's gate is demonstrably running. **Strip 1's four words
+never move.**
+
+**At the source level the two pair drivers are not the same shape, and the
+difference was already recognised once.** `_DYNCOMP_nn_mm_process` ends with
+an explicit epilogue — *"the pair writes its gain display to the shared park;
+give it back to each node so dsp4_dyn_witness.py still reads a live per-strip
+compressor gain"* — copying `_cmp_gn[0]` and `_cmp_gn[1]` into
+`_comp_gain_{ca}` and `_comp_gain_{cb}`. **`_DYNGATE_nn_mm_process` has no
+write-back at all**: after `call _gate_pair_blk` it returns.
+
+**WHAT IS NOT ESTABLISHED, and must not be read into this.** Whether the
+AUDIO differs is open. No bar that looks at samples has found a difference:
+famverify's GATE family reads LIVE on the SIMD arm, `famdiff` puts the s21
+report 0 of 20 families from the s20 one and S20 put the s20 report 1 of 20
+from the shipping pair (the compressor's table), `busgold` reproduces the
+2026-08-30 golden BIT FOR BIT with the two declared deviations off, and
+`golden_harness` is 59/59. Against that: **the per-sample gate body reads
+`_gate_gain_<nid>` as its starting state**, and the pair driver calls that
+body for sample 0 of every block, so a stale word there is not obviously
+harmless. Nothing here decides it.
+
+Two consequences worth carrying:
+
+* **`dsp4_c2regime.py --require-driven` counts a FROZEN envelope as a live
+  one.** "64 of 64 dynamics envelopes live on chip 1" is weaker evidence than
+  it reads on a SIMD image. The CAPACITY figures are unaffected — the paired
+  kernel runs both channels whatever it publishes, and `DIAG_BLK_OVERRUN`
+  counted the blocks — but the regime instrument should test that an envelope
+  MOVES, not that it is non-zero.
+* **Half the strips' host-visible gate display is dead** on the configuration
+  proposed for the window, whatever the audio turns out to be.
+
+The next step is one session's work and it is named: put the four state words
+under the same treatment `_comp_gain_` already gets, then re-run goldnode's
+GATE arm on the SIMD image and require 64 of 64 — the bar is now able to
+score it, which is what S21-5 bought.
+
 ## THE PAIR THAT FITS BOTH PRODUCTS UNDER LOAD — one named configuration, every bar on that image (2026-09-10, session 20)
 
 Session: `shipping.config.s20` built as one named configuration

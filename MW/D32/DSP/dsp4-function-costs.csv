@@ -799,3 +799,33 @@ FRONTIER_DLY_L2_READ,16,21427,6.54,"D25 measured: the delay line's L2 READ, from
 FRONTIER_D20_GAIN_FOLD,16,-25,-0.01,"D20's remaining GAIN->FILT fold, PRICED AT ZERO. DSP4_GAIN_NOCHAIN=1 replaces GAIN's chain store with a nop -- the instruction count the fold would reach -- so the difference is the fold's CEILING. 261,718 -> 261,743: -25 cycles, wrong sign, i.e. nothing. The store sits in the shadow of the float GAIN kernel's serial dependency chain. D20 closed as not worth a numeric-spec amendment"
 FRONTIER_C1_MEM,16,,,"cost of both levers on chip 1: +164 code words (256,402 -> 256,566, 97.8% -> 97.9%) and 1,379 DM words of new objects (rtg_fabric.doj: _rtg_src 33xBLOCK, _xpc 25x32, _xp_lo/_xp_hi, the dirty flag), read per-object off the link map. dsp_memreport's pool total moves +5,520 because the primary DM block is full and the new objects land in the overflow region with its placement padding; 1,379 is the honest figure. Chip-2 image BYTE-IDENTICAL on every arm"
 FRONTIER_C2_UNMOVED,16,272421,83.14,"chip 2, full market config, whole chain, session 27 -- against session 26's 272,505 (83.16%), 0.03% apart. UNMOVED, as a byte-identical chip2.ldr on every arm requires. The witness also reads chip 2's inter-chip RX slots carrying signal (MAIN_L/AUX_01/GRP_01 = 0x08000000), which is the incidental confirmation that the bus-major fabric is delivering to the buses rather than leaving them at zero"
+
+# ---- session 21, 2026-09-10: THE PLUGIN LOAD, DRIVEN, AND THE SHARED-KERNEL
+# BYTES. Every row DRIVEN -- the `driveall` LOGIC bitstream broadcasting the
+# CM4's playback onto every DSPA input lane, which the DSP executes not one
+# instruction for -- with every dynamics node engaged at a -60 dB threshold,
+# every bus assign and send open INCLUDING the six FX sends, and the FX
+# regime PROVED on the part before each rung (six engines on, all at the
+# Type asked for, none parked when the Type is implemented, all six Freeverb
+# comb delay lines carrying signal). Every rung of a ladder is taken on ONE
+# boot, so the difference between two Types is not a difference of two boots.
+# Images: shipping.config.s20 (`32dc1ea1`/`29d00a5e`) for the FX rows,
+# shipping.config.s21 (`81f799f9`/`11366344`) for the shared-kernel rows.
+# The FX ENGINES ARE FIXED INSTANCES and do not scale with the channel count,
+# which is why D24 and D32 pay the same 16 points for them.
+# Write-up: dsp4-s21-20260910.md.
+function,block,cycles_per_block,pct_of_budget,notes
+FX_C2_D32_TYPE4_BYPASS,16,232644,71.00,"chip 2, D32, six FX engines at Type 4 -- an unimplemented Type for the reverb class the graph declares, so the dispatch parks it in the explicit bypass and passes the input through dry. THE LADDER'S BASELINE, and it is Type 4 rather than `Fx<n>On = 0` because `_fx_on` has no reader (S21-4). Boot 2 read 70.62"
+FX_C2_D32_TYPE3_REVERB,16,285400,87.10,"chip 2, D32, SIX REVERBS (Type 3, Freeverb: 8 comb-LPF + 4 series allpass), fed and all wet. +16.28 POINTS over the bypass baseline, 53,000 cycles/block, 8,800 cycles per engine per block, 550 cycles per engine per sample. Boot 2 read 87.08 -- 0.02 apart. THE WORST FX TYPE THE PRODUCT HAS, by about nineteen times"
+FX_C2_D32_TYPE0_ECHO,16,235893,71.99,"chip 2, D32, six Echoes (Type 0, the landed .var default): +0.99 over the bypass. Boot 2 read 72.30. This is the regime EVERY driven row in the record before S21 was taken in"
+FX_C2_D32_TYPE2_DOUBLING,16,234909,71.69,"chip 2, D32, six Doublings (Type 2, fixed 15 ms thickening): +0.69 over the bypass. Boot 2 read 71.66"
+FX_C2_D24_TYPE4_BYPASS,16,188810,57.62,"chip 2, D24, the same baseline. Boot 2 read 57.63"
+FX_C2_D24_TYPE3_REVERB,16,242109,73.89,"chip 2, D24, six reverbs: +16.44 over the bypass, against +16.28 at D32 -- the six engines are fixed instances, so the two products pay the same for them. Boot 2 read 74.23. The D24 rungs were taken with the engine PARAMETERS written (damp 0.5, feedback 50, delay 300 ms, the patch dsp.csv declares) and the D32 rungs without them; the deltas agree to 0.16 points, which is the measurement behind S21-4's point that no FX cell is a branch"
+FX_C2_D24_TYPE0_ECHO,16,193888,59.16,"chip 2, D24, six Echoes: +1.53 over the bypass. Boot 2 read 59.15"
+FX_C2_D24_TYPE2_DOUBLING,16,192363,58.70,"chip 2, D24, six Doublings: +1.12 over the bypass. Boot 2 read 58.78"
+FX_C1_SENDS_D32,16,,3.0,"chip 1, D32: what OPENING the six FX sends on all 32 strips costs. S20's `load` driven row is 71.6% with the sends closed; every rung of this session's ladder reads 74.60-74.90% with them open. Crosspoint accumulate, not the engines -- chip 1 carries no FX engine and its figure does not move with the Type (0.25 points across four algorithms, smaller than its own boot spread)"
+FX_C1_SENDS_D24,16,,2.5,"chip 1, D24, the same: 53.8% sends closed (S20) against 56.25-56.91% open"
+FX_ON_CELL_INERT,16,0,0.00,"`Fx<n>On = 0` written to all six engines at Type 3 costs 86.93% and 87.46% on two boots against 87.10% and 87.08% with it at 1 -- i.e. NOTHING, because `_fx_on_<nid>` is named by the SPI dispatch table and by no instruction in any kernel (S21-4). The FX_ENGINE body has no on/off branch. Eleven more host-writable FX cells reach no arithmetic and three are dispatched to address 0; five work (Type, Mix, Damp, Feedback, DelayTime) and none of them is a branch"
+SHK_C1_D32_COST,16,,0.62,"chip 1, D32, DSP4_SHARED_KERNELS=3 (COMP + TUBE) driven with six reverbs: 75.20% against s20's 74.57/74.59%. Against S18's +0.69 measured at silence. Chip 2 pays nothing (87.08% against 87.08%), which is what a byte-identical chip-2 map requires"
+SHK_C1_D24_COST,16,,-0.14,"chip 1, D24, the same arm: 56.49% against s20's 56.81/56.44% -- inside the 0.34-point boot spread s20 showed at that product, i.e. nothing measurable"
+SHK_C1_POOL_FREED,16,,,"THE POINT OF THE SWITCH, and it is bytes and not cycles: chip 1's code pool 261,764 -> 221,572 of 262,144, so 380 free bytes become 40,572, and the 1,692 bytes s20 runs out of Block 1 -- the contended DM/DMA block -- come back into Blocks 3+2, leaving NO code fetched against the DMA buffers. DM drops 1,694 bytes. node COMP 35,264 -> 2,304 and node TUBE 12,480 -> 2,304 (32 stubs of 72 bytes each), plus 1,374 bytes of shared bodies; net -41,762. dsp_memreport reports all pools below 90% for the first time on any arm that fits both products"

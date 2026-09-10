@@ -25,6 +25,20 @@ LABEL = {'sil-default': 'silent, default cfg',
          'sil-load': 'silent, loaded cfg',
          'driven': 'DRIVEN, loaded cfg'}
 
+# THE FX LADDER'S RUNGS (S21). Not extra regimes -- they are all the DRIVEN
+# regime with one cell rewritten -- so they get a table of their own, keyed
+# by the tag `capacity_run.sh` gives each rung. Only the rungs that were
+# actually taken appear, in this order.
+FX_RUNGS = ['fx-off', 'fx-4', 'fx-3', 'fx-0', 'fx-2', 'fx-1', 'fx-5', 'fx-6']
+FX_LABEL = {'fx-off': 'Fx On = 0 (INERT: no reader)',
+            'fx-4': 'Type 4 — parked in the bypass (the baseline)',
+            'fx-3': 'Type 3 — Reverb (Freeverb)',
+            'fx-0': 'Type 0 — Echo',
+            'fx-2': 'Type 2 — Doubling',
+            'fx-1': 'Type 1 — PingPong (not implemented: bypass)',
+            'fx-5': 'Type 5 — Flanger (not implemented: bypass)',
+            'fx-6': 'Type 6 — Phaser (not implemented: bypass)'}
+
 
 def rows(paths):
     for p in paths:
@@ -32,6 +46,23 @@ def rows(paths):
             d = json.load(open(p))
         except (OSError, ValueError):
             continue
+        # S21-6, for rows taken BEFORE dsp4_capacity.py learned to say it.
+        # The three conditions are the tool's, verbatim: over 150 % of
+        # budget, zero missed blocks, and still at or above the average once
+        # one TPERIOD comes off. A row that fails any of them keeps its raw
+        # figure and no asterisk.
+        for c in d.get('chips', []):
+            if c.get('proc_cyc_max_detick_pct') is not None:
+                continue
+            tp, bud = c.get('tperiod'), c.get('budget')
+            mx, av, ov = (c.get('proc_cyc_max'), c.get('proc_cyc'),
+                          c.get('overruns'))
+            if not (tp and bud and mx and av) or ov != 0:
+                continue
+            if mx > 1.5 * bud and abs((mx - tp) - av) <= 0.03 * bud:
+                dt = max(mx - tp, av)
+                c['proc_cyc_max_detick'] = dt
+                c['proc_cyc_max_detick_pct'] = round(100.0 * dt / bud, 2)
         base = os.path.basename(p)
         # cap-<arm>-<product>-r<n>-<letter>-<regime>.json
         parts = base[:-5].split('-')
@@ -45,6 +76,10 @@ def rows(paths):
                 'chip': c.get('chip'),
                 'avg': c.get('proc_cyc_pct'),
                 'worst': c.get('proc_cyc_max_pct'),
+                # S21-6: the de-ticked worst block where the row qualifies.
+                # Computed by dsp4_capacity.py on the part, not here, and
+                # only where the arbiter counted zero missed blocks.
+                'worst_dt': c.get('proc_cyc_max_detick_pct'),
                 'overruns': c.get('overruns'),
                 'overrun_pct': c.get('overrun_pct'),
                 'cclk': c.get('cclk_measured_hz'),
@@ -105,7 +140,10 @@ def main():
                     rs = by.get((prod, arm, chip, g), [])
                     cells.append(fmt([r['avg'] for r in rs]))
                 drv = by.get((prod, arm, chip, 'driven'), [])
-                worst = fmt([r['worst'] for r in drv])
+                worst = fmt([(r['worst_dt'] if r['worst_dt'] is not None
+                              else r['worst']) for r in drv])
+                if any(r['worst_dt'] is not None for r in drv):
+                    worst += ' *'
                 ov = ' / '.join(
                     ('%s (%s%%)' % (r['overruns'], r['overrun_pct']))
                     for r in drv) or '—'
@@ -114,6 +152,51 @@ def main():
                 print('| %s | %d | %s | %s |'
                       % (arm, chip, ' | '.join(cells),
                          ' | '.join([worst, ov, clk])))
+
+    # ---- the FX ladder, one table, differences taken against Type 4 ----
+    ladder = [r for r in got if r['regime'] in FX_RUNGS]
+    if ladder:
+        for prod in sorted(set(r['product'] for r in ladder)):
+            arms = sorted(set(r['arm'] for r in ladder
+                              if r['product'] == prod), key=armkey)
+            print('\n### %s — the FX ladder (all rungs DRIVEN, same boot, '
+                  'same measured clock; only the six engines\' cells move)'
+                  % prod)
+            print('| arm | chip | rung | avg % | worst % | overruns | '
+                  'delta vs Type 4 |')
+            print('|---|---|---|--:|--:|---|--:|')
+            for arm in arms:
+                for chip in (1, 2):
+                    base = by.get((prod, arm, chip, 'fx-4'), [])
+                    basev = [r['avg'] for r in base if r['avg'] is not None]
+                    basev = sum(basev) / len(basev) if basev else None
+                    for g in FX_RUNGS:
+                        rs = by.get((prod, arm, chip, g), [])
+                        if not rs:
+                            continue
+                        av = [r['avg'] for r in rs if r['avg'] is not None]
+                        wdt = [(r['worst_dt'] if r['worst_dt'] is not None
+                                else r['worst']) for r in rs]
+                        d = ('%+.2f' % (sum(av) / len(av) - basev)
+                             if av and basev is not None else '—')
+                        ov = ' / '.join(
+                            ('%s (%s%%)' % (r['overruns'], r['overrun_pct']))
+                            for r in rs) or '—'
+                        print('| %s | %d | %s | %s | %s%s | %s | %s |'
+                              % (arm, chip, FX_LABEL.get(g, g),
+                                 fmt([r['avg'] for r in rs]), fmt(wdt),
+                                 (' *' if any(r['worst_dt'] is not None
+                                              for r in rs) else ''), ov, d))
+
+    if any(r['worst_dt'] is not None for r in got):
+        print('\n`*` on a worst-block figure: the part\'s own latch was ONE '
+              'DIAG TICK (TPERIOD, 983,040 cycles) too big on that row and '
+              'the figure shown has it subtracted — see S21-6. Only rows '
+              'where the arbiter counted ZERO missed blocks and the '
+              'corrected value lands within 3 points of that row\'s last '
+              'pass qualify, and the figure is a FLOOR on the true worst '
+              'block (a corrupted pass destroys the latch\'s information '
+              'about the passes after it). The raw latch is in the JSON.')
 
     bad = [r for r in got if r['error']]
     if bad:

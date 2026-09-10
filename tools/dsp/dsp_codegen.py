@@ -12951,9 +12951,29 @@ FIXED_GENERATORS = {
 # separates the entry cost a stub always pays from the per-access cost only
 # some classes pay -- which is what turns §4's table for the other classes
 # from an extrapolation into an interpolation between two measurements.
+# `scratch_reg` is the DATA register the record-base arithmetic borrows, and
+# it exists because THIS PART HAS NO ALU IMMEDIATE ADD (S21-3). The rewrite's
+# job at a site like `r0 = _comp_cgp_C1_COMP_01;` -- the LUT design step
+# passes four record addresses in r0-r3 -- is to produce base + offset in a
+# data register, and `Rn = Rx + <const>` is not an instruction on this core:
+# easm21k answers "Semantic Error in type 2 instruction / Operands don't fit
+# instruction template 'REG EQUAL REG PLUS_OP REG'". So the offset is loaded
+# as an immediate and the base is added AS A REGISTER, which needs one
+# register that the class's body does not otherwise use. `_shk_rewrite`
+# CHECKS that: a class whose body mentions its scratch register fails the
+# generator rather than quietly clobbering a live value. r11 is free in both
+# bodies today, and it is already clobbered at these very sites in the INLINE
+# arm -- `_dyn_lut_step` and `_compgain_fx` under it clobber r0-r12 -- so the
+# shared arm's write to it changes nothing that was live.
+#
+# WHY THIS WAS NOT FOUND IN S18: S18's shared-kernel arm was built from
+# `shipping.config`, where DSP4_DYN_LUT is 0, so the whole design step --
+# every one of the `r0 = _field_<nid>;` sites -- was inside a preprocessor
+# arm that was never assembled. The combination that actually failed to
+# build was SHARED_KERNELS + DYN_LUT, not SHARED_KERNELS + SIMD_DYN.
 SHARED_KERNEL_CLASSES = {
-    'COMP': dict(bit=1, base_reg='i7', prev_reg='i5'),
-    'TUBE': dict(bit=2, base_reg='i7', prev_reg='i5'),
+    'COMP': dict(bit=1, base_reg='i7', prev_reg='i5', scratch_reg='r11'),
+    'TUBE': dict(bit=2, base_reg='i7', prev_reg='i5', scratch_reg='r11'),
 }
 
 
@@ -13045,7 +13065,8 @@ def _shk_field(sym, nid):
     return sym[1:-len(nid) - 1]
 
 
-def _shk_rewrite(code, nid, prev_buf, fields, cls, base_reg, prev_reg):
+def _shk_rewrite(code, nid, prev_buf, fields, cls, base_reg, prev_reg,
+                 scratch_reg):
     """Turn one node's emitted code into the shared body.
 
     Every rewrite is checked: anything left naming this node, or naming a
@@ -13082,10 +13103,16 @@ def _shk_rewrite(code, nid, prev_buf, fields, cls, base_reg, prev_reg):
                 % (m.group(1), base_reg, m.group(1), off(m.group(2))))
     code, n_ireg = re.subn(r'\b(i[0-7])\s*=\s*%s\s*;' % sym, _ireg, code)
 
-    # 4. a base loaded into a data register (the LUT design step passes four)
+    # 4. a base loaded into a data register (the LUT design step passes four).
+    #    THE OFFSET IS THE IMMEDIATE AND THE BASE IS THE REGISTER, because
+    #    `Rn = Rx + <const>` is not an instruction on this core -- see the
+    #    note at SHARED_KERNEL_CLASSES. `scratch_reg` holds the base; the
+    #    check below requires the body not to use it for anything else.
     def _rreg(m):
-        return ('%s = %s;\n            %s = %s + %s;'
-                % (m.group(1), base_reg, m.group(1), m.group(1), off(m.group(2))))
+        return ('%s = %s;\n            %s = %s;\n            %s = %s + %s;'
+                % (scratch_reg, base_reg,
+                   m.group(1), off(m.group(2)),
+                   m.group(1), m.group(1), scratch_reg))
     code, n_rreg = re.subn(r'\b(r[0-9]|r1[0-5])\s*=\s*%s\s*;' % sym, _rreg, code)
 
     # 5. labels and entry points
@@ -13113,6 +13140,26 @@ def _shk_rewrite(code, nid, prev_buf, fields, cls, base_reg, prev_reg):
             raise ValueError('shared kernels (%s): the body assigns %s, which '
                              'is the register the stub passes it a strip in'
                              % (cls, reg))
+    # THE SCRATCH REGISTER, CHECKED RATHER THAN CHOSEN (S21-3). It is only
+    # written by the sequences emitted just above, so anything ELSE naming it
+    # -- in either register file, since rN and fN are one physical register --
+    # means the record arithmetic would clobber a live value.
+    if n_rreg:
+        _spare = re.compile(r'\b[rf]%s\b' % scratch_reg[1:])
+        _mine = re.compile(r'^\s*%s\s*=\s*%s\s*;\s*$' % (scratch_reg,
+                                                            base_reg))
+        for _ln in bare.splitlines():
+            if not _spare.search(_ln) or _mine.match(_ln):
+                continue
+            if re.match(r'^\s*(r[0-9]|r1[0-5])\s*=\s*\1\s*\+\s*%s\s*;\s*$'
+                        % scratch_reg, _ln):
+                continue
+            raise ValueError(
+                'shared kernels (%s): the body uses %s at %r, and that is the '
+                'register the record-base arithmetic borrows (no ALU immediate '
+                'add on this core -- see SHARED_KERNEL_CLASSES). Pick a '
+                'scratch register this class does not touch.'
+                % (cls, scratch_reg, _ln.strip()[:70]))
     return code, dict(dm=n_dm, ireg=n_ireg, rreg=n_rreg, prev=n_prev)
 
 
@@ -13213,7 +13260,8 @@ def gen_shared_kernels(chip_label, chip_nodes, bodies, headers,
         code = _SHK_PROLOGUE.sub('', code, count=1)
 
         shared_code, counts = _shk_rewrite(code, canon, prev_buf, fields,
-                                           cls, base_reg, prev_reg)
+                                           cls, base_reg, prev_reg,
+                                           spec['scratch_reg'])
 
         shared_out.append((cls, bit, defines, externs, shared_code, counts,
                            len(nids)))
@@ -13280,7 +13328,16 @@ def gen_shared_kernels(chip_label, chip_nodes, bodies, headers,
         rows.append((cls, len(nids), counts))
 
     # ---- the one file that now holds the class's code ---------------------
-    incs = re.findall(r'^[ \t]*#include[ \t]+"[^"]+"', bodies[canon], re.M)
+    # THE INCLUDES COME FROM THE HEADER TOO (S21-3). A node file's
+    # `#include "lib/dyn_lut.h"` is emitted in its HEADER, not in the body
+    # the shared pass splits, so reading only the body produced a
+    # shared_kernels.asm that referenced DYN_LUT_N and did not define it --
+    # a LINK error, not an assembly one, and only with DSP4_DYN_LUT=1.
+    incs = re.findall(r'^[ \t]*#include[ \t]+"[^"]+"',
+                      headers.get(canon, '') + '\n' + bodies[canon], re.M)
+    _seen_inc = set()
+    incs = [i for i in incs
+            if not (i.strip() in _seen_inc or _seen_inc.add(i.strip()))]
     txt = ['/* %s — SHARED PER-STRIP KERNELS (DSP4_SHARED_KERNELS) */'
            % chip_label.upper(),
            '/* AUTO-GENERATED by tools/dsp/dsp_codegen.py — do not edit '
@@ -15211,6 +15268,27 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                 if f"dm(_buf_{_leg_}_{_nid_}) =" in body:
                     blk_extra.setdefault(_nid_, []).append(
                         f'_buf_{_leg_}_{_nid_}')
+            # THE DYNAMICS GAIN DISPLAYS, same shape, same reason (S21-5).
+            # `_gate_gain_<nid>` and `_comp_gain_<nid>` are ONE-WORD
+            # variables that the block kernel writes once per block, at the
+            # end, with the value after the block's LAST sample. They are
+            # the only place the gate's hold/range/smoother LADDER is
+            # visible: the node's own output is `x * gain`, which is zero
+            # wherever the stimulus is, so an impulse cannot see the gate
+            # close and a step cannot see the hold matter. goldnode was
+            # pointed at `_gate_gain_` for exactly that reason and could not
+            # capture it, because `_scope_record` reads
+            # `_scope_src + _sample_idx` -- sixteen words from a one-word
+            # variable (S19-7).
+            #
+            # `_scope_tap1` is the witness that fits: one REAL word per
+            # block, taken where the chain has just called the node, so the
+            # capture is the ladder sampled at the block rate and the bar is
+            # TOLD the rate rather than assuming fs.
+            for _dyn_ in ('gate_gain', 'comp_gain', 'lim_gain'):
+                if f"dm(_{_dyn_}_{_nid_}) =" in body:
+                    blk_extra.setdefault(_nid_, []).append(
+                        f'_{_dyn_}_{_nid_}')
             blk_out[_nid_] = _blk_out_of(
                 _nid_, body, _nid_ in odd_pool_ids)
             # A node whose RX SLOT survives only as a ONE-WORD variable while

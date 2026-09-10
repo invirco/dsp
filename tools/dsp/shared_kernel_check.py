@@ -16,10 +16,35 @@ byte count and does not look wrong in a listing -- it quietly reads strip
 every node of every shared class, and the build fails if it ever stops
 holding.
 
-    python3 shared_kernel_check.py <chipN.map.xml> <src/chipN>
-    python3 shared_kernel_check.py --all <build-dir> <src-dir>
+THE SECOND ASSUMPTION, ADDED S21: THAT NOTHING ENTERS THE SHARED BODY
+EXCEPT THROUGH A STUB. `build.sh` refused DSP4_SHARED_KERNELS together
+with DSP4_SIMD_DYN from S18 until 2026-09-10 on the grounds that "the
+SIMD pair drivers call _C1_COMP_nn_process_sample directly, and a shared
+body reached that way would run on whatever record base the last strip
+left in the register". The premise is true and the conclusion is not:
+`_C1_COMP_nn_process_sample` is that NODE's stub, which loads i7 and i5
+before jumping to `_shk_comp_smp`, so a caller that names it gets the
+right strip whether it is the chain or a pair driver.
 
-Exit 0 = every record is contiguous, in declaration order, at one stride.
+That was an argument, and an argument is exactly the kind of thing this
+file exists to replace. `--entries` reads the whole chip source tree and
+requires:
+
+  * every reference to `_shk_<cls>_blk` / `_shk_<cls>_smp` outside
+    `shared_kernels.asm` to be one of that class's own per-node stubs;
+  * every stub to set BOTH registers the class's body needs -- the record
+    base and, where the canonical body reads a predecessor's scalar
+    buffer, the predecessor pointer -- before its jump;
+  * each stub's base to be its OWN node's record base, and its
+    predecessor pointer to be a `_buf_` of some other node (never its
+    own), which is what "the pair layout" means for a class whose members
+    are reached two at a time.
+
+    python3 shared_kernel_check.py <chipN.map.xml> <src/chipN>
+    python3 shared_kernel_check.py <chipN.map.xml> <src/chipN> --entries
+
+Exit 0 = every record is contiguous, in declaration order, at one stride,
+and every entry into a shared body carries a base.
 """
 import argparse
 import os
@@ -86,24 +111,72 @@ def _truth(kind, cond, d):
 
 
 def _len(txt, d):
+    """A field's length in words. An UNKNOWN name is a hard error, not a
+    zero: a zero-length field silently shifts every field after it and the
+    check then blames the linker (S21-3)."""
     if not txt:
         return 1
+    unknown = sorted({n for n in re.findall(r'\b[A-Za-z_][A-Za-z0-9_]*\b', txt)
+                      if n not in d})
+    if unknown:
+        raise SystemExit(
+            'shared_kernel_check: `.var ...[%s]` uses %s, which is in no '
+            'header this reader was given and on no -D flag. A length it '
+            'cannot resolve would shift every field after it, so it refuses '
+            'rather than assume one.' % (txt, ', '.join(unknown)))
     expr = re.sub(r'\b([A-Za-z_][A-Za-z0-9_]*)\b',
-                  lambda m: str(d.get(m.group(1), 0)), txt)
+                  lambda m: str(d[m.group(1)]), txt)
     return int(eval(expr, {'__builtins__': {}}, {}))
 
 
+_ARITH_OK = re.compile(r'^[\s0-9A-Za-z_()+\-*/<>%]+$')
+
+
 def defines_from(hdr):
-    """DSP4_* / DYN_LUT_N as the generated dsp_block.h and dyn_lut.h say."""
+    """DSP4_* / DYN_LUT_N as the generated dsp_block.h and dyn_lut.h say.
+
+    EXPRESSIONS ARE EVALUATED, NOT SKIPPED (S21-3). This used to match only
+    `#define NAME <integer>`, so `DYN_LUT_N`, whose definition is
+    `(((DYN_LUT_OCTHI - DYN_LUT_OCTLO + 1) << DYN_LUT_K) + 1)`, was absent
+    from the table -- and an absent name resolves to 0 in `_len()`, which
+    made `.var _comp_lut_<nid>[DYN_LUT_N]` a ZERO-WORD field. Every COMP
+    field after the table then appeared to be 337 words further along than
+    the kernel addresses it, and the check reported the LINKER as wrong
+    about a layout that was in fact correct. With DSP4_DYN_LUT=0 -- the only
+    configuration S18 ever built shared kernels in -- the field does not
+    exist and nothing showed.
+
+    Two passes, because a header may use a name before this reader has seen
+    it; anything still unresolved after the second pass is left out and
+    `_len()` will say so by failing on it rather than assuming a length.
+    """
     d = {}
+    pending = []
     for path in hdr:
         if not os.path.exists(path):
             continue
         for ln in open(path, encoding='utf-8'):
             m = re.match(r'^[ \t]*#define[ \t]+([A-Za-z_][A-Za-z0-9_]*)[ \t]+'
-                         r'\(?(-?\d+)\)?[ \t]*(?:/\*.*)?$', ln)
-            if m:
-                d.setdefault(m.group(1), int(m.group(2)))
+                         r'([^\\]*?)[ \t]*(?:/\*.*)?$', ln)
+            if not m:
+                continue
+            name, body = m.group(1), m.group(2).strip()
+            if not body or not _ARITH_OK.match(body):
+                continue
+            pending.append((name, body))
+    for _ in range(2):
+        for name, body in pending:
+            if name in d:
+                continue
+            expr = re.sub(r'\b([A-Za-z_][A-Za-z0-9_]*)\b',
+                          lambda mm: str(d[mm.group(1)])
+                          if mm.group(1) in d else mm.group(1), body)
+            if re.search(r'[A-Za-z_]', expr):
+                continue
+            try:
+                d[name] = int(eval(expr, {'__builtins__': {}}, {}))
+            except Exception:
+                continue
     return d
 
 
@@ -175,6 +248,154 @@ def check(mapxml, srcdir, extra=None):
     return 1 if bad else 0
 
 
+# ---------------------------------------------------------------------------
+# THE ENTRY POINTS (S21)
+# ---------------------------------------------------------------------------
+
+_SHK_REF = re.compile(r'\b_shk_([a-z0-9_]+)_(blk|smp)\b')
+_LABEL = re.compile(r'^\s*_([A-Za-z0-9_]+):\s*$')
+_IREG_SET = re.compile(r'^\s*(i[0-7])\s*=\s*(_[A-Za-z0-9_]+)\s*;')
+_JUMP_SHK = re.compile(r'^\s*jump\s+_shk_([a-z0-9_]+)_(blk|smp)\s*;')
+
+
+def entries(srcdir, extra=None):
+    """Every path into a shared body starts at a stub that loads a base.
+
+    Reads the arm the build took (the same `#if` walk `declared()` uses is
+    not needed here: the stub arm and the inline arm cannot both name
+    `_shk_*`, because the inline arm is the code the stub replaced).
+    """
+    d = defines_from([os.path.join(srcdir, '..', 'dsp_block.h'),
+                      os.path.join(srcdir, '..', 'lib', 'dyn_lut.h')])
+    d.update(extra or {})
+    mask = d.get('DSP4_SHARED_KERNELS', 0)
+    if not mask:
+        print('shared_kernel_check --entries: DSP4_SHARED_KERNELS=0, '
+              'no shared bodies to enter')
+        return 0
+
+    nodes_dir = os.path.join(srcdir, 'nodes')
+    bad = 0
+    # class -> the stub labels that are allowed to name it
+    stubs = {}
+    for fn_ in sorted(os.listdir(nodes_dir)):
+        if not fn_.endswith('.asm'):
+            continue
+        nid = fn_[:-4]
+        path = os.path.join(nodes_dir, fn_)
+        txt = open(path, encoding='utf-8').read()
+        m = STUB.search(txt)
+        if not m or not (int(m.group(1)) & mask):
+            continue
+        cls = re.match(r'^C\d_([A-Z0-9_]+)_\d+$', nid)
+        cls = cls.group(1).lower() if cls else nid.lower()
+        # walk the stub arm: from the `#if (DSP4_SHARED_KERNELS & n)` to the
+        # `#else`, collecting label -> (registers set, jump target)
+        arm = txt[m.end():]
+        arm = arm.split('\n#else', 1)[0]
+        arm = re.sub(r'/\*.*?\*/',
+                     lambda mm: '\n' * mm.group(0).count('\n'), arm, flags=re.S)
+        cur, regs, seen = None, {}, 0
+        for ln in arm.split('\n'):
+            lm = _LABEL.match(ln)
+            if lm:
+                cur, regs = lm.group(1), {}
+                continue
+            rm = _IREG_SET.match(ln)
+            if rm:
+                regs[rm.group(1)] = rm.group(2)
+                continue
+            jm = _JUMP_SHK.match(ln)
+            if not jm:
+                continue
+            seen += 1
+            tgt = '_shk_%s_%s' % (jm.group(1), jm.group(2))
+            if cur is None:
+                print('FAIL %s: a jump to %s with no label above it'
+                      % (nid, tgt))
+                bad += 1
+                continue
+            if jm.group(1) != cls:
+                print('FAIL %s: stub _%s jumps to %s, which is class %r and '
+                      'not %r' % (nid, cur, tgt, jm.group(1), cls))
+                bad += 1
+            # the record base: this node's own first field
+            base = [v for v in regs.values() if v.endswith('_' + nid)]
+            prev = [v for v in regs.values()
+                    if v.startswith('_buf_') and not v.endswith('_' + nid)]
+            if not base:
+                print('FAIL %s: stub _%s jumps to %s without loading a '
+                      'register with one of its OWN fields (loaded: %s)'
+                      % (nid, cur, tgt, sorted(regs.items()) or 'nothing'))
+                bad += 1
+            if len(base) > 1:
+                print('FAIL %s: stub _%s loads %d of its own fields into DAG '
+                      'registers (%s); the body takes exactly one base'
+                      % (nid, cur, len(base), sorted(base)))
+                bad += 1
+            if len(prev) > 1:
+                print('FAIL %s: stub _%s loads %d predecessor buffers (%s); '
+                      'the body reads exactly one' % (nid, cur, len(prev),
+                                                      sorted(prev)))
+                bad += 1
+            stubs.setdefault(cls, set()).add('_%s' % cur)
+        if not seen:
+            print('FAIL %s: carries a `#if (DSP4_SHARED_KERNELS & %s)` arm '
+                  'that never jumps to a shared body' % (nid, m.group(1)))
+            bad += 1
+
+    if not stubs:
+        # No node of a shared class on this chip -- chip 2 has no strip
+        # COMP/TUBE at all. Same answer `check()` gives for the same tree.
+        print('shared_kernel_check --entries: no shared classes in %s'
+              % nodes_dir)
+        return 1 if bad else 0
+
+    # every OTHER reference to a shared body, anywhere in this chip's tree
+    allowed = set()
+    for v in stubs.values():
+        allowed |= v
+    n_ref = 0
+    for root, _dirs, files in os.walk(srcdir):
+        for fn_ in sorted(files):
+            if not fn_.endswith('.asm'):
+                continue
+            if fn_ == 'shared_kernels.asm':
+                continue
+            path = os.path.join(root, fn_)
+            nid = fn_[:-4]
+            # COMMENTS OUT FIRST, AND ACROSS LINES. A stub's own header
+            # comment names the body it jumps to, so a per-line
+            # `split('/*')` leaves every continuation line of it looking
+            # like an instruction.
+            txt2 = re.sub(r'/\*.*?\*/', lambda mm: '\n' * mm.group(0).count('\n'),
+                          open(path, encoding='utf-8').read(), flags=re.S)
+            cur = None
+            for ln in txt2.split('\n'):
+                lm = _LABEL.match(ln)
+                if lm:
+                    cur = '_' + lm.group(1)
+                for m2 in _SHK_REF.finditer(ln):
+                    n_ref += 1
+                    if ln.lstrip().startswith('.extern'):
+                        continue
+                    if cur in allowed:
+                        continue
+                    print('FAIL %s: %s is named at %r, which is not one of '
+                          'class %s\'s per-node stubs'
+                          % (nid, m2.group(0), ln.strip()[:70], m2.group(1)))
+                    bad += 1
+    for cls in sorted(stubs):
+        print('entries  %-6s %3d stubs, each loading its own record base; '
+              '%s' % (cls, len(stubs[cls]), 'OK' if not bad else 'FAIL'))
+    if bad:
+        print('shared_kernel_check --entries: %d entry point(s) into a shared '
+              'body do not carry a strip. Under DSP4_SIMD_DYN that is the '
+              'defect build.sh refused the combination for; under any '
+              'configuration it is the wrong strip\'s state.' % bad)
+    return 1 if bad else 0
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument('mapxml')
@@ -182,6 +403,11 @@ def main(argv=None):
     ap.add_argument('-D', dest='defines', action='append', default=[],
                     metavar='NAME=VALUE',
                     help='a build flag, as the assembler was given it')
+    ap.add_argument('--entries', action='store_true',
+                    help='also check that every path into a shared body '
+                         'starts at a per-node stub that loads that strip '
+                         "'s record base (S21; the assumption build.sh "
+                         'refused DSP4_SIMD_DYN over)')
     a = ap.parse_args(argv)
     extra = {}
     for it in a.defines:
@@ -190,7 +416,10 @@ def main(argv=None):
             extra[k] = int(v, 0)
         except ValueError:
             extra[k] = 0
-    return check(a.mapxml, a.srcdir, extra)
+    rc = check(a.mapxml, a.srcdir, extra)
+    if a.entries:
+        rc |= entries(a.srcdir, extra)
+    return rc
 
 
 if __name__ == '__main__':

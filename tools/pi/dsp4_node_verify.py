@@ -43,6 +43,44 @@ happens to agree proves nothing, so the tool re-drives with a different
 amplitude until one separates them and says which one it used. No
 rebuild, no second boot: the control costs nothing but arithmetic.
 
+WHAT IT WITNESSES, AND WHY IT NEEDS THE BLOCK-AWARE TAP (S19-7, S21-5).
+
+Every arm names a node by a per-node `_buf_<nid>` symbol, and under
+DSP4_BLOCK_KERNELS -- the shipping configuration since S8 -- THOSE
+SYMBOLS ARE NOT THE SIGNAL PATH. A block kernel reads its predecessor's
+block out of a shared pool slot (i3) and writes its own into the next
+(i4); some classes leave the block's LAST sample in `_buf_<nid>` as a
+linkage scalar for the scalar nodes downstream, and the rest never touch
+it. `_scope_record` then reads `_scope_src + _sample_idx` -- sixteen
+consecutive words from the named address -- so an arm pointed at a
+one-word scalar captures one word that may be stale and fifteen that
+belong to the next variable in the map.
+
+That is exactly what S19-7 measured: three of this tool's four arms
+(GATE's input `_buf_C1_EQ_nn`, TUBE's output `_buf_C1_TUBE_nn`, FDR's
+input `_buf_C1_DLY_nn`) read exactly zero with full scale demonstrably on
+the strip, while COMP's two read live, and the pattern is precisely which
+classes happen to publish a linkage scalar. The bar was wrong; the audio
+was not.
+
+THE FIX IS THE INSTRUMENT THAT ALREADY EXISTS. `DSP4_SCOPE_BLK_TAP`
+(S9-5) inserts a tap after every node call in the finished chain: the
+host names the node by its `_buf_<nid>` identity, and `_scope_tap` copies
+that node's WHOLE BLOCK out of the pool slot the kernel just wrote, into
+`_scope_buf`. `_scope_record` stands down in such a build, so there is
+one witness and not two. famverify has taken every family this way since
+S10. So goldnode.sh now builds its arm with the tap on, and the arms
+below are unchanged addresses read through a witness that knows where a
+block-kernel graph keeps its samples. The GATE arm's OUTPUT moved from
+`_gate_gain_<nid>` (a block-rate scalar, unreadable per sample by
+construction) to `_buf_C1_GATE_nn` (the node's block); see `_gate_model`.
+
+THE ARM IS THEREFORE NOT THE SHIPPING IMAGE, and that is stated rather
+than hidden: the tap costs about eight cycles per node per block and
+`DIAG_BUILD_CFG2` bit 4 says it is on. The control is `DSP4_SCOPE_BLK_TAP=0`,
+which reproduces the shipping pair byte for byte -- goldnode.sh prints
+both md5s so the difference is on record beside the result.
+
 THE PARAMETER CONVERSION IS CHECKED SEPARATELY FROM THE SAMPLE PATH, and
 that split is the point. The cell values this writes are converted by the
 node at block rate; the converted words are peeked and compared against
@@ -222,7 +260,14 @@ CFG2_SIG = 0xC2000000
 CFG2_GATE_LINTHR = 1 << 11
 CFG2_DYN_LUT = 1 << 10
 
-ARM = {'gate_linthr': False, 'dyn_lut': False, 'read': False}
+# `block` is DIAG_BUILD_CFG's low byte -- DSP4_GEN_BLOCK, which the image
+# was generated at. The block-rate arm (GATE) needs it to subsample its
+# model, and reading it off the part is the difference between a bar that
+# works on a block-8 image and one that compares against the wrong phase
+# and blames the part.
+DIAG_BUILD_CFG = 0xE0EA
+CFG_SIG = 0xCF000000
+ARM = {'gate_linthr': False, 'dyn_lut': False, 'read': False, 'block': 16}
 
 
 def read_arm(part, log=print):
@@ -242,8 +287,14 @@ def read_arm(part, log=print):
         return ARM
     ARM['gate_linthr'] = bool(w & CFG2_GATE_LINTHR)
     ARM['dyn_lut'] = bool(w & CFG2_DYN_LUT)
-    log('  build arm: DIAG_BUILD_CFG2 0x%08X — GATE_LINTHR=%d DYN_LUT=%d'
-        % (w, ARM['gate_linthr'], ARM['dyn_lut']))
+    try:
+        w1 = part.sc.rd(DIAG_BUILD_CFG)
+        if (w1 & 0xFF000000) == CFG_SIG and 1 <= (w1 & 0xFF) <= 64:
+            ARM['block'] = w1 & 0xFF
+    except (IOError, KeyError, SystemExit):
+        pass
+    log('  build arm: DIAG_BUILD_CFG2 0x%08X — GATE_LINTHR=%d DYN_LUT=%d, '
+        'block %d' % (w, ARM['gate_linthr'], ARM['dyn_lut'], ARM['block']))
     return ARM
 
 
@@ -270,17 +321,28 @@ def _gate_setup(strip):
 
 
 def _gate_model(xs, p, st0, twin=False):
-    """Returns the GAIN after each sample, not the product.
+    """Returns the GAIN after each sample, not the product -- and the arm
+    reads it at the BLOCK rate. Both halves of that were established the
+    hard way (S19-7, S21-5).
 
-    THE GATE'S OUTPUT IS x * gain, so a stimulus that goes quiet hides
-    the whole ladder -- the same lesson boundary_vectors learned when its
-    scenario gaps were digital silence. The scope can only inject an
-    impulse or a step, so a burst-then-quiet stimulus does not exist on
-    the part at all, and the close arm cannot be reached through the
-    product. It can be reached directly: the scope records ANY DM
-    address, so this captures `_gate_gain_` and models the trajectory
-    that drives it. That is a stronger reading of D30 than the product
-    would have been -- it is the ladder itself."""
+    THE GAIN AND NOT THE PRODUCT, because the gate's output is x * gain,
+    so the product is zero wherever the stimulus is: after an impulse the
+    output is zero however the gate behaves, and under a step the gate
+    never closes, so neither stimulus can see the hold counter at all.
+    Measured on the part 2026-09-10 with the arm pointed at
+    `_buf_C1_GATE_nn`: the hold-less twin agreed on every amplitude in the
+    search, on both stimuli. The ladder is only visible in the gain.
+
+    AT THE BLOCK RATE, because `_gate_gain_<nid>` is a one-word variable
+    that the block kernel writes once per block, and `_scope_record` reads
+    `_scope_src + _sample_idx` -- sixteen consecutive words from the named
+    address, fifteen of them belonging to whatever the linker put next.
+    That is why this arm read zeros for four sessions. `_scope_tap1`, the
+    same one-word-per-block witness TALKBACK and NOISE_GEN use, records it
+    properly: one REAL word per block, taken where the chain has just
+    called the node, so the word is the gain after that block's LAST
+    sample. `run_node` captures the input at fs over BLOCK times as many
+    samples and subsamples this model to match."""
     att, rel, thr, rng, hold = p
     st = list(st0) + [0]                  # hold count: see the note above
     # The LINTHR arm compares the envelope against 2^thr in Q4.28 rather
@@ -400,6 +462,14 @@ NODES = {
     #        symbols, model, converted-parameter cross-check, stimuli)
     'GATE': dict(
         inp='_buf_C1_EQ_%02d', out='_gate_gain_C1_GATE_%02d',
+        # THE ONLY BLOCK-RATE ARM (S21-5). `_gate_gain_<nid>` is a one-word
+        # variable the block kernel writes ONCE per block, with the value
+        # after the block's last sample, and the block-aware tap records it
+        # with `_scope_tap1`: one REAL word per block. So the capture is the
+        # ladder sampled at fs/BLOCK, the input is captured at fs over
+        # `blk` times as many samples, and the model is subsampled to match.
+        # Everything else about the arm is unchanged.
+        blk=True,
         setup=_gate_setup, model=_gate_model,
         params=['_gate_attq_C1_GATE_%02d', '_gate_relq_C1_GATE_%02d',
                 '_gate_thrq_C1_GATE_%02d', '_gate_rngq_C1_GATE_%02d',
@@ -501,6 +571,28 @@ def _candidates(n=192):
     return out
 
 
+def _blk_of(spec):
+    """BLOCK for a block-rate arm, 1 for a per-sample one.
+
+    Read off the IMAGE (`dsp_block.h` is compiled in; the host learns the
+    block from DIAG_BUILD_CFG, which `read_arm` already decodes) rather
+    than written down here, because a bar that assumes 16 and runs on a
+    block-8 image compares a subsample against the wrong phase and reports
+    the part as wrong."""
+    return ARM.get('block', 16) if spec.get('blk') else 1
+
+
+def _sub(v, blk, phase=None):
+    """One word per block, from the END of each block by default -- which
+    is the value the block kernel has just stored when the chain calls the
+    tap."""
+    if blk == 1:
+        return v
+    if phase is None:
+        phase = blk - 1
+    return v[phase::blk]
+
+
 def choose_amps(spec, p, st0, n, mode, log=print):
     """The amplitudes on which this node's NEGATIVE CONTROL can fire.
 
@@ -519,14 +611,16 @@ def choose_amps(spec, p, st0, n, mode, log=print):
     -- not because the arithmetic agrees, but because five words out of
     2^31 is not a search.
     """
-    shape = (lambda a: [a] + [0] * (n - 1)) if mode == 1 else \
-            (lambda a: [a] * n)
+    blk = _blk_of(spec)
+    ns = n * blk
+    shape = (lambda a: [a] + [0] * (ns - 1)) if mode == 1 else \
+            (lambda a: [a] * ns)
     good = []
     for a in AMPS + _candidates():
         xs = shape(a)
         try:
-            if spec['model'](xs, p, st0) != spec['model'](xs, p, st0,
-                                                          twin=True):
+            if (_sub(spec['model'](xs, p, st0), blk)
+                    != _sub(spec['model'](xs, p, st0, twin=True), blk)):
                 good.append(a)
         except Exception:
             continue
@@ -628,14 +722,36 @@ def run_node(part, name, spec, strip, n, log=print):
     # below is therefore a state the run PUT the node in, not one it
     # hopes to find.
     st = None
-    for _ in range(3):
+    for attempt in range(3):
         capture(part, spec['out'] % strip, inj, AMPS[0], 2, 4, tries=2)
         time.sleep(CAPTURE_REST)
         st = read_params(part, spec['state'], strip)
         if name != 'GATE' or st is None or st[2] == p[3]:
             break
-        log(f'  gate still open at rest (target {st[2]}, floor {p[3]}) — '
-            f'driving it again so the new hold value takes')
+        # REST IS WAITED FOR AND MEASURED, NOT SLEPT THROUGH (S21-5).
+        # A fixed CAPTURE_REST was enough on the default image and not on
+        # `shipping.config.s20`, where the run reported "the gate is NOT
+        # closed at rest" three times and declined a verdict -- while a
+        # direct read of the same image moments later showed the gate fully
+        # closed (envelope 1, hold count expired, gain on the range floor).
+        # The gate was not the problem and neither was the image: the wait
+        # was. The hold is 0.2 s by this arm's own setup and the smoother
+        # then has to walk the gain down to the range floor, so how long
+        # rest takes is a property of the PARAMETERS, and the honest thing
+        # is to watch for it and say how long it took.
+        t_rest = time.time()
+        while time.time() - t_rest < 12.0:
+            time.sleep(0.5)
+            st = read_params(part, spec['state'], strip)
+            if st is not None and st[2] == p[3]:
+                log(f'  gate reached rest {time.time() - t_rest:.1f} s after '
+                    f'the capture (target {st[2]} = the range floor)')
+                break
+        if st is not None and st[2] == p[3]:
+            break
+        log(f'  gate still open {time.time() - t_rest:.1f} s after the '
+            f'capture (target {st[2]}, floor {p[3]}) — driving it again so '
+            f'the new hold value takes')
     if st is None and spec['state']:
         log('  node state unreadable — no verdict for this node')
         return 0, 0, 0
@@ -656,6 +772,16 @@ def run_node(part, name, spec, strip, n, log=print):
 
     measurable, allbad = 0, bad
     walked = [False]
+    blk = _blk_of(spec)
+    if blk > 1:
+        # THE INPUT CAPTURE IS blk TIMES LONGER and the scope buffer is
+        # 1024 words, so the block count is capped here rather than
+        # producing a short read the comparison would silently misalign.
+        n = min(n, S.SCOPE_MAX // blk)
+        log(f'  BLOCK-RATE ARM: {spec["out"] % strip} is one word per block '
+            f'(block {blk}); the output capture is {n} blocks and the input '
+            f'capture is {n * blk} samples of the scope\'s '
+            f'{S.SCOPE_MAX}-word buffer')
     for stim_name, mode in spec['stim']:
         amps = choose_amps(spec, p, st0, n, mode, log)
         for amp in amps:
@@ -672,7 +798,8 @@ def run_node(part, name, spec, strip, n, log=print):
                     f'in {sum(a != c for a, c in zip(ys, ys2))} of {n} '
                     f'words — not at rest, trying another amplitude')
                 continue
-            xs = capture(part, spec['inp'] % strip, inj, amp, mode, n, log=log)
+            xs = capture(part, spec['inp'] % strip, inj, amp, mode,
+                         n * blk, log=log)
             if xs is None:
                 continue
             if max(abs(v) for v in xs) < (amp >> 4):
@@ -695,8 +822,31 @@ def run_node(part, name, spec, strip, n, log=print):
                         'place:')
                     chain_witness(part, inj, strip)
                 continue
-            want = spec['model'](xs, p, st0)
-            twin = spec['model'](xs, p, st0, twin=True)
+            want_all = spec['model'](xs, p, st0)
+            twin_all = spec['model'](xs, p, st0, twin=True)
+            want = _sub(want_all, blk)
+            twin = _sub(twin_all, blk)
+            if blk > 1:
+                # THE PHASE IS PREDICTED AND THEN SHOWN, not fitted. The tap
+                # runs immediately after the chain's call to this node, so
+                # the word it copies is the one the block kernel stored at
+                # the end of the block -- phase blk-1. Every other phase is
+                # scored too and printed, so a wrong prediction is visible
+                # in the log instead of being absorbed by a search.
+                prof = [(ph, sum(1 for a_, c_ in zip(_sub(want_all, blk, ph),
+                                                     ys) if a_ == c_))
+                        for ph in range(blk)]
+                best = max(prof, key=lambda t: t[1])
+                log('  phase profile (bit-exact words per phase, scoring '
+                    'phase %d = end of block): %s'
+                    % (blk - 1,
+                       ' '.join('%d:%d' % t for t in prof)))
+                if best[0] != blk - 1 and best[1] > prof[blk - 1][1]:
+                    log('  *** THE BEST PHASE IS %d, NOT %d. The tap is '
+                        'emitted after the node call, so the end-of-block '
+                        'word is what it should hold; this is a finding, '
+                        'not something to score around.'
+                        % (best[0], blk - 1))
             sep = sum(a != c for a, c in zip(want, twin))
             if sep == 0:
                 # SAY WHAT THE CAPTURE ACTUALLY HELD. "Cannot separate" is

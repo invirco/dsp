@@ -266,13 +266,14 @@ def read_chip(chip, dwell, symfile=None):
     # THE HIGH-WATER MARK IS READ, THEN RESET, THEN READ AGAIN (S13-2).
     #
     # `_proc_cyc_max` is a latch and nothing cleared it, so what it held when
-    # this tool ran was the worst pass since RESET -- which includes the
-    # config ladder, a one-off burst of parameter conversions and cascade
-    # sizings that no per-block budget has to cover. Printed under "the block
-    # the budget has to cover" that read 376 % on chip 2 on an arm with zero
-    # missed blocks. Both figures are taken now: the RAW latch as this tool
-    # found it, and the STEADY one over the dwell alone, so the difference is
-    # on the page instead of being argued about.
+    # this tool ran was the worst pass since RESET. Both figures are taken:
+    # the RAW latch as this tool found it, and the STEADY one over the dwell
+    # alone, so the difference is on the page instead of being argued about.
+    #
+    # S13-2 read the raw latch as the CONFIG LADDER's one-off burst -- "376 %
+    # on chip 2 on an arm with zero missed blocks". S21-6 measured that and
+    # it is not the ladder: see the note below `out['budget']`, and the
+    # print at the bottom of this file.
     #
     # DIAG_CLEAR also zeroes DIAG_BLK_OVERRUN, which is why the overrun
     # baseline is read AFTER it: the arbiter counts the dwell, not the boot.
@@ -337,11 +338,79 @@ def read_chip(chip, dwell, symfile=None):
     for name in ('_proc_cyc', '_proc_cyc_max', '_proc_passes'):
         out[name.lstrip('_')] = peek(sc, sym[name]) if name in sym else None
 
+    # ---- THE WORST-BLOCK FIGURE IS ONE DIAG TICK TOO BIG, SOMETIMES ----
+    #
+    # S21-6. About one row in six in this tree's record carries a
+    # worst-block figure between 350 % and 390 % of budget WITH ZERO MISSED
+    # BLOCKS over 135,000 -- which cannot both be true, and the caveat
+    # printed beside it ("the config ladder") is not the explanation either:
+    # some of those rows are row A, taken before any parameter is written.
+    #
+    # THE MECHANISM IS IN THE MEASUREMENT, and it is two instructions wide.
+    # `main.asm` closes each block pass with
+    #
+    #     r2 = tcount;                  <-- the free-running core timer
+    #     r0 = dm(_diag_ticks);         <-- incremented by the tick ISR
+    #     ... cycles = (ticks - t0) * TPERIOD + (c0 - tcount)
+    #
+    # If the tick ISR fires BETWEEN those two reads, the tick it just
+    # counted is included in `ticks` while the matching timer wrap is not
+    # reflected in the `tcount` already in r2, and the pass is credited with
+    # one whole TPERIOD it did not spend. TPERIOD is 983,040 cycles at the
+    # shipped CCLK -- 300 % of a block-16 budget -- which is exactly the
+    # size of the anomaly.
+    #
+    # MEASURED, ACROSS THE WHOLE RECORD (2026-09-10): every row in the S20
+    # and S21 goldens whose worst figure exceeds 150 % of budget lands
+    # within 0.5 POINTS OF ITS OWN AVERAGE once one TPERIOD is subtracted --
+    # eleven rows, both chips, both products, three arms. So the true worst
+    # block on this configuration is half a point above the mean, and the
+    # graph is steadier than the record has been able to say.
+    #
+    # WHAT IS REPORTED, AND WHAT IS NOT. The raw latch is reported
+    # unchanged; the de-ticked value is reported BESIDE it, and only when
+    # every one of these holds:
+    #
+    #   * the raw figure is more than 150 % of budget;
+    #   * the arbiter counted ZERO missed blocks over the dwell (a real
+    #     375 % pass drops three blocks and the arbiter would say so);
+    #   * `raw - TPERIOD` lands within 3 points of budget of `_proc_cyc`,
+    #     the LAST pass -- i.e. the correction puts the corrupted pass back
+    #     inside the narrow band this graph actually runs in, rather than
+    #     turning a genuine transient into a small number.
+    #
+    # AND IT IS A LOWER BOUND, NOT A REPAIR. `_proc_cyc_max` is a max, so it
+    # is at least `_proc_cyc`; a pass credited with a spurious TPERIOD
+    # DESTROYS the latch's information about every pass after it, so the
+    # de-ticked value can come out a fraction BELOW the last pass (measured:
+    # 74.58 % against a last pass of 74.72 %). The reported figure is
+    # therefore max(raw - TPERIOD, _proc_cyc) and it is a floor on the true
+    # worst block, not the true worst block.
+    #
+    # Nothing is silently corrected: `proc_cyc_max_pct` is still the part's
+    # own answer, and `proc_cyc_max_detick*` is a second column with a
+    # reason. THE FIX BELONGS IN `main.asm` -- read `_diag_ticks`, read
+    # `tcount`, read `_diag_ticks` again and retry the pair if it moved,
+    # four instructions per block -- and is deliberately NOT made in the
+    # session that found it, so every figure in dsp4-s21-20260910.md is
+    # from one image.
     if out['budget']:
         for k in ('proc_cyc', 'proc_cyc_max', 'proc_cyc_max_raw'):
             v = out[k]
             out[k + '_pct'] = (round(100.0 * v / out['budget'], 2)
                                if v is not None else None)
+    out['proc_cyc_max_detick'] = None
+    out['proc_cyc_max_detick_pct'] = None
+    tp = out.get('tperiod') or CFG_TPERIOD.get(out.get('cfg_cclk'))
+    if (out['budget'] and tp and out['proc_cyc_max'] and out['proc_cyc']
+            and out['proc_cyc_max'] > 1.5 * out['budget']
+            and out.get('overruns') == 0
+            and abs((out['proc_cyc_max'] - tp) - out['proc_cyc'])
+            <= 0.03 * out['budget']):
+        out['proc_cyc_max_detick'] = max(out['proc_cyc_max'] - tp,
+                                         out['proc_cyc'])
+        out['proc_cyc_max_detick_pct'] = round(
+            100.0 * out['proc_cyc_max_detick'] / out['budget'], 2)
     return out
 
 
@@ -389,9 +458,28 @@ def main():
               % (r['proc_cyc'], r.get('proc_cyc_pct')))
         print('        _proc_cyc_max %8s  %s%%   <-- the block the budget has to cover'
               % (r['proc_cyc_max'], r.get('proc_cyc_max_pct')))
-        # The latch as it stood BEFORE the reset, once, so the size of the
-        # configuration transient is visible rather than inferred.
-        print('          (raw latch, incl. the config ladder: %s  %s%%%s)'
+        if r.get('proc_cyc_max_detick') is not None:
+            print('          ONE DIAG TICK TOO BIG (S21-6): %s  %s%% once '
+                  'TPERIOD=%s is subtracted, which is within half a point of '
+                  'this row\'s own average, and the arbiter counted ZERO '
+                  'missed blocks. The tick ISR landed between the `tcount` '
+                  'and `_diag_ticks` reads that close the pass; the fix is '
+                  'four instructions in main.asm and is not made here.'
+                  % (r['proc_cyc_max_detick'],
+                     r.get('proc_cyc_max_detick_pct'), r.get('tperiod')))
+        # THE LATCH AS IT STOOD BEFORE THE RESET, and NOT "the config
+        # ladder" (S21-6). S13-2 introduced this line calling the pre-clear
+        # value "a one-off burst of parameter conversions and cascade
+        # sizings that no per-block budget has to cover", and that
+        # attribution does not survive being checked: of the 104 pre-clear
+        # latches in this tree's goldens that exceed 150 % of budget, 92 sit
+        # exactly ONE DIAG TICK (TPERIOD) above an ordinary pass of their own
+        # row and the other 12 sit one tick above an ordinary pass of the
+        # PREVIOUS row of the ladder -- which is what a pre-clear latch
+        # holds. Not one is a configuration transient. There was never a
+        # 376 % block on this part; there was a two-instruction race between
+        # `r2 = tcount` and `r0 = dm(_diag_ticks)` in main.asm.
+        print('          (raw latch, before the reset: %s  %s%%%s)'
               % (r.get('proc_cyc_max_raw'), r.get('proc_cyc_max_raw_pct'),
                  '' if r.get('cleared') else
                  ' -- THE LATCH DID NOT DROP: the worst-block figure above '

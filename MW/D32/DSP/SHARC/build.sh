@@ -406,18 +406,32 @@ ASMFLAGS="$ASMFLAGS -DDSP4_SIMD_DYN=$DSP4_SIMD_DYN"
 # tools/dsp/dsp_codegen.py, and dsp4-s18-*.md for what it costs and returns.
 #
 # It needs DSP4_BLOCK_KERNELS (the stub stands where a per-block call already
-# was; shared_kernels.asm #errors otherwise) and it is NOT compatible with
-# DSP4_SIMD_DYN, whose pair drivers call the per-node scalar bodies with
-# their own register conventions -- refused below rather than mis-built.
+# was; shared_kernels.asm #errors otherwise).
+#
+# IT DOES COEXIST WITH DSP4_SIMD_DYN, AND THE REFUSAL THAT USED TO STAND HERE
+# WAS A GUARD AND NOT A FINDING (S21-2).
+#
+# The text it printed was: "the SIMD pair drivers call
+# _C1_COMP_nn_process_sample directly; a shared body reached that way would
+# run on whatever record base the last strip left in the register." The
+# premise is right and the conclusion does not follow, because
+# `_C1_COMP_nn_process_sample` IS NOT THE SHARED BODY -- it is that node's
+# own two-instruction stub, which sets i7 to this node's record base and i5
+# to this node's predecessor buffer and then jumps to `_shk_comp_smp`
+# (tools/dsp/dsp_codegen.py::gen_shared_kernels emits `_process` and
+# `_process_sample` entry points per node, not per class). Every caller in
+# the tree, paired or scalar, reaches the class through the callee's own
+# stub; there is no path that enters `_shk_*` with an unset base. The pair
+# KERNELS (`_comp_pair_blk`, `_gate_pair_blk`) do not call a node body at
+# all -- they take both channels' record bases in r4-r7 -- so the pairing
+# and the sharing act on different code.
+#
+# THAT IS NOW CHECKED RATHER THAN ARGUED. `shared_kernel_check.py --entries`
+# runs on every SHARED_KERNELS build below and fails it if any `_shk_<cls>_`
+# entry point is named by anything but that class's per-node stubs, or if a
+# stub is missing either register load. See MW/D32/DSP/dsp4-s21-20260910.md
+# for the bytes returned and the cycles paid.
 DSP4_SHARED_KERNELS="${DSP4_SHARED_KERNELS:-0}"
-if [ "$DSP4_SHARED_KERNELS" != "0" ] && [ "$DSP4_SIMD_DYN" != "0" ]; then
-    echo "build.sh: DSP4_SHARED_KERNELS=$DSP4_SHARED_KERNELS with" \
-         "DSP4_SIMD_DYN=$DSP4_SIMD_DYN is not a configuration." >&2
-    echo "  The SIMD pair drivers call _C1_COMP_nn_process_sample directly;" >&2
-    echo "  a shared body reached that way would run on whatever record base" >&2
-    echo "  the last strip left in the register. Build one or the other." >&2
-    exit 2
-fi
 CFLAGS="$CFLAGS -DDSP4_SHARED_KERNELS=$DSP4_SHARED_KERNELS"
 ASMFLAGS="$ASMFLAGS -DDSP4_SHARED_KERNELS=$DSP4_SHARED_KERNELS"
 # Negative control for the paired-dynamics self-test: gather channel B
@@ -1152,7 +1166,7 @@ order_objs() {
         for c in 1 2; do
             [ -f "$BUILD_DIR/chip$c.map.xml" ] || continue
             python3 "$(dirname "${BASH_SOURCE[0]}")/../../../../tools/dsp/shared_kernel_check.py" \
-                "$BUILD_DIR/chip$c.map.xml" "$SRC_DIR/chip$c" \
+                "$BUILD_DIR/chip$c.map.xml" "$SRC_DIR/chip$c" --entries \
                 -DDSP4_SHARED_KERNELS=$DSP4_SHARED_KERNELS \
                 -DDSP4_DYN_LUT=$DSP4_DYN_LUT \
                 -DDSP4_BLOCK_KERNELS=$DSP4_BLOCK_KERNELS \

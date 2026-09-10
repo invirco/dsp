@@ -53,6 +53,13 @@
 #   BUILD=0 ARM=... ./capacity.sh              re-boot what is already staged
 #   ./capacity.sh --driven                     the three-row driven ladder
 #   SETUP_MODE=bypassfx ./capacity.sh --driven the instrument's own cost
+#   SETUP_MODE=loadfx FXTYPE=3 ./capacity.sh --driven
+#                                              the plugin load: the six FX
+#                                              engines fed and wet at a Type
+#   SETUP_MODE=loadfx FXTYPES="off 3 0 2" ./capacity.sh --driven
+#                                              ... and a rung per algorithm on
+#                                              the same boot, so the FX cost is
+#                                              a within-boot difference (S21)
 #
 # Every DSP4_* in the environment is passed to build.sh, so an arm is one
 # command and the command is the arm's definition.
@@ -93,8 +100,18 @@ done
 # arm's definition is the FILE plus the overrides -- printing only the
 # overrides would make two different arms look identical in the log, which is
 # S11-1's shape.
-echo "=== capacity arm '$ARM'  product=$PRODUCT  block=${BLOCK:-tree}" \
-     " config=$(basename "${SHIPPING_CONFIG:-shipping.config}")  overrides:${OVR:- none}"
+# WITH BUILD=0 THERE IS NO CONFIGURATION TO NAME, only an IMAGE (S21). The
+# arm's identity in that case is the md5 printed below, not a file this run
+# never sourced -- printing `config=shipping.config` for a staged
+# `shipping.config.s20` image is the S11-1 shape one level down.
+if [ "${BUILD:-1}" = "1" ]; then
+    echo "=== capacity arm '$ARM'  product=$PRODUCT  block=${BLOCK:-tree}" \
+         " config=$(basename "${SHIPPING_CONFIG:-shipping.config}")  overrides:${OVR:- none}"
+else
+    echo "=== capacity arm '$ARM'  product=$PRODUCT  block=${BLOCK:-tree}" \
+         " BUILD=0: the arm is the STAGED IMAGE, identified by the md5 below," \
+         " not by a configuration file this run did not read.  overrides:${OVR:- none}"
+fi
 
 if [ "${BUILD:-1}" = "1" ]; then
     SRC="$PWD/src"
@@ -178,7 +195,8 @@ fi
 for r in $(seq 1 "$REPS"); do
     echo "--- boot $r ---"
     ssh $BENCH "STAGE='$STAGE' PRODUCT=$PRODUCT DWELL=$DWELL DRIVEN=$DRIVEN \
-                SETUP_MODE='${SETUP_MODE:-load}' PREFIX=cap-$ARM-$PRODUCT-r$r \
+                SETUP_MODE='${SETUP_MODE:-load}' FXTYPE='${FXTYPE:-3}' \
+                FXTYPES='${FXTYPES:-}' PREFIX=cap-$ARM-$PRODUCT-r$r \
                 OUT=cap-$ARM-$PRODUCT-r$r.json bash /home/app/capacity_run.sh" || exit 4
     scp -q "$BENCH:$STAGE/cap-$ARM-$PRODUCT-r$r*.json" ./goldens/ 2>/dev/null
 done

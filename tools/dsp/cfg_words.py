@@ -106,11 +106,11 @@ def resolve(path=None):
         prov['DSP4_SIMD_STRIPS'] = ('derived: follows DSP4_SIMD_DYN '
                                     '(build.sh DSP4_SIMD_STRIPS_DEFAULT)')
 
-    # build.sh refuses this pair rather than mis-building it (S18).
-    if val['DSP4_SHARED_KERNELS'] and val['DSP4_SIMD_DYN']:
-        raise SystemExit('cfg_words.py: DSP4_SHARED_KERNELS with '
-                         'DSP4_SIMD_DYN is not a configuration — build.sh '
-                         'exits 2 on it (S18).')
+    # S18's refusal of DSP4_SHARED_KERNELS with DSP4_SIMD_DYN was mirrored
+    # here and is GONE FROM BOTH (S21-2): the pair drivers reach a shared
+    # class through that node's own stub, which loads the strip's record
+    # base, so the two switches act on different code. build.sh checks it
+    # per build (`shared_kernel_check.py --entries`) instead of refusing it.
 
     code = CCLK_CODE.get(val['DSP4_CCLK_TARGET'])
     if code is None:

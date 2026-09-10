@@ -7,7 +7,162 @@ the app and the matrix to the rev C unit TOGETHER. This is the DSP leg,
 made ready and proven ahead of it so the window is a deploy and not a
 debug. **It is PW-gated; nothing here was deployed.**
 
-## 0. THE CONFIGURATION TO SHIP IS `shipping.config.s20`, AND IT IS MEASURED (added 2026-09-10, S20)
+## 0. THE CONFIGURATION TO SHIP IS `shipping.config.s21`, AND THE PLUGIN HEADROOM IS MEASURED (added 2026-09-10, S21)
+
+**Read this first. It supersedes §0b below on two points and nothing else:
+S20's two open items — the FX engines' driven cost and chip 1's 380 free
+bytes — are both closed here.**
+
+### The proposal, and what changed since S20
+
+**`MW/D32/DSP/SHARC/shipping.config.s21`** — `shipping.config.s20` plus
+**one line**, `DSP4_SHARED_KERNELS=3` (COMPRESSOR + TUBE_SAT share one body
+per class instead of 32 copies each). `shipping.config` and
+`shipping.config.s20` are both **unchanged**. Write-up
+`MW/D32/DSP/dsp4-s21-20260910.md`.
+
+**Staged pair `s21_*` `81f799f9` / `11366344`**, with symbol maps beside it.
+`DIAG_BUILD_CFG 0xCF45FF10` (unchanged from s20) and
+`DIAG_BUILD_CFG2 0xC2019E6F` against s20's `0xC2011E4F` — bit 5 and bit 15,
+the two shared classes, and nothing else.
+
+### Chip 1's 380 free bytes are now 40,572
+
+The one cost of `shipping.config.s20` that is not cycles, measured on the
+linker map of each build:
+
+| arm | chip 1 code, Blocks 3+2 | free | code in the CONTENDED DM/DMA block |
+|---|--:|--:|--:|
+| `shipping.config` (the default) | 235,064 / 262,144 | 27,080 | none |
+| `shipping.config.s20` | 261,764 / 262,144 | **380** | **1,692** |
+| **`shipping.config.s21`** | **221,572 / 262,144** | **40,572** | **none** |
+
+`build.sh` refused `DSP4_SHARED_KERNELS` with `DSP4_SIMD_DYN` from S18 until
+this session, and S20-3 carried that refusal to PW as the reason the lever
+was unavailable. **The refusal was a guard and not a finding** — the pair
+drivers reach a shared class through that node's own two-instruction stub,
+which loads the strip's record base, so the two switches act on different
+code. It is replaced by a per-build check with two negative controls
+(S21-2), and what actually did not build was `SHARED_KERNELS` with
+`DYN_LUT`, three faults deep, all fixed (S21-3).
+
+**Cost, driven, with six reverbs running:** chip 1 +0.62 points at D32 and
+−0.14 at D24 (inside the boot spread), chip 2 nothing. `dsp_memreport.py`
+reports all pools below 90 % for the first time on any arm that fits both
+products.
+
+**Audio: the same twenty verdicts.** `famdiff.py` puts the `s21_*` famverify
+report **0 of 20 families** from the `s20_*` one, and `shkstrip.sh` — the
+bar famverify structurally cannot be, because famverify drives strip 1 —
+writes six different compressor thresholds to six strips and reads each
+strip's own converted word back out of its own record, identically on the
+shared arm and on the inlined control.
+
+### The plugin load, measured driven
+
+Every driven figure in S20's table was taken with the six FX engines fed
+silence: `--mode load` left every `Chan<nn>FxSend` at 0.0, so the FX buses
+carried nothing and the engines ran their algorithm over zeros. `--mode
+loadfx` opens all six sends on all 32 strips and puts the engines on, all wet,
+at a named Type, and a **ladder takes one row per algorithm on one boot** so
+the FX cost is a within-boot difference.
+
+| | chip 1 | chip 2 | headroom on chip 2 | overruns |
+|---|--:|--:|--:|---|
+| D24, `s20_*`, FX fed silence (S20's row) | 53.8 | 59.0 | 41.0 % | zero |
+| **D24, six reverbs fed and wet** | **56.8 / 56.4** | **74.2 / 74.1** | **25.8 %** | **zero** |
+| D32, `s20_*`, FX fed silence (S20's row) | 71.6 | 72.6 | 27.4 % | zero |
+| **D32, six reverbs fed and wet** | **74.6 / 74.6** | **87.1 / 87.1** | **12.9 %** | **zero** |
+| **D24, `s21_*`, six reverbs** | **56.5** | **74.1** | **25.9 %** | **zero** |
+| **D32, `s21_*`, six reverbs** | **75.2** | **87.1** | **12.9 %** | **zero** |
+
+**The reverbs are 16.3 points of chip 2 at D32 and 16.4 at D24**, against a
+Type-4 rung where the engines are parked in the dispatch's bypass. The other
+algorithms are cheap: Echo +1.3, Doubling +0.9. The six engines are fixed
+instances and do not scale with the channel count, which is why both products
+pay the same for them. Two boots per product, every rung on one boot, zero
+missed blocks on every row.
+
+**PW's headroom rule is met at both products with the worst plugin load the
+product can be asked for.** What is NOT headroom-limited is chip 1: opening
+the six FX sends on 32 strips costs it ~3 points of crosspoint accumulate and
+the engines themselves cost it nothing, because they are chip 2's.
+
+### Three things PW should know about the FX engines themselves
+
+Measured while pricing them, not defects introduced:
+
+1. **`Fx<n>On` does not bypass an engine.** `_fx_on_<nid>` is written by the
+   SPI dispatch table and read by no instruction in any kernel: the
+   FX_ENGINE body has no on/off branch. A user who switches FX 1 off still
+   hears it and still pays for it.
+2. **Eleven more host-writable FX cells reach no arithmetic**, and three more
+   are dispatched to address 0. Five cells work: `Type`, `Mix`, `Damp`,
+   `Feedback`, `DelayTime`. `Decay`, `PreDelay`, the three EQ bands, the five
+   HPF coefficients, `ModRate`, `ModLevel`, `LfoShape`, `StereoWidth`,
+   `Balance`, `DuckOn` and `DuckSens` do not. The reverb is a Freeverb whose
+   room size and decay do nothing.
+3. **Four of the seven Types are not implemented for the class the graph
+   declares.** All six engines are the `reverb` class, which implements Echo
+   (0), Doubling (2) and Reverb (3); PingPong, Chorus, Flanger and Phaser
+   park the Type in `_fx_bypassed_<nid>` and pass the input through dry.
+
+None of this changes the fit. All of it will be visible on the FX pages of
+the app, and it is PW's call whether the window ships with the controls
+present.
+
+### And one objection to `DSP4_SIMD_DYN` that is new and has a measurement behind it
+
+**On any image with `DSP4_SIMD_DYN` on, the ODD strip of every gate pair has
+four FROZEN per-node state words** — envelope, gain, target and hold count,
+unchanging over twelve seconds with nothing driving the strip — while the
+partner strip of the same pair has a hold counter that decrements on every
+sample. Found by fixing `goldnode` (S21-5), bisected to that one switch (each
+of the other four turned off in turn leaves it), and corroborated at the
+source: `_DYNCOMP_nn_mm_process` ends with an epilogue that copies the pair's
+gain display back into each node's own word and `_DYNGATE_nn_mm_process` has
+no write-back at all. Finding **S21-7**; the instrument is
+`tools/pi/dsp4_gate_latch.py`.
+
+**Whether the audio differs is NOT established.** Every sample-level bar
+passes on this configuration — famverify GATE LIVE and 0 of 20 families
+between `s21_*` and `s20_*`, `busgold` bit-exact against the 2026-08-30
+golden with the two declared deviations off, `golden_harness` 59/59. Against
+that, the per-sample gate body reads `_gate_gain_<nid>` as its starting state
+and the pair driver calls that body for sample 0 of every block.
+
+It is **one session's work to settle** — give the four gate words the
+treatment `_comp_gain_` already gets, then re-run goldnode's GATE arm on the
+SIMD image and require 64 of 64, which the bar can now score. It is on this
+page rather than left off it because `DSP4_SIMD_DYN` is one of the five
+switches being signed, and because S12-5 was cited against that switch for
+two sessions on grounds that had already been closed.
+
+### What PW is being asked to rule
+
+The same two numeric-spec deviations as in S20, and no new ones:
+**`DSP4_DYN_LUT`** (0.0950 dB worst case over the documented sweep;
+0.00518 dB and 0.03934 dB measured on the part) and **`DSP4_GATE_LINTHR`**
+(≤0.0002 dB threshold shift). **`DSP4_SHARED_KERNELS` adds no deviation** —
+the shared body is the same emitter's instructions as the inline arm,
+rewritten from absolute per-node addresses to record offsets, entered per
+strip through a stub the build checks.
+
+### One correction to every capacity table in this note
+
+**The "worst block the budget has to cover" column has been over-reporting
+by exactly one diag tick — 983,040 cycles, 300 % of a block-16 budget — on
+about one row in six**, and the "config ladder transient" that has been
+printed beside it since S13 does not exist. The mechanism is a two-instruction
+race in `main.asm` between the `tcount` read and the `_diag_ticks` read that
+close each block pass. Corrected, the true worst block on this configuration
+is **about half a point above the average**. Averages, overrun counts and
+every fit conclusion in this note are unaffected; the fix to `main.asm` is
+four instructions and is deliberately not in the images S20 staged. See S21-6.
+
+---
+
+## 0b. S20's PROPOSAL, superseded on two points by §0 above (added 2026-09-10, S20)
 
 **Read this first; §0a below is S19's warning and it still applies to every
 percentage further down.**
@@ -73,16 +228,16 @@ threshold shift). The other three carry no deviation to sign off.
 
 ### What is left open, and one resource number
 
-* **The FX engines' driven cost is NOT measured.** Every driven figure above,
-  `s20_*`'s included, is taken with the six FX engines idle — S19's load
-  configuration leaves them alone deliberately. This is the biggest remaining
-  unknown in the D32 budget.
-* **Chip 1's code pool has 380 bytes free on `s20_*`**, with 1,692 bytes of
-  cold design-step code in Block 1 and 6,666 bytes of cold code left in Blocks
-  3+2 — about 7,046 bytes of growth before a per-block kernel is fetched from
-  the contended block. **S18's −38,634-byte lever cannot be combined with this
-  configuration** (`build.sh` refuses `DSP4_SHARED_KERNELS` with
-  `DSP4_SIMD_DYN`).
+* ~~**The FX engines' driven cost is NOT measured.**~~ **CLOSED by S21 —
+  see §0.** It is 16.3 points of chip 2 at D32 and 16.4 at D24 for six
+  reverbs, leaving 12.9 % and 25.8 % of chip 2 free with zero missed blocks.
+  Every driven figure in the rest of THIS section is still taken with the FX
+  buses silent.
+* ~~**Chip 1's code pool has 380 bytes free on `s20_*`** ... S18's
+  −38,634-byte lever cannot be combined with this configuration.~~ **CLOSED
+  by S21 — see §0.** The refusal was a guard and not a finding; the lever
+  applies, and `shipping.config.s21` has **40,572 bytes free with no code in
+  the contended block**, for 0.62 points of chip 1 at D32.
 * Nothing rebuilds against this: no contract change, no address moves, defs
   pin `defs-v2026.09.08.4` throughout. Rollback is `blk_*`, untouched.
 
