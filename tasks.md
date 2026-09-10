@@ -1,3 +1,80 @@
+## HUB DISPATCH 2026-09-10 17:44Z — S25 — pad test, R5 pan table, D24 rows, leg 2 continued   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+S25 — FIRST THE PAD TEST (S24-5: is the block pool's 8-byte alignment a declaration or luck — one build, one word of pad, the existing bars), THEN R5 AS ITS OWN GATE (one 127-entry LCR pan table for the mixer, every strip's pan an index into it, selected by the system cell, with a pan-law witness), THEN THE TWO THINGS S24 SAID IT DID NOT DO (D24 rows; famverify re-run with the new cells), THEN LEG 2 CONTINUED (anti-clip, pick-offs/destinations, RTA as the master names them) — every gate priced driven with the load, chip-1 code pool reported per gate
+
+WHY. S24 (dsp 86f972a) answered the net contract and priced the use-
+proportional cost, and it named, in its own words, the item to take
+first next time: the block pool's 8-byte alignment — the basis of the
+net answer "PAYLOAD_OFF stays 40" — is LUCK, not a declaration; the
+linker gives `.var` word alignment and nothing more, both pools happen
+to land even, and the SIMD kernels read them with `dm(i0,2)`. If a one-
+word pad in front of `_blk_pool` breaks the bars, the requirement is
+real and must be DECLARED (a linker alignment on the pools) before the
+net declaration lands in defs after the bench day; if it does not, the
+net answer becomes 4 bytes. S24 also specified R5 fully and refused to
+build it at the tail of a session, correctly: one pan table for every
+strip on a chip at 90.7 % code needs its own gate and a witness. And it
+said plainly what it did not do — D24 rows, famverify with the new
+cells — which the record must not carry as done.
+
+BENCH. Rev C unit as S24 left it (`blk_*` booted, shipping CPLD, matrix-
+app active; ⚠ S24's CPLD re-flash took three attempts with an svf MASK
+failure — re-read the IDCODE before and after every flash and record
+each attempt); staged pairs through `s24_*` — NEVER replace any; new
+candidates as `s25_*`. `SHIPPING_CONFIG=shipping.config.s21`;
+`DSP_LANDED_DIR` = the proposal pair; every image from its own staging
+path with copy-and-restore and the staging path VERIFIED to hold an
+image before any cycle; `cfgverify.sh`; CCLK measured; `capacity.sh`
+driven rows with the regime proved and the plugin load, both products
+this time; one capture per boot for every bit-exact bar; probes take
+their control FIRST (S24-7). R6–R11 held: no matrix or FX-topology
+cells. No deploy. No AI attribution in commits or any work product.
+
+GATES, in order, each witnessed:
+1. **The pad test (S24-5).** One build with a one-word pad in front of
+   `_blk_pool` (both chips, both products), the existing bars — golden,
+   dsp_validate, busgold, goldnode, famverify — and a driven row. Either
+   the bars break (then: DECLARE the alignment — a linker section
+   alignment on the pools, emitted from the generator, checked by
+   `shared_kernel_check.py` or its sibling — and rebuild green) or they
+   do not (then the net answer is 4 bytes and `docs/net-contract-
+   answers.md` is corrected). First sentence of the status line: **the
+   8-byte alignment is DECLARED (or: was never required — 4 bytes), the
+   bars say so, and the net answer stands (or changes to N).**
+2. **R5, the pan table.** One 127-entry table of (gL, gC, gR) per chip
+   that pans, selected by `Sys[1]LcrLaw[1]` (as a proposal row until the
+   hub lands the cell; the value reaches the DSP the way other Sys cells
+   do — say how), loaded at block rate on a change; every strip's `Pan`
+   value an index; `Chan*LcrOn` picks the three-column read, non-LCR
+   strips use the L/R columns; `Chan*CtrOn` gates the centre leg. Two
+   tables: hard LCR and three-bus constant-power. Witness: a pan-law
+   probe reads gL/gC/gR at five pan positions for both laws and both
+   modes against the table's own values, bit-exact; the main mix
+   reproduces the pre-R5 output byte-for-byte at pan centre with the
+   hard-LCR table and LCR off (or state the deviation and why).
+   Priced driven. Second sentence: **R5 costs N/M points and K bytes;
+   the pan-law witness is bit-exact on both laws.**
+3. **D24 rows and famverify** — the S24 candidate and this session's on
+   D24 driven with the load, two boots; famverify re-run with the S24
+   cells (main output level/mute/HPF) LIVE.
+4. **Leg 2 continued**: anti-clip (what the master names — a limiter on
+   the main outputs? say what the cell is and build only that), pick-
+   offs / destinations as named, RTA as a read-only meter family priced
+   driven. `dsp-unmapped.csv` −N exactly the cells built.
+5. Priced driven at every gate; chip-1 code pool per gate; findings
+   S25-*, `MW/D32/DSP/dsp4-s25-20260910.md`, the proposal pair
+   regenerated, tasks.md, this block's status; commit + push main.
+   Stage `s25_*` if the bars pass.
+
+Bounded: gates 1–2 are the session; 3 expected; 4–5 as far as the
+session allows, always closed out.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-10 16:22Z — S24 — net contract answers, use-proportional cost, completeness leg 2   [status: 🟢 done — **96 k through-DSP = 82 samples / 854 us, BY CONSTRUCTION — and the part stops a 96 k build before the cycle budget does (data sheet fSPTCLKEXT 31.25 MHz against the 49.152 MHz a TDM16 lane needs at 96 k, and TDM16 is every line of the inter-chip fabric); the block interface needs 8-BYTE alignment, set by the SHARC CORE's SIMD dual-data access — not its DMA (4 B, MSIZE04) and not the framework (which declares none: 2,204 of 5,452 chip-1 DM symbols sit at ODD word addresses) — so `MWN_AUDIO_PAYLOAD_OFF` STAYS AT 40; in-place = YES for the read, because a node already reads the DMA ring directly with no staging copy and the payload's tick-major layout IS the TDM32 DMA block layout — and on this product the question is answered one boundary out, the MW-Net endpoint being the RT1180 option card across TDM8 (`no[3:0]` out, `ni[3:0]` in), so no packet ever reaches SHARC memory.** The one caveat the net spoke must act on: 8 bytes is a requirement on the ABSOLUTE address of sample 0, and ONE 802.1Q tag from a customer switch moves the header 4 bytes and FLIPS it — moving PAYLOAD_OFF to 48 would not fix that, because it changes the offset and not the base. Filed as `docs/net-contract-answers.md`. **SECOND: a USED AUX COSTS 0.82 POINTS OF CHIP 2 PER BUS AND THE CROSSPOINTS ON IT COST NOTHING THIS INSTRUMENT CAN RESOLVE; a used matrix row costs +1.13/+1.24 points of CHIP 1 for all 64 crosspoints; worst-use D32 = 78.46/100.72 % and 78.36/100.71 % — IT DOES NOT FIT, 600-601 of 90,049 blocks missed on both boots.** The `s23xp` arm S23 could not run is here as a LADDER, because one all-open row gives a total and no slope. Rung 0:0 (every crosspoint closed) reads 90.93/90.78 % against S23's driven 90.95 % on the same image — the control passed, so the ladder is measuring the crosspoints and nothing else. **0:0 -> 1:0 is +9.77 and +10.02 points** (twelve aux buses leaving the block-level bypass with ONE live send each) and **1:0 -> 6:0 is +0.11 and -0.02** (five more live crosspoints on each of those twelve). **The bypass is the whole price and the MACs are free** — S23-5 measured that bypass as worth 9.89 points when it was introduced and this session measures the same ~9.9 from the other side, by switching it off one desk operation at a time. **AND BOOT 1 ALONE WOULD HAVE HAD ME QUOTE A NUMBER BELOW THE INSTRUMENT'S RESOLUTION**: +0.11 reads as 'about 0.002 points a crosspoint', boot 2's -0.02 says that is noise, and the honest statement is an upper bound of a tenth of a point against 0.82 for the bus itself. **A SECOND LADDER ON THE BUS AXIS GIVES THE PRODUCT ANSWER AS A MEASURED INTEGER**: one FX return into aux buses 1..N, N = 0/4/8/11/12 on one boot of the S24 candidate — 91.50, 94.07, 97.60, **100.05 with ZERO missed blocks**, **100.76 with 649**. **Eleven of the twelve aux buses can carry an FX return and the twelfth is where blocks start being missed.** Note the eleven-bus row is already over 100 % of nominal budget and misses nothing: the percentage and the deadline are not the same test and DIAG_BLK_OVERRUN remains the arbiter. **THIRD, LEG 2: THE FOUR MAIN OUTPUT STRIPS GOT THEIR OWN LEVEL AND MUTE AND THE THREE HPF BANDS THE MASTERS ALWAYS GAVE THEM** — D32 +12 cells, D24 +17, and NOT ONE LANDED ADDRESS MOVES (the `dsp.csv` diff is four rows gaining `mo_page`/`mo_addr`). **S24-4: three HPF bands per strip were listed as 'no node in the graph' when the graph already had the node AND the words.** The EQ expander has said `if cat == 'Main': ... any band as HPF` since it was written, and the post-crossover output EQs carry cat `MainL`/`MainR`/`MainCtr`/`MainSub` because that is what they ARE — so the test named the main BUS strip and missed the main OUTPUT strips. One condition, no arithmetic, no address: an EqHpf cell aliases its band's own coefficient base exactly as band 1 always did. Beside S23-4 (the family walk keyed on NodeType could not give the matrix a family at all) that is two blind spots this week that were **a name matching a sibling rather than the thing**. **Level/Mute are on the OUTPUT_TDM node itself, not a new fader**: it is already a per-block copy, so a level is one multiply on a word it already loads and a mute is that level folded to zero, in a SECOND SPI block after every other chip-2 address (ROUTING's `mtx_*` device). S23's fold and S23's exact bypass, deliberately — at exactly 2^28 the node runs its old copy loop, so **the shipping default is byte-for-byte what it was and costs one compare a block**. Measured: the candidate's rows are 64.29/75.92 silent-default and 78.39/100.76 driven against S23's 64.48/76.04 and 78.46/100.72 — **gate 3 costs nothing outside the boot spread**, which is what the bypass is for. **WITNESSED ON THE PART, FIVE OF FIVE EXACT**: `_out_coeff` reads `0x10000000` at level 1.0 (exactly the value the bypass compares against), `0x08000000` at 0.5, `0x04000000` at 0.25, and **exactly zero** both with mute=1/level=1.0 and with level=0.0/mute=0 — the two independent controls, S23's discipline one node along. **AND THE PROBE'S FIRST TWO RUNS SAID THE OPPOSITE AND WERE WRONG (S24-7)**: `_out_coeff` read `0x00000000` at every level, which is the exact sentence a broken feature produces — and so did every control word beside it, including `_fdr_level_C2_MAIN_FDR`. The cause is S22-4's shape one level along: DM words are read with `peek(addr(...))` and `rd()` reads the SPI cell window, where a DM address lands outside the dispatch table and ANSWERS ZERO. The probe now takes its control FIRST and refuses a verdict when the control reads zero, the way `dsp4_dsp_latency.py` was taught after S11-6. The AUDIO is still unwitnessed and no claim is made from it: the capture bars returned `capture stalled at 0 of 1024` because the injection point passed is not one the chain's scope gate injects into — one line and one boot. **DELAY IS NOT BUILT AND THE REASON IS MEMORY, NOT CELLS**: 250 ms is 12,000 words = 48,000 bytes of chip-2 L2 an output, 192,000 for four against 378,464 free — 51 % of the delay headroom left, on a chip whose worst-use row already overruns. It fits; it is PW's call, with the number attached. **PW'S THIRTEEN RULINGS ARRIVED MID-SESSION AND ARE APPLIED FROM GATE 3 ON.** R3 built: the comp GR floor moves -40 -> -80 dB (one constant, thirty-two meter blocks, chip 1 `f95ad5d5` -> `2fdd9f95` with the code pool at exactly the same 24,274 bytes free) — and R3's real question is recorded rather than assumed away: raising the meter's floor raises what it can REPORT, not what the compressor can DO, and whether the level->gain table's input span reaches 80 dB is unmeasured. R4 answered and it was never a missing DSP function: `Chan*AuxPick*` already implements all four positions (PreEQ/PostEQ/PreFdr/PostFdr, default PostFdr) and `Aux*PickOff` is an app batch button, so 12 D32 and 8 D24 cells move from `no-graph-node` to `host-managed`. R1 gives `Fx*DuckThr` a meaning, so it moves out of `s1-2-no-behaviour`. **R5 (LCR) is fully specified and deliberately NOT built**, for a reason worth PW seeing: R5-amended puts NON-LCR channels on the same 127-entry table, so it changes the pan law of every strip on a chip at 90.7 % code — it needs its own gate and a pan-law witness, not a tail-end addition. **R6-R11 held: no matrix or FX-topology cells built.** R12/R13 are the hub's to land. `no-graph-node` D32 116 -> 98, D24 78 -> 59, with every part of the movement separated in the write-up. **S24-5, AND IT IS THE ONE TO TAKE FIRST NEXT TIME**: the block pool's 8-byte alignment is LUCK, not a declaration — the linker gives a `.var` word alignment and no more (2,204 of 5,452 chip-1 DM symbols are at odd addresses), both pools happen to be even, and the SIMD kernels read them with `dm(i0, 2)` under PEYEN. One build with a one-word pad in front of `_blk_pool` and one run of the existing bars settles it, and it decides whether the net answer is 8 bytes or 4. **BARS**: golden 59/59; `dsp_validate` OK on 698 nodes with the SAME four pre-existing process-order notes — **after it REFUSED the new params** (`Unrecognized params for OUTPUT_TDM: ['mo_addr','mo_page']`), the no-fallback policy doing its job; `gen_dsp_csv.py` and `dsp_codegen.py` both reproduce byte-for-byte / file-for-file on a re-run; `check_bench_pins.sh` canonical everywhere including the new `s24probe_run.sh`; `check-contract-drift.sh` reports the graph AHEAD of the landed pin, the designed state for this window. `defs`, `defs.lock`, `MW/D24/MX/_matrix.csv`, `shipping.config` and `shipping.config.s21` UNCHANGED; `MW/D32/MX/_matrix.csv` gains the DSP columns for exactly the twelve new D32 cells. **NOT DONE, said plainly**: D24 was not run — every capacity figure here is D32, which is the binding product but the dispatch asked for both; famverify was not re-run with the new cells; and gates 5's anti-clip / RTA / destinations are unbuilt and unruled. **BENCH RESTORED**: shipping CPLD `a1f6672af6c3` re-flashed and IDCODE re-read — **and it took three attempts**, the first two ending `Error: MASK = 0xffff / svf file programmed failed` with the IDCODE reading correctly either side; nothing here explains it and it is worth watching. `blk_*` (`ac65ad38`/`e5dce9e4`) booted, CHIP_ID 1 and 2 correct, both at BOOT_STAGE 5 for `matrix-app`, which is active (restarted twice per the filed app bug). **`s24_*` = `2fdd9f95`/`9222c2ee` staged with symbol maps, no staged pair replaced. No deploy.** Write-up `MW/D32/DSP/dsp4-s24-20260910.md`, `docs/net-contract-answers.md`, findings S24-1..S24-8.]   [model: opus]
 
 model: opus
