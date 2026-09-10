@@ -396,6 +396,30 @@ ASMFLAGS="$ASMFLAGS -DDSP4_DYN_TABLES=$DSP4_DYN_TABLES"
 DSP4_SIMD_DYN="${DSP4_SIMD_DYN:-0}"
 CFLAGS="$CFLAGS -DDSP4_SIMD_DYN=$DSP4_SIMD_DYN"
 ASMFLAGS="$ASMFLAGS -DDSP4_SIMD_DYN=$DSP4_SIMD_DYN"
+# SHARED PER-STRIP KERNELS (S18), a CLASS MASK and not a boolean: bit 0 is
+# COMP. 85 % of chip 1's code pool is 32 copies of 9 kernels, and the copies
+# are the same body -- the generator proves that on every run before it
+# shares anything. With a bit set, that class's 32 nodes become stubs that
+# put the strip's record base in a DAG register and jump to one body in
+# <chip>/shared_kernels.asm; with the mask 0 the image is byte-identical to
+# the tree that never had the pass. See SHARED_KERNEL_CLASSES in
+# tools/dsp/dsp_codegen.py, and dsp4-s18-*.md for what it costs and returns.
+#
+# It needs DSP4_BLOCK_KERNELS (the stub stands where a per-block call already
+# was; shared_kernels.asm #errors otherwise) and it is NOT compatible with
+# DSP4_SIMD_DYN, whose pair drivers call the per-node scalar bodies with
+# their own register conventions -- refused below rather than mis-built.
+DSP4_SHARED_KERNELS="${DSP4_SHARED_KERNELS:-0}"
+if [ "$DSP4_SHARED_KERNELS" != "0" ] && [ "$DSP4_SIMD_DYN" != "0" ]; then
+    echo "build.sh: DSP4_SHARED_KERNELS=$DSP4_SHARED_KERNELS with" \
+         "DSP4_SIMD_DYN=$DSP4_SIMD_DYN is not a configuration." >&2
+    echo "  The SIMD pair drivers call _C1_COMP_nn_process_sample directly;" >&2
+    echo "  a shared body reached that way would run on whatever record base" >&2
+    echo "  the last strip left in the register. Build one or the other." >&2
+    exit 2
+fi
+CFLAGS="$CFLAGS -DDSP4_SHARED_KERNELS=$DSP4_SHARED_KERNELS"
+ASMFLAGS="$ASMFLAGS -DDSP4_SHARED_KERNELS=$DSP4_SHARED_KERNELS"
 # Negative control for the paired-dynamics self-test: gather channel B
 # from channel A, so the pair computes one channel twice. The diff MUST
 # fail with this set.
@@ -1114,6 +1138,27 @@ order_objs() {
         $LD21K $LDFLAGS -Map "$BUILD_DIR/chip2.map.xml" -o "$BUILD_DIR/chip2.dxe" $chip2_objs || total_errors=$((total_errors+1))
     else
         echo "  WARNING: No object files for Chip 2"
+    fi
+
+    # ---- SHARED KERNELS: the record layout, checked against the map ----
+    # A shared per-strip kernel addresses a node's state as base + a fixed
+    # offset, and the offsets come from the order the generator declared the
+    # `.var`s in. If the assembler ever pads or reorders, the image still
+    # links, still has the same byte count, and reads another strip's state.
+    # So it is checked here, on the map this build just produced, with the
+    # flags this build was given, and a mismatch FAILS THE BUILD.
+    if [ "$DSP4_SHARED_KERNELS" != "0" ] && [ $total_errors -eq 0 ]; then
+        echo "--- Shared kernels: record layout ---"
+        for c in 1 2; do
+            [ -f "$BUILD_DIR/chip$c.map.xml" ] || continue
+            python3 "$(dirname "${BASH_SOURCE[0]}")/../../../../tools/dsp/shared_kernel_check.py" \
+                "$BUILD_DIR/chip$c.map.xml" "$SRC_DIR/chip$c" \
+                -DDSP4_SHARED_KERNELS=$DSP4_SHARED_KERNELS \
+                -DDSP4_DYN_LUT=$DSP4_DYN_LUT \
+                -DDSP4_BLOCK_KERNELS=$DSP4_BLOCK_KERNELS \
+                -DDSP4_SIMD_DYN=$DSP4_SIMD_DYN \
+                || total_errors=$((total_errors+1))
+        done
     fi
 
     if [ $total_errors -gt 0 ]; then

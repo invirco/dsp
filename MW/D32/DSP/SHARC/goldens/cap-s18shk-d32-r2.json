@@ -1,0 +1,43 @@
+{
+ "chips": [
+  {
+   "block": 16,
+   "block_kernels": 1,
+   "block_rate": 3000.0,
+   "budget": 327679,
+   "build_cfg": "0xCF45FF10",
+   "build_cfg2": "0xC2010264",
+   "cclk_decoded_hz": 983040000,
+   "cclk_hz": 983038466,
+   "cclk_measured_hz": 983038466,
+   "cclk_source": "measured",
+   "cfg_cclk": 2,
+   "cgu0_ctl": "0x00005000",
+   "cgu0_div": "0x451442C1",
+   "chip": 1,
+   "cleared": false,
+   "decimate": 1,
+   "frames": 135056,
+   "gather_first": 1,
+   "overrun_pct": 0.0,
+   "overruns": 0,
+   "proc_cyc": 309770,
+   "proc_cyc_max": 310211,
+   "proc_cyc_max_pct": 94.67,
+   "proc_cyc_max_raw": 364139,
+   "proc_cyc_max_raw_pct": 111.13,
+   "proc_cyc_pct": 94.53,
+   "proc_passes": 217399,
+   "seconds": 45.0,
+   "simd_dyn": 0,
+   "strip_fused": 0,
+   "tick_rate": 999.998,
+   "tperiod": 983040,
+   "tx_early": 2
+  },
+  {
+   "chip": 2,
+   "error": "register 0xE00A never settled: {'0xd': 1, '0xf': 1, '0x11': 1, '0x12': 1, '0x14': 1, '0x16': 1, '0x18': 1, '0x19': 1, '0x1b': 1, '0x1d': 1, '0x1f': 1, '0x20': 1}"
+  }
+ ]
+}

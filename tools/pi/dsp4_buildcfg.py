@@ -62,6 +62,15 @@ FLAGS2 = [
     (4, 'DSP4_SCOPE_BLK_TAP'),
     (6, 'DSP4_GATHER_FIRST'),
     (7, 'DSP4_FX_TYPE_DECLARED'),
+    # ADDED S18. diag.h has carried these since S12/S14/S15 -- they were put
+    # in the word precisely because a switch that changes cost or audio and
+    # cannot be read back is a gap the next session pays for -- and this
+    # decoder, the only thing that reads the word, never learned them. So
+    # `dsp4_buildcfg.py` reported `off2: ...` for four switches it was not
+    # looking at, which is the S12-7 shape one layer down.
+    (10, 'DSP4_DYN_LUT'),
+    (11, 'DSP4_GATE_LINTHR'),
+    (12, 'DSP4_C2_BQ_GRAPH'),
 ]
 # DSP4_BLOCK_DECIMATE != 1 means the graph runs on one block in N: the audio
 # is wrong and the cycle count is an instrument's, not the product's.
@@ -135,7 +144,13 @@ def decode2(word):
          # A PER-CHIP MASK, not a flag: 1 = chip 1's inter-chip TX,
          # 2 = chip 2's converter TX, 3 = both. Each chip that has it on
          # adds a block of output latency, so the value is the cost.
-         'DSP4_TX_EARLY': (word >> 8) & 3}
+         'DSP4_TX_EARLY': (word >> 8) & 3,
+         # Two-bit fields, like TX_EARLY: the VALUE is the cost.
+         'DSP4_BQ_SIMD_PIPE': (word >> 13) & 3,
+         # THE SHARED-KERNEL CLASS MASK (S18). Two bits, and they are not
+         # adjacent -- diag.h had exactly two spare bits left. bit 5 is mask
+         # bit 0, bit 15 is mask bit 1.
+         'DSP4_SHARED_KERNELS': ((word >> 5) & 1) | (((word >> 15) & 1) << 1)}
     for bit, name in FLAGS2:
         d[name] = (word >> bit) & 1
     return d
@@ -154,6 +169,14 @@ def describe2(d):
                      % (d['DSP4_TX_EARLY'],
                         {1: 'chip 1 IC TX', 2: 'chip 2 TX',
                          3: 'both chips'}[d['DSP4_TX_EARLY']]))
+    if d['DSP4_BQ_SIMD_PIPE']:
+        lines.append('DSP4_BQ_SIMD_PIPE %d' % d['DSP4_BQ_SIMD_PIPE'])
+    if d['DSP4_SHARED_KERNELS']:
+        lines.append('DSP4_SHARED_KERNELS %d (%s) — that class runs ONE body '
+                     'for all 32 strips'
+                     % (d['DSP4_SHARED_KERNELS'],
+                        ', '.join(n for b, n in ((1, 'COMP'), (2, 'class 2'))
+                                  if d['DSP4_SHARED_KERNELS'] & b)))
     on = [n for _, n in FLAGS2 if d[n]]
     off = [n for _, n in FLAGS2 if not d[n]]
     lines.append('on2:  ' + (', '.join(on) or '-'))

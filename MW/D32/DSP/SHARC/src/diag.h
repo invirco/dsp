@@ -385,9 +385,22 @@
 #ifndef DSP4_GATE_LINTHR
 #define DSP4_GATE_LINTHR 0
 #endif
+/* SHARED PER-STRIP KERNELS (S18). A CLASS MASK, and it changes cost by
+ * tens of kilobytes of code pool and a measurable number of cycles, so by
+ * the rule above it has to be readable off the part. There are two spare
+ * bits in this word and the mask has two classes' worth of room in it:
+ * bit 5 carries mask bit 0 and bit 15 carries mask bit 1. A THIRD shared
+ * class needs a wider field here, and adding one without widening it is
+ * exactly the S12-7 hole reopening -- so it is said here rather than left
+ * to be discovered. */
+#ifndef DSP4_SHARED_KERNELS
+#define DSP4_SHARED_KERNELS 0
+#endif
 
 #define DIAG_BUILD_CFG2_VALUE ( 0xC2000000                              \
     | ((DSP4_BLOCK_DECIMATE   & 0xFF) << 16)                            \
+    | (((DSP4_SHARED_KERNELS >> 1) & 1) << 15)                          \
+    | (( DSP4_SHARED_KERNELS       & 1) <<  5)                          \
     | ((DSP4_BQ_SIMD_PIPE     & 3) << 13)                               \
     | ((DSP4_C2_BQ_GRAPH      & 1) << 12)                               \
     | ((DSP4_GATE_LINTHR      & 1) << 11)                               \

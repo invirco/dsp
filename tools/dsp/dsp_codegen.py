@@ -12891,6 +12891,441 @@ FIXED_GENERATORS = {
 
 
 # ===========================================================================
+# SHARED PER-STRIP KERNELS (DSP4_SHARED_KERNELS)
+#
+# 85 % of chip 1's code pool is 32 copies of 9 kernels. The copies are not
+# nearly identical, they ARE identical: normalise the node id and the SIMD
+# pool suffix and all 32 emitted bodies of a class are the same text, byte
+# for byte (the check below proves it on every run rather than assuming it).
+# What differs is only WHICH per-node words the instructions address.
+#
+# PW's 2026-08-24 fusion directive is not being reversed here. Fusion is
+# about what happens INSIDE a kernel -- intermediates in registers, stage
+# handoff without a memory round trip -- and every bit of that stays. What
+# changes is the emitted COPY COUNT: one body, entered per strip with that
+# strip's record base in a register.
+#
+# HOW A STRIP IS ADDRESSED, and why this is nearly free.
+#
+# A node's per-node `.var`s are declared consecutively in one object, so the
+# linker lays them out as a contiguous RECORD -- measured on the shipping
+# map: COMP's 32 records are 44 words apart to the word, GATE's 52, TUBE's
+# 8, GAIN's 12, FDR's 16, with no gaps inside one. So every
+# `dm(_comp_relq_C1_COMP_07)` in the body becomes `dm(OFF_relq, i7)` with
+# i7 holding that node's record base: a pre-modify with an immediate, which
+# is ONE instruction exactly as the direct access was. The kernel does not
+# get slower per access; it gets an entry cost instead.
+#
+# THE LAYOUT IS NOT ASSUMED. `tools/dsp/shared_kernel_check.py` reads the
+# linker map after the build and asserts, for every node of every shared
+# class, that each field sits at base + the offset the generator emitted.
+# If the assembler ever reorders or pads, the build fails loudly instead of
+# addressing the wrong word (no-fallback policy).
+#
+# WHAT IT COSTS, per node per block: the stub's register set-up and one
+# unconditional jump. It is a JUMP and not a CALL because the graph already
+# pays a call per node per block -- `process_chain` has done
+# `call _C1_COMP_07_process` since DSP4_BLOCK_KERNELS landed -- so the stub
+# stands where the body used to and the body's own `rts` returns to the
+# chain. Measured on this part (D66): a taken unconditional jump is +6.02
+# cycles, a call/rts pair +15.04.
+#
+# BOTH FORMS ARE EMITTED, and the switch is a build flag, not a
+# regeneration: the node file carries the stub arm and the inline arm under
+# `#if (DSP4_SHARED_KERNELS & <bit>)`, and the shared body lives in
+# `<chip>/shared_kernels.asm` under the same test. One tree builds both
+# arms, which is what makes the A/B a paired measurement.
+# ---------------------------------------------------------------------------
+
+# class -> (bit, first field of the record, spare DAG index register for the
+# record base, spare DAG index register for the predecessor scalar buffer).
+#
+# THE REGISTERS ARE NOT FREE BY ASSERTION. They are the ones no callee on
+# this class's path touches: `dyn_fx.asm` uses i0/l0/b0, `mac64_fx.asm`
+# i2/l2, `dyn_lut_fx.asm` i0/i1/i6/l0/l1, `biquad_fx.asm` i0-i4 and l0-l5.
+# i5 and i7 survive all of them, and the class's own body is checked below
+# for any use of either.
+# TUBE is here as the SECOND MEASURED POINT and not because it is the next
+# best lever: at 12,480 bytes it is the fifth. It is the class with NO base
+# load and NO address load inside its sample loop, so the pair (COMP, TUBE)
+# separates the entry cost a stub always pays from the per-access cost only
+# some classes pay -- which is what turns §4's table for the other classes
+# from an extrapolation into an interpolation between two measurements.
+SHARED_KERNEL_CLASSES = {
+    'COMP': dict(bit=1, base_reg='i7', prev_reg='i5'),
+    'TUBE': dict(bit=2, base_reg='i7', prev_reg='i5'),
+}
+
+
+_SHK_PM = re.compile(r'^[ \t]*\.section/pm[ \t]+seg_pmco[ \t]*;[ \t]*$', re.M)
+_SHK_VAR = re.compile(r'^[ \t]*\.var[ \t]+(_[A-Za-z0-9_]+)[ \t]*(?:\[([^\]]+)\])?')
+_SHK_COND = re.compile(r'^[ \t]*#(if|ifdef|ifndef|else|elif|endif)\b(.*)$')
+
+
+def _shk_class_of(nid):
+    m = NODE_RE_SHK.match(nid)
+    return m.group(2) if m else None
+
+
+NODE_RE_SHK = re.compile(r'^C(\d)_([A-Z0-9]+(?:_[A-Z0-9]+)*?)_(\d+)$')
+
+
+def _shk_record(dm_text, cls, nid):
+    """The per-node record: every `.var` of this node, in declaration order,
+    with the word offset of each expressed as a preprocessor expression.
+
+    The offsets are EXPRESSIONS and not numbers because the record's shape
+    is conditional -- DSP4_DYN_LUT adds 342 words in the middle of COMP's --
+    and a number would be right for one build flag and silently wrong for
+    the other. Each `.var` gets `#define <PFX>_OFF_<field> (<previous> +
+    <previous length>)`, emitted inside the SAME preprocessor conditionals
+    the declaration sits in, and every conditional block closes by defining
+    a cursor symbol in both arms so the running offset survives the join.
+
+    Returns (defines_text, {field: macro_name}, order).
+    """
+    pfx = 'SHK_%s' % cls
+    lines = dm_text.splitlines()
+    out, fields, order = [], {}, []
+    cursor = '0'
+    depth = 0
+    ncur = 0
+    # For each open conditional: (cursor_at_entry, cursor_symbol, seen_else)
+    stack = []
+    for ln in lines:
+        c = _SHK_COND.match(ln)
+        if c:
+            kind = c.group(1)
+            if kind in ('if', 'ifdef', 'ifndef'):
+                out.append(ln.strip())
+                stack.append([cursor, '%s_CUR%d' % (pfx, ncur), False])
+                ncur += 1
+                depth += 1
+            elif kind in ('else', 'elif'):
+                if not stack:
+                    raise ValueError('shared kernels: unbalanced #else in %s' % nid)
+                top = stack[-1]
+                out.append('#define %s (%s)' % (top[1], cursor))
+                out.append(ln.strip())
+                top[2] = True
+                cursor = top[0]
+            else:  # endif
+                if not stack:
+                    raise ValueError('shared kernels: unbalanced #endif in %s' % nid)
+                top = stack.pop()
+                depth -= 1
+                out.append('#define %s (%s)' % (top[1], cursor))
+                if not top[2]:
+                    out.append('#else')
+                    out.append('#define %s (%s)' % (top[1], top[0]))
+                out.append('#endif')
+                cursor = top[1]
+            continue
+        v = _SHK_VAR.match(ln)
+        if not v:
+            continue
+        name, ln_expr = v.group(1), v.group(2)
+        field = _shk_field(name, nid)
+        macro = '%s_OFF_%s' % (pfx, field)
+        out.append('#define %-28s (%s)' % (macro, cursor))
+        fields[field] = macro
+        order.append((field, ln_expr or '1', depth))
+        cursor = '%s + %s' % (macro, ln_expr or '1')
+    if stack:
+        raise ValueError('shared kernels: unterminated #if in %s' % nid)
+    out.append('#define %-28s (%s)' % ('%s_REC_LEN' % pfx, cursor))
+    return '\n'.join(out), fields, order
+
+
+def _shk_field(sym, nid):
+    """`_comp_relq_C1_COMP_07` -> `comp_relq`; `_buf_C1_COMP_07` -> `buf`."""
+    if not sym.endswith('_' + nid):
+        raise ValueError('shared kernels: %r is not a per-node symbol of %s'
+                         % (sym, nid))
+    return sym[1:-len(nid) - 1]
+
+
+def _shk_rewrite(code, nid, prev_buf, fields, cls, base_reg, prev_reg):
+    """Turn one node's emitted code into the shared body.
+
+    Every rewrite is checked: anything left naming this node, or naming a
+    field the record does not hold, is a hard error. A shared kernel that
+    silently kept one absolute address would address strip 1's word from
+    every strip, and the audio would be wrong in a way no byte count shows.
+    """
+    pfx = 'SHK_%s' % cls
+    sym = r'_([a-z][A-Za-z0-9_]*)_' + re.escape(nid)
+
+    def off(field, extra=None):
+        if field not in fields:
+            raise ValueError('shared kernels (%s): field %r is referenced by '
+                             'the body and is not in the record' % (cls, field))
+        return fields[field] if extra is None else '%s + %s' % (fields[field], extra)
+
+    n_dm = n_ireg = n_rreg = n_prev = 0
+
+    # 1. the predecessor node's one-word scalar buffer, which lives in ANOTHER
+    #    node's record and so needs its own pointer.
+    if prev_buf:
+        code, k = re.subn(r'dm\(\s*%s\s*\)' % re.escape(prev_buf),
+                          'dm(%s, 0)' % prev_reg, code)
+        n_prev = k
+
+    # 2. direct accesses: dm(_field_<nid>) and dm(_field_<nid> + k)
+    def _dm(m):
+        return 'dm(%s, %s)' % (off(m.group(1), m.group(2)), base_reg)
+    code, n_dm = re.subn(r'dm\(\s*%s\s*(?:\+\s*([0-9]+)\s*)?\)' % sym, _dm, code)
+
+    # 3. a base loaded into a DAG index register
+    def _ireg(m):
+        return ('%s = %s;\n            modify(%s, %s);'
+                % (m.group(1), base_reg, m.group(1), off(m.group(2))))
+    code, n_ireg = re.subn(r'\b(i[0-7])\s*=\s*%s\s*;' % sym, _ireg, code)
+
+    # 4. a base loaded into a data register (the LUT design step passes four)
+    def _rreg(m):
+        return ('%s = %s;\n            %s = %s + %s;'
+                % (m.group(1), base_reg, m.group(1), m.group(1), off(m.group(2))))
+    code, n_rreg = re.subn(r'\b(r[0-9]|r1[0-5])\s*=\s*%s\s*;' % sym, _rreg, code)
+
+    # 5. labels and entry points
+    code = code.replace('_%s_process_sample' % nid, '_shk_%s_smp' % cls.lower())
+    code = code.replace('_%s_process' % nid, '_shk_%s_blk' % cls.lower())
+    code = re.sub(r'(\.[A-Za-z_][A-Za-z0-9_]*)_' + re.escape(nid) + r'\b',
+                  r'\1_shk' + cls.lower(), code)
+
+    # 6. the checks. A node's own comments legitimately name its id and the
+    #    pool slots (the block-kernel body carries a long note about both),
+    #    so the checks run on the code with comments stripped -- what matters
+    #    is that no INSTRUCTION still reaches strip 1's words.
+    bare = re.sub(r'/\*.*?\*/', '', code, flags=re.S)
+    left = re.findall(r'[A-Za-z0-9_.]*' + re.escape(nid) + r'[A-Za-z0-9_.]*', bare)
+    if left:
+        raise ValueError('shared kernels (%s): %d reference(s) to %s survived '
+                         'the rewrite: %s' % (cls, len(left), nid,
+                                              sorted(set(left))[:6]))
+    if re.search(r'BLK_[A-Z_0-9]+', bare):
+        raise ValueError('shared kernels (%s): the body still names a block '
+                         'pool slot after the stub took them over: %s'
+                         % (cls, sorted(set(re.findall(r'BLK_[A-Z_0-9]+', bare)))))
+    for reg in (base_reg, prev_reg):
+        if re.search(r'\b%s\s*=' % reg, bare):
+            raise ValueError('shared kernels (%s): the body assigns %s, which '
+                             'is the register the stub passes it a strip in'
+                             % (cls, reg))
+    return code, dict(dm=n_dm, ireg=n_ireg, rreg=n_rreg, prev=n_prev)
+
+
+_SHK_PROLOGUE = re.compile(
+    r'^([ \t]*l3[ \t]*=[ \t]*0[ \t]*;[ \t]*\n'
+    r'[ \t]*l4[ \t]*=[ \t]*0[ \t]*;[ \t]*\n'
+    r'[ \t]*i3[ \t]*=[ \t]*(BLK_CHAIN_[AB](?:_P1)?)[ \t]*;[ \t]*\n'
+    r'[ \t]*i4[ \t]*=[ \t]*(BLK_CHAIN_[AB](?:_P1)?)[ \t]*;[ \t]*\n)', re.M)
+
+
+def gen_shared_kernels(chip_label, chip_nodes, bodies, headers,
+                       nodes_dir, output_dir):
+    """Emit one callable body per shared class and reduce its nodes to stubs.
+
+    Called after every node body is final -- after the block wrap, the global
+    and extern passes and the odd-pool rewrite -- because the thing being
+    shared is the body that would otherwise be assembled 32 times, not an
+    intermediate of it.
+
+    Returns a list of (class, copies, bytes-unknown) rows for the log; sizes
+    come from the linker map, not from here.
+    """
+    present = {}
+    for n in chip_nodes:
+        cls = _shk_class_of(n['id'])
+        if cls in SHARED_KERNEL_CLASSES and n['id'] in bodies:
+            present.setdefault(cls, []).append(n['id'])
+    if not present:
+        return []
+
+    rows = []
+    shared_out = []
+    for cls in sorted(present):
+        spec = SHARED_KERNEL_CLASSES[cls]
+        nids = sorted(present[cls])
+        base_reg, prev_reg, bit = spec['base_reg'], spec['prev_reg'], spec['bit']
+
+        # ---- the premise, checked on every run ----------------------------
+        # All 32 bodies must be ONE body. Normalise the node id, the SIMD
+        # pool suffix and the predecessor buffer's node id, and compare. A
+        # class where they differ is not shareable and says so here rather
+        # than shipping 32 kernels that are subtly not the same.
+        norm = {}
+        for nid in nids:
+            t = bodies[nid]
+            t = t.replace(nid, '@NODE@')
+            t = re.sub(r'BLK_([A-Z_]+)_P1\b', r'BLK_\1', t)
+            t = re.sub(r'_buf_C\d_[A-Z0-9_]+', '_buf_@PREV@', t)
+            # The node's own SPI coordinates are a COMMENT and they are the
+            # only per-node text outside the addressing. Blanked for the
+            # comparison and kept in the node file, where it belongs.
+            t = re.sub(r'SPI page=\d+ addr=\d+', 'SPI page=@ addr=@', t)
+            norm.setdefault(t, []).append(nid)
+        if len(norm) != 1:
+            groups = sorted(norm.values(), key=len, reverse=True)
+            raise ValueError(
+                'shared kernels (%s, %s): the %d emitted bodies are not one '
+                'body -- %d distinct forms, e.g. %s vs %s. A class is only '
+                'shareable when its copies differ in nothing but which words '
+                'they address.'
+                % (chip_label, cls, len(nids), len(norm),
+                   groups[0][0], groups[1][0]))
+
+        canon = nids[0]
+        body = bodies[canon]
+        m = _SHK_PM.search(body)
+        if not m:
+            raise ValueError('shared kernels (%s): %s has no `.section/pm '
+                             'seg_pmco;` to split at' % (cls, canon))
+        pre, pm = body[:m.end()], body[m.end():]
+
+        gm = re.search(r'^[ \t]*\.global[ \t]+_%s_process[ \t]*;[ \t]*$'
+                       % re.escape(canon), pm, re.M)
+        if not gm:
+            raise ValueError('shared kernels (%s): %s does not declare '
+                             '`_<nid>_process` global' % (cls, canon))
+        externs, code = pm[:gm.start()], pm[gm.start():]
+
+        # ---- the record ---------------------------------------------------
+        defines, fields, order = _shk_record(pre, cls, canon)
+
+        # ---- the predecessor's one-word buffer ----------------------------
+        prevs = sorted(set(re.findall(r'_buf_C\d_[A-Z0-9_]+', code))
+                       - {'_buf_%s' % canon})
+        if len(prevs) > 1:
+            raise ValueError('shared kernels (%s): the body reads more than '
+                             'one other node\'s scalar buffer (%s); the stub '
+                             'passes exactly one' % (cls, prevs))
+        prev_buf = prevs[0] if prevs else None
+
+        # ---- the pool prologue, which moves into the stub -----------------
+        pm_all = _SHK_PROLOGUE.findall(code)
+        if len(pm_all) != 1:
+            raise ValueError(
+                'shared kernels (%s): expected exactly one block-pool '
+                'prologue (l3/l4 + i3/i4) in the body, found %d. The emitter '
+                'has moved; update _SHK_PROLOGUE.' % (cls, len(pm_all)))
+        code = _SHK_PROLOGUE.sub('', code, count=1)
+
+        shared_code, counts = _shk_rewrite(code, canon, prev_buf, fields,
+                                           cls, base_reg, prev_reg)
+
+        shared_out.append((cls, bit, defines, externs, shared_code, counts,
+                           len(nids)))
+
+        # ---- the stubs ----------------------------------------------------
+        for nid in nids:
+            b = bodies[nid]
+            mm = _SHK_PM.search(b)
+            npre, npm = b[:mm.end()], b[mm.end():]
+            g2 = re.search(r'^[ \t]*\.global[ \t]+_%s_process[ \t]*;[ \t]*$'
+                           % re.escape(nid), npm, re.M)
+            nex, ncode = npm[:g2.start()], npm[g2.start():]
+            pro = _SHK_PROLOGUE.search(ncode)
+            prologue = pro.group(1)
+            # THIS node's predecessor, read off THIS node's body. Deriving it
+            # by substituting the node number into the canonical node's
+            # predecessor is how strip 7's compressor came to be handed strip
+            # 1's gate buffer in the first draft of this pass.
+            nprev = sorted(set(re.findall(r'_buf_C\d_[A-Z0-9_]+', ncode))
+                           - {'_buf_%s' % nid})
+            if len(nprev) != (1 if prev_buf else 0):
+                raise ValueError(
+                    'shared kernels (%s): %s reads %d other nodes\' scalar '
+                    'buffers (%s) where the canonical body reads %d'
+                    % (cls, nid, len(nprev), nprev, 1 if prev_buf else 0))
+            nprev = nprev[0] if nprev else None
+            rec_base = '_%s_%s' % (order[0][0], nid)
+
+            stub = ['#if (DSP4_SHARED_KERNELS & %d)' % bit,
+                    '/* SHARED KERNEL (S18). The body this node used to carry '
+                    'inline is',
+                    ' * `_shk_%s_blk` in %s/shared_kernels.asm, entered with this'
+                    % (cls.lower(), chip_label),
+                    " * node's record base in %s. See SHARED_KERNEL_CLASSES in"
+                    % base_reg,
+                    ' * tools/dsp/dsp_codegen.py for why this is a jump and not '
+                    'a call. */',
+                    '.extern _shk_%s_blk;' % cls.lower(),
+                    '.extern _shk_%s_smp;' % cls.lower(),
+                    '.global _%s_process;' % nid,
+                    '_%s_process:' % nid,
+                    prologue.rstrip('\n'),
+                    '    %s = %s;' % (base_reg, rec_base),
+                    '    l%s = 0;' % base_reg[1]]
+            if nprev:
+                stub += ['    %s = %s;' % (prev_reg, nprev),
+                         '    l%s = 0;' % prev_reg[1]]
+            stub += ['    jump _shk_%s_blk;' % cls.lower(),
+                     '_%s_process.end:' % nid,
+                     '.global _%s_process_sample;' % nid,
+                     '_%s_process_sample:' % nid,
+                     '    %s = %s;' % (base_reg, rec_base),
+                     '    l%s = 0;' % base_reg[1]]
+            if nprev:
+                stub += ['    %s = %s;' % (prev_reg, nprev),
+                         '    l%s = 0;' % prev_reg[1]]
+            stub += ['    jump _shk_%s_smp;' % cls.lower(),
+                     '_%s_process_sample.end:' % nid,
+                     '#else']
+            new = npre + nex + '\n'.join(stub) + '\n' + ncode + '#endif\n'
+            with open(os.path.join(nodes_dir, '%s.asm' % nid), 'w',
+                      encoding='utf-8') as f:
+                f.write(headers[nid] + '\n' + new)
+        rows.append((cls, len(nids), counts))
+
+    # ---- the one file that now holds the class's code ---------------------
+    incs = re.findall(r'^[ \t]*#include[ \t]+"[^"]+"', bodies[canon], re.M)
+    txt = ['/* %s — SHARED PER-STRIP KERNELS (DSP4_SHARED_KERNELS) */'
+           % chip_label.upper(),
+           '/* AUTO-GENERATED by tools/dsp/dsp_codegen.py — do not edit '
+           'directly. */',
+           '/*',
+           ' * ONE body per class, entered per strip with that strip\'s record',
+           ' * base in a DAG register. The bodies here are the SAME emitters\'',
+           ' * output as the inline arm in the node files -- generated from one',
+           ' * node and rewritten from absolute per-node addresses to record',
+           ' * offsets -- so the two arms cannot drift apart.',
+           ' *',
+           ' * The record layout is checked against the linker map after the',
+           ' * build by tools/dsp/shared_kernel_check.py. Do not assume it.',
+           ' */',
+           '#include "dsp_block.h"']
+    for i in incs:
+        if 'dsp_block.h' not in i:
+            txt.append(i.strip())
+    txt.append('')
+    txt.append('#if !DSP4_BLOCK_KERNELS && DSP4_SHARED_KERNELS')
+    txt.append('#error "DSP4_SHARED_KERNELS needs DSP4_BLOCK_KERNELS: the '
+               'stub stands where a per-block kernel call already was."')
+    txt.append('#endif')
+    for cls, bit, defines, externs, shared_code, counts, ncopies in shared_out:
+        txt += ['',
+                '/* ==== %s: one body for %d strips ====' % (cls, ncopies),
+                ' * rewritten sites: %d direct accesses, %d DAG base loads, '
+                '%d address-to-register,' % (counts['dm'], counts['ireg'],
+                                             counts['rreg']),
+                ' * %d predecessor-buffer accesses. */' % counts['prev'],
+                '#if (DSP4_SHARED_KERNELS & %d)' % bit,
+                defines,
+                '',
+                '.section/pm seg_pmco;',
+                externs.strip('\n'),
+                shared_code.rstrip('\n'),
+                '#endif']
+    path = os.path.join(output_dir, chip_label, 'shared_kernels.asm')
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write('\n'.join(txt) + '\n')
+    return rows
+
+
+
+# ===========================================================================
 # Main generation
 # ===========================================================================
 
@@ -14707,6 +15142,7 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                 for src in cls.values():
                     odd_pool_ids.update(_mtr_after.get(src, []))
 
+        shk_bodies, shk_headers = {}, {}
         for node in chip_nodes:
             # call_sequence starts in dsp.csv order and is then repaired
             # for producer-before-consumer below (D5). The METER move is a
@@ -14788,6 +15224,12 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                     and blk_out[_nid_] and blk_out[_nid_][0] == 'blk'):
                 rx_redirect[_nid_] = (f'_rx_slot_{_nid_}', blk_out[_nid_][1])
             content = header + '\n' + body
+            # Kept for the shared-kernel post-pass below, which needs the
+            # FINAL body -- after the block wrap, the global/extern passes and
+            # the odd-pool rewrite -- because that is the text that would
+            # otherwise be assembled once per strip.
+            shk_bodies[node['id']] = body
+            shk_headers[node['id']] = header
 
             asm_path = os.path.join(nodes_dir, f"{node['id']}.asm")
             # Skip if: not forced AND file exists AND not specifically targeted by type filter
@@ -14798,6 +15240,18 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
             with open(asm_path, 'w', encoding='utf-8') as f:
                 f.write(content)
             files_written += 1
+
+        # SHARED PER-STRIP KERNELS. After every body is final and before
+        # anything reads the chain: the node files are rewritten in place with
+        # both arms and the class's one body is written to
+        # <chip>/shared_kernels.asm. With DSP4_SHARED_KERNELS=0 the image is
+        # byte-identical to the tree that never had this pass.
+        _shk_rows = gen_shared_kernels(chip_label, chip_nodes, shk_bodies,
+                                       shk_headers, nodes_dir, output_dir)
+        for _cls, _n, _c in _shk_rows:
+            print(f'  {chip_label}: {_cls} shared across {_n} strips '
+                  f'({_c["dm"]} direct + {_c["ireg"]} base + {_c["rreg"]} addr '
+                  f'+ {_c["prev"]} prev-buf sites rewritten)')
 
         # GRAPH PROCESS-ORDER CHECK AND REPAIR (review finding D5).
         # Resolved from dsp.csv's `inputs`, not from the emitted order.

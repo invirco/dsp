@@ -439,11 +439,25 @@ worst block **71.71 – 71.97 %** of budget, 0.1–0.3 % above `_proc_cyc`, zero
 overruns over 135,056 blocks each. The raw latch reproduces S10-8's 277,752
 to the digit (277,743), which is what identifies it.
 
-**Chip 2's D24 cost is boot-dependent by ten points and is filed, not
-explained** (S17-6): 92.88 % with zero overruns on one boot, 102.83 % with
-2.49 % of blocks missed on two others, same image, same product, same
-measured clock. **`REPS=1` is not a capacity measurement for chip 2.** No
-chip-2 number in this note is adjusted on the strength of it.
+~~**Chip 2's D24 cost is boot-dependent by ten points and is filed, not
+explained** (S17-6).~~ **EXPLAINED AND SUPERSEDED, 2026-09-10 (S18-1).**
+It is not boot dependence: chip 2's MAIN and SUB dynamics have a cheap
+branch below threshold and an expensive one above it, and how many are
+above it is what the bench happened to be carrying. Across six boots,
+fifteen of 347 chip-2 words differ and every one is a dynamics envelope —
+5 live limiters → 92.67–92.84 % with zero overruns, 6 lim + 5 comp →
+95.84 %, 7 lim + 7 comp + 1 gate → **103.14 % with 2.999 % of blocks
+missed**. Driven deliberately, three boots, reproducible to 0.03 points:
+**chip 2 reads 112.3 % of budget and misses 10.9 % of blocks.**
+
+**THE D24 CHIP-2 FIGURE IN THIS NOTE IS A SILENCE FIGURE, AND SO IS EVERY
+OTHER `capacity.sh` NUMBER IN THE TREE.** The number a budget has to cover
+is the loaded one, and on that number **D24 does not fit on the shipping
+default**. Chip 1 is unaffected — its cost is signal-independent, measured
+on the same boots. The lever is S16-6's LIMITER on `DSP4_DYN_LUT`
+(253.3 → 92.1 c/sample-pair) against chip 2's 18 limiters and 10
+compressors; it is PW's call and it is now the most urgent item in this
+note. Write-up `MW/D32/DSP/dsp4-s18-20260910.md` §1.
 
 ### Decision table, refreshed
 
@@ -456,9 +470,12 @@ chip-2 number in this note is adjusted on the strength of it.
 | D79 | closed — fixed in firmware since 2026-08-31; both pairs carry the fix | same |
 | D24 chip 1 worst block | — | **71.7 – 72.0 % measured on the S17 default; `s16_*`'s own row is S16's 60.3 %** |
 | symbol map staged beside the pair | yes (`blk_*` predates the practice) | **no** — stage `chipN.sym.json` beside every prefixed pair from now on |
+| **D24 chip 2 UNDER LOAD** | **112.3 %, 10.9 % of blocks missed** (S18-1) — the silent 92.7 % is the cheap branch | same; neither pair changes chip 2 |
+| chip 1 code pool | 235,064 / 262,144, 27,080 free (388 on the candidate arm) | **`DSP4_SHARED_KERNELS=3` returns 38,634 bytes for +0.69 points of D24 chip 1** — staged `s18_*` `37ce203c…` / `ffbf0ab6…`, default OFF (S18-2) |
 
 **Rollback is unchanged; §3 stands.** `~/dspboot/ship_*` and `blk_*` are
-untouched and byte-identical, all 221 staged files intact, and the bench was
-left booted on `blk_*` — `BOOT_STAGE 7` on both chips, `CHIP_ID` 1 and 2
-verified, **zero overruns over 90,004 blocks per chip**, `matrix-app` active,
-CPLD `dsp4_logic.a1f6672af6c3`.
+untouched and byte-identical, all 221 staged files intact (223 with S18's
+`s18_*`), and the bench was left booted on `blk_*` — `BOOT_STAGE 7` on both
+chips, `CHIP_ID` 1 and 2 verified, **zero overruns on both chips over a
+30 s dwell after `DIAG_CLEAR`**, `matrix-app` active, CPLD
+`dsp4_logic.a1f6672af6c3`.
