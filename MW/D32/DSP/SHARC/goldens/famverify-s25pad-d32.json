@@ -1,0 +1,4135 @@
+{
+ "bq_arm": "float",
+ "chips": {
+  "1": {
+   "build_cfg": "0xCF45FF10",
+   "healthy": true,
+   "ready": true
+  },
+  "2": {
+   "build_cfg": "0xCF45FF10",
+   "healthy": true,
+   "ready": true
+  }
+ },
+ "cross_check": {
+  "disagreements": 0,
+  "rows": [
+   {
+    "cell": "Chan001CompAtt001",
+    "constant": "COMP_ATT   0x003B",
+    "landed": 59,
+    "transcribed": 59,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001CompKnee001",
+    "constant": "COMP_KNEE  0x003E",
+    "landed": 62,
+    "transcribed": 62,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001CompMake001",
+    "constant": "COMP_MKUP  0x003D",
+    "landed": 61,
+    "transcribed": 61,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001CompOn001",
+    "constant": "COMP_ON    0x0038",
+    "landed": 56,
+    "transcribed": 56,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001CompPar001",
+    "constant": "COMP_PAR   0x003F",
+    "landed": 63,
+    "transcribed": 63,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001CompRat001",
+    "constant": "COMP_RATIO 0x003A",
+    "landed": 58,
+    "transcribed": 58,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001CompRel001",
+    "constant": "COMP_REL   0x003C",
+    "landed": 60,
+    "transcribed": 60,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001CompThr001",
+    "constant": "COMP_THR   0x0039",
+    "landed": 57,
+    "transcribed": 57,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001Delay001",
+    "constant": "DLY_OFF    0x004E",
+    "landed": 78,
+    "transcribed": 78,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001EqFreq001",
+    "constant": "EQ_B1      0x0010",
+    "landed": 16,
+    "transcribed": 16,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001Level001",
+    "constant": "FDR_LEVEL  0x0050",
+    "landed": 80,
+    "transcribed": 80,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001Mute001",
+    "constant": "FDR_MUTE   0x0052",
+    "landed": 82,
+    "transcribed": 82,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001Pan001",
+    "constant": "FDR_PAN    0x0051",
+    "landed": 81,
+    "transcribed": 81,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001EqHpf001",
+    "constant": "FILT_HPF   0x0004",
+    "landed": 4,
+    "transcribed": 4,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001EqLpf001",
+    "constant": "FILT_LPF   0x000A",
+    "landed": 10,
+    "transcribed": 10,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001Gain001",
+    "constant": "GAIN_OFF   0x0000",
+    "landed": 0,
+    "transcribed": 0,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001GateAtt001",
+    "constant": "GATE_ATT   0x002A",
+    "landed": 42,
+    "transcribed": 42,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001GateHold001",
+    "constant": "GATE_HOLD  0x002B",
+    "landed": 43,
+    "transcribed": 43,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001GateOn001",
+    "constant": "GATE_ON    0x0028",
+    "landed": 40,
+    "transcribed": 40,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001GateRel001",
+    "constant": "GATE_REL   0x002C",
+    "landed": 44,
+    "transcribed": 44,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001GateRng001",
+    "constant": "GATE_RNG   0x002D",
+    "landed": 45,
+    "transcribed": 45,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001GateThr001",
+    "constant": "GATE_THR   0x0029",
+    "landed": 41,
+    "transcribed": 41,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001MainOn001",
+    "constant": "RTG_MAINON 0x0054",
+    "landed": 84,
+    "transcribed": 84,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001TubeOn001",
+    "constant": "TUBE_ON    0x004C",
+    "landed": 76,
+    "transcribed": 76,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001TubeSat001",
+    "constant": "TUBE_SAT   0x004D",
+    "landed": 77,
+    "transcribed": 77,
+    "verdict": "AGREE"
+   }
+  ]
+ },
+ "families": {
+  "ANTI_FB": {
+   "audio": {
+    "addr": 67,
+    "cell": "Aux001AntiFbNotchGain001",
+    "family": "ANTI_FB",
+    "floor": 0,
+    "floor_delta": 0,
+    "inject": "_rx_ic_slot_C2_RECV_AUX_01",
+    "kind": "scalar",
+    "moved": 64,
+    "offset": 0,
+    "peak": 134217728,
+    "peak_hi": 129060000,
+    "peak_lo": 134217728,
+    "probe_delta": 4294954376,
+    "setup": [
+     {
+      "addr": 0,
+      "cell": "Aux001Level001",
+      "wrote": 1065353216
+     },
+     {
+      "addr": 2,
+      "cell": "Aux001Mute001",
+      "wrote": 0
+     },
+     {
+      "addr": 59,
+      "cell": "Aux001AntiFbOn001",
+      "wrote": 1
+     },
+     {
+      "addr": 60,
+      "cell": "Aux001AntiFbCtrlOn001",
+      "wrote": 1
+     },
+     {
+      "addr": 61,
+      "cell": "Aux001AntiFbNotchFreq001",
+      "wrote": 1148846080
+     },
+     {
+      "addr": 73,
+      "cell": "Aux001AntiFbNotchQ001",
+      "wrote": 1082130432
+     }
+    ],
+    "stim": "impulse",
+    "verdict": "LIVE",
+    "witness": "_buf_C2_AUX_AFB_01",
+    "words": 64
+   },
+   "cells": 240,
+   "chip": 2,
+   "contract": [
+    {
+     "access": "rw",
+     "addr": 60,
+     "cell": "Aux001AntiFbCtrlOn001",
+     "err_delta": 0,
+     "orig": 1,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 61,
+     "cell": "Aux001AntiFbNotchFreq001",
+     "err_delta": 0,
+     "orig": 1148846080,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 62,
+     "cell": "Aux001AntiFbNotchFreq002",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 63,
+     "cell": "Aux001AntiFbNotchFreq003",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 64,
+     "cell": "Aux001AntiFbNotchFreq004",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 65,
+     "cell": "Aux001AntiFbNotchFreq005",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 66,
+     "cell": "Aux001AntiFbNotchFreq006",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 67,
+     "cell": "Aux001AntiFbNotchGain001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 68,
+     "cell": "Aux001AntiFbNotchGain002",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 69,
+     "cell": "Aux001AntiFbNotchGain003",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 70,
+     "cell": "Aux001AntiFbNotchGain004",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 71,
+     "cell": "Aux001AntiFbNotchGain005",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 72,
+     "cell": "Aux001AntiFbNotchGain006",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 73,
+     "cell": "Aux001AntiFbNotchQ001",
+     "err_delta": 0,
+     "orig": 1082130432,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 74,
+     "cell": "Aux001AntiFbNotchQ002",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 75,
+     "cell": "Aux001AntiFbNotchQ003",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 76,
+     "cell": "Aux001AntiFbNotchQ004",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 77,
+     "cell": "Aux001AntiFbNotchQ005",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 78,
+     "cell": "Aux001AntiFbNotchQ006",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 59,
+     "cell": "Aux001AntiFbOn001",
+     "err_delta": 0,
+     "orig": 1,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    }
+   ],
+   "node": "C2_AUX_AFB_01",
+   "note": "six notches per aux"
+  },
+  "AUX_INPUT": {
+   "audio": {
+    "family": "AUX_INPUT",
+    "inject": null,
+    "kind": "scalar",
+    "verdict": "NO_STIMULUS_PATH",
+    "witness": "_buf_C2_BT_IN"
+   },
+   "cells": 24,
+   "chip": 2,
+   "contract": [
+    {
+     "access": "rw",
+     "addr": 1799,
+     "cell": "Bt001Level001",
+     "err_delta": 0,
+     "orig": 1065353216,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 1800,
+     "cell": "Bt001On001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    }
+   ],
+   "node": "C2_BT_IN",
+   "note": "BT/USB/codec auxiliary input; its samples arrive on a TDM slot this bench cannot drive"
+  },
+  "COMPRESSOR": {
+   "audio": {
+    "addr": 57,
+    "cell": "Chan001CompThr001",
+    "family": "COMPRESSOR",
+    "floor": 64,
+    "floor_delta": 147,
+    "inject": "_rx_slot_C1_IN_01",
+    "kind": "scalar",
+    "moved": 64,
+    "offset": 900,
+    "peak": 113086052,
+    "peak_hi": 8667430,
+    "peak_lo": 113086052,
+    "probe_delta": 104418622,
+    "setup": [
+     {
+      "addr": 56,
+      "cell": "Chan001CompOn001",
+      "wrote": 1
+     },
+     {
+      "addr": 63,
+      "cell": "Chan001CompPar001",
+      "wrote": 1120403456
+     },
+     {
+      "addr": 59,
+      "cell": "Chan001CompAtt001",
+      "wrote": 1056964608
+     },
+     {
+      "addr": 60,
+      "cell": "Chan001CompRel001",
+      "wrote": 1056964608
+     }
+    ],
+    "stim": "step",
+    "verdict": "LIVE",
+    "witness": "_buf_C1_COMP_01",
+    "words": 64
+   },
+   "cells": 663,
+   "chip": 1,
+   "contract": [
+    {
+     "access": "rw",
+     "addr": 59,
+     "cell": "Chan001CompAtt001",
+     "err_delta": 0,
+     "orig": 990057071,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 66,
+     "cell": "Chan001CompDetSrc001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 68,
+     "cell": "Chan001CompEqPos001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 70,
+     "cell": "Chan001CompFilterHpf001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 70,
+     "cell": "Chan001CompFilterLpf001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 69,
+     "cell": "Chan001CompFilterOn001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 70,
+     "cell": "Chan001CompFilterQ001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 65,
+     "cell": "Chan001CompKey001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 62,
+     "cell": "Chan001CompKnee001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 67,
+     "cell": "Chan001CompLimMode001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 61,
+     "cell": "Chan001CompMake001",
+     "err_delta": 0,
+     "orig": 1068457001,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 56,
+     "cell": "Chan001CompOn001",
+     "err_delta": 0,
+     "orig": 1,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 63,
+     "cell": "Chan001CompPar001",
+     "err_delta": 0,
+     "orig": 1120403456,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 58,
+     "cell": "Chan001CompRat001",
+     "err_delta": 0,
+     "orig": 1082130432,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 60,
+     "cell": "Chan001CompRel001",
+     "err_delta": 0,
+     "orig": 990057071,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 57,
+     "cell": "Chan001CompThr001",
+     "err_delta": 0,
+     "orig": 3248488448,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 64,
+     "cell": "Chan001CompType001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    }
+   ],
+   "node": "C1_COMP_01",
+   "note": "gain computer + makeup + parallel blend",
+   "numeric": {
+    "node": "COMP",
+    "stimuli": 1,
+    "verdict": "FAILED",
+    "verdicts_against": 1
+   }
+  },
+  "CROSSOVER": {
+   "audio": {
+    "addr": 1436,
+    "cell": "MainL001CrossoverFreq001",
+    "family": "CROSSOVER",
+    "floor": 0,
+    "floor_delta": 0,
+    "inject": "_rx_ic_slot_C2_RECV_MAIN_L",
+    "kind": "scalar",
+    "moved": 64,
+    "offset": 0,
+    "peak": 132735184,
+    "peak_hi": 122351992,
+    "peak_lo": 132735184,
+    "probe_delta": 4293528095,
+    "setup": [
+     {
+      "addr": 1379,
+      "cell": "Main001Level001",
+      "wrote": 1065353216
+     },
+     {
+      "addr": 1381,
+      "cell": "Main001Mute001",
+      "wrote": 0
+     }
+    ],
+    "stim": "impulse",
+    "verdict": "LIVE",
+    "witness": "_buf_C2_MAIN_OEQ_01",
+    "words": 64
+   },
+   "cells": 6,
+   "chip": 2,
+   "contract": [
+    {
+     "access": "rw",
+     "addr": 1436,
+     "cell": "MainL001CrossoverFreq001",
+     "err_delta": 0,
+     "orig": 1114636288,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 1437,
+     "cell": "MainL001CrossoverSlope001",
+     "err_delta": 0,
+     "orig": 24,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 1436,
+     "cell": "MainR001CrossoverFreq001",
+     "err_delta": 0,
+     "orig": 1114636288,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 1437,
+     "cell": "MainR001CrossoverSlope001",
+     "err_delta": 0,
+     "orig": 24,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 1436,
+     "cell": "MainSub001CrossoverFreq001",
+     "err_delta": 0,
+     "orig": 1114636288,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 1437,
+     "cell": "MainSub001CrossoverSlope001",
+     "err_delta": 0,
+     "orig": 24,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    }
+   ],
+   "node": "C2_MAIN_XOVER",
+   "note": "one node, four output chains"
+  },
+  "DCA": {
+   "audio": {
+    "family": "DCA",
+    "inject": null,
+    "kind": "scalar",
+    "verdict": "NO_PROBE",
+    "witness": null
+   },
+   "cells": 16,
+   "chip": 2,
+   "contract": [
+    {
+     "access": "rw",
+     "addr": 1801,
+     "cell": "Dca001Level001",
+     "err_delta": 0,
+     "orig": 1065353216,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 1802,
+     "cell": "Dca001Mute001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    }
+   ],
+   "node": "C2_DCA_01",
+   "note": "HOST-MANAGED since the 2026-08-30 ruling (D57) \u2014 the DSP applies no DCA gain, so there is nothing on the part for an audio probe to find"
+  },
+  "DELAY": {
+   "audio": {
+    "addr": 78,
+    "cell": "Chan001Delay001",
+    "family": "DELAY",
+    "floor": 0,
+    "floor_delta": 0,
+    "inject": "_rx_slot_C1_IN_01",
+    "kind": "scalar",
+    "moved": 46,
+    "offset": 0,
+    "peak": 9679028,
+    "peak_hi": 9679028,
+    "peak_lo": 9679028,
+    "probe_delta": 9679028,
+    "setup": [],
+    "stim": "step",
+    "verdict": "LIVE",
+    "witness": "_buf_C1_DLY_01",
+    "words": 64
+   },
+   "cells": 46,
+   "chip": 1,
+   "contract": [
+    {
+     "access": "rw",
+     "addr": 78,
+     "cell": "Chan001Delay001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    }
+   ],
+   "node": "C1_DLY_01",
+   "note": "per-strip delay line; probed at capture offset 0, where a delay is a step against silence"
+  },
+  "EQ_BIQUAD": {
+   "audio": {
+    "addr": 16,
+    "cell": "Chan001EqGain001",
+    "family": "EQ_BIQUAD",
+    "floor": 0,
+    "floor_delta": 0,
+    "inject": "_rx_slot_C1_IN_01",
+    "kind": "biquad",
+    "moved": 64,
+    "offset": 0,
+    "peak": 134217728,
+    "peak_hi": 1,
+    "peak_lo": 134217728,
+    "probe_delta": 4294967295,
+    "setup": [],
+    "stim": "impulse",
+    "verdict": "LIVE",
+    "witness": "_buf_C1_EQ_01",
+    "words": 64
+   },
+   "cells": 790,
+   "chip": 1,
+   "contract": [
+    {
+     "access": "rw",
+     "addr": 16,
+     "cell": "Chan001EqFreq001",
+     "err_delta": 0,
+     "orig": 1065353216,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 21,
+     "cell": "Chan001EqFreq002",
+     "err_delta": 0,
+     "orig": 1065353216,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 26,
+     "cell": "Chan001EqFreq003",
+     "err_delta": 0,
+     "orig": 1065353216,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 31,
+     "cell": "Chan001EqFreq004",
+     "err_delta": 0,
+     "orig": 1065353216,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 16,
+     "cell": "Chan001EqGain001",
+     "err_delta": 0,
+     "orig": 1065353216,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 21,
+     "cell": "Chan001EqGain002",
+     "err_delta": 0,
+     "orig": 1065353216,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 26,
+     "cell": "Chan001EqGain003",
+     "err_delta": 0,
+     "orig": 1065353216,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 31,
+     "cell": "Chan001EqGain004",
+     "err_delta": 0,
+     "orig": 1065353216,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "mcu",
+     "addr": 37,
+     "cell": "Chan001EqOn001",
+     "verdict": "NOT_RW"
+    },
+    {
+     "access": "rw",
+     "addr": 16,
+     "cell": "Chan001EqQ001",
+     "err_delta": 0,
+     "orig": 1065353216,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 21,
+     "cell": "Chan001EqQ002",
+     "err_delta": 0,
+     "orig": 1065353216,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 26,
+     "cell": "Chan001EqQ003",
+     "err_delta": 0,
+     "orig": 1065353216,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 31,
+     "cell": "Chan001EqQ004",
+     "err_delta": 0,
+     "orig": 1065353216,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 16,
+     "cell": "Chan001EqShelf001",
+     "err_delta": 0,
+     "orig": 1065353216,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 31,
+     "cell": "Chan001EqShelf002",
+     "err_delta": 0,
+     "orig": 1065353216,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    }
+   ],
+   "node": "C1_EQ_01",
+   "note": "4-band parametric, float cascade",
+   "numeric": {
+    "node": "BQCVT",
+    "reason": "float cascade; bit-exact bar is bqeverify.sh float vs bq_float_ref",
+    "verdict": "NOT_APPLICABLE"
+   }
+  },
+  "FADER_PAN": {
+   "audio": {
+    "addr": 80,
+    "cell": "Chan001Level001",
+    "family": "FADER_PAN",
+    "floor": 0,
+    "floor_delta": 0,
+    "inject": "_rx_slot_C1_IN_01",
+    "kind": "scalar",
+    "moved": 64,
+    "offset": 900,
+    "peak": 71557274,
+    "peak_hi": 17889319,
+    "peak_lo": 71557274,
+    "probe_delta": 53667955,
+    "setup": [],
+    "stim": "step",
+    "verdict": "LIVE",
+    "witness": "_buf_C1_FDR_01",
+    "words": 64
+   },
+   "cells": 162,
+   "chip": 1,
+   "contract": [
+    {
+     "access": "rw",
+     "addr": 80,
+     "cell": "Chan001Level001",
+     "err_delta": 0,
+     "orig": 1065353216,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 82,
+     "cell": "Chan001Mute001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 81,
+     "cell": "Chan001Pan001",
+     "err_delta": 0,
+     "orig": 1056964608,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    }
+   ],
+   "node": "C1_FDR_01",
+   "note": "level coefficient + pan legs",
+   "numeric": {
+    "node": "FDR",
+    "stimuli": 2,
+    "verdict": "BIT_EXACT",
+    "verdicts_against": 0
+   }
+  },
+  "FX_ENGINE": {
+   "audio": {
+    "addr": 1640,
+    "cell": "Fx001Mix001",
+    "family": "FX_ENGINE",
+    "floor": 0,
+    "floor_delta": 0,
+    "inject": "_rx_ic_slot_C2_RECV_FX_01",
+    "kind": "scalar",
+    "moved": 2,
+    "offset": 0,
+    "peak": 134217728,
+    "peak_hi": 1,
+    "peak_lo": 134217728,
+    "probe_delta": 4294967295,
+    "setup": [
+     {
+      "addr": 1620,
+      "cell": "Fx001On001",
+      "wrote": 1
+     },
+     {
+      "addr": 1644,
+      "cell": "Fx001Level001",
+      "wrote": 1065353216
+     },
+     {
+      "addr": 1646,
+      "cell": "Fx001Mute001",
+      "wrote": 0
+     }
+    ],
+    "stim": "impulse",
+    "verdict": "LIVE",
+    "witness": "_buf_C2_FX_ENG_01",
+    "words": 64
+   },
+   "cells": 114,
+   "chip": 2,
+   "contract": [
+    {
+     "access": "mcu",
+     "addr": 1626,
+     "cell": "Fx001Balance001",
+     "verdict": "NOT_RW"
+    },
+    {
+     "access": "rw",
+     "addr": 1627,
+     "cell": "Fx001Damp001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 1622,
+     "cell": "Fx001Decay001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 1624,
+     "cell": "Fx001DelayTime001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "mcu",
+     "addr": 1641,
+     "cell": "Fx001DuckOn001",
+     "verdict": "NOT_RW"
+    },
+    {
+     "access": "mcu",
+     "addr": 1642,
+     "cell": "Fx001DuckSens001",
+     "verdict": "NOT_RW"
+    },
+    {
+     "access": "rw",
+     "addr": 1631,
+     "cell": "Fx001EqHpf001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 1628,
+     "cell": "Fx001EqLo001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 1629,
+     "cell": "Fx001EqMid001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 1630,
+     "cell": "Fx001EqPresence001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 1625,
+     "cell": "Fx001Feedback001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 1638,
+     "cell": "Fx001LfoShape001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 1640,
+     "cell": "Fx001Mix001",
+     "err_delta": 0,
+     "orig": 1120403456,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 1637,
+     "cell": "Fx001ModLevel001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 1636,
+     "cell": "Fx001ModRate001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 1620,
+     "cell": "Fx001On001",
+     "err_delta": 0,
+     "orig": 1,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 1623,
+     "cell": "Fx001PreDelay001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 1639,
+     "cell": "Fx001StereoWidth001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 1621,
+     "cell": "Fx001Type001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    }
+   ],
+   "node": "C2_FX_ENG_01",
+   "note": "FX send engine; Type defaults to 0 = Echo, which the dispatch does not implement"
+  },
+  "FX_RETURN": {
+   "audio": {
+    "addr": 1644,
+    "cell": "Fx001Level001",
+    "family": "FX_RETURN",
+    "floor": 0,
+    "floor_delta": 0,
+    "inject": "_rx_ic_slot_C2_RECV_FX_01",
+    "kind": "scalar",
+    "moved": 64,
+    "offset": 900,
+    "peak": 134217713,
+    "peak_hi": 33554417,
+    "peak_lo": 134217713,
+    "probe_delta": 100663296,
+    "setup": [
+     {
+      "addr": 1620,
+      "cell": "Fx001On001",
+      "wrote": 1
+     },
+     {
+      "addr": 1646,
+      "cell": "Fx001Mute001",
+      "wrote": 0
+     },
+     {
+      "addr": 1640,
+      "cell": "Fx001Mix001",
+      "wrote": 1120403456
+     }
+    ],
+    "stim": "step",
+    "verdict": "LIVE",
+    "witness": "_buf_C2_MIX_MAIN_L",
+    "words": 64
+   },
+   "cells": 0,
+   "chip": 2,
+   "contract": [
+    {
+     "access": "rw",
+     "addr": 1644,
+     "cell": "Fx001Level001",
+     "err_delta": 0,
+     "orig": 1065353216,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 1646,
+     "cell": "Fx001Mute001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    }
+   ],
+   "node": "C2_FX_FDR_01",
+   "note": "FX return -> main mix (S22-2); Type is left at its default 0 = Echo for FX_ENGINE's reason"
+  },
+  "GAIN": {
+   "audio": {
+    "addr": 0,
+    "cell": "Chan001Gain001",
+    "family": "GAIN",
+    "floor": 0,
+    "floor_delta": 0,
+    "inject": "_rx_slot_C1_IN_01",
+    "kind": "scalar",
+    "moved": 64,
+    "offset": 900,
+    "peak": 536870912,
+    "peak_hi": 536870912,
+    "peak_lo": 134217728,
+    "probe_delta": 402653184,
+    "setup": [],
+    "stim": "step",
+    "verdict": "LIVE",
+    "witness": "_buf_C1_GAIN_01",
+    "words": 64
+   },
+   "cells": 128,
+   "chip": 1,
+   "contract": [
+    {
+     "access": "rw",
+     "addr": 0,
+     "cell": "Chan001Gain001",
+     "err_delta": 0,
+     "orig": 1065353216,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "mcu",
+     "addr": 3,
+     "cell": "Chan001InputSel001",
+     "verdict": "NOT_RW"
+    },
+    {
+     "access": "mcu",
+     "addr": 2,
+     "cell": "Chan001Phantom001",
+     "verdict": "NOT_RW"
+    },
+    {
+     "access": "rw",
+     "addr": 1,
+     "cell": "Chan001Pol001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    }
+   ],
+   "node": "C1_GAIN_01",
+   "note": "per-strip input trim"
+  },
+  "GATE": {
+   "audio": {
+    "addr": 41,
+    "cell": "Chan001GateThr001",
+    "family": "GATE",
+    "floor": 0,
+    "floor_delta": 0,
+    "inject": "_rx_slot_C1_IN_01",
+    "kind": "scalar",
+    "moved": 64,
+    "offset": 900,
+    "peak": 83568268,
+    "peak_hi": 1342427,
+    "peak_lo": 83568268,
+    "probe_delta": 82225841,
+    "setup": [
+     {
+      "addr": 40,
+      "cell": "Chan001GateOn001",
+      "wrote": 1
+     },
+     {
+      "addr": 43,
+      "cell": "Chan001GateHold001",
+      "wrote": 1065353216
+     }
+    ],
+    "stim": "step",
+    "verdict": "LIVE",
+    "witness": "_buf_C1_GATE_01",
+    "words": 64
+   },
+   "cells": 432,
+   "chip": 1,
+   "contract": [
+    {
+     "access": "rw",
+     "addr": 42,
+     "cell": "Chan001GateAtt001",
+     "err_delta": 0,
+     "orig": 981668463,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 47,
+     "cell": "Chan001GateDetSrc001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 49,
+     "cell": "Chan001GateFilterHpf001",
+     "err_delta": 0,
+     "orig": 1065353216,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 54,
+     "cell": "Chan001GateFilterLpf001",
+     "err_delta": 0,
+     "orig": 1065353216,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 48,
+     "cell": "Chan001GateFilterOn001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 49,
+     "cell": "Chan001GateFilterQ001",
+     "err_delta": 0,
+     "orig": 1065353216,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 43,
+     "cell": "Chan001GateHold001",
+     "err_delta": 0,
+     "orig": 1065353216,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 46,
+     "cell": "Chan001GateKey001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 40,
+     "cell": "Chan001GateOn001",
+     "err_delta": 0,
+     "orig": 1,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 44,
+     "cell": "Chan001GateRel001",
+     "err_delta": 0,
+     "orig": 981668463,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 45,
+     "cell": "Chan001GateRng001",
+     "err_delta": 0,
+     "orig": 1109393408,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 41,
+     "cell": "Chan001GateThr001",
+     "err_delta": 0,
+     "orig": 3256877056,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    }
+   ],
+   "node": "C1_GATE_01",
+   "note": "ladder + hold + range",
+   "numeric": {
+    "node": "GATE",
+    "stimuli": 1,
+    "verdict": "BIT_EXACT",
+    "verdicts_against": 0
+   }
+  },
+  "GEQ": {
+   "audio": {
+    "addr": 45,
+    "cell": "Aux001Geq018",
+    "family": "GEQ",
+    "floor": 0,
+    "floor_delta": 0,
+    "inject": "_rx_ic_slot_C2_RECV_AUX_01",
+    "kind": "scalar",
+    "moved": 64,
+    "offset": 0,
+    "peak": 137225504,
+    "peak_hi": 137225504,
+    "peak_lo": 134217728,
+    "probe_delta": 4294795910,
+    "setup": [
+     {
+      "addr": 0,
+      "cell": "Aux001Level001",
+      "wrote": 1065353216
+     },
+     {
+      "addr": 2,
+      "cell": "Aux001Mute001",
+      "wrote": 0
+     }
+    ],
+    "stim": "impulse",
+    "verdict": "LIVE",
+    "witness": "_buf_C2_AUX_GEQ_01",
+    "words": 64
+   },
+   "cells": 527,
+   "chip": 2,
+   "contract": [
+    {
+     "access": "rw",
+     "addr": 28,
+     "cell": "Aux001Geq001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 29,
+     "cell": "Aux001Geq002",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 30,
+     "cell": "Aux001Geq003",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 31,
+     "cell": "Aux001Geq004",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 32,
+     "cell": "Aux001Geq005",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 33,
+     "cell": "Aux001Geq006",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 34,
+     "cell": "Aux001Geq007",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 35,
+     "cell": "Aux001Geq008",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 36,
+     "cell": "Aux001Geq009",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 37,
+     "cell": "Aux001Geq010",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 38,
+     "cell": "Aux001Geq011",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 39,
+     "cell": "Aux001Geq012",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 40,
+     "cell": "Aux001Geq013",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 41,
+     "cell": "Aux001Geq014",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 42,
+     "cell": "Aux001Geq015",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 43,
+     "cell": "Aux001Geq016",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 44,
+     "cell": "Aux001Geq017",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 45,
+     "cell": "Aux001Geq018",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 46,
+     "cell": "Aux001Geq019",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 47,
+     "cell": "Aux001Geq020",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 48,
+     "cell": "Aux001Geq021",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 49,
+     "cell": "Aux001Geq022",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 50,
+     "cell": "Aux001Geq023",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 51,
+     "cell": "Aux001Geq024",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 52,
+     "cell": "Aux001Geq025",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 53,
+     "cell": "Aux001Geq026",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 54,
+     "cell": "Aux001Geq027",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 55,
+     "cell": "Aux001Geq028",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 56,
+     "cell": "Aux001Geq029",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 57,
+     "cell": "Aux001Geq030",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 58,
+     "cell": "Aux001Geq031",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    }
+   ],
+   "node": "C2_AUX_GEQ_01",
+   "note": "28-band graphic EQ, one gain in dB per band"
+  },
+  "HPF_LPF": {
+   "audio": {
+    "addr": 4,
+    "cell": "Chan001EqHpf001",
+    "family": "HPF_LPF",
+    "floor": 0,
+    "floor_delta": 0,
+    "inject": "_rx_slot_C1_IN_01",
+    "kind": "biquad",
+    "moved": 64,
+    "offset": 0,
+    "peak": 134217728,
+    "peak_hi": 1,
+    "peak_lo": 134217728,
+    "probe_delta": 4294967295,
+    "setup": [],
+    "stim": "impulse",
+    "verdict": "LIVE",
+    "witness": "_buf_C1_FILT_01",
+    "words": 64
+   },
+   "cells": 96,
+   "chip": 1,
+   "contract": [
+    {
+     "access": "rw",
+     "addr": 4,
+     "cell": "Chan001EqHpf001",
+     "err_delta": 0,
+     "orig": 1065353216,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 4,
+     "cell": "Chan001EqHpfSlope001",
+     "err_delta": 0,
+     "orig": 1065353216,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 10,
+     "cell": "Chan001EqLpf001",
+     "err_delta": 0,
+     "orig": 1065353216,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    }
+   ],
+   "node": "C1_FILT_01",
+   "note": "strip HPF/LPF, one biquad pair",
+   "numeric": {
+    "node": "BQCVT",
+    "reason": "float cascade; bit-exact bar is bqeverify.sh float vs bq_float_ref",
+    "verdict": "NOT_APPLICABLE"
+   }
+  },
+  "LIMITER": {
+   "audio": {
+    "addr": 84,
+    "cell": "Aux001LimiterThr001",
+    "family": "LIMITER",
+    "floor": 0,
+    "floor_delta": 0,
+    "inject": "_rx_ic_slot_C2_RECV_AUX_01",
+    "kind": "scalar",
+    "moved": 64,
+    "offset": 900,
+    "peak": 134217728,
+    "peak_hi": 8488578,
+    "peak_lo": 134217728,
+    "probe_delta": 125729150,
+    "setup": [
+     {
+      "addr": 0,
+      "cell": "Aux001Level001",
+      "wrote": 1065353216
+     },
+     {
+      "addr": 2,
+      "cell": "Aux001Mute001",
+      "wrote": 0
+     },
+     {
+      "addr": 83,
+      "cell": "Aux001LimiterOn001",
+      "wrote": 1
+     }
+    ],
+    "stim": "step",
+    "verdict": "LIVE",
+    "witness": "_buf_C2_AUX_LIM_01",
+    "words": 64
+   },
+   "cells": 60,
+   "chip": 2,
+   "contract": [
+    {
+     "access": "rw",
+     "addr": 85,
+     "cell": "Aux001LimiterAtt001",
+     "err_delta": 0,
+     "orig": 1056964608,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 83,
+     "cell": "Aux001LimiterOn001",
+     "err_delta": 0,
+     "orig": 1,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 86,
+     "cell": "Aux001LimiterRel001",
+     "err_delta": 0,
+     "orig": 981668462,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 84,
+     "cell": "Aux001LimiterThr001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    }
+   ],
+   "node": "C2_AUX_LIM_01",
+   "note": "output-side limiter"
+  },
+  "MATRIX": {
+   "audio": {
+    "addr": 4808,
+    "cell": "Chan001MatrixSend001",
+    "family": "MATRIX",
+    "floor": 0,
+    "floor_delta": 0,
+    "inject": "_rx_slot_C1_IN_01",
+    "kind": "scalar",
+    "moved": 64,
+    "offset": 900,
+    "peak": 71557291,
+    "peak_hi": 17889344,
+    "peak_lo": 71557291,
+    "probe_delta": 53667947,
+    "setup": [
+     {
+      "addr": 84,
+      "cell": "Chan001MainOn001",
+      "wrote": 0
+     },
+     {
+      "addr": 4806,
+      "cell": "Chan001MatrixOn001",
+      "wrote": 1
+     }
+    ],
+    "stim": "step",
+    "verdict": "LIVE",
+    "witness": "_buf_C1_BUS_MTX_01",
+    "words": 64
+   },
+   "cells": 0,
+   "chip": 1,
+   "contract": [
+    {
+     "access": "rw",
+     "addr": 4806,
+     "cell": "Chan001MatrixOn001",
+     "err_delta": 0,
+     "orig": 1,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 4807,
+     "cell": "Chan001MatrixOn002",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 4808,
+     "cell": "Chan001MatrixSend001",
+     "err_delta": 0,
+     "orig": 1065353216,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 4809,
+     "cell": "Chan001MatrixSend002",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    }
+   ],
+   "node": "C1_RTG_01",
+   "note": "channel -> matrix bus crosspoint (S22 gate 1); MainOn is taken off so the matrix send is the only live crosspoint on the strip"
+  },
+  "MATRIX_OUT": {
+   "audio": {
+    "addr": 2003,
+    "cell": "Matrix001Level001",
+    "family": "MATRIX_OUT",
+    "floor": 0,
+    "floor_delta": 0,
+    "inject": "_rx_ic_slot_C2_RECV_MTX_01",
+    "kind": "scalar",
+    "moved": 64,
+    "offset": 900,
+    "peak": 134217728,
+    "peak_hi": 33554432,
+    "peak_lo": 134217728,
+    "probe_delta": 100663296,
+    "setup": [
+     {
+      "addr": 2005,
+      "cell": "Matrix001Mute001",
+      "wrote": 0
+     }
+    ],
+    "stim": "step",
+    "verdict": "LIVE",
+    "witness": "_buf_C2_MTX_FDR_01",
+    "words": 64
+   },
+   "cells": 0,
+   "chip": 2,
+   "contract": [
+    {
+     "access": "rw",
+     "addr": 2003,
+     "cell": "Matrix001Level001",
+     "err_delta": 0,
+     "orig": 1065353216,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 2008,
+     "cell": "Matrix002Level001",
+     "err_delta": 0,
+     "orig": 1065353216,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 2013,
+     "cell": "Matrix003Level001",
+     "err_delta": 0,
+     "orig": 1065353216,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 2018,
+     "cell": "Matrix004Level001",
+     "err_delta": 0,
+     "orig": 1065353216,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 2005,
+     "cell": "Matrix001Mute001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 2010,
+     "cell": "Matrix002Mute001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 2015,
+     "cell": "Matrix003Mute001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 2020,
+     "cell": "Matrix004Mute001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    }
+   ],
+   "node": "C2_MTX_FDR_01",
+   "note": "matrix output strip: level + mute, on NET_OUT_02..05"
+  },
+  "METER": {
+   "audio": {
+    "family": "METER",
+    "inject": "_rx_slot_C1_IN_01",
+    "kind": "scalar",
+    "verdict": "NO_PROBE",
+    "witness": null
+   },
+   "cells": 153,
+   "chip": 1,
+   "contract": [
+    {
+     "access": "ro",
+     "addr": 4611,
+     "cell": "Chan001CompMtr001",
+     "verdict": "NOT_RW"
+    },
+    {
+     "access": "ro",
+     "addr": 4610,
+     "cell": "Chan001GateMtr001",
+     "verdict": "NOT_RW"
+    },
+    {
+     "access": "ro",
+     "addr": 4608,
+     "cell": "Chan001Mtr001",
+     "verdict": "NOT_RW"
+    },
+    {
+     "access": "ro",
+     "addr": 4609,
+     "cell": "Chan001Mtr002",
+     "verdict": "NOT_RW"
+    }
+   ],
+   "meter": {
+    "captured_linear": 0.5,
+    "captured_peak": 134217728,
+    "family": "METER",
+    "meter_as_float32": 0.25118470191955566,
+    "meter_as_q428": 3.9063980877399445,
+    "meter_word": 1048615752,
+    "readback": "_mtr_peak_C1_MTR_01",
+    "reading": "neither reading matches, and a peak HOLD carries state from whatever ran before it \u2014 run mtrverify.sh for this family rather than reading a verdict out of this line",
+    "source": "_buf_C1_GAIN_01",
+    "verdict": "NO_VERDICT"
+   },
+   "node": "C1_MTR_01",
+   "note": "read-only peak/rms/gr words; changes no sample, so its verdict is the readback against the capture"
+  },
+  "MIX_BUS": {
+   "audio": {
+    "addr": 2029,
+    "cell": "Fx001AuxSend001",
+    "family": "MIX_BUS",
+    "floor": 0,
+    "floor_delta": 0,
+    "inject": "_rx_ic_slot_C2_RECV_FX_01",
+    "kind": "scalar",
+    "moved": 64,
+    "offset": 900,
+    "peak": 134217728,
+    "peak_hi": 33554432,
+    "peak_lo": 134217728,
+    "probe_delta": 100663296,
+    "setup": [
+     {
+      "addr": 1620,
+      "cell": "Fx001On001",
+      "wrote": 1
+     },
+     {
+      "addr": 1646,
+      "cell": "Fx001Mute001",
+      "wrote": 0
+     },
+     {
+      "addr": 1644,
+      "cell": "Fx001Level001",
+      "wrote": 1065353216
+     },
+     {
+      "addr": 1640,
+      "cell": "Fx001Mix001",
+      "wrote": 1120403456
+     },
+     {
+      "addr": 2,
+      "cell": "Aux001Mute001",
+      "wrote": 0
+     },
+     {
+      "addr": 2023,
+      "cell": "Fx001AuxOn001",
+      "wrote": 1
+     }
+    ],
+    "stim": "step",
+    "verdict": "LIVE",
+    "witness": "_buf_C2_MIX_AUX_01",
+    "words": 64
+   },
+   "cells": 144,
+   "chip": 2,
+   "contract": [
+    {
+     "access": "rw",
+     "addr": 2023,
+     "cell": "Fx001AuxOn001",
+     "err_delta": 0,
+     "orig": 1,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 2029,
+     "cell": "Fx001AuxSend001",
+     "err_delta": 0,
+     "orig": 1065353216,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 2024,
+     "cell": "Fx002AuxOn001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 2030,
+     "cell": "Fx002AuxSend001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    }
+   ],
+   "node": "C2_MIX_AUX_01",
+   "note": "FX return -> aux bus crosspoint (S23 gate 3); the send level is a LINEAR gain, as Chan*AuxSend is"
+  },
+  "MONITOR": {
+   "audio": {
+    "addr": 1789,
+    "cell": "Mon001Level001",
+    "family": "MONITOR",
+    "floor": 0,
+    "floor_delta": 0,
+    "inject": "_rx_ic_slot_C2_RECV_MAIN_L",
+    "kind": "scalar",
+    "moved": 64,
+    "offset": 900,
+    "peak": 134217728,
+    "peak_hi": 33554432,
+    "peak_lo": 134217728,
+    "probe_delta": 100663296,
+    "setup": [
+     {
+      "addr": 1379,
+      "cell": "Main001Level001",
+      "wrote": 1065353216
+     },
+     {
+      "addr": 1381,
+      "cell": "Main001Mute001",
+      "wrote": 0
+     }
+    ],
+    "stim": "step",
+    "verdict": "LIVE",
+    "witness": "_buf_C2_MON",
+    "words": 64
+   },
+   "cells": 3,
+   "chip": 2,
+   "contract": [
+    {
+     "access": "rw",
+     "addr": 1788,
+     "cell": "Mon001InputSel001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 1789,
+     "cell": "Mon001Level001",
+     "err_delta": 0,
+     "orig": 1065353216,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 1790,
+     "cell": "Mon001Level002",
+     "err_delta": 0,
+     "orig": 1065353216,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    }
+   ],
+   "node": "C2_MON",
+   "note": "monitor bus tap"
+  },
+  "NOISE_GEN": {
+   "audio": {
+    "addr": 4744,
+    "cell": "Noise001On001",
+    "family": "NOISE_GEN",
+    "floor": 0,
+    "floor_delta": 0,
+    "inject": "NONE",
+    "kind": "scalar",
+    "moved": 64,
+    "offset": 900,
+    "peak": 268365104,
+    "peak_hi": 268365104,
+    "peak_lo": 0,
+    "probe_delta": 4274685694,
+    "setup": [
+     {
+      "addr": 4745,
+      "cell": "Noise001Level001",
+      "wrote": 1065353216
+     }
+    ],
+    "stim": "step",
+    "verdict": "LIVE",
+    "witness": "_buf_C1_NOISE",
+    "words": 64
+   },
+   "cells": 3,
+   "chip": 1,
+   "contract": [
+    {
+     "access": "rw",
+     "addr": 4746,
+     "cell": "Noise001Hpf001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 4745,
+     "cell": "Noise001Level001",
+     "err_delta": 0,
+     "orig": 1065353216,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 4744,
+     "cell": "Noise001On001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    }
+   ],
+   "node": "C1_NOISE",
+   "note": "generator: captured with the scope injecting nothing"
+  },
+  "OUTPUT_TDM": {
+   "cells": 6,
+   "chip": null,
+   "verdict": "NO_HARNESS_ENTRY"
+  },
+  "ROUTING": {
+   "audio": {
+    "addr": 102,
+    "cell": "Chan001AuxSend001",
+    "family": "ROUTING",
+    "floor": 0,
+    "floor_delta": 0,
+    "inject": "_rx_slot_C1_IN_01",
+    "kind": "scalar",
+    "moved": 64,
+    "offset": 900,
+    "peak": 71557291,
+    "peak_hi": 17889344,
+    "peak_lo": 71557291,
+    "probe_delta": 53667947,
+    "setup": [
+     {
+      "addr": 90,
+      "cell": "Chan001AuxOn001",
+      "wrote": 1
+     }
+    ],
+    "stim": "step",
+    "verdict": "LIVE",
+    "witness": "_buf_C1_BUS_AUX_01",
+    "words": 64
+   },
+   "cells": 2048,
+   "chip": 1,
+   "contract": [
+    {
+     "access": "rw",
+     "addr": 90,
+     "cell": "Chan001AuxOn001",
+     "err_delta": 0,
+     "orig": 1,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 91,
+     "cell": "Chan001AuxOn002",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 92,
+     "cell": "Chan001AuxOn003",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 93,
+     "cell": "Chan001AuxOn004",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 94,
+     "cell": "Chan001AuxOn005",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 95,
+     "cell": "Chan001AuxOn006",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 96,
+     "cell": "Chan001AuxOn007",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 97,
+     "cell": "Chan001AuxOn008",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 98,
+     "cell": "Chan001AuxOn009",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 99,
+     "cell": "Chan001AuxOn010",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 100,
+     "cell": "Chan001AuxOn011",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 101,
+     "cell": "Chan001AuxOn012",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 114,
+     "cell": "Chan001AuxPick001",
+     "err_delta": 0,
+     "orig": 3,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 115,
+     "cell": "Chan001AuxPick002",
+     "err_delta": 0,
+     "orig": 3,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 116,
+     "cell": "Chan001AuxPick003",
+     "err_delta": 0,
+     "orig": 3,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 117,
+     "cell": "Chan001AuxPick004",
+     "err_delta": 0,
+     "orig": 3,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 118,
+     "cell": "Chan001AuxPick005",
+     "err_delta": 0,
+     "orig": 3,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 119,
+     "cell": "Chan001AuxPick006",
+     "err_delta": 0,
+     "orig": 3,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 120,
+     "cell": "Chan001AuxPick007",
+     "err_delta": 0,
+     "orig": 3,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 121,
+     "cell": "Chan001AuxPick008",
+     "err_delta": 0,
+     "orig": 3,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 122,
+     "cell": "Chan001AuxPick009",
+     "err_delta": 0,
+     "orig": 3,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 123,
+     "cell": "Chan001AuxPick010",
+     "err_delta": 0,
+     "orig": 3,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 124,
+     "cell": "Chan001AuxPick011",
+     "err_delta": 0,
+     "orig": 3,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 125,
+     "cell": "Chan001AuxPick012",
+     "err_delta": 0,
+     "orig": 3,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 102,
+     "cell": "Chan001AuxSend001",
+     "err_delta": 0,
+     "orig": 1065353216,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 103,
+     "cell": "Chan001AuxSend002",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 104,
+     "cell": "Chan001AuxSend003",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 105,
+     "cell": "Chan001AuxSend004",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 106,
+     "cell": "Chan001AuxSend005",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 107,
+     "cell": "Chan001AuxSend006",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 108,
+     "cell": "Chan001AuxSend007",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 109,
+     "cell": "Chan001AuxSend008",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 110,
+     "cell": "Chan001AuxSend009",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 111,
+     "cell": "Chan001AuxSend010",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 112,
+     "cell": "Chan001AuxSend011",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 113,
+     "cell": "Chan001AuxSend012",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 85,
+     "cell": "Chan001CtrOn001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 126,
+     "cell": "Chan001FxOn001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 127,
+     "cell": "Chan001FxOn002",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 128,
+     "cell": "Chan001FxOn003",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 129,
+     "cell": "Chan001FxOn004",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 130,
+     "cell": "Chan001FxOn005",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 131,
+     "cell": "Chan001FxOn006",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 138,
+     "cell": "Chan001FxPick001",
+     "err_delta": 0,
+     "orig": 3,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 139,
+     "cell": "Chan001FxPick002",
+     "err_delta": 0,
+     "orig": 3,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 140,
+     "cell": "Chan001FxPick003",
+     "err_delta": 0,
+     "orig": 3,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 141,
+     "cell": "Chan001FxPick004",
+     "err_delta": 0,
+     "orig": 3,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 142,
+     "cell": "Chan001FxPick005",
+     "err_delta": 0,
+     "orig": 3,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 143,
+     "cell": "Chan001FxPick006",
+     "err_delta": 0,
+     "orig": 3,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 132,
+     "cell": "Chan001FxSend001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 133,
+     "cell": "Chan001FxSend002",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 134,
+     "cell": "Chan001FxSend003",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 135,
+     "cell": "Chan001FxSend004",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 136,
+     "cell": "Chan001FxSend005",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 137,
+     "cell": "Chan001FxSend006",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 86,
+     "cell": "Chan001GrpOn001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 87,
+     "cell": "Chan001GrpOn002",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 88,
+     "cell": "Chan001GrpOn003",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 89,
+     "cell": "Chan001GrpOn004",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 84,
+     "cell": "Chan001MainOn001",
+     "err_delta": 0,
+     "orig": 1,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 4806,
+     "cell": "Chan001MatrixOn001",
+     "err_delta": 0,
+     "orig": 1,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 4807,
+     "cell": "Chan001MatrixOn002",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 4808,
+     "cell": "Chan001MatrixSend001",
+     "err_delta": 0,
+     "orig": 1065353216,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 4809,
+     "cell": "Chan001MatrixSend002",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    }
+   ],
+   "node": "C1_RTG_01",
+   "note": "crosspoints into every bus"
+  },
+  "TALKBACK": {
+   "audio": {
+    "addr": 4737,
+    "cell": "Talk001Gain001",
+    "family": "TALKBACK",
+    "floor": 0,
+    "floor_delta": 0,
+    "inject": "_rx_slot_C1_XIN_CODEC_01",
+    "kind": "scalar",
+    "moved": 64,
+    "offset": 900,
+    "peak": 536870912,
+    "peak_hi": 536870912,
+    "peak_lo": 134217728,
+    "probe_delta": 402653184,
+    "setup": [
+     {
+      "addr": 4736,
+      "cell": "Talk001On001",
+      "wrote": 1
+     }
+    ],
+    "stim": "step",
+    "verdict": "LIVE",
+    "witness": "_buf_C1_TALK_01",
+    "words": 64
+   },
+   "cells": 8,
+   "chip": 1,
+   "contract": [
+    {
+     "access": "rw",
+     "addr": 4739,
+     "cell": "Talk001Dest001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 4737,
+     "cell": "Talk001Gain001",
+     "err_delta": 0,
+     "orig": 1065353216,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 4738,
+     "cell": "Talk001Hpf001",
+     "err_delta": 0,
+     "orig": 1,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 4736,
+     "cell": "Talk001On001",
+     "err_delta": 0,
+     "orig": 1,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    }
+   ],
+   "node": "C1_TALK_01",
+   "note": "talkback injection node, fed from the codec return rather than the strip input"
+  },
+  "TUBE_SAT": {
+   "audio": {
+    "addr": 77,
+    "cell": "Chan001TubeSat001",
+    "family": "TUBE_SAT",
+    "floor": 0,
+    "floor_delta": 0,
+    "inject": "_rx_slot_C1_IN_01",
+    "kind": "scalar",
+    "moved": 64,
+    "offset": 900,
+    "peak": 138029658,
+    "peak_hi": 138029658,
+    "peak_lo": 71557274,
+    "probe_delta": 66472384,
+    "setup": [
+     {
+      "addr": 76,
+      "cell": "Chan001TubeOn001",
+      "wrote": 1
+     }
+    ],
+    "stim": "step",
+    "verdict": "LIVE",
+    "witness": "_buf_C1_TUBE_01",
+    "words": 64
+   },
+   "cells": 64,
+   "chip": 1,
+   "contract": [
+    {
+     "access": "rw",
+     "addr": 76,
+     "cell": "Chan001TubeOn001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 77,
+     "cell": "Chan001TubeSat001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    }
+   ],
+   "node": "C1_TUBE_01",
+   "note": "three chained roundings",
+   "numeric": {
+    "node": "TUBE",
+    "stimuli": 2,
+    "verdict": "BIT_EXACT",
+    "verdicts_against": 0
+   }
+  }
+ },
+ "family_cells": {
+  "ANTI_FB": 240,
+  "AUX_INPUT": 24,
+  "COMPRESSOR": 663,
+  "CROSSOVER": 6,
+  "DCA": 16,
+  "DELAY": 46,
+  "EQ_BIQUAD": 790,
+  "FADER_PAN": 162,
+  "FX_ENGINE": 114,
+  "GAIN": 128,
+  "GATE": 432,
+  "GEQ": 527,
+  "HPF_LPF": 96,
+  "LIMITER": 60,
+  "METER": 153,
+  "MIX_BUS": 144,
+  "MONITOR": 3,
+  "NOISE_GEN": 3,
+  "OUTPUT_TDM": 6,
+  "ROUTING": 2048,
+  "TALKBACK": 8,
+  "TUBE_SAT": 64
+ },
+ "pin": "defs-v2026.09.08.4 + UNGATED PROPOSAL (proposals/defs/products/d32/dsp.csv)",
+ "product": "d32",
+ "sha256": "95e9f37f2539ce6853646bd557757108608aba9b711fa70f21a2461e654df8a8"
+}

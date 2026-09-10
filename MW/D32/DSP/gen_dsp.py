@@ -608,6 +608,37 @@ def expand_fader_pan(node, cat, inst):
             host_managed.setdefault(fam.strip(), set()).add(nid)
     add_dispatch(chip, base + 3, None, f'{nid} reserved (Dca host-managed)')
 
+    # ── LCR, IN A BLOCK OF ITS OWN (PW ruling R5) ──────────────────────
+    #
+    # `Chan*LcrOn` selects the three-column read of the one pan table for
+    # this channel; `Sys[1-1]LcrLaw[1-1]` selects WHICH law is loaded, for
+    # the whole desk, and is emitted once (on channel 1's fader row, which
+    # is where gen_dsp_csv.py allocates it).
+    #
+    # `Chan*CtrOn` is NOT here and needs nothing: it is already dispatched
+    # by expand_routing to `_rtg_sub_on`, and on this product the sub bus
+    # IS the centre bus -- the master's own name for the cell is
+    # "Center/sub output assign on/off". That is why LCR costs no fabric
+    # row, no inter-chip lane and no TDM slot: the centre leg's
+    # destination has been in the graph since the graph existed.
+    #
+    # Allocated after every other chip-1 address (gen_dsp_csv.py), for
+    # the matrix sends' reason -- the 144-word strip page is exactly full.
+    prm = parse_params(node.get('params', ''))
+    if cat == 'Chan':
+        if 'lcr_page' not in prm or 'lcr_addr' not in prm:
+            sys.exit(f'ERROR: {nid} is a channel fader with no '
+                     f'lcr_page/lcr_addr — gen_dsp_csv.py allocates that '
+                     f'block; refusing to guess an address.')
+        l_pg, l_a = int(prm['lcr_page']), int(prm['lcr_addr'])
+        add_cell(cn(cat, inst, 'LcrOn', 1), chip, l_pg, l_a, '', 'InstantCtl')
+        add_dispatch(chip, l_a, f'_fdr_lcr_on_{nid}', f'{nid} LcrOn')
+    if 'syslaw_page' in prm:
+        s_pg, s_a = int(prm['syslaw_page']), int(prm['syslaw_addr'])
+        add_cell('Sys001LcrLaw001', chip, s_pg, s_a, '', 'InstantCtl',
+                 notes='0=hard LCR 1=three-bus constant power (PW R5)')
+        add_dispatch(chip, s_a, '_sys_lcr_law', 'Sys LcrLaw (whole desk)')
+
 
 # ── ROUTING (channel strip fan-out) ──────────────────────────────────────
 def expand_routing(node, cat, inst):

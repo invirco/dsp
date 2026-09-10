@@ -12,8 +12,8 @@
 # expansion with this product's cell set, so a cell both products
 # carry has the same chip, page and address in both files.
 #
-# 5733 of 6999 defined cells reach a DSP address.
-# The other 1266 are named in dsp-unmapped.csv with the
+# 5765 of 6999 defined cells reach a DSP address.
+# The other 1234 are named in dsp-unmapped.csv with the
 # reason — every defined cell is in exactly one of the two files.
 #
 # Columns:
@@ -1059,6 +1059,7 @@ Chan001GrpOn002,C1_RTG_01,ROUTING,1,1,87,0x0057,rw,InstantCtl,Instant,0,0,Linear
 Chan001GrpOn003,C1_RTG_01,ROUTING,1,1,88,0x0058,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan001GrpOn004,C1_RTG_01,ROUTING,1,1,89,0x0059,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan001InputSel001,C1_GAIN_01,GAIN,1,1,3,0x0003,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
+Chan001LcrOn001,C1_FDR_01,FADER_PAN,1,1,4934,0x1346,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan001Level001,C1_FDR_01,FADER_PAN,1,1,80,0x0050,rw,GainFast,Slew,3,8,Exp,Scalar,dB:Off:-50@31:-30@63:-10@127:10,
 Chan001MainOn001,C1_RTG_01,ROUTING,1,1,84,0x0054,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan001MatrixOn001,C1_RTG_01,ROUTING,1,1,4806,0x12C6,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -1184,6 +1185,7 @@ Chan002GrpOn002,C1_RTG_02,ROUTING,1,1,231,0x00E7,rw,InstantCtl,Instant,0,0,Linea
 Chan002GrpOn003,C1_RTG_02,ROUTING,1,1,232,0x00E8,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan002GrpOn004,C1_RTG_02,ROUTING,1,1,233,0x00E9,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan002InputSel001,C1_GAIN_02,GAIN,1,1,147,0x0093,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
+Chan002LcrOn001,C1_FDR_02,FADER_PAN,1,1,4935,0x1347,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan002Level001,C1_FDR_02,FADER_PAN,1,1,224,0x00E0,rw,GainFast,Slew,3,8,Exp,Scalar,dB:Off:-50@31:-30@63:-10@127:10,
 Chan002MainOn001,C1_RTG_02,ROUTING,1,1,228,0x00E4,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan002MatrixOn001,C1_RTG_02,ROUTING,1,1,4810,0x12CA,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -1309,6 +1311,7 @@ Chan003GrpOn002,C1_RTG_03,ROUTING,1,1,375,0x0177,rw,InstantCtl,Instant,0,0,Linea
 Chan003GrpOn003,C1_RTG_03,ROUTING,1,1,376,0x0178,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan003GrpOn004,C1_RTG_03,ROUTING,1,1,377,0x0179,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan003InputSel001,C1_GAIN_03,GAIN,1,1,291,0x0123,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
+Chan003LcrOn001,C1_FDR_03,FADER_PAN,1,1,4936,0x1348,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan003Level001,C1_FDR_03,FADER_PAN,1,1,368,0x0170,rw,GainFast,Slew,3,8,Exp,Scalar,dB:Off:-50@31:-30@63:-10@127:10,
 Chan003MainOn001,C1_RTG_03,ROUTING,1,1,372,0x0174,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan003MatrixOn001,C1_RTG_03,ROUTING,1,1,4814,0x12CE,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -1434,6 +1437,7 @@ Chan004GrpOn002,C1_RTG_04,ROUTING,1,1,519,0x0207,rw,InstantCtl,Instant,0,0,Linea
 Chan004GrpOn003,C1_RTG_04,ROUTING,1,1,520,0x0208,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan004GrpOn004,C1_RTG_04,ROUTING,1,1,521,0x0209,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan004InputSel001,C1_GAIN_04,GAIN,1,1,435,0x01B3,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
+Chan004LcrOn001,C1_FDR_04,FADER_PAN,1,1,4937,0x1349,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan004Level001,C1_FDR_04,FADER_PAN,1,1,512,0x0200,rw,GainFast,Slew,3,8,Exp,Scalar,dB:Off:-50@31:-30@63:-10@127:10,
 Chan004MainOn001,C1_RTG_04,ROUTING,1,1,516,0x0204,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan004MatrixOn001,C1_RTG_04,ROUTING,1,1,4818,0x12D2,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -1559,6 +1563,7 @@ Chan005GrpOn002,C1_RTG_05,ROUTING,1,1,663,0x0297,rw,InstantCtl,Instant,0,0,Linea
 Chan005GrpOn003,C1_RTG_05,ROUTING,1,1,664,0x0298,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan005GrpOn004,C1_RTG_05,ROUTING,1,1,665,0x0299,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan005InputSel001,C1_GAIN_05,GAIN,1,1,579,0x0243,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
+Chan005LcrOn001,C1_FDR_05,FADER_PAN,1,1,4938,0x134A,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan005Level001,C1_FDR_05,FADER_PAN,1,1,656,0x0290,rw,GainFast,Slew,3,8,Exp,Scalar,dB:Off:-50@31:-30@63:-10@127:10,
 Chan005MainOn001,C1_RTG_05,ROUTING,1,1,660,0x0294,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan005MatrixOn001,C1_RTG_05,ROUTING,1,1,4822,0x12D6,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -1684,6 +1689,7 @@ Chan006GrpOn002,C1_RTG_06,ROUTING,1,1,807,0x0327,rw,InstantCtl,Instant,0,0,Linea
 Chan006GrpOn003,C1_RTG_06,ROUTING,1,1,808,0x0328,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan006GrpOn004,C1_RTG_06,ROUTING,1,1,809,0x0329,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan006InputSel001,C1_GAIN_06,GAIN,1,1,723,0x02D3,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
+Chan006LcrOn001,C1_FDR_06,FADER_PAN,1,1,4939,0x134B,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan006Level001,C1_FDR_06,FADER_PAN,1,1,800,0x0320,rw,GainFast,Slew,3,8,Exp,Scalar,dB:Off:-50@31:-30@63:-10@127:10,
 Chan006MainOn001,C1_RTG_06,ROUTING,1,1,804,0x0324,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan006MatrixOn001,C1_RTG_06,ROUTING,1,1,4826,0x12DA,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -1809,6 +1815,7 @@ Chan007GrpOn002,C1_RTG_07,ROUTING,1,1,951,0x03B7,rw,InstantCtl,Instant,0,0,Linea
 Chan007GrpOn003,C1_RTG_07,ROUTING,1,1,952,0x03B8,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan007GrpOn004,C1_RTG_07,ROUTING,1,1,953,0x03B9,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan007InputSel001,C1_GAIN_07,GAIN,1,1,867,0x0363,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
+Chan007LcrOn001,C1_FDR_07,FADER_PAN,1,1,4940,0x134C,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan007Level001,C1_FDR_07,FADER_PAN,1,1,944,0x03B0,rw,GainFast,Slew,3,8,Exp,Scalar,dB:Off:-50@31:-30@63:-10@127:10,
 Chan007MainOn001,C1_RTG_07,ROUTING,1,1,948,0x03B4,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan007MatrixOn001,C1_RTG_07,ROUTING,1,1,4830,0x12DE,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -1934,6 +1941,7 @@ Chan008GrpOn002,C1_RTG_08,ROUTING,1,1,1095,0x0447,rw,InstantCtl,Instant,0,0,Line
 Chan008GrpOn003,C1_RTG_08,ROUTING,1,1,1096,0x0448,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan008GrpOn004,C1_RTG_08,ROUTING,1,1,1097,0x0449,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan008InputSel001,C1_GAIN_08,GAIN,1,1,1011,0x03F3,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
+Chan008LcrOn001,C1_FDR_08,FADER_PAN,1,1,4941,0x134D,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan008Level001,C1_FDR_08,FADER_PAN,1,1,1088,0x0440,rw,GainFast,Slew,3,8,Exp,Scalar,dB:Off:-50@31:-30@63:-10@127:10,
 Chan008MainOn001,C1_RTG_08,ROUTING,1,1,1092,0x0444,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan008MatrixOn001,C1_RTG_08,ROUTING,1,1,4834,0x12E2,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -2059,6 +2067,7 @@ Chan009GrpOn002,C1_RTG_09,ROUTING,1,1,1239,0x04D7,rw,InstantCtl,Instant,0,0,Line
 Chan009GrpOn003,C1_RTG_09,ROUTING,1,1,1240,0x04D8,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan009GrpOn004,C1_RTG_09,ROUTING,1,1,1241,0x04D9,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan009InputSel001,C1_GAIN_09,GAIN,1,1,1155,0x0483,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
+Chan009LcrOn001,C1_FDR_09,FADER_PAN,1,1,4942,0x134E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan009Level001,C1_FDR_09,FADER_PAN,1,1,1232,0x04D0,rw,GainFast,Slew,3,8,Exp,Scalar,dB:Off:-50@31:-30@63:-10@127:10,
 Chan009MainOn001,C1_RTG_09,ROUTING,1,1,1236,0x04D4,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan009MatrixOn001,C1_RTG_09,ROUTING,1,1,4838,0x12E6,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -2184,6 +2193,7 @@ Chan010GrpOn002,C1_RTG_10,ROUTING,1,1,1383,0x0567,rw,InstantCtl,Instant,0,0,Line
 Chan010GrpOn003,C1_RTG_10,ROUTING,1,1,1384,0x0568,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan010GrpOn004,C1_RTG_10,ROUTING,1,1,1385,0x0569,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan010InputSel001,C1_GAIN_10,GAIN,1,1,1299,0x0513,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
+Chan010LcrOn001,C1_FDR_10,FADER_PAN,1,1,4943,0x134F,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan010Level001,C1_FDR_10,FADER_PAN,1,1,1376,0x0560,rw,GainFast,Slew,3,8,Exp,Scalar,dB:Off:-50@31:-30@63:-10@127:10,
 Chan010MainOn001,C1_RTG_10,ROUTING,1,1,1380,0x0564,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan010MatrixOn001,C1_RTG_10,ROUTING,1,1,4842,0x12EA,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -2309,6 +2319,7 @@ Chan011GrpOn002,C1_RTG_11,ROUTING,1,1,1527,0x05F7,rw,InstantCtl,Instant,0,0,Line
 Chan011GrpOn003,C1_RTG_11,ROUTING,1,1,1528,0x05F8,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan011GrpOn004,C1_RTG_11,ROUTING,1,1,1529,0x05F9,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan011InputSel001,C1_GAIN_11,GAIN,1,1,1443,0x05A3,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
+Chan011LcrOn001,C1_FDR_11,FADER_PAN,1,1,4944,0x1350,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan011Level001,C1_FDR_11,FADER_PAN,1,1,1520,0x05F0,rw,GainFast,Slew,3,8,Exp,Scalar,dB:Off:-50@31:-30@63:-10@127:10,
 Chan011MainOn001,C1_RTG_11,ROUTING,1,1,1524,0x05F4,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan011MatrixOn001,C1_RTG_11,ROUTING,1,1,4846,0x12EE,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -2434,6 +2445,7 @@ Chan012GrpOn002,C1_RTG_12,ROUTING,1,1,1671,0x0687,rw,InstantCtl,Instant,0,0,Line
 Chan012GrpOn003,C1_RTG_12,ROUTING,1,1,1672,0x0688,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan012GrpOn004,C1_RTG_12,ROUTING,1,1,1673,0x0689,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan012InputSel001,C1_GAIN_12,GAIN,1,1,1587,0x0633,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
+Chan012LcrOn001,C1_FDR_12,FADER_PAN,1,1,4945,0x1351,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan012Level001,C1_FDR_12,FADER_PAN,1,1,1664,0x0680,rw,GainFast,Slew,3,8,Exp,Scalar,dB:Off:-50@31:-30@63:-10@127:10,
 Chan012MainOn001,C1_RTG_12,ROUTING,1,1,1668,0x0684,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan012MatrixOn001,C1_RTG_12,ROUTING,1,1,4850,0x12F2,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -2559,6 +2571,7 @@ Chan013GrpOn002,C1_RTG_13,ROUTING,1,1,1815,0x0717,rw,InstantCtl,Instant,0,0,Line
 Chan013GrpOn003,C1_RTG_13,ROUTING,1,1,1816,0x0718,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan013GrpOn004,C1_RTG_13,ROUTING,1,1,1817,0x0719,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan013InputSel001,C1_GAIN_13,GAIN,1,1,1731,0x06C3,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
+Chan013LcrOn001,C1_FDR_13,FADER_PAN,1,1,4946,0x1352,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan013Level001,C1_FDR_13,FADER_PAN,1,1,1808,0x0710,rw,GainFast,Slew,3,8,Exp,Scalar,dB:Off:-50@31:-30@63:-10@127:10,
 Chan013MainOn001,C1_RTG_13,ROUTING,1,1,1812,0x0714,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan013MatrixOn001,C1_RTG_13,ROUTING,1,1,4854,0x12F6,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -2684,6 +2697,7 @@ Chan014GrpOn002,C1_RTG_14,ROUTING,1,1,1959,0x07A7,rw,InstantCtl,Instant,0,0,Line
 Chan014GrpOn003,C1_RTG_14,ROUTING,1,1,1960,0x07A8,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan014GrpOn004,C1_RTG_14,ROUTING,1,1,1961,0x07A9,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan014InputSel001,C1_GAIN_14,GAIN,1,1,1875,0x0753,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
+Chan014LcrOn001,C1_FDR_14,FADER_PAN,1,1,4947,0x1353,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan014Level001,C1_FDR_14,FADER_PAN,1,1,1952,0x07A0,rw,GainFast,Slew,3,8,Exp,Scalar,dB:Off:-50@31:-30@63:-10@127:10,
 Chan014MainOn001,C1_RTG_14,ROUTING,1,1,1956,0x07A4,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan014MatrixOn001,C1_RTG_14,ROUTING,1,1,4858,0x12FA,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -2809,6 +2823,7 @@ Chan015GrpOn002,C1_RTG_15,ROUTING,1,1,2103,0x0837,rw,InstantCtl,Instant,0,0,Line
 Chan015GrpOn003,C1_RTG_15,ROUTING,1,1,2104,0x0838,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan015GrpOn004,C1_RTG_15,ROUTING,1,1,2105,0x0839,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan015InputSel001,C1_GAIN_15,GAIN,1,1,2019,0x07E3,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
+Chan015LcrOn001,C1_FDR_15,FADER_PAN,1,1,4948,0x1354,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan015Level001,C1_FDR_15,FADER_PAN,1,1,2096,0x0830,rw,GainFast,Slew,3,8,Exp,Scalar,dB:Off:-50@31:-30@63:-10@127:10,
 Chan015MainOn001,C1_RTG_15,ROUTING,1,1,2100,0x0834,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan015MatrixOn001,C1_RTG_15,ROUTING,1,1,4862,0x12FE,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -2934,6 +2949,7 @@ Chan016GrpOn002,C1_RTG_16,ROUTING,1,1,2247,0x08C7,rw,InstantCtl,Instant,0,0,Line
 Chan016GrpOn003,C1_RTG_16,ROUTING,1,1,2248,0x08C8,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan016GrpOn004,C1_RTG_16,ROUTING,1,1,2249,0x08C9,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan016InputSel001,C1_GAIN_16,GAIN,1,1,2163,0x0873,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
+Chan016LcrOn001,C1_FDR_16,FADER_PAN,1,1,4949,0x1355,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan016Level001,C1_FDR_16,FADER_PAN,1,1,2240,0x08C0,rw,GainFast,Slew,3,8,Exp,Scalar,dB:Off:-50@31:-30@63:-10@127:10,
 Chan016MainOn001,C1_RTG_16,ROUTING,1,1,2244,0x08C4,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan016MatrixOn001,C1_RTG_16,ROUTING,1,1,4866,0x1302,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -3059,6 +3075,7 @@ Chan017GrpOn002,C1_RTG_17,ROUTING,1,1,2391,0x0957,rw,InstantCtl,Instant,0,0,Line
 Chan017GrpOn003,C1_RTG_17,ROUTING,1,1,2392,0x0958,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan017GrpOn004,C1_RTG_17,ROUTING,1,1,2393,0x0959,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan017InputSel001,C1_GAIN_17,GAIN,1,1,2307,0x0903,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
+Chan017LcrOn001,C1_FDR_17,FADER_PAN,1,1,4950,0x1356,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan017Level001,C1_FDR_17,FADER_PAN,1,1,2384,0x0950,rw,GainFast,Slew,3,8,Exp,Scalar,dB:Off:-50@31:-30@63:-10@127:10,
 Chan017MainOn001,C1_RTG_17,ROUTING,1,1,2388,0x0954,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan017MatrixOn001,C1_RTG_17,ROUTING,1,1,4870,0x1306,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -3184,6 +3201,7 @@ Chan018GrpOn002,C1_RTG_18,ROUTING,1,1,2535,0x09E7,rw,InstantCtl,Instant,0,0,Line
 Chan018GrpOn003,C1_RTG_18,ROUTING,1,1,2536,0x09E8,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan018GrpOn004,C1_RTG_18,ROUTING,1,1,2537,0x09E9,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan018InputSel001,C1_GAIN_18,GAIN,1,1,2451,0x0993,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
+Chan018LcrOn001,C1_FDR_18,FADER_PAN,1,1,4951,0x1357,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan018Level001,C1_FDR_18,FADER_PAN,1,1,2528,0x09E0,rw,GainFast,Slew,3,8,Exp,Scalar,dB:Off:-50@31:-30@63:-10@127:10,
 Chan018MainOn001,C1_RTG_18,ROUTING,1,1,2532,0x09E4,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan018MatrixOn001,C1_RTG_18,ROUTING,1,1,4874,0x130A,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -3309,6 +3327,7 @@ Chan019GrpOn002,C1_RTG_19,ROUTING,1,1,2679,0x0A77,rw,InstantCtl,Instant,0,0,Line
 Chan019GrpOn003,C1_RTG_19,ROUTING,1,1,2680,0x0A78,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan019GrpOn004,C1_RTG_19,ROUTING,1,1,2681,0x0A79,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan019InputSel001,C1_GAIN_19,GAIN,1,1,2595,0x0A23,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
+Chan019LcrOn001,C1_FDR_19,FADER_PAN,1,1,4952,0x1358,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan019Level001,C1_FDR_19,FADER_PAN,1,1,2672,0x0A70,rw,GainFast,Slew,3,8,Exp,Scalar,dB:Off:-50@31:-30@63:-10@127:10,
 Chan019MainOn001,C1_RTG_19,ROUTING,1,1,2676,0x0A74,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan019MatrixOn001,C1_RTG_19,ROUTING,1,1,4878,0x130E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -3434,6 +3453,7 @@ Chan020GrpOn002,C1_RTG_20,ROUTING,1,1,2823,0x0B07,rw,InstantCtl,Instant,0,0,Line
 Chan020GrpOn003,C1_RTG_20,ROUTING,1,1,2824,0x0B08,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan020GrpOn004,C1_RTG_20,ROUTING,1,1,2825,0x0B09,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan020InputSel001,C1_GAIN_20,GAIN,1,1,2739,0x0AB3,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
+Chan020LcrOn001,C1_FDR_20,FADER_PAN,1,1,4953,0x1359,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan020Level001,C1_FDR_20,FADER_PAN,1,1,2816,0x0B00,rw,GainFast,Slew,3,8,Exp,Scalar,dB:Off:-50@31:-30@63:-10@127:10,
 Chan020MainOn001,C1_RTG_20,ROUTING,1,1,2820,0x0B04,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan020MatrixOn001,C1_RTG_20,ROUTING,1,1,4882,0x1312,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -3559,6 +3579,7 @@ Chan021GrpOn002,C1_RTG_21,ROUTING,1,1,2967,0x0B97,rw,InstantCtl,Instant,0,0,Line
 Chan021GrpOn003,C1_RTG_21,ROUTING,1,1,2968,0x0B98,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan021GrpOn004,C1_RTG_21,ROUTING,1,1,2969,0x0B99,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan021InputSel001,C1_GAIN_21,GAIN,1,1,2883,0x0B43,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
+Chan021LcrOn001,C1_FDR_21,FADER_PAN,1,1,4954,0x135A,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan021Level001,C1_FDR_21,FADER_PAN,1,1,2960,0x0B90,rw,GainFast,Slew,3,8,Exp,Scalar,dB:Off:-50@31:-30@63:-10@127:10,
 Chan021MainOn001,C1_RTG_21,ROUTING,1,1,2964,0x0B94,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan021MatrixOn001,C1_RTG_21,ROUTING,1,1,4886,0x1316,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -3684,6 +3705,7 @@ Chan022GrpOn002,C1_RTG_22,ROUTING,1,1,3111,0x0C27,rw,InstantCtl,Instant,0,0,Line
 Chan022GrpOn003,C1_RTG_22,ROUTING,1,1,3112,0x0C28,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan022GrpOn004,C1_RTG_22,ROUTING,1,1,3113,0x0C29,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan022InputSel001,C1_GAIN_22,GAIN,1,1,3027,0x0BD3,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
+Chan022LcrOn001,C1_FDR_22,FADER_PAN,1,1,4955,0x135B,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan022Level001,C1_FDR_22,FADER_PAN,1,1,3104,0x0C20,rw,GainFast,Slew,3,8,Exp,Scalar,dB:Off:-50@31:-30@63:-10@127:10,
 Chan022MainOn001,C1_RTG_22,ROUTING,1,1,3108,0x0C24,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan022MatrixOn001,C1_RTG_22,ROUTING,1,1,4890,0x131A,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -3809,6 +3831,7 @@ Chan023GrpOn002,C1_RTG_23,ROUTING,1,1,3255,0x0CB7,rw,InstantCtl,Instant,0,0,Line
 Chan023GrpOn003,C1_RTG_23,ROUTING,1,1,3256,0x0CB8,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan023GrpOn004,C1_RTG_23,ROUTING,1,1,3257,0x0CB9,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan023InputSel001,C1_GAIN_23,GAIN,1,1,3171,0x0C63,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
+Chan023LcrOn001,C1_FDR_23,FADER_PAN,1,1,4956,0x135C,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan023Level001,C1_FDR_23,FADER_PAN,1,1,3248,0x0CB0,rw,GainFast,Slew,3,8,Exp,Scalar,dB:Off:-50@31:-30@63:-10@127:10,
 Chan023MainOn001,C1_RTG_23,ROUTING,1,1,3252,0x0CB4,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan023MatrixOn001,C1_RTG_23,ROUTING,1,1,4894,0x131E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -3934,6 +3957,7 @@ Chan024GrpOn002,C1_RTG_24,ROUTING,1,1,3399,0x0D47,rw,InstantCtl,Instant,0,0,Line
 Chan024GrpOn003,C1_RTG_24,ROUTING,1,1,3400,0x0D48,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan024GrpOn004,C1_RTG_24,ROUTING,1,1,3401,0x0D49,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan024InputSel001,C1_GAIN_24,GAIN,1,1,3315,0x0CF3,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
+Chan024LcrOn001,C1_FDR_24,FADER_PAN,1,1,4957,0x135D,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan024Level001,C1_FDR_24,FADER_PAN,1,1,3392,0x0D40,rw,GainFast,Slew,3,8,Exp,Scalar,dB:Off:-50@31:-30@63:-10@127:10,
 Chan024MainOn001,C1_RTG_24,ROUTING,1,1,3396,0x0D44,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan024MatrixOn001,C1_RTG_24,ROUTING,1,1,4898,0x1322,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -4059,6 +4083,7 @@ Chan025GrpOn002,C1_RTG_25,ROUTING,1,1,3543,0x0DD7,rw,InstantCtl,Instant,0,0,Line
 Chan025GrpOn003,C1_RTG_25,ROUTING,1,1,3544,0x0DD8,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan025GrpOn004,C1_RTG_25,ROUTING,1,1,3545,0x0DD9,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan025InputSel001,C1_GAIN_25,GAIN,1,1,3459,0x0D83,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
+Chan025LcrOn001,C1_FDR_25,FADER_PAN,1,1,4958,0x135E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan025Level001,C1_FDR_25,FADER_PAN,1,1,3536,0x0DD0,rw,GainFast,Slew,3,8,Exp,Scalar,dB:Off:-50@31:-30@63:-10@127:10,
 Chan025MainOn001,C1_RTG_25,ROUTING,1,1,3540,0x0DD4,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan025MatrixOn001,C1_RTG_25,ROUTING,1,1,4902,0x1326,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -4184,6 +4209,7 @@ Chan026GrpOn002,C1_RTG_26,ROUTING,1,1,3687,0x0E67,rw,InstantCtl,Instant,0,0,Line
 Chan026GrpOn003,C1_RTG_26,ROUTING,1,1,3688,0x0E68,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan026GrpOn004,C1_RTG_26,ROUTING,1,1,3689,0x0E69,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan026InputSel001,C1_GAIN_26,GAIN,1,1,3603,0x0E13,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
+Chan026LcrOn001,C1_FDR_26,FADER_PAN,1,1,4959,0x135F,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan026Level001,C1_FDR_26,FADER_PAN,1,1,3680,0x0E60,rw,GainFast,Slew,3,8,Exp,Scalar,dB:Off:-50@31:-30@63:-10@127:10,
 Chan026MainOn001,C1_RTG_26,ROUTING,1,1,3684,0x0E64,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan026MatrixOn001,C1_RTG_26,ROUTING,1,1,4906,0x132A,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -4309,6 +4335,7 @@ Chan027GrpOn002,C1_RTG_27,ROUTING,1,1,3831,0x0EF7,rw,InstantCtl,Instant,0,0,Line
 Chan027GrpOn003,C1_RTG_27,ROUTING,1,1,3832,0x0EF8,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan027GrpOn004,C1_RTG_27,ROUTING,1,1,3833,0x0EF9,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan027InputSel001,C1_GAIN_27,GAIN,1,1,3747,0x0EA3,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
+Chan027LcrOn001,C1_FDR_27,FADER_PAN,1,1,4960,0x1360,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan027Level001,C1_FDR_27,FADER_PAN,1,1,3824,0x0EF0,rw,GainFast,Slew,3,8,Exp,Scalar,dB:Off:-50@31:-30@63:-10@127:10,
 Chan027MainOn001,C1_RTG_27,ROUTING,1,1,3828,0x0EF4,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan027MatrixOn001,C1_RTG_27,ROUTING,1,1,4910,0x132E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -4434,6 +4461,7 @@ Chan028GrpOn002,C1_RTG_28,ROUTING,1,1,3975,0x0F87,rw,InstantCtl,Instant,0,0,Line
 Chan028GrpOn003,C1_RTG_28,ROUTING,1,1,3976,0x0F88,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan028GrpOn004,C1_RTG_28,ROUTING,1,1,3977,0x0F89,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan028InputSel001,C1_GAIN_28,GAIN,1,1,3891,0x0F33,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
+Chan028LcrOn001,C1_FDR_28,FADER_PAN,1,1,4961,0x1361,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan028Level001,C1_FDR_28,FADER_PAN,1,1,3968,0x0F80,rw,GainFast,Slew,3,8,Exp,Scalar,dB:Off:-50@31:-30@63:-10@127:10,
 Chan028MainOn001,C1_RTG_28,ROUTING,1,1,3972,0x0F84,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan028MatrixOn001,C1_RTG_28,ROUTING,1,1,4914,0x1332,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -4559,6 +4587,7 @@ Chan029GrpOn002,C1_RTG_29,ROUTING,1,1,4119,0x1017,rw,InstantCtl,Instant,0,0,Line
 Chan029GrpOn003,C1_RTG_29,ROUTING,1,1,4120,0x1018,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan029GrpOn004,C1_RTG_29,ROUTING,1,1,4121,0x1019,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan029InputSel001,C1_GAIN_29,GAIN,1,1,4035,0x0FC3,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
+Chan029LcrOn001,C1_FDR_29,FADER_PAN,1,1,4962,0x1362,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan029Level001,C1_FDR_29,FADER_PAN,1,1,4112,0x1010,rw,GainFast,Slew,3,8,Exp,Scalar,dB:Off:-50@31:-30@63:-10@127:10,
 Chan029MainOn001,C1_RTG_29,ROUTING,1,1,4116,0x1014,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan029MatrixOn001,C1_RTG_29,ROUTING,1,1,4918,0x1336,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -4684,6 +4713,7 @@ Chan030GrpOn002,C1_RTG_30,ROUTING,1,1,4263,0x10A7,rw,InstantCtl,Instant,0,0,Line
 Chan030GrpOn003,C1_RTG_30,ROUTING,1,1,4264,0x10A8,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan030GrpOn004,C1_RTG_30,ROUTING,1,1,4265,0x10A9,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan030InputSel001,C1_GAIN_30,GAIN,1,1,4179,0x1053,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
+Chan030LcrOn001,C1_FDR_30,FADER_PAN,1,1,4963,0x1363,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan030Level001,C1_FDR_30,FADER_PAN,1,1,4256,0x10A0,rw,GainFast,Slew,3,8,Exp,Scalar,dB:Off:-50@31:-30@63:-10@127:10,
 Chan030MainOn001,C1_RTG_30,ROUTING,1,1,4260,0x10A4,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan030MatrixOn001,C1_RTG_30,ROUTING,1,1,4922,0x133A,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -4809,6 +4839,7 @@ Chan031GrpOn002,C1_RTG_31,ROUTING,1,1,4407,0x1137,rw,InstantCtl,Instant,0,0,Line
 Chan031GrpOn003,C1_RTG_31,ROUTING,1,1,4408,0x1138,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan031GrpOn004,C1_RTG_31,ROUTING,1,1,4409,0x1139,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan031InputSel001,C1_GAIN_31,GAIN,1,1,4323,0x10E3,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
+Chan031LcrOn001,C1_FDR_31,FADER_PAN,1,1,4964,0x1364,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan031Level001,C1_FDR_31,FADER_PAN,1,1,4400,0x1130,rw,GainFast,Slew,3,8,Exp,Scalar,dB:Off:-50@31:-30@63:-10@127:10,
 Chan031MainOn001,C1_RTG_31,ROUTING,1,1,4404,0x1134,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan031MatrixOn001,C1_RTG_31,ROUTING,1,1,4926,0x133E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -4934,6 +4965,7 @@ Chan032GrpOn002,C1_RTG_32,ROUTING,1,1,4551,0x11C7,rw,InstantCtl,Instant,0,0,Line
 Chan032GrpOn003,C1_RTG_32,ROUTING,1,1,4552,0x11C8,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan032GrpOn004,C1_RTG_32,ROUTING,1,1,4553,0x11C9,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan032InputSel001,C1_GAIN_32,GAIN,1,1,4467,0x1173,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
+Chan032LcrOn001,C1_FDR_32,FADER_PAN,1,1,4965,0x1365,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan032Level001,C1_FDR_32,FADER_PAN,1,1,4544,0x11C0,rw,GainFast,Slew,3,8,Exp,Scalar,dB:Off:-50@31:-30@63:-10@127:10,
 Chan032MainOn001,C1_RTG_32,ROUTING,1,1,4548,0x11C4,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Chan032MatrixOn001,C1_RTG_32,ROUTING,1,1,4930,0x1342,rw,InstantCtl,Instant,0,0,Linear,Scalar,,

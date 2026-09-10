@@ -517,6 +517,32 @@ for ch in range(1, NUM_CH + 1):
     _r = _mtx_rows[f'C1_RTG_{ch:02d}']
     _r['params'] += f';mtx_page={p};mtx_addr={a}'
 
+# --- LCR: THE PER-CHANNEL SELECT AND THE SYSTEM LAW (PW ruling R5) -----
+#
+# `Chan[1-32]LcrOn[1-1]` is one word per channel and `Sys[1-1]LcrLaw[1-1]`
+# is ONE word for the whole desk. Both are allocated HERE, after every
+# other chip-1 allocation, for the matrix sends' reason: the strip's
+# 144-word page is exactly full (FADER_PAN 80..83, ROUTING 84..143), so
+# putting either inside it would move every chip-1 address above channel
+# 1's routing node -- the whole map, the MCU's ghost table and every
+# stored golden. The bump ADDS rows and moves NONE.
+#
+# The consequence S22-4 paid for is handled in the DSP and not here: a
+# write outside the 144-word page lands in the control-epoch catch-all
+# that no strip node watches, so the FADER_PAN node raises `_fdr_busy`
+# for one block whenever the (LcrOn, law) pair moves, which is the same
+# word ROUTING already re-preps on when a pan ramps.
+#
+# The fourth word of the FADER_PAN block is NOT reused. It is reserved by
+# PW's 2026-08-30 ruling (Dca host-managed) and reserved means reserved;
+# reclaiming it would be a contract decision and it is not this session's.
+_lcr_rows = {r['id']: r for r in rows}
+for ch in range(1, NUM_CH + 1):
+    p, a = c1_alloc.next(1)
+    _lcr_rows[f'C1_FDR_{ch:02d}']['params'] += f';lcr_page={p};lcr_addr={a}'
+_sys_p, _sys_a = c1_alloc.next(1)
+_lcr_rows['C1_FDR_01']['params'] += f';syslaw_page={_sys_p};syslaw_addr={_sys_a}'
+
 # Sanity: legacy bus order must land on global slots 0-24 unchanged. The
 # matrix buses are checked separately -- they are new slots, and pinning them
 # to a literal here is what would catch a slot-map edit that moved them onto

@@ -20,6 +20,8 @@
 #include "blk_pool.h"
 
 .section/dm seg_dmda;
+.extern _fdr_cq_C1_FDR_05;
+.extern _fdr_lcr_on_C1_FDR_05;
 .extern _tap_post_trim_C1_GAIN_05;
 .extern _tap_post_eq_C1_EQ_05;
 .extern _tap_pre_fader_C1_DLY_05;
@@ -183,8 +185,24 @@ _C1_RTG_05_process:
     if eq r1 = r8;
     dm(_rtg_mrq_C1_RTG_05) = r1;
 
+    /* THE CENTRE/SUB LEG (PW ruling R5).
+     *
+     * `Chan*CtrOn` is dispatched to `_rtg_sub_on` and the master
+     * calls the cell "Center/sub output assign on/off" -- on this
+     * product the sub bus IS the centre bus, and that is why LCR
+     * needs no new fabric row, no new inter-chip lane and no TDM
+     * slot: the destination has been in the graph all along.
+     *
+     * LCR OFF: unity, exactly as this send has always been -- a
+     * sub send is a full-level send. LCR ON: the fader's centre
+     * leg out of the pan table. `Chan*CtrOn` gates it either way,
+     * which is what R5 asks for in as many words. */
     r2 = dm(_rtg_sub_on_C1_RTG_05);
     r1 = r9;
+    r3 = dm(_fdr_lcr_on_C1_FDR_05);
+    r4 = dm(_fdr_cq_C1_FDR_05);
+    r3 = pass r3;
+    if ne r1 = r4;
     r2 = pass r2;
     if eq r1 = r8;
     dm(_rtg_subq_C1_RTG_05) = r1;

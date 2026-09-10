@@ -8646,8 +8646,18 @@ def gen_fader_pan_fixed(node):
     is_ch_fdr = (node['chip'] == '1')
     lr_vars = ''
     if is_ch_fdr:
+        # `_fdr_cq` is the CENTRE leg (R5) and `_fdr_lcr_on` is this
+        # strip's `Chan*LcrOn`. Both exist whether or not DSP4_PAN_TABLE
+        # is on: ROUTING reads them either way and a word that appears
+        # and disappears with a build flag is how a control arm stops
+        # being a control arm. With the table off, `_fdr_cq` is written
+        # zero every block and the crosspoint is the unity sub send it
+        # has always been.
         lr_vars = (f'        .var _fdr_lq_{nid} = 0;\n'
-                   f'        .var _fdr_rq_{nid} = 0;')
+                   f'        .var _fdr_rq_{nid} = 0;\n'
+                   f'        .var _fdr_cq_{nid} = 0;\n'
+                   f'        .var _fdr_lcr_on_{nid} = 0;\n'
+                   f'        .var _fdr_lcr_seen_{nid} = -1;')
     cvt_lr = ''
     apply_lr = ''
     # Bus faders (AUX/GRP/SUB/FX) are mono -- no pan split, so no lq/rq.
@@ -8668,6 +8678,43 @@ def gen_fader_pan_fixed(node):
     blk_lr_hoist = ''
     blk_lr_ptr = ''
     blk_lr_body = ''
+    # AN LcrOn OR LcrLaw CHANGE HAS TO REACH ROUTING (PW ruling R5).
+    #
+    # This node's block-rate body runs every block unconditionally, so it
+    # picks up both cells on its own. ROUTING's does NOT: its prep is
+    # gated on the strip's control epoch and on `_fdr_busy`, and
+    # `Chan*LcrOn` is allocated OUTSIDE the 144-word strip page (for
+    # S22-4's reason -- putting it inside would move every chip-1 address
+    # above channel 1's routing node), so its write lands in the epoch
+    # catch-all that no strip node watches. That is exactly the defect
+    # S22-4 measured on the matrix sends, and it is closed here without a
+    # second control-epoch range in the SPI handler: `_fdr_busy` already
+    # means "ROUTING must re-prep", so a change in the (LcrOn, law) pair
+    # raises it for one block. Costs five instructions a strip a block and
+    # needs nothing of the handler.
+    # add_extern_decls() only sees dm(_sym) references, and the table base
+    # arrives in a register as a bare symbol -- so these two are declared
+    # here rather than found.
+    pan_extern = ''
+    if is_ch_fdr:
+        pan_extern = ('        #if DSP4_PAN_TABLE\n'
+                      '        .extern _pan_legs;\n'
+                      '        #endif\n')
+    lcr_busy = ''
+    if is_ch_fdr:
+        lcr_busy = dedent(f"""\
+            r4 = dm(_fdr_lcr_on_{nid});
+            r5 = dm(_sys_lcr_law);
+            r4 = r4 + r4;
+            r4 = r4 + r5;                     /* (LcrOn, law) as one word */
+            r5 = dm(_fdr_lcr_seen_{nid});
+            comp(r4, r5);
+            if eq jump (pc, .lcrsame_{nid});
+            dm(_fdr_lcr_seen_{nid}) = r4;
+            r5 = DSP4_BLOCK_SIZE;
+            r1 = max(r1, r5);
+            .lcrsame_{nid}:
+        """).replace('\n', '\n            ').rstrip() + '\n            '
     if is_ch_fdr:
         cvt_lr = dedent(f"""\
             /* L/R pan gains (linear pan law, matches float node).
@@ -8681,6 +8728,18 @@ def gen_fader_pan_fixed(node):
              * exact at level 1.0. The float node this was ported from does
              * `f1 = f14 * f7` with f7 = 1 - pan and no comp -- the squaring
              * was introduced by the fixed-point port, not inherited. */
+        #if DSP4_PAN_TABLE
+            /* R5: `Pan` is an INDEX into the one 127-entry table, the law
+             * is selected at BLOCK rate by `Sys[1-1]LcrLaw[1-1]`, and the
+             * read itself is ONE routine for all thirty-two strips --
+             * chip1/pan_law.asm, for dyn_lut_fx.asm's reason. */
+            r0 = dm(_fdr_pan_{nid});
+            r1 = dm(_fdr_lcr_on_{nid});
+            call _pan_legs;
+            dm(_fdr_lq_{nid}) = r0;
+            dm(_fdr_cq_{nid}) = r1;
+            dm(_fdr_rq_{nid}) = r2;
+        #else
             r2 = 0x3F800000;
             f2 = r2;
             f5 = dm(_fdr_pan_{nid});
@@ -8692,7 +8751,10 @@ def gen_fader_pan_fixed(node):
             dm(_fdr_lq_{nid}) = r2;
             f5 = f5 * f7;
             r2 = fix f5;
-            dm(_fdr_rq_{nid}) = r2;""")
+            dm(_fdr_rq_{nid}) = r2;
+            r2 = 0;
+            dm(_fdr_cq_{nid}) = r2;
+        #endif""")
     if blk_lr_hoist or blk_lr_ptr or blk_lr_body:
         raise ValueError(
             f'{nid}: the FADER_PAN block body has pan-leg work again '
@@ -8812,7 +8874,7 @@ def gen_fader_pan_fixed(node):
         .section/pm seg_pmco;
         .extern _sample_idx;
         .extern _mrf_rns28;
-{mtr_extern}        .global _{nid}_process;
+{pan_extern}{mtr_extern}        .global _{nid}_process;
         _{nid}_process:
             /* block-rate: float ramps + shadow conversion */
         #if !DSP4_BLOCK_KERNELS
@@ -8838,7 +8900,7 @@ def gen_fader_pan_fixed(node):
             r1 = max(r1, r4);
             r5 = 0;
             r1 = max(r1, r5);
-            dm(_fdr_busy_{nid}) = r1;
+{lcr_busy}            dm(_fdr_busy_{nid}) = r1;
         #endif
 
             /* level ramp */
@@ -9578,6 +9640,48 @@ def gen_block_header(mtx_ctl=None):
 #ifndef DSP4_GAIN_SIMD_NEGCTL
 #define DSP4_GAIN_SIMD_NEGCTL 0
 #endif
+
+/* THE BLOCK POOL'S ALIGNMENT, DECLARED AND TESTED (S24-5 / S25-1).
+ *
+ * The SIMD block kernels open PEYEN and read two consecutive samples with
+ * `dm(i0, 2)`, so PEy takes the word after PEx's and the pool's base
+ * parity is the pool's alignment. The linker gives a `.var` word
+ * alignment and nothing more -- 2,204 of 5,452 chip-1 DM symbols sit at
+ * ODD word addresses -- and both pools have landed EVEN on every build on
+ * record. Whether that is a requirement or an accident is the question
+ * S24 left first in the queue, and it decides what the MW-Net wire
+ * declaration has to promise for `MWN_AUDIO_PAYLOAD_OFF`.
+ *
+ * DSP4_POOL_PAD is the experiment: N words of `.var` emitted immediately
+ * in front of `_blk_pool` in the same section, so an odd N moves the pool
+ * (and every slot in it, since a slot is base + n*BLOCK and BLOCK is
+ * even) onto an ODD word address without changing one instruction of the
+ * kernels. 0 is the BYTE-FOR-BYTE CONTROL. */
+#ifndef DSP4_POOL_PAD
+#define DSP4_POOL_PAD 0
+#endif
+
+/* THE ONE PAN TABLE (PW ruling R5, amended).
+ *
+ * 127 pan positions x (L, C, R), one table per law, in chip 1's DM --
+ * chip 1 is the only chip that pans, so the tables are inside
+ * `#if CHIP_ID == 1` and chip 2 pays nothing for them. Every channel's
+ * `Pan` is an INDEX; `Sys[1-1]LcrLaw[1-1]` selects the law at BLOCK rate
+ * (there is no per-sample branch anywhere in this feature);
+ * `Chan*LcrOn` selects the three-column read per channel and
+ * `Chan*CtrOn` gates the centre leg at the crosspoint, exactly as it
+ * gates the sub send today.
+ *
+ * The stored L/R columns are what a NON-LCR channel reads, unmodified,
+ * and under law 0 they ARE the linear law this graph has always run --
+ * see tools/dsp/pan_table.py for the identity and its proof. So
+ * DSP4_PAN_TABLE=0 is not just a control arm, it is the SAME AUDIO for
+ * every non-LCR channel, which is what makes the switch measurable. */
+#ifndef DSP4_PAN_TABLE
+#define DSP4_PAN_TABLE 1
+#endif
+#define DSP4_PAN_POSITIONS 127
+#define DSP4_PAN_CENTRE    63
 #if DSP4_SIMD_DYN && DSP4_SIMD_GRAPH
 #define DSP4_PAIRED_GRAPH 1
 #else
@@ -10952,6 +11056,122 @@ def gen_rtg_fabric():
     a('')
     return '\n'.join(out)
 
+def gen_pan_law():
+    """chip1/pan_law.asm — the one pan table's READ, once for all 32 strips.
+
+    WHY IT IS A ROUTINE AND NOT INLINE, and the tree has been here before.
+    `dyn_lut_fx.asm` says it in as many words: forty instructions inlined
+    into each of thirty-two nodes is what took chip 1's code pool to 100.0
+    % with sixty-six bytes free. This read is thirty-eight instructions and
+    there are thirty-two channel faders; inlined it cost 5,504 bytes of a
+    pool that had 24,274 free (90.7 % -> 92.8 %), and PW's requirement of
+    2026-08-28 is that the fit carries headroom for plugins. Six
+    instructions and a call replace it.
+
+    It is not in src/lib, which is linked into BOTH chips: the tables are
+    chip 1's and chip 2 does not pan, so a lib copy would cost chip 2 the
+    program memory for a routine it can never call and would not link
+    against symbols it does not have.
+
+    in:   r0 = the strip's `Pan` (float 0..1), r1 = its `Chan*LcrOn`
+    out:  r0 = gL, r1 = gC, r2 = gR, Q4.28
+    uses: r3-r10, i4, l4
+    """
+    return dedent(f"""\
+        /* pan_law.asm — THE pan table's read (PW ruling R5) */
+        /* AUTO-GENERATED by tools/dsp/dsp_codegen.py — do not edit. */
+        #include "dsp_block.h"
+
+        #if DSP4_PAN_TABLE
+        .section/dm seg_dmda;
+        .extern {_PAN_TAB_SYM[0]};
+        .extern {_PAN_TAB_SYM[1]};
+        .extern _sys_lcr_law;
+
+        .section/pm seg_pmco;
+        .global _pan_legs;
+        _pan_legs:
+            /* `Pan` -> INDEX, and there is NO +0.5 IN IT (S25-2).
+             *
+             * `fix` on this core ROUNDS TO NEAREST, ties to even -- MODE1's
+             * truncate bit is set nowhere in this tree -- so a multiply by
+             * 126 and one `fix` is the whole conversion. It was first
+             * written with a +0.5, on the belief stated in this tree's own
+             * comments and in dsp4_s24_probe.py that `fix` truncates. The
+             * part said otherwise on the first run of the pan probe: indices
+             * 31, 63 and 94 came back as 32, 64 and 94, and the three
+             * products are EXACTLY 31.0, 63.0 and 94.0 in float32 --
+             * truncation gives 31/63/94, round-half-away gives 32/64/95, and
+             * only ties-to-even gives 32/64/94. Every exact index was landing
+             * on a tie and rounding up to the next one.
+             *
+             * CLAMPED, because a `Pan` outside 0..1 must not become an
+             * address outside the table. That is the no-fallback rule at
+             * the one place in this feature where a host word indexes. */
+            r8 = r1;                          /* LcrOn, kept across */
+            r3 = 0x42FC0000;                  /* 126.0f */
+            f3 = r3;
+            f2 = f0 * f3;
+            r2 = fix f2;
+            r3 = 0;
+            comp(r2, r3);
+            if lt r2 = r3;
+            r3 = DSP4_PAN_POSITIONS - 1;
+            comp(r2, r3);
+            if gt r2 = r3;
+            r3 = r2 + r2;
+            r2 = r2 + r3;                     /* index x 3 columns */
+
+            /* THE LAW SWAP, at block rate and with no copy: both tables
+             * are resident and `Sys[1-1]LcrLaw[1-1]` picks the BASE. R5
+             * asks for "one table swap at block rate"; this is a compare
+             * and a conditional register move, so there is no block in
+             * which half the strips have read the old law and half the
+             * new. */
+            r4 = dm(_sys_lcr_law);
+            r5 = {_PAN_TAB_SYM[0]};
+            r6 = {_PAN_TAB_SYM[1]};
+            r4 = pass r4;
+            if ne r5 = r6;
+            r2 = r2 + r5;
+            i4 = r2;
+            l4 = 0;
+            r5 = dm(i4, 1);                   /* L column */
+            r6 = dm(i4, 1);                   /* C column */
+            r7 = dm(i4, 1);                   /* R column */
+
+            /* LCR ON: the centre bus takes what the two sides carried
+             * between them, so each side gives up half the centre and the
+             * three legs come back exactly. OFF: the stored columns are
+             * used AS THEY ARE and the centre leg is published as zero --
+             * which is what makes a non-LCR strip's audio identical to the
+             * pre-R5 image under law 0, because under law 0 those columns
+             * ARE the linear law this graph has always run (proved at all
+             * 127 indices by tools/dsp/pan_table.py). */
+            r9 = ashift r6 by -1;             /* C/2 */
+            r10 = r5 - r9;
+            r8 = pass r8;
+            if ne r5 = r10;
+            r10 = r7 - r9;
+            r8 = pass r8;
+            if ne r7 = r10;
+            r9 = 0;
+            r8 = pass r8;
+            if eq r6 = r9;
+            r0 = r5;
+            r1 = r6;
+            r2 = r7;
+            rts;
+        #endif
+        """)
+
+
+# The pan-law table symbols, by law index. Named here so the generator,
+# the FADER_PAN body and tools/dsp/map_syms.py consumers all spell them
+# the same way (PW ruling R5).
+_PAN_TAB_SYM = {0: '_pan_tab_lcr', 1: '_pan_tab_cp'}
+
+
 def gen_bus_accumulators_fixed():
     """Fixed bus_accumulators.asm: 64-bit pairs per bus + clear."""
     names = list(BUS_ACC_NAMES)
@@ -10973,6 +11193,15 @@ def gen_bus_accumulators_fixed():
     # slots x BLOCK samples serves all 32 strips, against ~16K words at
     # BLOCK=32 if every node kept its own block buffer.
     out.append('#if DSP4_BLOCK_KERNELS')
+    # THE POOL ALIGNMENT EXPERIMENT (S24-5 / S25-1). N words of padding
+    # immediately in front of the pool, in the same section and the same
+    # object, so an odd N puts _blk_pool -- and every slot in it -- on an
+    # ODD word address. Default 0 emits nothing at all, so the shipping
+    # image is byte for byte what it was. See dsp_block.h for the why.
+    out.append('#if DSP4_POOL_PAD')
+    out.append('.global _blk_pool_pad;')
+    out.append('.var _blk_pool_pad[DSP4_POOL_PAD];')
+    out.append('#endif')
     out.append('.global _blk_pool;')
     out.append('#if DSP4_SIMD_STRIPS')
     out.append(f'.var _blk_pool[{9 * BLOCK}];'
@@ -10992,6 +11221,59 @@ def gen_bus_accumulators_fixed():
     out.append('#endif')
     out.append('#endif')
     out.append('')
+
+    # ── THE ONE PAN TABLE (PW ruling R5, amended) ─────────────────────
+    #
+    # 127 positions x (L, C, R) per law, chip 1 only, emitted from
+    # tools/dsp/pan_table.py so the law has exactly one definition and
+    # the bench probe scores the part against the same module the
+    # generator built the words from.
+    #
+    # WHY BOTH LAWS ARE RESIDENT rather than one being copied in on a
+    # change. R5 asks for "one table swap at block rate"; two resident
+    # tables and a selected BASE make that swap a compare and a
+    # conditional register move, with no copy, no transient and no block
+    # in which half the strips have read the old law and half the new.
+    # 762 words of chip-1 DM against a 0.25-microsecond copy every time
+    # anyone touches the cell.
+    import pan_table as _pan
+    out.append('#if CHIP_ID == 1 && DSP4_PAN_TABLE')
+    out.append('/* THE PAN LAW. Generated from tools/dsp/pan_table.py; the'
+               ' L/R columns are')
+    out.append(' * what a NON-LCR channel reads and under law 0 they are the'
+               ' linear law')
+    out.append(' * this graph has always run, word for word (pan_table.py'
+               ' proves it at')
+    out.append(' * all 127 indices). An LCR channel recovers its three legs'
+               ' as')
+    out.append(' * (L - C/2, C, R - C/2): the centre bus takes what the two'
+               ' sides')
+    out.append(' * carried between them. */')
+    for law in sorted(_pan.LAW_NAMES):
+        words = _pan.table_q428(law)
+        name = _PAN_TAB_SYM[law]
+        out.append(f'.global {name};')
+        out.append(f'/* law {law} = {_pan.LAW_NAMES[law]}; fold peak '
+                   f'{_pan.fold_peak_db(law):+.4f} dB */')
+        rows = []
+        for i in range(_pan.PAN_POSITIONS):
+            l, c, r = words[3 * i:3 * i + 3]
+            rows.append(f'    0x{l:08X}, 0x{c:08X}, 0x{r:08X}')
+        out.append(f'.var {name}[{3 * _pan.PAN_POSITIONS}] =')
+        out.append(',\n'.join(rows) + ';')
+    out.append('#endif')
+    # `Sys[1-1]LcrLaw[1-1]`'s word. It is ONE word for the whole chip --
+    # the law is a system property, not a per-strip one -- and it boots at
+    # law 0, which is the law that reproduces the pre-R5 audio exactly.
+    # OUTSIDE the DSP4_PAN_TABLE guard on purpose: the control arm has to
+    # link, and a cell whose address exists in one build and not the other
+    # is not a control arm.
+    out.append('#if CHIP_ID == 1')
+    out.append('.global _sys_lcr_law;')
+    out.append('.var _sys_lcr_law = 0;')
+    out.append('#endif')
+    out.append('')
+
     # GAIN's SIMD scratch, SHARED by all 32 gain nodes. It is shared and
     # not per-node because nothing here outlives one call: the block
     # kernels run one node at a time from the block loop, and the two
@@ -11642,8 +11924,24 @@ i4 = _rtg_{kind}_sq_{nid};
             if eq r1 = r8;
             dm(_rtg_mrq_{nid}) = r1;
 
+            /* THE CENTRE/SUB LEG (PW ruling R5).
+             *
+             * `Chan*CtrOn` is dispatched to `_rtg_sub_on` and the master
+             * calls the cell "Center/sub output assign on/off" -- on this
+             * product the sub bus IS the centre bus, and that is why LCR
+             * needs no new fabric row, no new inter-chip lane and no TDM
+             * slot: the destination has been in the graph all along.
+             *
+             * LCR OFF: unity, exactly as this send has always been -- a
+             * sub send is a full-level send. LCR ON: the fader's centre
+             * leg out of the pan table. `Chan*CtrOn` gates it either way,
+             * which is what R5 asks for in as many words. */
             r2 = dm(_rtg_sub_on_{nid});
             r1 = r9;
+            r3 = dm(_fdr_lcr_on_{fdr_id});
+            r4 = dm(_fdr_cq_{fdr_id});
+            r3 = pass r3;
+            if ne r1 = r4;
             r2 = pass r2;
             if eq r1 = r8;
             dm(_rtg_subq_{nid}) = r1;
@@ -17003,6 +17301,16 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                                  _input_of, _stg,
                                  {k: True for k in _mtr_after}, _tap))
         files_written += 1
+
+        # THE PAN LAW'S READ, chip 1 only (PW ruling R5). Chip 2 does
+        # not pan, so it neither has the tables nor pays for the routine;
+        # the whole file is inside #if DSP4_PAN_TABLE so the control arm
+        # links with it present and empty.
+        if chip_label == 'chip1':
+            pan_path = os.path.join(output_dir, chip_label, 'pan_law.asm')
+            with open(pan_path, 'w', encoding='utf-8') as f:
+                f.write(gen_pan_law())
+            files_written += 1
 
         # Write block I/O (scatter/gather between DMA and node slot variables)
         bio_path = os.path.join(output_dir, chip_label, 'block_io.asm')

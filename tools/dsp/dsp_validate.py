@@ -92,7 +92,13 @@ EXTRA_PARAMS = {
     'EQ_BIQUAD':      {'coeffs'},
     # host_cells names the cell families the HOST owns outright — no DSP
     # address, no kernel read (PW ruling 2026-08-30: Dca, DcaOn).
-    'FADER_PAN':      {'pan', 'host_cells'},
+    # `lcr_page`/`lcr_addr` (S25, PW ruling R5): the channel's `Chan*LcrOn`
+    # word, and on channel 1's row `syslaw_page`/`syslaw_addr` for the one
+    # `Sys[1-1]LcrLaw[1-1]` word the whole desk shares. They are OPTIONAL
+    # for the same reason `mo_page` is: a graph without them is a graph
+    # that does not carry LCR, and the generator emits the pre-R5 pan.
+    'FADER_PAN':      {'pan', 'host_cells', 'lcr_page', 'lcr_addr',
+                       'syslaw_page', 'syslaw_addr'},
     'FX_ENGINE':      {'balance', 'damping', 'decay', 'delay_ms', 'duck_on',
                         'duck_sens', 'eq_hi', 'eq_lo', 'eq_mid', 'feedback',
                         'hpf', 'mix', 'mod_level', 'mod_rate',

@@ -166,6 +166,19 @@ DSP4_BLK_LATCH="${DSP4_BLK_LATCH:-1}"
 CFLAGS="$CFLAGS -DDSP4_BLK_LATCH=$DSP4_BLK_LATCH"
 ASMFLAGS="$ASMFLAGS -DDSP4_BLK_LATCH=$DSP4_BLK_LATCH"
 
+# THE BLOCK POOL PAD (S24-5 / S25-1). N words of .var in front of
+# `_blk_pool`, emitted by the generator into bus_accumulators.asm, so an
+# ODD N moves the pool off the even word address the linker has handed it
+# on every build on record. 0 emits nothing and is the byte-for-byte
+# control. An instrument switch: it must never be non-zero in a shipping
+# image, and shipping.config does not name it.
+DSP4_POOL_PAD="${DSP4_POOL_PAD:-0}"
+CFLAGS="$CFLAGS -DDSP4_POOL_PAD=$DSP4_POOL_PAD"
+ASMFLAGS="$ASMFLAGS -DDSP4_POOL_PAD=$DSP4_POOL_PAD"
+if [ "$DSP4_POOL_PAD" != "0" ]; then
+    echo "  *** INSTRUMENT BUILD: DSP4_POOL_PAD=$DSP4_POOL_PAD words in front of _blk_pool ***"
+fi
+
 DSP4_TXPROBE="${DSP4_TXPROBE:-0}"
 CFLAGS="$CFLAGS -DDSP4_TXPROBE=$DSP4_TXPROBE"
 ASMFLAGS="$ASMFLAGS -DDSP4_TXPROBE=$DSP4_TXPROBE"

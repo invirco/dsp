@@ -77,6 +77,48 @@
 #ifndef DSP4_GAIN_SIMD_NEGCTL
 #define DSP4_GAIN_SIMD_NEGCTL 0
 #endif
+
+/* THE BLOCK POOL'S ALIGNMENT, DECLARED AND TESTED (S24-5 / S25-1).
+ *
+ * The SIMD block kernels open PEYEN and read two consecutive samples with
+ * `dm(i0, 2)`, so PEy takes the word after PEx's and the pool's base
+ * parity is the pool's alignment. The linker gives a `.var` word
+ * alignment and nothing more -- 2,204 of 5,452 chip-1 DM symbols sit at
+ * ODD word addresses -- and both pools have landed EVEN on every build on
+ * record. Whether that is a requirement or an accident is the question
+ * S24 left first in the queue, and it decides what the MW-Net wire
+ * declaration has to promise for `MWN_AUDIO_PAYLOAD_OFF`.
+ *
+ * DSP4_POOL_PAD is the experiment: N words of `.var` emitted immediately
+ * in front of `_blk_pool` in the same section, so an odd N moves the pool
+ * (and every slot in it, since a slot is base + n*BLOCK and BLOCK is
+ * even) onto an ODD word address without changing one instruction of the
+ * kernels. 0 is the BYTE-FOR-BYTE CONTROL. */
+#ifndef DSP4_POOL_PAD
+#define DSP4_POOL_PAD 0
+#endif
+
+/* THE ONE PAN TABLE (PW ruling R5, amended).
+ *
+ * 127 pan positions x (L, C, R), one table per law, in chip 1's DM --
+ * chip 1 is the only chip that pans, so the tables are inside
+ * `#if CHIP_ID == 1` and chip 2 pays nothing for them. Every channel's
+ * `Pan` is an INDEX; `Sys[1-1]LcrLaw[1-1]` selects the law at BLOCK rate
+ * (there is no per-sample branch anywhere in this feature);
+ * `Chan*LcrOn` selects the three-column read per channel and
+ * `Chan*CtrOn` gates the centre leg at the crosspoint, exactly as it
+ * gates the sub send today.
+ *
+ * The stored L/R columns are what a NON-LCR channel reads, unmodified,
+ * and under law 0 they ARE the linear law this graph has always run --
+ * see tools/dsp/pan_table.py for the identity and its proof. So
+ * DSP4_PAN_TABLE=0 is not just a control arm, it is the SAME AUDIO for
+ * every non-LCR channel, which is what makes the switch measurable. */
+#ifndef DSP4_PAN_TABLE
+#define DSP4_PAN_TABLE 1
+#endif
+#define DSP4_PAN_POSITIONS 127
+#define DSP4_PAN_CENTRE    63
 #if DSP4_SIMD_DYN && DSP4_SIMD_GRAPH
 #define DSP4_PAIRED_GRAPH 1
 #else

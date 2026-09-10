@@ -21,6 +21,7 @@
 
         .section/dm seg_dmda;
 .extern _buf_C1_DLY_26;
+.extern _sys_lcr_law;
         .global _fdr_level_C1_FDR_26;
         .var _fdr_level_C1_FDR_26 = 1.0;
         .global _fdr_level_target_C1_FDR_26;
@@ -75,10 +76,19 @@
         .var _fdr_lq_C1_FDR_26 = 0;
         .global _fdr_rq_C1_FDR_26;
         .var _fdr_rq_C1_FDR_26 = 0;
+        .global _fdr_cq_C1_FDR_26;
+        .var _fdr_cq_C1_FDR_26 = 0;
+        .global _fdr_lcr_on_C1_FDR_26;
+        .var _fdr_lcr_on_C1_FDR_26 = 0;
+        .global _fdr_lcr_seen_C1_FDR_26;
+        .var _fdr_lcr_seen_C1_FDR_26 = -1;
 
         .section/pm seg_pmco;
         .extern _sample_idx;
         .extern _mrf_rns28;
+        #if DSP4_PAN_TABLE
+        .extern _pan_legs;
+        #endif
         .global _C1_FDR_26_process;
         _C1_FDR_26_process:
             /* block-rate: float ramps + shadow conversion */
@@ -105,7 +115,18 @@
             r1 = max(r1, r4);
             r5 = 0;
             r1 = max(r1, r5);
-            dm(_fdr_busy_C1_FDR_26) = r1;
+r4 = dm(_fdr_lcr_on_C1_FDR_26);
+            r5 = dm(_sys_lcr_law);
+            r4 = r4 + r4;
+            r4 = r4 + r5;                     /* (LcrOn, law) as one word */
+            r5 = dm(_fdr_lcr_seen_C1_FDR_26);
+            comp(r4, r5);
+            if eq jump (pc, .lcrsame_C1_FDR_26);
+            dm(_fdr_lcr_seen_C1_FDR_26) = r4;
+            r5 = DSP4_BLOCK_SIZE;
+            r1 = max(r1, r5);
+            .lcrsame_C1_FDR_26:
+                        dm(_fdr_busy_C1_FDR_26) = r1;
         #endif
 
             /* level ramp */
@@ -181,29 +202,44 @@
             comp(r3, r4);
             if ne r2 = r4;
             dm(_fdr_gq_C1_FDR_26) = r2;
-/* L/R pan gains (linear pan law, matches float node).
- *
- * PAN GAIN ONLY -- do NOT fold `comp` in here. The sample path
- * below multiplies the ALREADY-POST-FADER mono by these, so
- * including comp applied the fader twice and the bus feed came
- * out as x * level^2 * (1-pan). It is invisible at unity, which
- * is how it shipped: bench 2026-08-23 measured the main bus
- * 6.02 dB low at level 0.5 and 12.04 dB low at level 0.25, and
- * exact at level 1.0. The float node this was ported from does
- * `f1 = f14 * f7` with f7 = 1 - pan and no comp -- the squaring
- * was introduced by the fixed-point port, not inherited. */
-r2 = 0x3F800000;
-f2 = r2;
-f5 = dm(_fdr_pan_C1_FDR_26);
-f6 = f2 - f5;                     /* L gain = 1 - pan */
-r2 = 0x4D800000;
-f7 = r2;
-f6 = f6 * f7;
-r2 = fix f6;
-dm(_fdr_lq_C1_FDR_26) = r2;
-f5 = f5 * f7;
-r2 = fix f5;
-dm(_fdr_rq_C1_FDR_26) = r2;
+    /* L/R pan gains (linear pan law, matches float node).
+     *
+     * PAN GAIN ONLY -- do NOT fold `comp` in here. The sample path
+     * below multiplies the ALREADY-POST-FADER mono by these, so
+     * including comp applied the fader twice and the bus feed came
+     * out as x * level^2 * (1-pan). It is invisible at unity, which
+     * is how it shipped: bench 2026-08-23 measured the main bus
+     * 6.02 dB low at level 0.5 and 12.04 dB low at level 0.25, and
+     * exact at level 1.0. The float node this was ported from does
+     * `f1 = f14 * f7` with f7 = 1 - pan and no comp -- the squaring
+     * was introduced by the fixed-point port, not inherited. */
+#if DSP4_PAN_TABLE
+    /* R5: `Pan` is an INDEX into the one 127-entry table, the law
+     * is selected at BLOCK rate by `Sys[1-1]LcrLaw[1-1]`, and the
+     * read itself is ONE routine for all thirty-two strips --
+     * chip1/pan_law.asm, for dyn_lut_fx.asm's reason. */
+    r0 = dm(_fdr_pan_C1_FDR_26);
+    r1 = dm(_fdr_lcr_on_C1_FDR_26);
+    call _pan_legs;
+    dm(_fdr_lq_C1_FDR_26) = r0;
+    dm(_fdr_cq_C1_FDR_26) = r1;
+    dm(_fdr_rq_C1_FDR_26) = r2;
+#else
+    r2 = 0x3F800000;
+    f2 = r2;
+    f5 = dm(_fdr_pan_C1_FDR_26);
+    f6 = f2 - f5;                     /* L gain = 1 - pan */
+    r2 = 0x4D800000;
+    f7 = r2;
+    f6 = f6 * f7;
+    r2 = fix f6;
+    dm(_fdr_lq_C1_FDR_26) = r2;
+    f5 = f5 * f7;
+    r2 = fix f5;
+    dm(_fdr_rq_C1_FDR_26) = r2;
+    r2 = 0;
+    dm(_fdr_cq_C1_FDR_26) = r2;
+#endif
 
         #if DSP4_BLOCK_KERNELS
             /* Per-BLOCK kernel. Same shape that gave GAIN its 4x: the

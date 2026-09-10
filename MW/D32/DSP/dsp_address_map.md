@@ -4017,8 +4017,40 @@
 | 4931 | 0x1343 | `Chan032MatrixOn002` |  | InstantCtl |
 | 4932 | 0x1344 | `Chan032MatrixSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
 | 4933 | 0x1345 | `Chan032MatrixSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4934 | 0x1346 | `Chan001LcrOn001` |  | InstantCtl |
+| 4935 | 0x1347 | `Chan002LcrOn001` |  | InstantCtl |
+| 4936 | 0x1348 | `Chan003LcrOn001` |  | InstantCtl |
+| 4937 | 0x1349 | `Chan004LcrOn001` |  | InstantCtl |
+| 4938 | 0x134A | `Chan005LcrOn001` |  | InstantCtl |
+| 4939 | 0x134B | `Chan006LcrOn001` |  | InstantCtl |
+| 4940 | 0x134C | `Chan007LcrOn001` |  | InstantCtl |
+| 4941 | 0x134D | `Chan008LcrOn001` |  | InstantCtl |
+| 4942 | 0x134E | `Chan009LcrOn001` |  | InstantCtl |
+| 4943 | 0x134F | `Chan010LcrOn001` |  | InstantCtl |
+| 4944 | 0x1350 | `Chan011LcrOn001` |  | InstantCtl |
+| 4945 | 0x1351 | `Chan012LcrOn001` |  | InstantCtl |
+| 4946 | 0x1352 | `Chan013LcrOn001` |  | InstantCtl |
+| 4947 | 0x1353 | `Chan014LcrOn001` |  | InstantCtl |
+| 4948 | 0x1354 | `Chan015LcrOn001` |  | InstantCtl |
+| 4949 | 0x1355 | `Chan016LcrOn001` |  | InstantCtl |
+| 4950 | 0x1356 | `Chan017LcrOn001` |  | InstantCtl |
+| 4951 | 0x1357 | `Chan018LcrOn001` |  | InstantCtl |
+| 4952 | 0x1358 | `Chan019LcrOn001` |  | InstantCtl |
+| 4953 | 0x1359 | `Chan020LcrOn001` |  | InstantCtl |
+| 4954 | 0x135A | `Chan021LcrOn001` |  | InstantCtl |
+| 4955 | 0x135B | `Chan022LcrOn001` |  | InstantCtl |
+| 4956 | 0x135C | `Chan023LcrOn001` |  | InstantCtl |
+| 4957 | 0x135D | `Chan024LcrOn001` |  | InstantCtl |
+| 4958 | 0x135E | `Chan025LcrOn001` |  | InstantCtl |
+| 4959 | 0x135F | `Chan026LcrOn001` |  | InstantCtl |
+| 4960 | 0x1360 | `Chan027LcrOn001` |  | InstantCtl |
+| 4961 | 0x1361 | `Chan028LcrOn001` |  | InstantCtl |
+| 4962 | 0x1362 | `Chan029LcrOn001` |  | InstantCtl |
+| 4963 | 0x1363 | `Chan030LcrOn001` |  | InstantCtl |
+| 4964 | 0x1364 | `Chan031LcrOn001` |  | InstantCtl |
+| 4965 | 0x1365 | `Chan032LcrOn001` |  | InstantCtl |
 
-**Total Chip 1 cells:** 4011
+**Total Chip 1 cells:** 4043
 
 ## Chip 2
 

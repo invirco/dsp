@@ -8,7 +8,7 @@
  * indexes this table to route parameter writes directly to node
  * coefficient variables.
  *
- * 4936 entries (SPI addresses 0x0000–0x1345)
+ * 4968 entries (SPI addresses 0x0000–0x1366)
  *======================================================================*/
 
 .section/dm seg_dmda;
@@ -622,6 +622,38 @@
 .extern _eq_swap_pending_C1_EQ_30;
 .extern _eq_swap_pending_C1_EQ_31;
 .extern _eq_swap_pending_C1_EQ_32;
+.extern _fdr_lcr_on_C1_FDR_01;
+.extern _fdr_lcr_on_C1_FDR_02;
+.extern _fdr_lcr_on_C1_FDR_03;
+.extern _fdr_lcr_on_C1_FDR_04;
+.extern _fdr_lcr_on_C1_FDR_05;
+.extern _fdr_lcr_on_C1_FDR_06;
+.extern _fdr_lcr_on_C1_FDR_07;
+.extern _fdr_lcr_on_C1_FDR_08;
+.extern _fdr_lcr_on_C1_FDR_09;
+.extern _fdr_lcr_on_C1_FDR_10;
+.extern _fdr_lcr_on_C1_FDR_11;
+.extern _fdr_lcr_on_C1_FDR_12;
+.extern _fdr_lcr_on_C1_FDR_13;
+.extern _fdr_lcr_on_C1_FDR_14;
+.extern _fdr_lcr_on_C1_FDR_15;
+.extern _fdr_lcr_on_C1_FDR_16;
+.extern _fdr_lcr_on_C1_FDR_17;
+.extern _fdr_lcr_on_C1_FDR_18;
+.extern _fdr_lcr_on_C1_FDR_19;
+.extern _fdr_lcr_on_C1_FDR_20;
+.extern _fdr_lcr_on_C1_FDR_21;
+.extern _fdr_lcr_on_C1_FDR_22;
+.extern _fdr_lcr_on_C1_FDR_23;
+.extern _fdr_lcr_on_C1_FDR_24;
+.extern _fdr_lcr_on_C1_FDR_25;
+.extern _fdr_lcr_on_C1_FDR_26;
+.extern _fdr_lcr_on_C1_FDR_27;
+.extern _fdr_lcr_on_C1_FDR_28;
+.extern _fdr_lcr_on_C1_FDR_29;
+.extern _fdr_lcr_on_C1_FDR_30;
+.extern _fdr_lcr_on_C1_FDR_31;
+.extern _fdr_lcr_on_C1_FDR_32;
 .extern _fdr_level_C1_FDR_01;
 .extern _fdr_level_C1_FDR_02;
 .extern _fdr_level_C1_FDR_03;
@@ -1745,6 +1777,7 @@
 .extern _rtg_sub_on_C1_RTG_30;
 .extern _rtg_sub_on_C1_RTG_31;
 .extern _rtg_sub_on_C1_RTG_32;
+.extern _sys_lcr_law;
 .extern _talk_gain_C1_TALK_01;
 .extern _talk_gain_C1_TALK_02;
 .extern _talk_hpf_on_C1_TALK_01;
@@ -1820,11 +1853,11 @@
 
 /* ---- Table size for the SPI handler bounds check ---- */
 .global _spi_dispatch_c1_size;
-.var _spi_dispatch_c1_size = 4936;
+.var _spi_dispatch_c1_size = 4968;
 
-/* ---- Chip 1 SPI dispatch table (4936 entries) ---- */
+/* ---- Chip 1 SPI dispatch table (4968 entries) ---- */
 .global _spi_dispatch_c1;
-.var _spi_dispatch_c1[4936] =
+.var _spi_dispatch_c1[4968] =
     _gain_coeff_C1_GAIN_01,    /* 0x0000: C1_GAIN_01 gain coeff */
     _polarity_C1_GAIN_01,    /* 0x0001: C1_GAIN_01 polarity */
     0,  /* 0x0002: phantom (MCU-only) */
@@ -6759,10 +6792,42 @@
     _rtg_mtx_on_C1_RTG_32 + 1,    /* 0x1343: C1_RTG_32 MatrixOn[2] */
     _rtg_mtx_send_C1_RTG_32 + 0,    /* 0x1344: C1_RTG_32 MatrixSend[1] */
     _rtg_mtx_send_C1_RTG_32 + 1,    /* 0x1345: C1_RTG_32 MatrixSend[2] */
-    0,  /* 0x1346 */
-    0;  /* 0x1347 */
+    _fdr_lcr_on_C1_FDR_01,    /* 0x1346: C1_FDR_01 LcrOn */
+    _fdr_lcr_on_C1_FDR_02,    /* 0x1347: C1_FDR_02 LcrOn */
+    _fdr_lcr_on_C1_FDR_03,    /* 0x1348: C1_FDR_03 LcrOn */
+    _fdr_lcr_on_C1_FDR_04,    /* 0x1349: C1_FDR_04 LcrOn */
+    _fdr_lcr_on_C1_FDR_05,    /* 0x134A: C1_FDR_05 LcrOn */
+    _fdr_lcr_on_C1_FDR_06,    /* 0x134B: C1_FDR_06 LcrOn */
+    _fdr_lcr_on_C1_FDR_07,    /* 0x134C: C1_FDR_07 LcrOn */
+    _fdr_lcr_on_C1_FDR_08,    /* 0x134D: C1_FDR_08 LcrOn */
+    _fdr_lcr_on_C1_FDR_09,    /* 0x134E: C1_FDR_09 LcrOn */
+    _fdr_lcr_on_C1_FDR_10,    /* 0x134F: C1_FDR_10 LcrOn */
+    _fdr_lcr_on_C1_FDR_11,    /* 0x1350: C1_FDR_11 LcrOn */
+    _fdr_lcr_on_C1_FDR_12,    /* 0x1351: C1_FDR_12 LcrOn */
+    _fdr_lcr_on_C1_FDR_13,    /* 0x1352: C1_FDR_13 LcrOn */
+    _fdr_lcr_on_C1_FDR_14,    /* 0x1353: C1_FDR_14 LcrOn */
+    _fdr_lcr_on_C1_FDR_15,    /* 0x1354: C1_FDR_15 LcrOn */
+    _fdr_lcr_on_C1_FDR_16,    /* 0x1355: C1_FDR_16 LcrOn */
+    _fdr_lcr_on_C1_FDR_17,    /* 0x1356: C1_FDR_17 LcrOn */
+    _fdr_lcr_on_C1_FDR_18,    /* 0x1357: C1_FDR_18 LcrOn */
+    _fdr_lcr_on_C1_FDR_19,    /* 0x1358: C1_FDR_19 LcrOn */
+    _fdr_lcr_on_C1_FDR_20,    /* 0x1359: C1_FDR_20 LcrOn */
+    _fdr_lcr_on_C1_FDR_21,    /* 0x135A: C1_FDR_21 LcrOn */
+    _fdr_lcr_on_C1_FDR_22,    /* 0x135B: C1_FDR_22 LcrOn */
+    _fdr_lcr_on_C1_FDR_23,    /* 0x135C: C1_FDR_23 LcrOn */
+    _fdr_lcr_on_C1_FDR_24,    /* 0x135D: C1_FDR_24 LcrOn */
+    _fdr_lcr_on_C1_FDR_25,    /* 0x135E: C1_FDR_25 LcrOn */
+    _fdr_lcr_on_C1_FDR_26,    /* 0x135F: C1_FDR_26 LcrOn */
+    _fdr_lcr_on_C1_FDR_27,    /* 0x1360: C1_FDR_27 LcrOn */
+    _fdr_lcr_on_C1_FDR_28,    /* 0x1361: C1_FDR_28 LcrOn */
+    _fdr_lcr_on_C1_FDR_29,    /* 0x1362: C1_FDR_29 LcrOn */
+    _fdr_lcr_on_C1_FDR_30,    /* 0x1363: C1_FDR_30 LcrOn */
+    _fdr_lcr_on_C1_FDR_31,    /* 0x1364: C1_FDR_31 LcrOn */
+    _fdr_lcr_on_C1_FDR_32,    /* 0x1365: C1_FDR_32 LcrOn */
+    _sys_lcr_law,    /* 0x1366: Sys LcrLaw (whole desk) */
+    0;  /* 0x1367 */
 
-/* ---- Chip 1 ramp-stride table (4936 entries) ---- */
+/* ---- Chip 1 ramp-stride table (4968 entries) ---- */
 /*
  * Companion to the dispatch table above, same indexing.
  *   0      -- no ramp state; the SPI handler writes the word directly
@@ -6776,7 +6841,7 @@
  * 802 ramped entries; strides {1: 162, 2: 64, 6: 192, 12: 384}
  */
 .global _spi_dispatch_c1_stride;
-.var _spi_dispatch_c1_stride[4936] =
+.var _spi_dispatch_c1_stride[4968] =
     1,  /* 0x0000: C1_GAIN_01 gain coeff */
     0,  /* 0x0001: C1_GAIN_01 polarity */
     0,  /* 0x0002: phantom (MCU-only) */
@@ -11711,10 +11776,42 @@
     0,  /* 0x1343: C1_RTG_32 MatrixOn[2] */
     2,  /* 0x1344: C1_RTG_32 MatrixSend[1] */
     2,  /* 0x1345: C1_RTG_32 MatrixSend[2] */
-    0,  /* 0x1346 */
-    0;  /* 0x1347 */
+    0,  /* 0x1346: C1_FDR_01 LcrOn */
+    0,  /* 0x1347: C1_FDR_02 LcrOn */
+    0,  /* 0x1348: C1_FDR_03 LcrOn */
+    0,  /* 0x1349: C1_FDR_04 LcrOn */
+    0,  /* 0x134A: C1_FDR_05 LcrOn */
+    0,  /* 0x134B: C1_FDR_06 LcrOn */
+    0,  /* 0x134C: C1_FDR_07 LcrOn */
+    0,  /* 0x134D: C1_FDR_08 LcrOn */
+    0,  /* 0x134E: C1_FDR_09 LcrOn */
+    0,  /* 0x134F: C1_FDR_10 LcrOn */
+    0,  /* 0x1350: C1_FDR_11 LcrOn */
+    0,  /* 0x1351: C1_FDR_12 LcrOn */
+    0,  /* 0x1352: C1_FDR_13 LcrOn */
+    0,  /* 0x1353: C1_FDR_14 LcrOn */
+    0,  /* 0x1354: C1_FDR_15 LcrOn */
+    0,  /* 0x1355: C1_FDR_16 LcrOn */
+    0,  /* 0x1356: C1_FDR_17 LcrOn */
+    0,  /* 0x1357: C1_FDR_18 LcrOn */
+    0,  /* 0x1358: C1_FDR_19 LcrOn */
+    0,  /* 0x1359: C1_FDR_20 LcrOn */
+    0,  /* 0x135A: C1_FDR_21 LcrOn */
+    0,  /* 0x135B: C1_FDR_22 LcrOn */
+    0,  /* 0x135C: C1_FDR_23 LcrOn */
+    0,  /* 0x135D: C1_FDR_24 LcrOn */
+    0,  /* 0x135E: C1_FDR_25 LcrOn */
+    0,  /* 0x135F: C1_FDR_26 LcrOn */
+    0,  /* 0x1360: C1_FDR_27 LcrOn */
+    0,  /* 0x1361: C1_FDR_28 LcrOn */
+    0,  /* 0x1362: C1_FDR_29 LcrOn */
+    0,  /* 0x1363: C1_FDR_30 LcrOn */
+    0,  /* 0x1364: C1_FDR_31 LcrOn */
+    0,  /* 0x1365: C1_FDR_32 LcrOn */
+    0,  /* 0x1366: Sys LcrLaw (whole desk) */
+    0;  /* 0x1367 */
 
-/* ---- Chip 1 wire-unit conversion table (4936 entries) ---- */
+/* ---- Chip 1 wire-unit conversion table (4968 entries) ---- */
 /*
  * Companion to the dispatch table above, same indexing.
  * The SPI handler applies this to the incoming word BEFORE
@@ -11732,10 +11829,10 @@
  * kernel word gets a conversion, and every address that
  * family reaches carries it.
  *
- * 64 of 4936 addresses carry a conversion.
+ * 64 of 4968 addresses carry a conversion.
  */
 .global _spi_dispatch_c1_convert;
-.var _spi_dispatch_c1_convert[4936] =
+.var _spi_dispatch_c1_convert[4968] =
     0,  /* 0x0000: C1_GAIN_01 gain coeff */
     0,  /* 0x0001: C1_GAIN_01 polarity */
     0,  /* 0x0002: phantom (MCU-only) */
@@ -16670,10 +16767,42 @@
     0,  /* 0x1343: C1_RTG_32 MatrixOn[2] */
     0,  /* 0x1344: C1_RTG_32 MatrixSend[1] */
     0,  /* 0x1345: C1_RTG_32 MatrixSend[2] */
-    0,  /* 0x1346 */
-    0;  /* 0x1347 */
+    0,  /* 0x1346: C1_FDR_01 LcrOn */
+    0,  /* 0x1347: C1_FDR_02 LcrOn */
+    0,  /* 0x1348: C1_FDR_03 LcrOn */
+    0,  /* 0x1349: C1_FDR_04 LcrOn */
+    0,  /* 0x134A: C1_FDR_05 LcrOn */
+    0,  /* 0x134B: C1_FDR_06 LcrOn */
+    0,  /* 0x134C: C1_FDR_07 LcrOn */
+    0,  /* 0x134D: C1_FDR_08 LcrOn */
+    0,  /* 0x134E: C1_FDR_09 LcrOn */
+    0,  /* 0x134F: C1_FDR_10 LcrOn */
+    0,  /* 0x1350: C1_FDR_11 LcrOn */
+    0,  /* 0x1351: C1_FDR_12 LcrOn */
+    0,  /* 0x1352: C1_FDR_13 LcrOn */
+    0,  /* 0x1353: C1_FDR_14 LcrOn */
+    0,  /* 0x1354: C1_FDR_15 LcrOn */
+    0,  /* 0x1355: C1_FDR_16 LcrOn */
+    0,  /* 0x1356: C1_FDR_17 LcrOn */
+    0,  /* 0x1357: C1_FDR_18 LcrOn */
+    0,  /* 0x1358: C1_FDR_19 LcrOn */
+    0,  /* 0x1359: C1_FDR_20 LcrOn */
+    0,  /* 0x135A: C1_FDR_21 LcrOn */
+    0,  /* 0x135B: C1_FDR_22 LcrOn */
+    0,  /* 0x135C: C1_FDR_23 LcrOn */
+    0,  /* 0x135D: C1_FDR_24 LcrOn */
+    0,  /* 0x135E: C1_FDR_25 LcrOn */
+    0,  /* 0x135F: C1_FDR_26 LcrOn */
+    0,  /* 0x1360: C1_FDR_27 LcrOn */
+    0,  /* 0x1361: C1_FDR_28 LcrOn */
+    0,  /* 0x1362: C1_FDR_29 LcrOn */
+    0,  /* 0x1363: C1_FDR_30 LcrOn */
+    0,  /* 0x1364: C1_FDR_31 LcrOn */
+    0,  /* 0x1365: C1_FDR_32 LcrOn */
+    0,  /* 0x1366: Sys LcrLaw (whole desk) */
+    0;  /* 0x1367 */
 
-/* ---- Chip 1 recompute (dirty) table (4936 entries) ---- */
+/* ---- Chip 1 recompute (dirty) table (4968 entries) ---- */
 /*
  * Companion to the dispatch table above, same indexing.
  *   0   -- the written word IS the kernel word; nothing more
@@ -16689,10 +16818,10 @@
  * gain arrived, instead of comparing every band against a
  * shadow on every block of every node.
  *
- * 0 of 4936 addresses raise a flag; 0 distinct flags.
+ * 0 of 4968 addresses raise a flag; 0 distinct flags.
  */
 .global _spi_dispatch_c1_dirty;
-.var _spi_dispatch_c1_dirty[4936] =
+.var _spi_dispatch_c1_dirty[4968] =
     0,  /* 0x0000: C1_GAIN_01 gain coeff */
     0,  /* 0x0001: C1_GAIN_01 polarity */
     0,  /* 0x0002: phantom (MCU-only) */
@@ -21627,8 +21756,40 @@
     0,  /* 0x1343: C1_RTG_32 MatrixOn[2] */
     0,  /* 0x1344: C1_RTG_32 MatrixSend[1] */
     0,  /* 0x1345: C1_RTG_32 MatrixSend[2] */
-    0,  /* 0x1346 */
-    0;  /* 0x1347 */
+    0,  /* 0x1346: C1_FDR_01 LcrOn */
+    0,  /* 0x1347: C1_FDR_02 LcrOn */
+    0,  /* 0x1348: C1_FDR_03 LcrOn */
+    0,  /* 0x1349: C1_FDR_04 LcrOn */
+    0,  /* 0x134A: C1_FDR_05 LcrOn */
+    0,  /* 0x134B: C1_FDR_06 LcrOn */
+    0,  /* 0x134C: C1_FDR_07 LcrOn */
+    0,  /* 0x134D: C1_FDR_08 LcrOn */
+    0,  /* 0x134E: C1_FDR_09 LcrOn */
+    0,  /* 0x134F: C1_FDR_10 LcrOn */
+    0,  /* 0x1350: C1_FDR_11 LcrOn */
+    0,  /* 0x1351: C1_FDR_12 LcrOn */
+    0,  /* 0x1352: C1_FDR_13 LcrOn */
+    0,  /* 0x1353: C1_FDR_14 LcrOn */
+    0,  /* 0x1354: C1_FDR_15 LcrOn */
+    0,  /* 0x1355: C1_FDR_16 LcrOn */
+    0,  /* 0x1356: C1_FDR_17 LcrOn */
+    0,  /* 0x1357: C1_FDR_18 LcrOn */
+    0,  /* 0x1358: C1_FDR_19 LcrOn */
+    0,  /* 0x1359: C1_FDR_20 LcrOn */
+    0,  /* 0x135A: C1_FDR_21 LcrOn */
+    0,  /* 0x135B: C1_FDR_22 LcrOn */
+    0,  /* 0x135C: C1_FDR_23 LcrOn */
+    0,  /* 0x135D: C1_FDR_24 LcrOn */
+    0,  /* 0x135E: C1_FDR_25 LcrOn */
+    0,  /* 0x135F: C1_FDR_26 LcrOn */
+    0,  /* 0x1360: C1_FDR_27 LcrOn */
+    0,  /* 0x1361: C1_FDR_28 LcrOn */
+    0,  /* 0x1362: C1_FDR_29 LcrOn */
+    0,  /* 0x1363: C1_FDR_30 LcrOn */
+    0,  /* 0x1364: C1_FDR_31 LcrOn */
+    0,  /* 0x1365: C1_FDR_32 LcrOn */
+    0,  /* 0x1366: Sys LcrLaw (whole desk) */
+    0;  /* 0x1367 */
 
 /* Samples per millisecond, IEEE-754 float32 bits (48 at 48000 Hz). */
 .global _spi_dispatch_c1_spms;
