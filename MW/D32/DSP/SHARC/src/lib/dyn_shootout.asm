@@ -86,7 +86,7 @@
 
 #define DSH_STAGES  28
 #define DSH_INNER   (DSP4_BLOCK_SIZE - 1)
-#define DSH_RUNGS   18
+#define DSH_RUNGS   20
 #define DSH_REPS    5
 #define DSH_ITERS   8
 
@@ -581,6 +581,8 @@ _dsh_selftest:
     DSH_RUNG(.dsh_r15, _dsh_comp_lut_l2)
     DSH_RUNG(.dsh_r16, _dsh_cg_lut_blend)
     DSH_RUNG(.dsh_r17, _dsh_l2page)
+    DSH_RUNG(.dsh_r18, _dsh_lim_today)
+    DSH_RUNG(.dsh_r19, _dsh_lim_lut)
 
     r0 = dm(_dsh_rep);
     r1 = 1;
@@ -845,6 +847,57 @@ _dsh_comp_lut:
     DSH_NEST_CLOSE(.dsh_j_o, .dsh_j_i)
     DSH_EPILOGUE
 _dsh_comp_lut.end:
+
+/* rungs 18-19: THE WHOLE LIMITER per-sample body, both ways (S16).
+ *
+ * The limiter is the compressor without the makeup and without the
+ * parallel mix, so its body is DSH_ENV_BODY, the gain computer, and ONE
+ * round -- not DSH_APPLY_BODY, which is two, and not DSH_COMP_TAIL at
+ * all. That is why it gets its own pair of rungs rather than being read
+ * off rungs 9-10: 65 % of it is the gain computer (S14-4 measured 162 of
+ * 251 instructions per sample-pair as log2 + exp2) precisely BECAUSE
+ * there are no other stages to dilute it, so the compressor's ratio
+ * understates what the table is worth here.
+ *
+ * `_lim_pair_blk` is chip 2's kernel and lives in src/lib2; these rungs
+ * are in src/lib with the rest of the ladder because they are the
+ * ARITHMETIC, not the kernel, and DSP4_DYN_SHOOTOUT is a bench build
+ * that runs on either part. */
+#define DSH_LIM_APPLY \
+        r1 = r0; \
+        r0 = r13; \
+        mrf = r0 * r1 (ssi); \
+        MRF_RNS28_SIMD
+
+.global _dsh_lim_today;
+_dsh_lim_today:
+    DSH_PROLOGUE
+    DSH_NEST_OPEN(.dsh_v_o, .dsh_v_i)
+
+        r13 = dm(i2, 2);
+        DSH_ENV_BODY
+        r0 = r14;
+        COMPGAIN_SIMD(.dsh_v_p1, .dsh_v_p2)
+        DSH_LIM_APPLY
+        dm(i4, 2) = r0;
+    DSH_NEST_CLOSE(.dsh_v_o, .dsh_v_i)
+    DSH_EPILOGUE
+_dsh_lim_today.end:
+
+.global _dsh_lim_lut;
+_dsh_lim_lut:
+    DSH_PROLOGUE
+    DSH_NEST_OPEN(.dsh_w_o, .dsh_w_i)
+
+        r13 = dm(i2, 2);
+        DSH_ENV_BODY
+        r0 = r14;
+        LUTGAIN_DM
+        DSH_LIM_APPLY
+        dm(i4, 2) = r0;
+    DSH_NEST_CLOSE(.dsh_w_o, .dsh_w_i)
+    DSH_EPILOGUE
+_dsh_lim_lut.end:
 
 /* rungs 11-13: the WHOLE gate per-sample body three ways. Today it
  * computes log2(env) for one comparison; rung 12 compares in the LINEAR

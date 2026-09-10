@@ -12416,6 +12416,30 @@ def gen_limiter_fixed(node):
         .var _lim_attq_{nid} = 0;
         .var _lim_relq_{nid} = 0;
         .var _lim_cgp_{nid}[4];
+#if DSP4_DYN_LUT
+        /* THE LEVEL -> GAIN TABLE FOR THIS LIMITER (S16).
+         *
+         * The same three declarations the COMPRESSOR takes, because it is
+         * the same curve machinery: `_lim_cgp_` is already a
+         * `_compgain_fx` parameter block -- threshold, slope 0x7FFFFFFF
+         * (brick wall), hard knee -- so `_dyn_lut_step` designs it with
+         * no new arithmetic at all.
+         *
+         * IT IS THE SHARPEST CURVE THE TABLE HAS TO CARRY, and that was
+         * already measured rather than discovered here: dyn_lut_fx.asm's
+         * own ladder names the limiter at a -3 dB threshold as the corner
+         * that fails K = 3 (0.135 dB) and passes K = 4 (0.0950 dB). An
+         * infinite ratio with a hard knee is a corner, and K = 4 was
+         * chosen against it.
+         *
+         * WHY THIS IS THE PRIZE ON CHIP 2. S14-4 measured 162 of
+         * `_lim_pair_blk`'s 251 instructions per sample-pair as log2 +
+         * exp2. The table replaces both with a leftz, two shifts, a
+         * gather and a lerp. */
+        .var _lim_lut_{nid}[DYN_LUT_N];
+        .var _lim_lutc_{nid} = 0;
+        .var _lim_lutk_{nid}[4] = 1, 1, 1, 1;
+#endif
         .var _buf_{nid};
 
         .section/pm seg_pmco;
@@ -12423,6 +12447,10 @@ def gen_limiter_fixed(node):
         .extern _envq_fx;
         .extern _compgain_fx;
         .extern _mrf_rns28;
+#if DSP4_DYN_LUT
+        .extern _dyn_lut_step;
+        .extern _dyn_lut_gain;
+#endif
         .global _{nid}_process;
         _{nid}_process:
             r0 = dm(_buf_{inp});
@@ -12445,6 +12473,27 @@ def gen_limiter_fixed(node):
             if ne jump (pc, .lim_go_{nid});
         #endif
 {_fx_dyn_block_cvt(nid, 'lim', with_knee=False, with_slope=False)}
+#if DSP4_DYN_LUT
+            /* --- block rate: THE DESIGN STEP (S16) ---
+             *
+             * Identical to the compressor's, and deliberately the same
+             * call rather than a limiter-shaped copy: the four words in
+             * `_lim_cgp_` ARE the curve, `_dyn_lut_step` compares them
+             * against `_lim_lutk_` and fills DYN_LUT_CHUNK points per
+             * block until the cursor reaches the end. Until it does, the
+             * body below runs the exact polynomial -- so a threshold
+             * move is exact while it is moving and approximate only
+             * after it has settled, which is the property the
+             * compressor's header argues for at length.
+             *
+             * r13 holds the live sample; _dyn_lut_step clobbers r0-r12
+             * only. */
+            r0 = _lim_cgp_{nid};
+            r1 = _lim_lutk_{nid};
+            r2 = _lim_lut_{nid};
+            r3 = _lim_lutc_{nid};
+            call _dyn_lut_step;
+#endif
         .lim_go_{nid}:
 
             r0 = abs r13;
@@ -12454,8 +12503,24 @@ def gen_limiter_fixed(node):
             call _envq_fx;
             dm(_lim_envelope_{nid}) = r0;
 
+#if DSP4_DYN_LUT
+            /* ONE TABLE, level -> gain: no log2, no knee, no exp2. A
+             * table still being designed falls through to the
+             * polynomial it is designed against. */
+            r4 = dm(_lim_lutc_{nid});
+            r5 = DYN_LUT_N;
+            comp(r4, r5);
+            if lt jump (pc, .llutpoly_{nid});
+            i0 = _lim_lut_{nid};
+            call _dyn_lut_gain;           /* r0 = gain Q4.28 */
+            jump (pc, .llutgain_{nid});
+        .llutpoly_{nid}:
+#endif
             i0 = _lim_cgp_{nid};
             call _compgain_fx;
+#if DSP4_DYN_LUT
+        .llutgain_{nid}:
+#endif
             r1 = r0;
             r0 = r13;
             mrf = r0 * r1 (ssi);
@@ -13556,6 +13621,53 @@ def c2_cross_pairs(chip_label, chip_nodes):
     return out
 
 
+# Which paired dynamics kernels carry a level -> gain table. COMP since
+# S15, LIM since S16; the GATE has no gain computer to tabulate -- its
+# threshold test is a comparison, which DSP4_GATE_LINTHR handles instead.
+_C2_LUT_KERNELS = ('comp', 'lim')
+
+
+def _emit_lut_pair(a, tag, pfx, da, db):
+    """The pair's two table bases and its one live flag.
+
+    THIS WAS MISSING ON CHIP 2 UNTIL S16, and the omission was silent.
+    `_comp_pair_blk` branches on `_dlut_live` before its sample loop, and
+    on chip 2 NOTHING WROTE IT -- the flag sat at its initialiser -- so a
+    DSP4_DYN_LUT build took the polynomial loop on every chip-2 pair and
+    the lever was inert there. It cost nothing and it read as though it
+    had been measured: S15's chip-2 capacity moved 76.07 % -> 76.55 %,
+    which is noise, and the number was recorded as "chip 2 barely moves"
+    rather than as "chip 2 is not running this".
+
+    BOTH channels must have a finished table, for the reason chip 1's
+    driver states: one channel on the table and the other on the
+    polynomial is not expressible in a paired kernel, and the two agree
+    only to the table's own error, so mixing them inside a block would
+    put that error on a channel boundary instead of a block boundary.
+
+    Both words of each pair are written because the pair kernel reads
+    them with PEYEN set, which takes the word after the address for PEy.
+    """
+    a('#if DSP4_DYN_LUT')
+    a(f'    r0 = {pfx}_lut_{da};')
+    a('    dm(_dyn_lutp) = r0;')
+    a(f'    r0 = {pfx}_lut_{db};')
+    a('    dm(_dyn_lutp + 1) = r0;')
+    a('    r1 = DYN_LUT_N;')
+    a('    r2 = 0;')
+    a(f'    r0 = dm({pfx}_lutc_{da});')
+    a('    comp(r0, r1);')
+    a(f'    if lt jump (pc, .c2lut_{tag});')
+    a(f'    r0 = dm({pfx}_lutc_{db});')
+    a('    comp(r0, r1);')
+    a(f'    if lt jump (pc, .c2lut_{tag});')
+    a('    r2 = 1;')
+    a(f'.c2lut_{tag}:')
+    a('    dm(_dlut_live) = r2;')
+    a('    dm(_dlut_live + 1) = r2;')
+    a('#endif')
+
+
 def _c2_dyn_driver(a, tag, kern, da, db, sa, sb, mtr_of):
     """One chip-2 dynamics pair driver. `a` is the emitter's append.
 
@@ -13612,6 +13724,8 @@ def _c2_dyn_driver(a, tag, kern, da, db, sa, sb, mtr_of):
     a('    dm(_dsim_n) = r0;')
     a('    dm(_dsim_n + 1) = r0;')
     pfx = _C2_PAIR_KERNEL[kern]['pfx']
+    if kern in _C2_LUT_KERNELS:
+        _emit_lut_pair(a, tag, pfx, da, db)
     a(f'    r4 = {pfx}_attq_{da};')
     a(f'    r5 = {pfx}_attq_{db};')
     a(f'    r6 = {pfx}_envelope_{da};')
@@ -13697,7 +13811,7 @@ def gen_dyn_pairs_c2_cross(xpairs, input_of, mtr_of=None):
     a(' * there is an instant at which both inputs are ready. See the table')
     a(' * in dsp_codegen.py for the argument and the reorder it licenses.')
     a(' */')
-    ext = set()
+    ext, lut = set(), set()
     for x in xpairs:
         for d in (x['a'], x['b']):
             k = _C2_PAIR_KERNEL[x['kern']]
@@ -13709,10 +13823,17 @@ def gen_dyn_pairs_c2_cross(xpairs, input_of, mtr_of=None):
                 ext.add(k['filter'] + d)
             if x['kern'] == 'comp':
                 ext.add(f'_comp_gain_{d}')
+            if x['kern'] in _C2_LUT_KERNELS:
+                lut.update((f"{k['pfx']}_lut_{d}", f"{k['pfx']}_lutc_{d}"))
             if mtr_of.get(d):
                 ext.update((f'_mtr_wblk_{d}', f'_mtr_wide_{d}'))
     for sym in sorted(ext):
         a(f'.extern {sym};')
+    if lut:
+        a('#if DSP4_DYN_LUT')
+        for sym in sorted(lut):
+            a(f'.extern {sym};')
+        a('#endif')
     for x in xpairs:
         _c2_dyn_driver(a, x['tag'], x['kern'], x['a'], x['b'],
                        input_of[x['a']], input_of[x['b']], mtr_of)
@@ -13732,7 +13853,7 @@ def gen_dyn_pairs_c2(groups, input_of, mtr_of=None):
     a = out.append
     if not groups:
         return out
-    ext = set()
+    ext, lut = set(), set()
     for g in groups:
         for cls, kern in g['paired'].items():
             for k in range(0, len(g['insts']) - 1, 2):
@@ -13751,6 +13872,9 @@ def gen_dyn_pairs_c2(groups, input_of, mtr_of=None):
                         ext.add(k['filter'] + nd)
                     if kern == 'comp':
                         ext.add(f'_comp_gain_{nd}')
+                    if kern in _C2_LUT_KERNELS:
+                        lut.update((f"{k['pfx']}_lut_{nd}",
+                                    f"{k['pfx']}_lutc_{nd}"))
     a('')
     a('/* ---- chip-2 dynamics pairs (dispatch item 3, 2026-09-01) ----')
     a(' * Same two kernels chip 1 has run since session 3, on chip 2\'s own')
@@ -13768,6 +13892,11 @@ def gen_dyn_pairs_c2(groups, input_of, mtr_of=None):
     a(' */')
     for sym in sorted(ext):
         a(f'.extern {sym};')
+    if lut:
+        a('#if DSP4_DYN_LUT')
+        for sym in sorted(lut):
+            a(f'.extern {sym};')
+        a('#endif')
 
     for g in groups:
         for cls, kern in g['paired'].items():

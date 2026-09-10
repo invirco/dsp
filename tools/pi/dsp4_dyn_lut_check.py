@@ -23,6 +23,15 @@ so this one is built to be able to fail three ways and says which:
 Usage:
   dsp4_dyn_lut_check.py --node C1_COMP_01 --thr -20 --ratio 4 --knee 6
   dsp4_dyn_lut_check.py --node C1_COMP_01 --n 64      (spot-check 64 words)
+  dsp4_dyn_lut_check.py --chip 2 --node C2_AUX_LIM_01 --class lim
+
+THE SYMBOL PREFIX IS THE CLASS. The COMPRESSOR's table is
+`_comp_lut_<nid>` and the LIMITER's, since S16, is `_lim_lut_<nid>`;
+everything else about them is identical, because they are the same
+machinery designing the same shape of curve from the same four-word
+`_compgain_fx` parameter block. `--class` is inferred from the node id
+when it is not given, and a node whose symbols are absent says so rather
+than reading whatever lives at address None.
 """
 import argparse
 import sys
@@ -51,6 +60,8 @@ def main():
                                   'stale map points the symbol at whatever '
                                   'now lives at that address, and it answers)')
     ap.add_argument('--node', default='C1_COMP_01')
+    ap.add_argument('--class', dest='cls', choices=('comp', 'lim'),
+                    help='symbol prefix; inferred from the node id if unset')
     ap.add_argument('--thr', type=float, default=-20.0)
     ap.add_argument('--ratio', type=float, default=4.0)
     ap.add_argument('--knee', type=float, default=6.0)
@@ -63,13 +74,15 @@ def main():
     sc = S.Scope(a.chip, a.sym) if a.sym else S.Scope(a.chip)
     sc.check_chip()
 
-    cur = sc.sym.get('_comp_lutc_%s' % a.node)
-    tab = sc.sym.get('_comp_lut_%s' % a.node)
-    key = sc.sym.get('_comp_lutk_%s' % a.node)
+    cls = a.cls or ('lim' if '_LIM' in a.node.upper() else 'comp')
+    cur = sc.sym.get('_%s_lutc_%s' % (cls, a.node))
+    tab = sc.sym.get('_%s_lut_%s' % (cls, a.node))
+    key = sc.sym.get('_%s_lutk_%s' % (cls, a.node))
     if cur is None or tab is None:
-        print('NO LUT SYMBOLS for %s -- is this a DSP4_DYN_LUT image?'
-              % a.node)
+        print('NO LUT SYMBOLS _%s_lut[c]_%s -- is this a DSP4_DYN_LUT '
+              'image, and is %s of class %s?' % (cls, a.node, a.node, cls))
         return 2
+    print('class %s (symbols _%s_lut_%s)' % (cls, cls, a.node))
 
     want = [int(x, 16) for x in open(a.model) if x.strip()]
     n_all = len(want)

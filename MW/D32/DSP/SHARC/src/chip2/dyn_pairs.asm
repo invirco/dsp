@@ -291,6 +291,56 @@
 .extern _mtr_wide_C2_GRP_COMP_02;
 .extern _mtr_wide_C2_GRP_COMP_03;
 .extern _mtr_wide_C2_GRP_COMP_04;
+#if DSP4_DYN_LUT
+.extern _comp_lut_C2_GRP_COMP_01;
+.extern _comp_lut_C2_GRP_COMP_02;
+.extern _comp_lut_C2_GRP_COMP_03;
+.extern _comp_lut_C2_GRP_COMP_04;
+.extern _comp_lut_C2_MAIN_OCOMP_01;
+.extern _comp_lut_C2_MAIN_OCOMP_02;
+.extern _comp_lut_C2_MAIN_OCOMP_03;
+.extern _comp_lut_C2_MAIN_OCOMP_04;
+.extern _comp_lutc_C2_GRP_COMP_01;
+.extern _comp_lutc_C2_GRP_COMP_02;
+.extern _comp_lutc_C2_GRP_COMP_03;
+.extern _comp_lutc_C2_GRP_COMP_04;
+.extern _comp_lutc_C2_MAIN_OCOMP_01;
+.extern _comp_lutc_C2_MAIN_OCOMP_02;
+.extern _comp_lutc_C2_MAIN_OCOMP_03;
+.extern _comp_lutc_C2_MAIN_OCOMP_04;
+.extern _lim_lut_C2_AUX_LIM_01;
+.extern _lim_lut_C2_AUX_LIM_02;
+.extern _lim_lut_C2_AUX_LIM_03;
+.extern _lim_lut_C2_AUX_LIM_04;
+.extern _lim_lut_C2_AUX_LIM_05;
+.extern _lim_lut_C2_AUX_LIM_06;
+.extern _lim_lut_C2_AUX_LIM_07;
+.extern _lim_lut_C2_AUX_LIM_08;
+.extern _lim_lut_C2_AUX_LIM_09;
+.extern _lim_lut_C2_AUX_LIM_10;
+.extern _lim_lut_C2_AUX_LIM_11;
+.extern _lim_lut_C2_AUX_LIM_12;
+.extern _lim_lut_C2_MAIN_OLIM_01;
+.extern _lim_lut_C2_MAIN_OLIM_02;
+.extern _lim_lut_C2_MAIN_OLIM_03;
+.extern _lim_lut_C2_MAIN_OLIM_04;
+.extern _lim_lutc_C2_AUX_LIM_01;
+.extern _lim_lutc_C2_AUX_LIM_02;
+.extern _lim_lutc_C2_AUX_LIM_03;
+.extern _lim_lutc_C2_AUX_LIM_04;
+.extern _lim_lutc_C2_AUX_LIM_05;
+.extern _lim_lutc_C2_AUX_LIM_06;
+.extern _lim_lutc_C2_AUX_LIM_07;
+.extern _lim_lutc_C2_AUX_LIM_08;
+.extern _lim_lutc_C2_AUX_LIM_09;
+.extern _lim_lutc_C2_AUX_LIM_10;
+.extern _lim_lutc_C2_AUX_LIM_11;
+.extern _lim_lutc_C2_AUX_LIM_12;
+.extern _lim_lutc_C2_MAIN_OLIM_01;
+.extern _lim_lutc_C2_MAIN_OLIM_02;
+.extern _lim_lutc_C2_MAIN_OLIM_03;
+.extern _lim_lutc_C2_MAIN_OLIM_04;
+#endif
 
 /* ---- C2_AUX_LIM_01 + C2_AUX_LIM_02 ---- */
 .global _C2PAIR_AUX_LIM_01_02_process;
@@ -340,6 +390,24 @@ _C2PAIR_AUX_LIM_01_02_process:
     r0 = DSP4_BLOCK_SIZE-1;
     dm(_dsim_n) = r0;
     dm(_dsim_n + 1) = r0;
+#if DSP4_DYN_LUT
+    r0 = _lim_lut_C2_AUX_LIM_01;
+    dm(_dyn_lutp) = r0;
+    r0 = _lim_lut_C2_AUX_LIM_02;
+    dm(_dyn_lutp + 1) = r0;
+    r1 = DYN_LUT_N;
+    r2 = 0;
+    r0 = dm(_lim_lutc_C2_AUX_LIM_01);
+    comp(r0, r1);
+    if lt jump (pc, .c2lut_AUX_LIM_01_02);
+    r0 = dm(_lim_lutc_C2_AUX_LIM_02);
+    comp(r0, r1);
+    if lt jump (pc, .c2lut_AUX_LIM_01_02);
+    r2 = 1;
+.c2lut_AUX_LIM_01_02:
+    dm(_dlut_live) = r2;
+    dm(_dlut_live + 1) = r2;
+#endif
     r4 = _lim_attq_C2_AUX_LIM_01;
     r5 = _lim_attq_C2_AUX_LIM_02;
     r6 = _lim_envelope_C2_AUX_LIM_01;
@@ -425,6 +493,24 @@ _C2PAIR_AUX_LIM_03_04_process:
     r0 = DSP4_BLOCK_SIZE-1;
     dm(_dsim_n) = r0;
     dm(_dsim_n + 1) = r0;
+#if DSP4_DYN_LUT
+    r0 = _lim_lut_C2_AUX_LIM_03;
+    dm(_dyn_lutp) = r0;
+    r0 = _lim_lut_C2_AUX_LIM_04;
+    dm(_dyn_lutp + 1) = r0;
+    r1 = DYN_LUT_N;
+    r2 = 0;
+    r0 = dm(_lim_lutc_C2_AUX_LIM_03);
+    comp(r0, r1);
+    if lt jump (pc, .c2lut_AUX_LIM_03_04);
+    r0 = dm(_lim_lutc_C2_AUX_LIM_04);
+    comp(r0, r1);
+    if lt jump (pc, .c2lut_AUX_LIM_03_04);
+    r2 = 1;
+.c2lut_AUX_LIM_03_04:
+    dm(_dlut_live) = r2;
+    dm(_dlut_live + 1) = r2;
+#endif
     r4 = _lim_attq_C2_AUX_LIM_03;
     r5 = _lim_attq_C2_AUX_LIM_04;
     r6 = _lim_envelope_C2_AUX_LIM_03;
@@ -510,6 +596,24 @@ _C2PAIR_AUX_LIM_05_06_process:
     r0 = DSP4_BLOCK_SIZE-1;
     dm(_dsim_n) = r0;
     dm(_dsim_n + 1) = r0;
+#if DSP4_DYN_LUT
+    r0 = _lim_lut_C2_AUX_LIM_05;
+    dm(_dyn_lutp) = r0;
+    r0 = _lim_lut_C2_AUX_LIM_06;
+    dm(_dyn_lutp + 1) = r0;
+    r1 = DYN_LUT_N;
+    r2 = 0;
+    r0 = dm(_lim_lutc_C2_AUX_LIM_05);
+    comp(r0, r1);
+    if lt jump (pc, .c2lut_AUX_LIM_05_06);
+    r0 = dm(_lim_lutc_C2_AUX_LIM_06);
+    comp(r0, r1);
+    if lt jump (pc, .c2lut_AUX_LIM_05_06);
+    r2 = 1;
+.c2lut_AUX_LIM_05_06:
+    dm(_dlut_live) = r2;
+    dm(_dlut_live + 1) = r2;
+#endif
     r4 = _lim_attq_C2_AUX_LIM_05;
     r5 = _lim_attq_C2_AUX_LIM_06;
     r6 = _lim_envelope_C2_AUX_LIM_05;
@@ -595,6 +699,24 @@ _C2PAIR_AUX_LIM_07_08_process:
     r0 = DSP4_BLOCK_SIZE-1;
     dm(_dsim_n) = r0;
     dm(_dsim_n + 1) = r0;
+#if DSP4_DYN_LUT
+    r0 = _lim_lut_C2_AUX_LIM_07;
+    dm(_dyn_lutp) = r0;
+    r0 = _lim_lut_C2_AUX_LIM_08;
+    dm(_dyn_lutp + 1) = r0;
+    r1 = DYN_LUT_N;
+    r2 = 0;
+    r0 = dm(_lim_lutc_C2_AUX_LIM_07);
+    comp(r0, r1);
+    if lt jump (pc, .c2lut_AUX_LIM_07_08);
+    r0 = dm(_lim_lutc_C2_AUX_LIM_08);
+    comp(r0, r1);
+    if lt jump (pc, .c2lut_AUX_LIM_07_08);
+    r2 = 1;
+.c2lut_AUX_LIM_07_08:
+    dm(_dlut_live) = r2;
+    dm(_dlut_live + 1) = r2;
+#endif
     r4 = _lim_attq_C2_AUX_LIM_07;
     r5 = _lim_attq_C2_AUX_LIM_08;
     r6 = _lim_envelope_C2_AUX_LIM_07;
@@ -680,6 +802,24 @@ _C2PAIR_AUX_LIM_09_10_process:
     r0 = DSP4_BLOCK_SIZE-1;
     dm(_dsim_n) = r0;
     dm(_dsim_n + 1) = r0;
+#if DSP4_DYN_LUT
+    r0 = _lim_lut_C2_AUX_LIM_09;
+    dm(_dyn_lutp) = r0;
+    r0 = _lim_lut_C2_AUX_LIM_10;
+    dm(_dyn_lutp + 1) = r0;
+    r1 = DYN_LUT_N;
+    r2 = 0;
+    r0 = dm(_lim_lutc_C2_AUX_LIM_09);
+    comp(r0, r1);
+    if lt jump (pc, .c2lut_AUX_LIM_09_10);
+    r0 = dm(_lim_lutc_C2_AUX_LIM_10);
+    comp(r0, r1);
+    if lt jump (pc, .c2lut_AUX_LIM_09_10);
+    r2 = 1;
+.c2lut_AUX_LIM_09_10:
+    dm(_dlut_live) = r2;
+    dm(_dlut_live + 1) = r2;
+#endif
     r4 = _lim_attq_C2_AUX_LIM_09;
     r5 = _lim_attq_C2_AUX_LIM_10;
     r6 = _lim_envelope_C2_AUX_LIM_09;
@@ -765,6 +905,24 @@ _C2PAIR_AUX_LIM_11_12_process:
     r0 = DSP4_BLOCK_SIZE-1;
     dm(_dsim_n) = r0;
     dm(_dsim_n + 1) = r0;
+#if DSP4_DYN_LUT
+    r0 = _lim_lut_C2_AUX_LIM_11;
+    dm(_dyn_lutp) = r0;
+    r0 = _lim_lut_C2_AUX_LIM_12;
+    dm(_dyn_lutp + 1) = r0;
+    r1 = DYN_LUT_N;
+    r2 = 0;
+    r0 = dm(_lim_lutc_C2_AUX_LIM_11);
+    comp(r0, r1);
+    if lt jump (pc, .c2lut_AUX_LIM_11_12);
+    r0 = dm(_lim_lutc_C2_AUX_LIM_12);
+    comp(r0, r1);
+    if lt jump (pc, .c2lut_AUX_LIM_11_12);
+    r2 = 1;
+.c2lut_AUX_LIM_11_12:
+    dm(_dlut_live) = r2;
+    dm(_dlut_live + 1) = r2;
+#endif
     r4 = _lim_attq_C2_AUX_LIM_11;
     r5 = _lim_attq_C2_AUX_LIM_12;
     r6 = _lim_envelope_C2_AUX_LIM_11;
@@ -1032,6 +1190,24 @@ _C2PAIR_GRP_COMP_01_02_process:
     r0 = DSP4_BLOCK_SIZE-1;
     dm(_dsim_n) = r0;
     dm(_dsim_n + 1) = r0;
+#if DSP4_DYN_LUT
+    r0 = _comp_lut_C2_GRP_COMP_01;
+    dm(_dyn_lutp) = r0;
+    r0 = _comp_lut_C2_GRP_COMP_02;
+    dm(_dyn_lutp + 1) = r0;
+    r1 = DYN_LUT_N;
+    r2 = 0;
+    r0 = dm(_comp_lutc_C2_GRP_COMP_01);
+    comp(r0, r1);
+    if lt jump (pc, .c2lut_GRP_COMP_01_02);
+    r0 = dm(_comp_lutc_C2_GRP_COMP_02);
+    comp(r0, r1);
+    if lt jump (pc, .c2lut_GRP_COMP_01_02);
+    r2 = 1;
+.c2lut_GRP_COMP_01_02:
+    dm(_dlut_live) = r2;
+    dm(_dlut_live + 1) = r2;
+#endif
     r4 = _comp_attq_C2_GRP_COMP_01;
     r5 = _comp_attq_C2_GRP_COMP_02;
     r6 = _comp_envelope_C2_GRP_COMP_01;
@@ -1157,6 +1333,24 @@ _C2PAIR_GRP_COMP_03_04_process:
     r0 = DSP4_BLOCK_SIZE-1;
     dm(_dsim_n) = r0;
     dm(_dsim_n + 1) = r0;
+#if DSP4_DYN_LUT
+    r0 = _comp_lut_C2_GRP_COMP_03;
+    dm(_dyn_lutp) = r0;
+    r0 = _comp_lut_C2_GRP_COMP_04;
+    dm(_dyn_lutp + 1) = r0;
+    r1 = DYN_LUT_N;
+    r2 = 0;
+    r0 = dm(_comp_lutc_C2_GRP_COMP_03);
+    comp(r0, r1);
+    if lt jump (pc, .c2lut_GRP_COMP_03_04);
+    r0 = dm(_comp_lutc_C2_GRP_COMP_04);
+    comp(r0, r1);
+    if lt jump (pc, .c2lut_GRP_COMP_03_04);
+    r2 = 1;
+.c2lut_GRP_COMP_03_04:
+    dm(_dlut_live) = r2;
+    dm(_dlut_live + 1) = r2;
+#endif
     r4 = _comp_attq_C2_GRP_COMP_03;
     r5 = _comp_attq_C2_GRP_COMP_04;
     r6 = _comp_envelope_C2_GRP_COMP_03;
@@ -1282,6 +1476,24 @@ _C2PAIR_MOUT_OCOMP_01_02_process:
     r0 = DSP4_BLOCK_SIZE-1;
     dm(_dsim_n) = r0;
     dm(_dsim_n + 1) = r0;
+#if DSP4_DYN_LUT
+    r0 = _comp_lut_C2_MAIN_OCOMP_01;
+    dm(_dyn_lutp) = r0;
+    r0 = _comp_lut_C2_MAIN_OCOMP_02;
+    dm(_dyn_lutp + 1) = r0;
+    r1 = DYN_LUT_N;
+    r2 = 0;
+    r0 = dm(_comp_lutc_C2_MAIN_OCOMP_01);
+    comp(r0, r1);
+    if lt jump (pc, .c2lut_MOUT_OCOMP_01_02);
+    r0 = dm(_comp_lutc_C2_MAIN_OCOMP_02);
+    comp(r0, r1);
+    if lt jump (pc, .c2lut_MOUT_OCOMP_01_02);
+    r2 = 1;
+.c2lut_MOUT_OCOMP_01_02:
+    dm(_dlut_live) = r2;
+    dm(_dlut_live + 1) = r2;
+#endif
     r4 = _comp_attq_C2_MAIN_OCOMP_01;
     r5 = _comp_attq_C2_MAIN_OCOMP_02;
     r6 = _comp_envelope_C2_MAIN_OCOMP_01;
@@ -1375,6 +1587,24 @@ _C2PAIR_MOUT_OCOMP_03_04_process:
     r0 = DSP4_BLOCK_SIZE-1;
     dm(_dsim_n) = r0;
     dm(_dsim_n + 1) = r0;
+#if DSP4_DYN_LUT
+    r0 = _comp_lut_C2_MAIN_OCOMP_03;
+    dm(_dyn_lutp) = r0;
+    r0 = _comp_lut_C2_MAIN_OCOMP_04;
+    dm(_dyn_lutp + 1) = r0;
+    r1 = DYN_LUT_N;
+    r2 = 0;
+    r0 = dm(_comp_lutc_C2_MAIN_OCOMP_03);
+    comp(r0, r1);
+    if lt jump (pc, .c2lut_MOUT_OCOMP_03_04);
+    r0 = dm(_comp_lutc_C2_MAIN_OCOMP_04);
+    comp(r0, r1);
+    if lt jump (pc, .c2lut_MOUT_OCOMP_03_04);
+    r2 = 1;
+.c2lut_MOUT_OCOMP_03_04:
+    dm(_dlut_live) = r2;
+    dm(_dlut_live + 1) = r2;
+#endif
     r4 = _comp_attq_C2_MAIN_OCOMP_03;
     r5 = _comp_attq_C2_MAIN_OCOMP_04;
     r6 = _comp_envelope_C2_MAIN_OCOMP_03;
@@ -1468,6 +1698,24 @@ _C2PAIR_MOUT_OLIM_01_02_process:
     r0 = DSP4_BLOCK_SIZE-1;
     dm(_dsim_n) = r0;
     dm(_dsim_n + 1) = r0;
+#if DSP4_DYN_LUT
+    r0 = _lim_lut_C2_MAIN_OLIM_01;
+    dm(_dyn_lutp) = r0;
+    r0 = _lim_lut_C2_MAIN_OLIM_02;
+    dm(_dyn_lutp + 1) = r0;
+    r1 = DYN_LUT_N;
+    r2 = 0;
+    r0 = dm(_lim_lutc_C2_MAIN_OLIM_01);
+    comp(r0, r1);
+    if lt jump (pc, .c2lut_MOUT_OLIM_01_02);
+    r0 = dm(_lim_lutc_C2_MAIN_OLIM_02);
+    comp(r0, r1);
+    if lt jump (pc, .c2lut_MOUT_OLIM_01_02);
+    r2 = 1;
+.c2lut_MOUT_OLIM_01_02:
+    dm(_dlut_live) = r2;
+    dm(_dlut_live + 1) = r2;
+#endif
     r4 = _lim_attq_C2_MAIN_OLIM_01;
     r5 = _lim_attq_C2_MAIN_OLIM_02;
     r6 = _lim_envelope_C2_MAIN_OLIM_01;
@@ -1553,6 +1801,24 @@ _C2PAIR_MOUT_OLIM_03_04_process:
     r0 = DSP4_BLOCK_SIZE-1;
     dm(_dsim_n) = r0;
     dm(_dsim_n + 1) = r0;
+#if DSP4_DYN_LUT
+    r0 = _lim_lut_C2_MAIN_OLIM_03;
+    dm(_dyn_lutp) = r0;
+    r0 = _lim_lut_C2_MAIN_OLIM_04;
+    dm(_dyn_lutp + 1) = r0;
+    r1 = DYN_LUT_N;
+    r2 = 0;
+    r0 = dm(_lim_lutc_C2_MAIN_OLIM_03);
+    comp(r0, r1);
+    if lt jump (pc, .c2lut_MOUT_OLIM_03_04);
+    r0 = dm(_lim_lutc_C2_MAIN_OLIM_04);
+    comp(r0, r1);
+    if lt jump (pc, .c2lut_MOUT_OLIM_03_04);
+    r2 = 1;
+.c2lut_MOUT_OLIM_03_04:
+    dm(_dlut_live) = r2;
+    dm(_dlut_live + 1) = r2;
+#endif
     r4 = _lim_attq_C2_MAIN_OLIM_03;
     r5 = _lim_attq_C2_MAIN_OLIM_04;
     r6 = _lim_envelope_C2_MAIN_OLIM_03;
@@ -1633,6 +1899,16 @@ _C2PAIR_MOUT_OLIM_03_04_process.end:
 .extern _lim_envelope_C2_SUB_LIM;
 .extern _lim_on_C2_MAIN_LIM;
 .extern _lim_on_C2_SUB_LIM;
+#if DSP4_DYN_LUT
+.extern _comp_lut_C2_MAIN_COMP;
+.extern _comp_lut_C2_SUB_COMP;
+.extern _comp_lutc_C2_MAIN_COMP;
+.extern _comp_lutc_C2_SUB_COMP;
+.extern _lim_lut_C2_MAIN_LIM;
+.extern _lim_lut_C2_SUB_LIM;
+.extern _lim_lutc_C2_MAIN_LIM;
+.extern _lim_lutc_C2_SUB_LIM;
+#endif
 
 /* ---- C2_MAIN_COMP + C2_SUB_COMP ---- */
 .global _C2PAIR_MSUB_COMP_process;
@@ -1682,6 +1958,24 @@ _C2PAIR_MSUB_COMP_process:
     r0 = DSP4_BLOCK_SIZE-1;
     dm(_dsim_n) = r0;
     dm(_dsim_n + 1) = r0;
+#if DSP4_DYN_LUT
+    r0 = _comp_lut_C2_MAIN_COMP;
+    dm(_dyn_lutp) = r0;
+    r0 = _comp_lut_C2_SUB_COMP;
+    dm(_dyn_lutp + 1) = r0;
+    r1 = DYN_LUT_N;
+    r2 = 0;
+    r0 = dm(_comp_lutc_C2_MAIN_COMP);
+    comp(r0, r1);
+    if lt jump (pc, .c2lut_MSUB_COMP);
+    r0 = dm(_comp_lutc_C2_SUB_COMP);
+    comp(r0, r1);
+    if lt jump (pc, .c2lut_MSUB_COMP);
+    r2 = 1;
+.c2lut_MSUB_COMP:
+    dm(_dlut_live) = r2;
+    dm(_dlut_live + 1) = r2;
+#endif
     r4 = _comp_attq_C2_MAIN_COMP;
     r5 = _comp_attq_C2_SUB_COMP;
     r6 = _comp_envelope_C2_MAIN_COMP;
@@ -1775,6 +2069,24 @@ _C2PAIR_MSUB_LIM_process:
     r0 = DSP4_BLOCK_SIZE-1;
     dm(_dsim_n) = r0;
     dm(_dsim_n + 1) = r0;
+#if DSP4_DYN_LUT
+    r0 = _lim_lut_C2_MAIN_LIM;
+    dm(_dyn_lutp) = r0;
+    r0 = _lim_lut_C2_SUB_LIM;
+    dm(_dyn_lutp + 1) = r0;
+    r1 = DYN_LUT_N;
+    r2 = 0;
+    r0 = dm(_lim_lutc_C2_MAIN_LIM);
+    comp(r0, r1);
+    if lt jump (pc, .c2lut_MSUB_LIM);
+    r0 = dm(_lim_lutc_C2_SUB_LIM);
+    comp(r0, r1);
+    if lt jump (pc, .c2lut_MSUB_LIM);
+    r2 = 1;
+.c2lut_MSUB_LIM:
+    dm(_dlut_live) = r2;
+    dm(_dlut_live + 1) = r2;
+#endif
     r4 = _lim_attq_C2_MAIN_LIM;
     r5 = _lim_attq_C2_SUB_LIM;
     r6 = _lim_envelope_C2_MAIN_LIM;

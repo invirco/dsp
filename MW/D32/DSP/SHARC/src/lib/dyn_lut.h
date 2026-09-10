@@ -50,8 +50,20 @@
  *
  * 4 is the shipped value: the peak is a fifth of what it was and 28 ms
  * of the polynomial after a parameter move is inaudible -- it is the
- * arithmetic that already ships. */
+ * arithmetic that already ships.
+ *
+ * OVERRIDABLE, AND THE REASON IS AN INSTRUMENT (S16). 28 ms is SHORTER
+ * than the 1,024-sample scope buffer (21 ms) plus the SPI readback, so
+ * tools/pi/dsp4_dyn_lut_audio.py -- which compares a capture taken
+ * while the table is stale against one taken after it is designed --
+ * cannot show that its first capture was the polynomial's: the design
+ * finishes inside the capture. Building the measurement arm with
+ * -DDYN_LUT_CHUNK=1 puts the design at 337 blocks = 112 ms, five times
+ * the buffer, and the two captures then straddle the changeover
+ * unambiguously. It is a measurement setting; 4 is what ships. */
+#ifndef DYN_LUT_CHUNK
 #define DYN_LUT_CHUNK   4
+#endif
 
 /*----------------------------------------------------------------------
  * LUTGAIN_SIMD — the paired lookup.

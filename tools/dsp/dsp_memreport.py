@@ -15,8 +15,18 @@ chain and has caused false alarms twice (2026-07-30, 2026-08-06).
 
 This script reports per-region usage AND the per-purpose totals across each
 primary+overflow pair, which is the number that actually gates growth. It
-also flags the real risk: an overflow tier filling up, because there is no
-third tier behind it.
+also flags the real risk: an overflow tier filling up.
+
+Code has a THIRD tier, and it used to be invisible here. sec_swco_ovf2
+takes whatever Block 1 has left after the DM overflow and the DMA buffers,
+so code that spills there was counted against "DM data + stack" and not
+against the code pool at all — an image reading "code 99.9%, free 228"
+could be carrying several thousand more bytes of code that this report
+attributed to data (measured 2026-09-10 on the DYN_LUT arm: 1,598 bytes,
+and 7,634 on the same arm plus the scope witness). Block 1 is also where
+the DMA ping-pong buffers live, so those bytes fetch against DDE traffic:
+the tier is a real placement, with a timing price, and it is now stated.
+build.sh's DSP4_COLD_OBJS list decides WHICH objects pay it.
 
 Exit codes:
   0  — every pool below the warn threshold
@@ -40,18 +50,24 @@ POOLS = [
 
 
 def parse_map(path):
-    """Return {region_name: (used, capacity, [section names])} from a map XML."""
+    """Return ({region: (used, capacity, [sections])}, {section: bytes})."""
     with open(path) as fh:
         txt = fh.read()
     regions = {}
+    sec_bytes = {}
     for m in re.finditer(r"<MEMORY\b([^>]*)>(.*?)</MEMORY>", txt, re.S):
         attrs = dict(re.findall(r"(\w+)='([^']*)'", m.group(1)))
         used = int(attrs['words_used'], 16)
         cap = used + int(attrs['words_unused'], 16)
-        secs = [dict(re.findall(r"(\w+)='([^']*)'", o.group(1)))['name']
-                for o in re.finditer(r"<OUTPUT_SECTION\b([^>]*)>", m.group(2))]
+        secs = []
+        for o in re.finditer(r"<OUTPUT_SECTION\b([^>]*)>", m.group(2)):
+            oa = dict(re.findall(r"(\w+)='([^']*)'", o.group(1)))
+            secs.append(oa['name'])
+            # word_size counts words of the section's OWN width, not bytes.
+            width = int(oa.get('memory_width', '0x8'), 16) // 8 or 1
+            sec_bytes[oa['name']] = int(oa['word_size'], 16) * width
         regions[attrs['name']] = (used, cap, secs)
-    return regions
+    return regions, sec_bytes
 
 
 def pct(used, cap):
@@ -59,7 +75,7 @@ def pct(used, cap):
 
 
 def report(path):
-    regions = parse_map(path)
+    regions, sec_bytes = parse_map(path)
     print(f"=== {path}")
     worst = 0.0
 
@@ -86,9 +102,27 @@ def report(path):
             if i == 0 and len(present) > 1 and pct(used, cap) >= 99.0:
                 note = '  (full — spilling to overflow, expected)'
             if i > 0 and pct(used, cap) >= WARN_PCT:
-                note = '  (LAST TIER — no region behind this one)'
+                note = ('  (spilling into Block 1 — see tier 3)'
+                        if label.startswith('code')
+                        and sec_bytes.get('sec_swco_ovf2', 0)
+                        else '  (LAST TIER — no region behind this one)')
             print(f"      {tier} {name:<15} {used:>9}/{cap:<9} "
                   f"{pct(used, cap):5.1f}%  [{' '.join(secs) or '-'}]{note}")
+
+        if label.startswith('code'):
+            t3 = sec_bytes.get('sec_swco_ovf2', 0)
+            if t3:
+                worst = max(worst, 100.0)
+                print(f"      tier 3   mem_block1_bw   {t3:>9} bytes of CODE "
+                      f"in the DM/DMA block  <-- CONTENDED FETCH")
+                print( "               Blocks 3+2 are full: this image runs "
+                       "some of its code out of Block 1,")
+                print( "               against the DM overflow and the DMA "
+                       "ping-pong buffers. build.sh's")
+                print( "               DSP4_COLD_OBJS decides which objects "
+                       "land here; check that list before")
+                print( "               taking a capacity number off this "
+                       "image.")
 
     unlisted = [n for n in regions
                 if not any(n in names for _, names, _f in POOLS)]

@@ -26,12 +26,25 @@ BENCH=app@192.168.1.219
 ROOT=../../../..
 # WHERE THIS RUN'S IMAGES LIVE ON THE BENCH.
 #
-# ~/dspboot holds the staged pairs the window rolls back to -- blk_* (the
-# shipping pair), chip* (the window pair), conf_*, ship_*, tx_* -- and this
-# script used to scp its build straight over chip1.ldr and chip2.ldr, which
-# are two of them. A measurement bar must not be able to destroy the
-# artifact the product ships. Default stays /home/app/dspboot so nothing
-# that calls this changes behaviour; set STAGE to run from anywhere else.
+# ~/dspboot holds the staged pairs the window rolls back to. They are the
+# PREFIXED ones -- blk_* (the shipping pair), cand_*, geq_*, dyn_*, flr_*,
+# conf_*, ship_*, tx_* -- and nothing here writes those.
+#
+# `chip1.ldr` / `chip2.ldr` ARE NOT ONE OF THEM. This header used to call
+# them "the window pair" while some thirty measurement scripts in this
+# directory scp their build straight over them, and both cannot be true.
+# CHECKED ON THE PART, 2026-09-10 (S16-7): those two files were
+# 08d0b9a4 / 6a349c13, which is no staged pair at all -- it is whatever
+# the last measurement run left there. They are the SHARED SCRATCH SLOT
+# that dsp4_boot.py boots by default (`--dir <d>` reads <d>/chipN.ldr),
+# and treating them as an artifact is what made this bar look dangerous
+# when it is not.
+#
+# What DOES protect the artifacts is the prefix, and what protects two
+# concurrent runs from each other is bench_lock.sh above. STAGE is still
+# useful -- a run that wants its image to survive the next script names
+# its own directory -- and it stays defaulted to /home/app/dspboot so
+# nothing that calls this changes behaviour.
 STAGE="${STAGE:-/home/app/dspboot}"
 PRODUCT="${PRODUCT:-d24}"
 OUT="${OUT:-famverify-$(date +%Y%m%d-%H%M).json}"
@@ -60,10 +73,21 @@ fi
 # away from ~/dspboot; the tap is an instrument in a measurement build, and
 # `DSP4_SCOPE_BLK_TAP=0` is the control that reproduces the old reading.
 #
-# It does NOT fit alongside the paired kernels: DSP4_SCOPE_BLK_TAP=1 with
-# both DSP4_STRIP_FUSED=1 and DSP4_SIMD_DYN=1 overflows chip 1's `sec_swco`.
-# Either one alone links. That is why the fused/SIMD lever is certified one
-# half at a time (S11-4).
+# IT FITS ALONGSIDE THE PAIRED KERNELS AGAIN (S16-2, 2026-09-10). It did
+# not when this was written: DSP4_SCOPE_BLK_TAP=1 with both
+# DSP4_STRIP_FUSED=1 and DSP4_SIMD_DYN=1 overflowed chip 1's `sec_swco`,
+# which is why the fused/SIMD lever was certified one half at a time
+# (S11-4). Two things changed. The LDF grew a THIRD code tier into
+# Block 1's leftover (sec_swco_ovf2, 2026-09-09), and build.sh now
+# CHOOSES what goes into it -- DSP4_COLD_OBJS puts the boot, config and
+# design-step objects there and keeps every per-block kernel in Blocks 3
+# and 2. Measured on the DSP4_DYN_LUT arm plus this witness: it links
+# with 8 bytes to spare in Block 2 and 7,702 bytes of cold code in
+# Block 1, and the whole 20-family walk runs.
+#
+# The tap is still an INSTRUMENT: some of its own code is in the
+# contended block by design, and no capacity number is taken from an
+# image built with it.
 export DSP4_SCOPE_BLK_TAP="${DSP4_SCOPE_BLK_TAP:-1}"
 
 if [ "${BUILD:-1}" = "1" ]; then

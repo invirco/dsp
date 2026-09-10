@@ -50,8 +50,10 @@ WHAT THIS SCRIPT REPORTS.
 Usage: python3 dyn_state_bound.py [--quick]
 """
 
+import csv
 import math
 import os
+import re
 import sys
 
 import numpy as np
@@ -80,6 +82,63 @@ RATIO = [1.0, 1.5, 2.0, 4.0, 8.0, 20.0, 100.0]
 KNEE_DB = [0.0, 3.0, 6.0, 12.0, 24.0]
 SC_F = [20.0, 80.0, 400.0, 2000.0, 8000.0, 18000.0]
 SC_Q = [0.1, 0.5, 0.707, 1.0, 2.0, 5.0, 10.0]
+
+# ---------------------------------------------------------------------------
+# THE SIDECHAIN'S RANGES COME FROM THE CONTRACT (S16-6, 2026-09-10).
+#
+# Section 3 used to sweep the HPF and the LPF over the SAME grid, SC_F, up
+# to 18 kHz, and reported H = 5 -- a FAIL -- with its worst corner at an
+# HPF of 8 kHz. The defs do not allow an HPF of 8 kHz. `Chan001GateFilterHpf001`
+# is `0=20/64=1000/[Log]` and `Chan001GateFilterLpf001` is
+# `0=500/127=20000/[Log]`: two DIFFERENT ranges that overlap only between
+# 500 Hz and 1 kHz. A bound taken over settings the wire cannot carry is
+# not a bound on the product, and this one was over-stating by a whole
+# headroom bit.
+#
+# Read from the landed CSV rather than transcribed, for the same reason
+# every other number here is: a transcription is a second source of truth.
+# If the defs submodule is not present the fallback grid is used and the
+# section SAYS it is running unbounded, rather than quietly reverting to
+# the number that was wrong.
+# ---------------------------------------------------------------------------
+# GateThr's own contract range, `0=-80/127=0/[Lin]` (Chan001GateThr001),
+# and the shift S15 documented for the linear-threshold arm.
+THR_LO, THR_HI = -80.0, 0.0
+LINTHR_BAR = 0.0002
+
+SC_CELLS = {'hp': 'Chan001GateFilterHpf001', 'lp': 'Chan001GateFilterLpf001',
+            'q': 'Chan001GateFilterQ001'}
+_LAW_RE = re.compile(
+    r'^\s*(-?[\d.]+)=(-?[\d.]+)/(-?[\d.]+)=(-?[\d.]+)/\[(\w+)\]\s*$')
+
+
+def _log_grid(lo, hi, n):
+    return [lo * (hi / lo) ** (i / (n - 1.0)) for i in range(n)]
+
+
+def sidechain_ranges(n=13, nq=11):
+    """{'hp': [...], 'lp': [...], 'q': [...]}, or None if defs is absent."""
+    here = os.path.dirname(os.path.abspath(__file__))
+    csv_path = os.path.join(here, '..', '..', 'defs', 'products', 'd24',
+                            'dsp.csv')
+    if not os.path.exists(csv_path):
+        return None
+    want = {v: k for k, v in SC_CELLS.items()}
+    out = {}
+    with open(csv_path, newline='') as fh:
+        for row in csv.reader(fh):
+            if not row or row[0] not in want:
+                continue
+            for field in row:
+                m = _LAW_RE.match(field or '')
+                if m:
+                    lo, hi = float(m.group(2)), float(m.group(4))
+                    key = want[row[0]]
+                    out[key] = _log_grid(lo, hi, nq if key == 'q' else n)
+                    out[key + '_span'] = (lo, hi)
+                    break
+    return out if len(SC_CELLS) == len({k for k in out if '_span' not in k}) \
+        else None
 
 
 def alpha_q(tau_ms):
@@ -207,19 +266,33 @@ def sidechain_sweep(quick):
     print('\n3. THE SIDECHAIN FILTERS, which ARE biquads and DO carry the '
           'other argument\n')
     from bq_headroom_guard import hplp
+    rng = sidechain_ranges(5 if quick else 13, 5 if quick else 11)
+    if rng:
+        hps, lps, qs = rng['hp'], rng['lp'], rng['q']
+        print(f'   sweep bounded BY THE CONTRACT: HPF '
+              f'{rng["hp_span"][0]:.0f}-{rng["hp_span"][1]:.0f} Hz, LPF '
+              f'{rng["lp_span"][0]:.0f}-{rng["lp_span"][1]:.0f} Hz, Q '
+              f'{rng["q_span"][0]}-{rng["q_span"][1]}  '
+              f'(defs/products/d24/dsp.csv)')
+    else:
+        hps, lps, qs = SC_F, SC_F, SC_Q
+        print('   *** defs is not checked out: sweeping the FALLBACK grid, '
+              'which runs the HPF to 18 kHz where the contract stops it at '
+              '1 kHz. The numbers below bound settings the wire cannot '
+              'carry -- which is how this section read H = 5 until '
+              '2026-09-10. ***')
     cfs, tags = [], []
-    for f0 in SC_F:
-        for q in SC_Q:
-            for hp in (True, False):
-                cf = hplp(f0, q, hp)
-                cq = fr.biquad_coeffs_q(*cf)
+    for hp, band in ((True, hps), (False, lps)):
+        for f0 in band:
+            for q in qs:
+                cq = fr.biquad_coeffs_q(*hplp(f0, q, hp))
                 cfs.append(HL.dequant(cq))
                 tags.append(('hp' if hp else 'lp', f0, q))
     l1, _ = SB.l1_norm(cfs)
     hs = [SB.bits_for(v) for v in l1]
     i = int(np.argmax(l1))
-    print(f'   {len(cfs)} HPF/LPF sections over {SC_F[0]}-{SC_F[-1]} Hz, '
-          f'Q {SC_Q[0]}-{SC_Q[-1]}')
+    print(f'   {len(cfs)} HPF/LPF sections, HPF {hps[0]:.0f}-{hps[-1]:.0f} Hz '
+          f'and LPF {lps[0]:.0f}-{lps[-1]:.0f} Hz, Q {qs[0]:.3g}-{qs[-1]:.3g}')
     print(f'   worst single-section |h|_1 = {l1[i]:.2f} '
           f'(+{20 * math.log10(l1[i]):.1f} dB) at {tags[i]}')
     print(f'   worst headroom bits: {int(max(hs))}')
@@ -230,9 +303,9 @@ def sidechain_sweep(quick):
     # which no one would dial deliberately and a recalled preset can
     # nevertheless contain.
     worst2, tag2 = 0.0, None
-    for fh in SC_F:
-        for fl in SC_F:
-            for q in SC_Q:
+    for fh in hps:
+        for fl in lps:
+            for q in qs:
                 cqs = [fr.biquad_coeffs_q(*hplp(fh, q, True)),
                        fr.biquad_coeffs_q(*hplp(fl, q, False))]
                 b, _ = HL.l1_bound([HL.dequant(c) for c in cqs])
@@ -240,19 +313,26 @@ def sidechain_sweep(quick):
                     worst2, tag2 = b, (fh, fl, q)
     h2 = HL.headroom_bits(worst2)
     print(f'   worst HPF+LPF CASCADE bound = {worst2:.2f} at HPF '
-          f'{tag2[0]:.0f} Hz, LPF {tag2[1]:.0f} Hz, Q {tag2[2]}  -> H = {h2}')
+          f'{tag2[0]:.0f} Hz, LPF {tag2[1]:.0f} Hz, Q {tag2[2]:.3g}  '
+          f'-> H = {h2}')
+    if tag2[0] > tag2[1]:
+        print('   (the worst corner has the HPF ABOVE the LPF -- a setting '
+              'nobody dials and a recalled preset can carry)')
     if h2 == 0:
         print('   H = 0 across the range, which is what the generated '
               'nodes assume: the sidechain blocks carry the guard\'s '
               'header word for shape and nothing sizes them.')
     else:
-        print(f'   *** H = {h2} IS REACHABLE. The gate and talkback '
-              'sidechain blocks carry the header word but NOTHING SIZES')
+        print(f'   *** H = {h2} IS REACHABLE WITHIN THE CONTRACT. The '
+              'gate and talkback sidechain blocks carry the header word '
+              'but NOTHING SIZES')
         print('   THEM -- they are left at H = 0. At this corner the '
               'sidechain detector can wrap under round-once. It is one')
-        print('   at the extreme of parameters the DEFS file does not '
-              'bound, and it is the one place in the tree where the')
-        print('   guard is wired for shape and not for value.')
+        print('   at the extreme of parameters the DEFS file DOES bound '
+              '-- HPF 20-1000 Hz, LPF 500-20000 Hz, Q 0.1-10 -- so it is')
+        print('   a corner the wire can carry, and it is the one place in '
+              'the tree where the guard is wired for shape and not')
+        print('   for value.')
         print('   THE REASON IS NOT THE GUARD, IT IS THE CONVERSION: the '
               'gate and talkback nodes call _bq_fx_convert_N on EVERY')
         print('   invocation while their filter is on, not once per '
@@ -328,6 +408,33 @@ def lut_form(quick):
                               % (g, thr, ratio, knee))
                         return False
                     worst = max(worst, g)
+    # THE LIMITER'S CORNERS, WITH THE NODE'S OWN WORDS (S16).
+    #
+    # The limiter is not a compressor at "ratio = infinity": the node's
+    # block-rate conversion writes the four words directly --
+    # `_lim_cgp_[1] = 0x7FFFFFFF`, halfk = 0, k2 = 0 -- and 0x7FFFFFFF
+    # in Q0.31 is 1 - 2^-31, not 1. Sweeping a large float ratio would
+    # model a slope word this product never writes, so the corners below
+    # use the CONVERTED words, and the threshold spans the contract's
+    # own range for `Aux001LimiterThr001` (0=-30/127=0/[Lin]).
+    #
+    # It is the sharpest curve the table carries -- an infinite ratio
+    # with a hard knee is a corner -- which is why K = 4 was chosen
+    # against it (dyn_lut_fx.asm's ladder) and why the bound is worth
+    # checking here rather than assuming the compressor's covers it.
+    lim_worst = 0
+    for thr in (-30.0, -20.0, -10.0, -3.0, -0.5, 0.0):
+        thrq = _lut_params(thr, 1.0, 0.0)[0]
+        for e in _lut_grid(quick):
+            g = fr.comp_gain(e, thrq, 0x7FFFFFFF, 0, 0)
+            if g < 0 or g > unity:
+                print('   *** a LIMITER table word is OUTSIDE [0, 1] in '
+                      'Q4.28: %d at thr %.1f' % (g, thr))
+                return False
+            lim_worst = max(lim_worst, g)
+    print('   the LIMITER (slope 0x7FFFFFFF, hard knee) over its contract')
+    print('   threshold range -30..0 dB: every word inside [0, 1] in')
+    print('   Q4.28, largest %d = %.6f' % (lim_worst, lim_worst / float(unity)))
     print('   every table word over the documented parameter corners is')
     print('   inside [0, 1] in Q4.28; the largest seen is %d = %.6f'
           % (worst, worst / float(unity)))
@@ -344,7 +451,8 @@ def lut_form(quick):
     print('   Interpolation ERROR is a different instrument and is not')
     print('   here: tools/dsp/dyn_lut_design.py measures it against')
     print('   fixed_ref directly (0.0950 dB worst over the documented')
-    print('   sweep at K = 4, against PW\'s 0.1 dB bar).')
+    print('   sweep at K = 4, against PW\'s 0.1 dB bar; the LIMITER\'s own')
+    print('   worst over its six contract thresholds is 0.0604 dB).')
     print()
     return True
 
@@ -373,6 +481,77 @@ def _lut_grid(quick):
         oct_ = (i >> _LUT_K) + _LUT_OCTLO
         sub = i & ((1 << _LUT_K) - 1)
         yield (((1 << _LUT_K) + sub) << oct_) >> _LUT_K
+
+
+def linthr_shift(quick):
+    """6. THE LINEAR-DOMAIN GATE THRESHOLD (DSP4_GATE_LINTHR, S15).
+
+    `log2(env) >= thr` and `env >= 2^thr` decide the same thing, so the
+    kernel converts the THRESHOLD once per block instead of the ENVELOPE
+    once per sample. S15 documented the price as "at most 0.0002 dB of
+    shift in the gate's effective threshold" from the two polynomials'
+    error, and asserted it from their individual bounds.
+
+    It is measurable rather than assertable, and this measures it: for
+    each threshold the wire can carry, find the SMALLEST envelope each arm
+    opens on -- the log arm by search over `log2_q`, the linear arm from
+    `gate_thr_lin_q` directly -- and take the distance between them in dB.
+    Both use the polynomials the part runs, so the answer is the part's.
+
+    The range swept is the CONTRACT's, `0=-80/127=0/[Lin]`, not a
+    convenient one.
+    """
+    print('\n6. THE LINEAR-DOMAIN GATE THRESHOLD (DSP4_GATE_LINTHR)\n')
+
+    def open_env_log(thr_db):
+        t = fr.gate_thr_q(thr_db)
+        lo, hi = 1, (1 << 31) - 1
+        while lo < hi:
+            m = (lo + hi) // 2
+            if fr.log2_q(m) >= t:
+                hi = m
+            else:
+                lo = m + 1
+        return lo
+
+    n = 81 if quick else 801
+    worst = (0.0, 0.0, 0, 0)
+    over, lowest_ok = 0, None
+    practical = 0.0
+    for i in range(n):
+        db = THR_LO + i * (THR_HI - THR_LO) / (n - 1.0)
+        a, b = open_env_log(db), fr.gate_thr_lin_q(db)
+        d = 20.0 * math.log10(a / b)
+        if abs(d) > abs(worst[0]):
+            worst = (d, db, a, b)
+        if abs(d) > LINTHR_BAR:
+            over += 1
+            lowest_ok = db if lowest_ok is None else max(lowest_ok, db)
+        if db >= -60.0 and abs(d) > abs(practical):
+            practical = d
+    print(f'   GateThr over the contract range {THR_LO:.0f} to {THR_HI:.0f} '
+          f'dB (0={THR_LO:.0f}/127={THR_HI:.0f}/[Lin]), {n} points')
+    print(f'   worst effective-threshold shift = {worst[0]:+.6f} dB at a '
+          f'threshold of {worst[1]:.3f} dB')
+    print(f'   (the log arm opens at envelope {worst[2]}, the linear arm at '
+          f'{worst[3]} -- '
+          f'{"ONE Q4.28 LSB apart" if abs(worst[2] - worst[3]) == 1 else "%d LSBs apart" % abs(worst[2] - worst[3])})')
+    print(f'   over any threshold at or above -60 dB: {practical:+.6f} dB')
+    if over:
+        print(f'   {over} of {n} points exceed the documented '
+              f'{LINTHR_BAR} dB, ALL of them at thresholds at or below '
+              f'{lowest_ok:.1f} dB.')
+        print('   The mechanism there is NOT the polynomials: at those '
+              'thresholds the linear word itself is only a few tens of')
+        print('   Q4.28 LSBs, so ONE LSB of quantisation is already worth '
+              'more than the bar. The two arms are still one LSB apart.')
+    else:
+        print(f'   every point is inside the documented {LINTHR_BAR} dB.')
+    # THE BAR IS THE PRACTICAL RANGE, and the reason is above: below
+    # -77 dB the Q4.28 threshold word cannot represent the bar, so a
+    # section that failed there would be measuring the word size and
+    # calling it the arm.
+    return abs(practical) <= LINTHR_BAR
 
 
 def main():
@@ -413,6 +592,7 @@ def main():
     print('   the hazard does not.')
     print()
     ok = lut_form(quick) and ok
+    ok = linthr_shift(quick) and ok
     print('PASS' if ok else 'FAIL')
     return 0 if ok else 1
 

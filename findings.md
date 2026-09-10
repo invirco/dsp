@@ -6,6 +6,305 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE LAST LINK AND THE NEW WALL: the code pool read by symbol, the audio-domain verdict on the table, and the LIMITER on it (2026-09-10, session S16)
+
+Session: chip 1's code pool opened by measurement rather than by
+deletion — the wall turned out to be a PLACEMENT that nothing had chosen
+— which made the audio witness fit beside the table arm; the
+audio-domain verdict on `DSP4_DYN_LUT` obtained on the part for both the
+COMPRESSOR and the LIMITER; the LIMITER put on the same table machinery,
+which is where chip 2's cost actually was; and a silent defect found in
+S15's own lever. Write-up `MW/D32/DSP/dsp4-s16-20260910.md`. Contract
+`defs-v2026.09.08.4`, unchanged; `shipping.config` unchanged. **Built at
+the shipping defaults the tree produces `20588957` / `a1509a2a` — which
+is NOT S15's `6ebd0807` / `a3582da1`, and the difference is entirely the
+link ORDER that S16-1 changes. Every object contributes the same bytes;
+see S16-1 for the proof and for why the md5 moved.**
+
+### S16-1 — the code pool has a THIRD tier, hot kernels were landing in it by alphabetical accident, and nothing reported it
+
+**Severity: HIGH (cost, and it invalidated an accounting). Status: FIXED.
+Supersedes the "there is nothing behind it" half of S15-8.**
+
+S15-8 recorded chip 1's code pool at 99.9 %, 244 bytes free, and said
+"the LDF's overflow tier is the last one; there is nothing behind it".
+The first half is right and the second is not. The LDF has carried a
+THIRD code tier since 2026-09-09 — `sec_swco_ovf2`, into whatever Block 1
+has left after the DM overflow and the DMA buffers — and on the
+`DSP4_DYN_LUT` arm it was **already holding 1,598 bytes of code**.
+
+Nothing said so. `dsp_memreport.py` pools code as Block 3 + Block 2 only,
+so those bytes were counted against **"DM data + stack"**: an image
+reading "code 99.9 %, free 228" was carrying 1,598 more bytes of code
+that the report attributed to data.
+
+**WHICH bytes was decided alphabetically.** The linker fills an output
+section in command-line order and `build.sh` built that order with
+`find | sort`, so the objects that spilled into Block 1 were the ones
+whose names sort last. On the LUT arm that was `meter_fx` — the
+per-block meter fold and `_gsimd_gain_blk`, the SIMD gain kernel — and
+on the same arm plus the scope witness it was **`dyn_simd_fx`, the SIMD
+dynamics kernel, the hottest routine in the graph**. Block 1 is the
+block the DM overflow and the DMA ping-pong buffers live in, so that code
+fetches against DDE traffic every block. The arithmetic was exact; the
+fetch was not free; nobody chose it.
+
+Fixed by naming the cold objects and appending them LAST
+(`build.sh`'s `DSP4_COLD_OBJS`): the boot and configuration objects
+(`sru_config`, `dma_config`, `sport_init`, `sport_config`, `cgu_init`,
+`product_config`), the design steps (`afb_design_fx`, `xover_design_fx`,
+`geq_design_fx`), and the instrument paths (`diag`, `spi_handler`,
+`scope`, `scope_gates`). Everything on that list runs once per boot or
+once per parameter move; nothing on it runs per block.
+
+| chip-1 arm | Block 1 code, before | after |
+|---|---|---|
+| shipping default | 0 | **0** (inert) |
+| `DYN_LUT` | `meter_fx`, `xover_design_fx` — 1,598 B | the three design steps — 1,692 B |
+| `DYN_LUT` + scope witness | `dyn_simd_fx`, `biquad_fx`, `dyn_lut_fx`, `dyn_fx`, `geq_design_fx`, `meter_fx`, `xover_design_fx` — 7,634 B | boot + config + instrument + design steps — 7,702 B |
+
+**Every per-block kernel is back in Blocks 3 and 2 on every arm.** The
+audio is the same instructions at different addresses, and that is
+checked rather than argued: `dsp_codepool.py --diff` reports every object
+contributing **exactly the same number of code bytes** across the two
+link orders, total delta **+0**. The image md5 moves because the
+addresses move — default `6ebd0807`/`a3582da1` → `20588957`/`a1509a2a` —
+and the bars (`golden_harness` 59/59, `dsp_validate`, `dyn_simd_inline_check`
+5/5, `bq_simd_pipe_check` bit-identical, `famverify` 20 families) are
+what say the audio did not.
+
+`dsp_memreport.py` now reports the third tier as a tier, with the fetch
+cost named, and `tools/dsp/dsp_codepool.py` is new: the pool by object,
+by symbol and by node CLASS, across all three tiers.
+
+### S16-2 — the audio witness FITS beside the table arm, and the constraint was never a size
+
+**Severity: HIGH (it was the blocker on the audio verdict). Status: FIXED.
+Closes the second half of S15's "what is NOT done".**
+
+`famverify.sh`'s header said its `_scope_tap` witness "does NOT fit
+alongside the paired kernels", and S15 recorded that the walk would have
+to run with the tap off — which is what left `DSP4_DYN_LUT` with no
+audio-domain verdict at all.
+
+With S16-1's placement in force, the arm
+`STRIP_FUSED + SIMD_DYN + GATE_LINTHR + DYN_LUT + SCOPE_BLK_TAP` **links
+with 8 bytes to spare in Block 2**, puts 7,702 bytes of boot, config,
+instrument and design-step code in Block 1, and runs the whole 20-family
+walk. The header is corrected in place.
+
+### S16-3 — `dsp4_comp_gr.py` was addressing a pool slot nothing writes, and its refusal had a mechanism
+
+**Severity: HIGH (instrument). Status: FIXED.**
+
+S15 ran `dsp4_comp_gr.py` against the LUT arm, got *"NOT COMPRESSING
+(< 1 dB of reduction)"* with a settled value of **0**, and recorded the
+cause as "a capacity arm has no signal source". It has one — the scope
+IS the signal source — and the address was the defect. Three things were
+wrong at once:
+
+* the slot stride was hard-coded at **32 words** while the block has been
+  **16** since the kernel rewrite, so `slot * 32` named slot 2;
+* under `DSP4_SIMD_DYN` the ODD strip of each pair runs on a SECOND pool,
+  `_blk_pool1`, so strip 1's chain is not in `_blk_pool` at all;
+* and slot 1 is the chain's ping-pong B, which TUBE and DLY overwrite
+  after the compressor has written it.
+
+It now takes the capture point the way `famverify` does — the node's
+IDENTITY (`_buf_C1_COMP_01`) through `_scope_tap`, which copies that
+node's real block wherever the generator put it — and refuses, naming
+`DSP4_SCOPE_BLK_TAP`, on an image with no block witness.
+
+### S16-4 — the reference model did not know which GATE arm it was reading, and scored the part's correct word as a MISMATCH
+
+**Severity: HIGH (a false failure on a shipping candidate). Status: FIXED.**
+
+On the `DSP4_GATE_LINTHR` arm `dsp4_node_verify.py` reported
+
+```
+cvt gate threshold -> Q6.25 log2    2684355 / -222930816  <-- MISMATCH
+1 converted parameter(s) do NOT match the model — the sample path below
+would be measuring the wrong coefficients, so it is not run for this node
+```
+
+and threw the whole GATE verdict away. **The part was right.**
+`DSP4_GATE_LINTHR` holds `2^thr` in Q4.28 where the log arm holds `thr`
+in Q6.25, and 2,684,355 is exactly `exp2_q(gate_thr_q(-40))`. The model
+knew one arm and the image was the other.
+
+`fixed_ref` gained `gate_thr_lin_q`, `gate_step_lin` and
+`gate_step_lin_nohold` — the last so the negative control differs from
+the model in ONE thing (the hold) and not in two — and
+`dsp4_node_verify.py` now ASKS THE IMAGE which arm it is, from
+`DIAG_BUILD_CFG2` bit 11, once per run. On the part after the fix: all
+three converted parameters match bit for bit, and the GATE's numeric
+verdict class is the same `NO_STIMULUS` the shipping arm returns.
+
+### S16-5 — THE LAST LINK: the table's gain reaches the audio, measured on the part
+
+**Severity: HIGH (it is the session's headline). Status: PROVED.**
+
+S15 named this as the thing it had not done. Four instruments, all on the
+part, all able to fail:
+
+1. **`famverify`, verdict for verdict against the shipping pair.** Twenty
+   families, same bench, same walk, tap on: every verdict identical
+   except `COMPRESSOR` numeric, `BIT_EXACT` → `FAILED`, which is what a
+   working table looks like against a polynomial reference.
+2. **How far that "FAILED" is.** `dsp4_node_verify.py` now reports the
+   worst deviation in dB, not just a count: **0.00518 dB** over 96
+   samples, against the table's own 0.0950 dB design bound and PW's
+   0.1 dB bar. All six converted parameters match bit for bit.
+3. **`dsp4_comp_gr.py` with a signal source.** **−20.98 dB of gain
+   reduction** on a −6.02 dBFS step at threshold −30 dB, ratio 8:1 —
+   against a static-law prediction of −20.982 dB, i.e. **0.0003 dB**.
+   Sample for sample against the polynomial arm through the same
+   injection: 43 of 64 bit-identical, worst **0.00175 dB** in the attack,
+   and the settled value **bit-identical on both arms** (11,986,899).
+4. **The LIMITER, the same way** (S16-6): worst **0.00214 dB** through
+   the attack, bit-identical once settled.
+
+**THE LUT'S GAIN REACHES THE AUDIO UNCHANGED — YES.**
+
+### S16-6 — the LIMITER on the table, and it is the biggest single prize in the tree
+
+**Severity: HIGH (cost). Status: LANDED behind `DSP4_DYN_LUT`.**
+
+S14-4 measured 162 of `_lim_pair_blk`'s 251 instructions per sample-pair
+as log2 + exp2 — 65 %, the highest share of any body, because the limiter
+has no makeup and no parallel blend to dilute its gain computer. S15
+left it on the polynomial and chip 2 therefore sat at 76.6 %.
+
+It is now on the same `dyn_lut.h` machinery the compressor uses: the node
+template's three declarations and design-step call, the LUT loop in
+`_lim_pair_blk`, and the pair driver's table pointers. No new arithmetic
+— `_lim_cgp_` is already a `_compgain_fx` parameter block (threshold,
+slope `0x7FFFFFFF`, hard knee).
+
+| measurement | result |
+|---|--:|
+| `dyn_lut_design.py --sweep`, LIMITER over its contract range −30..0 dB | **0.0604 dB** worst, bar 0.1 dB — PASS |
+| `dsp4_dyn_lut_check.py` on `C2_AUX_LIM_01` | **337 of 337 words identical** to the host model |
+| `dyn_shootout` rung 18 → 19, on the part | 253.3 → **92.1 c/sample-pair**, **−161.1, −63.6 %** |
+| `dyn_state_bound.py` §5, LIMITER corners with the node's own slope word | every table word inside [0, 1] in Q4.28 |
+| audio, `dsp4_dyn_lut_audio.py` | **0.00214 dB** worst against the polynomial |
+
+The shootout's 161.1 c/sample-pair confirms S14-4's 162 instructions
+almost exactly, and it is the **largest fractional saving on the whole
+ladder** — against the compressor body's 56.7 % and the gate's 54.2 %.
+
+### S16-7 — `_dlut_live` was never written on chip 2, so S15's lever was INERT there and read as "chip 2 barely moves"
+
+**Severity: HIGH (a silent no-op that had already been recorded as a
+measurement). Status: FIXED.**
+
+`_comp_pair_blk` branches on `_dlut_live` once per block before its
+sample loop. Chip 1's pair driver writes it. **Chip 2's did not** — the
+generator emitted no such block for `_c2_dyn_driver` at all — so the flag
+sat at its initialiser, every chip-2 pair took the polynomial loop, and
+`DSP4_DYN_LUT` did nothing on chip 2 whatever.
+
+It cost nothing and it looked measured. S15 recorded chip 2 moving
+76.07 % → 76.55 % across the switch, which is noise, and wrote it up as
+"chip 2 barely moves — its 18 LIMITERs are not on the table yet". The
+limiters were half the reason; **the other half is that chip 2's ten
+compressors were not on the table either, and nothing in the tree could
+have said so** — the flag has no reader on the host side and the switch
+reads back as ON in `DIAG_BUILD_CFG2` regardless.
+
+`dsp_codegen.py::_emit_lut_pair` now emits the pair's two table bases and
+its one live flag for both `comp` and `lim`, on the family pairs and on
+the cross-chain pairs. With it, chip 2 at D32 goes **76.66 / 76.77 % →
+66.72 / 66.55 %** — ten points — and the size of the move is itself the
+proof the flag is now being written.
+
+The predicted move is 9 limiter pairs + 5 compressor pairs × 15 samples ×
+161 c/sample-pair = 33,839 cycles = **10.33 % of the block**, against a
+measured **9.83 %**: 95 %, with the shortfall accounted for by the
+sample-0 scalar path each pair runs.
+
+### S16-8 — the sidechain's H = 5 was a bound over settings the WIRE CANNOT CARRY; within the contract it is H = 4, and the finding stands
+
+**Severity: MEDIUM (a bound, over-stated by one bit). Status: sweep
+FIXED, underlying finding FILED and still OPEN.**
+
+`dyn_state_bound.py` §3 had returned FAIL at HEAD since before S15, with
+its worst corner at an HPF of **8 kHz**. The defs do not allow an HPF of
+8 kHz: `Chan001GateFilterHpf001` is `0=20/64=1000/[Log]` and
+`Chan001GateFilterLpf001` is `0=500/127=20000/[Log]` — two DIFFERENT
+ranges, overlapping only between 500 Hz and 1 kHz — and the section swept
+both over one grid that ran to 18 kHz.
+
+The sweep now takes its ranges FROM the landed CSV. Re-derived inside the
+contract the worst cascade bound is **125.01 at HPF 521 Hz, LPF 500 Hz,
+Q 10 → H = 4**, not 5.
+
+**The finding is not dismissed by this.** H = 4 is still reachable, the
+corner is still one the wire can carry (an HPF above the LPF is a
+recallable preset, not a dialled setting), and the gate and talkback
+sidechain blocks are still left at H = 0. The mechanism and the fix are
+unchanged and are stated in the tool: those two classes call
+`_bq_fx_convert_N` on every invocation rather than once per parameter
+change, so there is no parameter-load moment to hang a control-rate
+sizing off. §3 still returns FAIL, deliberately.
+
+### S16-9 — `~/dspboot/chip{1,2}.ldr` is the shared SCRATCH SLOT, not a staged pair, and S15-10's alarm was pointed at the wrong thing
+
+**Severity: LOW (bench hygiene). Status: the false claim FIXED; the
+script sweep NOT done and scoped here.**
+
+S15-10 recorded that ten measurement scripts scp over
+`~/dspboot/chip{1,2}.ldr` while `famverify.sh`'s header calls those "the
+window pair", and said both cannot be true. **Checked on the part:** those
+two files were `08d0b9a4` / `6a349c13`, which is **no staged pair at
+all** — it is whatever the last measurement run left there. The staged
+pairs are the PREFIXED ones (`blk_*`, `cand_*`, `geq_*`, `dyn_*`,
+`flr_*`, `conf_*`, `ship_*`, `tx_*`, and now `s16_*` / `s16f_*`), and
+every one of them was intact.
+
+So the header was wrong, not the scripts, and it is corrected. Two
+corrections to S15-10 while it is being closed: the count is **about
+thirty** scripts, not ten, and what protects the artifacts is the prefix
+while what protects two concurrent runs from each other is
+`bench_lock.sh`. Making all thirty STAGE-aware (the pattern
+`capacity.sh` and `famverify.sh` already carry) is a mechanical sweep
+that was NOT done this session — it cannot be verified on the bench in
+one sitting and nothing is at risk while it is outstanding.
+
+### S16-10 — a table-vs-polynomial capture cannot be trusted unless the design step is shown to have been STALE, and the cursor must be read at the right instant
+
+**Severity: MEDIUM (instrument discipline). Status: FIXED, and it changed
+a PASS into a refusal and then back into a real measurement.**
+
+`famverify`'s audio arm moves a cell and asks whether the samples moved.
+For a `DSP4_DYN_LUT` node that is the wrong gesture: the cell it moves is
+the THRESHOLD, the threshold IS the curve, and a moved curve restarts the
+design step — so the capture runs the exact polynomial. That is why the
+LIMITER family's audio record is **bit-identical** on the shipping arm
+and on the table arm, and why that identity is the design working rather
+than the table being absent.
+
+`tools/pi/dsp4_dyn_lut_audio.py` is the instrument that can see it: two
+captures around the design step, the first with the table stale and the
+second with it designed. Getting a verdict out of it took three
+corrections, each of which is the point:
+
+* it printed **`0.00000 dB PASS`** while BOTH captures ran on the table —
+  a comparison that cannot fail — and now refuses;
+* the refusal then fired on runs whose samples WERE the polynomial's,
+  because the cursor was read after the SPI readback. The buffer fills at
+  the audio rate (1,024 samples = 21 ms) and the readback takes hundreds
+  of milliseconds; what decides the arithmetic in the window is where the
+  cursor stood when the window FILLED, which is the instant `wait()`
+  returns. It is read there now;
+* and `DYN_LUT_CHUNK` is overridable so the stale window can be widened
+  past the buffer (`-DDYN_LUT_CHUNK=1` → 337 blocks = 112 ms). 4 still
+  ships.
+
+With all three, on the part: cursor **230 of 337 when the window filled**
+— the whole window provably polynomial — and the LIMITER reads
+**0.00214 dB** worst through the attack, bit-identical once settled.
+
 ## THE DYNAMICS INTEGRATION: the clock settled by measurement, the table's home settled by measurement, and the level→gain table in the generator (2026-09-10, session S15)
 
 Session: CCLK settled independently of the decode that quoted it (S14-7

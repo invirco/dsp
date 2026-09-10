@@ -794,6 +794,69 @@ def gate_step_nohold(x, st, att_q, rel_q, thr_q625, rng_q, hold):
     return sat32(rns(x * st[1], QS))
 
 
+def gate_step_lin(x, st, att_q, rel_q, thr_lin_q, rng_q, hold):
+    """One sample through the gate under DSP4_GATE_LINTHR.
+
+    `log2(env) >= thr` and `env >= 2^thr` are the same test, so the kernel
+    converts the THRESHOLD once per block instead of the ENVELOPE once per
+    sample -- ~95 cycles/sample saved. Everything else, including the
+    envelope follower and the one-pole gain smoother, is gate_step's
+    arithmetic unchanged.
+
+    It is not bit-identical to gate_step and cannot be: the log compare
+    carried log2_q's polynomial error on the ENVELOPE, this one carries
+    exp2_q's on the THRESHOLD. Both are under 0.0001 dB over 0 to
+    -100 dBFS, so the gate's effective threshold moves by at most
+    0.0002 dB -- a fixed offset on one comparison, not per-sample noise.
+    Samples whose envelope sits inside that band may open or close one
+    sample early or late, and the gain then ramps through the smoother,
+    so nothing steps.
+
+    A model that only knew gate_step scored this arm as a converted-
+    parameter MISMATCH and refused to run the sample path at all
+    (bench 2026-09-10): the part held 2,684,355 -- linear Q4.28 -- where
+    gate_thr_q predicted -222,930,816 in Q6.25 log2. The part was right
+    and the reference had not been told which arm it was reading.
+    """
+    st[0] = env_step(alu_abs(x), st[0], att_q, rel_q)
+    if st[0] > 0 and st[0] >= thr_lin_q:
+        st[2] = GATE_UNITY
+        st[3] = hold
+    else:
+        st[3] = _wrap32(st[3] - 1)
+        if st[3] <= 0:
+            st[2] = rng_q
+    st[1] = env_step(st[2], st[1], att_q, rel_q)
+    return sat32(rns(x * st[1], QS))
+
+
+def gate_step_lin_nohold(x, st, att_q, rel_q, thr_lin_q, rng_q, hold):
+    """THE NEGATIVE CONTROL for the hold ladder ON THE LINEAR ARM.
+
+    The twin has to differ from the model in ONE thing. gate_step_nohold
+    differs from gate_step_lin in two -- the hold AND the comparison
+    domain -- so scoring the linear arm against it would let a broken
+    hold ladder hide behind the 0.0002 dB threshold shift, and would
+    equally let the shift alone masquerade as a working control.
+    """
+    st[0] = env_step(alu_abs(x), st[0], att_q, rel_q)
+    st[2] = GATE_UNITY if (st[0] > 0 and st[0] >= thr_lin_q) else rng_q
+    st[1] = env_step(st[2], st[1], att_q, rel_q)
+    return sat32(rns(x * st[1], QS))
+
+
+def gate_thr_lin_q(thr_db):
+    """GateThr (dB) -> Q4.28 LINEAR, the DSP4_GATE_LINTHR word.
+
+    The kernel's own two steps, in the kernel's order: the float cell to
+    the Q6.25 log2 domain, then through the SAME `_exp2q_fx` the range
+    floor goes through. Composed rather than computed straight from the
+    dB, because composing is what the part does and the rounding of each
+    step is part of the answer.
+    """
+    return exp2_q(gate_thr_q(thr_db))
+
+
 def gate_range_q(range_db):
     """GateRng (DECIBELS on the wire, review finding D39) -> Q4.28 linear
     floor: clamp to the documented 0..60 dB, then 2^(-dB * log2(10)/20)

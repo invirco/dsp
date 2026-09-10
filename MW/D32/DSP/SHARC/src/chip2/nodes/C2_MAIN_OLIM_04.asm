@@ -12,31 +12,58 @@
 #include "dsp_block.h"
 #include "lib/dyn_lut.h"
 
-/* RampProfile: DynSafe | Mode: LinearFrames | Up: 6ms (18f) Down: 20ms (60f) | Curve: Exp | Scope: Scalar */
+        /* RampProfile: DynSafe | Mode: LinearFrames | Up: 6ms (18f) Down: 20ms (60f) | Curve: Exp | Scope: Scalar */
 
-/* LIMITER (FIXED Q4.28, D5) */
-/* SPI page=1 addr=1615 */
+        /* LIMITER (FIXED Q4.28, D5) */
+        /* SPI page=1 addr=1615 */
 
-.section/dm seg_dmda;
+        .section/dm seg_dmda;
 .extern _buf_C2_MAIN_OCOMP_04;
-.global _lim_on_C2_MAIN_OLIM_04;
-.var _lim_on_C2_MAIN_OLIM_04 = 1;
-.global _lim_threshold_C2_MAIN_OLIM_04;
-.var _lim_threshold_C2_MAIN_OLIM_04 = -0.5;
-.global _lim_attack_C2_MAIN_OLIM_04;
-.var _lim_attack_C2_MAIN_OLIM_04 = 0.5;
-.global _lim_release_C2_MAIN_OLIM_04;
-.var _lim_release_C2_MAIN_OLIM_04 = 0.001;
-.global _lim_envelope_C2_MAIN_OLIM_04;
-.var _lim_envelope_C2_MAIN_OLIM_04 = 0;
-.global _lim_attq_C2_MAIN_OLIM_04;
-.var _lim_attq_C2_MAIN_OLIM_04 = 0;
-.global _lim_relq_C2_MAIN_OLIM_04;
-.var _lim_relq_C2_MAIN_OLIM_04 = 0;
-.global _lim_cgp_C2_MAIN_OLIM_04;
-.var _lim_cgp_C2_MAIN_OLIM_04[4];
-.global _buf_C2_MAIN_OLIM_04;
-.var _buf_C2_MAIN_OLIM_04;
+        .global _lim_on_C2_MAIN_OLIM_04;
+        .var _lim_on_C2_MAIN_OLIM_04 = 1;
+        .global _lim_threshold_C2_MAIN_OLIM_04;
+        .var _lim_threshold_C2_MAIN_OLIM_04 = -0.5;
+        .global _lim_attack_C2_MAIN_OLIM_04;
+        .var _lim_attack_C2_MAIN_OLIM_04 = 0.5;
+        .global _lim_release_C2_MAIN_OLIM_04;
+        .var _lim_release_C2_MAIN_OLIM_04 = 0.001;
+        .global _lim_envelope_C2_MAIN_OLIM_04;
+        .var _lim_envelope_C2_MAIN_OLIM_04 = 0;
+        .global _lim_attq_C2_MAIN_OLIM_04;
+        .var _lim_attq_C2_MAIN_OLIM_04 = 0;
+        .global _lim_relq_C2_MAIN_OLIM_04;
+        .var _lim_relq_C2_MAIN_OLIM_04 = 0;
+        .global _lim_cgp_C2_MAIN_OLIM_04;
+        .var _lim_cgp_C2_MAIN_OLIM_04[4];
+#if DSP4_DYN_LUT
+        /* THE LEVEL -> GAIN TABLE FOR THIS LIMITER (S16).
+         *
+         * The same three declarations the COMPRESSOR takes, because it is
+         * the same curve machinery: `_lim_cgp_` is already a
+         * `_compgain_fx` parameter block -- threshold, slope 0x7FFFFFFF
+         * (brick wall), hard knee -- so `_dyn_lut_step` designs it with
+         * no new arithmetic at all.
+         *
+         * IT IS THE SHARPEST CURVE THE TABLE HAS TO CARRY, and that was
+         * already measured rather than discovered here: dyn_lut_fx.asm's
+         * own ladder names the limiter at a -3 dB threshold as the corner
+         * that fails K = 3 (0.135 dB) and passes K = 4 (0.0950 dB). An
+         * infinite ratio with a hard knee is a corner, and K = 4 was
+         * chosen against it.
+         *
+         * WHY THIS IS THE PRIZE ON CHIP 2. S14-4 measured 162 of
+         * `_lim_pair_blk`'s 251 instructions per sample-pair as log2 +
+         * exp2. The table replaces both with a leftz, two shifts, a
+         * gather and a lerp. */
+        .global _lim_lut_C2_MAIN_OLIM_04;
+        .var _lim_lut_C2_MAIN_OLIM_04[DYN_LUT_N];
+        .global _lim_lutc_C2_MAIN_OLIM_04;
+        .var _lim_lutc_C2_MAIN_OLIM_04 = 0;
+        .global _lim_lutk_C2_MAIN_OLIM_04;
+        .var _lim_lutk_C2_MAIN_OLIM_04[4] = 1, 1, 1, 1;
+#endif
+        .global _buf_C2_MAIN_OLIM_04;
+        .var _buf_C2_MAIN_OLIM_04;
 
         #if DSP4_BLOCK_KERNELS
         .extern _blk_C2_MAIN_OCOMP_04;
@@ -52,13 +79,17 @@
         .var _bw_d0_C2_MAIN_OLIM_04;       /* walking sink pointer */
         #endif
 
-.section/pm seg_pmco;
-.extern _sample_idx;
-.extern _envq_fx;
-.extern _compgain_fx;
-.extern _mrf_rns28;
-.global _C2_MAIN_OLIM_04_process;
-_C2_MAIN_OLIM_04_process:
+        .section/pm seg_pmco;
+        .extern _sample_idx;
+        .extern _envq_fx;
+        .extern _compgain_fx;
+        .extern _mrf_rns28;
+#if DSP4_DYN_LUT
+        .extern _dyn_lut_step;
+        .extern _dyn_lut_gain;
+#endif
+        .global _C2_MAIN_OLIM_04_process;
+        _C2_MAIN_OLIM_04_process:
         #if DSP4_BLOCK_KERNELS
             /* ---- generic per-block wrapper (review finding D16) ----
              * Runs the per-sample reference body BLOCK times over this
@@ -135,12 +166,12 @@ _C2_MAIN_OLIM_04_process:
         .global _C2_MAIN_OLIM_04_process_sample;
         _C2_MAIN_OLIM_04_process_sample:
         #endif
-    r0 = dm(_buf_C2_MAIN_OCOMP_04);
-    r2 = dm(_lim_on_C2_MAIN_OLIM_04);
-    r3 = 0;
-    comp(r2, r3);
-    if eq jump (pc, .lim_bypass_C2_MAIN_OLIM_04);
-    r13 = r0;
+            r0 = dm(_buf_C2_MAIN_OCOMP_04);
+            r2 = dm(_lim_on_C2_MAIN_OLIM_04);
+            r3 = 0;
+            comp(r2, r3);
+            if eq jump (pc, .lim_bypass_C2_MAIN_OLIM_04);
+            r13 = r0;
 
         /* LIVE IN BOTH BUILDS (review finding D16). The block wrapper
          * below drives _sample_idx 0..BLOCK-1 before each call into this
@@ -150,49 +181,86 @@ _C2_MAIN_OLIM_04_process:
          * runs once and not BLOCK times. Removing it, which is right for
          * a node the chain reaches once per block with the index left at
          * BLOCK-1, would run the whole conversion on every sample. */
-    r4 = dm(_sample_idx);
-    r1 = 0;
-    comp(r4, r1);
-    if ne jump (pc, .lim_go_C2_MAIN_OLIM_04);
-    r2 = 0x4F000000;              /* 2^31 float */
-    f2 = r2;
-    f1 = dm(_lim_attack_C2_MAIN_OLIM_04);
-    f1 = f1 * f2;
-    r1 = fix f1;
-    dm(_lim_attq_C2_MAIN_OLIM_04) = r1;
-    f1 = dm(_lim_release_C2_MAIN_OLIM_04);
-    f1 = f1 * f2;
-    r1 = fix f1;
-    dm(_lim_relq_C2_MAIN_OLIM_04) = r1;
-    r2 = 0x4AAA152D;            /* dB -> Q6.25 log2 */
-    f2 = r2;
-    f1 = dm(_lim_threshold_C2_MAIN_OLIM_04);
-    f1 = f1 * f2;
-    r1 = fix f1;
-    dm(_lim_cgp_C2_MAIN_OLIM_04) = r1;    /* thr */
-    r1 = 0x7FFFFFFF;              /* slope = ~1.0 (brick wall) */
-    dm(_lim_cgp_C2_MAIN_OLIM_04 + 1) = r1;
-    r1 = 0;
-    dm(_lim_cgp_C2_MAIN_OLIM_04 + 2) = r1;
-    dm(_lim_cgp_C2_MAIN_OLIM_04 + 3) = r1;
-.lim_go_C2_MAIN_OLIM_04:
+            r4 = dm(_sample_idx);
+            r1 = 0;
+            comp(r4, r1);
+            if ne jump (pc, .lim_go_C2_MAIN_OLIM_04);
+            r2 = 0x4F000000;              /* 2^31 float */
+            f2 = r2;
+            f1 = dm(_lim_attack_C2_MAIN_OLIM_04);
+            f1 = f1 * f2;
+            r1 = fix f1;
+            dm(_lim_attq_C2_MAIN_OLIM_04) = r1;
+            f1 = dm(_lim_release_C2_MAIN_OLIM_04);
+            f1 = f1 * f2;
+            r1 = fix f1;
+            dm(_lim_relq_C2_MAIN_OLIM_04) = r1;
+            r2 = 0x4AAA152D;            /* dB -> Q6.25 log2 */
+            f2 = r2;
+            f1 = dm(_lim_threshold_C2_MAIN_OLIM_04);
+            f1 = f1 * f2;
+            r1 = fix f1;
+            dm(_lim_cgp_C2_MAIN_OLIM_04) = r1;    /* thr */
+            r1 = 0x7FFFFFFF;              /* slope = ~1.0 (brick wall) */
+            dm(_lim_cgp_C2_MAIN_OLIM_04 + 1) = r1;
+            r1 = 0;
+            dm(_lim_cgp_C2_MAIN_OLIM_04 + 2) = r1;
+            dm(_lim_cgp_C2_MAIN_OLIM_04 + 3) = r1;
+#if DSP4_DYN_LUT
+            /* --- block rate: THE DESIGN STEP (S16) ---
+             *
+             * Identical to the compressor's, and deliberately the same
+             * call rather than a limiter-shaped copy: the four words in
+             * `_lim_cgp_` ARE the curve, `_dyn_lut_step` compares them
+             * against `_lim_lutk_` and fills DYN_LUT_CHUNK points per
+             * block until the cursor reaches the end. Until it does, the
+             * body below runs the exact polynomial -- so a threshold
+             * move is exact while it is moving and approximate only
+             * after it has settled, which is the property the
+             * compressor's header argues for at length.
+             *
+             * r13 holds the live sample; _dyn_lut_step clobbers r0-r12
+             * only. */
+            r0 = _lim_cgp_C2_MAIN_OLIM_04;
+            r1 = _lim_lutk_C2_MAIN_OLIM_04;
+            r2 = _lim_lut_C2_MAIN_OLIM_04;
+            r3 = _lim_lutc_C2_MAIN_OLIM_04;
+            call _dyn_lut_step;
+#endif
+        .lim_go_C2_MAIN_OLIM_04:
 
-    r0 = abs r13;
-    r1 = dm(_lim_envelope_C2_MAIN_OLIM_04);
-    r2 = dm(_lim_attq_C2_MAIN_OLIM_04);
-    r3 = dm(_lim_relq_C2_MAIN_OLIM_04);
-    call _envq_fx;
-    dm(_lim_envelope_C2_MAIN_OLIM_04) = r0;
+            r0 = abs r13;
+            r1 = dm(_lim_envelope_C2_MAIN_OLIM_04);
+            r2 = dm(_lim_attq_C2_MAIN_OLIM_04);
+            r3 = dm(_lim_relq_C2_MAIN_OLIM_04);
+            call _envq_fx;
+            dm(_lim_envelope_C2_MAIN_OLIM_04) = r0;
 
-    i0 = _lim_cgp_C2_MAIN_OLIM_04;
-    call _compgain_fx;
-    r1 = r0;
-    r0 = r13;
-    mrf = r0 * r1 (ssi);
-    call _mrf_rns28;
-    dm(_buf_C2_MAIN_OLIM_04) = r0;
-    rts;
-.lim_bypass_C2_MAIN_OLIM_04:
-    dm(_buf_C2_MAIN_OLIM_04) = r0;
-    rts;
-_C2_MAIN_OLIM_04_process.end:
+#if DSP4_DYN_LUT
+            /* ONE TABLE, level -> gain: no log2, no knee, no exp2. A
+             * table still being designed falls through to the
+             * polynomial it is designed against. */
+            r4 = dm(_lim_lutc_C2_MAIN_OLIM_04);
+            r5 = DYN_LUT_N;
+            comp(r4, r5);
+            if lt jump (pc, .llutpoly_C2_MAIN_OLIM_04);
+            i0 = _lim_lut_C2_MAIN_OLIM_04;
+            call _dyn_lut_gain;           /* r0 = gain Q4.28 */
+            jump (pc, .llutgain_C2_MAIN_OLIM_04);
+        .llutpoly_C2_MAIN_OLIM_04:
+#endif
+            i0 = _lim_cgp_C2_MAIN_OLIM_04;
+            call _compgain_fx;
+#if DSP4_DYN_LUT
+        .llutgain_C2_MAIN_OLIM_04:
+#endif
+            r1 = r0;
+            r0 = r13;
+            mrf = r0 * r1 (ssi);
+            call _mrf_rns28;
+            dm(_buf_C2_MAIN_OLIM_04) = r0;
+            rts;
+        .lim_bypass_C2_MAIN_OLIM_04:
+            dm(_buf_C2_MAIN_OLIM_04) = r0;
+            rts;
+        _C2_MAIN_OLIM_04_process.end:

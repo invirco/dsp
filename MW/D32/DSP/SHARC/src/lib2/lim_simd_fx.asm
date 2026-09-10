@@ -20,6 +20,7 @@
 
 #include "dsp_block.h"
 #include "lib/dyn_simd_inline.h"
+#include "lib/dyn_lut.h"
 
 #if DSP4_SIMD_DYN
 
@@ -27,6 +28,10 @@
 .extern _dsim_mode1;
 .extern _compgain_simd;
 .extern _mrf_rns28_simd;
+#if DSP4_DYN_LUT
+.extern _dyn_lutp;
+.extern _dlut_live;
+#endif
 
 .section/dm seg_dmda;
 
@@ -139,6 +144,69 @@ _lim_pair_blk:
     i2 = _lim_sig;
     i4 = _lim_sig;
     r5 = dm(_dsim_n);              /* PEYEN is set: reads both words */
+
+#if DSP4_DYN_LUT
+    /* THE LEVEL -> GAIN TABLE, CHOSEN ONCE PER BLOCK (S16).
+     *
+     * The same shape _comp_pair_blk has carried since S15, and for the
+     * same reason: the choice is a property of the BLOCK -- both
+     * channels' tables are either designed or they are not -- so the
+     * loop is duplicated rather than the gain computer being selected
+     * inside it. The two loops are otherwise instruction for
+     * instruction identical.
+     *
+     * THE LIMITER IS WHERE THIS IS WORTH MOST. S14-4 measured 162 of
+     * this kernel's 251 instructions per sample-pair as log2 + exp2 --
+     * 65 % -- against the compressor's smaller share, because the
+     * limiter has no makeup and no parallel blend to dilute it. The
+     * gain computer IS the limiter.
+     *
+     * _dlut_live is written by the chip-2 pair driver
+     * (dsp_codegen.py::_emit_lut_pair) and is 1 only when BOTH channels
+     * have a finished table for their CURRENT parameters. */
+    r0 = dm(_dlut_live);
+    r0 = pass r0;
+    if eq jump (pc, .lpb_poly);
+    i6 = _dyn_lutp;
+    l6 = 0;
+    lcntr = r5, do .lpb_lut_lp until lce;
+        r13 = dm(i2, 2);           /* dry */
+
+        /* envelope: env += rns(alpha * (|x| - env), 31) */
+        r0 = abs r13;
+        r4 = r0 - r14;
+        r5 = 0;
+        r2 = r6;
+        r3 = dm(i3, 0);
+        comp(r4, r5);
+        if le r2 = pass r3;        /* delta <= 0 -> release */
+        mrf = r2 * r4 (ssi);
+        r2 = 0x40000000;
+        r3 = 1;
+        mrf = mrf + r2 * r3 (ssi);
+        r2 = mr0f;
+        r3 = mr1f;
+        r2 = lshift r2 by -31;
+        r3 = lshift r3 by 1;
+        r5 = r2 or r3;
+        r14 = r14 + r5;
+
+        r0 = r14;
+        LUTGAIN_SIMD
+
+        /* out = rns28(dry * gain). ONE round, as above. */
+        r1 = r0;
+        r0 = r13;
+        mrf = r0 * r1 (ssi);
+        MRF_RNS28_SIMD
+        nop;
+        nop;
+    .lpb_lut_lp: dm(i4, 2) = r0;
+    jump (pc, .lpb_done);
+
+.lpb_poly:
+    r5 = dm(_dsim_n);
+#endif
     lcntr = r5, do .lpb_lp until lce;
         r13 = dm(i2, 2);           /* dry */
 
@@ -183,6 +251,9 @@ _lim_pair_blk:
         nop;
     .lpb_lp: dm(i4, 2) = r0;
 
+#if DSP4_DYN_LUT
+.lpb_done:
+#endif
     i1 = _lim_st;
     dm(i1, 2) = r14;               /* envelope back to the park */
 

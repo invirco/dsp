@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """dsp4_dyn_shoot.py — the dynamics gain-computer shootout, off the part.
 
-src/lib/dyn_shootout.asm times eighteen rungs of ONE loop nest -- 28 x 15,
+src/lib/dyn_shootout.asm times twenty rungs of ONE loop nest -- 28 x 15,
 bq_probe.asm's harness -- against the same envelope and the same gain
 application, so what differs between them is the GAIN COMPUTER.
 
@@ -73,6 +73,8 @@ RUNGS = [
     ('15 COMP_L2    the whole COMP body, table in L2',  'body'),
     ('16 CG_BLEND   two DM tables blended (ramping)',   'gain'),
     ('17 L2PAGE     4 words L2->DM per sample slot',    'part'),
+    ('18 LIM_TODAY  the whole LIMITER per-sample body',  'body'),
+    ('19 LIM_LUT    the same, LUT gain computer',        'body'),
 ]
 
 # (label, rung_b, rung_a) -- b minus a, in cycles per sample-pair.
@@ -87,6 +89,11 @@ DELTAS = [
     ('THE HOME: L2 gather - DM gather',           14, 4),
     ('THE HOME: COMP body, L2 - DM',              15, 10),
     ('the ramping blend over one DM table',       16, 4),
+    # THE LIMITER IS WHERE THE TABLE IS WORTH MOST, and this is the
+    # delta that says so: the limiter body has no makeup and no parallel
+    # mix to dilute its gain computer, so the same substitution that
+    # takes a fraction off the compressor takes most of the limiter.
+    ('LIMITER body: today - LUT',                18, 19),
 ]
 
 def _sentinel(sc):

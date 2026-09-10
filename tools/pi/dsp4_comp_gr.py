@@ -11,10 +11,40 @@ never leaves unity inside the window.
 This uses a fast attack and a threshold well under the signal, and REFUSES
 to print samples unless the output is measurably below the input. A
 comparison that cannot fail is not evidence.
+
+WHERE THE CAPTURE POINT COMES FROM (fixed 2026-09-10, findings S16-3)
+---------------------------------------------------------------------
+This tool addressed the block pool by hand -- `_blk_pool + slot * 32` --
+and both halves of that were wrong on every image built since:
+
+  * the stride is DSP4_BLOCK_SIZE, and the block has been 16 since the
+    kernel rewrite, so `slot * 32` named slot 2 when it meant slot 1;
+  * under DSP4_SIMD_DYN the ODD strip of each pair runs on a SECOND pool,
+    `_blk_pool1`, so strip 1's chain is not in `_blk_pool` at all;
+  * and slot 1 is the chain's ping-pong B, which TUBE and DLY overwrite
+    after the compressor has written it -- so even addressed correctly it
+    is not the compressor's output.
+
+The result was a capture of a slot nothing in this build writes: a settled
+value of ZERO, which this tool correctly refused to call a verdict, and
+S15 recorded the refusal without a mechanism ("a capacity arm has no
+signal source"). It has one -- the scope IS the signal source -- and the
+address was the defect.
+
+So the capture point is taken the way famverify takes it: on a
+DSP4_SCOPE_BLK_TAP build the host names the node by its IDENTITY
+(`_buf_C1_COMP_01`) and `_scope_tap` copies that node's REAL block,
+wherever the generator put it. `_scope_inj_blk` in the symbol table is
+what says the image has that witness; without it the tool says so and
+refuses, rather than reading a pool slot and reporting a number.
 """
 import argparse, struct, sys, time
 sys.path.insert(0, '/home/app/dspboot')
 import dsp4_scope as S
+try:
+    from dsp4_block import BLOCK
+except ImportError:                       # pre-block-kernel image
+    BLOCK = 16
 
 GAIN = 0x0000
 HPF0, HPF_SW, LPF0, LPF_SW = 0x0004, 0x0009, 0x000A, 0x000F
@@ -38,14 +68,47 @@ def main():
     ap.add_argument('--release', type=float, default=0.05)
     ap.add_argument('--amp', default='0x08000000')
     ap.add_argument('--n', type=int, default=200)
-    ap.add_argument('--pool-inj', type=int, default=0)
-    ap.add_argument('--pool-src', type=int, default=1)
+    ap.add_argument('--inject', default='_rx_slot_C1_IN_01',
+                    help='injection symbol (chip 1 input slot after scatter)')
+    ap.add_argument('--witness', default='_buf_C1_COMP_01',
+                    help='node IDENTITY to capture through _scope_tap')
+    ap.add_argument('--pool-inj', type=int, default=None,
+                    help='RAW pool slot to inject into, overriding --inject')
+    ap.add_argument('--pool-src', type=int, default=None,
+                    help='RAW pool slot to capture, overriding --witness')
+    ap.add_argument('--strip', type=int, default=1,
+                    help='which strip the raw pool slots belong to')
     a = ap.parse_args()
 
     sc = S.Scope(1)
     sc.check_chip()
-    inj = sc.sym['_blk_pool'] + a.pool_inj * 32
-    src = sc.sym['_blk_pool'] + a.pool_src * 32
+
+    if a.pool_inj is not None or a.pool_src is not None:
+        # RAW POOL ADDRESSING, kept for images with no block tap -- but
+        # with the block size and the pair's pool taken from the image
+        # instead of assumed. The odd strip of each pair is on _blk_pool1
+        # in a DSP4_SIMD_DYN build; the symbol table is what settles it,
+        # exactly as dsp4_pairgraph.inject_addr does.
+        pool = sc.sym['_blk_pool1'] if (a.strip % 2 and
+                                        '_blk_pool1' in sc.sym) \
+            else sc.sym['_blk_pool']
+        inj = pool + (a.pool_inj or 0) * BLOCK
+        src = pool + (a.pool_src or 0) * BLOCK
+        print('RAW POOL: block %d, pool 0x%X (strip %d)' % (BLOCK, pool,
+                                                            a.strip))
+    else:
+        if '_scope_inj_blk' not in sc.sym:
+            raise SystemExit(
+                'this image has no block-aware witness '
+                '(_scope_inj_blk absent, i.e. DSP4_SCOPE_BLK_TAP=0), so '
+                '_buf_C1_COMP_01 is a one-word variable nothing writes. '
+                'Build the arm with DSP4_SCOPE_BLK_TAP=1, or name raw '
+                'pool slots with --pool-inj/--pool-src and accept that '
+                'the chain ping-pong overwrites them.')
+        inj = sc.sym[a.inject]
+        src = sc.sym[a.witness]
+        print('BLOCK TAP: inject %s 0x%X, witness %s 0x%X, block %d'
+              % (a.inject, inj, a.witness, src, BLOCK))
 
     def w(addr, val):
         sc.d.write(addr, val)

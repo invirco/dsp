@@ -1,0 +1,408 @@
+{
+ "bq_arm": "float",
+ "chips": {
+  "2": {
+   "build_cfg": "0xCF45FF10",
+   "healthy": true,
+   "ready": true
+  }
+ },
+ "cross_check": {
+  "disagreements": 0,
+  "rows": [
+   {
+    "cell": "Chan001CompAtt001",
+    "constant": "COMP_ATT   0x003B",
+    "landed": 59,
+    "transcribed": 59,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001CompKnee001",
+    "constant": "COMP_KNEE  0x003E",
+    "landed": 62,
+    "transcribed": 62,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001CompMake001",
+    "constant": "COMP_MKUP  0x003D",
+    "landed": 61,
+    "transcribed": 61,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001CompOn001",
+    "constant": "COMP_ON    0x0038",
+    "landed": 56,
+    "transcribed": 56,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001CompPar001",
+    "constant": "COMP_PAR   0x003F",
+    "landed": 63,
+    "transcribed": 63,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001CompRat001",
+    "constant": "COMP_RATIO 0x003A",
+    "landed": 58,
+    "transcribed": 58,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001CompRel001",
+    "constant": "COMP_REL   0x003C",
+    "landed": 60,
+    "transcribed": 60,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001CompThr001",
+    "constant": "COMP_THR   0x0039",
+    "landed": 57,
+    "transcribed": 57,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001Delay001",
+    "constant": "DLY_OFF    0x004E",
+    "landed": 78,
+    "transcribed": 78,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001EqFreq001",
+    "constant": "EQ_B1      0x0010",
+    "landed": 16,
+    "transcribed": 16,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001Level001",
+    "constant": "FDR_LEVEL  0x0050",
+    "landed": 80,
+    "transcribed": 80,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001Mute001",
+    "constant": "FDR_MUTE   0x0052",
+    "landed": 82,
+    "transcribed": 82,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001Pan001",
+    "constant": "FDR_PAN    0x0051",
+    "landed": 81,
+    "transcribed": 81,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001EqHpf001",
+    "constant": "FILT_HPF   0x0004",
+    "landed": 4,
+    "transcribed": 4,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001EqLpf001",
+    "constant": "FILT_LPF   0x000A",
+    "landed": 10,
+    "transcribed": 10,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001Gain001",
+    "constant": "GAIN_OFF   0x0000",
+    "landed": 0,
+    "transcribed": 0,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001GateAtt001",
+    "constant": "GATE_ATT   0x002A",
+    "landed": 42,
+    "transcribed": 42,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001GateHold001",
+    "constant": "GATE_HOLD  0x002B",
+    "landed": 43,
+    "transcribed": 43,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001GateOn001",
+    "constant": "GATE_ON    0x0028",
+    "landed": 40,
+    "transcribed": 40,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001GateRel001",
+    "constant": "GATE_REL   0x002C",
+    "landed": 44,
+    "transcribed": 44,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001GateRng001",
+    "constant": "GATE_RNG   0x002D",
+    "landed": 45,
+    "transcribed": 45,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001GateThr001",
+    "constant": "GATE_THR   0x0029",
+    "landed": 41,
+    "transcribed": 41,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001MainOn001",
+    "constant": "RTG_MAINON 0x0054",
+    "landed": 84,
+    "transcribed": 84,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001TubeOn001",
+    "constant": "TUBE_ON    0x004C",
+    "landed": 76,
+    "transcribed": 76,
+    "verdict": "AGREE"
+   },
+   {
+    "cell": "Chan001TubeSat001",
+    "constant": "TUBE_SAT   0x004D",
+    "landed": 77,
+    "transcribed": 77,
+    "verdict": "AGREE"
+   }
+  ]
+ },
+ "families": {
+  "ANTI_FB": {
+   "cells": 160,
+   "chip": null,
+   "verdict": "NO_HARNESS_ENTRY"
+  },
+  "AUX_INPUT": {
+   "cells": 8,
+   "chip": null,
+   "verdict": "NO_HARNESS_ENTRY"
+  },
+  "COMPRESSOR": {
+   "cells": 544,
+   "chip": null,
+   "verdict": "NO_HARNESS_ENTRY"
+  },
+  "CROSSOVER": {
+   "cells": 8,
+   "chip": null,
+   "verdict": "NO_HARNESS_ENTRY"
+  },
+  "DCA": {
+   "cells": 16,
+   "chip": null,
+   "verdict": "NO_HARNESS_ENTRY"
+  },
+  "DELAY": {
+   "cells": 34,
+   "chip": null,
+   "verdict": "NO_HARNESS_ENTRY"
+  },
+  "EQ_BIQUAD": {
+   "cells": 616,
+   "chip": null,
+   "verdict": "NO_HARNESS_ENTRY"
+  },
+  "FADER_PAN": {
+   "cells": 118,
+   "chip": null,
+   "verdict": "NO_HARNESS_ENTRY"
+  },
+  "FX_ENGINE": {
+   "cells": 114,
+   "chip": null,
+   "verdict": "NO_HARNESS_ENTRY"
+  },
+  "GAIN": {
+   "cells": 96,
+   "chip": null,
+   "verdict": "NO_HARNESS_ENTRY"
+  },
+  "GATE": {
+   "cells": 336,
+   "chip": null,
+   "verdict": "NO_HARNESS_ENTRY"
+  },
+  "GEQ": {
+   "cells": 403,
+   "chip": null,
+   "verdict": "NO_HARNESS_ENTRY"
+  },
+  "HPF_LPF": {
+   "cells": 72,
+   "chip": null,
+   "verdict": "NO_HARNESS_ENTRY"
+  },
+  "LIMITER": {
+   "audio": {
+    "addr": 84,
+    "cell": "Aux001LimiterThr001",
+    "family": "LIMITER",
+    "floor": 0,
+    "floor_delta": 0,
+    "inject": "_rx_ic_slot_C2_RECV_AUX_01",
+    "kind": "scalar",
+    "moved": 64,
+    "offset": 900,
+    "peak": 134217728,
+    "peak_hi": 8488578,
+    "peak_lo": 134217728,
+    "probe_delta": 125729150,
+    "setup": [
+     {
+      "addr": 0,
+      "cell": "Aux001Level001",
+      "wrote": 1065353216
+     },
+     {
+      "addr": 2,
+      "cell": "Aux001Mute001",
+      "wrote": 0
+     },
+     {
+      "addr": 83,
+      "cell": "Aux001LimiterOn001",
+      "wrote": 1
+     }
+    ],
+    "stim": "step",
+    "verdict": "LIVE",
+    "witness": "_buf_C2_AUX_LIM_01",
+    "words": 64
+   },
+   "cells": 48,
+   "chip": 2,
+   "contract": [
+    {
+     "access": "rw",
+     "addr": 85,
+     "cell": "Aux001LimiterAtt001",
+     "err_delta": 0,
+     "orig": 1056964608,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 83,
+     "cell": "Aux001LimiterOn001",
+     "err_delta": 0,
+     "orig": 1,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 86,
+     "cell": "Aux001LimiterRel001",
+     "err_delta": 0,
+     "orig": 981668462,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    },
+    {
+     "access": "rw",
+     "addr": 84,
+     "cell": "Aux001LimiterThr001",
+     "err_delta": 0,
+     "orig": 0,
+     "reads": [
+      0,
+      1065353216
+     ],
+     "verdict": "ANSWERS",
+     "writes": 3
+    }
+   ],
+   "node": "C2_AUX_LIM_01",
+   "note": "output-side limiter"
+  },
+  "METER": {
+   "cells": 94,
+   "chip": null,
+   "verdict": "NO_HARNESS_ENTRY"
+  },
+  "MONITOR": {
+   "cells": 3,
+   "chip": null,
+   "verdict": "NO_HARNESS_ENTRY"
+  },
+  "NOISE_GEN": {
+   "cells": 3,
+   "chip": null,
+   "verdict": "NO_HARNESS_ENTRY"
+  },
+  "ROUTING": {
+   "cells": 1008,
+   "chip": null,
+   "verdict": "NO_HARNESS_ENTRY"
+  },
+  "TALKBACK": {
+   "cells": 8,
+   "chip": null,
+   "verdict": "NO_HARNESS_ENTRY"
+  },
+  "TUBE_SAT": {
+   "cells": 48,
+   "chip": null,
+   "verdict": "NO_HARNESS_ENTRY"
+  }
+ },
+ "family_cells": {
+  "ANTI_FB": 160,
+  "AUX_INPUT": 8,
+  "COMPRESSOR": 544,
+  "CROSSOVER": 8,
+  "DCA": 16,
+  "DELAY": 34,
+  "EQ_BIQUAD": 616,
+  "FADER_PAN": 118,
+  "FX_ENGINE": 114,
+  "GAIN": 96,
+  "GATE": 336,
+  "GEQ": 403,
+  "HPF_LPF": 72,
+  "LIMITER": 48,
+  "METER": 94,
+  "MONITOR": 3,
+  "NOISE_GEN": 3,
+  "ROUTING": 1008,
+  "TALKBACK": 8,
+  "TUBE_SAT": 48
+ },
+ "pin": "defs-v2026.09.08.4",
+ "product": "d24",
+ "sha256": "4aa3c343cedf286e6e74157cbb1265ea589f7b92b3de01a4da5fad7baac477e3"
+}

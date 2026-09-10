@@ -340,21 +340,32 @@ def sweep(args):
     print('THE FULL PARAMETER SWEEP at K = %d (%d words/node).'
           % (args.k, n_words(args.k)))
     print()
-    worst = 0.0
-    worstp = None
-    for p in SWEEP_COMP:
-        t = design('comp', p, args.k)
-        e, at = worst_error_db(t, 'comp', p, args.k, pts=4000)
-        if e > worst:
-            worst, worstp = e, ('comp', dict(p), at)
-    for p in SWEEP_LIM:
-        t = design('limiter', p, args.k)
-        e, at = worst_error_db(t, 'limiter', p, args.k, pts=4000)
-        if e > worst:
-            worst, worstp = e, ('limiter', dict(p), at)
+    # PER CLASS, because they ship behind different switches on different
+    # chips: the COMPRESSOR's table went into chip 1 at S15 and the
+    # LIMITER's into chip 2 at S16, and "the worst over 81 sets" hid the
+    # limiter's own number behind a compressor set that is worse. Each
+    # class has to clear the bar on its own.
+    #
+    # The LIMITER sweep spans its CONTRACT range and both endpoints:
+    # `Aux001LimiterThr001` is `0=-30/127=0/[Lin]`.
+    best = {}
+    for kind, sets in (('comp', SWEEP_COMP), ('limiter', SWEEP_LIM)):
+        w, wp = 0.0, None
+        for p in sets:
+            t = design(kind, p, args.k)
+            e, at = worst_error_db(t, kind, p, args.k, pts=4000)
+            if e > w:
+                w, wp = e, (dict(p), at)
+        best[kind] = (w, wp, len(sets))
+        print('  %-8s worst over %2d sets: %.4f dB  (%s at %.1f dBFS)  %s'
+              % (kind, len(sets), w, wp[0], wp[1] or 0.0,
+                 'PASS' if w <= 0.1 else 'FAIL'))
+    worst = max(v[0] for v in best.values())
+    kind = max(best, key=lambda k: best[k][0])
+    n = sum(v[2] for v in best.values())
+    print()
     print('  worst over %d parameter sets: %.4f dB  (%s %s at %.1f dBFS)'
-          % (len(SWEEP_COMP) + len(SWEEP_LIM), worst, worstp[0], worstp[1],
-             worstp[2] or 0.0))
+          % (n, worst, kind, best[kind][1][0], best[kind][1][1] or 0.0))
     print('  the bar is 0.1 dB: %s' % ('PASS' if worst <= 0.1 else 'FAIL'))
 
 

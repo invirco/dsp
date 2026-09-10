@@ -56,6 +56,7 @@ Usage, on the bench:
 Run through goldnode.sh, which builds, stages and boots.
 """
 import argparse
+import math
 import struct
 import sys
 import time
@@ -201,6 +202,52 @@ def inject_addr(part, strip):
 
 
 # ---------------------------------------------------------------------------
+# WHICH ARM THE IMAGE IS, ASKED OF THE IMAGE (S16-4, 2026-09-10).
+#
+# DSP4_GATE_LINTHR moves the gate's threshold comparison into the linear
+# domain, so `_gate_thrq_` holds 2^thr in Q4.28 where the log arm holds
+# thr in Q6.25. A reference that knows only one of those scores the other
+# as a converted-parameter MISMATCH and then REFUSES to run the sample
+# path, which is what this tool did on the S15 lever's first bench run:
+# the part held 2,684,355, the model predicted -222,930,816, and the whole
+# GATE verdict was lost to a model reading the wrong arm.
+#
+# The image says which arm it is -- DIAG_BUILD_CFG2 bit 11 -- so ask it.
+# Read ONCE per run and cached, because it cannot change under us and the
+# link is the expensive part. An image too old to carry DIAG_BUILD_CFG2
+# reads as the log arm, which is what every image before S15 was.
+# ---------------------------------------------------------------------------
+DIAG_BUILD_CFG2 = 0xE0EB
+CFG2_SIG = 0xC2000000
+CFG2_GATE_LINTHR = 1 << 11
+CFG2_DYN_LUT = 1 << 10
+
+ARM = {'gate_linthr': False, 'dyn_lut': False, 'read': False}
+
+
+def read_arm(part, log=print):
+    """Latch which dynamics arm this image is. Returns the ARM dict."""
+    if ARM['read']:
+        return ARM
+    ARM['read'] = True
+    try:
+        w = part.sc.rd(DIAG_BUILD_CFG2)
+    except (IOError, KeyError, SystemExit) as exc:
+        log('  build arm UNREAD (%s) — assuming the log-domain gate '
+            'threshold, which is every image before S15' % exc)
+        return ARM
+    if (w & 0xFF000000) != CFG2_SIG:
+        log('  0x%08X is not a DIAG_BUILD_CFG2 word — assuming the '
+            'log-domain gate threshold' % w)
+        return ARM
+    ARM['gate_linthr'] = bool(w & CFG2_GATE_LINTHR)
+    ARM['dyn_lut'] = bool(w & CFG2_DYN_LUT)
+    log('  build arm: DIAG_BUILD_CFG2 0x%08X — GATE_LINTHR=%d DYN_LUT=%d'
+        % (w, ARM['gate_linthr'], ARM['dyn_lut']))
+    return ARM
+
+
+# ---------------------------------------------------------------------------
 # The nodes. Each entry says how to put its node in a known state, what to
 # read out of DM, how to model it, and how to get it wrong.
 # ---------------------------------------------------------------------------
@@ -236,7 +283,14 @@ def _gate_model(xs, p, st0, twin=False):
     would have been -- it is the ladder itself."""
     att, rel, thr, rng, hold = p
     st = list(st0) + [0]                  # hold count: see the note above
-    step = fr.gate_step_nohold if twin else fr.gate_step
+    # The LINTHR arm compares the envelope against 2^thr in Q4.28 rather
+    # than log2(env) against thr in Q6.25 -- same test, one polynomial
+    # fewer per sample. `thr` here is whatever the PART holds, so the
+    # model and the part are in the same domain by construction.
+    if ARM['gate_linthr']:
+        step = fr.gate_step_lin_nohold if twin else fr.gate_step_lin
+    else:
+        step = fr.gate_step_nohold if twin else fr.gate_step
     out = []
     for x in xs:
         step(x, st, att, rel, thr, rng, hold)
@@ -364,8 +418,12 @@ NODES = {
                '_gate_gain_target_q_C1_GATE_%02d'],
         cvt=lambda p: [('gate range floor (D39: dB on the wire)',
                         p[3], fr.gate_range_q(40.0)),
-                       ('gate threshold -> Q6.25 log2',
-                        p[2], fr.gate_thr_q(-40.0)),
+                       (('gate threshold -> Q4.28 LINEAR (GATE_LINTHR)'
+                         if ARM['gate_linthr'] else
+                         'gate threshold -> Q6.25 log2'),
+                        p[2], (fr.gate_thr_lin_q(-40.0)
+                               if ARM['gate_linthr']
+                               else fr.gate_thr_q(-40.0))),
                        ('gate attack alpha -> Q0.31',
                         p[0], fr.dyn_alpha_q(0.05))],
         stim=[('impulse', 1), ('step', 2)],
@@ -514,6 +572,7 @@ def run_node(part, name, spec, strip, n, log=print):
     negative control. Returns (verdicts, ok, measurable)."""
     b = (strip - 1) * STRIDE
     log(f'--- {name}: {spec["why"]}')
+    read_arm(part, log)
     for off, word, ramp in spec['setup'](strip):
         part.write(b + off, word, ramp)
         time.sleep(0.02)
@@ -662,6 +721,28 @@ def run_node(part, name, spec, strip, n, log=print):
                 f'negative control differs in {tdiff} of {n} '
                 f'(predicted {sep})')
             if diff:
+                # HOW FAR OFF, not just how many. A count alone reads the
+                # same for a kernel that is wrong and for one that is a
+                # DIFFERENT ARM of the same arithmetic: DSP4_DYN_LUT
+                # replaces the compressor's polynomial with a table whose
+                # documented error is 0.095 dB, so "0 of 96 bit-exact"
+                # against fixed_ref is what a WORKING table looks like and
+                # says nothing about the size of the disagreement. The
+                # worst deviation in dB is what settles that, and it is
+                # the number PW's 0.1 dB bar is written against.
+                worst, wi = 0.0, diff[0]
+                for i in diff:
+                    a_, b_ = want[i], ys[i]
+                    if a_ and b_ and (a_ > 0) == (b_ > 0):
+                        dv = abs(20.0 * math.log10(abs(b_) / abs(a_)))
+                    else:
+                        dv = float('inf')
+                    if dv > worst:
+                        worst, wi = dv, i
+                log(f'      worst deviation {worst:.5f} dB at sample {wi} '
+                    f'(part {ys[wi]}, model {want[wi]}, '
+                    f'd {ys[wi] - want[wi]:+d}); {len(diff)} of {n} samples '
+                    f'differ')
                 for i in diff[:4]:
                     log(f'      [{i:3d}] x {xs[i]:12d}  part {ys[i]:12d}  '
                         f'model {want[i]:12d}  d {ys[i] - want[i]:+d}')

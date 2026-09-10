@@ -363,6 +363,21 @@ DSP4_DYN_LUT="${DSP4_DYN_LUT:-0}"
 CFLAGS="$CFLAGS -DDSP4_DYN_LUT=$DSP4_DYN_LUT"
 ASMFLAGS="$ASMFLAGS -DDSP4_DYN_LUT=$DSP4_DYN_LUT"
 
+# THE DESIGN STEP'S CHUNK, as a MEASUREMENT setting. lib/dyn_lut.h ships
+# 4 -- the value that keeps the first CONFIG_COMMIT's design burst under
+# budget (S15 §11) -- and takes this override so that
+# tools/pi/dsp4_dyn_lut_audio.py can widen the polynomial window past
+# the scope buffer. At 1 the table fills in 337 blocks (112 ms) against
+# _scope_buf's 1,024 samples (21 ms), which is what lets a capture be
+# shown to be the polynomial's. Never set in a shipping image; it shows
+# up in no config word, so an arm built with it is a bench arm and is
+# labelled one by the session that takes it.
+if [ -n "${DYN_LUT_CHUNK:-}" ]; then
+    CFLAGS="$CFLAGS -DDYN_LUT_CHUNK=$DYN_LUT_CHUNK"
+    ASMFLAGS="$ASMFLAGS -DDYN_LUT_CHUNK=$DYN_LUT_CHUNK"
+    echo "  DYN_LUT_CHUNK=$DYN_LUT_CHUNK (MEASUREMENT ARM — not shippable)"
+fi
+
 # log2/exp2 by interpolated table instead of a 6-term polynomial. MORE
 # accurate than what it replaces (0.000016 / 0.000008 dB against 0.0001 dB)
 # but still a deviation from the current fixed_ref, so it needs a
@@ -1020,13 +1035,71 @@ build() {
         done
     done
 
+
+# ----------------------------------------------------------------------
+# LINK ORDER IS PLACEMENT, AND PLACEMENT IS A TIMING DECISION.
+#
+# The LDF fills code in three tiers: Block 3 (sec_swco), then Block 2
+# (sec_swco_ovf), then whatever Block 1 has left over after the DM data
+# and the DMA buffers (sec_swco_ovf2). Within one output section the
+# linker takes the objects in COMMAND-LINE ORDER, so the objects listed
+# LAST are the ones that end up in Block 1 -- and Block 1 is the block
+# the DM overflow and the DMA ping-pong buffers already live in, so code
+# fetched from there contends with DDE traffic every block.
+#
+# Left to `find | sort` the choice of what lands there is ALPHABETICAL.
+# Measured 2026-09-10 on the DYN_LUT arm that put `meter_fx` (the
+# per-block meter fold and the SIMD gain kernel) in Block 1, and on the
+# same arm plus the scope witness it put `dyn_simd_fx` -- the SIMD
+# dynamics kernel, the hottest routine in the graph -- there too. The
+# audio was still exact; the fetch was not free, and no one had chosen
+# it.
+#
+# So the cold objects are named here and appended LAST, hottest of them
+# first. Everything on this list runs once per boot or once per
+# parameter change, never per block:
+#
+#   diag/spi_handler   control and instrument paths, not the block loop
+#   scope*             the witness itself -- an instrument pays its own
+#                      fetch price, the audio it witnesses does not
+#   *_config/init      boot and configuration, once
+#   *_design_fx        filter/crossover/GEQ design steps, once per
+#                      parameter move
+#
+# An image whose code fits Blocks 3+2 maps nothing into Block 1 and this
+# list only shuffles addresses. An image that does NOT fit gets to choose
+# what pays. Nothing here changes an instruction, only where it lives.
+DSP4_COLD_OBJS="diag spi_handler scope_gates scope product_config cgu_init
+                sport_config sport_init dma_config sru_config
+                afb_design_fx geq_design_fx xover_design_fx"
+
+# order_objs <obj...> — echo the objects with the cold ones moved to the
+# end, in DSP4_COLD_OBJS order.
+order_objs() {
+    local o b hot="" cold="" name
+    for o in "$@"; do
+        b="$(basename "$o" .doj)"
+        case " $(echo $DSP4_COLD_OBJS) " in
+            *" $b "*) ;;
+            *) hot="$hot $o";;
+        esac
+    done
+    for name in $DSP4_COLD_OBJS; do
+        for o in "$@"; do
+            [ "$(basename "$o" .doj)" = "$name" ] && cold="$cold $o"
+        done
+    done
+    echo $hot $cold
+}
+
     # ---- Link Chip 1 ----
     # chip1/ has: shared infra (CHIP_ID=1), chip1 infra, chip1 nodes, dsp_params
     # lib/ has: chip-agnostic library
     echo "--- Chip 1: Linking ---"
-    chip1_objs=$(find "$BUILD_DIR/chip1" "$BUILD_DIR/lib" -name '*.doj' 2>/dev/null | sort)
+    chip1_objs=$(order_objs $(find "$BUILD_DIR/chip1" "$BUILD_DIR/lib" \
+                                  -name '*.doj' 2>/dev/null | sort))
     if [ -n "$chip1_objs" ]; then
-        echo "  Objects: $(echo "$chip1_objs" | wc -l) files"
+        echo "  Objects: $(echo $chip1_objs | wc -w) files (cold last)"
         $LD21K $LDFLAGS -Map "$BUILD_DIR/chip1.map.xml" -o "$BUILD_DIR/chip1.dxe" $chip1_objs || total_errors=$((total_errors+1))
     else
         echo "  WARNING: No object files for Chip 1"
@@ -1034,10 +1107,10 @@ build() {
 
     # ---- Link Chip 2 ----
     echo "--- Chip 2: Linking ---"
-    chip2_objs=$(find "$BUILD_DIR/chip2" "$BUILD_DIR/lib" "$BUILD_DIR/lib2" \
-                      -name '*.doj' 2>/dev/null | sort)
+    chip2_objs=$(order_objs $(find "$BUILD_DIR/chip2" "$BUILD_DIR/lib" \
+                                  "$BUILD_DIR/lib2" -name '*.doj' 2>/dev/null | sort))
     if [ -n "$chip2_objs" ]; then
-        echo "  Objects: $(echo "$chip2_objs" | wc -l) files"
+        echo "  Objects: $(echo $chip2_objs | wc -w) files (cold last)"
         $LD21K $LDFLAGS -Map "$BUILD_DIR/chip2.map.xml" -o "$BUILD_DIR/chip2.dxe" $chip2_objs || total_errors=$((total_errors+1))
     else
         echo "  WARNING: No object files for Chip 2"
