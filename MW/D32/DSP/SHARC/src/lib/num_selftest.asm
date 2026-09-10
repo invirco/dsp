@@ -119,6 +119,37 @@
 .global _nst_bl_n;      .var _nst_bl_n = 42;
 .global _nst_bl_r;      .var _nst_bl_r[42];
 
+/* ---- the FIX arm (S25-2, swept S26) ----------------------------------
+ * One float32 word per vector, and the integer `Rn = FIX Fx` makes of
+ * it. Nothing is scaled here on purpose: every conversion in the tree
+ * reaches `fix` as a float32 that some multiply already produced, so
+ * measuring `fix` on the float32 DIRECTLY answers the question for all
+ * of them at once and leaves no multiply in the way of the reading. */
+.global _nst_fix_v;
+.var _nst_fix_v[20] =
+    0x00000000,   /* zero                                                 */
+    0x3F800000,   /* one, exact                                           */
+    0xBF800000,   /* minus one, exact                                     */
+    0x40880000,   /* +.25  all rules agree (negative control)             */
+    0xC0880000,   /* -.25  all rules agree (negative control)             */
+    0x40980000,   /* +.75  separates TRUNCATE from both round rules       */
+    0xC0980000,   /* -.75  separates TRUNCATE (toward zero) from floor    */
+    0x40900000,   /* +.5 even  half-even -> 4, half-away -> 5             */
+    0x40B00000,   /* +.5 odd   half-even -> 6, truncate -> 5              */
+    0xC0900000,   /* -.5 even  half-even -> -4, half-away -> -5           */
+    0xC0B00000,   /* -.5 odd   half-even -> -6, truncate -> -5            */
+    0x41FC0000,   /* pan idx 31: the S25 failure, exactly                 */
+    0x427E0000,   /* pan idx 63: the S25 failure, exactly                 */
+    0x42BD0000,   /* pan idx 94: the S25 failure, exactly                 */
+    0x4AFFFFFF,   /* 2^23 - 0.5, the last fractional float32              */
+    0x4B000000,   /* 2^23, the first magnitude with no fraction left      */
+    0x4F000000,   /* +2^31, one past the top             [OUT OF RANGE]   */
+    0xCF000000,   /* -2^31, the most negative int32     [in range]        */
+    0x4F000001,   /* +2^31 + 256                         [OUT OF RANGE]   */
+    0x4F800000    /* +2^32                               [OUT OF RANGE]   */;
+.global _nst_fix_n;     .var _nst_fix_n = 20;
+.global _nst_fix_r;     .var _nst_fix_r[20];
+
 /* the blend core reads its alpha from here (pfx=nst, nid=PROBE) */
 .global _nst_xfade_alpha_PROBE;
 .var _nst_xfade_alpha_PROBE = 0.0;
@@ -168,8 +199,30 @@ _xfade_blend_probe:
             r5 = 0x4F000000;               /* 2^31 as float */
             f5 = r5;
             f4 = f4 * f5;
-            r4 = fix f4;                   /* alpha_q31; `fix` saturates */
-            /* alpha*(new - old) as TWO MACs into the 80-bit MRF, so the
+            r4 = fix f4;                   /* alpha_q31; see below */
+            /* `fix` ROUNDS TO NEAREST, TIES TO EVEN, and it WRAPS -- it
+             * does not saturate, and this comment said it did until the
+             * S26 sweep (S25-2). Both halves matter here and neither
+             * changes a word of the emitted code:
+             *
+             * ROUNDING. alpha is k/576 and the product alpha*2^31 is an
+             * exact integer for every k except 1 and 2, whose fractions
+             * are .25 and .5-with-an-even-integer-part; ties-to-even and
+             * truncation agree on both. So the ramp NEVER separates the
+             * two rules -- which is exactly why the wrong belief lived
+             * here for months, and why the model was corrected against
+             * the rule rather than against a failing vector.
+             *
+             * WRAPPING. alpha == 1.0 makes the product exactly 2^31,
+             * which is not a 32-bit integer; the part returns 0xFFFFFFFF
+             * for it, not a saturated 0x7FFFFFFF (the same wrap the
+             * compressor's parallel-blend clamp exists to dodge, bench
+             * 2026-08-23). The corner is UNREACHABLE because the ramp
+             * stores alpha only while it is still below 1.0 -- but the
+             * safety is the ramp's, not this instruction's, so any
+             * change to the ramp has to preserve alpha < 1.0.
+             *
+             * alpha*(new - old) as TWO MACs into the 80-bit MRF, so the
              * difference is NEVER formed in a 32-bit register (review
              * finding D3). `new` and `old` are independently saturated
              * Q4.28 outputs, so new-old spans +/-(2^32-1) and the old
@@ -387,6 +440,24 @@ _num_selftest:
         dm(i5, 1) = r0;
         nop;
     .nst_bl_lp:
+        nop;
+
+    /* ================= FIX arm =================
+     * `fix` with NO negative-control twin, and that is deliberate: the
+     * control for a rounding rule is not another build, it is the
+     * VECTOR SET -- fractions of .25, .5 and .75 at both signs, on
+     * which the three candidate rules disagree with each other. A
+     * vector on which they agree proves nothing and the table marks
+     * those as its own negative controls. */
+    i4 = _nst_fix_v;
+    i5 = _nst_fix_r;
+    r14 = dm(_nst_fix_n);
+    lcntr = r14, do .nst_fix_lp until lce;
+        f0 = dm(i4, 1);
+        r0 = fix f0;
+        dm(i5, 1) = r0;
+        nop;
+    .nst_fix_lp:
         nop;
 
     /* ================= TIMING arm =================

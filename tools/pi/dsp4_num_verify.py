@@ -225,6 +225,50 @@ def main():
                   f'{(good_bl[i] if not a.negctl else want_bl[i]):12d}  '
                   f'{"ok" if ok else "<-- MISMATCH"}{note}')
 
+    # ---- FIX: the conversion rule itself (S25-2, swept S26) --------------
+    # This arm has no negative-control build, so it runs in BOTH arms and
+    # its verdict is the same in both: `fix` is a property of the core, not
+    # of the arithmetic under test. Vectors whose fraction is .25 are the
+    # arm's own negative controls -- every candidate rule agrees on them,
+    # so a run in which they PASS and nothing else does has proved nothing.
+    print(f'--- FIX ({len(bv.FIXV)} vectors, the conversion rule itself)')
+    base = sc.sym['_nst_fix_r']
+    want_fix = bv.fix_expected()
+    rules = dict(trunc=0, half_even=0, half_away=0)
+    measured = []
+    for i, (bits, val, label, in_range) in enumerate(bv.FIXV):
+        got = s32(vpeek(sc, base + i))
+        if not in_range:
+            # OUT OF THE MODELLED DOMAIN: recorded, not scored. One
+            # overflow point has ever been measured and fixed_ref refuses
+            # to model the rest from it; these turn that into data.
+            measured.append((label, got))
+            print(f'  {label:52s} {got:12d}   0x{got & 0xFFFFFFFF:08X}'
+                  f'   (MEASURED, not scored)')
+            continue
+        exp = want_fix[i]
+        ok = (got == exp)
+        bad += not ok
+        # Which rules would have produced this answer? A vector is only
+        # evidence where the rules disagree.
+        import math
+        if got == int(val):
+            rules['trunc'] += 1
+        if got == exp:
+            rules['half_even'] += 1
+        if got == int(math.floor(abs(val) + 0.5)) * (1 if val >= 0 else -1):
+            rules['half_away'] += 1
+        print(f'  {label:52s} {got:12d} / {exp:12d}  '
+              f'{"ok" if ok else "<-- MISMATCH"}')
+    n_scored = sum(1 for _b, _v, _l, ir in bv.FIXV if ir)
+    print(f'  rules consistent with the part over {n_scored} scored vectors: '
+          + ', '.join(f'{k}={v}' for k, v in rules.items())
+          + '   (only half_even should equal %d)' % n_scored)
+    if measured:
+        print('  overflow, measured: '
+              + '; '.join(f'{l.split(",")[0]} -> 0x{g & 0xFFFFFFFF:08X}'
+                          for l, g in measured))
+
     # ---- timing ----------------------------------------------------------
     # cycles = (ticks_end - ticks_start) * TPERIOD
     #          + (tcount_start - tcount_end)

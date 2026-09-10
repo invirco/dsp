@@ -65,6 +65,22 @@ def declared(path, nid, defines):
     Only the arms the build actually took: the file carries both, so the
     same `#if` the assembler followed is followed here.
     """
+    # THE ARM STACK. Each entry is [taking_this_arm, any_arm_taken_yet],
+    # and the second half is what `#elif` needs: it is NOT `#else`.
+    #
+    # It was treated as one until S26, and the cost was 1,152 false
+    # failures the moment a class with an `#elif` in its record joined the
+    # table. FILT's is
+    #
+    #     #if DSP4_BQ_FLOAT ... #elif DSP4_BQ_GUARD ... #else ... #endif
+    #
+    # and with both flags 0 the old walker skipped the `#if` arm, then at
+    # `#elif` merely INVERTED that -- taking an arm whose own condition it
+    # never evaluated, counting `_filt_hrl` and `_filt_hrw` into the record,
+    # and then reporting that the linker had put every field after them in
+    # the wrong place. The generator was never wrong: it emits its offset
+    # `#define`s inside the same conditionals and the ASSEMBLER evaluates
+    # them. Only this independent re-reading was.
     out, skip, stack = [], 0, []
     for ln in open(path, encoding='utf-8'):
         if ln.lstrip().startswith('.section/pm'):
@@ -75,16 +91,22 @@ def declared(path, nid, defines):
             if k in ('if', 'ifdef', 'ifndef'):
                 cond = ln.split(None, 1)[1].strip() if ' ' in ln.strip() else ''
                 take = _truth(k, cond, defines)
-                stack.append(take)
+                stack.append([take, take])
                 if not take:
                     skip += 1
             elif k in ('else', 'elif'):
                 if stack:
-                    was = stack[-1]
-                    stack[-1] = not was
-                    skip += 1 if was else -1
+                    was, any_taken = stack[-1]
+                    if k == 'else':
+                        take = not any_taken
+                    else:
+                        cond = (ln.split(None, 1)[1].strip()
+                                if ' ' in ln.strip() else '')
+                        take = (not any_taken) and _truth('if', cond, defines)
+                    stack[-1] = [take, any_taken or take]
+                    skip += (1 if was else 0) - (1 if take else 0)
             else:
-                if stack and not stack.pop():
+                if stack and not stack.pop()[0]:
                     skip -= 1
             continue
         if skip:
@@ -132,7 +154,7 @@ def _len(txt, d):
 _ARITH_OK = re.compile(r'^[\s0-9A-Za-z_()+\-*/<>%]+$')
 
 
-def defines_from(hdr):
+def defines_from(hdr, seed=None):
     """DSP4_* / DYN_LUT_N as the generated dsp_block.h and dyn_lut.h say.
 
     EXPRESSIONS ARE EVALUATED, NOT SKIPPED (S21-3). This used to match only
@@ -149,13 +171,78 @@ def defines_from(hdr):
     Two passes, because a header may use a name before this reader has seen
     it; anything still unresolved after the second pass is left out and
     `_len()` will say so by failing on it rather than assuming a length.
+
+    THE HEADER'S OWN CONDITIONALS ARE FOLLOWED (S26), and `seed` is what
+    makes that possible: dsp_block.h DERIVES several of the names the
+    records are conditional on, from flags that only exist on the
+    assembler's command line, so the two cannot be read independently.
+
+        #if DSP4_SIMD_DYN && DSP4_SIMD_GRAPH
+        #define DSP4_PAIRED_GRAPH 1
+        #else
+        #define DSP4_PAIRED_GRAPH 0
+        #endif
+
+        #if DSP4_BQ_ROUNDONCE && !DSP4_BQ_FLOAT
+        #ifndef DSP4_BQ_GUARD
+        #define DSP4_BQ_GUARD 1
+        #endif
+        #else
+        #undef DSP4_BQ_GUARD
+        #define DSP4_BQ_GUARD 0
+        #endif
+
+    This used to collect EVERY `#define` in the file and keep the FIRST,
+    which for DSP4_BQ_GUARD is the 1 inside an arm that the shipping
+    configuration does not take -- so GATE's `_gate_filter_cq` was counted
+    at 11 words where the assembler emits 10, and every field after it in
+    both GATE and FILT was reported as misplaced by the linker. The
+    records were correct; this reader was not.
+
+    Seeding with the -D flags and letting the header's unconditional
+    defines land ON TOP is exactly what the assembler does, and it is why
+    the caller must NOT re-apply -D afterwards: a `#undef` here is the
+    header overriding the command line on purpose.
     """
-    d = {}
+    d = dict(seed or {})
     pending = []
     for path in hdr:
         if not os.path.exists(path):
             continue
+        skip, stack = 0, []
         for ln in open(path, encoding='utf-8'):
+            c = COND.match(ln)
+            if c:
+                k = c.group(1)
+                if k in ('if', 'ifdef', 'ifndef'):
+                    cond = (ln.split(None, 1)[1].strip()
+                            if ' ' in ln.strip() else '')
+                    take = _truth(k, cond, d)
+                    stack.append([take, take])
+                    if not take:
+                        skip += 1
+                elif k in ('else', 'elif'):
+                    if stack:
+                        was, any_taken = stack[-1]
+                        if k == 'else':
+                            take = not any_taken
+                        else:
+                            cond = (ln.split(None, 1)[1].strip()
+                                    if ' ' in ln.strip() else '')
+                            take = (not any_taken) and _truth('if', cond, d)
+                        stack[-1] = [take, any_taken or take]
+                        skip += (1 if was else 0) - (1 if take else 0)
+                else:
+                    if stack and not stack.pop()[0]:
+                        skip -= 1
+                continue
+            if skip:
+                continue
+            u = re.match(r'^[ \t]*#undef[ \t]+([A-Za-z_][A-Za-z0-9_]*)', ln)
+            if u:
+                d.pop(u.group(1), None)
+                pending = [(n, b) for n, b in pending if n != u.group(1)]
+                continue
             m = re.match(r'^[ \t]*#define[ \t]+([A-Za-z_][A-Za-z0-9_]*)[ \t]+'
                          r'([^\\]*?)[ \t]*(?:/\*.*)?$', ln)
             if not m:
@@ -163,7 +250,16 @@ def defines_from(hdr):
             name, body = m.group(1), m.group(2).strip()
             if not body or not _ARITH_OK.match(body):
                 continue
-            pending.append((name, body))
+            # A LATER DEFINE IN A TAKEN ARM WINS, and it must: the header
+            # forces DSP4_BQ_GUARD to 0 after undefining whatever the
+            # command line said. Resolve it now where it is a plain
+            # integer, so the conditionals below it see the new value.
+            d.pop(name, None)
+            pending = [(n, b) for n, b in pending if n != name]
+            if re.fullmatch(r'-?\d+', body):
+                d[name] = int(body)
+            else:
+                pending.append((name, body))
     for _ in range(2):
         for name, body in pending:
             if name in d:
@@ -183,13 +279,17 @@ def defines_from(hdr):
 def check(mapxml, srcdir, extra=None):
     syms = map_syms.syms(mapxml)
     nodes_dir = os.path.join(srcdir, 'nodes')
+    # -D FLAGS SEED THE HEADER, they do not overwrite it (S26). A switch
+    # that changes the record's shape -- DSP4_DYN_LUT adds 342 words to
+    # COMP's -- is on the assembler's command line and in no header, so it
+    # has to reach this table; but dsp_block.h DERIVES others from those
+    # same flags and `#undef`s the command line's value on purpose, so
+    # applying -D last would put back a value the header deliberately
+    # removed. Seeding and letting the header land on top is what the
+    # assembler does. See defines_from's docstring.
     d = defines_from([os.path.join(srcdir, '..', 'dsp_block.h'),
-                      os.path.join(srcdir, '..', 'lib', 'dyn_lut.h')])
-    # THE BUILD'S OWN -D FLAGS WIN. A switch that changes the record's shape
-    # -- DSP4_DYN_LUT adds 342 words to COMP's -- is on the assembler's
-    # command line and in no header, so a check that read only the headers
-    # would verify a layout the image does not have.
-    d.update(extra or {})
+                      os.path.join(srcdir, '..', 'lib', 'dyn_lut.h')],
+                     seed=extra or {})
     classes = {}
     for fn in sorted(os.listdir(nodes_dir)):
         if not fn.endswith('.asm'):
@@ -258,6 +358,46 @@ _IREG_SET = re.compile(r'^\s*(i[0-7])\s*=\s*(_[A-Za-z0-9_]+)\s*;')
 _JUMP_SHK = re.compile(r'^\s*jump\s+_shk_([a-z0-9_]+)_(blk|smp)\s*;')
 
 
+def _blank_inert_stubs(txt, mask):
+    """Blank the stub arms this build did not assemble, keeping line count.
+
+    A node of a shared class carries BOTH arms -- the stub under
+    `#if (DSP4_SHARED_KERNELS & n)` and the inline body under `#else` --
+    and only one of them is in the image. With GATE and FILT in the class
+    table but their bits clear, their `jump _shk_gate_blk;` is text in an
+    arm the assembler skipped, and reading it as a live entry point
+    reported 128 failures against an image that contains neither body.
+
+    A class whose bit is clear is not half-enabled, it is absent, and the
+    check has to agree with the preprocessor about which arm exists.
+    """
+    out, i = [], 0
+    lines = txt.split('\n')
+    while i < len(lines):
+        m = STUB.match(lines[i])
+        if m and not (int(m.group(1)) & mask):
+            # skip to the matching #else / #endif at this nesting depth
+            depth = 0
+            out.append('')
+            i += 1
+            while i < len(lines):
+                ln = lines[i].lstrip()
+                if ln.startswith('#if'):
+                    depth += 1
+                elif ln.startswith('#endif'):
+                    if depth == 0:
+                        break
+                    depth -= 1
+                elif ln.startswith('#else') and depth == 0:
+                    break
+                out.append('')
+                i += 1
+            continue
+        out.append(lines[i])
+        i += 1
+    return '\n'.join(out)
+
+
 def entries(srcdir, extra=None):
     """Every path into a shared body starts at a stub that loads a base.
 
@@ -266,8 +406,8 @@ def entries(srcdir, extra=None):
     `_shk_*`, because the inline arm is the code the stub replaced).
     """
     d = defines_from([os.path.join(srcdir, '..', 'dsp_block.h'),
-                      os.path.join(srcdir, '..', 'lib', 'dyn_lut.h')])
-    d.update(extra or {})
+                      os.path.join(srcdir, '..', 'lib', 'dyn_lut.h')],
+                     seed=extra or {})
     mask = d.get('DSP4_SHARED_KERNELS', 0)
     if not mask:
         print('shared_kernel_check --entries: DSP4_SHARED_KERNELS=0, '
@@ -370,6 +510,7 @@ def entries(srcdir, extra=None):
             # like an instruction.
             txt2 = re.sub(r'/\*.*?\*/', lambda mm: '\n' * mm.group(0).count('\n'),
                           open(path, encoding='utf-8').read(), flags=re.S)
+            txt2 = _blank_inert_stubs(txt2, mask)
             cur = None
             for ln in txt2.split('\n'):
                 lm = _LABEL.match(ln)

@@ -364,7 +364,21 @@ _bqhr_job_start:
     r1 = 0x40C00000;           /* 6.0f */
     f1 = r1;
     f0 = f0 * f1;
-    r0 = fix f0;               /* truncates; the clamp makes it moot */
+    /* `fix` ROUNDS TO NEAREST, TIES TO EVEN -- it does not truncate, and
+     * this line said it did until the S26 sweep (S25-2). The line wants
+     * ceil(6/umin) and `fix` is neither ceil nor floor, so it has never
+     * computed what it says; truncation would not have computed it
+     * either, so nothing here changes but the statement.
+     *
+     * WHY IT IS STILL MOOT, stated properly rather than asserted: the
+     * result is clamped to [128, 1024] immediately below, so the only
+     * umin that can see the difference is one where 6/umin lands strictly
+     * inside that window -- umin in (0.00586, 0.0469) -- and there the
+     * disagreement with ceil is at most ONE sample of prefix length out
+     * of at least 128. N sets how long an impulse response is summed for
+     * a headroom estimate; one sample at the tail of a decaying prefix is
+     * below the resolution of the thing being estimated. */
+    r0 = fix f0;
     r1 = BQHR_NMIN;
     r0 = max(r0, r1);
     r1 = BQHR_NMAX;

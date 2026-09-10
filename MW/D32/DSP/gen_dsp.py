@@ -2445,7 +2445,15 @@ _UNMAPPED_REASONS = {
         'measured fabric: a live crosspoint on a bus that already carries '
         'signal is below this instrument\'s resolution (S24: five more on a '
         'bus cost < 0.1 points), so the cost is the ten SPI words, the '
-        'fan-out code and nothing measurable in cycles'),
+        'fan-out code and nothing measurable in cycles. S26 WENT TO BUILD '
+        'THEM AND DID NOT, and for this family the blocker is a ruling '
+        'rather than a gap: d24-skin-cell-map.csv rows menu5/6 and menu5/8 '
+        'record PW 2026-09-06 — "Rtg retired from all cells — Noise assign '
+        'needs a NEW function definition in the master; never reuse Rtg" — '
+        'and carry no cell at all for the noise assign. So these ten Dest '
+        'cells are not the vehicle the product is waiting for, and giving '
+        'them a fan-out would build against a definition PW has already '
+        'said must be replaced'),
     ('Phones', 'Level'): ('hardware-control', 'headphone amplifier'),
     ('Phones', 'Src'): ('hardware-control', 'headphone source select'),
     # RTA — priced rather than merely refused (S25 gate 4). It is a
@@ -2481,9 +2489,20 @@ _UNMAPPED_REASONS = {
         'dispatch of Dest1, and the talkback mics reach no bus at all. '
         'Dest1 is therefore a cell that reaches a WORD and not the '
         'arithmetic — S24-7\'s shape one family along. Two more addresses '
-        'would add two more of those; three crosspoints out of each node is '
-        'what the family actually needs, and which three is the master\'s '
-        '"aux/main" to resolve'),
+        'would add two more of those; crosspoints out of each node is what '
+        'the family actually needs. S26 WENT TO BUILD THEM AND DID NOT, '
+        'because the enumeration names a COUNT and no destination: the '
+        'master gives Dest[1-3] and the note "aux/main", carries no Table '
+        'column (every genuinely named selector in the master has one — '
+        'Aux Pan reads Pan:dB:0:Off), and the two halves of this family do '
+        'not even agree with each other on their own encoding (Talk Dest '
+        'has MxDatS 1, a per-slot flag like Chan MuteGrp; Noise Dest has '
+        '11, which is a selector). WORSE, THE COUNT IS CONTRADICTED BY THE '
+        'PRODUCT: d24-skin-cell-map.csv row menu5/2 records "RANGE '
+        'CONFLICT: vocab Talk Rtg[1-3] vs 9 targets — extend to [1-9]" for '
+        'Talkback Assign A1-A8 + L-R. Building three crosspoints would '
+        'therefore build the wrong NUMBER of them as well as guessing '
+        'which buses. Held for the master, not invented'),
 }
 for _s in _MAIN_OUT:
     # S24: Level and Mute ARE built now -- the OUTPUT_TDM node carries them

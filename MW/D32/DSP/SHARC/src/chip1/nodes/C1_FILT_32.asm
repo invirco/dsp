@@ -109,6 +109,38 @@
 #if DSP4_BQ_GUARD
 .extern _bq_hr_node1;
 #endif
+#if (DSP4_SHARED_KERNELS & 8)
+/* SHARED KERNEL (S18). The body this node used to carry inline is
+ * `_shk_filt_blk` in chip1/shared_kernels.asm, entered with this
+ * node's record base in i7. See SHARED_KERNEL_CLASSES in
+ * tools/dsp/dsp_codegen.py for why this is a jump and not a call. */
+.extern _shk_filt_blk;
+.extern _shk_filt_smp;
+.global _C1_FILT_32_process;
+_C1_FILT_32_process:
+    l3 = 0;
+    l4 = 0;
+    i3 = BLK_CHAIN_B;
+    i4 = BLK_CHAIN_B;
+    i7 = _filt_hpf_A_C1_FILT_32;
+    l7 = 0;
+    i6 = BLK_CHAIN_B;
+    l6 = 0;
+    i5 = _buf_C1_GAIN_32;
+    l5 = 0;
+    jump _shk_filt_blk;
+_C1_FILT_32_process.end:
+.global _C1_FILT_32_process_sample;
+_C1_FILT_32_process_sample:
+    i7 = _filt_hpf_A_C1_FILT_32;
+    l7 = 0;
+    i6 = BLK_CHAIN_B;
+    l6 = 0;
+    i5 = _buf_C1_GAIN_32;
+    l5 = 0;
+    jump _shk_filt_smp;
+_C1_FILT_32_process_sample.end:
+#else
 .global _C1_FILT_32_process;
 _C1_FILT_32_process:
 
@@ -284,8 +316,30 @@ _C1_FILT_32_process_sample:
     r5 = 0x4F000000;               /* 2^31 as float */
     f5 = r5;
     f4 = f4 * f5;
-    r4 = fix f4;                   /* alpha_q31; `fix` saturates */
-    /* alpha*(new - old) as TWO MACs into the 80-bit MRF, so the
+    r4 = fix f4;                   /* alpha_q31; see below */
+    /* `fix` ROUNDS TO NEAREST, TIES TO EVEN, and it WRAPS -- it
+     * does not saturate, and this comment said it did until the
+     * S26 sweep (S25-2). Both halves matter here and neither
+     * changes a word of the emitted code:
+     *
+     * ROUNDING. alpha is k/576 and the product alpha*2^31 is an
+     * exact integer for every k except 1 and 2, whose fractions
+     * are .25 and .5-with-an-even-integer-part; ties-to-even and
+     * truncation agree on both. So the ramp NEVER separates the
+     * two rules -- which is exactly why the wrong belief lived
+     * here for months, and why the model was corrected against
+     * the rule rather than against a failing vector.
+     *
+     * WRAPPING. alpha == 1.0 makes the product exactly 2^31,
+     * which is not a 32-bit integer; the part returns 0xFFFFFFFF
+     * for it, not a saturated 0x7FFFFFFF (the same wrap the
+     * compressor's parallel-blend clamp exists to dodge, bench
+     * 2026-08-23). The corner is UNREACHABLE because the ramp
+     * stores alpha only while it is still below 1.0 -- but the
+     * safety is the ramp's, not this instruction's, so any
+     * change to the ramp has to preserve alpha < 1.0.
+     *
+     * alpha*(new - old) as TWO MACs into the 80-bit MRF, so the
      * difference is NEVER formed in a 32-bit register (review
      * finding D3). `new` and `old` are independently saturated
      * Q4.28 outputs, so new-old spans +/-(2^32-1) and the old
@@ -454,3 +508,4 @@ modify(i1, 1);            /* past the headroom header */
     dm(_filt_xfade_alpha_C1_FILT_32) = r4;
     rts;
 _C1_FILT_32_process.end:
+#endif

@@ -1,0 +1,254 @@
+# shipping.config.s26 — shipping.config.s21 PLUS GATE AND FILT SHARED.
+#
+# A PROPOSAL, NOT THE SHIPPING FILE. `shipping.config` and
+# `shipping.config.s21` are both unchanged, and this file differs from s21
+# in EXACTLY ONE LINE (DSP4_SHARED_KERNELS 3 -> 15, i.e. COMP|TUBE|GATE|FILT).
+#
+#     SHIPPING_CONFIG=$PWD/shipping.config.s26 ./build.sh all
+#
+# WHY IT EXISTS. S25 left chip 1 at 22,722 bytes free of 262,144 -- 91.3 %
+# used -- with R6-R11 (the matrix as composite rows, the FX topology) still
+# to come. S18's lever returns per-strip code by replacing 32 inlined copies
+# of a node body with one shared body and 32 stubs, and S21 proved it costs
+# essentially nothing in cycles. It had only ever been applied to COMP and
+# TUBE, which are the two SMALLEST bodies on the chip; GATE (1,072 bytes an
+# instance) and FILT (968) are the two largest it fits.
+#
+# See MW/D32/DSP/dsp4-s26-20260910.md for the bytes, the cycles, and the two
+# instrument defects the attempt exposed -- neither of which was in the
+# firmware, and both of which made the guard report failures of its own.
+#
+# A PROPOSAL, NOT THE SHIPPING FILE. `shipping.config` is unchanged and stays
+# unchanged until PW rules; `shipping.config.s20` is unchanged too, and this
+# file differs from it in EXACTLY ONE LINE (DSP4_SHARED_KERNELS 0 -> 3).
+#
+#     SHIPPING_CONFIG=$PWD/shipping.config.s21 ./build.sh all
+#
+# WHY IT EXISTS. S20 measured the one cost of `shipping.config.s20` that is
+# not cycles: chip 1's code pool is 261,764 of 262,144 bytes, 380 free, with
+# 1,692 bytes of (cold) code pushed out into Block 1, the block the DM
+# overflow and the DMA ping-pong buffers live in. PW's requirement of
+# 2026-08-28 is that 32 strips is the MINIMUM and the fit must carry headroom
+# for plugins; 380 bytes is not headroom. S18's lever returns ~40 kB of it and
+# `build.sh` refused the lever with `DSP4_SIMD_DYN`. S21 measured that refusal
+# and it does not hold -- see the DSP4_SHARED_KERNELS entry at the foot of this
+# file, and MW/D32/DSP/dsp4-s21-20260910.md for the bytes and the cycles.
+#
+# build.sh sources whatever SHIPPING_CONFIG names, so there is no environment
+# soup behind the numbers in MW/D32/DSP/dsp4-s21-20260910.md: every row in that
+# write-up was built from this file, and the image says so in its own
+# DIAG_BUILD_CFG / DIAG_BUILD_CFG2 words.
+#
+# WHY IT EXISTS. On 2026-09-10 S19 measured every staged pair UNDER LOAD for
+# the first time (the CM4's playback broadcast onto every DSPA input lane by
+# the `driveall` LOGIC bitstream, a stimulus the DSP executes not one
+# instruction for) and the answer was that **the configuration
+# `shipping.config` names does not fit either product**: D24 118.9 % / 119.2 %
+# of budget with one block in six dropped, D32 158.2 % / 142.8 % with one in
+# three. Every capacity figure taken before that day was a silence figure, and
+# at silence the same configuration reads 70.5 % / 89.8 % and looks like the
+# cheapest arm on the board. PW's mandate is that the measured configuration is
+# the shipped configuration; this file is the configuration that was measured
+# to fit.
+#
+# WHAT IS DIFFERENT FROM `shipping.config`, and nothing else is:
+#
+#   DSP4_STRIP_FUSED   0 -> 1     S11
+#   DSP4_SIMD_DYN      0 -> 1     S12
+#   DSP4_C2_BQ_GRAPH   0 -> 1     S13-1 (the defect S12-5 named is FIXED)
+#   DSP4_GATE_LINTHR   0 -> 1     S15-7
+#   DSP4_DYN_LUT       0 -> 1     S15/S16 — COMPRESSOR *and* LIMITER
+#   DSP4_SHARED_KERNELS 0 -> 3    S18 lever, S21-2/S21-3 (the refusal, and
+#                                 what actually did not build)
+#
+# FORMAT: identical to shipping.config — KEY=VALUE, one per line, '#'
+# comments, plain integers, parsed by shell (`source`) and by
+# tools/dsp/build_config.py.
+
+# ---- the four that decide whether the block loop fits the block ----
+# Unchanged from shipping.config, and they are unchanged deliberately: this
+# proposal moves the KERNELS, not the operating point. PW ruling 2026-09-03
+# (block 16), S8-2/S9-1 (block kernels, the ping/pong phase fix, the clock).
+DSP4_GEN_BLOCK=16
+DSP4_BLOCK_KERNELS=1
+DSP4_BLK_LATCH=1
+DSP4_CCLK_TARGET=983
+
+# ---- the rest of the shipping configuration, stated so it is not implicit ----
+DSP4_BISECT=0             # 0 = production; anything else PARKS the firmware
+DSP4_BLOCK_MASK=7         # 1 scatter | 2 node graph | 4 gather; 7 = whole loop
+DSP4_CHAN_MASK=1          # CFG_CHAN_MASK/CFG_AUX_MASK have readers: a D24 runs 24 strips
+DSP4_SCOPE_GATE=1         # skip nodes scoped to the other product at the dispatch table
+DSP4_BQ_FLOAT=1           # the float landing, 2026-09-03
+DSP4_BQ_ROUNDONCE=1       # per-stage saturate deleted, error feedback kept (PW, 2026-09-02)
+# DSP4_BQ_GUARD is DERIVED and is not set here either: dsp_block.h forces it
+# to 0 whenever DSP4_BQ_FLOAT is on. The part reads back 0.
+
+# ---- THE FIVE SWITCHES THIS PROPOSAL TURNS ON ----
+
+# S11. Fused strip kernels: intermediates kept in registers and the MAC
+# accumulator instead of round-tripping through memory. Block-kernel builds
+# only. Worth 3,542 cycles (1.08 %) of chip 2 on its own.
+#
+# AUDIO: PROVEN. famverify verdict-for-verdict identical to the shipping
+# configuration, three numeric arms BIT_EXACT (S11-4, re-confirmed by S12-5).
+DSP4_STRIP_FUSED=1
+
+# S12. Paired (SIMD) dynamics and biquads: GATE/COMP -- and, through the
+# derived DSP4_BQ_PAIRED_GRAPH / DSP4_C2_BQ_PAIRED_GRAPH, FILT/EQ and chip 2's
+# aux and main biquads -- run two channels in one instruction stream. Also
+# wires the odd block pool and the pair-ordered chain. 97,092 cycles of
+# chip 2 at D32 (29.6 % of budget).
+#
+# AUDIO: PROVEN, and the record says so in the finding that is usually cited
+# against it. S12-5's title is "SIMD_DYN is audio-correct; DSP4_C2_BQ_GRAPH is
+# not": with the pairing on and C2_BQ_GRAPH off it read verdict-for-verdict
+# identical to shipping -- 17 of 20 families LIVE, contract 20/20 with 0
+# FAILED, COMPRESSOR / FADER_PAN / TUBE_SAT BIT_EXACT, GATE's numeric arm
+# NO_STIMULUS exactly as the shipping arm reports it. The half of S12-5 that
+# was open was C2_BQ_GRAPH, and that is the next line.
+#
+# It needs the POLYNOMIAL log2/exp2, so it is incompatible with
+# DSP4_DYN_TABLES=1 (which is 0 here and in shipping.config, and the
+# assembler refuses the combination). It is also incompatible with
+# DSP4_SHARED_KERNELS -- see that entry below.
+DSP4_SIMD_DYN=1
+
+# S13-1. Chip 2's AUX and MAIN biquads paired, natively interleaved (derived:
+# takes effect only with DSP4_SIMD_DYN on, through
+# DSP4_C2_BQ_PAIRED_GRAPH). Chip 2 does not gather per block -- the pair OWNS
+# the interleaved arrays and latches them -- which is why it is worth ~20
+# points of chip 2 that chip 1's gathering pair is not.
+#
+# AUDIO: THE DEFECT S12-5 FOUND IS FIXED AND THE FINDING IS CLOSED (S13-1).
+# The mechanism was named: the pair driver's steady test never read the
+# pending-DESIGN flag, so for the classes the host writes PARAMETERS to (GEQ
+# band gains, AFB notch gains, crossover corners) the design step -- which
+# lives at the top of the node body, the body the latch exists to skip --
+# never ran, `swap_pending` never rose, the latch never came down and the
+# pair ran its `.var` bypass initialisers for ever. 18 of the 24 chip-2 pairs
+# were affected (12 GEQ, 6 AFB); chip 1 has no design-driven class at all,
+# which is why the S12 candidate read clean and only the arm that fits D32
+# did not. FIX: the steady test reads `_<pfx>_dirty_` for any class that has
+# one, guarded on that class's DSP4_<CLS>_DESIGN macro -- two DM reads and an
+# OR per pair per block, in tools/dsp/dsp_codegen.py::gen_bq_pairs_c2.
+# WITNESS: geqverify and afbverify design AND live-bank arms at 1-4 ulp with
+# the switch ON, against 50.9 M / 83.9 M ulp before; famverify GEQ and
+# ANTI_FB both LIVE paired, moved 64/64; bqeverify PASS, 0 ulp over 36,864
+# words.
+#
+# S12-7 -- that DIAG_BUILD_CFG2 could not see this switch, so two images that
+# differ in AUDIO read back the same word -- was CLOSED by S15-9. Bit 12 of
+# the second word carries it now, and the bench decoder learned it in S18-4.
+DSP4_C2_BQ_GRAPH=1
+
+# S15-7. The GATE's threshold compared in the LINEAR domain instead of log2:
+# deletes a `_log2q_fx` call per sample and 54 % of the gate body. It shifts
+# the gate's effective threshold by at most 0.0002 dB, so it is a numeric-spec
+# deviation and NEEDS PW SIGN-OFF -- that is a ruling, not a measurement, and
+# it is named in the window note as one.
+DSP4_GATE_LINTHR=1
+
+# S15/S16. THE LEVEL->GAIN TABLE, for the COMPRESSOR *and* the LIMITER (S16-6
+# put the limiter on it: 253 -> 92 cycles per sample-pair). The whole static
+# curve -- threshold, ratio, knee, ceiling -- baked into one per-node table by
+# a DESIGN step that runs only when a parameter moves, so the per-sample gain
+# computer is an index, two words and an interpolation instead of a polynomial
+# log2, the knee arithmetic and a polynomial exp2.
+#
+# THIS IS THE SWITCH THAT MAKES THE PRODUCT FIT UNDER LOAD, and S19 measured
+# why: the above-threshold path now costs what the below-threshold one does.
+# Driven minus silent on the shipping default is +42.5 points on chip 1 and
+# +29.3 on chip 2 at D24; with this switch on it is +1.0 and 0.0.
+#
+# COSTS: 337 words of DM per COMPRESSOR and LIMITER node at the shipped K = 4,
+# and a worst-case accuracy of 0.0950 dB over the whole documented parameter
+# sweep against PW's 0.1 dB ruling of 2026-09-09 (tools/dsp/dyn_lut_design.py
+# produces that number rather than remembering it). Also a numeric-spec
+# deviation and PW's to sign off.
+DSP4_DYN_LUT=1
+
+# ---- the switches that stay where they are, and why ----
+
+# S9-2 Option A, ADOPTED (PW ruling 2026-09-09). A PER-CHIP MASK: 1 = chip 1's
+# inter-chip TX, 2 = chip 2's converter TX, 3 = both. PW ruled CHIP 2 ONLY.
+# +16 samples of output latency, so the through-DSP contract figure is 82
+# samples / 1.708 ms at block 16. Requires DSP4_BLK_LATCH, and
+# DSP4_GATHER_FIRST stays on beside it (with GATHER_FIRST off the same arm
+# reads 98.2156 % ordered and chip 2 misses 2.7 % of blocks).
+DSP4_TX_EARLY=2
+
+# DSP4_GATHER_FIRST is build.sh's default 1 and is named here because Option A
+# depends on it, per the line above.
+DSP4_GATHER_FIRST=1
+
+# THE PIPELINED SIMD SAMPLE LOOP (S13-5): eight instructions per sample per
+# stage become five, same operations and same order of additions, so it is
+# bit-exact against the unpipelined loop BY CONSTRUCTION. Worth ~5 points of
+# chip 2 for no audio cost.
+#
+# 0 HERE, and 2 in the `s20f_*` arm, which is measured beside this one in
+# MW/D32/DSP/dsp4-s20-20260910.md. It is a separate arm rather than a line in
+# this file because "bit-exact by construction" is an argument and this
+# project's rule is that the part says so: S19 already found s16f
+# indistinguishable from s16 in cycles (within its own boot-to-boot spread),
+# so the 5 points are not what decides the window and the safe default for a
+# proposal is the control loop.
+DSP4_BQ_SIMD_PIPE=0
+
+# SHARED PER-STRIP KERNELS, A CLASS MASK: 3 = COMPRESSOR (bit 0) + TUBE_SAT
+# (bit 1). Each class's 32 nodes become a two-instruction stub that puts that
+# strip's record base in i7 (and its predecessor's scalar buffer in i5) and
+# jumps to ONE body in chip1/shared_kernels.asm.
+#
+# WHAT IT BUYS, on this configuration and measured on the map this build
+# produced: chip 1's code pool 261,764 -> 221,572 of 262,144, so **380 bytes
+# free becomes 40,572**, and the 1,692 bytes that `shipping.config.s20` runs
+# out of Block 1 -- the contended DM/DMA block -- come back into Blocks 3+2,
+# so NO code is fetched against the DMA buffers at all. DM drops 1,694 bytes
+# with it. Chip 2 is untouched: it has no strip COMP or TUBE, and its map is
+# identical to the s20 arm's byte for byte.
+#
+# WHY IT IS 3 HERE AND WAS 0 IN shipping.config.s20 (S21-2). `build.sh`
+# REFUSED this switch together with DSP4_SIMD_DYN from S18 until 2026-09-10,
+# on the grounds that "the SIMD pair drivers call
+# _C1_COMP_nn_process_sample directly, and a shared body reached that way
+# would run on whatever record base the last strip left in the register". The
+# premise is right and the conclusion is not: `_C1_COMP_nn_process_sample` is
+# not the shared body, it is THAT NODE's stub -- the generator emits an entry
+# point per node, not per class -- so a pair driver that calls it gets the
+# right strip for the same reason the chain does. The pair KERNELS
+# (`_comp_pair_blk`, `_gate_pair_blk`) never call a node body at all; they
+# take both channels' record bases in r4-r7. The refusal was a guard, and it
+# is replaced by a CHECK: `shared_kernel_check.py --entries` runs on every
+# SHARED_KERNELS build and fails it if anything but a per-node stub names a
+# `_shk_<cls>_*` entry point, or if a stub is missing a register load.
+#
+# WHAT ACTUALLY DID NOT BUILD, and it was not the pairing (S21-3): with
+# DSP4_DYN_LUT=1 the shared COMP body carries the LUT design step, which
+# passes four record ADDRESSES in r0-r3, and the rewrite emitted
+# `Rn = Rn + <const>` for them -- not an instruction on this core. S18 never
+# saw it because S18's arm was built from `shipping.config`, where DYN_LUT is
+# 0 and the whole design step sat in a preprocessor arm that was never
+# assembled. Two more latent faults in the same place: shared_kernels.asm did
+# not inherit `#include "lib/dyn_lut.h"` (a LINK error on DYN_LUT_N), and
+# shared_kernel_check.py could not evaluate DYN_LUT_N, so it scored
+# `_comp_lut[337]` as a zero-word field and reported the LINKER as wrong.
+# All three are fixed in the generator and the checker.
+#
+# AUDIO: bit-exact against the inlined pair by construction and by
+# measurement -- the shared body is the SAME emitter's output as the inline
+# arm, rewritten from absolute per-node addresses to record offsets, and the
+# witnesses are in MW/D32/DSP/dsp4-s21-20260910.md.
+DSP4_SHARED_KERNELS=15
+
+DSP4_TXPROBE=0            # bench instrument only; never in a shipping image
+DSP4_PROFILE_SIGNAL=0     # measurement arm only -- and S19 retired it as an
+                          # instrument: it costs chip 1 41 points and drives
+                          # the input kernels, which is not where a desk's
+                          # signal comes from. The driven regime is the
+                          # `driveall` bitstream plus the CM4's playback.
+
+# The stuck-partial-request recovery, armed only while the parameter link is
+# standing still (D71/D79). Unchanged from shipping.config.
+DSP4_SPI_PARTIAL_FIX2=1

@@ -1176,6 +1176,21 @@ order_objs() {
     # flags this build was given, and a mismatch FAILS THE BUILD.
     if [ "$DSP4_SHARED_KERNELS" != "0" ] && [ $total_errors -eq 0 ]; then
         echo "--- Shared kernels: record layout ---"
+        # ONLY THE FLAGS THE HEADER DOES NOT DERIVE, and the list is short
+        # ON PURPOSE (S26). `shared_kernel_check.py` reads dsp_block.h and
+        # then lets these -D values WIN, so anything named here overrides
+        # the header -- which is right for a switch that exists only on the
+        # assembler's command line, and WRONG for one the header computes.
+        # dsp_block.h FORCES DSP4_BQ_GUARD (`#undef` then `#define 0` when
+        # round-once is off or the float arm is on) and DEFINES
+        # DSP4_PAIRED_GRAPH outright from DSP4_SIMD_DYN && DSP4_SIMD_GRAPH.
+        # Passing those two from the shell -- which S26 tried, on the theory
+        # that four of ninety flags looked like an oversight -- overrides the
+        # header with the pre-derivation value, changes GATE's and FILT's
+        # record shape under the check only, and produces hundreds of
+        # failures that are all the check's own. If a new shared class needs
+        # a flag, add it here only after confirming dsp_block.h does not
+        # derive it.
         for c in 1 2; do
             [ -f "$BUILD_DIR/chip$c.map.xml" ] || continue
             python3 "$(dirname "${BASH_SOURCE[0]}")/../../../../tools/dsp/shared_kernel_check.py" \

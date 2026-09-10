@@ -301,8 +301,30 @@ _C2_MAIN_XOVER_process:
     r5 = 0x4F000000;               /* 2^31 as float */
     f5 = r5;
     f4 = f4 * f5;
-    r4 = fix f4;                   /* alpha_q31; `fix` saturates */
-    /* alpha*(new - old) as TWO MACs into the 80-bit MRF, so the
+    r4 = fix f4;                   /* alpha_q31; see below */
+    /* `fix` ROUNDS TO NEAREST, TIES TO EVEN, and it WRAPS -- it
+     * does not saturate, and this comment said it did until the
+     * S26 sweep (S25-2). Both halves matter here and neither
+     * changes a word of the emitted code:
+     *
+     * ROUNDING. alpha is k/576 and the product alpha*2^31 is an
+     * exact integer for every k except 1 and 2, whose fractions
+     * are .25 and .5-with-an-even-integer-part; ties-to-even and
+     * truncation agree on both. So the ramp NEVER separates the
+     * two rules -- which is exactly why the wrong belief lived
+     * here for months, and why the model was corrected against
+     * the rule rather than against a failing vector.
+     *
+     * WRAPPING. alpha == 1.0 makes the product exactly 2^31,
+     * which is not a 32-bit integer; the part returns 0xFFFFFFFF
+     * for it, not a saturated 0x7FFFFFFF (the same wrap the
+     * compressor's parallel-blend clamp exists to dodge, bench
+     * 2026-08-23). The corner is UNREACHABLE because the ramp
+     * stores alpha only while it is still below 1.0 -- but the
+     * safety is the ramp's, not this instruction's, so any
+     * change to the ramp has to preserve alpha < 1.0.
+     *
+     * alpha*(new - old) as TWO MACs into the 80-bit MRF, so the
      * difference is NEVER formed in a 32-bit register (review
      * finding D3). `new` and `old` are independently saturated
      * Q4.28 outputs, so new-old spans +/-(2^32-1) and the old
@@ -356,8 +378,30 @@ _C2_MAIN_XOVER_process:
     r5 = 0x4F000000;               /* 2^31 as float */
     f5 = r5;
     f4 = f4 * f5;
-    r4 = fix f4;                   /* alpha_q31; `fix` saturates */
-    /* alpha*(new - old) as TWO MACs into the 80-bit MRF, so the
+    r4 = fix f4;                   /* alpha_q31; see below */
+    /* `fix` ROUNDS TO NEAREST, TIES TO EVEN, and it WRAPS -- it
+     * does not saturate, and this comment said it did until the
+     * S26 sweep (S25-2). Both halves matter here and neither
+     * changes a word of the emitted code:
+     *
+     * ROUNDING. alpha is k/576 and the product alpha*2^31 is an
+     * exact integer for every k except 1 and 2, whose fractions
+     * are .25 and .5-with-an-even-integer-part; ties-to-even and
+     * truncation agree on both. So the ramp NEVER separates the
+     * two rules -- which is exactly why the wrong belief lived
+     * here for months, and why the model was corrected against
+     * the rule rather than against a failing vector.
+     *
+     * WRAPPING. alpha == 1.0 makes the product exactly 2^31,
+     * which is not a 32-bit integer; the part returns 0xFFFFFFFF
+     * for it, not a saturated 0x7FFFFFFF (the same wrap the
+     * compressor's parallel-blend clamp exists to dodge, bench
+     * 2026-08-23). The corner is UNREACHABLE because the ramp
+     * stores alpha only while it is still below 1.0 -- but the
+     * safety is the ramp's, not this instruction's, so any
+     * change to the ramp has to preserve alpha < 1.0.
+     *
+     * alpha*(new - old) as TWO MACs into the 80-bit MRF, so the
      * difference is NEVER formed in a 32-bit register (review
      * finding D3). `new` and `old` are independently saturated
      * Q4.28 outputs, so new-old spans +/-(2^32-1) and the old

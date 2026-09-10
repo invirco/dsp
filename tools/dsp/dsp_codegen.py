@@ -6950,8 +6950,30 @@ def _xfade_blend_core(pfx, nid):
             r5 = 0x4F000000;               /* 2^31 as float */
             f5 = r5;
             f4 = f4 * f5;
-            r4 = fix f4;                   /* alpha_q31; `fix` saturates */
-            /* alpha*(new - old) as TWO MACs into the 80-bit MRF, so the
+            r4 = fix f4;                   /* alpha_q31; see below */
+            /* `fix` ROUNDS TO NEAREST, TIES TO EVEN, and it WRAPS -- it
+             * does not saturate, and this comment said it did until the
+             * S26 sweep (S25-2). Both halves matter here and neither
+             * changes a word of the emitted code:
+             *
+             * ROUNDING. alpha is k/576 and the product alpha*2^31 is an
+             * exact integer for every k except 1 and 2, whose fractions
+             * are .25 and .5-with-an-even-integer-part; ties-to-even and
+             * truncation agree on both. So the ramp NEVER separates the
+             * two rules -- which is exactly why the wrong belief lived
+             * here for months, and why the model was corrected against
+             * the rule rather than against a failing vector.
+             *
+             * WRAPPING. alpha == 1.0 makes the product exactly 2^31,
+             * which is not a 32-bit integer; the part returns 0xFFFFFFFF
+             * for it, not a saturated 0x7FFFFFFF (the same wrap the
+             * compressor's parallel-blend clamp exists to dodge, bench
+             * 2026-08-23). The corner is UNREACHABLE because the ramp
+             * stores alpha only while it is still below 1.0 -- but the
+             * safety is the ramp's, not this instruction's, so any
+             * change to the ramp has to preserve alpha < 1.0.
+             *
+             * alpha*(new - old) as TWO MACs into the 80-bit MRF, so the
              * difference is NEVER formed in a 32-bit register (review
              * finding D3). `new` and `old` are independently saturated
              * Q4.28 outputs, so new-old spans +/-(2^32-1) and the old
@@ -10195,6 +10217,18 @@ NUM_SELFTEST_TEMPLATE = '''\
 .global _nst_bl_n;      .var _nst_bl_n = {nbl};
 .global _nst_bl_r;      .var _nst_bl_r[{nbl}];
 
+/* ---- the FIX arm (S25-2, swept S26) ----------------------------------
+ * One float32 word per vector, and the integer `Rn = FIX Fx` makes of
+ * it. Nothing is scaled here on purpose: every conversion in the tree
+ * reaches `fix` as a float32 that some multiply already produced, so
+ * measuring `fix` on the float32 DIRECTLY answers the question for all
+ * of them at once and leaves no multiply in the way of the reading. */
+.global _nst_fix_v;
+.var _nst_fix_v[{nfix}] =
+{fixv};
+.global _nst_fix_n;     .var _nst_fix_n = {nfix};
+.global _nst_fix_r;     .var _nst_fix_r[{nfix}];
+
 /* the blend core reads its alpha from here (pfx=nst, nid=PROBE) */
 .global _nst_xfade_alpha_PROBE;
 .var _nst_xfade_alpha_PROBE = 0.0;
@@ -10432,6 +10466,24 @@ _num_selftest:
     .nst_bl_lp:
         nop;
 
+    /* ================= FIX arm =================
+     * `fix` with NO negative-control twin, and that is deliberate: the
+     * control for a rounding rule is not another build, it is the
+     * VECTOR SET -- fractions of .25, .5 and .75 at both signs, on
+     * which the three candidate rules disagree with each other. A
+     * vector on which they agree proves nothing and the table marks
+     * those as its own negative controls. */
+    i4 = _nst_fix_v;
+    i5 = _nst_fix_r;
+    r14 = dm(_nst_fix_n);
+    lcntr = r14, do .nst_fix_lp until lce;
+        f0 = dm(i4, 1);
+        r0 = fix f0;
+        dm(i5, 1) = r0;
+        nop;
+    .nst_fix_lp:
+        nop;
+
     /* ================= TIMING arm =================
      * The SAME work through both MAC forms. Three arms:
      *   pair 0  null loop (the setup and loop overhead)
@@ -10583,9 +10635,15 @@ def gen_num_selftest():
     bl[-1] = bl[-1].replace(',   /*', '    /*', 1)
     blv = '\n'.join(bl)
 
+    fx = ['    0x%08X,   /* %-52s */' % (b, lab)
+          for b, _v, lab, _ir in bv.FIXV]
+    fx[-1] = fx[-1].replace(',   /*', '    /*', 1)
+    fixv = '\n'.join(fx)
+
     return NUM_SELFTEST_TEMPLATE.format(
         nmix=len(bv.MIX), nmix6=6 * len(bv.MIX), mixv=mixv,
         nbl=len(bv.BLEND), nbl3=3 * len(bv.BLEND), blv=blv,
+        nfix=len(bv.FIXV), fixv=fixv,
         blend_core=_xfade_blend_core('nst', 'PROBE'))
 
 
@@ -13935,9 +13993,22 @@ FIXED_GENERATORS = {
 # every one of the `r0 = _field_<nid>;` sites -- was inside a preprocessor
 # arm that was never assembled. The combination that actually failed to
 # build was SHARED_KERNELS + DYN_LUT, not SHARED_KERNELS + SIMD_DYN.
+#
+# GATE AND FILT JOINED IN S26, and they are the two biggest bodies on chip 1
+# that the pattern fits: 1,072 and 968 bytes an instance, 32 instances each.
+# Neither body touches i5/i6/i7, so the stub has the registers it needs, and
+# neither loads its own record base into a DATA register, so `n_rreg` is 0
+# and the scratch register is never emitted -- which is just as well for
+# GATE, where r0-r15 are ALL live at some point and no spare exists. The
+# `if n_rreg:` guard on the scratch check is what makes that a supported
+# configuration rather than a lucky one; a GATE that later grew a
+# `r0 = _field_<nid>;` site would fail the generator, not miscompile.
 SHARED_KERNEL_CLASSES = {
     'COMP': dict(bit=1, base_reg='i7', prev_reg='i5', scratch_reg='r11'),
     'TUBE': dict(bit=2, base_reg='i7', prev_reg='i5', scratch_reg='r11'),
+    'GATE': dict(bit=4, base_reg='i7', prev_reg='i5', scratch_reg='r11'),
+    'FILT': dict(bit=8, base_reg='i7', prev_reg='i5', scratch_reg='r11',
+                 pool_reg='i6'),
 }
 
 
@@ -14030,7 +14101,7 @@ def _shk_field(sym, nid):
 
 
 def _shk_rewrite(code, nid, prev_buf, fields, cls, base_reg, prev_reg,
-                 scratch_reg):
+                 scratch_reg, pool_reg=None):
     """Turn one node's emitted code into the shared body.
 
     Every rewrite is checked: anything left naming this node, or naming a
@@ -14085,6 +14156,64 @@ def _shk_rewrite(code, nid, prev_buf, fields, cls, base_reg, prev_reg,
     code = re.sub(r'(\.[A-Za-z_][A-Za-z0-9_]*)_' + re.escape(nid) + r'\b',
                   r'\1_shk' + cls.lower(), code)
 
+    # 5b. NODE-LOCAL SUBROUTINES. FILT and EQ carry a private routine of
+    #     their own -- `_filt_start_xfade_<nid>`, which stages the dormant
+    #     coefficient set -- called from the body and defined a little
+    #     further down the same PM section. Its innards are already
+    #     record-relative by the time this runs, because rules 1-4 rewrote
+    #     every `.var` reference inside it; all that is left is the routine's
+    #     own NAME, and 32 copies of one routine is the same waste as 32
+    #     copies of the body that calls it.
+    #
+    #     ONLY SYMBOLS THIS BODY DEFINES ARE RENAMED, and that restriction is
+    #     the whole safety of the step. A `_<name>_<nid>` that is merely
+    #     REFERENCED here belongs to another node -- exactly the mistake that
+    #     handed strip 7's compressor strip 1's gate buffer in the first draft
+    #     of this pass -- so it is left alone and falls into the check below,
+    #     which fails the generator rather than silently binding it.
+    local_defs = re.findall(r'^[ \t]*(_[A-Za-z0-9_]+)_' + re.escape(nid)
+                            + r'[ \t]*:', code, re.M)
+    for stem in sorted(set(local_defs)):
+        # `_filt_start_xfade_<nid>` under class FILT would otherwise become
+        # `_shk_filt_filt_start_xfade`; drop the stem's own class prefix so
+        # the shared name reads the way the class's other two do.
+        short = stem
+        if short.startswith('_%s_' % cls.lower()):
+            short = short[len(cls) + 1:]
+        code = re.sub(re.escape(stem) + '_' + re.escape(nid) + r'\b',
+                      '_shk_%s%s' % (cls.lower(), short), code)
+
+    # 5c. A SECOND BLOCK-POOL REFERENCE, WHERE THE CLASS HAS ONE.
+    #     The i3/i4 prologue moves wholesale into the stub, which is enough
+    #     for COMP, TUBE and GATE. FILT names its chain slot AGAIN further
+    #     down -- `i2 = BLK_CHAIN_B_P1;`, twice, re-pointing i2 at the block
+    #     it has been writing -- and a shared body cannot name it, because
+    #     the `_P1` suffix is the STRIP'S PARITY (blk_pool.h): baking strip
+    #     1's form into one shared body would hand every even strip the odd
+    #     bank. So the stub loads that slot, in ITS OWN parity, into a
+    #     register the class does not otherwise touch, and the body reads
+    #     the register.
+    #
+    #     EXACTLY ONE distinct slot may remain, and that is the point of the
+    #     check rather than a limitation of the rewrite: two would need two
+    #     registers and a decision about which is which, and guessing is how
+    #     a node comes to write the wrong half of the pool. `pool_reg` is
+    #     never MODIFIED by the body -- the check below requires the body not
+    #     to assign it -- so it still holds the base at every one of these
+    #     sites, which the i3/i4 the prologue set up do not.
+    if pool_reg:
+        slots = sorted(set(re.findall(r'\bBLK_[A-Z_0-9]+\b',
+                                      re.sub(r'/\*.*?\*/', '', code,
+                                             flags=re.S))))
+        if len(slots) > 1:
+            raise ValueError(
+                'shared kernels (%s): %d distinct block-pool slots remain '
+                'after the prologue moved into the stub (%s); `pool_reg` '
+                'passes exactly one.' % (cls, len(slots), slots))
+        if slots:
+            code = re.sub(r'\b(i[0-7])\s*=\s*%s\s*;' % slots[0],
+                          r'\1 = %s;' % pool_reg, code)
+
     # 6. the checks. A node's own comments legitimately name its id and the
     #    pool slots (the block-kernel body carries a long note about both),
     #    so the checks run on the code with comments stripped -- what matters
@@ -14099,7 +14228,7 @@ def _shk_rewrite(code, nid, prev_buf, fields, cls, base_reg, prev_reg,
         raise ValueError('shared kernels (%s): the body still names a block '
                          'pool slot after the stub took them over: %s'
                          % (cls, sorted(set(re.findall(r'BLK_[A-Z_0-9]+', bare)))))
-    for reg in (base_reg, prev_reg):
+    for reg in [base_reg, prev_reg] + ([pool_reg] if pool_reg else []):
         if re.search(r'\b%s\s*=' % reg, bare):
             raise ValueError('shared kernels (%s): the body assigns %s, which '
                              'is the register the stub passes it a strip in'
@@ -14223,12 +14352,33 @@ def gen_shared_kernels(chip_label, chip_nodes, bodies, headers,
                 'has moved; update _SHK_PROLOGUE.' % (cls, len(pm_all)))
         code = _SHK_PROLOGUE.sub('', code, count=1)
 
+        pool_reg = spec.get('pool_reg')
         shared_code, counts = _shk_rewrite(code, canon, prev_buf, fields,
                                            cls, base_reg, prev_reg,
-                                           spec['scratch_reg'])
+                                           spec['scratch_reg'], pool_reg)
 
         shared_out.append((cls, bit, defines, externs, shared_code, counts,
                            len(nids)))
+
+        # DOES EACH HALF ACTUALLY READ THE POOL REGISTER? The per-sample
+        # entry is on the hot path -- 32 strips x 48 kHz -- so a stub that
+        # loads a register that half never reads is not tidy-looking waste,
+        # it is ~3 M instructions a second. FILT reads it in the block half
+        # only. Split at the `_smp` label and ask each half.
+        pool_in_blk = pool_in_smp = False
+        if pool_reg:
+            _cut = shared_code.find('_shk_%s_smp:' % cls.lower())
+            _blk = shared_code if _cut < 0 else shared_code[:_cut]
+            _smp = '' if _cut < 0 else shared_code[_cut:]
+            _pr = re.compile(r'\b%s\b' % pool_reg)
+            pool_in_blk = bool(_pr.search(re.sub(r'/\*.*?\*/', '', _blk,
+                                                 flags=re.S)))
+            pool_in_smp = bool(_pr.search(re.sub(r'/\*.*?\*/', '', _smp,
+                                                 flags=re.S)))
+            if not (pool_in_blk or pool_in_smp):
+                raise ValueError(
+                    'shared kernels (%s): pool_reg %s is declared but the '
+                    'shared body never reads it' % (cls, pool_reg))
 
         # ---- the stubs ----------------------------------------------------
         for nid in nids:
@@ -14270,6 +14420,28 @@ def gen_shared_kernels(chip_label, chip_nodes, bodies, headers,
                     prologue.rstrip('\n'),
                     '    %s = %s;' % (base_reg, rec_base),
                     '    l%s = 0;' % base_reg[1]]
+            nslots = None
+            if pool_reg and (pool_in_blk or pool_in_smp):
+                # THIS node's slot, in THIS node's parity, read off THIS
+                # node's own body -- never the canonical node's, for the
+                # same reason the predecessor buffer is read off it.
+                # The PROLOGUE's own two slots are removed by deleting the
+                # prologue text, exactly as the shared body does -- NOT by
+                # name. FILT's extra reference is to the same slot the
+                # prologue already loaded (BLK_CHAIN_B), so filtering by
+                # name would discard the very slot the stub has to pass.
+                _rest = _SHK_PROLOGUE.sub('', ncode, count=1)
+                nslots = sorted(set(re.findall(
+                    r'\bBLK_[A-Z_0-9]+\b',
+                    re.sub(r'/\*.*?\*/', '', _rest, flags=re.S))))
+                if len(nslots) != 1:
+                    raise ValueError(
+                        'shared kernels (%s): %s leaves %d block-pool slots '
+                        'for the stub to pass (%s), not 1'
+                        % (cls, nid, len(nslots), nslots))
+                if pool_in_blk:
+                    stub += ['    %s = %s;' % (pool_reg, nslots[0]),
+                             '    l%s = 0;' % pool_reg[1]]
             if nprev:
                 stub += ['    %s = %s;' % (prev_reg, nprev),
                          '    l%s = 0;' % prev_reg[1]]
@@ -14279,6 +14451,9 @@ def gen_shared_kernels(chip_label, chip_nodes, bodies, headers,
                      '_%s_process_sample:' % nid,
                      '    %s = %s;' % (base_reg, rec_base),
                      '    l%s = 0;' % base_reg[1]]
+            if pool_reg and pool_in_smp:
+                stub += ['    %s = %s;' % (pool_reg, nslots[0]),
+                         '    l%s = 0;' % pool_reg[1]]
             if nprev:
                 stub += ['    %s = %s;' % (prev_reg, nprev),
                          '    l%s = 0;' % prev_reg[1]]

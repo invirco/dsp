@@ -146,6 +146,34 @@
 .extern _bq_fx_cascade_N;
 .extern _bq_fx_convert_N;
 
+#if (DSP4_SHARED_KERNELS & 4)
+/* SHARED KERNEL (S18). The body this node used to carry inline is
+ * `_shk_gate_blk` in chip1/shared_kernels.asm, entered with this
+ * node's record base in i7. See SHARED_KERNEL_CLASSES in
+ * tools/dsp/dsp_codegen.py for why this is a jump and not a call. */
+.extern _shk_gate_blk;
+.extern _shk_gate_smp;
+.global _C1_GATE_13_process;
+_C1_GATE_13_process:
+    l3 = 0;
+    l4 = 0;
+    i3 = BLK_CHAIN_B_P1;
+    i4 = BLK_CHAIN_A_P1;
+    i7 = _gate_on_C1_GATE_13;
+    l7 = 0;
+    i5 = _buf_C1_EQ_13;
+    l5 = 0;
+    jump _shk_gate_blk;
+_C1_GATE_13_process.end:
+.global _C1_GATE_13_process_sample;
+_C1_GATE_13_process_sample:
+    i7 = _gate_on_C1_GATE_13;
+    l7 = 0;
+    i5 = _buf_C1_EQ_13;
+    l5 = 0;
+    jump _shk_gate_smp;
+_C1_GATE_13_process_sample.end:
+#else
 .global _C1_GATE_13_process;
 _C1_GATE_13_process:
 
@@ -533,3 +561,4 @@ _C1_GATE_13_process_sample:
     dm(_buf_C1_GATE_13) = r0;
     rts;
 _C1_GATE_13_process.end:
+#endif

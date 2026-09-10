@@ -468,6 +468,960 @@
         _shk_comp_blk.end:
 #endif
 
+/* ==== FILT: one body for 32 strips ====
+ * rewritten sites: 35 direct accesses, 34 DAG base loads, 5 address-to-register,
+ * 3 predecessor-buffer accesses. */
+#if (DSP4_SHARED_KERNELS & 8)
+#if DSP4_BQ_FLOAT
+#define SHK_FILT_OFF_filt_hpf_A      (0)
+#define SHK_FILT_CUR0 (SHK_FILT_OFF_filt_hpf_A + 5)
+#elif DSP4_BQ_GUARD
+#define SHK_FILT_OFF_filt_hpf_A      (0)
+#define SHK_FILT_CUR0 (SHK_FILT_OFF_filt_hpf_A + 5 + 1)
+#else
+#define SHK_FILT_OFF_filt_hpf_A      (0)
+#define SHK_FILT_CUR0 (SHK_FILT_OFF_filt_hpf_A + 5)
+#endif
+#if DSP4_BQ_FLOAT
+#define SHK_FILT_OFF_filt_lpf_A      (SHK_FILT_CUR0)
+#define SHK_FILT_CUR1 (SHK_FILT_OFF_filt_lpf_A + 5)
+#else
+#define SHK_FILT_OFF_filt_lpf_A      (SHK_FILT_CUR0)
+#define SHK_FILT_CUR1 (SHK_FILT_OFF_filt_lpf_A + 5)
+#endif
+#define SHK_FILT_OFF_filt_state_A    (SHK_FILT_CUR1)
+#if DSP4_BQ_FLOAT
+#define SHK_FILT_OFF_filt_hpf_B      (SHK_FILT_OFF_filt_state_A + 12)
+#define SHK_FILT_CUR2 (SHK_FILT_OFF_filt_hpf_B + 5)
+#elif DSP4_BQ_GUARD
+#define SHK_FILT_OFF_filt_hpf_B      (SHK_FILT_OFF_filt_state_A + 12)
+#define SHK_FILT_CUR2 (SHK_FILT_OFF_filt_hpf_B + 5 + 1)
+#else
+#define SHK_FILT_OFF_filt_hpf_B      (SHK_FILT_OFF_filt_state_A + 12)
+#define SHK_FILT_CUR2 (SHK_FILT_OFF_filt_hpf_B + 5)
+#endif
+#if DSP4_BQ_FLOAT
+#define SHK_FILT_OFF_filt_lpf_B      (SHK_FILT_CUR2)
+#define SHK_FILT_CUR3 (SHK_FILT_OFF_filt_lpf_B + 5)
+#else
+#define SHK_FILT_OFF_filt_lpf_B      (SHK_FILT_CUR2)
+#define SHK_FILT_CUR3 (SHK_FILT_OFF_filt_lpf_B + 5)
+#endif
+#define SHK_FILT_OFF_filt_state_B    (SHK_FILT_CUR3)
+#if DSP4_BQ_FLOAT
+#define SHK_FILT_OFF_hpf_coeffs_next (SHK_FILT_OFF_filt_state_B + 12)
+#define SHK_FILT_CUR4 (SHK_FILT_OFF_hpf_coeffs_next + 5)
+#else
+#define SHK_FILT_OFF_hpf_coeffs_next (SHK_FILT_OFF_filt_state_B + 12)
+#define SHK_FILT_CUR4 (SHK_FILT_OFF_hpf_coeffs_next + 5)
+#endif
+#define SHK_FILT_OFF_hpf_swap_pending (SHK_FILT_CUR4)
+#if DSP4_BQ_FLOAT
+#define SHK_FILT_OFF_lpf_coeffs_next (SHK_FILT_OFF_hpf_swap_pending + 1)
+#define SHK_FILT_CUR5 (SHK_FILT_OFF_lpf_coeffs_next + 5)
+#else
+#define SHK_FILT_OFF_lpf_coeffs_next (SHK_FILT_OFF_hpf_swap_pending + 1)
+#define SHK_FILT_CUR5 (SHK_FILT_OFF_lpf_coeffs_next + 5)
+#endif
+#define SHK_FILT_OFF_lpf_swap_pending (SHK_FILT_CUR5)
+#define SHK_FILT_OFF_filt_active     (SHK_FILT_OFF_lpf_swap_pending + 1)
+#define SHK_FILT_OFF_filt_xfade_alpha (SHK_FILT_OFF_filt_active + 1)
+#define SHK_FILT_OFF_filt_xfade_step (SHK_FILT_OFF_filt_xfade_alpha + 1)
+#if DSP4_BQ_GUARD
+#define SHK_FILT_OFF_filt_hrw        (SHK_FILT_OFF_filt_xfade_step + 1)
+#define SHK_FILT_OFF_filt_hrl        (SHK_FILT_OFF_filt_hrw + 1)
+#define SHK_FILT_CUR6 (SHK_FILT_OFF_filt_hrl + 2)
+#else
+#define SHK_FILT_CUR6 (SHK_FILT_OFF_filt_xfade_step + 1)
+#endif
+#define SHK_FILT_OFF_buf             (SHK_FILT_CUR6)
+#define SHK_FILT_REC_LEN             (SHK_FILT_OFF_buf + 1)
+
+.section/pm seg_pmco;
+.extern _bq_fx_cascade_N;
+.extern _bq_fx_convert_N;
+#if DSP4_BLOCK_KERNELS
+.extern _bq_fx_cascade_blk;
+#endif
+#if DSP4_BQ_GUARD
+.extern _bq_hr_node1;
+#endif
+.global _shk_filt_blk;
+_shk_filt_blk:
+
+#if DSP4_BLOCK_KERNELS
+    /* ---- per-block steady state; transients go per-sample ---- */
+    r4 = dm(SHK_FILT_OFF_hpf_swap_pending, i7);
+    r5 = dm(SHK_FILT_OFF_lpf_swap_pending, i7);
+    r4 = r4 or r5;
+    r5 = dm(SHK_FILT_OFF_filt_xfade_step, i7);
+    r4 = r4 or r5;
+#if DSP4_BQ_GUARD
+    r5 = dm(SHK_FILT_OFF_filt_hrw, i7);
+    r4 = r4 or r5;      /* a sizing in flight is a transient too */
+#endif
+    r4 = pass r4;
+    if eq jump (pc, .fkb_ss_shkfilt);
+
+    /* A swap is pending or a crossfade is running: run the block
+     * through the per-sample reference path, one sample at a time,
+     * staging through the scalar buffers it already uses.
+     *
+     * IN PLACE ON BLK_CHAIN_B_P1 (review finding D55, 2026-08-29).
+     * This wrote BLK_CHAIN_A_P1 until today, which EQ's transient path
+     * then read -- correct only when BOTH were crossfading. With
+     * EQ steady, EQ cascaded the stale contents of B and this
+     * node's output was dropped on the floor for the 576 samples of
+     * the fade. The read and the write walk together, so sample i
+     * is consumed before it is overwritten. */
+    lcntr = DSP4_BLOCK_SIZE, do .fkb_xl_shkfilt until lce;
+        r0 = dm(i3, 1);
+        dm(i5, 0) = r0;
+        call _shk_filt_smp;
+        r0 = dm(SHK_FILT_OFF_buf, i7);
+    .fkb_xl_shkfilt: dm(i4, 1) = r0;
+    rts;
+
+.fkb_ss_shkfilt:
+    /* Steady state, FUSED. The cascade works IN PLACE, so FILT
+     * filters its INPUT slot where it stands instead of copying the
+     * block to the other half of the ping-pong first. EQ then
+     * cascades in place on the same slot, so the FILT->EQ handoff
+     * costs nothing at all: no copy, no slot change, no call
+     * between them beyond the cascade itself. Two block copies
+     * deleted, 4 memory ops per sample. */
+    l0 = 0;
+    l1 = 0;
+    l2 = 0;
+    l3 = 0;
+    l4 = 0;
+
+    r4 = dm(SHK_FILT_OFF_filt_active, i7);
+    r4 = pass r4;
+    if ne jump (pc, .fkb_b_shkfilt);
+    i0 = i7;
+            modify(i0, SHK_FILT_OFF_filt_hpf_A);
+    i1 = i7;
+            modify(i1, SHK_FILT_OFF_filt_state_A);
+    i2 = i6;
+    r4 = 2;                     /* HPF and LPF in ONE call: their
+                                 * coefficient arrays are adjacent
+                                 * and the state array is 2x6, so
+                                 * the cascade walks both. */
+    call _bq_fx_cascade_blk;
+    rts;
+.fkb_b_shkfilt:
+    i0 = i7;
+            modify(i0, SHK_FILT_OFF_filt_hpf_B);
+    i1 = i7;
+            modify(i1, SHK_FILT_OFF_filt_state_B);
+    i2 = i6;
+    r4 = 2;
+    call _bq_fx_cascade_blk;
+    rts;
+
+.global _shk_filt_smp;
+_shk_filt_smp:
+#endif
+
+
+    r4 = dm(SHK_FILT_OFF_hpf_swap_pending, i7);
+    r5 = dm(SHK_FILT_OFF_lpf_swap_pending, i7);
+    r4 = r4 or r5;
+    #if DSP4_BQ_GUARD
+    r6 = dm(SHK_FILT_OFF_filt_hrw, i7);
+    r4 = r4 or r6;
+    #endif
+    r4 = pass r4;
+    if ne call _shk_filt_start_xfade;
+
+    r4 = dm(SHK_FILT_OFF_filt_xfade_step, i7);
+    r4 = pass r4;
+    if ne jump (pc, .filt_xfade_shkfilt);
+
+    /* ===== steady state ===== */
+    r0 = dm(i5, 0);
+    r4 = dm(SHK_FILT_OFF_filt_active, i7);
+    r4 = pass r4;
+    if ne jump (pc, .filt_ss_b_shkfilt);
+    i0 = i7;
+            modify(i0, SHK_FILT_OFF_filt_hpf_A);
+    i1 = i7;
+            modify(i1, SHK_FILT_OFF_filt_state_A);
+#if DSP4_BQ_GUARD
+    /* HPF and LPF in ONE call, which is what the block kernel has
+     * always done: the two coefficient arrays are adjacent and the
+     * state is 2 x 6. Under the guard it is not an optimisation
+     * but a requirement -- the headroom is a property of the
+     * CASCADE, and this is where the cascade begins and ends. */
+    r4 = 2;
+    call _bq_fx_cascade_N;
+#else
+    r4 = 1;
+    call _bq_fx_cascade_N;
+    i0 = i7;
+            modify(i0, SHK_FILT_OFF_filt_lpf_A);
+    r4 = 1;
+    call _bq_fx_cascade_N;      /* i1 continued to LPF state */
+#endif
+    dm(SHK_FILT_OFF_buf, i7) = r0;
+    rts;
+.filt_ss_b_shkfilt:
+    i0 = i7;
+            modify(i0, SHK_FILT_OFF_filt_hpf_B);
+    i1 = i7;
+            modify(i1, SHK_FILT_OFF_filt_state_B);
+#if DSP4_BQ_GUARD
+    r4 = 2;
+    call _bq_fx_cascade_N;
+#else
+    r4 = 1;
+    call _bq_fx_cascade_N;
+    i0 = i7;
+            modify(i0, SHK_FILT_OFF_filt_lpf_B);
+    r4 = 1;
+    call _bq_fx_cascade_N;
+#endif
+    dm(SHK_FILT_OFF_buf, i7) = r0;
+    rts;
+
+    /* ===== crossfade ===== */
+.filt_xfade_shkfilt:
+    r0 = dm(i5, 0);
+    r13 = r0;
+    i0 = i7;
+            modify(i0, SHK_FILT_OFF_filt_hpf_A);
+    i1 = i7;
+            modify(i1, SHK_FILT_OFF_filt_state_A);
+#if DSP4_BQ_GUARD
+    r4 = 2;
+    call _bq_fx_cascade_N;
+#else
+    r4 = 1;
+    call _bq_fx_cascade_N;
+    i0 = i7;
+            modify(i0, SHK_FILT_OFF_filt_lpf_A);
+    r4 = 1;
+    call _bq_fx_cascade_N;
+#endif
+    r14 = r0;                     /* ya */
+    r0 = r13;
+    i0 = i7;
+            modify(i0, SHK_FILT_OFF_filt_hpf_B);
+    i1 = i7;
+            modify(i1, SHK_FILT_OFF_filt_state_B);
+#if DSP4_BQ_GUARD
+    r4 = 2;
+    call _bq_fx_cascade_N;        /* r0 = yb */
+#else
+    r4 = 1;
+    call _bq_fx_cascade_N;
+    i0 = i7;
+            modify(i0, SHK_FILT_OFF_filt_lpf_B);
+    r4 = 1;
+    call _bq_fx_cascade_N;        /* r0 = yb */
+#endif
+
+    r4 = dm(SHK_FILT_OFF_filt_active, i7);
+    r4 = pass r4;
+    if eq jump (pc, .filt_bl_shkfilt);
+    r5 = r14;
+    r14 = r0;
+    r0 = r5;
+.filt_bl_shkfilt:
+    f4 = dm(SHK_FILT_OFF_filt_xfade_alpha, i7);
+    r5 = 0x4F000000;               /* 2^31 as float */
+    f5 = r5;
+    f4 = f4 * f5;
+    r4 = fix f4;                   /* alpha_q31; see below */
+    /* `fix` ROUNDS TO NEAREST, TIES TO EVEN, and it WRAPS -- it
+     * does not saturate, and this comment said it did until the
+     * S26 sweep (S25-2). Both halves matter here and neither
+     * changes a word of the emitted code:
+     *
+     * ROUNDING. alpha is k/576 and the product alpha*2^31 is an
+     * exact integer for every k except 1 and 2, whose fractions
+     * are .25 and .5-with-an-even-integer-part; ties-to-even and
+     * truncation agree on both. So the ramp NEVER separates the
+     * two rules -- which is exactly why the wrong belief lived
+     * here for months, and why the model was corrected against
+     * the rule rather than against a failing vector.
+     *
+     * WRAPPING. alpha == 1.0 makes the product exactly 2^31,
+     * which is not a 32-bit integer; the part returns 0xFFFFFFFF
+     * for it, not a saturated 0x7FFFFFFF (the same wrap the
+     * compressor's parallel-blend clamp exists to dodge, bench
+     * 2026-08-23). The corner is UNREACHABLE because the ramp
+     * stores alpha only while it is still below 1.0 -- but the
+     * safety is the ramp's, not this instruction's, so any
+     * change to the ramp has to preserve alpha < 1.0.
+     *
+     * alpha*(new - old) as TWO MACs into the 80-bit MRF, so the
+     * difference is NEVER formed in a 32-bit register (review
+     * finding D3). `new` and `old` are independently saturated
+     * Q4.28 outputs, so new-old spans +/-(2^32-1) and the old
+     * `r5 = r0 - r14` wrapped when the two instances straddled
+     * full scale mid-swap -- up to a block of full-scale-wrong
+     * samples, a click. Same instruction count, and identical
+     * arithmetic everywhere the subtract did not wrap.
+     * Model: fixed_ref.xfade_blend. The final add cannot
+     * overflow -- the result is a convex combination of two
+     * int32s, bounded by them; the bound is in numeric-spec.md.
+     *
+     * EMITTED FROM ONE PLACE: _xfade_blend_core() in
+     * dsp_codegen.py. Every EQ/GEQ/AFB/FILT/CROSSOVER node and
+     * the in-part self-test (lib/num_selftest.asm) get these
+     * exact instructions from this one expression, so the
+     * sequence the self-test proves bit-exact against the model
+     * is the sequence the nodes run. */
+    mrf = r0 * r4 (ssi);           /* + new*alpha */
+    mrf = mrf - r14 * r4 (ssi);    /* - old*alpha */
+    r5 = 0x40000000;               /* 2^30 rounding half */
+    r12 = 1;
+    mrf = mrf + r5 * r12 (ssi);
+    r5 = mr0f;
+    r12 = mr1f;
+    r5 = lshift r5 by -31;
+    r12 = lshift r12 by 1;
+    r5 = r5 or r12;
+    r0 = r14 + r5;                 /* blended output */
+    dm(SHK_FILT_OFF_buf, i7) = r0;
+
+    f4 = dm(SHK_FILT_OFF_filt_xfade_alpha, i7);
+    f5 = dm(SHK_FILT_OFF_filt_xfade_step, i7);
+    f4 = f4 + f5;
+    dm(SHK_FILT_OFF_filt_xfade_alpha, i7) = f4;
+    r5 = 0x3F800000;
+    f5 = r5;
+    comp(f4, f5);
+    if lt rts;
+    r4 = dm(SHK_FILT_OFF_filt_active, i7);
+    r5 = 1;
+    r4 = r4 xor r5;
+    dm(SHK_FILT_OFF_filt_active, i7) = r4;
+    r4 = 0;
+    dm(SHK_FILT_OFF_filt_xfade_step, i7) = r4;
+    dm(SHK_FILT_OFF_filt_xfade_alpha, i7) = r4;
+    rts;
+
+    /* ===== stage into dormant ===== */
+_shk_filt_start_xfade:
+#if DSP4_BQ_GUARD
+    r4 = dm(SHK_FILT_OFF_filt_hrw, i7);
+    r4 = pass r4;
+    if ne jump (pc, .filt_hrp_shkfilt);   /* already converted */
+#endif
+    /* dormant pointers (i1 = coeff base, i2 = state base) and
+     * active coeff base (i0) */
+    r4 = dm(SHK_FILT_OFF_filt_active, i7);
+    r4 = pass r4;
+    if ne jump (pc, .filt_st_a_shkfilt);
+    i0 = i7;
+            modify(i0, SHK_FILT_OFF_filt_hpf_A);       /* active = A (hpf+lpf adjacent) */
+    i1 = i7;
+            modify(i1, SHK_FILT_OFF_filt_hpf_B);
+    i2 = i7;
+            modify(i2, SHK_FILT_OFF_filt_state_B);
+    jump (pc, .filt_st_go_shkfilt);
+.filt_st_a_shkfilt:
+    i0 = i7;
+            modify(i0, SHK_FILT_OFF_filt_hpf_B);
+    i1 = i7;
+            modify(i1, SHK_FILT_OFF_filt_hpf_A);
+    i2 = i7;
+            modify(i2, SHK_FILT_OFF_filt_state_A);
+.filt_st_go_shkfilt:
+    /* baseline: copy active fixed hpf[5] to dormant hpf. With the
+     * guard the block carries a header word in front of it, and
+     * the copy carries it too -- the sizer overwrites it a
+     * millisecond later, but a stale H is never a wrong H here
+     * because the coefficients it belonged to came with it. */
+    r5 = 5 + DSP4_BQ_HDR;
+    lcntr = r5, do .filt_cph_shkfilt until lce;
+        r4 = dm(i0, 1);
+.filt_cph_shkfilt:
+        dm(i1, 1) = r4;
+    /* i0/i1 now at the lpf blocks only if hpf/lpf are adjacent —
+     * they are separate vars, so reload explicitly */
+    r4 = dm(SHK_FILT_OFF_filt_active, i7);
+    r4 = pass r4;
+    if ne jump (pc, .filt_st2a_shkfilt);
+    i0 = i7;
+            modify(i0, SHK_FILT_OFF_filt_lpf_A);
+    i1 = i7;
+            modify(i1, SHK_FILT_OFF_filt_lpf_B);
+    jump (pc, .filt_st2go_shkfilt);
+.filt_st2a_shkfilt:
+    i0 = i7;
+            modify(i0, SHK_FILT_OFF_filt_lpf_B);
+    i1 = i7;
+            modify(i1, SHK_FILT_OFF_filt_lpf_A);
+.filt_st2go_shkfilt:
+    r5 = 5;
+    lcntr = r5, do .filt_cpl_shkfilt until lce;
+        r4 = dm(i0, 1);
+.filt_cpl_shkfilt:
+        dm(i1, 1) = r4;
+
+    /* overwrite pending filter(s) from float staging */
+    r4 = dm(SHK_FILT_OFF_hpf_swap_pending, i7);
+    r4 = pass r4;
+    if eq jump (pc, .filt_nohpf_shkfilt);
+    r4 = 0;
+    dm(SHK_FILT_OFF_hpf_swap_pending, i7) = r4;
+    i0 = i7;
+            modify(i0, SHK_FILT_OFF_hpf_coeffs_next);
+    r4 = dm(SHK_FILT_OFF_filt_active, i7);
+    r4 = pass r4;
+    if ne jump (pc, .filt_cvha_shkfilt);
+    i1 = i7;
+            modify(i1, SHK_FILT_OFF_filt_hpf_B);
+    jump (pc, .filt_cvhgo_shkfilt);
+.filt_cvha_shkfilt:
+    i1 = i7;
+            modify(i1, SHK_FILT_OFF_filt_hpf_A);
+.filt_cvhgo_shkfilt:
+    #if DSP4_BQ_GUARD
+l1 = 0;
+modify(i1, 1);            /* past the headroom header */
+#endif
+    r4 = 1;
+    call _bq_fx_convert_N;
+.filt_nohpf_shkfilt:
+    r4 = dm(SHK_FILT_OFF_lpf_swap_pending, i7);
+    r4 = pass r4;
+    if eq jump (pc, .filt_nolpf_shkfilt);
+    r4 = 0;
+    dm(SHK_FILT_OFF_lpf_swap_pending, i7) = r4;
+    i0 = i7;
+            modify(i0, SHK_FILT_OFF_lpf_coeffs_next);
+    r4 = dm(SHK_FILT_OFF_filt_active, i7);
+    r4 = pass r4;
+    if ne jump (pc, .filt_cvla_shkfilt);
+    i1 = i7;
+            modify(i1, SHK_FILT_OFF_filt_lpf_B);
+    jump (pc, .filt_cvlgo_shkfilt);
+.filt_cvla_shkfilt:
+    i1 = i7;
+            modify(i1, SHK_FILT_OFF_filt_lpf_A);
+.filt_cvlgo_shkfilt:
+    r4 = 1;
+    call _bq_fx_convert_N;
+.filt_nolpf_shkfilt:
+    #if DSP4_BQ_GUARD
+    .filt_hrp_shkfilt:      /* re-entry: converted, still asking */
+    r11 = i7;
+            r0 = SHK_FILT_OFF_filt_hrw;
+            r0 = r0 + r11;
+    r11 = i7;
+            r1 = SHK_FILT_OFF_filt_hrl;
+            r1 = r1 + r11;
+    r11 = i7;
+            r2 = SHK_FILT_OFF_filt_active;
+            r2 = r2 + r11;
+    r11 = i7;
+            r3 = SHK_FILT_OFF_filt_hpf_A;
+            r3 = r3 + r11;
+    r11 = i7;
+            r4 = SHK_FILT_OFF_filt_hpf_B;
+            r4 = r4 + r11;
+    r5 = 2;
+    call _bq_hr_ask;
+    r0 = pass r0;
+    if eq rts;              /* not sized yet; back next block */
+    #endif
+
+    /* zero dormant state + start ramp */
+    r4 = dm(SHK_FILT_OFF_filt_active, i7);
+    r4 = pass r4;
+    if ne jump (pc, .filt_zsa_shkfilt);
+    i2 = i7;
+            modify(i2, SHK_FILT_OFF_filt_state_B);
+    jump (pc, .filt_zsgo_shkfilt);
+.filt_zsa_shkfilt:
+    i2 = i7;
+            modify(i2, SHK_FILT_OFF_filt_state_A);
+.filt_zsgo_shkfilt:
+    r4 = 0;
+    r5 = 12;
+    lcntr = r5, do .filt_zst_shkfilt until lce;
+.filt_zst_shkfilt:
+        dm(i2, 1) = r4;
+    f0 = 0.001736111111111111;
+    dm(SHK_FILT_OFF_filt_xfade_step, i7) = f0;
+    r4 = 0;
+    dm(SHK_FILT_OFF_filt_xfade_alpha, i7) = r4;
+    rts;
+_shk_filt_blk.end:
+#endif
+
+/* ==== GATE: one body for 32 strips ====
+ * rewritten sites: 64 direct accesses, 5 DAG base loads, 0 address-to-register,
+ * 2 predecessor-buffer accesses. */
+#if (DSP4_SHARED_KERNELS & 4)
+#define SHK_GATE_OFF_gate_on         (0)
+#define SHK_GATE_OFF_gate_threshold  (SHK_GATE_OFF_gate_on + 1)
+#define SHK_GATE_OFF_gate_attack     (SHK_GATE_OFF_gate_threshold + 1)
+#define SHK_GATE_OFF_gate_release    (SHK_GATE_OFF_gate_attack + 1)
+#define SHK_GATE_OFF_gate_hold       (SHK_GATE_OFF_gate_release + 1)
+#if !DSP4_PAIRED_GRAPH
+#define SHK_GATE_OFF_gate_hold_count (SHK_GATE_OFF_gate_hold + 1)
+#define SHK_GATE_CUR0 (SHK_GATE_OFF_gate_hold_count + 1)
+#else
+#define SHK_GATE_CUR0 (SHK_GATE_OFF_gate_hold + 1)
+#endif
+#define SHK_GATE_OFF_gate_range      (SHK_GATE_CUR0)
+#define SHK_GATE_OFF_gate_key_src    (SHK_GATE_OFF_gate_range + 1)
+#define SHK_GATE_OFF_gate_det_src    (SHK_GATE_OFF_gate_key_src + 1)
+#define SHK_GATE_OFF_gate_filter_on  (SHK_GATE_OFF_gate_det_src + 1)
+#if DSP4_BQ_FLOAT
+#define SHK_GATE_OFF_gate_filter_hpf (SHK_GATE_OFF_gate_filter_on + 1)
+#define SHK_GATE_CUR1 (SHK_GATE_OFF_gate_filter_hpf + 5)
+#else
+#define SHK_GATE_OFF_gate_filter_hpf (SHK_GATE_OFF_gate_filter_on + 1)
+#define SHK_GATE_CUR1 (SHK_GATE_OFF_gate_filter_hpf + 5)
+#endif
+#if DSP4_BQ_FLOAT
+#define SHK_GATE_OFF_gate_filter_lpf (SHK_GATE_CUR1)
+#define SHK_GATE_CUR2 (SHK_GATE_OFF_gate_filter_lpf + 5)
+#else
+#define SHK_GATE_OFF_gate_filter_lpf (SHK_GATE_CUR1)
+#define SHK_GATE_CUR2 (SHK_GATE_OFF_gate_filter_lpf + 5)
+#endif
+#if DSP4_BQ_GUARD
+#define SHK_GATE_OFF_gate_filter_cq  (SHK_GATE_CUR2)
+#define SHK_GATE_CUR3 (SHK_GATE_OFF_gate_filter_cq + 11)
+#else
+#define SHK_GATE_OFF_gate_filter_cq  (SHK_GATE_CUR2)
+#define SHK_GATE_CUR3 (SHK_GATE_OFF_gate_filter_cq + 10)
+#endif
+#define SHK_GATE_OFF_gate_filter_state (SHK_GATE_CUR3)
+#define SHK_GATE_OFF_gate_envelope   (SHK_GATE_OFF_gate_filter_state + 12)
+#define SHK_GATE_OFF_gate_gain       (SHK_GATE_OFF_gate_envelope + 1)
+#define SHK_GATE_OFF_gate_gain_target_q (SHK_GATE_OFF_gate_gain + 1)
+#if DSP4_PAIRED_GRAPH
+#define SHK_GATE_OFF_gate_hold_count (SHK_GATE_OFF_gate_gain_target_q + 1)
+#define SHK_GATE_CUR4 (SHK_GATE_OFF_gate_hold_count + 1)
+#else
+#define SHK_GATE_CUR4 (SHK_GATE_OFF_gate_gain_target_q + 1)
+#endif
+#define SHK_GATE_OFF_gate_attq       (SHK_GATE_CUR4)
+#define SHK_GATE_OFF_gate_relq       (SHK_GATE_OFF_gate_attq + 1)
+#define SHK_GATE_OFF_gate_thrq       (SHK_GATE_OFF_gate_relq + 1)
+#define SHK_GATE_OFF_gate_rngq       (SHK_GATE_OFF_gate_thrq + 1)
+#if DSP4_PAIRED_GRAPH
+#define SHK_GATE_OFF_gate_holdq      (SHK_GATE_OFF_gate_rngq + 1)
+#define SHK_GATE_CUR5 (SHK_GATE_OFF_gate_holdq + 1)
+#else
+#define SHK_GATE_CUR5 (SHK_GATE_OFF_gate_rngq + 1)
+#endif
+#define SHK_GATE_OFF_buf             (SHK_GATE_CUR5)
+#if DSP4_BLOCK_KERNELS
+#define SHK_GATE_OFF_gate_saved_idx  (SHK_GATE_OFF_buf + 1)
+#define SHK_GATE_CUR6 (SHK_GATE_OFF_gate_saved_idx + 1)
+#else
+#define SHK_GATE_CUR6 (SHK_GATE_OFF_buf + 1)
+#endif
+#define SHK_GATE_REC_LEN             (SHK_GATE_CUR6)
+
+.section/pm seg_pmco;
+.extern _sample_idx;
+.extern _envq_fx;
+.extern _log2q_fx;
+.extern _exp2q_fx;
+.extern _mrf_rns28;
+.extern _bq_fx_cascade_N;
+.extern _bq_fx_convert_N;
+.global _shk_gate_blk;
+_shk_gate_blk:
+
+#if DSP4_BLOCK_KERNELS
+    /* ---- per-block kernel ----------------------------------
+     * Hoisted out of the sample loop: the _sample_idx == 0 guard
+     * (evaluated 32 times for work done once), the _gate_on and
+     * _gate_filter_on tests, and the four converted parameters,
+     * which are block constants but were re-loaded from DM every
+     * sample. Envelope, gain, gain target and hold count stay in
+     * registers across the block -- _envq_fx, _log2q_fx and
+     * _mrf_rns28 all preserve r6-r15, which is what makes that
+     * safe. The sidechain biquad does NOT (it clobbers r0-r12),
+     * so a gate with its sidechain filter enabled falls back to
+     * the per-sample path for the whole block.
+     *
+     * NOTE the guard cannot simply be kept: under block kernels
+     * _sample_idx is 31 when the chain runs, so a _sample_idx == 0
+     * test never fires and the parameters would never convert at
+     * all. The conversion is done unconditionally, once. */
+
+    r2 = dm(SHK_GATE_OFF_gate_on, i7);
+    r2 = pass r2;
+    if eq jump (pc, .gkb_copy_shkgate);
+    r2 = dm(SHK_GATE_OFF_gate_filter_on, i7);
+    r2 = pass r2;
+    if ne jump (pc, .gkb_ref_shkgate);
+
+    /* block-rate parameter conversion, once */
+    r2 = 0x4F000000;
+    f2 = r2;
+    f1 = dm(SHK_GATE_OFF_gate_attack, i7);
+    f1 = f1 * f2;
+    r1 = fix f1;
+    dm(SHK_GATE_OFF_gate_attq, i7) = r1;
+    f1 = dm(SHK_GATE_OFF_gate_release, i7);
+    f1 = f1 * f2;
+    r1 = fix f1;
+    dm(SHK_GATE_OFF_gate_relq, i7) = r1;
+    r2 = 0x4AAA152D;
+    f2 = r2;
+    f1 = dm(SHK_GATE_OFF_gate_threshold, i7);
+    f1 = f1 * f2;
+    r1 = fix f1;
+    dm(SHK_GATE_OFF_gate_thrq, i7) = r1;
+    /* GATE RANGE IS DECIBELS ON THE WIRE (review finding D39).
+     * The master documents Chan[1-32]GateRng as depth in dB
+     * (d32-mx-master.csv, table 0=0/127=60, note "Gate
+     * depth/range 0-60dB"). This used to scale the wire float
+     * straight by 2^28 and use it as a LINEAR floor, so a host
+     * writing the documented 40.0 got 40.0 x 2^28 -- saturated
+     * garbage -- and the deepest gate the protocol can ask for
+     * produced no attenuation at all. dsp_simulate.py:237 has
+     * always performed this conversion, which is what proved the
+     * convention was dB before it was ever measured.
+     *
+     * CELL SEMANTICS ARE THE CONTRACT AND THE MASTERS WIN, so the
+     * conversion belongs here: floor = 10^(-dB/20), which is
+     * 2^(-dB * log2(10)/20), clamped to the documented 0..60 dB.
+     * It is BLOCK RATE -- this whole section sits behind the
+     * _sample_idx == 0 guard -- and _exp2q_fx preserves r6-r15 in
+     * both its table and polynomial forms, so the live sample in
+     * r13 survives the call. */
+    f1 = dm(SHK_GATE_OFF_gate_range, i7);
+    r2 = 0x00000000;              /* 0 dB, documented minimum */
+    f2 = r2;
+    comp(f1, f2);
+    if lt f1 = f2;
+    r2 = 0x42700000;              /* 60 dB, documented maximum */
+    f2 = r2;
+    comp(f1, f2);
+    if gt f1 = f2;
+    r2 = 0xBE2A152D;              /* -log2(10)/20 */
+    f2 = r2;
+    f1 = f1 * f2;
+    r2 = 0x4C000000;              /* x 2^25 -> Q6.25 for _exp2q_fx */
+    f2 = r2;
+    f1 = f1 * f2;
+    r0 = fix f1;
+    call _exp2q_fx;               /* r0 = 2^l, Q4.28 */
+    dm(SHK_GATE_OFF_gate_rngq, i7) = r0;
+#if DSP4_PAIRED_GRAPH
+    r1 = dm(SHK_GATE_OFF_gate_hold, i7);
+    dm(SHK_GATE_OFF_gate_holdq, i7) = r1;   /* five consecutive param words */
+#endif
+
+#if DSP4_GATE_LINTHR
+    /* THRESHOLD IN THE LINEAR DOMAIN, ONCE PER BLOCK.
+     *
+     * GATE computes log2(env) for one purpose only: to compare it
+     * against a threshold. That comparison is equivalent in the
+     * linear domain -- log2(env) >= thr  <=>  env >= 2^thr -- so
+     * the threshold is converted ONCE here instead of the envelope
+     * being converted 32 times in the sample loop. It deletes a
+     * _log2q_fx call per sample, measured at ~95 cycles/sample.
+     *
+     * NUMERIC DEVIATION, and it is a small one. Both directions go
+     * through the same polynomials, whose worst error over 0 to
+     * -100 dBFS is 0.0001 dB (log2_q) and 0.0001 dB (exp2_q), so
+     * the gate's EFFECTIVE THRESHOLD shifts by at most 0.0002 dB.
+     * That is a fixed offset on the threshold, not per-sample
+     * noise, and the linear compare is exact where the log compare
+     * carried the polynomial error. Samples whose envelope sits
+     * within 0.0002 dB of the threshold may open or close one
+     * sample earlier or later; the gain then ramps through a
+     * one-pole smoother, so nothing steps.
+     *
+     * NOT bit-exact against the current fixed_ref, so it needs a
+     * numeric-spec amendment and PW's sign-off before it ships.
+     *
+     * THIS CALL MUST COME BEFORE r6/r7 ARE LOADED. _exp2q_fx
+     * clobbers r0-r6, so placing it after the attack/release
+     * alphas were in r6/r7 destroyed the attack alpha and the
+     * envelope follower ran on garbage -- measured as a 60 dB
+     * difference, not the 0.0002 dB the arithmetic predicts. */
+    r0 = dm(SHK_GATE_OFF_gate_thrq, i7);
+    call _exp2q_fx;
+    r8 = r0;                      /* 2^thr, Q4.28 linear */
+    /* AND BACK INTO THE WORD, so that word means exactly one
+     * thing under this switch whichever body ran (S15). It is
+     * re-derived from the float parameter at the top of every
+     * block, so converting in place cannot compound. */
+    dm(SHK_GATE_OFF_gate_thrq, i7) = r0;
+#else
+    r8 = dm(SHK_GATE_OFF_gate_thrq, i7);
+#endif
+    r6 = dm(SHK_GATE_OFF_gate_attq, i7);
+    r7 = dm(SHK_GATE_OFF_gate_relq, i7);
+
+    r9 = dm(SHK_GATE_OFF_gate_rngq, i7);
+    r10 = dm(SHK_GATE_OFF_gate_envelope, i7);
+    r11 = dm(SHK_GATE_OFF_gate_gain, i7);
+    r12 = dm(SHK_GATE_OFF_gate_gain_target_q, i7);
+    r14 = dm(SHK_GATE_OFF_gate_hold_count, i7);
+    r15 = dm(SHK_GATE_OFF_gate_hold, i7);
+
+    lcntr = DSP4_BLOCK_SIZE, do .gkb_lp_shkgate until lce;
+        r13 = dm(i3, 1);
+        r0 = abs r13;
+        r1 = r10;
+        r2 = r6;
+        r3 = r7;
+        call _envq_fx;
+        r10 = r0;
+        r1 = pass r0;
+        if le jump (pc, .gkb_below_shkgate);
+#if DSP4_GATE_LINTHR
+        comp(r0, r8);             /* env vs 2^thr, both Q4.28 */
+#else
+        call _log2q_fx;
+        comp(r0, r8);
+#endif
+        if ge jump (pc, .gkb_open_shkgate);
+    .gkb_below_shkgate:
+        r14 = r14 - 1;
+        if gt jump (pc, .gkb_ramp_shkgate);
+        r12 = r9;
+        jump (pc, .gkb_ramp_shkgate);
+    .gkb_open_shkgate:
+        r12 = 0x10000000;
+        r14 = r15;
+    .gkb_ramp_shkgate:
+        r0 = r12;
+        r1 = r11;
+        r2 = r6;
+        r3 = r7;
+        call _envq_fx;
+        r11 = r0;
+        r1 = r0;
+        r0 = r13;
+        mrf = r0 * r1 (ssi);
+        call _mrf_rns28;
+        nop;
+        nop;
+    .gkb_lp_shkgate: dm(i4, 1) = r0;
+
+    dm(SHK_GATE_OFF_gate_envelope, i7) = r10;
+    dm(SHK_GATE_OFF_gate_gain, i7) = r11;
+    dm(SHK_GATE_OFF_gate_gain_target_q, i7) = r12;
+    dm(SHK_GATE_OFF_gate_hold_count, i7) = r14;
+    rts;
+
+.gkb_copy_shkgate:
+    /* bypassed: the per-sample body just passes x through */
+    lcntr = DSP4_BLOCK_SIZE, do .gkb_cp_shkgate until lce;
+        r0 = dm(i3, 1);
+    .gkb_cp_shkgate: dm(i4, 1) = r0;
+    rts;
+
+.gkb_ref_shkgate:
+    /* Sidechain filter enabled: hand the block to the per-sample
+     * reference path. _sample_idx is driven so its once-per-block
+     * conversion fires on the first sample exactly as it would in
+     * a per-sample build. */
+    r5 = dm(_sample_idx);
+    dm(SHK_GATE_OFF_gate_saved_idx, i7) = r5;
+    r5 = 0;
+    dm(_sample_idx) = r5;
+    lcntr = DSP4_BLOCK_SIZE, do .gkb_rl_shkgate until lce;
+        r0 = dm(i3, 1);
+        dm(i5, 0) = r0;
+        call _shk_gate_smp;
+        r5 = 1;
+        dm(_sample_idx) = r5;
+        r0 = dm(SHK_GATE_OFF_buf, i7);
+    .gkb_rl_shkgate: dm(i4, 1) = r0;
+    r5 = dm(SHK_GATE_OFF_gate_saved_idx, i7);
+    dm(_sample_idx) = r5;
+    rts;
+
+.global _shk_gate_smp;
+_shk_gate_smp:
+#endif
+
+    r0 = dm(i5, 0);
+    r2 = dm(SHK_GATE_OFF_gate_on, i7);
+    r3 = 0;
+    comp(r2, r3);
+    if eq jump (pc, .gate_bypass_shkgate);
+    r13 = r0;
+
+    /* --- block rate: param conversion --- */
+/* Kept in BOTH builds: this node has a block kernel that drives
+ * _sample_idx before reaching here, so the guard fires exactly
+ * once per block and is doing its job. */
+    r4 = dm(_sample_idx);
+    r1 = 0;
+    comp(r4, r1);
+    if ne jump (pc, .gate_go_shkgate);
+
+    r2 = 0x4F000000;
+    f2 = r2;
+    f1 = dm(SHK_GATE_OFF_gate_attack, i7);
+    f1 = f1 * f2;
+    r1 = fix f1;
+    dm(SHK_GATE_OFF_gate_attq, i7) = r1;
+    f1 = dm(SHK_GATE_OFF_gate_release, i7);
+    f1 = f1 * f2;
+    r1 = fix f1;
+    dm(SHK_GATE_OFF_gate_relq, i7) = r1;
+    r2 = 0x4AAA152D;
+    f2 = r2;
+    f1 = dm(SHK_GATE_OFF_gate_threshold, i7);
+    f1 = f1 * f2;
+    r1 = fix f1;
+    dm(SHK_GATE_OFF_gate_thrq, i7) = r1;
+#if DSP4_GATE_LINTHR
+    /* THE THRESHOLD IN THE LINEAR DOMAIN, ONCE PER BLOCK — and
+     * the word itself carries the linear value, so no reader
+     * can pick up the log one (S15).
+     *
+     * log2(env) >= thr is env >= 2^thr, so the conversion is
+     * done here, once, instead of the envelope being converted
+     * every sample. In the PAIRED graph this word is one of the
+     * five _gate_pair_blk gathers, which is why the store
+     * matters and not just the register.
+     *
+     * _exp2q_fx preserves r6-r15, so the live sample in r13
+     * survives; r2 is dead here and the range conversion below
+     * reloads it. */
+    r0 = r1;
+    call _exp2q_fx;               /* r0 = 2^thr, Q4.28 */
+    dm(SHK_GATE_OFF_gate_thrq, i7) = r0;
+#endif
+    /* GATE RANGE IS DECIBELS ON THE WIRE (review finding D39).
+     * The master documents Chan[1-32]GateRng as depth in dB
+     * (d32-mx-master.csv, table 0=0/127=60, note "Gate
+     * depth/range 0-60dB"). This used to scale the wire float
+     * straight by 2^28 and use it as a LINEAR floor, so a host
+     * writing the documented 40.0 got 40.0 x 2^28 -- saturated
+     * garbage -- and the deepest gate the protocol can ask for
+     * produced no attenuation at all. dsp_simulate.py:237 has
+     * always performed this conversion, which is what proved the
+     * convention was dB before it was ever measured.
+     *
+     * CELL SEMANTICS ARE THE CONTRACT AND THE MASTERS WIN, so the
+     * conversion belongs here: floor = 10^(-dB/20), which is
+     * 2^(-dB * log2(10)/20), clamped to the documented 0..60 dB.
+     * It is BLOCK RATE -- this whole section sits behind the
+     * _sample_idx == 0 guard -- and _exp2q_fx preserves r6-r15 in
+     * both its table and polynomial forms, so the live sample in
+     * r13 survives the call. */
+    f1 = dm(SHK_GATE_OFF_gate_range, i7);
+    r2 = 0x00000000;              /* 0 dB, documented minimum */
+    f2 = r2;
+    comp(f1, f2);
+    if lt f1 = f2;
+    r2 = 0x42700000;              /* 60 dB, documented maximum */
+    f2 = r2;
+    comp(f1, f2);
+    if gt f1 = f2;
+    r2 = 0xBE2A152D;              /* -log2(10)/20 */
+    f2 = r2;
+    f1 = f1 * f2;
+    r2 = 0x4C000000;              /* x 2^25 -> Q6.25 for _exp2q_fx */
+    f2 = r2;
+    f1 = f1 * f2;
+    r0 = fix f1;
+    call _exp2q_fx;               /* r0 = 2^l, Q4.28 */
+    dm(SHK_GATE_OFF_gate_rngq, i7) = r0;
+#if DSP4_PAIRED_GRAPH
+    r1 = dm(SHK_GATE_OFF_gate_hold, i7);
+    dm(SHK_GATE_OFF_gate_holdq, i7) = r1;   /* five consecutive param words */
+#endif
+    r2 = dm(SHK_GATE_OFF_gate_filter_on, i7);
+    r2 = pass r2;
+    if eq jump (pc, .gate_go_shkgate);
+    i0 = i7;
+            modify(i0, SHK_GATE_OFF_gate_filter_hpf);
+    i1 = i7;
+            modify(i1, SHK_GATE_OFF_gate_filter_cq);
+#if DSP4_BQ_GUARD
+    l1 = 0;
+    modify(i1, 1);            /* past the headroom header */
+#endif
+    r4 = 1;
+    call _bq_fx_convert_N;
+    i0 = i7;
+            modify(i0, SHK_GATE_OFF_gate_filter_lpf);
+    r4 = 1;
+    call _bq_fx_convert_N;      /* i1 continued */
+.gate_go_shkgate:
+
+    /* --- sidechain: |x| (+ optional HPF/LPF) --- */
+    r0 = abs r13;
+    r2 = dm(SHK_GATE_OFF_gate_filter_on, i7);
+    r2 = pass r2;
+    if eq jump (pc, .gate_nofilt_shkgate);
+    i0 = i7;
+            modify(i0, SHK_GATE_OFF_gate_filter_cq);
+    i1 = i7;
+            modify(i1, SHK_GATE_OFF_gate_filter_state);
+    r4 = 2;
+    call _bq_fx_cascade_N;
+    r0 = abs r0;
+.gate_nofilt_shkgate:
+
+    r1 = dm(SHK_GATE_OFF_gate_envelope, i7);
+    r2 = dm(SHK_GATE_OFF_gate_attq, i7);
+    r3 = dm(SHK_GATE_OFF_gate_relq, i7);
+    call _envq_fx;
+    dm(SHK_GATE_OFF_gate_envelope, i7) = r0;
+
+    /* threshold compare */
+    r1 = pass r0;
+    if le jump (pc, .gate_below_shkgate);   /* env==0: below */
+#if DSP4_GATE_LINTHR
+    r1 = dm(SHK_GATE_OFF_gate_thrq, i7);    /* 2^thr, Q4.28: compare linear */
+    comp(r0, r1);
+#else
+    call _log2q_fx;
+    r1 = dm(SHK_GATE_OFF_gate_thrq, i7);
+    comp(r0, r1);
+#endif
+    if ge jump (pc, .gate_open_shkgate);
+.gate_below_shkgate:
+    r4 = dm(SHK_GATE_OFF_gate_hold_count, i7);
+    r15 = 1;
+    r4 = r4 - r15;
+    dm(SHK_GATE_OFF_gate_hold_count, i7) = r4;
+    if gt jump (pc, .gate_ramp_shkgate);
+    r5 = dm(SHK_GATE_OFF_gate_rngq, i7);
+    dm(SHK_GATE_OFF_gate_gain_target_q, i7) = r5;
+    jump (pc, .gate_ramp_shkgate);
+.gate_open_shkgate:
+    r5 = 0x10000000;
+    dm(SHK_GATE_OFF_gate_gain_target_q, i7) = r5;
+    r4 = dm(SHK_GATE_OFF_gate_hold, i7);
+    dm(SHK_GATE_OFF_gate_hold_count, i7) = r4;
+.gate_ramp_shkgate:
+    /* one-pole gain smoother (fixed): gain += a*(target-gain) */
+    r0 = dm(SHK_GATE_OFF_gate_gain_target_q, i7);
+    r1 = dm(SHK_GATE_OFF_gate_gain, i7);
+    r2 = dm(SHK_GATE_OFF_gate_attq, i7);
+    r3 = dm(SHK_GATE_OFF_gate_relq, i7);
+    call _envq_fx;                 /* same one-pole form */
+    dm(SHK_GATE_OFF_gate_gain, i7) = r0;
+
+    r1 = r0;
+    r0 = r13;
+    mrf = r0 * r1 (ssi);
+    call _mrf_rns28;
+    dm(SHK_GATE_OFF_buf, i7) = r0;
+    rts;
+.gate_bypass_shkgate:
+    dm(SHK_GATE_OFF_buf, i7) = r0;
+    rts;
+_shk_gate_blk.end:
+#endif
+
 /* ==== TUBE: one body for 32 strips ====
  * rewritten sites: 14 direct accesses, 0 DAG base loads, 0 address-to-register,
  * 2 predecessor-buffer accesses. */

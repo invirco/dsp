@@ -207,8 +207,8 @@ def mix_sum_wrapping(samples, gains, bits=64):
 # either way.
 #
 #   alpha    float control-plane ramp 0.0 -> 1.0, one step per call
-#   a31      = sat32(int(alpha * 2**31))     (the kernel's `fix`, which
-#            saturates, so alpha == 1.0 gives 2**31 - 1, not 2**31)
+#   a31      = fix32(alpha * 2**31)          (the kernel's `fix`: rounds
+#            to nearest, ties to even, and WRAPS -- see xfade_alpha_q)
 #   out      = old + rns(a31 * (new - old), 31)
 #
 # THE DIFFERENCE IS EXACT. `new` and `old` are independently saturated
@@ -254,10 +254,24 @@ def xfade_alpha_q(alpha):
     return 0xFFFFFFFF for it, not a saturated 0x7FFFFFFF. That corner is
     unreachable and is left unmodelled deliberately, but any change to
     the alpha ramp has to preserve alpha < 1.0.
+
+    ROUNDING (S26, sweeping S25-2). This function used to be
+    `sat32(int(...))`, which TRUNCATES toward zero and SATURATES, and
+    the part does neither: `fix` rounds to nearest with ties to even and
+    wraps. It agreed with the part anyway, and the reason is worth
+    keeping because it is not a reason to trust: over the ramp's whole
+    reachable domain -- alpha = k/576 for k in 0..575 -- the float32
+    product alpha*2^31 is an EXACT INTEGER for every k except 1 and 2.
+    Those two carry fractions of .25 and .5-with-an-even-integer-part,
+    on which truncation and ties-to-even happen to agree. So 576 of 576
+    steps matched under a model that was wrong twice over, and no vector
+    the ramp can produce would ever have shown it. The model now states
+    the part's rule instead of a rule that coincides with it; no golden
+    moves, and `fix_sweep.py --check` is the standing bar.
     """
     import struct
     f32 = lambda x: struct.unpack('<f', struct.pack('<f', x))[0]
-    return sat32(int(f32(f32(alpha) * f32(float(1 << QA)))))
+    return fix32(f32(f32(alpha) * f32(float(1 << QA))))
 
 
 def _wrap32(v):

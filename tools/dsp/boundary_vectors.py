@@ -117,6 +117,87 @@ def f32_bits(x):
     return struct.unpack('<I', struct.pack('<f', float(x)))[0]
 
 
+# ---------------------------------------------------------------------------
+# `fix` ITSELF (S25-2, swept and witnessed in S26)
+# ---------------------------------------------------------------------------
+#
+# Every float->fixed conversion in this tree is `float32 * SCALE` followed
+# by one `Rn = FIX Fx`, so ONE vector set answers the question for all ten
+# classes fix_sweep.py enumerates: hand the part a float32 word, read back
+# the integer it produced. What varies between classes is only which part
+# of this table's domain their scale lands them in.
+#
+# THE TABLE HAS TO SEPARATE THE THREE CANDIDATE RULES, and most values do
+# not. A vector only carries information if truncation, round-half-away
+# and round-half-even disagree on it:
+#
+#   fraction .25    all three agree (down)          -- a NEGATIVE control
+#   fraction .75    truncation differs from both    -- separates truncate
+#   fraction .5 even integer part   half-away differs from half-even
+#   fraction .5 odd integer part    truncation differs from both
+#
+# and each of those again with the sign flipped, because truncation is
+# toward ZERO and floor is not -- a rule that looks right on positives
+# alone is the easiest way to get this wrong.
+#
+# THE LAST FOUR ARE OUT OF 32-BIT RANGE ON PURPOSE. `fix` has been
+# measured at exactly ONE overflow point (float32 2^31 -> 0xFFFFFFFF,
+# 2026-08-23/29) and fixed_ref.fix32 refuses to model the rest from one
+# point. These four turn that refusal into a measurement instead of
+# leaving it as a gap: the host RECORDS what comes back rather than
+# asserting what should.
+#
+# Values are exact float32s by construction -- every one is a small
+# integer plus a quarter, which needs 2 fractional bits and has 24.
+
+def _fixv(x, label, in_range=True):
+    return (f32_bits(x), float(x), label, in_range)
+
+
+FIXV = [
+    _fixv(0.0,          'zero'),
+    _fixv(1.0,          'one, exact'),
+    _fixv(-1.0,         'minus one, exact'),
+    _fixv(4.25,         '+.25  all rules agree (negative control)'),
+    _fixv(-4.25,        '-.25  all rules agree (negative control)'),
+    _fixv(4.75,         '+.75  separates TRUNCATE from both round rules'),
+    _fixv(-4.75,        '-.75  separates TRUNCATE (toward zero) from floor'),
+    _fixv(4.5,          '+.5 even  half-even -> 4, half-away -> 5'),
+    _fixv(5.5,          '+.5 odd   half-even -> 6, truncate -> 5'),
+    _fixv(-4.5,         '-.5 even  half-even -> -4, half-away -> -5'),
+    _fixv(-5.5,         '-.5 odd   half-even -> -6, truncate -> -5'),
+    # The three products S25's pan probe actually failed on, verbatim.
+    _fixv(31.5,         'pan idx 31: the S25 failure, exactly'),
+    _fixv(63.5,         'pan idx 63: the S25 failure, exactly'),
+    _fixv(94.5,         'pan idx 94: the S25 failure, exactly'),
+    # The largest magnitude at which a float32 can still be fractional,
+    # and the first at which it cannot. Above 2^23 the rounding rule is
+    # unobservable, which is the whole reason most sites are exact.
+    _fixv(8388607.5,    '2^23 - 0.5, the last fractional float32'),
+    _fixv(8388608.0,    '2^23, the first magnitude with no fraction left'),
+    # Out of range: measured, not asserted.
+    _fixv(2147483648.0, '+2^31, one past the top             [OUT OF RANGE]',
+          False),
+    _fixv(-2147483648.0, '-2^31, the most negative int32     [in range]'),
+    _fixv(2147483904.0, '+2^31 + 256                         [OUT OF RANGE]',
+          False),
+    _fixv(4294967296.0, '+2^32                               [OUT OF RANGE]',
+          False),
+]
+
+
+def fix_expected():
+    """What each FIXV vector must read back, and None where the answer is
+    OUT of the modelled domain and is being MEASURED rather than checked."""
+    out = []
+    for _bits, val, _label, in_range in FIXV:
+        if not in_range:
+            out.append(None)
+            continue
+        out.append(fr.fix32(val))
+    return out
+
+
 def expected():
     """(mix_results, blend_results) from the model — what the part must
     return, in table order."""
