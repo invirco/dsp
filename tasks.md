@@ -1,3 +1,86 @@
+## HUB DISPATCH 2026-09-10 02:41Z — S18 — the code pool's real lever measured: S17-6 explained (chip 2 D24 boot-dependent by ten points), one of the nine 32-copy kernels made SHARED on the rig and in the graph (call cost per block vs bytes returned, bit-exact, behind a switch), the decision table for PW on the other eight   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+S18 — THE CODE POOL'S REAL LEVER, MEASURED: 85 % of chip 1's pool is 32 copies of 9 kernels — one class made SHARED (called per strip with its state/coefficient base in registers, not inlined 32×) on the rig and in the graph, its call cost per block measured against the bytes it returns, bit-exact, then the decision for PW on the remaining eight; and S17-6 explained (chip 2's D24 cost is boot-dependent by ten points)
+
+WHY. S17 (dsp 8cb0b11) closed every correctness item ahead of the
+window: §3 was a real overflow in the fixed arm, fixed for nothing
+(contract-worst H = 4 in the generated initialiser) and the float
+shipping image was never exposed; D80 closed as an instrument artefact
+(a meter read 12 s into a 32×-stretched curve); D79 closed — it was D71,
+address 0x0000 is a live parameter on both chips and the only single-word
+discard has been gated since 08-31; S12-10 fixed with no reboot and the
+contract's 82 samples MEASURED on `s16_*` (84/81, TX_EARLY=2; 67 without);
+`_proc_cyc_max` reset in DIAG_CLEAR, which corrects S10-8: chip 1's D24
+margin is 28 %, not 15 %. What is left on the dsp side that is not PW's
+call: chip 1's code pool at 388 bytes of margin, where 85 % of the pool
+is 32 copies of 9 per-strip kernels — the generator inlines every strip
+(PW's 08-24 fusion directive: one emitted kernel per strip, stage
+handoff in registers, order hard-coded). Sharing a kernel across strips
+keeps all of that inside the kernel and adds one CALL per node per block
+(the 2156x call/return is a few cycles against a 16-sample block body of
+hundreds), so the cycle cost should be under 1 % and the bytes returned
+tens of kilobytes — but this part's rules are measured, not assumed
+(S14: compute→consume +1 c; PM data +1 c; S16: placement matters), and
+the SIMD-paired kernels carry their pair's base addresses in DAG
+registers that a shared body must take as arguments. And S17-6: chip 2's
+D24 cost differs by ten points between boots with zero overruns on
+both — filed, not explained; a capacity number that moves ten points
+with nothing changed is not a number.
+
+BENCH. Rev C unit as S17 left it (`blk_*` booted, BOOT_STAGE 7, matrix-
+app active; staged pairs `blk_*` ships, `cand_*`, `geq_*`, `dyn_*`, `flr_*`,
+`s16_*`, `s16f_*` — NEVER replace any; new candidates as `s18_*`). Every
+image from its own staging path with copy-and-restore; `dsp4_checkchip.py`,
+`dsp4_buildcfg.py`, CCLK measured per row, fresh sym.json per boot;
+`capacity.sh` (clock per row, `_proc_cyc_max` reset), DIAG_BLK_OVERRUN the
+arbiter; the six bars take STAGE, tap on; `dsp_codepool.py --diff` for
+bytes. No deploy. No AI attribution in commits or any work product.
+
+GATES, in order, each witnessed:
+1. **S17-6 explained.** Chip 2 at D24 across ≥ 4 boots: which class
+   moves (per-kernel ladder on the two regimes, `sigprofile2.sh`), and
+   what differs between the boots — a dynamics node in a different
+   branch (the LUT design step's polynomial window? a limiter above/
+   below threshold at compiled defaults?), a placement (the S16 tier
+   order is deterministic — check the map md5 per boot), a DMA phase, or
+   the instrument. First sentence of the status line: **chip 2's ten
+   points are <cause>, and the D24 figure to quote is N %.**
+2. **One class shared, on the rig.** Pick the class with the most bytes
+   × copies on chip 1 (the map says which — likely the float SIMD
+   cascade or the dynamics pair kernel): emit it ONCE as a callable body
+   taking its per-strip bases in the DAG/index registers the pair
+   already uses, the per-strip prologue (base loads + CALL) inlined; the
+   shootout rig measures the call+return overhead per node per block
+   and the body's cycles unchanged (S14's stall rules: does the CALL's
+   pipeline drain cost more than the arithmetic?). Bit-exact vs the
+   inlined form (the same instructions at a different address — the
+   `--diff` proof pattern from S16).
+3. **In the graph.** Behind `DSP4_SHARED_KERNELS=<classmask>`, default
+   0: the one class shared on chip 1 (and chip 2 if it has copies),
+   `dsp_codepool.py --diff` before/after (bytes returned per chip),
+   capacity both chips at D24 and D32 (cycles paid), famverify verdict
+   for verdict, bqeverify/busgold as applicable, golden 59/59. One table:
+   class, copies, bytes/copy, bytes returned, cycles/block paid, % of
+   budget.
+4. **The decision for PW.** Extrapolated from gate 3's measured ratio to
+   the other eight classes: bytes returned vs cycles paid per class, the
+   order to do them in, and what the pool would hold afterwards (the
+   witness, the instruments, future features — the FX engines, the
+   31-band GEQ on more outputs). Recommendation in one line; PW rules
+   the scope (fusion stays inside the kernel either way — the directive
+   is not being reversed, the emitted copy count is).
+5. findings S18-*, `MW/D32/DSP/dsp4-s18-20260910.md`, tasks.md, the window
+   note if any figure moved, this block's status; commit + push main.
+   Stage `s18_*` only if the bars pass with the switch on.
+
+Bounded: gates 1–2 are the session; 3 expected; 4–5 always. No deploy.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-10 00:16Z — S17 — window-readiness correctness now both products fit with margin: dyn_state_bound §3 (sidechain H=4) guarded or disproved, D80 root-caused, D79 chip-2 gainfix in the generator, S12-10 the latency instrument made to work (82 measured on s16_*), S16-9 script hygiene, _proc_cyc_max reset   [status: 🟢 done — **§3 IS A REAL OVERFLOW IN THE FIXED ARM AND IS FIXED BY A CONTRACT-WORST H = 4 IN THE GENERATED INITIALISER AT 0 CYCLES AND 0 BYTES**; reachable by a plain 255 Hz tone (205 wraps at 0 dBFS, 28 at −12 dBFS), proved on the part by `bqguard.sh` — part sizes H = 4, 127 sign inversions unguarded against 127 predicted, 0 guarded, both stream hashes matching the model — and NO SHIPPING IMAGE WAS EVER EXPOSED because `DSP4_BQ_FLOAT` compiles the guard out. The talkback half is disproved: its coefficients have no SPI dispatch entry. **S17-1: the guard's own bar had not LINKED since the float landing** (`bqguard.sh` never named `DSP4_BQ_FLOAT=0`). **D80 CLOSED as an instrument artefact** — at a settled dwell the per-sample and block-kernel builds are BIT-IDENTICAL on all 24 readable chip-2 meters at every capture time; the 0.44–0.90 % was a meter read 12 s into a curve whose constants are stretched 32× by the decimation (`_mtr_peak_C2_MTR_MAIN_01` 1.30406 at 12 s → 0.116157 settled, peak falling while RMS rises — D80's own signature); `c2gold.sh`'s dwell now derives from DEC, 214 s not 12. **D79 CLOSED and it is D71**: SPI address 0x0000 is a live parameter on BOTH chips (`_gain_coeff_C1_GAIN_01`, `_fdr_level_C2_AUX_FDR_01`), which is the whole of the two faces; the only single-word discard in the firmware is `diag.asm:721` and `DSP4_SPI_PARTIAL_FIX2` has gated it in `build.sh` since 2026-08-31 while `diag.h`'s fallback still said 0 — 48 chip-boots, 0 corrupt, `_spi_partial_fix` 0 on every one, and chip 2's sighting was a mis-phased READ (both reported words are documented link artefacts). **S12-10 FIXED and 82 samples MEASURED**: the tool played into `hw:dsp4pcm,0`, which has no playback stream under the slave overlay, and swallowed the failure — capture is device 0 and playback device 1 now, `aplay`'s return code is checked, **no reboot needed or taken**; 100.0 % coherent on every rep, LOGIC reference 14433, TX_EARLY=0 → 67 (S11: 66), TX_EARLY=2 → 82 (S11: 82), S17 tree 83/82, `s16_*` 84/81. **S16-9 DONE**, 57 files, pins canonical. **`_proc_cyc_max` reset in DIAG_CLEAR, and it corrects S10-8: chip 1's D24 margin is 28.0–28.3 %, not 15.2 %** — the 18 % worst-block excess was the config ladder (raw latch 277,743 against S10-8's 277,752; steady worst 71.71–71.97 %, zero overruns). NEW S17-6: chip 2's D24 cost is boot-dependent by ten points, filed not explained. **The default build moves FOUR BYTES per chip** (`302d6142` / `3b3a6f8e`), all of it `DIAG_CLEAR`'s extra store; the S16 baseline was rebuilt and reproduces byte for byte. Bench restored: `blk_*` booted, BOOT_STAGE 7, zero overruns over 90,004 blocks/chip, 221 staged files intact, CPLD `a1f6672af6c3`, matrix-app active.]   [model: opus]
 
 model: opus
