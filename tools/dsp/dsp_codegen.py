@@ -6964,10 +6964,16 @@ def _xfade_blend_core(pfx, nid):
              * here for months, and why the model was corrected against
              * the rule rather than against a failing vector.
              *
-             * WRAPPING. alpha == 1.0 makes the product exactly 2^31,
-             * which is not a 32-bit integer; the part returns 0xFFFFFFFF
-             * for it, not a saturated 0x7FFFFFFF (the same wrap the
-             * compressor's parallel-blend clamp exists to dodge, bench
+             * OVERFLOW. alpha == 1.0 makes the product exactly 2^31,
+             * which is not a 32-bit integer, and the part returns
+             * 0xFFFFFFFF for it -- not a saturated 0x7FFFFFFF. S26
+             * measured three positive overflow points (2^31, 2^31+256
+             * and 2^32) and got 0xFFFFFFFF from ALL THREE, so it is not
+             * a two's-complement wrap either: a wrap would give 0 for
+             * 2^32. Naming the mechanism is beyond what has been
+             * measured; the behaviour is not. It agrees with the
+             * compressor's parallel-blend clamp, which exists because
+             * 100 % scales to exactly 2^31 and read back as -1 (bench
              * 2026-08-23). The corner is UNREACHABLE because the ramp
              * stores alpha only while it is still below 1.0 -- but the
              * safety is the ramp's, not this instruction's, so any

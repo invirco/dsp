@@ -208,7 +208,8 @@ def mix_sum_wrapping(samples, gains, bits=64):
 #
 #   alpha    float control-plane ramp 0.0 -> 1.0, one step per call
 #   a31      = fix32(alpha * 2**31)          (the kernel's `fix`: rounds
-#            to nearest, ties to even, and WRAPS -- see xfade_alpha_q)
+#            to nearest, ties to even; out of range it does NOT saturate
+#            -- see fix32 and xfade_alpha_q)
 #   out      = old + rns(a31 * (new - old), 31)
 #
 # THE DIFFERENCE IS EXACT. `new` and `old` are independently saturated
@@ -257,7 +258,9 @@ def xfade_alpha_q(alpha):
 
     ROUNDING (S26, sweeping S25-2). This function used to be
     `sat32(int(...))`, which TRUNCATES toward zero and SATURATES, and
-    the part does neither: `fix` rounds to nearest with ties to even and
+    the part does neither -- S26's on-part witness returned ties-to-even
+    on 17 of 17 discriminating vectors (truncation fits 10, round-half-
+    away 14), and 0xFFFFFFFF from all three positive overflow points: `fix` rounds to nearest with ties to even and
     wraps. It agreed with the part anyway, and the reason is worth
     keeping because it is not a reason to trust: over the ramp's whole
     reachable domain -- alpha = k/576 for k in 0..575 -- the float32
@@ -593,11 +596,14 @@ def fix32(x):
 
     OUT OF RANGE IT RAISES, and that is the no-fallback policy rather
     than laziness. `fix` on this part does NOT saturate and does NOT
-    two's-complement wrap: at exactly 2^31 it was MEASURED to return
-    0xFFFFFFFF, i.e. -1 (see the CLAMP note in the COMPRESSOR node and
-    xfade_alpha_q's docstring -- two independent measurements, both on
-    the part, both 2026-08-23/29). One measured point is not a model of
-    the overflow behaviour, so this refuses to invent the rest of it.
+    two's-complement wrap. S26 measured THREE positive overflow points
+    on the part -- 2^31, 2^31 + 256 and 2^32 -- and every one returned
+    0xFFFFFFFF, i.e. -1. That rules out both candidate mechanisms: a
+    saturate would give 0x7FFFFFFF and a wrap would give 0 for 2^32.
+    Three points agreeing on one value is still not a MODEL of the
+    overflow behaviour -- nothing negative has been measured, and
+    nothing between 2^31 and 2^32 in fine steps -- so this refuses to
+    invent the rest of it rather than generalising from a pattern.
 
     The consequence is a REQUIREMENT on the kernel, not a limitation of
     the model: every host parameter that reaches a `fix` must be clamped
