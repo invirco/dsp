@@ -92,6 +92,22 @@ cd "$(dirname "$0")"
 ROOT=../../../..
 source ./bench_lock.sh; bench_lock_acquire "$0"
 BENCH=app@192.168.1.219
+# THE SHARED SCRATCH SLOT, NAMED (S16-9). ~/dspboot/chip{1,2}.ldr is not a
+# staged pair -- it is whatever the last measurement run left there, and this
+# script overwrites it. The staged pairs are the PREFIXED ones (blk_*, cand_*,
+# geq_*, dyn_*, flr_*, conf_*, ship_*, tx_*, s16_*) and nothing here writes
+# those. STAGE names a directory of this run's own when the image must survive
+# the next script; it defaults to the scratch slot so nothing that calls this
+# changes behaviour.
+STAGE="${STAGE:-/home/app/dspboot}"
+
+# A staging path other than ~/dspboot needs the shared bench helpers the run
+# script imports. Symlinked, not copied, so there is one working set and a
+# staged run cannot drift from it.
+if [ "$STAGE" != "/home/app/dspboot" ]; then
+  ssh $BENCH "mkdir -p '$STAGE' && for f in /home/app/dspboot/*.py; do \
+      ln -sfn \"\$f\" '$STAGE'/\$(basename \"\$f\"); done" || exit 3
+fi
 mkdir -p "$WORK"
 
 # A tree generated from different inputs is a different directory and
@@ -154,20 +170,20 @@ print(a('proc_cyc'), a('proc_passes'),
   python3 $ROOT/tools/dsp/map_syms.py "$D/chip1.map.xml" > "$D/chip1.sym.json"
   cp -f "$D/chip1.sym.json" /tmp/chip1.sym.json
   scp -q "$D/chip1.ldr" "$D/chip2.ldr" "$D/chip1.sym.json" \
-         "$SRC/dsp4_block.py" $BENCH:/home/app/dspboot/ 2>/dev/null \
+         "$SRC/dsp4_block.py" $BENCH:$STAGE/ 2>/dev/null \
     || scp -q "$D/chip1.ldr" "$D/chip2.ldr" "$D/chip1.sym.json" \
-              $ROOT/tools/pi/dsp4_block.py $BENCH:/home/app/dspboot/
-  scp -q $ROOT/tools/pi/dsp4_audio_verdict.py $BENCH:/home/app/dspboot/audio_verdict.py
-  scp -q $ROOT/tools/pi/gainfix.py $ROOT/tools/pi/tubeon.py $BENCH:/home/app/dspboot/
+              $ROOT/tools/pi/dsp4_block.py $BENCH:$STAGE/
+  scp -q $ROOT/tools/pi/dsp4_audio_verdict.py $BENCH:$STAGE/audio_verdict.py
+  scp -q $ROOT/tools/pi/gainfix.py $ROOT/tools/pi/tubeon.py $BENCH:$STAGE/
   # BENCH PROCEDURE (S8-3): the boot tool and the chip-identity gate go
   # with every run, so a bench cannot be left on a stale dsp4_boot.py that
   # still hands GPIO 6/24 to a0. Path is script-relative, not $ROOT: not
   # every script in here defines one.
-  scp -q "$(dirname "$0")/../../../../tools/pi/dsp4_checkchip.py" "$(dirname "$0")/../../../../tools/pi/dsp4_boot.py" $BENCH:/home/app/dspboot/
+  scp -q "$(dirname "$0")/../../../../tools/pi/dsp4_checkchip.py" "$(dirname "$0")/../../../../tools/pi/dsp4_boot.py" $BENCH:$STAGE/
   scp -q sigprofile_run.sh $BENCH:/home/app/
   BEST=""
   for r in $(seq 1 "$REPS"); do
-    R="$(ssh $BENCH "bash /home/app/sigprofile_run.sh $PT $PP $DWELL 0" 2>&1 | tr '\n' ' | ')"
+    R="$(ssh $BENCH "STAGE='$STAGE' bash /home/app/sigprofile_run.sh $PT $PP $DWELL 0" 2>&1 | tr '\n' ' | ')"
     C="$(echo "$R" | grep -oE '[0-9]+ cycles/pass' | grep -oE '^[0-9]+')"
     echo "block=$BLOCK simd=$G limit=$L mtroff=$MTROFF ro=$RO gd=$GD fl=$FL$FL32 rep=$r pool=$POOL  $R"
     if [ -n "$C" ]; then

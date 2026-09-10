@@ -62,6 +62,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import fixed_ref as fr
 import bq_state_bound as SB
 import bq_h_load as HL
+from bq_h_load import GATE_SIDECHAIN_H
 
 FS = 48000.0
 QS = fr.QS if hasattr(fr, 'QS') else 28
@@ -262,6 +263,33 @@ def gaincomp_sweep(quick):
     return ok
 
 
+def _max_mag(cfs, n=20000):
+    """max|H| over the spectrum, and where it peaks.
+
+    The l1 norm is what an ARBITRARY bounded input can reach; this is
+    what a plain tone can. When the two say different things about a
+    corner, this one is the one an operator meets.
+    """
+    w = np.linspace(0.0, math.pi, n)
+    z = np.exp(-1j * w)
+    h = np.ones_like(z)
+    for (b0, b1, b2, a1, a2_) in cfs:
+        h = h * (b0 + b1 * z + b2 * z * z) / (1.0 + a1 * z + a2_ * z * z)
+    i = int(np.argmax(np.abs(h)))
+    return float(abs(h[i])), float(w[i] * FS / (2.0 * math.pi))
+
+
+def _rect_sine(f0, amp, n):
+    """What the GATE hands its sidechain: |x|, in Q4.28.
+
+    The rectifier is the reason a 255 Hz tone is the drive that matters
+    at a 510 Hz resonance -- |sin| has no component at its own
+    fundamental and a large one at twice it.
+    """
+    return [fr.to_q(abs(amp * math.sin(2.0 * math.pi * f0 * i / FS)))
+            for i in range(n)]
+
+
 def sidechain_sweep(quick):
     print('\n3. THE SIDECHAIN FILTERS, which ARE biquads and DO carry the '
           'other argument\n')
@@ -303,18 +331,59 @@ def sidechain_sweep(quick):
     # which no one would dial deliberately and a recalled preset can
     # nevertheless contain.
     worst2, tag2 = 0.0, None
+    # TWO WORST CORNERS, SEARCHED SEPARATELY, because they are not the
+    # same corner and they answer different questions. |h|_1 is what an
+    # arbitrary bounded input can reach and it is what H is sized on;
+    # max|H| is what a PLAIN TONE reaches, and it is what decides whether
+    # the bound describes a soundcheck or a constructed signal.
+    wmax, wtag = 0.0, None
     for fh in hps:
         for fl in lps:
             for q in qs:
                 cqs = [fr.biquad_coeffs_q(*hplp(fh, q, True)),
                        fr.biquad_coeffs_q(*hplp(fl, q, False))]
-                b, _ = HL.l1_bound([HL.dequant(c) for c in cqs])
+                cfs = [HL.dequant(c) for c in cqs]
+                b, _ = HL.l1_bound(cfs)
                 if b > worst2:
                     worst2, tag2 = b, (fh, fl, q)
+                m, _f = _max_mag(cfs, 2048)
+                if m > wmax:
+                    wmax, wtag = m, (fh, fl, q)
     h2 = HL.headroom_bits(worst2)
+    ok = True
     print(f'   worst HPF+LPF CASCADE bound = {worst2:.2f} at HPF '
           f'{tag2[0]:.0f} Hz, LPF {tag2[1]:.0f} Hz, Q {tag2[2]:.3g}  '
           f'-> H = {h2}')
+    # WHAT A SINE CAN REACH, at that same corner. |h|_1 is what an
+    # arbitrary bounded input reaches and needs a sign pattern matched to
+    # the impulse response to achieve; max|H| is what a plain tone
+    # reaches, and if THAT is over the ceiling the corner is not an
+    # adversarial construction but a soundcheck.
+    wcqs = [fr.biquad_coeffs_q(*hplp(wtag[0], wtag[2], True)),
+            fr.biquad_coeffs_q(*hplp(wtag[1], wtag[2], False))]
+    wm, wf = _max_mag([HL.dequant(c) for c in wcqs], 200000)
+    # and through the kernel, with the gate's own rectifier in front
+    from bq_headroom_guard import internal_wraps
+    n = 8000 if quick else 24000
+    # THE DRIVE IS HALF THE PEAK, not a fixed tone: the rectifier puts a
+    # sine's energy at TWICE its fundamental, so the tone that lands on a
+    # resonance at wf is the one at wf/2. Deriving it from the corner is
+    # what keeps this honest when the contract's worst corner moves.
+    fdrv = wf / 2.0
+    w_fs = internal_wraps(_rect_sine(fdrv, 1.0, n), wcqs, H=0, guard=False)
+    w_m12 = internal_wraps(_rect_sine(fdrv, 0.25, n), wcqs, H=0, guard=False)
+    w_gd = internal_wraps(_rect_sine(fdrv, 1.0, n), wcqs,
+                          H=GATE_SIDECHAIN_H, guard=True)
+    print(f'   worst max|H| = {wm:.2f} (+{20 * math.log10(wm):.1f} dB) at '
+          f'HPF {wtag[0]:.0f} Hz, LPF {wtag[1]:.0f} Hz, Q {wtag[2]:.3g}, '
+          f'peaking at {wf:.0f} Hz')
+    print('   -- what a PLAIN TONE reaches, against Q4.28\'s ceiling of '
+          '8.0')
+    print(f'   through the round-once kernel, gate rectifier in front, '
+          f'{fdrv:.1f} Hz sine ({n} samples):')
+    print(f'     0 dBFS  H = 0: {w_fs} internal wraps   '
+          f'-12 dBFS H = 0: {w_m12}   '
+          f'0 dBFS  H = {GATE_SIDECHAIN_H} guarded: {w_gd}')
     if tag2[0] > tag2[1]:
         print('   (the worst corner has the HPF ABOVE the LPF -- a setting '
               'nobody dials and a recalled preset can carry)')
@@ -323,26 +392,55 @@ def sidechain_sweep(quick):
               'nodes assume: the sidechain blocks carry the guard\'s '
               'header word for shape and nothing sizes them.')
     else:
-        print(f'   *** H = {h2} IS REACHABLE WITHIN THE CONTRACT. The '
-              'gate and talkback sidechain blocks carry the header word '
-              'but NOTHING SIZES')
-        print('   THEM -- they are left at H = 0. At this corner the '
-              'sidechain detector can wrap under round-once. It is one')
-        print('   at the extreme of parameters the DEFS file DOES bound '
-              '-- HPF 20-1000 Hz, LPF 500-20000 Hz, Q 0.1-10 -- so it is')
-        print('   a corner the wire can carry, and it is the one place in '
-              'the tree where the guard is wired for shape and not')
-        print('   for value.')
-        print('   THE REASON IS NOT THE GUARD, IT IS THE CONVERSION: the '
-              'gate and talkback nodes call _bq_fx_convert_N on EVERY')
-        print('   invocation while their filter is on, not once per '
-              'parameter change. There is no parameter-LOAD moment to')
-        print('   hang a control-rate sizing off, and a per-sample sizer '
-              'is not a thing. Converting those two sections when the')
-        print('   parameters change -- which is also several hundred '
-              'cycles a sample of pure waste -- is the fix, and it makes')
-        print('   them the same shape as every other cascade. ***')
-    return h2 == 0
+        print(f'   *** H = {h2} IS REACHABLE WITHIN THE CONTRACT, and '
+              'it is not an adversarial sign pattern that gets there:')
+        print(f'   max|H| over the same box is {wm:.1f} (+{20 * math.log10(wm):.1f} dB) '
+              f'at {wf:.0f} Hz, so a PLAIN TONE reaches it. The gate '
+              'rectifies its')
+        print('   key (r0 = abs r13) before the cascade, so a full-scale '
+              f'{fdrv:.0f} Hz sine puts a {wf:.0f} Hz component of 0.424 '
+              'into')
+        print('   the resonance: simulated through the round-once kernel '
+              f'that is {w_fs} internal wraps in {n} samples, and still')
+        print(f'   {w_m12} at -12 dBFS. A wrap here is a sign inversion '
+              'fed back into the poles of the level detector -- the')
+        print('   gate slams on a loud signal. ***')
+    print()
+    print('   THE FIX, LANDED 2026-09-10: the gate sidechain\'s header word '
+          f'is INITIALISED to the contract worst H = {GATE_SIDECHAIN_H}')
+    print('   (bq_h_load.GATE_SIDECHAIN_H, emitted by dsp_codegen into '
+          'every _gate_filter_cq_* block). It cannot be sized at')
+    print('   parameter load because the node has no parameter-load '
+          'moment -- it converts every block and no swap-trigger cell')
+    print('   says when the wire moved -- but its parameters ARE '
+          'contract-bounded, so one constant covers every setting the')
+    print('   wire can carry. In the INITIALISER, so it costs zero code '
+          'bytes and zero instructions: the converter steps past the')
+    print('   header and never writes it.')
+    if h2 > GATE_SIDECHAIN_H:
+        print(f'   *** THE CONSTANT NO LONGER COVERS THE SWEEP: the '
+              f'contract now reaches H = {h2} and the generator emits '
+              f'{GATE_SIDECHAIN_H}.')
+        print('   Raise bq_h_load.GATE_SIDECHAIN_H and regenerate. ***')
+        ok = False
+    else:
+        print(f'   the sweep\'s worst is H = {h2} and the generator emits '
+              f'{GATE_SIDECHAIN_H}: COVERED.')
+    print()
+    print('   THE TALKBACK HPF IS NOT THE SAME CASE and is no longer '
+          'counted with it. Its coefficient block has no entry in the')
+    print('   SPI dispatch table -- the only talkback filter cell is '
+          'Talk<nn>Hpf001, the ON/OFF word -- so the wire cannot')
+    print('   reach it, it stays at its bypass initialiser, |h|_1 = 1 '
+          'and H = 0 is correct.')
+    print()
+    print('   AND NONE OF IT REACHES A SHIPPING IMAGE. DSP4_BQ_FLOAT is '
+          'the shipping cascade arm and it FORCES DSP4_BQ_GUARD off:')
+    print('   the sidechain runs the 40-bit software float kernel, which '
+          'has no fixed recursion to wrap. This section is the FIXED')
+    print('   reference arm\'s bound -- the arm a future FPGA engine '
+          'follows -- and that is where the fix lands.')
+    return ok
 
 
 

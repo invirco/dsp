@@ -29,7 +29,30 @@ import subprocess
 import sys
 import time
 
-DEV = "hw:dsp4pcm,0"
+# CAPTURE AND PLAYBACK ARE TWO DEVICE NAMES, NOT ONE (S12-10, 2026-09-10).
+#
+# This module used ONE `DEV` for both arecord and aplay, which is right only
+# under the `dsp4-pcm-duplex` overlay. The bench stands on
+# `dsp4-pcm-slave`, where the card exposes them SEPARATELY:
+#
+#   card 0: dsp4pcm, device 0: bcm2835-i2s-dir-hifi   CAPTURE only
+#   card 0: dsp4pcm, device 1: bcm2835-i2s-dit-hifi   PLAYBACK only
+#
+# So `aplay -D hw:dsp4pcm,0` had no playback stream to open. Its failure was
+# swallowed -- `capture_output=True` and no return-code check -- and the run
+# then scored a capture with no stimulus in it. That is the whole of the null
+# signature S12-10 recorded on EVERY image including the shipping control:
+# offset 14779 on all 20 reps of both boots, spread 0, coherent 0.0 %.
+#
+# Measured on the bench 2026-09-10: arecord on device 0 and aplay on device 1
+# run CONCURRENTLY under the slave overlay -- 48,000 frames captured while the
+# playback ran -- so the two-device form needs no overlay flip and no reboot.
+# Both are overridable; DSP4_PCM_DEV sets both at once for a duplex overlay.
+import os as _os
+
+_both = _os.environ.get("DSP4_PCM_DEV")
+CAP_DEV = _os.environ.get("DSP4_PCM_CAP") or _both or "hw:dsp4pcm,0"
+PLAY_DEV = _os.environ.get("DSP4_PCM_PLAY") or _both or "hw:dsp4pcm,1"
 RATE = 48000
 PRE = 0.30              # arecord head start, seconds
 HOLD = 64
@@ -51,14 +74,24 @@ def build_stim(path, hold=None, steps=None):
 
 def one_rep(seconds):
     rec = subprocess.Popen(
-        ["arecord", "-D", DEV, "-f", "S32_LE", "-c", "2", "-r", str(RATE),
+        ["arecord", "-D", CAP_DEV, "-f", "S32_LE", "-c", "2", "-r", str(RATE),
          "-d", str(seconds), "--period-size=1024", "--buffer-size=8192",
          "-t", "raw", "-q", "/tmp/dsp4_lat_cap.raw"], stderr=subprocess.DEVNULL)
     time.sleep(PRE)
-    subprocess.run(["aplay", "-D", DEV, "-f", "S32_LE", "-c", "2", "-r",
-                    str(RATE), "--period-size=1024", "--buffer-size=8192",
-                    "-t", "raw", "-q", "/tmp/dsp4_lat.raw"], capture_output=True)
+    # THE PLAYBACK'S RETURN CODE IS CHECKED, AND IT WAS NOT. An aplay that
+    # cannot open its device exits non-zero in a few milliseconds and the run
+    # then scores an empty capture, which is a well-formed wrong answer.
+    play = subprocess.run(["aplay", "-D", PLAY_DEV, "-f", "S32_LE", "-c", "2",
+                           "-r", str(RATE), "--period-size=1024",
+                           "--buffer-size=8192", "-t", "raw", "-q",
+                           "/tmp/dsp4_lat.raw"], capture_output=True)
     rec.wait()
+    if play.returncode != 0:
+        sys.exit('aplay -D %s failed (rc %d): %s\nA capture with no stimulus '
+                 'in it is not a latency. Check the PCM overlay and the '
+                 'device names (DSP4_PCM_PLAY / DSP4_PCM_CAP).'
+                 % (PLAY_DEV, play.returncode,
+                    play.stderr.decode(errors='replace').strip()[:200]))
     cap = open("/tmp/dsp4_lat_cap.raw", "rb").read()
     n = len(cap) // 8
     f = struct.unpack("<%di" % (n * 2), cap[:n * 8])

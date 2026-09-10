@@ -2,7 +2,7 @@
 # bisect_run.sh <repeats> <stamp_addr> <expected> — bench side.
 set -u
 N="$1"; ADDR="$2"; EXPECT="$3"
-cd /home/app/dspboot
+cd "${STAGE:-/home/app/dspboot}"
 sudo systemctl stop matrix-app >/dev/null 2>&1
 ALIVE=0; RUNS=0
 for r in $(seq 1 "$N"); do

@@ -52,6 +52,22 @@ cd "$(dirname "$0")"
 ROOT=../../../..
 source ./bench_lock.sh; bench_lock_acquire "$0"
 BENCH=app@192.168.1.219
+# THE SHARED SCRATCH SLOT, NAMED (S16-9). ~/dspboot/chip{1,2}.ldr is not a
+# staged pair -- it is whatever the last measurement run left there, and this
+# script overwrites it. The staged pairs are the PREFIXED ones (blk_*, cand_*,
+# geq_*, dyn_*, flr_*, conf_*, ship_*, tx_*, s16_*) and nothing here writes
+# those. STAGE names a directory of this run's own when the image must survive
+# the next script; it defaults to the scratch slot so nothing that calls this
+# changes behaviour.
+STAGE="${STAGE:-/home/app/dspboot}"
+
+# A staging path other than ~/dspboot needs the shared bench helpers the run
+# script imports. Symlinked, not copied, so there is one working set and a
+# staged run cannot drift from it.
+if [ "$STAGE" != "/home/app/dspboot" ]; then
+  ssh $BENCH "mkdir -p '$STAGE' && for f in /home/app/dspboot/*.py; do \
+      ln -sfn \"\$f\" '$STAGE'/\$(basename \"\$f\"); done" || exit 3
+fi
 mkdir -p "$WORK"
 
 SRC="$PWD/src"
@@ -80,14 +96,14 @@ run_arm() {   # $1 = tag, $2 = DSP4_SIMD_DYN, $3 = DSP4_SIMD_NEGCTL
   python3 $ROOT/tools/dsp/map_syms.py "$D/chip1.map.xml" > "$D/chip1.sym.json"
   python3 $ROOT/tools/dsp/map_syms.py "$D/chip2.map.xml" > "$D/chip2.sym.json"
   scp -q "$D/chip1.ldr" "$D/chip2.ldr" "$D/chip1.sym.json" "$D/chip2.sym.json" \
-         $BENCH:/home/app/dspboot/
+         $BENCH:$STAGE/
   # BENCH PROCEDURE (S8-3): the boot tool and the chip-identity gate go
   # with every run, so a bench cannot be left on a stale dsp4_boot.py that
   # still hands GPIO 6/24 to a0. Path is script-relative, not $ROOT: not
   # every script in here defines one.
-  scp -q "$(dirname "$0")/../../../../tools/pi/dsp4_checkchip.py" "$(dirname "$0")/../../../../tools/pi/dsp4_boot.py" $BENCH:/home/app/dspboot/
+  scp -q "$(dirname "$0")/../../../../tools/pi/dsp4_checkchip.py" "$(dirname "$0")/../../../../tools/pi/dsp4_boot.py" $BENCH:$STAGE/
   scp -q c2gold_run.sh $BENCH:/home/app/
-  ssh $BENCH "bash /home/app/c2gold_run.sh $DWELL /home/app/dspboot/dyn$P.json $BLOCK" \
+  ssh $BENCH "STAGE='$STAGE' bash /home/app/c2gold_run.sh $DWELL $STAGE/dyn$P.json $BLOCK" \
     2>&1 | sed "s/^/  arm$P: /"
 }
 
@@ -95,8 +111,8 @@ echo "=== chip-2 dynamics pairing, BLOCK=$BLOCK ==="
 run_arm 0 0 0 || exit 1
 run_arm 1 1 0 || exit 1
 run_arm n 1 1 || exit 1
-scp -q $BENCH:/home/app/dspboot/dyn0.json $BENCH:/home/app/dspboot/dyn1.json \
-       $BENCH:/home/app/dspboot/dynn.json "$WORK/"
+scp -q $BENCH:$STAGE/dyn0.json $BENCH:$STAGE/dyn1.json \
+       $BENCH:$STAGE/dynn.json "$WORK/"
 
 python3 - "$WORK/dyn0.json" "$WORK/dyn1.json" "$WORK/dynn.json" <<'PYEOF'
 import json, re, sys

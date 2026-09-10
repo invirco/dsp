@@ -1,7 +1,7 @@
 #!/bin/bash
 # bqst_run.sh — boot the staged image and read the biquad self-test verdict.
 set -u
-cd /home/app/dspboot
+cd "${STAGE:-/home/app/dspboot}"
 sudo systemctl stop matrix-app >/dev/null 2>&1
 # BENCH PIN HAND-BACK — the corrected sequence (S8-3, 2026-09-09).
 # The line that used to be here, `pinctrl set 6,7,8,9,10,11,12,22,23,24,25
@@ -71,7 +71,7 @@ python3 dsp4_diag.py --chip 1 2>&1 | grep -E "BOOT_STAGE|MAGIC" \
 # front of every scope-side tool; this bar needs the same.
 for g in 1 2 3 4 5 6; do
   python3 dsp4_diag.py --chip 1 >/dev/null 2>&1
-  python3 dsp4_bq_verify.py /home/app/dspboot/chip1.sym.json "$1" && exit 0
+  python3 dsp4_bq_verify.py chip1.sym.json "$1" && exit 0
   sleep 2
 done
 exit 3

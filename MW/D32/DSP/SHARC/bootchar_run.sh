@@ -6,7 +6,7 @@
 # retry ladders in every other _run.sh here are exactly what has kept the
 # standing boot intermittent an anecdote instead of a number.
 set -u
-cd /home/app/dspboot
+cd "${STAGE:-/home/app/dspboot}"
 
 # One card, one runner. Same inline remote lock as sigprofile_run.sh: this
 # is the thing that ends up running ON the card, so the lock lives here

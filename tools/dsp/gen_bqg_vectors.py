@@ -66,7 +66,43 @@ EXTRA = {
                                          G.rbj_peak(1000, 1.0, -15.0)],
 }
 
+# THE GATE'S SIDECHAIN, at the worst corner the CONTRACT can carry, and
+# it is here for a different reason from every other case above: not to
+# exercise the sizer on an EQ curve, but because it is the one cascade in
+# the tree that CANNOT be sized at parameter load (the node has no
+# parameter-load moment) and therefore carries a fixed contract headroom,
+# bq_h_load.GATE_SIDECHAIN_H. HPF 521 Hz over LPF 500 Hz at Q 10 -- an
+# HPF above its LPF, which nobody dials and a recalled preset can carry.
+# See tools/dsp/dyn_state_bound.py section 3.
+GATE_SC = 'GATE sidechain: HPF 521 / LPF 500 Q10'
+EXTRA[GATE_SC] = [G.hplp(521.0007309586914, 10.0, True),
+                  G.hplp(500.0, 10.0, False)]
+
+
+def _rect_sine(f0, amp, n):
+    """|x| of a sine, in Q4.28 -- what the GATE hands its sidechain.
+
+    THE DRIVE FOR THIS ONE CASE IS A PLAIN TONE, not the matched-sign
+    pattern the others use, and the difference is the whole point. A
+    matched-sign drive achieves |h|_1 and proves the BOUND; it is also a
+    signal no console ever sees. This corner does not need one: max|H| is
+    82.0 (+38.3 dB) at 510 Hz against Q4.28's ceiling of 8.0, so an
+    ordinary tone gets there on its own. The gate rectifies its key
+    before the cascade, and a rectified sine has no component at its own
+    fundamental and a large one at twice it -- so the tone that lands on
+    a 510 Hz resonance is the one at 255 Hz. First internal wrap at
+    sample 272; NSAMP must be at least 512 for this case to say anything.
+    """
+    return [F.to_q(abs(amp * math.sin(2.0 * math.pi * f0 * i / 48000.0)))
+            for i in range(n)]
+
+
+DRIVES = {
+    GATE_SC: lambda n: _rect_sine(255.2, 1.0, n),
+}
+
 PICK = [
+    GATE_SC,
     'EQ 4-band +15/+15/-15/-15 @1k Q1',
     '4-band all +15 dB @1k Q1',
     '28-band GEQ all +6 dB',
@@ -153,7 +189,8 @@ def main():
     for name in PICK:
         cqs = G.q(EXTRA[name] if name in EXTRA else G.CASES[name])
         maxst = max(maxst, len(cqs))
-        drive = G.matched_sign_drive(cqs, nsamp)
+        drive = (DRIVES[name](nsamp) if name in DRIVES
+                 else G.matched_sign_drive(cqs, nsamp))
         ref = float_run(drive, cqs)
         con = contract_run(drive, cqs)
         h_model, bound, n_run = L.size_h(cqs)

@@ -7,7 +7,7 @@
 # reader, repair the CFG_COMMIT header word that lands in strip 1's gain on
 # roughly one boot in three.
 set -u
-cd /home/app/dspboot
+cd "${STAGE:-/home/app/dspboot}"
 sudo systemctl stop matrix-app >/dev/null 2>&1
 # BENCH PIN HAND-BACK — the corrected sequence (S8-3, 2026-09-09).
 # The line that used to be here, `pinctrl set 6,7,8,9,10,11,12,22,23,24,25

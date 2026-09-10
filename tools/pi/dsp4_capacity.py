@@ -56,6 +56,7 @@ DIAG_BUILD_CFG = 0xE0EA
 # word cannot tell the shipping image from the fused/SIMD one and those two
 # are 81,299 cycles/block apart on chip 2.
 DIAG_BUILD_CFG2 = 0xE0EB
+DIAG_CLEAR = 0xE0FF
 
 # CGU0_CTL MSEL -> CCLK in Hz. The rows are cgu_init.asm's own table; a
 # value not in it is reported as the raw word rather than guessed at,
@@ -228,6 +229,31 @@ def read_chip(chip, dwell, symfile=None):
     # BLOCK samples at 48 kHz is BLOCK/48000 s of core time.
     out['budget'] = int(cclk * out['block'] / 48000) if cclk else None
 
+    # THE HIGH-WATER MARK IS READ, THEN RESET, THEN READ AGAIN (S13-2).
+    #
+    # `_proc_cyc_max` is a latch and nothing cleared it, so what it held when
+    # this tool ran was the worst pass since RESET -- which includes the
+    # config ladder, a one-off burst of parameter conversions and cascade
+    # sizings that no per-block budget has to cover. Printed under "the block
+    # the budget has to cover" that read 376 % on chip 2 on an arm with zero
+    # missed blocks. Both figures are taken now: the RAW latch as this tool
+    # found it, and the STEADY one over the dwell alone, so the difference is
+    # on the page instead of being argued about.
+    #
+    # DIAG_CLEAR also zeroes DIAG_BLK_OVERRUN, which is why the overrun
+    # baseline is read AFTER it: the arbiter counts the dwell, not the boot.
+    out['proc_cyc_max_raw'] = (peek(sc, sc.sym['_proc_cyc_max'])
+                               if '_proc_cyc_max' in sc.sym else None)
+    try:
+        sc.wr(DIAG_CLEAR, 1)
+        out['cleared'] = True
+    except (IOError, OSError):
+        # Not fatal and not silent: an image built before 2026-09-10 has a
+        # DIAG_CLEAR that does not touch the latch, and the two figures below
+        # will simply agree. What must never happen is the tool claiming a
+        # reset it did not get.
+        out['cleared'] = False
+
     f0 = moving(sc, DIAG_FRAME_COUNT)
     o0 = sc.rd(DIAG_BLK_OVERRUN)
     t0 = time.time()
@@ -248,7 +274,7 @@ def read_chip(chip, dwell, symfile=None):
         out[name.lstrip('_')] = peek(sc, sym[name]) if name in sym else None
 
     if out['budget']:
-        for k in ('proc_cyc', 'proc_cyc_max'):
+        for k in ('proc_cyc', 'proc_cyc_max', 'proc_cyc_max_raw'):
             v = out[k]
             out[k + '_pct'] = (round(100.0 * v / out['budget'], 2)
                                if v is not None else None)
@@ -294,6 +320,13 @@ def main():
               % (r['proc_cyc'], r.get('proc_cyc_pct')))
         print('        _proc_cyc_max %8s  %s%%   <-- the block the budget has to cover'
               % (r['proc_cyc_max'], r.get('proc_cyc_max_pct')))
+        # The latch as it stood BEFORE the reset, once, so the size of the
+        # configuration transient is visible rather than inferred.
+        print('          (raw latch, incl. the config ladder: %s  %s%%%s)'
+              % (r.get('proc_cyc_max_raw'), r.get('proc_cyc_max_raw_pct'),
+                 '' if r.get('cleared') else
+                 ' -- NOT RESET: this image predates the S13-2 fix, so the '
+                 'two figures are the same latch'))
         print('        _proc_passes  %8s' % r['proc_passes'])
         print('        %d blocks in %.1f s (%.1f/s), OVERRUN %d (%s%%)'
               % (r['frames'], r['seconds'], r['block_rate'] or 0,

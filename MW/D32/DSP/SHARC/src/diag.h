@@ -154,8 +154,16 @@
  * does. So the recovery arms only while the request counter is standing
  * still, and a burst in progress can no longer be mistaken for residue.
  */
+/* THE FALLBACK IS 1, AND IT USED TO BE 0 WHILE THE OPPOSITE WAS TRUE.
+ * build.sh has set `DSP4_SPI_PARTIAL_FIX2="${DSP4_SPI_PARTIAL_FIX2:-1}"`
+ * since 2026-08-31 (session 15, `388bcbd`, shipping the D71 fix), so every
+ * image this tree has built for a fortnight carries the gate -- while this
+ * fallback said the feature was off, and two sessions read it that way.
+ * A fallback that disagrees with the build is a fallback that will one day
+ * be taken: anything that assembles a source file without build.sh gets
+ * the shipping behaviour now. build.sh is still where it is SET. */
 #ifndef DSP4_SPI_PARTIAL_FIX2
-#define DSP4_SPI_PARTIAL_FIX2 0
+#define DSP4_SPI_PARTIAL_FIX2 1
 #endif
 
 /* Generic peek window — reads any MMR or DM address on a running DSP.
@@ -396,6 +404,13 @@
 /* NOP — accepted and ignored. The host sends this as the second half of
  * a read (see diag.asm); it must not itself generate a response. */
 #define DIAG_NOP             0xE0FE  /* W */
+/* Zeroes the counters and the sticky latches -- including
+ * `_proc_cyc_max`, the worst-block high-water mark, which it did not
+ * until 2026-09-10 (S13-2: chip 2 read 376 % of budget on an arm with
+ * zero missed blocks, because the latch still held the CONFIG LADDER's
+ * transient). NOT `_diag_ticks` and NOT `_frame_count`: those two are
+ * free-running rate references and a measurement that resets its own
+ * clock is no measurement. */
 #define DIAG_CLEAR           0xE0FF  /* W  write anything: zero the counters */
 
 /* Core-timer reload, in CCLK cycles. 491520 at the measured CCLK of

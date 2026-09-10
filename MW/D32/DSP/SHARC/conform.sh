@@ -35,6 +35,14 @@ set -u
 cd "$(dirname "$0")"
 source ./bench_lock.sh; bench_lock_acquire "$0"
 BENCH=app@192.168.1.219
+# THE SHARED SCRATCH SLOT, NAMED (S16-9). ~/dspboot/chip{1,2}.ldr is not a
+# staged pair -- it is whatever the last measurement run left there, and this
+# script overwrites it. The staged pairs are the PREFIXED ones (blk_*, cand_*,
+# geq_*, dyn_*, flr_*, conf_*, ship_*, tx_*, s16_*) and nothing here writes
+# those. STAGE names a directory of this run's own when the image must survive
+# the next script; it defaults to the scratch slot so nothing that calls this
+# changes behaviour.
+STAGE="${STAGE:-/home/app/dspboot}"
 ROOT=../../../..
 # dsp4_block.py IS STAGED FROM THE TREE THIS POINT WAS BUILT FROM, not
 # from tools/pi, for captable.sh's reason: the Pi-side scorer must be told
@@ -71,24 +79,24 @@ chip2.ldr $(md5sum build/chip2.ldr | cut -c1-8)"
   python3 $ROOT/tools/dsp/map_syms.py build/chip1.map.xml > /tmp/chip1.sym.json
   python3 $ROOT/tools/dsp/map_syms.py build/chip2.map.xml > /tmp/chip2.sym.json
   scp -q build/chip1.ldr build/chip2.ldr /tmp/chip1.sym.json /tmp/chip2.sym.json \
-      $BENCH:/home/app/dspboot/ || exit 3
+      $BENCH:$STAGE/ || exit 3
 fi
 
 scp -q $ROOT/tools/pi/dsp4_conform.py "$BLOCKPY" \
-    $OUT/plan.json $BENCH:/home/app/dspboot/ || exit 3
+    $OUT/plan.json $BENCH:$STAGE/ || exit 3
 # BENCH PROCEDURE (S8-3): the boot tool and the chip-identity gate go
 # with every run, so a bench cannot be left on a stale dsp4_boot.py that
 # still hands GPIO 6/24 to a0. Path is script-relative, not $ROOT: not
 # every script in here defines one.
-scp -q "$(dirname "$0")/../../../../tools/pi/dsp4_checkchip.py" "$(dirname "$0")/../../../../tools/pi/dsp4_boot.py" $BENCH:/home/app/dspboot/
+scp -q "$(dirname "$0")/../../../../tools/pi/dsp4_checkchip.py" "$(dirname "$0")/../../../../tools/pi/dsp4_boot.py" $BENCH:$STAGE/
 scp -q conform_run.sh $BENCH:/home/app/ || exit 3
 
 for c in $CHIPS; do
   echo "=== chip $c — $PHASE ==="
-  ssh $BENCH "PHASE=$PHASE LIMIT=$LIMIT NEGCTL=${NEGCTL:-0} \
+  ssh $BENCH "STAGE='$STAGE' PHASE=$PHASE LIMIT=$LIMIT NEGCTL=${NEGCTL:-0} \
               INERTWIN=${INERTWIN:-bus} INERTN=${INERTN:-12} \
               bash /home/app/conform_run.sh $c $TAG" || exit 4
-  scp -q $BENCH:/home/app/dspboot/"conform_${TAG}_c${c}*.json" $OUT/ || exit 4
+  scp -q $BENCH:$STAGE/"conform_${TAG}_c${c}*.json" $OUT/ || exit 4
 done
 
 echo "=== report ==="

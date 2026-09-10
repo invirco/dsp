@@ -42,6 +42,22 @@ set -u
 cd "$(dirname "$0")"
 source ./bench_lock.sh; bench_lock_acquire "$0"
 BENCH=app@192.168.1.219
+# THE SHARED SCRATCH SLOT, NAMED (S16-9). ~/dspboot/chip{1,2}.ldr is not a
+# staged pair -- it is whatever the last measurement run left there, and this
+# script overwrites it. The staged pairs are the PREFIXED ones (blk_*, cand_*,
+# geq_*, dyn_*, flr_*, conf_*, ship_*, tx_*, s16_*) and nothing here writes
+# those. STAGE names a directory of this run's own when the image must survive
+# the next script; it defaults to the scratch slot so nothing that calls this
+# changes behaviour.
+STAGE="${STAGE:-/home/app/dspboot}"
+
+# A staging path other than ~/dspboot needs the shared bench helpers the run
+# script imports. Symlinked, not copied, so there is one working set and a
+# staged run cannot drift from it.
+if [ "$STAGE" != "/home/app/dspboot" ]; then
+  ssh $BENCH "mkdir -p '$STAGE' && for f in /home/app/dspboot/*.py; do \
+      ln -sfn \"\$f\" '$STAGE'/\$(basename \"\$f\"); done" || exit 3
+fi
 ROOT=../../../..
 FUSED="${FUSED:-1}"
 SIMD="${SIMD:-1}"
@@ -178,12 +194,12 @@ done
 wait
 
 # ---- phase 2: one pass over the bench ----
-scp -q $ROOT/tools/pi/dsp4_audio_verdict.py $BENCH:/home/app/dspboot/audio_verdict.py
+scp -q $ROOT/tools/pi/dsp4_audio_verdict.py $BENCH:$STAGE/audio_verdict.py
 # BENCH PROCEDURE (S8-3): the boot tool and the chip-identity gate go
 # with every run, so a bench cannot be left on a stale dsp4_boot.py that
 # still hands GPIO 6/24 to a0. Path is script-relative, not $ROOT: not
 # every script in here defines one.
-scp -q "$(dirname "$0")/../../../../tools/pi/dsp4_checkchip.py" "$(dirname "$0")/../../../../tools/pi/dsp4_boot.py" $BENCH:/home/app/dspboot/
+scp -q "$(dirname "$0")/../../../../tools/pi/dsp4_checkchip.py" "$(dirname "$0")/../../../../tools/pi/dsp4_boot.py" $BENCH:$STAGE/
 scp -q sigstrips_run.sh sigprofile_run.sh $BENCH:/home/app/
 echo "=== measuring"
 for p in "$@"; do
@@ -200,7 +216,7 @@ def a(n):
 print(a('proc_cyc'), a('proc_passes'))")"
     python3 $ROOT/tools/dsp/map_syms.py "$d/chip1.map.xml" > /tmp/chip1.sym.json
     scp -q "$d/chip1.ldr" "$d/chip2.ldr" /tmp/chip1.sym.json \
-        "$(srctree "$B")/dsp4_block.py" $BENCH:/home/app/dspboot/
+        "$(srctree "$B")/dsp4_block.py" $BENCH:$STAGE/
     # REPS>1: sigprofile2.sh's rule, and gainprof.sh's before it -- a point
     # is one BOOT, boots differ, and the ways a boot can cost MORE are many
     # while the ways it can cost less are none. The MINIMUM is the point.
@@ -211,9 +227,9 @@ print(a('proc_cyc'), a('proc_passes'))")"
         # PW's ruling is that TUBE is a plugin that is never counted in
         # it. Passing this explicitly rather than relying on the run
         # script's default, because the default is what went wrong.
-        R=$(ssh $BENCH "bash /home/app/sigprofile_run.sh $PT $PP $DWELL ${TUBEON:-0}" 2>&1)
+        R=$(ssh $BENCH "STAGE='$STAGE' bash /home/app/sigprofile_run.sh $PT $PP $DWELL ${TUBEON:-0}" 2>&1)
     else
-        R=$(ssh $BENCH "bash /home/app/sigstrips_run.sh $PP $N" 2>&1)
+        R=$(ssh $BENCH "STAGE='$STAGE' bash /home/app/sigstrips_run.sh $PP $N" 2>&1)
     fi
     echo "block=$B clk=$C sig=$S strips=$N limit=$L fused=$FUSED paired=$SIMD bq=$BQ xflags=${XFLAGS:-none} rep=$r  $(echo "$R" | tr '\n' ' | ')"
     C1=$(echo "$R" | grep -oE '[0-9]+ cycles/pass' | grep -oE '^[0-9]+')

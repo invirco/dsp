@@ -23,7 +23,7 @@
 # mean something asks for it.
 set -u
 PT="$1"; PP="$2"; DWELL="$3"; TUBEON="${4:-0}"
-cd /home/app/dspboot
+cd "${STAGE:-/home/app/dspboot}"
 
 # One card, one runner (session 10's method failure: two dynst.sh
 # invocations landed on the bench at once and each looked like a hang).

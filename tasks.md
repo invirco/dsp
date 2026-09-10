@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-09-10 00:16Z — S17 — window-readiness correctness now both products fit with margin: dyn_state_bound §3 (sidechain H=4) guarded or disproved, D80 root-caused, D79 chip-2 gainfix in the generator, S12-10 the latency instrument made to work (82 measured on s16_*), S16-9 script hygiene, _proc_cyc_max reset   [status: 🟡 dispatched]   [model: opus]
+## HUB DISPATCH 2026-09-10 00:16Z — S17 — window-readiness correctness now both products fit with margin: dyn_state_bound §3 (sidechain H=4) guarded or disproved, D80 root-caused, D79 chip-2 gainfix in the generator, S12-10 the latency instrument made to work (82 measured on s16_*), S16-9 script hygiene, _proc_cyc_max reset   [status: 🟢 done — **§3 IS A REAL OVERFLOW IN THE FIXED ARM AND IS FIXED BY A CONTRACT-WORST H = 4 IN THE GENERATED INITIALISER AT 0 CYCLES AND 0 BYTES**; reachable by a plain 255 Hz tone (205 wraps at 0 dBFS, 28 at −12 dBFS), proved on the part by `bqguard.sh` — part sizes H = 4, 127 sign inversions unguarded against 127 predicted, 0 guarded, both stream hashes matching the model — and NO SHIPPING IMAGE WAS EVER EXPOSED because `DSP4_BQ_FLOAT` compiles the guard out. The talkback half is disproved: its coefficients have no SPI dispatch entry. **S17-1: the guard's own bar had not LINKED since the float landing** (`bqguard.sh` never named `DSP4_BQ_FLOAT=0`). **D80 CLOSED as an instrument artefact** — at a settled dwell the per-sample and block-kernel builds are BIT-IDENTICAL on all 24 readable chip-2 meters at every capture time; the 0.44–0.90 % was a meter read 12 s into a curve whose constants are stretched 32× by the decimation (`_mtr_peak_C2_MTR_MAIN_01` 1.30406 at 12 s → 0.116157 settled, peak falling while RMS rises — D80's own signature); `c2gold.sh`'s dwell now derives from DEC, 214 s not 12. **D79 CLOSED and it is D71**: SPI address 0x0000 is a live parameter on BOTH chips (`_gain_coeff_C1_GAIN_01`, `_fdr_level_C2_AUX_FDR_01`), which is the whole of the two faces; the only single-word discard in the firmware is `diag.asm:721` and `DSP4_SPI_PARTIAL_FIX2` has gated it in `build.sh` since 2026-08-31 while `diag.h`'s fallback still said 0 — 48 chip-boots, 0 corrupt, `_spi_partial_fix` 0 on every one, and chip 2's sighting was a mis-phased READ (both reported words are documented link artefacts). **S12-10 FIXED and 82 samples MEASURED**: the tool played into `hw:dsp4pcm,0`, which has no playback stream under the slave overlay, and swallowed the failure — capture is device 0 and playback device 1 now, `aplay`'s return code is checked, **no reboot needed or taken**; 100.0 % coherent on every rep, LOGIC reference 14433, TX_EARLY=0 → 67 (S11: 66), TX_EARLY=2 → 82 (S11: 82), S17 tree 83/82, `s16_*` 84/81. **S16-9 DONE**, 57 files, pins canonical. **`_proc_cyc_max` reset in DIAG_CLEAR, and it corrects S10-8: chip 1's D24 margin is 28.0–28.3 %, not 15.2 %** — the 18 % worst-block excess was the config ladder (raw latch 277,743 against S10-8's 277,752; steady worst 71.71–71.97 %, zero overruns). NEW S17-6: chip 2's D24 cost is boot-dependent by ten points, filed not explained. **The default build moves FOUR BYTES per chip** (`302d6142` / `3b3a6f8e`), all of it `DIAG_CLEAR`'s extra store; the S16 baseline was rebuilt and reproduces byte for byte. Bench restored: `blk_*` booted, BOOT_STAGE 7, zero overruns over 90,004 blocks/chip, 221 staged files intact, CPLD `a1f6672af6c3`, matrix-app active.]   [model: opus]
 
 model: opus
 
@@ -11558,6 +11558,44 @@ Contract pin: **defs-v2026.08.20** (mx26 `345470a`; see `defs.lock` —
 sync-from-mx26.sh now refuses an untagged mx26 HEAD).
 
 ## NOW — priority order (reordered 2026-08-21: SHARC BOOT SOLVED)
+
+**2026-09-10 (S17): THE WINDOW'S OPEN CORRECTNESS ITEMS ARE CLOSED, AND TWO
+CARRIED NUMBERS ARE CORRECTED.** Write-up
+`MW/D32/DSP/dsp4-s17-20260910.md`; findings S17-1..S17-6; window note §9.
+Contract `defs-v2026.09.08.4` unchanged, no cell moved, `--strict` drift
+clean. **The default build moves FOUR BYTES per chip** — `302d6142` /
+`3b3a6f8e` against S16's `20588957` / `a1509a2a`, all of it `DIAG_CLEAR`'s
+one extra store; the S16 baseline was rebuilt and reproduces byte for byte.
+
+* **`dyn_state_bound` §3 PASSES.** A real overflow in the FIXED reference
+  arm — max|H| = 82.0 at the contract's worst sidechain corner, so a plain
+  255 Hz tone wraps the round-once recursion 205 times in half a second —
+  fixed by a contract-worst `H = 4` in the generated coefficient
+  initialiser, **+0 code bytes and +0 instructions**. Proved on the part by
+  `bqguard.sh`. **No shipping image was ever exposed**: `DSP4_BQ_FLOAT`
+  compiles the guard out. The talkback half of the finding is disproved.
+* **D80 is CLOSED as an instrument artefact.** At a settled dwell the
+  per-sample and block-kernel builds are bit-identical on all 24 readable
+  chip-2 meters at every capture time. `c2gold.sh`'s dwell now derives from
+  `DEC` (214 s, not 12).
+* **D79 is CLOSED and it is D71.** SPI address `0x0000` is a live parameter
+  on both chips; the only single-word discard in the firmware is
+  `diag.asm:721`; `DSP4_SPI_PARTIAL_FIX2` has gated it in `build.sh` since
+  2026-08-31 while `diag.h`'s fallback still said 0. 48 chip-boots, 0
+  corrupt. Chip 2's sighting was a mis-phased READ.
+* **S12-10 is FIXED and the latency figure is MEASURED**: 82 samples /
+  1.708 ms at `DSP4_TX_EARLY=2`, 100.0 % coherent on every rep, S11's
+  control reproduced to within one sample. No reboot was needed or taken.
+* **S16-9 done** (57 scripts), **`_proc_cyc_max` reset in `DIAG_CLEAR`**.
+* **S10-8 IS CORRECTED: chip 1's D24 margin is 28.0–28.3 %, not 15.2 %.**
+  The "worst block is 18 % above `_proc_cyc`" was the configuration ladder
+  latched in `_proc_cyc_max`. Steady worst 71.71–71.97 % over three boots,
+  zero overruns.
+* **OPEN, S17-6:** chip 2's D24 cost is boot-dependent by ten points on the
+  same image, product and clock (92.88 % / 0 overruns against 102.83 % /
+  2.49 %). Filed, not explained. **`REPS=1` is not a capacity measurement
+  for chip 2.**
+
 
 **BLOCKING 2026-09-09 (S8-2): THE BLOCK LOOP DOES NOT FIT THE BLOCK, AND
 EVERY CAPACITY NUMBER ON RECORD WAS TAKEN IN A CONFIGURATION THAT DOES NOT

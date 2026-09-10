@@ -1,7 +1,7 @@
 #!/bin/bash
 # cfgstress_run.sh — bench half of cfgstress.sh (see dsp4_cfgstress.py).
 set -u
-cd /home/app/dspboot
+cd "${STAGE:-/home/app/dspboot}"
 BENCH_LOCKFILE=/home/app/dspboot/.bench.lock
 exec {BENCH_LOCK_FD}>"$BENCH_LOCKFILE"
 if ! flock -n "$BENCH_LOCK_FD"; then

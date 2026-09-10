@@ -7,7 +7,7 @@
 # reader, repair the CFG_COMMIT header word that lands in strip 1's gain
 # on roughly one boot in three.
 set -u
-cd /home/app/dspboot
+cd "${STAGE:-/home/app/dspboot}"
 
 BENCH_LOCKFILE=/home/app/dspboot/.bench.lock
 exec {BENCH_LOCK_FD}>"$BENCH_LOCKFILE"

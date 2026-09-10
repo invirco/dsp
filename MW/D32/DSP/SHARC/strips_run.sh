@@ -1,7 +1,7 @@
 #!/bin/bash
 set -u
 PP="$1"
-cd /home/app/dspboot
+cd "${STAGE:-/home/app/dspboot}"
 sudo systemctl stop matrix-app >/dev/null 2>&1
 for t in 1 2 3; do
   python3 dsp4_boot.py --dir . >/dev/null 2>&1; sleep 5

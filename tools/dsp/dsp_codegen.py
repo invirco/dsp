@@ -784,6 +784,9 @@ STRIP_MTR_RE = re.compile(r'^C(\d+)_MTR_(\d+)$')
 import sys as _sys, os as _os
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 import build_config as _build_config
+# The GATE sidechain's fixed headroom, from the normative headroom module
+# so the generator and dyn_state_bound.py cannot disagree about it.
+from bq_h_load import GATE_SIDECHAIN_H as _GATE_SC_H
 BLOCK = _build_config.get('DSP4_GEN_BLOCK', 16)
 
 BLOCK_SHIFT = BLOCK.bit_length() - 1
@@ -11490,15 +11493,21 @@ def gen_talkback_fixed(node):
         {wireTALK}
         /* A single unity-gain sidechain HPF. It carries the guard's
          * header word so every cascade block in the tree has the same
-         * shape, but nothing SIZES it: H stays 0.
+         * shape, and H STAYS 0 -- which here is CORRECT, not a gap.
          *
-         * THAT IS A MEASURED GAP AND NOT AN INSPECTION.
-         * tools/dsp/dyn_state_bound.py sweeps the sidechain parameter
-         * range and finds |h|_1 = 13.8 on a 20 Hz HPF at Q 10 -- one
-         * headroom bit -- so "it cannot reach the ceiling" is FALSE at
-         * the corner. It is unsized because this node converts on every
-         * invocation rather than at a parameter-load moment, so there is
-         * nothing control-rate to hang a sizing off. See the write-up. */
+         * That was recorded as an unsized cascade next to the gate's,
+         * on a sweep that assumed the wire could reach these
+         * coefficients. IT CANNOT: `_talk_hpf_coeffs_<nid>` has no
+         * entry in the SPI dispatch table (the only talkback filter cell
+         * is Talk<nn>Hpf001, which is the ON/OFF word), so the staging
+         * buffer never moves off its bypass initialiser, the converted
+         * block is b0 = 1 with everything else zero, |h|_1 = 1 and the
+         * ceiling is four octaves away. Checked on the landed
+         * dsp_params.asm, 2026-09-10.
+         *
+         * The GATE's sidechain beside it is the real case: its
+         * coefficients ARE dispatched, and it carries a fixed contract
+         * headroom. See gen_gate_fixed. */
         #if DSP4_BQ_FLOAT
         .var _talk_hpf_cq_{nid}[5] = 0x3F800000, 0, 0, 0, 0;
         #elif DSP4_BQ_GUARD
@@ -12551,6 +12560,7 @@ def gen_gate_fixed(node):
     nid = node['id']
     wireGHPF = _bq_wire_var(f'_gate_filter_hpf_{nid}', 5)
     wireGLPF = _bq_wire_var(f'_gate_filter_lpf_{nid}', 5)
+    gate_sc_h = _GATE_SC_H
     inp = node['inputs_str']
     return dedent(f"""\
         {rc}
@@ -12575,16 +12585,41 @@ def gen_gate_fixed(node):
         .var _gate_filter_on_{nid} = 0;
         {wireGHPF}
         {wireGLPF}
-        /* The gate's sidechain HPF+LPF, run as one two-stage cascade.
-         * Header word for shape; H stays 0, and that is a MEASURED GAP:
-         * dyn_state_bound.py finds the cascade reaching |h|_1 = 150.7
-         * (H = 5) at HPF 8 kHz / LPF 8 kHz / Q 10, a setting the
-         * parameter string allows and a recalled preset can contain.
-         * Unsized for the same reason as the talkback HPF -- this node
-         * converts on EVERY invocation, so there is no parameter-load
-         * moment to size at. See the write-up. */
+        /* The gate's sidechain HPF+LPF, run as one two-stage cascade,
+         * with the guard's headroom header FIXED AT THE CONTRACT WORST
+         * (H = {gate_sc_h}) instead of left at zero.
+         *
+         * THIS ONE CASCADE IS NOT SIZED AT PARAMETER LOAD, and it cannot
+         * be: the node has no parameter-load moment -- it converts its
+         * wire coefficients every block and no swap-trigger cell says
+         * when they changed -- so there is nothing control-rate to hang
+         * a sizing off. Leaving H at zero was a REAL OVERFLOW and not a
+         * theoretical one: swept inside the contract (HPF 20-1000 Hz,
+         * LPF 500-20000 Hz, Q 0.1-10) the worst cascade bound is
+         * |h|_1 = 125.01 at HPF 521 Hz over LPF 500 Hz at Q 10, whose
+         * max|H| is 82.0 (+38.3 dB) at 510 Hz -- so a plain full-scale
+         * 255 Hz tone, rectified into the sidechain, wraps the
+         * round-once recursion 205 times in half a second, and still 28
+         * times at -12 dBFS (tools/dsp/dyn_state_bound.py section 3).
+         *
+         * The constant is the contract's worst, so it is sound for every
+         * setting the wire can carry, and it lives in the INITIALISER:
+         * the converter steps past the header and never writes it, so
+         * the fix costs zero code bytes and zero instructions. What it
+         * costs is four bits of detector precision -- an absolute floor
+         * near -126 dBFS, 46 dB under the lowest threshold the contract
+         * allows.
+         *
+         * The shipping arm does not pay even that: DSP4_BQ_FLOAT forces
+         * DSP4_BQ_GUARD off, the sidechain runs the 40-bit float kernel
+         * and cannot wrap at all. This is the FIXED reference arm's fix.
+         *
+         * The talkback HPF beside it is a different case and is NOT a
+         * gap: its coefficient block has no SPI dispatch entry, so the
+         * wire cannot reach it, it stays at its bypass initialiser,
+         * |h|_1 = 1 and H = 0 is correct. */
         #if DSP4_BQ_GUARD
-        .var _gate_filter_cq_{nid}[11];
+        .var _gate_filter_cq_{nid}[11] = {gate_sc_h}, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
         #else
         .var _gate_filter_cq_{nid}[10];
         #endif

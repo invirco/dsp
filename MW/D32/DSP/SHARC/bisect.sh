@@ -18,6 +18,22 @@ set -u
 REPEATS="${1:-3}"
 cd "$(dirname "$0")"
 BENCH=app@192.168.1.219
+# THE SHARED SCRATCH SLOT, NAMED (S16-9). ~/dspboot/chip{1,2}.ldr is not a
+# staged pair -- it is whatever the last measurement run left there, and this
+# script overwrites it. The staged pairs are the PREFIXED ones (blk_*, cand_*,
+# geq_*, dyn_*, flr_*, conf_*, ship_*, tx_*, s16_*) and nothing here writes
+# those. STAGE names a directory of this run's own when the image must survive
+# the next script; it defaults to the scratch slot so nothing that calls this
+# changes behaviour.
+STAGE="${STAGE:-/home/app/dspboot}"
+
+# A staging path other than ~/dspboot needs the shared bench helpers the run
+# script imports. Symlinked, not copied, so there is one working set and a
+# staged run cannot drift from it.
+if [ "$STAGE" != "/home/app/dspboot" ]; then
+  ssh $BENCH "mkdir -p '$STAGE' && for f in /home/app/dspboot/*.py; do \
+      ln -sfn \"\$f\" '$STAGE'/\$(basename \"\$f\"); done" || exit 3
+fi
 
 DSP4_BLOCK_MASK="${DSP4_BLOCK_MASK:-7}"
 DSP4_NODE_LIMIT="${DSP4_NODE_LIMIT:-0}"
@@ -58,17 +74,17 @@ print(a('build_flags'), a('build_flags2'))")"
 [ -z "$ADDR" ] || [ -z "$ADDR2" ] && { echo "no _build_flags/_build_flags2 in map"; exit 2; }
 EXPECT2=$(( DSP4_STRIPS & 0x3F ))
 
-scp -q build/chip1.ldr build/chip2.ldr ../../../../tools/pi/dsp4_block.py $BENCH:/home/app/dspboot/
-scp -q ../../../../tools/pi/dsp4_audio_verdict.py $BENCH:/home/app/dspboot/audio_verdict.py
+scp -q build/chip1.ldr build/chip2.ldr ../../../../tools/pi/dsp4_block.py $BENCH:$STAGE/
+scp -q ../../../../tools/pi/dsp4_audio_verdict.py $BENCH:$STAGE/audio_verdict.py
 # BENCH PROCEDURE (S8-3): the boot tool and the chip-identity gate go
 # with every run, so a bench cannot be left on a stale dsp4_boot.py that
 # still hands GPIO 6/24 to a0. Path is script-relative, not $ROOT: not
 # every script in here defines one.
-scp -q "$(dirname "$0")/../../../../tools/pi/dsp4_checkchip.py" "$(dirname "$0")/../../../../tools/pi/dsp4_boot.py" $BENCH:/home/app/dspboot/
+scp -q "$(dirname "$0")/../../../../tools/pi/dsp4_checkchip.py" "$(dirname "$0")/../../../../tools/pi/dsp4_boot.py" $BENCH:$STAGE/
 scp -q bisect_run.sh $BENCH:/home/app/
 printf 'mask=%d limit=%d commit=%d noidle=%d stub_cg=%d nocvt=%d  md5=%s  stamp@%s expect=0x%08X\n' \
   "$DSP4_BLOCK_MASK" "$DSP4_NODE_LIMIT" "$DSP4_COMMIT_STAGE" "$DSP4_NO_IDLE_OVERRIDE" \
   "$DSP4_STUB_COMPGAIN" "$DSP4_COMP_NOCVT" "$MD5" "$ADDR" "$EXPECT"
 printf '  strips=%d  stamp2@%s expect2=0x%08X\n' "$DSP4_STRIPS" "$ADDR2" "$EXPECT2"
 
-ssh $BENCH "bash /home/app/bisect_run.sh $REPEATS $ADDR $EXPECT $ADDR2 $EXPECT2"
+ssh $BENCH "STAGE='$STAGE' bash /home/app/bisect_run.sh $REPEATS $ADDR $EXPECT $ADDR2 $EXPECT2"

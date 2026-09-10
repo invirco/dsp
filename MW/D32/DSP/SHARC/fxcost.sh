@@ -46,6 +46,22 @@ cd "$(dirname "$0")"
 ROOT=../../../..
 source ./bench_lock.sh; bench_lock_acquire "$0"
 BENCH=app@192.168.1.219
+# THE SHARED SCRATCH SLOT, NAMED (S16-9). ~/dspboot/chip{1,2}.ldr is not a
+# staged pair -- it is whatever the last measurement run left there, and this
+# script overwrites it. The staged pairs are the PREFIXED ones (blk_*, cand_*,
+# geq_*, dyn_*, flr_*, conf_*, ship_*, tx_*, s16_*) and nothing here writes
+# those. STAGE names a directory of this run's own when the image must survive
+# the next script; it defaults to the scratch slot so nothing that calls this
+# changes behaviour.
+STAGE="${STAGE:-/home/app/dspboot}"
+
+# A staging path other than ~/dspboot needs the shared bench helpers the run
+# script imports. Symlinked, not copied, so there is one working set and a
+# staged run cannot drift from it.
+if [ "$STAGE" != "/home/app/dspboot" ]; then
+  ssh $BENCH "mkdir -p '$STAGE' && for f in /home/app/dspboot/*.py; do \
+      ln -sfn \"\$f\" '$STAGE'/\$(basename \"\$f\"); done" || exit 3
+fi
 mkdir -p "$WORK"
 
 # The block budget: 20480 cycles per sample-period-worth of block at
@@ -110,21 +126,21 @@ python3 $ROOT/tools/dsp/landed_map.py --product "$PRODUCT" \
         --json /tmp/landed-$PRODUCT.json || exit 3
 
 scp -q "$D/chip1.ldr" "$D/chip2.ldr" "$D/chip1.sym.json" "$D/chip2.sym.json" \
-       /tmp/landed-$PRODUCT.json $BENCH:/home/app/dspboot/ || exit 3
+       /tmp/landed-$PRODUCT.json $BENCH:$STAGE/ || exit 3
 scp -q $ROOT/tools/pi/dsp4_fx_cost.py $ROOT/tools/pi/dsp4_conform.py \
        $ROOT/tools/pi/dsp4_block.py $ROOT/tools/pi/gainfix.py \
-       $BENCH:/home/app/dspboot/ || exit 3
+       $BENCH:$STAGE/ || exit 3
 # BENCH PROCEDURE (S8-3): the boot tool and the chip-identity gate go
 # with every run, so a bench cannot be left on a stale dsp4_boot.py that
 # still hands GPIO 6/24 to a0. Path is script-relative, not $ROOT: not
 # every script in here defines one.
-scp -q "$(dirname "$0")/../../../../tools/pi/dsp4_checkchip.py" "$(dirname "$0")/../../../../tools/pi/dsp4_boot.py" $BENCH:/home/app/dspboot/
+scp -q "$(dirname "$0")/../../../../tools/pi/dsp4_checkchip.py" "$(dirname "$0")/../../../../tools/pi/dsp4_boot.py" $BENCH:$STAGE/
 scp -q fxcost_run.sh $BENCH:/home/app/ || exit 3
 
 for r in $(seq 1 "${REPS:-2}"); do
   echo "--- boot $r ---"
-  ssh $BENCH "PRODUCT=$PRODUCT FXTYPE=$FXTYPE BUDGET=$BUDGET DWELL=$DWELL \
+  ssh $BENCH "STAGE='$STAGE' PRODUCT=$PRODUCT FXTYPE=$FXTYPE BUDGET=$BUDGET DWELL=$DWELL \
               OUT=fxcost-b$BLOCK-t$FXTYPE-r$r.json bash /home/app/fxcost_run.sh"
-  scp -q $BENCH:/home/app/dspboot/fxcost-b$BLOCK-t$FXTYPE-r$r.json \
+  scp -q $BENCH:$STAGE/fxcost-b$BLOCK-t$FXTYPE-r$r.json \
          ./goldens/ 2>/dev/null
 done

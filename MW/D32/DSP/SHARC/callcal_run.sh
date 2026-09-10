@@ -7,7 +7,7 @@
 # it does need is a link that answers as chip 1 — the usual CONFIG_COMMIT
 # phase-slip retry.
 set -u
-cd /home/app/dspboot
+cd "${STAGE:-/home/app/dspboot}"
 sudo systemctl stop matrix-app >/dev/null 2>&1
 # BENCH PIN HAND-BACK — the corrected sequence (S8-3, 2026-09-09).
 # The line that used to be here, `pinctrl set 6,7,8,9,10,11,12,22,23,24,25

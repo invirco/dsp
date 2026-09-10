@@ -1,12 +1,33 @@
 #!/usr/bin/env python3
 """gainfix.py — repair strip 1's GAIN coefficient without a reboot.
 
-Roughly one boot+config in three leaves _gain_coeff_C1_GAIN_01 and
+THE DEFECT THIS REPAIRS IS FIXED IN THE FIRMWARE (2026-09-10, D79/D71).
+It is kept for two reasons: an image built before 2026-08-31 still has it,
+and gainsimd.sh uses the GAIN VALUE argument for its own purposes. It should
+not be needed on a current image, and if it ever reports a repair on one,
+that is a regression and not routine hygiene.
+
+Roughly one boot+config in three left _gain_coeff_C1_GAIN_01 and
 _gain_target_C1_GAIN_01 holding the CFG_COMMIT transaction's own header
 word instead of 1.0f (root-caused 2026-08-28: a one-word phase slip in
 the two-word parameter protocol). Everything else reads clean, the strip
 runs on a garbage gain, and any cycle number taken in that state is the
 SILENCE number.
+
+WHERE THE WORD WENT, settled 2026-09-10: `_diag_timer_isr`'s
+stuck-partial-request recovery (diag.asm) discards a word from SPI2_RFIFO
+after three consecutive 1 ms ticks that find the RX FIFO neither empty nor
+full, and it is the ONLY place in the firmware that discards a single word
+-- `_spi2_rx_work` drains strictly two, and only when RFS reads FULL. The
+host's config burst is 51 back-to-back transactions at 1 MHz, so a tick
+that keeps landing inside the second word sees "part full" three times
+running and throws a LIVE word away. Every request after it is a word out
+of phase, and because config values are small integers (`value >> 16` = 0)
+the address they resolve to is SPI 0x0000 -- which is this very
+coefficient. `DSP4_SPI_PARTIAL_FIX2` arms the recovery only while
+`_spi_rx_count` is standing still, and build.sh has defaulted it to 1 since
+2026-08-31. Measured 2026-09-10: 48 chip-boots, 0 corrupt, and
+`_spi_partial_fix` = 0 on every one.
 
 Re-running boot+config clears it, at ~40 s a go. Writing the parameter
 again over the same link clears it too, at ~1 s -- and it is the path the

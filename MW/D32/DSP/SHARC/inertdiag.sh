@@ -18,6 +18,22 @@ set -u
 cd "$(dirname "$0")"
 source ./bench_lock.sh; bench_lock_acquire "$0"
 BENCH=app@192.168.1.219
+# THE SHARED SCRATCH SLOT, NAMED (S16-9). ~/dspboot/chip{1,2}.ldr is not a
+# staged pair -- it is whatever the last measurement run left there, and this
+# script overwrites it. The staged pairs are the PREFIXED ones (blk_*, cand_*,
+# geq_*, dyn_*, flr_*, conf_*, ship_*, tx_*, s16_*) and nothing here writes
+# those. STAGE names a directory of this run's own when the image must survive
+# the next script; it defaults to the scratch slot so nothing that calls this
+# changes behaviour.
+STAGE="${STAGE:-/home/app/dspboot}"
+
+# A staging path other than ~/dspboot needs the shared bench helpers the run
+# script imports. Symlinked, not copied, so there is one working set and a
+# staged run cannot drift from it.
+if [ "$STAGE" != "/home/app/dspboot" ]; then
+  ssh $BENCH "mkdir -p '$STAGE' && for f in /home/app/dspboot/*.py; do \
+      ln -sfn \"\$f\" '$STAGE'/\$(basename \"\$f\"); done" || exit 3
+fi
 ROOT=../../../..
 PRODUCT="${PRODUCT:-d24}"
 OUT="${OUT:-inertdiag-$(date +%Y%m%d-%H%M).json}"
@@ -32,7 +48,7 @@ if [ "${BUILD:-1}" = "1" ]; then
   python3 $ROOT/tools/dsp/map_syms.py build/chip1.map.xml > /tmp/chip1.sym.json
   python3 $ROOT/tools/dsp/map_syms.py build/chip2.map.xml > /tmp/chip2.sym.json
   scp -q build/chip1.ldr build/chip2.ldr /tmp/chip1.sym.json /tmp/chip2.sym.json \
-      $BENCH:/home/app/dspboot/ || exit 3
+      $BENCH:$STAGE/ || exit 3
 fi
 
 python3 $ROOT/tools/dsp/landed_map.py --product "$PRODUCT" \
@@ -40,17 +56,17 @@ python3 $ROOT/tools/dsp/landed_map.py --product "$PRODUCT" \
 
 scp -q $ROOT/tools/pi/dsp4_inert_diag.py $ROOT/tools/pi/dsp4_conform.py \
     $ROOT/tools/pi/dsp4_block.py $ROOT/tools/dsp/fixed_ref.py \
-    /tmp/landed-$PRODUCT.json $BENCH:/home/app/dspboot/ || exit 3
+    /tmp/landed-$PRODUCT.json $BENCH:$STAGE/ || exit 3
 # BENCH PROCEDURE (S8-3): the boot tool and the chip-identity gate go
 # with every run, so a bench cannot be left on a stale dsp4_boot.py that
 # still hands GPIO 6/24 to a0. Path is script-relative, not $ROOT: not
 # every script in here defines one.
-scp -q "$(dirname "$0")/../../../../tools/pi/dsp4_checkchip.py" "$(dirname "$0")/../../../../tools/pi/dsp4_boot.py" $BENCH:/home/app/dspboot/
+scp -q "$(dirname "$0")/../../../../tools/pi/dsp4_checkchip.py" "$(dirname "$0")/../../../../tools/pi/dsp4_boot.py" $BENCH:$STAGE/
 scp -q inertdiag_run.sh $BENCH:/home/app/ || exit 3
 
-ssh $BENCH "PRODUCT=$PRODUCT FAMILIES='${FAMILIES:-}' N='${N:-32}' \
+ssh $BENCH "STAGE='$STAGE' PRODUCT=$PRODUCT FAMILIES='${FAMILIES:-}' N='${N:-32}' \
             OUT='$OUT' bash /home/app/inertdiag_run.sh"
 RC=$?
-scp -q $BENCH:/home/app/dspboot/$OUT ./goldens/$OUT 2>/dev/null \
+scp -q $BENCH:$STAGE/$OUT ./goldens/$OUT 2>/dev/null \
   && echo "  report: goldens/$OUT"
 exit $RC

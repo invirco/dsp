@@ -6,6 +6,318 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## WINDOW-READINESS CORRECTNESS: the sidechain bound closed, D79 root-caused to the recovery that was supposed to help, D80 put on the right axis (2026-09-10, session 17)
+
+Session: the open numeric and verification items closed before PW's window.
+Write-up `MW/D32/DSP/dsp4-s17-20260910.md`. Contract `defs-v2026.09.08.4`,
+unchanged.
+
+### S17-1 — the headroom guard's own bar had been building the guard OUT of the image since the float landing
+
+**Severity: HIGH (instrument; a bar that cannot fail). Status: FIXED.**
+
+`bqguard.sh` builds with `DSP4_BQ_GUARD=1` and did not name
+`DSP4_BQ_FLOAT`. `build.sh` sources `shipping.config` wherever the
+environment is silent, so it got `DSP4_BQ_FLOAT=1`, and `dsp_block.h`
+answers that with `#undef DSP4_BQ_GUARD / #define DSP4_BQ_GUARD 0` --
+correctly, because the float cascade needs none of the guard machinery.
+That takes `lib/bq_headroom.asm` out of the build from under
+`bq_guard_test.asm`, which references it unconditionally.
+
+It does not silently pass -- it does not LINK, which is how long it has
+been since anyone ran it. Rebuilt with the pre-fix flags to check:
+
+```
+[Error li1021]  The following symbols referenced in processor 'p0' could not be resolved:
+        'bq_hr_poll [_bq_hr_poll]' referenced from '.../lib/bq_guard_test.doj'
+        'bq_hr_request_n [_bq_hr_request_n]'
+        'bq_hr_service [_bq_hr_service]'
+=== Build FAILED (2 errors) ===
+```
+
+The float arm landed 2026-09-03, so the guard's bar has been unrunnable
+since. `DSP4_BQ_FLOAT=0` is named in the script now: the guard is the FIXED
+arm's and the arm has to be stated. `NSAMP` also defaults to 512 instead of
+128 -- see S17-2, whose case needs about 270 samples to ring up and at 128
+would have reported nothing and read like a pass.
+
+### S17-2 — `dyn_state_bound` §3 is a REAL overflow, an ordinary tone reaches it, and it is fixed for zero bytes
+
+**Severity: MEDIUM (correctness, fixed reference arm only). Status: FIXED,
+and the finding is CLOSED.**
+
+The GATE's sidechain HPF+LPF is the one cascade in the tree whose headroom
+header nothing ever wrote. It cannot be sized at parameter load and the
+reason is structural, not an oversight: the node converts its wire
+coefficients on every block and there is no swap-trigger cell to say when
+the host moved them, so there is no parameter-LOAD moment to hang a sizing
+off. At H = 0 the round-once kernel jumps over both the entry scale and the
+exit clamp, and the recursion can wrap -- a sign inversion fed back into the
+poles of a level detector.
+
+**It is reachable by an ordinary tone, which is the part that was not
+known.** Swept inside the contract (`GateFilterHpf` 20-1000 Hz,
+`GateFilterLpf` 500-20000 Hz, `GateFilterQ` 0.1-10) the worst cascade is
+HPF 521 Hz over LPF 500 Hz at Q 10 -- an HPF above its LPF, which nobody
+dials and a recalled preset can carry -- and there `|h|_1 = 125.01`
+(H = 4) and **max|H| = 82.05, +38.3 dB at 510 Hz, against Q4.28's ceiling
+of 8.0**. `|h|_1` needs a sign pattern matched to the impulse response;
+max|H| needs a sine. The gate rectifies its key before the cascade and a
+rectified sine puts 0.424 of full scale at TWICE its fundamental, so the
+tone that lands on that resonance is 255 Hz. Through the kernel, 24,000
+samples: **205 internal wraps at 0 dBFS, 28 at -12 dBFS, 0 with the
+guard.**
+
+MEASURED ON THE PART, not modelled. The corner is a named case in
+`gen_bqg_vectors.py` now -- the only one driven by a plain tone rather than
+the matched-sign pattern -- and `bqguard.sh` returns: the part's own sizer
+picks **H = 4**, the unguarded arm inverts sign **127** times against the
+model's predicted 127, the guarded arm **0**, and both whole output streams
+hash-match the model bit for bit (`0x4D9CE0A5`/`0x6BE90AD8` guarded,
+`0x43A42030`/`0xBDF8432F` unguarded).
+
+FIX: `bq_h_load.GATE_SIDECHAIN_H = 4`, emitted by `dsp_codegen.py` into the
+coefficient block's **initialiser** -- `.var _gate_filter_cq_<nid>[11] = 4,
+0, ...`. A constant rather than a sized word because the parameters are
+contract-bounded, so one number covers every setting the wire can carry; in
+the initialiser because the converter already steps past the header and
+never writes it, so the fix costs **+0 code bytes and +0 instructions** on a
+chip 1 with 388 bytes of margin. The price is four bits of detector
+precision: an absolute floor near -126 dBFS, 46 dB below the lowest
+threshold the contract allows. §3 re-derives the sweep every run and FAILs
+if the constant stops covering it.
+
+**Two corrections to the finding as it stood.** The talkback HPF was counted
+with the gate's and should not have been: `_talk_hpf_coeffs_<nid>` has no
+entry in the SPI dispatch table -- the only talkback filter cell is
+`Talk<nn>Hpf001`, the ON/OFF word -- so the wire cannot reach it, it stays
+at its bypass initialiser, `|h|_1 = 1` and H = 0 is correct. And **no
+shipping image is exposed at all**: `DSP4_BQ_FLOAT` forces `DSP4_BQ_GUARD`
+off, so the sidechain runs the 40-bit software float kernel and has no fixed
+recursion to wrap. §3 is the FIXED reference arm's bound -- the arm a future
+FPGA fixed engine follows -- and that is where the fix lands.
+
+### S17-3 — D80 root-caused: the meters were read on a steep part of their own convergence curve
+
+**Severity: MEDIUM (instrument; it looked like an arithmetic defect for
+thirteen days). Status: CLOSED as an INSTRUMENT ARTEFACT, and the
+instrument is fixed.**
+
+D80 recorded a 0.44-0.90 % difference between chip 2's per-sample and
+block-kernel builds on the meters of the chains whose GATE and COMP are
+engaged, peak low and RMS high, while every node OUTPUT was bit-identical.
+Reproduced through every lever since 2026-08-28.
+
+**The two builds were always bit-identical on the meters.** `d80.sh` boots
+each arm ONCE and reads the meters at 12, 30, 60, 120, 240, 480 and 720 s
+with `DIAG_FRAME_COUNT` and `DIAG_BLK_OVERRUN` bracketing every read. Across
+26 probes and 7 captures there are exactly **two** non-zero cross-arm cells
+-- `_mtr_rms_C2_MTR_FX_01` +0.1057 % at 12 s and `_mtr_rms_C2_MTR_FX_06`
+-0.0135 % at 30 s -- both single-capture, both the size of the boot-to-boot
+noise D80 itself recorded (worst 0.198 % on one build booted twice). Every
+other cell is 0.0000 at every dwell.
+
+**What moves is the meter, not the arithmetic.** A meter is a per-BLOCK IIR
+with a 300 ms RMS window and a 1.333 s peak decay AT BLOCK RATE; under
+`DSP4_BLOCK_DECIMATE=32` -- which `c2gold.sh` must use, because neither arm
+fits a block period -- those are **9.6 s and 42.7 s of WALL CLOCK**. At the
+12 s dwell `c2gold.sh` used:
+
+    _mtr_peak_C2_MTR_MAIN_01   1.30406  0.855027  0.423672  0.116157 ...
+    _mtr_rms_C2_MTR_MAIN_01   0.104717  0.114478  0.116084  0.116157 ...
+                               12 s      30 s      60 s      120 s (settled)
+
+The peak is a factor of **11.2** from its settled value at 12 s and still a
+factor of 3.6 out at 60 s. **The peak comes DOWN while the RMS goes UP**,
+which is D80's own "opposite directions so not a gain error" exactly. And
+the chains without dynamics behave as reported: AUX and FX peak sits at 0.5
+from the first capture -- a +/-0.5 square has no decay to do -- so only
+their RMS converges, which is why those chains "agreed exactly". The two
+arms boot and configure independently, so their capture instants sit
+differently against their own CONFIG_COMMIT, and on that curve a fraction of
+a second is worth a per cent.
+
+The "two arms run at different speeds" half of the hypothesis is DISPROVED
+and was not needed: both ran at 93.7 graph passes/s with zero new overruns,
+so at equal wall clock they had equal pass counts.
+
+FIX: `c2gold.sh`'s `DWELL` derives from `DEC` -- five peak time constants,
+`(5 * 1333 * DEC + 999) / 1000`, **214 s** at the default against the 12 s it
+used -- so a run at another decimation cannot silently keep a dwell that was
+only long enough for this one. The `DEC` comment's claim that "decimation
+changes how OFTEN a pass runs, never what one computes... the comparison is
+unaffected" is corrected: what it changes is the wall-clock ballistics of
+anything that integrates per pass, which is every meter.
+
+**Chip 2's dynamics path can now carry a bit-exactness claim on its meters,
+at a settled dwell.** D80's caveat -- "no chip-1-grade bit-exactness is
+claimed for chip 2's dynamics path" -- is withdrawn.
+
+### S17-4 — D79 and D71 are the SAME defect, the fix has been shipping since 2026-08-31, and chip 2's sighting was a READ
+
+**Severity: HIGH as filed (a live audio parameter corrupted by a config).
+Status: CLOSED. The chip-1 defect is fixed in firmware; the chip-2 half was
+never a corrupt parameter.**
+
+The parameter protocol is two words with no framing -- `word0[31:16] =
+address`, `word1 = value`. Lose ONE word out of the DSP's receive stream and
+the DSP reads the previous transaction's VALUE as the next one's ADDRESS.
+Config values are small integers, so `value >> 16` is **zero** for nearly all
+of them, and **SPI address 0x0000 is a live audio parameter on both chips**:
+
+    chip 1   0x0000 = _gain_coeff_C1_GAIN_01     reads 0xF0040000 (CFG_COMMIT = 0xF004)
+    chip 2   0x0000 = _fdr_level_C2_AUX_FDR_01   reads 0xE0FE0000 (DIAG_NOP  = 0xE0FE)
+
+Both are exactly the words that were reported. **D79's "two faces" are one
+defect seen through two dispatch tables**, and a `gainfix.py` for chip 2
+would have been a second plaster on one wound.
+
+WHERE THE WORD GOES: `_diag_timer_isr`'s stuck-partial-request recovery
+(`diag.asm:721`) discards a word from `SPI2_RFIFO` after three consecutive
+1 ms ticks that find the RX FIFO neither empty nor full. It is the **only**
+single-word discard in the firmware -- `_spi2_rx_work` drains strictly two,
+and only when `RFS` reads FULL, the RFE guard having been removed on
+2026-08-22 for this very reason. The host's config burst is 51 back-to-back
+transactions at 1 MHz, 32 us a word, so a tick that keeps landing inside the
+second word sees "part full" three times running and throws a LIVE word
+away. The recovery meant to protect the link is what corrupts the config,
+which is why the negative control was always clean: no config write, no
+burst, no part-full ticks, no discard.
+
+**AND IT IS ALREADY FIXED.** `DSP4_SPI_PARTIAL_FIX2` arms the recovery only
+while `_spi_rx_count` is standing still, and `build.sh` has defaulted it to 1
+since **2026-08-31** (session 15, `388bcbd`, *"ship the D71 fix"*). **D71 --
+the lost `CONFIG_COMMIT` transaction -- and D79 are the same defect from its
+two ends**, and the connection was never made. `diag.h`'s own fallback said
+`#define DSP4_SPI_PARTIAL_FIX2 0` while build.sh set 1, and two sessions read
+the fallback and believed the feature was off. The fallback is 1 now (so a
+source file assembled without build.sh gets shipping behaviour) and
+`shipping.config` names the switch. **Neither change moves a byte: the md5 is
+identical either way, because build.sh was already passing it.**
+
+MEASURED (`d79.sh`, `tools/pi/dsp4_d79.py`): 12 boot+config cycles per arm,
+both chips read after each with TWO AGREEING READS, `DSP4_CFG_WATCH=1` for
+the counters. **48 chip-boots, 0 corrupt, 0 unreadable, in BOTH arms.**
+`_spi_partial_seen` is 0-10 per boot -- the tick does land on part-full FIFOs
+-- but `_spi_partial_fix` is **0 on every boot of both arms**: with the gate
+off the dwell counter never reached three consecutive ticks, and with it on it
+cannot. The gate is live and not merely compiled in, witnessed by
+`_spi_partial_skip`, non-zero only in the gated arm and tracking `seen`.
+
+**Chip 2's sighting was a read artefact.** `0xE0FE0000` is named in `diag.h`
+as "the DIAG_NOP request word echoing back", `0xFFFFFFFF` is the link's
+no-answer pattern, and the other arm's all-zero answer after a NOP collect is
+D74's signature word for word. `c2gold_run.sh`'s `peek()` brackets a value
+with two sane `DIAG_MAGIC` reads, which catches a dead link but not a single
+mis-phased answer between them -- and on that evidence a whole aux chain, two
+meters and six node-output probes, was excluded from the bar. Fixed: the
+health read now requires two consecutive agreeing reads and treats
+`0xFFFFFFFF` as no answer.
+
+`gainfix.py` stays -- a pre-2026-08-31 image still has the defect, and
+`gainsimd.sh` uses its gain-value argument -- but its header now says the
+defect is fixed and that a repair reported on a current image is a
+REGRESSION, not routine hygiene.
+
+### S17-5 — the latency instrument played into a device with no playback stream, and swallowed the failure
+
+**Severity: HIGH (instrument; it nulled every image including the shipping
+control). Status: FIXED, and the 82-sample contract figure is now MEASURED
+on the candidate.**
+
+S12-10 recorded `latency.sh` returning the null signature -- offset 14779 on
+all 20 reps of both boots, spread 0, coherent 0.0 % -- on the candidate AND
+on the staged shipping pair, and attributed it to the bench sitting on the
+`dsp4-pcm-slave` overlay where "the capture device exists and returns audio
+that is not the DSP's output". The overlay is the right neighbourhood and
+the wrong mechanism.
+
+`dsp4_dsp_latency.py` used ONE device name for both `arecord` and `aplay`.
+Under `dsp4-pcm-slave` the card exposes the directions SEPARATELY --
+`device 0` is `bcm2835-i2s-dir-hifi`, capture only; `device 1` is
+`bcm2835-i2s-dit-hifi`, playback only -- so `aplay -D hw:dsp4pcm,0` had no
+playback stream to open. The failure was swallowed (`capture_output=True`,
+no return-code check) and the run scored a capture with no stimulus in it.
+
+**No reboot was needed and none was taken.** Measured on the bench:
+`arecord` on device 0 and `aplay` on device 1 run CONCURRENTLY under the
+standing slave overlay. `CAP_DEV` and `PLAY_DEV` are separate now, both
+overridable (`DSP4_PCM_CAP` / `DSP4_PCM_PLAY`, or `DSP4_PCM_DEV` for a duplex
+overlay), and the playback's return code is checked -- an `aplay` that
+cannot open its device exits non-zero in milliseconds, and scoring the
+resulting empty capture is a well-formed wrong answer.
+
+The other half of S12-10 was real: the through-DSP arm needs the `_maincap`
+CPLD bitstream, and the bench was on the shipping `a1f6672af6c3`
+(`dsp4_logic_id.py`: "no reply: nothing in the capture carried the 0xD594
+marker"). Loaded for the runs and restored afterwards, IDCODE `0x020a30dd`
+re-read both ways.
+
+MEASURED, 20 reps per boot, **coherent fraction 100.0 % on every rep of
+every arm** against 0.0 % before:
+
+| arm | median offset | through-DSP |
+|---|---|---|
+| LOGIC only (`_pisel` CPLD loop) | 14433 | reference |
+| `cap_lat16`, `DSP4_TX_EARLY=0` | 14500 | **67 samples** (S11: 66) |
+| `cap_lat16e2`, `DSP4_TX_EARLY=2` | 14515 | **82 samples** (S11: 82) |
+| S17 tree, shipping defaults, 2 boots | 14516 / 14515 | **83 / 82** |
+| `s16_*`, the recommended pair, 2 boots | 14517 / 14514 | **84 / 81** |
+
+S11's control reproduces to within one sample. **The contract figure stands
+at 82 samples / 1.708 ms and is no longer carried.** Boot-to-boot spread is
++/-2 samples on a 14,500-sample absolute offset that carries a deliberate
+0.3 s pre-roll, which is why only differences are quoted.
+
+BENCH NOTE: S16 staged `s16_*` but not its symbol map, so that arm ran with
+the S17 tree's map -- visible in the log as `gainfix.py` reading
+`0x0924256C` at what it thinks is `_gain_coeff_C1_GAIN_01`. Nothing in the
+measurement uses the map (every cell write goes through the landed
+contract's SPI addresses). **Stage `chipN.sym.json` beside every prefixed
+pair from now on.**
+
+### S17-6 — `_proc_cyc_max` was latching the config ladder, and chip 1's D24 margin is 28 % and not 15.2 %
+
+**Severity: MEDIUM (a capacity number the window carries). Status: FIXED,
+and it corrects S10-8.**
+
+`_proc_cyc_max` is a high-water latch and nothing cleared it, so
+`capacity.sh` printed the worst pass since RESET under the caption "the block
+the budget has to cover". `DIAG_CLEAR` now zeroes it (it is a latch, which is
+the class that register is for; `_diag_ticks` and `_frame_count` stay
+untouched as the two free-running rate references), and `dsp4_capacity.py`
+reads the latch BEFORE the reset, clears, dwells, and prints both figures --
+saying so explicitly if the write did not take.
+
+WITNESSED, D24, block 16, CCLK 983.04 MHz measured, three boots of the S17
+default build:
+
+| | `_proc_cyc` | `_proc_cyc_max` RESET | raw latch | overruns |
+|---|---|---|---|---|
+| chip 1 x3 | 234,276 / 235,119 / 234,768 | **235,478 / 235,825 / 234,984 (71.71-71.97 %)** | 277,735 / 278,087 / 277,743 (**84.76-84.87 %**) | 0 / 135,056 |
+| chip 2 | 303,322 (92.57 %) | 304,353 (**92.88 %**) | 1,286,363 (**392.57 %**) | 0 / 135,056 |
+
+**S13-2's "376 % on chip 2 with zero missed blocks" is that raw latch.** The
+config ladder's worst pass is 1.29 M cycles -- a one-off burst of parameter
+conversions and cascade sizings that no per-block budget has to cover -- and
+the steady worst is 304 k.
+
+**S10-8 IS CORRECTED.** It recorded "chip 1's worst block is consistently
+18 % higher than `_proc_cyc` (234,267 -> 277,752 = 84.8 %)" and the window's
+D24 chip-1 margin was cut to 15.2 % on that basis. **The 18 % was the
+configuration transient**: the raw latch here reproduces 277,752 to the digit
+(277,743), while over the dwell alone the worst block is **0.1-0.3 %** above
+`_proc_cyc`, not 18 %. Chip 1's D24 worst block is **71.71-71.97 %** and the
+margin is **28.0-28.3 %**.
+
+SEPARATELY, AND FILED NOT EXPLAINED: chip 2's D24 cost is **boot-dependent by
+ten points** on the same image, product and clock -- 92.88 % with zero
+overruns on one boot, 102.83 % with 2.49 % of blocks missed on two others,
+with `_proc_passes` tracking the shortfall exactly (403,346 against 393,273).
+Chip 1 is flat to 0.3 % across the same boots. Nothing on record accounts for
+it. What it settles is procedural: **`REPS=1` is not a capacity measurement
+for chip 2.**
+
 ## THE LAST LINK AND THE NEW WALL: the code pool read by symbol, the audio-domain verdict on the table, and the LIMITER on it (2026-09-10, session S16)
 
 Session: chip 1's code pool opened by measurement rather than by

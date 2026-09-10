@@ -1035,6 +1035,7 @@ _diag_read.end:
  * transaction and must not itself queue one).
  * Clobbers r4.
  *----------------------------------------------------------------------*/
+.extern _proc_cyc_max;
 .global _diag_write;
 _diag_write:
     r4 = DIAG_LED_MODE;
@@ -1112,8 +1113,20 @@ _diag_write:
     /* Counters and sticky latches only. _diag_ticks and _frame_count
      * are deliberately NOT cleared: they are the two free-running rate
      * references, and a bench measurement that resets its own clock is
-     * no measurement. */
+     * no measurement.
+     *
+     * _proc_cyc_max IS CLEARED, and it was not until 2026-09-10 (S13-2).
+     * It is a HIGH-WATER LATCH, which is the class this register is for --
+     * not a rate reference. Left unlatched across the config ladder it
+     * holds the worst pass of the CONFIGURATION TRANSIENT, which is a
+     * one-off burst of parameter conversions and cascade sizings that no
+     * budget has to cover, and capacity.sh then printed it against the
+     * block budget under the caption "the block the budget has to cover".
+     * That is how chip 2 read 376 % on an arm with ZERO missed blocks.
+     * _proc_cyc and _proc_passes are left alone: the first is the last
+     * pass and cannot be stale, the second is a rate reference. */
     r4 = 0;
+    dm(_proc_cyc_max)      = r4;
     dm(_diag_sec_count)    = r4;
     dm(_diag_unk_count)    = r4;
     dm(_diag_unk_csid)     = r4;

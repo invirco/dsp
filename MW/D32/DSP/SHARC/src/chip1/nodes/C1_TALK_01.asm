@@ -40,15 +40,21 @@
 #endif
 /* A single unity-gain sidechain HPF. It carries the guard's
  * header word so every cascade block in the tree has the same
- * shape, but nothing SIZES it: H stays 0.
+ * shape, and H STAYS 0 -- which here is CORRECT, not a gap.
  *
- * THAT IS A MEASURED GAP AND NOT AN INSPECTION.
- * tools/dsp/dyn_state_bound.py sweeps the sidechain parameter
- * range and finds |h|_1 = 13.8 on a 20 Hz HPF at Q 10 -- one
- * headroom bit -- so "it cannot reach the ceiling" is FALSE at
- * the corner. It is unsized because this node converts on every
- * invocation rather than at a parameter-load moment, so there is
- * nothing control-rate to hang a sizing off. See the write-up. */
+ * That was recorded as an unsized cascade next to the gate's,
+ * on a sweep that assumed the wire could reach these
+ * coefficients. IT CANNOT: `_talk_hpf_coeffs_<nid>` has no
+ * entry in the SPI dispatch table (the only talkback filter cell
+ * is Talk<nn>Hpf001, which is the ON/OFF word), so the staging
+ * buffer never moves off its bypass initialiser, the converted
+ * block is b0 = 1 with everything else zero, |h|_1 = 1 and the
+ * ceiling is four octaves away. Checked on the landed
+ * dsp_params.asm, 2026-09-10.
+ *
+ * The GATE's sidechain beside it is the real case: its
+ * coefficients ARE dispatched, and it carries a fixed contract
+ * headroom. See gen_gate_fixed. */
 #if DSP4_BQ_FLOAT
 .global _talk_hpf_cq_C1_TALK_01;
 .var _talk_hpf_cq_C1_TALK_01[5] = 0x3F800000, 0, 0, 0, 0;

@@ -5,7 +5,7 @@
 # word to JSON.
 set -u
 DWELL="$1"; OUT="$2"; BLK="${3:-8}"
-cd /home/app/dspboot
+cd "${STAGE:-/home/app/dspboot}"
 
 BENCH_LOCKFILE=/home/app/dspboot/.bench.lock
 exec {BENCH_LOCK_FD}>"$BENCH_LOCKFILE"
@@ -191,14 +191,36 @@ FDR_OF = {
 UNITY_F32 = 0x3F800000
 UNITY_Q428 = 0x10000000
 health = {}
+# TWO AGREEING READS, not one (S17-4). `peek` above brackets the value with
+# two sane DIAG_MAGIC reads, which catches a dead link but NOT a single
+# mis-phased answer between them -- and that is exactly what this health check
+# reported as a corrupt parameter on 2026-09-01: `_fdr_level_C2_AUX_FDR_01` =
+# 0xE0FE0000, which diag.h names as "the DIAG_NOP request word echoing back",
+# beside `_fdr_gq_` = 0xFFFFFFFF, which is the link's no-answer pattern. Both
+# are link artefacts, neither is a value a parameter can hold, and a whole aux
+# chain was excluded from the bar for them. gainfix.py's discipline is the fix:
+# read until two consecutive reads agree, and treat 0xFFFFFFFF as no answer.
+def peek2(a, tries=24):
+    last = None
+    for _ in range(tries):
+        v = peek(a)
+        if v is None or v == 0xFFFFFFFF:
+            last = None
+            continue
+        if v == last:
+            return v
+        last = v
+    return None
+
+
 for mid, fid in FDR_OF.items():
     lv = sym.get('_fdr_level_' + fid)
     gq = sym.get('_fdr_gq_' + fid)
     if lv is None or gq is None:
         health[mid] = 'absent'
         continue
-    a = peek(lv)
-    b = peek(gq)
+    a = peek2(lv)
+    b = peek2(gq)
     if a is None or b is None:
         health[mid] = 'unreadable'
     elif a != UNITY_F32 or b != UNITY_Q428:

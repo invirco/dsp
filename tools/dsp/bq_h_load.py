@@ -78,6 +78,31 @@ NLEAD = 6.0                     # time constants of r_max to aim for
 HMAX = 12                       # H is a 4-bit field; 12 bits is 72 dB
 SAFETY = 1.125                  # bound + bound/8: one shift and one add
 
+# THE GATE SIDECHAIN'S FIXED H, and why this one cascade carries a constant
+# instead of a sized word.
+#
+# Every other cascade in the tree is sized at PARAMETER-LOAD time by
+# lib/bq_headroom.asm, off the coefficients the part actually holds. The
+# GATE's sidechain HPF+LPF cannot be: the node has no parameter-load
+# moment -- it converts its wire coefficients on every block, with no
+# swap-trigger cell to say they changed -- so there is nothing
+# control-rate to hang a sizing off, and the header word was left at
+# zero. dyn_state_bound.py section 3 has FAILed on that since before S15.
+#
+# The sidechain's parameters ARE bounded by the contract, which is what
+# makes a constant sound: Chan<nn>GateFilterHpf001 is 20-1000 Hz,
+# Chan<nn>GateFilterLpf001 is 500-20000 Hz and Chan<nn>GateFilterQ001 is
+# 0.1-10 (defs/products/*/dsp.csv). Swept over that box the worst
+# two-stage cascade bound is |h|_1 = 125.01, at HPF 521 Hz over LPF
+# 500 Hz at Q 10 -- an HPF above its LPF, which nobody dials and a
+# recalled preset can carry -- and that is H = 4.
+#
+# Written as the coefficient block's INITIALISER, so it costs zero code
+# bytes and zero instructions: the converter already steps past the
+# header and never writes it. dyn_state_bound.py section 3 re-derives the
+# sweep and fails if this constant no longer covers it.
+GATE_SIDECHAIN_H = 4
+
 
 # ---------------------------------------------------------------------------
 # de-quantisation: the DIRECT float coefficients the stored offset words mean

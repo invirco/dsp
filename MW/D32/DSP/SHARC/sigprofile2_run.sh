@@ -6,7 +6,7 @@
 # witness is two-sided (see sigprofile2.sh's header).
 set -u
 PT="$1"; PP="$2"; DWELL="$3"
-cd /home/app/dspboot
+cd "${STAGE:-/home/app/dspboot}"
 
 BENCH_LOCKFILE=/home/app/dspboot/.bench.lock
 exec {BENCH_LOCK_FD}>"$BENCH_LOCKFILE"

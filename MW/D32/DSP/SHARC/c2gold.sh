@@ -32,7 +32,24 @@
 # pairing (each node against its neighbour in the probe list). A bar that
 # cannot fail is not a bar.
 set -u
-DWELL="${DWELL:-12}"
+# THE DWELL HAS TO SETTLE THE METERS, AND 12 s DID NOT (S17-3, D80 closed).
+#
+# The meters are per-BLOCK IIRs: a 300 ms RMS window and a 1.333 s peak decay
+# AT BLOCK RATE. Under DSP4_BLOCK_DECIMATE those become DEC times longer in
+# wall clock -- 9.6 s and 42.7 s at DEC=32 -- so a 12 s dwell reads a point on
+# a steep part of the curve, and the two arms boot and configure
+# independently, so their capture instants sit differently against their own
+# CONFIG_COMMIT. That is the whole of D80: measured 2026-09-10 with a ladder of
+# dwells off one boot per arm, _mtr_peak_C2_MTR_MAIN_01 reads 1.30406 at 12 s,
+# 0.855027 at 30 s, 0.423672 at 60 s and 0.116157 from 120 s on -- a factor of
+# ELEVEN between the 12 s read and the settled value -- while its RMS RISES,
+# 0.104717 -> 0.116157, which is exactly D80's "peak and RMS in opposite
+# directions". At a settled dwell all 24 readable meters are BIT-IDENTICAL
+# across the two arms.
+#
+# Five peak time constants is the bar, and the default is derived from DEC
+# below rather than written as a number.
+
 # Default to the SHIPPING block size rather than a literal. shipping.config
 # is the one place it is named; a literal here is how a measurement ends up
 # taken at a block size the product does not run (findings S8-2).
@@ -41,15 +58,37 @@ BLOCK="${BLOCK:-$(python3 "$(dirname "$0")/../../../../tools/dsp/build_config.py
 # 121% of the block-8 budget with 32 strips and chip 2 is further over than
 # that -- and a main loop that never finishes a block never services the link
 # either, so an undecimated run would read as a dead card rather than as a
-# comparison. Both arms carry the SAME decimation, so the meters fold the same
-# blocks in both and the comparison is unaffected: decimation changes how OFTEN
-# a pass runs, never what one computes.
+# comparison. Both arms carry the SAME decimation, so a pass computes the same
+# thing in both -- decimation changes how OFTEN a pass runs, never what one
+# computes. What it DOES change is the wall-clock ballistics of anything that
+# integrates per pass, which is every meter, and that sentence used to end here
+# claiming the comparison was unaffected. It is not: see DWELL below (D80).
 DEC="${DEC:-32}"
+# Five peak time constants of wall clock, derived from DEC and not written as
+# a number, so a run at another decimation cannot silently keep a dwell that
+# was only long enough for this one. 5 * 1.333 s * 32 = 214 s at the default.
+DWELL="${DWELL:-$(( (5 * 1333 * DEC + 999) / 1000 ))}"
 WORK="${WORK:-/tmp/c2gold}"
 cd "$(dirname "$0")"
 ROOT=../../../..
 source ./bench_lock.sh; bench_lock_acquire "$0"
 BENCH=app@192.168.1.219
+# THE SHARED SCRATCH SLOT, NAMED (S16-9). ~/dspboot/chip{1,2}.ldr is not a
+# staged pair -- it is whatever the last measurement run left there, and this
+# script overwrites it. The staged pairs are the PREFIXED ones (blk_*, cand_*,
+# geq_*, dyn_*, flr_*, conf_*, ship_*, tx_*, s16_*) and nothing here writes
+# those. STAGE names a directory of this run's own when the image must survive
+# the next script; it defaults to the scratch slot so nothing that calls this
+# changes behaviour.
+STAGE="${STAGE:-/home/app/dspboot}"
+
+# A staging path other than ~/dspboot needs the shared bench helpers the run
+# script imports. Symlinked, not copied, so there is one working set and a
+# staged run cannot drift from it.
+if [ "$STAGE" != "/home/app/dspboot" ]; then
+  ssh $BENCH "mkdir -p '$STAGE' && for f in /home/app/dspboot/*.py; do \
+      ln -sfn \"\$f\" '$STAGE'/\$(basename \"\$f\"); done" || exit 3
+fi
 mkdir -p "$WORK"
 
 SRC="$PWD/src"
@@ -77,21 +116,21 @@ run_arm() {   # $1 = kernels (0|1) -> writes $WORK/arm$1.json on the card
   python3 $ROOT/tools/dsp/map_syms.py "$D/chip1.map.xml" > "$D/chip1.sym.json"
   python3 $ROOT/tools/dsp/map_syms.py "$D/chip2.map.xml" > "$D/chip2.sym.json"
   scp -q "$D/chip1.ldr" "$D/chip2.ldr" "$D/chip1.sym.json" "$D/chip2.sym.json" \
-         $BENCH:/home/app/dspboot/
+         $BENCH:$STAGE/
   # BENCH PROCEDURE (S8-3): the boot tool and the chip-identity gate go
   # with every run, so a bench cannot be left on a stale dsp4_boot.py that
   # still hands GPIO 6/24 to a0. Path is script-relative, not $ROOT: not
   # every script in here defines one.
-  scp -q "$(dirname "$0")/../../../../tools/pi/dsp4_checkchip.py" "$(dirname "$0")/../../../../tools/pi/dsp4_boot.py" $BENCH:/home/app/dspboot/
+  scp -q "$(dirname "$0")/../../../../tools/pi/dsp4_checkchip.py" "$(dirname "$0")/../../../../tools/pi/dsp4_boot.py" $BENCH:$STAGE/
   scp -q c2gold_run.sh $BENCH:/home/app/
-  ssh $BENCH "bash /home/app/c2gold_run.sh $DWELL /home/app/dspboot/arm$K.json" \
+  ssh $BENCH "STAGE='$STAGE' bash /home/app/c2gold_run.sh $DWELL $STAGE/arm$K.json" \
     2>&1 | sed "s/^/  arm$K: /"
 }
 
 echo "=== chip-2 gold, BLOCK=$BLOCK ==="
 run_arm 0 || exit 1
 run_arm 1 || exit 1
-scp -q $BENCH:/home/app/dspboot/arm0.json $BENCH:/home/app/dspboot/arm1.json "$WORK/"
+scp -q $BENCH:$STAGE/arm0.json $BENCH:$STAGE/arm1.json "$WORK/"
 python3 - "$WORK/arm0.json" "$WORK/arm1.json" <<'PYEOF'
 import json, re, sys
 A = json.load(open(sys.argv[1]))

@@ -384,3 +384,81 @@ from 84.8 % to 72.4 % on the worst block, chip 2 from 92.7 % to 83–87 % —
 for no contract change, no PCB change and no host rebuild. It does not buy
 D32 on its own: that needs `DSP4_C2_BQ_GRAPH`, and that switch is not
 audio-correct yet.
+
+---
+
+## 9. Addendum, 2026-09-10 — S17: the open correctness items closed, and two carried numbers corrected
+
+Write-up `MW/D32/DSP/dsp4-s17-20260910.md`; findings S17-1..S17-6.
+**Contract `defs-v2026.09.08.4`, unchanged. No cell moved. §2 stands
+exactly as written and the app and H1S3/H1S4 rebuild against nothing.**
+
+**The default build moves by FOUR BYTES per chip**, and that is the whole of
+this session's effect on any image. `chip1.ldr` `302d6142701b00e6…`
+(421,836 B) and `chip2.ldr` `3b3a6f8e1bb94851…` (280,396 B) against S16's
+`20588957…` (421,832 B) / `a1509a2a…` (280,392 B) — one extra store in
+`DIAG_CLEAR`. The S16 baseline was rebuilt and reproduces byte for byte, so
+the delta is attributed and not inferred.
+
+### What was open, and what it is now
+
+| item | going in | now |
+|---|---|---|
+| `dyn_state_bound` §3 | FAIL at HEAD, H = 4 reachable | **PASS.** A real overflow in the FIXED arm, reachable by a plain 255 Hz tone (205 wraps at 0 dBFS, 28 at −12); fixed by a contract-worst `H = 4` in the generated initialiser at **+0 bytes, +0 instructions**; proved on the part by `bqguard.sh` (part sizes H = 4, 127 inversions unguarded against 127 predicted, 0 guarded, stream hashes match). **No shipping image was ever exposed** — `DSP4_BQ_FLOAT` forces the guard off. |
+| D80 | open, not root-caused, 0.44–0.90 % | **CLOSED as an instrument artefact.** At a settled dwell the two builds are **bit-identical on all 24 readable chip-2 meters, at every capture time**. The 0.44–0.90 % was a meter read 12 s into a curve whose wall-clock constants are stretched 32× by the decimation. `c2gold.sh`'s dwell now derives from `DEC` (214 s, not 12). |
+| D79 | open, "chip 2 wants a `gainfix.py`" | **CLOSED.** Same defect as **D71**, already fixed in `build.sh` since 2026-08-31. Address `0x0000` is a live parameter on both chips, which is the whole of the "two faces". 48 chip-boots, 0 corrupt, `_spi_partial_fix` = 0 on every one. **Chip 2's sighting was a mis-phased READ**, not a corrupt parameter. |
+| S12-10 | latency instrument nulls on every image | **FIXED**, and it was a one-device-name bug plus a swallowed `aplay` failure, not the overlay. **No reboot was needed and none was taken.** |
+| S16-9 | ~30 scripts on the shared scratch slot | **DONE**, 57 files, `check_bench_pins.sh` still canonical. |
+| S13-2 | `_proc_cyc_max` latches a config transient | **FIXED** in `DIAG_CLEAR`, both figures printed. |
+
+### The latency row is MEASURED now, not carried
+
+`_maincap` loaded for the runs and `dsp4_logic.a1f6672af6c3` restored
+afterwards, IDCODE `0x020a30dd` re-read. 20 reps per boot, **coherent
+fraction 100.0 % on every rep of every arm** (against 0.0 % in S12).
+
+| arm | median offset | through-DSP latency |
+|---|---|---|
+| LOGIC-only reference (`_pisel`) | 14433 | — |
+| `DSP4_TX_EARLY=0` (`cap_lat16`) | 14500 | **67 samples** — S11 recorded 66 |
+| `DSP4_TX_EARLY=2` (`cap_lat16e2`) | 14515 | **82 samples / 1.708 ms** — S11 recorded 82 |
+| S17 tree, shipping defaults, 2 boots | 14516 / 14515 | **83 / 82** |
+| **`s16_*`, the recommended pair, 2 boots** | 14517 / 14514 | **84 / 81** |
+
+**The 82 samples / 1.708 ms the window carries is confirmed on the
+recommended pair to within the ±2-sample boot-to-boot spread.** §2's
+alignment figure is unchanged.
+
+### Two carried capacity numbers corrected
+
+**Chip 1's D24 margin is 28.0 – 28.3 %, not 15.2 %.** §6 cut it to 15.2 % on
+S10-8's finding that "chip 1's worst block is consistently 18 % higher than
+`_proc_cyc`". That 18 % was the **configuration ladder**, latched in
+`_proc_cyc_max` because nothing reset it. Over the dwell alone, three boots:
+worst block **71.71 – 71.97 %** of budget, 0.1–0.3 % above `_proc_cyc`, zero
+overruns over 135,056 blocks each. The raw latch reproduces S10-8's 277,752
+to the digit (277,743), which is what identifies it.
+
+**Chip 2's D24 cost is boot-dependent by ten points and is filed, not
+explained** (S17-6): 92.88 % with zero overruns on one boot, 102.83 % with
+2.49 % of blocks missed on two others, same image, same product, same
+measured clock. **`REPS=1` is not a capacity measurement for chip 2.** No
+chip-2 number in this note is adjusted on the strength of it.
+
+### Decision table, refreshed
+
+| | shipping `blk_*` | **recommended `s16_*`** |
+|---|---|---|
+| chip 1 / chip 2 md5 | `ac65ad38…` / `e5dce9e4…` | **`a874db96…` / `1403fbcc…`** |
+| through-DSP latency | 82 samples / 1.708 ms (ruled, S12) | **82, MEASURED 2026-09-10 (84 / 81 over two boots)** |
+| `dyn_state_bound` §3 | not exposed (float arm; guard compiled out) | not exposed; §3 PASSes at HEAD |
+| D80 | closed — instrument artefact, not a property of either pair | same |
+| D79 | closed — fixed in firmware since 2026-08-31; both pairs carry the fix | same |
+| D24 chip 1 worst block | — | **71.7 – 72.0 % measured on the S17 default; `s16_*`'s own row is S16's 60.3 %** |
+| symbol map staged beside the pair | yes (`blk_*` predates the practice) | **no** — stage `chipN.sym.json` beside every prefixed pair from now on |
+
+**Rollback is unchanged; §3 stands.** `~/dspboot/ship_*` and `blk_*` are
+untouched and byte-identical, all 221 staged files intact, and the bench was
+left booted on `blk_*` — `BOOT_STAGE 7` on both chips, `CHIP_ID` 1 and 2
+verified, **zero overruns over 90,004 blocks per chip**, `matrix-app` active,
+CPLD `dsp4_logic.a1f6672af6c3`.
