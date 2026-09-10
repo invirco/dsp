@@ -1,3 +1,71 @@
+## HUB DISPATCH 2026-09-10 21:35Z — S27 — shared-class cycle ladder, the window candidate in one place, instrument debt   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+S27 — THE CYCLE COST S26 DID NOT MEASURE (the shared GATE and FILT classes priced driven with the load, both products, two boots — ship them or revert them per class on the number), THEN THE WINDOW CANDIDATE ASSEMBLED (`shipping.config.s26` as the recommended pair with the full bar set and the deviations PW must sign listed in one place), THEN THE INSTRUMENT DEBT THE LAST SESSIONS NAMED (S23-1 first-capture dynamics history; the CPLD re-flash flakiness; the matrix-app restart bug) — the definition-blocked legs (talkback, noise, anti-clip, RTA, R6–R11) NOT touched
+
+WHY. S26 (dsp f6f5d46) recovered 58 KB of chip 1's code pool by giving
+GATE and FILT the shared-kernel treatment, proved the audio byte-
+identical, and said plainly that the CYCLE cost of the two new classes
+is unknown — S21's near-zero result for COMP/TUBE must not be assumed to
+carry over, and FILT's per-sample entry runs 32 strips × 48 kHz. That is
+the first measurement of this session. With it, the window candidate
+PW has been asked to sign is `shipping.config.s26` (s21 + one line) or
+s21 if the cost says so; assembling the candidate's bars in one place
+is what lets PW sign in a minute. Every remaining completeness leg is
+blocked on PW definitions (talkback count/destinations, noise's new
+master function, anti-clip's decision, RTA's sources, R6–R11 on the
+block diagram); the instrument debt is not.
+
+BENCH. Rev C unit as S26 left it (`blk_*` booted, shipping CPLD, matrix-
+app active; re-read the CPLD IDCODE before and after every flash and
+record each attempt); staged pairs through `s25_*` — NEVER replace any;
+S26's candidate staged as `s26_*` if its bars pass. `SHIPPING_CONFIG=
+shipping.config.s26` for the candidate and `.s21` for the control;
+`DSP_LANDED_DIR` = the proposal pair; staging path verified before any
+cycle; `cfgverify.sh`; CCLK measured; `capacity.sh` driven rows with the
+regime proved and the plugin load, BOTH products, two boots; one capture
+per boot; probes take their control first. No definition-blocked cells.
+No deploy. No AI attribution in commits or any work product.
+
+GATES, in order, each witnessed:
+1. **The ladder.** s21 control → +shared GATE → +shared FILT (and both),
+   D24 and D32, both chips, two boots, plain driven and with six reverbs;
+   the delta per class; worst block per row corrected by the S21-6 rule.
+   First sentence of the status line: **shared GATE costs A, shared FILT
+   costs B points (per product, per chip); ship both / ship GATE only /
+   revert, because…** A class costing more than 0.5 points is reverted
+   to inlined and the code-pool figure restated.
+2. **The window candidate, in one place.** `MW/D32/DSP/window-candidate.md`:
+   the recommended pair (config name, md5s, staged name), the full bar
+   set run on it in this session (golden, dsp_validate, busgold, goldnode,
+   famverify both products, capacity driven both products with and
+   without the load, latency), the numeric deviations PW must sign (the
+   dynamics table's 0.095 dB vs the 0.1 dB bound; GATE_LINTHR's 0.0002 dB;
+   anything S26's floors add — say whether the ±1.5 dB threshold/knee
+   floor is product-visible), and what changes for the app (nothing, or
+   the list). Second sentence: **the window candidate is X; every bar
+   green; N deviations to sign.**
+3. **Instrument debt.** (a) S23-1: make the first capture of a boot
+   comparable — either the capture tool discards the first block of
+   dynamics history or the bars document one-capture-per-boot as the
+   rule in the tool itself (a flag that refuses a second capture
+   without `--force`); (b) the CPLD re-flash: record the svf tool's
+   behaviour over five flashes with IDCODE before/after, and if the
+   MASK failure recurs, the retry logic in the flash script with a
+   loud log line; (c) the matrix-app restart bug (restarted twice per
+   the filed app bug): the exact symptom and log, filed for the app
+   queue in mx26 with a reproduction.
+4. Findings S27-*, `MW/D32/DSP/dsp4-s27-20260910.md`, proposal pair
+   regenerated, tasks.md, this block's status; commit + push main.
+   Stage `s26_*` (or the per-class variant) if the bars pass.
+
+Bounded: gates 1–2 are the session; 3 expected; 4 always.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-10 20:33Z — S26 — fix rounding sweep, chip-1 code pool recovered, talkback delivered   [status: 🟢 done — **48 conversions swept, 42 exposed by one LSB below their floor, all comments true, host and part agree on 3 classes.** `tools/dsp/fix_sweep.py` enumerates every float→fixed site in the tree and decides from float32's own structure whether each can round: 11 classes, zero unresolved, each with an exactness floor. Two floors sit inside ORDINARY operating ranges, not corners — thresholds and knees within ±1.5 dB, and every soft-knee width below 3.01 dB (three roundings, not one). **The part was witnessed, not assumed: 17 of 17 discriminating vectors are ties-to-even; truncation fits 10, round-half-away 14**, and the pan trio reproduces S25's failure exactly (32/64/94). **`fix` does NOT wrap, and this session said it did before it measured**: +2^31, +2^31+256 and +2^32 all return 0xFFFFFFFF — a saturate would give 0x7FFFFFFF and a wrap would give 0 for 2^32. Three points, one answer, still not a model, so `fixed_ref.fix32` keeps raising. Three defects corrected: `bq_headroom` said "truncates", the crossfade blend said "`fix` saturates" (the tree already knew otherwise in two other places), and **`fixed_ref.xfade_alpha_q` implemented truncation AND saturation and matched the part on all 576 ramp steps anyway** — the only two fractional products land where the wrong rules agree with the right one, so no vector the ramp can produce would ever have shown it. S24's shape, one subsystem along. Golden harness 59/59, no golden moved. **Chip 1: 80,794 bytes free (69.2 %), up from 22,722 (91.3 %) — 58,072 bytes recovered; audio byte-identical.** GATE and FILT given the treatment COMP and TUBE already had; both land at 72 bytes an instance. `busgold` arm-against-arm in one session: control and candidate both **sha256 4126c00730a31f5f** from different chip-1 code, same 235/256 / first=21 / maxdiff=303276 against the stored golden, and the control reproduces S25 to the digit. chip2.ldr byte-identical in both arms; DM unchanged. Control build reproduces S25's pair byte for byte (`c9d0e07b` / `9222c2ee`); candidate is `6396187c` / `9222c2ee`, `shipping.config.s26` differing from s21 in exactly one line. **FILT needed two things GATE did not**, and the generator's own premise checks demanded both rather than emitting something that would have linked: its private `_filt_start_xfade` subroutine is now shared too (renaming ONLY symbols the body itself defines), and its second block-pool reference is passed in a register, in the strip's own parity, loaded only into the entry that reads it — the per-sample entry is 32 strips × 48 kHz. **Two instrument defects, neither in the firmware**: `shared_kernel_check` read `#elif` as `#else`, and collected header defines without following the header's own conditionals, so `dsp_block.h`'s forced `DSP4_BQ_GUARD=0` lost to an earlier `#define 1` and both new classes were checked against a record shape the assembler never emits — 1,152 failures of the guard's own making. -D flags now SEED the header instead of overwriting it, which is what the assembler does. (An intermediate "pass all 90 flags" change was WRONG and is reverted with the reasoning recorded: the header derives some of them on purpose.) The sweep tool also double-counted generated assembly against its own emitters until it was told which files are generated. **GATE 3: nothing built, deliberately, and that is the finding.** The master names a COUNT (3 talkback, 10 noise) and no destination, carries no `Table` column where every genuinely named selector has one, and its two halves disagree on their own encoding (`MxDatS` 1 vs 11). The count is contradicted by the product: `d24-skin-cell-map.csv` records "RANGE CONFLICT: vocab Talk Rtg[1-3] vs 9 targets", so three crosspoints would have been the wrong NUMBER as well as a guess at which buses. The noise half is blocked by PW's 2026-09-06 ruling that Rtg is retired and the noise assign needs a NEW master function. `dsp-unmapped.csv` moves by zero cells; the reasons now carry all of it at their source. **NOT DONE: the driven cycle ladder.** The byte result and the bit-exactness are measured; the "for C points" half is not, so the cycle cost of the two new shared classes is UNKNOWN and S21's near-zero result for COMP/TUBE should not be assumed to carry over. That is the first item for the next session. Write-up `MW/D32/DSP/dsp4-s26-20260910.md`; findings S26-*.]   [model: opus]
 
 model: opus
