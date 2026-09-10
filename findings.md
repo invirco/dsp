@@ -6,6 +6,187 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## COMPLETENESS LEG 1 FINISHED (2026-09-10, session 23)
+
+Session: the matrix's three remaining witnesses, the FX returns given a bus
+at all, and the compressor gain-reduction meter published.
+
+### S23-5 — twelve aux summing nodes cost chip 2 13.59 points with every FX send OFF, and the fix is a block-level bypass that is bit-exact by construction
+
+**Severity: HIGH — it is the difference between gate 3 fitting D32 and not.
+Status: measured on the part 2026-09-10 and fixed the same session.**
+
+Gate 3's twelve `C2_MIX_AUX_nn` nodes take the generic chip-2 block wrapper,
+which stages every source through its scalar `_buf_` word on EVERY sample —
+six instructions per source per sample — whatever the coefficients are. With
+seven sources that is about 63 instructions a sample a node before the MACs,
+and it is paid identically whether an FX return is sent to that aux or not.
+
+**Measured, driven, on the shipping configuration:** D24 chip 2 at
+**87.67 %** against S21's 74.08 % on the same instrument, the same clock and
+the same plugin load — **+13.59 points, with every `Fx*AuxOn` at its
+shipping default of 0.** On D32, where S21's chip 2 was already at 87.08 %,
+the same addition would not have fitted at all.
+
+**Thirteen points for a crosspoint nobody has switched on is the wrong
+trade**, and the fix does not need the kernel restructured. Every switched
+coefficient is folded at block rate with its on/off bit multiplied in, so
+one OR over the fold answers "is any crosspoint live this block?" for free.
+When the answer is no, and the node has exactly ONE plain source at a
+coefficient of exactly 2^28, the whole sum is that source unchanged:
+
+```
+  mrf = x * 2**28  (exact)  ->  _mrf_rns28  ->  (x * 2**28 + 2**27) >> 28  =  x
+```
+
+so the bypass is a block copy and it is **identical, not close**. It is
+emitted only where that argument holds — `n_plain == 1`, checked at generate
+time, and the plain gain read back as exactly `1.0f` at run time — so the
+main mixes, which have seventeen plain sources and no switched ones, get
+neither the bypass nor the prep and their emitted text is byte-identical to
+the pre-S23 generator.
+
+**And the exactness was measured before the bypass existed**, which is what
+makes it a fix rather than a hope: with the sends off,
+`_buf_C2_MIX_AUX_01` reproduced `_buf_C2_RECV_AUX_01` in 32 of 32 words.
+
+The cost of the bypass is one compare per switched send plus a block copy —
+about 38 instructions a block against 1,008 — so **an aux bus nobody sends
+an FX return to is very nearly free, and one that is used pays the full
+sum on that bus alone.**
+
+### S23-6 — `Fx<n>On = 0` now costs chip 2 3.98 points LESS than the bypass Type it used to be measured against
+
+**Status: measured 2026-09-10.**
+
+The FX ladder's `off` rung was kept by S21 purely as the WITNESS for S21-4
+(`Fx<n>On` had no reader, so the rung ran the same algorithm as the rung
+before it and the two rows read the same). With the reader in place it is a
+real rung, and it is the first measurement of what parking is worth:
+
+| D24 chip 2, driven, same boot | avg % |
+|---|--:|
+| Type 3 — Reverb | 87.50 |
+| Type 4 — parked in the explicit bypass (S21's baseline) | 71.55 |
+| **`Fx*On` = 0 — the whole node parked (S23)** | **67.57** |
+
+**Parking beats bypassing by 3.98 points**, which is the FX_ENGINE node's
+per-sample overhead outside its algorithm — the wrapper's staging, the mix
+ramp, the dispatch and the dry/wet epilogue — now not paid at all. Against
+the reverb it is 19.93 points. `cap_table.py`'s label for the rung is
+corrected from "(INERT: no reader)".
+
+### S23-4 — the family walk could not give the matrix a family, because its keys were the landed contract's NodeTypes
+
+**Severity: MEDIUM, and it is a bar defect and not an audio one.
+Status: fixed 2026-09-10.**
+
+`dsp4_family_verify.py` chose which families to walk from
+`Landed.families()`, which is `{NodeType: cell count}` over the addressed
+cells. The matrix's cells are `Chan*MatrixSend/On` — cells of a **ROUTING**
+— and `Matrix*Level/Mute` — cells of a **FADER_PAN**. Both of those
+families existed and were passing before the matrix did.
+
+**So a NodeType-keyed walk had no way to give the matrix a family however
+hard it looked, and would have gone on reporting the graph complete with a
+whole product feature un-witnessed.** The same is true of anything else
+built out of existing node classes, which is most of what the completeness
+list has left.
+
+Fixed by making the default family list the UNION of the landed NodeTypes
+and the harness's own table: an entry in `FAMILIES` is a claim that
+something is answerable for, and it runs whether or not its name is a
+NodeType. `contract_phase()` gained a `cells=` override so an entry whose
+cells sit on a node other families already sweep can name the four words
+that are new instead of re-writing sixty routing words to reach them, and a
+named cell the landed contract does not carry is reported
+`NOT_IN_CONTRACT` rather than skipped — a harness naming a cell that no
+longer exists is a stale harness.
+
+### S23-3 — inserting a node into the aux chain silently un-pairs twelve limiters and thirty-six biquad cascades, and the generator is what says so
+
+**Severity: HIGH for any future node inserted into a chip-2 chain.
+Status: found by the generator 2026-09-10 and designed around the same day.**
+
+Gate 3's `C2_MIX_AUX_nn` reads the FX returns' blocks, so every return has
+to publish before the first aux sum. `repair_process_order()` does that on
+its own — and that is the trap. It is a minimal, stable repair: it moves each
+violating producer to *immediately before its earliest consumer*, which
+drops `C2_MIX_AUX_02..12` into the middle of the aux chain, one per
+instance.
+
+The chip-2 pair families require each family's nodes to be a CONTIGUOUS RUN
+of the chain, and `c2_pair_groups()` refused the graph in as many words:
+
+```
+  chip 2 pair family AUX: its 84 nodes are not a contiguous run of the
+  chain (60..154), so the pair order cannot be built by reordering that run
+```
+
+Left to the repair, the twelve aux limiters and the paired EQ/GEQ/AFB
+cascades would have had to run scalar. **That is the D81 shape one level
+along** — a graph change dropping a pair family the shipping image pairs
+today — and the reason it was caught rather than shipped is that D81's fix
+made the family structure a CHECKED claim instead of a pattern match.
+
+Fixed by splicing the FX chain and all twelve sums in front of the aux chain
+in the ROW order, which reorders rows and moves no address (an address is
+allocated at the `add()` call, not at the row's position). The AUX family's
+84 nodes are then untouched and no repair move is needed at all.
+
+**The general lesson: on chip 2, WHERE a new node's row sits is part of the
+design, not a detail the repair can be left to settle.**
+
+### S23-2 — `Chan*CompMtr` needed an address AND a declared source, and only the address had been written down
+
+**Severity: LOW. Status: closed 2026-09-10.**
+
+S22 wrote down the cheap route for the GR meter as "bind it to the meter's
+already-allocated base+3, NOT to DM offset +3". That was right and it was
+half the problem. The other half is that **nothing named the compressor**.
+A meter node's `inputs` is its audio tap (`C1_GAIN_nn`), and deriving "the
+compressor of the strip this meter belongs to" by string surgery on the
+meter's own id is the second address map this repo keeps deleting.
+
+So the link is a param on the dsp.csv row — `comp_gr_src=C1_COMP_nn`,
+written by `gen_dsp_csv.py` — and a `comp_gr` tap without one is a hard
+error in `dsp_codegen.py` rather than a guess.
+
+**And the S22 note's wording was itself half wrong in a way that mattered**:
+base+3 is not "the meter's own state array". `_mtr_st_[4]` is at DM offset
++3; SPI offset +3 of the four-word meter block had no dispatch entry at all.
+Confusing the two would have pushed `_mtr_st_` up by one word and made every
+meter on both chips fold into the wrong four words, which is why
+`_mtr_comp_gr()` declares the new word AFTER `_mtr_acc_` and says so at the
+declaration.
+
+### S23-1 — the FIRST bus capture on a boot carries a dynamics-history term of up to 1,412 LSB, and a comparison that straddles it is not a bit-exactness claim
+
+**Severity: MEDIUM for every bar built on `dsp4_pairgraph.py`.
+Status: measured 2026-09-10; the affected bars are named below.**
+
+The matrix bus vector compares two buses captured on one boot. The first
+attempt read: aux 1 vs matrix 1, **235 of 256 words differ, first at word
+21, maxdiff 1,412** — 1.06e-5 relative, −99.5 dB. That is far too small to
+be a mis-wired bus and far too large to be nothing.
+
+**It is the instrument.** A capture is 256 samples from the arm, and the
+strip's gate and compressor are wherever their envelopes happen to be when
+the arm lands — which depends on how long ago the previous capture's step
+injection stopped. Taking aux 1 TWICE on the same boot, first and last,
+settles it: `aux1` vs `aux1b` reports the **identical** 235-of-256 /
+first=21 / maxdiff=1412, and `aux1b`, `mtx1` and `mtx2` all carry
+sha256 `b67e59ca785515bd`. Three captures of three different buses are byte
+for byte identical; the odd one out is the first capture of the boot.
+
+**What this does and does not touch.** `busgold.sh`, `ctlgate.sh`,
+`bqgraph.sh` and `gainsimd.sh` take ONE capture per boot and compare it
+against a stored golden or against another boot's single capture, so both
+sides of every one of those comparisons is a first capture and the term
+cancels. It bites any bar that compares captures taken at different
+positions within one boot — which is what `mtxgold.sh` does, and why
+`mtxgold_run.sh` takes its control arm.
+
 ## COMPLETENESS, FIRST LEG — and S21-7 settled first (2026-09-10, session 22)
 
 Session: gate 0 was inserted ahead of the matrix work by hub addendum, because

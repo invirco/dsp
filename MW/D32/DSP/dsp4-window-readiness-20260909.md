@@ -7,6 +7,34 @@ the app and the matrix to the rev C unit TOGETHER. This is the DSP leg,
 made ready and proven ahead of it so the window is a deploy and not a
 debug. **It is PW-gated; nothing here was deployed.**
 
+## 0-S23. THE COMPLETENESS LEG DOES NOT CHANGE THE CONFIGURATION, AND IT COSTS CHIP 2 (added 2026-09-10, S23)
+
+**`shipping.config.s21` is unchanged and the proposal in §0 stands.** What
+changed is the GRAPH: the FX returns now reach the main mix and the twelve
+aux buses, the matrix is witnessed, and `Chan*CompMtr` is published. All of
+it is behind the same configuration file; nothing here is a switch PW has to
+sign.
+
+**Two things in §0 above are superseded as statements of fact:**
+
+1. **`Fx<n>On` HAS A READER NOW.** §0's "a user who switches an engine off
+   still hears it and still pays for it" was true and is not any more: the
+   cell parks the whole node, and parking is measured at **3.86 points of
+   chip 2 cheaper than the bypass Type** the FX ladder used as its baseline.
+2. **The six FX returns were INAUDIBLE and now are not.** That is not in §0
+   at all — it was found after it was written (S22-2) — and it is the most
+   product-visible thing this window carries: no image this tree had ever
+   built put an FX return on any bus.
+
+**The resource line PW should see**: chip 1's code pool is at **90.7 %**
+with 24,274 bytes free and was already at 90.0 % before this session, so the
+next feature built on chip 1 should expect the LDF rebalanced. Chip 2 has
+98,670 bytes of code and 67,732 of DM free. The capacity rows are in
+`MW/D32/DSP/dsp4-s23-20260910.md` §5.
+
+**Seven definition questions are open and none of them was guessed at** —
+they are listed in that write-up §6, and three of S22's are still open
+beside them.
 ## 0. THE CONFIGURATION TO SHIP IS `shipping.config.s21`, AND THE PLUGIN HEADROOM IS MEASURED (added 2026-09-10, S21)
 
 **Read this first. It supersedes §0b below on two points and nothing else:
