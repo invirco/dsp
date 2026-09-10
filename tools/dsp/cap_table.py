@@ -30,7 +30,7 @@ LABEL = {'sil-default': 'silent, default cfg',
 # by the tag `capacity_run.sh` gives each rung. Only the rungs that were
 # actually taken appear, in this order.
 FX_RUNGS = ['fx-off', 'fx-4', 'fx-3', 'fx-0', 'fx-2', 'fx-1', 'fx-5', 'fx-6']
-FX_LABEL = {'fx-off': 'Fx On = 0 (INERT: no reader)',
+FX_LABEL = {'fx-off': 'Fx On = 0 (PARKED since S23; was INERT)',
             'fx-4': 'Type 4 — parked in the bypass (the baseline)',
             'fx-3': 'Type 3 — Reverb (Freeverb)',
             'fx-0': 'Type 0 — Echo',

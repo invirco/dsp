@@ -12,11 +12,18 @@
 #include "dsp_block.h"
 #include "lib/dyn_lut.h"
 
-/* MIX_BUS (FIXED, D5): bus_id=0 — 17 sources, exact MRF sum */
+/* MIX_BUS (FIXED, D5): bus_id=0 — 23 sources, exact MRF sum */
+/* 23 fixed feed(s) + 0 switched send(s) */
 
 .section/dm seg_dmda;
 .extern _buf_C2_BT_IN;
 .extern _buf_C2_CODEC_AUX_IN;
+.extern _buf_C2_FX_FDR_01;
+.extern _buf_C2_FX_FDR_02;
+.extern _buf_C2_FX_FDR_03;
+.extern _buf_C2_FX_FDR_04;
+.extern _buf_C2_FX_FDR_05;
+.extern _buf_C2_FX_FDR_06;
 .extern _buf_C2_GRP_COMP_01;
 .extern _buf_C2_GRP_COMP_02;
 .extern _buf_C2_GRP_COMP_03;
@@ -33,9 +40,9 @@
 .extern _buf_C2_SNK_IN_08;
 .extern _buf_C2_USB_IN;
 .global _mix_gains_C2_MIX_MAIN_L;
-.var _mix_gains_C2_MIX_MAIN_L[17] = 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;   /* FLOAT (host) */
+.var _mix_gains_C2_MIX_MAIN_L[23] = 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;   /* FLOAT (host) */
 .global _mix_gq_C2_MIX_MAIN_L;
-.var _mix_gq_C2_MIX_MAIN_L[17];               /* Q4.28 shadow */
+.var _mix_gq_C2_MIX_MAIN_L[23];               /* Q4.28 shadow */
 .global _buf_C2_MIX_MAIN_L;
 .var _buf_C2_MIX_MAIN_L;
 
@@ -57,6 +64,12 @@
         .extern _blk_C2_SNK_IN_06;
         .extern _blk_C2_SNK_IN_07;
         .extern _blk_C2_SNK_IN_08;
+        .extern _blk_C2_FX_FDR_01;
+        .extern _blk_C2_FX_FDR_02;
+        .extern _blk_C2_FX_FDR_03;
+        .extern _blk_C2_FX_FDR_04;
+        .extern _blk_C2_FX_FDR_05;
+        .extern _blk_C2_FX_FDR_06;
         #endif
         #if DSP4_BLOCK_KERNELS
         .global _blk_C2_MIX_MAIN_L;
@@ -97,6 +110,18 @@
         .var _bw_s15_C2_MIX_MAIN_L;       /* walking source pointer */
         .global _bw_s16_C2_MIX_MAIN_L;
         .var _bw_s16_C2_MIX_MAIN_L;       /* walking source pointer */
+        .global _bw_s17_C2_MIX_MAIN_L;
+        .var _bw_s17_C2_MIX_MAIN_L;       /* walking source pointer */
+        .global _bw_s18_C2_MIX_MAIN_L;
+        .var _bw_s18_C2_MIX_MAIN_L;       /* walking source pointer */
+        .global _bw_s19_C2_MIX_MAIN_L;
+        .var _bw_s19_C2_MIX_MAIN_L;       /* walking source pointer */
+        .global _bw_s20_C2_MIX_MAIN_L;
+        .var _bw_s20_C2_MIX_MAIN_L;       /* walking source pointer */
+        .global _bw_s21_C2_MIX_MAIN_L;
+        .var _bw_s21_C2_MIX_MAIN_L;       /* walking source pointer */
+        .global _bw_s22_C2_MIX_MAIN_L;
+        .var _bw_s22_C2_MIX_MAIN_L;       /* walking source pointer */
         .global _bw_d0_C2_MIX_MAIN_L;
         .var _bw_d0_C2_MIX_MAIN_L;       /* walking sink pointer */
         #endif
@@ -186,6 +211,24 @@ _C2_MIX_MAIN_L_process:
             i4 = _blk_C2_SNK_IN_08;
             r3 = i4;
             dm(_bw_s16_C2_MIX_MAIN_L) = r3;
+            i4 = _blk_C2_FX_FDR_01;
+            r3 = i4;
+            dm(_bw_s17_C2_MIX_MAIN_L) = r3;
+            i4 = _blk_C2_FX_FDR_02;
+            r3 = i4;
+            dm(_bw_s18_C2_MIX_MAIN_L) = r3;
+            i4 = _blk_C2_FX_FDR_03;
+            r3 = i4;
+            dm(_bw_s19_C2_MIX_MAIN_L) = r3;
+            i4 = _blk_C2_FX_FDR_04;
+            r3 = i4;
+            dm(_bw_s20_C2_MIX_MAIN_L) = r3;
+            i4 = _blk_C2_FX_FDR_05;
+            r3 = i4;
+            dm(_bw_s21_C2_MIX_MAIN_L) = r3;
+            i4 = _blk_C2_FX_FDR_06;
+            r3 = i4;
+            dm(_bw_s22_C2_MIX_MAIN_L) = r3;
             i4 = _blk_C2_MIX_MAIN_L;
             r3 = i4;
             dm(_bw_d0_C2_MIX_MAIN_L) = r3;
@@ -296,6 +339,42 @@ _C2_MIX_MAIN_L_process:
                 dm(_buf_C2_SNK_IN_08) = r0;
                 r3 = r3 + 1;
                 dm(_bw_s16_C2_MIX_MAIN_L) = r3;
+                r3 = dm(_bw_s17_C2_MIX_MAIN_L);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_FX_FDR_01) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s17_C2_MIX_MAIN_L) = r3;
+                r3 = dm(_bw_s18_C2_MIX_MAIN_L);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_FX_FDR_02) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s18_C2_MIX_MAIN_L) = r3;
+                r3 = dm(_bw_s19_C2_MIX_MAIN_L);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_FX_FDR_03) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s19_C2_MIX_MAIN_L) = r3;
+                r3 = dm(_bw_s20_C2_MIX_MAIN_L);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_FX_FDR_04) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s20_C2_MIX_MAIN_L) = r3;
+                r3 = dm(_bw_s21_C2_MIX_MAIN_L);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_FX_FDR_05) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s21_C2_MIX_MAIN_L) = r3;
+                r3 = dm(_bw_s22_C2_MIX_MAIN_L);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_FX_FDR_06) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s22_C2_MIX_MAIN_L) = r3;
                 call _C2_MIX_MAIN_L_process_sample;
                 r0 = dm(_buf_C2_MIX_MAIN_L);
                 r3 = dm(_bw_d0_C2_MIX_MAIN_L);
@@ -408,6 +487,42 @@ _C2_MIX_MAIN_L_process:
                 dm(_buf_C2_SNK_IN_08) = r0;
                 r3 = r3 + 1;
                 dm(_bw_s16_C2_MIX_MAIN_L) = r3;
+                r3 = dm(_bw_s17_C2_MIX_MAIN_L);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_FX_FDR_01) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s17_C2_MIX_MAIN_L) = r3;
+                r3 = dm(_bw_s18_C2_MIX_MAIN_L);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_FX_FDR_02) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s18_C2_MIX_MAIN_L) = r3;
+                r3 = dm(_bw_s19_C2_MIX_MAIN_L);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_FX_FDR_03) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s19_C2_MIX_MAIN_L) = r3;
+                r3 = dm(_bw_s20_C2_MIX_MAIN_L);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_FX_FDR_04) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s20_C2_MIX_MAIN_L) = r3;
+                r3 = dm(_bw_s21_C2_MIX_MAIN_L);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_FX_FDR_05) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s21_C2_MIX_MAIN_L) = r3;
+                r3 = dm(_bw_s22_C2_MIX_MAIN_L);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_FX_FDR_06) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s22_C2_MIX_MAIN_L) = r3;
                 call _C2_MIX_MAIN_L_process_sample;
                 r0 = dm(_buf_C2_MIX_MAIN_L);
                 r3 = dm(_bw_d0_C2_MIX_MAIN_L);
@@ -505,6 +620,30 @@ _C2_MIX_MAIN_L_process:
         f1 = f1 * f2;
         r1 = fix f1;
         dm(_mix_gq_C2_MIX_MAIN_L + 16) = r1;
+        f1 = dm(_mix_gains_C2_MIX_MAIN_L + 17);
+        f1 = f1 * f2;
+        r1 = fix f1;
+        dm(_mix_gq_C2_MIX_MAIN_L + 17) = r1;
+        f1 = dm(_mix_gains_C2_MIX_MAIN_L + 18);
+        f1 = f1 * f2;
+        r1 = fix f1;
+        dm(_mix_gq_C2_MIX_MAIN_L + 18) = r1;
+        f1 = dm(_mix_gains_C2_MIX_MAIN_L + 19);
+        f1 = f1 * f2;
+        r1 = fix f1;
+        dm(_mix_gq_C2_MIX_MAIN_L + 19) = r1;
+        f1 = dm(_mix_gains_C2_MIX_MAIN_L + 20);
+        f1 = f1 * f2;
+        r1 = fix f1;
+        dm(_mix_gq_C2_MIX_MAIN_L + 20) = r1;
+        f1 = dm(_mix_gains_C2_MIX_MAIN_L + 21);
+        f1 = f1 * f2;
+        r1 = fix f1;
+        dm(_mix_gq_C2_MIX_MAIN_L + 21) = r1;
+        f1 = dm(_mix_gains_C2_MIX_MAIN_L + 22);
+        f1 = f1 * f2;
+        r1 = fix f1;
+        dm(_mix_gq_C2_MIX_MAIN_L + 22) = r1;
 .mix_go_C2_MIX_MAIN_L:
     r1 = 0;
     mr0f = r1;
@@ -560,6 +699,24 @@ _C2_MIX_MAIN_L_process:
         mrf = mrf + r0 * r1 (ssi);
         r0 = dm(_buf_C2_SNK_IN_08);
         r1 = dm(_mix_gq_C2_MIX_MAIN_L + 16);
+        mrf = mrf + r0 * r1 (ssi);
+        r0 = dm(_buf_C2_FX_FDR_01);
+        r1 = dm(_mix_gq_C2_MIX_MAIN_L + 17);
+        mrf = mrf + r0 * r1 (ssi);
+        r0 = dm(_buf_C2_FX_FDR_02);
+        r1 = dm(_mix_gq_C2_MIX_MAIN_L + 18);
+        mrf = mrf + r0 * r1 (ssi);
+        r0 = dm(_buf_C2_FX_FDR_03);
+        r1 = dm(_mix_gq_C2_MIX_MAIN_L + 19);
+        mrf = mrf + r0 * r1 (ssi);
+        r0 = dm(_buf_C2_FX_FDR_04);
+        r1 = dm(_mix_gq_C2_MIX_MAIN_L + 20);
+        mrf = mrf + r0 * r1 (ssi);
+        r0 = dm(_buf_C2_FX_FDR_05);
+        r1 = dm(_mix_gq_C2_MIX_MAIN_L + 21);
+        mrf = mrf + r0 * r1 (ssi);
+        r0 = dm(_buf_C2_FX_FDR_06);
+        r1 = dm(_mix_gq_C2_MIX_MAIN_L + 22);
         mrf = mrf + r0 * r1 (ssi);
     call _mrf_rns28;
     dm(_buf_C2_MIX_MAIN_L) = r0;

@@ -1230,6 +1230,38 @@
 .extern _lpf_swap_pending_C1_FILT_30;
 .extern _lpf_swap_pending_C1_FILT_31;
 .extern _lpf_swap_pending_C1_FILT_32;
+.extern _mtr_cgr_C1_MTR_01;
+.extern _mtr_cgr_C1_MTR_02;
+.extern _mtr_cgr_C1_MTR_03;
+.extern _mtr_cgr_C1_MTR_04;
+.extern _mtr_cgr_C1_MTR_05;
+.extern _mtr_cgr_C1_MTR_06;
+.extern _mtr_cgr_C1_MTR_07;
+.extern _mtr_cgr_C1_MTR_08;
+.extern _mtr_cgr_C1_MTR_09;
+.extern _mtr_cgr_C1_MTR_10;
+.extern _mtr_cgr_C1_MTR_11;
+.extern _mtr_cgr_C1_MTR_12;
+.extern _mtr_cgr_C1_MTR_13;
+.extern _mtr_cgr_C1_MTR_14;
+.extern _mtr_cgr_C1_MTR_15;
+.extern _mtr_cgr_C1_MTR_16;
+.extern _mtr_cgr_C1_MTR_17;
+.extern _mtr_cgr_C1_MTR_18;
+.extern _mtr_cgr_C1_MTR_19;
+.extern _mtr_cgr_C1_MTR_20;
+.extern _mtr_cgr_C1_MTR_21;
+.extern _mtr_cgr_C1_MTR_22;
+.extern _mtr_cgr_C1_MTR_23;
+.extern _mtr_cgr_C1_MTR_24;
+.extern _mtr_cgr_C1_MTR_25;
+.extern _mtr_cgr_C1_MTR_26;
+.extern _mtr_cgr_C1_MTR_27;
+.extern _mtr_cgr_C1_MTR_28;
+.extern _mtr_cgr_C1_MTR_29;
+.extern _mtr_cgr_C1_MTR_30;
+.extern _mtr_cgr_C1_MTR_31;
+.extern _mtr_cgr_C1_MTR_32;
 .extern _mtr_gr_C1_MTR_01;
 .extern _mtr_gr_C1_MTR_02;
 .extern _mtr_gr_C1_MTR_03;
@@ -6404,131 +6436,131 @@
     _mtr_peak_C1_MTR_01,    /* 0x1200: C1_MTR_01 post_trim */
     _mtr_rms_C1_MTR_01,    /* 0x1201: C1_MTR_01 post_fader */
     _mtr_gr_C1_MTR_01,    /* 0x1202: C1_MTR_01 gate_gr */
-    0,  /* 0x1203 */
+    _mtr_cgr_C1_MTR_01,    /* 0x1203: C1_MTR_01 comp_gr */
     _mtr_peak_C1_MTR_02,    /* 0x1204: C1_MTR_02 post_trim */
     _mtr_rms_C1_MTR_02,    /* 0x1205: C1_MTR_02 post_fader */
     _mtr_gr_C1_MTR_02,    /* 0x1206: C1_MTR_02 gate_gr */
-    0,  /* 0x1207 */
+    _mtr_cgr_C1_MTR_02,    /* 0x1207: C1_MTR_02 comp_gr */
     _mtr_peak_C1_MTR_03,    /* 0x1208: C1_MTR_03 post_trim */
     _mtr_rms_C1_MTR_03,    /* 0x1209: C1_MTR_03 post_fader */
     _mtr_gr_C1_MTR_03,    /* 0x120A: C1_MTR_03 gate_gr */
-    0,  /* 0x120B */
+    _mtr_cgr_C1_MTR_03,    /* 0x120B: C1_MTR_03 comp_gr */
     _mtr_peak_C1_MTR_04,    /* 0x120C: C1_MTR_04 post_trim */
     _mtr_rms_C1_MTR_04,    /* 0x120D: C1_MTR_04 post_fader */
     _mtr_gr_C1_MTR_04,    /* 0x120E: C1_MTR_04 gate_gr */
-    0,  /* 0x120F */
+    _mtr_cgr_C1_MTR_04,    /* 0x120F: C1_MTR_04 comp_gr */
     _mtr_peak_C1_MTR_05,    /* 0x1210: C1_MTR_05 post_trim */
     _mtr_rms_C1_MTR_05,    /* 0x1211: C1_MTR_05 post_fader */
     _mtr_gr_C1_MTR_05,    /* 0x1212: C1_MTR_05 gate_gr */
-    0,  /* 0x1213 */
+    _mtr_cgr_C1_MTR_05,    /* 0x1213: C1_MTR_05 comp_gr */
     _mtr_peak_C1_MTR_06,    /* 0x1214: C1_MTR_06 post_trim */
     _mtr_rms_C1_MTR_06,    /* 0x1215: C1_MTR_06 post_fader */
     _mtr_gr_C1_MTR_06,    /* 0x1216: C1_MTR_06 gate_gr */
-    0,  /* 0x1217 */
+    _mtr_cgr_C1_MTR_06,    /* 0x1217: C1_MTR_06 comp_gr */
     _mtr_peak_C1_MTR_07,    /* 0x1218: C1_MTR_07 post_trim */
     _mtr_rms_C1_MTR_07,    /* 0x1219: C1_MTR_07 post_fader */
     _mtr_gr_C1_MTR_07,    /* 0x121A: C1_MTR_07 gate_gr */
-    0,  /* 0x121B */
+    _mtr_cgr_C1_MTR_07,    /* 0x121B: C1_MTR_07 comp_gr */
     _mtr_peak_C1_MTR_08,    /* 0x121C: C1_MTR_08 post_trim */
     _mtr_rms_C1_MTR_08,    /* 0x121D: C1_MTR_08 post_fader */
     _mtr_gr_C1_MTR_08,    /* 0x121E: C1_MTR_08 gate_gr */
-    0,  /* 0x121F */
+    _mtr_cgr_C1_MTR_08,    /* 0x121F: C1_MTR_08 comp_gr */
     _mtr_peak_C1_MTR_09,    /* 0x1220: C1_MTR_09 post_trim */
     _mtr_rms_C1_MTR_09,    /* 0x1221: C1_MTR_09 post_fader */
     _mtr_gr_C1_MTR_09,    /* 0x1222: C1_MTR_09 gate_gr */
-    0,  /* 0x1223 */
+    _mtr_cgr_C1_MTR_09,    /* 0x1223: C1_MTR_09 comp_gr */
     _mtr_peak_C1_MTR_10,    /* 0x1224: C1_MTR_10 post_trim */
     _mtr_rms_C1_MTR_10,    /* 0x1225: C1_MTR_10 post_fader */
     _mtr_gr_C1_MTR_10,    /* 0x1226: C1_MTR_10 gate_gr */
-    0,  /* 0x1227 */
+    _mtr_cgr_C1_MTR_10,    /* 0x1227: C1_MTR_10 comp_gr */
     _mtr_peak_C1_MTR_11,    /* 0x1228: C1_MTR_11 post_trim */
     _mtr_rms_C1_MTR_11,    /* 0x1229: C1_MTR_11 post_fader */
     _mtr_gr_C1_MTR_11,    /* 0x122A: C1_MTR_11 gate_gr */
-    0,  /* 0x122B */
+    _mtr_cgr_C1_MTR_11,    /* 0x122B: C1_MTR_11 comp_gr */
     _mtr_peak_C1_MTR_12,    /* 0x122C: C1_MTR_12 post_trim */
     _mtr_rms_C1_MTR_12,    /* 0x122D: C1_MTR_12 post_fader */
     _mtr_gr_C1_MTR_12,    /* 0x122E: C1_MTR_12 gate_gr */
-    0,  /* 0x122F */
+    _mtr_cgr_C1_MTR_12,    /* 0x122F: C1_MTR_12 comp_gr */
     _mtr_peak_C1_MTR_13,    /* 0x1230: C1_MTR_13 post_trim */
     _mtr_rms_C1_MTR_13,    /* 0x1231: C1_MTR_13 post_fader */
     _mtr_gr_C1_MTR_13,    /* 0x1232: C1_MTR_13 gate_gr */
-    0,  /* 0x1233 */
+    _mtr_cgr_C1_MTR_13,    /* 0x1233: C1_MTR_13 comp_gr */
     _mtr_peak_C1_MTR_14,    /* 0x1234: C1_MTR_14 post_trim */
     _mtr_rms_C1_MTR_14,    /* 0x1235: C1_MTR_14 post_fader */
     _mtr_gr_C1_MTR_14,    /* 0x1236: C1_MTR_14 gate_gr */
-    0,  /* 0x1237 */
+    _mtr_cgr_C1_MTR_14,    /* 0x1237: C1_MTR_14 comp_gr */
     _mtr_peak_C1_MTR_15,    /* 0x1238: C1_MTR_15 post_trim */
     _mtr_rms_C1_MTR_15,    /* 0x1239: C1_MTR_15 post_fader */
     _mtr_gr_C1_MTR_15,    /* 0x123A: C1_MTR_15 gate_gr */
-    0,  /* 0x123B */
+    _mtr_cgr_C1_MTR_15,    /* 0x123B: C1_MTR_15 comp_gr */
     _mtr_peak_C1_MTR_16,    /* 0x123C: C1_MTR_16 post_trim */
     _mtr_rms_C1_MTR_16,    /* 0x123D: C1_MTR_16 post_fader */
     _mtr_gr_C1_MTR_16,    /* 0x123E: C1_MTR_16 gate_gr */
-    0,  /* 0x123F */
+    _mtr_cgr_C1_MTR_16,    /* 0x123F: C1_MTR_16 comp_gr */
     _mtr_peak_C1_MTR_17,    /* 0x1240: C1_MTR_17 post_trim */
     _mtr_rms_C1_MTR_17,    /* 0x1241: C1_MTR_17 post_fader */
     _mtr_gr_C1_MTR_17,    /* 0x1242: C1_MTR_17 gate_gr */
-    0,  /* 0x1243 */
+    _mtr_cgr_C1_MTR_17,    /* 0x1243: C1_MTR_17 comp_gr */
     _mtr_peak_C1_MTR_18,    /* 0x1244: C1_MTR_18 post_trim */
     _mtr_rms_C1_MTR_18,    /* 0x1245: C1_MTR_18 post_fader */
     _mtr_gr_C1_MTR_18,    /* 0x1246: C1_MTR_18 gate_gr */
-    0,  /* 0x1247 */
+    _mtr_cgr_C1_MTR_18,    /* 0x1247: C1_MTR_18 comp_gr */
     _mtr_peak_C1_MTR_19,    /* 0x1248: C1_MTR_19 post_trim */
     _mtr_rms_C1_MTR_19,    /* 0x1249: C1_MTR_19 post_fader */
     _mtr_gr_C1_MTR_19,    /* 0x124A: C1_MTR_19 gate_gr */
-    0,  /* 0x124B */
+    _mtr_cgr_C1_MTR_19,    /* 0x124B: C1_MTR_19 comp_gr */
     _mtr_peak_C1_MTR_20,    /* 0x124C: C1_MTR_20 post_trim */
     _mtr_rms_C1_MTR_20,    /* 0x124D: C1_MTR_20 post_fader */
     _mtr_gr_C1_MTR_20,    /* 0x124E: C1_MTR_20 gate_gr */
-    0,  /* 0x124F */
+    _mtr_cgr_C1_MTR_20,    /* 0x124F: C1_MTR_20 comp_gr */
     _mtr_peak_C1_MTR_21,    /* 0x1250: C1_MTR_21 post_trim */
     _mtr_rms_C1_MTR_21,    /* 0x1251: C1_MTR_21 post_fader */
     _mtr_gr_C1_MTR_21,    /* 0x1252: C1_MTR_21 gate_gr */
-    0,  /* 0x1253 */
+    _mtr_cgr_C1_MTR_21,    /* 0x1253: C1_MTR_21 comp_gr */
     _mtr_peak_C1_MTR_22,    /* 0x1254: C1_MTR_22 post_trim */
     _mtr_rms_C1_MTR_22,    /* 0x1255: C1_MTR_22 post_fader */
     _mtr_gr_C1_MTR_22,    /* 0x1256: C1_MTR_22 gate_gr */
-    0,  /* 0x1257 */
+    _mtr_cgr_C1_MTR_22,    /* 0x1257: C1_MTR_22 comp_gr */
     _mtr_peak_C1_MTR_23,    /* 0x1258: C1_MTR_23 post_trim */
     _mtr_rms_C1_MTR_23,    /* 0x1259: C1_MTR_23 post_fader */
     _mtr_gr_C1_MTR_23,    /* 0x125A: C1_MTR_23 gate_gr */
-    0,  /* 0x125B */
+    _mtr_cgr_C1_MTR_23,    /* 0x125B: C1_MTR_23 comp_gr */
     _mtr_peak_C1_MTR_24,    /* 0x125C: C1_MTR_24 post_trim */
     _mtr_rms_C1_MTR_24,    /* 0x125D: C1_MTR_24 post_fader */
     _mtr_gr_C1_MTR_24,    /* 0x125E: C1_MTR_24 gate_gr */
-    0,  /* 0x125F */
+    _mtr_cgr_C1_MTR_24,    /* 0x125F: C1_MTR_24 comp_gr */
     _mtr_peak_C1_MTR_25,    /* 0x1260: C1_MTR_25 post_trim */
     _mtr_rms_C1_MTR_25,    /* 0x1261: C1_MTR_25 post_fader */
     _mtr_gr_C1_MTR_25,    /* 0x1262: C1_MTR_25 gate_gr */
-    0,  /* 0x1263 */
+    _mtr_cgr_C1_MTR_25,    /* 0x1263: C1_MTR_25 comp_gr */
     _mtr_peak_C1_MTR_26,    /* 0x1264: C1_MTR_26 post_trim */
     _mtr_rms_C1_MTR_26,    /* 0x1265: C1_MTR_26 post_fader */
     _mtr_gr_C1_MTR_26,    /* 0x1266: C1_MTR_26 gate_gr */
-    0,  /* 0x1267 */
+    _mtr_cgr_C1_MTR_26,    /* 0x1267: C1_MTR_26 comp_gr */
     _mtr_peak_C1_MTR_27,    /* 0x1268: C1_MTR_27 post_trim */
     _mtr_rms_C1_MTR_27,    /* 0x1269: C1_MTR_27 post_fader */
     _mtr_gr_C1_MTR_27,    /* 0x126A: C1_MTR_27 gate_gr */
-    0,  /* 0x126B */
+    _mtr_cgr_C1_MTR_27,    /* 0x126B: C1_MTR_27 comp_gr */
     _mtr_peak_C1_MTR_28,    /* 0x126C: C1_MTR_28 post_trim */
     _mtr_rms_C1_MTR_28,    /* 0x126D: C1_MTR_28 post_fader */
     _mtr_gr_C1_MTR_28,    /* 0x126E: C1_MTR_28 gate_gr */
-    0,  /* 0x126F */
+    _mtr_cgr_C1_MTR_28,    /* 0x126F: C1_MTR_28 comp_gr */
     _mtr_peak_C1_MTR_29,    /* 0x1270: C1_MTR_29 post_trim */
     _mtr_rms_C1_MTR_29,    /* 0x1271: C1_MTR_29 post_fader */
     _mtr_gr_C1_MTR_29,    /* 0x1272: C1_MTR_29 gate_gr */
-    0,  /* 0x1273 */
+    _mtr_cgr_C1_MTR_29,    /* 0x1273: C1_MTR_29 comp_gr */
     _mtr_peak_C1_MTR_30,    /* 0x1274: C1_MTR_30 post_trim */
     _mtr_rms_C1_MTR_30,    /* 0x1275: C1_MTR_30 post_fader */
     _mtr_gr_C1_MTR_30,    /* 0x1276: C1_MTR_30 gate_gr */
-    0,  /* 0x1277 */
+    _mtr_cgr_C1_MTR_30,    /* 0x1277: C1_MTR_30 comp_gr */
     _mtr_peak_C1_MTR_31,    /* 0x1278: C1_MTR_31 post_trim */
     _mtr_rms_C1_MTR_31,    /* 0x1279: C1_MTR_31 post_fader */
     _mtr_gr_C1_MTR_31,    /* 0x127A: C1_MTR_31 gate_gr */
-    0,  /* 0x127B */
+    _mtr_cgr_C1_MTR_31,    /* 0x127B: C1_MTR_31 comp_gr */
     _mtr_peak_C1_MTR_32,    /* 0x127C: C1_MTR_32 post_trim */
     _mtr_rms_C1_MTR_32,    /* 0x127D: C1_MTR_32 post_fader */
     _mtr_gr_C1_MTR_32,    /* 0x127E: C1_MTR_32 gate_gr */
-    0,  /* 0x127F */
+    _mtr_cgr_C1_MTR_32,    /* 0x127F: C1_MTR_32 comp_gr */
     _talk_on_C1_TALK_01,    /* 0x1280: C1_TALK_01 on */
     _talk_gain_C1_TALK_01,    /* 0x1281: C1_TALK_01 gain */
     _talk_hpf_on_C1_TALK_01,    /* 0x1282: C1_TALK_01 HPF on */
@@ -11356,131 +11388,131 @@
     0,  /* 0x1200: C1_MTR_01 post_trim */
     0,  /* 0x1201: C1_MTR_01 post_fader */
     0,  /* 0x1202: C1_MTR_01 gate_gr */
-    0,  /* 0x1203 */
+    0,  /* 0x1203: C1_MTR_01 comp_gr */
     0,  /* 0x1204: C1_MTR_02 post_trim */
     0,  /* 0x1205: C1_MTR_02 post_fader */
     0,  /* 0x1206: C1_MTR_02 gate_gr */
-    0,  /* 0x1207 */
+    0,  /* 0x1207: C1_MTR_02 comp_gr */
     0,  /* 0x1208: C1_MTR_03 post_trim */
     0,  /* 0x1209: C1_MTR_03 post_fader */
     0,  /* 0x120A: C1_MTR_03 gate_gr */
-    0,  /* 0x120B */
+    0,  /* 0x120B: C1_MTR_03 comp_gr */
     0,  /* 0x120C: C1_MTR_04 post_trim */
     0,  /* 0x120D: C1_MTR_04 post_fader */
     0,  /* 0x120E: C1_MTR_04 gate_gr */
-    0,  /* 0x120F */
+    0,  /* 0x120F: C1_MTR_04 comp_gr */
     0,  /* 0x1210: C1_MTR_05 post_trim */
     0,  /* 0x1211: C1_MTR_05 post_fader */
     0,  /* 0x1212: C1_MTR_05 gate_gr */
-    0,  /* 0x1213 */
+    0,  /* 0x1213: C1_MTR_05 comp_gr */
     0,  /* 0x1214: C1_MTR_06 post_trim */
     0,  /* 0x1215: C1_MTR_06 post_fader */
     0,  /* 0x1216: C1_MTR_06 gate_gr */
-    0,  /* 0x1217 */
+    0,  /* 0x1217: C1_MTR_06 comp_gr */
     0,  /* 0x1218: C1_MTR_07 post_trim */
     0,  /* 0x1219: C1_MTR_07 post_fader */
     0,  /* 0x121A: C1_MTR_07 gate_gr */
-    0,  /* 0x121B */
+    0,  /* 0x121B: C1_MTR_07 comp_gr */
     0,  /* 0x121C: C1_MTR_08 post_trim */
     0,  /* 0x121D: C1_MTR_08 post_fader */
     0,  /* 0x121E: C1_MTR_08 gate_gr */
-    0,  /* 0x121F */
+    0,  /* 0x121F: C1_MTR_08 comp_gr */
     0,  /* 0x1220: C1_MTR_09 post_trim */
     0,  /* 0x1221: C1_MTR_09 post_fader */
     0,  /* 0x1222: C1_MTR_09 gate_gr */
-    0,  /* 0x1223 */
+    0,  /* 0x1223: C1_MTR_09 comp_gr */
     0,  /* 0x1224: C1_MTR_10 post_trim */
     0,  /* 0x1225: C1_MTR_10 post_fader */
     0,  /* 0x1226: C1_MTR_10 gate_gr */
-    0,  /* 0x1227 */
+    0,  /* 0x1227: C1_MTR_10 comp_gr */
     0,  /* 0x1228: C1_MTR_11 post_trim */
     0,  /* 0x1229: C1_MTR_11 post_fader */
     0,  /* 0x122A: C1_MTR_11 gate_gr */
-    0,  /* 0x122B */
+    0,  /* 0x122B: C1_MTR_11 comp_gr */
     0,  /* 0x122C: C1_MTR_12 post_trim */
     0,  /* 0x122D: C1_MTR_12 post_fader */
     0,  /* 0x122E: C1_MTR_12 gate_gr */
-    0,  /* 0x122F */
+    0,  /* 0x122F: C1_MTR_12 comp_gr */
     0,  /* 0x1230: C1_MTR_13 post_trim */
     0,  /* 0x1231: C1_MTR_13 post_fader */
     0,  /* 0x1232: C1_MTR_13 gate_gr */
-    0,  /* 0x1233 */
+    0,  /* 0x1233: C1_MTR_13 comp_gr */
     0,  /* 0x1234: C1_MTR_14 post_trim */
     0,  /* 0x1235: C1_MTR_14 post_fader */
     0,  /* 0x1236: C1_MTR_14 gate_gr */
-    0,  /* 0x1237 */
+    0,  /* 0x1237: C1_MTR_14 comp_gr */
     0,  /* 0x1238: C1_MTR_15 post_trim */
     0,  /* 0x1239: C1_MTR_15 post_fader */
     0,  /* 0x123A: C1_MTR_15 gate_gr */
-    0,  /* 0x123B */
+    0,  /* 0x123B: C1_MTR_15 comp_gr */
     0,  /* 0x123C: C1_MTR_16 post_trim */
     0,  /* 0x123D: C1_MTR_16 post_fader */
     0,  /* 0x123E: C1_MTR_16 gate_gr */
-    0,  /* 0x123F */
+    0,  /* 0x123F: C1_MTR_16 comp_gr */
     0,  /* 0x1240: C1_MTR_17 post_trim */
     0,  /* 0x1241: C1_MTR_17 post_fader */
     0,  /* 0x1242: C1_MTR_17 gate_gr */
-    0,  /* 0x1243 */
+    0,  /* 0x1243: C1_MTR_17 comp_gr */
     0,  /* 0x1244: C1_MTR_18 post_trim */
     0,  /* 0x1245: C1_MTR_18 post_fader */
     0,  /* 0x1246: C1_MTR_18 gate_gr */
-    0,  /* 0x1247 */
+    0,  /* 0x1247: C1_MTR_18 comp_gr */
     0,  /* 0x1248: C1_MTR_19 post_trim */
     0,  /* 0x1249: C1_MTR_19 post_fader */
     0,  /* 0x124A: C1_MTR_19 gate_gr */
-    0,  /* 0x124B */
+    0,  /* 0x124B: C1_MTR_19 comp_gr */
     0,  /* 0x124C: C1_MTR_20 post_trim */
     0,  /* 0x124D: C1_MTR_20 post_fader */
     0,  /* 0x124E: C1_MTR_20 gate_gr */
-    0,  /* 0x124F */
+    0,  /* 0x124F: C1_MTR_20 comp_gr */
     0,  /* 0x1250: C1_MTR_21 post_trim */
     0,  /* 0x1251: C1_MTR_21 post_fader */
     0,  /* 0x1252: C1_MTR_21 gate_gr */
-    0,  /* 0x1253 */
+    0,  /* 0x1253: C1_MTR_21 comp_gr */
     0,  /* 0x1254: C1_MTR_22 post_trim */
     0,  /* 0x1255: C1_MTR_22 post_fader */
     0,  /* 0x1256: C1_MTR_22 gate_gr */
-    0,  /* 0x1257 */
+    0,  /* 0x1257: C1_MTR_22 comp_gr */
     0,  /* 0x1258: C1_MTR_23 post_trim */
     0,  /* 0x1259: C1_MTR_23 post_fader */
     0,  /* 0x125A: C1_MTR_23 gate_gr */
-    0,  /* 0x125B */
+    0,  /* 0x125B: C1_MTR_23 comp_gr */
     0,  /* 0x125C: C1_MTR_24 post_trim */
     0,  /* 0x125D: C1_MTR_24 post_fader */
     0,  /* 0x125E: C1_MTR_24 gate_gr */
-    0,  /* 0x125F */
+    0,  /* 0x125F: C1_MTR_24 comp_gr */
     0,  /* 0x1260: C1_MTR_25 post_trim */
     0,  /* 0x1261: C1_MTR_25 post_fader */
     0,  /* 0x1262: C1_MTR_25 gate_gr */
-    0,  /* 0x1263 */
+    0,  /* 0x1263: C1_MTR_25 comp_gr */
     0,  /* 0x1264: C1_MTR_26 post_trim */
     0,  /* 0x1265: C1_MTR_26 post_fader */
     0,  /* 0x1266: C1_MTR_26 gate_gr */
-    0,  /* 0x1267 */
+    0,  /* 0x1267: C1_MTR_26 comp_gr */
     0,  /* 0x1268: C1_MTR_27 post_trim */
     0,  /* 0x1269: C1_MTR_27 post_fader */
     0,  /* 0x126A: C1_MTR_27 gate_gr */
-    0,  /* 0x126B */
+    0,  /* 0x126B: C1_MTR_27 comp_gr */
     0,  /* 0x126C: C1_MTR_28 post_trim */
     0,  /* 0x126D: C1_MTR_28 post_fader */
     0,  /* 0x126E: C1_MTR_28 gate_gr */
-    0,  /* 0x126F */
+    0,  /* 0x126F: C1_MTR_28 comp_gr */
     0,  /* 0x1270: C1_MTR_29 post_trim */
     0,  /* 0x1271: C1_MTR_29 post_fader */
     0,  /* 0x1272: C1_MTR_29 gate_gr */
-    0,  /* 0x1273 */
+    0,  /* 0x1273: C1_MTR_29 comp_gr */
     0,  /* 0x1274: C1_MTR_30 post_trim */
     0,  /* 0x1275: C1_MTR_30 post_fader */
     0,  /* 0x1276: C1_MTR_30 gate_gr */
-    0,  /* 0x1277 */
+    0,  /* 0x1277: C1_MTR_30 comp_gr */
     0,  /* 0x1278: C1_MTR_31 post_trim */
     0,  /* 0x1279: C1_MTR_31 post_fader */
     0,  /* 0x127A: C1_MTR_31 gate_gr */
-    0,  /* 0x127B */
+    0,  /* 0x127B: C1_MTR_31 comp_gr */
     0,  /* 0x127C: C1_MTR_32 post_trim */
     0,  /* 0x127D: C1_MTR_32 post_fader */
     0,  /* 0x127E: C1_MTR_32 gate_gr */
-    0,  /* 0x127F */
+    0,  /* 0x127F: C1_MTR_32 comp_gr */
     0,  /* 0x1280: C1_TALK_01 on */
     1,  /* 0x1281: C1_TALK_01 gain */
     0,  /* 0x1282: C1_TALK_01 HPF on */
@@ -16315,131 +16347,131 @@
     0,  /* 0x1200: C1_MTR_01 post_trim */
     0,  /* 0x1201: C1_MTR_01 post_fader */
     0,  /* 0x1202: C1_MTR_01 gate_gr */
-    0,  /* 0x1203 */
+    0,  /* 0x1203: C1_MTR_01 comp_gr */
     0,  /* 0x1204: C1_MTR_02 post_trim */
     0,  /* 0x1205: C1_MTR_02 post_fader */
     0,  /* 0x1206: C1_MTR_02 gate_gr */
-    0,  /* 0x1207 */
+    0,  /* 0x1207: C1_MTR_02 comp_gr */
     0,  /* 0x1208: C1_MTR_03 post_trim */
     0,  /* 0x1209: C1_MTR_03 post_fader */
     0,  /* 0x120A: C1_MTR_03 gate_gr */
-    0,  /* 0x120B */
+    0,  /* 0x120B: C1_MTR_03 comp_gr */
     0,  /* 0x120C: C1_MTR_04 post_trim */
     0,  /* 0x120D: C1_MTR_04 post_fader */
     0,  /* 0x120E: C1_MTR_04 gate_gr */
-    0,  /* 0x120F */
+    0,  /* 0x120F: C1_MTR_04 comp_gr */
     0,  /* 0x1210: C1_MTR_05 post_trim */
     0,  /* 0x1211: C1_MTR_05 post_fader */
     0,  /* 0x1212: C1_MTR_05 gate_gr */
-    0,  /* 0x1213 */
+    0,  /* 0x1213: C1_MTR_05 comp_gr */
     0,  /* 0x1214: C1_MTR_06 post_trim */
     0,  /* 0x1215: C1_MTR_06 post_fader */
     0,  /* 0x1216: C1_MTR_06 gate_gr */
-    0,  /* 0x1217 */
+    0,  /* 0x1217: C1_MTR_06 comp_gr */
     0,  /* 0x1218: C1_MTR_07 post_trim */
     0,  /* 0x1219: C1_MTR_07 post_fader */
     0,  /* 0x121A: C1_MTR_07 gate_gr */
-    0,  /* 0x121B */
+    0,  /* 0x121B: C1_MTR_07 comp_gr */
     0,  /* 0x121C: C1_MTR_08 post_trim */
     0,  /* 0x121D: C1_MTR_08 post_fader */
     0,  /* 0x121E: C1_MTR_08 gate_gr */
-    0,  /* 0x121F */
+    0,  /* 0x121F: C1_MTR_08 comp_gr */
     0,  /* 0x1220: C1_MTR_09 post_trim */
     0,  /* 0x1221: C1_MTR_09 post_fader */
     0,  /* 0x1222: C1_MTR_09 gate_gr */
-    0,  /* 0x1223 */
+    0,  /* 0x1223: C1_MTR_09 comp_gr */
     0,  /* 0x1224: C1_MTR_10 post_trim */
     0,  /* 0x1225: C1_MTR_10 post_fader */
     0,  /* 0x1226: C1_MTR_10 gate_gr */
-    0,  /* 0x1227 */
+    0,  /* 0x1227: C1_MTR_10 comp_gr */
     0,  /* 0x1228: C1_MTR_11 post_trim */
     0,  /* 0x1229: C1_MTR_11 post_fader */
     0,  /* 0x122A: C1_MTR_11 gate_gr */
-    0,  /* 0x122B */
+    0,  /* 0x122B: C1_MTR_11 comp_gr */
     0,  /* 0x122C: C1_MTR_12 post_trim */
     0,  /* 0x122D: C1_MTR_12 post_fader */
     0,  /* 0x122E: C1_MTR_12 gate_gr */
-    0,  /* 0x122F */
+    0,  /* 0x122F: C1_MTR_12 comp_gr */
     0,  /* 0x1230: C1_MTR_13 post_trim */
     0,  /* 0x1231: C1_MTR_13 post_fader */
     0,  /* 0x1232: C1_MTR_13 gate_gr */
-    0,  /* 0x1233 */
+    0,  /* 0x1233: C1_MTR_13 comp_gr */
     0,  /* 0x1234: C1_MTR_14 post_trim */
     0,  /* 0x1235: C1_MTR_14 post_fader */
     0,  /* 0x1236: C1_MTR_14 gate_gr */
-    0,  /* 0x1237 */
+    0,  /* 0x1237: C1_MTR_14 comp_gr */
     0,  /* 0x1238: C1_MTR_15 post_trim */
     0,  /* 0x1239: C1_MTR_15 post_fader */
     0,  /* 0x123A: C1_MTR_15 gate_gr */
-    0,  /* 0x123B */
+    0,  /* 0x123B: C1_MTR_15 comp_gr */
     0,  /* 0x123C: C1_MTR_16 post_trim */
     0,  /* 0x123D: C1_MTR_16 post_fader */
     0,  /* 0x123E: C1_MTR_16 gate_gr */
-    0,  /* 0x123F */
+    0,  /* 0x123F: C1_MTR_16 comp_gr */
     0,  /* 0x1240: C1_MTR_17 post_trim */
     0,  /* 0x1241: C1_MTR_17 post_fader */
     0,  /* 0x1242: C1_MTR_17 gate_gr */
-    0,  /* 0x1243 */
+    0,  /* 0x1243: C1_MTR_17 comp_gr */
     0,  /* 0x1244: C1_MTR_18 post_trim */
     0,  /* 0x1245: C1_MTR_18 post_fader */
     0,  /* 0x1246: C1_MTR_18 gate_gr */
-    0,  /* 0x1247 */
+    0,  /* 0x1247: C1_MTR_18 comp_gr */
     0,  /* 0x1248: C1_MTR_19 post_trim */
     0,  /* 0x1249: C1_MTR_19 post_fader */
     0,  /* 0x124A: C1_MTR_19 gate_gr */
-    0,  /* 0x124B */
+    0,  /* 0x124B: C1_MTR_19 comp_gr */
     0,  /* 0x124C: C1_MTR_20 post_trim */
     0,  /* 0x124D: C1_MTR_20 post_fader */
     0,  /* 0x124E: C1_MTR_20 gate_gr */
-    0,  /* 0x124F */
+    0,  /* 0x124F: C1_MTR_20 comp_gr */
     0,  /* 0x1250: C1_MTR_21 post_trim */
     0,  /* 0x1251: C1_MTR_21 post_fader */
     0,  /* 0x1252: C1_MTR_21 gate_gr */
-    0,  /* 0x1253 */
+    0,  /* 0x1253: C1_MTR_21 comp_gr */
     0,  /* 0x1254: C1_MTR_22 post_trim */
     0,  /* 0x1255: C1_MTR_22 post_fader */
     0,  /* 0x1256: C1_MTR_22 gate_gr */
-    0,  /* 0x1257 */
+    0,  /* 0x1257: C1_MTR_22 comp_gr */
     0,  /* 0x1258: C1_MTR_23 post_trim */
     0,  /* 0x1259: C1_MTR_23 post_fader */
     0,  /* 0x125A: C1_MTR_23 gate_gr */
-    0,  /* 0x125B */
+    0,  /* 0x125B: C1_MTR_23 comp_gr */
     0,  /* 0x125C: C1_MTR_24 post_trim */
     0,  /* 0x125D: C1_MTR_24 post_fader */
     0,  /* 0x125E: C1_MTR_24 gate_gr */
-    0,  /* 0x125F */
+    0,  /* 0x125F: C1_MTR_24 comp_gr */
     0,  /* 0x1260: C1_MTR_25 post_trim */
     0,  /* 0x1261: C1_MTR_25 post_fader */
     0,  /* 0x1262: C1_MTR_25 gate_gr */
-    0,  /* 0x1263 */
+    0,  /* 0x1263: C1_MTR_25 comp_gr */
     0,  /* 0x1264: C1_MTR_26 post_trim */
     0,  /* 0x1265: C1_MTR_26 post_fader */
     0,  /* 0x1266: C1_MTR_26 gate_gr */
-    0,  /* 0x1267 */
+    0,  /* 0x1267: C1_MTR_26 comp_gr */
     0,  /* 0x1268: C1_MTR_27 post_trim */
     0,  /* 0x1269: C1_MTR_27 post_fader */
     0,  /* 0x126A: C1_MTR_27 gate_gr */
-    0,  /* 0x126B */
+    0,  /* 0x126B: C1_MTR_27 comp_gr */
     0,  /* 0x126C: C1_MTR_28 post_trim */
     0,  /* 0x126D: C1_MTR_28 post_fader */
     0,  /* 0x126E: C1_MTR_28 gate_gr */
-    0,  /* 0x126F */
+    0,  /* 0x126F: C1_MTR_28 comp_gr */
     0,  /* 0x1270: C1_MTR_29 post_trim */
     0,  /* 0x1271: C1_MTR_29 post_fader */
     0,  /* 0x1272: C1_MTR_29 gate_gr */
-    0,  /* 0x1273 */
+    0,  /* 0x1273: C1_MTR_29 comp_gr */
     0,  /* 0x1274: C1_MTR_30 post_trim */
     0,  /* 0x1275: C1_MTR_30 post_fader */
     0,  /* 0x1276: C1_MTR_30 gate_gr */
-    0,  /* 0x1277 */
+    0,  /* 0x1277: C1_MTR_30 comp_gr */
     0,  /* 0x1278: C1_MTR_31 post_trim */
     0,  /* 0x1279: C1_MTR_31 post_fader */
     0,  /* 0x127A: C1_MTR_31 gate_gr */
-    0,  /* 0x127B */
+    0,  /* 0x127B: C1_MTR_31 comp_gr */
     0,  /* 0x127C: C1_MTR_32 post_trim */
     0,  /* 0x127D: C1_MTR_32 post_fader */
     0,  /* 0x127E: C1_MTR_32 gate_gr */
-    0,  /* 0x127F */
+    0,  /* 0x127F: C1_MTR_32 comp_gr */
     0,  /* 0x1280: C1_TALK_01 on */
     0,  /* 0x1281: C1_TALK_01 gain */
     0,  /* 0x1282: C1_TALK_01 HPF on */
@@ -21272,131 +21304,131 @@
     0,  /* 0x1200: C1_MTR_01 post_trim */
     0,  /* 0x1201: C1_MTR_01 post_fader */
     0,  /* 0x1202: C1_MTR_01 gate_gr */
-    0,  /* 0x1203 */
+    0,  /* 0x1203: C1_MTR_01 comp_gr */
     0,  /* 0x1204: C1_MTR_02 post_trim */
     0,  /* 0x1205: C1_MTR_02 post_fader */
     0,  /* 0x1206: C1_MTR_02 gate_gr */
-    0,  /* 0x1207 */
+    0,  /* 0x1207: C1_MTR_02 comp_gr */
     0,  /* 0x1208: C1_MTR_03 post_trim */
     0,  /* 0x1209: C1_MTR_03 post_fader */
     0,  /* 0x120A: C1_MTR_03 gate_gr */
-    0,  /* 0x120B */
+    0,  /* 0x120B: C1_MTR_03 comp_gr */
     0,  /* 0x120C: C1_MTR_04 post_trim */
     0,  /* 0x120D: C1_MTR_04 post_fader */
     0,  /* 0x120E: C1_MTR_04 gate_gr */
-    0,  /* 0x120F */
+    0,  /* 0x120F: C1_MTR_04 comp_gr */
     0,  /* 0x1210: C1_MTR_05 post_trim */
     0,  /* 0x1211: C1_MTR_05 post_fader */
     0,  /* 0x1212: C1_MTR_05 gate_gr */
-    0,  /* 0x1213 */
+    0,  /* 0x1213: C1_MTR_05 comp_gr */
     0,  /* 0x1214: C1_MTR_06 post_trim */
     0,  /* 0x1215: C1_MTR_06 post_fader */
     0,  /* 0x1216: C1_MTR_06 gate_gr */
-    0,  /* 0x1217 */
+    0,  /* 0x1217: C1_MTR_06 comp_gr */
     0,  /* 0x1218: C1_MTR_07 post_trim */
     0,  /* 0x1219: C1_MTR_07 post_fader */
     0,  /* 0x121A: C1_MTR_07 gate_gr */
-    0,  /* 0x121B */
+    0,  /* 0x121B: C1_MTR_07 comp_gr */
     0,  /* 0x121C: C1_MTR_08 post_trim */
     0,  /* 0x121D: C1_MTR_08 post_fader */
     0,  /* 0x121E: C1_MTR_08 gate_gr */
-    0,  /* 0x121F */
+    0,  /* 0x121F: C1_MTR_08 comp_gr */
     0,  /* 0x1220: C1_MTR_09 post_trim */
     0,  /* 0x1221: C1_MTR_09 post_fader */
     0,  /* 0x1222: C1_MTR_09 gate_gr */
-    0,  /* 0x1223 */
+    0,  /* 0x1223: C1_MTR_09 comp_gr */
     0,  /* 0x1224: C1_MTR_10 post_trim */
     0,  /* 0x1225: C1_MTR_10 post_fader */
     0,  /* 0x1226: C1_MTR_10 gate_gr */
-    0,  /* 0x1227 */
+    0,  /* 0x1227: C1_MTR_10 comp_gr */
     0,  /* 0x1228: C1_MTR_11 post_trim */
     0,  /* 0x1229: C1_MTR_11 post_fader */
     0,  /* 0x122A: C1_MTR_11 gate_gr */
-    0,  /* 0x122B */
+    0,  /* 0x122B: C1_MTR_11 comp_gr */
     0,  /* 0x122C: C1_MTR_12 post_trim */
     0,  /* 0x122D: C1_MTR_12 post_fader */
     0,  /* 0x122E: C1_MTR_12 gate_gr */
-    0,  /* 0x122F */
+    0,  /* 0x122F: C1_MTR_12 comp_gr */
     0,  /* 0x1230: C1_MTR_13 post_trim */
     0,  /* 0x1231: C1_MTR_13 post_fader */
     0,  /* 0x1232: C1_MTR_13 gate_gr */
-    0,  /* 0x1233 */
+    0,  /* 0x1233: C1_MTR_13 comp_gr */
     0,  /* 0x1234: C1_MTR_14 post_trim */
     0,  /* 0x1235: C1_MTR_14 post_fader */
     0,  /* 0x1236: C1_MTR_14 gate_gr */
-    0,  /* 0x1237 */
+    0,  /* 0x1237: C1_MTR_14 comp_gr */
     0,  /* 0x1238: C1_MTR_15 post_trim */
     0,  /* 0x1239: C1_MTR_15 post_fader */
     0,  /* 0x123A: C1_MTR_15 gate_gr */
-    0,  /* 0x123B */
+    0,  /* 0x123B: C1_MTR_15 comp_gr */
     0,  /* 0x123C: C1_MTR_16 post_trim */
     0,  /* 0x123D: C1_MTR_16 post_fader */
     0,  /* 0x123E: C1_MTR_16 gate_gr */
-    0,  /* 0x123F */
+    0,  /* 0x123F: C1_MTR_16 comp_gr */
     0,  /* 0x1240: C1_MTR_17 post_trim */
     0,  /* 0x1241: C1_MTR_17 post_fader */
     0,  /* 0x1242: C1_MTR_17 gate_gr */
-    0,  /* 0x1243 */
+    0,  /* 0x1243: C1_MTR_17 comp_gr */
     0,  /* 0x1244: C1_MTR_18 post_trim */
     0,  /* 0x1245: C1_MTR_18 post_fader */
     0,  /* 0x1246: C1_MTR_18 gate_gr */
-    0,  /* 0x1247 */
+    0,  /* 0x1247: C1_MTR_18 comp_gr */
     0,  /* 0x1248: C1_MTR_19 post_trim */
     0,  /* 0x1249: C1_MTR_19 post_fader */
     0,  /* 0x124A: C1_MTR_19 gate_gr */
-    0,  /* 0x124B */
+    0,  /* 0x124B: C1_MTR_19 comp_gr */
     0,  /* 0x124C: C1_MTR_20 post_trim */
     0,  /* 0x124D: C1_MTR_20 post_fader */
     0,  /* 0x124E: C1_MTR_20 gate_gr */
-    0,  /* 0x124F */
+    0,  /* 0x124F: C1_MTR_20 comp_gr */
     0,  /* 0x1250: C1_MTR_21 post_trim */
     0,  /* 0x1251: C1_MTR_21 post_fader */
     0,  /* 0x1252: C1_MTR_21 gate_gr */
-    0,  /* 0x1253 */
+    0,  /* 0x1253: C1_MTR_21 comp_gr */
     0,  /* 0x1254: C1_MTR_22 post_trim */
     0,  /* 0x1255: C1_MTR_22 post_fader */
     0,  /* 0x1256: C1_MTR_22 gate_gr */
-    0,  /* 0x1257 */
+    0,  /* 0x1257: C1_MTR_22 comp_gr */
     0,  /* 0x1258: C1_MTR_23 post_trim */
     0,  /* 0x1259: C1_MTR_23 post_fader */
     0,  /* 0x125A: C1_MTR_23 gate_gr */
-    0,  /* 0x125B */
+    0,  /* 0x125B: C1_MTR_23 comp_gr */
     0,  /* 0x125C: C1_MTR_24 post_trim */
     0,  /* 0x125D: C1_MTR_24 post_fader */
     0,  /* 0x125E: C1_MTR_24 gate_gr */
-    0,  /* 0x125F */
+    0,  /* 0x125F: C1_MTR_24 comp_gr */
     0,  /* 0x1260: C1_MTR_25 post_trim */
     0,  /* 0x1261: C1_MTR_25 post_fader */
     0,  /* 0x1262: C1_MTR_25 gate_gr */
-    0,  /* 0x1263 */
+    0,  /* 0x1263: C1_MTR_25 comp_gr */
     0,  /* 0x1264: C1_MTR_26 post_trim */
     0,  /* 0x1265: C1_MTR_26 post_fader */
     0,  /* 0x1266: C1_MTR_26 gate_gr */
-    0,  /* 0x1267 */
+    0,  /* 0x1267: C1_MTR_26 comp_gr */
     0,  /* 0x1268: C1_MTR_27 post_trim */
     0,  /* 0x1269: C1_MTR_27 post_fader */
     0,  /* 0x126A: C1_MTR_27 gate_gr */
-    0,  /* 0x126B */
+    0,  /* 0x126B: C1_MTR_27 comp_gr */
     0,  /* 0x126C: C1_MTR_28 post_trim */
     0,  /* 0x126D: C1_MTR_28 post_fader */
     0,  /* 0x126E: C1_MTR_28 gate_gr */
-    0,  /* 0x126F */
+    0,  /* 0x126F: C1_MTR_28 comp_gr */
     0,  /* 0x1270: C1_MTR_29 post_trim */
     0,  /* 0x1271: C1_MTR_29 post_fader */
     0,  /* 0x1272: C1_MTR_29 gate_gr */
-    0,  /* 0x1273 */
+    0,  /* 0x1273: C1_MTR_29 comp_gr */
     0,  /* 0x1274: C1_MTR_30 post_trim */
     0,  /* 0x1275: C1_MTR_30 post_fader */
     0,  /* 0x1276: C1_MTR_30 gate_gr */
-    0,  /* 0x1277 */
+    0,  /* 0x1277: C1_MTR_30 comp_gr */
     0,  /* 0x1278: C1_MTR_31 post_trim */
     0,  /* 0x1279: C1_MTR_31 post_fader */
     0,  /* 0x127A: C1_MTR_31 gate_gr */
-    0,  /* 0x127B */
+    0,  /* 0x127B: C1_MTR_31 comp_gr */
     0,  /* 0x127C: C1_MTR_32 post_trim */
     0,  /* 0x127D: C1_MTR_32 post_fader */
     0,  /* 0x127E: C1_MTR_32 gate_gr */
-    0,  /* 0x127F */
+    0,  /* 0x127F: C1_MTR_32 comp_gr */
     0,  /* 0x1280: C1_TALK_01 on */
     0,  /* 0x1281: C1_TALK_01 gain */
     0,  /* 0x1282: C1_TALK_01 HPF on */

@@ -102,8 +102,18 @@ EXTRA_PARAMS = {
     'INPUT_TDM':      {'scope', 'signal', 'sport_slots'},
     'INTERCHIP_RECV': {'global_slot', 'scope', 'signal', 'sport_slots'},
     'INTERCHIP_SEND': {'global_slot', 'scope', 'signal', 'sport_slots'},
-    'METER':          {'taps'},
-    'MIX_BUS':        {'source_count'},
+    # `comp_gr_src` (S23 gate 4): the COMPRESSOR whose gain word this meter
+    # publishes as `Chan*CompMtr` at SPI base+3. A meter declaring a
+    # `comp_gr` tap without it is refused by dsp_codegen.py rather than
+    # having the compressor id guessed from the meter's own.
+    'METER':          {'taps', 'comp_gr_src'},
+    # `fx_sends` / `aux` (S23 gate 3): a chip-2 summing bus whose LAST
+    # fx_sends sources are crosspoints -- an on/off flag and a ramped send
+    # level folded into one Q4.28 coefficient at block rate -- rather than
+    # fixed unity feeds. `aux` names which aux bus the node sums, and it is
+    # what gen_dsp.py addresses the Fx*AuxOn/AuxSend cells from; a node with
+    # fx_sends and no aux is refused there rather than guessed at.
+    'MIX_BUS':        {'source_count', 'fx_sends', 'aux'},
     'MONITOR':        {'level_l_db', 'level_r_db'},
     'NOISE_GEN':      {'hpf_on'},
     'OUTPUT_TDM':     {'scope', 'signal', 'sport_slots'},

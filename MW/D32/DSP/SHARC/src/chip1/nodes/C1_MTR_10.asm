@@ -35,18 +35,43 @@
          * kernels and by this node's own per-sample body otherwise. */
         .global _mtr_acc_C1_MTR_10;
         .var _mtr_acc_C1_MTR_10[5];          /* mx mn ssq_lo ssq_hi ssq_ex     */
+        /* +3 on the SPI block, and NOT at DM offset +3: see
+         * _mtr_comp_gr(). Declared after the accumulators so
+         * _mtr_fold's offsets from _mtr_peak_ are untouched. */
+        .global _mtr_cgr_C1_MTR_10;
+        .var _mtr_cgr_C1_MTR_10 = 0.0;   /* comp gain reduction, dB */
 
         .section/pm seg_pmco;
         .extern _mtr_fold;
         .extern _mtr_load_fold;
         .extern _sample_idx;
         .extern _mtr_wide_C1_GAIN_10;
+        .extern _comp_gain_C1_COMP_10;
+        .extern _log2q_fx;
         .global _C1_MTR_10_process;
         _C1_MTR_10_process:
         #if DSP4_MTR_OFF
             /* measurement only: what the meter costs, by removing it */
             rts;
         #elif DSP4_BLOCK_KERNELS
+            /* ---- COMPRESSOR GAIN REDUCTION, once per block ----
+             * r0-r5, i0, l0 and MRF only, which is _log2q_fx's whole
+             * register footprint and a subset of what the fold below
+             * sets up for itself. */
+            r0 = dm(_comp_gain_C1_COMP_10);
+            call _log2q_fx;              /* log2(g), Q6.25 */
+            r1 = -25;
+            f0 = float r0 by r1;
+            r1 = 0x40C0A8C1;             /* 20/log2(10) = 6.0205999 */
+            f1 = r1;
+            f0 = f0 * f1;                /* dB, <= 0 while reducing */
+            r1 = 0x00000000;             /* 0.0f  -- no reduction   */
+            comp(f0, f1);
+            if gt r0 = r1;
+            r1 = 0xC2200000;             /* -40.0f -- the stated floor */
+            comp(f0, f1);
+            if lt r0 = r1;
+            dm(_mtr_cgr_C1_MTR_10) = r0;
 /* WIDE WORD, 'acc' shape. C1_GAIN_10 accumulated this block's peak,
  * trough and exact sum of squares from the MS word of its own
  * product register, inside its own loop, and left them here.
@@ -76,6 +101,29 @@ rts;
             comp(r4, r1);
             if ne jump (pc, .mtacc_C1_MTR_10);
             /* first sample of the block: seed rather than accumulate */
+            /* THE COMP-GR CONVERSION GOES HERE, not in .mtacc_:
+             * both builds must publish it exactly once per block,
+             * and it clobbers r0, so it runs before the wide word
+             * is read back. */
+            /* ---- COMPRESSOR GAIN REDUCTION, once per block ----
+             * r0-r5, i0, l0 and MRF only, which is _log2q_fx's whole
+             * register footprint and a subset of what the fold below
+             * sets up for itself. */
+            r0 = dm(_comp_gain_C1_COMP_10);
+            call _log2q_fx;              /* log2(g), Q6.25 */
+            r1 = -25;
+            f0 = float r0 by r1;
+            r1 = 0x40C0A8C1;             /* 20/log2(10) = 6.0205999 */
+            f1 = r1;
+            f0 = f0 * f1;                /* dB, <= 0 while reducing */
+            r1 = 0x00000000;             /* 0.0f  -- no reduction   */
+            comp(f0, f1);
+            if gt r0 = r1;
+            r1 = 0xC2200000;             /* -40.0f -- the stated floor */
+            comp(f0, f1);
+            if lt r0 = r1;
+            dm(_mtr_cgr_C1_MTR_10) = r0;
+            r0 = dm(_mtr_wide_C1_GAIN_10);
             dm(_mtr_acc_C1_MTR_10 + 0) = r0;
             dm(_mtr_acc_C1_MTR_10 + 1) = r0;
             mrf = 0;

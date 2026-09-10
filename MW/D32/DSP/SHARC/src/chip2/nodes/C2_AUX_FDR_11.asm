@@ -20,7 +20,7 @@
         /* SPI page=1 addr=900 */
 
         .section/dm seg_dmda;
-.extern _buf_C2_RECV_AUX_11;
+.extern _buf_C2_MIX_AUX_11;
         .global _fdr_level_C2_AUX_FDR_11;
         .var _fdr_level_C2_AUX_FDR_11 = 1.0;
         .global _fdr_level_target_C2_AUX_FDR_11;
@@ -72,7 +72,7 @@
         .global _buf_C2_AUX_FDR_11;
         .var _buf_C2_AUX_FDR_11;
         #if DSP4_BLOCK_KERNELS
-        .extern _blk_C2_RECV_AUX_11;
+        .extern _blk_C2_MIX_AUX_11;
         .global _blk_C2_AUX_FDR_11;
         .var _blk_C2_AUX_FDR_11[DSP4_BLOCK_SIZE];
         #endif
@@ -197,7 +197,7 @@
             l1 = 0;
             l2 = 0;
             l3 = 0;
-            i0 = _blk_C2_RECV_AUX_11;                 /* input  */
+            i0 = _blk_C2_MIX_AUX_11;                 /* input  */
             i1 = _blk_C2_AUX_FDR_11;                 /* mono   */
         #if DSP4_STRIP_FUSED
             /* FUSED (2026-08-28): two samples per iteration, interleaved,
@@ -273,7 +273,7 @@
         .apply_C2_AUX_FDR_11:
             /* Pure MAC. Mute is already inside _fdr_gq; the pan legs are
              * ROUTING's main-bus crosspoint coefficients. */
-            r0 = dm(_buf_C2_RECV_AUX_11);
+            r0 = dm(_buf_C2_MIX_AUX_11);
             r1 = dm(_fdr_gq_C2_AUX_FDR_11);
             mrf = r0 * r1 (ssi);
             call _mrf_rns28;

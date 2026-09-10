@@ -375,6 +375,65 @@ FAMILIES = {
                     setup=[('Main001Level001', f32(1.0)),
                            ('Main001Mute001', 0)],
                     note='monitor bus tap'),
+    # ---- S23: the matrix, and the FX returns' two destinations ---------
+    #
+    # THREE OF THESE FOUR ARE NOT NODE TYPES, and that is why the walk's
+    # default family list is the union of the landed NodeTypes and this
+    # table rather than the NodeTypes alone. `Matrix*Level/Mute` are cells
+    # of a FADER_PAN and `Chan*MatrixSend/On` are cells of a ROUTING, so a
+    # NodeType-keyed walk can only ever report the matrix as part of two
+    # families that were already passing -- which is exactly how a feature
+    # can be shipped un-witnessed. `contract_cells` names the cells each
+    # entry is answerable for, so the sweep is precise instead of
+    # re-writing sixty routing words for the four that are new.
+    'MATRIX': dict(chip=1, node='C1_RTG_01', inject=C1_INJ,
+                   witness='_buf_C1_BUS_MTX_01',
+                   probe=('Chan001MatrixSend001', f32(1.0), f32(0.25)),
+                   setup=[('Chan001MainOn001', 0),
+                          ('Chan001MatrixOn001', 1)],
+                   contract_cells=['Chan001MatrixOn001', 'Chan001MatrixOn002',
+                                   'Chan001MatrixSend001',
+                                   'Chan001MatrixSend002'],
+                   note='channel -> matrix bus crosspoint (S22 gate 1); '
+                        'MainOn is taken off so the matrix send is the only '
+                        'live crosspoint on the strip'),
+    'MATRIX_OUT': dict(chip=2, node='C2_MTX_FDR_01',
+                       inject='_rx_ic_slot_C2_RECV_MTX_01',
+                       witness='_buf_C2_MTX_FDR_01',
+                       probe=('Matrix001Level001', f32(1.0), f32(0.25)),
+                       setup=[('Matrix001Mute001', 0)],
+                       contract_cells=['Matrix%03dLevel001' % m
+                                       for m in range(1, 5)]
+                                      + ['Matrix%03dMute001' % m
+                                         for m in range(1, 5)],
+                       note='matrix output strip: level + mute, on '
+                            'NET_OUT_02..05'),
+    # Gate 2. The FX return had NO PATH TO ANY BUS until S23 (S22-2), so
+    # this entry is the standing bar for the wiring as much as for the
+    # cells: witnessed at the MAIN MIX, which is the node whose `inputs`
+    # was missing the return.
+    'FX_RETURN': dict(chip=2, node='C2_FX_FDR_01', inject=C2_FX_INJ,
+                      witness='_buf_C2_MIX_MAIN_L',
+                      probe=('Fx001Level001', f32(1.0), f32(0.25)),
+                      setup=[('Fx001On001', 1), ('Fx001Mute001', 0),
+                             ('Fx001Mix001', f32(100.0))],
+                      contract_cells=['Fx001Level001', 'Fx001Mute001'],
+                      note='FX return -> main mix (S22-2); Type is left at '
+                           'its default 0 = Echo for FX_ENGINE\'s reason'),
+    # Gate 3. MIX_BUS IS a NodeType and it had no cells at all before
+    # S23 -- the 144 Fx*AuxOn/AuxSend words live on C2_MIX_AUX_01..12.
+    'MIX_BUS': dict(chip=2, node='C2_MIX_AUX_01', inject=C2_FX_INJ,
+                    witness='_buf_C2_MIX_AUX_01',
+                    probe=('Fx001AuxSend001', f32(1.0), f32(0.25)),
+                    setup=[('Fx001On001', 1), ('Fx001Mute001', 0),
+                           ('Fx001Level001', f32(1.0)),
+                           ('Fx001Mix001', f32(100.0)),
+                           ('Aux001Mute001', 0),
+                           ('Fx001AuxOn001', 1)],
+                    contract_cells=['Fx001AuxOn001', 'Fx001AuxSend001',
+                                    'Fx002AuxOn001', 'Fx002AuxSend001'],
+                    note='FX return -> aux bus crosspoint (S23 gate 3); the '
+                         'send level is a LINEAR gain, as Chan*AuxSend is'),
 }
 
 # ---------------------------------------------------------------------------
@@ -439,9 +498,17 @@ def write_coeffset(part, base, name, bands=1):
 # CONTRACT PHASE
 # ---------------------------------------------------------------------------
 
-def contract_phase(part, L, node, log=print):
+def contract_phase(part, L, node, log=print, cells=None):
     """Write every rw cell of one node at its LANDED address; read it back;
     count the part's own SPI errors either side.
+
+    `cells` overrides the node's cell list, for the S23 entries whose cells
+    belong to a node OTHER families already sweep: `Chan*MatrixSend/On` are
+    four of C1_RTG_01's sixty words, and re-writing the other fifty-six to
+    reach them would be sixty transactions and a disturbed router for no
+    extra evidence. A named cell the landed contract does not carry is
+    reported as NOT_IN_CONTRACT rather than skipped, because a harness
+    entry naming a cell that no longer exists is a stale harness.
 
     The verdict per address:
       ANSWERS   the write raised no SPI error -- the dispatch table has an
@@ -452,7 +519,10 @@ def contract_phase(part, L, node, log=print):
                 words and the address cannot be classified from this run
     """
     out = []
-    for cell in L.cells_of_node(node):
+    for cell in (cells if cells is not None else L.cells_of_node(node)):
+        if not L.has(cell):
+            out.append({'cell': cell, 'verdict': 'NOT_IN_CONTRACT'})
+            continue
         if L.access(cell) != 'rw':
             out.append({'cell': cell, 'addr': L.addr(cell),
                         'access': L.access(cell), 'verdict': 'NOT_RW'})
@@ -838,8 +908,15 @@ def main():
     rows, bad = cross_check(L)
     report['cross_check'] = {'rows': rows, 'disagreements': bad}
 
+    # THE UNION, NOT THE LANDED NODE TYPES ALONE (S23). `fam_counts` is
+    # keyed by NodeType, so a feature whose cells sit on a node type that
+    # was already passing -- the matrix's four sends on a ROUTING, its
+    # masters on a FADER_PAN -- can never get a family of its own, and the
+    # walk would report the graph complete while the feature had never been
+    # witnessed. An entry in FAMILIES is a claim that something is
+    # answerable for, so it runs whether or not its name is a NodeType.
     want = ([f.strip().upper() for f in a.families.split(',')]
-            if a.families else sorted(fam_counts))
+            if a.families else sorted(set(fam_counts) | set(FAMILIES)))
     chips = [int(c) for c in a.chips.split(',')]
 
     for chip in chips:
@@ -938,7 +1015,8 @@ def main():
             print('- %s (%s, %d cells)'
                   % (f, FAMILIES[f]['node'], fam_counts.get(f, 0)))
             report['families'][f]['contract'] = contract_phase(
-                part, L, FAMILIES[f]['node'])
+                part, L, FAMILIES[f]['node'],
+                cells=FAMILIES[f].get('contract_cells'))
 
     # families the landed map addresses but this tool has no entry for
     for f in fam_counts:

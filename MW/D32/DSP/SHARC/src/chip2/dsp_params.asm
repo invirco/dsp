@@ -8,7 +8,7 @@
  * indexes this table to route parameter writes directly to node
  * coefficient variables.
  *
- * 2024 entries (SPI addresses 0x0000–0x07E5)
+ * 2168 entries (SPI addresses 0x0000–0x0876)
  *======================================================================*/
 
 .section/dm seg_dmda;
@@ -649,6 +649,30 @@
 .extern _lim_threshold_C2_MAIN_OLIM_03;
 .extern _lim_threshold_C2_MAIN_OLIM_04;
 .extern _lim_threshold_C2_SUB_LIM;
+.extern _mix_on_C2_MIX_AUX_01;
+.extern _mix_on_C2_MIX_AUX_02;
+.extern _mix_on_C2_MIX_AUX_03;
+.extern _mix_on_C2_MIX_AUX_04;
+.extern _mix_on_C2_MIX_AUX_05;
+.extern _mix_on_C2_MIX_AUX_06;
+.extern _mix_on_C2_MIX_AUX_07;
+.extern _mix_on_C2_MIX_AUX_08;
+.extern _mix_on_C2_MIX_AUX_09;
+.extern _mix_on_C2_MIX_AUX_10;
+.extern _mix_on_C2_MIX_AUX_11;
+.extern _mix_on_C2_MIX_AUX_12;
+.extern _mix_send_C2_MIX_AUX_01;
+.extern _mix_send_C2_MIX_AUX_02;
+.extern _mix_send_C2_MIX_AUX_03;
+.extern _mix_send_C2_MIX_AUX_04;
+.extern _mix_send_C2_MIX_AUX_05;
+.extern _mix_send_C2_MIX_AUX_06;
+.extern _mix_send_C2_MIX_AUX_07;
+.extern _mix_send_C2_MIX_AUX_08;
+.extern _mix_send_C2_MIX_AUX_09;
+.extern _mix_send_C2_MIX_AUX_10;
+.extern _mix_send_C2_MIX_AUX_11;
+.extern _mix_send_C2_MIX_AUX_12;
 .extern _mon_level_l_C2_MON;
 .extern _mon_level_r_C2_MON;
 .extern _mon_source_C2_MON;
@@ -689,11 +713,11 @@
 
 /* ---- Table size for the SPI handler bounds check ---- */
 .global _spi_dispatch_c2_size;
-.var _spi_dispatch_c2_size = 2024;
+.var _spi_dispatch_c2_size = 2168;
 
-/* ---- Chip 2 SPI dispatch table (2024 entries) ---- */
+/* ---- Chip 2 SPI dispatch table (2168 entries) ---- */
 .global _spi_dispatch_c2;
-.var _spi_dispatch_c2[2024] =
+.var _spi_dispatch_c2[2168] =
     _fdr_level_C2_AUX_FDR_01,    /* 0x0000: C2_AUX_FDR_01 level */
     _fdr_pan_C2_AUX_FDR_01,    /* 0x0001: C2_AUX_FDR_01 pan */
     _fdr_mute_C2_AUX_FDR_01,    /* 0x0002: C2_AUX_FDR_01 mute */
@@ -2717,9 +2741,153 @@
     _fdr_mute_C2_MTX_FDR_04,    /* 0x07E4: C2_MTX_FDR_04 mute */
     0,  /* 0x07E5: C2_MTX_FDR_04 reserved (Dca host-managed) */
     0,  /* 0x07E6 */
-    0;  /* 0x07E7 */
+    _mix_on_C2_MIX_AUX_01,    /* 0x07E7: C2_MIX_AUX_01 Fx1 AuxOn */
+    _mix_on_C2_MIX_AUX_01 + 1,    /* 0x07E8: C2_MIX_AUX_01 Fx2 AuxOn */
+    _mix_on_C2_MIX_AUX_01 + 2,    /* 0x07E9: C2_MIX_AUX_01 Fx3 AuxOn */
+    _mix_on_C2_MIX_AUX_01 + 3,    /* 0x07EA: C2_MIX_AUX_01 Fx4 AuxOn */
+    _mix_on_C2_MIX_AUX_01 + 4,    /* 0x07EB: C2_MIX_AUX_01 Fx5 AuxOn */
+    _mix_on_C2_MIX_AUX_01 + 5,    /* 0x07EC: C2_MIX_AUX_01 Fx6 AuxOn */
+    _mix_send_C2_MIX_AUX_01,    /* 0x07ED: C2_MIX_AUX_01 Fx1 AuxSend */
+    _mix_send_C2_MIX_AUX_01 + 1,    /* 0x07EE: C2_MIX_AUX_01 Fx2 AuxSend */
+    _mix_send_C2_MIX_AUX_01 + 2,    /* 0x07EF: C2_MIX_AUX_01 Fx3 AuxSend */
+    _mix_send_C2_MIX_AUX_01 + 3,    /* 0x07F0: C2_MIX_AUX_01 Fx4 AuxSend */
+    _mix_send_C2_MIX_AUX_01 + 4,    /* 0x07F1: C2_MIX_AUX_01 Fx5 AuxSend */
+    _mix_send_C2_MIX_AUX_01 + 5,    /* 0x07F2: C2_MIX_AUX_01 Fx6 AuxSend */
+    _mix_on_C2_MIX_AUX_02,    /* 0x07F3: C2_MIX_AUX_02 Fx1 AuxOn */
+    _mix_on_C2_MIX_AUX_02 + 1,    /* 0x07F4: C2_MIX_AUX_02 Fx2 AuxOn */
+    _mix_on_C2_MIX_AUX_02 + 2,    /* 0x07F5: C2_MIX_AUX_02 Fx3 AuxOn */
+    _mix_on_C2_MIX_AUX_02 + 3,    /* 0x07F6: C2_MIX_AUX_02 Fx4 AuxOn */
+    _mix_on_C2_MIX_AUX_02 + 4,    /* 0x07F7: C2_MIX_AUX_02 Fx5 AuxOn */
+    _mix_on_C2_MIX_AUX_02 + 5,    /* 0x07F8: C2_MIX_AUX_02 Fx6 AuxOn */
+    _mix_send_C2_MIX_AUX_02,    /* 0x07F9: C2_MIX_AUX_02 Fx1 AuxSend */
+    _mix_send_C2_MIX_AUX_02 + 1,    /* 0x07FA: C2_MIX_AUX_02 Fx2 AuxSend */
+    _mix_send_C2_MIX_AUX_02 + 2,    /* 0x07FB: C2_MIX_AUX_02 Fx3 AuxSend */
+    _mix_send_C2_MIX_AUX_02 + 3,    /* 0x07FC: C2_MIX_AUX_02 Fx4 AuxSend */
+    _mix_send_C2_MIX_AUX_02 + 4,    /* 0x07FD: C2_MIX_AUX_02 Fx5 AuxSend */
+    _mix_send_C2_MIX_AUX_02 + 5,    /* 0x07FE: C2_MIX_AUX_02 Fx6 AuxSend */
+    _mix_on_C2_MIX_AUX_03,    /* 0x07FF: C2_MIX_AUX_03 Fx1 AuxOn */
+    _mix_on_C2_MIX_AUX_03 + 1,    /* 0x0800: C2_MIX_AUX_03 Fx2 AuxOn */
+    _mix_on_C2_MIX_AUX_03 + 2,    /* 0x0801: C2_MIX_AUX_03 Fx3 AuxOn */
+    _mix_on_C2_MIX_AUX_03 + 3,    /* 0x0802: C2_MIX_AUX_03 Fx4 AuxOn */
+    _mix_on_C2_MIX_AUX_03 + 4,    /* 0x0803: C2_MIX_AUX_03 Fx5 AuxOn */
+    _mix_on_C2_MIX_AUX_03 + 5,    /* 0x0804: C2_MIX_AUX_03 Fx6 AuxOn */
+    _mix_send_C2_MIX_AUX_03,    /* 0x0805: C2_MIX_AUX_03 Fx1 AuxSend */
+    _mix_send_C2_MIX_AUX_03 + 1,    /* 0x0806: C2_MIX_AUX_03 Fx2 AuxSend */
+    _mix_send_C2_MIX_AUX_03 + 2,    /* 0x0807: C2_MIX_AUX_03 Fx3 AuxSend */
+    _mix_send_C2_MIX_AUX_03 + 3,    /* 0x0808: C2_MIX_AUX_03 Fx4 AuxSend */
+    _mix_send_C2_MIX_AUX_03 + 4,    /* 0x0809: C2_MIX_AUX_03 Fx5 AuxSend */
+    _mix_send_C2_MIX_AUX_03 + 5,    /* 0x080A: C2_MIX_AUX_03 Fx6 AuxSend */
+    _mix_on_C2_MIX_AUX_04,    /* 0x080B: C2_MIX_AUX_04 Fx1 AuxOn */
+    _mix_on_C2_MIX_AUX_04 + 1,    /* 0x080C: C2_MIX_AUX_04 Fx2 AuxOn */
+    _mix_on_C2_MIX_AUX_04 + 2,    /* 0x080D: C2_MIX_AUX_04 Fx3 AuxOn */
+    _mix_on_C2_MIX_AUX_04 + 3,    /* 0x080E: C2_MIX_AUX_04 Fx4 AuxOn */
+    _mix_on_C2_MIX_AUX_04 + 4,    /* 0x080F: C2_MIX_AUX_04 Fx5 AuxOn */
+    _mix_on_C2_MIX_AUX_04 + 5,    /* 0x0810: C2_MIX_AUX_04 Fx6 AuxOn */
+    _mix_send_C2_MIX_AUX_04,    /* 0x0811: C2_MIX_AUX_04 Fx1 AuxSend */
+    _mix_send_C2_MIX_AUX_04 + 1,    /* 0x0812: C2_MIX_AUX_04 Fx2 AuxSend */
+    _mix_send_C2_MIX_AUX_04 + 2,    /* 0x0813: C2_MIX_AUX_04 Fx3 AuxSend */
+    _mix_send_C2_MIX_AUX_04 + 3,    /* 0x0814: C2_MIX_AUX_04 Fx4 AuxSend */
+    _mix_send_C2_MIX_AUX_04 + 4,    /* 0x0815: C2_MIX_AUX_04 Fx5 AuxSend */
+    _mix_send_C2_MIX_AUX_04 + 5,    /* 0x0816: C2_MIX_AUX_04 Fx6 AuxSend */
+    _mix_on_C2_MIX_AUX_05,    /* 0x0817: C2_MIX_AUX_05 Fx1 AuxOn */
+    _mix_on_C2_MIX_AUX_05 + 1,    /* 0x0818: C2_MIX_AUX_05 Fx2 AuxOn */
+    _mix_on_C2_MIX_AUX_05 + 2,    /* 0x0819: C2_MIX_AUX_05 Fx3 AuxOn */
+    _mix_on_C2_MIX_AUX_05 + 3,    /* 0x081A: C2_MIX_AUX_05 Fx4 AuxOn */
+    _mix_on_C2_MIX_AUX_05 + 4,    /* 0x081B: C2_MIX_AUX_05 Fx5 AuxOn */
+    _mix_on_C2_MIX_AUX_05 + 5,    /* 0x081C: C2_MIX_AUX_05 Fx6 AuxOn */
+    _mix_send_C2_MIX_AUX_05,    /* 0x081D: C2_MIX_AUX_05 Fx1 AuxSend */
+    _mix_send_C2_MIX_AUX_05 + 1,    /* 0x081E: C2_MIX_AUX_05 Fx2 AuxSend */
+    _mix_send_C2_MIX_AUX_05 + 2,    /* 0x081F: C2_MIX_AUX_05 Fx3 AuxSend */
+    _mix_send_C2_MIX_AUX_05 + 3,    /* 0x0820: C2_MIX_AUX_05 Fx4 AuxSend */
+    _mix_send_C2_MIX_AUX_05 + 4,    /* 0x0821: C2_MIX_AUX_05 Fx5 AuxSend */
+    _mix_send_C2_MIX_AUX_05 + 5,    /* 0x0822: C2_MIX_AUX_05 Fx6 AuxSend */
+    _mix_on_C2_MIX_AUX_06,    /* 0x0823: C2_MIX_AUX_06 Fx1 AuxOn */
+    _mix_on_C2_MIX_AUX_06 + 1,    /* 0x0824: C2_MIX_AUX_06 Fx2 AuxOn */
+    _mix_on_C2_MIX_AUX_06 + 2,    /* 0x0825: C2_MIX_AUX_06 Fx3 AuxOn */
+    _mix_on_C2_MIX_AUX_06 + 3,    /* 0x0826: C2_MIX_AUX_06 Fx4 AuxOn */
+    _mix_on_C2_MIX_AUX_06 + 4,    /* 0x0827: C2_MIX_AUX_06 Fx5 AuxOn */
+    _mix_on_C2_MIX_AUX_06 + 5,    /* 0x0828: C2_MIX_AUX_06 Fx6 AuxOn */
+    _mix_send_C2_MIX_AUX_06,    /* 0x0829: C2_MIX_AUX_06 Fx1 AuxSend */
+    _mix_send_C2_MIX_AUX_06 + 1,    /* 0x082A: C2_MIX_AUX_06 Fx2 AuxSend */
+    _mix_send_C2_MIX_AUX_06 + 2,    /* 0x082B: C2_MIX_AUX_06 Fx3 AuxSend */
+    _mix_send_C2_MIX_AUX_06 + 3,    /* 0x082C: C2_MIX_AUX_06 Fx4 AuxSend */
+    _mix_send_C2_MIX_AUX_06 + 4,    /* 0x082D: C2_MIX_AUX_06 Fx5 AuxSend */
+    _mix_send_C2_MIX_AUX_06 + 5,    /* 0x082E: C2_MIX_AUX_06 Fx6 AuxSend */
+    _mix_on_C2_MIX_AUX_07,    /* 0x082F: C2_MIX_AUX_07 Fx1 AuxOn */
+    _mix_on_C2_MIX_AUX_07 + 1,    /* 0x0830: C2_MIX_AUX_07 Fx2 AuxOn */
+    _mix_on_C2_MIX_AUX_07 + 2,    /* 0x0831: C2_MIX_AUX_07 Fx3 AuxOn */
+    _mix_on_C2_MIX_AUX_07 + 3,    /* 0x0832: C2_MIX_AUX_07 Fx4 AuxOn */
+    _mix_on_C2_MIX_AUX_07 + 4,    /* 0x0833: C2_MIX_AUX_07 Fx5 AuxOn */
+    _mix_on_C2_MIX_AUX_07 + 5,    /* 0x0834: C2_MIX_AUX_07 Fx6 AuxOn */
+    _mix_send_C2_MIX_AUX_07,    /* 0x0835: C2_MIX_AUX_07 Fx1 AuxSend */
+    _mix_send_C2_MIX_AUX_07 + 1,    /* 0x0836: C2_MIX_AUX_07 Fx2 AuxSend */
+    _mix_send_C2_MIX_AUX_07 + 2,    /* 0x0837: C2_MIX_AUX_07 Fx3 AuxSend */
+    _mix_send_C2_MIX_AUX_07 + 3,    /* 0x0838: C2_MIX_AUX_07 Fx4 AuxSend */
+    _mix_send_C2_MIX_AUX_07 + 4,    /* 0x0839: C2_MIX_AUX_07 Fx5 AuxSend */
+    _mix_send_C2_MIX_AUX_07 + 5,    /* 0x083A: C2_MIX_AUX_07 Fx6 AuxSend */
+    _mix_on_C2_MIX_AUX_08,    /* 0x083B: C2_MIX_AUX_08 Fx1 AuxOn */
+    _mix_on_C2_MIX_AUX_08 + 1,    /* 0x083C: C2_MIX_AUX_08 Fx2 AuxOn */
+    _mix_on_C2_MIX_AUX_08 + 2,    /* 0x083D: C2_MIX_AUX_08 Fx3 AuxOn */
+    _mix_on_C2_MIX_AUX_08 + 3,    /* 0x083E: C2_MIX_AUX_08 Fx4 AuxOn */
+    _mix_on_C2_MIX_AUX_08 + 4,    /* 0x083F: C2_MIX_AUX_08 Fx5 AuxOn */
+    _mix_on_C2_MIX_AUX_08 + 5,    /* 0x0840: C2_MIX_AUX_08 Fx6 AuxOn */
+    _mix_send_C2_MIX_AUX_08,    /* 0x0841: C2_MIX_AUX_08 Fx1 AuxSend */
+    _mix_send_C2_MIX_AUX_08 + 1,    /* 0x0842: C2_MIX_AUX_08 Fx2 AuxSend */
+    _mix_send_C2_MIX_AUX_08 + 2,    /* 0x0843: C2_MIX_AUX_08 Fx3 AuxSend */
+    _mix_send_C2_MIX_AUX_08 + 3,    /* 0x0844: C2_MIX_AUX_08 Fx4 AuxSend */
+    _mix_send_C2_MIX_AUX_08 + 4,    /* 0x0845: C2_MIX_AUX_08 Fx5 AuxSend */
+    _mix_send_C2_MIX_AUX_08 + 5,    /* 0x0846: C2_MIX_AUX_08 Fx6 AuxSend */
+    _mix_on_C2_MIX_AUX_09,    /* 0x0847: C2_MIX_AUX_09 Fx1 AuxOn */
+    _mix_on_C2_MIX_AUX_09 + 1,    /* 0x0848: C2_MIX_AUX_09 Fx2 AuxOn */
+    _mix_on_C2_MIX_AUX_09 + 2,    /* 0x0849: C2_MIX_AUX_09 Fx3 AuxOn */
+    _mix_on_C2_MIX_AUX_09 + 3,    /* 0x084A: C2_MIX_AUX_09 Fx4 AuxOn */
+    _mix_on_C2_MIX_AUX_09 + 4,    /* 0x084B: C2_MIX_AUX_09 Fx5 AuxOn */
+    _mix_on_C2_MIX_AUX_09 + 5,    /* 0x084C: C2_MIX_AUX_09 Fx6 AuxOn */
+    _mix_send_C2_MIX_AUX_09,    /* 0x084D: C2_MIX_AUX_09 Fx1 AuxSend */
+    _mix_send_C2_MIX_AUX_09 + 1,    /* 0x084E: C2_MIX_AUX_09 Fx2 AuxSend */
+    _mix_send_C2_MIX_AUX_09 + 2,    /* 0x084F: C2_MIX_AUX_09 Fx3 AuxSend */
+    _mix_send_C2_MIX_AUX_09 + 3,    /* 0x0850: C2_MIX_AUX_09 Fx4 AuxSend */
+    _mix_send_C2_MIX_AUX_09 + 4,    /* 0x0851: C2_MIX_AUX_09 Fx5 AuxSend */
+    _mix_send_C2_MIX_AUX_09 + 5,    /* 0x0852: C2_MIX_AUX_09 Fx6 AuxSend */
+    _mix_on_C2_MIX_AUX_10,    /* 0x0853: C2_MIX_AUX_10 Fx1 AuxOn */
+    _mix_on_C2_MIX_AUX_10 + 1,    /* 0x0854: C2_MIX_AUX_10 Fx2 AuxOn */
+    _mix_on_C2_MIX_AUX_10 + 2,    /* 0x0855: C2_MIX_AUX_10 Fx3 AuxOn */
+    _mix_on_C2_MIX_AUX_10 + 3,    /* 0x0856: C2_MIX_AUX_10 Fx4 AuxOn */
+    _mix_on_C2_MIX_AUX_10 + 4,    /* 0x0857: C2_MIX_AUX_10 Fx5 AuxOn */
+    _mix_on_C2_MIX_AUX_10 + 5,    /* 0x0858: C2_MIX_AUX_10 Fx6 AuxOn */
+    _mix_send_C2_MIX_AUX_10,    /* 0x0859: C2_MIX_AUX_10 Fx1 AuxSend */
+    _mix_send_C2_MIX_AUX_10 + 1,    /* 0x085A: C2_MIX_AUX_10 Fx2 AuxSend */
+    _mix_send_C2_MIX_AUX_10 + 2,    /* 0x085B: C2_MIX_AUX_10 Fx3 AuxSend */
+    _mix_send_C2_MIX_AUX_10 + 3,    /* 0x085C: C2_MIX_AUX_10 Fx4 AuxSend */
+    _mix_send_C2_MIX_AUX_10 + 4,    /* 0x085D: C2_MIX_AUX_10 Fx5 AuxSend */
+    _mix_send_C2_MIX_AUX_10 + 5,    /* 0x085E: C2_MIX_AUX_10 Fx6 AuxSend */
+    _mix_on_C2_MIX_AUX_11,    /* 0x085F: C2_MIX_AUX_11 Fx1 AuxOn */
+    _mix_on_C2_MIX_AUX_11 + 1,    /* 0x0860: C2_MIX_AUX_11 Fx2 AuxOn */
+    _mix_on_C2_MIX_AUX_11 + 2,    /* 0x0861: C2_MIX_AUX_11 Fx3 AuxOn */
+    _mix_on_C2_MIX_AUX_11 + 3,    /* 0x0862: C2_MIX_AUX_11 Fx4 AuxOn */
+    _mix_on_C2_MIX_AUX_11 + 4,    /* 0x0863: C2_MIX_AUX_11 Fx5 AuxOn */
+    _mix_on_C2_MIX_AUX_11 + 5,    /* 0x0864: C2_MIX_AUX_11 Fx6 AuxOn */
+    _mix_send_C2_MIX_AUX_11,    /* 0x0865: C2_MIX_AUX_11 Fx1 AuxSend */
+    _mix_send_C2_MIX_AUX_11 + 1,    /* 0x0866: C2_MIX_AUX_11 Fx2 AuxSend */
+    _mix_send_C2_MIX_AUX_11 + 2,    /* 0x0867: C2_MIX_AUX_11 Fx3 AuxSend */
+    _mix_send_C2_MIX_AUX_11 + 3,    /* 0x0868: C2_MIX_AUX_11 Fx4 AuxSend */
+    _mix_send_C2_MIX_AUX_11 + 4,    /* 0x0869: C2_MIX_AUX_11 Fx5 AuxSend */
+    _mix_send_C2_MIX_AUX_11 + 5,    /* 0x086A: C2_MIX_AUX_11 Fx6 AuxSend */
+    _mix_on_C2_MIX_AUX_12,    /* 0x086B: C2_MIX_AUX_12 Fx1 AuxOn */
+    _mix_on_C2_MIX_AUX_12 + 1,    /* 0x086C: C2_MIX_AUX_12 Fx2 AuxOn */
+    _mix_on_C2_MIX_AUX_12 + 2,    /* 0x086D: C2_MIX_AUX_12 Fx3 AuxOn */
+    _mix_on_C2_MIX_AUX_12 + 3,    /* 0x086E: C2_MIX_AUX_12 Fx4 AuxOn */
+    _mix_on_C2_MIX_AUX_12 + 4,    /* 0x086F: C2_MIX_AUX_12 Fx5 AuxOn */
+    _mix_on_C2_MIX_AUX_12 + 5,    /* 0x0870: C2_MIX_AUX_12 Fx6 AuxOn */
+    _mix_send_C2_MIX_AUX_12,    /* 0x0871: C2_MIX_AUX_12 Fx1 AuxSend */
+    _mix_send_C2_MIX_AUX_12 + 1,    /* 0x0872: C2_MIX_AUX_12 Fx2 AuxSend */
+    _mix_send_C2_MIX_AUX_12 + 2,    /* 0x0873: C2_MIX_AUX_12 Fx3 AuxSend */
+    _mix_send_C2_MIX_AUX_12 + 3,    /* 0x0874: C2_MIX_AUX_12 Fx4 AuxSend */
+    _mix_send_C2_MIX_AUX_12 + 4,    /* 0x0875: C2_MIX_AUX_12 Fx5 AuxSend */
+    _mix_send_C2_MIX_AUX_12 + 5,    /* 0x0876: C2_MIX_AUX_12 Fx6 AuxSend */
+    0;  /* 0x0877 */
 
-/* ---- Chip 2 ramp-stride table (2024 entries) ---- */
+/* ---- Chip 2 ramp-stride table (2168 entries) ---- */
 /*
  * Companion to the dispatch table above, same indexing.
  *   0      -- no ramp state; the SPI handler writes the word directly
@@ -2730,10 +2898,10 @@
  * length -- 12 for AuxSend, 6 for FxSend. Writing those at +1/+2/+3
  * lands on the NEIGHBOURING crosspoint's level instead.
  *
- * 94 ramped entries; strides {1: 94}
+ * 166 ramped entries; strides {1: 94, 6: 72}
  */
 .global _spi_dispatch_c2_stride;
-.var _spi_dispatch_c2_stride[2024] =
+.var _spi_dispatch_c2_stride[2168] =
     1,  /* 0x0000: C2_AUX_FDR_01 level */
     1,  /* 0x0001: C2_AUX_FDR_01 pan */
     0,  /* 0x0002: C2_AUX_FDR_01 mute */
@@ -4757,9 +4925,153 @@
     0,  /* 0x07E4: C2_MTX_FDR_04 mute */
     0,  /* 0x07E5: C2_MTX_FDR_04 reserved (Dca host-managed) */
     0,  /* 0x07E6 */
-    0;  /* 0x07E7 */
+    0,  /* 0x07E7: C2_MIX_AUX_01 Fx1 AuxOn */
+    0,  /* 0x07E8: C2_MIX_AUX_01 Fx2 AuxOn */
+    0,  /* 0x07E9: C2_MIX_AUX_01 Fx3 AuxOn */
+    0,  /* 0x07EA: C2_MIX_AUX_01 Fx4 AuxOn */
+    0,  /* 0x07EB: C2_MIX_AUX_01 Fx5 AuxOn */
+    0,  /* 0x07EC: C2_MIX_AUX_01 Fx6 AuxOn */
+    6,  /* 0x07ED: C2_MIX_AUX_01 Fx1 AuxSend */
+    6,  /* 0x07EE: C2_MIX_AUX_01 Fx2 AuxSend */
+    6,  /* 0x07EF: C2_MIX_AUX_01 Fx3 AuxSend */
+    6,  /* 0x07F0: C2_MIX_AUX_01 Fx4 AuxSend */
+    6,  /* 0x07F1: C2_MIX_AUX_01 Fx5 AuxSend */
+    6,  /* 0x07F2: C2_MIX_AUX_01 Fx6 AuxSend */
+    0,  /* 0x07F3: C2_MIX_AUX_02 Fx1 AuxOn */
+    0,  /* 0x07F4: C2_MIX_AUX_02 Fx2 AuxOn */
+    0,  /* 0x07F5: C2_MIX_AUX_02 Fx3 AuxOn */
+    0,  /* 0x07F6: C2_MIX_AUX_02 Fx4 AuxOn */
+    0,  /* 0x07F7: C2_MIX_AUX_02 Fx5 AuxOn */
+    0,  /* 0x07F8: C2_MIX_AUX_02 Fx6 AuxOn */
+    6,  /* 0x07F9: C2_MIX_AUX_02 Fx1 AuxSend */
+    6,  /* 0x07FA: C2_MIX_AUX_02 Fx2 AuxSend */
+    6,  /* 0x07FB: C2_MIX_AUX_02 Fx3 AuxSend */
+    6,  /* 0x07FC: C2_MIX_AUX_02 Fx4 AuxSend */
+    6,  /* 0x07FD: C2_MIX_AUX_02 Fx5 AuxSend */
+    6,  /* 0x07FE: C2_MIX_AUX_02 Fx6 AuxSend */
+    0,  /* 0x07FF: C2_MIX_AUX_03 Fx1 AuxOn */
+    0,  /* 0x0800: C2_MIX_AUX_03 Fx2 AuxOn */
+    0,  /* 0x0801: C2_MIX_AUX_03 Fx3 AuxOn */
+    0,  /* 0x0802: C2_MIX_AUX_03 Fx4 AuxOn */
+    0,  /* 0x0803: C2_MIX_AUX_03 Fx5 AuxOn */
+    0,  /* 0x0804: C2_MIX_AUX_03 Fx6 AuxOn */
+    6,  /* 0x0805: C2_MIX_AUX_03 Fx1 AuxSend */
+    6,  /* 0x0806: C2_MIX_AUX_03 Fx2 AuxSend */
+    6,  /* 0x0807: C2_MIX_AUX_03 Fx3 AuxSend */
+    6,  /* 0x0808: C2_MIX_AUX_03 Fx4 AuxSend */
+    6,  /* 0x0809: C2_MIX_AUX_03 Fx5 AuxSend */
+    6,  /* 0x080A: C2_MIX_AUX_03 Fx6 AuxSend */
+    0,  /* 0x080B: C2_MIX_AUX_04 Fx1 AuxOn */
+    0,  /* 0x080C: C2_MIX_AUX_04 Fx2 AuxOn */
+    0,  /* 0x080D: C2_MIX_AUX_04 Fx3 AuxOn */
+    0,  /* 0x080E: C2_MIX_AUX_04 Fx4 AuxOn */
+    0,  /* 0x080F: C2_MIX_AUX_04 Fx5 AuxOn */
+    0,  /* 0x0810: C2_MIX_AUX_04 Fx6 AuxOn */
+    6,  /* 0x0811: C2_MIX_AUX_04 Fx1 AuxSend */
+    6,  /* 0x0812: C2_MIX_AUX_04 Fx2 AuxSend */
+    6,  /* 0x0813: C2_MIX_AUX_04 Fx3 AuxSend */
+    6,  /* 0x0814: C2_MIX_AUX_04 Fx4 AuxSend */
+    6,  /* 0x0815: C2_MIX_AUX_04 Fx5 AuxSend */
+    6,  /* 0x0816: C2_MIX_AUX_04 Fx6 AuxSend */
+    0,  /* 0x0817: C2_MIX_AUX_05 Fx1 AuxOn */
+    0,  /* 0x0818: C2_MIX_AUX_05 Fx2 AuxOn */
+    0,  /* 0x0819: C2_MIX_AUX_05 Fx3 AuxOn */
+    0,  /* 0x081A: C2_MIX_AUX_05 Fx4 AuxOn */
+    0,  /* 0x081B: C2_MIX_AUX_05 Fx5 AuxOn */
+    0,  /* 0x081C: C2_MIX_AUX_05 Fx6 AuxOn */
+    6,  /* 0x081D: C2_MIX_AUX_05 Fx1 AuxSend */
+    6,  /* 0x081E: C2_MIX_AUX_05 Fx2 AuxSend */
+    6,  /* 0x081F: C2_MIX_AUX_05 Fx3 AuxSend */
+    6,  /* 0x0820: C2_MIX_AUX_05 Fx4 AuxSend */
+    6,  /* 0x0821: C2_MIX_AUX_05 Fx5 AuxSend */
+    6,  /* 0x0822: C2_MIX_AUX_05 Fx6 AuxSend */
+    0,  /* 0x0823: C2_MIX_AUX_06 Fx1 AuxOn */
+    0,  /* 0x0824: C2_MIX_AUX_06 Fx2 AuxOn */
+    0,  /* 0x0825: C2_MIX_AUX_06 Fx3 AuxOn */
+    0,  /* 0x0826: C2_MIX_AUX_06 Fx4 AuxOn */
+    0,  /* 0x0827: C2_MIX_AUX_06 Fx5 AuxOn */
+    0,  /* 0x0828: C2_MIX_AUX_06 Fx6 AuxOn */
+    6,  /* 0x0829: C2_MIX_AUX_06 Fx1 AuxSend */
+    6,  /* 0x082A: C2_MIX_AUX_06 Fx2 AuxSend */
+    6,  /* 0x082B: C2_MIX_AUX_06 Fx3 AuxSend */
+    6,  /* 0x082C: C2_MIX_AUX_06 Fx4 AuxSend */
+    6,  /* 0x082D: C2_MIX_AUX_06 Fx5 AuxSend */
+    6,  /* 0x082E: C2_MIX_AUX_06 Fx6 AuxSend */
+    0,  /* 0x082F: C2_MIX_AUX_07 Fx1 AuxOn */
+    0,  /* 0x0830: C2_MIX_AUX_07 Fx2 AuxOn */
+    0,  /* 0x0831: C2_MIX_AUX_07 Fx3 AuxOn */
+    0,  /* 0x0832: C2_MIX_AUX_07 Fx4 AuxOn */
+    0,  /* 0x0833: C2_MIX_AUX_07 Fx5 AuxOn */
+    0,  /* 0x0834: C2_MIX_AUX_07 Fx6 AuxOn */
+    6,  /* 0x0835: C2_MIX_AUX_07 Fx1 AuxSend */
+    6,  /* 0x0836: C2_MIX_AUX_07 Fx2 AuxSend */
+    6,  /* 0x0837: C2_MIX_AUX_07 Fx3 AuxSend */
+    6,  /* 0x0838: C2_MIX_AUX_07 Fx4 AuxSend */
+    6,  /* 0x0839: C2_MIX_AUX_07 Fx5 AuxSend */
+    6,  /* 0x083A: C2_MIX_AUX_07 Fx6 AuxSend */
+    0,  /* 0x083B: C2_MIX_AUX_08 Fx1 AuxOn */
+    0,  /* 0x083C: C2_MIX_AUX_08 Fx2 AuxOn */
+    0,  /* 0x083D: C2_MIX_AUX_08 Fx3 AuxOn */
+    0,  /* 0x083E: C2_MIX_AUX_08 Fx4 AuxOn */
+    0,  /* 0x083F: C2_MIX_AUX_08 Fx5 AuxOn */
+    0,  /* 0x0840: C2_MIX_AUX_08 Fx6 AuxOn */
+    6,  /* 0x0841: C2_MIX_AUX_08 Fx1 AuxSend */
+    6,  /* 0x0842: C2_MIX_AUX_08 Fx2 AuxSend */
+    6,  /* 0x0843: C2_MIX_AUX_08 Fx3 AuxSend */
+    6,  /* 0x0844: C2_MIX_AUX_08 Fx4 AuxSend */
+    6,  /* 0x0845: C2_MIX_AUX_08 Fx5 AuxSend */
+    6,  /* 0x0846: C2_MIX_AUX_08 Fx6 AuxSend */
+    0,  /* 0x0847: C2_MIX_AUX_09 Fx1 AuxOn */
+    0,  /* 0x0848: C2_MIX_AUX_09 Fx2 AuxOn */
+    0,  /* 0x0849: C2_MIX_AUX_09 Fx3 AuxOn */
+    0,  /* 0x084A: C2_MIX_AUX_09 Fx4 AuxOn */
+    0,  /* 0x084B: C2_MIX_AUX_09 Fx5 AuxOn */
+    0,  /* 0x084C: C2_MIX_AUX_09 Fx6 AuxOn */
+    6,  /* 0x084D: C2_MIX_AUX_09 Fx1 AuxSend */
+    6,  /* 0x084E: C2_MIX_AUX_09 Fx2 AuxSend */
+    6,  /* 0x084F: C2_MIX_AUX_09 Fx3 AuxSend */
+    6,  /* 0x0850: C2_MIX_AUX_09 Fx4 AuxSend */
+    6,  /* 0x0851: C2_MIX_AUX_09 Fx5 AuxSend */
+    6,  /* 0x0852: C2_MIX_AUX_09 Fx6 AuxSend */
+    0,  /* 0x0853: C2_MIX_AUX_10 Fx1 AuxOn */
+    0,  /* 0x0854: C2_MIX_AUX_10 Fx2 AuxOn */
+    0,  /* 0x0855: C2_MIX_AUX_10 Fx3 AuxOn */
+    0,  /* 0x0856: C2_MIX_AUX_10 Fx4 AuxOn */
+    0,  /* 0x0857: C2_MIX_AUX_10 Fx5 AuxOn */
+    0,  /* 0x0858: C2_MIX_AUX_10 Fx6 AuxOn */
+    6,  /* 0x0859: C2_MIX_AUX_10 Fx1 AuxSend */
+    6,  /* 0x085A: C2_MIX_AUX_10 Fx2 AuxSend */
+    6,  /* 0x085B: C2_MIX_AUX_10 Fx3 AuxSend */
+    6,  /* 0x085C: C2_MIX_AUX_10 Fx4 AuxSend */
+    6,  /* 0x085D: C2_MIX_AUX_10 Fx5 AuxSend */
+    6,  /* 0x085E: C2_MIX_AUX_10 Fx6 AuxSend */
+    0,  /* 0x085F: C2_MIX_AUX_11 Fx1 AuxOn */
+    0,  /* 0x0860: C2_MIX_AUX_11 Fx2 AuxOn */
+    0,  /* 0x0861: C2_MIX_AUX_11 Fx3 AuxOn */
+    0,  /* 0x0862: C2_MIX_AUX_11 Fx4 AuxOn */
+    0,  /* 0x0863: C2_MIX_AUX_11 Fx5 AuxOn */
+    0,  /* 0x0864: C2_MIX_AUX_11 Fx6 AuxOn */
+    6,  /* 0x0865: C2_MIX_AUX_11 Fx1 AuxSend */
+    6,  /* 0x0866: C2_MIX_AUX_11 Fx2 AuxSend */
+    6,  /* 0x0867: C2_MIX_AUX_11 Fx3 AuxSend */
+    6,  /* 0x0868: C2_MIX_AUX_11 Fx4 AuxSend */
+    6,  /* 0x0869: C2_MIX_AUX_11 Fx5 AuxSend */
+    6,  /* 0x086A: C2_MIX_AUX_11 Fx6 AuxSend */
+    0,  /* 0x086B: C2_MIX_AUX_12 Fx1 AuxOn */
+    0,  /* 0x086C: C2_MIX_AUX_12 Fx2 AuxOn */
+    0,  /* 0x086D: C2_MIX_AUX_12 Fx3 AuxOn */
+    0,  /* 0x086E: C2_MIX_AUX_12 Fx4 AuxOn */
+    0,  /* 0x086F: C2_MIX_AUX_12 Fx5 AuxOn */
+    0,  /* 0x0870: C2_MIX_AUX_12 Fx6 AuxOn */
+    6,  /* 0x0871: C2_MIX_AUX_12 Fx1 AuxSend */
+    6,  /* 0x0872: C2_MIX_AUX_12 Fx2 AuxSend */
+    6,  /* 0x0873: C2_MIX_AUX_12 Fx3 AuxSend */
+    6,  /* 0x0874: C2_MIX_AUX_12 Fx4 AuxSend */
+    6,  /* 0x0875: C2_MIX_AUX_12 Fx5 AuxSend */
+    6,  /* 0x0876: C2_MIX_AUX_12 Fx6 AuxSend */
+    0;  /* 0x0877 */
 
-/* ---- Chip 2 wire-unit conversion table (2024 entries) ---- */
+/* ---- Chip 2 wire-unit conversion table (2168 entries) ---- */
 /*
  * Companion to the dispatch table above, same indexing.
  * The SPI handler applies this to the incoming word BEFORE
@@ -4777,10 +5089,10 @@
  * kernel word gets a conversion, and every address that
  * family reaches carries it.
  *
- * 0 of 2024 addresses carry a conversion.
+ * 0 of 2168 addresses carry a conversion.
  */
 .global _spi_dispatch_c2_convert;
-.var _spi_dispatch_c2_convert[2024] =
+.var _spi_dispatch_c2_convert[2168] =
     0,  /* 0x0000: C2_AUX_FDR_01 level */
     0,  /* 0x0001: C2_AUX_FDR_01 pan */
     0,  /* 0x0002: C2_AUX_FDR_01 mute */
@@ -6804,9 +7116,153 @@
     0,  /* 0x07E4: C2_MTX_FDR_04 mute */
     0,  /* 0x07E5: C2_MTX_FDR_04 reserved (Dca host-managed) */
     0,  /* 0x07E6 */
-    0;  /* 0x07E7 */
+    0,  /* 0x07E7: C2_MIX_AUX_01 Fx1 AuxOn */
+    0,  /* 0x07E8: C2_MIX_AUX_01 Fx2 AuxOn */
+    0,  /* 0x07E9: C2_MIX_AUX_01 Fx3 AuxOn */
+    0,  /* 0x07EA: C2_MIX_AUX_01 Fx4 AuxOn */
+    0,  /* 0x07EB: C2_MIX_AUX_01 Fx5 AuxOn */
+    0,  /* 0x07EC: C2_MIX_AUX_01 Fx6 AuxOn */
+    0,  /* 0x07ED: C2_MIX_AUX_01 Fx1 AuxSend */
+    0,  /* 0x07EE: C2_MIX_AUX_01 Fx2 AuxSend */
+    0,  /* 0x07EF: C2_MIX_AUX_01 Fx3 AuxSend */
+    0,  /* 0x07F0: C2_MIX_AUX_01 Fx4 AuxSend */
+    0,  /* 0x07F1: C2_MIX_AUX_01 Fx5 AuxSend */
+    0,  /* 0x07F2: C2_MIX_AUX_01 Fx6 AuxSend */
+    0,  /* 0x07F3: C2_MIX_AUX_02 Fx1 AuxOn */
+    0,  /* 0x07F4: C2_MIX_AUX_02 Fx2 AuxOn */
+    0,  /* 0x07F5: C2_MIX_AUX_02 Fx3 AuxOn */
+    0,  /* 0x07F6: C2_MIX_AUX_02 Fx4 AuxOn */
+    0,  /* 0x07F7: C2_MIX_AUX_02 Fx5 AuxOn */
+    0,  /* 0x07F8: C2_MIX_AUX_02 Fx6 AuxOn */
+    0,  /* 0x07F9: C2_MIX_AUX_02 Fx1 AuxSend */
+    0,  /* 0x07FA: C2_MIX_AUX_02 Fx2 AuxSend */
+    0,  /* 0x07FB: C2_MIX_AUX_02 Fx3 AuxSend */
+    0,  /* 0x07FC: C2_MIX_AUX_02 Fx4 AuxSend */
+    0,  /* 0x07FD: C2_MIX_AUX_02 Fx5 AuxSend */
+    0,  /* 0x07FE: C2_MIX_AUX_02 Fx6 AuxSend */
+    0,  /* 0x07FF: C2_MIX_AUX_03 Fx1 AuxOn */
+    0,  /* 0x0800: C2_MIX_AUX_03 Fx2 AuxOn */
+    0,  /* 0x0801: C2_MIX_AUX_03 Fx3 AuxOn */
+    0,  /* 0x0802: C2_MIX_AUX_03 Fx4 AuxOn */
+    0,  /* 0x0803: C2_MIX_AUX_03 Fx5 AuxOn */
+    0,  /* 0x0804: C2_MIX_AUX_03 Fx6 AuxOn */
+    0,  /* 0x0805: C2_MIX_AUX_03 Fx1 AuxSend */
+    0,  /* 0x0806: C2_MIX_AUX_03 Fx2 AuxSend */
+    0,  /* 0x0807: C2_MIX_AUX_03 Fx3 AuxSend */
+    0,  /* 0x0808: C2_MIX_AUX_03 Fx4 AuxSend */
+    0,  /* 0x0809: C2_MIX_AUX_03 Fx5 AuxSend */
+    0,  /* 0x080A: C2_MIX_AUX_03 Fx6 AuxSend */
+    0,  /* 0x080B: C2_MIX_AUX_04 Fx1 AuxOn */
+    0,  /* 0x080C: C2_MIX_AUX_04 Fx2 AuxOn */
+    0,  /* 0x080D: C2_MIX_AUX_04 Fx3 AuxOn */
+    0,  /* 0x080E: C2_MIX_AUX_04 Fx4 AuxOn */
+    0,  /* 0x080F: C2_MIX_AUX_04 Fx5 AuxOn */
+    0,  /* 0x0810: C2_MIX_AUX_04 Fx6 AuxOn */
+    0,  /* 0x0811: C2_MIX_AUX_04 Fx1 AuxSend */
+    0,  /* 0x0812: C2_MIX_AUX_04 Fx2 AuxSend */
+    0,  /* 0x0813: C2_MIX_AUX_04 Fx3 AuxSend */
+    0,  /* 0x0814: C2_MIX_AUX_04 Fx4 AuxSend */
+    0,  /* 0x0815: C2_MIX_AUX_04 Fx5 AuxSend */
+    0,  /* 0x0816: C2_MIX_AUX_04 Fx6 AuxSend */
+    0,  /* 0x0817: C2_MIX_AUX_05 Fx1 AuxOn */
+    0,  /* 0x0818: C2_MIX_AUX_05 Fx2 AuxOn */
+    0,  /* 0x0819: C2_MIX_AUX_05 Fx3 AuxOn */
+    0,  /* 0x081A: C2_MIX_AUX_05 Fx4 AuxOn */
+    0,  /* 0x081B: C2_MIX_AUX_05 Fx5 AuxOn */
+    0,  /* 0x081C: C2_MIX_AUX_05 Fx6 AuxOn */
+    0,  /* 0x081D: C2_MIX_AUX_05 Fx1 AuxSend */
+    0,  /* 0x081E: C2_MIX_AUX_05 Fx2 AuxSend */
+    0,  /* 0x081F: C2_MIX_AUX_05 Fx3 AuxSend */
+    0,  /* 0x0820: C2_MIX_AUX_05 Fx4 AuxSend */
+    0,  /* 0x0821: C2_MIX_AUX_05 Fx5 AuxSend */
+    0,  /* 0x0822: C2_MIX_AUX_05 Fx6 AuxSend */
+    0,  /* 0x0823: C2_MIX_AUX_06 Fx1 AuxOn */
+    0,  /* 0x0824: C2_MIX_AUX_06 Fx2 AuxOn */
+    0,  /* 0x0825: C2_MIX_AUX_06 Fx3 AuxOn */
+    0,  /* 0x0826: C2_MIX_AUX_06 Fx4 AuxOn */
+    0,  /* 0x0827: C2_MIX_AUX_06 Fx5 AuxOn */
+    0,  /* 0x0828: C2_MIX_AUX_06 Fx6 AuxOn */
+    0,  /* 0x0829: C2_MIX_AUX_06 Fx1 AuxSend */
+    0,  /* 0x082A: C2_MIX_AUX_06 Fx2 AuxSend */
+    0,  /* 0x082B: C2_MIX_AUX_06 Fx3 AuxSend */
+    0,  /* 0x082C: C2_MIX_AUX_06 Fx4 AuxSend */
+    0,  /* 0x082D: C2_MIX_AUX_06 Fx5 AuxSend */
+    0,  /* 0x082E: C2_MIX_AUX_06 Fx6 AuxSend */
+    0,  /* 0x082F: C2_MIX_AUX_07 Fx1 AuxOn */
+    0,  /* 0x0830: C2_MIX_AUX_07 Fx2 AuxOn */
+    0,  /* 0x0831: C2_MIX_AUX_07 Fx3 AuxOn */
+    0,  /* 0x0832: C2_MIX_AUX_07 Fx4 AuxOn */
+    0,  /* 0x0833: C2_MIX_AUX_07 Fx5 AuxOn */
+    0,  /* 0x0834: C2_MIX_AUX_07 Fx6 AuxOn */
+    0,  /* 0x0835: C2_MIX_AUX_07 Fx1 AuxSend */
+    0,  /* 0x0836: C2_MIX_AUX_07 Fx2 AuxSend */
+    0,  /* 0x0837: C2_MIX_AUX_07 Fx3 AuxSend */
+    0,  /* 0x0838: C2_MIX_AUX_07 Fx4 AuxSend */
+    0,  /* 0x0839: C2_MIX_AUX_07 Fx5 AuxSend */
+    0,  /* 0x083A: C2_MIX_AUX_07 Fx6 AuxSend */
+    0,  /* 0x083B: C2_MIX_AUX_08 Fx1 AuxOn */
+    0,  /* 0x083C: C2_MIX_AUX_08 Fx2 AuxOn */
+    0,  /* 0x083D: C2_MIX_AUX_08 Fx3 AuxOn */
+    0,  /* 0x083E: C2_MIX_AUX_08 Fx4 AuxOn */
+    0,  /* 0x083F: C2_MIX_AUX_08 Fx5 AuxOn */
+    0,  /* 0x0840: C2_MIX_AUX_08 Fx6 AuxOn */
+    0,  /* 0x0841: C2_MIX_AUX_08 Fx1 AuxSend */
+    0,  /* 0x0842: C2_MIX_AUX_08 Fx2 AuxSend */
+    0,  /* 0x0843: C2_MIX_AUX_08 Fx3 AuxSend */
+    0,  /* 0x0844: C2_MIX_AUX_08 Fx4 AuxSend */
+    0,  /* 0x0845: C2_MIX_AUX_08 Fx5 AuxSend */
+    0,  /* 0x0846: C2_MIX_AUX_08 Fx6 AuxSend */
+    0,  /* 0x0847: C2_MIX_AUX_09 Fx1 AuxOn */
+    0,  /* 0x0848: C2_MIX_AUX_09 Fx2 AuxOn */
+    0,  /* 0x0849: C2_MIX_AUX_09 Fx3 AuxOn */
+    0,  /* 0x084A: C2_MIX_AUX_09 Fx4 AuxOn */
+    0,  /* 0x084B: C2_MIX_AUX_09 Fx5 AuxOn */
+    0,  /* 0x084C: C2_MIX_AUX_09 Fx6 AuxOn */
+    0,  /* 0x084D: C2_MIX_AUX_09 Fx1 AuxSend */
+    0,  /* 0x084E: C2_MIX_AUX_09 Fx2 AuxSend */
+    0,  /* 0x084F: C2_MIX_AUX_09 Fx3 AuxSend */
+    0,  /* 0x0850: C2_MIX_AUX_09 Fx4 AuxSend */
+    0,  /* 0x0851: C2_MIX_AUX_09 Fx5 AuxSend */
+    0,  /* 0x0852: C2_MIX_AUX_09 Fx6 AuxSend */
+    0,  /* 0x0853: C2_MIX_AUX_10 Fx1 AuxOn */
+    0,  /* 0x0854: C2_MIX_AUX_10 Fx2 AuxOn */
+    0,  /* 0x0855: C2_MIX_AUX_10 Fx3 AuxOn */
+    0,  /* 0x0856: C2_MIX_AUX_10 Fx4 AuxOn */
+    0,  /* 0x0857: C2_MIX_AUX_10 Fx5 AuxOn */
+    0,  /* 0x0858: C2_MIX_AUX_10 Fx6 AuxOn */
+    0,  /* 0x0859: C2_MIX_AUX_10 Fx1 AuxSend */
+    0,  /* 0x085A: C2_MIX_AUX_10 Fx2 AuxSend */
+    0,  /* 0x085B: C2_MIX_AUX_10 Fx3 AuxSend */
+    0,  /* 0x085C: C2_MIX_AUX_10 Fx4 AuxSend */
+    0,  /* 0x085D: C2_MIX_AUX_10 Fx5 AuxSend */
+    0,  /* 0x085E: C2_MIX_AUX_10 Fx6 AuxSend */
+    0,  /* 0x085F: C2_MIX_AUX_11 Fx1 AuxOn */
+    0,  /* 0x0860: C2_MIX_AUX_11 Fx2 AuxOn */
+    0,  /* 0x0861: C2_MIX_AUX_11 Fx3 AuxOn */
+    0,  /* 0x0862: C2_MIX_AUX_11 Fx4 AuxOn */
+    0,  /* 0x0863: C2_MIX_AUX_11 Fx5 AuxOn */
+    0,  /* 0x0864: C2_MIX_AUX_11 Fx6 AuxOn */
+    0,  /* 0x0865: C2_MIX_AUX_11 Fx1 AuxSend */
+    0,  /* 0x0866: C2_MIX_AUX_11 Fx2 AuxSend */
+    0,  /* 0x0867: C2_MIX_AUX_11 Fx3 AuxSend */
+    0,  /* 0x0868: C2_MIX_AUX_11 Fx4 AuxSend */
+    0,  /* 0x0869: C2_MIX_AUX_11 Fx5 AuxSend */
+    0,  /* 0x086A: C2_MIX_AUX_11 Fx6 AuxSend */
+    0,  /* 0x086B: C2_MIX_AUX_12 Fx1 AuxOn */
+    0,  /* 0x086C: C2_MIX_AUX_12 Fx2 AuxOn */
+    0,  /* 0x086D: C2_MIX_AUX_12 Fx3 AuxOn */
+    0,  /* 0x086E: C2_MIX_AUX_12 Fx4 AuxOn */
+    0,  /* 0x086F: C2_MIX_AUX_12 Fx5 AuxOn */
+    0,  /* 0x0870: C2_MIX_AUX_12 Fx6 AuxOn */
+    0,  /* 0x0871: C2_MIX_AUX_12 Fx1 AuxSend */
+    0,  /* 0x0872: C2_MIX_AUX_12 Fx2 AuxSend */
+    0,  /* 0x0873: C2_MIX_AUX_12 Fx3 AuxSend */
+    0,  /* 0x0874: C2_MIX_AUX_12 Fx4 AuxSend */
+    0,  /* 0x0875: C2_MIX_AUX_12 Fx5 AuxSend */
+    0,  /* 0x0876: C2_MIX_AUX_12 Fx6 AuxSend */
+    0;  /* 0x0877 */
 
-/* ---- Chip 2 recompute (dirty) table (2024 entries) ---- */
+/* ---- Chip 2 recompute (dirty) table (2168 entries) ---- */
 /*
  * Companion to the dispatch table above, same indexing.
  *   0   -- the written word IS the kernel word; nothing more
@@ -6822,10 +7278,10 @@
  * gain arrived, instead of comparing every band against a
  * shadow on every block of every node.
  *
- * 757 of 2024 addresses raise a flag; 30 distinct flags.
+ * 757 of 2168 addresses raise a flag; 30 distinct flags.
  */
 .global _spi_dispatch_c2_dirty;
-.var _spi_dispatch_c2_dirty[2024] =
+.var _spi_dispatch_c2_dirty[2168] =
     0,  /* 0x0000: C2_AUX_FDR_01 level */
     0,  /* 0x0001: C2_AUX_FDR_01 pan */
     0,  /* 0x0002: C2_AUX_FDR_01 mute */
@@ -8849,7 +9305,151 @@
     0,  /* 0x07E4: C2_MTX_FDR_04 mute */
     0,  /* 0x07E5: C2_MTX_FDR_04 reserved (Dca host-managed) */
     0,  /* 0x07E6 */
-    0;  /* 0x07E7 */
+    0,  /* 0x07E7: C2_MIX_AUX_01 Fx1 AuxOn */
+    0,  /* 0x07E8: C2_MIX_AUX_01 Fx2 AuxOn */
+    0,  /* 0x07E9: C2_MIX_AUX_01 Fx3 AuxOn */
+    0,  /* 0x07EA: C2_MIX_AUX_01 Fx4 AuxOn */
+    0,  /* 0x07EB: C2_MIX_AUX_01 Fx5 AuxOn */
+    0,  /* 0x07EC: C2_MIX_AUX_01 Fx6 AuxOn */
+    0,  /* 0x07ED: C2_MIX_AUX_01 Fx1 AuxSend */
+    0,  /* 0x07EE: C2_MIX_AUX_01 Fx2 AuxSend */
+    0,  /* 0x07EF: C2_MIX_AUX_01 Fx3 AuxSend */
+    0,  /* 0x07F0: C2_MIX_AUX_01 Fx4 AuxSend */
+    0,  /* 0x07F1: C2_MIX_AUX_01 Fx5 AuxSend */
+    0,  /* 0x07F2: C2_MIX_AUX_01 Fx6 AuxSend */
+    0,  /* 0x07F3: C2_MIX_AUX_02 Fx1 AuxOn */
+    0,  /* 0x07F4: C2_MIX_AUX_02 Fx2 AuxOn */
+    0,  /* 0x07F5: C2_MIX_AUX_02 Fx3 AuxOn */
+    0,  /* 0x07F6: C2_MIX_AUX_02 Fx4 AuxOn */
+    0,  /* 0x07F7: C2_MIX_AUX_02 Fx5 AuxOn */
+    0,  /* 0x07F8: C2_MIX_AUX_02 Fx6 AuxOn */
+    0,  /* 0x07F9: C2_MIX_AUX_02 Fx1 AuxSend */
+    0,  /* 0x07FA: C2_MIX_AUX_02 Fx2 AuxSend */
+    0,  /* 0x07FB: C2_MIX_AUX_02 Fx3 AuxSend */
+    0,  /* 0x07FC: C2_MIX_AUX_02 Fx4 AuxSend */
+    0,  /* 0x07FD: C2_MIX_AUX_02 Fx5 AuxSend */
+    0,  /* 0x07FE: C2_MIX_AUX_02 Fx6 AuxSend */
+    0,  /* 0x07FF: C2_MIX_AUX_03 Fx1 AuxOn */
+    0,  /* 0x0800: C2_MIX_AUX_03 Fx2 AuxOn */
+    0,  /* 0x0801: C2_MIX_AUX_03 Fx3 AuxOn */
+    0,  /* 0x0802: C2_MIX_AUX_03 Fx4 AuxOn */
+    0,  /* 0x0803: C2_MIX_AUX_03 Fx5 AuxOn */
+    0,  /* 0x0804: C2_MIX_AUX_03 Fx6 AuxOn */
+    0,  /* 0x0805: C2_MIX_AUX_03 Fx1 AuxSend */
+    0,  /* 0x0806: C2_MIX_AUX_03 Fx2 AuxSend */
+    0,  /* 0x0807: C2_MIX_AUX_03 Fx3 AuxSend */
+    0,  /* 0x0808: C2_MIX_AUX_03 Fx4 AuxSend */
+    0,  /* 0x0809: C2_MIX_AUX_03 Fx5 AuxSend */
+    0,  /* 0x080A: C2_MIX_AUX_03 Fx6 AuxSend */
+    0,  /* 0x080B: C2_MIX_AUX_04 Fx1 AuxOn */
+    0,  /* 0x080C: C2_MIX_AUX_04 Fx2 AuxOn */
+    0,  /* 0x080D: C2_MIX_AUX_04 Fx3 AuxOn */
+    0,  /* 0x080E: C2_MIX_AUX_04 Fx4 AuxOn */
+    0,  /* 0x080F: C2_MIX_AUX_04 Fx5 AuxOn */
+    0,  /* 0x0810: C2_MIX_AUX_04 Fx6 AuxOn */
+    0,  /* 0x0811: C2_MIX_AUX_04 Fx1 AuxSend */
+    0,  /* 0x0812: C2_MIX_AUX_04 Fx2 AuxSend */
+    0,  /* 0x0813: C2_MIX_AUX_04 Fx3 AuxSend */
+    0,  /* 0x0814: C2_MIX_AUX_04 Fx4 AuxSend */
+    0,  /* 0x0815: C2_MIX_AUX_04 Fx5 AuxSend */
+    0,  /* 0x0816: C2_MIX_AUX_04 Fx6 AuxSend */
+    0,  /* 0x0817: C2_MIX_AUX_05 Fx1 AuxOn */
+    0,  /* 0x0818: C2_MIX_AUX_05 Fx2 AuxOn */
+    0,  /* 0x0819: C2_MIX_AUX_05 Fx3 AuxOn */
+    0,  /* 0x081A: C2_MIX_AUX_05 Fx4 AuxOn */
+    0,  /* 0x081B: C2_MIX_AUX_05 Fx5 AuxOn */
+    0,  /* 0x081C: C2_MIX_AUX_05 Fx6 AuxOn */
+    0,  /* 0x081D: C2_MIX_AUX_05 Fx1 AuxSend */
+    0,  /* 0x081E: C2_MIX_AUX_05 Fx2 AuxSend */
+    0,  /* 0x081F: C2_MIX_AUX_05 Fx3 AuxSend */
+    0,  /* 0x0820: C2_MIX_AUX_05 Fx4 AuxSend */
+    0,  /* 0x0821: C2_MIX_AUX_05 Fx5 AuxSend */
+    0,  /* 0x0822: C2_MIX_AUX_05 Fx6 AuxSend */
+    0,  /* 0x0823: C2_MIX_AUX_06 Fx1 AuxOn */
+    0,  /* 0x0824: C2_MIX_AUX_06 Fx2 AuxOn */
+    0,  /* 0x0825: C2_MIX_AUX_06 Fx3 AuxOn */
+    0,  /* 0x0826: C2_MIX_AUX_06 Fx4 AuxOn */
+    0,  /* 0x0827: C2_MIX_AUX_06 Fx5 AuxOn */
+    0,  /* 0x0828: C2_MIX_AUX_06 Fx6 AuxOn */
+    0,  /* 0x0829: C2_MIX_AUX_06 Fx1 AuxSend */
+    0,  /* 0x082A: C2_MIX_AUX_06 Fx2 AuxSend */
+    0,  /* 0x082B: C2_MIX_AUX_06 Fx3 AuxSend */
+    0,  /* 0x082C: C2_MIX_AUX_06 Fx4 AuxSend */
+    0,  /* 0x082D: C2_MIX_AUX_06 Fx5 AuxSend */
+    0,  /* 0x082E: C2_MIX_AUX_06 Fx6 AuxSend */
+    0,  /* 0x082F: C2_MIX_AUX_07 Fx1 AuxOn */
+    0,  /* 0x0830: C2_MIX_AUX_07 Fx2 AuxOn */
+    0,  /* 0x0831: C2_MIX_AUX_07 Fx3 AuxOn */
+    0,  /* 0x0832: C2_MIX_AUX_07 Fx4 AuxOn */
+    0,  /* 0x0833: C2_MIX_AUX_07 Fx5 AuxOn */
+    0,  /* 0x0834: C2_MIX_AUX_07 Fx6 AuxOn */
+    0,  /* 0x0835: C2_MIX_AUX_07 Fx1 AuxSend */
+    0,  /* 0x0836: C2_MIX_AUX_07 Fx2 AuxSend */
+    0,  /* 0x0837: C2_MIX_AUX_07 Fx3 AuxSend */
+    0,  /* 0x0838: C2_MIX_AUX_07 Fx4 AuxSend */
+    0,  /* 0x0839: C2_MIX_AUX_07 Fx5 AuxSend */
+    0,  /* 0x083A: C2_MIX_AUX_07 Fx6 AuxSend */
+    0,  /* 0x083B: C2_MIX_AUX_08 Fx1 AuxOn */
+    0,  /* 0x083C: C2_MIX_AUX_08 Fx2 AuxOn */
+    0,  /* 0x083D: C2_MIX_AUX_08 Fx3 AuxOn */
+    0,  /* 0x083E: C2_MIX_AUX_08 Fx4 AuxOn */
+    0,  /* 0x083F: C2_MIX_AUX_08 Fx5 AuxOn */
+    0,  /* 0x0840: C2_MIX_AUX_08 Fx6 AuxOn */
+    0,  /* 0x0841: C2_MIX_AUX_08 Fx1 AuxSend */
+    0,  /* 0x0842: C2_MIX_AUX_08 Fx2 AuxSend */
+    0,  /* 0x0843: C2_MIX_AUX_08 Fx3 AuxSend */
+    0,  /* 0x0844: C2_MIX_AUX_08 Fx4 AuxSend */
+    0,  /* 0x0845: C2_MIX_AUX_08 Fx5 AuxSend */
+    0,  /* 0x0846: C2_MIX_AUX_08 Fx6 AuxSend */
+    0,  /* 0x0847: C2_MIX_AUX_09 Fx1 AuxOn */
+    0,  /* 0x0848: C2_MIX_AUX_09 Fx2 AuxOn */
+    0,  /* 0x0849: C2_MIX_AUX_09 Fx3 AuxOn */
+    0,  /* 0x084A: C2_MIX_AUX_09 Fx4 AuxOn */
+    0,  /* 0x084B: C2_MIX_AUX_09 Fx5 AuxOn */
+    0,  /* 0x084C: C2_MIX_AUX_09 Fx6 AuxOn */
+    0,  /* 0x084D: C2_MIX_AUX_09 Fx1 AuxSend */
+    0,  /* 0x084E: C2_MIX_AUX_09 Fx2 AuxSend */
+    0,  /* 0x084F: C2_MIX_AUX_09 Fx3 AuxSend */
+    0,  /* 0x0850: C2_MIX_AUX_09 Fx4 AuxSend */
+    0,  /* 0x0851: C2_MIX_AUX_09 Fx5 AuxSend */
+    0,  /* 0x0852: C2_MIX_AUX_09 Fx6 AuxSend */
+    0,  /* 0x0853: C2_MIX_AUX_10 Fx1 AuxOn */
+    0,  /* 0x0854: C2_MIX_AUX_10 Fx2 AuxOn */
+    0,  /* 0x0855: C2_MIX_AUX_10 Fx3 AuxOn */
+    0,  /* 0x0856: C2_MIX_AUX_10 Fx4 AuxOn */
+    0,  /* 0x0857: C2_MIX_AUX_10 Fx5 AuxOn */
+    0,  /* 0x0858: C2_MIX_AUX_10 Fx6 AuxOn */
+    0,  /* 0x0859: C2_MIX_AUX_10 Fx1 AuxSend */
+    0,  /* 0x085A: C2_MIX_AUX_10 Fx2 AuxSend */
+    0,  /* 0x085B: C2_MIX_AUX_10 Fx3 AuxSend */
+    0,  /* 0x085C: C2_MIX_AUX_10 Fx4 AuxSend */
+    0,  /* 0x085D: C2_MIX_AUX_10 Fx5 AuxSend */
+    0,  /* 0x085E: C2_MIX_AUX_10 Fx6 AuxSend */
+    0,  /* 0x085F: C2_MIX_AUX_11 Fx1 AuxOn */
+    0,  /* 0x0860: C2_MIX_AUX_11 Fx2 AuxOn */
+    0,  /* 0x0861: C2_MIX_AUX_11 Fx3 AuxOn */
+    0,  /* 0x0862: C2_MIX_AUX_11 Fx4 AuxOn */
+    0,  /* 0x0863: C2_MIX_AUX_11 Fx5 AuxOn */
+    0,  /* 0x0864: C2_MIX_AUX_11 Fx6 AuxOn */
+    0,  /* 0x0865: C2_MIX_AUX_11 Fx1 AuxSend */
+    0,  /* 0x0866: C2_MIX_AUX_11 Fx2 AuxSend */
+    0,  /* 0x0867: C2_MIX_AUX_11 Fx3 AuxSend */
+    0,  /* 0x0868: C2_MIX_AUX_11 Fx4 AuxSend */
+    0,  /* 0x0869: C2_MIX_AUX_11 Fx5 AuxSend */
+    0,  /* 0x086A: C2_MIX_AUX_11 Fx6 AuxSend */
+    0,  /* 0x086B: C2_MIX_AUX_12 Fx1 AuxOn */
+    0,  /* 0x086C: C2_MIX_AUX_12 Fx2 AuxOn */
+    0,  /* 0x086D: C2_MIX_AUX_12 Fx3 AuxOn */
+    0,  /* 0x086E: C2_MIX_AUX_12 Fx4 AuxOn */
+    0,  /* 0x086F: C2_MIX_AUX_12 Fx5 AuxOn */
+    0,  /* 0x0870: C2_MIX_AUX_12 Fx6 AuxOn */
+    0,  /* 0x0871: C2_MIX_AUX_12 Fx1 AuxSend */
+    0,  /* 0x0872: C2_MIX_AUX_12 Fx2 AuxSend */
+    0,  /* 0x0873: C2_MIX_AUX_12 Fx3 AuxSend */
+    0,  /* 0x0874: C2_MIX_AUX_12 Fx4 AuxSend */
+    0,  /* 0x0875: C2_MIX_AUX_12 Fx5 AuxSend */
+    0,  /* 0x0876: C2_MIX_AUX_12 Fx6 AuxSend */
+    0;  /* 0x0877 */
 
 /* Samples per millisecond, IEEE-754 float32 bits (48 at 48000 Hz). */
 .global _spi_dispatch_c2_spms;

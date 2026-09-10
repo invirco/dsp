@@ -75,38 +75,38 @@ Chan031Mtr001,1,31,1,,false,Channel input level meter (pre/post),73,lq,80,,,,,,,
 Chan031Mtr002,1,31,2,,false,Channel input level meter (pre/post),74,lr,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4729,0x1279,,,,,Instant,0,0,Linear,Scalar
 Chan032Mtr001,1,32,1,,false,Channel input level meter (pre/post),75,ls,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4732,0x127C,,,,,Instant,0,0,Linear,Scalar
 Chan032Mtr002,1,32,2,,false,Channel input level meter (pre/post),76,lt,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4733,0x127D,,,,,Instant,0,0,Linear,Scalar
-Chan001CompMtr001,1,1,1,,false,Channel compressor gain-reduction meter (comp-only),77,lu,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
-Chan002CompMtr001,1,2,1,,false,Channel compressor gain-reduction meter (comp-only),78,lv,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
-Chan003CompMtr001,1,3,1,,false,Channel compressor gain-reduction meter (comp-only),79,lw,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
-Chan004CompMtr001,1,4,1,,false,Channel compressor gain-reduction meter (comp-only),80,mh,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
-Chan005CompMtr001,1,5,1,,false,Channel compressor gain-reduction meter (comp-only),81,mi,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
-Chan006CompMtr001,1,6,1,,false,Channel compressor gain-reduction meter (comp-only),82,mj,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
-Chan007CompMtr001,1,7,1,,false,Channel compressor gain-reduction meter (comp-only),83,mk,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
-Chan008CompMtr001,1,8,1,,false,Channel compressor gain-reduction meter (comp-only),84,ml,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
-Chan009CompMtr001,1,9,1,,false,Channel compressor gain-reduction meter (comp-only),85,mm,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
-Chan010CompMtr001,1,10,1,,false,Channel compressor gain-reduction meter (comp-only),86,mn,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
-Chan011CompMtr001,1,11,1,,false,Channel compressor gain-reduction meter (comp-only),87,mo,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
-Chan012CompMtr001,1,12,1,,false,Channel compressor gain-reduction meter (comp-only),88,mp,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
-Chan013CompMtr001,1,13,1,,false,Channel compressor gain-reduction meter (comp-only),89,mq,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
-Chan014CompMtr001,1,14,1,,false,Channel compressor gain-reduction meter (comp-only),90,mr,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
-Chan015CompMtr001,1,15,1,,false,Channel compressor gain-reduction meter (comp-only),91,ms,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
-Chan016CompMtr001,1,16,1,,false,Channel compressor gain-reduction meter (comp-only),92,mt,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
-Chan017CompMtr001,1,17,1,,false,Channel compressor gain-reduction meter (comp-only),93,mu,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
-Chan018CompMtr001,1,18,1,,false,Channel compressor gain-reduction meter (comp-only),94,mv,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
-Chan019CompMtr001,1,19,1,,false,Channel compressor gain-reduction meter (comp-only),95,mw,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
-Chan020CompMtr001,1,20,1,,false,Channel compressor gain-reduction meter (comp-only),96,nh,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
-Chan021CompMtr001,1,21,1,,false,Channel compressor gain-reduction meter (comp-only),97,ni,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
-Chan022CompMtr001,1,22,1,,false,Channel compressor gain-reduction meter (comp-only),98,nj,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
-Chan023CompMtr001,1,23,1,,false,Channel compressor gain-reduction meter (comp-only),99,nk,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
-Chan024CompMtr001,1,24,1,,false,Channel compressor gain-reduction meter (comp-only),100,nl,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
-Chan025CompMtr001,1,25,1,,false,Channel compressor gain-reduction meter (comp-only),101,nm,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
-Chan026CompMtr001,1,26,1,,false,Channel compressor gain-reduction meter (comp-only),102,nn,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
-Chan027CompMtr001,1,27,1,,false,Channel compressor gain-reduction meter (comp-only),103,no,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
-Chan028CompMtr001,1,28,1,,false,Channel compressor gain-reduction meter (comp-only),104,np,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
-Chan029CompMtr001,1,29,1,,false,Channel compressor gain-reduction meter (comp-only),105,nq,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
-Chan030CompMtr001,1,30,1,,false,Channel compressor gain-reduction meter (comp-only),106,nr,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
-Chan031CompMtr001,1,31,1,,false,Channel compressor gain-reduction meter (comp-only),107,ns,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
-Chan032CompMtr001,1,32,1,,false,Channel compressor gain-reduction meter (comp-only),108,nt,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,,,,,,
+Chan001CompMtr001,1,1,1,,false,Channel compressor gain-reduction meter (comp-only),77,lu,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4611,0x1203,,,,,Instant,0,0,Linear,Scalar
+Chan002CompMtr001,1,2,1,,false,Channel compressor gain-reduction meter (comp-only),78,lv,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4615,0x1207,,,,,Instant,0,0,Linear,Scalar
+Chan003CompMtr001,1,3,1,,false,Channel compressor gain-reduction meter (comp-only),79,lw,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4619,0x120B,,,,,Instant,0,0,Linear,Scalar
+Chan004CompMtr001,1,4,1,,false,Channel compressor gain-reduction meter (comp-only),80,mh,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4623,0x120F,,,,,Instant,0,0,Linear,Scalar
+Chan005CompMtr001,1,5,1,,false,Channel compressor gain-reduction meter (comp-only),81,mi,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4627,0x1213,,,,,Instant,0,0,Linear,Scalar
+Chan006CompMtr001,1,6,1,,false,Channel compressor gain-reduction meter (comp-only),82,mj,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4631,0x1217,,,,,Instant,0,0,Linear,Scalar
+Chan007CompMtr001,1,7,1,,false,Channel compressor gain-reduction meter (comp-only),83,mk,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4635,0x121B,,,,,Instant,0,0,Linear,Scalar
+Chan008CompMtr001,1,8,1,,false,Channel compressor gain-reduction meter (comp-only),84,ml,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4639,0x121F,,,,,Instant,0,0,Linear,Scalar
+Chan009CompMtr001,1,9,1,,false,Channel compressor gain-reduction meter (comp-only),85,mm,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4643,0x1223,,,,,Instant,0,0,Linear,Scalar
+Chan010CompMtr001,1,10,1,,false,Channel compressor gain-reduction meter (comp-only),86,mn,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4647,0x1227,,,,,Instant,0,0,Linear,Scalar
+Chan011CompMtr001,1,11,1,,false,Channel compressor gain-reduction meter (comp-only),87,mo,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4651,0x122B,,,,,Instant,0,0,Linear,Scalar
+Chan012CompMtr001,1,12,1,,false,Channel compressor gain-reduction meter (comp-only),88,mp,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4655,0x122F,,,,,Instant,0,0,Linear,Scalar
+Chan013CompMtr001,1,13,1,,false,Channel compressor gain-reduction meter (comp-only),89,mq,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4659,0x1233,,,,,Instant,0,0,Linear,Scalar
+Chan014CompMtr001,1,14,1,,false,Channel compressor gain-reduction meter (comp-only),90,mr,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4663,0x1237,,,,,Instant,0,0,Linear,Scalar
+Chan015CompMtr001,1,15,1,,false,Channel compressor gain-reduction meter (comp-only),91,ms,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4667,0x123B,,,,,Instant,0,0,Linear,Scalar
+Chan016CompMtr001,1,16,1,,false,Channel compressor gain-reduction meter (comp-only),92,mt,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4671,0x123F,,,,,Instant,0,0,Linear,Scalar
+Chan017CompMtr001,1,17,1,,false,Channel compressor gain-reduction meter (comp-only),93,mu,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4675,0x1243,,,,,Instant,0,0,Linear,Scalar
+Chan018CompMtr001,1,18,1,,false,Channel compressor gain-reduction meter (comp-only),94,mv,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4679,0x1247,,,,,Instant,0,0,Linear,Scalar
+Chan019CompMtr001,1,19,1,,false,Channel compressor gain-reduction meter (comp-only),95,mw,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4683,0x124B,,,,,Instant,0,0,Linear,Scalar
+Chan020CompMtr001,1,20,1,,false,Channel compressor gain-reduction meter (comp-only),96,nh,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4687,0x124F,,,,,Instant,0,0,Linear,Scalar
+Chan021CompMtr001,1,21,1,,false,Channel compressor gain-reduction meter (comp-only),97,ni,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4691,0x1253,,,,,Instant,0,0,Linear,Scalar
+Chan022CompMtr001,1,22,1,,false,Channel compressor gain-reduction meter (comp-only),98,nj,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4695,0x1257,,,,,Instant,0,0,Linear,Scalar
+Chan023CompMtr001,1,23,1,,false,Channel compressor gain-reduction meter (comp-only),99,nk,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4699,0x125B,,,,,Instant,0,0,Linear,Scalar
+Chan024CompMtr001,1,24,1,,false,Channel compressor gain-reduction meter (comp-only),100,nl,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4703,0x125F,,,,,Instant,0,0,Linear,Scalar
+Chan025CompMtr001,1,25,1,,false,Channel compressor gain-reduction meter (comp-only),101,nm,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4707,0x1263,,,,,Instant,0,0,Linear,Scalar
+Chan026CompMtr001,1,26,1,,false,Channel compressor gain-reduction meter (comp-only),102,nn,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4711,0x1267,,,,,Instant,0,0,Linear,Scalar
+Chan027CompMtr001,1,27,1,,false,Channel compressor gain-reduction meter (comp-only),103,no,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4715,0x126B,,,,,Instant,0,0,Linear,Scalar
+Chan028CompMtr001,1,28,1,,false,Channel compressor gain-reduction meter (comp-only),104,np,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4719,0x126F,,,,,Instant,0,0,Linear,Scalar
+Chan029CompMtr001,1,29,1,,false,Channel compressor gain-reduction meter (comp-only),105,nq,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4723,0x1273,,,,,Instant,0,0,Linear,Scalar
+Chan030CompMtr001,1,30,1,,false,Channel compressor gain-reduction meter (comp-only),106,nr,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4727,0x1277,,,,,Instant,0,0,Linear,Scalar
+Chan031CompMtr001,1,31,1,,false,Channel compressor gain-reduction meter (comp-only),107,ns,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4731,0x127B,,,,,Instant,0,0,Linear,Scalar
+Chan032CompMtr001,1,32,1,,false,Channel compressor gain-reduction meter (comp-only),108,nt,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4735,0x127F,,,,,Instant,0,0,Linear,Scalar
 Chan001GateMtr001,1,1,1,,false,Channel gate gain-reduction meter (gate-only),109,nu,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4610,0x1202,,,,,Instant,0,0,Linear,Scalar
 Chan002GateMtr001,1,2,1,,false,Channel gate gain-reduction meter (gate-only),110,nv,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4614,0x1206,,,,,Instant,0,0,Linear,Scalar
 Chan003GateMtr001,1,3,1,,false,Channel gate gain-reduction meter (gate-only),111,nw,80,,,,,,,,Chan_Mtr,,,,,,,1,1,4618,0x120A,,,,,Instant,0,0,Linear,Scalar
@@ -5768,150 +5768,150 @@ Fx003PreDelay001,1,3,1,,,FX pre-delay time,5766,inpn,255,,,,,,,,FxCtrl,,0=0/127=
 Fx004PreDelay001,1,4,1,,,FX pre-delay time,5767,inpo,255,,,,,,,,FxCtrl,,0=0/127=100/[Lin],,,,,2,1,1707,0x06AB,,,,InstantCtl,Instant,0,0,Linear,Scalar
 Fx005PreDelay001,1,5,1,,,FX pre-delay time,5768,inpp,255,,,,,,,,FxCtrl,,0=0/127=100/[Lin],,,,,2,1,1735,0x06C7,,,,InstantCtl,Instant,0,0,Linear,Scalar
 Fx006PreDelay001,1,6,1,,,FX pre-delay time,5769,inpq,255,,,,,,,,FxCtrl,,0=0/127=100/[Lin],,,,,2,1,1763,0x06E3,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Fx001AuxOn001,1,1,1,,,FX return to aux send on/off,5770,inpr,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx001AuxOn002,1,1,2,,,FX return to aux send on/off,5771,inps,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx001AuxOn003,1,1,3,,,FX return to aux send on/off,5772,inpt,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx001AuxOn004,1,1,4,,,FX return to aux send on/off,5773,inpu,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx001AuxOn005,1,1,5,,,FX return to aux send on/off,5774,inpv,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx001AuxOn006,1,1,6,,,FX return to aux send on/off,5775,inpw,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx001AuxOn007,1,1,7,,,FX return to aux send on/off,5776,inqh,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx001AuxOn008,1,1,8,,,FX return to aux send on/off,5777,inqi,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx001AuxOn009,1,1,9,,,FX return to aux send on/off,5778,inqj,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx001AuxOn010,1,1,10,,,FX return to aux send on/off,5779,inqk,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx001AuxOn011,1,1,11,,,FX return to aux send on/off,5780,inql,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx001AuxOn012,1,1,12,,,FX return to aux send on/off,5781,inqm,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx002AuxOn001,1,2,1,,,FX return to aux send on/off,5782,inqn,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx002AuxOn002,1,2,2,,,FX return to aux send on/off,5783,inqo,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx002AuxOn003,1,2,3,,,FX return to aux send on/off,5784,inqp,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx002AuxOn004,1,2,4,,,FX return to aux send on/off,5785,inqq,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx002AuxOn005,1,2,5,,,FX return to aux send on/off,5786,inqr,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx002AuxOn006,1,2,6,,,FX return to aux send on/off,5787,inqs,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx002AuxOn007,1,2,7,,,FX return to aux send on/off,5788,inqt,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx002AuxOn008,1,2,8,,,FX return to aux send on/off,5789,inqu,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx002AuxOn009,1,2,9,,,FX return to aux send on/off,5790,inqv,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx002AuxOn010,1,2,10,,,FX return to aux send on/off,5791,inqw,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx002AuxOn011,1,2,11,,,FX return to aux send on/off,5792,inrh,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx002AuxOn012,1,2,12,,,FX return to aux send on/off,5793,inri,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx003AuxOn001,1,3,1,,,FX return to aux send on/off,5794,inrj,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx003AuxOn002,1,3,2,,,FX return to aux send on/off,5795,inrk,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx003AuxOn003,1,3,3,,,FX return to aux send on/off,5796,inrl,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx003AuxOn004,1,3,4,,,FX return to aux send on/off,5797,inrm,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx003AuxOn005,1,3,5,,,FX return to aux send on/off,5798,inrn,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx003AuxOn006,1,3,6,,,FX return to aux send on/off,5799,inro,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx003AuxOn007,1,3,7,,,FX return to aux send on/off,5800,inrp,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx003AuxOn008,1,3,8,,,FX return to aux send on/off,5801,inrq,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx003AuxOn009,1,3,9,,,FX return to aux send on/off,5802,inrr,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx003AuxOn010,1,3,10,,,FX return to aux send on/off,5803,inrs,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx003AuxOn011,1,3,11,,,FX return to aux send on/off,5804,inrt,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx003AuxOn012,1,3,12,,,FX return to aux send on/off,5805,inru,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx004AuxOn001,1,4,1,,,FX return to aux send on/off,5806,inrv,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx004AuxOn002,1,4,2,,,FX return to aux send on/off,5807,inrw,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx004AuxOn003,1,4,3,,,FX return to aux send on/off,5808,insh,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx004AuxOn004,1,4,4,,,FX return to aux send on/off,5809,insi,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx004AuxOn005,1,4,5,,,FX return to aux send on/off,5810,insj,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx004AuxOn006,1,4,6,,,FX return to aux send on/off,5811,insk,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx004AuxOn007,1,4,7,,,FX return to aux send on/off,5812,insl,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx004AuxOn008,1,4,8,,,FX return to aux send on/off,5813,insm,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx004AuxOn009,1,4,9,,,FX return to aux send on/off,5814,insn,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx004AuxOn010,1,4,10,,,FX return to aux send on/off,5815,inso,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx004AuxOn011,1,4,11,,,FX return to aux send on/off,5816,insp,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx004AuxOn012,1,4,12,,,FX return to aux send on/off,5817,insq,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx005AuxOn001,1,5,1,,,FX return to aux send on/off,5818,insr,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx005AuxOn002,1,5,2,,,FX return to aux send on/off,5819,inss,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx005AuxOn003,1,5,3,,,FX return to aux send on/off,5820,inst,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx005AuxOn004,1,5,4,,,FX return to aux send on/off,5821,insu,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx005AuxOn005,1,5,5,,,FX return to aux send on/off,5822,insv,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx005AuxOn006,1,5,6,,,FX return to aux send on/off,5823,insw,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx005AuxOn007,1,5,7,,,FX return to aux send on/off,5824,inth,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx005AuxOn008,1,5,8,,,FX return to aux send on/off,5825,inti,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx005AuxOn009,1,5,9,,,FX return to aux send on/off,5826,intj,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx005AuxOn010,1,5,10,,,FX return to aux send on/off,5827,intk,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx005AuxOn011,1,5,11,,,FX return to aux send on/off,5828,intl,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx005AuxOn012,1,5,12,,,FX return to aux send on/off,5829,intm,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx006AuxOn001,1,6,1,,,FX return to aux send on/off,5830,intn,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx006AuxOn002,1,6,2,,,FX return to aux send on/off,5831,into,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx006AuxOn003,1,6,3,,,FX return to aux send on/off,5832,intp,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx006AuxOn004,1,6,4,,,FX return to aux send on/off,5833,intq,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx006AuxOn005,1,6,5,,,FX return to aux send on/off,5834,intr,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx006AuxOn006,1,6,6,,,FX return to aux send on/off,5835,ints,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx006AuxOn007,1,6,7,,,FX return to aux send on/off,5836,intt,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx006AuxOn008,1,6,8,,,FX return to aux send on/off,5837,intu,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx006AuxOn009,1,6,9,,,FX return to aux send on/off,5838,intv,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx006AuxOn010,1,6,10,,,FX return to aux send on/off,5839,intw,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx006AuxOn011,1,6,11,,,FX return to aux send on/off,5840,inuh,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx006AuxOn012,1,6,12,,,FX return to aux send on/off,5841,inui,1,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
-Fx001AuxSend001,1,1,1,,,FX return to aux send level,5842,inuj,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx001AuxSend002,1,1,2,,,FX return to aux send level,5843,inuk,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx001AuxSend003,1,1,3,,,FX return to aux send level,5844,inul,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx001AuxSend004,1,1,4,,,FX return to aux send level,5845,inum,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx001AuxSend005,1,1,5,,,FX return to aux send level,5846,inun,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx001AuxSend006,1,1,6,,,FX return to aux send level,5847,inuo,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx001AuxSend007,1,1,7,,,FX return to aux send level,5848,inup,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx001AuxSend008,1,1,8,,,FX return to aux send level,5849,inuq,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx001AuxSend009,1,1,9,,,FX return to aux send level,5850,inur,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx001AuxSend010,1,1,10,,,FX return to aux send level,5851,inus,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx001AuxSend011,1,1,11,,,FX return to aux send level,5852,inut,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx001AuxSend012,1,1,12,,,FX return to aux send level,5853,inuu,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx002AuxSend001,1,2,1,,,FX return to aux send level,5854,inuv,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx002AuxSend002,1,2,2,,,FX return to aux send level,5855,inuw,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx002AuxSend003,1,2,3,,,FX return to aux send level,5856,invh,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx002AuxSend004,1,2,4,,,FX return to aux send level,5857,invi,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx002AuxSend005,1,2,5,,,FX return to aux send level,5858,invj,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx002AuxSend006,1,2,6,,,FX return to aux send level,5859,invk,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx002AuxSend007,1,2,7,,,FX return to aux send level,5860,invl,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx002AuxSend008,1,2,8,,,FX return to aux send level,5861,invm,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx002AuxSend009,1,2,9,,,FX return to aux send level,5862,invn,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx002AuxSend010,1,2,10,,,FX return to aux send level,5863,invo,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx002AuxSend011,1,2,11,,,FX return to aux send level,5864,invp,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx002AuxSend012,1,2,12,,,FX return to aux send level,5865,invq,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx003AuxSend001,1,3,1,,,FX return to aux send level,5866,invr,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx003AuxSend002,1,3,2,,,FX return to aux send level,5867,invs,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx003AuxSend003,1,3,3,,,FX return to aux send level,5868,invt,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx003AuxSend004,1,3,4,,,FX return to aux send level,5869,invu,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx003AuxSend005,1,3,5,,,FX return to aux send level,5870,invv,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx003AuxSend006,1,3,6,,,FX return to aux send level,5871,invw,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx003AuxSend007,1,3,7,,,FX return to aux send level,5872,inwh,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx003AuxSend008,1,3,8,,,FX return to aux send level,5873,inwi,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx003AuxSend009,1,3,9,,,FX return to aux send level,5874,inwj,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx003AuxSend010,1,3,10,,,FX return to aux send level,5875,inwk,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx003AuxSend011,1,3,11,,,FX return to aux send level,5876,inwl,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx003AuxSend012,1,3,12,,,FX return to aux send level,5877,inwm,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx004AuxSend001,1,4,1,,,FX return to aux send level,5878,inwn,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx004AuxSend002,1,4,2,,,FX return to aux send level,5879,inwo,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx004AuxSend003,1,4,3,,,FX return to aux send level,5880,inwp,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx004AuxSend004,1,4,4,,,FX return to aux send level,5881,inwq,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx004AuxSend005,1,4,5,,,FX return to aux send level,5882,inwr,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx004AuxSend006,1,4,6,,,FX return to aux send level,5883,inws,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx004AuxSend007,1,4,7,,,FX return to aux send level,5884,inwt,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx004AuxSend008,1,4,8,,,FX return to aux send level,5885,inwu,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx004AuxSend009,1,4,9,,,FX return to aux send level,5886,inwv,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx004AuxSend010,1,4,10,,,FX return to aux send level,5887,inww,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx004AuxSend011,1,4,11,,,FX return to aux send level,5888,iohh,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx004AuxSend012,1,4,12,,,FX return to aux send level,5889,iohi,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx005AuxSend001,1,5,1,,,FX return to aux send level,5890,iohj,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx005AuxSend002,1,5,2,,,FX return to aux send level,5891,iohk,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx005AuxSend003,1,5,3,,,FX return to aux send level,5892,iohl,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx005AuxSend004,1,5,4,,,FX return to aux send level,5893,iohm,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx005AuxSend005,1,5,5,,,FX return to aux send level,5894,iohn,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx005AuxSend006,1,5,6,,,FX return to aux send level,5895,ioho,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx005AuxSend007,1,5,7,,,FX return to aux send level,5896,iohp,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx005AuxSend008,1,5,8,,,FX return to aux send level,5897,iohq,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx005AuxSend009,1,5,9,,,FX return to aux send level,5898,iohr,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx005AuxSend010,1,5,10,,,FX return to aux send level,5899,iohs,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx005AuxSend011,1,5,11,,,FX return to aux send level,5900,ioht,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx005AuxSend012,1,5,12,,,FX return to aux send level,5901,iohu,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx006AuxSend001,1,6,1,,,FX return to aux send level,5902,iohv,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx006AuxSend002,1,6,2,,,FX return to aux send level,5903,iohw,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx006AuxSend003,1,6,3,,,FX return to aux send level,5904,ioih,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx006AuxSend004,1,6,4,,,FX return to aux send level,5905,ioii,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx006AuxSend005,1,6,5,,,FX return to aux send level,5906,ioij,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx006AuxSend006,1,6,6,,,FX return to aux send level,5907,ioik,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx006AuxSend007,1,6,7,,,FX return to aux send level,5908,ioil,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx006AuxSend008,1,6,8,,,FX return to aux send level,5909,ioim,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx006AuxSend009,1,6,9,,,FX return to aux send level,5910,ioin,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx006AuxSend010,1,6,10,,,FX return to aux send level,5911,ioio,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx006AuxSend011,1,6,11,,,FX return to aux send level,5912,ioip,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Fx006AuxSend012,1,6,12,,,FX return to aux send level,5913,ioiq,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
+Fx001AuxOn001,1,1,1,,,FX return to aux send on/off,5770,inpr,1,,,,,,,,FxCtrl,,,,,,,2,1,2023,0x07E7,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx001AuxOn002,1,1,2,,,FX return to aux send on/off,5771,inps,1,,,,,,,,FxCtrl,,,,,,,2,1,2035,0x07F3,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx001AuxOn003,1,1,3,,,FX return to aux send on/off,5772,inpt,1,,,,,,,,FxCtrl,,,,,,,2,1,2047,0x07FF,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx001AuxOn004,1,1,4,,,FX return to aux send on/off,5773,inpu,1,,,,,,,,FxCtrl,,,,,,,2,1,2059,0x080B,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx001AuxOn005,1,1,5,,,FX return to aux send on/off,5774,inpv,1,,,,,,,,FxCtrl,,,,,,,2,1,2071,0x0817,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx001AuxOn006,1,1,6,,,FX return to aux send on/off,5775,inpw,1,,,,,,,,FxCtrl,,,,,,,2,1,2083,0x0823,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx001AuxOn007,1,1,7,,,FX return to aux send on/off,5776,inqh,1,,,,,,,,FxCtrl,,,,,,,2,1,2095,0x082F,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx001AuxOn008,1,1,8,,,FX return to aux send on/off,5777,inqi,1,,,,,,,,FxCtrl,,,,,,,2,1,2107,0x083B,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx001AuxOn009,1,1,9,,,FX return to aux send on/off,5778,inqj,1,,,,,,,,FxCtrl,,,,,,,2,1,2119,0x0847,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx001AuxOn010,1,1,10,,,FX return to aux send on/off,5779,inqk,1,,,,,,,,FxCtrl,,,,,,,2,1,2131,0x0853,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx001AuxOn011,1,1,11,,,FX return to aux send on/off,5780,inql,1,,,,,,,,FxCtrl,,,,,,,2,1,2143,0x085F,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx001AuxOn012,1,1,12,,,FX return to aux send on/off,5781,inqm,1,,,,,,,,FxCtrl,,,,,,,2,1,2155,0x086B,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx002AuxOn001,1,2,1,,,FX return to aux send on/off,5782,inqn,1,,,,,,,,FxCtrl,,,,,,,2,1,2024,0x07E8,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx002AuxOn002,1,2,2,,,FX return to aux send on/off,5783,inqo,1,,,,,,,,FxCtrl,,,,,,,2,1,2036,0x07F4,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx002AuxOn003,1,2,3,,,FX return to aux send on/off,5784,inqp,1,,,,,,,,FxCtrl,,,,,,,2,1,2048,0x0800,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx002AuxOn004,1,2,4,,,FX return to aux send on/off,5785,inqq,1,,,,,,,,FxCtrl,,,,,,,2,1,2060,0x080C,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx002AuxOn005,1,2,5,,,FX return to aux send on/off,5786,inqr,1,,,,,,,,FxCtrl,,,,,,,2,1,2072,0x0818,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx002AuxOn006,1,2,6,,,FX return to aux send on/off,5787,inqs,1,,,,,,,,FxCtrl,,,,,,,2,1,2084,0x0824,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx002AuxOn007,1,2,7,,,FX return to aux send on/off,5788,inqt,1,,,,,,,,FxCtrl,,,,,,,2,1,2096,0x0830,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx002AuxOn008,1,2,8,,,FX return to aux send on/off,5789,inqu,1,,,,,,,,FxCtrl,,,,,,,2,1,2108,0x083C,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx002AuxOn009,1,2,9,,,FX return to aux send on/off,5790,inqv,1,,,,,,,,FxCtrl,,,,,,,2,1,2120,0x0848,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx002AuxOn010,1,2,10,,,FX return to aux send on/off,5791,inqw,1,,,,,,,,FxCtrl,,,,,,,2,1,2132,0x0854,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx002AuxOn011,1,2,11,,,FX return to aux send on/off,5792,inrh,1,,,,,,,,FxCtrl,,,,,,,2,1,2144,0x0860,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx002AuxOn012,1,2,12,,,FX return to aux send on/off,5793,inri,1,,,,,,,,FxCtrl,,,,,,,2,1,2156,0x086C,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx003AuxOn001,1,3,1,,,FX return to aux send on/off,5794,inrj,1,,,,,,,,FxCtrl,,,,,,,2,1,2025,0x07E9,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx003AuxOn002,1,3,2,,,FX return to aux send on/off,5795,inrk,1,,,,,,,,FxCtrl,,,,,,,2,1,2037,0x07F5,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx003AuxOn003,1,3,3,,,FX return to aux send on/off,5796,inrl,1,,,,,,,,FxCtrl,,,,,,,2,1,2049,0x0801,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx003AuxOn004,1,3,4,,,FX return to aux send on/off,5797,inrm,1,,,,,,,,FxCtrl,,,,,,,2,1,2061,0x080D,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx003AuxOn005,1,3,5,,,FX return to aux send on/off,5798,inrn,1,,,,,,,,FxCtrl,,,,,,,2,1,2073,0x0819,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx003AuxOn006,1,3,6,,,FX return to aux send on/off,5799,inro,1,,,,,,,,FxCtrl,,,,,,,2,1,2085,0x0825,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx003AuxOn007,1,3,7,,,FX return to aux send on/off,5800,inrp,1,,,,,,,,FxCtrl,,,,,,,2,1,2097,0x0831,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx003AuxOn008,1,3,8,,,FX return to aux send on/off,5801,inrq,1,,,,,,,,FxCtrl,,,,,,,2,1,2109,0x083D,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx003AuxOn009,1,3,9,,,FX return to aux send on/off,5802,inrr,1,,,,,,,,FxCtrl,,,,,,,2,1,2121,0x0849,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx003AuxOn010,1,3,10,,,FX return to aux send on/off,5803,inrs,1,,,,,,,,FxCtrl,,,,,,,2,1,2133,0x0855,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx003AuxOn011,1,3,11,,,FX return to aux send on/off,5804,inrt,1,,,,,,,,FxCtrl,,,,,,,2,1,2145,0x0861,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx003AuxOn012,1,3,12,,,FX return to aux send on/off,5805,inru,1,,,,,,,,FxCtrl,,,,,,,2,1,2157,0x086D,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx004AuxOn001,1,4,1,,,FX return to aux send on/off,5806,inrv,1,,,,,,,,FxCtrl,,,,,,,2,1,2026,0x07EA,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx004AuxOn002,1,4,2,,,FX return to aux send on/off,5807,inrw,1,,,,,,,,FxCtrl,,,,,,,2,1,2038,0x07F6,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx004AuxOn003,1,4,3,,,FX return to aux send on/off,5808,insh,1,,,,,,,,FxCtrl,,,,,,,2,1,2050,0x0802,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx004AuxOn004,1,4,4,,,FX return to aux send on/off,5809,insi,1,,,,,,,,FxCtrl,,,,,,,2,1,2062,0x080E,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx004AuxOn005,1,4,5,,,FX return to aux send on/off,5810,insj,1,,,,,,,,FxCtrl,,,,,,,2,1,2074,0x081A,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx004AuxOn006,1,4,6,,,FX return to aux send on/off,5811,insk,1,,,,,,,,FxCtrl,,,,,,,2,1,2086,0x0826,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx004AuxOn007,1,4,7,,,FX return to aux send on/off,5812,insl,1,,,,,,,,FxCtrl,,,,,,,2,1,2098,0x0832,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx004AuxOn008,1,4,8,,,FX return to aux send on/off,5813,insm,1,,,,,,,,FxCtrl,,,,,,,2,1,2110,0x083E,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx004AuxOn009,1,4,9,,,FX return to aux send on/off,5814,insn,1,,,,,,,,FxCtrl,,,,,,,2,1,2122,0x084A,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx004AuxOn010,1,4,10,,,FX return to aux send on/off,5815,inso,1,,,,,,,,FxCtrl,,,,,,,2,1,2134,0x0856,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx004AuxOn011,1,4,11,,,FX return to aux send on/off,5816,insp,1,,,,,,,,FxCtrl,,,,,,,2,1,2146,0x0862,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx004AuxOn012,1,4,12,,,FX return to aux send on/off,5817,insq,1,,,,,,,,FxCtrl,,,,,,,2,1,2158,0x086E,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx005AuxOn001,1,5,1,,,FX return to aux send on/off,5818,insr,1,,,,,,,,FxCtrl,,,,,,,2,1,2027,0x07EB,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx005AuxOn002,1,5,2,,,FX return to aux send on/off,5819,inss,1,,,,,,,,FxCtrl,,,,,,,2,1,2039,0x07F7,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx005AuxOn003,1,5,3,,,FX return to aux send on/off,5820,inst,1,,,,,,,,FxCtrl,,,,,,,2,1,2051,0x0803,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx005AuxOn004,1,5,4,,,FX return to aux send on/off,5821,insu,1,,,,,,,,FxCtrl,,,,,,,2,1,2063,0x080F,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx005AuxOn005,1,5,5,,,FX return to aux send on/off,5822,insv,1,,,,,,,,FxCtrl,,,,,,,2,1,2075,0x081B,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx005AuxOn006,1,5,6,,,FX return to aux send on/off,5823,insw,1,,,,,,,,FxCtrl,,,,,,,2,1,2087,0x0827,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx005AuxOn007,1,5,7,,,FX return to aux send on/off,5824,inth,1,,,,,,,,FxCtrl,,,,,,,2,1,2099,0x0833,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx005AuxOn008,1,5,8,,,FX return to aux send on/off,5825,inti,1,,,,,,,,FxCtrl,,,,,,,2,1,2111,0x083F,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx005AuxOn009,1,5,9,,,FX return to aux send on/off,5826,intj,1,,,,,,,,FxCtrl,,,,,,,2,1,2123,0x084B,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx005AuxOn010,1,5,10,,,FX return to aux send on/off,5827,intk,1,,,,,,,,FxCtrl,,,,,,,2,1,2135,0x0857,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx005AuxOn011,1,5,11,,,FX return to aux send on/off,5828,intl,1,,,,,,,,FxCtrl,,,,,,,2,1,2147,0x0863,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx005AuxOn012,1,5,12,,,FX return to aux send on/off,5829,intm,1,,,,,,,,FxCtrl,,,,,,,2,1,2159,0x086F,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx006AuxOn001,1,6,1,,,FX return to aux send on/off,5830,intn,1,,,,,,,,FxCtrl,,,,,,,2,1,2028,0x07EC,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx006AuxOn002,1,6,2,,,FX return to aux send on/off,5831,into,1,,,,,,,,FxCtrl,,,,,,,2,1,2040,0x07F8,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx006AuxOn003,1,6,3,,,FX return to aux send on/off,5832,intp,1,,,,,,,,FxCtrl,,,,,,,2,1,2052,0x0804,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx006AuxOn004,1,6,4,,,FX return to aux send on/off,5833,intq,1,,,,,,,,FxCtrl,,,,,,,2,1,2064,0x0810,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx006AuxOn005,1,6,5,,,FX return to aux send on/off,5834,intr,1,,,,,,,,FxCtrl,,,,,,,2,1,2076,0x081C,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx006AuxOn006,1,6,6,,,FX return to aux send on/off,5835,ints,1,,,,,,,,FxCtrl,,,,,,,2,1,2088,0x0828,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx006AuxOn007,1,6,7,,,FX return to aux send on/off,5836,intt,1,,,,,,,,FxCtrl,,,,,,,2,1,2100,0x0834,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx006AuxOn008,1,6,8,,,FX return to aux send on/off,5837,intu,1,,,,,,,,FxCtrl,,,,,,,2,1,2112,0x0840,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx006AuxOn009,1,6,9,,,FX return to aux send on/off,5838,intv,1,,,,,,,,FxCtrl,,,,,,,2,1,2124,0x084C,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx006AuxOn010,1,6,10,,,FX return to aux send on/off,5839,intw,1,,,,,,,,FxCtrl,,,,,,,2,1,2136,0x0858,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx006AuxOn011,1,6,11,,,FX return to aux send on/off,5840,inuh,1,,,,,,,,FxCtrl,,,,,,,2,1,2148,0x0864,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx006AuxOn012,1,6,12,,,FX return to aux send on/off,5841,inui,1,,,,,,,,FxCtrl,,,,,,,2,1,2160,0x0870,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Fx001AuxSend001,1,1,1,,,FX return to aux send level,5842,inuj,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2029,0x07ED,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx001AuxSend002,1,1,2,,,FX return to aux send level,5843,inuk,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2041,0x07F9,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx001AuxSend003,1,1,3,,,FX return to aux send level,5844,inul,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2053,0x0805,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx001AuxSend004,1,1,4,,,FX return to aux send level,5845,inum,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2065,0x0811,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx001AuxSend005,1,1,5,,,FX return to aux send level,5846,inun,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2077,0x081D,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx001AuxSend006,1,1,6,,,FX return to aux send level,5847,inuo,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2089,0x0829,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx001AuxSend007,1,1,7,,,FX return to aux send level,5848,inup,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2101,0x0835,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx001AuxSend008,1,1,8,,,FX return to aux send level,5849,inuq,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2113,0x0841,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx001AuxSend009,1,1,9,,,FX return to aux send level,5850,inur,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2125,0x084D,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx001AuxSend010,1,1,10,,,FX return to aux send level,5851,inus,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2137,0x0859,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx001AuxSend011,1,1,11,,,FX return to aux send level,5852,inut,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2149,0x0865,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx001AuxSend012,1,1,12,,,FX return to aux send level,5853,inuu,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2161,0x0871,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx002AuxSend001,1,2,1,,,FX return to aux send level,5854,inuv,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2030,0x07EE,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx002AuxSend002,1,2,2,,,FX return to aux send level,5855,inuw,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2042,0x07FA,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx002AuxSend003,1,2,3,,,FX return to aux send level,5856,invh,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2054,0x0806,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx002AuxSend004,1,2,4,,,FX return to aux send level,5857,invi,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2066,0x0812,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx002AuxSend005,1,2,5,,,FX return to aux send level,5858,invj,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2078,0x081E,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx002AuxSend006,1,2,6,,,FX return to aux send level,5859,invk,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2090,0x082A,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx002AuxSend007,1,2,7,,,FX return to aux send level,5860,invl,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2102,0x0836,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx002AuxSend008,1,2,8,,,FX return to aux send level,5861,invm,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2114,0x0842,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx002AuxSend009,1,2,9,,,FX return to aux send level,5862,invn,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2126,0x084E,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx002AuxSend010,1,2,10,,,FX return to aux send level,5863,invo,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2138,0x085A,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx002AuxSend011,1,2,11,,,FX return to aux send level,5864,invp,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2150,0x0866,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx002AuxSend012,1,2,12,,,FX return to aux send level,5865,invq,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2162,0x0872,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx003AuxSend001,1,3,1,,,FX return to aux send level,5866,invr,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2031,0x07EF,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx003AuxSend002,1,3,2,,,FX return to aux send level,5867,invs,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2043,0x07FB,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx003AuxSend003,1,3,3,,,FX return to aux send level,5868,invt,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2055,0x0807,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx003AuxSend004,1,3,4,,,FX return to aux send level,5869,invu,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2067,0x0813,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx003AuxSend005,1,3,5,,,FX return to aux send level,5870,invv,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2079,0x081F,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx003AuxSend006,1,3,6,,,FX return to aux send level,5871,invw,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2091,0x082B,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx003AuxSend007,1,3,7,,,FX return to aux send level,5872,inwh,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2103,0x0837,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx003AuxSend008,1,3,8,,,FX return to aux send level,5873,inwi,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2115,0x0843,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx003AuxSend009,1,3,9,,,FX return to aux send level,5874,inwj,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2127,0x084F,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx003AuxSend010,1,3,10,,,FX return to aux send level,5875,inwk,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2139,0x085B,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx003AuxSend011,1,3,11,,,FX return to aux send level,5876,inwl,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2151,0x0867,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx003AuxSend012,1,3,12,,,FX return to aux send level,5877,inwm,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2163,0x0873,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx004AuxSend001,1,4,1,,,FX return to aux send level,5878,inwn,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2032,0x07F0,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx004AuxSend002,1,4,2,,,FX return to aux send level,5879,inwo,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2044,0x07FC,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx004AuxSend003,1,4,3,,,FX return to aux send level,5880,inwp,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2056,0x0808,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx004AuxSend004,1,4,4,,,FX return to aux send level,5881,inwq,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2068,0x0814,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx004AuxSend005,1,4,5,,,FX return to aux send level,5882,inwr,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2080,0x0820,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx004AuxSend006,1,4,6,,,FX return to aux send level,5883,inws,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2092,0x082C,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx004AuxSend007,1,4,7,,,FX return to aux send level,5884,inwt,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2104,0x0838,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx004AuxSend008,1,4,8,,,FX return to aux send level,5885,inwu,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2116,0x0844,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx004AuxSend009,1,4,9,,,FX return to aux send level,5886,inwv,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2128,0x0850,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx004AuxSend010,1,4,10,,,FX return to aux send level,5887,inww,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2140,0x085C,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx004AuxSend011,1,4,11,,,FX return to aux send level,5888,iohh,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2152,0x0868,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx004AuxSend012,1,4,12,,,FX return to aux send level,5889,iohi,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2164,0x0874,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx005AuxSend001,1,5,1,,,FX return to aux send level,5890,iohj,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2033,0x07F1,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx005AuxSend002,1,5,2,,,FX return to aux send level,5891,iohk,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2045,0x07FD,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx005AuxSend003,1,5,3,,,FX return to aux send level,5892,iohl,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2057,0x0809,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx005AuxSend004,1,5,4,,,FX return to aux send level,5893,iohm,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2069,0x0815,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx005AuxSend005,1,5,5,,,FX return to aux send level,5894,iohn,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2081,0x0821,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx005AuxSend006,1,5,6,,,FX return to aux send level,5895,ioho,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2093,0x082D,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx005AuxSend007,1,5,7,,,FX return to aux send level,5896,iohp,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2105,0x0839,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx005AuxSend008,1,5,8,,,FX return to aux send level,5897,iohq,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2117,0x0845,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx005AuxSend009,1,5,9,,,FX return to aux send level,5898,iohr,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2129,0x0851,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx005AuxSend010,1,5,10,,,FX return to aux send level,5899,iohs,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2141,0x085D,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx005AuxSend011,1,5,11,,,FX return to aux send level,5900,ioht,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2153,0x0869,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx005AuxSend012,1,5,12,,,FX return to aux send level,5901,iohu,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2165,0x0875,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx006AuxSend001,1,6,1,,,FX return to aux send level,5902,iohv,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2034,0x07F2,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx006AuxSend002,1,6,2,,,FX return to aux send level,5903,iohw,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2046,0x07FE,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx006AuxSend003,1,6,3,,,FX return to aux send level,5904,ioih,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2058,0x080A,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx006AuxSend004,1,6,4,,,FX return to aux send level,5905,ioii,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2070,0x0816,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx006AuxSend005,1,6,5,,,FX return to aux send level,5906,ioij,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2082,0x0822,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx006AuxSend006,1,6,6,,,FX return to aux send level,5907,ioik,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2094,0x082E,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx006AuxSend007,1,6,7,,,FX return to aux send level,5908,ioil,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2106,0x083A,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx006AuxSend008,1,6,8,,,FX return to aux send level,5909,ioim,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2118,0x0846,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx006AuxSend009,1,6,9,,,FX return to aux send level,5910,ioin,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2130,0x0852,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx006AuxSend010,1,6,10,,,FX return to aux send level,5911,ioio,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2142,0x085E,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx006AuxSend011,1,6,11,,,FX return to aux send level,5912,ioip,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2154,0x086A,,,,GainFast,Slew,3,8,Exp,Scalar
+Fx006AuxSend012,1,6,12,,,FX return to aux send level,5913,ioiq,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2166,0x0876,,,,GainFast,Slew,3,8,Exp,Scalar
 Fx001Dca001,1,1,1,,,FX return DCA assignment (1-8 or off),5914,ioir,9,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
 Fx002Dca001,1,2,1,,,FX return DCA assignment (1-8 or off),5915,iois,9,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,
 Fx003Dca001,1,3,1,,,FX return DCA assignment (1-8 or off),5916,ioit,9,,,,,,,,FxCtrl,,,,,,,,,,,,,,,,,,,

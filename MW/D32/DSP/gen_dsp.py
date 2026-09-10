@@ -832,7 +832,16 @@ _METER_TAPS = {
     'post_fader':  ('Mtr',     2,    1, '_mtr_rms_',  'meter word +1: linear true RMS'),
     'rms':         (None,   None,    1, '_mtr_rms_',  'meter word +1: linear true RMS — dispatched; no cell names it'),
     'gate_gr':     ('GateMtr', 1,    2, '_mtr_gr_',   'meter word +2: gain reduction — declared, never written (defect 4)'),
-    'comp_gr':     ('CompMtr', 1, None, None,         'no meter word exists; base+3 is the meter\'s own state array'),
+    # S23 gate 4: BOUND AT SPI base+3, WHICH WAS DISPATCHED TO NOTHING.
+    # The note this replaces was half right and the wrong half was
+    # load-bearing: base+3 is not "the meter's own state array" -- the
+    # STATE array is at DM offset +3, and SPI offset +3 of the four-word
+    # meter block had no dispatch entry at all. So the cell gets an
+    # address and NOT ONE existing address moves; what would have moved
+    # every meter on both chips is inserting the word at DM offset +3,
+    # which is the mistake dsp_codegen.py::_mtr_comp_gr() is written not
+    # to make. The word is dB of gain reduction, clamped to [-40, 0].
+    'comp_gr':     ('CompMtr', 1,    3, '_mtr_cgr_', 'meter word +3: compressor gain reduction, dB, clamped to [-40, 0]'),
 }
 
 # Meter taps a node declares that reach no DSP word: cell name -> reason.
@@ -1095,6 +1104,42 @@ def expand_dca(node, cat, inst):
 def expand_mix_bus(node, cat, inst):
     chip, pg, base, nid, ramp = _parse_node(node)
     if base < 0:
+        return
+    prm = parse_params(node.get('params', ''))
+    n_send = int(prm.get('fx_sends', 0) or 0)
+    if n_send:
+        # ── THE FX RETURNS' AUX SENDS (S23 gate 3) ──────────────────────
+        #
+        # `Fx[1-8]AuxOn[1-12]` and `Fx[1-8]AuxSend[1-12]`. This node sums
+        # ONE aux bus, so it carries one column of that 6 x 12 grid: the
+        # six returns' On flags then the six returns' Send levels, 12
+        # words, and the cell's `fun` index is the AUX number while the
+        # instance is the FX number.
+        #
+        # THE CELLS ARE NOT THIS NODE'S OWN CATEGORY, which is why they are
+        # named explicitly rather than through `cat`: C2_MIX_* maps to no
+        # master category (_NODE_PATTERNS returns None for it and always
+        # has), and the cells belong to `Fx`. Same shape as expand_crossover,
+        # which writes MainL/MainR/MainSub cells off one node.
+        aux = int(prm.get('aux', 0) or 0)
+        if not aux:
+            sys.exit(f'ERROR: {nid} declares fx_sends={n_send} and no '
+                     f'`aux=` param, so there is no aux number to index the '
+                     f'Fx*AuxOn/AuxSend cells by. gen_dsp_csv.py writes it; '
+                     f'refusing to guess which bus this node sums.')
+        for x in range(1, n_send + 1):
+            add_cell(cn('Fx', x, 'AuxOn', aux), chip, pg, base + (x - 1),
+                     '', 'InstantCtl')
+            add_dispatch(chip, base + (x - 1),
+                         f'_mix_on_{nid} + {x-1}' if x > 1 else f'_mix_on_{nid}',
+                         f'{nid} Fx{x} AuxOn')
+        for x in range(1, n_send + 1):
+            off = n_send + (x - 1)
+            add_cell(cn('Fx', x, 'AuxSend', aux), chip, pg, base + off,
+                     'dB:Off:-50@31:-30@63:-10@127:0', 'GainFast')
+            add_dispatch(chip, base + off,
+                         f'_mix_send_{nid} + {x-1}' if x > 1 else f'_mix_send_{nid}',
+                         f'{nid} Fx{x} AuxSend')
         return
     # 2 words: bus_id + source_count (internal, no _Cell)
     add_dispatch(chip, base, None, f'{nid} bus_id')

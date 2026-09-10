@@ -166,6 +166,18 @@
 .global _C2_FX_ENG_03_process;
 _C2_FX_ENG_03_process:
         #if DSP4_BLOCK_KERNELS
+            /* ---- PARK: _fx_on_C2_FX_ENG_03 is off ---- */
+            r5 = dm(_fx_on_C2_FX_ENG_03);
+            r5 = pass r5;
+            if ne jump (pc, .bwrun_C2_FX_ENG_03);
+            l0 = 0;
+            r0 = 0;
+            i0 = _blk_C2_FX_ENG_03;
+            lcntr = DSP4_BLOCK_SIZE, do .bwpk_C2_FX_ENG_03 until lce;
+            .bwpk_C2_FX_ENG_03: dm(i0, 1) = r0;
+            dm(_buf_C2_FX_ENG_03) = r0;
+            rts;
+        .bwrun_C2_FX_ENG_03:
             /* ---- generic per-block wrapper (review finding D16) ----
              * Runs the per-sample reference body BLOCK times over this
              * node's own block buffer, staging each sample through the
@@ -241,6 +253,31 @@ _C2_FX_ENG_03_process:
         .global _C2_FX_ENG_03_process_sample;
         _C2_FX_ENG_03_process_sample:
         #endif
+    /* ---- Fx<n>On, WHICH NOTHING HAD EVER READ (S21-4) -------
+     * `Fx[1-8]On[1-1]` is "FX system on/off" in the cell master.
+     * It has had an address since the map was written, the host
+     * could write it, `_fx_on_C2_FX_ENG_03` was declared right above --
+     * and not ONE emitted instruction in this tree ever loaded
+     * it. So the switch did nothing: the engine ran, and paid,
+     * with the cell at either value.
+     *
+     * OFF PUBLISHES SILENCE, AND THAT IS THE WHOLE OF THE
+     * RETURN'S MUTE. With S23 gate 2 the return strip feeds the
+     * main mix (and, gate 3, the aux buses) from this node's
+     * output through FADER_PAN, so a zero here is a zero at
+     * every destination -- one gate, not one per crosspoint.
+     *
+     * THE ENGINE'S STATE IS FROZEN, NOT CLEARED, and that is
+     * what "parked" means: the comb, allpass and delay lines
+     * keep whatever they last held, so an engine switched off
+     * and on again inside its own decay time releases the tail
+     * it was holding. Clearing them is 24,587 words an engine
+     * and it is not obvious that clearing is what the product
+     * wants -- it is a question for PW (see
+     * dsp-definitions-needed.md), not a thing to decide here. */
+    r1 = dm(_fx_on_C2_FX_ENG_03);
+    r1 = pass r1;
+    if eq jump (pc, .fx_off_C2_FX_ENG_03);
     /* ---- THE L REGISTERS, WHICH THIS KERNEL NEVER SET -------
      * Every `modify(iN, mN)` below is a LINEAR pointer add, and
      * on SHARC that is only true while lN is zero: a non-zero
@@ -551,5 +588,18 @@ jump (pc, .fx_bypass_C2_FX_ENG_03);
     dm(_buf_C2_FX_ENG_03) = r0;
     dm(_buf_L_C2_FX_ENG_03) = r0;
     dm(_buf_R_C2_FX_ENG_03) = r0;
+    rts;
+
+/* ================= PARKED (Fx<n>On == 0) ================ */
+.fx_off_C2_FX_ENG_03:
+    /* r1 and not r0, deliberately: gen_fx_engine_fixed() finds
+     * this node's float-island entry and exit by matching the
+     * exact text of the input read and the `_buf_` store, and a
+     * second `dm(_buf_C2_FX_ENG_03) = r0;` anywhere in the body would
+     * make that match ambiguous and stop the generator. */
+    r1 = 0;
+    dm(_buf_C2_FX_ENG_03) = r1;
+    dm(_buf_L_C2_FX_ENG_03) = r1;
+    dm(_buf_R_C2_FX_ENG_03) = r1;
     rts;
 _C2_FX_ENG_03_process.end:

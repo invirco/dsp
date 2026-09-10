@@ -3222,6 +3222,31 @@ def gen_fx_engine(node):
         .section/pm seg_pmco;
         .global _{nid}_process;
         _{nid}_process:
+            /* ---- Fx<n>On, WHICH NOTHING HAD EVER READ (S21-4) -------
+             * `Fx[1-8]On[1-1]` is "FX system on/off" in the cell master.
+             * It has had an address since the map was written, the host
+             * could write it, `_fx_on_{nid}` was declared right above --
+             * and not ONE emitted instruction in this tree ever loaded
+             * it. So the switch did nothing: the engine ran, and paid,
+             * with the cell at either value.
+             *
+             * OFF PUBLISHES SILENCE, AND THAT IS THE WHOLE OF THE
+             * RETURN'S MUTE. With S23 gate 2 the return strip feeds the
+             * main mix (and, gate 3, the aux buses) from this node's
+             * output through FADER_PAN, so a zero here is a zero at
+             * every destination -- one gate, not one per crosspoint.
+             *
+             * THE ENGINE'S STATE IS FROZEN, NOT CLEARED, and that is
+             * what "parked" means: the comb, allpass and delay lines
+             * keep whatever they last held, so an engine switched off
+             * and on again inside its own decay time releases the tail
+             * it was holding. Clearing them is 24,587 words an engine
+             * and it is not obvious that clearing is what the product
+             * wants -- it is a question for PW (see
+             * dsp-definitions-needed.md), not a thing to decide here. */
+            r1 = dm(_fx_on_{nid});
+            r1 = pass r1;
+            if eq jump (pc, .fx_off_{nid});
             /* ---- THE L REGISTERS, WHICH THIS KERNEL NEVER SET -------
              * Every `modify(iN, mN)` below is a LINEAR pointer add, and
              * on SHARC that is only true while lN is zero: a non-zero
@@ -3778,6 +3803,19 @@ def gen_fx_engine(node):
             dm(_buf_{nid}) = r0;
             dm(_buf_L_{nid}) = r0;
             dm(_buf_R_{nid}) = r0;
+            rts;
+
+        /* ================= PARKED (Fx<n>On == 0) ================ */
+        .fx_off_{nid}:
+            /* r1 and not r0, deliberately: gen_fx_engine_fixed() finds
+             * this node's float-island entry and exit by matching the
+             * exact text of the input read and the `_buf_` store, and a
+             * second `dm(_buf_{nid}) = r0;` anywhere in the body would
+             * make that match ambiguous and stop the generator. */
+            r1 = 0;
+            dm(_buf_{nid}) = r1;
+            dm(_buf_L_{nid}) = r1;
+            dm(_buf_R_{nid}) = r1;
             rts;
         _{nid}_process.end:
     """))
@@ -4679,6 +4717,103 @@ def _mtr_acc_flush(meter_id):
             f'            call _mtr_flush;')
 
 
+def _mtr_comp_gr(node):
+    """The compressor gain-reduction word this meter publishes (S23 gate 4).
+
+    Returns (src_node_id, DM declaration, .extern block, block-rate body);
+    all four are empty strings for a meter that declares no `comp_gr` tap.
+
+    WHERE THE WORD LIVES, AND WHERE IT MUST NOT. `Chan[1-64]CompMtr[1-1]`
+    is bound to the meter's SPI base+3, which was dispatched to NOTHING
+    (S1-4 listed it `unbacked-meter`), so the cell gets an address without
+    one existing address moving. The DM word is a NEW variable declared
+    AFTER `_mtr_acc_`, and that is the whole trap: `_mtr_fold` takes the
+    address of `_mtr_peak_<nid>` and reaches `_mtr_rms_`, `_mtr_gr_` and
+    `_mtr_st_[4]` by OFFSET, so a word inserted at DM offset +3 would push
+    `_mtr_st_` up by one and every meter on both chips would fold into the
+    wrong four words. SPI offset +3 and DM offset +3 are different things
+    and this is the node where confusing them is expensive.
+
+    WHAT IT PUBLISHES. `_comp_gain_<comp>` is the compressor's own Q4.28
+    gain, unity (0x10000000) when the compressor is not reducing, and it is
+    a DISPLAY word the kernel already stores on every sample -- so there is
+    no new per-sample work anywhere. The meter converts it ONCE PER BLOCK
+    to dB, which is what the cell means by gain reduction:
+
+        gr_dB = 20*log10(g) = (20/log2(10)) * log2(g)
+
+    via `_log2q_fx` (Q4.28 -> log2 Q6.25), which both the table and the
+    polynomial arm of dyn_fx.asm export under the same name and the same
+    register contract. CLAMPED TO [-40, 0] dB, which is the range the
+    dispatch names; a gain word of exactly zero comes out of `_log2q_fx`
+    at about -175 dB and lands on the floor rather than on an infinity.
+    The clamp is the one thing here that is a DECISION and not a
+    derivation, and it is PW's to change.
+    """
+    if 'comp_gr' not in _parse_taps_cg(node.get('params_raw', '')):
+        return '', '', '', ''
+    cgr = node['params'].get('comp_gr_src', '')
+    if not cgr:
+        raise ValueError(
+            f"{node['id']}: declares a `comp_gr` tap and no `comp_gr_src=` "
+            f"param, so there is no compressor to publish the gain of. Name "
+            f"it on the dsp.csv row (gen_dsp_csv.py) -- this generator will "
+            f"not derive it from the meter's own id.")
+    nid = node['id']
+    decl = (f'\n        /* +3 on the SPI block, and NOT at DM offset +3: see\n'
+            f'         * _mtr_comp_gr(). Declared after the accumulators so\n'
+            f"         * _mtr_fold's offsets from _mtr_peak_ are untouched. */\n"
+            f'        .var _mtr_cgr_{nid} = 0.0;   '
+            f'/* comp gain reduction, dB */')
+    extern = (f'        .extern _comp_gain_{cgr};\n'
+              f'        .extern _log2q_fx;\n')
+    body = (f"""\
+            /* ---- COMPRESSOR GAIN REDUCTION, once per block ----
+             * r0-r5, i0, l0 and MRF only, which is _log2q_fx's whole
+             * register footprint and a subset of what the fold below
+             * sets up for itself. */
+            r0 = dm(_comp_gain_{cgr});
+            call _log2q_fx;              /* log2(g), Q6.25 */
+            r1 = -25;
+            f0 = float r0 by r1;
+            r1 = 0x40C0A8C1;             /* 20/log2(10) = 6.0205999 */
+            f1 = r1;
+            f0 = f0 * f1;                /* dB, <= 0 while reducing */
+            r1 = 0x00000000;             /* 0.0f  -- no reduction   */
+            comp(f0, f1);
+            if gt r0 = r1;
+            r1 = 0xC2200000;             /* -40.0f -- the stated floor */
+            comp(f0, f1);
+            if lt r0 = r1;
+            dm(_mtr_cgr_{nid}) = r0;""")
+    return cgr, decl, extern, body.rstrip('\n') + '\n'
+
+
+def _parse_taps_cg(raw):
+    """The tap names a METER node declares, off the RAW params column.
+
+    THE SAME RULE AS gen_dsp.py::_parse_taps, and it has to be: that
+    generator decides which SPI word each tap gets and this one decides
+    which instruction writes it, so a disagreement between the two is a
+    cell pointing at a word nothing fills. `;` separates the taps as well
+    as the key=value pairs, so the list runs from `taps=` to the end of
+    the params or to the next `key=` token, whichever comes first --
+    parse_params() cannot express that and returns only the first tap.
+    """
+    raw = (raw or '').strip().strip('"')
+    if 'taps=' not in raw:
+        return []
+    names = []
+    for tok in raw.split('taps=', 1)[1].split(';'):
+        tok = tok.strip()
+        if not tok:
+            continue
+        if '=' in tok:
+            break
+        names.append(tok)
+    return names
+
+
 def gen_meter_fixed(node):
     """METER — rebuilt in-kernel 2026-08-28, moved onto the WIDE WORD
     2026-08-29 (PW rulings).
@@ -4695,6 +4830,17 @@ def gen_meter_fixed(node):
                     f'        .extern _mtr_wblk_{src};\n'
                     f'        #endif\n'
                     if node['chip'] == '2' and mode != 'acc' else '')
+    cgr_src, cgr_decl, cgr_extern, cgr_body = _mtr_comp_gr(node)
+    # The per-sample arm needs the same block of instructions with the
+    # r0 re-read after it; when there is no comp_gr tap both are empty and
+    # the emitted text is byte-identical to the pre-S23 generator.
+    cgr_body_ps = ((
+        '\n            /* THE COMP-GR CONVERSION GOES HERE, not in .mtacc_:'
+        '\n             * both builds must publish it exactly once per block,'
+        '\n             * and it clobbers r0, so it runs before the wide word'
+        '\n             * is read back. */\n'
+        + cgr_body.rstrip('\n')
+        + f'\n            r0 = dm(_mtr_wide_{src});') if cgr_body else '')
 
     if mode == 'acc':
         blk_body = dedent(f"""\
@@ -4773,20 +4919,20 @@ def gen_meter_fixed(node):
          * squares is Q16.48 and a block of them overruns 64 bits, so mr2f
          * is state and not a sign extension. Filled by {src} under block
          * kernels and by this node's own per-sample body otherwise. */
-        .var _mtr_acc_{nid}[5];          /* mx mn ssq_lo ssq_hi ssq_ex     */
+        .var _mtr_acc_{nid}[5];          /* mx mn ssq_lo ssq_hi ssq_ex     */{cgr_decl}
 
         .section/pm seg_pmco;
         .extern _mtr_fold;
         .extern _mtr_load_fold;
         .extern _sample_idx;
         .extern _mtr_wide_{src};
-{_wblk_extern}        .global _{nid}_process;
+{cgr_extern}{_wblk_extern}        .global _{nid}_process;
         _{nid}_process:
         #if DSP4_MTR_OFF
             /* measurement only: what the meter costs, by removing it */
             rts;
         #elif DSP4_BLOCK_KERNELS
-{blk_body}
+{cgr_body}{blk_body}
 {blk_tail}
         #else
             /* Per SAMPLE. The block accumulators live in DM because there
@@ -4800,7 +4946,7 @@ def gen_meter_fixed(node):
             r1 = 0;
             comp(r4, r1);
             if ne jump (pc, .mtacc_{nid});
-            /* first sample of the block: seed rather than accumulate */
+            /* first sample of the block: seed rather than accumulate */{cgr_body_ps}
             dm(_mtr_acc_{nid} + 0) = r0;
             dm(_mtr_acc_{nid} + 1) = r0;
             mrf = 0;
@@ -8753,28 +8899,194 @@ def gen_mix_bus_fixed(node):
         macs.append(f'r1 = dm(_mix_gq_{nid} + {k});')
         macs.append('mrf = mrf + r0 * r1 (ssi);')
     mac_block = '\n                '.join(macs) if macs else 'nop;'
+    # ---- THE SWITCHED SENDS (S23 gate 3) -------------------------------
+    #
+    # `fx_sends=N` says the LAST N sources of this bus are CROSSPOINTS and
+    # not fixed feeds: each has an on/off flag and a ramped send level, and
+    # its Q4.28 coefficient is the two folded together at block rate --
+    # `_mix_gq_` is what the accumulate reads, so an off or zero send is a
+    # coefficient of exactly zero and there is nothing left for the
+    # per-sample path to test (the 08-25 crosspoint mandate, on chip 2).
+    #
+    # A dsp.csv without `fx_sends` emits none of this and the generated
+    # text is byte-identical to the pre-S23 generator, which is what makes
+    # the main mixes' own diff readable.
+    n_send = int(p.get('fx_sends', 0) or 0)
+    if n_send > n_src:
+        raise ValueError(
+            f'{nid}: fx_sends={n_send} but the node has only {n_src} '
+            f'inputs. The switched sends are the LAST fx_sends of them.')
+    n_plain = n_src - n_send
     cvts = []
-    for k in range(max(n_src, 1)):
+    for k in range(max(n_plain, 1)):
         cvts.append(f'f1 = dm(_mix_gains_{nid} + {k});')
         cvts.append('f1 = f1 * f2;')
         cvts.append('r1 = fix f1;')
         cvts.append(f'dm(_mix_gq_{nid} + {k}) = r1;')
     cvt_block = '\n                '.join(cvts)
-    ones = ', '.join(['1.0'] * max(n_src, 1))
+    ones = ', '.join(['1.0'] * max(n_plain, 1))
+    if n_send:
+        zf = ', '.join(['0.0'] * n_send)
+        zi = ', '.join(['0'] * n_send)
+        # ORDER IS THE RUNTIME CONTRACT: value, _target_, _step_, _frames_
+        # in consecutive .var declarations of equal width. gen_dsp.py's
+        # build_ramp_stride_map() reads THIS ADJACENCY out of the emitted
+        # ASM to give the SPI handler the stride it writes the companions
+        # at (+s/+2s/+3s from the value), and _ramp_set_target would
+        # otherwise scribble target over the neighbouring send's level.
+        send_vars = (
+            f'        .var _mix_on_{nid}[{n_send}] = {zi};'
+            f'        /* crosspoint on/off      */\n'
+            f'        .var _mix_send_{nid}[{n_send}] = {zf};'
+            f'        /* send level, FLOAT      */\n'
+            f'        .var _mix_send_target_{nid}[{n_send}] = {zf};\n'
+            f'        .var _mix_send_step_{nid}[{n_send}] = {zf};\n'
+            f'        .var _mix_send_frames_{nid}[{n_send}] = {zi};\n')
+        send_cvt = f"""\
+            /* ---- the switched sends: ramp, then fold the on/off in ----
+             * One pass per BLOCK, exactly like ROUTING's send helper and
+             * for the same reason: left in the accumulate this is a
+             * float ramp step, a fix and a compare on every sample of
+             * every crosspoint. */
+            r11 = 0;                      /* the OR of every coefficient */
+            l0 = 0;
+            i0 = _mix_on_{nid};
+            i4 = _mix_send_{nid};
+            i5 = _mix_send_step_{nid};
+            i6 = _mix_send_frames_{nid};
+            i3 = _mix_send_target_{nid};
+            i2 = _mix_gq_{nid} + {n_plain};
+            lcntr = {n_send}, do .msrmp_{nid} until lce;
+                r4 = dm(i6, 0);
+                r6 = DSP4_BLOCK_SIZE;
+                comp(r4, r6);
+                if lt r6 = r4;                /* n = min(frames, BLOCK) */
+                r4 = r4 - r6;
+                dm(i6, 1) = r4;
+                r4 = pass r6;
+                if eq jump (pc, .mssnap_{nid});
+                f1 = dm(i4, 0);
+                f2 = dm(i5, 0);
+                f3 = float r6;
+                f2 = f2 * f3;                 /* step * n */
+                f1 = f1 + f2;
+                dm(i4, 0) = f1;
+                jump (pc, .mscvt_{nid});
+            .mssnap_{nid}:
+                f1 = dm(i3, 0);               /* snap to target */
+                dm(i4, 0) = f1;
+            .mscvt_{nid}:
+                r4 = 0x4D800000;              /* 2^28 float */
+                f2 = r4;
+                f1 = f1 * f2;
+                r4 = fix f1;
+                r6 = 0;                       /* fold the on/off bit in */
+                r7 = dm(i0, 1);
+                r7 = pass r7;
+                if eq r4 = r6;
+                r11 = r11 or r4;              /* is ANY crosspoint live? */
+                dm(i2, 1) = r4;               /* Q4.28 crosspoint coeff */
+                modify(i4, 1);
+                modify(i5, 1);
+                modify(i3, 1);
+            .msrmp_{nid}:
+                nop;
+"""
+    else:
+        send_vars = ''
+        send_cvt = ''
+    # ---- THE SWITCHED SENDS' BLOCK-RATE PREP, AND THE BYPASS -----------
+    #
+    # THE PREP IS HOISTED OUT OF THE PER-SAMPLE BODY under block kernels,
+    # and that is what makes the bypass below possible: the fold is what
+    # decides whether any crosspoint is live this block, so it has to run
+    # BEFORE the decision to run the sum at all. In the per-sample build it
+    # stays in the body behind the `_sample_idx == 0` guard, which fires
+    # once per block there too -- same arithmetic, same rate, same result.
+    #
+    # THE BYPASS EXISTS BECAUSE THE FEATURE IS OFF BY DEFAULT AND WAS NOT
+    # FREE. Measured on the part 2026-09-10 (S23-5): twelve aux sums with
+    # the generic chip-2 wrapper cost chip 2 **13.59 points at D24** with
+    # every FX send at its shipping default of off -- 87.67 % against
+    # S21's 74.08 % -- because the wrapper stages all seven sources through
+    # their scalar `_buf_` words on every sample whatever the coefficients
+    # are. Thirteen points for a crosspoint nobody has switched on is the
+    # wrong trade, and at D32 (S21: 87.08 %) it would not have fitted.
+    #
+    # WHAT MAKES IT EXACT rather than an approximation, and it is a
+    # two-line argument. With every switched coefficient zero the sum is
+    # the plain half alone; with ONE plain source at a coefficient of
+    # exactly 2^28 the MRF holds `x * 2**28` exactly and `_mrf_rns28`
+    # returns `(x * 2**28 + 2**27) >> 28`, which IS x -- so the full path
+    # writes the input word unchanged and the bypass copies it. Not close:
+    # identical. **And it is not only an argument: it was measured on the
+    # part before the bypass existed** -- `_buf_C2_MIX_AUX_01` reproduced
+    # `_buf_C2_RECV_AUX_01` in 32 of 32 words with the sends off.
+    #
+    # It is emitted ONLY where that argument holds: one plain source
+    # (`n_plain == 1`), checked at generate time, and its float gain read
+    # back as exactly 1.0f at run time. The main mixes have seventeen plain
+    # sources and no switched ones, so they get neither this nor the prep
+    # and their emitted text is byte-identical to the pre-S23 generator.
+    if n_send and n_plain == 1:
+        plain0 = node['inputs'][0]
+        fast = f"""\
+        #if DSP4_BLOCK_KERNELS
+{send_cvt}            /* ---- the bypass: no crosspoint is live this block ----
+             * r11 is the OR of every switched coefficient, accumulated by
+             * the fold above. Zero means the sum is the plain source alone,
+             * and at a unity coefficient that sum IS the plain source --
+             * see the note in gen_mix_bus_fixed(). */
+            r11 = pass r11;
+            if ne jump (pc, .mixrun_{nid});
+            r0 = dm(_mix_gains_{nid});
+            r1 = 0x3F800000;              /* 1.0f -- anything else runs   */
+            comp(r0, r1);
+            if ne jump (pc, .mixrun_{nid});
+            l0 = 0;
+            l1 = 0;
+            i0 = _blk_{plain0};
+            i1 = _blk_{nid};
+            lcntr = DSP4_BLOCK_HALF, do .mixcp_{nid} until lce;
+                r0 = dm(i0, 1);
+                r2 = dm(i0, 1);
+                dm(i1, 1) = r0;
+            .mixcp_{nid}:
+                dm(i1, 1) = r2;
+            dm(_buf_{nid}) = r2;          /* the staging word the full
+                                           * path leaves behind too      */
+            rts;
+        .mixrun_{nid}:
+        #endif
+        /* @C2BLKWRAP */
+"""
+        # THE PER-SAMPLE BUILD STILL NEEDS THE PREP, and it needs it HERE,
+        # because the copy above is the only place it exists in the block
+        # build and that whole prologue is compiled out without block
+        # kernels. Dropping it would leave a per-sample build converting the
+        # plain gains and never the switched ones -- every crosspoint stuck
+        # at its .var initialiser of zero, which is silence that looks
+        # exactly like a send nobody opened.
+        send_cvt_body = ('        #if !DSP4_BLOCK_KERNELS\n'
+                         + send_cvt + '        #endif\n')
+    else:
+        fast = ''
+        send_cvt_body = send_cvt
     return dedent(f"""\
         /* MIX_BUS (FIXED, D5): bus_id={p.get('bus_id','?')} — {n_src} sources, exact MRF sum */
+        /* {n_plain} fixed feed(s) + {n_send} switched send(s) */
 
         .section/dm seg_dmda;
-        .var _mix_gains_{nid}[{max(n_src, 1)}] = {ones};   /* FLOAT (host) */
+        .var _mix_gains_{nid}[{max(n_plain, 1)}] = {ones};   /* FLOAT (host) */
         .var _mix_gq_{nid}[{max(n_src, 1)}];               /* Q4.28 shadow */
-        .var _buf_{nid};
+{send_vars}        .var _buf_{nid};
 
         .section/pm seg_pmco;
         .extern _sample_idx;
         .extern _mrf_rns28;
         .global _{nid}_process;
         _{nid}_process:
-            /* block-rate gain shadow refresh */
+{fast}            /* block-rate gain shadow refresh */
         /* The block-rate guard exists ONLY for the per-sample build. Under
          * DSP4_BLOCK_KERNELS the node chain runs ONCE per block with
          * _sample_idx left at 31 by the scatter loop, so a surviving
@@ -8790,7 +9102,7 @@ def gen_mix_bus_fixed(node):
             r2 = 0x4D800000;
             f2 = r2;
                 {cvt_block}
-        .mix_go_{nid}:
+{send_cvt_body}        .mix_go_{nid}:
             r1 = 0;
             mr0f = r1;
             mr1f = r1;
@@ -12045,7 +12357,7 @@ def blk_wrap_decl(node, outs, wide=False):
     return '\n'.join(lines)
 
 
-def blk_wrap_body(node, outs, wide=False, note=''):
+def blk_wrap_body(node, outs, wide=False, note='', park=None):
     """The generic per-block wrapper, emitted AHEAD of the per-sample body.
 
     _sample_idx IS DRIVEN 0..BLOCK-1 by this loop, so every block-rate guard
@@ -12063,6 +12375,28 @@ def blk_wrap_body(node, outs, wide=False, note=''):
     L = []
     a = L.append
     a('        #if DSP4_BLOCK_KERNELS')
+    if park:
+        # THE BLOCK-LEVEL PARK (S23 gate 2). A node whose on/off cell is
+        # OFF publishes a block of silence and never enters the loop, so a
+        # switched-off engine costs the compare and the store and nothing
+        # else. It is an OPTIMISATION and not a behaviour: the per-sample
+        # body carries the same gate and writes the same zero, so the two
+        # builds stay bit-identical by construction -- which is the whole
+        # licence for putting a shortcut in front of the reference body.
+        a('            /* ---- PARK: %s is off ---- */' % park)
+        a(f'            r5 = dm({park});')
+        a('            r5 = pass r5;')
+        a(f'            if ne jump (pc, .bwrun_{nid});')
+        a('            l0 = 0;')
+        a('            r0 = 0;')
+        for sym in outs:
+            a(f'            i0 = {sym};')
+            a(f'            lcntr = DSP4_BLOCK_SIZE, do .bwpk_{sym[5:]} until lce;')
+            a(f'            .bwpk_{sym[5:]}: dm(i0, 1) = r0;')
+            scal = sym.replace('_blk_', '_buf_', 1)
+            a(f'            dm({scal}) = r0;')
+        a('            rts;')
+        a(f'        .bwrun_{nid}:')
     a('            /* ---- generic per-block wrapper (review finding D16) ----')
     a('             * Runs the per-sample reference body BLOCK times over this')
     a('             * node\'s own block buffer, staging each sample through the')
@@ -12225,6 +12559,18 @@ _C2_GUARD_LIVE = (
     "         * BLOCK-1, would run the whole conversion on every sample. */\n")
 
 
+# Chip-2 families whose on/off cell PARKS the whole node for a block.
+#
+# The value is the DM word the wrapper tests, with the node id appended.
+# FX_ENGINE is here because `Fx[1-8]On[1-1]` -- "FX system on/off" -- had NO
+# READER anywhere in the tree (S21-4): the cell had an address, the host
+# could write it, `_fx_on_<nid>` was declared, and not one emitted
+# instruction ever loaded it. So every engine ran, and paid, whatever the
+# host said. S23 gate 2 gives it its reader in the per-sample body and this
+# table gives the block build the shortcut in front of it.
+_C2_PARK_GATE = {'FX_ENGINE': '_fx_on_'}
+
+
 def c2_block_wrap(node, body):
     """Give a chip-2 node the generic block wrapper, post-hoc.
 
@@ -12264,7 +12610,15 @@ def c2_block_wrap(node, body):
                 f'{nid}: no .section/pm anchor for the chip-2 block wrapper')
         body = body.replace(anchor_pm, '\n' + decls + anchor_pm, 1)
 
-    wrap = blk_wrap_body(node, outs, wide) + '\n'
+    park = _C2_PARK_GATE.get(node['type'])
+    if park is not None:
+        if wide:
+            raise ValueError(
+                f'{nid}: a parked node cannot also publish a wide meter '
+                f'block -- the park would leave _mtr_wblk_{nid} stale. '
+                f'Zero it in the park path before allowing this.')
+        park += nid
+    wrap = blk_wrap_body(node, outs, wide, park=park) + '\n'
     # The marker's indentation does not survive textwrap.dedent intact, so it
     # is matched on the stripped line rather than on a fixed column.
     marker_lines = [ln for ln in body.split('\n')
@@ -15232,6 +15586,15 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
             'spi_page': row.get('spi_page', '-1').strip(),
             'spi_addr': row.get('spi_addr', '-1').strip(),
             'params': parse_params(row.get('params', '')),
+            # THE RAW COLUMN, KEPT BESIDE THE PARSED DICT. parse_params()
+            # splits on `;` and drops every token without an `=`, which is
+            # exactly right for key=value params and exactly wrong for the
+            # METER `taps=a;b;c` list -- it survives as {'taps': 'a'} and
+            # the other taps vanish without a word being said. That is the
+            # bug S1 hit in gen_dsp.py (fixed there with _parse_taps); this
+            # is the same bug's other end, so the raw text is available to
+            # the one generator that needs it.
+            'params_raw': row.get('params', ''),
             'ramp_profile': row.get('ramp_profile', '').strip(),
         }
         node['inputs_str'] = node['inputs'][0] if node['inputs'] else node['id']

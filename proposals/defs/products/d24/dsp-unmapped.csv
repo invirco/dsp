@@ -47,7 +47,6 @@ Aux008PickOff001,no-graph-node,aux-master send pickoff; the DSP pickoff is per c
 Bt001Src001,hardware-control,Bluetooth receiver source select — MCU hardware control
 Chan001AntiClip001,no-graph-node,per-channel anti-clip; no node in the graph implements it
 Chan001Color001,surface-state,strip colour on the surface
-Chan001CompMtr001,unbacked-meter,C1_MTR_01 declares tap 'comp_gr': no meter word exists; base+3 is the meter's own state array
 Chan001CueSel001,control-plane,PFL/cue select; the DSP has one monitor source word (Mon001InputSel001) that the host writes — open question Q5
 Chan001Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan001DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
@@ -65,7 +64,6 @@ Chan001MuteGrp008,control-plane,"mute-group membership; folded by the host onto 
 Chan001Name001,label,"text label; the host stores it, the DSP has no word for it"
 Chan002AntiClip001,no-graph-node,per-channel anti-clip; no node in the graph implements it
 Chan002Color001,surface-state,strip colour on the surface
-Chan002CompMtr001,unbacked-meter,C1_MTR_02 declares tap 'comp_gr': no meter word exists; base+3 is the meter's own state array
 Chan002CueSel001,control-plane,PFL/cue select; the DSP has one monitor source word (Mon001InputSel001) that the host writes — open question Q5
 Chan002Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan002DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
@@ -83,7 +81,6 @@ Chan002MuteGrp008,control-plane,"mute-group membership; folded by the host onto 
 Chan002Name001,label,"text label; the host stores it, the DSP has no word for it"
 Chan003AntiClip001,no-graph-node,per-channel anti-clip; no node in the graph implements it
 Chan003Color001,surface-state,strip colour on the surface
-Chan003CompMtr001,unbacked-meter,C1_MTR_03 declares tap 'comp_gr': no meter word exists; base+3 is the meter's own state array
 Chan003CueSel001,control-plane,PFL/cue select; the DSP has one monitor source word (Mon001InputSel001) that the host writes — open question Q5
 Chan003Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan003DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
@@ -100,7 +97,6 @@ Chan003MuteGrp008,control-plane,"mute-group membership; folded by the host onto 
 Chan003Name001,label,"text label; the host stores it, the DSP has no word for it"
 Chan004AntiClip001,no-graph-node,per-channel anti-clip; no node in the graph implements it
 Chan004Color001,surface-state,strip colour on the surface
-Chan004CompMtr001,unbacked-meter,C1_MTR_04 declares tap 'comp_gr': no meter word exists; base+3 is the meter's own state array
 Chan004CueSel001,control-plane,PFL/cue select; the DSP has one monitor source word (Mon001InputSel001) that the host writes — open question Q5
 Chan004Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan004DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
@@ -117,7 +113,6 @@ Chan004MuteGrp008,control-plane,"mute-group membership; folded by the host onto 
 Chan004Name001,label,"text label; the host stores it, the DSP has no word for it"
 Chan005AntiClip001,no-graph-node,per-channel anti-clip; no node in the graph implements it
 Chan005Color001,surface-state,strip colour on the surface
-Chan005CompMtr001,unbacked-meter,C1_MTR_05 declares tap 'comp_gr': no meter word exists; base+3 is the meter's own state array
 Chan005CueSel001,control-plane,PFL/cue select; the DSP has one monitor source word (Mon001InputSel001) that the host writes — open question Q5
 Chan005Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan005DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
@@ -134,7 +129,6 @@ Chan005MuteGrp008,control-plane,"mute-group membership; folded by the host onto 
 Chan005Name001,label,"text label; the host stores it, the DSP has no word for it"
 Chan006AntiClip001,no-graph-node,per-channel anti-clip; no node in the graph implements it
 Chan006Color001,surface-state,strip colour on the surface
-Chan006CompMtr001,unbacked-meter,C1_MTR_06 declares tap 'comp_gr': no meter word exists; base+3 is the meter's own state array
 Chan006CueSel001,control-plane,PFL/cue select; the DSP has one monitor source word (Mon001InputSel001) that the host writes — open question Q5
 Chan006Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan006DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
@@ -151,7 +145,6 @@ Chan006MuteGrp008,control-plane,"mute-group membership; folded by the host onto 
 Chan006Name001,label,"text label; the host stores it, the DSP has no word for it"
 Chan007AntiClip001,no-graph-node,per-channel anti-clip; no node in the graph implements it
 Chan007Color001,surface-state,strip colour on the surface
-Chan007CompMtr001,unbacked-meter,C1_MTR_07 declares tap 'comp_gr': no meter word exists; base+3 is the meter's own state array
 Chan007CueSel001,control-plane,PFL/cue select; the DSP has one monitor source word (Mon001InputSel001) that the host writes — open question Q5
 Chan007Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan007DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
@@ -168,7 +161,6 @@ Chan007MuteGrp008,control-plane,"mute-group membership; folded by the host onto 
 Chan007Name001,label,"text label; the host stores it, the DSP has no word for it"
 Chan008AntiClip001,no-graph-node,per-channel anti-clip; no node in the graph implements it
 Chan008Color001,surface-state,strip colour on the surface
-Chan008CompMtr001,unbacked-meter,C1_MTR_08 declares tap 'comp_gr': no meter word exists; base+3 is the meter's own state array
 Chan008CueSel001,control-plane,PFL/cue select; the DSP has one monitor source word (Mon001InputSel001) that the host writes — open question Q5
 Chan008Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan008DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
@@ -185,7 +177,6 @@ Chan008MuteGrp008,control-plane,"mute-group membership; folded by the host onto 
 Chan008Name001,label,"text label; the host stores it, the DSP has no word for it"
 Chan009AntiClip001,no-graph-node,per-channel anti-clip; no node in the graph implements it
 Chan009Color001,surface-state,strip colour on the surface
-Chan009CompMtr001,unbacked-meter,C1_MTR_09 declares tap 'comp_gr': no meter word exists; base+3 is the meter's own state array
 Chan009CueSel001,control-plane,PFL/cue select; the DSP has one monitor source word (Mon001InputSel001) that the host writes — open question Q5
 Chan009Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan009DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
@@ -202,7 +193,6 @@ Chan009MuteGrp008,control-plane,"mute-group membership; folded by the host onto 
 Chan009Name001,label,"text label; the host stores it, the DSP has no word for it"
 Chan010AntiClip001,no-graph-node,per-channel anti-clip; no node in the graph implements it
 Chan010Color001,surface-state,strip colour on the surface
-Chan010CompMtr001,unbacked-meter,C1_MTR_10 declares tap 'comp_gr': no meter word exists; base+3 is the meter's own state array
 Chan010CueSel001,control-plane,PFL/cue select; the DSP has one monitor source word (Mon001InputSel001) that the host writes — open question Q5
 Chan010Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan010DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
@@ -219,7 +209,6 @@ Chan010MuteGrp008,control-plane,"mute-group membership; folded by the host onto 
 Chan010Name001,label,"text label; the host stores it, the DSP has no word for it"
 Chan011AntiClip001,no-graph-node,per-channel anti-clip; no node in the graph implements it
 Chan011Color001,surface-state,strip colour on the surface
-Chan011CompMtr001,unbacked-meter,C1_MTR_11 declares tap 'comp_gr': no meter word exists; base+3 is the meter's own state array
 Chan011CueSel001,control-plane,PFL/cue select; the DSP has one monitor source word (Mon001InputSel001) that the host writes — open question Q5
 Chan011Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan011DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
@@ -236,7 +225,6 @@ Chan011MuteGrp008,control-plane,"mute-group membership; folded by the host onto 
 Chan011Name001,label,"text label; the host stores it, the DSP has no word for it"
 Chan012AntiClip001,no-graph-node,per-channel anti-clip; no node in the graph implements it
 Chan012Color001,surface-state,strip colour on the surface
-Chan012CompMtr001,unbacked-meter,C1_MTR_12 declares tap 'comp_gr': no meter word exists; base+3 is the meter's own state array
 Chan012CueSel001,control-plane,PFL/cue select; the DSP has one monitor source word (Mon001InputSel001) that the host writes — open question Q5
 Chan012Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan012DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
@@ -253,7 +241,6 @@ Chan012MuteGrp008,control-plane,"mute-group membership; folded by the host onto 
 Chan012Name001,label,"text label; the host stores it, the DSP has no word for it"
 Chan013AntiClip001,no-graph-node,per-channel anti-clip; no node in the graph implements it
 Chan013Color001,surface-state,strip colour on the surface
-Chan013CompMtr001,unbacked-meter,C1_MTR_13 declares tap 'comp_gr': no meter word exists; base+3 is the meter's own state array
 Chan013CueSel001,control-plane,PFL/cue select; the DSP has one monitor source word (Mon001InputSel001) that the host writes — open question Q5
 Chan013Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan013DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
@@ -270,7 +257,6 @@ Chan013MuteGrp008,control-plane,"mute-group membership; folded by the host onto 
 Chan013Name001,label,"text label; the host stores it, the DSP has no word for it"
 Chan014AntiClip001,no-graph-node,per-channel anti-clip; no node in the graph implements it
 Chan014Color001,surface-state,strip colour on the surface
-Chan014CompMtr001,unbacked-meter,C1_MTR_14 declares tap 'comp_gr': no meter word exists; base+3 is the meter's own state array
 Chan014CueSel001,control-plane,PFL/cue select; the DSP has one monitor source word (Mon001InputSel001) that the host writes — open question Q5
 Chan014Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan014DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
@@ -287,7 +273,6 @@ Chan014MuteGrp008,control-plane,"mute-group membership; folded by the host onto 
 Chan014Name001,label,"text label; the host stores it, the DSP has no word for it"
 Chan015AntiClip001,no-graph-node,per-channel anti-clip; no node in the graph implements it
 Chan015Color001,surface-state,strip colour on the surface
-Chan015CompMtr001,unbacked-meter,C1_MTR_15 declares tap 'comp_gr': no meter word exists; base+3 is the meter's own state array
 Chan015CueSel001,control-plane,PFL/cue select; the DSP has one monitor source word (Mon001InputSel001) that the host writes — open question Q5
 Chan015Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan015DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
@@ -304,7 +289,6 @@ Chan015MuteGrp008,control-plane,"mute-group membership; folded by the host onto 
 Chan015Name001,label,"text label; the host stores it, the DSP has no word for it"
 Chan016AntiClip001,no-graph-node,per-channel anti-clip; no node in the graph implements it
 Chan016Color001,surface-state,strip colour on the surface
-Chan016CompMtr001,unbacked-meter,C1_MTR_16 declares tap 'comp_gr': no meter word exists; base+3 is the meter's own state array
 Chan016CueSel001,control-plane,PFL/cue select; the DSP has one monitor source word (Mon001InputSel001) that the host writes — open question Q5
 Chan016Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan016DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
@@ -321,7 +305,6 @@ Chan016MuteGrp008,control-plane,"mute-group membership; folded by the host onto 
 Chan016Name001,label,"text label; the host stores it, the DSP has no word for it"
 Chan017AntiClip001,no-graph-node,per-channel anti-clip; no node in the graph implements it
 Chan017Color001,surface-state,strip colour on the surface
-Chan017CompMtr001,unbacked-meter,C1_MTR_17 declares tap 'comp_gr': no meter word exists; base+3 is the meter's own state array
 Chan017CueSel001,control-plane,PFL/cue select; the DSP has one monitor source word (Mon001InputSel001) that the host writes — open question Q5
 Chan017Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan017DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
@@ -338,7 +321,6 @@ Chan017MuteGrp008,control-plane,"mute-group membership; folded by the host onto 
 Chan017Name001,label,"text label; the host stores it, the DSP has no word for it"
 Chan018AntiClip001,no-graph-node,per-channel anti-clip; no node in the graph implements it
 Chan018Color001,surface-state,strip colour on the surface
-Chan018CompMtr001,unbacked-meter,C1_MTR_18 declares tap 'comp_gr': no meter word exists; base+3 is the meter's own state array
 Chan018CueSel001,control-plane,PFL/cue select; the DSP has one monitor source word (Mon001InputSel001) that the host writes — open question Q5
 Chan018Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan018DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
@@ -355,7 +337,6 @@ Chan018MuteGrp008,control-plane,"mute-group membership; folded by the host onto 
 Chan018Name001,label,"text label; the host stores it, the DSP has no word for it"
 Chan019AntiClip001,no-graph-node,per-channel anti-clip; no node in the graph implements it
 Chan019Color001,surface-state,strip colour on the surface
-Chan019CompMtr001,unbacked-meter,C1_MTR_19 declares tap 'comp_gr': no meter word exists; base+3 is the meter's own state array
 Chan019CueSel001,control-plane,PFL/cue select; the DSP has one monitor source word (Mon001InputSel001) that the host writes — open question Q5
 Chan019Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan019DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
@@ -372,7 +353,6 @@ Chan019MuteGrp008,control-plane,"mute-group membership; folded by the host onto 
 Chan019Name001,label,"text label; the host stores it, the DSP has no word for it"
 Chan020AntiClip001,no-graph-node,per-channel anti-clip; no node in the graph implements it
 Chan020Color001,surface-state,strip colour on the surface
-Chan020CompMtr001,unbacked-meter,C1_MTR_20 declares tap 'comp_gr': no meter word exists; base+3 is the meter's own state array
 Chan020CueSel001,control-plane,PFL/cue select; the DSP has one monitor source word (Mon001InputSel001) that the host writes — open question Q5
 Chan020Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan020DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
@@ -389,7 +369,6 @@ Chan020MuteGrp008,control-plane,"mute-group membership; folded by the host onto 
 Chan020Name001,label,"text label; the host stores it, the DSP has no word for it"
 Chan021AntiClip001,no-graph-node,per-channel anti-clip; no node in the graph implements it
 Chan021Color001,surface-state,strip colour on the surface
-Chan021CompMtr001,unbacked-meter,C1_MTR_21 declares tap 'comp_gr': no meter word exists; base+3 is the meter's own state array
 Chan021CueSel001,control-plane,PFL/cue select; the DSP has one monitor source word (Mon001InputSel001) that the host writes — open question Q5
 Chan021Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan021DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
@@ -406,7 +385,6 @@ Chan021MuteGrp008,control-plane,"mute-group membership; folded by the host onto 
 Chan021Name001,label,"text label; the host stores it, the DSP has no word for it"
 Chan022AntiClip001,no-graph-node,per-channel anti-clip; no node in the graph implements it
 Chan022Color001,surface-state,strip colour on the surface
-Chan022CompMtr001,unbacked-meter,C1_MTR_22 declares tap 'comp_gr': no meter word exists; base+3 is the meter's own state array
 Chan022CueSel001,control-plane,PFL/cue select; the DSP has one monitor source word (Mon001InputSel001) that the host writes — open question Q5
 Chan022Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan022DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
@@ -423,7 +401,6 @@ Chan022MuteGrp008,control-plane,"mute-group membership; folded by the host onto 
 Chan022Name001,label,"text label; the host stores it, the DSP has no word for it"
 Chan023AntiClip001,no-graph-node,per-channel anti-clip; no node in the graph implements it
 Chan023Color001,surface-state,strip colour on the surface
-Chan023CompMtr001,unbacked-meter,C1_MTR_23 declares tap 'comp_gr': no meter word exists; base+3 is the meter's own state array
 Chan023CueSel001,control-plane,PFL/cue select; the DSP has one monitor source word (Mon001InputSel001) that the host writes — open question Q5
 Chan023Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan023DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
@@ -440,7 +417,6 @@ Chan023MuteGrp008,control-plane,"mute-group membership; folded by the host onto 
 Chan023Name001,label,"text label; the host stores it, the DSP has no word for it"
 Chan024AntiClip001,no-graph-node,per-channel anti-clip; no node in the graph implements it
 Chan024Color001,surface-state,strip colour on the surface
-Chan024CompMtr001,unbacked-meter,C1_MTR_24 declares tap 'comp_gr': no meter word exists; base+3 is the meter's own state array
 Chan024CueSel001,control-plane,PFL/cue select; the DSP has one monitor source word (Mon001InputSel001) that the host writes — open question Q5
 Chan024Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Chan024DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
@@ -583,22 +559,6 @@ Fdr005Grp021,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP addre
 Fdr005Grp022,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
 Fdr005Grp023,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
 Fdr005Grp024,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
-Fx001AuxOn001,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx001AuxOn002,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx001AuxOn003,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx001AuxOn004,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx001AuxOn005,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx001AuxOn006,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx001AuxOn007,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx001AuxOn008,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx001AuxSend001,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx001AuxSend002,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx001AuxSend003,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx001AuxSend004,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx001AuxSend005,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx001AuxSend006,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx001AuxSend007,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx001AuxSend008,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
 Fx001Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Fx001DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Fx001DuckThr001,s1-2-no-behaviour,S1-2: FxDuckThr is a definition again at defs-v2026.09.08. The FX engine has DuckOn and DuckSens words and no threshold word — Q7
@@ -619,22 +579,6 @@ Fx001PedAssign004,surface-state,footswitch assignment
 Fx001PingPongStart001,no-graph-node,ping-pong start side; the FX engine has no such word
 Fx001ReturnWetLock001,surface-state,UI lock on the return wet control
 Fx001Tap001,control-plane,tap tempo; the host computes and writes Fx*DelayTime*
-Fx002AuxOn001,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx002AuxOn002,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx002AuxOn003,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx002AuxOn004,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx002AuxOn005,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx002AuxOn006,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx002AuxOn007,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx002AuxOn008,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx002AuxSend001,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx002AuxSend002,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx002AuxSend003,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx002AuxSend004,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx002AuxSend005,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx002AuxSend006,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx002AuxSend007,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx002AuxSend008,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
 Fx002Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Fx002DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Fx002DuckThr001,s1-2-no-behaviour,S1-2: FxDuckThr is a definition again at defs-v2026.09.08. The FX engine has DuckOn and DuckSens words and no threshold word — Q7
@@ -654,22 +598,6 @@ Fx002PedAssign004,surface-state,footswitch assignment
 Fx002PingPongStart001,no-graph-node,ping-pong start side; the FX engine has no such word
 Fx002ReturnWetLock001,surface-state,UI lock on the return wet control
 Fx002Tap001,control-plane,tap tempo; the host computes and writes Fx*DelayTime*
-Fx003AuxOn001,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx003AuxOn002,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx003AuxOn003,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx003AuxOn004,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx003AuxOn005,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx003AuxOn006,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx003AuxOn007,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx003AuxOn008,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx003AuxSend001,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx003AuxSend002,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx003AuxSend003,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx003AuxSend004,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx003AuxSend005,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx003AuxSend006,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx003AuxSend007,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx003AuxSend008,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
 Fx003Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Fx003DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Fx003DuckThr001,s1-2-no-behaviour,S1-2: FxDuckThr is a definition again at defs-v2026.09.08. The FX engine has DuckOn and DuckSens words and no threshold word — Q7
@@ -689,22 +617,6 @@ Fx003PedAssign004,surface-state,footswitch assignment
 Fx003PingPongStart001,no-graph-node,ping-pong start side; the FX engine has no such word
 Fx003ReturnWetLock001,surface-state,UI lock on the return wet control
 Fx003Tap001,control-plane,tap tempo; the host computes and writes Fx*DelayTime*
-Fx004AuxOn001,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx004AuxOn002,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx004AuxOn003,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx004AuxOn004,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx004AuxOn005,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx004AuxOn006,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx004AuxOn007,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx004AuxOn008,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx004AuxSend001,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx004AuxSend002,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx004AuxSend003,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx004AuxSend004,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx004AuxSend005,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx004AuxSend006,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx004AuxSend007,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx004AuxSend008,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
 Fx004Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Fx004DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Fx004DuckThr001,s1-2-no-behaviour,S1-2: FxDuckThr is a definition again at defs-v2026.09.08. The FX engine has DuckOn and DuckSens words and no threshold word — Q7
@@ -724,22 +636,6 @@ Fx004PedAssign004,surface-state,footswitch assignment
 Fx004PingPongStart001,no-graph-node,ping-pong start side; the FX engine has no such word
 Fx004ReturnWetLock001,surface-state,UI lock on the return wet control
 Fx004Tap001,control-plane,tap tempo; the host computes and writes Fx*DelayTime*
-Fx005AuxOn001,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx005AuxOn002,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx005AuxOn003,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx005AuxOn004,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx005AuxOn005,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx005AuxOn006,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx005AuxOn007,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx005AuxOn008,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx005AuxSend001,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx005AuxSend002,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx005AuxSend003,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx005AuxSend004,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx005AuxSend005,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx005AuxSend006,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx005AuxSend007,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx005AuxSend008,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
 Fx005Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Fx005DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Fx005DuckThr001,s1-2-no-behaviour,S1-2: FxDuckThr is a definition again at defs-v2026.09.08. The FX engine has DuckOn and DuckSens words and no threshold word — Q7
@@ -759,22 +655,6 @@ Fx005PedAssign004,surface-state,footswitch assignment
 Fx005PingPongStart001,no-graph-node,ping-pong start side; the FX engine has no such word
 Fx005ReturnWetLock001,surface-state,UI lock on the return wet control
 Fx005Tap001,control-plane,tap tempo; the host computes and writes Fx*DelayTime*
-Fx006AuxOn001,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx006AuxOn002,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx006AuxOn003,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx006AuxOn004,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx006AuxOn005,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx006AuxOn006,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx006AuxOn007,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx006AuxOn008,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx006AuxSend001,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx006AuxSend002,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx006AuxSend003,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx006AuxSend004,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx006AuxSend005,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx006AuxSend006,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx006AuxSend007,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
-Fx006AuxSend008,no-graph-node,FX return to aux sends; the return strip C2_FX_FDR_* has no ROUTING node
 Fx006Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Fx006DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Fx006DuckThr001,s1-2-no-behaviour,S1-2: FxDuckThr is a definition again at defs-v2026.09.08. The FX engine has DuckOn and DuckSens words and no threshold word — Q7

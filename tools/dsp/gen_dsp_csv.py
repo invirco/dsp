@@ -393,10 +393,24 @@ for ch in range(1, NUM_CH + 1):
 p_mtr, a_mtr = c1_alloc.next(NUM_CH * 4)  # 4 meters per channel
 for ch in range(1, NUM_CH + 1):
     cc = f'{ch:02d}'
+    # `comp_gr_src` NAMES THE COMPRESSOR WHOSE GAIN WORD THIS METER
+    # PUBLISHES (S23 gate 4). `Chan[1-64]CompMtr[1-1]` was listed
+    # `unbacked-meter` for two reasons and only one of them was real: the
+    # meter's SPI block is four words and base+3 was dispatched to nothing,
+    # which is a gap; but there was also no DECLARED SOURCE, and pointing a
+    # meter at "the compressor" by string surgery on its own node id is the
+    # second address map this repo keeps deleting. The link is a param on
+    # the row, resolved by the generator, and a comp_gr tap without one is a
+    # hard error rather than a guess.
+    #
+    # It goes AFTER `taps=` on purpose: _parse_taps() reads to the end of
+    # the params or the next `key=` token, so a param placed before the tap
+    # list would be swallowed by it.
     add(f'C1_MTR_{cc}', 1, 'METER', f'Ch {ch} Meter', 1,
         f'C1_GAIN_{cc};C1_FDR_{cc}', '',
         spi_page=p_mtr, spi_addr=a_mtr + (ch-1)*4,
-        params='taps=post_trim;post_fader;gate_gr;comp_gr')
+        params=f'taps=post_trim;post_fader;gate_gr;comp_gr'
+               f';comp_gr_src=C1_COMP_{cc}')
 
 # ===========================================================================
 # CHIP 1 — Superset inputs (D3): codec return, Pi PCM, MEMS, D32 snake
@@ -703,13 +717,35 @@ add('C2_SUB_OUT', 2, 'OUTPUT_TDM', 'Sub Out', 1, 'C2_SUB_DLY', '',
 #        COMP → LIM → DLY → XOVER → per-output EQ/COMP/LIM → OUT
 
 # Main mix receives direct channel sums + group output feeds + superset
-# aux inputs (USB/BT/codec aux/Pi/snake, all default-off)
+# aux inputs (USB/BT/codec aux/Pi/snake, all default-off) + THE SIX FX
+# RETURNS.
+#
+# THE FX RETURNS WERE MISSING AND THAT WAS S22-2 (fixed here, S23 gate 2).
+# `C2_FX_FDR_nn` has always DECLARED `outputs=C2_MIX_MAIN_L;C2_MIX_MAIN_R`,
+# but a MIX_BUS is fed from its OWN `inputs` -- gen_mix_bus_fixed MACs over
+# `inputs` and nothing else -- and neither main mix node listed a single FX
+# return. No `_buf_C2_FX_FDR_*` was read by any mix node on either chip, so
+# the six engines were INAUDIBLE on every image this tree has ever built
+# while costing their full price. `outputs` is documentation; `inputs` is
+# the graph.
+#
+# THE RETURN REACHES THE MAIN MIX AT UNITY AND THERE IS NO SEND CELL,
+# because the cell master defines none: `Fx[1-8]Level`, `Fx[1-8]Mute` and
+# `Fx[1-8]Dca/DcaOn` are the whole of the return's own level control and
+# they are already the FADER_PAN node's. There is no `Fx*MainOn`, no
+# `Fx*MainSend` and no `Fx*Pan`, so the crosspoint is a constant 1.0 and
+# this gate adds NO cell and moves NO address -- it is a wiring defect
+# being fixed, not a contract bump. (The return's pan word exists in the
+# node and is dispatched-but-uncelled; the engine is mono end to end, so
+# the two mix legs read the same block. That a stereo FX return would need
+# a `Fx*Pan` cell is a question for PW, not a thing to invent.)
 aux_input_ids = ['C2_USB_IN', 'C2_BT_IN', 'C2_CODEC_AUX_IN', 'C2_PI_IN'] + \
     [f'C2_SNK_IN_{s:02d}' for s in range(1, 9)]
 grp_comp_ids = ';'.join(f'C2_GRP_COMP_{g:02d}' for g in range(1, NUM_GRP + 1))
 aux_in_str = ';'.join(aux_input_ids)
-main_l_sources = f'{recv_ids["main_l"]};{grp_comp_ids};{aux_in_str}'
-main_r_sources = f'{recv_ids["main_r"]};{grp_comp_ids};{aux_in_str}'
+fx_fdr_ids = ';'.join(f'C2_FX_FDR_{f:02d}' for f in range(1, NUM_FX + 1))
+main_l_sources = f'{recv_ids["main_l"]};{grp_comp_ids};{aux_in_str};{fx_fdr_ids}'
+main_r_sources = f'{recv_ids["main_r"]};{grp_comp_ids};{aux_in_str};{fx_fdr_ids}'
 
 for r in rows:
     if r['id'] == recv_ids['main_l']:
@@ -1083,6 +1119,109 @@ for m in range(1, NUM_MTX + 1):
     add(n_out, 2, 'OUTPUT_TDM', f'Matrix {m} Out', 1, n_fdr, '',
         spi_page=p, spi_addr=a2,
         params=output_params(f'NET_OUT_{m + 1:02d}'))
+
+# ===========================================================================
+# CHIP 2 — THE FX RETURNS' AUX SENDS  (S23 gate 3)
+# ===========================================================================
+# `Fx[1-8]AuxOn[1-12]` and `Fx[1-8]AuxSend[1-12]` -- "FX return to aux send
+# on/off" and "... send level" -- are 144 cells on D32 and 144 on D24 that
+# the graph built no node for. They are the last big product-visible block
+# of the completeness list after the matrix.
+#
+# WHERE THE SUM HAPPENS, AND WHY IT IS ONE NODE PER AUX AND NOT ONE PER
+# RETURN. The twelve aux buses are summed on CHIP 1 (bus-major fabric, 32
+# channels a bus) and arrive on chip 2 already mixed, one word per sample,
+# at `C2_RECV_AUX_nn`. The six FX returns live on chip 2. So the FX
+# contribution cannot join the chip-1 accumulate at all -- it has to be
+# added on chip 2, downstream of the receive and upstream of the aux
+# fader, which is exactly one more summing node per aux bus:
+#
+#   C2_RECV_AUX_nn -> C2_MIX_AUX_nn -> C2_AUX_FDR_nn -> EQ -> GEQ -> ...
+#                     ^ + C2_FX_FDR_01..06
+#
+# and MIX_BUS is already that node: `gen_mix_bus_fixed`'s chip-2 form is an
+# exact MRF sum of `inputs` against Q4.28 coefficients converted at block
+# rate, which is the same arithmetic as the main mix and the same reference
+# (`fixed_ref.mix_sum`). It gains an optional SWITCHED-SEND half for this:
+# the last `fx_sends` sources take their coefficient from a ramped send
+# level with the on/off folded in, which is the crosspoint-coefficient
+# discipline of the 08-25 mandate applied on chip 2.
+#
+# S22 SKETCHED A DIFFERENT SHAPE and this is a deliberate departure from
+# it: it proposed the crosspoints on the return strip's own node, "category
+# Fx, one instance per return, 24 SPI words", so that Fx001AuxSend001..012
+# would be contiguous. Per-AUX placement costs the same 144 words, needs no
+# new node class and no cross-node coefficient reads, and contiguity buys
+# nothing here -- the host addresses one cell at a time and only
+# `add_dispatch_block` (coefficient SETS) needs a run. Said out loud
+# because the sketch is in the S22 write-up and the tree now disagrees
+# with it.
+#
+# THE PICKOFF IS POST-FADER AND IT IS NOT SELECTABLE. The cell master
+# defines `Chan*AuxPick` and `Chan*FxPick` and NO `Fx*AuxPick`, so there is
+# no cell to dispatch a choice to. Post-fader is the reading that matches
+# the channel sends' own default and the one the graph can take for free
+# (`_blk_C2_FX_FDR_nn` is the return strip's published block); PRE-fader is
+# equally available at zero cost (`_blk_C2_FX_ENG_nn`), so which one the
+# product means is a QUESTION FOR PW and not a thing to decide here. It is
+# in dsp-definitions-needed.md.
+#
+# SPI addresses are allocated after every earlier chip-2 node -- including
+# the matrix strips -- so this bump ADDS rows and moves none.
+mix_aux_ids = {}
+for a in range(1, NUM_AUX + 1):
+    aa = f'{a:02d}'
+    nid = f'C2_MIX_AUX_{aa}'
+    mix_aux_ids[a] = nid
+    p, a2 = c2_alloc.next(2 * NUM_FX)   # AuxOn[1-6] then AuxSend[1-6]
+    add(nid, 2, 'MIX_BUS', f'Aux {a} FX Sum', 1,
+        f'{recv_ids[f"aux_{a}"]};{fx_fdr_ids}', f'C2_AUX_FDR_{aa}',
+        spi_page=p, spi_addr=a2,
+        params=f'bus_id=aux{aa};source_count={1 + NUM_FX}'
+               f';fx_sends={NUM_FX};aux={a}',
+        ramp_profile='GainFast')
+
+# Splice the node into the aux chain: the receive now feeds the sum and the
+# fader now reads it. Done by REWRITING the two rows rather than by adding a
+# parallel path, so there is exactly one route from the aux bus to the aux
+# fader and `dsp_validate` can still see it.
+for a in range(1, NUM_AUX + 1):
+    aa = f'{a:02d}'
+    for r in rows:
+        if r['id'] == recv_ids[f'aux_{a}']:
+            assert r['outputs'] == f'C2_AUX_FDR_{aa}', r['outputs']
+            r['outputs'] = mix_aux_ids[a]
+        if r['id'] == f'C2_AUX_FDR_{aa}':
+            assert r['inputs'] == recv_ids[f'aux_{a}'], r['inputs']
+            r['inputs'] = mix_aux_ids[a]
+
+# --- Splice the FX chain and the aux FX sums ahead of the aux chain -----
+#
+# The FX engines and returns are ADDED late (their SPI addresses are
+# allocated in the order this file calls add(), and moving an add() moves
+# an address), but they now have to RUN early: C2_MIX_AUX_nn reads
+# _blk_C2_FX_FDR_ff, so every return has to have published its block
+# before the first aux sum. Rows are reordered; addresses are not.
+#
+# repair_process_order() in dsp_codegen.py would fix the order on its own,
+# and that is exactly why this splice exists: it fixes it by moving each
+# producer to just before its earliest consumer, which drops
+# C2_MIX_AUX_02..12 INTO the middle of the aux chain -- and the chip-2 pair
+# families require each family's nodes to be a CONTIGUOUS run of the chain
+# (c2_pair_groups raises otherwise, which is how this was found: "pair
+# family AUX: its 84 nodes are not a contiguous run of the chain"). Putting
+# the whole FX chain and all twelve sums in front of the aux chain leaves
+# the AUX family's 84 nodes untouched and needs no repair move at all.
+_pre_aux = [f'C2_FX_ENG_{f:02d}' for f in range(1, NUM_FX + 1)] \
+    + [f'C2_FX_FDR_{f:02d}' for f in range(1, NUM_FX + 1)] \
+    + [mix_aux_ids[a] for a in range(1, NUM_AUX + 1)]
+_pre_aux_set = set(_pre_aux)
+_moved = sorted((r for r in rows if r['id'] in _pre_aux_set),
+                key=lambda r: _pre_aux.index(r['id']))
+assert len(_moved) == len(_pre_aux), 'a spliced row is missing from rows'
+rows[:] = [r for r in rows if r['id'] not in _pre_aux_set]
+_at = next(i for i, r in enumerate(rows) if r['id'] == 'C2_AUX_FDR_01')
+rows[_at:_at] = _moved
 
 # ===========================================================================
 # Write CSV

@@ -109,6 +109,26 @@ ROUTES = {
     'GrpOn': (1, 0),
     'AuxOn': (1, 0),
     'AuxSend': (f32(1.0), 1),
+    # THE MATRIX SENDS (added S23). `load` means "every assign and send
+    # open", and the matrix is an assign and a send -- it was absent here
+    # only because the family did not exist when this table was written.
+    #
+    # IT CANNOT MOVE ANY ROW ON RECORD. Every driven figure taken before
+    # today was taken against a landed map with no `Matrix*` cell in it, so
+    # this table's lookup found nothing to write; and the rows this session
+    # compares against S21's are deliberately taken against the LANDED map
+    # too, for exactly that comparability. A row taken with
+    # DSP_LANDED_DIR pointing at the proposal now opens the matrix as well,
+    # which is what makes the matrix's ACCUMULATE cost measurable at all:
+    # a bus row whose 32 coefficients are every one zero is skipped by the
+    # fabric for one compare per block, so a matrix nobody has sent to
+    # costs almost nothing and a driven row cannot see it.
+    #
+    # `AuxOn`/`AuxSend` reach the FX returns' aux crosspoints too, without
+    # a line being added: `Fx001AuxSend001` and `Chan001AuxSend001` are the
+    # same family suffix, so the same lookup opens both.
+    'MatrixOn': (1, 0),
+    'MatrixSend': (f32(1.0), 1),
     'Mute': (0, 0),
 }
 # FX is deliberately NOT in ROUTES. The six FX engines have their own
@@ -376,13 +396,18 @@ def main():
                 'Mix': (f32(a.fx_mix), 1)}
         spec.update(FX_PARAMS)
     elif a.mode == 'fxoff':
-        # `Fx<n>On = 0`. IT IS NOT A BASELINE AND THE ROW PROVES IT (S21-4):
-        # `_fx_on_<nid>` is written by the SPI dispatch table and READ BY
-        # NOTHING -- the FX_ENGINE body has no on/off branch at all -- so
-        # this rung runs the same algorithm as the rung before it and the two
-        # rows read the same. It is kept as the WITNESS for that finding, and
-        # the ladder's real baseline is `--fx-type 4`, an unimplemented Type,
-        # which the dispatch does park in the explicit bypass.
+        # `Fx<n>On = 0`, AND SINCE S23 THIS IS A REAL RUNG.
+        #
+        # It used to be the WITNESS FOR S21-4 and the note here said so:
+        # `_fx_on_<nid>` was written by the SPI dispatch table and read by
+        # NOTHING, the FX_ENGINE body had no on/off branch at all, so this
+        # rung ran the same algorithm as the rung before it and the two rows
+        # read the same. S23 gate 2 gave the cell its reader -- the engine's
+        # per-sample body tests it and the block wrapper parks the whole
+        # node on it -- so this rung now measures what a switched-off engine
+        # costs, and the ladder's OTHER baseline (`--fx-type 4`, an
+        # unimplemented Type parked in the explicit bypass) is what it should
+        # be read against: bypass still runs the node, parked does not.
         spec = {'On': (0, 0)}
     elif a.mode == 'fxsendon':
         spec = dict(FX_ROUTES)

@@ -3753,99 +3753,131 @@
 | 4608 | 0x1200 | `Chan001Mtr001` |  |  |
 | 4609 | 0x1201 | `Chan001Mtr002` |  |  |
 | 4610 | 0x1202 | `Chan001GateMtr001` |  |  |
+| 4611 | 0x1203 | `Chan001CompMtr001` |  |  |
 | 4612 | 0x1204 | `Chan002Mtr001` |  |  |
 | 4613 | 0x1205 | `Chan002Mtr002` |  |  |
 | 4614 | 0x1206 | `Chan002GateMtr001` |  |  |
+| 4615 | 0x1207 | `Chan002CompMtr001` |  |  |
 | 4616 | 0x1208 | `Chan003Mtr001` |  |  |
 | 4617 | 0x1209 | `Chan003Mtr002` |  |  |
 | 4618 | 0x120A | `Chan003GateMtr001` |  |  |
+| 4619 | 0x120B | `Chan003CompMtr001` |  |  |
 | 4620 | 0x120C | `Chan004Mtr001` |  |  |
 | 4621 | 0x120D | `Chan004Mtr002` |  |  |
 | 4622 | 0x120E | `Chan004GateMtr001` |  |  |
+| 4623 | 0x120F | `Chan004CompMtr001` |  |  |
 | 4624 | 0x1210 | `Chan005Mtr001` |  |  |
 | 4625 | 0x1211 | `Chan005Mtr002` |  |  |
 | 4626 | 0x1212 | `Chan005GateMtr001` |  |  |
+| 4627 | 0x1213 | `Chan005CompMtr001` |  |  |
 | 4628 | 0x1214 | `Chan006Mtr001` |  |  |
 | 4629 | 0x1215 | `Chan006Mtr002` |  |  |
 | 4630 | 0x1216 | `Chan006GateMtr001` |  |  |
+| 4631 | 0x1217 | `Chan006CompMtr001` |  |  |
 | 4632 | 0x1218 | `Chan007Mtr001` |  |  |
 | 4633 | 0x1219 | `Chan007Mtr002` |  |  |
 | 4634 | 0x121A | `Chan007GateMtr001` |  |  |
+| 4635 | 0x121B | `Chan007CompMtr001` |  |  |
 | 4636 | 0x121C | `Chan008Mtr001` |  |  |
 | 4637 | 0x121D | `Chan008Mtr002` |  |  |
 | 4638 | 0x121E | `Chan008GateMtr001` |  |  |
+| 4639 | 0x121F | `Chan008CompMtr001` |  |  |
 | 4640 | 0x1220 | `Chan009Mtr001` |  |  |
 | 4641 | 0x1221 | `Chan009Mtr002` |  |  |
 | 4642 | 0x1222 | `Chan009GateMtr001` |  |  |
+| 4643 | 0x1223 | `Chan009CompMtr001` |  |  |
 | 4644 | 0x1224 | `Chan010Mtr001` |  |  |
 | 4645 | 0x1225 | `Chan010Mtr002` |  |  |
 | 4646 | 0x1226 | `Chan010GateMtr001` |  |  |
+| 4647 | 0x1227 | `Chan010CompMtr001` |  |  |
 | 4648 | 0x1228 | `Chan011Mtr001` |  |  |
 | 4649 | 0x1229 | `Chan011Mtr002` |  |  |
 | 4650 | 0x122A | `Chan011GateMtr001` |  |  |
+| 4651 | 0x122B | `Chan011CompMtr001` |  |  |
 | 4652 | 0x122C | `Chan012Mtr001` |  |  |
 | 4653 | 0x122D | `Chan012Mtr002` |  |  |
 | 4654 | 0x122E | `Chan012GateMtr001` |  |  |
+| 4655 | 0x122F | `Chan012CompMtr001` |  |  |
 | 4656 | 0x1230 | `Chan013Mtr001` |  |  |
 | 4657 | 0x1231 | `Chan013Mtr002` |  |  |
 | 4658 | 0x1232 | `Chan013GateMtr001` |  |  |
+| 4659 | 0x1233 | `Chan013CompMtr001` |  |  |
 | 4660 | 0x1234 | `Chan014Mtr001` |  |  |
 | 4661 | 0x1235 | `Chan014Mtr002` |  |  |
 | 4662 | 0x1236 | `Chan014GateMtr001` |  |  |
+| 4663 | 0x1237 | `Chan014CompMtr001` |  |  |
 | 4664 | 0x1238 | `Chan015Mtr001` |  |  |
 | 4665 | 0x1239 | `Chan015Mtr002` |  |  |
 | 4666 | 0x123A | `Chan015GateMtr001` |  |  |
+| 4667 | 0x123B | `Chan015CompMtr001` |  |  |
 | 4668 | 0x123C | `Chan016Mtr001` |  |  |
 | 4669 | 0x123D | `Chan016Mtr002` |  |  |
 | 4670 | 0x123E | `Chan016GateMtr001` |  |  |
+| 4671 | 0x123F | `Chan016CompMtr001` |  |  |
 | 4672 | 0x1240 | `Chan017Mtr001` |  |  |
 | 4673 | 0x1241 | `Chan017Mtr002` |  |  |
 | 4674 | 0x1242 | `Chan017GateMtr001` |  |  |
+| 4675 | 0x1243 | `Chan017CompMtr001` |  |  |
 | 4676 | 0x1244 | `Chan018Mtr001` |  |  |
 | 4677 | 0x1245 | `Chan018Mtr002` |  |  |
 | 4678 | 0x1246 | `Chan018GateMtr001` |  |  |
+| 4679 | 0x1247 | `Chan018CompMtr001` |  |  |
 | 4680 | 0x1248 | `Chan019Mtr001` |  |  |
 | 4681 | 0x1249 | `Chan019Mtr002` |  |  |
 | 4682 | 0x124A | `Chan019GateMtr001` |  |  |
+| 4683 | 0x124B | `Chan019CompMtr001` |  |  |
 | 4684 | 0x124C | `Chan020Mtr001` |  |  |
 | 4685 | 0x124D | `Chan020Mtr002` |  |  |
 | 4686 | 0x124E | `Chan020GateMtr001` |  |  |
+| 4687 | 0x124F | `Chan020CompMtr001` |  |  |
 | 4688 | 0x1250 | `Chan021Mtr001` |  |  |
 | 4689 | 0x1251 | `Chan021Mtr002` |  |  |
 | 4690 | 0x1252 | `Chan021GateMtr001` |  |  |
+| 4691 | 0x1253 | `Chan021CompMtr001` |  |  |
 | 4692 | 0x1254 | `Chan022Mtr001` |  |  |
 | 4693 | 0x1255 | `Chan022Mtr002` |  |  |
 | 4694 | 0x1256 | `Chan022GateMtr001` |  |  |
+| 4695 | 0x1257 | `Chan022CompMtr001` |  |  |
 | 4696 | 0x1258 | `Chan023Mtr001` |  |  |
 | 4697 | 0x1259 | `Chan023Mtr002` |  |  |
 | 4698 | 0x125A | `Chan023GateMtr001` |  |  |
+| 4699 | 0x125B | `Chan023CompMtr001` |  |  |
 | 4700 | 0x125C | `Chan024Mtr001` |  |  |
 | 4701 | 0x125D | `Chan024Mtr002` |  |  |
 | 4702 | 0x125E | `Chan024GateMtr001` |  |  |
+| 4703 | 0x125F | `Chan024CompMtr001` |  |  |
 | 4704 | 0x1260 | `Chan025Mtr001` |  |  |
 | 4705 | 0x1261 | `Chan025Mtr002` |  |  |
 | 4706 | 0x1262 | `Chan025GateMtr001` |  |  |
+| 4707 | 0x1263 | `Chan025CompMtr001` |  |  |
 | 4708 | 0x1264 | `Chan026Mtr001` |  |  |
 | 4709 | 0x1265 | `Chan026Mtr002` |  |  |
 | 4710 | 0x1266 | `Chan026GateMtr001` |  |  |
+| 4711 | 0x1267 | `Chan026CompMtr001` |  |  |
 | 4712 | 0x1268 | `Chan027Mtr001` |  |  |
 | 4713 | 0x1269 | `Chan027Mtr002` |  |  |
 | 4714 | 0x126A | `Chan027GateMtr001` |  |  |
+| 4715 | 0x126B | `Chan027CompMtr001` |  |  |
 | 4716 | 0x126C | `Chan028Mtr001` |  |  |
 | 4717 | 0x126D | `Chan028Mtr002` |  |  |
 | 4718 | 0x126E | `Chan028GateMtr001` |  |  |
+| 4719 | 0x126F | `Chan028CompMtr001` |  |  |
 | 4720 | 0x1270 | `Chan029Mtr001` |  |  |
 | 4721 | 0x1271 | `Chan029Mtr002` |  |  |
 | 4722 | 0x1272 | `Chan029GateMtr001` |  |  |
+| 4723 | 0x1273 | `Chan029CompMtr001` |  |  |
 | 4724 | 0x1274 | `Chan030Mtr001` |  |  |
 | 4725 | 0x1275 | `Chan030Mtr002` |  |  |
 | 4726 | 0x1276 | `Chan030GateMtr001` |  |  |
+| 4727 | 0x1277 | `Chan030CompMtr001` |  |  |
 | 4728 | 0x1278 | `Chan031Mtr001` |  |  |
 | 4729 | 0x1279 | `Chan031Mtr002` |  |  |
 | 4730 | 0x127A | `Chan031GateMtr001` |  |  |
+| 4731 | 0x127B | `Chan031CompMtr001` |  |  |
 | 4732 | 0x127C | `Chan032Mtr001` |  |  |
 | 4733 | 0x127D | `Chan032Mtr002` |  |  |
 | 4734 | 0x127E | `Chan032GateMtr001` |  |  |
+| 4735 | 0x127F | `Chan032CompMtr001` |  |  |
 | 4736 | 0x1280 | `Talk001On001` |  | InstantCtl |
 | 4737 | 0x1281 | `Talk001Gain001` | 0=0/127=40/[Lin] | GainFast |
 | 4738 | 0x1282 | `Talk001Hpf001` |  | InstantCtl |
@@ -3986,7 +4018,7 @@
 | 4932 | 0x1344 | `Chan032MatrixSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
 | 4933 | 0x1345 | `Chan032MatrixSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
 
-**Total Chip 1 cells:** 3979
+**Total Chip 1 cells:** 4011
 
 ## Chip 2
 
@@ -5598,6 +5630,150 @@
 | 2015 | 0x07DF | `Matrix003Mute001` |  | InstantCtl |
 | 2018 | 0x07E2 | `Matrix004Level001` | dB:Off:-50@31:-30@63:-10@127:1 | GainFast |
 | 2020 | 0x07E4 | `Matrix004Mute001` |  | InstantCtl |
+| 2023 | 0x07E7 | `Fx001AuxOn001` |  | InstantCtl |
+| 2024 | 0x07E8 | `Fx002AuxOn001` |  | InstantCtl |
+| 2025 | 0x07E9 | `Fx003AuxOn001` |  | InstantCtl |
+| 2026 | 0x07EA | `Fx004AuxOn001` |  | InstantCtl |
+| 2027 | 0x07EB | `Fx005AuxOn001` |  | InstantCtl |
+| 2028 | 0x07EC | `Fx006AuxOn001` |  | InstantCtl |
+| 2029 | 0x07ED | `Fx001AuxSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2030 | 0x07EE | `Fx002AuxSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2031 | 0x07EF | `Fx003AuxSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2032 | 0x07F0 | `Fx004AuxSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2033 | 0x07F1 | `Fx005AuxSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2034 | 0x07F2 | `Fx006AuxSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2035 | 0x07F3 | `Fx001AuxOn002` |  | InstantCtl |
+| 2036 | 0x07F4 | `Fx002AuxOn002` |  | InstantCtl |
+| 2037 | 0x07F5 | `Fx003AuxOn002` |  | InstantCtl |
+| 2038 | 0x07F6 | `Fx004AuxOn002` |  | InstantCtl |
+| 2039 | 0x07F7 | `Fx005AuxOn002` |  | InstantCtl |
+| 2040 | 0x07F8 | `Fx006AuxOn002` |  | InstantCtl |
+| 2041 | 0x07F9 | `Fx001AuxSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2042 | 0x07FA | `Fx002AuxSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2043 | 0x07FB | `Fx003AuxSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2044 | 0x07FC | `Fx004AuxSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2045 | 0x07FD | `Fx005AuxSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2046 | 0x07FE | `Fx006AuxSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2047 | 0x07FF | `Fx001AuxOn003` |  | InstantCtl |
+| 2048 | 0x0800 | `Fx002AuxOn003` |  | InstantCtl |
+| 2049 | 0x0801 | `Fx003AuxOn003` |  | InstantCtl |
+| 2050 | 0x0802 | `Fx004AuxOn003` |  | InstantCtl |
+| 2051 | 0x0803 | `Fx005AuxOn003` |  | InstantCtl |
+| 2052 | 0x0804 | `Fx006AuxOn003` |  | InstantCtl |
+| 2053 | 0x0805 | `Fx001AuxSend003` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2054 | 0x0806 | `Fx002AuxSend003` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2055 | 0x0807 | `Fx003AuxSend003` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2056 | 0x0808 | `Fx004AuxSend003` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2057 | 0x0809 | `Fx005AuxSend003` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2058 | 0x080A | `Fx006AuxSend003` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2059 | 0x080B | `Fx001AuxOn004` |  | InstantCtl |
+| 2060 | 0x080C | `Fx002AuxOn004` |  | InstantCtl |
+| 2061 | 0x080D | `Fx003AuxOn004` |  | InstantCtl |
+| 2062 | 0x080E | `Fx004AuxOn004` |  | InstantCtl |
+| 2063 | 0x080F | `Fx005AuxOn004` |  | InstantCtl |
+| 2064 | 0x0810 | `Fx006AuxOn004` |  | InstantCtl |
+| 2065 | 0x0811 | `Fx001AuxSend004` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2066 | 0x0812 | `Fx002AuxSend004` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2067 | 0x0813 | `Fx003AuxSend004` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2068 | 0x0814 | `Fx004AuxSend004` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2069 | 0x0815 | `Fx005AuxSend004` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2070 | 0x0816 | `Fx006AuxSend004` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2071 | 0x0817 | `Fx001AuxOn005` |  | InstantCtl |
+| 2072 | 0x0818 | `Fx002AuxOn005` |  | InstantCtl |
+| 2073 | 0x0819 | `Fx003AuxOn005` |  | InstantCtl |
+| 2074 | 0x081A | `Fx004AuxOn005` |  | InstantCtl |
+| 2075 | 0x081B | `Fx005AuxOn005` |  | InstantCtl |
+| 2076 | 0x081C | `Fx006AuxOn005` |  | InstantCtl |
+| 2077 | 0x081D | `Fx001AuxSend005` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2078 | 0x081E | `Fx002AuxSend005` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2079 | 0x081F | `Fx003AuxSend005` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2080 | 0x0820 | `Fx004AuxSend005` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2081 | 0x0821 | `Fx005AuxSend005` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2082 | 0x0822 | `Fx006AuxSend005` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2083 | 0x0823 | `Fx001AuxOn006` |  | InstantCtl |
+| 2084 | 0x0824 | `Fx002AuxOn006` |  | InstantCtl |
+| 2085 | 0x0825 | `Fx003AuxOn006` |  | InstantCtl |
+| 2086 | 0x0826 | `Fx004AuxOn006` |  | InstantCtl |
+| 2087 | 0x0827 | `Fx005AuxOn006` |  | InstantCtl |
+| 2088 | 0x0828 | `Fx006AuxOn006` |  | InstantCtl |
+| 2089 | 0x0829 | `Fx001AuxSend006` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2090 | 0x082A | `Fx002AuxSend006` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2091 | 0x082B | `Fx003AuxSend006` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2092 | 0x082C | `Fx004AuxSend006` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2093 | 0x082D | `Fx005AuxSend006` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2094 | 0x082E | `Fx006AuxSend006` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2095 | 0x082F | `Fx001AuxOn007` |  | InstantCtl |
+| 2096 | 0x0830 | `Fx002AuxOn007` |  | InstantCtl |
+| 2097 | 0x0831 | `Fx003AuxOn007` |  | InstantCtl |
+| 2098 | 0x0832 | `Fx004AuxOn007` |  | InstantCtl |
+| 2099 | 0x0833 | `Fx005AuxOn007` |  | InstantCtl |
+| 2100 | 0x0834 | `Fx006AuxOn007` |  | InstantCtl |
+| 2101 | 0x0835 | `Fx001AuxSend007` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2102 | 0x0836 | `Fx002AuxSend007` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2103 | 0x0837 | `Fx003AuxSend007` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2104 | 0x0838 | `Fx004AuxSend007` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2105 | 0x0839 | `Fx005AuxSend007` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2106 | 0x083A | `Fx006AuxSend007` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2107 | 0x083B | `Fx001AuxOn008` |  | InstantCtl |
+| 2108 | 0x083C | `Fx002AuxOn008` |  | InstantCtl |
+| 2109 | 0x083D | `Fx003AuxOn008` |  | InstantCtl |
+| 2110 | 0x083E | `Fx004AuxOn008` |  | InstantCtl |
+| 2111 | 0x083F | `Fx005AuxOn008` |  | InstantCtl |
+| 2112 | 0x0840 | `Fx006AuxOn008` |  | InstantCtl |
+| 2113 | 0x0841 | `Fx001AuxSend008` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2114 | 0x0842 | `Fx002AuxSend008` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2115 | 0x0843 | `Fx003AuxSend008` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2116 | 0x0844 | `Fx004AuxSend008` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2117 | 0x0845 | `Fx005AuxSend008` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2118 | 0x0846 | `Fx006AuxSend008` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2119 | 0x0847 | `Fx001AuxOn009` |  | InstantCtl |
+| 2120 | 0x0848 | `Fx002AuxOn009` |  | InstantCtl |
+| 2121 | 0x0849 | `Fx003AuxOn009` |  | InstantCtl |
+| 2122 | 0x084A | `Fx004AuxOn009` |  | InstantCtl |
+| 2123 | 0x084B | `Fx005AuxOn009` |  | InstantCtl |
+| 2124 | 0x084C | `Fx006AuxOn009` |  | InstantCtl |
+| 2125 | 0x084D | `Fx001AuxSend009` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2126 | 0x084E | `Fx002AuxSend009` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2127 | 0x084F | `Fx003AuxSend009` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2128 | 0x0850 | `Fx004AuxSend009` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2129 | 0x0851 | `Fx005AuxSend009` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2130 | 0x0852 | `Fx006AuxSend009` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2131 | 0x0853 | `Fx001AuxOn010` |  | InstantCtl |
+| 2132 | 0x0854 | `Fx002AuxOn010` |  | InstantCtl |
+| 2133 | 0x0855 | `Fx003AuxOn010` |  | InstantCtl |
+| 2134 | 0x0856 | `Fx004AuxOn010` |  | InstantCtl |
+| 2135 | 0x0857 | `Fx005AuxOn010` |  | InstantCtl |
+| 2136 | 0x0858 | `Fx006AuxOn010` |  | InstantCtl |
+| 2137 | 0x0859 | `Fx001AuxSend010` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2138 | 0x085A | `Fx002AuxSend010` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2139 | 0x085B | `Fx003AuxSend010` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2140 | 0x085C | `Fx004AuxSend010` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2141 | 0x085D | `Fx005AuxSend010` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2142 | 0x085E | `Fx006AuxSend010` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2143 | 0x085F | `Fx001AuxOn011` |  | InstantCtl |
+| 2144 | 0x0860 | `Fx002AuxOn011` |  | InstantCtl |
+| 2145 | 0x0861 | `Fx003AuxOn011` |  | InstantCtl |
+| 2146 | 0x0862 | `Fx004AuxOn011` |  | InstantCtl |
+| 2147 | 0x0863 | `Fx005AuxOn011` |  | InstantCtl |
+| 2148 | 0x0864 | `Fx006AuxOn011` |  | InstantCtl |
+| 2149 | 0x0865 | `Fx001AuxSend011` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2150 | 0x0866 | `Fx002AuxSend011` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2151 | 0x0867 | `Fx003AuxSend011` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2152 | 0x0868 | `Fx004AuxSend011` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2153 | 0x0869 | `Fx005AuxSend011` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2154 | 0x086A | `Fx006AuxSend011` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2155 | 0x086B | `Fx001AuxOn012` |  | InstantCtl |
+| 2156 | 0x086C | `Fx002AuxOn012` |  | InstantCtl |
+| 2157 | 0x086D | `Fx003AuxOn012` |  | InstantCtl |
+| 2158 | 0x086E | `Fx004AuxOn012` |  | InstantCtl |
+| 2159 | 0x086F | `Fx005AuxOn012` |  | InstantCtl |
+| 2160 | 0x0870 | `Fx006AuxOn012` |  | InstantCtl |
+| 2161 | 0x0871 | `Fx001AuxSend012` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2162 | 0x0872 | `Fx002AuxSend012` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2163 | 0x0873 | `Fx003AuxSend012` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2164 | 0x0874 | `Fx004AuxSend012` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2165 | 0x0875 | `Fx005AuxSend012` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 2166 | 0x0876 | `Fx006AuxSend012` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
 
-**Total Chip 2 cells:** 1606
+**Total Chip 2 cells:** 1750
 

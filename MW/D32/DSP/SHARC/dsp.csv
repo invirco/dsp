@@ -319,38 +319,38 @@ C1_TUBE_32,1,TUBE_SAT,Ch 32 Tube,1,C1_COMP_32,C1_DLY_32,1,4540,on=0;saturation=0
 C1_DLY_32,1,DELAY,Ch 32 Delay,1,C1_TUBE_32,C1_FDR_32,1,4542,delay_ms=0.0;local_ms=20.0;max_ms=250.0;pool_slot=-1,InstantCtl
 C1_FDR_32,1,FADER_PAN,Ch 32 Fader,1,C1_DLY_32,C1_RTG_32,1,4544,"level_db=-inf;pan=0.0;mute=0;host_cells=Dca,DcaOn",GainFast
 C1_RTG_32,1,ROUTING,Ch 32 Route,1,C1_FDR_32,C1_BUS_MAIN_L;C1_BUS_MAIN_R;C1_BUS_SUB;C1_BUS_GRP_01;C1_BUS_GRP_02;C1_BUS_GRP_03;C1_BUS_GRP_04;C1_BUS_AUX_01;C1_BUS_AUX_02;C1_BUS_AUX_03;C1_BUS_AUX_04;C1_BUS_AUX_05;C1_BUS_AUX_06;C1_BUS_AUX_07;C1_BUS_AUX_08;C1_BUS_AUX_09;C1_BUS_AUX_10;C1_BUS_AUX_11;C1_BUS_AUX_12;C1_BUS_FX_01;C1_BUS_FX_02;C1_BUS_FX_03;C1_BUS_FX_04;C1_BUS_FX_05;C1_BUS_FX_06;C1_BUS_MTX_01;C1_BUS_MTX_02;C1_BUS_MTX_03;C1_BUS_MTX_04,1,4548,main_on=1;sub_on=0;grp_on=0000;aux_on=000000000000;fx_on=000000;mtx_sends=2;mtx_on=00;mtx_page=1;mtx_addr=4930,GainFast
-C1_MTR_01,1,METER,Ch 1 Meter,1,C1_GAIN_01;C1_FDR_01,,1,4608,taps=post_trim;post_fader;gate_gr;comp_gr,
-C1_MTR_02,1,METER,Ch 2 Meter,1,C1_GAIN_02;C1_FDR_02,,1,4612,taps=post_trim;post_fader;gate_gr;comp_gr,
-C1_MTR_03,1,METER,Ch 3 Meter,1,C1_GAIN_03;C1_FDR_03,,1,4616,taps=post_trim;post_fader;gate_gr;comp_gr,
-C1_MTR_04,1,METER,Ch 4 Meter,1,C1_GAIN_04;C1_FDR_04,,1,4620,taps=post_trim;post_fader;gate_gr;comp_gr,
-C1_MTR_05,1,METER,Ch 5 Meter,1,C1_GAIN_05;C1_FDR_05,,1,4624,taps=post_trim;post_fader;gate_gr;comp_gr,
-C1_MTR_06,1,METER,Ch 6 Meter,1,C1_GAIN_06;C1_FDR_06,,1,4628,taps=post_trim;post_fader;gate_gr;comp_gr,
-C1_MTR_07,1,METER,Ch 7 Meter,1,C1_GAIN_07;C1_FDR_07,,1,4632,taps=post_trim;post_fader;gate_gr;comp_gr,
-C1_MTR_08,1,METER,Ch 8 Meter,1,C1_GAIN_08;C1_FDR_08,,1,4636,taps=post_trim;post_fader;gate_gr;comp_gr,
-C1_MTR_09,1,METER,Ch 9 Meter,1,C1_GAIN_09;C1_FDR_09,,1,4640,taps=post_trim;post_fader;gate_gr;comp_gr,
-C1_MTR_10,1,METER,Ch 10 Meter,1,C1_GAIN_10;C1_FDR_10,,1,4644,taps=post_trim;post_fader;gate_gr;comp_gr,
-C1_MTR_11,1,METER,Ch 11 Meter,1,C1_GAIN_11;C1_FDR_11,,1,4648,taps=post_trim;post_fader;gate_gr;comp_gr,
-C1_MTR_12,1,METER,Ch 12 Meter,1,C1_GAIN_12;C1_FDR_12,,1,4652,taps=post_trim;post_fader;gate_gr;comp_gr,
-C1_MTR_13,1,METER,Ch 13 Meter,1,C1_GAIN_13;C1_FDR_13,,1,4656,taps=post_trim;post_fader;gate_gr;comp_gr,
-C1_MTR_14,1,METER,Ch 14 Meter,1,C1_GAIN_14;C1_FDR_14,,1,4660,taps=post_trim;post_fader;gate_gr;comp_gr,
-C1_MTR_15,1,METER,Ch 15 Meter,1,C1_GAIN_15;C1_FDR_15,,1,4664,taps=post_trim;post_fader;gate_gr;comp_gr,
-C1_MTR_16,1,METER,Ch 16 Meter,1,C1_GAIN_16;C1_FDR_16,,1,4668,taps=post_trim;post_fader;gate_gr;comp_gr,
-C1_MTR_17,1,METER,Ch 17 Meter,1,C1_GAIN_17;C1_FDR_17,,1,4672,taps=post_trim;post_fader;gate_gr;comp_gr,
-C1_MTR_18,1,METER,Ch 18 Meter,1,C1_GAIN_18;C1_FDR_18,,1,4676,taps=post_trim;post_fader;gate_gr;comp_gr,
-C1_MTR_19,1,METER,Ch 19 Meter,1,C1_GAIN_19;C1_FDR_19,,1,4680,taps=post_trim;post_fader;gate_gr;comp_gr,
-C1_MTR_20,1,METER,Ch 20 Meter,1,C1_GAIN_20;C1_FDR_20,,1,4684,taps=post_trim;post_fader;gate_gr;comp_gr,
-C1_MTR_21,1,METER,Ch 21 Meter,1,C1_GAIN_21;C1_FDR_21,,1,4688,taps=post_trim;post_fader;gate_gr;comp_gr,
-C1_MTR_22,1,METER,Ch 22 Meter,1,C1_GAIN_22;C1_FDR_22,,1,4692,taps=post_trim;post_fader;gate_gr;comp_gr,
-C1_MTR_23,1,METER,Ch 23 Meter,1,C1_GAIN_23;C1_FDR_23,,1,4696,taps=post_trim;post_fader;gate_gr;comp_gr,
-C1_MTR_24,1,METER,Ch 24 Meter,1,C1_GAIN_24;C1_FDR_24,,1,4700,taps=post_trim;post_fader;gate_gr;comp_gr,
-C1_MTR_25,1,METER,Ch 25 Meter,1,C1_GAIN_25;C1_FDR_25,,1,4704,taps=post_trim;post_fader;gate_gr;comp_gr,
-C1_MTR_26,1,METER,Ch 26 Meter,1,C1_GAIN_26;C1_FDR_26,,1,4708,taps=post_trim;post_fader;gate_gr;comp_gr,
-C1_MTR_27,1,METER,Ch 27 Meter,1,C1_GAIN_27;C1_FDR_27,,1,4712,taps=post_trim;post_fader;gate_gr;comp_gr,
-C1_MTR_28,1,METER,Ch 28 Meter,1,C1_GAIN_28;C1_FDR_28,,1,4716,taps=post_trim;post_fader;gate_gr;comp_gr,
-C1_MTR_29,1,METER,Ch 29 Meter,1,C1_GAIN_29;C1_FDR_29,,1,4720,taps=post_trim;post_fader;gate_gr;comp_gr,
-C1_MTR_30,1,METER,Ch 30 Meter,1,C1_GAIN_30;C1_FDR_30,,1,4724,taps=post_trim;post_fader;gate_gr;comp_gr,
-C1_MTR_31,1,METER,Ch 31 Meter,1,C1_GAIN_31;C1_FDR_31,,1,4728,taps=post_trim;post_fader;gate_gr;comp_gr,
-C1_MTR_32,1,METER,Ch 32 Meter,1,C1_GAIN_32;C1_FDR_32,,1,4732,taps=post_trim;post_fader;gate_gr;comp_gr,
+C1_MTR_01,1,METER,Ch 1 Meter,1,C1_GAIN_01;C1_FDR_01,,1,4608,taps=post_trim;post_fader;gate_gr;comp_gr;comp_gr_src=C1_COMP_01,
+C1_MTR_02,1,METER,Ch 2 Meter,1,C1_GAIN_02;C1_FDR_02,,1,4612,taps=post_trim;post_fader;gate_gr;comp_gr;comp_gr_src=C1_COMP_02,
+C1_MTR_03,1,METER,Ch 3 Meter,1,C1_GAIN_03;C1_FDR_03,,1,4616,taps=post_trim;post_fader;gate_gr;comp_gr;comp_gr_src=C1_COMP_03,
+C1_MTR_04,1,METER,Ch 4 Meter,1,C1_GAIN_04;C1_FDR_04,,1,4620,taps=post_trim;post_fader;gate_gr;comp_gr;comp_gr_src=C1_COMP_04,
+C1_MTR_05,1,METER,Ch 5 Meter,1,C1_GAIN_05;C1_FDR_05,,1,4624,taps=post_trim;post_fader;gate_gr;comp_gr;comp_gr_src=C1_COMP_05,
+C1_MTR_06,1,METER,Ch 6 Meter,1,C1_GAIN_06;C1_FDR_06,,1,4628,taps=post_trim;post_fader;gate_gr;comp_gr;comp_gr_src=C1_COMP_06,
+C1_MTR_07,1,METER,Ch 7 Meter,1,C1_GAIN_07;C1_FDR_07,,1,4632,taps=post_trim;post_fader;gate_gr;comp_gr;comp_gr_src=C1_COMP_07,
+C1_MTR_08,1,METER,Ch 8 Meter,1,C1_GAIN_08;C1_FDR_08,,1,4636,taps=post_trim;post_fader;gate_gr;comp_gr;comp_gr_src=C1_COMP_08,
+C1_MTR_09,1,METER,Ch 9 Meter,1,C1_GAIN_09;C1_FDR_09,,1,4640,taps=post_trim;post_fader;gate_gr;comp_gr;comp_gr_src=C1_COMP_09,
+C1_MTR_10,1,METER,Ch 10 Meter,1,C1_GAIN_10;C1_FDR_10,,1,4644,taps=post_trim;post_fader;gate_gr;comp_gr;comp_gr_src=C1_COMP_10,
+C1_MTR_11,1,METER,Ch 11 Meter,1,C1_GAIN_11;C1_FDR_11,,1,4648,taps=post_trim;post_fader;gate_gr;comp_gr;comp_gr_src=C1_COMP_11,
+C1_MTR_12,1,METER,Ch 12 Meter,1,C1_GAIN_12;C1_FDR_12,,1,4652,taps=post_trim;post_fader;gate_gr;comp_gr;comp_gr_src=C1_COMP_12,
+C1_MTR_13,1,METER,Ch 13 Meter,1,C1_GAIN_13;C1_FDR_13,,1,4656,taps=post_trim;post_fader;gate_gr;comp_gr;comp_gr_src=C1_COMP_13,
+C1_MTR_14,1,METER,Ch 14 Meter,1,C1_GAIN_14;C1_FDR_14,,1,4660,taps=post_trim;post_fader;gate_gr;comp_gr;comp_gr_src=C1_COMP_14,
+C1_MTR_15,1,METER,Ch 15 Meter,1,C1_GAIN_15;C1_FDR_15,,1,4664,taps=post_trim;post_fader;gate_gr;comp_gr;comp_gr_src=C1_COMP_15,
+C1_MTR_16,1,METER,Ch 16 Meter,1,C1_GAIN_16;C1_FDR_16,,1,4668,taps=post_trim;post_fader;gate_gr;comp_gr;comp_gr_src=C1_COMP_16,
+C1_MTR_17,1,METER,Ch 17 Meter,1,C1_GAIN_17;C1_FDR_17,,1,4672,taps=post_trim;post_fader;gate_gr;comp_gr;comp_gr_src=C1_COMP_17,
+C1_MTR_18,1,METER,Ch 18 Meter,1,C1_GAIN_18;C1_FDR_18,,1,4676,taps=post_trim;post_fader;gate_gr;comp_gr;comp_gr_src=C1_COMP_18,
+C1_MTR_19,1,METER,Ch 19 Meter,1,C1_GAIN_19;C1_FDR_19,,1,4680,taps=post_trim;post_fader;gate_gr;comp_gr;comp_gr_src=C1_COMP_19,
+C1_MTR_20,1,METER,Ch 20 Meter,1,C1_GAIN_20;C1_FDR_20,,1,4684,taps=post_trim;post_fader;gate_gr;comp_gr;comp_gr_src=C1_COMP_20,
+C1_MTR_21,1,METER,Ch 21 Meter,1,C1_GAIN_21;C1_FDR_21,,1,4688,taps=post_trim;post_fader;gate_gr;comp_gr;comp_gr_src=C1_COMP_21,
+C1_MTR_22,1,METER,Ch 22 Meter,1,C1_GAIN_22;C1_FDR_22,,1,4692,taps=post_trim;post_fader;gate_gr;comp_gr;comp_gr_src=C1_COMP_22,
+C1_MTR_23,1,METER,Ch 23 Meter,1,C1_GAIN_23;C1_FDR_23,,1,4696,taps=post_trim;post_fader;gate_gr;comp_gr;comp_gr_src=C1_COMP_23,
+C1_MTR_24,1,METER,Ch 24 Meter,1,C1_GAIN_24;C1_FDR_24,,1,4700,taps=post_trim;post_fader;gate_gr;comp_gr;comp_gr_src=C1_COMP_24,
+C1_MTR_25,1,METER,Ch 25 Meter,1,C1_GAIN_25;C1_FDR_25,,1,4704,taps=post_trim;post_fader;gate_gr;comp_gr;comp_gr_src=C1_COMP_25,
+C1_MTR_26,1,METER,Ch 26 Meter,1,C1_GAIN_26;C1_FDR_26,,1,4708,taps=post_trim;post_fader;gate_gr;comp_gr;comp_gr_src=C1_COMP_26,
+C1_MTR_27,1,METER,Ch 27 Meter,1,C1_GAIN_27;C1_FDR_27,,1,4712,taps=post_trim;post_fader;gate_gr;comp_gr;comp_gr_src=C1_COMP_27,
+C1_MTR_28,1,METER,Ch 28 Meter,1,C1_GAIN_28;C1_FDR_28,,1,4716,taps=post_trim;post_fader;gate_gr;comp_gr;comp_gr_src=C1_COMP_28,
+C1_MTR_29,1,METER,Ch 29 Meter,1,C1_GAIN_29;C1_FDR_29,,1,4720,taps=post_trim;post_fader;gate_gr;comp_gr;comp_gr_src=C1_COMP_29,
+C1_MTR_30,1,METER,Ch 30 Meter,1,C1_GAIN_30;C1_FDR_30,,1,4724,taps=post_trim;post_fader;gate_gr;comp_gr;comp_gr_src=C1_COMP_30,
+C1_MTR_31,1,METER,Ch 31 Meter,1,C1_GAIN_31;C1_FDR_31,,1,4728,taps=post_trim;post_fader;gate_gr;comp_gr;comp_gr_src=C1_COMP_31,
+C1_MTR_32,1,METER,Ch 32 Meter,1,C1_GAIN_32;C1_FDR_32,,1,4732,taps=post_trim;post_fader;gate_gr;comp_gr;comp_gr_src=C1_COMP_32,
 C1_XIN_CODEC_01,1,INPUT_TDM,Codec ADC 1 (TB XLR),1,,C1_TALK_01,-1,-1,sport_id=4;slot_start=0;slot_count=1;sport_slots=8;signal=CODEC_RET_1,
 C1_XIN_CODEC_03,1,INPUT_TDM,Codec ADC 3 (Aux In L),1,,C1_XS_XFER_CODEC_AUX_L,-1,-1,sport_id=4;slot_start=2;slot_count=1;sport_slots=8;signal=CODEC_RET_3,
 C1_XIN_CODEC_04,1,INPUT_TDM,Codec ADC 4 (Aux In R),1,,C1_XS_XFER_CODEC_AUX_R,-1,-1,sport_id=4;slot_start=3;slot_count=1;sport_slots=8;signal=CODEC_RET_4,
@@ -445,18 +445,18 @@ C2_RECV_GRP_01,2,INTERCHIP_RECV,Grp 1 Recv,1,,C2_GRP_FDR_01,-1,-1,sport_id=0;slo
 C2_RECV_GRP_02,2,INTERCHIP_RECV,Grp 2 Recv,1,,C2_GRP_FDR_02,-1,-1,sport_id=0;slot=4;global_slot=4;sport_slots=16;signal=BUS_GRP_02,
 C2_RECV_GRP_03,2,INTERCHIP_RECV,Grp 3 Recv,1,,C2_GRP_FDR_03,-1,-1,sport_id=0;slot=5;global_slot=5;sport_slots=16;signal=BUS_GRP_03,
 C2_RECV_GRP_04,2,INTERCHIP_RECV,Grp 4 Recv,1,,C2_GRP_FDR_04,-1,-1,sport_id=0;slot=6;global_slot=6;sport_slots=16;signal=BUS_GRP_04,
-C2_RECV_AUX_01,2,INTERCHIP_RECV,Aux 1 Recv,1,,C2_AUX_FDR_01,-1,-1,sport_id=0;slot=7;global_slot=7;sport_slots=16;signal=BUS_AUX_01,
-C2_RECV_AUX_02,2,INTERCHIP_RECV,Aux 2 Recv,1,,C2_AUX_FDR_02,-1,-1,sport_id=0;slot=8;global_slot=8;sport_slots=16;signal=BUS_AUX_02,
-C2_RECV_AUX_03,2,INTERCHIP_RECV,Aux 3 Recv,1,,C2_AUX_FDR_03,-1,-1,sport_id=0;slot=9;global_slot=9;sport_slots=16;signal=BUS_AUX_03,
-C2_RECV_AUX_04,2,INTERCHIP_RECV,Aux 4 Recv,1,,C2_AUX_FDR_04,-1,-1,sport_id=0;slot=10;global_slot=10;sport_slots=16;signal=BUS_AUX_04,
-C2_RECV_AUX_05,2,INTERCHIP_RECV,Aux 5 Recv,1,,C2_AUX_FDR_05,-1,-1,sport_id=0;slot=11;global_slot=11;sport_slots=16;signal=BUS_AUX_05,
-C2_RECV_AUX_06,2,INTERCHIP_RECV,Aux 6 Recv,1,,C2_AUX_FDR_06,-1,-1,sport_id=0;slot=12;global_slot=12;sport_slots=16;signal=BUS_AUX_06,
-C2_RECV_AUX_07,2,INTERCHIP_RECV,Aux 7 Recv,1,,C2_AUX_FDR_07,-1,-1,sport_id=0;slot=13;global_slot=13;sport_slots=16;signal=BUS_AUX_07,
-C2_RECV_AUX_08,2,INTERCHIP_RECV,Aux 8 Recv,1,,C2_AUX_FDR_08,-1,-1,sport_id=0;slot=14;global_slot=14;sport_slots=16;signal=BUS_AUX_08,
-C2_RECV_AUX_09,2,INTERCHIP_RECV,Aux 9 Recv,1,,C2_AUX_FDR_09,-1,-1,sport_id=0;slot=15;global_slot=15;sport_slots=16;signal=BUS_AUX_09,
-C2_RECV_AUX_10,2,INTERCHIP_RECV,Aux 10 Recv,1,,C2_AUX_FDR_10,-1,-1,sport_id=1;slot=0;global_slot=16;sport_slots=16;signal=BUS_AUX_10,
-C2_RECV_AUX_11,2,INTERCHIP_RECV,Aux 11 Recv,1,,C2_AUX_FDR_11,-1,-1,sport_id=1;slot=1;global_slot=17;sport_slots=16;signal=BUS_AUX_11,
-C2_RECV_AUX_12,2,INTERCHIP_RECV,Aux 12 Recv,1,,C2_AUX_FDR_12,-1,-1,sport_id=1;slot=2;global_slot=18;sport_slots=16;signal=BUS_AUX_12,
+C2_RECV_AUX_01,2,INTERCHIP_RECV,Aux 1 Recv,1,,C2_MIX_AUX_01,-1,-1,sport_id=0;slot=7;global_slot=7;sport_slots=16;signal=BUS_AUX_01,
+C2_RECV_AUX_02,2,INTERCHIP_RECV,Aux 2 Recv,1,,C2_MIX_AUX_02,-1,-1,sport_id=0;slot=8;global_slot=8;sport_slots=16;signal=BUS_AUX_02,
+C2_RECV_AUX_03,2,INTERCHIP_RECV,Aux 3 Recv,1,,C2_MIX_AUX_03,-1,-1,sport_id=0;slot=9;global_slot=9;sport_slots=16;signal=BUS_AUX_03,
+C2_RECV_AUX_04,2,INTERCHIP_RECV,Aux 4 Recv,1,,C2_MIX_AUX_04,-1,-1,sport_id=0;slot=10;global_slot=10;sport_slots=16;signal=BUS_AUX_04,
+C2_RECV_AUX_05,2,INTERCHIP_RECV,Aux 5 Recv,1,,C2_MIX_AUX_05,-1,-1,sport_id=0;slot=11;global_slot=11;sport_slots=16;signal=BUS_AUX_05,
+C2_RECV_AUX_06,2,INTERCHIP_RECV,Aux 6 Recv,1,,C2_MIX_AUX_06,-1,-1,sport_id=0;slot=12;global_slot=12;sport_slots=16;signal=BUS_AUX_06,
+C2_RECV_AUX_07,2,INTERCHIP_RECV,Aux 7 Recv,1,,C2_MIX_AUX_07,-1,-1,sport_id=0;slot=13;global_slot=13;sport_slots=16;signal=BUS_AUX_07,
+C2_RECV_AUX_08,2,INTERCHIP_RECV,Aux 8 Recv,1,,C2_MIX_AUX_08,-1,-1,sport_id=0;slot=14;global_slot=14;sport_slots=16;signal=BUS_AUX_08,
+C2_RECV_AUX_09,2,INTERCHIP_RECV,Aux 9 Recv,1,,C2_MIX_AUX_09,-1,-1,sport_id=0;slot=15;global_slot=15;sport_slots=16;signal=BUS_AUX_09,
+C2_RECV_AUX_10,2,INTERCHIP_RECV,Aux 10 Recv,1,,C2_MIX_AUX_10,-1,-1,sport_id=1;slot=0;global_slot=16;sport_slots=16;signal=BUS_AUX_10,
+C2_RECV_AUX_11,2,INTERCHIP_RECV,Aux 11 Recv,1,,C2_MIX_AUX_11,-1,-1,sport_id=1;slot=1;global_slot=17;sport_slots=16;signal=BUS_AUX_11,
+C2_RECV_AUX_12,2,INTERCHIP_RECV,Aux 12 Recv,1,,C2_MIX_AUX_12,-1,-1,sport_id=1;slot=2;global_slot=18;sport_slots=16;signal=BUS_AUX_12,
 C2_RECV_FX_01,2,INTERCHIP_RECV,FX 1 Recv,1,,C2_FX_ENG_01,-1,-1,sport_id=1;slot=3;global_slot=19;sport_slots=16;signal=BUS_FX_01,
 C2_RECV_FX_02,2,INTERCHIP_RECV,FX 2 Recv,1,,C2_FX_ENG_02,-1,-1,sport_id=1;slot=4;global_slot=20;sport_slots=16;signal=BUS_FX_02,
 C2_RECV_FX_03,2,INTERCHIP_RECV,FX 3 Recv,1,,C2_FX_ENG_03,-1,-1,sport_id=1;slot=5;global_slot=21;sport_slots=16;signal=BUS_FX_03,
@@ -485,84 +485,108 @@ C2_SNK_IN_05,2,AUX_INPUT,Snake Return 5 Input,1,C2_XR_SNAKE_05,C2_MIX_MAIN_L;C2_
 C2_SNK_IN_06,2,AUX_INPUT,Snake Return 6 Input,1,C2_XR_SNAKE_06,C2_MIX_MAIN_L;C2_MIX_MAIN_R,1,1871,level_db=-6.0;on=0;scope=D32,GainFast
 C2_SNK_IN_07,2,AUX_INPUT,Snake Return 7 Input,1,C2_XR_SNAKE_07,C2_MIX_MAIN_L;C2_MIX_MAIN_R,1,1873,level_db=-6.0;on=0;scope=D32,GainFast
 C2_SNK_IN_08,2,AUX_INPUT,Snake Return 8 Input,1,C2_XR_SNAKE_08,C2_MIX_MAIN_L;C2_MIX_MAIN_R,1,1875,level_db=-6.0;on=0;scope=D32,GainFast
-C2_AUX_FDR_01,2,FADER_PAN,Aux 1 Fader,1,C2_RECV_AUX_01,C2_AUX_EQ_01,1,0,"level_db=0.0;pan=0.0;mute=0;host_cells=Dca,DcaOn",GainFast
+C2_FX_ENG_01,2,FX_ENGINE,FX 1 Engine,2,C2_RECV_FX_01,C2_FX_FDR_01,1,1620,type=Reverb;room_size=0.7;damping=0.5;decay=2.0;predelay_ms=20.0;delay_ms=300.0;feedback=50;balance=50;eq_lo=0;eq_mid=0;eq_hi=0;hpf=80;mod_rate=1.0;mod_level=50;mix=30;duck_on=0;duck_sens=-10,GainSafe
+C2_FX_ENG_02,2,FX_ENGINE,FX 2 Engine,2,C2_RECV_FX_02,C2_FX_FDR_02,1,1648,type=Reverb;room_size=0.7;damping=0.5;decay=2.0;predelay_ms=20.0;delay_ms=300.0;feedback=50;balance=50;eq_lo=0;eq_mid=0;eq_hi=0;hpf=80;mod_rate=1.0;mod_level=50;mix=30;duck_on=0;duck_sens=-10,GainSafe
+C2_FX_ENG_03,2,FX_ENGINE,FX 3 Engine,2,C2_RECV_FX_03,C2_FX_FDR_03,1,1676,type=Reverb;room_size=0.7;damping=0.5;decay=2.0;predelay_ms=20.0;delay_ms=300.0;feedback=50;balance=50;eq_lo=0;eq_mid=0;eq_hi=0;hpf=80;mod_rate=1.0;mod_level=50;mix=30;duck_on=0;duck_sens=-10,GainSafe
+C2_FX_ENG_04,2,FX_ENGINE,FX 4 Engine,2,C2_RECV_FX_04,C2_FX_FDR_04,1,1704,type=Reverb;room_size=0.7;damping=0.5;decay=2.0;predelay_ms=20.0;delay_ms=300.0;feedback=50;balance=50;eq_lo=0;eq_mid=0;eq_hi=0;hpf=80;mod_rate=1.0;mod_level=50;mix=30;duck_on=0;duck_sens=-10,GainSafe
+C2_FX_ENG_05,2,FX_ENGINE,FX 5 Engine,2,C2_RECV_FX_05,C2_FX_FDR_05,1,1732,type=Reverb;room_size=0.7;damping=0.5;decay=2.0;predelay_ms=20.0;delay_ms=300.0;feedback=50;balance=50;eq_lo=0;eq_mid=0;eq_hi=0;hpf=80;mod_rate=1.0;mod_level=50;mix=30;duck_on=0;duck_sens=-10,GainSafe
+C2_FX_ENG_06,2,FX_ENGINE,FX 6 Engine,2,C2_RECV_FX_06,C2_FX_FDR_06,1,1760,type=Reverb;room_size=0.7;damping=0.5;decay=2.0;predelay_ms=20.0;delay_ms=300.0;feedback=50;balance=50;eq_lo=0;eq_mid=0;eq_hi=0;hpf=80;mod_rate=1.0;mod_level=50;mix=30;duck_on=0;duck_sens=-10,GainSafe
+C2_FX_FDR_01,2,FADER_PAN,FX 1 Return,1,C2_FX_ENG_01,C2_MIX_MAIN_L;C2_MIX_MAIN_R,1,1644,"level_db=-6.0;mute=0;host_cells=Dca,DcaOn",GainFast
+C2_FX_FDR_02,2,FADER_PAN,FX 2 Return,1,C2_FX_ENG_02,C2_MIX_MAIN_L;C2_MIX_MAIN_R,1,1672,"level_db=-6.0;mute=0;host_cells=Dca,DcaOn",GainFast
+C2_FX_FDR_03,2,FADER_PAN,FX 3 Return,1,C2_FX_ENG_03,C2_MIX_MAIN_L;C2_MIX_MAIN_R,1,1700,"level_db=-6.0;mute=0;host_cells=Dca,DcaOn",GainFast
+C2_FX_FDR_04,2,FADER_PAN,FX 4 Return,1,C2_FX_ENG_04,C2_MIX_MAIN_L;C2_MIX_MAIN_R,1,1728,"level_db=-6.0;mute=0;host_cells=Dca,DcaOn",GainFast
+C2_FX_FDR_05,2,FADER_PAN,FX 5 Return,1,C2_FX_ENG_05,C2_MIX_MAIN_L;C2_MIX_MAIN_R,1,1756,"level_db=-6.0;mute=0;host_cells=Dca,DcaOn",GainFast
+C2_FX_FDR_06,2,FADER_PAN,FX 6 Return,1,C2_FX_ENG_06,C2_MIX_MAIN_L;C2_MIX_MAIN_R,1,1784,"level_db=-6.0;mute=0;host_cells=Dca,DcaOn",GainFast
+C2_MIX_AUX_01,2,MIX_BUS,Aux 1 FX Sum,1,C2_RECV_AUX_01;C2_FX_FDR_01;C2_FX_FDR_02;C2_FX_FDR_03;C2_FX_FDR_04;C2_FX_FDR_05;C2_FX_FDR_06,C2_AUX_FDR_01,1,2023,bus_id=aux01;source_count=7;fx_sends=6;aux=1,GainFast
+C2_MIX_AUX_02,2,MIX_BUS,Aux 2 FX Sum,1,C2_RECV_AUX_02;C2_FX_FDR_01;C2_FX_FDR_02;C2_FX_FDR_03;C2_FX_FDR_04;C2_FX_FDR_05;C2_FX_FDR_06,C2_AUX_FDR_02,1,2035,bus_id=aux02;source_count=7;fx_sends=6;aux=2,GainFast
+C2_MIX_AUX_03,2,MIX_BUS,Aux 3 FX Sum,1,C2_RECV_AUX_03;C2_FX_FDR_01;C2_FX_FDR_02;C2_FX_FDR_03;C2_FX_FDR_04;C2_FX_FDR_05;C2_FX_FDR_06,C2_AUX_FDR_03,1,2047,bus_id=aux03;source_count=7;fx_sends=6;aux=3,GainFast
+C2_MIX_AUX_04,2,MIX_BUS,Aux 4 FX Sum,1,C2_RECV_AUX_04;C2_FX_FDR_01;C2_FX_FDR_02;C2_FX_FDR_03;C2_FX_FDR_04;C2_FX_FDR_05;C2_FX_FDR_06,C2_AUX_FDR_04,1,2059,bus_id=aux04;source_count=7;fx_sends=6;aux=4,GainFast
+C2_MIX_AUX_05,2,MIX_BUS,Aux 5 FX Sum,1,C2_RECV_AUX_05;C2_FX_FDR_01;C2_FX_FDR_02;C2_FX_FDR_03;C2_FX_FDR_04;C2_FX_FDR_05;C2_FX_FDR_06,C2_AUX_FDR_05,1,2071,bus_id=aux05;source_count=7;fx_sends=6;aux=5,GainFast
+C2_MIX_AUX_06,2,MIX_BUS,Aux 6 FX Sum,1,C2_RECV_AUX_06;C2_FX_FDR_01;C2_FX_FDR_02;C2_FX_FDR_03;C2_FX_FDR_04;C2_FX_FDR_05;C2_FX_FDR_06,C2_AUX_FDR_06,1,2083,bus_id=aux06;source_count=7;fx_sends=6;aux=6,GainFast
+C2_MIX_AUX_07,2,MIX_BUS,Aux 7 FX Sum,1,C2_RECV_AUX_07;C2_FX_FDR_01;C2_FX_FDR_02;C2_FX_FDR_03;C2_FX_FDR_04;C2_FX_FDR_05;C2_FX_FDR_06,C2_AUX_FDR_07,1,2095,bus_id=aux07;source_count=7;fx_sends=6;aux=7,GainFast
+C2_MIX_AUX_08,2,MIX_BUS,Aux 8 FX Sum,1,C2_RECV_AUX_08;C2_FX_FDR_01;C2_FX_FDR_02;C2_FX_FDR_03;C2_FX_FDR_04;C2_FX_FDR_05;C2_FX_FDR_06,C2_AUX_FDR_08,1,2107,bus_id=aux08;source_count=7;fx_sends=6;aux=8,GainFast
+C2_MIX_AUX_09,2,MIX_BUS,Aux 9 FX Sum,1,C2_RECV_AUX_09;C2_FX_FDR_01;C2_FX_FDR_02;C2_FX_FDR_03;C2_FX_FDR_04;C2_FX_FDR_05;C2_FX_FDR_06,C2_AUX_FDR_09,1,2119,bus_id=aux09;source_count=7;fx_sends=6;aux=9,GainFast
+C2_MIX_AUX_10,2,MIX_BUS,Aux 10 FX Sum,1,C2_RECV_AUX_10;C2_FX_FDR_01;C2_FX_FDR_02;C2_FX_FDR_03;C2_FX_FDR_04;C2_FX_FDR_05;C2_FX_FDR_06,C2_AUX_FDR_10,1,2131,bus_id=aux10;source_count=7;fx_sends=6;aux=10,GainFast
+C2_MIX_AUX_11,2,MIX_BUS,Aux 11 FX Sum,1,C2_RECV_AUX_11;C2_FX_FDR_01;C2_FX_FDR_02;C2_FX_FDR_03;C2_FX_FDR_04;C2_FX_FDR_05;C2_FX_FDR_06,C2_AUX_FDR_11,1,2143,bus_id=aux11;source_count=7;fx_sends=6;aux=11,GainFast
+C2_MIX_AUX_12,2,MIX_BUS,Aux 12 FX Sum,1,C2_RECV_AUX_12;C2_FX_FDR_01;C2_FX_FDR_02;C2_FX_FDR_03;C2_FX_FDR_04;C2_FX_FDR_05;C2_FX_FDR_06,C2_AUX_FDR_12,1,2155,bus_id=aux12;source_count=7;fx_sends=6;aux=12,GainFast
+C2_AUX_FDR_01,2,FADER_PAN,Aux 1 Fader,1,C2_MIX_AUX_01,C2_AUX_EQ_01,1,0,"level_db=0.0;pan=0.0;mute=0;host_cells=Dca,DcaOn",GainFast
 C2_AUX_EQ_01,2,EQ_BIQUAD,Aux 1 EQ,1,C2_AUX_FDR_01,C2_AUX_GEQ_01,1,4,bands=4;coeffs=default,EqSafe
 C2_AUX_GEQ_01,2,GEQ,Aux 1 GEQ,1,C2_AUX_EQ_01,C2_AUX_AFB_01,1,28,bands=31,EqSafe
 C2_AUX_AFB_01,2,ANTI_FB,Aux 1 AntiFB,1,C2_AUX_GEQ_01,C2_AUX_LIM_01,1,59,notch_count=6,EqSafe
 C2_AUX_LIM_01,2,LIMITER,Aux 1 Lim,1,C2_AUX_AFB_01,C2_AUX_DLY_01,1,83,threshold_db=-0.5;attack_ms=0.1;release_ms=50.0,DynSafe
 C2_AUX_DLY_01,2,DELAY,Aux 1 Delay,1,C2_AUX_LIM_01,C2_AUX_OUT_01,1,87,delay_ms=0.0;max_ms=250.0,InstantCtl
 C2_AUX_OUT_01,2,OUTPUT_TDM,Aux 1 Out,1,C2_AUX_DLY_01,,1,89,sport_id=0;slot_start=0;slot_count=1;sport_slots=8;signal=DAC_01,
-C2_AUX_FDR_02,2,FADER_PAN,Aux 2 Fader,1,C2_RECV_AUX_02,C2_AUX_EQ_02,1,90,"level_db=0.0;pan=0.0;mute=0;host_cells=Dca,DcaOn",GainFast
+C2_AUX_FDR_02,2,FADER_PAN,Aux 2 Fader,1,C2_MIX_AUX_02,C2_AUX_EQ_02,1,90,"level_db=0.0;pan=0.0;mute=0;host_cells=Dca,DcaOn",GainFast
 C2_AUX_EQ_02,2,EQ_BIQUAD,Aux 2 EQ,1,C2_AUX_FDR_02,C2_AUX_GEQ_02,1,94,bands=4;coeffs=default,EqSafe
 C2_AUX_GEQ_02,2,GEQ,Aux 2 GEQ,1,C2_AUX_EQ_02,C2_AUX_AFB_02,1,118,bands=31,EqSafe
 C2_AUX_AFB_02,2,ANTI_FB,Aux 2 AntiFB,1,C2_AUX_GEQ_02,C2_AUX_LIM_02,1,149,notch_count=6,EqSafe
 C2_AUX_LIM_02,2,LIMITER,Aux 2 Lim,1,C2_AUX_AFB_02,C2_AUX_DLY_02,1,173,threshold_db=-0.5;attack_ms=0.1;release_ms=50.0,DynSafe
 C2_AUX_DLY_02,2,DELAY,Aux 2 Delay,1,C2_AUX_LIM_02,C2_AUX_OUT_02,1,177,delay_ms=0.0;max_ms=250.0,InstantCtl
 C2_AUX_OUT_02,2,OUTPUT_TDM,Aux 2 Out,1,C2_AUX_DLY_02,,1,179,sport_id=0;slot_start=1;slot_count=1;sport_slots=8;signal=DAC_02,
-C2_AUX_FDR_03,2,FADER_PAN,Aux 3 Fader,1,C2_RECV_AUX_03,C2_AUX_EQ_03,1,180,"level_db=0.0;pan=0.0;mute=0;host_cells=Dca,DcaOn",GainFast
+C2_AUX_FDR_03,2,FADER_PAN,Aux 3 Fader,1,C2_MIX_AUX_03,C2_AUX_EQ_03,1,180,"level_db=0.0;pan=0.0;mute=0;host_cells=Dca,DcaOn",GainFast
 C2_AUX_EQ_03,2,EQ_BIQUAD,Aux 3 EQ,1,C2_AUX_FDR_03,C2_AUX_GEQ_03,1,184,bands=4;coeffs=default,EqSafe
 C2_AUX_GEQ_03,2,GEQ,Aux 3 GEQ,1,C2_AUX_EQ_03,C2_AUX_AFB_03,1,208,bands=31,EqSafe
 C2_AUX_AFB_03,2,ANTI_FB,Aux 3 AntiFB,1,C2_AUX_GEQ_03,C2_AUX_LIM_03,1,239,notch_count=6,EqSafe
 C2_AUX_LIM_03,2,LIMITER,Aux 3 Lim,1,C2_AUX_AFB_03,C2_AUX_DLY_03,1,263,threshold_db=-0.5;attack_ms=0.1;release_ms=50.0,DynSafe
 C2_AUX_DLY_03,2,DELAY,Aux 3 Delay,1,C2_AUX_LIM_03,C2_AUX_OUT_03,1,267,delay_ms=0.0;max_ms=250.0,InstantCtl
 C2_AUX_OUT_03,2,OUTPUT_TDM,Aux 3 Out,1,C2_AUX_DLY_03,,1,269,sport_id=0;slot_start=2;slot_count=1;sport_slots=8;signal=DAC_03,
-C2_AUX_FDR_04,2,FADER_PAN,Aux 4 Fader,1,C2_RECV_AUX_04,C2_AUX_EQ_04,1,270,"level_db=0.0;pan=0.0;mute=0;host_cells=Dca,DcaOn",GainFast
+C2_AUX_FDR_04,2,FADER_PAN,Aux 4 Fader,1,C2_MIX_AUX_04,C2_AUX_EQ_04,1,270,"level_db=0.0;pan=0.0;mute=0;host_cells=Dca,DcaOn",GainFast
 C2_AUX_EQ_04,2,EQ_BIQUAD,Aux 4 EQ,1,C2_AUX_FDR_04,C2_AUX_GEQ_04,1,274,bands=4;coeffs=default,EqSafe
 C2_AUX_GEQ_04,2,GEQ,Aux 4 GEQ,1,C2_AUX_EQ_04,C2_AUX_AFB_04,1,298,bands=31,EqSafe
 C2_AUX_AFB_04,2,ANTI_FB,Aux 4 AntiFB,1,C2_AUX_GEQ_04,C2_AUX_LIM_04,1,329,notch_count=6,EqSafe
 C2_AUX_LIM_04,2,LIMITER,Aux 4 Lim,1,C2_AUX_AFB_04,C2_AUX_DLY_04,1,353,threshold_db=-0.5;attack_ms=0.1;release_ms=50.0,DynSafe
 C2_AUX_DLY_04,2,DELAY,Aux 4 Delay,1,C2_AUX_LIM_04,C2_AUX_OUT_04,1,357,delay_ms=0.0;max_ms=250.0,InstantCtl
 C2_AUX_OUT_04,2,OUTPUT_TDM,Aux 4 Out,1,C2_AUX_DLY_04,,1,359,sport_id=0;slot_start=3;slot_count=1;sport_slots=8;signal=DAC_04,
-C2_AUX_FDR_05,2,FADER_PAN,Aux 5 Fader,1,C2_RECV_AUX_05,C2_AUX_EQ_05,1,360,"level_db=0.0;pan=0.0;mute=0;host_cells=Dca,DcaOn",GainFast
+C2_AUX_FDR_05,2,FADER_PAN,Aux 5 Fader,1,C2_MIX_AUX_05,C2_AUX_EQ_05,1,360,"level_db=0.0;pan=0.0;mute=0;host_cells=Dca,DcaOn",GainFast
 C2_AUX_EQ_05,2,EQ_BIQUAD,Aux 5 EQ,1,C2_AUX_FDR_05,C2_AUX_GEQ_05,1,364,bands=4;coeffs=default,EqSafe
 C2_AUX_GEQ_05,2,GEQ,Aux 5 GEQ,1,C2_AUX_EQ_05,C2_AUX_AFB_05,1,388,bands=31,EqSafe
 C2_AUX_AFB_05,2,ANTI_FB,Aux 5 AntiFB,1,C2_AUX_GEQ_05,C2_AUX_LIM_05,1,419,notch_count=6,EqSafe
 C2_AUX_LIM_05,2,LIMITER,Aux 5 Lim,1,C2_AUX_AFB_05,C2_AUX_DLY_05,1,443,threshold_db=-0.5;attack_ms=0.1;release_ms=50.0,DynSafe
 C2_AUX_DLY_05,2,DELAY,Aux 5 Delay,1,C2_AUX_LIM_05,C2_AUX_OUT_05,1,447,delay_ms=0.0;max_ms=250.0,InstantCtl
 C2_AUX_OUT_05,2,OUTPUT_TDM,Aux 5 Out,1,C2_AUX_DLY_05,,1,449,sport_id=0;slot_start=4;slot_count=1;sport_slots=8;signal=DAC_05,
-C2_AUX_FDR_06,2,FADER_PAN,Aux 6 Fader,1,C2_RECV_AUX_06,C2_AUX_EQ_06,1,450,"level_db=0.0;pan=0.0;mute=0;host_cells=Dca,DcaOn",GainFast
+C2_AUX_FDR_06,2,FADER_PAN,Aux 6 Fader,1,C2_MIX_AUX_06,C2_AUX_EQ_06,1,450,"level_db=0.0;pan=0.0;mute=0;host_cells=Dca,DcaOn",GainFast
 C2_AUX_EQ_06,2,EQ_BIQUAD,Aux 6 EQ,1,C2_AUX_FDR_06,C2_AUX_GEQ_06,1,454,bands=4;coeffs=default,EqSafe
 C2_AUX_GEQ_06,2,GEQ,Aux 6 GEQ,1,C2_AUX_EQ_06,C2_AUX_AFB_06,1,478,bands=31,EqSafe
 C2_AUX_AFB_06,2,ANTI_FB,Aux 6 AntiFB,1,C2_AUX_GEQ_06,C2_AUX_LIM_06,1,509,notch_count=6,EqSafe
 C2_AUX_LIM_06,2,LIMITER,Aux 6 Lim,1,C2_AUX_AFB_06,C2_AUX_DLY_06,1,533,threshold_db=-0.5;attack_ms=0.1;release_ms=50.0,DynSafe
 C2_AUX_DLY_06,2,DELAY,Aux 6 Delay,1,C2_AUX_LIM_06,C2_AUX_OUT_06,1,537,delay_ms=0.0;max_ms=250.0,InstantCtl
 C2_AUX_OUT_06,2,OUTPUT_TDM,Aux 6 Out,1,C2_AUX_DLY_06,,1,539,sport_id=0;slot_start=5;slot_count=1;sport_slots=8;signal=DAC_06,
-C2_AUX_FDR_07,2,FADER_PAN,Aux 7 Fader,1,C2_RECV_AUX_07,C2_AUX_EQ_07,1,540,"level_db=0.0;pan=0.0;mute=0;host_cells=Dca,DcaOn",GainFast
+C2_AUX_FDR_07,2,FADER_PAN,Aux 7 Fader,1,C2_MIX_AUX_07,C2_AUX_EQ_07,1,540,"level_db=0.0;pan=0.0;mute=0;host_cells=Dca,DcaOn",GainFast
 C2_AUX_EQ_07,2,EQ_BIQUAD,Aux 7 EQ,1,C2_AUX_FDR_07,C2_AUX_GEQ_07,1,544,bands=4;coeffs=default,EqSafe
 C2_AUX_GEQ_07,2,GEQ,Aux 7 GEQ,1,C2_AUX_EQ_07,C2_AUX_AFB_07,1,568,bands=31,EqSafe
 C2_AUX_AFB_07,2,ANTI_FB,Aux 7 AntiFB,1,C2_AUX_GEQ_07,C2_AUX_LIM_07,1,599,notch_count=6,EqSafe
 C2_AUX_LIM_07,2,LIMITER,Aux 7 Lim,1,C2_AUX_AFB_07,C2_AUX_DLY_07,1,623,threshold_db=-0.5;attack_ms=0.1;release_ms=50.0,DynSafe
 C2_AUX_DLY_07,2,DELAY,Aux 7 Delay,1,C2_AUX_LIM_07,C2_AUX_OUT_07,1,627,delay_ms=0.0;max_ms=250.0,InstantCtl
 C2_AUX_OUT_07,2,OUTPUT_TDM,Aux 7 Out,1,C2_AUX_DLY_07,,1,629,sport_id=0;slot_start=6;slot_count=1;sport_slots=8;signal=DAC_07,
-C2_AUX_FDR_08,2,FADER_PAN,Aux 8 Fader,1,C2_RECV_AUX_08,C2_AUX_EQ_08,1,630,"level_db=0.0;pan=0.0;mute=0;host_cells=Dca,DcaOn",GainFast
+C2_AUX_FDR_08,2,FADER_PAN,Aux 8 Fader,1,C2_MIX_AUX_08,C2_AUX_EQ_08,1,630,"level_db=0.0;pan=0.0;mute=0;host_cells=Dca,DcaOn",GainFast
 C2_AUX_EQ_08,2,EQ_BIQUAD,Aux 8 EQ,1,C2_AUX_FDR_08,C2_AUX_GEQ_08,1,634,bands=4;coeffs=default,EqSafe
 C2_AUX_GEQ_08,2,GEQ,Aux 8 GEQ,1,C2_AUX_EQ_08,C2_AUX_AFB_08,1,658,bands=31,EqSafe
 C2_AUX_AFB_08,2,ANTI_FB,Aux 8 AntiFB,1,C2_AUX_GEQ_08,C2_AUX_LIM_08,1,689,notch_count=6,EqSafe
 C2_AUX_LIM_08,2,LIMITER,Aux 8 Lim,1,C2_AUX_AFB_08,C2_AUX_DLY_08,1,713,threshold_db=-0.5;attack_ms=0.1;release_ms=50.0,DynSafe
 C2_AUX_DLY_08,2,DELAY,Aux 8 Delay,1,C2_AUX_LIM_08,C2_AUX_OUT_08,1,717,delay_ms=0.0;max_ms=250.0,InstantCtl
 C2_AUX_OUT_08,2,OUTPUT_TDM,Aux 8 Out,1,C2_AUX_DLY_08,,1,719,sport_id=0;slot_start=7;slot_count=1;sport_slots=8;signal=DAC_08,
-C2_AUX_FDR_09,2,FADER_PAN,Aux 9 Fader,1,C2_RECV_AUX_09,C2_AUX_EQ_09,1,720,"level_db=0.0;pan=0.0;mute=0;host_cells=Dca,DcaOn",GainFast
+C2_AUX_FDR_09,2,FADER_PAN,Aux 9 Fader,1,C2_MIX_AUX_09,C2_AUX_EQ_09,1,720,"level_db=0.0;pan=0.0;mute=0;host_cells=Dca,DcaOn",GainFast
 C2_AUX_EQ_09,2,EQ_BIQUAD,Aux 9 EQ,1,C2_AUX_FDR_09,C2_AUX_GEQ_09,1,724,bands=4;coeffs=default,EqSafe
 C2_AUX_GEQ_09,2,GEQ,Aux 9 GEQ,1,C2_AUX_EQ_09,C2_AUX_AFB_09,1,748,bands=31,EqSafe
 C2_AUX_AFB_09,2,ANTI_FB,Aux 9 AntiFB,1,C2_AUX_GEQ_09,C2_AUX_LIM_09,1,779,notch_count=6,EqSafe
 C2_AUX_LIM_09,2,LIMITER,Aux 9 Lim,1,C2_AUX_AFB_09,C2_AUX_DLY_09,1,803,threshold_db=-0.5;attack_ms=0.1;release_ms=50.0,DynSafe
 C2_AUX_DLY_09,2,DELAY,Aux 9 Delay,1,C2_AUX_LIM_09,C2_AUX_OUT_09,1,807,delay_ms=0.0;max_ms=250.0,InstantCtl
 C2_AUX_OUT_09,2,OUTPUT_TDM,Aux 9 Out,1,C2_AUX_DLY_09,,1,809,sport_id=1;slot_start=0;slot_count=1;sport_slots=8;signal=DAC_09,
-C2_AUX_FDR_10,2,FADER_PAN,Aux 10 Fader,1,C2_RECV_AUX_10,C2_AUX_EQ_10,1,810,"level_db=0.0;pan=0.0;mute=0;host_cells=Dca,DcaOn",GainFast
+C2_AUX_FDR_10,2,FADER_PAN,Aux 10 Fader,1,C2_MIX_AUX_10,C2_AUX_EQ_10,1,810,"level_db=0.0;pan=0.0;mute=0;host_cells=Dca,DcaOn",GainFast
 C2_AUX_EQ_10,2,EQ_BIQUAD,Aux 10 EQ,1,C2_AUX_FDR_10,C2_AUX_GEQ_10,1,814,bands=4;coeffs=default,EqSafe
 C2_AUX_GEQ_10,2,GEQ,Aux 10 GEQ,1,C2_AUX_EQ_10,C2_AUX_AFB_10,1,838,bands=31,EqSafe
 C2_AUX_AFB_10,2,ANTI_FB,Aux 10 AntiFB,1,C2_AUX_GEQ_10,C2_AUX_LIM_10,1,869,notch_count=6,EqSafe
 C2_AUX_LIM_10,2,LIMITER,Aux 10 Lim,1,C2_AUX_AFB_10,C2_AUX_DLY_10,1,893,threshold_db=-0.5;attack_ms=0.1;release_ms=50.0,DynSafe
 C2_AUX_DLY_10,2,DELAY,Aux 10 Delay,1,C2_AUX_LIM_10,C2_AUX_OUT_10,1,897,delay_ms=0.0;max_ms=250.0,InstantCtl
 C2_AUX_OUT_10,2,OUTPUT_TDM,Aux 10 Out,1,C2_AUX_DLY_10,,1,899,sport_id=1;slot_start=1;slot_count=1;sport_slots=8;signal=DAC_10,
-C2_AUX_FDR_11,2,FADER_PAN,Aux 11 Fader,1,C2_RECV_AUX_11,C2_AUX_EQ_11,1,900,"level_db=0.0;pan=0.0;mute=0;host_cells=Dca,DcaOn",GainFast
+C2_AUX_FDR_11,2,FADER_PAN,Aux 11 Fader,1,C2_MIX_AUX_11,C2_AUX_EQ_11,1,900,"level_db=0.0;pan=0.0;mute=0;host_cells=Dca,DcaOn",GainFast
 C2_AUX_EQ_11,2,EQ_BIQUAD,Aux 11 EQ,1,C2_AUX_FDR_11,C2_AUX_GEQ_11,1,904,bands=4;coeffs=default,EqSafe
 C2_AUX_GEQ_11,2,GEQ,Aux 11 GEQ,1,C2_AUX_EQ_11,C2_AUX_AFB_11,1,928,bands=31,EqSafe
 C2_AUX_AFB_11,2,ANTI_FB,Aux 11 AntiFB,1,C2_AUX_GEQ_11,C2_AUX_LIM_11,1,959,notch_count=6,EqSafe
 C2_AUX_LIM_11,2,LIMITER,Aux 11 Lim,1,C2_AUX_AFB_11,C2_AUX_DLY_11,1,983,threshold_db=-0.5;attack_ms=0.1;release_ms=50.0,DynSafe
 C2_AUX_DLY_11,2,DELAY,Aux 11 Delay,1,C2_AUX_LIM_11,C2_AUX_OUT_11,1,987,delay_ms=0.0;max_ms=250.0,InstantCtl
 C2_AUX_OUT_11,2,OUTPUT_TDM,Aux 11 Out,1,C2_AUX_DLY_11,,1,989,sport_id=1;slot_start=2;slot_count=1;sport_slots=8;signal=DAC_11,
-C2_AUX_FDR_12,2,FADER_PAN,Aux 12 Fader,1,C2_RECV_AUX_12,C2_AUX_EQ_12,1,990,"level_db=0.0;pan=0.0;mute=0;host_cells=Dca,DcaOn",GainFast
+C2_AUX_FDR_12,2,FADER_PAN,Aux 12 Fader,1,C2_MIX_AUX_12,C2_AUX_EQ_12,1,990,"level_db=0.0;pan=0.0;mute=0;host_cells=Dca,DcaOn",GainFast
 C2_AUX_EQ_12,2,EQ_BIQUAD,Aux 12 EQ,1,C2_AUX_FDR_12,C2_AUX_GEQ_12,1,994,bands=4;coeffs=default,EqSafe
 C2_AUX_GEQ_12,2,GEQ,Aux 12 GEQ,1,C2_AUX_EQ_12,C2_AUX_AFB_12,1,1018,bands=31,EqSafe
 C2_AUX_AFB_12,2,ANTI_FB,Aux 12 AntiFB,1,C2_AUX_GEQ_12,C2_AUX_LIM_12,1,1049,notch_count=6,EqSafe
@@ -595,8 +619,8 @@ C2_SUB_COMP,2,COMPRESSOR,Sub Comp,1,C2_SUB_EQ,C2_SUB_LIM,1,1348,threshold_db=-20
 C2_SUB_LIM,2,LIMITER,Sub Lim,1,C2_SUB_COMP,C2_SUB_DLY,1,1364,threshold_db=-0.5;attack_ms=0.1;release_ms=50.0,DynSafe
 C2_SUB_DLY,2,DELAY,Sub Delay,1,C2_SUB_LIM,C2_SUB_OUT,1,1368,delay_ms=0.0;max_ms=250.0,InstantCtl
 C2_SUB_OUT,2,OUTPUT_TDM,Sub Out,1,C2_SUB_DLY,,1,1370,sport_id=4;slot_start=0;slot_count=1;sport_slots=8;signal=NET_OUT_01,
-C2_MIX_MAIN_L,2,MIX_BUS,Main Mix L,1,C2_RECV_MAIN_L;C2_GRP_COMP_01;C2_GRP_COMP_02;C2_GRP_COMP_03;C2_GRP_COMP_04;C2_USB_IN;C2_BT_IN;C2_CODEC_AUX_IN;C2_PI_IN;C2_SNK_IN_01;C2_SNK_IN_02;C2_SNK_IN_03;C2_SNK_IN_04;C2_SNK_IN_05;C2_SNK_IN_06;C2_SNK_IN_07;C2_SNK_IN_08,C2_MAIN_FDR,1,1371,bus_id=0,
-C2_MIX_MAIN_R,2,MIX_BUS,Main Mix R,1,C2_RECV_MAIN_R;C2_GRP_COMP_01;C2_GRP_COMP_02;C2_GRP_COMP_03;C2_GRP_COMP_04;C2_USB_IN;C2_BT_IN;C2_CODEC_AUX_IN;C2_PI_IN;C2_SNK_IN_01;C2_SNK_IN_02;C2_SNK_IN_03;C2_SNK_IN_04;C2_SNK_IN_05;C2_SNK_IN_06;C2_SNK_IN_07;C2_SNK_IN_08,C2_MAIN_FDR,1,1375,bus_id=1,
+C2_MIX_MAIN_L,2,MIX_BUS,Main Mix L,1,C2_RECV_MAIN_L;C2_GRP_COMP_01;C2_GRP_COMP_02;C2_GRP_COMP_03;C2_GRP_COMP_04;C2_USB_IN;C2_BT_IN;C2_CODEC_AUX_IN;C2_PI_IN;C2_SNK_IN_01;C2_SNK_IN_02;C2_SNK_IN_03;C2_SNK_IN_04;C2_SNK_IN_05;C2_SNK_IN_06;C2_SNK_IN_07;C2_SNK_IN_08;C2_FX_FDR_01;C2_FX_FDR_02;C2_FX_FDR_03;C2_FX_FDR_04;C2_FX_FDR_05;C2_FX_FDR_06,C2_MAIN_FDR,1,1371,bus_id=0,
+C2_MIX_MAIN_R,2,MIX_BUS,Main Mix R,1,C2_RECV_MAIN_R;C2_GRP_COMP_01;C2_GRP_COMP_02;C2_GRP_COMP_03;C2_GRP_COMP_04;C2_USB_IN;C2_BT_IN;C2_CODEC_AUX_IN;C2_PI_IN;C2_SNK_IN_01;C2_SNK_IN_02;C2_SNK_IN_03;C2_SNK_IN_04;C2_SNK_IN_05;C2_SNK_IN_06;C2_SNK_IN_07;C2_SNK_IN_08;C2_FX_FDR_01;C2_FX_FDR_02;C2_FX_FDR_03;C2_FX_FDR_04;C2_FX_FDR_05;C2_FX_FDR_06,C2_MAIN_FDR,1,1375,bus_id=1,
 C2_MAIN_FDR,2,FADER_PAN,Main Fader,2,C2_MIX_MAIN_L;C2_MIX_MAIN_R,C2_MAIN_GEQ,1,1379,"level_db=0.0;mute=0;host_cells=Dca,DcaOn",GainFast
 C2_MAIN_GEQ,2,GEQ,Main GEQ,2,C2_MAIN_FDR,C2_MAIN_COMP,1,1383,bands=31,EqSafe
 C2_MAIN_COMP,2,COMPRESSOR,Main Comp,2,C2_MAIN_GEQ,C2_MAIN_LIM,1,1414,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA,DynSafe
@@ -619,18 +643,6 @@ C2_MAIN_OEQ_04,2,EQ_BIQUAD,Main Out 4 EQ,1,C2_MAIN_XOVER,C2_MAIN_OCOMP_04,1,1575
 C2_MAIN_OCOMP_04,2,COMPRESSOR,Main Out 4 Comp,1,C2_MAIN_OEQ_04,C2_MAIN_OLIM_04,1,1599,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;type=VCA,DynSafe
 C2_MAIN_OLIM_04,2,LIMITER,Main Out 4 Lim,1,C2_MAIN_OCOMP_04,C2_MAIN_OUT_04,1,1615,threshold_db=-0.5;attack_ms=0.1;release_ms=50.0,DynSafe
 C2_MAIN_OUT_04,2,OUTPUT_TDM,Main Out 4,1,C2_MAIN_OLIM_04,,1,1619,sport_id=1;slot_start=7;slot_count=1;sport_slots=8;signal=DAC_16,
-C2_FX_ENG_01,2,FX_ENGINE,FX 1 Engine,2,C2_RECV_FX_01,C2_FX_FDR_01,1,1620,type=Reverb;room_size=0.7;damping=0.5;decay=2.0;predelay_ms=20.0;delay_ms=300.0;feedback=50;balance=50;eq_lo=0;eq_mid=0;eq_hi=0;hpf=80;mod_rate=1.0;mod_level=50;mix=30;duck_on=0;duck_sens=-10,GainSafe
-C2_FX_FDR_01,2,FADER_PAN,FX 1 Return,1,C2_FX_ENG_01,C2_MIX_MAIN_L;C2_MIX_MAIN_R,1,1644,"level_db=-6.0;mute=0;host_cells=Dca,DcaOn",GainFast
-C2_FX_ENG_02,2,FX_ENGINE,FX 2 Engine,2,C2_RECV_FX_02,C2_FX_FDR_02,1,1648,type=Reverb;room_size=0.7;damping=0.5;decay=2.0;predelay_ms=20.0;delay_ms=300.0;feedback=50;balance=50;eq_lo=0;eq_mid=0;eq_hi=0;hpf=80;mod_rate=1.0;mod_level=50;mix=30;duck_on=0;duck_sens=-10,GainSafe
-C2_FX_FDR_02,2,FADER_PAN,FX 2 Return,1,C2_FX_ENG_02,C2_MIX_MAIN_L;C2_MIX_MAIN_R,1,1672,"level_db=-6.0;mute=0;host_cells=Dca,DcaOn",GainFast
-C2_FX_ENG_03,2,FX_ENGINE,FX 3 Engine,2,C2_RECV_FX_03,C2_FX_FDR_03,1,1676,type=Reverb;room_size=0.7;damping=0.5;decay=2.0;predelay_ms=20.0;delay_ms=300.0;feedback=50;balance=50;eq_lo=0;eq_mid=0;eq_hi=0;hpf=80;mod_rate=1.0;mod_level=50;mix=30;duck_on=0;duck_sens=-10,GainSafe
-C2_FX_FDR_03,2,FADER_PAN,FX 3 Return,1,C2_FX_ENG_03,C2_MIX_MAIN_L;C2_MIX_MAIN_R,1,1700,"level_db=-6.0;mute=0;host_cells=Dca,DcaOn",GainFast
-C2_FX_ENG_04,2,FX_ENGINE,FX 4 Engine,2,C2_RECV_FX_04,C2_FX_FDR_04,1,1704,type=Reverb;room_size=0.7;damping=0.5;decay=2.0;predelay_ms=20.0;delay_ms=300.0;feedback=50;balance=50;eq_lo=0;eq_mid=0;eq_hi=0;hpf=80;mod_rate=1.0;mod_level=50;mix=30;duck_on=0;duck_sens=-10,GainSafe
-C2_FX_FDR_04,2,FADER_PAN,FX 4 Return,1,C2_FX_ENG_04,C2_MIX_MAIN_L;C2_MIX_MAIN_R,1,1728,"level_db=-6.0;mute=0;host_cells=Dca,DcaOn",GainFast
-C2_FX_ENG_05,2,FX_ENGINE,FX 5 Engine,2,C2_RECV_FX_05,C2_FX_FDR_05,1,1732,type=Reverb;room_size=0.7;damping=0.5;decay=2.0;predelay_ms=20.0;delay_ms=300.0;feedback=50;balance=50;eq_lo=0;eq_mid=0;eq_hi=0;hpf=80;mod_rate=1.0;mod_level=50;mix=30;duck_on=0;duck_sens=-10,GainSafe
-C2_FX_FDR_05,2,FADER_PAN,FX 5 Return,1,C2_FX_ENG_05,C2_MIX_MAIN_L;C2_MIX_MAIN_R,1,1756,"level_db=-6.0;mute=0;host_cells=Dca,DcaOn",GainFast
-C2_FX_ENG_06,2,FX_ENGINE,FX 6 Engine,2,C2_RECV_FX_06,C2_FX_FDR_06,1,1760,type=Reverb;room_size=0.7;damping=0.5;decay=2.0;predelay_ms=20.0;delay_ms=300.0;feedback=50;balance=50;eq_lo=0;eq_mid=0;eq_hi=0;hpf=80;mod_rate=1.0;mod_level=50;mix=30;duck_on=0;duck_sens=-10,GainSafe
-C2_FX_FDR_06,2,FADER_PAN,FX 6 Return,1,C2_FX_ENG_06,C2_MIX_MAIN_L;C2_MIX_MAIN_R,1,1784,"level_db=-6.0;mute=0;host_cells=Dca,DcaOn",GainFast
 C2_MON,2,MONITOR,Monitor,2,C2_MAIN_FDR,C2_MON_DLY,1,1788,level_l_db=0.0;level_r_db=0.0;source=main,GainFast
 C2_MON_DLY,2,DELAY,Monitor Delay,2,C2_MON,C2_MON_OUT,1,1794,delay_ms=0.0;max_ms=250.0,InstantCtl
 C2_MON_OUT,2,OUTPUT_TDM,Monitor Out,2,C2_MON_DLY,,1,1796,sport_id=2;slot_start=0;slot_count=2;sport_slots=8;signal=CODEC_OUT_1;scope=D24,

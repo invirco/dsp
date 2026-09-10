@@ -167,6 +167,73 @@ def configure(sc, strip, loud, gain=1.0, dly=0):
         wrv(sc, addr, f32(val), ramp_id=1, settle=0.05)
 
 
+# THE MATRIX SENDS' SPI BLOCK IS NOT ON THE STRIP'S PAGE, and that is the
+# whole of S22-4: the routing block is sixty words and growing it to
+# sixty-four would have moved every chip-1 address above channel 1's
+# router, so the matrix sends were allocated after every other chip-1
+# address. Four words per channel, On[1-2] then Send[1-2].
+MTX_ON, MTX_SEND, MTX_STRIDE = 0x12C6, 0x12C8, 4
+# Inside the sixty-word routing block: MainOn, CtrOn, GrpOn[4], AuxOn[12],
+# AuxSend[12], AuxPick[12], FxOn[6], FxSend[6], FxPick[6].
+MAIN_ON = 0x0054
+AUX_ON, AUX_SEND = 0x005A, 0x0066
+
+# WHICH ONE CROSSPOINT IS LEFT LIVE, and the bus it feeds. `main` is the
+# arm every stored golden was taken with. The rest exist for the S23 gate-1
+# vector: the dense crosspoint path is ONE path, so a channel sent at unity
+# into aux 1, matrix 1 and matrix 2 must produce THE SAME BUS SUM in all
+# three -- same source block, same Q4.28 coefficient of exactly 2^28, same
+# exact 80-bit accumulate, read out with the same rns+saturate. Any
+# difference is a bus row indexed wrong, a coefficient stride slipped, or
+# one accumulator aliasing another; a tolerance would hide all three, so
+# the bar is word-for-word.
+CROSSPOINTS = {
+    'main': ('_buf_C1_BUS_MAIN_L', None),
+    'aux1': ('_buf_C1_BUS_AUX_01', (AUX_ON, AUX_SEND)),
+    'mtx1': ('_buf_C1_BUS_MTX_01', (MTX_ON, MTX_SEND)),
+    'mtx2': ('_buf_C1_BUS_MTX_02', (MTX_ON + 1, MTX_SEND + 1)),
+}
+
+
+def set_crosspoint(sc, strip, kind, on=True):
+    """Leave exactly one of the strip's crosspoints live.
+
+    MainOn is taken off for everything but `main`, because a strip that is
+    still assigned to the main bus proves nothing about the bus under test
+    -- and because the point of the vector is that the OTHER bus carries
+    the same sum, which needs the sources to be identical and not merely
+    similar.
+
+    `on=False` is the negative control and it writes the ASSIGN bit only:
+    the send level is left where it is, so a bus that still carries
+    anything is carrying it through a coefficient the assign bit failed to
+    zero, which is the one failure this can have.
+    """
+    b = (strip - 1) * STRIDE
+    spec = CROSSPOINTS[kind][1]
+    if spec is None:
+        sc.d.write(b + MAIN_ON, 1)
+        time.sleep(S.SETTLE)
+        return
+    on_addr, send_addr = spec
+    if on_addr >= MTX_ON:                       # the matrix block, not the page
+        on_addr += (strip - 1) * MTX_STRIDE
+        send_addr += (strip - 1) * MTX_STRIDE
+    else:
+        on_addr += b
+        send_addr += b
+    sc.d.write(b + MAIN_ON, 0)
+    time.sleep(S.SETTLE)
+    # UNITY IS 1.0 AND NOT 0.0 dB. `_rtg_<kind>_send_` is a LINEAR gain --
+    # the send-ramp prep multiplies it by 2^28 and FIXes the result into
+    # the crosspoint coefficient. The cell's `dB:` table is the surface
+    # mapping and the SPI handler applies no conversion to it (0 of 2,168
+    # chip-2 and 0 of the chip-1 addresses carry one), so writing 0.0 here
+    # asks for silence. S22's matrix probe lost a run to this.
+    wrv(sc, send_addr, f32(1.0), ramp_id=1, settle=0.05)
+    sc.d.write(on_addr, 1 if on else 0)
+    time.sleep(0.3)
+
 def inject_addr(sc, strip):
     """Where the step goes: the driven strip's own chain slot.
 
@@ -254,6 +321,14 @@ def main():
                          'line\'s two-pass form (DSP4_DLY_SPLIT) has to be '
                          'proved on: the block\'s reads then land INSIDE '
                          'the block\'s own writes, partially.')
+    ap.add_argument('--xp', default='main', choices=sorted(CROSSPOINTS),
+                    help='which crosspoint is left live, and therefore '
+                         'which bus is captured (default main, the arm '
+                         'every stored golden was taken with)')
+    ap.add_argument('--xp-off', action='store_true',
+                    help='the negative control for --xp: write the assign '
+                         'bit to 0 and leave the send level alone. The bus '
+                         'must then read exactly zero.')
     ap.add_argument('--compare', nargs=2, metavar='FILE',
                     help='compare two captures instead of taking one')
     args = ap.parse_args()
@@ -298,14 +373,20 @@ def main():
     # would pass whatever the pairing did.
     time.sleep(2.0)
 
+    bus = CROSSPOINTS[args.xp][0]
+    if bus not in sc.sym:
+        raise SystemExit('no %s in this image — %s is not a bus this build '
+                         'carries' % (bus, args.xp))
+    set_crosspoint(sc, args.strip, args.xp, on=not args.xp_off)
     inj = inject_addr(sc, args.strip)
-    src = sc.sym['_buf_C1_BUS_MAIN_L']
+    src = sc.sym[bus]
     words = capture(sc, inj, src, args.n)
 
     digest = hashlib.sha256(
         b''.join(struct.pack('<I', w & 0xFFFFFFFF) for w in words)).hexdigest()
     nz = sum(1 for w in words if w)
     json.dump({'tag': args.tag or args.out, 'strip': args.strip,
+               'xp': args.xp, 'xp_off': bool(args.xp_off), 'bus': bus,
                'partner': partner, 'block': BLOCK, 'gain': args.gain,
                'paired_build': '_blk_pool1' in sc.sym,
                'bq_paired_build': any(k.startswith('_BQPFILT_')
@@ -313,13 +394,21 @@ def main():
                'bq': bool(args.bq),
                'inj': inj, 'src': src, 'sha256': digest,
                'nonzero': nz, 'words': words}, open(args.out, 'w'))
-    print('strip %d driven, %d muted, paired_build=%s bq_paired_build=%s '
-          'bq_loaded=%s: %d/%d non-zero, sha256 %s'
-          % (args.strip, partner, '_blk_pool1' in sc.sym,
+    print('strip %d driven, %d muted, xp=%s%s (%s), paired_build=%s '
+          'bq_paired_build=%s bq_loaded=%s: %d/%d non-zero, sha256 %s'
+          % (args.strip, partner, args.xp, ' OFF' if args.xp_off else '',
+             bus, '_blk_pool1' in sc.sym,
              any(k.startswith('_BQPFILT_') for k in sc.sym), bool(args.bq),
              nz, len(words), digest[:16]))
     # A capture of all zeros proves nothing: it is what a dead strip, a
-    # dropped arm and a muted graph all look like.
+    # dropped arm and a muted graph all look like -- EXCEPT under
+    # --xp-off, where all zeros IS the answer and anything else is the
+    # failure.
+    if args.xp_off:
+        if nz:
+            print('NEGATIVE CONTROL FAILED: %d of %d words non-zero with '
+                  'the assign bit at 0' % (nz, len(words)))
+        return 1 if nz else 0
     return 0 if nz else 1
 
 
