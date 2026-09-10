@@ -1,3 +1,93 @@
+## HUB DISPATCH 2026-09-10 00:16Z — S17 — window-readiness correctness now both products fit with margin: dyn_state_bound §3 (sidechain H=4) guarded or disproved, D80 root-caused, D79 chip-2 gainfix in the generator, S12-10 the latency instrument made to work (82 measured on s16_*), S16-9 script hygiene, _proc_cyc_max reset   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+S17 — WINDOW-READINESS CORRECTNESS, now that both products fit with margin: the open numeric and verification items closed before PW's window — `dyn_state_bound` §3 (sidechain H = 4 reachable under the contract: guard it or prove it harmless), D80 (the 0.4–0.9 % cross-build delta on dynamics-engaged meter chains), D79 (chip 2 has no gainfix equivalent — a stray word in parameter state per config), S12-10 (the latency instrument that nulls on every image — duplex PCM overlay + a reboot with the card known-good, so the 82-sample contract figure is re-measured on the candidate rather than carried), S16-9 (the ~30 scripts that scp over the shared scratch slot), `_proc_cyc_max` reset after config
+
+WHY. S16 (dsp e4727bf) closed the last link: the LUT's gain reaches the
+audio unchanged (four instruments, 0.005 dB worst; comp_gr −20.98 dB
+against −20.982 predicted), the LIMITER is on the table (253 → 92
+c/sample-pair, −63.6 %), S15's lever had been inert on chip 2 (`_dlut_live`
+had no writer there — fixed, 9.83 % move vs 10.33 % predicted), the
+code-pool "wall" was a placement nobody chose (a third LDF code tier
+counted as data; `find | sort` put the hottest kernels in the contended
+block — `DSP4_COLD_OBJS` fixes the order, +0 bytes per object). **Capacity,
+clock measured, zero overruns: D32 chip 1 60.3 % / chip 2 66.7 %; D24
+46.8 % / 55.2 %.** Staged `s16_*` (a874db96/1403fbcc) and `s16f_*`
+(b9494e15/de0045b7, + six-slot biquad); decision table finished,
+recommendation `s16_*`; chip 1's margin 388 bytes (next lever: 85 % of
+the pool is 32 copies of 9 kernels — a design item for PW, not this
+session). What is still OPEN going into the window: `dyn_state_bound`
+§3 FAILs at HEAD — H = 4 bounded by the contract (an HPF the wire can
+carry), still reachable (S16-8); D80 — a 0.4–0.9 % cross-build delta,
+dynamics-engaged meter chains only, node outputs 49/49 bit-identical,
+reproduced through every lever since 08-28; D79 — config lands a stray
+word in parameter state on chip 2, chip 1 has `gainfix.py`, chip 2
+nothing; S12-10 — `latency.sh` returns the null signature on EVERY image
+including the shipping control, so the contract's 82 samples is carried
+from S11 and has never been measured on a candidate; S16-9 — ~30
+measurement scripts scp over `~/dspboot/chip{1,2}.ldr` (the shared
+scratch slot, not a staged pair) with no STAGE discipline; S13-2 —
+`_proc_cyc_max` latches a configuration transient.
+
+BENCH. Rev C unit as S16 left it (`blk_*` booted, BOOT_STAGE 7, matrix-
+app active, zero overruns; staged pairs `blk_*` ships, `cand_*`, `geq_*`,
+`dyn_*`, `flr_*`, `s16_*`, `s16f_*` — NEVER replace any). Every image from
+its own staging path with copy-and-restore; `dsp4_checkchip.py`,
+`dsp4_buildcfg.py` (CFG2 carries the switches), CCLK measured per row,
+fresh sym.json per boot; `capacity.sh` with the clock per row,
+DIAG_BLK_OVERRUN the arbiter; the six bars take STAGE, tap on; a REBOOT
+of the unit is allowed for S12-10 only, pre-registered, card known-good
+first. No deploy. No AI attribution in commits or any work product.
+
+GATES, in order, each witnessed:
+1. **`dyn_state_bound` §3 — the sidechain at H = 4.** What the bound
+   says (which accumulator, which stage, what input reaches it), whether
+   a real signal under the contract can reach it (worst-case
+   full-scale input through the sidechain HPF/LPF at their contract
+   extremes — measured on the part with the numeric arm, not modelled
+   only), and the fix: a guard bit / one saturate at the sidechain
+   output (its cost in the paired kernel, measured), or the contract's
+   sidechain range narrowed (PW's call — propose), or proof it cannot
+   overflow (then the bound is wrong and the script is fixed). First
+   sentence of the status line: **§3 is a real overflow / a false bound,
+   and it is fixed by <X> at <N> cycles.**
+2. **D80 root-caused.** The 0.4–0.9 % delta, dynamics-engaged meter
+   chains only, node outputs bit-identical: bisect across the two builds
+   with the meter tap on (which word differs first — the meter's
+   sum-of-squares accumulator, the peak hold, the wide-word tap position
+   — S12-3's class is the suspect: a pair driver publishing in another
+   block), quote the sample. Fixed if it is a defect; documented as an
+   instrument artefact if it is one — either way, closed.
+3. **D79 — chip 2's gainfix.** Where chip 1's `gainfix.py` corrects the
+   stray word and why chip 2 needs it: reproduce on chip 2 (which
+   parameter word, which config step writes it), fix the config path so
+   the word is never wrong rather than fixed after (the generator, not
+   a post-pass), prove with `dsp4_dcapar_probe.py`/the config readback
+   on both chips.
+4. **S12-10 — the latency instrument made to work.** The duplex PCM
+   overlay + reboot (pre-registered; card known-good verified first;
+   `zero-rebootflags`-class discipline does not apply here — this is
+   the CM4, use the app's own restart path); `latency.sh` on the shipping
+   pair FIRST (must reproduce S11's 66 without Option A / 82 with, or the
+   instrument is still wrong) and then on `s16_*`: through-DSP latency at
+   block 16 with `DSP4_TX_EARLY=2`, boot-to-boot ×3. The contract figure
+   is then MEASURED on the recommended pair, not carried.
+5. **Hygiene:** S16-9 — the ~30 scripts made STAGE-aware or pointed at
+   the scratch slot explicitly (one table: script, what it writes, fixed
+   how); `_proc_cyc_max` reset after the config ladder so the column
+   means its name (and `capacity.sh` prints both the raw and the reset
+   figure once, to show the difference).
+6. findings S17-*, `MW/D32/DSP/dsp4-s17-20260910.md`, the window note's
+   decision table refreshed (latency measured, §3/D80/D79 status per
+   pair), tasks.md, this block's status; commit + push main.
+
+Bounded: gates 1–3 are the session; 4 expected; 5 cheap; 6 always.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-09 21:52Z — S16 — the last link and the new wall: chip 1's code pool opened by the link map so the audio witness fits beside the LUT arm; the audio-domain verdict on DSP4_DYN_LUT (famverify + comp_gr with a signal source); the LIMITER on the table (chip 2's prize); S15-10 script hygiene; both levers re-priced and the decision table finished for PW   [status: 🟢 done — **THE LUT'S GAIN REACHES THE AUDIO UNCHANGED: YES, and the LIMITER IS ON THE TABLE — CHIP 2 GOES 76.7 % → 66.7 % AT D32.** The wall was a PLACEMENT nobody had chosen (S16-1): the LDF has had a THIRD code tier since 2026-09-09 and `dsp_memreport.py` counted its bytes as DATA, so "99.9 %, 244 free" was two thirds of the pool; and which objects went there was decided by `find | sort`, which put `meter_fx` — the per-block meter fold and the SIMD gain kernel — in the contended DM/DMA block on the LUT arm, and `dyn_simd_fx`, the hottest routine in the graph, there on the arm with the witness. `build.sh`'s `DSP4_COLD_OBJS` now names the boot/config/design/instrument objects and appends them LAST; every per-block kernel is back in Blocks 3+2 on every arm, and `dsp_codepool.py --diff` proves every object contributes the same bytes (delta +0) so the audio is the same instructions at different addresses. **The witness then FITS (S16-2)**: LUT arm + `SCOPE_BLK_TAP` links with 8 bytes spare and runs the whole 20-family walk — famverify's "does not fit" header corrected. **THE VERDICT (S16-5), four instruments, all able to fail:** famverify verdict-for-verdict against the shipping pair — 20 families, ONE moves, `COMPRESSOR` numeric BIT_EXACT → FAILED, which is what a working table looks like against a polynomial reference; `node_verify` now reports HOW FAR — **0.00518 dB** worst over 96 samples against the 0.0950 dB design bound; `dsp4_comp_gr.py` **−20.98 dB of real gain reduction** against a static-law prediction of −20.982 (0.0003 dB), 43 of 64 samples bit-identical to the polynomial arm and the settled value identical. Its S15 refusal had a MECHANISM, three defects deep (S16-3): a 32-word stride on a 16-word block, `_blk_pool` where `DSP4_SIMD_DYN` puts strip 1 on `_blk_pool1`, and a chain slot TUBE and DLY overwrite. **The LIMITER (S16-6)** onto the same `dyn_lut.h` machinery: 0.0604 dB over its contract range, **337 of 337 words identical** off the part, shootout rungs 18→19 **253.3 → 92.1 c/sample-pair (−161.1, −63.6 %, the largest fractional saving on the ladder)**, audio **0.00214 dB**. **And S15's lever was INERT ON CHIP 2 (S16-7)** — `_dlut_live` had no writer there at all, so chip 2's ten compressors were on the polynomial too and "chip 2 barely moves" was a no-op recorded as a measurement; fixed, and the 9.83 % move against a 10.33 % prediction is the proof. **Capacity, clock measured, ZERO overruns on every row:** D32 chip 1 75.2 → **60.3 %** (reproduces S15 to 0.03 pts), chip 2 76.7 → **66.7 %**; D24 58.0 → **46.8 %** and 63.8 → **55.2 %**. Staged **`s16_*` `a874db96`/`1403fbcc`** and **`s16f_*` `b9494e15`/`de0045b7`**; decision table finished for PW, recommendation `s16_*`. Hygiene: S15-10 resolved by LOOKING — `~/dspboot/chip{1,2}.ldr` read `08d0b9a4`/`6a349c13`, **no staged pair at all**, so it is the shared scratch slot and famverify's header was the false claim (the sweep is ~30 scripts, not 10, and is NOT done — scoped in S16-9); `dyn_state_bound` §3's H = 5 came from an HPF of 8 kHz the wire cannot carry — bounded by the contract it is **H = 4**, still reachable, still FAIL, filed (S16-8). Chip 1's margin is **388 bytes**: the next lever is the 85 % of the pool that is 32 copies of 9 kernels. Default build one image throughout, `20588957`/`a1509a2a`. Bench restored: `blk_*`, BOOT_STAGE 7, zero overruns over 90,045 blocks/chip, matrix-app active. Write-up `MW/D32/DSP/dsp4-s16-20260910.md`, findings S16-1..S16-10.]   [model: opus]
 
 model: opus
