@@ -107,7 +107,13 @@ EXTRA_PARAMS = {
     'MONITOR':        {'level_l_db', 'level_r_db'},
     'NOISE_GEN':      {'hpf_on'},
     'OUTPUT_TDM':     {'scope', 'signal', 'sport_slots'},
-    'ROUTING':        {'fx_on'},
+    # `mtx_*` (S22 gate 1): the matrix sends and the SPI block they live in.
+    # `mtx_page`/`mtx_addr` are a SECOND address block for one node -- the
+    # only one in the graph -- because growing the 60-word routing block
+    # would have moved every chip-1 address above it. gen_dsp.py refuses
+    # `mtx_sends` without them rather than guessing an address.
+    'ROUTING':        {'fx_on', 'mtx_on', 'mtx_sends', 'mtx_page',
+                       'mtx_addr'},
     'TALKBACK':       {'hpf_on'},
     'TUBE_SAT':       {'on'},
 }

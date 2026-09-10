@@ -6,6 +6,178 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## COMPLETENESS, FIRST LEG — and S21-7 settled first (2026-09-10, session 22)
+
+Session: gate 0 was inserted ahead of the matrix work by hub addendum, because
+PW is being asked to sign `shipping.config.s21` and `DSP4_SIMD_DYN` is one of
+its five switches.
+
+### S22-3 — the scope could drive STRIP 1 and no other strip on any chip-1 block-kernel image
+
+**Severity: MEDIUM, and it silently bounded every per-strip bar this tree
+has. Status: fixed 2026-09-10, all of it inside `#if DSP4_SCOPE_BLK_TAP`;
+W0 held.**
+
+Found while giving `goldnode`'s GATE arm a verdict on both strips of a SIMD
+pair (S22-1). With the tap site emitted, strip 1 read BIT-EXACT and strip 2
+reported *"the injection is NOT reaching `_buf_C1_EQ_02` (captured peak 1)"*
+on three amplitudes, with the chain witness showing every node of strip 2 at
+`0x00000001` against strip 1's `0x08000000`.
+
+**The generated chain contained exactly ONE `call _scope_inject_blk;`,
+emitted after chain index 0 — `C1_IN_01` — with `r1 = BLK_CHAIN_A_P1`.** So
+the block injector could only ever drive strip 1: an injection meant for
+strip N was written before strip N's own input kernel ran, and that kernel
+overwrote it.
+
+**And strip 1 worked by luck.** `dsp4_node_verify.py::inject_addr()` handed
+back a pool BASE on a block build — `_blk_pool1` for an odd strip, per S9-5's
+note about the odd pool — and `_blk_pool1 + 0` happens to be strip 1's own
+first chain slot, so the write landed where the chain would read it. The
+redirect that `_scope_inject_blk` has carried since S9-5, which exists to map
+a named RX slot onto wherever that node's block actually is, was never
+exercised on chip 1 at all.
+
+Fixed three ways:
+
+1. the chain emits **one injector call site per strip** (135 on chip 1),
+   each naming its own RX slot in `r0` and its own live chain slot in `r1`,
+   guarded on `DSP4_SCOPE_BLK_TAP` so the shipping image keeps the single
+   call it always had;
+2. `_scope_inject_blk` **returns at a site whose slot the host did not arm
+   on**. Without that the other 31 sites would each write a whole block at
+   whatever raw address `_scope_inj` holds — the one-word-variable overrun
+   S9-5 was about, thirty-one times over. `r0 == 0` still means "no
+   redirect", which is chip 2, unchanged;
+3. `inject_addr()` names the **RX slot symbol** on block builds as well as
+   per-sample ones, and the pool arithmetic is deleted rather than extended.
+
+**Strip 1's verdict is unchanged by the fix** (BIT-EXACT before and after),
+which is what says the new resolution lands in the same place; strip 2 goes
+from no verdict to **BIT-EXACT**. The default build still rebuilds to
+`302d6142` / `3b3a6f8e` and `shipping.config.s21` to `81f799f9` / `11366344`.
+
+### S22-2 — the six FX returns reach NO BUS AT ALL: the engines have been inaudible on every image this tree has built
+
+**Severity: HIGH and product-visible. Status: found 2026-09-10 while scoping
+gate 2; the fix is gate 2's ROUTING node, which now has to carry the MAIN leg
+as well as the aux sends.**
+
+`C2_FX_FDR_nn` DECLARES `outputs = C2_MIX_MAIN_L;C2_MIX_MAIN_R` in `dsp.csv`.
+`C2_MIX_MAIN_L` and `C2_MIX_MAIN_R` do not list any FX return among their 17
+`inputs`, and `gen_mix_bus_fixed` emits one MAC per entry of `inputs` and
+reads nothing else. The declaration is therefore decorative: it is never
+consulted by the thing that builds the sum.
+
+Confirmed in the generated kernel rather than argued from the CSV — the only
+`_buf_` symbols in `chip2/nodes/C2_MIX_MAIN_L.asm` are `C2_RECV_MAIN_L`, the
+four `C2_GRP_COMP_*`, `C2_USB_IN`, `C2_BT_IN`, `C2_CODEC_AUX_IN`, `C2_PI_IN`
+and the eight `C2_SNK_IN_*`. Across the whole of `src/chip2/`, the only files
+that mention `_buf_C2_FX_FDR_*` are the six FX fader nodes themselves, the
+call chain and the FX meters. **No mix node on either chip reads an FX
+return.**
+
+So the six engines consume their cycles — 16.28 points of chip 2 at D32 with
+six reverbs (S21) — produce a return level, publish a meter, and are summed
+into nothing. Taken with **S21-4** (`Fx<n>On` has no reader, so an engine
+switched off still runs and still costs), the FX section as shipped costs its
+full price whether it is on or off and is inaudible either way.
+
+This is why gate 2's ROUTING node on the return strip has to carry the MAIN
+leg as well as the twelve `Fx*AuxSend/AuxOn` crosspoints the definition
+names: an aux send from a return that reaches nothing would be building the
+second storey of a house with no ground floor.
+
+### S22-1 — S21-7's "frozen gate state" is a step stimulus nobody stopped, and `DSP4_SIMD_DYN` was a proxy for which chain branch carries the witness
+
+**Severity: the FINDING it replaces was blocking a sign-off; the defect
+itself is in an instrument and in the generator's witness pass, not in any
+audio kernel. Status: CLOSED, mechanism named, fix made and W0-checked.
+Supersedes S21-7, whose audio question is closed by construction.**
+
+S21-7 reported that under `DSP4_SIMD_DYN` one strip of every gate pair has
+four FROZEN state words — envelope, gain, target, hold count — reproduced to
+the digit across four builds and several boots, bisected to that one switch,
+with the AUDIO question open. **The audio is not affected and the state was
+never frozen.**
+
+**The mechanism is in `dsp_codegen.py`'s scope-tap pass.** `goldnode`'s GATE
+arm must be armed on `_gate_gain_<nid>` (the node's own output is `x * gain`,
+zero wherever the stimulus is — S21-5 moved it there deliberately). That word
+is a one-word-per-block publisher, so its witness is `_scope_tap1`, emitted
+from a per-node list `blk_extra`. **The branch of the emitter that handles a
+PAIR DRIVER call `continue`s before it ever reads `blk_extra`**, and
+`blk_extra` is keyed by node id, not driver id. So the scalar branch carries
+
+```asm
+    r0 = _gate_gain_C1_GATE_01; r1 = _gate_gain_C1_GATE_01; call _scope_tap1;
+```
+
+and the paired branch carries nothing of the kind. On a paired image no call
+site ever presents the armed address; `_scope_tap`/`_scope_tap1` both return
+early on `r0 != _scope_src`; `_scope_idx` never advances; and **nothing ever
+clears `_scope_arm`** — in a `DSP4_SCOPE_BLK_TAP` build the tap owns
+disarming and `_scope_record` stands down by design. `_scope_inject_blk` is
+gated on `_scope_arm` alone, and `mode 2` is a STEP, so it kept rewriting the
+strip's whole block with the amplitude on every block indefinitely.
+
+**Every "frozen" word is what an open, driven gate holds.** Envelope
+221,910,951 is **14 counts** under the injected step 0x0D3A17B5 =
+221,910,965 — the attack ladder's own quantisation stall point, which is
+precisely why it reproduced to the digit across boots; target is EXACTLY
+unity; gain is 9 counts under unity and converging up; and the hold count sat
+at **10**, the reload value (`f32(0.2)` ms → 9.6 samples) rewritten every
+sample by the open arm of the ladder. The partner strip, which the tool never
+injects, is closed with a counter that runs — the contrast that read as an
+asymmetry between the two halves of the SIMD pair.
+
+**Settled in one image and one boot with the switch ON**
+(`shipping.config.s21` witness arm `7f4417bd`/`e1673170`,
+`DIAG_BUILD_CFG2 0xC2019E7F`, `tools/pi/dsp4_gate_latch2.py`):
+
+```
+  quiet     scope arm=1 idx=0 go=1 runs=15
+              s1 [env gain tgt hold] = [221910951, 268435447, 268435456, 10]
+              s2 [env gain tgt hold] = [0, 2684356, 2684355, -25552752]
+  wait: capture stalled at 0 of 1024 samples
+now clearing _scope_arm by hand (the stimulus stops here):
+  t= 0.0s   s1 [env gain tgt hold] = [2, 2684356, 2684355, -6464]
+  t= 8.0s   s1 [env gain tgt hold] = [2, 2684356, 2684355, -398448]
+```
+
+`idx=0 of 1024` is the instrument stating the mechanism itself: the capture
+never took one sample. And with the stimulus stopped, strip 1 falls to
+`[2, 2684356, 2684355]` — **the exact rest state S21 recorded for the
+`DSP4_SIMD_DYN`-OFF arm** — on an image with the switch ON. The bisect was
+measuring which chain branch carries the witness; the switch selects that
+branch and the other three do not, which is why all three of them reproduced
+the "freeze".
+
+**Two further corrections to S21-7.** `_gate_pair_blk` DOES scatter all four
+state words back to both members (`lcntr = 4` over `_gat_st`); S21's
+corroboration read the `_DYNGATE` wrapper, not the kernel, and the gate's
+write-back is in fact *more* complete than `_comp_pair_blk`'s. And on the
+SHIPPED pairs the freeze cannot occur at all: on `s20_*` and `s21_*` both
+strips sit at rest with both hold counters decrementing, because a non-tap
+image has no chip-1 injection redirect and the stimulus reaches nothing.
+
+**Fix (all outside every shipping image).** The generator emits `blk_extra`
+on the pair branch too, for both members — chains gain 128 tap sites on chip 1
+and 26 on chip 2, **zero lines removed**, all behind `#if DSP4_SCOPE_BLK_TAP`.
+`dsp4_node_verify.py::capture()` disarms in a `finally`, so a stalled run can
+never leave the graph driven. `dsp4_gate_latch.py` prints `_scope_arm` and
+re-watches with the stimulus stopped. `goldnode.sh` gained `STRIPS="1 2"` and
+now ships `dsp4_scope.py` with the run. **W0: the default build rebuilds to
+`302d6142` / `3b3a6f8e`, byte for byte.**
+
+**And the same blind spot covered chip 2's paired dynamics** —
+`C2_GRP_GATE_01-04`, `C2_GRP_COMP_01-04`, `C2_MAIN_OCOMP_01-04`,
+`C2_MAIN_COMP`, `C2_SUB_COMP` had no gain-word witness either, so any bar
+armed on one of them would have stalled identically and driven the graph for
+as long as it was left armed. That is the fourth time this shape has cost a
+session (S9-5, S12-8, S13-4, and this): an instrument silent about the thing
+it was built to watch.
+
 ## THE HEADROOM, MEASURED DRIVEN — and chip 1's 380 bytes made 40,572 (2026-09-10, session 21)
 
 Session: the FX engines (the plugin load PW's headroom rule is about) driven
@@ -257,11 +429,16 @@ two call sites — read `_diag_ticks`, read `tcount`, read `_diag_ticks` again,
 retry the pair if it moved — and it is not made in the session that found it,
 so every figure in `dsp4-s21-20260910.md` comes from the images S20 staged.**
 
-### S21-7 — under `DSP4_SIMD_DYN` the ODD strip of every gate pair has FROZEN per-node state words, and whether the audio is affected is NOT settled
+### S21-7 — SUPERSEDED BY S22-1: what looked like frozen gate state was a step stimulus nobody stopped, and the audio is NOT affected
 
-**Severity: MEDIUM, and it bears on a switch PW is being asked to adopt.
-Status: MEASURED and bisected to one switch; the MECHANISM is not attributed
-and the audio question is OPEN. Found while closing S21-5.**
+**Severity: was MEDIUM and blocking a sign-off. Status: CLOSED 2026-09-10 by
+S22-1 — the four words belong to a gate held OPEN by a `mode 2` step
+injection that nothing disarmed, because the PAIRED branch of the generated
+call chain omits the `_scope_tap1` site for `_gate_gain_<nid>` that the bar
+arms on. `DSP4_SIMD_DYN` selects that branch; it does nothing to the gate.
+The audio is NOT affected, and `_gate_pair_blk` does scatter all four state
+words back to both members. Read S22-1 instead of what follows; the
+measurements below are real, the attribution is not.**
 
 `goldnode`'s GATE arm declines a verdict on `shipping.config.s20` — "the gate
 is NOT closed at rest (target 268435456, range floor 2684355)" — with

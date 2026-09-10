@@ -216,6 +216,33 @@ NUM_AUX = 12
 NUM_GRP = 4
 NUM_FX = 6
 
+# THE MATRIX (S22 gate 1). Both numbers are READ OFF THE CELL MASTER, not off
+# the product def, and they do not agree with each other -- which is a
+# question for PW and not a choice this generator may make.
+#
+#   Matrix[1-4]Level / Matrix[1-4]Mute        -> four output masters
+#   Chan[1-64]MatrixSend[1-2] / MatrixOn[1-2] -> TWO sends per channel
+#
+# So the definition gives four matrix outputs and a channel the means to
+# reach only two of them. D32's `mtx,12` in d32.csv disagrees with both (the
+# master caps the family at four); D24's `mtx,2` intersects to two outputs
+# and the same two sends. The topology master (defs/common/topology/
+# diagram-master.csv) additionally names `bus.main -> bus.mtx` and
+# `bus.grp -> bus.mtx` as matrix sources, and the cell master defines NO
+# cell for either, so neither is built.
+#
+# WHAT IS BUILT, therefore, is exactly what the cells name: four matrix
+# buses and four output strips, with channel sends onto the first two.
+# Buses 3 and 4 carry no crosspoint at all -- their column of _xpc stays at
+# the zeros rtg_fabric.asm initialises, so `_xp_lo > _xp_hi` and the
+# accumulate skips them for nothing. They are built rather than omitted
+# because Matrix003/004 Level and Mute ARE defined cells and the completeness
+# record is the unmapped list: a strip that exists and is fed by nothing is
+# an honest rendering of a definition that says exactly that, and it is one
+# `NUM_MTX_SEND` away from being fed the day PW answers.
+NUM_MTX = 4          # Matrix[1-4] in the cell master
+NUM_MTX_SEND = 2     # Chan[1-64]MatrixSend[1-2] in the cell master
+
 # --- Bus pre-sum IDs (Chip 1 accumulates, sends to Chip 2) ---
 bus_main_l = 'C1_BUS_MAIN_L'
 bus_main_r = 'C1_BUS_MAIN_R'
@@ -223,9 +250,18 @@ bus_sub    = 'C1_BUS_SUB'
 bus_grp    = [f'C1_BUS_GRP_{g:02d}' for g in range(1, NUM_GRP+1)]
 bus_aux    = [f'C1_BUS_AUX_{a:02d}' for a in range(1, NUM_AUX+1)]
 bus_fx     = [f'C1_BUS_FX_{x:02d}'  for x in range(1, NUM_FX+1)]
+bus_mtx    = [f'C1_BUS_MTX_{m:02d}' for m in range(1, NUM_MTX+1)]
 
-# All bus IDs that a channel routing node feeds
-all_bus_ids = [bus_main_l, bus_main_r, bus_sub] + bus_grp + bus_aux + bus_fx
+# THE LEGACY 25, in the order the mix fabric's global slots 0-24 carry them
+# and the order _bus_acc_all_ptrs is built in. Nothing may be inserted into
+# this list: the assert below is what keeps the fabric's slot numbering and
+# this graph the same fact.
+legacy_bus_ids = [bus_main_l, bus_main_r, bus_sub] + bus_grp + bus_aux + bus_fx
+
+# All bus IDs that a channel routing node feeds. The matrix buses are
+# APPENDED, so every existing bus keeps its index in _xpc and in
+# _bus_acc_all_ptrs and only new columns are added.
+all_bus_ids = legacy_bus_ids + bus_mtx
 
 # Slot-map signal per bus id (C1_BUS_MAIN_L -> BUS_MAIN_L)
 bus_signal = {bid: bid.replace('C1_', '') for bid in all_bus_ids}
@@ -336,9 +372,17 @@ for ch in range(1, NUM_CH + 1):
     # outputs: all bus pre-sums
     p, a = c1_alloc.next(60)  # main_on + sub_on + grp_on×4 + aux_on×12 + aux_send×12 + aux_pick×12 + fx_on×6 + fx_send×6 + fx_pick×6
     route_outputs = ';'.join(all_bus_ids)
+    # THE MATRIX SENDS ARE NOT IN THIS BLOCK, and that is deliberate. Growing
+    # the routing block from 60 words to 64 would move every chip-1 address
+    # after channel 1's routing node -- the whole map, the MCU's ghost table
+    # and every stored golden -- for four words. They get a block of their
+    # own, allocated after every existing chip-1 allocation and named on this
+    # row as `mtx_page`/`mtx_addr`, so this contract bump ADDS rows and moves
+    # none. gen_dsp.py::expand_routing reads those two params.
     add(n_route, 1, 'ROUTING', f'Ch {ch} Route', 1, n_fader, route_outputs,
         spi_page=p, spi_addr=a,
-        params='main_on=1;sub_on=0;grp_on=0000;aux_on=000000000000;fx_on=000000',
+        params='main_on=1;sub_on=0;grp_on=0000;aux_on=000000000000;fx_on=000000'
+               f';mtx_sends={NUM_MTX_SEND};mtx_on=' + '0' * NUM_MTX_SEND,
         ramp_profile='GainFast')
 
     # Register this channel as a source for all buses
@@ -438,9 +482,33 @@ for a_idx in range(NUM_AUX):
     make_bus_and_send(bus_aux[a_idx], f'Aux {a_idx+1} Bus', c1_alloc)
 for f_idx in range(NUM_FX):
     make_bus_and_send(bus_fx[f_idx], f'FX {f_idx+1} Bus', c1_alloc)
+# THE MATRIX BUSES, after the legacy 25 so no existing bus moves. Their
+# fabric slots are global 37-40 (MIX_2 slots 5-8), which the CPLD does not
+# touch: the MIX_* lines are DSPA O<n> -> DSPB I<n> direct, `external_net` is
+# empty for all of them, and no MIXSLOT_* constant appears anywhere in
+# shared/dsp4-logic/rtl/. So this is a slot-map contract bump and NOT a
+# bitstream change.
+for m_idx in range(NUM_MTX):
+    make_bus_and_send(bus_mtx[m_idx], f'Matrix {m_idx+1} Bus', c1_alloc)
 
-# Sanity: legacy bus order must land on global slots 0-24 unchanged
-assert [MIX_GLOBAL[bus_signal[b]] for b in all_bus_ids] == list(range(25))
+# --- THE CHANNEL MATRIX SENDS' SPI BLOCK -------------------------------
+# Allocated HERE, after every other chip-1 allocation, and written back onto
+# the routing rows that were created in the channel loop. That is what keeps
+# this contract bump additive: `dsp.csv` gains rows and not one existing
+# chip-1 address moves. Four words per channel: MatrixOn[1-2] then
+# MatrixSend[1-2], in the order gen_dsp.py::expand_routing emits them.
+_mtx_rows = {r['id']: r for r in rows}
+for ch in range(1, NUM_CH + 1):
+    p, a = c1_alloc.next(2 * NUM_MTX_SEND)
+    _r = _mtx_rows[f'C1_RTG_{ch:02d}']
+    _r['params'] += f';mtx_page={p};mtx_addr={a}'
+
+# Sanity: legacy bus order must land on global slots 0-24 unchanged. The
+# matrix buses are checked separately -- they are new slots, and pinning them
+# to a literal here is what would catch a slot-map edit that moved them onto
+# something else.
+assert [MIX_GLOBAL[bus_signal[b]] for b in legacy_bus_ids] == list(range(25))
+assert [MIX_GLOBAL[bus_signal[b]] for b in bus_mtx] == list(range(37, 37 + NUM_MTX))
 
 # --- Superset fabric pass-through sends (sources generated above) ---
 for sig, src, scope in xfer_map:
@@ -970,6 +1038,51 @@ if 'mainout' in GEQ_ON:
 if 'mon' in GEQ_ON:
     splice_geq('C2_MON_GEQ', 'Monitor GEQ', 2,
                'C2_MON', 'C2_MON_DLY', GEQ_BANDS)
+
+# ===========================================================================
+# CHIP 2 — MATRIX OUTPUTS ×4 (S22 gate 1)
+# ===========================================================================
+# Chain: RECV -> FDR (Level + Mute) -> OUT.
+#
+# WHAT THE DEFINITION GIVES THE STRIP, and nothing else is built: the cell
+# master defines `Matrix[1-4]Level`, `Matrix[1-4]Mute` and `Matrix[1-4]Name`
+# and NO other Matrix family -- no EQ, no delay, no limiter, no meter. So the
+# strip is a fader and an output, and FADER_PAN is exactly that node: for a
+# category that is not Chan or Aux, gen_dsp.py emits Level and Mute and
+# leaves the pan word dispatched-but-uncelled. `Name` is a label the host
+# stores. There is no `Matrix*Mtr` cell, so no METER node is added.
+#
+# WHERE THE OUTPUT GOES. The sixteen DACs are fully committed -- aux 1-12 on
+# DAC_01..12 and the four post-crossover main outputs on DAC_13..16 -- so no
+# DAC lane is free on either product. The NET output lines are: NET_OUT_01
+# already carries C2_SUB_OUT, and NET_OUT_02..32 are unassigned and scoped
+# BOTH. The four matrix outputs are patched onto NET_OUT_02..05 on the same
+# footing C2_SUB_OUT sits on NET_OUT_01 -- which is to say PROVISIONALLY:
+# which physical connector a matrix output appears on is a product decision
+# and is recorded as a question for PW, not settled here. Changing it later
+# moves one `output_params()` argument and no address.
+#
+# SPI addresses are allocated HERE, after every earlier chip-2 node, so this
+# contract bump adds rows and moves none.
+for m in range(1, NUM_MTX + 1):
+    mm = f'{m:02d}'
+    recv = f'C2_RECV_MTX_{mm}'
+    n_fdr = f'C2_MTX_FDR_{mm}'
+    n_out = f'C2_MTX_OUT_{mm}'
+
+    add(recv, 2, 'INTERCHIP_RECV', f'Matrix {m} Recv', 1, '', n_fdr,
+        params=fabric_params(f'BUS_MTX_{mm}'))
+
+    p, a2 = c2_alloc.next(4)   # level + pan(unused) + mute + reserved
+    add(n_fdr, 2, 'FADER_PAN', f'Matrix {m} Master', 1, recv, n_out,
+        spi_page=p, spi_addr=a2,
+        params='level_db=0.0;mute=0',
+        ramp_profile='GainFast')
+
+    p, a2 = c2_alloc.next(1)
+    add(n_out, 2, 'OUTPUT_TDM', f'Matrix {m} Out', 1, n_fdr, '',
+        spi_page=p, spi_addr=a2,
+        params=output_params(f'NET_OUT_{m + 1:02d}'))
 
 # ===========================================================================
 # Write CSV

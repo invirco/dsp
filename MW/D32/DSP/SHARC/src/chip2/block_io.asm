@@ -5,7 +5,7 @@
 
 .section/dm seg_dmda;
 
-/* IC RX node tables (37 packed mix-fabric slots over 3 lanes) */
+/* IC RX node tables (41 packed mix-fabric slots over 3 lanes) */
 .extern _rx_ic_slot_C2_RECV_MAIN_L;
 .extern _rx_ic_slot_C2_RECV_MAIN_R;
 .extern _rx_ic_slot_C2_RECV_SUB;
@@ -43,11 +43,15 @@
 .extern _rx_ic_slot_C2_XR_SNAKE_06;
 .extern _rx_ic_slot_C2_XR_SNAKE_07;
 .extern _rx_ic_slot_C2_XR_SNAKE_08;
+.extern _rx_ic_slot_C2_RECV_MTX_01;
+.extern _rx_ic_slot_C2_RECV_MTX_02;
+.extern _rx_ic_slot_C2_RECV_MTX_03;
+.extern _rx_ic_slot_C2_RECV_MTX_04;
 #if DSP4_BLOCK_KERNELS
 .global _c2_ic_rx_off;
 .global _c2_ic_rx_stride;
 #endif
-.var _c2_ic_rx_off[37] =
+.var _c2_ic_rx_off[41] =
     0,
     1,
     2,
@@ -84,8 +88,12 @@
     513,
     514,
     515,
-    516;
-.var _c2_ic_rx_stride[37] =
+    516,
+    517,
+    518,
+    519,
+    520;
+.var _c2_ic_rx_stride[41] =
     16,
     16,
     16,
@@ -118,12 +126,16 @@
     16,
     16,
     16,
-    5,
-    5,
-    5,
-    5,
-    5;
-.var _c2_ic_rx_ptrs[37] =
+    9,
+    9,
+    9,
+    9,
+    9,
+    9,
+    9,
+    9,
+    9;
+.var _c2_ic_rx_ptrs[41] =
     _rx_ic_slot_C2_RECV_MAIN_L,
     _rx_ic_slot_C2_RECV_MAIN_R,
     _rx_ic_slot_C2_RECV_SUB,
@@ -160,9 +172,13 @@
     _rx_ic_slot_C2_XR_SNAKE_05,
     _rx_ic_slot_C2_XR_SNAKE_06,
     _rx_ic_slot_C2_XR_SNAKE_07,
-    _rx_ic_slot_C2_XR_SNAKE_08;
+    _rx_ic_slot_C2_XR_SNAKE_08,
+    _rx_ic_slot_C2_RECV_MTX_01,
+    _rx_ic_slot_C2_RECV_MTX_02,
+    _rx_ic_slot_C2_RECV_MTX_03,
+    _rx_ic_slot_C2_RECV_MTX_04;
 
-/* TX node tables (20 outputs over 5 full-window lanes of 8) */
+/* TX node tables (24 outputs over 5 full-window lanes of 8) */
 .extern _tx_out_slot_C2_AUX_OUT_01;
 .extern _tx_out_slot_C2_AUX_OUT_02;
 .extern _tx_out_slot_C2_AUX_OUT_03;
@@ -183,11 +199,15 @@
 .extern _tx_out_slot_C2_CODEC_AUX_OUT;
 .extern _tx_out_slot_C2_MAIN_ST_OUT;
 .extern _tx_out_slot_C2_SUB_OUT;
+.extern _tx_out_slot_C2_MTX_OUT_01;
+.extern _tx_out_slot_C2_MTX_OUT_02;
+.extern _tx_out_slot_C2_MTX_OUT_03;
+.extern _tx_out_slot_C2_MTX_OUT_04;
 #if DSP4_BLOCK_KERNELS
 .global _c2_tx_off;
 .global _c2_tx_stride;
 #endif
-.var _c2_tx_off[20] =
+.var _c2_tx_off[24] =
     0,
     1,
     2,
@@ -207,8 +227,16 @@
     256,
     258,
     384,
-    512;
-.var _c2_tx_stride[20] =
+    512,
+    513,
+    514,
+    515,
+    516;
+.var _c2_tx_stride[24] =
+    8,
+    8,
+    8,
+    8,
     8,
     8,
     8,
@@ -229,7 +257,7 @@
     8,
     8,
     8;
-.var _c2_tx_ptrs[20] =
+.var _c2_tx_ptrs[24] =
     _tx_out_slot_C2_AUX_OUT_01,
     _tx_out_slot_C2_AUX_OUT_02,
     _tx_out_slot_C2_AUX_OUT_03,
@@ -249,7 +277,11 @@
     _tx_out_slot_C2_MON_OUT,
     _tx_out_slot_C2_CODEC_AUX_OUT,
     _tx_out_slot_C2_MAIN_ST_OUT,
-    _tx_out_slot_C2_SUB_OUT;
+    _tx_out_slot_C2_SUB_OUT,
+    _tx_out_slot_C2_MTX_OUT_01,
+    _tx_out_slot_C2_MTX_OUT_02,
+    _tx_out_slot_C2_MTX_OUT_03,
+    _tx_out_slot_C2_MTX_OUT_04;
 
 /* DMA ping-pong buffers live in generated lane_config.c —
  * see the chip-1 note. */
@@ -259,7 +291,7 @@
 
 .section/pm seg_pmco;
 
-/* Scatter 37 inter-chip recvs (lane-major packed) */
+/* Scatter 41 inter-chip recvs (lane-major packed) */
 .global _scatter_chip2;
 _scatter_chip2:
     /* r0 = sample index (0..15) */
@@ -267,7 +299,7 @@ _scatter_chip2:
     i1 = _c2_ic_rx_off;
     i2 = _c2_ic_rx_stride;
     i3 = _c2_ic_rx_ptrs;
-    r7 = 37;
+    r7 = 41;
     lcntr = r7; do .scatter_chip2_lp until lce;
         r3 = dm(i1, 1);       /* off */
         r4 = dm(i2, 1);       /* stride */
@@ -287,7 +319,7 @@ _scatter_chip2:
     rts;
 _scatter_chip2.end:
 
-/* Gather 20 outputs (lane-major full-window) */
+/* Gather 24 outputs (lane-major full-window) */
 .global _gather_chip2;
 _gather_chip2:
     /* r0 = sample index (0..15) */
@@ -295,7 +327,7 @@ _gather_chip2:
     i1 = _c2_tx_off;
     i2 = _c2_tx_stride;
     i3 = _c2_tx_ptrs;
-    r7 = 20;
+    r7 = 24;
     lcntr = r7; do .gather_chip2_lp until lce;
         r3 = dm(i1, 1);       /* off */
         r4 = dm(i2, 1);       /* stride */
@@ -332,7 +364,7 @@ _meter_scan_chip2:
     i1 = _meter_peaks;
     m0 = 0;
     m1 = 1;
-    r5 = 20;
+    r5 = 24;
     lcntr = r5; do .meter_scan_chip2_lp until lce;
         r2 = dm(i0, 1);
         i2 = r2;

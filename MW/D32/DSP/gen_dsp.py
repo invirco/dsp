@@ -637,6 +637,44 @@ def expand_routing(node, cat, inst):
         add_dispatch(chip, base + off, f'_rtg_fx_pick_{nid} + {x-1}', f'{nid} FxPick[{x}]')
         off += 1
 
+    # ── THE MATRIX SENDS, IN A BLOCK OF THEIR OWN (S22 gate 1) ──────────
+    #
+    # `mtx_page`/`mtx_addr` are allocated by gen_dsp_csv.py AFTER every other
+    # chip-1 address, so adopting the matrix ADDS rows to dsp.csv and moves
+    # none: growing the 60-word routing block to 64 would have moved every
+    # chip-1 address above channel 1's routing node -- the whole map, the
+    # MCU's ghost table and every stored golden -- for four words.
+    #
+    # There is NO MatrixPick cell in the master (Chan*AuxPick and Chan*FxPick
+    # exist; Chan*MatrixPick does not), so the pickoff is post-fader and is
+    # not host-settable. The kernel keeps a pick array defaulting to PostFdr
+    # so the send-ramp helper is the same for all three kinds; nothing is
+    # dispatched to it, because no product names a cell for it.
+    prm = parse_params(node.get('params', ''))
+    n_mtx = int(prm.get('mtx_sends', 0) or 0)
+    if n_mtx:
+        if 'mtx_page' not in prm or 'mtx_addr' not in prm:
+            sys.exit(f'ERROR: {nid} declares mtx_sends={n_mtx} but no '
+                     f'mtx_page/mtx_addr — gen_dsp_csv.py allocates that '
+                     f'block; refusing to guess an address.')
+        m_pg = int(prm['mtx_page'])
+        m_base = int(prm['mtx_addr'])
+        m_off = 0
+        for k in range(1, n_mtx + 1):
+            add_cell(cn(cat, inst, 'MatrixOn', k), chip, m_pg, m_base + m_off,
+                     '', 'InstantCtl')
+            add_dispatch(chip, m_base + m_off,
+                         f'_rtg_mtx_on_{nid} + {k-1}', f'{nid} MatrixOn[{k}]')
+            m_off += 1
+        for k in range(1, n_mtx + 1):
+            add_cell(cn(cat, inst, 'MatrixSend', k), chip, m_pg,
+                     m_base + m_off,
+                     'dB:Off:-50@31:-30@63:-10@127:0', 'GainFast')
+            add_dispatch(chip, m_base + m_off,
+                         f'_rtg_mtx_send_{nid} + {k-1}',
+                         f'{nid} MatrixSend[{k}]')
+            m_off += 1
+
 
 # ── GEQ ──────────────────────────────────────────────────────────────────
 # HOW MANY BANDS THE ADDRESS MAP CARRIES -- READ OFF THE GRAPH by
@@ -1188,6 +1226,13 @@ _NODE_PATTERNS = [
      lambda m: _main_out_strip(int(m.group(1)))),
     (re.compile(r'^C2_MAIN_OUT_(\d+)$'),                       lambda m: None),
     (re.compile(r'^C2_MIX_'),                                  lambda m: None),
+    # Matrix outputs (Chip 2). The master gives Matrix[1-4] exactly Level,
+    # Mute and Name -- no EQ, no delay, no limiter, no meter -- so the strip
+    # is a FADER_PAN and an OUTPUT_TDM and nothing else. D24's def carries
+    # `mtx,2` and reaches the first two; D32's reaches all four, at the same
+    # addresses (decision D3: ONE address map).
+    (re.compile(r'^C2_MTX_FDR_(\d+)$'),               lambda m: ('Matrix', int(m.group(1)))),
+    (re.compile(r'^C2_MTX_OUT_(\d+)$'),               lambda m: None),
     # FX (Chip 2)
     (re.compile(r'^C2_FX_(?:ENG|FDR)_(\d+)$'),        lambda m: ('Fx', int(m.group(1)))),
     # Monitor

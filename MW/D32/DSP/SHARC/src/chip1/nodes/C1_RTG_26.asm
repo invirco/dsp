@@ -92,6 +92,22 @@
 .var _rtg_fx_sq_C1_RTG_26[6];
 .global _rtg_fx_src_C1_RTG_26;
 .var _rtg_fx_src_C1_RTG_26[6];
+.global _rtg_mtx_on_C1_RTG_26;
+.var _rtg_mtx_on_C1_RTG_26[2];
+.global _rtg_mtx_send_C1_RTG_26;
+.var _rtg_mtx_send_C1_RTG_26[2];
+.global _rtg_mtx_send_target_C1_RTG_26;
+.var _rtg_mtx_send_target_C1_RTG_26[2];
+.global _rtg_mtx_send_step_C1_RTG_26;
+.var _rtg_mtx_send_step_C1_RTG_26[2];
+.global _rtg_mtx_send_frames_C1_RTG_26;
+.var _rtg_mtx_send_frames_C1_RTG_26[2];
+.global _rtg_mtx_pick_C1_RTG_26;
+.var _rtg_mtx_pick_C1_RTG_26[2] = 3, 3;
+.global _rtg_mtx_sq_C1_RTG_26;
+.var _rtg_mtx_sq_C1_RTG_26[2];
+.global _rtg_mtx_src_C1_RTG_26;
+.var _rtg_mtx_src_C1_RTG_26[2];
 /* main/sub/group crosspoint coefficients: pan leg or unity, times
  * the bus-assign bit. Prepared below at control rate. */
 .global _rtg_mlq_C1_RTG_26;
@@ -109,7 +125,7 @@
  * never needs a bounds test. _rtg_n starts at 0, so the accumulate
  * does nothing until the first control-rate pass has built it. */
 .global _rtg_list_C1_RTG_26;
-.var _rtg_list_C1_RTG_26[75];
+.var _rtg_list_C1_RTG_26[81];
 .global _rtg_n_C1_RTG_26;
 .var _rtg_n_C1_RTG_26 = 0;
 .global _buf_C1_RTG_26;
@@ -122,6 +138,7 @@
 .extern _bus_acc_grp_ptrs;
 .extern _bus_acc_aux_ptrs;
 .extern _bus_acc_fx_ptrs;
+.extern _bus_acc_mtx_ptrs;
 .extern _acc64_mac;
 #if DSP4_RTG_FABRIC
 .extern _xpc;
@@ -529,13 +546,191 @@ _C1_RTG_26_process:
     .fxsrc_C1_RTG_26:
         nop;
 #endif
+#if DSP4_BLOCK_KERNELS
+    l0 = 0;
+    i0 = _rtg_mtx_on_C1_RTG_26;
+    i4 = _rtg_mtx_send_C1_RTG_26;
+    i5 = _rtg_mtx_send_step_C1_RTG_26;
+    i6 = _rtg_mtx_send_frames_C1_RTG_26;
+    i3 = _rtg_mtx_send_target_C1_RTG_26;
+    i2 = _rtg_mtx_sq_C1_RTG_26;
+    r5 = 2;
+    lcntr = r5, do .mtxrmp_C1_RTG_26 until lce;
+        r4 = dm(i6, 0);
+        r6 = DSP4_BLOCK_SIZE;
+        comp(r4, r6);
+        if lt r6 = r4;                /* n = min(frames, BLOCK) */
+        r4 = r4 - r6;
+        dm(i6, 1) = r4;
+#if DSP4_BLOCK_KERNELS && !DSP4_CTL_ALWAYS
+        /* D22: "is any send ramp still running?", accumulated where
+         * the frame count is already in a register. The min() above
+         * clamps frames at zero, so OR is enough to ask it. */
+        r11 = r11 or r4;
+#endif
+        r4 = pass r6;
+        if eq jump (pc, .mtxsnap_C1_RTG_26);
+        f1 = dm(i4, 0);
+        f2 = dm(i5, 0);
+        f3 = float r6;
+        f2 = f2 * f3;                 /* step * n */
+        f1 = f1 + f2;
+        dm(i4, 0) = f1;
+        jump (pc, .mtxcvt_C1_RTG_26);
+    .mtxsnap_C1_RTG_26:
+        f1 = dm(i3, 0);               /* snap to target */
+        dm(i4, 0) = f1;
+    .mtxcvt_C1_RTG_26:
+        r4 = 0x4D800000;              /* 2^28 float */
+        f2 = r4;
+        f1 = f1 * f2;
+        r4 = fix f1;
+        /* fold the bus-assign bit INTO the coefficient */
+        r6 = 0;
+        r7 = dm(i0, 1);
+        r7 = pass r7;
+        if eq r4 = r6;
+        dm(i2, 1) = r4;               /* Q4.28 crosspoint coeff */
+        modify(i4, 1);
+        modify(i5, 1);
+        modify(i3, 1);
+    .mtxrmp_C1_RTG_26:
+        nop;
+
+    /* Pickoff enum -> source address, once per block. Left in the
+     * accumulate path it cost every enabled send up to three
+     * compares and two branches PER SAMPLE. Crosspoints whose
+     * coefficient is zero keep the default and are never read. */
+    l1 = 0;
+    i1 = _rtg_mtx_sq_C1_RTG_26;
+    i5 = _rtg_mtx_pick_C1_RTG_26;
+    i6 = _rtg_mtx_src_C1_RTG_26;
+    r5 = 2;
+    lcntr = r5, do .mtxsrc_C1_RTG_26 until lce;
+        r6 = dm(i5, 1);               /* pickoff enum */
+        r4 = dm(i1, 1);               /* coefficient */
+        r0 = BLK_CHAIN_A;
+        r4 = pass r4;
+        if eq jump (pc, .mtxsrcd_C1_RTG_26);
+        r6 = pass r6;
+        if eq jump (pc, .mtxsrc0_C1_RTG_26);
+        r7 = 1;
+        comp(r6, r7);
+        if eq jump (pc, .mtxsrc1_C1_RTG_26);
+        r7 = 2;
+        comp(r6, r7);
+        if ne jump (pc, .mtxsrcd_C1_RTG_26);
+        r0 = BLK_TAP_PREFDR;
+        jump (pc, .mtxsrcd_C1_RTG_26);
+    .mtxsrc0_C1_RTG_26:
+        r0 = BLK_TAP_TRIM;
+        jump (pc, .mtxsrcd_C1_RTG_26);
+    .mtxsrc1_C1_RTG_26:
+        r0 = BLK_TAP_EQ;
+    .mtxsrcd_C1_RTG_26:
+        dm(i6, 1) = r0;
+    .mtxsrc_C1_RTG_26:
+        nop;
+#else
+    l0 = 0;
+    i0 = _rtg_mtx_on_C1_RTG_26;
+    i4 = _rtg_mtx_send_C1_RTG_26;
+    i5 = _rtg_mtx_send_step_C1_RTG_26;
+    i6 = _rtg_mtx_send_frames_C1_RTG_26;
+    i3 = _rtg_mtx_send_target_C1_RTG_26;
+    i2 = _rtg_mtx_sq_C1_RTG_26;
+    r5 = 2;
+    lcntr = r5, do .mtxrmp_C1_RTG_26 until lce;
+        r4 = dm(i6, 0);
+        r6 = DSP4_BLOCK_SIZE;
+        comp(r4, r6);
+        if lt r6 = r4;                /* n = min(frames, BLOCK) */
+        r4 = r4 - r6;
+        dm(i6, 1) = r4;
+#if DSP4_BLOCK_KERNELS && !DSP4_CTL_ALWAYS
+        /* D22: "is any send ramp still running?", accumulated where
+         * the frame count is already in a register. The min() above
+         * clamps frames at zero, so OR is enough to ask it. */
+        r11 = r11 or r4;
+#endif
+        r4 = pass r6;
+        if eq jump (pc, .mtxsnap_C1_RTG_26);
+        f1 = dm(i4, 0);
+        f2 = dm(i5, 0);
+        f3 = float r6;
+        f2 = f2 * f3;                 /* step * n */
+        f1 = f1 + f2;
+        dm(i4, 0) = f1;
+        jump (pc, .mtxcvt_C1_RTG_26);
+    .mtxsnap_C1_RTG_26:
+        f1 = dm(i3, 0);               /* snap to target */
+        dm(i4, 0) = f1;
+    .mtxcvt_C1_RTG_26:
+        r4 = 0x4D800000;              /* 2^28 float */
+        f2 = r4;
+        f1 = f1 * f2;
+        r4 = fix f1;
+        /* fold the bus-assign bit INTO the coefficient */
+        r6 = 0;
+        r7 = dm(i0, 1);
+        r7 = pass r7;
+        if eq r4 = r6;
+        dm(i2, 1) = r4;               /* Q4.28 crosspoint coeff */
+        modify(i4, 1);
+        modify(i5, 1);
+        modify(i3, 1);
+    .mtxrmp_C1_RTG_26:
+        nop;
+
+    /* Pickoff enum -> source address, once per block. Left in the
+     * accumulate path it cost every enabled send up to three
+     * compares and two branches PER SAMPLE. Crosspoints whose
+     * coefficient is zero keep the default and are never read. */
+    l1 = 0;
+    i1 = _rtg_mtx_sq_C1_RTG_26;
+    i5 = _rtg_mtx_pick_C1_RTG_26;
+    i6 = _rtg_mtx_src_C1_RTG_26;
+    r5 = 2;
+    lcntr = r5, do .mtxsrc_C1_RTG_26 until lce;
+        r6 = dm(i5, 1);               /* pickoff enum */
+        r4 = dm(i1, 1);               /* coefficient */
+        r0 = _tap_post_fader_C1_FDR_26;
+        r4 = pass r4;
+        if eq jump (pc, .mtxsrcd_C1_RTG_26);
+        r6 = pass r6;
+        if eq jump (pc, .mtxsrc0_C1_RTG_26);
+        r7 = 1;
+        comp(r6, r7);
+        if eq jump (pc, .mtxsrc1_C1_RTG_26);
+        r7 = 2;
+        comp(r6, r7);
+        if ne jump (pc, .mtxsrcd_C1_RTG_26);
+        r0 = _tap_pre_fader_C1_DLY_26;
+        jump (pc, .mtxsrcd_C1_RTG_26);
+    .mtxsrc0_C1_RTG_26:
+        r0 = _tap_post_trim_C1_GAIN_26;
+        jump (pc, .mtxsrcd_C1_RTG_26);
+    .mtxsrc1_C1_RTG_26:
+        r0 = _tap_post_eq_C1_EQ_26;
+    .mtxsrcd_C1_RTG_26:
+        dm(i6, 1) = r0;
+    .mtxsrc_C1_RTG_26:
+        nop;
+#endif
 
 #if DSP4_RTG_FABRIC
     /* ===== publish this strip's COLUMN of the crosspoint matrix =====
-     * 25 coefficients at stride 32 into _xpc, in the order of
-     * _bus_acc_all_ptrs: main L, main R, sub, grp 1-4, aux 1-12, fx 1-6.
-     * rtg_fabric.asm does the accumulate, with each bus loaded ONCE per
-     * sample instead of once per crosspoint per sample.
+     * 27 coefficients at stride 32 into _xpc, in the order of
+     * _bus_acc_all_ptrs: main L, main R, sub, grp 1-4, aux 1-12, fx 1-6,
+     * matrix 1-2. rtg_fabric.asm does the accumulate, with each bus loaded
+     * ONCE per sample instead of once per crosspoint per sample.
+     *
+     * MATRIX 3 AND 4 GET NO STORE AT ALL, and that is the definition
+     * showing through rather than an omission: the cell master gives four
+     * matrix output masters and only Chan[1-64]MatrixSend[1-2], so no
+     * channel can reach buses 3 or 4. Their rows of _xpc keep the zeros
+     * rtg_fabric.asm initialises, so _xp_lo > _xp_hi and the accumulate
+     * skips them for the price of one compare per block.
      *
      * The main/sub stores and the group loop are unconditional -- those
      * crosspoints always read the post-fader block, so they are always
@@ -613,6 +808,27 @@ _C1_RTG_26_process:
     .xc_fxd_C1_RTG_26:
         dm(i1, m4) = r1;
     .xc_fx_C1_RTG_26:
+        nop;
+    i4 = _rtg_mtx_sq_C1_RTG_26;
+    i5 = _rtg_mtx_src_C1_RTG_26;
+    i3 = _bus_acc_mtx_ptrs;
+    lcntr = 2, do .xc_mtx_C1_RTG_26 until lce;
+        r1 = dm(i4, 1);               /* coefficient       */
+        r2 = dm(i5, 1);               /* resolved source   */
+        r3 = dm(i3, 1);               /* bus accumulator   */
+        comp(r2, r12);
+        if eq jump (pc, .xc_mtxd_C1_RTG_26);
+        r1 = pass r1;
+        if eq jump (pc, .xc_mtxz_C1_RTG_26);
+        dm(i0, 1) = r2;               /* a tap, not the parked  */
+        dm(i0, 1) = r3;               /* block: keep it sparse  */
+        dm(i0, 1) = r1;
+        r10 = r10 + 1;
+    .xc_mtxz_C1_RTG_26:
+        r1 = 0;
+    .xc_mtxd_C1_RTG_26:
+        dm(i1, m4) = r1;
+    .xc_mtx_C1_RTG_26:
         nop;
     dm(_rtg_n_C1_RTG_26) = r10;
     r1 = 1;
@@ -722,7 +938,23 @@ _C1_RTG_26_process:
         nop;
     .lb_fx_C1_RTG_26:
         nop;
-
+i4 = _rtg_mtx_sq_C1_RTG_26;
+    i5 = _rtg_mtx_src_C1_RTG_26;
+    i3 = _bus_acc_mtx_ptrs;
+    lcntr = 2, do .lb_mtx_C1_RTG_26 until lce;
+        r1 = dm(i4, 1);
+        r3 = dm(i3, 1);
+        r2 = dm(i5, 1);
+        r1 = pass r1;
+        if eq jump (pc, .lb_mskip_C1_RTG_26);
+        dm(i0, 1) = r2;
+        dm(i0, 1) = r3;
+        dm(i0, 1) = r1;
+        r10 = r10 + 1;
+    .lb_mskip_C1_RTG_26:
+        nop;
+    .lb_mtx_C1_RTG_26:
+        nop;
     dm(_rtg_n_C1_RTG_26) = r10;
 #endif
 

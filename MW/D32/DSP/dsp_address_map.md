@@ -3857,8 +3857,136 @@
 | 4744 | 0x1288 | `Noise001On001` |  | InstantCtl |
 | 4745 | 0x1289 | `Noise001Level001` | 0=-40/127=0/[Lin] | GainFast |
 | 4746 | 0x128A | `Noise001Hpf001` |  | InstantCtl |
+| 4806 | 0x12C6 | `Chan001MatrixOn001` |  | InstantCtl |
+| 4807 | 0x12C7 | `Chan001MatrixOn002` |  | InstantCtl |
+| 4808 | 0x12C8 | `Chan001MatrixSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4809 | 0x12C9 | `Chan001MatrixSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4810 | 0x12CA | `Chan002MatrixOn001` |  | InstantCtl |
+| 4811 | 0x12CB | `Chan002MatrixOn002` |  | InstantCtl |
+| 4812 | 0x12CC | `Chan002MatrixSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4813 | 0x12CD | `Chan002MatrixSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4814 | 0x12CE | `Chan003MatrixOn001` |  | InstantCtl |
+| 4815 | 0x12CF | `Chan003MatrixOn002` |  | InstantCtl |
+| 4816 | 0x12D0 | `Chan003MatrixSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4817 | 0x12D1 | `Chan003MatrixSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4818 | 0x12D2 | `Chan004MatrixOn001` |  | InstantCtl |
+| 4819 | 0x12D3 | `Chan004MatrixOn002` |  | InstantCtl |
+| 4820 | 0x12D4 | `Chan004MatrixSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4821 | 0x12D5 | `Chan004MatrixSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4822 | 0x12D6 | `Chan005MatrixOn001` |  | InstantCtl |
+| 4823 | 0x12D7 | `Chan005MatrixOn002` |  | InstantCtl |
+| 4824 | 0x12D8 | `Chan005MatrixSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4825 | 0x12D9 | `Chan005MatrixSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4826 | 0x12DA | `Chan006MatrixOn001` |  | InstantCtl |
+| 4827 | 0x12DB | `Chan006MatrixOn002` |  | InstantCtl |
+| 4828 | 0x12DC | `Chan006MatrixSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4829 | 0x12DD | `Chan006MatrixSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4830 | 0x12DE | `Chan007MatrixOn001` |  | InstantCtl |
+| 4831 | 0x12DF | `Chan007MatrixOn002` |  | InstantCtl |
+| 4832 | 0x12E0 | `Chan007MatrixSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4833 | 0x12E1 | `Chan007MatrixSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4834 | 0x12E2 | `Chan008MatrixOn001` |  | InstantCtl |
+| 4835 | 0x12E3 | `Chan008MatrixOn002` |  | InstantCtl |
+| 4836 | 0x12E4 | `Chan008MatrixSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4837 | 0x12E5 | `Chan008MatrixSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4838 | 0x12E6 | `Chan009MatrixOn001` |  | InstantCtl |
+| 4839 | 0x12E7 | `Chan009MatrixOn002` |  | InstantCtl |
+| 4840 | 0x12E8 | `Chan009MatrixSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4841 | 0x12E9 | `Chan009MatrixSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4842 | 0x12EA | `Chan010MatrixOn001` |  | InstantCtl |
+| 4843 | 0x12EB | `Chan010MatrixOn002` |  | InstantCtl |
+| 4844 | 0x12EC | `Chan010MatrixSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4845 | 0x12ED | `Chan010MatrixSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4846 | 0x12EE | `Chan011MatrixOn001` |  | InstantCtl |
+| 4847 | 0x12EF | `Chan011MatrixOn002` |  | InstantCtl |
+| 4848 | 0x12F0 | `Chan011MatrixSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4849 | 0x12F1 | `Chan011MatrixSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4850 | 0x12F2 | `Chan012MatrixOn001` |  | InstantCtl |
+| 4851 | 0x12F3 | `Chan012MatrixOn002` |  | InstantCtl |
+| 4852 | 0x12F4 | `Chan012MatrixSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4853 | 0x12F5 | `Chan012MatrixSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4854 | 0x12F6 | `Chan013MatrixOn001` |  | InstantCtl |
+| 4855 | 0x12F7 | `Chan013MatrixOn002` |  | InstantCtl |
+| 4856 | 0x12F8 | `Chan013MatrixSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4857 | 0x12F9 | `Chan013MatrixSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4858 | 0x12FA | `Chan014MatrixOn001` |  | InstantCtl |
+| 4859 | 0x12FB | `Chan014MatrixOn002` |  | InstantCtl |
+| 4860 | 0x12FC | `Chan014MatrixSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4861 | 0x12FD | `Chan014MatrixSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4862 | 0x12FE | `Chan015MatrixOn001` |  | InstantCtl |
+| 4863 | 0x12FF | `Chan015MatrixOn002` |  | InstantCtl |
+| 4864 | 0x1300 | `Chan015MatrixSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4865 | 0x1301 | `Chan015MatrixSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4866 | 0x1302 | `Chan016MatrixOn001` |  | InstantCtl |
+| 4867 | 0x1303 | `Chan016MatrixOn002` |  | InstantCtl |
+| 4868 | 0x1304 | `Chan016MatrixSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4869 | 0x1305 | `Chan016MatrixSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4870 | 0x1306 | `Chan017MatrixOn001` |  | InstantCtl |
+| 4871 | 0x1307 | `Chan017MatrixOn002` |  | InstantCtl |
+| 4872 | 0x1308 | `Chan017MatrixSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4873 | 0x1309 | `Chan017MatrixSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4874 | 0x130A | `Chan018MatrixOn001` |  | InstantCtl |
+| 4875 | 0x130B | `Chan018MatrixOn002` |  | InstantCtl |
+| 4876 | 0x130C | `Chan018MatrixSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4877 | 0x130D | `Chan018MatrixSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4878 | 0x130E | `Chan019MatrixOn001` |  | InstantCtl |
+| 4879 | 0x130F | `Chan019MatrixOn002` |  | InstantCtl |
+| 4880 | 0x1310 | `Chan019MatrixSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4881 | 0x1311 | `Chan019MatrixSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4882 | 0x1312 | `Chan020MatrixOn001` |  | InstantCtl |
+| 4883 | 0x1313 | `Chan020MatrixOn002` |  | InstantCtl |
+| 4884 | 0x1314 | `Chan020MatrixSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4885 | 0x1315 | `Chan020MatrixSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4886 | 0x1316 | `Chan021MatrixOn001` |  | InstantCtl |
+| 4887 | 0x1317 | `Chan021MatrixOn002` |  | InstantCtl |
+| 4888 | 0x1318 | `Chan021MatrixSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4889 | 0x1319 | `Chan021MatrixSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4890 | 0x131A | `Chan022MatrixOn001` |  | InstantCtl |
+| 4891 | 0x131B | `Chan022MatrixOn002` |  | InstantCtl |
+| 4892 | 0x131C | `Chan022MatrixSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4893 | 0x131D | `Chan022MatrixSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4894 | 0x131E | `Chan023MatrixOn001` |  | InstantCtl |
+| 4895 | 0x131F | `Chan023MatrixOn002` |  | InstantCtl |
+| 4896 | 0x1320 | `Chan023MatrixSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4897 | 0x1321 | `Chan023MatrixSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4898 | 0x1322 | `Chan024MatrixOn001` |  | InstantCtl |
+| 4899 | 0x1323 | `Chan024MatrixOn002` |  | InstantCtl |
+| 4900 | 0x1324 | `Chan024MatrixSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4901 | 0x1325 | `Chan024MatrixSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4902 | 0x1326 | `Chan025MatrixOn001` |  | InstantCtl |
+| 4903 | 0x1327 | `Chan025MatrixOn002` |  | InstantCtl |
+| 4904 | 0x1328 | `Chan025MatrixSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4905 | 0x1329 | `Chan025MatrixSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4906 | 0x132A | `Chan026MatrixOn001` |  | InstantCtl |
+| 4907 | 0x132B | `Chan026MatrixOn002` |  | InstantCtl |
+| 4908 | 0x132C | `Chan026MatrixSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4909 | 0x132D | `Chan026MatrixSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4910 | 0x132E | `Chan027MatrixOn001` |  | InstantCtl |
+| 4911 | 0x132F | `Chan027MatrixOn002` |  | InstantCtl |
+| 4912 | 0x1330 | `Chan027MatrixSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4913 | 0x1331 | `Chan027MatrixSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4914 | 0x1332 | `Chan028MatrixOn001` |  | InstantCtl |
+| 4915 | 0x1333 | `Chan028MatrixOn002` |  | InstantCtl |
+| 4916 | 0x1334 | `Chan028MatrixSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4917 | 0x1335 | `Chan028MatrixSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4918 | 0x1336 | `Chan029MatrixOn001` |  | InstantCtl |
+| 4919 | 0x1337 | `Chan029MatrixOn002` |  | InstantCtl |
+| 4920 | 0x1338 | `Chan029MatrixSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4921 | 0x1339 | `Chan029MatrixSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4922 | 0x133A | `Chan030MatrixOn001` |  | InstantCtl |
+| 4923 | 0x133B | `Chan030MatrixOn002` |  | InstantCtl |
+| 4924 | 0x133C | `Chan030MatrixSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4925 | 0x133D | `Chan030MatrixSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4926 | 0x133E | `Chan031MatrixOn001` |  | InstantCtl |
+| 4927 | 0x133F | `Chan031MatrixOn002` |  | InstantCtl |
+| 4928 | 0x1340 | `Chan031MatrixSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4929 | 0x1341 | `Chan031MatrixSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4930 | 0x1342 | `Chan032MatrixOn001` |  | InstantCtl |
+| 4931 | 0x1343 | `Chan032MatrixOn002` |  | InstantCtl |
+| 4932 | 0x1344 | `Chan032MatrixSend001` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
+| 4933 | 0x1345 | `Chan032MatrixSend002` | dB:Off:-50@31:-30@63:-10@127:0 | GainFast |
 
-**Total Chip 1 cells:** 3851
+**Total Chip 1 cells:** 3979
 
 ## Chip 2
 
@@ -5462,6 +5590,14 @@
 | 2000 | 0x07D0 | `Grp004Geq029` | 0=-12/127=12/[Lin] | EqSafe |
 | 2001 | 0x07D1 | `Grp004Geq030` | 0=-12/127=12/[Lin] | EqSafe |
 | 2002 | 0x07D2 | `Grp004Geq031` | 0=-12/127=12/[Lin] | EqSafe |
+| 2003 | 0x07D3 | `Matrix001Level001` | dB:Off:-50@31:-30@63:-10@127:1 | GainFast |
+| 2005 | 0x07D5 | `Matrix001Mute001` |  | InstantCtl |
+| 2008 | 0x07D8 | `Matrix002Level001` | dB:Off:-50@31:-30@63:-10@127:1 | GainFast |
+| 2010 | 0x07DA | `Matrix002Mute001` |  | InstantCtl |
+| 2013 | 0x07DD | `Matrix003Level001` | dB:Off:-50@31:-30@63:-10@127:1 | GainFast |
+| 2015 | 0x07DF | `Matrix003Mute001` |  | InstantCtl |
+| 2018 | 0x07E2 | `Matrix004Level001` | dB:Off:-50@31:-30@63:-10@127:1 | GainFast |
+| 2020 | 0x07E4 | `Matrix004Mute001` |  | InstantCtl |
 
-**Total Chip 2 cells:** 1598
+**Total Chip 2 cells:** 1606
 

@@ -69,6 +69,10 @@
 .global _bus_acc_fx_04;   .var _bus_acc_fx_04[48];
 .global _bus_acc_fx_05;   .var _bus_acc_fx_05[48];
 .global _bus_acc_fx_06;   .var _bus_acc_fx_06[48];
+.global _bus_acc_mtx_01;   .var _bus_acc_mtx_01[48];
+.global _bus_acc_mtx_02;   .var _bus_acc_mtx_02[48];
+.global _bus_acc_mtx_03;   .var _bus_acc_mtx_03[48];
+.global _bus_acc_mtx_04;   .var _bus_acc_mtx_04[48];
 #else
 .global _bus_acc_main_l;   .var _bus_acc_main_l[3];
 .global _bus_acc_main_r;   .var _bus_acc_main_r[3];
@@ -95,6 +99,10 @@
 .global _bus_acc_fx_04;   .var _bus_acc_fx_04[3];
 .global _bus_acc_fx_05;   .var _bus_acc_fx_05[3];
 .global _bus_acc_fx_06;   .var _bus_acc_fx_06[3];
+.global _bus_acc_mtx_01;   .var _bus_acc_mtx_01[3];
+.global _bus_acc_mtx_02;   .var _bus_acc_mtx_02[3];
+.global _bus_acc_mtx_03;   .var _bus_acc_mtx_03[3];
+.global _bus_acc_mtx_04;   .var _bus_acc_mtx_04[3];
 #endif
 
 .global _bus_acc_grp_ptrs;
@@ -103,15 +111,17 @@
 .var _bus_acc_aux_ptrs[12] = _bus_acc_aux_01, _bus_acc_aux_02, _bus_acc_aux_03, _bus_acc_aux_04, _bus_acc_aux_05, _bus_acc_aux_06, _bus_acc_aux_07, _bus_acc_aux_08, _bus_acc_aux_09, _bus_acc_aux_10, _bus_acc_aux_11, _bus_acc_aux_12;
 .global _bus_acc_fx_ptrs;
 .var _bus_acc_fx_ptrs[6] = _bus_acc_fx_01, _bus_acc_fx_02, _bus_acc_fx_03, _bus_acc_fx_04, _bus_acc_fx_05, _bus_acc_fx_06;
+.global _bus_acc_mtx_ptrs;
+.var _bus_acc_mtx_ptrs[4] = _bus_acc_mtx_01, _bus_acc_mtx_02, _bus_acc_mtx_03, _bus_acc_mtx_04;
 .global _bus_acc_all_ptrs;
-.var _bus_acc_all_ptrs[25] = _bus_acc_main_l, _bus_acc_main_r, _bus_acc_sub, _bus_acc_grp_01, _bus_acc_grp_02, _bus_acc_grp_03, _bus_acc_grp_04, _bus_acc_aux_01, _bus_acc_aux_02, _bus_acc_aux_03, _bus_acc_aux_04, _bus_acc_aux_05, _bus_acc_aux_06, _bus_acc_aux_07, _bus_acc_aux_08, _bus_acc_aux_09, _bus_acc_aux_10, _bus_acc_aux_11, _bus_acc_aux_12, _bus_acc_fx_01, _bus_acc_fx_02, _bus_acc_fx_03, _bus_acc_fx_04, _bus_acc_fx_05, _bus_acc_fx_06;
+.var _bus_acc_all_ptrs[29] = _bus_acc_main_l, _bus_acc_main_r, _bus_acc_sub, _bus_acc_grp_01, _bus_acc_grp_02, _bus_acc_grp_03, _bus_acc_grp_04, _bus_acc_aux_01, _bus_acc_aux_02, _bus_acc_aux_03, _bus_acc_aux_04, _bus_acc_aux_05, _bus_acc_aux_06, _bus_acc_aux_07, _bus_acc_aux_08, _bus_acc_aux_09, _bus_acc_aux_10, _bus_acc_aux_11, _bus_acc_aux_12, _bus_acc_fx_01, _bus_acc_fx_02, _bus_acc_fx_03, _bus_acc_fx_04, _bus_acc_fx_05, _bus_acc_fx_06, _bus_acc_mtx_01, _bus_acc_mtx_02, _bus_acc_mtx_03, _bus_acc_mtx_04;
 
 .section/pm seg_pmco;
 .global _bus_clear_all;
 _bus_clear_all:
     i2 = _bus_acc_all_ptrs;
     r0 = 0;
-    r1 = 25;
+    r1 = 29;
 #if DSP4_BLOCK_KERNELS
     lcntr = r1, do .bca_clr until lce;
         r2 = dm(i2, 1);

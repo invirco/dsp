@@ -5136,134 +5136,134 @@ Chan029MainOn001,1,29,1,,,Channel to main L/R assign on/off,5134,ilhv,2,,,,,,,,C
 Chan030MainOn001,1,30,1,,,Channel to main L/R assign on/off,5135,ilhw,2,,,,,,,,Chan_Rtg,,,,,,,1,1,4260,0x10A4,,,,InstantCtl,Instant,0,0,Linear,Scalar
 Chan031MainOn001,1,31,1,,,Channel to main L/R assign on/off,5136,ilih,2,,,,,,,,Chan_Rtg,,,,,,,1,1,4404,0x1134,,,,InstantCtl,Instant,0,0,Linear,Scalar
 Chan032MainOn001,1,32,1,,,Channel to main L/R assign on/off,5137,ilii,2,,,,,,,,Chan_Rtg,,,,,,,1,1,4548,0x11C4,,,,InstantCtl,Instant,0,0,Linear,Scalar
-Chan001MatrixOn001,1,1,1,,,Channel-to-matrix bus send on/off,5138,ilij,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan001MatrixOn002,1,1,2,,,Channel-to-matrix bus send on/off,5139,ilik,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan002MatrixOn001,1,2,1,,,Channel-to-matrix bus send on/off,5140,ilil,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan002MatrixOn002,1,2,2,,,Channel-to-matrix bus send on/off,5141,ilim,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan003MatrixOn001,1,3,1,,,Channel-to-matrix bus send on/off,5142,ilin,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan003MatrixOn002,1,3,2,,,Channel-to-matrix bus send on/off,5143,ilio,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan004MatrixOn001,1,4,1,,,Channel-to-matrix bus send on/off,5144,ilip,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan004MatrixOn002,1,4,2,,,Channel-to-matrix bus send on/off,5145,iliq,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan005MatrixOn001,1,5,1,,,Channel-to-matrix bus send on/off,5146,ilir,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan005MatrixOn002,1,5,2,,,Channel-to-matrix bus send on/off,5147,ilis,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan006MatrixOn001,1,6,1,,,Channel-to-matrix bus send on/off,5148,ilit,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan006MatrixOn002,1,6,2,,,Channel-to-matrix bus send on/off,5149,iliu,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan007MatrixOn001,1,7,1,,,Channel-to-matrix bus send on/off,5150,iliv,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan007MatrixOn002,1,7,2,,,Channel-to-matrix bus send on/off,5151,iliw,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan008MatrixOn001,1,8,1,,,Channel-to-matrix bus send on/off,5152,iljh,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan008MatrixOn002,1,8,2,,,Channel-to-matrix bus send on/off,5153,ilji,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan009MatrixOn001,1,9,1,,,Channel-to-matrix bus send on/off,5154,iljj,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan009MatrixOn002,1,9,2,,,Channel-to-matrix bus send on/off,5155,iljk,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan010MatrixOn001,1,10,1,,,Channel-to-matrix bus send on/off,5156,iljl,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan010MatrixOn002,1,10,2,,,Channel-to-matrix bus send on/off,5157,iljm,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan011MatrixOn001,1,11,1,,,Channel-to-matrix bus send on/off,5158,iljn,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan011MatrixOn002,1,11,2,,,Channel-to-matrix bus send on/off,5159,iljo,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan012MatrixOn001,1,12,1,,,Channel-to-matrix bus send on/off,5160,iljp,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan012MatrixOn002,1,12,2,,,Channel-to-matrix bus send on/off,5161,iljq,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan013MatrixOn001,1,13,1,,,Channel-to-matrix bus send on/off,5162,iljr,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan013MatrixOn002,1,13,2,,,Channel-to-matrix bus send on/off,5163,iljs,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan014MatrixOn001,1,14,1,,,Channel-to-matrix bus send on/off,5164,iljt,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan014MatrixOn002,1,14,2,,,Channel-to-matrix bus send on/off,5165,ilju,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan015MatrixOn001,1,15,1,,,Channel-to-matrix bus send on/off,5166,iljv,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan015MatrixOn002,1,15,2,,,Channel-to-matrix bus send on/off,5167,iljw,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan016MatrixOn001,1,16,1,,,Channel-to-matrix bus send on/off,5168,ilkh,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan016MatrixOn002,1,16,2,,,Channel-to-matrix bus send on/off,5169,ilki,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan017MatrixOn001,1,17,1,,,Channel-to-matrix bus send on/off,5170,ilkj,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan017MatrixOn002,1,17,2,,,Channel-to-matrix bus send on/off,5171,ilkk,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan018MatrixOn001,1,18,1,,,Channel-to-matrix bus send on/off,5172,ilkl,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan018MatrixOn002,1,18,2,,,Channel-to-matrix bus send on/off,5173,ilkm,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan019MatrixOn001,1,19,1,,,Channel-to-matrix bus send on/off,5174,ilkn,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan019MatrixOn002,1,19,2,,,Channel-to-matrix bus send on/off,5175,ilko,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan020MatrixOn001,1,20,1,,,Channel-to-matrix bus send on/off,5176,ilkp,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan020MatrixOn002,1,20,2,,,Channel-to-matrix bus send on/off,5177,ilkq,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan021MatrixOn001,1,21,1,,,Channel-to-matrix bus send on/off,5178,ilkr,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan021MatrixOn002,1,21,2,,,Channel-to-matrix bus send on/off,5179,ilks,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan022MatrixOn001,1,22,1,,,Channel-to-matrix bus send on/off,5180,ilkt,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan022MatrixOn002,1,22,2,,,Channel-to-matrix bus send on/off,5181,ilku,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan023MatrixOn001,1,23,1,,,Channel-to-matrix bus send on/off,5182,ilkv,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan023MatrixOn002,1,23,2,,,Channel-to-matrix bus send on/off,5183,ilkw,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan024MatrixOn001,1,24,1,,,Channel-to-matrix bus send on/off,5184,illh,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan024MatrixOn002,1,24,2,,,Channel-to-matrix bus send on/off,5185,illi,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan025MatrixOn001,1,25,1,,,Channel-to-matrix bus send on/off,5186,illj,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan025MatrixOn002,1,25,2,,,Channel-to-matrix bus send on/off,5187,illk,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan026MatrixOn001,1,26,1,,,Channel-to-matrix bus send on/off,5188,illl,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan026MatrixOn002,1,26,2,,,Channel-to-matrix bus send on/off,5189,illm,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan027MatrixOn001,1,27,1,,,Channel-to-matrix bus send on/off,5190,illn,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan027MatrixOn002,1,27,2,,,Channel-to-matrix bus send on/off,5191,illo,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan028MatrixOn001,1,28,1,,,Channel-to-matrix bus send on/off,5192,illp,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan028MatrixOn002,1,28,2,,,Channel-to-matrix bus send on/off,5193,illq,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan029MatrixOn001,1,29,1,,,Channel-to-matrix bus send on/off,5194,illr,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan029MatrixOn002,1,29,2,,,Channel-to-matrix bus send on/off,5195,ills,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan030MatrixOn001,1,30,1,,,Channel-to-matrix bus send on/off,5196,illt,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan030MatrixOn002,1,30,2,,,Channel-to-matrix bus send on/off,5197,illu,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan031MatrixOn001,1,31,1,,,Channel-to-matrix bus send on/off,5198,illv,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan031MatrixOn002,1,31,2,,,Channel-to-matrix bus send on/off,5199,illw,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan032MatrixOn001,1,32,1,,,Channel-to-matrix bus send on/off,5200,ilmh,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan032MatrixOn002,1,32,2,,,Channel-to-matrix bus send on/off,5201,ilmi,1,,,,,,,,Chan_Rtg,,,,,,,,,,,,,,,,,,,
-Chan001MatrixSend001,1,1,1,,,Per-channel send level to each matrix bus,5202,ilmj,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan001MatrixSend002,1,1,2,,,Per-channel send level to each matrix bus,5203,ilmk,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan002MatrixSend001,1,2,1,,,Per-channel send level to each matrix bus,5204,ilml,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan002MatrixSend002,1,2,2,,,Per-channel send level to each matrix bus,5205,ilmm,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan003MatrixSend001,1,3,1,,,Per-channel send level to each matrix bus,5206,ilmn,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan003MatrixSend002,1,3,2,,,Per-channel send level to each matrix bus,5207,ilmo,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan004MatrixSend001,1,4,1,,,Per-channel send level to each matrix bus,5208,ilmp,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan004MatrixSend002,1,4,2,,,Per-channel send level to each matrix bus,5209,ilmq,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan005MatrixSend001,1,5,1,,,Per-channel send level to each matrix bus,5210,ilmr,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan005MatrixSend002,1,5,2,,,Per-channel send level to each matrix bus,5211,ilms,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan006MatrixSend001,1,6,1,,,Per-channel send level to each matrix bus,5212,ilmt,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan006MatrixSend002,1,6,2,,,Per-channel send level to each matrix bus,5213,ilmu,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan007MatrixSend001,1,7,1,,,Per-channel send level to each matrix bus,5214,ilmv,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan007MatrixSend002,1,7,2,,,Per-channel send level to each matrix bus,5215,ilmw,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan008MatrixSend001,1,8,1,,,Per-channel send level to each matrix bus,5216,ilnh,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan008MatrixSend002,1,8,2,,,Per-channel send level to each matrix bus,5217,ilni,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan009MatrixSend001,1,9,1,,,Per-channel send level to each matrix bus,5218,ilnj,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan009MatrixSend002,1,9,2,,,Per-channel send level to each matrix bus,5219,ilnk,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan010MatrixSend001,1,10,1,,,Per-channel send level to each matrix bus,5220,ilnl,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan010MatrixSend002,1,10,2,,,Per-channel send level to each matrix bus,5221,ilnm,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan011MatrixSend001,1,11,1,,,Per-channel send level to each matrix bus,5222,ilnn,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan011MatrixSend002,1,11,2,,,Per-channel send level to each matrix bus,5223,ilno,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan012MatrixSend001,1,12,1,,,Per-channel send level to each matrix bus,5224,ilnp,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan012MatrixSend002,1,12,2,,,Per-channel send level to each matrix bus,5225,ilnq,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan013MatrixSend001,1,13,1,,,Per-channel send level to each matrix bus,5226,ilnr,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan013MatrixSend002,1,13,2,,,Per-channel send level to each matrix bus,5227,ilns,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan014MatrixSend001,1,14,1,,,Per-channel send level to each matrix bus,5228,ilnt,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan014MatrixSend002,1,14,2,,,Per-channel send level to each matrix bus,5229,ilnu,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan015MatrixSend001,1,15,1,,,Per-channel send level to each matrix bus,5230,ilnv,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan015MatrixSend002,1,15,2,,,Per-channel send level to each matrix bus,5231,ilnw,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan016MatrixSend001,1,16,1,,,Per-channel send level to each matrix bus,5232,iloh,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan016MatrixSend002,1,16,2,,,Per-channel send level to each matrix bus,5233,iloi,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan017MatrixSend001,1,17,1,,,Per-channel send level to each matrix bus,5234,iloj,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan017MatrixSend002,1,17,2,,,Per-channel send level to each matrix bus,5235,ilok,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan018MatrixSend001,1,18,1,,,Per-channel send level to each matrix bus,5236,ilol,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan018MatrixSend002,1,18,2,,,Per-channel send level to each matrix bus,5237,ilom,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan019MatrixSend001,1,19,1,,,Per-channel send level to each matrix bus,5238,ilon,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan019MatrixSend002,1,19,2,,,Per-channel send level to each matrix bus,5239,iloo,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan020MatrixSend001,1,20,1,,,Per-channel send level to each matrix bus,5240,ilop,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan020MatrixSend002,1,20,2,,,Per-channel send level to each matrix bus,5241,iloq,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan021MatrixSend001,1,21,1,,,Per-channel send level to each matrix bus,5242,ilor,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan021MatrixSend002,1,21,2,,,Per-channel send level to each matrix bus,5243,ilos,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan022MatrixSend001,1,22,1,,,Per-channel send level to each matrix bus,5244,ilot,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan022MatrixSend002,1,22,2,,,Per-channel send level to each matrix bus,5245,ilou,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan023MatrixSend001,1,23,1,,,Per-channel send level to each matrix bus,5246,ilov,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan023MatrixSend002,1,23,2,,,Per-channel send level to each matrix bus,5247,ilow,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan024MatrixSend001,1,24,1,,,Per-channel send level to each matrix bus,5248,ilph,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan024MatrixSend002,1,24,2,,,Per-channel send level to each matrix bus,5249,ilpi,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan025MatrixSend001,1,25,1,,,Per-channel send level to each matrix bus,5250,ilpj,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan025MatrixSend002,1,25,2,,,Per-channel send level to each matrix bus,5251,ilpk,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan026MatrixSend001,1,26,1,,,Per-channel send level to each matrix bus,5252,ilpl,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan026MatrixSend002,1,26,2,,,Per-channel send level to each matrix bus,5253,ilpm,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan027MatrixSend001,1,27,1,,,Per-channel send level to each matrix bus,5254,ilpn,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan027MatrixSend002,1,27,2,,,Per-channel send level to each matrix bus,5255,ilpo,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan028MatrixSend001,1,28,1,,,Per-channel send level to each matrix bus,5256,ilpp,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan028MatrixSend002,1,28,2,,,Per-channel send level to each matrix bus,5257,ilpq,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan029MatrixSend001,1,29,1,,,Per-channel send level to each matrix bus,5258,ilpr,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan029MatrixSend002,1,29,2,,,Per-channel send level to each matrix bus,5259,ilps,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan030MatrixSend001,1,30,1,,,Per-channel send level to each matrix bus,5260,ilpt,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan030MatrixSend002,1,30,2,,,Per-channel send level to each matrix bus,5261,ilpu,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan031MatrixSend001,1,31,1,,,Per-channel send level to each matrix bus,5262,ilpv,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan031MatrixSend002,1,31,2,,,Per-channel send level to each matrix bus,5263,ilpw,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan032MatrixSend001,1,32,1,,,Per-channel send level to each matrix bus,5264,ilqh,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
-Chan032MatrixSend002,1,32,2,,,Per-channel send level to each matrix bus,5265,ilqi,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,,,,,,
+Chan001MatrixOn001,1,1,1,,,Channel-to-matrix bus send on/off,5138,ilij,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4806,0x12C6,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan001MatrixOn002,1,1,2,,,Channel-to-matrix bus send on/off,5139,ilik,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4807,0x12C7,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan002MatrixOn001,1,2,1,,,Channel-to-matrix bus send on/off,5140,ilil,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4810,0x12CA,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan002MatrixOn002,1,2,2,,,Channel-to-matrix bus send on/off,5141,ilim,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4811,0x12CB,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan003MatrixOn001,1,3,1,,,Channel-to-matrix bus send on/off,5142,ilin,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4814,0x12CE,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan003MatrixOn002,1,3,2,,,Channel-to-matrix bus send on/off,5143,ilio,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4815,0x12CF,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan004MatrixOn001,1,4,1,,,Channel-to-matrix bus send on/off,5144,ilip,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4818,0x12D2,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan004MatrixOn002,1,4,2,,,Channel-to-matrix bus send on/off,5145,iliq,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4819,0x12D3,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan005MatrixOn001,1,5,1,,,Channel-to-matrix bus send on/off,5146,ilir,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4822,0x12D6,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan005MatrixOn002,1,5,2,,,Channel-to-matrix bus send on/off,5147,ilis,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4823,0x12D7,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan006MatrixOn001,1,6,1,,,Channel-to-matrix bus send on/off,5148,ilit,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4826,0x12DA,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan006MatrixOn002,1,6,2,,,Channel-to-matrix bus send on/off,5149,iliu,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4827,0x12DB,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan007MatrixOn001,1,7,1,,,Channel-to-matrix bus send on/off,5150,iliv,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4830,0x12DE,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan007MatrixOn002,1,7,2,,,Channel-to-matrix bus send on/off,5151,iliw,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4831,0x12DF,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan008MatrixOn001,1,8,1,,,Channel-to-matrix bus send on/off,5152,iljh,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4834,0x12E2,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan008MatrixOn002,1,8,2,,,Channel-to-matrix bus send on/off,5153,ilji,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4835,0x12E3,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan009MatrixOn001,1,9,1,,,Channel-to-matrix bus send on/off,5154,iljj,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4838,0x12E6,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan009MatrixOn002,1,9,2,,,Channel-to-matrix bus send on/off,5155,iljk,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4839,0x12E7,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan010MatrixOn001,1,10,1,,,Channel-to-matrix bus send on/off,5156,iljl,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4842,0x12EA,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan010MatrixOn002,1,10,2,,,Channel-to-matrix bus send on/off,5157,iljm,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4843,0x12EB,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan011MatrixOn001,1,11,1,,,Channel-to-matrix bus send on/off,5158,iljn,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4846,0x12EE,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan011MatrixOn002,1,11,2,,,Channel-to-matrix bus send on/off,5159,iljo,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4847,0x12EF,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan012MatrixOn001,1,12,1,,,Channel-to-matrix bus send on/off,5160,iljp,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4850,0x12F2,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan012MatrixOn002,1,12,2,,,Channel-to-matrix bus send on/off,5161,iljq,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4851,0x12F3,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan013MatrixOn001,1,13,1,,,Channel-to-matrix bus send on/off,5162,iljr,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4854,0x12F6,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan013MatrixOn002,1,13,2,,,Channel-to-matrix bus send on/off,5163,iljs,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4855,0x12F7,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan014MatrixOn001,1,14,1,,,Channel-to-matrix bus send on/off,5164,iljt,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4858,0x12FA,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan014MatrixOn002,1,14,2,,,Channel-to-matrix bus send on/off,5165,ilju,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4859,0x12FB,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan015MatrixOn001,1,15,1,,,Channel-to-matrix bus send on/off,5166,iljv,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4862,0x12FE,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan015MatrixOn002,1,15,2,,,Channel-to-matrix bus send on/off,5167,iljw,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4863,0x12FF,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan016MatrixOn001,1,16,1,,,Channel-to-matrix bus send on/off,5168,ilkh,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4866,0x1302,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan016MatrixOn002,1,16,2,,,Channel-to-matrix bus send on/off,5169,ilki,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4867,0x1303,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan017MatrixOn001,1,17,1,,,Channel-to-matrix bus send on/off,5170,ilkj,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4870,0x1306,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan017MatrixOn002,1,17,2,,,Channel-to-matrix bus send on/off,5171,ilkk,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4871,0x1307,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan018MatrixOn001,1,18,1,,,Channel-to-matrix bus send on/off,5172,ilkl,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4874,0x130A,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan018MatrixOn002,1,18,2,,,Channel-to-matrix bus send on/off,5173,ilkm,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4875,0x130B,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan019MatrixOn001,1,19,1,,,Channel-to-matrix bus send on/off,5174,ilkn,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4878,0x130E,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan019MatrixOn002,1,19,2,,,Channel-to-matrix bus send on/off,5175,ilko,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4879,0x130F,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan020MatrixOn001,1,20,1,,,Channel-to-matrix bus send on/off,5176,ilkp,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4882,0x1312,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan020MatrixOn002,1,20,2,,,Channel-to-matrix bus send on/off,5177,ilkq,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4883,0x1313,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan021MatrixOn001,1,21,1,,,Channel-to-matrix bus send on/off,5178,ilkr,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4886,0x1316,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan021MatrixOn002,1,21,2,,,Channel-to-matrix bus send on/off,5179,ilks,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4887,0x1317,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan022MatrixOn001,1,22,1,,,Channel-to-matrix bus send on/off,5180,ilkt,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4890,0x131A,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan022MatrixOn002,1,22,2,,,Channel-to-matrix bus send on/off,5181,ilku,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4891,0x131B,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan023MatrixOn001,1,23,1,,,Channel-to-matrix bus send on/off,5182,ilkv,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4894,0x131E,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan023MatrixOn002,1,23,2,,,Channel-to-matrix bus send on/off,5183,ilkw,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4895,0x131F,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan024MatrixOn001,1,24,1,,,Channel-to-matrix bus send on/off,5184,illh,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4898,0x1322,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan024MatrixOn002,1,24,2,,,Channel-to-matrix bus send on/off,5185,illi,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4899,0x1323,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan025MatrixOn001,1,25,1,,,Channel-to-matrix bus send on/off,5186,illj,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4902,0x1326,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan025MatrixOn002,1,25,2,,,Channel-to-matrix bus send on/off,5187,illk,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4903,0x1327,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan026MatrixOn001,1,26,1,,,Channel-to-matrix bus send on/off,5188,illl,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4906,0x132A,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan026MatrixOn002,1,26,2,,,Channel-to-matrix bus send on/off,5189,illm,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4907,0x132B,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan027MatrixOn001,1,27,1,,,Channel-to-matrix bus send on/off,5190,illn,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4910,0x132E,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan027MatrixOn002,1,27,2,,,Channel-to-matrix bus send on/off,5191,illo,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4911,0x132F,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan028MatrixOn001,1,28,1,,,Channel-to-matrix bus send on/off,5192,illp,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4914,0x1332,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan028MatrixOn002,1,28,2,,,Channel-to-matrix bus send on/off,5193,illq,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4915,0x1333,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan029MatrixOn001,1,29,1,,,Channel-to-matrix bus send on/off,5194,illr,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4918,0x1336,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan029MatrixOn002,1,29,2,,,Channel-to-matrix bus send on/off,5195,ills,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4919,0x1337,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan030MatrixOn001,1,30,1,,,Channel-to-matrix bus send on/off,5196,illt,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4922,0x133A,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan030MatrixOn002,1,30,2,,,Channel-to-matrix bus send on/off,5197,illu,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4923,0x133B,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan031MatrixOn001,1,31,1,,,Channel-to-matrix bus send on/off,5198,illv,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4926,0x133E,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan031MatrixOn002,1,31,2,,,Channel-to-matrix bus send on/off,5199,illw,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4927,0x133F,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan032MatrixOn001,1,32,1,,,Channel-to-matrix bus send on/off,5200,ilmh,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4930,0x1342,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan032MatrixOn002,1,32,2,,,Channel-to-matrix bus send on/off,5201,ilmi,1,,,,,,,,Chan_Rtg,,,,,,,1,1,4931,0x1343,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Chan001MatrixSend001,1,1,1,,,Per-channel send level to each matrix bus,5202,ilmj,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4808,0x12C8,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan001MatrixSend002,1,1,2,,,Per-channel send level to each matrix bus,5203,ilmk,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4809,0x12C9,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan002MatrixSend001,1,2,1,,,Per-channel send level to each matrix bus,5204,ilml,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4812,0x12CC,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan002MatrixSend002,1,2,2,,,Per-channel send level to each matrix bus,5205,ilmm,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4813,0x12CD,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan003MatrixSend001,1,3,1,,,Per-channel send level to each matrix bus,5206,ilmn,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4816,0x12D0,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan003MatrixSend002,1,3,2,,,Per-channel send level to each matrix bus,5207,ilmo,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4817,0x12D1,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan004MatrixSend001,1,4,1,,,Per-channel send level to each matrix bus,5208,ilmp,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4820,0x12D4,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan004MatrixSend002,1,4,2,,,Per-channel send level to each matrix bus,5209,ilmq,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4821,0x12D5,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan005MatrixSend001,1,5,1,,,Per-channel send level to each matrix bus,5210,ilmr,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4824,0x12D8,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan005MatrixSend002,1,5,2,,,Per-channel send level to each matrix bus,5211,ilms,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4825,0x12D9,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan006MatrixSend001,1,6,1,,,Per-channel send level to each matrix bus,5212,ilmt,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4828,0x12DC,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan006MatrixSend002,1,6,2,,,Per-channel send level to each matrix bus,5213,ilmu,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4829,0x12DD,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan007MatrixSend001,1,7,1,,,Per-channel send level to each matrix bus,5214,ilmv,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4832,0x12E0,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan007MatrixSend002,1,7,2,,,Per-channel send level to each matrix bus,5215,ilmw,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4833,0x12E1,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan008MatrixSend001,1,8,1,,,Per-channel send level to each matrix bus,5216,ilnh,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4836,0x12E4,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan008MatrixSend002,1,8,2,,,Per-channel send level to each matrix bus,5217,ilni,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4837,0x12E5,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan009MatrixSend001,1,9,1,,,Per-channel send level to each matrix bus,5218,ilnj,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4840,0x12E8,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan009MatrixSend002,1,9,2,,,Per-channel send level to each matrix bus,5219,ilnk,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4841,0x12E9,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan010MatrixSend001,1,10,1,,,Per-channel send level to each matrix bus,5220,ilnl,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4844,0x12EC,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan010MatrixSend002,1,10,2,,,Per-channel send level to each matrix bus,5221,ilnm,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4845,0x12ED,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan011MatrixSend001,1,11,1,,,Per-channel send level to each matrix bus,5222,ilnn,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4848,0x12F0,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan011MatrixSend002,1,11,2,,,Per-channel send level to each matrix bus,5223,ilno,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4849,0x12F1,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan012MatrixSend001,1,12,1,,,Per-channel send level to each matrix bus,5224,ilnp,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4852,0x12F4,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan012MatrixSend002,1,12,2,,,Per-channel send level to each matrix bus,5225,ilnq,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4853,0x12F5,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan013MatrixSend001,1,13,1,,,Per-channel send level to each matrix bus,5226,ilnr,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4856,0x12F8,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan013MatrixSend002,1,13,2,,,Per-channel send level to each matrix bus,5227,ilns,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4857,0x12F9,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan014MatrixSend001,1,14,1,,,Per-channel send level to each matrix bus,5228,ilnt,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4860,0x12FC,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan014MatrixSend002,1,14,2,,,Per-channel send level to each matrix bus,5229,ilnu,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4861,0x12FD,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan015MatrixSend001,1,15,1,,,Per-channel send level to each matrix bus,5230,ilnv,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4864,0x1300,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan015MatrixSend002,1,15,2,,,Per-channel send level to each matrix bus,5231,ilnw,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4865,0x1301,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan016MatrixSend001,1,16,1,,,Per-channel send level to each matrix bus,5232,iloh,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4868,0x1304,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan016MatrixSend002,1,16,2,,,Per-channel send level to each matrix bus,5233,iloi,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4869,0x1305,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan017MatrixSend001,1,17,1,,,Per-channel send level to each matrix bus,5234,iloj,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4872,0x1308,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan017MatrixSend002,1,17,2,,,Per-channel send level to each matrix bus,5235,ilok,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4873,0x1309,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan018MatrixSend001,1,18,1,,,Per-channel send level to each matrix bus,5236,ilol,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4876,0x130C,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan018MatrixSend002,1,18,2,,,Per-channel send level to each matrix bus,5237,ilom,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4877,0x130D,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan019MatrixSend001,1,19,1,,,Per-channel send level to each matrix bus,5238,ilon,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4880,0x1310,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan019MatrixSend002,1,19,2,,,Per-channel send level to each matrix bus,5239,iloo,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4881,0x1311,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan020MatrixSend001,1,20,1,,,Per-channel send level to each matrix bus,5240,ilop,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4884,0x1314,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan020MatrixSend002,1,20,2,,,Per-channel send level to each matrix bus,5241,iloq,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4885,0x1315,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan021MatrixSend001,1,21,1,,,Per-channel send level to each matrix bus,5242,ilor,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4888,0x1318,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan021MatrixSend002,1,21,2,,,Per-channel send level to each matrix bus,5243,ilos,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4889,0x1319,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan022MatrixSend001,1,22,1,,,Per-channel send level to each matrix bus,5244,ilot,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4892,0x131C,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan022MatrixSend002,1,22,2,,,Per-channel send level to each matrix bus,5245,ilou,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4893,0x131D,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan023MatrixSend001,1,23,1,,,Per-channel send level to each matrix bus,5246,ilov,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4896,0x1320,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan023MatrixSend002,1,23,2,,,Per-channel send level to each matrix bus,5247,ilow,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4897,0x1321,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan024MatrixSend001,1,24,1,,,Per-channel send level to each matrix bus,5248,ilph,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4900,0x1324,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan024MatrixSend002,1,24,2,,,Per-channel send level to each matrix bus,5249,ilpi,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4901,0x1325,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan025MatrixSend001,1,25,1,,,Per-channel send level to each matrix bus,5250,ilpj,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4904,0x1328,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan025MatrixSend002,1,25,2,,,Per-channel send level to each matrix bus,5251,ilpk,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4905,0x1329,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan026MatrixSend001,1,26,1,,,Per-channel send level to each matrix bus,5252,ilpl,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4908,0x132C,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan026MatrixSend002,1,26,2,,,Per-channel send level to each matrix bus,5253,ilpm,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4909,0x132D,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan027MatrixSend001,1,27,1,,,Per-channel send level to each matrix bus,5254,ilpn,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4912,0x1330,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan027MatrixSend002,1,27,2,,,Per-channel send level to each matrix bus,5255,ilpo,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4913,0x1331,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan028MatrixSend001,1,28,1,,,Per-channel send level to each matrix bus,5256,ilpp,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4916,0x1334,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan028MatrixSend002,1,28,2,,,Per-channel send level to each matrix bus,5257,ilpq,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4917,0x1335,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan029MatrixSend001,1,29,1,,,Per-channel send level to each matrix bus,5258,ilpr,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4920,0x1338,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan029MatrixSend002,1,29,2,,,Per-channel send level to each matrix bus,5259,ilps,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4921,0x1339,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan030MatrixSend001,1,30,1,,,Per-channel send level to each matrix bus,5260,ilpt,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4924,0x133C,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan030MatrixSend002,1,30,2,,,Per-channel send level to each matrix bus,5261,ilpu,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4925,0x133D,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan031MatrixSend001,1,31,1,,,Per-channel send level to each matrix bus,5262,ilpv,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4928,0x1340,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan031MatrixSend002,1,31,2,,,Per-channel send level to each matrix bus,5263,ilpw,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4929,0x1341,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan032MatrixSend001,1,32,1,,,Per-channel send level to each matrix bus,5264,ilqh,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4932,0x1344,,,,GainFast,Slew,3,8,Exp,Scalar
+Chan032MatrixSend002,1,32,2,,,Per-channel send level to each matrix bus,5265,ilqi,255,,,,,,,,Chan_Rtg,,dB:Off:-50@31:-30@63:-10@127:0,,,,,1,1,4933,0x1345,,,,GainFast,Slew,3,8,Exp,Scalar
 Chan001Mute001,1,1,1,,,Channel mute on/off,5266,ilqj,8,,,,,,,,Chan_Rtg,,,,,,,1,1,82,0x0052,,,,InstantCtl,Instant,0,0,Linear,Scalar
 Chan002Mute001,1,2,1,,,Channel mute on/off,5267,ilqk,8,,,,,,,,Chan_Rtg,,,,,,,1,1,226,0x00E2,,,,InstantCtl,Instant,0,0,Linear,Scalar
 Chan003Mute001,1,3,1,,,Channel mute on/off,5268,ilql,8,,,,,,,,Chan_Rtg,,,,,,,1,1,370,0x0172,,,,InstantCtl,Instant,0,0,Linear,Scalar
@@ -5986,14 +5986,14 @@ Main001Geq028,1,1,28,,,Main 31-band stereo GEQ gain per band,5984,ionh,65,32,,,,
 Main001Geq029,1,1,29,,,Main 31-band stereo GEQ gain per band,5985,ioni,65,32,,,,,,,MainEq,,0=-12/127=12/[Lin],,,,,2,1,1411,0x0583,,,,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
 Main001Geq030,1,1,30,,,Main 31-band stereo GEQ gain per band,5986,ionj,65,32,,,,,,,MainEq,,0=-12/127=12/[Lin],,,,,2,1,1412,0x0584,,,,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
 Main001Geq031,1,1,31,,,Main 31-band stereo GEQ gain per band,5987,ionk,65,32,,,,,,,MainEq,,0=-12/127=12/[Lin],,,,,2,1,1413,0x0585,,,,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-Matrix001Level001,1,1,1,,,Matrix output master level,5988,ionl,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:10,,,,,,,,,,,,,,,,,
-Matrix002Level001,1,2,1,,,Matrix output master level,5989,ionm,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:10,,,,,,,,,,,,,,,,,
-Matrix003Level001,1,3,1,,,Matrix output master level,5990,ionn,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:10,,,,,,,,,,,,,,,,,
-Matrix004Level001,1,4,1,,,Matrix output master level,5991,iono,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:10,,,,,,,,,,,,,,,,,
-Matrix001Mute001,1,1,1,,,Matrix output mute on/off,5992,ionp,2,,,,,,,,,,,,,,,,,,,,,,,,,,,
-Matrix002Mute001,1,2,1,,,Matrix output mute on/off,5993,ionq,2,,,,,,,,,,,,,,,,,,,,,,,,,,,
-Matrix003Mute001,1,3,1,,,Matrix output mute on/off,5994,ionr,2,,,,,,,,,,,,,,,,,,,,,,,,,,,
-Matrix004Mute001,1,4,1,,,Matrix output mute on/off,5995,ions,2,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Matrix001Level001,1,1,1,,,Matrix output master level,5988,ionl,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:10,,,,,2,1,2003,0x07D3,,,,GainFast,Slew,3,8,Exp,Scalar
+Matrix002Level001,1,2,1,,,Matrix output master level,5989,ionm,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:10,,,,,2,1,2008,0x07D8,,,,GainFast,Slew,3,8,Exp,Scalar
+Matrix003Level001,1,3,1,,,Matrix output master level,5990,ionn,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:10,,,,,2,1,2013,0x07DD,,,,GainFast,Slew,3,8,Exp,Scalar
+Matrix004Level001,1,4,1,,,Matrix output master level,5991,iono,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:10,,,,,2,1,2018,0x07E2,,,,GainFast,Slew,3,8,Exp,Scalar
+Matrix001Mute001,1,1,1,,,Matrix output mute on/off,5992,ionp,2,,,,,,,,,,,,,,,2,1,2005,0x07D5,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Matrix002Mute001,1,2,1,,,Matrix output mute on/off,5993,ionq,2,,,,,,,,,,,,,,,2,1,2010,0x07DA,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Matrix003Mute001,1,3,1,,,Matrix output mute on/off,5994,ionr,2,,,,,,,,,,,,,,,2,1,2015,0x07DF,,,,InstantCtl,Instant,0,0,Linear,Scalar
+Matrix004Mute001,1,4,1,,,Matrix output mute on/off,5995,ions,2,,,,,,,,,,,,,,,2,1,2020,0x07E4,,,,InstantCtl,Instant,0,0,Linear,Scalar
 Mon001Delay001,1,1,1,,,Monitor output delay up to 250ms,5996,iont,255,,,,,,,,,,0=0/127=250.0/[Log],,,,,2,1,1794,0x0702,,,,InstantCtl,Instant,0,0,Linear,Scalar
 Mon001InputSel001,1,1,1,,,Monitor source select (L/R or aux),5997,ionu,2,,,,,,,,,,,,,,,2,1,1788,0x06FC,,,,InstantCtl,Instant,0,0,Linear,Scalar
 Mon001Level001,1,1,1,,,Monitor output level (L/R),5998,ionv,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:10,,,,,2,1,1789,0x06FD,,,,GainFast,Slew,3,8,Exp,Scalar

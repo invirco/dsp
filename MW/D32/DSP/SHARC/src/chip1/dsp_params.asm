@@ -8,7 +8,7 @@
  * indexes this table to route parameter writes directly to node
  * coefficient variables.
  *
- * 4800 entries (SPI addresses 0x0000–0x12BD)
+ * 4936 entries (SPI addresses 0x0000–0x1345)
  *======================================================================*/
 
 .section/dm seg_dmda;
@@ -1617,6 +1617,70 @@
 .extern _rtg_main_on_C1_RTG_30;
 .extern _rtg_main_on_C1_RTG_31;
 .extern _rtg_main_on_C1_RTG_32;
+.extern _rtg_mtx_on_C1_RTG_01;
+.extern _rtg_mtx_on_C1_RTG_02;
+.extern _rtg_mtx_on_C1_RTG_03;
+.extern _rtg_mtx_on_C1_RTG_04;
+.extern _rtg_mtx_on_C1_RTG_05;
+.extern _rtg_mtx_on_C1_RTG_06;
+.extern _rtg_mtx_on_C1_RTG_07;
+.extern _rtg_mtx_on_C1_RTG_08;
+.extern _rtg_mtx_on_C1_RTG_09;
+.extern _rtg_mtx_on_C1_RTG_10;
+.extern _rtg_mtx_on_C1_RTG_11;
+.extern _rtg_mtx_on_C1_RTG_12;
+.extern _rtg_mtx_on_C1_RTG_13;
+.extern _rtg_mtx_on_C1_RTG_14;
+.extern _rtg_mtx_on_C1_RTG_15;
+.extern _rtg_mtx_on_C1_RTG_16;
+.extern _rtg_mtx_on_C1_RTG_17;
+.extern _rtg_mtx_on_C1_RTG_18;
+.extern _rtg_mtx_on_C1_RTG_19;
+.extern _rtg_mtx_on_C1_RTG_20;
+.extern _rtg_mtx_on_C1_RTG_21;
+.extern _rtg_mtx_on_C1_RTG_22;
+.extern _rtg_mtx_on_C1_RTG_23;
+.extern _rtg_mtx_on_C1_RTG_24;
+.extern _rtg_mtx_on_C1_RTG_25;
+.extern _rtg_mtx_on_C1_RTG_26;
+.extern _rtg_mtx_on_C1_RTG_27;
+.extern _rtg_mtx_on_C1_RTG_28;
+.extern _rtg_mtx_on_C1_RTG_29;
+.extern _rtg_mtx_on_C1_RTG_30;
+.extern _rtg_mtx_on_C1_RTG_31;
+.extern _rtg_mtx_on_C1_RTG_32;
+.extern _rtg_mtx_send_C1_RTG_01;
+.extern _rtg_mtx_send_C1_RTG_02;
+.extern _rtg_mtx_send_C1_RTG_03;
+.extern _rtg_mtx_send_C1_RTG_04;
+.extern _rtg_mtx_send_C1_RTG_05;
+.extern _rtg_mtx_send_C1_RTG_06;
+.extern _rtg_mtx_send_C1_RTG_07;
+.extern _rtg_mtx_send_C1_RTG_08;
+.extern _rtg_mtx_send_C1_RTG_09;
+.extern _rtg_mtx_send_C1_RTG_10;
+.extern _rtg_mtx_send_C1_RTG_11;
+.extern _rtg_mtx_send_C1_RTG_12;
+.extern _rtg_mtx_send_C1_RTG_13;
+.extern _rtg_mtx_send_C1_RTG_14;
+.extern _rtg_mtx_send_C1_RTG_15;
+.extern _rtg_mtx_send_C1_RTG_16;
+.extern _rtg_mtx_send_C1_RTG_17;
+.extern _rtg_mtx_send_C1_RTG_18;
+.extern _rtg_mtx_send_C1_RTG_19;
+.extern _rtg_mtx_send_C1_RTG_20;
+.extern _rtg_mtx_send_C1_RTG_21;
+.extern _rtg_mtx_send_C1_RTG_22;
+.extern _rtg_mtx_send_C1_RTG_23;
+.extern _rtg_mtx_send_C1_RTG_24;
+.extern _rtg_mtx_send_C1_RTG_25;
+.extern _rtg_mtx_send_C1_RTG_26;
+.extern _rtg_mtx_send_C1_RTG_27;
+.extern _rtg_mtx_send_C1_RTG_28;
+.extern _rtg_mtx_send_C1_RTG_29;
+.extern _rtg_mtx_send_C1_RTG_30;
+.extern _rtg_mtx_send_C1_RTG_31;
+.extern _rtg_mtx_send_C1_RTG_32;
 .extern _rtg_sub_on_C1_RTG_01;
 .extern _rtg_sub_on_C1_RTG_02;
 .extern _rtg_sub_on_C1_RTG_03;
@@ -1724,11 +1788,11 @@
 
 /* ---- Table size for the SPI handler bounds check ---- */
 .global _spi_dispatch_c1_size;
-.var _spi_dispatch_c1_size = 4800;
+.var _spi_dispatch_c1_size = 4936;
 
-/* ---- Chip 1 SPI dispatch table (4800 entries) ---- */
+/* ---- Chip 1 SPI dispatch table (4936 entries) ---- */
 .global _spi_dispatch_c1;
-.var _spi_dispatch_c1[4800] =
+.var _spi_dispatch_c1[4936] =
     _gain_coeff_C1_GAIN_01,    /* 0x0000: C1_GAIN_01 gain coeff */
     _polarity_C1_GAIN_01,    /* 0x0001: C1_GAIN_01 polarity */
     0,  /* 0x0002: phantom (MCU-only) */
@@ -6527,10 +6591,146 @@
     0,  /* 0x12BB: C1_BUS_FX_05 source_count */
     0,  /* 0x12BC: C1_BUS_FX_06 bus_id */
     0,  /* 0x12BD: C1_BUS_FX_06 source_count */
-    0,  /* 0x12BE */
-    0;  /* 0x12BF */
+    0,  /* 0x12BE: C1_BUS_MTX_01 bus_id */
+    0,  /* 0x12BF: C1_BUS_MTX_01 source_count */
+    0,  /* 0x12C0: C1_BUS_MTX_02 bus_id */
+    0,  /* 0x12C1: C1_BUS_MTX_02 source_count */
+    0,  /* 0x12C2: C1_BUS_MTX_03 bus_id */
+    0,  /* 0x12C3: C1_BUS_MTX_03 source_count */
+    0,  /* 0x12C4: C1_BUS_MTX_04 bus_id */
+    0,  /* 0x12C5: C1_BUS_MTX_04 source_count */
+    _rtg_mtx_on_C1_RTG_01 + 0,    /* 0x12C6: C1_RTG_01 MatrixOn[1] */
+    _rtg_mtx_on_C1_RTG_01 + 1,    /* 0x12C7: C1_RTG_01 MatrixOn[2] */
+    _rtg_mtx_send_C1_RTG_01 + 0,    /* 0x12C8: C1_RTG_01 MatrixSend[1] */
+    _rtg_mtx_send_C1_RTG_01 + 1,    /* 0x12C9: C1_RTG_01 MatrixSend[2] */
+    _rtg_mtx_on_C1_RTG_02 + 0,    /* 0x12CA: C1_RTG_02 MatrixOn[1] */
+    _rtg_mtx_on_C1_RTG_02 + 1,    /* 0x12CB: C1_RTG_02 MatrixOn[2] */
+    _rtg_mtx_send_C1_RTG_02 + 0,    /* 0x12CC: C1_RTG_02 MatrixSend[1] */
+    _rtg_mtx_send_C1_RTG_02 + 1,    /* 0x12CD: C1_RTG_02 MatrixSend[2] */
+    _rtg_mtx_on_C1_RTG_03 + 0,    /* 0x12CE: C1_RTG_03 MatrixOn[1] */
+    _rtg_mtx_on_C1_RTG_03 + 1,    /* 0x12CF: C1_RTG_03 MatrixOn[2] */
+    _rtg_mtx_send_C1_RTG_03 + 0,    /* 0x12D0: C1_RTG_03 MatrixSend[1] */
+    _rtg_mtx_send_C1_RTG_03 + 1,    /* 0x12D1: C1_RTG_03 MatrixSend[2] */
+    _rtg_mtx_on_C1_RTG_04 + 0,    /* 0x12D2: C1_RTG_04 MatrixOn[1] */
+    _rtg_mtx_on_C1_RTG_04 + 1,    /* 0x12D3: C1_RTG_04 MatrixOn[2] */
+    _rtg_mtx_send_C1_RTG_04 + 0,    /* 0x12D4: C1_RTG_04 MatrixSend[1] */
+    _rtg_mtx_send_C1_RTG_04 + 1,    /* 0x12D5: C1_RTG_04 MatrixSend[2] */
+    _rtg_mtx_on_C1_RTG_05 + 0,    /* 0x12D6: C1_RTG_05 MatrixOn[1] */
+    _rtg_mtx_on_C1_RTG_05 + 1,    /* 0x12D7: C1_RTG_05 MatrixOn[2] */
+    _rtg_mtx_send_C1_RTG_05 + 0,    /* 0x12D8: C1_RTG_05 MatrixSend[1] */
+    _rtg_mtx_send_C1_RTG_05 + 1,    /* 0x12D9: C1_RTG_05 MatrixSend[2] */
+    _rtg_mtx_on_C1_RTG_06 + 0,    /* 0x12DA: C1_RTG_06 MatrixOn[1] */
+    _rtg_mtx_on_C1_RTG_06 + 1,    /* 0x12DB: C1_RTG_06 MatrixOn[2] */
+    _rtg_mtx_send_C1_RTG_06 + 0,    /* 0x12DC: C1_RTG_06 MatrixSend[1] */
+    _rtg_mtx_send_C1_RTG_06 + 1,    /* 0x12DD: C1_RTG_06 MatrixSend[2] */
+    _rtg_mtx_on_C1_RTG_07 + 0,    /* 0x12DE: C1_RTG_07 MatrixOn[1] */
+    _rtg_mtx_on_C1_RTG_07 + 1,    /* 0x12DF: C1_RTG_07 MatrixOn[2] */
+    _rtg_mtx_send_C1_RTG_07 + 0,    /* 0x12E0: C1_RTG_07 MatrixSend[1] */
+    _rtg_mtx_send_C1_RTG_07 + 1,    /* 0x12E1: C1_RTG_07 MatrixSend[2] */
+    _rtg_mtx_on_C1_RTG_08 + 0,    /* 0x12E2: C1_RTG_08 MatrixOn[1] */
+    _rtg_mtx_on_C1_RTG_08 + 1,    /* 0x12E3: C1_RTG_08 MatrixOn[2] */
+    _rtg_mtx_send_C1_RTG_08 + 0,    /* 0x12E4: C1_RTG_08 MatrixSend[1] */
+    _rtg_mtx_send_C1_RTG_08 + 1,    /* 0x12E5: C1_RTG_08 MatrixSend[2] */
+    _rtg_mtx_on_C1_RTG_09 + 0,    /* 0x12E6: C1_RTG_09 MatrixOn[1] */
+    _rtg_mtx_on_C1_RTG_09 + 1,    /* 0x12E7: C1_RTG_09 MatrixOn[2] */
+    _rtg_mtx_send_C1_RTG_09 + 0,    /* 0x12E8: C1_RTG_09 MatrixSend[1] */
+    _rtg_mtx_send_C1_RTG_09 + 1,    /* 0x12E9: C1_RTG_09 MatrixSend[2] */
+    _rtg_mtx_on_C1_RTG_10 + 0,    /* 0x12EA: C1_RTG_10 MatrixOn[1] */
+    _rtg_mtx_on_C1_RTG_10 + 1,    /* 0x12EB: C1_RTG_10 MatrixOn[2] */
+    _rtg_mtx_send_C1_RTG_10 + 0,    /* 0x12EC: C1_RTG_10 MatrixSend[1] */
+    _rtg_mtx_send_C1_RTG_10 + 1,    /* 0x12ED: C1_RTG_10 MatrixSend[2] */
+    _rtg_mtx_on_C1_RTG_11 + 0,    /* 0x12EE: C1_RTG_11 MatrixOn[1] */
+    _rtg_mtx_on_C1_RTG_11 + 1,    /* 0x12EF: C1_RTG_11 MatrixOn[2] */
+    _rtg_mtx_send_C1_RTG_11 + 0,    /* 0x12F0: C1_RTG_11 MatrixSend[1] */
+    _rtg_mtx_send_C1_RTG_11 + 1,    /* 0x12F1: C1_RTG_11 MatrixSend[2] */
+    _rtg_mtx_on_C1_RTG_12 + 0,    /* 0x12F2: C1_RTG_12 MatrixOn[1] */
+    _rtg_mtx_on_C1_RTG_12 + 1,    /* 0x12F3: C1_RTG_12 MatrixOn[2] */
+    _rtg_mtx_send_C1_RTG_12 + 0,    /* 0x12F4: C1_RTG_12 MatrixSend[1] */
+    _rtg_mtx_send_C1_RTG_12 + 1,    /* 0x12F5: C1_RTG_12 MatrixSend[2] */
+    _rtg_mtx_on_C1_RTG_13 + 0,    /* 0x12F6: C1_RTG_13 MatrixOn[1] */
+    _rtg_mtx_on_C1_RTG_13 + 1,    /* 0x12F7: C1_RTG_13 MatrixOn[2] */
+    _rtg_mtx_send_C1_RTG_13 + 0,    /* 0x12F8: C1_RTG_13 MatrixSend[1] */
+    _rtg_mtx_send_C1_RTG_13 + 1,    /* 0x12F9: C1_RTG_13 MatrixSend[2] */
+    _rtg_mtx_on_C1_RTG_14 + 0,    /* 0x12FA: C1_RTG_14 MatrixOn[1] */
+    _rtg_mtx_on_C1_RTG_14 + 1,    /* 0x12FB: C1_RTG_14 MatrixOn[2] */
+    _rtg_mtx_send_C1_RTG_14 + 0,    /* 0x12FC: C1_RTG_14 MatrixSend[1] */
+    _rtg_mtx_send_C1_RTG_14 + 1,    /* 0x12FD: C1_RTG_14 MatrixSend[2] */
+    _rtg_mtx_on_C1_RTG_15 + 0,    /* 0x12FE: C1_RTG_15 MatrixOn[1] */
+    _rtg_mtx_on_C1_RTG_15 + 1,    /* 0x12FF: C1_RTG_15 MatrixOn[2] */
+    _rtg_mtx_send_C1_RTG_15 + 0,    /* 0x1300: C1_RTG_15 MatrixSend[1] */
+    _rtg_mtx_send_C1_RTG_15 + 1,    /* 0x1301: C1_RTG_15 MatrixSend[2] */
+    _rtg_mtx_on_C1_RTG_16 + 0,    /* 0x1302: C1_RTG_16 MatrixOn[1] */
+    _rtg_mtx_on_C1_RTG_16 + 1,    /* 0x1303: C1_RTG_16 MatrixOn[2] */
+    _rtg_mtx_send_C1_RTG_16 + 0,    /* 0x1304: C1_RTG_16 MatrixSend[1] */
+    _rtg_mtx_send_C1_RTG_16 + 1,    /* 0x1305: C1_RTG_16 MatrixSend[2] */
+    _rtg_mtx_on_C1_RTG_17 + 0,    /* 0x1306: C1_RTG_17 MatrixOn[1] */
+    _rtg_mtx_on_C1_RTG_17 + 1,    /* 0x1307: C1_RTG_17 MatrixOn[2] */
+    _rtg_mtx_send_C1_RTG_17 + 0,    /* 0x1308: C1_RTG_17 MatrixSend[1] */
+    _rtg_mtx_send_C1_RTG_17 + 1,    /* 0x1309: C1_RTG_17 MatrixSend[2] */
+    _rtg_mtx_on_C1_RTG_18 + 0,    /* 0x130A: C1_RTG_18 MatrixOn[1] */
+    _rtg_mtx_on_C1_RTG_18 + 1,    /* 0x130B: C1_RTG_18 MatrixOn[2] */
+    _rtg_mtx_send_C1_RTG_18 + 0,    /* 0x130C: C1_RTG_18 MatrixSend[1] */
+    _rtg_mtx_send_C1_RTG_18 + 1,    /* 0x130D: C1_RTG_18 MatrixSend[2] */
+    _rtg_mtx_on_C1_RTG_19 + 0,    /* 0x130E: C1_RTG_19 MatrixOn[1] */
+    _rtg_mtx_on_C1_RTG_19 + 1,    /* 0x130F: C1_RTG_19 MatrixOn[2] */
+    _rtg_mtx_send_C1_RTG_19 + 0,    /* 0x1310: C1_RTG_19 MatrixSend[1] */
+    _rtg_mtx_send_C1_RTG_19 + 1,    /* 0x1311: C1_RTG_19 MatrixSend[2] */
+    _rtg_mtx_on_C1_RTG_20 + 0,    /* 0x1312: C1_RTG_20 MatrixOn[1] */
+    _rtg_mtx_on_C1_RTG_20 + 1,    /* 0x1313: C1_RTG_20 MatrixOn[2] */
+    _rtg_mtx_send_C1_RTG_20 + 0,    /* 0x1314: C1_RTG_20 MatrixSend[1] */
+    _rtg_mtx_send_C1_RTG_20 + 1,    /* 0x1315: C1_RTG_20 MatrixSend[2] */
+    _rtg_mtx_on_C1_RTG_21 + 0,    /* 0x1316: C1_RTG_21 MatrixOn[1] */
+    _rtg_mtx_on_C1_RTG_21 + 1,    /* 0x1317: C1_RTG_21 MatrixOn[2] */
+    _rtg_mtx_send_C1_RTG_21 + 0,    /* 0x1318: C1_RTG_21 MatrixSend[1] */
+    _rtg_mtx_send_C1_RTG_21 + 1,    /* 0x1319: C1_RTG_21 MatrixSend[2] */
+    _rtg_mtx_on_C1_RTG_22 + 0,    /* 0x131A: C1_RTG_22 MatrixOn[1] */
+    _rtg_mtx_on_C1_RTG_22 + 1,    /* 0x131B: C1_RTG_22 MatrixOn[2] */
+    _rtg_mtx_send_C1_RTG_22 + 0,    /* 0x131C: C1_RTG_22 MatrixSend[1] */
+    _rtg_mtx_send_C1_RTG_22 + 1,    /* 0x131D: C1_RTG_22 MatrixSend[2] */
+    _rtg_mtx_on_C1_RTG_23 + 0,    /* 0x131E: C1_RTG_23 MatrixOn[1] */
+    _rtg_mtx_on_C1_RTG_23 + 1,    /* 0x131F: C1_RTG_23 MatrixOn[2] */
+    _rtg_mtx_send_C1_RTG_23 + 0,    /* 0x1320: C1_RTG_23 MatrixSend[1] */
+    _rtg_mtx_send_C1_RTG_23 + 1,    /* 0x1321: C1_RTG_23 MatrixSend[2] */
+    _rtg_mtx_on_C1_RTG_24 + 0,    /* 0x1322: C1_RTG_24 MatrixOn[1] */
+    _rtg_mtx_on_C1_RTG_24 + 1,    /* 0x1323: C1_RTG_24 MatrixOn[2] */
+    _rtg_mtx_send_C1_RTG_24 + 0,    /* 0x1324: C1_RTG_24 MatrixSend[1] */
+    _rtg_mtx_send_C1_RTG_24 + 1,    /* 0x1325: C1_RTG_24 MatrixSend[2] */
+    _rtg_mtx_on_C1_RTG_25 + 0,    /* 0x1326: C1_RTG_25 MatrixOn[1] */
+    _rtg_mtx_on_C1_RTG_25 + 1,    /* 0x1327: C1_RTG_25 MatrixOn[2] */
+    _rtg_mtx_send_C1_RTG_25 + 0,    /* 0x1328: C1_RTG_25 MatrixSend[1] */
+    _rtg_mtx_send_C1_RTG_25 + 1,    /* 0x1329: C1_RTG_25 MatrixSend[2] */
+    _rtg_mtx_on_C1_RTG_26 + 0,    /* 0x132A: C1_RTG_26 MatrixOn[1] */
+    _rtg_mtx_on_C1_RTG_26 + 1,    /* 0x132B: C1_RTG_26 MatrixOn[2] */
+    _rtg_mtx_send_C1_RTG_26 + 0,    /* 0x132C: C1_RTG_26 MatrixSend[1] */
+    _rtg_mtx_send_C1_RTG_26 + 1,    /* 0x132D: C1_RTG_26 MatrixSend[2] */
+    _rtg_mtx_on_C1_RTG_27 + 0,    /* 0x132E: C1_RTG_27 MatrixOn[1] */
+    _rtg_mtx_on_C1_RTG_27 + 1,    /* 0x132F: C1_RTG_27 MatrixOn[2] */
+    _rtg_mtx_send_C1_RTG_27 + 0,    /* 0x1330: C1_RTG_27 MatrixSend[1] */
+    _rtg_mtx_send_C1_RTG_27 + 1,    /* 0x1331: C1_RTG_27 MatrixSend[2] */
+    _rtg_mtx_on_C1_RTG_28 + 0,    /* 0x1332: C1_RTG_28 MatrixOn[1] */
+    _rtg_mtx_on_C1_RTG_28 + 1,    /* 0x1333: C1_RTG_28 MatrixOn[2] */
+    _rtg_mtx_send_C1_RTG_28 + 0,    /* 0x1334: C1_RTG_28 MatrixSend[1] */
+    _rtg_mtx_send_C1_RTG_28 + 1,    /* 0x1335: C1_RTG_28 MatrixSend[2] */
+    _rtg_mtx_on_C1_RTG_29 + 0,    /* 0x1336: C1_RTG_29 MatrixOn[1] */
+    _rtg_mtx_on_C1_RTG_29 + 1,    /* 0x1337: C1_RTG_29 MatrixOn[2] */
+    _rtg_mtx_send_C1_RTG_29 + 0,    /* 0x1338: C1_RTG_29 MatrixSend[1] */
+    _rtg_mtx_send_C1_RTG_29 + 1,    /* 0x1339: C1_RTG_29 MatrixSend[2] */
+    _rtg_mtx_on_C1_RTG_30 + 0,    /* 0x133A: C1_RTG_30 MatrixOn[1] */
+    _rtg_mtx_on_C1_RTG_30 + 1,    /* 0x133B: C1_RTG_30 MatrixOn[2] */
+    _rtg_mtx_send_C1_RTG_30 + 0,    /* 0x133C: C1_RTG_30 MatrixSend[1] */
+    _rtg_mtx_send_C1_RTG_30 + 1,    /* 0x133D: C1_RTG_30 MatrixSend[2] */
+    _rtg_mtx_on_C1_RTG_31 + 0,    /* 0x133E: C1_RTG_31 MatrixOn[1] */
+    _rtg_mtx_on_C1_RTG_31 + 1,    /* 0x133F: C1_RTG_31 MatrixOn[2] */
+    _rtg_mtx_send_C1_RTG_31 + 0,    /* 0x1340: C1_RTG_31 MatrixSend[1] */
+    _rtg_mtx_send_C1_RTG_31 + 1,    /* 0x1341: C1_RTG_31 MatrixSend[2] */
+    _rtg_mtx_on_C1_RTG_32 + 0,    /* 0x1342: C1_RTG_32 MatrixOn[1] */
+    _rtg_mtx_on_C1_RTG_32 + 1,    /* 0x1343: C1_RTG_32 MatrixOn[2] */
+    _rtg_mtx_send_C1_RTG_32 + 0,    /* 0x1344: C1_RTG_32 MatrixSend[1] */
+    _rtg_mtx_send_C1_RTG_32 + 1,    /* 0x1345: C1_RTG_32 MatrixSend[2] */
+    0,  /* 0x1346 */
+    0;  /* 0x1347 */
 
-/* ---- Chip 1 ramp-stride table (4800 entries) ---- */
+/* ---- Chip 1 ramp-stride table (4936 entries) ---- */
 /*
  * Companion to the dispatch table above, same indexing.
  *   0      -- no ramp state; the SPI handler writes the word directly
@@ -6541,10 +6741,10 @@
  * length -- 12 for AuxSend, 6 for FxSend. Writing those at +1/+2/+3
  * lands on the NEIGHBOURING crosspoint's level instead.
  *
- * 738 ramped entries; strides {1: 162, 6: 192, 12: 384}
+ * 802 ramped entries; strides {1: 162, 2: 64, 6: 192, 12: 384}
  */
 .global _spi_dispatch_c1_stride;
-.var _spi_dispatch_c1_stride[4800] =
+.var _spi_dispatch_c1_stride[4936] =
     1,  /* 0x0000: C1_GAIN_01 gain coeff */
     0,  /* 0x0001: C1_GAIN_01 polarity */
     0,  /* 0x0002: phantom (MCU-only) */
@@ -11343,10 +11543,146 @@
     0,  /* 0x12BB: C1_BUS_FX_05 source_count */
     0,  /* 0x12BC: C1_BUS_FX_06 bus_id */
     0,  /* 0x12BD: C1_BUS_FX_06 source_count */
-    0,  /* 0x12BE */
-    0;  /* 0x12BF */
+    0,  /* 0x12BE: C1_BUS_MTX_01 bus_id */
+    0,  /* 0x12BF: C1_BUS_MTX_01 source_count */
+    0,  /* 0x12C0: C1_BUS_MTX_02 bus_id */
+    0,  /* 0x12C1: C1_BUS_MTX_02 source_count */
+    0,  /* 0x12C2: C1_BUS_MTX_03 bus_id */
+    0,  /* 0x12C3: C1_BUS_MTX_03 source_count */
+    0,  /* 0x12C4: C1_BUS_MTX_04 bus_id */
+    0,  /* 0x12C5: C1_BUS_MTX_04 source_count */
+    0,  /* 0x12C6: C1_RTG_01 MatrixOn[1] */
+    0,  /* 0x12C7: C1_RTG_01 MatrixOn[2] */
+    2,  /* 0x12C8: C1_RTG_01 MatrixSend[1] */
+    2,  /* 0x12C9: C1_RTG_01 MatrixSend[2] */
+    0,  /* 0x12CA: C1_RTG_02 MatrixOn[1] */
+    0,  /* 0x12CB: C1_RTG_02 MatrixOn[2] */
+    2,  /* 0x12CC: C1_RTG_02 MatrixSend[1] */
+    2,  /* 0x12CD: C1_RTG_02 MatrixSend[2] */
+    0,  /* 0x12CE: C1_RTG_03 MatrixOn[1] */
+    0,  /* 0x12CF: C1_RTG_03 MatrixOn[2] */
+    2,  /* 0x12D0: C1_RTG_03 MatrixSend[1] */
+    2,  /* 0x12D1: C1_RTG_03 MatrixSend[2] */
+    0,  /* 0x12D2: C1_RTG_04 MatrixOn[1] */
+    0,  /* 0x12D3: C1_RTG_04 MatrixOn[2] */
+    2,  /* 0x12D4: C1_RTG_04 MatrixSend[1] */
+    2,  /* 0x12D5: C1_RTG_04 MatrixSend[2] */
+    0,  /* 0x12D6: C1_RTG_05 MatrixOn[1] */
+    0,  /* 0x12D7: C1_RTG_05 MatrixOn[2] */
+    2,  /* 0x12D8: C1_RTG_05 MatrixSend[1] */
+    2,  /* 0x12D9: C1_RTG_05 MatrixSend[2] */
+    0,  /* 0x12DA: C1_RTG_06 MatrixOn[1] */
+    0,  /* 0x12DB: C1_RTG_06 MatrixOn[2] */
+    2,  /* 0x12DC: C1_RTG_06 MatrixSend[1] */
+    2,  /* 0x12DD: C1_RTG_06 MatrixSend[2] */
+    0,  /* 0x12DE: C1_RTG_07 MatrixOn[1] */
+    0,  /* 0x12DF: C1_RTG_07 MatrixOn[2] */
+    2,  /* 0x12E0: C1_RTG_07 MatrixSend[1] */
+    2,  /* 0x12E1: C1_RTG_07 MatrixSend[2] */
+    0,  /* 0x12E2: C1_RTG_08 MatrixOn[1] */
+    0,  /* 0x12E3: C1_RTG_08 MatrixOn[2] */
+    2,  /* 0x12E4: C1_RTG_08 MatrixSend[1] */
+    2,  /* 0x12E5: C1_RTG_08 MatrixSend[2] */
+    0,  /* 0x12E6: C1_RTG_09 MatrixOn[1] */
+    0,  /* 0x12E7: C1_RTG_09 MatrixOn[2] */
+    2,  /* 0x12E8: C1_RTG_09 MatrixSend[1] */
+    2,  /* 0x12E9: C1_RTG_09 MatrixSend[2] */
+    0,  /* 0x12EA: C1_RTG_10 MatrixOn[1] */
+    0,  /* 0x12EB: C1_RTG_10 MatrixOn[2] */
+    2,  /* 0x12EC: C1_RTG_10 MatrixSend[1] */
+    2,  /* 0x12ED: C1_RTG_10 MatrixSend[2] */
+    0,  /* 0x12EE: C1_RTG_11 MatrixOn[1] */
+    0,  /* 0x12EF: C1_RTG_11 MatrixOn[2] */
+    2,  /* 0x12F0: C1_RTG_11 MatrixSend[1] */
+    2,  /* 0x12F1: C1_RTG_11 MatrixSend[2] */
+    0,  /* 0x12F2: C1_RTG_12 MatrixOn[1] */
+    0,  /* 0x12F3: C1_RTG_12 MatrixOn[2] */
+    2,  /* 0x12F4: C1_RTG_12 MatrixSend[1] */
+    2,  /* 0x12F5: C1_RTG_12 MatrixSend[2] */
+    0,  /* 0x12F6: C1_RTG_13 MatrixOn[1] */
+    0,  /* 0x12F7: C1_RTG_13 MatrixOn[2] */
+    2,  /* 0x12F8: C1_RTG_13 MatrixSend[1] */
+    2,  /* 0x12F9: C1_RTG_13 MatrixSend[2] */
+    0,  /* 0x12FA: C1_RTG_14 MatrixOn[1] */
+    0,  /* 0x12FB: C1_RTG_14 MatrixOn[2] */
+    2,  /* 0x12FC: C1_RTG_14 MatrixSend[1] */
+    2,  /* 0x12FD: C1_RTG_14 MatrixSend[2] */
+    0,  /* 0x12FE: C1_RTG_15 MatrixOn[1] */
+    0,  /* 0x12FF: C1_RTG_15 MatrixOn[2] */
+    2,  /* 0x1300: C1_RTG_15 MatrixSend[1] */
+    2,  /* 0x1301: C1_RTG_15 MatrixSend[2] */
+    0,  /* 0x1302: C1_RTG_16 MatrixOn[1] */
+    0,  /* 0x1303: C1_RTG_16 MatrixOn[2] */
+    2,  /* 0x1304: C1_RTG_16 MatrixSend[1] */
+    2,  /* 0x1305: C1_RTG_16 MatrixSend[2] */
+    0,  /* 0x1306: C1_RTG_17 MatrixOn[1] */
+    0,  /* 0x1307: C1_RTG_17 MatrixOn[2] */
+    2,  /* 0x1308: C1_RTG_17 MatrixSend[1] */
+    2,  /* 0x1309: C1_RTG_17 MatrixSend[2] */
+    0,  /* 0x130A: C1_RTG_18 MatrixOn[1] */
+    0,  /* 0x130B: C1_RTG_18 MatrixOn[2] */
+    2,  /* 0x130C: C1_RTG_18 MatrixSend[1] */
+    2,  /* 0x130D: C1_RTG_18 MatrixSend[2] */
+    0,  /* 0x130E: C1_RTG_19 MatrixOn[1] */
+    0,  /* 0x130F: C1_RTG_19 MatrixOn[2] */
+    2,  /* 0x1310: C1_RTG_19 MatrixSend[1] */
+    2,  /* 0x1311: C1_RTG_19 MatrixSend[2] */
+    0,  /* 0x1312: C1_RTG_20 MatrixOn[1] */
+    0,  /* 0x1313: C1_RTG_20 MatrixOn[2] */
+    2,  /* 0x1314: C1_RTG_20 MatrixSend[1] */
+    2,  /* 0x1315: C1_RTG_20 MatrixSend[2] */
+    0,  /* 0x1316: C1_RTG_21 MatrixOn[1] */
+    0,  /* 0x1317: C1_RTG_21 MatrixOn[2] */
+    2,  /* 0x1318: C1_RTG_21 MatrixSend[1] */
+    2,  /* 0x1319: C1_RTG_21 MatrixSend[2] */
+    0,  /* 0x131A: C1_RTG_22 MatrixOn[1] */
+    0,  /* 0x131B: C1_RTG_22 MatrixOn[2] */
+    2,  /* 0x131C: C1_RTG_22 MatrixSend[1] */
+    2,  /* 0x131D: C1_RTG_22 MatrixSend[2] */
+    0,  /* 0x131E: C1_RTG_23 MatrixOn[1] */
+    0,  /* 0x131F: C1_RTG_23 MatrixOn[2] */
+    2,  /* 0x1320: C1_RTG_23 MatrixSend[1] */
+    2,  /* 0x1321: C1_RTG_23 MatrixSend[2] */
+    0,  /* 0x1322: C1_RTG_24 MatrixOn[1] */
+    0,  /* 0x1323: C1_RTG_24 MatrixOn[2] */
+    2,  /* 0x1324: C1_RTG_24 MatrixSend[1] */
+    2,  /* 0x1325: C1_RTG_24 MatrixSend[2] */
+    0,  /* 0x1326: C1_RTG_25 MatrixOn[1] */
+    0,  /* 0x1327: C1_RTG_25 MatrixOn[2] */
+    2,  /* 0x1328: C1_RTG_25 MatrixSend[1] */
+    2,  /* 0x1329: C1_RTG_25 MatrixSend[2] */
+    0,  /* 0x132A: C1_RTG_26 MatrixOn[1] */
+    0,  /* 0x132B: C1_RTG_26 MatrixOn[2] */
+    2,  /* 0x132C: C1_RTG_26 MatrixSend[1] */
+    2,  /* 0x132D: C1_RTG_26 MatrixSend[2] */
+    0,  /* 0x132E: C1_RTG_27 MatrixOn[1] */
+    0,  /* 0x132F: C1_RTG_27 MatrixOn[2] */
+    2,  /* 0x1330: C1_RTG_27 MatrixSend[1] */
+    2,  /* 0x1331: C1_RTG_27 MatrixSend[2] */
+    0,  /* 0x1332: C1_RTG_28 MatrixOn[1] */
+    0,  /* 0x1333: C1_RTG_28 MatrixOn[2] */
+    2,  /* 0x1334: C1_RTG_28 MatrixSend[1] */
+    2,  /* 0x1335: C1_RTG_28 MatrixSend[2] */
+    0,  /* 0x1336: C1_RTG_29 MatrixOn[1] */
+    0,  /* 0x1337: C1_RTG_29 MatrixOn[2] */
+    2,  /* 0x1338: C1_RTG_29 MatrixSend[1] */
+    2,  /* 0x1339: C1_RTG_29 MatrixSend[2] */
+    0,  /* 0x133A: C1_RTG_30 MatrixOn[1] */
+    0,  /* 0x133B: C1_RTG_30 MatrixOn[2] */
+    2,  /* 0x133C: C1_RTG_30 MatrixSend[1] */
+    2,  /* 0x133D: C1_RTG_30 MatrixSend[2] */
+    0,  /* 0x133E: C1_RTG_31 MatrixOn[1] */
+    0,  /* 0x133F: C1_RTG_31 MatrixOn[2] */
+    2,  /* 0x1340: C1_RTG_31 MatrixSend[1] */
+    2,  /* 0x1341: C1_RTG_31 MatrixSend[2] */
+    0,  /* 0x1342: C1_RTG_32 MatrixOn[1] */
+    0,  /* 0x1343: C1_RTG_32 MatrixOn[2] */
+    2,  /* 0x1344: C1_RTG_32 MatrixSend[1] */
+    2,  /* 0x1345: C1_RTG_32 MatrixSend[2] */
+    0,  /* 0x1346 */
+    0;  /* 0x1347 */
 
-/* ---- Chip 1 wire-unit conversion table (4800 entries) ---- */
+/* ---- Chip 1 wire-unit conversion table (4936 entries) ---- */
 /*
  * Companion to the dispatch table above, same indexing.
  * The SPI handler applies this to the incoming word BEFORE
@@ -11364,10 +11700,10 @@
  * kernel word gets a conversion, and every address that
  * family reaches carries it.
  *
- * 64 of 4800 addresses carry a conversion.
+ * 64 of 4936 addresses carry a conversion.
  */
 .global _spi_dispatch_c1_convert;
-.var _spi_dispatch_c1_convert[4800] =
+.var _spi_dispatch_c1_convert[4936] =
     0,  /* 0x0000: C1_GAIN_01 gain coeff */
     0,  /* 0x0001: C1_GAIN_01 polarity */
     0,  /* 0x0002: phantom (MCU-only) */
@@ -16166,10 +16502,146 @@
     0,  /* 0x12BB: C1_BUS_FX_05 source_count */
     0,  /* 0x12BC: C1_BUS_FX_06 bus_id */
     0,  /* 0x12BD: C1_BUS_FX_06 source_count */
-    0,  /* 0x12BE */
-    0;  /* 0x12BF */
+    0,  /* 0x12BE: C1_BUS_MTX_01 bus_id */
+    0,  /* 0x12BF: C1_BUS_MTX_01 source_count */
+    0,  /* 0x12C0: C1_BUS_MTX_02 bus_id */
+    0,  /* 0x12C1: C1_BUS_MTX_02 source_count */
+    0,  /* 0x12C2: C1_BUS_MTX_03 bus_id */
+    0,  /* 0x12C3: C1_BUS_MTX_03 source_count */
+    0,  /* 0x12C4: C1_BUS_MTX_04 bus_id */
+    0,  /* 0x12C5: C1_BUS_MTX_04 source_count */
+    0,  /* 0x12C6: C1_RTG_01 MatrixOn[1] */
+    0,  /* 0x12C7: C1_RTG_01 MatrixOn[2] */
+    0,  /* 0x12C8: C1_RTG_01 MatrixSend[1] */
+    0,  /* 0x12C9: C1_RTG_01 MatrixSend[2] */
+    0,  /* 0x12CA: C1_RTG_02 MatrixOn[1] */
+    0,  /* 0x12CB: C1_RTG_02 MatrixOn[2] */
+    0,  /* 0x12CC: C1_RTG_02 MatrixSend[1] */
+    0,  /* 0x12CD: C1_RTG_02 MatrixSend[2] */
+    0,  /* 0x12CE: C1_RTG_03 MatrixOn[1] */
+    0,  /* 0x12CF: C1_RTG_03 MatrixOn[2] */
+    0,  /* 0x12D0: C1_RTG_03 MatrixSend[1] */
+    0,  /* 0x12D1: C1_RTG_03 MatrixSend[2] */
+    0,  /* 0x12D2: C1_RTG_04 MatrixOn[1] */
+    0,  /* 0x12D3: C1_RTG_04 MatrixOn[2] */
+    0,  /* 0x12D4: C1_RTG_04 MatrixSend[1] */
+    0,  /* 0x12D5: C1_RTG_04 MatrixSend[2] */
+    0,  /* 0x12D6: C1_RTG_05 MatrixOn[1] */
+    0,  /* 0x12D7: C1_RTG_05 MatrixOn[2] */
+    0,  /* 0x12D8: C1_RTG_05 MatrixSend[1] */
+    0,  /* 0x12D9: C1_RTG_05 MatrixSend[2] */
+    0,  /* 0x12DA: C1_RTG_06 MatrixOn[1] */
+    0,  /* 0x12DB: C1_RTG_06 MatrixOn[2] */
+    0,  /* 0x12DC: C1_RTG_06 MatrixSend[1] */
+    0,  /* 0x12DD: C1_RTG_06 MatrixSend[2] */
+    0,  /* 0x12DE: C1_RTG_07 MatrixOn[1] */
+    0,  /* 0x12DF: C1_RTG_07 MatrixOn[2] */
+    0,  /* 0x12E0: C1_RTG_07 MatrixSend[1] */
+    0,  /* 0x12E1: C1_RTG_07 MatrixSend[2] */
+    0,  /* 0x12E2: C1_RTG_08 MatrixOn[1] */
+    0,  /* 0x12E3: C1_RTG_08 MatrixOn[2] */
+    0,  /* 0x12E4: C1_RTG_08 MatrixSend[1] */
+    0,  /* 0x12E5: C1_RTG_08 MatrixSend[2] */
+    0,  /* 0x12E6: C1_RTG_09 MatrixOn[1] */
+    0,  /* 0x12E7: C1_RTG_09 MatrixOn[2] */
+    0,  /* 0x12E8: C1_RTG_09 MatrixSend[1] */
+    0,  /* 0x12E9: C1_RTG_09 MatrixSend[2] */
+    0,  /* 0x12EA: C1_RTG_10 MatrixOn[1] */
+    0,  /* 0x12EB: C1_RTG_10 MatrixOn[2] */
+    0,  /* 0x12EC: C1_RTG_10 MatrixSend[1] */
+    0,  /* 0x12ED: C1_RTG_10 MatrixSend[2] */
+    0,  /* 0x12EE: C1_RTG_11 MatrixOn[1] */
+    0,  /* 0x12EF: C1_RTG_11 MatrixOn[2] */
+    0,  /* 0x12F0: C1_RTG_11 MatrixSend[1] */
+    0,  /* 0x12F1: C1_RTG_11 MatrixSend[2] */
+    0,  /* 0x12F2: C1_RTG_12 MatrixOn[1] */
+    0,  /* 0x12F3: C1_RTG_12 MatrixOn[2] */
+    0,  /* 0x12F4: C1_RTG_12 MatrixSend[1] */
+    0,  /* 0x12F5: C1_RTG_12 MatrixSend[2] */
+    0,  /* 0x12F6: C1_RTG_13 MatrixOn[1] */
+    0,  /* 0x12F7: C1_RTG_13 MatrixOn[2] */
+    0,  /* 0x12F8: C1_RTG_13 MatrixSend[1] */
+    0,  /* 0x12F9: C1_RTG_13 MatrixSend[2] */
+    0,  /* 0x12FA: C1_RTG_14 MatrixOn[1] */
+    0,  /* 0x12FB: C1_RTG_14 MatrixOn[2] */
+    0,  /* 0x12FC: C1_RTG_14 MatrixSend[1] */
+    0,  /* 0x12FD: C1_RTG_14 MatrixSend[2] */
+    0,  /* 0x12FE: C1_RTG_15 MatrixOn[1] */
+    0,  /* 0x12FF: C1_RTG_15 MatrixOn[2] */
+    0,  /* 0x1300: C1_RTG_15 MatrixSend[1] */
+    0,  /* 0x1301: C1_RTG_15 MatrixSend[2] */
+    0,  /* 0x1302: C1_RTG_16 MatrixOn[1] */
+    0,  /* 0x1303: C1_RTG_16 MatrixOn[2] */
+    0,  /* 0x1304: C1_RTG_16 MatrixSend[1] */
+    0,  /* 0x1305: C1_RTG_16 MatrixSend[2] */
+    0,  /* 0x1306: C1_RTG_17 MatrixOn[1] */
+    0,  /* 0x1307: C1_RTG_17 MatrixOn[2] */
+    0,  /* 0x1308: C1_RTG_17 MatrixSend[1] */
+    0,  /* 0x1309: C1_RTG_17 MatrixSend[2] */
+    0,  /* 0x130A: C1_RTG_18 MatrixOn[1] */
+    0,  /* 0x130B: C1_RTG_18 MatrixOn[2] */
+    0,  /* 0x130C: C1_RTG_18 MatrixSend[1] */
+    0,  /* 0x130D: C1_RTG_18 MatrixSend[2] */
+    0,  /* 0x130E: C1_RTG_19 MatrixOn[1] */
+    0,  /* 0x130F: C1_RTG_19 MatrixOn[2] */
+    0,  /* 0x1310: C1_RTG_19 MatrixSend[1] */
+    0,  /* 0x1311: C1_RTG_19 MatrixSend[2] */
+    0,  /* 0x1312: C1_RTG_20 MatrixOn[1] */
+    0,  /* 0x1313: C1_RTG_20 MatrixOn[2] */
+    0,  /* 0x1314: C1_RTG_20 MatrixSend[1] */
+    0,  /* 0x1315: C1_RTG_20 MatrixSend[2] */
+    0,  /* 0x1316: C1_RTG_21 MatrixOn[1] */
+    0,  /* 0x1317: C1_RTG_21 MatrixOn[2] */
+    0,  /* 0x1318: C1_RTG_21 MatrixSend[1] */
+    0,  /* 0x1319: C1_RTG_21 MatrixSend[2] */
+    0,  /* 0x131A: C1_RTG_22 MatrixOn[1] */
+    0,  /* 0x131B: C1_RTG_22 MatrixOn[2] */
+    0,  /* 0x131C: C1_RTG_22 MatrixSend[1] */
+    0,  /* 0x131D: C1_RTG_22 MatrixSend[2] */
+    0,  /* 0x131E: C1_RTG_23 MatrixOn[1] */
+    0,  /* 0x131F: C1_RTG_23 MatrixOn[2] */
+    0,  /* 0x1320: C1_RTG_23 MatrixSend[1] */
+    0,  /* 0x1321: C1_RTG_23 MatrixSend[2] */
+    0,  /* 0x1322: C1_RTG_24 MatrixOn[1] */
+    0,  /* 0x1323: C1_RTG_24 MatrixOn[2] */
+    0,  /* 0x1324: C1_RTG_24 MatrixSend[1] */
+    0,  /* 0x1325: C1_RTG_24 MatrixSend[2] */
+    0,  /* 0x1326: C1_RTG_25 MatrixOn[1] */
+    0,  /* 0x1327: C1_RTG_25 MatrixOn[2] */
+    0,  /* 0x1328: C1_RTG_25 MatrixSend[1] */
+    0,  /* 0x1329: C1_RTG_25 MatrixSend[2] */
+    0,  /* 0x132A: C1_RTG_26 MatrixOn[1] */
+    0,  /* 0x132B: C1_RTG_26 MatrixOn[2] */
+    0,  /* 0x132C: C1_RTG_26 MatrixSend[1] */
+    0,  /* 0x132D: C1_RTG_26 MatrixSend[2] */
+    0,  /* 0x132E: C1_RTG_27 MatrixOn[1] */
+    0,  /* 0x132F: C1_RTG_27 MatrixOn[2] */
+    0,  /* 0x1330: C1_RTG_27 MatrixSend[1] */
+    0,  /* 0x1331: C1_RTG_27 MatrixSend[2] */
+    0,  /* 0x1332: C1_RTG_28 MatrixOn[1] */
+    0,  /* 0x1333: C1_RTG_28 MatrixOn[2] */
+    0,  /* 0x1334: C1_RTG_28 MatrixSend[1] */
+    0,  /* 0x1335: C1_RTG_28 MatrixSend[2] */
+    0,  /* 0x1336: C1_RTG_29 MatrixOn[1] */
+    0,  /* 0x1337: C1_RTG_29 MatrixOn[2] */
+    0,  /* 0x1338: C1_RTG_29 MatrixSend[1] */
+    0,  /* 0x1339: C1_RTG_29 MatrixSend[2] */
+    0,  /* 0x133A: C1_RTG_30 MatrixOn[1] */
+    0,  /* 0x133B: C1_RTG_30 MatrixOn[2] */
+    0,  /* 0x133C: C1_RTG_30 MatrixSend[1] */
+    0,  /* 0x133D: C1_RTG_30 MatrixSend[2] */
+    0,  /* 0x133E: C1_RTG_31 MatrixOn[1] */
+    0,  /* 0x133F: C1_RTG_31 MatrixOn[2] */
+    0,  /* 0x1340: C1_RTG_31 MatrixSend[1] */
+    0,  /* 0x1341: C1_RTG_31 MatrixSend[2] */
+    0,  /* 0x1342: C1_RTG_32 MatrixOn[1] */
+    0,  /* 0x1343: C1_RTG_32 MatrixOn[2] */
+    0,  /* 0x1344: C1_RTG_32 MatrixSend[1] */
+    0,  /* 0x1345: C1_RTG_32 MatrixSend[2] */
+    0,  /* 0x1346 */
+    0;  /* 0x1347 */
 
-/* ---- Chip 1 recompute (dirty) table (4800 entries) ---- */
+/* ---- Chip 1 recompute (dirty) table (4936 entries) ---- */
 /*
  * Companion to the dispatch table above, same indexing.
  *   0   -- the written word IS the kernel word; nothing more
@@ -16185,10 +16657,10 @@
  * gain arrived, instead of comparing every band against a
  * shadow on every block of every node.
  *
- * 0 of 4800 addresses raise a flag; 0 distinct flags.
+ * 0 of 4936 addresses raise a flag; 0 distinct flags.
  */
 .global _spi_dispatch_c1_dirty;
-.var _spi_dispatch_c1_dirty[4800] =
+.var _spi_dispatch_c1_dirty[4936] =
     0,  /* 0x0000: C1_GAIN_01 gain coeff */
     0,  /* 0x0001: C1_GAIN_01 polarity */
     0,  /* 0x0002: phantom (MCU-only) */
@@ -20987,8 +21459,144 @@
     0,  /* 0x12BB: C1_BUS_FX_05 source_count */
     0,  /* 0x12BC: C1_BUS_FX_06 bus_id */
     0,  /* 0x12BD: C1_BUS_FX_06 source_count */
-    0,  /* 0x12BE */
-    0;  /* 0x12BF */
+    0,  /* 0x12BE: C1_BUS_MTX_01 bus_id */
+    0,  /* 0x12BF: C1_BUS_MTX_01 source_count */
+    0,  /* 0x12C0: C1_BUS_MTX_02 bus_id */
+    0,  /* 0x12C1: C1_BUS_MTX_02 source_count */
+    0,  /* 0x12C2: C1_BUS_MTX_03 bus_id */
+    0,  /* 0x12C3: C1_BUS_MTX_03 source_count */
+    0,  /* 0x12C4: C1_BUS_MTX_04 bus_id */
+    0,  /* 0x12C5: C1_BUS_MTX_04 source_count */
+    0,  /* 0x12C6: C1_RTG_01 MatrixOn[1] */
+    0,  /* 0x12C7: C1_RTG_01 MatrixOn[2] */
+    0,  /* 0x12C8: C1_RTG_01 MatrixSend[1] */
+    0,  /* 0x12C9: C1_RTG_01 MatrixSend[2] */
+    0,  /* 0x12CA: C1_RTG_02 MatrixOn[1] */
+    0,  /* 0x12CB: C1_RTG_02 MatrixOn[2] */
+    0,  /* 0x12CC: C1_RTG_02 MatrixSend[1] */
+    0,  /* 0x12CD: C1_RTG_02 MatrixSend[2] */
+    0,  /* 0x12CE: C1_RTG_03 MatrixOn[1] */
+    0,  /* 0x12CF: C1_RTG_03 MatrixOn[2] */
+    0,  /* 0x12D0: C1_RTG_03 MatrixSend[1] */
+    0,  /* 0x12D1: C1_RTG_03 MatrixSend[2] */
+    0,  /* 0x12D2: C1_RTG_04 MatrixOn[1] */
+    0,  /* 0x12D3: C1_RTG_04 MatrixOn[2] */
+    0,  /* 0x12D4: C1_RTG_04 MatrixSend[1] */
+    0,  /* 0x12D5: C1_RTG_04 MatrixSend[2] */
+    0,  /* 0x12D6: C1_RTG_05 MatrixOn[1] */
+    0,  /* 0x12D7: C1_RTG_05 MatrixOn[2] */
+    0,  /* 0x12D8: C1_RTG_05 MatrixSend[1] */
+    0,  /* 0x12D9: C1_RTG_05 MatrixSend[2] */
+    0,  /* 0x12DA: C1_RTG_06 MatrixOn[1] */
+    0,  /* 0x12DB: C1_RTG_06 MatrixOn[2] */
+    0,  /* 0x12DC: C1_RTG_06 MatrixSend[1] */
+    0,  /* 0x12DD: C1_RTG_06 MatrixSend[2] */
+    0,  /* 0x12DE: C1_RTG_07 MatrixOn[1] */
+    0,  /* 0x12DF: C1_RTG_07 MatrixOn[2] */
+    0,  /* 0x12E0: C1_RTG_07 MatrixSend[1] */
+    0,  /* 0x12E1: C1_RTG_07 MatrixSend[2] */
+    0,  /* 0x12E2: C1_RTG_08 MatrixOn[1] */
+    0,  /* 0x12E3: C1_RTG_08 MatrixOn[2] */
+    0,  /* 0x12E4: C1_RTG_08 MatrixSend[1] */
+    0,  /* 0x12E5: C1_RTG_08 MatrixSend[2] */
+    0,  /* 0x12E6: C1_RTG_09 MatrixOn[1] */
+    0,  /* 0x12E7: C1_RTG_09 MatrixOn[2] */
+    0,  /* 0x12E8: C1_RTG_09 MatrixSend[1] */
+    0,  /* 0x12E9: C1_RTG_09 MatrixSend[2] */
+    0,  /* 0x12EA: C1_RTG_10 MatrixOn[1] */
+    0,  /* 0x12EB: C1_RTG_10 MatrixOn[2] */
+    0,  /* 0x12EC: C1_RTG_10 MatrixSend[1] */
+    0,  /* 0x12ED: C1_RTG_10 MatrixSend[2] */
+    0,  /* 0x12EE: C1_RTG_11 MatrixOn[1] */
+    0,  /* 0x12EF: C1_RTG_11 MatrixOn[2] */
+    0,  /* 0x12F0: C1_RTG_11 MatrixSend[1] */
+    0,  /* 0x12F1: C1_RTG_11 MatrixSend[2] */
+    0,  /* 0x12F2: C1_RTG_12 MatrixOn[1] */
+    0,  /* 0x12F3: C1_RTG_12 MatrixOn[2] */
+    0,  /* 0x12F4: C1_RTG_12 MatrixSend[1] */
+    0,  /* 0x12F5: C1_RTG_12 MatrixSend[2] */
+    0,  /* 0x12F6: C1_RTG_13 MatrixOn[1] */
+    0,  /* 0x12F7: C1_RTG_13 MatrixOn[2] */
+    0,  /* 0x12F8: C1_RTG_13 MatrixSend[1] */
+    0,  /* 0x12F9: C1_RTG_13 MatrixSend[2] */
+    0,  /* 0x12FA: C1_RTG_14 MatrixOn[1] */
+    0,  /* 0x12FB: C1_RTG_14 MatrixOn[2] */
+    0,  /* 0x12FC: C1_RTG_14 MatrixSend[1] */
+    0,  /* 0x12FD: C1_RTG_14 MatrixSend[2] */
+    0,  /* 0x12FE: C1_RTG_15 MatrixOn[1] */
+    0,  /* 0x12FF: C1_RTG_15 MatrixOn[2] */
+    0,  /* 0x1300: C1_RTG_15 MatrixSend[1] */
+    0,  /* 0x1301: C1_RTG_15 MatrixSend[2] */
+    0,  /* 0x1302: C1_RTG_16 MatrixOn[1] */
+    0,  /* 0x1303: C1_RTG_16 MatrixOn[2] */
+    0,  /* 0x1304: C1_RTG_16 MatrixSend[1] */
+    0,  /* 0x1305: C1_RTG_16 MatrixSend[2] */
+    0,  /* 0x1306: C1_RTG_17 MatrixOn[1] */
+    0,  /* 0x1307: C1_RTG_17 MatrixOn[2] */
+    0,  /* 0x1308: C1_RTG_17 MatrixSend[1] */
+    0,  /* 0x1309: C1_RTG_17 MatrixSend[2] */
+    0,  /* 0x130A: C1_RTG_18 MatrixOn[1] */
+    0,  /* 0x130B: C1_RTG_18 MatrixOn[2] */
+    0,  /* 0x130C: C1_RTG_18 MatrixSend[1] */
+    0,  /* 0x130D: C1_RTG_18 MatrixSend[2] */
+    0,  /* 0x130E: C1_RTG_19 MatrixOn[1] */
+    0,  /* 0x130F: C1_RTG_19 MatrixOn[2] */
+    0,  /* 0x1310: C1_RTG_19 MatrixSend[1] */
+    0,  /* 0x1311: C1_RTG_19 MatrixSend[2] */
+    0,  /* 0x1312: C1_RTG_20 MatrixOn[1] */
+    0,  /* 0x1313: C1_RTG_20 MatrixOn[2] */
+    0,  /* 0x1314: C1_RTG_20 MatrixSend[1] */
+    0,  /* 0x1315: C1_RTG_20 MatrixSend[2] */
+    0,  /* 0x1316: C1_RTG_21 MatrixOn[1] */
+    0,  /* 0x1317: C1_RTG_21 MatrixOn[2] */
+    0,  /* 0x1318: C1_RTG_21 MatrixSend[1] */
+    0,  /* 0x1319: C1_RTG_21 MatrixSend[2] */
+    0,  /* 0x131A: C1_RTG_22 MatrixOn[1] */
+    0,  /* 0x131B: C1_RTG_22 MatrixOn[2] */
+    0,  /* 0x131C: C1_RTG_22 MatrixSend[1] */
+    0,  /* 0x131D: C1_RTG_22 MatrixSend[2] */
+    0,  /* 0x131E: C1_RTG_23 MatrixOn[1] */
+    0,  /* 0x131F: C1_RTG_23 MatrixOn[2] */
+    0,  /* 0x1320: C1_RTG_23 MatrixSend[1] */
+    0,  /* 0x1321: C1_RTG_23 MatrixSend[2] */
+    0,  /* 0x1322: C1_RTG_24 MatrixOn[1] */
+    0,  /* 0x1323: C1_RTG_24 MatrixOn[2] */
+    0,  /* 0x1324: C1_RTG_24 MatrixSend[1] */
+    0,  /* 0x1325: C1_RTG_24 MatrixSend[2] */
+    0,  /* 0x1326: C1_RTG_25 MatrixOn[1] */
+    0,  /* 0x1327: C1_RTG_25 MatrixOn[2] */
+    0,  /* 0x1328: C1_RTG_25 MatrixSend[1] */
+    0,  /* 0x1329: C1_RTG_25 MatrixSend[2] */
+    0,  /* 0x132A: C1_RTG_26 MatrixOn[1] */
+    0,  /* 0x132B: C1_RTG_26 MatrixOn[2] */
+    0,  /* 0x132C: C1_RTG_26 MatrixSend[1] */
+    0,  /* 0x132D: C1_RTG_26 MatrixSend[2] */
+    0,  /* 0x132E: C1_RTG_27 MatrixOn[1] */
+    0,  /* 0x132F: C1_RTG_27 MatrixOn[2] */
+    0,  /* 0x1330: C1_RTG_27 MatrixSend[1] */
+    0,  /* 0x1331: C1_RTG_27 MatrixSend[2] */
+    0,  /* 0x1332: C1_RTG_28 MatrixOn[1] */
+    0,  /* 0x1333: C1_RTG_28 MatrixOn[2] */
+    0,  /* 0x1334: C1_RTG_28 MatrixSend[1] */
+    0,  /* 0x1335: C1_RTG_28 MatrixSend[2] */
+    0,  /* 0x1336: C1_RTG_29 MatrixOn[1] */
+    0,  /* 0x1337: C1_RTG_29 MatrixOn[2] */
+    0,  /* 0x1338: C1_RTG_29 MatrixSend[1] */
+    0,  /* 0x1339: C1_RTG_29 MatrixSend[2] */
+    0,  /* 0x133A: C1_RTG_30 MatrixOn[1] */
+    0,  /* 0x133B: C1_RTG_30 MatrixOn[2] */
+    0,  /* 0x133C: C1_RTG_30 MatrixSend[1] */
+    0,  /* 0x133D: C1_RTG_30 MatrixSend[2] */
+    0,  /* 0x133E: C1_RTG_31 MatrixOn[1] */
+    0,  /* 0x133F: C1_RTG_31 MatrixOn[2] */
+    0,  /* 0x1340: C1_RTG_31 MatrixSend[1] */
+    0,  /* 0x1341: C1_RTG_31 MatrixSend[2] */
+    0,  /* 0x1342: C1_RTG_32 MatrixOn[1] */
+    0,  /* 0x1343: C1_RTG_32 MatrixOn[2] */
+    0,  /* 0x1344: C1_RTG_32 MatrixSend[1] */
+    0,  /* 0x1345: C1_RTG_32 MatrixSend[2] */
+    0,  /* 0x1346 */
+    0;  /* 0x1347 */
 
 /* Samples per millisecond, IEEE-754 float32 bits (48 at 48000 Hz). */
 .global _spi_dispatch_c1_spms;

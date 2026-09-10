@@ -40,9 +40,9 @@ const int c1_ic_lanes_wsize = 15;
 const int c1_ic_lanes[12] = {
     0, 0xFFFF, 16, 0,
     1, 0xFFFF, 16, 256,
-    2, 0x001F, 5, 512
+    2, 0x01FF, 9, 512
 };
 
-const int c1_ic_region_words = 592;
+const int c1_ic_region_words = 656;
 #pragma align 32
-unsigned int c1_ic_buf_ping[2 * 592];  /* [0..592) ping, [592..2*592) pong */
+unsigned int c1_ic_buf_ping[2 * 656];  /* [0..656) ping, [656..2*656) pong */

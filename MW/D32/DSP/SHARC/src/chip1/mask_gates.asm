@@ -332,7 +332,7 @@ _mask_apply:
     .mg_c1_az:
         nop;
 #if DSP4_BLOCK_KERNELS && DSP4_RTG_FABRIC
-    /* a masked strip's crosspoint column, 25 buses at stride 32 */
+    /* a masked strip's crosspoint column, 29 buses at stride 32 */
     m0 = 32;
     r7 = 1;                   /* strip 1's bit        */
     r8 = _xpc;                /* &_xpc[0][strip]      */
@@ -340,7 +340,7 @@ _mask_apply:
         r5 = r0 and r7;
         if ne jump (pc, .mg_c1_str_next);
         i0 = r8;
-        lcntr = 25, do .mg_c1_str_in until lce;
+        lcntr = 29, do .mg_c1_str_in until lce;
         .mg_c1_str_in:
             dm(i0, m0) = r2;
     .mg_c1_str_next:

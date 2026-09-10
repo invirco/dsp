@@ -51,8 +51,10 @@
  *
  * THE MATRIX. _xpc is the crosspoint coefficient matrix, bus-major:
  * _xpc[bus * 32 + strip], in the order of _bus_acc_all_ptrs (main L,
- * main R, sub, grp 1-4, aux 1-12, fx 1-6). Each ROUTING node writes its
- * own COLUMN at control rate -- 25 words at stride 32 -- and owns it, so
+ * main R, sub, grp 1-4, aux 1-12, fx 1-6, matrix 1-4). Each ROUTING node
+ * writes its own COLUMN at control rate -- 27 words at stride 32, the 25
+ * legacy crosspoints and the two matrix sends the cell master defines --
+ * and owns it, so
  * two strips can never race. A strip that is not in the graph
  * (DSP4_STRIPS) never writes, and its column stays at the zeros this
  * file initialises it to; zero times whatever _rtg_src holds is exactly
@@ -87,7 +89,15 @@
  * ZEROED HERE and not left to the loader: a strip outside DSP4_STRIPS
  * never writes its column, and the dense accumulate reads it anyway. */
 .global _xpc;
-.var _xpc[800] =
+.var _xpc[928] =
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -145,8 +155,8 @@
 /* First and last strip with a live coefficient, per bus. Initialised
  * EMPTY (lo > hi) so the first block accumulates nothing rather than
  * something, whatever order the rebuild and the first prep run in. */
-.var _xp_lo[25] = 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32;
-.var _xp_hi[25] = -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1;
+.var _xp_lo[29] = 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32;
+.var _xp_hi[29] = -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1;
 
 .section/pm seg_pmco;
 .extern _bus_acc_all_ptrs;
@@ -182,7 +192,7 @@ _rtg_fabric:
     r13 = _xpc + 31;             /* ...and its last strip */
     i4 = _xp_lo;
     i5 = _xp_hi;
-    lcntr = 25, do .fb_scan until lce;
+    lcntr = 29, do .fb_scan until lce;
         i0 = r12;
         r3 = -1;
         r6 = 0;
@@ -215,7 +225,7 @@ _rtg_fabric:
     i5 = _xp_hi;
     r11 = 32;                        /* one bus, in _xpc */
     r12 = _xpc;
-    lcntr = 25, do .fb_bus until lce;
+    lcntr = 29, do .fb_bus until lce;
         r1 = dm(i3, 1);               /* the bus accumulator      */
         r2 = dm(i4, 1);               /* first live strip         */
         r3 = dm(i5, 1);               /* last live strip          */

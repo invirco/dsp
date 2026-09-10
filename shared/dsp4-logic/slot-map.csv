@@ -88,7 +88,11 @@ MIX_2,0,XFER_SNAKE_04,D32,
 MIX_2,1,XFER_SNAKE_05,D32,
 MIX_2,2,XFER_SNAKE_06,D32,
 MIX_2,3,XFER_SNAKE_07,D32,
-MIX_2,4,XFER_SNAKE_08,D32,global mix slot 36; slots 37-127 reserved
+MIX_2,4,XFER_SNAKE_08,D32,global mix slot 36
+MIX_2,5,BUS_MTX_01,BOTH,matrix output buses (def key mtx); global mix slots 37-40
+MIX_2,6,BUS_MTX_02,BOTH,
+MIX_2,7,BUS_MTX_03,BOTH,
+MIX_2,8,BUS_MTX_04,BOTH,global mix slot 40; slots 41-127 reserved
 B_O0,0,DAC_01,BOTH,
 B_O0,1,DAC_02,BOTH,
 B_O0,2,DAC_03,BOTH,

@@ -113,6 +113,10 @@ scp -q $ROOT/tools/pi/dsp4_node_verify.py $ROOT/tools/pi/dsp4_conform.py \
 # still hands GPIO 6/24 to a0. Path is script-relative, not $ROOT: not
 # every script in here defines one.
 scp -q "$(dirname "$0")/../../../../tools/pi/dsp4_checkchip.py" "$(dirname "$0")/../../../../tools/pi/dsp4_boot.py" $BENCH:$STAGE/
+# dsp4_scope.py goes with the run too (S22-1): the arm/disarm contract this
+# bar now depends on lives in it, and a bench copy that predates the fix
+# would leave a stalled capture driving the graph with nothing saying so.
+scp -q "$(dirname "$0")/../../../../tools/pi/dsp4_scope.py" $BENCH:$STAGE/
 scp -q goldnode_run.sh $BENCH:/home/app/ || exit 3
 ssh $BENCH "STAGE='$STAGE' NODES=${NODES:-GATE,COMP,TUBE,FDR} N=${N:-96} \
-            bash /home/app/goldnode_run.sh"
+            STRIPS='${STRIPS:-1}' bash /home/app/goldnode_run.sh"

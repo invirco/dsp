@@ -1,6 +1,6 @@
 {
   "generated_by": "shared/dsp4-logic/gen_slot_map.py",
-  "source_hash": "4ecc4aa221a0787e924c8546839d01344c8de16a9a521e915e8d06c1676c3c96",
+  "source_hash": "3308fbf822f5fb2a669583e157eff3f156af250cc3387b8abc5a39f1bf411b28",
   "sport_convention": "sport_id = DAI port index; I ports are RX, O ports are TX; chip1=DSPA, chip2=DSPB",
   "timing": {
     "sample_edge": "rising",
@@ -235,6 +235,30 @@
         "global_slot": 36,
         "line": "MIX_2",
         "slot": 4
+      },
+      {
+        "signal": "BUS_MTX_01",
+        "global_slot": 37,
+        "line": "MIX_2",
+        "slot": 5
+      },
+      {
+        "signal": "BUS_MTX_02",
+        "global_slot": 38,
+        "line": "MIX_2",
+        "slot": 6
+      },
+      {
+        "signal": "BUS_MTX_03",
+        "global_slot": 39,
+        "line": "MIX_2",
+        "slot": 7
+      },
+      {
+        "signal": "BUS_MTX_04",
+        "global_slot": 40,
+        "line": "MIX_2",
+        "slot": 8
       }
     ]
   },
@@ -845,7 +869,29 @@
               "slot": 4,
               "signal": "XFER_SNAKE_08",
               "scope": "D32",
-              "note": "global mix slot 36; slots 37-127 reserved"
+              "note": "global mix slot 36"
+            },
+            {
+              "slot": 5,
+              "signal": "BUS_MTX_01",
+              "scope": "BOTH",
+              "note": "matrix output buses (def key mtx); global mix slots 37-40"
+            },
+            {
+              "slot": 6,
+              "signal": "BUS_MTX_02",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 7,
+              "signal": "BUS_MTX_03",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 8,
+              "signal": "BUS_MTX_04",
+              "scope": "BOTH",
+              "note": "global mix slot 40; slots 41-127 reserved"
             }
           ]
         },
@@ -1130,7 +1176,29 @@
               "slot": 4,
               "signal": "XFER_SNAKE_08",
               "scope": "D32",
-              "note": "global mix slot 36; slots 37-127 reserved"
+              "note": "global mix slot 36"
+            },
+            {
+              "slot": 5,
+              "signal": "BUS_MTX_01",
+              "scope": "BOTH",
+              "note": "matrix output buses (def key mtx); global mix slots 37-40"
+            },
+            {
+              "slot": 6,
+              "signal": "BUS_MTX_02",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 7,
+              "signal": "BUS_MTX_03",
+              "scope": "BOTH"
+            },
+            {
+              "slot": 8,
+              "signal": "BUS_MTX_04",
+              "scope": "BOTH",
+              "note": "global mix slot 40; slots 41-127 reserved"
             }
           ]
         },

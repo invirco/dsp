@@ -58,9 +58,19 @@ for cycle in 1 2 3; do
   # The scope link needs a resync the diag link does not; a diag read
   # walks it back (the same guard pairgraph_run.sh and bqst_run.sh take).
   python3 dsp4_diag.py --chip 1 >/dev/null 2>&1
-  python3 dsp4_node_verify.py --nodes "${NODES:-GATE,COMP,TUBE,FDR}" \
-          --n "${N:-96}"
-  RC=$?
+  # STRIPS, plural (S22-1). The gate is run as a PAIR under DSP4_SIMD_DYN
+  # and the two strips of a pair are not interchangeable evidence: one is
+  # the pair kernel's PEx and the other its PEy, and until the block-rate
+  # witness was emitted on the paired branch at all, neither could be
+  # scored. STRIPS="1 2" walks a whole pair.
+  RC=0
+  for _strip in ${STRIPS:-1}; do
+    [ "${STRIPS:-1}" = "1" ] || echo "=== strip $_strip ==="
+    python3 dsp4_node_verify.py --nodes "${NODES:-GATE,COMP,TUBE,FDR}" \
+            --n "${N:-96}" --strip "$_strip"
+    _rc=$?
+    [ $_rc -eq 0 ] || RC=$_rc
+  done
   [ $RC -eq 2 ] || exit $RC       # 2 = could not measure; try another boot
   echo "cycle $cycle: no measurable stimulus, re-booting"
 done

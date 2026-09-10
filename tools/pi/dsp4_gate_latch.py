@@ -16,6 +16,17 @@ BOTH channels are on.
 An envelope that holds the driven level with nothing driving it is the
 defect. An envelope that falls says the gate closes and goldnode's rest wait
 was the problem.
+
+ANSWERED 2026-09-10 (S22-1), AND THE ANSWER WAS THE THIRD THING: nothing was
+driving it in the sense the run intended, but something WAS driving it.
+`mode 2` is a STEP, and `_scope_inject_blk` rewrites the injected block with
+the amplitude on every block for as long as `_scope_arm` is set -- which only
+the capture filling clears. A stalled or unfetched run leaves the graph
+driven indefinitely, the gate open, its target at exactly unity and its hold
+count reloaded (and therefore constant) on every sample by the open arm of
+the ladder. So `_scope_arm` is printed on every line below and the watch is
+taken again with the stimulus explicitly stopped; a gate that closes once
+ARM is cleared was never frozen.
 """
 import struct, sys, time
 sys.path.insert(0, '/home/app/dspboot')
@@ -60,7 +71,12 @@ def show(tag):
     print('  %-9s %s' % (tag, row[0]))
     print('  %-9s %s' % ('', row[1]))
 
+def arm_state():
+    return 'scope arm=%s idx=%s' % (sc.rd(S.SCOPE_ARM), sc.rd(S.SCOPE_IDX))
+
+
 print('gates on strips %s; before driving:' % WHICH)
+print('  %s' % arm_state())
 show('quiet')
 inj = sc.sym['_rx_slot_C1_IN_01'] if '_rx_slot_C1_IN_01' in sc.sym else 0
 sc.arm(sc.addr('_gate_gain_C1_GATE_01'), inj, 0x0D3A17B5, 2)
@@ -68,7 +84,18 @@ try:
     sc.wait()
 except Exception as exc:
     print('  (wait: %s)' % exc)
-print('immediately after the step injection stops:')
+print('immediately after the capture returns (%s):' % arm_state())
+for k in range(7):
+    show('t=%4.1fs' % (k * 2.0))
+    if k < 6:
+        time.sleep(2.0)
+
+print('now stopping the stimulus by hand (%s):' % arm_state())
+sc.d.write(S.SCOPE_ARM, 0)
+time.sleep(0.05)
+sc.d.write(S.SCOPE_ARM, 0)
+time.sleep(0.05)
+print('  stimulus stopped, %s' % arm_state())
 for k in range(7):
     show('t=%4.1fs' % (k * 2.0))
     if k < 6:

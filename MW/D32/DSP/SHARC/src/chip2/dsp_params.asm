@@ -8,7 +8,7 @@
  * indexes this table to route parameter writes directly to node
  * coefficient variables.
  *
- * 2004 entries (SPI addresses 0x0000–0x07D2)
+ * 2024 entries (SPI addresses 0x0000–0x07E5)
  *======================================================================*/
 
 .section/dm seg_dmda;
@@ -359,6 +359,10 @@
 .extern _fdr_level_C2_GRP_FDR_03;
 .extern _fdr_level_C2_GRP_FDR_04;
 .extern _fdr_level_C2_MAIN_FDR;
+.extern _fdr_level_C2_MTX_FDR_01;
+.extern _fdr_level_C2_MTX_FDR_02;
+.extern _fdr_level_C2_MTX_FDR_03;
+.extern _fdr_level_C2_MTX_FDR_04;
 .extern _fdr_level_C2_SUB_FDR;
 .extern _fdr_mute_C2_AUX_FDR_01;
 .extern _fdr_mute_C2_AUX_FDR_02;
@@ -383,6 +387,10 @@
 .extern _fdr_mute_C2_GRP_FDR_03;
 .extern _fdr_mute_C2_GRP_FDR_04;
 .extern _fdr_mute_C2_MAIN_FDR;
+.extern _fdr_mute_C2_MTX_FDR_01;
+.extern _fdr_mute_C2_MTX_FDR_02;
+.extern _fdr_mute_C2_MTX_FDR_03;
+.extern _fdr_mute_C2_MTX_FDR_04;
 .extern _fdr_mute_C2_SUB_FDR;
 .extern _fdr_pan_C2_AUX_FDR_01;
 .extern _fdr_pan_C2_AUX_FDR_02;
@@ -407,6 +415,10 @@
 .extern _fdr_pan_C2_GRP_FDR_03;
 .extern _fdr_pan_C2_GRP_FDR_04;
 .extern _fdr_pan_C2_MAIN_FDR;
+.extern _fdr_pan_C2_MTX_FDR_01;
+.extern _fdr_pan_C2_MTX_FDR_02;
+.extern _fdr_pan_C2_MTX_FDR_03;
+.extern _fdr_pan_C2_MTX_FDR_04;
 .extern _fdr_pan_C2_SUB_FDR;
 .extern _fx_damp_C2_FX_ENG_01;
 .extern _fx_damp_C2_FX_ENG_02;
@@ -677,11 +689,11 @@
 
 /* ---- Table size for the SPI handler bounds check ---- */
 .global _spi_dispatch_c2_size;
-.var _spi_dispatch_c2_size = 2004;
+.var _spi_dispatch_c2_size = 2024;
 
-/* ---- Chip 2 SPI dispatch table (2004 entries) ---- */
+/* ---- Chip 2 SPI dispatch table (2024 entries) ---- */
 .global _spi_dispatch_c2;
-.var _spi_dispatch_c2[2004] =
+.var _spi_dispatch_c2[2024] =
     _fdr_level_C2_AUX_FDR_01,    /* 0x0000: C2_AUX_FDR_01 level */
     _fdr_pan_C2_AUX_FDR_01,    /* 0x0001: C2_AUX_FDR_01 pan */
     _fdr_mute_C2_AUX_FDR_01,    /* 0x0002: C2_AUX_FDR_01 mute */
@@ -2685,9 +2697,29 @@
     _geq_gains_C2_GRP_GEQ_04 + 28,    /* 0x07D0: C2_GRP_GEQ_04 GEQ band gain[28] */
     _geq_gains_C2_GRP_GEQ_04 + 29,    /* 0x07D1: C2_GRP_GEQ_04 GEQ band gain[29] */
     _geq_gains_C2_GRP_GEQ_04 + 30,    /* 0x07D2: C2_GRP_GEQ_04 GEQ band gain[30] */
-    0;  /* 0x07D3 */
+    _fdr_level_C2_MTX_FDR_01,    /* 0x07D3: C2_MTX_FDR_01 level */
+    _fdr_pan_C2_MTX_FDR_01,    /* 0x07D4: C2_MTX_FDR_01 pan (unused) */
+    _fdr_mute_C2_MTX_FDR_01,    /* 0x07D5: C2_MTX_FDR_01 mute */
+    0,  /* 0x07D6: C2_MTX_FDR_01 reserved (Dca host-managed) */
+    0,  /* 0x07D7 */
+    _fdr_level_C2_MTX_FDR_02,    /* 0x07D8: C2_MTX_FDR_02 level */
+    _fdr_pan_C2_MTX_FDR_02,    /* 0x07D9: C2_MTX_FDR_02 pan (unused) */
+    _fdr_mute_C2_MTX_FDR_02,    /* 0x07DA: C2_MTX_FDR_02 mute */
+    0,  /* 0x07DB: C2_MTX_FDR_02 reserved (Dca host-managed) */
+    0,  /* 0x07DC */
+    _fdr_level_C2_MTX_FDR_03,    /* 0x07DD: C2_MTX_FDR_03 level */
+    _fdr_pan_C2_MTX_FDR_03,    /* 0x07DE: C2_MTX_FDR_03 pan (unused) */
+    _fdr_mute_C2_MTX_FDR_03,    /* 0x07DF: C2_MTX_FDR_03 mute */
+    0,  /* 0x07E0: C2_MTX_FDR_03 reserved (Dca host-managed) */
+    0,  /* 0x07E1 */
+    _fdr_level_C2_MTX_FDR_04,    /* 0x07E2: C2_MTX_FDR_04 level */
+    _fdr_pan_C2_MTX_FDR_04,    /* 0x07E3: C2_MTX_FDR_04 pan (unused) */
+    _fdr_mute_C2_MTX_FDR_04,    /* 0x07E4: C2_MTX_FDR_04 mute */
+    0,  /* 0x07E5: C2_MTX_FDR_04 reserved (Dca host-managed) */
+    0,  /* 0x07E6 */
+    0;  /* 0x07E7 */
 
-/* ---- Chip 2 ramp-stride table (2004 entries) ---- */
+/* ---- Chip 2 ramp-stride table (2024 entries) ---- */
 /*
  * Companion to the dispatch table above, same indexing.
  *   0      -- no ramp state; the SPI handler writes the word directly
@@ -2698,10 +2730,10 @@
  * length -- 12 for AuxSend, 6 for FxSend. Writing those at +1/+2/+3
  * lands on the NEIGHBOURING crosspoint's level instead.
  *
- * 86 ramped entries; strides {1: 86}
+ * 94 ramped entries; strides {1: 94}
  */
 .global _spi_dispatch_c2_stride;
-.var _spi_dispatch_c2_stride[2004] =
+.var _spi_dispatch_c2_stride[2024] =
     1,  /* 0x0000: C2_AUX_FDR_01 level */
     1,  /* 0x0001: C2_AUX_FDR_01 pan */
     0,  /* 0x0002: C2_AUX_FDR_01 mute */
@@ -4705,9 +4737,29 @@
     0,  /* 0x07D0: C2_GRP_GEQ_04 GEQ band gain[28] */
     0,  /* 0x07D1: C2_GRP_GEQ_04 GEQ band gain[29] */
     0,  /* 0x07D2: C2_GRP_GEQ_04 GEQ band gain[30] */
-    0;  /* 0x07D3 */
+    1,  /* 0x07D3: C2_MTX_FDR_01 level */
+    1,  /* 0x07D4: C2_MTX_FDR_01 pan (unused) */
+    0,  /* 0x07D5: C2_MTX_FDR_01 mute */
+    0,  /* 0x07D6: C2_MTX_FDR_01 reserved (Dca host-managed) */
+    0,  /* 0x07D7 */
+    1,  /* 0x07D8: C2_MTX_FDR_02 level */
+    1,  /* 0x07D9: C2_MTX_FDR_02 pan (unused) */
+    0,  /* 0x07DA: C2_MTX_FDR_02 mute */
+    0,  /* 0x07DB: C2_MTX_FDR_02 reserved (Dca host-managed) */
+    0,  /* 0x07DC */
+    1,  /* 0x07DD: C2_MTX_FDR_03 level */
+    1,  /* 0x07DE: C2_MTX_FDR_03 pan (unused) */
+    0,  /* 0x07DF: C2_MTX_FDR_03 mute */
+    0,  /* 0x07E0: C2_MTX_FDR_03 reserved (Dca host-managed) */
+    0,  /* 0x07E1 */
+    1,  /* 0x07E2: C2_MTX_FDR_04 level */
+    1,  /* 0x07E3: C2_MTX_FDR_04 pan (unused) */
+    0,  /* 0x07E4: C2_MTX_FDR_04 mute */
+    0,  /* 0x07E5: C2_MTX_FDR_04 reserved (Dca host-managed) */
+    0,  /* 0x07E6 */
+    0;  /* 0x07E7 */
 
-/* ---- Chip 2 wire-unit conversion table (2004 entries) ---- */
+/* ---- Chip 2 wire-unit conversion table (2024 entries) ---- */
 /*
  * Companion to the dispatch table above, same indexing.
  * The SPI handler applies this to the incoming word BEFORE
@@ -4725,10 +4777,10 @@
  * kernel word gets a conversion, and every address that
  * family reaches carries it.
  *
- * 0 of 2004 addresses carry a conversion.
+ * 0 of 2024 addresses carry a conversion.
  */
 .global _spi_dispatch_c2_convert;
-.var _spi_dispatch_c2_convert[2004] =
+.var _spi_dispatch_c2_convert[2024] =
     0,  /* 0x0000: C2_AUX_FDR_01 level */
     0,  /* 0x0001: C2_AUX_FDR_01 pan */
     0,  /* 0x0002: C2_AUX_FDR_01 mute */
@@ -6732,9 +6784,29 @@
     0,  /* 0x07D0: C2_GRP_GEQ_04 GEQ band gain[28] */
     0,  /* 0x07D1: C2_GRP_GEQ_04 GEQ band gain[29] */
     0,  /* 0x07D2: C2_GRP_GEQ_04 GEQ band gain[30] */
-    0;  /* 0x07D3 */
+    0,  /* 0x07D3: C2_MTX_FDR_01 level */
+    0,  /* 0x07D4: C2_MTX_FDR_01 pan (unused) */
+    0,  /* 0x07D5: C2_MTX_FDR_01 mute */
+    0,  /* 0x07D6: C2_MTX_FDR_01 reserved (Dca host-managed) */
+    0,  /* 0x07D7 */
+    0,  /* 0x07D8: C2_MTX_FDR_02 level */
+    0,  /* 0x07D9: C2_MTX_FDR_02 pan (unused) */
+    0,  /* 0x07DA: C2_MTX_FDR_02 mute */
+    0,  /* 0x07DB: C2_MTX_FDR_02 reserved (Dca host-managed) */
+    0,  /* 0x07DC */
+    0,  /* 0x07DD: C2_MTX_FDR_03 level */
+    0,  /* 0x07DE: C2_MTX_FDR_03 pan (unused) */
+    0,  /* 0x07DF: C2_MTX_FDR_03 mute */
+    0,  /* 0x07E0: C2_MTX_FDR_03 reserved (Dca host-managed) */
+    0,  /* 0x07E1 */
+    0,  /* 0x07E2: C2_MTX_FDR_04 level */
+    0,  /* 0x07E3: C2_MTX_FDR_04 pan (unused) */
+    0,  /* 0x07E4: C2_MTX_FDR_04 mute */
+    0,  /* 0x07E5: C2_MTX_FDR_04 reserved (Dca host-managed) */
+    0,  /* 0x07E6 */
+    0;  /* 0x07E7 */
 
-/* ---- Chip 2 recompute (dirty) table (2004 entries) ---- */
+/* ---- Chip 2 recompute (dirty) table (2024 entries) ---- */
 /*
  * Companion to the dispatch table above, same indexing.
  *   0   -- the written word IS the kernel word; nothing more
@@ -6750,10 +6822,10 @@
  * gain arrived, instead of comparing every band against a
  * shadow on every block of every node.
  *
- * 757 of 2004 addresses raise a flag; 30 distinct flags.
+ * 757 of 2024 addresses raise a flag; 30 distinct flags.
  */
 .global _spi_dispatch_c2_dirty;
-.var _spi_dispatch_c2_dirty[2004] =
+.var _spi_dispatch_c2_dirty[2024] =
     0,  /* 0x0000: C2_AUX_FDR_01 level */
     0,  /* 0x0001: C2_AUX_FDR_01 pan */
     0,  /* 0x0002: C2_AUX_FDR_01 mute */
@@ -8757,7 +8829,27 @@
     _geq_dirty_C2_GRP_GEQ_04,  /* 0x07D0: C2_GRP_GEQ_04 GEQ band gain[28] */
     _geq_dirty_C2_GRP_GEQ_04,  /* 0x07D1: C2_GRP_GEQ_04 GEQ band gain[29] */
     _geq_dirty_C2_GRP_GEQ_04,  /* 0x07D2: C2_GRP_GEQ_04 GEQ band gain[30] */
-    0;  /* 0x07D3 */
+    0,  /* 0x07D3: C2_MTX_FDR_01 level */
+    0,  /* 0x07D4: C2_MTX_FDR_01 pan (unused) */
+    0,  /* 0x07D5: C2_MTX_FDR_01 mute */
+    0,  /* 0x07D6: C2_MTX_FDR_01 reserved (Dca host-managed) */
+    0,  /* 0x07D7 */
+    0,  /* 0x07D8: C2_MTX_FDR_02 level */
+    0,  /* 0x07D9: C2_MTX_FDR_02 pan (unused) */
+    0,  /* 0x07DA: C2_MTX_FDR_02 mute */
+    0,  /* 0x07DB: C2_MTX_FDR_02 reserved (Dca host-managed) */
+    0,  /* 0x07DC */
+    0,  /* 0x07DD: C2_MTX_FDR_03 level */
+    0,  /* 0x07DE: C2_MTX_FDR_03 pan (unused) */
+    0,  /* 0x07DF: C2_MTX_FDR_03 mute */
+    0,  /* 0x07E0: C2_MTX_FDR_03 reserved (Dca host-managed) */
+    0,  /* 0x07E1 */
+    0,  /* 0x07E2: C2_MTX_FDR_04 level */
+    0,  /* 0x07E3: C2_MTX_FDR_04 pan (unused) */
+    0,  /* 0x07E4: C2_MTX_FDR_04 mute */
+    0,  /* 0x07E5: C2_MTX_FDR_04 reserved (Dca host-managed) */
+    0,  /* 0x07E6 */
+    0;  /* 0x07E7 */
 
 /* Samples per millisecond, IEEE-754 float32 bits (48 at 48000 Hz). */
 .global _spi_dispatch_c2_spms;

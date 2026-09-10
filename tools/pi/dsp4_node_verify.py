@@ -208,6 +208,29 @@ def capture(part, src, inj, amp, mode, n, tries=3, log=None):
             return [s32(w) for w in out]
         except (IOError, SystemExit) as exc:
             last = str(exc)
+        finally:
+            # DISARM, ALWAYS (S22-1). `mode 2` is a STEP: _scope_inject_blk
+            # rewrites the named block with the amplitude on EVERY block for
+            # as long as _scope_arm is set, and the only thing that clears it
+            # is the capture filling. A run that stalls -- an arm the link
+            # dropped, a src whose tap never fires, a wait that timed out --
+            # therefore leaves the graph DRIVEN, silently and indefinitely.
+            #
+            # That is what "the gate's four state words freeze at the last
+            # driven level" was (S21-7): not frozen state, a gate held OPEN
+            # by a stimulus nobody had stopped. Its envelope sat 14 counts
+            # under the injected step -- the attack ladder's own stall point,
+            # identical to the digit across boots -- while its partner strip,
+            # never injected, closed and let its hold counter run.
+            #
+            # A completed run has already disarmed itself, so this write is a
+            # no-op on the happy path and the whole of the fix on the other
+            # one. It goes in the FINALLY and not after the loop because a
+            # retry must start from an undriven graph too.
+            try:
+                part.sc.d.write(S.SCOPE_ARM, 0)
+            except Exception:                       # noqa: BLE001
+                pass
     if log:
         log(f'      capture of {src} failed in {tries} attempts: {last}')
     return None
@@ -220,22 +243,24 @@ def inject_addr(part, strip):
     input node's own _rx_slot (NOT _buf_C1_IN_nn, which the IN node
     overwrites every sample -- the mistake that made the shipping image
     look undrivable for a whole session)."""
-    if '_blk_pool' in part.sc.sym:
-        # THE ODD POOL, and this is S9-5's second half in the paired graph.
-        #
-        # A paired build (DSP4_SIMD_DYN) gives the ODD strip of each pair a
-        # whole second pool -- `_blk_pool1`, blk_pool.h -- because both
-        # strips of a pair have to hold live chain blocks at once. Strip 1
-        # is odd, so `_blk_pool` is a slot it never reads: measured on the
-        # part 2026-09-09, every stimulus this tool injected on the paired
-        # candidate reached NOTHING (`_buf_C1_IN_01` through `_buf_C1_FDR_01`
-        # all captured peak 0x00000001) and COMPRESSOR, FADER_PAN and
-        # TUBE_SAT reported NO_STIMULUS on an image whose audio arm read
-        # every one of them LIVE. The symbol only exists in a paired build,
-        # so an unpaired image resolves exactly as it always did.
-        if strip % 2 and '_blk_pool1' in part.sc.sym:
-            return part.sc.sym['_blk_pool1']
-        return part.sc.sym['_blk_pool']
+    # THE RX SLOT SYMBOL, ALWAYS, and the firmware resolves it (S22-3).
+    #
+    # This used to hand back a POOL BASE on a block build -- `_blk_pool1` for
+    # an odd strip, `_blk_pool` otherwise -- because S9-5 found that the odd
+    # strip of a pair runs on a second pool. That worked for STRIP 1 and by
+    # luck: `_blk_pool1 + 0` is strip 1's own first chain slot, so the
+    # injector's write landed where the chain would read it. For every other
+    # strip it named a slot that strip's own input kernel overwrites, and the
+    # tool reported "the injection is NOT reaching _buf_C1_EQ_nn" with no
+    # mechanism -- which is what it reported for strip 2 on 2026-09-10.
+    #
+    # The redirect `_scope_inject_blk` has carried since S9-5 exists to do
+    # this properly: the chain hands each call site its own RX slot symbol
+    # and its own live chain slot, and the site whose symbol the host armed
+    # on is the one that writes. Naming the RX slot is therefore the
+    # CORRECT address on a block build as well as a per-sample one, and the
+    # pool arithmetic goes away rather than being extended. Strip 1 resolves
+    # to the same place it did before.
     return part.sc.sym['_rx_slot_C1_IN_%02d' % strip]
 
 

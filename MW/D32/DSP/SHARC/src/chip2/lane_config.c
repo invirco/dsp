@@ -21,12 +21,12 @@ const int c2_ic_lanes_wsize = 15;
 const int c2_ic_lanes[12] = {
     0, 0xFFFF, 16, 0,
     1, 0xFFFF, 16, 256,
-    2, 0x001F, 5, 512
+    2, 0x01FF, 9, 512
 };
 
-const int c2_ic_region_words = 592;
+const int c2_ic_region_words = 656;
 #pragma align 32
-unsigned int c2_ic_buf_ping[2 * 592];  /* [0..592) ping, [592..2*592) pong */
+unsigned int c2_ic_buf_ping[2 * 656];  /* [0..656) ping, [656..2*656) pong */
 
 const int c2_tx_lanes_count = 5;
 const int c2_tx_lanes_dir = 1;    /* 0 = RX (half A), 1 = TX (half B) */
@@ -37,7 +37,7 @@ const int c2_tx_lanes[20] = {
     1, 0x00FF, 8, 128,
     2, 0x000F, 8, 256,
     3, 0x0003, 8, 384,
-    4, 0x0001, 8, 512
+    4, 0x001F, 8, 512
 };
 
 const int c2_tx_region_words = 640;

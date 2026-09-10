@@ -358,7 +358,7 @@
     _rx_slot_C1_XIN_PI_R,
     _rx_slot_C1_XIN_MEMS;
 
-/* IC TX node tables (37 packed mix-fabric slots over 3 lanes) */
+/* IC TX node tables (41 packed mix-fabric slots over 3 lanes) */
 /* D25: under block kernels these point at the SOURCE bus
  * buffers, and the INTERCHIP_SEND bodies are empty. */
 .extern _tx_slot_C1_BUS_MAIN_L_SEND;
@@ -398,6 +398,10 @@
 .extern _tx_slot_C1_XS_XFER_SNAKE_06;
 .extern _tx_slot_C1_XS_XFER_SNAKE_07;
 .extern _tx_slot_C1_XS_XFER_SNAKE_08;
+.extern _tx_slot_C1_BUS_MTX_01_SEND;
+.extern _tx_slot_C1_BUS_MTX_02_SEND;
+.extern _tx_slot_C1_BUS_MTX_03_SEND;
+.extern _tx_slot_C1_BUS_MTX_04_SEND;
 #if DSP4_BLOCK_KERNELS
 .extern _buf_C1_BUS_MAIN_L;
 .extern _buf_C1_BUS_MAIN_R;
@@ -436,12 +440,16 @@
 .extern _buf_C1_XIN_SNK_06;
 .extern _buf_C1_XIN_SNK_07;
 .extern _buf_C1_XIN_SNK_08;
+.extern _buf_C1_BUS_MTX_01;
+.extern _buf_C1_BUS_MTX_02;
+.extern _buf_C1_BUS_MTX_03;
+.extern _buf_C1_BUS_MTX_04;
 #endif
 #if DSP4_BLOCK_KERNELS
 .global _c1_ic_tx_off;
 .global _c1_ic_tx_stride;
 #endif
-.var _c1_ic_tx_off[37] =
+.var _c1_ic_tx_off[41] =
     0,
     1,
     2,
@@ -478,8 +486,12 @@
     513,
     514,
     515,
-    516;
-.var _c1_ic_tx_stride[37] =
+    516,
+    517,
+    518,
+    519,
+    520;
+.var _c1_ic_tx_stride[41] =
     16,
     16,
     16,
@@ -512,13 +524,17 @@
     16,
     16,
     16,
-    5,
-    5,
-    5,
-    5,
-    5;
+    9,
+    9,
+    9,
+    9,
+    9,
+    9,
+    9,
+    9,
+    9;
 #if DSP4_BLOCK_KERNELS
-.var _c1_ic_tx_ptrs[37] =
+.var _c1_ic_tx_ptrs[41] =
     _buf_C1_BUS_MAIN_L,
     _buf_C1_BUS_MAIN_R,
     _buf_C1_BUS_SUB,
@@ -555,9 +571,13 @@
     _buf_C1_XIN_SNK_05,
     _buf_C1_XIN_SNK_06,
     _buf_C1_XIN_SNK_07,
-    _buf_C1_XIN_SNK_08;
+    _buf_C1_XIN_SNK_08,
+    _buf_C1_BUS_MTX_01,
+    _buf_C1_BUS_MTX_02,
+    _buf_C1_BUS_MTX_03,
+    _buf_C1_BUS_MTX_04;
 #else
-.var _c1_ic_tx_ptrs[37] =
+.var _c1_ic_tx_ptrs[41] =
     _tx_slot_C1_BUS_MAIN_L_SEND,
     _tx_slot_C1_BUS_MAIN_R_SEND,
     _tx_slot_C1_BUS_SUB_SEND,
@@ -594,7 +614,11 @@
     _tx_slot_C1_XS_XFER_SNAKE_05,
     _tx_slot_C1_XS_XFER_SNAKE_06,
     _tx_slot_C1_XS_XFER_SNAKE_07,
-    _tx_slot_C1_XS_XFER_SNAKE_08;
+    _tx_slot_C1_XS_XFER_SNAKE_08,
+    _tx_slot_C1_BUS_MTX_01_SEND,
+    _tx_slot_C1_BUS_MTX_02_SEND,
+    _tx_slot_C1_BUS_MTX_03_SEND,
+    _tx_slot_C1_BUS_MTX_04_SEND;
 #endif
 
 /* DMA ping-pong buffers live in generated lane_config.c
@@ -666,7 +690,7 @@ _meter_scan_chip1:
     rts;
 _meter_scan_chip1.end:
 
-/* Gather 37 inter-chip sends (lane-major packed) */
+/* Gather 41 inter-chip sends (lane-major packed) */
 .global _gather_chip1;
 _gather_chip1:
     /* r0 = sample index (0..15) */
@@ -674,7 +698,7 @@ _gather_chip1:
     i1 = _c1_ic_tx_off;
     i2 = _c1_ic_tx_stride;
     i3 = _c1_ic_tx_ptrs;
-    r7 = 37;
+    r7 = 41;
     lcntr = r7; do .gather_chip1_lp until lce;
         r3 = dm(i1, 1);       /* off */
         r4 = dm(i2, 1);       /* stride */

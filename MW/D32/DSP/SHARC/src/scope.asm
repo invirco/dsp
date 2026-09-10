@@ -230,7 +230,22 @@ _scope_inject_blk:
     if eq jump (pc, .sib_noredir);
     r2 = dm(_scope_inj);
     comp(r0, r2);
-    if ne jump (pc, .sib_noredir);
+    /* NOT THIS CALL SITE'S STRIP (S22-3, 2026-09-10).
+     *
+     * There used to be exactly ONE chip-1 call site, emitted after chain
+     * index 0 -- so `_scope_inject_blk` could drive STRIP 1 and no other
+     * strip on any block-kernel image, and `dsp4_node_verify.py --strip N`
+     * for N != 1 reported "the injection is NOT reaching _buf_C1_EQ_nn"
+     * with nothing saying why. A witness build now emits one call site per
+     * strip, each naming its own RX slot in r0 and its own live chain slot
+     * in r1, and a site whose slot the host did not arm on must do NOTHING:
+     * falling through to .sib_noredir would make all 32 of them write a
+     * block at whatever raw address `_scope_inj` holds, which is the very
+     * one-word-variable overrun S9-5 was about, thirty-one times over.
+     *
+     * r0 == 0 still means "no redirect", which is chip 2, and reaches
+     * .sib_noredir exactly as before. */
+    if ne rts;
     dm(_scope_inj_blk) = r1;
     jump (pc, .sib_armchk);
 .sib_noredir:
