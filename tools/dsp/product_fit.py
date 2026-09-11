@@ -158,9 +158,13 @@ ANCHOR_LO, ANCHOR_HI = 'd24', 'd32'
 # bytes on every product in the range, because every product boots the same
 # image. Recorded here so the fit table can say so with a number.
 CODE_POOL_BYTES = 262144
-CODE_USED_C1 = 181350          # `shipping.config.s26`, S27 §1.1 mask 15
-DM_NOTE = ('chip 2 code and both chips\' DM are identical across the range '
-           'by construction: one image, selected by two config words')
+CODE_USED_C1 = 180954          # `shipping.config.s26`, S28's own map file
+CODE_USED_C2 = 164168          # (S27 §1.1 read 181,350 on its link: 396 apart)
+DM_NOTE = ('A SMALLER PRODUCT BUYS CYCLES, NOT MEMORY. One image boots on '
+           'every product in the range, so the code pool and the DM are the '
+           'same bytes on all of them: every strip, aux chain, group and FX '
+           'engine the superset carries is LINKED whatever the masks say, '
+           'and the masks decide only which of them are CALLED.')
 
 
 def budget_cycles(cclk_hz=983.04e6):
@@ -382,6 +386,11 @@ def print_table(products, sizes, cells, cens, pred, pred_worst):
           f'983.04 MHz')
     print(f'  anchors: {ANCHOR_LO} and {ANCHOR_HI}, measured driven on one '
           f'image (S27)')
+    print(f'  code pool: chip 1 {CODE_USED_C1:,} of {CODE_POOL_BYTES:,} bytes '
+          f'({100.0 * CODE_USED_C1 / CODE_POOL_BYTES:.1f} %), chip 2 '
+          f'{CODE_USED_C2:,} — THE SAME ON EVERY PRODUCT BELOW.')
+    for ln in textwrap.wrap(DM_NOTE, 72):
+        print(f'    {ln}')
     print()
 
     hdr = f'{"":26}' + ''.join(f'{p.upper():>12}' for p in products)
