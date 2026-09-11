@@ -423,6 +423,21 @@ for ch in range(1, NUM_CH + 1):
 # all of these at boot (default off/muted). No SPI allocations here, so
 # legacy chip-1 addresses are unaffected.
 
+# THE TALKBACK XLR IS WIRED COLD-HOT (S34, netlist-traced 2026-09-11).
+# mx26 docs/d24-analog-paths.md § Talkback: analog J1 pin 2 (hot, by the
+# XLR convention) goes through C4 to the codec's IN4N, and pin 3 (cold)
+# through C11 to IN4P. Every other input on the desk arrives the right way
+# up, so CODEC_RET_1 -- and only CODEC_RET_1 -- is 180 degrees out against
+# them. It matters the moment talkback is summed with a MEMS mic that is
+# not inverted: the two partially cancel instead of adding.
+#
+# The undo is one sign, on the node that reads the slot, and it is free
+# (it lands in the block loop's existing nop). The alternatives were
+# worse: the codec's own channel config is a bench/driver setting nobody
+# owns in this repo, and TALKBACK's gain is a magnitude in dB with no
+# sign to spare.
+_TB_INVERT = ';invert=1'
+
 superset_c1 = [
     ('C1_XIN_CODEC_01', 'CODEC_RET_1', 'Codec ADC 1 (TB XLR)', None),
     ('C1_XIN_CODEC_03', 'CODEC_RET_3', 'Codec ADC 3 (Aux In L)', None),
@@ -447,6 +462,8 @@ xin_consumer['C1_XIN_MEMS'] = 'C1_TALK_02'
 
 for nid, sig, label, scope in superset_c1:
     ip = input_params(sig)
+    if nid == 'C1_XIN_CODEC_01':
+        ip += _TB_INVERT
     if scope:
         ip += f';scope={scope}'
     add(nid, 1, 'INPUT_TDM', label, 1, '', xin_consumer[nid], params=ip)

@@ -105,7 +105,11 @@ EXTRA_PARAMS = {
                         'predelay_ms', 'room_size'},
     'GATE':           {'det_src', 'filter_hpf', 'filter_lpf', 'filter_on',
                         'filter_q', 'key'},
-    'INPUT_TDM':      {'scope', 'signal', 'sport_slots'},
+    # `invert` (S34): the ONE sign in the input path. D24's talkback XLR
+    # lands hot on the codec's IN4N and cold on IN4P, so CODEC_RET_1
+    # arrives inverted relative to every other input; the negate goes
+    # here rather than into a gain, which has no sign to spare.
+    'INPUT_TDM':      {'invert', 'scope', 'signal', 'sport_slots'},
     'INTERCHIP_RECV': {'global_slot', 'scope', 'signal', 'sport_slots'},
     'INTERCHIP_SEND': {'global_slot', 'scope', 'signal', 'sport_slots'},
     # `comp_gr_src` (S23 gate 4): the COMPRESSOR whose gain word this meter

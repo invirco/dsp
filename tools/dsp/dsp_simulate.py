@@ -337,7 +337,12 @@ def process_node(node, state, node_states, nodes):
         return np.zeros(BLOCK_SIZE)
 
     if ntype == 'INPUT_TDM':
-        pass  # buf is pre-filled with test signal by the simulator
+        p = node['params']
+        # buf is pre-filled with the test signal by the simulator; the
+        # only thing this node does to it is the S34 polarity undo, so
+        # a golden run of an inverted input looks like the part does.
+        if str(p.get('invert', '0')).strip() not in ('', '0'):
+            state['buf'] = -state['buf']
 
     elif ntype in ('INTERCHIP_RECV', 'INTERCHIP_SEND', 'TALKBACK', 'NOISE_GEN',
                    'AUX_INPUT', 'DCA'):

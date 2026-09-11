@@ -351,7 +351,7 @@ C1_MTR_29,1,METER,Ch 29 Meter,1,C1_GAIN_29;C1_FDR_29,,1,4720,taps=post_trim;post
 C1_MTR_30,1,METER,Ch 30 Meter,1,C1_GAIN_30;C1_FDR_30,,1,4724,taps=post_trim;post_fader;gate_gr;comp_gr;comp_gr_src=C1_COMP_30,
 C1_MTR_31,1,METER,Ch 31 Meter,1,C1_GAIN_31;C1_FDR_31,,1,4728,taps=post_trim;post_fader;gate_gr;comp_gr;comp_gr_src=C1_COMP_31,
 C1_MTR_32,1,METER,Ch 32 Meter,1,C1_GAIN_32;C1_FDR_32,,1,4732,taps=post_trim;post_fader;gate_gr;comp_gr;comp_gr_src=C1_COMP_32,
-C1_XIN_CODEC_01,1,INPUT_TDM,Codec ADC 1 (TB XLR),1,,C1_TALK_01,-1,-1,sport_id=4;slot_start=0;slot_count=1;sport_slots=8;signal=CODEC_RET_1,
+C1_XIN_CODEC_01,1,INPUT_TDM,Codec ADC 1 (TB XLR),1,,C1_TALK_01,-1,-1,sport_id=4;slot_start=0;slot_count=1;sport_slots=8;signal=CODEC_RET_1;invert=1,
 C1_XIN_CODEC_03,1,INPUT_TDM,Codec ADC 3 (Aux In L),1,,C1_XS_XFER_CODEC_AUX_L,-1,-1,sport_id=4;slot_start=2;slot_count=1;sport_slots=8;signal=CODEC_RET_3,
 C1_XIN_CODEC_04,1,INPUT_TDM,Codec ADC 4 (Aux In R),1,,C1_XS_XFER_CODEC_AUX_R,-1,-1,sport_id=4;slot_start=3;slot_count=1;sport_slots=8;signal=CODEC_RET_4,
 C1_XIN_PI_L,1,INPUT_TDM,Pi PCM L,1,,C1_XS_XFER_PI_L,-1,-1,sport_id=6;slot_start=0;slot_count=1;sport_slots=8;signal=PI_PCM_L,

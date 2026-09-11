@@ -1025,10 +1025,39 @@ def gen_input_tdm(node):
                    else ('.var _buf_' + node['id'] + '[DSP4_BLOCK_SIZE];')
 
     p = node['params']
+
+    # THE ONE SIGN IN THE INPUT PATH (S34). `invert=1` negates the sample
+    # as it is read. It costs NOTHING per sample: the block loop's last
+    # instruction was a `nop` (the loop-end filler), so the negate takes
+    # that slot and the store moves onto the label. A polarity flip in the
+    # COPPER -- D24's talkback XLR arrives hot on the codec's IN4N -- has
+    # to be undone somewhere, and this is the cheapest and most local
+    # somewhere: one instruction, on the node that reads the affected slot.
+    #
+    # Q4.28 negation is exact except at the one most-negative code
+    # (0x80000000), which negates to itself. That is one LSB of asymmetry
+    # at full scale on a talkback mic and is not worth a saturating negate.
+    _invert = str(p.get('invert', '0')).strip() not in ('', '0')
+    # The loop body is emitted whole so a node WITHOUT invert is byte-for-
+    # byte what it was: same four instructions, same order, same label.
+    _inv_blk = (
+        "                r2 = -r2;                 /* invert=1: see above */\n"
+        f"        .in_lp_{node['id']}:\n"
+        "                dm(i1, 1) = r2;"
+    ) if _invert else (
+        "                dm(i1, 1) = r2;\n"
+        f"        .in_lp_{node['id']}:\n"
+        "                nop;"
+    )
+    _inv_ps = '\n            r0 = -r0;                 /* invert=1 */' \
+              if _invert else ''
+    _inv_note = ('\n         * POLARITY INVERTED here (invert=1): this slot arrives '
+                 'inverted\n         * in the copper.') if _invert else ''
+
     return dedent(f"""\
         {ramp_comment(node['ramp_profile'])}
 
-        /* INPUT_TDM: Read from SPORT{p.get('sport_id','?')} TDM slot {p.get('slot_start','?')} */
+        /* INPUT_TDM: Read from SPORT{p.get('sport_id','?')} TDM slot {p.get('slot_start','?')}{_inv_note} */
 
         #include "blk_pool.h"
 
@@ -1136,12 +1165,10 @@ def gen_input_tdm(node):
             lcntr = r5; do .in_lp_{node['id']} until lce;
                 r2 = dm(i0, m0);
                 r2 = ashift r2 by -3;
-                dm(i1, 1) = r2;
-        .in_lp_{node['id']}:
-                nop;
+{_inv_blk}
             rts;
         #else
-            r0 = dm(_rx_slot_{node['id']});
+            r0 = dm(_rx_slot_{node['id']});{_inv_ps}
             dm(_buf_{node['id']}) = r0;
             rts;
         #endif
