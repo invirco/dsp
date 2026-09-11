@@ -1,3 +1,79 @@
+## HUB DISPATCH 2026-09-11 07:37Z — S32 — the S29-4 lead measured: eight off aux inputs bypassed, does the twelfth aux fit   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+S32 — THE S29-4 LEAD, MEASURED: eight aux inputs that are SWITCHED OFF (`C2_SNK_IN_01..08`, `on=0`, never opened by the load) still cost ~3.5 points of chip 2 because they are CALLED, not because they work — against the 0.81-point worst-use deficit that leaves the twelfth aux out; a bypass one node class down (S23-5/S24's finding applied to the AUX_INPUT class, gated on the cell's `on`, not on a config word) built as a NON-SHIPPING pair, driven at worst use with the window candidate's load, so PW's "eleven of twelve auxes" decision can be re-made on a measurement — the shipping image, `shipping.config*`, every staged `s20_*`…`s28_*` pair and the `defs` pin stay untouched
+
+WHY. S29 measured the scope class as +3.53 / +0.40 and found that D32's
+worst-use rows overrun only with the class on. It did not take the lead
+because it changes the shipping image inside the window; that is right,
+and it is still the one measurement that decides whether the twelfth aux
+can be seated at all. Measure it on a pair of its own and hand the number
+to PW; taking it into the window is PW's call, not this session's.
+
+THE UNIT. MW-D24-2 = 192.168.1.219, the rev C bench unit. PW MAY POWER IT
+DOWN AT ANY POINT TODAY (CS_M wire on the DSP board; analog board attach)
+and may deploy a new app binary (`/home/app/app` md5 changes). Treat a lost
+SSH as expected: poll every 30 s for up to 30 min, then continue from the
+gate you were on and record the outage. NEVER assert AN_EN (CM4 GPIO26),
+never touch the 74HC595 chain (CS5/GPIO27, CS_M), the analog rails or the
++48 V — the analog board may be attached. Do not reflash the CPLD, do not
+touch the slave PCM overlay, do not replace any staged pair; stage the new
+image ONLY as `s32_chip1.ldr` / `s32_chip2.ldr` and restore the s26 pair
+on exit (`s20restore.sh`, remembering S29-7: its overrun count is a
+boot-transient, read pass 3). Leave `matrix-app` active. The rev A show
+model (192.168.0.115) is never touched.
+
+GATES, in order, each witnessed in findings.md S32-*:
+1. **The gate, designed on paper first.** Where in `process_chain.asm` /
+   the generated node tables an AUX_INPUT node is called, what the
+   per-node `on` cell is, and the cheapest test that skips the node when
+   `on=0` — per node (one compare + branch, like the scope gate's run
+   gate) or per contiguous run of off nodes (S29 found the run gate costs
+   one compare per run). State the predicted saving in points from S29's
+   segment slopes BEFORE measuring, and the risk: what happens on the
+   block where `on` flips 0→1 (a node skipped for N blocks must resume
+   with a clean state — delay lines, filter states, gain ramps; say what
+   AUX_INPUT holds and whether a skipped node's state can go stale; if it
+   can, the bypass must clear or freeze it and that cost is part of the
+   number).
+2. **Built and staged as s32 only.** Generated, built, both chips,
+   byte-for-byte reproducible twice (the S26 discipline), md5s recorded,
+   `s26_*` md5s unchanged before and after.
+3. **Driven at worst use, both boots, both chips**: the D32 worst-use row
+   (twelve auxes, six reverbs, every crosspoint the load opens) with the
+   s32 pair against the s26 pair, two boots each, `blk_*` missed blocks and
+   the chip-1 / chip-2 percentages against S27/S28/S29's rows (S29's 100.81
+   % / 1,943 of 270,000). First sentence of findings: **with the eight off
+   aux inputs bypassed, D32 worst use reads X.XX % / Y missed blocks
+   against 100.81 % / 1,943 — the twelfth aux fits / does not fit by Z
+   points.** Then the D24 driven row on the same pair (D24 must not move
+   more than the resolution; it has no off aux inputs in the load — say
+   whether it does).
+4. **The flip.** With s32 booted, flip four of the eight `on` cells 0→1
+   from the app-side writer (the GATED contract; the same cells the load
+   uses) and prove audio through them is correct on the first block after
+   the flip (the S18-style capture: a known tone into the aux input,
+   `maincap` of the aux output, no stale-state click or gap — SNR and the
+   first-block sample against the s26 pair's), then 1→0 and back. If the
+   flip is not clean, the measurement in gate 3 is not a number PW can use
+   — say so in the first sentence.
+5. `fit-table.csv` gets a NEW row family `s32-lead` (not a replacement of
+   any product row); `window-candidate.md` §4b: the lead measured, the
+   number, and the decision it puts to PW (take it into the window: yes /
+   no / after sign-off); findings S32-1..; write-up
+   `MW/D32/DSP/dsp4-s32-20260911.md`; tasks.md; commit + push main. No AI
+   attribution in commits or any work product.
+
+Bounded: gates 1–3 are the session; 4–5 always (gate 4 may be reported
+as "not reached" with the reason, never skipped silently). If the unit is
+down for more than 30 min at any gate, write up what you have and stop
+with the block 🟡 and the reason.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-11 07:05Z — S31 — the lost MCU announce on the rev C unit (B13 escalated); the D24 attach is gated on it   [status: 🟢 done — **THE ANNOUNCE IS LOST ON THE WIRE AND THE MECHANISM IS A COLLISION BETWEEN H1S1 AND H1S4 — MCU FIRMWARE, NOT THE APP.** The three slaves answer `S_RUN` at **+208 / +211 / +215 ms**, the whole burst three lines inside 7 ms, **H1S1 and H1S4 3 ms apart against ~1.2 ms for one line at 115200** — no margin. Reproduced with **`matrix-app` STOPPED and no app in the path**: **6 failures in 40 trials, 15 %**, against the app ladder's 1 in 8 (12.5 %) — the rates agree and the app is not in the path. **Five of the six are the collision and the raw bytes name it**: `// H1S1 DSP\n// H1S4 SW Left\n` is 28 bytes and what arrives is `// H1` + **nine bytes of framing wreckage** + `Left\n` = 19 bytes, H1S3 clean 4 ms later — so **S27-6's "H1S1 and H1S4 fail together or not at all" is CONFIRMED AND EXPLAINED** (they collide with each other), while **its "H1S3 is never the one that fails" is WRONG** (this session's failing restart lost H1S3 and H1S4 and kept H1S1). **The sixth failure is a second grade: the bus WEDGES mid-burst** — `resuming` + `debug only` then nothing at all, 47 B in an 8 s drain against 160, and MH1's ~253 ms heartbeat stops dead. **That is the grade S29 met**, so **S29's 0-of-3 names a real state**; what does not stand is its evidence — **`journalctl -u matrix-app` has NEVER carried MCU text on this unit, 0 matches across the whole day including the seven restarts here that verified 3 of 3** (the app writes them to `logs/log` alone). **GATE 1, the ladder: 7 of 8 verified 3 of 3, 1 of 8 verified 1 of 3 (H1S1 only), 0 of 8 verified 0 of 3** — against B13/S27's 5/2/0 and S29's 0/0/5, on the **Aug 18 app, md5 `774752174a7f59637a082031f3fd4231` re-read at every restart and unchanged; no `appUpdate` was ever staged and every restart logged 0 `AnalogBringUp` lines, so PW's new binary was NOT deployed during this session and there is no second ladder.** **THE 8 s WINDOW IS NOT THE RACE and widening it fixes nothing**: `S_RUN` at +3.470 s from port open, last announce at `S_RUN`+1.87 s, verdict at `S_RUN`+8.001 s — **6.1 s of slack**. **GATE 3 — both discriminators excluded by the unit's own audit**: no power cycle was available to be the difference (uptime 4:25 at 08:06 BST = boot **03:40 BST**, which PREDATES the S29 dispatch at 05:05Z), and the CPLD is not it either — S29's restarts (05:50:54/05:53:20/05:55:37/05:55:58) ran with the **shipping** bitstream `a1f6672af6c3` already loaded at 05:47:49, the same one loaded now. **S28 and S29 differ by which face of a 15 % dice they saw**; five wedges in a row against 1-in-13,000 says the wedge grade CLUSTERS, which is itself for the firmware. **S31-5, a separate REAL app defect (mx26-owned, paragraph written, nothing edited here): the app starts its only serial reader AFTER the thing it must not miss.** `GetRxData()` is called from one place, `UiTimerCallback` → `Dispatcher.UIThread.Post` (`Boot.cs:780`), and that timer starts at the END of `Boot.Loop()` (`Boot.cs:558`) — **after** `S_RUN` is written at `Boot.cs:517`. Proof without assumption: `// resuming normal operation` and `// debug only` are **2 ms apart on the wire** and **17.5 ms apart in the app's own trace**, so every announce it has ever seen was read out of a backlog, one line per tick, with a synchronous log append per line (`TxRxData SLOW: 9.78/17.18/19.38 ms`). Announce reaches the app at **1.84 s** instead of 210 ms. **FOR THE D24 ATTACH: `AN_EN` is gated on H1S1 ALONE** (`AnalogBringUp.ClockGates`), and **8 of 8 restarts verified H1S1** — so the attach is NOT blocked today. But that is luck of the grade: **the collision destroys H1S1's announcement outright (5 of 5 wire failures did exactly that — H1S1 lost in 5 of 40, 12.5 %)**, so **the attach can proceed and will fail to raise AN_EN on roughly one power-up in eight until the firmware is fixed.** PW's call. **THE FIX, named and located: MCU firmware** (`mcu/H1S1/`, `mcu/H1S3/`, `mcu/H1S4/`) — stagger the replies to `S_RUN` by more than one line-time (**≥5 ms**, against today's 3 ms) or have MH1 poll the slaves individually instead of broadcasting. **No mod is proposed**: `SRX`/`MRX` are multi-drop BY DESIGN (hardware-map §3a) and the firmware is using the net without arbitration. **S31-6, instrument, self-inflicted and recorded**: a wire run and a defer sweep were briefly launched CONCURRENTLY on `/dev/ttyAMA0` — trials 1–10 byte-identical (`lines=44`), trial 11 onward collapsed to 21–25 and trial 12 read a false 2 of 3. Two readers on one tty steal each other's bytes; every quoted figure is from a run that had the port to itself. **BENCH AS FOUND**: `matrix-app` active on the same md5, shipping CPLD `a1f6672af6c3` untouched, no SHARC reflash, no overlay change, no staged pair touched, `AN_EN` never asserted, 74HC595/+48 V never approached. Write-up `MW/D32/DSP/dsp4-s31-20260911.md`; findings S31-1..S31-6; tools `tools/pi/dsp4_mx_announce.py`, `tools/pi/dsp4_mx_collide.py`.]   [model: opus]
 
 model: opus
