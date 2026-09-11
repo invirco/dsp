@@ -1,3 +1,72 @@
+## HUB DISPATCH 2026-09-11 05:05Z — S29 — what D32 pays for scope class 0; the latency bar restored   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+S29 — WHAT D32 PAYS FOR BEING THE ONLY PRODUCT THAT BOOTS SCOPE CLASS 0 (S28: 32 snake nodes every other product gates off, the "dear last segment" no two-anchor line could see) — measured on the part: D32 with scope class 0 OFF, driven with the load, both chips, two boots, against S27/S28's D32 rows; if it is an INSTRUMENT the product image should not carry it, and the worst-use row (100.75 %, 0.72 % blocks missed — PW's "eleven of twelve auxes" decision) is re-measured on that footing; THEN THE LATENCY BAR RESTORED (S27-7: the playback side reaches nothing — the main chain reads a constant from MIX to ST_OUT — narrowed, not fixed) so the 82-sample figure is measured on the window candidate, not inherited from S20
+
+WHY. S28 (dsp 6331be3) put four products on one image and found, with
+four points where two could not, that D32's extra cost is not its
+strips or its auxes but scope class 0 — thirty-two snake nodes only
+D32 boots. If those nodes are an instrument (a scope class is what the
+name says), then the product's worst-use figure, the one PW is being
+asked to rule on, carries an instrument's cost; if they are product
+function (the snake IS MW-Net per Bible ch. 11), the cost is real and
+the ruling stands. Either way it is one build and two boots to know.
+And S27 tried the latency bar properly and it still returned S12-10's
+null: the DSP's main chain reads a constant from MIX to ST_OUT because
+nothing reaches its input on the playback side — a break upstream of
+the DSP that seven sessions have inherited around. The contract figure
+(82 samples) is S20's; the window candidate should carry its own.
+
+BENCH. Rev C unit as S28 left it (`blk_*` booted, shipping CPLD,
+matrix-app active; the flash check in force); staged pairs through
+`s28_*` — NEVER replace any; new candidates as `s29_*`. `SHIPPING_
+CONFIG=shipping.config.s26`; `DSP_LANDED_DIR` = the proposal pair;
+staging path verified; `cfgverify.sh` (with its s21/s26 caveat);
+CCLK; `capacity.sh` driven rows with the regime proved and the plugin
+load; one capture per boot (enforced); probes take their control
+first. No definition-blocked cells; R6–R11 held. No deploy. No AI
+attribution in commits or any work product.
+
+GATES, in order, each witnessed:
+1. **Scope class 0, named.** What the 32 snake nodes ARE (the class's
+   nodes, their cells, their outputs — product function reachable from
+   a cell the app writes, or an instrument only a bench tool reads),
+   from the graph and the cell master; whether any D32 cell the master
+   names is dispatched to them. First sentence of the status line:
+   **scope class 0 is product function X / an instrument that no cell
+   reaches — and D32 without it reads A/B % driven, C/D % at worst use.**
+2. **Measured.** D32 with scope class 0 gated off exactly as the other
+   products gate it (the product's own config word, not a code change),
+   both chips, two boots, plain driven, with six reverbs, and the worst-
+   use row (all twelve auxes fed) — against S28's D32 rows on the same
+   image; the delta per chip; blocks missed at worst use.
+3. **The consequence, stated for PW**: if scope class 0 is an instrument,
+   the product image gates it off and the worst-use row is restated (does
+   D32 now fit at twelve auxes?); if it is product function, say what it
+   does for the user and the ruling stands. No change to shipping.config
+   either way — the window candidate is PW's to sign as it is; the
+   finding goes into `window-candidate.md` as a dated addendum.
+4. **The latency bar.** Follow S27-7 upstream: where the playback signal
+   should enter the DSP chain (the CM4 playback broadcast on the DSPA
+   lanes under the duplex overlay; the CPLD lane map; the RX slot the
+   main chain reads) and find the break — a lane the overlay does not
+   carry, a slot the chain does not read, a config word gating the input
+   — with a probe at each stage until the constant becomes signal; then
+   the bar: the 82-sample contract re-measured on the window candidate
+   (block 16 at 48 k), n=3, and `dsp4_dsp_latency.py` scoring PASS on a
+   control that can fail. Second sentence: **the playback break was Y;
+   through-DSP latency measures N samples on s26 (contract 82).**
+5. Findings S29-*, `MW/D32/DSP/dsp4-s29-20260911.md`, `fit-table.csv`
+   regenerated if D32 moved, the proposal pair, tasks.md, this block's
+   status; commit + push main.
+
+Bounded: gates 1–3 are the session; 4 expected; 5 always.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-11 02:52Z — S28 — the other products' fit by construction and driven; CFG2 widening designed   [status: 🟢 done — **by construction D16 is 40.5/69.5 % and D12 30.8/61.2 %, D24 59.8/84.4 and D32 79.2/100.8; the closest to the edge is D32 — and measured driven on the part the two new products read 41.69/73.02 and 33.26/66.59 with ZERO missed blocks.** D16 and D12 were generated from their own definitions for the first time: `sync-defs.sh` expands four products now, `validate-matrix-contract.py` checks all four, `defs.lock` gained four declaration hashes and two matrix hashes (D12 gen `058dfe9490b9`, D16 `b05bcfc48371`) and **every D24/D32 line in it is byte-identical — the pin does not move.** **They are not new products to the DSP; they are config words.** `cells(D12) ⊂ cells(D16) ⊂ cells(D24)` and `⊂ cells(D32)`, 0 cells outside either way, and all 2,571 D16 and 1,777 D12 addressed cells land on the **same chip, page and address** the shared map already gives them — **0 disagreements, not one new address** (decision D3 holding at the third and fourth product). Zero new cell families: 336 each, all inside the D32 allowlist. **A smaller product buys cycles, not memory**: one image boots on all four, so chip 1's code pool is 180,954 of 262,144 bytes (69.0 %) and chip 2's 164,168 on every product — everything the superset carries is LINKED whatever the masks say, and the masks decide only what is CALLED. The node census is the same 698 nodes with 274 (D16) and 340 (D12) gated off, resolved with the generator's own rules. `tools/dsp/product_fit.py` is the whole construction; `MW/D32/DSP/fit-table.csv` is the board's source. **Gate 2 measured all four products on ONE image, and it is the window candidate rebuilt byte for byte** (`6396187c` / `9222c2ee`, 425,668 / 407,584 bytes). Two boots, four regimes each, `driveall` bitstream with the CM4 playing, CPLD reflashed twice with `FLASH OK on attempt 1` both times. **The regime proved on every driven row of every product** — D12 24/24 + 24/24 + 4/4 engines, D16 32/32 + 26/26 + 4/4, D24 48/48 + 28/28 + 6/6, D32 64/64 + 32/32 + 6/6, every engine at Type 3 with every comb line carrying signal. **Zero missed blocks everywhere except D32 chip 2 rows B and C, which drop 1,914 and 1,943 of 270,000 — S24's and S27's finding reproduced TO THE BLOCK.** **Both anchors were re-measured the same night and reproduce S27 to −0.18…+0.27 points over sixteen comparisons**, which is what makes the rest a measurement: **every one of the sixteen D12/D16 deltas is outside that band and every one has the same sign** (chip 1 +0.74…+2.45, chip 2 +1.80…+5.35). **The mechanism is visible only with four points**: on the clean silent row the per-unit slopes are +1.77/+1.74/**+1.82** points of chip 1 a strip and +2.32/+2.39/**+3.29** of chip 2 an aux bus, and the dear last segment is not strips or aux buses — **D32 is the only product that boots scope class 0**, which runs 32 snake nodes every other product gates off, and the two-anchor line carries that step as if it were per-unit cost. Two anchors differing in three things cannot separate those three things. **A live FX engine is 3.26–3.39 points of chip 2 and nothing of chip 1** (−0.09…+0.15), flat over four products and two engine counts; it was missing from the first construction (S28-3) and is in it now. **Three instrument/design defects found and two fixed.** (a) S28-2: `--require-fx` enumerated all six FX engines off the SYMBOL TABLE while `loadfx` writes the families the LANDED MAP names — four on a D16 — so the bar failed three ways for a product behaving exactly as defined; fixed the way the dynamics half of the same tool was already right (`--fx-engines`, derived from the landed map, superset engines reported and not required), and D16 was re-run to prove it. (b) S28-4: **`CFG_PRODUCT_ID` is a SCOPE CLASS, not a product identity** — two values for two `scope=` runs, so D16 and D12 boot as a D24 and are told apart by `_chan_mask_live`/`_aux_mask_live`; named, not applied. (c) S28-5: **`DIAG_BUILD_CFG2` has NO free bits at all** and `cfg_words.py`'s comment naming some was naming the zero bits of its own `0xC2` signature — bit 24 is exactly what separates `0xC2` from `0xC3`. Every one of 32 bits has an owner, enumerated. **Gate 3 designed, not applied**: `DIAG_BUILD_CFG3` at `0xE0EC`, signature `0xC3`, with the WHOLE eight-bit `DSP4_SHARED_KERNELS` mask, `DSP4_STRIPS`, the nine shipping-relevant switches no word carries, and **one bit that says the image is an INSTRUMENT** (61 of build.sh's 86 switches are in no config word; 20 of them turn the product into a measurement). `DIAG_BUILD_CFG2` is NOT re-laid out, so its value and every decoder of it are unchanged. `cfg_words.py --design-cfg3` prints it today: **s21 `0xC30003FA`, s26 `0xC3000FFA`** — the two words that are identical today telling themselves apart — and `DSP4_PROFILE_SIGNAL=1` or `DSP4_BLOCK_DECIMATE=32` both raise the instrument bit to `0xC3800FFA`. Every quoted image md5 moves on the first rebuild (eight pairs listed); the four-edit apply step is written out. **D32 Rack, D32C and D32R have no fit row because they have no definition** — `defs/products/d32{rack,c,r}/` carry an intake report whose first line is *"no generated master cell list — run the def pipeline first"*, no product def and no mx-master. HUB ITEM. D64/D128 are above the D6 platform line and the graph could not carry them (`NUM_CH` 32, a 32-bit `CFG_CHAN_MASK`). **Bench restored and proved**: shipping bitstream back (`a1f6672af6c3`, FLASH OK attempt 1, IDCODE before and after), `blk_*` booted with CHIP_ID 1 and 2, BOOT_STAGE 7, 983.05/983.07 MHz measured, **90,054 and 90,049 blocks in 30.0 s with ZERO overruns on both chips** — and it took three restore passes to get one clean witness, which is recorded rather than smoothed. `matrix-app` active with **all three MCUs verified on the first restart**. All staged pairs `s20_*`…`s26_*` md5-unchanged; `s28_d16_*` and `s28_d12_*` staged as byte-identical copies of `s26_*` with a `config.txt` naming their three words. No deploy; `shipping.config`, `.s21` and `.s26` all unchanged. Write-up `MW/D32/DSP/dsp4-s28-20260911.md`; findings S28-1..S28-6.]   [model: opus]
 
 model: opus
