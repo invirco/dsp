@@ -6,6 +6,217 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE LOST MCU ANNOUNCE IS A COLLISION ON THE MX BUS (2026-09-11, session 31)
+
+Session: the announce measured on the wire with `matrix-app` stopped, the
+mechanism named, and B13 / S27-6 / S29 reconciled against it.
+
+### S31-1 — the lost announce is a COLLISION between H1S1 and H1S4, not an app race
+
+**Severity: HIGH (MCU firmware, fw-repo owned). Status: reproduced on the
+wire with `matrix-app` STOPPED and no app in the path, 2026-09-11.**
+
+All three slaves answer `S_RUN` on a fixed schedule — the whole announce
+burst is three lines inside **7 ms**, 208 ms after `S_RUN`, and on 14 trials
+that had the port to themselves it is 3 of 3 every time, millisecond-stable:
+
+```
+  +0.003 s   // resuming normal operation
+  +0.005 s   // debug only
+  +0.208 s   // H1S1 DSP
+  +0.211 s   // H1S4 SW Left
+  +0.215 s   // H1S3 SW Right
+```
+
+**H1S1 and H1S4 are 3 ms apart, and one line-time at 115200 is ~1.2 ms.**
+Replaying the same sequence with the host's first read deferred reproduces
+the fault with no app running — **6 failures in 40 trials, 15 %** against the
+app ladder's 1 in 8 — and what comes back is **not a missing line, it is a
+garbled one**:
+
+```
+0000  2f 2f 20 72 65 73 75 6d 69 6e 67 20 6e 6f 72 6d  |// resuming norm|
+0010  61 6c 20 6f 70 65 72 61 74 69 6f 6e 0a 0a 2f 2f  |al operation..//|
+0020  20 64 65 62 75 67 20 6f 6e 6c 79 0a 3a 0a 2f 2f  | debug only.:.//|
+0030  20 48 31 50 00 00 10 22 01 9a 5d 81 4c 65 66 74  | H1P..."..].Left|
+0040  0a 2f 2f 20 48 31 53 33 20 53 57 20 52 69 67 68  |.// H1S3 SW Righ|
+0050  74 0a 2e 0a 3a 0a ...                            |t...:...        |
+```
+
+`// H1S1 DSP\n// H1S4 SW Left\n` is 28 bytes. What arrived is `// H1`, then
+**nine bytes of framing wreckage**, then `Left\n` — 19 bytes. Two
+transmitters drove the line at once, the receiver lost framing, and H1S3,
+4 ms further on, came through clean.
+
+**Five of the six failures are this, and all five garble exactly H1S1+H1S4
+and leave H1S3 intact** — which is S27-6's "H1S1 and H1S4 fail together or
+not at all" **confirmed and explained**: they do not fail together by
+coincidence, they fail together because they collide with each other.
+
+`SRX`/`MRX` are multi-drop by design (`MW/D24/HW/hardware-map.md` §3a: the
+S/BUSY/SRX/MRX nets "are SHARED with U8 (M MCU) and enter LOGIC (U3)", and
+the J3/J4 harness takes them off-card), so several devices drive one net into
+the host with no arbitration on it.
+
+**The fix is in MCU firmware** (`mcu/H1S1/`, `mcu/H1S3/`, `mcu/H1S4/` in the
+fw tree): stagger the replies to `S_RUN` by more than one line-time — ≥5 ms
+with margin, against today's 3 ms — or have MH1 poll the slaves individually
+instead of broadcasting and letting all three answer. **Nothing in the app
+can fix it**, and no change is warranted to the 8 s verification window
+(S31-3).
+
+### S31-2 — the second grade: the bus wedges mid-burst, 0 of 3 and no heartbeat
+
+**Severity: HIGH (same cause). Status: reproduced on the wire 2026-09-11.**
+
+The sixth failure of the forty is different: `resuming` and `debug only`
+arrive and then **nothing at all — not even the heartbeat**:
+
+```
+trial 17: 0 of 3 []   rx=47B
+0000  2f 2f 20 72 65 73 75 6d 69 6e 67 20 6e 6f 72 6d  |// resuming norm|
+0010  61 6c 20 6f 70 65 72 61 74 69 6f 6e 0a 0a 2f 2f  |al operation..//|
+0020  20 64 65 62 75 67 20 6f 6e 6c 79 0a 3a 0a        | debug only.:.|
+```
+
+47 bytes in an 8 s drain against 160 on a clean trial, and MH1's `.`/`:`
+running-mode heartbeat — every ~253 ms on a healthy bus — stops dead. **The
+collision does not merely corrupt the announce; it can wedge the bus master
+mid-burst.**
+
+This grade is what the app's one failing restart shows, one announce further
+in: H1S1 logged clean and then no further `//` line at all —
+
+```
+  08:11:00.741953  MCU verified: // H1S1 DSP
+  08:11:06.973369  WARNING: MCU not verified after S_RUN: H1S3
+  08:11:06.973428  WARNING: MCU not verified after S_RUN: H1S4
+```
+
+— and it is the grade S29 met five times. So **S29's 0 of 3 is a real state
+of this unit**, not only a reading error; what does not stand in S29 is the
+evidence it was read from (S31-4).
+
+### S31-3 — the 8 s window has 6.1 s of slack; widening it fixes nothing
+
+**Severity: none — it closes a suspect. Status: measured, 2026-09-11.**
+
+B13's suspects included the announce window. From the app's own log on a
+clean restart:
+
+```
+  08:11:31.3288  open /dev/serial0 at 115200
+  08:11:31.3656  S_RESET '*' x2            (Boot() constructor)
+  08:11:34.8359  S_RUN   '+'               = +3.470 s
+  08:11:36.6708  MCU verified: // H1S1 DSP = S_RUN +1.835 s
+  08:11:36.7091  MCU verified: // H1S3 SW Right = S_RUN +1.873 s
+  08:11:42.8368  verdict                   = S_RUN +8.001 s
+```
+
+The last announce lands at `S_RUN` +1.87 s and the verdict fires at +8.0 s.
+**The window is not the race.** Neither is "restart it twice" a workaround —
+S27-6 said so and this session's ladder agrees: the 15 % is per restart and
+independent.
+
+### S31-4 — the ladder: 7 of 8, and what in S29's evidence does not stand
+
+**Severity: MEDIUM (record correction + instrument). Status: 2026-09-11.**
+
+Eight `systemctl restart matrix-app; sleep 32` restarts, verdict from the
+whole of `/home/app/logs/log` each time (it is rewritten at app start), app
+md5 `774752174a7f59637a082031f3fd4231` re-read at every one and unchanged:
+**7 of 8 verified 3 of 3, 1 of 8 verified 1 of 3 (H1S1 only), 0 of 8 verified
+0 of 3** — against B13/S27's 5/2/0 and S29's 0/0/5.
+
+S27-6's pair claim is confirmed (S31-1). What is wrong is the generalisation
+that followed it — "H1S3 announces every time and is never the one that
+fails". The one failure here **lost H1S3 and H1S4 and kept H1S1**, because it
+is the wedge grade (S31-2) and not the collision grade. **There is no immune
+slave.**
+
+**S29's instrument.** S29 records that the app "holds `/dev/ttyAMA0`, and its
+journal carries no MCU text at all". `journalctl -u matrix-app` carries **no
+MCU text on any restart, ever** — for the whole of 2026-09-11, across the
+seven restarts here that each verified 3 of 3, it returns **0** matches for
+`MCU verified|MCU boot verified|not verified`. The app writes those lines to
+`/home/app/logs/log` alone. An absence was read off an instrument that cannot
+show a presence; the conclusion happened to be right (S31-2) and the evidence
+never supported it.
+
+**Both discriminators gate 3 nominated are excluded by the unit's own audit.**
+The unit was not power-cycled between S29 and this session: uptime 4:25 at
+08:06 BST puts boot at **03:40 BST**, which predates the S29 dispatch
+(05:05Z). And the CPLD is not the difference — every flash since boot, from
+the `sudo` audit:
+
+```
+  04:06:14  dsp4_logic_driveall.e13b5dec84e0
+  05:47:49  dsp4_logic.a1f6672af6c3        (shipping)
+  06:12:22  dsp4_logic_driveall.e13b5dec84e0
+  07:19:36  dsp4_logic_maincap.d903ae1ac4a9
+  07:37:25  dsp4_logic_pisel.bd9c100db7c2
+  07:42:35  dsp4_logic.a1f6672af6c3        (shipping)
+```
+
+S29's restarts (05:50:54 / 05:53:20 / 05:55:37 / 05:55:58) ran with the
+**shipping** bitstream already loaded at 05:47:49 — the same one loaded now.
+The MH/panel UART copper does cross this CPLD (`dsp4_logic.qsf`:18-31 names
+`MHRX/MHTX/SRX/MRX/PTRX/S5-7/BUSY` as the pins a mis-built bitstream
+ground-drives, hardware-proven 2026-08-19), so the question was fair; the
+timeline answers it no. **S28 and S29 differ by nothing but which face of a
+15 % dice they saw**, five times in a row against a 1-in-13,000 chance — the
+wedge grade evidently clusters, which is itself worth the firmware's
+attention.
+
+### S31-5 — the app's only serial reader is started after the thing it must not miss
+
+**Severity: MEDIUM (app, mx26-owned). Status: measured and located in source,
+2026-09-11. NOT the cause of S31-1 — a separate defect.**
+
+`// resuming normal operation` and `// debug only` are **2 ms apart on the
+wire**. In the app's own trace they are **17.5 ms apart**
+(`08:11:00.708267` → `08:11:00.725723`). Two lines that are provably 2 ms
+apart take 17.5 ms to come out of the app, so the 18.5/19.8 ms spacing
+between the three logged announces — which repeats to better than 1 ms on
+every clean restart — is host-side, not bus scheduling.
+
+From the source: `GetRxData()`, the app's only serial reader, is called from
+exactly one place — `UiTimerCallback` → `Dispatcher.UIThread.Post`
+(`Boot.cs:780`), on the Avalonia UI thread behind a reentrancy guard — and
+the timer that drives it is started at the **end** of `Boot.Loop()`
+(`Boot.cs:558`), **after** `S_RUN` is written at `Boot.cs:517`. Nothing
+drains `/dev/serial0` while the announce is on the wire, so **every announce
+the app has ever seen was read out of a backlog** during the busiest seconds
+of startup, one line per tick, with a synchronous `AppContext.log` file
+append per line (`TxRxData SLOW: 9.78ms / 17.18ms / 19.38ms` in the trace).
+`Boot.cs:545` half-knows it already: `WaitForResume()` is disabled with the
+comment "MCU sends the string after boot data fills the buffer, which drains
+too slowly".
+
+Proposed to the hub (mx26 owns the app; nothing was edited here): start the
+reader — or a dedicated reader thread that owns the port and feeds a queue —
+**before** `S_RUN` is written, and take the file append off the read path.
+It does not fix S31-1, but it removes the app from the suspect list and makes
+the announce arrive in 210 ms instead of 1.84 s, which matters because
+`RunAnalogBringUp()` is gated on this verification
+(`AnalogBringUp.ClockGates` fails the "S MCU (H1S1) alive" gate unless H1S1
+is in `_verifiedMcus`).
+
+### S31-6 — two readers on one tty steal each other's bytes
+
+**Severity: instrument, self-inflicted. Status: recorded so it is not
+mistaken for signal.**
+
+A 20-trial wire run and a defer sweep were briefly launched concurrently on
+`/dev/ttyAMA0`. Trials 1–10 of the wire run are clean and byte-identical
+(`lines=44`); from trial 11 the line count collapses to 21–25 and trial 12
+reads 2 of 3 — a false positive for exactly the fault under investigation.
+Those trials are discarded and every figure in S31-1..S31-5 is from a run
+that had the port to itself. `matrix-app` is itself one such reader: the wire
+cannot be watched while the app is running, which is why S31-1's separation
+had to be done with the app stopped — and why the wire has never been read
+on a restart the app itself scored.
+
 ## WHAT D32 PAYS FOR SCOPE CLASS 0, AND THE LATENCY BAR (2026-09-11, session 29)
 
 Session: the 32 snake nodes named and weighed on the part as one config
