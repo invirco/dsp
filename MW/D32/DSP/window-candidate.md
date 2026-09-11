@@ -338,6 +338,54 @@ candidate's own number now.
 **Nothing else moved.** No cell, no address, no config word, no `defs` pin,
 no staged pair, and `shipping.config`/`.s21`/`.s26` are unchanged.
 
+## 4b. ADDED 2026-09-11 (S32) — the lead of §4a, measured: the twelfth aux fits
+
+**§4a left a lever and S32 weighed it. Bypassing the aux inputs that are
+switched OFF returns 4.8–5.2 points of chip 2, and every D32 row that
+overruns runs clean without them.** One build flag
+(`DSP4_AUXIN_BYPASS`), one non-shipping pair (`s32_*`), both arms measured
+on the same night with the same instrument:
+
+| row | the candidate (s26) | + the bypass (s32) | missed blocks |
+|---|--:|--:|---|
+| B silent, loaded | **100.84 %** | **95.64 %** | **949 → 0** |
+| use 6:32, WORST USE | **100.85 %** | **95.69 %** | **950 → 0** |
+| A silent, default | 75.92 % | 71.08 % | 0 → 0 |
+
+Chip 1 does not move: it has no node of the class, and its image is
+byte-identical in both arms (`6396187c`).
+
+**It is TWELVE nodes, not the eight §4a named** — `C2_SNK_IN_01..08` plus the
+codec, Pi, USB and BT feeds. None of them is scoped to a product, all of them
+boot `on = 0`, and no capacity row this programme has taken turns any of them
+on. The price was being CALLED, and it is 0.4 points a node.
+
+**What PW is being asked, and what is NOT being asked.** Nothing about the
+snake moves: the sixteen `Snk[1-8]On/Level` cells are written and read
+exactly as before, and a snake return that is switched ON costs what it costs
+today — S32 gate 4 flipped four of them on the part and they pass their input
+at unity on the block their cell lands, and publish exact silence when it
+goes back. What changes is that a switched-OFF aux input stops being called.
+
+**It is not in this candidate.** `shipping.config.s26` does not carry the
+flag; `shipping.config`, `.s21` and `.s26` are unchanged, no staged pair was
+replaced, and the arm is `~/dspboot/s32_*`. Taking it into the window is PW's
+call and it needs the audio bar this candidate carries (famverify and the
+numeric arms), which S32 did not re-run — its audio evidence is the gate-4
+flip and the fact that the park writes the same zeros the body would.
+
+**One thing to know before it ships**: the park leaves `_auxin_q_` holding
+its last coefficient while the node is off (S32-3). It is inert — the sample
+path never runs with a stale `q` — and the fix is one instruction, named in
+the finding and deliberately not made in the session that measured the image.
+
+**Read S32's rows with this caveat**: the `driveall` bitstream was NOT loaded
+(the session was told not to reflash the CPLD with the analog board possibly
+attached), so both arms ran with the CM4's playback on one lane. Rows A and B
+are stimulus-stopped rows and are directly comparable to §4a's; the rows with
+the stimulus on are a partial regime in BOTH arms and are labelled as such in
+`MW/D32/DSP/dsp4-s32-20260911.md`.
+
 ## 5. What this candidate does NOT bring to the window
 
 * **R6–R11** — the matrix as composite rows and the FX topology — are held

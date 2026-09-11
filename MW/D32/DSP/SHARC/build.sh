@@ -248,6 +248,17 @@ DSP4_SCOPE_GATE="${DSP4_SCOPE_GATE:-1}"
 CFLAGS="$CFLAGS -DDSP4_SCOPE_GATE=$DSP4_SCOPE_GATE"
 ASMFLAGS="$ASMFLAGS -DDSP4_SCOPE_GATE=$DSP4_SCOPE_GATE"
 
+# THE AUX_INPUT BYPASS (S32). A PROPOSAL, DEFAULT OFF, and the default emits
+# not one byte -- the window candidate rebuilds byte for byte with it unset.
+# With it on, a chip-2 AUX_INPUT whose `on` cell is 0 publishes one block of
+# silence and is then not CALLED at all until the cell goes back to 1. Twelve
+# such nodes on chip 2 (eight D32 snake returns, plus codec/Pi/USB/BT) are off
+# in every capacity row this programme has taken, and S29 measured what being
+# called costs them. Block-kernel builds only: the gate is per block.
+DSP4_AUXIN_BYPASS="${DSP4_AUXIN_BYPASS:-0}"
+CFLAGS="$CFLAGS -DDSP4_AUXIN_BYPASS=$DSP4_AUXIN_BYPASS"
+ASMFLAGS="$ASMFLAGS -DDSP4_AUXIN_BYPASS=$DSP4_AUXIN_BYPASS"
+
 # BLOCK-AWARE SCOPE WITNESS (DSP4_SCOPE_BLK_TAP, 2026-09-09, findings S9-5).
 # MEASUREMENT BUILD ONLY -- never in a shipping image, and the default 0
 # emits not one byte, which is checked by rebuilding the shipping pair and

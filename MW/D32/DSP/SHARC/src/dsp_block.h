@@ -444,6 +444,30 @@
 #define DSP4_CHAN_MASK 1
 #endif
 
+/* THE AUX_INPUT BYPASS (S32). A PROPOSAL, DEFAULT OFF.
+ *
+ * Chip 2 carries twelve AUX_INPUT nodes -- the eight D32 snake returns and
+ * the codec, Pi, USB and BT feeds -- and every one of them comes up with
+ * `on = 0`. S29 measured the D32 scope class at 3.43-3.69 points of chip 2
+ * and found the expensive half of it to be these nodes being CALLED while
+ * switched off: the block wrapper stages BLOCK samples through a call/rts
+ * pair each to multiply them by a coefficient the `on` cell has already
+ * forced to zero.
+ *
+ * With this on, a switched-off AUX_INPUT publishes one block of silence (the
+ * park, S23 gate 2's mechanism) and the chain then stops calling it at all
+ * until `on` goes back to 1 -- six instructions a node a block against about
+ * 1,100 cycles. The node is REACHED AGAIN ON THE BLOCK ITS CELL FLIPS,
+ * because the gate reads the same `on` word the host writes; there is no
+ * config word and no commit in the path.
+ *
+ * 0 EMITS NOT ONE BYTE, which is the point of the guard: the window
+ * candidate rebuilds byte for byte with this at its default, and the arm
+ * that carries it is a pair of its own. */
+#ifndef DSP4_AUXIN_BYPASS
+#define DSP4_AUXIN_BYPASS 0
+#endif
+
 /* THE CHANNEL MATRIX SEND SPI BLOCK (S22-4).
  *
  * spi_handler.asm bumps _ctl_epoch[addr / 144] so a strip node

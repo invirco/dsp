@@ -529,6 +529,32 @@
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
 .extern _product_id;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+.extern _auxin_on_C2_CODEC_AUX_IN;
+.extern _auxin_byp_C2_CODEC_AUX_IN;
+.extern _auxin_on_C2_PI_IN;
+.extern _auxin_byp_C2_PI_IN;
+.extern _auxin_on_C2_SNK_IN_01;
+.extern _auxin_byp_C2_SNK_IN_01;
+.extern _auxin_on_C2_SNK_IN_02;
+.extern _auxin_byp_C2_SNK_IN_02;
+.extern _auxin_on_C2_SNK_IN_03;
+.extern _auxin_byp_C2_SNK_IN_03;
+.extern _auxin_on_C2_SNK_IN_04;
+.extern _auxin_byp_C2_SNK_IN_04;
+.extern _auxin_on_C2_SNK_IN_05;
+.extern _auxin_byp_C2_SNK_IN_05;
+.extern _auxin_on_C2_SNK_IN_06;
+.extern _auxin_byp_C2_SNK_IN_06;
+.extern _auxin_on_C2_SNK_IN_07;
+.extern _auxin_byp_C2_SNK_IN_07;
+.extern _auxin_on_C2_SNK_IN_08;
+.extern _auxin_byp_C2_SNK_IN_08;
+.extern _auxin_on_C2_USB_IN;
+.extern _auxin_byp_C2_USB_IN;
+.extern _auxin_on_C2_BT_IN;
+.extern _auxin_byp_C2_BT_IN;
+#endif
 .global _chip2_process_all;
 _chip2_process_all:
 /* CHIP-2 PAIR ORDER (DSP4_PAIRED_GRAPH). Per family,
@@ -967,6 +993,16 @@ _chip2_process_all:
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
 .c2brun0_end:
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+    /* C2_CODEC_AUX_IN: skip while `on` is 0 and the block is already silent */
+    r2 = dm(_auxin_on_C2_CODEC_AUX_IN);
+    r2 = pass r2;
+    if ne jump (pc, .c2brunabC2_CODEC_AUX_IN_run);
+    r2 = dm(_auxin_byp_C2_CODEC_AUX_IN);
+    r2 = pass r2;
+    if ne jump (pc, .c2brunabC2_CODEC_AUX_IN_end);
+.c2brunabC2_CODEC_AUX_IN_run:
+#endif
 #if (DSP4_NODE_LIMIT2 == 0 || 37 < DSP4_NODE_LIMIT2)
     call _C2_CODEC_AUX_IN_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
@@ -974,6 +1010,19 @@ _chip2_process_all:
     r1 = _blk_C2_CODEC_AUX_IN;
     call _scope_tap;
 #endif
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+.c2brunabC2_CODEC_AUX_IN_end:
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+    /* C2_PI_IN: skip while `on` is 0 and the block is already silent */
+    r2 = dm(_auxin_on_C2_PI_IN);
+    r2 = pass r2;
+    if ne jump (pc, .c2brunabC2_PI_IN_run);
+    r2 = dm(_auxin_byp_C2_PI_IN);
+    r2 = pass r2;
+    if ne jump (pc, .c2brunabC2_PI_IN_end);
+.c2brunabC2_PI_IN_run:
 #endif
 #if (DSP4_NODE_LIMIT2 == 0 || 38 < DSP4_NODE_LIMIT2)
     call _C2_PI_IN_process;
@@ -983,12 +1032,25 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+.c2brunabC2_PI_IN_end:
+#endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
     /* nodes 39..46 are D32-only */
     r2 = dm(_product_id);
     r3 = 0;
     comp(r2, r3);
     if ne jump (pc, .c2brun1_end);
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+    /* C2_SNK_IN_01: skip while `on` is 0 and the block is already silent */
+    r2 = dm(_auxin_on_C2_SNK_IN_01);
+    r2 = pass r2;
+    if ne jump (pc, .c2brunabC2_SNK_IN_01_run);
+    r2 = dm(_auxin_byp_C2_SNK_IN_01);
+    r2 = pass r2;
+    if ne jump (pc, .c2brunabC2_SNK_IN_01_end);
+.c2brunabC2_SNK_IN_01_run:
 #endif
 #if (DSP4_NODE_LIMIT2 == 0 || 39 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_01_process;
@@ -998,6 +1060,19 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+.c2brunabC2_SNK_IN_01_end:
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+    /* C2_SNK_IN_02: skip while `on` is 0 and the block is already silent */
+    r2 = dm(_auxin_on_C2_SNK_IN_02);
+    r2 = pass r2;
+    if ne jump (pc, .c2brunabC2_SNK_IN_02_run);
+    r2 = dm(_auxin_byp_C2_SNK_IN_02);
+    r2 = pass r2;
+    if ne jump (pc, .c2brunabC2_SNK_IN_02_end);
+.c2brunabC2_SNK_IN_02_run:
+#endif
 #if (DSP4_NODE_LIMIT2 == 0 || 40 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_02_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
@@ -1005,6 +1080,19 @@ _chip2_process_all:
     r1 = _blk_C2_SNK_IN_02;
     call _scope_tap;
 #endif
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+.c2brunabC2_SNK_IN_02_end:
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+    /* C2_SNK_IN_03: skip while `on` is 0 and the block is already silent */
+    r2 = dm(_auxin_on_C2_SNK_IN_03);
+    r2 = pass r2;
+    if ne jump (pc, .c2brunabC2_SNK_IN_03_run);
+    r2 = dm(_auxin_byp_C2_SNK_IN_03);
+    r2 = pass r2;
+    if ne jump (pc, .c2brunabC2_SNK_IN_03_end);
+.c2brunabC2_SNK_IN_03_run:
 #endif
 #if (DSP4_NODE_LIMIT2 == 0 || 41 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_03_process;
@@ -1014,6 +1102,19 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+.c2brunabC2_SNK_IN_03_end:
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+    /* C2_SNK_IN_04: skip while `on` is 0 and the block is already silent */
+    r2 = dm(_auxin_on_C2_SNK_IN_04);
+    r2 = pass r2;
+    if ne jump (pc, .c2brunabC2_SNK_IN_04_run);
+    r2 = dm(_auxin_byp_C2_SNK_IN_04);
+    r2 = pass r2;
+    if ne jump (pc, .c2brunabC2_SNK_IN_04_end);
+.c2brunabC2_SNK_IN_04_run:
+#endif
 #if (DSP4_NODE_LIMIT2 == 0 || 42 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_04_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
@@ -1021,6 +1122,19 @@ _chip2_process_all:
     r1 = _blk_C2_SNK_IN_04;
     call _scope_tap;
 #endif
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+.c2brunabC2_SNK_IN_04_end:
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+    /* C2_SNK_IN_05: skip while `on` is 0 and the block is already silent */
+    r2 = dm(_auxin_on_C2_SNK_IN_05);
+    r2 = pass r2;
+    if ne jump (pc, .c2brunabC2_SNK_IN_05_run);
+    r2 = dm(_auxin_byp_C2_SNK_IN_05);
+    r2 = pass r2;
+    if ne jump (pc, .c2brunabC2_SNK_IN_05_end);
+.c2brunabC2_SNK_IN_05_run:
 #endif
 #if (DSP4_NODE_LIMIT2 == 0 || 43 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_05_process;
@@ -1030,6 +1144,19 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+.c2brunabC2_SNK_IN_05_end:
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+    /* C2_SNK_IN_06: skip while `on` is 0 and the block is already silent */
+    r2 = dm(_auxin_on_C2_SNK_IN_06);
+    r2 = pass r2;
+    if ne jump (pc, .c2brunabC2_SNK_IN_06_run);
+    r2 = dm(_auxin_byp_C2_SNK_IN_06);
+    r2 = pass r2;
+    if ne jump (pc, .c2brunabC2_SNK_IN_06_end);
+.c2brunabC2_SNK_IN_06_run:
+#endif
 #if (DSP4_NODE_LIMIT2 == 0 || 44 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_06_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
@@ -1037,6 +1164,19 @@ _chip2_process_all:
     r1 = _blk_C2_SNK_IN_06;
     call _scope_tap;
 #endif
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+.c2brunabC2_SNK_IN_06_end:
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+    /* C2_SNK_IN_07: skip while `on` is 0 and the block is already silent */
+    r2 = dm(_auxin_on_C2_SNK_IN_07);
+    r2 = pass r2;
+    if ne jump (pc, .c2brunabC2_SNK_IN_07_run);
+    r2 = dm(_auxin_byp_C2_SNK_IN_07);
+    r2 = pass r2;
+    if ne jump (pc, .c2brunabC2_SNK_IN_07_end);
+.c2brunabC2_SNK_IN_07_run:
 #endif
 #if (DSP4_NODE_LIMIT2 == 0 || 45 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_07_process;
@@ -1046,6 +1186,19 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+.c2brunabC2_SNK_IN_07_end:
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+    /* C2_SNK_IN_08: skip while `on` is 0 and the block is already silent */
+    r2 = dm(_auxin_on_C2_SNK_IN_08);
+    r2 = pass r2;
+    if ne jump (pc, .c2brunabC2_SNK_IN_08_run);
+    r2 = dm(_auxin_byp_C2_SNK_IN_08);
+    r2 = pass r2;
+    if ne jump (pc, .c2brunabC2_SNK_IN_08_end);
+.c2brunabC2_SNK_IN_08_run:
+#endif
 #if (DSP4_NODE_LIMIT2 == 0 || 46 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_08_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
@@ -1053,6 +1206,9 @@ _chip2_process_all:
     r1 = _blk_C2_SNK_IN_08;
     call _scope_tap;
 #endif
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+.c2brunabC2_SNK_IN_08_end:
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
 .c2brun1_end:
@@ -2421,6 +2577,16 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+    /* C2_USB_IN: skip while `on` is 0 and the block is already silent */
+    r2 = dm(_auxin_on_C2_USB_IN);
+    r2 = pass r2;
+    if ne jump (pc, .c2brunabC2_USB_IN_run);
+    r2 = dm(_auxin_byp_C2_USB_IN);
+    r2 = pass r2;
+    if ne jump (pc, .c2brunabC2_USB_IN_end);
+.c2brunabC2_USB_IN_run:
+#endif
 #if (DSP4_NODE_LIMIT2 == 0 || 145 < DSP4_NODE_LIMIT2)
     call _C2_USB_IN_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
@@ -2429,6 +2595,19 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+.c2brunabC2_USB_IN_end:
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+    /* C2_BT_IN: skip while `on` is 0 and the block is already silent */
+    r2 = dm(_auxin_on_C2_BT_IN);
+    r2 = pass r2;
+    if ne jump (pc, .c2brunabC2_BT_IN_run);
+    r2 = dm(_auxin_byp_C2_BT_IN);
+    r2 = pass r2;
+    if ne jump (pc, .c2brunabC2_BT_IN_end);
+.c2brunabC2_BT_IN_run:
+#endif
 #if (DSP4_NODE_LIMIT2 == 0 || 146 < DSP4_NODE_LIMIT2)
     call _C2_BT_IN_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
@@ -2436,6 +2615,9 @@ _chip2_process_all:
     r1 = _blk_C2_BT_IN;
     call _scope_tap;
 #endif
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+.c2brunabC2_BT_IN_end:
 #endif
 #if (DSP4_NODE_LIMIT2 == 0 || 147 < DSP4_NODE_LIMIT2)
     call _C2_MIX_MAIN_L_process;
@@ -3594,6 +3776,16 @@ _chip2_process_all:
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
 .c2grun0_end:
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+    /* C2_CODEC_AUX_IN: skip while `on` is 0 and the block is already silent */
+    r2 = dm(_auxin_on_C2_CODEC_AUX_IN);
+    r2 = pass r2;
+    if ne jump (pc, .c2grunabC2_CODEC_AUX_IN_run);
+    r2 = dm(_auxin_byp_C2_CODEC_AUX_IN);
+    r2 = pass r2;
+    if ne jump (pc, .c2grunabC2_CODEC_AUX_IN_end);
+.c2grunabC2_CODEC_AUX_IN_run:
+#endif
 #if (DSP4_NODE_LIMIT2 == 0 || 37 < DSP4_NODE_LIMIT2)
     call _C2_CODEC_AUX_IN_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
@@ -3601,6 +3793,19 @@ _chip2_process_all:
     r1 = _blk_C2_CODEC_AUX_IN;
     call _scope_tap;
 #endif
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+.c2grunabC2_CODEC_AUX_IN_end:
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+    /* C2_PI_IN: skip while `on` is 0 and the block is already silent */
+    r2 = dm(_auxin_on_C2_PI_IN);
+    r2 = pass r2;
+    if ne jump (pc, .c2grunabC2_PI_IN_run);
+    r2 = dm(_auxin_byp_C2_PI_IN);
+    r2 = pass r2;
+    if ne jump (pc, .c2grunabC2_PI_IN_end);
+.c2grunabC2_PI_IN_run:
 #endif
 #if (DSP4_NODE_LIMIT2 == 0 || 38 < DSP4_NODE_LIMIT2)
     call _C2_PI_IN_process;
@@ -3610,12 +3815,25 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+.c2grunabC2_PI_IN_end:
+#endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
     /* nodes 39..46 are D32-only */
     r2 = dm(_product_id);
     r3 = 0;
     comp(r2, r3);
     if ne jump (pc, .c2grun1_end);
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+    /* C2_SNK_IN_01: skip while `on` is 0 and the block is already silent */
+    r2 = dm(_auxin_on_C2_SNK_IN_01);
+    r2 = pass r2;
+    if ne jump (pc, .c2grunabC2_SNK_IN_01_run);
+    r2 = dm(_auxin_byp_C2_SNK_IN_01);
+    r2 = pass r2;
+    if ne jump (pc, .c2grunabC2_SNK_IN_01_end);
+.c2grunabC2_SNK_IN_01_run:
 #endif
 #if (DSP4_NODE_LIMIT2 == 0 || 39 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_01_process;
@@ -3625,6 +3843,19 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+.c2grunabC2_SNK_IN_01_end:
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+    /* C2_SNK_IN_02: skip while `on` is 0 and the block is already silent */
+    r2 = dm(_auxin_on_C2_SNK_IN_02);
+    r2 = pass r2;
+    if ne jump (pc, .c2grunabC2_SNK_IN_02_run);
+    r2 = dm(_auxin_byp_C2_SNK_IN_02);
+    r2 = pass r2;
+    if ne jump (pc, .c2grunabC2_SNK_IN_02_end);
+.c2grunabC2_SNK_IN_02_run:
+#endif
 #if (DSP4_NODE_LIMIT2 == 0 || 40 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_02_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
@@ -3632,6 +3863,19 @@ _chip2_process_all:
     r1 = _blk_C2_SNK_IN_02;
     call _scope_tap;
 #endif
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+.c2grunabC2_SNK_IN_02_end:
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+    /* C2_SNK_IN_03: skip while `on` is 0 and the block is already silent */
+    r2 = dm(_auxin_on_C2_SNK_IN_03);
+    r2 = pass r2;
+    if ne jump (pc, .c2grunabC2_SNK_IN_03_run);
+    r2 = dm(_auxin_byp_C2_SNK_IN_03);
+    r2 = pass r2;
+    if ne jump (pc, .c2grunabC2_SNK_IN_03_end);
+.c2grunabC2_SNK_IN_03_run:
 #endif
 #if (DSP4_NODE_LIMIT2 == 0 || 41 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_03_process;
@@ -3641,6 +3885,19 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+.c2grunabC2_SNK_IN_03_end:
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+    /* C2_SNK_IN_04: skip while `on` is 0 and the block is already silent */
+    r2 = dm(_auxin_on_C2_SNK_IN_04);
+    r2 = pass r2;
+    if ne jump (pc, .c2grunabC2_SNK_IN_04_run);
+    r2 = dm(_auxin_byp_C2_SNK_IN_04);
+    r2 = pass r2;
+    if ne jump (pc, .c2grunabC2_SNK_IN_04_end);
+.c2grunabC2_SNK_IN_04_run:
+#endif
 #if (DSP4_NODE_LIMIT2 == 0 || 42 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_04_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
@@ -3648,6 +3905,19 @@ _chip2_process_all:
     r1 = _blk_C2_SNK_IN_04;
     call _scope_tap;
 #endif
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+.c2grunabC2_SNK_IN_04_end:
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+    /* C2_SNK_IN_05: skip while `on` is 0 and the block is already silent */
+    r2 = dm(_auxin_on_C2_SNK_IN_05);
+    r2 = pass r2;
+    if ne jump (pc, .c2grunabC2_SNK_IN_05_run);
+    r2 = dm(_auxin_byp_C2_SNK_IN_05);
+    r2 = pass r2;
+    if ne jump (pc, .c2grunabC2_SNK_IN_05_end);
+.c2grunabC2_SNK_IN_05_run:
 #endif
 #if (DSP4_NODE_LIMIT2 == 0 || 43 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_05_process;
@@ -3657,6 +3927,19 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+.c2grunabC2_SNK_IN_05_end:
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+    /* C2_SNK_IN_06: skip while `on` is 0 and the block is already silent */
+    r2 = dm(_auxin_on_C2_SNK_IN_06);
+    r2 = pass r2;
+    if ne jump (pc, .c2grunabC2_SNK_IN_06_run);
+    r2 = dm(_auxin_byp_C2_SNK_IN_06);
+    r2 = pass r2;
+    if ne jump (pc, .c2grunabC2_SNK_IN_06_end);
+.c2grunabC2_SNK_IN_06_run:
+#endif
 #if (DSP4_NODE_LIMIT2 == 0 || 44 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_06_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
@@ -3664,6 +3947,19 @@ _chip2_process_all:
     r1 = _blk_C2_SNK_IN_06;
     call _scope_tap;
 #endif
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+.c2grunabC2_SNK_IN_06_end:
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+    /* C2_SNK_IN_07: skip while `on` is 0 and the block is already silent */
+    r2 = dm(_auxin_on_C2_SNK_IN_07);
+    r2 = pass r2;
+    if ne jump (pc, .c2grunabC2_SNK_IN_07_run);
+    r2 = dm(_auxin_byp_C2_SNK_IN_07);
+    r2 = pass r2;
+    if ne jump (pc, .c2grunabC2_SNK_IN_07_end);
+.c2grunabC2_SNK_IN_07_run:
 #endif
 #if (DSP4_NODE_LIMIT2 == 0 || 45 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_07_process;
@@ -3673,6 +3969,19 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+.c2grunabC2_SNK_IN_07_end:
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+    /* C2_SNK_IN_08: skip while `on` is 0 and the block is already silent */
+    r2 = dm(_auxin_on_C2_SNK_IN_08);
+    r2 = pass r2;
+    if ne jump (pc, .c2grunabC2_SNK_IN_08_run);
+    r2 = dm(_auxin_byp_C2_SNK_IN_08);
+    r2 = pass r2;
+    if ne jump (pc, .c2grunabC2_SNK_IN_08_end);
+.c2grunabC2_SNK_IN_08_run:
+#endif
 #if (DSP4_NODE_LIMIT2 == 0 || 46 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_08_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
@@ -3680,6 +3989,9 @@ _chip2_process_all:
     r1 = _blk_C2_SNK_IN_08;
     call _scope_tap;
 #endif
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+.c2grunabC2_SNK_IN_08_end:
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
 .c2grun1_end:
@@ -5156,6 +5468,16 @@ _chip2_process_all:
     call _C2_MTR_SUB_process;
 #endif
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+    /* C2_USB_IN: skip while `on` is 0 and the block is already silent */
+    r2 = dm(_auxin_on_C2_USB_IN);
+    r2 = pass r2;
+    if ne jump (pc, .c2grunabC2_USB_IN_run);
+    r2 = dm(_auxin_byp_C2_USB_IN);
+    r2 = pass r2;
+    if ne jump (pc, .c2grunabC2_USB_IN_end);
+.c2grunabC2_USB_IN_run:
+#endif
 #if (DSP4_NODE_LIMIT2 == 0 || 171 < DSP4_NODE_LIMIT2)
     call _C2_USB_IN_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
@@ -5164,6 +5486,19 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+.c2grunabC2_USB_IN_end:
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+    /* C2_BT_IN: skip while `on` is 0 and the block is already silent */
+    r2 = dm(_auxin_on_C2_BT_IN);
+    r2 = pass r2;
+    if ne jump (pc, .c2grunabC2_BT_IN_run);
+    r2 = dm(_auxin_byp_C2_BT_IN);
+    r2 = pass r2;
+    if ne jump (pc, .c2grunabC2_BT_IN_end);
+.c2grunabC2_BT_IN_run:
+#endif
 #if (DSP4_NODE_LIMIT2 == 0 || 172 < DSP4_NODE_LIMIT2)
     call _C2_BT_IN_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
@@ -5171,6 +5506,9 @@ _chip2_process_all:
     r1 = _blk_C2_BT_IN;
     call _scope_tap;
 #endif
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+.c2grunabC2_BT_IN_end:
 #endif
 #if (DSP4_NODE_LIMIT2 == 0 || 173 < DSP4_NODE_LIMIT2)
     call _C2_MIX_MAIN_L_process;
@@ -6251,6 +6589,16 @@ _chip2_process_all:
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
 .sgrun0_end:
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+    /* C2_CODEC_AUX_IN: skip while `on` is 0 and the block is already silent */
+    r2 = dm(_auxin_on_C2_CODEC_AUX_IN);
+    r2 = pass r2;
+    if ne jump (pc, .sgrunabC2_CODEC_AUX_IN_run);
+    r2 = dm(_auxin_byp_C2_CODEC_AUX_IN);
+    r2 = pass r2;
+    if ne jump (pc, .sgrunabC2_CODEC_AUX_IN_end);
+.sgrunabC2_CODEC_AUX_IN_run:
+#endif
 #if (DSP4_NODE_LIMIT2 == 0 || 37 < DSP4_NODE_LIMIT2)
     call _C2_CODEC_AUX_IN_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
@@ -6258,6 +6606,19 @@ _chip2_process_all:
     r1 = _blk_C2_CODEC_AUX_IN;
     call _scope_tap;
 #endif
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+.sgrunabC2_CODEC_AUX_IN_end:
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+    /* C2_PI_IN: skip while `on` is 0 and the block is already silent */
+    r2 = dm(_auxin_on_C2_PI_IN);
+    r2 = pass r2;
+    if ne jump (pc, .sgrunabC2_PI_IN_run);
+    r2 = dm(_auxin_byp_C2_PI_IN);
+    r2 = pass r2;
+    if ne jump (pc, .sgrunabC2_PI_IN_end);
+.sgrunabC2_PI_IN_run:
 #endif
 #if (DSP4_NODE_LIMIT2 == 0 || 38 < DSP4_NODE_LIMIT2)
     call _C2_PI_IN_process;
@@ -6267,12 +6628,25 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+.sgrunabC2_PI_IN_end:
+#endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
     /* nodes 39..46 are D32-only */
     r2 = dm(_product_id);
     r3 = 0;
     comp(r2, r3);
     if ne jump (pc, .sgrun1_end);
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+    /* C2_SNK_IN_01: skip while `on` is 0 and the block is already silent */
+    r2 = dm(_auxin_on_C2_SNK_IN_01);
+    r2 = pass r2;
+    if ne jump (pc, .sgrunabC2_SNK_IN_01_run);
+    r2 = dm(_auxin_byp_C2_SNK_IN_01);
+    r2 = pass r2;
+    if ne jump (pc, .sgrunabC2_SNK_IN_01_end);
+.sgrunabC2_SNK_IN_01_run:
 #endif
 #if (DSP4_NODE_LIMIT2 == 0 || 39 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_01_process;
@@ -6282,6 +6656,19 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+.sgrunabC2_SNK_IN_01_end:
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+    /* C2_SNK_IN_02: skip while `on` is 0 and the block is already silent */
+    r2 = dm(_auxin_on_C2_SNK_IN_02);
+    r2 = pass r2;
+    if ne jump (pc, .sgrunabC2_SNK_IN_02_run);
+    r2 = dm(_auxin_byp_C2_SNK_IN_02);
+    r2 = pass r2;
+    if ne jump (pc, .sgrunabC2_SNK_IN_02_end);
+.sgrunabC2_SNK_IN_02_run:
+#endif
 #if (DSP4_NODE_LIMIT2 == 0 || 40 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_02_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
@@ -6289,6 +6676,19 @@ _chip2_process_all:
     r1 = _blk_C2_SNK_IN_02;
     call _scope_tap;
 #endif
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+.sgrunabC2_SNK_IN_02_end:
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+    /* C2_SNK_IN_03: skip while `on` is 0 and the block is already silent */
+    r2 = dm(_auxin_on_C2_SNK_IN_03);
+    r2 = pass r2;
+    if ne jump (pc, .sgrunabC2_SNK_IN_03_run);
+    r2 = dm(_auxin_byp_C2_SNK_IN_03);
+    r2 = pass r2;
+    if ne jump (pc, .sgrunabC2_SNK_IN_03_end);
+.sgrunabC2_SNK_IN_03_run:
 #endif
 #if (DSP4_NODE_LIMIT2 == 0 || 41 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_03_process;
@@ -6298,6 +6698,19 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+.sgrunabC2_SNK_IN_03_end:
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+    /* C2_SNK_IN_04: skip while `on` is 0 and the block is already silent */
+    r2 = dm(_auxin_on_C2_SNK_IN_04);
+    r2 = pass r2;
+    if ne jump (pc, .sgrunabC2_SNK_IN_04_run);
+    r2 = dm(_auxin_byp_C2_SNK_IN_04);
+    r2 = pass r2;
+    if ne jump (pc, .sgrunabC2_SNK_IN_04_end);
+.sgrunabC2_SNK_IN_04_run:
+#endif
 #if (DSP4_NODE_LIMIT2 == 0 || 42 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_04_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
@@ -6305,6 +6718,19 @@ _chip2_process_all:
     r1 = _blk_C2_SNK_IN_04;
     call _scope_tap;
 #endif
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+.sgrunabC2_SNK_IN_04_end:
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+    /* C2_SNK_IN_05: skip while `on` is 0 and the block is already silent */
+    r2 = dm(_auxin_on_C2_SNK_IN_05);
+    r2 = pass r2;
+    if ne jump (pc, .sgrunabC2_SNK_IN_05_run);
+    r2 = dm(_auxin_byp_C2_SNK_IN_05);
+    r2 = pass r2;
+    if ne jump (pc, .sgrunabC2_SNK_IN_05_end);
+.sgrunabC2_SNK_IN_05_run:
 #endif
 #if (DSP4_NODE_LIMIT2 == 0 || 43 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_05_process;
@@ -6314,6 +6740,19 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+.sgrunabC2_SNK_IN_05_end:
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+    /* C2_SNK_IN_06: skip while `on` is 0 and the block is already silent */
+    r2 = dm(_auxin_on_C2_SNK_IN_06);
+    r2 = pass r2;
+    if ne jump (pc, .sgrunabC2_SNK_IN_06_run);
+    r2 = dm(_auxin_byp_C2_SNK_IN_06);
+    r2 = pass r2;
+    if ne jump (pc, .sgrunabC2_SNK_IN_06_end);
+.sgrunabC2_SNK_IN_06_run:
+#endif
 #if (DSP4_NODE_LIMIT2 == 0 || 44 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_06_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
@@ -6321,6 +6760,19 @@ _chip2_process_all:
     r1 = _blk_C2_SNK_IN_06;
     call _scope_tap;
 #endif
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+.sgrunabC2_SNK_IN_06_end:
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+    /* C2_SNK_IN_07: skip while `on` is 0 and the block is already silent */
+    r2 = dm(_auxin_on_C2_SNK_IN_07);
+    r2 = pass r2;
+    if ne jump (pc, .sgrunabC2_SNK_IN_07_run);
+    r2 = dm(_auxin_byp_C2_SNK_IN_07);
+    r2 = pass r2;
+    if ne jump (pc, .sgrunabC2_SNK_IN_07_end);
+.sgrunabC2_SNK_IN_07_run:
 #endif
 #if (DSP4_NODE_LIMIT2 == 0 || 45 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_07_process;
@@ -6330,6 +6782,19 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+.sgrunabC2_SNK_IN_07_end:
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+    /* C2_SNK_IN_08: skip while `on` is 0 and the block is already silent */
+    r2 = dm(_auxin_on_C2_SNK_IN_08);
+    r2 = pass r2;
+    if ne jump (pc, .sgrunabC2_SNK_IN_08_run);
+    r2 = dm(_auxin_byp_C2_SNK_IN_08);
+    r2 = pass r2;
+    if ne jump (pc, .sgrunabC2_SNK_IN_08_end);
+.sgrunabC2_SNK_IN_08_run:
+#endif
 #if (DSP4_NODE_LIMIT2 == 0 || 46 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_08_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
@@ -6337,6 +6802,9 @@ _chip2_process_all:
     r1 = _blk_C2_SNK_IN_08;
     call _scope_tap;
 #endif
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+.sgrunabC2_SNK_IN_08_end:
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
 .sgrun1_end:
@@ -7681,6 +8149,16 @@ _chip2_process_all:
     call _C2_MTR_SUB_process;
 #endif
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+    /* C2_USB_IN: skip while `on` is 0 and the block is already silent */
+    r2 = dm(_auxin_on_C2_USB_IN);
+    r2 = pass r2;
+    if ne jump (pc, .sgrunabC2_USB_IN_run);
+    r2 = dm(_auxin_byp_C2_USB_IN);
+    r2 = pass r2;
+    if ne jump (pc, .sgrunabC2_USB_IN_end);
+.sgrunabC2_USB_IN_run:
+#endif
 #if (DSP4_NODE_LIMIT2 == 0 || 181 < DSP4_NODE_LIMIT2)
     call _C2_USB_IN_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
@@ -7689,6 +8167,19 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+.sgrunabC2_USB_IN_end:
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+    /* C2_BT_IN: skip while `on` is 0 and the block is already silent */
+    r2 = dm(_auxin_on_C2_BT_IN);
+    r2 = pass r2;
+    if ne jump (pc, .sgrunabC2_BT_IN_run);
+    r2 = dm(_auxin_byp_C2_BT_IN);
+    r2 = pass r2;
+    if ne jump (pc, .sgrunabC2_BT_IN_end);
+.sgrunabC2_BT_IN_run:
+#endif
 #if (DSP4_NODE_LIMIT2 == 0 || 182 < DSP4_NODE_LIMIT2)
     call _C2_BT_IN_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
@@ -7696,6 +8187,9 @@ _chip2_process_all:
     r1 = _blk_C2_BT_IN;
     call _scope_tap;
 #endif
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+.sgrunabC2_BT_IN_end:
 #endif
 #if (DSP4_NODE_LIMIT2 == 0 || 183 < DSP4_NODE_LIMIT2)
     call _C2_MIX_MAIN_L_process;

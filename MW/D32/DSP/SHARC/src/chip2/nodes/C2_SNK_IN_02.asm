@@ -31,6 +31,13 @@
 .var _auxin_level_frames_C2_SNK_IN_02 = 0;
 .global _auxin_q_C2_SNK_IN_02;
 .var _auxin_q_C2_SNK_IN_02 = 0;                  /* Q4.28 coeff x assign */
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+/* S32: 1 = this node's block is published silence and the chain
+ * may skip the call. Set by the park, cleared here on the way
+ * back in. */
+.global _auxin_byp_C2_SNK_IN_02;
+.var _auxin_byp_C2_SNK_IN_02 = 0;
+#endif
 .global _buf_C2_SNK_IN_02;
 .var _buf_C2_SNK_IN_02;
 
@@ -54,6 +61,22 @@
 .global _C2_SNK_IN_02_process;
 _C2_SNK_IN_02_process:
         #if DSP4_BLOCK_KERNELS
+        #if DSP4_AUXIN_BYPASS
+            /* ---- PARK: _auxin_on_C2_SNK_IN_02 is off ---- */
+            r5 = dm(_auxin_on_C2_SNK_IN_02);
+            r5 = pass r5;
+            if ne jump (pc, .bwrun_C2_SNK_IN_02);
+            r0 = 1;
+            dm(_auxin_byp_C2_SNK_IN_02) = r0;
+            l0 = 0;
+            r0 = 0;
+            i0 = _blk_C2_SNK_IN_02;
+            lcntr = DSP4_BLOCK_SIZE, do .bwpk_C2_SNK_IN_02 until lce;
+            .bwpk_C2_SNK_IN_02: dm(i0, 1) = r0;
+            dm(_buf_C2_SNK_IN_02) = r0;
+            rts;
+        .bwrun_C2_SNK_IN_02:
+        #endif
             /* ---- generic per-block wrapper (review finding D16) ----
              * Runs the per-sample reference body BLOCK times over this
              * node's own block buffer, staging each sample through the
@@ -152,6 +175,25 @@ _C2_SNK_IN_02_process:
     r1 = 0;
     comp(r4, r1);
     if ne jump (pc, .auxin_apply_C2_SNK_IN_02);
+#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+    /* RESUMING FROM THE BYPASS (S32). The chain skipped this node
+     * while `on` was 0, so its level ramp did not advance either --
+     * a ramp left pending by a level written DURING the off period
+     * would otherwise play out from where it stopped, blocks or
+     * minutes later, instead of being where the ungated build's
+     * ramp had long since arrived. Clearing the frame count settles
+     * it: the branch below takes `.no_auxramp` and the level becomes
+     * the target, which is the ungated steady state. `on` itself is
+     * an InstantCtl cell in both builds -- the step at the flip is
+     * the cell's, not the bypass's. */
+    r2 = dm(_auxin_byp_C2_SNK_IN_02);
+    r2 = pass r2;
+    if eq jump (pc, .auxin_live_C2_SNK_IN_02);
+    r2 = 0;
+    dm(_auxin_byp_C2_SNK_IN_02) = r2;
+    dm(_auxin_level_frames_C2_SNK_IN_02) = r2;
+.auxin_live_C2_SNK_IN_02:
+#endif
     r4 = dm(_auxin_level_frames_C2_SNK_IN_02);
     r15 = DSP4_BLOCK_SIZE;
     r4 = r4 - r15;

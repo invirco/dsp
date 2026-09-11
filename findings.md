@@ -6,6 +6,186 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE OFF AUX INPUTS, BYPASSED AND MEASURED (2026-09-11, session 32)
+
+Session: S29-4's lead built as a non-shipping pair and driven against the
+window candidate on the same night — what twelve switched-off `AUX_INPUT`
+nodes cost chip 2, and whether the twelfth aux fits without them.
+
+### S32-1 — twelve switched-off aux inputs cost chip 2 five points, and the D32 worst-use row fits without them
+
+**Severity: HIGH (capacity; it decides PW's "eleven of twelve auxes"
+ruling). Status: measured on the part, two boots an arm, both arms on one
+night with one instrument and one bitstream.**
+
+`DSP4_AUXIN_BYPASS=1` — a chip-2 `AUX_INPUT` whose `on` cell is 0 publishes
+one block of silence and is then **not called** until the cell goes back to 1
+— returns **4.84 to 5.20 points of chip 2**, and every row that overruns
+without it runs clean with it:
+
+| row | s26 control | s32 arm | Δ chip 2 | missed blocks |
+|---|--:|--:|--:|---|
+| A silent, default | 75.92 | **71.08** | −4.84 | 0 → 0 |
+| **B silent, loaded** | **100.86** | **95.64** | **−5.22** | **1,898 → 0** |
+| C stimulus on | 100.83 | 95.75 | −5.08 | 1,899 → 0 |
+| use 0:0 | 91.17 | 86.03 | −5.14 | 0 → 0 |
+| **use 6:32, WORST USE** | **100.85** | **95.69** | **−5.16** | **1,900 → 0** |
+
+(mean of two boots an arm, 270,096 blocks a row. **Both arms were measured
+this session**, on the same bitstream, the same stimulus and the same
+partial regime — `driveall` was not loadable under this session's bench
+rules, see S32-7 — so every row is like-for-like. Rows A and B are taken
+with the stimulus STOPPED and reproduce S29's control: 75.92 against 76.00,
+100.86 against 100.78, 1,898 missed blocks against 1,912.)
+
+**Chip 1 does not move and cannot**: it carries no node of this class, and
+the arm's `chip1.ldr` is byte-identical to the control's (`6396187c`), so the
+0.01–0.24 points it wanders is the instrument's own spread (±0.27, S28).
+
+**Twelve, not eight.** S29-4 named the eight snake returns; the class is
+twelve — `C2_SNK_IN_01..08` plus `C2_CODEC_AUX_IN`, `C2_PI_IN`, `C2_USB_IN`
+and `C2_BT_IN` — and `dsp4_driven_setup.py`'s `FAM_CLASS` filter leaves every
+one of them off in every capacity row this programme has ever taken.
+
+**D32 chip 2 misses fitting by 0.81 points and this returns five.**
+
+### S32-2 — the gate needs TWO words: `on` alone leaves the mix bus reading a stale block for ever
+
+**Severity: HIGH if it had been built that way (audio). Status: designed
+around before the first build; the shipped shape is two tests.**
+
+`_blk_<nid>` is read every sample by `C2_MIX_MAIN_L` and `_R`. A gate that
+simply stops calling the node when `on` is 0 leaves that block exactly as the
+last on-block left it, and the mix bus goes on summing those sixteen samples
+3,000 times a second — a switched-off snake return would become a stuck
+buzz, not silence.
+
+So the bypass is two mechanisms one block apart: the **park** (S23 gate 2's
+mechanism, applied to this class) publishes a block of zeros and sets
+`_auxin_byp_<nid>`, and only then does the **chain gate** skip the call. A
+1 → 0 flip therefore costs one more call, and a 0 → 1 flip takes effect on
+its own block because the gate's first test is the host's own cell — no
+config word, no commit, no latency.
+
+### S32-3 — the park leaves `_auxin_q_` stale; inert, one instruction, NOT fixed here
+
+**Severity: LOW (no reader). Status: measured on five nodes, fix named.**
+
+After a node goes back off, `_auxin_q_<nid>` still holds the last
+coefficient (`0x10000000`) instead of returning to 0: the park returns
+before the body, so the control-rate section that recomputes `q` never runs.
+
+**It cannot reach the audio.** The sample path executes only on blocks where
+the node is called and NOT parked — i.e. only when `on` is non-zero — and
+sample 0 of every such block recomputes `q` before the first MAC. The
+published block is zero either way, measured on all sixteen words of five
+nodes.
+
+The fix is one instruction in the park path (`dm(_auxin_q_<nid>) = r0`
+beside the flag store, `dsp_codegen.blk_wrap_body`). It is deliberately not
+made in the session that measured the image.
+
+### S32-4 — a D24 has four switched-off aux inputs too, and the bypass is worth 1.7 points to it
+
+**Severity: MEDIUM (headroom on every product, not just D32). Status:
+measured, one boot an arm, same night.**
+
+The scope gate hides the eight snake returns from a D24, but
+`C2_CODEC_AUX_IN`, `C2_PI_IN`, `C2_USB_IN` and `C2_BT_IN` are scoped to NO
+product, sit in every product's chain and boot off. So the answer to "does
+D24 have off aux inputs in the load" is **yes, four**, and D24 chip 2 moves
+by **1.40 / 1.83 / 1.94 points** on rows B / A / C — a mean of 1.72 against
+1.72 predicted by scaling the D32 figure 4/12.
+
+**0.43 points a node on a D24 against 0.42 on a D32.** The same per-node
+price on two products with different masks and a different scope class is
+the strongest evidence the number is what it claims to be.
+
+D24's chip 1 moves −0.16, +0.01, −0.17 — the instrument.
+
+### S32-7 — the driven regime and the bench rules did not compose, and the rule won
+
+**Severity: MEDIUM (scope of the measurement). Status: stated, with what it
+does and does not cost.**
+
+Gate 3 asks for the fully driven worst-use row; the driven ladder needs the
+`driveall` LOGIC bitstream; and the same dispatch says **do not reflash the
+CPLD** because the analog board may be attached and the 74HC595 chain is
+never to be approached — which is exactly what a CPLD reconfiguration
+tri-states for the length of an SVF. **The CPLD was not touched.**
+
+What that costs: the four rows taken with the stimulus playing ran a partial
+regime (`0 of 64` chip-1 envelopes, `27 of 32` chip-2) **in both arms
+identically**, so the Δ between them is still a measurement, but those rows
+are not the fully driven rows S27/S28/S29 quote and are labelled throughout.
+
+What it does not cost: **rows A and B are taken with the stimulus stopped**,
+by the same script in the same order as every previous session, and **row B
+is the row that overruns** — 100.86 % with 1,898 missed blocks, 0.03 points
+from the fully driven worst-use row S29 measured. The question was answerable
+without the stimulus because a per-CALL gate does not care what the signal is
+doing, which S29 established across six regimes and this session reproduces
+across five.
+
+### S32-8 — `fit-table.csv` could not be regenerated without silently losing every measured row
+
+**Severity: MEDIUM (a generated file that regenerates WRONG). Status: fixed
+by committing the missing input.**
+
+The table's header says "GENERATED by tools/dsp/product_fit.py. Do not
+hand-edit", and running that script on the repo alone rewrote **twelve of
+its sixteen rows**: the measured product rows come from `--measured <json>`,
+S28 passed one, and that JSON was never committed — so without it every
+`measured` row silently degrades to `construction` and the "1,943 missed
+blocks" notes vanish.
+
+Recovered from the table it produced and committed as
+`MW/D32/DSP/fit-measured.json`, with the canonical command written into the
+script's docstring and into the CSV's own header. Regenerating with it
+reproduces all sixteen product rows byte for byte, which is how S32's four
+`@s32-lead` rows were appended without touching one of them.
+
+### S32-5 — the committed `src/` tree is NOT what `dsp_codegen.py` emits today
+
+**Severity: MEDIUM (reproducibility of the window candidate). Status:
+reproduced at HEAD with the session's own changes stashed.**
+
+Regenerating the whole tree with today's generator rewrites **117 files**:
+116 of them carry only the comment change from 608a1aa (the `fix` overflow
+wording), but `C1_FILT_01..32` and `chip1/shared_kernels.asm` carry a REAL
+one: the per-sample shared-kernel stub no longer loads the block-pool
+register (`i6 = BLK_CHAIN_B_P1; l6 = 0;`), because the generator learned to
+ask whether each half of the shared body actually reads it.
+
+**So a full regeneration today changes chip 1's image and `6396187c` stops
+reproducing** — on a configuration (`DSP4_SHARED_KERNELS=15`) that the window
+candidate ships. This session therefore regenerated **only the files its own
+change touches** (the twelve AUX_INPUT nodes, `chip2/process_chain.asm`,
+`dsp_block.h`) and left the drift where it found it, so that the control arm
+could reproduce the candidate byte for byte — which it did.
+
+Whoever regenerates the tree next has to re-measure chip 1 and re-stamp the
+candidate's md5s. That is a hub item, not a session's to smuggle in.
+
+### S32-6 — `check-contract-drift.sh --strict` fails at HEAD, and its abort leaves `_matrix.csv` stripped
+
+**Severity: MEDIUM (a dirty tree that reads as contract drift). Status:
+reproduced at HEAD with this session's changes stashed.**
+
+The script fails with *"the graph has drifted from the landed dsp.csv /
+dsp-unmapped.csv contract"*, naming `Chan<nn>MatrixOn/MatrixSend` — the
+matrix-send cells the graph carries as a PROPOSAL and the landed defs do not
+have. Nothing in this session touches a cell, an address or the graph, and
+the failure reproduces identically with every change stashed.
+
+The part worth recording is what it leaves behind: `sync-defs.sh` re-expands
+`MW/<P>/MX/_matrix.csv` and then `gen_dsp.py --force` — the step that
+backfills the DSP address columns — **aborts**, so the tree is left holding a
+`_matrix.csv` with `DspPage`, `DspAdd`, `DspAddHex` and the whole
+`RampProfile` block EMPTY. `git status` then shows a 7,000-line diff that
+looks like real drift and is the script's own half-finished work. Restore it
+with `git checkout` rather than committing it.
+
 ## THE LOST MCU ANNOUNCE IS A COLLISION ON THE MX BUS (2026-09-11, session 31)
 
 Session: the announce measured on the wire with `matrix-app` stopped, the

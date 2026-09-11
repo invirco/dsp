@@ -10034,6 +10034,30 @@ def gen_block_header(mtx_ctl=None):
 #ifndef DSP4_CHAN_MASK
 #define DSP4_CHAN_MASK 1
 #endif
+
+/* THE AUX_INPUT BYPASS (S32). A PROPOSAL, DEFAULT OFF.
+ *
+ * Chip 2 carries twelve AUX_INPUT nodes -- the eight D32 snake returns and
+ * the codec, Pi, USB and BT feeds -- and every one of them comes up with
+ * `on = 0`. S29 measured the D32 scope class at 3.43-3.69 points of chip 2
+ * and found the expensive half of it to be these nodes being CALLED while
+ * switched off: the block wrapper stages BLOCK samples through a call/rts
+ * pair each to multiply them by a coefficient the `on` cell has already
+ * forced to zero.
+ *
+ * With this on, a switched-off AUX_INPUT publishes one block of silence (the
+ * park, S23 gate 2's mechanism) and the chain then stops calling it at all
+ * until `on` goes back to 1 -- six instructions a node a block against about
+ * 1,100 cycles. The node is REACHED AGAIN ON THE BLOCK ITS CELL FLIPS,
+ * because the gate reads the same `on` word the host writes; there is no
+ * config word and no commit in the path.
+ *
+ * 0 EMITS NOT ONE BYTE, which is the point of the guard: the window
+ * candidate rebuilds byte for byte with this at its default, and the arm
+ * that carries it is a pair of its own. */
+#ifndef DSP4_AUXIN_BYPASS
+#define DSP4_AUXIN_BYPASS 0
+#endif
 {mtx_block}
 #endif /* DSP4_BLOCK_H */
 """
@@ -12292,6 +12316,12 @@ def gen_aux_input_fixed(node):
         .var _auxin_level_step_{nid} = 0.0;
         .var _auxin_level_frames_{nid} = 0;
         .var _auxin_q_{nid} = 0;                  /* Q4.28 coeff x assign */
+        #if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+        /* S32: 1 = this node's block is published silence and the chain
+         * may skip the call. Set by the park, cleared here on the way
+         * back in. */
+        .var _auxin_byp_{nid} = 0;
+        #endif
         .var _buf_{nid};
 
         .section/pm seg_pmco;
@@ -12315,6 +12345,25 @@ def gen_aux_input_fixed(node):
             r1 = 0;
             comp(r4, r1);
             if ne jump (pc, .auxin_apply_{nid});
+        #endif
+        #if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+            /* RESUMING FROM THE BYPASS (S32). The chain skipped this node
+             * while `on` was 0, so its level ramp did not advance either --
+             * a ramp left pending by a level written DURING the off period
+             * would otherwise play out from where it stopped, blocks or
+             * minutes later, instead of being where the ungated build's
+             * ramp had long since arrived. Clearing the frame count settles
+             * it: the branch below takes `.no_auxramp` and the level becomes
+             * the target, which is the ungated steady state. `on` itself is
+             * an InstantCtl cell in both builds -- the step at the flip is
+             * the cell's, not the bypass's. */
+            r2 = dm(_auxin_byp_{nid});
+            r2 = pass r2;
+            if eq jump (pc, .auxin_live_{nid});
+            r2 = 0;
+            dm(_auxin_byp_{nid}) = r2;
+            dm(_auxin_level_frames_{nid}) = r2;
+        .auxin_live_{nid}:
         #endif
             r4 = dm(_auxin_level_frames_{nid});
             r15 = DSP4_BLOCK_SIZE;
@@ -12874,7 +12923,8 @@ def blk_wrap_decl(node, outs, wide=False):
     return '\n'.join(lines)
 
 
-def blk_wrap_body(node, outs, wide=False, note='', park=None):
+def blk_wrap_body(node, outs, wide=False, note='', park=None,
+                  park_guard=None, park_flag=None):
     """The generic per-block wrapper, emitted AHEAD of the per-sample body.
 
     _sample_idx IS DRIVEN 0..BLOCK-1 by this loop, so every block-rate guard
@@ -12900,10 +12950,19 @@ def blk_wrap_body(node, outs, wide=False, note='', park=None):
         # body carries the same gate and writes the same zero, so the two
         # builds stay bit-identical by construction -- which is the whole
         # licence for putting a shortcut in front of the reference body.
+        if park_guard:
+            a(f'        #if {park_guard}')
         a('            /* ---- PARK: %s is off ---- */' % park)
         a(f'            r5 = dm({park});')
         a('            r5 = pass r5;')
         a(f'            if ne jump (pc, .bwrun_{nid});')
+        if park_flag:
+            # The chain's half of the bypass (S32): this block is silence
+            # and the next one will be too, so the call itself can go. The
+            # body clears this word again the moment it is entered, which
+            # is what makes a 0 -> 1 flip take effect on its own block.
+            a('            r0 = 1;')
+            a(f'            dm({park_flag}) = r0;')
         a('            l0 = 0;')
         a('            r0 = 0;')
         for sym in outs:
@@ -12914,6 +12973,8 @@ def blk_wrap_body(node, outs, wide=False, note='', park=None):
             a(f'            dm({scal}) = r0;')
         a('            rts;')
         a(f'        .bwrun_{nid}:')
+        if park_guard:
+            a('        #endif')
     a('            /* ---- generic per-block wrapper (review finding D16) ----')
     a('             * Runs the per-sample reference body BLOCK times over this')
     a('             * node\'s own block buffer, staging each sample through the')
@@ -13085,7 +13146,28 @@ _C2_GUARD_LIVE = (
 # instruction ever loaded it. So every engine ran, and paid, whatever the
 # host said. S23 gate 2 gives it its reader in the per-sample body and this
 # table gives the block build the shortcut in front of it.
-_C2_PARK_GATE = {'FX_ENGINE': '_fx_on_'}
+_C2_PARK_GATE = {'FX_ENGINE': '_fx_on_', 'AUX_INPUT': '_auxin_on_'}
+
+# THE AUX_INPUT BYPASS (S32), and why it is guarded when FX_ENGINE's park is
+# not. Twelve chip-2 AUX_INPUT nodes -- the eight D32 snake returns plus the
+# codec, Pi, USB and BT feeds -- come up with `on = 0` in dsp.csv, and nothing
+# in any capacity row turns them on. They still cost what a called node costs:
+# S29 priced the whole scope class at 3.43-3.69 points of chip 2 and found the
+# AUX_INPUT half of it doing no work at all.
+#
+# The park alone is not the saving. A parked node still pays the chain's
+# call/rts (15.04 cycles, measured 2026-08-30) and BLOCK stores of zero, so
+# the class also gets a CHAIN gate (emit_chain, below): skip the call entirely
+# while `on` is 0 AND the node's block is already zero. `_auxin_byp_<nid>` is
+# the second half of that test -- the park sets it after publishing silence,
+# so the chain knows the block downstream reads is clean, and the body clears
+# it on the way back in.
+#
+# GUARDED because it is a PROPOSAL, not the shipping image: with
+# DSP4_AUXIN_BYPASS = 0 not one byte of this is emitted and the pair rebuilds
+# byte for byte (the same discipline DSP4_SCOPE_BLK_TAP carries).
+_C2_PARK_GUARD = {'AUX_INPUT': 'DSP4_AUXIN_BYPASS'}
+_C2_PARK_FLAG = {'AUX_INPUT': '_auxin_byp_'}
 
 
 def c2_block_wrap(node, body):
@@ -13128,6 +13210,8 @@ def c2_block_wrap(node, body):
         body = body.replace(anchor_pm, '\n' + decls + anchor_pm, 1)
 
     park = _C2_PARK_GATE.get(node['type'])
+    park_guard = _C2_PARK_GUARD.get(node['type'])
+    park_flag = _C2_PARK_FLAG.get(node['type'])
     if park is not None:
         if wide:
             raise ValueError(
@@ -13135,7 +13219,12 @@ def c2_block_wrap(node, body):
                 f'block -- the park would leave _mtr_wblk_{nid} stale. '
                 f'Zero it in the park path before allowing this.')
         park += nid
-    wrap = blk_wrap_body(node, outs, wide, park=park) + '\n'
+        if park_flag is not None:
+            park_flag += nid
+    else:
+        park_guard = park_flag = None
+    wrap = blk_wrap_body(node, outs, wide, park=park, park_guard=park_guard,
+                         park_flag=park_flag) + '\n'
     # The marker's indentation does not survive textwrap.dedent intact, so it
     # is matched on the stripped line rather than on a fixed column.
     marker_lines = [ln for ln in body.split('\n')
@@ -16567,6 +16656,17 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
             f.write(f'#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE\n')
             f.write(f'.extern _product_id;\n')
             f.write(f'#endif\n')
+            # THE AUX_INPUT BYPASS (S32). Two words a node: the `on` cell
+            # the host writes, and the park's flag saying this node's block
+            # is already the silence the mix bus is about to read.
+            _aux_ids = [n['id'] for n in chip_nodes
+                        if n['type'] == 'AUX_INPUT']
+            if _aux_ids:
+                f.write('#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS\n')
+                for _a in _aux_ids:
+                    f.write(f'.extern _auxin_on_{_a};\n')
+                    f.write(f'.extern _auxin_byp_{_a};\n')
+                f.write('#endif\n')
             f.write(f'.global _{chip_label}_process_all;\n')
             f.write(f'_{chip_label}_process_all:\n')
             if chip_label == 'chip1':
@@ -16938,6 +17038,31 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                         continue
 
                     nid = ent[1]
+                    # THE AUX_INPUT BYPASS (S32), and why it is per NODE and
+                    # not per RUN. The scope gate above gates RUNS because a
+                    # scope class is one word for the whole chain; `on` is
+                    # per node and the twelve are not all off together, so a
+                    # run gate would need an aggregate nothing maintains.
+                    # The test is two words: skip only when this node is OFF
+                    # **and** its block is already the silence the park
+                    # published, which is what makes a 1 -> 0 flip publish
+                    # one last block of zeros before the calls stop. 6
+                    # instructions against the ~1,100 cycles a called
+                    # AUX_INPUT costs at BLOCK 16.
+                    _aux_gate = (nid in _aux_ids)
+                    if _aux_gate:
+                        f.write('#if DSP4_BLOCK_KERNELS && '
+                                'DSP4_AUXIN_BYPASS\n')
+                        f.write(f'    /* {nid}: skip while `on` is 0 and '
+                                f'the block is already silent */\n')
+                        f.write(f'    r2 = dm(_auxin_on_{nid});\n')
+                        f.write('    r2 = pass r2;\n')
+                        f.write(f'    if ne jump (pc, .{sgpfx}ab{nid}_run);\n')
+                        f.write(f'    r2 = dm(_auxin_byp_{nid});\n')
+                        f.write('    r2 = pass r2;\n')
+                        f.write(f'    if ne jump (pc, .{sgpfx}ab{nid}_end);\n')
+                        f.write(f'.{sgpfx}ab{nid}_run:\n')
+                        f.write('#endif\n')
                     guards = [f'{_NL} == 0 || '
                               f'{pos_of[nid]} < {_NL}']
                     m = strip_re.match(nid)
@@ -16964,6 +17089,11 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                                 f'{pos_of[_m]} < {_NL})\n')
                         f.write(f'    call _{_m}_process;\n')
                         f.write('#endif\n')
+                        f.write('#endif\n')
+                    if _aux_gate:
+                        f.write('#if DSP4_BLOCK_KERNELS && '
+                                'DSP4_AUXIN_BYPASS\n')
+                        f.write(f'.{sgpfx}ab{nid}_end:\n')
                         f.write('#endif\n')
                     _mclose(idx)
                     if idx == _last_strip:

@@ -51,6 +51,16 @@ Usage:
     python3 tools/dsp/product_fit.py --census           # + the node census
     python3 tools/dsp/product_fit.py --csv MW/D32/DSP/fit-table.csv
     python3 tools/dsp/product_fit.py --measured f.json  # score gate 2
+
+THE MEASURED ROWS LIVE IN A FILE AND THE CSV CANNOT BE REGENERATED
+WITHOUT IT (S32). `--csv` on its own rewrites every measured product row
+as the CONSTRUCTION, silently. S28's measured JSON was never committed;
+`MW/D32/DSP/fit-measured.json` is it, recovered from the table it
+produced, so the canonical regeneration is
+
+    python3 tools/dsp/product_fit.py \
+        --measured MW/D32/DSP/fit-measured.json \
+        --csv MW/D32/DSP/fit-table.csv
 """
 
 import argparse
@@ -150,6 +160,51 @@ ROW_LABEL = {
 }
 ROW_ORDER = ('A_silent_default', 'B_silent_load',
              'D_driven_fxoff', 'C_driven_load')
+
+# ---------------------------------------------------------------------------
+# S32: THE LEAD ROWS, WHICH ARE NOT PRODUCT ROWS
+# ---------------------------------------------------------------------------
+# A row family for an arm that is NOT a product: the same product, the same
+# configuration and the same cells, with ONE BUILD FLAG that is not in any
+# shipping or candidate configuration. It is here so the number PW is being
+# asked to rule on sits beside the product rows it would move, and it is a
+# SEPARATE FAMILY so that nothing in the table above is replaced by a figure
+# taken on an image the window is not being asked to sign.
+#
+# `DSP4_AUXIN_BYPASS=1` (S32): a chip-2 AUX_INPUT whose `on` cell is 0
+# publishes one block of silence and is then not CALLED until the cell goes
+# back to 1. Twelve such nodes exist on chip 2 and every capacity row this
+# programme has taken leaves all twelve off.
+#
+# MEASURED, not constructed. Bench rev C, 2026-09-11, the s26 image plus the
+# flag (`chip1.ldr 6396187c` -- the same bytes as the candidate -- and
+# `chip2.ldr df5cc181`), two boots, DWELL 45.
+LEAD_FAMILY = 's32-lead'
+LEAD_ROWS = {
+    ('d32', 'A_silent_default'): (65.33, 71.08),
+    ('d32', 'B_silent_load'):    (79.07, 95.64),
+    ('d24', 'A_silent_default'): (50.69, 61.27),
+    ('d24', 'B_silent_load'):    (60.04, 82.92),
+}
+LEAD_WORST = {
+    ('d32', 'A_silent_default'): (65.34, 71.22),
+    ('d32', 'B_silent_load'):    (79.29, 95.68),
+    ('d24', 'A_silent_default'): (50.69, 61.27),
+    ('d24', 'B_silent_load'):    (60.04, 82.92),
+}
+LEAD_OVR = {}
+_LEAD_D32 = ('DSP4_AUXIN_BYPASS=1: the twelve switched-off chip-2 AUX_INPUT '
+             'nodes not called; chip 2 -4.84/-5.22 pts, worst-use rung '
+             '95.69 % (control 100.85 %, 1900 missed)')
+_LEAD_D24 = ('DSP4_AUXIN_BYPASS=1: FOUR switched-off AUX_INPUT nodes not '
+             'called (the snake eight are scope-gated off on a D24); '
+             'chip 2 -1.40/-1.83 pts')
+LEAD_NOTE = {
+    ('d32', 'A_silent_default'): _LEAD_D32,
+    ('d32', 'B_silent_load'):    _LEAD_D32,
+    ('d24', 'A_silent_default'): _LEAD_D24,
+    ('d24', 'B_silent_load'):    _LEAD_D24,
+}
 
 # The two products the anchors were measured on, low then high.
 ANCHOR_LO, ANCHOR_HI = 'd24', 'd32'
@@ -531,6 +586,19 @@ def write_csv(path, products, sizes, cells, cens, pred, pred_worst,
         'C driven, the product\'s FX load. C is the row a product ships',
         'against.',
         '',
+        'REGENERATE WITH THE MEASURED ROWS, or they are lost (S32): the',
+        'measured product rows come from --measured, and running this script',
+        'without it silently replaces them with the construction. S28 passed',
+        'a JSON that was never committed; it is committed now, recovered',
+        'from this table, so the file regenerates from the repo alone:',
+        '  python3 tools/dsp/product_fit.py \\',
+        '      --measured MW/D32/DSP/fit-measured.json \\',
+        '      --csv MW/D32/DSP/fit-table.csv',
+        '',
+        f'Rows tagged @{LEAD_FAMILY} are NOT product rows: they are an arm',
+        'with a build flag no shipping or candidate configuration carries.',
+        'See MW/D32/DSP/dsp4-s32-20260911.md.',
+        '',
         'NOT IN THIS TABLE, and why — a fit table that lists four of the',
         "range's nine product folders without saying so is a table that",
         'looks complete and is not:',
@@ -589,6 +657,39 @@ def write_csv(path, products, sizes, cells, cens, pred, pred_worst,
                     'note': (ROW_LABEL[row]
                              + (f'; {ovr} missed blocks' if ovr else '')),
                 })
+        # THE LEAD ROWS (S32), appended, never substituted. Same columns,
+        # same census, a row key that carries the family so no reader can
+        # mistake one for the product row it sits under.
+        for (p, row), (c1, c2) in sorted(LEAD_ROWS.items()):
+            if p not in products:
+                continue
+            w1, w2 = LEAD_WORST[(p, row)]
+            ovr = LEAD_OVR.get((p, row), 0)
+            n = cens[p]
+            bb1, bb2 = pred[row]['p'][p]
+            w.writerow({
+                'product': p, 'row': f'{row}@{LEAD_FAMILY}',
+                'source': f'measured ({LEAD_FAMILY})',
+                'ch': sizes[p]['ch'], 'aux': sizes[p]['aux'],
+                'fx': sizes[p]['fx'],
+                'product_id': sizes[p]['product_id'],
+                'chip1_built_pct': f'{bb1:.2f}',
+                'chip2_built_pct': f'{bb2:.2f}',
+                'chan_mask': f'0x{sizes[p]["chan_mask"]:08X}',
+                'aux_mask': f'0x{sizes[p]["aux_mask"]:08X}',
+                'cells_defined': cells[p]['defined'],
+                'cells_addressed': cells[p]['addressed'],
+                'cells_unmapped': cells[p]['unmapped'],
+                'nodes_run': sum(v['run'] for v in n.values()),
+                'nodes_gated_off': sum(v['gated_off'] for v in n.values()),
+                'chip1_avg_pct': f'{c1:.2f}',
+                'chip1_worst_pct': f'{w1:.2f}',
+                'chip2_avg_pct': f'{c2:.2f}',
+                'chip2_worst_pct': f'{w2:.2f}',
+                'fits': 'yes' if max(w1, w2) < 100.0 else 'NO',
+                'note': LEAD_NOTE.get((p, row), '')
+                        + (f'; {ovr} missed blocks' if ovr else ''),
+            })
     print(f'wrote {path}')
 
 

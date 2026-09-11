@@ -20,6 +20,19 @@
 # C driven, the product's FX load. C is the row a product ships
 # against.
 #
+# REGENERATE WITH THE MEASURED ROWS, or they are lost (S32): the
+# measured product rows come from --measured, and running this script
+# without it silently replaces them with the construction. S28 passed
+# a JSON that was never committed; it is committed now, recovered
+# from this table, so the file regenerates from the repo alone:
+#   python3 tools/dsp/product_fit.py \
+#       --measured MW/D32/DSP/fit-measured.json \
+#       --csv MW/D32/DSP/fit-table.csv
+#
+# Rows tagged @s32-lead are NOT product rows: they are an arm
+# with a build flag no shipping or candidate configuration carries.
+# See MW/D32/DSP/dsp4-s32-20260911.md.
+#
 # NOT IN THIS TABLE, and why — a fit table that lists four of the
 # range's nine product folders without saying so is a table that
 # looks complete and is not:
@@ -46,3 +59,7 @@ d32,A_silent_default,measured,32,12,6,0,0xFFFFFFFF,0x00000FFF,6999,5765,1234,696
 d32,B_silent_load,measured,32,12,6,0,0xFFFFFFFF,0x00000FFF,6999,5765,1234,696,2,79.07,79.31,79.25,100.88,100.93,101.05,NO,"silent, every assign/send open, dynamics at -60 dB; 1914 missed blocks"
 d32,D_driven_fxoff,measured,32,12,6,0,0xFFFFFFFF,0x00000FFF,6999,5765,1234,696,2,79.02,79.25,79.63,80.67,80.58,80.58,yes,"driven, the FX engines OFF  (plain)"
 d32,C_driven_load,measured,32,12,6,0,0xFFFFFFFF,0x00000FFF,6999,5765,1234,696,2,79.16,79.16,79.34,100.81,100.82,101.19,NO,"driven, every FX engine live at Type 3  (the load); 1943 missed blocks"
+d24,A_silent_default@s32-lead,measured (s32-lead),24,8,6,1,0x00FFFFFF,0x000000FF,4985,3974,1011,534,164,50.72,50.69,50.69,63.02,61.27,61.27,yes,DSP4_AUXIN_BYPASS=1: FOUR switched-off AUX_INPUT nodes not called (the snake eight are scope-gated off on a D24); chip 2 -1.40/-1.83 pts
+d24,B_silent_load@s32-lead,measured (s32-lead),24,8,6,1,0x00FFFFFF,0x000000FF,4985,3974,1011,534,164,59.97,60.04,60.04,84.64,82.92,82.92,yes,DSP4_AUXIN_BYPASS=1: FOUR switched-off AUX_INPUT nodes not called (the snake eight are scope-gated off on a D24); chip 2 -1.40/-1.83 pts
+d32,A_silent_default@s32-lead,measured (s32-lead),32,12,6,0,0xFFFFFFFF,0x00000FFF,6999,5765,1234,696,2,65.38,65.33,65.34,76.09,71.08,71.22,yes,"DSP4_AUXIN_BYPASS=1: the twelve switched-off chip-2 AUX_INPUT nodes not called; chip 2 -4.84/-5.22 pts, worst-use rung 95.69 % (control 100.85 %, 1900 missed)"
+d32,B_silent_load@s32-lead,measured (s32-lead),32,12,6,0,0xFFFFFFFF,0x00000FFF,6999,5765,1234,696,2,79.07,79.07,79.29,100.88,95.64,95.68,yes,"DSP4_AUXIN_BYPASS=1: the twelve switched-off chip-2 AUX_INPUT nodes not called; chip 2 -4.84/-5.22 pts, worst-use rung 95.69 % (control 100.85 %, 1900 missed)"
