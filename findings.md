@@ -6,6 +6,160 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## WHAT D32 PAYS FOR SCOPE CLASS 0, AND THE LATENCY BAR (2026-09-11, session 29)
+
+Session: the 32 snake nodes named and weighed on the part as one config
+word; the through-DSP latency arm's seven-session null found and the bar
+re-measured on the window candidate.
+
+### S29-1 — the FX ladder and the USE ladder could not share a boot
+
+**Severity: instrument, latent. Status: FIXED and witnessed.**
+
+`capacity_run.sh` runs the FX ladder before the USE ladder. The FX ladder's
+`off` rung leaves the six engines OFF, and `dsp4_driven_setup.py --mode use`
+writes crosspoint families only — it does not touch FX. So an arm setting
+both `FXTYPES` and `USELEVELS` would have taken S24's **worst-use** rung with
+the plugin load absent and labelled it worst use. No arm had ever set both,
+so nothing in the record is wrong; S29 needed rows A/B/C/D and the worst-use
+rung on ONE boot and would have been the first.
+
+FIX: the load is re-applied and the regime re-proved between the two ladders,
+with a line in the log. Witnessed on every boot of both arms: `chip 1 loadfx:
+1632 written, 0 FAILED`, `6 of 6 engines on, Type [3], 6 of 6 comb delay
+lines carrying signal`. An arm that sets only one of the two is untouched, so
+no row already in the record moves.
+
+### S29-2 — scope class 0 costs chip 2 3.5 points, it is the whole of D32's deficit, and the product cannot decline to pay it
+
+**Severity: none — it is the result. Status: measured on the part, two arms
+× two boots, one image.**
+
+`CFG_PRODUCT_ID` gates 34 of the graph's 698 nodes, and it gates the CALL:
+under `DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE` `process_chain.asm` compares
+`_product_id` once per contiguous run of scoped nodes and branches over it.
+Booting a D32 with the D24 scope word skips 16 chip-1 and 16 chip-2 nodes and
+adds 2. Measured as exactly that — same staged bytes, one word different,
+both chips asked what they got:
+
+| row | chip 1 Δ | chip 2 Δ | missed blocks ON → OFF |
+|---|--:|--:|---|
+| A silent, default | −0.40 | −3.53 | 0 → 0 |
+| B silent, loaded | −0.28 | −3.69 | **1,912 → 0** |
+| D driven, FX off | −0.22 | −3.42 | 0 → 0 |
+| C driven, the load | −0.61 | −3.47 | **1,943 → 0** |
+| use 0:0 | −0.57 | −3.53 | 0 → 0 |
+| **use 6:32 worst use** | −0.48 | −3.43 | **1,943 → 0** |
+
+Chip 2's cost varies by 0.26 points across six regimes, which is what a
+per-CALL gate should look like. The resolution is ±0.27 (S28, sixteen
+comparisons); 3.43 is thirteen times it. The control arm reproduces S27 and
+S28 **to the block** — 1,943 missed, three nights running.
+
+**And it is PRODUCT FUNCTION.** Scope class 0 is the D32R stage-box digital
+snake: `io.snake,1` in `defs/products/d32/d32.csv`, `A_I5` TDM8 on SPORT 5
+selected by `strap_d32` in the CPLD, `B_O2` on the way out, and **sixteen
+cells on the GATED contract** — `Snk[1-8]On[1-1]` / `Snk[1-8]Level[1-1]`,
+mode `rw`, page 1 addr 1861–1876, dispatched to `C2_SNK_IN_01..08` and summed
+into `C2_MIX_MAIN_L/R`. No other product's mx-master contains one. So the
+worst-use ruling stands: **D32 chip 2 does not fit at twelve auxes, 100.81 %
+with 0.72 % of blocks missed.**
+
+### S29-3 — S28-6's mechanism is confirmed by measurement
+
+**Severity: method. Status: confirmed; the construction fix is NOT made here.**
+
+S28 inferred the step from four points and a slope. The prediction and the
+measurement:
+
+| | S28's segment excess | S29, measured |
+|---|--:|--:|
+| chip 2 | (3.29 − 2.36) pts/aux × 4 = **+3.7** | **+3.53** |
+| chip 1 | (1.82 − 1.755) pts/strip × 8 = **+0.5** | **+0.40** |
+
+`tools/dsp/product_fit.py` interpolates a line through D24 and D32 that
+carries a constant it treats as a slope, which is why it under-predicts D12
+and D16 with the same sign every time. A corrected construction subtracts
+3.53 / 0.40 from the D32 anchor first. That changes predictions only, and it
+is left for a session other than the one that measured it — S21-6's
+discipline.
+
+### S29-4 — eight aux inputs that are SWITCHED OFF cost 3.5 points of chip 2
+
+**Severity: opportunity. Status: a LEAD, not taken inside the window.**
+
+The chip-2 half of scope class 0 is eight `INTERCHIP_RECV` and eight
+`AUX_INPUT`, about 45 cycles a sample a node. **Every one of those AUX_INPUTs
+carries `on=0`** — it is their `dsp.csv` default, and
+`dsp4_driven_setup.py`'s `FAM_CLASS` filter deliberately keeps the load from
+opening them — so they cost 3.5 points of chip 2 while doing nothing. The
+price is being CALLED. That is S23-5/S24's block-level-bypass finding one
+node class down, where an all-zero aux bus was paying 0.82 points until it
+got a bypass.
+
+Skipping an `AUX_INPUT` whose `on` is 0 at the chain, the way a scoped node
+is skipped, is worth up to ~3.5 points of chip 2 on a D32 whose snake is
+idle — against a **0.81-point** deficit at worst use. Not taken: it changes
+the shipping image inside the release window.
+
+### S29-5 — the latency null was the duplex overlay, and S12-10's attribution has been wrong since S17 fixed it
+
+**Severity: method — seven sessions inherited it. Status: found, and the bar
+runs.**
+
+S27-7 read four buffers at the END of the main chain, found a constant
+`0xfffffffc`, and concluded the stimulus was not reaching the DSP. Reading
+the end of a dead chain says it is dead, not where it died.
+`tools/pi/dsp4_s29_playpath.py` walks every stage of the playback path on
+both chips with the stimulus ON and OFF, and calls a stage live only if it
+moves when playing and not when silent. Run on `driveall` and again on
+**`maincap`, the very bitstream S27 used**, under the standing
+`dsp4-pcm-slave` overlay:
+
+**the whole playback chain is live, every stage, both bitstreams** — Pi
+re-framer → `C1_XIN_PI_L/R` → inter-chip slots 27/28 → `C2_XR_PI_L/R` →
+`C2_PI_IN` → `C2_MIX_MAIN_L/R` → `C2_MAIN_FDR` → `_DLY` → `C2_MAIN_ST_OUT`,
+each reading `0x0fffffff` / `0xf0000000` while playing and a constant while
+silent. Two negative controls held: `_buf_C1_IN_01` and `_buf_C2_RECV_MAIN_L`
+dead at `0x00000000` in both states.
+
+So the playback side works. What S27 changed was the **PCM overlay**, on
+S12-10's advice. S17 had already established the truth and recorded it — the
+slave overlay exposes capture on device 0 and playback on device 1, and the
+tool drives them separately — but S12-10's "needs a duplex overlay" was never
+retired, and `dsp4_dsp_latency.py`'s own refusal message still says it. It
+should lose that clause.
+
+### S29-6 — the through-DSP latency contract is measured on the window candidate: 82 samples
+
+**Severity: none — it closes a carried item. Status: measured, n=3.**
+
+| arm | bitstream | boots × reps | median offset | coherent |
+|---|---|---|--:|--:|
+| LOGIC only, CPLD loop reference | `pisel` | 1 × 20 | **14433** | **100.0 %** |
+| window candidate `s26` | `maincap` | 3 × 20 | **14515 / 14515 / 14514** | **100.0 %** |
+
+100.0 % coherent on all 80 reps, against S27's 0.0 % on every rep of every
+arm. Through-DSP latency is the difference: **82 / 82 / 81 samples**, 1.708 /
+1.708 / 1.688 ms. S20's 82 was carried on the argument that block size and
+`DSP4_TX_EARLY` had not moved; it is now the candidate's own number, and it
+reproduces S17's 82 and S11's 82. The reference is a control that
+discriminates (82 samples lower, peak width 4 against 1) and that **did fail
+during the session** when the playback device was busy — the tool refused
+rather than scoring a silent capture.
+
+### S29-7 — `s20restore.sh` quotes an overrun count it cannot clear
+
+**Severity: instrument. Status: named, not fixed.**
+
+Restore passes 1 and 2 both reported chip 2 at **exactly 2,240 overruns of
+90,049** — the same count S28's pass 1 reported. An identical figure on two
+independent boots is not a measurement of the dwell: `blk_*` predates
+`DIAG_CLEAR`, the tool says so in the same output (*"THE LATCH DID NOT
+DROP"*), and 2,240 is a fixed boot transient accrued before the dwell starts.
+Pass 3 read 0 and 0. The restore ladder reads as flaky because the figure it
+quotes is unreadable on this pair.
+
 ## THE OTHER PRODUCTS' FIT, FROM THE SAME SILICON (2026-09-11, session 28)
 
 Session: D16 and D12 generated from their own definitions, predicted by
@@ -163,7 +317,9 @@ firmware produces it and nothing checks it.
 ### S28-6 — the two-anchor construction under-predicts every smaller product, and the control proves it is the product and not the night
 
 **Severity: method — it is what gate 2 exists to find. Status: measured on
-four products in one session.**
+four products in one session. CONFIRMED 2026-09-11 by S29-2/S29-3 — the
+mechanism named below was weighed directly on the part and it is scope class
+0: predicted +3.7 / +0.5 from these slopes, measured +3.53 / +0.40.**
 
 Interpolating D24 and D32 and extrapolating below D24 gets chip 1 within
 **+0.74…+2.45 points** and chip 2 within **+1.80…+5.35 points**, and **every

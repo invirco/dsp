@@ -42,6 +42,13 @@ sudo pinctrl set 8,12 ip >/dev/null 2>&1
 sudo pinctrl set 7,9,10,11,22,23,25 a0 >/dev/null 2>&1
 
 PRODUCT="${PRODUCT:-d24}"
+# THE SCOPE CLASS, OVERRIDABLE (S29). Empty = the product's own default.
+# `SCOPE_ID=1` on a D32 arm sends the D32 masks with the D24 scope word, so
+# the 32 snake nodes are gated off exactly the way every other product gates
+# them and nothing else about the arm changes. See dsp4_config.py.
+SCOPE_ID="${SCOPE_ID:-}"
+SCOPE_ARG=""
+[ -n "$SCOPE_ID" ] && SCOPE_ARG="--scope-id $SCOPE_ID"
 
 ready() {
   timeout 60 python3 - <<'PY' 2>/dev/null
@@ -69,11 +76,21 @@ for cycle in 1 2 3; do
     ID=$(python3 dsp4_diag.py --chip 2 2>&1 | grep CHIP_ID | awk '{print $2}')
     [ "$ID" = "2" ] && break
   done
-  python3 dsp4_config.py --product "$PRODUCT" --chip 1 >/dev/null 2>&1; sleep 3
-  python3 dsp4_config.py --product "$PRODUCT" --chip 2 \
+  python3 dsp4_config.py --product "$PRODUCT" $SCOPE_ARG --chip 1 \
+          >/dev/null 2>&1; sleep 3
+  python3 dsp4_config.py --product "$PRODUCT" $SCOPE_ARG --chip 2 \
           --cs-gpio 24 --rdy-gpio 12 >/dev/null 2>&1; sleep 3
   [ "$(ready)" = "1" ] || { echo "cycle $cycle: chip 2 link never usable"; continue; }
   python3 dsp4_diag.py --chip 2 >/dev/null 2>&1
+  # WHICH SCOPE CLASS THE PART IS ACTUALLY IN (S29). `_product_id` is
+  # published at DIAG_PRODUCT_ID (0xE010) and it is the only word the scope
+  # gates read, so an arm that claims to have gated the snake off says so
+  # here in the part's own words rather than in the invocation's.
+  for C in 1 2; do
+      PID=$(python3 dsp4_diag.py --chip $C 2>/dev/null \
+            | awk '/PRODUCT_ID/ {print $2}')
+      echo "    chip $C: PRODUCT_ID (scope class) = ${PID:-unreadable}"
+  done
   python3 gainfix.py >/dev/null 2>&1
 
   if [ "${DRIVEN:-0}" = "0" ]; then
@@ -218,6 +235,34 @@ PYEOF
       python3 dsp4_capacity.py --dwell "${DWELL:-45}" --tag "fx-$T" \
               --json "$P-D-fx$T.json" || RC=$?
   done
+
+  # THE LOAD, PUT BACK, IF BOTH LADDERS RUN ON THIS BOOT (S29).
+  #
+  # The FX ladder's `off` rung leaves the six engines OFF, and the USE
+  # ladder's `--mode use` writes crosspoint families only -- it does not
+  # touch FX. So a boot that ran `FXTYPES="off"` and then went straight into
+  # USELEVELS would take S24's worst-use rung with the plugin load absent,
+  # which is not the row S24 measured and not the row that overruns. Until
+  # S29 no arm set both variables, so this could not happen; S29 needs rows
+  # A/B/C/D and the worst-use rung on ONE boot, and this is what makes that
+  # legitimate. An arm that sets only one of the two is untouched.
+  if [ -n "${FXTYPES:-}" ] && [ -n "${USELEVELS:-}" ]; then
+      echo "--- the load, re-applied before the USE ladder"
+      for C in 1 2; do
+          python3 dsp4_driven_setup.py --chip $C --mode "$MODE" \
+                  --fx-type "$FXTYPE" --landed "$LANDED" \
+                  > "$P-reload-c$C.log" 2>&1
+          echo "    chip $C: $(tail -1 "$P-reload-c$C.log")"
+      done
+      python3 dsp4_c2regime.py --chip 2 --tag reload $RQ \
+              --json "$P-reload-regime.json" > "$P-reload-regime.log" 2>&1
+      RR=$?
+      grep -h "DRIVEN REGIME\|FX REGIME\|FX SCOPE" "$P-reload-regime.log" \
+          2>/dev/null
+      [ "$RR" = "0" ] || echo "    REGIME NOT PROVEN after the reload"\
+          "(rc=$RR) -- the USE rungs are taken anyway and labelled;"\
+          "see $P-reload-regime.log"
+  fi
 
   # ------------------------------------------------------------------
   # THE USE LADDER (S24), OPTIONAL, ON THE SAME BOOT AS ROW C.

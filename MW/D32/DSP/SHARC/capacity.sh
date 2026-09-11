@@ -73,6 +73,15 @@
 #                                              matrix bus. Needs a landed map
 #                                              that HAS those cells, i.e.
 #                                              DSP_LANDED_DIR=proposals/defs/products
+#   SCOPE_ID=1 ARM=... PRODUCT=d32 ./capacity.sh --driven
+#                                              the PRODUCT with its own masks
+#                                              and the OTHER scope class:
+#                                              D32's 32 snake nodes gated off
+#                                              the way every other product
+#                                              gates them, one config word
+#                                              different and nothing else
+#                                              (S29). Empty = the product's
+#                                              own scope id.
 #   USELEVELS="1/0:0 1/4:0 1/8:0 1/12:0" ./capacity.sh --driven
 #                                              the BUS axis: `sources/buses`.
 #                                              The first ladder measured 9.77
@@ -131,11 +140,12 @@ done
 # `shipping.config.s20` image is the S11-1 shape one level down.
 if [ "${BUILD:-1}" = "1" ]; then
     echo "=== capacity arm '$ARM'  product=$PRODUCT  block=${BLOCK:-tree}" \
-         " config=$(basename "${SHIPPING_CONFIG:-shipping.config}")  overrides:${OVR:- none}"
+         " config=$(basename "${SHIPPING_CONFIG:-shipping.config}")  scope=${SCOPE_ID:-product default}  overrides:${OVR:- none}"
 else
     echo "=== capacity arm '$ARM'  product=$PRODUCT  block=${BLOCK:-tree}" \
          " BUILD=0: the arm is the STAGED IMAGE, identified by the md5 below," \
-         " not by a configuration file this run did not read.  overrides:${OVR:- none}"
+         " not by a configuration file this run did not read." \
+         "  scope=${SCOPE_ID:-product default}  overrides:${OVR:- none}"
 fi
 
 if [ "${BUILD:-1}" = "1" ]; then
@@ -201,7 +211,13 @@ fi
 
 python3 $ROOT/tools/dsp/landed_map.py --product "$PRODUCT" \
         --json /tmp/landed-$PRODUCT.json || exit 3
+# dsp4_config.py IS IN THIS LIST FROM S29 and it has to be: `SCOPE_ID`
+# reaches the part through its `--scope-id` flag, so the staged copy is now
+# part of the ARM's definition and not a helper. Before S29 it came only
+# from the /home/app/dspboot symlink, i.e. from whatever the bench happened
+# to hold -- the S10-9 trap one file along.
 scp -q $ROOT/tools/pi/dsp4_capacity.py $ROOT/tools/pi/dsp4_checkchip.py \
+       $ROOT/tools/pi/dsp4_config.py \
        $ROOT/tools/pi/dsp4_boot.py $ROOT/tools/pi/dsp4_buildcfg.py \
        $ROOT/tools/pi/dsp4_c2regime.py $ROOT/tools/pi/dsp4_driven_setup.py \
        $ROOT/tools/pi/gainfix.py /tmp/landed-$PRODUCT.json $BENCH:$STAGE/ || exit 3
@@ -220,6 +236,7 @@ fi
 for r in $(seq 1 "$REPS"); do
     echo "--- boot $r ---"
     ssh $BENCH "STAGE='$STAGE' PRODUCT=$PRODUCT DWELL=$DWELL DRIVEN=$DRIVEN \
+                SCOPE_ID='${SCOPE_ID:-}' \
                 SETUP_MODE='${SETUP_MODE:-load}' FXTYPE='${FXTYPE:-3}' \
                 FXTYPES='${FXTYPES:-}' USELEVELS='${USELEVELS:-}' \
                 PREFIX=cap-$ARM-$PRODUCT-r$r \

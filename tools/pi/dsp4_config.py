@@ -131,11 +131,25 @@ PRODUCT_CONFIG = {
 }
 
 
-def transactions(product, chip):
-    """Yield (addr, value) writes for a product/chip, COMMIT last."""
+def transactions(product, chip, scope_id=None):
+    """Yield (addr, value) writes for a product/chip, COMMIT last.
+
+    `scope_id` overrides CFG_PRODUCT_ID and nothing else (S29). The word
+    is a SCOPE CLASS (S28-4) and it is the ONLY thing `_product_id` is
+    read for: `_scope_gates_apply` forces off the enables of nodes whose
+    `scope=` does not match it, and -- under DSP4_BLOCK_KERNELS &&
+    DSP4_SCOPE_GATE -- `process_chain.asm` compares it once per contiguous
+    RUN of scoped nodes and branches over the calls. So sending a D32 its
+    own masks with scope id 1 gives exactly the arm S29 gate 2 asks for:
+    the product, with scope class 0 gated off the way every other product
+    gates it, and one config word different.
+    """
     cfg = PRODUCT_CONFIG[product]
     for addr in (CFG_PRODUCT_ID, CFG_CHAN_MASK, CFG_AUX_MASK, CFG_OUT_MUX):
-        yield addr, cfg[addr]
+        v = cfg[addr]
+        if addr == CFG_PRODUCT_ID and scope_id is not None:
+            v = scope_id
+        yield addr, v
     if chip == 1 and 'input_patch' in cfg:
         for i, v in enumerate(cfg['input_patch']):
             yield CFG_PATCH_BASE + i, v
@@ -261,6 +275,12 @@ class SpiLink:
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument('--product', choices=sorted(PRODUCT_IDS))
+    ap.add_argument('--scope-id', type=int, choices=(0, 1), default=None,
+                    help='override CFG_PRODUCT_ID (the SCOPE CLASS) without '
+                         'touching the product\'s masks: 0 = D32 scope '
+                         '(the snake returns run), 1 = D24 scope (they are '
+                         'gated off, as every other product gates them). '
+                         'S29 gate 2.')
     ap.add_argument('--chip', type=int, choices=(1, 2), default=1)
     ap.add_argument('--dev', default='0.0',
                     help='spidev bus.device (default 0.0)')
@@ -286,7 +306,11 @@ def main():
     if args.poke:
         writes = [(int(args.poke[0], 0), int(args.poke[1], 0))]
     elif args.product:
-        writes = list(transactions(args.product, args.chip))
+        writes = list(transactions(args.product, args.chip, args.scope_id))
+        if args.scope_id is not None:
+            print(f'  scope class OVERRIDDEN: CFG_PRODUCT_ID = '
+                  f'{args.scope_id} (product default '
+                  f'{PRODUCT_IDS[args.product]})')
     else:
         ap.error('need --product or --poke')
 
@@ -307,10 +331,10 @@ def main():
 
     if not args.verify:
         return 0
-    return verify(link, args.chip, args.product)
+    return verify(link, args.chip, args.product, args.scope_id)
 
 
-def verify(link, chip, product):
+def verify(link, chip, product, scope_id=None):
     """Read the commit's consequences back off the part.
 
     The 0xF000 config registers are write-only on the DSP side — the read
@@ -323,6 +347,8 @@ def verify(link, chip, product):
     from dsp4_diag import DiagLink
     d = DiagLink(link)
     want_pid = PRODUCT_IDS[product] if product else None
+    if scope_id is not None:
+        want_pid = scope_id
     try:
         stage = d.read(0xE002)
         cfg = d.read(0xE003)

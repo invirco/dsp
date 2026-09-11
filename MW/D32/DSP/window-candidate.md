@@ -292,6 +292,52 @@ The window's artifact list is therefore exactly what it was for s21, with
 
 ---
 
+## 4a. ADDED 2026-09-11 (S29) — what D32's worst-use row is actually paying for
+
+**The 100.8 % is the snake, and the snake is the product.** S28 found that
+D32's extra cost over D24 is not its strips or its aux buses but **scope
+class 0** — the 32 nodes only a D32 boots. S29 weighed the class on the part,
+on THIS candidate, as one config word on one image:
+
+| | chip 1 | chip 2 |
+|---|--:|--:|
+| scope class 0 costs | **0.22–0.61 points** | **3.43–3.69 points** |
+
+Flat across six regimes (silent, loaded, driven FX-off, driven with six
+reverbs, every crosspoint closed, every crosspoint open), two boots an arm,
+against an instrument resolution of ±0.27 points. **Every D32 row that
+overruns with the class on runs with ZERO missed blocks without it** —
+1,912 / 1,943 / 1,943 become 0 / 0 / 0.
+
+**PW is not being offered a switch.** Scope class 0 is the D32R stage-box
+digital snake: `io.snake,1` in the product definition, a lane in the CPLD
+(`A_I5`, selected by `strap_d32`), and **sixteen cells on the gated
+contract** — `Snk[1-8]On[1-1]` and `Snk[1-8]Level[1-1]`, mode `rw`, eight
+channels of snake return into the main bus with their own level and on/off.
+A D32 without it is a D32 without its stage box. **So the worst-use finding
+stands exactly as §2 states it: 100.81 % with 1,943 of 270,000 blocks missed
+(0.72 %) at twelve auxes fed.**
+
+**What this changes is where to look next, not what to sign.** Chip 2 misses
+fitting by 0.81 points and the snake costs 3.43 — and the expensive half is
+eight `AUX_INPUT` nodes that are SWITCHED OFF (`on=0`) while they cost it,
+because the price is being CALLED, not doing work. That is S23-5/S24's
+block-level-bypass finding one node class down, and skipping an AUX_INPUT
+whose `on` is 0 is the obvious lever. **It is not taken inside the window**:
+it changes the shipping image. See `MW/D32/DSP/dsp4-s29-20260911.md` §2.5.
+
+**The latency figure in §2 is now MEASURED on this candidate.** S29 found the
+through-DSP latency arm's seven-session null (S12-10, S27-7) and it was the
+duplex PCM overlay, not the DSP — the playback chain is live end to end under
+the standing slave overlay, proved stage by stage. On `maincap`, three boots
+× twenty reps, **100.0 % coherent on all 60 reps**, against the `pisel`
+CPLD-loop reference: **82 / 82 / 81 samples, 1.708 / 1.708 / 1.688 ms.** The
+82-sample contract figure was S20's and carried on an argument; it is this
+candidate's own number now.
+
+**Nothing else moved.** No cell, no address, no config word, no `defs` pin,
+no staged pair, and `shipping.config`/`.s21`/`.s26` are unchanged.
+
 ## 5. What this candidate does NOT bring to the window
 
 * **R6–R11** — the matrix as composite rows and the FX topology — are held
