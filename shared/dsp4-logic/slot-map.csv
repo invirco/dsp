@@ -23,7 +23,7 @@ A_I2,4,IN_21,BOTH,
 A_I2,5,IN_22,BOTH,
 A_I2,6,IN_23,BOTH,
 A_I2,7,IN_24,BOTH,
-A_I3,0,IN_25,BOTH,D24: NET source only (no ADC on AD3)
+A_I3,0,IN_25,BOTH,D24: NET source only (no ADC on AD3). Lane arrives on the CPLD's ni[3], which the copper feeds from option slot 1 pin A10 - the card's lane NO0. The index is the CPLD's; see the mirroring note in README.md
 A_I3,1,IN_26,BOTH,
 A_I3,2,IN_27,BOTH,
 A_I3,3,IN_28,BOTH,
@@ -129,7 +129,7 @@ B_O3,4,PI_RET_3,BOTH,Pi CM4 TDM8 return channel 3 - PW-DECIDED 2026-08-23
 B_O3,5,PI_RET_4,BOTH,Pi CM4 TDM8 return channel 4 - PW-DECIDED 2026-08-23
 B_O3,6,PI_RET_5,BOTH,Pi CM4 TDM8 return channel 5 - PW-DECIDED 2026-08-23
 B_O3,7,PI_RET_6,BOTH,Pi CM4 TDM8 return channel 6 - PW-DECIDED 2026-08-23
-B_O4,0,NET_OUT_01,BOTH,
+B_O4,0,NET_OUT_01,BOTH,CPLD no[0] -> option slot 1 pin A9 = the card's lane NI3, NOT NI0. The index here is the CPLD's and the mirroring is the card's to undo; see README.md
 B_O4,1,NET_OUT_02,BOTH,
 B_O4,2,NET_OUT_03,BOTH,
 B_O4,3,NET_OUT_04,BOTH,
@@ -160,4 +160,4 @@ B_O7,3,NET_OUT_28,BOTH,
 B_O7,4,NET_OUT_29,BOTH,
 B_O7,5,NET_OUT_30,BOTH,
 B_O7,6,NET_OUT_31,BOTH,
-B_O7,7,NET_OUT_32,BOTH,
+B_O7,7,NET_OUT_32,BOTH,CPLD no[3] -> option slot 1 pin A6 = the card's lane NI0. Mirrored; see README.md

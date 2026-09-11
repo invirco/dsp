@@ -100,6 +100,28 @@ LOGIC format-config straps: IC0=TDM16, IC1=TDM8, IC2=I2S; IL0=FS, IL1=WC.
 At 48 kHz / 32-bit slots: TDM8 → 12.288 MHz BCLK, TDM16 → 24.576 MHz BCLK,
 both divided from the 49.152 MHz XO.
 
+**CORRECTION 2026-09-11 (S34), from the netlist — two of those five pins
+are not straps, they are the converter clock pair.** The sheet prints
+`IC0-IC2`/`IL0-IL1` beside U3 pins 87/142/85/141/81, and the 2026-07-31
+pin extraction read all five as inputs. The copper says:
+
+| U3 pin | net | what is on it |
+|---|---|---|
+| 87 | `C0` | single-pin net — routed to nothing |
+| 85 | `C2` | single-pin net — routed to nothing |
+| 81 | `L1` | single-pin net — routed to nothing |
+| **142** | **`C1`** | **bit clock out**: R111 → ADC/DAC FPC; R65/R66/R67 → `BCK_1`/`BCK_2`/`BCK_3` (slots 2/1/3); R61 → `BCK_4` (J33) |
+| **141** | **`L0`** | **frame sync out**: R112 → FPC; R62/R63/R64 → `FS_1..3`; R60 → `FS_4` |
+
+U3.142 and U3.141 are the only active device pins on those two nets, so
+nothing else on the board can generate a converter clock. Two consequences:
+the shipping CPLD personality drives neither (they are `input` in the RTL —
+see `MW/D24/DSP/dsp4-s34-20260911.md` §4.1 and branch
+`s34-converter-clock`), and **there is one clock pair for the converters
+AND all three option slots**, so no option slot can run TDM16 without the
+converters going with it. The three dead pads are the free I/O a second
+pair would use, and that is a rev-D routing change.
+
 ### Review-note addendum: analog I/O → DSP4 digital nets
 
 The analog side of the D24 hardware does not terminate on direct DSP4 analog pins.

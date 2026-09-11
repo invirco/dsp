@@ -47,6 +47,36 @@ Rules (same as the rest of the repo):
   "DAC MAIN" has no D24 sink BY DESIGN (D24 main outs are line outs on
   the Analog PCBA; lane reserved for D32/future).
 
+## The NET lane indices in here are the CPLD's, not the card's
+
+Confirmed against the rev C netlist (mx26 `docs/d24-netlist-global.md`
+section (a), 2026-09-11). The eight option-slot-1 lanes are **crossed
+end-for-end across J18**: a lane the digital board calls `NO`*n* — an
+output *of the card* — arrives at LOGIC input `ni[3-n]`, and LOGIC output
+`no[n]` drives the card's input lane `NI[3-n]`.
+
+| this map | CPLD pin | J18 | digital net | option slot 1 pin |
+|---|---|---|---|---|
+| `A_I3` (NET in, `IN_25..32`) | `ni[3]`, U3.3 | P30 | `NO0` | J1 A10 |
+| `B_O4` (`NET_OUT_01..08`) | `no[0]`, U3.2 | P31 | `NI3` | J1 A9 |
+| `B_O5` (`NET_OUT_09..16`) | `no[1]`, U3.1 | P32 | `NI2` | J1 A8 |
+| `B_O6` (`NET_OUT_17..24`) | `no[2]`, U3.144 | P33 | `NI1` | J1 A7 |
+| `B_O7` (`NET_OUT_25..32`) | `no[3]`, U3.143 | P34 | `NI0` | J1 A6 |
+
+**The indices in this map and in the RTL are the CPLD's, and the
+mirroring is the card's to undo.** That is the right place for it: the
+CPLD index is what the RTL, the slot map, `sport_map.json` and the DSP
+node graph all agree on, and the card is the one part of the system that
+can see both ends of the cross. An option-card firmware that assumes lane
+*n* on the card is lane *n* at the CPLD is wrong — `NET_OUT_01..08` lands
+on the card's input lane 3, not lane 0.
+
+Slots 2 and 3 are crossed too, but **not in the same shape**: there it is
+a pairwise swap of the `_0/_1` and `_2/_3` halves, not a reversal
+(`NI4`→`PLL6_2`, `NI5`→`PLL6_3`, `NI6`→`PLL6_0`, `NI7`→`PLL6_1`). Neither
+slot's lanes are in the CPLD RTL today; when they are, this is the table
+that has to be re-read, not assumed from slot 1.
+
 ## Reading the design ID off the part
 
 Every build stamps a 32-bit design ID (the low 32 bits of the artifact

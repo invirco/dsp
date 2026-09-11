@@ -1,6 +1,6 @@
 {
   "generated_by": "shared/dsp4-logic/gen_slot_map.py",
-  "source_hash": "3308fbf822f5fb2a669583e157eff3f156af250cc3387b8abc5a39f1bf411b28",
+  "source_hash": "2c53de21b8c80973a8ea8935b70fbc908f2341561dc28e32600caf8f09572ed8",
   "sport_convention": "sport_id = DAI port index; I ports are RX, O ports are TX; chip1=DSPA, chip2=DSPB",
   "timing": {
     "sample_edge": "rising",
@@ -435,7 +435,7 @@
               "slot": 0,
               "signal": "IN_25",
               "scope": "BOTH",
-              "note": "D24: NET source only (no ADC on AD3)"
+              "note": "D24: NET source only (no ADC on AD3). Lane arrives on the CPLD's ni[3]"
             },
             {
               "slot": 1,
@@ -1507,7 +1507,8 @@
             {
               "slot": 0,
               "signal": "NET_OUT_01",
-              "scope": "BOTH"
+              "scope": "BOTH",
+              "note": "CPLD no[0] -> option slot 1 pin A9 = the card's lane NI3"
             },
             {
               "slot": 1,
@@ -1698,7 +1699,8 @@
             {
               "slot": 7,
               "signal": "NET_OUT_32",
-              "scope": "BOTH"
+              "scope": "BOTH",
+              "note": "CPLD no[3] -> option slot 1 pin A6 = the card's lane NI0. Mirrored; see README.md"
             }
           ]
         }

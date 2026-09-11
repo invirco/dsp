@@ -6,6 +6,122 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE NETLIST AGAINST THE PERSONALITY (2026-09-11, session 34)
+
+Desk session against the hub's new D24 global netlist and TDM map. No unit
+touched, nothing flashed, no bitstream produced. Full working:
+`MW/D24/DSP/dsp4-s34-20260911.md`.
+
+### S34-1 — the LOGIC bitstream does not drive the converter clock pair
+
+**Severity: BLOCKING (no converter can work). Status: proved from the
+netlist and from the fitter's own pin report; the fix is prepared on branch
+`s34-converter-clock`, not merged and not flashed.**
+
+`quartus/dsp4_logic.qsf` puts `ic_strap[1]` on PIN_142 and `il_strap[0]` on
+PIN_141, and `dsp4_logic_top.v` declares both `input wire`. Today's rebuild
+of the shipping source reports them back as `input : 3.3-V LVTTL`, and lists
+all five strap pins under "input pin(s) that do not drive logic".
+
+Those two pins are board nets **`C1`** and **`L0`**. Each fans out through
+five 33R taps: `R111`/`R112` to the ADC/DAC FPC, and `R65/R66/R67/R61` +
+`R62/R63/R64/R60` to `BCK_1..4` / `FS_1..4` — the bit clock and frame sync
+of all three option slots and the D32 compatibility header. **U3.142 and
+U3.141 are the only active device pins on those nets.** Driven by nothing,
+the converters have no clock, and neither does any option slot.
+
+The wire-through lanes say it independently: `i_dspa[0] = ad[0]` is a plain
+wire, so the converter frame has to BE the DSP frame, which requires one
+generator for both.
+
+How it got in: the rev C LOGIC sheet prints `IC0-IC2`/`IL0-IL1` beside pins
+87/142/85/141/81 and the 2026-07-31 extraction read all five as format
+straps. Three of them (87 `C0`, 85 `C2`, 81 `L1`) really are dead —
+single-pin nets, and the only free user I/O on the part. Two are not.
+
+**One probe settles it and needs no firmware: with today's bitstream, J18
+P37 (`C1`) and J18 P38 (`L0`) are dead, not 12.288 MHz and 48 kHz.** The
+branch makes them outputs carrying `bck8`/`fs8` — the same pair as
+`bcki[0]`/`fsi[0]` — at a cost of 0 LEs (404 before and after), 68 pins
+instead of 71, and Fmax 73.67 MHz against the baseline's 64.52. The sim gate
+gains a continuous check that the pair is driven and equals the TDM8 pair.
+
+### S34-2 — TDM16 on one net lane: the SHARC allows it, the slot clock does not
+
+**Severity: HIGH (it is the 64-in/64-out question). Status: answered from
+the HRM and the netlist; nothing built, because the blocker is copper.**
+
+The premise that a SPORT's A/B halves share one clock and format is wrong.
+HRM §21: *"Individual SPORT halves do not share any of its signals across
+the pair"* — the sharing is opt-in via `SPORT_CTL2_x.CKMUXSEL`/`FSMUXSEL`
+and this design uses none of it. Each half has its own SRU clock and FS
+destination (`SPT3_ACLK_I` = `DAI_CLK5.IN0`, `SPT3_BCLK_I` = `IN1`), and
+`WSIZE`/`CSn` are per half. The card already depends on this: every DSPA
+SPORT runs half A at TDM8 and half B at TDM16.
+
+I5 is also not I3's partner — SPORT3 half A pairs with **half B**, which is
+DSPA O3 (`MIX_49_64`), already TDM16 by role and not even enabled today.
+
+So I3 at TDM16 is **two SRU lines**: `SRU(DAI0_PB19_O, SPT3_ACLK_I)` and
+`SRU(DAI0_PB20_O, SPT3_AFS_I)` — the DAI0-out pair LOGIC already drives at
+24.576 MHz. On I5 it is the DAI1-out pair (`PB20` = BCK3, `PB19` = FS3; note
+the DAI0/DAI1 swap). Beyond the two lines, `sport_config.c::cfg_region()`
+takes `wsize`/`mcpde` **per region**, so a mixed-format RX region needs both
+moved into the per-lane tuple.
+
+**What blocks it is one net.** The option-slot bit clock is not per-slot and
+not inverted: `BCK_1..3` are 33R copies of `C1`, which is also the converter
+bit clock (same for `FS_1..3` off `L0`). A slot cannot go to TDM16 without
+the ADCs and DACs going with it. The escape exists and is a rev-D pin
+change: pins 85/81 (`C2`/`L1`) are free pads, and a second LOGIC clock pair
+on them re-sources the slot clocks. On rev C it is a six-resistor wire mod.
+
+### S34-3 — LE cost: the ceiling is not what decides this, pins are
+
+**Severity: MEDIUM (it prices the rev-D LOGIC). Status: measured, Quartus
+21.1.1, branch `s34-cpld-cost`; no bitstream produced.**
+
+Against a 404 LE / 71 pin baseline rebuilt today (5M1270Z, 1,270 LEs):
+slot 3 as a second net card **402** (−2, 79 pins); slot 2 likewise **402**
+(79 pins); codec+MEMS+Pi packed onto one TDM8 lane each way **419** (+15);
+runtime `net_sel` **452** (+48); all four together **463** (+59, 90 pins).
+
+Worst case is **36 % of the part** with 4.1 ns of setup slack against a
+20.35 ns period. The two negative deltas are fitter packing noise — the lane
+mux is one LE per lane by construction, and **a second option card costs
+pins, not logic**: two slots take I/O from 62 % to 79 %.
+
+The pack stays at 15 LEs only because every source keeps its own slot index
+(codec 0–3, MEMS 5, Pi 6–7 replayed there by the re-framer). A source needing
+an EARLIER destination slot would cost a full frame of delay — 32 flops a
+lane, not 15 LEs for the lot.
+
+### S34-4 — the X-logic parking is sitting on option slot 2's lanes
+
+**Severity: MEDIUM (latent driver fight). Status: found from the netlist;
+a corrected parking is in the `s34b_slot2` project on `s34-cpld-cost`.**
+
+`snake_in`, `snake_out` and `dac_main` are parked on U3 pins 109/110/111,
+marked PROVISIONAL. Those are `LOGIC_PLL5_0/1/2` = digital `NO6`/`NO7`/`NO4`
+= **option slot 2 pins A12/A13/A10**, and two of the three are CPLD outputs.
+Harmless until a slot-2 card is fitted, at which point the CPLD and the card
+drive the same two lanes. They belong on the PLL1 group (89/91/93), which
+reaches only the D32 compatibility header and no device on any D24 board.
+
+### S34-5 — the tracked node ASM is 117 files stale against its generator
+
+**Severity: MEDIUM (hygiene, and it hides real diffs). Status: measured,
+not fixed — it wants its own pass.**
+
+`dsp_codegen.py --force` on the UNMODIFIED `dsp.csv` rewrites **117 files**
+(+1,180/−536). What was sampled is comment text carried in from later
+sessions, but the repo's own rule is that generated files are regenerated,
+not edited — and today a regeneration is not a no-op, so no generated-file
+diff can be read at a glance. This session kept both option branches clear
+of it deliberately, which is why neither carries its node-ASM regeneration.
+Fix is one pass: regenerate, review for anything that is not a comment,
+land it alone.
+
 ## WINDOW CANDIDATE B, PREPARED (2026-09-11, session 33)
 
 Session: `shipping.config.s32` — candidate A plus the off-aux park gate —
