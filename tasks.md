@@ -1,3 +1,65 @@
+## HUB DISPATCH 2026-09-11 02:52Z — S28 — the other products' fit by construction and driven; CFG2 widening designed   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+S28 — THE OTHER PRODUCTS' FIT, FROM THE SAME SILICON (D16 and D12 — and D32 Rack/D32C/D32R if their product files differ from D32 in what the DSP carries): each product's cell count and node graph generated from its product file the way D24's and D32's are, its capacity given BY CONSTRUCTION from S21–S27's measured per-function driven figures, then a DRIVEN ROW on the rev C unit where the product's graph builds and boots (the silicon is the same; the product is the cell count) — so the range has a fit table, not two products and a guess; plus S27-3's CFG2 field widening DESIGNED (not applied inside the window) so the part can name its own configuration once PW signs
+
+WHY. Seven sessions have priced D24 and D32 driven to the tenth of a
+point; the range has more products in the master (D12, D16, the D32
+variants) and the scoreboard's "does it fit" table has two rows. The
+memory of this programme names a D16 chip-2 gate as the place where
+the GEQ argument was once made; nothing has measured it. The
+per-function figures are measured and the generator makes a product's
+graph from its file — capacity by construction is a script, and a
+driven row costs one build and two boots per product. S27 also left
+the part unable to distinguish s21 from s26 by its own configuration
+words; the widening is designed now and applied after PW signs the
+window, when moving md5s is not a problem.
+
+BENCH. Rev C unit as S27 left it (`blk_*` booted, shipping CPLD, matrix-
+app active; `loadlogic.sh`'s new check in force — IDCODE before/after,
+the log); staged pairs through `s26_*` — NEVER replace any; per-product
+candidates as `s28_<product>_*`. `SHIPPING_CONFIG=shipping.config.s26`
+(the window candidate); `DSP_LANDED_DIR` = the proposal pair — and
+per product, the product's OWN proposal pair generated from its file
+(state where it lands: `proposals/defs/products/<product>/`); staging
+path verified; `cfgverify.sh`; CCLK; `capacity.sh` driven rows with the
+regime proved and the plugin load where the product has FX; one capture
+per boot (now enforced). No definition-blocked cells; R6–R11 held. No
+deploy. No AI attribution in commits or any work product.
+
+GATES, in order, each witnessed:
+1. **By construction.** For each product in `defs/products/` with a DSP
+   (D12, D16, D24, D32, D32 Rack, D32C, D32R — say which share a graph):
+   the generated cell count, the node census per class, and the chip-1/
+   chip-2 percentage predicted from S21–S27's measured per-node driven
+   figures (state each figure's source session), plain and with the
+   product's FX load; the code-pool and DM bytes predicted the same way.
+   One table; first sentence of the status line: **by construction D16
+   is A/B %, D12 C/D %, … ; the closest to the edge is X.**
+2. **Driven, where it builds.** For each product whose graph builds
+   against the rev C hardware (the same two 21564s; the product's lane
+   map may leave lanes idle — say so), one candidate, two boots, driven
+   rows plain and with the load; the delta between construction and
+   measurement per product, and the fit table extended. Where a
+   product's graph does NOT build (a lane or converter the rev C lacks),
+   say exactly what and leave the construction figure labelled.
+3. **CFG2 widening, designed**: the field layout that gives every
+   configuration switch the bits it needs (the four-bit SHARED_KERNELS
+   mask and any other under-wide field), the decoder change, the md5
+   consequence (every quoted image moves — listed), and the one-line
+   apply step for AFTER PW signs the window. Not applied.
+4. Findings S28-*, `MW/D32/DSP/dsp4-s28-20260911.md`, the scoreboard's
+   fit table source (`MW/D32/DSP/fit-table.csv` — a CSV the hub's board
+   reads), tasks.md, this block's status; commit + push main. Stage
+   `s28_<product>_*` where the bars pass.
+
+Bounded: gates 1–2 are the session; 3–4 always.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-10 21:35Z — S27 — shared-class cycle ladder, the window candidate in one place, instrument debt   [status: 🟢 done — **shared GATE costs 0.0 and shared FILT costs 0.0 points, per product and per chip; SHIP BOTH, because every one of the 24 chip-1 deltas is inside the resolution of the instrument that measured them.** Four arms of one tree (`DSP4_SHARED_KERNELS` 3/7/11/15 over `shipping.config.s21`), D24 and D32, both chips, two boots, four regimes each — silent/default, silent/loaded, driven with the six FX engines off, driven with six reverbs live and the regime PROVED on every driven row (64/64 chip-1 envelopes, 32/32 chip-2, 6/6 engines at Type 3 with 6/6 comb lines carrying signal). **chip-1 Δ: GATE −0.11…+0.28 avg, FILT −0.11…+0.23, both −0.12…+0.12**; worst-block Δ −0.26…+0.70, −0.25…+0.29, −0.06…+0.29. **The null arm is what makes that a measurement**: `chip2.ldr` is BYTE-IDENTICAL in all four arms, so its twenty-four arm-to-control deltas are the instrument against itself — and they swing **0.39 points average / 0.56 worst-block**, with chip 1's boot-to-boot spread 0.59 over 32 pairs. The 0.5-point revert threshold sits AT that resolution; neither class is marginal. **The bytes are exactly additive** — GATE alone 31,052, FILT alone 27,020, together 58,072 — and the control rebuilds S25/S26 byte for byte (`c9d0e07b`/`9222c2ee`), the mask-15 arm rebuilds S26's candidate byte for byte (`6396187c`/`9222c2ee`). **The window candidate is `shipping.config.s26`; every bar green but one, which was not run; 3 deviations to sign, and the third is NOT product-visible.** `MW/D32/DSP/window-candidate.md` is the one place: the pair, the md5s, the staged name, and the bars — golden 59/59, `dsp_validate` OK on 698, record layout OK on all four shared classes, 256 stubs OK, cfgverify matching on both chips, **busgold sha256 `4126c00730a31f5f` twice on two boots**, goldnode GATE **64 of 64 bit-exact** with its negative control firing on exactly the 2 predicted vectors and TUBE 96/96 on both stimuli, **famverify D24 0 of 25 families differ** against S25's report, famverify D32 one verdict moved and it is R5's, capacity driven both products with and without the plugin load. **Deviations: the dynamics table's 0.0950 dB against PW's 0.1 dB; GATE_LINTHR's 0.0002 dB; and S26's ±1.5 dB threshold/knee floor is NOT product-visible — the floor names where rounding HAPPENS and the error it makes is 1.8e-7 dB (threshold) and ≤1.1e-6 dB (soft knee), five to six orders below anything this product specifies.** **Nothing changes for the app, H1S3 or H1S4**: no cell, no address, no `defs` bump, and chip 2 is not redeployed at all. **S27-3, found in the candidate's own cfgverify output: the part CANNOT tell s21 from s26.** `DIAG_BUILD_CFG2` has room for two bits of `DSP4_SHARED_KERNELS` and the mask now has four, so mask 3 and mask 15 produce the same two words — S12-7's shape one flag along. NOT fixed inside the window (widening it moves every image md5 the bars quote); instead `cfg_words.py` and the bench decoder now print the caveat beside the pass and the arm is identified by md5. **S27-2: this session measured a lighter product before it noticed** — without `DSP_LANDED_DIR` the load is 5,409 D32 cells, not 5,765, and chip 2 reads **91.0 % instead of 100.75 %** driven. The ladder is a DELTA and stands; the control and candidate were re-measured on the proposal map and reproduce S25 to the digit (D32 78.98/100.75 vs 78.97/100.75; D24 59.91/84.47 vs 59.74/84.49). **D32 chip 2 still does not fit at worst use** — 100.75–100.88 % with 0.72 % of blocks missed — on the CONTROL as much as the candidate, which drop 1,943 and 1,944 blocks of 270,000. That is S24's finding, restated in the candidate document where PW will see it. **Instrument debt, all three, and each one was a bar that could not fail.** (a) S23-1's one-capture-per-boot rule is now IN `dsp4_pairgraph.py` — a boot ledger, a stamp in every JSON, refusal of a second capture without `--force` (mtxgold, which compares within a boot and carries its own control) or `--settle` (a throwaway capture first) — and **the first version was inert**: it read the free-running `DIAG_FRAME_COUNT` with a VOTED reader and rejected twelve correct readings for not being identical. Fixed with `dsp4_capacity.moving()`'s rule and witnessed: `boot capture #1` beside the same sha. Every way the guard can be wrong makes it PERMIT. (b) **`loadlogic.sh` decided a flash had worked by reading the IDCODE, which a MAX V answers either way** — S24's three-attempt MASK failure could never have been reported. The first replacement required an openocd line THIS openocd does not print and called nine good flashes failures; the check is now measured against the actual output (the command chain reaches its `shutdown`, no `tdo check error`, the benign khz line excluded by name), with three retries, a loud line per attempt, `/home/app/logic-flash.log`, and IDCODE before AND after. **Eleven playbacks this session, zero failures: S24's MASK failure did not recur.** And a better restore proof than the IDCODE: under the duplex overlay `dsp4_logic_id.py` read `pi_maincap`/`ae1ac4a9` off the part and then nothing from the shipping arm on the same proven path. (c) **mx26 B13 has the matrix-app bug backwards and it is filed corrected**: 7 restarts sampled, the FIRST after the reflash verified 3 of 3 and two LATER ones verified 1 of 3 — a race on ~1 restart in 4, not "needs a second restart", with H1S3 announcing every time and H1S1+H1S4 failing together, the app's own `no startup announcement received` warning, and a reproduction. **NOT DONE: the latency bar.** Attempted properly — duplex overlay, maincap flashed and positively identified on the part — and it still returns S12-10's null (0.0 % coherent on every rep, verdict REFUSED), with the DSP's main chain reading a constant `0xfffffffc` from MIX to ST_OUT, so nothing reaches its input and the break is upstream on the playback side (S27-7 narrows S12-10, which blamed the overlay). The contract figure stands at S20's 82 samples / 1.708 ms, unmeasured this session. **Bench restored and proved**: shipping bitstream identified not assumed, slave overlay back, `blk_*` booted with ZERO overruns on both chips at 983.03 MHz, matrix-app active with all three MCUs, **all 36 staged images md5-unchanged**. No deploy. Write-up `MW/D32/DSP/dsp4-s27-20260910.md`; findings S27-1..S27-7.]   [model: opus]
 
 model: opus
