@@ -68,9 +68,13 @@ The block entry point keeps its copy in both versions, and **there is no other
 code difference in any of the 117 files**.
 
 **It is dead code, and that was checked rather than assumed.** `i6` appears
-exactly twice in `chip1/shared_kernels.asm`, at lines 606 and 618, both inside
-`_shk_filt_blk` (550-624). `_shk_filt_smp`, `_shk_filt_start_xfade` and
-`_bq_fx_cascade_N` never read it.
+**exactly twice** in `chip1/shared_kernels.asm` — `i2 = i6;` at lines 606 and
+618, inside `.fkb_ss_shkfilt` and `.fkb_b_shkfilt`. Those labels are referenced
+only from lines 564 and 601, both **above** `_shk_filt_smp:` at line 624, and
+both regions end in `rts;` before it, so there is no fall-through either:
+nothing at or after the sample entry point can reach an `i6` read. The block
+path hands it to `_bq_fx_cascade_blk` via `i2`; the sample path calls
+`_bq_fx_cascade_N`, and neither that nor `_shk_filt_start_xfade` touches `i6`.
 
 **Where it came from.** At `4807d23d~1` the file had no `i6` lines at all.
 `4807d23d` introduced BOTH copies into the committed ASM *and* introduced
