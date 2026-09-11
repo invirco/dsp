@@ -1,0 +1,16 @@
+artifact: dsp4_logic_driveall.14df62d98a4d.{pof,svf}
+SHIPPING: NO — 1 non-shipping switch(es) set:
+  - drive_all: every DSPA input lane fed from the Pi playback, all 8 slots
+  Everything not listed is the shipping path, and the sim gate
+  below ran on it.
+built: 2026-09-11T14:56:56Z
+config: loopback=0 pi_selftest=0 pi_maincap=0 pi_tdm8=0 drive_all=1
+design_id: 32'h62d98a4d
+cfg_bits: 16'h0020
+id_readback: play {L=0xD5D51D1D, R=0x2A2AE2E2} on hw:dsp4pcm and
+  record: L = design_id, R = 0xD594<cfg_bits> for 128 frames
+pi_link: 2 ch x 32 bits at 48 kHz, no regrouping, TDM slots 0/1 only
+slot_map: sha256:2c53de21b8c80973a8ea8935b70fbc908f2341561dc28e32600caf8f09572ed8
+sim_gate: PASS
+device: 5M1270ZT144C4
+fmax: 67.02 MHz

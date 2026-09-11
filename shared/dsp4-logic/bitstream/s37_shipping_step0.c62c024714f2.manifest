@@ -1,0 +1,77 @@
+artifact: s37_shipping_step0.c62c024714f2.{pof,svf}
+purpose: STEP 0 of the staged bring-up (S36 §3). S38 flashes this, once PW
+  has ruled on the AN_EN interlock (S35-1). Nothing else is in it.
+
+SHIPPING: yes — no non-shipping switch is set.
+
+built_from: 61e38ce34f27d0b1052c57a401dd973355c724d5
+  branch s37-step0-shipping-base = a4ee3d1f + the converter clock pair
+  (7ac01126, S35) + the X-logic parking (61e38ce3, S36's fix on this base).
+  THIS BRANCH MUST NEVER BE MERGED TO main. It is the shipping design that
+  is on the part today plus two zero-cost fixes, deliberately WITHOUT main's
+  247 later logic elements — see "why not main" below.
+
+config: (none) — a4ee3d1f's build.sh predates CFG_LINE entirely, which is the
+  earliest of the four cfg-line shapes (S36 §0). Every non-shipping switch is
+  off, so this is the shipping configuration; the absent cfg line is a
+  property of that build.sh, not a switch position.
+
+device: 5M1270ZT144C4
+logic_elements: 156 / 1,270 (12 %)
+pins: 68 / 114 (60 %)
+fmax: 66.1 MHz
+sim_gate: PASS (5 testbenches, both new gates proved to bite by mutation)
+slot_map: sha256:efd8d555440094b627345b5a84894f9e7a6b569056f4eccb417d42d6ce32182e
+
+md5_pof: 79284dad6e9c27995f91806056c9fba5
+md5_svf: d47b74c6c881b82a110491266a6bd31d
+
+reproducibility: built TWICE from a clean `git archive` of the branch into a
+  fresh scratch tree. The two pof files are BYTE-IDENTICAL. The two svf files
+  differ in exactly one line — `!Device #1: ... <wall-clock>`, an SVF comment
+  (`!`) emitted by quartus_cpf. With comment lines removed the svf bodies are
+  identical, so the bytes openocd plays are reproducible; the pof is the
+  artifact to hash. This applies to every artifact in this directory and is
+  why S37 asserts byte-identity on the pof.
+
+design_id: NONE — AND THAT IS NOT FIXABLE AT THIS SIZE.
+  S37's dispatch asked for a readable design ID on this artifact. It cannot
+  have one. The design-ID/knock readback block arrived at `3152e2b1` and costs
+  +124 LEs (S36 §1.1); adding it here would take the step-0 bitstream from 156
+  to ~280 LEs and put never-benched RTL into the one flash the whole staged
+  plan exists to keep clean. So this artifact identifies itself exactly as the
+  bitstream it replaces does, and as its own rollback does:
+
+    a1f6672af6c3  (the shipping bitstream, on the part today)  no design ID
+    s37 step 0    (this)                                        no design ID
+
+  The identification for S38 is therefore the md5 above, recorded by
+  `logic_flash.sh` on the desk AND on the bench before the first byte is
+  written, plus the flash log. The design ID becomes readable at step 2 (S39),
+  which is the first step that carries main's RTL.
+
+why_not_main: main after S37's merges is 403 LEs in the shipping
+  configuration (`dsp4_logic.4f702a181b61`, also staged here). Flashing that
+  as step 0 would put 247 logic elements that have never run in a shipping
+  configuration onto the part in the SAME operation as a two-pin change, and
+  if anything moved, nothing in the method could say which change moved it.
+  That is exactly the confound S35-3 found and S36 §3 was written to avoid.
+  `4f702a181b61` is step 2 / S39's artifact, not step 0's.
+
+rollback: dsp4_logic.a1f6672af6c3.svf
+  md5 dd1e09185804cb2e451d5089cdd56be3 (svf) / f08f3b525ff0fe2f7957a96d958842e6 (pof)
+
+S38_COMMAND_LINE:
+  cd tools/pi && ./logic_flash.sh --dry-run s37_shipping_step0.c62c024714f2.svf
+  # then, and only once PW has ruled on AN_EN, ONE of:
+  #   ./logic_flash.sh --stop-app          s37_shipping_step0.c62c024714f2.svf
+  #   ./logic_flash.sh --an-en-waived "PW <date>: <written reason>" \
+  #                                        s37_shipping_step0.c62c024714f2.svf
+  # the rollback defaults to dsp4_logic.a1f6672af6c3.svf, which is correct.
+
+S38_PROOF (S36 §3, step 0):
+  * the probe: J18 P37 = 12.288 MHz, P38 = 48 kHz — dead today. Or U3 pins
+    142/141 at the source. This is the measurement that closes S34-1.
+  * blk_* 30 s, zero overruns, both chips.
+  * NOT the latency bar: this base has no capture path (pcm_din is tied to
+    1'b0), so the arm cannot run at all. That is step 1's.

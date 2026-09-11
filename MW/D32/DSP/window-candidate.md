@@ -55,12 +55,42 @@ and did not, because the flash interlock (`AN_EN` low) is not meetable while
 
 Two things follow for these candidates. First, **nothing in this document
 moves**; the bench is on the same bitstream it has always been on. Second,
-when the fix is flashed it should be flashed as `dsp4_logic.138dba7274d6` —
-the shipping design plus the pin change and nothing else, 157 → 157 logic
-elements — and **not** as the branch, because the branch also carries main's
-404 LEs against the part's 157 and would change the logic under these figures
-by far more than the fix does (finding S35-3). Working:
+when the fix is flashed it should be flashed as the shipping design plus the
+pin change and nothing else — **not** as the branch, because the branch also
+carries main's 404 LEs against the part's 157 and would change the logic under
+these figures by far more than the fix does (finding S35-3). Working:
 `MW/D24/DSP/dsp4-s35-20260911.md`.
+
+**UPDATED 2026-09-11 (S37). THE BASE BITSTREAM S38 WILL FLASH IS NAMED, AND
+THE TWO INSTRUMENTS ABOVE HAVE BEEN REBUILT — SO TWO BARS NEED RE-TAKING
+ONCE.** Finding S37-3/S37-4; working `MW/D24/DSP/dsp4-s37-20260911.md`.
+
+* **Step 0 is `s37_shipping_step0.c62c024714f2`**, not `138dba7274d6`. It is
+  the same shipping design and the same pin change, plus S36's X-logic parking
+  (which is free): **156 logic elements, 68 pins**, built twice byte-identical
+  on the pof, staged, and dry-run through `logic_flash.sh`. `138dba7274d6`
+  remains committed and valid — it simply has one more defect in it than the
+  artifact that replaced it. Still gated on PW's AN_EN ruling; nothing has been
+  flashed.
+* **The unit is still on `a1f6672af6c3`**, so every figure in this document is
+  unaffected today.
+* **The two instruments named above no longer exist under those names.** S37
+  merged both proved branches to `main` (`7eabfa5f`, 404 → 403 LEs, 71 → 68
+  pins) and rebuilt the bench instruments from it: `maincap` is now
+  `33b6eb00a4e8`, `pisel` `983656926e3e`, `driveall` `14df62d98a4d`. The pin
+  change is in every configuration, so all three changed bytes.
+  **Consequence: the 82-sample latency bar and every driven capacity row in
+  this document were taken on the old base and are not like-for-like against
+  the new one.** They must be re-taken ONCE, in the first session with the
+  unit, as the regression that closes S36-2. Until then `loadlogic.sh` keeps
+  the old base reachable as `maincap-s36` / `pisel-s36` / `driveall-s36`, so
+  the comparison can be made on the platform the numbers came from.
+* **`dsp4_logic_driveall.e13b5dec84e0`** — the bitstream §2.1's `100.82 %`
+  figure was measured on — **is retired** to
+  `shared/dsp4-logic/bitstream/retired/`, because it rebuilds from no commit
+  (S36-3). Nothing is deleted; the README there carries its md5 so the bench
+  logs stay resolvable, and its rebuildable equivalent `907492a607bd` is
+  `driveall-s36`.
 
 **What it is not.** It is not a deploy. `shipping.config` is unchanged and
 stays unchanged until PW rules.

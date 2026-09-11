@@ -1,0 +1,13 @@
+artifact: dsp4_logic.4f702a181b61.{pof,svf}
+SHIPPING: yes
+built: 2026-09-11T14:56:22Z
+config: loopback=0 pi_selftest=0 pi_maincap=0 pi_tdm8=0 drive_all=0
+design_id: 32'h2a181b61
+cfg_bits: 16'h0010
+id_readback: play {L=0xD5D51D1D, R=0x2A2AE2E2} on hw:dsp4pcm and
+  record: L = design_id, R = 0xD594<cfg_bits> for 128 frames
+pi_link: 2 ch x 32 bits at 48 kHz, no regrouping, TDM slots 0/1 only
+slot_map: sha256:2c53de21b8c80973a8ea8935b70fbc908f2341561dc28e32600caf8f09572ed8
+sim_gate: PASS
+device: 5M1270ZT144C4
+fmax: 66.87 MHz

@@ -1,0 +1,16 @@
+artifact: dsp4_logic_maincap.33b6eb00a4e8.{pof,svf}
+SHIPPING: NO — 1 non-shipping switch(es) set:
+  - pi_maincap: capture B_O3 slot 0, not the product slots 2/3
+  Everything not listed is the shipping path, and the sim gate
+  below ran on it.
+built: 2026-09-11T14:56:34Z
+config: loopback=0 pi_selftest=0 pi_maincap=1 pi_tdm8=0 drive_all=0
+design_id: 32'heb00a4e8
+cfg_bits: 16'h0004
+id_readback: play {L=0xD5D51D1D, R=0x2A2AE2E2} on hw:dsp4pcm and
+  record: L = design_id, R = 0xD594<cfg_bits> for 128 frames
+pi_link: 2 ch x 32 bits at 48 kHz, no regrouping, TDM slots 0/1 only
+slot_map: sha256:2c53de21b8c80973a8ea8935b70fbc908f2341561dc28e32600caf8f09572ed8
+sim_gate: PASS
+device: 5M1270ZT144C4
+fmax: 68.06 MHz
