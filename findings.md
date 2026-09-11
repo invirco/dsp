@@ -92,6 +92,23 @@ commit's generator, the generator was then refined, and it was never re-run
 before commit. The drift is therefore OLDER than the last regeneration, which is
 why nothing caught it.
 
+**THE STAGED PAIRS WERE BUILT FROM THE TRACKED TEXT, AND REGENERATING MOVES
+CHIP 1 BY 256 BYTES.** Both arms built with CCES 3.0.3, under
+`shipping.config.s26` and `.s32`. Arm A (tracked) gives chip 1
+`6396187cbb3a521a330517622adf6b33` / 425,668 bytes and chip 2
+`9222c2ee49c8af1ecdc5516dbedd3db8` (s26) / `df5cc18144a0cb41babcfe70876f576f`
+(s32) — **exactly the staged-pair md5s recorded in `dsp4-s32-20260911.md`
+§173-175** and repeated across the S26/S27/S28/S29/S33 write-ups. Arm B
+(regenerated) gives chip 1 `a7e27099d9dab316342e64683b669011` / 425,412 bytes
+and **reproduces neither pair**. `chip2.ldr` is byte-identical between the arms
+in both configurations, as it must be — the 32 changed files are all `C1_*` and
+chip 2 has no FILT nodes — and chip 1 is 256 bytes smaller in arm B, identically
+in both configurations, for 32 nodes x 2 instructions = 64 instructions removed.
+
+So no staged pair and no recorded figure is retrospectively in doubt. It also
+turns the caution below into arithmetic: regenerating is a **256-byte change to
+chip 1's shipping image**, in the per-sample path of 32 filter nodes.
+
 **Still a stop**, per the dispatch's own rule: 117 files of firmware text would
 change in a session with no bench; the tracked text is what every image on
 record was built from; and "dead" is a reading of the kernels, not a
