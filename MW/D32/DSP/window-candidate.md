@@ -17,6 +17,35 @@ gaps named in §5.5. Both are proposals; neither is deployed. The two words
 are **"sign off s26"** and **"sign off s32"**, and §5.6 says what each
 commits to.
 
+**CORRECTED 2026-09-11 (S36-2). The paragraph below was wrong about two
+bars, and they are two of the headline ones.** The latency figure and every
+DRIVEN capacity row were NOT measured with `a1f6672af6c3` on the part — they
+could not have been. The part carried it before and after those sessions, not
+during:
+
+* **the 82-sample latency figure (S29, n=3)** was measured on
+  `dsp4_logic_maincap.d903ae1ac4a9` against a `dsp4_logic_pisel` reference.
+  `maincap` carries `3152e2b1`'s RTL — **all 404 logic elements**, rebuilt and
+  confirmed. On `a1f6672af6c3` `pcm_din` is tied to `1'b0` and there is no
+  capture path at all, so that arm cannot run on the shipping bitstream; that
+  is why `loadlogic.sh` exists.
+* **every driven capacity row** — §2.1, the `100.82 %` D32 worst-use figure,
+  the S28/S31 product rows — was measured on
+  `dsp4_logic_driveall.e13b5dec84e0`.
+
+**Neither figure moves, and the latency one is still sound**: `dsp4_clkgen.v`
+is byte-identical between `a4ee3d1f` and `main`, the Pi → DSPA transmit path
+is cycle-for-cycle identical in the shipping configuration, and S29's
+differential cancels the Pi-side framing exactly (both arms are the same
+commit with `CAP_EXTRA_DELAY = 0`). So the DSP's contribution is what was
+measured and it transfers to the shipping part. The claim that has to change
+is "measured with `a1f6672af6c3` on the part", not the number. Proof:
+`MW/D24/DSP/dsp4-s36-20260911.md` §2.
+
+**Everything else in this document genuinely was taken with `a1f6672af6c3` on
+the part** — `famverify`, `busgold`, `goldnode`, the numeric arms, the gate-4
+flip, the silent capacity rows — and none of it is affected.
+
 **THE BITSTREAM EVERY FIGURE HERE ASSUMES (added 2026-09-11, S35).** All of
 it — both candidates, every bar, the 82-sample latency figure — was measured
 with the LOGIC CPLD carrying `dsp4_logic.a1f6672af6c3`, and **that is still

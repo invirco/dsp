@@ -6,6 +6,241 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## MAIN'S LOGIC RTL AGAINST THE PART — THE 247 LEs NAMED, AND TWO BARS RE-ATTRIBUTED (2026-09-11, session 36)
+
+Desk only; the unit was not touched and no ssh session was opened. The 247
+logic elements between the shipping design and `main` resolve into three
+commits, and — contrary to the dispatch that ordered the session — they have
+been on the part many times, inside non-shipping bitstreams. Two of
+`window-candidate.md`'s headline bars were measured on them. Full working:
+`MW/D24/DSP/dsp4-s36-20260911.md`.
+
+### S36-1 — the 247 LEs are three commits, and twelve others cost the shipping build nothing
+
+**Severity: none (it is a census). Status: measured, sixteen clean Quartus
+builds.**
+
+`157 → 404` logic elements between `a4ee3d1f` (the design on the part) and
+`main`, built one commit boundary at a time from `git archive` into fresh
+trees. Three commits carry all 247:
+
+| commit | what it adds | LEs | Δ |
+|---|---|---:|--:|
+| `1f66f975` | **the CM4 stereo return** — capture path promoted out of `` `ifdef DSP4_LOOPBACK `` into every build; B_O3 slots 2/3 | 312 | **+155** |
+| `2bb0b491` | TDM8 rework — flat `cap_flat` register file replaces the two shift/hold pairs; six slots prune in the shipping build | 280 | **−32** |
+| `3152e2b1` | **the design-ID / knock block** (S5-9) plus the two-frame splice fix; unconditional by design | 404 | **+124** |
+
+The other twelve are flat at 157, 312, 280 or 404: their work sits behind
+`DSP4_LOOPBACK`, `DSP4_PI_SELFTEST`, `DSP4_PI_TDM8` or `DSP4_DRIVE_ALL` and is
+pruned when the macro is unset.
+
+**The largest item is a product feature, not scaffolding.** `1f66f975`'s +155
+is the CM4's stereo RETURN, allocated on PW's decision; removing it removes
+the Pi's path back out of the DSP.
+
+**And `2bb0b491` made the shipping build cheaper**, which is worth saying
+because it is the opposite of what a commit titled "TDM8 PROVEN: 8 of 8
+channels" reads like: in the shipping configuration only slots 2/3 are read,
+so the flat register file costs 32 LEs less than the pairs it replaced.
+
+### S36-2 — the 82-sample latency figure and every driven capacity row were NOT measured on the shipping bitstream
+
+**Severity: MEDIUM (attribution, not measurement — no number moves).
+Status: proved by rebuild and from the RTL diff; `window-candidate.md`
+corrected in this commit.**
+
+A note added to `window-candidate.md` on 2026-09-11 (S35) says "All of it —
+both candidates, every bar, the 82-sample latency figure — was measured with
+the LOGIC CPLD carrying `dsp4_logic.a1f6672af6c3`". **Two bars were not.**
+
+* the **82-sample latency figure** (S29, n=3) was measured on
+  `dsp4_logic_maincap.d903ae1ac4a9`, which carries `3152e2b1`'s RTL — **all
+  404 LEs**, confirmed by rebuilding it and reproducing both its name and its
+  logic-element count.
+* every **driven capacity row** (§2.1, the `100.82 %` D32 worst-use figure,
+  the S28/S31 product rows) was measured on
+  `dsp4_logic_driveall.e13b5dec84e0`.
+
+The part carried `a1f6672af6c3` before and after those sessions, not during.
+**The latency arm cannot run on the shipping bitstream at all** — there
+`pcm_din` is tied to `1'b0` and there is no capture path — which is precisely
+why `loadlogic.sh` exists.
+
+**No number moves, and the latency figure is still sound.** Proved from the
+RTL rather than asserted: `dsp4_clkgen.v` is byte-identical across the whole
+range, so every TDM8 framing strobe the DSP sees is the same logic; the
+Pi → DSPA transmit path is cycle-for-cycle identical in the shipping
+configuration (same `out_period`, same slot/bit decode, same `bck8_launch`,
+`pw_flat` slots 0/1 holding exactly what `left_q`/`right_q` held, written and
+read on the same `frame_pos` values); and S29's differential cancels the
+Pi-side framing exactly, because both arms are the same commit and
+`CAP_EXTRA_DELAY` is 0 in both. What the 82 measures is the DSP's
+contribution, and that transfers.
+
+**What has to change is the claim, not the figure**: the latency arm requires
+a bitstream the shipping part does not carry.
+
+### S36-3 — six committed bitstreams rebuild from no commit, and one is the bench's daily driver
+
+**Severity: HIGH (provenance). Status: proved exhaustively; the fix is named,
+not made — it is a bench change.**
+
+`build.sh`'s `SRC_HASH` is a pure function of committed text, so it can be
+recomputed for every (commit × macro combination) across all 34 commits that
+have ever touched the logic tree and matched against each artifact's
+filename. Twenty of twenty-six map exactly. **Six match no committed state of
+the tree at any point in its history** — they were built from a dirty working
+tree whose source was never committed:
+
+```
+dsp4_logic.454d6cfb7352          dsp4_logic_loopback.7231549d2545
+dsp4_logic.dfe9b246f0fc          dsp4_logic_loopback.e5e86945c053
+dsp4_logic_driveall.e13b5dec84e0 dsp4_logic_loopback.fe91b66ed525
+```
+
+**`dsp4_logic_driveall.e13b5dec84e0` is the one that matters.** It is the
+artifact `loadlogic.sh` names for `driveall`, and it is the bitstream every
+driven capacity row since S28 was taken on — including the `100.82 %` D32
+worst-use figure. A rebuildable equivalent exists and is already committed:
+`dsp4_logic_driveall.907492a607bd` (`a096c585`, built 36 minutes later,
+differing only in the `design_id` word stamped into it).
+
+**And `loadlogic.sh`'s `pisel` cannot identify itself.**
+`dsp4_logic_pisel.bd9c100db7c2` carries `1dc67f39`-era RTL, which predates the
+design-ID stamp, so its manifest has no `design_id` line and
+`dsp4_logic_id.py` gets nothing back from the part — its identity rests on the
+flash records, exactly as `a1f6672af6c3`'s does (S35-3). The stamped
+equivalent `dsp4_logic_pisel.2c1355bbc69b` is already committed.
+
+Both are the failure `build.sh`'s own comment block was written about, still
+live in the tool the bench uses. **Two one-line changes to `loadlogic.sh`**,
+deliberately not made here: changing which bitstream the bench flashes is a
+bench change and this session was told not to make any.
+
+### S36-4 — the X-logic parking fix: tri-state on D24, do not move the pins
+
+**Severity: MEDIUM (latent — it bites the day a card is fitted to option slot
+2). Status: fixed on branch `s36-xlogic-park` (`07818879`), built on both
+bases, NOT merged.**
+
+Pins 110 and 111 are not spare pads. Each is a three-board net reaching option
+slot 2's A-row as well as the digital board: `U3.110` = `LOGIC_PLL5_1` =
+`G2667` → `opt2 SLOT.A13`; `U3.111` = `LOGIC_PLL5_2` = `G2668` →
+`opt2 SLOT.A10`. On a D24 both carried a **constant** driver — `snake_out` a
+hard `1'b0`, `dac_main` the live B_O3 TDM8 lane — so a card fitted to slot 2
+and driving its own A-row meets two CMOS outputs **with no series resistance
+between them**. Unlike the converter-clock pair there is no 33R to absorb it.
+
+**The dispatch's two options were "park on pins 81/85/87, the reserved clock
+pads" or "tri-state". Both halves of that description are wrong, and the
+answer is still tri-state.**
+
+* They are **not clock pads**: test-built with the three nets moved there,
+  `quartus_fit` succeeded with 0 errors and the All Package Pins table types
+  all three as plain **`Row I/O`**.
+* They **are** genuinely dead: the fan-out table gives pin 81 (`L1`, `G2621`),
+  85 (`C2`, `G2450`) and 87 (`C0`, `G2447`) all as
+  `(nothing - single-pin net)` on the `dsp` board alone. (The trap: the
+  converter pair `C1`/`L0` on pins 142/141 are *not* like this — S35-4.)
+* **So parking would work and would still be wrong.** ONE bitstream serves
+  D24 and D32 because `strap_d32` is a runtime strap, not a build switch, so
+  moving `snake_out`/`dac_main` to dead pads would forfeit the D32 role these
+  pins exist for.
+
+The fix is `strap_d32 ? o_dspb[n] : 1'bz` on both, plus explicit
+`WEAK_PULL_UP_RESISTOR` on all three — the global `RESERVE_ALL_UNUSED_PINS`
+does not cover them, because they are assigned pins, and with slot 2 empty all
+three now float. High-Z costs the D24 nothing: the Pi capture reads
+`o_dspb[3]` internally as `tdm_in`, never through the pin.
+
+| base | LEs | pins | Fmax | TRI 110/111 | weak PU |
+|---|---:|---:|---|---|---|
+| `a4ee3d1f` | 157 | 71 | 70.21 | no | Off |
+| `a4ee3d1f` + fix | **156** | 71 | 65.64 | **yes** | **On** |
+| `main` | 404 | 71 | 68.54 | no | Off |
+| `main` + fix | **403** | 71 | 71.26 | **yes** | **On** |
+
+**One LE cheaper on both bases** (the constant-zero driver goes away), pin map
+identical either side on both, and `strap_d32` appears in the fit report as an
+`Output enable` source — the tri-state is real, not optimised away. The sim
+gate was extended and **proved to bite by mutation**: restoring
+`assign dac_main = o_dspb[3]` fails it at t=3000. The check uses `===`, so a
+driven D24 pin is the wrong answer whatever value it carries.
+
+### S36-5 — `tools/pi/logic_flash.sh`: the AN_EN interlock is in the tool, and fails closed
+
+**Severity: none (new instrument). Status: written and proved against stubs;
+NOT run against the unit.**
+
+S35-1 found the interlock unmeetable and, worse, unexecutable-as-written: it
+lived as prose in dispatches and every session read GPIO26 by hand. A rule
+nobody can execute is not a rule, so it goes in the tool.
+
+`logic_flash.sh` refuses unless `pinctrl get 26` reads LOW and **fails
+closed** — an unparseable reading, or no `pinctrl` at all, is treated as *not
+met*. The level is taken from the field after the `|` and nowhere else, so a
+comment or pin alias containing `hi`/`lo` cannot decide an interlock. The
+rollback is verified present and md5-recorded **before the first write**, and
+the discipline is **FLASH-OK on attempt 1** or the rollback goes straight
+back — no retries, because this script exists for putting something *new* on
+the part, not for moving between known-good bitstreams. Success is S27-5's
+check (chain reached `shutdown`, no `tdo check error`), not the IDCODE.
+
+**PW's three rulings from S35-1 are flags, not workarounds**, and none is a
+default: `--stop-app` stops `matrix-app` and **re-reads** GPIO26 rather than
+assuming it follows the app down (S35 could not say whether it does);
+`--an-en-waived "<reason>"` takes the shape-3 ruling with a **mandatory**
+written reason that is recorded in the log; gating on something that tracks
+the rails needs hardware and is not in this tool.
+
+Proved on ten cases against stub `pinctrl`/`openocd`/`systemctl`, with
+`--self-test` running the same bytes the ssh path runs: AN_EN high → refuse
+(5); unreadable → refuse (5); low + `--dry-run` → pass every gate, no write
+(0); flash OK (0); flash fails → rollback restores (7); both fail → loud
+unknown state (8); waiver honoured and recorded (0); empty waiver rejected
+(2); corrupted staged copy → refuse **before any write** (3); rollback absent
+→ refuse **before any write** (3).
+
+### S36-6 — the staged bring-up plan, and why step 0 is not main's RTL
+
+**Severity: none (a plan). Status: written; nothing flashes until PW rules on
+the AN_EN interlock (S35-1).**
+
+Five steps, each one feature group, one flash, one CPLD-loop proof, one
+rollback point.
+
+* **Step 0 (S37) — the converter clock fix on the shipping base.** Flash
+  `dsp4_logic.138dba7274d6` (`a4ee3d1f` + the pin change only, 157 → 157 LEs),
+  **not** the branch. Proof: the probe at J18 P37 = 12.288 MHz / P38 = 48 kHz,
+  then `blk_*` 30 s zero overruns both chips. **The latency bar is not in this
+  step and cannot be** — there is no capture path on this base, so the arm
+  cannot run at all (S36-2). Rollback `a1f6672af6c3`. The analog attach is
+  proved on this before anything else moves.
+* **Step 1 (S38) — main's RTL in the configuration already benched.** Flash
+  `dsp4_logic_maincap.d903ae1ac4a9`, already committed, already stamped,
+  already flashed for S20/S29/S31. It advances nothing new; it re-establishes
+  the known-good measurement platform on top of step 0's pin change and tells
+  you whether the two interact. Proof: the S29 latency arm, n=3, expect
+  **82 ± 1**. Use `dsp4_logic_pisel.2c1355bbc69b` as the reference, not
+  `bd9c100db7c2` — same commit as `maincap`, and it can identify itself
+  (S36-3).
+* **Step 2 (S39) — the shipping configuration of main, for the first time.**
+  Build `c0407483` + step 0's pin change and flash it. This is the genuinely
+  new operation in the plan: 404 LEs in the *shipping* configuration, which no
+  flash has ever carried. What it tests is that the CM4 stereo return and the
+  knock block do no harm in the shipping path; both have run on the part
+  inside `maincap`, and what is new is B_O3 slots 2/3 being captured while the
+  product graph uses the lane. The latency arm cannot run here either (the
+  shipping configuration captures slots 2/3, not slot 0), so that evidence is
+  step 1's, carried forward on S36-2's argument.
+* **Step 3 (S40) — the driven instrument, rebuilt from a source.** Rebuild
+  `driveall` from `a096c585` and repoint `loadlogic.sh` at it, then re-take
+  the four fully driven product rows no session has managed since S28. Closes
+  S36-3 and `window-candidate.md` §5.5's second gap in one boot.
+* **Step 4 — the X-logic parking** (S36-4), merged only after 0–3 hold. It
+  changes nothing on a D24 with slot 2 empty, which is every unit today, so it
+  has no bar of its own until a card exists to fight with.
+
 ## THE CONVERTER CLOCK FIX, PROVED AT THE DESK AND STOPPED AT THE BENCH (2026-09-11, session 35)
 
 The fix reviewed, rebuilt reproducibly, staged on the unit and NOT flashed:
