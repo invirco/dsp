@@ -6,6 +6,247 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## WINDOW CANDIDATE B, PREPARED (2026-09-11, session 33)
+
+Session: `shipping.config.s32` — candidate A plus the off-aux park gate —
+taken through candidate A's whole discipline, so that PW's window sign-off
+is one word for either candidate. Nothing deployed.
+
+### S33-1 — candidate B measured across the whole range: the twelfth aux fits, with zero missed blocks
+
+**Severity: HIGH (it is the capacity ruling). Status: measured on the part,
+sixteen product runs and four scope-class runs, twenty boots, BOTH candidates
+on one night with one instrument and one bitstream.**
+
+`shipping.config.s32` — `shipping.config.s26` plus one effective line,
+`DSP4_AUXIN_BYPASS=1` — read against candidate A, two boots a row an arm,
+270,096 blocks a row (chip 2, average % / worst block):
+
+| product, row | candidate A | **candidate B** | Δ | missed blocks |
+|---|--:|--:|--:|---|
+| **D32, worst use** (12 aux, 6 reverbs) † | 100.86 / 101.01 | **95.69 / 96.03** | **−5.17** | **1,900 → 0** |
+| **D32, silent + loaded** | 100.86 / 101.16 | **95.84 / 95.97** | **−5.02** | **1,900 → 0** |
+| D32, driven with the load † | 100.94 / 101.15 | 95.59 / 96.00 | −5.35 | **1,900 → 0** |
+| D32, silent default | 76.00 / 76.39 | 70.96 / 71.29 | −5.04 | 0 → 0 |
+| D24, driven with the load † | 84.45 / 84.50 | 82.81 / 82.98 | −1.64 | 0 → 0 |
+| D16, driven with the load † | 73.18 / 73.19 | 71.35 / 71.45 | −1.83 | 0 → 0 |
+| D12, driven with the load † | 66.69 / 66.69 | 64.93 / 64.93 | −1.76 | 0 → 0 |
+
+† partial driven regime — the `driveall` bitstream needs a CPLD reflash this
+dispatch forbids — **identically in both arms**, which is what makes the Δ a
+measurement. The stimulus-stopped rows are the comparable ones and row B is
+the row that overruns.
+
+**THE TWELFTH AUX FITS, BY 4.31 POINTS OF AVERAGE AND 3.97 OF WORST BLOCK**,
+and **every row that overruns on candidate A runs clean on candidate B**.
+
+**Twelve nodes on a D32, four on everything else, at the same price.** The
+saving is 4.96–5.35 points at D32 and 1.5–1.8 on D24/D16/D12, i.e. **0.41
+points a node on four products with four different mask pairs** — and a D32
+with the snake scoped off, which has the same four nodes a D24 has, moves
+1.39–1.79 (§3.5 of the write-up).
+
+**Chip 1 is a free control and did not move.** Its image is byte-identical in
+the two candidates (`6396187c`), and across the six D32 rows it wandered
++0.03, +0.01, +0.03, +0.16, −0.08 and +0.03 points — all inside the ±0.27 the
+instrument was measured at (S28).
+
+**The controls reproduce the record on a second, third and fourth night.**
+D32 chip 2 rows B/C read 100.86 and 100.94 with 1,900 missed against S28's
+100.93/100.82 and 1,914/1,943, S29's 100.78/100.75 and 1,912/1,943 and S32's
+100.86/100.83 and 1,898/1,899; D24, D16 and D12 reproduce S28's anchors to a
+few hundredths.
+
+### S33-2 — the part cannot tell candidate A from candidate B, and the PROPOSED third config word would not fix it
+
+**Severity: MEDIUM (identification of a shipping image). Status: computed
+from both configurations, reproduced on the part in both arms.**
+
+`window-candidate.md` §3.4 records that `shipping.config.s21` and
+`shipping.config.s26` produce the same two config words, so `cfgverify`'s
+"the part matches the candidate to the bit" does not distinguish them.
+**Candidate B is the same shape one level on, and worse**: A and B produce
+**identical `DIAG_BUILD_CFG` and `DIAG_BUILD_CFG2`** — `0xCF45FF10` /
+`0xC2019E6F` — and every capacity boot of both arms read exactly those two
+words back off both chips.
+
+**And S28's designed third word does not separate them either.**
+`cfg_words.py --design-cfg3` computes `0xC3000FFA` for candidate A and
+**`0xC3000FFA` for candidate B**: `DSP4_AUXIN_BYPASS` has no bit in the
+existing two words, and none in the proposed one, because the word was
+designed before the flag existed.
+
+So a bench, a factory jig or a field unit holding one of the two candidates
+**cannot say which it holds from the part**. The only discriminators are the
+chip-2 image md5 (`9222c2ee` vs `df5cc181`) and the presence of the twelve
+`_auxin_byp_*` symbols in the build's symbol map — which is a property of the
+build artefact, not a word the silicon reports.
+
+**The action, if PW signs candidate B**: `DIAG_BUILD_CFG3`'s bit map needs a
+bit for `DSP4_AUXIN_BYPASS` before it lands, or the window ships a
+configuration the part cannot name. That is one line in `cfg_words.py`'s
+design and one in the generator, taken together with S28 §3's four-edit apply
+step — and, as S28 already records, applying CFG3 at all moves every md5
+quoted in `window-candidate.md`. It is a hub item, not a session's to smuggle
+into a candidate that is being measured.
+
+### S33-3 — resuming from the park drops a pending level ramp, deliberately
+
+**Severity: LOW (behaviour, corner). Status: read out of the emitted source,
+designed for, named here because candidate B's deviation list has to be
+complete.**
+
+The park stops the node being called, so its level ramp stops advancing too.
+The generated control-rate section therefore clears `_auxin_level_frames_`
+on the block the node resumes, and the level becomes the **target** rather
+than continuing from where the ramp stopped.
+
+That is the right choice and the comment in the emitted code says why: in the
+ungated build the ramp advances while the node is off (silently — `q` is
+zero) and has long since arrived, so clearing the count reproduces the
+**ungated steady state**. The two builds differ only in one corner: a level
+written while the node is OFF **and** an `on` 0 → 1 flip inside the same ramp
+window (the SPI ramp time, tens of milliseconds). Ungated, the flip lands on
+a partly-ramped level and finishes the ramp; gated, it lands on the target.
+Both step at the flip, because `on` is an `InstantCtl` cell in both builds —
+what differs is the size of that step and whether a ramp follows it.
+
+Nothing in the app writes a level to a switched-off aux input and turns it on
+inside the same ramp window today. It is listed as candidate B's fourth
+deviation (`window-candidate.md` §5) rather than left to be discovered.
+
+### S33-4 — the gate is in ALL THREE chain orderings, checked rather than inherited
+
+**Severity: NONE (a check that passed). Status: read out of
+`chip2/process_chain.asm`.**
+
+`chip2/process_chain.asm` emits the chip-2 chain three times under different
+preprocessor arms, and a gate present in only the compiled one would be a
+saving that disappears silently the day a configuration selects another. All
+three carry twelve gate sites, under three distinct label prefixes —
+`.c2brunab*`, `.c2grunab*`, `.sgrunab*` — 36 sites in all, and the two nodes
+the generator REORDERS ahead of `C2_MIX_MAIN_L/R` (`C2_USB_IN`, `C2_BT_IN`,
+the four standing `dsp_validate` process-order notes) carry the gate at the
+MOVED call site.
+
+### S33-5 — the latency bar has now been unavailable to two sessions for the same reason, and it is the last gap in candidate B's set
+
+**Severity: MEDIUM (evidence completeness, not firmware). Status: named, with
+what it would take.**
+
+S29's latency method needs the `maincap` bitstream for the through-DSP arm
+and `pisel` for the CPLD-loop reference it is measured against. S32 and S33
+were both told not to reflash the CPLD while the analog board may be
+attached, and both obeyed. The consequence is cumulative and worth stating
+once, plainly:
+
+* **candidate B has no latency measurement of its own**, and
+* **no session since S29 has taken a FULLY DRIVEN capacity row** on any
+  image, because that needs `driveall`.
+
+Everything else in candidate A's evidence set candidate B now carries. One
+session that is allowed to flash the CPLD closes both gaps in one boot pair:
+`driveall` for the four fully driven product rows, `maincap`/`pisel` for the
+82-sample bar. **That is a bench-access ruling, not an engineering question — and
+it is the only thing standing between the two candidates having identical
+evidence.**
+
+### S33-6 — the worst-block correction is switched off on exactly the rows that need it
+
+**Severity: MEDIUM (instrument). Status: measured across twenty-four D32
+chip-2 rows of two arms; worked around in the reading, fix named.**
+
+S21-6 found that about one worst-block figure in six is one `TPERIOD`
+(983,040 cycles, 300 % of a block-16 budget) too big, because the tick ISR
+can fire between `main.asm`'s two reads. `dsp4_capacity.py` reports a
+de-ticked figure beside the raw one — **but only when the arbiter counted
+ZERO missed blocks over the dwell.**
+
+That guard is right in principle (a genuine four-times-budget pass really does
+drop three blocks) and it has a consequence nobody had hit until a session
+measured an overrunning arm twice: **candidate A's rows are exactly the rows
+that miss blocks, so they never get a corrected worst block** — and three of
+its six D32 rows came back with a raw latch of `400.56 %`, `400.58 %` and
+`400.80 %` sitting next to an average of `100.86 %`. Quoted unqualified, that
+is a worst-block column that reads 400 % on the candidate PW is being asked
+to sign.
+
+`proc_cyc_max_after_clear` — a second latch read over a short window after the
+dwell's clear — is available on every row and is sane on every row: across all
+twenty-four D32 chip-2 rows of both arms it sits within **0.3 points** of the
+de-ticked or under-150 % figure. S33 therefore reads the worst block as
+de-tick → raw-if-under-150 % → after-clear, **identically in both arms**, and
+says where the fallback was used (§3.2 of the write-up: three candidate-A rows
+and one candidate-B row).
+
+**The real fix is still S21-6's own**: read `_diag_ticks`, read `tcount`, read
+`_diag_ticks` again and retry the pair if it moved — four instructions per
+block in `main.asm`. It is deliberately not made in a session measuring a
+candidate, for the reason S21 gave: it would change the image.
+
+### S33-7 — if candidate B ships, S29's scope-class lever is worth 0.15 points instead of 3.5
+
+**Severity: MEDIUM (it retires a question, and it is the one interaction two
+levers could have had). Status: measured, two boots an arm, both candidates,
+same night, same instrument.**
+
+S29 measured what D32 pays for scope class 0 — the 32 nodes only a D32 boots —
+by sending the D24 scope word to a D32: **3.43–3.69 points of chip 2**, and
+every overrunning row ran clean without the class. §4a put that to PW as a
+product-function question and §3.1 of S29 ruled that the class stays, because
+the snake IS the product.
+
+**On candidate B that lever is gone, because the park gate has already taken
+what it was worth.** The same arm on candidate B — `CFG_PRODUCT_ID` forced to
+1, one config word, the same staged image — moves chip 2 by **0.15 points on
+row B and 0.17 on the worst-use rung**, against 3.69 and 3.43 on candidate A.
+
+The two levers overlap almost exactly, and the overlap says what S29's 3.5
+points WERE: eight switched-off snake `AUX_INPUT` nodes being CALLED. Gating
+the class removes them by product scope; parking them removes them by their
+own `on` cell — and the second is the one that does not cost the product a
+feature.
+
+**What it means for PW**: on candidate B there is no longer any capacity
+argument for gating a D32's snake, so §4a's question does not have to be asked
+again. It is not additive headroom either — **the two savings are the same
+five points**, and a decision to ship B must not be read as ALSO banking
+S29's 3.5.
+
+### S33-8 — `s20restore.sh` reports chip 1 as "NOT diag firmware" on a chip that is running
+
+**Severity: LOW (instrument reporting). Status: reproduced on both restores
+this session, disproved by a direct read seconds later; S32's restore did not
+show it.**
+
+`PAIR=s26 ./s20restore.sh` printed, twice:
+
+```
+  chip1   MAGIC          0x00000000   <-- expected 0xD5B40001: this is NOT diag firmware
+  chip1   Everything below is meaningless until MAGIC reads back.
+```
+
+and then, four lines further down, chip 1's `build_cfg`, its measured CCLK,
+its `_proc_passes` and **90,053 blocks in 30.0 s with ZERO overruns** — read
+off the same chip through the same link. A standalone `dsp4_diag.py --chip 1`
+moments later reads `MAGIC 0xD5B40001`, `CHIP_ID 1`, `BOOT_STAGE 7`,
+`BLK_OVERRUN 0`.
+
+The cause is where the read sits: the restore reads chip 1's diag
+**immediately after configuring chip 2**, in the same process, with no
+resync — the answer-phase calibration D74 landed is per-Scope, and the first
+chip-1 transaction after chip 2 has been driven comes back zero. It is the
+same shape as S29-7's "the restore's overrun count is a boot transient, read
+pass 3", one register along.
+
+**It matters because of what it says, not what it is**: the line asserts the
+part is not running diag firmware, in the script whose whole job is to prove
+the bench was left on the window candidate. The fix is a resync-and-retry
+around that read, the way `capacity_run.sh`'s `ready()` gate does it. Not made
+here — it is a bench script, not an image, but it is also not this session's
+to change while the same script is the witness for its own hand-back.
+
+
 ## THE OFF AUX INPUTS, BYPASSED AND MEASURED (2026-09-11, session 32)
 
 Session: S29-4's lead built as a non-shipping pair and driven against the

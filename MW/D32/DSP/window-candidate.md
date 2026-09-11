@@ -9,6 +9,14 @@ sign — in one document, rather than spread across
 measured on the rev C bench in session S27 (2026-09-10/11) unless a line says
 otherwise.
 
+**THERE ARE NOW TWO CANDIDATES, AND THE SIGN-OFF IS ONE WORD (added
+2026-09-11, S33).** §1–§4 are **candidate A**, `shipping.config.s26`. **§5 is
+candidate B**, `shipping.config.s32` — candidate A plus one effective line —
+which seats D32's twelfth aux and carries the same evidence set, with two
+gaps named in §5.5. Both are proposals; neither is deployed. The two words
+are **"sign off s26"** and **"sign off s32"**, and §5.6 says what each
+commits to.
+
 **What it is not.** It is not a deploy. `shipping.config` is unchanged and
 stays unchanged until PW rules.
 
@@ -367,7 +375,9 @@ today — S32 gate 4 flipped four of them on the part and they pass their input
 at unity on the block their cell lands, and publish exact silence when it
 goes back. What changes is that a switched-OFF aux input stops being called.
 
-**It is not in this candidate.** `shipping.config.s26` does not carry the
+**It is not in this candidate — it is now candidate B (§5).** S33 took the
+lead through candidate A's whole discipline and it is a signed-off-able
+configuration of its own. `shipping.config.s26` does not carry the
 flag; `shipping.config`, `.s21` and `.s26` are unchanged, no staged pair was
 replaced, and the arm is `~/dspboot/s32_*`. Taking it into the window is PW's
 call and it needs the audio bar this candidate carries (famverify and the
@@ -386,7 +396,166 @@ are stimulus-stopped rows and are directly comparable to §4a's; the rows with
 the stimulus on are a partial regime in BOTH arms and are labelled as such in
 `MW/D32/DSP/dsp4-s32-20260911.md`.
 
-## 5. What this candidate does NOT bring to the window
+## 5. Candidate B — `shipping.config.s32`, prepared 2026-09-11 (S33)
+
+**Read §1–§4b first. Everything in them is true of candidate B as well**,
+because candidate B *is* candidate A plus one line — and that is the point of
+this section: PW is not being asked to compare a signed-off candidate with a
+lead, but to choose between **two candidates carrying the same evidence**.
+
+### 5.1 The candidate
+
+| | |
+|---|---|
+| configuration | **`MW/D32/DSP/SHARC/shipping.config.s32`** |
+| differs from `shipping.config.s26` in | **one effective line**: `DSP4_AUXIN_BYPASS` 0 → 1 |
+| differs from `shipping.config` (today's) in | the six switches s21 names, s26's one, and that one |
+| `chip1.ldr` | **`6396187c`** — *byte-identical to candidate A's* |
+| `chip2.ldr` | **`df5cc181`** (408,976 bytes; A's is 407,584) |
+| staged on the bench as | **`s32_chip1.ldr` / `s32_chip2.ldr`**, unchanged since S32 |
+| rollback pair | `s26_*` = `6396187c` / `9222c2ee`, and `s21_*` below that |
+| reproducibility | **byte for byte across two clean builds**, plus a third by the capacity instrument |
+
+**What the one line does.** A chip-2 `AUX_INPUT` node whose `on` cell is 0
+publishes one block of silence, sets a flag, and is then **not called** until
+the cell goes back to 1. Twelve nodes are in the class — `C2_SNK_IN_01..08`,
+`C2_CODEC_AUX_IN`, `C2_PI_IN`, `C2_USB_IN`, `C2_BT_IN` — all twelve boot off,
+and no capacity row this programme has ever taken turns one of them on. It is
+two mechanisms and not one, and §4b says why; the gate's first test is the
+host's own cell, so a 0 → 1 flip takes effect on its own block.
+
+**What it changes for the graph: nothing.** Not a cell, not an address, not a
+coefficient, not a config word, not the `defs` pin. The same sixteen
+`Snk[n]On/Level` cells are written and read exactly as they are today, and a
+snake return that is switched ON costs exactly what it costs today.
+
+### 5.2 What it buys
+
+**The capacity table PW asked for, chip 2, every product, both candidates,
+two boots each, measured on one night with one instrument** (average % of
+budget / worst block; `ovr` = missed blocks of 270,096):
+
+| product, row | candidate A (s26) | **candidate B (s32)** | Δ | ovr A → B |
+|---|--:|--:|--:|---|
+| **D32, worst use** (12 aux, 6 reverbs) † | 100.86 / 101.01 | **95.69 / 96.03** | **-5.17** | 1,900 → **0** |
+| **D32, silent + loaded** | 100.86 / 101.16 | **95.84 / 95.97** | **-5.02** | 1,900 → **0** |
+| D32, driven with the load † | 100.94 / 101.15 | **95.59 / 96.00** | **-5.35** | 1,900 → **0** |
+| D24, driven with the load † | 84.45 / 84.50 | **82.81 / 82.98** | **-1.64** | 0 → **0** |
+| D16, driven with the load † | 73.18 / 73.19 | **71.35 / 71.45** | **-1.83** | 0 → **0** |
+| D12, driven with the load † | 66.69 / 66.69 | **64.93 / 64.93** | **-1.76** | 0 → **0** |
+
+† the `driveall` bitstream could not be loaded (no CPLD reflash — see §5.5),
+so the rows taken with the stimulus playing ran a partial regime, **in both
+arms identically**. The stimulus-stopped rows are the directly comparable
+ones, and **D32 silent + loaded is the row that overruns**.
+
+**THE TWELFTH AUX FITS, BY 4.31 POINTS.** Chip 2 reads **95.69 %** at D32
+worst use with **zero missed blocks**, against 100.86 % and 1,900 of 270,096
+on candidate A. Every row that overruns on A runs clean on B.
+
+**Chip 1 does not move and cannot** — its image is byte-identical in the two
+candidates — and across six D32 rows it wandered at most 0.16 points, inside
+the instrument's ±0.27.
+
+**Every other product gains 1.5–1.8 points it did not need**: four
+switched-off aux inputs instead of twelve, at the same price a node (0.41
+points), on four products with four different mask pairs. And the four
+controls reproduce S28's rows on a second night.
+
+**S29's scope-class lever becomes worth nothing (0.15 points instead of 3.5),
+and the two savings DO NOT ADD** — they are the same five points, because
+S29's 3.5 points were eight of these twelve nodes being called. Signing
+candidate B is not also banking §4a's number. Full matrix in
+`MW/D32/DSP/dsp4-s33-20260911.md` §3.5.
+
+**The flip, on the final bytes** (S32 gate 4, repeated): a node the chain had
+not called since boot passes full-scale audio at unity on the block its cell
+goes to 1, and publishes exact silence when it goes back — 25 of 30 checks
+pass and the five that fail are the inert `_auxin_q_` staleness of §5.4.
+
+### 5.3 Every bar candidate A carries, on candidate B
+
+| bar | candidate A | **candidate B** |
+|---|---|---|
+| byte-for-byte reproducibility | two clean builds | **two clean builds, plus a third by the capacity instrument** |
+| `fix` sweep (S26) | 48 sites, 11 classes, 0 unresolved | **identical — the gate adds no float→fixed conversion** |
+| `fix_sweep --check` (host vs part) | agrees on every class | **agrees on every class** |
+| golden harness | 59 / 59 | **59 / 59** |
+| `dsp_validate` | OK on 698 nodes, 4 standing notes | **OK on 698 nodes, the same 4** |
+| `shared_kernel_check` + `--entries` | OK / 256 stubs OK | **OK / 256 stubs OK** |
+| code pool, chip 1 | 181,350 / 262,144 (69.2 %) | **identical — same bytes** |
+| code pool, chip 2 | 164,498 (62.8 %), 97,646 free | **165,890 (63.3 %), 96,254 free** |
+| DM | no pool above 90 % | **no pool above 90 %**; +48 B of sections |
+| capacity, D24 / D32 / D16 / D12 driven | S28, two boots each | **§5.2, two boots each, both arms re-measured on one night** |
+| the D32 use ladder (worst use) | S29 | **§5.2** |
+| the scope-class rows | S29 | **taken on both candidates** |
+| the flip on the part | — | **S32 gate 4, repeated on the final bytes** |
+| latency | **82 samples / 1.708 ms** (S29, n=3) | **NOT MEASURED** — see §5.5 |
+| `famverify`, `busgold`, `goldnode`, the numeric arms | S27 | **not re-run** — see §5.5 |
+
+### 5.4 The deviations PW must sign — §3's three, plus one, plus a corner
+
+**Candidate B inherits §3.1, §3.2 and §3.3 unchanged and word for word**, and
+it cannot help inheriting them: chip 1 is the same bytes, and the `fix` sweep
+comes back identical because the gate converts nothing.
+
+**Fourth: `_auxin_q_` is left stale while a node is off (S32-3).** After a node
+goes back off, its Q4.28 coefficient word still holds `0x10000000` instead of
+returning to 0. **It cannot reach the audio** — the sample path runs only on
+blocks where the node is called and not parked, and sample 0 of every such
+block recomputes the coefficient before the first MAC — and the published
+block is exact zero either way, measured on all sixteen words of five nodes.
+The fix is **one instruction**; it is deliberately not made, so that A and B
+differ in one flag and nothing else.
+
+**To sign:** a switched-off aux input leaves one parameter word holding its
+last value. No kernel and no cell reads it.
+
+**And a corner, not a deviation (S33-3).** Resuming from the park clears a
+pending level ramp, so a level written while the node was OFF lands at its
+target on the block the node comes back rather than finishing the ramp. That
+reproduces the ungated **steady state** — in candidate A the ramp advances
+while the node is off and has long since arrived — and the two differ only
+if the `on` flip happens *inside* the ramp window (tens of milliseconds).
+`on` is an `InstantCtl` cell in both builds, so the step at the flip is the
+cell's in both.
+
+### 5.5 What candidate B does NOT carry, and it is two things
+
+1. **No latency measurement of its own.** S29's method needs the `maincap`
+   and `pisel` bitstreams; S32 and S33 were both told not to reflash the CPLD
+   with the analog board possibly attached, and both obeyed. The contract
+   figure of **82 samples / 1.708 ms stands on candidate A**, and the
+   argument that candidate B cannot have moved it — same block size, same
+   `DSP4_TX_EARLY`, byte-identical chip 1 — is an argument, offered as one.
+2. **The audio bars were not re-run** (`famverify`, `busgold`, `goldnode`,
+   the numeric arms). Its audio evidence is the gate-4 flip on the part and
+   the fact that the park writes exactly the zeros the body would.
+
+**Both gaps close in one bench session that is allowed to flash the CPLD** —
+which would also give the four fully driven product rows no session has been
+able to take since S28. That is a bench-access ruling, not engineering.
+
+### 5.6 The one-word sign-off
+
+**"sign off s26"** — candidate A. Everything in §1–§3, the latency figure
+measured on it, and the standing ruling that **a D32 ships eleven of its
+twelve aux buses**. Deploys `chip1.ldr 6396187c` and `chip2.ldr 9222c2ee`.
+
+**"sign off s32"** — candidate B. The same, plus the twelfth aux, plus
+1.5–1.8 points of headroom on every other product in the range. Deploys the
+**same `chip1.ldr`** and `chip2.ldr df5cc181` — one changed artifact against
+the s21 plan instead of none. Costs one more deviation to sign (§5.4,
+inert, one instruction to remove) and accepts the two gaps in §5.5.
+
+**Neither word deploys anything on its own.** `shipping.config` is unchanged
+and stays unchanged until PW rules, `shipping.config.s26` and
+`shipping.config.s32` are both proposals, and both pairs are staged on the
+bench with the `s21_*` rollback below them.
+
+---
+
+## 6. What these candidates do NOT bring to the window
 
 * **R6–R11** — the matrix as composite rows and the FX topology — are held
   pending the team's block diagram. This candidate exists to make room for

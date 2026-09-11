@@ -162,49 +162,96 @@ ROW_ORDER = ('A_silent_default', 'B_silent_load',
              'D_driven_fxoff', 'C_driven_load')
 
 # ---------------------------------------------------------------------------
-# S32: THE LEAD ROWS, WHICH ARE NOT PRODUCT ROWS
+# S33: WINDOW CANDIDATE B, WHICH IS A CANDIDATE AND NOT A PRODUCT ROW
 # ---------------------------------------------------------------------------
-# A row family for an arm that is NOT a product: the same product, the same
-# configuration and the same cells, with ONE BUILD FLAG that is not in any
-# shipping or candidate configuration. It is here so the number PW is being
-# asked to rule on sits beside the product rows it would move, and it is a
-# SEPARATE FAMILY so that nothing in the table above is replaced by a figure
-# taken on an image the window is not being asked to sign.
+# A row family for the SECOND window candidate: the same products, the same
+# cells and the same masks as the rows above, built from
+# `shipping.config.s32` — `shipping.config.s26` plus one effective line,
+# `DSP4_AUXIN_BYPASS=1` (chip1 `6396187c`, *the same bytes as candidate A*,
+# chip2 `df5cc181`). It is a SEPARATE FAMILY so that nothing in the table
+# above is replaced by a figure taken on an image the window has not signed,
+# and so that the two candidates can be read side by side.
 #
-# `DSP4_AUXIN_BYPASS=1` (S32): a chip-2 AUX_INPUT whose `on` cell is 0
-# publishes one block of silence and is then not CALLED until the cell goes
-# back to 1. Twelve such nodes exist on chip 2 and every capacity row this
-# programme has taken leaves all twelve off.
+# `DSP4_AUXIN_BYPASS=1`: a chip-2 AUX_INPUT whose `on` cell is 0 publishes one
+# block of silence and is then not CALLED until the cell goes back to 1.
+# Twelve such nodes exist on chip 2, all twelve boot off, and no capacity row
+# this programme has taken turns one of them on.
 #
-# MEASURED, not constructed. Bench rev C, 2026-09-11, the s26 image plus the
-# flag (`chip1.ldr 6396187c` -- the same bytes as the candidate -- and
-# `chip2.ldr df5cc181`), two boots, DWELL 45.
-LEAD_FAMILY = 's32-lead'
+# MEASURED, not constructed. Bench rev C, 2026-09-11, BOTH candidates driven
+# on the same night with one instrument and one bitstream, **two boots a row
+# an arm**, DWELL 45, `SETUP_MODE=loadfx FXTYPE=3 FXTYPES="off"`,
+# `DSP_LANDED_DIR=proposals/defs/products`.
+#
+# SUPERSEDES S32's FOUR `@s32-lead` ROWS. They were the same image on the
+# same bench, two products and two rows; these are four products and four
+# rows, and carrying both would put two numbers against one row. S32's
+# originals are in `MW/D32/DSP/dsp4-s32-20260911.md` §3.2/§3.4.
+#
+# ROWS C AND D CARRY A LABEL AND IT IS NOT COSMETIC: the `driveall` LOGIC
+# bitstream could not be loaded (the analog board may be attached and the
+# dispatch forbids reflashing the CPLD), so the rows taken with the stimulus
+# playing ran a PARTIAL regime — identically in both arms, which is what
+# makes their delta a measurement, but they are not the fully driven rows the
+# product rows above quote. Rows A and B are stimulus-stopped and ARE
+# directly comparable; row B is the row that decides D32's fit.
+LEAD_FAMILY = 's32'
 LEAD_ROWS = {
-    ('d32', 'A_silent_default'): (65.33, 71.08),
-    ('d32', 'B_silent_load'):    (79.07, 95.64),
-    ('d24', 'A_silent_default'): (50.69, 61.27),
-    ('d24', 'B_silent_load'):    (60.04, 82.92),
+    ('d12', 'A_silent_default'):    (29.84, 51.88),
+    ('d12', 'B_silent_load'):       (33.12, 64.97),
+    ('d12', 'D_driven_fxoff'):      (33.17, 51.83),
+    ('d12', 'C_driven_load'):       (33.28, 64.93),
+    ('d16', 'A_silent_default'):    (36.92, 56.62),
+    ('d16', 'B_silent_load'):       (41.64, 71.37),
+    ('d16', 'D_driven_fxoff'):      (41.61, 58.10),
+    ('d16', 'C_driven_load'):       (41.70, 71.35),
+    ('d24', 'A_silent_default'):    (50.96, 61.41),
+    ('d24', 'B_silent_load'):       (59.96, 82.82),
+    ('d24', 'D_driven_fxoff'):      (60.02, 62.77),
+    ('d24', 'C_driven_load'):       (60.15, 82.81),
+    ('d32', 'A_silent_default'):    (65.44, 70.96),
+    ('d32', 'B_silent_load'):       (79.15, 95.84),
+    ('d32', 'D_driven_fxoff'):      (79.18, 75.55),
+    ('d32', 'C_driven_load'):       (79.28, 95.59),
 }
 LEAD_WORST = {
-    ('d32', 'A_silent_default'): (65.34, 71.22),
-    ('d32', 'B_silent_load'):    (79.29, 95.68),
-    ('d24', 'A_silent_default'): (50.69, 61.27),
-    ('d24', 'B_silent_load'):    (60.04, 82.92),
+    ('d12', 'A_silent_default'):    (30.03, 52.22),
+    ('d12', 'B_silent_load'):       (33.37, 65.22),
+    ('d12', 'D_driven_fxoff'):      (33.37, 51.93),
+    ('d12', 'C_driven_load'):       (33.40, 64.93),
+    ('d16', 'A_silent_default'):    (37.15, 56.73),
+    ('d16', 'B_silent_load'):       (41.72, 71.60),
+    ('d16', 'D_driven_fxoff'):      (41.94, 58.39),
+    ('d16', 'C_driven_load'):       (41.70, 71.45),
+    ('d24', 'A_silent_default'):    (51.06, 61.69),
+    ('d24', 'B_silent_load'):       (60.16, 82.97),
+    ('d24', 'D_driven_fxoff'):      (60.27, 62.87),
+    ('d24', 'C_driven_load'):       (60.27, 82.98),
+    ('d32', 'A_silent_default'):    (65.68, 71.29),
+    ('d32', 'B_silent_load'):       (79.34, 95.97),
+    ('d32', 'D_driven_fxoff'):      (79.51, 75.88),
+    ('d32', 'C_driven_load'):       (79.50, 96.00),
 }
+# ZERO missed blocks on every row of every product of candidate B (S33).
 LEAD_OVR = {}
-_LEAD_D32 = ('DSP4_AUXIN_BYPASS=1: the twelve switched-off chip-2 AUX_INPUT '
-             'nodes not called; chip 2 -4.84/-5.22 pts, worst-use rung '
-             '95.69 % (control 100.85 %, 1900 missed)')
-_LEAD_D24 = ('DSP4_AUXIN_BYPASS=1: FOUR switched-off AUX_INPUT nodes not '
-             'called (the snake eight are scope-gated off on a D24); '
-             'chip 2 -1.40/-1.83 pts')
-LEAD_NOTE = {
-    ('d32', 'A_silent_default'): _LEAD_D32,
-    ('d32', 'B_silent_load'):    _LEAD_D32,
-    ('d24', 'A_silent_default'): _LEAD_D24,
-    ('d24', 'B_silent_load'):    _LEAD_D24,
-}
+
+_B_D32 = ('window candidate B (DSP4_AUXIN_BYPASS=1): the twelve switched-off '
+          'chip-2 AUX_INPUT nodes not called; chip 2 -4.96/-5.35 pts, '
+          'worst-use rung 95.69 % with ZERO missed (candidate A 100.86 %, '
+          '1900 of 270096) -- the twelfth aux fits')
+_B_SMALL = ('window candidate B (DSP4_AUXIN_BYPASS=1): FOUR switched-off '
+            'AUX_INPUT nodes not called (the snake eight are scope-gated off '
+            'below D32); chip 2 -1.5 to -1.8 pts, headroom not a rescue')
+_B_PARTIAL = ('  [PARTIAL REGIME: the driveall bitstream could not be loaded '
+              '- the CPLD was not reflashed - so this row ran 0 of 64 chip-1 '
+              'and 27 of 32 chip-2 envelopes, IDENTICALLY IN BOTH ARMS. Rows '
+              'A and B are stimulus-stopped and are the comparable ones.]')
+LEAD_NOTE = {}
+for _p in ('d12', 'd16', 'd24', 'd32'):
+    for _r in ROW_ORDER:
+        LEAD_NOTE[(_p, _r)] = ((_B_D32 if _p == 'd32' else _B_SMALL)
+                               + (_B_PARTIAL if _r in ('C_driven_load',
+                                                       'D_driven_fxoff')
+                                  else ''))
 
 # The two products the anchors were measured on, low then high.
 ANCHOR_LO, ANCHOR_HI = 'd24', 'd32'
@@ -595,9 +642,19 @@ def write_csv(path, products, sizes, cells, cens, pred, pred_worst,
         '      --measured MW/D32/DSP/fit-measured.json \\',
         '      --csv MW/D32/DSP/fit-table.csv',
         '',
-        f'Rows tagged @{LEAD_FAMILY} are NOT product rows: they are an arm',
-        'with a build flag no shipping or candidate configuration carries.',
-        'See MW/D32/DSP/dsp4-s32-20260911.md.',
+        f'Rows tagged @{LEAD_FAMILY} are WINDOW CANDIDATE B: the same',
+        'products, cells and masks, built from shipping.config.s32 —',
+        'shipping.config.s26 plus one effective line, DSP4_AUXIN_BYPASS=1',
+        '(chip1 6396187c, the SAME BYTES as candidate A; chip2 df5cc181).',
+        'A separate family so that no product row above is replaced by a',
+        'figure taken on an image the window has not signed. Measured',
+        '2026-09-11, both candidates on one night, two boots a row an arm.',
+        'The C and D rows of candidate B ran a PARTIAL driven regime —',
+        'identically in both arms — because the driveall bitstream needs a',
+        'CPLD reflash that session was forbidden; rows A and B are',
+        'stimulus-stopped and are the comparable ones, and row B is the row',
+        "that decides D32's fit. Supersedes S32's four @s32-lead rows.",
+        'See MW/D32/DSP/dsp4-s33-20260911.md and window-candidate.md §5.',
         '',
         'NOT IN THIS TABLE, and why — a fit table that lists four of the',
         "range's nine product folders without saying so is a table that",
