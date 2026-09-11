@@ -1,3 +1,71 @@
+## HUB DISPATCH 2026-09-11 09:17Z — S33 — window candidate B (s26 + the off-aux park gate) prepared, not deployed: full regression so sign-off is one word either way   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+S33 — WINDOW CANDIDATE B PREPARED, NOT DEPLOYED: s26 + S32's two-word AUX_INPUT park gate as `shipping.config.s32` and the staged `s32_*` pair, taken through the WHOLE candidate discipline (the S26 fix sweep, byte-for-byte reproducibility twice, every product driven — D24, D32 worst use, D16, D12 — the latency bar, the flip proof, the scope-class rows, code-pool/DM figures, deviations listed) so that PW's window sign-off is one word for EITHER candidate: "sign off s26" or "sign off s32" — nothing deployed, `shipping.config` untouched, the `defs` pin untouched
+
+WHY. S32 measured the lead: twelve switched-off chip-2 AUX_INPUT nodes
+parked, D32 worst use 95.69 % with zero missed blocks, the twelfth aux
+seated by 4.3 points, D24 1.72 points cheaper, flip clean on the part.
+S29 was right not to take it inside the window; S32 was right to measure
+it on its own pair. What PW needs now is a second candidate with the same
+evidence set as s26 — not a lead with a good number — so the decision is
+between two signed-off images, and taking the gate is not a promise to
+re-run everything afterwards.
+
+THE UNIT. MW-D24-2 = 192.168.1.219. PW MAY POWER IT DOWN AT ANY POINT
+TODAY (CS_M wire on the DSP board; analog board attach) and may deploy a
+new app binary (`/home/app/app` md5 changes — record it per boot). Treat a
+lost SSH as expected: poll every 30 s for up to 30 min, then continue from
+the gate you were on and record the outage. NEVER assert AN_EN (CM4
+GPIO26), never touch the 74HC595 chain (CS5/GPIO27, CS_M), the analog
+rails or the +48 V — the analog board may be attached. Do not reflash the
+CPLD, do not touch the slave PCM overlay, do not replace any staged
+`s20_*`…`s31_*` pair; the s32 pair may be REBUILT in place only if it
+reproduces byte-for-byte (md5 before/after recorded; if it does not
+reproduce, stage as `s33_*` and say why). Restore the s26 pair on exit
+(`s20restore.sh`, S29-7: read pass 3). Leave `matrix-app` active. The
+rev A show model (192.168.0.115) is never touched.
+
+GATES, in order, each witnessed in findings.md S33-*:
+1. **`shipping.config.s32` written** = `.s26` + the gate (and nothing
+   else; diff shown), the twelve nodes and their host cells named, the
+   generated gate code reviewed once more against S32-2 (park → one block
+   of zeros → `_auxin_byp_` → skip; 0→1 on its own block). Built twice
+   from a clean tree; both chips byte-identical across the two builds;
+   chip 1 identical to s26's `6396187c` (it carries no node of the
+   class) — if chip 1 differs, stop and explain before measuring.
+2. **The S26 discipline re-run on the pair**: fix sweep (ties-to-even,
+   saturation, the 48 conversions), code pool and DM per chip, the
+   window-candidate deviation list (s26 has 3 — s32 inherits them plus
+   any new one, each named).
+3. **Every product driven, two boots each, both chips**: D24 driven, D32
+   driven and worst use (twelve auxes, six reverbs), D16, D12 — the full
+   fit-table row set as `s32` rows (a NEW row family, the s26 rows kept).
+   First sentence of findings: **candidate s32 — D24 X/Y, D32 worst use
+   X/Y with N missed blocks, D16 X/Y, D12 X/Y; against s26's rows; the
+   twelfth aux seated / not.** Scope-class rows for D32 as S29 took them
+   (class on/off) so the S29 comparison still holds.
+4. **The latency bar on s32** (S29's method: `maincap` vs the CPLD-loop
+   reference, 3 boots × 20 reps) — must read 82 ±1 samples; and the
+   S32 gate-4 flip proof repeated once on the final bytes (PI_IN unity
+   square on the flip block, exact silence on 1→0, four snake returns
+   one at a time).
+5. `window-candidate.md` §5: "Candidate B (s32)" with the same headings
+   as the s26 section, the PW decision stated as two one-word answers and
+   what each commits to; `fit-table.csv` s32 rows; findings S33-1..;
+   write-up `MW/D32/DSP/dsp4-s33-20260911.md`; tasks.md; commit + push
+   main. No AI attribution in commits or any work product.
+
+Bounded: gates 1–3 are the session; 4–5 always (gate 4 may be reported
+"not reached" with the reason, never skipped silently). If the unit is
+down for more than 30 min at any gate, write up what you have and stop
+with the block 🟡 and the reason.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-11 07:37Z — S32 — the S29-4 lead measured: eight off aux inputs bypassed, does the twelfth aux fit   [status: 🟢 done — **THE TWELFTH AUX FITS, BY 4.3 POINTS, AND IT IS TWELVE NODES AND NOT EIGHT.** With the switched-off chip-2 `AUX_INPUT` nodes bypassed, **D32 worst use reads 95.69 % with ZERO missed blocks against 100.85 % and 1,900 of 270,096 — and the silent-loaded row that misses 1,898 reads 95.64 % with ZERO.** The saving is **4.84 to 5.22 points of chip 2**, flat across all five regimes measured (silent, loaded, stimulus on, crosspoints closed, crosspoints open), against a 0.81-point deficit. **BOTH ARMS WERE MEASURED THIS SESSION**, two boots each, same bitstream, same stimulus, same regime, so every row is like-for-like; the control also reproduces S29 (75.92/100.86 and 1,898 missed against 76.00/100.78 and 1,912). **CHIP 1 IS A FREE CONTROL AND DID NOT MOVE**: it carries no node of this class, so the arm's `chip1.ldr` is BYTE-IDENTICAL to the candidate's (`6396187c`), and across five rows it wanders +0.11/0.00/−0.23/+0.01/+0.18 against the instrument's ±0.27. **IT IS TWELVE, NOT EIGHT**: S29-4 named `C2_SNK_IN_01..08`, but `C2_CODEC_AUX_IN`, `C2_PI_IN`, `C2_USB_IN` and `C2_BT_IN` are scoped to NO product, are in every product's chain and boot off too — `dsp4_driven_setup.py`'s `FAM_CLASS` filter leaves all twelve off in every capacity row this programme has ever taken. **SO D24 MOVES TOO, and by exactly four nodes' worth**: −1.40/−1.83/−1.94 points on rows B/A/C, a mean of 1.72 against 1.72 predicted by scaling 4/12 — **0.43 points a node on a D24 against 0.42 on a D32**, the same per-node price on two products with different masks and a different scope class. **GATE 1, DESIGNED BEFORE MEASURING, PREDICTED −4.1 (instruction count) to −4.9 (S29-corrected); measured −4.84 to −5.22.** **THE GATE NEEDS TWO WORDS AND THAT IS THE DESIGN (S32-2)**: `on` alone would leave `C2_MIX_MAIN_L/R` summing the node's LAST block 3,000 times a second — a switched-off snake return would become a stuck buzz — so the park (S23 gate 2's mechanism) publishes one block of zeros and sets `_auxin_byp_`, and only then does the chain skip the call; six instructions, 11 cycles against ~1,130. A 0→1 flip takes effect ON ITS OWN BLOCK because the gate's first test is the host's own cell. **GATE 4 PASSES ON THE PART**: `C2_PI_IN` with the CM4 playing passes the ±0.9999 square at unity the moment its cell goes to 1 and publishes exact silence when it goes back, and four snake returns flipped one at a time pass their input at unity — **and the s26 control was flipped the same way and is identical in every observable** but one. **THE ONE DIFFERENCE, MEASURED AND FILED (S32-3)**: the park returns before the body, so `_auxin_q_` keeps its last coefficient while the node is off. It CANNOT reach the audio — the sample path runs only on blocks where the node is called and not parked, and sample 0 recomputes `q` before the first MAC — and the fix is ONE instruction, deliberately not made in the session that measured the image. **BUILD DISCIPLINE**: the change is in the GENERATOR (`dsp_codegen.py`, five sites) behind `DSP4_AUXIN_BYPASS`, default 0, and **the flag-off build reproduces the candidate byte for byte** (`6396187c` / `9222c2ee`); the arm is reproducible across two independent builds (`6396187c` / `df5cc181`, chip 2 +1,392 bytes). **WHAT WAS NOT TAKEN, AND WHY (S32-7)**: gate 3's fully driven row needs the `driveall` bitstream and this dispatch says DO NOT REFLASH THE CPLD with the analog board possibly attached — the rule won, the CPLD was not touched, and the four stimulus-on rows ran a partial regime IN BOTH ARMS (`0 of 64` / `27 of 32`) and are labelled. Rows A and B are stimulus-stopped, are the rows that overrun, and are comparable with every previous session. **TWO THINGS FOUND IN THE TREE, NEITHER THIS SESSION'S**: `dsp_codegen.py` has moved AHEAD of the committed `src/` tree — a full regeneration rewrites 117 files and changes chip 1's shared-FILT stubs, i.e. **`6396187c` would stop reproducing** (S32-5), so only the files this change touches were regenerated; and `fit-table.csv` could not be regenerated at all without silently replacing twelve of its sixteen rows, because S28's `--measured` JSON was never committed (S32-8) — recovered as `MW/D32/DSP/fit-measured.json`, and the four new `@s32-lead` rows were appended with every product row byte-identical. `check-contract-drift.sh --strict` fails at HEAD and its abort strips `_matrix.csv` of its DSP columns (S32-6). **BENCH AS FOUND**: no CPLD flash, no overlay change, no staged pair replaced (all ten pairs md5-unchanged), `AN_EN` never asserted, 74HC595/+48 V never approached; new pair staged as `s32_*` ONLY; s26 restored and proved (BOOT_STAGE 7, 90,053/90,048 blocks, ZERO overruns both chips), `matrix-app` active on the unchanged Aug 18 binary with **3 of 3 MCUs verified**. No deploy: `shipping.config`, `.s21`, `.s26`, every cell, address, config word and the `defs` pin unchanged. Write-up `MW/D32/DSP/dsp4-s32-20260911.md`; `window-candidate.md` §4b; findings S32-1..S32-8; tool `tools/pi/dsp4_s32_flip.py`.]   [model: opus]
 
 model: opus
