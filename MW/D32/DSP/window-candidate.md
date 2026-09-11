@@ -17,6 +17,22 @@ gaps named in §5.5. Both are proposals; neither is deployed. The two words
 are **"sign off s26"** and **"sign off s32"**, and §5.6 says what each
 commits to.
 
+**THE BITSTREAM EVERY FIGURE HERE ASSUMES (added 2026-09-11, S35).** All of
+it — both candidates, every bar, the 82-sample latency figure — was measured
+with the LOGIC CPLD carrying `dsp4_logic.a1f6672af6c3`, and **that is still
+what is on the unit**: S35 was dispatched to flash the converter-clock fix
+and did not, because the flash interlock (`AN_EN` low) is not meetable while
+`matrix-app` runs — the app asserts AN_EN at every boot (finding S35-1).
+
+Two things follow for these candidates. First, **nothing in this document
+moves**; the bench is on the same bitstream it has always been on. Second,
+when the fix is flashed it should be flashed as `dsp4_logic.138dba7274d6` —
+the shipping design plus the pin change and nothing else, 157 → 157 logic
+elements — and **not** as the branch, because the branch also carries main's
+404 LEs against the part's 157 and would change the logic under these figures
+by far more than the fix does (finding S35-3). Working:
+`MW/D24/DSP/dsp4-s35-20260911.md`.
+
 **What it is not.** It is not a deploy. `shipping.config` is unchanged and
 stays unchanged until PW rules.
 

@@ -6,6 +6,217 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE CONVERTER CLOCK FIX, PROVED AT THE DESK AND STOPPED AT THE BENCH (2026-09-11, session 35)
+
+The fix reviewed, rebuilt reproducibly, staged on the unit and NOT flashed:
+the session's gate 0 interlock — `AN_EN` low — was not met and is not
+meetable while `matrix-app` runs. Full working:
+`MW/D24/DSP/dsp4-s35-20260911.md`.
+
+### S35-1 — AN_EN is asserted by the app at every boot, so the flash interlock can never be met
+
+**Severity: BLOCKING for every future CPLD flash on this unit, and it is a
+bench-procedure defect, not a fault. Status: proved from the app's own log
+and from `pinctrl`.**
+
+The dispatch's gate 0 reads "`pinctrl get 26` (AN_EN) — if AN_EN is HIGH
+stop and report (PW may have raised it by hand)". It is high, and PW did not
+raise it. The Aug 18 binary raises it itself, unconditionally, in
+`Boot.Init()` — nine lines before the MCU list is even read:
+
+```
+14:24:44.680384: Boot.Init() - AN_EN asserted (GPIO 26 high — analog power requested)
+```
+
+`pinctrl get 26` reads `op -- pd | hi` — a driven output, high — and the
+only session on the box was this one. The app was last started at 14:24:37
+BST after a burst of six stop/start cycles between 14:21 and 14:24, PW's
+work, forty minutes before the dispatch was written.
+
+Two consequences, and the second is the one that matters:
+
+1. **This session cannot flash.** The interlock is unambiguous and the
+   reason behind it — the analog rails may be up, and the analog board may
+   be attached — is stronger here, not weaker, because the assertion is
+   automatic rather than deliberate.
+2. **No session can flash, on this interlock, while `matrix-app` is
+   running**, because the app asserts AN_EN within milliseconds of every
+   start. S32 and S33 both recorded "AN_EN never asserted" as bench-as-found
+   while the app was active; that phrasing meant *the session* never
+   asserted it, and it has been reading as *the pin was low*. It was not.
+
+This needs a ruling from PW before S36, and it is a choice between three
+things, none of which this session may make: stop `matrix-app` for the flash
+and re-read the pin rather than assume it follows the app down — this
+session did not stop the app and so cannot say whether GPIO26 falls, and an
+untested assumption is exactly what the interlock exists to prevent; gate the
+flash on something that tracks the rails rather than on the request line; or
+confirm the analog board is detached and flash with the interlock waived in
+writing.
+
+Nothing about `AN_EN` was changed, and the 74HC595 chain, CS_M, the rails
+and the +48 V were not approached.
+
+### S35-2 — gate 1: the branch is exactly what it claims, and nothing else
+
+**Status: reviewed against a clean build of both refs; the branch is sound.**
+
+`git diff main..s34-converter-clock` is four files: the qsf pin block, the
+top-level port list and the two `assign`s, the testbench, and the removal of
+S34's own dispatch block from `tasks.md`. No logic outside the port list
+moves.
+
+The fitter agrees. Clean builds of `main` and of the branch, same tool, same
+machine, put **exactly five pins** between them and leave every other pin —
+name, direction, standard, bank — identical:
+
+| pin | net | main | `s34-converter-clock` |
+|-----|-----|------|----------------------|
+| 142 | `C1` | `ic_strap[1]` input | **`conv_bck` output** |
+| 141 | `L0` | `il_strap[0]` input | **`conv_fs` output** |
+| 87 | `C0` | `ic_strap[0]` input | reserved, weak pull-up |
+| 85 | `C2` | `ic_strap[2]` input | reserved, weak pull-up |
+| 81 | `L1` | `il_strap[1]` input | reserved, weak pull-up |
+
+**Logic elements: 404 → 404, unchanged**, confirming S34's zero-cost claim
+on a rebuild of both sides. Pins 71 → 68. Fmax 70.06 MHz against the
+baseline's 68.54 — the same pair of numbers S34 quoted as 73.67/64.52, which
+is fitter seed noise on a design with ~19 MHz of margin against a 49.152 MHz
+`sysclk`; the spread between reruns is larger than the change, and neither
+figure means anything beyond "timing is met with room".
+
+**The branch does NOT touch the X-logic parking.** Pins 109/110/111 are
+`snake_in`/`snake_out`/`dac_main` on both sides of the diff, still sitting on
+option slot 2's lanes exactly as S34-4 found them. That stays for S36.
+
+### S35-3 — the part is not carrying main's logic, and "flash the fix" is 247 LEs of un-benched RTL
+
+**Severity: HIGH — it changes what gate 3's regression is for. Status:
+proved by rebuilding the shipping bitstream from its own commit.**
+
+The shipping bitstream on the unit, `dsp4_logic.a1f6672af6c3`, rebuilds
+**byte-for-byte** from commit `a4ee3d1f` (2026-08-21) — pof md5
+`f08f3b525ff0fe2f7957a96d958842e6`, matching the committed artifact and the
+copy staged on the unit (svf `dd1e09185804cb2e451d5089cdd56be3`). So what is
+on the part is known exactly, which is worth stating because that bitstream
+**predates the design-ID stamp and cannot identify itself** — its manifest
+has no `design_id` line, so the readback check build.sh documents does not
+exist for it. Its identity rests on the flash records, not on the part.
+
+That design is **157 logic elements**. Today's `main` is **404**. Flashing
+the branch would therefore put 247 LEs — the PCM reframe and capture paths,
+the design-ID and cfg-bits registers, five weeks of RTL that has never been
+on this unit — onto the part *at the same time* as the two-pin direction
+change, and gate 3's regression would be measuring all of it at once. If the
+latency bar moved, nothing in the method would say which change moved it.
+
+The slot map moved too: the shipping bitstream carries slot-map
+`sha256:efd8d5…`, today's tree `sha256:2c53de…` (S34 added pointer notes to
+`slot-map.csv`, which is inside the hash whether or not it changes
+behaviour).
+
+**So the fix was isolated and built on its own.** `dsp4_logic.138dba7274d6`
+is commit `a4ee3d1f` — the exact design on the part — plus nothing but the
+pin-direction change:
+
+* **157 → 157 logic elements. The fix is free against the shipping design
+  too, not only against main.**
+* 71 → 68 pins, the same five pins as S35-2 and no others.
+* Fmax 69.92 MHz against the shipping build's 70.21.
+
+It is staged on the unit beside the shipping bitstream. **It is an analysis
+artifact and a recommendation for S36, not a sanctioned deliverable** — the
+dispatch named the branch, and this is not it. But it is the bitstream that
+makes gate 3 mean what gate 3 says: flashed against `a1f6672af6c3`, any
+movement in the latency bar is the converter clock pair and can be nothing
+else. Advancing main's 404 LEs onto the part is a separate decision with its
+own regression, and merging the two into one flash spends the evidence.
+
+### S35-4 — the copper confirms the fix's direction: the analog board is waiting to be clocked
+
+**Status: proved from the global netlist; independent of the RTL argument.**
+
+S34 established that U3 is the only possible driver of `C1`/`L0`. The
+remaining risk in making an input an output is the opposite one — something
+on the far side of the 33R taps driving back into the pin, which 33R would
+not stop.
+
+It does not. The far ends of `R111`/`R112` are `#00716`/`#00717`, which cross
+the FPC to the analog board and land on **`U97.2`** and **`U98.2`**. Both
+parts have pin 1 N/C, pin 3 GND, pin 5 on `MIC_5-8_17-20_+3V3`, and pin 4 on
+the analog-board distribution — single-gate SOT-23-5 buffers, **input facing
+the digital board, output facing the analog side**. The analog board does not
+generate the converter clock; it is built to receive it from U3 and fan it
+out. The fix drives the pin the board already expects to be driven.
+
+The option slots are open and the D32 header unpopulated, so nothing else can
+contend today. A future option card that drove `BCK_n`/`FS_n` would fight U3
+through 33R, which is what the 33R is for, but that is a card-design rule to
+write down, not a defect here.
+
+**A trap for the next reader of the netlist: `C1` and `L0` are each TWO
+different nets.** `G2449`/`G2620` are the digital-board clock pair; `G2448`/
+`G2619` are unrelated analog-board nets that happen to share the name and
+carry seven passives each. The global join keeps them apart by ID; a grep on
+the name does not.
+
+### S35-5 — gate 4: nothing on those nets reaches the Pi, so the probe is PW's
+
+**Status: settled from the complete net membership, not inferred.**
+
+**The probe, for PW: with the shipping bitstream, J18 P37 (`C1`) and J18 P38
+(`L0`) are dead. With the fix flashed they are 12.288 MHz and 48 kHz. U3 pins
+142 and 141 are the same two signals at the source.**
+
+No firmware, no app, no DSP boot is involved either way, and the two readings
+are so far apart that a scope-less logic probe or a frequency counter settles
+it.
+
+The Pi cannot take that reading itself. Both nets' membership is complete and
+closed, and there is no CM4 pin on either:
+
+* `G2449` `C1` — `dsp:J1.37; dsp:J2.37; dsp:U3.142; digital:J18.37;
+  digital:R111.1; R61.1; R65.1; R66.1; R67.1`
+* `G2620` `L0` — `dsp:J1.38; dsp:J2.38; dsp:U3.141; digital:J18.38;
+  digital:R112.1; R60.1; R62.1; R63.1; R64.1`
+
+The TEST pins the RTL already exports are no help either, for the same
+reason. `test[0] = fs8` and `test[1] = bck8` — the very pair — reach
+`U3.13`/`U3.12`, then `J1/J2.17-18`, `J15.4/6` and `J18.17-18`. `J15` is
+marked DNP in the qsf and no CM4 pin is on any of the four nets:
+
+* `G2685` `LOGIC_TEST1` — `dsp:J1.17; J2.17; U3.13; digital:J15.4; J18.17`
+* `G2686` `LOGIC_TEST2` — `dsp:J1.18; J2.18; U3.12; digital:J15.6; J18.18`
+* `G2687` `LOGIC_TEST3` — `dsp:J1.19; J2.19; U3.8; digital:J15.8; J18.19`
+* `G2688` `LOGIC_TEST4` — `dsp:J1.20; J2.20; U3.7; digital:J15.10; J18.20`
+
+So no edge count was attempted and none is possible. Every path from the
+converter clock to the Pi ends at a header. Worth recording as a rev-D wish:
+one of the four TEST nets to a CM4 GPIO would make this — and every future
+clock question — answerable without hands.
+
+### S35-6 — the new sim gate bites, checked by mutation
+
+**Status: negative control run.**
+
+A gate that passes proves nothing unless it can fail. `tb_logic_top`'s new
+check samples `conv_bck`/`conv_fs` against `bcki[0]`/`fsi[0]` every `sysclk`
+edge and counts mismatches, with a second check that it ran at all
+(`conv_samples > 100`).
+
+Driving `conv_fs` from `fs16` instead of `fs8` — a plausible wrong answer,
+the other frame sync in the same module, and one that still leaves the pin
+driven — fails it:
+
+```
+== tb_logic_top: FAIL
+   FAIL: conv_bck/conv_fs are not the TDM8 pair (bcki[0]/fsi[0]) (t=52143000)
+SIM GATE: FAILED (1 testbench(es))
+```
+
+So the gate discriminates the right net from a wrong one, not merely driven
+from undriven, and build.sh will not label a bitstream that fails it.
+
 ## THE NETLIST AGAINST THE PERSONALITY (2026-09-11, session 34)
 
 Desk session against the hub's new D24 global netlist and TDM map. No unit
