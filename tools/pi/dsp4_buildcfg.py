@@ -171,12 +171,24 @@ def describe2(d):
                          3: 'both chips'}[d['DSP4_TX_EARLY']]))
     if d['DSP4_BQ_SIMD_PIPE']:
         lines.append('DSP4_BQ_SIMD_PIPE %d' % d['DSP4_BQ_SIMD_PIPE'])
+    # THE WORD CARRIES TWO BITS OF THIS MASK AND THE MASK HAS FOUR (S27-3).
+    # DIAG_BUILD_CFG2 has room for bit 0 (COMP, at bit 5) and bit 1 (TUBE, at
+    # bit 15) and no room allocated for bit 2 (GATE) or bit 3 (FILT), which
+    # S26 added. So `shipping.config.s21` (mask 3) and `shipping.config.s26`
+    # (mask 15) produce the SAME two words, and this decoder cannot tell them
+    # apart -- which is S12-7's shape one flag along. Say that here instead
+    # of printing a number that reads like the whole mask; the image md5 is
+    # what identifies a shared-kernel arm until the word is widened.
     if d['DSP4_SHARED_KERNELS']:
         lines.append('DSP4_SHARED_KERNELS %d (%s) — that class runs ONE body '
                      'for all 32 strips'
                      % (d['DSP4_SHARED_KERNELS'],
-                        ', '.join(n for b, n in ((1, 'COMP'), (2, 'class 2'))
+                        ', '.join(n for b, n in ((1, 'COMP'), (2, 'TUBE'))
                                   if d['DSP4_SHARED_KERNELS'] & b)))
+        lines.append('  ^ TWO BITS ONLY: GATE (bit 2) and FILT (bit 3) are '
+                     'NOT carried in DIAG_BUILD_CFG2, so this value does not '
+                     'distinguish shipping.config.s21 from .s26 (S27-3). '
+                     'Identify a shared-kernel arm by its image md5.')
     on = [n for _, n in FLAGS2 if d[n]]
     off = [n for _, n in FLAGS2 if not d[n]]
     lines.append('on2:  ' + (', '.join(on) or '-'))

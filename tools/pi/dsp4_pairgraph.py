@@ -30,8 +30,16 @@ twice, which is exactly what DSP4_SIMD_NEGCTL builds on purpose, cannot
 produce the same bus sum. Run it for both strips of the pair in turn so
 neither lane is only ever the silent one.
 
+ONE CAPTURE PER BOOT, and the tool enforces it (S23-1). The first capture
+of a boot carries no dynamics history and every later one does, so the two
+are different measurements -- and every golden in goldens/ is a first
+capture. A second capture on the same boot is REFUSED unless the caller
+passes --force (a bar that compares within one boot and carries its own
+control) or --settle (a throwaway capture first, so the history term is
+settled; stamped, and not comparable with the stored goldens).
+
 Usage:
-    dsp4_pairgraph.py [--strip N] [--out FILE]
+    dsp4_pairgraph.py [--strip N] [--out FILE] [--settle|--force]
 
 Writes the captured words to FILE and prints a one-line digest. Run it
 against both builds and diff the files with --compare.
@@ -39,6 +47,7 @@ against both builds and diff the files with --compare.
 import argparse
 import hashlib
 import json
+import os
 import struct
 import sys
 import time
@@ -261,6 +270,128 @@ def capture(sc, inj, src, n):
     return sc.fetch(min(n, S.SCOPE_MAX))
 
 
+# ---------------------------------------------------------------------------
+# WHERE A CAPTURE SITS IN ITS BOOT, AND WHY THE TOOL HAS TO KNOW (S23-1)
+# ---------------------------------------------------------------------------
+#
+# The FIRST capture of a boot is not the same measurement as the second.
+# S23-1 measured it: aux 1 taken first and aux 1 taken last on one boot
+# differ in 235 of 256 words, first at word 21, maxdiff 1,412 LSB -- while
+# `aux1b`, `mtx1` and `mtx2`, three captures of three DIFFERENT buses taken
+# later on that same boot, are byte for byte identical. The odd one out is
+# the first capture, and the term is the strip's own dynamics history: a
+# capture is 256 samples from the arm, and the gate and the compressor are
+# wherever the PREVIOUS capture's step injection left their envelopes. On
+# the first capture of a boot there is no previous injection.
+#
+# Every stored golden in `goldens/` was taken as the first capture of its
+# boot, and `busgold.sh`, `ctlgate.sh`, `bqgraph.sh` and `gainsimd.sh` are
+# valid today for one reason only: they take ONE capture per boot, so both
+# sides of the comparison carry the same history term and it cancels. That
+# rule lived in a finding and in nothing the tool could enforce -- and the
+# run scripts BREAK it by accident, because `pairgraph_run.sh` retries a
+# failed capture up to four times on the same boot and compares whichever
+# attempt succeeds against a golden taken as a first capture.
+#
+# So the rule is in the tool now. A capture knows its own index within the
+# boot, stamps it into the JSON, and REFUSES to be the second capture of a
+# boot unless the caller says which of the two comparable regimes it wants:
+#
+#   --force    take it anyway. For a bar that compares captures WITHIN one
+#              boot and carries its own control -- mtxgold.sh is the one,
+#              and its `aux1b` arm is precisely S23-1's measurement.
+#   --settle   take a throwaway capture FIRST and measure the second, so
+#              the capture carries a settled history term whatever its
+#              position in the boot. This is the forward path: it makes the
+#              first capture of a boot comparable instead of documenting
+#              that it is not. It is NOT the default and it is STAMPED,
+#              because a settled capture and an unsettled golden are two
+#              different measurements and compare() must be able to say so.
+#
+# BOOT IDENTITY is DIAG_FRAME_COUNT, which counts blocks from zero at every
+# DSP boot: a value BELOW the last one this ledger saw is a new boot. The
+# counter wraps after ~8.3 days of continuous running, which would read as
+# a new boot and let a second capture through -- the pre-existing
+# behaviour, not a new failure mode, and the bench boots per arm anyway.
+# The same is true of anything that strobes DIAG_CLEAR (dsp4_capacity.py
+# does, between rows): if that also zeroes the frame counter the guard
+# reads a new boot and PERMITS. Every way this witness can be wrong makes
+# the tool behave as it did before the guard existed, never stricter than
+# the evidence, which is the only direction an instrument guard may fail
+# in -- it must not be able to fail a bar that is sound.
+DIAG_FRAME_COUNT = 0xE004
+LEDGER = os.environ.get('PAIRGRAPH_BOOT_LEDGER',
+                        '/tmp/dsp4_pairgraph_boot.json')
+
+
+def read_frames(sc, tries=16):
+    """DIAG_FRAME_COUNT, read the way a COUNTING register has to be.
+
+    `Scope.rd` is a VOTED reader: it asks until one value comes back
+    twice. A free-running counter never repeats -- it advances about
+    eight counts between two asks at 3,000 blocks/s -- so the voted
+    reader reports a healthy part as an unsettled register, which is
+    exactly what it did on the first bench run of this guard
+    (`register 0xE004 never settled: {0x9c13: 1, 0x9c1a: 1, ...}` --
+    twelve distinct, monotonically increasing values, i.e. twelve
+    correct readings rejected for not being identical).
+
+    So: single unvoted asks, and the sanity check is MONOTONICITY
+    rather than repetition -- three asks that do not go backwards, none
+    of them zero, since a dropped answer on this link reads as zero.
+    This is dsp4_capacity.moving()'s rule and is the same rule for the
+    same reason; it is duplicated rather than imported because
+    dsp4_capacity pulls in the whole capacity instrument.
+    """
+    last, seen = None, []
+    for _ in range(tries):
+        v = sc._ask(DIAG_FRAME_COUNT)
+        if not v:
+            continue
+        if last is not None and v < last:
+            seen = []
+        else:
+            seen.append(v)
+        last = v
+        if len(seen) >= 3:
+            return seen[-1]
+    return None
+
+
+def boot_capture_index(sc, ledger=LEDGER):
+    """1 for the first capture of this DSP boot, 2 for the next, ...
+
+    Returns None if the frame counter could not be read: an instrument
+    guard that cannot read its witness says so and stands aside rather
+    than failing a bar, and the capture is stamped with a null index so
+    compare() knows it was never guarded.
+    """
+    try:
+        frames = read_frames(sc)
+    except (Exception, SystemExit) as exc:     # dsp4_scope raises BOTH
+        frames = None
+        print('  WARNING: DIAG_FRAME_COUNT raised (%s)' % exc)
+    if not frames:
+        print('  WARNING: DIAG_FRAME_COUNT unreadable -- this capture '
+              'carries NO boot-position stamp and the S23-1 guard is not '
+              'applied to it')
+        return None
+    prev = {}
+    try:
+        prev = json.load(open(ledger))
+    except Exception:                          # noqa: BLE001 — absent is fine
+        prev = {}
+    if not isinstance(prev, dict) or frames < prev.get('frames', -1):
+        prev = {'count': 0}
+    idx = int(prev.get('count', 0)) + 1
+    try:
+        json.dump({'frames': frames, 'count': idx}, open(ledger, 'w'))
+    except Exception as exc:                   # noqa: BLE001
+        print('  WARNING: could not write the boot ledger %s (%s)'
+              % (ledger, exc))
+    return idx
+
+
 def compare(a, b):
     # A comparison between two captures that were taken from the SAME
     # wiring is not a test of the wiring. Say so rather than printing a
@@ -284,6 +415,32 @@ def compare(a, b):
               'Q4.28 word is 2^28 exactly -- every product\'s low 28 bits '
               'are zero, so this comparison says nothing about GAIN\'s '
               'rounding, and its products cannot saturate either')
+    # WHERE EACH SIDE SAT IN ITS BOOT (S23-1). Two captures are only
+    # comparable word for word if their dynamics history term is the same,
+    # and there are exactly two ways for that to be true: both are the
+    # FIRST capture of their boot (every stored golden is, and that is the
+    # rule the one-capture-per-boot bars keep), or both are SETTLED. A
+    # capture with no stamp at all is an older file or one taken through
+    # an unreadable frame counter; say which rather than assuming either.
+    sa, sb = bool(a.get('settled')), bool(b.get('settled'))
+    ia, ib = a.get('boot_capture_index'), b.get('boot_capture_index')
+    if sa != sb:
+        print('  WARNING: one capture is SETTLED and the other is not '
+              '(%s vs %s) -- they carry different dynamics history and a '
+              'word-for-word verdict between them is not a bit-exactness '
+              'claim (S23-1)' % (sa, sb))
+    elif not sa:
+        for who, i in (('a', ia), ('b', ib)):
+            if i is None:
+                print('  note: capture %s carries no boot-position stamp; '
+                      'if it was not the first capture of its boot this '
+                      'comparison straddles the S23-1 term' % who)
+            elif i > 1:
+                print('  WARNING: capture %s was #%d of its boot, not the '
+                      'first, and is not settled -- against a first '
+                      'capture this comparison straddles the S23-1 '
+                      'dynamics-history term (up to 1,412 LSB)' % (who, i))
+
     wa, wb = a['words'], b['words']
     n = min(len(wa), len(wb))
     diffs = [(i, wa[i], wb[i]) for i in range(n) if wa[i] != wb[i]]
@@ -331,6 +488,19 @@ def main():
                          'must then read exactly zero.')
     ap.add_argument('--compare', nargs=2, metavar='FILE',
                     help='compare two captures instead of taking one')
+    # S23-1, and see boot_capture_index() for the mechanism and the rule.
+    ap.add_argument('--force', action='store_true',
+                    help='take a SECOND (or later) capture on this boot. '
+                         'Only for a bar that compares captures within one '
+                         'boot and carries its own control -- mtxgold.sh. '
+                         'A forced capture is stamped and compare() will '
+                         'not silently weigh it against a first capture.')
+    ap.add_argument('--settle', action='store_true',
+                    help='take a THROWAWAY capture first and measure the '
+                         'second, so the dynamics history term is settled '
+                         'whatever this capture\'s position in the boot. '
+                         'Stamped: a settled capture is NOT comparable '
+                         'with the unsettled goldens in goldens/.')
     args = ap.parse_args()
 
     if args.compare:
@@ -380,6 +550,31 @@ def main():
     set_crosspoint(sc, args.strip, args.xp, on=not args.xp_off)
     inj = inject_addr(sc, args.strip)
     src = sc.sym[bus]
+
+    # WHERE THIS CAPTURE SITS IN ITS BOOT (S23-1). The ledger is read and
+    # bumped BEFORE the arm, because an arm that fails its readback has
+    # still injected its step and still left the dynamics with a history --
+    # so a retry after a failed capture is a second capture, and that is
+    # exactly the case pairgraph_run.sh's retry loop produces.
+    idx = boot_capture_index(sc)
+    if idx is not None and idx > 1 and not (args.force or args.settle):
+        print('REFUSED: this is capture %d of this DSP boot, and the first '
+              'capture of a boot is a DIFFERENT measurement (S23-1: 235 of '
+              '256 words, maxdiff 1,412 LSB). Every golden in goldens/ was '
+              'taken as a first capture.' % idx)
+        print('  Re-boot and take one capture, or pass --settle (a '
+              'throwaway capture first, stamped, and NOT comparable with '
+              'the stored goldens), or --force if this bar compares '
+              'captures within one boot and carries its own control.')
+        return 3
+
+    if args.settle:
+        # The throwaway. Same arm, same stimulus, result discarded: all it
+        # exists to do is leave the gate and the compressor in the state
+        # the NEXT capture will find them in.
+        capture(sc, inj, src, min(args.n, 8))
+        time.sleep(0.2)
+
     words = capture(sc, inj, src, args.n)
 
     digest = hashlib.sha256(
@@ -392,6 +587,8 @@ def main():
                'bq_paired_build': any(k.startswith('_BQPFILT_')
                                       for k in sc.sym),
                'bq': bool(args.bq),
+               'boot_capture_index': idx, 'settled': bool(args.settle),
+               'forced': bool(args.force),
                'inj': inj, 'src': src, 'sha256': digest,
                'nonzero': nz, 'words': words}, open(args.out, 'w'))
     print('strip %d driven, %d muted, xp=%s%s (%s), paired_build=%s '
@@ -400,6 +597,10 @@ def main():
              bus, '_blk_pool1' in sc.sym,
              any(k.startswith('_BQPFILT_') for k in sc.sym), bool(args.bq),
              nz, len(words), digest[:16]))
+    print('  boot capture #%s%s%s'
+          % ('?' if idx is None else idx,
+             ', SETTLED' if args.settle else '',
+             ', FORCED' if args.force else ''))
     # A capture of all zeros proves nothing: it is what a dead strip, a
     # dropped arm and a muted graph all look like -- EXCEPT under
     # --xp-off, where all zeros IS the answer and anything else is the

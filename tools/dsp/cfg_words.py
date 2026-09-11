@@ -132,6 +132,15 @@ def words(val):
           | (val['DSP4_SCOPE_GATE'] << 11) | (val['DSP4_CHAN_MASK'] << 10)
           | (val['DSP4_BLK_LATCH'] << 9) | (val['DSP4_BLOCK_KERNELS'] << 8)
           | (val['DSP4_GEN_BLOCK'] & 0xFF))
+    # TWO BITS OF A FOUR-BIT MASK (S27-3). The word has room allocated for
+    # bit 0 (COMP, at bit 5) and bit 1 (TUBE, at bit 15) and none for bit 2
+    # (GATE) or bit 3 (FILT), which S26 added -- so `shipping.config.s21`
+    # (mask 3) and `shipping.config.s26` (mask 15) produce IDENTICAL words
+    # and the part cannot say which of the two it is running. Widening it
+    # means moving DIAG_BUILD_CFG2 for every image, so it is named here and
+    # in `unrepresented()` below rather than changed mid-window; until then
+    # the image md5 identifies a shared-kernel arm. Free bits in w2 for the
+    # fix: 24 and 26-29.
     shk = val['DSP4_SHARED_KERNELS']
     w2 = (0xC2000000
           | ((val['DSP4_BLOCK_DECIMATE'] & 0xFF) << 16)
@@ -150,6 +159,26 @@ def words(val):
           | (val['DSP4_SIMD_DYN'] << 1)
           | val['DSP4_STRIP_FUSED'])
     return w1, w2
+
+
+def unrepresented(val):
+    """What the two words CANNOT say about this configuration.
+
+    A check that passes is only worth what the words carry, and this one
+    carries two bits of DSP4_SHARED_KERNELS. Anything listed here is a
+    setting two different images can disagree on while reading back the
+    same words -- S12-7's shape, which this project treats as a defect in
+    the instrument rather than a footnote.
+    """
+    out = []
+    shk = val['DSP4_SHARED_KERNELS']
+    if shk & ~3:
+        out.append('DSP4_SHARED_KERNELS=%d — bits 2 (GATE) and 3 (FILT) are '
+                   'NOT in DIAG_BUILD_CFG2; an image built with mask %d reads '
+                   'back the same two words as one built with mask %d, so '
+                   'this check does not distinguish them (S27-3). Identify '
+                   'the arm by its image md5.' % (shk, shk, shk & 3))
+    return out
 
 
 def main():
@@ -190,6 +219,8 @@ def main():
         if bad:
             return 4
         print('the part matches %s to the bit' % name)
+        for line in unrepresented(val):
+            print('  BUT THE WORDS DO NOT CARRY: ' + line)
     return 0
 
 

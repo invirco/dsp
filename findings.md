@@ -6,6 +6,257 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE SHARED CLASSES COST NOTHING, AND THREE INSTRUMENTS THAT COULD NOT FAIL (2026-09-10/11, session 27)
+
+Session: the cycle half of S26's result, the window candidate assembled in one
+document, and the instrument debt S23–S26 named.
+
+### S27-1 — shared GATE and shared FILT cost nothing, and the null arm is what makes that a measurement rather than a shrug
+
+**Severity: none — it is the result. Status: measured on the part
+2026-09-10/11, both products, both chips, two boots, four regimes.**
+
+S26 moved GATE and FILT into shared bodies, recovered 58,072 bytes of chip 1's
+code pool, proved the audio byte-identical, and said the CYCLE cost was
+unmeasured. Four arms of one tree — `DSP4_SHARED_KERNELS` 3, 7, 11, 15 over
+`shipping.config.s21` — priced it driven with the plugin load:
+
+| class | chip-1 avg Δ | chip-1 worst-block Δ |
+|---|---|---|
+| shared GATE | −0.11 … +0.28 points | −0.26 … +0.70 |
+| shared FILT | −0.11 … +0.23 | −0.25 … +0.29 |
+| both (the candidate) | −0.12 … +0.12 | −0.06 … +0.29 |
+
+**`chip2.ldr` is byte-identical in all four arms** — GATE and FILT are chip-1
+classes — so every chip-2 delta in the same tables is the instrument comparing
+one binary with itself. Over twenty-four such comparisons it swings **0.39
+points on the average and 0.56 on the worst block**, and chip 1's boot-to-boot
+spread is 0.59 at worst over 32 pairs. Every chip-1 excursion above is inside that.
+
+**So both classes ship**, and it is worth recording that the dispatch's
+0.5-point revert threshold sits AT this instrument's resolution: a class that
+really cost 0.5 points would have been a marginal call.
+
+**The bytes are exactly additive**: GATE alone returns 31,052, FILT alone
+27,020, together 58,072 with nothing left over. The control arm rebuilds S25's
+and S26's control byte for byte (`c9d0e07b` / `9222c2ee`) and the mask-15 arm
+rebuilds S26's candidate byte for byte (`6396187c` / `9222c2ee`).
+
+### S27-2 — a session that forgets DSP_LANDED_DIR measures a lighter product, and chip 2 is where it shows
+
+**Severity: MEDIUM (method). Status: found by doing it, 2026-09-11.**
+
+`capacity.sh` and `famverify.sh` build their cell list from
+`tools/dsp/landed_map.py`, which reads the LANDED contract unless
+`DSP_LANDED_DIR` points it at the proposal pair. The four-arm ladder above was
+taken without that pointer — 5,409 D32 cells instead of 5,765 — so the matrix
+sends and the FX-return-to-aux cells were reported ABSENT by `--mode load` and
+the buses they open stayed closed.
+
+**On chip 1 it is worth a point; on chip 2 at D32 it is worth ten.** The same
+control configuration reads **91.0 %** of budget driven on the landed map and
+**100.75 %** on the proposal map, with 0.72 % of blocks missed on the second
+and none on the first. A session that quotes the first against the record's
+figures is quoting a different product.
+
+It costs nothing in a DELTA measurement — every arm ran against the same map —
+which is why the ladder stands. It was caught by `famdiff` reporting six
+families moved against S25's golden, five of them MATRIX/MATRIX_OUT/MIX_BUS
+verdicts going to `CELL_NOT_IN_CONTRACT`: the diff instrument S26 built said
+exactly which thing was wrong. The control and the candidate were re-measured
+on the proposal map and reproduce S25 to the digit (D32 78.98 / 100.75 against
+S25's 78.97 / 100.75; D24 59.91 / 84.47 against 59.74 / 84.49).
+
+### S27-3 — DIAG_BUILD_CFG2 carries two bits of a four-bit mask, so the part cannot tell `shipping.config.s21` from `shipping.config.s26`
+
+**Severity: HIGH for the window's identification discipline, none for audio.
+Status: found 2026-09-11 by reading the candidate's own cfgverify output; NOT
+fixed, deliberately.**
+
+`tools/dsp/cfg_words.py` packs `DSP4_SHARED_KERNELS` bit 0 at word-2 bit 5 and
+bit 1 at word-2 bit 15. S26 added bits 2 (GATE) and 3 (FILT) to the mask and
+no bits to the word. Witness, on the host:
+
+```
+  shipping.config.s21  cfg 0xCF45FF10  cfg2 0xC2019E6F  shk=3
+  shipping.config.s26  cfg 0xCF45FF10  cfg2 0xC2019E6F  shk=15
+```
+
+Identical words. So `cfgverify.sh`'s "**the part matches shipping.config.s26
+to the bit**" — which is what it printed on the candidate, on both chips — is
+TRUE and would have printed the same on the control. **This is S12-7's shape
+one flag along**: two images that differ in what they run, reading back the
+same word.
+
+The bench decoder was wrong in a second way that IS decoder-only: its class
+table read `((1, 'COMP'), (2, 'class 2'))`, so a mask-3 image printed
+`DSP4_SHARED_KERNELS 3 (COMP, class 2)` instead of naming TUBE.
+
+**Not fixed here.** Widening the field moves `DIAG_BUILD_CFG2` on every image
+in the tree, including every md5 this session's bars quote, and doing that
+inside the window to fix a label is the wrong trade. Instead both ends now say
+so out loud: `cfg_words.py` gained an `unrepresented()` that prints **"BUT THE
+WORDS DO NOT CARRY: DSP4_SHARED_KERNELS=15 — bits 2 (GATE) and 3 (FILT) are
+NOT in DIAG_BUILD_CFG2 ... Identify the arm by its image md5"** beside every
+passing check, and `dsp4_buildcfg.py` prints the same caveat under the value
+and names TUBE correctly. Free bits for the real fix: word 2's 24 and 26–29.
+
+### S27-4 — the S23-1 first-capture rule is in the capture tool, and the first version of it was inert
+
+**Severity: MEDIUM (instrument). Status: fixed and witnessed on the part
+2026-09-11.**
+
+S23-1 measured that the FIRST capture of a boot carries a dynamics-history
+term of up to 1,412 LSB that no later capture carries, and that
+`busgold`/`ctlgate`/`bqgraph`/`gainsimd` are sound only because they take ONE
+capture per boot. That rule lived in a finding. **The run scripts break it by
+accident**: `pairgraph_run.sh` retries a failed capture up to four times on
+the same boot and compares whichever attempt succeeds against a first-capture
+golden.
+
+`dsp4_pairgraph.py` now reads `DIAG_FRAME_COUNT`, keeps a ledger, stamps every
+capture with its index in the boot, and refuses to be the second capture of a
+boot unless the caller passes `--force` (a within-boot bar with its own
+control — `mtxgold.sh`, and it now does) or `--settle` (a throwaway capture
+first, so the term is settled whatever the position; stamped, because a
+settled capture and an unsettled golden are different measurements).
+`compare()` reads the stamps and warns on every incomparable pairing. The
+refusal exits non-zero, which the run scripts already answer by re-booting.
+
+**The first version could not read its own witness.** It used `Scope.rd`,
+which is a VOTED reader — it asks until one value comes back twice — and
+`DIAG_FRAME_COUNT` is free-running:
+
+```
+  WARNING: DIAG_FRAME_COUNT unreadable (register 0xE004 never settled:
+    {0x9c13: 1, 0x9c1a: 1, 0x9c21: 1, ... 0x9c64: 1})
+  boot capture #?
+```
+
+Twelve distinct monotonically increasing values — twelve correct readings
+rejected for not being identical. `dsp4_capacity.moving()` already had the
+rule (single unvoted asks, monotonicity instead of repetition); the guard uses
+it now and the next `busgold` run on the same candidate prints **`boot capture
+#1`** beside the same `sha256 4126c00730a31f5f`.
+
+The inert version failed exactly as designed — warned, stamped the capture
+`None`, let the bar finish — which is the property this guard must keep: every
+way it can be wrong makes it PERMIT, never refuse. An instrument guard must
+not be able to fail a bar that is sound.
+
+### S27-5 — `loadlogic.sh` decided a CPLD flash had worked by reading the IDCODE, which a MAX V answers either way
+
+**Severity: HIGH (instrument). Status: fixed 2026-09-11; eleven flashes
+recorded, no MASK failure.**
+
+S24 needed three attempts to flash the shipping bitstream, with an svf MASK
+failure. The script could not have told: its success check was
+`scan_chain | grep 0x020a30dd`, and **the tap answers its IDCODE whether or
+not the configuration flash took.**
+
+The replacement required openocd's upstream `svf file programmed successfully
+for N commands` line. **This openocd does not print it**, so nine good flashes
+were reported as failures and retried three times each. The bench was never in
+danger — every playback completed and the final state was the intended one —
+but an inverted check is worse than none, which is the point of recording it.
+
+**The check was then measured against this openocd** rather than assumed: its
+svf driver echoes each SVF command and prints no summary; a completed run ends
+with `shutdown command invoked`, because `-c 'init; svf ...; shutdown'` is ONE
+chain and a failing svf aborts it before the shutdown; a mismatch prints `tdo
+check error at line N`. `Error: Translation from khz to adapter speed not
+implemented` appears on EVERY run and is benign, so it is excluded by name.
+The script now retries three times with a loud line per attempt, keeps every
+attempt in `/home/app/logic-flash.log`, reads the IDCODE before AND after, and
+exits 7 naming the CPLD's state as UNKNOWN when nothing succeeded.
+
+**Eleven SVF playbacks across eight invocations this session, every one
+reaching its shutdown with no tdo check error. S24's MASK failure did not
+recur.**
+
+**And a better restore proof than the IDCODE.** `dsp4_logic_id.py` answers
+"no reply" for every bitstream on the `dsp4-pcm-slave` overlay, so its silence
+has never meant anything. On the **duplex** overlay it read
+`design_id: 32'hae1ac4a9 cfg_bits: 16'h0004 pi_maincap` off the maincap arm
+and then "no reply" from the shipping arm ten minutes later on the same proven
+path — which IS a positive identification of the shipping bitstream, since it
+predates the ID register.
+
+### S27-6 — the matrix-app MCU verify is a race on about one restart in four, and mx26's B13 has it backwards
+
+**Severity: MEDIUM (app, hub-owned). Status: reproduced with the app's own log
+2026-09-11; filed to mx26 B13.**
+
+B13 says the FIRST matrix-app restart after reflashing the SHARCs verifies
+only H1S3 or none, and the SECOND always verifies all three. Seven restarts on
+the restored bench:
+
+```
+  03:21:29  (the first after the DSP reflash+reboot)   3 of 3
+  03:22:26                                            1 of 3   H1S3 only
+  03:23:41  3 of 3      03:24:16  3 of 3      03:24:51  3 of 3
+  03:25:27                                            1 of 3   H1S3 only
+  03:26:02  3 of 3
+```
+
+**Both halves of B13's model are wrong**: the first restart after the reflash
+verified all three, and two later ones failed. It is a race, it lands on about
+one restart in four, and "restart it twice" is not a workaround — it is
+another roll of the same dice.
+
+The signature is exact and identical both times, and the app names the
+mechanism:
+
+```
+  MCU verified: // H1S3 SW Right
+  Boot.Loop() - WARNING: MCU not verified after S_RUN: H1S1 (no startup announcement received)
+  Boot.Loop() - MCU boot verified: H1S3
+  Boot.Loop() - WARNING: MCU not verified after S_RUN: H1S4 (no startup announcement received)
+```
+
+against a good restart where all three announce within 40 ms of each other.
+**H1S3 announces every time and is never the one that fails; H1S1 and H1S4
+fail together or not at all.** The window is ~9.2 s after the app starts, and
+the `Boot.Loop()` verdict lands ~6.2 s later.
+
+**Method note**: `/home/app/logs/log` is REWRITTEN when the app starts, so
+"the lines added since a mark" is empty on every restart after the first. Each
+restart's verdict must be read from the whole file. The first pass of this
+repro reported "0 lines added" for two restarts and nearly filed that.
+
+### S27-7 — S12-10's attribution is incomplete: the latency null survives the duplex overlay and the maincap bitstream
+
+**Severity: MEDIUM (instrument). Status: narrowed, not closed, 2026-09-11.**
+
+S12-10 attributed the through-DSP latency arm's flat field (offset 14779,
+coherent fraction 0.0 % on every rep) to the bench living on the
+`dsp4-pcm-slave` overlay. This session satisfied both halves of the named
+requirement and **positively identified both**: the bench was flipped to
+`dsp4-pcm-duplex` (a `config.txt` line and a reboot; the card comes back as
+`card 2: dsp4pcm` with ONE device that plays and captures) and the `maincap`
+bitstream was flashed and read back as `pi_maincap` / `ae1ac4a9` through that
+very capture path.
+
+**The null persists**, 20 reps × 2 boots and again at 2 reps, and
+`dsp4_dsp_latency.py` refuses the verdict — the S12-10 fix working.
+
+The new evidence points upstream of the DSP. `dsp4_passthru_setup.py` reports
+`chip1: 48 strip cells written` and `chip2: 12 cells written, all present in
+the contract`, and the main chain then reads
+
+```
+    _buf_C2_MIX_MAIN_L 0xfffffffc   _buf_C2_MAIN_FDR    0xfffffffc
+    _buf_C2_MAIN_DLY   0xfffffffc   _buf_C2_MAIN_ST_OUT 0xfffffffc
+```
+
+— a constant −4 LSB, identical at every point. Not silence, not the stimulus:
+**nothing is arriving at the DSP's input**, so the break is on the PLAYBACK
+side of the loop and the capture has nothing to correlate with.
+
+`latency.sh` was also taught to forward `DSP4_PCM_DEV`/`_CAP`/`_PLAY` — the
+tool has read them since S17 and no run script could set them, so the duplex
+overlay could only ever be used by running the tool by hand.
+
 ## THE POOL ALIGNMENT WAS NEVER REQUIRED, AND THE ONE PAN TABLE (2026-09-10, session 25)
 
 Session: S24-5 settled with one build and the existing bars, R5 built and

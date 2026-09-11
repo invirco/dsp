@@ -39,6 +39,17 @@ scp -q /tmp/landed-${PRODUCT:-d24}.json $BENCH:/home/app/dspboot/ || exit 3
 scp -q latency_run.sh $BENCH:/home/app/ || exit 3
 for r in $(seq 1 "${REPS_BOOT:-2}"); do
   echo "--- boot $r ---"
+  # DSP4_PCM_DEV IS FORWARDED (S27). dsp4_dsp_latency.py has read it since
+  # S17 -- it is how one duplex device serves as both halves of the loop --
+  # and no run script could set it, so the duplex overlay could only be used
+  # by running the tool by hand. Under `dsp4-pcm-duplex` the card exposes ONE
+  # device that plays and captures (`DSP4_PCM_DEV=hw:dsp4pcm,0`); under
+  # `dsp4-pcm-slave` it is two, which is the tool's default and needs nothing
+  # here. Addressed by NAME, so the card INDEX moving (it is 0 on the slave
+  # overlay and 2 on duplex, behind the two HDMI cards) does not matter.
   ssh $BENCH "STAGE='$STAGE' REPS='${REPS:-20}' PRODUCT='${PRODUCT:-d24}' \
+              DSP4_PCM_DEV='${DSP4_PCM_DEV:-}' \
+              DSP4_PCM_CAP='${DSP4_PCM_CAP:-}' \
+              DSP4_PCM_PLAY='${DSP4_PCM_PLAY:-}' \
               LOGIC_ONLY='${LOGIC_ONLY:-0}' bash /home/app/latency_run.sh"
 done

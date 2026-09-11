@@ -89,8 +89,14 @@ for attempt in 1 2 3 4 5; do
     GOT=0
     for g in 1 2 3 4; do
       python3 dsp4_diag.py --chip 1 >/dev/null 2>&1
+      # --force: this bar is the one that DOES compare captures within a
+      # single boot, and the `aux1b` arm above is its control -- so the
+      # S23-1 refusal in dsp4_pairgraph.py (which stops a bar comparing a
+      # later capture against a first-capture golden) is not the guard
+      # this loop wants. Every capture here is stamped `forced` and with
+      # its position in the boot.
       if python3 dsp4_pairgraph.py --strip "$STRIP" -n "$N" --xp "$xp" \
-           --tag "$arm" --out "mtxgold_$arm.json"; then GOT=1; break; fi
+           --force --tag "$arm" --out "mtxgold_$arm.json"; then GOT=1; break; fi
       sleep 2
     done
     [ "$GOT" = "1" ] || OK=0
@@ -100,7 +106,7 @@ for attempt in 1 2 3 4 5; do
   for g in 1 2 3 4; do
     python3 dsp4_diag.py --chip 1 >/dev/null 2>&1
     if python3 dsp4_pairgraph.py --strip "$STRIP" -n "$N" --xp mtx1 --xp-off \
-         --tag mtx1off --out "mtxgold_mtx1off.json"; then break; fi
+         --force --tag mtx1off --out "mtxgold_mtx1off.json"; then break; fi
     sleep 2
   done
   [ "$OK" = "1" ] && exit 0
