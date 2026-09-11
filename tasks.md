@@ -1,3 +1,94 @@
+## HUB DISPATCH 2026-09-11 07:05Z — S31 — the lost MCU announce on the rev C unit (B13 escalated); the D24 attach is gated on it   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+S31 — THE LOST MCU ANNOUNCE ON THE REV C UNIT (S29 carried: `matrix-app` active, 0 of 3 H1S announce lines on FIVE consecutive restarts, against S28's 3 of 3 — worse than the ~1-in-4 race S27-6 filed as mx26 B13) — a session WITH THE MCUs, on the serial hub side, that says whether H1S1/H1S3/H1S4 are announcing at all, whether the app is listening on the right port at the right moment, and what changed between S28 (3 of 3) and S29 (0 of 3); the D24 attach is gated on it: the app's new analog bring-up (landed on mx26 main 2026-09-11, merge fe8ae2b) refuses to raise AN_EN until H1S1 has announced
+
+WHY THIS, WHY NOW. PW's priority is the D24 analog board onto the digital
+board, today. The app on the unit now gates AN_EN on the H1S1 announce
+(Boot.Loop's "MCU verified: // H1S1 DSP" line), so an announce that never
+arrives means the analog board never comes up, and a race that fails one
+restart in four means it comes up one time in four less than it should.
+S29 found the worse case — none of the three announce, five times running
+— with every DSP witness clean. That is the MCU/app side, and it wants the
+MH1 serial harness this repo owns (the rev-C U7 harness inventory,
+2026-08-18, tasks.md ~1470) rather than a corner of a DSP session.
+
+THE UNIT. MW-D24-2 = 192.168.1.219 (`app@`), the rev C bench unit. The app
+binary on it is `/home/app/app` (md5 in its own log line "validate-app:
+OK md5=…", Aug 18 build). PW MAY DEPLOY A NEW APP BINARY TO IT DURING THIS
+SESSION (the analog bring-up build: the service's ExecStartPre moves
+`/home/app/appUpdate` into place, the md5 line changes, and the log
+carries "AnalogBringUp" lines on first start). Record the md5 at every
+restart; do the ladder (gate 1) on whichever app is running when you
+begin and SAY WHICH; if the md5 changes mid-ladder, run the ladder again
+on the new binary and report both. The behaviour under test is the
+ANNOUNCE, which the app change does not touch (the announce/verify code
+in Boot.cs is unchanged; only what happens after verification changed).
+
+PW MAY POWER THE UNIT DOWN DURING THIS SESSION to fit the CS_M wire on the
+DSP board (J6 pin 13 → U7 pin 49). Treat a lost SSH as expected, not a
+finding: wait it out (poll every 30 s for up to 30 min), then continue from
+the gate you were on, and record the outage in findings. NEVER assert
+AN_EN (CM4 GPIO26) and never run anything that touches the analog rails,
+the 74HC595 chain (CS5/GPIO27, CS_M) or the +48 V — the analog board may
+be attached at any point. Do not reflash the SHARCs or the CPLD, do not
+touch `~/dspboot` staged pairs, do not touch the slave PCM overlay. The
+rev A show model (192.168.0.115) is never touched.
+
+GATES, in order, each witnessed in findings.md S31-*:
+1. **The ladder, as B13 wrote it.** Eight `sudo systemctl restart
+   matrix-app; sleep 32` restarts, verdict from the WHOLE of
+   `/home/app/logs/log` each time (the file is rewritten at app start —
+   never "lines since a mark"): count of `Boot.Loop() - MCU boot verified`
+   lines, and every `MCU (boot )?verified|MCU not verified` line with its
+   timestamp. First sentence of findings: **N of 8 restarts verified 3 of
+   3, M verified 1 of 3 (H1S3 only), K verified 0 of 3** — against B13's
+   5/2/0 (S27) and S29's 0/0/5.
+2. **Is anybody talking?** With `matrix-app` STOPPED (`dsp4_bootloop.sh
+   start` stops it and shares CS1-6 — use its stop/start, and restart the
+   app when done), open `/dev/ttyAMA0` at the app's rate (read it from the
+   app's config or Boot.cs; say which) and capture 60 s raw while power-
+   cycling nothing: do the MCUs announce unprompted on a fresh app-side
+   open, or only in reply to something the app sends? Then send whatever
+   the app sends first (the MX bus hello — read it from the app source in
+   `src/sw/app/Core/Boot.cs` and the serial hub code; mx26 is at
+   github.com/invirco/mx26, clone read-only to `/tmp/mx26-ro` if you need
+   it) and capture the replies. Per-MCU: does H1S1 answer, does H1S3, does
+   H1S4, with what latency. This is the measurement S27/S29 never took:
+   the announce as seen on the wire, not through the app's log.
+3. **What differs between S28 (3 of 3) and S29 (0 of 3).** Same unit, one
+   day apart. Candidates the record offers: the S29 session's own
+   `dsp4_bootloop.sh` stop/start cycles (the app's port re-open), the
+   `pisel`/`maincap` CPLD bitstream flashes (four this session — does the
+   CPLD flash reset the serial hub path? the harness inventory says which
+   CPLD lanes the MH1 bus crosses), the DSP reflash + reboot, uptime of
+   the MCUs (H1S1/H1S4 never power-cycled since when?), and the app's
+   UART open racing the MCU's post-reset announce. Test the cheapest
+   discriminator first: a FULL POWER CYCLE of the unit (PW may be doing
+   one anyway — coordinate by reading uptime) followed by the ladder; then
+   a CPLD flash followed by the ladder if the power cycle changes nothing.
+4. **The mechanism, named, or the two hypotheses that survive, with the
+   measurement that separates them.** If it is app-side (the announce
+   window, a retry, an explicit poll on S_RUN — B13's suspects), write the
+   proposed change as a PARAGRAPH for the hub (mx26 owns the app; do not
+   edit it); if it is MCU firmware (H1S1/H1S4 not announcing after some
+   event), name the event and the firmware home (`mcu/H1S1/` in the fw
+   tree); if it is hardware (a CPLD lane, a level, the serial hub's
+   multiplexing), name the net and draw nothing — the hub marks mods.
+5. findings.md S31-1.., write-up `MW/D32/DSP/dsp4-s31-20260911.md`,
+   tasks.md (this block's status, B13 cross-reference), commit + push main.
+   No AI attribution in commits or any work product. Leave the unit with
+   `matrix-app` active and the shipping bitstream as you found it.
+
+Bounded: gates 1–3 are the session; 4–5 always. If the unit is down for
+more than 30 min at any gate, write up what you have and stop with the
+block 🟡 and the reason.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-11 05:05Z — S29 — what D32 pays for scope class 0; the latency bar restored   [status: 🟢 done — **scope class 0 is PRODUCT FUNCTION — the D32R stage-box digital snake, sixteen `Snk[1-8]On/Level` cells on the GATED contract that the app writes, a CPLD lane (`A_I5`, `strap_d32`) and eight channels into the main bus — and D32 without it reads 78.88/97.28 % driven, 78.89/97.38 % at worst use.** So the product cannot decline to pay it and **the worst-use ruling stands: 100.81 %, 1,943 of 270,000 blocks missed (0.72 %) at twelve auxes**, reproduced TO THE BLOCK against S27 and S28 on a third night. **The class costs chip 2 3.43–3.69 points and chip 1 0.22–0.61, flat across six regimes** (silent, loaded, driven FX-off, driven with six reverbs, every crosspoint closed, every crosspoint open), two boots an arm, against S28's ±0.27-point resolution — thirteen times it. **Every D32 row that overruns with the class on runs with ZERO missed blocks without it**: 1,912 / 1,943 / 1,943 become 0 / 0 / 0. Measured as ONE CONFIG WORD on ONE IMAGE: the window candidate rebuilt byte for byte (`6396187c` / `9222c2ee`, 425,668 / 407,584 bytes), arm 2 booting arm 1's staged bytes with `CFG_PRODUCT_ID` 0 → 1, and **both chips asked what they got** (`PRODUCT_ID (scope class) = 0` / `= 1` printed per boot). **S28-6 is confirmed by measurement instead of by a line** — the "dear last segment" is the scope class, predicted +3.7 / +0.5 from the segment slopes and measured **+3.53 / +0.40**; `product_fit.py` should subtract it from the D32 anchor before taking a slope, and that is deliberately NOT done in the session that measured it. **The gate is on the CALL, not the link**: `_product_id` is read in exactly two places, and the one that costs is `process_chain.asm`'s run gate under `DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE` — one compare per contiguous run, skipping 16 chip-1 and 16 chip-2 nodes and adding 2. The generated `scope_gates.asm` reaches only 8 AUX_INPUT enables and chip 1's table is EMPTY. **S29-4, the lead it opens: eight aux inputs that are SWITCHED OFF cost 3.5 points of chip 2.** `C2_SNK_IN_01..08` carry `on=0` and the load never opens them, so the price is being called, not doing work — S23-5/S24's bypass finding one node class down, worth up to ~3.5 points against a **0.81-point** deficit. Not taken: it changes the shipping image inside the window. **THE LATENCY BAR IS RESTORED AND THE BREAK WAS THE DUPLEX OVERLAY, NOT THE DSP.** `dsp4_s29_playpath.py` walks every stage of the playback path with the stimulus on and off: **the whole chain is LIVE, both bitstreams** — `C1_XIN_PI_L/R` → inter-chip 27/28 → `C2_XR_PI_L/R` → `C2_PI_IN` → `MIX_MAIN` → `FDR` → `DLY` → `C2_MAIN_ST_OUT`, each `0x0fffffff`/`0xf0000000` playing and constant silent, with two negative controls dead at `0x00000000`. S27-7 read only the END of the chain and blamed the playback side; S27's own flip to `dsp4-pcm-duplex` (on S12-10's advice, which S17 had already superseded) was the null. **No overlay flip was taken this session.** On `maincap`, three boots × twenty reps, **100.0 % coherent on all 60 reps** against the `pisel` CPLD-loop reference at median 14433: **through-DSP latency 82 / 82 / 81 samples, 1.708 / 1.708 / 1.688 ms** — S20's contract figure now MEASURED on the candidate, reproducing S17's 82 and S11's 82. The reference is a control that discriminates and it **did fail** mid-session on a busy playback device, refusing rather than scoring silence. **S29-1, an instrument defect found by needing six rows on one boot**: the FX ladder's `off` rung leaves the engines off and `--mode use` does not touch FX, so any arm setting both `FXTYPES` and `USELEVELS` would have taken worst use with the plugin load ABSENT. No arm ever had; fixed by re-applying the load and re-proving the regime between the ladders (`1632 written, 0 FAILED`, `6 of 6 engines at Type 3` every boot). **S29-7**: `s20restore.sh` quotes an overrun count it cannot clear — passes 1 and 2 both read chip 2 at **exactly 2,240**, the same figure S28 saw, because `blk_*` predates `DIAG_CLEAR`; pass 3 read 0 and 0. **Bench restored and proved**: shipping bitstream back (`a1f6672af6c3`), **four flashes this session, four FLASH-OK-on-attempt-1**, IDCODE before and after each; `blk_*` booted with correct CHIP_IDs, BOOT_STAGE 7 and **90,054 / 90,049 blocks in 30.0 s with ZERO overruns on both chips**; slave PCM overlay never touched; **all staged pairs `s20_*`…`s28_*` md5-unchanged**, and **nothing staged as `s29_*` because no image was built** — both arms ran the s26 pair. **CARRIED, NOT SMOOTHED: `matrix-app` is active but announced NO MCU on five restarts** (0 of 3 H1S lines each, against S28's 3 of 3); the app runs and holds `/dev/ttyAMA0`, every DSP witness is clean, and this is worse than the ~1-in-4 race S27-6 filed as mx26 B13 — it wants a session with the MCUs. **No deploy**: `shipping.config`, `.s21`, `.s26`, every cell, address, config word and the `defs` pin all unchanged; `fit-table.csv` not regenerated (no product row moved). Write-up `MW/D32/DSP/dsp4-s29-20260911.md`; `window-candidate.md` §4a; findings S29-1..S29-7.]   [model: opus]
 
 model: opus
