@@ -104,9 +104,23 @@ set_location_assignment PIN_124 -to cdc_i
 set_location_assignment PIN_137 -to mems
 
 # ---- D32 snake / DAC MAIN parking (X-logic, PROVISIONAL) ----
+#
+# All three are option-slot-2 A-row lanes as well as DSP-card nets
+# (G2666/G2667/G2668 = LOGIC_PLL5_0/1/2 -> opt2 SLOT.A12/A13/A10). The RTL
+# drives snake_out/dac_main only when strap_d32 is set, so on a D24 they are
+# high-Z and a card fitted to slot 2 owns its own lanes (S36).
+#
+# The weak pull-ups are the other half of that fix: with slot 2 empty, all
+# three pins float on a D24 -- snake_in always (it is an input), the other
+# two now that they are tri-stated -- and a floating CMOS input sits near
+# the switching threshold and draws crowbar current. The global
+# RESERVE_ALL_UNUSED_PINS does NOT cover them, because they are assigned.
 set_location_assignment PIN_109 -to snake_in
 set_location_assignment PIN_110 -to snake_out
 set_location_assignment PIN_111 -to dac_main
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to snake_in
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to snake_out
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to dac_main
 
 # ---- Pi PCM (roles per hardware-map: 0=CLK 1=DOUT 2=DIN 3=FS) ----
 set_location_assignment PIN_80  -to pcm_clk
