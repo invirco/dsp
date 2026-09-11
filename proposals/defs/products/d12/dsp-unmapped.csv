@@ -1,0 +1,558 @@
+# d12/dsp-unmapped.csv — defined cells with NO DSP address.
+#
+# GENERATED alongside dsp.csv by MW/D32/DSP/gen_dsp.py. The companion
+# to it: dsp.csv says where a cell lives, this says why it lives
+# nowhere. A family in neither file stops the generator.
+#
+# Class:  host-managed | mcu-only | label | surface-state |
+#         hardware-control | control-plane | no-graph-node |
+#         unbacked-meter | s1-2-no-behaviour
+#
+# no-graph-node is the list that costs work: a DSP function this
+# product defines and the graph does not build.
+#
+_Cell,Class,Reason
+Aux001Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Aux001DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Aux001Name001,label,"text label; the host stores it, the DSP has no word for it"
+Aux001PickOff001,host-managed,"app batch control, not a DSP word: it writes every channel's Chan*AuxPick* for that aux, which is the only DSP truth (PW ruling R4, 2026-09-10 — was open question Q4)"
+Aux002Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Aux002DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Aux002Name001,label,"text label; the host stores it, the DSP has no word for it"
+Aux002PickOff001,host-managed,"app batch control, not a DSP word: it writes every channel's Chan*AuxPick* for that aux, which is the only DSP truth (PW ruling R4, 2026-09-10 — was open question Q4)"
+Aux003Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Aux003DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Aux003Name001,label,"text label; the host stores it, the DSP has no word for it"
+Aux003PickOff001,host-managed,"app batch control, not a DSP word: it writes every channel's Chan*AuxPick* for that aux, which is the only DSP truth (PW ruling R4, 2026-09-10 — was open question Q4)"
+Aux004Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Aux004DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Aux004Name001,label,"text label; the host stores it, the DSP has no word for it"
+Aux004PickOff001,host-managed,"app batch control, not a DSP word: it writes every channel's Chan*AuxPick* for that aux, which is the only DSP truth (PW ruling R4, 2026-09-10 — was open question Q4)"
+Chan001AntiClip001,no-graph-node,"per-channel anti-clip — the master calls it ""Auto gain reduction on/off (M&W exclusive)"". No node implements it, and S25 gate 4 says what it would take rather than leaving it at that. The ARITHMETIC is already here twice over: the COMPRESSOR node carries a `lim_mode` parameter and the whole level->gain LUT path (DSP4_DYN_LUT), so a brickwall at a fixed near-full-scale threshold is a table and a multiply this graph already runs 32 times. What is NOT here is the DECISION, and it is the kind that must not be guessed: an anti-clip that reuses the channel compressor fights the desk's own settings, and one that does not is a second dynamics node per strip on the chip whose worst-use row S24 measured at 100.72 %. Where it sits in the strip (post-fader, before the bus?) and whether it is a limiter or a gain-ride are both PW's, and neither is ruled"
+Chan001Color001,surface-state,strip colour on the surface
+Chan001CueSel001,control-plane,PFL/cue select; the DSP has one monitor source word (Mon001InputSel001) that the host writes — open question Q5
+Chan001Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Chan001DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Chan001Instr001,hardware-control,instrument / Hi-Z input mode
+Chan001Link001,surface-state,stereo link of adjacent strips; the host writes both strips
+Chan001MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan001MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan001MuteGrp003,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan001MuteGrp004,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan001Name001,label,"text label; the host stores it, the DSP has no word for it"
+Chan002AntiClip001,no-graph-node,"per-channel anti-clip — the master calls it ""Auto gain reduction on/off (M&W exclusive)"". No node implements it, and S25 gate 4 says what it would take rather than leaving it at that. The ARITHMETIC is already here twice over: the COMPRESSOR node carries a `lim_mode` parameter and the whole level->gain LUT path (DSP4_DYN_LUT), so a brickwall at a fixed near-full-scale threshold is a table and a multiply this graph already runs 32 times. What is NOT here is the DECISION, and it is the kind that must not be guessed: an anti-clip that reuses the channel compressor fights the desk's own settings, and one that does not is a second dynamics node per strip on the chip whose worst-use row S24 measured at 100.72 %. Where it sits in the strip (post-fader, before the bus?) and whether it is a limiter or a gain-ride are both PW's, and neither is ruled"
+Chan002Color001,surface-state,strip colour on the surface
+Chan002CueSel001,control-plane,PFL/cue select; the DSP has one monitor source word (Mon001InputSel001) that the host writes — open question Q5
+Chan002Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Chan002DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Chan002Instr001,hardware-control,instrument / Hi-Z input mode
+Chan002Link001,surface-state,stereo link of adjacent strips; the host writes both strips
+Chan002MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan002MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan002MuteGrp003,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan002MuteGrp004,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan002Name001,label,"text label; the host stores it, the DSP has no word for it"
+Chan003AntiClip001,no-graph-node,"per-channel anti-clip — the master calls it ""Auto gain reduction on/off (M&W exclusive)"". No node implements it, and S25 gate 4 says what it would take rather than leaving it at that. The ARITHMETIC is already here twice over: the COMPRESSOR node carries a `lim_mode` parameter and the whole level->gain LUT path (DSP4_DYN_LUT), so a brickwall at a fixed near-full-scale threshold is a table and a multiply this graph already runs 32 times. What is NOT here is the DECISION, and it is the kind that must not be guessed: an anti-clip that reuses the channel compressor fights the desk's own settings, and one that does not is a second dynamics node per strip on the chip whose worst-use row S24 measured at 100.72 %. Where it sits in the strip (post-fader, before the bus?) and whether it is a limiter or a gain-ride are both PW's, and neither is ruled"
+Chan003Color001,surface-state,strip colour on the surface
+Chan003CueSel001,control-plane,PFL/cue select; the DSP has one monitor source word (Mon001InputSel001) that the host writes — open question Q5
+Chan003Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Chan003DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Chan003Link001,surface-state,stereo link of adjacent strips; the host writes both strips
+Chan003MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan003MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan003MuteGrp003,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan003MuteGrp004,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan003Name001,label,"text label; the host stores it, the DSP has no word for it"
+Chan004AntiClip001,no-graph-node,"per-channel anti-clip — the master calls it ""Auto gain reduction on/off (M&W exclusive)"". No node implements it, and S25 gate 4 says what it would take rather than leaving it at that. The ARITHMETIC is already here twice over: the COMPRESSOR node carries a `lim_mode` parameter and the whole level->gain LUT path (DSP4_DYN_LUT), so a brickwall at a fixed near-full-scale threshold is a table and a multiply this graph already runs 32 times. What is NOT here is the DECISION, and it is the kind that must not be guessed: an anti-clip that reuses the channel compressor fights the desk's own settings, and one that does not is a second dynamics node per strip on the chip whose worst-use row S24 measured at 100.72 %. Where it sits in the strip (post-fader, before the bus?) and whether it is a limiter or a gain-ride are both PW's, and neither is ruled"
+Chan004Color001,surface-state,strip colour on the surface
+Chan004CueSel001,control-plane,PFL/cue select; the DSP has one monitor source word (Mon001InputSel001) that the host writes — open question Q5
+Chan004Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Chan004DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Chan004Link001,surface-state,stereo link of adjacent strips; the host writes both strips
+Chan004MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan004MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan004MuteGrp003,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan004MuteGrp004,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan004Name001,label,"text label; the host stores it, the DSP has no word for it"
+Chan005AntiClip001,no-graph-node,"per-channel anti-clip — the master calls it ""Auto gain reduction on/off (M&W exclusive)"". No node implements it, and S25 gate 4 says what it would take rather than leaving it at that. The ARITHMETIC is already here twice over: the COMPRESSOR node carries a `lim_mode` parameter and the whole level->gain LUT path (DSP4_DYN_LUT), so a brickwall at a fixed near-full-scale threshold is a table and a multiply this graph already runs 32 times. What is NOT here is the DECISION, and it is the kind that must not be guessed: an anti-clip that reuses the channel compressor fights the desk's own settings, and one that does not is a second dynamics node per strip on the chip whose worst-use row S24 measured at 100.72 %. Where it sits in the strip (post-fader, before the bus?) and whether it is a limiter or a gain-ride are both PW's, and neither is ruled"
+Chan005Color001,surface-state,strip colour on the surface
+Chan005CueSel001,control-plane,PFL/cue select; the DSP has one monitor source word (Mon001InputSel001) that the host writes — open question Q5
+Chan005Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Chan005DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Chan005Link001,surface-state,stereo link of adjacent strips; the host writes both strips
+Chan005MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan005MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan005MuteGrp003,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan005MuteGrp004,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan005Name001,label,"text label; the host stores it, the DSP has no word for it"
+Chan006AntiClip001,no-graph-node,"per-channel anti-clip — the master calls it ""Auto gain reduction on/off (M&W exclusive)"". No node implements it, and S25 gate 4 says what it would take rather than leaving it at that. The ARITHMETIC is already here twice over: the COMPRESSOR node carries a `lim_mode` parameter and the whole level->gain LUT path (DSP4_DYN_LUT), so a brickwall at a fixed near-full-scale threshold is a table and a multiply this graph already runs 32 times. What is NOT here is the DECISION, and it is the kind that must not be guessed: an anti-clip that reuses the channel compressor fights the desk's own settings, and one that does not is a second dynamics node per strip on the chip whose worst-use row S24 measured at 100.72 %. Where it sits in the strip (post-fader, before the bus?) and whether it is a limiter or a gain-ride are both PW's, and neither is ruled"
+Chan006Color001,surface-state,strip colour on the surface
+Chan006CueSel001,control-plane,PFL/cue select; the DSP has one monitor source word (Mon001InputSel001) that the host writes — open question Q5
+Chan006Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Chan006DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Chan006Link001,surface-state,stereo link of adjacent strips; the host writes both strips
+Chan006MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan006MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan006MuteGrp003,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan006MuteGrp004,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan006Name001,label,"text label; the host stores it, the DSP has no word for it"
+Chan007AntiClip001,no-graph-node,"per-channel anti-clip — the master calls it ""Auto gain reduction on/off (M&W exclusive)"". No node implements it, and S25 gate 4 says what it would take rather than leaving it at that. The ARITHMETIC is already here twice over: the COMPRESSOR node carries a `lim_mode` parameter and the whole level->gain LUT path (DSP4_DYN_LUT), so a brickwall at a fixed near-full-scale threshold is a table and a multiply this graph already runs 32 times. What is NOT here is the DECISION, and it is the kind that must not be guessed: an anti-clip that reuses the channel compressor fights the desk's own settings, and one that does not is a second dynamics node per strip on the chip whose worst-use row S24 measured at 100.72 %. Where it sits in the strip (post-fader, before the bus?) and whether it is a limiter or a gain-ride are both PW's, and neither is ruled"
+Chan007Color001,surface-state,strip colour on the surface
+Chan007CueSel001,control-plane,PFL/cue select; the DSP has one monitor source word (Mon001InputSel001) that the host writes — open question Q5
+Chan007Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Chan007DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Chan007Link001,surface-state,stereo link of adjacent strips; the host writes both strips
+Chan007MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan007MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan007MuteGrp003,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan007MuteGrp004,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan007Name001,label,"text label; the host stores it, the DSP has no word for it"
+Chan008AntiClip001,no-graph-node,"per-channel anti-clip — the master calls it ""Auto gain reduction on/off (M&W exclusive)"". No node implements it, and S25 gate 4 says what it would take rather than leaving it at that. The ARITHMETIC is already here twice over: the COMPRESSOR node carries a `lim_mode` parameter and the whole level->gain LUT path (DSP4_DYN_LUT), so a brickwall at a fixed near-full-scale threshold is a table and a multiply this graph already runs 32 times. What is NOT here is the DECISION, and it is the kind that must not be guessed: an anti-clip that reuses the channel compressor fights the desk's own settings, and one that does not is a second dynamics node per strip on the chip whose worst-use row S24 measured at 100.72 %. Where it sits in the strip (post-fader, before the bus?) and whether it is a limiter or a gain-ride are both PW's, and neither is ruled"
+Chan008Color001,surface-state,strip colour on the surface
+Chan008CueSel001,control-plane,PFL/cue select; the DSP has one monitor source word (Mon001InputSel001) that the host writes — open question Q5
+Chan008Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Chan008DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Chan008Link001,surface-state,stereo link of adjacent strips; the host writes both strips
+Chan008MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan008MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan008MuteGrp003,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan008MuteGrp004,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan008Name001,label,"text label; the host stores it, the DSP has no word for it"
+Chan009AntiClip001,no-graph-node,"per-channel anti-clip — the master calls it ""Auto gain reduction on/off (M&W exclusive)"". No node implements it, and S25 gate 4 says what it would take rather than leaving it at that. The ARITHMETIC is already here twice over: the COMPRESSOR node carries a `lim_mode` parameter and the whole level->gain LUT path (DSP4_DYN_LUT), so a brickwall at a fixed near-full-scale threshold is a table and a multiply this graph already runs 32 times. What is NOT here is the DECISION, and it is the kind that must not be guessed: an anti-clip that reuses the channel compressor fights the desk's own settings, and one that does not is a second dynamics node per strip on the chip whose worst-use row S24 measured at 100.72 %. Where it sits in the strip (post-fader, before the bus?) and whether it is a limiter or a gain-ride are both PW's, and neither is ruled"
+Chan009Color001,surface-state,strip colour on the surface
+Chan009CueSel001,control-plane,PFL/cue select; the DSP has one monitor source word (Mon001InputSel001) that the host writes — open question Q5
+Chan009Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Chan009DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Chan009Link001,surface-state,stereo link of adjacent strips; the host writes both strips
+Chan009MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan009MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan009MuteGrp003,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan009MuteGrp004,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan009Name001,label,"text label; the host stores it, the DSP has no word for it"
+Chan010AntiClip001,no-graph-node,"per-channel anti-clip — the master calls it ""Auto gain reduction on/off (M&W exclusive)"". No node implements it, and S25 gate 4 says what it would take rather than leaving it at that. The ARITHMETIC is already here twice over: the COMPRESSOR node carries a `lim_mode` parameter and the whole level->gain LUT path (DSP4_DYN_LUT), so a brickwall at a fixed near-full-scale threshold is a table and a multiply this graph already runs 32 times. What is NOT here is the DECISION, and it is the kind that must not be guessed: an anti-clip that reuses the channel compressor fights the desk's own settings, and one that does not is a second dynamics node per strip on the chip whose worst-use row S24 measured at 100.72 %. Where it sits in the strip (post-fader, before the bus?) and whether it is a limiter or a gain-ride are both PW's, and neither is ruled"
+Chan010Color001,surface-state,strip colour on the surface
+Chan010CueSel001,control-plane,PFL/cue select; the DSP has one monitor source word (Mon001InputSel001) that the host writes — open question Q5
+Chan010Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Chan010DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Chan010Link001,surface-state,stereo link of adjacent strips; the host writes both strips
+Chan010MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan010MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan010MuteGrp003,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan010MuteGrp004,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan010Name001,label,"text label; the host stores it, the DSP has no word for it"
+Chan011AntiClip001,no-graph-node,"per-channel anti-clip — the master calls it ""Auto gain reduction on/off (M&W exclusive)"". No node implements it, and S25 gate 4 says what it would take rather than leaving it at that. The ARITHMETIC is already here twice over: the COMPRESSOR node carries a `lim_mode` parameter and the whole level->gain LUT path (DSP4_DYN_LUT), so a brickwall at a fixed near-full-scale threshold is a table and a multiply this graph already runs 32 times. What is NOT here is the DECISION, and it is the kind that must not be guessed: an anti-clip that reuses the channel compressor fights the desk's own settings, and one that does not is a second dynamics node per strip on the chip whose worst-use row S24 measured at 100.72 %. Where it sits in the strip (post-fader, before the bus?) and whether it is a limiter or a gain-ride are both PW's, and neither is ruled"
+Chan011Color001,surface-state,strip colour on the surface
+Chan011CueSel001,control-plane,PFL/cue select; the DSP has one monitor source word (Mon001InputSel001) that the host writes — open question Q5
+Chan011Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Chan011DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Chan011Link001,surface-state,stereo link of adjacent strips; the host writes both strips
+Chan011MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan011MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan011MuteGrp003,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan011MuteGrp004,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan011Name001,label,"text label; the host stores it, the DSP has no word for it"
+Chan012AntiClip001,no-graph-node,"per-channel anti-clip — the master calls it ""Auto gain reduction on/off (M&W exclusive)"". No node implements it, and S25 gate 4 says what it would take rather than leaving it at that. The ARITHMETIC is already here twice over: the COMPRESSOR node carries a `lim_mode` parameter and the whole level->gain LUT path (DSP4_DYN_LUT), so a brickwall at a fixed near-full-scale threshold is a table and a multiply this graph already runs 32 times. What is NOT here is the DECISION, and it is the kind that must not be guessed: an anti-clip that reuses the channel compressor fights the desk's own settings, and one that does not is a second dynamics node per strip on the chip whose worst-use row S24 measured at 100.72 %. Where it sits in the strip (post-fader, before the bus?) and whether it is a limiter or a gain-ride are both PW's, and neither is ruled"
+Chan012Color001,surface-state,strip colour on the surface
+Chan012CueSel001,control-plane,PFL/cue select; the DSP has one monitor source word (Mon001InputSel001) that the host writes — open question Q5
+Chan012Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Chan012DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Chan012Link001,surface-state,stereo link of adjacent strips; the host writes both strips
+Chan012MuteGrp001,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan012MuteGrp002,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan012MuteGrp003,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan012MuteGrp004,control-plane,"mute-group membership; folded by the host onto the strip mute, the same shape as Dca (PW ruling 2026-08-30)"
+Chan012Name001,label,"text label; the host stores it, the DSP has no word for it"
+Dca001Name001,label,"text label; the host stores it, the DSP has no word for it"
+Dca002Name001,label,"text label; the host stores it, the DSP has no word for it"
+Dca003Name001,label,"text label; the host stores it, the DSP has no word for it"
+Dca004Name001,label,"text label; the host stores it, the DSP has no word for it"
+Fdr001Grp001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Fdr001Grp002,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Fdr001Grp003,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Fdr001Grp004,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Fdr001Grp005,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Fdr001Grp006,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Fdr001Grp007,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Fdr001Grp008,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Fdr001Grp009,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Fdr001Grp010,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Fdr001Grp011,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Fdr001Grp012,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Fdr002Grp001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Fdr002Grp002,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Fdr002Grp003,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Fdr002Grp004,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Fdr002Grp005,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Fdr002Grp006,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Fdr002Grp007,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Fdr002Grp008,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Fdr002Grp009,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Fdr002Grp010,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Fdr002Grp011,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Fdr002Grp012,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Fx001Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Fx001DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Fx001DuckThr001,no-graph-node,"FX ducker threshold — the dry level in dB above which the return is pulled down, -60..0 (PW ruling R1, 2026-09-10; was Q7). The FX engine has DuckOn and DuckSens and no threshold word, and the ducking sidechain itself is unbuilt (S24)"
+Fx001MuteAll001,control-plane,mute all FX returns; host fold onto the six return mutes
+Fx001MuteGrp001,control-plane,mute-group membership; host fold onto the return mute
+Fx001MuteGrp002,control-plane,mute-group membership; host fold onto the return mute
+Fx001MuteGrp003,control-plane,mute-group membership; host fold onto the return mute
+Fx001MuteGrp004,control-plane,mute-group membership; host fold onto the return mute
+Fx001Name001,label,"text label; the host stores it, the DSP has no word for it"
+Fx001PedAssign001,surface-state,footswitch assignment
+Fx001PedAssign002,surface-state,footswitch assignment
+Fx001PedAssign003,surface-state,footswitch assignment
+Fx001PedAssign004,surface-state,footswitch assignment
+Fx001PingPongStart001,no-graph-node,ping-pong start side; the FX engine has no such word
+Fx001ReturnWetLock001,surface-state,UI lock on the return wet control
+Fx001Tap001,control-plane,tap tempo; the host computes and writes Fx*DelayTime*
+Fx002Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Fx002DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Fx002DuckThr001,no-graph-node,"FX ducker threshold — the dry level in dB above which the return is pulled down, -60..0 (PW ruling R1, 2026-09-10; was Q7). The FX engine has DuckOn and DuckSens and no threshold word, and the ducking sidechain itself is unbuilt (S24)"
+Fx002MuteGrp001,control-plane,mute-group membership; host fold onto the return mute
+Fx002MuteGrp002,control-plane,mute-group membership; host fold onto the return mute
+Fx002MuteGrp003,control-plane,mute-group membership; host fold onto the return mute
+Fx002MuteGrp004,control-plane,mute-group membership; host fold onto the return mute
+Fx002Name001,label,"text label; the host stores it, the DSP has no word for it"
+Fx002PedAssign001,surface-state,footswitch assignment
+Fx002PedAssign002,surface-state,footswitch assignment
+Fx002PedAssign003,surface-state,footswitch assignment
+Fx002PedAssign004,surface-state,footswitch assignment
+Fx002PingPongStart001,no-graph-node,ping-pong start side; the FX engine has no such word
+Fx002ReturnWetLock001,surface-state,UI lock on the return wet control
+Fx002Tap001,control-plane,tap tempo; the host computes and writes Fx*DelayTime*
+Fx003Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Fx003DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Fx003DuckThr001,no-graph-node,"FX ducker threshold — the dry level in dB above which the return is pulled down, -60..0 (PW ruling R1, 2026-09-10; was Q7). The FX engine has DuckOn and DuckSens and no threshold word, and the ducking sidechain itself is unbuilt (S24)"
+Fx003MuteGrp001,control-plane,mute-group membership; host fold onto the return mute
+Fx003MuteGrp002,control-plane,mute-group membership; host fold onto the return mute
+Fx003MuteGrp003,control-plane,mute-group membership; host fold onto the return mute
+Fx003MuteGrp004,control-plane,mute-group membership; host fold onto the return mute
+Fx003Name001,label,"text label; the host stores it, the DSP has no word for it"
+Fx003PedAssign001,surface-state,footswitch assignment
+Fx003PedAssign002,surface-state,footswitch assignment
+Fx003PedAssign003,surface-state,footswitch assignment
+Fx003PedAssign004,surface-state,footswitch assignment
+Fx003PingPongStart001,no-graph-node,ping-pong start side; the FX engine has no such word
+Fx003ReturnWetLock001,surface-state,UI lock on the return wet control
+Fx003Tap001,control-plane,tap tempo; the host computes and writes Fx*DelayTime*
+Fx004Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Fx004DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Fx004DuckThr001,no-graph-node,"FX ducker threshold — the dry level in dB above which the return is pulled down, -60..0 (PW ruling R1, 2026-09-10; was Q7). The FX engine has DuckOn and DuckSens and no threshold word, and the ducking sidechain itself is unbuilt (S24)"
+Fx004MuteGrp001,control-plane,mute-group membership; host fold onto the return mute
+Fx004MuteGrp002,control-plane,mute-group membership; host fold onto the return mute
+Fx004MuteGrp003,control-plane,mute-group membership; host fold onto the return mute
+Fx004MuteGrp004,control-plane,mute-group membership; host fold onto the return mute
+Fx004Name001,label,"text label; the host stores it, the DSP has no word for it"
+Fx004PedAssign001,surface-state,footswitch assignment
+Fx004PedAssign002,surface-state,footswitch assignment
+Fx004PedAssign003,surface-state,footswitch assignment
+Fx004PedAssign004,surface-state,footswitch assignment
+Fx004PingPongStart001,no-graph-node,ping-pong start side; the FX engine has no such word
+Fx004ReturnWetLock001,surface-state,UI lock on the return wet control
+Fx004Tap001,control-plane,tap tempo; the host computes and writes Fx*DelayTime*
+Grp001Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Grp001DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Grp001Name001,label,"text label; the host stores it, the DSP has no word for it"
+Grp002Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Grp002DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Grp002Name001,label,"text label; the host stores it, the DSP has no word for it"
+Main001CueSel001,control-plane,cue select; see Q5
+Main001Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Main001DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+Main001Name001,label,"text label; the host stores it, the DSP has no word for it"
+MainL001Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+MainL001DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+MainL001Delay001,no-graph-node,"post-crossover output chain MainL has EQ + COMP + LIM + OUTPUT_TDM and no delay line. Level and Mute are built (S24); Delay is not, and the reason is memory rather than cells: the master asks for 250 ms, which is 12,000 words = 48,000 bytes of chip-2 L2 per output, 192,000 for all four against 378,464 free on the S24 candidate (51%). It FITS and it is still PW's call, because it is half the delay headroom left on a chip whose worst-use row already overruns — measured, S24"
+MainL001LimiterRng001,no-graph-node,"limiter range; the LIMITER node carries On, Thr, Att and Rel and no range word"
+MainL001Name001,label,"text label; the host stores it, the DSP has no word for it"
+MainL001PeqGain001,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
+MainL001PeqGain002,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
+MainL001PeqGain003,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
+MainL001PeqGain004,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
+MainL001PeqGain005,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
+MainL001PeqGain006,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
+MainL001PeqGain007,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
+MainL001PeqGain008,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
+MainL001PeqGain009,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
+MainL001PeqGain010,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
+MainL001PeqGain011,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
+MainL001PeqGain012,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
+MainR001Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+MainR001DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+MainR001Delay001,no-graph-node,"post-crossover output chain MainR has EQ + COMP + LIM + OUTPUT_TDM and no delay line. Level and Mute are built (S24); Delay is not, and the reason is memory rather than cells: the master asks for 250 ms, which is 12,000 words = 48,000 bytes of chip-2 L2 per output, 192,000 for all four against 378,464 free on the S24 candidate (51%). It FITS and it is still PW's call, because it is half the delay headroom left on a chip whose worst-use row already overruns — measured, S24"
+MainR001LimiterRng001,no-graph-node,"limiter range; the LIMITER node carries On, Thr, Att and Rel and no range word"
+MainR001Name001,label,"text label; the host stores it, the DSP has no word for it"
+MainR001PeqGain001,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
+MainR001PeqGain002,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
+MainR001PeqGain003,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
+MainR001PeqGain004,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
+MainR001PeqGain005,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
+MainR001PeqGain006,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
+MainR001PeqGain007,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
+MainR001PeqGain008,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
+MainR001PeqGain009,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
+MainR001PeqGain010,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
+MainR001PeqGain011,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
+MainR001PeqGain012,s1-2-no-behaviour,S1-2: PeqGain is a definition again at defs-v2026.09.08 (def key main.geq); no node carries a parametric gain bank — Q7
+MainSub001Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+MainSub001DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
+MainSub001Delay001,no-graph-node,"post-crossover output chain MainSub has EQ + COMP + LIM + OUTPUT_TDM and no delay line. Level and Mute are built (S24); Delay is not, and the reason is memory rather than cells: the master asks for 250 ms, which is 12,000 words = 48,000 bytes of chip-2 L2 per output, 192,000 for all four against 378,464 free on the S24 candidate (51%). It FITS and it is still PW's call, because it is half the delay headroom left on a chip whose worst-use row already overruns — measured, S24"
+MainSub001LimiterRng001,no-graph-node,"limiter range; the LIMITER node carries On, Thr, Att and Rel and no range word"
+MainSub001Name001,label,"text label; the host stores it, the DSP has no word for it"
+Mute001On001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Mute002On001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Mute003On001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Mute004On001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Noise001Dest001,no-graph-node,"generator destination, and the deficiency is a FAN-OUT and not an address (S25 gate 4). `C1_NOISE` has an EMPTY outputs column: the generator runs, and its signal reaches no bus, no crosspoint and no output. Giving these ten cells addresses would give the host ten words nothing reads, which is worse than leaving them named here. What they need is ten crosspoints out of the node into named buses, and WHICH ten is a product question the master does not answer — it says only ""aux/main outputs"". Priced by construction against the measured fabric: a live crosspoint on a bus that already carries signal is below this instrument's resolution (S24: five more on a bus cost < 0.1 points), so the cost is the ten SPI words, the fan-out code and nothing measurable in cycles. S26 WENT TO BUILD THEM AND DID NOT, and for this family the blocker is a ruling rather than a gap: d24-skin-cell-map.csv rows menu5/6 and menu5/8 record PW 2026-09-06 — ""Rtg retired from all cells — Noise assign needs a NEW function definition in the master; never reuse Rtg"" — and carry no cell at all for the noise assign. So these ten Dest cells are not the vehicle the product is waiting for, and giving them a fan-out would build against a definition PW has already said must be replaced"
+Noise001Dest002,no-graph-node,"generator destination, and the deficiency is a FAN-OUT and not an address (S25 gate 4). `C1_NOISE` has an EMPTY outputs column: the generator runs, and its signal reaches no bus, no crosspoint and no output. Giving these ten cells addresses would give the host ten words nothing reads, which is worse than leaving them named here. What they need is ten crosspoints out of the node into named buses, and WHICH ten is a product question the master does not answer — it says only ""aux/main outputs"". Priced by construction against the measured fabric: a live crosspoint on a bus that already carries signal is below this instrument's resolution (S24: five more on a bus cost < 0.1 points), so the cost is the ten SPI words, the fan-out code and nothing measurable in cycles. S26 WENT TO BUILD THEM AND DID NOT, and for this family the blocker is a ruling rather than a gap: d24-skin-cell-map.csv rows menu5/6 and menu5/8 record PW 2026-09-06 — ""Rtg retired from all cells — Noise assign needs a NEW function definition in the master; never reuse Rtg"" — and carry no cell at all for the noise assign. So these ten Dest cells are not the vehicle the product is waiting for, and giving them a fan-out would build against a definition PW has already said must be replaced"
+Noise001Dest003,no-graph-node,"generator destination, and the deficiency is a FAN-OUT and not an address (S25 gate 4). `C1_NOISE` has an EMPTY outputs column: the generator runs, and its signal reaches no bus, no crosspoint and no output. Giving these ten cells addresses would give the host ten words nothing reads, which is worse than leaving them named here. What they need is ten crosspoints out of the node into named buses, and WHICH ten is a product question the master does not answer — it says only ""aux/main outputs"". Priced by construction against the measured fabric: a live crosspoint on a bus that already carries signal is below this instrument's resolution (S24: five more on a bus cost < 0.1 points), so the cost is the ten SPI words, the fan-out code and nothing measurable in cycles. S26 WENT TO BUILD THEM AND DID NOT, and for this family the blocker is a ruling rather than a gap: d24-skin-cell-map.csv rows menu5/6 and menu5/8 record PW 2026-09-06 — ""Rtg retired from all cells — Noise assign needs a NEW function definition in the master; never reuse Rtg"" — and carry no cell at all for the noise assign. So these ten Dest cells are not the vehicle the product is waiting for, and giving them a fan-out would build against a definition PW has already said must be replaced"
+Noise001Dest004,no-graph-node,"generator destination, and the deficiency is a FAN-OUT and not an address (S25 gate 4). `C1_NOISE` has an EMPTY outputs column: the generator runs, and its signal reaches no bus, no crosspoint and no output. Giving these ten cells addresses would give the host ten words nothing reads, which is worse than leaving them named here. What they need is ten crosspoints out of the node into named buses, and WHICH ten is a product question the master does not answer — it says only ""aux/main outputs"". Priced by construction against the measured fabric: a live crosspoint on a bus that already carries signal is below this instrument's resolution (S24: five more on a bus cost < 0.1 points), so the cost is the ten SPI words, the fan-out code and nothing measurable in cycles. S26 WENT TO BUILD THEM AND DID NOT, and for this family the blocker is a ruling rather than a gap: d24-skin-cell-map.csv rows menu5/6 and menu5/8 record PW 2026-09-06 — ""Rtg retired from all cells — Noise assign needs a NEW function definition in the master; never reuse Rtg"" — and carry no cell at all for the noise assign. So these ten Dest cells are not the vehicle the product is waiting for, and giving them a fan-out would build against a definition PW has already said must be replaced"
+Noise001Dest005,no-graph-node,"generator destination, and the deficiency is a FAN-OUT and not an address (S25 gate 4). `C1_NOISE` has an EMPTY outputs column: the generator runs, and its signal reaches no bus, no crosspoint and no output. Giving these ten cells addresses would give the host ten words nothing reads, which is worse than leaving them named here. What they need is ten crosspoints out of the node into named buses, and WHICH ten is a product question the master does not answer — it says only ""aux/main outputs"". Priced by construction against the measured fabric: a live crosspoint on a bus that already carries signal is below this instrument's resolution (S24: five more on a bus cost < 0.1 points), so the cost is the ten SPI words, the fan-out code and nothing measurable in cycles. S26 WENT TO BUILD THEM AND DID NOT, and for this family the blocker is a ruling rather than a gap: d24-skin-cell-map.csv rows menu5/6 and menu5/8 record PW 2026-09-06 — ""Rtg retired from all cells — Noise assign needs a NEW function definition in the master; never reuse Rtg"" — and carry no cell at all for the noise assign. So these ten Dest cells are not the vehicle the product is waiting for, and giving them a fan-out would build against a definition PW has already said must be replaced"
+Noise001Dest006,no-graph-node,"generator destination, and the deficiency is a FAN-OUT and not an address (S25 gate 4). `C1_NOISE` has an EMPTY outputs column: the generator runs, and its signal reaches no bus, no crosspoint and no output. Giving these ten cells addresses would give the host ten words nothing reads, which is worse than leaving them named here. What they need is ten crosspoints out of the node into named buses, and WHICH ten is a product question the master does not answer — it says only ""aux/main outputs"". Priced by construction against the measured fabric: a live crosspoint on a bus that already carries signal is below this instrument's resolution (S24: five more on a bus cost < 0.1 points), so the cost is the ten SPI words, the fan-out code and nothing measurable in cycles. S26 WENT TO BUILD THEM AND DID NOT, and for this family the blocker is a ruling rather than a gap: d24-skin-cell-map.csv rows menu5/6 and menu5/8 record PW 2026-09-06 — ""Rtg retired from all cells — Noise assign needs a NEW function definition in the master; never reuse Rtg"" — and carry no cell at all for the noise assign. So these ten Dest cells are not the vehicle the product is waiting for, and giving them a fan-out would build against a definition PW has already said must be replaced"
+Noise001Dest007,no-graph-node,"generator destination, and the deficiency is a FAN-OUT and not an address (S25 gate 4). `C1_NOISE` has an EMPTY outputs column: the generator runs, and its signal reaches no bus, no crosspoint and no output. Giving these ten cells addresses would give the host ten words nothing reads, which is worse than leaving them named here. What they need is ten crosspoints out of the node into named buses, and WHICH ten is a product question the master does not answer — it says only ""aux/main outputs"". Priced by construction against the measured fabric: a live crosspoint on a bus that already carries signal is below this instrument's resolution (S24: five more on a bus cost < 0.1 points), so the cost is the ten SPI words, the fan-out code and nothing measurable in cycles. S26 WENT TO BUILD THEM AND DID NOT, and for this family the blocker is a ruling rather than a gap: d24-skin-cell-map.csv rows menu5/6 and menu5/8 record PW 2026-09-06 — ""Rtg retired from all cells — Noise assign needs a NEW function definition in the master; never reuse Rtg"" — and carry no cell at all for the noise assign. So these ten Dest cells are not the vehicle the product is waiting for, and giving them a fan-out would build against a definition PW has already said must be replaced"
+Noise001Dest008,no-graph-node,"generator destination, and the deficiency is a FAN-OUT and not an address (S25 gate 4). `C1_NOISE` has an EMPTY outputs column: the generator runs, and its signal reaches no bus, no crosspoint and no output. Giving these ten cells addresses would give the host ten words nothing reads, which is worse than leaving them named here. What they need is ten crosspoints out of the node into named buses, and WHICH ten is a product question the master does not answer — it says only ""aux/main outputs"". Priced by construction against the measured fabric: a live crosspoint on a bus that already carries signal is below this instrument's resolution (S24: five more on a bus cost < 0.1 points), so the cost is the ten SPI words, the fan-out code and nothing measurable in cycles. S26 WENT TO BUILD THEM AND DID NOT, and for this family the blocker is a ruling rather than a gap: d24-skin-cell-map.csv rows menu5/6 and menu5/8 record PW 2026-09-06 — ""Rtg retired from all cells — Noise assign needs a NEW function definition in the master; never reuse Rtg"" — and carry no cell at all for the noise assign. So these ten Dest cells are not the vehicle the product is waiting for, and giving them a fan-out would build against a definition PW has already said must be replaced"
+Noise001Dest009,no-graph-node,"generator destination, and the deficiency is a FAN-OUT and not an address (S25 gate 4). `C1_NOISE` has an EMPTY outputs column: the generator runs, and its signal reaches no bus, no crosspoint and no output. Giving these ten cells addresses would give the host ten words nothing reads, which is worse than leaving them named here. What they need is ten crosspoints out of the node into named buses, and WHICH ten is a product question the master does not answer — it says only ""aux/main outputs"". Priced by construction against the measured fabric: a live crosspoint on a bus that already carries signal is below this instrument's resolution (S24: five more on a bus cost < 0.1 points), so the cost is the ten SPI words, the fan-out code and nothing measurable in cycles. S26 WENT TO BUILD THEM AND DID NOT, and for this family the blocker is a ruling rather than a gap: d24-skin-cell-map.csv rows menu5/6 and menu5/8 record PW 2026-09-06 — ""Rtg retired from all cells — Noise assign needs a NEW function definition in the master; never reuse Rtg"" — and carry no cell at all for the noise assign. So these ten Dest cells are not the vehicle the product is waiting for, and giving them a fan-out would build against a definition PW has already said must be replaced"
+Noise001Dest010,no-graph-node,"generator destination, and the deficiency is a FAN-OUT and not an address (S25 gate 4). `C1_NOISE` has an EMPTY outputs column: the generator runs, and its signal reaches no bus, no crosspoint and no output. Giving these ten cells addresses would give the host ten words nothing reads, which is worse than leaving them named here. What they need is ten crosspoints out of the node into named buses, and WHICH ten is a product question the master does not answer — it says only ""aux/main outputs"". Priced by construction against the measured fabric: a live crosspoint on a bus that already carries signal is below this instrument's resolution (S24: five more on a bus cost < 0.1 points), so the cost is the ten SPI words, the fan-out code and nothing measurable in cycles. S26 WENT TO BUILD THEM AND DID NOT, and for this family the blocker is a ruling rather than a gap: d24-skin-cell-map.csv rows menu5/6 and menu5/8 record PW 2026-09-06 — ""Rtg retired from all cells — Noise assign needs a NEW function definition in the master; never reuse Rtg"" — and carry no cell at all for the noise assign. So these ten Dest cells are not the vehicle the product is waiting for, and giving them a fan-out would build against a definition PW has already said must be replaced"
+Rec001Level001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Rec001Play001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Rec001Rec001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Rec001Src001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001AuxOnFdr001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001BtnBright001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue002,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue003,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue004,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue005,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue006,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue007,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue008,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue009,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue010,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue011,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue012,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue013,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue014,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue015,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue016,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue017,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue018,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue019,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue020,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue021,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue022,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue023,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue024,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue025,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue026,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue027,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue028,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue029,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue030,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue031,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue032,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue033,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue034,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue035,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue036,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue037,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue038,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue039,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue040,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue041,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue042,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue043,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue044,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue045,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue046,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue047,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue048,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue049,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue050,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue051,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue052,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue053,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue054,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue055,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue056,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue057,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue058,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue059,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue060,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue061,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue062,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue063,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Cue064,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001CueMode001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Def001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001DynPlotMode001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Enc001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001FdrDown001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001FootMode001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys002,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys003,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys004,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys005,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys006,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys007,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys008,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys009,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys010,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys011,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys012,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys013,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys014,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys015,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys016,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys017,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys018,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys019,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys020,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys021,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys022,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys023,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys024,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys025,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys026,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys027,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys028,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys029,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys030,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys031,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys032,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys033,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys034,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys035,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys036,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys037,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys038,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys039,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys040,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys041,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys042,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys043,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys044,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys045,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys046,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys047,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys048,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys049,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys050,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys051,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys052,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys053,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys054,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys055,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys056,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys057,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys058,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys059,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys060,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys061,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys062,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys063,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys064,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys065,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys066,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys067,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys068,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys069,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys070,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys071,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys072,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys073,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys074,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys075,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys076,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys077,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys078,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys079,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys080,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys081,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys082,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys083,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys084,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys085,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys086,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys087,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys088,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys089,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys090,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys091,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys092,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys093,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys094,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys095,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys096,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys097,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys098,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys099,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys100,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys101,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys102,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys103,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys104,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys105,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys106,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys107,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys108,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys109,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys110,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys111,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys112,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys113,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys114,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys115,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys116,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys117,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys118,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys119,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys120,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys121,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys122,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys123,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys124,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys125,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys126,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Keys127,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001LCR001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Lock001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Man001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001MtrSrc001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001MxMode001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001OptMix001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Reg001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Reg002,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Reg003,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Reg004,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Reg005,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Reg006,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Reg007,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Reg008,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Reg009,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Reg010,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Reset001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Scene001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001SceneSafe001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001SceneSafe002,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001SceneSafe003,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001SceneSafe004,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001SceneSafe005,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001SceneSafe006,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001SceneSafe007,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001SceneSafe008,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001SceneSafe009,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001SceneSafe010,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001SceneSafe011,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001SceneSafe012,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001ScrBright001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001SelectedAux001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001SelectedChan001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Skin001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001SwUpd001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Test001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001Test002,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Talk001Dest002,no-graph-node,"talkback destinations 2 and 3 — and the reason this file gave until S25 named the wrong deficiency. It said the TALKBACK node has four SPI words (On, Gain, Hpf, Dest1) and the graph gives it no more, which is true and is not the problem: the node ALREADY declares `_talk_route_<nid>[3]`, so the words are there. What is missing is the FAN-OUT. `C1_TALK_01` and `C1_TALK_02` have EMPTY outputs columns, nothing in the tree reads `_talk_route` beyond the SPI dispatch of Dest1, and the talkback mics reach no bus at all. Dest1 is therefore a cell that reaches a WORD and not the arithmetic — S24-7's shape one family along. Two more addresses would add two more of those; crosspoints out of each node is what the family actually needs. S26 WENT TO BUILD THEM AND DID NOT, because the enumeration names a COUNT and no destination: the master gives Dest[1-3] and the note ""aux/main"", carries no Table column (every genuinely named selector in the master has one — Aux Pan reads Pan:dB:0:Off), and the two halves of this family do not even agree with each other on their own encoding (Talk Dest has MxDatS 1, a per-slot flag like Chan MuteGrp; Noise Dest has 11, which is a selector). WORSE, THE COUNT IS CONTRADICTED BY THE PRODUCT: d24-skin-cell-map.csv row menu5/2 records ""RANGE CONFLICT: vocab Talk Rtg[1-3] vs 9 targets — extend to [1-9]"" for Talkback Assign A1-A8 + L-R. Building three crosspoints would therefore build the wrong NUMBER of them as well as guessing which buses. Held for the master, not invented"
+Talk001Dest003,no-graph-node,"talkback destinations 2 and 3 — and the reason this file gave until S25 named the wrong deficiency. It said the TALKBACK node has four SPI words (On, Gain, Hpf, Dest1) and the graph gives it no more, which is true and is not the problem: the node ALREADY declares `_talk_route_<nid>[3]`, so the words are there. What is missing is the FAN-OUT. `C1_TALK_01` and `C1_TALK_02` have EMPTY outputs columns, nothing in the tree reads `_talk_route` beyond the SPI dispatch of Dest1, and the talkback mics reach no bus at all. Dest1 is therefore a cell that reaches a WORD and not the arithmetic — S24-7's shape one family along. Two more addresses would add two more of those; crosspoints out of each node is what the family actually needs. S26 WENT TO BUILD THEM AND DID NOT, because the enumeration names a COUNT and no destination: the master gives Dest[1-3] and the note ""aux/main"", carries no Table column (every genuinely named selector in the master has one — Aux Pan reads Pan:dB:0:Off), and the two halves of this family do not even agree with each other on their own encoding (Talk Dest has MxDatS 1, a per-slot flag like Chan MuteGrp; Noise Dest has 11, which is a selector). WORSE, THE COUNT IS CONTRADICTED BY THE PRODUCT: d24-skin-cell-map.csv row menu5/2 records ""RANGE CONFLICT: vocab Talk Rtg[1-3] vs 9 targets — extend to [1-9]"" for Talkback Assign A1-A8 + L-R. Building three crosspoints would therefore build the wrong NUMBER of them as well as guessing which buses. Held for the master, not invented"

@@ -43,6 +43,27 @@ remaining topology.
 **What it costs.** Nothing measurable. §2's ladder priced it driven, on both
 products, both chips, two boots, with and without the plugin load.
 
+**ADDED 2026-09-11 (S28). This candidate now carries the whole range, and the
+other two products fit with room.** The same image — `6396187c` / `9222c2ee`,
+rebuilt byte for byte — was driven as a **D16** and a **D12** on the rev C
+unit, two boots each, four rows each, the regime proved on every driven row:
+
+| product | driven with the load, chip 1 | chip 2 | missed blocks |
+|---|--:|--:|--:|
+| D12 | 33.26 % | 66.59 % | **0** |
+| D16 | 41.69 % | 73.02 % | **0** |
+| D24 | 60.05 % | 84.64 % | **0** |
+| D32 | 79.16 % | **100.82 %** | **1,943 of 270,000** |
+
+D16 and D12 need no firmware, no address and no cell of their own: their cell
+sets are strict subsets of D24's and every cell lands at the address the
+shared map already gives it. They are the same image and two different config
+words. Full working, and the three D32 variants that have no definition to
+generate from, in `MW/D32/DSP/dsp4-s28-20260911.md`; the machine-readable
+table is `MW/D32/DSP/fit-table.csv`. **D32 chip 2's row is unchanged — it is
+still the one that does not fit at worst use, and §2.1's numbers reproduced
+to the block on a second night.**
+
 ---
 
 ## 2. Every bar, run this session
@@ -234,8 +255,20 @@ decoder now print that caveat beside the pass. **Until the word is widened,
 a shared-kernel arm is identified by its image md5** — `6396187c` is the
 candidate and `c9d0e07b` is the control. Widening it moves
 `DIAG_BUILD_CFG2` on every image, including every md5 quoted here, so it was
-deliberately not done inside the window. Free bits exist (word 2 bits 24 and
-26–29).
+deliberately not done inside the window.
+
+**CORRECTED 2026-09-11 (S28-5).** This paragraph used to end *"Free bits
+exist (word 2 bits 24 and 26–29)"*. They do not: those are the zero bits of
+the word's own `0xC2` SIGNATURE, and bit 24 is exactly what would tell a
+`0xC2` word from a `0xC3` one. Every one of `DIAG_BUILD_CFG2`'s 32 bits has
+an owner. The fix is therefore a THIRD word, `DIAG_BUILD_CFG3` — designed,
+with the bit map and the four-edit apply step, in
+`MW/D32/DSP/dsp4-s28-20260911.md` §3, and computable today with
+`cfg_words.py --design-cfg3`: this candidate would read **`0xC3000FFA`**
+where the s21 control reads **`0xC30003FA`**. Still not applied, and for the
+same reason: the word has to exist in the image to be read out of it, so
+every md5 quoted in this document moves on the first rebuild after it
+lands.
 
 ---
 

@@ -36,7 +36,13 @@ elif [[ $# -gt 0 ]]; then
   exit 2
 fi
 
-PRODUCTS=(d24 d32)
+# THE PRODUCTS THIS REPO EXPANDS A MATRIX FOR. d12 and d16 joined at S28:
+# their mx-masters have been in `defs` all along and nothing here read them,
+# so the range's two smallest products had no cell count that came from the
+# expander. They carry NO fw.csv and NO wire table in defs -- only a product
+# def and an mx-master -- which is why the CONSUMED map below is per-file
+# rather than per-product.
+PRODUCTS=(d12 d16 d24 d32)
 
 sha() { sha256sum "$1" | awk '{print $1}'; }
 
@@ -119,6 +125,10 @@ verify DEFS_MANIFEST_SHA256 "$DEFS_MANIFEST_SHA"
 declare -A CONSUMED=(
   [MX_CELL_MASTER]="common/cells/mx_master.csv"
   [WIRE_UNITS]="common/wire/wire-units.csv"
+  [D12_DEF]="products/d12/d12.csv"
+  [D12_MASTER]="gen/matrix/d12-mx-master.csv"
+  [D16_DEF]="products/d16/d16.csv"
+  [D16_MASTER]="gen/matrix/d16-mx-master.csv"
   [D24_DEF]="products/d24/d24.csv"
   [D24_FW]="products/d24/fw.csv"
   [D24_MASTER]="gen/matrix/d24-mx-master.csv"

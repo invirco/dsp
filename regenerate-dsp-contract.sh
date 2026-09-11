@@ -28,6 +28,8 @@ python3 validate-matrix-contract.py
 
 python3 MW/D32/DSP/gen_dsp.py --force
 
+d12_rows=$(tail -n +2 MW/D12/MX/_matrix.csv | wc -l | awk '{print $1}')
+d16_rows=$(tail -n +2 MW/D16/MX/_matrix.csv | wc -l | awk '{print $1}')
 d24_rows=$(tail -n +2 MW/D24/MX/_matrix.csv | wc -l | awk '{print $1}')
 d32_rows=$(tail -n +2 MW/D32/MX/_matrix.csv | wc -l | awk '{print $1}')
 map_rows=$(grep -c '^| ' MW/D32/DSP/dsp_address_map.md || true)
@@ -35,6 +37,10 @@ map_rows=$(grep -c '^| ' MW/D32/DSP/dsp_address_map.md || true)
 printf '\nRegenerate summary\n'
 printf '  Contract: %s\n' "$(awk -F= '$1=="CONTRACT_VERSION"{print $2}' defs.lock)"
 printf '  defs commit: %s\n' "$(awk -F= '$1=="DEFS_COMMIT"{print $2}' defs.lock)"
+printf '  D12 matrix rows: %s (generation %s)\n' "$d12_rows" \
+  "$(awk -F= '$1=="D12_MATRIX_GEN"{print $2}' defs.lock)"
+printf '  D16 matrix rows: %s (generation %s)\n' "$d16_rows" \
+  "$(awk -F= '$1=="D16_MATRIX_GEN"{print $2}' defs.lock)"
 printf '  D24 matrix rows: %s (generation %s)\n' "$d24_rows" \
   "$(awk -F= '$1=="D24_MATRIX_GEN"{print $2}' defs.lock)"
 printf '  D32 matrix rows: %s (generation %s)\n' "$d32_rows" \

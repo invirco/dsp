@@ -2293,10 +2293,44 @@ def write_address_map(dry_run=False):
 # not, and there is no third bucket for the ones nobody looked at.
 
 PROPOSAL_ROOT = os.path.join(REPO_ROOT, 'proposals', 'defs', 'products')
-PROPOSAL_PRODUCTS = (
-    ('d32', os.path.join(REPO_ROOT, 'MW', 'D32', 'MX', '_matrix.csv')),
-    ('d24', os.path.join(REPO_ROOT, 'MW', 'D24', 'MX', '_matrix.csv')),
+
+
+def _matrix_path(product):
+    return os.path.join(REPO_ROOT, 'MW', product.upper(), 'MX', '_matrix.csv')
+
+
+# THE CONTRACT PRODUCTS. Every generated firmware artifact in this tree --
+# ghost_cells, dsp_params.asm, the _matrix.csv backfill, the address map --
+# is derived from the LANDED dsp.csv of these and only these, and
+# check_proposal() proves the graph reproduces them row for row. A landed
+# file that is missing is fatal, exactly as before.
+CONTRACT_PRODUCTS = (
+    ('d32', _matrix_path('d32')),
+    ('d24', _matrix_path('d24')),
 )
+
+# PRODUCTS THIS REPO CAN PROPOSE AN ADDRESS MAP FOR AND THE CONTRACT DOES
+# NOT YET CARRY (S28). D16 and D12 have had an mx-master in `defs` all
+# along; nothing here expanded it, so the two smallest products of the
+# range had no generated cell count and no address map. They do now, and
+# the map costs nothing to produce because of what S28 gate 1 measured:
+#
+#     cells(D12) subset cells(D16) subset cells(D24)  and
+#     cells(D12) subset cells(D16) subset cells(D32)
+#
+# -- every D16 and D12 cell is already addressed in the ONE shared map
+# (decision D3), so their dsp.csv is a row subset of D32's with not one
+# address of its own. They are deliberately NOT in CONTRACT_PRODUCTS:
+# nothing has landed a dsp.csv for them in `defs`, no generated firmware
+# artifact reads them, and adding them to the check would be asserting a
+# contract that does not exist. `--propose` writes them; nothing consumes
+# them until the hub lands them.
+PROPOSAL_ONLY_PRODUCTS = (
+    ('d16', _matrix_path('d16')),
+    ('d12', _matrix_path('d12')),
+)
+
+PROPOSAL_PRODUCTS = CONTRACT_PRODUCTS + PROPOSAL_ONLY_PRODUCTS
 
 # Column semantics. `defs/common/schema/` declares no dsp.csv schema at
 # defs-v2026.09.08, so this is the proposal for one, restated in the file
@@ -2650,10 +2684,10 @@ def write_proposals(dry_run=False):
             'Proposed by dsp, landed by the hub at the gate (PW ruling',
             f'2026-09-08 #5). {pin}.',
             '',
-            'ONE ADDRESS MAP FOR BOTH PRODUCTS (decision D3): the superset graph',
-            'is expanded once and this file is the intersection of that',
-            "expansion with this product's cell set, so a cell both products",
-            'carry has the same chip, page and address in both files.',
+            'ONE ADDRESS MAP FOR THE WHOLE RANGE (decision D3): the superset',
+            'graph is expanded once and this file is the intersection of that',
+            "expansion with this product's cell set, so a cell two products",
+            'share has the same chip, page and address in both files.',
             '',
             f'{len(rows)} of {len(defined)} defined cells reach a DSP address.',
             f'The other {len(un_rows)} are named in dsp-unmapped.csv with the',
@@ -2808,7 +2842,7 @@ def check_proposal(fatal=True):
     other path keeps the no-fallback exit."""
     mcu_prefixes = load_mcu_only_prefixes()
     ok = True
-    for product, matrix_path in PROPOSAL_PRODUCTS:
+    for product, matrix_path in CONTRACT_PRODUCTS:
         rows, un_rows = build_proposal_rows(product, matrix_path, mcu_prefixes)
         landed_rows = _read_landed_csv(landed_dsp_csv_path(product))
         landed_un = _read_landed_csv(landed_unmapped_csv_path(product))
@@ -2845,7 +2879,8 @@ def check_proposal(fatal=True):
                  'the landed file, and never let generation quietly fall '
                  'back to the graph when it disagrees with what is landed.')
     print('  check-proposal OK — the graph reproduces the landed dsp.csv / '
-          'dsp-unmapped.csv exactly for both products')
+          'dsp-unmapped.csv exactly for %s'
+          % ', '.join(p for p, _ in CONTRACT_PRODUCTS))
     return True
 
 
@@ -2857,7 +2892,7 @@ def load_landed_address_map():
     `cell_map`, is what _matrix.csv backfill and every generated firmware
     artifact reads once check_proposal() has proven the two agree."""
     merged = {}
-    for product, _ in PROPOSAL_PRODUCTS:
+    for product, _ in CONTRACT_PRODUCTS:
         for cell, r in _read_landed_csv(landed_dsp_csv_path(product)).items():
             entry = {
                 'chip': int(r['DspSpi']),

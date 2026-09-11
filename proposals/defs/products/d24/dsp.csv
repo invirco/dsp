@@ -7,10 +7,10 @@
 # Proposed by dsp, landed by the hub at the gate (PW ruling
 # 2026-09-08 #5). defs-v* pin: defs-v2026.09.08.4.
 #
-# ONE ADDRESS MAP FOR BOTH PRODUCTS (decision D3): the superset graph
-# is expanded once and this file is the intersection of that
-# expansion with this product's cell set, so a cell both products
-# carry has the same chip, page and address in both files.
+# ONE ADDRESS MAP FOR THE WHOLE RANGE (decision D3): the superset
+# graph is expanded once and this file is the intersection of that
+# expansion with this product's cell set, so a cell two products
+# share has the same chip, page and address in both files.
 #
 # 3974 of 4985 defined cells reach a DSP address.
 # The other 1011 are named in dsp-unmapped.csv with the

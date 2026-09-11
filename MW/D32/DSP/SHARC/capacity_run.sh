@@ -112,6 +112,22 @@ for cycle in 1 2 3; do
   # ------------------------------------------------------------------
   P="${PREFIX:-cap}"
   LANDED="landed-$PRODUCT.json"
+  # HOW MANY FX ENGINES THIS PRODUCT DEFINES (S28-2). The image carries six
+  # and the landed map is what says how many the product has: D16 and D12
+  # define four, so `loadfx` reaches Fx001..Fx004 and the other two stay
+  # unfed on their cheap branch. Read off the map rather than the product
+  # name, so a product whose def changes does not need this script changed.
+  FXN=$(python3 - "$LANDED" <<'PYEOF'
+import json, re, sys
+n = 0
+for cell in json.load(open(sys.argv[1]))['cells']:
+    m = re.match(r'^Fx(\d+)', cell)
+    if m:
+        n = max(n, int(m.group(1)))
+print(n)
+PYEOF
+)
+  echo "    product defines $FXN FX engine(s) (from $LANDED)"
   bash /home/app/drive_audio.sh stop >/dev/null 2>&1
 
   echo "--- row A: silent, default config"
@@ -138,7 +154,7 @@ for cycle in 1 2 3; do
   RQ=""
   case "$MODE" in
       load)   RQ="--require-driven" ;;
-      loadfx) RQ="--require-driven --require-fx --fx-type $FXTYPE" ;;
+      loadfx) RQ="--require-driven --require-fx --fx-type $FXTYPE --fx-engines ${FXN:-0}" ;;
   esac
   python3 dsp4_c2regime.py --chip 1 --tag driven $RQ \
           --json "$P-regime-c1.json" > "$P-regime-c1.log" 2>&1
@@ -146,7 +162,7 @@ for cycle in 1 2 3; do
   python3 dsp4_c2regime.py --chip 2 --tag driven $RQ \
           --json "$P-regime-c2.json" > "$P-regime-c2.log" 2>&1
   R2=$?
-  grep -h "DRIVEN REGIME\|FX REGIME" "$P-regime-c1.log" "$P-regime-c2.log" \
+  grep -h "DRIVEN REGIME\|FX REGIME\|FX SCOPE" "$P-regime-c1.log" "$P-regime-c2.log" \
       2>/dev/null
   if [ "$R1" != "0" ] || [ "$R2" != "0" ]; then
       echo "    REGIME NOT PROVEN (chip1 rc=$R1 chip2 rc=$R2) -- row C is taken"
@@ -191,7 +207,8 @@ for cycle in 1 2 3; do
                   --json "$P-fx$T-regime.json" > "$P-fx$T-regime.log" 2>&1
       else
           python3 dsp4_c2regime.py --chip 2 --tag "fx-$T" --require-fx \
-                  --fx-type "$T" --json "$P-fx$T-regime.json" \
+                  --fx-type "$T" --fx-engines "${FXN:-0}" \
+                  --json "$P-fx$T-regime.json" \
                   > "$P-fx$T-regime.log" 2>&1
       fi
       RF=$?

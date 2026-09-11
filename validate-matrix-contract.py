@@ -2,9 +2,17 @@
 """Validate imported matrix contract files for compatibility and addressing sanity.
 
 Checks:
-- D24/D32 MxAdd values are contiguous starting at 1
-- D24/D32 _Cell names parse in expanded form
-- D32 cell-family set is contained by an allowlist
+- every expanded product's MxAdd values are contiguous starting at 1
+- every expanded product's _Cell names parse in expanded form
+- every expanded product's cell-family set is contained by an allowlist
+
+THE ALLOWLIST IS THE D32 SET AND THAT IS DELIBERATE. D32 is the largest
+matrix-based product in the range, so every smaller product's families are
+a subset of it by construction -- checked here rather than assumed, and a
+family that appears on a small product and not on D32 is exactly the
+no-fallback case this file exists for. (D24's `MainCtr*` and `MainOut3Mode`
+are the one exception on record: a centre-cluster D32 does not carry, and
+they are named below rather than silently tolerated.)
 
 Use --update-allowlist to refresh the allowlist from current D32 _matrix.csv.
 """
@@ -18,9 +26,29 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-D24_MATRIX = ROOT / "MW" / "D24" / "MX" / "_matrix.csv"
-D32_MATRIX = ROOT / "MW" / "D32" / "MX" / "_matrix.csv"
+# The products sync-defs.sh expands, smallest first. Keep in step with
+# PRODUCTS in sync-defs.sh: a product expanded and not validated here is a
+# matrix nothing checks.
+PRODUCTS = ("D12", "D16", "D24", "D32")
+MATRIX = {p: ROOT / "MW" / p / "MX" / "_matrix.csv" for p in PRODUCTS}
+D32_MATRIX = MATRIX["D32"]
 ALLOWLIST = ROOT / "matrix-families-allowlist.txt"
+
+# Families D24 defines and D32 does not: the centre cluster and the third
+# main output's mode word. Named, not tolerated by a wildcard -- adopting a
+# family is intentional (the no-fallback policy), and this list is the
+# adoption record for the ones that cannot come from the D32 set.
+NON_D32_FAMILIES = {
+    "D24": {f"MainCtr{suffix}" for suffix in (
+        "CompAtt", "CompDetSrc", "CompEqPos", "CompFilterHpf",
+        "CompFilterLpf", "CompFilterOn", "CompFilterQ", "CompKey",
+        "CompKnee", "CompLimMode", "CompMake", "CompOn", "CompPar",
+        "CompRat", "CompRel", "CompThr", "CompType", "CrossoverFreq",
+        "CrossoverSlope", "Dca", "DcaOn", "Delay", "EqFreq", "EqGain",
+        "EqHpf", "EqOn", "EqQ", "EqShelf", "Level", "LimiterAtt",
+        "LimiterOn", "LimiterRel", "LimiterRng", "LimiterThr", "Mtr",
+        "Mute", "Name", "PeqGain")} | {"MainOut3Mode"},
+}
 
 CELL_RE = re.compile(r"^([A-Za-z]+)(\d{3})([A-Za-z0-9]+)(\d{3})$")
 
@@ -105,8 +133,6 @@ def main() -> int:
     )
     args = ap.parse_args()
 
-    d24_rows, d24_last = check_mxadd(D24_MATRIX)
-    d32_rows, d32_last = check_mxadd(D32_MATRIX)
     d32_families = extract_families(D32_MATRIX)
 
     if args.update_allowlist:
@@ -116,23 +142,29 @@ def main() -> int:
         return 0
 
     allowed = read_allowlist(ALLOWLIST)
-    unexpected = sorted(d32_families - allowed)
+    rc = 0
+    for p in PRODUCTS:
+        rows, last = check_mxadd(MATRIX[p])
+        fams = extract_families(MATRIX[p])
+        unexpected = sorted(fams - allowed - NON_D32_FAMILIES.get(p, set()))
+        print(f"{p} MxAdd contiguous: 1..{last} ({rows} rows); "
+              f"{len(fams)} families")
+        if unexpected:
+            print(f"ERROR: Unexpected {p} matrix families detected:",
+                  file=sys.stderr)
+            for name in unexpected[:50]:
+                print(f"  - {name}", file=sys.stderr)
+            if len(unexpected) > 50:
+                print(f"  ... and {len(unexpected) - 50} more", file=sys.stderr)
+            rc = 1
 
-    print(f"D24 MxAdd contiguous: 1..{d24_last} ({d24_rows} rows)")
-    print(f"D32 MxAdd contiguous: 1..{d32_last} ({d32_rows} rows)")
-    print(f"D32 families: {len(d32_families)} (allowlist: {len(allowed)})")
-
-    if unexpected:
-        print("ERROR: Unexpected D32 matrix families detected:", file=sys.stderr)
-        for name in unexpected[:50]:
-            print(f"  - {name}", file=sys.stderr)
-        if len(unexpected) > 50:
-            print(f"  ... and {len(unexpected) - 50} more", file=sys.stderr)
+    print(f"Allowlist: {len(allowed)} families (the D32 set)")
+    if rc:
         print(
             "Review matrix/definition changes before allowing them, then run --update-allowlist intentionally.",
             file=sys.stderr,
         )
-        return 1
+        return rc
 
     print("Compatibility check passed")
     return 0

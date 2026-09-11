@@ -107,8 +107,27 @@ def main():
                          'actually reached the plugin. --fx-type says which '
                          'algorithm the row is for.')
     ap.add_argument('--fx-type', type=int, default=None,
-                    help='the Type --require-fx expects to find on all six '
-                         'engines')
+                    help='the Type --require-fx expects to find on the '
+                         "product's engines")
+    ap.add_argument('--fx-engines', type=int, default=0,
+                    help='how many FX engines THIS PRODUCT defines. 0 = all '
+                         'the image carries.\n'
+                         'WHY THIS EXISTS (S28-2). The image carries six '
+                         'engines and D16 and D12 define FOUR, so `loadfx` '
+                         '-- which writes the families the LANDED MAP names '
+                         'and nothing else -- reaches Fx001..Fx004 and '
+                         'leaves 5 and 6 at whatever Type the last boot put '
+                         'there, unfed. This check then enumerated all six '
+                         'off the SYMBOL TABLE and failed the regime three '
+                         'ways (WRONG TYPE, NO SIGNAL IN THE PLUGIN, KERNEL '
+                         'DID NOT RUN) for a product behaving exactly as '
+                         'defined. The dynamics half of this tool already '
+                         'had the answer: it reads `_chan_mask_live` / '
+                         '`_aux_mask_live` OFF THE PART and reports a masked '
+                         'node as `masked`, not `dead`. There is no FX mask '
+                         'on the part to read, so the count is passed in '
+                         'from the product definition -- capacity_run.sh '
+                         'derives it from the landed map.')
     ap.add_argument('--require-driven', action='store_true',
                     help='exit 1 unless EVERY dynamics envelope on this chip '
                          'is live. S19: a driven capacity row that was not '
@@ -239,33 +258,60 @@ def main():
         # is reported as one -- it is not a failure of the instrument, and it
         # is not a measurement of that algorithm either.
         IMPLEMENTED = (0, 2, 3)
-        eng = sorted(k for k in out if NODE_SUF.sub('', k) == '_fx_on')
+        all_eng = sorted(k for k in out if NODE_SUF.sub('', k) == '_fx_on')
+        # THE PRODUCT'S ENGINES, and the superset's. An engine index above
+        # the product's count is a node the one firmware carries and this
+        # product does not define: nothing addressed it, nothing fed it,
+        # and it is running its cheap branch. Reported, never required --
+        # the same treatment `masked()` gives a strip the chan mask skips.
+        def _idx(k):
+            m = re.search(r'(\d+)$', k)
+            return int(m.group(1)) if m else 0
+        if a.fx_engines:
+            eng = [k for k in all_eng if _idx(k) <= a.fx_engines]
+            superset = [k for k in all_eng if _idx(k) > a.fx_engines]
+        else:
+            eng, superset = all_eng, []
+        keep = {_idx(k) for k in eng}
+
+        def _mine(k):
+            return (not superset) or _idx(k) in keep
         n_on = sum(1 for k in eng if out[k])
         types = {k.replace('_fx_on', '_fx_type'): None for k in eng}
         for k in list(types):
             types[k] = out.get(k)
         byp = {k: out[k] for k in out
-               if NODE_SUF.sub('', k) == '_fx_bypassed' and out[k]}
+               if NODE_SUF.sub('', k) == '_fx_bypassed' and out[k]
+               and _mine(k)}
         combs = {}
         for k, v in out.items():
             if k.startswith(FX_COMB_BUF):
-                combs.setdefault(re.sub(r'\+\d+$', '', k), []).append(v)
+                b = re.sub(r'\+\d+$', '', k)
+                if _mine(b):
+                    combs.setdefault(b, []).append(v)
         live_combs = sum(1 for v in combs.values() if any(v))
         lpfs = {}
         for k, v in out.items():
             if k.startswith('_fx_rv_comb_lpfs'):
-                lpfs.setdefault(re.sub(r'\+\d+$', '', k), []).append(v)
+                b = re.sub(r'\+\d+$', '', k)
+                if _mine(b):
+                    lpfs.setdefault(b, []).append(v)
         live_lpfs = sum(1 for v in lpfs.values() if any(v))
         wptrs = {}
         for k, v in out.items():
             if k.startswith('_fx_rv_comb_wptrs'):
-                wptrs.setdefault(re.sub(r'\+\d+$', '', k), []).append(v)
+                b = re.sub(r'\+\d+$', '', k)
+                if _mine(b):
+                    wptrs.setdefault(b, []).append(v)
         live_wptrs = sum(1 for v in wptrs.values() if any(v))
-        pub = {k: v for k, v in out.items() if k.startswith(FX_BUF)}
+        pub = {k: v for k, v in out.items()
+               if k.startswith(FX_BUF) and _mine(k)}
         want = a.fx_type
         wrong = sorted(k for k, v in types.items()
                        if want is not None and v != want)
         rec['fx'] = {'engines': len(eng), 'on': n_on,
+                     'engines_in_image': len(all_eng),
+                     'superset_engines': sorted(superset),
                      'types': types, 'bypassed': byp,
                      'comb_lines_live': live_combs,
                      'comb_lines': len(combs),
@@ -276,6 +322,12 @@ def main():
                      'want_type': want}
         if a.json:
             json.dump(rec, open(a.json, 'w'), indent=1)
+        if superset:
+            print('  FX SCOPE: this product defines %d of the image\'s %d '
+                  'engines; %s are superset nodes on their cheap branch and '
+                  'are reported, not required (S28-2).'
+                  % (len(eng), len(all_eng),
+                     ', '.join(k.replace('_fx_on_', '') for k in superset)))
         print('  FX REGIME: %d of %d engines on, Type %s, %d parked in the '
               'unimplemented-Type bypass, %d of %d comb delay lines carrying '
               'signal (%d of %d wptrs advanced, %d of %d damping states '

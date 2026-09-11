@@ -31,6 +31,8 @@ if [[ $STRICT -eq 1 ]]; then
   mapfile -t CONTRACT_FILES <<'LIST'
 defs
 defs.lock
+MW/D12/MX/_matrix.csv
+MW/D16/MX/_matrix.csv
 MW/D24/MX/_matrix.csv
 MW/D32/MX/_matrix.csv
 MW/D32/DSP/ghost_cells.h

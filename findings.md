@@ -6,6 +6,212 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE OTHER PRODUCTS' FIT, FROM THE SAME SILICON (2026-09-11, session 28)
+
+Session: D16 and D12 generated from their own definitions, predicted by
+construction and measured driven on the part; the CFG2 widening designed.
+
+### S28-1 — D16 and D12 are not new products to the DSP; they are two config words, and their address maps cost nothing
+
+**Severity: none — it is the result. Status: generated 2026-09-11 from
+`defs-v2026.09.08.4`, measured on the part the same night.**
+
+The range's two smallest products had never been expanded in this tree. Their
+mx-masters have been in `defs/gen/matrix/` all along; `sync-defs.sh` expanded
+two products and nothing read the other two. Expanded, they come out as
+
+    cells(D12) ⊂ cells(D16) ⊂ cells(D24)     0 cells outside, either way
+    cells(D12) ⊂ cells(D16) ⊂ cells(D32)     0 cells outside
+
+— strict subsets, checked cell by cell. Every one of D16's 2,571 addressed
+cells and D12's 1,777 lands on the **same chip, page and address** the D32
+map already gives it: **0 disagreements, 0 cells outside the shared map.**
+That is decision D3 holding at the third and fourth product rather than the
+second.
+
+Nor is there a new graph. The firmware is one image and exactly three words
+select a product inside it — `CFG_PRODUCT_ID` (a two-valued scope class),
+`CFG_CHAN_MASK` and `CFG_AUX_MASK` — so "the D16 graph" is the same 698 nodes
+with 274 of them gated off, and "the D12 graph" is the same 698 with 340 off.
+Both were driven on the rev C unit on the byte-for-byte window candidate
+(`6396187c` / `9222c2ee`), two boots each, zero missed blocks: **D16 41.69 % of
+chip 1 and 73.02 % of chip 2; D12 33.26 % and 66.59 %.** Neither is close to
+anything.
+
+D12 and D16 joined the contract flow to get there — `sync-defs.sh` expands
+four products, `validate-matrix-contract.py` checks all four, `defs.lock`
+gained four declaration hashes and two matrix hashes (`D12_MATRIX_GEN
+058dfe9490b9`, `D16_MATRIX_GEN b05bcfc48371`) and the D24/D32 entries are
+byte-identical. Zero new cell families: both products' 336 families are inside
+the D32 allowlist.
+
+**And the three D32 variants have no fit row because they have no
+definition.** `defs/products/d32rack/`, `d32c/` and `d32r/` carry an intake
+report and nothing else, whose first line is *"no generated master cell list —
+run the def pipeline first"*. No product def, no mx-master, no cell count, no
+fit. That is a hub item and it is named rather than guessed at.
+
+### S28-2 — the FX regime bar could not pass on a product with fewer than six FX engines, and it is the same defect the dynamics half of the tool had already fixed
+
+**Severity: instrument. Status: found on D16's first driven row 2026-09-11,
+fixed and witnessed on D12 and on D16's re-run the same session.**
+
+`dsp4_c2regime.py --require-fx` enumerates the FX engines off the SYMBOL
+TABLE — all six the image carries. `dsp4_driven_setup.py --mode loadfx`
+writes the families the LANDED MAP names, which for a D16 or a D12 is
+`Fx001..Fx004`. So engines 5 and 6 kept whatever Type the previous boot left
+and were never fed, and the check failed the regime three ways at once —
+`WRONG TYPE` on two engines, `NO SIGNAL IN THE PLUGIN` on two comb banks,
+`KERNEL DID NOT RUN` on two write-pointer banks — for a product behaving
+exactly as its definition says.
+
+The dynamics half of the same file has been right about this since the masks
+got readers: it reads `_chan_mask_live` / `_aux_mask_live` **off the part**
+and reports a masked strip as `masked`, not `dead`, in as many words —
+*"a masked node is not a failed regime"*. There is no FX mask on the part to
+read, so the count comes from the product definition: `--fx-engines N`, with
+`capacity_run.sh` deriving N from the landed map (`max(Fx<nnn>)`) rather than
+from the product's name. Engines above N are printed as superset nodes on
+their cheap branch and required of nothing.
+
+Witness, D12, the first run with the fix: **4 of 4 engines on, Type [3], 0
+parked, 4 of 4 comb delay lines carrying signal, 4 of 4 wptrs advanced, 4 of 4
+publishing non-zero** — and `24 of 24` dynamics envelopes live on chip 1 (12
+strips × 2 classes) and `24 of 24` on chip 2. D16's re-run adds the scope
+line: *"this product defines 4 of the image's 6 engines; C2_FX_ENG_05,
+C2_FX_ENG_06 are superset nodes on their cheap branch and are reported, not
+required."* D24 and D32, unchanged by the fix, still read `48 of 48` /
+`28 of 28` / `6 of 6` and `64 of 64` / `32 of 32` / `6 of 6`.
+
+The general shape is worth naming because this is the third time it has
+appeared: **a bar whose scope is the SUPERSET and whose stimulus is the
+PRODUCT cannot pass on any product smaller than the superset.** Every
+product-scoped bar in the tree should take its count from the landed map.
+
+### S28-3 — the construction had no FX-engine term, and an FX engine is 3.3 points of chip 2
+
+**Severity: method. Status: measured on four products, corrected in
+`tools/dsp/product_fit.py` the same session.**
+
+The first cut of the fit table interpolated chip 2 on the aux count alone, so
+it predicted a D16's loaded rows as if the D16 ran six reverbs. It runs four —
+its definition says `fx,4` and `loadfx` writes exactly the engines the landed
+map names.
+
+The correction was available from the anchors the whole time, because the
+loaded row minus the FX-off row is a per-engine figure:
+
+| product | engines | chip 2, C − D | per engine | chip 1, C − D |
+|---|--:|--:|--:|--:|
+| D12 | 4 | 13.23 | **3.31** | +0.15 |
+| D16 | 4 | 13.04 | **3.26** | +0.14 |
+| D24 | 6 | 20.36 | **3.39** | +0.00 |
+| D32 | 6 | 20.24 | **3.37** | −0.09 |
+
+**3.26–3.39 points of chip 2 per live reverb engine, across four products and
+two engine counts**, and **chip 1 pays nothing for it** — −0.09 to +0.15,
+inside the instrument's own resolution. That figure is now in the
+construction, and the product definitions name the engine count, so no product
+is predicted with an engine load it does not have.
+
+### S28-4 — `CFG_PRODUCT_ID` is a scope class, not a product identity, and there is no third value
+
+**Severity: design. Status: named 2026-09-11; the fix is the CFG widening's
+runtime sibling and is not applied.**
+
+The graph carries exactly two `scope=` classes: `D32`, which is the eight
+snake returns with their chip-1 transfers and chip-2 receives (32 nodes), and
+`D24`, which is `C2_MON_OUT` and `C2_CODEC_AUX_OUT` (2 nodes).
+`_scope_gates_apply` keeps the run whose id EQUALS the booted word and forces
+the rest off, so the word selects one of two classes and there is no third
+value to give a third product.
+
+D16 and D12 define `mon,1` and no snake, which is the class id 1 selects, so
+they boot **`CFG_PRODUCT_ID = 1`** — and the part cannot tell a D16 from a
+D24 by that word. It can tell them apart by `_chan_mask_live` and
+`_aux_mask_live`, which every bench tool already reads off the part and which
+is what S28's rows are identified by, so nothing is unmeasurable. But the word
+named `PRODUCT_ID` does not carry the product, and a host tool that trusted it
+would be wrong on two of the four products in the range.
+
+It is the same shape as S27-3 one layer down — a configuration the part cannot
+name — and the same answer applies: a field wide enough for the thing it is
+named after. Not applied inside the window, for the same reason.
+
+### S28-5 — `DIAG_BUILD_CFG2` has no free bits at all, and the comment that named some was naming its own signature
+
+**Severity: correctness of the record. Status: comment corrected
+2026-09-11; the widening is designed and not applied.**
+
+`cfg_words.py` carried, beside the S27-3 note, the line *"Free bits in w2 for
+the fix: 24 and 26-29."* Bits 24 and 26–29 are the **zero bits of the `0xC2`
+signature**, not spare field space — and bit 24 in particular is exactly what
+would distinguish a `0xC2` word from a `0xC3` one. A session that had taken
+the comment at its word would have widened `DSP4_SHARED_KERNELS` into the
+signature and produced a word that decodes as a different register.
+
+Enumerated rather than eyeballed: **every one of bits 0..31 of
+`DIAG_BUILD_CFG2` has an owner** (the map is in
+`MW/D32/DSP/dsp4-s28-20260911.md` §3.1). So the fix is a THIRD word, for the
+same reason `DIAG_BUILD_CFG2` itself exists — the first one ran out and the
+answer was another word, not a re-layout. Designed in §3.2, computed today by
+`cfg_words.py --design-cfg3`: `shipping.config.s21` would read
+**`0xC30003FA`** and `shipping.config.s26` **`0xC3000FFA`**, which is the two
+words that are identical today telling themselves apart. Nothing in the
+firmware produces it and nothing checks it.
+
+### S28-6 — the two-anchor construction under-predicts every smaller product, and the control proves it is the product and not the night
+
+**Severity: method — it is what gate 2 exists to find. Status: measured on
+four products in one session.**
+
+Interpolating D24 and D32 and extrapolating below D24 gets chip 1 within
+**+0.74…+2.45 points** and chip 2 within **+1.80…+5.35 points**, and **every
+one of the sixteen deltas has the same sign**: the construction under-states the
+smaller products. The delta is not the instrument and not the session, because
+BOTH anchors were re-taken on the same night, on the same image, with the same
+script:
+
+| | chip 1 | chip 2 |
+|---|--:|--:|
+| D24 driven with the load, S27 | 59.82 | 84.37 |
+| D24 driven with the load, S28 control | 60.05 | 84.64 |
+| D32 driven with the load, S27 | 79.16 | 100.81 |
+| D32 driven with the load, S28 control | 79.16 | 100.82 |
+| both products, all four rows, S28 − S27 | −0.09 … +0.24 | −0.18 … +0.27 |
+
+**±0.27 points over sixteen comparisons is the resolution.** D12's +5.35 is
+twenty times it. D32's two overrunning rows reproduce to the block as well:
+1,914 and 1,943 missed of 270,000, against S27's 1,914 and 1,943.
+
+The mechanism is visible once there are four points instead of two. On the
+clean row — A, silent, the configuration the product boots with — the
+per-unit slopes are:
+
+| segment | chip 1, pts/strip | chip 2, pts/aux |
+|---|--:|--:|
+| D12 → D16 | +1.77 | +2.32 |
+| D16 → D24 | +1.74 | +2.39 |
+| **D24 → D32** | **+1.82** | **+3.29** |
+
+The first two segments agree to 0.03 and 0.07. The last one is dearer on both
+chips, and the reason is not the strips or the aux buses: **D32 is the only
+product that boots scope class 0**, which runs 32 nodes — eight snake returns,
+their eight chip-1 transfers, their eight chip-2 receives, and the eight
+chip-2 aux inputs — that every other product in the range gates off. The
+D24→D32 line carries that step as if it were per-strip and per-aux cost, and
+extrapolating it down to twelve channels subtracts it four times over.
+
+Two consequences. **For the range**: the smaller products are cheaper than
+D24 by about 1.75 points of chip 1 a strip and 2.36 of chip 2 an aux bus, not
+by the 1.82/3.29 the two-anchor line says — a conservative error, in the
+direction that makes a product look tighter than it is, which is the harmless
+direction to be wrong in. **For the method**: two anchors that differ in more
+than one thing cannot separate those things, and this pair differs in three
+(channels, aux buses, scope class). The fit table now has four anchors and
+`product_fit.py` prints the per-segment slopes so the step is visible rather
+than averaged away.
+
 ## THE SHARED CLASSES COST NOTHING, AND THREE INSTRUMENTS THAT COULD NOT FAIL (2026-09-10/11, session 27)
 
 Session: the cycle half of S26's result, the window candidate assembled in one

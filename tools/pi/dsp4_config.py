@@ -45,7 +45,23 @@ CFG_OUT_MUX = 0xF003
 CFG_COMMIT = 0xF004
 CFG_PATCH_BASE = 0xF010
 
-PRODUCT_IDS = {'d32': 0, 'd24': 1}
+# CFG_PRODUCT_ID IS A SCOPE CLASS, NOT A PRODUCT IDENTITY (S28-4).
+#
+# `_scope_gates_apply` keeps the nodes whose `scope=` equals this word and
+# forces the rest off, and the graph carries exactly two scopes: `D32` (the
+# eight snake returns, their chip-1 transfers and their chip-2 receives --
+# 32 nodes) and `D24` (`C2_MON_OUT` and `C2_CODEC_AUX_OUT`). So the word
+# selects one of TWO classes and there is no third value to give a third
+# product.
+#
+# D16 and D12 define `mon,1` and no snake, which is the class id 1 selects,
+# so they send 1 as well -- and the part then cannot tell a D16 from a D24
+# by PRODUCT_ID. It CAN tell them apart by `_chan_mask_live` /
+# `_aux_mask_live`, which every bench tool already reads off the part, and
+# that is what the S28 driven rows are identified by. Widening the word so
+# a product can name itself is designed in MW/D32/DSP/dsp4-s28-20260911.md
+# gate 3 and deliberately not applied inside the release window.
+PRODUCT_IDS = {'d32': 0, 'd24': 1, 'd16': 1, 'd12': 1}
 
 # D24 console-channel interleave (product-config.md): packed RX DMA
 # channel i is delivered to the slot var of default index PATCH[i].
@@ -84,6 +100,33 @@ PRODUCT_CONFIG = {
         CFG_AUX_MASK: 0x000000FF,    # 8 aux buses
         CFG_OUT_MUX: 0,          # B_O2 = codec
         'input_patch': D24_INPUT_PATCH,   # chip 1 only
+    },
+    # D16 AND D12 (S28). Every number here comes from the product def in
+    # `defs/products/<p>/<p>.csv` -- d16 `ch,16` / `aux,6`, d12 `ch,12` /
+    # `aux,4` -- and from nothing else. Both are STRICT CELL SUBSETS of D24
+    # (S28 gate 1: cells(D12) subset cells(D16) subset cells(D24)), so they
+    # need no address, no lane and no firmware of their own; they are the
+    # one image with two more masks.
+    #
+    # NO INPUT PATCH. The D24 entry above carries one because a D24's ADC8s
+    # deliver channels interleaved (AD0 = ch 1-4 & 13-16). That interleave is
+    # a statement about D24 CONSOLE HARDWARE and this repo has no hardware
+    # map for a D16 or a D12, so a patch invented here would be a guess
+    # dressed as a definition. Identity it is, and the rev C bench -- which
+    # is a D24 board -- is where the S28 driven rows were taken, so the patch
+    # is not what those rows measure. Flagged in the write-up as the one
+    # thing a real D16 has to bring with it.
+    'd16': {
+        CFG_PRODUCT_ID: 1,       # the D24 scope class: monitor out, no snake
+        CFG_CHAN_MASK: 0x0000FFFF,   # 16 strips
+        CFG_AUX_MASK: 0x0000003F,    # 6 aux buses
+        CFG_OUT_MUX: 0,          # B_O2 = codec
+    },
+    'd12': {
+        CFG_PRODUCT_ID: 1,
+        CFG_CHAN_MASK: 0x00000FFF,   # 12 strips
+        CFG_AUX_MASK: 0x0000000F,    # 4 aux buses
+        CFG_OUT_MUX: 0,
     },
 }
 
