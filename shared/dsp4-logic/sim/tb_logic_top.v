@@ -28,8 +28,6 @@ module tb_logic_top;
     reg sysclk = 1'b0;
     always #(SYS_HALF) sysclk = ~sysclk;
 
-    reg  [2:0] ic_strap  = 3'b000;
-    reg  [1:0] il_strap  = 2'b00;
     reg        strap_d32 = 1'b0;
     reg  [7:0] o_dspb    = 8'h00;
     reg  [3:0] ad        = 4'h0;
@@ -40,12 +38,13 @@ module tb_logic_top;
     reg        pcm_dout  = 1'b0;
 
     wire dsp_clk, cdc_i, snake_out, dac_main, blink_led;
+    wire conv_bck, conv_fs;
     wire pcm_clk, pcm_fs, pcm_din;
     wire [7:0] bcki, fsi, i_dspa;
     wire [3:0] da, no, test;
 
     dsp4_logic_top dut (
-        .sysclk(sysclk), .ic_strap(ic_strap), .il_strap(il_strap),
+        .sysclk(sysclk), .conv_bck(conv_bck), .conv_fs(conv_fs),
         .strap_d32(strap_d32), .dsp_clk(dsp_clk),
         .bcki(bcki), .fsi(fsi), .i_dspa(i_dspa), .o_dspb(o_dspb),
         .ad(ad), .da(da), .ni(ni), .no(no),
@@ -70,6 +69,20 @@ module tb_logic_top;
         dut.u_pcm.tdm_out  = 1'b0;
         dut.hb             = 25'd0;
         dut.dsp_clk_q      = 1'b0;
+    end
+
+    // ---- Converter / option-slot clock pair ----
+    // conv_bck/conv_fs must be the SAME pair the DSPA input halves run
+    // on (bcki[0]/fsi[0]): converters, option slots and the DSP share
+    // one frame, which is what makes the ad -> i_dspa wire-through
+    // legitimate. Sampled every sysclk edge, so a pin that is driven but
+    // from the wrong net fails as loudly as one that is not driven.
+    integer conv_mismatch = 0;
+    integer conv_samples  = 0;
+    always @(posedge sysclk) begin
+        conv_samples = conv_samples + 1;
+        if (conv_bck !== bcki[0] || conv_fs !== fsi[0])
+            conv_mismatch = conv_mismatch + 1;
     end
 
     integer errors = 0;
@@ -246,6 +259,10 @@ module tb_logic_top;
         sweep_routing;
 
         #(1024.0 * 2.0 * SYS_HALF * 2.5);   // let the clock checks run
+
+        check(conv_samples > 100, "converter clock check never ran");
+        check(conv_mismatch == 0,
+              "conv_bck/conv_fs are not the TDM8 pair (bcki[0]/fsi[0])");
 
         check(dsp_edges > 100, "dsp_clk is not toggling");
         check(dsp_bad_period == 0, "dsp_clk period is not 2 sysclk cycles");

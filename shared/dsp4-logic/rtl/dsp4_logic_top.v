@@ -31,10 +31,36 @@
 module dsp4_logic_top (
     input  wire        sysclk,      // pin 88, 49.152 MHz XO
 
-    // Format/config straps (IC0=TDM16, IC1=TDM8, IC2=I2S; IL0=FS,
-    // IL1=WC). DSP4 roles are fixed; sampled for future use.
-    input  wire [2:0]  ic_strap,    // {IC2, IC1, IC0}
-    input  wire [1:0]  il_strap,    // {IL1, IL0}
+    // ---- Converter / option-slot clock pair (U3 pins 142 and 141) ----
+    //
+    // THESE WERE INPUTS, AND THAT IS WHY NO CONVERTER CAN WORK. The rev C
+    // LOGIC sheet prints IC0-IC2 / IL0-IL1 beside pins 87/142/85/141/81
+    // and this design read all five as format-config STRAPS. The copper
+    // says otherwise for two of them (mx26 docs/d24-netlist-global.md (b)
+    // and (e), docs/d24-cpld-fanout.csv, netlist 2026-09-11):
+    //
+    //   pin 142 = board net C1. Fans out through five 33R taps: R111 to
+    //             the ADC/DAC FPC, and R65/R66/R67/R61 to BCK_1 (slot 2),
+    //             BCK_2 (slot 1), BCK_3 (slot 3), BCK_4 (D32 header J33).
+    //   pin 141 = board net L0. Same shape: R112 to the FPC, R62/R63/R64
+    //             /R60 to FS_1/FS_2/FS_3/FS_4.
+    //
+    // U3.142 and U3.141 are the ONLY active device pins on those two
+    // nets. Nothing else can drive them, so as inputs the converters and
+    // all three option slots get no bit clock and no frame sync at all.
+    // That the ADC lanes pass through this CPLD as a plain WIRE
+    // (i_dspa[0] = ad[0]) is the same fact from the other side: the
+    // converter frame has to BE the DSP frame, which it can only be if
+    // one generator makes both.
+    //
+    // The three that really are spare are pins 87 (C0), 85 (C2) and 81
+    // (L1): single-pin nets, routed to nothing, the second and third
+    // clock pairs the design reserved and never used. They are dropped
+    // from the port list here rather than read as straps -- an input pin
+    // on a net with no driver samples noise -- and the qsf's global
+    // RESERVE_ALL_UNUSED_PINS leaves them tri-stated with a weak pull-up.
+    output wire        conv_bck,    // pin 142 (C1): 12.288 MHz, TDM8
+    output wire        conv_fs,     // pin 141 (L0): 48 kHz frame sync
     input  wire        strap_d32,   // S4: product personality (PROV.)
 
     output wire        dsp_clk,     // pin 140 -> both DSPs' SYS_CLKIN0
@@ -270,6 +296,21 @@ module dsp4_logic_top (
     assign no[2] = o_dspb[6];
     assign no[3] = o_dspb[7];
 
+    // ---- Converter / option-slot clock pair ----
+    // The same bck8/fs8 the DSPA input halves and the DSPB output halves
+    // run on (bcki[0]/fsi[0], bcki[5]/fsi[5]), so the converter frame,
+    // the option-slot frame and the DSP frame are one frame by
+    // construction -- which is what the wire-through lanes require and
+    // what the slot map's sample-rising/launch-falling convention means
+    // on the analog side too.
+    //
+    // ONE pair serves the converters AND all three option slots; there
+    // is no per-slot clock on this board, only 33R copies of this pin.
+    // So an option lane cannot be moved to TDM16 without moving the
+    // converters with it -- see the S34 write-up.
+    assign conv_bck = bck8;
+    assign conv_fs  = fs8;
+
     // ---- Bring-up test points ----
     // Existing clkgen nets only, so LE count is unchanged (156); the
     // cost is 4 pins plus the extra output loading on these nets, which
@@ -299,7 +340,7 @@ module dsp4_logic_top (
     end
 
     // Straps/strobes currently unused; keep referenced.
-    wire _unused = ^{ic_strap, il_strap, bck8_sample,
+    wire _unused = ^{bck8_sample,
                      bck16_sample, bck16_launch, fs16, bck16};
 
 endmodule

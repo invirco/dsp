@@ -34,12 +34,15 @@ set_global_assignment -name RESERVE_ALL_UNUSED_PINS "AS INPUT TRI-STATED WITH WE
 set_location_assignment PIN_88  -to sysclk
 set_location_assignment PIN_140 -to dsp_clk
 
-# ---- Straps ----
-set_location_assignment PIN_87  -to ic_strap[0]
-set_location_assignment PIN_142 -to ic_strap[1]
-set_location_assignment PIN_85  -to ic_strap[2]
-set_location_assignment PIN_141 -to il_strap[0]
-set_location_assignment PIN_81  -to il_strap[1]
+# ---- Converter / option-slot clock pair (was read as straps) ----
+# Pins 142 (C1) and 141 (L0) are the bit clock and frame sync for the
+# ADC/DAC FPC and for all three option slots, through 33R taps; U3 is
+# their only driver. Pins 87 (C0), 85 (C2) and 81 (L1) are single-pin
+# nets that reach nothing and are now left to the global unused-pin
+# reservation instead of being sampled as straps. See the port comment
+# in rtl/dsp4_logic_top.v and the S34 write-up.
+set_location_assignment PIN_142 -to conv_bck
+set_location_assignment PIN_141 -to conv_fs
 set_location_assignment PIN_70  -to strap_d32
 
 # ---- DSP clock pairs ----
