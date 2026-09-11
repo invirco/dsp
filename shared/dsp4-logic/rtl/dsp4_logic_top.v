@@ -164,8 +164,38 @@ module dsp4_logic_top (
     assign da[2] = 1'b0;                            // D32_COMPAT only
     assign da[3] = o_dspb[1];                       // DAC 9-16 (DA_LANE_B_O1)
     assign cdc_i = strap_d32 ? 1'b0 : o_dspb[2];    // D24 codec DAC
-    assign snake_out = strap_d32 ? o_dspb[2] : 1'b0;
-    assign dac_main = o_dspb[3];                    // parked lane
+
+    // ---- X-logic parking: DRIVEN ON D32, HIGH-Z ON D24 (S36) ----
+    //
+    // snake_out (pin 110) and dac_main (pin 111) are not spare pads. Each
+    // is a three-board net: U3.110 = LOGIC_PLL5_1 = G2667 reaches
+    // `opt2: SLOT.A13` as well as `digital: J18.74 / J2.A13 [NO7]`, and
+    // U3.111 = LOGIC_PLL5_2 = G2668 reaches `opt2: SLOT.A10` as well as
+    // `digital: J18.71 / J2.A10 [NO4]`. On a D24 both had a CONSTANT
+    // driver here -- snake_out a hard 1'b0, dac_main the live B_O3 TDM8
+    // lane -- so the day an option card is fitted to slot 2 and drives its
+    // own A-row, two CMOS outputs meet with no series resistance. That is
+    // a fight, not a contention the 33R taps can absorb, and it is on
+    // COPPER THAT ALREADY EXISTS: nothing has to be added to the board for
+    // it to happen, only a card fitted.
+    //
+    // The fix is to drive them only on the product that uses them. On D32
+    // (strap_d32 = 1) they are the snake send and the main DAC lane and
+    // must drive; on D24 they carry nothing this design needs -- the Pi
+    // capture reads o_dspb[3] INTERNALLY as `tdm_in`, never through the
+    // pin -- so high-Z costs the D24 nothing and hands slot 2 its own
+    // lanes back.
+    //
+    // WHY NOT MOVE THE PINS. Pins 81/85/87 (L1/C2/C0) really are dead:
+    // the hub's fan-out table gives all three `(nothing - single-pin net)`
+    // on the dsp board alone, so parking a driven output there would reach
+    // nobody. But ONE bitstream serves D24 and D32 (strap_d32 is a runtime
+    // strap, not a build switch -- dsp4-architecture-decisions.md), so
+    // moving snake_out/dac_main to dead pads would forfeit the D32 role
+    // that these pins exist for. Tri-stating keeps both products correct
+    // in one image.
+    assign snake_out = strap_d32 ? o_dspb[2] : 1'bz;
+    assign dac_main  = strap_d32 ? o_dspb[3] : 1'bz;
     assign no[0] = o_dspb[4];                       // NET 1-8
     assign no[1] = o_dspb[5];
     assign no[2] = o_dspb[6];

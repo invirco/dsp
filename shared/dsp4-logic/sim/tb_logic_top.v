@@ -192,9 +192,16 @@ module tb_logic_top;
             check(da[3] === o_dspb[1], "DA3 != B_O1 (DA_LANE_B_O1)");
             check(cdc_i === (strap_d32 ? 1'b0 : o_dspb[2]),
                   "codec DAC lane wrong for personality");
-            check(snake_out === (strap_d32 ? o_dspb[2] : 1'b0),
-                  "snake out lane wrong for personality");
-            check(dac_main === o_dspb[3], "DAC MAIN != B_O3");
+            // X-LOGIC PARKING (S36). Both pins are option-slot-2 A-row
+            // lanes, so on a D24 they must be HIGH-Z, not driven to a
+            // constant. `===` is the point of this check: it distinguishes
+            // 1'bz from 1'b0, which `==` would not. Driving them was the
+            // defect, so the wrong answer this gate has to fail on is a
+            // DRIVEN D24 pin, whatever value it carries.
+            check(snake_out === (strap_d32 ? o_dspb[2] : 1'bz),
+                  "snake_out must drive B_O2 on D32 and be high-Z on D24");
+            check(dac_main === (strap_d32 ? o_dspb[3] : 1'bz),
+                  "dac_main must drive B_O3 on D32 and be high-Z on D24");
             check(no[0] === o_dspb[4], "NO0 != B_O4");
             check(no[1] === o_dspb[5], "NO1 != B_O5");
             check(no[2] === o_dspb[6], "NO2 != B_O6");
