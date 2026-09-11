@@ -38,6 +38,14 @@ bench md5s is not. **Byte-identity is asserted on the POF from here on**, and
 *copy* — which is what `logic_flash.sh` uses it for — but it is not a rebuild
 check.
 
+Two more artifacts were rebuilt to underwrite the method rather than assume it:
+**`dsp4_logic.a1f6672af6c3` — the bitstream on the part — rebuilds from
+`a4ee3d1f` with a byte-identical pof** (157/71, independently confirming
+S35-3 today), and S35's step-0 candidate `138dba7274d6` likewise (157/68). And
+**two independent clean builds of the same ref produce identical pofs**, so a
+rebuild whose bytes differ from a committed artifact's is a real source
+difference and not fitter noise — the property S36-3's census depends on.
+
 Nothing was deleted. The retired pair is in
 `shared/dsp4-logic/bitstream/retired/` with a README carrying both md5s and both
 design IDs. **Deliberately not `attic/`**, which the dispatch asked for: CLAUDE.md
