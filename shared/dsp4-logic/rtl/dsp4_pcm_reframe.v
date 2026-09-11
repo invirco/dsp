@@ -64,6 +64,14 @@ module dsp4_pcm_reframe #(
     // logical 48 kHz channels; LOGIC does the re-framing, as it already
     // does today.
     parameter integer PI_TDM8 = 0,
+    // Which TDM8 slots of the OUTGOING lane carry the Pi's two channels.
+    // 0/1 is the shipping placement (a lane of its own, A_I6). S34's
+    // packing branch moves them to 6/7 so codec (0-3) and MEMS (5) can
+    // share the lane; nothing else in the re-framer changes, because the
+    // Pi words are already held in pw_flat and only the slot they are
+    // replayed into moves. Ignored when PI_TDM8 = 1 (every slot is Pi).
+    parameter integer PI_OUT_SLOT_L = 0,
+    parameter integer PI_OUT_SLOT_R = 1,
     // PI_SELFTEST = 1 feeds the Pi's capture from its OWN de-framed
     // playback words instead of the DSP lane, so aplay -> LOGIC ->
     // arecord closes without the DSP in it. That isolates the two
@@ -360,10 +368,19 @@ module dsp4_pcm_reframe #(
     wire [4:0] tdm_bit = 5'd31 - bit_ix;
     wire [7:0] tdm_idx = {slot, tdm_bit};
 
+    // Source slot inside pw_flat for the re-targeted placement: the Pi's
+    // left word always lives at pw slot 0 and its right at pw slot 1, so
+    // only the OUTPUT slot moves.
+    wire pi_out_l = (slot == PI_OUT_SLOT_L[2:0]);
+    wire pi_out_r = (slot == PI_OUT_SLOT_R[2:0]);
+    wire [7:0] tdm_idx_pi = {2'b00, pi_out_r, tdm_bit};
+
     always @(posedge sysclk) begin
         if (bck8_launch) begin
-            if (PI_TDM8 || slot < 3'd2)
+            if (PI_TDM8)
                 tdm_out <= pw_flat[tdm_idx];
+            else if (pi_out_l || pi_out_r)
+                tdm_out <= pw_flat[tdm_idx_pi];
             else
                 tdm_out <= 1'b0;
         end
