@@ -93,14 +93,14 @@ MIX_2,5,BUS_MTX_01,BOTH,matrix output buses (def key mtx); global mix slots 37-4
 MIX_2,6,BUS_MTX_02,BOTH,
 MIX_2,7,BUS_MTX_03,BOTH,
 MIX_2,8,BUS_MTX_04,BOTH,global mix slot 40; slots 41-127 reserved
-B_O0,0,DAC_01,BOTH,
-B_O0,1,DAC_02,BOTH,
-B_O0,2,DAC_03,BOTH,
-B_O0,3,DAC_04,BOTH,
-B_O0,4,DAC_05,BOTH,
-B_O0,5,DAC_06,BOTH,
-B_O0,6,DAC_07,BOTH,
-B_O0,7,DAC_08,BOTH,
+B_O0,0,DAC_08,BOTH,AK4458 U81 ch 1 -> rear XLR OUT_8 (netlist-traced: channel n leaves on OUT_(9-n))
+B_O0,1,DAC_07,BOTH,AK4458 U81 ch 2 -> rear XLR OUT_7 (netlist-traced: channel n leaves on OUT_(9-n))
+B_O0,2,DAC_06,BOTH,AK4458 U81 ch 3 -> rear XLR OUT_6 (netlist-traced: channel n leaves on OUT_(9-n))
+B_O0,3,DAC_05,BOTH,AK4458 U81 ch 4 -> rear XLR OUT_5 (netlist-traced: channel n leaves on OUT_(9-n))
+B_O0,4,DAC_04,BOTH,AK4458 U81 ch 5 -> rear XLR OUT_4 (netlist-traced: channel n leaves on OUT_(9-n))
+B_O0,5,DAC_03,BOTH,AK4458 U81 ch 6 -> rear XLR OUT_3 (netlist-traced: channel n leaves on OUT_(9-n))
+B_O0,6,DAC_02,BOTH,AK4458 U81 ch 7 -> rear XLR OUT_2 (netlist-traced: channel n leaves on OUT_(9-n))
+B_O0,7,DAC_01,BOTH,AK4458 U81 ch 8 -> rear XLR OUT_1 (netlist-traced: channel n leaves on OUT_(9-n))
 B_O1,0,DAC_09,BOTH,
 B_O1,1,DAC_10,BOTH,
 B_O1,2,DAC_11,BOTH,

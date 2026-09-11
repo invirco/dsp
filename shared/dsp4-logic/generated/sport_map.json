@@ -1,6 +1,6 @@
 {
   "generated_by": "shared/dsp4-logic/gen_slot_map.py",
-  "source_hash": "2c53de21b8c80973a8ea8935b70fbc908f2341561dc28e32600caf8f09572ed8",
+  "source_hash": "26d68e1fcbfc44fef495ea5b02145030268948673789e87ebab8f2aa7da85ee2",
   "sport_convention": "sport_id = DAI port index; I ports are RX, O ports are TX; chip1=DSPA, chip2=DSPB",
   "timing": {
     "sample_edge": "rising",
@@ -1266,43 +1266,51 @@
           "slots": [
             {
               "slot": 0,
-              "signal": "DAC_01",
-              "scope": "BOTH"
+              "signal": "DAC_08",
+              "scope": "BOTH",
+              "note": "AK4458 U81 ch 1 -> rear XLR OUT_8 (netlist-traced: channel n leaves on OUT_(9-n))"
             },
             {
               "slot": 1,
-              "signal": "DAC_02",
-              "scope": "BOTH"
+              "signal": "DAC_07",
+              "scope": "BOTH",
+              "note": "AK4458 U81 ch 2 -> rear XLR OUT_7 (netlist-traced: channel n leaves on OUT_(9-n))"
             },
             {
               "slot": 2,
-              "signal": "DAC_03",
-              "scope": "BOTH"
+              "signal": "DAC_06",
+              "scope": "BOTH",
+              "note": "AK4458 U81 ch 3 -> rear XLR OUT_6 (netlist-traced: channel n leaves on OUT_(9-n))"
             },
             {
               "slot": 3,
-              "signal": "DAC_04",
-              "scope": "BOTH"
+              "signal": "DAC_05",
+              "scope": "BOTH",
+              "note": "AK4458 U81 ch 4 -> rear XLR OUT_5 (netlist-traced: channel n leaves on OUT_(9-n))"
             },
             {
               "slot": 4,
-              "signal": "DAC_05",
-              "scope": "BOTH"
+              "signal": "DAC_04",
+              "scope": "BOTH",
+              "note": "AK4458 U81 ch 5 -> rear XLR OUT_4 (netlist-traced: channel n leaves on OUT_(9-n))"
             },
             {
               "slot": 5,
-              "signal": "DAC_06",
-              "scope": "BOTH"
+              "signal": "DAC_03",
+              "scope": "BOTH",
+              "note": "AK4458 U81 ch 6 -> rear XLR OUT_3 (netlist-traced: channel n leaves on OUT_(9-n))"
             },
             {
               "slot": 6,
-              "signal": "DAC_07",
-              "scope": "BOTH"
+              "signal": "DAC_02",
+              "scope": "BOTH",
+              "note": "AK4458 U81 ch 7 -> rear XLR OUT_2 (netlist-traced: channel n leaves on OUT_(9-n))"
             },
             {
               "slot": 7,
-              "signal": "DAC_08",
-              "scope": "BOTH"
+              "signal": "DAC_01",
+              "scope": "BOTH",
+              "note": "AK4458 U81 ch 8 -> rear XLR OUT_1 (netlist-traced: channel n leaves on OUT_(9-n))"
             }
           ]
         },
