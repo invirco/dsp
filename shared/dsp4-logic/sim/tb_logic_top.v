@@ -28,8 +28,8 @@ module tb_logic_top;
     reg sysclk = 1'b0;
     always #(SYS_HALF) sysclk = ~sysclk;
 
-    reg  [2:0] ic_strap  = 3'b000;
-    reg  [1:0] il_strap  = 2'b00;
+
+
     reg        strap_d32 = 1'b0;
     reg  [7:0] o_dspb    = 8'h00;
     reg  [3:0] ad        = 4'h0;
@@ -40,12 +40,13 @@ module tb_logic_top;
     reg        pcm_dout  = 1'b0;
 
     wire dsp_clk, cdc_i, snake_out, dac_main, blink_led;
+    wire conv_bck, conv_fs;
     wire pcm_clk, pcm_fs, pcm_din;
     wire [7:0] bcki, fsi, i_dspa;
     wire [3:0] da, no, test;
 
     dsp4_logic_top dut (
-        .sysclk(sysclk), .ic_strap(ic_strap), .il_strap(il_strap),
+        .sysclk(sysclk), .conv_bck(conv_bck), .conv_fs(conv_fs),
         .strap_d32(strap_d32), .dsp_clk(dsp_clk),
         .bcki(bcki), .fsi(fsi), .i_dspa(i_dspa), .o_dspb(o_dspb),
         .ad(ad), .da(da), .ni(ni), .no(no),

@@ -33,8 +33,8 @@ module dsp4_logic_top (
 
     // Format/config straps (IC0=TDM16, IC1=TDM8, IC2=I2S; IL0=FS,
     // IL1=WC). DSP4 roles are fixed; sampled for future use.
-    input  wire [2:0]  ic_strap,    // {IC2, IC1, IC0}
-    input  wire [1:0]  il_strap,    // {IL1, IL0}
+    output wire        conv_bck,    // pin 142 (C1): 12.288 MHz, TDM8
+    output wire        conv_fs,     // pin 141 (L0): 48 kHz frame sync
     input  wire        strap_d32,   // S4: product personality (PROV.)
 
     output wire        dsp_clk,     // pin 140 -> both DSPs' SYS_CLKIN0
@@ -182,6 +182,9 @@ module dsp4_logic_top (
     // remembered percentage).
     // Together these prove clock generation and frame alignment on a
     // scope without a DSP image loaded.
+    assign conv_bck = bck8;
+    assign conv_fs  = fs8;
+
     assign test[0] = fs8;             // TEST1: 48 kHz frame sync, TDM8
     assign test[1] = bck8;            // TEST2: 12.288 MHz bit clock
     assign test[2] = fs16;            // TEST3: 48 kHz frame sync, TDM16
@@ -200,7 +203,7 @@ module dsp4_logic_top (
     end
 
     // Straps/strobes currently unused; keep referenced.
-    wire _unused = ^{ic_strap, il_strap, bck8_sample,
+    wire _unused = ^{bck8_sample,
                      bck16_sample, bck16_launch, fs16, bck16};
 
 endmodule
