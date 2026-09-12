@@ -6,6 +6,261 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE INSTRUMENT WAS WRONG, THE CONVERTERS ARE RUNNING, AND THE CAPTURE IS ONE BIT LATE (2026-09-12, session 39)
+
+Three S38 findings were readings of a host symbol map that does not belong to
+the image on the part, and all three invert when the map is right. Corrected:
+the per-strip node state was never zero, the block-cost instrument was never
+missing, and the input lanes were never dead — **every one of the twelve chip-1
+converter lanes is live and carrying a per-lane-distinct noise floor**, which
+settles the converter-clock question by construction. Audio still does not
+reach the XLR and there is now a named systemic reason: **the SPORT RX capture
+is one bit late on every lane.** Full write-up
+`MW/D24/DSP/dsp4-s39-20260912.md`.
+
+### S39-1 — the bench symbol map is not the running image's, and it cost three findings
+
+**Severity: CRITICAL (instrument). Status: CLOSED, with a guard.**
+
+Every "it reads zero" result on this bench came through `peek(sym[name])`. None
+of the three conclusions drawn from it follows from the source: the node state
+block's `.var` initialisers are `1.0` / `1.0` / `0x10000000`, not zero;
+`main.asm` writes `_proc_cyc`/`_proc_cyc_max`/`_proc_passes` on both chips with
+**no `#if` around them**, so "an uninstrumented build" is not a state this tree
+can produce; and `_rx_slot_C1_IN_nn` is dead by construction (S39-6).
+
+**The discriminator asks the same variable by two routes that share nothing.**
+The SPI parameter read resolves its address through `_spi_dispatch_c1` INSIDE
+the image, and `spi_handler.asm`'s `.spi_read` reads the very DM word the write
+path targets — there is no shadow store in that file. On `blk_*`:
+
+    _gain_coeff_C1_GAIN_01   peek 0x00000000  |  spi 0x0000 read 0x3F800000
+    _fdr_level_C1_FDR_01     peek 0x00000000  |  spi 0x0050 read 0x3F800000
+
+`0x3F800000` is `1.0f` — the built initialiser exactly. The kernel is right and
+the map is wrong.
+
+**That the MAP is the variable is proved by construction, not argued.** A pair
+was built from the tracked tree and its map generated from its own
+`chip1.map.xml`. Booted, the same three registers peeked through both maps:
+
+| symbol | new image + **its own** map | new image + the **bench** map |
+|---|---|---|
+| `_diag_ticks` | 17,355 | 0 |
+| `_spi_rx_count` | 179 | 0 |
+| `_frame_count` | 63,132 | 0 |
+
+Same part, same instant, same peek window.
+
+**The part says so itself: `blk_*` reads `DIAG_BUILD_CFG2 = 0x00000000` on both
+chips.** That register exists in every current build and the shipping value is
+`0xC2010244`; the fresh pair reads exactly that. An image answering 0 there
+predates the register. The bench map is 216,077 bytes — the size of the map
+regenerated from the `build/chip1.map.xml` left in the tree on Sep 11 (S37 arm
+A, `6396187c`), a different build from the `ac65ad38` that was booted.
+
+**Consequence: no peek-addressed reading taken on `blk_*` is anchored, and that
+is a class of results, not three.** SPI parameter reads, DIAG registers and
+meters are unaffected — they resolve inside the image. The guard is
+`tools/pi/dsp4_s39_symcheck.py`: three registers, run before trusting any peek.
+
+### S39-2 — what writes per-strip node state on a D24: an SPI parameter write, and nothing else exists
+
+**Severity: HIGH. Status: CLOSED — the gap is a missing WRITER, not a missing mechanism.**
+
+`chip1/dsp_params.asm` is a generated table from SPI address to the DM address
+of the node's own variable (`0x0000` is literally `_gain_coeff_C1_GAIN_01`).
+`spi_handler.asm` writes the word directly for stride-0 entries and hands the
+rest to `_ramp_set_target`, which sets level AND target and clears frames. The
+read path indexes the same table to the same word. The change-detect is
+`_ctl_epoch[strip]`, bumped at `.spi_write_answer`. **There is no separate
+apply, commit or scene step anywhere in the kernel, and none is needed.**
+
+The gap is entirely host-side: `dsp4_config.py --product d24` writes the
+product SCOPE only (51 words chip 1, 5 chip 2), and `matrix-app` has no DSP
+address for any strip cell (0 `DspAdd` of 4985). **So a D24 boots with every
+strip at its build-time initialiser and nothing ever moves it.** That is the
+single-SOT item. `tools/pi/dsp4_apply_strip.py <strip> [aux]` is the missing
+writer — 13/13 cells written and read back correct, with no `peek` in it.
+
+### S39-3 — GATE 4: the mechanism is "more work", not "the boundary moved"
+
+**Severity: HIGH. Status: CLOSED, and it did not need the bitstream pair.**
+
+Read through a matching map, on the fresh pair:
+
+| | chip 1 | chip 2 |
+|---|---|---|
+| `_proc_cyc` / `_proc_cyc_max` | 376,593 / 378,202 | 337,969 / 338,703 |
+| per-block budget at 983.04 MHz | 327,680 | 327,680 |
+| **cost as a share of budget** | **114.9 %** | **103.1 %** |
+| `_proc_passes` in 30.0 s | 2612.5/s | 2910.2/s |
+| **shortfall against 3000/s** | **12.92 %** | **2.99 %** |
+| predicted by 1 − 1/cost | 12.97 % | 3.01 % |
+
+Repeat 20 s later: chip 1 114.3 % predicts 12.51 %, measured 12.49 %; chip 2
+104.0 % predicts 3.85 %, measured 3.59 %. The denominator is anchored — the
+diag tick rate measures 1000.03 / 1000.00 Hz, ratio 1.00003.
+
+**The discriminator: `DIAG_FRAME_COUNT` advances at 3000.0/s on chip 1 (45,010
+in 15.00 s) while `_proc_passes` advances at 2612/s on the same chip in the
+same window.** The boundary is on time to five figures; the work does not
+finish inside it. Two counters on one boot separate the hypotheses, because
+they measure the boundary and the work independently — the old-bitstream arm
+could only have said how many cycles the converter clock ADDS.
+
+**The bitstream arm was not available and correctly so:** AN_EN is HIGH,
+`logic_flash.sh` refuses at exit 5 before any write with AN_EN high, and GPIO26
+must never be written by this session. Recorded as not-run, not skipped.
+
+**The figure that outlives the mechanism: both chips are OVER the per-block
+budget on the shipping configuration** — chip 1 by 15 %, chip 2 by 3–4 %. S38-4
+said they sit close to it. They are past it.
+
+### S39-4 — the SPORT RX capture is ONE BIT LATE on every input lane
+
+**Severity: CRITICAL. Status: OPEN — this is the defect standing between this
+unit and first audio.**
+
+Read where the kernel reads (`_rx_active_buf + _c1_rx_off[e] + i*_c1_rx_stride[e]`),
+across all twelve chip-1 lanes, 288 words:
+
+| quarter of the range | words |
+|---|---|
+| `0x00000000`–`0x3FFFFFFF` (small +) | 140 |
+| `0x40000000`–`0x7FFFFFFF` | 148 |
+| `0x80000000`–`0xBFFFFFFF` | **0** |
+| `0xC0000000`–`0xFFFFFFFF` (small −) | **0** |
+
+**Bit 31 is never set on any word of any lane; the low 7 bits never are
+either.** Real signed audio cannot do that; a capture one bit late does exactly
+this — the sign bit lands in bit 30, a zero is shifted in above it, so
+`0xFFF9F000` arrives as `0x7FFCF800`. Scored both ways: as received, peak
+−0.00 dBFS / rms ≈ −3 dBFS on every lane in every arm; shifted left one bit,
+peak ≈ −60 dBFS and rms −65 to −85 dBFS **varying per lane** (0.000054 to
+0.000593), which a dead, stuck or constant lane cannot do.
+
+**So the converters ARE clocked and converting** — twelve independent lanes,
+each with its own noise floor, in their own TDM slots, on a part whose block
+loop is locked to the same SPORT at exactly 3000 blocks/s. **This closes S34-1
+by construction and the standing `PROBE PLEASE` for J18 P37/P38 is no longer
+needed to establish it.** **S38-6 is refuted**: the lanes are not static zero,
+the twelve variables it scanned are.
+
+It is one bit, on every lane, so it is a SPORT frame-sync-to-data delay item,
+not a per-channel fault. Until it is fixed no level, gain law or meter reading
+on this unit means anything: it is what pins every meter at −0.00 dBFS peak /
+−3 dBFS rms even on a MUTED strip, saturates the aux bus at Q4.28 8.0
+(`Aux001Mtr001` +18.06 dBFS), and drives the AUX 1 DAC lane above full scale.
+
+### S39-5 — the DSP drives AUX 1's DAC lane; MIC 1 does not hear it. The break is analog-side
+
+**Severity: HIGH. Status: OPEN, and now localised.**
+
+Chip-2 TX DMA lane 0 follows `Aux001Mute001` exactly and ignores
+`Main001Mute001`, so it is AUX 1's output:
+
+| lane | both open | MAIN muted | **AUX 1 muted** |
+|---|---|---|---|
+| 0 | 1.538322 | 1.531704 | **0.000000** |
+| 1–7 | 0.000000 | 0.000000 | 0.000000 |
+
+1.538 in Q4.28 is +3.75 dBFS — the S39-4 artefact arriving at the DAC. Strip 1
+is live at every point in between (chip-1 taps trim/EQ/pre-fader;
+`_buf_C2_MIX_AUX_01`, `_buf_C2_AUX_AFB_01`, `_buf_C2_MIX_MAIN_L`,
+`_buf_C2_MAIN_FDR`, all 20/20 non-zero).
+
+**MIC 1's lane does not respond**, five arms on one boot, corrected reading:
+
+| arm | what drives AUX 1 | mic 1 lane rms |
+|---|---|---|
+| A | aux master MUTED, send off | 0.000339 |
+| B | aux open, ch1 send OFF | 0.000351 |
+| C | aux open, ch1 send −40 dB | 0.000397 |
+| D | aux open, ch1 send **0 dB** | 0.000380 |
+| E | aux master MUTED again | 0.000373 |
+
+Under 1 dB of spread and no ordering — D is not the loudest, A is not the
+quietest. **The DSP side is proven good from the strip to the TX DMA buffer;
+the break in the patched loop is on the converter/analog side of it.** Where
+exactly — DAC, AUX 1 output stage and its isolation link, XLR, mic front end,
+ADC — is still open.
+
+**Separate finding from the same table: only ONE of eight chip-2 TX lanes is
+ever non-zero.** MAIN's lanes are silent with MAIN unmuted, `Main001Level001`
+at unity and strip 1 routed to it, while `_buf_C2_MAIN_FDR` immediately
+upstream is live. Not yet root-caused.
+
+### S39-6 — `_buf_C1_IN_01` and `_rx_slot_C1_IN_nn` are not on the audio path under block kernels
+
+**Severity: HIGH (it invalidated a chain walk). Status: CLOSED.**
+
+`C1_IN_01.asm` says so in its own comment: under block kernels the kernel reads
+the DMA buffer directly and "the slot var is unreferenced — kept as a scalar
+purely so `block_io.asm`'s tables still resolve". `_C1_IN_01_process` reads the
+SPORT DMA buffer straight into `BLK_CHAIN_A`; every node after it works in
+BLOCK-word pool slots and the per-node scalars carry only the block's last
+sample. On the part, with a matching map: `_rx_slot_C1_IN_01` and
+`_buf_C1_IN_01` both `0x00000000`, while `_buf_C1_GAIN_01` reads `0x0FFF0540`
+(+0.99976 Q4.28) and `_gain_q_C1_GAIN_01` reads `0x10000000` (unity).
+
+**S38-5 injected into `_buf_C1_IN_01` and read `_buf_C1_GAIN_01`.** The first
+is not an input to anything; "the step dies at `_buf_C1_GAIN_01`" is what
+writing to a variable nothing reads looks like.
+
+**Instrument limit that applies to every pool reading:** a peek is a
+two-transaction handshake serviced once per block, so sixteen consecutive pool
+addresses come from sixteen DIFFERENT blocks. A pool read is a mosaic —
+"is this point ever non-zero over N blocks" is answerable, a waveform is not.
+
+### S39-7 — the channel fader has authority; the channel gain arm did not resolve
+
+**Severity: MEDIUM. Status: fader CLOSED, gain OPEN pending a stimulus.**
+
+`Chan001Level001` 1.0 → 0.1 against −20 dB expected: `_buf_C2_MIX_MAIN_L`
+−18.03 dB, `_buf_C2_MIX_AUX_01` −20.55 dB, `_buf_C2_MAIN_FDR` −21.92 dB, and
+the chip-1 **pre**-fader tap +0.78 dB, correctly unmoved. At `Level = 0.0` all
+three go to exact silence. The pre-fader tap holding while three post-fader
+points move together is what makes this a measurement rather than a
+coincidence.
+
+`Chan001Gain001` 1.0 → 0.1 gave −5.63 / −4.89 / −7.23 dB against −20 expected,
+and the pre-fader tap — DOWNSTREAM of GAIN — did not move at all. **Recorded
+as unresolved, not as a defect**: the stimulus is the S39-4 artefact, whose
+amplitude distribution is not linear in the true input, and the estimator's own
+scatter is ±2.5 dB (the same point read 0.1167 / 0.1347 / 0.1543 under
+identical conditions in one run). Needs a controlled stimulus, which needs
+S39-4 fixed.
+
+### S39-8 — the aux-master arm probed upstream of the aux fader and shows nothing
+
+**Severity: LOW (harness). Status: CLOSED — retake named.**
+
+`_buf_C2_MIX_AUX_01` is upstream of `C2_AUX_FDR_01`, so its non-response to
+`Aux001Level001` is correct behaviour and not evidence either way. Recorded so
+it is not later read as "the aux master has no authority". A retake needs a
+point downstream of the aux fader.
+
+### S39-9 — there is no in-kernel tone source, and `build/` is not the shipping image
+
+**Severity: LOW. Status: recorded.**
+
+`C1_NOISE`'s header says "Pink/white noise + tone generator"; the body is an
+LFSR and a pinking filter with **no oscillator**, and its output goes nowhere —
+`_buf_C1_NOISE` has no consumer in `process_chain.asm` and its route-bitmask
+dispatch entry (`0x128B`) is `0`, i.e. unmapped. `scope.asm` offers impulse and
+step only, and DC cannot cross an AC-coupled output. A host-toggled square
+(±`_scope_amp` in step mode) is possible but limited to a few hundred Hz and
+host-jittered. None was needed: the loop question was answered by controls with
+a negative arm, which is stronger than a tone.
+
+Separately: **`MW/D32/DSP/SHARC/build/` did not hold a shipping-default
+image.** It held `6396187c` / `df5cc181`, whose map contains `_blk_pool1` — a
+symbol that exists only with the paired graph on, while `shipping.config` has
+`DSP4_SIMD_DYN=0`. Today's plain `./build.sh` gives `30453a38` / `363d94ab`
+and no `_blk_pool1`. That is a build ARM left in a scratch directory, not build
+nondeterminism, and `build/` must not be read as "the shipping image".
+
 ## THE STEP-0 BITSTREAM IS ON THE PART, AND IT COSTS CHIP 1 ITS REAL-TIME MARGIN (2026-09-12, session 38)
 
 The converter-clock flash landed on the first attempt and the unit is on
