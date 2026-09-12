@@ -6,6 +6,227 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE STEP-0 BITSTREAM IS ON THE PART, AND IT COSTS CHIP 1 ITS REAL-TIME MARGIN (2026-09-12, session 38)
+
+The converter-clock flash landed on the first attempt and the unit is on
+`s37_shipping_step0.c62c024714f2`. The bar it was supposed to be invisible to
+is not met: **chip 1 drops one audio block in nine on the new bitstream and
+none on the old**, established with a rollback control rather than asserted
+from a single before/after. Chip 2 shows the mirror image — it is the OLD
+bitstream it is unstable on. Audio still does not pass, for reasons that have
+nothing to do with the flash. Full write-up `MW/D24/DSP/dsp4-s38-20260912.md`.
+
+### S38-1 — the AN_EN interlock is met by READING the pin, with matrix-app running
+
+**Severity: HIGH (it was the blocking gate). Status: CLOSED.**
+
+S35-1 blocked on `AN_EN` (GPIO26) being HIGH whenever `matrix-app` runs, because
+the old app asserted it unconditionally in `Boot.Init()`. The gated app
+(`a509053ca0a999de1ee7aabd9a234089`) does not. The pin was read at every gate of
+this session and was **`lo` every time** — with the app RUNNING at the dry run,
+and again with it stopped at each flash:
+
+    26: op -- pd | lo // GPIO26 = output
+
+and the app says so itself in `/home/app/logs/log`:
+
+    Boot.Init() - AN_EN gated (PW 2026-09-10): analogAutoEnable=false,
+    chain latch=CM4 GPIO 27 — bring-up runs after S_RUN
+
+So **no waiver was used, `--stop-app` was not needed for the interlock, and
+GPIO26 was never written by this session.** The interlock was satisfied on a
+reading, which is the whole point of putting it in the tool.
+
+One correction to the dispatch's wording: the log line it told us to confirm is
+`AN_EN gated … chain latch=CM4 GPIO 27`, which is present; the *other* line the
+app emits is `AnalogBringUp: AN_EN STAYS LOW — digital clocks not proven
+stable`, and it names the three gates it cannot yet see (`CPLD running, C1/L0
+present (Unknown); DSPs booted and streaming (Unknown); Converters out of RST_C
+(Unknown)`). The app states explicitly that **it does not boot the DSPs** — "SPI2
+slave boot runs outside this process (dsp4_boot.py, dsp repo) — no boot-state
+query" — so those gates stay `Unknown` no matter what the bench does.
+
+### S38-2 — the flash: three plays, three FLASH-OK on attempt 1
+
+**Severity: n/a (the gate). Status: CLOSED.**
+
+`s37_shipping_step0.c62c024714f2` is on the part. IDCODE `0x020a30dd` before and
+after every play; the rollback `dsp4_logic.a1f6672af6c3.svf`
+(`dd1e09185804cb2e451d5089cdd56be3`) was verified present on the bench before
+the first byte was written, and was never needed.
+
+| # | what | result |
+|---|---|---|
+| 1 | `./logic_flash.sh --dry-run s37_shipping_step0…` | exit 0, nothing written |
+| 2 | `./logic_flash.sh s37_shipping_step0…` | **FLASH-OK attempt 1** |
+| 3 | `./logic_flash.sh --rollback s37… dsp4_logic.a1f6672af6c3.svf` | FLASH-OK attempt 1 (the control) |
+| 4 | `./logic_flash.sh s37_shipping_step0…` | **FLASH-OK attempt 1** (restored) |
+
+The artifact carries no design ID by construction (S37-4), so its identity on the
+part is the md5 `d47b74c6c881b82a110491266a6bd31d` (svf) /
+`79284dad6e9c27995f91806056c9fba5` (pof) plus `/home/app/logic-flash.log`, and
+nothing else. S24's "a MAX V flash that fails twice and then works" did not
+recur: four plays, four clean.
+
+### S38-3 — the step-0 bitstream costs chip 1 its real-time margin: one block in nine
+
+**Severity: HIGH (it is the shipping design plus two "zero-cost" fixes).
+Status: OPEN — cause attributed, MECHANISM NOT FOUND.**
+
+Gate 4's bar is `blk_*` (`ac65ad38` / `e5dce9e4`), 30 s, zero overruns, both
+chips. **Chip 1 does not meet it on the new bitstream and does meet it on the
+old one.** This is an A/B/A with the DSP images md5-verified identical across
+every arm (`ac65ad386fb910b7bed7736872abae43` / `e5dce9e43c2c72290c115726ca31976c`)
+and the same boot+config recipe throughout:
+
+| bitstream | boots | chip 1 `BLK_OVERRUN` delta | verdict |
+|---|---|---|---|
+| `a1f6672af6c3` (old, pre-flash + control) | 6 | 0, 0, 0, 0, 0, 0 | **6/6 clean** |
+| `s37_shipping_step0` | 4 | ~332 /s every window | **4/4 fail** |
+
+The rate is deterministic to three figures: **9957 / 9957 / 9957 in 30 s** on
+three consecutive windows of one boot, then 6639 and 6673 in 20 s on two fresh
+boots, then 9602 in 30 s after the re-flash — 331.9…333.7 blocks/s against a
+3000/s block rate, i.e. **11.06 % of blocks, one in nine.** A loop that dropped
+one block in nine is a loop about 11 % over its per-block budget.
+
+**Four candidate causes are ruled out by measurement, not by argument:**
+
+* **Not the core clock.** The diag timer runs at 999.96 Hz on BOTH chips
+  (ratio to nominal 0.99996, identical to five figures). Same cycles available.
+* **Not the block rate.** `FRAME_COUNT` is 3000/s on both chips in both arms —
+  90,016 ± 3 blocks per 30 s window, every time.
+* **Not the transport.** `SPORT0_ERR_A` is `0x00000000` and `DMA0_STAT` is
+  `0x00006200` on both chips in both arms.
+* **Not input data.** All twelve `_rx_slot_C1_IN_nn` lanes read a **static
+  zero** on BOTH bitstreams (`inscan.py`, 6 reads each). The obvious story —
+  "the converters now have a clock, so the graph is doing real work on real
+  audio instead of taking the dynamics' cheap branch" — is **refuted at the
+  DSP input**. See S38-6.
+
+What the flash changed is two commits' worth of RTL: pins 142/141 go from
+INPUTS (`ic_strap[1]` / `il_strap[0]`, which fed nothing but the `_unused`
+reduction) to OUTPUTS driving `bck8` / `fs8`; and `snake_out` / `dac_main` go
+from constantly driven to high-Z with weak pull-ups on a D24. None of that is a
+DSP input, which is precisely why the result is surprising.
+
+**The discriminator that would settle it was not available on this image.**
+"More work per block" and "the same work against a block boundary that moved"
+are separated by the per-block cycle count, and `_proc_cyc`, `_proc_cyc_max`
+and `_proc_passes` all read **0 on both chips** — including on healthy chip 2,
+which is how we know that is an uninstrumented build and not a hung loop. It
+needs a `DSP4_TCOUNT` build of the same pair. **That is S39's first job**, and
+it is a desk build plus one boot.
+
+### S38-4 — chip 2 is unstable on the OLD bitstream, so there was never a clean baseline
+
+**Severity: MEDIUM. Status: OPEN.**
+
+The control arm was run five times and chip 2 was measured on each. It is the
+mirror image of chip 1:
+
+| bitstream | chip 2 `BLK_OVERRUN` delta per 20 s |
+|---|---|
+| `a1f6672af6c3` (old) | 0, **1492**, 0, **1493**, **1493** — 3 of 5 fail |
+| `s37_shipping_step0` | 0 on every window of every boot — clean |
+
+1492/1493 in 20 s is ~74.6 blocks/s, 2.5 % — a different and equally
+reproducible rate from chip 1's 11 %. So **the bitstream this unit has been
+running for three weeks does not reliably meet the bar either**, and any earlier
+"both chips, zero overruns" reading was a 2-in-5 draw on chip 2. Both chips sit
+close enough to the per-block budget that small changes tip them over; the
+margin, not either bitstream, is the real finding.
+
+### S38-5 — channel 1 cannot pass audio: the shipping config has no route, and the strip's node state is unwritten
+
+**Severity: HIGH (it blocks the first audio pass). Status: OPEN.**
+
+Gate 5 asked which output the shipping configuration routes channel 1 to. The
+answer is **none**: `dsp4_config.py --product d24` writes only the product SCOPE
+— `CFG_PRODUCT_ID`, `CFG_CHAN_MASK`, `CFG_AUX_MASK`, `CFG_OUT_MUX`, the patch
+list and `CFG_COMMIT` (51 words to chip 1, 5 to chip 2). Per-strip routing is not
+in it.
+
+The route was therefore set explicitly, by cell name out of `landed-d24.json`
+(`tools/pi/s38_ch1_main.py`, staged on the bench): every strip taken off the main
+bus and muted two independent ways first, then
+
+| cell | node | value |
+|---|---|---|
+| `Chan001Level001` | `C1_FDR_01` | `1.0f` (unity) |
+| `Chan001Pan001` | `C1_FDR_01` | centre |
+| `Chan001Mute001` | `C1_FDR_01` | 0 |
+| `Chan001MainOn001` | `C1_RTG_01` | 1 |
+| `Main001Level001` | `C2_MAIN_FDR` | `1.0f` |
+| `Main001Mute001` | `C2_MAIN_FDR` | 0 |
+
+**It still will not pass audio, and the chain walk says exactly where it stops.**
+Injecting a 0.25 step at `_rx_slot_C1_IN_01` with `dsp4_scope.py`:
+
+    _buf_C1_IN_01     0x04000000  +0.250000000   <- the injection is there
+    _buf_C1_GAIN_01   0x00000000  +0.000000000   <- it dies HERE
+    _buf_C1_FDR_01    0x00000000  +0.000000000
+    _buf_C1_RTG_01    junk (an unwritten buffer, see below)
+
+`C1_GAIN_01`'s **entire node state block is zero** — `_gain_coeff`,
+`_gain_target`, `_gain_step`, `_gain_frames`, `_gain_q`, `_mute`, `_polarity`,
+`_tap_post_trim`, all `0x00000000`. That is not "a gain of zero", it is a state
+block nothing has ever written: `_mute` would be 1 if it had been muted. Writing
+`Chan001Gain001` with ramp id 1 (the `gainfix.py` path), 0 and 2, polling ten
+seconds each, moves neither coefficient nor target — and `gainfix.py` itself
+reports `strip 1 still 0x00000000`.
+
+**A method note, because it nearly produced a wrong finding.** The first
+read-back said parameter writes were not landing on EITHER chip, which would
+have been a serious claim. It was wrong: `dsp4_conform.py --phase presence` over
+addresses 0–90 on chip 1 returns **`ECHO: 81`, part healthy at exit: True** — the
+parameter STORE takes every write and reads it back. The error was verifying a
+parameter write against the NODE's working symbol rather than against the store.
+The store is written; the node never applies it. Those are different defects and
+only the second one is real.
+
+So the open question for the first audio pass is **what writes per-strip node
+state on a D24**. It is not `dsp4_config.py`, and it is not `matrix-app` as
+observed here — `MW/D24/MX/_matrix.csv` carries **no DSP address backfill at all
+(0 of 4985 rows have `DspAdd`)**, so the app has no DSP address for
+`Chan001Gain001`; on the bench the cell is reachable only through
+`landed-d24.json`. Whether that is by design for D24 or a gap is a defs/contract
+question, not a bench one.
+
+### S38-6 — driving the converter clock pair did not, by itself, wake the converters
+
+**Severity: MEDIUM. Status: OPEN — needs PW's probe.**
+
+The point of step 0 is that U3 pins 142/141 now drive `bck8` (12.288 MHz) and
+`fs8` (48 kHz) to the ADC/DAC FPC and the three option slots, where before they
+were sampled as dead straps. The flash landed — and **all twelve chip-1 input
+lanes still read a static zero**, identically on both bitstreams. A lane fed by a
+clocked converter varies sample to sample on its own noise floor even with
+nothing plugged in; these do not move at all.
+
+That does not mean the clock is absent — it means a clock alone is not
+sufficient, and the CM4 cannot see the difference (S35-5: no CM4 GPIO reaches
+C1/L0/TEST1–4). **PROBE PLEASE: J18 P37 = 12.288 MHz, P38 = 48 kHz, or U3 pins
+142/141 at the source.** Until that is on a scope, "the converters have a clock"
+is an inference from the RTL diff and the fitter report, not a measurement, and
+S34-1 stays open.
+
+### S38-7 — `dsp4_diag.py --rate` has no MAGIC guard and reported a negative clock
+
+**Severity: MEDIUM (instrument). Status: OPEN — worked around, not fixed.**
+
+On chip 1 in its over-budget state, `dsp4_diag.py --chip 1 --rate 2.0` printed:
+
+    diag ticks      -54238  ->  -26274.1 Hz (nominal 1000 Hz at CCLK = 400 MHz)
+    implied CCLK    -10509.64 MHz
+
+A negative core clock is not a reading, it is a slipped link — `--rate` takes
+`TICKS` and `FRAME_COUNT` unguarded, and on a chip whose main loop is starved the
+answer can come from a different request. It does not refuse; it prints. The same
+counters read through a MAGIC-bracketed snapshot (`cclk.py`, this session) give
+999.96 Hz on the same chip seconds later. **Any CCLK figure taken with `--rate`
+on a loaded chip is suspect**; the guarded reader should be folded into the tool.
+
 ## THE BENCH MADE HONEST, AND THE GENERATOR DRIFT IS SEMANTIC (2026-09-11, session 37)
 
 Desk only; the unit was not touched and no ssh session was opened. `loadlogic.sh`
