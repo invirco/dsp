@@ -82,11 +82,11 @@ and the same boot+config recipe throughout:
 | bitstream | boots | chip 1 `BLK_OVERRUN` delta | verdict |
 |---|---|---|---|
 | `a1f6672af6c3` (old, pre-flash + control) | 6 | 0, 0, 0, 0, 0, 0 | **6/6 clean** |
-| `s37_shipping_step0` | 4 | ~332 /s every window | **4/4 fail** |
+| `s37_shipping_step0` | 5 | ~332 /s every window | **5/5 fail** |
 
 The rate is deterministic to three figures: **9957 / 9957 / 9957 in 30 s** on
 three consecutive windows of one boot, then 6639 and 6673 in 20 s on two fresh
-boots, then 9602 in 30 s after the re-flash — 331.9…333.7 blocks/s against a
+boots, then 6662 in 20 s after the re-flash and 9602 in 30 s on the final cold start — 331.9…333.7 blocks/s against a
 3000/s block rate, i.e. **11.06 % of blocks, one in nine.** A loop that dropped
 one block in nine is a loop about 11 % over its per-block budget.
 
