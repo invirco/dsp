@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-09-12 21:17Z — S40 — first audio for real: RX one-bit fix, MAIN on its TX lane, the AUX1→MIC1 loop heard, first dBFS measurements   [status: 🟡 dispatched]   [model: opus]
+## HUB DISPATCH 2026-09-12 21:17Z — S40 — first audio for real: RX one-bit fix, MAIN on its TX lane, the AUX1→MIC1 loop heard, first dBFS measurements   [status: 🟡 PAUSED by PW 2026-09-12 ~20:35 before any gate started — unit powered down for the night; relaunch with `tools/dispatch.sh --launch-only dsp "S40"` in the morning after the cold start (§10 of the S39 write-up, map-check first)]   [model: opus]
 
 model: opus
 
