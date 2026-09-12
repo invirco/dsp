@@ -211,6 +211,30 @@ C1/L0/TEST1–4). **PROBE PLEASE: J18 P37 = 12.288 MHz, P38 = 48 kHz, or U3 pins
 is an inference from the RTL diff and the fitter report, not a measurement, and
 S34-1 stays open.
 
+### S38-8 — `check-contract-drift.sh` fails on a PRE-EXISTING graph/dsp.csv disagreement
+
+**Severity: MEDIUM (contract). Status: OPEN, NOT TOUCHED — noted so the next
+session is not surprised by it.**
+
+Run as an end-of-session sanity check, `./check-contract-drift.sh` reports:
+
+    ERROR: d24/dsp.csv cell set disagrees with the graph — 237 the graph
+    proposes and the landed file lacks, 0 the landed file has and the graph
+    does not propose.
+    ERROR: d24/dsp-unmapped.csv cell set disagrees with the graph — 0 ... 237 ...
+
+The 237 are `Chan*CompMtr001`, `Chan*MatrixOn00n` and `Chan*MatrixSend00n`. It
+also rewrites `MW/D32/MX/_matrix.csv` without its six `Ramp*` columns
+(`RampProfile`, `RampMode`, `RampUpMs`, `RampDownMs`, `RampCurve`, `RampScope`),
+which the committed file has — 7000 lines changed, all of them for that reason.
+
+**None of this is S38's doing and none of it was committed**: the session
+touched no def, no matrix and no `defs.lock`, and the working tree was restored
+(`git checkout -- .`) so the repo is clean. It is recorded only because the
+script's failure is pre-existing and a session that runs it will otherwise think
+it broke something. The script names its own fix and this spoke is a CONSUMER:
+propose a new `dsp.csv` to the hub gate; never hand-edit the landed file.
+
 ### S38-7 — `dsp4_diag.py --rate` has no MAGIC guard and reported a negative clock
 
 **Severity: MEDIUM (instrument). Status: OPEN — worked around, not fixed.**
