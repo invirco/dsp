@@ -5,8 +5,10 @@
 # 0) Regenerate the SHARC sources from MW/D32/DSP/SHARC/dsp.csv
 # 1) Verify the defs submodule against defs.lock and re-expand the matrices
 # 2) Validate the expansion (MxAdd continuity, family allowlist)
-# 3) Regenerate the D32 DSP artifacts from MW/D32/MX/_matrix.csv
-# 4) Print concise artifact summary
+# 3) Regenerate the DSP artifacts and backfill every backfilled product's
+#    MW/<P>/MX/_matrix.csv from its landed map
+# 4) Check the published matrices carry those addresses
+# 5) Print concise artifact summary
 #
 # STEP 0 IS NEW IN S43 AND IS WHY THE TREE COULD DRIFT. This script claimed to
 # be the deterministic regenerate flow and never ran tools/dsp/dsp_codegen.py,
@@ -39,6 +41,13 @@ python3 validate-matrix-contract.py
 
 python3 MW/D32/DSP/gen_dsp.py --force
 
+# The regenerate flow verifies its own output (S45-3): every product
+# gen_dsp.py backfills must come out of it carrying the DSP addresses its
+# landed map defines. The matrix is the one artefact the console app loads,
+# and until S45 D24's came out of here with its address columns empty on
+# all 4,985 rows without a word from any step above.
+python3 check-matrix-addresses.py
+
 d12_rows=$(tail -n +2 MW/D12/MX/_matrix.csv | wc -l | awk '{print $1}')
 d16_rows=$(tail -n +2 MW/D16/MX/_matrix.csv | wc -l | awk '{print $1}')
 d24_rows=$(tail -n +2 MW/D24/MX/_matrix.csv | wc -l | awk '{print $1}')
@@ -57,6 +66,13 @@ printf '  D24 matrix rows: %s (generation %s)\n' "$d24_rows" \
 printf '  D32 matrix rows: %s (generation %s)\n' "$d32_rows" \
   "$(awk -F= '$1=="D32_MATRIX_GEN"{print $2}' defs.lock)"
 printf '  Address map rows: %s\n' "$map_rows"
+for p in $(python3 MW/D32/DSP/gen_dsp.py --backfill-products); do
+  P="${p^^}"
+  printf '  %s matrix DSP addresses: %s\n' "$P" "$(python3 -c '
+import csv, sys
+rows = list(csv.DictReader(open(sys.argv[1], newline="", encoding="utf-8")))
+print(sum(1 for r in rows if (r.get("DspAdd") or "").strip()))' "MW/$P/MX/_matrix.csv")"
+done
 printf '  Generated: %s\n' "MW/D32/DSP/ghost_cells.h"
 printf '  Generated: %s\n' "MW/D32/DSP/SHARC/src/chip1/dsp_params.asm"
 printf '  Generated: %s\n' "MW/D32/DSP/SHARC/src/chip2/dsp_params.asm"

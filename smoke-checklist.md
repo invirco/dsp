@@ -9,12 +9,21 @@ Scope: D24 and D32 contract bump verification after regeneration.
 1. ./regenerate-dsp-contract.sh
 2. ./check-contract-drift.sh
 3. ./check-sharc-codegen-drift.sh --negative-control
+4. cp -a . /tmp/negctl && blank MW/D24/MX/_matrix.csv's DspAdd column, then
+   python3 check-matrix-addresses.py --tree /tmp/negctl   # must exit 1
 
 Step 3 is the negative control for the SHARC half of step 2. Step 2 runs the
 same gate for real as its first action; step 3 proves the gate can fail, by
 hand-editing one line of one generated file in a throwaway copy of the tree
 and requiring the gate to catch it. Run it whenever the generator or the
 generated tree moves — the absence of output is not a result.
+
+Step 4 is the same idea for the matrix half (S45-3). `check-matrix-addresses.py`
+runs for real inside steps 1 and 2; step 4 proves it can fail, on the exact
+class it was written for — a published matrix whose DSP address column is
+empty while its landed map has 3,737 cells in it. `--tree` takes a throwaway
+copy so the committed tree is never damaged to test the gate that protects
+it.
 
 ## Checklist
 
@@ -25,6 +34,8 @@ generated tree moves — the absence of output is not a result.
 - [ ] DSP regeneration completed without fatal errors
 - [ ] SHARC codegen drift check passed (726 emitted, 0 differ, 50 hand-written)
 - [ ] SHARC codegen negative control fired
+- [ ] Matrix DSP address check passed (every backfilled product)
+- [ ] Matrix address negative control fired
 - [ ] Generated files present:
   - MW/D32/DSP/ghost_cells.h
   - MW/D32/DSP/SHARC/src/chip1/dsp_params.asm

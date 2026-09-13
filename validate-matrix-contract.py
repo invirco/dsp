@@ -36,11 +36,12 @@ def _matrix(product: str) -> Path:
     """The rows to validate: the expansion sync-defs.sh staged if there is
     one, otherwise the committed matrix.
 
-    D32's expansion is STAGED rather than landed (S44-1), because a bare
-    expansion in a path that is meant to carry DSP addresses is a damaged
-    file and gen_dsp.py is the only writer entitled to finish it. This
-    script runs BETWEEN the two, so reading only the committed file would
-    validate the previous generation and pass a new one unseen."""
+    A backfilled product's expansion is STAGED rather than landed (S44-1;
+    D32 and D24 since S45-1), because a bare expansion in a path that is
+    meant to carry DSP addresses is a damaged file and gen_dsp.py is the
+    only writer entitled to finish it. This script runs BETWEEN the two, so
+    reading only the committed file would validate the previous generation
+    and pass a new one unseen."""
     mx = ROOT / "MW" / product / "MX"
     stage = mx / "_matrix.expansion.csv"
     return stage if stage.is_file() else mx / "_matrix.csv"

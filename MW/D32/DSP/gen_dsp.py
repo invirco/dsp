@@ -48,7 +48,31 @@ except ImportError as exc:                       # no-fallback policy
         f'ghost_cells.c are derived from it; refusing to generate with a '
         f'guessed block size.')
 DSP_CSV    = os.path.join(SCRIPT_DIR, 'SHARC', 'dsp.csv')
-MATRIX_CSV = os.path.join(SCRIPT_DIR, '..', 'MX', '_matrix.csv')
+
+
+# THE MATRIX OF EVERY PRODUCT, NOT ONLY D32 (S45-1, from S44-5). Until S45
+# these two names were `SCRIPT_DIR/../MX/...` -- D32's matrix and D32's
+# alone -- so `MW/D24/MX/_matrix.csv` carried DspSpi/DspPage/DspAdd/
+# DspAddHex on 0 of its 4,985 rows while D32 carried them on 5,765 of
+# 6,999. That is not a cosmetic gap: the matrix is the ONE artefact the
+# app loads (mx26 `AppContext.ResolveMatrixPath`), so a D24 console had no
+# address for any cell and could not write a single per-strip DSP node
+# state. The address map itself was never per-product (decision D3, one
+# shared map); only the backfill was.
+def matrix_csv_path(product):
+    """The landed, finished matrix of `product` -- expansion plus DSP
+    address columns. The one file the app loads."""
+    return os.path.join(REPO_ROOT, 'MW', product.upper(), 'MX', '_matrix.csv')
+
+
+def matrix_stage_path(product):
+    """Where `sync-defs.sh` stages `product`'s bare expansion when this tool
+    is the one that finishes it. See MATRIX_STAGE below."""
+    return os.path.join(REPO_ROOT, 'MW', product.upper(), 'MX',
+                        '_matrix.expansion.csv')
+
+
+MATRIX_CSV = matrix_csv_path('d32')
 MCU_ONLY_PREFIXES_FILE = os.path.join(REPO_ROOT, 'mcu-only-prefixes.txt')
 DEFS_LOCK = os.path.join(REPO_ROOT, 'defs.lock')
 
@@ -175,7 +199,10 @@ def _atomic_write(path, data, mode='w', newline=None):
 # each half of it: between the two processes the committed file still holds
 # the last complete generation, so an abort anywhere in this tool leaves it
 # byte-identical. Consumed and removed once every output is written.
-MATRIX_STAGE = os.path.join(SCRIPT_DIR, '..', 'MX', '_matrix.expansion.csv')
+#
+# One stage per BACKFILLED product (S45-1): the staging rule is "this tool
+# finishes the file", and since S45 it finishes D24's as well as D32's.
+MATRIX_STAGE = matrix_stage_path('d32')
 
 # Guarded compatibility path for future Group GEQ rollout.
 # Default remains off to preserve current behavior.
@@ -267,18 +294,19 @@ def resolve_geq_bands(nodes):
     GEQ_BANDS = next(iter(counts))
 
 
-def matrix_input_path():
+def matrix_input_path(product='d32'):
     """Where the rows to backfill come from: the expansion `sync-defs.sh`
     staged if there is one, otherwise the committed file. A staged
     expansion is a NEWER expansion that has not been made whole yet, so it
     wins; with no stage the committed file is already the whole thing and
     re-backfilling it is idempotent."""
-    return MATRIX_STAGE if os.path.isfile(MATRIX_STAGE) else MATRIX_CSV
+    stage = matrix_stage_path(product)
+    return stage if os.path.isfile(stage) else matrix_csv_path(product)
 
 
-def read_matrix_csv():
+def read_matrix_csv(path=None):
     """Read _matrix.csv and return (header, list of OrderedDict rows)."""
-    with open(matrix_input_path(), newline='', encoding='utf-8') as f:
+    with open(path or matrix_input_path(), newline='', encoding='utf-8') as f:
         reader = csv.DictReader(f)
         header = [h for h in reader.fieldnames if h and h.strip()]
         rows = [OrderedDict(r) for r in reader]
@@ -1573,8 +1601,19 @@ def expand_all_nodes(nodes):
 # ---------------------------------------------------------------------------
 # Output: _matrix.csv backfill
 # ---------------------------------------------------------------------------
-def backfill_matrix(header, rows, *, force=False):
-    """Match cell_map entries against _matrix.csv rows and fill in DSP columns."""
+def backfill_matrix(header, rows, cmap=None, *, force=False):
+    """Match `cmap` entries against _matrix.csv rows and fill in DSP columns.
+
+    `cmap` is the address map to fill FROM. It defaults to the module-level
+    `cell_map` for the callers that predate S45; every caller in main()
+    passes the LANDED map of the product whose matrix is being written, so
+    a product can only ever receive addresses its own
+    `defs/products/<p>/dsp.csv` carries. One shared map (decision D3) does
+    not mean one shared cell SET: D24 defines 4,985 cells and D32 6,999,
+    and a D32-only cell has no business appearing in D24's matrix.
+    """
+    if cmap is None:
+        cmap = cell_map
     # Ensure ramp columns exist in header
     ramp_cols = ['RampProfile', 'RampMode', 'RampUpMs', 'RampDownMs', 'RampCurve', 'RampScope']
     for col in ramp_cols:
@@ -1588,7 +1627,7 @@ def backfill_matrix(header, rows, *, force=False):
     # generated some cells the masters do not have, and validate() lists
     # them.
     resolved = {}
-    for gen_name in cell_map:
+    for gen_name in cmap:
         key = _matrix_key(gen_name, matrix_names)
         if key is not None:
             resolved[key] = gen_name
@@ -1602,7 +1641,7 @@ def backfill_matrix(header, rows, *, force=False):
     # ordinary (the graph is wider than the product in places) and is
     # reported by validate(); a family with NO hits at all is not.
     emitted_by_family = {}
-    for c in cell_map:
+    for c in cmap:
         m = _CELL_SPLIT.match(c)
         if m:
             emitted_by_family.setdefault((m.group(1), m.group(3)), []).append(c)
@@ -1621,8 +1660,8 @@ def backfill_matrix(header, rows, *, force=False):
     for row in rows:
         row_name = row.get('_Cell', '')
         cell_name = resolved.get(row_name, row_name)
-        if cell_name not in cell_map:
-            # On --force, clear stale DSP columns for rows no longer in cell_map
+        if cell_name not in cmap:
+            # On --force, clear stale DSP columns for rows the map no longer covers
             if force and any(row.get(c) for c in ('DspSpi', 'DspPage', 'DspAdd', 'DspAddHex')):
                 for c in ('DspSpi', 'DspPage', 'DspAdd', 'DspAddHex',
                           'RampProfile', 'RampMode', 'RampUpMs', 'RampDownMs', 'RampCurve', 'RampScope'):
@@ -1630,7 +1669,7 @@ def backfill_matrix(header, rows, *, force=False):
                 cleared += 1
             continue
 
-        cm = cell_map[cell_name]
+        cm = cmap[cell_name]
         matched += 1
 
         # Backfill DspSpi, DspPage, DspAdd, DspAddHex
@@ -1664,6 +1703,73 @@ def backfill_matrix(header, rows, *, force=False):
             row['RampScope'] = rp['scope']
 
     return matched, cleared
+
+
+# ---------------------------------------------------------------------------
+# One product's matrix, backfilled from its own landed map  (S45-1)
+# ---------------------------------------------------------------------------
+# WHAT THIS CLOSES. `MW/D24/MX/_matrix.csv` carried DspSpi/DspPage/DspAdd/
+# DspAddHex on 0 of 4,985 rows for as long as this tool existed, because the
+# backfill was written against `SCRIPT_DIR/../MX/_matrix.csv` -- D32's, and
+# only D32's. The matrix is the ONE artefact the console app loads, so a D24
+# had no address for any cell and could not write a single per-strip DSP
+# node state; the bench worked around it with a by-name writer
+# (`tools/pi/dsp4_apply_strip.py`), which is a tool, not the product path.
+#
+# COVERAGE IS AN INVARIANT HERE TOO, and it is the same one the proposal
+# asserts on the way out, checked on the way back in:
+#
+#     cells with an address + cells named unmapped == cells defined
+#
+# If those three numbers do not add up, either the matrix and the landed map
+# describe different products or the backfill silently missed rows, and a
+# matrix with a hole in it is exactly what the app cannot detect. No
+# fallback: it stops.
+class _Backfilled:
+    """One product's finished matrix, computed but not yet written."""
+    __slots__ = ('product', 'header', 'rows', 'src_path', 'out_path',
+                 'defined', 'filled', 'unmapped', 'cleared')
+
+    def __init__(self, **kw):
+        for k, v in kw.items():
+            setattr(self, k, v)
+
+
+def backfill_product(product, *, force=False):
+    """Read `product`'s matrix (the staged expansion if there is one, else
+    the committed file), fill its DSP columns from `defs/products/<product>/
+    dsp.csv`, and return it ready to write."""
+    src = matrix_input_path(product)
+    staged = ' (staged expansion)' if src == matrix_stage_path(product) else ''
+    header, rows = read_matrix_csv(src)
+
+    cmap = load_landed_product_map(product)
+    matched, cleared = backfill_matrix(header, rows, cmap, force=force)
+
+    defined = {r['_Cell'] for r in rows if r.get('_Cell')}
+    filled = {r['_Cell'] for r in rows if (r.get('DspAdd') or '').strip()}
+    unmapped = set(_read_landed_csv(landed_unmapped_csv_path(product)))
+    print(f'  {product}{staged}: {len(rows)} rows, {matched} cells matched, '
+          f'{len(filled)} carry an address, {len(unmapped)} named unmapped')
+    if cleared:
+        print(f'    {cleared} stale DSP column entries cleared')
+
+    if len(filled) + len(unmapped) != len(defined):
+        overlap = sorted(filled & unmapped)
+        missing = sorted(defined - filled - unmapped)
+        sys.exit(
+            f'ERROR: {product} matrix coverage does not add up — '
+            f'{len(filled)} rows with an address + {len(unmapped)} named '
+            f'unmapped != {len(defined)} cells defined. '
+            f'{len(overlap)} cells are in both the map and the unmapped '
+            f'file ({", ".join(overlap[:5])}); {len(missing)} are in '
+            f'neither ({", ".join(missing[:5])}). A matrix with a hole in '
+            f'it is a matrix the app cannot tell from a complete one.')
+
+    return _Backfilled(product=product, header=header, rows=rows,
+                       src_path=src, out_path=matrix_csv_path(product),
+                       defined=len(defined), filled=len(filled),
+                       unmapped=len(unmapped), cleared=cleared)
 
 
 # ---------------------------------------------------------------------------
@@ -2386,9 +2492,7 @@ def _matrix_path(product):
     will become, so this matters only when the expansion has just moved --
     which is exactly when reading the committed file would propose against
     the previous generation."""
-    mx = os.path.join(REPO_ROOT, 'MW', product.upper(), 'MX')
-    stage = os.path.join(mx, '_matrix.expansion.csv')
-    return stage if os.path.isfile(stage) else os.path.join(mx, '_matrix.csv')
+    return matrix_input_path(product)
 
 
 # THE CONTRACT PRODUCTS. Every generated firmware artifact in this tree --
@@ -2400,6 +2504,23 @@ CONTRACT_PRODUCTS = (
     ('d32', _matrix_path('d32')),
     ('d24', _matrix_path('d24')),
 )
+
+# THE PRODUCTS WHOSE `_matrix.csv` THIS TOOL FINISHES (S45-1). Exactly the
+# contract products, and that is a derivation rather than a second list:
+# the backfill fills from `defs/products/<p>/dsp.csv`, so a product with no
+# landed dsp.csv has nothing to be filled from, and a product WITH one that
+# were left out would be the S44-5 gap again under a different name. D32
+# stays first because its rows are what `mx_dsp_map.h` and `validate()` are
+# written against.
+#
+# `sync-defs.sh` reads this list rather than restating it (`--backfill-
+# products`). It used to carry its own `STAGED_PRODUCTS=(d32)` under a
+# comment asking the next person to keep the two in step by hand, which is
+# the arrangement that produced the gap: a product staged here and not
+# backfilled there would leave an expansion nothing ever consumes, and a
+# product backfilled here and not staged there would have its committed
+# matrix overwritten by a bare expansion between the two processes.
+BACKFILL_PRODUCTS = tuple(p for p, _ in CONTRACT_PRODUCTS)
 
 # PRODUCTS THIS REPO CAN PROPOSE AN ADDRESS MAP FOR AND THE CONTRACT DOES
 # NOT YET CARRY (S28). D16 and D12 have had an mx-master in `defs` all
@@ -2984,26 +3105,40 @@ def check_proposal(fatal=True):
     return True
 
 
+def _landed_entry(r):
+    return {
+        'chip': int(r['DspSpi']),
+        'spi_page': int(r['DspPage']),
+        'spi_addr': int(r['DspAdd']),
+        'table': r['Table'],
+        'ramp_profile': r['RampProfile'],
+        'notes': r['Notes'],
+        'node': r['Node'],
+        'node_type': r['NodeType'],
+    }
+
+
+def load_landed_product_map(product):
+    """`defs/products/<product>/dsp.csv` as {cell: entry} — the address map
+    for ONE product, which is the only thing that may be written into that
+    product's `_matrix.csv` (S45-1). Reading the merged map here instead
+    would hand D24's matrix a D32-only cell's address if the two matrices
+    ever came to share a name the D24 contract does not map."""
+    return {cell: _landed_entry(r) for cell, r
+            in _read_landed_csv(landed_dsp_csv_path(product)).items()}
+
+
 def load_landed_address_map():
     """The DSP cell address map as LANDED in defs/products/<p>/dsp.csv,
     merged across both products (decision D3: one shared address map, so a
     cell either product carries has the same chip/page/address in both
     files — checked here, not just assumed). This, not the graph's
-    `cell_map`, is what _matrix.csv backfill and every generated firmware
-    artifact reads once check_proposal() has proven the two agree."""
+    `cell_map`, is what the generated firmware artifacts read once
+    check_proposal() has proven the two agree. The `_matrix.csv` backfill
+    reads the PER-PRODUCT map above instead."""
     merged = {}
     for product, _ in CONTRACT_PRODUCTS:
-        for cell, r in _read_landed_csv(landed_dsp_csv_path(product)).items():
-            entry = {
-                'chip': int(r['DspSpi']),
-                'spi_page': int(r['DspPage']),
-                'spi_addr': int(r['DspAdd']),
-                'table': r['Table'],
-                'ramp_profile': r['RampProfile'],
-                'notes': r['Notes'],
-                'node': r['Node'],
-                'node_type': r['NodeType'],
-            }
+        for cell, entry in load_landed_product_map(product).items():
             prior = merged.get(cell)
             if prior is not None and prior != entry:
                 sys.exit(f'ERROR: {cell!r} disagrees between the landed '
@@ -3108,7 +3243,52 @@ def main():
                         help='Also write a fresh proposal to proposals/ for '
                              'the hub gate (only needed when the graph has '
                              'changed and a new dsp.csv must be proposed).')
+    parser.add_argument('--backfill-products', action='store_true',
+                        help='Print the products whose MW/<P>/MX/_matrix.csv '
+                             'this tool finishes, one per line, and exit. '
+                             'sync-defs.sh reads this instead of keeping its '
+                             'own copy of the list.')
+    parser.add_argument('--backfill-report', action='store_true',
+                        help='Report, per product, how many matrix cells the '
+                             'LANDED map would give an address to. Reads '
+                             'only; generates nothing and does not run the '
+                             'graph drift check.')
     args = parser.parse_args()
+
+    # The list, and nothing else, so a shell can read it. Before any of the
+    # work: sync-defs.sh asks this on every run.
+    if args.backfill_products:
+        for p in BACKFILL_PRODUCTS:
+            print(p)
+        return
+
+    # COVERAGE WITHOUT GENERATION. The drift check below is fatal by
+    # design, so while the graph is ahead of the landed contract there is
+    # no way to see what the backfill WOULD fill -- and "the graph is
+    # ahead" is a state this repo has been in since S22. This reads the
+    # landed map and the matrices and counts; it writes nothing, and it
+    # says which provenance it counted so a number from
+    # DSP_LANDED_DIR cannot be mistaken for a number from the pin.
+    if args.backfill_report:
+        print('gen_dsp.py — matrix backfill coverage')
+        print(f'  address map: {os.path.normpath(DEFS_PRODUCTS_DIR)}')
+        print(f'  defs pin:    {_contract_pin()}')
+        print()
+        for p in BACKFILL_PRODUCTS:
+            src = matrix_input_path(p)
+            _, rows = read_matrix_csv(src)
+            cmap = load_landed_product_map(p)
+            un = set(_read_landed_csv(landed_unmapped_csv_path(p)))
+            defined = {r['_Cell'] for r in rows if r.get('_Cell')}
+            would = defined & set(cmap)
+            have = {r['_Cell'] for r in rows if (r.get('DspAdd') or '').strip()}
+            print(f'  {p}: {len(defined)} cells defined; '
+                  f'{len(would)} would carry an address, '
+                  f'{len(un)} named unmapped '
+                  f'(sum {len(would) + len(un)}); '
+                  f'{len(have)} carry one on disk today')
+            print(f'       {os.path.relpath(src, REPO_ROOT)}')
+        return
 
     print('gen_dsp.py — §17 D32 DSP build tool')
     print()
@@ -3174,51 +3354,49 @@ def main():
     cell_map.update(address_map)
     print(f'  {len(cell_map)} cell mappings (landed, both products merged)')
 
-    # 5. Read _matrix.csv -- the staged expansion if sync-defs.sh left one.
-    src = matrix_input_path()
-    if src == MATRIX_STAGE:
-        print('Reading _matrix.csv (staged expansion from sync-defs.sh)...')
-    else:
-        print('Reading _matrix.csv...')
-    header, matrix_rows = read_matrix_csv()
-    print(f'  {len(matrix_rows)} rows')
+    # 5/6. Every backfilled product's matrix is READ AND BACKFILLED FIRST,
+    # and nothing is written until all of them have passed their coverage
+    # invariant. Same shape as sync-defs.sh's install loop and for the same
+    # reason: a failure on D24 must not leave D32's matrix rewritten.
+    print('Backfilling MW/<P>/MX/_matrix.csv...')
+    backfilled = [backfill_product(p, force=args.force)
+                  for p in BACKFILL_PRODUCTS]
 
-    # 6. Backfill _matrix.csv
-    print('Backfilling _matrix.csv...')
-    matched, cleared = backfill_matrix(header, matrix_rows, force=args.force)
-    print(f'  {matched} cells matched and backfilled')
-    if cleared:
-        print(f'  {cleared} stale DSP column entries cleared')
-
-    # 7. Write outputs
+    # 7. Write outputs. D32's rows drive mx_dsp_map.h and validate(); the
+    # matrices themselves are one atomic rename each.
     print('Writing outputs...')
+    d32_rows = next(b.rows for b in backfilled if b.product == 'd32')
 
     if not args.dry_run:
-        buf = io.StringIO(newline='')
-        writer = csv.DictWriter(buf, fieldnames=header, extrasaction='ignore')
-        writer.writeheader()
-        writer.writerows(matrix_rows)
-        _atomic_write(MATRIX_CSV, buf.getvalue(), newline='')
-        print(f'  Wrote {MATRIX_CSV}')
+        for b in backfilled:
+            buf = io.StringIO(newline='')
+            writer = csv.DictWriter(buf, fieldnames=b.header,
+                                    extrasaction='ignore')
+            writer.writeheader()
+            writer.writerows(b.rows)
+            _atomic_write(b.out_path, buf.getvalue(), newline='')
+            print(f'  Wrote {b.out_path}')
 
     write_dsp_params_asm(dry_run=args.dry_run)
     write_ghost_cells_h(dry_run=args.dry_run)
-    write_mx_dsp_map_h(matrix_rows, dry_run=args.dry_run)
+    write_mx_dsp_map_h(d32_rows, dry_run=args.dry_run)
     write_address_map(dry_run=args.dry_run)
 
-    # 8. The staged expansion is CONSUMED, not left lying about. Every
+    # 8. The staged expansions are CONSUMED, not left lying about. Every
     # output above is on disk under its final name by now, so the pair
-    # (sync-defs.sh; gen_dsp.py) has completed and the stage has no more to
-    # say. If anything above had failed, the stage would still be here and
-    # the committed matrix would still hold the last complete generation --
-    # which is the whole point of staging it.
-    if not args.dry_run and os.path.isfile(MATRIX_STAGE):
-        os.unlink(MATRIX_STAGE)
+    # (sync-defs.sh; gen_dsp.py) has completed and the stages have no more
+    # to say. If anything above had failed, they would still be here and
+    # the committed matrices would still hold the last complete generation
+    # -- which is the whole point of staging them.
+    if not args.dry_run:
+        for b in backfilled:
+            if b.src_path == matrix_stage_path(b.product):
+                os.unlink(b.src_path)
 
     # 9. Validation
     print()
     print('Validation:')
-    validate(matrix_rows)
+    validate(d32_rows)
 
     print()
     print('Done.')

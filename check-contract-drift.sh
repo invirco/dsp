@@ -39,6 +39,19 @@ cd "$ROOT_DIR"
 python3 validate-matrix-contract.py
 python3 MW/D32/DSP/gen_dsp.py --force >/dev/null
 
+# THE PUBLISHED MATRIX MUST CARRY THE ADDRESSES ITS LANDED MAP DEFINES
+# (S45-3). Everything above this line checks the matrix against the
+# EXPANSION -- the lock hash, MxAdd continuity, the family allowlist -- and
+# the expansion has no DSP address columns in it. So for as long as
+# gen_dsp.py backfilled D32's matrix and only D32's, MW/D24/MX/_matrix.csv
+# could carry a DSP address on 0 of its 4,985 rows while the landed map
+# mapped 3,737 of them, and every gate in this script passed. The matrix is
+# the ONE artefact the console app loads, so that was a D24 unable to write
+# a single DSP node state, invisible to the whole intake path. It runs
+# AFTER the regeneration, on what generation actually produced, not on what
+# it was asked to produce.
+python3 check-matrix-addresses.py
+
 echo "Contract validation and regeneration completed"
 
 if [[ $STRICT -eq 1 ]]; then

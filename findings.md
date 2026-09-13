@@ -6,6 +6,131 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE MATRIX IS THE APP'S ONLY SOURCE OF DSP ADDRESSES, AND D24'S WAS EMPTY (2026-09-13, session 45 — desk only, the unit was never touched)
+
+**S45-1. The backfill runs for every product now, from that product's own
+landed map.** `MW/D32/DSP/gen_dsp.py` filled the `DspSpi`/`DspPage`/`DspAdd`/
+`DspAddHex` columns of `SCRIPT_DIR/../MX/_matrix.csv` — D32's, and only D32's —
+so `MW/D24/MX/_matrix.csv` carried an address on **0 of its 4,985 rows** while
+`defs/products/d24/dsp.csv` mapped 3,737 of those cells (S44-5, the gap S38-5
+named on 2026-09-12). The two globals are now per-product
+(`matrix_csv_path()` / `matrix_stage_path()`), `backfill_matrix()` takes the
+map to fill FROM rather than reading a module global, and each product is
+filled from `defs/products/<p>/dsp.csv` — **its own**, not the merged map: one
+shared address map (decision D3) does not mean one shared cell set, and a
+D32-only cell has no business carrying an address in D24's matrix. Measured
+here: per-product and merged select exactly the same cells today (3,737 for
+D24, 5,409 for D32), so the stricter rule costs nothing and closes the case
+where it would not.
+
+**Both counts, run.** `gen_dsp.py --backfill-report` (new; reads, generates
+nothing, names the provenance it counted):
+
+| map | D24 cells with an address | D32 |
+|---|---:|---:|
+| landed, `defs-v2026.09.08.4` | **3,737** of 4,985 | 5,409 of 6,999 |
+| the S44 candidate (`DSP_LANDED_DIR=proposals/defs/products`) | **3,974** | 5,765 |
+
+`rows-with-address + named-unmapped == cells defined` is asserted per product
+before anything is written — 3,974 + 1,011 = 4,985 and 5,765 + 1,234 = 6,999
+under the candidate — and the assertion is not decorative: renaming one D24
+matrix cell to a name in neither file stops the run naming that cell.
+
+**The D32 matrix is byte-identical to before, to the hash.** A full candidate
+generation in a scratch tree and a full `DSP_LANDED_DIR=proposals/defs/products
+./regenerate-dsp-contract.sh` in the real tree both leave
+`MW/D32/MX/_matrix.csv` at
+`041b19a585a93f6f24f53609da1e0502a893db20ad3dbea99d0e5cd5e3da8b8f` — the hash
+it has carried since `cea457e0` — with D12, D16, `ghost_cells.h`,
+`dsp_address_map.md`, both `dsp_params.asm` and all 765 SHARC sources
+unchanged. The change adds D24; it perturbs nothing. Idempotent: a second and
+third run (with and without `--force`) reproduce D24's matrix to the byte.
+D24's matrix gains the five `Ramp*` columns D32 already had, 32 columns to 37.
+
+**And `sync-defs.sh` no longer keeps its own copy of the list.** It carried
+`STAGED_PRODUCTS=(d32)` under a comment asking the next person to keep it in
+step with `gen_dsp.py` by hand — the arrangement that produced this gap. Both
+halves now read `gen_dsp.py --backfill-products`. D24's expansion is staged
+exactly as D32's is, so an abort between the two processes leaves D24's
+committed matrix whole too: verified by running the landed-pin
+`./check-contract-drift.sh`, which still exits 1 on the S22 drift and leaves
+all nine contract artefacts byte-identical.
+
+**S45-2. The app reads the matrix, and only the matrix — so the empty column
+was the whole gap, and nothing in the app has to change.** In mx26,
+`Core/AppContext.ResolveMatrixPath()` resolves ONE artefact
+(`{HomePath}/config/_matrix.mxc` packed, else `_matrix.csv`, else the
+published `{store}/Products/<P>/pd/generated/_matrix.csv`);
+`Core/Boot.LoadMatrixData()` loads it and `Core/ProjectBuilder.Matrix.cs
+::GetMatrixCsvHeaders()` resolves the columns **by header name** —
+`DspI2c`, `DspSpi`, `DspPage`, `DspAdd`, `DspAddHex` — into
+`dspI2cHdr … dspAddHexHdr`. Nothing computes an address, nothing carries a
+fallback table, and a column that is absent or empty reads as `(undefined)`
+(`Views/DspViewer.axaml.cs::SafeCsvRead`). **Format: decimal in `DspAdd`, the
+same value as `0xNNNN` in `DspAddHex`, chip in `DspSpi` (1 = DSPA, 2 = DSPB)
+and page in `DspPage` — four columns, all strings, exactly what the backfill
+writes.** So the D24 matrix as produced satisfies the loader unchanged: **no
+mx26 change is required for the app to have the addresses.**
+
+What the app does NOT yet have is a writer. `DspViewer` is the only consumer
+of those columns and it DISPLAYS them; the only SPI code in the app is
+`Services/AnalogChainHardware.cs::SpiDevChain`, the 74HC595 analog chain on
+`/dev/spidev0.0`, which is not the DSP link. That is an mx26 hub item and is
+named as one below — not a dsp change and not made here.
+
+**The equivalence, cell by cell.** For the 13 cells
+`tools/pi/dsp4_apply_strip.py` writes by name for strip 1 → MAIN + AUX 1, the
+address the matrix now carries equals what the tool computes, **13 of 13**,
+chip/page/decimal/hex all four: `Chan001Gain001` 1/1/0/`0x0000`,
+`Chan001Pol001` 1/1/1/`0x0001`, `Chan001Level001` 1/1/80/`0x0050`,
+`Chan001Pan001` 1/1/81/`0x0051`, `Chan001Mute001` 1/1/82/`0x0052`,
+`Chan001MainOn001` 1/1/84/`0x0054`, `Chan001AuxOn001` 1/1/90/`0x005A`,
+`Chan001AuxSend001` 1/1/102/`0x0066`, `Chan001AuxPick001` 1/1/114/`0x0072`,
+`Aux001Level001` 2/1/0/`0x0000`, `Aux001Mute001` 2/1/2/`0x0002`,
+`Main001Level001` 2/1/1379/`0x0563`, `Main001Mute001` 2/1/1381/`0x0565`. It
+could hardly be otherwise and that is the point: the tool reads
+`landed-d24.json`, which `tools/dsp/landed_map.py` cuts from
+`defs/products/d24/dsp.csv`, and the backfill fills from the same file. None
+of the 13 moves between the landed map and the S44 candidate.
+
+**S45-3. The intake gate catches an empty address column.**
+`check-matrix-addresses.py` (new), run by `check-contract-drift.sh` after the
+regeneration and by `regenerate-dsp-contract.sh` after its own. **This class
+could not have been caught by anything already in the path, and that is why it
+survived:** `sync-defs.sh` verifies the EXPANSION against `defs.lock` and the
+expansion has no DSP columns by design; `validate-matrix-contract.py` checks
+MxAdd continuity and the family allowlist; `--strict` asks git whether the
+file CHANGED, and a file that was never right does not change; `gen_dsp.py`
+validated the product it backfilled and was silent about the one it did not.
+Four gates, each individually correct, and between them a matrix that
+published none of the addresses it exists to publish.
+
+It checks, per product `gen_dsp.py --backfill-products` names (so the gate and
+the tool cannot hold different lists): zero addresses against a non-empty
+landed map; every mapped cell carrying the map's address; no address the map
+does not give; and the four columns filled together with `DspAddHex` agreeing
+with `DspAdd`. **Negative controls, eight, each against a scratch copy of a
+tree the gate passes clean:** whole address column blanked → caught (the S44-5
+class, by name); 12 mapped rows blanked → caught; one address off by one →
+caught, cell named, both values printed; `DspAddHex` set to `0xDEAD` → caught;
+one row left with `DspAdd` and no `DspSpi`/`DspPage`/`DspAddHex` → caught as
+ragged; an address written onto an unmapped cell → caught; the `DspAdd` column
+removed → caught; the matrix deleted → caught. Exit 1 on all eight, exit 0 on
+the control.
+
+**S45-4. What this does NOT land, and what it is waiting on.** No matrix was
+committed. `gen_dsp.py` cannot generate from the landed pin at all — it exits 1
+in `check_proposal()` on the S22–S25 drift, as it has since S22 — so the only
+generation that runs today is the candidate one, and those rows have not
+passed the hub gate. Run in the tree it is clean and complete (exit 0, D24's
+matrix the only artefact changed), and it was restored rather than committed,
+per dispatch. **The consequence to hold: from now on
+`DSP_LANDED_DIR=proposals/defs/products ./check-contract-drift.sh` leaves a
+real 4,985-row diff in `MW/D24/MX/_matrix.csv`. It is correct output with
+ungated provenance — do not commit it.** Landing the S44 candidate makes the
+landed run work, and D24's 3,737 addresses then land in an ordinary
+regeneration with the pin describing them.
+
 ## THE GATE NO LONGER DAMAGES THE TREE, AND THE 237 CELLS ARE ONE CLASS (2026-09-13, session 44 — desk only, the unit was never touched)
 
 **S44-1. The contract intake path is atomic, and a restore-on-failure trap

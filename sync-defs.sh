@@ -19,14 +19,15 @@
 # consumer-side derived table. The pair (sync-defs.sh; gen_dsp.py --force)
 # is the whole definition of MW/<P>/MX/_matrix.csv.
 #
-# WHICH IS WHY THIS SCRIPT NO LONGER WRITES THE D32 MATRIX (S44-1). A bare
-# expansion in a path that is meant to carry DSP addresses is a DAMAGED
-# file, not an intermediate one, and leaving one there is what
+# WHICH IS WHY THIS SCRIPT DOES NOT WRITE A BACKFILLED PRODUCT'S MATRIX
+# (S44-1). A bare expansion in a path that is meant to carry DSP addresses
+# is a DAMAGED file, not an intermediate one, and leaving one there is what
 # check-contract-drift.sh did to the tree on 2026-09-13 when gen_dsp.py
-# aborted between the two halves. D32's expansion is staged at
-# MW/D32/MX/_matrix.expansion.csv instead and gen_dsp.py -- the only writer
-# of the finished file -- renames the backfilled result into place. Every
-# other product has no backfill step, so its expansion IS the whole
+# aborted between the two halves. Such a product's expansion is staged at
+# MW/<P>/MX/_matrix.expansion.csv instead and gen_dsp.py -- the only writer
+# of the finished file -- renames the backfilled result into place. Which
+# products those are is asked of gen_dsp.py rather than restated here
+# (S45-1); the rest have no backfill step, so their expansion IS the whole
 # artefact and lands here, by rename, once all four have verified.
 #
 # Use --update-lock to refresh defs.lock from the current submodule state.
@@ -170,31 +171,43 @@ done
 #      mismatch -- the one thing the lock exists to catch -- therefore
 #      exited 1 with the tree already rewritten by the definitions it had
 #      just refused.
-#   2. For D32 the expansion is only HALF the artefact. The DSP address
-#      columns are backfilled afterwards by MW/D32/DSP/gen_dsp.py, so a bare
-#      expansion in that path is not a matrix, it is a matrix with
-#      DspI2c/DspSpi/DspPage/DspAdd/DspAddHex blank on all 6,999 rows. On
-#      2026-09-13 check-contract-drift.sh ran this script, then aborted in
-#      gen_dsp.py on the no-fallback dsp.csv check, and left exactly that
-#      committed in the tree -- a gate that damages the artefact it checks.
+#   2. For a backfilled product the expansion is only HALF the artefact.
+#      The DSP address columns are filled in afterwards by
+#      MW/D32/DSP/gen_dsp.py, so a bare expansion in that path is not a
+#      matrix, it is a matrix with DspI2c/DspSpi/DspPage/DspAdd/DspAddHex
+#      blank on every row. On 2026-09-13 check-contract-drift.sh ran this
+#      script, then aborted in gen_dsp.py on the no-fallback dsp.csv check,
+#      and left exactly that committed in the tree -- a gate that damages
+#      the artefact it checks.
 #
 # The fix for both: expand to a temp file beside the target, verify from the
 # temp, and only then move it into place with `mv` (rename(2) -- atomic
 # within a filesystem, which is why the temp is in the target's own
-# directory). For D32 "into place" means the STAGE, not the landed file:
-# gen_dsp.py is the only writer of the finished matrix and finishes the
-# rename there. TEMP+RENAME RATHER THAN A RESTORE-ON-FAILURE TRAP because a
+# directory). For a backfilled product "into place" means the STAGE, not
+# the landed file: gen_dsp.py is the only writer of the finished matrix and
+# finishes the rename there. TEMP+RENAME RATHER THAN A RESTORE-ON-FAILURE TRAP because a
 # trap needs the shell to survive to run: `kill -9`, an OOM kill or a power
 # cut skip it, and those are precisely when a half-written file is left
 # behind. A rename needs nothing to survive.
 #
-# PRODUCTS WHOSE MATRIX IS BACKFILLED AFTERWARDS. Keep in step with
-# MW/D32/DSP/gen_dsp.py: MATRIX_CSV there is D32's and only D32's, and it is
-# the only product whose _matrix.csv carries DSP address columns with
-# anything in them. A product added here without a backfill step would stage
-# an expansion nothing ever consumes.
-STAGED_PRODUCTS=(d32)
+# PRODUCTS WHOSE MATRIX IS BACKFILLED AFTERWARDS -- ASKED, NOT RESTATED
+# (S45-1). This was `STAGED_PRODUCTS=(d32)` under a comment asking whoever
+# came next to keep it in step with gen_dsp.py by hand, and the two were
+# not in step: gen_dsp.py backfilled D32's matrix and only D32's, so
+# MW/D24/MX/_matrix.csv carried DSP addresses on 0 of its 4,985 rows and a
+# D24 console had no address for any cell. Both halves now read ONE list,
+# the one held by the tool that does the backfilling. A product staged here
+# and not backfilled there would leave an expansion nothing ever consumes;
+# a product backfilled there and not staged here would have its committed
+# matrix overwritten by a bare expansion between the two processes.
 STAGE_NAME="_matrix.expansion.csv"
+mapfile -t STAGED_PRODUCTS < <(python3 "$ROOT_DIR/MW/D32/DSP/gen_dsp.py" \
+                                 --backfill-products)
+if [[ ${#STAGED_PRODUCTS[@]} -eq 0 ]]; then
+  echo "ERROR: gen_dsp.py --backfill-products named no product. The DSP" >&2
+  echo "       address columns would land in no matrix at all." >&2
+  exit 1
+fi
 
 # Sweep temps a KILLED earlier run left behind. The rename cannot leave one
 # and the EXIT trap below clears the ordinary failure path, but SIGKILL

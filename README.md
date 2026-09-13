@@ -27,7 +27,10 @@ defs/                         # SUBMODULE: invirco/defs — every product def, t
 defs.lock                     # pins which defs commit + tag, and the hashes of
                               #   everything read out of it (authoritative)
 sync-defs.sh                  # verify the pin, re-expand MW/<P>/MX/_matrix.csv
-                              # (D32's expansion is staged for gen_dsp.py to finish)
+                              # (a backfilled product's expansion is staged for
+                              #  gen_dsp.py to finish: see --backfill-products)
+check-matrix-addresses.py     # the published matrix must carry the DSP addresses
+                              #   its landed map defines (run by the two gates)
 tasks.md                      # active task tracker — update on every contract bump
 scaffold-product.sh           # creates a new MW/<PRODUCT> tree + integration checklist
 tools/dsp/                    # shared DSP codegen package (all products)
@@ -42,7 +45,9 @@ tools/dsp/                    # shared DSP codegen package (all products)
                               #   conformance harness and the D38 inert list
 MW/<PRODUCT>/                 # one tree per product (D24, D32, ...)
     MX/    _matrix.csv        # GENERATED: defs/tools/expand_matrix.py output
-                              #   + the DSP address backfill from gen_dsp.py.
+                              #   + the DSP address backfill from gen_dsp.py
+                              #   (every backfilled product, from ITS OWN
+                              #   defs/products/<p>/dsp.csv).
                               #   The product def, fw.csv and the mx-master it
                               #   came from live in defs/, not here.
     DSP/                      # DSP implementation
@@ -66,7 +71,9 @@ shape, driven by the same contract flow; their definitions are added to `defs`.
 
 | Command | Purpose |
 |---|---|
-| `./sync-defs.sh` | Verify the `defs` pin and re-expand `MW/<P>/MX/_matrix.csv`. D32's expansion is STAGED at `MW/D32/MX/_matrix.expansion.csv`, not landed: a bare expansion there has no DSP addresses, and `gen_dsp.py` is the only writer of the finished file. Run the pair, or use `regenerate-dsp-contract.sh` |
+| `./sync-defs.sh` | Verify the `defs` pin and re-expand `MW/<P>/MX/_matrix.csv`. A BACKFILLED product's expansion is STAGED at `MW/<P>/MX/_matrix.expansion.csv`, not landed: a bare expansion there has no DSP addresses, and `gen_dsp.py` is the only writer of the finished file. Which products those are comes from `gen_dsp.py --backfill-products` (D32 and D24), which this script reads rather than restates. Run the pair, or use `regenerate-dsp-contract.sh` |
+| `python3 MW/D32/DSP/gen_dsp.py --backfill-report` | Per product: how many matrix cells the landed map gives an address to, and how many carry one on disk. Reads only |
+| `python3 check-matrix-addresses.py` | The published matrix carries the addresses its landed map defines. Run by both gates; `--tree <copy>` for a negative control |
 | `./regenerate-dsp-contract.sh` | sync-defs + validate + regenerate DSP artifacts |
 | `./regenerate-dsp-contract.sh --update-lock` | Same, but re-pin defs.lock (intentional contract bump — move the submodule to the new tag first) |
 | `./check-contract-drift.sh [--strict]` | Pre-merge drift gate |
