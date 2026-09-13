@@ -207,6 +207,31 @@ are line outs on the Analog PCBA (resolved 2026-07-31).
   49.152 MHz (measured 2026-08-07 in a scratch run, PIN_137/mems
   released for the fitter per D8). Treat every RTL addition on that
   part as timing-relevant.
+### What is on the D24 bench part (MW-D24-2)
+
+`s41_mhrx_pullup_off.15f3ae07dae1` since 2026-09-13 (S41). It is
+`s37_shipping_step0.c62c024714f2` — the shipping design plus the converter
+clock pair and the X-logic parking, which S38 flashed on 2026-09-12 — plus
+**one qsf assignment**: pin 74 (`M MCU_P17` / G2691, the CM4's UART0 TX,
+which the power MCU watches as its "Pi alive" sense) reserved as a
+tri-stated input with `WEAK_PULL_UP_RESISTOR OFF`.
+
+The global `RESERVE_ALL_UNUSED_PINS "AS INPUT TRI-STATED WITH WEAK PULL-UP"`
+is unchanged and still covers every other unassigned pin — it is the
+2026-08-19 trap's fix and the MH and panel UARTs depend on it. Pin 74 is the
+one exception, because its pull-up held MHRX high after the Pi halted and the
+power MCU never got its shutdown acknowledge.
+
+Both artifacts are built from branches off `a4ee3d1f`
+(`s37-step0-shipping-base`, then `s41-mhrx-pullup-off`) and **neither branch
+is ever merged to `main`**: they are the design that is on the part plus the
+minimum change, deliberately without main's later logic elements. Neither
+carries a readable design ID — the stamp block costs +124 LEs — so each
+identifies itself by its pof md5 and `/home/app/logic-flash.log`.
+
+`tools/pi/logic_flash.sh`'s default rollback is the bitstream the bench lives
+on, and moves with it: today `s37_shipping_step0.c62c024714f2.svf`.
+
 - `build.sh` — full flow (slot-map regen -> **sim gate** -> map/fit/sta/asm
   -> pof/svf) with an STA gate; artifacts land in `bitstream/` labelled
   with the first 12 hex of sha256(slot-map hash + RTL + qsf/sdc), plus a

@@ -1,0 +1,93 @@
+artifact: s41_mhrx_pullup_off.15f3ae07dae1.{pof,svf}
+purpose: STEP 0 PLUS ONE PIN. The LOGIC CPLD's weak pull-up taken OFF pin 74
+  (MHRX / G2691 / `M MCU_P17`), so the net falls when the Pi halts and the
+  power MCU gets its shutdown acknowledge instead of running to the 60 s
+  failsafe. Nothing else is in it.
+
+SHIPPING: yes — no non-shipping switch is set.
+
+built_from: a9e8e05dab48b910216d54f78e39e0dc8a2c9ce0
+  branch s41-mhrx-pullup-off = s37-step0-shipping-base (61e38ce3) + ONE qsf
+  change. THIS BRANCH MUST NEVER BE MERGED TO main, for its parent's reason:
+  it is the shipping design that is on the part, plus the minimum change,
+  deliberately WITHOUT main's later logic elements.
+
+the_change: three lines in quartus/dsp4_logic.qsf —
+    set_location_assignment PIN_74 -to mhrx
+    set_instance_assignment -name RESERVE_PIN "AS INPUT TRI-STATED" -to mhrx
+    set_instance_assignment -name WEAK_PULL_UP_RESISTOR OFF -to mhrx
+  The global RESERVE_ALL_UNUSED_PINS is UNCHANGED ("As input tri-stated with
+  weak pull-up" in both fit reports) and still covers every other unassigned
+  pin — the MH/panel UART nets keep the pull-up they need. Pin 74 is the one
+  exception, and it is an exception because the CM4 drives that net
+  push-pull and the power MCU reads it.
+
+config: (none) — this build.sh (a4ee3d1f's) predates CFG_LINE entirely, the
+  same as its parent. Every non-shipping switch is off.
+
+device: 5M1270ZT144C4
+logic_elements: 156 / 1,270 (12 %) — IDENTICAL to step 0
+pins: 69 / 114 (61 %) — step 0's 68 plus the reserved pin 74
+fmax: 70.05 MHz (step 0: 66.1 MHz)
+sim_gate: PASS (5 testbenches, the same RTL as step 0 byte for byte)
+slot_map: sha256:efd8d555440094b627345b5a84894f9e7a6b569056f4eccb417d42d6ce32182e
+
+md5_pof: 72a28864d54334215d192070d5742252
+md5_svf: fc6ce23ed14cda464f277a56cf21ab92
+
+fit_diff_vs_step0: the "All Package Pins" table is 150 lines in both builds
+  and differs on EXACTLY ONE ROW:
+    - ; 74 ; 112 ; 3 ; RESERVED_INPUT_WITH_WEAK_PULLUP ; ... ; ; no ; On  ;
+    + ; 74 ; 112 ; 3 ; mhrx                            ; input ; 3.3-V LVTTL ; ... ; Y ; no ; Off ;
+  Every other pin's location, direction, I/O standard, bus hold and weak
+  pull-up are byte-identical. Logic element count is identical (156, 28
+  registers).
+
+  AND THE FITTER RE-PLACED THE DESIGN, WHICH THE DIFF SAYS OUT LOUD: adding a
+  pin constraint re-seeds placement, so LABs go 24 -> 26, peak interconnect
+  7.6 % -> 10.6 %, every control signal moves cell (e.g. u_clkgen|Equal1~0
+  LC_X10_Y7_N3 -> LC_X6_Y6_N3), and Fmax moves with them. The NETLIST is
+  unchanged — same RTL, same 156 LEs, same sim gate — but the placement is
+  not, and "only pin 74 changed" is true of the pin table and of the
+  function, not of the bitstream bytes. Recorded so that nothing is later
+  attributed to a change this artifact does not contain.
+
+reproducibility: built TWICE from clean `git archive` trees. The two pof files
+  are BYTE-IDENTICAL (72a28864d54334215d192070d5742252). The svf bodies are
+  identical with comment lines removed; quartus_cpf stamps the wall clock into
+  the `!Device #1:` comment, as it does for every artifact here (S37-1). The
+  pof is the artifact to hash.
+
+  The step-0 baseline was rebuilt in the same session from 61e38ce3 and
+  reproduced its recorded pof md5 79284dad6e9c27995f91806056c9fba5 exactly,
+  so the fit-report diff above is between two builds of this toolchain and
+  not against a report from another machine.
+
+design_id: NONE — for its parent's reason. The design-ID/knock readback block
+  costs +124 LEs (S36 §1.1) and would take this artifact from 156 to ~280,
+  which is not what a one-pin change is allowed to carry. This bitstream
+  identifies itself by the md5 above plus /home/app/logic-flash.log, exactly
+  as step 0 and as step 0's own rollback do.
+
+rollback: s37_shipping_step0.c62c024714f2.svf
+  md5 d47b74c6c881b82a110491266a6bd31d (svf) / 79284dad6e9c27995f91806056c9fba5 (pof)
+  THIS, not dsp4_logic.a1f6672af6c3.svf, is what the bench lives on: S38
+  flashed step 0 onto the part on 2026-09-12 and it has been there since.
+
+S41_COMMAND_LINE:
+  cd tools/pi
+  ./logic_flash.sh --dry-run s41_mhrx_pullup_off.15f3ae07dae1.svf
+  ./logic_flash.sh           s41_mhrx_pullup_off.15f3ae07dae1.svf
+  # the rollback now defaults to s37_shipping_step0.c62c024714f2.svf.
+  # AN_EN (GPIO26) must read low; it does with the gated app (S38-1). No
+  # waiver, and GPIO26 is never written.
+
+S41_PROOF:
+  * the net, measured through the CM4's own GPIO14 with the PL011 released:
+      `pinctrl set 14 ip pn` -> lo   (step 0 read hi)
+      `pinctrl set 14 ip pd` -> lo   (step 0 read hi against a ~50 k pull-down)
+    then `pinctrl set 14 a0 pn` to put TXD0 back.
+  * `sudo poweroff` with the rocker ON: MHRX falls and the power MCU's 5 Hz
+    shutdown sequence completes in seconds, not 60 s, then the unit reboots.
+  * step 0's own behaviour intact: the converter/option-slot clock pair still
+    driven — U3 pin 142 = 12.288 MHz, pin 141 = 48 kHz (J18 P37/P38).

@@ -6,6 +6,104 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## MHRX FALLS NOW — THE CPLD WAS THE ONLY PULL-UP, AND THE `poweroff` PROXY DOES NOT TEST THE ACK (2026-09-13, session 41)
+
+**S41-1. The pull-up was the global unused-pin reservation, not an
+assignment.** Pin 74 (`M MCU_P17` / G2691 = CM4 GPIO14 UART0 TX; sinks M MCU
+U8.32, LOGIC U3.74, power MCU U34.6) is not assigned in the shipping design
+and has no RTL port. In the step-0 fit report it reads
+`RESERVED_INPUT_WITH_WEAK_PULLUP`, Weak Pull Up **On**, User Assignment blank
+— the `RESERVE_ALL_UNUSED_PINS "AS INPUT TRI-STATED WITH WEAK PULL-UP"` line
+covering it along with every other unassigned pin. That line is load-bearing
+everywhere else (the 2026-08-19 trap: the MH and panel UARTs were ground-driven
+when it was left unspecified) so it stays; pin 74 is taken out of it by name.
+
+**S41-2. The defect is measurable from the CM4 alone — no scope needed.**
+Release the CM4's GPIO14 from the PL011 and read the net:
+`pinctrl set 14 ip pn` -> **hi**, and `pinctrl set 14 ip pd` (the CM4's own
+~50 k internal pull-down) -> **still hi**. An external pull-up stronger than
+50 k, which is the MAX V weak pull-up (~25 k typ). Restore with
+`pinctrl set 14 a0 pn`. This is the instrument for the whole finding and it
+costs one ssh command.
+
+**S41-3. One qsf assignment, netlist unchanged — but the fitter re-placed the
+design, and that is said out loud.** `s41_mhrx_pullup_off.15f3ae07dae1`
+(branch `s41-mhrx-pullup-off` = step 0 + three qsf lines) reserves pin 74 as a
+tri-stated input with `WEAK_PULL_UP_RESISTOR OFF`. The 150-row "All Package
+Pins" table differs from step 0's on **exactly one row** — pin 74, now
+`mhrx / input / 3.3-V LVTTL / User Assignment Y / Weak Pull Up Off` — and the
+logic element count is identical (156, 28 registers), same RTL, same sim gate.
+The global reserve line is unchanged in both fit reports. **The placement is
+not identical**: adding a pin constraint re-seeds the fitter, so LABs go
+24 -> 26, peak interconnect 7.6 % -> 10.6 %, every control signal moves cell,
+and Fmax moves 66.1 -> 70.05 MHz. "Only pin 74 changed" is true of the pin
+table and of the function, not of the bitstream bytes. Built twice from clean
+`git archive` trees, pof byte-identical; the step-0 baseline was rebuilt in the
+same session and reproduced its recorded pof md5 exactly, so the diff is
+between two builds of this toolchain.
+
+**S41-4. THE NET FOLLOWS THE BITSTREAM, PROVED BY A CONTROL ARM, AND U8 IS NOT
+A SECOND PULL-UP SOURCE.** Four plays on the part, every one FLASH-OK on
+attempt 1, IDCODE `0x020a30dd` before and after each:
+
+| play | on the part | `14 ip pn` | `14 ip pd` |
+|---|---|---|---|
+| 0 (dry run) | step 0 | hi | hi |
+| 1 | **s41 fix** | **lo** | **lo** |
+| 2 (control, rollback) | step 0 | hi | hi |
+| 3 (re-flash) | **s41 fix** | **lo** | **lo** |
+
+`pinctrl set 14 ip pu` reads **hi** in the fix arm, so the net is not shorted
+low and the instrument is live. The control arm reproduces the defect and
+removes the alternative explanations at once: **M MCU U8 pin 32 contributes no
+pull-up** (nothing about U8 changed between the arms and the net went low), and
+neither does the board — the DSP-side CPLD was the whole of it. The net still
+reads low after several rail cycles, so the change is in the configuration
+flash and survives power.
+
+**S41-5. Step 0's own behaviour is intact.** S38-3's fingerprint, taken with
+the `blk_*` pair from `/home/app/s38pre` at BOOT_STAGE 7 on the same recipe
+either side of the flash: chip 1 **9540** overruns per 30 s before, **9505**
+after (S38 recorded 9602 and 9957 x3), 90,015/90,016 blocks per 30 s in both;
+chip 2 **BLK_OK, zero overruns** before and after, `SPORT0_ERR_A 0` throughout.
+The converter/option-slot clock pair is still driven and the one-block-in-nine
+cost is unchanged to three figures.
+
+**S41-6. THE DISPATCH'S GATE-4 PROXY CANNOT TEST THE ACK, AND THE FIRMWARE
+SAYS SO IN ONE LINE.** The gate asked for `sudo poweroff` with the rocker ON,
+expecting the power MCU's shutdown sequence to complete in seconds. Read
+`ST_ON` in mx26 `src/fw/pwr-mcu/main.c` (ba9b2bc, + 0215bc4 which only adds the
+reset log): its **only** exits are `!rocker_on` and `!v12_ok`. **MHRX going low
+in ST_ON does nothing.** The Pi-off acknowledge lives inside `ST_SHUTDOWN`,
+and `ST_SHUTDOWN` is entered by the rocker or by 12 V failing — never by the Pi
+halting. So a `poweroff` with the rocker ON cannot start the sequence, and the
+path this fix serves is the other one: **rocker OFF while the Pi is still
+running** -> `enter_shutdown(TRIG_SWITCH)` with `pi_alive_at_entry = 1` ->
+PI_SD -> the app saves and halts -> MHRX must fall -> ack at
+`CFG_MHRX_ACK_LOW_MS` = 100 ms, else `CFG_SHUTDOWN_TIMEOUT_MS` = 60 s. That
+test needs a hand on the rocker and was out of this session's scope by the
+dispatch's own terms. The MCU also has its own pull-down on PA0 (`board.h`), so
+with the CPLD's pull-up gone the sense line is actively held low, not floating.
+
+**What the `poweroff` run actually measured, since it was run before the source
+was read:** halt to the next kernel start was **154 s** (network down at +8 s,
+kernel start at +162 s, ssh at +180 s). A plain `reboot` — the identical OS
+shutdown path with no rail cycle — is **10 s** from network-down to kernel
+start, so ~144 s of it was off-Pi. With the rocker ON and 12 V present no
+firmware path can cycle the rails, so something reset the MCU; `0215bc4`'s
+reset-cause log in no-init SRAM is readable over SWD and would say which. Two
+further uncommanded cycles followed within four minutes and then the unit ran
+308 s clean and was handed back that way. **Not attributed to this bitstream**
+— the CPLD has no rail control — but not explained either, and it is the same
+shape as the reset-pulsed-rails loop ba9b2bc was written to kill.
+
+**Bench default rollback was stale and is now the bitstream the bench lives
+on.** `logic_flash.sh` defaulted to `dsp4_logic.a1f6672af6c3.svf`; S38 put step
+0 on the part on 2026-09-12. A default rollback that is not what is on the part
+is a second unannounced flash, not a rollback. It now defaults to
+`s37_shipping_step0.c62c024714f2.svf` and the header says the line moves with
+the bench.
+
 ## THE INSTRUMENT WAS WRONG, THE CONVERTERS ARE RUNNING, AND THE CAPTURE IS ONE BIT LATE (2026-09-12, session 39)
 
 Three S38 findings were readings of a host symbol map that does not belong to
