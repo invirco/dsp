@@ -5679,6 +5679,71 @@ def gen_ramp_tables():
     return '\n'.join(lines)
 
 
+# ---------------------------------------------------------------------------
+# FRAME-SYNC-TO-DATA DELAY (SPORT_MCTL.MFD), PER LANE
+#
+# MFD is the number of serial-clock cycles between the multichannel frame
+# sync and the first bit of slot 0 (HRM 21-35: "when set to 0, the frame
+# sync is concurrent with the first data bit"). It was 1 for every lane,
+# hardcoded in sport_config.c, and on the converter lanes it is WRONG BY
+# ONE -- S39-4 measured the consequence on all twelve chip-1 input lanes
+# and S42-1 named the cause:
+#
+#   The AK5558 ADCs and AK4458 DACs are pin-strapped TDM128 in the *I2S*
+#   variant (D24 Analog sheet 13/64 "ADC8": DIF0-1 = 10 = I2S 24-bit,
+#   TDM0-1 = 01, ODP = 1 = normal TDM128 outputs; the DAC8 sheet carries
+#   the same two straps). The I2S variant puts ONE bit clock between the
+#   frame edge and the MSB. LOGIC asserts FS one BCK8 period before slot 0
+#   (dsp4_clkgen.v), so the converter's MSB lands TWO periods after the FS
+#   is sampled, not one -- MFD = 2.
+#
+#   At MFD = 1 the receiver's window opened one period early, so every
+#   captured word was {previous slot bit 0, this slot bits 31:1} -- and
+#   because the converters send 24 bits left-justified in a 32-bit slot,
+#   that leading bit is always a pad zero. Hence S39-4's three signatures:
+#   bit 31 never set on any word of any lane, bits 6:0 never set, and the
+#   whole capture reading as (sample >>> 1). The transmit side has the
+#   mirror of it: the DSP launched each DAC word one BCK early, so the
+#   AK4458 latched {word bits 30:0, next bit} -- x2 with the sign gone.
+#
+# It is NOT a property of the region, because the two peers on this board
+# frame differently and only one of them can be changed by strapping:
+#
+#   converter-framed lanes (ADC, DAC, codec, MEMS, option-slot NET -- every
+#     lane on LOGIC's conv_bck/conv_fs pair)            -> MFD_CONVERTER = 2
+#   LOGIC-framed lanes (the CPLD's own re-framer: the Pi PCM lane into
+#     DSPA I6, and the DSPB O3 lane the CPLD captures for the Pi's return)
+#     -- dsp4_pcm_reframe.v builds both for MFD = 1 and says so in its
+#     out_period/in_period comments                          -> MFD_CPLD = 1
+#   the inter-chip mix fabric (DSPA O -> DSPB I, direct copper) is DSP to
+#     DSP: both ends move together, so any value is self-consistent and it
+#     stays at the value it has always run at            -> MFD_FABRIC = 1
+#
+# So changing the converter lanes needs NO bitstream change, which is the
+# whole reason it is per-lane: the fix lands on the LOGIC image that is on
+# the part. If the Pi lanes are ever brought to the converter convention,
+# it is two constants in dsp4_pcm_reframe.v (out_period + 1 -> + 0,
+# in_period - 1) and this table, in one step.
+MFD_CONVERTER = 2
+MFD_CPLD      = 1
+MFD_FABRIC    = 1
+
+# Signals the LOGIC CPLD frames itself rather than passing through as a
+# wire. Matched as a prefix against a node's `signal=` parameter.
+CPLD_FRAMED_SIGNALS = ('PI_PCM', 'PI_RET', 'DAC_MAIN')
+
+
+def lane_mfd(nodes):
+    """MFD for one lane, from the peer its slots talk to. A lane is
+    LOGIC-framed only if EVERY signal on it is; a mixed lane would be a
+    slot map defect and is given the converter value so it fails loudly
+    on the converter side rather than quietly on the Pi's."""
+    sigs = [n['params'].get('signal', '') for n in nodes]
+    if sigs and all(s.startswith(CPLD_FRAMED_SIGNALS) for s in sigs):
+        return MFD_CPLD
+    return MFD_CONVERTER
+
+
 # ===========================================================================
 # Block I/O: DMA buffer scatter/gather for per-sample processing
 # ===========================================================================
@@ -5702,11 +5767,13 @@ def gen_block_io(chip_label, chip_nodes):
     Each scatter/gather takes r0 = sample index (0..BLOCK-1).
     """
 
-    def lane_layout(specs, window=None):
+    def lane_layout(specs, window=None, mfd=None):
         """specs: [(node, sport, slot)]. window=None -> packed lanes;
         window=N -> full-window lanes of N slots.
-        Returns (lanes, per_node): lanes = [{sport, cs, count}] sorted by
-        sport; per_node[node_id] = (off_words, stride)."""
+        mfd: None -> derive each lane's frame delay from the signals on it
+        (lane_mfd); an int -> use it for every lane (the fabric).
+        Returns (lanes, per_node): lanes = [{sport, cs, count, mfd}] sorted
+        by sport; per_node[node_id] = (off_words, stride)."""
         by_sport = {}
         for node, sport, slot in specs:
             by_sport.setdefault(sport, []).append((slot, node))
@@ -5722,7 +5789,9 @@ def gen_block_io(chip_label, chip_nodes):
             for rank, (slot, node) in enumerate(slots):
                 idx = slot if window is not None else rank
                 per_node[node['id']] = (base + idx, count)
-            lanes.append({'sport': sport, 'cs': cs, 'count': count})
+            lane_nodes = [node for _, node in slots]
+            lanes.append({'sport': sport, 'cs': cs, 'count': count,
+                          'mfd': lane_mfd(lane_nodes) if mfd is None else mfd})
             base += count * BLOCK
         return lanes, per_node
 
@@ -5921,7 +5990,7 @@ def gen_block_io(chip_label, chip_nodes):
         num_ic = len(send_nodes)
         ic_specs = [(n, int(n['params'].get('sport_id', '7')),
                      int(n['params'].get('slot', '0'))) for n in send_nodes]
-        ic_lanes, ic_map = lane_layout(ic_specs)
+        ic_lanes, ic_map = lane_layout(ic_specs, mfd=MFD_FABRIC)
 
         lines.append('.section/dm seg_dmda;')
         lines.append('')
@@ -6060,7 +6129,7 @@ def gen_block_io(chip_label, chip_nodes):
         num_ic_rx = len(recv_nodes)
         ic_specs = [(n, int(n['params'].get('sport_id', '7')),
                      int(n['params'].get('slot', '0'))) for n in recv_nodes]
-        ic_lanes, ic_map = lane_layout(ic_specs)
+        ic_lanes, ic_map = lane_layout(ic_specs, mfd=MFD_FABRIC)
 
         # --- TX: OUTPUT_TDM nodes, full-window lanes (MCPDE=0) ---
         output_nodes = [n for n in chip_nodes if n['type'] == 'OUTPUT_TDM']
@@ -6138,6 +6207,11 @@ def gen_lane_config_c(chip_label, lane_info):
     out.append(f'/* lane_config.c — generated lane tables + DMA buffers for {chip_label.upper()} */')
     out.append('/* AUTO-GENERATED by tools/dsp/dsp_codegen.py — do not edit directly. */')
     out.append('/* Entries of 4: sport, cs_mask, words_per_sample, region_off. */')
+    out.append('/* <region>_mfd[] is the per-lane frame-sync-to-data delay */')
+    out.append('/* (SPORT_MCTL.MFD) -- see MFD_CONVERTER/MFD_CPLD in the   */')
+    out.append('/* generator. It is per LANE, not per region, because the  */')
+    out.append('/* pin-strapped AKM converters and the LOGIC CPLD frame    */')
+    out.append('/* differently and only one of them can be reprogrammed.   */')
     out.append('')
     out.append('#include "dsp_block.h"')
     out.append('')
@@ -6150,11 +6224,14 @@ def gen_lane_config_c(chip_label, lane_info):
         out.append(f'const int {name}_dir = {dirbit};    /* 0 = RX (half A), 1 = TX (half B) */')
         out.append(f'const int {name}_mcpde = {mcpde};')
         out.append(f'const int {name}_wsize = {wsize};')
+        mfds = ', '.join(str(ln['mfd']) for ln in lanes)
+        out.append(f'const int {name}_mfd[{n}] = {{ {mfds} }};')
         out.append(f'const int {name}[{n * 4}] = {{')
         base = 0
         for i, ln in enumerate(lanes):
             comma = ',' if i < n - 1 else ''
-            out.append(f'    {ln["sport"]}, 0x{ln["cs"]:04X}, {ln["count"]}, {base}{comma}')
+            out.append(f'    {ln["sport"]}, 0x{ln["cs"]:04X}, {ln["count"]}, '
+                       f'{base}{comma}   /* MFD {ln["mfd"]} */')
             base += ln['count'] * BLOCK
         out.append('};')
         out.append('')

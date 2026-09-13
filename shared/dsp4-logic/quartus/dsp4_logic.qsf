@@ -146,3 +146,34 @@ set_location_assignment PIN_7   -to test[3]
 # BUSY (66), S5-S7 (69,68,67), UART pass-throughs SRX/MRX (72,71),
 # MHTX/MHRX (73,74), STRX1/STRX0 (75,76), PTRX1/PTRX0 (77,84),
 # PLL1-4 groups (89-108 X-logic), PLL5_3-PLL7_3 (112-122 X-logic).
+
+# ---- MHRX (pin 74): reserved input, NO weak pull-up (S41, folded in S42) ----
+#
+# `M MCU_P17` / G2691 = the CM4's UART0 TX (GPIO14, J24.55), which the
+# power MCU U34 also watches on PA0 as its "Pi alive" sense. The global
+# RESERVE_ALL_UNUSED_PINS above reserves this pin as an input WITH a weak
+# pull-up, and that pull-up holds the net HIGH after the Pi halts (GPIO14
+# goes to an input at shutdown). The power MCU then never sees the
+# sustained low it acks on, so a rocker-off shutdown with the Pi still
+# running runs to the 60 s failsafe (bench 2026-08-18; power-MCU firmware
+# mx26 ba9b2bc).
+#
+# The pin comes out of the global reservation BY NAME and nothing else
+# does: the global line stays, because it is the 2026-08-19 trap's fix and
+# the MH/panel UARTs need it (S41-1).
+#
+# The pin is reserved as an input here purely to take the pull-up off it.
+# That is not a bus fight: the only driver on the net is the CM4,
+# push-pull, and this end stays an input either way. When the Pi is up the
+# UART idles high and the net is held by the CM4; when the Pi halts the net
+# falls, which is the whole point.
+#
+# PROVED ON THE PART (S41-4), in the step-0 lineage, with a control arm and
+# no scope — the CM4 itself is the instrument. Release GPIO14 from the PL011
+# and read the net: step 0 -> hi (against the CM4's own ~50 k pull-down, so
+# an external pull-up stronger than 50 k = the MAX V weak pull-up); this fix
+# -> lo. Rollback -> hi again, re-flash -> lo again. Four plays, four
+# agreements. M MCU U8 pin 32 is NOT a second pull-up source.
+set_location_assignment PIN_74 -to mhrx
+set_instance_assignment -name RESERVE_PIN "AS INPUT TRI-STATED" -to mhrx
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR OFF -to mhrx

@@ -15,14 +15,21 @@
 #                      live unit; this is how you find out whether the
 #                      interlock is currently satisfiable.
 #   --rollback <svf>   what goes back if the flash does not take.
-#                      Default s37_shipping_step0.c62c024714f2.svf — the
-#                      bitstream the bench lives on. S38 put step 0 on the
-#                      part on 2026-09-12; before that the default was
-#                      dsp4_logic.a1f6672af6c3.svf and S41 found it stale.
+#                      Default s41_mhrx_pullup_off.15f3ae07dae1.svf — the
+#                      bitstream the bench lives on. S41 put it on the part
+#                      on 2026-09-13 (four plays, four FLASH-OK); it is
+#                      s37 step 0 plus the pin-74 pull-up and nothing else.
 #                      A default rollback that is not what is on the part is
 #                      not a rollback, it is a second unannounced flash, so
 #                      this line moves with the bench and is part of the
 #                      write-up of every session that flashes.
+#                      History, because this line has been stale twice:
+#                      dsp4_logic.a1f6672af6c3.svf until S41 found it stale
+#                      (S38 had put step 0 on the part on 2026-09-12);
+#                      s37_shipping_step0.c62c024714f2.svf until S42 found
+#                      it stale the same way — S41 updated it to the
+#                      bitstream it rolled back TO, not the one it left on
+#                      the part. Set it AFTER the flash, from the flash log.
 #   --stop-app         stop matrix-app, then RE-READ GPIO26. See below.
 #   --leave-app-stopped  do not restart matrix-app at the end.
 #   --an-en-waived "<written reason>"   PW's shape-3 ruling, recorded.
@@ -82,7 +89,7 @@ set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
 BENCH="${BENCH:-app@192.168.1.219}"
 BITDIR="${BITDIR:-$HERE/../../shared/dsp4-logic/bitstream}"
-ROLLBACK="s37_shipping_step0.c62c024714f2.svf"
+ROLLBACK="s41_mhrx_pullup_off.15f3ae07dae1.svf"
 DRYRUN=0; STOPAPP=0; RESTART=1; WAIVER=""; SELFTEST=""
 ARG=""
 

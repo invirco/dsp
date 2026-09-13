@@ -166,6 +166,75 @@ def fabric_params(signal):
             f'sport_slots=16;signal={signal}')
 
 
+
+# ===========================================================================
+# THE D24 OUTPUT PATCH — which DAC slot each output node lands in
+#
+# The sixteen DAC slots are TDM positions on two AK4458s. Which physical
+# connector a slot reaches is the ANALOG BOARD's business, and it is not
+# 1:1 on either DAC. Traced (mx26 docs/d24-analog-paths.csv, 267 completed
+# paths) and read off the schematic (D24 Analog rev B, sheet 12/64
+# "OUT_9-16"); the AK4458 half of it is the chip's own — SDTI1 is the only
+# serial input wired and the straps are TDM0-1 = 01, DIF0-1 = 10, so
+# channel n is TDM slot n:
+#
+#   OUT_1-8 block, AK4458 U81, lane B_O0 — REVERSED, channel n -> OUT_(9-n)
+#     DAC_01 -> ch1 -> J52 -> rear XLR OUT_08 / phonejack J1 ring
+#     ...
+#     DAC_08 -> ch8 -> J45 -> rear XLR OUT_01 / phonejack J4 tip
+#   These eight are the product's Aux Out A1..A8 (defs d24-io.csv).
+#
+#   OUT_9-16 block, AK4458 U92, lane B_O1 — a different derangement:
+#     DAC_09 -> ch1 -> PHONES_L      (J10 tip)
+#     DAC_10 -> ch2 -> PHONES_R      (J10 ring)
+#     DAC_11 -> ch3 -> MAIN_R        (J57, balanced, U96)
+#     DAC_12 -> ch4 -> MAIN_L        (J56, balanced, U95)
+#     DAC_13 -> ch5 -> NOT CONNECTED (U92 pins 32/33 are one-pin nets)
+#     DAC_14 -> ch6 -> SUB_W         (J55, balanced, U94) = rear "Center/LF"
+#     DAC_15 -> ch7 -> MON L         (J53 tip)
+#     DAC_16 -> ch8 -> MON R         (J54 tip)
+#
+# WHAT THIS FIXES (S42-2). Until now aux a went to DAC_a and main out n to
+# DAC_(12+n), i.e. straight down the slot numbers, and the board is not
+# straight:
+#   * AUX 1 left the unit on the **Aux Out A8** XLR, and the Aux Out A1
+#     XLR carried aux 8. That is why S39's AUX 1 -> MIC 1 patch heard
+#     nothing while the DSP provably drove the DAC lane (S39-6): the
+#     signal was leaving, on the wrong connector.
+#   * Main Out 1 went to DAC_13, which is not connected to anything, and
+#     Main Out 2 to the Sub XLR, so nothing reached the MAIN XLRs at all.
+# Reversing the eight and putting Main Out 1/2 on DAC_12/DAC_11 fixes
+# both. It moves one output_params() argument per node and no address.
+#
+# WHAT IT DOES NOT SETTLE, and is a defs candidate, not a decision made
+# here (see MW/D24/DSP/dsp4-dac-lane-xlr-20260913.md):
+#   * Main Out 3/4 stay on DAC_15/16, which are the MONITOR jacks, and
+#     C2_MON_OUT stays on the codec's talkback-speaker pair. Which of the
+#     crossover's four outputs a D24 rear panel is meant to carry — and
+#     whether the Sub XLR is fed by C2_SUB_OUT (today on NET_OUT_01) —
+#     is a product decision.
+#   * Aux 11/12 take the two slots Main Out 1/2 vacate (DAC_13 = the
+#     unconnected channel, DAC_14 = the Sub XLR). A D24 has eight aux
+#     connectors, so aux 9-12 have no rear panel either way; this keeps
+#     them addressable without displacing anything that does.
+#   * PHONES_L/R (DAC_09/10) have no DSP source node at all.
+#   * This table is D24 copper. One firmware serves D24 and D32
+#     (dsp4-architecture-decisions.md), so when the D32 analog board
+#     lands, the patch becomes product config and this table is where
+#     that split goes.
+AUX_DAC = {
+    1: 'DAC_08', 2: 'DAC_07', 3: 'DAC_06', 4: 'DAC_05',    # -> Aux Out A1..A4
+    5: 'DAC_04', 6: 'DAC_03', 7: 'DAC_02', 8: 'DAC_01',    # -> Aux Out A5..A8
+    9: 'DAC_09', 10: 'DAC_10',                             # PHONES L/R (no connector for aux)
+    11: 'DAC_13', 12: 'DAC_14',                            # ch5 n/c, Sub XLR
+}
+MAIN_OUT_DAC = {
+    1: 'DAC_12',    # MAIN_L, analog J56
+    2: 'DAC_11',    # MAIN_R, analog J57
+    3: 'DAC_15',    # MON L  — unchanged, and a defs question
+    4: 'DAC_16',    # MON R  — unchanged, and a defs question
+}
+
 rows = []
 
 def add(nid, chip, ntype, label, ch_count, inputs, outputs,
@@ -595,7 +664,7 @@ last_bus_recv_idx = len(rows)  # splice point for superset recv rows
 
 # --- AUX BUSES ×12 (Chip 2) ---
 # Chain: RECV → FDR → EQ → ANTIFB → LIM → DLY → OUT
-# Output patch: Aux 1-12 → DAC_01..DAC_12 (B_O0 + B_O1 low half)
+# Output patch: AUX_DAC above — the D24 copper, not the slot numbers
 for a in range(1, NUM_AUX + 1):
     aa = f'{a:02d}'
     recv = recv_ids[f'aux_{a}']
@@ -654,7 +723,7 @@ for a in range(1, NUM_AUX + 1):
     p, a2 = c2_alloc.next(1)
     add(n_out, 2, 'OUTPUT_TDM', f'Aux {a} Out', 1, n_dly, '',
         spi_page=p, spi_addr=a2,
-        params=output_params(f'DAC_{a:02d}'))
+        params=output_params(AUX_DAC[a]))
 
 # --- GROUP BUSES ×4 (Chip 2) ---
 # Chain: RECV → FDR → EQ → GATE → COMP → (feed to Main)
@@ -831,7 +900,7 @@ add('C2_MAIN_XOVER', 2, 'CROSSOVER', 'Main Xover', 2,
     ramp_profile='EqSafe')
 
 # --- Per-output processing (Main ×4) ---
-# Output patch: Main xover outs 1-4 → DAC_13..DAC_16 (B_O1 high half)
+# Output patch: MAIN_OUT_DAC above — outs 1/2 on the MAIN XLRs
 for out_n in range(1, 5):
     oo = f'{out_n:02d}'
     n_eq   = f'C2_MAIN_OEQ_{oo}'
@@ -860,7 +929,7 @@ for out_n in range(1, 5):
     p, a2 = c2_alloc.next(1)
     add(n_out, 2, 'OUTPUT_TDM', f'Main Out {out_n}', 1, n_lim, '',
         spi_page=p, spi_addr=a2,
-        params=output_params(f'DAC_{12 + out_n:02d}'))
+        params=output_params(MAIN_OUT_DAC[out_n]))
 
 # --- FX ENGINES ×6 (Chip 2) ---
 # Chain: RECV → FX_ENGINE → FDR → (feeds main/aux)
@@ -1114,9 +1183,10 @@ if 'mon' in GEQ_ON:
 # leaves the pan word dispatched-but-uncelled. `Name` is a label the host
 # stores. There is no `Matrix*Mtr` cell, so no METER node is added.
 #
-# WHERE THE OUTPUT GOES. The sixteen DACs are fully committed -- aux 1-12 on
-# DAC_01..12 and the four post-crossover main outputs on DAC_13..16 -- so no
-# DAC lane is free on either product. The NET output lines are: NET_OUT_01
+# WHERE THE OUTPUT GOES. The sixteen DACs are fully committed -- twelve aux
+# buses and the four post-crossover main outputs between them, patched onto
+# the copper by AUX_DAC / MAIN_OUT_DAC above -- so no DAC lane is free on
+# either product. The NET output lines are: NET_OUT_01
 # already carries C2_SUB_OUT, and NET_OUT_02..32 are unassigned and scoped
 # BOTH. The four matrix outputs are patched onto NET_OUT_02..05 on the same
 # footing C2_SUB_OUT sits on NET_OUT_01 -- which is to say PROVISIONALLY:

@@ -179,20 +179,20 @@
     _rx_ic_slot_C2_RECV_MTX_04;
 
 /* TX node tables (24 outputs over 5 full-window lanes of 8) */
-.extern _tx_out_slot_C2_AUX_OUT_01;
-.extern _tx_out_slot_C2_AUX_OUT_02;
-.extern _tx_out_slot_C2_AUX_OUT_03;
-.extern _tx_out_slot_C2_AUX_OUT_04;
-.extern _tx_out_slot_C2_AUX_OUT_05;
-.extern _tx_out_slot_C2_AUX_OUT_06;
-.extern _tx_out_slot_C2_AUX_OUT_07;
 .extern _tx_out_slot_C2_AUX_OUT_08;
+.extern _tx_out_slot_C2_AUX_OUT_07;
+.extern _tx_out_slot_C2_AUX_OUT_06;
+.extern _tx_out_slot_C2_AUX_OUT_05;
+.extern _tx_out_slot_C2_AUX_OUT_04;
+.extern _tx_out_slot_C2_AUX_OUT_03;
+.extern _tx_out_slot_C2_AUX_OUT_02;
+.extern _tx_out_slot_C2_AUX_OUT_01;
 .extern _tx_out_slot_C2_AUX_OUT_09;
 .extern _tx_out_slot_C2_AUX_OUT_10;
+.extern _tx_out_slot_C2_MAIN_OUT_02;
+.extern _tx_out_slot_C2_MAIN_OUT_01;
 .extern _tx_out_slot_C2_AUX_OUT_11;
 .extern _tx_out_slot_C2_AUX_OUT_12;
-.extern _tx_out_slot_C2_MAIN_OUT_01;
-.extern _tx_out_slot_C2_MAIN_OUT_02;
 .extern _tx_out_slot_C2_MAIN_OUT_03;
 .extern _tx_out_slot_C2_MAIN_OUT_04;
 .extern _tx_out_slot_C2_MON_OUT;
@@ -258,20 +258,20 @@
     8,
     8;
 .var _c2_tx_ptrs[24] =
-    _tx_out_slot_C2_AUX_OUT_01,
-    _tx_out_slot_C2_AUX_OUT_02,
-    _tx_out_slot_C2_AUX_OUT_03,
-    _tx_out_slot_C2_AUX_OUT_04,
-    _tx_out_slot_C2_AUX_OUT_05,
-    _tx_out_slot_C2_AUX_OUT_06,
-    _tx_out_slot_C2_AUX_OUT_07,
     _tx_out_slot_C2_AUX_OUT_08,
+    _tx_out_slot_C2_AUX_OUT_07,
+    _tx_out_slot_C2_AUX_OUT_06,
+    _tx_out_slot_C2_AUX_OUT_05,
+    _tx_out_slot_C2_AUX_OUT_04,
+    _tx_out_slot_C2_AUX_OUT_03,
+    _tx_out_slot_C2_AUX_OUT_02,
+    _tx_out_slot_C2_AUX_OUT_01,
     _tx_out_slot_C2_AUX_OUT_09,
     _tx_out_slot_C2_AUX_OUT_10,
+    _tx_out_slot_C2_MAIN_OUT_02,
+    _tx_out_slot_C2_MAIN_OUT_01,
     _tx_out_slot_C2_AUX_OUT_11,
     _tx_out_slot_C2_AUX_OUT_12,
-    _tx_out_slot_C2_MAIN_OUT_01,
-    _tx_out_slot_C2_MAIN_OUT_02,
     _tx_out_slot_C2_MAIN_OUT_03,
     _tx_out_slot_C2_MAIN_OUT_04,
     _tx_out_slot_C2_MON_OUT,

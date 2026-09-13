@@ -12,7 +12,7 @@
 #include "dsp_block.h"
 #include "lib/dyn_lut.h"
 
-/* OUTPUT_TDM: Write to SPORT1 slot 3 */
+/* OUTPUT_TDM: Write to SPORT1 slot 5 */
 
 .section/dm seg_dmda;
 .extern _buf_C2_AUX_DLY_12;

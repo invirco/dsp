@@ -6,6 +6,183 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE ONE BIT IS AN AKM STRAP, AND AUX 1 WAS LEAVING ON THE WRONG XLR (2026-09-13, session 42 — desk only, the unit was never touched)
+
+**S42-1. The one-bit-late RX capture is `SPORT_MCTL.MFD`, and the value is
+2.** S39-4 measured `received = (sample >>> 1)` on all twelve chip-1 lanes:
+bit 31 never set, bits 6:0 never set. That is a receive window that opens one
+serial clock EARLY — the shift register takes one extra bit before the MSB and
+ends holding `{previous bit, sample[31:1]}` — and the extra bit is always zero
+because the converters send 24 bits left-justified in a 32-bit slot, so the bit
+before slot *n*'s MSB is slot *n−1*'s pad. Three signatures, one mechanism, no
+free parameters. **The cause is a strap, read off D24 Analog rev B sheet 13/64
+"ADC8": `DIF0-1 = 10 = I2S 24-bit`, `TDM0-1 = 01 = TDM128`** (pin block:
+`+3V3→DIF0`, `GND→DIF1`, `GND→TDM0`, `+3V3→TDM1`), and mx26's read of the DAC8
+sheet records the same two straps on the AK4458. The I2S TDM variant puts ONE
+bit clock between the frame edge and the MSB; `dsp4_clkgen.v` already asserts
+FS one BCK8 period before slot 0; so the converter's MSB lands at period 1 and
+`MFD` must be **2**, where `sport_config.c` hardcoded **1** (HRM rev 0.3
+§21-34/35: with `MFD = 0` the first received bit is sampled in the same serial
+clock cycle as the frame sync). **The CPLD's FS phase is not a lever**: the DSP
+and the converters are slaved to the same FS, so moving it moves both — only
+the converter's strapped frame-to-data delay against the SPORT's MFD changes
+their relative alignment. Fixed in the tracked source.
+
+**S42-2. The transmit side has the exact mirror, and the CPLD loopback was
+structurally blind to it.** The same `cfg_region()` wrote `MFD = 1` on the
+chip-2 TX halves, so the DSP launched slot 0's MSB one BCK before the AK4458's
+window opened and the DAC latched `{DSP word[30:0], first bit of the next
+slot}` — the value doubled with the sign bit thrown away. The 24-in-32 padding
+does not save this direction; the lost bit is the MSB. **`DSP4_LOOPBACK`, the
+instrument built to close "sample edge / MFD" by measurement, feeds every DSPA
+input lane from the matching DSPB output lane through a wire, so both ends use
+the same MFD and a symmetric error cancels exactly.** Its slot-order and
+pair-order results stand; this one was never in its reach. The transmit framing
+is proved by the analog loop and by nothing else: with RX right, AUX 1 → MIC 1
+must return a clean scaled copy, and a still-early transmit returns a doubled,
+sign-wrapped one.
+
+**S42-3. MFD is per lane, and that is what lets the fix land without a CPLD
+flash.** Two framing peers on one board: the pin-strapped AKM converters
+(everything on LOGIC's `conv_bck`/`conv_fs` pair) need `MFD = 2`, and the two
+halves the CPLD's own re-framer serves — the Pi PCM lane into DSPA I6 and the
+DSPB O3 lane it captures for the Pi's return — are built for `MFD = 1` and say
+so in `dsp4_pcm_reframe.v`'s `out_period`/`in_period` comments. The inter-chip
+mix fabric is DSP-to-DSP and symmetric, so it is left at 1. Generated result:
+`c1_rx_lanes_mfd = {2,2,2,2,2,2,1,2}` (lane 6 = A_I6 = Pi PCM),
+`c2_tx_lanes_mfd = {2,2,2,1,2}` (lane 3 = B_O3 = Pi return), fabric all 1. A
+single global `MFD = 2` would have misframed the Pi's two lanes against the
+bitstream that is on the part; per lane, the converter fix lands on
+`s41_mhrx_pullup_off.15f3ae07dae1` with nothing else moving. Bringing the Pi
+lanes to the converter convention later is two constants in
+`dsp4_pcm_reframe.v` (`out_period + 1 → + 0`, `in_period − 1`) and two table
+entries, together.
+
+**S42-4. AUX 1 was leaving the unit on the Aux Out A8 XLR, and that alone
+explains S39-6.** The OUT_1-8 analog block is REVERSED — AK4458 U81 channel *n*
+comes out of rear XLR `OUT_(9−n)`, traced independently on the analog board and
+again on the phone-jack board (mx26 `d24-analog-paths.csv`, 267 completed
+paths) — and the DSP slot map did not compensate. mx26 filed exactly this
+question in S-11 ("either the dsp slot map compensates already, or the sixteen
+`OUT_nn` rows need their `carries` column changed"); this session is that check
+and the answer is that it did not. PW's bench cable is AUX OUTPUT 1 → MIC INPUT
+1. **The DAC was converting the whole time; the signal was leaving on a
+connector nobody had a cable in**, which is sufficient on its own for "the DSP
+side is proven good from the strip to the TX DMA buffer, and MIC 1 hears
+nothing" with no analog fault anywhere. The OUT_9-16 block is a DIFFERENT
+derangement, readable only from sheet 12/64: `DAC_09/10` = PHONES L/R,
+**`DAC_11` = MAIN R (J57), `DAC_12` = MAIN L (J56)**, `DAC_13` = U92 channel 5
+= **not connected** (pins 32/33 are one-pin nets), `DAC_14` = Centre/LF (J55),
+`DAC_15/16` = Monitor L/R (J53/J54). Main Out 1 was on `DAC_13` and Main Out 2
+on the Centre/LF XLR, so nothing reached the MAIN XLRs at all. Fixed: aux *n* →
+`DAC_(9−n)`, Main Out 1/2 → `DAC_12`/`DAC_11`, aux 11/12 onto the two slots
+they vacate. Twelve rows of `dsp.csv`, **no SPI address moved**. Full table and
+the six product questions it does not settle:
+`docs/d24-dac-lane-xlr-candidate-20260913.md`.
+
+**S42-5. S39-5b's "seven of eight chip-2 TX lanes always zero" is an instrument
+artefact.** `dsp4_s39_outpath.py` walks `_c2_tx_off[lane]` for `lane in
+range(0, 8)` and prints "TX lane 0..7". That array is not indexed by TDM lane —
+it is the 24-entry TX **node** table ordered by (sport, slot), and its first
+eight entries were `C2_AUX_OUT_01..08`, all on lane B_O0. "Lane 0 is AUX 1" is
+entry 0 and is right; "lanes 1–7 always zero" is aux 2–8 carrying nothing,
+which is correct behaviour; and **MAIN was never in the window** —
+`C2_MAIN_OUT_01..04` are entries 12–15 and `C2_MAIN_ST_OUT` is entry 18, and
+the tool stopped at 7. Same class as S39-1: a reading addressed positionally
+through a table that is not indexed the way the label says.
+`tools/pi/dsp4_s42_align.py` resolves nodes by NAME through `_c2_tx_ptrs`.
+
+**S42-6. The capacity gap is a configuration the product does not ship, and the
+part says so in its own register.** Fit tables: D24 driven 59.8 % / 84.4 %.
+Part: 114.9 % / 103.1 %. `shipping.config` → `DIAG_BUILD_CFG2 = 0xC2010244`,
+which is exactly what S39 read off both chips; `shipping.config.s26`, the
+anchor under every fit table since S20, → `0xC2019E6F`. Six switches differ and
+all six are capacity levers: `STRIP_FUSED`, `SIMD_DYN`, `C2_BQ_GRAPH`,
+`GATE_LINTHR`, `DYN_LUT`, `SHARED_KERNELS`. **So the shipping configuration
+contains nothing the fit tables did not price — it is the other way round.**
+GEQ at 31 bands on twelve aux buses / four groups / the main bus, twelve aux
+chains, the 24-strip mask and block 16 are all inside the 59.8 % / 84.4 %. S19
+measured and said this on 2026-09-10 and `shipping.config.s20` has been the
+staged proposal ever since; S39-3 re-found it. Decision sheet with the three
+cheapest levers priced:
+`MW/D24/DSP/dsp4-capacity-decision-20260913.md`. No configuration or generator
+change was made.
+
+**S42-7. The 114.9 % was measured with every input at full scale, by
+accident.** S39-4's artefact pinned the meters at −0.00 dBFS peak in every arm
+including a muted one, so every gate and compressor on chip 1 was fully engaged
+for the whole measurement. On the shipping configuration (`DSP4_DYN_LUT=0`)
+driven costs **+42.5 points on chip 1 and +29.3 on chip 2** over silent-loaded.
+With S42-1 fixed the inputs return to a −65…−85 dBFS noise floor. **Prediction,
+falsifiable in S40's first ten minutes: chip 1 falls toward ~76 %, chip 2 toward
+~90 %.** It does not change the decision — a mixer is not specified at idle —
+but the number PW decides against should be the honest one.
+
+**S42-8. `logic_flash.sh`'s default rollback was stale again, the same way.**
+It read `s37_shipping_step0.c62c024714f2.svf`, which is what S41 rolled back TO
+during its control arm, not what it LEFT on the part — S41 finished by
+re-flashing the fix. A default rollback that is not what is on the part is a
+second unannounced flash, which is the exact defect S41 had fixed one step
+earlier and then reintroduced by setting the line before its last flash instead
+of after it. Now `s41_mhrx_pullup_off.15f3ae07dae1.svf` (md5
+`fc6ce23ed14cda464f277a56cf21ab92`), with both stale values kept in the help
+text so the pattern is visible. **Set this line AFTER the flash, from the flash
+log.**
+
+**S42-9. The MHRX pull-up is in main's LOGIC tree, and pin 74 alone changed.**
+The three qsf lines appended to main's `dsp4_logic.qsf` (the branch is NOT
+merged and must not be — its diff also reverts a comment, and its parent would
+revert main's 247 LEs). Main was built first as a control and reproduced
+`dsp4_logic.4f702a181b61.pof` byte for byte. With the lines:
+**`dsp4_logic.ed70d3214c29`, pof md5 `ddab649702a8cf333673b5aa677daa1d`, built
+three times byte-identical**, sim gate PASS on 5 testbenches, 403 LEs (29) /
+295 registers — **identical**, slot-map hash unchanged. The 145-row package-pin
+table differs on **exactly one row**: pin 74, `RESERVED_INPUT_WITH_WEAK_PULLUP`
+/ Weak Pull Up On → `mhrx` / input / 3.3-V LVTTL / Weak Pull Up **Off**. The
+fitter DID re-place the design (LABs 53→52, every control signal in a different
+cell, average interconnect 14.6 %→12.7 %, `blink_led`'s Fast Output Connection
+flipping — placement, not termination), said out loud so nothing is later
+attributed to a change this artifact does not contain. **This is the 403-LE
+step-2 lineage, not step 0**: flashing it puts 247 never-benched logic elements
+on the part, which is S37 §4.2's reason for staging it separately. A bench
+session's job, under the four-flash discipline, not a side effect.
+
+**S42-10. An svf md5 is not a reproducible identity; a pof md5 is.** Two builds
+of the identical design give different svf md5s because the svf carries the
+build timestamp in a comment line (`!Device #1: 5M1270Z - ... <date>`); with
+`!` lines stripped both are `5edfb2f4eff1bf0fc680cbedf74a5306`. S41 quoted an
+svf md5 as identity. The svf md5 is still the right thing for
+`logic_flash.sh` to verify — that checks the exact bytes staged on the bench —
+but it cannot be re-derived from source, and a manifest that means "this is
+rebuildable" should quote the pof.
+
+**S42-11. The committed SHARC tree is not what the generator produces, and 64
+of the differing lines are code.** `dsp_codegen.py ... --force` on the
+committed tree rewrites **117 files**. Most is comment prose, but the
+regenerated `_process_sample` path of every `C1_FILT_*` and `C1_EQ_*` node
+drops `i6 = BLK_CHAIN_B_P1; l6 = 0;`. Pre-existing drift — the generator moved
+and the node files were regenerated with a `--node-type` filter that did not
+cover them. **Reverted, not absorbed**, so S42's diff is only S42; S42's own
+generated delta was taken by running the old and new generators into two
+scratch trees, diffing them (15 files), verifying each of the 15 byte-identical
+between the old-generator output and the committed tree, and copying only
+those. The per-sample path is not the hot path under `DSP4_BLOCK_KERNELS`, so
+this has not been executing — but either the generator is right and the tree
+should be regenerated wholesale, or the tree is right and the generator has a
+defect, and nothing checks. Same class as S39-1.
+
+**S42-12. `gen_dsp.py --force` refuses, and it refused before S42 too.** The
+graph proposes 356 cells on d32 and 237 on d24 that the landed
+`defs/products/<p>/dsp.csv` does not carry — `Chan*CompMtr001`, `Chan*LcrOn001`,
+`Chan*MatrixOn/Send*` — and the landed `dsp-unmapped.csv` carries exactly those
+same cells. That is the no-fallback policy working: the graph has advanced past
+the pinned `defs-v*` tag and the generator will not quietly write the graph's
+answer. **Verified pre-existing**: stashing every S42 change and re-running
+gives byte-identical error text and the same two counts. **So no contract
+artifact moved this session and no contract version bump is warranted** —
+S42-4's twelve slot moves changed no SPI address, no cell and no `_matrix.csv`
+row. The pin lag is a hub item: a `dsp.csv` proposal for the 356/237 cells.
+
 ## MHRX FALLS NOW — THE CPLD WAS THE ONLY PULL-UP, AND THE `poweroff` PROXY DOES NOT TEST THE ACK (2026-09-13, session 41)
 
 **S41-1. The pull-up was the global unused-pin reservation, not an

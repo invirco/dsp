@@ -11,12 +11,25 @@
  *         SPTRAN=1 on TX halves. SPEN is NOT set here — slice 3
  *         enables each half after its DMA ring is armed.
  *   MCTL: MCE=1, WOFFSET=0, WSIZE per region, MCPDE per region,
- *         MFD=1 (LOCKED via slot-map timing conventions).
+ *         MFD PER LANE from the generated <region>_mfd[] table.
  *   CS0:  generated channel-select mask.
  *
- * CKRE=1 and MFD=1 are LOCKED via the slot-map timing conventions
- * (shared/dsp4-logic: sample on rising, launch on falling, FS one BCK
- * before slot 0) — the LOGIC RTL derives from the same source.
+ * CKRE=1 is LOCKED via the slot-map timing conventions
+ * (shared/dsp4-logic: sample on rising, launch on falling) — the LOGIC
+ * RTL derives from the same source.
+ *
+ * MFD IS NOT LOCKED AND IS NOT UNIFORM (S42-1). It was 1 on every half,
+ * and on the converter halves that was one bit clock early: the AK5558 /
+ * AK4458 are strapped TDM128 in the I2S variant (DIF0-1 = 10 on the D24
+ * Analog ADC8 and DAC8 sheets), which puts one BCK between the frame edge
+ * and the MSB, on top of the one BCK LOGIC already leaves by asserting FS
+ * in the period before slot 0. So a converter half needs MFD = 2, while
+ * the two halves the CPLD's own re-framer serves (the Pi PCM lane in and
+ * the Pi return lane out) are built for MFD = 1 and stay there. The
+ * measured consequence of getting it wrong is S39-4: every received word
+ * arrived as (sample >>> 1), sign bit never set, on all twelve chip-1
+ * lanes. The value per lane is decided in tools/dsp/dsp_codegen.py and
+ * arrives here as data; nothing is chosen in this file.
  *
  * Infrastructure (hand-maintained). Compiled per chip with -DCHIP_ID.
  *======================================================================*/
@@ -38,22 +51,26 @@
 extern const int c1_rx_lanes[];
 extern const int c1_rx_lanes_count, c1_rx_lanes_dir, c1_rx_lanes_mcpde,
                  c1_rx_lanes_wsize;
+extern const int c1_rx_lanes_mfd[];
 extern const int c1_ic_lanes[];
 extern const int c1_ic_lanes_count, c1_ic_lanes_dir, c1_ic_lanes_mcpde,
                  c1_ic_lanes_wsize;
+extern const int c1_ic_lanes_mfd[];
 #elif CHIP_ID == 2
 extern const int c2_ic_lanes[];
 extern const int c2_ic_lanes_count, c2_ic_lanes_dir, c2_ic_lanes_mcpde,
                  c2_ic_lanes_wsize;
+extern const int c2_ic_lanes_mfd[];
 extern const int c2_tx_lanes[];
 extern const int c2_tx_lanes_count, c2_tx_lanes_dir, c2_tx_lanes_mcpde,
                  c2_tx_lanes_wsize;
+extern const int c2_tx_lanes_mfd[];
 #else
 #error "CHIP_ID must be defined as 1 or 2"
 #endif
 
 static void cfg_region(const int *lanes, int count, int dir, int mcpde,
-                       int wsize)
+                       int wsize, const int *mfd)
 {
     int i;
     for (i = 0; i < count; i++) {
@@ -76,7 +93,7 @@ static void cfg_region(const int *lanes, int count, int dir, int mcpde,
 
         REG32(base + OFF_MCTL) =
             BITM_SPORT_MCTL_A_MCE
-            | ((uint32_t)1 << BITP_SPORT_MCTL_A_MFD)  /* LOCKED (slot map) */
+            | ((uint32_t)mfd[i] << BITP_SPORT_MCTL_A_MFD)  /* per lane */
             | ((uint32_t)wsize << BITP_SPORT_MCTL_A_WSIZE)
             | (mcpde ? BITM_SPORT_MCTL_A_MCPDE : 0u);
 
@@ -91,13 +108,13 @@ void sport_cfg_init(void)
 {
 #if CHIP_ID == 1
     cfg_region(c1_rx_lanes, c1_rx_lanes_count, c1_rx_lanes_dir,
-               c1_rx_lanes_mcpde, c1_rx_lanes_wsize);
+               c1_rx_lanes_mcpde, c1_rx_lanes_wsize, c1_rx_lanes_mfd);
     cfg_region(c1_ic_lanes, c1_ic_lanes_count, c1_ic_lanes_dir,
-               c1_ic_lanes_mcpde, c1_ic_lanes_wsize);
+               c1_ic_lanes_mcpde, c1_ic_lanes_wsize, c1_ic_lanes_mfd);
 #elif CHIP_ID == 2
     cfg_region(c2_ic_lanes, c2_ic_lanes_count, c2_ic_lanes_dir,
-               c2_ic_lanes_mcpde, c2_ic_lanes_wsize);
+               c2_ic_lanes_mcpde, c2_ic_lanes_wsize, c2_ic_lanes_mfd);
     cfg_region(c2_tx_lanes, c2_tx_lanes_count, c2_tx_lanes_dir,
-               c2_tx_lanes_mcpde, c2_tx_lanes_wsize);
+               c2_tx_lanes_mcpde, c2_tx_lanes_wsize, c2_tx_lanes_mfd);
 #endif
 }
