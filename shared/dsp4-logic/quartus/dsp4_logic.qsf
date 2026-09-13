@@ -145,3 +145,22 @@ set_location_assignment PIN_7   -to test[3]
 # BUSY (66), S5-S7 (69,68,67), UART pass-throughs SRX/MRX (72,71),
 # MHTX/MHRX (73,74), STRX1/STRX0 (75,76), PTRX1/PTRX0 (77,84),
 # PLL1-4 groups (89-108 X-logic), PLL5_3-PLL7_3 (112-122 X-logic).
+
+# ---- MHRX (pin 74): reserved input, NO weak pull-up (S41) ----
+#
+# `M MCU_P17` / G2691 = the CM4's UART0 TX (GPIO14, J24.55), which the
+# power MCU U34.6 also watches as its "Pi alive" sense. The global
+# RESERVE_ALL_UNUSED_PINS above reserves this pin as an input WITH a weak
+# pull-up, and that pull-up holds the net HIGH after the Pi halts (GPIO14
+# goes to an input at shutdown). The power MCU then never sees the
+# sustained low it acks on, so every rocker-off shutdown runs to the 60 s
+# failsafe (bench 2026-08-18; power-MCU firmware mx26 ba9b2bc).
+#
+# The pin is reserved as an input here purely to take the pull-up off it.
+# That is not a bus fight: the only driver on the net is the CM4, push-pull,
+# and this end stays an input either way. When the Pi is up the UART idles
+# high and the net is held by the CM4; when the Pi halts the net falls,
+# which is the whole point.
+set_location_assignment PIN_74 -to mhrx
+set_instance_assignment -name RESERVE_PIN "AS INPUT TRI-STATED" -to mhrx
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR OFF -to mhrx
