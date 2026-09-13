@@ -6,6 +6,90 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE GATE NO LONGER DAMAGES THE TREE, AND THE 237 CELLS ARE ONE CLASS (2026-09-13, session 44 — desk only, the unit was never touched)
+
+**S44-1. The contract intake path is atomic, and a restore-on-failure trap
+would not have been.** `check-contract-drift.sh` left `MW/D32/MX/_matrix.csv`
+with five DSP columns blank on all 6,999 rows whenever it failed (S43-5),
+because `sync-defs.sh` wrote the bare expansion over the committed file and
+`gen_dsp.py` aborted before the backfill wrote it back. Both halves used
+`open(path, 'w')`. **Fixed with temp file + rename, not a trap, and the reason
+is the one the gate asked for: a trap needs the process to survive to run it.**
+`kill -9`, a segfault, an OOM kill and a power cut all skip it, and that is
+exactly the window in which a file is half-written; `rename(2)` is atomic
+within a filesystem and needs nothing to survive. **Measured:** a 195 MB
+payload written over a 12-byte file with the writer `SIGKILL`ed at fifteen
+points — `open(path,'w')` left the target **half-written on 4 of 4** kills that
+landed mid-write, the temp+fsync+rename path on **0 of 5** (all five left the
+whole old file). **A second fault in the same lines:** `sync-defs.sh` hashed the
+expansion against `defs.lock` AFTER writing it over the committed file, so a
+lock mismatch — the one thing the lock exists to catch — exited 1 with the tree
+already rewritten by the definitions it had just refused. **Per-write atomicity
+is not enough**, because the finished D32 matrix is the output of two
+processes: `sync-defs.sh` now STAGES D32's bare expansion at
+`MW/D32/MX/_matrix.expansion.csv` and `gen_dsp.py` is the only writer of the
+finished file, so between them the committed file still holds the last complete
+generation. Negative controls, all against the committed tree with nine
+contract artefacts hashed together: `sync-defs.sh` `SIGKILL`ed at 9 points,
+`gen_dsp.py` at 11 points across its 0.815 s, the pair run to completion 3
+times, and the real gate run to its no-fallback exit 1 — **artefacts changed on
+0 of 24**. `_matrix.csv` reads `041b19a5…` throughout, the hash it had at
+`cea457e0`. Commit `aed43455`, on its own.
+
+**S44-2. The `DSP_LANDED_DIR` banner was invisible in the one gate that needed
+it.** `check-contract-drift.sh` runs `gen_dsp.py --force >/dev/null`, and the
+"these rows have NOT passed the hub gate and the defs pin does not describe
+this build" banner went to **stdout**. A whole contract check could therefore
+pass against ungated rows in complete silence. Moved to stderr. Found only
+because this session used the flag to run the gate against the candidate.
+
+**S44-3. The 237 D24 cells (and D32's 356) are ONE class: cells the landed
+file already names as unmapped.** Not four classes — 237 of 237 are "a cell the
+generator now emits that the landed file predates", and **zero** are an address
+that moved, a mask/scope difference, or the S42 lane fix. Checked directly:
+all 3,737 D24 / 5,409 D32 rows present in both files are identical in **every**
+column, nothing is removed from either map, and
+`rows(dsp.csv) + rows(dsp-unmapped.csv) == cells(_matrix.csv)` holds on both
+sides (D24 3,737+1,248 = 3,974+1,011 = 4,985; D32 5,409+1,590 = 5,765+1,234 =
+6,999). The disagreement is entirely a MOVE from the unmapped file into the
+mapped one. **Attributed to the commit, summing exactly:** `9ffdb4ee` S22 the
+matrix mixer built — 100 (`ChanMatrixOn`/`Send` ×96, `MatrixLevel`/`Mute` ×4);
+`4fdfe5ed` S23 the FX returns given a bus and the comp GR meter published —
+120 (`FxAuxOn`/`Send` ×96, `ChanCompMtr` ×24); `86f972a3` S24 main outputs
+given their level and mute — 17. D32 adds `24f46ca1` S25's 32 `ChanLcrOn` at
+the wider strip and send counts. **The dispatch's three guesses are all no:**
+not new GEQ cells (the 31-band GEQ landed *in* `defs-v2026.09.08.4`), not the
+24-strip mask, not the S42 lane rows — `8f4a9d17` changed the DAC lane ↔ XLR
+mapping and the cell set is identical either side of it.
+
+**S44-4. The committed generated tree is ALREADY built from the candidate;
+only `defs` lags.** Running `DSP_LANDED_DIR=proposals/defs/products
+./check-contract-drift.sh` passes (exit 0) and rewrites every generated
+artifact — and leaves **no diff**. `MW/D32/MX/_matrix.csv` carries DSP
+addresses on **5,765** of 6,999 rows where the landed map covers **5,409**;
+`ghost_cells.h` says `GHOST_CELLS_COUNT 5810`, the proposed union, not the
+landed 5,449. So the gate's failure since S22 has not been tree drift at all —
+it is a contract bump that was never taken to the hub, and landing the proposal
+makes the pin describe the tree again **without moving a byte of the tree**.
+The proposal is filed and NOT landed (`proposals/CONTRACT-PROPOSAL-S44.md`):
+mapping-only, strictly additive, no cell name repurposed, no existing address
+moved, 318 multi-cell addresses before and after, so a host built against the
+landed map keeps working unmodified and gains 361 reachable addresses.
+
+**S44-5. `MW/D24/MX/_matrix.csv` carries no DSP addresses at all — 0 of 4,985
+rows — and landing the proposal will not change that.** `gen_dsp.py` backfills
+D32's matrix and only D32's (`MATRIX_CSV` is D32's path; `CONTRACT_PRODUCTS`
+reads D24's matrix for the cell list but never writes it). A D24 app reading
+the matrix has no address column and must go to `defs/products/d24/dsp.csv`
+directly. That is the single-SOT gap S38-5 named, still open, and it is a
+generator item rather than a contract one. Related, unfixed and named rather
+than left to be discovered: `tools/dsp/dsp_codegen.py` is now atomic
+**per file** but is a two-pass emitter, so a kill between passes leaves 61
+whole first-pass node files — no truncation, but not a transactional tree.
+`check-sharc-codegen-drift.sh` catches it by content and a rerun repairs it;
+making it transactional means generating to a scratch tree and swapping the
+directory.
+
 ## THE TREE WAS STALE, NOT HAND-EDITED, AND NO SHIPPING BYTE MOVES (2026-09-13, session 43 — desk only, the unit was never touched)
 
 **S43-1. The 117-file divergence is 64 code lines in `C1_FILT_01..32` only,
