@@ -6,6 +6,110 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE TREE WAS STALE, NOT HAND-EDITED, AND NO SHIPPING BYTE MOVES (2026-09-13, session 43 — desk only, the unit was never touched)
+
+**S43-1. The 117-file divergence is 64 code lines in `C1_FILT_01..32` only,
+and they are dead.** S42-5 attributed the code lines to "every `C1_FILT_*` and
+`C1_EQ_*` node". Sorted by content, the 117 files are: **32 `C1_FILT_*` files
+carrying 64 code lines** (`i6 = BLK_CHAIN_B` or `BLK_CHAIN_B_P1`, plus
+`l6 = 0;`, in `_<nid>_process_sample`) and **117 files carrying a superseded
+comment paragraph** — the FILT 32 again, 32 `C1_EQ_*`, `chip1/shared_kernels.asm`,
+51 chip-2 nodes and `lib/num_selftest.asm`. **The EQ nodes never had the code
+lines**: `SHARED_KERNEL_CLASSES` declares a `pool_reg` for `FILT` only, so
+there was nothing for the generator's split to remove. Every one of the 64 is
+a deletion — the tree carries them, the generator does not emit them. **They
+are dead code**: `_shk_filt_smp` (`chip1/shared_kernels.asm:624`–`807`) never
+reads `i6` or `l6`, and neither does anything it reaches
+(`_shk_filt_start_xfade` `808`–`1034`, `_bq_fx_cascade_N`
+`lib/biquad_fx.asm:114`–`236`, `_bq_fx_convert_N`, `_bq_hr_ask`). The BLOCK
+half does read `i6` (`.fkb_ss_shkfilt`: `i2 = i6;`) and the generator still
+emits it in the `_process` stub, which is unchanged.
+
+**S43-2. The cause is a generator change committed without a full
+regeneration — twice, six minutes apart. Not a hand-edit of generated
+output.** The 64 code lines and the generator hunk that removes them landed in
+the SAME commit, `4807d23d` ("S26 gate 1: the fix sweep, and gate 2's generator
+work", 2026-09-10 22:07): it created `chip1/shared_kernels.asm` (954 lines,
+new file), **added** the `pool_in_blk`/`pool_in_smp` split to
+`dsp_codegen.py` (`grep -c pool_in_smp` on its parent → **0**, on it → **5**)
+and committed `C1_FILT_*` stubs generated before that hunk existed. **The
+commit's own generator would not produce the commit's own node files.** The
+comment hunk is `608a1aa3` ("S26 gate 1 witnessed on the part", 22:13), which
+corrected the alpha-overflow wording in `dsp_codegen.py` and `fixed_ref.py`
+after the bench measured `fix` at three overflow points — and touched **no
+generated file** (three files in its stat: the S26 write-up and those two
+tools). So the mandate was not breached in the way the dispatch braced for:
+nothing needed to go back into the generator, because the generator already
+carried the intent, in a comment it still carries
+(`dsp_codegen.py:14535`: *"a stub that loads a register that half never reads
+is not tidy-looking waste, it is ~3 M instructions a second. FILT reads it in
+the block half only."*).
+
+**S43-3. The reconciled tree builds S42's shipping pair byte for byte, because
+those 64 lines have never been compiled into a shipping image.**
+`DSP4_SHARED_KERNELS` is not named in `shipping.config` and `build.sh` defaults
+it to **0**; the 64 lines are inside `#if (DSP4_SHARED_KERNELS & 8)`. Built on
+this machine, `./build.sh clean && ./build.sh all`, before and after the
+regeneration: **both arms give
+`825f9b7dac5978c973550c8e40819ba9` / `7b1311e8e56f008fa98046cab59293c6`** —
+S42's recorded pair, reproduced twice more (four times in total counting the
+final restage). **Priced with a control rather than asserted**: built at
+`DSP4_SHARED_KERNELS=15`, the arm where the lines DO compile, chip 1 goes
+**356,152 B `e2c532794eb64a3bb81a89832d2a8f29` → 355,896 B
+`b3b3ee4a461faed9129c22e1792f232b`** — **−256 bytes, exactly 64 lines × 4
+bytes of loader stream** — while chip 2 is byte-identical
+(`5699b311635fe360b803baecfbb2d7d5`) in both arms, which is what a chip-1-only
+change must read. `shared_kernel_check.py`'s record-layout gate passed on the
+reconciled tree. **Consequence for the record: no measurement on this project
+was taken on the wrong side of this divergence** — every on-part anchor
+S19–S39 is a `SHARED_KERNELS=0` image and the comment hunk cannot move bytes at
+all. The only casualty is S26's chip-1 code-pool table, taken on the
+unreconciled tree, which carries 8 bytes per FILT instance it need not have.
+The generator is idempotent: a second `--force` run changes nothing further.
+
+**S43-4. Nothing checked the 726 generated SHARC files, in either script, and
+`git status` could not have caught this anyway.**
+`check-contract-drift.sh` ran `sync-defs.sh`, `validate-matrix-contract.py` and
+`MW/D32/DSP/gen_dsp.py --force` and called that "re-runs the whole generation";
+`regenerate-dsp-contract.sh` had the same hole, so "run the regenerate script"
+left 726 files untouched. Strict mode would not have helped: it diffs
+`git status` over thirteen paths, none of them a node file, and drift that is
+already committed is invisible to `git status` by construction — which is
+exactly the shape this had. **Fixed by `check-sharc-codegen-drift.sh`**: it
+generates into an **empty** scratch directory (never a copy of the tree, which
+would let the tree's own content leak into the thing it is checked against) and
+requires every emitted file to be byte-identical to its committed counterpart —
+**726 emitted, 0 differ, 50 hand-written**. The hand-written 50 are checked by
+name too, so a generator that quietly stops emitting a file falls out of the
+generated set into the declared set and the list stops matching, rather than
+silently leaving the gate. **Three arms run: pass on the reconciled tree; fails
+with 117 files on the tree as committed this morning; and `--negative-control`
+(one line of `C1_FILT_01.asm` hand-edited to load strip 2's record base — it
+assembles, it is wrong, nothing else says so) fails with 1.** Wired in **first**
+in both scripts, before `sync-defs.sh`, because the later steps currently fail
+for a pre-existing reason (S43-5) and an appended check would be masked by that
+failure forever; the SHARC gate depends only on `dsp.csv` and the generator, so
+it stands alone. `smoke-checklist.md` carries the negative control as a
+standing step.
+
+**S43-5. A failing `check-contract-drift.sh` leaves `MW/D32/MX/_matrix.csv`
+damaged, and the failure itself is still the pre-existing hub item.** The gate
+cannot pass today, for the reason S38-8 and S42-12 named and not for anything
+in this session: `gen_dsp.py --force` exits on the no-fallback policy —
+**237 cells on d24** that the landed `defs/products/<p>/dsp.csv` lacks and
+`dsp-unmapped.csv` carries. That is the policy working (the graph has advanced
+past the pinned `defs-v2026.09.08.4`) and the fix is a new `dsp.csv` proposed
+to the hub gate, never a hand-edit of the landed file. **New here:** when it
+fails there it leaves the matrix half-regenerated — `sync-defs.sh` re-expands
+from `defs/` without the DSP columns and `gen_dsp.py` aborts before backfilling
+`DspI2c`/`DspSpi`/`DspPage`/`DspAdd`/`DspAddHex`, so all 7,000 rows are left
+with those five columns blank. It reads as a 7,000-line diff and is not drift;
+it is a half-finished regeneration. Restored with `git checkout --` here.
+**A failing gate should not leave the tree worse than it found it.** Recorded,
+not fixed: the fix is a temp-file-and-rename in `sync-defs.sh` or a
+restore-on-failure trap, which is a change to the contract intake path and
+wants a hub round-trip.
+
 ## THE ONE BIT IS AN AKM STRAP, AND AUX 1 WAS LEAVING ON THE WRONG XLR (2026-09-13, session 42 — desk only, the unit was never touched)
 
 **S42-1. The one-bit-late RX capture is `SPORT_MCTL.MFD`, and the value is

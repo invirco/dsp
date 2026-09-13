@@ -6,6 +6,10 @@
 # that generation produces, INCLUDING the submodule gitlink: a moved
 # `defs/` is a contract change and has to be committed as one.
 #
+# Both modes first run ./check-sharc-codegen-drift.sh, which checks the
+# GENERATED SHARC sources by content against a scratch generation rather than
+# by git status -- a hand-edit that is committed is still drift.
+#
 # Usage:
 #   ./check-contract-drift.sh
 #   ./check-contract-drift.sh --strict
@@ -20,6 +24,16 @@ if [[ "${1:-}" == "--strict" ]]; then
 fi
 
 cd "$ROOT_DIR"
+
+# THE GENERATED SHARC SOURCES ARE PART OF THE CONTRACT, AND WERE NOT CHECKED
+# (S43, from S42-5). This script used to regenerate the matrices and the D32
+# address artifacts and call that the whole generation; the 726 files
+# tools/dsp/dsp_codegen.py emits were in no gate at all, and drifted from
+# their own generator in 117 files for three days without a word. It runs
+# FIRST and on its own defs-independent inputs (dsp.csv + the generator), so a
+# failure further down -- the d24 graph/dsp.csv disagreement below, for
+# instance -- cannot mask it the way it would if this were appended.
+./check-sharc-codegen-drift.sh
 
 ./sync-defs.sh
 python3 validate-matrix-contract.py

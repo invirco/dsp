@@ -2,10 +2,18 @@
 # Deterministic regenerate flow for the defs -> dsp contract intake.
 #
 # Steps:
+# 0) Regenerate the SHARC sources from MW/D32/DSP/SHARC/dsp.csv
 # 1) Verify the defs submodule against defs.lock and re-expand the matrices
 # 2) Validate the expansion (MxAdd continuity, family allowlist)
 # 3) Regenerate the D32 DSP artifacts from MW/D32/MX/_matrix.csv
 # 4) Print concise artifact summary
+#
+# STEP 0 IS NEW IN S43 AND IS WHY THE TREE COULD DRIFT. This script claimed to
+# be the deterministic regenerate flow and never ran tools/dsp/dsp_codegen.py,
+# so "run the regenerate script" left 726 generated files untouched -- and on
+# 2026-09-13 117 of them did not match their own generator. It runs FIRST,
+# on inputs that do not depend on the defs expansion, so a failure downstream
+# does not leave the SHARC half unregenerated.
 
 set -euo pipefail
 
@@ -17,6 +25,9 @@ if [[ "${1:-}" == "--update-lock" ]]; then
 fi
 
 cd "$ROOT_DIR"
+
+python3 tools/dsp/dsp_codegen.py \
+  MW/D32/DSP/SHARC/dsp.csv MW/D32/DSP/SHARC/src --force >/dev/null
 
 if [[ $UPDATE_LOCK -eq 1 ]]; then
   ./sync-defs.sh --update-lock
@@ -49,3 +60,6 @@ printf '  Address map rows: %s\n' "$map_rows"
 printf '  Generated: %s\n' "MW/D32/DSP/ghost_cells.h"
 printf '  Generated: %s\n' "MW/D32/DSP/SHARC/src/chip1/dsp_params.asm"
 printf '  Generated: %s\n' "MW/D32/DSP/SHARC/src/chip2/dsp_params.asm"
+printf '  Generated: %s SHARC sources from %s\n' \
+  "$(find MW/D32/DSP/SHARC/src -name '*.asm' -o -name 'dsp_block.h' | wc -l | awk '{print $1}')" \
+  "MW/D32/DSP/SHARC/dsp.csv"

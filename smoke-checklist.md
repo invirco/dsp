@@ -8,6 +8,13 @@ Scope: D24 and D32 contract bump verification after regeneration.
 
 1. ./regenerate-dsp-contract.sh
 2. ./check-contract-drift.sh
+3. ./check-sharc-codegen-drift.sh --negative-control
+
+Step 3 is the negative control for the SHARC half of step 2. Step 2 runs the
+same gate for real as its first action; step 3 proves the gate can fail, by
+hand-editing one line of one generated file in a throwaway copy of the tree
+and requiring the gate to catch it. Run it whenever the generator or the
+generated tree moves — the absence of output is not a result.
 
 ## Checklist
 
@@ -16,6 +23,8 @@ Scope: D24 and D32 contract bump verification after regeneration.
 - [ ] D32 MxAdd contiguous check passed
 - [ ] D32 family allowlist compatibility passed
 - [ ] DSP regeneration completed without fatal errors
+- [ ] SHARC codegen drift check passed (726 emitted, 0 differ, 50 hand-written)
+- [ ] SHARC codegen negative control fired
 - [ ] Generated files present:
   - MW/D32/DSP/ghost_cells.h
   - MW/D32/DSP/SHARC/src/chip1/dsp_params.asm
