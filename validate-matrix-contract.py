@@ -30,7 +30,23 @@ ROOT = Path(__file__).resolve().parent
 # PRODUCTS in sync-defs.sh: a product expanded and not validated here is a
 # matrix nothing checks.
 PRODUCTS = ("D12", "D16", "D24", "D32")
-MATRIX = {p: ROOT / "MW" / p / "MX" / "_matrix.csv" for p in PRODUCTS}
+
+
+def _matrix(product: str) -> Path:
+    """The rows to validate: the expansion sync-defs.sh staged if there is
+    one, otherwise the committed matrix.
+
+    D32's expansion is STAGED rather than landed (S44-1), because a bare
+    expansion in a path that is meant to carry DSP addresses is a damaged
+    file and gen_dsp.py is the only writer entitled to finish it. This
+    script runs BETWEEN the two, so reading only the committed file would
+    validate the previous generation and pass a new one unseen."""
+    mx = ROOT / "MW" / product / "MX"
+    stage = mx / "_matrix.expansion.csv"
+    return stage if stage.is_file() else mx / "_matrix.csv"
+
+
+MATRIX = {p: _matrix(p) for p in PRODUCTS}
 D32_MATRIX = MATRIX["D32"]
 ALLOWLIST = ROOT / "matrix-families-allowlist.txt"
 

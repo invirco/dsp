@@ -27,6 +27,7 @@ defs/                         # SUBMODULE: invirco/defs — every product def, t
 defs.lock                     # pins which defs commit + tag, and the hashes of
                               #   everything read out of it (authoritative)
 sync-defs.sh                  # verify the pin, re-expand MW/<P>/MX/_matrix.csv
+                              # (D32's expansion is staged for gen_dsp.py to finish)
 tasks.md                      # active task tracker — update on every contract bump
 scaffold-product.sh           # creates a new MW/<PRODUCT> tree + integration checklist
 tools/dsp/                    # shared DSP codegen package (all products)
@@ -65,7 +66,7 @@ shape, driven by the same contract flow; their definitions are added to `defs`.
 
 | Command | Purpose |
 |---|---|
-| `./sync-defs.sh` | Verify the `defs` pin and re-expand `MW/<P>/MX/_matrix.csv` |
+| `./sync-defs.sh` | Verify the `defs` pin and re-expand `MW/<P>/MX/_matrix.csv`. D32's expansion is STAGED at `MW/D32/MX/_matrix.expansion.csv`, not landed: a bare expansion there has no DSP addresses, and `gen_dsp.py` is the only writer of the finished file. Run the pair, or use `regenerate-dsp-contract.sh` |
 | `./regenerate-dsp-contract.sh` | sync-defs + validate + regenerate DSP artifacts |
 | `./regenerate-dsp-contract.sh --update-lock` | Same, but re-pin defs.lock (intentional contract bump — move the submodule to the new tag first) |
 | `./check-contract-drift.sh [--strict]` | Pre-merge drift gate |

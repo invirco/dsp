@@ -34,3 +34,16 @@ MW/D32/DSP/SHARC/src/lib/bqg_vectors.h
 
 # logic_flash.sh writes its session log into the cwd it is run from
 logic-flash.log
+
+# Atomic intake (S44). sync-defs.sh stages D32's bare expansion here and
+# gen_dsp.py -- the only writer of the finished matrix -- backfills the DSP
+# address columns and renames the result over MW/D32/MX/_matrix.csv. The
+# stage exists only between the two halves of a run.
+MW/*/MX/_matrix.expansion.csv
+
+# Temp files of those atomic writes: `.<target>.tmp.<pid>` beside the target
+# (gen_dsp.py::_atomic_write) and `._matrix.expansion.<pid>.<product>.csv`
+# (sync-defs.sh). They are removed on both the success and the failure path;
+# a leftover is a killed process, never something to commit.
+.*.tmp.[0-9]*
+._matrix.expansion.[0-9]*.csv

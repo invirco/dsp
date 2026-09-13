@@ -17,6 +17,7 @@ Usage:
 
 import argparse
 import csv
+import io
 import os
 import re
 import struct
@@ -89,6 +90,92 @@ OUT_GHOST_H_H1S1   = os.path.join(SCRIPT_DIR, '..', 'FW', 'H1S1', 'Core', 'Inc',
 OUT_GHOST_C_H1S1   = os.path.join(SCRIPT_DIR, '..', 'FW', 'H1S1', 'Core', 'Src', 'ghost_cells.c')
 OUT_MX_DSP_MAP_H   = os.path.join(SCRIPT_DIR, '..', 'FW', 'H1S1', 'Core', 'Inc', 'mx_dsp_map.h')
 OUT_ADDR_MAP       = os.path.join(SCRIPT_DIR, 'dsp_address_map.md')
+
+# ---------------------------------------------------------------------------
+# Atomic writes  (S44-1, from S43-5)
+# ---------------------------------------------------------------------------
+# EVERY WRITE TO A LANDED ARTEFACT GOES THROUGH A TEMP FILE AND A RENAME.
+# Until S44 this tool wrote `open(path, 'w')` straight over the committed
+# file, and `_matrix.csv` is only a valid artefact once BOTH halves of the
+# intake have run: `sync-defs.sh` re-expands it from `defs/` without the DSP
+# columns, and this tool backfills them. On 2026-09-13 `check-contract-drift.sh`
+# aborted between the two -- the no-fallback exit on the d24/d32 dsp.csv
+# disagreement -- and left the committed D32 matrix with DspI2c/DspSpi/
+# DspPage/DspAdd/DspAddHex blank on all 6,999 rows. A gate that damages the
+# artefact it checks is worse than no gate.
+#
+# TEMP FILE + RENAME, NOT A RESTORE-ON-FAILURE TRAP. A trap is a promise the
+# process has to stay alive to keep: `kill -9`, a segfault, an OOM kill or a
+# power cut all skip it, and the window where the file is half-written is
+# exactly the window a trap cannot cover. os.replace() is rename(2), which
+# POSIX requires to be atomic within a filesystem: at every instant the path
+# names either the whole old file or the whole new one, whoever dies and
+# whenever. The temp is created in the SAME directory as its target so the
+# rename never crosses a filesystem boundary (a cross-device rename is a
+# copy, and a copy is not atomic).
+#
+# The bytes are fsync'd before the rename so the content is durable before
+# the name points at it; the containing directory is fsync'd after, so the
+# rename itself survives. Neither is needed for the abort case, both are
+# needed for the power-cut case, and they cost nothing at this file size.
+def _reap_stale_temps(directory, basename):
+    prefix = f'.{basename}.tmp.'
+    for name in os.listdir(directory):
+        if not name.startswith(prefix):
+            continue
+        pid = name[len(prefix):]
+        if not pid.isdigit():
+            continue
+        try:
+            os.kill(int(pid), 0)
+        except ProcessLookupError:
+            try:
+                os.unlink(os.path.join(directory, name))
+            except OSError:
+                pass
+        except OSError:
+            pass
+
+
+def _atomic_write(path, data, mode='w', newline=None):
+    """Write `data` to `path` so that `path` is never seen half-written."""
+    path = os.path.abspath(path)
+    d = os.path.dirname(path)
+    os.makedirs(d, exist_ok=True)
+    tmp = os.path.join(d, f'.{os.path.basename(path)}.tmp.{os.getpid()}')
+    # A rename cannot leave a temp behind; a SIGKILL between the write and
+    # the rename can, and the temps are gitignored, so they would pile up
+    # unseen. Sweep only the ones whose process is gone -- a concurrent
+    # run's temp is none of our business.
+    _reap_stale_temps(d, os.path.basename(path))
+    try:
+        kwargs = {'encoding': 'utf-8'}
+        if newline is not None:
+            kwargs['newline'] = newline
+        with open(tmp, mode, **kwargs) as f:
+            f.write(data)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
+    except BaseException:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+        raise
+    dfd = os.open(d, os.O_RDONLY)
+    try:
+        os.fsync(dfd)
+    finally:
+        os.close(dfd)
+
+
+# THE STAGED EXPANSION. `sync-defs.sh` no longer writes the bare expansion
+# over the committed D32 matrix: it stages it here and this tool -- the only
+# writer of the finished file -- backfills the staged bytes and renames the
+# result into place. That is what makes the PAIR atomic rather than only
+# each half of it: between the two processes the committed file still holds
+# the last complete generation, so an abort anywhere in this tool leaves it
+# byte-identical. Consumed and removed once every output is written.
+MATRIX_STAGE = os.path.join(SCRIPT_DIR, '..', 'MX', '_matrix.expansion.csv')
 
 # Guarded compatibility path for future Group GEQ rollout.
 # Default remains off to preserve current behavior.
@@ -180,9 +267,18 @@ def resolve_geq_bands(nodes):
     GEQ_BANDS = next(iter(counts))
 
 
+def matrix_input_path():
+    """Where the rows to backfill come from: the expansion `sync-defs.sh`
+    staged if there is one, otherwise the committed file. A staged
+    expansion is a NEWER expansion that has not been made whole yet, so it
+    wins; with no stage the committed file is already the whole thing and
+    re-backfilling it is idempotent."""
+    return MATRIX_STAGE if os.path.isfile(MATRIX_STAGE) else MATRIX_CSV
+
+
 def read_matrix_csv():
     """Read _matrix.csv and return (header, list of OrderedDict rows)."""
-    with open(MATRIX_CSV, newline='', encoding='utf-8') as f:
+    with open(matrix_input_path(), newline='', encoding='utf-8') as f:
         reader = csv.DictReader(f)
         header = [h for h in reader.fieldnames if h and h.strip()]
         rows = [OrderedDict(r) for r in reader]
@@ -2039,9 +2135,7 @@ def write_dsp_params_asm(dry_run=False):
         if dry_run:
             print(f'[DRY-RUN] Would write {out_path} ({line_count} lines)')
         else:
-            os.makedirs(os.path.dirname(out_path), exist_ok=True)
-            with open(out_path, 'w', encoding='utf-8') as f:
-                f.write(content)
+            _atomic_write(out_path, content)
             print(f'  Wrote {out_path} ({line_count} lines)')
 
 
@@ -2144,17 +2238,11 @@ def write_ghost_cells_h(dry_run=False):
         print(f'[DRY-RUN] Would write {OUT_GHOST_H_H1S1} ({n} cells, header only)')
         print(f'[DRY-RUN] Would write {OUT_GHOST_C_H1S1} ({n} cells, definition)')
     else:
-        os.makedirs(os.path.dirname(OUT_GHOST_H), exist_ok=True)
-        with open(OUT_GHOST_H, 'w', encoding='utf-8') as f:
-            f.write(dsp_h_content)
+        _atomic_write(OUT_GHOST_H, dsp_h_content)
         print(f'  Wrote {OUT_GHOST_H} ({n} cells, header)')
-        os.makedirs(os.path.dirname(OUT_GHOST_H_H1S1), exist_ok=True)
-        with open(OUT_GHOST_H_H1S1, 'w', encoding='utf-8') as f:
-            f.write(h_content)
+        _atomic_write(OUT_GHOST_H_H1S1, h_content)
         print(f'  Wrote {OUT_GHOST_H_H1S1} ({n} cells, header)')
-        os.makedirs(os.path.dirname(OUT_GHOST_C_H1S1), exist_ok=True)
-        with open(OUT_GHOST_C_H1S1, 'w', encoding='utf-8') as f:
-            f.write(c_content)
+        _atomic_write(OUT_GHOST_C_H1S1, c_content)
         print(f'  Wrote {OUT_GHOST_C_H1S1} ({n} cells, definition)')
 
 
@@ -2220,9 +2308,7 @@ def write_mx_dsp_map_h(matrix_rows, dry_run=False):
     if dry_run:
         print(f'[DRY-RUN] Would write {OUT_MX_DSP_MAP_H} ({len(entries)} entries)')
     else:
-        os.makedirs(os.path.dirname(OUT_MX_DSP_MAP_H), exist_ok=True)
-        with open(OUT_MX_DSP_MAP_H, 'w', encoding='utf-8') as f:
-            f.write(content)
+        _atomic_write(OUT_MX_DSP_MAP_H, content)
         print(f'  Wrote {OUT_MX_DSP_MAP_H} ({len(entries)} entries)')
 
 
@@ -2263,9 +2349,7 @@ def write_address_map(dry_run=False):
     if dry_run:
         print(f'[DRY-RUN] Would write {OUT_ADDR_MAP}')
     else:
-        os.makedirs(os.path.dirname(OUT_ADDR_MAP), exist_ok=True)
-        with open(OUT_ADDR_MAP, 'w', encoding='utf-8') as f:
-            f.write(content)
+        _atomic_write(OUT_ADDR_MAP, content)
         print(f'  Wrote {OUT_ADDR_MAP}')
 
 
@@ -2296,7 +2380,15 @@ PROPOSAL_ROOT = os.path.join(REPO_ROOT, 'proposals', 'defs', 'products')
 
 
 def _matrix_path(product):
-    return os.path.join(REPO_ROOT, 'MW', product.upper(), 'MX', '_matrix.csv')
+    """The cell list for `product`: the expansion sync-defs.sh staged if
+    there is one, otherwise the committed matrix. Only the _Cell column is
+    read through here, and the stage carries the same rows as the file it
+    will become, so this matters only when the expansion has just moved --
+    which is exactly when reading the committed file would propose against
+    the previous generation."""
+    mx = os.path.join(REPO_ROOT, 'MW', product.upper(), 'MX')
+    stage = os.path.join(mx, '_matrix.expansion.csv')
+    return stage if os.path.isfile(stage) else os.path.join(mx, '_matrix.csv')
 
 
 # THE CONTRACT PRODUCTS. Every generated firmware artifact in this tree --
@@ -2636,13 +2728,13 @@ def _dsp_csv_row(name, cm):
 
 
 def _write_csv(path, header, rows, preamble):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, 'w', newline='', encoding='utf-8') as f:
-        for line in preamble:
-            f.write(f'# {line}\n' if line else '#\n')
-        w = csv.DictWriter(f, fieldnames=header, extrasaction='raise')
-        w.writeheader()
-        w.writerows(rows)
+    buf = io.StringIO(newline='')
+    for line in preamble:
+        buf.write(f'# {line}\n' if line else '#\n')
+    w = csv.DictWriter(buf, fieldnames=header, extrasaction='raise')
+    w.writeheader()
+    w.writerows(rows)
+    _atomic_write(path, buf.getvalue(), newline='')
 
 
 def write_proposals(dry_run=False):
@@ -2786,12 +2878,20 @@ _LANDED_DIR_OVERRIDE = os.environ.get('DSP_LANDED_DIR')
 if _LANDED_DIR_OVERRIDE:
     DEFS_PRODUCTS_DIR = os.path.abspath(
         os.path.join(REPO_ROOT, _LANDED_DIR_OVERRIDE))
-    print('*' * 74)
-    print('*  DSP_LANDED_DIR IS SET. The address map being generated from is')
-    print(f'*  {DEFS_PRODUCTS_DIR}')
-    print('*  -- NOT defs/products/. These rows have not passed the hub gate')
-    print('*  and the defs pin in defs.lock does not describe this build.')
-    print('*' * 74)
+    # ON STDERR, NOT STDOUT (S44-1). check-contract-drift.sh runs this tool
+    # as `gen_dsp.py --force >/dev/null`, so for as long as the banner went
+    # to stdout the ONE gate that most needs to hear it was the one place it
+    # could not be heard: a whole contract check could pass against ungated
+    # rows in silence.
+    print('*' * 74, file=sys.stderr)
+    print('*  DSP_LANDED_DIR IS SET. The address map being generated from is',
+          file=sys.stderr)
+    print(f'*  {DEFS_PRODUCTS_DIR}', file=sys.stderr)
+    print('*  -- NOT defs/products/. These rows have not passed the hub gate',
+          file=sys.stderr)
+    print('*  and the defs pin in defs.lock does not describe this build.',
+          file=sys.stderr)
+    print('*' * 74, file=sys.stderr)
 
 
 def landed_dsp_csv_path(product):
@@ -3074,8 +3174,12 @@ def main():
     cell_map.update(address_map)
     print(f'  {len(cell_map)} cell mappings (landed, both products merged)')
 
-    # 5. Read _matrix.csv
-    print('Reading _matrix.csv...')
+    # 5. Read _matrix.csv -- the staged expansion if sync-defs.sh left one.
+    src = matrix_input_path()
+    if src == MATRIX_STAGE:
+        print('Reading _matrix.csv (staged expansion from sync-defs.sh)...')
+    else:
+        print('Reading _matrix.csv...')
     header, matrix_rows = read_matrix_csv()
     print(f'  {len(matrix_rows)} rows')
 
@@ -3090,13 +3194,11 @@ def main():
     print('Writing outputs...')
 
     if not args.dry_run:
-        matrix_csv_dir = os.path.dirname(MATRIX_CSV)
-        if matrix_csv_dir:
-            os.makedirs(matrix_csv_dir, exist_ok=True)
-        with open(MATRIX_CSV, 'w', newline='', encoding='utf-8') as f:
-            writer = csv.DictWriter(f, fieldnames=header, extrasaction='ignore')
-            writer.writeheader()
-            writer.writerows(matrix_rows)
+        buf = io.StringIO(newline='')
+        writer = csv.DictWriter(buf, fieldnames=header, extrasaction='ignore')
+        writer.writeheader()
+        writer.writerows(matrix_rows)
+        _atomic_write(MATRIX_CSV, buf.getvalue(), newline='')
         print(f'  Wrote {MATRIX_CSV}')
 
     write_dsp_params_asm(dry_run=args.dry_run)
@@ -3104,7 +3206,16 @@ def main():
     write_mx_dsp_map_h(matrix_rows, dry_run=args.dry_run)
     write_address_map(dry_run=args.dry_run)
 
-    # 8. Validation
+    # 8. The staged expansion is CONSUMED, not left lying about. Every
+    # output above is on disk under its final name by now, so the pair
+    # (sync-defs.sh; gen_dsp.py) has completed and the stage has no more to
+    # say. If anything above had failed, the stage would still be here and
+    # the committed matrix would still hold the last complete generation --
+    # which is the whole point of staging it.
+    if not args.dry_run and os.path.isfile(MATRIX_STAGE):
+        os.unlink(MATRIX_STAGE)
+
+    # 9. Validation
     print()
     print('Validation:')
     validate(matrix_rows)

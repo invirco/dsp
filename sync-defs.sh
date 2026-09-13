@@ -16,9 +16,18 @@
 #
 # The DSP address columns (DspSpi/DspPage/DspAdd/DspAddHex/Ramp*) are NOT
 # part of the expansion: gen_dsp.py backfills them afterwards as a
-# consumer-side derived table. This script always writes the bare
-# expansion, so the pair (sync-defs.sh; gen_dsp.py --force) is the whole
-# definition of MW/<P>/MX/_matrix.csv.
+# consumer-side derived table. The pair (sync-defs.sh; gen_dsp.py --force)
+# is the whole definition of MW/<P>/MX/_matrix.csv.
+#
+# WHICH IS WHY THIS SCRIPT NO LONGER WRITES THE D32 MATRIX (S44-1). A bare
+# expansion in a path that is meant to carry DSP addresses is a DAMAGED
+# file, not an intermediate one, and leaving one there is what
+# check-contract-drift.sh did to the tree on 2026-09-13 when gen_dsp.py
+# aborted between the two halves. D32's expansion is staged at
+# MW/D32/MX/_matrix.expansion.csv instead and gen_dsp.py -- the only writer
+# of the finished file -- renames the backfilled result into place. Every
+# other product has no backfill step, so its expansion IS the whole
+# artefact and lands here, by rename, once all four have verified.
 #
 # Use --update-lock to refresh defs.lock from the current submodule state.
 
@@ -153,15 +162,75 @@ done
 # ---------------------------------------------------------------------------
 # 3. The expansion
 # ---------------------------------------------------------------------------
-declare -A MATRIX_SHA=() MATRIX_GEN=()
+# NOTHING IS INSTALLED UNTIL EVERYTHING VERIFIES, AND NOTHING IS INSTALLED
+# HALF-WAY (S44-1, from S43-5). Two separate faults lived here:
+#
+#   1. The expansion was written STRAIGHT OVER the committed
+#      MW/<P>/MX/_matrix.csv, and only then hashed against defs.lock. A
+#      mismatch -- the one thing the lock exists to catch -- therefore
+#      exited 1 with the tree already rewritten by the definitions it had
+#      just refused.
+#   2. For D32 the expansion is only HALF the artefact. The DSP address
+#      columns are backfilled afterwards by MW/D32/DSP/gen_dsp.py, so a bare
+#      expansion in that path is not a matrix, it is a matrix with
+#      DspI2c/DspSpi/DspPage/DspAdd/DspAddHex blank on all 6,999 rows. On
+#      2026-09-13 check-contract-drift.sh ran this script, then aborted in
+#      gen_dsp.py on the no-fallback dsp.csv check, and left exactly that
+#      committed in the tree -- a gate that damages the artefact it checks.
+#
+# The fix for both: expand to a temp file beside the target, verify from the
+# temp, and only then move it into place with `mv` (rename(2) -- atomic
+# within a filesystem, which is why the temp is in the target's own
+# directory). For D32 "into place" means the STAGE, not the landed file:
+# gen_dsp.py is the only writer of the finished matrix and finishes the
+# rename there. TEMP+RENAME RATHER THAN A RESTORE-ON-FAILURE TRAP because a
+# trap needs the shell to survive to run: `kill -9`, an OOM kill or a power
+# cut skip it, and those are precisely when a half-written file is left
+# behind. A rename needs nothing to survive.
+#
+# PRODUCTS WHOSE MATRIX IS BACKFILLED AFTERWARDS. Keep in step with
+# MW/D32/DSP/gen_dsp.py: MATRIX_CSV there is D32's and only D32's, and it is
+# the only product whose _matrix.csv carries DSP address columns with
+# anything in them. A product added here without a backfill step would stage
+# an expansion nothing ever consumes.
+STAGED_PRODUCTS=(d32)
+STAGE_NAME="_matrix.expansion.csv"
+
+# Sweep temps a KILLED earlier run left behind. The rename cannot leave one
+# and the EXIT trap below clears the ordinary failure path, but SIGKILL
+# skips both -- and these are gitignored, so without this they accumulate
+# unseen forever. Only temps whose pid is gone are removed: a concurrent
+# run's temp is left alone.
+for f in "$ROOT_DIR"/MW/*/MX/."${STAGE_NAME%.csv}".*.csv; do
+  [[ -e "$f" ]] || continue
+  pid="${f##*.${STAGE_NAME%.csv}.}"
+  pid="${pid%%.*}"
+  [[ "$pid" =~ ^[0-9]+$ ]] || continue
+  kill -0 "$pid" 2>/dev/null || rm -f "$f"
+done
+
+TMPS=()
+cleanup_tmps() {
+  local t
+  for t in ${TMPS+"${TMPS[@]}"}; do [[ -e "$t" ]] && rm -f "$t"; done
+  return 0
+}
+trap cleanup_tmps EXIT
+
+declare -A MATRIX_SHA=() MATRIX_GEN=() MATRIX_TMP=()
 for p in "${PRODUCTS[@]}"; do
   P="${p^^}"
   mkdir -p "$ROOT_DIR/MW/$P/MX"
-  out="$ROOT_DIR/MW/$P/MX/_matrix.csv"
+  # Hidden, in the TARGET's directory (so the rename cannot cross a
+  # filesystem), and still ending in .csv -- expand_matrix.py types its
+  # output by extension and refuses anything else.
+  tmp="$ROOT_DIR/MW/$P/MX/.${STAGE_NAME%.csv}.$$.$p.csv"
+  TMPS+=("$tmp")
+  MATRIX_TMP[$P]="$tmp"
   python3 "$DEFS_DIR/tools/expand_matrix.py" \
-    "$DEFS_DIR/gen/matrix/$p-mx-master.csv" -o "$out" >/dev/null
-  MATRIX_SHA[$P]="$(sha "$out")"
-  MATRIX_GEN[$P]="$(python3 "$DEFS_DIR/tools/matrix_gen_id.py" "$out" \
+    "$DEFS_DIR/gen/matrix/$p-mx-master.csv" -o "$tmp" >/dev/null
+  MATRIX_SHA[$P]="$(sha "$tmp")"
+  MATRIX_GEN[$P]="$(python3 "$DEFS_DIR/tools/matrix_gen_id.py" "$tmp" \
                      | awk '$1=="base-id"{print $2}')"
   verify "${P}_MATRIX_SHA256" "${MATRIX_SHA[$P]}"
   verify "${P}_MATRIX_GEN" "${MATRIX_GEN[$P]}"
@@ -169,8 +238,28 @@ done
 
 if [[ $fail -ne 0 ]]; then
   echo "Run --update-lock only after review and intent to bump the contract." >&2
+  echo "Nothing was written: the expansions stayed in their temp files." >&2
   exit 1
 fi
+
+# Everything verified. Install, each file with one rename.
+for p in "${PRODUCTS[@]}"; do
+  P="${p^^}"
+  tmp="${MATRIX_TMP[$P]}"
+  out="$ROOT_DIR/MW/$P/MX/_matrix.csv"
+  staged=0
+  for q in "${STAGED_PRODUCTS[@]}"; do [[ "$q" == "$p" ]] && staged=1; done
+  if [[ $staged -eq 1 && -f "$out" ]]; then
+    # Half an artefact: hand it to gen_dsp.py and leave the committed file
+    # alone. `-f "$out"` is the bootstrap escape -- with no committed matrix
+    # to protect there is nothing to lose and everything downstream wants a
+    # file to read, so the bare expansion lands and gen_dsp.py backfills it
+    # in place on the same run.
+    mv -f "$tmp" "$ROOT_DIR/MW/$P/MX/$STAGE_NAME"
+  else
+    mv -f "$tmp" "$out"
+  fi
+done
 
 # ---------------------------------------------------------------------------
 # 4. defs.lock
@@ -211,5 +300,12 @@ fi
 
 for p in "${PRODUCTS[@]}"; do
   P="${p^^}"
-  printf '  %s _matrix.csv expanded — generation %s\n' "$P" "${MATRIX_GEN[$P]}"
+  staged=0
+  for q in "${STAGED_PRODUCTS[@]}"; do [[ "$q" == "$p" ]] && staged=1; done
+  if [[ $staged -eq 1 && -f "$ROOT_DIR/MW/$P/MX/$STAGE_NAME" ]]; then
+    printf '  %s _matrix.csv expanded — generation %s (STAGED at MW/%s/MX/%s; gen_dsp.py backfills and installs it)\n' \
+      "$P" "${MATRIX_GEN[$P]}" "$P" "$STAGE_NAME"
+  else
+    printf '  %s _matrix.csv expanded — generation %s\n' "$P" "${MATRIX_GEN[$P]}"
+  fi
 done
