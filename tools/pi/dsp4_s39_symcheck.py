@@ -35,27 +35,37 @@ PAIRS = [('_diag_ticks', 0xE005, 'TICKS'),
          ('_sec_count', 0xE006, 'SEC_COUNT'),
          ('_diag_resp_drop', 0xE00F, 'RESP_DROP')]
 
+# Four of the seven are FREE-RUNNING counters (TICKS, FRAME_COUNT,
+# SEC_COUNT, SPI_RX_COUNT). rd() votes -- it needs the same non-zero
+# value twice -- so it can never resolve one of those, and this gate read
+# "disagree 3" on a correct map and a healthy link (S46-3, 2026-09-14:
+# all 12 asks answered, each value larger than the last). The test that
+# actually expresses the question is a BRACKET: ask, peek, ask. If the
+# peek lands between the two register reads, the symbol and the register
+# are the same object -- and for a moving counter that is a far stronger
+# statement than equality, because a wrong address cannot track it.
+COUNTERS = {'_diag_ticks', '_spi_rx_count', '_frame_count', '_sec_count'}
+
 agree = disagree = skipped = 0
 for name, reg, label in PAIRS:
     if name not in sc.sym:
         print('  %-18s NOT IN MAP' % name); skipped += 1; continue
     a = sc.sym[name]
     try:
-        reg_v = sc.rd(reg)
-    except IOError:
-        reg_v = None
-    try:
-        peek_v = sc.peek(a)
-    except IOError:
-        peek_v = None
-    # These are counters: read the register FIRST, peek second, so a
-    # peek slightly ahead is the expected direction and a peek of ZERO
-    # against a large register cannot be a race.
-    ok = (reg_v is not None and peek_v is not None
-          and (peek_v == reg_v or (reg_v > 1000 and peek_v >= reg_v)))
-    print('  %-18s @0x%05X  peek %-12s  %-14s %-12s  %s'
-          % (name, a, '--' if peek_v is None else str(peek_v),
-             label, '--' if reg_v is None else str(reg_v),
+        if name in COUNTERS:
+            v1, peek_v, v2 = sc.rd_counter(reg, addr=a)
+            ok = (v1 <= peek_v <= v2)
+            shown = '%d..%d' % (v1, v2)
+        else:
+            reg_v = sc.rd(reg)
+            peek_v = sc.peek(a)
+            ok = (peek_v == reg_v)
+            shown = str(reg_v)
+    except IOError as exc:
+        print('  %-18s @0x%05X  UNREADABLE: %s' % (name, a, exc))
+        disagree += 1; continue
+    print('  %-18s @0x%05X  peek %-12s  %-14s %-14s %s'
+          % (name, a, peek_v, label, shown,
              'agree' if ok else '**DISAGREE**'))
     if ok: agree += 1
     else: disagree += 1

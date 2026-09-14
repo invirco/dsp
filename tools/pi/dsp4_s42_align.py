@@ -79,6 +79,46 @@ def dbfs(x):
 sc1 = S.Scope(1, symfile='%s/chip1.sym.json' % SYMDIR)
 sc1.d.resync(); sc1.check_chip()
 
+# ---------------------------------------------------------- MFD ----
+# THE REGISTER-LEVEL PROOF, AND IT NEEDS NO CONVERTER (S46-5).
+# Everything below this block reads converter AUDIO, so it can only be
+# taken with the AK5558s powered and clocking. Whether S42's one-bit fix
+# actually reached the part is a different and much smaller question, and
+# SPORT_MCTL answers it directly: MFD is bits 7:4, written per lane by
+# sport_cfg_init() out of the generated <region>_mfd[] table. Reading it
+# back separates "the fix did not land" from "the lanes are not driven",
+# which is the confusion that cost S39-4 its whole measurement set.
+SPORT_MMR_BASE, SPORT_STRIDE, HALF_B, OFF_MCTL = 0x31002000, 0x100, 0x80, 0x08
+MFD_EXPECT = {1: [('rx  (half A, converters)', 0, [2, 2, 2, 2, 2, 2, 1, 2]),
+                  ('ic  (half B, to chip 2)', HALF_B, [1, 1, 1])],
+              2: [('ic  (half A, from chip 1)', 0, [1, 1, 1]),
+                  ('tx  (half B, to the DACs)', HALF_B, [2, 2, 2, 1, 2])]}
+
+
+def check_mfd(sc, chip):
+    """Read SPORT_MCTL per lane; compare with the generated table."""
+    print('=== chip %d SPORT_MCTL.MFD, per lane, read back ===' % chip)
+    bad = []
+    for label, half, expect in MFD_EXPECT[chip]:
+        got = []
+        for sp in range(len(expect)):
+            a = SPORT_MMR_BASE + sp * SPORT_STRIDE + half + OFF_MCTL
+            try:
+                got.append((sc.peek(a) >> 4) & 0xF)
+            except IOError:
+                got.append(None)
+        ok = got == expect
+        print('  %-26s got %-18s expect %-18s %s'
+              % (label, got, expect, 'OK' if ok else '**MISMATCH**'))
+        if not ok:
+            bad.append('%s: MCTL.MFD reads %s, the generated table says %s'
+                       % (label, got, expect))
+    return bad
+
+
+mfd_fail = check_mfd(sc1, 1)
+print('')
+
 ents = sc1.sym['_c1_rx_node_entry']
 offs = sc1.sym['_c1_rx_off']
 strds = sc1.sym['_c1_rx_stride']
@@ -86,6 +126,8 @@ strds = sc1.sym['_c1_rx_stride']
 print('=== RX: chip 1 converter lanes, %d words each ===' % N)
 print('lane   b31 set  lo7 set   rms as-is      dBFS    verdict')
 lanes = []
+ALL_WORDS = []
+LANE_WORDS = {}
 for strip in range(1, 13):
     try:
         e = sc1.peek(ents + strip - 1)
@@ -102,6 +144,8 @@ for strip in range(1, 13):
             pass
     if not w:
         print(' %2d    UNREADABLE' % strip); continue
+    ALL_WORDS.extend(w)
+    LANE_WORDS[strip] = w
     b31 = sum(1 for x in w if x & 0x80000000)
     lo7 = sum(1 for x in w if x & 0x7F)
     rms = math.sqrt(sum((sgn(x) / 2.0 ** 31) ** 2 for x in w) / len(w))
@@ -111,24 +155,61 @@ for strip in range(1, 13):
           % (strip, b31, lo7, rms, dbfs(rms), 'ok' if ok else '**BAD**'))
 
 rx_fail = []
+rx_undriven = False
 if not lanes:
     rx_fail.append('no lane was readable')
 else:
-    if all(b == 0 for _, b, _, _, _ in lanes):
+    # REFUSE THE VERDICT ON AN UNDRIVEN BUS (S46-4). Every bit test below
+    # is a statement about where the converter's 24 bits sit inside a
+    # 32-bit slot, and it is meaningless if no converter is driving the
+    # slot. An AK5558 that is powered and clocking always produces a
+    # DITHERED noise floor -- hundreds of distinct small values even with
+    # its input open. A lane whose words are only 0x00000000 and
+    # 0xFFFFFFFF is an idle line, and 0xFFFFFFFF sets bit 31 AND bits 6:0,
+    # so both bit tests score on it and the tool used to report "bits 6:0
+    # set -> the window moved the other way" -- an MFD verdict on a bank
+    # that was not switched on. Measured 2026-09-14 with the rev B analog
+    # board's isolation links open and AN_EN low: 48 words per lane over
+    # three captures, twelve lanes, TWO distinct values on every one.
+    # An exact all-words-in-{0,FFFFFFFF} test is too strict: a line caught
+    # mid-transition yields the odd one-bit variant (FFFFEFFB, FFFFFFFB,
+    # 80280002 all seen on 2026-09-14). The discriminator that does not
+    # care is the DISTINCT-VALUE COUNT. A converter noise floor is dither:
+    # 32 words give ~32 different small numbers. An idle line gives two.
+    idle = 0
+    for strip, _, _, _, _ in lanes:
+        w = LANE_WORDS[strip]
+        rail = sum(1 for v in w if v in (0, 0xFFFFFFFF))
+        if len(set(w)) <= 4 and rail >= 0.9 * len(w):
+            idle += 1
+    if idle >= max(1, (len(lanes) * 3) // 4):
+        rx_undriven = True
+        rx_fail.append(
+            'The lanes read as an '
+            'idle/undriven TDM bus on %d of %d lanes (<=4 distinct '
+            'values each, >=90%% of words at a rail) — not a converter '
+            'noise floor. NO MFD ' % (idle, len(lanes)) +
+            'VERDICT IS TAKEN from this: power the converters (analog '
+            'board isolation links fitted, AN_EN high) and re-run. The '
+            'per-lane SPORT_MCTL.MFD read above is the part of this gate '
+            'that does not need them.')
+    elif all(b == 0 for _, b, _, _, _ in lanes):
         rx_fail.append('bit 31 NEVER set on any word of any lane — this is '
                        'exactly S39-4 and the MFD change did not reach the '
                        'part (check DIAG_BUILD_CFG and the image md5)')
-    if any(l7 for _, _, l7, _, _ in lanes):
-        rx_fail.append('bits 6:0 set on some word — the 24-in-32 pad is not '
-                       'where it should be, so the window is off the other way')
-    bad = [s for s, _, _, _, ok in lanes if not ok]
-    if bad:
-        rx_fail.append('lane(s) %s outside the -65..-85 dBFS converter noise '
-                       'band' % ','.join(str(x) for x in bad))
-    rmss = [r for _, _, _, r, _ in lanes]
-    if len(set('%.7f' % r for r in rmss)) < max(2, len(rmss) // 3):
-        rx_fail.append('the twelve noise floors are not distinct — a stuck '
-                       'or common source, not twelve converters')
+    if not rx_undriven:
+        if any(l7 for _, _, l7, _, _ in lanes):
+            rx_fail.append('bits 6:0 set on some word — the 24-in-32 pad is '
+                           'not where it should be, so the window is off the '
+                           'other way')
+        bad = [s for s, _, _, _, ok in lanes if not ok]
+        if bad:
+            rx_fail.append('lane(s) %s outside the -65..-85 dBFS converter '
+                           'noise band' % ','.join(str(x) for x in bad))
+        rmss = [r for _, _, _, r, _ in lanes]
+        if len(set('%.7f' % r for r in rmss)) < max(2, len(rmss) // 3):
+            rx_fail.append('the twelve noise floors are not distinct — a '
+                           'stuck or common source, not twelve converters')
 
 print('\nRX: %s' % ('PASS' if not rx_fail else 'FAIL'))
 for f in rx_fail:
@@ -145,6 +226,71 @@ WATCH = [('C2_AUX_OUT_01', 'aux 1  -> DAC_08 -> rear XLR Aux Out A1'),
          ('C2_MAIN_OUT_01', 'main 1 -> DAC_12 -> analog J56 = MAIN L'),
          ('C2_MAIN_OUT_02', 'main 2 -> DAC_11 -> analog J57 = MAIN R'),
          ('C2_MAIN_ST_OUT', 'main stereo -> B_O3, no D24 sink (expect live, unheard)')]
+
+mfd_fail += check_mfd(sc2, 2)
+
+# ------------------------------------------------ chip 2 receive ----
+# §5.2 of the morning sheet. This section did not exist (S46-6): the tool
+# scored chip 1's RX and chip 2's TX and nothing in between, so the sheet
+# asked for a chip-2 verdict the gate never produced. The lanes are the
+# INTER-CHIP ones from chip 1 -- fabric, MFD 1 -- resolved BY NAME through
+# _c2_ic_rx_ptrs against each node's own _rx_ic_slot_<id>, the same way
+# the TX section resolves, so a slot move is followed and not assumed.
+IC_WATCH = ['C2_RECV_MAIN_L', 'C2_RECV_MAIN_R', 'C2_RECV_AUX_01',
+            'C2_RECV_AUX_02', 'C2_RECV_GRP_01', 'C2_RECV_FX_01',
+            'C2_RECV_SUB']
+print('\n=== RX: chip 2 inter-chip lanes (fabric from chip 1, MFD 1) ===')
+ic_fail = []
+try:
+    ic_buf = sc2.peek(sc2.sym['_ic_rx_active_buf'])
+    ic_offs = sc2.sym['_c2_ic_rx_off']
+    ic_strd = sc2.sym['_c2_ic_rx_stride']
+    ic_ptrs = sc2.sym['_c2_ic_rx_ptrs']
+except (IOError, KeyError) as exc:
+    print('  inter-chip RX tables unreadable: %s' % exc)
+    ic_offs = None
+
+if ic_offs is not None:
+    ic_index = {}
+    for i in range(24):
+        try:
+            p = sc2.peek(ic_ptrs + i)
+        except IOError:
+            continue
+        for n in IC_WATCH:
+            sym = '_rx_ic_slot_%s' % n
+            if sym in sc2.sym and sc2.sym[sym] == p:
+                ic_index[n] = i
+    print('lane                 idx  off strd  b31  lo7  distinct')
+    ic_words = []
+    for n in IC_WATCH:
+        i = ic_index.get(n)
+        if i is None:
+            print('  %-18s NOT IN THE INTER-CHIP TABLE' % n)
+            ic_fail.append('%s does not resolve in _c2_ic_rx_ptrs' % n)
+            continue
+        off = sc2.peek(ic_offs + i)
+        strd = sc2.peek(ic_strd + i)
+        w = []
+        for k in range(16):
+            try:
+                w.append(sc2.peek(ic_buf + off + (k % 16) * strd))
+            except IOError:
+                pass
+        if not w:
+            print('  %-18s UNREADABLE' % n); continue
+        ic_words.extend(w)
+        print('  %-18s %3d %4d %4d  %3d  %3d  %8d'
+              % (n, i, off, strd,
+                 sum(1 for x in w if x & 0x80000000),
+                 sum(1 for x in w if x & 0x7F), len(set(w))))
+    # The chip-2 lanes are DOWNSTREAM of chip 1's converter inputs, so
+    # they inherit an undriven converter bank. Say so rather than scoring
+    # a bit test on propagated silence.
+    if ic_words and all(v in (0, 0xFFFFFFFF) for v in ic_words):
+        print('  -> every word is 0x00000000/0xFFFFFFFF: these lanes carry '
+              'what chip 1 received, and chip 1 received nothing. No '
+              'chip-2 framing verdict is taken either.')
 
 print('\n=== TX: chip 2, what the gather wrote for the DAC ===')
 try:
@@ -193,6 +339,14 @@ for name, what in WATCH:
     if pk > 8.0 - 1e-6:
         tx_fail.append('%s is pinned at the Q4.28 accumulator ceiling — the '
                        'RX artefact is still arriving at the DAC' % name)
+    elif pk > 1.0:
+        # The sheet's stated §5.3 criterion, which this tool did not apply
+        # (S46-7): S39-6 read AUX 1 at 1.538 Q4.28 = +3.75 dBFS, above full
+        # scale and well under the 8.0 ceiling, so the ceiling test alone
+        # would have passed the very reading the gate exists to catch.
+        tx_fail.append('%s peaks at %.5f in Q4.28 — above full scale (the '
+                       'sheet asks for inside +-1.0; S39-6 read 1.538 here)'
+                       % (name, pk))
 
 print('\nTX: %s' % ('PASS' if not tx_fail else 'FAIL'))
 for f in tx_fail:
@@ -202,4 +356,18 @@ print('\n(TX here proves what the DSP wrote, not what the AK4458 latched. '
       'right, AUX 1 out -> MIC 1 in must return a clean scaled copy. A '
       'still-early transmit returns a doubled, sign-wrapped one.)')
 
-sys.exit(1 if (rx_fail or tx_fail) else 0)
+if mfd_fail:
+    print('\nMFD: FAIL')
+    for f in mfd_fail:
+        print('  - %s' % f)
+else:
+    print('\nMFD: PASS — every lane\'s SPORT_MCTL.MFD equals the generated '
+          'table on both chips. S42\'s one-bit fix is on the part.')
+
+if rx_undriven:
+    print('\nVERDICT: NOT TAKEN. The MFD registers are right and the TX '
+          'tables resolve, but the converters are not driving the bus, so '
+          '§5.1/§5.2 have nothing to measure. Exit 2 = inconclusive, not '
+          'failed.')
+    sys.exit(2)
+sys.exit(1 if (rx_fail or tx_fail or mfd_fail or ic_fail) else 0)

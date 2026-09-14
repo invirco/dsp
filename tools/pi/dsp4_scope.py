@@ -94,6 +94,43 @@ class Scope:
                 last = e
         raise IOError('peek 0x%X never answered in %d tries: %s' % (a, patience, last))
 
+    def rd_counter(self, reg, addr=None, tries=6):
+        """Read a FREE-RUNNING counter register, which rd() cannot.
+
+        rd() resolves a register by voting -- it returns a non-zero value
+        only after seeing the SAME value twice in 12 asks. A counter that
+        advances between asks never repeats, so rd() exhausts its budget
+        and raises, on a perfectly healthy link: measured 2026-09-14 on
+        MW-D24-2, TICKS/FRAME_COUNT/SEC_COUNT/SPI_RX_COUNT all raised
+        while every one of the 12 asks had answered with a clean,
+        monotonically increasing value. Four of the seven registers
+        dsp4_s39_symcheck.py checks are counters, so the §3 map gate read
+        as "disagree 3" on a correct map (S46-3).
+
+        Returns the newest answer. With `addr` given, also brackets a
+        peek of that address between two asks and returns
+        (before, peek, after): if before <= peek <= after the symbol and
+        the register are the same object, which is the map proof
+        symcheck was reaching for and could not express.
+        """
+        last = None
+        for _ in range(tries):
+            v = self._ask(reg)
+            if v is not None:
+                if addr is None:
+                    return v
+                p = self.peek(addr)
+                w = self._ask(reg)
+                if w is not None:
+                    return (v, p, w)
+                last = 'no second answer'
+                continue
+            last = 'no answer'
+            self.d.link.realign()
+            self.d.phase = None
+        raise IOError('counter 0x%04X never answered in %d tries: %s'
+                      % (reg, tries, last))
+
     def rd(self, reg, need=2, limit=12):
         """Read one register: paced ask, settle, single collect, voted.
 

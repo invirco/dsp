@@ -6,6 +6,143 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE MFD FIX IS ON THE PART, AND THE GATE THAT WOULD HAVE DENIED IT WAS SCORING AN UNPOWERED CONVERTER BANK (2026-09-14, session 46 — on the unit)
+
+**S46-1. The unit was off the network when the session opened and power-cycled
+itself.** The dispatch's bench state records MW-D24-2 as ON and to stay on. Six
+probes 20 s apart from 14:12:36Z found no ICMP reply and an ARP entry `FAILED`
+on the wired segment; the whole /24 was swept for the unit's recorded SSH host
+key in case it had moved address (ten hosts answered on 22, none of them it).
+It booted at **14:14:20Z** (`uptime -s`, post-NTP) and answered SSH at 14:14:48
+reporting *up 0 minutes*. **It was already unreachable at the first probe and
+returned during the probe window**, so nothing here caused it: the only packets
+sent were unanswered ICMP echoes and one TCP SYN. Corroboration points at the
+supply — `vcgencmd get_throttled` = **`0x50000`** (under-voltage has occurred,
+throttling has occurred) and `dmesg` **`Undervoltage detected!` at +7.7 s into
+this boot, with AN_EN low and the analog rails not requested**. No prior-boot
+evidence survives: one boot in the journal, no `wtmp`, no `syslog`, and the app
+log is rewritten each start, so the outage can only be bounded between the
+hub's last interaction (13:55Z) and the first probe. **The clock was restored
+6 m 46 s behind by `fake-hwclock` and stepped by NTP at 15:14:56 BST, so every
+"15:07:xx" stamp in that boot's app log is the same boot before the step** —
+the app did not start seven minutes before the kernel. **The cost: AN_EN
+dropped.** The hub raised GPIO26 by hand at 14:52 BST for the rail test; after
+the cycle it reads low and the app leaves it there by design, so the rail-test
+state is gone and the analog board is unpowered. This is S41's uncommanded-cycle
+class recurring and is not attributed to any bitstream. A boot-id sentinel
+(`f1078486-…`, boot 15:14:20) was re-read at every gate and never moved — **no
+further cycle occurred while the work ran.**
+
+**S46-2. §1–§4 pass.** The S42 pair staged into a new `/home/app/s42` with
+`/home/app/s39` intact as rollback: `chip1.ldr` `825f9b7dac5978c973550c8e40819ba9`
+and `chip2.ldr` `7b1311e8e56f008fa98046cab59293c6`, md5'd at the desk and again
+on the unit after the copy, with this build's own maps (**6,155 / 3,894**
+symbols). Cold start clean first try — 451,584 B and 308,224 B sent, CHIP_ID 1
+and 2 verified, both chips **BLOCK 16, CCLK 983.04 MHz, shipping
+configuration**, 51 + 5 registers configured. `DIAG_BUILD_CFG2` =
+**`0xC2010244`** on both chips, the word the sheet requires.
+`dsp4_apply_strip.py 1 1`: **13 ok / 0 mismatch**.
+
+**S46-3. The §3 map gate failed on a correct map because `rd()` cannot read a
+counter.** It reported *agree 2 / disagree 3 / not-in-map 2* against the sheet's
+*agree 5 / disagree 0*. The three "disagreements" were `_diag_ticks`,
+`_spi_rx_count`, `_frame_count`, and in each the **register** column read `--`
+— the DIAG read raised and the peek did not; the sheet's real failure signature
+is those three peeking *zero*, and they peeked 8,904 / 145 / 35,976. The
+exception says it outright: `register 0xE005 never settled: {'0x100a2': 1,
+'0x100a4': 1, '0x100a7': 1, …}` — **twelve asks, twelve clean answers, every
+one larger than the last.** `dsp4_scope.rd()` resolves a register by voting,
+needing the same non-zero value twice in twelve asks, and **a free-running
+counter never repeats**. Four of the seven pairs this gate checks are counters
+(TICKS, FRAME_COUNT, SEC_COUNT, SPI_RX_COUNT); it can read none of them, on a
+healthy link and a correct map. Deterministic, 5 of 5 attempts each; the three
+static registers answered every time. **The test that expresses the question is
+a bracket — ask, peek, ask — and for a moving counter it is stronger than
+equality, because a wrong address cannot track one:** chip 1 `_frame_count`
+1,745,906 ≤ **1,745,915** ≤ 1,745,917, and so for all five pairs on both chips.
+`Scope.rd_counter()` added, `dsp4_s39_symcheck.py` rewritten onto it, re-run on
+the part: **agree 5 / disagree 0 / not-in-map 2 on both chips.** `rd()` itself
+is unchanged so no other tool's behaviour moves.
+
+**S46-4. THE ONE THAT MATTERS: the align gate was about to blame MFD for a
+converter bank that was not switched on.** It reported *"bits 6:0 set on some
+word — the 24-in-32 pad is not where it should be, so the window is off the
+other way"*. The raw words say otherwise: over **48 words per lane across three
+captures 0.4 s apart, on all twelve lanes, exactly two values appear —
+`0x00000000` and `0xFFFFFFFF`** (plus rare one-bit variants `FFFFEFFB`,
+`FFFFFFFB`, `FFFFDFFF`, `80280002`, a line sampled mid-transition). That is an
+**idle, undriven TDM bus**. A powered, clocking AK5558 produces a *dithered*
+noise floor — dozens of distinct small values in 32 words even with its input
+open — never two. And **`0xFFFFFFFF` sets bit 31 AND bits 6:0**, so both of the
+gate's bit tests score on it and both verdicts are artefacts of reading a rail.
+The converters are unpowered for two independent reasons: the rev B analog
+board's ±15 V isolation links are **all open** (the attach procedure: *"every
+switching supply on the analog board is isolated from its destination
+electronics by links that are NOT fitted yet"*), and AN_EN went low in the
+power cycle. **`dsp4_s42_align.py` now refuses the RX verdict** when ≥ ¾ of
+lanes read as an idle bus (≤ 4 distinct values, ≥ 90 % of words at a rail) and
+**exits 2 — inconclusive, not failed** — naming the converters and pointing at
+the register read that does not need them. Same class as S39-4, which cost a
+whole measurement set.
+
+**S46-5. S42's one-bit fix IS on the part — proved at the register, with no
+converter required.** `SPORT_MCTL.MFD` is bits 7:4, written per lane by
+`sport_cfg_init()` from the generated `<region>_mfd[]` tables; read back from
+the SPORT MMRs at `0x31002000 + sport·0x100 (+0x80 half B) + 0x08`:
+
+| chip | region | MFD read | generated table |
+|---|---|---|---|
+| 1 | rx, half A (converters), sports 0–7 | **2,2,2,2,2,2,1,2** | `c1_rx_lanes_mfd` identical |
+| 1 | ic, half B (to chip 2) | **1,1,1** | `c1_ic_lanes_mfd` identical |
+| 2 | ic, half A (from chip 1) | **1,1,1** | `c2_ic_lanes_mfd` identical |
+| 2 | tx, half B (to the DACs) | **2,2,2,1,2** | `c2_tx_lanes_mfd` identical |
+
+**Nineteen lanes, nineteen matches, both chips**, including the deliberate
+exceptions — chip 1's lane 6 and chip 2's TX lane 3 are the CPLD/fabric lanes
+and are correctly still MFD 1. This read is now part of the gate, and it is the
+part of §5 that a bench with no analog board can always take.
+
+**S46-6. The morning sheet's §0 is wrong on one point, and the dispatch
+inherited it.** §0 says *"§1–§6 in full — the whole DSP side … none of it needs
+the analog board"*. True for §1–§4 and §5.3. **False for §5.1 and §5.2**: their
+pass criteria are the *converter* noise floor (−65…−85 dBFS) and *twelve
+distinct converter* noise floors, both statements about powered AK5558s. Those
+two sections belong in the "when the links are in" list. Separately,
+`dsp4_s42_align.py` **had no chip-2 receive section at all** — it scored chip
+1's RX and chip 2's TX and nothing between — so the gate could not have
+satisfied the dispatch even on a healthy unit. Every symbol it needs is
+exported by this image (`_c2_ic_rx_off/_stride/_ptrs`, `_ic_rx_active_buf`, a
+`_rx_ic_slot_<NAME>` per node); the section was written, resolves **by name**
+through the pointer table as the TX section does, and runs: `C2_RECV_MAIN_L`
+idx 0, `MAIN_R` 1, `SUB` 2, `GRP_01` 3, `AUX_01` 7, `AUX_02` 8, `FX_01` 19.
+`C2_RECV_MTX_01` does not resolve in `_c2_ic_rx_ptrs` — recorded, not chased.
+
+**S46-7. TX passes by name, and a scoring gap was found in it.** All five nodes
+resolve through `_c2_tx_ptrs`, so S42's slot move is on the part:
+`C2_AUX_OUT_01` off 7 (`DAC_08` → rear XLR **Aux Out A1**), `C2_AUX_OUT_02`
+off 6, `C2_MAIN_OUT_01` off 131 (`DAC_12` → J56 MAIN L), `C2_MAIN_OUT_02`
+off 130 (`DAC_11` → J57 MAIN R), `C2_MAIN_ST_OUT` off 384. **AUX 1 is no longer
+above full scale** — S39-6 read 1.538 Q4.28 (+3.75 dBFS), it now reads 0.00000
+— but with no converter input that is **not positive proof of level**: 0 is
+also what a dead path reads. The gap: the tool failed a TX lane only at
+`pk > 8.0`, the Q4.28 accumulator ceiling, while **the sheet's §5.3 criterion is
+inside ±1.0 — and S39-6's 1.538 sits between the two**, so the ceiling test
+alone would have *passed* the exact reading the gate exists to catch. The ±1.0
+criterion is now applied.
+
+**S46-8. Hand-back, and one open question in it.** `matrix-app` active, pins as
+found, **AN_EN read at every gate and never written**, GPIO27 / SWD selects /
+analog board / rocker / `logic_flash.sh` untouched, MCU boot verification
+all-pass on the restart. **The DSPs were left booted with the S42 pair and
+streaming.** R3 asks for them stopped unless the sheet names streaming as the
+app's expected state, and it does not; they were left up because stopping them
+means driving !RST_D (GPIO16) low and holding it — a larger departure from "as
+found" than leaving them running — and because the app cannot query DSP state
+either way (`[??] DSPs booted and streaming — no boot-state query`). **The hub
+should rule on which it wants.** No contract artefact moved: `defs.lock`,
+`dsp.csv`, the SPI addresses, both `_matrix.csv` and every generated file are
+untouched, so no version bump.
+
 ## THE MATRIX IS THE APP'S ONLY SOURCE OF DSP ADDRESSES, AND D24'S WAS EMPTY (2026-09-13, session 45 — desk only, the unit was never touched)
 
 **S45-1. The backfill runs for every product now, from that product's own
