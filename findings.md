@@ -6,6 +6,70 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## S44 LANDS AS defs-v2026.09.14.1, AND THE STRICT DIFF IS SIX FILES, NOT TWO (2026-09-14, session 47 — desk only, the unit was never touched)
+
+**S47-1. The pin moved, the lock updated, and the diff the "how to land it"
+steps predicted (`defs` + `defs.lock` only) is not the diff that landed —
+six files changed, and both extra pairs are explained.** `git -C defs fetch
+--tags && git -C defs checkout defs-v2026.09.14.1` (`5c827e9`), `git add defs`
+to move the recorded gitlink, then `./regenerate-dsp-contract.sh
+--update-lock`: SHARC codegen drift check passed first (726 files, 0 differ),
+`sync-defs.sh` verified/updated the lock, `gen_dsp.py --force` backfilled —
+**D32 5,765/5,765 mapped cells addressed (6,999 defined), D24 3,974/3,974
+(4,985 defined)** — `check-matrix-addresses.py` passed, and a second,
+independent `./check-contract-drift.sh` (no `--update-lock`) reproduced every
+byte with nothing left to settle. `git status --porcelain` names six paths:
+`defs`, `defs.lock`, and all four `MW/<P>/MX/_matrix.csv`. Row-by-row,
+field-by-field diff against the pre-image (`git show HEAD:...`) explains all
+four: **D12 and D16 — zero content diffs; the only column added is
+`Neutral`, both empty (not backfilled products).** **D32 — 6,999/6,999 cells
+identical on every existing column (cell set, `MxAdd`, `DspAdd`/`DspAddHex`,
+everything); the only change is the same `Neutral` column landing empty-or-
+coded per cell.** `MATRIX_GEN` (the console-comparable base-id) is unchanged
+for all four products, and every DSP-generated artifact downstream of D32 —
+`ghost_cells.h` (both copies), both `dsp_params.asm`, `dsp_address_map.md`,
+`mx_dsp_map.h` — is **byte-identical before and after** (sha256 quoted).
+**D24 — cell set unchanged; the `Dsp*` columns go from 0/4,985 addressed to
+3,974/4,985 as R3 intends, and a further 733 `Table`/span fields differ on
+cells the S44 proposal never touched.** That second class is not this
+repo's doing: `git -C defs log 48745eae..5c827e9` shows the range crosses
+`5cc5d44` ("Neutral column on the cell master … 16 table-span/MxDatS
+disagreements noted in the schema … every product master and reference
+regenerated"), landed the day before S44's tag and pulled in by the same
+fetch. Advancing the pin at all — not just landing S44 — is what moves it.
+**Verdict: the "only two files" expectation was written against a proposal
+that predates the Neutral-column pin; the actual six-file diff is exactly
+what R2 (Neutral passes through) and R3 (D24 backfilled, D32's *addresses*
+untouched) each ask for, just not phrased as one diff. Nothing unexplained
+moved — named here as the finding R1 asks for rather than absorbed.**
+
+**S47-2. The cell master's `Neutral` column passes through every reader in
+this repo untouched, because none of them reads a column by position.**
+`common/cells/mx_master.csv` (the cell master itself) has exactly one reader
+in this repo — `sync-defs.sh`'s `MX_CELL_MASTER_SHA256` check — and that
+reads it as opaque bytes for a whole-file hash, not by name or index, so a
+32nd column cannot touch it. The column's actual appearance is in the
+per-product matrices, via `defs/tools/expand_matrix.py` (submodule code, not
+this repo's). Every reader in this repo that opens `_matrix.csv` or a
+product def uses `csv.DictReader` — `validate-matrix-contract.py:77`,
+`check-matrix-addresses.py:64,70`, `gen_dsp.py:260,310,2869,2956,3031,3041`
+— none positional. Live proof, not just grep: `validate-matrix-contract.py`
+and `check-matrix-addresses.py` both ran clean above against matrices that
+now carry the extra column.
+
+**S47-3. The D24 matrix is committed with its DSP addresses — 3,974 rows
+addressed, 1,011 unmapped, 3,974+1,011=4,985 — and D32 is untouched at every
+level the firmware build depends on.** `MW/D24/MX/_matrix.csv` now carries
+`DspSpi`/`DspPage`/`DspAdd`/`DspAddHex` on every cell `defs/products/d24/
+dsp.csv` maps; this is the first commit of that file with any address in
+it (previous commits: `54f29242`, `58ef0250` — both 0/4,985). D32's
+`_matrix.csv` sha256 changed (`041b19a5…` → `e66c5e43…`) but the change is
+the `Neutral` column alone (S47-1); its `DspAdd`/`DspAddHex` and every other
+existing field are identical row for row, its `MATRIX_GEN` id is unchanged,
+and `ghost_cells.h`/`dsp_params.asm`×2/`dsp_address_map.md`/`mx_dsp_map.h`/
+the FW copies are sha256-identical before and after. Proposal
+`proposals/CONTRACT-PROPOSAL-S44.md` marked LANDED.
+
 ## THE MFD FIX IS ON THE PART, AND THE GATE THAT WOULD HAVE DENIED IT WAS SCORING AN UNPOWERED CONVERTER BANK (2026-09-14, session 46 — on the unit)
 
 **S46-1. The unit was off the network when the session opened and power-cycled

@@ -2,9 +2,10 @@ provenance: AI-drafted 2026-09-13 — prose may carry a statistical watermark; r
 
 # Contract proposal S44 — the D24/D32 DSP address map, +237 / +356 cells
 
-**Status: PROPOSED, NOT LANDED.** Landing is the hub's / PW's call: it is a
-contract bump, and this repo is a consumer of the definitions. Nothing here
-edits `defs/`.
+**Status: LANDED** as `defs-v2026.09.14.1` (`invirco/defs@5c827e9`), consumed
+by this repo in session 47 (2026-09-14): pin advanced, `defs.lock` updated,
+D24 matrix backfilled and committed (3,974/4,985 addressed), D32 addresses
+unchanged. See `findings.md` S47-1..S47-3.
 
 **The unit was never touched in the session that produced this.**
 
