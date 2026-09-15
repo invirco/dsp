@@ -43,7 +43,7 @@ VALID_TYPES = {
     'EQ_BIQUAD', 'FADER_PAN', 'FX_ENGINE', 'GAIN', 'GATE', 'GEQ',
     'HPF_LPF', 'INPUT_TDM', 'INTERCHIP_RECV', 'INTERCHIP_SEND', 'LIMITER',
     'METER', 'MIX_BUS', 'MONITOR', 'NOISE_GEN', 'OUTPUT_TDM', 'ROUTING',
-    'TALKBACK', 'TUBE_SAT',
+    'TALKBACK', 'TEST_MEAS', 'TEST_OSC', 'TUBE_SAT',
 }
 
 VALID_RAMP_PROFILES = {'', 'DynSafe', 'EqSafe', 'GainFast', 'GainSafe', 'InstantCtl'}
@@ -74,6 +74,12 @@ REQUIRED_PARAMS = {
     'DCA':            {'level_db', 'mute'},
     'NOISE_GEN':      {'level_db', 'on'},
     'MONITOR':        {'source'},
+    # The S49 self-test pair. TEST_OSC must name the frequency and
+    # level it comes up at (they are .var initialisers in the kernel);
+    # TEST_MEAS must name the oscillator whose state blocks are its
+    # reference, because nothing else in the graph can tell it.
+    'TEST_OSC':       {'on', 'freq_hz', 'level', 'chan'},
+    'TEST_MEAS':      {'meas_chan', 'osc_src'},
 }
 
 # Types that legitimately have no SPI address
@@ -122,6 +128,8 @@ EXTRA_PARAMS = {
     'MIX_BUS':        {'source_count', 'fx_sends', 'aux'},
     'MONITOR':        {'level_l_db', 'level_r_db'},
     'NOISE_GEN':      {'hpf_on'},
+    'TEST_OSC':       {'sweep_on', 'sweep_step', 'meas_src'},
+    'TEST_MEAS':      {'xtalk_src', 'xtalk_dst'},
     # `mo_page`/`mo_addr` (S24): the main output strip's own Level and Mute.
     # A SECOND address block, for the same reason ROUTING's `mtx_*` is one --
     # the node has a single word of its own and growing it would have moved

@@ -353,6 +353,35 @@
 #define DSP4_FX_TYPE_DECLARED 0
 #endif
 
+/* THE SELF-TEST NODES, in the word the part reads back about itself (S49).
+ * TEST_OSC and TEST_MEAS change what the chain calls and what chip 1 costs,
+ * and S48 section 6 is the record of why a switch like that needs to be
+ * readable FROM THE PART and not only from the build log: three independent
+ * identifications of an instrument image are what stopped a measurement
+ * being quoted off the wrong one.
+ *
+ * BIT 24 WAS NOT FREE, AND THIS IS WHAT WAS DONE ABOUT IT. Bits 23..0 of
+ * DIAG_BUILD_CFG2 are fully allocated (S18 spent the last two), and 31..24
+ * was the signature, so the word had no room at all -- exactly the state
+ * DIAG_BUILD_CFG was in when this second word had to be invented. Rather
+ * than invent a third for one bit, THE SIGNATURE NARROWS from eight bits to
+ * seven: 31..25 stay 0b1100001 and bit 24 becomes the flag.
+ *
+ * The failure mode of that choice is the one to want. A decoder that still
+ * tests the whole top byte REJECTS a self-test image's word outright -- "not
+ * a DIAG_BUILD_CFG2 word" -- rather than reading it and quietly reporting
+ * the wrong decimate or the wrong kernel set. Measured, not assumed: the
+ * first S49 image did exactly that against the eight-bit test, and said so
+ * on both chips. Loud is the correct behaviour for a stale tool here. */
+#ifndef DSP4_TEST_NODES
+#define DSP4_TEST_NODES 0
+#endif
+#if DSP4_TEST_NODES != 0
+#define DIAG_CFG2_TEST_NODES 1
+#else
+#define DIAG_CFG2_TEST_NODES 0
+#endif
+
 #if DSP4_SCOPE_BLK_TAP != 0
 #define DIAG_CFG2_BLK_TAP 1
 #else
@@ -398,6 +427,7 @@
 #endif
 
 #define DIAG_BUILD_CFG2_VALUE ( 0xC2000000                              \
+    | ((DIAG_CFG2_TEST_NODES  & 1) << 24)                               \
     | ((DSP4_BLOCK_DECIMATE   & 0xFF) << 16)                            \
     | (((DSP4_SHARED_KERNELS >> 1) & 1) << 15)                          \
     | (( DSP4_SHARED_KERNELS       & 1) <<  5)                          \

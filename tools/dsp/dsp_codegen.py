@@ -5513,6 +5513,912 @@ def add_extern_decls(body):
 
 
 # ===========================================================================
+# THE SELF-TEST NODES  (S49)
+# ===========================================================================
+#
+# `Test[1-1]OscOn / OscFreq / OscLevel / OscChan / SweepOn / SweepStep` and
+# `Test[1-1]MeasChan / RmsResult / ThdResult / NoiseResult / XtalkSrc /
+# XtalkDst / XtalkResult` are declared by the cell master and, until this
+# session, backed by nothing at all. These two node types are what they mean.
+#
+# WHAT THE OSCILLATOR IS. A coupled-form ("magic circle") resonator in float,
+# advanced once per block:
+#
+#       x <- x + k*y ;   y <- y - k*x       with k = 2*sin(pi*f/fs)
+#
+# Its two states are a sine/cosine PAIR at the commanded frequency -- not in
+# exact quadrature, they are w/2 apart, which is why the measurement below
+# solves a 2x2 instead of assuming orthogonality. Four float operations a
+# sample, no table, no phase accumulator to wrap, and the amplitude invariant
+#
+#       E = x^2 + k*x*y + y^2
+#
+# is exactly conserved by the recurrence in exact arithmetic, so ONE Newton
+# step per BLOCK holds the level flat against float drift indefinitely. On
+# E = 1 the state reaches 1/cos(pi*f/fs) rather than 1, so the block the
+# oscillator publishes is scaled by cos(pi*f/fs) and OscLevel means the same
+# thing at 20 Hz and at 20 kHz.
+#
+# WHY NOT A TABLE. A quarter-wave sine table good enough to measure THD
+# against costs thousands of words of a chip 1 that has hundreds left, and
+# the interpolation error it leaves IS a harmonic -- it would appear in the
+# very number the node exists to publish. This costs eleven words of state
+# and its error is white.
+#
+# WHAT THE MEASUREMENT IS, AND WHY IT NEEDS NO NOTCH. The classic THD+N
+# instrument notches the fundamental and weighs what is left. A notch deep
+# enough to see -100 dB needs coefficient precision a Q4.28 biquad does not
+# have and a settling time the window would have to wait out. This does it in
+# the time domain instead, which is available here and is NOT available to an
+# external analyser: the oscillator's OWN two state blocks are the reference,
+# so the fundamental is removed by LEAST SQUARES rather than by filtering.
+#
+#   Sxx = sum x*x     Sxs = sum x*s     Sxc = sum x*c
+#   Sss = sum s*s     Scc = sum c*c     Ssc = sum s*c
+#
+#   [ Sss Ssc ] [a]   [Sxs]
+#   [ Ssc Scc ] [b] = [Sxc]          e[n] = x[n] - a*s[n] - b*c[n]
+#
+# THE RESIDUAL IS ACCUMULATED PER SAMPLE AND NEVER BY SUBTRACTING TWO LARGE
+# NUMBERS, and that is the difference between a THD+N floor of -70 dB and one
+# of -120. `Sxx - a*Sxs - b*Sxc` is algebraically the residual energy and is
+# useless in float32: both terms are the order of Sxx, so the difference
+# carries the format's relative precision, 1.2e-7, i.e. -69 dB, and every
+# THD+N reading below that would be the subtraction's rounding and nothing
+# else. Accumulating `sum e*e` sample by sample cancels x against a*s+b*c at
+# the SAMPLE's own magnitude, where an ulp is 1.2e-7 of one sample and not of
+# four thousand of them.
+#
+# The price is one window of latency: e[n] needs (a,b) and (a,b) needs a
+# finished window, so each window subtracts the PREVIOUS window's fit. They
+# start at zero, so THE FIRST WINDOW AFTER A CHANGE READS THdResult 0.00 dB
+# (nothing identified as a sinusoid, everything residual) and the second one
+# is the answer. `_meas_seq_` is how a host tells the two apart, and the rule
+# for a caller is simply: wait for the serial to advance TWICE.
+#
+# Three properties of the method, and they are what make the number
+# trustworthy:
+#
+#   * THE OSCILLATOR'S FREQUENCY ACCURACY DOES NOT ENTER. The reference is
+#     the same waveform that was injected, so a k a part in 10^7 off the
+#     commanded frequency cancels exactly. Nothing is assumed about f fitting
+#     a whole number of cycles into the window either -- no window function,
+#     no leakage term, no coherent-sampling requirement.
+#   * ANY FIXED DELAY THROUGH THE PATH CANCELS. A delayed sinusoid is a
+#     linear combination of s and c at the same frequency, which is exactly
+#     what the 2x2 fits, so the measurement does not care whether the tap is
+#     zero, one or fifty samples behind the injection.
+#   * THE OSCILLATOR'S OWN DISTORTION IS INSIDE THE ANSWER, not cancelled out
+#     of it. The residual is everything that is not a sinusoid at f, whoever
+#     made it. That is the conservative direction, it is the number a
+#     self-test should publish, and it is why the CM4-side FFT and this node
+#     can be expected to agree rather than to differ by the generator.
+#
+# WHAT EACH READ-BACK MEANS, stated once because the units are part of the
+# contract:
+#
+#   RmsResult    10*log10(Sxx/N)          total RMS of MeasChan,      dBFS
+#   NoiseResult  10*log10(See/N)          noise+distortion level,     dBFS
+#   ThdResult    10*log10(See/Sxx)        THD+N relative to total,    dB
+#   XtalkResult  10*log10(Sdd/Ssrc)       XtalkDst against XtalkSrc,  dB
+#
+# dBFS is against 1.0 in Q4.28 -- the value that maps to converter full scale
+# (S48 section 7.2) -- and NOT against the 8.0 accumulator ceiling that
+# dsp4_s42_align.py quotes. The two differ by 18.06 dB.
+#
+# WITH THE OSCILLATOR OFF the reference blocks are ZEROED (the oscillator
+# clears them on the block its `on` cell falls), the 2x2 is singular, a and b
+# stay at zero and e[n] IS x[n]. So NoiseResult == RmsResult == the channel's
+# own noise floor in dBFS, and ThdResult reads 0.00 dB. That is a deliberate
+# definition and not an accident: it makes NoiseResult one number with one
+# meaning whether or not a tone is present, which is what lets a noise
+# measurement and a THD+N measurement be the same measurement.
+#
+# ALL OF IT IS BEHIND DSP4_TEST_NODES, WHICH shipping.config SETS TO 0. The
+# sixteen control/result words are declared unconditionally, because
+# gen_dsp.py dispatches SPI addresses straight at those symbols and an entry
+# naming a symbol that exists only under a build flag does not link.
+# Everything else -- the blocks, the table, every instruction -- is inside
+# the guard, so the 0 arm costs sixteen DM words and not one cycle.
+
+# Degree-13 Taylor for sin, Horner in z = x^2, over x in (0, pi/2]. The first
+# dropped term is x^13/6227020800, which at x = pi/2 is 3.5e-8 -- a quarter
+# of a float32 ulp at 1.0 -- so the resonator coefficient is correct to the
+# last bit the format carries and the oscillator's frequency error is the
+# format's and not the polynomial's.
+_SIN_TAYLOR = (
+    ('-1/6',        -1.0 / 6.0),
+    ('1/120',        1.0 / 120.0),
+    ('-1/5040',     -1.0 / 5040.0),
+    ('1/362880',     1.0 / 362880.0),
+    ('-1/39916800', -1.0 / 39916800.0),
+)
+
+# cos, over the same x and in the same z = x^2, for the AMPLITUDE SCALE the
+# resonator needs. Its invariant is
+#
+#       E = x^2 + k*x*y + y^2        (PLUS, and the sign is the whole point:
+#                                     M^T Q M = Q gives beta = +k, and the
+#                                     minus sign that looks symmetrical is a
+#                                     form that is NOT conserved -- it
+#                                     diverges at 10 kHz inside a second)
+#
+# and on the ellipse E = 1 the state reaches |x| = 1/sqrt(1 - k^2/4) =
+# 1/cos(pi*f/fs), which is 1.002 at 1 kHz and 3.86 at 20 kHz. Holding E at 1
+# keeps the Newton step to two operations; the level is then made exact by
+# scaling the OUTPUT by cos(pi*f/fs), once per block. The first dropped term
+# here is x^14/87178291200, 1.6e-9 at x = pi/2.
+_COS_TAYLOR = (
+    ('-1/2',          -1.0 / 2.0),
+    ('1/24',           1.0 / 24.0),
+    ('-1/720',        -1.0 / 720.0),
+    ('1/40320',        1.0 / 40320.0),
+    ('-1/3628800',    -1.0 / 3628800.0),
+    ('1/479001600',    1.0 / 479001600.0),
+)
+
+# log2(m) for m in [1,2), as the odd series in u = (m-1)/(m+1):
+#   log2(m) = (2/ln2) * (u + u^3/3 + u^5/5 + u^7/7 + u^9/9 + ...)
+# u <= 1/3 there, so the first dropped term is (2/ln2)*u^11/11 = 1.5e-6, i.e.
+# 4.5e-6 dB. Four of these run per window -- once every 256 blocks -- so cost
+# is not a consideration here and accuracy is.
+_LOG2_ODD = (
+    ('1/3', 1.0 / 3.0),
+    ('1/5', 1.0 / 5.0),
+    ('1/7', 1.0 / 7.0),
+    ('1/9', 1.0 / 9.0),
+)
+
+TEST_OSC_F_LO = 20.0            # Test[1-1]OscFreq[1-1]: 0=20/127=20000/[Log]
+TEST_OSC_F_HI = 20000.0
+TEST_OSC_CODES = 128
+# MUST EQUAL DSP4_TEST_WIN_BLOCKS in dsp_block.h. Both come from here:
+# gen_block_header() reads this name for the macro it emits, and the node
+# bodies below use the macro, so the two cannot drift apart.
+TEST_WIN_BLOCKS = 256
+
+
+def _osc_freq_table():
+    """The 128 frequencies the sweep walks, derived from the cell's own
+    Table law.
+
+    `Test[1-1]OscFreq[1-1]` is `0=20/127=20000/[Log]`, and a Log law is
+    geometric between its endpoints -- the same reading
+    tools/dsp/wire_contract.py::boundaries() takes of the same string.
+    Generating the DSP-side table FROM the law rather than typing it is what
+    keeps the sweep's steps and the host's encoder positions the same
+    frequencies; a typed table would be a second source of truth for a law
+    the masters already state."""
+    n = TEST_OSC_CODES - 1
+    r = TEST_OSC_F_HI / TEST_OSC_F_LO
+    return [TEST_OSC_F_LO * (r ** (i / float(n))) for i in range(TEST_OSC_CODES)]
+
+
+def _sin_k(f_hz):
+    """2*sin(pi*f/fs) -- the resonator coefficient the kernel re-derives."""
+    import math
+    return 2.0 * math.sin(math.pi * f_hz / SAMPLE_RATE_HZ)
+
+
+def _fk(reg, value, comment, ind='    '):
+    """A float literal into register `reg`.
+
+    `Rn` and `Fn` ARE THE SAME REGISTER -- the prefix selects how the
+    instruction reads it, not which one it reads -- so a float constant is
+    loaded as an integer immediate and used as a float, which is the idiom
+    every float generator in this file already uses (see gen_noise_gen's
+    `r14 = 0x30000000; f0 = f0 * f14;`). It also means the load cannot
+    disturb ASTAT, so one of these may sit between a COMP and the
+    conditional that reads it."""
+    return ['%sr%d = %s;   /* %s */' % (ind, reg, _f32hex(value), comment)]
+
+
+def _log2_asm(tag, src, dst, ind='    '):
+    """log2(f<src>) -> f<dst>, for a STRICTLY POSITIVE float.
+
+    LOGB/SCALB split the argument into its exponent and a mantissa in
+    [1,2); the odd series in (m-1)/(m+1) finishes it. Callers floor the
+    argument first -- this routine has no opinion about zero.
+
+    Scratch: f0, f1, f2, f3, f5 and r4/r5. Emitted inline rather than called,
+    four times per window: a call would need a register contract, and this
+    runs once every 256 blocks."""
+    L = []
+    a = 'f%d' % src
+    L.append('%s/* ---- log2(%s) -> f%d ---- */' % (ind, tag, dst))
+    L.append('%sr4 = logb %s;   /* exponent, as an INTEGER: LOGB writes Rn */'
+             % (ind, a))
+    L.append('%sr5 = -r4;' % ind)
+    L.append('%sf0 = scalb %s by r5;   /* mantissa, [1,2) */' % (ind, a))
+    L += _fk(1, 1.0, '1.0', ind)
+    L.append('%sf2 = f0 - f1;   /* m-1 */' % ind)
+    L.append('%sf3 = f0 + f1;   /* m+1 */' % ind)
+    L.append('%sf3 = recips f3;' % ind)
+    for _ in range(2):
+        L.append('%sf5 = f0 + f1;' % ind)
+        L.append('%sf5 = f5 * f3;' % ind)
+        L.append('%sf5 = f1 - f5;' % ind)
+        L.append('%sf5 = f3 * f5;' % ind)
+        L.append('%sf3 = f3 + f5;   /* Newton on 1/(m+1) */' % ind)
+    L.append('%sf0 = f2 * f3;   /* u */' % ind)
+    L.append('%sf1 = f0 * f0;   /* u^2 */' % ind)
+    L += _fk(2, _LOG2_ODD[-1][1], _LOG2_ODD[-1][0], ind)
+    for name, c in reversed(_LOG2_ODD[:-1]):
+        L.append('%sf2 = f2 * f1;' % ind)
+        L += _fk(3, c, name, ind)
+        L.append('%sf2 = f2 + f3;' % ind)
+    L.append('%sf2 = f2 * f1;' % ind)
+    L += _fk(3, 1.0, '1.0', ind)
+    L.append('%sf2 = f2 + f3;' % ind)
+    L.append('%sf0 = f0 * f2;' % ind)
+    L += _fk(1, 2.8853900817779268, '2/ln2', ind)
+    L.append('%sf0 = f0 * f1;   /* log2(m) */' % ind)
+    L.append('%sf5 = float r4;' % ind)
+    L.append('%sf%d = f0 + f5;   /* + the exponent */' % (ind, dst))
+    return L
+
+
+def gen_test_osc(node):
+    """TEST_OSC -- the self-test sine oscillator (S49). See the section
+    header above for the method and the contract."""
+    import math
+    nid = node['id']
+    p = node['params']
+    rc = ramp_comment(node['ramp_profile'])
+    meas = p.get('meas_src', 'C1_TEST_MEAS')
+    f0 = float(p.get('freq_hz', '1000.0'))
+    lvl = float(p.get('level', '0.0'))
+
+    tab = _osc_freq_table()
+    trows = []
+    for i in range(0, TEST_OSC_CODES, 4):
+        chunk = tab[i:i + 4]
+        end = ',' if i + 4 < TEST_OSC_CODES else ';'
+        trows.append('    ' + ', '.join('%.6f' % v for v in chunk) + end
+                     + '   /* codes %d-%d */' % (i, i + len(chunk) - 1))
+
+    L = []
+    A = L.append
+    A(rc)
+    A('')
+    A('/* TEST_OSC -- self-test sine oscillator (S49) */')
+    A('/* SPI page=%s addr=%s */' % (node['spi_page'], node['spi_addr']))
+    A('')
+    A('#include "dsp_block.h"')
+    A('')
+    A('.section/dm seg_dmda;')
+    A('/* THE CONTRACT WORDS ARE DECLARED UNCONDITIONALLY (six of the')
+    A(' * sixteen here). gen_dsp.py dispatches SPI addresses straight at')
+    A(' * these symbols, and a dispatch entry naming a symbol that exists')
+    A(' * only under a build flag does not link. Six words with')
+    A(' * DSP4_TEST_NODES off; everything below is inside the guard. */')
+    A('.var _osc_on_%s        = %d;' % (nid, int(float(p.get('on', '0')))))
+    A('.var _osc_freq_%s      = %r;   /* host writes Hz */' % (nid, f0))
+    A('.var _osc_level_%s     = %r;   /* host writes LINEAR amplitude;' % (nid, lvl))
+    A('                                     * 1.0 = Q4.28 full scale */')
+    A('.var _osc_chan_%s      = %d;   /* 1..32, 0 = inject nowhere */'
+      % (nid, int(float(p.get('chan', '0')))))
+    A('.var _osc_sweep_on_%s  = %d;' % (nid, int(float(p.get('sweep_on', '0')))))
+    A('.var _osc_sweep_step_%s = %d;   /* codes per step */'
+      % (nid, int(float(p.get('sweep_step', '1')))))
+    A('')
+    A('#if DSP4_TEST_NODES && DSP4_BLOCK_KERNELS')
+    A('.var _osc_k_%s         = %r;   /* 2*sin(pi*f/fs) */' % (nid, _sin_k(f0)))
+    A('.var _osc_fseen_%s     = %r;   /* the f _osc_k_ was made from */' % (nid, f0))
+    A('.var _osc_cos_%s       = %r;   /* cos(pi*f/fs), the amplitude scale */'
+      % (nid, math.cos(math.pi * f0 / SAMPLE_RATE_HZ)))
+    A('.var _osc_s_%s         = 0.0;      /* resonator x (sine)   */' % nid)
+    A('.var _osc_c_%s         = 1.0;      /* resonator y (cosine) */' % nid)
+    A('.var _osc_sweep_idx_%s = 0;' % nid)
+    A('.var _osc_seq_seen_%s  = 0;' % nid)
+    A('.var _osc_live_%s      = 0;   /* 1 while the blocks hold a tone */' % nid)
+    A("/* s and c INTERLEAVED, s0,c0,s1,c1,... One pointer walks both, which")
+    A(' * is what lets the per-strip measurement hook read the whole')
+    A(' * reference with a single index register. */')
+    A('.var _osc_blk_sc_%s[2 * DSP4_BLOCK_SIZE];' % nid)
+    A("/* The level-scaled block, already Q4.28, so the injection hook is a")
+    A(" * straight copy into the strip's pool slot. */")
+    A('.var _osc_blk_q_%s[DSP4_BLOCK_SIZE];' % nid)
+    A("/* The sweep's frequencies, generated FROM the cell's own Table law")
+    A(' * `0=%g/%d=%g/[Log]` -- see _osc_freq_table(). */'
+      % (TEST_OSC_F_LO, TEST_OSC_CODES - 1, TEST_OSC_F_HI))
+    A('.var _osc_ftab_%s[%d] =' % (nid, TEST_OSC_CODES))
+    L.extend(trows)
+    A('.extern _meas_seq_%s;' % meas)
+    A('#endif')
+    A('')
+    A('.section/pm seg_pmco;')
+    A('')
+    A('#if DSP4_TEST_NODES && DSP4_BLOCK_KERNELS')
+    A('/* ------------------------------------------------------------------')
+    A(' * _test_osc_inject -- the per-strip injection hook.')
+    A(' *')
+    A(" * The chain calls this immediately after each strip's INPUT_TDM")
+    A(' * kernel, with r0 = that strip\'s 1-based number and r1 = the pool')
+    A(' * slot the input kernel has just filled. A site whose strip the host')
+    A(' * did not name returns in five instructions, which is what makes')
+    A(' * thirty-two of them affordable.')
+    A(' *')
+    A(" * The stimulus REPLACES the strip's input rather than adding to it,")
+    A(' * exactly as the S48 injector did, so a measurement is never')
+    A(' * contaminated by whatever the converter lane happens to carry. */')
+    A('.global _test_osc_inject;')
+    A('_test_osc_inject:')
+    A('    r2 = dm(_osc_on_%s);' % nid)
+    A('    r2 = pass r2;')
+    A('    if eq rts;')
+    A('    r2 = dm(_osc_chan_%s);' % nid)
+    A('    comp(r0, r2);')
+    A('    if ne rts;')
+    A('    i4 = r1;')
+    A('    l4 = 0;')
+    A('    i5 = _osc_blk_q_%s;' % nid)
+    A('    l5 = 0;')
+    A('    lcntr = DSP4_BLOCK_SIZE, do .osc_inj_lp_%s until lce;' % nid)
+    A('        r3 = dm(i5, 1);')
+    A('.osc_inj_lp_%s:' % nid)
+    A('        dm(i4, 1) = r3;')
+    A('    rts;')
+    A('_test_osc_inject.end:')
+    A('#endif')
+    A('')
+    A('.global _%s_process;' % nid)
+    A('_%s_process:' % nid)
+    A('#if DSP4_TEST_NODES && DSP4_BLOCK_KERNELS')
+    A('    r0 = dm(_osc_on_%s);' % nid)
+    A('    r0 = pass r0;')
+    A('    if ne jump (pc, .osc_sweep_%s);' % nid)
+    A('    /* ---- SWITCHED OFF. Clear the reference blocks ONCE, so the')
+    A('     * measurement engine sees a genuinely silent reference and its')
+    A('     * 2x2 goes singular -- which is what makes NoiseResult read the')
+    A("     * channel's own floor rather than fitting noise to a frozen")
+    A('     * waveform left over from the last tone. */')
+    A('    r0 = dm(_osc_live_%s);' % nid)
+    A('    r0 = pass r0;')
+    A('    if eq rts;')
+    A('    r0 = 0;')
+    A('    dm(_osc_live_%s) = r0;' % nid)
+    A('    i4 = _osc_blk_sc_%s;' % nid)
+    A('    l4 = 0;')
+    A('    i5 = _osc_blk_q_%s;' % nid)
+    A('    l5 = 0;')
+    A('    lcntr = DSP4_BLOCK_SIZE, do .osc_clr_lp_%s until lce;' % nid)
+    A('        dm(i4, 1) = r0;')
+    A('        dm(i4, 1) = r0;')
+    A('.osc_clr_lp_%s:' % nid)
+    A('        dm(i5, 1) = r0;')
+    A('    rts;')
+    A('')
+    A('.osc_sweep_%s:' % nid)
+    A('    r0 = 1;')
+    A('    dm(_osc_live_%s) = r0;' % nid)
+    A('    /* ---- THE SWEEP advances on a COMPLETED measurement window.')
+    A('     * _meas_seq_ is bumped by the measurement node, which the chain')
+    A('     * calls immediately BEFORE this one, so a step and the window')
+    A('     * that scored the previous frequency can never be off by one. */')
+    A('    r0 = dm(_osc_sweep_on_%s);' % nid)
+    A('    r0 = pass r0;')
+    A('    if eq jump (pc, .osc_design_%s);' % nid)
+    A('    r1 = dm(_meas_seq_%s);' % meas)
+    A('    r2 = dm(_osc_seq_seen_%s);' % nid)
+    A('    comp(r1, r2);')
+    A('    if eq jump (pc, .osc_design_%s);' % nid)
+    A('    dm(_osc_seq_seen_%s) = r1;' % nid)
+    A('    r3 = dm(_osc_sweep_idx_%s);' % nid)
+    A('    r4 = dm(_osc_sweep_step_%s);' % nid)
+    A('    r5 = 0;')
+    A('    r6 = 1;')
+    A('    comp(r4, r5);')
+    A('    if le r4 = pass r6;   /* a step of 0 would never advance */')
+    A('    r3 = r3 + r4;')
+    A('    r5 = %d;' % (TEST_OSC_CODES - 1))
+    A('    comp(r3, r5);')
+    A('    if gt jump (pc, .osc_sweep_done_%s);' % nid)
+    A('    dm(_osc_sweep_idx_%s) = r3;' % nid)
+    A('    i4 = _osc_ftab_%s;' % nid)
+    A('    l4 = 0;')
+    A('    m4 = r3;')
+    A('    modify(i4, m4);')
+    A('    f0 = dm(i4, 0);')
+    A('    dm(_osc_freq_%s) = f0;' % nid)
+    A('    jump (pc, .osc_design_%s);' % nid)
+    A('.osc_sweep_done_%s:' % nid)
+    A('    r5 = 0;')
+    A('    dm(_osc_sweep_on_%s) = r5;' % nid)
+    A('')
+    A('    /* ---- THE COEFFICIENT, and only when the frequency word moved.')
+    A('     * The host writes Hz; k = 2*sin(pi*f/fs) is derived here, so the')
+    A('     * wire carries an engineering value and nothing on the host has')
+    A("     * to know the resonator's form. */")
+    A('.osc_design_%s:' % nid)
+    A('    f0 = dm(_osc_freq_%s);' % nid)
+    A('    f1 = dm(_osc_fseen_%s);' % nid)
+    A('    comp(f0, f1);')
+    A('    if eq jump (pc, .osc_gen_%s);' % nid)
+    A('    dm(_osc_fseen_%s) = f0;' % nid)
+    A("    /* clamped to the contract's own range before it becomes a pole */")
+    L.extend(_fk(1, TEST_OSC_F_LO, '%g Hz' % TEST_OSC_F_LO))
+    A('    comp(f0, f1);')
+    A('    if lt f0 = pass f1;')
+    L.extend(_fk(1, TEST_OSC_F_HI, '%g Hz' % TEST_OSC_F_HI))
+    A('    comp(f0, f1);')
+    A('    if gt f0 = pass f1;')
+    L.extend(_fk(1, math.pi / SAMPLE_RATE_HZ, 'pi/fs'))
+    A('    f0 = f0 * f1;                 /* x = pi*f/fs, in (0, pi/2] */')
+    A('    f1 = f0 * f0;                 /* z = x^2                   */')
+    L.extend(_fk(2, _SIN_TAYLOR[-1][1], _SIN_TAYLOR[-1][0]))
+    for name, c in reversed(_SIN_TAYLOR[:-1]):
+        A('    f2 = f2 * f1;')
+        L.extend(_fk(3, c, name))
+        A('    f2 = f2 + f3;')
+    A('    f2 = f2 * f1;')
+    L.extend(_fk(3, 1.0, '1.0'))
+    A('    f2 = f2 + f3;')
+    A('    f0 = f0 * f2;                 /* sin(x)      */')
+    A('    f0 = f0 + f0;                 /* k = 2sin(x) */')
+    A('    dm(_osc_k_%s) = f0;' % nid)
+    A('    /* cos(x) in the same z, for the amplitude scale -- see the')
+    A('     * _COS_TAYLOR note: the invariant is held at 1, where the state')
+    A('     * reaches 1/cos(x), so the output is scaled by cos(x) and the')
+    A('     * level cell means exactly what it says at every frequency. */')
+    L.extend(_fk(2, _COS_TAYLOR[-1][1], _COS_TAYLOR[-1][0]))
+    for name, c in reversed(_COS_TAYLOR[:-1]):
+        A('    f2 = f2 * f1;')
+        L.extend(_fk(3, c, name))
+        A('    f2 = f2 + f3;')
+    A('    f2 = f2 * f1;')
+    L.extend(_fk(3, 1.0, '1.0'))
+    A('    f2 = f2 + f3;                 /* cos(x) */')
+    A('    dm(_osc_cos_%s) = f2;' % nid)
+    A('    /* A FREQUENCY CHANGE RESTARTS THE RESONATOR at a known phase.')
+    A('     * Moving k without it steps the amplitude invariant by up to')
+    A('     * |dk| and leaves the block-rate Newton correction -- a FIRST-')
+    A('     * order step, sized for drift -- to recover a jump it was never')
+    A('     * sized for. A sweep re-measures over a fresh window anyway, so')
+    A('     * the phase discontinuity costs nothing. */')
+    L.extend(_fk(1, 0.0, '0.0'))
+    A('    dm(_osc_s_%s) = f1;' % nid)
+    L.extend(_fk(1, 1.0, '1.0'))
+    A('    dm(_osc_c_%s) = f1;' % nid)
+    A('')
+    A('    /* ---- generate the block the NEXT chain pass will inject ---- */')
+    A('.osc_gen_%s:' % nid)
+    A('    f8 = dm(_osc_k_%s);' % nid)
+    A('    f9 = dm(_osc_s_%s);' % nid)
+    A('    f10 = dm(_osc_c_%s);' % nid)
+    A('    f11 = dm(_osc_level_%s);' % nid)
+    A('    r12 = 0x4D800000;                   /* 2^28 */')
+    A('    f11 = f11 * f12;')
+    A('    f12 = dm(_osc_cos_%s);' % nid)
+    A('    f11 = f11 * f12;                    /* amplitude, pre-scaled */')
+    A('    i4 = _osc_blk_sc_%s;' % nid)
+    A('    l4 = 0;')
+    A('    i5 = _osc_blk_q_%s;' % nid)
+    A('    l5 = 0;')
+    A('    lcntr = DSP4_BLOCK_SIZE, do .osc_gen_lp_%s until lce;' % nid)
+    A('        f0 = f8 * f10;')
+    A('        f9 = f9 + f0;               /* x += k*y  */')
+    A('        f0 = f8 * f9;')
+    A("        f10 = f10 - f0;             /* y -= k*x' */")
+    A('        dm(i4, 1) = f9;')
+    A('        dm(i4, 1) = f10;')
+    A('        f1 = f9 * f11;')
+    A('        r1 = fix f1;')
+    A('.osc_gen_lp_%s:' % nid)
+    A('        dm(i5, 1) = r1;')
+    A('    /* ---- ONE NEWTON STEP ON THE AMPLITUDE INVARIANT --------------')
+    A('     * E = x^2 + k*x*y + y^2 is exactly conserved by the recurrence')
+    A('     * in exact arithmetic, and is 1.0 by construction at the reset')
+    A('     * above, so 1/sqrt(E) ~= 1.5 - E/2 to second order. Two passes')
+    A('     * of that -- quadratic convergence from anywhere in [0.3, 2],')
+    A('     * and overkill for the 1e-7 a block of float32 actually drifts.')
+    A('     * Once per BLOCK, not once per sample. */')
+    A('    f0 = f9 * f9;')
+    A('    f1 = f10 * f10;')
+    A('    f0 = f0 + f1;')
+    A('    f1 = f9 * f10;')
+    A('    f1 = f1 * f8;')
+    A('    f0 = f0 + f1;                   /* E = x^2 + y^2 + k*x*y */')
+    L.extend(_fk(2, 1.5, '1.5'))
+    L.extend(_fk(3, 0.5, '0.5'))
+    A('    f4 = f3 * f0;')
+    A('    f4 = f2 - f4;                   /* g ~= 1/sqrt(E) */')
+    A('    f5 = f4 * f4;')
+    A('    f5 = f5 * f0;')
+    A('    f5 = f3 * f5;')
+    A('    f5 = f2 - f5;')
+    A('    f4 = f4 * f5;                   /* g, refined     */')
+    A('    f9 = f9 * f4;')
+    A('    f10 = f10 * f4;')
+    A('    /* ---- THE BACKSTOP. A self-test node that can publish garbage')
+    A('     * is worse than one that publishes nothing, because garbage')
+    A('     * reads as a measurement. Two instructions catch a NaN -- it is')
+    A('     * the only value not equal to itself -- and two more catch a')
+    A('     * state that has run away; either restarts the resonator at the')
+    A('     * known (0, 1). Once per block, against a recurrence whose')
+    A('     * invariant is now correct and which therefore should never')
+    A('     * need it. */')
+    A('    comp(f9, f9);')
+    A('    if ne jump (pc, .osc_panic_%s);' % nid)
+    A('    comp(f10, f10);')
+    A('    if ne jump (pc, .osc_panic_%s);' % nid)
+    A('    f0 = abs f9;')
+    L.extend(_fk(1, 64.0, '64.0'))
+    A('    comp(f0, f1);')
+    A('    if gt jump (pc, .osc_panic_%s);' % nid)
+    A('    f0 = abs f10;')
+    A('    comp(f0, f1);')
+    A('    if gt jump (pc, .osc_panic_%s);' % nid)
+    A('    dm(_osc_s_%s) = f9;' % nid)
+    A('    dm(_osc_c_%s) = f10;' % nid)
+    A('    rts;')
+    A('.osc_panic_%s:' % nid)
+    L.extend(_fk(1, 0.0, '0.0'))
+    A('    dm(_osc_s_%s) = f1;' % nid)
+    L.extend(_fk(1, 1.0, '1.0'))
+    A('    dm(_osc_c_%s) = f1;' % nid)
+    A('#endif')
+    A('    rts;')
+    A('_%s_process.end:' % nid)
+    A('')
+    return '\n'.join(L)
+
+
+def gen_test_meas(node):
+    """TEST_MEAS -- the self-test RMS / THD+N / noise / crosstalk engine
+    (S49). See the section header above for the method and the contract."""
+    nid = node['id']
+    p = node['params']
+    rc = ramp_comment(node['ramp_profile'])
+    osc = p.get('osc_src', '')
+    if not osc:
+        raise ValueError(
+            '%s: TEST_MEAS needs `osc_src=<TEST_OSC node id>` on its dsp.csv '
+            'row -- the reference the fundamental is fitted against is the '
+            "oscillator's own two state blocks, and this generator will not "
+            'guess which oscillator that is.' % nid)
+
+    # The floor every log argument is clamped to. 1e-30 of energy is -300 dB
+    # in power, a hundred below anything the sample format can carry, so a
+    # result sitting on it is unmistakably "there was nothing to measure"
+    # and not a level.
+    FLOOR = 1e-30
+    import math as _m
+    LOG2N = _m.log(TEST_WIN_BLOCKS * BLOCK, 2.0)
+
+    L = []
+    A = L.append
+    A(rc)
+    A('')
+    A('/* TEST_MEAS -- self-test RMS / THD+N / noise / crosstalk (S49) */')
+    A('/* SPI page=%s addr=%s */' % (node['spi_page'], node['spi_addr']))
+    A('')
+    A('#include "dsp_block.h"')
+    A('')
+    A('.section/dm seg_dmda;')
+    A("/* The other ten contract words, declared unconditionally for the")
+    A(" * same reason the oscillator's six are: the SPI dispatch table")
+    A(' * names them. The four Result words are READ-ONLY to the host --')
+    A(' * this node writes them and the host polls. */')
+    A('.var _meas_chan_%s   = %d;   /* 1..32, 0 = off */'
+      % (nid, int(float(p.get('meas_chan', '0')))))
+    A('.var _meas_rms_%s    = 0.0;   /* ro: total RMS,        dBFS */' % nid)
+    A('.var _meas_thd_%s    = 0.0;   /* ro: THD+N vs total,   dB   */' % nid)
+    A('.var _meas_noise_%s  = 0.0;   /* ro: noise+distortion, dBFS */' % nid)
+    A('.var _meas_xsrc_%s   = %d;' % (nid, int(float(p.get('xtalk_src', '0')))))
+    A('.var _meas_xdst_%s   = %d;' % (nid, int(float(p.get('xtalk_dst', '0')))))
+    A('.var _meas_xtalk_%s  = 0.0;   /* ro: dst vs src,       dB   */' % nid)
+    A('/* THE WINDOW SERIAL, and the one word that makes a host poll safe:')
+    A(' * a reader that sees the same serial twice is looking at the same')
+    A(" * window's results twice, and a reader that reads it either side of")
+    A(' * the four results knows whether what it got was torn. The sweep in')
+    A(' * TEST_OSC steps on it, and a caller waits for it to advance TWICE')
+    A(' * after a change -- see the residual note in the section header. */')
+    A('.var _meas_seq_%s    = 0;' % nid)
+    A('/* Reserved: the eighth word of the block. Named so the dispatch')
+    A(' * table has a symbol for it rather than a hole. */')
+    A('.var _meas_rsvd_%s   = 0;' % nid)
+    A('')
+    A('#if DSP4_TEST_NODES && DSP4_BLOCK_KERNELS')
+    A('.var _meas_blk_%s    = 0;     /* blocks accumulated this window */' % nid)
+    A('.var _meas_axx_%s    = 0.0;   /* sum x*x  on MeasChan  */' % nid)
+    A('.var _meas_axs_%s    = 0.0;   /* sum x*s               */' % nid)
+    A('.var _meas_axc_%s    = 0.0;   /* sum x*c               */' % nid)
+    A('.var _meas_aee_%s    = 0.0;   /* sum e*e, e = x-a*s-b*c */' % nid)
+    A('.var _meas_ass_%s    = 0.0;   /* sum s*s  (reference)  */' % nid)
+    A('.var _meas_acc_%s    = 0.0;   /* sum c*c  (reference)  */' % nid)
+    A('.var _meas_asc_%s    = 0.0;   /* sum s*c  (reference)  */' % nid)
+    A('.var _meas_asx_%s    = 0.0;   /* sum x*x  on XtalkSrc  */' % nid)
+    A('.var _meas_adx_%s    = 0.0;   /* sum x*x  on XtalkDst  */' % nid)
+    A("/* THE PREVIOUS WINDOW'S FIT. Zero until a window has closed, which")
+    A(' * is exactly why the first window after any change reads ThdResult')
+    A(' * 0.00 dB. */')
+    A('.var _meas_a_%s      = 0.0;' % nid)
+    A('.var _meas_b_%s      = 0.0;' % nid)
+    A('.extern _osc_blk_sc_%s;' % osc)
+    A('#endif')
+    A('')
+    A('.section/pm seg_pmco;')
+    A('')
+    A('#if DSP4_TEST_NODES && DSP4_BLOCK_KERNELS')
+    A('/* ------------------------------------------------------------------')
+    A(' * _test_meas_tap -- the per-strip measurement hook.')
+    A(' *')
+    A(" * The chain calls this immediately after each strip's FADER_PAN")
+    A(' * kernel -- the post-fader block, the last point in a chip-1 strip')
+    A(' * that is still one channel -- with r0 = the strip\'s 1-based number')
+    A(' * and r1 = the pool slot it has just been left in. The slot is')
+    A(' * SHARED and the next strip overwrites it, which is why the tap has')
+    A(' * to be here and not at the end of the chain: the same constraint')
+    A(' * the meters carry, and for the same reason.')
+    A(' *')
+    A(' * Three comparisons and out for a strip nobody named. The Q4.28')
+    A(' * sample becomes float through FLOAT ... BY -28, one instruction.')
+    A(' *')
+    A(' * THE BLOCK SUBTOTALS ARE ACCUMULATED IN REGISTERS AND ADDED TO THE')
+    A(' * WINDOW ONCE, which is not a cycle optimisation: summing sixteen')
+    A(' * terms of order 1 into a running total of order 2000 loses about')
+    A(' * an ulp of 2000 each time, and doing it in two levels takes the')
+    A(' * accumulated rounding from 4e-6 to 1e-6 of the total -- twelve dB')
+    A(' * of THD+N floor for no extra instructions. */')
+    A('.global _test_meas_tap;')
+    A('    /* THREE INDEPENDENT TESTS, NOT A FIRST-MATCH DISPATCH, and that')
+    A('     * is a correction: the first shape of this routine jumped to')
+    A('     * the first accumulator whose cell named the strip, so a strip')
+    A('     * named as BOTH MeasChan and XtalkSrc fed only the measurement')
+    A('     * and `sum x*x on XtalkSrc` stayed at zero. XtalkResult then')
+    A('     * published 10*log10(Sdd/floor) -- a large POSITIVE number,')
+    A('     * +220.03 dB, measured on the part 2026-09-15 -- or, with the')
+    A('     * roles reversed, -317 dB. Neither is a crosstalk figure and')
+    A('     * both look like one. The cells are independent selectors and')
+    A('     * the routine now treats them that way; naming one strip in')
+    A('     * two of them is a NORMAL arrangement (measure the source while')
+    A('     * watching a neighbour) and not a misuse.')
+    A('     *')
+    A('     * r4 holds the strip and r5 the slot across all three, because')
+    A('     * the accumulation loops clobber r0-r3. */')
+    A('_test_meas_tap:')
+    A('    r4 = r0;')
+    A('    r5 = r1;')
+    for tag, acc in (('xsrc', 'asx'), ('xdst', 'adx')):
+        A('    r2 = dm(_meas_%s_%s);'
+          % ('xsrc' if tag == 'xsrc' else 'xdst', nid))
+        A('    comp(r4, r2);')
+        A('    if ne jump (pc, .tmt_no_%s_%s);' % (tag, nid))
+        A('    i4 = r5;')
+        A('    l4 = 0;')
+        A('    r3 = -28;')
+        L.extend(_fk(6, 0.0, '0.0'))
+        A('    lcntr = DSP4_BLOCK_SIZE, do .tmt_%s_lp_%s until lce;' % (tag, nid))
+        A('        r0 = dm(i4, 1);')
+        A('        f0 = float r0 by r3;')
+        A('        f1 = f0 * f0;')
+        A('.tmt_%s_lp_%s:' % (tag, nid))
+        A('        f6 = f6 + f1;')
+        A('    f2 = dm(_meas_%s_%s);' % (acc, nid))
+        A('    f2 = f2 + f6;')
+        A('    dm(_meas_%s_%s) = f2;' % (acc, nid))
+        A('.tmt_no_%s_%s:' % (tag, nid))
+    A('    r2 = dm(_meas_chan_%s);' % nid)
+    A('    comp(r4, r2);')
+    A('    if ne rts;')
+    A('    r1 = r5;')
+    A('    i4 = r1;')
+    A('    l4 = 0;')
+    A('    i5 = _osc_blk_sc_%s;' % osc)
+    A('    l5 = 0;')
+    A('    r3 = -28;')
+    A('    f8 = dm(_meas_a_%s);   /* the PREVIOUS window\'s fit */' % nid)
+    A('    f9 = dm(_meas_b_%s);' % nid)
+    L.extend(_fk(4, 0.0, '0.0   sum x*x  this block'))
+    L.extend(_fk(5, 0.0, '0.0   sum x*s'))
+    L.extend(_fk(6, 0.0, '0.0   sum x*c'))
+    L.extend(_fk(7, 0.0, '0.0   sum e*e'))
+    A('    lcntr = DSP4_BLOCK_SIZE, do .tmt_meas_lp_%s until lce;' % nid)
+    A('        r0 = dm(i4, 1);')
+    A('        f0 = float r0 by r3;        /* x, Q4.28 -> float */')
+    A('        f1 = dm(i5, 1);             /* s[n] */')
+    A('        f2 = dm(i5, 1);             /* c[n] */')
+    A('        f10 = f0 * f0;')
+    A('        f4 = f4 + f10;')
+    A('        f10 = f0 * f1;')
+    A('        f5 = f5 + f10;')
+    A('        f10 = f0 * f2;')
+    A('        f6 = f6 + f10;')
+    A('        f10 = f8 * f1;              /* a*s */')
+    A('        f11 = f9 * f2;              /* b*c */')
+    A('        f10 = f10 + f11;')
+    A('        f10 = f0 - f10;             /* e   */')
+    A('        f10 = f10 * f10;')
+    A('.tmt_meas_lp_%s:' % nid)
+    A('        f7 = f7 + f10;')
+    for reg, acc in ((4, 'axx'), (5, 'axs'), (6, 'axc'), (7, 'aee')):
+        A('    f0 = dm(_meas_%s_%s);' % (acc, nid))
+        A('    f0 = f0 + f%d;' % reg)
+        A('    dm(_meas_%s_%s) = f0;' % (acc, nid))
+    A('    rts;')
+    A('_test_meas_tap.end:')
+    A('#endif')
+    A('')
+    A('.global _%s_process;' % nid)
+    A('_%s_process:' % nid)
+    A('#if DSP4_TEST_NODES && DSP4_BLOCK_KERNELS')
+    A('    /* Idle unless the host has named a channel somewhere. Three')
+    A('     * loads, two ORs and a branch: this runs on every block of every')
+    A('     * image carrying the flag, whether or not anything is armed. */')
+    A('    r0 = dm(_meas_chan_%s);' % nid)
+    A('    r1 = dm(_meas_xsrc_%s);' % nid)
+    A('    r0 = r0 or r1;')
+    A('    r1 = dm(_meas_xdst_%s);' % nid)
+    A('    r0 = r0 or r1;')
+    A('    r0 = pass r0;')
+    A('    if eq rts;')
+    A('')
+    A('    /* ---- the REFERENCE self-sums, over the same block the strips')
+    A('     * were just given. The chain calls this node AFTER every strip')
+    A('     * and BEFORE the oscillator regenerates, so _osc_blk_sc_ still')
+    A('     * holds exactly the waveform that was injected on this pass.')
+    A('     * That ordering is the whole reason the two test nodes sit where')
+    A('     * they do in dsp.csv, and it is why the measurement needs no')
+    A('     * delay compensation at all. */')
+    A('    i4 = _osc_blk_sc_%s;' % osc)
+    A('    l4 = 0;')
+    L.extend(_fk(4, 0.0, '0.0'))
+    L.extend(_fk(5, 0.0, '0.0'))
+    L.extend(_fk(6, 0.0, '0.0'))
+    A('    lcntr = DSP4_BLOCK_SIZE, do .tm_ref_lp_%s until lce;' % nid)
+    A('        f0 = dm(i4, 1);             /* s */')
+    A('        f1 = dm(i4, 1);             /* c */')
+    A('        f2 = f0 * f0;')
+    A('        f4 = f4 + f2;')
+    A('        f2 = f1 * f1;')
+    A('        f5 = f5 + f2;')
+    A('        f2 = f0 * f1;')
+    A('.tm_ref_lp_%s:' % nid)
+    A('        f6 = f6 + f2;')
+    for reg, acc in ((4, 'ass'), (5, 'acc'), (6, 'asc')):
+        A('    f0 = dm(_meas_%s_%s);' % (acc, nid))
+        A('    f0 = f0 + f%d;' % reg)
+        A('    dm(_meas_%s_%s) = f0;' % (acc, nid))
+    A('')
+    A('    r0 = dm(_meas_blk_%s);' % nid)
+    A('    r0 = r0 + 1;')
+    A('    dm(_meas_blk_%s) = r0;' % nid)
+    A('    r1 = DSP4_TEST_WIN_BLOCKS;')
+    A('    comp(r0, r1);')
+    A('    if lt rts;')
+    A('')
+    A('    /* ================== THE WINDOW CLOSES ======================= */')
+    A('    /* Once every DSP4_TEST_WIN_BLOCKS blocks, so everything from')
+    A('     * here down is written for clarity and not for cycles. */')
+    A('    r0 = 0;')
+    A('    dm(_meas_blk_%s) = r0;' % nid)
+    A('')
+    A('    f8  = dm(_meas_axx_%s);' % nid)
+    A('    f14 = dm(_meas_aee_%s);' % nid)
+    A('')
+    A('    /* ---- publish. Every result is a RATIO OF ENERGIES in dB, so')
+    A('     * each is a difference of two log2s scaled by 10*log10(2). No')
+    A('     * division is needed anywhere for the results and none is done;')
+    A('     * the single reciprocal below belongs to the FIT. */')
+    A('    /* Floor both arguments first. A residual that has gone very')
+    A('     * slightly negative on rounding is a PERFECT fit, not an error,')
+    A('     * and it lands on the floor exactly as it should. */')
+    L.extend(_fk(7, FLOOR, 'the energy floor, about -300 dB'))
+    A('    comp(f14, f7);')
+    A('    if lt f14 = pass f7;')
+    A('    comp(f8, f7);')
+    A('    if lt f8 = pass f7;')
+    L.extend(_log2_asm('Sxx', 8, 15))
+    L.extend(_log2_asm('See', 14, 13))
+    L.extend(_fk(9, 3.010299956639812, '10*log10(2)'))
+    L.extend(_fk(10, LOG2N, 'log2(N), N = %d samples' % (TEST_WIN_BLOCKS * BLOCK)))
+    A('    /* RmsResult = 10log10(Sxx/N) */')
+    A('    f0 = f15 - f10;')
+    A('    f0 = f0 * f9;')
+    A('    dm(_meas_rms_%s) = f0;' % nid)
+    A('    /* NoiseResult = 10log10(See/N) */')
+    A('    f0 = f13 - f10;')
+    A('    f0 = f0 * f9;')
+    A('    dm(_meas_noise_%s) = f0;' % nid)
+    A('    /* ThdResult = 10log10(See/Sxx) */')
+    A('    f0 = f13 - f15;')
+    A('    f0 = f0 * f9;')
+    A('    dm(_meas_thd_%s) = f0;' % nid)
+    A('')
+    A('    /* ---- crosstalk: XtalkDst against XtalkSrc, same machinery */')
+    A('    f8  = dm(_meas_adx_%s);' % nid)
+    A('    f14 = dm(_meas_asx_%s);' % nid)
+    L.extend(_fk(7, FLOOR, 'the energy floor'))
+    A('    comp(f8, f7);')
+    A('    if lt f8 = pass f7;')
+    A('    comp(f14, f7);')
+    A('    if lt f14 = pass f7;')
+    L.extend(_log2_asm('Sdd', 8, 15))
+    L.extend(_log2_asm('Ssrc', 14, 13))
+    L.extend(_fk(9, 3.010299956639812, '10*log10(2)'))
+    A('    f0 = f15 - f13;')
+    A('    f0 = f0 * f9;')
+    A('    dm(_meas_xtalk_%s) = f0;' % nid)
+    A('')
+    A('    /* ---- THE FIT, for the NEXT window to subtract sample by')
+    A('     * sample. Solve [Sss Ssc; Ssc Scc][a;b] = [Sxs;Sxc]. */')
+    A('    f8  = dm(_meas_axs_%s);' % nid)
+    A('    f9  = dm(_meas_axc_%s);' % nid)
+    A('    f10 = dm(_meas_ass_%s);' % nid)
+    A('    f11 = dm(_meas_acc_%s);' % nid)
+    A('    f12 = dm(_meas_asc_%s);' % nid)
+    A('    f6 = f10 * f11;')
+    A('    f7 = f12 * f12;')
+    A('    f6 = f6 - f7;                   /* det */')
+    A('    /* A SINGULAR 2x2 IS A DEFINITION AND NOT A GUARD: with the')
+    A('     * oscillator off the reference is silent, nothing can be')
+    A('     * identified as a sinusoid, and a = b = 0 makes e[n] = x[n]. So')
+    A("     * NoiseResult == RmsResult == the channel's own noise floor and")
+    A('     * ThdResult reads 0.00 dB, which is the honest answer. */')
+    L.extend(_fk(13, 0.0, '0.0'))
+    L.extend(_fk(7, FLOOR, 'the energy floor'))
+    A('    comp(f6, f7);')
+    A('    if le jump (pc, .tm_nofit_%s);' % nid)
+    A('    /* 1/det by RECIPS plus two Newton steps -- the shape')
+    A('     * _fx_recip_asm() emits everywhere else in this file. */')
+    A('    f2 = recips f6;')
+    L.extend(_fk(3, 2.0, '2.0'))
+    for _ in range(2):
+        A('    f4 = f6 * f2;')
+        A('    f4 = f3 - f4;')
+        A('    f2 = f2 * f4;')
+    A('    /* a = (Sxs*Scc - Sxc*Ssc)/det ; b = (Sxc*Sss - Sxs*Ssc)/det */')
+    A('    f0 = f8 * f11;')
+    A('    f1 = f9 * f12;')
+    A('    f0 = f0 - f1;')
+    A('    f0 = f0 * f2;')
+    A('    f1 = f9 * f10;')
+    A('    f4 = f8 * f12;')
+    A('    f1 = f1 - f4;')
+    A('    f1 = f1 * f2;')
+    A('    /* The same backstop the oscillator carries, and for the same')
+    A('     * reason: a or b poisons EVERY later window through the')
+    A('     * per-sample residual, so a value that is not a number, or is')
+    A('     * absurdly large for a fit to a unit-amplitude reference, is')
+    A('     * replaced by zero -- which makes the next window read')
+    A('     * ThdResult 0.00 dB and say so, rather than NaN. */')
+    A('    comp(f0, f0);')
+    A('    if ne jump (pc, .tm_nofit_%s);' % nid)
+    A('    comp(f1, f1);')
+    A('    if ne jump (pc, .tm_nofit_%s);' % nid)
+    A('    f4 = abs f0;')
+    L.extend(_fk(5, 1024.0, '1024.0'))
+    A('    comp(f4, f5);')
+    A('    if gt jump (pc, .tm_nofit_%s);' % nid)
+    A('    f4 = abs f1;')
+    A('    comp(f4, f5);')
+    A('    if gt jump (pc, .tm_nofit_%s);' % nid)
+    A('    dm(_meas_a_%s) = f0;' % nid)
+    A('    dm(_meas_b_%s) = f1;' % nid)
+    A('    jump (pc, .tm_zero_%s);' % nid)
+    A('.tm_nofit_%s:' % nid)
+    A('    dm(_meas_a_%s) = f13;' % nid)
+    A('    dm(_meas_b_%s) = f13;' % nid)
+    A('')
+    A('.tm_zero_%s:' % nid)
+    A('    /* ---- zero the accumulators, and publish the serial LAST so a')
+    A('     * host that reads serial, results, serial can prove it saw one')
+    A("     * window and not the seam between two. */")
+    L.extend(_fk(0, 0.0, '0.0'))
+    for acc in ('axx', 'axs', 'axc', 'aee', 'ass', 'acc', 'asc', 'asx', 'adx'):
+        A('    dm(_meas_%s_%s) = f0;' % (acc, nid))
+    A('    r0 = dm(_meas_seq_%s);' % nid)
+    A('    r0 = r0 + 1;')
+    A('    dm(_meas_seq_%s) = r0;' % nid)
+    A('#endif')
+    A('    rts;')
+    A('_%s_process.end:' % nid)
+    A('')
+    return '\n'.join(L)
+
+
+# ===========================================================================
 # Generator dispatch
 # ===========================================================================
 GENERATORS = {
@@ -5542,6 +6448,8 @@ GENERATORS = {
     'AUX_INPUT':      gen_aux_input,
     'TALKBACK':       gen_talkback,
     'NOISE_GEN':      gen_noise_gen,
+    'TEST_OSC':       gen_test_osc,
+    'TEST_MEAS':      gen_test_meas,
 }
 
 
@@ -9664,6 +10572,12 @@ def gen_block_header(mtx_ctl=None):
     import fixed_ref
     import math
     _mtr_alpha_q, _mtr_beta_q = fixed_ref.meter_coeffs(BLOCK)
+    # The self-test measurement window (S49), stated in the header so the
+    # DSP and the CM4-side tools read the same number.
+    TEST_WIN_BLOCKS = 256
+    _test_winsamp = TEST_WIN_BLOCKS * BLOCK
+    _test_winms = '%.1f' % (1000.0 * _test_winsamp / SAMPLE_RATE_HZ)
+    _test_wincyc = '%.1f' % (20.0 * _test_winsamp / SAMPLE_RATE_HZ)
     # THE CHANNEL MATRIX SEND SPI BLOCK'S EXTENT (S22-4), for the control-
     # epoch gate in spi_handler.asm. Emitted only when the graph has one, so
     # a dsp.csv without matrix sends produces the header it always did.
@@ -10173,6 +11087,37 @@ def gen_block_header(mtx_ctl=None):
 #ifndef DSP4_AUXIN_BYPASS
 #define DSP4_AUXIN_BYPASS 0
 #endif
+
+/* THE SELF-TEST NODES (S49). DEFAULT OFF, AND OFF EMITS NOTHING.
+ *
+ * TEST_OSC and TEST_MEAS are the graph nodes behind the `Test[1-1]*` cell
+ * family: a sine oscillator that can be injected into any strip's input
+ * block, and a measurement engine that accumulates RMS, the fundamental's
+ * two quadrature correlations and a crosstalk pair out of any strip's
+ * post-fader block. They are TEST-ONLY nodes -- nothing in the audio
+ * product calls them -- so they are behind a flag, and the flag's 0 is a
+ * BYTE-FOR-BYTE control: with it off the two node bodies collapse to an
+ * `rts`, the chain emits no hook, and the image rebuilds identically to a
+ * tree that never carried them.
+ *
+ * Block kernels only. The oscillator produces a whole block per call and
+ * the taps read pool slots; a per-sample build has neither, so the bodies
+ * are guarded on DSP4_BLOCK_KERNELS as well and a per-sample build with
+ * this on gets the same `rts` as one with it off. */
+#ifndef DSP4_TEST_NODES
+#define DSP4_TEST_NODES 0
+#endif
+
+/* The measurement window, in BLOCKS. {TEST_WIN_BLOCKS} blocks x {BLOCK} samples =
+ * {_test_winsamp} samples = {_test_winms} ms at 48 kHz. Long enough that the
+ * lowest oscillator frequency the contract carries (20 Hz) fits
+ * {_test_wincyc} cycles into it, and short enough that a host poll sees a
+ * fresh result inside a tenth of a second. Generated, so the DSP window
+ * and the host-side tools cannot disagree about it. */
+#ifndef DSP4_TEST_WIN_BLOCKS
+#define DSP4_TEST_WIN_BLOCKS {TEST_WIN_BLOCKS}
+#endif
+#define DSP4_TEST_WIN_SAMPLES (DSP4_TEST_WIN_BLOCKS * DSP4_BLOCK_SIZE)
 {mtx_block}
 #endif /* DSP4_BLOCK_H */
 """
@@ -14114,6 +15059,8 @@ FIXED_GENERATORS = {
     'MONITOR': gen_monitor_fixed,
     'TALKBACK': gen_talkback_fixed,
     'NOISE_GEN': gen_noise_gen_fixed,
+    'TEST_OSC': gen_test_osc,
+    'TEST_MEAS': gen_test_meas,
     'COMPRESSOR': gen_compressor_fixed,
     'LIMITER': gen_limiter_fixed,
     'GATE': gen_gate_fixed,
@@ -17560,6 +18507,54 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
         _NODE_CALL_RE = re.compile(r'^(\s*)call _([A-Za-z0-9_]+)_process;$')
         _decl_rx = set()
 
+        # ---- THE SELF-TEST HOOKS (S49, DSP4_TEST_NODES) ----------------
+        #
+        # Two call sites per strip, emitted in the SAME places and by the
+        # same mechanism as the scope tap above, and for the same reason:
+        # a chip-1 strip's block lives in a SHARED pool slot that the next
+        # strip overwrites, so anything that wants a particular strip's
+        # block has to be handed the slot AT that strip's call site.
+        #
+        #   after C1_IN_nn   ->  _test_osc_inject(strip, input slot)
+        #   after C1_FDR_nn  ->  _test_meas_tap (strip, post-fader slot)
+        #
+        # The hook is unconditional in the chain and the DECISION is inside
+        # the routine: it compares the strip number it was handed against
+        # the cell the host wrote and returns in a handful of instructions
+        # if they differ. Thirty-two of each is about 250 cycles a block
+        # against 327,680 -- cheaper than teaching the chain which strip is
+        # armed, and it means arming a different strip needs no rebuild.
+        #
+        # All of it inside `#if DSP4_TEST_NODES`, which shipping.config
+        # sets to 0, so the shipping image is unchanged by a byte.
+        _TEST_INJ_RE = re.compile(r'^C1_IN_(\d+)$')
+        _TEST_TAP_RE = re.compile(r'^C1_FDR_(\d+)$')
+        _test_hooked = set()
+
+        def _test_hook_lines(indent, nid, pair_slot=None):
+            m_i = _TEST_INJ_RE.match(nid)
+            m_f = _TEST_TAP_RE.match(nid)
+            if m_i:
+                strip, fn = int(m_i.group(1)), '_test_osc_inject'
+            elif m_f:
+                strip, fn = int(m_f.group(1)), '_test_meas_tap'
+            else:
+                return []
+            out = blk_out.get(nid)
+            if not out:
+                return []
+            _kind, slot = out
+            if _kind != 'blk':
+                return []
+            if pair_slot is not None:
+                slot = pair_slot
+            _test_hooked.add(fn)
+            return ['#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES',
+                    f'{indent}r0 = {strip};',
+                    f'{indent}r1 = {slot};',
+                    f'{indent}call {fn};',
+                    '#endif']
+
         def _tap_lines(indent, nid, pair_slot=None):
             out = blk_out.get(nid)
             if not out:
@@ -17665,6 +18660,8 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                         _out_lines.extend(_t)
                         _tapped.add(_nid)
                     _emit_extras(_nid, m.group(1))
+                    _out_lines.extend(
+                        _test_hook_lines(m.group(1), _nid, _slot))
                 continue
             _last_node = _sym
             if _sym in blk_out:
@@ -17673,7 +18670,8 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                     _out_lines.extend(_t)
                     _tapped.add(_sym)
             _emit_extras(_sym, m.group(1))
-        if _tapped:
+            _out_lines.extend(_test_hook_lines(m.group(1), _sym))
+        if _tapped or _test_hooked:
             # The tap needs the pool macros and every tapped node's _buf_
             # symbol. Both go in behind the same guard as the taps.
             _decl = ['#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP',
@@ -17683,6 +18681,11 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
             _decl += [f'.extern _buf_{n};' for n in sorted(_tapped)]
             _decl += [f'.extern {n};' for n in sorted(_decl_rx)]
             _decl += ['#endif', '']
+            if _test_hooked:
+                _decl += ['#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES',
+                          '#include "blk_pool.h"']
+                _decl += [f'.extern {n};' for n in sorted(_test_hooked)]
+                _decl += ['#endif', '']
             _anchor = '.section/pm seg_pmco;'
             _i = _out_lines.index(_anchor) + 1
             _out_lines[_i:_i] = _decl
@@ -17690,6 +18693,10 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                 f.write('\n'.join(_out_lines))
             print(f'  {chain_path}: block-aware scope tap on '
                   f'{len(_tapped)} nodes (DSP4_SCOPE_BLK_TAP)')
+            if _test_hooked:
+                print(f'  {chain_path}: self-test hooks '
+                      f'({", ".join(sorted(_test_hooked))}) '
+                      f'(DSP4_TEST_NODES)')
 
         # Write the SIMD strip-pair dynamics drivers. Always written --
         # the whole file is inside #if DSP4_SIMD_DYN, so it costs the

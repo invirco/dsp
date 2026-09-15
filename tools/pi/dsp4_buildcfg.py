@@ -33,6 +33,10 @@ SIGNATURE = 0xCF000000
 # such, not decoded.
 DIAG_BUILD_CFG2 = 0xE0EB
 SIGNATURE2 = 0xC2000000
+# SEVEN BITS, not eight (S49). Bits 31..25 are the signature and bit 24 is
+# DSP4_TEST_NODES; see the note in diag.h. A tool still masking 0xFF000000
+# rejects a self-test image's word instead of misreading it, which is the
+# right way round.
 CCLK_MHZ = {0: 491.52, 1: 786.432, 2: 983.040, 3: None}
 
 # The switches the word carries, LSB-first after the block size.
@@ -71,10 +75,16 @@ FLAGS2 = [
     (10, 'DSP4_DYN_LUT'),
     (11, 'DSP4_GATE_LINTHR'),
     (12, 'DSP4_C2_BQ_GRAPH'),
+    # ADDED S49. The self-test nodes change what the chain calls and what
+    # chip 1 costs; a switch like that has to be readable off the part.
+    (24, 'DSP4_TEST_NODES'),
 ]
 # DSP4_BLOCK_DECIMATE != 1 means the graph runs on one block in N: the audio
 # is wrong and the cycle count is an instrument's, not the product's.
 NEVER_SHIPPING2 = ('DSP4_SCOPE_BLK_TAP',)
+# DSP4_TEST_NODES is NOT in that list: it is a proposal for the
+# shipping image, not an instrument-only switch (S49). It is 0 in
+# shipping.config today, so a 1 still shows up as a difference.
 
 # The shipping configuration, mirrored from MW/D32/DSP/SHARC/shipping.config.
 # Kept here rather than read from the repo because this tool runs on the bench,
@@ -110,6 +120,7 @@ SHIPPING2 = {
     'DSP4_SIMD_GRAPH': 1,
     'DSP4_SIMD_STRIPS': 0,
     'DSP4_SCOPE_BLK_TAP': 0,
+    'DSP4_TEST_NODES': 0,
     # S9-2 Option A, ADOPTED on CHIP 2 by PW 2026-09-09. A MASK:
     # 1 = chip 1's inter-chip TX, 2 = chip 2's converter TX, 3 = both.
     # Costs +16 samples of output latency on the chip that has it, so
@@ -137,8 +148,9 @@ def decode(word):
 
 def decode2(word):
     """Decode DIAG_BUILD_CFG2, or raise ValueError."""
-    if word is None or (word & 0xFF000000) != SIGNATURE2:
-        raise ValueError('0x%s is not a DIAG_BUILD_CFG2 word (signature 0xC2)'
+    if word is None or (word & 0xFE000000) != SIGNATURE2:
+        raise ValueError('0x%s is not a DIAG_BUILD_CFG2 word '
+                         '(signature 0b1100001 in bits 31..25)'
                          % ('%08X' % word if word is not None else '????????'))
     d = {'raw': word, 'decimate': (word >> 16) & 0xFF,
          # A PER-CHIP MASK, not a flag: 1 = chip 1's inter-chip TX,

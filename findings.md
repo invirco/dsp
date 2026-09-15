@@ -6,6 +6,238 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE PART MEASURES ITSELF (2026-09-15, session 49)
+
+**S49-1. The `Test[1-1]*` family has graph nodes, and they work on the part.**
+`TEST_OSC` (a coupled-form sine oscillator) and `TEST_MEAS` (RMS / THD+N /
+noise / crosstalk over any strip's post-fader block) are chip-1 nodes behind
+`DSP4_TEST_NODES`, taking sixteen SPI words at 4967–4982. Driven through the
+cells on arm A (`f0a94a2e1cf5814d4f59e496b16e736d`), strip 5, all sixteen
+addresses proven by write and read-back first:
+
+| f, at −20 dBFS peak commanded | RmsResult | ThdResult |
+|---:|---:|---:|
+| 100 Hz – 20 kHz (nine points) | **−23.01 ± 0.01 dBFS** | −103 to −142 dB |
+| 20 Hz | −22.99 | −123.26 |
+| 50 Hz | −23.16 | −120.30 |
+
+−23.0103 dBFS is the exact RMS of a sine of −20 dBFS peak. The two low points
+are the 4,096-sample window holding **1.71 cycles** at 20 Hz, where the mean
+square of a sine is not A²/2 and depends on the opening phase; the float32
+reference predicts the same deviation and the same sign.
+
+**S49-2. The measurement engine read the compressor's own transfer curve off
+the shipping strip.** Level sweep at 1 kHz, gain against the injected RMS:
+
+| peak | −60 | −40 | −30 | −20 | −15 | −12 | −9 | −6 | −3 | 0 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| gain, dB | +0.00 | +0.00 | +0.00 | −0.01 | −2.88 | −5.13 | −7.39 | −9.63 | −11.89 | −14.65 |
+| ThdResult | −109.9 | −110.9 | −121.6 | −114.6 | −55.75 | −55.75 | −55.75 | −55.75 | −55.75 | −55.75 |
+
+Every 3 dB in gives 0.74–0.76 dB out above the knee — **4:1** — and
+`C1_COMP_05` declares `threshold_db=-20.0;ratio=4.0;knee_db=6.0`. The knee is
+where the graph says it is and the ratio is what the graph says it is,
+measured by the desk on itself with nothing analog in the path.
+
+**S49-3. THE GATE'S RANGE IS IN THE WRONG UNIT AND THE GATE IS INERT.
+Severity: HIGH. Status: OPEN, deliberately not fixed here.** The `GATE`
+kernel reads `_gate_range_` as **dB** (it clamps to 0..60 and computes
+`10^(-dB/20)`); `dsp_codegen.py` initialises the `.var` to **0.001** and calls
+it a "linear floor". So an un-written gate's CLOSED gain is
+`10^(-0.001/20) = 0.999885` — **0.001 dB of attenuation where the graph row
+says `range_db=60.0`.** Read off the part, strip 5, 1 kHz at −60 dBFS peak
+against a −40 dBFS threshold: `_gate_on` 1, `_gate_threshold` −40 (correct),
+`_gate_envelope` 0.000874 (below threshold, so the gate IS closing),
+`_gate_range` 0.001, `_gate_rngq` **0x0FFF873C = 0.999885**, `_gate_gain` and
+`_gate_gain_target_q` both 0.999885. `10^(-0.001/20)·2²⁸ = 0x0FFF8749`; the
+part holds 0x0FFF873C, thirteen counts away, which is `_exp2q_fx`'s own
+error. The level sweep above shows exactly 0.00 dB at −60 dBFS, where a gate
+with `range_db=60` would show 60 dB.
+
+The fix is one line — initialise from the row's `range_db` instead of a
+hardcoded 0.001 — and it is not this session's: it changes audio on every
+strip of every image, it would invalidate the byte-for-byte control arm S49
+rests on, and a gate that suddenly closes 60 dB on a quiet channel needs a
+bench arm of its own. **On a D24, where nothing on the host writes per-strip
+node state (S38-5), every strip is running on that initialiser.**
+`_gate_hold_count_` also reads negative while the gate is closed
+(0xFFFEED10); noted, not investigated.
+
+**S49-4. THE RESIDUAL MUST BE ACCUMULATED PER SAMPLE, NOT BY SUBTRACTION, and
+that is the difference between a THD+N floor of −70 dB and one of −115.**
+`Sxx − a·Sxs − b·Sxc` is algebraically the residual energy and is useless in
+float32: both terms are of order `Sxx`, so the difference carries the
+format's relative precision, 1.2e-7 = **−69 dB**, and every reading below
+that would be the subtraction's rounding. `Σe²` accumulated sample by sample
+cancels at the SAMPLE's magnitude instead. Measured floor: the float32
+reference predicts −115.25 dB for a 4,096-sample window and the part reads
+**−114.6 to −116.1 dB** at 1 kHz across five runs. The price is one window of
+latency — e[n] needs (a,b) and (a,b) needs a finished window — so **the first
+window after any change reads ThdResult 0.00 dB by construction** and a
+caller waits for `_meas_seq_` to advance twice.
+
+A longer window is not an improvement: 512 blocks measures −111 dB and 1024
+measures −102 dB against 256 blocks' −115 dB, because float32 accumulator
+precision is lost faster than cycles are bought.
+
+**S49-5. THE MAGIC CIRCLE'S INVARIANT IS `x² + k·x·y + y²`, WITH A PLUS, and
+the minus that looks symmetrical diverges.** `M^T Q M = Q` gives β = +k. The
+first implementation used `x² + y² − k·x·y`, which is not conserved by the
+recurrence at all: below a few kHz it is nearly right, at 10 kHz the
+amplitude reached 1.26 within a second and at 20 kHz it overflowed.
+**`tools/dsp/test_node_ref.py` caught it at the desk before an image was
+built**, in its first run. It was caught a second time on the part, because a
+bench arm ran against a tree generated before the fix landed — 15 kHz read
++2.1 dB and 20 kHz read −168.58 dBFS with a NaN beside it. **Both readings
+are withdrawn.** A related consequence: on the ellipse E = 1 the state reaches
+1/cos(πf/fs) — 3.86 at 20 kHz, i.e. 11.7 dB hot — so the published block is
+scaled by cos(πf/fs), derived from the same z = x² the sine polynomial
+already has.
+
+**S49-6. The measurement tap's first-match dispatch published +220.03 dB of
+"crosstalk".** The first `_test_meas_tap` jumped to the first accumulator
+whose cell named the strip — MeasChan, then XtalkSrc, then XtalkDst — so a
+strip named as both MeasChan and XtalkSrc fed only the measurement,
+`Σx² on XtalkSrc` stayed at zero and XtalkResult published
+`10·log10(Sdd/floor)`: **+220.03 dB on the part**, or −317.48 dB with the
+roles reversed. Neither is a crosstalk figure and both look like one. The
+cells are independent selectors; the routine now runs three independent tests
+and naming one strip in two of them is the normal arrangement.
+
+**S49-7. Crosstalk needs a LIVE neighbour, and `dsp4_apply_strip.py` mutes
+one.** That tool's preamble mutes every strip but the one it sets up, so the
+neighbour's post-fader block is EXACTLY zero and XtalkResult reads the
+arithmetic floor (−317 dB) — true, and not a measurement of anything.
+Bringing strip 6 to unity first:
+
+| | ch 6 RMS | XtalkResult |
+|---|---:|---:|
+| tone on 5 at −6 dBFS, three consecutive windows | −116.1 dBFS | **−97.50 / −97.62 / −97.44 dB** |
+| **negative arm, oscillator OFF** | −116.1 dBFS | **+0.01 / +0.36 / −0.45 dB** |
+
+The negative arm is what makes −97.5 dB readable: with no tone both strips
+sit on their own floors and the ratio is 0 dB. It is an **upper bound**, not
+a crosstalk figure — whatever leaks is below strip 6's own content. A control
+with XtalkSrc = XtalkDst = 5 reads **0.00 dB**.
+
+**S49-8. The self-test nodes cost +1,520 cycles/block to USE and less than
+the instrument can resolve to CARRY.** Same image, same boot, one cell write
+between the two readings: chip 1 `_proc_cyc` 320,761 → 322,281 and
+`_proc_cyc_max` 322,492 → 323,395 — **+0.46 % / +0.28 % of budget**, zero
+missed blocks in 60,049 either way. The idle cost cannot be measured across
+boots and **chip 2 is the control that proves it**: chip 2 carries not one
+instruction of S49 and read 326,073 on one boot and 328,054 on the next,
+**1,981 cycles apart on code that did not change**. Chip 1's arm-0-to-arm-A
+idle difference is −683 average / +605 worst, well inside that. Bounded from
+the code: 64 hook sites at ~10 cycles ≈ 640 cycles/block, 0.2 %. **The 33
+missed blocks seen on chip 2 are not S49's** — same fact, chip 2 has none of
+this code and sits at 99.5–100.4 % of budget either way.
+
+**S49-9. The host-side FFT and the node agree to 0.00 dB, and where they
+disagree the disagreement is the useful part.** Arm B, `C1_FDR_05`, 1024
+samples, 1 kHz at −6 dBFS peak (the compressed regime):
+
+| | cell | `dsp4_fft.py` | difference |
+|---|---:|---:|---:|
+| level | RmsResult −18.64 dBFS | −18.64 dBFS | **0.00 dB** |
+| THD+N | ThdResult −55.75 dB | −55.75 dB | **0.00 dB** |
+| noise+distortion | NoiseResult −74.39 dBFS | −74.40 dBFS | **0.01 dB** |
+
+Stated tolerance was ±0.5 dB. The FFT also says what the node cannot: an odd
+ladder, h3 −55.93 dBc, h5 −70.39, h7 −78.28, h9 −111.32 — symmetric
+compression, not clipping — plus spurs at 12 kHz ± 1 kHz at about −98 dBc
+(intermodulation with something at fs/4; recorded, not chased). At −20 dBFS
+the two DISAGREE, ThdResult −115.70 dB against the FFT's −150.63 dB, and that
+is the node reporting **its own arithmetic floor** with the FFT proving the
+signal is 35 dB cleaner than the node can resolve. The published figure is
+conservative, which is the right way round.
+
+**S49-10. A 4-term Blackman-Harris would have made the FFT the limiting
+instrument in the comparison it exists to make.** Its −92 dB sidelobes
+integrate to an instrument THD+N floor of **−96.7 dB** with a 4-bin tone band
+and −111 dB with a 16-bin one — ABOVE the node's −115 dB. The 7-term window
+leaks below −180 dB and measures −140 dB to below float64 on a synthetic pure
+tone. Separately, **the normalisation has to be Parseval's and not coherent
+gain**: summing a band is a power sum, and the coherent-gain form was 0.01 dB
+out on the 4-term window and **1.18 dB out on the 7-term one**, which is how
+it was caught. With `|X|²/(n·Σw²)` the one-sided sum equals the mean square,
+which is exactly what `RmsResult` publishes, so both instruments quote the
+same dBFS and a full-scale sine reads −3.01 on each.
+
+**S49-11. On a silent capture the FFT printed +11.33 dB of THD+N and it read
+like a measurement.** With no tone the largest band is the largest noise bin,
+and everything downstream of "fundamental" is then meaningless. `dsp4_fft.py`
+now tests whether the fundamental clears the median bin by 20 dB and prints
+**NO TONE IN THIS CAPTURE**, naming `total` as the one figure that stays
+valid. Its `total` on that capture was −116.96 dBFS against the node's
+−116.32 dBFS over a different window at a different time — 0.64 dB, which is
+the agreement a noise measurement gets.
+
+**S49-12. The `Test[1-1]*` cells are NOT in `dsp-unmapped.csv`, on any
+product — they are in no product's cell set at all.** The S49 dispatch stated
+they were listed `no-graph-node`. The thirteen rows exist only in the cell
+library (`defs/common/cells/mx_master.csv`); `defs/tools/def_master.py` gates
+the `Test` prefix on the def keys `util` and `util.osc`, and no product def
+declares either, so no per-product master carries a `Test` row and
+`gen_dsp.py` — whose proposal is the intersection of the graph's expansion
+with the product's cell SET — drops them before either file is written. A
+cell no product defines is in neither file; it is not "unmapped", it is **not
+present**. Consequence for the gate: `gen_dsp.py --check-proposal` still
+passes on this tree and **cannot see the question**, so S49's proposal needs
+`./proposals/regen-s49-proposal.sh --check` instead, which stages the def
+change in scratch, re-runs defs' own expander, regenerates and diffs. It
+returns byte-identical. The def change — `util,1` and `util.osc,1` — adds
+exactly 13 master rows and 13 expanded cells on each of D32/D24/D16/D12 and
+opens no other family.
+
+**S49-13. `DIAG_BUILD_CFG2` had no spare bit, so its signature narrowed from
+eight bits to seven.** Bits 23..0 are fully allocated (S18 spent the last
+two) and 31..24 was the signature. Rather than invent a third word for one
+bit, 31..25 stay `0b1100001` and bit 24 carries `DSP4_TEST_NODES`. The
+failure mode is the one to want and it was measured, not predicted: the first
+S49 image read `0xC3010244` and a decoder still masking `0xFF000000` said
+*"0xC3010244 is not a DIAG_BUILD_CFG2 word"* on both chips — a loud refusal
+rather than a quiet misreading of the decimate field. `dsp4_buildcfg.py` now
+masks `0xFE000000` and prints `DSP4_TEST_NODES = 1, shipping is 0`.
+
+**S49-14. All 24 chip-1 RX lanes are STATIC, and it qualifies exactly two
+numbers.** `dsp4_inscan.py`: `MOVING 0 / STATIC 24 / UNREADABLE 0`, lane 5
+stuck at `0x00000040` across 8 reads at ~10 ms spacing. That is the state
+with AN_EN low (S49-15). It matters to the strip's own floor (−115.93 dBFS —
+which is therefore a clean measurement of the DSP's arithmetic noise with a
+provably static input, not a converter floor) and to the crosstalk bound, and
+**to nothing else in the session**: every other figure comes from a signal
+injected digitally into the strip's input block AFTER the input kernel has
+filled it, so whatever the converter sent is discarded.
+
+**S49-15. STOPPING `matrix-app` NOW DROPS AN_EN, AND THE APP WILL NOT RAISE
+IT AGAIN.** AN_EN (GPIO26) read `op -- pd | hi` two seconds after the first
+`systemctl stop matrix-app` and `op -- pd | lo` at handback; **this session
+never wrote GPIO26.** The app's log names it: `Boot.Init() - AN_EN gated
+(PW 2026-09-10): analogAutoEnable=true` followed by *"AnalogBringUp: AN_EN
+STAYS LOW — digital clocks not proven stable: CPLD running (Unknown); DSPs
+booted and streaming (Unknown); Converters out of RST_C (Unknown). Analog
+rails are not requested; bring AN_EN up by hand at the bench."* S48 recorded
+the same app logging `analogAutoEnable=false` and AN_EN surviving four app
+stops; with `true` the app runs the bring-up, finds all three gates Unknown
+**by design** — it has no query path for any of them — and drives the pin
+low. So the first app restart after the hub raises AN_EN by hand drops the
+rails. Left low and flagged rather than silently restored, because the pin is
+the hub's; one command puts it back: `sudo pinctrl set 26 op dh`.
+
+**S49-16. The parameter link cannot follow an 85 ms measurement window.**
+`SweepOn=1, SweepStep=16` walked the oscillator up the cell's own
+128-position Log law and stopped itself at code 112 (8,845.03 Hz), the last
+step below 127 — the DSP-paced stepping works, and it steps on the window
+serial TEST_MEAS publishes so a step and the window that scored the previous
+frequency cannot be off by one. **The host missed the first six steps.** The
+link serves one register per audio block and `dsp4_scope.rd()` votes over up
+to twelve asks, so reading the serial plus four results plus the frequency
+takes about 350 ms against an 85 ms window. **A sweep should be driven one
+frequency at a time over this link** — write `OscFreq`, wait two windows,
+read — which is how the frequency table in S49-1 was taken. The DSP-paced
+sweep is for a host that polls a subset, or for a longer window.
+
 ## THE MUTE BIT IS NOT INVERTED, AND IT PROVES THE ANALOG SWITCHING WORKS (2026-09-15, session 48 part 6)
 
 **S48-29. The mute-polarity hypothesis is refuted: `mute=1` makes MIC 5

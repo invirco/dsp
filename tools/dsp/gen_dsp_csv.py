@@ -627,6 +627,45 @@ for sig, src, scope in xfer_map:
     add(f'C1_XS_{sig}', 1, 'INTERCHIP_SEND', f'{sig} Send', 1, src, '',
         params=fp)
 
+# --- SELF-TEST: oscillator + measurement (S49) ---
+#
+# The `Test[1-1]*` cell family finally gets graph nodes. Both are on CHIP 1,
+# because every cell in the family names a CHANNEL (OscChan, MeasChan,
+# XtalkSrc, XtalkDst are all MxDatS 33 = 0..32) and the channel strips are
+# chip 1's.
+#
+# LAST IN THE CHIP-1 NODE LIST, and that is two decisions in one:
+#
+#   * ADDRESSES. The allocator packs sequentially, so a node added anywhere
+#     else moves every chip-1 address above it -- the whole landed map, the
+#     MCU ghost table and every stored golden. Added here they take the next
+#     free words above the LCR block and NOTHING MOVES. This is the same
+#     rule S22-4 followed for the matrix sends.
+#   * CHAIN ORDER. The oscillator generates the block the strips will read on
+#     the NEXT pass, and the measurement engine closes its window after every
+#     strip has run. Both belong at the tail. The injection and the tap are
+#     not these calls: they are hooks the chain emits at each strip
+#     (DSP4_TEST_NODES), so the block a strip is given and the block the
+#     correlation is taken against are the SAME block, with no relative delay
+#     to correct for.
+#     THE MEASUREMENT NODE COMES FIRST, and that is not cosmetic. The
+#     strips inject and tap the block the oscillator generated on the
+#     PREVIOUS pass; the measurement engine's reference self-sums have to
+#     be taken over that same block, so it must run before the oscillator
+#     overwrites it. Reverse these two and the reference is one block out
+#     of step with the signal it is the reference for.
+p, a = c1_alloc.next(8)
+add('C1_TEST_MEAS', 1, 'TEST_MEAS', 'Test Measurement', 1, '', '',
+    spi_page=p, spi_addr=a,
+    params='meas_chan=0;xtalk_src=0;xtalk_dst=0;osc_src=C1_TEST_OSC',
+    ramp_profile='InstantCtl')
+p, a = c1_alloc.next(8)
+add('C1_TEST_OSC', 1, 'TEST_OSC', 'Test Oscillator', 1, '', '',
+    spi_page=p, spi_addr=a,
+    params='on=0;freq_hz=1000.0;level=0.0;chan=0;sweep_on=0;sweep_step=1;'
+           'meas_src=C1_TEST_MEAS',
+    ramp_profile='InstantCtl')
+
 # ===========================================================================
 # CHIP 2 — Output DSP
 # ===========================================================================

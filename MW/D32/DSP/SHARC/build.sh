@@ -259,6 +259,25 @@ DSP4_AUXIN_BYPASS="${DSP4_AUXIN_BYPASS:-0}"
 CFLAGS="$CFLAGS -DDSP4_AUXIN_BYPASS=$DSP4_AUXIN_BYPASS"
 ASMFLAGS="$ASMFLAGS -DDSP4_AUXIN_BYPASS=$DSP4_AUXIN_BYPASS"
 
+# THE SELF-TEST NODES (S49). TEST_OSC + TEST_MEAS -- the graph nodes behind
+# the `Test[1-1]*` cell family: a sine oscillator that can be injected into
+# any strip's input block, and an RMS / THD+N / noise / crosstalk engine
+# reading any strip's post-fader block. Block-kernel builds only.
+#
+# 0 IS THE CONTROL AND IT EMITS NO CODE AT ALL: the two node bodies collapse
+# to an `rts`, the chain's sixty-four hook sites vanish with the guard, and
+# the only difference from a tree that never carried the nodes is the sixteen
+# SPI dispatch words and sixteen DM words their CELLS need -- which exist
+# because the contract carries the cells, not because the flag is set.
+# Chip 2 is untouched either way and rebuilds byte for byte.
+DSP4_TEST_NODES="${DSP4_TEST_NODES:-0}"
+CFLAGS="$CFLAGS -DDSP4_TEST_NODES=$DSP4_TEST_NODES"
+ASMFLAGS="$ASMFLAGS -DDSP4_TEST_NODES=$DSP4_TEST_NODES"
+if [ "$DSP4_TEST_NODES" != "0" ]; then
+    echo "  *** SELF-TEST BUILD: DSP4_TEST_NODES=$DSP4_TEST_NODES ***"
+    echo "  *** TEST_OSC + TEST_MEAS live; 64 per-strip hook sites in the chain ***"
+fi
+
 # BLOCK-AWARE SCOPE WITNESS (DSP4_SCOPE_BLK_TAP, 2026-09-09, findings S9-5).
 # MEASUREMENT BUILD ONLY -- never in a shipping image, and the default 0
 # emits not one byte, which is checked by rebuilding the shipping pair and

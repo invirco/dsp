@@ -340,7 +340,7 @@ def process_node(node, state, node_states, nodes):
         pass  # buf is pre-filled with test signal by the simulator
 
     elif ntype in ('INTERCHIP_RECV', 'INTERCHIP_SEND', 'TALKBACK', 'NOISE_GEN',
-                   'AUX_INPUT', 'DCA'):
+                   'AUX_INPUT', 'DCA', 'TEST_OSC', 'TEST_MEAS'):
         state['buf'] = get_input()
 
     elif ntype == 'METER':

@@ -5,14 +5,14 @@
 # address typed here is an address no kernel answers on.
 #
 # Proposed by dsp, landed by the hub at the gate (PW ruling
-# 2026-09-08 #5). defs-v* pin: defs-v2026.09.08.4.
+# 2026-09-08 #5). defs-v* pin: defs-v2026.09.14.1.
 #
 # ONE ADDRESS MAP FOR THE WHOLE RANGE (decision D3): the superset
 # graph is expanded once and this file is the intersection of that
 # expansion with this product's cell set, so a cell two products
 # share has the same chip, page and address in both files.
 #
-# 1777 of 2321 defined cells reach a DSP address.
+# 1790 of 2334 defined cells reach a DSP address.
 # The other 544 are named in dsp-unmapped.csv with the
 # reason — every defined cell is in exactly one of the two files.
 #
@@ -1809,5 +1809,18 @@ Talk001Dest001,C1_TALK_01,TALKBACK,1,1,4739,0x1283,rw,InstantCtl,Instant,0,0,Lin
 Talk001Gain001,C1_TALK_01,TALKBACK,1,1,4737,0x1281,rw,GainFast,Slew,3,8,Exp,Scalar,0=0/127=40/[Lin],
 Talk001Hpf001,C1_TALK_01,TALKBACK,1,1,4738,0x1282,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Talk001On001,C1_TALK_01,TALKBACK,1,1,4736,0x1280,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Test001MeasChan001,C1_TEST_MEAS,TEST_MEAS,1,1,4967,0x1367,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Test001NoiseResult001,C1_TEST_MEAS,TEST_MEAS,1,1,4970,0x136A,ro,,Instant,0,0,Linear,Scalar,,"read-back: noise+distortion level, dBFS"
+Test001OscChan001,C1_TEST_OSC,TEST_OSC,1,1,4978,0x1372,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Test001OscFreq001,C1_TEST_OSC,TEST_OSC,1,1,4976,0x1370,rw,InstantCtl,Instant,0,0,Linear,Scalar,0=20/127=20000/[Log],
+Test001OscLevel001,C1_TEST_OSC,TEST_OSC,1,1,4977,0x1371,rw,InstantCtl,Instant,0,0,Linear,Scalar,0=-60/127=0/[Lin],
+Test001OscOn001,C1_TEST_OSC,TEST_OSC,1,1,4975,0x136F,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Test001RmsResult001,C1_TEST_MEAS,TEST_MEAS,1,1,4968,0x1368,ro,,Instant,0,0,Linear,Scalar,,"read-back: total RMS of MeasChan, dBFS"
+Test001SweepOn001,C1_TEST_OSC,TEST_OSC,1,1,4979,0x1373,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Test001SweepStep001,C1_TEST_OSC,TEST_OSC,1,1,4980,0x1374,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Test001ThdResult001,C1_TEST_MEAS,TEST_MEAS,1,1,4969,0x1369,ro,,Instant,0,0,Linear,Scalar,,"read-back: THD+N relative to total, dB"
+Test001XtalkDst001,C1_TEST_MEAS,TEST_MEAS,1,1,4972,0x136C,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Test001XtalkResult001,C1_TEST_MEAS,TEST_MEAS,1,1,4973,0x136D,ro,,Instant,0,0,Linear,Scalar,,"read-back: XtalkDst against XtalkSrc, dB"
+Test001XtalkSrc001,C1_TEST_MEAS,TEST_MEAS,1,1,4971,0x136B,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Usb001Level001,C2_USB_IN,AUX_INPUT,2,1,1797,0x0705,rw,GainFast,Slew,3,8,Exp,Scalar,0=-20/127=6/[Lin],
 Usb001On001,C2_USB_IN,AUX_INPUT,2,1,1798,0x0706,rw,InstantCtl,Instant,0,0,Linear,Scalar,,

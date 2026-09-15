@@ -468,6 +468,37 @@
 #define DSP4_AUXIN_BYPASS 0
 #endif
 
+/* THE SELF-TEST NODES (S49). DEFAULT OFF, AND OFF EMITS NOTHING.
+ *
+ * TEST_OSC and TEST_MEAS are the graph nodes behind the `Test[1-1]*` cell
+ * family: a sine oscillator that can be injected into any strip's input
+ * block, and a measurement engine that accumulates RMS, the fundamental's
+ * two quadrature correlations and a crosstalk pair out of any strip's
+ * post-fader block. They are TEST-ONLY nodes -- nothing in the audio
+ * product calls them -- so they are behind a flag, and the flag's 0 is a
+ * BYTE-FOR-BYTE control: with it off the two node bodies collapse to an
+ * `rts`, the chain emits no hook, and the image rebuilds identically to a
+ * tree that never carried them.
+ *
+ * Block kernels only. The oscillator produces a whole block per call and
+ * the taps read pool slots; a per-sample build has neither, so the bodies
+ * are guarded on DSP4_BLOCK_KERNELS as well and a per-sample build with
+ * this on gets the same `rts` as one with it off. */
+#ifndef DSP4_TEST_NODES
+#define DSP4_TEST_NODES 0
+#endif
+
+/* The measurement window, in BLOCKS. 256 blocks x 16 samples =
+ * 4096 samples = 85.3 ms at 48 kHz. Long enough that the
+ * lowest oscillator frequency the contract carries (20 Hz) fits
+ * 1.7 cycles into it, and short enough that a host poll sees a
+ * fresh result inside a tenth of a second. Generated, so the DSP window
+ * and the host-side tools cannot disagree about it. */
+#ifndef DSP4_TEST_WIN_BLOCKS
+#define DSP4_TEST_WIN_BLOCKS 256
+#endif
+#define DSP4_TEST_WIN_SAMPLES (DSP4_TEST_WIN_BLOCKS * DSP4_BLOCK_SIZE)
+
 /* THE CHANNEL MATRIX SEND SPI BLOCK (S22-4).
  *
  * spi_handler.asm bumps _ctl_epoch[addr / 144] so a strip node

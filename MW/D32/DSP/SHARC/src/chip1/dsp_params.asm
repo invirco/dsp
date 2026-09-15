@@ -8,7 +8,7 @@
  * indexes this table to route parameter writes directly to node
  * coefficient variables.
  *
- * 4968 entries (SPI addresses 0x0000–0x1366)
+ * 4984 entries (SPI addresses 0x0000–0x1376)
  *======================================================================*/
 
 .section/dm seg_dmda;
@@ -1262,6 +1262,14 @@
 .extern _lpf_swap_pending_C1_FILT_30;
 .extern _lpf_swap_pending_C1_FILT_31;
 .extern _lpf_swap_pending_C1_FILT_32;
+.extern _meas_chan_C1_TEST_MEAS;
+.extern _meas_noise_C1_TEST_MEAS;
+.extern _meas_rms_C1_TEST_MEAS;
+.extern _meas_seq_C1_TEST_MEAS;
+.extern _meas_thd_C1_TEST_MEAS;
+.extern _meas_xdst_C1_TEST_MEAS;
+.extern _meas_xsrc_C1_TEST_MEAS;
+.extern _meas_xtalk_C1_TEST_MEAS;
 .extern _mtr_cgr_C1_MTR_01;
 .extern _mtr_cgr_C1_MTR_02;
 .extern _mtr_cgr_C1_MTR_03;
@@ -1393,6 +1401,12 @@
 .extern _noise_hpf_on_C1_NOISE;
 .extern _noise_level_C1_NOISE;
 .extern _noise_on_C1_NOISE;
+.extern _osc_chan_C1_TEST_OSC;
+.extern _osc_freq_C1_TEST_OSC;
+.extern _osc_level_C1_TEST_OSC;
+.extern _osc_on_C1_TEST_OSC;
+.extern _osc_sweep_on_C1_TEST_OSC;
+.extern _osc_sweep_step_C1_TEST_OSC;
 .extern _polarity_C1_GAIN_01;
 .extern _polarity_C1_GAIN_02;
 .extern _polarity_C1_GAIN_03;
@@ -1853,11 +1867,11 @@
 
 /* ---- Table size for the SPI handler bounds check ---- */
 .global _spi_dispatch_c1_size;
-.var _spi_dispatch_c1_size = 4968;
+.var _spi_dispatch_c1_size = 4984;
 
-/* ---- Chip 1 SPI dispatch table (4968 entries) ---- */
+/* ---- Chip 1 SPI dispatch table (4984 entries) ---- */
 .global _spi_dispatch_c1;
-.var _spi_dispatch_c1[4968] =
+.var _spi_dispatch_c1[4984] =
     _gain_coeff_C1_GAIN_01,    /* 0x0000: C1_GAIN_01 gain coeff */
     _polarity_C1_GAIN_01,    /* 0x0001: C1_GAIN_01 polarity */
     0,  /* 0x0002: phantom (MCU-only) */
@@ -6825,9 +6839,25 @@
     _fdr_lcr_on_C1_FDR_31,    /* 0x1364: C1_FDR_31 LcrOn */
     _fdr_lcr_on_C1_FDR_32,    /* 0x1365: C1_FDR_32 LcrOn */
     _sys_lcr_law,    /* 0x1366: Sys LcrLaw (whole desk) */
-    0;  /* 0x1367 */
+    _meas_chan_C1_TEST_MEAS,    /* 0x1367: C1_TEST_MEAS measured channel */
+    _meas_rms_C1_TEST_MEAS,    /* 0x1368: C1_TEST_MEAS RMS result, dBFS */
+    _meas_thd_C1_TEST_MEAS,    /* 0x1369: C1_TEST_MEAS THD+N result, dB */
+    _meas_noise_C1_TEST_MEAS,    /* 0x136A: C1_TEST_MEAS noise result, dBFS */
+    _meas_xsrc_C1_TEST_MEAS,    /* 0x136B: C1_TEST_MEAS crosstalk source */
+    _meas_xdst_C1_TEST_MEAS,    /* 0x136C: C1_TEST_MEAS crosstalk destination */
+    _meas_xtalk_C1_TEST_MEAS,    /* 0x136D: C1_TEST_MEAS crosstalk result, dB */
+    _meas_seq_C1_TEST_MEAS,    /* 0x136E: C1_TEST_MEAS window serial (no cell; bench read-back) */
+    _osc_on_C1_TEST_OSC,    /* 0x136F: C1_TEST_OSC on */
+    _osc_freq_C1_TEST_OSC,    /* 0x1370: C1_TEST_OSC frequency, Hz */
+    _osc_level_C1_TEST_OSC,    /* 0x1371: C1_TEST_OSC level, linear amplitude */
+    _osc_chan_C1_TEST_OSC,    /* 0x1372: C1_TEST_OSC target channel */
+    _osc_sweep_on_C1_TEST_OSC,    /* 0x1373: C1_TEST_OSC sweep arm */
+    _osc_sweep_step_C1_TEST_OSC,    /* 0x1374: C1_TEST_OSC sweep step, codes */
+    0,  /* 0x1375: C1_TEST_OSC reserved */
+    0,  /* 0x1376: C1_TEST_OSC reserved */
+    0;  /* 0x1377 */
 
-/* ---- Chip 1 ramp-stride table (4968 entries) ---- */
+/* ---- Chip 1 ramp-stride table (4984 entries) ---- */
 /*
  * Companion to the dispatch table above, same indexing.
  *   0      -- no ramp state; the SPI handler writes the word directly
@@ -6841,7 +6871,7 @@
  * 802 ramped entries; strides {1: 162, 2: 64, 6: 192, 12: 384}
  */
 .global _spi_dispatch_c1_stride;
-.var _spi_dispatch_c1_stride[4968] =
+.var _spi_dispatch_c1_stride[4984] =
     1,  /* 0x0000: C1_GAIN_01 gain coeff */
     0,  /* 0x0001: C1_GAIN_01 polarity */
     0,  /* 0x0002: phantom (MCU-only) */
@@ -11809,9 +11839,25 @@
     0,  /* 0x1364: C1_FDR_31 LcrOn */
     0,  /* 0x1365: C1_FDR_32 LcrOn */
     0,  /* 0x1366: Sys LcrLaw (whole desk) */
-    0;  /* 0x1367 */
+    0,  /* 0x1367: C1_TEST_MEAS measured channel */
+    0,  /* 0x1368: C1_TEST_MEAS RMS result, dBFS */
+    0,  /* 0x1369: C1_TEST_MEAS THD+N result, dB */
+    0,  /* 0x136A: C1_TEST_MEAS noise result, dBFS */
+    0,  /* 0x136B: C1_TEST_MEAS crosstalk source */
+    0,  /* 0x136C: C1_TEST_MEAS crosstalk destination */
+    0,  /* 0x136D: C1_TEST_MEAS crosstalk result, dB */
+    0,  /* 0x136E: C1_TEST_MEAS window serial (no cell; bench read-back) */
+    0,  /* 0x136F: C1_TEST_OSC on */
+    0,  /* 0x1370: C1_TEST_OSC frequency, Hz */
+    0,  /* 0x1371: C1_TEST_OSC level, linear amplitude */
+    0,  /* 0x1372: C1_TEST_OSC target channel */
+    0,  /* 0x1373: C1_TEST_OSC sweep arm */
+    0,  /* 0x1374: C1_TEST_OSC sweep step, codes */
+    0,  /* 0x1375: C1_TEST_OSC reserved */
+    0,  /* 0x1376: C1_TEST_OSC reserved */
+    0;  /* 0x1377 */
 
-/* ---- Chip 1 wire-unit conversion table (4968 entries) ---- */
+/* ---- Chip 1 wire-unit conversion table (4984 entries) ---- */
 /*
  * Companion to the dispatch table above, same indexing.
  * The SPI handler applies this to the incoming word BEFORE
@@ -11829,10 +11875,10 @@
  * kernel word gets a conversion, and every address that
  * family reaches carries it.
  *
- * 64 of 4968 addresses carry a conversion.
+ * 64 of 4984 addresses carry a conversion.
  */
 .global _spi_dispatch_c1_convert;
-.var _spi_dispatch_c1_convert[4968] =
+.var _spi_dispatch_c1_convert[4984] =
     0,  /* 0x0000: C1_GAIN_01 gain coeff */
     0,  /* 0x0001: C1_GAIN_01 polarity */
     0,  /* 0x0002: phantom (MCU-only) */
@@ -16800,9 +16846,25 @@
     0,  /* 0x1364: C1_FDR_31 LcrOn */
     0,  /* 0x1365: C1_FDR_32 LcrOn */
     0,  /* 0x1366: Sys LcrLaw (whole desk) */
-    0;  /* 0x1367 */
+    0,  /* 0x1367: C1_TEST_MEAS measured channel */
+    0,  /* 0x1368: C1_TEST_MEAS RMS result, dBFS */
+    0,  /* 0x1369: C1_TEST_MEAS THD+N result, dB */
+    0,  /* 0x136A: C1_TEST_MEAS noise result, dBFS */
+    0,  /* 0x136B: C1_TEST_MEAS crosstalk source */
+    0,  /* 0x136C: C1_TEST_MEAS crosstalk destination */
+    0,  /* 0x136D: C1_TEST_MEAS crosstalk result, dB */
+    0,  /* 0x136E: C1_TEST_MEAS window serial (no cell; bench read-back) */
+    0,  /* 0x136F: C1_TEST_OSC on */
+    0,  /* 0x1370: C1_TEST_OSC frequency, Hz */
+    0,  /* 0x1371: C1_TEST_OSC level, linear amplitude */
+    0,  /* 0x1372: C1_TEST_OSC target channel */
+    0,  /* 0x1373: C1_TEST_OSC sweep arm */
+    0,  /* 0x1374: C1_TEST_OSC sweep step, codes */
+    0,  /* 0x1375: C1_TEST_OSC reserved */
+    0,  /* 0x1376: C1_TEST_OSC reserved */
+    0;  /* 0x1377 */
 
-/* ---- Chip 1 recompute (dirty) table (4968 entries) ---- */
+/* ---- Chip 1 recompute (dirty) table (4984 entries) ---- */
 /*
  * Companion to the dispatch table above, same indexing.
  *   0   -- the written word IS the kernel word; nothing more
@@ -16818,10 +16880,10 @@
  * gain arrived, instead of comparing every band against a
  * shadow on every block of every node.
  *
- * 0 of 4968 addresses raise a flag; 0 distinct flags.
+ * 0 of 4984 addresses raise a flag; 0 distinct flags.
  */
 .global _spi_dispatch_c1_dirty;
-.var _spi_dispatch_c1_dirty[4968] =
+.var _spi_dispatch_c1_dirty[4984] =
     0,  /* 0x0000: C1_GAIN_01 gain coeff */
     0,  /* 0x0001: C1_GAIN_01 polarity */
     0,  /* 0x0002: phantom (MCU-only) */
@@ -21789,7 +21851,23 @@
     0,  /* 0x1364: C1_FDR_31 LcrOn */
     0,  /* 0x1365: C1_FDR_32 LcrOn */
     0,  /* 0x1366: Sys LcrLaw (whole desk) */
-    0;  /* 0x1367 */
+    0,  /* 0x1367: C1_TEST_MEAS measured channel */
+    0,  /* 0x1368: C1_TEST_MEAS RMS result, dBFS */
+    0,  /* 0x1369: C1_TEST_MEAS THD+N result, dB */
+    0,  /* 0x136A: C1_TEST_MEAS noise result, dBFS */
+    0,  /* 0x136B: C1_TEST_MEAS crosstalk source */
+    0,  /* 0x136C: C1_TEST_MEAS crosstalk destination */
+    0,  /* 0x136D: C1_TEST_MEAS crosstalk result, dB */
+    0,  /* 0x136E: C1_TEST_MEAS window serial (no cell; bench read-back) */
+    0,  /* 0x136F: C1_TEST_OSC on */
+    0,  /* 0x1370: C1_TEST_OSC frequency, Hz */
+    0,  /* 0x1371: C1_TEST_OSC level, linear amplitude */
+    0,  /* 0x1372: C1_TEST_OSC target channel */
+    0,  /* 0x1373: C1_TEST_OSC sweep arm */
+    0,  /* 0x1374: C1_TEST_OSC sweep step, codes */
+    0,  /* 0x1375: C1_TEST_OSC reserved */
+    0,  /* 0x1376: C1_TEST_OSC reserved */
+    0;  /* 0x1377 */
 
 /* Samples per millisecond, IEEE-754 float32 bits (48 at 48000 Hz). */
 .global _spi_dispatch_c1_spms;

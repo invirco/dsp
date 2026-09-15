@@ -407,7 +407,8 @@ def unreached_reason(nid):
 _current_node = {'id': '', 'type': ''}
 
 
-def add_cell(cell_name, chip, spi_page, spi_addr, table='', ramp_profile='', notes=''):
+def add_cell(cell_name, chip, spi_page, spi_addr, table='', ramp_profile='',
+             notes='', access=None):
     # A node with no master category is expanded with an empty category, so
     # cn() hands us `000CompAtt001` -- not a cell, but the graph reaching
     # past the product definition. Drop it here rather than let it into
@@ -422,6 +423,13 @@ def add_cell(cell_name, chip, spi_page, spi_addr, table='', ramp_profile='', not
         'table': table,
         'ramp_profile': ramp_profile,
         'notes': notes,
+        # WHO WRITES THE WORD, where the node type is not enough to say.
+        # Until S49 the only read-back words in the map were a METER's, and
+        # `_dsp_csv_row` could read `ro` straight off the node type. The
+        # self-test nodes publish FOUR words and take TWELVE, so the
+        # distinction moved down to the cell. None = decide from the type,
+        # which is every cell that existed before.
+        'access': access,
         'node': _current_node['id'],
         'node_type': _current_node['type'],
     }
@@ -1128,6 +1136,91 @@ def expand_noise_gen(node, cat, inst):
     add_dispatch(chip, base + 3, None, f'{nid} route bitmask')
 
 
+# ── TEST_OSC / TEST_MEAS  (S49) ──────────────────────────────────────────
+#
+# The `Test[1-1]*` family, sixteen SPI words across two nodes. Both blocks
+# sit ABOVE every other chip-1 address, which is the only placement that
+# adds cells without moving one: the allocator in gen_dsp_csv.py packs
+# sequentially, so a node inserted anywhere else shifts the whole map.
+#
+# FOUR OF THE SIXTEEN ARE READ-ONLY. RmsResult, ThdResult, NoiseResult and
+# XtalkResult are written by the DSP and polled by the host -- the same
+# shape as `ChanCompMtr`, which S23 published through the meter's own SPI
+# block. The Access column of the proposed dsp.csv says so, and it says so
+# because the dispatch symbol is the node's published word rather than a
+# coefficient the handler writes into.
+def expand_test_osc(node, cat, inst):
+    chip, pg, base, nid, ramp = _parse_node(node)
+    # 8 words: on, freq, level, chan, sweepOn, sweepStep, +2 reserved
+    add_cell(cn(cat, inst, 'OscOn', 1), chip, pg, base, '', 'InstantCtl')
+    add_dispatch(chip, base, f'_osc_on_{nid}', f'{nid} on')
+
+    add_cell(cn(cat, inst, 'OscFreq', 1), chip, pg, base + 1,
+             '0=20/127=20000/[Log]', 'InstantCtl')
+    add_dispatch(chip, base + 1, f'_osc_freq_{nid}', f'{nid} frequency, Hz')
+
+    add_cell(cn(cat, inst, 'OscLevel', 1), chip, pg, base + 2,
+             '0=-60/127=0/[Lin]', 'InstantCtl')
+    add_dispatch(chip, base + 2, f'_osc_level_{nid}',
+                 f'{nid} level, linear amplitude')
+
+    add_cell(cn(cat, inst, 'OscChan', 1), chip, pg, base + 3, '', 'InstantCtl')
+    add_dispatch(chip, base + 3, f'_osc_chan_{nid}', f'{nid} target channel')
+
+    add_cell(cn(cat, inst, 'SweepOn', 1), chip, pg, base + 4, '', 'InstantCtl')
+    add_dispatch(chip, base + 4, f'_osc_sweep_on_{nid}', f'{nid} sweep arm')
+
+    add_cell(cn(cat, inst, 'SweepStep', 1), chip, pg, base + 5, '',
+             'InstantCtl')
+    add_dispatch(chip, base + 5, f'_osc_sweep_step_{nid}',
+                 f'{nid} sweep step, codes')
+
+    add_dispatch(chip, base + 6, None, f'{nid} reserved')
+    add_dispatch(chip, base + 7, None, f'{nid} reserved')
+
+
+def expand_test_meas(node, cat, inst):
+    chip, pg, base, nid, ramp = _parse_node(node)
+    # 8 words: MeasChan, 3 results, XtalkSrc/Dst/Result, window serial
+    add_cell(cn(cat, inst, 'MeasChan', 1), chip, pg, base, '', 'InstantCtl')
+    add_dispatch(chip, base, f'_meas_chan_{nid}', f'{nid} measured channel')
+
+    add_cell(cn(cat, inst, 'RmsResult', 1), chip, pg, base + 1, '', '',
+             notes='read-back: total RMS of MeasChan, dBFS', access='ro')
+    add_dispatch(chip, base + 1, f'_meas_rms_{nid}', f'{nid} RMS result, dBFS')
+
+    add_cell(cn(cat, inst, 'ThdResult', 1), chip, pg, base + 2, '', '',
+             notes='read-back: THD+N relative to total, dB', access='ro')
+    add_dispatch(chip, base + 2, f'_meas_thd_{nid}', f'{nid} THD+N result, dB')
+
+    add_cell(cn(cat, inst, 'NoiseResult', 1), chip, pg, base + 3, '', '',
+             notes='read-back: noise+distortion level, dBFS', access='ro')
+    add_dispatch(chip, base + 3, f'_meas_noise_{nid}',
+                 f'{nid} noise result, dBFS')
+
+    add_cell(cn(cat, inst, 'XtalkSrc', 1), chip, pg, base + 4, '',
+             'InstantCtl')
+    add_dispatch(chip, base + 4, f'_meas_xsrc_{nid}', f'{nid} crosstalk source')
+
+    add_cell(cn(cat, inst, 'XtalkDst', 1), chip, pg, base + 5, '',
+             'InstantCtl')
+    add_dispatch(chip, base + 5, f'_meas_xdst_{nid}',
+                 f'{nid} crosstalk destination')
+
+    add_cell(cn(cat, inst, 'XtalkResult', 1), chip, pg, base + 6, '', '',
+             notes='read-back: XtalkDst against XtalkSrc, dB', access='ro')
+    add_dispatch(chip, base + 6, f'_meas_xtalk_{nid}',
+                 f'{nid} crosstalk result, dB')
+
+    # The window serial has NO CELL: the masters do not carry one, and this
+    # repo proposes ADDRESSES for cells the masters name -- it does not
+    # invent cell names. The word is dispatched so a bench tool can read it
+    # by address, and it is named in the address map so the hub can see it
+    # when the family next comes up for a contract change.
+    add_dispatch(chip, base + 7, f'_meas_seq_{nid}',
+                 f'{nid} window serial (no cell; bench read-back)')
+
+
 # ── FX_ENGINE ────────────────────────────────────────────────────────────
 def expand_fx_engine(node, cat, inst):
     chip, pg, base, nid, ramp = _parse_node(node)
@@ -1385,6 +1478,8 @@ NODE_EXPANDERS = {
     'METER':          expand_meter,
     'TALKBACK':       expand_talkback,
     'NOISE_GEN':      expand_noise_gen,
+    'TEST_OSC':       expand_test_osc,
+    'TEST_MEAS':      expand_test_meas,
     'FX_ENGINE':      expand_fx_engine,
     'CROSSOVER':      expand_crossover,
     'MONITOR':        expand_monitor,
@@ -1461,6 +1556,7 @@ _NODE_PATTERNS = [
     (re.compile(r'^C1_MTR_(\d+)$'),                    lambda m: ('Chan', int(m.group(1)))),
     (re.compile(r'^C1_TALK_(\d+)$'),                   lambda m: ('Talk', int(m.group(1)))),
     (re.compile(r'^C1_NOISE$'),                        lambda m: ('Noise', 1)),
+    (re.compile(r'^C1_TEST_(?:OSC|MEAS)$'),            lambda m: ('Test', 1)),
     (re.compile(r'^C1_BUS_'),                          lambda m: None),  # skip bus cells
     # Aux (Chip 2)
     (re.compile(rf'^C2_AUX_(?:{_AUX_TYPES})_(\d+)$'), lambda m: ('Aux', int(m.group(1)))),
@@ -2822,7 +2918,9 @@ def _unmapped_reason(cell, mcu_prefixes):
 def _dsp_csv_row(name, cm):
     rp = RAMP_PROFILES.get(cm['ramp_profile'], RAMP_PROFILES[''])
     sym = dispatch.get((cm['chip'], cm['spi_addr']), (None, ''))[0]
-    if cm['node_type'] == 'METER':
+    if cm.get('access'):
+        access = cm['access']
+    elif cm['node_type'] == 'METER':
         access = 'ro'
     elif sym is None:
         access = 'mcu'
