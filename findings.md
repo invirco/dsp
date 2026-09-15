@@ -6,6 +6,78 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE IMAGE HAD NO STIMULUS IN THE AUDIO BAND AT ALL; ONE WAS BUILT, AND IT IS VERIFIED ON THE PART (2026-09-15, session 48 part 4)
+
+**S48-19. The DC discriminator is void by construction, and the hub's netlist
+trace says why.** The XLR OUT_01 path is U81 → RC → U82 (NJM4580) →
+**C747/C748 electrolytic AC coupling** → R1875/R1876 → J45 pins 2/3 (spark
+gaps SG51/52, J9.19/20 in parallel). A parked DC level therefore reads **zero
+on a DMM by design**, however healthy the DAC is. This was flagged in advance
+in S48-18 rather than discovered after the fact, so no null reading was
+mis-scored — but the test itself cannot run on this hardware and is withdrawn.
+`dsp4_s48_drive.py --dc` is kept only for a DC-coupled probe point upstream of
+C747/C748.
+
+**S48-20. Neither of the two stimuli this firmware already had can be read on
+a DMM, and that is why a third was built.** Three candidates, all rejected on
+measurement or on arithmetic: `scope.asm`'s **impulse and step** are DC or
+single-shot; **`DSP4_PROFILE_SIGNAL`'s square alternates EVERY SAMPLE**, so it
+is Fs/2 = **24 kHz**, which the AK4458's reconstruction filter removes and no
+DMM AC range reaches; and the **host-toggled step** is limited to about
+**1 Hz** because the parameter link is serviced once per block. The band a DMM
+reads — roughly 40 Hz to 1 kHz — was empty.
+
+**S48-21. A square generator was added to the block injector, and the shipping
+image is provably untouched.** `scope.asm` gains a square mode gated entirely
+behind `DSP4_SCOPE_BLK_TAP`. **No new diag register**: the half-period rides in
+`_scope_mode` itself — **bit 16 selects square, bits 15:0 are the half-period
+in BLOCKS** — which keeps the rule the file's own S9-5 note sets, that a bench
+instrument's parameter does not go into the shipping register map. The
+half-period is counted in **blocks, not samples**, deliberately: that puts at
+most one sign change per block, so the decision sits outside the sample loop
+and no condition flags are live across it — the SHARC flag hazard that a
+per-sample version would have had. `_scope_sq_phase` is a **flip counter whose
+bit 0 is the sign**, so zero is a valid starting state and nothing needs
+initialising at arm time. f = Fs/(2·N·BLOCK) = **1500/N Hz** at 48 kHz and
+BLOCK 16. **The control arm proves the confinement: `DSP4_SCOPE_BLK_TAP=0`
+after the change still builds `825f9b7dac5978c973550c8e40819ba9` /
+`7b1311e8e56f008fa98046cab59293c6` — the S42 pair, byte for byte.** The
+witness pair is `81f4f954f91d08947775a230108edf3c` /
+`530db1e3049bff1dc6446f5777b1acce` (chip 1: 6,160 symbols, +2 for the new
+state vars), staged by hash at `/home/app/s48sq_81f4f954`, md5-verified both
+sides, with `/home/app/s42` and `/home/app/s48tap_289421ed` intact.
+
+**S48-22. The first self-test FAILED, and the failure was the test, not the
+generator.** Capturing `_buf_C1_IN_06` while driving the square returned ADC
+dither (`0x20`, `0x40`, `0x60`) and no square at any N. That reads as "the new
+asm does not work". It does: `_scope_sq_phase` advances at **~990 flips/s
+against a designed 3000/3 = 1000/s** for N=3, and `_scope_inj_blk` = 0x90330.
+**The IN node's tap runs BEFORE the injector overwrites the pool slot**, so the
+correct tap point is downstream. Re-run on `_buf_C1_GAIN_06`, on the part:
+
+| N | expected half-period | measured | amplitude |
+|---:|---:|---:|---|
+| 1 | 16 samples (1500.0 Hz) | **16** | `0x01000000`, all 1024 samples |
+| 3 | 48 samples (500.0 Hz) | **48** | `0x01000000` |
+| 15 | 240 samples (100.0 Hz) | **240** | `0x01000000` |
+
+Exact periods at three frequencies two decades apart and the exact injected
+amplitude on every sample. **`C2_AUX_OUT_01` then carries it at ±0.50000 Q4.28
+= −6.02 dBFS**, both polarities present, against a −92 dBFS floor with the
+injector off. The generator is verified end to end from the injector to the
+transmit lane.
+
+**S48-23. A detached background launch silently produced a dead drive, and a
+zero-byte log was the only sign.** `nohup`/`setsid` over ssh left the process
+either unstarted or killed with an **empty** log, while an earlier variant left
+it running but with Python's stdout buffered — also an empty log, but with the
+drive alive. Both look identical from the desk, and either would have had PW
+reading a DMM against a stimulus that was not there. The fix is to keep the
+ssh session open and run `python3 -u`, so the log carries
+`_scope_inj_blk = 0x90330 (FIRED)` and a live elapsed counter as the witness
+that the drive is actually up. **Never ask for a hands-on reading without a
+live witness that the stimulus is running.**
+
 ## THE DACs NEED NO REGISTER WRITE, AND "TDM128" WAS A DECODE ERROR IN THIS REPO'S OWN COMMENT (2026-09-15, session 48 part 3 — bench + netlist)
 
 **S48-15. The serial-control candidate is refuted on the netlist, and it was

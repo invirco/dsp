@@ -83,6 +83,33 @@
  * slot is a chip-1 RX slot that no block kernel reads; 0 otherwise. */
 .global _scope_inj_blk;
 .var _scope_inj_blk = 0;
+/* SQUARE-WAVE STATE (S48, 2026-09-15). Instrument only, and it exists
+ * because this image had no stimulus in the audio band at all: scope.asm
+ * does impulse and step, DSP4_PROFILE_SIGNAL's square alternates EVERY
+ * SAMPLE (Fs/2 = 24 kHz, which the AK4458 reconstruction filter removes),
+ * and a host-toggled step is limited to about 1 Hz by the parameter link.
+ * None of the three can be read on a DMM's AC range through an
+ * AC-coupled output stage, which is what the D24's XLR out is
+ * (U81 -> U82 NJM4580 -> C747/C748 electrolytic -> J45).
+ *
+ * NO NEW DIAG REGISTER: the half-period rides in _scope_mode itself --
+ * bit 16 selects square, bits 15:0 are the half-period IN BLOCKS. Putting
+ * a bench instrument's parameter in the shipping register map is what the
+ * DSP4_SCOPE_BLK_TAP note above refuses to do, and this keeps that rule.
+ *
+ * HALF-PERIOD IS COUNTED IN BLOCKS, NOT SAMPLES, and that is deliberate:
+ * it puts at most one sign change in a block, so the decision sits
+ * OUTSIDE the sample loop and the loop stays a straight-line store with
+ * no condition flags live across it. f = Fs / (2*N*BLOCK); at 48 kHz and
+ * BLOCK 16 that is 1500/N Hz -- N=1 1500 Hz, 2 750, 3 500, 5 300,
+ * 15 100 Hz -- which covers the band a DMM will read.
+ *
+ * _scope_sq_phase is a FLIP COUNTER whose bit 0 is the sign, so zero is a
+ * valid starting state and nothing has to be initialised at arm time. */
+.global _scope_sq_cnt;
+.var _scope_sq_cnt = 0;
+.global _scope_sq_phase;
+.var _scope_sq_phase = 0;
 #endif
 
 /* BLOCK-AWARE WITNESS (DSP4_SCOPE_BLK_TAP, 2026-09-09, findings S9-5).
@@ -272,6 +299,13 @@ _scope_inject_blk:
     i4 = r0;
     r5 = dm(_scope_amp);
     r3 = dm(_scope_mode);
+#if DSP4_SCOPE_BLK_TAP
+    r4 = 0x10000;                         /* square select, see _scope_sq_cnt */
+    r6 = r3 AND r4;
+    r4 = 0;
+    comp(r6, r4);
+    if ne jump (pc, .sib_sq);
+#endif
     r4 = 2;
     comp(r3, r4);
     if eq jump (pc, .sib_step);
@@ -331,6 +365,39 @@ _scope_inject_blk:
     r2 = 1;
     dm(_scope_go) = r2;
     rts;
+#if DSP4_SCOPE_BLK_TAP
+.sib_sq:
+    /* SQUARE. r3 = mode; bits 15:0 = half-period in BLOCKS. Clobbers only
+     * r0/r2/r3/r4/r6 and i4, inside this routine's stated r0-r6 contract. */
+    r4 = 0xFFFF;
+    r3 = r3 AND r4;                       /* N, the half-period in blocks */
+    r4 = 1;
+    comp(r3, r4);
+    if lt r3 = r4;                        /* N = 0 would never flip */
+    r2 = dm(_scope_sq_cnt);
+    r2 = r2 - 1;
+    r4 = 0;
+    comp(r2, r4);
+    if gt jump (pc, .sib_sq_keep);
+    r6 = dm(_scope_sq_phase);             /* half-period elapsed: flip */
+    r6 = r6 + 1;
+    dm(_scope_sq_phase) = r6;
+    r2 = r3;
+.sib_sq_keep:
+    dm(_scope_sq_cnt) = r2;
+    r6 = dm(_scope_sq_phase);
+    r4 = 1;
+    r6 = r6 AND r4;                       /* bit 0 IS the sign */
+    r0 = r5;
+    r4 = 0;
+    comp(r6, r4);
+    if ne r0 = -r5;
+    r2 = DSP4_BLOCK_SIZE;
+    lcntr = r2, do .sib_sq_lp until lce;
+    .sib_sq_lp:
+        dm(i4, 1) = r0;
+    jump (pc, .sib_go);
+#endif
 _scope_inject_blk.end:
 #endif
 
