@@ -6,6 +6,59 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE MUTE BIT IS NOT INVERTED, AND IT PROVES THE ANALOG SWITCHING WORKS (2026-09-15, session 48 part 6)
+
+**S48-29. The mute-polarity hypothesis is refuted: `mute=1` makes MIC 5
+QUIETER, which is what muting does.** The proposal was that a normally-closed
+mute short released by the bit would make `mute=0` the *muted* state — which
+would explain a preamp amplifying its own noise with a correct gain law while
+passing nothing. It is testable in one measurement and it fails. With the
+500 Hz square driving, gain 63, phantom off, chain verified 200/200 in both
+states (`0xFD` = Q0 set, `0xFC` = Q0 clear):
+
+| ch5 mute bit | chain byte | lane 5 settled floor | stimulus on lane 5 |
+|---|---|---:|---|
+| `mute=1` | `0xFD` | **−87.5 dBFS** | none |
+| `mute=0` | `0xFC` | **−73.7 dBFS** | none |
+
+`mute=1` is **13.8 dB quieter**. If the polarity were inverted, `mute=1` would
+be the connected, noisier, signal-passing state. It is the opposite, so **the
+CLI's labelling is correct, the safe image is correct, and no software fix is
+owed.** (The `mute=1` scan's first pass read −74.69 dBFS before settling to
+−87.5 across the next two passes — the floor was still settling from the chain
+write, not a third state.)
+
+**S48-30. The same measurement is a positive control that the 595 chain
+reaches the analog switching.** A 13.8 dB change in the preamp's own noise
+floor, commanded over the chain and repeatable, proves the shift register's
+output actually drives the channel-5 input switch — not merely that the
+readback matches. Combined with the gain law (S48-28), **both** of the
+channel's control functions are demonstrably live at the hardware.
+
+**S48-31. So the fault is narrowed to the signal path itself, with every
+control proven.** The square is present at J25 pins 2-3 (DMM); the mute switch
+works; the gain switch works; the ADC converts; lane 5 is the right lane. What
+remains is the part of the channel that carries the *signal* from the
+connector into the amplifier — input coupling, protection, or the input
+device. **Same class as the known-dead MIC 1-4 section, whose FET position is
+already under investigation, and the MIC 5-8 section now wants the same
+check.** Nothing further is reachable from the DSP: every DSP-side and
+control-side hypothesis has now been tested and closed.
+
+**S48-32. A background chain relaunched a driver after hand-back, and only a
+process check caught it.** A `while pgrep …; do sleep; done; exec loop.sh`
+waiter was left from the back-to-back window work. Two such waiters kept each
+other alive by matching each other's command line under `pgrep -f`; when one
+was killed the other proceeded to `exec` the loop script, **which begins with
+`rm -f /tmp/s48stop`** — so the stop flag was cleared and a queued scan began
+driving the output again *after* `chain-safe` had been issued. A first cleanup
+attempt also killed its own ssh session (exit 255) because `pkill -f` matched
+the pattern inside its own command line. Both are recorded because either
+could leave a unit driving an output with the operator believing it handed
+back. **Rules that follow: never let a cleanup script clear its own stop flag;
+write `pkill -f` patterns so they cannot self-match (`dsp4_s48_[s]can.py`);
+and verify hand-back by listing processes, not by having issued the stop.**
+
 ## THE SQUARE LEAVES THE UNIT AND REACHES THE MIC CONNECTOR; THE BREAK IS INSIDE THE MIC 5 CHANNEL (2026-09-15, session 48 part 5)
 
 **S48-24. The DAC and its output stage are PROVEN, on a DMM.** With the
