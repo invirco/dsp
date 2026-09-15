@@ -27,12 +27,17 @@ this bench that map is not the running image's -- see
 holds zero" from "the map sent the read somewhere else".
 """
 import json, sys, time
+# Take our own arguments BEFORE argv is cleared. dsp4_scope parses sys.argv
+# at import, so it has to be emptied first -- but reading STRIP/AUX after
+# that emptying silently pinned both to 1, and every "strip N" run since
+# wrote strip 1 while printing the number it was asked for (S48).
+_ARGV = sys.argv[1:]
 sys.argv = ['s']
 sys.path.insert(0, '/home/app/dspboot')
 import dsp4_scope as S
 
-STRIP = int(sys.argv[1]) if len(sys.argv) > 1 else 1
-AUX   = int(sys.argv[2]) if len(sys.argv) > 2 else 1
+STRIP = int(_ARGV[0]) if len(_ARGV) > 0 else 1
+AUX   = int(_ARGV[1]) if len(_ARGV) > 1 else 1
 L = json.load(open('/home/app/dspboot/landed-d24.json'))['cells']
 
 

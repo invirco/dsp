@@ -6,89 +6,136 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
-## FIRST AUDIO DOES NOT HAPPEN TODAY: WITH THE CONVERTERS POWERED, NEITHER SHARC ANSWERS THE PARAMETER LINK, AND WHAT COMES BACK ON MISO IS THE ANALOG BOARD'S 74HC595 CHAIN (2026-09-15, session 48 — bench, MW-D24-2)
+## CS_M WAS HOLDING U2 ON THE PARAMETER LINK; WITH IT RELEASED, THE D24 REACHES ITS FIRST LIVE AUX OUTPUT ON REV C (2026-09-15, session 48 — bench, MW-D24-2, PW and the hub at the bench)
 
-**S48-1. The S42 pair boots exactly as it did in S46, byte for byte and
-millisecond for millisecond, and then nothing answers.** `/home/app/s42`
-was already staged and re-md5'd on the unit before use — `chip1.ldr`
-`825f9b7dac5978c973550c8e40819ba9`, `chip2.ldr`
-`7b1311e8e56f008fa98046cab59293c6`, both the S46 values — with
-`chip1.sym.json`/`chip2.sym.json` carrying 6,155 / 3,894 symbols, this
-build's own map. `matrix-app` stopped; **AN_EN (GPIO26) read `op -- pd | hi`
-before the stop and again after it, so the hub's hand-raised analog rails
-survived the stop and were never written by this session**; pins handed back
-per S8-3 (`6,24 op dh`, `8,12 ip`, `7,9,10,11,22,23,25 a0`). `dsp4_boot.py
---dir /home/app/s42` then reported, twice, on two independent attempts:
-chip 1 **451,584 bytes on CS1 (GPIO6), RDY GPIO8, 605.7 ms**; chip 2
-**308,224 bytes on CS2 (GPIO24), RDY GPIO12, 413.4 / 413.5 ms** — the S46
-timings to a tenth of a millisecond. Both attempts then ended `BOOT VERIFY
-FAILED … cannot phase the parameter link: MAGIC never came back in either
-arrangement`, on **both** chips, and `dsp4_checkchip.py` agreed. Everything
-downstream of the link — the §3 map proof, the §4 node state,
-`dsp4_s42_align.py`, every dBFS reading, the MIC 5 → AUX 1 path itself —
-is unreachable from there, so **gates 1 through 4 of S48 are all blocked at
-the same point**.
+**S48-1. The parameter link was dead because CS_M was idling LOW, and the
+symptom was a plausible-looking lie.** The S42 pair booted exactly as in S46 —
+md5s re-verified on the unit (`825f9b7d…` / `7b1311e8…`), 451,584 B on CS1 in
+605.7 ms and 308,224 B on CS2 in 413.4 ms, S46's timings to a tenth of a
+millisecond — and then `cannot phase the parameter link: MAGIC never came
+back`, on both chips, on two independent attempts. Reading the raw words
+rather than trusting the exception: 400 collect transactions returned **4
+distinct word-pairs and 0 hits on MAGIC**, 390 of them the transmitted word
+**right-shifted by exactly one byte**. Four checks characterised it — MAGIC
+absent at *every* bit offset (not a sub-word phase slip); the delay exactly 8
+bits at both 8 and 10 MHz (synchronous logic, not an MCU); GPIO9 forced
+`a0 pd` then `a0 pu` changing nothing (MISO **driven**, not floating); and the
+decisive A/B, **replies byte-identical with the chip select asserted and
+deasserted**, so the SHARC was driving nothing. **The hub named the cause and
+it was neither the DSPs nor the 595 chain's data: GPIO27 was idling as an
+input with a pull-DOWN, holding CS_M LOW, which leaves the analog MISO buffer
+U2 ENABLED and driving SPI2 MISO continuously** — H1S1 stopped holding CS_M
+high when it was reflashed on 09-14. Changing GPIO27 to input pull-UP (CS_M
+high, U2 tri-stated) fixed it outright: the next probe returned `w0
+0xE0002000 / w1 0xD5B40001` — echo and MAGIC, word-aligned — and the same A/B
+now reads the SHARC with CS asserted and silence with it deasserted. **Recorded
+as a correction: the first write-up of this session attributed the echo to the
+74HC595 chain's own shift output and hypothesised that the over-budget graph
+was starving the link. Both were wrong.** The graph *is* over budget
+(`BLK_OVERRUN` 2,245 / 2,230 at boot) and the link answers perfectly anyway.
 
-**S48-2. What MISO actually carries is the host's own MOSI delayed by
-exactly 8 SCLK bits, and it is the analog board's 74HC595 chain, not a
-SHARC.** Reading the raw words instead of trusting the phasing exception:
-400 collect transactions on chip 1 returned **4 distinct word-pairs and 0
-hits on MAGIC**, 390 of them `0x00E0FE00` against a transmitted
-`0xE0FE0000`, and chip 2 the same with 2 distinct pairs. That is the
-transmitted word right-shifted one byte. Four independent checks pin it
-down: (a) searching the reply for the MAGIC constant **at every bit offset,
-not just word-aligned**, found it nowhere, six tries per chip — so this is
-not the sub-word phase slip it first looks like; (b) the delay is exactly
-**8 bits at 8 MHz and at 10 MHz**, and steps by one more bit in SPI modes
-1/2/3, which is synchronous logic clocked by SCK, not a microcontroller
-bit-banging; (c) with **GPIO9 forced `a0 pd` and then `a0 pu`** the returned
-bytes did not change, so MISO is **driven**, not floating; (d) the decisive
-one — an A/B of identical transactions with the chip select **asserted** and
-**deasserted** returned byte-identical replies on both chips, so **the
-SHARC drives nothing at all**. The source is named in this repo's own
-record, in the S38 bench-state block: *"U2 (MISO buffer) dead and replaced
-by a 1 kΩ link pin 2→4 — the chain end drives SPI0 MISO WEAKLY"*. The
-mic-gain 74HC595 chain sits on the shared `!SPI0/1/2` nets (hardware-map §3),
-its serial output reaches MISO through that 1 kΩ bodge, and **it is only
-powered when AN_EN is high** — which is precisely what changed between S46
-and today. A 1 kΩ source cannot outdrive a SHARC; what we are reading is
-the chain filling a silence the SHARC leaves.
+**S48-2. Gate 1 passes in full, and for the first time on a D24 the strip
+under test is not strip 1.** After the fix: boot `CHIP_ID verified: chip 1 = 1,
+chip 2 = 2`; `dsp4_checkchip.py` **chip check OK**, both chips **BLOCK 16, CCLK
+983.04 MHz, shipping configuration**, kernels `DSP4_SIMD_GRAPH` +
+`DSP4_GATHER_FIRST`; 51 registers to chip 1 and 5 to chip 2. Both chips then
+read **BOOT_STAGE 7 running, PRODUCT_ID 1, SPORT0_ERR_A 0, SPI_ERR_COUNT 0,
+RESP_DROP 0, CGU_FAIL 0**, with `FRAME_COUNT` advancing 31,844 → 676,379 on
+chip 1 (≈3,000 blocks/s, the BLOCK-16 rate at 48 kHz). `dsp4_config.py
+--verify` fails its own read-back on both chips — that is the **known
+CFG_COMMIT desync**, in-process only: a freshly started tool phases the link
+immediately afterwards and reads every register. Map proof
+(`dsp4_s39_symcheck.py`): **agree 5 / disagree 0 / not-in-map 2 on both
+chips**, the sheet's required pass. Node state: **13 ok / 0 mismatch / 0
+unreadable** for `Chan005…` → `Aux001…`, i.e. **MIC 5 → strip 5 → AUX 1 at
+unity, every other strip muted and off both buses**, which is R1's routing
+exactly.
 
-**S48-3. The SHARCs are out of reset and DMA-configured, and that is all
-that can be said for them.** Both SPI_RDY lines read **high** — GPIO12
-against its 10 K pulldown (R34/R22), so genuinely driven, not a Pi pull-up
-artefact — which per `SpiLink`'s own contract means the part is out of reset
-with FCPL=1 flow control configured in `dma_config.c`. Under **300
-back-to-back transactions with CS held asserted, RDY never once fell** on
-either chip. That is weaker evidence than it looks: an autobuffered RX DMA
-drains the FIFO without the core, so RDY high proves the DMA, **not a
-running core**. What is certain is that neither the block-loop poll nor the
-1 kHz timer ISR backstop (in the image since 2026-08-23, and the reason a
-starved main loop still answers) produced a single response in ~1,400
-transactions. **The one bench variable that moved between S46's clean link
-and today is that the converters are now powered and clocking**, so the
-audio graph runs for real for the first time on this image — and S8-2
-measured that graph at `_proc_cyc` 330,389 / 286,757 against a 163,830-cycle
-budget, ~2× over, with chip 1 missing 75.1 % of blocks on a *silent* bus.
-A graph that overruns every block, at a priority above the timer, starves
-both service paths. This is a hypothesis with one decisive test and it is
-**not this session's to run**: R4 makes AN_EN the hub's pin. Dropping AN_EN
-for sixty seconds and re-probing separates the two candidates completely —
-link returns ⇒ the converters' clocks (the graph) are the cause; link stays
-dead ⇒ the cores stopped in the boot itself, a D73-class event on both chips
-at once.
+**S48-3. `dsp4_apply_strip.py` could never write any strip but 1, and said it
+did.** Line 33 is `sys.argv = ['s']` — emptying argv so `dsp4_scope`'s
+import-time parser does not eat the arguments — and `STRIP`/`AUX` are read
+**after** it, so both were pinned to 1 on every invocation. The tool then
+printed `strip 5 -> MAIN and AUX 1` and listed `Chan001…` cells, which is
+exactly the kind of output that reads as success. `dsp4_apply_strip.py 5 1`
+wrote strip 1. **Fixed** by taking `sys.argv[1:]` before the clear, the same
+way `dsp4_s42_align.py` already does it (`_argv = list(sys.argv)`), and
+re-staged; the re-run writes `Chan005…` and reads back 13 ok / 0 mismatch.
+Nothing in the prior record is invalidated — S46 §4 ran `1 1` and correctly
+reported strip 1 — but any future "strip N" claim from before this fix is
+strip 1 wearing another number.
 
-**S48-4. A hazard found on the way, worth a rev-D line: every DSP parameter
-transaction shifts into the live mic-gain chain.** With the analog board
-powered, the shared-bus wiring means the host cannot talk to a DSP without
-clocking data through the 74HC595 shift registers — this session's ~1,400
-probe transactions and both 451 KB boot streams went through them. Nothing
-became audible because the chain **latch is CM4 GPIO27 and was never
-pulsed** (read `ip pd | lo` throughout; R4 and R1 keep the chain to
-`chain-set`/`chain-safe`), and `matrix-app` was restarted at the end so its
-own safe image is the latched one. But "the parameter link writes the mic
-gains" is only one stray latch away, and it belongs beside the existing
-two-master item in `MW/D24/HW/hardware-map.md` §3.
+**S48-4. The converters are alive and the RX lanes are right — eight of
+twelve, and the other four are the section PW already knows is dead.**
+`dsp4_s42_align.py` on the part: **MFD PASS on all nineteen lanes of both
+chips** against the generated tables. RX, chip 1's twelve converter lanes:
+**bits 6:0 never set on ANY lane** (the 24-in-32 pad is where it should be),
+bit 31 exercised on every lane (13–20 words of 32), and lanes **5–12 all
+inside the −65…−85 dBFS converter band with eight distinct noise floors** —
+−69.9, −75.0, −72.3, −81.7, −67.6, −81.5, −76.8, −81.5 dBFS. **Lanes 1–4 read
+−113.9, −117.6, −116.1, −118.4 dBFS**, far below the band, and that is the
+**MIC 1–4 section the bench state records as DEAD** (FET position under
+investigation) — not a DSP fault, and the tool scores it `**BAD**` only
+because its band test has no notion of an unpopulated analog section. The
+tool's overall RX verdict is therefore FAIL on a bank that is eight-twelfths
+correct; it wants the same kind of guard S46 gave it for an undriven bus.
+Chip 2's inter-chip receive resolves by name, with `C2_RECV_MAIN_L` and
+`C2_RECV_AUX_01` carrying **16 distinct values** and the idle lanes 1 — the
+two lanes strip 5 actually feeds.
+
+**S48-5. AUX 1 is LIVE, and §5.3's criterion is met on the part for the first
+time.** `C2_AUX_OUT_01` (off 7, stride 8) reads **|peak| 0.00423 Q4.28 =
+−65.5 dBFS, 8 of 8 words non-zero** — comfortably **inside the ±1.0 Q4.28
+criterion**, where S39-6 read 1.538 (+3.75 dBFS, above full scale) and S46
+read exactly 0.00000 on an unpowered bank. S46's honest caveat was that 0 is
+also what a dead path reads and the lane *"will only be proved live when the
+converters are"*. **They now are, and it is.** `C2_MAIN_OUT_01`/`_02` and
+`C2_MAIN_ST_OUT` are live too (−61.8 / −60.5 / −62.1 dBFS, 8/8 non-zero).
+Note this proves what the DSP handed the AK4458, not what the AK4458 latched.
+
+**S48-6. The analog loop is CORRELATED but not yet proved at level, and the
+stimulus — not the loop — is what is missing.** With PW's cable patched rear
+XLR OUT_01 → MIC 5, `Aux001Mute001` was toggled across five alternating arms
+against a control lane that the loop does not feed. MIC 5's RX lane:
+**open −68.19, −68.17, −68.32 dBFS; muted −68.55, −68.62 dBFS** — no overlap
+between the arms, mean delta **+0.36 dB**. Control lane 9 over the same arms:
+**+0.05 dB**. So the looped lane moves **seven times** the control's movement,
+repeatably, in the right direction, and it tracks a control this session
+owns. But **+0.36 dB is under S40 gate 3's 1 dB bar**, and the reason is that
+the only thing on the bus is the strip's own converter noise: AUX 1 leaves at
+−65.5 dBFS and comes back ~7 dB under MIC 5's own floor. **This is "the
+stimulus is below the noise", not "the loop is open".**
+
+**S48-7. The image's host-settable injector cannot drive the node chain, and
+believing it would have produced a wrong finding.** `scope.asm` offers impulse
+and step only (S39-9). Driving `_buf_C1_IN_05` with a 0.25 Q4.28 step
+(mode 2) and capturing that same address returns **`04000000` for all 1,024
+samples** — the injector works perfectly. But the AUX 1 and MAIN TX lanes
+**never rose above their noise** during injection, and the naive reading of
+that is "the step dies inside strip 5", which is the S38-5 / item-17 defect
+signature and would have been filed as one. It is not. `scope.asm`'s own
+comment settles it: under `DSP4_BLOCK_KERNELS` **both** injectors run, the
+per-sample `_scope_inject` is what `_scope_record` captures, and
+`_scope_inject_blk` *"rewrites the whole block and is the write the chain
+actually reads"* — and that one is gated behind the build-time
+`DSP4_SCOPE_BLK_TAP`, with **no memory POKE on the diag link, only PEEK**, so
+the host cannot reach it on this image. **On the shipping D24 image there is
+no host-settable stimulus that reaches the node chain.** A level-grade first
+audio therefore needs either an external source into MIC 5 — which the loop
+patch displaces — or a `DSP4_SCOPE_BLK_TAP` build, which is a hub call, not a
+bench tweak.
+
+**S48-8. `/home/app/dspboot/chip1.sym.json` is not this image's map, and
+peeking through it returns plausible zeros rather than an error.** The staged
+map (`f2e0c082…`) and the dspboot copy (`b694276e…`) differ. A first cut of
+the loop instrument hardcoded the dspboot path, as `dsp4_apply_strip.py` does,
+and every lane read `0.0000000 / -inf` across all five arms — a clean,
+symmetrical, entirely fictional "the converters are silent". `_rx_active_buf`
+peeked as **0**, which then addresses the RX window at absolute 128 and reads
+zeros forever. `dsp4_apply_strip.py` survives the same hardcoding only because
+it deliberately uses no `peek()` at all (its own docstring explains why).
+Both new instruments now take the symbol directory as an argument, defaulting
+to the staged pair, and `dsp4_s48_loop.py` **refuses to measure** if
+`_rx_active_buf` peeks 0 twice.
 
 ## S44 LANDS AS defs-v2026.09.14.1, AND THE STRICT DIFF IS SIX FILES, NOT TWO (2026-09-14, session 47 — desk only, the unit was never touched)
 
