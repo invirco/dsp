@@ -6,6 +6,66 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE SQUARE LEAVES THE UNIT AND REACHES THE MIC CONNECTOR; THE BREAK IS INSIDE THE MIC 5 CHANNEL (2026-09-15, session 48 part 5)
+
+**S48-24. The DAC and its output stage are PROVEN, on a DMM.** With the
+500 Hz square parked, PW read it at **J45 pins 2-3 on AC volts**, and then at
+**J25 pins 2-3** — the MIC 5 input connector — so the signal leaves the unit
+AND arrives at the input connector. Cable and connector are good. Every
+candidate downstream of the DSP up to that connector is closed: the DAC, the
+output stage (U82 NJM4580, C747/C748, R1875/R1876), and the cable.
+
+**S48-25. No analog input lane carries the stimulus, on either chip.** All
+twelve chip-1 converter lanes, OFF/ON/OFF, with the square verified live
+(`_scope_inj_blk = 0x90330`):
+
+| lane | OFF | ON | OFF again |
+|---|---:|---:|---:|
+| 1–4 (dead MIC 1–4 section) | −114…−120 | −115…−118 | −115…−116 |
+| **5 (MIC 5, gain 63)** | **−72.51** | **−71.78** | **−73.35** |
+| 6–12 | −110…−115 | −111…−114 | −110…−116 |
+
+**Lane 5 does not move.** Nothing else does either. The run was done twice;
+the first was perturbed by a concurrent `chain-set` (which drives CS_M) and
+was re-run clean rather than reported.
+
+**S48-26. The two chip-2 lanes that DO rise are the fabric, not the loop —
+and the tool said otherwise.** `C2_RECV_MAIN_L` and `C2_RECV_AUX_01` rise
+**+91.9 dB and +89.8 dB** and fall back cleanly. Those are the **inter-chip
+lanes carrying chip 1's mix buses to chip 2**, i.e. DOWNSTREAM of the
+injection and part of the DSP's own path: strip 6 → MAIN/AUX buses → fabric →
+chip 2. Their rising is **expected**, and it is a good positive control that
+the stimulus is real and reaches the buses — but it is **not** the analog
+return. `dsp4_s48_scan.py` grouped them with the converter lanes and printed
+*"The loop returns on the lane(s) above"*, which would have read as first
+audio. **Corrected in the tool**: chip-2 fabric lanes are now classified and
+reported separately, and only chip-1 lanes 1–12 can answer the loop question.
+Recording it because the wrong version ran first and the output is in the log.
+
+**S48-27. RX lane 5 IS physical channel 5 — the lane-map hypothesis is
+closed.** Only `ch5`'s gain code was ever changed, and lane 5 is the only lane
+that responded: its floor tracked **−133.0 → −107.1 → −101.4 → −96.2 dBFS**
+across gain codes 0/16/32/63, and in the scan above it is the only lane
+sitting 40 dB above the others while every other channel is muted at gain 0.
+A wrong lane↔channel map cannot produce that. So this is **not** the ADC-side
+twin of S42's reversed DAC block.
+
+**S48-28. The break is inside the MIC 5 channel, between the XLR and the ADC,
+and the preamp is alive but not passing its input.** Everything either side is
+now proven: the square is present at J25 pins 2-3 (S48-24); the 595 image for
+physical channel 5 is **verified 200/200 at chain position 9, `0xFC` — Q0
+mute OFF, Q1 phantom OFF, Q2-Q7 gain 63** (readback matches the sent image bit
+for bit, so the switching word is right); RX lane 5 is the right lane
+(S48-27); and the AK5558 is converting, because lane 5 carries a dithered
+floor that **tracks the gain code**. That last point is the sharp one: **the
+preamp amplifies its own noise with a correct gain law while passing none of
+the signal at its input.** So the amplifier and the gain switching work, and
+what fails is the path from the connector into the preamp's input.
+**This is the same class as the known-dead MIC 1-4 section, whose FET position
+is already under investigation** — the MIC 5-8 section should be checked the
+same way. It is a component-level question on the analog board and nothing on
+the DSP side can take it further.
+
 ## THE IMAGE HAD NO STIMULUS IN THE AUDIO BAND AT ALL; ONE WAS BUILT, AND IT IS VERIFIED ON THE PART (2026-09-15, session 48 part 4)
 
 **S48-19. The DC discriminator is void by construction, and the hub's netlist
