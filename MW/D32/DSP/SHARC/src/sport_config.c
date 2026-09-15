@@ -20,8 +20,13 @@
  *
  * MFD IS NOT LOCKED AND IS NOT UNIFORM (S42-1). It was 1 on every half,
  * and on the converter halves that was one bit clock early: the AK5558 /
- * AK4458 are strapped TDM128 in the I2S variant (DIF0-1 = 10 on the D24
- * Analog ADC8 and DAC8 sheets), which puts one BCK between the frame edge
+ * AK4458 are strapped in the I2S variant at 8 slots of 32 bits = 256 BCK
+ * per frame, i.e. AKM's TDM256 (S42-1 called it TDM128 here; the strap
+ * bits it quoted were right, the decoded name was not -- corrected
+ * 2026-09-15 against the netlist: U81 pin 14 TDM1 = +3V3, pin 13
+ * TDM0 = GND, pin 15 DIF = +3V3. The MFD derivation is unaffected: it
+ * rests on the I2S variant and on where LOGIC puts FS, not on the name).
+ * The I2S variant puts one BCK between the frame edge
  * and the MSB, on top of the one BCK LOGIC already leaves by asserting FS
  * in the period before slot 0. So a converter half needs MFD = 2, while
  * the two halves the CPLD's own re-framer serves (the Pi PCM lane in and

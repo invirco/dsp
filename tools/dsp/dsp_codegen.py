@@ -5721,11 +5721,17 @@ def gen_ramp_tables():
 # ONE -- S39-4 measured the consequence on all twelve chip-1 input lanes
 # and S42-1 named the cause:
 #
-#   The AK5558 ADCs and AK4458 DACs are pin-strapped TDM128 in the *I2S*
-#   variant (D24 Analog sheet 13/64 "ADC8": DIF0-1 = 10 = I2S 24-bit,
-#   TDM0-1 = 01, ODP = 1 = normal TDM128 outputs; the DAC8 sheet carries
-#   the same two straps). The I2S variant puts ONE bit clock between the
-#   frame edge and the MSB. LOGIC asserts FS one BCK8 period before slot 0
+#   The AK5558 ADCs and AK4458 DACs are pin-strapped in the *I2S* variant,
+#   at 8 slots of 32 bits = 256 BCK per frame -- which is AKM's TDM256.
+#   (S42-1 wrote "TDM128" here and in sport_config.c; the STRAP BITS it
+#   quoted are right and the decoded NAME was wrong. Corrected 2026-09-15
+#   against the netlist and the AK4458 pin table: U81 pin 14 TDM1 = +3V3,
+#   pin 13 TDM0 = GND -> TDM256; pin 15 DIF = +3V3 -> 32-bit I2S. The DSP
+#   side agrees independently -- shared/dsp4-logic/tdm-lines.csv gives
+#   B_O0 as TDM8/8 slots and the part reads back SLEN 32, WSIZE 8, i.e.
+#   256 BCK. NOTHING BELOW CHANGES: the MFD derivation rests on the I2S
+#   variant and on where LOGIC puts FS, not on the mode's name.)
+#   The I2S variant puts ONE bit clock between the frame edge and the MSB. LOGIC asserts FS one BCK8 period before slot 0
 #   (dsp4_clkgen.v), so the converter's MSB lands TWO periods after the FS
 #   is sampled, not one -- MFD = 2.
 #

@@ -6,6 +6,73 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE DACs NEED NO REGISTER WRITE, AND "TDM128" WAS A DECODE ERROR IN THIS REPO'S OWN COMMENT (2026-09-15, session 48 part 3 — bench + netlist)
+
+**S48-15. The serial-control candidate is refuted on the netlist, and it was
+mine.** S48-13 named "the AK4458s are in serial control mode, unconfigured,
+and nothing in the stack will ever configure them" as a live candidate for the
+silent output, on the reasoning that `!CS_C` exists as a converter chip select
+while no CS_C writer exists anywhere in the tree. **The hub read the netlist
+against the AK4458 pin table and it is wrong: U81 is in PARALLEL control
+mode** — pin 17 I2C = +3V3 and pin 16 PS = +3V3 (PS high with I2C high is
+parallel), so there is no register interface to write and **no register write
+is needed to unmute or to leave power-down**. The rest of the strap set is
+consistent with parallel mode throughout: pin 11 SMUTE = GND (unmuted), pin 12
+DCHAIN = GND, pin 44 LDOE = +3V3, pin 48 PDN = RST_C, SDTI1 (pin 4) the data
+lane with SDTI2-4 grounded. **The candidate is closed.** What remains open on
+the DAC is `!CS_C`'s purpose on a part with no serial interface — provision,
+presumably — and that is a schematic question, not a fault.
+
+**S48-16. "TDM128" in `sport_config.c` and `dsp_codegen.py` is wrong, the
+strap bits quoted beside it are right, and the MFD fix is untouched.** Both
+files record the converters as *"pin-strapped TDM128 in the I2S variant
+(DIF0-1 = 10 = I2S 24-bit, TDM0-1 = 01)"*. The hub's netlist read gives U81
+pin 14 TDM1 = +3V3 and pin 13 TDM0 = GND — **the same two bits**, decoded
+from the AK4458 table as **TDM256**, with pin 15 DIF = +3V3 = 32-bit I2S.
+**Three independent lines agree on 256 and none on 128:** the netlist; the
+slot map, where `shared/dsp4-logic/tdm-lines.csv` gives `B_O0` (DAC8 OUT_1-8,
+the lane carrying AUX 1) as **TDM8, 8 slots**; and the part itself, whose five
+chip-2 transmit SPORTs read **SLEN 32, WSIZE 8** — 8 slots x 32 bits = **256
+BCK per frame**. Also consistent: U81 pins 1 (MCLK) and 2 (BICK) share one net
+at 256fs, which only works because BICK *is* 256fs in TDM256.
+**CRUCIALLY THIS CHANGES NOTHING ABOUT MFD.** S42's derivation rests on the
+*I2S variant* putting one BCK between the frame edge and the MSB, and on LOGIC
+asserting FS one BCK before slot 0 — not on the mode's name. DIF = +3V3
+confirms the I2S variant, so **MFD = 2 on the converter halves stands**, as do
+S46's nineteen-lane register verification and S48's repeat of it. Corrected in
+both files as comments only: `check-contract-drift.sh` passes with nothing but
+those two files dirty, so no generated artefact moves.
+
+**S48-17. The transmit side is enabled and correctly framed on the part.** All
+five chip-2 half-B SPORTs read `CTL 0xC20031F1` — **SPEN = 1**, SLEN 32 — with
+`MCTL` 0x721 on sports 0, 1, 2, 4 and **0x711 on sport 3**, i.e. MCE = 1,
+WSIZE = 8, and **MFD = 2, 2, 2, 1, 2** exactly matching the generated
+`c2_tx_lanes_mfd` table including the deliberate CPLD/fabric exception. That
+match is also what identifies these as the transmit lanes. Together with
+`FRAME_COUNT` advancing at **≈3,000 blocks/s — exactly 48 kHz / BLOCK 16** —
+the DSP end has a valid frame clock and an enabled, correctly framed
+transmitter. **So the break is not the DSP's transmit configuration, not the
+DAC's control mode, and not the absence of a register write.** What is left,
+and none of it is reachable from the DSP: `RST_C` at U81 pin 48 specifically
+(inferred high, because the ADCs are converting and the S MCU drives one
+common `IRST_C` — the hub is checking U92's PDN to close that), the clock and
+data actually arriving at U81's pins across the FPC, the output stage, and the
+loop cable.
+
+**S48-18. Two discriminators ran; one is still waiting on hands.** The DC
+drive was parked for its full 120 s with `_scope_inj_blk = 0x90330` and
+`C2_AUX_OUT_01` held at 0.50000 Q4.28 (−6.02 dBFS), and cleared itself
+afterwards; **PW's DMM reading on J45 pin 2–3 is outstanding.** Recorded in
+advance so a null is not over-read: **a reading proves the DAC and its output
+stage, but a zero disproves nothing** — an AC-coupled or servo'd XLR output
+passes no steady DC however healthy it is; the DMM-compatible follow-up is a
+slow ±A toggle watched on DC volts. The finger test ran two windows totalling
+17.5 minutes with MIC 5 at gain 63 (chain VERIFIED 200/200): the lane sat at
+**−73 to −75 dBFS against control lane 9 at −113 to −117 dBFS**, 40 dB apart,
+so it is demonstrably live and sensitive — and **no rise above 6 dB was
+flagged in either window**. That is recorded as *no touch observed*, not as a
+verdict on the preamp: the windows elapsed while PW was away from chat.
+
 ## THE TAP BUILD REACHES THE DAC LANE AND THE ANALOG CHAIN WAS NOT WHERE IT WAS RECORDED (2026-09-15, session 48 part 2 — bench, MW-D24-2)
 
 **S48-9. `DSP4_SCOPE_BLK_TAP=0` reproduces the S42 pair byte for byte, so the
