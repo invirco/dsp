@@ -260,6 +260,26 @@ analog source (NET only); the LOGIC slot map must route DSPB O1 → DA3.
     is applied at probe time, not per open). A boot with those pins left
     as plain inputs fails 100% of the time and looks exactly like a dead
     part. Restore with `pinctrl set 9,10,11 a0`.
+  - **A THIRD device sits on MISO, and it is only live when the analog
+    board is powered (measured 2026-09-15, S48).** U2, the MISO buffer, is
+    dead on this unit and bodged with a 1 kohm link pin 2->4, so the
+    mic-gain 74HC595 chain's serial output reaches SPI0 MISO directly.
+    With AN_EN high, **MISO carries the host's own MOSI delayed by exactly
+    8 SCLK bits** — measured at 8 and 10 MHz, one further bit in SPI modes
+    1/2/3, unchanged when GPIO9 is forced `a0 pu` vs `a0 pd` (so it is
+    driven, not floating), and **byte-identical with either DSP chip select
+    asserted or deasserted**, which is what identifies it as not the SHARC.
+    It does not steal the bus — 1 kohm cannot outdrive a SHARC — but it
+    fills any silence the DSPs leave with a plausible-looking echo, so a
+    dead parameter link reads as a phase fault rather than as no answer.
+    Read the raw words before believing a phasing exception.
+  - **Consequence, and a rev-D line: with the analog board powered the host
+    cannot address a DSP without clocking data through the live mic-gain
+    shift chain.** Boot streams and parameter transactions alike shift
+    through it. Nothing becomes audible unless the chain latch (CM4 GPIO27)
+    is pulsed, so the isolation today is one stray latch deep. The chain
+    belongs behind its own select, or behind a working U2, before a
+    production unit runs parameters with the rails up.
 - **No link port / no inter-DSP control path** — each DSP is parameterised
   directly over its own SPI CS.
 - **Resets — `!RST_D` net, traced end to end 2026-08-21 (ROOT sheet p1/10).**

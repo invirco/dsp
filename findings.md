@@ -6,6 +6,90 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## FIRST AUDIO DOES NOT HAPPEN TODAY: WITH THE CONVERTERS POWERED, NEITHER SHARC ANSWERS THE PARAMETER LINK, AND WHAT COMES BACK ON MISO IS THE ANALOG BOARD'S 74HC595 CHAIN (2026-09-15, session 48 — bench, MW-D24-2)
+
+**S48-1. The S42 pair boots exactly as it did in S46, byte for byte and
+millisecond for millisecond, and then nothing answers.** `/home/app/s42`
+was already staged and re-md5'd on the unit before use — `chip1.ldr`
+`825f9b7dac5978c973550c8e40819ba9`, `chip2.ldr`
+`7b1311e8e56f008fa98046cab59293c6`, both the S46 values — with
+`chip1.sym.json`/`chip2.sym.json` carrying 6,155 / 3,894 symbols, this
+build's own map. `matrix-app` stopped; **AN_EN (GPIO26) read `op -- pd | hi`
+before the stop and again after it, so the hub's hand-raised analog rails
+survived the stop and were never written by this session**; pins handed back
+per S8-3 (`6,24 op dh`, `8,12 ip`, `7,9,10,11,22,23,25 a0`). `dsp4_boot.py
+--dir /home/app/s42` then reported, twice, on two independent attempts:
+chip 1 **451,584 bytes on CS1 (GPIO6), RDY GPIO8, 605.7 ms**; chip 2
+**308,224 bytes on CS2 (GPIO24), RDY GPIO12, 413.4 / 413.5 ms** — the S46
+timings to a tenth of a millisecond. Both attempts then ended `BOOT VERIFY
+FAILED … cannot phase the parameter link: MAGIC never came back in either
+arrangement`, on **both** chips, and `dsp4_checkchip.py` agreed. Everything
+downstream of the link — the §3 map proof, the §4 node state,
+`dsp4_s42_align.py`, every dBFS reading, the MIC 5 → AUX 1 path itself —
+is unreachable from there, so **gates 1 through 4 of S48 are all blocked at
+the same point**.
+
+**S48-2. What MISO actually carries is the host's own MOSI delayed by
+exactly 8 SCLK bits, and it is the analog board's 74HC595 chain, not a
+SHARC.** Reading the raw words instead of trusting the phasing exception:
+400 collect transactions on chip 1 returned **4 distinct word-pairs and 0
+hits on MAGIC**, 390 of them `0x00E0FE00` against a transmitted
+`0xE0FE0000`, and chip 2 the same with 2 distinct pairs. That is the
+transmitted word right-shifted one byte. Four independent checks pin it
+down: (a) searching the reply for the MAGIC constant **at every bit offset,
+not just word-aligned**, found it nowhere, six tries per chip — so this is
+not the sub-word phase slip it first looks like; (b) the delay is exactly
+**8 bits at 8 MHz and at 10 MHz**, and steps by one more bit in SPI modes
+1/2/3, which is synchronous logic clocked by SCK, not a microcontroller
+bit-banging; (c) with **GPIO9 forced `a0 pd` and then `a0 pu`** the returned
+bytes did not change, so MISO is **driven**, not floating; (d) the decisive
+one — an A/B of identical transactions with the chip select **asserted** and
+**deasserted** returned byte-identical replies on both chips, so **the
+SHARC drives nothing at all**. The source is named in this repo's own
+record, in the S38 bench-state block: *"U2 (MISO buffer) dead and replaced
+by a 1 kΩ link pin 2→4 — the chain end drives SPI0 MISO WEAKLY"*. The
+mic-gain 74HC595 chain sits on the shared `!SPI0/1/2` nets (hardware-map §3),
+its serial output reaches MISO through that 1 kΩ bodge, and **it is only
+powered when AN_EN is high** — which is precisely what changed between S46
+and today. A 1 kΩ source cannot outdrive a SHARC; what we are reading is
+the chain filling a silence the SHARC leaves.
+
+**S48-3. The SHARCs are out of reset and DMA-configured, and that is all
+that can be said for them.** Both SPI_RDY lines read **high** — GPIO12
+against its 10 K pulldown (R34/R22), so genuinely driven, not a Pi pull-up
+artefact — which per `SpiLink`'s own contract means the part is out of reset
+with FCPL=1 flow control configured in `dma_config.c`. Under **300
+back-to-back transactions with CS held asserted, RDY never once fell** on
+either chip. That is weaker evidence than it looks: an autobuffered RX DMA
+drains the FIFO without the core, so RDY high proves the DMA, **not a
+running core**. What is certain is that neither the block-loop poll nor the
+1 kHz timer ISR backstop (in the image since 2026-08-23, and the reason a
+starved main loop still answers) produced a single response in ~1,400
+transactions. **The one bench variable that moved between S46's clean link
+and today is that the converters are now powered and clocking**, so the
+audio graph runs for real for the first time on this image — and S8-2
+measured that graph at `_proc_cyc` 330,389 / 286,757 against a 163,830-cycle
+budget, ~2× over, with chip 1 missing 75.1 % of blocks on a *silent* bus.
+A graph that overruns every block, at a priority above the timer, starves
+both service paths. This is a hypothesis with one decisive test and it is
+**not this session's to run**: R4 makes AN_EN the hub's pin. Dropping AN_EN
+for sixty seconds and re-probing separates the two candidates completely —
+link returns ⇒ the converters' clocks (the graph) are the cause; link stays
+dead ⇒ the cores stopped in the boot itself, a D73-class event on both chips
+at once.
+
+**S48-4. A hazard found on the way, worth a rev-D line: every DSP parameter
+transaction shifts into the live mic-gain chain.** With the analog board
+powered, the shared-bus wiring means the host cannot talk to a DSP without
+clocking data through the 74HC595 shift registers — this session's ~1,400
+probe transactions and both 451 KB boot streams went through them. Nothing
+became audible because the chain **latch is CM4 GPIO27 and was never
+pulsed** (read `ip pd | lo` throughout; R4 and R1 keep the chain to
+`chain-set`/`chain-safe`), and `matrix-app` was restarted at the end so its
+own safe image is the latched one. But "the parameter link writes the mic
+gains" is only one stray latch away, and it belongs beside the existing
+two-master item in `MW/D24/HW/hardware-map.md` §3.
+
 ## S44 LANDS AS defs-v2026.09.14.1, AND THE STRICT DIFF IS SIX FILES, NOT TWO (2026-09-14, session 47 — desk only, the unit was never touched)
 
 **S47-1. The pin moved, the lock updated, and the diff the "how to land it"
