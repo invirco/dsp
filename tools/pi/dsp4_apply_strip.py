@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""dsp4_apply_strip.py <strip> — write a strip's per-strip NODE STATE, and
+"""dsp4_apply_strip.py <strip> [aux] [symdir] — write a strip's per-strip NODE STATE, and
 prove it landed WITHOUT using the host symbol map.
 
 WHAT WRITES PER-STRIP NODE STATE ON A D24 (S39-1). Nothing on the host
@@ -38,6 +38,13 @@ import dsp4_scope as S
 
 STRIP = int(_ARGV[0]) if len(_ARGV) > 0 else 1
 AUX   = int(_ARGV[1]) if len(_ARGV) > 1 else 1
+# THE SYMBOL MAP MUST BE THE RUNNING IMAGE'S, and on this bench
+# /home/app/dspboot/chipN.sym.json is a DIFFERENT build's (S48-8). Nothing
+# here peeks, so the stale map never bit this tool -- but it is one added
+# peek away from reading plausible zeros instead of raising, so the
+# directory is an argument with the staged pair as the default, exactly as
+# dsp4_s42_align.py takes it.
+SYMDIR = _ARGV[2] if len(_ARGV) > 2 else '/home/app/s42'
 L = json.load(open('/home/app/dspboot/landed-d24.json'))['cells']
 
 
@@ -54,7 +61,7 @@ def from_f32(w):
 class Chip:
     def __init__(self, n):
         self.n = n
-        self.sc = S.Scope(n, symfile='/home/app/dspboot/chip%d.sym.json' % n)
+        self.sc = S.Scope(n, symfile='%s/chip%d.sym.json' % (SYMDIR, n))
         self.sc.d.resync(); self.sc.check_chip()
 
     def cell(self, name):

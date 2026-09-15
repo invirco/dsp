@@ -6,6 +6,107 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE TAP BUILD REACHES THE DAC LANE AND THE ANALOG CHAIN WAS NOT WHERE IT WAS RECORDED (2026-09-15, session 48 part 2 — bench, MW-D24-2)
+
+**S48-9. `DSP4_SCOPE_BLK_TAP=0` reproduces the S42 pair byte for byte, so the
+tap is the only variable.** `DSP4_SCOPE_BLK_TAP=0 DSP_BUILD_DIR=/tmp/s48_ctl
+./build.sh all` produced **`825f9b7dac5978c973550c8e40819ba9` (451,544 B) and
+`7b1311e8e56f008fa98046cab59293c6` (307,980 B)** — the staged S42 pair
+exactly. The witness arm is **`289421edacce2e8666369746c2b01796` (459,832 B)
+and `01fa58b12df5a19d87398e6ab9eae43b` (312,608 B)**, staged by hash at
+`/home/app/s48tap_289421ed` and md5-verified on both sides of the copy; the
+S42 pair is untouched and remains the way back. Neither arm logged an error.
+The `ea1092` "undefined symbol `_scope_inject`/`_scope_record`" warnings the
+tap arm emits **also appear in the control arm**, which is the pair proven to
+run on the part, so they are pre-existing per-file assembly warnings resolved
+at link. Identity is positive at three levels: `_scope_inj_blk` is **absent**
+from the shipping map and present in the tap map (6,158 vs 6,155 symbols on
+chip 1), the build banner reads `*** INSTRUMENT BUILD: DSP4_SCOPE_BLK_TAP=1
+taps every node's output block ***`, and **the part itself reports it** —
+`dsp4_checkchip.py` prints `on: DSP4_SIMD_GRAPH, DSP4_SCOPE_BLK_TAP,
+DSP4_GATHER_FIRST  <-- NOT the shipping kernel set`. Boot, map proof (**agree
+5 / disagree 0 / not-in-map 2 on both chips**, against this image's own map)
+and node state (**13 ok / 0 mismatch**) all pass on the tap pair.
+
+**S48-10. The block injector reaches the DAC lane, and the strip's aux path
+SATURATES above about 0.5 Q4.28.** With `_scope_inj` set to the **RX slot**
+(`_rx_slot_C1_IN_NN`, not `_buf_C1_IN_NN` — naming the buffer arms a call site
+that never fires) and the run armed against a `src` that matches no node so
+`_scope_arm` is never cleared, `_scope_inj_blk` reads **0x90330** — the
+per-strip call site fired — and `C2_AUX_OUT_01` goes from **−88 dBFS to
+demand**. The transfer is not constant:
+
+| `_scope_amp` | Q4.28 in | AUX 1 TX out | ratio |
+|---|---:|---:|---:|
+| `0x01000000` | 0.0625 | **0.50000** (−6.02 dBFS) | **×8.00** |
+| `0x02000000` | 0.1250 | 0.84589 (−1.45 dBFS) | ×6.77 |
+| `0x04000000` | 0.2500 | 1.00594 (+0.05 dBFS) | ×4.02 |
+
+Linear at exactly ×8 in the first row and compressing above it — a limiter or
+the tube stage, not a scaling error. **0x01000000 is the linear operating
+point** and every level below is quoted there. Note the third row puts the
+lane at **1.006 Q4.28, just over the ±1.0 criterion** S46 §5.3 applies, so an
+injection that size is already past DAC full scale.
+
+**S48-11. Mute and polarity are exact and reversible through the whole path.**
+At the linear point, `Aux001Mute001` 0 → 1 → 0 gives **0.500000 → 0.000000
+(−inf) → 0.500000**: the mute is absolute, not a finite attenuation, and it
+returns to the same word. `Chan006Pol001` 0 → 1 → 0 gives mean **+0.50000 →
+−0.50000 → +0.50000**: polarity inverts exactly, with |peak| unchanged.
+
+**S48-12. THE ANALOG CHAIN WAS NOT IN THE SAFE STATE THE RECORD SAYS IT WAS,
+and gate 2's RX spread was eight randomly-gained inputs, not eight converter
+noise floors.** The dispatch's bench state records "safe image loaded (every
+input muted, gain minimum, phantom off)". Running `app cli chain-safe` — the
+first sanctioned chain write of the session — **moved every converter lane by
+about 45 dB**, from −67…−82 dBFS to a uniform −111…−117 dBFS. A chain that is
+already safe cannot do that. The mechanism is in the app's own banner for the
+chain, `25x 74HC595, 200 bits, SPI0 shift, CS_M latch, MISO loopback via U2`:
+**every DSP parameter transaction shifts through those 595s**, and CS_M is the
+LATCH. CS_M sat low while the link was dead (S48-1) and went high when the hub
+changed GPIO27's pull — and that rising edge latched whatever the preceding
+DSP traffic had left in the shift register. **So the earlier reading of "eight
+distinct noise floors inside the −65…−85 dBFS band" was eight unknown gain
+codes**, and the band criterion in `dsp4_s42_align.py` — inherited from S39,
+taken the same way — should be re-derived against a chain that is known.
+Corrected baseline, chain verified 200/200 with only ch5 unmuted at gain 0:
+**all twelve lanes −111…−117 dBFS**. The bit tests are unaffected: `lo7` never
+set and bit 31 exercised are framing facts and hold in both states.
+**Procedure that follows: assert the chain, THEN measure, and do not trust an
+analog level taken after DSP traffic without a chain write in between.**
+
+**S48-13. The ADC side is proved live; the DAC side is proved only to the
+transmit lane; the loop returns nothing.** MIC 5's preamp responds to its gain
+code exactly as a preamp should — captured noise floor **−133.0 dBFS at gain
+0, −107.1 at 16, −101.4 at 32, −96.2 at 63** — so the 595 chain, the preamp,
+the AK5558 and the RX lane are all alive and calibrated end to end. But the
+loop does not come back. Driving a step into donor strip 6 → AUX 1 → OUT_01
+and capturing strip 5's input block (the drive and the capture MUST be
+different strips, or the injector overwrites the very slot the return arrives
+on), **the drive-off and drive-on captures are identical to within 0.2 dB at
+every gain**: −107.11/−107.14 at gain 16, −101.38/−101.47 at 32,
+−96.22/−96.44 at 63. An earlier single capture reading −70.31 dBFS at gain 16
+did not reproduce and **the negative arm is what killed it** — without the
+control it would have been filed as first audio. The break is therefore **at
+or after the DAC**: `C2_AUX_OUT_01` proves what the DSP handed the AK4458, and
+nothing on the DSP side can prove what the AK4458 did with it. `!RST_C` is S
+MCU PA11 and the app reports converter reset state as `Unknown`, so the DACs'
+running state has never been established on this unit. The next instrument is
+**PW's scope on OUT_01**, not another number off the DSP;
+`tools/pi/dsp4_s48_drive.py` parks the drive up for as long as he needs.
+
+**S48-14. A peek window cannot see a transient, and that invalidated the first
+loop method.** `rx_rms()` re-reads the same 16-word active block repeatedly, so
+however long it runs it observes about **0.33 ms** of audio. Against a
+host-timed ~1 Hz toggle the odds of landing on the edge are under one in a
+thousand, so an AC-coupled path — which passes only edges — reads as silence
+however alive it is. That is why the levels in S48-6 moved by tenths of a dB.
+The capture path is the right instrument: `_scope_tap` copies whole contiguous
+blocks and `_scope_go` holds recording off until the stimulus is driven, so
+sample 0 of the capture is the edge and 1024 samples is 21.3 ms of continuous
+audio. Any future loop or latency measurement on this bench belongs in a
+capture, not in paced peeks.
+
 ## CS_M WAS HOLDING U2 ON THE PARAMETER LINK; WITH IT RELEASED, THE D24 REACHES ITS FIRST LIVE AUX OUTPUT ON REV C (2026-09-15, session 48 — bench, MW-D24-2, PW and the hub at the bench)
 
 **S48-1. The parameter link was dead because CS_M was idling LOW, and the
