@@ -1,3 +1,20 @@
+## HUB DISPATCH 2026-09-16 17:43Z — S65 — the cue bus and the RTA filterbank on chip 1 (PW), priced driven on D24, proven, meters proposed   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+S65 — THE CUE BUS AND THE RTA, BOTH ON CHIP 1 (PW ruling 2026-09-16: "go with chip 1 for cue bus and RTA"; the D24 on two SHARCs must fit — chip 1 sits near 59 % driven; the D32 figure is reported, not a gate). Desk + unit (digital loop; analog untouched; matrix-app stopped; the chain untouched).
+
+1. THE CUE BUS, from the definition the master already carries: find the cells (Chan/Aux/Grp… Cue on/off, the PFL/AFL mode cell, the cue/monitor level and source cells — name them from defs common/cells/mx_master.csv and the Bible docs/bible/); build a STEREO cue bus on chip 1 = the sum of every cued strip (pre-fader for PFL, post-fader/post-pan for AFL, per the mode cell) and, when NOTHING is cued, the ASSIGNED SOURCE (the cue/monitor source cell — default main L/R; the audio bus, not the cue logic: PW). If a needed cell does not exist, PROPOSE it (contract path), do not invent silently. Deliver the bus to chip 2 over the interchip fabric (state the slots — the matrix mixer crossed at 37–40; is there room?) so the monitor node (C2_MON, which today reads MAIN_FDR only and has no source reader) can carry it to the headphone/monitor outputs — wire that read; state what remains for the monitor path. Priced DRIVEN on chip 1: D24 (must fit) and D32 (reported), cycles + words + code pool, 0 overruns.
+2. THE RTA (S64's filterbank, three biquads per band, 31 × 2, τ 35/125 ms, peak-hold) MOVED to chip 1 reading cue L/R; cost on chip 1 driven (S64 measured +34.4 k cycles per block on chip 2 — same order expected); D24 total with cue bus + RTA must stay ≤ 90 %; proof as S64 (63 Hz / 1 kHz / 8 kHz within 0.5 dB, octave neighbours ≥ 40 dB, other channel, ballistics) through the digital loop with the tone on a cued strip AND, with nothing cued, on the assigned source; the 62 band values as meter words through the existing meter path (name the path and its rate).
+3. CONTRACT PROPOSAL (not landed): RtaOn kept, RtaSrc retired, RtaMode/RtaPeakReset if needed, 62 read-only band meters at chip-1 addresses (S44 way, no moves); any cue cells that were missing. Shipping build behind DSP4_RTA / DSP4_CUE switches, byte-identical with them off.
+4. findings S65-1..4, tasks.md, commit + push, clean; unit as found.
+
+Bounded: ≈ 3 h. Sonnet subagents for the mechanical parts.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-16 16:51Z — S64 — the RTA from the cue bus: stereo 31-band biquad filterbank on chip 2, priced driven, proven, meter cells proposed   [status: 🟢 done — (1) the graph has NO cue bus (C2_MON reads MAIN_FDR only, its source word has no reader, chip-2 '2-ch' nodes are mono); RTA built on chip 2 reading a source-pointer pair (default C2_MIX_MAIN_L/R). (2) Two biquads per band give 32.5 dB at one octave, so 3 per band (186 biquads). (3) PRICE, measured: +34.4 k cycles/block = +10.5 % of chip 2, identical over 4 conditions; D24 chip 2 is 96.6 % → 107.2 % (820 missed/4 s), 102 % with FX parked; D32 already 125 % with it off → A AS SPECIFIED DOES NOT FIT THE D24. Multirate ≈ 5 %, still over; host FFT with a DSP-decimated low stream ≈ 0.5 %, ~10–15 fps, is the priced option that fits; Goertzel wrong shape, ≈ 3–5 %; shm meter-ring rate not findable here (hub's). (4) PROOF on a chain-cut image (0 overruns): 63/1k/8k read −23.13/−23.014/−23.011 vs −23.01, octave neighbours 40.7–50.9 dB down, other channel −214 dB, τ 35.0/125.0 ms, peak-hold + reset OK; on the overrunning full image it reads wrong (−1.65 dB, 18 dB neighbours). Shipping DSP4_RTA=0 byte-identical 36daa238/3a9c950d. Contract proposal S64 (RtaOn kept, RtaSrc retired, Mode/PeakReset + 62 band meters at chip-2 0x0880+), not landed. Findings S64-1..4; drift gate fixed (bulk_read.asm). Unit handed back identical, chain/AN_EN/CS_M untouched]   [model: opus]
 
 model: opus
