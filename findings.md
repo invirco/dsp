@@ -6,6 +6,47 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## AUX 1 OUTPUT NOISE THROUGH THE LOOP, AND S57 PAUSED AT GATE 1 (2026-09-16, session 57 — bench, MW-D24-2; IN PROGRESS)
+
+**Pair:** `s56`, running as S56 left it; nothing rebooted, AN_EN (`op pd | hi`) and CS_M never written. Data: `MW/D24/DSP/s57/data/`,
+tools: `MW/D24/DSP/s57/tools/`. Captures are 16,384-sample capture-arm runs of strip 20 post-fader (MeasChan 20), 0 overruns on every one.
+
+**S57-O. AUX 1 output noise (hub interrupt, PW reading -84 / -87 dBu on his meter).** Loop cable back on J45 → J25 (150 Ω off), MIC 5
+at code 0 (`[15] ch8 0x00`, 200/200), TEST_OSC OFF (strip 6 → AUX 1 idle), twenty captures (`aux1n_*.json`), energy-averaged,
+`s57_outnoise.py` (band figures from `dsp4_fft.band_power`, mean removed, bin-domain brick wall, IEC 61672 A-weighting):
+
+| band | lane, dBFS | dBu at J45, lane + 17.55 | dBu, lane + 3.01 + 17.55 | floor-corrected (−113.8 dBFS), dBu (+20.56) |
+|---|---:|---:|---:|---:|
+| **20 Hz–20 kHz unweighted** | −105.11 | −87.56 | **−84.55** | −85.18 (lower bound) |
+| **20 Hz–20 kHz A-weighted** | −107.53 | −89.98 | **−86.97** | −88.14 (lower bound) |
+| DC–24 kHz raw (node figure) | −104.32 | −86.77 | −83.76 | −84.28 |
+
+Per-capture spread ±0.4 dB (20–20k −104.68 … −105.50); the node's own windows read −103.94 … −104.47 dBFS, matching the raw column.
+**The dBu reference: +17.55 dBu is a full-scale SINE's RMS voltage, and RmsResult / the FFT put that sine at −3.01 dBFS (mean square).
+A noise power quoted in those dBFS is therefore lane + 3.01 + 17.55 dBu.** The plain "+17.55" rule reads 3.01 dB low. PW's meter
+(−84 / −87 dBu) agrees with the +20.56 column to 0.6 dB and disagrees with the +17.55 column by 3 dB, which confirms the correction. The
+same applies to the dispatch's EIN arithmetic (S54-3b's −123.6 dBu average is −120.6 dBu). **Floor correction:** power-subtracting the
+150 Ω code-0 floor (−113.8 dBFS, the node's DC–24 kHz figure) moves the output figures by 0.5–1.2 dB. It is exact for the raw column only;
+the in-band converter floor is lower than −113.8, so the corrected band figures are lower bounds, and the true AUX 1 output noise lies
+between the corrected and uncorrected columns. A band-matched floor needs code-0 captures with the 150 Ω refitted (planned when S57 resumes).
+**Lines** (averaged 20-capture PSD, band power minus local median, dBu at +20.56): 52.7 Hz −104.56 (5.2 dB above floor), 76.2 Hz
+−105.87 (4.5), 102.5 Hz −106.06 (4.6), 16,136.7 Hz −117.57 (3.2). The next six are under 3 dB above the floor and are not resolved as
+lines: 184.6 Hz −114.24, 284.2 −114.38, 155.3 −115.08, 553.7 −116.71, 3,893.6 −117.17, 17,361.3 −117.66. So there is no switching
+line and no hum line stronger than −104.6 dBu. The three LF peaks sit within a bin or two of 50/75/100 Hz on a 2.93 Hz grid; the
+7-term window's ±23 Hz lobe does not separate them from the LF skirt, so calling them mains is not claimed.
+*Void:* a code-0 run meant as the 150 Ω floor (`f150c0`, 3 captures) turned out to have been taken after the cable swap (node −104 dBFS, not
+−113.8). It is moved to `~/s57/void` on the bench and is not used.
+
+**S57 gate 1, as far as it got (20 of 20 captures at code 63, 150 Ω, tone off; gate 3 5 of 10; gates 2, 4 not run).** Early result, to be
+finished: the "bursts" are **below 20 Hz**. Every capture's 20 Hz–20 kHz band sits at −94.6 ± 0.3 dBFS and A-weighted at −97.9 ± 0.2,
+while the DC-removed DC–24 kHz total ranges −89.9 … −92.2. The excess is a smooth sub-5 Hz wander of up to ±40 µFS across the 0.34 s
+capture (0.1–5 Hz band −94.8 … −123.9 dBFS between captures), not steps. Kurtosis 2.83–3.04 (Gaussian); > 4σ events 0–4 per capture
+against about 1 expected for Gaussian noise; the averaged PSD has no line more than 6 dB above its floor (50 Hz +4.3 dB, 12 kHz +4.9 dB
+at −126.5 dBFS). Audio-band input-referred (lane + 20.56 − 53.14 dB): **−127.1 dBu unweighted, −130.5 dBu A-weighted** (preliminary,
+150 Ω). Remaining: the LF record (`s57_lfrec.py`), the code scaling (gate 2), the link-traffic A/B (`s57_link.py`), gate 3 and the table.
+
+**State now:** MIC 5 code 0, TEST_OSC off, MeasChan 20, loop cable on J45 → J25, 150 Ω off. Waiting for the 150 Ω to go back before S57 resumes.
+
 ## A CAPTURE ARM ON CHIP 1 FOR 72 CYCLES, AND THE 0.98 FS CEILING IS NOT IN THE DSP (2026-09-16, session 56 — desk + digital loop, MW-D24-2)
 
 **Pair:** `s56` (`DSP4_TEST_NODES=1`, no tap; chip1 `314ce05f…`, chip2 `c56ed0ab…`, the same chip 2 as `s51_119ea9d9` byte for byte), staged at `~/s56`,

@@ -49,6 +49,9 @@ Usage:
     dsp4_fft.py capture.json
     dsp4_fft.py capture.json --lane 1 --png spectrum.png
     dsp4_fft.py --selftest            # synthetic signals, known answers
+    dsp4_fft.py capture.json --band 20-20000 --aweight
+        # PW 09-16 EIN ruling: the in-band noise, unweighted and IEC
+        # A-weighted, beside the DC-Nyquist total (the node's figure)
     dsp4_fft.py --capture 16384 [--symdir DIR] [--save FILE] [--png FILE]
         # S56: arm TEST_MEAS's capture on the running part (chip 1,
         # MeasChan's post-fader block), read the buffer, analyse it.
@@ -191,6 +194,55 @@ def _band_energy(psd, centre, half):
 # --------------------------------------------------------------------------
 # The analysis
 # --------------------------------------------------------------------------
+
+def a_weight_db(f):
+    """IEC 61672-1 A-weighting in dB, normalised to 0.00 dB at 1 kHz
+    (the +2.00 dB constant). f in Hz; -inf at DC."""
+    if f <= 0:
+        return float('-inf')
+    f2 = f * f
+    ra = (12194.0 ** 2 * f2 * f2) / (
+        (f2 + 20.6 ** 2) * math.sqrt((f2 + 107.7 ** 2) * (f2 + 737.9 ** 2))
+        * (f2 + 12194.0 ** 2))
+    return 20.0 * math.log10(ra) + 2.00
+
+
+def band_power(samples, fs, lo, hi, aweight=False):
+    """THE SPEC NOISE FIGURE (PW 2026-09-16): mean-square power of the
+    capture between lo and hi Hz, optionally IEC A-weighted, as RMS dBFS on
+    the same reference as `total` -- so on a silent capture 20-20000
+    unweighted and A-weighted are the two EIN columns, and `total` is the
+    node's DC-Nyquist figure beside them.
+
+    Brick-wall in the bin domain: bins whose centre lies in [lo, hi] are
+    summed, each A-weighted at its centre frequency when asked. The mean is
+    removed first, because the 7-term window spreads DC over +-TONE_BAND
+    bins and at 16k that reaches 23 Hz, inside a 20 Hz band edge. A tone,
+    if there is one, is NOT excluded: this is a noise figure for a capture
+    taken with the stimulus off, and `analyse` says whether it saw a tone.
+    Returns (dBFS, number of bins summed)."""
+    n = 1
+    while n * 2 <= len(samples):
+        n *= 2
+    x = samples[:n]
+    mean = sum(x) / n
+    w = blackman_harris(n)
+    spec, _ = fft([(x[i] - mean) * w[i] for i in range(n)])
+    pg = sum(v * v for v in w)
+    tot, bins = 0.0, 0
+    for k in range(1, n // 2 + 1):
+        f = k * fs / n
+        if f < lo or f > hi:
+            continue
+        p = (abs(spec[k]) ** 2) / (n * pg)
+        if k < n // 2:
+            p *= 2.0
+        if aweight:
+            p *= 10.0 ** (a_weight_db(f) / 10.0)
+        tot += p
+        bins += 1
+    return db(tot), bins
+
 
 def analyse(samples, fs, half_lobe=TONE_BAND, dc_bins=TONE_BAND):
     """Everything this tool knows about one lane, as a dict.
@@ -560,6 +612,22 @@ def selftest():
     want_snr = db(0.5 / (nf * nf))
     check('tone + noise: SNR, dB', r['snr_db'], want_snr, 1.0)
 
+    # 5. band limiting and A-weighting (PW 2026-09-16 EIN ruling)
+    check('A-weight at 1 kHz, dB', a_weight_db(1000.0), 0.0, 0.01)
+    check('A-weight at 100 Hz, dB', a_weight_db(100.0), -19.1, 0.1)
+    check('A-weight at 10 kHz, dB', a_weight_db(10000.0), -2.5, 0.1)
+    random.seed(20260916)
+    wn = [random.gauss(0.0, 1e-3) for i in range(16384)]
+    full, _ = band_power(wn, fs, 0.0, fs / 2.0)
+    bnd, _ = band_power(wn, fs, 20.0, 20000.0)
+    check('white noise: 20-20k re full band, dB', bnd - full,
+          db((20000.0 - 20.0) / (fs / 2.0)), 0.15)
+    # white noise through A: the mean of 10^(A/10) over 20 Hz-20 kHz
+    m = sum(10.0 ** (a_weight_db(20.0 + i * 1.0) / 10.0)
+            for i in range(19981)) / 19981.0
+    aw, _ = band_power(wn, fs, 20.0, 20000.0, aweight=True)
+    check('white noise: A-weighted re 20-20k, dB', aw - bnd, db(m), 0.15)
+
     # 4. the two transforms must agree
     try:
         import numpy  # noqa: F401
@@ -581,6 +649,8 @@ def main(argv):
     if '--selftest' in argv:
         return selftest()
     lane = 0
+    band = None
+    aweight = '--aweight' in argv
     png = None
     capn = None
     symdir = None
@@ -592,6 +662,9 @@ def main(argv):
             symdir = argv[i + 1]
         elif a == '--save':
             save = argv[i + 1]
+        elif a == '--band':
+            lo_, hi_ = argv[i + 1].split('-')
+            band = (float(lo_), float(hi_))
     if capn is not None:
         # THE LIVE PATH (S56): the buffer straight off the part, no file in
         # between. Imported here so the file-only use stays stdlib-only and
@@ -605,6 +678,9 @@ def main(argv):
                 if a not in ('--capture', '--symdir', '--save',
                              str(capn), symdir, save)]
     args = [a for a in argv if not a.startswith('--')]
+    if band is not None:
+        bi = argv.index('--band') + 1
+        args = [a for a in args if a is not argv[bi]]
     if png in args:
         args.remove(png)
     if capn is None and not args:
@@ -640,6 +716,21 @@ def main(argv):
 
     res = analyse(sig, float(cap.get('fs_hz', 48000)))
     report(res, cap, lane)
+    if band is not None or aweight:
+        lo, hi = band if band is not None else (20.0, 20000.0)
+        fs_ = float(cap.get('fs_hz', 48000))
+        ub, nb = band_power(sig, fs_, lo, hi)
+        print('')
+        print('  noise figures (PW 09-16: 20-20k unweighted AND A-weighted; '
+              'total = DC-%g Hz)' % (fs_ / 2))
+        print('    total, DC-%-5g Hz %20.2f dBFS' % (fs_ / 2, res['total_dbfs']))
+        print('    %g-%g Hz unweighted %14.2f dBFS  (%d bins, mean removed)'
+              % (lo, hi, ub, nb))
+        if aweight:
+            ab, _ = band_power(sig, fs_, lo, hi, aweight=True)
+            print('    %g-%g Hz A-weighted %14.2f dBFS' % (lo, hi, ab))
+        if res['tone']:
+            print('    ** a tone is present: these band figures INCLUDE it')
     if png:
         write_png(png, res, res['fund_hz'])
         print('')

@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-09-16 09:44Z — S57 — the bursty noise at full gain, characterised with the capture arm (mains / popcorn / broadband / pickup)   [status: 🟡 dispatched]   [model: opus]
+## HUB DISPATCH 2026-09-16 09:44Z — S57 — the bursty noise at full gain, characterised with the capture arm (mains / popcorn / broadband / pickup)   [status: 🟡 paused 10:03Z — AUX 1 output noise run for the hub (−84.55 dBu 20–20k / −86.97 dBu A at J45, matches PW's meter with the +3.01 dB sine-RMS reference); gate 1 done (excess is sub-20 Hz wander, audio band steady), gates 2–4 pending the 150 Ω refit]   [model: opus]
 
 model: opus
 

@@ -1,0 +1,39 @@
+aux1n_00.json  ovr +0  raw -104.30  20-20k -105.13  A -107.38 dBFS
+aux1n_01.json  ovr +0  raw -104.37  20-20k -105.24  A -107.64 dBFS
+aux1n_02.json  ovr +0  raw -104.30  20-20k -105.50  A -107.79 dBFS
+aux1n_03.json  ovr +0  raw -104.45  20-20k -105.25  A -107.65 dBFS
+aux1n_04.json  ovr +0  raw -104.50  20-20k -105.20  A -107.67 dBFS
+aux1n_05.json  ovr +0  raw -104.35  20-20k -105.30  A -107.64 dBFS
+aux1n_06.json  ovr +0  raw -104.24  20-20k -105.11  A -107.53 dBFS
+aux1n_07.json  ovr +0  raw -104.29  20-20k -105.17  A -107.54 dBFS
+aux1n_08.json  ovr +0  raw -104.46  20-20k -105.12  A -107.35 dBFS
+aux1n_09.json  ovr +0  raw -104.23  20-20k -105.00  A -107.40 dBFS
+aux1n_10.json  ovr +0  raw -104.23  20-20k -105.10  A -107.59 dBFS
+aux1n_11.json  ovr +0  raw -104.22  20-20k -105.06  A -107.49 dBFS
+aux1n_12.json  ovr +0  raw -104.44  20-20k -105.21  A -107.61 dBFS
+aux1n_13.json  ovr +0  raw -104.33  20-20k -105.18  A -107.75 dBFS
+aux1n_14.json  ovr +0  raw -104.09  20-20k -104.71  A -107.31 dBFS
+aux1n_15.json  ovr +0  raw -104.33  20-20k -105.37  A -107.68 dBFS
+aux1n_16.json  ovr +0  raw -104.22  20-20k -104.97  A -107.14 dBFS
+aux1n_17.json  ovr +0  raw -104.34  20-20k -104.68  A -107.46 dBFS
+aux1n_18.json  ovr +0  raw -104.40  20-20k -104.93  A -107.48 dBFS
+aux1n_19.json  ovr +0  raw -104.28  20-20k -105.07  A -107.50 dBFS
+
+energy average over 20 captures (dBFS; dBu PW rule / sine-RMS ref; floor-corrected by -113.8 dBFS):
+  20 Hz-20 kHz unweighted   -105.11 dBFS  =  -87.56 /  -84.55 dBu   corrected  -105.74 dBFS =  -88.19 /  -85.18 dBu
+  20 Hz-20 kHz A-weighted   -107.53 dBFS  =  -89.98 /  -86.97 dBu   corrected  -108.70 dBFS =  -91.15 /  -88.14 dBu
+  DC-24 kHz raw             -104.32 dBFS  =  -86.77 /  -83.76 dBu   corrected  -104.84 dBFS =  -87.29 /  -84.28 dBu
+
+top ten local maxima above 1 dB (averaged PSD, band power minus local median; ranked by level; < 3 dB above floor = not resolved as a line):
+       52.7 Hz   -125.12 dBFS  = -107.57 / -104.56 dBu   (5.2 dB above floor)
+       76.2 Hz   -126.43 dBFS  = -108.88 / -105.87 dBu   (4.5 dB above floor)
+      102.5 Hz   -126.62 dBFS  = -109.07 / -106.06 dBu   (4.6 dB above floor)
+      184.6 Hz   -134.80 dBFS  = -117.25 / -114.24 dBu   (2.9 dB above floor)
+      284.2 Hz   -134.94 dBFS  = -117.39 / -114.38 dBu   (2.1 dB above floor)
+      155.3 Hz   -135.64 dBFS  = -118.09 / -115.08 dBu   (2.0 dB above floor)
+      553.7 Hz   -137.27 dBFS  = -119.72 / -116.71 dBu   (1.9 dB above floor)
+     3893.6 Hz   -137.73 dBFS  = -120.18 / -117.17 dBu   (2.3 dB above floor)
+    16136.7 Hz   -138.13 dBFS  = -120.58 / -117.57 dBu   (3.2 dB above floor)
+    17361.3 Hz   -138.22 dBFS  = -120.67 / -117.66 dBu   (2.6 dB above floor)
+
+OUTPUT NOISE DONE: 20-20k unweighted -87.56 dBu, A-weighted -89.98 dBu (PW rule; sine-RMS ref -84.55 / -86.97 dBu)
