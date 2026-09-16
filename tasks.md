@@ -1,3 +1,19 @@
+## HUB DISPATCH 2026-09-16 13:38Z — S58 — land the D24 input patch from the netlist (S52 ii), prove it, propose the inputs declaration   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+S58 — LAND THE D24 INPUT PATCH FROM THE NETLIST (S52 proposal ii), PROVE IT ON THE UNIT, AND PROPOSE THE DECLARATION THAT GENERATES IT. Desk + unit (digital + the loop cable if PW leaves it on J25; analog ON, AN_EN untouched; no chain writes except MIC 5's register via send position 15).
+
+WHAT IS RULED (hub, single-SOT mandate; the def rows are right and the patch is a hand-typed table with the wrong slot order — a bug fix, not a contract change): `tools/pi/dsp4_config.py` `D24_INPUT_PATCH` becomes the netlist order `[3,15,2,14,13,1,12,0] + [7,19,6,18,17,5,16,4] + [11,23,10,22,21,9,20,8]` (+ the rest unchanged), per `proposals/PROPOSAL-S52-INPUT-ORDER.md` (ii). After it, strip N carries the XLR the def calls C1_IN_N in converter order (AD0 slots 0–7 → C1_IN_01–08, AD1 → 09–16, AD2 → 17–24), and "lane N" in every tool means C1_IN_N.
+
+GATES: 1. Land the patch; `product-config.md` updated (the "verify the within-ADC8 slot order" note resolved with the measured proof). 2. PROVE on the part: with the loop cable on J25 (MIC 5 = U39 AIN8 = AD1 slot 7) the tone appears on strip 16 = C1_IN_16, and with the S55 lane map every measured XLR's strip becomes its def lane — verify at least J25 and one U60 channel if PW's cable is available (ask the hub; if no cable, prove with the 150 Ω noise at code 63 on J25 → strip 16's floor rises). 3. Update every tool that hard-codes the old lanes (`dsp4_s48_scan.py`, `s55_*`, `s57_*`, `s52_lanes.py`, the MeasChan defaults): grep for `20` as MIC 5's strip and replace with the def lane; state the list. 4. PROPOSE THE DECLARATION: the XLR ↔ converter ↔ slot order is a product fact that belongs in defs (`products/d24/` — e.g. `inputs.csv`: panel name, XLR ref, 595 chain index, converter ref, AIN, TDM slot, C1_IN cell), generated from the netlist walk (mx26 docs/d24-analog-xlr-map.md has the table); `dsp4_config.py` would then GENERATE the patch from it. Write `proposals/CONTRACT-PROPOSAL-S58.md` with the CSV and the generator change, not landed. 5. findings S58-1..3, tasks.md, commit + push, clean; unit as found.
+
+Bounded: ≈ 90 min.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-16 10:53Z — S55 — the mic test on every powered channel, hands-free by lane detection; the universal step/trim table calibrated as you go   [status: 🟢 done — 15 powered channels (J26–J32, J35–J42) through the loop set + 150 Ω noise hands-free, J25 from S54/S57 (J15–J22 unpowered, skipped); 1,113/1,113 chain images verified, 0 overruns on 135 captures. T1: every law monotonic, 15 channels agree ≤ 0.171 dB; **J29 (MIC 7) FLAG: its code-8 stage ~9 % low (−0.85 dB), a part off-value — excluded from the mean**. Universal table (15 ch, 25 codes) edge error ≤ 0.078 dB, trim ≤ 12 dB in range, 54–60 dB = code 63 + trim → `proposals/CONTRACT-PROPOSAL-S55.md` (`common/tables/mic-gain-law.csv`, no address change). T2/T3/T5/T8 uniform (20 Hz −0.41 / −2.07…−2.19 dB, inverted, 91.40–91.41 samples). EIN 150 Ω code 63: 14 ch −126.5…−128.7 dBu / −130.2…−130.9 dBu(A); **J31/J32 (lanes 5/6) −123.2/−125.2 dBu from a HF excess (2–24 kHz +3…+10 dB)**. Findings S55-1..6. Unit: TEST_OSC off, nothing on AUX 1, S57 image (J25 open code 0, rest muted), MeasChan 20, AN_EN hi. ADDENDUM: J31 T4/T4b repeated after a 150 Ω refit — −123.3 dBu / −128.7 dBu(A), identical to the first run: the HF excess is the channel, not the fixture (S55-7)]   [model: opus]
 
 model: opus
