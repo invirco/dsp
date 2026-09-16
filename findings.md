@@ -6,6 +6,72 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## RAW STEP-4 DATA: ONE 595 REGISTER OPEN AT A TIME, ALL 24 CHIP-1 LANES READ (2026-09-16, session 51, hub addendum 08:09)
+
+**S51-4. For every send position `p` = 0..24, the lanes whose floor rose above −100 dBFS and the lane carrying the injected square.** Method: `app cli chain-set` sent one full 25-byte image per row — the one register named for that `p` at `mute=0,phantom=0,gain=63` (= byte `0xFC`), every other one of the 24 channel registers at `mute=1,phantom=0,gain=0` (= byte `0x01`) — verified 200/200 each time; then all 24 `C1_IN_*` lanes read (RMS + peak, one 16-sample window) with the 500 Hz/−6 dBFS square already held continuously on donor strip 6 → AUX 1 (armed since the prior addendum, confirmed still `ARM=1` throughout this run). No interpretation below, numbers as read:
+
+| p | register (chain-set label) | lane(s) with floor > −100 dBFS: lane(rms dBFS/peak dBFS) |
+|---:|---|---|
+| 0 | `SHIFT` (U34; not a `ch<N>`, held at `0x00` in every image below — never isolated, not testable through `chain-set`'s `ch<N>:` syntax) | not tested |
+| 1 | ch1 | L9(−68.7/−62.1), L20(−38.0/−33.4) |
+| 2 | ch13 | L12(−65.8/−64.4), L20(−39.7/−34.5) |
+| 3 | ch2 | L11(−76.5/−69.9), L20(−37.3/−32.4) |
+| 4 | ch14 | L11(−89.6/−88.3), L20(−38.4/−33.7), L21(−74.6/−69.6) |
+| 5 | ch3 | L20(−36.8/−32.4), L22(−77.0/−69.7) |
+| 6 | ch15 | L20(−36.7/−32.9), L23(−73.6/−70.7) |
+| 7 | ch4 | L20(−41.3/−34.7), L24(−74.0/−66.1) |
+| 8 | ch16 | L6(−46.8/−45.9), L20(−38.6/−32.6) |
+| 9 | ch5 | L5(−69.7/−61.8), L6(−83.4/−82.4), L20(−40.1/−32.8) |
+| 10 | ch17 | L5(−77.8/−77.0), L8(−60.9/−60.0), L20(−37.3/−32.3) |
+| 11 | ch6 | L7(−68.4/−65.8), L20(−37.6/−32.3) |
+| 12 | ch18 | L7(−91.7/−90.6), L17(−80.7/−72.9), L20(−37.1/−34.0) |
+| 13 | ch7 | L17(−95.1/−93.5), L18(−74.5/−67.6), L20(−38.2/−34.4) |
+| 14 | ch19 | L18(−97.8/−96.0), L19(−77.7/−73.2), L20(−40.8/−37.8) |
+| **15** | **ch8** | **L20(−0.6/−0.0)** |
+| 16 | ch20 | L20(−43.0/−38.8) |
+| 17 | ch9 | L20(−40.0/−35.4) |
+| 18 | ch21 | L20(−38.5/−33.9) |
+| 19 | ch10 | L20(−37.6/−32.3) |
+| 20 | ch22 | L20(−38.8/−34.0) |
+| 21 | ch11 | L20(−40.2/−35.6) |
+| 22 | ch23 | L20(−39.6/−32.0) |
+| 23 | ch12 | L20(−36.2/−32.5) |
+| 24 | ch24 | L20(−37.1/−32.2) |
+
+Lane carrying the square at ≈0 dBFS peak: **lane 20, at p=15 (register `ch8`) only.** Every other row's lane-20 reading sits at −37 to −41 dBFS (present on every row regardless of which register is open) and every other lane's reading sits under −100 dBFS except the scattered −60 to −98 dBFS entries tabulated above (also present regardless of which specific register produces them varying by row). Chain restored to the standing baseline (twelve channels unmuted at gain 16, verified 200/200) after the sweep; the injector was never touched during this sequence (`ARM=1` before and after, read directly, not inferred).
+
+**S51-5. How `chain-set`'s send-position numbering maps to a register, stated from what the tool itself prints (`app cli chain-safe`'s own "SENT (MOSI, transmit order — chain position 0 first)" listing) cross-checked against `mx26/docs/d24-analog-xlr-map.md`'s netlist-derived "chain index" table (both tables below are the same 25 rows, by the same numbers, from two independent sources):**
+
+| p (chain-set's printed position) | chain-set's own label | `d24-analog-xlr-map.md` chain index → XLR |
+|---:|---|---|
+| 0 | `SHIFT` | 0 → U34 (head, SER from the MCU) |
+| 1 | ch1 | 1 → J15 |
+| 2 | ch13 | 2 → J16 |
+| 3 | ch2 | 3 → J17 |
+| 4 | ch14 | 4 → J18 |
+| 5 | ch3 | 5 → J19 |
+| 6 | ch15 | 6 → J20 |
+| 7 | ch4 | 7 → J21 |
+| 8 | ch16 | 8 → J22 |
+| 9 | ch5 | 9 → J25 |
+| 10 | ch17 | 10 → J26 |
+| 11 | ch6 | 11 → J27 |
+| 12 | ch18 | 12 → J28 |
+| 13 | ch7 | 13 → J29 |
+| 14 | ch19 | 14 → J30 |
+| 15 | ch8 | 15 → J31 |
+| 16 | ch20 | 16 → J32 |
+| 17 | ch9 | 17 → J35 |
+| 18 | ch21 | 18 → J36 |
+| 19 | ch10 | 19 → J37 |
+| 20 | ch22 | 20 → J38 |
+| 21 | ch11 | 21 → J39 |
+| 22 | ch23 | 22 → J40 |
+| 23 | ch12 | 23 → J41 |
+| 24 | ch24 | 24 → J42 |
+
+**The first byte sent (`p=0`) lands in chain index 0, `SHIFT`/U34 — the head register, SER driven directly by the MCU** — per `chain-safe`'s own printed position `[0]`, which is the only position not carrying a `ch<N>` label in either table. Every subsequent send position `p` (1..24) is followed by `chain-set`'s own printed `ch<N>` label at that exact position, and that same `p` value indexes the identical XLR in `d24-analog-xlr-map.md`'s independently-netlist-derived chain-index column, row for row — stated as the observed correspondence between the two sources, nothing beyond that read here.
+
 ## THE GATE-RANGE INITIALISER FIXED FROM THE ROW; THE OPEN-CHAIN RE-SCAN STILL FINDS NO ANALOG RETURN (2026-09-16, session 51)
 
 **S51-0. Priority insert (hub addendum 06:53, PW's go): all twelve channels
