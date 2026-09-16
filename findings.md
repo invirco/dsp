@@ -64,6 +64,18 @@ the compressor off and a later save recorded that state; restored by hand to `Mu
 snapshot). (b) `pkill -f s55_run.py` also killed its own ssh shell; the runner was stopped in WATCH (tone on, all registers open code 0)
 and the hand-back then ran separately. AN_EN hi, GPIO 27 hi at the end.
 
+**S55-7. Hub addendum: J31's T4/T4b repeated after PW refitted the 150 Ω — identical, so the high-frequency excess is the channel, not the fixture.**
+Same conditions as the run (all powered registers open at code 0, J31 at code 63 via send position 9, TEST_OSC off, MeasChan 5).
+Refit seen 14:31:29 (disturbance to −33.2 dBFS at 14:30:09, then −87.0 dBFS held 12 s). Code 63: **−123.3 dBu 20 Hz–20 kHz / −128.7 dBu(A)**
+against the first run's −123.2 / −128.7; 2–20 kHz −91.0 vs −91.2 dBFS, 20–24 kHz −89.4 vs −89.3 dBFS; sub-20 Hz −127.0 vs −129.6 dBu
+(the wander, which varies run to run); code 0 −95.0 vs −94.6 dBu (converter floor); 0 overruns on 9 captures. **The J31/J32 excess is not
+the shunt or its fitting** — the suspect stays what serves lanes 5/6. Method slip, repaired: the first arming (14:24) took the
+code-switch transient (−41 dBFS on the first 85 ms window) as the "disturbance" and measured J31's OPEN input 12 s later (a steady
+−78.7 dBFS — between the loop cable's −51 and the shunt's −86, so the −70 dBFS rule cannot separate open from 150 Ω on this channel).
+Those captures are void and not committed (`~/s55/data/void_open_J31/` on the bench). `s55_repeat.py` now takes a settled 20-window
+baseline first and requires a rise ≥ 6 dB above it, then a floor ≤ baseline − 4 dB held 12 s. Unit handed back again as S55-6
+(S57 image verified, TEST_OSC off, nothing on AUX 1, MeasChan 20, strip 5 restored, AN_EN hi, never written).
+
 ## THE BURST IS BELOW 20 Hz: THE AUDIO-BAND FLOOR AT FULL GAIN IS STEADY, AND THE EIN RECONCILES ABOVE THERMAL (2026-09-16, session 57 — bench, MW-D24-2; closed early, remaining gates carried into S55)
 
 **Pair:** `s56`, running as S56 left it; nothing rebooted. AN_EN (`op pd | hi`) and CS_M (`op pu | hi`) never written. Data: `MW/D24/DSP/s57/data/`,

@@ -213,6 +213,25 @@ def write_channels(ch):
             L.append('| %s | %d | %d | %.2f | %.2f | %.2f | %.1f | %.1f | %.1f | %.1f | %.2f | %.2f | %d |' % (
                 k, code, o['n'], o['aud'], o['aw'], o['raw'], o['aud_dbu'], o['aw_dbu'], o['sub20_dbu'], o['raw_dbu'],
                 o['mains_pct'], o['kurt'], o['ovr']))
+    reps = [k for k, r in ch.items() if r['src'] == 'S55' and glob.glob(os.path.join(S55, 'data', '%sr_c63_*.json' % k))]
+    if reps:
+        L.append('')
+        L.append('## Repeats (150 Ω refitted by PW, same conditions; hub addendum after the run)')
+        L.append('')
+        L.append('| XLR | run | code | 20–20k dBu in | A dBu in | sub-20 Hz dBu in | DC–24k dBu in | 2–20 kHz dBFS | 20–24 kHz dBFS | overruns |')
+        L.append('|---|---|---:|---:|---:|---:|---:|---:|---:|---:|')
+        for k in reps:
+            for tag, lab in ((k, 'first (12:47)' if k == 'J31' else 'first'), (k + 'r', 'repeat (14:31, refit)')):
+                nf = noise_figs({'xlr': tag, 'G': ch[k]['G']})
+                bs = [B.bands(f) for f in sorted(glob.glob(os.path.join(S55, 'data', '%s_c63_*.json' % tag)))]
+                for code, o in nf.items():
+                    hf = ('%.1f | %.1f' % (em([b['2000-20000'] for b in bs]), em([b['20000-24000'] for b in bs]))) if code == 63 else '— | —'
+                    L.append('| %s | %s | %d | %.1f | %.1f | %.1f | %.1f | %s | %d |' % (k, lab, code, o['aud_dbu'], o['aw_dbu'],
+                             o['sub20_dbu'], o['raw_dbu'], hf, o['ovr']))
+        L.append('')
+        L.append('J31 repeat agrees with the first run to 0.1 dB in-band and in both HF bands: the excess is not the shunt or its fitting. '
+                 'A first arming (14:24) false-triggered on the code-switch transient and measured the OPEN input (floor −78.7 dBFS); '
+                 'those captures are void (not committed, `void_open_J31/` on the bench), and the detector now arms on a settled baseline.')
     open(os.path.join(S55, 'channels.md'), 'w').write('\n'.join(L) + '\n')
 
 

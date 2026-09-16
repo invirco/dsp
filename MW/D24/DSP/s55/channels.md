@@ -55,3 +55,14 @@ Loop: TEST_OSC (donor strip 6, strip 1 for J32) → AUX 1 → J45 → loop cable
 | J41 | 0 | 3 | -115.38 | -117.66 | -114.36 | -94.8 | -97.1 | -103.9 | -93.8 | 3.34 | 3.00 | 0 |
 | J42 | 63 | 6 | -95.06 | -98.16 | -92.59 | -127.6 | -130.7 | -138.9 | -125.1 | 0.36 | 3.04 | 0 |
 | J42 | 0 | 3 | -115.56 | -118.06 | -114.22 | -95.0 | -97.5 | -102.4 | -93.6 | 5.00 | 3.03 | 0 |
+
+## Repeats (150 Ω refitted by PW, same conditions; hub addendum after the run)
+
+| XLR | run | code | 20–20k dBu in | A dBu in | sub-20 Hz dBu in | DC–24k dBu in | 2–20 kHz dBFS | 20–24 kHz dBFS | overruns |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| J31 | first (12:47) | 63 | -123.2 | -128.7 | -129.6 | -119.2 | -91.2 | -89.3 | 0 |
+| J31 | first (12:47) | 0 | -94.6 | -97.3 | -103.5 | -93.7 | — | — | 0 |
+| J31 | repeat (14:31, refit) | 63 | -123.3 | -128.7 | -127.0 | -118.8 | -91.0 | -89.4 | 0 |
+| J31 | repeat (14:31, refit) | 0 | -95.0 | -97.3 | -101.1 | -93.4 | — | — | 0 |
+
+J31 repeat agrees with the first run to 0.1 dB in-band and in both HF bands: the excess is not the shunt or its fitting. A first arming (14:24) false-triggered on the code-switch transient and measured the OPEN input (floor −78.7 dBFS); those captures are void (not committed, `void_open_J31/` on the bench), and the detector now arms on a settled baseline.

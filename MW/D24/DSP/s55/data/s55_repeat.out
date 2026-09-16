@@ -1,0 +1,16 @@
+14:27:25 AN_EN: 26: op -- pd | hi // GPIO26 = output
+14:27:26 REPEAT J31 (MIC 8): code 63 (p9), TEST_OSC off, watching lane 5; timeout 900 s
+14:27:31   baseline (settled, 20-window median) -78.72 dBFS; refit = a disturbance >= -72.72, then <= -82.72 and < -70 held 12 s
+14:27:31   lane 5 RMS -78.93 dBFS (disturbance seen: False)
+14:28:01   lane 5 RMS -79.49 dBFS (disturbance seen: False)
+14:28:31   lane 5 RMS -78.32 dBFS (disturbance seen: False)
+14:29:01   lane 5 RMS -78.65 dBFS (disturbance seen: False)
+14:29:31   lane 5 RMS -78.70 dBFS (disturbance seen: False)
+14:30:01   lane 5 RMS -78.56 dBFS (disturbance seen: False)
+14:30:09   disturbance: -33.18 dBFS
+14:30:31   lane 5 RMS -86.25 dBFS (disturbance seen: True)
+14:31:02   lane 5 RMS -86.14 dBFS (disturbance seen: True)
+14:31:29 J31: floor -86.97 dBFS held 12 s after a rise -> 150 ohm refit taken
+14:32:49 J31r T4 code 63 (150 ohm): RmsResult -86.33 dBFS NoiseResult -86.33 (after captures -85.01); 6 captures, overruns [0, 0, 0, 0, 0, 0]
+14:33:31 J31r T4 code  0 (150 ohm): RmsResult -113.24 dBFS NoiseResult -113.24 (after captures -114.17); 3 captures, overruns [0, 0, 0]
+14:33:31 DONE status=refit
