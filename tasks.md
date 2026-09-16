@@ -1,3 +1,19 @@
+## HUB DISPATCH 2026-09-16 15:02Z — S61 — the capture readout: a bulk read to bring the fast battery to ~30 s per channel   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+S61 — THE CAPTURE READOUT IS 85 % OF THE FAST BATTERY: MAKE IT FAST. Unit + desk (the hub has just deployed the wire-order app build to MW-D24-2 and restarted matrix-app — expect the app's own pair booted and the chain at the safe image (all muted, INSTR off); boot your s60 pair as usual and use `app cli chain-set 27 ch5:mute=0,gain=0` — with the fixed app, ch5 now reaches J25 — or spidev at send position 15 as before; say which).
+
+S60-4 measured ≈ 1,330 words/s over the SPI parameter link for a 16,384-word capture (≈ 12 s per capture; 8 chirps + 2 THD+N + 1 EIN = 11 captures ≈ 2.4 of the 2.8 min per channel). Target: ≤ 1 s per 16k capture (≥ 16 k words/s), so the fast battery lands near 30 s per channel and a 24-channel unit near 12 min on a manual cable, ≈ 2 min with a harness.
+
+GATES: 1. Where the time goes: the SPI clock, transaction size, the per-word round trip in `dsp4_meascap.py` / the CM4 spidev path / the SHARC dispatch handler — measure each. 2. A BULK READ: one dispatch word arms a streaming read of N words (DMA on the SHARC side into the SPI TX, large spidev transfers on the CM4, the highest SPI clock the link holds — state the clock and the error check: a CRC or a known pattern over the buffer, 0 errors in 100 captures). If the parameter link cannot go fast enough, say what can (a second SPI, the CPLD's Pi PCM lane as a data path, the S49 Pi lane). 3. Re-time the fast battery on MIC 5 with the bulk read: per-channel seconds, the 24-channel projection manual and harness. 4. No contract change expected (the CaptureArm/CaptureReady cells stay); if a cell is needed, propose. findings S61-1..3, tasks.md, commit + push, clean; unit as found.
+
+Bounded: ≈ 2 h.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-16 14:11Z — S60 — chirps instead of tones: log-sweep mode in TEST_OSC, deconvolution in dsp4_fft, validated on MIC 5; 10 kHz crosstalk; fast battery timing   [status: 🟢 done — (1) CHIRP in TEST_OSC on the existing cells: SweepOn 1 = periodic log sweep 20 Hz→20 kHz, SweepStep = period ×1024 (0 = 16 = 16,384), stepped sweep retired; capture arm starts on a period boundary; periods bit-identical (16,384/16,384), +732…791 cycles/pass (0.24 %), 0 overruns; description change proposed (CONTRACT-PROPOSAL-S60, no addresses). Known sweep = a captured donor-strip reference (the float64 host model drifts ~4 samples by 20 kHz; `seg_delay` is not initialised — table moved to L1). (2) `dsp4_fft.py --chirp` / `dsp4_chirp.py` (Farina inverse in the frequency domain; latency 1–2 k / 1–10 k / peak, polarity, 1/48-oct response, THD 2..5 by harmonic impulse, SNR from two captures; selftest PASS; 1.2 s per capture on the CM4). (3) MIC 5 VALIDATED: gain law 8 codes within 0.005 dB of T1; response vs tone ≤ 0.004 dB (code 0) / ≤ 0.063 dB (code 63); latency 1–2 kHz 91.398…91.461 samples (1–10 kHz 91.62–91.64 = S54's 91.596; peak 92.08); inverted at every code; SNR @ 20 Hz 97.4 dB code 0 / 50.3 dB code 63 at lane −10 dBFS pk (code 63 limited by AUX 1 source noise). S60-3: set level BEFORE gain code or preamp overload pumps a τ≈0.3 s DC offset. (3b) T7 @ 10 kHz worst neighbour strip 17 = J26 (same U39) −133.06 dB, detector floor −144.18. (4) fast battery ≈ 2.8 min/channel (8 chirps + 2 THD+N + 1 EIN, CM4 analysis), 85 % SPI readout (≈1,330 words/s); read-all-lanes ≈ 62 min/unit by capture, 2 min by meter (1 kHz gain only); bulk read → ~30 s/channel. Findings S60-1..4. Unit: s60 pair running (s56 + chirp), cells as found, AN_EN hi untouched, cable on J25]   [model: opus]
 
 model: opus
