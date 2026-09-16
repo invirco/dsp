@@ -1,0 +1,55 @@
+code  0 [15] ch8   Q7..Q0 00000000 0x00  probe(-80) coherent gain +5.58 dB -> osc -15.58 dBFS for a -10 dBFS lane peak
+   osc  -15.58  RMS   -15.47  gain(rms)  +3.119  gain(coh)  +2.987  THD+N  -15.24 dB  noise   -30.71  phase  -144.7
+   osc  -25.58  RMS   -23.01  gain(rms)  +5.578  gain(coh)  +5.578  THD+N  -73.94 dB  noise   -96.94  phase  -145.2
+   osc  -35.58  RMS   -33.01  gain(rms)  +5.578  gain(coh)  +5.578  THD+N  -72.69 dB  noise  -105.70  phase  -145.2
+   tone OFF floor RMS  -103.93 dBFS (windows -103.63 -103.98 -104.08 -104.04)
+code  2 [15] ch8   Q7..Q0 00001000 0x08  probe(-80) coherent gain +25.03 dB -> osc -35.03 dBFS for a -10 dBFS lane peak
+   osc  -35.03  RMS   -13.00  gain(rms) +25.041  gain(coh) +25.041  THD+N  -64.85 dB  noise   -77.85  phase  -145.3
+   osc  -45.03  RMS   -23.00  gain(rms) +25.041  gain(coh) +25.041  THD+N  -59.45 dB  noise   -82.45  phase  -145.3
+   osc  -55.03  RMS   -33.00  gain(rms) +25.041  gain(coh) +25.041  THD+N  -53.15 dB  noise   -86.15  phase  -145.3
+   tone OFF floor RMS   -84.91 dBFS (windows -84.95 -85.12 -85.25 -84.33)
+code  4 [15] ch8   Q7..Q0 00010000 0x10  probe(-80) coherent gain +32.47 dB -> osc -42.47 dBFS for a -10 dBFS lane peak
+   osc  -42.47  RMS   -13.01  gain(rms) +32.475  gain(coh) +32.475  THD+N  -66.79 dB  noise   -79.80  phase  -145.3
+   osc  -52.47  RMS   -23.01  gain(rms) +32.474  gain(coh) +32.474  THD+N  -56.56 dB  noise   -79.56  phase  -145.3
+   osc  -62.47  RMS   -33.01  gain(rms) +32.475  gain(coh) +32.475  THD+N  -46.92 dB  noise   -79.92  phase  -145.3
+   tone OFF floor RMS   -77.72 dBFS (windows -77.85 -77.67 -77.50 -77.88)
+code  6 [15] ch8   Q7..Q0 00011000 0x18  probe(-80) coherent gain +35.26 dB -> osc -45.26 dBFS for a -10 dBFS lane peak
+   osc  -45.26  RMS   -13.00  gain(rms) +35.267  gain(coh) +35.267  THD+N  -63.96 dB  noise   -76.97  phase  -145.3
+   osc  -55.26  RMS   -23.00  gain(rms) +35.267  gain(coh) +35.267  THD+N  -53.85 dB  noise   -76.85  phase  -145.3
+   osc  -65.26  RMS   -33.00  gain(rms) +35.269  gain(coh) +35.269  THD+N  -44.06 dB  noise   -77.07  phase  -145.3
+   tone OFF floor RMS   -75.00 dBFS (windows -75.10 -74.96 -75.00 -74.96)
+code  8 [15] ch8   Q7..Q0 00100000 0x20  probe(-80) coherent gain +39.92 dB -> osc -49.92 dBFS for a -10 dBFS lane peak
+   osc  -49.92  RMS   -13.01  gain(rms) +39.927  gain(coh) +39.927  THD+N  -59.13 dB  noise   -72.13  phase  -145.3
+   osc  -59.92  RMS   -23.00  gain(rms) +39.928  gain(coh) +39.928  THD+N  -49.49 dB  noise   -72.50  phase  -145.3
+   osc  -69.92  RMS   -33.00  gain(rms) +39.928  gain(coh) +39.927  THD+N  -39.44 dB  noise   -72.44  phase  -145.3
+   tone OFF floor RMS   -70.22 dBFS (windows -70.47 -70.11 -70.10 -70.18)
+code 12 [15] ch8   Q7..Q0 00110000 0x30  probe(-80) coherent gain +42.87 dB -> osc -52.87 dBFS for a -10 dBFS lane peak
+   osc  -52.87  RMS   -13.01  gain(rms) +42.870  gain(coh) +42.870  THD+N  -56.48 dB  noise   -69.49  phase  -145.2
+   osc  -62.87  RMS   -23.01  gain(rms) +42.871  gain(coh) +42.871  THD+N  -46.57 dB  noise   -69.57  phase  -145.2
+   osc  -72.87  RMS   -33.01  gain(rms) +42.872  gain(coh) +42.871  THD+N  -36.52 dB  noise   -69.52  phase  -145.2
+   tone OFF floor RMS   -67.49 dBFS (windows -67.57 -67.53 -67.43 -67.44)
+code 16 [15] ch8   Q7..Q0 01000000 0x40  probe(-80) coherent gain +47.17 dB -> osc -57.17 dBFS for a -10 dBFS lane peak
+   osc  -57.17  RMS   -13.01  gain(rms) +47.169  gain(coh) +47.169  THD+N  -52.13 dB  noise   -65.15  phase  -145.1
+   osc  -67.17  RMS   -23.01  gain(rms) +47.169  gain(coh) +47.169  THD+N  -42.14 dB  noise   -65.15  phase  -145.1
+   osc  -77.17  RMS   -33.00  gain(rms) +47.175  gain(coh) +47.172  THD+N  -32.26 dB  noise   -65.26  phase  -145.2
+   tone OFF floor RMS   -63.03 dBFS (windows -63.05 -62.98 -63.01 -63.08)
+code 24 [15] ch8   Q7..Q0 01100000 0x60  probe(-80) coherent gain +50.22 dB -> osc -60.22 dBFS for a -10 dBFS lane peak
+   osc  -60.22  RMS   -13.00  gain(rms) +50.227  gain(coh) +50.227  THD+N  -49.23 dB  noise   -62.24  phase  -145.0
+   osc  -70.22  RMS   -23.00  gain(rms) +50.225  gain(coh) +50.224  THD+N  -39.22 dB  noise   -62.23  phase  -145.0
+   osc  -80.22  RMS   -33.00  gain(rms) +50.225  gain(coh) +50.220  THD+N  -29.14 dB  noise   -62.15  phase  -145.1
+   tone OFF floor RMS   -60.12 dBFS (windows -60.21 -60.17 -60.08 -60.01)
+code 32 [15] ch8   Q7..Q0 10000000 0x80  probe(-80) coherent gain +53.73 dB -> osc -63.73 dBFS for a -10 dBFS lane peak
+   osc  -63.73  RMS   -12.99  gain(rms) +53.746  gain(coh) +53.746  THD+N  -45.66 dB  noise   -58.66  phase  -144.9
+   osc  -73.73  RMS   -22.99  gain(rms) +53.747  gain(coh) +53.745  THD+N  -35.71 dB  noise   -58.70  phase  -144.9
+   osc  -83.73  RMS   -32.99  gain(rms) +53.751  gain(coh) +53.739  THD+N  -25.74 dB  noise   -58.73  phase  -144.8
+   tone OFF floor RMS   -56.58 dBFS (windows -56.47 -56.47 -56.60 -56.78)
+code 48 [15] ch8   Q7..Q0 11000000 0xC0  probe(-80) coherent gain +57.00 dB -> osc -67.00 dBFS for a -10 dBFS lane peak
+   osc  -67.00  RMS   -13.01  gain(rms) +56.996  gain(coh) +56.995  THD+N  -42.47 dB  noise   -55.48  phase  -144.7
+   osc  -77.00  RMS   -23.00  gain(rms) +57.003  gain(coh) +57.001  THD+N  -32.38 dB  noise   -55.39  phase  -144.7
+   osc  -87.00  RMS   -32.98  gain(rms) +57.029  gain(coh) +57.005  THD+N  -22.59 dB  noise   -55.57  phase  -144.6
+   tone OFF floor RMS   -53.45 dBFS (windows -53.36 -53.62 -53.51 -53.28)
+code 63 [15] ch8   Q7..Q0 11111100 0xFC  probe(-80) coherent gain +58.71 dB -> osc -68.71 dBFS for a -10 dBFS lane peak
+   osc  -68.71  RMS   -13.01  gain(rms) +58.714  gain(coh) +58.714  THD+N  -40.65 dB  noise   -53.66  phase  -144.5
+   osc  -78.71  RMS   -23.02  gain(rms) +58.704  gain(coh) +58.700  THD+N  -30.67 dB  noise   -53.69  phase  -144.6
+   osc  -88.71  RMS   -32.97  gain(rms) +58.756  gain(coh) +58.720  THD+N  -20.80 dB  noise   -53.76  phase  -144.4
+   tone OFF floor RMS   -51.70 dBFS (windows -51.55 -51.82 -51.66 -51.78)

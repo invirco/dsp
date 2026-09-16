@@ -1,0 +1,17 @@
+code 0 osc -25.00 | strip6 THD+N  -115.41 coh +0.000 | C2 AUX1 meter pk  +18.06 dBFS lim_env 0x00E33739 | loop coh pk  -19.42 THD+N  -82.61 dB (0.0074 %) C1 mtr pk  -14.43
+code 0 osc -20.00 | strip6 THD+N  -115.52 coh +0.000 | C2 AUX1 meter pk  +18.06 dBFS lim_env 0x01940D90 | loop coh pk  -14.42 THD+N  -87.32 dB (0.0043 %) C1 mtr pk  -14.43
+code 0 osc -19.00 | strip6 THD+N  -121.64 coh +0.000 | C2 AUX1 meter pk  +18.06 dBFS lim_env 0x01C55ADB | loop coh pk  -13.42 THD+N  -88.33 dB (0.0038 %) C1 mtr pk  -13.43
+code 0 osc -18.50 | strip6 THD+N   -55.75 coh -0.259 | C2 AUX1 meter pk  +18.06 dBFS lim_env 0x01D21BC0 | loop coh pk  -13.18 THD+N  -55.71 dB (0.1638 %) C1 mtr pk  -13.19
+code 0 osc -18.00 | strip6 THD+N   -55.75 coh -0.634 | C2 AUX1 meter pk  +18.06 dBFS lim_env 0x01D8DCF7 | loop coh pk  -13.17 THD+N  -16.51 dB (14.9505 %) C1 mtr pk   -9.72
+code 0 osc -17.00 | strip6 THD+N   -55.75 coh -1.384 | C2 AUX1 meter pk  +18.06 dBFS lim_env 0x01E974E6 | loop coh pk  -12.94 THD+N  -14.88 dB (18.0338 %) C1 mtr pk   -9.44
+code 0 osc -10.00 | strip6 THD+N   -55.75 coh -6.634 | C2 AUX1 meter pk  +18.06 dBFS lim_env 0x02580BCE | loop coh pk  -11.18 THD+N  -15.21 dB (17.3664 %) C1 mtr pk   -7.70
+code 2 lane target -20.0 osc  -45.04 | coh pk  -20.00 RMS  -23.01 THD+N   -41.18 dB = 0.87314 % noise  -64.19 | C1 mtr pk 0.542048 (-5.319 dBFS)
+code 2 lane target -14.0 osc  -39.04 | coh pk  -14.00 RMS  -17.01 THD+N   -50.29 dB = 0.30598 % noise  -67.30 | C1 mtr pk 0.234897 (-12.582 dBFS)
+code 2 lane target -13.0 osc  -38.04 | coh pk  -13.00 RMS  -16.01 THD+N   -62.06 dB = 0.07888 % noise  -78.07 | C1 mtr pk 0.223770 (-13.004 dBFS)
+code 2 lane target -12.0 osc  -37.04 | coh pk  -12.00 RMS  -15.01 THD+N   -70.61 dB = 0.02949 % noise  -85.62 | C1 mtr pk 0.250963 (-12.008 dBFS)
+code 2 lane target -10.0 osc  -35.04 | coh pk  -10.00 RMS  -13.01 THD+N   -73.79 dB = 0.02045 % noise  -86.80 | C1 mtr pk 0.315932 (-10.008 dBFS)
+code 2 lane target  -6.0 osc  -31.04 | coh pk   -6.00 RMS   -9.01 THD+N   -77.96 dB = 0.01264 % noise  -86.97 | C1 mtr pk 0.500705 (-6.008 dBFS)
+code 2 lane target  -3.0 osc  -28.04 | coh pk   -3.00 RMS   -6.01 THD+N   -80.22 dB = 0.00975 % noise  -86.23 | C1 mtr pk 0.707264 (-3.008 dBFS)
+code 2 lane target  -1.0 osc  -26.04 | coh pk   -1.00 RMS   -4.01 THD+N   -80.28 dB = 0.00968 % noise  -84.29 | C1 mtr pk 0.890494 (-1.007 dBFS)
+code 2 lane target  +0.0 osc  -25.04 | coh pk   -0.12 RMS   -3.12 THD+N   -34.38 dB = 1.91073 % noise  -37.50 | C1 mtr pk 0.958036 (-0.372 dBFS)
+code 2 lane target  +1.0 osc  -24.04 | coh pk    0.37 RMS   -2.62 THD+N   -23.45 dB = 6.71960 % noise  -26.07 | C1 mtr pk 0.961476 (-0.341 dBFS)

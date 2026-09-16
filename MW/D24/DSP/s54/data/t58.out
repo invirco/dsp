@@ -1,0 +1,23 @@
+f   1000  coh  +5.578 dB  phase  -145.24 deg  (spread 0.000 dB)
+f   1100  coh  +5.573 dB  phase   146.18 deg  (spread 0.000 dB)
+f   1200  coh  +5.569 dB  phase    77.62 deg  (spread 0.000 dB)
+f   1300  coh  +5.566 dB  phase     9.07 deg  (spread 0.000 dB)
+f   1400  coh  +5.564 dB  phase   -59.48 deg  (spread 0.000 dB)
+f   1500  coh  +5.564 dB  phase  -128.03 deg  (spread 0.000 dB)
+f   1600  coh  +5.564 dB  phase   163.43 deg  (spread 0.000 dB)
+f   1700  coh  +5.566 dB  phase    94.89 deg  (spread 0.000 dB)
+f   1800  coh  +5.568 dB  phase    26.34 deg  (spread 0.000 dB)
+f   1900  coh  +5.571 dB  phase   -42.21 deg  (spread 0.000 dB)
+f   2000  coh  +5.575 dB  phase  -110.76 deg  (spread 0.000 dB)
+f   2500  coh  +5.601 dB  phase   -93.64 deg  (spread 0.000 dB)
+f   3000  coh  +5.622 dB  phase   -76.69 deg  (spread 0.000 dB)
+f   4000  coh  +5.606 dB  phase   -43.05 deg  (spread 0.000 dB)
+f   5000  coh  +5.572 dB  phase    -9.27 deg  (spread 0.000 dB)
+f   6000  coh  +5.627 dB  phase    23.96 deg  (spread 0.000 dB)
+f   8000  coh  +5.584 dB  phase    88.12 deg  (spread 0.000 dB)
+f  10000  coh  +5.639 dB  phase   149.02 deg  (spread 0.000 dB)
+f  12000  coh  +5.598 dB  phase  -154.51 deg  (spread 0.000 dB)
+f  15000  coh  +5.559 dB  phase   -83.92 deg  (spread 0.000 dB)
+fit  1000.. 2000 Hz: delay 91.399 samples = 1.9042 ms; phase intercept 540.2 deg (mod 360: 180.2); max residual 0.03 deg
+fit  1000..10000 Hz: delay 91.596 samples = 1.9082 ms; phase intercept 543.0 deg (mod 360: 183.0); max residual 4.28 deg
+fit  2000..15000 Hz: delay 91.946 samples = 1.9155 ms; phase intercept 555.7 deg (mod 360: 195.7); max residual 15.70 deg

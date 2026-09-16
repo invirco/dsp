@@ -93,6 +93,12 @@ def from_f32(w):
     return struct.unpack('<f', struct.pack('<I', w & 0xFFFFFFFF))[0]
 
 
+def pct(db):
+    """A ratio in dB as percent, the ruled companion of every THD/THD+N
+    figure (PW 2026-09-16): % = 100 * 10^(dB/20)."""
+    return '%.5f %%' % (100.0 * 10.0 ** (db / 20.0))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--strip', type=int, default=5,
@@ -212,10 +218,11 @@ def main():
         rows.append({'seq': s_, 'freq_hz': fhz, 'rms_dbfs': rms,
                      'thd_db': thd, 'noise_dbfs': nse, 'xtalk_db': xtk,
                      'torn': s2 != s_})
-        print('    seq %6d %s  RMS %8.2f dBFS   THD+N %8.2f dB   '
+        print('    seq %6d %s  RMS %8.2f dBFS   THD+N %8.2f dB = %s   '
               'noise %8.2f dBFS   xtalk %8.2f dB%s'
               % (s_, ('%9.2f Hz' % fhz) if a.sweep else '',
-                 rms, thd, nse, xtk, '   (TORN)' if s2 != s_ else ''))
+                 rms, thd, pct(thd), nse, xtk,
+                 '   (TORN)' if s2 != s_ else ''))
 
     good = [r for r in rows if not r['torn']]
     print('')
@@ -224,7 +231,7 @@ def main():
     r = good[-1]
     print('  SETTLED (seq %d):' % r['seq'])
     print('    RmsResult   %9.2f dBFS' % r['rms_dbfs'])
-    print('    ThdResult   %9.2f dB' % r['thd_db'])
+    print('    ThdResult   %9.2f dB   = %s' % (r['thd_db'], pct(r['thd_db'])))
     print('    NoiseResult %9.2f dBFS' % r['noise_dbfs'])
     print('    XtalkResult %9.2f dB' % r['xtalk_db'])
     if not a.off:

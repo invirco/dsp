@@ -438,6 +438,14 @@ def write_png(path, res, title_hz):
 # Reporting
 # --------------------------------------------------------------------------
 
+def pct(db):
+    """A ratio in dB as percent, printed beside every THD, THD+N and
+    harmonic figure (PW 2026-09-16): % = 100 * 10^(dB/20)."""
+    if db == float('-inf'):
+        return '0 %'
+    return '%.5f %%' % (100.0 * 10.0 ** (db / 20.0))
+
+
 def report(res, cap, lane):
     print('dsp4_fft — %s%s' % (cap.get('node', '?'),
                                '' if cap.get('lanes', 1) == 1
@@ -465,9 +473,10 @@ def report(res, cap, lane):
           % (res['fund_hz'], res['fund_dbfs'], res['fund_bin']))
     print('  total           %28.2f dBFS' % res['total_dbfs'])
     print('  DC              %28.2f dBFS' % res['dc_dbfs'])
-    print('  THD+N           %28.2f dB    (%.2f dBFS)'
-          % (res['thdn_db'], res['thdn_dbfs']))
-    print('  THD (2..%d)      %27.2f dB' % (N_HARMONICS, res['thd_db']))
+    print('  THD+N           %28.2f dB    = %s   (%.2f dBFS)'
+          % (res['thdn_db'], pct(res['thdn_db']), res['thdn_dbfs']))
+    print('  THD (2..%d)      %27.2f dB    = %s'
+          % (N_HARMONICS, res['thd_db'], pct(res['thd_db'])))
     print('  SNR             %28.2f dB' % res['snr_db'])
     print('  noise           %28.2f dBFS' % res['noise_dbfs'])
     print('  floor / bin     %28.2f dBFS' % res['floor_bin_dbfs'])
@@ -477,8 +486,9 @@ def report(res, cap, lane):
     for hh in res['harmonics']:
         if hh['dbc'] > -160.0:
             any_h = True
-            print('    h%-2d %10.2f Hz   %8.2f dBc   %8.2f dBFS'
-                  % (hh['n'], hh['hz'], hh['dbc'], hh['dbfs']))
+            print('    h%-2d %10.2f Hz   %8.2f dBc = %s   %8.2f dBFS'
+                  % (hh['n'], hh['hz'], hh['dbc'], pct(hh['dbc']),
+                     hh['dbfs']))
     if not any_h:
         print('    none above -160 dBc')
     print('')

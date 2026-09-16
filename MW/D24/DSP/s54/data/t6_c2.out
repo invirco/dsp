@@ -1,0 +1,8 @@
+T6 at code 2, osc -31.04 dBFS (lane target -6.0 dBFS pk)
+arm 0 mute=0 [15] ch8   Q7..Q0 00001000 0x08  RMS    -9.01 dBFS  coh pk    -6.00 dBFS  (coh gain   +25.04 dB)  THD+N  -77.06  noise   -86.07
+arm 1 mute=1 [15] ch8   Q7..Q0 00001001 0x09  RMS   -29.04 dBFS  coh pk   -26.03 dBFS  (coh gain    +5.01 dB)  THD+N  -65.92  noise   -94.96
+arm 2 mute=0 [15] ch8   Q7..Q0 00001000 0x08  RMS    -9.01 dBFS  coh pk    -6.00 dBFS  (coh gain   +25.04 dB)  THD+N  -77.85  noise   -86.86
+arm 3 mute=1 [15] ch8   Q7..Q0 00001001 0x09  RMS   -29.04 dBFS  coh pk   -26.03 dBFS  (coh gain    +5.01 dB)  THD+N  -65.82  noise   -94.86
+arm 4 mute=0 [15] ch8   Q7..Q0 00001000 0x08  RMS    -9.01 dBFS  coh pk    -6.00 dBFS  (coh gain   +25.04 dB)  THD+N  -71.45  noise   -80.46
+tone OFF mute=1  RMS   -93.92 dBFS
+tone OFF mute=0  RMS   -84.19 dBFS

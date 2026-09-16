@@ -6,6 +6,171 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE STANDARD AUDIO TEST SET, FIRST RUN: MIC 5 → AUX 1 LOOP, T1–T8 + T4b (2026-09-16, session 54 — bench, MW-D24-2)
+
+**Pair:** `s51_119ea9d9` (`DSP4_TEST_NODES=1`, no block tap; chip1 `119ea9d9…`, chip2 `c56ed0ab…`, md5 re-checked at
+the end), already booted from S52. No reboot or flash, and nothing written to AN_EN. **Loop:** TEST_OSC on donor strip 6 → AUX 1 → DAC_08 →
+J45 → cable → J25 → MIC 5 preamp → U39 → strip 20 post-fader → TEST_MEAS. MIC 5's register alone open, phantom off,
+every image sent at p = 15 (`app cli chain-set 27 ch8:mute=M,gain=G ch24:mute=0 instr1=1`), **VERIFIED 200/200 on
+all 141 logged loads**. Levels: osc = DSP digital peak on strip 6, which is also the DAC side (the gather's
+Q4.28→Q1.31 shift makes 1.0 = DAC FS); lane = strip 20 Q4.28, 1.0 = ADC FS. **Loop gain = lane − osc, digital to
+digital, not a preamp gain in volts.** +5 V/rails not taken (PW). Every number is TEST_MEAS: RmsResult / ThdResult /
+NoiseResult / XtalkResult, plus the window's fit coefficients `_meas_a_`/`_meas_b_` (see S54-1). Data:
+`MW/D24/DSP/s54/data/*.jsonl` (every window), `*.out` (as printed), `law64.md`; tools `MW/D24/DSP/s54/tools/`.
+
+### Summary (the doc's rows, dB and % side by side)
+
+| # | test | result | flags |
+|---|---|---|---|
+| T1 | gain law, 1 kHz, all 64 codes, lane pk −20…−6 dBFS | loop gain **+5.58 dB (code 0) → +58.72 dB (code 63)**, range 53.14 dB; **monotonic**; largest step **12.85 dB (code 0→1)**, smallest 0.061 dB (62→63); every code within **0.061 dB** of a six-stage linear-additive model (no stage mis-switching); three levels agree ≤ 0.019 dB (coherent). THD+N at lane −13 dBFS pk, code 0: −89.50 dB = 0.0034 % | RMS-based level spread 0.052 dB at code 63's lowest level (noise, > 0.05) |
+| T2 | freq response re 1 kHz, osc −20 dBFS (code 0) / same lane level (code 16) | code 0: 20 Hz **−0.41**, 50 Hz −0.05, 100 Hz–15 kHz within ±0.07, 20 kHz −0.12 dB. code 16: 20 Hz **−0.60**, 50 Hz −0.10, 100 Hz–15 kHz within ±0.07, 20 kHz −0.12 dB | **20 Hz at code 16 beyond ±0.5 dB**; the LF corner moves with gain (20 Hz phase −172.8° → −163.5°) |
+| T3 | THD+N vs lane level, 1 kHz, code 0 | −60: −42.58 dB = 0.743 % · −40: −62.98 dB = 0.0709 % · −20: −82.48 dB = 0.00752 % · −10: −91.38 dB = 0.00270 % · −6: −92.59 dB = 0.00235 % · −3: −88.76 dB = 0.00365 % · **−1: −43.92 dB = 0.637 %** (noise-limited to −10) | **clip onset between lane −3 and −1 dBFS; no sample ever reaches FS** — the lane saturates at 0.979 FS (−0.18 dBFS) |
+| T4 | noise floor, tone off | code 0 −104.29, 2 −84.91, 4 −77.72, 6 −75.00, 8 −70.22, 12 −67.49, 16 −63.03, 24 −60.12, 32 −56.58, 48 −53.45, 63 −51.70 dBFS; input-referred (floor − loop gain) −109.87 … −110.45 dBFS-eq at every code | — |
+| T4b | EIN (reference, source = AUX 1 output stage ≈ 66 Ω: R1875 + R1876 = 33 Ω + 33 Ω, via C747/C748 and the cable) | code 63: NoiseResult −51.70 dBFS − loop gain +58.71 dB = **−110.42 dBFS-equivalent**, unweighted, DC–24 kHz (4,096-sample window, every sample), DAC idle noise included | reference only; not 150 Ω; no dBu (see S54-3) |
+| T5 | polarity | phase intercept of the 1–2 kHz fit **180.2°** (1–10 kHz: 183.0°) → **INVERTED** round the loop | inverted |
+| T6 | mute depth, register mute bit | **20.04 dB** at code 0 (coherent −20.00 → −40.04 dBFS pk), **20.03 dB** at code 2; five alternating arms repeat to 0.01 dB | **the mute bit only attenuates by 20 dB** |
+| T7 | crosstalk, source lane −6 dBFS pk (code 2), 22 neighbour strips | none resolved: worst coherent reading strip 11 **−131.4 dB**, detector floor (no stimulus) **−135.2 dB** → **< −131 dB**; XtalkResult (energy, noise-limited) −102.2 … −107.2 dB | — |
+| T8 | latency | **91.40 samples = 1.904 ms** (group delay, 1–2 kHz, residual 0.03°); 91.60 over 1–10 kHz, 91.95 over 2–15 kHz | — |
+
+**S54-1. Method: the fit coefficients TEST_MEAS already computes give coherent level and phase, and they check
+exactly.** `_meas_a_`/`_meas_b_` are the window's least-squares fit of strip 20 onto the oscillator's own s/c
+reference. For the magic-circle recurrence (s' = s + k c, c' = c − k s') the reference phasors satisfy C/S = (z−1)/k,
+z = e^{jω}, and the injected block is s·L·cos(ω/2) with |S| = 1/cos(ω/2). So H = (a + b·r)/(L·cos(ω/2)) is the complex
+loop transfer. Its magnitude is below the noise (coherent over 4,096 samples), and its phase is −ωD plus the analog
+phase. **Check: MeasChan = 6 (the digital reference) reads H = 0.000 dB, 0.000° at every one of eleven frequencies
+from 20 Hz to 20 kHz**, while RmsResult on the same strip shows the known short-window error at 20 Hz (−22.933 vs
+−23.010 dBFS). The coherent gain equals the RMS gain to 0.001 dB wherever the tone is 30 dB clear of the floor. This
+is what T2's magnitudes, T5/T8's phase and T7's sub-floor crosstalk use. Peeks only, no cost on either chip. Window
+count per point: settle 3–4 windows (8 at ≤ 50 Hz, 16 on the 20 Hz retake), then 3–6 untorn windows averaged.
+
+**S54-2. THE DONOR STRIP WAS NOT TRANSPARENT, AND DRIVING IT HARD OVERRUNS CHIP 2 — the first T3 run is withdrawn.**
+As found, strip 6 had **CompOn 1** and **MainOn 1** (S52 had made strip 20 transparent, not the donor). Two effects:
+(a) above osc ≈ −19 dBFS strip 6's own compressor engages. Strip-6 digital THD+N goes −121.64 → −55.75 dB (0.163 %)
+between osc −19.0 and −18.5, and the coherent level drops −0.26/−0.63/−1.38/−6.63 dB at −18.5/−18/−17/−10. This is
+S49's C1_COMP_05 signature. (b) With the compressor off, the loop still broke at the same point: at code 0 the lane was
+clean at osc −19.58 (THD+N −88.05 dB) and read **≈ 17 % (−15 dB) from osc −18.58 on**, with the fundamental still linear
+and sample peaks 3.5 dB above it. It looked like a front-end overload. **It is not analog: chip 2 `_diag_blk_overrun`
++109 in 5 s at osc −15 and +0 at −20, chip 1 +0 in both.** Split by route at osc −15: **AUX only (MainOn 0) → 0
+overruns, THD+N −91.70 dB = 0.0026 %; MAIN only (AuxOn 0) → +109.** So the chip-2 MAIN chain takes a more expensive
+path once its input passes ≈ −18.5 dBFS, misses about 22 blocks/s, and the loop reads the block drops as distortion.
+That is the S52-4 mechanism, triggered here by signal level rather than by the tap. Everything quoted above was taken
+below that level or with MAIN off: T1 (64-code sweep), T3, the T1 code-0 row, T5/T8, T6 and T7 ran at osc ≤ −18.58 or
+with MainOn 0. T2 ran at osc −20 with CompOn 1, below its threshold (digital reference 0.000 dB at every point).
+**Hand-back leaves strip 6 CompOn 0 and MainOn 0 (was 1/1)**, so the donor is transparent and the MAIN chain
+unstimulated. Stated here because it is a changed cell. Which chip-2 MAIN node goes expensive, and by how much, is not
+chased (next list). Side notes: (i) a TX DMA word read back as Q4.28 is 8× (+18.06 dB) the node value, because
+`_gather_chip2` shifts Q4.28→Q1.31 with saturation (`chip2/block_io.asm:343`). A peek decode that forgets this reads a
+DAC-lane level 18 dB high; S48-4's "×8 / saturates at 1.006" figures are worth re-reading with that in mind. (ii)
+`_mtr_peak_C2_MTR_AUX_01` reads a constant +18.06 dBFS (8.0, the Q8.24 ceiling) at every level, so it does not
+measure the aux lane.
+
+**S54-3. T1 over all 64 codes, T4 and T4b (hub addenda 09:41 and 09:58).** Per-code table (osc level, lane RMS,
+coherent peak, loop gain, gain re code 0, model, THD+N dB/%) in `data/law64.md`. Loop gain, dB:
+
+| code | +0 | +1 | +2 | +3 | +4 | +5 | +6 | +7 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| 0–7 | 5.58 | 18.42 | 25.04 | 27.71 | 32.47 | 33.71 | 35.27 | 36.18 |
+| 8–15 | 39.93 | 40.47 | 41.22 | 41.69 | 42.87 | 43.26 | 43.81 | 44.16 |
+| 16–23 | 47.17 | 47.41 | 47.75 | 47.98 | 48.56 | 48.77 | 49.06 | 49.26 |
+| 24–31 | 50.23 | 50.40 | 50.64 | 50.80 | 51.23 | 51.38 | 51.60 | 51.74 |
+| 32–39 | 53.74 | 53.86 | 54.02 | 54.13 | 54.42 | 54.52 | 54.67 | 54.78 |
+| 40–47 | 55.30 | 55.39 | 55.53 | 55.62 | 55.86 | 55.95 | 56.08 | 56.16 |
+| 48–55 | 57.00 | 57.08 | 57.19 | 57.26 | 57.47 | 57.54 | 57.65 | 57.72 |
+| 56–63 | 58.09 | 58.15 | 58.25 | 58.32 | 58.50 | 58.56 | 58.66 | 58.72 |
+
+**The stages add in LINEAR gain, not in dB** (parallel-switched feedback resistors, G = 1 + Rf·Σ bit/R). A weighted
+least-squares fit G = 1.901 + Σ bitᵢ·dᵢ with d = 6.441, 15.970, 40.128, 97.069, 225.388, 481.791 (bits Q2…Q7 alone
++12.85/+19.46/+26.89/+34.33/+41.55/+48.11 dB over code 0) **misses no code by more than 0.061 dB (mean 0.020)**, so no
+stage is failing to switch and there are no flags. Consequence for the table: the steps are uniform in voltage, so in
+dB they crowd at the top. Sorted, the 63 steps run from 0.061 dB (62→63) to **12.85 dB (0→1)**; the gaps above 2 dB
+are 0→1 12.85, 1→2 6.62, 3→4 4.76, 7→8 3.75, 15→16 3.01, 2→3 2.67, 31→32 2.00. Repeatability: codes 30–50 were taken
+twice, and the two runs agree within 0.005 dB. Run 1's codes 51–55 walked off and are excluded. That guard read a
+noise-limited THD+N as clipping and stepped the oscillator down to nothing (`t1all_part1.out`); the fixed guard judges
+on level only. **First-cut trim table** (gain re code 0, hw = largest ≤ target, trim ≥ 0; sample 1 of the averaged
+table, channel = MIC 5 / J25 / U39, unit MW-D24-2 rev C): 0–12 dB → code 0 + 0…12; 13→c1+0.15, 14→c1+1.15,
+15→c1+2.15, 16→c1+3.15, 17→c1+4.15, 18→c1+5.15, 19→c1+6.15, 20→c2+0.54, 21→c2+1.54, 22→c2+2.54, 23→c3+0.86,
+24→c3+1.86, 25→c3+2.86, 26→c3+3.86, 27→c4+0.10, 28→c4+1.10, 29→c5+0.87, 30→c6+0.31, 31→c7+0.40, 32→c7+1.40,
+33→c7+2.40, 34→c7+3.40, 35→c9+0.11, 36→c10+0.36, 37→c11+0.89, 38→c13+0.32, 39→c15+0.42, 40→c15+1.42, 41→c15+2.42,
+42→c17+0.17, 43→c20+0.01, 44→c23+0.32, 45→c25+0.18, 46→c29+0.20, 47→c31+0.84, 48→c31+1.84, 49→c37+0.05,
+50→c42+0.05, 51→c47+0.41, 52→c53+0.04, 53→c61+0.02, 54–60→c63+0.86…+6.86. **The largest trim inside the hardware
+range is 12.0 dB, below 12.85 dB re code 0, where only code 0 exists.** The 0–60 dB product law needs +6.86 dB of trim
+above code 63, because the hardware spans 53.14 dB. If the law's 0 dB is meant to be code 0's absolute gain, that
+needs volts (below).
+T4 floors are in the summary. **Input-referred, they are flat at −110.3 ± 0.2 dBFS-eq from code 2 up (code 0 −109.87).**
+So the floor is set before the switched gain: DAC idle noise plus the preamp's input noise, which this loop cannot
+separate. **T4b reference** at code 63: −51.70 dBFS (four windows −51.55/−51.82/−51.66/−51.78) − 58.71 dB
+(58.717 in the 64-code sweep) = **−110.42 dBFS-equivalent**. With the tone off the reference is zeroed, so NoiseResult
+equals RmsResult in every window: the energy of every sample of the 4,096-sample post-fader block. That is unweighted,
+DC included, band-limited only by the converters' filters (0–24 kHz at 48 k), with strip 20's EQ/HPF off. Source:
+AUX 1 output stage, U82 NJM4580 through C747/C748 and **R1875/R1876 = 33 Ω each (BOM, 1 %)**, so ≈ 66 Ω across pins
+2–3 plus the cable. That is not 150 Ω, and the DAC's own idle noise is in the figure, so it is an upper bound. **No
+dBu:** the loop gain is referred to the DAC's digital FS, so the noise lands in DAC-FS terms. A dBu figure needs the
+**J45 output voltage at DAC FS**, not the AK5558's input FS. The only documented statement found (mx26
+`backlog-d24-schematic-errata.md`) says the converter FS follows AVDD and gives no volts, so no conversion is claimed.
+
+**S54-4. T2 frequency response, T8 latency, T5 polarity.** Coherent magnitude re 1 kHz (loop +5.578 / +47.170 dB):
+
+| f | 20 | 50 | 100 | 200 | 500 | 1 k | 2 k | 5 k | 10 k | 15 k | 20 k |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| code 0, osc −20 | **−0.414** | −0.050 | +0.012 | +0.029 | +0.027 | 0 | −0.002 | −0.006 | +0.061 | −0.019 | −0.117 |
+| code 16, osc −61.59 | **−0.604** | −0.100 | −0.009 | +0.021 | +0.026 | 0 | −0.001 | −0.002 | +0.065 | −0.016 | −0.118 |
+
+The 20 Hz retake at 16 settling windows plus 6 read windows: code 16 −0.604 dB (6 windows 46.563…46.569), code 0 −0.414
+(identical over 6). The first pass's code-16 20 Hz point had a 0.207 dB spread and a −23.7 dB THD+N. That was
+settling, and the retake reads −47.05 dB, the same as 1 kHz. RmsResult with the digital reference subtracted
+agrees within 0.07 dB (20 Hz −0.487, the 1.7-cycle window). The +0.06 dB at 10 kHz is in both gains, so it is a
+converter-filter ripple, not the preamp. **Only 20 Hz at code 16 exceeds ±0.5 dB**, and the corner moves with gain
+(20 Hz phase −172.8° at code 0, −163.5° at 16). **T8:** unwrapped phase at 1.0…2.0 kHz in 100 Hz steps, then 2.5–15 kHz:
+slope → **91.40 samples = 1.904 ms**, max residual 0.03° over 1–2 kHz. That is the whole loop: DSP blocks, inter-chip
+fabric, DAC and ADC filters, analog. The HF fits (91.60 to 10 kHz, 91.95 to 15 kHz, residual 4°/16°) show the
+converter filters' group delay rising. **T5: the intercept is 180.2° (183.0° to 10 kHz), so the loop INVERTS.** Strip 6
+and strip 20 both have Pol 0. The inversion is somewhere in DAC → U82 → J45 → cable → J25 → preamp → ADC; one pin-2/3
+swap anywhere does it. Not localised (next list).
+
+**S54-5. T3 THD+N vs level and the clip point (code 0, strip 6 AUX-only).** Full table in `data/t3_auxonly.out`;
+summary row above, plus −30 −73.17 dB, −18 −84.14, −16 −86.59, −14 −88.48, −12 −90.29, −8 **−92.80 dB = 0.00229 %**
+(best). Up to −10 dBFS the residual is the −105 dBFS floor (NoiseResult −105.2 ± 0.4). From −6 the residual rises
+(noise −101.6, −94.8 at −3). At −1 dBFS it is −43.92 dB = 0.637 %, then 2.57 % at −0.5 and 4.67 % at 0. **The peak
+meter (`_mtr_peak_C1_MTR_20`, strip 20's gain-stage block peak) never reaches FS:** 0.885 at −1, 0.914 at 0, 0.970
+at +2, a maximum of 0.979 (−0.18 dBFS) at +4. So the ADC's full scale is not reached in this range; something before
+it saturates at ≈ 0.98 FS. Code 2 agrees (`knee.out`): lane −1 dBFS −80.28 dB = 0.00968 %, lane 0 −34.38 dB = 1.91 %
+with the meter at 0.958. The code-2 points below −6 dBFS in that file follow a code change and had not settled.
+**Clip point: THD+N passes 1 % between lane −1 and −0.5 dBFS pk; no sample at FS up to osc −0.58 dBFS.**
+
+**S54-6. T6 mute depth and T7 crosstalk.** T6: five arms open/muted/open/muted/open, the register mute bit alone
+(byte 0x00↔0x01 at code 0, 0x08↔0x09 at code 2), 200/200 each. **Muted = −20.04 dB at code 0 and −20.03 dB at code 2**,
+coherent and RMS agreeing, every arm repeating to 0.01 dB. As a mute that is shallow: either the bit is a −20 dB pad,
+or a leak path around the mute switch sits at −20 dB. Tone-off floor muted −110.76 vs open −101.08 dBFS at code 0. The
+open floor here is 3 dB above T4's; residuals after each mute toggle took several windows to settle (THD+N −82.5 →
+−61.3 dB over the arms). T7: code 2, source lane −6.00 dBFS pk (osc −31.04), every other strip 1–24 except 6 (donor)
+and 20 brought to unity for its own read and restored after (all 22 as found, Mute 1). Coherent readings −131.4
+(strip 11) … −147.9 dB; the control is strip 11 with the reference running and OscChan 0: −135.2 dB. **No neighbour
+resolves above the detector floor, so crosstalk is < −131 dB** at 1 kHz. XtalkResult (energy ratio) −102.2 … −107.2 dB
+is the neighbours' own floors (−111 … −116 dBFS rms) against −9 dBFS.
+
+**S54-7. There is no zero-cost capture on a no-tap pair, so no FFT this session; gate 0 is done.**
+`_scope_record` survives in the no-tap build and runs per sample on chip 1 only. But it records `_buf_<node>[idx]`,
+and under block kernels that is the node's STATE block, not audio. Captured on the part (`_buf_C1_FDR_20`, 1024
+samples): +5.95 dBFS of parameter words (0.5, 3.96875, …), 63 distinct values. The audio lives in the shared
+`_blk_pool` slot, which the next strip overwrites. **Proposal for a legitimate FFT source:** a `TEST_MEAS` capture
+arm. `_test_meas_tap` already holds MeasChan's post-fader pool slot in r1; when a CapArm word is set, copy its 16
+words into a 1024-word `_meas_cap` and clear CapArm when full. The host reads `_meas_cap` by peek, which
+`dsp4_fft.py` takes unchanged. Cost: chip 1 only, one compare per block idle and a 16-store loop per block while armed;
+chip 2 nothing. It needs one cell (or a diag word, per the S48 no-new-register rule) and the ADDRESS SPACE question
+goes to the hub. The CPLD's Pi PCM lane is the second option; it needs a bitstream with a capture path and the duplex
+overlay (bench recipe 5/5a/12). **Gate 0:** `tools/pi/dsp4_s49_osc.py` now prints `ThdResult … dB = x %` per window and
+settled, and `tools/pi/dsp4_fft.py` prints THD+N, THD and every harmonic in dB **and** %. Both were run: on the part
+(`ThdResult −78.86 dB = 0.01140 %`) and on S52's capture (`THD+N −85.40 dB = 0.00537 %`, h2 −91.54 dBc = 0.00265 %).
+`--selftest` passes. Staged at `~/s54` on the bench, not over the pair directories.
+
+**Hand-back (loop phase complete; stopped for the 150 Ω fixture per hub addendum 09:49):** `s51_119ea9d9` pair
+running (not rebooted), `_diag_blk_overrun` +0/+0 in 5 s on both chips. **AN_EN (GPIO26) `op pd | hi`, never
+written.** CS_M (GPIO27) `op pu | hi`, driven by `chain-set` as before. matrix-app inactive (as found). MIC 5 alone
+open at **code 0**, phantom off (`[15] ch8 0x00`, 200/200). TEST_OSC **1 kHz −20 dBFS pk on strip 6 → AUX 1**,
+MeasChan 20, Xtalk 0/0: RMS −17.43 dBFS, ThdResult −87.80 dB = 0.00407 %, NoiseResult −105.23 dBFS. **Strip 6 CompOn 0
+and MainOn 0 (changed from 1/1, S54-2).** Strips 1–24 other than 6 and 20 muted as found. `~/s54` holds the tools
+and logs; `~/s51_119ea9d9`, `~/s52`, `~/dspboot` untouched.
+
 ## THE LITERAL TABLE COPY IN gen_dsp.py IS RETIRED; THE MASTER IS THE ONLY SOURCE (2026-09-16, session 53)
 
 **S53-1. `gen_dsp.py` no longer carries a hand-typed second copy of the

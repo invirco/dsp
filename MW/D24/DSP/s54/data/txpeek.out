@@ -1,0 +1,8 @@
+C2_AUX_OUT_01: tx index 7 off 7 stride 8
+osc -40.00 dBFS pk (strip 6 digital) -> AUX1 TX lane |peak| 0.08000 (-21.94 dBFS) rms -24.86 dBFS, 0/160 words >=0.999 | ratio pk/osc +18.06 dB | loop THD+N -23.30 dB
+osc -20.00 dBFS pk (strip 6 digital) -> AUX1 TX lane |peak| 0.80000 (-1.94 dBFS) rms -4.43 dBFS, 0/160 words >=0.999 | ratio pk/osc +18.06 dB | loop THD+N -76.80 dB
+osc -19.00 dBFS pk (strip 6 digital) -> AUX1 TX lane |peak| 0.88994 (-1.01 dBFS) rms -4.64 dBFS, 0/160 words >=0.999 | ratio pk/osc +17.99 dB | loop THD+N -87.85 dB
+osc -18.50 dBFS pk (strip 6 digital) -> AUX1 TX lane |peak| 0.95080 (-0.44 dBFS) rms -3.43 dBFS, 0/160 words >=0.999 | ratio pk/osc +18.06 dB | loop THD+N -14.87 dB
+osc -18.00 dBFS pk (strip 6 digital) -> AUX1 TX lane |peak| 1.00714 (+0.06 dBFS) rms -3.11 dBFS, 6/160 words >=0.999 | ratio pk/osc +18.06 dB | loop THD+N -14.96 dB
+osc -15.00 dBFS pk (strip 6 digital) -> AUX1 TX lane |peak| 1.42262 (+3.06 dBFS) rms -0.09 dBFS, 81/160 words >=0.999 | ratio pk/osc +18.06 dB | loop THD+N -14.93 dB
+osc -12.00 dBFS pk (strip 6 digital) -> AUX1 TX lane |peak| 2.00951 (+6.06 dBFS) rms +3.01 dBFS, 115/160 words >=0.999 | ratio pk/osc +18.06 dB | loop THD+N -14.83 dB

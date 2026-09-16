@@ -1,0 +1,24 @@
+meter peak at osc -20 (lane pk -14.42 expected): -14.43 dBFS
+lane target -60.0  osc  -65.58  RMS   -63.01  coh pk   -60.00  THD+N   -42.25 dB =   0.77184 %  noise  -105.26  meter pk 0.088832 (-21.029 dBFS)
+lane target -40.0  osc  -45.58  RMS   -43.01  coh pk   -40.00  THD+N   -63.16 dB =   0.06952 %  noise  -106.17  meter pk 0.034073 (-29.352 dBFS)
+lane target -30.0  osc  -35.58  RMS   -33.01  coh pk   -30.00  THD+N   -73.03 dB =   0.02230 %  noise  -106.05  meter pk 0.031594 (-30.008 dBFS)
+lane target -20.0  osc  -25.58  RMS   -23.01  coh pk   -20.00  THD+N   -82.52 dB =   0.00748 %  noise  -105.53  meter pk 0.099895 (-20.009 dBFS)
+lane target -18.0  osc  -23.58  RMS   -21.01  coh pk   -18.00  THD+N   -84.22 dB =   0.00615 %  noise  -105.23  meter pk 0.125754 (-18.010 dBFS)
+lane target -16.0  osc  -21.58  RMS   -19.01  coh pk   -16.00  THD+N   -86.33 dB =   0.00482 %  noise  -105.34  meter pk 0.158315 (-16.010 dBFS)
+lane target -14.0  osc  -19.58  RMS   -17.01  coh pk   -14.00  THD+N   -88.05 dB =   0.00396 %  noise  -105.06  meter pk 0.199303 (-14.010 dBFS)
+lane target -13.0  osc  -18.58  RMS   -16.03  coh pk   -13.18  THD+N   -14.60 dB =  18.61674 %  noise   -30.63  meter pk 0.328548 (-9.668 dBFS)
+lane target -12.0  osc  -17.58  RMS   -15.01  coh pk   -12.14  THD+N   -15.18 dB =  17.41203 %  noise   -30.19  meter pk 0.369013 (-8.659 dBFS)
+lane target -11.0  osc  -16.58  RMS   -14.02  coh pk   -11.14  THD+N   -15.28 dB =  17.21961 %  noise   -29.29  meter pk 0.412953 (-7.682 dBFS)
+lane target -10.0  osc  -15.58  RMS   -13.01  coh pk   -10.13  THD+N   -15.33 dB =  17.12263 %  noise   -28.34  meter pk 0.465090 (-6.649 dBFS)
+lane target  -8.0  osc  -13.58  RMS   -11.01  coh pk    -8.13  THD+N   -15.29 dB =  17.18998 %  noise   -26.30  meter pk 0.582741 (-4.690 dBFS)
+lane target  -6.0  osc  -11.58  RMS    -9.01  coh pk    -6.13  THD+N   -15.76 dB =  16.28391 %  noise   -24.78  meter pk 0.736004 (-2.662 dBFS)
+lane target  -3.0  osc   -8.58  RMS    -6.01  coh pk    -3.14  THD+N   -15.41 dB =  16.96908 %  noise   -21.42  meter pk 0.939036 (-0.546 dBFS)
+lane target  -1.0  osc   -6.58  RMS    -4.05  coh pk    -1.17  THD+N   -15.31 dB =  17.15213 %  noise   -19.37  meter pk 0.956594 (-0.385 dBFS)
+lane target  -0.5  osc   -6.08  RMS    -3.69  coh pk    -0.82  THD+N   -15.04 dB =  17.70974 %  noise   -18.73  meter pk 0.960498 (-0.350 dBFS)
+lane target  +0.0  osc   -5.58  RMS    -3.38  coh pk    -0.51  THD+N   -15.14 dB =  17.49839 %  noise   -18.52  meter pk 0.965730 (-0.303 dBFS)
+lane target  +0.5  osc   -5.08  RMS    -3.11  coh pk    -0.27  THD+N   -14.29 dB =  19.29608 %  noise   -17.40  meter pk 0.998750 (-0.011 dBFS)
+lane target  +1.0  osc   -4.58  RMS    -2.83  coh pk     0.02  THD+N   -14.58 dB =  18.66052 %  noise   -17.41  meter pk 1.000000 (-0.000 dBFS)  <-- FS
+lane target  +2.0  osc   -3.58  RMS    -2.38  coh pk     0.44  THD+N   -13.66 dB =  20.74427 %  noise   -16.04  meter pk 1.000000 (+0.000 dBFS)  <-- FS
+lane target  +3.0  osc   -2.58  RMS    -2.02  coh pk     0.76  THD+N   -12.77 dB =  22.98889 %  noise   -14.79  meter pk 1.000000 (+0.000 dBFS)  <-- FS
+lane target  +4.0  osc   -1.58  RMS    -1.74  coh pk     1.00  THD+N   -12.26 dB =  24.39040 %  noise   -14.00  meter pk 1.000000 (+0.000 dBFS)  <-- FS
+lane target  +5.0  osc   -0.58  RMS    -1.54  coh pk     1.16  THD+N   -11.63 dB =  26.20226 %  noise   -13.18  meter pk 1.000000 (+0.000 dBFS)  <-- FS

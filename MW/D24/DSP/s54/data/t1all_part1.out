@@ -1,0 +1,63 @@
+code  0 [15] ch8   Q7..Q0 00000000 0x00 osc  -18.58  lane RMS   -16.01  coh pk  -13.00  gain(rms)   +5.578  gain(coh)   +5.578  THD+N  -89.50 dB = 0.0034 %  mtr pk -13.01
+code  1 [15] ch8   Q7..Q0 00000100 0x04 osc  -31.42  lane RMS   -16.01  coh pk  -13.00  gain(rms)  +18.423  gain(coh)  +18.423  THD+N  -77.31 dB = 0.0136 %  mtr pk -8.56
+code  2 [15] ch8   Q7..Q0 00001000 0x08 osc  -31.42  lane RMS    -9.39  coh pk   -6.38  gain(rms)  +25.041  gain(coh)  +25.041  THD+N  -76.41 dB = 0.0151 %  mtr pk -6.39
+code  3 [15] ch8   Q7..Q0 00001100 0x0C osc  -40.71  lane RMS   -16.01  coh pk  -13.00  gain(rms)  +27.713  gain(coh)  +27.713  THD+N  -68.64 dB = 0.0370 %  mtr pk -8.76
+code  4 [15] ch8   Q7..Q0 00010000 0x10 osc  -40.71  lane RMS   -11.25  coh pk   -8.24  gain(rms)  +32.475  gain(coh)  +32.475  THD+N  -68.57 dB = 0.0373 %  mtr pk -8.25
+code  5 [15] ch8   Q7..Q0 00010100 0x14 osc  -40.71  lane RMS   -10.01  coh pk   -7.00  gain(rms)  +33.711  gain(coh)  +33.711  THD+N  -68.64 dB = 0.0370 %  mtr pk -7.01
+code  6 [15] ch8   Q7..Q0 00011000 0x18 osc  -48.27  lane RMS   -16.01  coh pk  -13.00  gain(rms)  +35.267  gain(coh)  +35.267  THD+N  -61.04 dB = 0.0887 %  mtr pk -10.97
+code  7 [15] ch8   Q7..Q0 00011100 0x1C osc  -48.27  lane RMS   -15.10  coh pk  -12.09  gain(rms)  +36.180  gain(coh)  +36.180  THD+N  -61.16 dB = 0.0874 %  mtr pk -12.09
+code  8 [15] ch8   Q7..Q0 00100000 0x20 osc  -48.27  lane RMS   -11.35  coh pk   -8.34  gain(rms)  +39.927  gain(coh)  +39.927  THD+N  -61.18 dB = 0.0873 %  mtr pk -8.33
+code  9 [15] ch8   Q7..Q0 00100100 0x24 osc  -48.27  lane RMS   -10.81  coh pk   -7.80  gain(rms)  +40.472  gain(coh)  +40.472  THD+N  -61.13 dB = 0.0878 %  mtr pk -7.80
+code 10 [15] ch8   Q7..Q0 00101000 0x28 osc  -48.27  lane RMS   -10.06  coh pk   -7.05  gain(rms)  +41.219  gain(coh)  +41.219  THD+N  -61.10 dB = 0.0881 %  mtr pk -7.05
+code 11 [15] ch8   Q7..Q0 00101100 0x2C osc  -48.27  lane RMS    -9.59  coh pk   -6.58  gain(rms)  +41.691  gain(coh)  +41.691  THD+N  -61.12 dB = 0.0879 %  mtr pk -6.58
+code 12 [15] ch8   Q7..Q0 00110000 0x30 osc  -55.87  lane RMS   -16.01  coh pk  -13.00  gain(rms)  +42.869  gain(coh)  +42.869  THD+N  -53.50 dB = 0.2113 %  mtr pk -10.41
+code 13 [15] ch8   Q7..Q0 00110100 0x34 osc  -55.87  lane RMS   -15.62  coh pk  -12.61  gain(rms)  +43.260  gain(coh)  +43.260  THD+N  -53.40 dB = 0.2137 %  mtr pk -12.59
+code 14 [15] ch8   Q7..Q0 00111000 0x38 osc  -55.87  lane RMS   -15.07  coh pk  -12.06  gain(rms)  +43.808  gain(coh)  +43.808  THD+N  -53.47 dB = 0.2121 %  mtr pk -12.05
+code 15 [15] ch8   Q7..Q0 00111100 0x3C osc  -55.87  lane RMS   -14.72  coh pk  -11.71  gain(rms)  +44.160  gain(coh)  +44.160  THD+N  -53.35 dB = 0.2150 %  mtr pk -11.69
+code 16 [15] ch8   Q7..Q0 01000000 0x40 osc  -55.87  lane RMS   -11.71  coh pk   -8.70  gain(rms)  +47.169  gain(coh)  +47.169  THD+N  -53.35 dB = 0.2150 %  mtr pk -8.69
+code 17 [15] ch8   Q7..Q0 01000100 0x44 osc  -55.87  lane RMS   -11.47  coh pk   -8.46  gain(rms)  +47.409  gain(coh)  +47.409  THD+N  -53.37 dB = 0.2145 %  mtr pk -8.43
+code 18 [15] ch8   Q7..Q0 01001000 0x48 osc  -55.87  lane RMS   -11.13  coh pk   -8.12  gain(rms)  +47.752  gain(coh)  +47.752  THD+N  -53.47 dB = 0.2120 %  mtr pk -8.11
+code 19 [15] ch8   Q7..Q0 01001100 0x4C osc  -55.87  lane RMS   -10.90  coh pk   -7.89  gain(rms)  +47.976  gain(coh)  +47.976  THD+N  -53.42 dB = 0.2134 %  mtr pk -7.88
+code 20 [15] ch8   Q7..Q0 01010000 0x50 osc  -55.87  lane RMS   -10.32  coh pk   -7.31  gain(rms)  +48.564  gain(coh)  +48.564  THD+N  -53.36 dB = 0.2148 %  mtr pk -7.27
+code 21 [15] ch8   Q7..Q0 01010100 0x54 osc  -55.87  lane RMS   -10.11  coh pk   -7.10  gain(rms)  +48.769  gain(coh)  +48.769  THD+N  -53.39 dB = 0.2141 %  mtr pk -7.09
+code 22 [15] ch8   Q7..Q0 01011000 0x58 osc  -55.87  lane RMS    -9.82  coh pk   -6.81  gain(rms)  +49.063  gain(coh)  +49.063  THD+N  -53.51 dB = 0.2110 %  mtr pk -6.79
+code 23 [15] ch8   Q7..Q0 01011100 0x5C osc  -55.87  lane RMS    -9.62  coh pk   -6.61  gain(rms)  +49.255  gain(coh)  +49.255  THD+N  -53.43 dB = 0.2131 %  mtr pk -6.60
+code 24 [15] ch8   Q7..Q0 01100000 0x60 osc  -63.23  lane RMS   -16.01  coh pk  -13.00  gain(rms)  +50.227  gain(coh)  +50.227  THD+N  -46.14 dB = 0.4932 %  mtr pk -10.62
+code 25 [15] ch8   Q7..Q0 01100100 0x64 osc  -63.23  lane RMS   -15.84  coh pk  -12.83  gain(rms)  +50.396  gain(coh)  +50.396  THD+N  -46.27 dB = 0.4859 %  mtr pk -12.77
+code 26 [15] ch8   Q7..Q0 01101000 0x68 osc  -63.23  lane RMS   -15.60  coh pk  -12.59  gain(rms)  +50.640  gain(coh)  +50.639  THD+N  -46.02 dB = 0.4999 %  mtr pk -12.55
+code 27 [15] ch8   Q7..Q0 01101100 0x6C osc  -63.23  lane RMS   -15.44  coh pk  -12.43  gain(rms)  +50.801  gain(coh)  +50.801  THD+N  -46.26 dB = 0.4865 %  mtr pk -12.37
+code 28 [15] ch8   Q7..Q0 01110000 0x70 osc  -63.23  lane RMS   -15.01  coh pk  -12.00  gain(rms)  +51.228  gain(coh)  +51.228  THD+N  -46.13 dB = 0.4937 %  mtr pk -11.95
+code 29 [15] ch8   Q7..Q0 01110100 0x74 osc  -63.23  lane RMS   -14.86  coh pk  -11.85  gain(rms)  +51.378  gain(coh)  +51.378  THD+N  -46.08 dB = 0.4966 %  mtr pk -11.80
+code 30 [15] ch8   Q7..Q0 01111000 0x78 osc  -63.23  lane RMS   -14.64  coh pk  -11.63  gain(rms)  +51.595  gain(coh)  +51.595  THD+N  -46.13 dB = 0.4938 %  mtr pk -11.57
+code 31 [15] ch8   Q7..Q0 01111100 0x7C osc  -63.23  lane RMS   -14.50  coh pk  -11.49  gain(rms)  +51.740  gain(coh)  +51.740  THD+N  -46.19 dB = 0.4902 %  mtr pk -11.42
+code 32 [15] ch8   Q7..Q0 10000000 0x80 osc  -63.23  lane RMS   -12.49  coh pk   -9.48  gain(rms)  +53.743  gain(coh)  +53.743  THD+N  -46.16 dB = 0.4920 %  mtr pk -9.42
+code 33 [15] ch8   Q7..Q0 10000100 0x84 osc  -63.23  lane RMS   -12.38  coh pk   -9.37  gain(rms)  +53.854  gain(coh)  +53.854  THD+N  -46.22 dB = 0.4889 %  mtr pk -9.33
+code 34 [15] ch8   Q7..Q0 10001000 0x88 osc  -63.23  lane RMS   -12.22  coh pk   -9.21  gain(rms)  +54.018  gain(coh)  +54.018  THD+N  -46.10 dB = 0.4952 %  mtr pk -9.15
+code 35 [15] ch8   Q7..Q0 10001100 0x8C osc  -63.23  lane RMS   -12.11  coh pk   -9.10  gain(rms)  +54.125  gain(coh)  +54.125  THD+N  -46.18 dB = 0.4911 %  mtr pk -9.03
+code 36 [15] ch8   Q7..Q0 10010000 0x90 osc  -63.23  lane RMS   -11.82  coh pk   -8.81  gain(rms)  +54.419  gain(coh)  +54.419  THD+N  -46.22 dB = 0.4887 %  mtr pk -8.76
+code 37 [15] ch8   Q7..Q0 10010100 0x94 osc  -63.23  lane RMS   -11.71  coh pk   -8.70  gain(rms)  +54.523  gain(coh)  +54.523  THD+N  -46.17 dB = 0.4914 %  mtr pk -8.63
+code 38 [15] ch8   Q7..Q0 10011000 0x98 osc  -63.23  lane RMS   -11.56  coh pk   -8.55  gain(rms)  +54.675  gain(coh)  +54.675  THD+N  -46.18 dB = 0.4911 %  mtr pk -8.49
+code 39 [15] ch8   Q7..Q0 10011100 0x9C osc  -63.23  lane RMS   -11.46  coh pk   -8.45  gain(rms)  +54.775  gain(coh)  +54.775  THD+N  -46.10 dB = 0.4953 %  mtr pk -8.37
+code 40 [15] ch8   Q7..Q0 10100000 0xA0 osc  -63.23  lane RMS   -10.94  coh pk   -7.93  gain(rms)  +55.296  gain(coh)  +55.296  THD+N  -46.33 dB = 0.4825 %  mtr pk -7.85
+code 41 [15] ch8   Q7..Q0 10100100 0xA4 osc  -63.23  lane RMS   -10.85  coh pk   -7.84  gain(rms)  +55.390  gain(coh)  +55.390  THD+N  -46.15 dB = 0.4925 %  mtr pk -7.77
+code 42 [15] ch8   Q7..Q0 10101000 0xA8 osc  -63.23  lane RMS   -10.71  coh pk   -7.70  gain(rms)  +55.527  gain(coh)  +55.527  THD+N  -46.14 dB = 0.4932 %  mtr pk -7.64
+code 43 [15] ch8   Q7..Q0 10101100 0xAC osc  -63.23  lane RMS   -10.62  coh pk   -7.61  gain(rms)  +55.619  gain(coh)  +55.619  THD+N  -46.22 dB = 0.4888 %  mtr pk -7.53
+code 44 [15] ch8   Q7..Q0 10110000 0xB0 osc  -63.23  lane RMS   -10.37  coh pk   -7.36  gain(rms)  +55.864  gain(coh)  +55.863  THD+N  -46.20 dB = 0.4897 %  mtr pk -7.31
+code 45 [15] ch8   Q7..Q0 10110100 0xB4 osc  -63.23  lane RMS   -10.29  coh pk   -7.28  gain(rms)  +55.951  gain(coh)  +55.951  THD+N  -46.17 dB = 0.4915 %  mtr pk -7.21
+code 46 [15] ch8   Q7..Q0 10111000 0xB8 osc  -63.23  lane RMS   -10.16  coh pk   -7.15  gain(rms)  +56.079  gain(coh)  +56.079  THD+N  -46.23 dB = 0.4880 %  mtr pk -7.05
+code 47 [15] ch8   Q7..Q0 10111100 0xBC osc  -63.23  lane RMS   -10.07  coh pk   -7.06  gain(rms)  +56.164  gain(coh)  +56.164  THD+N  -46.22 dB = 0.4886 %  mtr pk -7.02
+code 48 [15] ch8   Q7..Q0 11000000 0xC0 osc  -63.23  lane RMS    -9.24  coh pk   -6.23  gain(rms)  +57.000  gain(coh)  +57.000  THD+N  -46.21 dB = 0.4894 %  mtr pk -6.17
+code 49 [15] ch8   Q7..Q0 11000100 0xC4 osc  -63.23  lane RMS    -9.16  coh pk   -6.15  gain(rms)  +57.075  gain(coh)  +57.075  THD+N  -46.28 dB = 0.4853 %  mtr pk -6.09
+code 50 [15] ch8   Q7..Q0 11001000 0xC8 osc  -63.23  lane RMS    -9.05  coh pk   -6.04  gain(rms)  +57.188  gain(coh)  +57.188  THD+N  -46.11 dB = 0.4947 %  mtr pk -5.96
+code 51 [15] ch8   Q7..Q0 11001100 0xCC osc -210.26  lane RMS   -55.11  coh pk  -96.60  gain(rms) +138.168  gain(coh)  +93.661  THD+N    0.00 dB = 100.0137 %  mtr pk -30.47
+code 52 [15] ch8   Q7..Q0 11010000 0xD0 osc -370.26  lane RMS   -55.02  coh pk  -93.09  gain(rms) +298.249  gain(coh) +257.176  THD+N    0.00 dB = 100.0076 %  mtr pk -42.85
+code 53 [15] ch8   Q7..Q0 11010100 0xD4 osc -530.26  lane RMS   -54.84  coh pk  -88.91  gain(rms) +458.429  gain(coh) +421.358  THD+N   -0.00 dB = 99.9984 %  mtr pk -42.76
+code 54 [15] ch8   Q7..Q0 11011000 0xD8 osc -690.26  lane RMS   -54.78  coh pk  -89.36  gain(rms) +618.494  gain(coh) +580.903  THD+N    0.00 dB = 100.0131 %  mtr pk -41.67
+code 55 [15] ch8   Q7..Q0 11011100 0xDC osc -850.26  lane RMS   -54.60  coh pk  -84.12  gain(rms) +778.674  gain(coh) +746.144  THD+N    0.00 dB = 100.0089 %  mtr pk -42.67
+Traceback (most recent call last):
+  File "/home/app/s54/s54_battery.py", line 209, in <module>
+    m = R.windows(2, settle_windows=4, tag='t1all_try')
+  File "/home/app/s54/s54lib.py", line 147, in windows
+    H = (a + b * r) / (L * math.cos(w / 2))
+        ~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~
+ZeroDivisionError: complex division by zero

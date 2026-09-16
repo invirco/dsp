@@ -1,0 +1,5 @@
+code  0 [15] ch8   Q7..Q0 00000000 0x00  probe(-80) coherent gain +5.58 dB -> osc -15.58 dBFS for a -10 dBFS lane peak
+   osc  -15.58  RMS   -13.02  gain(rms)  +5.570  gain(coh)  +5.433  THD+N  -15.08 dB  noise   -28.10  phase  -144.8
+   osc  -25.58  RMS   -23.01  gain(rms)  +5.578  gain(coh)  +5.578  THD+N  -80.13 dB  noise  -103.14  phase  -145.2
+   osc  -35.58  RMS   -33.01  gain(rms)  +5.578  gain(coh)  +5.578  THD+N  -72.38 dB  noise  -105.39  phase  -145.2
+   tone OFF floor RMS  -104.08 dBFS (windows -103.77 -103.95 -104.08 -104.53)
