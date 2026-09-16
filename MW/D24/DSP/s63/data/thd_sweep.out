@@ -1,0 +1,25 @@
+18:49:35 AN_EN: 26: op -- pd | hi // GPIO26 = output
+18:49:35 OscFreq word 1000.0000000 Hz (asked 1000.0000000)
+18:49:39 code 63 osc -64.717 dBFS pk: lane fundamental -5.995 dBFS pk (sample max -5.86 dBFS)
+18:49:59 code 63: 32 captures in 20.2 s
+18:49:59 done; AN_EN 26: op -- pd | hi // GPIO26 = output
+18:50:04 AN_EN: 26: op -- pd | hi // GPIO26 = output
+18:50:04 OscFreq word 1000.0000000 Hz (asked 1000.0000000)
+18:50:08 code 63 osc -68.717 dBFS pk: lane fundamental -9.997 dBFS pk (sample max -9.83 dBFS)
+18:50:48 code 63: 64 captures in 40.4 s
+18:50:48 done; AN_EN 26: op -- pd | hi // GPIO26 = output
+18:50:52 AN_EN: 26: op -- pd | hi // GPIO26 = output
+18:50:52 OscFreq word 1000.0000000 Hz (asked 1000.0000000)
+18:50:55 code 63 osc -78.717 dBFS pk: lane fundamental -20.000 dBFS pk (sample max -19.35 dBFS)
+18:53:37 code 63: 256 captures in 162.1 s
+18:53:37 done; AN_EN 26: op -- pd | hi // GPIO26 = output
+18:54:16 AN_EN: 26: op -- pd | hi // GPIO26 = output
+18:54:16 OscFreq word 1000.0000000 Hz (asked 1000.0000000)
+18:54:20 code 63 osc -64.717 dBFS pk: lane fundamental -5.995 dBFS pk (sample max -5.91 dBFS)
+18:55:41 code 63: 128 captures in 81.3 s
+18:55:41 done; AN_EN 26: op -- pd | hi // GPIO26 = output
+18:55:45 AN_EN: 26: op -- pd | hi // GPIO26 = output
+18:55:45 OscFreq word 1000.0000000 Hz (asked 1000.0000000)
+18:55:49 code 63 osc -78.717 dBFS pk: lane fundamental -20.000 dBFS pk (sample max -19.49 dBFS)
+19:06:38 code 63: 1024 captures in 649.7 s
+19:06:38 done; AN_EN 26: op -- pd | hi // GPIO26 = output

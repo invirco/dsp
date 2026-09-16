@@ -8,7 +8,8 @@ honour a fractional frequency and that run was off-bin (kept on the bench as thd
 -3.0 dBFS pk (3 dB below clip) at each code by a coherent fit of the first capture. N captures per code (bulk read);
 the desk (s63_thd_analyse.py) averages them COHERENTLY (each capture's bins rotated by its fundamental's phase,
 k x phi1 for harmonic k), so the per-bin noise floor falls 10 log N dB under a single capture while the harmonics stay.
-Raw -> DATA/thd_<XLR>.bin/.jsonl.   env: N=32  CODES=63,0  TARGET=-3.0"""
+Raw -> DATA/<NAME>.bin/.jsonl (NAME default thd_<XLR>; the S65 level sweep uses thd_<XLR>_m<level>).
+   env: N=32  CODES=63,0  TARGET=-3.0  NAME=thd_J25"""
 import math, os, time
 import s63lib as S
 import s63_run as RUN
@@ -38,6 +39,7 @@ def cap(R):
 
 
 R = RUN.Rig()
+NAME = os.environ.get('NAME', 'thd_J25')
 ok, pin = R.an_en()
 S.P('AN_EN: %s' % pin)
 if not ok:
@@ -67,7 +69,7 @@ for code in CODES:
         c = cap(R)
         rec = {'xlr': xlr, 'lane': lane, 'code': code, 'k': i, 'osc_dbfs_pk': L, 'freq': F, 'n': len(c['samples']),
                'overruns': c['overruns'], 'read_s': c['read_s'], 't_wall': round(time.time(), 3)}
-        S.save(c['samples'], rec, 'thd_' + xlr)
+        S.save(c['samples'], rec, NAME)
         if c['overruns']:
             S.P('  capture %d: overruns %d' % (i, c['overruns']))
     S.P('code %d: %d captures in %.1f s' % (code, N, time.time() - t0))

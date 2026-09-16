@@ -124,6 +124,46 @@ Session 63, 2026-09-16. Findings S63-1..4 in `findings.md`. Captures, logs and t
 - The code-63 figure is preamp + ADC at maximum gain. The DAC runs at −61.7 dBFS digital there.
 - At code 0 the DAC runs at −8.6 dBFS, so that figure is the whole loop. It agrees with S61's THD+N at code 0 (−88.96 dB).
 
+## T3 level sweep at maximum gain (S65 hub addendum) — THD only, MIC 5, code 63, 1 kHz
+
+`s63_thd.py` with `CODES=63 TARGET=<level> N=<n> NAME=thd_J25_m<level>`, `s63_thd_analyse.py DATA J25 thd_J25_m<level>`.
+Same method as above: bin-centred 16,320-sample captures and a coherent average. The pair was the s62 handshake pair
+(`57948d77` / `251ce3b2`), D24, booted twice. N was raised until the averaged per-bin floor sat ≥ 15 dB under both h2
+and h3. The −6 dBFS level took 128 captures and −20 dBFS took 1,024; the first runs (32 / 256) missed the bar and are
+kept on the bench as `*_short`. Results: `data/s63_thd_J25_m{6,10,20}.json`, run log `data/thd_sweep.out`. The raw
+captures are `data/thd_J25_m{6,10}.bin.xz`. The −20 dBFS raw (43 MB) is in the shared store:
+`_Matrix/Products/D24/dsp/s63-thd-sweep/thd_J25_m20.bin.xz` (sha256 `57d4a1db160f03f1…`). The analysis was re-run at the
+desk from the stored files and reproduced every figure.
+
+| lane, dBFS pk | DAC digital level, dBFS pk | N | THD (h2–h10) | h2 | h3 | per-bin floor, averaged / 1 capture | floor under h2 / h3 |
+|---:|---:|---:|---|---:|---:|---|---|
+| −3.00 (T3 above) | −61.72 | 32 | −64.3 dB = 0.061 % | −70.7 | −71.7 | −103.2 / −88.0 dBc | 32.5 / 31.5 dB |
+| −6.00 | −64.72 | 128 | **−73.7 dB = 0.021 %** | −88.1 | −79.5 | −106.7 / −85.6 dBc | 18.6 / 27.2 dB |
+| −10.00 | −68.72 | 64 | **−65.7 dB = 0.052 %** | −76.7 | −68.5 | −99.7 / −81.6 dBc | 23.0 / 31.2 dB |
+| −20.00 | −78.72 | 1,024 | **−59.6 dB = 0.104 %** | −63.5 | −81.5 | −101.8 / −71.6 dBc | 38.3 / 20.3 dB |
+
+Harmonics h4–h10, dBc:
+
+| lane | h4 | h5 | h6 | h7 | h8 | h9 | h10 |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| −6 | −88.7 | −81.7 | −79.7 | −83.4 | −99.3 | −83.4 | −88.2 |
+| −10 | −77.5 | −78.3 | −74.0 | −88.3 | −81.2 | −77.4 | −84.4 |
+| −20 | −68.2 | −70.7 | −88.9 | −68.7 | −93.3 | −82.8 | −65.8 |
+
+- **THD does not fall with level at maximum gain; below −6 dBFS it rises.** −6 → −10 → −20 dBFS reads 0.021 → 0.052 →
+  0.104 %. Each 10 dB of level costs about +6 dB of THD from −10 down. So the product at −20 dBFS lane is not a
+  level-proportional distortion; it is a roughly constant absolute level (h2 at −20 dBFS lane ≈ −83.5 dBFS, h10 ≈ −85.8 dBFS).
+  The shape suggests crossover-type or quantisation-like distortion, or a fixed spurious product, not the preamp
+  compressing. Only −3 dBFS is worse than −6 (0.061 %), which is the top of the range. Not chased here.
+- **The −20 dBFS figure is h2, h4, h7 and h10 dominated**, while −6 and −10 are h3 / h6 led. The harmonic mix changes
+  with level, which a single soft-clip nonlinearity would not do.
+- **THD+N is not quotable from this rig at maximum gain.** The DAC runs 58–79 dB below its full scale here, so the
+  noise in the band is the DAC's own (the loop's gain of ≈ +58.7 dB lifts it). Only THD against a coherent average is
+  meaningful. The attenuator pad, planned for a later session, gives THD+N.
+- 0 overruns in every capture. The unit was handed back on the s60 pair as found (`s60_found.py` found_s65 = after_s65
+  in every configuration field; MIC 5 idle −106.08 → −106.36 dBFS). AN_EN / CS_M were `hi` / `hi` before and after
+  and never written.
+
 ## Running it on the other 15 channels (the runner is ready)
 
 On the bench, with the loop cable moved by hand and the unit as S63 found it:

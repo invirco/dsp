@@ -11,6 +11,9 @@ S65 — THE CUE BUS AND THE RTA, BOTH ON CHIP 1 (PW ruling 2026-09-16: "go with 
 
 Bounded: ≈ 3 h. Sonnet subagents for the mechanical parts.
 
+### HUB ADDENDUM 18:47 — a small MAX-GAIN THD SWEEP first (PW: "do it"), before the cue/RTA build
+On MIC 5 (cable on J25), code 63, 1 kHz, add T3 THD-only points at lane −3 (have it), −6, −10, −20 dBFS pk: drive the DAC at the level that puts the lane there, average ≥ 32 coherent captures with the bulk read so the per-bin floor sits ≥ 15 dB under h2/h3, report THD (h2..h10) in dB and %, h2/h3 in dBc and the per-bin floor per point; note the DAC digital level used and that THD+N is not quotable here (DAC-noise-limited) — the pad/S-later gives THD+N. Append to MW/D24/DSP/s63/artefacts.md and print the four-row table. ~15 min. THEN continue S65 (cue bus + RTA on chip 1).
+
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
 no AI attribution in commits or any work product.

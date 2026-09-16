@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""s63_thd_analyse.py DATA_DIR [XLR] — T3 THD ONLY (h2..h10) from s63_thd.py's bin-centred captures (desk, numpy).
+"""s63_thd_analyse.py DATA_DIR [XLR] [NAME] — T3 THD ONLY (h2..h10) from s63_thd.py's bin-centred captures (desk, numpy).
 
 Each capture: 16,320 samples = 340 cycles of 1 kHz, so harmonic k sits on bin 340 k; rectangular window (coherent).
 Per capture X = rfft(x) * 2 / N (peak amplitude per bin). COHERENT AVERAGE: each capture's bins are rotated by
@@ -19,10 +19,11 @@ CYC = 340
 def main(argv):
     ddir = argv[0]
     xlr = argv[1] if len(argv) > 1 else 'J25'
-    recs = [json.loads(l) for l in open(os.path.join(ddir, 'thd_%s.jsonl' % xlr))]
+    name = argv[2] if len(argv) > 2 else 'thd_' + xlr
+    recs = [json.loads(l) for l in open(os.path.join(ddir, name + '.jsonl'))]
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     from s63_analyse import load_bin
-    raw = load_bin(ddir, 'thd_' + xlr)
+    raw = load_bin(ddir, name)
     out = {}
     lines = []
     for code in sorted(set(r['code'] for r in recs), reverse=True):
@@ -70,7 +71,7 @@ def main(argv):
                          '%.2f' % res['thd_db'] if res['thd_db'] is not None else '< floor', res['thd_pct'],
                          res['thd_bound_db'], res['thd_bound_pct'], res['floor_bin_avg_dbc'], res['floor_bin_single_dbc'], hs))
     print('\n'.join(lines))
-    json.dump(out, open(os.path.join(ddir, 's63_thd_%s.json' % xlr), 'w'), indent=1)
+    json.dump(out, open(os.path.join(ddir, 's63_%s.json' % name), 'w'), indent=1)
 
 
 if __name__ == '__main__':
