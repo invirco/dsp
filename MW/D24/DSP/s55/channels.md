@@ -5,6 +5,7 @@ Loop: TEST_OSC (donor strip 6, strip 1 for J32) → AUX 1 → J45 → loop cable
 | XLR | panel | lane | T1 range dB (code 0 loop gain) | T1 largest step dB (sorted / code order) | monotonic | T2 20 Hz re 1 k, code 0 / 63 | T3 best THD+N code 0 | T3 code 63 @ −3 dBFS | T4 floor code 0 / 63 dBFS (150 Ω) | T4b EIN code 63 20–20k / A dBu | sub-20 Hz / raw DC–24k dBu (code 63) | T5 | T8 samples |
 |---|---|---:|---|---|---|---|---|---|---|---|---|---|---:|
 | J25 | MIC 5 | 20 | 53.14 (+5.58) | 12.85 / 12.85 | yes | −0.41 / −2.06 | −92.80 dB = 0.00229 % (S54) | −47.05 dB = 0.444 % | −113.79 / −87.97 (S54, node) | −127.2 / −130.5 (S57) | see S57-5 | inverted | 91.40 |
+| J26 | MIC 17 | 19 | 53.17 (+5.57) | 12.85 / 12.85 | yes | -0.41 / -2.12 | -91.00 dB = 0.00282 % @ -10 dBFS | -44.32 dB = 0.608 % | pending | pending | pending | inverted | 91.40 |
 | J27 | MIC 6 | 18 | 53.09 (+5.58) | 12.85 / 12.85 | yes | -0.41 / -2.08 | -91.27 dB = 0.00273 % @ -10 dBFS | -43.48 dB = 0.670 % | -114.15 / -82.04 | -126.5 / -130.2 | -123.5 / -120.1 | inverted | 91.40 |
 | J29 | MIC 7 | 7 | 53.02 (+5.58) | 12.85 / 12.85 | yes | -0.41 / -2.11 | -91.03 dB = 0.00281 % @ -10 dBFS | -43.48 dB = 0.670 % | -113.72 / -90.25 | -127.2 / -130.4 | -135.5 / -124.0 | inverted | 91.41 |
 | J31 | MIC 8 | 5 | 53.10 (+5.57) | 12.84 / 12.84 | yes | -0.41 / -2.07 | -92.93 dB = 0.00226 % @ -6 dBFS | -43.67 dB = 0.655 % | -113.52 / -86.42 | -123.2 / -128.7 | -129.6 / -119.2 | inverted | 91.41 |
