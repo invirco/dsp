@@ -1,3 +1,17 @@
+## HUB DISPATCH 2026-09-16 13:58Z — S59 — consume defs .5, generate the input patch from inputs.csv, retire the hand-typed table   [status: 🟡 dispatched]   [model: sonnet]
+
+model: sonnet
+
+S59 — DESK: THE INPUT PATCH BECOMES GENERATED. Consume defs-v2026.09.16.5 (it adds `products/d24/inputs.csv` = your S58 proposal, byte-identical, plus `common/schema/inputs.md`; .4 added the CaptureArm/CaptureReady cells): `git -C defs fetch --tags && git -C defs checkout defs-v2026.09.16.5`, `./regenerate-dsp-contract.sh --update-lock`, `./check-contract-drift.sh --strict` — clean, D24/D32 matrices gain the two Test cells (state the counts, 0 other columns, 0 addresses moved, keyed by cell name).
+
+Then per CONTRACT-PROPOSAL-S58 §4: `tools/dsp/gen_input_patch.py` reads `defs/products/<p>/inputs.csv`, resolves each rx_cell to its packed RX index via the block_io sort, and emits `MW/<P>/DSP/input_patch.json`; `tools/pi/dsp4_config.py` loads that file and the hand-typed `D24_INPUT_PATCH` is deleted (D32 keeps its current behaviour if no inputs.csv exists — say so). GATE: the generated D24 patch is byte-identical to the S58 landed array (print both); `d24_inputs.py` public API unchanged; the S48/S54–S57 tools still run (import check). Mark CONTRACT-PROPOSAL-S56 and -S58 LANDED with their tags. No unit access needed. findings S59-1..2, tasks.md (NEXT: PW's bench items — MIC 13–16 when powered, T6b shunt timing, polarity placement), commit + push, clean.
+
+Bounded: ≈ 45 min.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-16 13:38Z — S58 — land the D24 input patch from the netlist (S52 ii), prove it, propose the inputs declaration   [status: 🟢 done — LANDED `D24_INPUT_PATCH` netlist order (`dsp4_config.py`; product-config.md D24 table + measured proof). PROVEN on the part, loop cable J45→J25, no 595 write: tone on strip 20 (pre-S58) → **strip 5** (S58, −14.45 dBFS pk, TEST_MEAS −17.43 dBFS / −87.9 dB, next strip −104) → strip 16 (identity, comparison) → strip 5 again; `_c1_rx_node_entry` = the patch inverse; all 16 S55-measured XLRs (U39+U60) resolve to their panel strip off the part's own tables (J41→12, J35→9). **NOTE S58-3: "strip 16 = C1_IN_16" in this block is the LANE (sport 1 slot 7, dsp.csv, unchanged); the ruled array delivers that lane to STRIP 5 = MIC 5 — identity is the only patch giving 16. Landed the ruled array; tools now say lane vs strip.** One map `tools/pi/d24_inputs.py`; MIC 5 = 20 removed from dsp4_s48_scan (now scans 1–24), s52lib, s54lib (+ `chain` moved to spidev p15: `chain-set ch8` hits J31 since the app wire-order fix) + 4 s54 tools, s55_run/handback/repeat/ingest (channels.md regenerated, lane+strip columns), s56_setup/fs, 10 s57 tools; deployed to the Pi with .bak copies, patch staged for boot. `proposals/CONTRACT-PROPOSAL-S58.md` + `proposals/defs/products/d24/inputs.csv` (panel, xlr, 595, chain, send, adc, sport, ain, slot, rx_cell, strip) + `gen_input_patch.py` design, not landed; no tag consumed. Findings S58-1..3. Unit: s56 pair, S58 patch applied, OscOn 0, strips 5/6 as found, MeasChan 5 (= MIC 5), chain image as found, AN_EN hi, cable still on J25]   [model: opus]
 
 model: opus
