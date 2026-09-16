@@ -662,7 +662,7 @@ add('C1_TEST_MEAS', 1, 'TEST_MEAS', 'Test Measurement', 1, '', '',
 p, a = c1_alloc.next(8)
 add('C1_TEST_OSC', 1, 'TEST_OSC', 'Test Oscillator', 1, '', '',
     spi_page=p, spi_addr=a,
-    params='on=0;freq_hz=1000.0;level=0.0;chan=0;sweep_on=0;sweep_step=1;'
+    params='on=0;freq_hz=1000.0;level=0.0;chan=0;sweep_on=0;sweep_step=0;'
            'meas_src=C1_TEST_MEAS',
     ramp_profile='InstantCtl')
 

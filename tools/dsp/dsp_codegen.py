@@ -5683,22 +5683,27 @@ TEST_WIN_BLOCKS = 256
 # delay pool already sits, because 16,384 words is more than chip 1's L1 DM
 # has spare and a capture buffer does not need L1 access times.
 TEST_CAP_MAX = 16384
+# THE CHIRP (S60). SweepOn = 1 turns TEST_OSC into a PERIODIC exponential
+# sine sweep from the OscFreq law's low end to its high end; SweepStep is the
+# period in units of TEST_CHIRP_UNIT samples (0 = TEST_CHIRP_DEFAULT_STEPS,
+# i.e. one capture buffer, 16,384 samples = 341 ms). A unit of 1,024 keeps
+# every period a whole number of blocks, which is what lets the capture arm
+# start exactly on a period boundary.
+TEST_CHIRP_UNIT = 1024
+TEST_CHIRP_DEFAULT_STEPS = TEST_CAP_MAX // TEST_CHIRP_UNIT
+TEST_CHIRP_MAX_STEPS = 255
 
 
-def _osc_freq_table():
-    """The 128 frequencies the sweep walks, derived from the cell's own
-    Table law.
-
-    `Test[1-1]OscFreq[1-1]` is `0=20/127=20000/[Log]`, and a Log law is
-    geometric between its endpoints -- the same reading
-    tools/dsp/wire_contract.py::boundaries() takes of the same string.
-    Generating the DSP-side table FROM the law rather than typing it is what
-    keeps the sweep's steps and the host's encoder positions the same
-    frequencies; a typed table would be a second source of truth for a law
-    the masters already state."""
-    n = TEST_OSC_CODES - 1
-    r = TEST_OSC_F_HI / TEST_OSC_F_LO
-    return [TEST_OSC_F_LO * (r ** (i / float(n))) for i in range(TEST_OSC_CODES)]
+def _chirp_ratio_table():
+    """Per-sample frequency ratio r = (f_hi/f_lo)^(1/L) for L = k * UNIT,
+    k = 0..MAX_STEPS (entry 0 is never read: a zero step means the default).
+    Tabulated here rather than derived on the part because deriving it needs
+    a logarithm and a true divide, and a table read at a period boundary
+    costs one load."""
+    import math
+    lr = math.log(TEST_OSC_F_HI / TEST_OSC_F_LO)
+    return [1.0] + [math.exp(lr / (k * TEST_CHIRP_UNIT))
+                    for k in range(1, TEST_CHIRP_MAX_STEPS + 1)]
 
 
 def _sin_k(f_hz):
@@ -5776,13 +5781,6 @@ def gen_test_osc(node):
     f0 = float(p.get('freq_hz', '1000.0'))
     lvl = float(p.get('level', '0.0'))
 
-    tab = _osc_freq_table()
-    trows = []
-    for i in range(0, TEST_OSC_CODES, 4):
-        chunk = tab[i:i + 4]
-        end = ',' if i + 4 < TEST_OSC_CODES else ';'
-        trows.append('    ' + ', '.join('%.6f' % v for v in chunk) + end
-                     + '   /* codes %d-%d */' % (i, i + len(chunk) - 1))
 
     L = []
     A = L.append
@@ -5806,8 +5804,9 @@ def gen_test_osc(node):
     A('.var _osc_chan_%s      = %d;   /* 1..32, 0 = inject nowhere */'
       % (nid, int(float(p.get('chan', '0')))))
     A('.var _osc_sweep_on_%s  = %d;' % (nid, int(float(p.get('sweep_on', '0')))))
-    A('.var _osc_sweep_step_%s = %d;   /* codes per step */'
-      % (nid, int(float(p.get('sweep_step', '1')))))
+    A('.var _osc_sweep_step_%s = %d;   /* chirp period, x%d samples; 0 = %d */'
+      % (nid, int(float(p.get('sweep_step', '0'))), TEST_CHIRP_UNIT,
+         TEST_CHIRP_DEFAULT_STEPS))
     A('')
     A('#if DSP4_TEST_NODES && DSP4_BLOCK_KERNELS')
     A('.var _osc_k_%s         = %r;   /* 2*sin(pi*f/fs) */' % (nid, _sin_k(f0)))
@@ -5816,8 +5815,21 @@ def gen_test_osc(node):
       % (nid, math.cos(math.pi * f0 / SAMPLE_RATE_HZ)))
     A('.var _osc_s_%s         = 0.0;      /* resonator x (sine)   */' % nid)
     A('.var _osc_c_%s         = 1.0;      /* resonator y (cosine) */' % nid)
-    A('.var _osc_sweep_idx_%s = 0;' % nid)
-    A('.var _osc_seq_seen_%s  = 0;' % nid)
+    A('/* THE CHIRP STATE (S60). Phase in CYCLES, [0,1); the per-sample')
+    A(' * increment w (cycles/sample) is multiplied by r every sample, which')
+    A(' * is what makes the sweep exponential. _osc_ch_pos_ is the period')
+    A(' * index of the first sample of the block in _osc_blk_q_, i.e. of the')
+    A(' * block the NEXT chain pass injects -- the capture arm reads it in')
+    A(' * that pass to start a capture on a period boundary. */')
+    A('.global _osc_ch_live_%s;' % nid)
+    A('.var _osc_ch_live_%s   = 0;   /* 1 while _osc_blk_q_ holds chirp */' % nid)
+    A('.global _osc_ch_pos_%s;' % nid)
+    A('.var _osc_ch_pos_%s    = 0;' % nid)
+    A('.var _osc_ch_n_%s      = 0;   /* index of the next sample to make */' % nid)
+    A('.var _osc_ch_len_%s    = %d;' % (nid, TEST_CAP_MAX))
+    A('.var _osc_ch_p_%s      = 0.0;' % nid)
+    A('.var _osc_ch_w_%s      = %r;' % (nid, TEST_OSC_F_LO / SAMPLE_RATE_HZ))
+    A('.var _osc_ch_r_%s      = 1.0;' % nid)
     A('.var _osc_live_%s      = 0;   /* 1 while the blocks hold a tone */' % nid)
     A("/* s and c INTERLEAVED, s0,c0,s1,c1,... One pointer walks both, which")
     A(' * is what lets the per-strip measurement hook read the whole')
@@ -5826,12 +5838,17 @@ def gen_test_osc(node):
     A("/* The level-scaled block, already Q4.28, so the injection hook is a")
     A(" * straight copy into the strip's pool slot. */")
     A('.var _osc_blk_q_%s[DSP4_BLOCK_SIZE];' % nid)
-    A("/* The sweep's frequencies, generated FROM the cell's own Table law")
-    A(' * `0=%g/%d=%g/[Log]` -- see _osc_freq_table(). */'
-      % (TEST_OSC_F_LO, TEST_OSC_CODES - 1, TEST_OSC_F_HI))
-    A('.var _osc_ftab_%s[%d] =' % (nid, TEST_OSC_CODES))
-    L.extend(trows)
-    A('.extern _meas_seq_%s;' % meas)
+    A("/* The chirp's per-sample ratio for each period length, from the")
+    A(' * OscFreq law endpoints -- see _chirp_ratio_table(). In L1 with the')
+    A(' * other initialised words: seg_delay is NOT loaded with initial')
+    A(' * values (measured S60: a table placed there read back 0.0). */')
+    rt = _chirp_ratio_table()
+    A('.var _osc_ch_rtab_%s[%d] =' % (nid, len(rt)))
+    for i in range(0, len(rt), 4):
+        chunk = rt[i:i + 4]
+        end = ',' if i + 4 < len(rt) else ';'
+        A('    ' + ', '.join('%.17g' % v for v in chunk) + end
+          + '   /* steps %d-%d */' % (i, i + len(chunk) - 1))
     A('#endif')
     A('')
     A('.section/pm seg_pmco;')
@@ -5880,6 +5897,8 @@ def gen_test_osc(node):
     A('     * 2x2 goes singular -- which is what makes NoiseResult read the')
     A("     * channel's own floor rather than fitting noise to a frozen")
     A('     * waveform left over from the last tone. */')
+    A('    r0 = 0;')
+    A('    dm(_osc_ch_live_%s) = r0;   /* a stopped chirp holds no period */' % nid)
     A('    r0 = dm(_osc_live_%s);' % nid)
     A('    r0 = pass r0;')
     A('    if eq rts;')
@@ -5899,39 +5918,125 @@ def gen_test_osc(node):
     A('.osc_sweep_%s:' % nid)
     A('    r0 = 1;')
     A('    dm(_osc_live_%s) = r0;' % nid)
-    A('    /* ---- THE SWEEP advances on a COMPLETED measurement window.')
-    A('     * _meas_seq_ is bumped by the measurement node, which the chain')
-    A('     * calls immediately BEFORE this one, so a step and the window')
-    A('     * that scored the previous frequency can never be off by one. */')
+    A('    /* ---- THE CHIRP (S60) replaces the S49 stepped sweep, which')
+    A('     * advanced one frequency per measurement window and could not be')
+    A('     * followed over the link (a voted read takes longer than a')
+    A('     * window). SweepOn = 1 runs a periodic exponential sweep; the')
+    A('     * tone path below is untouched while it is 0. */')
     A('    r0 = dm(_osc_sweep_on_%s);' % nid)
     A('    r0 = pass r0;')
+    A('    if ne jump (pc, .osc_chirp_%s);' % nid)
+    A('    r0 = dm(_osc_ch_live_%s);' % nid)
+    A('    r0 = pass r0;')
     A('    if eq jump (pc, .osc_design_%s);' % nid)
-    A('    r1 = dm(_meas_seq_%s);' % meas)
-    A('    r2 = dm(_osc_seq_seen_%s);' % nid)
-    A('    comp(r1, r2);')
-    A('    if eq jump (pc, .osc_design_%s);' % nid)
-    A('    dm(_osc_seq_seen_%s) = r1;' % nid)
-    A('    r3 = dm(_osc_sweep_idx_%s);' % nid)
-    A('    r4 = dm(_osc_sweep_step_%s);' % nid)
-    A('    r5 = 0;')
-    A('    r6 = 1;')
-    A('    comp(r4, r5);')
-    A('    if le r4 = pass r6;   /* a step of 0 would never advance */')
-    A('    r3 = r3 + r4;')
-    A('    r5 = %d;' % (TEST_OSC_CODES - 1))
-    A('    comp(r3, r5);')
-    A('    if gt jump (pc, .osc_sweep_done_%s);' % nid)
-    A('    dm(_osc_sweep_idx_%s) = r3;' % nid)
-    A('    i4 = _osc_ftab_%s;' % nid)
-    A('    l4 = 0;')
-    A('    m4 = r3;')
-    A('    modify(i4, m4);')
-    A('    f0 = dm(i4, 0);')
-    A('    dm(_osc_freq_%s) = f0;' % nid)
+    A('    /* leaving the chirp: force a redesign, which restarts the')
+    A('     * resonator from its known phase */')
+    A('    r0 = 0;')
+    A('    dm(_osc_ch_live_%s) = r0;' % nid)
+    L.extend(_fk(1, 0.0, '0.0'))
+    A('    dm(_osc_fseen_%s) = f1;' % nid)
     A('    jump (pc, .osc_design_%s);' % nid)
-    A('.osc_sweep_done_%s:' % nid)
-    A('    r5 = 0;')
-    A('    dm(_osc_sweep_on_%s) = r5;' % nid)
+    A('')
+    A('.osc_chirp_%s:' % nid)
+    A('    r0 = dm(_osc_ch_live_%s);' % nid)
+    A('    r0 = pass r0;')
+    A('    if ne jump (pc, .osc_ch_run_%s);' % nid)
+    A('    /* entering: a period starts on this block, and the fit reference')
+    A('     * is zeroed so TEST_MEAS reads RMS only (no tone to fit) */')
+    A('    r0 = 1;')
+    A('    dm(_osc_ch_live_%s) = r0;' % nid)
+    A('    r0 = 0;')
+    A('    dm(_osc_ch_n_%s) = r0;' % nid)
+    A('    i4 = _osc_blk_sc_%s;' % nid)
+    A('    l4 = 0;')
+    A('    lcntr = 2 * DSP4_BLOCK_SIZE, do .osc_ch_clr_lp_%s until lce;' % nid)
+    A('.osc_ch_clr_lp_%s:' % nid)
+    A('        dm(i4, 1) = r0;')
+    A('.osc_ch_run_%s:' % nid)
+    A('    r0 = dm(_osc_ch_n_%s);' % nid)
+    A('    r0 = pass r0;')
+    A('    if ne jump (pc, .osc_ch_gen_%s);' % nid)
+    A('    /* ---- A PERIOD BOUNDARY: latch the length, reset phase and')
+    A('     * increment. Every period is the same sequence of operations from')
+    A('     * the same state, so every period is the same samples. */')
+    A('    r1 = dm(_osc_sweep_step_%s);' % nid)
+    A('    r2 = %d;' % TEST_CHIRP_MAX_STEPS)
+    A('    comp(r1, r2);')
+    A('    if gt r1 = pass r2;')
+    A('    r2 = 0;')
+    A('    r3 = %d;' % TEST_CHIRP_DEFAULT_STEPS)
+    A('    comp(r1, r2);')
+    A('    if le r1 = pass r3;')
+    A('    i4 = _osc_ch_rtab_%s;' % nid)
+    A('    l4 = 0;')
+    A('    m4 = r1;')
+    A('    modify(i4, m4);')
+    A('    f2 = dm(i4, 0);')
+    A('    dm(_osc_ch_r_%s) = f2;' % nid)
+    A('    r1 = lshift r1 by %d;' % (TEST_CHIRP_UNIT.bit_length() - 1))
+    A('    dm(_osc_ch_len_%s) = r1;' % nid)
+    L.extend(_fk(2, 0.0, '0.0'))
+    A('    dm(_osc_ch_p_%s) = f2;' % nid)
+    L.extend(_fk(2, TEST_OSC_F_LO / SAMPLE_RATE_HZ, 'f_lo/fs, cycles/sample'))
+    A('    dm(_osc_ch_w_%s) = f2;' % nid)
+    A('.osc_ch_gen_%s:' % nid)
+    A('    dm(_osc_ch_pos_%s) = r0;' % nid)
+    A('    f8 = dm(_osc_ch_p_%s);' % nid)
+    A('    f9 = dm(_osc_ch_w_%s);' % nid)
+    A('    f10 = dm(_osc_ch_r_%s);' % nid)
+    A('    f11 = dm(_osc_level_%s);' % nid)
+    A('    r12 = 0x4D800000;                   /* 2^28 */')
+    A('    f11 = f11 * f12;                    /* peak amplitude, Q4.28 */')
+    L.extend(_fk(12, 1.0, '1.0'))
+    L.extend(_fk(13, 0.5, '0.5'))
+    L.extend(_fk(14, 0.25, '0.25'))
+    L.extend(_fk(15, 2.0 * math.pi, '2*pi'))
+    A('    i5 = _osc_blk_q_%s;' % nid)
+    A('    l5 = 0;')
+    A('    /* sin(2*pi*p) by folding p into the first quarter cycle and the')
+    A("     * resonator design's own degree-13 Taylor, so the sweep's")
+    A('     * waveform error is the same 3.5e-8 as the tone coefficient. */')
+    A('    lcntr = DSP4_BLOCK_SIZE, do .osc_ch_lp_%s until lce;' % nid)
+    A('        f0 = pass f8;')
+    A('        f7 = pass f11;')
+    A('        comp(f0, f13);')
+    A('        if lt jump (pc, .osc_ch_q1_%s);' % nid)
+    A('        f0 = f0 - f13;')
+    A('        f7 = -f11;')
+    A('.osc_ch_q1_%s:' % nid)
+    A('        comp(f0, f14);')
+    A('        if le jump (pc, .osc_ch_q2_%s);' % nid)
+    A('        f0 = f13 - f0;')
+    A('.osc_ch_q2_%s:' % nid)
+    A('        f0 = f0 * f15;                  /* theta in [0, pi/2] */')
+    A('        f1 = f0 * f0;')
+    L.extend(_fk(2, _SIN_TAYLOR[-1][1], _SIN_TAYLOR[-1][0], '        '))
+    for name, c in reversed(_SIN_TAYLOR[:-1]):
+        A('        f2 = f2 * f1;')
+        L.extend(_fk(3, c, name, '        '))
+        A('        f2 = f2 + f3;')
+    A('        f2 = f2 * f1;')
+    A('        f2 = f2 + f12;')
+    A('        f0 = f0 * f2;                   /* sin(theta) */')
+    A('        f0 = f0 * f7;')
+    A('        r0 = fix f0;')
+    A('        dm(i5, 1) = r0;')
+    A('        f8 = f8 + f9;                   /* phase += w */')
+    A('        comp(f8, f12);')
+    A('        if ge f8 = f8 - f12;')
+    A('.osc_ch_lp_%s:' % nid)
+    A('        f9 = f9 * f10;                  /* w *= r: exponential */')
+    A('    dm(_osc_ch_p_%s) = f8;' % nid)
+    A('    dm(_osc_ch_w_%s) = f9;' % nid)
+    A('    r0 = dm(_osc_ch_pos_%s);' % nid)
+    A('    r1 = DSP4_BLOCK_SIZE;')
+    A('    r0 = r0 + r1;')
+    A('    r1 = dm(_osc_ch_len_%s);' % nid)
+    A('    r2 = 0;')
+    A('    comp(r0, r1);')
+    A('    if ge r0 = pass r2;')
+    A('    dm(_osc_ch_n_%s) = r0;' % nid)
+    A('    rts;')
     A('')
     A('    /* ---- THE COEFFICIENT, and only when the frequency word moved.')
     A('     * The host writes Hz; k = 2*sin(pi*f/fs) is derived here, so the')
@@ -6155,6 +6260,8 @@ def gen_test_meas(node):
     A('.var _meas_b_%s      = 0.0;' % nid)
     A('.var _meas_cap_idx_%s  = 0;     /* samples copied this run */' % nid)
     A('.extern _osc_blk_sc_%s;' % osc)
+    A('.extern _osc_ch_live_%s;' % osc)
+    A('.extern _osc_ch_pos_%s;' % osc)
     A('')
     A('.section/dm seg_delay;')
     A('.var _meas_cap_buf_%s[DSP4_TEST_CAP_MAX];' % nid)
@@ -6236,6 +6343,18 @@ def gen_test_meas(node):
     A('    r6 = dm(_meas_cap_idx_%s);' % nid)
     A('    r6 = pass r6;')
     A('    if ne jump (pc, .tmt_cap_go_%s);' % nid)
+    A('    /* A NEW RUN, and with the chirp running it starts only on the')
+    A('     * pass that injects the first block of a period (S60), so sample')
+    A('     * 0 of the capture is sample 0 of the sweep and the impulse the')
+    A('     * host deconvolves out of it sits at the path latency. Waiting')
+    A('     * costs at most one period and three instructions a pass. */')
+    A('    r7 = dm(_osc_ch_live_%s);' % osc)
+    A('    r7 = pass r7;')
+    A('    if eq jump (pc, .tmt_cap_new_%s);' % nid)
+    A('    r7 = dm(_osc_ch_pos_%s);' % osc)
+    A('    r7 = pass r7;')
+    A('    if ne jump (pc, .tmt_nocap_%s);' % nid)
+    A('.tmt_cap_new_%s:' % nid)
     A('    dm(_meas_cap_ready_%s) = r6;   /* a new run: Ready = 0 */' % nid)
     A('.tmt_cap_go_%s:' % nid)
     A('    i4 = r5;')

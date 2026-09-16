@@ -1,0 +1,128 @@
+15:40:31 reference captured
+15:40:52 code  0 capture 1: osc -15.58 dBFS pk, overruns 0, read 16.4 s, total capture 17.1 s
+15:41:09 code  0 capture 2: osc -15.58 dBFS pk, overruns 0, read 15.6 s, total capture 16.2 s
+15:41:25 code 63 capture 1: osc -68.72 dBFS pk, overruns 0, read 12.4 s, total capture 12.9 s
+15:41:38 code 63 capture 2: osc -68.72 dBFS pk, overruns 0, read 12.3 s, total capture 12.8 s
+15:41:55 code  1 capture 1: osc -28.42 dBFS pk, overruns 0, read 12.3 s, total capture 12.8 s
+15:42:08 code  1 capture 2: osc -28.42 dBFS pk, overruns 0, read 12.3 s, total capture 12.8 s
+15:42:24 code  2 capture 1: osc -35.04 dBFS pk, overruns 0, read 12.3 s, total capture 12.7 s
+15:42:38 code  2 capture 2: osc -35.04 dBFS pk, overruns 0, read 12.3 s, total capture 12.8 s
+15:42:54 code  4 capture 1: osc -42.48 dBFS pk, overruns 0, read 12.3 s, total capture 12.8 s
+15:43:07 code  4 capture 2: osc -42.48 dBFS pk, overruns 0, read 12.3 s, total capture 12.8 s
+15:43:24 code  8 capture 1: osc -49.93 dBFS pk, overruns 0, read 12.3 s, total capture 12.8 s
+15:43:37 code  8 capture 2: osc -49.93 dBFS pk, overruns 0, read 12.3 s, total capture 12.9 s
+15:43:56 code 16 capture 1: osc -57.17 dBFS pk, overruns 0, read 15.2 s, total capture 15.6 s
+15:44:14 code 16 capture 2: osc -57.17 dBFS pk, overruns 0, read 16.4 s, total capture 17.1 s
+15:44:34 code 32 capture 1: osc -63.74 dBFS pk, overruns 0, read 16.4 s, total capture 16.8 s
+15:44:52 code 32 capture 2: osc -63.74 dBFS pk, overruns 0, read 16.4 s, total capture 16.9 s
+15:45:12 THD+N capture code 0 osc -8.58: overruns 0, 16.8 s
+15:45:33 THD+N capture code 63 osc -61.72: overruns 0, 16.8 s
+15:45:53 EIN capture (loop cable as source): overruns 0, 16.8 s
+15:46:11 strip 7: up 0.20 s, capture 17.48 s (read 16.4), one meter window 0.32 s, restore 0.19 s
+15:46:29 strip 8: up 0.20 s, capture 16.85 s (read 16.0), one meter window 0.23 s, restore 0.19 s
+15:46:43 strip 9: up 0.20 s, capture 13.62 s (read 12.7), one meter window 0.23 s, restore 0.19 s
+{
+ "chirp_code_0": {
+  "chain": 0.1704556941986084,
+  "settle": 3.000109910964966,
+  "osc words": 0.04996371269226074,
+  "wait": 0.8376266956329346,
+  "capture+read": 33.271074533462524
+ },
+ "chirp_code_63": {
+  "chain": 0.17015337944030762,
+  "settle": 3.0000979900360107,
+  "osc words": 0.05006098747253418,
+  "wait": 0.8299038410186768,
+  "capture+read": 25.732560396194458
+ },
+ "chirp_code_1": {
+  "chain": 0.1702861785888672,
+  "settle": 3.0000760555267334,
+  "osc words": 0.04623556137084961,
+  "wait": 0.8294448852539062,
+  "capture+read": 25.60500407218933
+ },
+ "chirp_code_2": {
+  "chain": 0.17075228691101074,
+  "settle": 3.0001096725463867,
+  "osc words": 0.04993772506713867,
+  "wait": 0.8297679424285889,
+  "capture+read": 25.55605149269104
+ },
+ "chirp_code_4": {
+  "chain": 0.17010831832885742,
+  "settle": 3.000081777572632,
+  "osc words": 0.04592633247375488,
+  "wait": 0.8294305801391602,
+  "capture+read": 25.5940158367157
+ },
+ "chirp_code_8": {
+  "chain": 0.17054080963134766,
+  "settle": 3.0001161098480225,
+  "osc words": 0.05000734329223633,
+  "wait": 0.82993483543396,
+  "capture+read": 25.62801480293274
+ },
+ "chirp_code_16": {
+  "chain": 0.17095565795898438,
+  "settle": 3.0000741481781006,
+  "osc words": 0.046270132064819336,
+  "wait": 0.8294708728790283,
+  "capture+read": 32.73114585876465
+ },
+ "chirp_code_32": {
+  "chain": 0.17046642303466797,
+  "settle": 3.0000827312469482,
+  "osc words": 0.04627275466918945,
+  "wait": 0.8294568061828613,
+  "capture+read": 33.77726745605469
+ },
+ "thdn_code_0": {
+  "chain": 0.17026829719543457,
+  "settle": 3.0001206398010254,
+  "osc words": 0.05532073974609375,
+  "wait": 0.0056569576263427734,
+  "capture+read": 16.785481452941895
+ },
+ "thdn_code_63": {
+  "chain": 0.1707320213317871,
+  "settle": 3.0000805854797363,
+  "osc words": 0.05131030082702637,
+  "wait": 0.004971027374267578,
+  "capture+read": 16.782340049743652
+ },
+ "ein": {
+  "chain": 0.17072105407714844,
+  "settle": 3.000077486038208,
+  "osc words": 0.03668856620788574,
+  "wait": 0.004984378814697266,
+  "capture+read": 16.782132148742676
+ },
+ "lanes": [
+  {
+   "strip": 7,
+   "up": 0.19698882102966309,
+   "capture": 17.477380752563477,
+   "read": 16.38,
+   "meter": 0.31990718841552734,
+   "restore": 0.18715667724609375
+  },
+  {
+   "strip": 8,
+   "up": 0.19675779342651367,
+   "capture": 16.854445457458496,
+   "read": 16.02,
+   "meter": 0.22750568389892578,
+   "restore": 0.1868274211883545
+  },
+  {
+   "strip": 9,
+   "up": 0.19700002670288086,
+   "capture": 13.621917009353638,
+   "read": 12.69,
+   "meter": 0.2296614646911621,
+   "restore": 0.18684887886047363
+  }
+ ]
+}

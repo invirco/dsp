@@ -1,0 +1,25 @@
+15:46:48 T7 @ 10000 Hz, code 2: loop gain 25.101 dB -> osc -31.10 dBFS; MIC 5 strip 5 coherent peak -6.00 dBFS, RMS -9.00
+15:46:49 strip  1  RMS  -115.98 dBFS  coh pk  -144.08 dBFS  xtalk  -138.09 dB  XtalkResult  -106.97 dB
+15:46:50 strip  2  RMS  -115.88 dBFS  coh pk  -145.19 dBFS  xtalk  -139.19 dB  XtalkResult  -106.87 dB
+15:46:51 strip  3  RMS  -116.14 dBFS  coh pk  -155.22 dBFS  xtalk  -149.22 dB  XtalkResult  -107.13 dB
+15:46:52 strip  4  RMS  -116.13 dBFS  coh pk  -145.99 dBFS  xtalk  -139.99 dB  XtalkResult  -107.12 dB
+15:46:54 strip  7  RMS  -113.83 dBFS  coh pk  -152.68 dBFS  xtalk  -146.68 dB  XtalkResult  -104.82 dB
+15:46:55 strip  8  RMS  -114.51 dBFS  coh pk  -151.45 dBFS  xtalk  -145.45 dB  XtalkResult  -105.50 dB
+15:46:56 strip  9  RMS  -114.02 dBFS  coh pk  -147.36 dBFS  xtalk  -141.36 dB  XtalkResult  -105.01 dB
+15:46:57 strip 10  RMS  -113.29 dBFS  coh pk  -147.24 dBFS  xtalk  -141.25 dB  XtalkResult  -104.28 dB
+15:46:58 strip 11  RMS  -111.59 dBFS  coh pk  -142.40 dBFS  xtalk  -136.40 dB  XtalkResult  -102.58 dB
+15:46:59 strip 12  RMS  -114.26 dBFS  coh pk  -147.54 dBFS  xtalk  -141.54 dB  XtalkResult  -105.25 dB
+15:47:00 strip 13  RMS  -116.24 dBFS  coh pk  -146.27 dBFS  xtalk  -140.27 dB  XtalkResult  -107.23 dB
+15:47:01 strip 14  RMS  -116.00 dBFS  coh pk  -148.09 dBFS  xtalk  -142.10 dB  XtalkResult  -106.99 dB
+15:47:02 strip 15  RMS  -116.08 dBFS  coh pk  -149.08 dBFS  xtalk  -143.08 dB  XtalkResult  -107.07 dB
+15:47:04 strip 16  RMS  -116.06 dBFS  coh pk  -149.00 dBFS  xtalk  -143.00 dB  XtalkResult  -107.05 dB
+15:47:05 strip 17  RMS  -114.15 dBFS  coh pk  -139.06 dBFS  xtalk  -133.06 dB  XtalkResult  -105.14 dB
+15:47:06 strip 18  RMS  -114.01 dBFS  coh pk  -143.57 dBFS  xtalk  -137.57 dB  XtalkResult  -105.00 dB
+15:47:07 strip 19  RMS  -114.73 dBFS  coh pk  -154.61 dBFS  xtalk  -148.61 dB  XtalkResult  -105.72 dB
+15:47:08 strip 20  RMS  -114.00 dBFS  coh pk  -145.82 dBFS  xtalk  -139.82 dB  XtalkResult  -104.99 dB
+15:47:09 strip 21  RMS  -111.75 dBFS  coh pk  -144.99 dBFS  xtalk  -138.99 dB  XtalkResult  -102.74 dB
+15:47:10 strip 22  RMS  -114.37 dBFS  coh pk  -142.44 dBFS  xtalk  -136.44 dB  XtalkResult  -105.36 dB
+15:47:11 strip 23  RMS  -113.21 dBFS  coh pk  -159.10 dBFS  xtalk  -153.10 dB  XtalkResult  -104.20 dB
+15:47:12 strip 24  RMS  -114.48 dBFS  coh pk  -145.54 dBFS  xtalk  -139.54 dB  XtalkResult  -105.47 dB
+15:47:13 WORST neighbour at 10 kHz: strip 17 at -133.06 dB (22 strips in 24 s)
+15:47:14 CONTROL strip 17, reference running, OscChan 0: coh pk -150.18 dBFS -> floor -144.18 dB re source

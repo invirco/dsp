@@ -52,6 +52,9 @@ Usage:
     dsp4_fft.py capture.json --band 20-20000 --aweight
         # PW 09-16 EIN ruling: the in-band noise, unweighted and IEC
         # A-weighted, beside the DC-Nyquist total (the node's figure)
+    dsp4_fft.py --chirp CAP.json [--y2 CAP2.json] [--ref REF.json | --level L]
+        # S60: deconvolve one period of the TEST_OSC chirp (dsp4_chirp.py):
+        # impulse -> latency, polarity, response re 1 kHz, gain, THD 2..5
     dsp4_fft.py --capture 16384 [--symdir DIR] [--save FILE] [--png FILE]
         # S56: arm TEST_MEAS's capture on the running part (chip 1,
         # MeasChan's post-fader block), read the buffer, analyse it.
@@ -645,9 +648,72 @@ def selftest():
 
 # --------------------------------------------------------------------------
 
+def _samples(cap):
+    fsdiv = SCALES[cap['scale']]
+    return [(v - (1 << 32) if v & 0x80000000 else v) / fsdiv
+            for v in cap['samples']]
+
+
+def chirp_main(argv):
+    """--chirp (S60): deconvolve a capture of one chirp period.
+
+    dsp4_fft.py --chirp CAP.json [--y2 CAP2.json] [--ref REF.json | --level L]
+                [--steps S]
+    dsp4_fft.py --chirp --capture 16384 [--symdir DIR] [--save FILE] ...
+
+    The reference is REF.json (a capture of the donor strip's post-fader
+    block, scaled to the capture's OscLevel if --level is also given) or the
+    host model of the sweep at --level (linear, 1.0 = 0 dBFS peak; default
+    the capture file's `osc_level`)."""
+    import dsp4_chirp as CH
+    opt = {}
+    for i, a in enumerate(argv):
+        if a in ('--y2', '--ref', '--level', '--steps', '--capture', '--symdir',
+                 '--save', '--ref-level'):
+            opt[a] = argv[i + 1]
+    vals = set(opt.values())
+    files = [a for a in argv if not a.startswith('--') and a not in vals]
+    steps = int(opt.get('--steps', 0))
+    if '--capture' in opt:
+        import dsp4_meascap as MC
+        cap = MC.capture(int(opt['--capture']),
+                         opt.get('--symdir', MC.DEFAULT_SYMDIR))
+        if '--save' in opt:
+            with open(opt['--save'], 'w') as f:
+                json.dump(cap, f)
+    else:
+        with open(files[0]) as f:
+            cap = json.load(f)
+    y = _samples(cap)
+    y2 = None
+    if '--y2' in opt:
+        with open(opt['--y2']) as f:
+            y2 = _samples(json.load(f))
+    level = float(opt.get('--level', cap.get('osc_level', 0.0)))
+    if '--ref' in opt:
+        with open(opt['--ref']) as f:
+            rc = json.load(f)
+        x = _samples(rc)
+        rl = float(opt.get('--ref-level', rc.get('osc_level', 0.0)))
+        if level and rl:
+            x = [v * level / rl for v in x]
+        src = 'captured reference %s' % opt['--ref']
+    else:
+        if not level:
+            raise SystemExit('--chirp: no --ref and no level: the deconvolution '
+                             'needs the injected amplitude')
+        x = CH.model(steps, level, len(y))
+        src = 'host model, level %.6g (%.2f dBFS pk)' % (level, db20(level))
+    res = CH.analyse(y, x, steps, y2=y2)
+    CH.report(res, 'CHIRP  %s  (reference: %s)' % (cap.get('node', ''), src))
+    return 0
+
+
 def main(argv):
     if '--selftest' in argv:
         return selftest()
+    if '--chirp' in argv:
+        return chirp_main([a for a in argv if a != '--chirp'])
     lane = 0
     band = None
     aweight = '--aweight' in argv

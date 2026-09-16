@@ -37,7 +37,7 @@
 .global _osc_sweep_on_C1_TEST_OSC;
 .var _osc_sweep_on_C1_TEST_OSC  = 0;
 .global _osc_sweep_step_C1_TEST_OSC;
-.var _osc_sweep_step_C1_TEST_OSC = 1;   /* codes per step */
+.var _osc_sweep_step_C1_TEST_OSC = 0;   /* chirp period, x1024 samples; 0 = 16 */
 
 #if DSP4_TEST_NODES && DSP4_BLOCK_KERNELS
 .global _osc_k_C1_TEST_OSC;
@@ -50,10 +50,28 @@
 .var _osc_s_C1_TEST_OSC         = 0.0;      /* resonator x (sine)   */
 .global _osc_c_C1_TEST_OSC;
 .var _osc_c_C1_TEST_OSC         = 1.0;      /* resonator y (cosine) */
-.global _osc_sweep_idx_C1_TEST_OSC;
-.var _osc_sweep_idx_C1_TEST_OSC = 0;
-.global _osc_seq_seen_C1_TEST_OSC;
-.var _osc_seq_seen_C1_TEST_OSC  = 0;
+/* THE CHIRP STATE (S60). Phase in CYCLES, [0,1); the per-sample
+ * increment w (cycles/sample) is multiplied by r every sample, which
+ * is what makes the sweep exponential. _osc_ch_pos_ is the period
+ * index of the first sample of the block in _osc_blk_q_, i.e. of the
+ * block the NEXT chain pass injects -- the capture arm reads it in
+ * that pass to start a capture on a period boundary. */
+.global _osc_ch_live_C1_TEST_OSC;
+.global _osc_ch_live_C1_TEST_OSC;
+.var _osc_ch_live_C1_TEST_OSC   = 0;   /* 1 while _osc_blk_q_ holds chirp */
+.global _osc_ch_pos_C1_TEST_OSC;
+.global _osc_ch_pos_C1_TEST_OSC;
+.var _osc_ch_pos_C1_TEST_OSC    = 0;
+.global _osc_ch_n_C1_TEST_OSC;
+.var _osc_ch_n_C1_TEST_OSC      = 0;   /* index of the next sample to make */
+.global _osc_ch_len_C1_TEST_OSC;
+.var _osc_ch_len_C1_TEST_OSC    = 16384;
+.global _osc_ch_p_C1_TEST_OSC;
+.var _osc_ch_p_C1_TEST_OSC      = 0.0;
+.global _osc_ch_w_C1_TEST_OSC;
+.var _osc_ch_w_C1_TEST_OSC      = 0.0004166666666666667;
+.global _osc_ch_r_C1_TEST_OSC;
+.var _osc_ch_r_C1_TEST_OSC      = 1.0;
 .global _osc_live_C1_TEST_OSC;
 .var _osc_live_C1_TEST_OSC      = 0;   /* 1 while the blocks hold a tone */
 /* s and c INTERLEAVED, s0,c0,s1,c1,... One pointer walks both, which
@@ -65,43 +83,76 @@
  * straight copy into the strip's pool slot. */
 .global _osc_blk_q_C1_TEST_OSC;
 .var _osc_blk_q_C1_TEST_OSC[DSP4_BLOCK_SIZE];
-/* The sweep's frequencies, generated FROM the cell's own Table law
- * `0=20/127=20000/[Log]` -- see _osc_freq_table(). */
-.global _osc_ftab_C1_TEST_OSC;
-.var _osc_ftab_C1_TEST_OSC[128] =
-    20.000000, 21.117964, 22.298420, 23.544861,   /* codes 0-3 */
-    24.860977, 26.250660, 27.718025, 29.267412,   /* codes 4-7 */
-    30.903408, 32.630853, 34.454858, 36.380823,   /* codes 8-11 */
-    38.414445, 40.561743, 42.829071, 45.223139,   /* codes 12-15 */
-    47.751031, 50.420227, 53.238627, 56.214570,   /* codes 16-19 */
-    59.356863, 62.674804, 66.178213, 69.877455,   /* codes 20-23 */
-    73.783479, 77.907842, 82.262750, 86.861089,   /* codes 24-27 */
-    91.716467, 96.843252, 102.256615, 107.972575,   /* codes 28-31 */
-    114.008047, 120.380891, 127.109966, 134.215183,   /* codes 32-35 */
-    141.717570, 149.639326, 158.003894, 166.836027,   /* codes 36-39 */
-    176.161859, 186.008989, 196.406556, 207.385328,   /* codes 40-43 */
-    218.977793, 231.218256, 244.142939, 257.790089,   /* codes 44-47 */
-    272.200089, 287.415583, 303.481595, 320.445668,   /* codes 48-51 */
-    338.358002, 357.271604, 377.242441, 398.329613,   /* codes 52-55 */
-    420.595519, 444.106049, 468.930775, 495.143159,   /* codes 56-59 */
-    522.820768, 552.045504, 582.903851, 615.487124,   /* codes 60-63 */
-    649.891743, 686.219518, 724.577950, 765.080549,   /* codes 64-67 */
-    807.847171, 853.004369, 900.685773, 951.032481,   /* codes 68-71 */
-    1004.193480, 1060.326082, 1119.596396, 1182.179813,   /* codes 72-75 */
-    1248.261530, 1318.037096, 1391.712989, 1469.507233,   /* codes 76-79 */
-    1551.650034, 1638.384469, 1729.967203, 1826.669246,   /* codes 80-83 */
-    1928.776758, 2036.591897, 2150.433706, 2270.639068,   /* codes 84-87 */
-    2397.563692, 2531.583173, 2673.094102, 2822.515236,   /* codes 88-91 */
-    2980.288741, 3146.881501, 3322.786495, 3508.524260,   /* codes 92-95 */
-    3704.644431, 3911.727366, 4130.385863, 4361.266975,   /* codes 96-99 */
-    4605.053924, 4862.468124, 5134.271313, 5421.267809,   /* codes 100-103 */
-    5724.306891, 6044.285310, 6382.149946, 6738.900604,   /* codes 104-107 */
-    7115.592981, 7513.341781, 7933.324020, 8376.782509,   /* codes 108-111 */
-    8845.029526, 9339.450707, 9861.509138, 10412.749693,   /* codes 112-115 */
-    10994.803600, 11609.393270, 12258.337392, 12943.556319,   /* codes 116-119 */
-    13667.077747, 14431.042716, 15237.711947, 16089.472533,   /* codes 120-123 */
-    16988.844997, 17938.490757, 18941.220002, 20000.000000;   /* codes 124-127 */
-.extern _meas_seq_C1_TEST_MEAS;
+/* The chirp's per-sample ratio for each period length, from the
+ * OscFreq law endpoints -- see _chirp_ratio_table(). In L1 with the
+ * other initialised words: seg_delay is NOT loaded with initial
+ * values (measured S60: a table placed there read back 0.0). */
+.global _osc_ch_rtab_C1_TEST_OSC;
+.var _osc_ch_rtab_C1_TEST_OSC[256] =
+    1, 1.0067686592927223, 1.0033786221027048, 1.0022511482929128,   /* steps 0-3 */
+    1.0016878865708143, 1.0013500814935019, 1.00112494139988, 1.0009641580396222,   /* steps 4-7 */
+    1.0008435874655013, 1.0007498203931584, 1.0006748130604177, 1.000613447606125,   /* steps 8-11 */
+    1.0005623126022087, 1.0005190465630451, 1.0004819628757045, 1.0004498247918177,   /* steps 12-15 */
+    1.000421704815275, 1.0003968937276364, 1.0003748399440873, 1.0003551080235438,   /* steps 16-19 */
+    1.0003373496278232, 1.0003212827795285, 1.0003066767777395, 1.0002933410493184,   /* steps 20-23 */
+    1.0002811167877801, 1.0002698705991051, 1.0002594896140926, 1.0002498776869937,   /* steps 24-27 */
+    1.0002409524088205, 1.0002326427386645, 1.0002248871088031, 1.0002176318965996,   /* steps 28-31 */
+    1.0002108301829544, 1.000204440736512, 1.0001984271771458, 1.0001927572828591,   /* steps 32-35 */
+    1.0001874024122117, 1.0001823370204181, 1.0001775382518565, 1.0001729855952735,   /* steps 36-39 */
+    1.0001686605907141, 1.0001645465793434, 1.0001606284890086, 1.0001568926497282,   /* steps 40-43 */
+    1.0001533266343414, 1.0001499191204068, 1.0001466597701152, 1.000143539125534,   /* steps 44-47 */
+    1.0001405485169472, 1.0001376799824195, 1.0001349261970132, 1.0001322804103336,   /* steps 48-51 */
+    1.0001297363912807, 1.0001272883790562, 1.0001249310396145, 1.000122659426864,   /* steps 52-55 */
+    1.0001204689480265, 1.0001183553326438, 1.0001163146047887, 1.0001143430581036,   /* steps 56-59 */
+    1.0001124372333359, 1.000110593898081, 1.0001088100284887, 1.000107082792709,   /* steps 60-63 */
+    1.0001054095358921, 1.0001037877665719, 1.0001022151442882, 1.0001006894683164,   /* steps 64-67 */
+    1.000099208667393, 1.0000977707903338, 1.0000963739974558, 1.0000950165527251,   /* steps 68-71 */
+    1.000093696816559, 1.0000924132392188, 1.0000911643547392, 1.0000899487753436,   /* steps 72-75 */
+    1.0000887651862991, 1.0000876123411737, 1.0000864890574581, 1.0000853942125192,   /* steps 76-79 */
+    1.0000843267398576, 1.0000832856256432, 1.000082269905503, 1.0000812786615414,   /* steps 80-83 */
+    1.0000803110195744, 1.000079366146557, 1.0000784432481924, 1.0000775415667049,   /* steps 84-87 */
+    1.0000766603787639, 1.0000757989935494, 1.0000749567509462, 1.0000741330198553,   /* steps 88-91 */
+    1.0000733271966187, 1.0000725387035425, 1.0000717669875168, 1.000071011518721,   /* steps 92-95 */
+    1.0000702717894114, 1.000069547312783, 1.0000688376219007, 1.0000681422686963,   /* steps 96-99 */
+    1.0000674608230253, 1.0000667928717786, 1.000066138018048, 1.0000654958803405,   /* steps 100-103 */
+    1.0000648660918354, 1.0000642482996873, 1.0000636421643656, 1.0000630473590333,   /* steps 104-107 */
+    1.0000624635689586, 1.0000618904909597, 1.0000613278328805, 1.0000607753130926,   /* steps 108-111 */
+    1.0000602326600265, 1.0000596996117264, 1.0000591759154274, 1.0000586613271574,   /* steps 112-115 */
+    1.0000581556113568, 1.0000576585405199, 1.0000571698948533, 1.0000566894619518,   /* steps 116-119 */
+    1.0000562170364904, 1.0000557524199318, 1.0000552954202488, 1.0000548458516587,   /* steps 120-123 */
+    1.0000544035343721, 1.000053968294353, 1.0000535399630908, 1.0000531183773818,   /* steps 124-127 */
+    1.0000527033791229, 1.000052294815114, 1.0000518925368682, 1.0000514964004332,   /* steps 128-131 */
+    1.0000511062662187, 1.000050721998833, 1.0000503434669259, 1.0000499705430388,   /* steps 132-135 */
+    1.0000496031034627, 1.0000492410280999, 1.0000488842003343, 1.000048532506906,   /* steps 136-139 */
+    1.0000481858377903, 1.0000478440860849, 1.000047507147898, 1.0000471749222446,   /* steps 140-143 */
+    1.0000468473109443, 1.0000465242185257, 1.0000462055521329, 1.0000458912214367,   /* steps 144-147 */
+    1.0000455811385496, 1.000045275217943, 1.0000449733763694, 1.000044675532787,   /* steps 148-151 */
+    1.000044381608286, 1.00004409152602, 1.0000438052111387, 1.0000435225907232,   /* steps 152-155 */
+    1.000043243593725, 1.0000429681509047, 1.000042696194777, 1.0000424276595536,   /* steps 156-159 */
+    1.0000421624810913, 1.0000419005968404, 1.0000416419457958, 1.0000413864684492,   /* steps 160-163 */
+    1.0000411341067441, 1.0000408848040314, 1.0000406385050267, 1.0000403951557704,   /* steps 164-167 */
+    1.0000401547035871, 1.0000399170970486, 1.0000396822859365, 1.0000394502212075,   /* steps 168-171 */
+    1.0000392208549584, 1.0000389941403942, 1.0000387700317948, 1.0000385484844858,   /* steps 172-175 */
+    1.0000383294548083, 1.0000381129000897, 1.000037898778616, 1.0000376870496062,   /* steps 176-179 */
+    1.0000374776731851, 1.0000372706103586, 1.00003706582299, 1.0000368632737759,   /* steps 180-183 */
+    1.0000366629262243, 1.0000364647446314, 1.0000362686940623, 1.0000360747403283,   /* steps 184-187 */
+    1.0000358828499689, 1.0000356929902317, 1.0000355051290535, 1.0000353192350426,   /* steps 188-191 */
+    1.0000351352774619, 1.0000349532262105, 1.0000347730518089, 1.0000345947253819,   /* steps 192-195 */
+    1.0000344182186434, 1.0000342435038823, 1.0000340705539468, 1.0000338993422311,   /* steps 196-199 */
+    1.0000337298426616, 1.000033562029683, 1.000033395878247, 1.0000332313637981,   /* steps 200-203 */
+    1.0000330684622625, 1.0000329071500362, 1.0000327474039741, 1.0000325892013771,   /* steps 204-207 */
+    1.0000324325199836, 1.0000322773379577, 1.0000321236338796, 1.0000319713867356,   /* steps 208-211 */
+    1.0000318205759082, 1.0000316711811674, 1.0000315231826611, 1.0000313765609068,   /* steps 212-215 */
+    1.0000312312967823, 1.0000310873715186, 1.0000309447666906, 1.0000308034642098,   /* steps 216-219 */
+    1.0000306634463167, 1.0000305246955732, 1.0000303871948555, 1.0000302509273467,   /* steps 220-223 */
+    1.0000301158765303, 1.0000299820261838, 1.000029849360371, 1.0000297178634376,   /* steps 224-227 */
+    1.0000295875200031, 1.0000294583149558, 1.0000293302334473, 1.0000292032608857,   /* steps 228-231 */
+    1.0000290773829312, 1.0000289525854897, 1.0000288288547086, 1.0000287061769704,   /* steps 232-235 */
+    1.0000285845388888, 1.0000284639273036, 1.0000283443292755, 1.0000282257320816,   /* steps 236-239 */
+    1.0000281081232119, 1.0000279914903629, 1.0000278758214352, 1.0000277611045283,   /* steps 240-243 */
+    1.000027647327937, 1.000027534480147, 1.0000274225498311, 1.0000273115258462,   /* steps 244-247 */
+    1.000027201397228, 1.0000270921531891, 1.0000269837831142, 1.0000268762765576,   /* steps 248-251 */
+    1.000026769623239, 1.0000266638130408, 1.0000265588360049, 1.0000264546823292;   /* steps 252-255 */
 #endif
 
 .section/pm seg_pmco;
@@ -150,6 +201,8 @@ _C1_TEST_OSC_process:
      * 2x2 goes singular -- which is what makes NoiseResult read the
      * channel's own floor rather than fitting noise to a frozen
      * waveform left over from the last tone. */
+    r0 = 0;
+    dm(_osc_ch_live_C1_TEST_OSC) = r0;   /* a stopped chirp holds no period */
     r0 = dm(_osc_live_C1_TEST_OSC);
     r0 = pass r0;
     if eq rts;
@@ -169,39 +222,133 @@ _C1_TEST_OSC_process:
 .osc_sweep_C1_TEST_OSC:
     r0 = 1;
     dm(_osc_live_C1_TEST_OSC) = r0;
-    /* ---- THE SWEEP advances on a COMPLETED measurement window.
-     * _meas_seq_ is bumped by the measurement node, which the chain
-     * calls immediately BEFORE this one, so a step and the window
-     * that scored the previous frequency can never be off by one. */
+    /* ---- THE CHIRP (S60) replaces the S49 stepped sweep, which
+     * advanced one frequency per measurement window and could not be
+     * followed over the link (a voted read takes longer than a
+     * window). SweepOn = 1 runs a periodic exponential sweep; the
+     * tone path below is untouched while it is 0. */
     r0 = dm(_osc_sweep_on_C1_TEST_OSC);
     r0 = pass r0;
+    if ne jump (pc, .osc_chirp_C1_TEST_OSC);
+    r0 = dm(_osc_ch_live_C1_TEST_OSC);
+    r0 = pass r0;
     if eq jump (pc, .osc_design_C1_TEST_OSC);
-    r1 = dm(_meas_seq_C1_TEST_MEAS);
-    r2 = dm(_osc_seq_seen_C1_TEST_OSC);
-    comp(r1, r2);
-    if eq jump (pc, .osc_design_C1_TEST_OSC);
-    dm(_osc_seq_seen_C1_TEST_OSC) = r1;
-    r3 = dm(_osc_sweep_idx_C1_TEST_OSC);
-    r4 = dm(_osc_sweep_step_C1_TEST_OSC);
-    r5 = 0;
-    r6 = 1;
-    comp(r4, r5);
-    if le r4 = pass r6;   /* a step of 0 would never advance */
-    r3 = r3 + r4;
-    r5 = 127;
-    comp(r3, r5);
-    if gt jump (pc, .osc_sweep_done_C1_TEST_OSC);
-    dm(_osc_sweep_idx_C1_TEST_OSC) = r3;
-    i4 = _osc_ftab_C1_TEST_OSC;
-    l4 = 0;
-    m4 = r3;
-    modify(i4, m4);
-    f0 = dm(i4, 0);
-    dm(_osc_freq_C1_TEST_OSC) = f0;
+    /* leaving the chirp: force a redesign, which restarts the
+     * resonator from its known phase */
+    r0 = 0;
+    dm(_osc_ch_live_C1_TEST_OSC) = r0;
+    r1 = 0x00000000;   /* 0.0 */
+    dm(_osc_fseen_C1_TEST_OSC) = f1;
     jump (pc, .osc_design_C1_TEST_OSC);
-.osc_sweep_done_C1_TEST_OSC:
-    r5 = 0;
-    dm(_osc_sweep_on_C1_TEST_OSC) = r5;
+
+.osc_chirp_C1_TEST_OSC:
+    r0 = dm(_osc_ch_live_C1_TEST_OSC);
+    r0 = pass r0;
+    if ne jump (pc, .osc_ch_run_C1_TEST_OSC);
+    /* entering: a period starts on this block, and the fit reference
+     * is zeroed so TEST_MEAS reads RMS only (no tone to fit) */
+    r0 = 1;
+    dm(_osc_ch_live_C1_TEST_OSC) = r0;
+    r0 = 0;
+    dm(_osc_ch_n_C1_TEST_OSC) = r0;
+    i4 = _osc_blk_sc_C1_TEST_OSC;
+    l4 = 0;
+    lcntr = 2 * DSP4_BLOCK_SIZE, do .osc_ch_clr_lp_C1_TEST_OSC until lce;
+.osc_ch_clr_lp_C1_TEST_OSC:
+        dm(i4, 1) = r0;
+.osc_ch_run_C1_TEST_OSC:
+    r0 = dm(_osc_ch_n_C1_TEST_OSC);
+    r0 = pass r0;
+    if ne jump (pc, .osc_ch_gen_C1_TEST_OSC);
+    /* ---- A PERIOD BOUNDARY: latch the length, reset phase and
+     * increment. Every period is the same sequence of operations from
+     * the same state, so every period is the same samples. */
+    r1 = dm(_osc_sweep_step_C1_TEST_OSC);
+    r2 = 255;
+    comp(r1, r2);
+    if gt r1 = pass r2;
+    r2 = 0;
+    r3 = 16;
+    comp(r1, r2);
+    if le r1 = pass r3;
+    i4 = _osc_ch_rtab_C1_TEST_OSC;
+    l4 = 0;
+    m4 = r1;
+    modify(i4, m4);
+    f2 = dm(i4, 0);
+    dm(_osc_ch_r_C1_TEST_OSC) = f2;
+    r1 = lshift r1 by 10;
+    dm(_osc_ch_len_C1_TEST_OSC) = r1;
+    r2 = 0x00000000;   /* 0.0 */
+    dm(_osc_ch_p_C1_TEST_OSC) = f2;
+    r2 = 0x39DA740E;   /* f_lo/fs, cycles/sample */
+    dm(_osc_ch_w_C1_TEST_OSC) = f2;
+.osc_ch_gen_C1_TEST_OSC:
+    dm(_osc_ch_pos_C1_TEST_OSC) = r0;
+    f8 = dm(_osc_ch_p_C1_TEST_OSC);
+    f9 = dm(_osc_ch_w_C1_TEST_OSC);
+    f10 = dm(_osc_ch_r_C1_TEST_OSC);
+    f11 = dm(_osc_level_C1_TEST_OSC);
+    r12 = 0x4D800000;                   /* 2^28 */
+    f11 = f11 * f12;                    /* peak amplitude, Q4.28 */
+    r12 = 0x3F800000;   /* 1.0 */
+    r13 = 0x3F000000;   /* 0.5 */
+    r14 = 0x3E800000;   /* 0.25 */
+    r15 = 0x40C90FDB;   /* 2*pi */
+    i5 = _osc_blk_q_C1_TEST_OSC;
+    l5 = 0;
+    /* sin(2*pi*p) by folding p into the first quarter cycle and the
+     * resonator design's own degree-13 Taylor, so the sweep's
+     * waveform error is the same 3.5e-8 as the tone coefficient. */
+    lcntr = DSP4_BLOCK_SIZE, do .osc_ch_lp_C1_TEST_OSC until lce;
+        f0 = pass f8;
+        f7 = pass f11;
+        comp(f0, f13);
+        if lt jump (pc, .osc_ch_q1_C1_TEST_OSC);
+        f0 = f0 - f13;
+        f7 = -f11;
+.osc_ch_q1_C1_TEST_OSC:
+        comp(f0, f14);
+        if le jump (pc, .osc_ch_q2_C1_TEST_OSC);
+        f0 = f13 - f0;
+.osc_ch_q2_C1_TEST_OSC:
+        f0 = f0 * f15;                  /* theta in [0, pi/2] */
+        f1 = f0 * f0;
+        r2 = 0xB2D7322B;   /* -1/39916800 */
+        f2 = f2 * f1;
+        r3 = 0x3638EF1D;   /* 1/362880 */
+        f2 = f2 + f3;
+        f2 = f2 * f1;
+        r3 = 0xB9500D01;   /* -1/5040 */
+        f2 = f2 + f3;
+        f2 = f2 * f1;
+        r3 = 0x3C088889;   /* 1/120 */
+        f2 = f2 + f3;
+        f2 = f2 * f1;
+        r3 = 0xBE2AAAAB;   /* -1/6 */
+        f2 = f2 + f3;
+        f2 = f2 * f1;
+        f2 = f2 + f12;
+        f0 = f0 * f2;                   /* sin(theta) */
+        f0 = f0 * f7;
+        r0 = fix f0;
+        dm(i5, 1) = r0;
+        f8 = f8 + f9;                   /* phase += w */
+        comp(f8, f12);
+        if ge f8 = f8 - f12;
+.osc_ch_lp_C1_TEST_OSC:
+        f9 = f9 * f10;                  /* w *= r: exponential */
+    dm(_osc_ch_p_C1_TEST_OSC) = f8;
+    dm(_osc_ch_w_C1_TEST_OSC) = f9;
+    r0 = dm(_osc_ch_pos_C1_TEST_OSC);
+    r1 = DSP4_BLOCK_SIZE;
+    r0 = r0 + r1;
+    r1 = dm(_osc_ch_len_C1_TEST_OSC);
+    r2 = 0;
+    comp(r0, r1);
+    if ge r0 = pass r2;
+    dm(_osc_ch_n_C1_TEST_OSC) = r0;
+    rts;
 
     /* ---- THE COEFFICIENT, and only when the frequency word moved.
      * The host writes Hz; k = 2*sin(pi*f/fs) is derived here, so the

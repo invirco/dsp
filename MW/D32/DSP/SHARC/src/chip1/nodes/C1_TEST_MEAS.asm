@@ -95,6 +95,8 @@
 .global _meas_cap_idx_C1_TEST_MEAS;
 .var _meas_cap_idx_C1_TEST_MEAS  = 0;     /* samples copied this run */
 .extern _osc_blk_sc_C1_TEST_OSC;
+.extern _osc_ch_live_C1_TEST_OSC;
+.extern _osc_ch_pos_C1_TEST_OSC;
 
 .section/dm seg_delay;
 .global _meas_cap_buf_C1_TEST_MEAS;
@@ -192,6 +194,18 @@ _test_meas_tap:
     r6 = dm(_meas_cap_idx_C1_TEST_MEAS);
     r6 = pass r6;
     if ne jump (pc, .tmt_cap_go_C1_TEST_MEAS);
+    /* A NEW RUN, and with the chirp running it starts only on the
+     * pass that injects the first block of a period (S60), so sample
+     * 0 of the capture is sample 0 of the sweep and the impulse the
+     * host deconvolves out of it sits at the path latency. Waiting
+     * costs at most one period and three instructions a pass. */
+    r7 = dm(_osc_ch_live_C1_TEST_OSC);
+    r7 = pass r7;
+    if eq jump (pc, .tmt_cap_new_C1_TEST_MEAS);
+    r7 = dm(_osc_ch_pos_C1_TEST_OSC);
+    r7 = pass r7;
+    if ne jump (pc, .tmt_nocap_C1_TEST_MEAS);
+.tmt_cap_new_C1_TEST_MEAS:
     dm(_meas_cap_ready_C1_TEST_MEAS) = r6;   /* a new run: Ready = 0 */
 .tmt_cap_go_C1_TEST_MEAS:
     i4 = r5;

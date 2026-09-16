@@ -6853,8 +6853,8 @@
     _osc_freq_C1_TEST_OSC,    /* 0x1370: C1_TEST_OSC frequency, Hz */
     _osc_level_C1_TEST_OSC,    /* 0x1371: C1_TEST_OSC level, linear amplitude */
     _osc_chan_C1_TEST_OSC,    /* 0x1372: C1_TEST_OSC target channel */
-    _osc_sweep_on_C1_TEST_OSC,    /* 0x1373: C1_TEST_OSC sweep arm */
-    _osc_sweep_step_C1_TEST_OSC,    /* 0x1374: C1_TEST_OSC sweep step, codes */
+    _osc_sweep_on_C1_TEST_OSC,    /* 0x1373: C1_TEST_OSC chirp on (S60 periodic log sweep) */
+    _osc_sweep_step_C1_TEST_OSC,    /* 0x1374: C1_TEST_OSC chirp period, x1024 samples (0 = 16) */
     _meas_cap_arm_C1_TEST_MEAS,    /* 0x1375: C1_TEST_MEAS capture arm, samples */
     _meas_cap_ready_C1_TEST_MEAS,    /* 0x1376: C1_TEST_MEAS capture ready, samples */
     0;  /* 0x1377 */
@@ -11853,8 +11853,8 @@
     0,  /* 0x1370: C1_TEST_OSC frequency, Hz */
     0,  /* 0x1371: C1_TEST_OSC level, linear amplitude */
     0,  /* 0x1372: C1_TEST_OSC target channel */
-    0,  /* 0x1373: C1_TEST_OSC sweep arm */
-    0,  /* 0x1374: C1_TEST_OSC sweep step, codes */
+    0,  /* 0x1373: C1_TEST_OSC chirp on (S60 periodic log sweep) */
+    0,  /* 0x1374: C1_TEST_OSC chirp period, x1024 samples (0 = 16) */
     0,  /* 0x1375: C1_TEST_MEAS capture arm, samples */
     0,  /* 0x1376: C1_TEST_MEAS capture ready, samples */
     0;  /* 0x1377 */
@@ -16860,8 +16860,8 @@
     0,  /* 0x1370: C1_TEST_OSC frequency, Hz */
     0,  /* 0x1371: C1_TEST_OSC level, linear amplitude */
     0,  /* 0x1372: C1_TEST_OSC target channel */
-    0,  /* 0x1373: C1_TEST_OSC sweep arm */
-    0,  /* 0x1374: C1_TEST_OSC sweep step, codes */
+    0,  /* 0x1373: C1_TEST_OSC chirp on (S60 periodic log sweep) */
+    0,  /* 0x1374: C1_TEST_OSC chirp period, x1024 samples (0 = 16) */
     0,  /* 0x1375: C1_TEST_MEAS capture arm, samples */
     0,  /* 0x1376: C1_TEST_MEAS capture ready, samples */
     0;  /* 0x1377 */
@@ -21865,8 +21865,8 @@
     0,  /* 0x1370: C1_TEST_OSC frequency, Hz */
     0,  /* 0x1371: C1_TEST_OSC level, linear amplitude */
     0,  /* 0x1372: C1_TEST_OSC target channel */
-    0,  /* 0x1373: C1_TEST_OSC sweep arm */
-    0,  /* 0x1374: C1_TEST_OSC sweep step, codes */
+    0,  /* 0x1373: C1_TEST_OSC chirp on (S60 periodic log sweep) */
+    0,  /* 0x1374: C1_TEST_OSC chirp period, x1024 samples (0 = 16) */
     0,  /* 0x1375: C1_TEST_MEAS capture arm, samples */
     0,  /* 0x1376: C1_TEST_MEAS capture ready, samples */
     0;  /* 0x1377 */

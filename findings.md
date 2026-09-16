@@ -6,6 +6,110 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## CHIRPS INSTEAD OF TONES: ONE CAPTURE PER CONDITION, VALIDATED AGAINST THE TONE SET ON MIC 5; 10 kHz CROSSTALK; THE FAST BATTERY IS 2.6 MIN A CHANNEL, 85 % OF IT READOUT (2026-09-16, session 60 — desk + bench, MW-D24-2)
+
+**Pair:** `s60` (`DSP4_TEST_NODES=1`, no tap; chip1 `fe522a7f…`, chip2 `c56ed0ab…` = the s56/s51 chip 2 byte for byte), staged at `~/s60`,
+booted and configured D24 twice (`boot.sh`, BOOT OK, CHIP_ID 1/2). It is s56 plus the chirp. The build recipe reproduced s56's chip 1
+(`314ce05f`) before the change. The shipping build (`TEST_NODES=0`) is still 451,892 B / 307,980 B. **Loop:** TEST_OSC on donor strip 6 →
+AUX 1 → J45 → cable → J25 → MIC 5 → U39 → strip 5 (S58 patch, read on the part). MIC 5's register alone open (send p15, spidev,
+every image verified). AN_EN `op pd | hi` before, during and after, never written. Data: `MW/D24/DSP/s60/data/` (captures + jsonl +
+`analyse_final.out`, `results_s3.json`). Tools: `MW/D24/DSP/s60/tools/`.
+
+**S60-1. TEST_OSC has a periodic log-sweep mode on the two existing Sweep cells, and every period is the same 16,384 samples.**
+*Cells (no new cells, no address moves):* `Test[1-1]SweepOn[1-1]` (4979) = 1 runs the chirp on OscChan at OscLevel (peak, linear) with
+OscOn 1. `Test[1-1]SweepStep[1-1]` (4980) = the period in units of 1,024 samples; 0 = 16 = 16,384 samples = 341 ms, one capture.
+OscFreq is ignored while the chirp runs. The S49 stepped sweep that used these words is retired: S49 recorded that the link cannot
+follow it, and no tool used it. The description text is proposed in `proposals/CONTRACT-PROPOSAL-S60.md` (descriptions only).
+*Method (generator `tools/dsp/dsp_codegen.py::gen_test_osc`):* phase `p` in cycles, `sin(2πp)` by folding into the first quarter cycle
+and the resonator design's own degree-13 Taylor. The increment starts at 20/48000 and is multiplied every sample by
+`r = 1000^(1/L)`, taken from a 256-entry table the generator emits from the OscFreq law's endpoints. Phase and increment reset at each
+period boundary. The capture arm (`gen_test_meas`) now starts a run only on the pass that injects a period's first block (three
+instructions, only while the chirp is live), so capture sample 0 is sweep sample 0. TEST_MEAS's fit reference is zeroed during a chirp.
+*Measured on the part (digital, strip 6 post-fader, −20 dBFS):* two captures 13 s apart are **identical in 16,384 of 16,384 words**,
+0 overruns. **Cost +732 / +791 cycles per chip-1 pass** against the tone, interleaved exact TCOUNT (medians 214,488 vs 213,756, and
+214,856 vs 214,065), **0.24 % of 327,680**, +0 overruns. **Two things that did not work, both recorded:** (a) the ratio table
+first went into `seg_delay` (L2, beside the capture buffer) and read back 0.0 on the part, so the sweep froze after one sample:
+**`seg_delay` is not loaded with `.var` initial values**. The table now lives in L1 DM, a net +128 words since the stepped sweep's
+128-entry frequency table is gone. (b) A float64 host model of the kernel drifts from the part along the sweep (−67 dB error in the
+first eighth, worse than the signal by the last eighth, about 4 samples late at 20 kHz). The part keeps 40-bit registers inside a block
+and 32-bit state between blocks, and no simple float32/rounding emulation reproduced it. **So the "known sweep" is a capture of the
+donor strip's post-fader block** (`ref_strip6_m20.json`), which is bit-exact because the sweep is periodic. It is taken once and scaled
+by OscLevel. Against that reference the digital path deconvolves to latency 0, gain −0.003 dB, flat.
+
+**S60-2. `dsp4_fft.py --chirp` (new `tools/pi/dsp4_chirp.py`), validated on MIC 5 against the tone set: every criterion met.**
+*Analysis:* `R = Y·X*/(|X|²+ε)` over one period, which is Farina's inverse filter in the frequency domain and exact for a periodic
+excitation. Impulse `h` = band-limited inverse. **Latency** is reported three ways: the phase-slope fit over 1–2 kHz (S54's T8
+definition), over 1–10 kHz, and the interpolated impulse peak. **Polarity** is the sign at the peak. **Response** is |R| as a power
+mean over a 1/48-octave band around each point (two-bin interpolation below ~140 Hz), re 1 kHz. **THD 2..5**: harmonic k's impulse
+sits L·ln k/ln 1000 earlier; it is windowed from a 500 Hz high-passed `h` (without the high-pass, the 20 Hz band edge's ringing set a
+−61 dB floor) and read at k·1 kHz. **SNR** comes from two captures ((y1−y2)/√2). Selftest (synthetic delay 91.4, inverted, gain,
+x²/x³ terms): latency ±0.001 samples, response ±0.005 dB, h2/h3 ±0.03 dB, PASS. Runtime **1.2 s per capture on the CM4, stdlib**.
+*Chirp level:* lane −10 dBFS peak at every code (osc = −10 − G_T1). Codes 0–32 come from the 3 s-settled run and code 63 from
+the level-first run (S60-3):
+
+| code | gain 1 kHz dB | − T1 | latency 1–2 k / 1–10 k / peak, samples | polarity | 20 Hz re 1 k | 20 kHz re 1 k | THD 2..5 @ lane −10 pk | SNR @ 20 Hz |
+|---:|---:|---:|---|---|---:|---:|---:|---:|
+| 0 | +5.578 | +0.000 | 91.398 / 91.618 / 92.084 | inverted | −0.418 | −0.117 | −97.8 dB = 0.0013 % | 97.4 dB |
+| 1 | +18.423 | +0.000 | 91.409 / 91.629 / 92.094 | inverted | −0.420 | −0.119 | −93.9 dB = 0.0020 % | 83.6 dB |
+| 2 | +25.041 | −0.000 | 91.411 / 91.630 / 92.096 | inverted | −0.422 | −0.118 | −83.6 dB = 0.0066 % | 78.9 dB |
+| 4 | +32.474 | −0.001 | 91.413 / 91.631 / 92.097 | inverted | −0.433 | −0.117 | −74.0 dB = 0.020 % | 72.5 dB |
+| 8 | +39.930 | +0.003 | 91.417 / 91.632 / 92.097 | inverted | −0.473 | −0.120 | −67.0 dB = 0.045 % | 64.4 dB |
+| 16 | +47.168 | −0.001 | 91.424 / 91.634 / 92.097 | inverted | −0.606 | −0.124 | −58.8 dB = 0.115 % | 63.5 dB |
+| 32 | +53.749 | +0.005 | 91.437 / 91.637 / 92.099 | inverted | −1.086 | −0.103 | −57.4 dB = 0.135 % | 50.3 dB |
+| 63 | +58.718 | +0.001 | 91.461 / 91.641 / 92.099 | inverted | −2.123 | −0.108 | −48.3 dB = 0.385 % | 50.3 dB |
+
+**Gain law at the eight factory codes: within 0.005 dB of T1** (criterion 0.05). **Response vs the S54 tone points** (chirp − tone,
+dB, at 20 / 50 / 100 / 1 k / 10 k / 20 k Hz): **code 0** −0.004 / +0.001 / −0.000 / 0 / −0.001 / −0.000. **Code 63** −0.063 / −0.058 /
++0.015 / 0 / +0.016 / +0.005. Every point is within 0.1 dB (criterion). **Latency 91.398–91.461 samples on the 1–2 kHz fit**, within
+91.4 ± 0.1 at every code, rising 0.06 samples from code 0 to 63 (the LF corner moves with gain, S54-4). The path's group delay is not
+constant with frequency: 1–10 kHz reads 91.62–91.64, and S54's own 1–10 kHz tone fit read 91.596. The impulse peak is 92.08–92.10.
+Quote the 1–2 kHz figure as T8. **Polarity inverted at every code.** **SNR at 20 Hz for this level: 97.4 dB at code 0, 50.3 dB at
+code 63.** At code 63 the limit is the loop's source, not the method: AUX 1's output noise × 58.7 dB puts the lane at −52.4 dBFS
+(20 Hz–20 kHz, tone off, `ein_s3_c63_loopsrc`). With a single-bin readout that scattered 10–20 kHz by up to 0.2 dB, and the
+1/48-octave band readout fixes it. A 150 Ω or factory source would lift the code-63 SNR by about 35 dB. The THD column is the check
+figure the dispatch asked for, at the chirp's instantaneous lane level. It rises with gain as the tone T3 does, and at codes ≥ 16 it is
+noise-limited. THD+N tone captures (FFT method, 1 kHz, lane −3 dBFS pk): **code 0 −89.02 dB = 0.0035 %** (THD 2..10 −89.59 dB),
+**code 63 −47.23 dB = 0.435 %** (THD −60.92 dB; S54 −47.05 dB = 0.444 %).
+
+**S60-3. Change the stimulus level BEFORE the gain code, or the preamp's coupling caps pump a DC offset into the next capture.**
+In the first two runs, code 63 was switched in while the code-0 stimulus (osc −15.58 dBFS chirp; −8.58 dBFS tone) still played, i.e.
+the preamp was driven about 40 dB into clipping for the settle time. The next capture carried a decaying offset: +0.05 FS at sample 0,
+τ ≈ 0.3 s (+0.3 FS on the THD+N tone capture), still there after a 3 s settle, because the recovery starts only when the level drops.
+The damage is at 50 and 100 Hz (chirp − tone +0.14 / −0.13 dB) and in the capture-to-capture difference (−16 dB re signal). **Level
+first, then code, then 1 s settle:** no offset, and capture 1 equals capture 2 to the noise (−37.5 dB re signal = the loop source
+noise). Ascending codes 1 → 32 were never affected, since the previous level leaves the lane at −2.5…−3.4 dBFS peak at the next code.
+`s60_loop.py` now orders it that way. Any battery or harness must too.
+
+**S60-4. T7 at 10 kHz, and the fast battery's timing.**
+*T7 (supersedes the 1 kHz figures of S54/S55):* S54's coherent method at 10 kHz, MIC 5 register alone at code 2 (as S54), loop gain
++25.101 dB, osc −31.10 dBFS, MIC 5 strip coherent peak −6.00 dBFS. Each of the other 22 strips was brought to unity in turn and put
+back. **Worst neighbour: strip 17 = J26 (MIC 17, same converter U39) at −133.06 dB.** Next are strips 11 (J39) −136.40 and 22 (J38)
+−136.44. The control on strip 17 (reference running, OscChan 0) reads **−144.18 dB**, so strip 17 sits 11 dB above the detector's floor
+and the rest within 0–9 dB of it. 22 strips took 24 s. The 1 kHz worst in S54 was −131.37 dB.
+*Fast battery, measured per channel* (link times on this bench; a 16,384-word read took 12.3 s in most runs and 15.2–16.4 s in some,
+with no change on the part):
+
+| step | count | each, s | total, s |
+|---|---:|---|---:|
+| chirp: osc words 0.05 + chain 0.17 + settle 1.0 + 1.2 periods 0.41 + arm/fill ≤ 0.7 + read 12.3 | 8 | 14.4 (18.5 slow read) | 115 (148) |
+| THD+N tone capture: osc 0.05 + chain 0.17 + settle 1.0 + fill 0.4 + read 12.3 | 2 | 14.0 | 28 |
+| EIN capture (tone off, code 63) | 1 | 14.3 | 14 |
+| analysis (CM4 stdlib 1.2 s; desk numpy ≈ 0.1 s) | 11 | 1.2 | 13 |
+| **per channel** | | | **≈ 170 s = 2.8 min (≈ 3.4 min with slow reads); on-desk analysis 2.6 min** |
+
+**85 % of that is readout**: 11 × 12.3 s. The diag link answers one transaction per audio block, and a peek is two, about 1,330
+words/s. A bulk read of the capture buffer would bring the channel to about 30 s.
+*Read-all-lanes (harness: every register at the same code, all 24 lanes driven):* measured per lane, strip up 0.20 s + capture
+13.6–17.5 s + restore 0.19 s ≈ 14 s, so **24 lanes × 8 codes = 45 min**, plus 72 THD+N/EIN captures ≈ 17 min, **≈ 62 min a unit**.
+The meter instead (strip up + one TEST_MEAS window 0.23 s + restore) is 0.62 s a lane, 15 s a code, **2 min for 8 codes**. That gives
+the 1 kHz coherent gain only, not the response. With a bulk capture read the chirp harness would be about 24 × 8 × 1.5 s ≈ 5 min.
+
+**Hand-back (15:51 BST):** the `s60` pair is left running (a superset of s56: the same chip 2, and chip 1 = s56 + the chirp). Read back
+through `s60_found.py handback` against `s60_found.jsonl` "found": TEST_OSC off (1 kHz, 0.1, OscChan 6), SweepOn 0, SweepStep 1,
+MeasChan 5, CaptureArm 0. Strip 6 off AUX 1 (AuxSend 1.0 as found), CompOn/MainOn 0. Strips 5, 6 and 20 unmuted, the rest muted.
+S58 input patch on the part. MIC 5 at code 0, phantom off. AN_EN `op pd | hi`, CS_M `op pu | hi`, neither written. matrix-app
+inactive as found. Loop cable still on J25. `~/dspboot` and `~/s56` untouched.
+
 ## THE INPUT PATCH BECOMES GENERATED: defs .5 CONSUMED, `gen_input_patch.py` LANDS, THE HAND-TYPED TABLE RETIRED (2026-09-16, session 59 — desk, no unit)
 
 **Consumed:** `defs-v2026.09.16.3/.4/.5` in one jump from the pinned `.2` (mic-gain-law table, `Test[1-1]CaptureArm/CaptureReady`,

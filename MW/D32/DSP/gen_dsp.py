@@ -1132,11 +1132,11 @@ def expand_test_osc(node, cat, inst):
     add_dispatch(chip, base + 3, f'_osc_chan_{nid}', f'{nid} target channel')
 
     add_cell(cn(cat, inst, 'SweepOn', 1), chip, pg, base + 4, ramp_profile='InstantCtl')
-    add_dispatch(chip, base + 4, f'_osc_sweep_on_{nid}', f'{nid} sweep arm')
+    add_dispatch(chip, base + 4, f'_osc_sweep_on_{nid}', f'{nid} chirp on (S60 periodic log sweep)')
 
     add_cell(cn(cat, inst, 'SweepStep', 1), chip, pg, base + 5, ramp_profile='InstantCtl')
     add_dispatch(chip, base + 5, f'_osc_sweep_step_{nid}',
-                 f'{nid} sweep step, codes')
+                 f'{nid} chirp period, x1024 samples (0 = 16)')
 
     # THE CAPTURE ARM (S56, LANDED defs-v2026.09.16.4): the two reserved
     # words carry TEST_MEAS's capture pair, so it adds no address and moves

@@ -116,9 +116,11 @@ def main():
     ap.add_argument('--off', action='store_true',
                     help='oscillator OFF: NoiseResult is then the strip\'s '
                          'own floor in dBFS and ThdResult reads 0.00 dB')
-    ap.add_argument('--sweep', type=int, default=0, metavar='STEP',
-                    help='arm SweepOn with SweepStep=STEP codes and follow '
-                         'the frequency across windows instead of holding it')
+    ap.add_argument('--sweep', type=int, default=0, metavar='STEPS',
+                    help='S60: run the periodic 20 Hz-20 kHz log CHIRP '
+                         '(SweepOn 1) with a period of STEPS x 1024 samples '
+                         '(16 = one 16,384 capture). The windows then read '
+                         'RMS only; analyse with dsp4_fft.py --chirp')
     ap.add_argument('--symdir', default='/home/app/s49')
     ap.add_argument('--json', default=None, help='write the results here too')
     a = ap.parse_args(_ARGV)
@@ -179,12 +181,8 @@ def main():
     w(A_OSCON, 0 if a.off else 1, 'OscOn')
     w(A_MEASCHAN, meas, 'MeasChan')
     if a.sweep:
-        # THE SWEEP IS DSP-PACED, NOT HOST-PACED. TEST_OSC steps the
-        # frequency on the window serial the measurement node publishes, so
-        # a step and the window that scored the previous frequency can never
-        # be off by one however slowly the host polls. SweepStep is in CODES
-        # of the cell's own 128-position Log law, so a step of 16 walks
-        # 20 Hz -> 20 kHz in eight.
+        # S60: SweepOn runs the periodic log chirp (the S49 stepped sweep
+        # is retired); SweepStep is its period in units of 1,024 samples.
         w(A_SWEEPSTEP, a.sweep, 'SweepStep')
         w(A_SWEEPON, 1, 'SweepOn')
 
@@ -214,13 +212,13 @@ def main():
         nse = from_f32(sc.rd(A_NOISE))
         xtk = from_f32(sc.rd(A_XTALK))
         s2 = sc.rd(A_SEQ)
-        fhz = from_f32(sc.rd(A_OSCFREQ)) if a.sweep else a.freq
+        fhz = a.freq
         rows.append({'seq': s_, 'freq_hz': fhz, 'rms_dbfs': rms,
                      'thd_db': thd, 'noise_dbfs': nse, 'xtalk_db': xtk,
                      'torn': s2 != s_})
         print('    seq %6d %s  RMS %8.2f dBFS   THD+N %8.2f dB = %s   '
               'noise %8.2f dBFS   xtalk %8.2f dB%s'
-              % (s_, ('%9.2f Hz' % fhz) if a.sweep else '',
+              % (s_, '(chirp)' if a.sweep else '',
                  rms, thd, pct(thd), nse, xtk,
                  '   (TORN)' if s2 != s_ else ''))
 
