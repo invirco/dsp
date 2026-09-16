@@ -1,3 +1,20 @@
+## HUB DISPATCH 2026-09-16 09:24Z — S56 — zero-cost capture arm for TEST_MEAS on chip 1; the 0.98 FS ceiling   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+S56 — DESK + DIGITAL LOOP ONLY: A ZERO-COST CAPTURE ARM FOR TEST_MEAS ON CHIP 1 (the FFT's legitimate source, S54-7), AND THE 0.98 FS SATURATION QUESTION (S54-5). The unit's analog side is NOT yours: AN_EN stays high, the 595 chain is not written (MIC 5 sits at code 0 with PW's 150 Ω shunt on J25), the 1 kHz −20 dBFS sine on strip 6 → AUX 1 may be replaced by whatever your digital-loop proof needs but must be restored at the end (PW reads J45 volts against it). No SCOPE_BLK_TAP build anywhere (PW: removed from the spec).
+
+GATES:
+1. CAPTURE ARM: extend TEST_MEAS (the S49 node) with a capture mode that copies N consecutive samples (N = 4096, then 16384 if the budget allows) of MeasChan's post-fader signal into a chip-1 buffer the CM4 reads over SPI — no chip-2 involvement, no block-kernel interruption. Cost stated as measured (chip-1 cycles, words, overruns = 0 on the D24 shipping configuration under the driven instrument); a `CaptureArm`/`CaptureReady` pair of cells proposed the S44 way (contract proposal, addresses proposed not typed); `dsp4_fft.py` reads the buffer directly. Prove through the DIGITAL loop: TEST_OSC 1 kHz −20 dBFS on a strip, capture it, FFT: fundamental, THD+N and noise in dB AND % (THD) must agree with ThdResult/NoiseResult on the same signal within 0.5 dB; then a 20 Hz sine to show the buffer length covers ≥ 3 cycles.
+2. THE 0.98 FS CEILING: S54-5 found the lane's peak meter never exceeds 0.979 FS (−0.18 dBFS) however hard the loop is driven, with THD+N passing 1 % between −1 and −0.5 dBFS. From the source and the part: is that the DSP (the gain-stage block's saturation, a coefficient, the Q4.28 → PCM path), the ADC's own full scale vs the driver's swing (AK5558 datasheet FS input, the driver's supply from the netlist — the hub can supply netlist facts on request), or the DAC side (the loop's output stage clipping before the ADC)? Discriminate with the DIGITAL loop where you can (drive a digital-only path to FS and read the same meter) and state what remains an analog question for PW's scope.
+3. findings S56-1..2, tasks.md (this block; NEXT), commit + push, clean; unit restored as found (sine −20 dBFS 1 kHz on AUX 1, MeasChan 20).
+
+Bounded: ≈ 2 h.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-16 08:40Z — S54 — the standard audio test set T1–T8, first run, on the MIC 5 → AUX 1 loop (no tap build)   [status: 🟢 done — CLOSED. Loop phase (s51_119ea9d9, no tap, TEST_MEAS only): T1 64 codes +5.58→+58.72 dB, monotonic, linear-additive six-stage law within 0.061 dB, first-cut trim table; T2 flat ±0.12 dB above 100 Hz, 20 Hz −0.41/−0.60/−2.06 dB at codes 0/16/63 (FLAG); T3 best −92.80 dB = 0.00229 %, at −3 dBFS −88.76 dB = 0.00365 % (code 0) / −47.05 dB = 0.444 % (code 63, noise-limited), no sample at FS; T5 loop inverted; T6 mute bit only 20 dB (FLAG); T7 < −131 dB; T8 91.40 samples. Donor strip 6 left CompOn 0/MainOn 0 (chip-2 MAIN overruns above osc −18.5 dBFS, S54-2). 150 Ω phase: EIN code 63 −146.69 dBFS-eq (quiet −150.71) vs loop reference −110.42; intermittent bursts at code 63 (FLAG); no dBu yet (needs J45 volts at DAC FS). Findings S54-1..7 + S54-3b. Unit left: AN_EN hi, MIC 5 alone code 0, 1 kHz −20 dBFS on strip 6 → AUX 1, 150 Ω on J25.]   [model: opus]
 
 model: opus
