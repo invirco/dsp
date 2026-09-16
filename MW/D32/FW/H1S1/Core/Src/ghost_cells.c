@@ -8,7 +8,7 @@
  */
 #include "ghost_cells.h"
 
-const CellDef ghost_cells[5823] = {
+const CellDef ghost_cells[5825] = {
     { "Aux001AntiFbCtrlOn001", 2, 2, 60, "", 0, 0, 0, 0 },
     { "Aux001AntiFbNotchFreq001", 2, 2, 61, "0=40/127=12000/[Log]", 0, 0, 0, 0 },
     { "Aux001AntiFbNotchFreq002", 2, 2, 62, "0=40/127=12000/[Log]", 0, 0, 0, 0 },
@@ -5817,6 +5817,8 @@ const CellDef ghost_cells[5823] = {
     { "Talk002Gain001", 1, 1, 4741, "0=0/127=40/[Lin]", 1, 9, 24, 0 },
     { "Talk002Hpf001", 1, 1, 4742, "", 0, 0, 0, 0 },
     { "Talk002On001", 1, 1, 4740, "", 0, 0, 0, 0 },
+    { "Test001CaptureArm001", 1, 1, 4981, "", 0, 0, 0, 0 },
+    { "Test001CaptureReady001", 1, 1, 4982, "", 0, 0, 0, 0 },
     { "Test001MeasChan001", 1, 1, 4967, "", 0, 0, 0, 0 },
     { "Test001NoiseResult001", 1, 1, 4970, "", 0, 0, 0, 0 },
     { "Test001OscChan001", 1, 1, 4978, "", 0, 0, 0, 0 },

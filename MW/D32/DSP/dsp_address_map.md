@@ -4062,8 +4062,10 @@
 | 4978 | 0x1372 | `Test001OscChan001` |  | InstantCtl |
 | 4979 | 0x1373 | `Test001SweepOn001` |  | InstantCtl |
 | 4980 | 0x1374 | `Test001SweepStep001` |  | InstantCtl |
+| 4981 | 0x1375 | `Test001CaptureArm001` |  | InstantCtl |
+| 4982 | 0x1376 | `Test001CaptureReady001` |  |  |
 
-**Total Chip 1 cells:** 4056
+**Total Chip 1 cells:** 4058
 
 ## Chip 2
 

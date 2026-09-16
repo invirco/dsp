@@ -69,8 +69,11 @@ index k−1; packed RX `i` = 8 × AD + slot):
 The per-XLR rows (panel name, 595 chain index and send position, converter,
 AIN, slot, packed RX, strip) are `tools/pi/d24_inputs.py`, which computes the
 strip from `dsp4_config.D24_INPUT_PATCH` and asserts every XLR lands on its
-panel strip; `proposals/CONTRACT-PROPOSAL-S58.md` proposes the table as a defs
-declaration that generates the patch.
+panel strip. **GENERATED, not typed, since S59**: the table lives at
+`defs/products/d24/inputs.csv` (`CONTRACT-PROPOSAL-S58.md`, landed
+`defs-v2026.09.16.5`), `tools/dsp/gen_input_patch.py` turns it into
+`MW/D24/DSP/input_patch.json`, and `D24_INPUT_PATCH` is loaded from that file
+at import (the hand-typed literal is retired).
 
 D24 also boots CHAN_MASK = 0x00FFFFFF (strips 25-32 unused unless NET
 sources are patched in).

@@ -2,10 +2,18 @@ provenance: AI-drafted 2026-09-16 — prose may carry a statistical watermark; r
 
 # Contract proposal S58 — `products/d24/inputs.csv`: the mic XLR ↔ converter slot ↔ strip declaration that generates the input patch
 
-**Status: PROPOSED, not landed.** Nothing in `defs/` is written by this repo. What S58 DID land is the bug fix the hub
-ruled (the hand-typed `D24_INPUT_PATCH` replaced by the netlist order, `tools/pi/dsp4_config.py`), proven on the
-part (`findings.md` S58-1..3, data `MW/D24/DSP/s58/`). This proposal moves the fact that patch encodes into defs so
-the patch is generated, not typed.
+**Status: LANDED, `defs-v2026.09.16.5`** (consumed by this repo at S59). `defs/products/d24/inputs.csv`
+is in defs, byte-identical to the copy proposed here (minus this file's header comments); schema
+`defs/common/schema/inputs.md`. The generator side (§4) landed alongside it: `tools/dsp/gen_input_patch.py`
+(new, shared by all products) reads `defs/products/<p>/inputs.csv` and emits `MW/<P>/DSP/input_patch.json`;
+`tools/pi/dsp4_config.py`'s hand-typed `D24_INPUT_PATCH` is now loaded from that file (the literal list is
+deleted); `tools/pi/d24_inputs.py`'s public API is unchanged. GATE MET: the generated D24 patch equals the
+S58-landed array exactly (46 entries) — see `findings.md` S59-1.
+
+Pre-S59 status, for the record: **PROPOSED, not landed.** Nothing in `defs/` is written by this repo. What S58 DID
+land is the bug fix the hub ruled (the hand-typed `D24_INPUT_PATCH` replaced by the netlist order,
+`tools/pi/dsp4_config.py`), proven on the part (`findings.md` S58-1..3, data `MW/D24/DSP/s58/`). This proposal
+moves the fact that patch encodes into defs so the patch is generated, not typed.
 
 ## Contract note (per `release-notes-contract-convention.md`)
 

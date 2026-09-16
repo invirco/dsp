@@ -41,6 +41,12 @@ python3 validate-matrix-contract.py
 
 python3 MW/D32/DSP/gen_dsp.py --force
 
+# THE HOST INPUT PATCH (S59, per CONTRACT-PROPOSAL-S58 §4): generated from
+# defs/products/<p>/inputs.csv, one file per product that has one. A product
+# with none (today: D32, D16, D12) writes nothing -- its host patch stays
+# identity, as it always has.
+python3 tools/dsp/gen_input_patch.py --all
+
 # The regenerate flow verifies its own output (S45-3): every product
 # gen_dsp.py backfills must come out of it carrying the DSP addresses its
 # landed map defines. The matrix is the one artefact the console app loads,

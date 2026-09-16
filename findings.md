@@ -6,6 +6,54 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE INPUT PATCH BECOMES GENERATED: defs .5 CONSUMED, `gen_input_patch.py` LANDS, THE HAND-TYPED TABLE RETIRED (2026-09-16, session 59 — desk, no unit)
+
+**Consumed:** `defs-v2026.09.16.3/.4/.5` in one jump from the pinned `.2` (mic-gain-law table, `Test[1-1]CaptureArm/CaptureReady`,
+`products/d24/inputs.csv`). `./regenerate-dsp-contract.sh --update-lock` then `./check-contract-drift.sh --strict`, clean after
+committing the regenerated artefacts (the script dirties the tree by design; see `[[contract-drift-script-dirties-tree]]`).
+
+**S59-1. D24/D32 gain exactly two cells, `Test001CaptureArm001`/`Test001CaptureReady001` at `4981`/`4982` (`0x1375`/`0x1376`), 0 other
+columns changed, 0 addresses moved.** `validate-matrix-contract.py --update-allowlist` adopted the two new families
+(`TestCaptureArm`/`TestCaptureReady`) intentionally, per the no-fallback policy — this is the CaptureArm/CaptureReady landing the
+matrices were expected to gain, not an unreviewed family. `MW/D32/DSP/gen_dsp.py::expand_test_osc` now calls `add_cell` for both
+(previously dispatch-only, "no cell" — S56's proposal text said the masters didn't name one; `defs-v2026.09.16.4` landed them, so
+the generator now maps them at the same address the dispatch symbol already used). Verified against `defs/products/{d24,d32}/dsp.csv`
+(landed contract copy): `check-proposal OK — the graph reproduces the landed dsp.csv / dsp-unmapped.csv exactly for d32, d24`. D12/D16
+row counts moved by the same +2 (they carry no DSP address, unbackfilled). The rest of the matrix diff (Notes text on every
+`Chan*Gain001` cell, `.3`'s mic-gain-law reference) is the S55 table proposal landing, not S59's own change — noted so the diff isn't
+mistaken for drift.
+
+**S59-2. The D24 input patch is generated, not typed — byte-identical to the S58 landed array.** New `tools/dsp/gen_input_patch.py`
+(shared by all products): reads `defs/products/<p>/inputs.csv`, resolves each row's `rx_cell` to its PACKED RX INDEX the same way
+`dsp_codegen.py::gen_block_io` assigns one — INPUT_TDM nodes off the shared `MW/D32/DSP/SHARC/dsp.csv`, sorted `(sport_id,
+slot_start)`, enumerated — not by re-deriving "8 × AD + slot" (that only happens to hold because every INPUT_TDM node today has
+`slot_count=1`). Validates every row (rx_cell exists and is INPUT_TDM; its graph `(sport_id, slot_start)` matches the row's
+`(sport_id, tdm_slot)`; `tdm_slot == ain-1`; `send_pos == 24-chain_index`; `strip` in range and `strip`/`rx_cell`/`xlr`/`chain_index`
+each unique) and fails loudly on any violation. Emits `MW/<P>/DSP/input_patch.json`. GATE:
+
+```
+$ python3 tools/dsp/gen_input_patch.py --product d24 --check \
+    "3,15,2,14,13,1,12,0,7,19,6,18,17,5,16,4,11,23,10,22,21,9,20,8,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45"
+d24: generated patch matches landed, 46 entries
+```
+
+`tools/pi/dsp4_config.py`'s hand-typed `D24_INPUT_PATCH` (the literal 46-entry array S58 landed) is deleted; the name now loads
+`MW/D24/DSP/input_patch.json` (staged next to the tool on the Pi, like `landed-d24.json`; falls back to the repo-tree path for
+dev/`--dry-run`) and is otherwise unchanged in shape (still a 46-entry tuple of ints at module scope). D32/D16/D12 have no
+`inputs.csv` and get no file — identity, as before (`_load_input_patch` returns `None`, no key added to `PRODUCT_CONFIG`).
+`tools/pi/d24_inputs.py`'s public API (`strip()`, `xlr_on()`, `MIC5_STRIP`, `PRE_S58_PATCH`, `check()`) is unchanged and its
+`check()` still passes; confirmed by import (`MIC5_STRIP = 5`, `strip('J25') = 5`, `xlr_on(5).xlr = 'J25'`). Every file that
+imports `D24_INPUT_PATCH` or `d24_inputs` (`s52lib.py`, `s54lib.py`, `s55_run.py`, `s55_ingest.py`, `s58_prove.py`, `dsp4_s48_scan.py`
+and the rest of the S54/S57 tree) only slices, sorts or `list()`s the value — none mutate it or depend on it being a literal —
+so the tuple-from-JSON is a drop-in. Every S48/S52/S54–S58 tool that touches either module `python3 -m py_compile`s clean; a live
+IMPORT check on most of them stops at a Pi-only path (`/home/app/dspboot/landed-d24.json`, `/home/app/dspboot` itself) that this
+desk cannot reach — a pre-existing constraint of the bench-deployment layout, not something S59 changed.
+
+**Regenerate flow updated:** `regenerate-dsp-contract.sh` and `check-contract-drift.sh` both call
+`tools/dsp/gen_input_patch.py --all` after `gen_dsp.py --force`; `MW/D24/DSP/input_patch.json` joins the strict-mode contract
+file list. `CONTRACT-PROPOSAL-S56` and `CONTRACT-PROPOSAL-S58` marked LANDED with their tags (`defs-v2026.09.16.4` /
+`.5`) in place.
+
 ## THE D24 INPUT PATCH IN NETLIST ORDER: MIC 5 ON STRIP 5, EVERY MEASURED XLR ON ITS PANEL STRIP (2026-09-16, session 58 — desk + bench, MW-D24-2)
 
 **Pair:** `s56`, as S55 handed it back; nothing rebooted or flashed. AN_EN (`op pd | hi`) read at start and end, never written.

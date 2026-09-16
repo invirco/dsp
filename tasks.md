@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-09-16 13:58Z — S59 — consume defs .5, generate the input patch from inputs.csv, retire the hand-typed table   [status: 🟡 dispatched]   [model: sonnet]
+## HUB DISPATCH 2026-09-16 13:58Z — S59 — consume defs .5, generate the input patch from inputs.csv, retire the hand-typed table   [status: 🟢 done — consumed defs .3/.4/.5 in one jump (mic-gain-law table, Test CaptureArm/CaptureReady, products/d24/inputs.csv); regenerate + `check-contract-drift.sh --strict` clean; D24/D32 gain exactly the 2 Test cells (4981/4982, 0x1375/0x1376), 0 other columns, 0 addresses moved (`gen_dsp.py::expand_test_osc` now carries a cell for both). New `tools/dsp/gen_input_patch.py` (shared by all products) reads `defs/products/<p>/inputs.csv`, resolves rx_cell via the block_io (sport_id,slot_start) sort, emits `MW/<P>/DSP/input_patch.json`; D24's generated patch is byte-identical to the S58 landed array (46/46, gate passed). `dsp4_config.D24_INPUT_PATCH` now loads that file, hand-typed literal deleted; `d24_inputs.py` public API unchanged (check() passes); D32/D16/D12 stay identity, no file. S48/S52/S54–S58 tools compile clean; full import blocked by a Pi-only path this desk can't reach (pre-existing). CONTRACT-PROPOSAL-S56/-S58 marked LANDED (defs-v2026.09.16.4/.5). Findings S59-1..2]   [model: sonnet]
 
 model: sonnet
 
@@ -7,6 +7,8 @@ S59 — DESK: THE INPUT PATCH BECOMES GENERATED. Consume defs-v2026.09.16.5 (it 
 Then per CONTRACT-PROPOSAL-S58 §4: `tools/dsp/gen_input_patch.py` reads `defs/products/<p>/inputs.csv`, resolves each rx_cell to its packed RX index via the block_io sort, and emits `MW/<P>/DSP/input_patch.json`; `tools/pi/dsp4_config.py` loads that file and the hand-typed `D24_INPUT_PATCH` is deleted (D32 keeps its current behaviour if no inputs.csv exists — say so). GATE: the generated D24 patch is byte-identical to the S58 landed array (print both); `d24_inputs.py` public API unchanged; the S48/S54–S57 tools still run (import check). Mark CONTRACT-PROPOSAL-S56 and -S58 LANDED with their tags. No unit access needed. findings S59-1..2, tasks.md (NEXT: PW's bench items — MIC 13–16 when powered, T6b shunt timing, polarity placement), commit + push, clean.
 
 Bounded: ≈ 45 min.
+
+NEXT (S59): PW's bench items — MIC 13–16 when powered, T6b shunt timing, polarity placement.
 
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;

@@ -14,7 +14,7 @@
 
 typedef struct { uint16_t mx_addr; uint16_t cell_idx; } MxDspEntry;
 
-static const MxDspEntry mx_dsp_map[5778] = {
+static const MxDspEntry mx_dsp_map[5780] = {
     {     1,    73 },
     {     2,   149 },
     {     3,   225 },
@@ -5789,12 +5789,14 @@ static const MxDspEntry mx_dsp_map[5778] = {
     {  6932,  5818 },
     {  6933,  5819 },
     {  6934,  5820 },
-    {  6935,  5822 },
-    {  6936,  5821 },
-    {  7000,  5742 },
-    {  7001,  5743 }
+    {  6935,  5821 },
+    {  6936,  5822 },
+    {  6937,  5824 },
+    {  6938,  5823 },
+    {  7002,  5742 },
+    {  7003,  5743 }
 };
 
-#define MX_DSP_MAP_COUNT 5778
+#define MX_DSP_MAP_COUNT 5780
 
 #endif /* MX_DSP_MAP_H */

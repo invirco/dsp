@@ -1160,22 +1160,22 @@ Chan015EqShelf001,1,15,1,,,Bands 1/4 shelf mode on/off,1158,lpn,2,,,,,,,,Chan_Eq
 Chan015EqShelf002,1,15,2,,,Bands 1/4 shelf mode on/off,1159,lpo,2,,,,,,,,Chan_Eq,,,,,,,,,,,,,,-
 Chan016EqShelf001,1,16,1,,,Bands 1/4 shelf mode on/off,1160,lpp,2,,,,,,,,Chan_Eq,,,,,,,,,,,,,,-
 Chan016EqShelf002,1,16,2,,,Bands 1/4 shelf mode on/off,1161,lpq,2,,,,,,,,Chan_Eq,,,,,,,,,,,,,,-
-Chan001Gain001,1,1,1,,,Mic preamp gain 0-60dB,1162,lpr,61,,,,,,,,,,0=0/60=60/[Lin][0dp],,,,,,,,,,,,0
-Chan002Gain001,1,2,1,,,Mic preamp gain 0-60dB,1163,lps,61,,,,,,,,,,0=0/60=60/[Lin][0dp],,,,,,,,,,,,0
-Chan003Gain001,1,3,1,,,Mic preamp gain 0-60dB,1164,lpt,61,,,,,,,,,,0=0/60=60/[Lin][0dp],,,,,,,,,,,,0
-Chan004Gain001,1,4,1,,,Mic preamp gain 0-60dB,1165,lpu,61,,,,,,,,,,0=0/60=60/[Lin][0dp],,,,,,,,,,,,0
-Chan005Gain001,1,5,1,,,Mic preamp gain 0-60dB,1166,lpv,61,,,,,,,,,,0=0/60=60/[Lin][0dp],,,,,,,,,,,,0
-Chan006Gain001,1,6,1,,,Mic preamp gain 0-60dB,1167,lpw,61,,,,,,,,,,0=0/60=60/[Lin][0dp],,,,,,,,,,,,0
-Chan007Gain001,1,7,1,,,Mic preamp gain 0-60dB,1168,lqh,61,,,,,,,,,,0=0/60=60/[Lin][0dp],,,,,,,,,,,,0
-Chan008Gain001,1,8,1,,,Mic preamp gain 0-60dB,1169,lqi,61,,,,,,,,,,0=0/60=60/[Lin][0dp],,,,,,,,,,,,0
-Chan009Gain001,1,9,1,,,Mic preamp gain 0-60dB,1170,lqj,61,,,,,,,,,,0=0/60=60/[Lin][0dp],,,,,,,,,,,,0
-Chan010Gain001,1,10,1,,,Mic preamp gain 0-60dB,1171,lqk,61,,,,,,,,,,0=0/60=60/[Lin][0dp],,,,,,,,,,,,0
-Chan011Gain001,1,11,1,,,Mic preamp gain 0-60dB,1172,lql,61,,,,,,,,,,0=0/60=60/[Lin][0dp],,,,,,,,,,,,0
-Chan012Gain001,1,12,1,,,Mic preamp gain 0-60dB,1173,lqm,61,,,,,,,,,,0=0/60=60/[Lin][0dp],,,,,,,,,,,,0
-Chan013Gain001,1,13,1,,,Mic preamp gain 0-60dB,1174,lqn,61,,,,,,,,,,0=0/60=60/[Lin][0dp],,,,,,,,,,,,0
-Chan014Gain001,1,14,1,,,Mic preamp gain 0-60dB,1175,lqo,61,,,,,,,,,,0=0/60=60/[Lin][0dp],,,,,,,,,,,,0
-Chan015Gain001,1,15,1,,,Mic preamp gain 0-60dB,1176,lqp,61,,,,,,,,,,0=0/60=60/[Lin][0dp],,,,,,,,,,,,0
-Chan016Gain001,1,16,1,,,Mic preamp gain 0-60dB,1177,lqq,61,,,,,,,,,,0=0/60=60/[Lin][0dp],,,,,,,,,,,,0
+Chan001Gain001,1,1,1,,,Mic preamp gain 0-60dB; host splits via common/tables/mic-gain-law.csv into the preamp code and the GAIN node trim,1162,lpr,61,,,,,,,,,,0=0/60=60/[Lin][0dp],,,,,,,,,,,,0
+Chan002Gain001,1,2,1,,,Mic preamp gain 0-60dB; host splits via common/tables/mic-gain-law.csv into the preamp code and the GAIN node trim,1163,lps,61,,,,,,,,,,0=0/60=60/[Lin][0dp],,,,,,,,,,,,0
+Chan003Gain001,1,3,1,,,Mic preamp gain 0-60dB; host splits via common/tables/mic-gain-law.csv into the preamp code and the GAIN node trim,1164,lpt,61,,,,,,,,,,0=0/60=60/[Lin][0dp],,,,,,,,,,,,0
+Chan004Gain001,1,4,1,,,Mic preamp gain 0-60dB; host splits via common/tables/mic-gain-law.csv into the preamp code and the GAIN node trim,1165,lpu,61,,,,,,,,,,0=0/60=60/[Lin][0dp],,,,,,,,,,,,0
+Chan005Gain001,1,5,1,,,Mic preamp gain 0-60dB; host splits via common/tables/mic-gain-law.csv into the preamp code and the GAIN node trim,1166,lpv,61,,,,,,,,,,0=0/60=60/[Lin][0dp],,,,,,,,,,,,0
+Chan006Gain001,1,6,1,,,Mic preamp gain 0-60dB; host splits via common/tables/mic-gain-law.csv into the preamp code and the GAIN node trim,1167,lpw,61,,,,,,,,,,0=0/60=60/[Lin][0dp],,,,,,,,,,,,0
+Chan007Gain001,1,7,1,,,Mic preamp gain 0-60dB; host splits via common/tables/mic-gain-law.csv into the preamp code and the GAIN node trim,1168,lqh,61,,,,,,,,,,0=0/60=60/[Lin][0dp],,,,,,,,,,,,0
+Chan008Gain001,1,8,1,,,Mic preamp gain 0-60dB; host splits via common/tables/mic-gain-law.csv into the preamp code and the GAIN node trim,1169,lqi,61,,,,,,,,,,0=0/60=60/[Lin][0dp],,,,,,,,,,,,0
+Chan009Gain001,1,9,1,,,Mic preamp gain 0-60dB; host splits via common/tables/mic-gain-law.csv into the preamp code and the GAIN node trim,1170,lqj,61,,,,,,,,,,0=0/60=60/[Lin][0dp],,,,,,,,,,,,0
+Chan010Gain001,1,10,1,,,Mic preamp gain 0-60dB; host splits via common/tables/mic-gain-law.csv into the preamp code and the GAIN node trim,1171,lqk,61,,,,,,,,,,0=0/60=60/[Lin][0dp],,,,,,,,,,,,0
+Chan011Gain001,1,11,1,,,Mic preamp gain 0-60dB; host splits via common/tables/mic-gain-law.csv into the preamp code and the GAIN node trim,1172,lql,61,,,,,,,,,,0=0/60=60/[Lin][0dp],,,,,,,,,,,,0
+Chan012Gain001,1,12,1,,,Mic preamp gain 0-60dB; host splits via common/tables/mic-gain-law.csv into the preamp code and the GAIN node trim,1173,lqm,61,,,,,,,,,,0=0/60=60/[Lin][0dp],,,,,,,,,,,,0
+Chan013Gain001,1,13,1,,,Mic preamp gain 0-60dB; host splits via common/tables/mic-gain-law.csv into the preamp code and the GAIN node trim,1174,lqn,61,,,,,,,,,,0=0/60=60/[Lin][0dp],,,,,,,,,,,,0
+Chan014Gain001,1,14,1,,,Mic preamp gain 0-60dB; host splits via common/tables/mic-gain-law.csv into the preamp code and the GAIN node trim,1175,lqo,61,,,,,,,,,,0=0/60=60/[Lin][0dp],,,,,,,,,,,,0
+Chan015Gain001,1,15,1,,,Mic preamp gain 0-60dB; host splits via common/tables/mic-gain-law.csv into the preamp code and the GAIN node trim,1176,lqp,61,,,,,,,,,,0=0/60=60/[Lin][0dp],,,,,,,,,,,,0
+Chan016Gain001,1,16,1,,,Mic preamp gain 0-60dB; host splits via common/tables/mic-gain-law.csv into the preamp code and the GAIN node trim,1177,lqq,61,,,,,,,,,,0=0/60=60/[Lin][0dp],,,,,,,,,,,,0
 Chan001GateAtt001,1,1,1,,,Gate attack time,1178,lqr,255,,,,,,,,ChanGate,,0=0.1/254=250/[Log],,,,,,,,,,,,-
 Chan002GateAtt001,1,2,1,,,Gate attack time,1179,lqs,255,,,,,,,,ChanGate,,0=0.1/254=250/[Log],,,,,,,,,,,,-
 Chan003GateAtt001,1,3,1,,,Gate attack time,1180,lqt,255,,,,,,,,ChanGate,,0=0.1/254=250/[Log],,,,,,,,,,,,-
@@ -3260,58 +3260,60 @@ Talk002On001,1,2,1,,false,Talkback mic 2 on/off,3258,tsr,2,,,,,,,,,,,,,,,,,,,,,,
 Talk002Dest001,1,2,1,,false,Talkback mic 2 routing to aux/main,3259,tss,1,,,,,,,,,,,,,,,,,,,,,,0
 Talk002Dest002,1,2,2,,false,Talkback mic 2 routing to aux/main,3260,tst,1,,,,,,,,,,,,,,,,,,,,,,0
 Talk002Dest003,1,2,3,,false,Talkback mic 2 routing to aux/main,3261,tsu,1,,,,,,,,,,,,,,,,,,,,,,0
-Test001MeasChan001,1,1,1,true,false,Select channel for RMS/THD measurement,3262,tsv,33,,,,,,,,,,,,,,,,,,,,,,-
-Test001NoiseResult001,1,1,1,true,false,Read-back: noise floor,3263,tsw,255,,,,,,,,,,,,,,,,,,,,,,-
-Test001OscChan001,1,1,1,true,false,Oscillator target channel (0=all),3264,tth,33,,,,,,,,,,,,,,,,,,,,,,-
-Test001OscFreq001,1,1,1,true,false,Oscillator frequency 20Hz-20kHz,3265,tti,255,,,,,,,,,,0=20/127=20000/[Log],,,,,,,,,,,,-
-Test001OscLevel001,1,1,1,true,false,Oscillator output level dBFS,3266,ttj,61,,,,,,,,,,0=-60/127=0/[Lin],,,,,,,,,,,,-
-Test001OscOn001,1,1,1,true,false,Precision sine oscillator enable,3267,ttk,2,,,,,,,,,,,,,,,,,,,,,,-
-Test001RmsResult001,1,1,1,true,false,Read-back: RMS level,3268,ttl,255,,,,,,,,,,,,,,,,,,,,,,-
-Test001SweepOn001,1,1,1,true,false,Start frequency sweep,3269,ttm,2,,,,,,,,,,,,,,,,,,,,,,-
-Test001SweepStep001,1,1,1,true,false,Sweep step count,3270,ttn,255,,,,,,,,,,,,,,,,,,,,,,-
-Test001ThdResult001,1,1,1,true,false,Read-back: THD+N ratio,3271,tto,255,,,,,,,,,,,,,,,,,,,,,,-
-Test001XtalkDst001,1,1,1,true,false,Crosstalk destination channel,3272,ttp,33,,,,,,,,,,,,,,,,,,,,,,-
-Test001XtalkResult001,1,1,1,true,false,Read-back: crosstalk level dB,3273,ttq,255,,,,,,,,,,,,,,,,,,,,,,-
-Test001XtalkSrc001,1,1,1,true,false,Crosstalk source channel,3274,ttr,33,,,,,,,,,,,,,,,,,,,,,,-
-Usb001On001,1,1,1,,false,USB audio input on/off,3275,tts,2,,,,,,,,,,,,,,,,,,,,,,1
-Usb001Level001,1,1,1,,false,USB audio input level,3276,ttt,255,,,,,,,,,,0=-20/127=6/[Lin],,,,,,,,,,,,
-Aux001Name001,16,1,1,,,Aux output channel name,3277,ttu,1,,,,,,,,,,,,,,,,,,,,,,-
-Aux002Name001,16,2,1,,,Aux output channel name,3278,ttv,1,,,,,,,,,,,,,,,,,,,,,,-
-Aux003Name001,16,3,1,,,Aux output channel name,3279,ttw,1,,,,,,,,,,,,,,,,,,,,,,-
-Aux004Name001,16,4,1,,,Aux output channel name,3280,tuh,1,,,,,,,,,,,,,,,,,,,,,,-
-Aux005Name001,16,5,1,,,Aux output channel name,3281,tui,1,,,,,,,,,,,,,,,,,,,,,,-
-Aux006Name001,16,6,1,,,Aux output channel name,3282,tuj,1,,,,,,,,,,,,,,,,,,,,,,-
-Chan001Name001,16,1,1,,,Input channel name/label,3283,tuk,1,,,,,,,,,,,,,,,,,,,,Kick,,-
-Chan002Name001,16,2,1,,,Input channel name/label,3284,tul,1,,,,,,,,,,,,,,,,,,,,Snare Top,,-
-Chan003Name001,16,3,1,,,Input channel name/label,3285,tum,1,,,,,,,,,,,,,,,,,,,,Snare Bot,,-
-Chan004Name001,16,4,1,,,Input channel name/label,3286,tun,1,,,,,,,,,,,,,,,,,,,,Hihat,,-
-Chan005Name001,16,5,1,,,Input channel name/label,3287,tuo,1,,,,,,,,,,,,,,,,,,,,Ride,,-
-Chan006Name001,16,6,1,,,Input channel name/label,3288,tup,1,,,,,,,,,,,,,,,,,,,,Floor Tom,,-
-Chan007Name001,16,7,1,,,Input channel name/label,3289,tuq,1,,,,,,,,,,,,,,,,,,,,Mid Toms,,-
-Chan008Name001,16,8,1,,,Input channel name/label,3290,tur,1,,,,,,,,,,,,,,,,,,,,OH Left,,-
-Chan009Name001,16,9,1,,,Input channel name/label,3291,tus,1,,,,,,,,,,,,,,,,,,,,OH Right,,-
-Chan010Name001,16,10,1,,,Input channel name/label,3292,tut,1,,,,,,,,,,,,,,,,,,,,Bass,,-
-Chan011Name001,16,11,1,,,Input channel name/label,3293,tuu,1,,,,,,,,,,,,,,,,,,,,E Gtr 1,,-
-Chan012Name001,16,12,1,,,Input channel name/label,3294,tuv,1,,,,,,,,,,,,,,,,,,,,E Gtr 2,,-
-Chan013Name001,16,13,1,,,Input channel name/label,3295,tuw,1,,,,,,,,,,,,,,,,,,,,Ac Gtr,,-
-Chan014Name001,16,14,1,,,Input channel name/label,3296,tvh,1,,,,,,,,,,,,,,,,,,,,Mando 1,,-
-Chan015Name001,16,15,1,,,Input channel name/label,3297,tvi,1,,,,,,,,,,,,,,,,,,,,Mando 2,,-
-Chan016Name001,16,16,1,,,Input channel name/label,3298,tvj,1,,,,,,,,,,,,,,,,,,,,Mando 3,,-
-Dca001Name001,16,1,1,,,DCA group name,3299,tvk,1,,,,,,,,,,,,,,,,,,,,,,-
-Dca002Name001,16,2,1,,,DCA group name,3300,tvl,1,,,,,,,,,,,,,,,,,,,,,,-
-Dca003Name001,16,3,1,,,DCA group name,3301,tvm,1,,,,,,,,,,,,,,,,,,,,,,-
-Dca004Name001,16,4,1,,,DCA group name,3302,tvn,1,,,,,,,,,,,,,,,,,,,,,,-
-Fx001Name001,16,1,1,,,FX channel name,3303,tvo,1,,,,,,,,,,,,,,,,,,,,,,-
-Fx002Name001,16,2,1,,,FX channel name,3304,tvp,1,,,,,,,,,,,,,,,,,,,,,,-
-Fx003Name001,16,3,1,,,FX channel name,3305,tvq,1,,,,,,,,,,,,,,,,,,,,,,-
-Fx004Name001,16,4,1,,,FX channel name,3306,tvr,1,,,,,,,,,,,,,,,,,,,,,,-
-Grp001Name001,16,1,1,,,Group name,3307,tvs,1,,,,,,,,,,,,,,,,,,,,,,-
-Grp002Name001,16,2,1,,,Group name,3308,tvt,1,,,,,,,,,,,,,,,,,,,,,,-
-Grp003Name001,16,3,1,,,Group name,3309,tvu,1,,,,,,,,,,,,,,,,,,,,,,-
-Grp004Name001,16,4,1,,,Group name,3310,tvv,1,,,,,,,,,,,,,,,,,,,,,,-
-MainSub001Name001,16,1,1,,,Subwoofer name,3311,tvw,1,,,,,,,,,,,,,,,,,,,,,,-
-MainSub001CrossoverFreq001,1,1,1,,,Electronic crossover frequency,3312,twh,255,,,,,,,,MainCrossover,,0=50/127=500/[Log],,,,,,,,,,,,-
-MainSub001CrossoverSlope001,1,1,1,,,Crossover slope (HPF 36/48 dB/oct),3313,twi,4,,,,,,,,MainCrossover,,0=6/3=24/[Lin],,,,,,,,,,,,-
-MainSub001LimiterRng001,1,1,1,,,Subwoofer output limiter range/depth,3314,twj,33,,,,,,,,MainLimiter,,0=0/127=60/[Lin],,,,,,,,,,,,0
-Main001Name001,16,1,1,,,Main L/R master name,3315,twk,1,,,,,,,,,,,,,,,,,,,,Master,,-
-Sys001SwUpd001,1,1,1,,false,Software updater open/close SW button,3316,twl,2,,,,,,,,,,,,,,,,,,,,,,-
+Test001CaptureArm001,1,1,1,true,false,Capture MeasChan post-fader samples (count),3262,tsv,255,,,,,,,,,,,,,,,,,,,,,,-
+Test001CaptureReady001,1,1,1,true,false,Read-back: samples captured,3263,tsw,255,,,,,,,,,,,,,,,,,,,,,,-
+Test001MeasChan001,1,1,1,true,false,Select channel for RMS/THD measurement,3264,tth,33,,,,,,,,,,,,,,,,,,,,,,-
+Test001NoiseResult001,1,1,1,true,false,Read-back: noise floor,3265,tti,255,,,,,,,,,,,,,,,,,,,,,,-
+Test001OscChan001,1,1,1,true,false,Oscillator target channel (0=all),3266,ttj,33,,,,,,,,,,,,,,,,,,,,,,-
+Test001OscFreq001,1,1,1,true,false,Oscillator frequency 20Hz-20kHz,3267,ttk,255,,,,,,,,,,0=20/127=20000/[Log],,,,,,,,,,,,-
+Test001OscLevel001,1,1,1,true,false,Oscillator output level dBFS,3268,ttl,61,,,,,,,,,,0=-60/127=0/[Lin],,,,,,,,,,,,-
+Test001OscOn001,1,1,1,true,false,Precision sine oscillator enable,3269,ttm,2,,,,,,,,,,,,,,,,,,,,,,-
+Test001RmsResult001,1,1,1,true,false,Read-back: RMS level,3270,ttn,255,,,,,,,,,,,,,,,,,,,,,,-
+Test001SweepOn001,1,1,1,true,false,Start frequency sweep,3271,tto,2,,,,,,,,,,,,,,,,,,,,,,-
+Test001SweepStep001,1,1,1,true,false,Sweep step count,3272,ttp,255,,,,,,,,,,,,,,,,,,,,,,-
+Test001ThdResult001,1,1,1,true,false,Read-back: THD+N ratio,3273,ttq,255,,,,,,,,,,,,,,,,,,,,,,-
+Test001XtalkDst001,1,1,1,true,false,Crosstalk destination channel,3274,ttr,33,,,,,,,,,,,,,,,,,,,,,,-
+Test001XtalkResult001,1,1,1,true,false,Read-back: crosstalk level dB,3275,tts,255,,,,,,,,,,,,,,,,,,,,,,-
+Test001XtalkSrc001,1,1,1,true,false,Crosstalk source channel,3276,ttt,33,,,,,,,,,,,,,,,,,,,,,,-
+Usb001On001,1,1,1,,false,USB audio input on/off,3277,ttu,2,,,,,,,,,,,,,,,,,,,,,,1
+Usb001Level001,1,1,1,,false,USB audio input level,3278,ttv,255,,,,,,,,,,0=-20/127=6/[Lin],,,,,,,,,,,,
+Aux001Name001,16,1,1,,,Aux output channel name,3279,ttw,1,,,,,,,,,,,,,,,,,,,,,,-
+Aux002Name001,16,2,1,,,Aux output channel name,3280,tuh,1,,,,,,,,,,,,,,,,,,,,,,-
+Aux003Name001,16,3,1,,,Aux output channel name,3281,tui,1,,,,,,,,,,,,,,,,,,,,,,-
+Aux004Name001,16,4,1,,,Aux output channel name,3282,tuj,1,,,,,,,,,,,,,,,,,,,,,,-
+Aux005Name001,16,5,1,,,Aux output channel name,3283,tuk,1,,,,,,,,,,,,,,,,,,,,,,-
+Aux006Name001,16,6,1,,,Aux output channel name,3284,tul,1,,,,,,,,,,,,,,,,,,,,,,-
+Chan001Name001,16,1,1,,,Input channel name/label,3285,tum,1,,,,,,,,,,,,,,,,,,,,Kick,,-
+Chan002Name001,16,2,1,,,Input channel name/label,3286,tun,1,,,,,,,,,,,,,,,,,,,,Snare Top,,-
+Chan003Name001,16,3,1,,,Input channel name/label,3287,tuo,1,,,,,,,,,,,,,,,,,,,,Snare Bot,,-
+Chan004Name001,16,4,1,,,Input channel name/label,3288,tup,1,,,,,,,,,,,,,,,,,,,,Hihat,,-
+Chan005Name001,16,5,1,,,Input channel name/label,3289,tuq,1,,,,,,,,,,,,,,,,,,,,Ride,,-
+Chan006Name001,16,6,1,,,Input channel name/label,3290,tur,1,,,,,,,,,,,,,,,,,,,,Floor Tom,,-
+Chan007Name001,16,7,1,,,Input channel name/label,3291,tus,1,,,,,,,,,,,,,,,,,,,,Mid Toms,,-
+Chan008Name001,16,8,1,,,Input channel name/label,3292,tut,1,,,,,,,,,,,,,,,,,,,,OH Left,,-
+Chan009Name001,16,9,1,,,Input channel name/label,3293,tuu,1,,,,,,,,,,,,,,,,,,,,OH Right,,-
+Chan010Name001,16,10,1,,,Input channel name/label,3294,tuv,1,,,,,,,,,,,,,,,,,,,,Bass,,-
+Chan011Name001,16,11,1,,,Input channel name/label,3295,tuw,1,,,,,,,,,,,,,,,,,,,,E Gtr 1,,-
+Chan012Name001,16,12,1,,,Input channel name/label,3296,tvh,1,,,,,,,,,,,,,,,,,,,,E Gtr 2,,-
+Chan013Name001,16,13,1,,,Input channel name/label,3297,tvi,1,,,,,,,,,,,,,,,,,,,,Ac Gtr,,-
+Chan014Name001,16,14,1,,,Input channel name/label,3298,tvj,1,,,,,,,,,,,,,,,,,,,,Mando 1,,-
+Chan015Name001,16,15,1,,,Input channel name/label,3299,tvk,1,,,,,,,,,,,,,,,,,,,,Mando 2,,-
+Chan016Name001,16,16,1,,,Input channel name/label,3300,tvl,1,,,,,,,,,,,,,,,,,,,,Mando 3,,-
+Dca001Name001,16,1,1,,,DCA group name,3301,tvm,1,,,,,,,,,,,,,,,,,,,,,,-
+Dca002Name001,16,2,1,,,DCA group name,3302,tvn,1,,,,,,,,,,,,,,,,,,,,,,-
+Dca003Name001,16,3,1,,,DCA group name,3303,tvo,1,,,,,,,,,,,,,,,,,,,,,,-
+Dca004Name001,16,4,1,,,DCA group name,3304,tvp,1,,,,,,,,,,,,,,,,,,,,,,-
+Fx001Name001,16,1,1,,,FX channel name,3305,tvq,1,,,,,,,,,,,,,,,,,,,,,,-
+Fx002Name001,16,2,1,,,FX channel name,3306,tvr,1,,,,,,,,,,,,,,,,,,,,,,-
+Fx003Name001,16,3,1,,,FX channel name,3307,tvs,1,,,,,,,,,,,,,,,,,,,,,,-
+Fx004Name001,16,4,1,,,FX channel name,3308,tvt,1,,,,,,,,,,,,,,,,,,,,,,-
+Grp001Name001,16,1,1,,,Group name,3309,tvu,1,,,,,,,,,,,,,,,,,,,,,,-
+Grp002Name001,16,2,1,,,Group name,3310,tvv,1,,,,,,,,,,,,,,,,,,,,,,-
+Grp003Name001,16,3,1,,,Group name,3311,tvw,1,,,,,,,,,,,,,,,,,,,,,,-
+Grp004Name001,16,4,1,,,Group name,3312,twh,1,,,,,,,,,,,,,,,,,,,,,,-
+MainSub001Name001,16,1,1,,,Subwoofer name,3313,twi,1,,,,,,,,,,,,,,,,,,,,,,-
+MainSub001CrossoverFreq001,1,1,1,,,Electronic crossover frequency,3314,twj,255,,,,,,,,MainCrossover,,0=50/127=500/[Log],,,,,,,,,,,,-
+MainSub001CrossoverSlope001,1,1,1,,,Crossover slope (HPF 36/48 dB/oct),3315,twk,4,,,,,,,,MainCrossover,,0=6/3=24/[Lin],,,,,,,,,,,,-
+MainSub001LimiterRng001,1,1,1,,,Subwoofer output limiter range/depth,3316,twl,33,,,,,,,,MainLimiter,,0=0/127=60/[Lin],,,,,,,,,,,,0
+Main001Name001,16,1,1,,,Main L/R master name,3317,twm,1,,,,,,,,,,,,,,,,,,,,Master,,-
+Sys001SwUpd001,1,1,1,,false,Software updater open/close SW button,3318,twn,2,,,,,,,,,,,,,,,,,,,,,,-

@@ -39,6 +39,9 @@ cd "$ROOT_DIR"
 python3 validate-matrix-contract.py
 python3 MW/D32/DSP/gen_dsp.py --force >/dev/null
 
+# THE HOST INPUT PATCH (S59): defs/products/<p>/inputs.csv -> input_patch.json.
+python3 tools/dsp/gen_input_patch.py --all >/dev/null
+
 # TABLE'S OWN AGREEMENT WITH MxDatS (S53). Table comes from the master row
 # only now (the generator's hand-typed second copy is retired); this checks
 # the master's own claim against itself -- Table's top breakpoint code
@@ -76,6 +79,7 @@ MW/D32/DSP/dsp_address_map.md
 MW/D32/FW/H1S1/Core/Inc/ghost_cells.h
 MW/D32/FW/H1S1/Core/Src/ghost_cells.c
 MW/D32/FW/H1S1/Core/Inc/mx_dsp_map.h
+MW/D24/DSP/input_patch.json
 LIST
 
   drift="$(git status --porcelain -- "${CONTRACT_FILES[@]}")"

@@ -36,6 +36,8 @@ writes; --dry-run works anywhere).
 """
 
 import argparse
+import json
+import os
 import sys
 
 CFG_PRODUCT_ID = 0xF000
@@ -68,17 +70,33 @@ PRODUCT_IDS = {'d32': 0, 'd24': 1, 'd16': 1, 'd12': 1}
 # (J15-J22), AD1 = U39 (J25-J32), AD2 = U60 (J35-J42). Within each AK5558
 # the netlist puts XLR position 1..8 on slot 7,6,5,4,2,3,0,1 and the panel
 # numbers alternate rows (J15 = ch 1, J16 = ch 13, ...), so each converter's
-# slot 7 is its first panel channel. The table is that walk, read per slot;
-# `d24_inputs.py` holds the XLR rows and checks every XLR lands on its panel
-# strip. S58 replaced the half-frame table ([0,1,2,3,12,13,14,15] + ...),
-# which assumed slots 0-3 = ch 1-4 and put MIC 5 on strip 20 (S52-1).
-D24_INPUT_PATCH = (
-    [3, 15, 2, 14, 13, 1, 12, 0]        # AD0 = U15 slots 0-7
-    + [7, 19, 6, 18, 17, 5, 16, 4]      # AD1 = U39
-    + [11, 23, 10, 22, 21, 9, 20, 8]    # AD2 = U60
-    + list(range(24, 32))               # AD3 lane: NET returns, identity
-    + list(range(32, 46))               # superset sources, identity
-)
+# slot 7 is its first panel channel.
+#
+# GENERATED, NOT TYPED (S59, CONTRACT-PROPOSAL-S58 §4): the walk lives in
+# `defs/products/d24/inputs.csv` now, `tools/dsp/gen_input_patch.py` turns it
+# into `MW/D24/DSP/input_patch.json`, and this loads that file -- the hand-
+# typed table S58 landed (which itself replaced the half-frame table that put
+# MIC 5 on strip 20, S52-1) is retired. `d24_inputs.py` holds the XLR rows
+# and checks every XLR lands on its panel strip.
+def _load_input_patch(product):
+    """`MW/<P>/DSP/input_patch.json`'s patch tuple. Staged next to this tool
+    on the Pi (like `landed-d24.json`); falls back to the repo tree for
+    dev use / --dry-run. None if neither copy exists -- callers decide
+    whether that is a missing artefact or (D32/D16/D12 today) identity."""
+    here = os.path.dirname(os.path.abspath(__file__))
+    for path in (os.path.join(here, 'input_patch.json'),
+                os.path.join(here, '..', '..', 'MW', product.upper(), 'DSP', 'input_patch.json')):
+        if os.path.isfile(path):
+            with open(path, encoding='utf-8') as f:
+                return tuple(json.load(f)['patch'])
+    return None
+
+
+D24_INPUT_PATCH = _load_input_patch('d24')
+if D24_INPUT_PATCH is None:
+    sys.exit('ERROR: no input_patch.json for d24 (staged next to dsp4_config.py, or at '
+            'MW/D24/DSP/input_patch.json in the repo tree) -- run '
+            '`tools/dsp/gen_input_patch.py --product d24`')
 
 # BOTH MASKS NOW HAVE READERS IN THE FIRMWARE (2026-09-09). Until then
 # product_config.asm stored CHAN_MASK and AUX_MASK and nothing consumed

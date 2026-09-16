@@ -2,9 +2,16 @@ provenance: AI-drafted 2026-09-16 — prose may carry a statistical watermark; r
 
 # Contract proposal S56 — `CaptureArm` / `CaptureReady` in the `Test[1-1]*` family, +2 cells per product
 
-**Status: PROPOSED, not landed.** The addresses below are proposed, not typed:
-no def, master or `_matrix.csv` row is written by this repo. The DSP side
-already dispatches the two words without cells, the same way the window
+**Status: LANDED, `defs-v2026.09.16.4`** (consumed by this repo at S59). Both cells
+are in `defs/common/cells/mx_master.csv`, `MW/D24/MX/_matrix.csv` and
+`MW/D32/MX/_matrix.csv` at the addresses below (`Test001CaptureArm001` /
+`Test001CaptureReady001`, `4981`/`4982`, `0x1375`/`0x1376`); `MW/D32/DSP/gen_dsp.py`
+now carries a cell for each (`expand_test_osc`) instead of dispatch-only. Superseded
+text below is kept for the record of why the addresses are what they are.
+
+Pre-S59 status, for the record: **PROPOSED, not landed.** The addresses below are
+proposed, not typed: no def, master or `_matrix.csv` row is written by this repo.
+The DSP side already dispatches the two words without cells, the same way the window
 serial (`0x136E`) has been dispatched since S49, so the bench can use them
 before the contract does. Evidence: `findings.md` S56-1.
 

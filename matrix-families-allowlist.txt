@@ -360,6 +360,8 @@ TalkDest
 TalkGain
 TalkHpf
 TalkOn
+TestCaptureArm
+TestCaptureReady
 TestMeasChan
 TestNoiseResult
 TestOscChan

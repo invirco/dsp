@@ -1138,16 +1138,19 @@ def expand_test_osc(node, cat, inst):
     add_dispatch(chip, base + 5, f'_osc_sweep_step_{nid}',
                  f'{nid} sweep step, codes')
 
-    # THE CAPTURE ARM (S56): the two reserved words carry TEST_MEAS's
-    # capture pair, so it adds no address and moves none. NO CELL, the
-    # same as the window serial: `CaptureArm` / `CaptureReady` are a
-    # contract proposal (proposals/CONTRACT-PROPOSAL-S56.md), and this
-    # repo does not type an address for a cell the masters do not name.
+    # THE CAPTURE ARM (S56, LANDED defs-v2026.09.16.4): the two reserved
+    # words carry TEST_MEAS's capture pair, so it adds no address and moves
+    # none. `CaptureArm` / `CaptureReady` are now named by the masters
+    # (proposals/CONTRACT-PROPOSAL-S56.md, landed), so both get a cell at
+    # the same address the dispatch symbol already used.
     meas = parse_params(node.get('params', '')).get('meas_src', 'C1_TEST_MEAS')
+    add_cell(cn(cat, inst, 'CaptureArm', 1), chip, pg, base + 6, ramp_profile='InstantCtl')
     add_dispatch(chip, base + 6, f'_meas_cap_arm_{meas}',
-                 f'{meas} capture arm, samples (no cell; proposed CaptureArm)')
+                 f'{meas} capture arm, samples')
+    add_cell(cn(cat, inst, 'CaptureReady', 1), chip, pg, base + 7, ramp_profile='',
+             notes='read-back: samples captured (count)', access='ro')
     add_dispatch(chip, base + 7, f'_meas_cap_ready_{meas}',
-                 f'{meas} capture ready, samples (no cell; proposed CaptureReady)')
+                 f'{meas} capture ready, samples')
 
 
 def expand_test_meas(node, cat, inst):
