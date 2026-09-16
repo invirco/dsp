@@ -21,9 +21,31 @@ P('guard, lane RMS at code 63 (DC-24k):', ['%.2f' % v for v in g])
 if max(g) > -80.0:
     r.chain(0)
     raise SystemExit('LANE AT %.1f dBFS: looks like the LOOP CABLE, not 150 ohm. NOT ROUTED; MIC 5 back to code 0.' % max(g))
-out = subprocess.run(['python3', 'dsp4_apply_strip.py', '20', '1', '/home/app/s56'], capture_output=True, text=True).stdout
-P('\n'.join(out.splitlines()[-14:]))
-subprocess.run(['sudo', 'pinctrl', 'set', '6,24', 'op', 'dh'], check=True)
+# dsp4_apply_strip.py cannot run here: this process already holds chip 1's CS (EBUSY). Same writes, AUX 1 only.
+c2 = X.Chip(2)
+for s_ in range(1, 25):
+    if s_ != 20:
+        c1.wv('Chan%03dAuxOn001' % s_, 0)
+for fam in ('Usb', 'Bt', 'CodecAux', 'Pi'):
+    c2.wv('%s001On001' % fam, 0)
+c2.wv('Aux001Level001', X.f32(1.0), 4)
+c2.wv('Aux001Mute001', 0)
+c1.wv('Chan020Gain001', X.f32(1.0), 1)
+c1.wv('Chan020Level001', X.f32(1.0), 4)
+c1.wv('Chan020Mute001', 0)
+c1.wv('Chan020AuxPick001', 3)
+def ramped(name, val):
+    # a ramped cell reads back its CURRENT ramp value; write once, then poll until it settles
+    import time as _t
+    c1.w(name, X.f32(val), 4)
+    for _ in range(40):
+        _t.sleep(0.05)
+        got = X.from_f32(c1.r(name))
+        if abs(got - val) < 1e-6:
+            return got
+    raise SystemExit('%s reads %.6f after 2 s, wanted %.6f' % (name, got, val))
+P('Chan020AuxSend001 settled at', ramped('Chan020AuxSend001', 1.0))
+c1.wv('Chan020AuxOn001', 1)
 p = 'Chan020'
 for k in ('MainOn001', 'CompOn001', 'GateOn001', 'EqOn001', 'TubeOn001', 'Pol001'):
     c1.wv(p + k, 0)
@@ -36,10 +58,10 @@ for a in range(1, 5):
 st = {k: c1.r(p + k) for k in ('Mute001', 'MainOn001', 'AuxOn001', 'AuxPick001', 'CompOn001', 'GateOn001', 'EqOn001', 'TubeOn001', 'Pol001')}
 st['Gain001'] = X.from_f32(c1.r(p + 'Gain001')); st['Level001'] = X.from_f32(c1.r(p + 'Level001')); st['AuxSend001'] = X.from_f32(c1.r(p + 'AuxSend001'))
 P('strip 20:', st)
-on = [s for s in range(1, 33) if c1.r('Chan%03dAuxOn001' % s) == 1]
+on = [s for s in range(1, 25) if c1.r('Chan%03dAuxOn001' % s) == 1]
 P('strips with AuxOn001 = 1:', on, '| OscOn', r.rd(T.A_OSCON), '| muted:', len([s for s in range(1, 25) if c1.r('Chan%03dMute001' % s) == 1]), 'of 24')
 # AUX 1 TX lane, with a runaway guard
-c2 = X.Chip(2); sc2 = c2.sc
+sc2 = c2.sc
 ptrs, offs, strd = sc2.sym['_c2_tx_ptrs'], sc2.sym['_c2_tx_off'], sc2.sym['_c2_tx_stride']
 want = sc2.sym['_tx_out_slot_C2_AUX_OUT_01']
 idx = [i for i in range(24) if sc2.peek(ptrs + i) == want][0]
@@ -54,6 +76,8 @@ def tx(n):
             pass
     return w
 v = tx(160)
+if max(abs(x) for x in v) == 0:
+    raise SystemExit('AUX 1 TX lane reads all zero: route did not land')
 if T.dbv(math.sqrt(sum(x * x for x in v) / len(v))) > -60:
     c1.wv(p + 'Mute001', 1)
     raise SystemExit('AUX 1 TX lane above -60 dBFS: strip 20 MUTED again (runaway guard)')
