@@ -40,6 +40,32 @@
  * EN cycle, so the host must resync the link after a stream -- every
  * tool on this bench already does.
  *
+ * SPI_RDY IS THE HANDSHAKE (S62). S61 had the host sleep 3 ms after GO and
+ * 30 ms after the stream, because nothing told it when the port changed
+ * hands. When the restore's EN cycle landed inside a host transaction the
+ * RX FIFO kept a stray word, every later request was framed one word out,
+ * and the only repair -- the stuck-partial discard in _diag_timer_isr --
+ * arms only while the link stands still, which a retrying host never lets
+ * it do (findings S62-1). So the pin now carries the port's owner:
+ *
+ *   ARMED, a request lands   _spi_poll takes PB_05 to GPIO LOW before the
+ *                            drain, so flow control's own low (RFIFO
+ *                            full) runs straight into it: no high glitch
+ *   GO processed             stream armed, header queued, pin driven HIGH
+ *                            = "clock the stream now"
+ *   not GO                   pin handed back to flow control (high)
+ *   stream done (1st quiet)  pin driven LOW = "stream over, port busy"
+ *   BULK_QUIET_TICKS later   EN cycle, RX back on, THEN the pin goes back
+ *                            to SPI2_RDY flow control = HIGH = released
+ *   any clocking (TUR) while the pin is low restarts that count
+ *
+ * The host clocks the stream on HIGH after GO; every transaction it makes
+ * already waits for RDY high, so none starts while the port changes hands,
+ * and the TUR guard covers the one that sampled RDY just before it fell.
+ * Correctness therefore does not depend on the host seeing the low; it
+ * watches for low-then-high only to know when to resume. No wait on either
+ * side is a guess any more.
+ *
  * Only DSP4_TEST_NODES builds carry it, so the shipping image is
  * unchanged. The idle cost is one load and compare in the tick and one
  * in _spi_poll.
@@ -57,6 +83,9 @@
 #define BULK_CHUNK         1024        /* words checksummed per 1 ms tick */
 #define BULK_TIMEOUT_MS    3000
 #define BULK_MAGIC         0xB0CA5E61
+#define BULK_QUIET_TICKS   4           /* restore on the 4th quiet tick: the
+                                        * pin sits LOW for >= 3 ms first */
+#define RDY_BIT            0x00000020  /* PB_05 = SPI2_RDY -> Pi GPIO 8/12 */
 
 #define BULK_IDLE          0
 #define BULK_SUMMING       1
@@ -66,6 +95,7 @@
 #define SPI_TFS_MASK       0x00070000
 #define SPI_TFS_EMPTY      0x00040000
 #define SPI_STAT_ERRS      0x00000030  /* ROR | TUR, W1C */
+#define SPI_STAT_TUR       0x00000020  /* clocked with an empty TFIFO, W1C */
 #define SPI_ILAT_RUWM      0x00000002
 #define SPI_TXCTL_TEN      0x00000001
 #define SPI_TXCTL_TDR_NF   0x00000010  /* DMA request while TFIFO not full */
@@ -91,6 +121,11 @@
 .var _bulk_quiet = 0;         /* consecutive ticks seen stopped + empty */
 .var _bulk_ctl_save = 0;
 .var _bulk_rxctl_save = 0;
+.global _bulk_rdy_hs;
+.var _bulk_rdy_hs = 1;        /* S62: RDY handshake present (host looks for it) */
+.var _bulk_rdy_held = 0;      /* _spi_poll took the pin for an ARMED request */
+.global _bulk_tur_holds;
+.var _bulk_tur_holds = 0;     /* restores postponed: host clocked during RDY low */
 
 .section/pm seg_pmco;
 
@@ -223,8 +258,17 @@ _bulk_write:
     r6 = 0;
     dm(_bulk_ms) = r6;
     dm(_bulk_quiet) = r6;
+    dm(_bulk_rdy_held) = r6;      /* the stream owns the pin now */
     r6 = BULK_STREAMING;
     dm(_bulk_state) = r6;
+
+    /* GO-ack: RDY HIGH as a GPIO = "armed, clock the stream". Written in
+     * full (data, dir, fer) so a GO that reached here by a path other than
+     * _spi_poll still ends with the pin in this state. */
+    r6 = RDY_BIT;
+    dm(REG_PORTB_DATA_SET) = r6;
+    dm(REG_PORTB_DIR_SET) = r6;
+    dm(REG_PORTB_FER_CLR) = r6;
     rts;
 
 .bw_err:
@@ -234,6 +278,41 @@ _bulk_write:
     dm(_bulk_errs) = r4;
     rts;
 _bulk_write.end:
+
+/*----------------------------------------------------------------------
+ * _bulk_rdy_pre / _bulk_rdy_post — around _spi2_rx_work in _spi_poll.
+ * pre: while ARMED, take PB_05 to GPIO LOW before the drain, so the
+ *      flow-control low of the full RFIFO never rises before GO has
+ *      decided what the pin means. post: if the request was not GO, give
+ *      the pin back to flow control. Clobber r0, r1 only.
+ *----------------------------------------------------------------------*/
+.global _bulk_rdy_pre;
+_bulk_rdy_pre:
+    r0 = dm(_bulk_state);
+    r1 = BULK_ARMED;
+    comp(r0, r1);
+    if ne rts;
+    r0 = RDY_BIT;
+    dm(REG_PORTB_DATA_CLR) = r0;
+    dm(REG_PORTB_DIR_SET) = r0;
+    dm(REG_PORTB_FER_CLR) = r0;
+    r0 = 1;
+    dm(_bulk_rdy_held) = r0;
+    rts;
+_bulk_rdy_pre.end:
+
+.global _bulk_rdy_post;
+_bulk_rdy_post:
+    r0 = dm(_bulk_rdy_held);
+    r1 = 0;
+    comp(r0, r1);
+    if eq rts;                    /* not held, or GO took it over */
+    dm(_bulk_rdy_held) = r1;
+    r0 = RDY_BIT;
+    dm(REG_PORTB_FER_SET) = r0;   /* back to SPI2_RDY flow control */
+    dm(REG_PORTB_DIR_CLR) = r0;
+    rts;
+_bulk_rdy_post.end:
 
 /*----------------------------------------------------------------------
  * _bulk_read — In: r2 = address. Out: r4. Clobbers r4, r5; keeps r0-r3.
@@ -357,12 +436,41 @@ _bulk_tick:
     r4 = SPI_TFS_EMPTY;
     comp(r3, r4);
     if ne jump (pc, .bt_busy);    /* host has not clocked the tail yet */
-    /* Stopped and empty on TWO ticks running: the last word has been in
-     * the shift register at least 1 ms, far longer than one at any SCLK. */
+    /* Stopped and empty: on the FIRST such tick drop RDY ("stream over,
+     * port busy"); restore on the BULK_QUIET_TICKS-th, so the pin is low
+     * for at least 3 ms and the host, which waits for that low before it
+     * waits for high, cannot be inside a transaction at the EN cycle. */
     r3 = dm(_bulk_quiet);
     r3 = r3 + 1;
     dm(_bulk_quiet) = r3;
-    r4 = 2;
+    r4 = 1;
+    comp(r3, r4);
+    if ne jump (pc, .bt_quiet_n);
+    r4 = RDY_BIT;
+    dm(REG_PORTB_DATA_CLR) = r4;
+    r4 = SPI_STAT_TUR;            /* forget the stream's own tail clocks */
+    dm(REG_SPI2_STAT) = r4;
+    rts;
+.bt_quiet_n:
+    /* THE GUARD. With RDY low no RDY-honouring host starts a transaction,
+     * but one that sampled RDY just before it fell may already be clocking.
+     * Clocking an empty TFIFO sets TUR, so a TUR since the last tick means
+     * the host is on the wire: restart the count. The EN cycle then only
+     * ever happens after BULK_QUIET_TICKS - 1 whole ticks of silence,
+     * whatever the host's timing. */
+    r4 = dm(REG_SPI2_STAT);
+    r5 = SPI_STAT_TUR;
+    r4 = r4 AND r5;
+    if eq jump (pc, .bt_quiet_ok);
+    dm(REG_SPI2_STAT) = r5;       /* W1C */
+    r4 = 1;
+    dm(_bulk_quiet) = r4;
+    r4 = dm(_bulk_tur_holds);
+    r4 = r4 + 1;
+    dm(_bulk_tur_holds) = r4;
+    rts;
+.bt_quiet_ok:
+    r4 = BULK_QUIET_TICKS;
     comp(r3, r4);
     if lt rts;
     r3 = dm(_bulk_runs);
@@ -398,9 +506,15 @@ _bulk_tick:
     dm(REG_SPI2_RXCTL) = r3;
     r3 = SPI_TXCTL_TEN;
     dm(REG_SPI2_TXCTL) = r3;
+    r3 = RDY_BIT;                 /* low while the port is re-enabled */
+    dm(REG_PORTB_DATA_CLR) = r3;
     dm(REG_SPI2_CTL) = r4;
     r3 = BULK_IDLE;
     dm(_bulk_state) = r3;
+    /* Port released: RDY back to flow control (FIFO empty = HIGH). */
+    r3 = RDY_BIT;
+    dm(REG_PORTB_FER_SET) = r3;
+    dm(REG_PORTB_DIR_CLR) = r3;
     rts;
 _bulk_tick.end:
 

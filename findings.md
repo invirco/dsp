@@ -6,6 +6,95 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE BULK READ'S STALL: A STRAY WORD IN THE RX FIFO THAT A BUSY HOST NEVER LETS THE FIRMWARE DISCARD; SPI_RDY IS NOW THE HANDSHAKE, 2,000/2,000 AT 0 ms (2026-09-16, session 62 — desk + bench, MW-D24-2)
+
+**Pairs.** Reproduction on the S61 pair (`4a72bd2a` / `d6c763ea`, staged at `~/s62` first). The fix is on the **s62 pair** (`DSP4_TEST_NODES=1`,
+chip1 `57948d77…` 458,564 B, chip2 `251ce3b2…` 309,528 B, maps from this build's `map.xml`, staged at `~/s62`), booted and configured
+D24 twice (`boot.sh`, CHIP_ID 1/2, TEST_NODES). **Shipping:** `TEST_NODES=0` from the final tree is `36daa238` / `3a9c950d`, 451,892 /
+307,980 B, byte for byte S61's shipping build. Every change is inside `#if DSP4_TEST_NODES`. Digital only: the chain, analog and
+AN_EN/CS_M were not touched. Unit found: s60 pair with S60/S61's hand-back cells, `matrix-app` inactive, AN_EN `op pd | hi`, CS_M
+`op pu | hi`. Tools: `MW/D24/DSP/s62/tools/` (`s62_hammer.py`, `s62lib_prep.py`). Data: `MW/D24/DSP/s62/data/`.
+
+**S62-1. The mechanism: the hand-back's EN cycle inside a host transaction leaves the RX FIFO framed one word out, and only a link that stands still gets repaired.**
+*Reproduce.* At stock timing with **0 ms** post-stream wait, 600/600 reads passed. The overlap needs the host's next transaction to be
+on the wire during the 1–3 ms in which the tick restores the port, and the stock resync lands there only by chance (S61: 1 in 389).
+So `s62_hammer.py HOT=8` clocks NOP transactions for 8 ms right after the stream, with no RDY wait, and the overlap happens every
+few streams. **The S61 failure reappeared at stream 7:** the ordinary resync (8 × calibrate) failed with *"cannot phase the parameter
+link: MAGIC never came back"* for **4.27 s**. The raw probe that followed, 50 ms of RDY sampling plus a paced MAGIC read, phased at
+once (MAGIC at bit offset 0 mod 32, echo correct). **`_spi_partial_fix` had gone from 0 to 2**, so the stuck-partial discard in
+`_diag_timer_isr` had fired in that pause. A second run (`STRAT=pause`) failed the same way at stream 55 (4.275 s). **Standing still
+10 ms and re-phasing recovered it in 13 ms.** Over those 200 hot streams the discard fired 46 times, almost all of them silently
+whenever the host happened to pause. RDY read 100 % high throughout: the part is never stalled.
+*Name it.* The part frames requests by **RFIFO full** (two words), not by CS. The restore takes SPI2 EN low, which flushes both FIFOs.
+If the host is half-way through a transaction, the words clocked after EN comes back land alone, and from then on every "request" the
+part assembles is (the previous transaction's word 1, this transaction's word 0), one word out. The host's own repair,
+`SpiLink.realign`, clocks a whole word, so it moves the RX framing and the answer window **together**. The only thing that removes an RX
+word without shifting the answers is the firmware's discard. DSP4_SPI_PARTIAL_FIX2 arms that discard only after 3 ticks with
+`_spi_rx_count` standing still (the D71 fix). **A retrying host never stands still for 3 ms.** S61's tool polled at 2 ms and retried for
+two minutes, and it came back when the traffic stopped. The hub's guess was right about the trigger (the host's next transaction lands
+while the tick hands the port back, with no GO-ack). The slip is an RX framing slip, and "until something resynchronises" means until
+the host goes quiet for ≥ 3 ms. That calibrate's word realign never converges on its own is inferred from the 4.27 s failure, not
+traced word by word. While the stream is framed one out, the part dispatches host words as writes, (0, request word) being a write to
+address 0 = Chan001Gain001. That is also inferred and was not read back.
+*Also seen, benign:* after the same overlaps the collect windows sit in the D74 POST arrangement, or in a third one that
+`calibrate` rejects once and then fixes with its own realign. In the 19 `full` study records the stock reader (calibrate, then MAGIC and CHIP_ID read back) phased every one within 14 ms
+(`stuck_study` records).
+
+**S62-2. The fix at the protocol level: SPI_RDY carries the port's owner, and the tick will not cycle EN while anything clocks.**
+*Firmware* (`src/bulk_read.asm`, `_spi_poll` in `src/main.asm`; TEST_NODES only):
+- While ARMED, `_bulk_rdy_pre` takes PB_05 to **GPIO LOW before the drain**. Flow control's own low (RFIFO full) therefore runs
+  straight into it, with no high glitch between GO landing and GO being decided.
+- GO arms the stream and drives RDY **HIGH = "clock the stream now"** (the GO-ack). Any other request hands the pin back to flow control.
+- On the first quiet tick (DMA stopped, TFIFO empty) the pin goes **LOW = "stream over, port busy"** and TUR is cleared.
+- **The guard:** on each later tick a TUR (clocking an empty TFIFO) restarts the count (`_bulk_tur_holds`). The EN cycle happens only
+  after 3 whole ticks of silence on the wire. Then RX comes back and the pin returns to SPI2_RDY flow control: **HIGH = released**.
+  Every host transaction already waits for RDY high, so none starts during the hand-back. The guard covers the one that sampled RDY
+  just before it fell, and a host that ignores RDY entirely.
+- `_bulk_rdy_hs` in the map tells the host the handshake is there.
+*Host* (`tools/pi/dsp4_bulk.py`):
+- After GO, wait for RDY high (was: sleep 3 ms).
+- After CS rises, look up to 50 ms for the release low, then wait for high, **before** parsing (parsing 16k words outlasts the low).
+  Was: sleep 30 ms.
+- `rephase()`: the ordinary resync proved by a MAGIC read. If that fails, stand still 10 ms, calibrate once and prove again, bounded at
+  **1 s**. It never waits minutes.
+- Images without `_bulk_rdy_hs` keep S61's 3 ms / 30 ms. `dsp4_meascap` picks all of this up unchanged.
+*Adversarial proof on the s62 pair, 16k reads at 10 MHz:*
+
+| run | host behaviour across the hand-back | reads | wrong | retries | re-phases | TUR holds | discards |
+|---|---|---:|---:|---:|---:|---:|---:|
+| smoke | stock | 30 | 0 | 0 | 0 | 0 | 0 |
+| HOTRDY=8 | 18–28 NOPs, each honouring RDY | 300 | 0 | 0 | 0 | 0 | 0 |
+| HOTRAW=8 | 41–52 raw NOPs, **no RDY wait** | 300 | 0 | 0 | 0 | 2,645 | 1 |
+
+The one discard in HOTRAW is a raw NOP that ignored the handshake and still straddled a restore after a ≥ 3 ms gap in its own traffic.
+The firmware repaired it silently and no read failed. A host that honours RDY cannot produce it.
+
+**S62-3. Proof: 2,000 reads at 0 ms extra wait, 0 errors, 0 slips; a read is faster than S61's.**
+Gate 3 (`s62_gate3.jsonl`): a real chirp capture (strip 6, −20 dBFS pk, TEST_MEAS buffer, 16,383 non-zero words) was made static, a
+reference was read by PEEK (15.9 s, sum `48f355ac/2dfb1207`), then 2,000 bulk reads were each compared **word for word** with it:
+**2,000 ok, 0 different, 0 failed, 0 retries, 0 re-phases, 0 release timeouts**. Over the run BULK_ABORT, BULK_ERR, SPI_ERR_COUNT and
+RESP_DROP stayed 0, and the discard counter and TUR holds did not move. 452.7 s wall.
+
+| | S61 (30 ms wait) | S62 handshake |
+|---|---:|---:|
+| GO → clock | 3 ms sleep | GO-ack median **0.03 ms**, max 0.18 |
+| stream end → next transaction | 30 ms sleep | release median **1.76 ms**; 37/2,000 (1.9 %) missed the low and took the 50 ms look |
+| 16k read, median / p99 | 0.278–0.281 s | **0.220 / 0.289 s** |
+| digital capture step (arm + fill + read, `s62lib_prep.py`, 11×) | ~0.5 + 0.25 s | **0.70 s** median (read 0.22), 0 overruns |
+
+Fast battery: S61-3's 26.5 s a channel carried 11 reads at ~0.25 s, and a read is now ~0.22 s, so **≈ 26.2 s a channel**. That is
+unchanged or better, and the rest of the channel is stimulus and settle. Not re-run on MIC 5, because this dispatch kept the chain and
+the analog path untouched.
+*A test trap caught in-session:* the first gate-3 attempt used `_spi_dispatch_c1_spms`, the region the reproduction runs streamed, and
+its peek reference is **1 non-zero word in 16,384**. A word slip over zeros passes both sums. Gate 3 was stopped and re-run on the
+capture buffer. The reproduction runs are unaffected: they detected stalls, not data.
+
+**Hand-back (17:02 BST):** s60 pair rebooted twice (`fe522a7f` / `c56ed0ab`, CHIP_ID 1/2), `s56_setup.py`, then `s60_handback.py`
+**without its `R.chain(0)` line** (chain untouched), then `s60_found.py after_s62` against this session's `found_s62` snapshot:
+**every cell identical** (`s62_found_after.json`). MIC 5 idle read −104.9 dBFS found and −106.3 after. AN_EN `op pd | hi` and CS_M
+`op pu | hi` were read before and after and never written. `matrix-app` inactive as found. `~/s62` holds the handshake pair and tools;
+`~/s61`, `~/s60`, `~/s56` and `~/dspboot` are untouched.
+
 ## THE CAPTURE READOUT: A DMA STREAM ON THE PARAMETER PORT, 16,384 WORDS IN 0.28 s, 0 ERRORS IN 700; THE FAST BATTERY IS 26.5 s A CHANNEL (2026-09-16, session 61 — desk + bench, MW-D24-2)
 
 **Pair:** `s61` (`DSP4_TEST_NODES=1` + `src/bulk_read.asm`; chip1 `4a72bd2a…` 458,304 B, chip2 `d6c763ea…` 309,284 B), staged at

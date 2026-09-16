@@ -13,11 +13,24 @@ THE HANDSHAKE
                                                         1,024 words per ms)
     3. read BULK_SUM1 / BULK_SUM2 / BULK_RUNS
     4. BULK_CTL = 2 (GO) -- the part does not answer it
-    5. CS low, clock (n + 2 + SLACK) words at `hz`, CS high
-    6. find BULK_MAGIC at any byte offset, then n, then the n words
-    7. check the two running sums against step 3
-    8. wait for the tick to give the port back (BULK_CTL reads 0 and
-       BULK_RUNS has moved), resync the link
+    5. wait for SPI_RDY HIGH = the GO-ack (S62; the pin is held low from
+       the moment GO lands until the stream is armed)
+    6. CS low, clock (n + 2 + SLACK) words at `hz`, CS high
+    7. wait for SPI_RDY LOW (the tick has seen the stream end) and then
+       HIGH (the port is back on the parameter link) -- no transaction in
+       between, so the restore's EN cycle can never land inside one
+    8. find BULK_MAGIC at any byte offset, then n, then the n words
+    9. check the two running sums against step 3
+   10. rephase the link, confirm BULK_CTL reads 0 and BULK_RUNS has moved
+
+On an image without `_bulk_rdy_hs` (the S61 pair) steps 5 and 7 fall back to
+S61's fixed waits (3 ms and DSP4_BULK_POST_S).
+
+RECOVERY (S62-2). If the link will not phase after a stream it is almost
+always one stray word in the part's RX FIFO: every request is then framed a
+word out, and the firmware's stuck-partial discard only fires after the link
+has stood still for 3 ms. `rephase()` stands still 10 ms, re-phases and
+proves it with a MAGIC read, up to REPHASE_S; it never waits minutes.
 
 THE ERROR CHECK. s1 = sum w, s2 = sum of the running s1, both mod 2^32,
 computed by the DSP over the memory BEFORE the stream and by the host over
@@ -41,11 +54,36 @@ LINK_HZ = 1_000_000            # what the parameter link is left at
 # The tick gives the port back 97-101 ms after GO at 10 MHz, 1-3 ms after the
 # host's last clock, later when a block delays the tick. A 4 ms wait overlapped
 # it once in 389 streams and left the link unphaseable for minutes (S61-2).
+# Only used against images WITHOUT the RDY handshake (S61 pair).
 POST_S = float(__import__('os').environ.get('DSP4_BULK_POST_S', '0.030'))
+GO_S = 0.003
+RDY_TIMEOUT_S = 1.0          # a missing edge is a failure, not a wait
+LOW_SEEN_S = 0.050           # look this long for the release low, then go on
+REPHASE_S = 1.0              # bound on rephase()
+STILL_S = 0.010              # > 3 ticks: lets the stuck-partial discard fire
+DIAG_MAGIC = 0xD5B40001
 
 
 def available(sc):
     return '_bulk_state' in sc.sym
+
+
+def handshake(sc):
+    """True when the image drives SPI_RDY as the bulk handshake (S62)."""
+    return '_bulk_rdy_hs' in sc.sym
+
+
+def _wait_rdy(link, level, timeout=RDY_TIMEOUT_S):
+    """Poll SPI_RDY for `level` (1 = the link's ready sense). Returns the
+    seconds it took, or None on timeout."""
+    want = link.rdy_ready if level else 1 - link.rdy_ready
+    t0 = time.monotonic()
+    end = t0 + timeout
+    while True:
+        if link.rdy.get_value() == want:
+            return time.monotonic() - t0
+        if time.monotonic() > end:
+            return None
 
 
 def sums(words):
@@ -87,20 +125,45 @@ def _wait_state(sc, want, timeout):
     return False
 
 
-def _resync(sc):
-    for _ in range(8):
+def rephase(sc, limit=REPHASE_S):
+    """Put the parameter link back in phase, bounded. Returns the seconds a
+    repair took (0.0 when the first resync phased it). Raises IOError after
+    `limit`.
+
+    The first attempt is the ordinary resync. If that cannot phase, the usual
+    cause (S62-1) is a stray word in the part's RX FIFO, so every request is
+    framed one word out -- and host traffic keeps the firmware's discard
+    disarmed, which is how S61 stayed unphaseable for two minutes. So: stand
+    still STILL_S, re-phase once, and believe it only if MAGIC reads back."""
+    t0 = time.monotonic()
+    try:
+        sc.d.resync()
+        if sc.d.read(0xE000) == DIAG_MAGIC:
+            return 0.0
+    except (IOError, OSError):
+        pass
+    last = None
+    while time.monotonic() - t0 < limit:
+        time.sleep(STILL_S)
         try:
-            sc.d.resync()
-            return
-        except (IOError, OSError):
-            time.sleep(0.01)
-    sc.d.resync()
+            sc.d.phase = None
+            sc.d.calibrate(tries=1)
+            if sc.d.read(0xE000) == DIAG_MAGIC:
+                return time.monotonic() - t0
+            last = 'MAGIC read back wrong'
+        except (IOError, OSError) as e:
+            last = str(e)[:80]
+    raise IOError('link would not re-phase in %.1f s: %s' % (limit, last))
+
+
+_resync = rephase                # S61 name, kept for callers
 
 
 def read(sc, addr, n, hz=DEFAULT_HZ, tries=3, log=None):
     """Stream n words from word address `addr`. Returns (words, info)."""
     link = sc.d.link
-    info = {'addr': addr, 'n': n, 'hz': hz, 'attempts': []}
+    hs = handshake(sc) and link.rdy is not None
+    info = {'addr': addr, 'n': n, 'hz': hz, 'handshake': hs, 'attempts': []}
     t_all = time.time()
     for attempt in range(tries):
         a = {}
@@ -119,7 +182,16 @@ def read(sc, addr, n, hz=DEFAULT_HZ, tries=3, log=None):
         t1 = time.time()
         link.wait_ready()
         link.xfer(A_CTL, 2)                     # GO: unanswered
-        time.sleep(0.003)
+        if hs:
+            dt = _wait_rdy(link, 1)             # GO-ack: armed, clock now
+            if dt is None:
+                a['fail'] = 'no GO-ack on SPI_RDY'
+                info['attempts'].append(a)
+                a['rephase_s'] = round(rephase(sc), 3)
+                continue
+            a['go_ack_ms'] = round(dt * 1000, 2)
+        else:
+            time.sleep(GO_S)
         nbytes = 4 * (n + 2 + SLACK)
         link.spi.max_speed_hz = int(hz)
         link.line.set_value(0)
@@ -130,12 +202,32 @@ def read(sc, addr, n, hz=DEFAULT_HZ, tries=3, log=None):
             link.spi.max_speed_hz = LINK_HZ
         a['t_stream_s'] = round(time.time() - t1, 3)
 
+        # Let the port come back BEFORE parsing (parsing 16k words takes
+        # longer than the tick's low phase), so a failed attempt also leaves a
+        # working link for the retry.
+        if hs:
+            dl = _wait_rdy(link, 0, LOW_SEEN_S)  # the tick saw the stream end
+            if dl is None:
+                # Missed it (or a late tick): not an error. The firmware only
+                # restores after 3 ms of silence on the wire, and every
+                # transaction below waits for RDY high.
+                a['release_low_unseen'] = True
+                dl = LOW_SEEN_S
+            dh = _wait_rdy(link, 1)
+            if dh is None:
+                a['rdy_release'] = 'RDY stayed low'
+            else:
+                a['release_ms'] = round((dl + dh) * 1000, 2)
+        else:
+            time.sleep(POST_S)
         words, off = _parse(rx, n)
         a['header_at_byte'] = off
-        # Give the port back before judging, so a failed attempt leaves a
-        # working link for the retry.
-        time.sleep(POST_S)
-        _resync(sc)
+        try:
+            a['rephase_s'] = round(rephase(sc), 3)
+        except IOError as e:
+            a['fail'] = str(e)
+            info['attempts'].append(a)
+            continue
         if not _wait_state(sc, 0, 4.0):
             a['fail'] = 'port never returned (state %s)' % sc.rd(A_CTL)
             info['attempts'].append(a)

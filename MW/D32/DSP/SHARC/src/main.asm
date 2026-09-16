@@ -235,6 +235,7 @@
  *--------------------------------------------------------------------*/
 #if DSP4_TEST_NODES
 .extern _bulk_state;
+.extern _bulk_rdy_pre, _bulk_rdy_post;
 #endif
 .global _spi_poll;
 _spi_poll:
@@ -265,7 +266,13 @@ _spi_poll:
     r1 = 0x00004000;               /* RFS = 4 = Full: a whole request */
     comp(r0, r1);
     if ne jump (pc, .spi_poll_out);
+#if DSP4_TEST_NODES
+    call _bulk_rdy_pre;            /* S62: RDY is the bulk handshake */
+#endif
     call _spi2_rx_work;            /* call, not tail-jump: the flag below */
+#if DSP4_TEST_NODES
+    call _bulk_rdy_post;
+#endif
 .spi_poll_out:
     r0 = 0;
     dm(_spi_poll_busy) = r0;
