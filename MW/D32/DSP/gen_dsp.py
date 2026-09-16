@@ -492,18 +492,17 @@ def _parse_node(node):
 def expand_gain(node, cat, inst):
     chip, pg, base, nid, ramp = _parse_node(node)
     # 4 SPI words: gain_coeff, polarity, phantom, input_sel
-    add_cell(cn(cat, inst, 'Gain', 1), chip, pg, base,
-             '0=0/127=60/[Lin]', 'GainFast')
+    add_cell(cn(cat, inst, 'Gain', 1), chip, pg, base, ramp_profile='GainFast')
     add_dispatch(chip, base, f'_gain_coeff_{nid}', f'{nid} gain coeff')
 
-    add_cell(cn(cat, inst, 'Pol', 1), chip, pg, base + 1, '', 'InstantCtl')
+    add_cell(cn(cat, inst, 'Pol', 1), chip, pg, base + 1, ramp_profile='InstantCtl')
     add_dispatch(chip, base + 1, f'_polarity_{nid}', f'{nid} polarity')
 
-    add_cell(cn(cat, inst, 'Phantom', 1), chip, pg, base + 2, '', 'InstantCtl',
+    add_cell(cn(cat, inst, 'Phantom', 1), chip, pg, base + 2, ramp_profile='InstantCtl',
              notes='MCU hardware control')
     add_dispatch(chip, base + 2, None, 'phantom (MCU-only)')
 
-    add_cell(cn(cat, inst, 'InputSel', 1), chip, pg, base + 3, '', 'InstantCtl',
+    add_cell(cn(cat, inst, 'InputSel', 1), chip, pg, base + 3, ramp_profile='InstantCtl',
              notes='MCU hardware control')
     add_dispatch(chip, base + 3, None, 'input_sel (MCU-only)')
 
@@ -512,19 +511,16 @@ def expand_gain(node, cat, inst):
 def expand_hpf_lpf(node, cat, inst):
     chip, pg, base, nid, ramp = _parse_node(node)
     # 12 SPI words: HPF biquad[5] + swap_pending + LPF biquad[5] + swap_pending
-    add_cell(cn(cat, inst, 'EqHpf', 1), chip, pg, base,
-             '0=20/64=1000/[Log]', 'EqSafe', notes='HPF biquad coeff base')
+    add_cell(cn(cat, inst, 'EqHpf', 1), chip, pg, base, ramp_profile='EqSafe', notes='HPF biquad coeff base')
     add_dispatch_block(chip, base, f'_hpf_coeffs_next_{nid}', 5, f'{nid} HPF coeff')
     add_dispatch(chip, base + 5, f'_hpf_swap_pending_{nid}', f'{nid} HPF swap trigger')
 
-    add_cell(cn(cat, inst, 'EqLpf', 1), chip, pg, base + 6,
-             '0=1000/127=20000/[Log]', 'EqSafe', notes='LPF biquad coeff base')
+    add_cell(cn(cat, inst, 'EqLpf', 1), chip, pg, base + 6, ramp_profile='EqSafe', notes='LPF biquad coeff base')
     add_dispatch_block(chip, base + 6, f'_lpf_coeffs_next_{nid}', 5, f'{nid} LPF coeff')
     add_dispatch(chip, base + 11, f'_lpf_swap_pending_{nid}', f'{nid} LPF swap trigger')
 
     # MCU-only cells (no SPI address — slope determines coefficients)
-    add_cell(cn(cat, inst, 'EqHpfSlope', 1), chip, pg, base,
-             '', 'InstantCtl', notes='MCU-only; shares base addr with EqHpf')
+    add_cell(cn(cat, inst, 'EqHpfSlope', 1), chip, pg, base, ramp_profile='InstantCtl', notes='MCU-only; shares base addr with EqHpf')
 
 
 # ── EQ_BIQUAD ────────────────────────────────────────────────────────────
@@ -536,14 +532,9 @@ def expand_eq_biquad(node, cat, inst):
     # Per-band cells all point to band's coefficient base
     for b in range(1, bands + 1):
         band_base = base + (b - 1) * 5
-        tbl_freq = {1: '0=20/254=200/[Log]', 2: '0=100/254=1000/[Log]',
-                    3: '0=800/254=5000/[Log]', 4: '0=3000/254=20000/[Log]'}
-        add_cell(cn(cat, inst, 'EqFreq', b), chip, pg, band_base,
-                 tbl_freq.get(b, ''), 'EqSafe', notes=f'Band {b} coeff base')
-        add_cell(cn(cat, inst, 'EqGain', b), chip, pg, band_base,
-                 '0=-15/60=15/[Lin]', 'EqSafe', notes=f'Band {b} (same base)')
-        add_cell(cn(cat, inst, 'EqQ', b), chip, pg, band_base,
-                 '0=0.1/14=10/[Log]', 'EqSafe', notes=f'Band {b} (same base)')
+        add_cell(cn(cat, inst, 'EqFreq', b), chip, pg, band_base, ramp_profile='EqSafe', notes=f'Band {b} coeff base')
+        add_cell(cn(cat, inst, 'EqGain', b), chip, pg, band_base, ramp_profile='EqSafe', notes=f'Band {b} (same base)')
+        add_cell(cn(cat, inst, 'EqQ', b), chip, pg, band_base, ramp_profile='EqSafe', notes=f'Band {b} (same base)')
 
     # HPF cell — for non-channel contexts (Aux/Grp/Sub/Main) where there's
     # no separate HPF_LPF node, HPF is band-1 of the EQ biquad.
@@ -577,21 +568,19 @@ def expand_eq_biquad(node, cat, inst):
         if cat == 'Main' or cat in _MAIN_OUT:
             for b in range(1, bands + 1):
                 band_base = base + (b - 1) * 5
-                add_cell(cn(cat, inst, 'EqHpf', b), chip, pg, band_base,
-                         '0=20/64=1000/[Log]', 'EqSafe',
+                add_cell(cn(cat, inst, 'EqHpf', b), chip, pg, band_base, ramp_profile='EqSafe',
                          notes=f'HPF via EQ band {b}')
         else:
-            add_cell(cn(cat, inst, 'EqHpf', 1), chip, pg, base,
-                     '0=20/64=1000/[Log]', 'EqSafe', notes='HPF via EQ band 1')
+            add_cell(cn(cat, inst, 'EqHpf', 1), chip, pg, base, ramp_profile='EqSafe', notes='HPF via EQ band 1')
 
     # Shelf cells (band 1 and 4)
-    add_cell(cn(cat, inst, 'EqShelf', 1), chip, pg, base, '', 'InstantCtl',
+    add_cell(cn(cat, inst, 'EqShelf', 1), chip, pg, base, ramp_profile='InstantCtl',
              notes='Shelf mode band 1')
-    add_cell(cn(cat, inst, 'EqShelf', 2), chip, pg, base + 15, '', 'InstantCtl',
+    add_cell(cn(cat, inst, 'EqShelf', 2), chip, pg, base + 15, ramp_profile='InstantCtl',
              notes='Shelf mode band 4')
 
     # EqOn
-    add_cell(cn(cat, inst, 'EqOn', 1), chip, pg, base + 21, '', 'InstantCtl')
+    add_cell(cn(cat, inst, 'EqOn', 1), chip, pg, base + 21, ramp_profile='InstantCtl')
 
     # Dispatch: coefficients staging buffer
     add_dispatch_block(chip, base, f'_eq_coeffs_next_{nid}', 20, f'{nid} EQ coeff')
@@ -607,35 +596,32 @@ def expand_gate(node, cat, inst):
     chip, pg, base, nid, ramp = _parse_node(node)
     # 16 SPI words
     params = [
-        ('GateOn',        0,  '',                        'InstantCtl', f'_gate_on_{nid}'),
-        ('GateThr',       1,  '0=-80/127=0/[Lin]',      'DynSafe',   f'_gate_threshold_{nid}'),
-        ('GateAtt',       2,  '0=0.1/127=250/[Log]',    'DynSafe',   f'_gate_attack_{nid}'),
-        ('GateHold',      3,  '0=0/127=2000/[Log]',     'DynSafe',   f'_gate_hold_{nid}'),
-        ('GateRel',       4,  '0=50/127=5000/[Log]',    'DynSafe',   f'_gate_release_{nid}'),
-        ('GateRng',       5,  '0=0/127=60/[Lin]',       'DynSafe',   f'_gate_range_{nid}'),
-        ('GateKey',       6,  '',                        'InstantCtl', f'_gate_key_src_{nid}'),
-        ('GateDetSrc',    7,  '',                        'InstantCtl', f'_gate_det_src_{nid}'),
-        ('GateFilterOn',  8,  '',                        'InstantCtl', f'_gate_filter_on_{nid}'),
+        ('GateOn',        0,  'InstantCtl', f'_gate_on_{nid}'),
+        ('GateThr',       1,  'DynSafe',   f'_gate_threshold_{nid}'),
+        ('GateAtt',       2,  'DynSafe',   f'_gate_attack_{nid}'),
+        ('GateHold',      3,  'DynSafe',   f'_gate_hold_{nid}'),
+        ('GateRel',       4,  'DynSafe',   f'_gate_release_{nid}'),
+        ('GateRng',       5,  'DynSafe',   f'_gate_range_{nid}'),
+        ('GateKey',       6,  'InstantCtl', f'_gate_key_src_{nid}'),
+        ('GateDetSrc',    7,  'InstantCtl', f'_gate_det_src_{nid}'),
+        ('GateFilterOn',  8,  'InstantCtl', f'_gate_filter_on_{nid}'),
     ]
-    for suffix, off, tbl, rp, asm in params:
-        add_cell(cn(cat, inst, suffix, 1), chip, pg, base + off, tbl, rp)
+    for suffix, off, rp, asm in params:
+        add_cell(cn(cat, inst, suffix, 1), chip, pg, base + off, ramp_profile=rp)
         add_dispatch(chip, base + off, asm, f'{nid} {suffix}')
 
     # Sidechain filter coefficients: HPF[5] + LPF[5] = 10 words at offsets 9-13, 14-..
     # But only 16 - 9 = 7 words left. Actually: filter HPF freq/LPF freq/Q are MCU-computed.
     # Gate filter uses direct biquad storage, not staging buffer.
-    add_cell(cn(cat, inst, 'GateFilterHpf', 1), chip, pg, base + 9,
-             '0=20/64=1000/[Log]', 'InstantCtl', notes='Sidechain HPF')
+    add_cell(cn(cat, inst, 'GateFilterHpf', 1), chip, pg, base + 9, ramp_profile='InstantCtl', notes='Sidechain HPF')
     add_dispatch_block(chip, base + 9, f'_gate_filter_hpf_{nid}', 5, f'{nid} GateFilter HPF')
 
-    add_cell(cn(cat, inst, 'GateFilterLpf', 1), chip, pg, base + 14,
-             '0=500/127=20000/[Log]', 'InstantCtl', notes='Sidechain LPF coeff base')
+    add_cell(cn(cat, inst, 'GateFilterLpf', 1), chip, pg, base + 14, ramp_profile='InstantCtl', notes='Sidechain LPF coeff base')
     add_dispatch(chip, base + 14, f'_gate_filter_lpf_{nid}', f'{nid} GateFilter LPF[0]')
     add_dispatch(chip, base + 15, f'_gate_filter_lpf_{nid} + 1', f'{nid} GateFilter LPF[1]')
     # Note: only 2 of 5 LPF coefficients fit in 16 words.
     # The Q cell is MCU-side (computes coefficients):
-    add_cell(cn(cat, inst, 'GateFilterQ', 1), chip, pg, base + 9,
-             '0=0.1/14=10/[Log]', 'InstantCtl', notes='MCU-computed, shares HPF base')
+    add_cell(cn(cat, inst, 'GateFilterQ', 1), chip, pg, base + 9, ramp_profile='InstantCtl', notes='MCU-computed, shares HPF base')
 
 
 # ── COMPRESSOR ────────────────────────────────────────────────────────────
@@ -643,46 +629,42 @@ def expand_compressor(node, cat, inst):
     chip, pg, base, nid, ramp = _parse_node(node)
     # 20 SPI words
     params = [
-        ('CompOn',        0,  '',                        'InstantCtl', f'_comp_on_{nid}'),
-        ('CompThr',       1,  '0=-60/140=10/[Lin]',     'DynSafe',   f'_comp_threshold_{nid}'),
-        ('CompRat',       2,  '0=1/127=30/[Log]',       'DynSafe',   f'_comp_ratio_{nid}'),
-        ('CompAtt',       3,  '0=0/254=250/[Log]',      'DynSafe',   f'_comp_attack_{nid}'),
-        ('CompRel',       4,  '0=5/254=5000/[Log]',     'DynSafe',   f'_comp_release_{nid}'),
-        ('CompMake',      5,  '0=0/127=20/[Lin]',       'GainFast',  f'_comp_makeup_{nid}'),
-        ('CompKnee',      6,  '',                        'InstantCtl', f'_comp_knee_{nid}'),
-        ('CompPar',       7,  '0=0/127=100/[Lin]',      'GainFast',  f'_comp_parallel_{nid}'),
-        ('CompType',      8,  '',                        'InstantCtl', f'_comp_type_{nid}'),
-        ('CompKey',       9,  '',                        'InstantCtl', f'_comp_key_src_{nid}'),
-        ('CompDetSrc',   10,  '',                        'InstantCtl', f'_comp_det_src_{nid}'),
-        ('CompLimMode',  11,  '',                        'InstantCtl', f'_comp_lim_mode_{nid}'),
-        ('CompEqPos',    12,  '',                        'InstantCtl', f'_comp_eq_pos_{nid}'),
-        ('CompFilterOn', 13,  '',                        'InstantCtl', f'_comp_filter_on_{nid}'),
+        ('CompOn',        0,  'InstantCtl', f'_comp_on_{nid}'),
+        ('CompThr',       1,  'DynSafe',   f'_comp_threshold_{nid}'),
+        ('CompRat',       2,  'DynSafe',   f'_comp_ratio_{nid}'),
+        ('CompAtt',       3,  'DynSafe',   f'_comp_attack_{nid}'),
+        ('CompRel',       4,  'DynSafe',   f'_comp_release_{nid}'),
+        ('CompMake',      5,  'GainFast',  f'_comp_makeup_{nid}'),
+        ('CompKnee',      6,  'InstantCtl', f'_comp_knee_{nid}'),
+        ('CompPar',       7,  'GainFast',  f'_comp_parallel_{nid}'),
+        ('CompType',      8,  'InstantCtl', f'_comp_type_{nid}'),
+        ('CompKey',       9,  'InstantCtl', f'_comp_key_src_{nid}'),
+        ('CompDetSrc',   10,  'InstantCtl', f'_comp_det_src_{nid}'),
+        ('CompLimMode',  11,  'InstantCtl', f'_comp_lim_mode_{nid}'),
+        ('CompEqPos',    12,  'InstantCtl', f'_comp_eq_pos_{nid}'),
+        ('CompFilterOn', 13,  'InstantCtl', f'_comp_filter_on_{nid}'),
     ]
-    for suffix, off, tbl, rp, asm in params:
-        add_cell(cn(cat, inst, suffix, 1), chip, pg, base + off, tbl, rp)
+    for suffix, off, rp, asm in params:
+        add_cell(cn(cat, inst, suffix, 1), chip, pg, base + off, ramp_profile=rp)
         add_dispatch(chip, base + off, asm, f'{nid} {suffix}')
 
     # Sidechain filter coefficients: HPF[5]+LPF[5] at offsets 14-18, 19 only 1 left
-    add_cell(cn(cat, inst, 'CompFilterHpf', 1), chip, pg, base + 14,
-             '0=20/64=1000/[Log]', 'InstantCtl')
+    add_cell(cn(cat, inst, 'CompFilterHpf', 1), chip, pg, base + 14, ramp_profile='InstantCtl')
     add_dispatch_block(chip, base + 14, f'_comp_filter_coeffs_{nid}', 5, f'{nid} CompFilter HPF')
     add_dispatch(chip, base + 19, f'_comp_filter_coeffs_{nid} + 5', f'{nid} CompFilter LPF[0]')
 
-    add_cell(cn(cat, inst, 'CompFilterLpf', 1), chip, pg, base + 14,
-             '0=500/127=20000/[Log]', 'InstantCtl', notes='MCU-computed, shares filter base')
-    add_cell(cn(cat, inst, 'CompFilterQ', 1), chip, pg, base + 14,
-             '0=0.1/14=10/[Log]', 'InstantCtl', notes='MCU-computed')
+    add_cell(cn(cat, inst, 'CompFilterLpf', 1), chip, pg, base + 14, ramp_profile='InstantCtl', notes='MCU-computed, shares filter base')
+    add_cell(cn(cat, inst, 'CompFilterQ', 1), chip, pg, base + 14, ramp_profile='InstantCtl', notes='MCU-computed')
 
 
 # ── TUBE_SAT (placeholder for future channel plugins) ─────────────────────
 def expand_tube_sat(node, cat, inst):
     chip, pg, base, nid, ramp = _parse_node(node)
     # 2 SPI words: on + saturation
-    add_cell(cn(cat, inst, 'TubeOn', 1), chip, pg, base, '', 'InstantCtl')
+    add_cell(cn(cat, inst, 'TubeOn', 1), chip, pg, base, ramp_profile='InstantCtl')
     add_dispatch(chip, base, f'_tube_on_{nid}', f'{nid} on')
 
-    add_cell(cn(cat, inst, 'TubeSat', 1), chip, pg, base + 1,
-             '0=0/127=100/[Lin]', 'GainFast')
+    add_cell(cn(cat, inst, 'TubeSat', 1), chip, pg, base + 1, ramp_profile='GainFast')
     add_dispatch(chip, base + 1, f'_tube_sat_{nid}', f'{nid} saturation')
 
 
@@ -692,8 +674,7 @@ def expand_delay(node, cat, inst):
     params = parse_params(node.get('params', ''))
     max_ms = params.get('max_ms', '250')
     # 2 SPI words: delay_ms + pool_slot
-    add_cell(cn(cat, inst, 'Delay', 1), chip, pg, base,
-             f'0=0/127={max_ms}/[Log]', 'InstantCtl')
+    add_cell(cn(cat, inst, 'Delay', 1), chip, pg, base, ramp_profile='InstantCtl')
     add_dispatch(chip, base, f'_dly_read_offset_{nid}', f'{nid} delay offset')
     add_dispatch(chip, base + 1, f'_dly_pool_slot_{nid}', f'{nid} pool_slot')
 
@@ -709,18 +690,16 @@ def expand_fader_pan(node, cat, inst):
     pan_suffix = 'Pan'
     mute_suffix = 'Mute'
 
-    add_cell(cn(cat, inst, level_suffix, 1), chip, pg, base,
-             'dB:Off:-50@31:-30@63:-10@127:10', 'GainFast')
+    add_cell(cn(cat, inst, level_suffix, 1), chip, pg, base, ramp_profile='GainFast')
     add_dispatch(chip, base, f'_fdr_level_{nid}', f'{nid} level')
 
     if cat in ('Chan', 'Aux'):
-        add_cell(cn(cat, inst, pan_suffix, 1), chip, pg, base + 1,
-                 'Pan:dB:0:Off', 'GainFast')
+        add_cell(cn(cat, inst, pan_suffix, 1), chip, pg, base + 1, ramp_profile='GainFast')
         add_dispatch(chip, base + 1, f'_fdr_pan_{nid}', f'{nid} pan')
     else:
         add_dispatch(chip, base + 1, f'_fdr_pan_{nid}', f'{nid} pan (unused)')
 
-    add_cell(cn(cat, inst, mute_suffix, 1), chip, pg, base + 2, '', 'InstantCtl')
+    add_cell(cn(cat, inst, mute_suffix, 1), chip, pg, base + 2, ramp_profile='InstantCtl')
     add_dispatch(chip, base + 2, f'_fdr_mute_{nid}', f'{nid} mute')
 
     # Dca and DcaOn are HOST-MANAGED (PW ruling 2026-08-30, Q2 closed).
@@ -763,11 +742,11 @@ def expand_fader_pan(node, cat, inst):
                      f'lcr_page/lcr_addr — gen_dsp_csv.py allocates that '
                      f'block; refusing to guess an address.')
         l_pg, l_a = int(prm['lcr_page']), int(prm['lcr_addr'])
-        add_cell(cn(cat, inst, 'LcrOn', 1), chip, l_pg, l_a, '', 'InstantCtl')
+        add_cell(cn(cat, inst, 'LcrOn', 1), chip, l_pg, l_a, ramp_profile='InstantCtl')
         add_dispatch(chip, l_a, f'_fdr_lcr_on_{nid}', f'{nid} LcrOn')
     if 'syslaw_page' in prm:
         s_pg, s_a = int(prm['syslaw_page']), int(prm['syslaw_addr'])
-        add_cell('Sys001LcrLaw001', chip, s_pg, s_a, '', 'InstantCtl',
+        add_cell('Sys001LcrLaw001', chip, s_pg, s_a, ramp_profile='InstantCtl',
                  notes='0=hard LCR 1=three-bus constant power (PW R5)')
         add_dispatch(chip, s_a, '_sys_lcr_law', 'Sys LcrLaw (whole desk)')
 
@@ -778,50 +757,46 @@ def expand_routing(node, cat, inst):
     # 60 SPI words: main_on + sub_on + grp_on×4 + aux_on×12 + aux_send×12
     # + aux_pick×12 + fx_on×6 + fx_send×6 + fx_pick×6
     off = 0
-    add_cell(cn(cat, inst, 'MainOn', 1), chip, pg, base + off, '', 'InstantCtl')
+    add_cell(cn(cat, inst, 'MainOn', 1), chip, pg, base + off, ramp_profile='InstantCtl')
     add_dispatch(chip, base + off, f'_rtg_main_on_{nid}', f'{nid} MainOn')
     off += 1
 
-    add_cell(cn(cat, inst, 'CtrOn', 1), chip, pg, base + off, '', 'InstantCtl')
+    add_cell(cn(cat, inst, 'CtrOn', 1), chip, pg, base + off, ramp_profile='InstantCtl')
     add_dispatch(chip, base + off, f'_rtg_sub_on_{nid}', f'{nid} SubOn')
     off += 1
 
     for g in range(1, 5):
-        add_cell(cn(cat, inst, 'GrpOn', g), chip, pg, base + off, '', 'InstantCtl')
+        add_cell(cn(cat, inst, 'GrpOn', g), chip, pg, base + off, ramp_profile='InstantCtl')
         add_dispatch(chip, base + off, f'_rtg_grp_on_{nid} + {g-1}', f'{nid} GrpOn[{g}]')
         off += 1
 
     for a in range(1, 13):
-        add_cell(cn(cat, inst, 'AuxOn', a), chip, pg, base + off, '', 'InstantCtl')
+        add_cell(cn(cat, inst, 'AuxOn', a), chip, pg, base + off, ramp_profile='InstantCtl')
         add_dispatch(chip, base + off, f'_rtg_aux_on_{nid} + {a-1}', f'{nid} AuxOn[{a}]')
         off += 1
 
     for a in range(1, 13):
-        add_cell(cn(cat, inst, 'AuxSend', a), chip, pg, base + off,
-                 'dB:Off:-50@31:-30@63:-10@127:0', 'GainFast')
+        add_cell(cn(cat, inst, 'AuxSend', a), chip, pg, base + off, ramp_profile='GainFast')
         add_dispatch(chip, base + off, f'_rtg_aux_send_{nid} + {a-1}', f'{nid} AuxSend[{a}]')
         off += 1
 
     for a in range(1, 13):
-        add_cell(cn(cat, inst, 'AuxPick', a), chip, pg, base + off,
-                 '', 'InstantCtl', notes='Pickoff: 0=PreEQ 1=PostEQ 2=PreFdr 3=PostFdr')
+        add_cell(cn(cat, inst, 'AuxPick', a), chip, pg, base + off, ramp_profile='InstantCtl', notes='Pickoff: 0=PreEQ 1=PostEQ 2=PreFdr 3=PostFdr')
         add_dispatch(chip, base + off, f'_rtg_aux_pick_{nid} + {a-1}', f'{nid} AuxPick[{a}]')
         off += 1
 
     for x in range(1, 7):
-        add_cell(cn(cat, inst, 'FxOn', x), chip, pg, base + off, '', 'InstantCtl')
+        add_cell(cn(cat, inst, 'FxOn', x), chip, pg, base + off, ramp_profile='InstantCtl')
         add_dispatch(chip, base + off, f'_rtg_fx_on_{nid} + {x-1}', f'{nid} FxOn[{x}]')
         off += 1
 
     for x in range(1, 7):
-        add_cell(cn(cat, inst, 'FxSend', x), chip, pg, base + off,
-                 'dB:Off:-50@31:-30@63:-10@127:0', 'GainFast')
+        add_cell(cn(cat, inst, 'FxSend', x), chip, pg, base + off, ramp_profile='GainFast')
         add_dispatch(chip, base + off, f'_rtg_fx_send_{nid} + {x-1}', f'{nid} FxSend[{x}]')
         off += 1
 
     for x in range(1, 7):
-        add_cell(cn(cat, inst, 'FxPick', x), chip, pg, base + off,
-                 '', 'InstantCtl', notes='Pickoff: 0=PreEQ 1=PostEQ 2=PreFdr 3=PostFdr')
+        add_cell(cn(cat, inst, 'FxPick', x), chip, pg, base + off, ramp_profile='InstantCtl', notes='Pickoff: 0=PreEQ 1=PostEQ 2=PreFdr 3=PostFdr')
         add_dispatch(chip, base + off, f'_rtg_fx_pick_{nid} + {x-1}', f'{nid} FxPick[{x}]')
         off += 1
 
@@ -849,15 +824,13 @@ def expand_routing(node, cat, inst):
         m_base = int(prm['mtx_addr'])
         m_off = 0
         for k in range(1, n_mtx + 1):
-            add_cell(cn(cat, inst, 'MatrixOn', k), chip, m_pg, m_base + m_off,
-                     '', 'InstantCtl')
+            add_cell(cn(cat, inst, 'MatrixOn', k), chip, m_pg, m_base + m_off, ramp_profile='InstantCtl')
             add_dispatch(chip, m_base + m_off,
                          f'_rtg_mtx_on_{nid} + {k-1}', f'{nid} MatrixOn[{k}]')
             m_off += 1
         for k in range(1, n_mtx + 1):
             add_cell(cn(cat, inst, 'MatrixSend', k), chip, m_pg,
-                     m_base + m_off,
-                     'dB:Off:-50@31:-30@63:-10@127:0', 'GainFast')
+                     m_base + m_off, ramp_profile='GainFast')
             add_dispatch(chip, m_base + m_off,
                          f'_rtg_mtx_send_{nid} + {k-1}',
                          f'{nid} MatrixSend[{k}]')
@@ -895,8 +868,7 @@ def expand_geq(node, cat, inst):
     # tools/dsp/geq_ref.py) and these cells carry what the contract says
     # they carry.
     for b in range(1, GEQ_BANDS + 1):
-        add_cell(cn(cat, inst, 'Geq', b), chip, pg, base + (b - 1),
-                 '0=-12/127=12/[Lin]', 'EqSafe')
+        add_cell(cn(cat, inst, 'Geq', b), chip, pg, base + (b - 1), ramp_profile='EqSafe')
 
     add_dispatch_block(chip, base, f'_geq_gains_{nid}', GEQ_BANDS,
                        f'{nid} GEQ band gain')
@@ -908,7 +880,7 @@ def expand_anti_fb(node, cat, inst):
     chip, pg, base, nid, ramp = _parse_node(node)
     # 24 SPI words: on(1) + ctrl_on(1) + notch_freq[6] + notch_gain[6] + notch_q[6] + coeffs staging
     off = 0
-    add_cell(cn(cat, inst, 'AntiFbOn', 1), chip, pg, base + off, '', 'InstantCtl')
+    add_cell(cn(cat, inst, 'AntiFbOn', 1), chip, pg, base + off, ramp_profile='InstantCtl')
     add_dispatch(chip, base + off, f'_afb_on_{nid}', f'{nid} AntiFbOn')
     # THE ON SWITCH RAISES THE DESIGN, because it is what the design
     # reads: off writes the compiled identity into every stage, so a node
@@ -918,25 +890,22 @@ def expand_anti_fb(node, cat, inst):
     add_dirty_block(chip, base + off, 1, f'_afb_dirty_{nid}')
     off += 1
 
-    add_cell(cn(cat, inst, 'AntiFbCtrlOn', 1), chip, pg, base + off, '', 'InstantCtl')
+    add_cell(cn(cat, inst, 'AntiFbCtrlOn', 1), chip, pg, base + off, ramp_profile='InstantCtl')
     add_dispatch(chip, base + off, f'_afb_ctrl_on_{nid}', f'{nid} AntiFbCtrlOn')
     off += 1
 
     for n in range(1, 7):
-        add_cell(cn(cat, inst, 'AntiFbNotchFreq', n), chip, pg, base + off,
-                 '0=40/127=12000/[Log]', 'InstantCtl')
+        add_cell(cn(cat, inst, 'AntiFbNotchFreq', n), chip, pg, base + off, ramp_profile='InstantCtl')
         add_dispatch(chip, base + off, f'_afb_notch_freq_{nid} + {n-1}', f'{nid} NotchFreq[{n}]')
         off += 1
 
     for n in range(1, 7):
-        add_cell(cn(cat, inst, 'AntiFbNotchGain', n), chip, pg, base + off,
-                 '0=-18/127=0/[Lin]', 'InstantCtl')
+        add_cell(cn(cat, inst, 'AntiFbNotchGain', n), chip, pg, base + off, ramp_profile='InstantCtl')
         add_dispatch(chip, base + off, f'_afb_notch_gain_{nid} + {n-1}', f'{nid} NotchGain[{n}]')
         off += 1
 
     for n in range(1, 7):
-        add_cell(cn(cat, inst, 'AntiFbNotchQ', n), chip, pg, base + off,
-                 '0=1/127=20/[Log]', 'InstantCtl')
+        add_cell(cn(cat, inst, 'AntiFbNotchQ', n), chip, pg, base + off, ramp_profile='InstantCtl')
         add_dispatch(chip, base + off, f'_afb_notch_q_{nid} + {n-1}', f'{nid} NotchQ[{n}]')
         off += 1
 
@@ -967,13 +936,13 @@ def expand_limiter(node, cat, inst):
     chip, pg, base, nid, ramp = _parse_node(node)
     # 4 SPI words: on + threshold + attack + release
     params = [
-        ('LimiterOn',   0, '',                     'InstantCtl', f'_lim_on_{nid}'),
-        ('LimiterThr',  1, '0=-30/127=0/[Lin]',    'DynSafe',   f'_lim_threshold_{nid}'),
-        ('LimiterAtt',  2, '0=0.1/127=100/[Log]',  'DynSafe',   f'_lim_attack_{nid}'),
-        ('LimiterRel',  3, '0=5/127=2000/[Log]',   'DynSafe',   f'_lim_release_{nid}'),
+        ('LimiterOn',   0, 'InstantCtl', f'_lim_on_{nid}'),
+        ('LimiterThr',  1, 'DynSafe',   f'_lim_threshold_{nid}'),
+        ('LimiterAtt',  2, 'DynSafe',   f'_lim_attack_{nid}'),
+        ('LimiterRel',  3, 'DynSafe',   f'_lim_release_{nid}'),
     ]
-    for suffix, off, tbl, rp, asm in params:
-        add_cell(cn(cat, inst, suffix, 1), chip, pg, base + off, tbl, rp)
+    for suffix, off, rp, asm in params:
+        add_cell(cn(cat, inst, suffix, 1), chip, pg, base + off, ramp_profile=rp)
         add_dispatch(chip, base + off, asm, f'{nid} {suffix}')
 
 
@@ -1087,8 +1056,7 @@ def expand_meter(node, cat, inst):
                 unbacked_meter_cells[name] = f'{nid} declares tap {tap!r}: {note}'
             continue
         if suffix is not None:
-            add_cell(cn(cat, inst, suffix, fun), chip, pg, base + off,
-                     '', '', notes=note)
+            add_cell(cn(cat, inst, suffix, fun), chip, pg, base + off, ramp_profile='', notes=note)
         add_dispatch(chip, base + off, f'{sym}{nid}' if sym else None,
                      f'{nid} {tap}')
 
@@ -1099,22 +1067,21 @@ def expand_talkback(node, cat, inst):
     # 4 words per talkback: on + gain + hpf_on + route[3]
     # (base is shared for both talk instances; each gets 4 words)
     off = 0
-    add_cell(cn(cat, inst, 'On', 1), chip, pg, base + off, '', 'InstantCtl')
+    add_cell(cn(cat, inst, 'On', 1), chip, pg, base + off, ramp_profile='InstantCtl')
     add_dispatch(chip, base + off, f'_talk_on_{nid}', f'{nid} on')
     off += 1
 
-    add_cell(cn(cat, inst, 'Gain', 1), chip, pg, base + off,
-             '0=0/127=40/[Lin]', 'GainFast')
+    add_cell(cn(cat, inst, 'Gain', 1), chip, pg, base + off, ramp_profile='GainFast')
     add_dispatch(chip, base + off, f'_talk_gain_{nid}', f'{nid} gain')
     off += 1
 
-    add_cell(cn(cat, inst, 'Hpf', 1), chip, pg, base + off, '', 'InstantCtl')
+    add_cell(cn(cat, inst, 'Hpf', 1), chip, pg, base + off, ramp_profile='InstantCtl')
     add_dispatch(chip, base + off, f'_talk_hpf_on_{nid}', f'{nid} HPF on')
     off += 1
 
     for r in range(1, 4):
         if off < 4:
-            add_cell(cn(cat, inst, 'Dest', r), chip, pg, base + off, '', 'InstantCtl')
+            add_cell(cn(cat, inst, 'Dest', r), chip, pg, base + off, ramp_profile='InstantCtl')
             add_dispatch(chip, base + off, f'_talk_route_{nid} + {r-1}', f'{nid} route[{r}]')
             off += 1
 
@@ -1123,14 +1090,13 @@ def expand_talkback(node, cat, inst):
 def expand_noise_gen(node, cat, inst):
     chip, pg, base, nid, ramp = _parse_node(node)
     # 4 words: on + level + hpf_on + route
-    add_cell(cn(cat, inst, 'On', 1), chip, pg, base, '', 'InstantCtl')
+    add_cell(cn(cat, inst, 'On', 1), chip, pg, base, ramp_profile='InstantCtl')
     add_dispatch(chip, base, f'_noise_on_{nid}', f'{nid} on')
 
-    add_cell(cn(cat, inst, 'Level', 1), chip, pg, base + 1,
-             '0=-40/127=0/[Lin]', 'GainFast')
+    add_cell(cn(cat, inst, 'Level', 1), chip, pg, base + 1, ramp_profile='GainFast')
     add_dispatch(chip, base + 1, f'_noise_level_{nid}', f'{nid} level')
 
-    add_cell(cn(cat, inst, 'Hpf', 1), chip, pg, base + 2, '', 'InstantCtl')
+    add_cell(cn(cat, inst, 'Hpf', 1), chip, pg, base + 2, ramp_profile='InstantCtl')
     add_dispatch(chip, base + 2, f'_noise_hpf_on_{nid}', f'{nid} HPF')
 
     add_dispatch(chip, base + 3, None, f'{nid} route bitmask')
@@ -1152,26 +1118,23 @@ def expand_noise_gen(node, cat, inst):
 def expand_test_osc(node, cat, inst):
     chip, pg, base, nid, ramp = _parse_node(node)
     # 8 words: on, freq, level, chan, sweepOn, sweepStep, +2 reserved
-    add_cell(cn(cat, inst, 'OscOn', 1), chip, pg, base, '', 'InstantCtl')
+    add_cell(cn(cat, inst, 'OscOn', 1), chip, pg, base, ramp_profile='InstantCtl')
     add_dispatch(chip, base, f'_osc_on_{nid}', f'{nid} on')
 
-    add_cell(cn(cat, inst, 'OscFreq', 1), chip, pg, base + 1,
-             '0=20/127=20000/[Log]', 'InstantCtl')
+    add_cell(cn(cat, inst, 'OscFreq', 1), chip, pg, base + 1, ramp_profile='InstantCtl')
     add_dispatch(chip, base + 1, f'_osc_freq_{nid}', f'{nid} frequency, Hz')
 
-    add_cell(cn(cat, inst, 'OscLevel', 1), chip, pg, base + 2,
-             '0=-60/127=0/[Lin]', 'InstantCtl')
+    add_cell(cn(cat, inst, 'OscLevel', 1), chip, pg, base + 2, ramp_profile='InstantCtl')
     add_dispatch(chip, base + 2, f'_osc_level_{nid}',
                  f'{nid} level, linear amplitude')
 
-    add_cell(cn(cat, inst, 'OscChan', 1), chip, pg, base + 3, '', 'InstantCtl')
+    add_cell(cn(cat, inst, 'OscChan', 1), chip, pg, base + 3, ramp_profile='InstantCtl')
     add_dispatch(chip, base + 3, f'_osc_chan_{nid}', f'{nid} target channel')
 
-    add_cell(cn(cat, inst, 'SweepOn', 1), chip, pg, base + 4, '', 'InstantCtl')
+    add_cell(cn(cat, inst, 'SweepOn', 1), chip, pg, base + 4, ramp_profile='InstantCtl')
     add_dispatch(chip, base + 4, f'_osc_sweep_on_{nid}', f'{nid} sweep arm')
 
-    add_cell(cn(cat, inst, 'SweepStep', 1), chip, pg, base + 5, '',
-             'InstantCtl')
+    add_cell(cn(cat, inst, 'SweepStep', 1), chip, pg, base + 5, ramp_profile='InstantCtl')
     add_dispatch(chip, base + 5, f'_osc_sweep_step_{nid}',
                  f'{nid} sweep step, codes')
 
@@ -1182,32 +1145,30 @@ def expand_test_osc(node, cat, inst):
 def expand_test_meas(node, cat, inst):
     chip, pg, base, nid, ramp = _parse_node(node)
     # 8 words: MeasChan, 3 results, XtalkSrc/Dst/Result, window serial
-    add_cell(cn(cat, inst, 'MeasChan', 1), chip, pg, base, '', 'InstantCtl')
+    add_cell(cn(cat, inst, 'MeasChan', 1), chip, pg, base, ramp_profile='InstantCtl')
     add_dispatch(chip, base, f'_meas_chan_{nid}', f'{nid} measured channel')
 
-    add_cell(cn(cat, inst, 'RmsResult', 1), chip, pg, base + 1, '', '',
+    add_cell(cn(cat, inst, 'RmsResult', 1), chip, pg, base + 1, ramp_profile='',
              notes='read-back: total RMS of MeasChan, dBFS', access='ro')
     add_dispatch(chip, base + 1, f'_meas_rms_{nid}', f'{nid} RMS result, dBFS')
 
-    add_cell(cn(cat, inst, 'ThdResult', 1), chip, pg, base + 2, '', '',
+    add_cell(cn(cat, inst, 'ThdResult', 1), chip, pg, base + 2, ramp_profile='',
              notes='read-back: THD+N relative to total, dB', access='ro')
     add_dispatch(chip, base + 2, f'_meas_thd_{nid}', f'{nid} THD+N result, dB')
 
-    add_cell(cn(cat, inst, 'NoiseResult', 1), chip, pg, base + 3, '', '',
+    add_cell(cn(cat, inst, 'NoiseResult', 1), chip, pg, base + 3, ramp_profile='',
              notes='read-back: noise+distortion level, dBFS', access='ro')
     add_dispatch(chip, base + 3, f'_meas_noise_{nid}',
                  f'{nid} noise result, dBFS')
 
-    add_cell(cn(cat, inst, 'XtalkSrc', 1), chip, pg, base + 4, '',
-             'InstantCtl')
+    add_cell(cn(cat, inst, 'XtalkSrc', 1), chip, pg, base + 4, ramp_profile='InstantCtl')
     add_dispatch(chip, base + 4, f'_meas_xsrc_{nid}', f'{nid} crosstalk source')
 
-    add_cell(cn(cat, inst, 'XtalkDst', 1), chip, pg, base + 5, '',
-             'InstantCtl')
+    add_cell(cn(cat, inst, 'XtalkDst', 1), chip, pg, base + 5, ramp_profile='InstantCtl')
     add_dispatch(chip, base + 5, f'_meas_xdst_{nid}',
                  f'{nid} crosstalk destination')
 
-    add_cell(cn(cat, inst, 'XtalkResult', 1), chip, pg, base + 6, '', '',
+    add_cell(cn(cat, inst, 'XtalkResult', 1), chip, pg, base + 6, ramp_profile='',
              notes='read-back: XtalkDst against XtalkSrc, dB', access='ro')
     add_dispatch(chip, base + 6, f'_meas_xtalk_{nid}',
                  f'{nid} crosstalk result, dB')
@@ -1226,39 +1187,38 @@ def expand_fx_engine(node, cat, inst):
     chip, pg, base, nid, ramp = _parse_node(node)
     # 24 SPI words: all FX parameters
     params = [
-        ('On',          0,  '',                      'InstantCtl', f'_fx_on_{nid}'),
-        ('Type',        1,  '',                      'InstantCtl', f'_fx_type_{nid}'),
-        ('Decay',       2,  '0=0.1/127=10/[Log]',   'GainSafe',  f'_fx_decay_{nid}'),
-        ('PreDelay',    3,  '0=0/127=100/[Lin]',     'InstantCtl', f'_fx_predelay_{nid}'),
-        ('DelayTime',   4,  '0=1/127=1000/[Log]',   'InstantCtl', f'_fx_delay_ms_{nid}'),
-        ('Feedback',    5,  '0=0/127=100/[Lin]',     'GainSafe',  f'_fx_feedback_{nid}'),
-        ('Balance',     6,  '0=0/127=100/[Lin]',     'GainSafe',  None),
-        ('Damp',        7,  '0=0/127=100/[Lin]',     'GainSafe',  f'_fx_damp_{nid}'),
-        ('EqLo',        8,  '0=-6/127=6/[Lin]',     'EqSafe',    f'_fx_eq_lo_{nid}'),
-        ('EqMid',       9,  '0=-6/127=6/[Lin]',     'EqSafe',    f'_fx_eq_mid_{nid}'),
-        ('EqPresence', 10,  '0=-6/127=6/[Lin]',     'EqSafe',    f'_fx_eq_hi_{nid}'),
+        ('On',          0,  'InstantCtl', f'_fx_on_{nid}'),
+        ('Type',        1,  'InstantCtl', f'_fx_type_{nid}'),
+        ('Decay',       2,  'GainSafe',  f'_fx_decay_{nid}'),
+        ('PreDelay',    3,  'InstantCtl', f'_fx_predelay_{nid}'),
+        ('DelayTime',   4,  'InstantCtl', f'_fx_delay_ms_{nid}'),
+        ('Feedback',    5,  'GainSafe',  f'_fx_feedback_{nid}'),
+        ('Balance',     6,  'GainSafe',  None),
+        ('Damp',        7,  'GainSafe',  f'_fx_damp_{nid}'),
+        ('EqLo',        8,  'EqSafe',    f'_fx_eq_lo_{nid}'),
+        ('EqMid',       9,  'EqSafe',    f'_fx_eq_mid_{nid}'),
+        ('EqPresence', 10,  'EqSafe',    f'_fx_eq_hi_{nid}'),
     ]
-    for suffix, off, tbl, rp, asm in params:
-        add_cell(cn(cat, inst, suffix, 1), chip, pg, base + off, tbl, rp)
+    for suffix, off, rp, asm in params:
+        add_cell(cn(cat, inst, suffix, 1), chip, pg, base + off, ramp_profile=rp)
         add_dispatch(chip, base + off, asm, f'{nid} {suffix}')
 
     # HPF coefficients [5] at offset 11-15
-    add_cell(cn(cat, inst, 'EqHpf', 1), chip, pg, base + 11,
-             '0=80/127=300/[Log]', 'EqSafe')
+    add_cell(cn(cat, inst, 'EqHpf', 1), chip, pg, base + 11, ramp_profile='EqSafe')
     add_dispatch_block(chip, base + 11, f'_fx_hpf_coeffs_{nid}', 5, f'{nid} FX HPF')
 
     # Modulation params
     more = [
-        ('ModRate',     16, '0=0.1/127=10/[Log]',   'InstantCtl', f'_fx_mod_rate_{nid}'),
-        ('ModLevel',    17, '0=0/127=100/[Lin]',     'GainSafe',  f'_fx_mod_level_{nid}'),
-        ('LfoShape',    18, '',                      'InstantCtl', f'_fx_lfo_shape_{nid}'),
-        ('StereoWidth', 19, '0=0/127=100/[Lin]',     'GainSafe',  f'_fx_width_{nid}'),
-        ('Mix',         20, '0=0/127=100/[Lin]',     'GainSafe',  f'_fx_mix_{nid}'),
-        ('DuckOn',      21, '',                      'InstantCtl', None),
-        ('DuckSens',    22, '0=-30/127=0/[Lin]',     'DynSafe',   None),
+        ('ModRate',     16, 'InstantCtl', f'_fx_mod_rate_{nid}'),
+        ('ModLevel',    17, 'GainSafe',  f'_fx_mod_level_{nid}'),
+        ('LfoShape',    18, 'InstantCtl', f'_fx_lfo_shape_{nid}'),
+        ('StereoWidth', 19, 'GainSafe',  f'_fx_width_{nid}'),
+        ('Mix',         20, 'GainSafe',  f'_fx_mix_{nid}'),
+        ('DuckOn',      21, 'InstantCtl', None),
+        ('DuckSens',    22, 'DynSafe',   None),
     ]
-    for suffix, off, tbl, rp, asm in more:
-        add_cell(cn(cat, inst, suffix, 1), chip, pg, base + off, tbl, rp)
+    for suffix, off, rp, asm in more:
+        add_cell(cn(cat, inst, suffix, 1), chip, pg, base + off, ramp_profile=rp)
         add_dispatch(chip, base + off, asm, f'{nid} {suffix}')
 
     # Remaining slots spare
@@ -1278,11 +1238,9 @@ def expand_crossover(node, cat, inst):
     # one strip getting the cell and the other two reading as gaps. Many
     # cells to one address is the normal shape here (see wire_contract.py).
     for scat, sinst in _XOVER_STRIPS:
-        add_cell(cn(scat, sinst, 'CrossoverFreq', 1), chip, pg, base,
-                 '0=50/127=500/[Log]', 'EqSafe',
+        add_cell(cn(scat, sinst, 'CrossoverFreq', 1), chip, pg, base, ramp_profile='EqSafe',
                  notes='shared crossover frequency word')
-        add_cell(cn(scat, sinst, 'CrossoverSlope', 1), chip, pg, base + 1,
-                 '0=6/3=24/[Lin]', 'InstantCtl',
+        add_cell(cn(scat, sinst, 'CrossoverSlope', 1), chip, pg, base + 1, ramp_profile='InstantCtl',
                  notes='shared crossover slope word')
 
     # THE SLOPE GETS ITS OWN WORD, base + 1, AND IT IS STILL ONE WORD FOR
@@ -1335,15 +1293,13 @@ def expand_crossover(node, cat, inst):
 def expand_monitor(node, cat, inst):
     chip, pg, base, nid, ramp = _parse_node(node)
     # 6 words: source + level_l + level_r + ...
-    add_cell(cn(cat, inst, 'InputSel', 1), chip, pg, base, '', 'InstantCtl')
+    add_cell(cn(cat, inst, 'InputSel', 1), chip, pg, base, ramp_profile='InstantCtl')
     add_dispatch(chip, base, f'_mon_source_{nid}', f'{nid} source')
 
-    add_cell(cn(cat, inst, 'Level', 1), chip, pg, base + 1,
-             'dB:Off:-50@31:-30@63:-10@127:10', 'GainFast', notes='L')
+    add_cell(cn(cat, inst, 'Level', 1), chip, pg, base + 1, ramp_profile='GainFast', notes='L')
     add_dispatch(chip, base + 1, f'_mon_level_l_{nid}', f'{nid} level L')
 
-    add_cell(cn(cat, inst, 'Level', 2), chip, pg, base + 2,
-             'dB:Off:-50@31:-30@63:-10@127:10', 'GainFast', notes='R')
+    add_cell(cn(cat, inst, 'Level', 2), chip, pg, base + 2, ramp_profile='GainFast', notes='R')
     add_dispatch(chip, base + 2, f'_mon_level_r_{nid}', f'{nid} level R')
 
     for off in range(3, 6):
@@ -1375,12 +1331,10 @@ def expand_output_tdm(node, cat, inst):
     # The dB table is the master's own for these four strips
     # (`dB:Off:-50@31:-30@63:-10@127:10`), the same one every other output
     # level in this generator carries.
-    add_cell(cn(cat, inst, 'Level', 1), chip, mo_pg, mo_base,
-             'dB:Off:-50@31:-30@63:-10@127:10', 'GainFast')
+    add_cell(cn(cat, inst, 'Level', 1), chip, mo_pg, mo_base, ramp_profile='GainFast')
     add_dispatch(chip, mo_base, f'_out_level_{nid}', f'{nid} output level')
 
-    add_cell(cn(cat, inst, 'Mute', 1), chip, mo_pg, mo_base + 1,
-             '', 'InstantCtl')
+    add_cell(cn(cat, inst, 'Mute', 1), chip, mo_pg, mo_base + 1, ramp_profile='InstantCtl')
     add_dispatch(chip, mo_base + 1, f'_out_mute_{nid}', f'{nid} output mute')
 
 
@@ -1388,11 +1342,10 @@ def expand_output_tdm(node, cat, inst):
 def expand_aux_input(node, cat, inst):
     chip, pg, base, nid, ramp = _parse_node(node)
     # 2 words: level + on
-    add_cell(cn(cat, inst, 'Level', 1), chip, pg, base,
-             '0=-20/127=6/[Lin]', 'GainFast')
+    add_cell(cn(cat, inst, 'Level', 1), chip, pg, base, ramp_profile='GainFast')
     add_dispatch(chip, base, f'_auxin_level_{nid}', f'{nid} level')
 
-    add_cell(cn(cat, inst, 'On', 1), chip, pg, base + 1, '', 'InstantCtl')
+    add_cell(cn(cat, inst, 'On', 1), chip, pg, base + 1, ramp_profile='InstantCtl')
     add_dispatch(chip, base + 1, f'_auxin_on_{nid}', f'{nid} on')
 
 
@@ -1400,11 +1353,10 @@ def expand_aux_input(node, cat, inst):
 def expand_dca(node, cat, inst):
     chip, pg, base, nid, ramp = _parse_node(node)
     # 2 words per DCA: level + mute
-    add_cell(cn(cat, inst, 'Level', 1), chip, pg, base,
-             'dB:Off:-50@31:-30@63:-10@127:10', 'GainFast')
+    add_cell(cn(cat, inst, 'Level', 1), chip, pg, base, ramp_profile='GainFast')
     add_dispatch(chip, base, f'_dca_level_{nid}', f'{nid} level')
 
-    add_cell(cn(cat, inst, 'Mute', 1), chip, pg, base + 1, '', 'InstantCtl')
+    add_cell(cn(cat, inst, 'Mute', 1), chip, pg, base + 1, ramp_profile='InstantCtl')
     add_dispatch(chip, base + 1, f'_dca_mute_{nid}', f'{nid} mute')
 
 
@@ -1436,15 +1388,13 @@ def expand_mix_bus(node, cat, inst):
                      f'Fx*AuxOn/AuxSend cells by. gen_dsp_csv.py writes it; '
                      f'refusing to guess which bus this node sums.')
         for x in range(1, n_send + 1):
-            add_cell(cn('Fx', x, 'AuxOn', aux), chip, pg, base + (x - 1),
-                     '', 'InstantCtl')
+            add_cell(cn('Fx', x, 'AuxOn', aux), chip, pg, base + (x - 1), ramp_profile='InstantCtl')
             add_dispatch(chip, base + (x - 1),
                          f'_mix_on_{nid} + {x-1}' if x > 1 else f'_mix_on_{nid}',
                          f'{nid} Fx{x} AuxOn')
         for x in range(1, n_send + 1):
             off = n_send + (x - 1)
-            add_cell(cn('Fx', x, 'AuxSend', aux), chip, pg, base + off,
-                     'dB:Off:-50@31:-30@63:-10@127:0', 'GainFast')
+            add_cell(cn('Fx', x, 'AuxSend', aux), chip, pg, base + off, ramp_profile='GainFast')
             add_dispatch(chip, base + off,
                          f'_mix_send_{nid} + {x-1}' if x > 1 else f'_mix_send_{nid}',
                          f'{nid} Fx{x} AuxSend')
@@ -1778,9 +1728,9 @@ def backfill_matrix(header, rows, cmap=None, *, force=False):
         if force or not row.get('DspAddHex'):
             row['DspAddHex'] = f'0x{cm["spi_addr"]:04X}'
 
-        # Backfill Table if we have one and it's empty
-        if cm['table'] and (force or not row.get('Table')):
-            row['Table'] = cm['table']
+        # Table is master-declared and arrives already on the row via the
+        # matrix expansion (defs/tools/expand_matrix.py); the generator does
+        # not carry a second copy of it (S53).
 
         # Backfill ramp metadata
         rp_name = cm['ramp_profile']
@@ -3151,9 +3101,13 @@ def build_proposal_rows(product, matrix_path, mcu_prefixes):
 
 def check_proposal(fatal=True):
     """Prove the graph reproduces the LANDED dsp.csv/dsp-unmapped.csv for
-    both products, row for row (every column dsp.csv declares — the header
-    comment's pin stamp is proposal-authoring metadata and not compared).
-    Fails loudly and exits nonzero on any drift.
+    both products, row for row (every column dsp.csv declares except
+    Table — the header comment's pin stamp is proposal-authoring metadata
+    and not compared, and Table is no longer a graph opinion (S53): the
+    generator carries no Table literals, so the graph's Table is always
+    empty and cannot be compared against a landed file's master-sourced
+    strings without the check firing on every run).
+    Fails loudly and exits nonzero on any other drift.
 
     `fatal=False` returns the verdict instead of exiting, for the ONE
     caller entitled to a No: `--propose`, where the graph being ahead of
@@ -3181,7 +3135,11 @@ def check_proposal(fatal=True):
                     print(f'    - {c}', file=sys.stderr)
                 ok = False
                 continue
-            mismatched = [c for c in got if got[c] != want[c]]
+
+            def _no_table(d):
+                return {k: v for k, v in d.items() if k != 'Table'}
+
+            mismatched = [c for c in got if _no_table(got[c]) != _no_table(want[c])]
             if mismatched:
                 print(f'ERROR: {product}/{label} disagrees with the graph on '
                       f'{len(mismatched)} cells (first 5 shown):', file=sys.stderr)

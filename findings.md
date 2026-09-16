@@ -6,7 +6,129 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
-## THE HALF-FRAME ORDER IS THE HOST'S INPUT PATCH, AND THE ANALOG LOOP MEASURES −87.6 dB THD+N (2026-09-16, session 52)
+## THE LITERAL TABLE COPY IN gen_dsp.py IS RETIRED; THE MASTER IS THE ONLY SOURCE (2026-09-16, session 53)
+
+**S53-1. `gen_dsp.py` no longer carries a hand-typed second copy of the
+master's `Table` column.** Every `add_cell()` call site (86 call sites,
+five of them via `params`/`more` tuple lists that also carried a `tbl`
+element) passed a literal Table string; `backfill_matrix()` then wrote
+`row['Table'] = cm['table']` over whatever the matrix expansion had
+already put there from the master. Both are deleted: the `table=`
+argument is gone from every call site (the tuple lists lost their table
+element and the two loops that unpacked it), and `backfill_matrix()`'s
+Table branch is gone. `add_cell()` keeps a `table=''` parameter for
+signature stability but nothing sets it; `_matrix.csv`'s `Table` column
+now carries only what `defs/tools/expand_matrix.py` put there from
+`defs/common/cells/mx_master.csv`, unmodified by this repo. Where the
+master is blank, the matrix stays blank (R1).
+
+This also retired the SAME duplicate one layer up: `check_proposal()`
+(the graph-vs-landed drift gate for `defs/products/<p>/dsp.csv`) compared
+`Table` between the graph and the already-landed proposal file byte for
+byte. With the graph no longer computing a Table opinion, that comparison
+would fail permanently on every run (the landed file still carries the
+historical, literal-derived strings). `check_proposal()` now excludes
+`Table` from the per-cell equality check, with a comment stating why;
+every other column (address, ramp, access, notes) is still compared
+exactly as before. `write_ghost_cells_h()`, `write_address_map()` and
+`_dsp_csv_row()` were NOT touched and did not need to be: `main()` swaps
+`cell_map` for `load_landed_address_map()` (the merged, hub-approved
+`defs/products/<p>/dsp.csv`) before any of them run, so the firmware
+`ghost_cells.c`/`.h`, `dsp_address_map.md` and `mx_dsp_map.h` were already
+reading Table off the landed contract, not off the graph's literals —
+confirmed by regeneration below: none of those four files changed.
+
+**Correcting the record**: commit `e5182547` ("S47 — consume
+defs-v2026.09.14.1") states *"733 D24 Table-field corrections trace to
+defs@5cc5d44, not to this repo's tooling."* That is wrong.
+`defs@5cc5d44` (2026-09-14, the Neutral-column commit) changed no Table
+strings — checked by diffing its parent against itself for the `Table`
+column of every product master, zero changes. The 733-field mismatch was
+this repo's own `gen_dsp.py`: S47's `--force` landing overwrote the
+matrix's master-sourced Table with the generator's hand-typed literals on
+every row where they differed, exactly the defect this session retires.
+
+**S53-2. Regeneration proof.** Consumed `defs-v2026.09.16.2` first (per
+dispatch: 31 previously-blank family-A Table strings filled, provisional)
+via `./sync-defs.sh --update-lock`, then `./regenerate-dsp-contract.sh
+--update-lock`. Before/after, keyed by `_Cell`, every column:
+
+| product | rows | Table changed | any other column changed | DSP address changed |
+|---|---:|---:|---:|---:|
+| D12 | 2334 | 22 | 0 | n/a (not backfilled) |
+| D16 | 3316 | 23 | 0 | n/a (not backfilled) |
+| D24 | 4998 | **702** | 0 | 0 |
+| D32 | 7012 | **918** | 0 | 0 |
+
+Every changed field, on every product, is `Table` and nothing else; D24
+and D32's changed rows now read the master's string (spot-checked against
+`mx_master.csv` for the families the hub audit named —
+`Chan[1-64]EqQ[1-4]` reads `0=0.1/120=10/[Log][2dp]`, matching). D12 and
+D16 are not DSP-backfilled, so their 22/23 changed rows are purely the
+`defs-v2026.09.16.2` master content landing through the ordinary
+expansion, not this session's `gen_dsp.py` change.
+
+**702 is not 733.** The hub audit's 733 was measured against
+`defs-v2026.09.16` (family A's 31 strings still blank in the master); this
+session was told to consume `.2` first, which fills exactly those 31
+strings. A number of D24's previously-corrupted family-A rows therefore
+now read a real master string where the audit's snapshot would have
+compared literal-vs-blank, shifting which rows land in the "changed" set
+and by how much. 702 is the true before/after count against the tag this
+session actually built on; it is not a discrepancy in the fix, it is the
+moving baseline the dispatch asked for.
+
+`check-contract-drift.sh --strict` (run after committing) is clean:
+`ghost_cells.h`, both `dsp_params.asm`, `dsp_address_map.md`,
+`mx_dsp_map.h` and the FW copies are byte-identical to before this
+session — only the four `_matrix.csv` files, `gen_dsp.py`, `defs.lock`
+and the `defs` gitlink moved.
+
+**S53-3. New drift-check gate: Table's top breakpoint code vs
+`MxDatS`−1, on the master (R3).** `check-table-mxdats.py`, wired into
+`check-contract-drift.sh` (non-fatal — see below). It reads
+`defs/common/cells/mx_master.csv` directly (one row per family, so this
+is naturally family-level, not per-instance), extracts the top `N=`
+breakpoint code from `Table` for every row where both `Table` and
+`MxDatS` are present and `Table` is in the breakpoint form (the
+stepped/scale-only forms — `dB:Off:-50@31:...`, `Pan:dB:0:Off` — carry no
+comparable top and are skipped), and compares it to `MxDatS`−1.
+
+Result: **190 master rows are comparable; 82 disagree.** The families the
+hub audit named as the fixed case — `Chan[1-64]EqGain[1-4]` (121→120),
+`Chan[1-64]EqQ[1-4]` (121→120), `Chan[1-64]Gain[1-1]` (61→60),
+`Chan[1-64]GateRel[1-1]`/`CompRel[1-1]` (255→254) — all PASS this gate;
+they are not among the 82. The 82 are a different, wider set this gate
+newly surfaces: `CompMake`, `CompPar`, `LimiterAtt/Rel/Rng/Thr`,
+`PeqGain`, `Geq`, `Delay`, `CrossoverFreq`, `EqLpf`, `*FilterLpf`,
+`AntiFbNotch*`, `TubeSat`, `AntiClip`, `Decay`, `DelayTime`, `Feedback`,
+`ModRate`, `PreDelay`, `EqLo/Mid/Presence`, `EqHpf`, `Duck*`, `Level`
+(several bus families), `TalkGain`, `Test*Osc*` — 82 rows total, printed
+in full by `check-table-mxdats.py`'s own output (captured in this
+session's `check-contract-drift.sh --strict` log). Every one of them has
+`Table` top code 127 regardless of `MxDatS` (which ranges 2–255 across
+the 82) — a single, consistent pattern, not scattered noise.
+
+**This does not match the "25/60 family exceptions" the dispatch
+anticipated**, and this session does not know why: the family-D examples
+the audit gave (which the hub evidently used to derive 25/60) all pass
+cleanly, so the 25 the hub expects are not visible in this gate's output
+at all. Two readings: either the "25/60" figure was scoped to a narrower
+family set this gate's whole-master sweep does not reproduce, or the 82
+found here are a real, previously-uncatalogued class of Table/MxDatS
+disagreement (the flat 127-regardless-of-span pattern reads like
+`MxDatS` recording a *display step count* while `Table` records the *raw
+wire byte range* for these particular families — a real question, not
+this repo's to resolve). Reported in full for the hub to reconcile scope
+against; **the master is not touched.**
+
+The gate is wired into `check-contract-drift.sh` as informational only —
+it prints and exits 0. R3 asked for every violator reported by name, not
+a new build blocker over a master-content question this repo does not
+own; making it fatal would turn an open question into a hard stop on
+every future regeneration until the master resolves 82 rows it may never
+resolve to this rule (some may be intentional, like the 25 the hub
+already expects).
 
 **S52-1. The half-frame lane order is neither the reframer nor the frame-sync
 edge. It is `D24_INPUT_PATCH`, the chip-1 input patch the host writes at

@@ -59,9 +59,9 @@ Grp001Mtr001,1,1,1,,false,Group level meter,57,kq,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,
 Grp002Mtr001,1,2,1,,false,Group level meter,58,kr,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,-
 MainL001CompAtt001,1,1,1,,,Main L output compressor attack,59,ks,255,,,,,,,,MainComp,,0=0/254=250/[Log],,,,,,,,,,,,-
 MainL001CompKnee001,1,1,1,,,Main L output compressor soft/hard knee,60,kt,2,,,,,,,,MainComp,,,,,,,,,,,,,,-
-MainL001CompMake001,1,1,1,,,Main L output compressor makeup gain,61,ku,33,,,,,,,,MainComp,,,,,,,,,,,,,,0
+MainL001CompMake001,1,1,1,,,Main L output compressor makeup gain,61,ku,33,,,,,,,,MainComp,,0=0/127=20/[Lin],,,,,,,,,,,,0
 MainL001CompOn001,1,1,1,,,Main L output compressor on/off,62,kv,2,,,,,,,,MainComp,,,,,,,,,,,,,,0
-MainL001CompPar001,1,1,1,,,Main L output parallel compression blend,63,kw,33,,,,,,,,MainComp,,,,,,,,,,,,,,0
+MainL001CompPar001,1,1,1,,,Main L output parallel compression blend,63,kw,33,,,,,,,,MainComp,,0=0/127=100/[Lin],,,,,,,,,,,,0
 MainL001CompRat001,1,1,1,,,Main L output compressor ratio,64,lh,128,,,,,,,,MainComp,,0=1/127=30/[Log],,,,,,,,,,,,0
 MainL001CompRel001,1,1,1,,,Main L output compressor release,65,li,255,,,,,,,,MainComp,,0=5/254=5000/[Log],,,,,,,,,,,,-
 MainL001CompDetSrc001,1,1,1,,,Main L output compressor self-key tap source (PreEQ/PostEQ),66,lj,2,,,,,,,,MainComp,,,,,,,,,,,,,,-
@@ -74,8 +74,8 @@ MainL001CompKey001,1,1,1,,,Main L output compressor sidechain key source,72,lp,3
 MainL001CompLimMode001,1,1,1,,,Main L output compressor/limiter mode toggle,73,lq,2,,,,,,,,MainComp,,,,,,,,,,,,,,-
 MainL001CompThr001,1,1,1,,,Main L output compressor threshold,74,lr,141,,,,,,,,MainComp,,0=-60/140=10/[Lin],,,,,,,,,,,,140
 MainL001CompType001,1,1,1,,,Main L output compressor type (Tube/FET/VCA/Optical),75,ls,4,,,,,,,,MainComp,,,,,,,,,,,,,,-
-MainL001CrossoverFreq001,1,1,1,,,Electronic crossover frequency,76,lt,255,,,,,,,,MainCrossover,,,,,,,,,,,,,,-
-MainL001CrossoverSlope001,1,1,1,,,Crossover slope (HPF 36/48 dB/oct),77,lu,4,,,,,,,,MainCrossover,,,,,,,,,,,,,,-
+MainL001CrossoverFreq001,1,1,1,,,Electronic crossover frequency,76,lt,255,,,,,,,,MainCrossover,,0=50/127=500/[Log],,,,,,,,,,,,-
+MainL001CrossoverSlope001,1,1,1,,,Crossover slope (HPF 36/48 dB/oct),77,lu,4,,,,,,,,MainCrossover,,0=6/3=24/[Lin],,,,,,,,,,,,-
 MainL001EqFreq001,1,1,1,,,Main L output 4-band parametric EQ frequency,78,lv,255,127,,,,,,,MainEq,,0=20/254=200/[Log],,,,,,,,,,,,-
 MainL001EqFreq002,1,1,2,,,Main L output 4-band parametric EQ frequency,79,lw,255,127,,,,,,,MainEq,,0=100/254=1000/[Log],,,,,,,,,,,,-
 MainL001EqFreq003,1,1,3,,,Main L output 4-band parametric EQ frequency,80,mh,255,127,,,,,,,MainEq,,0=800/254=5000/[Log],,,,,,,,,,,,-
@@ -121,9 +121,9 @@ MainL001Mtr001,1,1,1,,false,Main L output level meter,119,oo,80,,,,,,,,,,,,,,,,,
 MainL001Name001,1,1,1,,,Main L output name,120,op,255,,,,,,,,,,,,,,,,,,,,,,-
 MainR001CompAtt001,1,1,1,,,Main R output compressor attack,121,oq,255,,,,,,,,MainComp,,0=0/254=250/[Log],,,,,,,,,,,,-
 MainR001CompKnee001,1,1,1,,,Main R output compressor soft/hard knee,122,or,2,,,,,,,,MainComp,,,,,,,,,,,,,,-
-MainR001CompMake001,1,1,1,,,Main R output compressor makeup gain,123,os,33,,,,,,,,MainComp,,,,,,,,,,,,,,0
+MainR001CompMake001,1,1,1,,,Main R output compressor makeup gain,123,os,33,,,,,,,,MainComp,,0=0/127=20/[Lin],,,,,,,,,,,,0
 MainR001CompOn001,1,1,1,,,Main R output compressor on/off,124,ot,2,,,,,,,,MainComp,,,,,,,,,,,,,,0
-MainR001CompPar001,1,1,1,,,Main R output parallel compression blend,125,ou,33,,,,,,,,MainComp,,,,,,,,,,,,,,0
+MainR001CompPar001,1,1,1,,,Main R output parallel compression blend,125,ou,33,,,,,,,,MainComp,,0=0/127=100/[Lin],,,,,,,,,,,,0
 MainR001CompRat001,1,1,1,,,Main R output compressor ratio,126,ov,128,,,,,,,,MainComp,,0=1/127=30/[Log],,,,,,,,,,,,0
 MainR001CompRel001,1,1,1,,,Main R output compressor release,127,ow,255,,,,,,,,MainComp,,0=5/254=5000/[Log],,,,,,,,,,,,-
 MainR001CompDetSrc001,1,1,1,,,Main R output compressor self-key tap source (PreEQ/PostEQ),128,ph,2,,,,,,,,MainComp,,,,,,,,,,,,,,-
@@ -136,8 +136,8 @@ MainR001CompKey001,1,1,1,,,Main R output compressor sidechain key source,134,pn,
 MainR001CompLimMode001,1,1,1,,,Main R output compressor/limiter mode toggle,135,po,2,,,,,,,,MainComp,,,,,,,,,,,,,,-
 MainR001CompThr001,1,1,1,,,Main R output compressor threshold,136,pp,141,,,,,,,,MainComp,,0=-60/140=10/[Lin],,,,,,,,,,,,140
 MainR001CompType001,1,1,1,,,Main R output compressor type (Tube/FET/VCA/Optical),137,pq,4,,,,,,,,MainComp,,,,,,,,,,,,,,-
-MainR001CrossoverFreq001,1,1,1,,,Electronic crossover frequency,138,pr,255,,,,,,,,MainCrossover,,,,,,,,,,,,,,-
-MainR001CrossoverSlope001,1,1,1,,,Crossover slope (HPF 36/48 dB/oct),139,ps,4,,,,,,,,MainCrossover,,,,,,,,,,,,,,-
+MainR001CrossoverFreq001,1,1,1,,,Electronic crossover frequency,138,pr,255,,,,,,,,MainCrossover,,0=50/127=500/[Log],,,,,,,,,,,,-
+MainR001CrossoverSlope001,1,1,1,,,Crossover slope (HPF 36/48 dB/oct),139,ps,4,,,,,,,,MainCrossover,,0=6/3=24/[Lin],,,,,,,,,,,,-
 MainR001EqFreq001,1,1,1,,,Main R output 4-band parametric EQ frequency,140,pt,255,127,,,,,,,MainEq,,0=20/254=200/[Log],,,,,,,,,,,,-
 MainR001EqFreq002,1,1,2,,,Main R output 4-band parametric EQ frequency,141,pu,255,127,,,,,,,MainEq,,0=100/254=1000/[Log],,,,,,,,,,,,-
 MainR001EqFreq003,1,1,3,,,Main R output 4-band parametric EQ frequency,142,pv,255,127,,,,,,,MainEq,,0=800/254=5000/[Log],,,,,,,,,,,,-
@@ -1552,10 +1552,10 @@ Fdr002Grp009,1,2,9,,false,Fader group membership (ch assign),1550,nhv,1,,,,,,,,,
 Fdr002Grp010,1,2,10,,false,Fader group membership (ch assign),1551,nhw,1,,,,,,,,,,,,,,,,,,,,,,0
 Fdr002Grp011,1,2,11,,false,Fader group membership (ch assign),1552,nih,1,,,,,,,,,,,,,,,,,,,,,,0
 Fdr002Grp012,1,2,12,,false,Fader group membership (ch assign),1553,nii,1,,,,,,,,,,,,,,,,,,,,,,0
-Fx001Damp001,1,1,1,,,FX HF damping amount,1554,nij,33,,,,,,,,FxCtrl,,,,,,,,,,,,,,-
-Fx002Damp001,1,2,1,,,FX HF damping amount,1555,nik,33,,,,,,,,FxCtrl,,,,,,,,,,,,,,-
-Fx003Damp001,1,3,1,,,FX HF damping amount,1556,nil,33,,,,,,,,FxCtrl,,,,,,,,,,,,,,-
-Fx004Damp001,1,4,1,,,FX HF damping amount,1557,nim,33,,,,,,,,FxCtrl,,,,,,,,,,,,,,-
+Fx001Damp001,1,1,1,,,FX HF damping amount,1554,nij,33,,,,,,,,FxCtrl,,0=0/127=100/[Lin],,,,,,,,,,,,-
+Fx002Damp001,1,2,1,,,FX HF damping amount,1555,nik,33,,,,,,,,FxCtrl,,0=0/127=100/[Lin],,,,,,,,,,,,-
+Fx003Damp001,1,3,1,,,FX HF damping amount,1556,nil,33,,,,,,,,FxCtrl,,0=0/127=100/[Lin],,,,,,,,,,,,-
+Fx004Damp001,1,4,1,,,FX HF damping amount,1557,nim,33,,,,,,,,FxCtrl,,0=0/127=100/[Lin],,,,,,,,,,,,-
 Fx001Decay001,1,1,1,,,FX reverb decay time,1558,nin,255,,,,,,,,FxCtrl,,0=0.1/127=10/[Log],,,,,,,,,,,,-
 Fx002Decay001,1,2,1,,,FX reverb decay time,1559,nio,255,,,,,,,,FxCtrl,,0=0.1/127=10/[Log],,,,,,,,,,,,-
 Fx003Decay001,1,3,1,,,FX reverb decay time,1560,nip,255,,,,,,,,FxCtrl,,0=0.1/127=10/[Log],,,,,,,,,,,,-
@@ -1708,10 +1708,10 @@ Fx001DcaOn001,1,1,1,,,DCA follow on/off (assignment kept while off),1706,nrr,2,,
 Fx002DcaOn001,1,2,1,,,DCA follow on/off (assignment kept while off),1707,nrs,2,,,,,,,,FxCtrl,,,,,,,,,,,,,,0
 Fx003DcaOn001,1,3,1,,,DCA follow on/off (assignment kept while off),1708,nrt,2,,,,,,,,FxCtrl,,,,,,,,,,,,,,0
 Fx004DcaOn001,1,4,1,,,DCA follow on/off (assignment kept while off),1709,nru,2,,,,,,,,FxCtrl,,,,,,,,,,,,,,0
-Fx001Level001,1,1,1,,,FX return master level,1710,nrv,255,,,,,,,,FxCtrl,,,,,,,,,,,,,,
-Fx002Level001,1,2,1,,,FX return master level,1711,nrw,255,,,,,,,,FxCtrl,,,,,,,,,,,,,,
-Fx003Level001,1,3,1,,,FX return master level,1712,nsh,255,,,,,,,,FxCtrl,,,,,,,,,,,,,,
-Fx004Level001,1,4,1,,,FX return master level,1713,nsi,255,,,,,,,,FxCtrl,,,,,,,,,,,,,,
+Fx001Level001,1,1,1,,,FX return master level,1710,nrv,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:10,,,,,,,,,,,,
+Fx002Level001,1,2,1,,,FX return master level,1711,nrw,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:10,,,,,,,,,,,,
+Fx003Level001,1,3,1,,,FX return master level,1712,nsh,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:10,,,,,,,,,,,,
+Fx004Level001,1,4,1,,,FX return master level,1713,nsi,255,,,,,,,,FxCtrl,,dB:Off:-50@31:-30@63:-10@127:10,,,,,,,,,,,,
 Fx001Mute001,1,1,1,,,FX return mute on/off,1714,nsj,2,,,,,,,,FxCtrl,,,,,,,,,,,,,,0
 Fx002Mute001,1,2,1,,,FX return mute on/off,1715,nsk,2,,,,,,,,FxCtrl,,,,,,,,,,,,,,0
 Fx003Mute001,1,3,1,,,FX return mute on/off,1716,nsl,2,,,,,,,,FxCtrl,,,,,,,,,,,,,,0
@@ -1730,7 +1730,7 @@ Main001Delay001,1,1,1,,,Main L/R output delay up to 250ms,1728,nth,255,,,,,,,,,,
 Main001Mute001,1,1,1,,,Main L/R control-surface master mute (performer state),1729,nti,2,,,,,,,,,,,,,,,,,,,,,,0
 Main001Dca001,1,1,1,,,Main L/R DCA assignment (1-8 or off),1730,ntj,9,,,,,,,,,,,,,,,,,,,,,,0
 Main001DcaOn001,1,1,1,,,DCA follow on/off (assignment kept while off),1731,ntk,2,,,,,,,,,,,,,,,,,,,,,,0
-Main001Level001,1,1,1,,,Main L/R master fader level,1732,ntl,255,,,,,,,,,,,,,,,,,,,,,,
+Main001Level001,1,1,1,,,Main L/R master fader level,1732,ntl,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:10,,,,,,,,,,,,
 Main001Geq001,1,1,1,,,Main 31-band stereo GEQ gain per band,1733,ntm,65,32,,,,,,,MainEq,,0=-12/127=12/[Lin],,,,,,,,,,,,32
 Main001Geq002,1,1,2,,,Main 31-band stereo GEQ gain per band,1734,ntn,65,32,,,,,,,MainEq,,0=-12/127=12/[Lin],,,,,,,,,,,,32
 Main001Geq003,1,1,3,,,Main 31-band stereo GEQ gain per band,1735,nto,65,32,,,,,,,MainEq,,0=-12/127=12/[Lin],,,,,,,,,,,,32
@@ -1949,9 +1949,9 @@ Grp001Mute001,1,1,1,,,Group master mute on/off,1947,oqs,2,,,,,,,,,,,,,,,,,,,,,,0
 Grp002Mute001,1,2,1,,,Group master mute on/off,1948,oqt,2,,,,,,,,,,,,,,,,,,,,,,0
 MainSub001CompAtt001,1,1,1,,,Subwoofer compressor attack,1949,oqu,255,,,,,,,,SubComp,,0=0/254=250/[Log],,,,,,,,,,,,-
 MainSub001CompKnee001,1,1,1,,,Subwoofer compressor soft/hard knee,1950,oqv,2,,,,,,,,SubComp,,,,,,,,,,,,,,-
-MainSub001CompMake001,1,1,1,,,Subwoofer compressor makeup gain,1951,oqw,33,,,,,,,,SubComp,,,,,,,,,,,,,,0
+MainSub001CompMake001,1,1,1,,,Subwoofer compressor makeup gain,1951,oqw,33,,,,,,,,SubComp,,0=0/127=20/[Lin],,,,,,,,,,,,0
 MainSub001CompOn001,1,1,1,,,Subwoofer compressor on/off,1952,orh,2,,,,,,,,SubComp,,,,,,,,,,,,,,0
-MainSub001CompPar001,1,1,1,,,Subwoofer parallel compression blend,1953,ori,33,,,,,,,,SubComp,,,,,,,,,,,,,,0
+MainSub001CompPar001,1,1,1,,,Subwoofer parallel compression blend,1953,ori,33,,,,,,,,SubComp,,0=0/127=100/[Lin],,,,,,,,,,,,0
 MainSub001CompRat001,1,1,1,,,Subwoofer compressor ratio,1954,orj,128,,,,,,,,SubComp,,0=1/127=30/[Log],,,,,,,,,,,,0
 MainSub001CompRel001,1,1,1,,,Subwoofer compressor release,1955,ork,255,,,,,,,,SubComp,,0=5/254=5000/[Log],,,,,,,,,,,,-
 MainSub001CompDetSrc001,1,1,1,,,Subwoofer compressor self-key tap source (PreEQ/PostEQ),1956,orl,2,,,,,,,,SubComp,,,,,,,,,,,,,,-
@@ -2285,7 +2285,7 @@ Talk001On001,1,1,1,,,Talkback mic on/off,2283,pvs,2,,,,,,,,,,,,,,,,,,,,,,0
 Talk001Dest001,1,1,1,,,Talkback routing to aux/main,2284,pvt,1,,,,,,,,,,,,,,,,,,,,,,0
 Talk001Dest002,1,1,2,,,Talkback routing to aux/main,2285,pvu,1,,,,,,,,,,,,,,,,,,,,,,0
 Talk001Dest003,1,1,3,,,Talkback routing to aux/main,2286,pvv,1,,,,,,,,,,,,,,,,,,,,,,0
-Talk001Gain001,1,1,1,,,Talkback mic input gain,2287,pvw,65,,,,,,,,,,,,,,,,,,,,,,
+Talk001Gain001,1,1,1,,,Talkback mic input gain,2287,pvw,65,,,,,,,,,,0=0/127=40/[Lin],,,,,,,,,,,,
 Test001MeasChan001,1,1,1,true,false,Select channel for RMS/THD measurement,2288,pwh,33,,,,,,,,,,,,,,,,,,,,,,-
 Test001NoiseResult001,1,1,1,true,false,Read-back: noise floor,2289,pwi,255,,,,,,,,,,,,,,,,,,,,,,-
 Test001OscChan001,1,1,1,true,false,Oscillator target channel (0=all),2290,pwj,33,,,,,,,,,,,,,,,,,,,,,,-
@@ -2328,8 +2328,8 @@ Fx004Name001,16,4,1,,,FX channel name,2326,qin,1,,,,,,,,,,,,,,,,,,,,,,-
 Grp001Name001,16,1,1,,,Group name,2327,qio,1,,,,,,,,,,,,,,,,,,,,,,-
 Grp002Name001,16,2,1,,,Group name,2328,qip,1,,,,,,,,,,,,,,,,,,,,,,-
 MainSub001Name001,16,1,1,,,Subwoofer name,2329,qiq,1,,,,,,,,,,,,,,,,,,,,,,-
-MainSub001CrossoverFreq001,1,1,1,,,Electronic crossover frequency,2330,qir,255,,,,,,,,MainCrossover,,,,,,,,,,,,,,-
-MainSub001CrossoverSlope001,1,1,1,,,Crossover slope (HPF 36/48 dB/oct),2331,qis,4,,,,,,,,MainCrossover,,,,,,,,,,,,,,-
+MainSub001CrossoverFreq001,1,1,1,,,Electronic crossover frequency,2330,qir,255,,,,,,,,MainCrossover,,0=50/127=500/[Log],,,,,,,,,,,,-
+MainSub001CrossoverSlope001,1,1,1,,,Crossover slope (HPF 36/48 dB/oct),2331,qis,4,,,,,,,,MainCrossover,,0=6/3=24/[Lin],,,,,,,,,,,,-
 MainSub001LimiterRng001,1,1,1,,,Subwoofer output limiter range/depth,2332,qit,33,,,,,,,,MainLimiter,,0=0/127=60/[Lin],,,,,,,,,,,,0
 Main001Name001,16,1,1,,,Main L/R master name,2333,qiu,1,,,,,,,,,,,,,,,,,,,,Master,,-
 Sys001SwUpd001,1,1,1,,false,Software updater open/close SW button,2334,qiv,2,,,,,,,,,,,,,,,,,,,,,,-

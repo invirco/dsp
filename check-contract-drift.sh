@@ -39,6 +39,13 @@ cd "$ROOT_DIR"
 python3 validate-matrix-contract.py
 python3 MW/D32/DSP/gen_dsp.py --force >/dev/null
 
+# TABLE'S OWN AGREEMENT WITH MxDatS (S53). Table comes from the master row
+# only now (the generator's hand-typed second copy is retired); this checks
+# the master's own claim against itself -- Table's top breakpoint code
+# should be MxDatS-1. Reports every violator; does not fail the build or
+# touch the master (this repo is a consumer of it).
+python3 check-table-mxdats.py
+
 # THE PUBLISHED MATRIX MUST CARRY THE ADDRESSES ITS LANDED MAP DEFINES
 # (S45-3). Everything above this line checks the matrix against the
 # EXPANSION -- the lock hash, MxAdd continuity, the family allowlist -- and
