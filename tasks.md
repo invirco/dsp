@@ -1,3 +1,24 @@
+## HUB DISPATCH 2026-09-16 09:44Z — S57 — the bursty noise at full gain, characterised with the capture arm (mains / popcorn / broadband / pickup)   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+S57 — THE BURSTY NOISE AT FULL GAIN, CHARACTERISED WITH THE NEW CAPTURE ARM (S56). Unit: analog ON (AN_EN high, do not write it), PW's 150 Ω shunt is on J25 (MIC 5), the s56 pair is running. You MAY write MIC 5's gain code through the chain (the S51 send position for MIC 5 = p 15, phantom off, shunt bit 0) and nothing else in the chain. Every noise figure in dBFS AND dBu: DAC FS +23.13 dBu at the output XLR, ADC FS at the mic XLR = +17.55 dBu at code 0 (mx26 docs/spec-audio-test-set.md "Measured references", PW DMM today); THD in dB and %.
+
+WHAT S54 SAW (S54-3b): at code 63 with 150 Ω, 56 windows spread 10 dB — energy average −87.97 dBFS, median −90.34, quiet −91.99, bursts to −79.86. Input-referred that is −123.6 dBu average vs −127.6 quiet; thermal 150 Ω = −130.9 dBu. The quiet floor is a good preamp; the bursts are the question.
+
+GATES:
+1. Twenty 16k captures at code 63 (MeasChan 20, tone off), each: RMS, peak, crest factor, and the FFT (dsp4_fft.py --capture): is the excess (a) mains-related — 50/100/150/200 Hz lines and their share of the power; (b) impulsive/popcorn — time-domain: count of excursions > 4σ, their width and rate, the RMS with them excised; (c) broadband white/pink shift — spectral slope; (d) RF/digital pickup — lines at the switching frequencies (the CM4, the SMPS converters ~ PSU_12_CLK, USB) or at fs/n. One table.
+2. The same at codes 0, 16, 32, 48 (five captures each): does the excess scale with gain (preamp-referred) or stay fixed at the lane (ADC/post-preamp)?
+3. Time: ten captures spaced a minute apart at code 63 — is the burst rate stationary or does it come and go (thermal, a supply cycling)?
+4. If the bursts are impulsive: state the input-referred EIN with the bursts excised beside the plain energy average — both stand in the record. If mains: the hum lines' level in dBu at the input. Say which physical suspects follow (the shunt's leads picking up, the 48 V/phantom rail, the preamp's tail current source, the +5 V/AVDD rail at 4.6 V) — PW probes; no analog changes by you.
+5. findings S57-1..4, tasks.md (NEXT), commit + push, clean. Leave the unit as found (code 0 on MIC 5, 150 Ω in place, sine on AUX 1, s56 pair).
+
+Bounded: ≈ 90 min.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-16 09:24Z — S56 — zero-cost capture arm for TEST_MEAS on chip 1; the 0.98 FS ceiling   [status: 🟢 done — (1) capture arm in the generator (`gen_test_meas` + `gen_dsp.py`): MeasChan post-fader blocks → 16,384-word L2 buffer on chip 1, host words on TEST_OSC's two reserved dispatch entries 0x1375/0x1376 (no cells; `proposals/CONTRACT-PROPOSAL-S56.md` proposes CaptureArm/CaptureReady, no address moves); `tools/pi/dsp4_meascap.py`, `dsp4_fft.py --capture N`. Cost measured: 29 instructions, 3 L1 + 16,384 L2 words, +72 cycles median per pass while copying (0.02 % of 327,680), +0 overruns on both chips over 84 back-to-back 16k captures. Proof (digital): with strip-6 compressor distortion, FFT vs TEST_MEAS THD+N −55.750/−55.750 dB = 0.16313/0.16312 %, noise+dist −75.393/−75.393 dBFS, RMS ≤0.002 dB, at 4096 and 16384; clean −20 dBFS shows TEST_MEAS's own −115 dB fit floor vs FFT −152 dB; 20 Hz: 16k = 6.83 cycles (4096 = 1.71 only). (2) 0.98 FS is NOT the DSP: TEST_OSC into strip 20's input block reads meter = capture peak = injected to 4.0 (+12 dBFS), THD+N at floor; RX read is an unclamped shift; so the ADC never reached its FS code. DAC side and preamp input excluded by S54 (same lane-level ceiling at codes 0 and 2, DAC 19.5 dB apart). Remaining analog question for PW's scope: preamp/ADC-driver swing vs AK5558 FS input (hub: driver part + rails, AK5558 VREF). Findings S56-1..2. Unit: `s56` pair LEFT RUNNING (superset of s51, same chip 2; no reboot while PW reads J45), 1 kHz −20 dBFS on strip 6 → AUX 1 confirmed at TX lane −20.00 dBFS pk, MeasChan 20, AN_EN hi untouched, chain untouched.]   [model: opus]
 
 model: opus
