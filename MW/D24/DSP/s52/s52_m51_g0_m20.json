@@ -1,0 +1,121 @@
+{
+ "tool": "dsp4_s49_osc",
+ "strip": 6,
+ "meas": 20,
+ "freq_hz": 1000.0,
+ "level_dbfs_peak": -20.0,
+ "off": false,
+ "xsrc": 0,
+ "xdst": 0,
+ "window_samples": 4096,
+ "rows": [
+  {
+   "seq": 1,
+   "freq_hz": 1000.0,
+   "rms_dbfs": -17.425823211669922,
+   "thd_db": 0.0,
+   "noise_dbfs": -17.425823211669922,
+   "xtalk_db": 0.0,
+   "torn": false
+  },
+  {
+   "seq": 2,
+   "freq_hz": 1000.0,
+   "rms_dbfs": -17.433982849121094,
+   "thd_db": -79.76660919189453,
+   "noise_dbfs": -97.20059204101562,
+   "xtalk_db": 0.0,
+   "torn": false
+  },
+  {
+   "seq": 3,
+   "freq_hz": 1000.0,
+   "rms_dbfs": -17.437545776367188,
+   "thd_db": -79.60370635986328,
+   "noise_dbfs": -97.04124450683594,
+   "xtalk_db": 0.0,
+   "torn": false
+  },
+  {
+   "seq": 4,
+   "freq_hz": 1000.0,
+   "rms_dbfs": -17.42568016052246,
+   "thd_db": -83.8856201171875,
+   "noise_dbfs": -101.31129455566406,
+   "xtalk_db": 0.0,
+   "torn": false
+  },
+  {
+   "seq": 5,
+   "freq_hz": 1000.0,
+   "rms_dbfs": -17.433982849121094,
+   "thd_db": -85.98664855957031,
+   "noise_dbfs": -103.4206314086914,
+   "xtalk_db": 0.0,
+   "torn": false
+  },
+  {
+   "seq": 6,
+   "freq_hz": 1000.0,
+   "rms_dbfs": -17.437545776367188,
+   "thd_db": -87.29894256591797,
+   "noise_dbfs": -104.73648834228516,
+   "xtalk_db": 0.0,
+   "torn": false
+  },
+  {
+   "seq": 7,
+   "freq_hz": 1000.0,
+   "rms_dbfs": -17.425676345825195,
+   "thd_db": -87.2920913696289,
+   "noise_dbfs": -104.7177734375,
+   "xtalk_db": 0.0,
+   "torn": false
+  },
+  {
+   "seq": 8,
+   "freq_hz": 1000.0,
+   "rms_dbfs": -17.43398094177246,
+   "thd_db": -87.43282318115234,
+   "noise_dbfs": -104.86680603027344,
+   "xtalk_db": 0.0,
+   "torn": false
+  },
+  {
+   "seq": 9,
+   "freq_hz": 1000.0,
+   "rms_dbfs": -17.437538146972656,
+   "thd_db": -87.78280639648438,
+   "noise_dbfs": -105.22035217285156,
+   "xtalk_db": 0.0,
+   "torn": false
+  },
+  {
+   "seq": 10,
+   "freq_hz": 1000.0,
+   "rms_dbfs": -17.425682067871094,
+   "thd_db": -87.7122573852539,
+   "noise_dbfs": -105.13794708251953,
+   "xtalk_db": 0.0,
+   "torn": false
+  },
+  {
+   "seq": 11,
+   "freq_hz": 1000.0,
+   "rms_dbfs": -17.433982849121094,
+   "thd_db": -87.72771453857422,
+   "noise_dbfs": -105.16169738769531,
+   "xtalk_db": 0.0,
+   "torn": false
+  },
+  {
+   "seq": 12,
+   "freq_hz": 1000.0,
+   "rms_dbfs": -17.437536239624023,
+   "thd_db": -87.62047576904297,
+   "noise_dbfs": -105.05799865722656,
+   "xtalk_db": 0.0,
+   "torn": false
+  }
+ ]
+}

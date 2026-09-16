@@ -1,0 +1,157 @@
+{
+ "tool": "dsp4_s49_osc",
+ "strip": 6,
+ "meas": 20,
+ "freq_hz": 1000.0,
+ "level_dbfs_peak": -6.0,
+ "off": true,
+ "xsrc": 0,
+ "xdst": 0,
+ "window_samples": 4096,
+ "rows": [
+  {
+   "seq": 79,
+   "freq_hz": 1000.0,
+   "rms_dbfs": -75.99181365966797,
+   "thd_db": 0.0,
+   "noise_dbfs": -75.99181365966797,
+   "xtalk_db": 0.0,
+   "torn": false
+  },
+  {
+   "seq": 80,
+   "freq_hz": 1000.0,
+   "rms_dbfs": -102.42943572998047,
+   "thd_db": 0.0,
+   "noise_dbfs": -102.42943572998047,
+   "xtalk_db": 0.0,
+   "torn": false
+  },
+  {
+   "seq": 81,
+   "freq_hz": 1000.0,
+   "rms_dbfs": -102.9899673461914,
+   "thd_db": 0.0,
+   "noise_dbfs": -102.9899673461914,
+   "xtalk_db": 0.0,
+   "torn": false
+  },
+  {
+   "seq": 82,
+   "freq_hz": 1000.0,
+   "rms_dbfs": -103.73138427734375,
+   "thd_db": 0.0,
+   "noise_dbfs": -103.73138427734375,
+   "xtalk_db": 0.0,
+   "torn": false
+  },
+  {
+   "seq": 83,
+   "freq_hz": 1000.0,
+   "rms_dbfs": -104.1365966796875,
+   "thd_db": 0.0,
+   "noise_dbfs": -104.1365966796875,
+   "xtalk_db": 0.0,
+   "torn": false
+  },
+  {
+   "seq": 84,
+   "freq_hz": 1000.0,
+   "rms_dbfs": -104.05643463134766,
+   "thd_db": 0.0,
+   "noise_dbfs": -104.05643463134766,
+   "xtalk_db": 0.0,
+   "torn": false
+  },
+  {
+   "seq": 85,
+   "freq_hz": 1000.0,
+   "rms_dbfs": -104.17874145507812,
+   "thd_db": 0.0,
+   "noise_dbfs": -104.17874145507812,
+   "xtalk_db": 0.0,
+   "torn": false
+  },
+  {
+   "seq": 86,
+   "freq_hz": 1000.0,
+   "rms_dbfs": -104.40570068359375,
+   "thd_db": 0.0,
+   "noise_dbfs": -104.40570068359375,
+   "xtalk_db": 0.0,
+   "torn": false
+  },
+  {
+   "seq": 87,
+   "freq_hz": 1000.0,
+   "rms_dbfs": -104.20540618896484,
+   "thd_db": 0.0,
+   "noise_dbfs": -104.20540618896484,
+   "xtalk_db": 0.0,
+   "torn": false
+  },
+  {
+   "seq": 88,
+   "freq_hz": 1000.0,
+   "rms_dbfs": -104.02091217041016,
+   "thd_db": 0.0,
+   "noise_dbfs": -104.02091217041016,
+   "xtalk_db": 0.0,
+   "torn": false
+  },
+  {
+   "seq": 89,
+   "freq_hz": 1000.0,
+   "rms_dbfs": -104.02188873291016,
+   "thd_db": 0.0,
+   "noise_dbfs": -104.02188873291016,
+   "xtalk_db": 0.0,
+   "torn": false
+  },
+  {
+   "seq": 90,
+   "freq_hz": 1000.0,
+   "rms_dbfs": -104.32559204101562,
+   "thd_db": 0.0,
+   "noise_dbfs": -104.32559204101562,
+   "xtalk_db": 0.0,
+   "torn": false
+  },
+  {
+   "seq": 91,
+   "freq_hz": 1000.0,
+   "rms_dbfs": -104.4666748046875,
+   "thd_db": 0.0,
+   "noise_dbfs": -104.4666748046875,
+   "xtalk_db": 0.0,
+   "torn": false
+  },
+  {
+   "seq": 92,
+   "freq_hz": 1000.0,
+   "rms_dbfs": -104.32072448730469,
+   "thd_db": 0.0,
+   "noise_dbfs": -104.32072448730469,
+   "xtalk_db": 0.0,
+   "torn": false
+  },
+  {
+   "seq": 93,
+   "freq_hz": 1000.0,
+   "rms_dbfs": -104.38856506347656,
+   "thd_db": 0.0,
+   "noise_dbfs": -104.38856506347656,
+   "xtalk_db": 0.0,
+   "torn": false
+  },
+  {
+   "seq": 94,
+   "freq_hz": 1000.0,
+   "rms_dbfs": -104.20152282714844,
+   "thd_db": 0.0,
+   "noise_dbfs": -104.20152282714844,
+   "xtalk_db": 0.0,
+   "torn": false
+  }
+ ]
+}

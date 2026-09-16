@@ -6,6 +6,155 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE HALF-FRAME ORDER IS THE HOST'S INPUT PATCH, AND THE ANALOG LOOP MEASURES −87.6 dB THD+N (2026-09-16, session 52)
+
+**S52-1. The half-frame lane order is neither the reframer nor the frame-sync
+edge. It is `D24_INPUT_PATCH`, the chip-1 input patch the host writes at
+boot, and the part moves MIC 5 from lane 20 to lane 16 when it is replaced
+by identity.** From source:
+
+- `shared/dsp4-logic/rtl/dsp4_pcm_reframe.v` serves ONLY the Pi PCM lane
+  (`i_dspa[6] = pcm_tdm`, `dsp4_logic_top.v:282`). The converter lanes are
+  wires through the CPLD: `i_dspa[0..2] = ad[0..2]` (`dsp4_logic_top.v:276-278`,
+  `net_sel = 4'b1000`, line 223). Nothing in the CPLD reorders their slots.
+- There is no 50 % LRCK. `fs8` is a one-BCK pulse, high only in period
+  `8'hFF` (`dsp4_clkgen.v:63-65`), and it is the converter frame sync
+  (`conv_fs = fs8`, `dsp4_logic_top.v:342`). PW's hypothesis needs a 50 %
+  LRCK, which this design does not generate. A 4-slot framing error would
+  also keep slot k on the SAME SPORT; the measured map sends AD1's slots to
+  lanes 5–8 and 17–20, i.e. to two different SPORTs' default strips, which
+  no framing error can do.
+- The SPORT setup is per-lane and uniform (`sport_config.c:87-105`: SLEN 31,
+  CKRE=1, MFD from `lane_config.c:26`, 2 on converter halves), one DMA ring
+  per lane (`dma_config.c:302-365`).
+- The reorder is `tools/pi/dsp4_config.py:66-75`,
+  `D24_INPUT_PATCH = [0,1,2,3,12,13,14,15] + [4,5,6,7,16,17,18,19] + [8,9,10,11,20,21,22,23] + …`,
+  written to `INPUT_PATCH[i]` (0xF010+, lines 153-155) and applied by
+  `_rx_patch_apply` at CONFIG_COMMIT (`product_config.asm:198`,
+  `chip1/block_io.asm:723`). It maps packed AD lane k, slot s to strip
+  `4k+s` (s<4) or `12+4k+(s−4)` (s≥4). That is exactly the measured map.
+  `MW/D32/DSP/product-config.md` flagged it: *"verify the within-ADC8 slot
+  order … the table assumes block order"*.
+
+On the part (`s49tap` pair, MIC 5 = J25 open at gain 0, 1 kHz −20 dBFS on
+AUX 1), rewriting only the patch and re-committing:
+
+| patch | `_c1_rx_node_entry[16]` | `[20]` | lane 16 rms / peak | lane 20 rms / peak |
+|---|---:|---:|---|---|
+| D24 (as booted) | 7 | 15 | −116.26 / −109.53 | −15.70 / −14.25 |
+| identity | 15 | 19 | **−19.37 / −14.68** | −113.53 / −108.10 |
+| D24 restored | 7 | 15 | −119.83 / −112.90 | **−18.56 / −13.70** |
+
+Identity puts J25 (AD1 slot 7) on C1_IN_16 = `sport_id=1;slot_start=7`,
+exactly the dsp.csv row. **The SPORT framing is correct and the INPUT_TDM
+rows are correct**; the wrong fact is the patch's in-converter slot order.
+Reverted in the same run; the unit is on the D24 patch. (The lane readers
+in `dsp4_s48_scan.py`/`s52_lanes.py` go through `_c1_rx_node_entry`, so
+every "lane N" in S48–S51 means strip N after the patch, not dsp.csv's
+`C1_IN_nn` sport/slot.)
+
+**S52-2. Two fix proposals, not landed: `proposals/PROPOSAL-S52-INPUT-ORDER.md`.**
+(i) The 595 image is transmitted head-first but lands tail-first (byte p →
+chain index 24−p). **The SAFE image is not safe:** byte 0 (`0x00`, meant for
+U34) lands on J42's register (mute OFF), and byte 24 (`0x01`) lands on U34
+(INSTR1 ON). Every image with ch24 muted and instr1=0 (the safe image, the bench
+restore scripts, every S48–S51 image) left J42 unmuted and INSTR1 asserted, and a phantom request goes to another
+XLR. Consumers that must change together: mx26 `AnalogControlChain.cs`,
+`CommandLine.cs` listings, `ChainSetSpec.cs` doc, `AnalogBringUp.cs` safe
+load test, `app.Tests/AnalogControlChainTests.cs`, the two mx26 docs, and
+the seven bench-Pi hand scripts that hard-code `0x00 + 24×0x01`. No
+dsp-repo tool builds a 595 image. (ii) The input patch preset rewritten from
+the netlist order: `[3,15,2,14,13,1,12,0] + [7,19,6,18,17,5,16,4] +
+[11,23,10,22,21,9,20,8]`, with the full XLR ↔ slot ↔ packed index ↔ today's
+lane ↔ proposed C1_IN table. Recommended over rewriting INPUT_TDM rows
+because the rows are shared with D32 and are right; the row alternative is
+stated there for PW.
+
+**S52-3. The first measurement of the analog loop: DAC → AUX 1 → cable → J25
+→ MIC 5 preamp → U39 → C1_IN_20.** Oscillator on strip 6 → AUX 1 at unity;
+MeasChan = strip 20 at unity, comp/gate/EQ/tube off, off both buses; J25's
+register alone open, phantom off (`chain-set 27 ch8:…`, the S51 send
+position; 200/200 every time).
+
+Level law (TEST_MEAS RmsResult on strip 20; loop gain = lane RMS − the
+injected sine's RMS; `s49tap` pair; RMS is unaffected by S52-4):
+
+| gain code (byte) | osc −20 dBFS | osc −40 | osc −70 | loop gain |
+|---|---:|---:|---:|---:|
+| 0 (`0x00`) | −17.45 | −37.44 | −67.44 | **+5.57 dB** (all three levels within 0.02 dB) |
+| 8 (`0x20`) | — | −3.23 (at clip) | −33.07 | **+39.94 dB** (+34.37 over code 0) |
+| 16 (`0x40`) | — | −1.33 (clipped) | −25.85 | **+47.16 dB** (+41.59 over code 0) |
+
+At code 0 with the −20 dBFS peak tone, on the `s51_119ea9d9` pair (no chip-2
+overruns, S52-4), MIC 5 lane, twelve windows:
+
+| | value |
+|---|---:|
+| RmsResult | **−17.43 dBFS** (settled, ±0.01) |
+| ThdResult | **−87.62 dB** (windows 6–12: −87.29 … −87.78; windows 2–5 still settling from −79.8) |
+| NoiseResult (tone on) | **−105.06 dBFS** |
+| RmsResult, tone OFF, 16 windows | **−104.20 dBFS** (settles from −76 through −102 in two windows) |
+
+THD+N is noise-limited: the tone-on residual (−105.06) equals the tone-off
+floor (−104.2) within a dB. From the capture on the tap pair (the one
+capture whose chip-2 discontinuity fell in the window's first 150 samples,
+where the 7-term Blackman-Harris suppresses it): `dsp4_fft.py` fundamental
+**1000.0002 Hz, −17.43 dBFS; THD+N −85.40 dB; THD(2..10) −89.67 dB; h2
+−91.54 dBc, h3 −100.28 dBc; noise −104.87 dBFS**. That agrees with the node
+within 2.2 dB on THD+N and 0.19 dB on noise. It is an upper bound because
+some burst energy leaks through the window. Time-domain fits over the
+burst-free 621–866 samples of four captures give THD(2..10) −78 to −93 dB,
+h2 −81 to −107 dBc, and a residual whose low-frequency part varies with
+the recovery after each discontinuity. Every level above is dBFS at its own
+side: oscillator = DSP digital peak; lane = chip-1 strip post-fader
+(q4.28, 1.0 = converter FS). **The +5 V rail is PW's DMM item and was NOT
+measured.** No absolute volts are claimed: 0 dBFS at the DAC and at the ADC
+are not calibrated to each other or to dBu, so "+5.57 dB" is the digital
+loop gain, not a preamp gain in dB.
+
+Files: `MW/D24/DSP/s52/` (captures, FFT text + PNG, TEST_MEAS JSON, the
+bench scripts as run).
+
+**S52-4. On the `s49tap` build (TEST_NODES + SCOPE_BLK_TAP) chip 2 misses a
+block every ~22 ms, and in the analog loop that looks like −12 to −14 dB
+THD+N.** Chip 2 `_diag_blk_overrun` +223 in 5 s (≈45/s); chip 1 +0. The
+chip-2 AUX 1 output capture (`_buf_C2_AUX_OUT_01`) is a clean −20.00 dBFS
+sine broken by whole-block discontinuities at samples 384 and 1008. Through
+the DAC reconstruction filter, the analog path and the ADC they arrive as a
+~70–90 sample ringing burst at a fixed block phase. The burst repeats
+sample-identical, because it is phase-locked to a 48-sample tone. Every
+1024-sample capture of lane 20 held exactly one. TEST_MEAS over its
+4,096-sample window read ThdResult −12.2 … −14.3 dB with NoiseResult
+tracking RmsResult −12.3 dB at −20/−40/−70 dBFS and at codes 0/8/16:
+signal-proportional, i.e. not noise. The digital control (strip 6 captured
+on chip 1) was clean, and host SPI silence around the capture window
+changed nothing (three quiet captures, burst still present), so it is not
+link traffic. **On `s51_119ea9d9` (TEST_NODES, no tap) chip 2 reads +0
+overruns in 5 s with the tone running, and the same loop reads −87.6 dB.**
+Consequence: an analog THD+N taken on a tap build is chip 2's capacity, not
+the analog path. The FFT capture and the clean TEST_MEAS figure need two
+different builds until chip 2 has headroom for the tap.
+
+Side notes, recorded not chased: (a) a foreground `/home/app/app` (running ~58 min at session start,
+launched by an `app cli … ; /home/app/app | head -20` command line of
+unestablished origin, with a `gpiomon GPIO4` child) was still running at session start and was stopped
+before any boot. AN_EN and CS_M were unchanged by stopping it. (b) The DSP
+parameter link shares SCK/MOSI with the 595 chain, so boot and link traffic
+shifts garbage through the chain's shift stage (pass-1 MISO is never "the
+previous image"). Only CS_M's rising edge latches, so the latched outputs
+are unaffected, but a readback of "what was latched" is impossible by
+design.
+
+**Hand-back:** `s51_119ea9d9` pair booted and configured D24 (patch as
+shipped), AN_EN (GPIO26) high, CS_M (GPIO27) `op pu` high, matrix-app stopped.
+MIC 5 ALONE open at gain 0, phantom off, and truly alone given S52-2:
+`app cli chain-set 27 ch8:mute=0,gain=0 ch24:mute=0 instr1=1` (200/200).
+`ch8` reaches J25; `instr1=1` is the byte that lands on J42 = mute;
+`ch24:mute=0` is the byte that lands on U34 = INSTR1/INSTR2 off; every other
+register muted, gain 0. TEST_OSC 1 kHz −20 dBFS peak on strip 6 → AUX 1
+(and MAIN), MeasChan = 20 (repeat under this exact image: −17.44 dBFS /
+−87.59 dB / −105.03 dBFS). Strip 20 unity, dynamics off.
+
 ## RAW STEP-4 DATA: ONE 595 REGISTER OPEN AT A TIME, ALL 24 CHIP-1 LANES READ (2026-09-16, session 51, hub addendum 08:09)
 
 **S51-4. For every send position `p` = 0..24, the lanes whose floor rose above −100 dBFS and the lane carrying the injected square.** Method: `app cli chain-set` sent one full 25-byte image per row — the one register named for that `p` at `mute=0,phantom=0,gain=63` (= byte `0xFC`), every other one of the 24 channel registers at `mute=1,phantom=0,gain=0` (= byte `0x01`) — verified 200/200 each time; then all 24 `C1_IN_*` lanes read (RMS + peak, one 16-sample window) with the 500 Hz/−6 dBFS square already held continuously on donor strip 6 → AUX 1 (armed since the prior addendum, confirmed still `ARM=1` throughout this run). No interpretation below, numbers as read:

@@ -1,0 +1,31 @@
+dsp4_fft — _buf_C1_FDR_20
+  1024 samples at 48000 Hz, scale q4.28, 1024-point transform (numpy 2.4.4)
+  bin 46.8750 Hz, 7-term Blackman-Harris, tone bands +-8 bins (+-375.0 Hz)
+
+  fundamental       995.5716 Hz     -17.95 dBFS  (bin 21)
+  total                                 -17.30 dBFS
+  DC                                    -39.62 dBFS
+  THD+N                                  -8.14 dB    (-26.09 dBFS)
+  THD (2..10)                           -10.01 dB
+  SNR                                    12.70 dB
+  noise                                 -30.65 dBFS
+  floor / bin                           -59.48 dBFS
+
+  harmonics
+    h2     1968.75 Hz     -12.91 dBc     -30.86 dBFS
+    h3     3000.00 Hz     -16.21 dBc     -34.16 dBFS
+    h4     3984.38 Hz     -23.68 dBc     -41.63 dBFS
+    h5     4968.75 Hz     -22.57 dBc     -40.52 dBFS
+    h6     5953.12 Hz     -23.53 dBc     -41.48 dBFS
+    h7     6984.38 Hz     -25.70 dBc     -43.65 dBFS
+    h8     7968.75 Hz     -24.74 dBc     -42.69 dBFS
+    h9     8953.12 Hz     -27.60 dBc     -45.55 dBFS
+    h10    9937.50 Hz     -25.91 dBc     -43.86 dBFS
+
+  loudest non-harmonic bins (spurs)
+       1546.88 Hz     -26.99 dBc     -44.93 dBFS
+       1500.00 Hz     -27.38 dBc     -45.32 dBFS
+       1453.12 Hz     -27.60 dBc     -45.55 dBFS
+       1406.25 Hz     -27.63 dBc     -45.58 dBFS
+       2390.62 Hz     -27.65 dBc     -45.60 dBFS
+       2578.12 Hz     -27.72 dBc     -45.66 dBFS
