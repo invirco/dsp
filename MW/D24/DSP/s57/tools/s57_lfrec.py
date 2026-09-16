@@ -4,11 +4,12 @@ samples/s the audio-band noise aliases flat across 0-300 Hz, and anything concen
 above it -- the record the 0.34 s capture is too short to give (is the sub-20 Hz wander periodic, and at what rate).
 No chain write: the code is whatever was set last."""
 import json, os, sys, time
+ARGV = list(sys.argv)          # s54lib's import clears sys.argv
 os.environ.setdefault('SYMDIR', '/home/app/s56')
 sys.path.insert(0, '/home/app/s54'); sys.path.insert(0, '/home/app/s56')
 import s54lib as T
 X = T.X
-tag, secs = sys.argv[1], float(sys.argv[2])
+tag, secs = ARGV[1], float(ARGV[2])
 r = T.Rig(logpath='/home/app/s57/s57_lfrec.jsonl')
 sc = r.sc
 e = sc.peek(sc.sym['_c1_rx_node_entry'] + 20 - 1)

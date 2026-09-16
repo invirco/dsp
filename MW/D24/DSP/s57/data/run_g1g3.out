@@ -1,0 +1,27 @@
+code 63  [15] ch8   Q7..Q0 11111100 0xFC  tone 0
+g1_00  t+0 s  n 16384  ovr +0  node RMS -91.47 dBFS
+g1_01  t+17 s  n 16384  ovr +0  node RMS -91.87 dBFS
+g1_02  t+34 s  n 16384  ovr +0  node RMS -91.28 dBFS
+g1_03  t+47 s  n 16384  ovr +0  node RMS -90.17 dBFS
+g1_04  t+60 s  n 16384  ovr +0  node RMS -91.36 dBFS
+g1_05  t+73 s  n 16384  ovr +0  node RMS -89.77 dBFS
+g1_06  t+86 s  n 16384  ovr +0  node RMS -91.30 dBFS
+g1_07  t+99 s  n 16384  ovr +0  node RMS -90.42 dBFS
+g1_08  t+111 s  n 16384  ovr +0  node RMS -91.18 dBFS
+g1_09  t+124 s  n 16384  ovr +0  node RMS -90.39 dBFS
+g1_10  t+137 s  n 16384  ovr +0  node RMS -90.87 dBFS
+g1_11  t+150 s  n 16384  ovr +0  node RMS -91.04 dBFS
+g1_12  t+163 s  n 16384  ovr +0  node RMS -90.57 dBFS
+g1_13  t+175 s  n 16384  ovr +0  node RMS -90.52 dBFS
+g1_14  t+188 s  n 16384  ovr +0  node RMS -91.76 dBFS
+g1_15  t+202 s  n 16384  ovr +0  node RMS -89.04 dBFS
+g1_16  t+219 s  n 16384  ovr +0  node RMS -88.15 dBFS
+g1_17  t+236 s  n 16384  ovr +0  node RMS -83.89 dBFS
+g1_18  t+253 s  n 16384  ovr +0  node RMS -82.32 dBFS
+g1_19  t+270 s  n 16384  ovr +0  node RMS -91.58 dBFS
+code 63  [15] ch8   Q7..Q0 11111100 0xFC  tone 0
+g3_00  t+0 s  n 16384  ovr +0  node RMS -91.32 dBFS
+g3_01  t+60 s  n 16384  ovr +0  node RMS -91.00 dBFS
+g3_02  t+120 s  n 16384  ovr +0  node RMS -91.31 dBFS
+g3_03  t+180 s  n 16384  ovr +0  node RMS -91.90 dBFS
+g3_04  t+240 s  n 16384  ovr +0  node RMS -90.48 dBFS

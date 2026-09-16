@@ -1,0 +1,60 @@
++ python3 /home/app/s57/s57_cap.py f150c0 0 5
+code 0  [15] ch8   Q7..Q0 00000000 0x00  tone 0
+f150c0_00  t+0 s  n 16384  ovr +0  node RMS -111.16 dBFS
+f150c0_01  t+17 s  n 16384  ovr +0  node RMS -113.71 dBFS
+f150c0_02  t+32 s  n 16384  ovr +0  node RMS -114.32 dBFS
+f150c0_03  t+45 s  n 16384  ovr +0  node RMS -113.73 dBFS
+f150c0_04  t+57 s  n 16384  ovr +0  node RMS -114.25 dBFS
++ python3 /home/app/s57/s57_lfrec.py c0 40
+Traceback (most recent call last):
+  File "/home/app/s57/s57_lfrec.py", line 11, in <module>
+    tag, secs = sys.argv[1], float(sys.argv[2])
+                ~~~~~~~~^^^
+IndexError: list index out of range
++ python3 /home/app/s57/s57_cap.py g1v 63 3
+code 63  [15] ch8   Q7..Q0 11111100 0xFC  tone 0
+g1v_00  t+0 s  n 16384  ovr +0  node RMS -92.21 dBFS
+g1v_01  t+13 s  n 16384  ovr +0  node RMS -91.42 dBFS
+g1v_02  t+26 s  n 16384  ovr +0  node RMS -92.29 dBFS
++ S57_CODE=63 python3 /home/app/s57/s57_link.py lk 12 quiet,c1,c2
+lk_00 quiet ios    0 n 16384 ovr +0
+lk_01 c1    ios  201 n 16384 ovr +0
+lk_02 c2    ios  201 n 16384 ovr +0
+lk_03 quiet ios    0 n 16384 ovr +0
+lk_04 c1    ios  201 n 16384 ovr +0
+lk_05 c2    ios  192 n 16384 ovr +0
+lk_06 quiet ios    0 n 16384 ovr +0
+lk_07 c1    ios  200 n 16384 ovr +0
+lk_08 c2    ios  188 n 16384 ovr +0
+lk_09 quiet ios    0 n 16384 ovr +0
+lk_10 c1    ios  200 n 16384 ovr +0
+lk_11 c2    ios  193 n 16384 ovr +0
++ python3 /home/app/s57/s57_lfrec.py c63 40
+lf_c63: 19999 samples in 40.0 s (500/s), 0 link errors
++ python3 /home/app/s57/s57_cap.py g2c48 48 5
+code 48  [15] ch8   Q7..Q0 11000000 0xC0  tone 0
+g2c48_00  t+0 s  n 16384  ovr +0  node RMS -91.36 dBFS
+g2c48_01  t+15 s  n 16384  ovr +0  node RMS -94.04 dBFS
+g2c48_02  t+28 s  n 16384  ovr +0  node RMS -93.07 dBFS
+g2c48_03  t+41 s  n 16384  ovr +0  node RMS -53.20 dBFS
+g2c48_04  t+54 s  n 16384  ovr +0  node RMS -53.42 dBFS
++ python3 /home/app/s57/s57_cap.py g2c32 32 5
+code 32  [15] ch8   Q7..Q0 10000000 0x80  tone 0
+g2c32_00  t+0 s  n 16384  ovr +0  node RMS -56.80 dBFS
+g2c32_01  t+13 s  n 16384  ovr +0  node RMS -56.62 dBFS
+g2c32_02  t+26 s  n 16384  ovr +0  node RMS -56.98 dBFS
+g2c32_03  t+39 s  n 16384  ovr +0  node RMS -56.26 dBFS
+g2c32_04  t+51 s  n 16384  ovr +0  node RMS -56.59 dBFS
++ python3 /home/app/s57/s57_cap.py g2c16 16 5
+code 16  [15] ch8   Q7..Q0 01000000 0x40  tone 0
+g2c16_00  t+0 s  n 16384  ovr +0  node RMS -63.11 dBFS
+g2c16_01  t+13 s  n 16384  ovr +0  node RMS -62.95 dBFS
+g2c16_02  t+27 s  n 16384  ovr +0  node RMS -63.12 dBFS
+g2c16_03  t+43 s  n 16384  ovr +0  node RMS -63.01 dBFS
+g2c16_04  t+60 s  n 16384  ovr +0  node RMS -63.19 dBFS
++ python3 /home/app/s57/s57_lfrec.py c16 40
+lf_c16: 19999 samples in 40.0 s (500/s), 0 link errors
++ python3 /home/app/s57/s57_cap.py g3b 63 5 60
+code 63  [15] ch8   Q7..Q0 11111100 0xFC  tone 0
+g3b_00  t+0 s  n 16384  ovr +0  node RMS -51.60 dBFS
+g3b_01  t+60 s  n 16384  ovr +0  node RMS -51.80 dBFS
