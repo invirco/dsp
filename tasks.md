@@ -47,6 +47,10 @@ Hub reading of your step-2 result plus the netlist: a 25-byte SPI image shifts t
 
 STEP 4, exactly: for send-order byte position p = 0..24, one image with ONLY byte p = 0xFC (unmute, phantom off, gain 63), all other bytes 0x01 (mute); verify 200/200; read all 24 chip-1 lanes (RMS + peak, one window). Table: p, head index 24−p, XLR + ADC + AIN + slot from the netlist table (addendum 3), the lane whose floor rises, and the lane (if any) at ≈ 0 dBFS peak = the square = J25 (expected p = 15). From the table state: the send-order ↔ register convention (fix in chain.py / the app's image builder, propose only), SPORT ↔ U15/U39/U60, and the slot rotation per SPORT. Then addendum 4's edge test. Square held, analog on.
 
+### S51 CLOSED (hub interpretation of S51-4/S51-5's raw table)
+
+The physical chain runs the reverse of `chain-set`'s position model — p lands at head index 24−p — confirmed by p=16..24 (head 8..0 = J22..J15, the unpowered MIC 1–4 section) reading silent throughout; the cable is in J25 = MIC 5, and lane 20 is confirmed. Gate fix proven and committed; findings and raw data stand as recorded.
+
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
 no AI attribution in commits or any work product.
