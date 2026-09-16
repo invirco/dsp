@@ -1,0 +1,4 @@
+loop check, code 0, osc -20 on AUX 1: lane coherent pk -145.12 dBFS (with loop: -14.42), RMS -113.98
+code 63 tone OFF, 150 ohm: RmsResult -85.40 dBFS  NoiseResult -85.40 dBFS  (windows -87.37 -83.84 -84.22 -88.19 -79.86 -81.12 -88.42 -90.14)  input-referred -144.11 dBFS-eq (divisor +58.717 dB)
+code  0 tone OFF, 150 ohm: RmsResult -113.79 dBFS  NoiseResult -113.79 dBFS  (windows -112.79 -111.52 -114.16 -114.19 -115.08 -113.84 -114.72 -114.01)  input-referred -119.37 dBFS-eq (divisor +5.578 dB)
+handback: code 0, 1 kHz -20 dBFS on strip 6 -> AUX 1 (no loop), MeasChan 20
