@@ -1,0 +1,4 @@
+trim 0: osc -61.717 -> lane coh pk -2.998 dBFS
+code 63 osc -61.717  lane coh pk -2.997 dBFS  RMS -6.007  ThdResult -47.05 dB = 0.44437 %  NoiseResult -53.05 dBFS  meter pk 0.716042 (-2.901 dBFS)  (no sample at FS)
+  windows ThdResult: -46.69 -47.07 -47.10 -47.18 -47.04 -47.20
+handback code 0, 1 kHz -20: RMS -17.43 THD+N -87.94 dB
