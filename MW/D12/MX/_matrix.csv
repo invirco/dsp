@@ -2286,37 +2286,50 @@ Talk001Dest001,1,1,1,,,Talkback routing to aux/main,2284,pvt,1,,,,,,,,,,,,,,,,,,
 Talk001Dest002,1,1,2,,,Talkback routing to aux/main,2285,pvu,1,,,,,,,,,,,,,,,,,,,,,,0
 Talk001Dest003,1,1,3,,,Talkback routing to aux/main,2286,pvv,1,,,,,,,,,,,,,,,,,,,,,,0
 Talk001Gain001,1,1,1,,,Talkback mic input gain,2287,pvw,65,,,,,,,,,,,,,,,,,,,,,,
-Usb001On001,1,1,1,,false,USB audio input on/off,2288,pwh,2,,,,,,,,,,,,,,,,,,,,,,1
-Usb001Level001,1,1,1,,false,USB audio input level,2289,pwi,255,,,,,,,,,,0=-20/127=6/[Lin],,,,,,,,,,,,
-Aux001Name001,16,1,1,,,Aux output channel name,2290,pwj,1,,,,,,,,,,,,,,,,,,,,,,-
-Aux002Name001,16,2,1,,,Aux output channel name,2291,pwk,1,,,,,,,,,,,,,,,,,,,,,,-
-Aux003Name001,16,3,1,,,Aux output channel name,2292,pwl,1,,,,,,,,,,,,,,,,,,,,,,-
-Aux004Name001,16,4,1,,,Aux output channel name,2293,pwm,1,,,,,,,,,,,,,,,,,,,,,,-
-Chan001Name001,16,1,1,,,Input channel name/label,2294,pwn,1,,,,,,,,,,,,,,,,,,,,Kick,,-
-Chan002Name001,16,2,1,,,Input channel name/label,2295,pwo,1,,,,,,,,,,,,,,,,,,,,Snare Top,,-
-Chan003Name001,16,3,1,,,Input channel name/label,2296,pwp,1,,,,,,,,,,,,,,,,,,,,Snare Bot,,-
-Chan004Name001,16,4,1,,,Input channel name/label,2297,pwq,1,,,,,,,,,,,,,,,,,,,,Hihat,,-
-Chan005Name001,16,5,1,,,Input channel name/label,2298,pwr,1,,,,,,,,,,,,,,,,,,,,Ride,,-
-Chan006Name001,16,6,1,,,Input channel name/label,2299,pws,1,,,,,,,,,,,,,,,,,,,,Floor Tom,,-
-Chan007Name001,16,7,1,,,Input channel name/label,2300,pwt,1,,,,,,,,,,,,,,,,,,,,Mid Toms,,-
-Chan008Name001,16,8,1,,,Input channel name/label,2301,pwu,1,,,,,,,,,,,,,,,,,,,,OH Left,,-
-Chan009Name001,16,9,1,,,Input channel name/label,2302,pwv,1,,,,,,,,,,,,,,,,,,,,OH Right,,-
-Chan010Name001,16,10,1,,,Input channel name/label,2303,pww,1,,,,,,,,,,,,,,,,,,,,Bass,,-
-Chan011Name001,16,11,1,,,Input channel name/label,2304,qhh,1,,,,,,,,,,,,,,,,,,,,E Gtr 1,,-
-Chan012Name001,16,12,1,,,Input channel name/label,2305,qhi,1,,,,,,,,,,,,,,,,,,,,E Gtr 2,,-
-Dca001Name001,16,1,1,,,DCA group name,2306,qhj,1,,,,,,,,,,,,,,,,,,,,,,-
-Dca002Name001,16,2,1,,,DCA group name,2307,qhk,1,,,,,,,,,,,,,,,,,,,,,,-
-Dca003Name001,16,3,1,,,DCA group name,2308,qhl,1,,,,,,,,,,,,,,,,,,,,,,-
-Dca004Name001,16,4,1,,,DCA group name,2309,qhm,1,,,,,,,,,,,,,,,,,,,,,,-
-Fx001Name001,16,1,1,,,FX channel name,2310,qhn,1,,,,,,,,,,,,,,,,,,,,,,-
-Fx002Name001,16,2,1,,,FX channel name,2311,qho,1,,,,,,,,,,,,,,,,,,,,,,-
-Fx003Name001,16,3,1,,,FX channel name,2312,qhp,1,,,,,,,,,,,,,,,,,,,,,,-
-Fx004Name001,16,4,1,,,FX channel name,2313,qhq,1,,,,,,,,,,,,,,,,,,,,,,-
-Grp001Name001,16,1,1,,,Group name,2314,qhr,1,,,,,,,,,,,,,,,,,,,,,,-
-Grp002Name001,16,2,1,,,Group name,2315,qhs,1,,,,,,,,,,,,,,,,,,,,,,-
-MainSub001Name001,16,1,1,,,Subwoofer name,2316,qht,1,,,,,,,,,,,,,,,,,,,,,,-
-MainSub001CrossoverFreq001,1,1,1,,,Electronic crossover frequency,2317,qhu,255,,,,,,,,MainCrossover,,,,,,,,,,,,,,-
-MainSub001CrossoverSlope001,1,1,1,,,Crossover slope (HPF 36/48 dB/oct),2318,qhv,4,,,,,,,,MainCrossover,,,,,,,,,,,,,,-
-MainSub001LimiterRng001,1,1,1,,,Subwoofer output limiter range/depth,2319,qhw,33,,,,,,,,MainLimiter,,0=0/127=60/[Lin],,,,,,,,,,,,0
-Main001Name001,16,1,1,,,Main L/R master name,2320,qih,1,,,,,,,,,,,,,,,,,,,,Master,,-
-Sys001SwUpd001,1,1,1,,false,Software updater open/close SW button,2321,qii,2,,,,,,,,,,,,,,,,,,,,,,-
+Test001MeasChan001,1,1,1,true,false,Select channel for RMS/THD measurement,2288,pwh,33,,,,,,,,,,,,,,,,,,,,,,-
+Test001NoiseResult001,1,1,1,true,false,Read-back: noise floor,2289,pwi,255,,,,,,,,,,,,,,,,,,,,,,-
+Test001OscChan001,1,1,1,true,false,Oscillator target channel (0=all),2290,pwj,33,,,,,,,,,,,,,,,,,,,,,,-
+Test001OscFreq001,1,1,1,true,false,Oscillator frequency 20Hz-20kHz,2291,pwk,255,,,,,,,,,,0=20/127=20000/[Log],,,,,,,,,,,,-
+Test001OscLevel001,1,1,1,true,false,Oscillator output level dBFS,2292,pwl,61,,,,,,,,,,0=-60/127=0/[Lin],,,,,,,,,,,,-
+Test001OscOn001,1,1,1,true,false,Precision sine oscillator enable,2293,pwm,2,,,,,,,,,,,,,,,,,,,,,,-
+Test001RmsResult001,1,1,1,true,false,Read-back: RMS level,2294,pwn,255,,,,,,,,,,,,,,,,,,,,,,-
+Test001SweepOn001,1,1,1,true,false,Start frequency sweep,2295,pwo,2,,,,,,,,,,,,,,,,,,,,,,-
+Test001SweepStep001,1,1,1,true,false,Sweep step count,2296,pwp,255,,,,,,,,,,,,,,,,,,,,,,-
+Test001ThdResult001,1,1,1,true,false,Read-back: THD+N ratio,2297,pwq,255,,,,,,,,,,,,,,,,,,,,,,-
+Test001XtalkDst001,1,1,1,true,false,Crosstalk destination channel,2298,pwr,33,,,,,,,,,,,,,,,,,,,,,,-
+Test001XtalkResult001,1,1,1,true,false,Read-back: crosstalk level dB,2299,pws,255,,,,,,,,,,,,,,,,,,,,,,-
+Test001XtalkSrc001,1,1,1,true,false,Crosstalk source channel,2300,pwt,33,,,,,,,,,,,,,,,,,,,,,,-
+Usb001On001,1,1,1,,false,USB audio input on/off,2301,pwu,2,,,,,,,,,,,,,,,,,,,,,,1
+Usb001Level001,1,1,1,,false,USB audio input level,2302,pwv,255,,,,,,,,,,0=-20/127=6/[Lin],,,,,,,,,,,,
+Aux001Name001,16,1,1,,,Aux output channel name,2303,pww,1,,,,,,,,,,,,,,,,,,,,,,-
+Aux002Name001,16,2,1,,,Aux output channel name,2304,qhh,1,,,,,,,,,,,,,,,,,,,,,,-
+Aux003Name001,16,3,1,,,Aux output channel name,2305,qhi,1,,,,,,,,,,,,,,,,,,,,,,-
+Aux004Name001,16,4,1,,,Aux output channel name,2306,qhj,1,,,,,,,,,,,,,,,,,,,,,,-
+Chan001Name001,16,1,1,,,Input channel name/label,2307,qhk,1,,,,,,,,,,,,,,,,,,,,Kick,,-
+Chan002Name001,16,2,1,,,Input channel name/label,2308,qhl,1,,,,,,,,,,,,,,,,,,,,Snare Top,,-
+Chan003Name001,16,3,1,,,Input channel name/label,2309,qhm,1,,,,,,,,,,,,,,,,,,,,Snare Bot,,-
+Chan004Name001,16,4,1,,,Input channel name/label,2310,qhn,1,,,,,,,,,,,,,,,,,,,,Hihat,,-
+Chan005Name001,16,5,1,,,Input channel name/label,2311,qho,1,,,,,,,,,,,,,,,,,,,,Ride,,-
+Chan006Name001,16,6,1,,,Input channel name/label,2312,qhp,1,,,,,,,,,,,,,,,,,,,,Floor Tom,,-
+Chan007Name001,16,7,1,,,Input channel name/label,2313,qhq,1,,,,,,,,,,,,,,,,,,,,Mid Toms,,-
+Chan008Name001,16,8,1,,,Input channel name/label,2314,qhr,1,,,,,,,,,,,,,,,,,,,,OH Left,,-
+Chan009Name001,16,9,1,,,Input channel name/label,2315,qhs,1,,,,,,,,,,,,,,,,,,,,OH Right,,-
+Chan010Name001,16,10,1,,,Input channel name/label,2316,qht,1,,,,,,,,,,,,,,,,,,,,Bass,,-
+Chan011Name001,16,11,1,,,Input channel name/label,2317,qhu,1,,,,,,,,,,,,,,,,,,,,E Gtr 1,,-
+Chan012Name001,16,12,1,,,Input channel name/label,2318,qhv,1,,,,,,,,,,,,,,,,,,,,E Gtr 2,,-
+Dca001Name001,16,1,1,,,DCA group name,2319,qhw,1,,,,,,,,,,,,,,,,,,,,,,-
+Dca002Name001,16,2,1,,,DCA group name,2320,qih,1,,,,,,,,,,,,,,,,,,,,,,-
+Dca003Name001,16,3,1,,,DCA group name,2321,qii,1,,,,,,,,,,,,,,,,,,,,,,-
+Dca004Name001,16,4,1,,,DCA group name,2322,qij,1,,,,,,,,,,,,,,,,,,,,,,-
+Fx001Name001,16,1,1,,,FX channel name,2323,qik,1,,,,,,,,,,,,,,,,,,,,,,-
+Fx002Name001,16,2,1,,,FX channel name,2324,qil,1,,,,,,,,,,,,,,,,,,,,,,-
+Fx003Name001,16,3,1,,,FX channel name,2325,qim,1,,,,,,,,,,,,,,,,,,,,,,-
+Fx004Name001,16,4,1,,,FX channel name,2326,qin,1,,,,,,,,,,,,,,,,,,,,,,-
+Grp001Name001,16,1,1,,,Group name,2327,qio,1,,,,,,,,,,,,,,,,,,,,,,-
+Grp002Name001,16,2,1,,,Group name,2328,qip,1,,,,,,,,,,,,,,,,,,,,,,-
+MainSub001Name001,16,1,1,,,Subwoofer name,2329,qiq,1,,,,,,,,,,,,,,,,,,,,,,-
+MainSub001CrossoverFreq001,1,1,1,,,Electronic crossover frequency,2330,qir,255,,,,,,,,MainCrossover,,,,,,,,,,,,,,-
+MainSub001CrossoverSlope001,1,1,1,,,Crossover slope (HPF 36/48 dB/oct),2331,qis,4,,,,,,,,MainCrossover,,,,,,,,,,,,,,-
+MainSub001LimiterRng001,1,1,1,,,Subwoofer output limiter range/depth,2332,qit,33,,,,,,,,MainLimiter,,0=0/127=60/[Lin],,,,,,,,,,,,0
+Main001Name001,16,1,1,,,Main L/R master name,2333,qiu,1,,,,,,,,,,,,,,,,,,,,Master,,-
+Sys001SwUpd001,1,1,1,,false,Software updater open/close SW button,2334,qiv,2,,,,,,,,,,,,,,,,,,,,,,-

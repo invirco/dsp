@@ -2,7 +2,13 @@ provenance: AI-drafted 2026-09-15 — prose may carry a statistical watermark; r
 
 # Contract proposal S49 — the `Test[1-1]*` self-test family, +13 cells per product
 
-**Status: PROPOSED.** Landing is the hub's call (PW ruling 2026-09-08 #5).
+**Status: LANDED** as `defs-v2026.09.16` (`invirco/defs@084dbc1`), consumed
+by this repo in session 50 (2026-09-16): pin advanced, `defs.lock` updated,
+all four `_matrix.csv` gain the thirteen `Test[1-1]*` cells each
+(2,334/3,316/4,998/7,012), D24/D32 matrices backfilled and committed with
+their DSP addresses, D32's generated SHARC artefacts gain exactly the
+sixteen S49 dispatch words. Zero address moves on any pre-existing cell. See
+`findings.md` S50-1..S50-3.
 
 **The unit was booted and measured in the session that produced this, but not
 by this proposal: nothing here was derived from the part. Every number below

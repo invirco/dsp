@@ -4049,8 +4049,21 @@
 | 4963 | 0x1363 | `Chan030LcrOn001` |  | InstantCtl |
 | 4964 | 0x1364 | `Chan031LcrOn001` |  | InstantCtl |
 | 4965 | 0x1365 | `Chan032LcrOn001` |  | InstantCtl |
+| 4967 | 0x1367 | `Test001MeasChan001` |  | InstantCtl |
+| 4968 | 0x1368 | `Test001RmsResult001` |  |  |
+| 4969 | 0x1369 | `Test001ThdResult001` |  |  |
+| 4970 | 0x136A | `Test001NoiseResult001` |  |  |
+| 4971 | 0x136B | `Test001XtalkSrc001` |  | InstantCtl |
+| 4972 | 0x136C | `Test001XtalkDst001` |  | InstantCtl |
+| 4973 | 0x136D | `Test001XtalkResult001` |  |  |
+| 4975 | 0x136F | `Test001OscOn001` |  | InstantCtl |
+| 4976 | 0x1370 | `Test001OscFreq001` | 0=20/127=20000/[Log] | InstantCtl |
+| 4977 | 0x1371 | `Test001OscLevel001` | 0=-60/127=0/[Lin] | InstantCtl |
+| 4978 | 0x1372 | `Test001OscChan001` |  | InstantCtl |
+| 4979 | 0x1373 | `Test001SweepOn001` |  | InstantCtl |
+| 4980 | 0x1374 | `Test001SweepStep001` |  | InstantCtl |
 
-**Total Chip 1 cells:** 4043
+**Total Chip 1 cells:** 4056
 
 ## Chip 2
 

@@ -4861,126 +4861,139 @@ Talk002On001,1,2,1,,false,Talkback mic 2 on/off,4859,ijws,2,,,,,,,,,,,,,,,1,1,47
 Talk002Dest001,1,2,1,,false,Talkback mic 2 routing to aux/main,4860,ijwt,1,,,,,,,,,,,,,,,1,1,4743,0x1287,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
 Talk002Dest002,1,2,2,,false,Talkback mic 2 routing to aux/main,4861,ijwu,1,,,,,,,,,,,,,,,,,,,,,,0,,,,,,
 Talk002Dest003,1,2,3,,false,Talkback mic 2 routing to aux/main,4862,ijwv,1,,,,,,,,,,,,,,,,,,,,,,0,,,,,,
-Usb001On001,1,1,1,,false,USB audio input on/off,4863,ijww,2,,,,,,,,,,,,,,,2,1,1798,0x0706,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
-Usb001Level001,1,1,1,,false,USB audio input level,4864,ikhh,255,,,,,,,,,,0=-20/127=6/[Lin],,,,,2,1,1797,0x0705,,,,,GainFast,Slew,3,8,Exp,Scalar
-Aux001Name001,16,1,1,,,Aux output channel name,4865,ikhi,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
-Aux002Name001,16,2,1,,,Aux output channel name,4866,ikhj,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
-Aux003Name001,16,3,1,,,Aux output channel name,4867,ikhk,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
-Aux004Name001,16,4,1,,,Aux output channel name,4868,ikhl,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
-Aux005Name001,16,5,1,,,Aux output channel name,4869,ikhm,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
-Aux006Name001,16,6,1,,,Aux output channel name,4870,ikhn,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
-Aux007Name001,16,7,1,,,Aux output channel name,4871,ikho,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
-Aux008Name001,16,8,1,,,Aux output channel name,4872,ikhp,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
-Chan001Name001,16,1,1,,,Input channel name/label,4873,ikhq,1,,,,,,,,,,,,,,,,,,,,Kick,,-,,,,,,
-Chan002Name001,16,2,1,,,Input channel name/label,4874,ikhr,1,,,,,,,,,,,,,,,,,,,,Snare Top,,-,,,,,,
-Chan003Name001,16,3,1,,,Input channel name/label,4875,ikhs,1,,,,,,,,,,,,,,,,,,,,Snare Bot,,-,,,,,,
-Chan004Name001,16,4,1,,,Input channel name/label,4876,ikht,1,,,,,,,,,,,,,,,,,,,,Hihat,,-,,,,,,
-Chan005Name001,16,5,1,,,Input channel name/label,4877,ikhu,1,,,,,,,,,,,,,,,,,,,,Ride,,-,,,,,,
-Chan006Name001,16,6,1,,,Input channel name/label,4878,ikhv,1,,,,,,,,,,,,,,,,,,,,Floor Tom,,-,,,,,,
-Chan007Name001,16,7,1,,,Input channel name/label,4879,ikhw,1,,,,,,,,,,,,,,,,,,,,Mid Toms,,-,,,,,,
-Chan008Name001,16,8,1,,,Input channel name/label,4880,ikih,1,,,,,,,,,,,,,,,,,,,,OH Left,,-,,,,,,
-Chan009Name001,16,9,1,,,Input channel name/label,4881,ikii,1,,,,,,,,,,,,,,,,,,,,OH Right,,-,,,,,,
-Chan010Name001,16,10,1,,,Input channel name/label,4882,ikij,1,,,,,,,,,,,,,,,,,,,,Bass,,-,,,,,,
-Chan011Name001,16,11,1,,,Input channel name/label,4883,ikik,1,,,,,,,,,,,,,,,,,,,,E Gtr 1,,-,,,,,,
-Chan012Name001,16,12,1,,,Input channel name/label,4884,ikil,1,,,,,,,,,,,,,,,,,,,,E Gtr 2,,-,,,,,,
-Chan013Name001,16,13,1,,,Input channel name/label,4885,ikim,1,,,,,,,,,,,,,,,,,,,,Ac Gtr,,-,,,,,,
-Chan014Name001,16,14,1,,,Input channel name/label,4886,ikin,1,,,,,,,,,,,,,,,,,,,,Mando 1,,-,,,,,,
-Chan015Name001,16,15,1,,,Input channel name/label,4887,ikio,1,,,,,,,,,,,,,,,,,,,,Mando 2,,-,,,,,,
-Chan016Name001,16,16,1,,,Input channel name/label,4888,ikip,1,,,,,,,,,,,,,,,,,,,,Mando 3,,-,,,,,,
-Chan017Name001,16,17,1,,,Input channel name/label,4889,ikiq,1,,,,,,,,,,,,,,,,,,,,Mando 4,,-,,,,,,
-Chan018Name001,16,18,1,,,Input channel name/label,4890,ikir,1,,,,,,,,,,,,,,,,,,,,Mando 5,,-,,,,,,
-Chan019Name001,16,19,1,,,Input channel name/label,4891,ikis,1,,,,,,,,,,,,,,,,,,,,Mando 6,,-,,,,,,
-Chan020Name001,16,20,1,,,Input channel name/label,4892,ikit,1,,,,,,,,,,,,,,,,,,,,Mando 7,,-,,,,,,
-Chan021Name001,16,21,1,,,Input channel name/label,4893,ikiu,1,,,,,,,,,,,,,,,,,,,,Main Vox,,-,,,,,,
-Chan022Name001,16,22,1,,,Input channel name/label,4894,ikiv,1,,,,,,,,,,,,,,,,,,,,Back Vox,,-,,,,,,
-Chan023Name001,16,23,1,,,Input channel name/label,4895,ikiw,1,,,,,,,,,,,,,,,,,,,,Strings V,,-,,,,,,
-Chan024Name001,16,24,1,,,Input channel name/label,4896,ikjh,1,,,,,,,,,,,,,,,,,,,,Strings C,,-,,,,,,
-Dca001Name001,16,1,1,,,DCA group name,4897,ikji,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
-Dca002Name001,16,2,1,,,DCA group name,4898,ikjj,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
-Dca003Name001,16,3,1,,,DCA group name,4899,ikjk,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
-Dca004Name001,16,4,1,,,DCA group name,4900,ikjl,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
-Dca005Name001,16,5,1,,,DCA group name,4901,ikjm,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
-Dca006Name001,16,6,1,,,DCA group name,4902,ikjn,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
-Dca007Name001,16,7,1,,,DCA group name,4903,ikjo,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
-Dca008Name001,16,8,1,,,DCA group name,4904,ikjp,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
-Fx001Name001,16,1,1,,,FX channel name,4905,ikjq,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
-Fx002Name001,16,2,1,,,FX channel name,4906,ikjr,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
-Fx003Name001,16,3,1,,,FX channel name,4907,ikjs,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
-Fx004Name001,16,4,1,,,FX channel name,4908,ikjt,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
-Fx005Name001,16,5,1,,,FX channel name,4909,ikju,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
-Fx006Name001,16,6,1,,,FX channel name,4910,ikjv,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
-Grp001Name001,16,1,1,,,Group name,4911,ikjw,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
-Grp002Name001,16,2,1,,,Group name,4912,ikkh,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
-Grp003Name001,16,3,1,,,Group name,4913,ikki,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
-Grp004Name001,16,4,1,,,Group name,4914,ikkj,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
-MainSub001Name001,16,1,1,,,Subwoofer name,4915,ikkk,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
-MainSub001CrossoverFreq001,1,1,1,,,Electronic crossover frequency,4916,ikkl,255,,,,,,,,MainCrossover,,0=50/127=500/[Log],,,,,2,1,1436,0x059C,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainSub001CrossoverSlope001,1,1,1,,,Crossover slope (HPF 36/48 dB/oct),4917,ikkm,4,,,,,,,,MainCrossover,,0=6/3=24/[Lin],,,,,2,1,1437,0x059D,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
-MainSub001LimiterRng001,1,1,1,,,Subwoofer output limiter range/depth,4918,ikkn,33,,,,,,,,MainLimiter,,0=0/127=60/[Lin],,,,,,,,,,,,0,,,,,,
-Main001Name001,16,1,1,,,Main L/R master name,4919,ikko,1,,,,,,,,,,,,,,,,,,,,Master,,-,,,,,,
-Main001Out3Mode001,1,1,1,,,Physical main output 3 carries MainCtr or MainSub (0=center 1=subwoofer),4920,ikkp,2,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
-MainCtr001CompAtt001,1,1,1,,,Center output compressor attack,4921,ikkq,255,,,,,,,,MainComp,,0=0/254=250/[Log],,,,,2,1,1557,0x0615,,,,-,DynSafe,LinearFrames,6,20,Exp,Scalar
-MainCtr001CompKnee001,1,1,1,,,Center output compressor soft/hard knee,4922,ikkr,2,,,,,,,,MainComp,,,,,,,2,1,1560,0x0618,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
-MainCtr001CompMake001,1,1,1,,,Center output compressor makeup gain,4923,ikks,33,,,,,,,,MainComp,,0=0/127=20/[Lin],,,,,2,1,1559,0x0617,,,,0,GainFast,Slew,3,8,Exp,Scalar
-MainCtr001CompOn001,1,1,1,,,Center output compressor on/off,4924,ikkt,2,,,,,,,,MainComp,,,,,,,2,1,1554,0x0612,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
-MainCtr001CompPar001,1,1,1,,,Center output parallel compression blend,4925,ikku,33,,,,,,,,MainComp,,0=0/127=100/[Lin],,,,,2,1,1561,0x0619,,,,0,GainFast,Slew,3,8,Exp,Scalar
-MainCtr001CompRat001,1,1,1,,,Center output compressor ratio,4926,ikkv,128,,,,,,,,MainComp,,0=1/127=30/[Log],,,,,2,1,1556,0x0614,,,,0,DynSafe,LinearFrames,6,20,Exp,Scalar
-MainCtr001CompRel001,1,1,1,,,Center output compressor release,4927,ikkw,255,,,,,,,,MainComp,,0=5/254=5000/[Log],,,,,2,1,1558,0x0616,,,,-,DynSafe,LinearFrames,6,20,Exp,Scalar
-MainCtr001CompDetSrc001,1,1,1,,,Center output compressor self-key tap source (PreEQ/PostEQ),4928,iklh,2,,,,,,,,MainComp,,,,,,,2,1,1564,0x061C,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
-MainCtr001CompEqPos001,1,1,1,,,Center output compressor EQ position (Pre/Post),4929,ikli,2,,,,,,,,MainComp,,,,,,,2,1,1566,0x061E,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
-MainCtr001CompFilterHpf001,1,1,1,,,Center output compressor sidechain HPF frequency,4930,iklj,65,32,,,,,,,MainComp,,0=20/64=1000/[Log],,,,,2,1,1568,0x0620,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
-MainCtr001CompFilterLpf001,1,1,1,,,Center output compressor sidechain LPF frequency,4931,iklk,255,127,,,,,,,MainComp,,0=500/127=20000/[Log],,,,,2,1,1568,0x0620,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
-MainCtr001CompFilterOn001,1,1,1,,,Center output compressor sidechain filter on/off,4932,ikll,2,,,,,,,,MainComp,,,,,,,2,1,1567,0x061F,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
-MainCtr001CompFilterQ001,1,1,1,,,Center output compressor sidechain filter Q,4933,iklm,15,7,,,,,,,MainComp,,0=0.1/14=10/[Log],,,,,2,1,1568,0x0620,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
-MainCtr001CompKey001,1,1,1,,,Center output compressor sidechain key source,4934,ikln,33,,,,,,,,MainComp,,,,,,,2,1,1563,0x061B,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
-MainCtr001CompLimMode001,1,1,1,,,Center output compressor/limiter mode toggle,4935,iklo,2,,,,,,,,MainComp,,,,,,,2,1,1565,0x061D,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
-MainCtr001CompThr001,1,1,1,,,Center output compressor threshold,4936,iklp,141,,,,,,,,MainComp,,0=-60/140=10/[Lin],,,,,2,1,1555,0x0613,,,,140,DynSafe,LinearFrames,6,20,Exp,Scalar
-MainCtr001CompType001,1,1,1,,,Center output compressor type (Tube/FET/VCA/Optical),4937,iklq,4,,,,,,,,MainComp,,,,,,,2,1,1562,0x061A,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
-MainCtr001CrossoverFreq001,1,1,1,,,Electronic crossover frequency,4938,iklr,255,,,,,,,,MainCrossover,,0=50/127=500/[Log],,,,,2,1,1436,0x059C,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainCtr001CrossoverSlope001,1,1,1,,,Crossover slope (HPF 36/48 dB/oct),4939,ikls,4,,,,,,,,MainCrossover,,0=6/3=24/[Lin],,,,,2,1,1437,0x059D,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
-MainCtr001EqFreq001,1,1,1,,,Center output 4-band parametric EQ frequency,4940,iklt,255,127,,,,,,,MainEq,,0=20/254=200/[Log],,,,,2,1,1530,0x05FA,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainCtr001EqFreq002,1,1,2,,,Center output 4-band parametric EQ frequency,4941,iklu,255,127,,,,,,,MainEq,,0=100/254=1000/[Log],,,,,2,1,1535,0x05FF,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainCtr001EqFreq003,1,1,3,,,Center output 4-band parametric EQ frequency,4942,iklv,255,127,,,,,,,MainEq,,0=800/254=5000/[Log],,,,,2,1,1540,0x0604,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainCtr001EqFreq004,1,1,4,,,Center output 4-band parametric EQ frequency,4943,iklw,255,127,,,,,,,MainEq,,0=3000/254=20000/[Log],,,,,2,1,1545,0x0609,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainCtr001EqGain001,1,1,1,,,Center output 4-band parametric EQ gain ±15dB,4944,ikmh,121,60,,,,,,,MainEq,,0=-15/60=15/[Lin],,,,,2,1,1530,0x05FA,,,,60,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainCtr001EqGain002,1,1,2,,,Center output 4-band parametric EQ gain ±15dB,4945,ikmi,121,60,,,,,,,MainEq,,0=-15/60=15/[Lin],,,,,2,1,1535,0x05FF,,,,60,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainCtr001EqGain003,1,1,3,,,Center output 4-band parametric EQ gain ±15dB,4946,ikmj,121,60,,,,,,,MainEq,,0=-15/60=15/[Lin],,,,,2,1,1540,0x0604,,,,60,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainCtr001EqGain004,1,1,4,,,Center output 4-band parametric EQ gain ±15dB,4947,ikmk,121,60,,,,,,,MainEq,,0=-15/60=15/[Lin],,,,,2,1,1545,0x0609,,,,60,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainCtr001EqHpf001,1,1,1,,,Center output high-pass filter frequency,4948,ikml,65,32,,,,,,,MainEq,,0=20/64=1000/[Log],,,,,2,1,1530,0x05FA,,,,0,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainCtr001EqHpf002,1,1,2,,,Center output high-pass filter frequency,4949,ikmm,65,32,,,,,,,MainEq,,0=20/64=1000/[Log],,,,,2,1,1535,0x05FF,,,,0,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainCtr001EqHpf003,1,1,3,,,Center output high-pass filter frequency,4950,ikmn,65,32,,,,,,,MainEq,,0=20/64=1000/[Log],,,,,2,1,1540,0x0604,,,,0,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainCtr001EqHpf004,1,1,4,,,Center output high-pass filter frequency,4951,ikmo,65,32,,,,,,,MainEq,,0=20/64=1000/[Log],,,,,2,1,1545,0x0609,,,,0,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainCtr001EqOn001,1,1,1,,,Center output EQ on/off,4952,ikmp,2,,,,,,,,MainEq,,,,,,,2,1,1551,0x060F,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
-MainCtr001EqQ001,1,1,1,,,Center output 4-band parametric EQ Q/bandwidth,4953,ikmq,121,60,,,,,,,MainEq,,0=0.1/14=10/[Log],,,,,2,1,1530,0x05FA,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainCtr001EqQ002,1,1,2,,,Center output 4-band parametric EQ Q/bandwidth,4954,ikmr,121,60,,,,,,,MainEq,,0=0.1/14=10/[Log],,,,,2,1,1535,0x05FF,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainCtr001EqQ003,1,1,3,,,Center output 4-band parametric EQ Q/bandwidth,4955,ikms,121,60,,,,,,,MainEq,,0=0.1/14=10/[Log],,,,,2,1,1540,0x0604,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainCtr001EqQ004,1,1,4,,,Center output 4-band parametric EQ Q/bandwidth,4956,ikmt,121,60,,,,,,,MainEq,,0=0.1/14=10/[Log],,,,,2,1,1545,0x0609,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainCtr001EqShelf001,1,1,1,,,Center output EQ bands 1/4 shelf mode on/off,4957,ikmu,2,,,,,,,,MainEq,,,,,,,2,1,1530,0x05FA,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
-MainCtr001EqShelf002,1,1,2,,,Center output EQ bands 1/4 shelf mode on/off,4958,ikmv,2,,,,,,,,MainEq,,,,,,,2,1,1545,0x0609,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
-MainCtr001LimiterAtt001,1,1,1,,,Center output limiter attack,4959,ikmw,33,,,,,,,,MainLimiter,,0=0.1/127=100/[Log],,,,,2,1,1572,0x0624,,,,-,DynSafe,LinearFrames,6,20,Exp,Scalar
-MainCtr001LimiterOn001,1,1,1,,,Center output limiter on/off,4960,iknh,2,,,,,,,,MainLimiter,,,,,,,2,1,1570,0x0622,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
-MainCtr001LimiterRel001,1,1,1,,,Center output limiter release,4961,ikni,33,,,,,,,,MainLimiter,,0=5/127=2000/[Log],,,,,2,1,1573,0x0625,,,,-,DynSafe,LinearFrames,6,20,Exp,Scalar
-MainCtr001LimiterRng001,1,1,1,,,Center output limiter range/depth,4962,iknj,33,,,,,,,,MainLimiter,,0=0/127=60/[Lin],,,,,,,,,,,,0,,,,,,
-MainCtr001LimiterThr001,1,1,1,,,Center output limiter threshold,4963,iknk,33,,,,,,,,MainLimiter,,0=-30/127=0/[Lin],,,,,2,1,1571,0x0623,,,,32,DynSafe,LinearFrames,6,20,Exp,Scalar
-MainCtr001PeqGain001,1,1,1,,,Center output 28-band graphic EQ gain,4964,iknl,65,32,,,,,,,,,0=-12/127=12/[Lin],,,,,,,,,,,,32,,,,,,
-MainCtr001PeqGain002,1,1,2,,,Center output 28-band graphic EQ gain,4965,iknm,65,32,,,,,,,,,0=-12/127=12/[Lin],,,,,,,,,,,,32,,,,,,
-MainCtr001PeqGain003,1,1,3,,,Center output 28-band graphic EQ gain,4966,iknn,65,32,,,,,,,,,0=-12/127=12/[Lin],,,,,,,,,,,,32,,,,,,
-MainCtr001PeqGain004,1,1,4,,,Center output 28-band graphic EQ gain,4967,ikno,65,32,,,,,,,,,0=-12/127=12/[Lin],,,,,,,,,,,,32,,,,,,
-MainCtr001PeqGain005,1,1,5,,,Center output 28-band graphic EQ gain,4968,iknp,65,32,,,,,,,,,0=-12/127=12/[Lin],,,,,,,,,,,,32,,,,,,
-MainCtr001PeqGain006,1,1,6,,,Center output 28-band graphic EQ gain,4969,iknq,65,32,,,,,,,,,0=-12/127=12/[Lin],,,,,,,,,,,,32,,,,,,
-MainCtr001PeqGain007,1,1,7,,,Center output 28-band graphic EQ gain,4970,iknr,65,32,,,,,,,,,0=-12/127=12/[Lin],,,,,,,,,,,,32,,,,,,
-MainCtr001PeqGain008,1,1,8,,,Center output 28-band graphic EQ gain,4971,ikns,65,32,,,,,,,,,0=-12/127=12/[Lin],,,,,,,,,,,,32,,,,,,
-MainCtr001PeqGain009,1,1,9,,,Center output 28-band graphic EQ gain,4972,iknt,65,32,,,,,,,,,0=-12/127=12/[Lin],,,,,,,,,,,,32,,,,,,
-MainCtr001PeqGain010,1,1,10,,,Center output 28-band graphic EQ gain,4973,iknu,65,32,,,,,,,,,0=-12/127=12/[Lin],,,,,,,,,,,,32,,,,,,
-MainCtr001PeqGain011,1,1,11,,,Center output 28-band graphic EQ gain,4974,iknv,65,32,,,,,,,,,0=-12/127=12/[Lin],,,,,,,,,,,,32,,,,,,
-MainCtr001PeqGain012,1,1,12,,,Center output 28-band graphic EQ gain,4975,iknw,65,32,,,,,,,,,0=-12/127=12/[Lin],,,,,,,,,,,,32,,,,,,
-MainCtr001Dca001,1,1,1,,,Center output DCA assignment (1-8 or off),4976,ikoh,9,,,,,,,,,,,,,,,,,,,,,,0,,,,,,
-MainCtr001DcaOn001,1,1,1,,,DCA follow on/off (assignment kept while off),4977,ikoi,2,,,,,,,,,,,,,,,,,,,,,,0,,,,,,
-MainCtr001Level001,1,1,1,,,Center output master level,4978,ikoj,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:10,,,,,2,1,2171,0x087B,,,,190,GainFast,Slew,3,8,Exp,Scalar
-MainCtr001Mute001,1,1,1,,,Center output mute on/off,4979,ikok,2,,,,,,,,,,,,,,,2,1,2172,0x087C,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
-MainCtr001Delay001,1,1,1,,,Center output delay up to 250ms,4980,ikol,255,,,,,,,,,,,,,,,,,,,,,,0,,,,,,
-MainCtr001Mtr001,1,1,1,,false,Center output level meter,4981,ikom,80,,,,,,,,,,,,,,,2,1,1833,0x0729,,,,-,,Instant,0,0,Linear,Scalar
-MainCtr001Name001,1,1,1,,,Center output name,4982,ikon,255,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
-Matrix001Name001,16,1,1,,,Matrix output name,4983,ikoo,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
-Matrix002Name001,16,2,1,,,Matrix output name,4984,ikop,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
-Sys001SwUpd001,1,1,1,,false,Software updater open/close SW button,4985,ikoq,2,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
+Test001MeasChan001,1,1,1,true,false,Select channel for RMS/THD measurement,4863,ijww,33,,,,,,,,,,,,,,,1,1,4967,0x1367,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
+Test001NoiseResult001,1,1,1,true,false,Read-back: noise floor,4864,ikhh,255,,,,,,,,,,,,,,,1,1,4970,0x136A,,,,-,,Instant,0,0,Linear,Scalar
+Test001OscChan001,1,1,1,true,false,Oscillator target channel (0=all),4865,ikhi,33,,,,,,,,,,,,,,,1,1,4978,0x1372,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
+Test001OscFreq001,1,1,1,true,false,Oscillator frequency 20Hz-20kHz,4866,ikhj,255,,,,,,,,,,0=20/127=20000/[Log],,,,,1,1,4976,0x1370,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
+Test001OscLevel001,1,1,1,true,false,Oscillator output level dBFS,4867,ikhk,61,,,,,,,,,,0=-60/127=0/[Lin],,,,,1,1,4977,0x1371,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
+Test001OscOn001,1,1,1,true,false,Precision sine oscillator enable,4868,ikhl,2,,,,,,,,,,,,,,,1,1,4975,0x136F,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
+Test001RmsResult001,1,1,1,true,false,Read-back: RMS level,4869,ikhm,255,,,,,,,,,,,,,,,1,1,4968,0x1368,,,,-,,Instant,0,0,Linear,Scalar
+Test001SweepOn001,1,1,1,true,false,Start frequency sweep,4870,ikhn,2,,,,,,,,,,,,,,,1,1,4979,0x1373,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
+Test001SweepStep001,1,1,1,true,false,Sweep step count,4871,ikho,255,,,,,,,,,,,,,,,1,1,4980,0x1374,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
+Test001ThdResult001,1,1,1,true,false,Read-back: THD+N ratio,4872,ikhp,255,,,,,,,,,,,,,,,1,1,4969,0x1369,,,,-,,Instant,0,0,Linear,Scalar
+Test001XtalkDst001,1,1,1,true,false,Crosstalk destination channel,4873,ikhq,33,,,,,,,,,,,,,,,1,1,4972,0x136C,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
+Test001XtalkResult001,1,1,1,true,false,Read-back: crosstalk level dB,4874,ikhr,255,,,,,,,,,,,,,,,1,1,4973,0x136D,,,,-,,Instant,0,0,Linear,Scalar
+Test001XtalkSrc001,1,1,1,true,false,Crosstalk source channel,4875,ikhs,33,,,,,,,,,,,,,,,1,1,4971,0x136B,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
+Usb001On001,1,1,1,,false,USB audio input on/off,4876,ikht,2,,,,,,,,,,,,,,,2,1,1798,0x0706,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Usb001Level001,1,1,1,,false,USB audio input level,4877,ikhu,255,,,,,,,,,,0=-20/127=6/[Lin],,,,,2,1,1797,0x0705,,,,,GainFast,Slew,3,8,Exp,Scalar
+Aux001Name001,16,1,1,,,Aux output channel name,4878,ikhv,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
+Aux002Name001,16,2,1,,,Aux output channel name,4879,ikhw,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
+Aux003Name001,16,3,1,,,Aux output channel name,4880,ikih,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
+Aux004Name001,16,4,1,,,Aux output channel name,4881,ikii,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
+Aux005Name001,16,5,1,,,Aux output channel name,4882,ikij,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
+Aux006Name001,16,6,1,,,Aux output channel name,4883,ikik,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
+Aux007Name001,16,7,1,,,Aux output channel name,4884,ikil,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
+Aux008Name001,16,8,1,,,Aux output channel name,4885,ikim,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
+Chan001Name001,16,1,1,,,Input channel name/label,4886,ikin,1,,,,,,,,,,,,,,,,,,,,Kick,,-,,,,,,
+Chan002Name001,16,2,1,,,Input channel name/label,4887,ikio,1,,,,,,,,,,,,,,,,,,,,Snare Top,,-,,,,,,
+Chan003Name001,16,3,1,,,Input channel name/label,4888,ikip,1,,,,,,,,,,,,,,,,,,,,Snare Bot,,-,,,,,,
+Chan004Name001,16,4,1,,,Input channel name/label,4889,ikiq,1,,,,,,,,,,,,,,,,,,,,Hihat,,-,,,,,,
+Chan005Name001,16,5,1,,,Input channel name/label,4890,ikir,1,,,,,,,,,,,,,,,,,,,,Ride,,-,,,,,,
+Chan006Name001,16,6,1,,,Input channel name/label,4891,ikis,1,,,,,,,,,,,,,,,,,,,,Floor Tom,,-,,,,,,
+Chan007Name001,16,7,1,,,Input channel name/label,4892,ikit,1,,,,,,,,,,,,,,,,,,,,Mid Toms,,-,,,,,,
+Chan008Name001,16,8,1,,,Input channel name/label,4893,ikiu,1,,,,,,,,,,,,,,,,,,,,OH Left,,-,,,,,,
+Chan009Name001,16,9,1,,,Input channel name/label,4894,ikiv,1,,,,,,,,,,,,,,,,,,,,OH Right,,-,,,,,,
+Chan010Name001,16,10,1,,,Input channel name/label,4895,ikiw,1,,,,,,,,,,,,,,,,,,,,Bass,,-,,,,,,
+Chan011Name001,16,11,1,,,Input channel name/label,4896,ikjh,1,,,,,,,,,,,,,,,,,,,,E Gtr 1,,-,,,,,,
+Chan012Name001,16,12,1,,,Input channel name/label,4897,ikji,1,,,,,,,,,,,,,,,,,,,,E Gtr 2,,-,,,,,,
+Chan013Name001,16,13,1,,,Input channel name/label,4898,ikjj,1,,,,,,,,,,,,,,,,,,,,Ac Gtr,,-,,,,,,
+Chan014Name001,16,14,1,,,Input channel name/label,4899,ikjk,1,,,,,,,,,,,,,,,,,,,,Mando 1,,-,,,,,,
+Chan015Name001,16,15,1,,,Input channel name/label,4900,ikjl,1,,,,,,,,,,,,,,,,,,,,Mando 2,,-,,,,,,
+Chan016Name001,16,16,1,,,Input channel name/label,4901,ikjm,1,,,,,,,,,,,,,,,,,,,,Mando 3,,-,,,,,,
+Chan017Name001,16,17,1,,,Input channel name/label,4902,ikjn,1,,,,,,,,,,,,,,,,,,,,Mando 4,,-,,,,,,
+Chan018Name001,16,18,1,,,Input channel name/label,4903,ikjo,1,,,,,,,,,,,,,,,,,,,,Mando 5,,-,,,,,,
+Chan019Name001,16,19,1,,,Input channel name/label,4904,ikjp,1,,,,,,,,,,,,,,,,,,,,Mando 6,,-,,,,,,
+Chan020Name001,16,20,1,,,Input channel name/label,4905,ikjq,1,,,,,,,,,,,,,,,,,,,,Mando 7,,-,,,,,,
+Chan021Name001,16,21,1,,,Input channel name/label,4906,ikjr,1,,,,,,,,,,,,,,,,,,,,Main Vox,,-,,,,,,
+Chan022Name001,16,22,1,,,Input channel name/label,4907,ikjs,1,,,,,,,,,,,,,,,,,,,,Back Vox,,-,,,,,,
+Chan023Name001,16,23,1,,,Input channel name/label,4908,ikjt,1,,,,,,,,,,,,,,,,,,,,Strings V,,-,,,,,,
+Chan024Name001,16,24,1,,,Input channel name/label,4909,ikju,1,,,,,,,,,,,,,,,,,,,,Strings C,,-,,,,,,
+Dca001Name001,16,1,1,,,DCA group name,4910,ikjv,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
+Dca002Name001,16,2,1,,,DCA group name,4911,ikjw,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
+Dca003Name001,16,3,1,,,DCA group name,4912,ikkh,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
+Dca004Name001,16,4,1,,,DCA group name,4913,ikki,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
+Dca005Name001,16,5,1,,,DCA group name,4914,ikkj,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
+Dca006Name001,16,6,1,,,DCA group name,4915,ikkk,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
+Dca007Name001,16,7,1,,,DCA group name,4916,ikkl,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
+Dca008Name001,16,8,1,,,DCA group name,4917,ikkm,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
+Fx001Name001,16,1,1,,,FX channel name,4918,ikkn,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
+Fx002Name001,16,2,1,,,FX channel name,4919,ikko,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
+Fx003Name001,16,3,1,,,FX channel name,4920,ikkp,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
+Fx004Name001,16,4,1,,,FX channel name,4921,ikkq,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
+Fx005Name001,16,5,1,,,FX channel name,4922,ikkr,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
+Fx006Name001,16,6,1,,,FX channel name,4923,ikks,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
+Grp001Name001,16,1,1,,,Group name,4924,ikkt,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
+Grp002Name001,16,2,1,,,Group name,4925,ikku,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
+Grp003Name001,16,3,1,,,Group name,4926,ikkv,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
+Grp004Name001,16,4,1,,,Group name,4927,ikkw,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
+MainSub001Name001,16,1,1,,,Subwoofer name,4928,iklh,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
+MainSub001CrossoverFreq001,1,1,1,,,Electronic crossover frequency,4929,ikli,255,,,,,,,,MainCrossover,,0=50/127=500/[Log],,,,,2,1,1436,0x059C,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainSub001CrossoverSlope001,1,1,1,,,Crossover slope (HPF 36/48 dB/oct),4930,iklj,4,,,,,,,,MainCrossover,,0=6/3=24/[Lin],,,,,2,1,1437,0x059D,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
+MainSub001LimiterRng001,1,1,1,,,Subwoofer output limiter range/depth,4931,iklk,33,,,,,,,,MainLimiter,,0=0/127=60/[Lin],,,,,,,,,,,,0,,,,,,
+Main001Name001,16,1,1,,,Main L/R master name,4932,ikll,1,,,,,,,,,,,,,,,,,,,,Master,,-,,,,,,
+Main001Out3Mode001,1,1,1,,,Physical main output 3 carries MainCtr or MainSub (0=center 1=subwoofer),4933,iklm,2,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
+MainCtr001CompAtt001,1,1,1,,,Center output compressor attack,4934,ikln,255,,,,,,,,MainComp,,0=0/254=250/[Log],,,,,2,1,1557,0x0615,,,,-,DynSafe,LinearFrames,6,20,Exp,Scalar
+MainCtr001CompKnee001,1,1,1,,,Center output compressor soft/hard knee,4935,iklo,2,,,,,,,,MainComp,,,,,,,2,1,1560,0x0618,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
+MainCtr001CompMake001,1,1,1,,,Center output compressor makeup gain,4936,iklp,33,,,,,,,,MainComp,,0=0/127=20/[Lin],,,,,2,1,1559,0x0617,,,,0,GainFast,Slew,3,8,Exp,Scalar
+MainCtr001CompOn001,1,1,1,,,Center output compressor on/off,4937,iklq,2,,,,,,,,MainComp,,,,,,,2,1,1554,0x0612,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
+MainCtr001CompPar001,1,1,1,,,Center output parallel compression blend,4938,iklr,33,,,,,,,,MainComp,,0=0/127=100/[Lin],,,,,2,1,1561,0x0619,,,,0,GainFast,Slew,3,8,Exp,Scalar
+MainCtr001CompRat001,1,1,1,,,Center output compressor ratio,4939,ikls,128,,,,,,,,MainComp,,0=1/127=30/[Log],,,,,2,1,1556,0x0614,,,,0,DynSafe,LinearFrames,6,20,Exp,Scalar
+MainCtr001CompRel001,1,1,1,,,Center output compressor release,4940,iklt,255,,,,,,,,MainComp,,0=5/254=5000/[Log],,,,,2,1,1558,0x0616,,,,-,DynSafe,LinearFrames,6,20,Exp,Scalar
+MainCtr001CompDetSrc001,1,1,1,,,Center output compressor self-key tap source (PreEQ/PostEQ),4941,iklu,2,,,,,,,,MainComp,,,,,,,2,1,1564,0x061C,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
+MainCtr001CompEqPos001,1,1,1,,,Center output compressor EQ position (Pre/Post),4942,iklv,2,,,,,,,,MainComp,,,,,,,2,1,1566,0x061E,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
+MainCtr001CompFilterHpf001,1,1,1,,,Center output compressor sidechain HPF frequency,4943,iklw,65,32,,,,,,,MainComp,,0=20/64=1000/[Log],,,,,2,1,1568,0x0620,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
+MainCtr001CompFilterLpf001,1,1,1,,,Center output compressor sidechain LPF frequency,4944,ikmh,255,127,,,,,,,MainComp,,0=500/127=20000/[Log],,,,,2,1,1568,0x0620,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
+MainCtr001CompFilterOn001,1,1,1,,,Center output compressor sidechain filter on/off,4945,ikmi,2,,,,,,,,MainComp,,,,,,,2,1,1567,0x061F,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
+MainCtr001CompFilterQ001,1,1,1,,,Center output compressor sidechain filter Q,4946,ikmj,15,7,,,,,,,MainComp,,0=0.1/14=10/[Log],,,,,2,1,1568,0x0620,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
+MainCtr001CompKey001,1,1,1,,,Center output compressor sidechain key source,4947,ikmk,33,,,,,,,,MainComp,,,,,,,2,1,1563,0x061B,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
+MainCtr001CompLimMode001,1,1,1,,,Center output compressor/limiter mode toggle,4948,ikml,2,,,,,,,,MainComp,,,,,,,2,1,1565,0x061D,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
+MainCtr001CompThr001,1,1,1,,,Center output compressor threshold,4949,ikmm,141,,,,,,,,MainComp,,0=-60/140=10/[Lin],,,,,2,1,1555,0x0613,,,,140,DynSafe,LinearFrames,6,20,Exp,Scalar
+MainCtr001CompType001,1,1,1,,,Center output compressor type (Tube/FET/VCA/Optical),4950,ikmn,4,,,,,,,,MainComp,,,,,,,2,1,1562,0x061A,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
+MainCtr001CrossoverFreq001,1,1,1,,,Electronic crossover frequency,4951,ikmo,255,,,,,,,,MainCrossover,,0=50/127=500/[Log],,,,,2,1,1436,0x059C,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainCtr001CrossoverSlope001,1,1,1,,,Crossover slope (HPF 36/48 dB/oct),4952,ikmp,4,,,,,,,,MainCrossover,,0=6/3=24/[Lin],,,,,2,1,1437,0x059D,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
+MainCtr001EqFreq001,1,1,1,,,Center output 4-band parametric EQ frequency,4953,ikmq,255,127,,,,,,,MainEq,,0=20/254=200/[Log],,,,,2,1,1530,0x05FA,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainCtr001EqFreq002,1,1,2,,,Center output 4-band parametric EQ frequency,4954,ikmr,255,127,,,,,,,MainEq,,0=100/254=1000/[Log],,,,,2,1,1535,0x05FF,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainCtr001EqFreq003,1,1,3,,,Center output 4-band parametric EQ frequency,4955,ikms,255,127,,,,,,,MainEq,,0=800/254=5000/[Log],,,,,2,1,1540,0x0604,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainCtr001EqFreq004,1,1,4,,,Center output 4-band parametric EQ frequency,4956,ikmt,255,127,,,,,,,MainEq,,0=3000/254=20000/[Log],,,,,2,1,1545,0x0609,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainCtr001EqGain001,1,1,1,,,Center output 4-band parametric EQ gain ±15dB,4957,ikmu,121,60,,,,,,,MainEq,,0=-15/60=15/[Lin],,,,,2,1,1530,0x05FA,,,,60,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainCtr001EqGain002,1,1,2,,,Center output 4-band parametric EQ gain ±15dB,4958,ikmv,121,60,,,,,,,MainEq,,0=-15/60=15/[Lin],,,,,2,1,1535,0x05FF,,,,60,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainCtr001EqGain003,1,1,3,,,Center output 4-band parametric EQ gain ±15dB,4959,ikmw,121,60,,,,,,,MainEq,,0=-15/60=15/[Lin],,,,,2,1,1540,0x0604,,,,60,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainCtr001EqGain004,1,1,4,,,Center output 4-band parametric EQ gain ±15dB,4960,iknh,121,60,,,,,,,MainEq,,0=-15/60=15/[Lin],,,,,2,1,1545,0x0609,,,,60,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainCtr001EqHpf001,1,1,1,,,Center output high-pass filter frequency,4961,ikni,65,32,,,,,,,MainEq,,0=20/64=1000/[Log],,,,,2,1,1530,0x05FA,,,,0,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainCtr001EqHpf002,1,1,2,,,Center output high-pass filter frequency,4962,iknj,65,32,,,,,,,MainEq,,0=20/64=1000/[Log],,,,,2,1,1535,0x05FF,,,,0,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainCtr001EqHpf003,1,1,3,,,Center output high-pass filter frequency,4963,iknk,65,32,,,,,,,MainEq,,0=20/64=1000/[Log],,,,,2,1,1540,0x0604,,,,0,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainCtr001EqHpf004,1,1,4,,,Center output high-pass filter frequency,4964,iknl,65,32,,,,,,,MainEq,,0=20/64=1000/[Log],,,,,2,1,1545,0x0609,,,,0,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainCtr001EqOn001,1,1,1,,,Center output EQ on/off,4965,iknm,2,,,,,,,,MainEq,,,,,,,2,1,1551,0x060F,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
+MainCtr001EqQ001,1,1,1,,,Center output 4-band parametric EQ Q/bandwidth,4966,iknn,121,60,,,,,,,MainEq,,0=0.1/14=10/[Log],,,,,2,1,1530,0x05FA,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainCtr001EqQ002,1,1,2,,,Center output 4-band parametric EQ Q/bandwidth,4967,ikno,121,60,,,,,,,MainEq,,0=0.1/14=10/[Log],,,,,2,1,1535,0x05FF,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainCtr001EqQ003,1,1,3,,,Center output 4-band parametric EQ Q/bandwidth,4968,iknp,121,60,,,,,,,MainEq,,0=0.1/14=10/[Log],,,,,2,1,1540,0x0604,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainCtr001EqQ004,1,1,4,,,Center output 4-band parametric EQ Q/bandwidth,4969,iknq,121,60,,,,,,,MainEq,,0=0.1/14=10/[Log],,,,,2,1,1545,0x0609,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainCtr001EqShelf001,1,1,1,,,Center output EQ bands 1/4 shelf mode on/off,4970,iknr,2,,,,,,,,MainEq,,,,,,,2,1,1530,0x05FA,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
+MainCtr001EqShelf002,1,1,2,,,Center output EQ bands 1/4 shelf mode on/off,4971,ikns,2,,,,,,,,MainEq,,,,,,,2,1,1545,0x0609,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
+MainCtr001LimiterAtt001,1,1,1,,,Center output limiter attack,4972,iknt,33,,,,,,,,MainLimiter,,0=0.1/127=100/[Log],,,,,2,1,1572,0x0624,,,,-,DynSafe,LinearFrames,6,20,Exp,Scalar
+MainCtr001LimiterOn001,1,1,1,,,Center output limiter on/off,4973,iknu,2,,,,,,,,MainLimiter,,,,,,,2,1,1570,0x0622,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
+MainCtr001LimiterRel001,1,1,1,,,Center output limiter release,4974,iknv,33,,,,,,,,MainLimiter,,0=5/127=2000/[Log],,,,,2,1,1573,0x0625,,,,-,DynSafe,LinearFrames,6,20,Exp,Scalar
+MainCtr001LimiterRng001,1,1,1,,,Center output limiter range/depth,4975,iknw,33,,,,,,,,MainLimiter,,0=0/127=60/[Lin],,,,,,,,,,,,0,,,,,,
+MainCtr001LimiterThr001,1,1,1,,,Center output limiter threshold,4976,ikoh,33,,,,,,,,MainLimiter,,0=-30/127=0/[Lin],,,,,2,1,1571,0x0623,,,,32,DynSafe,LinearFrames,6,20,Exp,Scalar
+MainCtr001PeqGain001,1,1,1,,,Center output 28-band graphic EQ gain,4977,ikoi,65,32,,,,,,,,,0=-12/127=12/[Lin],,,,,,,,,,,,32,,,,,,
+MainCtr001PeqGain002,1,1,2,,,Center output 28-band graphic EQ gain,4978,ikoj,65,32,,,,,,,,,0=-12/127=12/[Lin],,,,,,,,,,,,32,,,,,,
+MainCtr001PeqGain003,1,1,3,,,Center output 28-band graphic EQ gain,4979,ikok,65,32,,,,,,,,,0=-12/127=12/[Lin],,,,,,,,,,,,32,,,,,,
+MainCtr001PeqGain004,1,1,4,,,Center output 28-band graphic EQ gain,4980,ikol,65,32,,,,,,,,,0=-12/127=12/[Lin],,,,,,,,,,,,32,,,,,,
+MainCtr001PeqGain005,1,1,5,,,Center output 28-band graphic EQ gain,4981,ikom,65,32,,,,,,,,,0=-12/127=12/[Lin],,,,,,,,,,,,32,,,,,,
+MainCtr001PeqGain006,1,1,6,,,Center output 28-band graphic EQ gain,4982,ikon,65,32,,,,,,,,,0=-12/127=12/[Lin],,,,,,,,,,,,32,,,,,,
+MainCtr001PeqGain007,1,1,7,,,Center output 28-band graphic EQ gain,4983,ikoo,65,32,,,,,,,,,0=-12/127=12/[Lin],,,,,,,,,,,,32,,,,,,
+MainCtr001PeqGain008,1,1,8,,,Center output 28-band graphic EQ gain,4984,ikop,65,32,,,,,,,,,0=-12/127=12/[Lin],,,,,,,,,,,,32,,,,,,
+MainCtr001PeqGain009,1,1,9,,,Center output 28-band graphic EQ gain,4985,ikoq,65,32,,,,,,,,,0=-12/127=12/[Lin],,,,,,,,,,,,32,,,,,,
+MainCtr001PeqGain010,1,1,10,,,Center output 28-band graphic EQ gain,4986,ikor,65,32,,,,,,,,,0=-12/127=12/[Lin],,,,,,,,,,,,32,,,,,,
+MainCtr001PeqGain011,1,1,11,,,Center output 28-band graphic EQ gain,4987,ikos,65,32,,,,,,,,,0=-12/127=12/[Lin],,,,,,,,,,,,32,,,,,,
+MainCtr001PeqGain012,1,1,12,,,Center output 28-band graphic EQ gain,4988,ikot,65,32,,,,,,,,,0=-12/127=12/[Lin],,,,,,,,,,,,32,,,,,,
+MainCtr001Dca001,1,1,1,,,Center output DCA assignment (1-8 or off),4989,ikou,9,,,,,,,,,,,,,,,,,,,,,,0,,,,,,
+MainCtr001DcaOn001,1,1,1,,,DCA follow on/off (assignment kept while off),4990,ikov,2,,,,,,,,,,,,,,,,,,,,,,0,,,,,,
+MainCtr001Level001,1,1,1,,,Center output master level,4991,ikow,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:10,,,,,2,1,2171,0x087B,,,,190,GainFast,Slew,3,8,Exp,Scalar
+MainCtr001Mute001,1,1,1,,,Center output mute on/off,4992,ikph,2,,,,,,,,,,,,,,,2,1,2172,0x087C,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
+MainCtr001Delay001,1,1,1,,,Center output delay up to 250ms,4993,ikpi,255,,,,,,,,,,,,,,,,,,,,,,0,,,,,,
+MainCtr001Mtr001,1,1,1,,false,Center output level meter,4994,ikpj,80,,,,,,,,,,,,,,,2,1,1833,0x0729,,,,-,,Instant,0,0,Linear,Scalar
+MainCtr001Name001,1,1,1,,,Center output name,4995,ikpk,255,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
+Matrix001Name001,16,1,1,,,Matrix output name,4996,ikpl,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
+Matrix002Name001,16,2,1,,,Matrix output name,4997,ikpm,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
+Sys001SwUpd001,1,1,1,,false,Software updater open/close SW button,4998,ikpn,2,,,,,,,,,,,,,,,,,,,,,,-,,,,,,

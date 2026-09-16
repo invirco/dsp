@@ -6,6 +6,60 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## defs-v2026.09.16 CONSUMED, EVERY MATRIX COMMITTED (2026-09-16, session 50)
+
+**S50-1. The pin advanced to `defs-v2026.09.16` (`invirco/defs@084dbc1`) and
+all four `_matrix.csv` are committed with the thirteen new `Test[1-1]*`
+cells, strictly additive.** Recipe run exactly per R1: `git -C defs fetch
+--tags && git -C defs checkout defs-v2026.09.16`,
+`./regenerate-dsp-contract.sh --update-lock`, `./check-contract-drift.sh
+--strict`. Row counts before/after: D12 2,321→2,334, D16 3,303→3,316, D24
+4,985→4,998, D32 6,999→7,012 — +13 on every product, 0 removed. The Test
+rows sit mid-file in each product's cell master (MxAdd 2288–2300 / 3262–3274
+/ 4863–4875 / 6922–6934 respectively), so every row at or above that point
+shifts by a uniform **+13**: 34 rows on D12, 42 on D16, 123 on D24, 78 on
+D32 — the per-build address contract working as designed. Checked by name,
+not position: joining every product's before/after matrix by `_Cell`, **0 of
+2,321/3,303/4,985/6,999 pre-existing rows differ in `DspSpi`/`DspPage`/
+`DspAdd`/`DspAddHex`** — the SPI/DSP address columns, as opposed to the
+per-build `MxAdd` host index, did not move on a single cell. The one class
+that needed a deliberate step beyond the dispatch's predicted two-file diff:
+`validate-matrix-contract.py`'s no-fallback family gate correctly refused
+the unrecognised `Test*` families first (13 names, all four products) —
+adopted intentionally with `--update-allowlist` (349/349/402/374 → same plus
+the 13 Test families; D32's 361→374), per the hard rule. Diff is exactly:
+`defs`, `defs.lock`, `matrix-families-allowlist.txt`, and the four
+`_matrix.csv` — nothing else.
+
+**S50-2. D32's generated SHARC artefacts gain exactly the sixteen S49
+dispatch words and nothing else.** `dsp_params.asm` (both chips): **byte-
+identical, 0 diff** — the graph nodes and their addresses were already
+generated locally in session 49; only the addresses' presence in the
+*landed* map (and therefore in the backfilled matrices/ghost tables) was
+missing before this session. `ghost_cells.h`/`ghost_cells.c` (DSP copy +
+FW copies): count `5810→5823` (+13, the named cells); the 13 new rows in
+`ghost_cells.c` are exactly the S49 proposal's map, address for address
+(4967–4980, minus the unnamed 4974 serial word). `mx_dsp_map.h`:
+`5765→5778` (+13). `dsp_address_map.md`: the same 13 rows, chip-1 total
+4043→4056. No other row in any of these five files changed.
+
+**S50-3. `CONTRACT-PROPOSAL-S49.md` marked LANDED; `regen-s49-proposal.sh`
+now refuses by design, confirming the def keys are live.** Re-run with
+`--check`: `d32: def key 'util' is ALREADY DECLARED` — the script's own
+stated obsolescence trigger (§5 of the proposal), reached because this
+session landed the prerequisite. Contract note below. The unit was not
+touched: no ssh, no boot, no flash — this was a desk-only defs consumption.
+
+Contract note (per `release-notes-contract-convention.md`):
+- version: defs-v2026.09.16
+- source repo/ref: invirco/defs, tag defs-v2026.09.16 (the `defs/` submodule)
+- source commit: 084dbc156cf3bd41b255239d755d0dd89b6ef6e2
+- products affected: D12, D16, D24, D32
+- change class: mapping (+ family allowlist adoption, additive)
+- risk: low — 0 address moves, 0 removals, additive only on all four products
+- validation run: `./regenerate-dsp-contract.sh --update-lock` then
+  `./check-contract-drift.sh --strict`, both clean against the expected diff
+
 ## THE PART MEASURES ITSELF (2026-09-15, session 49)
 
 **S49-1. The `Test[1-1]*` family has graph nodes, and they work on the part.**
