@@ -1,3 +1,28 @@
+## HUB DISPATCH 2026-09-16 08:40Z — S54 — the standard audio test set T1–T8, first run, on the MIC 5 → AUX 1 loop (no tap build)   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+S54 — THE STANDARD AUDIO TEST SET (mx26 docs/spec-audio-test-set.md, PW 09-16: one battery T1–T8 for any node or path) RUN FOR THE FIRST TIME, ON THE PROVEN LOOP (DAC → AUX 1 → J25 → MIC 5 → U39 → strip 20), the S48 list PW asked for, on the unit. Analog is ON; use the no-tap pair (s51_119ea9d9 or the S49 pair). PW RULING 09-16: THE SCOPE_BLK_TAP BUILD IS REMOVED FROM THE MEASUREMENT SPEC — it overruns chip 2 (S52-4) and no figure from it is quoted, ever. Every number here comes from the TEST_MEAS nodes (RmsResult/ThdResult/NoiseResult) on a no-tap pair. Spectra: only if a capture exists that costs chip 2 nothing (the S42 align tool's lane capture, or a chip-1-side / host-side capture) — if not, no FFT in this session; propose in the NEXT list how a zero-cost capture would be built (chip-1 block copy into a spare buffer read over SPI, or the CPLD's Pi PCM lane) so the FFT tool gets a legitimate source. MIC 5's register alone open, phantom off; every image via the S51 send position (p = 15) until the app fix lands; verify 200/200.
+
+CONVENTIONS (PW): every level in dBFS on its own side; THD, THD+N and IMD ALWAYS in dB AND percent (% = 100·10^(dB/20)); frequency response in dB relative to 1 kHz. Make the TEST_MEAS write-up (and `dsp4_fft.py`, for when it has a legitimate source) print dB and % side by side — that is gate 0.
+
+The gates below ARE the battery T1–T8 (T8 latency via the align tool's step); the write-up's summary table uses the doc's eight rows in that order, dB and % side by side. Read the doc first — the hub will scp it to /tmp/spec-audio-test-set.md on your machine.
+
+GATES:
+1. Level law: gain codes 0, 2, 4, 6, 8, 12, 16, 24, 32, 48, 63 with the oscillator level chosen per code so the lane peaks ≤ −6 dBFS (state the osc level used) — loop gain per code, dB/code, monotonic?, the largest step.
+2. FREQUENCY RESPONSE at gain code 0 (PW: "add freq response 20Hz and 20kHz"): 20 Hz, 50, 100, 200, 500, 1 k, 2 k, 5 k, 10 k, 15 k, 20 kHz at −20 dBFS, RmsResult per point (long enough windows for 20 Hz to settle — say how many), table in dB re 1 kHz; the same at one high gain code (16 or 32) to see whether the preamp's response moves with gain. Flag anything beyond ±0.5 dB across 20 Hz–20 kHz.
+3. THD+N vs level at 1 kHz, code 0: −60, −40, −20, −10, −6, −3, −1 dBFS lane level — dB and % — and the clip point (first sample at FS).
+4. Noise floor vs gain code (tone off): codes 0, 8, 16, 32, 63 — dBFS; EIN estimate if the loop gain at each code is known (state the assumptions, or leave EIN out).
+5. Polarity (a positive step at the DAC arrives positive on the lane?) and mute depth (register mute bit vs unmuted, dB).
+6. Crosstalk: the tone on MIC 5 open, read every other strip's lane (all others muted) — worst neighbour in dB.
+7. findings S54-1..7, one summary table, tasks.md, commit + push, clean. Leave AN_EN high, MIC 5 open at code 0, the sine at 1 kHz.
+
+Bounded: ≈ 2 h. Sonnet subagents for the sweeps; the write-up is yours.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-16 08:26Z — S53 — retire the literal Table copy in gen_dsp.py; master is the only source; drift gate Table top == MxDatS-1   [status: 🟢 done — (R1) `table=` deleted from all 86 `add_cell()` call sites (incl. the 5 `params`/`more` tuple lists that carried a `tbl` element) and `backfill_matrix()`'s Table branch deleted; `add_cell()` keeps `table=''` for signature stability but nothing sets it. `check_proposal()` (graph-vs-landed dsp.csv gate) now excludes Table from its per-cell comparison, with a comment stating why — the graph no longer has a Table opinion to compare. (R2) consumed defs-v2026.09.16.2 first, then `./regenerate-dsp-contract.sh --update-lock` + `check-contract-drift.sh --strict`, clean. Proof (before/after, keyed by cell): D24 702 / D32 918 Table fields changed, 0 other columns, 0 DSP addresses moved; D12 22 / D16 23 Table-only (the .2 master content, not backfill — they aren't DSP-backfilled). 702 ≠ the audit's 733 because that count was against the older tag; consuming .2 first (as instructed) shifted the baseline — not a discrepancy in the fix. ghost_cells.h/.c, both dsp_params.asm, dsp_address_map.md, mx_dsp_map.h unchanged (they already read Table off the landed map, not the graph). (R3) new `check-table-mxdats.py`, wired into check-contract-drift.sh, non-fatal: reads mx_master.csv directly, 190 comparable rows, 82 violators (all top=127 regardless of MxDatS) — does NOT match the anticipated 25/60 (the family-D examples the audit named all pass cleanly); reported in full in findings, scope discrepancy flagged for the hub, master untouched. (R4) findings S53-1..3, e5182547's misattribution to defs@5cc5d44 corrected and verified (0 Table diffs in that commit).]   [model: sonnet]
 
 model: sonnet
