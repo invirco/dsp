@@ -155,6 +155,9 @@
 .extern _product_config_write;
 .extern _diag_read;
 .extern _diag_write;
+#if DSP4_TEST_NODES
+.extern _bulk_state;           /* bulk_read.asm (S61) */
+#endif
 
 .section/pm seg_pmco;
 
@@ -418,6 +421,13 @@ _spi2_rx_work:
 .spi_diag_write:
     /* r2 = diag address (0xE000+), r1 = value */
     call _diag_write;
+#if DSP4_TEST_NODES
+    /* S61: a bulk GO hands the TFIFO to the stream -- no answer. */
+    r4 = dm(_bulk_state);
+    r5 = 3;
+    comp(r4, r5);
+    if eq jump (pc, .spi_done);
+#endif
     jump (pc, .spi_write_answer);
 
 .spi_error:

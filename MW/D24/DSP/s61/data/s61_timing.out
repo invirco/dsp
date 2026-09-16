@@ -1,0 +1,6 @@
+chirp condition, s (8): [2.37, 2.66, 2.38, 2.4, 2.69, 2.28, 2.48, 2.44]  mean 2.46
+THD+N, s: [1.87, 1.91] ; EIN, s: 1.87
+capture read_s: min 0.25 med 0.25 max 0.28 over 14 captures
+CM4 analysis 1.2 s: acquisition 25.4 s + analysis 13.2 s = 38.6 s per channel; 24 ch manual (+~30 s cable move) 27.4 min; harness 15.4 min
+desk analysis 0.1 s: acquisition 25.4 s + analysis 1.1 s = 26.5 s per channel; 24 ch manual (+~30 s cable move) 22.6 min; harness 10.6 min
+S60 per channel was 170 s; readout now 2.8 s of 25.4

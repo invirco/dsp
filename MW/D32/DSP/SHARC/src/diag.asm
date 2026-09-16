@@ -149,6 +149,11 @@
 .extern _spi_rx_count;            /* chipN/spi_handler.asm */
 .extern _spi_err_count;           /* chipN/spi_handler.asm */
 .extern _spi_req_word;            /* chipN/spi_handler.asm */
+#if DSP4_TEST_NODES
+.extern _bulk_read;               /* bulk_read.asm (S61) */
+.extern _bulk_write;
+.extern _bulk_tick;
+#endif
 
 /* ---- State owned here ---- */
 
@@ -755,6 +760,9 @@ _diag_timer_isr:
     if lt jump (pc, .spi_poll_skip);
     call _spi_poll;
 .spi_poll_skip:
+#if DSP4_TEST_NODES
+    call _bulk_tick;              /* S61: checksum chunks / stream end */
+#endif
 
     /* Manual override: force the LED off or on, e.g. to identify which
      * physical card or which of the two chips you are talking to. */
@@ -894,6 +902,15 @@ _diag_led_params.end:
  *----------------------------------------------------------------------*/
 .global _diag_read;
 _diag_read:
+#if DSP4_TEST_NODES
+    r4 = DIAG_BULK_ADDR;
+    comp(r2, r4);
+    if lt jump (pc, .diag_rd_not_bulk);
+    r4 = DIAG_BULK_LAST;
+    comp(r2, r4);
+    if le jump _bulk_read;        /* tail call: returns r4, keeps r0-r3 */
+.diag_rd_not_bulk:
+#endif
     r4 = DIAG_PEEK_DATA;
     comp(r2, r4);
     if eq jump (pc, .diag_rd_peek);
@@ -1038,6 +1055,15 @@ _diag_read.end:
 .extern _proc_cyc_max;
 .global _diag_write;
 _diag_write:
+#if DSP4_TEST_NODES
+    r4 = DIAG_BULK_ADDR;
+    comp(r2, r4);
+    if lt jump (pc, .diag_wr_not_bulk);
+    r4 = DIAG_BULK_LAST;
+    comp(r2, r4);
+    if le jump _bulk_write;       /* tail call */
+.diag_wr_not_bulk:
+#endif
     r4 = DIAG_LED_MODE;
     comp(r2, r4);
     if eq jump (pc, .diag_wr_led);

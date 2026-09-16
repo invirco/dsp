@@ -1,0 +1,93 @@
+16:21:28 reference captured
+16:21:30 code  0 capture 1: osc -15.58 dBFS pk, overruns 0, read 0.2 s, total capture 0.8 s
+16:21:32 code  0 capture 2: osc -15.58 dBFS pk, overruns 0, read 0.3 s, total capture 0.9 s
+16:21:34 code 63 capture 1: osc -68.72 dBFS pk, overruns 0, read 0.2 s, total capture 0.7 s
+16:21:35 code 63 capture 2: osc -68.72 dBFS pk, overruns 0, read 0.2 s, total capture 0.9 s
+16:21:38 code  1 capture 1: osc -28.42 dBFS pk, overruns 0, read 0.3 s, total capture 0.7 s
+16:21:41 code  2 capture 1: osc -35.04 dBFS pk, overruns 0, read 0.2 s, total capture 1.0 s
+16:21:43 code  4 capture 1: osc -42.48 dBFS pk, overruns 0, read 0.2 s, total capture 0.8 s
+16:21:45 code  8 capture 1: osc -49.93 dBFS pk, overruns 0, read 0.3 s, total capture 0.7 s
+16:21:48 code 16 capture 1: osc -57.17 dBFS pk, overruns 0, read 0.3 s, total capture 1.0 s
+16:21:50 code 32 capture 1: osc -63.74 dBFS pk, overruns 0, read 0.2 s, total capture 0.6 s
+16:21:53 THD+N capture code 0 osc -8.58: overruns 0, 0.6 s
+16:21:55 THD+N capture code 63 osc -61.72: overruns 0, 0.7 s
+16:21:57 EIN capture (loop cable as source): overruns 0, 0.6 s
+{
+ "chirp_code_0": {
+  "osc words": 0.04623532295227051,
+  "chain": 0.1703789234161377,
+  "settle": 1.000079870223999,
+  "wait": 0.836909294128418,
+  "capture+read": 1.6958882808685303
+ },
+ "chirp_code_63": {
+  "osc words": 0.047449350357055664,
+  "chain": 0.17087173461914062,
+  "settle": 1.0000765323638916,
+  "wait": 0.8296408653259277,
+  "capture+read": 1.61185622215271
+ },
+ "chirp_code_1": {
+  "osc words": 0.046399593353271484,
+  "chain": 0.17082691192626953,
+  "settle": 1.0000786781311035,
+  "wait": 0.4148993492126465,
+  "capture+read": 0.736133337020874
+ },
+ "chirp_code_2": {
+  "osc words": 0.048272132873535156,
+  "chain": 0.22948503494262695,
+  "settle": 1.0000762939453125,
+  "wait": 0.41477251052856445,
+  "capture+read": 0.9629571437835693
+ },
+ "chirp_code_4": {
+  "osc words": 0.04617500305175781,
+  "chain": 0.17055964469909668,
+  "settle": 1.0000674724578857,
+  "wait": 0.4148826599121094,
+  "capture+read": 0.7527554035186768
+ },
+ "chirp_code_8": {
+  "osc words": 0.046321868896484375,
+  "chain": 0.20257091522216797,
+  "settle": 1.0001022815704346,
+  "wait": 0.41539478302001953,
+  "capture+read": 0.7362403869628906
+ },
+ "chirp_code_16": {
+  "osc words": 0.04834699630737305,
+  "chain": 0.22971248626708984,
+  "settle": 1.0001070499420166,
+  "wait": 0.4154038429260254,
+  "capture+read": 0.9990124702453613
+ },
+ "chirp_code_32": {
+  "osc words": 0.04685544967651367,
+  "chain": 0.16984105110168457,
+  "settle": 1.0000715255737305,
+  "wait": 0.41490840911865234,
+  "capture+read": 0.6478118896484375
+ },
+ "thdn_code_0": {
+  "osc words": 0.05121588706970215,
+  "chain": 0.16955995559692383,
+  "settle": 1.0000789165496826,
+  "wait": 0.005254983901977539,
+  "capture+read": 0.6481544971466064
+ },
+ "thdn_code_63": {
+  "osc words": 0.05130887031555176,
+  "chain": 0.17070817947387695,
+  "settle": 1.0001068115234375,
+  "wait": 0.005746603012084961,
+  "capture+read": 0.6819095611572266
+ },
+ "ein": {
+  "chain": 0.17706966400146484,
+  "settle": 1.0000791549682617,
+  "osc words": 0.036977529525756836,
+  "wait": 0.005078315734863281,
+  "capture+read": 0.6478328704833984
+ }
+}

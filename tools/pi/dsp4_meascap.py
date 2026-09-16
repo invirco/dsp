@@ -16,7 +16,9 @@ CaptureArm / CaptureReady, proposals/CONTRACT-PROPOSAL-S56.md):
        of 0 would then look like a dropped write)
     3. poll CaptureReady until it reads non-zero; if it has not
        moved after a generous timeout, the arm write was dropped: go to 2
-    4. peek N words out of the buffer
+    4. read N words out of the buffer: one DMA stream (dsp4_bulk, S61) on
+       an image that carries it, else a peek per word. DSP4_BULK=0 forces
+       the peek path.
 
 The DSP also clears Ready itself when a run starts, so a host that skips
 step 1 still cannot read a stale count as a finished run -- it can only
@@ -31,6 +33,7 @@ Library use: `capture(n, symdir)` -> dict in dsp4_fft.py's capture format.
 CLI:  dsp4_meascap.py N [--symdir DIR] [--out FILE]
 """
 import json
+import os
 import sys
 import time
 
@@ -122,18 +125,25 @@ def capture(n, symdir=DEFAULT_SYMDIR, timeout=3.0, log=print, sc=None):
 
     base = sc.sym[BUF]
     t0 = time.time()
-    vals = [_retry(sc, sc.peek, base + i) for i in range(got)]
+    how = 'peek'
+    if '_bulk_state' in sc.sym and os.environ.get('DSP4_BULK', '1') != '0':
+        # S61: one DMA stream instead of three transactions a word.
+        import dsp4_bulk
+        vals, binfo = dsp4_bulk.read(sc, base, got, log=log)
+        how = 'bulk %s Hz, sum %s' % (binfo['hz'], binfo['sum'])
+    else:
+        vals = [_retry(sc, sc.peek, base + i) for i in range(got)]
     dt = time.time() - t0
     ovr = (ovr1 - ovr0) & 0xFFFFFFFF
-    log('  captured %d samples of strip %d (asked %d); read in %.1f s; '
-        'chip-1 overruns during the run +%d' % (got, chan, n, dt, ovr))
+    log('  captured %d samples of strip %d (asked %d); read in %.2f s (%s); '
+        'chip-1 overruns during the run +%d' % (got, chan, n, dt, how, ovr))
     if ovr:
         log('  ** a block overran during the capture: it may hold a '
             'discontinuity')
     return {'tool': 'dsp4_meascap', 'version': 1, 'fs_hz': 48000,
             'node': 'C1_TEST_MEAS capture, strip %d post-fader' % chan,
             'scale': 'q4.28', 'lanes': 1, 'symdir': symdir,
-            'asked': n, 'overruns': ovr, 'read_s': round(dt, 2),
+            'asked': n, 'overruns': ovr, 'read_s': round(dt, 2), 'read_how': how,
             'samples': vals}
 
 

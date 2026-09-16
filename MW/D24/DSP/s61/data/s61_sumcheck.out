@@ -1,0 +1,1 @@
+part sums of the reference 48f355ac/2dfb1207; detected of 2000 each: {'flip1bit': 2000, 'swap_adjacent': 2000, 'drop+dup_last': 2000, 'shift1': 2000, 'stuck_word': 2000}

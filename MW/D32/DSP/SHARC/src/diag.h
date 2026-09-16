@@ -188,6 +188,14 @@
 #define DIAG_SCOPE_RUNS      0xE0E8  /* R  arm count -- proves a run happened */
 #define DIAG_SCOPE_IDX       0xE0E9  /* R  samples recorded this run       */
 
+/* Bulk read (S61, bulk_read.asm; DSP4_TEST_NODES builds only): stream a DM
+ * region out of SPI2 by DMA instead of one peek per word. The full
+ * register description is at the top of bulk_read.asm. */
+#define DIAG_BULK_ADDR       0xE0D0  /* RW first word address              */
+#define DIAG_BULK_LEN        0xE0D1  /* RW words                           */
+#define DIAG_BULK_CTL        0xE0D2  /* W 1 arm, 2 go, 0 cancel; R state   */
+#define DIAG_BULK_LAST       0xE0D9  /* last register of the block         */
+
 /* ---- DIAG_BUILD_CFG — THE IMAGE SAYS WHAT IT IS ---------------------
  *
  * A mismeasured configuration must never be silent again (findings S8-2,

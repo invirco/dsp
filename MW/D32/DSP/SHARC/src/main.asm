@@ -233,8 +233,19 @@
  * the 1 kHz diag tick, far above what this link needs.
  * Clobbers r0, r1 and whatever _spi2_rx_work clobbers.
  *--------------------------------------------------------------------*/
+#if DSP4_TEST_NODES
+.extern _bulk_state;
+#endif
 .global _spi_poll;
 _spi_poll:
+#if DSP4_TEST_NODES
+    /* S61: while a bulk stream owns SPI2 (bulk_read.asm) RX is off and
+     * the TFIFO is the stream's; there is nothing to poll. */
+    r0 = dm(_bulk_state);
+    r1 = 3;
+    comp(r0, r1);
+    if eq rts;
+#endif
     /* Reentrancy guard. This is called from the main loop AND from the
      * 1 kHz diag timer ISR, and the ISR can preempt the loop in the
      * middle of a drain. A plain flag is enough and is race-free in the

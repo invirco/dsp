@@ -6,6 +6,93 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE CAPTURE READOUT: A DMA STREAM ON THE PARAMETER PORT, 16,384 WORDS IN 0.28 s, 0 ERRORS IN 700; THE FAST BATTERY IS 26.5 s A CHANNEL (2026-09-16, session 61 — desk + bench, MW-D24-2)
+
+**Pair:** `s61` (`DSP4_TEST_NODES=1` + `src/bulk_read.asm`; chip1 `4a72bd2a…` 458,304 B, chip2 `d6c763ea…` 309,284 B), staged at
+`~/s61`, booted and configured D24 twice (`boot.sh`, CHIP_ID 1/2, BUILD_CFG2 = TEST_NODES). **Controls, same session:** HEAD built
+`TEST_NODES=1` reproduces s60 byte for byte (`fe522a7f` / `c56ed0ab`), and `TEST_NODES=0` builds of HEAD and of this tree are
+identical (`36daa238` / `3a9c950d`, 451,892 / 307,980 B), so **the shipping image does not change.** Unit found: s60 pair running with
+S60's hand-back cells, `matrix-app` INACTIVE (not restarted, as the dispatch expected), AN_EN `op pd | hi`, CS_M `op pu | hi`. The
+chain was set by spidev at send position 15 (`s54lib.chain`), not `app cli chain-set`, because the app was not running.
+Data: `MW/D24/DSP/s61/data/`. Tools: `MW/D24/DSP/s61/tools/`, `tools/pi/dsp4_bulk.py`.
+
+**S61-1. Where the 12 s went: three transactions a word, ~100 us each, and the floor is not the SPI clock.**
+`s61_gate1.py` (read-only; 2,000 NOP transactions, 300 ask/collect pairs, 1,000 peeks of the capture buffer at each clock):
+
+| SCLK | RDY wait | CS lo + hi (gpiod) | spidev xfer2, 8 B | one transaction | answer on collect # | peek | words/s |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 MHz | 91 us | 19 us | 138 us | 250 us | 1 (300/300) | 750 us | 1,333 |
+| 4 MHz | 87 us | 17 us | 38 us | 141 us | 1 | 429 us | 2,334 |
+| 8 MHz | 59 us | 17 us | 23 us | 100 us | 1 | 300 us | 3,331 |
+| 10 MHz | 62 us | 17 us | 20 us | 100 us | 1 | 300 us | 3,333 |
+
+The bench link ran at 1 MHz, which is S60's 1,330 words/s exactly. The SHARC answers every ask on the very next collect, so the
+dispatch handler is not the cost. A peek is three transactions (write PEEK_ADDR, ask PEEK_DATA, collect). Above 8 MHz one
+transaction is ~100 us: the SPI_RDY poll plus the kernel's per-ioctl cost, whatever the clock. **Word-at-a-time tops out at
+~3,300 words/s, 5 s for 16k. The ≥ 16k words/s target needs a stream,** and on this port that is possible without a second SPI, the
+CPLD's PCM lane or the S49 Pi lane.
+
+**S61-2. The bulk read: SPI2's transmit path handed to DMA26 for one region, 0 errors in 700 16k captures at 10 MHz.**
+*Firmware* (`src/bulk_read.asm`, diag registers 0xE0D0..0xE0D9, `DSP4_TEST_NODES` builds only): BULK_ADDR / BULK_LEN, then
+BULK_CTL = 1 arms it and the 1 kHz tick checksums the region, 1,024 words a tick. BULK_CTL reads 2 when that is done. BULK_SUM1/2
+carry s1 = Σw and s2 = Σs1, both mod 2^32. BULK_CTL = 2 is GO and is **not answered**. GO takes SPI2 EN low and back (flushing both
+FIFOs), turns RX off so the host's MOSI filler is never dispatched (a zero pair is a write of Chan001Gain001 = 0), pushes a header
+(0xB0CA5E61, LEN) into the TFIFO and arms DMA26 from its registers with FLOW = STOP (the arming that works on this part,
+dma_config.c) at TDR = not-full. `_spi_poll` stands aside while streaming. The tick gives the port back when the channel's RUN is 0
+and the TFIFO is empty on two ticks running. There is also a 3 s abort. BULK_RUNS / ABORT / ERR / DSTAT / MS are readable after.
+Idle cost: one load and compare in the tick and one in `_spi_poll`. No cell, no contract change.
+*Host* (`tools/pi/dsp4_bulk.py`; `dsp4_meascap.capture` uses it whenever the map carries `_bulk_state`, and `DSP4_BULK=0` forces
+peeks): write-verify ADDR/LEN, arm, wait for 2, read the sums, GO, sleep 3 ms, CS low, **one `xfer3` of (n + 10) words at 10 MHz**,
+CS high, find the header at any byte offset (seen at bytes 0 and 4), check both sums, wait 30 ms, resync the link, confirm that
+BULK_CTL = 0 and RUNS moved, and retry up to 3 times on any failure.
+*The error check, and it can fail:* reference = the same 16,384-word chirp capture read by PEEK (12.3 s, 16,383 non-zero words).
+Every bulk read is compared with it word for word as well as by the sums. **1 MHz** 5/5 (1.01 s). **8 MHz** 100/100 (0.306 s).
+**10 MHz 100/100 + 500/500 (0.278–0.281 s median, 58–66 k words/s)**. 12 MHz 20/20 (0.211 s). 14 MHz 20/20 (0.201 s).
+**16, 20, 25 MHz: 0/20 each, every one caught** (60 attempts per clock, all rejected at the header, bit-corrupted e.g. `f8ef7f71…`:
+the MISO path's timing edge). Against the reference with synthetic faults the sums caught 2,000/2,000 each of single-bit flips,
+adjacent swaps, a dropped word, a one-word shift and a stuck word (`s61_sumcheck.out`). **Clock: 10 MHz, 1.6× below the first
+failing step.** A 16k read spends 0.067 s arming (voted writes + 16 ms of checksum), 0.10 s streaming (52 ms of clocking), 0.03 s
+waiting and ~0.08 s resyncing and verifying.
+*One real failure, and the fix.* With a 4 ms post-stream wait, stream 389 of 1,118 left the parameter link unphaseable. The next 67
+reads failed at the ADDR write and `dsp4_diag` could not phase chip 1 either. It came back by itself within ~2 min. The part had
+**not** reset (TICKS in step with chip 2, RUNS = 388, ABORT 0, ERR 0). The tick gives the port back 97–101 ms after GO at 10 MHz, i.e.
+1–3 ms after the host's last clock, and later when a block delays the tick (that stream's BULK_MS was 121). So the host's resync
+overlapped the EN cycle. **With 30 ms: 0 failures in the following 700.** How a mid-transaction EN cycle keeps the link out of phase
+for minutes, when CS frames every transaction, is NOT explained. A GO-ack on SPI_RDY would replace the fixed wait. Not needed for the
+gate; noted here.
+
+**S61-3. The fast battery re-timed on MIC 5: 26.5 s a channel (was 170 s), and the captures reproduce S60.**
+`s61_loop.py` = `s60_loop.py` with the bulk readout, same loop (strip 6 TEST_OSC → AUX 1 → J45 → cable → J25 → MIC 5), level first,
+1 s settle, ref + 8 codes (0 and 63 twice) + 2 THD+N + EIN: **29 s wall for all 14 captures, 0 overruns, reads 0.25–0.28 s.**
+S60's analysis run unchanged on these captures (`s61_analyse.py`, `data/analyse.out`): gain law within **0.026 dB** of T1 at all 8 codes
+(worst code 63 +0.026, code 32 −0.013). Latency 1–2 kHz **91.398–91.469**, inverted at every code. Chirp − tone ≤ 0.004 dB at code 0
+and ≤ 0.082 dB at code 63. THD+N code 0 **−88.96 dB**, code 63 **−47.05 dB**. EIN (loop source) −52.25 dBFS. S60 read 91.398–91.461,
+−89.02 / −47.23 dB and −52.4 dBFS.
+
+| step | count | each, s | total, s |
+|---|---:|---:|---:|
+| chirp: osc words 0.05 + chain 0.17 + settle 1.0 + 1.2 periods 0.41 + arm/fill ~0.5 + **read 0.25** | 8 | 2.46 (2.28–2.69) | 19.7 |
+| THD+N tone capture | 2 | 1.89 | 3.8 |
+| EIN capture | 1 | 1.87 | 1.9 |
+| analysis, desk numpy (CM4 stdlib 1.2 s) | 11 | 0.1 (1.2) | 1.1 (13.2) |
+| **per channel** | | | **26.5 s desk analysis; 38.6 s CM4 analysis** |
+
+**Readout is now 2.8 s of the 25.4 s of acquisition (11 %)**. The rest is the stimulus and the analog path: the 1 s settle
+(S60-3), the 1.2-period wait and arm/fill. On the CM4 the stdlib analysis (13 s) is now the largest item.
+**24-channel projection.** *Manual cable:* 24 × 26.5 s = **10.6 min of instrument time** (15.4 min with CM4 analysis), plus the cable
+moves. At ~30 s a move that is ~23 min. *Harness* (every lane driven, all registers at one code, S60-4's read-all-lanes): per code,
+chain + settle 1.2 s once, then per lane strip up 0.20 + 1.2 periods 0.41 + arm/fill ~0.5 + read 0.25 + restore 0.19 ≈ 1.55 s, so
+8 codes × (1.2 + 24 × 1.55) = **5.1 min**. Add 72 THD+N/EIN captures ≈ 1.9 min and desk analysis 264 × 0.1 s = 0.4 min:
+**≈ 7.5 min a unit** (was ≈ 62 min). The dispatch's ≈ 2 min harness figure assumed the settle and fill could be shared across
+lanes. Arm/fill cannot be shared as TEST_MEAS captures one strip at a time, so a multi-lane capture arm is the next lever there.
+
+**Hand-back (16:23 BST):** s60 pair rebooted twice (`fe522a7f` / `c56ed0ab`, CHIP_ID 1/2), `s56_setup.py` + `s60_handback.py`, then
+`s60_found.py` against this session's found snapshot. Every cell and the S58 patch are identical. The two differences are CaptureReady
+(16,384 found, 0 now: a status word, zero after a boot) and `sym_osc_ch` (the found snapshot ran without SYMDIR, on s54lib's default
+s51 map). Idle MIC 5 noise read −90.1 dBFS just after the hand-back and settled to −106.3 within a minute (S60 found −106.0, S61 found
+−113.6: it wanders between sessions). AN_EN `op pd | hi` and CS_M `op pu | hi` before, during and after, never written. `matrix-app`
+inactive as found. Loop cable still on J25. `~/s61` holds the bulk pair and tools. `~/dspboot`, `~/s56`, `~/s60` images untouched.
+
 ## CHIRPS INSTEAD OF TONES: ONE CAPTURE PER CONDITION, VALIDATED AGAINST THE TONE SET ON MIC 5; 10 kHz CROSSTALK; THE FAST BATTERY IS 2.6 MIN A CHANNEL, 85 % OF IT READOUT (2026-09-16, session 60 — desk + bench, MW-D24-2)
 
 **Pair:** `s60` (`DSP4_TEST_NODES=1`, no tap; chip1 `fe522a7f…`, chip2 `c56ed0ab…` = the s56/s51 chip 2 byte for byte), staged at `~/s60`,

@@ -1,0 +1,213 @@
+reference: strip 6 post-fader, level 0.100000, overruns 0
+
+=== code 0  (osc -15.58 dBFS pk, lane peak -8.95 dBFS, overruns 0)
+  period 16384 samples (341.3 ms), sweep 20 Hz -> 20000 Hz
+  latency: impulse peak 92.084 samples; group delay 1-2 kHz 91.398, 1-10 kHz 91.618 samples
+  polarity: INVERTED (h at peak -1.309)
+  gain at 1 kHz: +5.578 dB
+  response re 1 kHz:
+        20 Hz    -0.418 dB
+        50 Hz    -0.049 dB
+       100 Hz    +0.012 dB
+       200 Hz    +0.029 dB
+       500 Hz    +0.027 dB
+      1000 Hz    +0.000 dB
+      2000 Hz    -0.002 dB
+      5000 Hz    -0.005 dB
+     10000 Hz    +0.061 dB
+     15000 Hz    -0.019 dB
+     20000 Hz    -0.117 dB
+  harmonics at f0 = 1 kHz, re H1(1 kHz):
+    h2   -111.46 dB = 0.00027 %
+    h3   -106.26 dB = 0.00049 %
+    h4   -107.71 dB = 0.00041 %
+    h5   -143.30 dB = 0.00001 %
+  THD (2..5) -103.21 dB = 0.00069 %
+  SNR per band (two captures): 20 Hz 95.3 dB, 100 Hz 99.4 dB, 1000 Hz 96.7 dB, 10000 Hz 86.1 dB, 20000 Hz 78.6 dB
+  capture-to-capture difference -87.4 dB re signal
+  gain vs T1 5.578 dB: -0.000 dB
+  chirp - tone, dB: 20 Hz -0.004, 50 Hz +0.001, 100 Hz -0.000, 1000 Hz +0.000, 10000 Hz -0.000, 20000 Hz +0.000
+
+=== code 1  (osc -28.42 dBFS pk, lane peak -8.93 dBFS, overruns 0)
+  period 16384 samples (341.3 ms), sweep 20 Hz -> 20000 Hz
+  latency: impulse peak 92.094 samples; group delay 1-2 kHz 91.409, 1-10 kHz 91.629 samples
+  polarity: INVERTED (h at peak -5.733)
+  gain at 1 kHz: +18.423 dB
+  response re 1 kHz:
+        20 Hz    -0.420 dB
+        50 Hz    -0.050 dB
+       100 Hz    +0.011 dB
+       200 Hz    +0.029 dB
+       500 Hz    +0.027 dB
+      1000 Hz    +0.000 dB
+      2000 Hz    -0.003 dB
+      5000 Hz    -0.005 dB
+     10000 Hz    +0.060 dB
+     15000 Hz    -0.020 dB
+     20000 Hz    -0.119 dB
+  harmonics at f0 = 1 kHz, re H1(1 kHz):
+    h2    -93.36 dB = 0.00215 %
+    h3   -104.88 dB = 0.00057 %
+    h4    -97.17 dB = 0.00139 %
+    h5   -113.31 dB = 0.00022 %
+  THD (2..5) -91.61 dB = 0.00263 %
+  gain vs T1 18.423 dB: +0.000 dB
+
+=== code 2  (osc -35.04 dBFS pk, lane peak -8.92 dBFS, overruns 0)
+  period 16384 samples (341.3 ms), sweep 20 Hz -> 20000 Hz
+  latency: impulse peak 92.096 samples; group delay 1-2 kHz 91.411, 1-10 kHz 91.630 samples
+  polarity: INVERTED (h at peak -12.28)
+  gain at 1 kHz: +25.041 dB
+  response re 1 kHz:
+        20 Hz    -0.424 dB
+        50 Hz    -0.052 dB
+       100 Hz    +0.011 dB
+       200 Hz    +0.029 dB
+       500 Hz    +0.027 dB
+      1000 Hz    +0.000 dB
+      2000 Hz    -0.002 dB
+      5000 Hz    -0.005 dB
+     10000 Hz    +0.060 dB
+     15000 Hz    -0.020 dB
+     20000 Hz    -0.117 dB
+  harmonics at f0 = 1 kHz, re H1(1 kHz):
+    h2    -95.89 dB = 0.00161 %
+    h3    -90.05 dB = 0.00314 %
+    h4    -94.74 dB = 0.00183 %
+    h5   -102.13 dB = 0.00078 %
+  THD (2..5) -87.85 dB = 0.00405 %
+  gain vs T1 25.041 dB: +0.000 dB
+
+=== code 4  (osc -42.48 dBFS pk, lane peak -8.90 dBFS, overruns 0)
+  period 16384 samples (341.3 ms), sweep 20 Hz -> 20000 Hz
+  latency: impulse peak 92.097 samples; group delay 1-2 kHz 91.414, 1-10 kHz 91.632 samples
+  polarity: INVERTED (h at peak -28.89)
+  gain at 1 kHz: +32.474 dB
+  response re 1 kHz:
+        20 Hz    -0.436 dB
+        50 Hz    -0.054 dB
+       100 Hz    +0.009 dB
+       200 Hz    +0.030 dB
+       500 Hz    +0.028 dB
+      1000 Hz    +0.000 dB
+      2000 Hz    -0.002 dB
+      5000 Hz    -0.004 dB
+     10000 Hz    +0.061 dB
+     15000 Hz    -0.019 dB
+     20000 Hz    -0.119 dB
+  harmonics at f0 = 1 kHz, re H1(1 kHz):
+    h2    -79.20 dB = 0.01097 %
+    h3    -85.05 dB = 0.00559 %
+    h4    -88.91 dB = 0.00359 %
+    h5    -78.20 dB = 0.01230 %
+  THD (2..5) -75.01 dB = 0.01777 %
+  gain vs T1 32.475 dB: -0.001 dB
+
+=== code 8  (osc -49.93 dBFS pk, lane peak -8.86 dBFS, overruns 0)
+  period 16384 samples (341.3 ms), sweep 20 Hz -> 20000 Hz
+  latency: impulse peak 92.097 samples; group delay 1-2 kHz 91.417, 1-10 kHz 91.633 samples
+  polarity: INVERTED (h at peak -68.13)
+  gain at 1 kHz: +39.926 dB
+  response re 1 kHz:
+        20 Hz    -0.473 dB
+        50 Hz    -0.068 dB
+       100 Hz    +0.010 dB
+       200 Hz    +0.029 dB
+       500 Hz    +0.028 dB
+      1000 Hz    +0.000 dB
+      2000 Hz    +0.001 dB
+      5000 Hz    -0.002 dB
+     10000 Hz    +0.059 dB
+     15000 Hz    -0.021 dB
+     20000 Hz    -0.113 dB
+  harmonics at f0 = 1 kHz, re H1(1 kHz):
+    h2    -71.57 dB = 0.02639 %
+    h3    -95.95 dB = 0.00159 %
+    h4    -70.91 dB = 0.02847 %
+    h5    -70.17 dB = 0.03100 %
+  THD (2..5) -66.07 dB = 0.04970 %
+  gain vs T1 39.927 dB: -0.001 dB
+
+=== code 16  (osc -57.17 dBFS pk, lane peak -8.89 dBFS, overruns 0)
+  period 16384 samples (341.3 ms), sweep 20 Hz -> 20000 Hz
+  latency: impulse peak 92.098 samples; group delay 1-2 kHz 91.425, 1-10 kHz 91.634 samples
+  polarity: INVERTED (h at peak -156.9)
+  gain at 1 kHz: +47.170 dB
+  response re 1 kHz:
+        20 Hz    -0.613 dB
+        50 Hz    -0.092 dB
+       100 Hz    -0.007 dB
+       200 Hz    +0.026 dB
+       500 Hz    +0.020 dB
+      1000 Hz    +0.000 dB
+      2000 Hz    -0.000 dB
+      5000 Hz    -0.000 dB
+     10000 Hz    +0.072 dB
+     15000 Hz    -0.014 dB
+     20000 Hz    -0.115 dB
+  harmonics at f0 = 1 kHz, re H1(1 kHz):
+    h2    -67.85 dB = 0.04052 %
+    h3    -72.42 dB = 0.02392 %
+    h4    -73.67 dB = 0.02073 %
+    h5    -70.20 dB = 0.03089 %
+  THD (2..5) -64.44 dB = 0.05999 %
+  gain vs T1 47.169 dB: +0.001 dB
+
+=== code 32  (osc -63.74 dBFS pk, lane peak -9.25 dBFS, overruns 0)
+  period 16384 samples (341.3 ms), sweep 20 Hz -> 20000 Hz
+  latency: impulse peak 92.099 samples; group delay 1-2 kHz 91.437, 1-10 kHz 91.637 samples
+  polarity: INVERTED (h at peak -334.1)
+  gain at 1 kHz: +53.731 dB
+  response re 1 kHz:
+        20 Hz    -1.077 dB
+        50 Hz    -0.187 dB
+       100 Hz    -0.043 dB
+       200 Hz    +0.030 dB
+       500 Hz    +0.048 dB
+      1000 Hz    +0.000 dB
+      2000 Hz    +0.017 dB
+      5000 Hz    -0.006 dB
+     10000 Hz    +0.061 dB
+     15000 Hz    -0.008 dB
+     20000 Hz    -0.112 dB
+  harmonics at f0 = 1 kHz, re H1(1 kHz):
+    h2    -59.42 dB = 0.10692 %
+    h3    -57.93 dB = 0.12693 %
+    h4    -61.86 dB = 0.08070 %
+    h5    -69.73 dB = 0.03263 %
+  THD (2..5) -54.54 dB = 0.18741 %
+  gain vs T1 53.744 dB: -0.013 dB
+
+=== code 63  (osc -68.72 dBFS pk, lane peak -9.63 dBFS, overruns 0)
+  period 16384 samples (341.3 ms), sweep 20 Hz -> 20000 Hz
+  latency: impulse peak 92.098 samples; group delay 1-2 kHz 91.469, 1-10 kHz 91.641 samples
+  polarity: INVERTED (h at peak -591.9)
+  gain at 1 kHz: +58.743 dB
+  response re 1 kHz:
+        20 Hz    -2.068 dB
+        50 Hz    -0.460 dB
+       100 Hz    -0.138 dB
+       200 Hz    -0.033 dB
+       500 Hz    -0.003 dB
+      1000 Hz    +0.000 dB
+      2000 Hz    -0.049 dB
+      5000 Hz    +0.000 dB
+     10000 Hz    +0.058 dB
+     15000 Hz    -0.042 dB
+     20000 Hz    -0.195 dB
+  harmonics at f0 = 1 kHz, re H1(1 kHz):
+    h2    -52.67 dB = 0.23255 %
+    h3    -50.83 dB = 0.28753 %
+    h4    -57.50 dB = 0.13334 %
+    h5    -54.62 dB = 0.18588 %
+  THD (2..5) -47.23 dB = 0.43484 %
+  SNR per band (two captures): 20 Hz 46.7 dB, 100 Hz 50.2 dB, 1000 Hz 47.3 dB, 10000 Hz 36.2 dB, 20000 Hz 30.0 dB
+  capture-to-capture difference -37.5 dB re signal
+  gain vs T1 58.717 dB: +0.026 dB
+  chirp - tone, dB: 20 Hz -0.008, 50 Hz -0.018, 100 Hz -0.018, 1000 Hz +0.000, 10000 Hz -0.007, 20000 Hz -0.082
+
+THD+N code 0: osc -8.58, fundamental -6.01 dBFS rms, THD+N -88.96 dB = 0.0036 %, THD(2..10) -89.53 dB
+
+THD+N code 63: osc -61.72, fundamental -6.01 dBFS rms, THD+N -47.05 dB = 0.4440 %, THD(2..10) -60.98 dB
+
+noise code 63, loop cable as source: 20-20k -52.25 dBFS, A -54.78 dBFS (input-referred: -58.717 dB)
