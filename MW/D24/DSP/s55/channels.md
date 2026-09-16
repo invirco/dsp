@@ -5,9 +5,11 @@ Loop: TEST_OSC (donor strip 6, strip 1 for J32) → AUX 1 → J45 → loop cable
 | XLR | panel | lane | T1 range dB (code 0 loop gain) | T1 largest step dB (sorted / code order) | monotonic | T2 20 Hz re 1 k, code 0 / 63 | T3 best THD+N code 0 | T3 code 63 @ −3 dBFS | T4 floor code 0 / 63 dBFS (150 Ω) | T4b EIN code 63 20–20k / A dBu | sub-20 Hz / raw DC–24k dBu (code 63) | T5 | T8 samples |
 |---|---|---:|---|---|---|---|---|---|---|---|---|---|---:|
 | J25 | MIC 5 | 20 | 53.14 (+5.58) | 12.85 / 12.85 | yes | −0.41 / −2.06 | −92.80 dB = 0.00229 % (S54) | −47.05 dB = 0.444 % | −113.79 / −87.97 (S54, node) | −127.2 / −130.5 (S57) | see S57-5 | inverted | 91.40 |
-| J27 | MIC 6 | 18 | 53.09 (+5.58) | 12.85 / 12.85 | yes | -0.41 / -2.08 | -91.27 dB = 0.00273 % @ -10 dBFS | -43.48 dB = 0.670 % | pending | pending | pending | inverted | 91.40 |
+| J27 | MIC 6 | 18 | 53.09 (+5.58) | 12.85 / 12.85 | yes | -0.41 / -2.08 | -91.27 dB = 0.00273 % @ -10 dBFS | -43.48 dB = 0.670 % | -114.15 / -82.04 | -126.5 / -130.2 | -123.5 / -120.1 | inverted | 91.40 |
 
 ## Noise detail (150 Ω, capture arm, energy average)
 
 | XLR | code | captures | 20–20k dBFS | A dBFS | DC–24k dBFS | 20–20k dBu in | A dBu in | sub-20 Hz dBu in | DC–24k dBu in | mains share % | max kurtosis | overruns |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| J27 | 63 | 6 | -94.02 | -97.70 | -87.59 | -126.5 | -130.2 | -123.5 | -120.1 | 0.13 | 3.24 | 0 |
+| J27 | 0 | 3 | -115.15 | -117.15 | -114.00 | -94.6 | -96.6 | -102.2 | -93.4 | 3.30 | 3.76 | 0 |
