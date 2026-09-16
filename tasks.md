@@ -1,3 +1,19 @@
+## HUB DISPATCH 2026-09-16 15:26Z — S62 — the bulk read's unexplained stall: reproduce, GO-ack at the protocol level, prove 2,000 captures at 0 ms   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+S62 — THE ONE UNEXPLAINED FAILURE IN THE BULK READ (S61): explain it and remove the 30 ms guess. Desk + unit (digital only; analog untouched, chain untouched, the s61/TEST_NODES pair).
+
+S61 saw one overlap failure with a 4 ms post-stream wait: the parameter link went unphaseable for ~2 min with no reset, then recovered; a 30 ms wait has shown 0 failures in 700 captures but nothing explains the outage. A factory tool cannot carry an unexplained 2-minute stall.
+
+GATES: 1. REPRODUCE on purpose: shorten the wait (4, 2, 1, 0 ms) and hammer captures until it fails; capture the SPI2 state (SPI_RDY, the DMA26 channel state, the tick's port hand-back, the host's ioctl timing) at the moment of failure; name the mechanism (the hub's guess: the host's next peek lands while the SHARC's tick has not yet handed the port back from DMA, and the GO-ack via SPI_RDY is missing, so the two sides phase-slip until something resynchronises). 2. FIX at the protocol level, not with a wait: a GO-ack / port-released flag the host must see before its next transaction (SPI_RDY or a diag word), and a host-side recovery that re-phases the link in < 1 s if a slip ever happens (never a 2-minute wait). 3. PROVE: 2,000 captures at 0 ms extra wait, 0 errors, 0 slips; the shipping image still byte-identical; the fast battery time unchanged or better. 4. findings S62-1..3, tasks.md, commit + push, clean; unit as found.
+
+Bounded: ≈ 90 min.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-16 15:02Z — S61 — the capture readout: a bulk read to bring the fast battery to ~30 s per channel   [status: 🟢 done — (1) Gate 1: a peek is 3 transactions of ~100 us at ≥8 MHz (250 us at the 1 MHz the bench used = 1,333 words/s); the floor is SPI_RDY + per-ioctl kernel cost, not SCLK or the SHARC handler (answers on the first collect 300/300), so word-at-a-time caps at ~3,300 words/s. (2) BULK READ on the parameter port, no new wire: `src/bulk_read.asm` (TEST_NODES builds only; diag reg 0xE0D0..D9) checksums the region in the 1 kHz tick (s1=Σw, s2=Σs1), GO hands SPI2 TX to DMA26 (FLOW=STOP, RX off, header 0xB0CA5E61+LEN), tick gives the port back; host `tools/pi/dsp4_bulk.py` streams in one CS-held xfer3, `dsp4_meascap` uses it automatically. **16,384 words in 0.28 s at 10 MHz (58–66 k words/s), 0 errors in 700 captures (100+500 at 10 MHz, +100 at 8 MHz) vs a peek reference word-for-word**; 16/20/25 MHz fail at the MISO edge and every attempt was caught; sums catch 2,000/2,000 synthetic flips/swaps/drops/shifts. One overlap failure with a 4 ms post-stream wait (link unphaseable ~2 min, no reset) → 30 ms wait, 0 in 700 since; mechanism of the long outage not explained, SPI_RDY GO-ack suggested. Shipping image byte-identical (HEAD vs tree `36daa238`/`3a9c950d`); HEAD TEST_NODES reproduces s60. (3) Fast battery on MIC 5: **26.5 s/channel** (desk analysis; 38.6 s with CM4 stdlib analysis) vs 170 s; readout 11 % of acquisition, rest = 1 s settle + 1.2 periods + arm/fill; captures reproduce S60 (gain law ≤0.026 dB of T1, latency 91.398–91.469, inverted, THD+N −88.96/−47.05 dB). 24 ch: 10.6 min instrument time manual (+cable moves ≈23 min), ≈7.5 min with a harness (per-strip arm/fill is the next lever). (4) No contract change, no cell. Findings S61-1..3. Unit: s60 pair rebooted and S60 hand-back re-applied, all cells match found; matrix-app was INACTIVE on arrival (not restarted as the dispatch expected) and left so; chain by spidev p15; AN_EN hi / CS_M hi never written; loop cable on J25]   [model: opus]
 
 model: opus
