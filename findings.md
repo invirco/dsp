@@ -6,6 +6,209 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE GATE-RANGE INITIALISER FIXED FROM THE ROW; THE OPEN-CHAIN RE-SCAN STILL FINDS NO ANALOG RETURN (2026-09-16, session 51)
+
+**S51-0. Priority insert (hub addendum 06:53, PW's go): all twelve channels
+open at gain 16 still show no lane carrying the AUX 1 square — but four of
+them (5, 7, 9, 11) sit 25-30 dB above the other eight's noise floor, a
+pattern S48-25's ch5-only condition could not show.** Sequence run: chain
+SAFE (verified 200/200) → AN_EN raised by hand (GPIO26 `op dh`; CS_M/GPIO27
+untouched, stayed `op pu` hi throughout) → S48's square-generator tap pair
+staged (`s48sq_81f4f954`, md5 `81f4f954…`/`530db1e3…`, chosen over the
+addendum's named `s48tap_289421ed` because that pair's map has no
+`_scope_sq_phase`: it is the step/DC injector build, not the square one —
+`dsp4_s48_scan.py`'s own default symdir already points at `s48sq_81f4f954`)
+→ donor strip 6 routed to AUX 1 (`dsp4_apply_strip.py 6 1`, 13 ok / 0
+mismatch; the first scan pass was run before this and its chip-2 AUX tap
+read flat -inf while MAIN rose, i.e. the stimulus was on the wrong bus —
+re-run after routing, kept as the recorded pass).
+
+All twelve unmuted at gain 16, phantom off (`app cli chain-set`, verified
+200/200), 500 Hz / −6 dBFS square from donor 6 (`_scope_inj_blk = 0x90330`,
+fired), OFF/ON/OFF, three windows each:
+
+| lane | OFF | ON | OFF again | ON peak |
+|---|---:|---:|---:|---:|
+| 1 | −116.99 | −113.92 | −115.86 | −108.37 |
+| 2 | −115.38 | −116.24 | −116.73 | −109.53 |
+| 3 | −118.59 | −116.46 | −116.67 | −108.93 |
+| 4 | −116.57 | −115.42 | −116.22 | −108.65 |
+| **5** | **−84.25** | **−84.76** | **−84.54** | −74.46 |
+| 6 | −114.55 | −114.69 | −114.07 | −106.88 |
+| **7** | **−88.44** | **−87.99** | **−87.69** | −82.11 |
+| 8 | −113.80 | −115.30 | −114.38 | −108.10 |
+| **9** | **−79.27** | **−80.75** | **−78.85** | −74.88 |
+| 10 | −114.71 | −116.66 | −113.54 | −110.87 |
+| **11** | **−85.31** | **−87.93** | **−88.27** | −80.58 |
+| 12 | −112.99 | −115.17 | −114.79 | −108.93 |
+| C2 RECV_MAIN_L (fabric, expected) | −130.44 | −42.14 | −130.94 | — |
+| C2 RECV_AUX_01 (fabric, expected) | −131.00 | −42.14 | −132.93 | — |
+
+No chip-1 lane rises on ON and falls on OFF-again by the tool's own >6 dB
+both-ways test — the verdict column was blank on every one of the twelve.
+The chip-2 fabric taps ARE the positive control this time (both MAIN and
+AUX 1 rise ~89 dB and fall back, confirming the square really is on the AUX
+1 bus once strip 6 is routed there) — a difference from the earlier S48-26
+run, whose AUX tap only rose after the same routing step was added here.
+**Lanes 5, 7, 9, 11 sit 25-30 dB above the other eight's ≈−115 dBFS floor,
+FLAT across all three passes (not correlated with the stimulus)** — a
+static noise-floor pattern, not a loop hit, and not visible in S48-25
+because every channel but ch5 was muted there. Left as a finding for PW,
+not interpreted further here: it groups four of twelve channels and its
+shape (elevated but stimulus-independent) is consistent with a preamp
+bias/gain-strapping difference on that group rather than anything the
+injected square would explain.
+
+**Like-for-like repeat, ch5 alone at gain 63 (the S48-25 condition), same
+image, same routing:** lane 5 floor −73.62 / −71.44 / −72.36 dBFS (S48-25
+recorded −72.51 / −71.78 / −73.35 — same channel, same order of magnitude,
+reproduces), no lane carries the stimulus, same as S48-25. **S48-25's
+conclusion stands under the open-chain condition PW asked for: opening all
+twelve did not surface a J25 ↔ preamp misassignment on any of the eleven
+quiet lanes.**
+
+**What could not be answered here: the expected voltage at MIC 5's op-amp
+pin 1.** The repo has no absolute-level reference for the DAC output —
+`dsp4-s48-20260915.md` §4 states the DAC's full scale only in the DIGITAL
+domain (`1.0 Q4.28`, the code that saturates it); no dBu/Vrms figure for
+that code, and no dB-per-gain-code LAW for the preamp (only the dBFS
+NOISE-FLOOR readback S48-27 recorded at codes 0/16/32/63, which
+characterises the preamp's own noise tracking the code, not a calibrated
+gain against a known input) is written down anywhere in this repo or its
+docs. Computing a number would mean guessing a datasheet figure this
+session has not verified — left for PW to read directly off the analog
+board/DAC datasheet rather than stated here as fact.
+
+**Hand-back for the addendum, exactly as asked: AN_EN raised and left up
+(GPIO26 `op dh`), CS_M/GPIO27 never touched (`op pu` hi throughout), all
+twelve channels unmuted at gain 16 (verified 200/200), the 500 Hz / −6 dBFS
+square held continuously on donor strip 6 → AUX 1 (`dsp4_s48_drive.py …
+--sq`, PID alive, GPIO busy to a second SPI open confirms it is holding the
+link), matrix-app left stopped (it was stopped for the DSP boots and the
+addendum does not ask for it back). PW's probe points: MIC 5 op-amp pin 1,
+the ADC driver output, the AK5558 ch5 input pins.**
+
+## THE GATE-RANGE INITIALISER, FIXED FROM THE ROW AND PROVEN ON THE PART (2026-09-16, session 51)
+
+**S51-1. The initialiser now comes from the graph row, in each word's own
+wire unit, with no hardcoded constants left in the gate's `.var` block**
+(`tools/dsp/dsp_codegen.py`, new `gate_init_words()`, consumed by
+`gen_gate_fixed`). Three different treatments, by what the wire actually
+carries:
+
+- **`threshold`/`range` stay DECIBELS.** The block-rate body already
+  converts them every block (D39's `_exp2q_fx` path for range, the same
+  `_C_DB2L2Q25` scale for threshold) — a host write lands a dB number, so
+  the initialiser only has to carry the row's dB literal directly. This
+  is the actual S49-3 fix: the old literal was `0.001`, a stale LINEAR
+  floor left over from before D39 was fixed for the conversion CODE but
+  never for the INITIALISER — today's kernel reads that `.var` as dB, so
+  an un-written gate closed to 0.999885 gain (0.001 dB) where the row
+  says `range_db=60.0`. The new literal is the row's own `60.0`.
+- **`attack`/`release` do NOT get a block-rate conversion** (finding D41:
+  "ms vs one-pole alpha, no conversion in this repo") — the wire word IS
+  the one-pole alpha `_envq_fx`/`env_step` multiplies straight in
+  `env += a*(target-env)`. Pre-converted in Python at codegen time from
+  the row's `attack_ms`/`release_ms` instead, using the standard
+  per-sample coefficient for THIS update rule — `a = 1 - exp(-1/tau)`,
+  `tau = ms * fs / 1000` — the reciprocal sense of the OTHER one-pole
+  convention (`y = c*y_prev + (1-c)*x`) that `dsp_simulate.py`'s
+  `_ms_to_tc` happens to compute; the two are not interchangeable and
+  the wrong one would have made the row's `attack_ms=1.0` land as an
+  alpha of 1.0 (never moves). Cross-checked against
+  `tools/pi/dsp4_conform.py`'s own `alpha_ms()` predictor, already used
+  on the bench to verify live GateAtt/GateRel writes and citing the same
+  formula from `dynamics.asm` — the codegen's pre-converted default and
+  the bench's independent conformance predictor now agree by construction,
+  not by coincidence.
+- **`hold` is SAMPLES**, also unconverted on the wire (`_gate_holdq_`
+  under `DSP4_PAIRED_GRAPH` just copies `_gate_hold_`) — pre-converted the
+  same way, `round(hold_ms * fs / 1000)`. The row's `hold_ms=50.0` gives
+  2400, the exact value the old hand-written literal already carried —
+  a check that the new formula reproduces what the previous author must
+  have computed by hand.
+- **`on` is NOT taken from the row** (no product's GATE row carries an
+  `on` key today) but from the MASTER's documented power-on default
+  (hub ruling R2): `defs/common/schema/mx_master.md`'s `Neutral` column
+  derivation lists `GateOn` under "bypassed / off = 0". An un-written
+  gate is therefore a true bypass (`.gate_bypass_`, the input passed
+  through with no envelope, no smoothing, nothing) rather than the old
+  `on=1` — which, combined with the range fix, would have put every
+  un-written strip's gate ACTIVE with a 60 dB floor at boot. Flagged per
+  R2 rather than shipped: see S51-3.
+
+`gate_init_words()` is called once per GATE node from its own
+`node['params']`; regenerating (`python3 tools/dsp/dsp_codegen.py
+MW/D32/DSP/SHARC/dsp.csv MW/D32/DSP/SHARC/src --force`) touched exactly
+the 36 GATE nodes (32 `C1_GATE_*` + 4 `C2_GRP_GATE_*`) and nothing else —
+`./check-sharc-codegen-drift.sh` passes clean against the regenerated
+tree. Every other generator (`COMPRESSOR`, `LIMITER`) still carries its
+old hand-picked `.var` literals; this dispatch's scope was the gate only
+(R1 names it explicitly), so they are untouched and not claimed fixed.
+
+**S51-2. Proven on the part, strip 5, digital loop only (S49's TEST_OSC /
+TEST_MEAS pair, `DSP4_TEST_NODES=1`, built fresh from the fixed generator —
+md5 `119ea9d9…`/`c56ed0ab…`, staged at `/home/app/s51_119ea9d9`, identity
+confirmed by `DIAG_BUILD_CFG2 raw2 = 0xC3010244` matching S49's arm A).
+Before/after, strip 5, 1 kHz, reading `RmsResult` and peeking
+`_gate_rngq_C1_GATE_05` through the FRESH symbol map (never the stale
+default):**
+
+| condition | RmsResult | delta vs baseline | `_gate_rngq_` |
+|---|---:|---:|---:|
+| baseline: `GateOn` left at its power-on default (0) | −63.02 dBFS | — | 0x00000000 (never converted — bypass never reaches the block-rate section) |
+| `GateOn` ← 1 (everything else at row default) | — | — | 0x00041894 ≈ 0.0010000·2^28 = **−60.00 dB** |
+| 1 kHz at −60 dBFS peak, below the −40 dB threshold, SETTLED (2 s, ≫ the row's 100 ms release τ + 50 ms hold) | **−122.92 dBFS** | **−59.90 dB** | (as above) |
+| 1 kHz at −20 dBFS peak, above threshold, SETTLED | −23.01 dBFS | 0.00 dB (open, unity) | — |
+| `GateRng` ← 20.0, back to −60 dBFS, SETTLED | **−83.01 dBFS** | **−19.99 dB** | 0x0199999A = 0.1·2^28 exactly = **−20.00 dB** |
+
+The first pass at this table (not reported above) read only −37.92 dB and
+0.00 dB closed for the 60 dB and 20 dB cases respectively — a REAL but
+PARTIAL transient, caught by re-reading with the row's own attack/release
+time constants in mind (release τ ≈ 100 ms; the gain smoother needs several
+τ to converge, not the ~250 ms the first pass allowed) rather than reported
+as the answer. Left in the record as the reason the script settles for 2 s
+now, not because the number was wrong for what it measured.
+
+**S51-3. The audio change, stated plainly (R4).** Two independent things
+move, and only the second is audible on a booted-but-unconfigured strip:
+(1) every gate's `.var _gate_range_` now reads the row's documented depth
+in dB instead of a stale linear-floor literal misread as dB — this only
+matters on a strip whose `GateOn` a host has written to 1, where it is the
+difference between a working gate (closes ~60 dB, as measured above) and
+one that was previously inert (closed to 0.001 dB, inaudible); (2) `on`'s
+default flips from `1` (active, but accidentally inert because of (1)'s
+bug) to `0` (true bypass, per the master's documented off default, R2). On
+a D24, where "nothing writes per-strip node state" (S38-5) and every strip
+today runs on its build-time initialiser, (1) and (2) together mean: every
+un-written strip's gate goes from "quietly running with negligible ~0.001 dB
+gain modulation" to "fully bypassed, zero gate processing" — inaudible
+either way, since 0.001 dB is below any audible threshold, so NO strip's
+steady-state gain changes as shipped. What changes is any strip a host
+DOES turn on: before, `GateOn=1` alone produced an inert gate regardless of
+`GateRng`; after, `GateOn=1` produces a REAL gate at whatever depth the row
+(or a later host write) names. Chip 1 and chip 2 cycle/word budgets: **0
+words, 0 cycles moved on either chip** — the fix changes only the literal
+VALUE already stored in six existing 32-bit `.var` slots per gate node
+(`on`, `threshold`, `attack`, `release`, `hold`, `range`); it adds no `.var`
+declaration, no instruction, and the regenerated `.asm` diff for all 36
+gate nodes is confirmed to touch nothing but those literals and one added
+comment block (`git diff --stat`: 432 insertions / 144 deletions across 36
+files, all inside the `.var` block). A freshly rebuilt SHIPPING image
+(`DSP4_TEST_NODES=0`, this fix applied) reproduces S49's own recorded arm-0
+sizes byte for byte — chip1.ldr 451,892 B, chip2.ldr 307,980 B — which is
+what "0 words moved" predicts and is not a coincidence: a `.var` literal is
+always one 32-bit DM word regardless of what the source text says.
+
+Per hub ruling R2: **flagging for the hub, to carry to PW** — the master
+documents `GateOn`'s neutral/power-on code as bypassed (0), and this
+dispatch ships that rather than the row's implied active default,
+specifically BECAUSE the row carries no `on` key of its own and the fixed
+`GateRng` default would otherwise put every un-written strip's gate active
+at 60 dB depth. If any product wants an un-written strip's gate ACTIVE by
+default, that needs its own row key (`on=1` in the graph) or a master
+ruling that overrides R2 — not a generator default.
+
 ## defs-v2026.09.16 CONSUMED, EVERY MATRIX COMMITTED (2026-09-16, session 50)
 
 **S50-1. The pin advanced to `defs-v2026.09.16` (`invirco/defs@084dbc1`) and

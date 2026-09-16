@@ -731,6 +731,7 @@ Extends the D24 codegen with:
 
 import contextlib
 import csv
+import math
 import re
 import struct
 import sys
@@ -14720,6 +14721,82 @@ def gen_limiter_fixed(node):
     """)
 
 
+def gate_init_words(params):
+    """GATE's power-on .var literals, from the graph ROW's documented
+    values, in each word's OWN wire unit (S49-3 / S51, hub R1-R2).
+
+    `threshold`/`range` stay DECIBELS: the block-rate body already
+    converts them every block (D39's `_exp2q_fx` path for range, the
+    same `_C_DB2L2Q25` scale for threshold), so the initialiser only
+    has to carry the row's dB number -- that is what a host write would
+    land too. This is the actual S49-3 fix: the old literal (0.001) was
+    a stale LINEAR floor left over from before D39, read by today's
+    kernel as 0.001 dB -- an un-written gate closed to 0.999885 gain
+    instead of the row's documented 60 dB.
+
+    `attack`/`release` do NOT get a block-rate conversion (D41: "ms vs
+    one-pole alpha, no conversion in this repo") -- the wire word IS the
+    one-pole alpha `_envq_fx`/`env_step` multiplies straight in
+    `env += a*(target-env)`, so a value in ms would be off by roughly
+    the sample rate. Pre-converted here instead, with the standard
+    per-sample coefficient for that update rule: a = 1 - exp(-1/tau),
+    tau = ms * fs / 1000. (Not exp(-1/tau) alone -- that is the OTHER
+    one-pole convention, `y = c*y_prev + (1-c)*x`, and it is the
+    reciprocal sense: this kernel's `a` is the fast-moving fraction, so
+    LARGER a is a FASTER attack/release, matching the row's ms meaning
+    inverted.)
+
+    `hold` is SAMPLES, also uncoverted on the wire (`_gate_holdq_` under
+    DSP4_PAIRED_GRAPH just copies `_gate_hold_`) -- pre-converted the
+    same way, ms * fs / 1000, rounded to the nearest sample.
+
+    `on` has NO row parameter today (no product's GATE row carries one)
+    and, per hub ruling R2, does not simply default active: the master
+    documents `Chan[1-64]GateOn`'s neutral/power-on code as bypassed (=
+    0, `defs/common/schema/mx_master.md`'s "CompOn, GateOn, ... |
+    bypassed / off = 0"). Initialising `on` from the row's fixed 60 dB
+    range would gate every un-written strip audibly; initialising it
+    from the master's documented off default keeps an un-written strip
+    a true bypass (`.gate_bypass_`, no processing at all) instead of the
+    old accidental near-silent-but-still-running 0.001 dB gate. If a
+    future row ever adds its own `on=`, the master's off default still
+    wins here -- R2's ruling, not an oversight.
+    """
+    fs = SAMPLE_RATE_HZ
+
+    def _ms_to_alpha(ms):
+        ms = float(ms)
+        if ms <= 0:
+            return 1.0
+        tau = ms * 0.001 * fs
+        return 1.0 - math.exp(-1.0 / tau)
+
+    def _ms_to_samples(ms):
+        return int(round(float(ms) * fs / 1000.0))
+
+    def _fmt_f32(v):
+        s = f'{v:.10g}'
+        if '.' not in s and 'e' not in s and 'E' not in s:
+            s += '.0'
+        return s
+
+    threshold_db = float(params.get('threshold_db', '-40'))
+    range_db = float(params.get('range_db', '60'))
+    range_db = min(max(range_db, 0.0), 60.0)
+    attack_alpha = _ms_to_alpha(params.get('attack_ms', '1'))
+    release_alpha = _ms_to_alpha(params.get('release_ms', '100'))
+    hold_samples = _ms_to_samples(params.get('hold_ms', '50'))
+    gate_on = 0   # master default (off/bypassed) -- see docstring, R2
+    return {
+        'on': gate_on,
+        'threshold_db': _fmt_f32(threshold_db),
+        'attack_alpha': _fmt_f32(attack_alpha),
+        'release_alpha': _fmt_f32(release_alpha),
+        'hold_samples': hold_samples,
+        'range_db': _fmt_f32(range_db),
+    }
+
+
 def gen_gate_fixed(node):
     import re as _re
     if _re.match(r'^C\d+_GATE_\d+$', node['id']):
@@ -14739,6 +14816,7 @@ def gen_gate_fixed(node):
     wireGLPF = _bq_wire_var(f'_gate_filter_lpf_{nid}', 5)
     gate_sc_h = _GATE_SC_H
     inp = node['inputs_str']
+    giw = gate_init_words(node['params'])
     return dedent(f"""\
         {rc}
 
@@ -14748,15 +14826,23 @@ def gen_gate_fixed(node):
         #include "blk_pool.h"
 
         .section/dm seg_dmda;
-        .var _gate_on_{nid} = 1;
-        .var _gate_threshold_{nid} = -40.0;
-        .var _gate_attack_{nid} = 0.05;
-        .var _gate_release_{nid} = 0.005;
-        .var _gate_hold_{nid} = 2400;
+        /* Power-on words FROM THE ROW (S49-3 / S51, hub R1-R2): threshold
+         * and range stay dB (the block-rate body converts them every
+         * block, same as a host write would land); attack/release are
+         * the one-pole alpha the kernel actually multiplies (D41: no ms
+         * conversion on-chip), pre-converted from the row's ms here;
+         * hold is samples, pre-converted the same way; `on` is the
+         * master's documented off/bypassed default, not the row (R2) --
+         * see gate_init_words(). */
+        .var _gate_on_{nid} = {giw['on']};
+        .var _gate_threshold_{nid} = {giw['threshold_db']};
+        .var _gate_attack_{nid} = {giw['attack_alpha']};
+        .var _gate_release_{nid} = {giw['release_alpha']};
+        .var _gate_hold_{nid} = {giw['hold_samples']};
         #if !DSP4_PAIRED_GRAPH
         .var _gate_hold_count_{nid} = 0;
         #endif
-        .var _gate_range_{nid} = 0.001;       /* linear floor (float) */
+        .var _gate_range_{nid} = {giw['range_db']};      /* dB (D39); was a stale 0.001 linear floor, S49-3/S51 */
         .var _gate_key_src_{nid} = 0;
         .var _gate_det_src_{nid} = 0;
         .var _gate_filter_on_{nid} = 0;

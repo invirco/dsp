@@ -21,14 +21,22 @@
 
 .section/dm seg_dmda;
 .extern _buf_C2_GRP_GEQ_02;
+/* Power-on words FROM THE ROW (S49-3 / S51, hub R1-R2): threshold
+ * and range stay dB (the block-rate body converts them every
+ * block, same as a host write would land); attack/release are
+ * the one-pole alpha the kernel actually multiplies (D41: no ms
+ * conversion on-chip), pre-converted from the row's ms here;
+ * hold is samples, pre-converted the same way; `on` is the
+ * master's documented off/bypassed default, not the row (R2) --
+ * see gate_init_words(). */
 .global _gate_on_C2_GRP_GATE_02;
-.var _gate_on_C2_GRP_GATE_02 = 1;
+.var _gate_on_C2_GRP_GATE_02 = 0;
 .global _gate_threshold_C2_GRP_GATE_02;
 .var _gate_threshold_C2_GRP_GATE_02 = -40.0;
 .global _gate_attack_C2_GRP_GATE_02;
-.var _gate_attack_C2_GRP_GATE_02 = 0.05;
+.var _gate_attack_C2_GRP_GATE_02 = 0.02061781867;
 .global _gate_release_C2_GRP_GATE_02;
-.var _gate_release_C2_GRP_GATE_02 = 0.005;
+.var _gate_release_C2_GRP_GATE_02 = 0.0002083116335;
 .global _gate_hold_C2_GRP_GATE_02;
 .var _gate_hold_C2_GRP_GATE_02 = 2400;
 #if !DSP4_PAIRED_GRAPH
@@ -36,7 +44,7 @@
 .var _gate_hold_count_C2_GRP_GATE_02 = 0;
 #endif
 .global _gate_range_C2_GRP_GATE_02;
-.var _gate_range_C2_GRP_GATE_02 = 0.001;       /* linear floor (float) */
+.var _gate_range_C2_GRP_GATE_02 = 60.0;      /* dB (D39); was a stale 0.001 linear floor, S49-3/S51 */
 .global _gate_key_src_C2_GRP_GATE_02;
 .var _gate_key_src_C2_GRP_GATE_02 = 0;
 .global _gate_det_src_C2_GRP_GATE_02;
