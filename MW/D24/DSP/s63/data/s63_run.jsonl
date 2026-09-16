@@ -1,0 +1,48 @@
+{"ev": "start", "chan": "J25", "done": [], "settle": 2.0, "head": -8.0, "at": 4800, "stims": ["silent", "tone"], "kinds": ["null", "combo"], "an_en": "26: op -- pd | hi // GPIO26 = output", "t": 1789575719.176}
+{"ev": "chain", "p": null, "code": 0, "verified": true, "t": 1789575719.211}
+{"ev": "donor", "donor": 6, "auxon1": [6], "t": 1789575719.509}
+{"ev": "channel_start", "xlr": "J25", "lane": 5, "saved": {"Gain001": 1065353216, "Pol001": 0, "Level001": 1065353216, "CompOn001": 0, "GateOn001": 0, "EqOn001": 0, "TubeOn001": 0, "MainOn001": 0, "AuxOn001": 0, "AuxOn002": 0, "AuxOn003": 0, "AuxOn004": 0, "AuxOn005": 0, "AuxOn006": 0, "AuxOn007": 0, "AuxOn008": 0, "Mute001": 0}, "t": 1789575719.673}
+{"ev": "chain", "p": 15, "code": 0, "verified": true, "t": 1789575719.938}
+{"ev": "meas", "tag": "J25:presence", "code": 0, "meas": 5, "freq": 1000.0, "osc_dbfs_pk": -20.0, "on": true, "k": 0.13080625236034393, "rows": [{"seq": 73, "dseq": 4, "rms": -17.43828010559082, "thd": -87.84886932373047, "noise": -105.28715515136719, "xtalk": 0.0, "a": -0.16289088129997253, "b": -0.10834221541881561, "H_db": 5.577177716609319, "H_deg": -145.2439170019715, "coh_pk_dbfs": -14.422822283390682, "gain_rms_db": 5.5720198944091806}, {"seq": 74, "dseq": 5, "rms": -17.42642593383789, "thd": -88.14151763916016, "noise": -105.56793212890625, "xtalk": 0.0, "a": -0.16289064288139343, "b": -0.1083420142531395, "H_db": 5.577163998486309, "H_deg": -145.24392803066883, "coh_pk_dbfs": -14.422836001513687, "gain_rms_db": 5.58387406616211}, {"seq": 75, "dseq": 6, "rms": -17.434730529785156, "thd": -87.84375, "noise": -105.27848052978516, "xtalk": 0.0, "a": -0.16289061307907104, "b": -0.10834198445081711, "H_db": 5.577162173850956, "H_deg": -145.24393061513675, "coh_pk_dbfs": -14.422837826149044, "gain_rms_db": 5.575569470214845}], "t": 1789575720.439}
+{"ev": "presence", "xlr": "J25", "g0": 5.577167962982195, "law0": 5.578, "t": 1789575720.439}
+{"ev": "chain", "p": 15, "code": 63, "verified": true, "t": 1789575723.114}
+{"ev": "chain", "p": 15, "code": 6, "verified": true, "t": 1789575725.765}
+{"ev": "chain", "p": 15, "code": 0, "verified": true, "t": 1789575731.04}
+{"ev": "chain", "p": 15, "code": 63, "verified": true, "t": 1789575733.738}
+{"ev": "chain", "p": 15, "code": 6, "verified": true, "t": 1789575736.412}
+{"ev": "channel_captures", "xlr": "J25", "n": 8, "wall_s": 21.2, "t": 1789575741.689}
+{"ev": "channel_done", "xlr": "J25", "t": 1789575741.69}
+{"ev": "chain", "p": null, "code": 0, "verified": true, "t": 1789575741.759}
+{"ev": "start", "chan": "J25", "done": [], "settle": 3.0, "head": -8.0, "at": 4800, "stims": ["silent", "tone"], "kinds": ["null", "hw_up", "hw_dn", "bit", "trim", "combo"], "an_en": "26: op -- pd | hi // GPIO26 = output", "t": 1789575755.72}
+{"ev": "chain", "p": null, "code": 0, "verified": true, "t": 1789575755.756}
+{"ev": "donor", "donor": 6, "auxon1": [6], "t": 1789575756.054}
+{"ev": "channel_start", "xlr": "J25", "lane": 5, "saved": {"Gain001": 1065353216, "Pol001": 0, "Level001": 1065353216, "CompOn001": 0, "GateOn001": 0, "EqOn001": 0, "TubeOn001": 0, "MainOn001": 0, "AuxOn001": 0, "AuxOn002": 0, "AuxOn003": 0, "AuxOn004": 0, "AuxOn005": 0, "AuxOn006": 0, "AuxOn007": 0, "AuxOn008": 0, "Mute001": 0}, "t": 1789575756.217}
+{"ev": "chain", "p": 15, "code": 0, "verified": true, "t": 1789575756.482}
+{"ev": "meas", "tag": "J25:presence", "code": 0, "meas": 5, "freq": 1000.0, "osc_dbfs_pk": -20.0, "on": true, "k": 0.13080625236034393, "rows": [{"seq": 502, "dseq": 4, "rms": -17.426448822021484, "thd": -81.66571044921875, "noise": -99.09215545654297, "xtalk": 0.0, "a": -0.1628904491662979, "b": -0.10834149271249771, "H_db": 5.577144403609618, "H_deg": -145.24402972374875, "coh_pk_dbfs": -14.42285559639038, "gain_rms_db": 5.5838511779785165}, {"seq": 503, "dseq": 5, "rms": -17.434736251831055, "thd": -83.77337646484375, "noise": -101.2081069946289, "xtalk": 0.0, "a": -0.16289064288139343, "b": -0.10834170132875443, "H_db": 5.577156615331278, "H_deg": -145.24400906574067, "coh_pk_dbfs": -14.422843384668722, "gain_rms_db": 5.575563748168946}, {"seq": 504, "dseq": 6, "rms": -17.438312530517578, "thd": -85.75443267822266, "noise": -103.19275665283203, "xtalk": 0.0, "a": -0.16289035975933075, "b": -0.1083417534828186, "H_db": 5.577147191805004, "H_deg": -145.24394679493062, "coh_pk_dbfs": -14.422852808194994, "gain_rms_db": 5.571987469482423}], "t": 1789575757.046}
+{"ev": "presence", "xlr": "J25", "g0": 5.577149403581966, "law0": 5.578, "t": 1789575757.047}
+{"ev": "chain", "p": 15, "code": 31, "verified": true, "t": 1789575931.712}
+{"ev": "chain", "p": 15, "code": 15, "verified": true, "t": 1789575938.977}
+{"ev": "chain", "p": 15, "code": 7, "verified": true, "t": 1789575946.236}
+{"ev": "chain", "p": 15, "code": 3, "verified": true, "t": 1789575953.494}
+{"ev": "chain", "p": 15, "code": 1, "verified": true, "t": 1789575960.752}
+{"ev": "chain", "p": 15, "code": 0, "verified": true, "t": 1789575968.056}
+{"ev": "chain", "p": 15, "code": 6, "verified": true, "t": 1789576004.226}
+{"ev": "chain", "p": 15, "code": 0, "verified": true, "t": 1789576011.499}
+{"ev": "chain", "p": 15, "code": 31, "verified": true, "t": 1789576190.833}
+{"ev": "chain", "p": 15, "code": 15, "verified": true, "t": 1789576198.128}
+{"ev": "chain", "p": 15, "code": 7, "verified": true, "t": 1789576205.437}
+{"ev": "chain", "p": 15, "code": 3, "verified": true, "t": 1789576212.717}
+{"ev": "chain", "p": 15, "code": 1, "verified": true, "t": 1789576219.996}
+{"ev": "chain", "p": 15, "code": 0, "verified": true, "t": 1789576227.256}
+{"ev": "chain", "p": 15, "code": 6, "verified": true, "t": 1789576263.675}
+{"ev": "channel_captures", "xlr": "J25", "n": 144, "wall_s": 513.9, "t": 1789576270.94}
+{"ev": "channel_done", "xlr": "J25", "t": 1789576270.941}
+{"ev": "chain", "p": null, "code": 0, "verified": true, "t": 1789576271.001}
+{"ev": "chain", "p": 15, "code": 0, "verified": true, "t": 1789576706.092}
+{"ev": "chain", "p": 15, "code": 0, "verified": true, "t": 1789576734.977}
+{"ev": "chain", "p": 15, "code": 63, "verified": true, "t": 1789576961.411}
+{"ev": "chain", "p": 15, "code": 0, "verified": true, "t": 1789576986.589}
+{"ev": "chain", "p": 15, "code": 0, "verified": true, "t": 1789577011.842}
+{"ev": "chain", "p": 15, "code": 63, "verified": true, "t": 1789577041.485}
+{"ev": "chain", "p": 15, "code": 0, "verified": true, "t": 1789577065.323}
+{"ev": "chain", "p": 15, "code": 0, "verified": true, "t": 1789577089.252}

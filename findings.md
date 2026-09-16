@@ -6,6 +6,113 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## GAIN-CHANGE ARTEFACTS ON MIC 5: SILENCE HIDES ALL BUT A 0→1 THUMP; THE TONE FINDS A BREAK-BEFORE-MAKE DROPOUT TO THE AND CODE ON EVERY MULTI-BIT STEP; THE PREAMP ACTS ~10 ms AFTER THE LATCH; THD AT MAX GAIN −64.3 dB (2026-09-16, session 63 — bench, MW-D24-2)
+
+**Pair and unit.**
+- Pair: s62 handshake (`57948d77` / `251ce3b2`, TEST_NODES), staged at `~/s63`, booted and configured D24 twice.
+- Found: s60 pair with S62's hand-back, `matrix-app` inactive, AN_EN `op pd | hi`, CS_M `op pu | hi`.
+  Snapshot `found_s63` = S62's after.
+- Loop: TEST_OSC strip 6 → AUX 1 → cable → J25 → MIC 5 (U41, p15) → strip 5, transparent.
+- Chain: the S55 image by spidev, **CS_M driven by a GPSET0/GPCLR0 write on `/dev/gpiomem`** (one instruction; pin
+  function and pull untouched). The hub's `app cli chain-set` route was not used because the app was inactive.
+- Data: `MW/D24/DSP/s63/data/` (raw `.bin.xz` int32 Q4.28 + `.jsonl`; `tables.md`, `s63_results.json`, `latch.out`,
+  `thd.out`). Tools: `MW/D24/DSP/s63/tools/`. Report and all tables: **`MW/D24/DSP/s63/artefacts.md`**.
+- 216 captures, 0 overruns, 0 invalid. Read median 0.220 s.
+
+**S63-1. The measurement format: one capture spans the change, and the change is placed to ± 16 samples.**
+- *Capture.* `s63lib.Rig.span`: clear Ready, arm 16,384, poll `_meas_cap_idx_C1_TEST_MEAS` (~1 ms, 104 polls) to the
+  4,800 mark, make the change, bulk-read.
+- *Timing.* The polls map host time → capture sample; the within-capture spread is one block (median 10, max 16 samples).
+  The latch edge is bracketed to ≤ 1.4 samples, a Gain001 write to ≤ 16.
+- *Transitions.* Walked so each starts where the last ended, ≥ 3.0 s after any change: null ×2, the table's 48
+  consecutive steps, 12 major-carry changes, trim ±1/3/6/12 dB at code 0, combined 30↔31 dB. That is 72 per stimulus:
+  silent (osc off, loop-cable source) and 1 kHz (louder side −8 dBFS pk). 8.6 min per channel.
+- *Analysis* (`s63_analyse.py`, desk numpy, 18 s a channel): one table per case, one row per transition. Silent
+  detection thresholds are calibrated on the no-change captures: at every 480-sample offset, AC peak ≤ floor RMS
+  + 14.6 dB and DC ≤ 0.90 × floor RMS. Set at > 3 dB over the old/new floor peak or DC > 1.5 × floor. **0 of 4 nulls detect.**
+- *Tone.* Frequency fitted jointly; sinusoid+DC fitted before and ≥ 100 ms after; the ideal instantaneous step placed at
+  the measured 50 % point. Level change matches the S55 law to ≤ 0.004 dB on all 70 transitions; phase step ≤ 0.14°.
+- *Pass/flag.* PW's ruling (hub, this session): artefact peak ≤ −60 dBFS at the lane, no DC pump > 50 ms.
+- *Runner.* Ready for the other 15 channels: `DONE=J25 python3 s63_run.py` (S55 WATCH, PROMPT to move the cable,
+  ≈ 8.6 min a channel). PW was not asked and the WATCH path was **not exercised** this session; MIC 5 ran with `CHAN=J25`.
+
+**S63-2. The preamp gain acts 9–10.5 ms after the latch, and the pass-1 edge is the one that applies it.**
+- *Which edge* (`s63_latch.py`, code 0↔1 under the tone). With 0 and 50 ms between the two chain passes, the lane
+  reaches 50 % at **+491…+503 samples (up) / +435…+439 (down) after pass 1's CS_M rising edge**. That is identical with
+  the gap, and 2,081–2,149 samples before pass 2's edge.
+- *Delay over the whole table* (clean steps): up median 10.5 ms (10.2–12.2), down 9.0 ms (8.4–9.4).
+  Transition 10–90 % median 1.5 ms; settle to 0.1 dB median 10.9 ms after the latch.
+- *Where the delay is.* The converter + DSP path is ~1 ms (S60 loop latency 91 samples), so ~8–9 ms is the preamp's
+  control path (595 → gain-switch drive). Measured, not explained from the schematic.
+- *Trim, for contrast.* A Gain001 write moves the lane at its own sample (host +0): the host map is good to a block.
+  The GainFast ramp is linear, 144 samples up / 384 down (3/8 ms as the profile table says).
+- *Consequence (not changed).* A product change that writes the code and the trim together lands the trim ~6 ms before
+  the step reaches the lane. The combined 30↔31 dB case: trim 3.8 ms after the latch, step 9.2/10.3 ms after.
+
+**S63-3. Every multi-bit step drops out to the gain of (from AND to): break-before-make in the gain switches. Silence hides it; only 0→1 is audible in silence.**
+- *Silent: 68 PASS / 2 FLAG.* Only codes 0↔1 put anything above the floor:
+  - **0→1 is a thump**, DC ↓ −78.2 dBFS (5 × floor RMS), τ 163 ms, pump 229 ms; the repeat (the bit case) reads −85 dBFS
+    and is still open at the capture end. Both FLAG on pump.
+  - 1→0 is a −81 dBFS click, 11 ms. It passes.
+- *The silent limit is untestable at high gain.* From code 29 up the floor is ≥ −60 dBFS RMS (−51.9 at code 63, peak −39),
+  so a −60 dBFS artefact cannot be seen there with this source.
+- *Tone: 2 PASS / 68 FLAG* against an instantaneous step. The residual (−10…−43 dBFS) is dominated by the finite
+  transition itself (1.5 ms 10–90 %, the 3/8 ms trim ramps). **The limit as written cannot be met by any real change**,
+  so the tone flag means "not instantaneous". PW to rule a tone criterion; the dropout below is the candidate.
+- *The dropout* (25 of 62 hardware/combined steps). The 1-cycle envelope dips below the quieter code, and the depth
+  follows the gain of the AND code:
+
+  | step | AND | predicted | measured |
+  |---|---:|---:|---:|
+  | 23↔25 | 17 | −1.8 | −1.8/−1.7 |
+  | 47↔53 | 37 | −1.6 | −1.6 |
+  | 11→13 | 9 | −1.2 | −1.2 |
+  | 31↔37 | 5 | −18.0 | −17.4/−17.2 |
+  | 15→17 | 1 | −25.7 | −23.2 |
+  | 7→9 | 1 | −17.8 | −16.8 |
+  | 31→32 | 0 | −46.2 | −36.0 |
+  | 15→16 | 0 | −38.6 | −30.5 |
+  | 7→8 | 0 | −30.6 | −26.8 |
+  | 3→4 | 0 | −22.1 | −18.5 |
+  | 1→2 | 0 | −12.8 | −6.5 |
+
+  Deep dips read shallower because they last a few ms and the envelope is one cycle wide. Settle to 0.1 dB: 12–24 ms.
+  Down steps mostly dip less than their up twins (4→3 −11.2 vs 3→4 −18.5; 8→7 −18.5 vs 7→8 −26.8; not 2→1 −8.9 vs 1→2 −6.5).
+- *Clean steps* are those that only switch bits on or only off (0→1, 2→3, 4→5, 6→7, 9→10 …). 5→6 (AND 4) dips 0.8 dB
+  (predicted 1.2), under the 1 dB note.
+- *Mechanism.* Bits switching off act before bits switching on. Consistent with S63-2's down delay (9.0 ms) being
+  shorter than up (10.5 ms).
+- *PW, options, none applied:*
+  - (a) sequence multi-bit changes make-before-break: from → (from OR to) → to, the transient goes UP, not to the AND gain;
+  - (b) duck the digital trim across the ~25 ms window a multi-bit latch opens (it moves at its own sample, ~9 ms before the preamp);
+  - (c) walk multi-bit changes one bit at a time.
+  Silence at low gain says only the 0→1 thump is audible without signal; the dropout is audible with signal on any
+  multi-bit step.
+
+**S63-4. T3 addendum: THD only, h2..h10, at maximum gain on MIC 5 is −64.3 dB = 0.061 % (h2 −70.7, h3 −71.7 dBc); at code 0 −89.5 dB = 0.0034 %.**
+- *Method* (`s63_thd.py`, `s63_thd_analyse.py`): 1 kHz, lane −3.00 dBFS pk (3 dB below clip) at each code; 32
+  captures of 16,320 samples (340 cycles, bin-centred, rectangular); coherent average (bins rotated by k × φ1).
+- *Floors.* Per-bin **−103.2 dBc at code 63** (single capture −88.0: the 15 dB the averaging bought) and **−154.7 dBc at
+  code 0**. Every harmonic clears the floor by ≥ 7 dB (code 63, h9) and ≥ 27 dB (code 0).
+- *Code 63:* h2 −70.7, h3 −71.7, h4 −71.8, h5 −77.0, h6 −76.0, h7 −91.3, h8 −77.4, h9 −96.1, h10 −70.7 dBc.
+  - Coherent and incoherent averages agree ≤ 1 dB at h2–h6, h8, h10 (h10 phase stable ± 16°): these are the signal's harmonics.
+  - 9 kHz carries a non-locked component (−77 dBc incoherent) that the coherent average rejects.
+  - No 3 kHz block-rate line stands above the silent floor at code 63.
+  - The DAC runs at −61.7 dBFS here, so this figure is preamp + ADC.
+- *Code 0:* h2 −102.1, h3 −90.1, h5 −100.5 dBc, the rest ≤ −119. The DAC is at −8.6 dBFS, so this is the whole loop
+  (S61 THD+N code 0: −88.96 dB).
+- *Trap caught.* The first attempt asked 999.0234 Hz (341 cycles in 16,384). The word read back exact, but the tone fitted
+  **1000.0000 Hz**: TEST_OSC does not honour a fractional frequency. The run was off-bin, its level trim chased the leakage
+  (lane really −1.37 dBFS pk), and it was discarded (`thd_J25_offbin`, bench only).
+
+**Hand-back (17:46 bench clock).**
+- s60 pair (`fe522a7f` / `c56ed0ab`) rebooted twice, `s56_setup.py`, `s60_handback.py` **with** its `R.chain(0)`. That
+  restores the S54 image (MIC 5 alone open at code 0), as S61 left it, which this session changed.
+- `s60_found.py after_s63` against `found_s63`: **every cell identical**, MIC 5 idle −106.1 dBFS found and after.
+- AN_EN `op pd | hi` and CS_M `op pu | hi` before and after, never written (CS_M was driven high/low only inside each
+  chain send and left high). `matrix-app` inactive as found. Loop cable still on J25.
+- `~/s63` holds the pair, tools and raw data; `~/s60`, `~/s62`, `~/dspboot` untouched.
+
 ## THE BULK READ'S STALL: A STRAY WORD IN THE RX FIFO THAT A BUSY HOST NEVER LETS THE FIRMWARE DISCARD; SPI_RDY IS NOW THE HANDSHAKE, 2,000/2,000 AT 0 ms (2026-09-16, session 62 — desk + bench, MW-D24-2)
 
 **Pairs.** Reproduction on the S61 pair (`4a72bd2a` / `d6c763ea`, staged at `~/s62` first). The fix is on the **s62 pair** (`DSP4_TEST_NODES=1`,

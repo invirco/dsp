@@ -1,0 +1,8 @@
+gap   0 ms  code 0 -> 1  p1 lo 4868 hi 5050  p2 lo 5050 hi 5231  50% at 5541 = p1 hi +491 samples (+10.23 ms), p2 hi +310 samples
+gap   0 ms  code 1 -> 0  p1 lo 4869 hi 5052  p2 lo 5052 hi 5234  50% at 5491 = p1 hi +439 samples (+9.15 ms), p2 hi +257 samples
+gap  50 ms  code 0 -> 1  p1 lo 4864 hi 5045  p2 lo 7448 hi 7630  50% at 5545 = p1 hi +500 samples (+10.41 ms), p2 hi -2085 samples
+gap  50 ms  code 1 -> 0  p1 lo 4868 hi 5050  p2 lo 7453 hi 7634  50% at 5489 = p1 hi +439 samples (+9.15 ms), p2 hi -2145 samples
+gap  50 ms  code 0 -> 1  p1 lo 4864 hi 5046  p2 lo 7449 hi 7630  50% at 5549 = p1 hi +503 samples (+10.49 ms), p2 hi -2081 samples
+gap  50 ms  code 1 -> 0  p1 lo 4868 hi 5049  p2 lo 7453 hi 7634  50% at 5485 = p1 hi +436 samples (+9.08 ms), p2 hi -2149 samples
+gap   0 ms  code 0 -> 1  p1 lo 4863 hi 5045  p2 lo 5045 hi 5226  50% at 5540 = p1 hi +495 samples (+10.31 ms), p2 hi +314 samples
+gap   0 ms  code 1 -> 0  p1 lo 4868 hi 5050  p2 lo 5050 hi 5231  50% at 5485 = p1 hi +435 samples (+9.07 ms), p2 hi +254 samples

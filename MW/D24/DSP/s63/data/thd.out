@@ -1,0 +1,2 @@
+code 63: fundamental -3.00 dBFS pk (osc -61.72), 32 captures, overruns 0; THD(h2-h10) -64.33 dB = 0.06077 % (bound -64.33 dB = 0.06077 %); per-bin floor -103.2 dBc averaged (single capture -88.0 dBc); h2 -70.7 h3 -71.7 h4 -71.8 h5 -77.0 h6 -76.0 h7 -91.3 h8 -77.4 h9 -96.1 h10 -70.7
+code 0: fundamental -3.00 dBFS pk (osc -8.58), 32 captures, overruns 0; THD(h2-h10) -89.46 dB = 0.00336 % (bound -89.46 dB = 0.00336 %); per-bin floor -154.7 dBc averaged (single capture -139.9 dBc); h2 -102.1 h3 -90.1 h4 -133.7 h5 -100.5 h6 -122.6 h7 -119.3 h8 -126.2 h9 -127.2 h10 -127.3
