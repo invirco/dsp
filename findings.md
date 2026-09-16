@@ -6,10 +6,85 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
-## AUX 1 OUTPUT NOISE THROUGH THE LOOP, AND S57 PAUSED AT GATE 1 (2026-09-16, session 57 — bench, MW-D24-2; IN PROGRESS)
+## THE BURST IS BELOW 20 Hz: THE AUDIO-BAND FLOOR AT FULL GAIN IS STEADY, AND THE EIN RECONCILES ABOVE THERMAL (2026-09-16, session 57 — bench, MW-D24-2; closed early, remaining gates carried into S55)
 
-**Pair:** `s56`, running as S56 left it; nothing rebooted, AN_EN (`op pd | hi`) and CS_M never written. Data: `MW/D24/DSP/s57/data/`,
-tools: `MW/D24/DSP/s57/tools/`. Captures are 16,384-sample capture-arm runs of strip 20 post-fader (MeasChan 20), 0 overruns on every one.
+**Pair:** `s56`, running as S56 left it; nothing rebooted. AN_EN (`op pd | hi`) and CS_M (`op pu | hi`) never written. Data: `MW/D24/DSP/s57/data/`,
+tools: `MW/D24/DSP/s57/tools/`. Every capture is a 16,384-sample capture-arm run of strip 20 post-fader (MeasChan 20, strip 20 transparent),
+**0 overruns on every one**. Levels are mean-square dBFS (a full-scale sine reads −3.01). **dBu (S57-R):** input-referred = P + 3.01 + 17.55 −
+(G(code) − G(0)), with T1 gains G(0) 5.578, G(48) 57.00, G(63) 58.717; output at J45 through the loop = P + 20.56 at code 0. Bands come from
+`dsp4_fft.band_power` (mean removed, bin-domain brick wall, IEC 61672 A-weighting), added this session as `--band 20-20000 --aweight` (PW ruling).
+Source: the 150 Ω metal-film shunt on J25 pins 2–3, loop cable off, TEST_OSC off, except where stated.
+
+**S57-1. Gate 1, twenty captures at code 63 (`g1_*`, 10:46–10:51 BST): the excess is a sub-20 Hz wander, not mains, popcorn, broadband or pickup.**
+
+| per capture (20) | min | max | energy avg | input-referred, dBu |
+|---|---:|---:|---:|---:|
+| DC-removed total, DC–24 kHz, dBFS | −92.19 | −89.94 | −91.63 | −124.21 |
+| **20 Hz–20 kHz, dBFS** | −94.87 | −94.31 | **−94.63** | **−127.21** |
+| **20 Hz–20 kHz A-weighted, dBFS** | −98.13 | −97.74 | **−97.93** | **−130.51 dBu(A)** |
+| 0.1–5 Hz, dBFS | −123.90 | −94.75 | −102.00 | −134.58 |
+| 5–20 Hz, dBFS | −122.12 | −100.82 | −107.50 | — |
+| 20–24 kHz, dBFS | −96.37 | −95.44 | −95.90 | — |
+
+(a) **Mains:** 0.12–0.43 % of the power per capture (floor-subtracted ±5 bins at 50…400 Hz, which is estimator scatter). In the averaged
+20-capture PSD 50 Hz stands 4.3 dB above its local median at −122.5 dBFS (−155.1 dBu input-referred) and 100 Hz 3.2 dB, off-bin. No
+harmonic series. (b) **Impulsive:** kurtosis 2.83–3.04 (Gaussian = 3); > 4σ excursions (robust σ) 0–4 per capture, mean 0.55 against 1.04
+expected for Gaussian noise; widths 1 sample; RMS with them excised moves ≤ 0.03 dB; crest factor 11.2–13.1 dB. No popcorn. (c) **Broadband:**
+the in-band power is steady to ±0.3 dB. Slope 100 Hz–10 kHz −1.0 dB/decade on average (−2.0 … +0.1), so white, not pink. Densities
+20–200 Hz −138, 200 Hz–2 kHz −140.7, 2–20 kHz −140.1 dBFS/Hz. The 20–24 kHz band is about 5.5 dB denser than the audio band (converter
+noise shaping near Nyquist, present at every code). (d) **RF / digital:** no line in the averaged PSD stands 6 dB above the floor anywhere.
+Suspects checked by frequency: fs/n for n = 2…48, 1 kHz (USB SOF), 8 kHz (USB HS, and the alias of the 1 MHz PSU_12_CLK / PSU_48_CLK at
+fs 48 k). Only fs/4 = 12 kHz shows, +4.9 dB at −126.5 dBFS (−159.1 dBu input-referred). **What moves between captures is the DC–24 kHz total
+(2.3 dB), and all of that movement is below 20 Hz:** in a burst capture (g1_13, g1_10) the sub-20 Hz waveform is a smooth excursion of
+±40 µFS (≈ −88 dBFS peak) across the 0.34 s record, not steps. In a quiet one (g1_03) it is ±2 µFS. S54-3b's 10 dB window-to-window
+spread was this wander seen through TEST_MEAS's 4,096-sample DC–24 kHz RmsResult: an 85 ms window of a 0.5–1 Hz excursion reads it as
+offset. The S54 bursts are therefore **not an audio-band noise problem**; the 20–20k figure is stationary.
+
+**S57-2. The wander is 0.4–1 Hz and is not caused by the host's SPI traffic.**
+*Slow record* (`s57_lfrec.py`, `lf_c63.json`, code 63, 40 s, one RX-lane word peeked per sample at 500/s, 9 × 8 s Hann segments): the
+aliased audio-band noise gives a flat floor of −119.5 dBFS/Hz. Above that floor: **0.1–0.5 Hz +20.5 dB (excess −103.2 dBFS), 0.5–2 Hz
++20.6 dB (−97.2 dBFS)**, 2–5 Hz +4.9 dB, 5–20 Hz +2.6 dB, 20–60 Hz +2.6 dB. Largest bins 0.375–1.0 Hz (+22.5…+23.9 dB), with no
+single dominant line at 0.125 Hz resolution, so it is band-limited random wander, not a periodic supply cycle. *Link A/B* (`lk_*`, code 63,
+12 captures cycling quiet / flat-out chip-1 reads (200 I/Os per run) / flat-out chip-2 reads): 20–20k −94.34 … −94.77 dBFS in all three
+states. Sub-5 Hz per state: quiet −106.6 … −129.7, chip 1 −103.2 … −128.8, chip 2 −111.1 … −123.8 dBFS. The spread is the wander's own,
+and no state is systematically higher. The code-0 floor record at 150 Ω (`lf_c0`) was lost to a script bug (argv read after the s54lib
+import, fixed); the code-16 record (`loopsrc/lf_c16.json`) was taken with the loop cable on and is set aside.
+
+**S57-3. Gate 2 (per code) as far as it ran: the audio-band floor refers to the same input figure at codes 48 and 63.**
+
+| set | code | n | 20–20k dBFS | A dBFS | DC–24k dBFS | 0.1–5 Hz dBFS | input 20–20k dBu | input A dBu(A) | input DC–24k dBu |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| g1 | 63 | 20 | −94.63 | −97.93 | −91.63 | −102.00 | −127.21 | −130.51 | −124.21 |
+| g1v (after the refit) | 63 | 3 | −94.73 | −97.96 | −92.34 | −116.45 | −127.31 | −130.54 | −124.92 |
+| g3 | 63 | 5 | −94.61 | −97.96 | −90.75 | −98.33 | −127.19 | −130.54 | −123.33 |
+| g2c48 | 48 | 3 | −96.34 | −99.60 | −92.89 | −100.86 | −127.20 | −130.46 | −123.75 |
+| f150c0 | 0 | 5 | −115.63 | −118.03 | −114.60 | −132.27 | (−95.07) | (−97.47) | (−94.04) |
+
+The in-band input-referred figure is the same at 48 and 63 (−127.20 / −127.21 dBu), so the audio-band floor is set at the preamp input, as
+S54 T4 found. The sub-5 Hz part scales with the gain too: −100.9 dBFS at code 48 against −102.0 at 63, both input-referring near −132…−135 dBu,
+and at code 0 it is −132.3 dBFS. That points to the input stage (or the source and its leads), not the ADC or the post-preamp stages. With only
+code 48 (3 captures) that inference is provisional. Code 0 is the converter floor, so its input column is not an EIN. **Not measured:** codes 32 and 16 with the 150 Ω. At 11:15:04–11:15:17 BST the lane at
+code 48 moved from −93 to −53 dBFS between captures 2 and 3, and the next captures read S54's loop floors (−56.6 / −63.0 / −51.6 dBFS at
+codes 32 / 16 / 63): the loop cable was back on J25 mid-run. Those captures (`data/loopsrc/`) are set aside and not used.
+
+**S57-4. Gate 3 (time), partial: the wander comes and goes on a minute scale; the audio band does not.** Five captures a minute apart
+(`g3_*`, 10:51:29–10:55:29 BST) plus three at 11:10 (`g1v`): 20–20k −94.45 … −94.84 dBFS throughout. Sub-5 Hz −95.8 / −118.6 / −106.8 /
+−93.7 / −106.1 dBFS at the five minutes, and −112.7 / −120.8 / −122.5 at 11:10. DC–24k −88.9 … −92.4. Five of ten were taken (the
+queue was stopped for the output-noise interrupt), so stationarity of the wander is not decided. It varies by > 20 dB between captures
+a minute apart.
+
+**S57-5. Gate 4. EIN (S57-R arithmetic), 150 Ω, code 63: −127.2 dBu 20 Hz–20 kHz unweighted and −130.5 dBu(A)**. Thermal 150 Ω at 290 K is −130.97
+dBu and −133.02 dBu(A), so the noise figure is 3.8 dB unweighted and 2.5 dB A-weighted. The raw DC–24 kHz figure (the node's band) is −124.2 dBu, and
+S54-3b's −123.6 dBu (+3.01 → −120.6) was the same figure in a DC–24 kHz window with the wander in it. **There are no bursts to excise in the
+audio band:** the 4σ-excised RMS equals the plain RMS within 0.03 dB. Hum at the input: 50 Hz ≤ −155 dBu (+4.3 dB above the local floor, not
+resolved as a line). **Physical suspects for the 0.4–1 Hz wander, for PW to probe** (no analog change here): (1) thermoelectric / air-current
+EMFs at the 150 Ω shunt's leads and solder joints on J25 (a sub-Hz, draught-driven wander is their signature; a shielded, thermally lagged
+shunt or a metal cap over J25 tells), (2) the input coupling network (C331/C348 33 µF electrolytics into 2k2 per leg: leakage or dielectric
+absorption current through 2k2 at gain 58.7 dB), (3) the input pair's bias and tail current (Q220/Q221 with C343; the 1/f corner of the pair),
+(4) the phantom node through R697/R749 6k8 even with phantom off (Q219 switch leakage and the +45 V converter), (5) the +5 V / AVDD rail
+(4.6 V) and the ±15 V converters. The 1 MHz PSU clocks show no line in band. Their low-frequency supply ripple would reach the input stage
+through (4)/(5). The quick discriminator is a shorted input (0 Ω across pins 2–3) against the 150 Ω. Wander that stays with 0 Ω is (2)–(5);
+wander that goes is (1).
 
 **S57-O. AUX 1 output noise (hub interrupt, PW reading -84 / -87 dBu on his meter).** Loop cable back on J45 → J25 (150 Ω off), MIC 5
 at code 0 (`[15] ch8 0x00`, 200/200), TEST_OSC OFF (strip 6 → AUX 1 idle), twenty captures (`aux1n_*.json`), energy-averaged,
@@ -28,7 +103,7 @@ A noise power quoted in those dBFS is therefore lane + 3.01 + 17.55 dBu.** The p
 same applies to the dispatch's EIN arithmetic (S54-3b's −123.6 dBu average is −120.6 dBu). **Floor correction:** power-subtracting the
 150 Ω code-0 floor (−113.8 dBFS, the node's DC–24 kHz figure) moves the output figures by 0.5–1.2 dB. It is exact for the raw column only;
 the in-band converter floor is lower than −113.8, so the corrected band figures are lower bounds, and the true AUX 1 output noise lies
-between the corrected and uncorrected columns. A band-matched floor needs code-0 captures with the 150 Ω refitted (planned when S57 resumes).
+between the corrected and uncorrected columns. **Band-matched floor, taken after the 150 Ω went back (`f150c0`, 5 captures, code 0):** 20–20k −115.63, A −118.03, DC–24 kHz −114.60 dBFS. Power-subtracted: **20–20k −105.51 dBFS = −84.95 dBu, A −107.94 dBFS = −87.38 dBu, DC–24 kHz −104.75 dBFS = −84.19 dBu** at J45 (+20.56). The code-0 floor already includes the preamp at code 0, but that part is −147.8 dBFS, so it is the converter floor.
 **Lines** (averaged 20-capture PSD, band power minus local median, dBu at +20.56): 52.7 Hz −104.56 (5.2 dB above floor), 76.2 Hz
 −105.87 (4.5), 102.5 Hz −106.06 (4.6), 16,136.7 Hz −117.57 (3.2). The next six are under 3 dB above the floor and are not resolved as
 lines: 184.6 Hz −114.24, 284.2 −114.38, 155.3 −115.08, 553.7 −116.71, 3,893.6 −117.17, 17,361.3 −117.66. So there is no switching
@@ -53,19 +128,26 @@ node PH (Q219 switch) and R701 33 k to the TRS ring (open). Cold leg mirrors (C3
 **Differential input R ≈ 4.4 kΩ (2 × 2k2) if PH floats with phantom off, or 3.32 kΩ (2 × 2k2‖6k8) if the switch grounds it**, with the bases'
 own input impedance in parallel (not modelled). Loading: T1's ≈ 66 Ω loop source loses 0.13–0.17 dB into that R; a 150 Ω source loses
 0.29–0.38 dB. Referred to the source EMF, the EIN moves **+0.16 to +0.21 dB** (−127.0 dBu / −130.3 dBu(A)); if PW's J45 DMM reading was
-unloaded, that is −0.13 to −0.17 dB the other way. So ±0.2 dB, not the 5.6 dB. Thermal of 150 ‖ 3.32 k is −131.16 dBu. **Still open (bench):**
-the code-63 gain re-measured from an FFT of a capture (needs the loop cable, which is on now), and the value of the resistor PW fitted (hub asking).
-EIN is not final until both are in.
+unloaded, that is −0.13 to −0.17 dB the other way. So ±0.2 dB, not the 5.6 dB. Thermal of 150 ‖ 3.32 k is −131.16 dBu. **Carried into S55:** the code-63 gain re-measured from an FFT of a capture (needs the loop cable) and the value of the resistor PW fitted (metal film, value not recorded here). Until both are in, the EIN below is quoted with that caveat.
 
-**S57 gate 1, as far as it got (20 of 20 captures at code 63, 150 Ω, tone off; gate 3 5 of 10; gates 2, 4 not run).** Early result, to be
-finished: the "bursts" are **below 20 Hz**. Every capture's 20 Hz–20 kHz band sits at −94.6 ± 0.3 dBFS and A-weighted at −97.9 ± 0.2,
-while the DC-removed DC–24 kHz total ranges −89.9 … −92.2. The excess is a smooth sub-5 Hz wander of up to ±40 µFS across the 0.34 s
-capture (0.1–5 Hz band −94.8 … −123.9 dBFS between captures), not steps. Kurtosis 2.83–3.04 (Gaussian); > 4σ events 0–4 per capture
-against about 1 expected for Gaussian noise; the averaged PSD has no line more than 6 dB above its floor (50 Hz +4.3 dB, 12 kHz +4.9 dB
-at −126.5 dBFS). Audio-band input-referred (lane + 20.56 − 53.14 dB): **−127.1 dBu unweighted, −130.5 dBu A-weighted** (preliminary,
-150 Ω). Remaining: the LF record (`s57_lfrec.py`), the code scaling (gate 2), the link-traffic A/B (`s57_link.py`), gate 3 and the table.
+**Hub/PW bench window (after gate 1, not S57 data).** For PW's external measurement: MIC 5 set to code 63 with only strip 20 on AUX 1 at unity
+(`s57_pw_setup.py`, guarded: it refused once when the lane read −51.5 dBFS with the loop cable on, and routed only at −92.2 dBFS with the 150 Ω).
+Read-only snapshots for the hub (`s57_readonly.py`, `s57_readline.py`): with PW's oscillator on J25 the lane stayed at the floor (−89.95
+dBFS at code 63; −98.8 … −114 at code 0) until PW fixed his cable. Then the lane read −74.9 / −70.4 dBFS at code 0, and at code 63 −17.84 dBFS
+RMS / −14.39 pk with AUX 1 TX −17.01 / −14.33 (expected ≈ −14 dBFS for −50 dBu). The chain image was re-sent once on the hub's word
+(`[15]` 0x00, `[0]` 0x01, 200/200). AUX 1 end to end therefore passes the MIC 5 lane at unity (TX within 0.8 dB of the lane).
 
-**State now:** MIC 5 code 0, TEST_OSC off, MeasChan 20, loop cable on J45 → J25, 150 Ω off. Waiting for the 150 Ω to go back before S57 resumes.
+**Carried into S55 (per-channel noise phase):** gate 2 at codes 32 and 16 (and 0 again for the sub-20 Hz part) with the 150 Ω; gate 3's
+remaining five minute-spaced captures, or a longer (10 min) slow record; the 0 Ω vs 150 Ω discriminator for the wander; the code-63 gain
+re-measured by FFT on a capture with the loop cable on (S57-R); the fitted shunt's value recorded; the code-0 slow record. The
+analysis tools carry across unchanged: `s57_analyse.py`, `s57_bands.py`, `s57_avgpsd.py`, `s57_lfan.py`, `s57_table.py`,
+`s57_outnoise.py`.
+
+**Hand-back (11:44 BST):** `s56` pair running. MIC 5 at **code 0**, unmuted, phantom off (`[15] ch8 0x00`, 200/200). **TEST_OSC off.**
+MeasChan 20. **Strip 20 OFF AUX 1, and no strip on AUX 1** (read back; strip 6's S56 send was removed at 11:23 for the hub, so the 1 kHz
+sine on AUX 1 is NOT running). Strip 20 unmuted, MainOn 0; 22 of 24 strips muted as found. AN_EN (GPIO26) `op pd | hi`, CS_M (GPIO27)
+`op pu | hi`, neither written. matrix-app inactive. The lane reads −113.9 … −114.6 dBFS at code 0 (the 150 Ω floor). 150 Ω and cable as PW
+has them.
 
 ## A CAPTURE ARM ON CHIP 1 FOR 72 CYCLES, AND THE 0.98 FS CEILING IS NOT IN THE DSP (2026-09-16, session 56 — desk + digital loop, MW-D24-2)
 

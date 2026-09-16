@@ -1,0 +1,3 @@
+{"ev": "chain", "code": 0, "mute": 0, "verified": true, "p15": "[15] ch8   Q7..Q0 00000000 0x00", "t": 1789554849.369}
+{"ev": "chain", "code": 0, "mute": 0, "note": "hub rewrite", "t": 1789554909}
+{"ev": "chain", "code": 63, "mute": 0, "verified": true, "p15": "[15] ch8   Q7..Q0 11111100 0xFC", "t": 1789555160.902}

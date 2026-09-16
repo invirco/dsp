@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-09-16 09:44Z — S57 — the bursty noise at full gain, characterised with the capture arm (mains / popcorn / broadband / pickup)   [status: 🟡 paused 10:03Z — AUX 1 output noise run for the hub (−84.55 dBu 20–20k / −86.97 dBu A at J45, matches PW's meter with the +3.01 dB sine-RMS reference); gate 1 done (excess is sub-20 Hz wander, audio band steady), gates 2–4 pending the 150 Ω refit]   [model: opus]
+## HUB DISPATCH 2026-09-16 09:44Z — S57 — the bursty noise at full gain, characterised with the capture arm (mains / popcorn / broadband / pickup)   [status: 🟢 done (closed early by hub, remaining gates → S55) — the code-63 "bursts" are a 0.4–1 Hz wander (sub-20 Hz, ±40 µFS, not steps, not SPI traffic); 20 Hz–20 kHz is stationary ±0.3 dB, Gaussian, no mains/popcorn/switching lines (≤ 6 dB above floor; 50 Hz ≤ −155 dBu input). EIN 150 Ω code 63 −127.2 dBu 20–20k / −130.5 dBu(A) (NF 3.8 / 2.5 dB; the −132.8 figure counted code 0's 5.58 dB twice), same at code 48. AUX 1 output noise at J45 −84.55 dBu / −86.97 dBu(A), −84.95 / −87.38 floor-corrected (band-matched). dsp4_fft --band/--aweight. Unit: code 0, TEST_OSC off, nothing on AUX 1, AN_EN hi]   [model: opus]
 
 model: opus
 
@@ -12,6 +12,8 @@ GATES:
 3. Time: ten captures spaced a minute apart at code 63 — is the burst rate stationary or does it come and go (thermal, a supply cycling)?
 4. If the bursts are impulsive: state the input-referred EIN with the bursts excised beside the plain energy average — both stand in the record. If mains: the hum lines' level in dBu at the input. Say which physical suspects follow (the shunt's leads picking up, the 48 V/phantom rail, the preamp's tail current source, the +5 V/AVDD rail at 4.6 V) — PW probes; no analog changes by you.
 5. findings S57-1..4, tasks.md (NEXT), commit + push, clean. Leave the unit as found (code 0 on MIC 5, 150 Ω in place, sine on AUX 1, s56 pair).
+
+NEXT (S57 → S55): codes 32/16 (and 0) with 150 Ω for the sub-20 Hz scaling; gate 3's remaining minute-spaced captures or a 10-min slow record; 0 Ω vs 150 Ω on J25 to split lead EMF from the input network/bias/rails; code-63 gain by FFT on a capture with the loop cable; record the fitted shunt's value; hub: amend the "+17.55 dBu" rule in spec-audio-test-set.md to state the +3.01 dB mean-square step (S57-R).
 
 Bounded: ≈ 90 min.
 
