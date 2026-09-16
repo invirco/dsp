@@ -1,0 +1,13 @@
+presence: code 63 osc -78.72 -> lane coh pk -20.00 dBFS, RMS -23.01, gain +58.715 dB
+code 63 f     20  coh +56.651 dB  re 1k -2.060 dB  phase  -141.4  RMS -25.02  THD+N -28.71 dB = 3.6691 %  spread 0.051
+code 63 f     50  coh +58.268 dB  re 1k -0.442 dB  phase   168.8  RMS -23.47  THD+N -30.26 dB = 3.0682 %  spread 0.041
+code 63 f    100  coh +58.591 dB  re 1k -0.120 dB  phase   123.3  RMS -23.12  THD+N -30.62 dB = 2.9441 %  spread 0.008
+code 63 f    200  coh +58.703 dB  re 1k -0.008 dB  phase    48.9  RMS -23.01  THD+N -30.65 dB = 2.9335 %  spread 0.009
+code 63 f    500  coh +58.732 dB  re 1k +0.021 dB  phase  -160.5  RMS -22.99  THD+N -30.80 dB = 2.8842 %  spread 0.008
+code 63 f   1000  coh +58.711 dB  re 1k +0.000 dB  phase  -144.6  RMS -23.01  THD+N -30.78 dB = 2.8923 %  spread 0.008
+code 63 f   2000  coh +58.711 dB  re 1k -0.000 dB  phase  -110.6  RMS -23.01  THD+N -30.67 dB = 2.9266 %  spread 0.006
+code 63 f   5000  coh +58.714 dB  re 1k +0.004 dB  phase    -9.6  RMS -23.01  THD+N -30.61 dB = 2.9476 %  spread 0.006
+code 63 f  10000  coh +58.776 dB  re 1k +0.065 dB  phase   147.9  RMS -22.95  THD+N -30.65 dB = 2.9339 %  spread 0.015
+code 63 f  15000  coh +58.695 dB  re 1k -0.016 dB  phase   -85.6  RMS -23.03  THD+N -30.65 dB = 2.9359 %  spread 0.005
+code 63 f  20000  coh +58.598 dB  re 1k -0.113 dB  phase   -44.1  RMS -23.13  THD+N -30.48 dB = 2.9909 %  spread 0.009
+handback code 0, 1 kHz -20: RMS -17.43 THD+N -87.59 dB

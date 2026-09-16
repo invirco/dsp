@@ -24,6 +24,7 @@ NoiseResult / XtalkResult, plus the window's fit coefficients `_meas_a_`/`_meas_
 |---|---|---|---|
 | T1 | gain law, 1 kHz, all 64 codes, lane pk −20…−6 dBFS | loop gain **+5.58 dB (code 0) → +58.72 dB (code 63)**, range 53.14 dB; **monotonic**; largest step **12.85 dB (code 0→1)**, smallest 0.061 dB (62→63); every code within **0.061 dB** of a six-stage linear-additive model (no stage mis-switching); three levels agree ≤ 0.019 dB (coherent). THD+N at lane −13 dBFS pk, code 0: −89.50 dB = 0.0034 % | RMS-based level spread 0.052 dB at code 63's lowest level (noise, > 0.05) |
 | T2 | freq response re 1 kHz, osc −20 dBFS (code 0) / same lane level (code 16) | code 0: 20 Hz **−0.41**, 50 Hz −0.05, 100 Hz–15 kHz within ±0.07, 20 kHz −0.12 dB. code 16: 20 Hz **−0.60**, 50 Hz −0.10, 100 Hz–15 kHz within ±0.07, 20 kHz −0.12 dB | **20 Hz at code 16 beyond ±0.5 dB**; the LF corner moves with gain (20 Hz phase −172.8° → −163.5°) |
+| T2 (max gain) | freq response re 1 kHz at **code 63**, osc −78.72 dBFS (lane −20.00 dBFS pk at 1 kHz) | 20 Hz **−2.06**, 50 Hz **−0.44**, 100 Hz −0.12, 200 Hz–15 kHz within ±0.07, 20 kHz −0.11 dB. THD+N −30.5 … −30.8 dB = 2.9–3.0 % at every point is the code-63 noise floor (−51.7 dBFS rms against a −23 dBFS rms tone), not distortion | **20 Hz −2.06 dB at max gain (FLAG)**; the LF roll-off grows with gain: 20 Hz −0.41 / −0.60 / −2.06 dB at codes 0 / 16 / 63 (phase −172.8° / −163.5° / −141.4°) |
 | T3 | THD+N vs lane level, 1 kHz, code 0 | −60: −42.58 dB = 0.743 % · −40: −62.98 dB = 0.0709 % · −20: −82.48 dB = 0.00752 % · −10: −91.38 dB = 0.00270 % · −6: −92.59 dB = 0.00235 % · −3: −88.76 dB = 0.00365 % · **−1: −43.92 dB = 0.637 %** (noise-limited to −10) | **clip onset between lane −3 and −1 dBFS; no sample ever reaches FS** — the lane saturates at 0.979 FS (−0.18 dBFS) |
 | T4 | noise floor, tone off | code 0 −104.29, 2 −84.91, 4 −77.72, 6 −75.00, 8 −70.22, 12 −67.49, 16 −63.03, 24 −60.12, 32 −56.58, 48 −53.45, 63 −51.70 dBFS; input-referred (floor − loop gain) −109.87 … −110.45 dBFS-eq at every code | — |
 | T4b | EIN (reference, source = AUX 1 output stage ≈ 66 Ω: R1875 + R1876 = 33 Ω + 33 Ω, via C747/C748 and the cable) | code 63: NoiseResult −51.70 dBFS − loop gain +58.71 dB = **−110.42 dBFS-equivalent**, unweighted, DC–24 kHz (4,096-sample window, every sample), DAC idle noise included | reference only; not 150 Ω; no dBu (see S54-3) |
@@ -114,12 +115,13 @@ dBu:** the loop gain is referred to the DAC's digital FS, so the noise lands in 
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | code 0, osc −20 | **−0.414** | −0.050 | +0.012 | +0.029 | +0.027 | 0 | −0.002 | −0.006 | +0.061 | −0.019 | −0.117 |
 | code 16, osc −61.59 | **−0.604** | −0.100 | −0.009 | +0.021 | +0.026 | 0 | −0.001 | −0.002 | +0.065 | −0.016 | −0.118 |
+| code 63, osc −78.72 | **−2.060** | **−0.442** | −0.120 | −0.008 | +0.021 | 0 | −0.000 | +0.004 | +0.065 | −0.016 | −0.113 |
 
 The 20 Hz retake at 16 settling windows plus 6 read windows: code 16 −0.604 dB (6 windows 46.563…46.569), code 0 −0.414
 (identical over 6). The first pass's code-16 20 Hz point had a 0.207 dB spread and a −23.7 dB THD+N. That was
 settling, and the retake reads −47.05 dB, the same as 1 kHz. RmsResult with the digital reference subtracted
 agrees within 0.07 dB (20 Hz −0.487, the 1.7-cycle window). The +0.06 dB at 10 kHz is in both gains, so it is a
-converter-filter ripple, not the preamp. **Only 20 Hz at code 16 exceeds ±0.5 dB**, and the corner moves with gain
+converter-filter ripple, not the preamp. **Code 63 (added after the first push, PW: response at MIN and MAX gain; loop still in place, 1 kHz lane −20.00 dBFS pk, 16 settling + 6 read windows at ≤ 50 Hz, 6 + 4 above; per-point spread ≤ 0.05 dB): 20 Hz −2.06 dB and 50 Hz −0.44 dB**. So the LF corner rises steadily with gain. That fits a gain-setting network with a coupling capacitor in its ground leg, whose corner scales with gain; inferred, not checked on the netlist. Above 200 Hz the three codes agree within 0.01 dB. At code 0/16, **only 20 Hz at code 16 exceeds ±0.5 dB**, and the corner moves with gain
 (20 Hz phase −172.8° at code 0, −163.5° at 16). **T8:** unwrapped phase at 1.0…2.0 kHz in 100 Hz steps, then 2.5–15 kHz:
 slope → **91.40 samples = 1.904 ms**, max residual 0.03° over 1–2 kHz. That is the whole loop: DSP blocks, inter-chip
 fabric, DAC and ADC filters, analog. The HF fits (91.60 to 10 kHz, 91.95 to 15 kHz, residual 4°/16°) show the
