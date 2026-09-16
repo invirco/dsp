@@ -1138,8 +1138,16 @@ def expand_test_osc(node, cat, inst):
     add_dispatch(chip, base + 5, f'_osc_sweep_step_{nid}',
                  f'{nid} sweep step, codes')
 
-    add_dispatch(chip, base + 6, None, f'{nid} reserved')
-    add_dispatch(chip, base + 7, None, f'{nid} reserved')
+    # THE CAPTURE ARM (S56): the two reserved words carry TEST_MEAS's
+    # capture pair, so it adds no address and moves none. NO CELL, the
+    # same as the window serial: `CaptureArm` / `CaptureReady` are a
+    # contract proposal (proposals/CONTRACT-PROPOSAL-S56.md), and this
+    # repo does not type an address for a cell the masters do not name.
+    meas = parse_params(node.get('params', '')).get('meas_src', 'C1_TEST_MEAS')
+    add_dispatch(chip, base + 6, f'_meas_cap_arm_{meas}',
+                 f'{meas} capture arm, samples (no cell; proposed CaptureArm)')
+    add_dispatch(chip, base + 7, f'_meas_cap_ready_{meas}',
+                 f'{meas} capture ready, samples (no cell; proposed CaptureReady)')
 
 
 def expand_test_meas(node, cat, inst):

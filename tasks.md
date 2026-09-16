@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-09-16 09:24Z — S56 — zero-cost capture arm for TEST_MEAS on chip 1; the 0.98 FS ceiling   [status: 🟡 dispatched]   [model: opus]
+## HUB DISPATCH 2026-09-16 09:24Z — S56 — zero-cost capture arm for TEST_MEAS on chip 1; the 0.98 FS ceiling   [status: 🟢 done — (1) capture arm in the generator (`gen_test_meas` + `gen_dsp.py`): MeasChan post-fader blocks → 16,384-word L2 buffer on chip 1, host words on TEST_OSC's two reserved dispatch entries 0x1375/0x1376 (no cells; `proposals/CONTRACT-PROPOSAL-S56.md` proposes CaptureArm/CaptureReady, no address moves); `tools/pi/dsp4_meascap.py`, `dsp4_fft.py --capture N`. Cost measured: 29 instructions, 3 L1 + 16,384 L2 words, +72 cycles median per pass while copying (0.02 % of 327,680), +0 overruns on both chips over 84 back-to-back 16k captures. Proof (digital): with strip-6 compressor distortion, FFT vs TEST_MEAS THD+N −55.750/−55.750 dB = 0.16313/0.16312 %, noise+dist −75.393/−75.393 dBFS, RMS ≤0.002 dB, at 4096 and 16384; clean −20 dBFS shows TEST_MEAS's own −115 dB fit floor vs FFT −152 dB; 20 Hz: 16k = 6.83 cycles (4096 = 1.71 only). (2) 0.98 FS is NOT the DSP: TEST_OSC into strip 20's input block reads meter = capture peak = injected to 4.0 (+12 dBFS), THD+N at floor; RX read is an unclamped shift; so the ADC never reached its FS code. DAC side and preamp input excluded by S54 (same lane-level ceiling at codes 0 and 2, DAC 19.5 dB apart). Remaining analog question for PW's scope: preamp/ADC-driver swing vs AK5558 FS input (hub: driver part + rails, AK5558 VREF). Findings S56-1..2. Unit: `s56` pair LEFT RUNNING (superset of s51, same chip 2; no reboot while PW reads J45), 1 kHz −20 dBFS on strip 6 → AUX 1 confirmed at TX lane −20.00 dBFS pk, MeasChan 20, AN_EN hi untouched, chain untouched.]   [model: opus]
 
 model: opus
 
@@ -10,6 +10,8 @@ GATES:
 3. findings S56-1..2, tasks.md (this block; NEXT), commit + push, clean; unit restored as found (sine −20 dBFS 1 kHz on AUX 1, MeasChan 20).
 
 Bounded: ≈ 2 h.
+
+NEXT (S56): hub supplies the ADC-driver part, rails and AK5558 VREF → PW scopes driver output / AK5558 ch5 pins at lane +2…+4 dBFS (plan in S56-2); hub rules on CONTRACT-PROPOSAL-S56 (CaptureArm/CaptureReady at 4981/4982); FFT on the analog loop with the capture (distortion part at code 63, S54-7's open item); `dsp4_fft.py` low-frequency analysis (narrower-lobe window or longer buffer, the 20 Hz 'crowded' limit); reboot back to s51_119ea9d9 only if the hub wants the older pair (s56 is a superset).
 
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;

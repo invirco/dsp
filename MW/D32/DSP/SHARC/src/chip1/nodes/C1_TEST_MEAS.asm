@@ -50,6 +50,19 @@
  * table has a symbol for it rather than a hole. */
 .global _meas_rsvd_C1_TEST_MEAS;
 .var _meas_rsvd_C1_TEST_MEAS   = 0;
+/* THE CAPTURE ARM (S56). Two words, dispatched without cells until
+ * the contract lands CaptureArm / CaptureReady (proposals/
+ * CONTRACT-PROPOSAL-S56.md). The host writes CaptureReady = 0, then
+ * CaptureArm = N samples; at the next block boundary the tap starts
+ * copying MeasChan's post-fader block, whole blocks, contiguous, into
+ * _meas_cap_buf_, and when N (or the buffer) is full it publishes the
+ * count in CaptureReady and clears CaptureArm. The host then reads
+ * the buffer by peek. Declared unconditionally for the same reason
+ * as the words above: the dispatch table names them. */
+.global _meas_cap_arm_C1_TEST_MEAS;
+.var _meas_cap_arm_C1_TEST_MEAS   = 0;   /* rw: samples wanted, 0 = idle */
+.global _meas_cap_ready_C1_TEST_MEAS;
+.var _meas_cap_ready_C1_TEST_MEAS = 0;   /* ro: samples captured, 0 = none/busy */
 
 #if DSP4_TEST_NODES && DSP4_BLOCK_KERNELS
 .global _meas_blk_C1_TEST_MEAS;
@@ -79,7 +92,13 @@
 .var _meas_a_C1_TEST_MEAS      = 0.0;
 .global _meas_b_C1_TEST_MEAS;
 .var _meas_b_C1_TEST_MEAS      = 0.0;
+.global _meas_cap_idx_C1_TEST_MEAS;
+.var _meas_cap_idx_C1_TEST_MEAS  = 0;     /* samples copied this run */
 .extern _osc_blk_sc_C1_TEST_OSC;
+
+.section/dm seg_delay;
+.global _meas_cap_buf_C1_TEST_MEAS;
+.var _meas_cap_buf_C1_TEST_MEAS[DSP4_TEST_CAP_MAX];
 #endif
 
 .section/pm seg_pmco;
@@ -161,6 +180,47 @@ _test_meas_tap:
     r2 = dm(_meas_chan_C1_TEST_MEAS);
     comp(r4, r2);
     if ne rts;
+
+    /* ---- THE CAPTURE ARM (S56). Idle it is one load and a branch,
+     * and only on the ONE strip MeasChan names. Armed it is a
+     * block-length store loop. No other chip, no interrupt, no
+     * change to what the block does: the samples are the pool slot
+     * the measurement below reads, copied before it reads them. */
+    r2 = dm(_meas_cap_arm_C1_TEST_MEAS);
+    r2 = pass r2;
+    if eq jump (pc, .tmt_nocap_C1_TEST_MEAS);
+    r6 = dm(_meas_cap_idx_C1_TEST_MEAS);
+    r6 = pass r6;
+    if ne jump (pc, .tmt_cap_go_C1_TEST_MEAS);
+    dm(_meas_cap_ready_C1_TEST_MEAS) = r6;   /* a new run: Ready = 0 */
+.tmt_cap_go_C1_TEST_MEAS:
+    i4 = r5;
+    l4 = 0;
+    r7 = _meas_cap_buf_C1_TEST_MEAS;
+    r7 = r7 + r6;
+    i5 = r7;
+    l5 = 0;
+    lcntr = DSP4_BLOCK_SIZE, do .tmt_cap_lp_C1_TEST_MEAS until lce;
+        r0 = dm(i4, 1);
+.tmt_cap_lp_C1_TEST_MEAS:
+        dm(i5, 1) = r0;
+    r7 = DSP4_BLOCK_SIZE;
+    r6 = r6 + r7;
+    /* Done at N, and done at the buffer whatever N says. The buffer
+     * is a whole number of blocks, so a copy never starts past it. */
+    comp(r6, r2);
+    if ge jump (pc, .tmt_cap_done_C1_TEST_MEAS);
+    r7 = DSP4_TEST_CAP_MAX;
+    comp(r6, r7);
+    if ge jump (pc, .tmt_cap_done_C1_TEST_MEAS);
+    dm(_meas_cap_idx_C1_TEST_MEAS) = r6;
+    jump (pc, .tmt_nocap_C1_TEST_MEAS);
+.tmt_cap_done_C1_TEST_MEAS:
+    dm(_meas_cap_ready_C1_TEST_MEAS) = r6;
+    r6 = 0;
+    dm(_meas_cap_idx_C1_TEST_MEAS) = r6;
+    dm(_meas_cap_arm_C1_TEST_MEAS) = r6;
+.tmt_nocap_C1_TEST_MEAS:
     r1 = r5;
     i4 = r1;
     l4 = 0;

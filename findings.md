@@ -6,6 +6,94 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## A CAPTURE ARM ON CHIP 1 FOR 72 CYCLES, AND THE 0.98 FS CEILING IS NOT IN THE DSP (2026-09-16, session 56 — desk + digital loop, MW-D24-2)
+
+**Pair:** `s56` (`DSP4_TEST_NODES=1`, no tap; chip1 `314ce05f…`, chip2 `c56ed0ab…`, the same chip 2 as `s51_119ea9d9` byte for byte), staged at `~/s56`,
+booted and configured D24 twice (`boot.sh`, `DIAG_BUILD_CFG2 raw2 0xC3010244`). The S54 hand-back image was re-applied on it
+(`s56_setup.py`: strip 6 → AUX 1 unity, CompOn 0, MainOn 0; strip 20 transparent; 22 other strips muted; TEST_OSC 1 kHz −20 dBFS pk on
+strip 6; MeasChan 20). Read on `s51` before the reboot and on `s56` after, the two matched in every word. The 595 chain was never written.
+AN_EN (GPIO26) read `op pd | hi` before and after, never written. Every stimulus was digital (TEST_OSC). Data: `MW/D24/DSP/s56/data/`
+(`s56_gate1.jsonl`, `s56_cost.jsonl`, `s56_fs.jsonl`, the six captures `cap_*.json`); tools: `MW/D24/DSP/s56/tools/`.
+
+**S56-1. The capture arm: TEST_MEAS copies MeasChan's post-fader block into a 16,384-word chip-1 buffer, and the FFT agrees with the node to 0.002 dB.**
+*Build.* The generator was changed, not the output: `tools/dsp/dsp_codegen.py::gen_test_meas` and `MW/D32/DSP/gen_dsp.py::expand_test_osc`.
+After the MeasChan compare succeeds, `_test_meas_tap` checks `_meas_cap_arm_`. When the arm is set it copies the 16-word pool slot into
+`_meas_cap_buf_C1_TEST_MEAS[DSP4_TEST_CAP_MAX]` (L2 `seg_delay`, next to the delay pool). This is the same slot the RMS/THD+N fit reads
+on the same pass. At N samples, or at the end of the buffer, the tap publishes the count and clears the arm. `DSP4_TEST_CAP_MAX = 16384`
+is generated into `dsp_block.h`, and the generator refuses a size that is not a whole number of blocks. The two host words are TEST_OSC's
+two reserved dispatch entries, `0x1375` and `0x1376`, dispatched without cells like the window serial. No address moves and the table does
+not grow. Contract proposal: `proposals/CONTRACT-PROPOSAL-S56.md`. Host: `tools/pi/dsp4_meascap.py` runs the handshake (Ready ← 0,
+Arm ← N, poll Ready, peek N words, chip-1 `_diag_blk_overrun` delta across the run). `tools/pi/dsp4_fft.py --capture N` reads the buffer
+straight off the part. Regenerate: `./regenerate-dsp-contract.sh` moved only `C1_TEST_MEAS.asm`, `chip1/dsp_params.asm` (two entries) and
+`dsp_block.h`. No matrix changed. The shipping build (`DSP4_TEST_NODES=0`) still produces a 451,892 B chip 1 and 307,980 B chip 2.
+*Cost, measured on the part* (D24 configuration, TEST_OSC driving strip 6, MeasChan 6). Code: **29 instructions** in the tap, TEST_NODES
+builds only. Data: **3 L1 words** + **16,384 L2 words**. Idle: 3 instructions per block, only on the named strip (too small to resolve).
+Copying: **+72 cycles median per block pass**, from interleaved exact TCOUNT passes (4,545 idle vs 1,398 taken while the run index was
+moving): idle median 214,032, armed 214,104.5, mean +86. That is **0.02 % of the 327,680-cycle budget**, about 52 instructions, which
+matches the code. Overruns: **+0 on chip 1 and +0 on chip 2** over a 30.3 s soak of 84 back-to-back 16k captures, and 84 of 84 completed.
+`_proc_cyc_max` jumped on **both** chips during the soak. Chip 2 never executes the capture, so that maximum comes from link traffic and
+not from the arm. Read time over the diag peek: 4,096 words in 3.1 s, 16,384 in about 13 s.
+*Proof through the digital loop*, capture vs TEST_MEAS on the same running signal (node = 8 windows either side of the capture):
+
+| signal on strip 6 (post-fader) | N | RMS node / FFT, dBFS | THD+N node / FFT, dB | THD+N % node / FFT | noise+dist node / FFT, dBFS | FFT THD(2..10) |
+|---|---:|---|---|---|---|---|
+| 1 kHz −20 dBFS, clean | 4096 | −23.010 / −23.010 | −115.42 / −151.61 | 0.00017 / 0.00000 | −138.43 / −174.62 | −156.46 dB |
+| 1 kHz −10 dBFS, CompOn 1 | 4096 | −19.643 / −19.644 | **−55.750 / −55.750** | **0.16312 / 0.16313** | **−75.393 / −75.393** | −55.751 dB = 0.16310 % |
+| 1 kHz −10 dBFS, CompOn 1 | 16384 | −19.646 / −19.644 | **−55.749 / −55.750** | **0.16314 / 0.16313** | **−75.394 / −75.393** | −55.751 dB = 0.16310 % |
+| 1 kHz −18 dBFS, CompOn 1 | 16384 | −21.643 / −21.644 | **−55.752 / −55.752** | **0.16308 / 0.16309** | **−77.395 / −77.395** | −55.753 dB = 0.16306 % |
+
+**Gate criterion (≤ 0.5 dB) met with ≤ 0.002 dB** wherever the signal is above both instruments' floors. The strip-6 compressor gives
+a known digital distortion (h3 −55.93 dBc, h5 −70.39 dBc). The clean −20 dBFS row is the exception, and it is the instruments, not the
+signal: ThdResult −115 dB is TEST_MEAS's own float32 fit floor (spread 1.1 dB), and the FFT sees the tone 36 dB cleaner. So TEST_MEAS
+cannot certify a digital path below about −115 dB, and the capture can. Comparison basis: node NoiseResult is residual energy including
+harmonics, compared with the FFT's `THD+N dBFS`. The FFT's harmonic-free `noise` (−109.74 dBFS) has no node counterpart. Fundamental:
+1000.0000 Hz on every capture. **20 Hz, −20 dBFS, CompOn 0:** 16,384 samples hold **6.83 cycles** (6 rising zero crossings, sample peak
+0.10000), so ≥ 3 cycles is met at 16k. 4,096 holds 1.71 cycles and does **not** meet it. At 20 Hz `dsp4_fft.py` flags the spectrum
+"crowded": its ±8-bin tone band is ±23 Hz at 16k and swallows DC and h2. The capture is right and the FFT's band is the limit. A 20 Hz
+THD+N from the FFT needs a longer buffer or a narrower-lobe window (NEXT). TEST_MEAS at 20 Hz reads RMS −22.96 ±0.37 dB over its
+4,096-sample window, the known short-window error (S54-1).
+
+**S56-2. THE 0.98 FS CEILING IS NOT THE DSP. It sits on the analog side at a fixed LANE-referred level, after the preamp's gain, and short
+of the ADC's digital full scale.**
+*The DSP, measured.* TEST_OSC was injected into strip 20's **input block** (after `C1_IN_20`, before `C1_GAIN_20`), strip 20 unity with
+dynamics off, and swept through full scale. The meter is the one S54-5 read, `_mtr_peak_C1_MTR_20`, plus the capture's sample peak:
+
+| injected pk | 0.500 | 0.900 | 0.950 | 0.979 | 1.000 | 1.020 | 1.100 | 1.259 | 1.585 | 2.000 | 4.000 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| meter pk | 0.5000 | 0.9000 | 0.9500 | 0.9788 | **1.0000** | 1.0200 | 1.1000 | 1.2590 | **1.5850** | 2.0000 | **4.0000** |
+| capture sample pk | 0.5000 | 0.9000 | 0.9500 | 0.9790 | 1.0000 | 1.0200 | 1.1000 | 1.2590 | 1.5850 | 2.0000 | 4.0000 |
+| ThdResult, dB | −115.1 | −122.4 | −141.3 | −110.5 | −115.1 | −129.6 | −113.1 | −117.4 | −108.8 | −115.1 | −115.1 |
+| FFT THD+N, dB | −151.8 | −151.7 | −153.1 | −150.9 | −153.6 | −149.7 | −151.4 | −149.5 | −149.1 | −153.6 | −151.8 |
+
+Every point is linear to +12 dBFS, with THD+N at the instruments' floors and +0 overruns. So `C1_GAIN_20`, its wide-word peak, the meter
+fold, `C1_FDR_20` and the Q4.28 pool do not saturate anywhere near 0.98. The meter's own ballistics cost 0.0005 of a peak between attacks
+(min/max over six reads 0.99955), which is 0.004 dB and not 0.18 dB. The one stage the injection cannot reach is `C1_IN_20`'s RX read,
+and from source it cannot limit: `r2 = dm(i0, m0); r2 = ashift r2 by -3` (`chip1/nodes/C1_IN_20.asm`), a pure shift of the Q1.31 slot
+word with no clamp, so a 24-bit full-scale code 0x7FFFFF00 arrives as 0.99999. A converter code at FS would read ≥ 0.9999 on this
+meter. S54-5's maximum of 0.979 therefore means **the ADC's output never reached its FS code**.
+*DAC side, excluded by S54's own data.* The ceiling sits at the same lane level at two gain codes whose DAC levels are 19.5 dB apart.
+At code 0 (loop +5.58 dB) THD+N passes 1 % between lane −1 and −0.5 dBFS with the DAC at about −6 dBFS digital. At code 2 (loop
++25.04 dB, `knee.out`) lane 0 dBFS reads 1.91 % and meter 0.958 with the DAC at about −25 dBFS. A DAC or AUX 1 output-stage clip would
+follow the DAC level and not the lane level. The TX words themselves are unsaturated there (S54 `txpeek.out`, decoded as Q1.31). By the
+same argument, the preamp's **input** stage is excluded (its input differs by 19.5 dB between the two codes).
+*What remains, an analog question for PW's scope.* The limiter is between the preamp's gain-setting stage output and the AK5558's
+modulator: (a) the preamp or ADC-driver output swing running out about 0.2 dB before the ADC's FS input, or (b) the AK5558's own input
+range or modulator overload sitting below its digital FS code. Both give a soft ceiling with THD rising from −1 dBFS rather than a hard
+0x7FFFFF clip, so the two are told apart at the pins, not in code. Scope plan, loop cable back on, code 0, lane driven to +2…+4 dBFS
+(osc ≈ −3.6…−1.6 dBFS on strip 6): (1) the ADC driver output (U39's stage feeding AK5558 ch5 AINx±), flat-topping and at what volts;
+(2) the driver's supply rails at that moment; (3) the differential swing at the AK5558 pins against the datasheet FS input for the
+fitted VREF. Flat tops at the driver output, a few hundred mV short of its rails = (a). A clean sine at the pins at or above the
+datasheet FS = (b). **Netlist facts wanted from the hub:** the ADC driver part and its rail voltages, and AK5558 VREFH/VREFL (the FS
+input follows them). The AK5558 datasheet FS figure is not in this repo and was not guessed.
+
+**Hand-back.** The `s56` pair is **left running**, not rebooted back to `s51_119ea9d9`. PW was reading J45 against the sine, and a
+reboot drops the tone for about 2 minutes. The pair is a superset (same chip 2 md5, chip 1 = S51 + the capture arm) with the same cells
+applied. **1 kHz −20 dBFS pk on strip 6 → AUX 1** (TEST_OSC on, OscChan 6, level 0.100000), confirmed on chip 2's AUX 1 TX lane: peak
+−20.00 dBFS (Q1.31). **MeasChan 20**, CaptureArm 0. Strip 6 CompOn 0 / MainOn 0, strip 20 transparent, strips 1–24 other than 6/20
+muted, matching the as-found read. AN_EN `hi`, CS_M `op pu hi`, both unwritten. matrix-app inactive (as found). Chain not written. MIC 5
+at code 0 with the 150 Ω shunt as PW left it. During the session AUX 1 carried the S56-1 stimuli (1 kHz at −10/−18 dBFS through strip 6's compressor, 20 Hz −20 dBFS), then no
+tone while the S56-2 sweep had TEST_OSC on strip 20. PW then asked for the sine back, and it was restored and confirmed as above.
+
 ## THE STANDARD AUDIO TEST SET, FIRST RUN: MIC 5 → AUX 1 LOOP, T1–T8 + T4b (2026-09-16, session 54 — bench, MW-D24-2)
 
 **Pair:** `s51_119ea9d9` (`DSP4_TEST_NODES=1`, no block tap; chip1 `119ea9d9…`, chip2 `c56ed0ab…`, md5 re-checked at

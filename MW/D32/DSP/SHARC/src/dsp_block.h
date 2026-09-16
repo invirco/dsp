@@ -499,6 +499,13 @@
 #endif
 #define DSP4_TEST_WIN_SAMPLES (DSP4_TEST_WIN_BLOCKS * DSP4_BLOCK_SIZE)
 
+/* The TEST_MEAS capture arm's buffer (S56), in samples: 16384 =
+ * 341.3 ms at 48 kHz, 6.8 cycles of 20 Hz. A whole number
+ * of blocks at every block size the tree is generated for. */
+#ifndef DSP4_TEST_CAP_MAX
+#define DSP4_TEST_CAP_MAX 16384
+#endif
+
 /* THE CHANNEL MATRIX SEND SPI BLOCK (S22-4).
  *
  * spi_handler.asm bumps _ctl_epoch[addr / 144] so a strip node

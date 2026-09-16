@@ -1262,6 +1262,8 @@
 .extern _lpf_swap_pending_C1_FILT_30;
 .extern _lpf_swap_pending_C1_FILT_31;
 .extern _lpf_swap_pending_C1_FILT_32;
+.extern _meas_cap_arm_C1_TEST_MEAS;
+.extern _meas_cap_ready_C1_TEST_MEAS;
 .extern _meas_chan_C1_TEST_MEAS;
 .extern _meas_noise_C1_TEST_MEAS;
 .extern _meas_rms_C1_TEST_MEAS;
@@ -6853,8 +6855,8 @@
     _osc_chan_C1_TEST_OSC,    /* 0x1372: C1_TEST_OSC target channel */
     _osc_sweep_on_C1_TEST_OSC,    /* 0x1373: C1_TEST_OSC sweep arm */
     _osc_sweep_step_C1_TEST_OSC,    /* 0x1374: C1_TEST_OSC sweep step, codes */
-    0,  /* 0x1375: C1_TEST_OSC reserved */
-    0,  /* 0x1376: C1_TEST_OSC reserved */
+    _meas_cap_arm_C1_TEST_MEAS,    /* 0x1375: C1_TEST_MEAS capture arm, samples (no cell; proposed CaptureArm) */
+    _meas_cap_ready_C1_TEST_MEAS,    /* 0x1376: C1_TEST_MEAS capture ready, samples (no cell; proposed CaptureReady) */
     0;  /* 0x1377 */
 
 /* ---- Chip 1 ramp-stride table (4984 entries) ---- */
@@ -11853,8 +11855,8 @@
     0,  /* 0x1372: C1_TEST_OSC target channel */
     0,  /* 0x1373: C1_TEST_OSC sweep arm */
     0,  /* 0x1374: C1_TEST_OSC sweep step, codes */
-    0,  /* 0x1375: C1_TEST_OSC reserved */
-    0,  /* 0x1376: C1_TEST_OSC reserved */
+    0,  /* 0x1375: C1_TEST_MEAS capture arm, samples (no cell; proposed CaptureArm) */
+    0,  /* 0x1376: C1_TEST_MEAS capture ready, samples (no cell; proposed CaptureReady) */
     0;  /* 0x1377 */
 
 /* ---- Chip 1 wire-unit conversion table (4984 entries) ---- */
@@ -16860,8 +16862,8 @@
     0,  /* 0x1372: C1_TEST_OSC target channel */
     0,  /* 0x1373: C1_TEST_OSC sweep arm */
     0,  /* 0x1374: C1_TEST_OSC sweep step, codes */
-    0,  /* 0x1375: C1_TEST_OSC reserved */
-    0,  /* 0x1376: C1_TEST_OSC reserved */
+    0,  /* 0x1375: C1_TEST_MEAS capture arm, samples (no cell; proposed CaptureArm) */
+    0,  /* 0x1376: C1_TEST_MEAS capture ready, samples (no cell; proposed CaptureReady) */
     0;  /* 0x1377 */
 
 /* ---- Chip 1 recompute (dirty) table (4984 entries) ---- */
@@ -21865,8 +21867,8 @@
     0,  /* 0x1372: C1_TEST_OSC target channel */
     0,  /* 0x1373: C1_TEST_OSC sweep arm */
     0,  /* 0x1374: C1_TEST_OSC sweep step, codes */
-    0,  /* 0x1375: C1_TEST_OSC reserved */
-    0,  /* 0x1376: C1_TEST_OSC reserved */
+    0,  /* 0x1375: C1_TEST_MEAS capture arm, samples (no cell; proposed CaptureArm) */
+    0,  /* 0x1376: C1_TEST_MEAS capture ready, samples (no cell; proposed CaptureReady) */
     0;  /* 0x1377 */
 
 /* Samples per millisecond, IEEE-754 float32 bits (48 at 48000 Hz). */

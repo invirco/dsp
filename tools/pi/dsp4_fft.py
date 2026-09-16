@@ -49,6 +49,10 @@ Usage:
     dsp4_fft.py capture.json
     dsp4_fft.py capture.json --lane 1 --png spectrum.png
     dsp4_fft.py --selftest            # synthetic signals, known answers
+    dsp4_fft.py --capture 16384 [--symdir DIR] [--save FILE] [--png FILE]
+        # S56: arm TEST_MEAS's capture on the running part (chip 1,
+        # MeasChan's post-fader block), read the buffer, analyse it.
+        # Needs an S56 DSP4_TEST_NODES image; see dsp4_meascap.py.
 """
 import cmath
 import json
@@ -576,12 +580,36 @@ def selftest():
 def main(argv):
     if '--selftest' in argv:
         return selftest()
-    args = [a for a in argv if not a.startswith('--')]
-    if not args:
-        print(__doc__)
-        return 2
     lane = 0
     png = None
+    capn = None
+    symdir = None
+    save = None
+    for i, a in enumerate(argv):
+        if a == '--capture':
+            capn = int(argv[i + 1])
+        elif a == '--symdir':
+            symdir = argv[i + 1]
+        elif a == '--save':
+            save = argv[i + 1]
+    if capn is not None:
+        # THE LIVE PATH (S56): the buffer straight off the part, no file in
+        # between. Imported here so the file-only use stays stdlib-only and
+        # runs anywhere.
+        import dsp4_meascap as MC
+        cap = MC.capture(capn, symdir or MC.DEFAULT_SYMDIR)
+        if save:
+            with open(save, 'w') as f:
+                json.dump(cap, f)
+        argv = [a for a in argv
+                if a not in ('--capture', '--symdir', '--save',
+                             str(capn), symdir, save)]
+    args = [a for a in argv if not a.startswith('--')]
+    if png in args:
+        args.remove(png)
+    if capn is None and not args:
+        print(__doc__)
+        return 2
     for i, a in enumerate(argv):
         if a == '--lane':
             lane = int(argv[i + 1])
@@ -592,8 +620,9 @@ def main(argv):
         elif a.startswith('--png='):
             png = a.split('=', 1)[1]
 
-    with open(args[0]) as f:
-        cap = json.load(f)
+    if capn is None:
+        with open(args[0]) as f:
+            cap = json.load(f)
     scale = cap.get('scale')
     if scale not in SCALES:
         raise SystemExit(

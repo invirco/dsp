@@ -5677,6 +5677,12 @@ TEST_OSC_CODES = 128
 # gen_block_header() reads this name for the macro it emits, and the node
 # bodies below use the macro, so the two cannot drift apart.
 TEST_WIN_BLOCKS = 256
+# THE CAPTURE ARM'S BUFFER (S56), in SAMPLES, and a whole number of blocks
+# so the copy can never run past the end. 16,384 samples = 341 ms at 48 kHz:
+# 6.8 cycles of 20 Hz, a 2.93 Hz bin. Lives in L2 (seg_delay), where the
+# delay pool already sits, because 16,384 words is more than chip 1's L1 DM
+# has spare and a capture buffer does not need L1 access times.
+TEST_CAP_MAX = 16384
 
 
 def _osc_freq_table():
@@ -6119,6 +6125,17 @@ def gen_test_meas(node):
     A('/* Reserved: the eighth word of the block. Named so the dispatch')
     A(' * table has a symbol for it rather than a hole. */')
     A('.var _meas_rsvd_%s   = 0;' % nid)
+    A('/* THE CAPTURE ARM (S56). Two words, dispatched without cells until')
+    A(' * the contract lands CaptureArm / CaptureReady (proposals/')
+    A(' * CONTRACT-PROPOSAL-S56.md). The host writes CaptureReady = 0, then')
+    A(' * CaptureArm = N samples; at the next block boundary the tap starts')
+    A(" * copying MeasChan's post-fader block, whole blocks, contiguous, into")
+    A(' * _meas_cap_buf_, and when N (or the buffer) is full it publishes the')
+    A(' * count in CaptureReady and clears CaptureArm. The host then reads')
+    A(' * the buffer by peek. Declared unconditionally for the same reason')
+    A(' * as the words above: the dispatch table names them. */')
+    A('.var _meas_cap_arm_%s   = 0;   /* rw: samples wanted, 0 = idle */' % nid)
+    A('.var _meas_cap_ready_%s = 0;   /* ro: samples captured, 0 = none/busy */' % nid)
     A('')
     A('#if DSP4_TEST_NODES && DSP4_BLOCK_KERNELS')
     A('.var _meas_blk_%s    = 0;     /* blocks accumulated this window */' % nid)
@@ -6136,7 +6153,11 @@ def gen_test_meas(node):
     A(' * 0.00 dB. */')
     A('.var _meas_a_%s      = 0.0;' % nid)
     A('.var _meas_b_%s      = 0.0;' % nid)
+    A('.var _meas_cap_idx_%s  = 0;     /* samples copied this run */' % nid)
     A('.extern _osc_blk_sc_%s;' % osc)
+    A('')
+    A('.section/dm seg_delay;')
+    A('.var _meas_cap_buf_%s[DSP4_TEST_CAP_MAX];' % nid)
     A('#endif')
     A('')
     A('.section/pm seg_pmco;')
@@ -6203,6 +6224,47 @@ def gen_test_meas(node):
     A('    r2 = dm(_meas_chan_%s);' % nid)
     A('    comp(r4, r2);')
     A('    if ne rts;')
+    A('')
+    A('    /* ---- THE CAPTURE ARM (S56). Idle it is one load and a branch,')
+    A('     * and only on the ONE strip MeasChan names. Armed it is a')
+    A('     * block-length store loop. No other chip, no interrupt, no')
+    A('     * change to what the block does: the samples are the pool slot')
+    A('     * the measurement below reads, copied before it reads them. */')
+    A('    r2 = dm(_meas_cap_arm_%s);' % nid)
+    A('    r2 = pass r2;')
+    A('    if eq jump (pc, .tmt_nocap_%s);' % nid)
+    A('    r6 = dm(_meas_cap_idx_%s);' % nid)
+    A('    r6 = pass r6;')
+    A('    if ne jump (pc, .tmt_cap_go_%s);' % nid)
+    A('    dm(_meas_cap_ready_%s) = r6;   /* a new run: Ready = 0 */' % nid)
+    A('.tmt_cap_go_%s:' % nid)
+    A('    i4 = r5;')
+    A('    l4 = 0;')
+    A('    r7 = _meas_cap_buf_%s;' % nid)
+    A('    r7 = r7 + r6;')
+    A('    i5 = r7;')
+    A('    l5 = 0;')
+    A('    lcntr = DSP4_BLOCK_SIZE, do .tmt_cap_lp_%s until lce;' % nid)
+    A('        r0 = dm(i4, 1);')
+    A('.tmt_cap_lp_%s:' % nid)
+    A('        dm(i5, 1) = r0;')
+    A('    r7 = DSP4_BLOCK_SIZE;')
+    A('    r6 = r6 + r7;')
+    A('    /* Done at N, and done at the buffer whatever N says. The buffer')
+    A('     * is a whole number of blocks, so a copy never starts past it. */')
+    A('    comp(r6, r2);')
+    A('    if ge jump (pc, .tmt_cap_done_%s);' % nid)
+    A('    r7 = DSP4_TEST_CAP_MAX;')
+    A('    comp(r6, r7);')
+    A('    if ge jump (pc, .tmt_cap_done_%s);' % nid)
+    A('    dm(_meas_cap_idx_%s) = r6;' % nid)
+    A('    jump (pc, .tmt_nocap_%s);' % nid)
+    A('.tmt_cap_done_%s:' % nid)
+    A('    dm(_meas_cap_ready_%s) = r6;' % nid)
+    A('    r6 = 0;')
+    A('    dm(_meas_cap_idx_%s) = r6;' % nid)
+    A('    dm(_meas_cap_arm_%s) = r6;' % nid)
+    A('.tmt_nocap_%s:' % nid)
     A('    r1 = r5;')
     A('    i4 = r1;')
     A('    l4 = 0;')
@@ -10579,6 +10641,11 @@ def gen_block_header(mtx_ctl=None):
     _test_winsamp = TEST_WIN_BLOCKS * BLOCK
     _test_winms = '%.1f' % (1000.0 * _test_winsamp / SAMPLE_RATE_HZ)
     _test_wincyc = '%.1f' % (20.0 * _test_winsamp / SAMPLE_RATE_HZ)
+    if TEST_CAP_MAX % BLOCK:
+        raise ValueError('TEST_CAP_MAX %d is not a whole number of %d-sample '
+                         'blocks' % (TEST_CAP_MAX, BLOCK))
+    _test_capms = '%.1f' % (1000.0 * TEST_CAP_MAX / SAMPLE_RATE_HZ)
+    _test_capcyc = '%.1f' % (20.0 * TEST_CAP_MAX / SAMPLE_RATE_HZ)
     # THE CHANNEL MATRIX SEND SPI BLOCK'S EXTENT (S22-4), for the control-
     # epoch gate in spi_handler.asm. Emitted only when the graph has one, so
     # a dsp.csv without matrix sends produces the header it always did.
@@ -11119,6 +11186,13 @@ def gen_block_header(mtx_ctl=None):
 #define DSP4_TEST_WIN_BLOCKS {TEST_WIN_BLOCKS}
 #endif
 #define DSP4_TEST_WIN_SAMPLES (DSP4_TEST_WIN_BLOCKS * DSP4_BLOCK_SIZE)
+
+/* The TEST_MEAS capture arm's buffer (S56), in samples: {TEST_CAP_MAX} =
+ * {_test_capms} ms at 48 kHz, {_test_capcyc} cycles of 20 Hz. A whole number
+ * of blocks at every block size the tree is generated for. */
+#ifndef DSP4_TEST_CAP_MAX
+#define DSP4_TEST_CAP_MAX {TEST_CAP_MAX}
+#endif
 {mtx_block}
 #endif /* DSP4_BLOCK_H */
 """
